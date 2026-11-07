@@ -647,6 +647,9 @@ const INFO := {
 	"kozia9": ["Kozia 9",
 			"1974–76, Kuźmienko i Sembrat: blok wspina się po piętrze, okna chowają się w zębach.",
 			"1974-76, Kuźmienko and Sembrat: the block climbs a storey at a time, windows hidden in its teeth."],
+	"cparking": ["Cyfrowy Parking Novotel",
+			"Nowogrodzka 27: osiem otwartych poziomów, murale w czerwone róże i na dole bar. Wjazd od Parkingowej.",
+			"Nowogrodzka 27: eight open decks painted with red roses, a bar on the corner. The way in is off Parkingowa."],
 	"karowa18a": ["Karowa 18a",
 			"1978: blok-rzeźba na zakręcie Karowej, kolumny skrzyń przesunięte o piętro.",
 			"1978: a block like a sculpture on Karowa's bend, columns of boxes a storey apart."],
@@ -916,6 +919,8 @@ static func tower_colour(key: String, fallback: Color) -> Color:
 		return ML_WALL
 	if key == "kozia9":
 		return KZ_WALL
+	if key == "cparking":
+		return CP_RED
 	if key == "karowa18a":
 		return KR_TAN
 	if key == "florian":
@@ -1211,6 +1216,8 @@ func _find_sites() -> void:
 	_find_mlotek()
 	_find_kozia9()
 	_find_karowa18a()
+	# The car park behind the Novotel (F's photos, 2026-11-07).
+	_find_cparking()
 	# Plac Zbawiciela (Marszałkowska street by street, 2026-11-01): the basilica, a model.
 	_find_zbawiciela()
 	# F's ask (2026-11-01): every church designed by the same rules (the church kit).
@@ -1880,6 +1887,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_mlotek(s)
 			"kozia9":
 				_build_kozia9(s)
+			"cparking":
+				_build_cparking(s)
 			"karowa18a":
 				_build_karowa18a(s)
 			"filtry":
@@ -28779,3 +28788,340 @@ func _build_scena_relax(site: Dictionary) -> void:
 	for k in 7:
 		_lbox(1.2 + k * (width - 2.4) / 6.0, 0.15, 0.12, 0.12, g, g + 3.9, concrete.darkened(0.2))
 	_collide_raw(site)
+
+
+# --- Cyfrowy Parking Novotel, Nowogrodzka 27 (F's five photos, 2026-11-07) ----------------------
+## The open-deck car park behind the hotel, an L of 36 x 44 m on Nowogrodzka and a 14 m wing running
+## 87 m down Parkingowa (the OSM outline "parking", 30.7 m): a ground storey of shop glass, then
+## eight decks whose concrete spandrels (1.75 m, a 3.45 m pitch) carry one painted mural round the
+## corner: red swirls with orange patches and white roses at the Nowogrodzka end, turning green over
+## teal and light blue down Parkingowa. The bar sits on the corner (parody names: KLUBOLEJNIA on
+## Nowogrodzka, LEJALNIA drink bar on Parkingowa, blue neon, a red lit pier), then the dark entry
+## with its red-and-white barrier and the blue P, the lit shops, and along the Nowogrodzka foot
+## the poster boards. Beside it the blank corrugated wall of the next block carries a parody of the
+## paint brand's wordmark (KOLORKI) and the mural's red head. Frame: u along the Parkingowa face
+## from the corner (south), v out of it (west); the corner is the origin. Log docs/landmarks/cparking.md.
+const CP_AT := Vector2(-660.0, 580.0)
+const CP_O := Vector2(-682.5, 544.6)
+const CP_A := Vector2(0.30148, 0.95354)
+const CP_GH := 4.8            # the ground storey: shop glass 3.3 m under a 1.5 m fascia
+const CP_PITCH := 3.45        # deck to deck
+const CP_LEVELS := 8
+const CP_BEAM := 0.65         # a spandrel hangs this far under its deck...
+const CP_PARAPET := 1.1       # ...and stands this far over it (1.75 m together)
+const CP_SETBACK := 5.0       # the lit core behind the open decks
+const CP_WALL_A := Vector2(-648.6, 533.2)   # the next block's Nowogrodzka face (the corrugated wall)
+const CP_WALL_B := Vector2(-627.1, 525.8)
+const CP_WALL_H := 22.0
+const CP_RED := Color("#b64a3e")
+const CP_RED_D := Color("#9b3b36")
+const CP_ORANGE := Color("#d98238")
+const CP_ORANGE_L := Color("#e69b48")
+const CP_WHITE := Color("#ece6d8")
+const CP_GREEN := Color("#86b96a")
+const CP_GREEN_L := Color("#a9cd74")
+const CP_YELLOWG := Color("#cfd57c")
+const CP_TEAL := Color("#4fa9a6")
+const CP_BLUE := Color("#93c4d6")
+const CP_CONC := Color("#bdb8ab")
+const CP_FLOOR := Color("#9c9a92")
+const CP_CORE := Color("#515957")
+const CP_DARK := Color("#24282d")
+const CP_NAVY := Color("#1f2f6b")
+const CP_BLUE_NEON := Color(0.2, 0.5, 1.0)
+const CP_POSTERS := [Color("#4b2f7a"), Color("#e08a2c"), Color("#1f2f66"), Color("#b83a7a"), Color("#2c8a8a"), Color("#2a2218"), Color("#e6e2d6")]
+
+
+func _find_cparking() -> void:
+	var q := _tallest_at(CP_AT)
+	if q.size() < 5:
+		return
+	_add_site("cparking", [_largest(Geometry2D.offset_polygon(q, 1.5, Geometry2D.JOIN_MITER))])
+	if not sites.is_empty() and sites[-1]["key"] == "cparking":
+		sites[-1]["ring"] = _simplify(q, 0.15)
+		sites[-1]["raw"] = q
+
+
+func _cp_hash(a: float, b: float) -> float:
+	return fposmod(sin(a * 12.9898 + b * 78.233) * 43758.5453, 1.0)
+
+
+## Which face an edge is: 0 Nowogrodzka, 1 Parkingowa, 2 the north block's east face, 3 the wing's
+## south end, 4 the inner faces (the wing's east side and the step), mostly hidden by neighbours.
+func _cp_face(a: Vector2, b: Vector2) -> int:
+	var lm := _local((a + b) * 0.5)
+	if lm.x < 1.5:
+		return 0
+	if lm.y > -1.5:
+		return 1
+	if lm.x > 86.0:
+		return 3
+	if lm.y < -30.0:
+		return 2
+	return 4
+
+
+## The mural's colour at `pp` metres round the corner (the Nowogrodzka face counted from its far
+## end, 0 to 35.8, then down Parkingowa) on deck `k` (0 lowest).
+func _cp_mural(face: int, pp: float, k: int) -> Color:
+	var h := _cp_hash(pp * 0.61, float(k) * 3.7 + float(face))
+	var red := CP_RED if h < 0.62 else CP_RED_D
+	var orange := CP_ORANGE if h < 0.7 else CP_ORANGE_L
+	var u := pp - 35.8
+	match face:
+		0:
+			if k == 0 and pp > 12.0:
+				return orange
+			if (k == 1 and pp > 27.0) or (k == 2 and pp > 32.0):
+				return orange
+			return red
+		1:
+			if u < 38.0:
+				if k <= 2 or (k == 4 and u > 10.0 and u < 26.0) or (k == 7 and u > 24.0):
+					return orange
+				return red
+			var d := (u - 40.0) / 7.0
+			var g_edge := 7.4 - d
+			if float(k) >= g_edge:
+				return CP_YELLOWG if h > 0.9 else (CP_GREEN if h < 0.5 else CP_GREEN_L)
+			if float(k) >= g_edge - 2.6:
+				return CP_TEAL if h < 0.6 else CP_BLUE
+			return orange if k <= 1 else red
+		2:
+			if k >= 4:
+				return CP_GREEN if h < 0.55 else CP_GREEN_L
+			return CP_TEAL if h < 0.6 else CP_BLUE
+		3:
+			return CP_TEAL if h < 0.55 else CP_BLUE
+	return Color("#a9b4a5") if k >= 4 else Color("#9fb3b0")
+
+
+## A wall in the local plan (u, v) facing the local direction `out`, `proud` metres off the line.
+func _cp_lw(u0: float, v0: float, u1: float, v1: float, y0: float, y1: float, out: Vector2, col: Color, mode := M_STONE, proud := 0.0) -> void:
+	var o := _a * out.x + _b * out.y
+	var keep := _mode
+	_mode = mode
+	_wall(_w(u0, v0) + o * proud, _w(u1, v1) + o * proud, y0, y1, o, col)
+	_mode = keep
+
+
+func _build_cparking(site: Dictionary) -> void:
+	var ring: PackedVector2Array = site["ring"]
+	_g = _ground_under(ring)
+	var g := _g
+	_o = CP_O
+	_a = CP_A
+	_b = Vector2(-CP_A.y, CP_A.x)  # out of the Parkingowa face
+	var none := Color(0, 0, 0, 0)
+	var f_top := g + CP_GH + CP_BEAM + CP_PITCH * (CP_LEVELS - 1)
+	# The base, and behind the open decks the lit core.
+	_prism(ring, g - 0.6, g + CP_GH, CP_CONC, none, M_STONE)
+	var core := _largest(Geometry2D.offset_polygon(ring, -CP_SETBACK, Geometry2D.JOIN_MITER))
+	if core.size() >= 3:
+		_prism(core, g + CP_GH, f_top, CP_CORE, none, M_LAMP, M_STONE)
+	var slab := _largest(Geometry2D.offset_polygon(ring, -0.35, Geometry2D.JOIN_MITER))
+	_mode = M_STONE
+	for k in CP_LEVELS:
+		_cap(slab, g + CP_GH + CP_BEAM + CP_PITCH * k, CP_FLOOR if k < CP_LEVELS - 1 else Color("#8a8882"))
+	# The spandrels, cell by cell, in the mural's colours; columns in the openings; the parapet tops.
+	var roses := 0
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var ln := a.distance_to(b)
+		if ln < 1.0:
+			continue
+		var e := (b - a) / ln
+		var out := _out(ring, a, b)
+		var face := _cp_face(a, b)
+		var cell := 1.8 if face < 4 else 4.0
+		var n := ceili(ln / cell)
+		for k in CP_LEVELS:
+			var f := g + CP_GH + CP_BEAM + CP_PITCH * k
+			var y0 := f - CP_BEAM
+			var y1 := f + CP_PARAPET
+			var ym := y0 + 0.9
+			for j in n:
+				var p0 := a + e * (ln * float(j) / n)
+				var p1 := a + e * (ln * float(j + 1) / n)
+				var lm := _local((p0 + p1) * 0.5)
+				var pp := lm.y + 35.8 if face == 0 else (35.8 + lm.x if face == 1 else (absf(lm.x) if face == 2 else lm.x))
+				var base := _cp_mural(face, pp, k)
+				var j1 := 0.92 + 0.12 * _cp_hash(pp, float(k) + 0.5)
+				var j2 := 0.9 + 0.14 * _cp_hash(pp + 3.1, float(k) + 1.5)
+				_mode = M_STONE
+				if face == 4:
+					_wall(p0, p1, y0, y1, out, Color(base.r * j1, base.g * j1, base.b * j1))
+				else:
+					_wall(p0, p1, y0, ym, out, Color(base.r * j1, base.g * j1, base.b * j1))
+					_wall(p0, p1, ym, y1, out, Color(base.r * j2, base.g * j2, base.b * j2))
+			# The parapet's top edge.
+			_cap(PackedVector2Array([a, b - e * 0.35, b - e * 0.35 - out * 0.35, a - out * 0.35]), y1, Color("#c9c4b6"))
+			if face >= 4:
+				continue
+			# Columns in the opening above (not under the roof deck), 5.6 m apart.
+			if k < CP_LEVELS - 1:
+				var c := 0
+				while 2.0 + 5.6 * c < ln - 1.0:
+					var m := a + e * (2.0 + 5.6 * c)
+					var lmm := _local(m)
+					var ppm := lmm.y + 35.8 if face == 0 else 35.8 + lmm.x
+					var warm := _cp_mural(face, ppm, k) == CP_ORANGE or _cp_hash(ppm, float(k) * 1.3) < 0.18
+					_wall(m - e * 0.3 - out * 0.55, m + e * 0.3 - out * 0.55, f + CP_PARAPET, f + CP_PITCH - CP_BEAM, out,
+							CP_ORANGE if warm and ppm < 60.0 else Color("#cfcabd"))
+					c += 1
+			# White roses on the red and orange: a ring of two discs, the second a darker swirl.
+			var c2 := 0
+			while 1.6 + 5.6 * c2 < ln - 1.0 and roses < 90:
+				var h2 := _cp_hash(a.x * 0.37 + float(c2), float(k) * 2.9 + a.y * 0.11)
+				var m2 := a + e * (1.6 + 5.6 * c2 + (h2 - 0.5) * 2.4)
+				var lm2 := _local(m2)
+				var pp2 := lm2.y + 35.8 if face == 0 else (35.8 + lm2.x if face == 1 else 99.0)
+				var chance := 0.55 if pp2 < 82.0 else 0.0
+				if face == 1 and pp2 > 82.0:
+					chance = 0.12
+				if h2 < chance and _cp_mural(face, pp2, k) in [CP_RED, CP_RED_D, CP_ORANGE, CP_ORANGE_L]:
+					var r := 0.45 + 0.5 * _cp_hash(h2, float(k))
+					var pos := m2 + out * 0.07
+					var yc := f + 0.25 + 0.2 * (h2 - 0.3)
+					_mode = M_STONE
+					_disc(Vector3(pos.x, yc, pos.y), Vector3(out.x, 0.0, out.y), r, 8, CP_WHITE)
+					var pos2 := m2 + out * 0.15 + e * (r * 0.12)
+					_disc(Vector3(pos2.x, yc + r * 0.1, pos2.y), Vector3(out.x, 0.0, out.y), r * 0.5, 6, CP_RED_D)
+					roses += 1
+				c2 += 1
+	# The roof deck: two stair and lift heads and the lamp poles.
+	_lbox(8.0, -9.0, 3.2, 2.6, f_top, f_top + 3.2, CP_CONC, M_STONE, Color("#77756f"))
+	_lbox(76.0, -7.0, 2.6, 3.0, f_top, f_top + 3.2, CP_CONC, M_STONE, Color("#77756f"))
+	for pole: Vector2 in [Vector2(14.0, -10.0), Vector2(32.0, -10.0), Vector2(14.0, -26.0), Vector2(32.0, -26.0), Vector2(56.0, -7.0), Vector2(70.0, -7.0)]:
+		_lbox(pole.x, pole.y, 0.07, 0.07, f_top, f_top + 4.0, Color("#6e7378"), M_STONE)
+		_lbox(pole.x, pole.y, 0.3, 0.3, f_top + 4.0, f_top + 4.2, Color(0.75, 0.68, 0.5), M_LAMP)
+	_cp_ground(g)
+	_cp_wall_panel(g)
+	_collide_raw(site)
+
+
+## The ground storey: the corner bar on both faces, the entry with its barrier, the shops down
+## Parkingowa and the poster boards along Nowogrodzka.
+func _cp_ground(g: float) -> void:
+	var west := Vector2(0.0, 1.0)
+	var north := Vector2(-1.0, 0.0)
+	var glass := Color("#3b454d")
+	var fascia := Color("#262a30")
+	var cream := Color("#e4dccb")
+	# Corner bar, Parkingowa side (LEJALNIA): glass between dark mullions, a blue tube under the fascia.
+	_cp_lw(0.6, 0.0, 12.4, 0.0, g + 0.45, g + 3.3, west, glass, M_PAVILION, 0.12)
+	for u: float in [3.5, 6.5, 9.5]:
+		_cp_lw(u - 0.08, 0.0, u + 0.08, 0.0, g + 0.45, g + 3.3, west, CP_DARK, M_STONE, 0.17)
+	_cp_lw(0.0, 0.0, 12.8, 0.0, g + 3.3, g + CP_GH, west, fascia, M_STONE, 0.18)
+	_cp_lw(0.6, 0.0, 12.4, 0.0, g + 3.18, g + 3.3, west, CP_BLUE_NEON, M_LAMP + 0.5, 0.2)
+	_cp_lw(0.6, 0.0, 12.4, 0.0, g + 0.38, g + 0.5, west, CP_BLUE_NEON, M_LAMP + 0.5, 0.2)
+	var at := _w(6.4, 0.0) + _b * 0.2
+	signs.append(["LEJALNIA", Vector3(at.x, g + 3.3, at.y), Vector3(_b.x, 0.0, _b.y), 0.7, CP_BLUE_NEON])
+	var at2 := _w(6.4, 0.0) + _b * 0.2
+	signs.append(["DRINK BAR", Vector3(at2.x, g + 2.55, at2.y), Vector3(_b.x, 0.0, _b.y), 0.3, CP_BLUE_NEON])
+	# The same bar round the corner on Nowogrodzka (KLUBOLEJNIA).
+	_cp_lw(0.0, -0.6, 0.0, -9.8, g + 0.45, g + 3.3, north, glass, M_PAVILION, 0.12)
+	for v: float in [-3.5, -6.5]:
+		_cp_lw(0.0, v - 0.08, 0.0, v + 0.08, g + 0.45, g + 3.3, north, CP_DARK, M_STONE, 0.17)
+	_cp_lw(0.0, 0.0, 0.0, -10.2, g + 3.3, g + CP_GH, north, fascia, M_STONE, 0.18)
+	_cp_lw(0.0, -0.6, 0.0, -9.8, g + 3.18, g + 3.3, north, CP_BLUE_NEON, M_LAMP + 0.5, 0.2)
+	_cp_lw(0.0, -0.6, 0.0, -9.8, g + 0.38, g + 0.5, north, CP_BLUE_NEON, M_LAMP + 0.5, 0.2)
+	var at3 := _w(0.0, -5.0) - _a * 0.2
+	signs.append(["KLUBOLEJNIA", Vector3(at3.x, g + 3.35, at3.y), Vector3(-_a.x, 0.0, -_a.y), 0.45, CP_BLUE_NEON])
+	# The piers: the cream one on the corner, one at each end, the right one lit red.
+	_lbox(0.4, 0.0, 0.6, 0.6, g, g + CP_GH, cream, M_STONE)
+	_lbox(0.0, -10.4, 0.5, 0.5, g, g + CP_GH, cream, M_STONE)
+	_lbox(13.1, 0.0, 0.5, 0.5, g, g + 4.0, cream, M_STONE)
+	_lbox(13.1, 0.55, 0.12, 0.12, g + 0.3, g + 3.5, Color(0.75, 0.1, 0.25), M_LAMP)
+	# The entry: a dark mouth with a pink light, the barrier, its orange post, the blue P.
+	_cp_lw(14.2, 0.0, 24.2, 0.0, g, g + 3.6, west, Color("#1b1c20"), M_STONE, 0.13)
+	_cp_lw(14.2, 0.0, 24.2, 0.0, g + 3.55, g + 3.67, west, Color(1.0, 0.2, 0.62), M_LAMP, 0.15)
+	_cp_lw(14.2, 0.0, 24.2, 0.0, g + 3.67, g + CP_GH, west, Color("#8d897f"), M_STONE, 0.14)
+	for s in 9:
+		_lbox(14.6 + 0.8 * s, 1.7, 0.4, 0.07, g + 1.1, g + 1.24, Color("#c23a32") if s % 2 == 0 else CP_WHITE, M_STONE)
+	_lbox(14.0, 1.7, 0.2, 0.2, g, g + 1.25, CP_ORANGE, M_STONE)
+	_lbox(22.2, 1.7, 0.1, 0.1, g, g + 1.2, Color("#6e7378"), M_STONE)
+	_lbox(25.2, 2.4, 0.05, 0.05, g, g + 2.6, Color("#6e7378"), M_STONE)
+	_lbox(25.2, 2.4, 0.36, 0.03, g + 2.15, g + 2.95, Color("#1d4fa0"), M_STONE)
+	var pat := _w(25.2, 2.4) + _b * 0.04
+	signs.append(["P", Vector3(pat.x, g + 2.2, pat.y), Vector3(_b.x, 0.0, _b.y), 0.3, Color(1, 1, 1)])
+	# The shops down Parkingowa: three lit units, then a plain run with a roller door.
+	var tones := [0.0, 0.5, 0.375]
+	var boards := [Color("#d9cfa8"), Color("#bfc7cc"), Color("#c9a0b8")]
+	for s in 3:
+		var u0 := 25.5 + 12.2 * s
+		_cp_lw(u0, 0.0, u0 + 11.4, 0.0, g + 0.5, g + 3.2, west, Color("#3b454d"), M_PAVILION + tones[s], 0.12)
+		_cp_lw(u0, 0.0, u0 + 11.4, 0.0, g + 3.2, g + CP_GH, west, boards[s], M_STONE, 0.14)
+		_cp_lw(u0 + 5.6, 0.0, u0 + 5.8, 0.0, g + 0.5, g + 3.2, west, CP_DARK, M_STONE, 0.17)
+	_cp_lw(70.0, 0.0, 76.0, 0.0, g, g + 3.2, west, Color("#5b5f63"), M_STONE, 0.1)
+	# The poster boards along the Nowogrodzka foot: 1.15 m sheets, a hand's gap between.
+	var v := -11.0
+	var p := 0
+	while v > -35.4:
+		_cp_lw(0.0, v, 0.0, v - 1.15, g + 0.8, g + 3.0, north, CP_POSTERS[p % CP_POSTERS.size()] if _cp_hash(float(p), 1.0) < 0.7 else CP_POSTERS[(p * 3) % CP_POSTERS.size()], M_STONE, 0.1)
+		v -= 1.4
+		p += 1
+
+
+## The corrugated wall of the next block on Nowogrodzka, its parody wordmark and the mural's red
+## head climbing it from the car park's side, and the posters along its foot.
+func _cp_wall_panel(g: float) -> void:
+	var a := CP_WALL_A
+	var b := CP_WALL_B
+	var ln := a.distance_to(b)
+	var e := (b - a) / ln
+	var out := Vector2(e.y, -e.x)
+	var gw: float = map.terrain_height(a.x, a.y)
+	var n := ceili(ln / 0.55)
+	_mode = M_STONE
+	for j in n:
+		var t0 := ln * float(j) / n
+		var t1 := ln * float(j + 1) / n
+		var tm := (t0 + t1) * 0.5
+		var pa := a + e * t0 + out * 0.25
+		var pb := a + e * t1 + out * 0.25
+		var white := Color("#e6e8e9") if j % 2 == 0 else Color("#d8dbdc")
+		var red := 0.0
+		if tm < ln * 0.42:
+			red = 15.0 * pow(1.0 - tm / (ln * 0.42), 0.55)
+		if red > 0.5:
+			var rc := Color("#c4472f") if j % 2 == 0 else Color("#a83a2c")
+			_wall(pa, pb, gw, gw + red, out, rc)
+			_wall(pa, pb, gw + red, gw + CP_WALL_H, out, white)
+		else:
+			_wall(pa, pb, gw, gw + CP_WALL_H, out, white)
+	# Posters along the foot, continuing the car park's row.
+	var t := 0.6
+	var q := 0
+	while t < ln - 1.2:
+		var pa2 := a + e * t + out * 0.3
+		var pb2 := a + e * (t + 1.15) + out * 0.3
+		_wall(pa2, pb2, gw + 0.8, gw + 3.0, out, CP_POSTERS[(q * 2 + 1) % CP_POSTERS.size()])
+		t += 1.4
+		q += 1
+	# The wordmark (KOLORKI) in navy pixels, a rainbow swoosh over it; read from the north, west on the right.
+	var org := a + e * (ln * 0.94) + out * 0.28
+	var base_y := gw + 8.6
+	var px := 0.26
+	var cursor := 0.0
+	for ch in "KOLORKI":
+		var rows: Array = Neon.FONT[ch]
+		for gy in 7:
+			var line: String = rows[gy]
+			var gx := 0
+			while gx < 5:
+				if line[gx] == "#":
+					var gx2 := gx
+					while gx2 + 1 < 5 and line[gx2 + 1] == "#":
+						gx2 += 1
+					_wall(org - e * (cursor + gx * px), org - e * (cursor + (gx2 + 1) * px), base_y + (6 - gy) * px, base_y + (7 - gy) * px, out, CP_NAVY)
+					gx = gx2 + 1
+				else:
+					gx += 1
+		cursor += 6.0 * px
+	var rainbow := [Color("#d94a3a"), Color("#e8963a"), Color("#e8d04a"), Color("#6fbf5a"), Color("#4a8fd0"), Color("#7a58b8")]
+	for s in rainbow.size():
+		var sx := 0.3 + s * 0.85
+		var sy := base_y + 2.35 + sin(float(s) * 0.55) * 0.55
+		_wall(org - e * sx, org - e * (sx + 0.7), sy, sy + 0.34, out, rainbow[s])

@@ -102,7 +102,9 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		"ROSZMAN", "MILENIUSZ", "PALUSZKI", "HYM", "LEKSUS", "CZERY",
 		# The Palace of Culture's venues (F, 2026-11-07): its stages, cinema, bars, museum and terrace.
 		"KINOTEKA", "KULTURALNA", "TEATR", "DRAMATYCZNY", "MUZEUM", "TECHNIKI", "KONGRESOWA", "STUDIO",
-		"TARAS", "30 PIĘTRO", "LALKA", "THE FUTURE", "SHOULD", "ALWAYS BE", "BETTER"]
+		"TARAS", "30 PIĘTRO", "LALKA", "THE FUTURE", "SHOULD", "ALWAYS BE", "BETTER",
+		# The car park behind the Novotel (F's photos, 2026-11-07): the corner bar's parody names.
+		"KLUBOLEJNIA", "LEJALNIA", "DRINK BAR"]
 ## Tube colours (linear, bright): pink, cyan, violet, and a few words' usual colours.
 const PINK := Color(1.0, 0.1, 0.55)
 const CYAN := Color(0.1, 0.9, 1.0)

@@ -78,6 +78,7 @@ const BUDGET := {
 	"mlotek": 2400,
 	"kozia9": 7000,
 	"karowa18a": 1500,
+	"cparking": 6500,
 	"hotel_kasztel": 330,
 	"hotel_canaletto": 330,
 	"hotel_starowka": 330,
