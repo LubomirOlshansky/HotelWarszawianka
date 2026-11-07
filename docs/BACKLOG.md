@@ -335,6 +335,47 @@ barge and its wake. Left:
 - [ ] The marina (PR #251) as the start once the harbour's 8 m entrance can be widened or raced in single file
 - [ ] Pan Zdzisiek fishing from the Złota Rybka after the race; Kamil's "relacja" as a ticker joke
 
+## Walls, fences and the city walls from the map's data (F, 2026-11-07)
+
+F after the stairs: "what else can you improve in the city environment?". Done 2026-11-07
+(`tools/barrier_tags.py`, `map_builder.gd` `_mapped_style`, `_build_city_walls`): 1,100 walls,
+fences and hedges carry OSM's height, material or fence type; walls coloured by material (brick,
+stone, concrete, gabion, glass, wood, noise barrier at 4 m); 719 railing fences open steel railings;
+chain-link fences and the 6 m ball-stop nets an open mesh (a solid fence is at most 2.5 m); hedges
+their height (at most 3 m). The Old Town's city walls (22 OSM city_wall areas) were not on the map at
+all: brick walls at their mapped heights (Baszta Rycerska 13.5 m, curtain walls 5-6 m by default).
+Left:
+- **City walls look check** from photos gathered on the Mac (batch2-old-town): battlements, the
+  coping, the gates, the międzymurze's ground; heights where OSM has none are the 5 m default.
+- **Most walls and fences still carry no OSM tags** (about 1,900 walls, 4,200 fences): a street
+  pass from photos (Mapillary) can tag them in `game/data/road_objects.json`.
+
+## Stairs across the city (F, 2026-11-07)
+
+F: "look on the map to the places where we have stairs, map them and improve; if you need photos,
+give me the list". Done 2026-11-07: `tools/stairs.py` copies every flight's OSM tags onto the map
+(step count, width, which end is the top, handrails, pram/bike ramps, surface; 2,014 of 2,262
+flights; the tags came from the Mac's OSM export, the cloud can't reach Overpass) and the walls'
+mapped heights (179 walls); `bake_osm.py` keeps both on a re-bake; `stairs.py report` writes the
+ranked inventory; verify step `stairs`. `map_builder.gd` `_build_stair_flights`: every flight that
+drops at least 0.35 m over the drawn ground (or off a deck its step count says it climbs to) is a
+stone flight (treads and ~0.16 m risers, landings where the ground levels off, cheek walls, OSM's
+handrails, pram channels), in the building meshes (no draw call, no collider). The walls: OSM
+heights used, fountain basin rings and small rings by a flight a 0.45 m rim, a wall across a flight
+opened (not at a stairwell's dead end), short walls wrapping a stairwell a balustrade.
+Photo list: `/mnt/project-files/stairs/stairs-photo-list.md`. Left:
+- **Flights deeper than the ground shows** (about 400: the 10 m grid smooths any drop narrower than
+  ~20 m): the Skarpa's long flights by the Muzeum Narodowe and Smolna (82 steps, 13 m mapped, 3.6 m
+  on the grid), Karowa, Tamka, Dynasy, the BUW roof garden. Each needs a SUNKEN-like ground cut or a
+  terrace, best from F's photos.
+- **Stairwells to the underpasses and the metro** still flat under their walls/tubes (Rondo ONZ,
+  Rondo Dmowskiego's twelve, Świętokrzyska, Ratusz Arsenał, Dworzec Gdański): the next SUNKEN entries.
+- **Escalators** (`cv`, 50 flights, all in stations) are left as painted strips.
+- **Collisions**: the stone flights don't collide (the car drives the ground under them, as before).
+  Whether a long flight's cheek walls should redirect the car is a driving call for F.
+- **Small wall rings away from stairs** (about 380 under 6 m across, many planters) still stand 1.9 m
+  unless OSM maps a height: a pass by photos.
+
 ### Free ride and the marina's access (F, 2026-11-07)
 
 Built: three boats from F's photos moored by the start pontoon, each with its own physics (jet ski
@@ -888,6 +929,15 @@ then whole-map in `tools/road_fixes.py` (run after road_smooth; verify step `fix
 - [x] 61 zebras under 1 m (dots left by the asphalt clip) dropped; zebra ends short of the kerb run on (158 m)
 - [x] Dark patches in junction boxes: not in the game (every ribbon and area is one colour at one height);
   they came from the flat comparison pictures, which draw ribbons half transparent over the photo
+- [x] Andersa by Ratusz Arsenał (F's screenshot): where the 4-lane street splits round the median, the west
+  kerb jogged out, the asphalt had a notch beside the tram stop and the lane lines broke off and drifted.
+  Site fix 5 in `road_fixes.py`: one straight east kerb along the platform, a gentle west taper (the third
+  southbound lane opens by paint), lane lines joined by smooth curves, the centre line on to the median's
+  nose, asphalt filled out to the new kerbs; `--check` counts `site_gaps` (0). Shelters not touched
+- [x] The same jog at 25 more mid-block splits (a two-way way meeting two one-way ways of the same street,
+  no other street there): `road_fixes.auto_sites` frames each like Andersa and redraws kerbs and edge lines
+  (lane lines only where they pair up); a side is skipped when its new kerb would sit inside the asphalt or
+  the fill would reach a tram bed or platform (Waszyngtona, Karowa, Nowowiejska, Polna, Rozbrat kept as they were)
 Found:
 - [ ] Zebras and cycle crossings already run kerb to kerb (or kerb to median) on the data: no dual
   carriageway crossed on one side only, 1 cycle crossing shorter than its zebra. What still reads as
@@ -895,6 +945,9 @@ Found:
   main streets (a map_builder change, not done: F's call, main as base)
 - [ ] Lane lines through a junction where the same street turns (one name both ways) are kept
 - [ ] Unsignalled crossings more than 12 m from the junction's ribbons count as mid-block (lines kept)
+- [ ] Lane lines at most auto-fixed splits are kept as they were (lane counts differ across the split);
+  kerb jogs at junction corners, bus bays and slip roads are not touched (about 100 more flagged spots
+  in a kerb-jog scan, mostly real corners)
 
 ## Operation Unslop: streets that don't look generated (F, 2026-11-05)
 
@@ -2026,6 +2079,25 @@ Plan: docs/design/railway.md. One PR per item, in this order:
   boxes and the bulbs (draw calls unchanged, triangles up), the jazz loop's level against the radio on
   the phone's speaker, the coloured light washes under the saucer (the game's camera never sees the
   underside, so none were built), the projected line patterns of F's night photo, planters.
+
+- **Railway audit (F, 2026-11-07).** Built: light signals (`map_builder` `rail_signal_spots`,
+  `_build_rail_signals`: 50, in the walls surface, +0 draw calls; `check_rail_signals` in verify),
+  train sounds (`trains.gd` `_sounds`; `train_rumble`, `train_bridge`, `train_horn`, `station_gong`
+  from tools/make_sfx.py), red tail lamps on a train's last car. Open: the signals' look and the
+  sounds' levels on the phone (the rumble's body is low, the phone's speaker loses some of it);
+  signals stay at one aspect (they do not change as a train passes); no signals on the bridges or at
+  Główna's yard islands; S3d Gdańska.
+- **check_trains is not repeatable (found 2026-11-07).** The same commit gives different runs: main f7b6cc58 ran three times gave Główna 2, 0 and 1 stops, so "no train stopped at Główna" (and "no train turned back") fail now and then. The trains' `_rng` is seeded (1955) and the check has no map or view, so the drift comes from somewhere else in `trains.gd`; find it, or loosen those two asserts to a longer run.
+- **Stacja Muzeum (paused by F's freeze, 2026-11-07).** Done: 19 Commons photos on F's Mac
+  (`~/Documents/warsaw-needed-photos/stacja-muzeum{,-claude}/`, sources.txt; `small/` holds 1100 px
+  copies), read; the museum's four sidings kept free of trains, wires and signals
+  (`Trains.service_rails`). Not built: the hall and its locomotives. Found: the hall is OSM's L
+  outline at about (-2512, 862) (7.6 m), the sidings end at its yard side (-2531, 870); the photos
+  show a cream gable with a segmental-arch top, eight pilasters, gold WARSZAWA GŁÓWNA letters on a
+  frame over the roof, a red-brown canopy over steps, a long low wing with a dark roof, rows of
+  black steam locos with red wheels, green tank locos and the streamlined green Pm3, a cobbled
+  platform with lamps, a white fence and a water crane. Open: which end of the L the gable is on
+  (photos disagree: needs GUGiK's ortho from the Mac).
 
 ## Krakowskie Przedmieście street by street (F, 2026-11-02), pass 1
 Built (cloud, Sonnet): eight shopfronts (`Storefronts.KRAKOWSKIE`, 93 venue signs in check_parodies), original names, at the mapped house numbers 20/22, 19, 27, 56, 45, 58/60, 64, 69. Open:
