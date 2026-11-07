@@ -10,6 +10,7 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-07
+- The CITY 25 neon sign, its door and canopy at the SOWA CLUB pavilion now face west, towards the Palm, so you see them as you drive in from Rondo de Gaulle'a.
 - Stacja Muzeum, Nocny Targ and Kolejowa: the old Warszawa Główna hall has its arched cream front with gold letters, steam engines on red wheels and green tank engines stand on the museum's sidings, the night market glows under two rusty platform roofs with coloured tubes and painted benches, and Kolejowa's old railway warehouses, the pinball museum and the teal club line the street.
 - Wola by Kolejowa looks like itself: the old drug works' plot is a busy building site with bare concrete floors, three cranes and stacks of materials, the estate's blocks have their cream walls and brown window frames, and the two tall towers wear their orange and gold frames.
 - Under Most Łazienkowski, on the river side, Małpi Love opened its garden: dark timber cabins with a yellow wall, plank tables under white umbrellas and string lights under the trees.
