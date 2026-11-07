@@ -13,8 +13,11 @@ Fixed: Śląsko-Dąbrowski's middle lanes are the tram-and-bus lane: solid yello
 Left:
 - Most Śląsko-Dąbrowski's structure: a plain slab on thin posts; the real one is steel plate girders on the Kierbedź bridge's
   stone piers. Photo build: F's photos of one pier, the girder and the balustrade (asked 2026-11-07). The AK plaque on the north balustrade.
-- Most Łazienkowski's structure: the deck stands on rows of thin posts; the real one is 5 steel box-girder spans on a few piers,
-  and the two cycle bridges hang on brackets at the girders' bottom (in game they float on their own posts). Photo build: F's photos from below.
+- Most Łazienkowski's structure: the deck stands on rows of thin posts; the real one is 5 steel box-girder spans on a few piers.
+  Done 2026-11-07 (F: "why does the bike path hang in the air?"): a box girder under each carriageway over the river, the two cycle
+  bridges (opened 2017) on steel brackets at its foot, their own posts gone (`map_builder._build_lazienkowski`). Left for F's photos
+  (`~/Documents/warsaw-needed-photos/bridges`): the girders' real colour and depth, the river piers' count and shape, the brackets'
+  look; on the Praga floodplain the slab hides the girder, so the brackets read as thin poles from the default camera.
 - Tram overhead wires: none anywhere in the city (on the tram bridges most visible). Trams lane.
 - Świętokrzyski's median is drawn green; check against photos (concrete with the stays' anchors?).
 
