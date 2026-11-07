@@ -4,6 +4,35 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## Stacja Muzeum, Nocny Targ and Kolejowa (F, 2026-11-07; spec docs/landmarks/specs/stacja_muzeum.md)
+
+- **Built** (sites `stacja_muzeum`, `nocny`, `kolejowa`): the old Warszawa Główna hall (barrel roof, arched
+  cream front, eight pilasters, gold WARSZAWA GŁÓWNA, red-brown canopy, steps), its Towarowa wing and yard
+  arm; 17 engines and coaches on the museum's four sidings (Trains.MUSEUM_ENDS, PR #521 keeps them free
+  of trains); Nocny Targ's two canopies on the old platforms; Kolejowa 8/10's brick warehouses, the pinball
+  museum at 8a (FLIPEROWNIA) and the teal club (ODESSKA).
+- **SM-1** the order of the engines on the sidings is a default (the photos show kinds, not the order).
+- **SM-2** which Kolejowa outline is the pinball museum (8a) and which is 8/10 is read from the photos and
+  the one address point (Kolejowa 8); check on the Mac with GUGiK's ortho.
+- **SM-3** Space Club (Kolejowa 37/39, the 1912 foundry with arched windows): no address point in the map;
+  likely at or past the west edge. Smok Lounge (Kolejowa 43) not built: no front photo.
+- **SM-4** Splot Słoneczny (Tunelowa 2A) is past the map's west edge: build when the map grows west.
+
+## Wola's 19. Dzielnica, Asbud's towers and the drug works' building site (F, 2026-11-07; spec docs/landmarks/specs/dzielnica19.md)
+
+- **Built from F's 11 photos** (sites `noho`, `d19`, `asbud`): the old Polfa plot on Kasprzaka as NOHO
+  ONE's building site (OHO ONE on the hoarding), four bare concrete frames, three cranes, the yard;
+  the estate's 58 mapped parts in cream with rust window frames (two blocks in the dark grid); the
+  Towarowa Towers in blue glass with orange and gold frames and the ASBUDKA crown.
+- **D19-1** the photo list for the next pass is /mnt/project-files/dzielnica19/PHOTOS-NEEDED.txt
+  (which blocks wear the dark grid, the cascade terraces, the crane count). Storey counts done from
+  F's October photos: both NOHO blocks topped out at 11 storeys in scaffolding, grey hoarding.
+- **D19-2** the old "ruins" building on Prosta west of the towers (OpenStreetMap `ruins`, 27 m) is
+  still drawn as a plain block; check what stands there now.
+- **D19-3** the green south of the roundabout (next to Generation Park) is an OpenStreetMap
+  `construction` area drawn as grass; a building site there too if F's photos show one.
+- **D19-4** the glass footbridge between two blocks (F's courtyard photo) is not built: where is it?
+
 ## The Palace of Culture's grounds and venues (F, 2026-11-07, with F's aerial photo)
 
 Built: the walls OSM maps round the Palace's beds and raised lawns (59 retaining walls, planters)
