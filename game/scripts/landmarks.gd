@@ -16810,7 +16810,7 @@ func _sowa_rect(r: Vector4) -> PackedVector2Array:
 
 func _find_sowa() -> void:
 	_sowa_frame()
-	var all := Vector4(SOWA_TOWER.x, SOWA_BOX.y, SOWA_DECK.z, SOWA_DECK.w)
+	var all := Vector4(SOWA_TOWER.x - 3.0, SOWA_BOX.y, SOWA_DECK.z, SOWA_DECK.w)
 	_add_site("sowa", [_sowa_rect(all)])
 
 
@@ -16823,6 +16823,12 @@ func _sowa_tube(cu: float, cv: float, hu: float, hv: float, y0: float, y1: float
 func _sowa_sign(word: String, u: float, v: float, y: float, k: float, col: Color) -> void:
 	var at := _w(u, v)
 	signs.append([word, Vector3(at.x, y, at.y), Vector3(_b.x, 0.0, _b.y), k, col])
+
+
+## A sign word on a face whose outward normal is `out` (in plan), its bottom middle at local (u, v).
+func _sowa_sign_out(word: String, u: float, v: float, y: float, k: float, col: Color, out: Vector2) -> void:
+	var at := _w(u, v)
+	signs.append([word, Vector3(at.x, y, at.y), Vector3(out.x, 0.0, out.y), k, col])
 
 
 func _build_sowa(_site: Dictionary) -> void:
@@ -16842,45 +16848,54 @@ func _build_sowa(_site: Dictionary) -> void:
 	# The restaurant's white box, its edges in pink tubes.
 	var t := SOWA_TOWER
 	_prism(_sowa_rect(t), f, f + SOWA_TOWER_H, SOWA_WHITE, SOWA_WHITE.darkened(0.15), M_STONE, M_STONE)
-	_lbox((t.x + t.z) * 0.5, t.w + 0.02, 2.2, 0.03, f, f + 2.5, SOWA_GLASS.lightened(0.1), M_PAVILION)  # the door's glass
-	for u: float in [t.x, t.z]:
-		_sowa_tube(u, t.w + 0.05, 0.06, 0.06, f + 0.3, f + SOWA_TOWER_H, SOWA_PINK)
+	# F (2026-11-06): the restaurant's neon faces the Palm, west down Jerozolimskie: its door, the
+	# soda's panel, the menu words, the canopy and the roof sign are on the box's west face (local
+	# -u; a word on it reads towards the street, +v).
+	var west := Vector2(-SOWA_A.x, -SOWA_A.y)
+	var wu := t.x
+	var tv := (t.y + t.w) * 0.5
+	_lbox(wu - 0.02, tv + 1.6, 0.03, 1.6, f, f + 2.5, SOWA_GLASS.lightened(0.1), M_PAVILION)  # the door's glass
+	for v: float in [t.y, t.w]:
+		_sowa_tube(wu - 0.05, v, 0.06, 0.06, f + 0.3, f + SOWA_TOWER_H, SOWA_PINK)
+	_sowa_tube(wu - 0.05, tv, 0.06, (t.w - t.y) * 0.5, f + SOWA_TOWER_H - 0.12, f + SOWA_TOWER_H, SOWA_PINK)
 	_sowa_tube((t.x + t.z) * 0.5, t.w + 0.05, (t.z - t.x) * 0.5, 0.06, f + SOWA_TOWER_H - 0.12, f + SOWA_TOWER_H, SOWA_PINK)
-	# The soda's panel and the menu words on the white front.
-	_lbox(t.x + 2.6, t.w + 0.04, 1.3, 0.04, f + 3.0, f + 5.4, SOWA_BOARD, M_STONE)
-	_sowa_tube(t.x + 2.6, t.w + 0.1, 0.45, 0.02, f + 4.75, f + 5.05, SOWA_RED)
-	_sowa_tube(t.x + 2.6, t.w + 0.1, 0.45, 0.02, f + 4.45, f + 4.75, SOWA_BLUE)
-	_sowa_sign("PEPSZY", t.x + 2.6, t.w + 0.08, f + 3.3, 0.32, SOWA_BLUE)
-	_sowa_sign("STEKI", t.x + 6.3, t.w, f + 6.6, 0.3, SOWA_ORANGE)
-	_sowa_sign("PIZZA", t.x + 6.3, t.w, f + 5.7, 0.3, SOWA_RED)
-	_sowa_sign("BURGERY", t.x + 6.3, t.w, f + 4.8, 0.3, SOWA_GREEN)
-	# The roof sign: a dark board, RESTAURANT / CITY 25 / GRILL BAR and the blue crescent.
-	var bu := (t.x + t.z) * 0.5
-	var bv := t.w - 0.6
-	_lbox(bu, bv, 5.0, 0.12, f + SOWA_TOWER_H, f + SOWA_TOWER_H + 4.2, SOWA_BOARD, M_STONE)
+	# The soda's panel and the menu words on the west face.
+	_lbox(wu - 0.04, t.y + 2.4, 0.04, 1.3, f + 3.0, f + 5.4, SOWA_BOARD, M_STONE)
+	_sowa_tube(wu - 0.1, t.y + 2.4, 0.02, 0.45, f + 4.75, f + 5.05, SOWA_RED)
+	_sowa_tube(wu - 0.1, t.y + 2.4, 0.02, 0.45, f + 4.45, f + 4.75, SOWA_BLUE)
+	_sowa_sign_out("PEPSZY", wu - 0.08, t.y + 2.4, f + 3.3, 0.32, SOWA_BLUE, west)
+	_sowa_sign_out("STEKI", wu, t.y + 6.2, f + 6.6, 0.3, SOWA_ORANGE, west)
+	_sowa_sign_out("PIZZA", wu, t.y + 6.2, f + 5.7, 0.3, SOWA_RED, west)
+	_sowa_sign_out("BURGERY", wu, t.y + 6.2, f + 4.8, 0.3, SOWA_GREEN, west)
+	# The roof sign along the west edge: a dark board, RESTAURANT / CITY 25 / GRILL BAR and the
+	# blue crescent, facing the Palm.
+	var bu := t.x + 0.6
+	var bv := tv
+	_lbox(bu, bv, 0.12, 5.0, f + SOWA_TOWER_H, f + SOWA_TOWER_H + 4.2, SOWA_BOARD, M_STONE)
 	for y: float in [f + SOWA_TOWER_H + 0.05, f + SOWA_TOWER_H + 4.1]:
-		_sowa_tube(bu, bv + 0.15, 5.0, 0.04, y, y + 0.08, SOWA_PINK)
+		_sowa_tube(bu - 0.15, bv, 0.04, 5.0, y, y + 0.08, SOWA_PINK)
 	var k := 0.85
 	var lc := Neon.length_of("CITY") * k
 	var l25 := Neon.length_of("25") * k
-	var u0 := bu - (lc + 0.3 + l25) * 0.5 - 0.4
-	var face := bv + 0.13
-	_sowa_sign("RESTAURANT", bu - 0.6, face, f + SOWA_TOWER_H + 3.05, 0.42, SOWA_PINK)
-	_sowa_sign("CITY", u0 + lc * 0.5, face, f + SOWA_TOWER_H + 1.1, k, SOWA_WHITE_T)
-	_sowa_sign("25", u0 + lc + 0.3 + l25 * 0.5, face, f + SOWA_TOWER_H + 1.1, k, SOWA_ORANGE)
-	_sowa_sign("GRILL BAR", bu - 0.6, face, f + SOWA_TOWER_H + 0.2, 0.4, SOWA_PINK)
-	var cc := Vector2(bu + 2.4, f + SOWA_TOWER_H + 2.2)
+	var v0 := bv - (lc + 0.3 + l25) * 0.5 - 0.4
+	var face := bu - 0.13
+	_sowa_sign_out("RESTAURANT", face, bv - 0.6, f + SOWA_TOWER_H + 3.05, 0.42, SOWA_PINK, west)
+	_sowa_sign_out("CITY", face, v0 + lc * 0.5, f + SOWA_TOWER_H + 1.1, k, SOWA_WHITE_T, west)
+	_sowa_sign_out("25", face, v0 + lc + 0.3 + l25 * 0.5, f + SOWA_TOWER_H + 1.1, k, SOWA_ORANGE, west)
+	_sowa_sign_out("GRILL BAR", face, bv - 0.6, f + SOWA_TOWER_H + 0.2, 0.4, SOWA_PINK, west)
+	var cc := Vector2(bv + 2.4, f + SOWA_TOWER_H + 2.2)
 	for n in 15:
 		var ang := deg_to_rad(-70.0 + 150.0 * n / 14.0)
-		var cu := cc.x + cos(ang) * 2.1
+		var cv := cc.x + cos(ang) * 2.1
 		var cy := cc.y + sin(ang) * 1.9
-		_sowa_tube(cu, face + 0.1, 0.11, 0.05, cy - 0.09, cy + 0.09, SOWA_BLUE)
-	# The entrance canopy before the door: white, a pink tube on its edge, its name.
-	_lbox(bu + 2.0, t.w + 1.4, 2.4, 1.4, f + 2.6, f + 3.0, SOWA_WHITE, M_STONE)
-	_sowa_tube(bu + 2.0, t.w + 2.83, 2.4, 0.04, f + 2.6, f + 2.7, SOWA_PINK)
-	for u: float in [bu - 0.3, bu + 4.3]:
-		_lbox(u, t.w + 2.7, 0.05, 0.05, f, f + 2.6, SOWA_FRAME, M_STONE)
-	_sowa_sign("CITY 25", bu + 2.0, t.w + 2.84, f + 2.62, 0.22, SOWA_PINK)
+		_sowa_tube(face - 0.1, cv, 0.05, 0.11, cy - 0.09, cy + 0.09, SOWA_BLUE)
+	# The entrance canopy over the west door: white, a pink tube on its edge, its name.
+	_lbox(wu - 1.4, tv + 1.6, 1.4, 2.2, f + 2.6, f + 3.0, SOWA_WHITE, M_STONE)
+	_sowa_tube(wu - 2.83, tv + 1.6, 0.04, 2.2, f + 2.6, f + 2.7, SOWA_PINK)
+	for v: float in [tv - 0.4, tv + 3.6]:
+		_lbox(wu - 2.7, v, 0.05, 0.05, g - 0.3, f + 2.6, SOWA_FRAME, M_STONE)
+	_sowa_sign_out("CITY 25", wu - 2.84, tv + 1.6, f + 2.62, 0.22, SOWA_PINK, west)
+	_sowa_sign("24H", (t.x + t.z) * 0.5, t.w, f + 5.6, 0.5, SOWA_RED)
 	# The club's glass box: the shop storey, the printed upper storey, the frames.
 	var bx := SOWA_BOX
 	var box := _sowa_rect(bx)

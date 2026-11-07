@@ -239,7 +239,8 @@ Built from F's photos (specs `prosta32.md`, `prosta28.md`, `lucka.md`). Left ope
 
 F's three photos of the Sogo Club / City 24 pavilion. Done 2026-11-06 (site `sowa`, landmarks.gd
 `_build_sowa`; crowds.gd `SOWA`, lines `sowa_club`): the pavilion on the lawn in front of
-Al. Jerozolimskie 4-6, every name a parody (SOWA CLUB, CITY 25, PEPSZY, KACBERG). Left:
+Al. Jerozolimskie 4-6, every name a parody (SOWA CLUB, CITY 25, PEPSZY, KACBERG). F (2026-11-07):
+the restaurant's roof sign, door, canopy, soda panel and menu words face the Palm (west). Left:
 - **Where it stood**: the 2026 street photos and the GUGiK orthophoto show lawns there now and OSM
   has no outline, so the footprint (36 x 10 m plus the terrace) is placed from the photos against
   the block. A Mac photo gather (Commons, older orthophotos) would pin its real size and spot.

@@ -10,6 +10,7 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-07
+- The CITY 25 neon sign, its door and canopy at the SOWA CLUB pavilion now face west, towards the Palm, so you see them as you drive in from Rondo de Gaulle'a.
 - The secret day rave moved to the Praga beach under Most Poniatowskiego: the DJ's booth and the crowd in colour stand on the sand under the bridge's arch, by the pier.
 - On 11 November the city celebrates: crowds with white-and-red flags at Rondo Dmowskiego, barriers that stop cars (the helicopter can fly over), the Palace of Culture, Złota 44 and the National Stadium lit white and red, and a red glow at dusk.
 - Bus stops look like Warsaw's: the white zigzag on the road where the bus pulls in, the yellow line along the kerb, red-framed glass shelters with a lit poster and the red stop pole with its timetable, and shorter 12 m buses now run beside the long bendy ones.
