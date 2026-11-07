@@ -317,9 +317,10 @@ rings under four bridges, three misses and you're out (JESZCZE RAZ / WYJDŹ), th
 rings, the planing physics with wakes and jumps, three rivals with their own temperaments, the sand
 barge and its wake. Left:
 - [ ] Phone feel (F): the turn and slide on the plane, the jump off the barge's wake, whether 16 m rings are too easy or too hard at the iso scale, the rings' readability at night
-- [ ] The race panel (top right) covers rings and rivals ahead in some frames (Mac Autopilot, 2026-11-06): shift the boat lower in the frame while racing, or a slimmer race panel. The fail path (3 misses, ODPADASZ, JESZCZE RAZ, WYJDŹ back to the car) passed on the Mac
+- [ ] The race panel (top right) covers rings and rivals ahead in some frames (Mac Autopilot, 2026-11-06): shift the boat lower in the frame while racing, or a slimmer race panel. The fail path (3 misses, ODPADASZ, JESZCZE RAZ, WYJDŹ back to the car) passed on the Mac; seen again 2026-11-07 for the next ring and the finish arch (PT-31). A full race to the finish passed too (4:08.6, 4th, one miss, Quit back to the car)
 - [ ] A tall dark wedge at the top of the frame 11-13 s into the race (Mac frames): find what it is (a lamp post or a bridge pylon seen from above?)
-- [ ] Ring 7 by Most Poniatowskiego's pier: a straight line from ring 6 brushes the pier (52 → 26 km/h in the Mac run); the rivals' curved line clears it. Maybe move ring 7 a few metres off
+- [ ] Ring 7 by Most Poniatowskiego's pier: a straight line from ring 6 brushes the pier (52 → 26 km/h in the Mac run); the rivals' curved line clears it. Maybe move ring 7 a few metres off · 2026-11-07 Autopilot run to the finish: ring 7 at 50 km/h with no contact (an approach lined up on the ring's axis); open for a straight-line player
+- [ ] After a miss no ring may be on screen (the next is 130 m on) and the race shows no edge arrow while boating (PT-32): an edge arrow to the next ring?
 - [ ] `--boat-race=call` rings under the title screen and the 12 s card expires before the first tap (flag only; the real call waits 5 min of driving)
 - [ ] A boat engine sound (the car's engine plays now) and a splash on landing; a rooster tail of spray behind the jet ski
 - [ ] The ring's light at night (now bright unshaded colour, no glow); the rivals' boats are dark at night apart from their hulls

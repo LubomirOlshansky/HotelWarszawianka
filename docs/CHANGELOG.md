@@ -10,6 +10,7 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-07
+- The guide for new players now points you down to Powiśle and the river after about seven minutes, as it was meant to (that step was silently broken).
 - The Old Town's brick city walls stand round it now, park walls are their real low height, and railings along the streets are see-through steel instead of grey slabs.
 - Stairs across the city are real stone steps now, with side walls and handrails, from Kamienne Schodki to the Skarpa's park stairs; walls that blocked stairs are opened and fountain basins have low rims instead of tall grey walls.
 - The Palace of Culture's grounds are tidier: knee-high planters instead of grey walls, real shrub beds, a proper car park with painted bays, and the Palace's venues lit at their doors: Kinoteka, the theatres, Sala Kongresowa, the technology museum, the 30th-floor terrace. Teatr Studio has its columned portico with steps, banners and neon, Bar Studio's tables under umbrellas and palms on a granite square with corten planters and trees, busy on summer evenings.
