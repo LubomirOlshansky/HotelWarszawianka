@@ -8043,6 +8043,13 @@ const MARK_STYLE := {
 	"edge": [0.0, 0.2], "lane": [3.0, 0.22], "centre": [0.0, 0.2], "stop": [0.0, 0.5],
 	"bus": [0.0, 0.3], "cycle": [0.0, 0.18], "stripe": [0.0, 0.45],
 }
+## The bus stops' paint (tools/bus_stops.py, 2026-11-07, from street photos at our stops): the
+## white stop zigzag (P-17) in the kerb lane, a 0.22 m line (the real one is 0.12 m: too thin to read
+## from the game's camera), and the yellow line on the kerb along
+## the bus's length, laid at the footway's height.
+const STOPZZ_W := 0.22
+const STOPKERB_W := 0.22
+const STOPKERB_COL := Color("#e8c22e")
 
 
 func _build_markings(st) -> void:
@@ -8059,6 +8066,13 @@ func _build_markings(st) -> void:
 			_drape_bias = keep_bias
 			continue
 		_layer = L_MARK
+		if kind == "stopzz":
+			# One strip through the corners (extended), so the zigzag's points are closed.
+			_strip(st, poly, STOPZZ_W, Y_MARK, COL["mark"], true)
+			continue
+		if kind == "stopkerb":
+			_strip(st, poly, STOPKERB_W, KERB_UP + 0.012, STOPKERB_COL, false)
+			continue
 		var style: Array = MARK_STYLE.get(kind, [0.0, 0.2])
 		if float(style[0]) > 0.0:
 			_dashes(st, poly, 0.0, float(style[0]), 5.0, float(style[1]))
@@ -9350,49 +9364,64 @@ func _make_shared() -> void:
 	_cylinder(column, Vector3(0, 3.08, 0), 0.45, 0.35, 8, green)
 	_cylinder(column, Vector3(0, 3.43, 0), 0.12, 0.3, 6, Color("#c9a24a"))
 	_shared["column"] = column.commit()
-	# Bus and tram shelter. The landmarks loop (2026-10-30): Warsaw's glass shelter, as seen
-	# from the game's camera: a pale glass roof in a graphite frame overhanging the kerb, a
-	# dark fascia, glass back and end, three posts, a bench, a lit poster box at the far end
-	# (its faces glow at night: SHELTER_POSTER, fixture.gdshader) and the stop's blue sign
-	# (D-15) on its own pole. The road is on its -z side.
+	# Bus and tram shelter: Warsaw's standard glass shelter, as street photos at our own stops
+	# show it (Mapillary 2021-2026, the buses thread, 2026-11-07; first built 2026-10-30, red frame
+	# from the Rondo photos 2026-10-31). A flat pale glass roof on thin silver posts with a red
+	# edge all round it; at each end a red loop (front post, roof edge, back post) round the end
+	# panel: glass at the -x end, a lit two-sided poster panel (SHELTER_POSTER, glowing at night,
+	# fixture.gdshader) at the +x end; a glass back with a bench before it; the stop's name plate
+	# hanging under the roof's front edge. The stop's pole stands at the kerb before the -x end:
+	# red, the blue D-15 sign on top, the timetable case below. The road is on its -z side. The
+	# footprint (4.3 x 1.95 m round the origin) is unchanged: snap_props.py and the collider use it.
 	var shelter := SurfaceTool.new()
 	shelter.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var glass := Color("#b8d3df")
-	var graphite := Color("#33363b")
-	# The Rondo photos (2026-10-31): Warsaw's shelter has a red frame: the roof's edge, the
-	# posts and a red loop round the glass end, with an ad panel in a black case.
+	var silver := Color("#a9aeb4")
 	var red := Color("#c8282a")
-	_box(shelter, Vector3(0, 2.5, 0.08), Vector3(4.3, 0.12, 1.95), graphite)
-	_box(shelter, Vector3(0, 2.57, 0.08), Vector3(4.0, 0.03, 1.7), Color("#a7c2cf"))
-	_box(shelter, Vector3(0, 2.38, -0.86), Vector3(4.3, 0.3, 0.06), red)
-	_box(shelter, Vector3(0, 1.3, 0.75), Vector3(3.85, 2.05, 0.04), glass)
-	_box(shelter, Vector3(0, 0.12, 0.75), Vector3(3.9, 0.1, 0.06), graphite)
-	_box(shelter, Vector3(-1.95, 1.3, 0.17), Vector3(0.04, 2.05, 1.15), glass)
-	for x in [-1.95, 0.0, 1.95]:
-		_box(shelter, Vector3(x, 1.25, 0.78), Vector3(0.09, 2.5, 0.09), red)
-	# The red loop round the glass end: a post at each corner and a bar along the foot.
-	_box(shelter, Vector3(-1.95, 0.05, 0.17), Vector3(0.06, 0.06, 1.2), red)
-	_box(shelter, Vector3(-1.95, 2.4, -0.4), Vector3(0.06, 0.2, 0.06), red)
-	# The poster box: a graphite case, a poster on each face.
-	_box(shelter, Vector3(1.95, 1.2, 0.12), Vector3(0.2, 1.95, 1.3), graphite)
-	for sx in [-0.11, 0.11]:
-		_box(shelter, Vector3(1.95 + sx, 1.5, 0.12), Vector3(0.02, 1.0, 1.12), SHELTER_POSTER[0])
-		_box(shelter, Vector3(1.95 + sx, 0.78, 0.12), Vector3(0.02, 0.44, 1.12), SHELTER_POSTER[1])
-	_box(shelter, Vector3(-0.2, 0.46, 0.5), Vector3(2.2, 0.06, 0.38), Color("#5c6168"))
-	for x in [-1.1, 0.7]:
-		_box(shelter, Vector3(x, 0.22, 0.5), Vector3(0.06, 0.44, 0.3), graphite)
-	# The stop's sign: a grey pole, a blue square with a white bus.
-	_box(shelter, Vector3(-2.45, 1.35, -0.7), Vector3(0.07, 2.7, 0.07), Color("#9aa0a6"))
-	_box(shelter, Vector3(-2.45, 2.45, -0.7), Vector3(0.56, 0.56, 0.05), Color("#1f5fae"))
-	for sz in [-0.03, 0.03]:
-		_box(shelter, Vector3(-2.45, 2.47, -0.7 + sz), Vector3(0.34, 0.2, 0.02), Color("#f2f2ee"))
-		_box(shelter, Vector3(-2.45, 2.34, -0.7 + sz), Vector3(0.3, 0.05, 0.02), Color("#f2f2ee"))
-	# The Rondo photos' ad panel: a big lit panel in a black case on the glass end, a poster
-	# (orange over cream, SHELTER_POSTER) on both faces, glowing at night.
-	_box(shelter, Vector3(-2.3, 1.3, 0.3), Vector3(0.12, 1.95, 1.2), Color("#141518"))
+	# The roof: a glass plate and the red edge round it (thicker along the front).
+	_box(shelter, Vector3(0, 2.52, 0.08), Vector3(4.24, 0.05, 1.89), Color("#bccdd5"))
+	_box(shelter, Vector3(0, 2.5, -0.88), Vector3(4.3, 0.14, 0.05), red)
+	_box(shelter, Vector3(0, 2.52, 1.04), Vector3(4.3, 0.08, 0.05), red)
+	for x: float in [-2.13, 2.13]:
+		_box(shelter, Vector3(x, 2.52, 0.08), Vector3(0.05, 0.08, 1.95), red)
+		# The end's red loop: a front and a back post, a sill, and a bevel at the top corners
+		# (the real frame is rounded there).
+		_box(shelter, Vector3(x, 1.2, -0.78), Vector3(0.06, 2.3, 0.06), red)
+		_box(shelter, Vector3(x, 1.2, 0.94), Vector3(0.06, 2.3, 0.06), red)
+		_box(shelter, Vector3(x, 0.06, 0.08), Vector3(0.06, 0.06, 1.72), red)
+		_box(shelter, Vector3(x, 2.38, -0.72), Vector3(0.06, 0.12, 0.14), red)
+		_box(shelter, Vector3(x, 2.38, 0.88), Vector3(0.06, 0.12, 0.14), red)
+	# The back: glass between silver posts, a silver rail at the foot.
+	_box(shelter, Vector3(0, 1.3, 0.92), Vector3(4.2, 2.0, 0.03), glass)
+	_box(shelter, Vector3(0, 0.15, 0.92), Vector3(4.2, 0.06, 0.06), silver)
+	for x: float in [-0.7, 0.7]:
+		_box(shelter, Vector3(x, 1.26, 0.95), Vector3(0.07, 2.5, 0.07), silver)
+	# The -x end: glass. The +x end: the lit poster panel, a pale case, a poster on each face.
+	_box(shelter, Vector3(-2.13, 1.25, 0.08), Vector3(0.025, 2.0, 1.66), glass)
+	_box(shelter, Vector3(2.08, 1.22, 0.1), Vector3(0.14, 1.9, 1.32), Color("#d8dadc"))
 	for sx: float in [-0.075, 0.075]:
-		_box(shelter, Vector3(-2.3 + sx, 1.5, 0.3), Vector3(0.02, 1.4, 1.02), SHELTER_POSTER[0])
-		_box(shelter, Vector3(-2.3 + sx, 0.72, 0.3), Vector3(0.02, 0.2, 1.02), SHELTER_POSTER[1])
+		_box(shelter, Vector3(2.08 + sx, 1.32, 0.1), Vector3(0.02, 1.5, 1.14), SHELTER_POSTER[0])
+		_box(shelter, Vector3(2.08 + sx, 0.66, 0.1), Vector3(0.02, 0.18, 1.14), SHELTER_POSTER[1])
+	# The bench before the back glass.
+	_box(shelter, Vector3(-0.3, 0.46, 0.62), Vector3(2.4, 0.06, 0.38), Color("#5c6168"))
+	for x: float in [-1.3, 0.7]:
+		_box(shelter, Vector3(x, 0.22, 0.62), Vector3(0.06, 0.44, 0.3), silver)
+	# The stop's name plate under the roof's front edge: pale, a dark line of lettering.
+	_box(shelter, Vector3(-1.0, 2.3, -0.84), Vector3(1.4, 0.24, 0.04), Color("#eeeeea"))
+	for sz: float in [-0.025, 0.025]:
+		_box(shelter, Vector3(-1.05, 2.3, -0.84 + sz), Vector3(1.0, 0.07, 0.01), Color("#2b2e33"))
+		_box(shelter, Vector3(-0.42, 2.3, -0.84 + sz), Vector3(0.14, 0.12, 0.01), Color("#2b2e33"))
+	# The stop's pole at the kerb before the -x end: red, the blue D-15 square with a white bus on
+	# top, the timetable case (a pale frame round the white sheets) at eye height.
+	_box(shelter, Vector3(-2.55, 1.4, -0.72), Vector3(0.08, 2.8, 0.08), red)
+	_box(shelter, Vector3(-2.55, 2.55, -0.72), Vector3(0.58, 0.58, 0.05), Color("#1f5fae"))
+	for sz: float in [-0.03, 0.03]:
+		_box(shelter, Vector3(-2.55, 2.57, -0.72 + sz), Vector3(0.34, 0.2, 0.02), Color("#f2f2ee"))
+		_box(shelter, Vector3(-2.55, 2.44, -0.72 + sz), Vector3(0.3, 0.05, 0.02), Color("#f2f2ee"))
+	_box(shelter, Vector3(-2.55, 1.55, -0.72), Vector3(0.5, 0.72, 0.07), Color("#d2d4d6"))
+	for sz: float in [-0.04, 0.04]:
+		_box(shelter, Vector3(-2.55, 1.55, -0.72 + sz), Vector3(0.42, 0.62, 0.01), Color("#f6f4ec"))
+		_box(shelter, Vector3(-2.55, 1.8, -0.72 + sz), Vector3(0.42, 0.06, 0.012), Color("#f2c12e"))
 	_shared["shelter"] = _mark_glow(shelter.commit(), SHELTER_POSTER)
 
 

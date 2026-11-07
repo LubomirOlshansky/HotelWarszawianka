@@ -10,7 +10,7 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-07
-- The Palace of Culture lights up for the city's days: white and red for 3 May, 1 August and 11 November, a rainbow for New Year and the Equality Parade, pink all October, green and red at Christmas, and its usual gold on every other night.
+- Bus stops look like Warsaw's: the white zigzag on the road where the bus pulls in, the yellow line along the kerb, red-framed glass shelters with a lit poster and the red stop pole with its timetable, and shorter 12 m buses now run beside the long bendy ones.
 - Stacja Muzeum, Nocny Targ and Kolejowa: the old Warszawa Główna hall has its arched cream front with gold letters, steam engines on red wheels and green tank engines stand on the museum's sidings, the night market glows under two rusty platform roofs with coloured tubes and painted benches, and Kolejowa's old railway warehouses, the pinball museum and the teal club line the street.
 - Wola by Kolejowa looks like itself: the old drug works' plot is a busy building site with bare concrete floors, three cranes and stacks of materials, the estate's blocks have their cream walls and brown window frames, and the two tall towers wear their orange and gold frames.
 - Under Most Łazienkowski, on the river side, Małpi Love opened its garden: dark timber cabins with a yellow wall, plank tables under white umbrellas and string lights under the trees.
@@ -51,6 +51,7 @@ someone writes its lines.
 - 21 more houses got their real wall colours after a check against street photos, from Filtrowa to Marszałkowska.
 - 15 more houses got street fronts from new photos, among them Bracka 16, Atlas Tower and Dom Dysydentów.
 - 39 more buildings got street fronts from new photos, from Klif and Babka Tower to Freta and Plac Trzech Krzyży.
+- The Palace of Culture lights up for the city's days: white and red for 3 May, 1 August and 11 November, a rainbow for New Year and the Equality Parade, pink all October, green and red at Christmas, and its usual gold on every other night.
 
 ## 2026-11-06
 - A night racing club: Darek calls you to a meet on Plac Defilad, where tuned cars glow and Lena drifts donuts in the smoke until the police raid it. Escape, race everyone to the next meet by the National Stadium, survive a second raid, then line up for a drag on Aleja Zieleniecka: watch the lights, shift on time, hit the nitro and beat Tadek for the club's respect.

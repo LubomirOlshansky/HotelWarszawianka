@@ -87,7 +87,9 @@ const TRAFFIC := [
 			"paint": ["#f2f2ee", "#e9e9e6", "#d8d2c2", "#b8bcc0"]},
 	],
 	[
-		{"name": "bus", "share": 1.0, "size": Vector3(2.5, 3.2, 18.0), "paint": ["#ffffff"]},
+		# Shape 0 the articulated bus (buses.gd's hub ring always takes it), shape 1 the solo bus.
+		{"name": "bus", "share": 0.6, "size": Vector3(2.5, 3.2, 18.0), "paint": ["#ffffff"]},
+		{"name": "solo bus", "share": 0.4, "size": Vector3(2.5, 3.2, 12.0), "paint": ["#ffffff"]},
 	],
 ]
 ## Loop 2c: the parked cars' paints (map_builder.gd picks one by the bake's index): traffic's
@@ -727,17 +729,28 @@ static func _van(boxed: bool) -> Shape:
 	return s
 
 
-## Warsaw's city bus, an 18 m articulated Solaris (the Rondo night photos, 2026-10-31): red
-## below the windows, yellow above, a long dark window band (lit at night) with pillars, a big
-## windscreen with a destination display, doors on the right, the air-conditioning box on the
-## roof; a front section (z -9 to 3), the black bellows (3 to 3.7) and a rear section (3.7 to
-## 9) on its own axle. Its length is traffic.gd's LENGTH and TRAFFIC's size.z.
+## Warsaw's city buses, red below the windows and yellow above (the Rondo night photos,
+## 2026-10-31; street photos at our stops, 2026-11-07): shape 0 the 18 m articulated bus, shape 1
+## the 12 m solo bus that runs beside it on many lines (TRAFFIC's shares), one family in the BUS
+## MultiMesh (+0 draw calls). A long dark window band (lit at night) with pillars, a big
+## windscreen under a lit destination display, doors on the right, the air-conditioning box on the
+## roof. The articulated bus: a front section (z -9 to 3), the black bellows (3 to 3.7) and a rear
+## section (3.7 to 9) on its own axle, three doors (the rear one behind the bellows, clear of the
+## axle). The solo bus: the front section alone (z -6 to 6) with its axles where a 12 m bus has
+## them, a third door behind the rear axle, its own tail lamps and back window; the rear section's
+## and the bellows' parts collapse out of sight. Its length is TRAFFIC's size.z (traffic.gd's
+## LENGTH keeps the longest).
 static func bus_mesh() -> ArrayMesh:
+	return family([bus_shape(false), bus_shape(true)])
+
+
+## One of the buses (bus_mesh) as a Shape, so traffic.gd's night signs can join it.
+static func bus_shape(solo: bool) -> Shape:
 	var s := Shape.new()
 	var red := fin(Color("#c8282a"))
 	var yellow := fin(Color("#f2c12e"))
 	var W := 1.25
-	s.xform = Transform3D(Basis.IDENTITY, Vector3(0.0, 0.0, -3.0))
+	s.xform = Transform3D(Basis.IDENTITY, Vector3(0.0, 0.0, 0.0 if solo else -3.0))
 	var lower := PackedVector2Array([Vector2(-5.96, 0.36), Vector2(-6.0, 0.6), Vector2(-5.98, 1.0),
 			Vector2(-5.96, 1.04), Vector2(5.97, 1.15), Vector2(5.99, 1.15), Vector2(6.0, 0.6), Vector2(5.96, 0.36)])
 	var lw := PackedFloat32Array([W, W, W, W, W, W, W, W])
@@ -753,7 +766,7 @@ static func bus_mesh() -> ArrayMesh:
 		var side := s.side_face(house, hw, sgn)
 		for b: Vector2 in bands:
 			s.pane(side, b.x, b.y, 0.28, 0.82, glass)
-	# Doors on the right (+x): front and middle of the front section.
+	# Doors on the right (+x): the front one ahead of the front axle and one mid-section.
 	for z: float in [-5.0, -0.6]:
 		s.side_rect(W + 0.014, 1.0, 0.42, 2.6, z - 0.6, z + 0.6, fin(Color("#2d3640")))
 	s.box(Vector3(0.0, 3.12, 1.0), Vector3(1.7, 0.28, 3.2), fin(Color("#d9d4c8")))
@@ -761,14 +774,25 @@ static func bus_mesh() -> ArrayMesh:
 	s.pane(nose, 0.05, 0.22, 0.25, 0.85, fin(HEADLIGHT, HEAD_LAMP))
 	s.pane(nose, 0.78, 0.95, 0.25, 0.85, fin(HEADLIGHT, HEAD_LAMP))
 	s.box(Vector3(0.0, 0.3, -5.92), Vector3(2.54, 0.2, 0.2), fin(TRIM))
+	# The section's back end: tail lamps and a back window (the solo bus's own; on the
+	# articulated bus they sit inside the bellows).
+	var tail := s.edge_face(lower, lw, 5)
+	s.pane(tail, 0.04, 0.18, 0.1, 0.9, fin(TAIL, TAIL_LAMP))
+	s.pane(tail, 0.82, 0.96, 0.1, 0.9, fin(TAIL, TAIL_LAMP))
+	s.pane(s.edge_face(house, hw, 2), 0.1, 0.9, 0.12, 0.5, fin(GLASS))
 	var r := 0.48
 	var wc := r * cos(PI / 6.0)
-	for z: float in [-3.9, 3.4]:
+	# A 12 m bus's axles: 2.7 m behind its front, 3.4 m ahead of its back.
+	for z: float in ([-3.3, 2.6] if solo else [-3.9, 3.4]):
 		for sgn: float in [-1.0, 1.0]:
 			s.arch(sgn * (W + 0.006), sgn, z, wc, r + 0.08, 0.36, fin(WELL))
 			s.wheel(Vector3(sgn * (W + 0.02 - 0.15), wc, z), r, 0.3, 6, sgn, fin(TYRE), fin(HUB))
-	# The rear section: its own lower and upper bodies with square ends, a door, an axle.
+	# The third door: behind the solo bus's rear axle, or behind the articulated bus's bellows.
 	s.xform = Transform3D.IDENTITY
+	var d3 := 4.25 if solo else 4.8
+	s.side_rect(W + 0.014, 1.0, 0.42, 2.6, d3 - 0.6, d3 + 0.6, fin(Color("#2d3640")))
+	# The rear section: its own lower and upper bodies with square ends, an axle.
+	s.keep_if(not solo, Vector3(0.0, 1.5, 0.0))
 	var rl := PackedVector2Array([Vector2(3.7, 0.36), Vector2(3.7, 1.15), Vector2(8.97, 1.15), Vector2(9.0, 0.6),
 			Vector2(8.96, 0.36)])
 	var rlw := PackedFloat32Array([W, W, W, W, W])
@@ -781,7 +805,6 @@ static func bus_mesh() -> ArrayMesh:
 		var rside := s.side_face(rh, rhw, sgn)
 		for b: Vector2 in rb:
 			s.pane(rside, b.x, b.y, 0.28, 0.82, glass)
-	s.side_rect(W + 0.014, 1.0, 0.42, 2.6, 6.3, 7.5, fin(Color("#2d3640")))
 	var back := s.edge_face(rl, rlw, 2)
 	s.pane(back, 0.04, 0.18, 0.1, 0.7, fin(TAIL, TAIL_LAMP))
 	s.pane(back, 0.82, 0.96, 0.1, 0.7, fin(TAIL, TAIL_LAMP))
@@ -794,7 +817,8 @@ static func bus_mesh() -> ArrayMesh:
 	var bellows := fin(Color("#1c1d20"))
 	s.box(Vector3(0.0, 1.95, 3.35), Vector3(2.3, 2.1, 0.8), bellows)
 	s.box(Vector3(0.0, 0.62, 3.35), Vector3(2.3, 0.5, 0.8), fin(TRIM))
-	return s.mesh()
+	s.show()
+	return s
 
 
 ## Loop 2c, for loop 3g: the police estate and the city guards' car in one family (police.md
