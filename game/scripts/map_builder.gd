@@ -7776,12 +7776,68 @@ const MARK_STYLE := {
 }
 
 
+## Most Śląsko-Dąbrowski (bridges audit, 2026-11-07): its trams run in the middle of the one
+## 13 m carriageway, and since 2007 a solid yellow line on each side keeps the two inner lanes for
+## trams and (since 2009) buses. OpenStreetMap gives it 4 plain lanes, so the bake paints white
+## dashes over the rails; on this deck the lane lines are drawn as the yellow lines instead, the
+## centre line between the tracks is left out, and BUS is painted between each track's rails
+## (`_build_slasko_bus`). Found from the carriageway's deck piece that starts at SD_A.
+const SD_A := Vector2(72.7, -1835.4)
+const SD_LINE := Color("#e3b81f")   ## the tram-and-bus lane's yellow line
+const SD_BUS_STEP := 95.0           ## BUS every this many metres along each track
+const SD_BUS_END := 45.0            ## and none this close to the bridge's ends
+
+
+## The bridge's carriageway deck group, or -1 when the bake has no such deck.
+func _slasko_group() -> int:
+	for d: Dictionary in _decks:
+		if d["k"] != "road":
+			continue
+		var pts: PackedVector2Array = d["pts"]
+		if pts[0].distance_to(SD_A) < 2.0 and pts[0].distance_to(pts[pts.size() - 1]) > 400.0:
+			return int(d["g"])
+	return -1
+
+
+## BUS between the rails of each tram track on Most Śląsko-Dąbrowski, facing the way it runs.
+func _build_slasko_bus(st, group: int) -> void:
+	if group < 0:
+		return
+	for t in data["trams"]:
+		if int(t.get("dk", -1)) != group:
+			continue
+		var poly := _pts(t["p"])
+		_dk = group
+		var s := 0.0
+		var total := 0.0
+		for i in poly.size() - 1:
+			total += poly[i].distance_to(poly[i + 1])
+		var next := SD_BUS_END
+		for i in poly.size() - 1:
+			var a := poly[i]
+			var b := poly[i + 1]
+			var length := a.distance_to(b)
+			while length > 0.01 and next <= s + length and next <= total - SD_BUS_END:
+				var at := a.lerp(b, (next - s) / length)
+				if not _in_sector or _sector_rect.has_point(at):
+					_pixel_shape(st, BUS_TEXT, at, (b - a) / length, 0.12, 0.8, false)
+				next += SD_BUS_STEP
+			s += length
+	_dk = -1
+
+
 func _build_markings(st) -> void:
 	var keep_bias := _drape_bias
+	var slasko := _slasko_group()
 	for m in data.get("markings", []):
 		var poly := _pts(m["p"])
 		_dk = int(m.get("dk", -1))
 		var kind: String = m["k"]
+		if slasko >= 0 and _dk == slasko and (kind == "lane" or kind == "centre"):
+			if kind == "lane":
+				_layer = L_MARK
+				_strip(st, poly, 0.2, Y_MARK, SD_LINE, false)
+			continue
 		if kind == "cyclefill":
 			# Under the white lines: a touch lower in the depth order.
 			_layer = L_CYCLE
@@ -7795,6 +7851,8 @@ func _build_markings(st) -> void:
 			_dashes(st, poly, 0.0, float(style[0]), 5.0, float(style[1]))
 		else:
 			_dashes(st, poly, 0.0, 1000000.0, 0.0, float(style[1]))
+	_layer = L_MARK
+	_build_slasko_bus(st, slasko)
 	_dk = -1
 	_build_pkin_bays(st)
 	_layer = L_GROUND

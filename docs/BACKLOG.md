@@ -4,6 +4,20 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## Bridges audit: transport and details (F, 2026-11-07)
+
+Audit of the five Vistula bridges in game shots, the map data and public sources. Transport is right on all of them:
+trams on Śląsko-Dąbrowski and Poniatowski, trains on Średnicowy, cars and buses only on Świętokrzyski and
+Łazienkowski (true to life); Gdański is off the map. The Powiśle viaduct (arcade, bays, stairs, tram bed, lamps) is fine.
+Fixed: Śląsko-Dąbrowski's middle lanes are the tram-and-bus lane: solid yellow lines instead of white dashes over the rails, BUS between each track's rails (`map_builder._build_slasko_bus`).
+Left:
+- Most Śląsko-Dąbrowski's structure: a plain slab on thin posts; the real one is steel plate girders on the Kierbedź bridge's
+  stone piers. Photo build: F's photos of one pier, the girder and the balustrade (asked 2026-11-07). The AK plaque on the north balustrade.
+- Most Łazienkowski's structure: the deck stands on rows of thin posts; the real one is 5 steel box-girder spans on a few piers,
+  and the two cycle bridges hang on brackets at the girders' bottom (in game they float on their own posts). Photo build: F's photos from below.
+- Tram overhead wires: none anywhere in the city (on the tram bridges most visible). Trams lane.
+- Świętokrzyski's median is drawn green; check against photos (concrete with the stays' anchors?).
+
 ## The Palace of Culture's grounds and venues (F, 2026-11-07, with F's aerial photo)
 
 Built: the walls OSM maps round the Palace's beds and raised lawns (59 retaining walls, planters)
