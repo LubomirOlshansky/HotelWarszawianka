@@ -164,6 +164,9 @@ var _ring_mats := {}
 var _stand_halo: ArrayMesh
 var _halo_mat: ShaderMaterial
 var _places_shown := false
+## The free-ride boat's mooring (boat_race.gd fleet_spot(1), set by main.gd; INF: none) and its mark's colour.
+var boat_spot := Vector2.INF
+const BOAT_COLOUR := Color("#1f4fa8")
 var _rng := RandomNumberGenerator.new()
 ## Loop 3h slice 4: the stand whose next order is the guided first order (first10.gd `pin_first`;
 ## -1: none). Cleared once that order is made.
@@ -698,6 +701,11 @@ func _show_places(on: bool, again := false) -> void:
 			pts.append(Vector2(st["ring"].x, st["ring"].z))
 			colours.append(SLOIK_COLOUR)
 			shapes.append(MapIcons.POI_STATION)
+	# The free-ride boat at the start pontoon (boat_race.gd): its mark stays with the places.
+	if on and boat_spot != Vector2.INF:
+		pts.append(boat_spot)
+		colours.append(BOAT_COLOUR)
+		shapes.append(MapIcons.POI_BOAT)
 	# Loop jobs-2: the Leżak depots at night.
 	if roundup != null and roundup._shown and not round_busy():
 		for q: Vector2 in roundup.depot_points():

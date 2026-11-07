@@ -13,9 +13,13 @@ extends SceneTree
 ## rim and fish on 0.55 m plinths, under 2 m in all.
 ## bazar (2026-11-02): Bazar Różyckiego's stalls and kiosks stand 2.5-3.4 m, under the 6 m floor the heli flies at.
 ## plac_centralny and its lamps (2026-11-05): the seat-wall, steps and lamp posts stand 1-5 m, under the heli's 6 m floor.
+## port_wtw, port_halls, port_basin (2026-11-07): Port Czerniakowski's boathouse and halls stand 3.6-5 m to the eaves, the moored boats under 2 m (masts are lines).
 ## Towarowa 22 is a quarter: its box's middle is the printing hall's open frame and the 28 m tanks
 ## block, under the heli's 45 m; its towers stand at the box's west edge and stop it there.
-const FLY_OVER := ["bulwary_basen", "bazar", "towarowa22", "plac_centralny", "plac_centralny_lamps", "sunken", "underpass"]
+const FLY_OVER := ["port_wtw", "port_halls", "port_basin", "bulwary_basen", "bazar", "towarowa22", "plac_centralny", "plac_centralny_lamps", "sunken", "underpass"]
+## Monuments lower than the heli's 6 m floor (the monuments pass, part 2): it flies at this height
+## instead, so their bronze and stone have to stop it.
+const LOW_MONUMENTS := {"maly_powstaniec": 1.5, "starzynski": 2.5, "umschlagplatz": 2.5, "pomnik_wschod": 3.0}
 
 var map: Node3D
 var _frames := 0
@@ -185,8 +189,8 @@ func _fly_checks() -> int:
 					if h > top:
 						top = h
 						top_at = Vector2(x, z)
-		if info["key"] in ["elektrownia", "stadion_pkp", "ostrogski", "mpw", "bulwary_pawilony", "bulwary_bary"]:
-			c = top_at  # open yards, platforms, rows along the river (Ostrogski's courtyard between its two blocks): the box's middle is air, aim at the tallest cell
+		if info["key"] in ["elektrownia", "stadion_pkp", "ostrogski", "mpw", "equator2", "bulwary_pawilony", "bulwary_bary", "umschlagplatz", "pomnik_wschod"]:
+			c = top_at  # open yards, platforms, rows along the river (Ostrogski's courtyard between its two blocks), Umschlagplatz's open enclosure, the Eastern memorial's long low track: the box's middle is air, aim at the tallest cell
 		var alt := clampf(top * 0.5, 6.0, 45.0)
 		if info["key"] == "arkady":
 			alt = 5.0  # the arcade wall stands 7.5 m over the Lower Garden; the castle's roofs in the box are higher
@@ -208,8 +212,12 @@ func _fly_checks() -> int:
 			alt = 3.0  # the statue stands 5 m, the water station's roof 4 m: a 6 m heli flies over them
 		elif info["key"] == "underpass":
 			alt = 35.0  # ground-level stairs; the way in from the east crosses Jerozolimskie's 25 m tenements
+		elif info["key"] == "sowa":
+			alt = 4.0  # the pavilion stands 7.6-8.5 m over its plinth; the 1950s block behind lifts the default
 		elif info["key"] == "tarasy":
 			alt = 15.0  # the wave stands 30 m; the towers in its box (110 m) would lift the heli over it
+		elif LOW_MONUMENTS.has(info["key"]):
+			alt = LOW_MONUMENTS[info["key"]]
 		var dir := Vector2(1, 0.35).normalized()
 		var start := c + dir * maxf(box.size.length() * 0.5 + 60.0, 160.0)
 		heli.place(Vector3(start.x, map.ground_height(start.x, start.y) + alt, start.y), 0.0, alt)

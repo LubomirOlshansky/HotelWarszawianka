@@ -85,6 +85,8 @@ const MIESZANE_TUBE := Color(1.0, 0.45, 0.12)
 const DALEJ_TUBE := Color(0.55, 1.0, 0.8)
 ## KRINGULA PIZZA, the hyped pizzeria (a parody; F's ideas #6): a tomato red.
 const KRINGULA_TUBE := Color(1.0, 0.3, 0.22)
+## DŻEMINI KEBAB (F, 2026-11-06): the kebab an AI agent carves, in the agent's blue-violet.
+const DZEMINI_TUBE := Color(0.45, 0.55, 1.0)
 ## The cinemas' marquee tubes: amber, a deep red and a cool white-blue, so a street of them is not one colour.
 const CINEMA_TUBE := Color(1.0, 0.72, 0.25)
 const CINEMA_TUBE_B := Color(1.0, 0.25, 0.3)
@@ -178,14 +180,15 @@ const VENUES := {
 	"dalej_gelato": [["DALEJ DALLA", "GELATO LODY"], DALEJ_TUBE, 2.8],
 	# F's ideas #6 (2026-11-02): the pizzeria everyone queues and cries for; the sign is final, the joke is not.
 	"kringula_pizza": [["KRINGULA", "PIZZA"], KRINGULA_TUBE, 3.0],
+	# F (2026-11-06): the new kebab whose meat an AI agent carves; Mrożulo's MLASK makes it the
+	# city's longest queue (trend_job.gd "Dżemini", crowds.gd DZEMINI_ID).
+	"dzemini_kebab": [["DŻEMINI", "KEBAB 24H"], DZEMINI_TUBE, 2.8],
 	# Warsaw's classic and arthouse cinemas (F, 2026-11-02): the real independent halls under their
 	# own names (place names, not brands; the multiplex chains stay out), amber marquee tubes.
-	"kino_muranow": [["KINO", "MURANÓW"], CINEMA_TUBE, 3.2],
 	"kino_atlantic": [["KINO", "ATLANTIC"], CINEMA_TUBE_B, 3.2],
 	"kino_luna": [["KINO", "LUNA"], CINEMA_TUBE_C, 3.2],
 	"kino_kultura": [["KINO", "KULTURA"], CINEMA_TUBE, 3.2],
 	"kino_elektronik": [["KINO", "ELEKTRONIK"], CINEMA_TUBE_B, 3.2],
-	"kino_kinoteka": [["KINOTEKA"], CINEMA_TUBE, 3.2],
 	# Powiśle's streets (F, 2026-11-02): the small shops of a student and cyclist quarter, original
 	# names, one tube each, low over the door.
 	"pow_flat_bialy": [["FLAT", "BIAŁY"], CAFE_TUBE, 2.8],
@@ -350,19 +353,20 @@ const HYPE := {
 	"dalej_gelato": [52.237885, 21.027375],
 	# KRINGULA PIZZA on Poznańska, the street of the new places (corner approximate; Mac look check parked).
 	"kringula_pizza": [52.22725, 21.01575],
+	# DŻEMINI KEBAB, new on the north side of Świętokrzyska, its front to the camera (an invented shop; the Mac look check parks the door).
+	"dzemini_kebab": [52.23595, 21.0105],
 }
 ## Warsaw's classic and arthouse cinemas (F, 2026-11-02; BACKLOG "Lore: coffee raves and arthouse
-## cinemas"): Kino Muranów (Andersa 1), Atlantic (Chmielna 33), Luna (Marszałkowska 28), Kultura
-## (Krakowskie Przedmieście 21/23), Elektronik (Czerwonego Krzyża 3/5) and the Kinoteka in the Palace
-## (Kino Femina's fascia is zaglebie.gd's `zag_femina`). Like the cafés, not notebook places;
+## cinemas"): (Kino Muranów's letters are its landmark model's since 2026-11-07, landmarks.gd) Atlantic (Chmielna 33), Luna (Marszałkowska 28), Kultura
+## (Krakowskie Przedmieście 21/23) and Elektronik (Czerwonego Krzyża 3/5). The Kinoteka's sign is the
+## Palace's own (landmarks.gd PKIN_SIGNS, 2026-11-07: this table put it 130 m west, across Emilii
+## Plater). (Kino Femina's fascia is zaglebie.gd's `zag_femina`). Like the cafés, not notebook places;
 ## same venue code, the nearest road snaps the sign. Iluzjon (Narbutta, Mokotów) is south of the map.
 const CINEMAS := {
-	"kino_muranow": [52.24620, 21.00030],
-	"kino_atlantic": [52.23180, 21.01400],
+	"kino_atlantic": [52.23158, 21.01253],
 	"kino_luna": [52.22830, 21.01360],
 	"kino_kultura": [52.24060, 21.01680],
 	"kino_elektronik": [52.23480, 21.02900],
-	"kino_kinoteka": [52.23100, 21.00450],
 }
 ## Powiśle's streets (F, 2026-11-02; BACKLOG "Powiśle streets"): a cafe on Tamka, a bike workshop and
 ## a bakery on Dobra, a record shop and a bookshop towards the Library, a bar on Topiel, a stairwell
@@ -1247,6 +1251,9 @@ func _place_venue(i: int, space: PhysicsDirectSpaceState3D) -> void:
 	v["px"] = px
 	v["off"] = 0.14
 	v["wall"] = Vector2(p.x, p.z)
+	v["p"] = p
+	v["n"] = n
+	v["t"] = t
 	v["state"] = 1
 	if log_on:
 		print("storefronts: venue %s \"%s\" on the wall at %.1f, %.1f, %.2f m out, letter pixel %.2f m" % [v["id"],
@@ -1464,14 +1471,41 @@ func _load_metros(pois: Array) -> void:
 				"lift": (int(absf(x * 7.0 + z * 13.0)) % 5) < 3})
 
 
+## The Ratusz-Arsenał station (OSM's name on its entrances).
+const RATUSZ := "Ratusz-Arsenał"
+
+
 ## The entrance's look by station: Centrum's 1990s tubes (F, 2026-11-02); Świętokrzyska's mapped
 ## canopies are M2's steel-and-glass triangle tents (F's photo, Feb 2026), its plain stairs stay
-## stairs; elsewhere the bake's `f`.
+## stairs; Rondo ONZ wears the same tents, Stadion Narodowy, Kopernik and Gdanski their glass
+## crystals, Nowy Swiat-Uniwersytet its violet box; Ratusz-Arsenał's are its own (Props._metro_ratusz);
+## elsewhere the bake's `f`.
 static func metro_form(station: String, f: String) -> String:
 	if station == "Centrum":
 		return "tube"
 	if station == "Świętokrzyska" and f == "canopy":
 		return "tent"
+	if station == "Rondo Daszyńskiego" and f == "canopy":
+		return "wings"  # F's photos (2026-11-06): the red glass butterfly canopies
+	# Street photos (Mapillary, 2026-11-07): M2's other stations, each with its own pavilion.
+	if f == "canopy":
+		match station:
+			"Rondo ONZ":
+				return "tent"  # the same steel-and-glass A-frame with the yellow roundel
+			"Stadion Narodowy":
+				return "crystal"
+			"Centrum Nauki Kopernik":
+				return "crystal_aqua"
+			"Dworzec Gdański":
+				return "crystal_clear"
+			"Nowy Świat-Uniwersytet":
+				return "box"
+	if station == RATUSZ:
+		# F's photos (2026-11-07): the glass escalator pavilion by the tram stop, stone M1 entrances
+		# with a white canopy where OSM maps a canopy, stone stairwells elsewhere.
+		if f == "footway":
+			return "pavilion"
+		return "stone" if f == "canopy" else "stone_steps"
 	return f
 
 
@@ -1917,6 +1951,17 @@ func restore_collected() -> int:
 
 
 ## For the bench's and the check's counters.
+## A placed venue's wall (trend_job.gd's MLASK sticker on DŻEMINI): {p: Vector3 on the wall's foot,
+## n (out of the wall), t (along it), up (the sign's bottom, m)}, or {} until its sector placed it.
+func venue_wall(id: String) -> Dictionary:
+	for v: Dictionary in venues:
+		if str(v["id"]) == id:
+			if int(v["state"]) != 1 or not v.has("n"):
+				return {}
+			return {"p": v["p"], "n": v["n"], "t": v["t"], "up": float(v["up"])}
+	return {}
+
+
 func summary() -> String:
 	var placed := 0
 	var failed := 0

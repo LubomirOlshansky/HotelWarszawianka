@@ -82,6 +82,7 @@ func _run() -> void:
 			await physics_frame
 		var w3 := _solid(map, graph, list, works)
 		var w4 := _budget(works)
+		w3 += "; " + _rails(map, works)
 		w1 += "; W3 " + w3 + "; W4 " + w4 + "; W5 " + _boards() + ", " + await _relabel(map, works)
 	map.queue_free()
 	await process_frame
@@ -259,6 +260,34 @@ static func _hits(space: PhysicsDirectSpaceState3D, a: Vector2, b: Vector2, barr
 	var q := PhysicsRayQueryParameters3D.create(Vector3(a.x, 0.6, a.y), Vector3(b.x, 0.6, b.y))
 	var hit := space.intersect_ray(q)
 	return not hit.is_empty() and hit["collider"] == barriers
+
+
+## PT-28 (2026-11-07, run 20261106-101542): the tram strip between Grochowska's two closed
+## carriageways was open. Every tram strip between two closures is solid across (rays every half
+## metre), and Grochowska's is one of them.
+func _rails(map, works: Node3D) -> String:
+	var space: PhysicsDirectSpaceState3D = map.get_world_3d().direct_space_state
+	var barriers := works.get_node("Barriers") as StaticBody3D
+	var gaps := EdgeRoadworks.rail_gaps(map)
+	var rays := 0
+	var grochowska := false
+	for c: Dictionary in gaps:
+		var d: Vector2 = c["dir"]
+		var side := Vector2(d.y, -d.x)
+		var half: float = c["half"]
+		var at: Vector2 = c["at"]
+		if at.distance_to(Vector2(2170, -1447)) < 15.0:
+			grochowska = true
+		var x := -half
+		while x <= half:
+			var p := at + side * x
+			x += 0.5
+			rays += 1
+			if not _hits(space, p - d * 1.5, p + d * 1.5, barriers):
+				problems.append("W3 the tram strip at %s is open past the barriers (PT-28)" % p.round())
+	if not grochowska:
+		problems.append("W3 Grochowska's tram strip at the east edge has no collider (PT-28)")
+	return "%d tram strips closed (%d rays)" % [gaps.size(), rays]
 
 
 # --- W5 the boards' languages ------------------------------------------------------------------

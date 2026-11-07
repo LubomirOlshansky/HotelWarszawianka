@@ -9,6 +9,11 @@ extends SceneTree
 ##   autopilot) ends with every boat finished or out inside RACE_MAX s, the player's careful boat
 ##   with no miss inside the expected time, the times spread (they are not one boat four times);
 ## - three misses put the player out (ODPADASZ!), JESZCZE RAZ starts the grid again, WYJDŹ ends it;
+## - the free ride (F 2026-11-07): three boats moored in open water, clear of each other; each one
+##   picked on the marina card goes out, gets away from the pontoon at full throttle without the
+##   rivals or the rings, ✕ ends the ride and it is back at its mooring; and they feel different:
+##   the offshore fastest, the jet ski quickest off the line and steering only on the gas, the turn
+##   rates jet ski > electric > offshore;
 ## - the race's dialogue lines exist in Polish and English for every rival's situations.
 ##   godot --headless --path game --script res://tools/check_boat_race.gd
 
@@ -123,6 +128,7 @@ func _initialize() -> void:
 	root.add_child(hud)
 	var race := _race(map, hud)
 	_fail_path(race, hud)
+	_free(race, map)
 	_lines()
 	if _fails.is_empty():
 		print("check_boat_race: OK")
@@ -296,6 +302,114 @@ func _fail_path(race: Node3D, hud: FakeHud) -> void:
 	race._quit()
 	if race.state != BoatRace.State.IDLE or race.boating():
 		_fail("WYJDŹ did not end the race")
+
+
+func _free(race: Node3D, map: WaterMap) -> void:
+	var n: int = BoatRace.FLEET.size()
+	if n != 3 or race.fleet.size() != n:
+		_fail("the marina has %d boats, not 3" % race.fleet.size())
+		return
+	for i in n:
+		var m: Vector2 = BoatRace.fleet_spot(i)
+		if map.shore_distance(m.x, m.y) < float(race.fleet[i].spec["r"]) + 0.8:
+			_fail("%s's mooring %s is %.1f m from the bank" % [BoatRace.FLEET[i]["name"], m, map.shore_distance(m.x, m.y)])
+		for k in range(i + 1, n):
+			if m.distance_to(BoatRace.fleet_spot(k)) < float(race.fleet[i].spec["r"]) + float(race.fleet[k].spec["r"]):
+				_fail("the moorings of %s and %s overlap" % [BoatRace.FLEET[i]["name"], BoatRace.FLEET[k]["name"]])
+	var stats := []
+	for i in n:
+		race._marina_card()
+		if race.state != BoatRace.State.MENU:
+			_fail("the pill did not open the marina card")
+		race._on_card(i)
+		var name: String = BoatRace.FLEET[i]["name"]
+		if race.state != BoatRace.State.FREE or not race.boating() or race.player != race.fleet[i]:
+			_fail("picking %s did not start its free ride (state %d)" % [name, race.state])
+			return
+		var b: Node3D = race.fleet[i]
+		var m: Vector2 = BoatRace.fleet_spot(i)
+		# Full throttle, bow to the river: out past the pontoon and up on the plane, then on down
+		# the middle of the river (the course's line) so the turns below are in open water.
+		b.throttle = 1.0
+		var t := 0.0
+		var best := 0.0
+		var t10 := -1.0
+		while t < 14.0:
+			if t > 3.0:
+				var li := clampi(race.line.size() / 6, 0, race.line.size() - 1)
+				var to: Vector2 = race.line[li] - b.pos
+				b.target_dir = Vector3(to.x, 0.0, to.y).normalized()
+			race._process(STEP)
+			t += STEP
+			best = maxf(best, b.forward_speed())
+			if t10 < 0.0 and b.forward_speed() >= 10.0:
+				t10 = t
+		var gone: float = b.pos.distance_to(m)
+		if gone < 60.0:
+			_fail("%s got only %.0f m from its mooring in 14 s (stuck by the pontoon?)" % [name, gone])
+		# The turn at speed with the gas on, then coasting with the wheel over.
+		b.target_dir = Vector3.ZERO
+		b.throttle = 1.0
+		var y0: float = b.yaw
+		b.steer = 1.0
+		for f in 60:
+			race._process(STEP)
+		var turn_gas := absf(wrapf(b.yaw - y0, -PI, PI))
+		b.throttle = 0.0
+		for f in 30:
+			race._process(STEP)
+		var y1: float = b.yaw
+		for f in 30:
+			race._process(STEP)
+		var turn_coast := absf(wrapf(b.yaw - y1, -PI, PI)) * 2.0
+		stats.append({"best": best, "t10": t10, "gas": turn_gas, "coast": turn_coast})
+		print("check_boat_race: free ride %s: %.0f m out, top %.1f m/s, 10 m/s in %.1f s, turn %.2f rad/s on gas, %.2f coasting" % [name, gone, best, t10, turn_gas, turn_coast])
+		for k in race.boats.size():
+			if race.boats[k].visible:
+				_fail("a race boat is out during the free ride")
+		if i == FLEET_PIN:
+			_pin(race, b, m)
+		race.hud.abort_pressed.emit()
+		if race.state != BoatRace.State.IDLE or race.boating() or race.player == race.fleet[i]:
+			_fail("✕ did not end the free ride in %s" % name)
+		if race.fleet[i].pos.distance_to(m) > 0.5 or not race.fleet[i].visible:
+			_fail("%s is not back at its mooring" % name)
+	# Their own physics: the offshore is the fastest, the jet ski the quickest off the line and the
+	# only one that hardly turns off the gas, the electric quicker to 10 m/s than the heavy offshore.
+	var sk: Dictionary = stats[0]
+	var el: Dictionary = stats[1]
+	var of: Dictionary = stats[2]
+	if not (float(of["best"]) > float(sk["best"]) + 3.0 and float(of["best"]) > float(el["best"]) + 3.0):
+		_fail("the offshore is not clearly the fastest (%.1f vs %.1f, %.1f)" % [of["best"], sk["best"], el["best"]])
+	if not (float(sk["t10"]) < float(el["t10"]) and float(el["t10"]) < float(of["t10"])):
+		_fail("off the line: jet ski %.1f s, electric %.1f s, offshore %.1f s to 10 m/s (want that order)" % [sk["t10"], el["t10"], of["t10"]])
+	if not (float(sk["coast"]) < 0.5 * float(sk["gas"])):
+		_fail("the jet ski turns %.2f rad/s off the gas (jet steering wants under half of %.2f)" % [sk["coast"], sk["gas"]])
+	if not (float(of["gas"]) < float(el["gas"]) and float(el["gas"]) < float(sk["gas"])):
+		_fail("turn rates on the gas: jet ski %.2f, electric %.2f, offshore %.2f (want that order)" % [sk["gas"], el["gas"], of["gas"]])
+
+
+## The long offshore nosed into the bank at full throttle, wheel straight: it must not sit pinned
+## there (the pin push-off in boat.gd; Autopilot found it stuck 12 s on 2026-11-07).
+const FLEET_PIN := 2
+
+
+func _pin(race: Node, b: Node3D, m: Vector2) -> void:
+	var to: Vector2 = BoatRace.CAR_SPOT - m
+	b.place(m, atan2(to.x, to.y))
+	b.target_dir = Vector3.ZERO
+	b.steer = 0.0
+	b.throttle = 1.0
+	var still := 0.0
+	var worst := 0.0
+	for f in int(8.0 / STEP):
+		race._process(STEP)
+		still = still + STEP if b.vel.length() < 0.5 else 0.0
+		worst = maxf(worst, still)
+	b.throttle = 0.0
+	print("check_boat_race: pinned on the bank at most %.1f s" % worst)
+	if worst > 2.5:
+		_fail("%s sat pinned on the bank for %.1f s at full throttle" % [BoatRace.FLEET[FLEET_PIN]["name"], worst])
 
 
 func _lines() -> void:

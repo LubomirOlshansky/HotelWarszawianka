@@ -68,6 +68,7 @@ const Models := preload("res://scripts/models.gd")
 const TimeOfDay := preload("res://scripts/time_of_day.gd")
 const Radio := preload("res://scripts/radio.gd")
 const OpeningAudio := preload("res://scripts/opening_audio.gd")
+const GreetingClips := preload("res://scripts/greeting_clips.gd")
 const Title := preload("res://scripts/title.gd")
 const Wallet := preload("res://scripts/wallet.gd")
 const Dialogue := preload("res://scripts/dialogue.gd")
@@ -92,8 +93,14 @@ const Cassettes := preload("res://scripts/cassettes.gd")
 const FirstScene := preload("res://scripts/first_scene.gd")
 ## Skwer Linearny na Złotej (2026-11-02): the park's stone blocks, benches, cafés (skwer_zlota.gd).
 const SkwerZlota := preload("res://scripts/skwer_zlota.gd")
+## The 3D corner screen on Skylight at Złote Tarasy (2026-11-05, tarasy_screen.gd).
+const TarasyScreen := preload("res://scripts/tarasy_screen.gd")
+## The Warsaw Spire's LED ticker and plaza jets (2026-11-06, spire_motion.gd).
+const SpireMotion := preload("res://scripts/spire_motion.gd")
 ## Street details along the main line (street_details.gd, tools/bake_street_details.py).
 const StreetDetails := preload("res://scripts/street_details.gd")
+## The Ratusz Arsenał interchange's canopies, tower and railings (ratusz_hub.gd).
+const RatuszHub := preload("res://scripts/ratusz_hub.gd")
 ## Park details: statues, a carousel, ducks, people on the benches (park_details.gd, tools/bake_park_details.py).
 const ParkDetails := preload("res://scripts/park_details.gd")
 ## Loop 3h slice 3: the final race's route (the start's hint for --trzy-mosty).
@@ -109,6 +116,7 @@ const CityLife := preload("res://scripts/city_life.gd")
 ## Loop MW-2: storefronts and parodies (Frogs, the venues' neon, Leżak, the metro entrances).
 const Storefronts := preload("res://scripts/storefronts.gd")
 const TrendJob := preload("res://scripts/trend_job.gd")
+const CoffeeRun := preload("res://scripts/coffee_run.gd")
 const RoundupJob := preload("res://scripts/roundup_job.gd")
 const Weather := preload("res://scripts/weather.gd")
 const Controls := preload("res://scripts/drive_controls.gd")
@@ -131,8 +139,12 @@ const OldTram := preload("res://scripts/old_tram.gd")
 const CrashScenes := preload("res://scripts/crash_scenes.gd")
 ## Sekretny rave (rave.gd, F's ask 2026-11-06): LEKTI on MORDOR FM, Ziomek's call, the raves' rigs.
 const Rave := preload("res://scripts/rave.gd")
+## Nocny spot (street_meet.gd, F's ask 2026-11-06): the WARSAW NIGHT RACING CLUB's meets, raids and drag.
+const StreetMeet := preload("res://scripts/street_meet.gd")
 ## "Wiślana Szprotka", the boat race down the Vistula (boat_race.gd, F's ask 2026-11-06).
 const BoatRace := preload("res://scripts/boat_race.gd")
+## "Kino objazdowe", the director friend's cinema tour (kino_tour.gd, F's ask 2026-11-07).
+const KinoTour := preload("res://scripts/kino_tour.gd")
 ## Wątki (story_quests.gd, F's ask 2026-11-07): the questlines' starts on the map, the friend in
 ## person at the start, the beta list; quest focus (the map goes quiet while a quest runs).
 const StoryQuests := preload("res://scripts/story_quests.gd")
@@ -163,13 +175,17 @@ const STYLES := [
 	{"name": "Clean", "lines": 240, "outline": 0.6, "levels": 0.0, "saturation": 1.1},
 	{"name": "Chunky", "lines": 170, "outline": 0.8, "levels": 9.0, "saturation": 1.2},
 ]
-var camera_pitch := -30.0
+## The camera's tilt in degrees (minus the angle over the ground): Settings → Obraz "Kąt kamery"
+## (settings.gd pitch, follow_camera.gd PITCHES) or --pitch=.
+var camera_pitch := -FollowCamera.DEFAULT_PITCH
 const CAMERA_DISTANCE := 500.0
 ## Height of the view in metres (orthographic size): wide enough to read the city.
 var base_size := FollowCamera.DEFAULT_SIZE
 ## The follow-camera loop: --size= was given (the saved zoom doesn't apply), and the pinch's span
 ## ratio since its last zoom step.
 var _flag_size := false
+## --pitch= was given: the saved camera angle (Settings → Obraz) doesn't override it.
+var _flag_pitch := false
 var _pinch_run := 1.0
 ## The helicopter's view is this much wider than the car's (as before loop 2a: 1.3 × 110 m).
 const HELI_VIEW := 1.3 * 110.0 / FollowCamera.DEFAULT_SIZE
@@ -487,7 +503,7 @@ var _sunsets := {}
 ## --life=0|1|2 (none, normal, double; the Low tier halves it), --dogs-log, --trend-log,
 ## --life-log, --life-soak (the car driven at the dogs and riders, overlaps counted), --zajac
 ## (Live, Wednesday 28 October 2026 at 18:59, the car by Kolka's start; with --autopilot it paces
-## the club), --trend-day=N (the trend cycle's day number), --trend-job[=slot, 5 padel court, 6 van, 7 the DeSki call] (the request at a
+## the club), --trend-day=N (the trend cycle's day number), --trend-job[=slot, 5 padel court, 6 van, 7 the DeSki call, 8 Mrożulo's Dżemini call, 9 Zuzia's coffee run with the car by its ROWERILO dock] (the request at a
 ## Wiralek slot, 1-3).
 var life: CityLife
 var trend_job: TrendJob
@@ -521,6 +537,15 @@ var _crash_auto := false
 ## Smoła night now), --rave=on / --rave=day (that rave on at any hour), --rave-spot=ID, --rave=0,
 ## --rave-log.
 var rave: Rave
+## Nocny spot (street_meet.gd): flags --meet-call (Darek rings now), --meet=on (night rules at any
+## hour), --meet=0, --meet-at=meet|raid|race|meet2|drag|stage (jump to that beat), --meet-log.
+var meet: StreetMeet
+var meet_flag := ""
+var meet_at := ""
+var meet_log := false
+var _meet_auto := false
+## The ground's material (the skids' and the meet's tyre marks).
+var _ground_mat: Material
 var club: Club
 var rave_flag := ""
 var rave_spot := ""
@@ -528,7 +553,9 @@ var rave_log := false
 var _rave_auto := false
 ## The boat race (boat_race.gd): --boat-race=call (Szymek phones now), =race (the car at the
 ## pontoon, straight onto the grid), =auto (that, with the player's boat driven by the rivals'
-## driver), =0 (none); --boat-log.
+## driver), =free / free0..2 (the car at the pontoon, out in a free-ride boat: 0 the jet ski,
+## 1 the electric (default), 2 the offshore), =marina (the car there, the
+## marina card up), =0 (none); --boat-log.
 var boat_race: BoatRace
 ## The questlines (story_quests.gd); --stories-log prints what they do.
 var stories: StoryQuests
@@ -545,6 +572,11 @@ var boat_flag := ""
 var boat_log := false
 var _boat_mask := Vector2i.ZERO
 var _boat_paused := false
+## The cinema tour (kino_tour.gd): --kino-tour=call (Wiktor phones now), =go (the tour starts with
+## the car at the pickup), =auto (that, the cards answered by themselves), =0 (none); --kino-log.
+var kino_tour: KinoTour
+var kino_flag := ""
+var kino_log := false
 var old_tram_flag := ""
 var tram_log := false
 ## Packs (packs.gd): running clubs, cycling packs, coffee raves; flags --packs=0 (none), --packs-now
@@ -599,6 +631,9 @@ var life_soak := false
 var zajac_flag := false
 var trend_day_flag := -1
 var trend_job_flag := 0
+## --dzemini: Mrożulo's MLASK already on DŻEMINI KEBAB (the queue for good, the sticker), the car by
+## the shop (trend_job.gd "Dżemini"; shots without driving the job).
+var dzemini_flag := false
 var start_kebab := -1
 ## Loop jobs-2: --courier-race[=N] (kebab order N, default 0, with the courier's challenge forced).
 var courier_race := false
@@ -769,6 +804,7 @@ const TELEPORT_TESTS := [
 	[1700.0, 973.0, "over the river by Most Łazienkowski"],
 	[-1013.0, -45.0, "Marszałkowska at the start"],
 	[-387.0, -187.0, "Nowy Świat"],
+	[-700.0, 900.0, "PT-19: the hold that twice left the car in place"],
 ]
 var hold_stick := Vector2.INF
 var hold_pedal := ""
@@ -1317,6 +1353,7 @@ func _build_world() -> void:
 	var flat_mat := ShaderMaterial.new()
 	flat_mat.shader = load("res://shaders/ground.gdshader")
 	flat_mat.set_shader_parameter("debug_ao", debug_ao)
+	_ground_mat = flat_mat
 	flat_mat.set_shader_parameter("ao_strength", 0.0 if no_ao else 1.0)
 
 	var data: Dictionary
@@ -1524,7 +1561,10 @@ func _build_world() -> void:
 	_build_cassettes(world)
 	_build_first_scene(world)
 	_build_skwer_zlota(world)
+	_build_tarasy_screen(world)
+	_build_spire_motion(world)
 	_build_street_details(world)
+	_build_ratusz_hub(data, world)
 	_build_park_details(world)
 	_build_garage(world)
 	await _load_mark(0.66)
@@ -1591,7 +1631,9 @@ func _build_world() -> void:
 	_build_old_tram(world)
 	_build_crash_scenes()
 	_build_rave(data, world)
+	_build_meet(data, world)
 	_build_boat_race(world)
+	_build_kino_tour(world)
 	_build_ev_tow(world)
 	_build_stories(world)
 	_build_storefronts(data, world)
@@ -1716,6 +1758,10 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	# First scene item 6: busier pavements on Marszałkowska by the start.
 	var busy := walkers.set_busy(FirstScene.FRAME_O, FirstScene.FRAME_S, FirstScene.FRAME_T, FirstScene.BUSY_BANDS, FIRST_SCENE)
 	print("first scene: %d busy pavement points" % busy)
+	# F's LIM photos (2026-11-06): the pavement under Centrum LIM's arcade and the Dworzec Centralny
+	# tram stop in front of it, busy at every hour.
+	busy = walkers.add_busy(LIM_BUSY_O, LIM_BUSY_S, LIM_BUSY_T, LIM_BUSY_BANDS, LIM_BUSY_BOX)
+	print("centrum lim: %d busy pavement points" % busy)
 	traffic.bumped_driver.connect(dialogue.on_driver_bumped)
 	traffic.blocked_by_player.connect(dialogue.on_driver_blocked)
 	rivals = Rivals.new()
@@ -1760,6 +1806,29 @@ func _build_skwer_zlota(world: Node3D) -> void:
 	sz.build()
 
 
+## The 3D corner screen at Złote Tarasy (tarasy_screen.gd), on both city paths.
+func _build_tarasy_screen(world: Node3D) -> void:
+	if solo_site != "":
+		return
+	var ts := TarasyScreen.new()
+	ts.name = "TarasyScreen"
+	ts.map = map
+	world.add_child(ts)
+	ts.build()
+
+
+## The Warsaw Spire's moving parts (spire_motion.gd): the crown's LED ticker and the plaza's jets,
+## on both city paths.
+func _build_spire_motion(world: Node3D) -> void:
+	if solo_site != "" and solo_site != "spire":
+		return
+	var sm := SpireMotion.new()
+	sm.name = "SpireMotion"
+	sm.map = map
+	world.add_child(sm)
+	sm.build()
+
+
 ## Street details along the main line (street_details.gd): kiosks, stalls, cafés, planters and
 ## stop kits on the pavements of the streets the main line uses, on both city paths.
 func _build_street_details(world: Node3D) -> void:
@@ -1770,6 +1839,18 @@ func _build_street_details(world: Node3D) -> void:
 	sd.map = map
 	world.add_child(sd)
 	sd.build()
+
+
+## The Ratusz Arsenał interchange (ratusz_hub.gd, F's photos 2026-11-07): the arched tram canopies,
+## their benches and boards, the round stone tower and its railings, on both city paths.
+func _build_ratusz_hub(d: Dictionary, world: Node3D) -> void:
+	if solo_site != "":
+		return
+	var hub := RatuszHub.new()
+	hub.name = "RatuszHub"
+	hub.map = map
+	world.add_child(hub)
+	hub.build(d)
 
 
 ## Park details (park_details.gd): the pieces of Ogród Saski, Ogród Krasińskich and Park
@@ -1793,6 +1874,14 @@ func _build_park_details(world: Node3D) -> void:
 ## first frame wants them when the camera reaches the car, not long gone while the title was up;
 ## the first of them to pass the car rings its bell (trams.gd greet).
 const FIRST_SCENE := Rect2(-1080.0, -160.0, 200.0, 420.0)
+## F's LIM photos (2026-11-06): Centrum LIM's street face (its west corner, along it eastwards,
+## out towards Aleje Jerozolimskie) and the busy bands [s0, s1, t0, t1] in that frame: the arcade
+## and the pavement, then the Dworzec Centralny tram platforms; the box where the boost applies.
+const LIM_BUSY_O := Vector2(-1427.8, 702.2)
+const LIM_BUSY_S := Vector2(0.946, -0.325)
+const LIM_BUSY_T := Vector2(-0.325, -0.946)
+const LIM_BUSY_BANDS := [[-15.0, 160.0, -7.0, 14.0], [-45.0, 70.0, 14.0, 45.0]]
+const LIM_BUSY_BOX := Rect2(-1480.0, 600.0, 230.0, 130.0)
 const MARSZALKOWSKA_NORTH := Vector2(-0.349, -0.937)
 const FIRST_UP_V := 7.0
 const FIRST_DOWN_V := 8.0
@@ -2167,7 +2256,7 @@ func _start_phone_bench() -> void:
 	if busy != "":
 		hud.toast(Lang.split(busy))
 		return
-	_phone_saved = {"at": car.global_transform, "mask": car.collision_mask, "size": base_size,
+	_phone_saved = {"at": car.global_transform, "mask": car.collision_mask, "size": base_size, "pitch": camera_pitch,
 			"wallet": [wallet.zl, wallet.respect, wallet.jobs.duplicate(true), wallet.best.duplicate(true),
 					wallet.eggs.duplicate(true), wallet.district_jobs.duplicate(true), wallet.ladder.duplicate(true)], "persistent": wallet.persistent,
 			"calls": missions.paused}
@@ -2179,6 +2268,7 @@ func _start_phone_bench() -> void:
 	hud.hide_bench_card()
 	moments.stop()
 	base_size = FollowCamera.DEFAULT_SIZE
+	camera_pitch = -FollowCamera.DEFAULT_PITCH  # the bench's numbers at the game's look, whatever the player chose
 	car.global_transform = _spawn
 	car.vel = Vector3.ZERO
 	car.forward_speed = 0.0
@@ -2223,6 +2313,7 @@ func _end_phone_bench(done: bool) -> void:
 	car.reset_physics_interpolation()
 	cam_focus = car.global_position
 	base_size = _phone_saved["size"]
+	camera_pitch = _phone_saved["pitch"]
 	var w: Array = _phone_saved["wallet"]
 	wallet.zl = w[0]
 	wallet.respect = w[1]
@@ -2351,6 +2442,9 @@ func _build_storefronts(data: Dictionary, world: Node3D) -> void:
 		storefronts.preset_stamps(stamps_flag)
 	if rides != null:
 		rides.frogs = storefronts
+	# "Dżemini" (trend_job.gd): the MLASK sticker goes on DŻEMINI KEBAB's wall.
+	if trend_job != null:
+		trend_job.storefronts = storefronts
 	# Loop jobs-2: the Leżak round-up, at the zones storefronts.gd painted (jobs.gd steps it).
 	if jobs != null:
 		var ru := RoundupJob.new()
@@ -2773,16 +2867,68 @@ func _build_boat_race(world: Node3D) -> void:
 	boat_race.setup(world)
 	boat_race.boarded.connect(_on_boat_boarded)
 	boat_race.left_boat.connect(_on_boat_left)
+	if jobs != null:
+		# The free-ride boat's mark on the minimap and the full map, with the job places.
+		jobs.boat_spot = BoatRace.fleet_spot(1)
+		jobs._show_places(jobs._places_shown, true)
 	if boat_flag in ["race", "auto"]:
 		get_tree().create_timer(1.0).timeout.connect(func() -> void:
 			var at := BoatRace.CAR_SPOT
 			car.global_position = Vector3(at.x, map.ground_height(at.x, at.y), at.y)
 			car.reset_physics_interpolation()
 			boat_race._board())
+	elif boat_flag.begins_with("free") or boat_flag == "marina":
+		get_tree().create_timer(1.0).timeout.connect(func() -> void:
+			var at := BoatRace.CAR_SPOT
+			car.global_position = Vector3(at.x, map.ground_height(at.x, at.y), at.y)
+			car.reset_physics_interpolation()
+			if boat_flag.begins_with("free"):
+				boat_race.free_ride(int(boat_flag.trim_prefix("free")) if boat_flag.length() > 4 else 1)
+			else:
+				boat_race._marina_card())
 	elif boat_flag == "call":
 		get_tree().create_timer(1.0).timeout.connect(func() -> void: boat_race.ring())
 
 
+# --- the cinema tour ---------------------------------------------------------------------------
+
+## Wiktor's call and the drive round the cinemas (kino_tour.gd). None with --kino-tour=0.
+func _build_kino_tour(world: Node3D) -> void:
+	if kino_flag == "0":
+		return
+	kino_tour = KinoTour.new()
+	kino_tour.name = "KinoTour"
+	kino_tour.hud = hud
+	kino_tour.dialogue = dialogue
+	kino_tour.wallet = wallet
+	kino_tour.map = map
+	kino_tour.car = car
+	kino_tour.log_on = kino_log
+	kino_tour.autopilot = autopilot or kino_flag == "auto"
+	kino_tour.force_hours = kino_flag != ""
+	kino_tour.vehicle = func() -> Array:
+		if flying:
+			return [heli.global_position, heli.speed() * 3.6, true, 0.0]
+		return [car.global_position, car.vel.length() * 3.6, false, float(car.forward_speed)]
+	kino_tour.clock = func() -> float: return life.hour_now() if life != null else 12.0
+	kino_tour.free_now = _kino_free
+	world.add_child(kino_tour)
+	kino_tour.setup(world)
+	if kino_flag in ["go", "auto"]:
+		get_tree().create_timer(1.0).timeout.connect(func() -> void:
+			var at: Vector2 = KinoTour.PICKUP["at"]
+			car.global_position = Vector3(at.x, map.ground_height(at.x, at.y), at.y)
+			car.reset_physics_interpolation()
+			kino_tour.start())
+	elif kino_flag == "call":
+		get_tree().create_timer(1.0).timeout.connect(func() -> void: kino_tour.ring())
+
+
+## Nothing else on, on the ground (the rave's test, no rave and no boat race either).
+func _kino_free() -> bool:
+	if boat_race != null and boat_race.busy():
+		return false
+	return _boat_free()
 ## The questlines (story_quests.gd): each big quest joins with one `stories.add` here. A new quest
 ## thread adds its own block (id, names, friend, words, start spot, colour, hours, call / meet /
 ## busy / idle); nothing else changes.
@@ -2822,6 +2968,28 @@ func _build_stories(world: Node3D) -> void:
 						"\"A rave? Nothing tonight. Lekti plays Thursday to Saturday, come by in the evening\""],
 				"at": Vector2(h.x, h.z), "colour": Rave.COLOUR, "hours": Rave.TEASE_HOURS, "days": Rave.NIGHT_DAYS,
 				"call": func() -> bool: return rave.ring(), "meet": rave.meet_in_person, "busy": rave.busy, "idle": rave.idle})
+	if trend_job != null:
+		stories.add({"id": "kawa", "pl": "Kawowy rajd", "en": "Coffee run", "who": [CoffeeRun.CALLER, CoffeeRun.CALLER],
+				"hello": CoffeeRun.HELLO, "closed": CoffeeRun.CLOSED,
+				"at": CoffeeRun.DOCK, "colour": CoffeeRun.COLOUR, "hours": Vector2(CoffeeRun.HOURS[0], CoffeeRun.HOURS[1]), "days": [],
+				"call": trend_job.kawa_ring, "meet": trend_job.kawa_meet, "busy": trend_job.kawa_busy, "idle": trend_job.kawa_idle})
+	# The night racing club (street_meet.gd): Darek at Plac Defilad, 21:00-4:00. Null with
+	# --no-traffic or --meet=0.
+	if meet != null and meet.meets.size() > 0:
+		var g: Vector3 = meet.meets[0]["at"]
+		stories.add({"id": "meet", "pl": "Nocny spot", "en": "Night meet", "who": [StreetMeet.FRIEND, StreetMeet.FRIEND],
+				"hello": ["„Siema! Dziś spot na Defiladzie. Wbijasz?”", "\"Hey! Meet's on Plac Defilad tonight. You in?\""],
+				"closed": ["„Za dnia tu tylko turyści. Wpadnij po 21.”", "\"By day it's all tourists here. Come after nine.\""],
+				"at": Vector2(g.x, g.z), "colour": StreetMeet.COLOUR, "hours": StreetMeet.NIGHT_HOURS, "days": [],
+				"call": meet.ring, "meet": meet.meet_in_person, "busy": meet.busy, "idle": meet.idle})
+	if kino_tour != null:
+		stories.add({"id": "kino", "pl": KinoTour.NAME, "en": "Cinema tour", "who": ["Wiktor", "Wiktor"],
+				"hello": ["„Jesteś! Mam film, jedną kopię na 35 mm i cztery kina do objechania. Amondo, Atlantic, Kinoteka, Muranów. Wsiadam?”",
+						"\"You're here! I've got the film, one 35 mm print and four cinemas to see. Amondo, Atlantic, Kinoteka, Muranów. Can I get in?\""],
+				"closed": ["„Kina już śpią. Dystrybutorzy też. Wpadnij po czternastej, zaczniemy od Amondo”",
+						"\"The cinemas are asleep. So are the distributors. Come by after two in the afternoon, we'll start with Amondo\""],
+				"at": KinoTour.PICKUP["at"], "colour": KinoTour.COLOUR, "hours": Vector2(KinoTour.HOURS[0], KinoTour.HOURS[1]),
+				"call": kino_tour.ring, "meet": kino_tour.meet, "busy": kino_tour.busy, "idle": kino_tour.idle})
 	if story_flag != "":
 		get_tree().create_timer(1.5).timeout.connect(func() -> void: stories.start(story_flag))
 	print("stories: %d questlines (%s)" % [stories.defs.size(), ", ".join(stories.defs.map(func(d: Dictionary) -> String:
@@ -2874,6 +3042,9 @@ func _boat_free() -> bool:
 ## The boat race's share of the car's speed zoom (the river is open: the rest of the zoom only
 ## shrank the boats).
 const BOAT_ZOOM := 0.45
+## A free ride's view (one boat, no rings to read): this share of the base view, so the hull's
+## lean and pitch read on the phone (Autopilot, 2026-11-07: the boat was a few pixels long).
+const BOAT_FREE_VIEW := 0.7
 
 
 ## The player takes the boat: the car waits on the bank, out of the world (no process, no
@@ -3003,6 +3174,8 @@ func _on_club_left() -> void:
 func _rave_free() -> bool:
 	if club != null and club.inside:
 		return false
+	if meet != null and meet.busy():
+		return false
 	if ev_tow != null and ev_tow.busy():
 		return false
 	if title != null or _phone_bench or _bench_ghost != null or (spacer != null and spacer.on):
@@ -3017,7 +3190,64 @@ func _rave_free() -> bool:
 		return false
 	if boat_race != null and boat_race.busy():
 		return false
+	if kino_tour != null and kino_tour.busy():
+		return false
 	return not flying and not car.in_water
+
+
+# --- the night racing club -------------------------------------------------------------------
+
+## Darek's calls, the meets, the raids and the drag (street_meet.gd). None with --no-traffic or --meet=0.
+func _build_meet(data: Dictionary, world: Node3D) -> void:
+	if traffic == null or graph == null or meet_flag == "0":
+		return
+	meet = StreetMeet.new()
+	meet.name = "StreetMeet"
+	meet.hud = hud
+	meet.dialogue = dialogue
+	meet.wallet = wallet
+	meet.missions = missions
+	meet.map = map
+	meet.graph = graph
+	meet.traffic = traffic
+	meet.police = police
+	meet.car = car
+	meet.flat_mat = _ground_mat
+	meet.origin = data.get("origin", [52.234, 21.024])
+	meet.log_on = meet_log
+	meet.auto = _meet_auto
+	meet.force = meet_flag == "on"
+	meet.vehicle = func() -> Array:
+		if flying:
+			return [heli.global_position, heli.speed() * 3.6, true]
+		return [car.global_position, car.vel.length() * 3.6, false]
+	meet.clock = tod.local_clock
+	meet.free_now = _meet_free
+	meet.place_car = _place_car
+	world.add_child(meet)
+	meet.setup(world)
+	if rivals != null:
+		rivals.meet = meet
+	if meet_flag == "call":
+		get_tree().create_timer(1.0).timeout.connect(func() -> void: meet.ring())
+	if meet_at != "":
+		get_tree().create_timer(1.0).timeout.connect(func() -> void: meet.jump(meet_at))
+
+
+## Nothing else on (as the rave's), and no rave night under way.
+func _meet_free() -> bool:
+	return _rave_free() and not (rave != null and rave.busy())
+
+
+## Puts the car at `at` heading `yaw` at once (the meet's START DRAG), the camera cut with it.
+func _place_car(at: Vector3, yaw: float) -> void:
+	car.global_position = at + Vector3(0, 0.05, 0)
+	car.rotation.y = yaw
+	car.vel = Vector3.ZERO
+	car.forward_speed = 0.0
+	car.reset_physics_interpolation()
+	_cut_camera()
+	print("teleport: the car to %.0f, %.0f for the meet" % [at.x, at.z])
 
 
 # --- dead electric cars ----------------------------------------------------------------------
@@ -3055,6 +3285,8 @@ func _build_ev_tow(world: Node3D) -> void:
 func _ev_free() -> bool:
 	if (rave != null and rave.busy()) or (club != null and club.inside):
 		return false
+	if meet != null and meet.busy():
+		return false
 	if title != null or _phone_bench or _bench_ghost != null or (spacer != null and spacer.on):
 		return false
 	if first10 != null and first10.guide_on():
@@ -3066,6 +3298,8 @@ func _ev_free() -> bool:
 	if rivals != null and rivals.busy():
 		return false
 	if boat_race != null and boat_race.busy():
+		return false
+	if kino_tour != null and kino_tour.busy():
 		return false
 	return flying or not car.in_water
 
@@ -3237,7 +3471,7 @@ func _build_city_life(data: Dictionary, world: Node3D) -> void:
 		trend_job.egg = func(id: String) -> bool: return egg_book != null and egg_book.fire(id, _egg_state())
 		if spacer != null:
 			trend_job.quiet = spacer.on
-	if zajac_flag or trend_job_flag > 0 or armchair_flag:
+	if zajac_flag or trend_job_flag > 0 or armchair_flag or dzemini_flag:
 		_life_start.call_deferred()
 
 
@@ -3272,6 +3506,13 @@ func _life_start() -> void:
 			cam_focus = car.global_position
 			print("life: --armchair: the man at %.0f, %.0f, the car %.0f m from him" % [ap.x, ap.z,
 					Vector2(car.global_position.x, car.global_position.z).distance_to(Vector2(ap.x, ap.z))])
+	if dzemini_flag and trend_job != null and crowds != null and crowds.by_id.has(Crowds.DZEMINI_ID):
+		trend_job.dz_done = true
+		crowds.dzemini_mlask()
+		var dsite: Dictionary = crowds.sites[crowds.by_id[Crowds.DZEMINI_ID]]
+		_put_car_near(dsite.get("door", dsite["at"]), 40.0)
+		print("trend job: --dzemini: the MLASK on DŻEMINI, the car %.0f m from its door" % [
+				Vector2(car.global_position.x, car.global_position.z).distance_to(dsite.get("door", dsite["at"]))])
 	if trend_job_flag > 0 and trend_job != null:
 		var i := trend_job_flag - 1
 		if trend_job_flag == 6:
@@ -3282,6 +3523,22 @@ func _life_start() -> void:
 			life.tick(0.0)
 			if not trend_job.offer_mlask(true):
 				print("trend job: --trend-job=6: no request (no van spot or new place)")
+			return
+		if trend_job_flag == 8:
+			# "Dżemini" (G5b): Mrożulo's call at once, the car by DŻEMINI KEBAB on Świętokrzyska.
+			if crowds != null and crowds.by_id.has(Crowds.DZEMINI_ID):
+				_put_car_near(crowds.sites[crowds.by_id[Crowds.DZEMINI_ID]]["at"], 80.0)
+			life.tick(0.0)
+			await get_tree().create_timer(1.0).timeout
+			if not trend_job.offer_dzemini(true):
+				print("trend job: --trend-job=8: no request (no shop door, kerb or van spot)")
+			return
+		if trend_job_flag == 9:
+			# "Kawowy rajd" (coffee_run.gd): the car near the ROWERILO dock in Powiśle, Zuzia's call at once.
+			_put_car_near(CoffeeRun.DOCK, 80.0)
+			life.tick(0.0)
+			if not trend_job.offer_kawa_call(true):
+				print("trend job: --trend-job=9: no request (a café has no position)")
 			return
 		if trend_job_flag == 7:
 			# "Czwarty" at WTS DeSki's padel courts (landmarks.gd DESKI), whatever the clock.
@@ -3649,20 +3906,33 @@ func _on_station_changed(_index: int, info: Dictionary) -> void:
 	hud.set_radio_colour(info.get("colour", Color.WHITE) if not info.is_empty() else Color("#c9c4d8"))
 
 
-## Beta radio (2026-11-02): when the title goes on a first start or a new game, the host says good morning (or evening) to
+## Beta radio (2026-11-02): when the title goes, the host says good morning (or evening) to
 ## Warsaw with the weather and the temperature for the game's hour and month, 4 s after the
-## station's caption.
+## station's caption: as ticker text on a first start or a new game (with the opening line), and
+## on every later launch as her three voice clips plus the same text (greeting_clips.gd).
 func _radio_greeting() -> void:
 	# F (2026-11-02): only on the first start and after a new game (the same launches as the
 	# opening flyover: the first-10 guide is due), never on every launch.
-	if first10 == null or not first10.guide:
-		return
+	# F (2026-11-05): every later launch gets her spoken greeting (greeting_clips.gd) instead; the
+	# first start and a new game keep the opening line only.
+	var later := first10 == null or not first10.guide
 	await get_tree().create_timer(4.0).timeout
 	if not is_inside_tree() or radio == null or dialogue == null:
 		return
 	var st := _egg_state()
 	var day: int = int(st["date"]) % 100 if int(st["date"]) > 0 else int(Time.get_date_dict_from_system()["day"])
-	dialogue.greet(float(st["hour"]), bool(st["rain"]), int(st["month"]), day)
+	if not later:
+		dialogue.greet(float(st["hour"]), bool(st["rain"]), int(st["month"]), day)
+		return
+	# Her voice is KEBAB FM's: another station (or none) stays quiet.
+	if radio.station < 0 or str(radio.stations[radio.station]["id"]) != "nocna_fm":
+		return
+	var clips := GreetingClips.new()
+	add_child(clips)
+	if clips.start(radio, dialogue.greeting_parts(float(st["hour"]), bool(st["rain"]), int(st["month"]), day)):
+		dialogue.greet(float(st["hour"]), bool(st["rain"]), int(st["month"]), day)
+	else:
+		clips.queue_free()
 
 
 ## The eggs' probe (egg_book.gd `tick`, tape.gd's E36/E37): the vehicle and the game clock.
@@ -4226,6 +4496,7 @@ func _parse_args() -> void:
 			start_heading = float(arg.trim_prefix("--heading="))
 		elif arg.begins_with("--pitch="):
 			camera_pitch = float(arg.trim_prefix("--pitch="))
+			_flag_pitch = true
 		elif arg.begins_with("--lines="):
 			lines_override = int(arg.trim_prefix("--lines="))
 		elif arg.begins_with("--sun="):
@@ -4500,6 +4771,14 @@ func _parse_args() -> void:
 			rave_flag = arg.trim_prefix("--rave=")
 		elif arg == "--rave-log":
 			rave_log = true
+		elif arg == "--meet-call":
+			meet_flag = "call"
+		elif arg.begins_with("--meet-at="):
+			meet_at = arg.trim_prefix("--meet-at=")
+		elif arg.begins_with("--meet="):
+			meet_flag = arg.trim_prefix("--meet=")
+		elif arg == "--meet-log":
+			meet_log = true
 		elif arg == "--stories-log":
 			stories_log = true
 		elif arg == "--story-meet":
@@ -4512,6 +4791,10 @@ func _parse_args() -> void:
 			boat_flag = arg.trim_prefix("--boat-race=") if arg.contains("=") else "call"
 		elif arg == "--boat-log":
 			boat_log = true
+		elif arg.begins_with("--kino-tour"):
+			kino_flag = arg.trim_prefix("--kino-tour=") if arg.contains("=") else "call"
+		elif arg == "--kino-log":
+			kino_log = true
 		elif arg == "--ev-call" or arg == "--ev-tow" or arg == "--ev-stranded":
 			ev_flag = arg.trim_prefix("--ev-")
 		elif arg.begins_with("--ev-tow="):
@@ -4576,13 +4859,16 @@ func _parse_args() -> void:
 		elif arg == "--life-soak":
 			life_soak = true
 			life_log = true
+		elif arg == "--dzemini":
+			dzemini_flag = true
+			trend_log = true
 		elif arg == "--zajac":
 			zajac_flag = true
 			life_log = true
 		elif arg.begins_with("--trend-day="):
 			trend_day_flag = maxi(0, int(arg.trim_prefix("--trend-day=")))
 		elif arg == "--trend-job" or arg.begins_with("--trend-job="):
-			trend_job_flag = clampi(int(arg.trim_prefix("--trend-job=")) if arg.contains("=") else 1, 1, 7)
+			trend_job_flag = clampi(int(arg.trim_prefix("--trend-job=")) if arg.contains("=") else 1, 1, 9)
 			trend_log = true
 		elif arg.begins_with("--club="):
 			# Loop MW-3: the car at a club's door (places.json id or name), no title.
@@ -4711,7 +4997,7 @@ func _parse_args() -> void:
 	if first10_flag or end_card_flag or first_race_flag:
 		show_title = false  # loop 3h slice 4: --first10 and --end-card are test runs
 	# Loop MW-4: --zajac is Kolka's Wednesday evening (Live), --life-soak a Friday dusk.
-	if zajac_flag or life_soak or trend_job_flag > 0 or armchair_flag:
+	if zajac_flag or life_soak or trend_job_flag > 0 or armchair_flag or dzemini_flag:
 		show_title = false
 		free_roam = true
 	if zajac_flag:
@@ -4738,6 +5024,7 @@ func _parse_args() -> void:
 	# The crash scenes' timer: a normal launch only (a test run with --crash=on or =now too).
 	_crash_auto = not test_run
 	_rave_auto = not test_run
+	_meet_auto = not test_run
 	_ev_auto = not test_run
 	# Loop G1b: test runs (and --last-session=) never write Auto's image state, even with the
 	# governor on and without --nosave.
@@ -4757,6 +5044,8 @@ func _load_settings() -> void:
 		Access.color_safe = true
 	if not _flag_size:
 		base_size = settings.view
+	if not _flag_pitch:
+		camera_pitch = -settings.pitch
 	model_name = _flag_model if _flag_model != "" else OS.get_model_name()
 	auto_quality = Tiers.for_model(model_name)
 	quality_choice = _flag_quality if _flag_quality != -2 else settings.quality
@@ -4948,10 +5237,7 @@ func _open_full_map() -> void:
 	if quest_tab_flag >= 0:
 		hud.full_map.show_line(quest_tab_flag)
 		quest_tab_flag = -1
-	if not hud.full_map.closed.is_connected(_close_full_map):
-		hud.full_map.closed.connect(_close_full_map)
-		hud.full_map.teleport.connect(_teleport_from_map)
-		hud.full_map.quest_picked.connect(_on_quest_picked)
+	_wire_full_map()
 	if quest_pick_flag >= 0:
 		var rows: Array = hud.full_map.quest_rows
 		print("quest list: %d rows on the %s tab: %s" % [rows.size(), "HELI" if flying else "AUTO",
@@ -4960,7 +5246,18 @@ func _open_full_map() -> void:
 		quest_pick_flag = -1
 		if hud.full_map.is_open():
 			hud.full_map.close()
-		hud.full_map.can_teleport = _teleport_refusal
+
+
+## The full map's signals and its refusal, once. PT-19 (2026-11-07): `can_teleport` sat under
+## the quest-pick test flag since G12 part 2, so in play a hold teleported mid-race, mid-job or
+## mid-chase with no "not now".
+func _wire_full_map() -> void:
+	if hud.full_map.closed.is_connected(_close_full_map):
+		return
+	hud.full_map.closed.connect(_close_full_map)
+	hud.full_map.teleport.connect(_teleport_from_map)
+	hud.full_map.quest_picked.connect(_on_quest_picked)
+	hud.full_map.can_teleport = _teleport_refusal
 
 
 ## G12 part 2: what the ZADANIA card lists now (quest_lines.gd entries). AUTO: the kebab stands,
@@ -5140,6 +5437,15 @@ func _teleport_from_map(p: Vector2) -> void:
 ## GAMEPLAY_PLAN 0.1: --teleport-test (see TELEPORT_TESTS).
 func _teleport_test() -> void:
 	var bad := 0
+	# PT-19: the map's hold asks main.gd first (a race, a job, a rescue, a chase say no).
+	if hud.full_map == null:
+		hud.open_full_map(Vector2.ZERO, 0.0, PackedVector2Array())  # makes the map (the title may be up)
+	_wire_full_map()
+	if hud.full_map == null or not hud.full_map.can_teleport.is_valid():
+		bad += 1
+		push_error("teleport test: the full map has no refusal (can_teleport), so a hold teleports mid-race")
+	if hud.full_map != null and hud.full_map.is_open():
+		hud.full_map.close()
 	for t: Array in TELEPORT_TESTS:
 		var asked := Vector2(t[0], t[1])
 		_teleport_from_map(asked)
@@ -5182,6 +5488,7 @@ func _settings_state() -> Dictionary:
 			"auto": auto_name,
 			"master": settings.master, "music": settings.music, "effects": settings.effects, "perf": int(show_perf),
 			"fps": maxi(0, Settings.FPS.find(settings.fps)), "style": style_index, "vhs": int(vhs),
+			"angle": maxi(0, FollowCamera.PITCHES.find(-camera_pitch)),
 			"weather": weather.state, "time": tod.mode, "wander": int(spacer != null and spacer.on), "zones": int(zone_cap_on), "handling": settings.handling, "chatter": settings.chatter, "sensitivity": settings.sensitivity,
 			"text_large": int(settings.text_large), "calm": int(settings.calm), "color_safe": int(settings.color_safe),
 			"vibration": int(settings.vibration), "stop_assist": int(settings.stop_assist),
@@ -5262,6 +5569,10 @@ func _on_setting(key: String, value: Variant) -> void:
 		"fps":
 			settings.fps = Settings.FPS[clampi(int(value), 0, Settings.FPS.size() - 1)]
 			_apply_fps()
+		"angle":
+			# F (2026-11-07): the camera's angle (follow_camera.gd PITCHES); the camera follows next frame.
+			settings.pitch = FollowCamera.PITCHES[clampi(int(value), 0, FollowCamera.PITCHES.size() - 1)]
+			camera_pitch = -settings.pitch
 		"bench":
 			_start_phone_bench.call_deferred()
 			return
@@ -6008,7 +6319,10 @@ func _process(dt: float) -> void:
 	# (Trasa Łazienkowska over the streets under it).
 	if Engine.get_process_frames() % DECK_XRAY_EVERY == 0:
 		_deck_hid = not flying and map.deck_hides(pos + Vector3.UP * 0.8, cam.global_transform.basis.z)
-	_xray.show_through(not flying and (map.in_tunnel(pos.x, pos.z, pos.y) or _deck_hid))
+	# F (2026-11-07): under a deck the occlusion ghost now cuts the deck itself (ground.gdshader's
+	# deck ghost, building.gdshader for its slab), so the car and the traffic round it show as
+	# they are; the silhouette stays for the tunnels, and for decks with --no-ghost.
+	_xray.show_through(not flying and (map.in_tunnel(pos.x, pos.z, pos.y) or (_deck_hid and no_ghost)))
 	# Loop 3d-1: the pedestrian zones cap the player's car (police.md 5.6); the log says when.
 	# F's asks (2026-10-30): only with the Settings switch on (off by default).
 	var zone: String = ped_zones.at(car.global_position.x, car.global_position.z) if ped_zones != null and not flying else ""
@@ -6028,18 +6342,24 @@ func _process(dt: float) -> void:
 			print("zone: scooter %s (12 km/h for scooters)" % sz)
 	_feed_life(pos)
 	var boating := boat_race != null and boat_race.busy()
+	# The cinema tour: no side job is offered while Wiktor rides along (the jobs read it as flying).
+	var touring := kino_tour != null and kino_tour.busy()
 	if police != null:
 		police.flying = flying or boating  # loop 3g-1: the police ignore the helicopter (and the boat race)
 		police.zone = zone  # loop 3g-2: the city guards' zone pill and whistle
 		police.zone_cap = zone_cap_on  # F's asks: the pill and the whistle only with the cap on
 	if jobs != null:
 		# Loop 2b: no side job starts on the bench route (the ghost stops at red lights).
-		jobs.flying = flying or _bench_ghost != null or boating
+		jobs.flying = flying or _bench_ghost != null or boating or touring
 		# Loop 2d-1: no ride is offered from the helicopter, on the title screen or the bench.
-		rides.flying = flying or boating
+		rides.flying = flying or boating or touring
 		rides.away = title != null or _bench_ghost != null or _phone_bench
+		# 2026-11-07 (BACKLOG "Secret rave"): no ride or "Na czasie" card while Ziomek's rave run,
+		# the club or Bartek's tow is on (their calls already held the rescue calls).
+		rides.away = rides.away or (rave != null and rave.busy()) or (club != null and club.inside) \
+				or (ev_tow != null and ev_tow.busy())
 		if trend_job != null:
-			trend_job.flying = flying or boating
+			trend_job.flying = flying or boating or touring
 			trend_job.player_pos = pos
 			trend_job.away = rides.away
 		eggs.player = pos
@@ -6152,6 +6472,8 @@ func _update_ghost(pos: Vector3, car_view: Vector3) -> void:
 	var lc := sun.light_color.srgb_to_linear()
 	map.flat_material.set_shader_parameter("ghost_sun", Vector3(lc.r, lc.g, lc.b) * sun.light_energy * give * GHOST_SUN_SCALE)
 	map.flat_material.set_shader_parameter("ghost_sun_dir", to_sun)
+	# The deck ghost (ground.gdshader): the car's ground height; off for the helicopter.
+	map.flat_material.set_shader_parameter("ghost_car_y", -10000.0 if flying else pos.y)
 	if ghost_debug > 0:
 		building_mat.set_shader_parameter("ghost_debug", ghost_debug)
 		var ppm := float(sv.size.y) / cam.size * float(view.stretch_shrink)
@@ -6294,6 +6616,8 @@ func _make_stats() -> BenchStats:
 		b.systems["storefronts"] = [storefronts, "spent_usec", true]  # loop MW-2
 	if packs != null:
 		b.systems["packs"] = [packs, "spent_usec", true]  # running clubs, cycling packs, raves
+	if meet != null:
+		b.systems["meet"] = [meet, "spent_usec", true]  # the night racing club
 	if fans != null:
 		b.systems["fans"] = [fans, "spent_usec", true]  # the fans by Stadion Leguminy
 	if wellness != null:
@@ -6494,6 +6818,8 @@ func _stop_assist() -> void:
 	var at := Vector3.INF
 	if flying or (rivals != null and rivals.has_target()):
 		pass
+	elif kino_tour != null and kino_tour.has_target():
+		at = kino_tour.stop_spot()
 	elif trend_job != null and trend_job.has_target():
 		at = trend_job.stop_spot()
 	elif rides != null and rides.has_target():
@@ -6581,6 +6907,15 @@ func _show_target() -> void:
 		_put_target(Vector2(bp.x, bp.z), boat_race.target_colour(), false)
 		_new_target("job", bp)
 		return
+	if kino_tour != null and kino_tour.has_target() and not flying:
+		var kp: Vector3 = kino_tour.target_position()
+		var at_k := _vehicle_position()
+		var mk := roundi(Vector2(kp.x - at_k.x, kp.z - at_k.z).length())
+		var on_k := cam.unproject_position(kp + Vector3(0, 3.5, 0)) * float(view.stretch_shrink)
+		hud.set_target(on_k, "%d m" % mk, kino_tour.target_colour(), mk > 12)
+		_put_target(Vector2(kp.x, kp.z), kino_tour.target_colour(), false)
+		_new_target("job", kp)
+		return
 	if rave != null and rave.has_target() and not flying:
 		var vp: Vector3 = rave.target_position()
 		var at_v := _vehicle_position()
@@ -6589,6 +6924,15 @@ func _show_target() -> void:
 		hud.set_target(on_v, rave.target_label(mv), rave.target_colour(), mv > 12)
 		_put_target(Vector2(vp.x, vp.z), rave.target_colour(), false)
 		_new_target("job", vp)
+	if meet != null and meet.has_target() and not flying:
+		var kp: Vector3 = meet.target_position()
+		var at_k := _vehicle_position()
+		var mk := roundi(Vector2(kp.x - at_k.x, kp.z - at_k.z).length())
+		var on_k := cam.unproject_position(kp + Vector3(0, 3.5, 0)) * float(view.stretch_shrink)
+		hud.set_target(on_k, "%d m" % mk, meet.target_colour(), mk > 12)
+		_put_target(Vector2(kp.x, kp.z), meet.target_colour(), false)
+		_new_target("job", kp)
+		return
 	if ev_tow != null and ev_tow.has_target():
 		var ep: Vector3 = ev_tow.target_position()
 		var at_e := _vehicle_position()
@@ -6827,6 +7171,9 @@ func _read_input(dt: float) -> void:
 		stick = pad_stick
 		stick_on = true
 	controls.drive(car, stick, stick_on, keys, hud.gas or Gamepad.gas(), hud.brake or Gamepad.brake(), cam_yaw, dt)
+	# The drag (street_meet.gd): the car holds the strip and any gas is full gas.
+	if meet != null:
+		meet.hold_car(car)
 	_lane_tick(dt)
 	# G13: the nitro (bought at the garage): the disc by the horn, Shift on a keyboard, LB or RB on a
 	# pad. Not N: N switches the time of day, so holding it for the nitro also turned day to dusk.
@@ -6960,6 +7307,9 @@ func _toggle_vehicle() -> void:
 		return
 	if boat_race != null and boat_race.busy():
 		hud.toast("Najpierw dokończ wyścig łodzi (albo ✕)", "Finish the boat race first (or ✕)")
+		return
+	if kino_tour != null and kino_tour.busy():
+		hud.toast("Wiktor nie lata: najpierw kina (albo ✕)", "Wiktor doesn't fly: the cinemas first (or ✕)")
 		return
 	if jobs != null and jobs.busy() and not flying:
 		hud.toast("Najpierw dokończ kurs: zamówienie jedzie autem", "Finish the job first: it rides in the car")
@@ -7349,11 +7699,19 @@ func _update_camera(dt: float) -> void:
 		_view_size = fcam.zoom_step(_view_size, heli_view, heli_zoom, dt)
 		focus_rate = 3.5
 	else:
-		var zoom := base_size * FollowCamera.SPEED_ZOOM * clampf(speed / (car.max_speed * car.top_mult), 0.0, 1.0)
+		# The coffee run's bike (car.gd model "bike", Autopilot playtest 2026-11-06: at the car's view
+		# it could not be told from a car): the view closes in to BIKE_VIEW of the player's, eased
+		# by zoom_step like the speed zoom, and back out when the car returns.
+		var bike: bool = car.model == "bike"
+		var view := base_size * (CoffeeRun.BIKE_VIEW if bike else 1.0)
+		var zoom := view * FollowCamera.SPEED_ZOOM * clampf(speed / (car.top_speed() if bike else car.max_speed * car.top_mult), 0.0, 1.0)
 		if boat_race != null and boat_race.boating():
 			zoom *= BOAT_ZOOM  # the boat race: the rings and the rivals stay big enough to read
-		size = base_size + zoom
-		_view_size = fcam.zoom_step(_view_size, base_size, zoom, dt)
+			if boat_race.state == BoatRace.State.FREE:
+				view *= BOAT_FREE_VIEW
+				zoom *= BOAT_FREE_VIEW
+		size = view + zoom
+		_view_size = fcam.zoom_step(_view_size, view, zoom, dt)
 	# The look-ahead along the way it goes, and the dead zone's window (follow_camera.gd).
 	var forward := Vector3(-basis.z.x, 0.0, -basis.z.z).normalized() \
 			if follow and not flying and controls.scheme == Controls.CLASSIC else Vector3.ZERO

@@ -17,6 +17,8 @@ const POI_KEBAB := 1
 const POI_STATION := 2
 const POI_DEPOT := 3
 const POI_SCOOTER := 4
+## The free-ride boat at the start pontoon (boat_race.gd, F 2026-11-07).
+const POI_BOAT := 5
 
 const INK := Color("#fff8e8")
 const DARK := Color("#1d1a24")

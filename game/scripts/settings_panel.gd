@@ -11,7 +11,7 @@ extends Control
 ##     "Kamera za autem · Camera follows the car" On / Off (the old CAM button, now with its
 ##     state in view; Point with the camera off is the Fixed camera scheme);
 ##   Świat · World: Time of day (the old TIME button), Weather (RAIN), Traffic;
-##   Obraz · Picture: Quality (loop G1: Auto, the default, then Low, Medium,
+##   Obraz · Picture: Retro and the camera angle (F, 2026-11-07: 30°, 40°, 50°), Quality (loop G1: Auto, the default, then Low, Medium,
 ##     High, Ultra; Auto's English line names the level it picked here), VHS tape (VHS), Frame
 ##     rate, the performance overlay and the TEST bench;
 ##   Dźwięk · Sound: volume, radio, effects (− and + in tenths, or drag along the bar).
@@ -72,6 +72,8 @@ const TRAFFIC := [["Pustawo", "Almost empty"], ["Mało", "Low"], ["Normalnie", "
 ## Loop G1: index 0 is Auto (settings.gd AUTO), then the levels (tiers.gd LOW..ULTRA) one up.
 const QUALITY := [["Auto", "auto"], ["Niska", "Low"], ["Średnia", "Medium"], ["Wysoka", "High"], ["Ultra", "Ultra"]]
 const ON_OFF := [["Wył.", "Off"], ["Wł.", "On"]]
+## F (2026-11-07): the camera's angle over the ground, follow_camera.gd PITCHES (30° the default).
+const ANGLE := [["30°", "30°"], ["40°", "40°"], ["50°", "50°"]]
 ## Loop 2b: frames per second (settings.gd FPS: 60, 30) and the benchmark button.
 const FPS := [["60 płynnie", "60 smooth"], ["30 bateria", "30 battery"]]
 ## Loop MW-6: the game's mode (settings.gd `wander`).
@@ -269,19 +271,22 @@ func _build() -> void:
 	# wide for the SE): Style and VHS; Quality; Frame rate and the overlay with TEST.
 	# 2026-11-01 (F): the Style picker is gone (always the sharp image); the old VHS tape is now
 	# the "Retro" vaporwave filter (vhs.gdshader), the one switch left in the first row.
-	var picture := _rows(body, [1, 1, 2])
+	# F (2026-11-07): the camera's angle beside Retro (follow_camera.gd PITCHES, key "angle").
+	var picture := _rows(body, [2, 1, 2])
 	_heading(picture[0], "Retro · vaporwave", "Retro filter")
 	_segments(picture[0], "vhs", ON_OFF)
-	_heading(picture[1], "Jakość obrazu", "Quality")
+	_heading(picture[1], "Kąt kamery", "Camera angle")
+	_segments(picture[1], "angle", ANGLE)
+	_heading(picture[2], "Jakość obrazu", "Quality")
 	var quality := QUALITY.duplicate(true)
 	quality[0] = ["Auto · %s" % _auto_name, "Auto · %s" % _auto_name]
-	_segments(picture[1], "quality", quality)
-	_heading(picture[2], "Klatki na sekundę", "Frame rate")
-	_segments(picture[2], "fps", FPS)
-	_heading(picture[3], "Licznik wydajności", "Performance overlay")
+	_segments(picture[2], "quality", quality)
+	_heading(picture[3], "Klatki na sekundę", "Frame rate")
+	_segments(picture[3], "fps", FPS)
+	_heading(picture[4], "Licznik wydajności", "Performance overlay")
 	var perf_row := HBoxContainer.new()
 	perf_row.add_theme_constant_override("separation", _px(6))
-	picture[3].add_child(perf_row)
+	picture[4].add_child(perf_row)
 	_segments(perf_row, "perf", ON_OFF)
 	# Loop 2b: a minute on the bench route, then a result card to copy (main.gd).
 	var bench := _word_button("TEST", "BENCH")

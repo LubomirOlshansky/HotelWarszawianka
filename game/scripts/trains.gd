@@ -12,6 +12,7 @@ extends Node3D
 
 const Models := preload("res://scripts/models.gd")
 const RailYard := preload("res://scripts/rail_yard.gd")
+const StationLines := preload("res://scripts/station_lines.gd")
 const InstanceBuffers := preload("res://scripts/instance_buffers.gd")
 
 ## Cars are CAR m long with GAP m between them.
@@ -209,7 +210,7 @@ func setup(map_node: Node3D, data: Dictionary) -> void:
 	_link()
 	_mark_to_halt()
 	if map != null:
-		_make_pax()
+		_make_pax(data, yard)
 	_make_trains()
 
 
@@ -652,7 +653,7 @@ func step(dt: float) -> void:
 ## platform, a few step out of each door onto the platform and walk off along it, and a few who
 ## waited walk up to the doors and in. Their own MultiMesh of the pedestrians' figure (+1 draw
 ## call, hidden while nobody is about).
-const PAX := 40
+const PAX := 64
 const PAX_SPEED := 1.35
 const PAX_SHIRTS := ["#d8432f", "#2f6fb5", "#e0b23a", "#3b8f5a", "#f2efe8", "#7a4fa8", "#2b2c2f", "#c96b2c", "#5aa9c9", "#9c2f3a"]
 ## How far from the track's centre a door's step lies (the car's half width and the gap).
@@ -673,8 +674,36 @@ var _pax_count := 0
 ## Boardings and alightings so far (check_trains reads them).
 var pax_moved := 0
 
+## People waiting at every station (F, 2026-11-06: "people at all the stations"): when a stop's
+## platform comes into view a few walk in along it and stand facing the track, up to WAITERS at
+## each stop mark; when a train stops there they walk to its nearest door and get in. They live
+## in the same MultiMesh as the boarders (no new draw call); the leg swing is off while they
+## stand (actor.gdshader: INSTANCE_CUSTOM.a over STAND_A).
+const WAITERS := 6
+## How near the view's centre a stop must be for people to gather on its platform.
+const WAIT_RANGE := 260.0
+## How far either way from the stop's middle they stand (a train is 60 to 120 m long).
+const WAIT_SPREAD := 32.0
+## The free places kept for those getting off a train.
+const WAIT_SPARE := 18
+## Custom data's alpha past this: the figure stands still (its trousers stay fract(alpha)).
+const STAND_A := 2.0
+## How near a stop's track a platform line (station_lines.gd) must pass to be its platform.
+const WAIT_LINE_NEAR := 14.0
+## Each stop once: Vector3(piece, s of the train's middle there, platform mark), and its platform
+## line and the sample nearest it (Vector2i(line, sample)).
+var _stops: Array[Vector3] = []
+var _stop_line: Array[Vector2i] = []
+var _lines: Array = []
+## Per person: the platform mark they wait at (-1: not waiting), and where they look when they
+## stand (towards the track).
+var _pax_wait := PackedInt32Array()
+var _pax_face := PackedVector2Array()
+var _wait_tick := 0.0
+var waiting := 0
 
-func _make_pax() -> void:
+
+func _make_pax(data: Dictionary, yard: RailYard) -> void:
 	_pax_mm = MultiMesh.new()
 	_pax_mm.transform_format = MultiMesh.TRANSFORM_3D
 	_pax_mm.use_custom_data = true
@@ -690,6 +719,33 @@ func _make_pax() -> void:
 	_pax_s.resize(PAX)
 	_pax_alive.resize(PAX)
 	_pax_alive.fill(0)
+	_pax_wait.resize(PAX)
+	_pax_wait.fill(-1)
+	_pax_face.resize(PAX)
+	_lines = StationLines.lines(data.get("platforms", []), StationLines.tracks(trim_rails(data.get("rails", []))), yard,
+			map.terrain_height)
+	var seen := {}
+	for i in _halts.size():
+		for k in range(0, _halts[i].size(), 2):
+			var mark := int(_halts[i][k + 1])
+			if seen.has(mark):
+				continue
+			# The platform line beside this stop: its sample nearest the train's middle there.
+			var at := _point(i, _halts[i][k])
+			var best := Vector2i(-1, -1)
+			var near := WAIT_LINE_NEAR
+			for li in _lines.size():
+				var pts: PackedVector2Array = _lines[li][0]
+				for j in pts.size():
+					var dd := pts[j].distance_to(at)
+					if dd < near:
+						near = dd
+						best = Vector2i(li, j)
+			if best.x < 0:
+				continue
+			seen[mark] = true
+			_stops.append(Vector3(i, _halts[i][k], mark))
+			_stop_line.append(best)
 	var mat := Models.material().duplicate() as ShaderMaterial
 	mat.set_shader_parameter("walk", 0.16)
 	_pax_mi = MultiMeshInstance3D.new()
@@ -709,25 +765,53 @@ func _board(t: Train, k: int) -> void:
 	if side == 0.0:
 		side = 1.0
 	var nm := Vector2(-t.dir.y, t.dir.x) * side
-	# Which way along the platform its middle lies, so people walk towards it, not off its end.
+	var steps := PackedVector3Array()
 	for c in t.n_cars:
 		for door: float in [0.25, 0.75]:
 			var back := c * (CAR + GAP) + CAR * door
 			var at := _back_point(t, back)
-			var y := _back_height(t, back) + PAX_UP
 			var step := at + nm * DOOR_OUT
-			var mid := _platforms[k]
-			var toward := signf((mid - step).dot(t.dir))
-			for n in _rng.randi_range(0, 2):
-				var off := step + nm * _rng.randf_range(1.5, 3.2) + t.dir * toward * _rng.randf_range(3.0, 12.0)
-				_pax_spawn(Vector3(step.x, y, step.y), Vector3(off.x, y, off.y), _rng.randf_range(0.3, 2.5))
-			for n in _rng.randi_range(0, 2):
-				var from := step + nm * _rng.randf_range(1.5, 3.5) + t.dir * _rng.randf_range(-5.0, 5.0)
-				_pax_spawn(Vector3(from.x, y, from.y), Vector3(step.x, y, step.y) - Vector3(nm.x, 0.0, nm.y) * 0.9,
-						_rng.randf_range(4.0, 10.0))
+			steps.append(Vector3(step.x, _back_height(t, back) + PAX_UP, step.y))
+	# Those waiting on this platform walk to the nearest door and get in.
+	var boarded := 0
+	for n in PAX:
+		if _pax_alive[n] == 0 or _pax_wait[n] != k:
+			continue
+		var here := _pax_to[n]
+		var best := steps[0]
+		for q in steps:
+			if Vector2(q.x - here.x, q.z - here.z).length() < Vector2(best.x - here.x, best.z - here.z).length():
+				best = q
+		if Vector2(best.x - here.x, best.z - here.z).length() > 45.0:
+			continue  # past the train's end: they wait for the next one
+		_pax_wait[n] = -1
+		_pax_from[n] = here
+		_pax_to[n] = best - Vector3(nm.x, 0.0, nm.y) * 0.9
+		_pax_delay[n] = _rng.randf_range(0.5, 4.0)
+		_pax_s[n] = 0.0
+		_pax_buf[n * 16 + 15] = fposmod(_pax_buf[n * 16 + 15], 1.0)
+		waiting -= 1
+		boarded += 1
+		pax_moved += 1
+	# Which way along the platform its middle lies, so people walk towards it, not off its end.
+	var mid := _platforms[k]
+	for q in steps:
+		var step := Vector2(q.x, q.z)
+		var y := q.y
+		var toward := signf((mid - step).dot(t.dir))
+		for n in _rng.randi_range(0, 2):
+			var off := step + nm * _rng.randf_range(1.5, 3.2) + t.dir * toward * _rng.randf_range(3.0, 12.0)
+			_pax_spawn(Vector3(step.x, y, step.y), Vector3(off.x, y, off.y), _rng.randf_range(0.3, 2.5))
+		if boarded > 0:
+			continue
+		for n in _rng.randi_range(0, 2):
+			var from := step + nm * _rng.randf_range(1.5, 3.5) + t.dir * _rng.randf_range(-5.0, 5.0)
+			_pax_spawn(Vector3(from.x, y, from.y), Vector3(step.x, y, step.y) - Vector3(nm.x, 0.0, nm.y) * 0.9,
+					_rng.randf_range(4.0, 10.0))
 
 
-func _pax_spawn(from: Vector3, to: Vector3, delay: float) -> void:
+## A free place for one more person walking from `from` to `to` after `delay` s: its index, or -1.
+func _pax_spawn(from: Vector3, to: Vector3, delay: float) -> int:
 	for n in PAX:
 		if _pax_alive[n] == 1:
 			continue
@@ -736,6 +820,7 @@ func _pax_spawn(from: Vector3, to: Vector3, delay: float) -> void:
 		_pax_delay[n] = delay
 		_pax_s[n] = 0.0
 		_pax_alive[n] = 1
+		_pax_wait[n] = -1
 		_pax_count += 1
 		pax_moved += 1
 		var shirt := Color(PAX_SHIRTS[_rng.randi() % PAX_SHIRTS.size()])
@@ -744,10 +829,71 @@ func _pax_spawn(from: Vector3, to: Vector3, delay: float) -> void:
 		_pax_buf[b + 13] = shirt.g
 		_pax_buf[b + 14] = shirt.b
 		_pax_buf[b + 15] = _rng.randf()
-		return
+		return n
+	return -1
+
+
+## Tops up the people waiting on the platforms near the view, and lets go of those far from it.
+func _gather() -> void:
+	var free := PAX - _pax_count
+	var count := {}
+	for n in PAX:
+		if _pax_alive[n] == 0 or _pax_wait[n] < 0:
+			continue
+		var at := Vector2(_pax_to[n].x, _pax_to[n].z)
+		if at.distance_to(view_at) > WAIT_RANGE * 1.4:
+			_pax_alive[n] = 0
+			_pax_wait[n] = -1
+			_pax_count -= 1
+			waiting -= 1
+			for k in 16:
+				_pax_buf[n * 16 + k] = 0.0
+			continue
+		count[_pax_wait[n]] = int(count.get(_pax_wait[n], 0)) + 1
+	for si in _stops.size():
+		if free <= WAIT_SPARE:
+			return
+		var stop := _stops[si]
+		var i := int(stop.x)
+		var mark := int(stop.z)
+		var mid := _point(i, stop.y)
+		if mid.distance_to(view_at) > WAIT_RANGE:
+			continue
+		# Each stop its own crowd size (3 to WAITERS), the same every time it comes into view.
+		if int(count.get(mark, 0)) >= 3 + (mark * 7) % (WAITERS - 2):
+			continue
+		var line: Array = _lines[_stop_line[si].x]
+		var pts: PackedVector2Array = line[0]
+		var tops: PackedFloat32Array = line[1]
+		var halves: PackedFloat32Array = line[2]
+		var spread := int(WAIT_SPREAD / StationLines.STEP)
+		var j := clampi(_stop_line[si].y + _rng.randi_range(-spread, spread), 0, pts.size() - 1)
+		var j2 := clampi(j + _rng.randi_range(-8, 8), 0, pts.size() - 1)
+		var d := (pts[mini(j + 1, pts.size() - 1)] - pts[maxi(j - 1, 0)]).normalized()
+		var nm := Vector2(-d.y, d.x)
+		# Towards the stop's own track: they stand on its side of the platform and look at it.
+		var side := signf((_point(i, stop.y) - pts[_stop_line[si].y]).dot(nm))
+		if side == 0.0:
+			side = 1.0
+		var across := side * _rng.randf_range(0.0, maxf(halves[j] - 1.2, 0.0))
+		var stand := pts[j] + nm * across
+		var start := pts[j2] + nm * across
+		var y := tops[j]
+		var n := _pax_spawn(Vector3(start.x, y, start.y), Vector3(stand.x, y, stand.y), _rng.randf_range(0.0, 3.0))
+		if n < 0:
+			return
+		pax_moved -= 1  # not a boarding (yet)
+		_pax_wait[n] = mark
+		_pax_face[n] = nm * side
+		waiting += 1
+		free -= 1
 
 
 func _step_pax(dt: float) -> void:
+	_wait_tick -= dt
+	if _wait_tick <= 0.0:
+		_wait_tick = 1.0
+		_gather()
 	if _pax_count == 0:
 		if _pax_mi.visible:
 			_pax_mi.visible = false
@@ -767,14 +913,20 @@ func _step_pax(dt: float) -> void:
 		else:
 			_pax_s[n] += PAX_SPEED * dt
 		if _pax_s[n] >= length:
-			_pax_alive[n] = 0
-			_pax_count -= 1
-			_pax_buf[b + 5] = 0.0
-			for k in 12:
-				_pax_buf[b + k] = 0.0
-			continue
-		var q := from.lerp(to, _pax_s[n] / maxf(length, 0.01))
-		var yaw := atan2(-run.x, -run.y) if length > 0.01 else 0.0
+			if _pax_wait[n] >= 0:
+				# Arrived where they wait: stand still, facing the track.
+				_pax_s[n] = length
+				run = _pax_face[n]
+				_pax_buf[b + 15] = STAND_A + fposmod(_pax_buf[b + 15], 1.0)
+			else:
+				_pax_alive[n] = 0
+				_pax_count -= 1
+				_pax_buf[b + 5] = 0.0
+				for k in 12:
+					_pax_buf[b + k] = 0.0
+				continue
+		var q := from.lerp(to, minf(_pax_s[n] / maxf(length, 0.01), 1.0))
+		var yaw := atan2(-run.x, -run.y) if run.length() > 0.01 else 0.0
 		var c := cos(yaw)
 		var sn := sin(yaw)
 		_pax_buf[b] = c

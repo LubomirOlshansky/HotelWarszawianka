@@ -22,6 +22,17 @@ sport is mostly about the hoodie, the story from the court and finding a fourth 
   "Czwarty" phone call (`trend_job.gd offer_deski_call`, `--trend-job=7`): a friend rings, one of
   the four hurt a leg at pole dance, drive or fly to the gate within 8 minutes (the helicopter
   counts within 28 m). Tone: affectionate, no private people.
+- **The call, reworked (2026-11-07)**: it opens like Szymek's boat race and Ziomek's rave. First
+  "📞 KUBA DZWONI" with a one-line bio of the caller (`DESKI_BIOS`) and ODBIERZ / ODRZUĆ, the
+  phone buzzes; only an answered call says what's wrong (BRAKUJE CZWARTEGO!, JADĘ! / NIE DZIŚ).
+  On time at the court you play: **a three-point match**, one card per point with a rally
+  (`RALLIES`, five, three picked per call) and three shots, LOB / ZE ŚCIANY / SMECZ. Each rally has
+  one shot that wins it (the smash for a ball off the back glass, the lob over a pair at the net,
+  waiting for the glass on a fast corner ball...), so a player who reads the situation wins. Each
+  point won: +6 zł, +2 respect; 0-3 points give the score (2:6 1:6 ... 6:2 6:3) and the closing
+  line (3/3: the club hoodie and "from Monday you're our regular fourth"). Landing the helicopter
+  by the court: Pani Basia's "the helicopter parking is on the river side" and +5 respect. Late:
+  no match, they played three-a-side.
 
 ## Characters (ideas, none built yet)
 - **Trener Dominik**: ex-tennis, "nie biegaj, ustaw się". Appears as a padel court voice.

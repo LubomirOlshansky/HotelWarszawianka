@@ -33,8 +33,14 @@ extends RefCounted
 ## ~58 px long side-on on an iPhone's 1170 lines; still ~3 s of road ahead at 90 km/h.
 const DEFAULT_SIZE := 80.0
 ## The follow-camera loop (2026-10-30): the player's zoom, view heights in metres (pinch, the
-## mouse wheel, − and +; saved in Settings), from close to wide; DEFAULT_SIZE is the middle one.
-const VIEWS: Array[float] = [50.0, 65.0, 80.0, 100.0, 125.0]
+## mouse wheel, − and +; saved in Settings), from close to wide; DEFAULT_SIZE is the fourth.
+## 40 m (F, 2026-11-07: "+ a little bit closer"): the car ~115 px long on 1170 lines.
+const VIEWS: Array[float] = [40.0, 50.0, 65.0, 80.0, 100.0, 125.0]
+## The camera's angle over the ground in degrees (main.gd camera_pitch is minus this), Settings →
+## Obraz "Kąt kamery" (F, 2026-11-07). 30 is the game's look and the default; steeper ones show
+## less of the street ahead (ground depth = view height / sin angle) and more of the roofs.
+const PITCHES: Array[float] = [30.0, 40.0, 50.0]
+const DEFAULT_PITCH := 30.0
 ## A pinch takes a step each time the fingers' span changes by this ratio.
 const PINCH_STEP := 1.2
 ## The view widens by this share at top speed.

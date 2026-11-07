@@ -84,3 +84,7 @@ from Krakowskie Przedmieście.
 | towers | 2 stacks of boxes | 8.6 x 9.2 m | u 4.4 and 26.9 | M_STONE, M_MONUMENT | 1 towers |
 | helms | 2 x 5 frusta, drum, cap | r 3.4..4.0 m | y 32.3..45.6 | M_STONE | 1 towers |
 | crosses | 3 | 0.4 m bars | tower tips, apex | M_STONE | 1 towers |
+
+## Update
+
+Photo pass 2026-11-06 (refs/sw_krzyz 1-2): the photos show no giant portico. The front between the towers is a flat two-storey wall with paired pilasters, a small portal (two columns, entablature and a pediment) in the middle, pedimented lower windows, capped upper windows and a great round-headed window, a cornice, a curved stepped attic with the cross, a balustrade across the whole front with the steps open in the middle, the black "Sursum corda" plinth with the bronze Christ left of the portal; the towers gain corner pilasters and darker copper (`#5a8a78`). Replaces the four-column portico below.

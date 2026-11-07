@@ -78,6 +78,7 @@ SECTOR_LISTS = {
     "carriage": "p", "kerbs": "p", "medians": "s", "guards": "p", "symbols": "xz", "sand": "p",
     "sandbars": "p", "rails": "p", "platforms": "p", "islands": "p", "lines": "p", "surfaces": "p",
     "steps": "p", "walls": "p", "garage_doors": "c", "tram_xings": "p", "asphalt_fills": "p", "tram_noses": "p",
+    "citywalls": "p",
 }
 # Flat point lists: values per thing.
 SECTOR_POINTS = {"trees": 4, "lamps": 2, "signals": 3, "parked": 4, "benches": 3, "bins": 3,
@@ -88,7 +89,8 @@ SECTOR_WHOLE = ["lod2_cuts", "lod2_open"]
 # index too: trains.gd runs on the whole network (docs/design/railway.md T1).
 SECTOR_ONLY = {"buildings", "markings", "carriage", "symbols", "sand", "sandbars", "surfaces",
                "steps", "lines", "walls", "garage_doors", "lamps", "benches", "bins",
-               "bikes", "shelters", "trees", "trees3d_crown", "tram_xings", "asphalt_fills", "tram_noses"}
+               "bikes", "shelters", "trees", "trees3d_crown", "tram_xings", "asphalt_fills", "tram_noses",
+               "citywalls"}
 
 # Where landmarks.gd looks for the building parts its sites are made of (it reads every
 # building whose centre lies inside one of these): the outlines it finds by name and the
@@ -102,9 +104,11 @@ SITE_NAMES = ["Pałac Kultury i Nauki", "Złote Tarasy", "Lumen", "Skylight", "R
               # the skyline's towers (landmarks.gd TOWERS, the landmarks loop)
               "Złota 44", "Warsaw Spire", "Q22", "Rondo 1", "InterContinental", "Cosmopolitan",
               "Warsaw Trade Tower", "Skyliner", "Warsaw Unit", "Mennica Legacy Tower", "Generation Park Y",
+              # RD-3 (2026-11-06): the roof terraces on Generation Park Z and X (landmarks.gd _find_terraces)
+              "Generation Park Z", "Generation Park X",
               "Skysawa", "Błękitny Wieżowiec", "Warszawskie Centrum Finansowe", "Centrum LIM", "Chałubińskiego 8",
               "Spektrum Tower", "The Bridge", "Bellona", "Hilton Warsaw City", "The Westin Warsaw", "Novotel Warszawa Centrum",
-              "Central Tower", "Ilmet", "Platinum Tower A", "Platinum Tower B", "Łucka City", "Widok Towers", "PZU Tower", "JM Tower",
+              "Central Tower", "Ilmet", "Platinum Tower A", "Platinum Tower B", "Łucka City", "Prosta Tower", "Widok Towers", "PZU Tower", "JM Tower",
               # map north (2026-10-31): Arkadia, for the landmarks lane (docs/DEMO.md 2.2)
               "Westfield Arkadia",
               # first scene item 3 (2026-10-31): the Eastern Wall's stores (landmarks.gd DTC)
@@ -159,6 +163,7 @@ SITE_AREAS = [
     (-445.0, 1605.0, -395.0, 1680.0),       # Kościół Najświętszego Zbawiciela (landmarks.gd ZB_NAVE_AT, ZB_TOWER_AT)
     (-2290.0, 185.0, -2165.0, 235.0),       # Norblin's old works (landmarks.gd NORBLIN_OLD, F's look check 2026-11-03)
     (-2254.0, 232.0, -2234.0, 252.0),       # and its glazed hall on Prosta ("Verit", NORBLIN_HALL_AT)
+    (-2410.0, 160.0, -2345.0, 265.0),       # Prosta 28's tower, annex and wings (unnamed in OSM; landmarks.gd P28_BOX)
     # behind the Eastern Wall (landmarks.gd _find_behind): the 75 m tower and the four 1960s
     # slabs, unnamed in OSM, found by the outline under TOWER75_AT and SLAB_AT (their bboxes)
     (-837.0, 245.0, -804.0, 270.0),
@@ -187,6 +192,8 @@ SITE_AREAS = [
     (-1858.0, 350.0, -1832.0, 395.0),
     # Pokorna 2 (landmarks.gd _find_pokorna2): the 57 m residential block, found by the outline under POKORNA2_AT
     (-2141.0, -2234.0, -2105.0, -2198.0),
+    # Kino Muranów (landmarks.gd _find_kino_muranow): the cinema pavilion's outline under KM_AT
+    (-1700.0, -1240.0, -1640.0, -1170.0),
     (-450.0, 1580.0, -385.0, 1670.0),       # Kościół Zbawiciela's nave and towers (landmarks.gd ZB_*; MDM's box ends at z 1620)
     # the church kit (landmarks.gd CHURCHES): the outline under each church's `at` point
     (-853, -1629, -749, -1525),   # church_sw_marcin
@@ -212,6 +219,7 @@ SITE_AREAS = [
     (-1058, -1559, -985, -1487),   # church_cerkiew
     (-1609, -268, -1529, -188),   # church_nozykow
     (1575.0, 1570.0, 1605.0, 1610.0),       # the sailing marina's club house (landmarks.gd MARINA_AT, unnamed in OSM)
+    (1385.0, 670.0, 1480.0, 900.0),         # Port Czerniakowski's spit: Majami, WTW and the halls (landmarks.gd PORT_TIP, PORT_WTW, PORT_HALLS)
     (1025.0, -2032.0, 1135.0, -1962.0),     # Bazar Różyckiego's stalls (landmarks.gd BAZAR_BOX, unnamed retail outlines)
 ]
 

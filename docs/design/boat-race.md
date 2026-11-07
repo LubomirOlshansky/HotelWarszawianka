@@ -92,16 +92,41 @@ there. Its wake rings are the big jumps.
 
 ## 6. Cost
 
-Idle: a timer and the pontoon (1 draw call, static). Racing: 4 boats + the barge (5), the next 3
+Idle: a timer, the pontoon and the three moored boats (4 draw calls, static). Free ride: the
+fleet, the barge and the foam (5), one sphere test a frame. Racing: 4 boats + the barge (5), the next 3
 rings and the finish (≤4), the foam (1): about +10 draw calls; four sphere tests a frame; the wave
 sum ~1k terms a frame.
 
 ## 7. Flags
 
 `--boat-race` / `--boat-race=call` (Szymek rings now), `=race` (the car at the pontoon and straight
-onto the grid), `=auto` (that, with the player's boat driven by the rivals' driver), `=0` (none);
-`--boat-log`.
+onto the grid), `=auto` (that, with the player's boat driven by the rivals' driver), `=free` /
+`=free0..2` (the car at the pontoon, out in a fleet boat: 0 jet ski, 1 electric, 2 offshore), `=marina` (the car there, the marina card up), `=0`
+(none); `--boat-log`.
 
-## 8. Left
+## 8. Free ride (F, 2026-11-07)
+
+F: "a boat parked at the pier; whoever drives there can always take it and ride; mark it on the map
+as a boat", then (with three photos) "two boats and a jet ski, each with its own physics, pick one at
+the pier". Three parodies (no real makes) moored in echelon along the start pontoon's upstream side,
+bows 35° off the deck to the river (`FLEET`, `fleet_spot`):
+
+| Boat | Look (F's photo) | Kind | Top | Feel (boat.gd SPECS keys) |
+| --- | --- | --- | --- | --- |
+| Rekin X | 3.4 m jet ski, black with red graphics | SKUTER | 20 m/s | `jet`: steers only on the gas (nozzle thrust), quickest off the line, `roll` 1.8, jumps at `launch` 1.6, lands soft |
+| Srebrna Strzała | 7.5 m silver electric runabout, yellow seats | ELECTRIC | 17.5 m/s | `falloff` 5: full torque nearly to the top; grippy, flat (`roll` 0.6, `bow` 0.4) |
+| Czarna Pantera | 13 m black offshore, red upholstery, hardtop, five outboards | OFFSHORE | 27 m/s (97 km/h) | `pull_plane` 2.4: slow until it planes, then the fastest; turn 0.95, big wake, `feel` 0.45 (rides over wakes) |
+
+Stop by the pontoon: the pill PRZYSTAŃ opens the marina card (REKIN X / STRZAŁA / PANTERA / WYŚCIG,
+one row so it fits a phone; it closes after CARD_LIFE or when the car drives off). On the free ride
+there are no rings, rivals or clock; the panel shows the speed and the way back, the sand barge
+passes for its wake, ✕ ends it and the car is where it was left, the boat back at its mooring. The
+moored ones are solid for the one out. The mark (MapIcons.POI_BOAT, a white motorboat on a cobalt
+disc) stands with the job places on the minimap and the full map. Which real place this is and the
+photos it needs: BACKLOG "Free ride and the marina's access". `check_boat_race` checks the
+moorings, each boat's ride and that the three feel different (top speed, time to 10 m/s, turn on
+and off the gas).
+
+## 9. Left
 
 In docs/BACKLOG.md "Boat race".

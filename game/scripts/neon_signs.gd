@@ -72,7 +72,7 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		# The Skyliner's crown (docs/design/city-life-satire.md #12): a small agency with a large nose.
 		"NOSE AGENCY", "NOSE", "AGENCY",
 		# Warsaw Unit's crown (the photo report, 2026-11-03): a parody of the insurer's logo.
-		"WARTKA",
+		"WARTKA", "MBĄK",
 		# Bracka and Plac Trzech Krzyży (photo builds, 2026-11-03): Vitkac's and the Sheraton's
 		# names as parodies, a generic word over Jabłkowski's door.
 		"VIPKAC", "SZERATON", "DOM MODY",
@@ -86,7 +86,23 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		"CUDAK", "POMOSTEK", "RZECZKA", "LEMONIADA", "ZAPIEKANKI",
 		# Towarowa 22 built as finished (2026-11-03): the drone port, the superblock's name and the
 		# gilded last crane's plaque (the "Warsaw of the future" jokes).
-		"WARSZAWA 2050", "DRONOPORT", "TOWAROWA 22", "OSTATNI ŻURAW WOLI"]
+		"WARSZAWA 2050", "DRONOPORT", "TOWAROWA 22", "OSTATNI ŻURAW WOLI",
+		# Prosta 32, Prosta 28 and Łucka City from F's photos (2026-11-06): parodies of the
+		# developer's red roof letters, a tenant's small red logo and the printer's roof board.
+		"MARZYPOL", "PROSTO", "INTERBRUK",
+		# SOWA CLUB and CITY 25 (F's photos, 2026-11-06): the pavilion's parody names, its menu
+		# words, the soda's and the beer's parodies on its panel and terrace banners.
+		"SOWA", "CLUB", "CITY", "25", "RESTAURANT", "GRILL BAR", "CITY 25", "PEPSZY", "STEKI", "BURGERY",
+		"ZAPRASZAMY", "24H", "KACBERG",
+		# Centrum LIM's podium from F's night photos (2026-11-06): parodies of the tenants' signs
+		# (the casino chain, the small casino, the airline, the clinic, the frozen-food maker, the
+		# design shop, the chemist, the bank), the roof screens' adverts and the car maker's name
+		# on the Chałubińskiego 8 tower behind.
+		"KASYNOS", "WAWKA", "KASYNKO", "LOD", "LINIE LODOWE", "LUZMED", "MROSTA", "TYGRYS", "KOPENHAGA",
+		"ROSZMAN", "MILENIUSZ", "PALUSZKI", "HYM", "LEKSUS", "CZERY",
+		# The Palace of Culture's venues (F, 2026-11-07): its stages, cinema, bars, museum and terrace.
+		"KINOTEKA", "KULTURALNA", "TEATR", "DRAMATYCZNY", "MUZEUM", "TECHNIKI", "KONGRESOWA", "STUDIO",
+		"TARAS", "30 PIĘTRO", "LALKA", "THE FUTURE", "SHOULD", "ALWAYS BE", "BETTER"]
 ## Tube colours (linear, bright): pink, cyan, violet, and a few words' usual colours.
 const PINK := Color(1.0, 0.1, 0.55)
 const CYAN := Color(0.1, 0.9, 1.0)
@@ -125,6 +141,7 @@ const FONT := {
 	"-": [".....", ".....", ".....", "#####", ".....", ".....", "....."],
 	"2": [".###.", "#...#", "....#", "...#.", "..#..", ".#...", "#####"],
 	"4": ["...#.", "..##.", ".#.#.", "#..#.", "#####", "...#.", "...#."],
+	"5": ["#####", "#....", "####.", "....#", "....#", "#...#", ".###."],
 }
 
 

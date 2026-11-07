@@ -104,6 +104,11 @@ var steer_gain := 1.0
 ## "Ołdi TT" parody), the tuning multipliers (engine: top speed and pull, tyres: grip) and nitro.
 ## All 1.0 / off by default, so a car nobody has tuned drives exactly as before.
 var model := "hatch"
+## The coffee run (coffee_run.gd): the player swaps the car for a ROWERILO bike at a dock. On the
+## bike (model "bike") the top speed is BIKE_TOP whatever the engine, the pull BIKE_PULL of the
+## car's and NITRO never lights; the collision box stays the car's (the same stuck and kerb rules).
+const BIKE_TOP := 8.5
+const BIKE_PULL := 0.55
 var top_mult := 1.0
 var accel_mult := 1.0
 var grip_mult := 1.0
@@ -361,7 +366,7 @@ func _apply_lights() -> void:
 		m.emission_energy_multiplier = 4.0 if night or _beams.visible else 0.0
 	for m in _tails:
 		m.emission_energy_multiplier = 3.0 if night else 0.0
-	_night_beams.visible = night
+	_night_beams.visible = night and model != "bike"
 	_spot.visible = night
 
 
@@ -581,12 +586,12 @@ func _step(dt: float) -> void:
 	elif gas > 0.0:
 		# The gas sets a speed to drive at; a light push accelerates gently.
 		if speed < top:
-			speed = minf(top, speed + accel * accel_mult * (NITRO_ACCEL if nitro_on else 1.0) * (onset + (1.0 - onset) * gas) * dt * (1.0 - 0.6 * clampf(speed / top_speed(), 0.0, 1.0)))
+			speed = minf(top, speed + accel * (BIKE_PULL if model == "bike" else accel_mult) * (NITRO_ACCEL if nitro_on else 1.0) * (onset + (1.0 - onset) * gas) * dt * (1.0 - 0.6 * clampf(speed / top_speed(), 0.0, 1.0)))
 		else:
 			speed = move_toward(speed, top, 4.0 * dt)
 	else:
 		speed = move_toward(speed, 0.0, 5.0 * dt)
-	speed = minf(speed, max_speed * top_mult * NITRO_TOP)
+	speed = minf(speed, BIKE_TOP if model == "bike" else max_speed * top_mult * NITRO_TOP)
 	var cap := _assist_cap(speed, fwd, dt)
 	if speed > cap:
 		speed = move_toward(speed, cap, brake_decel * dt)
@@ -882,6 +887,8 @@ func set_handling(h: int) -> void:
 
 ## G13: the car's top speed now (m/s): the model's and the engine's, with nitro on top.
 func top_speed() -> float:
+	if model == "bike":
+		return BIKE_TOP
 	return max_speed * top_mult * (NITRO_TOP if nitro_on else 1.0)
 
 
@@ -896,7 +903,9 @@ func set_tuning(top: float, pull: float, grip_x: float) -> void:
 
 ## G13: the model on the road: the three body meshes are made again once (a swap, no new node).
 func set_model(id: String) -> void:
-	model = "tt" if id == "tt" else "hatch"
+	model = id if id == "tt" or id == "bike" else "hatch"
+	if _night_beams != null:
+		_apply_lights()
 	if _body != null and _body.get_child_count() >= 3:
 		var m := Models.player_meshes(Models.fin(paint, Models.HERO, paint_glow),
 				Models.fin(stripe, Models.HERO, stripe_glow), _kind())
@@ -906,14 +915,31 @@ func set_model(id: String) -> void:
 
 
 func _kind() -> String:
-	return "player_tt" if model == "tt" else "player"
+	return "player_tt" if model == "tt" else ("player_bike" if model == "bike" else "player")
+
+
+## The coffee run: a still copy of the car's three body meshes (the paint, lamps unlit), left at the
+## ROWERILO dock while the player rides; the caller adds it to the world and frees it later.
+func parked_copy() -> Node3D:
+	var root := Node3D.new()
+	for i in mini(3, _body.get_child_count()):
+		var src := _body.get_child(i) as MeshInstance3D
+		if src == null:
+			continue
+		var mi := MeshInstance3D.new()
+		mi.mesh = src.mesh
+		mi.material_override = src.material_override if i == 0 else Models.material()
+		mi.cast_shadow = src.cast_shadow
+		root.add_child(mi)
+	root.global_transform = global_transform if is_inside_tree() else transform
+	return root
 
 
 ## NITRO's tank: drains while it burns, refills when it does not (see NITRO_*).
 func _nitro_tick(dt: float) -> void:
 	if not nitro_hold:
 		_nitro_dry = false
-	var want := nitro_owned and nitro_hold and not _nitro_dry and not parked and not in_water \
+	var want := model != "bike" and nitro_owned and nitro_hold and not _nitro_dry and not parked and not in_water \
 			and nitro_charge > 0.0 and (nitro_on or nitro_charge >= NITRO_MIN)
 	if want:
 		if not nitro_on:

@@ -16,8 +16,10 @@ const Models := preload("res://scripts/models.gd")
 const Trains := preload("res://scripts/trains.gd")
 const RailCut := preload("res://scripts/rail_cut.gd")
 const RailYard := preload("res://scripts/rail_yard.gd")
+const StationLines := preload("res://scripts/station_lines.gd")
 const MapEdge := preload("res://scripts/map_edge.gd")
 const EdgeRoadworks := preload("res://scripts/edge_roadworks.gd")
+const RatuszHub := preload("res://scripts/ratusz_hub.gd")
 ## Pasaż Wiecha's white Y masts stand where the map has its lamps (first_scene.gd PASAZ).
 const FirstScene := preload("res://scripts/first_scene.gd")
 ## Tile size for instanced things (trees, lamps, parked cars). Loop 2b: 512 m (was 256): one
@@ -541,7 +543,9 @@ func _build_parts(marks, roofs_only: bool) -> void:
 		_drape_bias = 0.1
 		_build_paths(flat)
 		_build_steps(flat)
-		_drape_bias = 0.18
+		# The cutting's floor under the tracks' gravel shoulders (0.18): it had their bias, the
+		# same layer at the same height, and the two greys z-fought (F's phone videos, 2026-11-07).
+		_drape_bias = 0.16
 		_build_cut_floor(flat)
 		_drape_bias = 0.2
 		_build_rail_beds(flat)
@@ -595,6 +599,8 @@ func _build_parts(marks, roofs_only: bool) -> void:
 		return
 	_build_platforms(walls)
 	_build_barriers(walls)
+	_build_stair_flights(walls)
+	_build_city_walls(walls)
 	_build_bridge_structures(walls)
 	_build_walls(walls)
 	_build_portals(walls)
@@ -602,6 +608,7 @@ func _build_parts(marks, roofs_only: bool) -> void:
 	_build_cutting(walls)
 	_build_yard_platforms(walls)
 	_build_footbridge_stairs(walls)
+	_build_station_furniture(walls)
 	_build_catenary(walls)
 	_build_srednicowy(walls)
 	_build_poniatowski(walls)
@@ -2074,6 +2081,7 @@ func _build_cut_floor(st) -> void:
 		return
 	var keep := _layer
 	_layer = L_GRAVEL
+	_exact_strip = true
 	for t: Dictionary in _cut.tracks:
 		var pts: PackedVector2Array = t["p"]
 		var cut: PackedByteArray = t["cut"]
@@ -2087,6 +2095,7 @@ func _build_cut_floor(st) -> void:
 				run = PackedVector2Array()
 		if run.size() >= 2:
 			_strip(st, run, RailCut.FLOOR_W * 2.0, Y_PATH, CUT_FLOOR, false)
+	_exact_strip = false
 	_layer = keep
 
 
@@ -2287,6 +2296,196 @@ func _build_yard_platforms(st) -> void:
 			continue
 		_platform_slab(st, ring, RailYard.HEIGHT)
 	_uv2 = Vector2.ZERO
+
+
+## Station furniture (F, 2026-11-06: "the infrastructure for all the stations on my map, with
+## people, trains stopping"): along every railway platform (OSM's 0.9 m slabs beside a track,
+## rail_yard.gd's islands at Główna) lamp masts, glass shelters where no station roof stands
+## over it, benches, bins and the blue station name boards. The benches and bins join the
+## street's MultiMeshes (_build_props: no new draw call); the rest is built into the walls.
+## The waiting people are trains.gd's (_gather).
+const STATION_LAMP := 24.0
+const STATION_BENCH := 16.0
+const STATION_BOARD := 48.0
+const STATION_SHELTER := 64.0
+## A track this close beside a platform's edge: its side faces it.
+const STATION_TRACK_SIDE := 4.0
+const STATION_BOARD_COL := Color("#1d3c78")
+const STATION_FRAME := Color("#3d4146")
+const STATION_GLASS := Color("#9fbac6")
+## Where a station's own roof covers its platforms (landmarks.gd): no shelter under it.
+## Rect2s; Warszawa Wschodnia's platform roofs (WSC_CANOPY_X, to the map's edge), Stadion's
+## canopies (STP_CANOPY from its hall), Ochota's saddle pavilion.
+const STATION_ROOFED := [Rect2(1855.0, -2050.0, 270.0, 230.0), Rect2(1300.0, -1330.0, 100.0, 100.0),
+		Rect2(-2335.0, 905.0, 45.0, 45.0)]
+var _station_benches: Array[Transform3D] = []
+var _station_bins: Array[Transform3D] = []
+
+
+func _station_roofed(p: Vector2) -> bool:
+	for r: Rect2 in STATION_ROOFED:
+		if r.has_point(p):
+			return true
+	return false
+
+
+func _build_station_furniture(st) -> void:
+	_station_benches.clear()
+	_station_bins.clear()
+	var tracks := StationLines.tracks(Trains.trim_rails(data.get("rails", [])))
+	_uv2 = Vector2(0.5, -1.0)
+	for line: Array in StationLines.lines(data.get("platforms", []), tracks, _yard, terrain_height):
+		var pts: PackedVector2Array = line[0]
+		var tops: PackedFloat32Array = line[1]
+		var halves: PackedFloat32Array = line[2]
+		var cum := PackedFloat32Array([0.0])
+		for k in pts.size() - 1:
+			cum.append(cum[k] + pts[k].distance_to(pts[k + 1]))
+		var total := cum[cum.size() - 1]
+		if total < 25.0:
+			continue
+		# The shelters' places: the middle and every STATION_SHELTER either way.
+		var shelters := PackedFloat32Array()
+		var at := total * 0.5
+		while at - STATION_SHELTER > 12.0:
+			at -= STATION_SHELTER
+		while at < total - 12.0:
+			shelters.append(at)
+			at += STATION_SHELTER
+		var boards := PackedFloat32Array()
+		at = 24.0
+		while at < total - 8.0:
+			boards.append(at)
+			at += STATION_BOARD
+		if not bool(line[3]):
+			at = 6.0
+			while at < total - 4.0:
+				var f := _station_at(pts, tops, halves, cum, at)
+				_station_lamp(st, f)
+				at += STATION_LAMP
+		for s in boards:
+			_station_board(st, _station_at(pts, tops, halves, cum, s))
+		var placed := PackedFloat32Array()
+		for s in shelters:
+			var f := _station_at(pts, tops, halves, cum, s)
+			if float(f[3]) < 2.0 or _station_roofed(f[0]):
+				continue
+			_station_shelter(st, f, tracks)
+			placed.append(s)
+		at = 10.0
+		var n := 0
+		while at < total - 6.0:
+			var clear := true
+			for s in placed:
+				clear = clear and absf(at - s) > 5.0
+			for s in boards:
+				clear = clear and absf(at - s) > 3.0
+			if clear:
+				_station_seat(_station_at(pts, tops, halves, cum, at), tracks, n % 2 == 0)
+				n += 1
+			at += STATION_BENCH
+	_uv2 = Vector2.ZERO
+
+
+## The platform at `s` along its centre line: [point, top, direction, half width].
+func _station_at(pts: PackedVector2Array, tops: PackedFloat32Array, halves: PackedFloat32Array,
+		cum: PackedFloat32Array, s: float) -> Array:
+	var k := clampi(cum.bsearch(s) - 1, 0, pts.size() - 2)
+	var f := clampf((s - cum[k]) / maxf(cum[k + 1] - cum[k], 0.01), 0.0, 1.0)
+	return [pts[k].lerp(pts[k + 1], f), lerpf(tops[k], tops[k + 1], f), (pts[k + 1] - pts[k]).normalized(),
+			lerpf(halves[k], halves[k + 1], f)]
+
+
+## Which sides of the platform at `f` a track runs along: Vector2i(left, right), 1 for a track.
+func _station_sides(f: Array, tracks: Array) -> Vector2i:
+	var p: Vector2 = f[0]
+	var d: Vector2 = f[2]
+	var nm := Vector2(-d.y, d.x)
+	var reach := float(f[3]) + 2.0
+	return Vector2i(1 if StationLines.near_track(p + nm * reach, tracks) < STATION_TRACK_SIDE else 0,
+			1 if StationLines.near_track(p - nm * reach, tracks) < STATION_TRACK_SIDE else 0)
+
+
+func _station_lamp(st, f: Array) -> void:
+	var p: Vector2 = f[0]
+	if _in_sector and not _sector_rect.has_point(p):
+		return
+	var y := float(f[1])
+	var d: Vector2 = f[2]
+	_box_oriented(st, Vector3(p.x, y + 2.7, p.y), Basis.IDENTITY, Vector3(0.14, 5.4, 0.14), MAST_COL)
+	_box_oriented(st, Vector3(p.x, y + 5.45, p.y), Basis(Vector3.UP, atan2(-d.x, -d.y) + PI * 0.5),
+			Vector3(0.3, 0.16, 1.4), MAST_COL.darkened(0.2))
+
+
+## The station's name board: a blue panel with a white band (the name's line) on two posts.
+func _station_board(st, f: Array) -> void:
+	var p: Vector2 = f[0]
+	if _in_sector and not _sector_rect.has_point(p):
+		return
+	var y := float(f[1])
+	var d: Vector2 = f[2]
+	var b := Basis(Vector3.UP, atan2(-d.y, d.x))
+	for sx: float in [-1.35, 1.35]:
+		var q := p + d * sx
+		_box_oriented(st, Vector3(q.x, y + 1.35, q.y), b, Vector3(0.08, 2.7, 0.08), STATION_FRAME)
+	_box_oriented(st, Vector3(p.x, y + 2.55, p.y), b, Vector3(3.0, 0.62, 0.08), STATION_BOARD_COL)
+	_box_oriented(st, Vector3(p.x, y + 2.55, p.y), b, Vector3(2.3, 0.12, 0.1), Color("#f2f2ee"))
+
+
+## A platform shelter: a flat roof on four posts, a glass wall down the middle (across the back
+## on a platform with a track on one side only), a bench on each open side.
+func _station_shelter(st, f: Array, tracks: Array) -> void:
+	var p: Vector2 = f[0]
+	var y := float(f[1])
+	var d: Vector2 = f[2]
+	var nm := Vector2(-d.y, d.x)
+	var sides := _station_sides(f, tracks)
+	var half := minf(float(f[3]) - 0.9, 1.4)
+	# One track: the glass along the far side, the roof leaning over the track side.
+	var shift := 0.0
+	if sides.x + sides.y == 1:
+		shift = -half * 0.6 if sides.x == 1 else half * 0.6
+	var b := Basis(Vector3.UP, atan2(-d.y, d.x))
+	var wall := p + nm * shift
+	if not (_in_sector and not _sector_rect.has_point(p)):
+		_box_oriented(st, Vector3(p.x, y + 2.75, p.y), b, Vector3(6.4, 0.14, half * 2.0 + 0.6), STATION_FRAME)
+		_box_oriented(st, Vector3(p.x, y + 2.83, p.y), b, Vector3(6.0, 0.04, half * 2.0 + 0.3), STATION_GLASS.darkened(0.15))
+		for sx: float in [-2.9, 2.9]:
+			for sz: float in [-half, half]:
+				var q := p + d * sx + nm * sz
+				_box_oriented(st, Vector3(q.x, y + 1.35, q.y), b, Vector3(0.1, 2.7, 0.1), STATION_FRAME)
+		_box_oriented(st, Vector3(wall.x, y + 1.3, wall.y), b, Vector3(5.6, 2.0, 0.05), STATION_GLASS)
+		_box_oriented(st, Vector3(wall.x, y + 0.1, wall.y), b, Vector3(5.7, 0.12, 0.08), STATION_FRAME)
+	# The benches under it, facing out from the glass towards each track.
+	var yaw := atan2(-d.y, d.x)
+	for side: int in [1, -1]:
+		if sides.x + sides.y == 1 and (side == 1) != (sides.x == 1):
+			continue
+		var q := wall + nm * side * 0.45
+		_station_benches.append(Transform3D(Basis(Vector3.UP, yaw + (PI if side == 1 else 0.0)), Vector3(q.x, y, q.y)))
+
+
+## Benches along the open platform: back to back on an island, facing the track on a side
+## platform; a bin beside every other one.
+func _station_seat(f: Array, tracks: Array, bin: bool) -> void:
+	var p: Vector2 = f[0]
+	var y := float(f[1])
+	var d: Vector2 = f[2]
+	var nm := Vector2(-d.y, d.x)
+	if float(f[3]) < 1.7:
+		return
+	var sides := _station_sides(f, tracks)
+	var yaw := atan2(-d.y, d.x)
+	for side: int in [1, -1]:
+		var one := sides.x + sides.y == 1
+		if one and (side == 1) != (sides.x == 1):
+			continue
+		# On a side platform the bench stands back from the edge, towards the far side.
+		var q := p + nm * side * (0.3 if not one else -minf(float(f[3]) - 1.6, 1.2))
+		_station_benches.append(Transform3D(Basis(Vector3.UP, yaw + (PI if side == 1 else 0.0)), Vector3(q.x, y, q.y)))
+	if bin:
+		var q := p + d * 1.4
+		_station_bins.append(Transform3D(Basis(Vector3.UP, yaw), Vector3(q.x, y, q.y)))
 
 
 ## The rail footbridges' (_rail_bridges) glass parapets along their level run, and where one
@@ -3946,7 +4145,7 @@ func _draped_tri(st, a: Vector3, b: Vector3, c: Vector3, col: Color, depth: int)
 	var ab := Vector2(a.x - b.x, a.z - b.z).length()
 	var bc := Vector2(b.x - c.x, b.z - c.z).length()
 	var ca := Vector2(c.x - a.x, c.z - a.z).length()
-	if maxf(ab, maxf(bc, ca)) > 12.0 and depth < 16 and not _t_h.is_empty():
+	if maxf(ab, maxf(bc, ca)) > _drape_edge(a, b, c) and depth < 16 and not _t_h.is_empty():
 		if ab >= bc and ab >= ca:
 			var m := (a + b) * 0.5
 			_draped_tri(st, a, m, c, col, depth + 1)
@@ -3961,6 +4160,27 @@ func _draped_tri(st, a: Vector3, b: Vector3, c: Vector3, col: Color, depth: int)
 			_draped_tri(st, m, b, c, col, depth + 1)
 		return
 	_emit_draped(st, a, b, c, col)
+
+
+## The longest edge a draped triangle keeps (m): the terrain grid's, or for the railway's ballast
+## and gravel (`_exact_strip`) in the cutting's cells, drawn in 2 m sub-cells (rail_cut.gd SUB),
+## the sub-cells' own size, so the pieces bend where its banks and floor do. Only in the cutting:
+## elsewhere the 10 m pieces sag a few centimetres (their bias covers it), and the aprons' 1 m
+## sub-cells map-wide would have cost ~400k triangles. The rails keep their pieces (bias 0.46).
+func _drape_edge(a: Vector3, b: Vector3, c: Vector3) -> float:
+	if not _exact_strip or _dk >= 0 or _tn >= 0 or _layer == L_RAIL:
+		return 12.0
+	if not (_cut.box.has_point(Vector2(a.x, a.z)) or _cut.box.has_point(Vector2(b.x, b.z)) or _cut.box.has_point(Vector2(c.x, c.z))):
+		return 12.0
+	_fine_index()
+	if _fine_cells.is_empty():
+		return 12.0
+	var step := float(_terrain["step"])
+	var fine := 0
+	for p: Vector3 in [a, b, c]:
+		var key := Vector2i(floori((p.x - float(_terrain["x0"])) / step), floori((p.z - float(_terrain["z0"])) / step))
+		fine = maxi(fine, int(_fine_cells.get(key, 0)))
+	return 12.0 if fine == 0 else maxf(step / fine, step / RailCut.SUB) * 1.2
 
 
 ## One flat-layer triangle lifted onto the surface (each corner's own y is the layer offset),
@@ -4169,6 +4389,13 @@ func _disc(st, p: Vector2, r: float, y: float, col: Color, segments := 8) -> voi
 ## areas) follow the grid's triangles exactly; the ones higher up (roads 0.3, markings) keep the
 ## 10 m pieces, their bias covers any sag.
 const EXACT_STRIP_BIAS := 0.12
+## Flicker fix (F's phone videos, 2026-11-07): the railway's flat layers (the cutting's floor, the
+## tracks' gravel shoulders and dark beds, the rails) keep their corners on or over the drawn
+## ground, and in the cutting bend with its 2 m sub-cells (`_drape_edge`). In 10 m pieces they
+## sagged up to a metre under it (the cutting's banks and floor bend between the grid's points),
+## and from the helicopter the beige ground tore through the ballast and cut the rails into
+## dashes that crawled as the view moved. check_drape.gd's rail pass counts what it still hides.
+var _exact_strip := false
 
 
 ## A polyline as a flat band; square caps overlap at the joints.
@@ -4197,11 +4424,16 @@ func _strip(st, poly: PackedVector2Array, width: float, y: float, col: Color, ex
 		# Draped: cut into pieces no longer than the terrain grid, so a long thin strip
 		# costs two triangles per piece instead of a fan of slivers.
 		var pieces := maxi(1, ceili(a.distance_to(b) / 10.0)) if _drape_bias >= 0.0 else 1
+		# The railway's layers in the cutting: their corners never under the drawn ground
+		# (`_emit_draped`). Only there: the drawn ground's height costs the cut's own lookups, and
+		# map-wide it made the build (and check_drape) minutes slower for a few hundred m2.
+		_on_grid = _exact_strip and _dk < 0 and _tn < 0 and _cut.box.grow(hw).intersects(Rect2(a, Vector2.ZERO).expand(b))
 		for k in pieces:
 			var p := a.lerp(b, float(k) / pieces)
 			var q := a.lerp(b, float(k + 1) / pieces)
 			_quad(st, Vector3(p.x + side.x, y, p.y + side.y), Vector3(q.x + side.x, y, q.y + side.y),
 					Vector3(q.x - side.x, y, q.y - side.y), Vector3(p.x - side.x, y, p.y - side.y), Vector3.UP, col)
+		_on_grid = false
 	_axis = Vector2.ZERO
 
 
@@ -4352,6 +4584,7 @@ func _fine_index() -> void:
 		return
 	_fine_ready = true
 	_fine_cells.clear()
+	_corner_cache.clear()
 	if _t_h.is_empty():
 		return
 	var step := float(_terrain["step"])
@@ -4417,6 +4650,22 @@ func _set_lowers(a: Vector2, b: Vector2, h: float, reach: float) -> bool:
 ## The drawn ground's height at a sub-cell corner: the grid, or terrain_height where an apron
 ## holds the ground under it.
 func _drawn_corner(x: float, z: float) -> float:
+	# The same sub-cell corners are asked for again and again (every flat layer's vertex in an
+	# apron or the cutting, check_drape's samples), and each costs the cut's and aprons' lookups:
+	# kept by the centimetre, for the fine index's lifetime (its inputs don't change after it).
+	var key := Vector2i(roundi(x * 100.0), roundi(z * 100.0))
+	var known: Variant = _corner_cache.get(key)
+	if known != null:
+		return float(known)
+	var h := _drawn_corner_raw(x, z)
+	_corner_cache[key] = h
+	return h
+
+
+var _corner_cache := {}
+
+
+func _drawn_corner_raw(x: float, z: float) -> float:
 	var g := _grid_height(x, z)
 	var t := terrain_height(x, z)
 	# Loop 3e: under a ground profile that lowers the ground, SET_SINK lower still (the 1 m
@@ -5056,6 +5305,8 @@ func _build_paths(st) -> void:
 	for p in data["paths"]:
 		if p["k"] in ["cyclecross", "zebra"]:
 			continue  # these lie on the road; the crossing builder paints them
+		if p["k"] == "foot" and _in_pkin_forecourt(p["p"]):
+			continue  # Teatr Studio's forecourt is one granite square, its bands drawn with it
 		var col: Color = COL["cycle"] if p["k"] == "cycle" else COL["foot"]
 		var y := Y_PATH + (0.005 if p["k"] == "cycle" else 0.0)
 		_layer = L_CYCLE if p["k"] == "cycle" else L_FOOT
@@ -5364,6 +5615,7 @@ func _is_lawn_carpet(flat: Array) -> bool:
 ## Loop 3b-2: a surface the bake put on a bridge deck (`dk`: a bridge's pavement or tram bed,
 ## bake_roads.py level_surfaces) is laid on the deck; the rest on the ground's own triangles.
 func _build_surfaces(st) -> void:
+	var platforms := _rail_platform_polys()
 	for a in data.get("surfaces", []):
 		var style: Array = SURFACE_STYLE.get(a["k"], ["#cfc7b5", 0.0])
 		if a["k"] == "paving" and _is_lawn_carpet(a["p"]):
@@ -5372,10 +5624,68 @@ func _build_surfaces(st) -> void:
 		_dk = int(a.get("dk", -1))
 		if _dk >= 0:
 			_fill(st, _pts(a["p"]), Y_AREA + 0.01, Color(style[0]))
+		elif a["k"] == "ballast":
+			for part in _cut_out(_pts(a["p"]), platforms):
+				_fill_on_grid(st, part, Y_AREA + 0.01, Color(style[0]))
 		else:
 			_fill_on_grid(st, _pts(a["p"]), Y_AREA + 0.01, Color(style[0]))
 	_dk = -1
+	_build_pkin_ground(st)
 	_layer = L_GROUND
+
+
+## OSM's railway platforms (0.9 m) as outlines with their boxes. The ballast (landuse=railway)
+## round them is laid on the ground's triangles, which rise onto a platform's top: drawn there it
+## covered Stadion's and Wschodnia's platforms in brown stones (2026-11-06), so it is cut away.
+func _rail_platform_polys() -> Array:
+	var out := []
+	for a in data.get("platforms", []):
+		if float(a["h"]) < 0.7:
+			continue
+		var poly := _pts(a["p"])
+		if poly.size() < 3:
+			continue
+		var box := Rect2(poly[0], Vector2.ZERO)
+		for q in poly:
+			box = box.expand(q)
+		out.append([box, poly])
+	return out
+
+
+## `poly` without the outlines in `holes` ([box, outline] each): a hole wholly inside is split
+## off by a line through its middle first (a polygon fill has no holes).
+func _cut_out(poly: PackedVector2Array, holes: Array) -> Array[PackedVector2Array]:
+	var parts: Array[PackedVector2Array] = [poly]
+	var box := Rect2(poly[0], Vector2.ZERO)
+	for q in poly:
+		box = box.expand(q)
+	for h: Array in holes:
+		if not box.intersects(h[0]):
+			continue
+		var hole: PackedVector2Array = h[1]
+		var next: Array[PackedVector2Array] = []
+		for p in parts:
+			var cut := Geometry2D.clip_polygons(p, hole)
+			var holed := false
+			for c in cut:
+				holed = holed or Geometry2D.is_polygon_clockwise(c)
+			if not holed:
+				next.append_array(cut)
+				continue
+			var hb: Rect2 = h[0]
+			var mid := hb.get_center()
+			var big := 1.0e5
+			for half: PackedVector2Array in [
+					PackedVector2Array([Vector2(-big, -big), Vector2(mid.x, -big), Vector2(mid.x, big), Vector2(-big, big)]),
+					PackedVector2Array([Vector2(mid.x, -big), Vector2(big, -big), Vector2(big, big), Vector2(mid.x, big)])]:
+				for piece in Geometry2D.intersect_polygons(p, half):
+					if Geometry2D.is_polygon_clockwise(piece):
+						continue
+					for c in Geometry2D.clip_polygons(piece, hole):
+						if not Geometry2D.is_polygon_clockwise(c):
+							next.append(c)
+		parts = next
+	return parts
 
 
 func _build_steps(st) -> void:
@@ -5401,6 +5711,294 @@ func _build_steps(st) -> void:
 			var b := top + dir * (length * float(i + 1) / float(n))
 			_strip(st, PackedVector2Array([a, b]), 2.4, Y_PATH + 0.01, tone, false)
 	_layer = L_GROUND
+
+
+# --- stairs across the city ----------------------------------------------------
+
+## Stairs across the city (F, 2026-11-07: "look on the map to the places where we have stairs,
+## map them and improve"). Every OSM flight was a flat beige strip on the ground with painted
+## tread lines (_build_steps), so Kamienne Schodki, the Skarpa's stairs and the stairs off the
+## viaducts read as a ramp of paint on a slope. Where the flight drops at least STAIR_MIN_DROP
+## (over the drawn ground, or from a deck the flight starts on) it is now a stone flight: flat
+## treads and risers of about STAIR_RISER each (a stretch where the ground levels off becomes a
+## landing), cheek walls down to the ground on both sides, the handrails OSM maps (`hr`) and
+## the pram channels of a ramp (`rp`). The tags come from tools/stairs.py (`n`, `w`, `hr`, `rp`,
+## `sf`, `br`). They go into the building meshes (no new draw call) and don't collide: the car
+## drives the ground under them as before. Flights in a sunken place (SUNKEN: its site draws the
+## treads), escalators (`cv`) and those in STAIR_SKIP (a landmark that builds its own) stay flat.
+const STAIR_MIN_DROP := 0.35
+const STAIR_RISER := 0.16
+## Treads at least this deep (a short steep flight gets taller risers, not paper-thin treads).
+const STAIR_MIN_TREAD := 0.26
+const STAIR_SAMPLE := 0.25
+const STAIR_CHEEK_W := 0.28
+const STAIR_CHEEK_UP := 0.16
+const STAIR_TONE := {"stone": "#c6c0b4", "concrete": "#b7b3aa", "sett": "#a29b91", "metal": "#767b81",
+		"wood": "#8d6e50", "": "#c2bcb0"}
+const STAIR_CHEEK := Color("#a49e93")
+const STAIR_RAIL := Color("#2c3035")
+## Places whose stairs a landmark builds itself (centre, half size): Most Poniatowskiego's tower
+## stairs (landmarks._pt_ramp).
+const STAIR_SKIP: Array[Rect2] = []
+
+
+## Every flight's 3D build (see above). Returns how many flights were built.
+func _build_stair_flights(st) -> int:
+	_uv2 = Vector2(0.5, -1.0)
+	var built := 0
+	for s in data.get("steps", []):
+		if int(s.get("cv", 0)) == 1:
+			continue
+		var poly := _pts(s["p"])
+		if poly.size() < 2 or _stair_skipped(poly):
+			continue
+		if _stair_flight(st, s, poly):
+			built += 1
+	_uv2 = Vector2.ZERO
+	return built
+
+
+func _stair_skipped(poly: PackedVector2Array) -> bool:
+	for q in [poly[0], poly[poly.size() - 1]]:
+		if not _sunk.is_empty() and _sunk_box.grow(1.0).has_point(q) and not is_inf(sunk_floor(q.x, q.y, true)):
+			return true
+		for r: Rect2 in STAIR_SKIP:
+			if r.has_point(q):
+				return true
+	return false
+
+
+## How far over the ground the flight's end `at` stands: a deck's height when the flight starts
+## on one (a stair off a viaduct or a bridge: its step count, or OSM's bridge tag, says it climbs
+## that far), else 0.
+func _stair_end_lift(s: Dictionary, at: Vector2, other: Vector2) -> float:
+	var g := terrain_height(at.x, at.y)
+	var want := float(s.get("n", 0)) * STAIR_RISER
+	var best := 0.0
+	for d in _decks_at(at.x, at.y):
+		var lift := d - g
+		if lift < 1.2 or lift > 16.0:
+			continue
+		var fits := absf(lift - want) < maxf(2.0, want * 0.45) if want > 0.0 else int(s.get("br", 0)) == 1
+		if not fits:
+			continue
+		# A flight under the deck (both ends under it) stays on the ground.
+		var under := false
+		for e in _decks_at(other.x, other.y):
+			if absf(e - d) < 0.5:
+				under = true
+		if not under:
+			best = maxf(best, lift)
+	return best
+
+
+## One flight as stone steps; false when it drops too little to show (it stays a painted strip).
+func _stair_flight(st, s: Dictionary, poly: PackedVector2Array) -> bool:
+	var lengths := PackedFloat32Array([0.0])
+	for i in poly.size() - 1:
+		lengths.append(lengths[i] + poly[i].distance_to(poly[i + 1]))
+	var total := lengths[lengths.size() - 1]
+	if total < 0.6:
+		return false
+	var lift0 := _stair_end_lift(s, poly[0], poly[poly.size() - 1])
+	var lift1 := _stair_end_lift(s, poly[poly.size() - 1], poly[0])
+	var hw := clampf(float(s.get("w", 2.4)), 1.0, 30.0) * 0.5
+	# The profile: the drawn ground under the line (its highest point across the flight, so no
+	# tread sinks into a side slope), plus a deck end's lift blended along it.
+	var n_samp := maxi(2, ceili(total / STAIR_SAMPLE) + 1)
+	var at: Array[Vector2] = []
+	var dirs: Array[Vector2] = []
+	var prof := PackedFloat32Array()
+	var seg := 0
+	for k in n_samp:
+		var d := total * float(k) / float(n_samp - 1)
+		while seg < poly.size() - 2 and d > lengths[seg + 1]:
+			seg += 1
+		var a := poly[seg]
+		var b := poly[seg + 1]
+		var sl := maxf(lengths[seg + 1] - lengths[seg], 0.001)
+		var p := a.lerp(b, clampf((d - lengths[seg]) / sl, 0.0, 1.0))
+		var dir := (b - a).normalized()
+		var side := Vector2(-dir.y, dir.x) * hw
+		var g := maxf(terrain_height(p.x, p.y), maxf(terrain_height(p.x + side.x, p.y + side.y),
+				terrain_height(p.x - side.x, p.y - side.y)))
+		var t := d / total
+		at.append(p)
+		dirs.append(dir)
+		prof.append(g + lift0 * (1.0 - t) + lift1 * t)
+	var low_first := prof[0] <= prof[n_samp - 1]
+	var drop := absf(prof[n_samp - 1] - prof[0])
+	if drop < STAIR_MIN_DROP:
+		return false
+	# Monotone from the foot up (a hump in the ground is the flight's own climb), then cut into
+	# risers of drop / n: each sample's tread is the level at or over its ground.
+	var risers := clampi(roundi(drop / STAIR_RISER), 2, maxi(2, floori(total / STAIR_MIN_TREAD)))
+	var rise := drop / float(risers)
+	var foot := minf(prof[0], prof[n_samp - 1])
+	var level := PackedInt32Array()
+	level.resize(n_samp)
+	var run_max := -INF
+	for j in n_samp:
+		var k := j if low_first else n_samp - 1 - j
+		run_max = maxf(run_max, prof[k])
+		level[k] = clampi(ceili((run_max - foot) / rise - 0.001), 0, risers)
+	var tone := Color(str(STAIR_TONE.get(str(s.get("sf", "")), STAIR_TONE[""])))
+	var riser_col := tone.darkened(0.22)
+	# Treads: the sample pieces at one level along one straight piece of the line are one quad at
+	# that level (the step's top), with a riser where the level changes.
+	var nosing := PackedVector3Array()   # the line over each tread's front edge, for cheeks and rails
+	var run0 := 0
+	for k in n_samp - 1:
+		var lv := maxi(level[k], level[k + 1])
+		var y := foot + rise * float(lv)
+		nosing.append(Vector3(at[k].x, y, at[k].y))
+		var last := k + 1 >= n_samp - 1
+		var lv2 := lv if last else maxi(level[k + 1], level[k + 2])
+		if not last and lv2 == lv and dirs[k + 1].is_equal_approx(dirs[k]):
+			continue
+		var a := at[run0]
+		var b := at[k + 1]
+		var side := Vector2(-dirs[k].y, dirs[k].x) * hw
+		var shade := tone if (lv % 2 == 0) else tone.darkened(0.035)
+		_quad(st, Vector3(a.x + side.x, y, a.y + side.y), Vector3(b.x + side.x, y, b.y + side.y),
+				Vector3(b.x - side.x, y, b.y - side.y), Vector3(a.x - side.x, y, a.y - side.y), Vector3.UP, shade)
+		run0 = k + 1
+		if not last and lv2 != lv:
+			var y2 := foot + rise * float(lv2)
+			var face := Vector3(dirs[k].x, 0.0, dirs[k].y) * (1.0 if lv2 < lv else -1.0)
+			_quad(st, Vector3(b.x + side.x, minf(y, y2), b.y + side.y), Vector3(b.x - side.x, minf(y, y2), b.y - side.y),
+					Vector3(b.x - side.x, maxf(y, y2), b.y - side.y), Vector3(b.x + side.x, maxf(y, y2), b.y + side.y), face, riser_col)
+	nosing.append(Vector3(at[n_samp - 1].x, foot + rise * float(level[n_samp - 1]), at[n_samp - 1].y))
+	# The end risers down to the ground at the foot (a deck end's flight stands on its block).
+	for e in [0, n_samp - 1]:
+		var p: Vector2 = at[e]
+		var dir: Vector2 = dirs[mini(e, n_samp - 2)]
+		var side := Vector2(-dir.y, dir.x) * hw
+		var y := foot + rise * float(level[e])
+		var g := terrain_height(p.x, p.y) - 0.3
+		if y - g > 0.35:
+			var face := Vector3(dir.x, 0.0, dir.y) * (1.0 if e == n_samp - 1 else -1.0)
+			_quad(st, Vector3(p.x + side.x, g, p.y + side.y), Vector3(p.x - side.x, g, p.y - side.y),
+					Vector3(p.x - side.x, y, p.y - side.y), Vector3(p.x + side.x, y, p.y + side.y), face, riser_col)
+	# Cheeks: a wall each side, its top over the nosings (simplified), its foot in the ground.
+	var line := _stair_simplify(nosing, 0.1)
+	for sgn in [1.0, -1.0]:
+		_stair_cheek(st, line, hw * sgn, sgn)
+	var hr := int(s.get("hr", 0))
+	if hr & 1:
+		_stair_rail(st, line, hw - 0.12)
+	if hr & 2:
+		_stair_rail(st, line, -(hw - 0.12))
+	if hr & 4 and hw > 1.6:
+		_stair_rail(st, line, 0.0)
+	if int(s.get("rp", 0)) == 1 and hw > 0.9:
+		_stair_channels(st, line, -(hw - 0.5))
+	return true
+
+
+## Keeps the points of a polyline that bend it by more than `tol` (Douglas-Peucker in 3D).
+static func _stair_simplify(pts: PackedVector3Array, tol: float) -> PackedVector3Array:
+	if pts.size() <= 2:
+		return pts
+	var keep := PackedByteArray()
+	keep.resize(pts.size())
+	keep[0] = 1
+	keep[pts.size() - 1] = 1
+	var stack: Array[Vector2i] = [Vector2i(0, pts.size() - 1)]
+	while not stack.is_empty():
+		var r: Vector2i = stack.pop_back()
+		var a := pts[r.x]
+		var b := pts[r.y]
+		var worst := -1
+		var far := tol
+		for i in range(r.x + 1, r.y):
+			var d := Geometry3D.get_closest_point_to_segment(pts[i], a, b).distance_to(pts[i])
+			if d > far:
+				far = d
+				worst = i
+		if worst > 0:
+			keep[worst] = 1
+			stack.append(Vector2i(r.x, worst))
+			stack.append(Vector2i(worst, r.y))
+	var out := PackedVector3Array()
+	for i in pts.size():
+		if keep[i]:
+			out.append(pts[i])
+	return out
+
+
+## The plan offset `off` to the left of the line's direction at point i.
+static func _stair_off(line: PackedVector3Array, i: int, off: float) -> Vector3:
+	var a := line[maxi(i - 1, 0)]
+	var b := line[mini(i + 1, line.size() - 1)]
+	var dir := Vector2(b.x - a.x, b.z - a.z).normalized()
+	return Vector3(-dir.y * off, 0.0, dir.x * off)
+
+
+func _stair_cheek(st, line: PackedVector3Array, off: float, sgn: float) -> void:
+	for i in line.size() - 1:
+		var o0 := _stair_off(line, i, off)
+		var o1 := _stair_off(line, i + 1, off)
+		var w0 := _stair_off(line, i, off + STAIR_CHEEK_W * sgn)
+		var w1 := _stair_off(line, i + 1, off + STAIR_CHEEK_W * sgn)
+		var a := line[i]
+		var b := line[i + 1]
+		var ta := a.y + STAIR_CHEEK_UP
+		var tb := b.y + STAIR_CHEEK_UP
+		var ga := terrain_height(a.x + w0.x, a.z + w0.z) - 0.3
+		var gb := terrain_height(b.x + w1.x, b.z + w1.z) - 0.3
+		var ia := Vector3(a.x + o0.x, ta, a.z + o0.z)
+		var ib := Vector3(b.x + o1.x, tb, b.z + o1.z)
+		var oa := Vector3(a.x + w0.x, ta, a.z + w0.z)
+		var ob := Vector3(b.x + w1.x, tb, b.z + w1.z)
+		var out_n := Vector3(w0.x - o0.x, 0.0, w0.z - o0.z).normalized()
+		_quad(st, ia, ib, ob, oa, Vector3.UP, STAIR_CHEEK.lightened(0.06))
+		_quad(st, Vector3(oa.x, ga, oa.z), Vector3(ob.x, gb, ob.z), ob, oa, out_n, STAIR_CHEEK)
+		_quad(st, Vector3(ia.x, minf(a.y, ga), ia.z), Vector3(ib.x, minf(b.y, gb), ib.z), ib, ia, -out_n, STAIR_CHEEK.darkened(0.05))
+	# The cheeks' end faces.
+	for e in [0, line.size() - 1]:
+		var p := line[e]
+		var o := _stair_off(line, e, off)
+		var w := _stair_off(line, e, off + STAIR_CHEEK_W * sgn)
+		var g := terrain_height(p.x + w.x, p.z + w.z) - 0.3
+		var t := p.y + STAIR_CHEEK_UP
+		var n := Vector3(line[mini(e + 1, line.size() - 1)] - line[maxi(e - 1, 0)]).normalized() * (-1.0 if e == 0 else 1.0)
+		n.y = 0.0
+		_quad(st, Vector3(p.x + o.x, g, p.z + o.z), Vector3(p.x + w.x, g, p.z + w.z), Vector3(p.x + w.x, t, p.z + w.z),
+				Vector3(p.x + o.x, t, p.z + o.z), n.normalized(), STAIR_CHEEK)
+
+
+## A steel handrail `off` to the left of the flight's line, 0.9 m over the nosings, on posts.
+func _stair_rail(st, line: PackedVector3Array, off: float) -> void:
+	var run := 0.0
+	var next_post := 0.3
+	for i in line.size() - 1:
+		var a := line[i] + _stair_off(line, i, off)
+		var b := line[i + 1] + _stair_off(line, i + 1, off)
+		var length := Vector2(b.x - a.x, b.z - a.z).length()
+		if length < 0.05:
+			continue
+		var up := Vector3(0.0, 0.9, 0.0)
+		var dir := (b - a).normalized()
+		var basis := Basis.looking_at(dir, Vector3.UP)
+		_box_oriented(st, (a + b) * 0.5 + up, basis, Vector3(0.05, 0.05, a.distance_to(b)), STAIR_RAIL)
+		while next_post <= run + length:
+			var p := a.lerp(b, (next_post - run) / length)
+			_box_oriented(st, p + Vector3(0.0, 0.45, 0.0), Basis.IDENTITY, Vector3(0.045, 0.9, 0.045), STAIR_RAIL)
+			next_post += 1.8
+		run += length
+
+
+## A pram ramp: two shallow steel channels running down the flight over the treads.
+func _stair_channels(st, line: PackedVector3Array, off: float) -> void:
+	for d in [-0.28, 0.28]:
+		for i in line.size() - 1:
+			var a := line[i] + _stair_off(line, i, off + d)
+			var b := line[i + 1] + _stair_off(line, i + 1, off + d)
+			var s0 := _stair_off(line, i, 0.07)
+			var s1 := _stair_off(line, i + 1, 0.07)
+			var lift := Vector3(0.0, 0.04, 0.0)
+			_quad(st, a + s0 + lift, b + s1 + lift, b - s1 + lift, a - s0 + lift, Vector3.UP, Color("#8a8f94"))
 
 
 ## Kerbs: raised granite strips along the carriageway edges, KERB_UP high.
@@ -5543,6 +6141,7 @@ func _draped_wall(st, a: Vector2, b: Vector2, y0: float, y1: float, facing: Vect
 ## sleepers every 0.65 m. Same mesh and material as before: no new draw call.
 func _build_rail_beds(st) -> void:
 	var bias := _drape_bias
+	_exact_strip = true
 	for r in Trains.trim_rails(data.get("rails", [])):
 		_dk = int(r.get("dk", -1))
 		var poly := _pts(r["p"])
@@ -5553,12 +6152,14 @@ func _build_rail_beds(st) -> void:
 		_drape_bias = bias
 		_strip(st, poly, 2.7, Y_PATH, Color("#615b54"))
 	_drape_bias = bias
+	_exact_strip = false
 	_dk = -1
 	_layer = L_GROUND
 
 
 func _build_rails(st) -> void:
 	_layer = L_RAIL
+	_exact_strip = true
 	for r in Trains.trim_rails(data.get("rails", [])):
 		_dk = int(r.get("dk", -1))
 		var poly := _pts(r["p"])
@@ -5570,6 +6171,7 @@ func _build_rails(st) -> void:
 			_strip(st, rail, 0.2, Y_MARK + 0.005, Color("#3b3836"))
 			# The rail head: a thin worn-steel line along the top, so the pair reads as rails.
 			_strip(st, rail, 0.07, Y_MARK + 0.008, Color("#a29d94"))
+	_exact_strip = false
 	_dk = -1
 	_layer = L_GROUND
 
@@ -5623,13 +6225,15 @@ const BARRIER_STYLE := {
 	"tram_railing": ["#22262a", 0.06, 1.1, [0.0, "#22262a"]],
 	"balustrade": ["#8f8f8a", 0.3, 1.0],
 	"balustrade_rail": ["#a9a59d", 0.2, 1.0, [0.45, "#2a2e33"]],
+	# Kino Muranów's white balustrade (the terrace's, landmarks KM_BALUSTER) down its stairs.
+	"balustrade_white": ["#ece8dc", 0.26, 1.05],
 }
 
 
 ## An open railing along `poly`: an optional concrete upstand, then round-ish posts every 2 m and a
 ## top and a middle rail you can see through (Operation Unslop's tram railing and stair balustrade).
 ## It collides like a wall of the same height, so driving stays as it was.
-func _railing_along(st, poly: PackedVector2Array, height: float, upstand: float, up_col: Color, rail_col: Color, collide: bool) -> void:
+func _railing_along(st, poly: PackedVector2Array, height: float, upstand: float, up_col: Color, rail_col: Color, collide: bool, post_every := 2.0) -> void:
 	if upstand > 0.0:
 		_wall_along(st, poly, 0.2, upstand, up_col, false)
 	var run := 0.0
@@ -5659,7 +6263,7 @@ func _railing_along(st, poly: PackedVector2Array, height: float, upstand: float,
 			var bottom := maxf(upstand, 0.0)
 			_box_oriented(st, Vector3(p.x, y + (bottom + height) * 0.5, p.y), Basis(Vector3.UP, atan2(-dir.x, -dir.y)),
 					Vector3(0.06, height - bottom, 0.06), rail_col)
-			next_post += 2.0
+			next_post += post_every
 		run += length
 		if collide:
 			_wall_faces.append_array([Vector3(a.x, ga - 0.3, a.y), Vector3(b.x, gb - 0.3, b.y), Vector3(b.x, gb + height + 1.5, b.y),
@@ -5724,8 +6328,9 @@ func _garden_ring(flat: Array) -> bool:
 ## planter edge along Wars's south front on Widok (it stood as a grey slab before the shop
 ## windows), and the planters round the Rotunda's stair down to the underpass (with the stair
 ## sunk, SUNKEN, a 1.9 m loop of wall round it read as a walled pit). Each is the line's first
-## point.
-const LOW_WALLS := [Vector2(-820.1, 345.4), Vector2(-807.1, 378.0)]
+## point. Also the straight wall beside Kino Muranów's fountain steps (F, 2026-11-07: a barrier
+## where the square has steps).
+const LOW_WALLS := [Vector2(-820.1, 345.4), Vector2(-807.1, 378.0), Vector2(-1627.1, -1219.5)]
 const LOW_WALL := ["#b3ada3", 0.4, 0.55]
 
 
@@ -5743,6 +6348,173 @@ func _low_wall(flat: Array) -> bool:
 const ISLAND_EDGE := ["#8e8b84", 0.25, 0.2]
 var _island_boxes: Array = []
 var _island_src: Array = []
+
+
+## The Palace of Culture's grounds (F, 2026-11-07, "the barriers and the lawns round the Palace"):
+## game/data/pkin_grounds.json (tools/bake_pkin_grounds.py from the raw OSM). OSM maps the
+## granite planters and the raised lawns' retaining walls round the Palace as `wall` (59 of them
+## barrier=retaining_wall, a few tagged 0.5 or 1 m); drawn 1.9 m high they stood round every bed
+## and lawn like grey crowd barriers. Mapillary 1174856613029600 (2021-03, the south court) and
+## 2909087812705418 (2020-12, Emilii Plater) show them knee high: inside the zone a wall is
+## PKIN_WALL, or a 1 m granite balustrade where it rims a flight of steps. The file also gives the
+## lots (asphalt, or grey pavers at the kerbside lots), their bays and the shrub beds, which the
+## main bake folds into nothing and into lawn.
+const PKIN_FILE := "res://data/pkin_grounds.json"
+const PKIN_WALL := ["#aaa69e", 0.4, 0.65]
+const PKIN_ASPHALT := Color("#55585d")
+const PKIN_PAVERS := Color("#9a968f")
+const PKIN_BAY := Color("#eceae3")
+const PKIN_SCRUB := Color("#4d7334")
+## Teatr Studio's forecourt (F's photos 2026-11-07): light granite slabs, Plac Defilad's dark
+## bands every 6 m (0.45 m wide).
+const PKIN_GRANITE := Color("#c9c6bf")
+const PKIN_GRANITE_BAND := Color("#86837d")
+const PKIN_BUSH := [Color("#3f6a2c"), Color("#4b7a33"), Color("#365e27"), Color("#56853a")]
+static var _pkin: Dictionary = {}
+var _pkin_zone := PackedVector2Array()
+var _pkin_forecourt := PackedVector2Array()
+
+
+static func pkin_grounds() -> Dictionary:
+	if _pkin.is_empty():
+		_pkin = {"zone": [], "parking": [], "bays": [], "scrub": []}
+		if FileAccess.file_exists(PKIN_FILE):
+			var j: Variant = JSON.parse_string(FileAccess.get_file_as_string(PKIN_FILE))
+			if j is Dictionary:
+				_pkin = j
+	return _pkin
+
+
+func _in_pkin_zone(flat: Array) -> bool:
+	if _pkin_zone.is_empty():
+		_pkin_zone = _pts(pkin_grounds().get("zone", []))
+		if _pkin_zone.is_empty():
+			return false
+	var n := flat.size() / 2
+	if n < 1:
+		return false
+	var c := Vector2.ZERO
+	for i in n:
+		c += Vector2(flat[i * 2], flat[i * 2 + 1])
+	return Geometry2D.is_point_in_polygon(c / n, _pkin_zone)
+
+
+## Whether a barrier line's centre lies on Teatr Studio's open forecourt (pkin_grounds.json
+## `forecourt`): OSM still maps the TR Warszawa site's old fence along the Palace there; the
+## 2025 photos show the square open, with Bar Studio's tables on it.
+func _in_pkin_forecourt(flat: Array) -> bool:
+	if _pkin_forecourt.is_empty():
+		_pkin_forecourt = _pts(pkin_grounds().get("forecourt", {}).get("p", []))
+		if _pkin_forecourt.is_empty():
+			return false
+	var n := flat.size() / 2
+	if n < 1:
+		return false
+	var c := Vector2.ZERO
+	for i in n:
+		c += Vector2(flat[i * 2], flat[i * 2 + 1])
+	return Geometry2D.is_point_in_polygon(c / n, _pkin_forecourt)
+
+
+## Whether a wall line passes within 2.5 m of a flight of steps (the underpass and terrace stairs).
+func _by_steps(flat: Array) -> bool:
+	var pts := _pts(flat)
+	var box := _box_of_pts(pts).grow(2.5)
+	for s in data.get("steps", []):
+		var sp := _pts(s["p"])
+		if sp.is_empty() or not box.intersects(_box_of_pts(sp)):
+			continue
+		for q in sp:
+			for i in pts.size() - 1:
+				if Geometry2D.get_closest_point_to_segment(q, pts[i], pts[i + 1]).distance_to(q) < 2.5:
+					return true
+	return false
+
+
+## Whether a feature centred at c is this build's: every one on the whole map, a sector's own.
+func _owns(c: Vector2) -> bool:
+	return not _in_sector or _sector_rect.has_point(c)
+
+
+static func _centre_of(poly: PackedVector2Array) -> Vector2:
+	var c := Vector2.ZERO
+	for q in poly:
+		c += q
+	return c / maxf(poly.size(), 1)
+
+
+## The lots (on the ground's grid, so the sector clip is the fill's own) and the shrub beds' soil.
+func _build_pkin_ground(st) -> void:
+	var g := pkin_grounds()
+	_layer = L_ROAD
+	for lot: Dictionary in g.get("parking", []):
+		var asphalt := str(lot.get("s", "")) == "asphalt"
+		_layer = L_ROAD if asphalt else L_PLAZA
+		_fill_on_grid(st, _pts(lot["p"]), Y_AREA + 0.008, PKIN_ASPHALT if asphalt else PKIN_PAVERS)
+	var court := _pts(g.get("forecourt", {}).get("p", []))
+	if court.size() >= 3:
+		_layer = L_PLAZA
+		_fill_on_grid(st, court, Y_AREA + 0.007, PKIN_GRANITE)
+	_layer = L_GREEN
+	for bed: Array in g.get("scrub", []):
+		_fill_on_grid(st, _pts(bed), Y_AREA + 0.009, PKIN_SCRUB)
+	_layer = L_GROUND
+
+
+## The bays' white lines (0.15 m) round each mapped parking space.
+func _build_pkin_bays(st) -> void:
+	_layer = L_MARK
+	for bay: Array in pkin_grounds().get("bays", []):
+		var poly := _pts(bay)
+		if poly.size() < 3 or not _owns(_centre_of(poly)):
+			continue
+		poly.append(poly[0])
+		_strip(st, poly, 0.15, Y_MARK, PKIN_BAY, false)
+	for b: Array in pkin_grounds().get("forecourt", {}).get("bands", []):
+		var a := Vector2(b[0], b[1])
+		var c := Vector2(b[2], b[3])
+		if _owns((a + c) * 0.5):
+			_strip(st, PackedVector2Array([a, c]), 0.45, Y_MARK - 0.01, PKIN_GRANITE_BAND, false)
+	_layer = L_GROUND
+
+
+## The shrub beds' bushes: low domes about 1.1 m high on a 1.6 m grid with a hashed jitter, so
+## the beds read as clipped yew and box, not lawn. No collider (the beds lie inside the planters).
+func _build_pkin_bushes(st) -> void:
+	for bed: Array in pkin_grounds().get("scrub", []):
+		var poly := _pts(bed)
+		if poly.size() < 3 or not _owns(_centre_of(poly)):
+			continue
+		var box := _box_of_pts(poly)
+		var x := box.position.x + 0.8
+		while x < box.end.x:
+			var z := box.position.y + 0.8
+			while z < box.end.y:
+				var h := absi(hash(Vector2i(roundi(x * 10.0), roundi(z * 10.0))))
+				var p := Vector2(x + float(h % 7 - 3) * 0.12, z + float((h / 7) % 7 - 3) * 0.12)
+				if Geometry2D.is_point_in_polygon(p, poly):
+					var r := 0.75 + float((h / 49) % 5) * 0.08
+					_bush(st, p, r, 0.8 + float((h / 245) % 5) * 0.1, PKIN_BUSH[(h / 1225) % PKIN_BUSH.size()])
+				z += 1.6
+			x += 1.6
+
+
+## One bush: an eight-sided dome (a ring at the foot, a wider one at 55 %, a top point).
+func _bush(st, c: Vector2, r: float, h: float, col: Color) -> void:
+	var g := terrain_height(c.x, c.y) + Y_AREA
+	var top := Vector3(c.x, g + h, c.y)
+	var low: Array[Vector3] = []
+	var mid: Array[Vector3] = []
+	for i in 8:
+		var a := TAU * (float(i) + 0.5) / 8.0
+		var d := Vector2(cos(a), sin(a))
+		low.append(Vector3(c.x + d.x * r * 0.8, g, c.y + d.y * r * 0.8))
+		mid.append(Vector3(c.x + d.x * r, g + h * 0.55, c.y + d.y * r))
+	for i in 8:
+		var j := (i + 1) % 8
+		var out := Vector3((mid[i].x + mid[j].x) * 0.5 - c.x, 0.0, (mid[i].z + mid[j].z) * 0.5 - c.y).normalized()
+		_quad(st, low[i], low[j], mid[j], mid[i], out, col.darkened(0.12))
+		_tri(st, mid[i], mid[j], top, (out + Vector3.UP).normalized(), col)
 
 
 func _in_island(flat: Array) -> bool:
@@ -5777,18 +6549,355 @@ func _in_island(flat: Array) -> bool:
 	return false
 
 
+## Stairs across the city (2026-11-07): the walls by the stairs. Every OSM wall stood 1.9 m high,
+## so a basin's rim or a planter's edge by a flight read as a grey drum (Kino Muranów's fountain
+## steps, F), a terrace's retaining wall drawn across a flight shut it, and the walls round a
+## stair going down into an underpass boxed it in. Now: a wall OSM gives a height stands that high
+## (`h`, tools/stairs.py); a closed ring round a fountain basin, or a small ring by a flight, is a
+## low stone rim (BASIN_RIM); a wall crossing a flight opens STAIR_GAP past its sides (not at a
+## flight's dead end, the back wall of a stairwell going on underground); a short wall wrapping a
+## stair that goes down below the drawn ground (a stairwell: the grid shows under half a metre of
+## its mapped drop) is a balustrade.
+const BASIN_RIM := ["#cfc9bd", 0.35, 0.45]
+const STAIR_GAP := 0.25
+const STAIR_RING_R := 6.0
+var _stair_src: Array = []
+var _stair_idx: Array = []
+var _fountain_rings: Array = []
+
+
+## The flights of `data` for the wall rules: [poly, half width, box, end open flags, stairwell].
+func _stairs_for_walls() -> Array:
+	var src: Array = data.get("steps", [])
+	if is_same(src, _stair_src):
+		return _stair_idx
+	_stair_src = src
+	_stair_idx = []
+	_fountain_rings = []
+	var on_path := {}    # 1 m cells holding a footway's point
+	var flight_ends := {}  # 1 m cells holding a flight's end: how many
+	for p in data.get("paths", []):
+		var fp: Array = p["p"]
+		for i in fp.size() / 2:
+			on_path[Vector2i(floori(fp[i * 2]), floori(fp[i * 2 + 1]))] = true
+	for s in src:
+		var fp: Array = s["p"]
+		for i in [0, fp.size() / 2 - 1]:
+			var c := Vector2i(floori(fp[i * 2]), floori(fp[i * 2 + 1]))
+			flight_ends[c] = int(flight_ends.get(c, 0)) + 1
+	for s in src:
+		var poly := _pts(s["p"])
+		if poly.size() < 2:
+			continue
+		var open := PackedByteArray([0, 0])
+		for e in 2:
+			var q := poly[0] if e == 0 else poly[poly.size() - 1]
+			var own := Vector2i(floori(q.x), floori(q.y))
+			for dx in [-1, 0, 1]:
+				for dz in [-1, 0, 1]:
+					var c := own + Vector2i(dx, dz)
+					# A footway's point, or another flight's end (its own counts once).
+					if on_path.has(c) or int(flight_ends.get(c, 0)) > (1 if c == own else 0):
+						open[e] = 1
+		var mapped := float(s.get("n", 0)) * STAIR_RISER
+		var grid := absf(terrain_height(poly[0].x, poly[0].y) - terrain_height(poly[poly.size() - 1].x, poly[poly.size() - 1].y))
+		var well := mapped >= 1.0 and grid < 0.5
+		_stair_idx.append([poly, clampf(float(s.get("w", 2.4)), 1.0, 30.0) * 0.5, _box_of_pts(poly).grow(4.0), open, well])
+	for a in data.get("surfaces", []):
+		if a.get("k") == "fountain":
+			var ring := _pts(a["p"])
+			_fountain_rings.append([ring, _box_of_pts(ring).grow(1.5)])
+	return _stair_idx
+
+
+## Whether closed wall ring `pts` is a basin's or planter's rim: it follows a fountain's
+## outline, or it is under STAIR_RING_R across and stands within 4 m of a flight.
+func _rim_ring(pts: PackedVector2Array) -> bool:
+	if pts.size() < 4 or pts[0].distance_to(pts[pts.size() - 1]) > 0.3:
+		return false
+	var box := _box_of_pts(pts)
+	for f in _fountain_rings:
+		if not (f[1] as Rect2).intersects(box):
+			continue
+		var ring: PackedVector2Array = f[0]
+		var near := 0
+		for q in pts:
+			if _dist_to_ring(q, ring) < 1.5:
+				near += 1
+		if near * 5 >= pts.size() * 3:
+			return true
+	var c := box.get_center()
+	for q in pts:
+		if q.distance_to(c) > STAIR_RING_R:
+			return false
+	for e in _stair_idx:
+		if not (e[2] as Rect2).intersects(box):
+			continue
+		var poly: PackedVector2Array = e[0]
+		for q in pts:
+			if _dist_to_line(q, poly) < 4.0:
+				return true
+	return false
+
+
+static func _dist_to_line(p: Vector2, poly: PackedVector2Array) -> float:
+	var best := INF
+	for i in poly.size() - 1:
+		best = minf(best, p.distance_to(Geometry2D.get_closest_point_to_segment(p, poly[i], poly[i + 1])))
+	return best
+
+
+static func _dist_to_ring(p: Vector2, ring: PackedVector2Array) -> float:
+	var best := _dist_to_line(p, ring)
+	if ring.size() > 2:
+		best = minf(best, p.distance_to(Geometry2D.get_closest_point_to_segment(p, ring[ring.size() - 1], ring[0])))
+	return best
+
+
+## Whether wall `pts` wraps a stairwell (all of it within its half width + 2.5 m, at most 30 m).
+func _wraps_stairwell(pts: PackedVector2Array) -> bool:
+	var box := _box_of_pts(pts)
+	var length := 0.0
+	for i in pts.size() - 1:
+		length += pts[i].distance_to(pts[i + 1])
+	if length > 30.0:
+		return false
+	for e in _stair_idx:
+		if not bool(e[4]) or not (e[2] as Rect2).intersects(box):
+			continue
+		var all_near := true
+		for q in pts:
+			if _dist_to_line(q, e[0]) > float(e[1]) + 2.5:
+				all_near = false
+				break
+		if all_near:
+			return true
+	return false
+
+
+## Wall `pts` cut open where it crosses a flight (STAIR_GAP past the flight's sides along the
+## wall), except at a flight's dead end. Returns the pieces.
+func _stair_gaps(pts: PackedVector2Array) -> Array[PackedVector2Array]:
+	var cuts: Array[Vector2] = []   # (distance along the wall, half gap)
+	var box := _box_of_pts(pts)
+	var run := 0.0
+	for i in pts.size() - 1:
+		var a := pts[i]
+		var b := pts[i + 1]
+		var l := a.distance_to(b)
+		for e in _stair_idx:
+			if not (e[2] as Rect2).intersects(box):
+				continue
+			var poly: PackedVector2Array = e[0]
+			for j in poly.size() - 1:
+				var x: Variant = Geometry2D.segment_intersects_segment(a, b, poly[j], poly[j + 1])
+				if x == null:
+					continue
+				var hit: Vector2 = x
+				# At a dead end (within 1 m of an end no path meets) the wall stays shut.
+				var open: PackedByteArray = e[3]
+				if (hit.distance_to(poly[0]) < 1.0 and open[0] == 0) or (hit.distance_to(poly[poly.size() - 1]) < 1.0 and open[1] == 0):
+					continue
+				var sin_a := absf((b - a).normalized().cross((poly[j + 1] - poly[j]).normalized()))
+				var half := minf((float(e[1]) + STAIR_GAP) / maxf(sin_a, 0.35), 8.0)
+				cuts.append(Vector2(run + a.distance_to(hit), half))
+		run += l
+	var out: Array[PackedVector2Array] = []
+	if cuts.is_empty():
+		out.append(pts)
+		return out
+	# Walk the wall keeping what lies outside every cut.
+	var piece := PackedVector2Array()
+	run = 0.0
+	for i in pts.size() - 1:
+		var a := pts[i]
+		var b := pts[i + 1]
+		var l := a.distance_to(b)
+		var marks: Array[float] = [0.0, l]
+		for c: Vector2 in cuts:
+			for t in [c.x - c.y - run, c.x + c.y - run]:
+				if t > 0.0 and t < l:
+					marks.append(t)
+		marks.sort()
+		for m in marks.size() - 1:
+			var t0: float = marks[m]
+			var t1: float = marks[m + 1]
+			var mid := run + (t0 + t1) * 0.5
+			var inside := false
+			for c: Vector2 in cuts:
+				if absf(mid - c.x) < c.y:
+					inside = true
+			var p0 := a.lerp(b, t0 / maxf(l, 0.0001))
+			var p1 := a.lerp(b, t1 / maxf(l, 0.0001))
+			if inside:
+				if piece.size() >= 2:
+					out.append(piece)
+				piece = PackedVector2Array()
+			else:
+				if piece.is_empty() or piece[piece.size() - 1].distance_to(p0) > 0.001:
+					piece.append(p0)
+				piece.append(p1)
+		run += l
+	if piece.size() >= 2:
+		out.append(piece)
+	return out
+
+
+## Walls, fences and hedges from the map's own data (F, 2026-11-07: "what else can you improve in
+## the city environment?"; tools/barrier_tags.py). A wall's material (`m`) gives its colour (a
+## noise barrier with no height stands 4 m); a fence OSM calls a railing (`ft`: railing, bars,
+## balustrade, metal) is an open steel railing you see through, a chain-link one an open grey mesh,
+## a wooden one brown boards; a hedge or fence keeps its mapped height (`h`). A solid fence mapped
+## over FENCE_SOLID_MAX (the 6 m ball-stop nets round the pitches) is a mesh, not a 6 m grey band.
+## A style a rule above picked for its place (a basin rim, a garden ring, a stairwell) stays.
+const WALL_MATERIAL := {"brick": "#a8644b", "stone": "#b9b2a5", "concrete": "#a9a69f", "gabion": "#8f897e",
+		"glass": "#a9bcc0", "wood": "#7f6248", "metal": "#7b8085", "noise": "#7e8a84"}
+const FENCE_SOLID_MAX := 2.5
+
+
+func _mapped_style(l: Dictionary, style: Array) -> Array:
+	var k: String = l["k"]
+	var base: Variant = BARRIER_STYLE.get(k)
+	if base == null or style != base:
+		# Already a wall height (`h`, the stairs pass) or a placed style: only a colour for a wall.
+		if k == "wall" and l.has("m") and style.size() == 3 and style != GARDEN_RING and style != BASIN_RIM \
+				and style != LOW_WALL and style != ISLAND_EDGE:
+			return [WALL_MATERIAL.get(str(l["m"]), style[0]), style[1], style[2]]
+		return style
+	var h := float(l.get("h", -1.0))
+	match k:
+		"wall":
+			var col: String = WALL_MATERIAL.get(str(l.get("m", "")), style[0])
+			var wh := h if h > 0.0 else (4.0 if str(l.get("m", "")) == "noise" else float(style[2]))
+			return [col, style[1], wh]
+		"fence":
+			var ft := str(l.get("ft", ""))
+			if ft == "railing":
+				return ["#2a2e33", 0.05, clampf(h, 0.8, 2.5) if h > 0.0 else 1.2, [0.0, "#2a2e33"]]
+			if ft == "mesh" or h > FENCE_SOLID_MAX:
+				return ["#8b9196", 0.05, clampf(h, 1.0, 8.0) if h > 0.0 else 1.8, [0.0, "#8b9196"]]
+			if ft == "wood":
+				return ["#7f6248", 0.08, h if h > 0.0 else 1.5]
+			if h > 0.0:
+				return [style[0], style[1], clampf(h, 0.5, FENCE_SOLID_MAX)]
+		"hedge":
+			if h > 0.0:
+				return [style[0], style[1], clampf(h, 0.4, 3.0)]
+	return style
+
+
+## The Old Town's defence walls (OSM barrier=city_wall areas, `citywalls`, tools/barrier_tags.py):
+## they were not on the map at all, only the Barbakan and two towers. Brick, each its mapped height
+## (Baszta Rycerska 13.5 m; the rebuilt curtain walls 5-6 m; the ruins' stubs 1-1.5 m), the coping a
+## shade darker; from 1 m up they stop the car like any wall.
+const CITY_WALL := Color("#b8704f")
+
+
+func _build_city_walls(st) -> void:
+	_uv2 = Vector2(0.5, -1.0)
+	for w in data.get("citywalls", []):
+		var ring := _pts(w["p"])
+		if ring.size() < 3:
+			continue
+		var h := float(w.get("h", 5.0))
+		var tops := PackedFloat32Array()
+		var foot := INF
+		for q in ring:
+			foot = minf(foot, terrain_height(q.x, q.y))
+		for q in ring:
+			tops.append(maxf(terrain_height(q.x, q.y), foot) + h)
+		var idx := Geometry2D.triangulate_polygon(ring)
+		for i in range(0, idx.size(), 3):
+			var a := ring[idx[i]]
+			var b := ring[idx[i + 1]]
+			var c := ring[idx[i + 2]]
+			_tri(st, Vector3(a.x, tops[idx[i]], a.y), Vector3(b.x, tops[idx[i + 1]], b.y), Vector3(c.x, tops[idx[i + 2]], c.y),
+					Vector3.UP, CITY_WALL.darkened(0.12))
+		var ccw := 0.0
+		for i in ring.size():
+			ccw += ring[i].cross(ring[(i + 1) % ring.size()])
+		for i in ring.size():
+			var j := (i + 1) % ring.size()
+			var a := ring[i]
+			var b := ring[j]
+			var d := b - a
+			if d.length() < 0.02:
+				continue
+			# The outward normal (the ring's winding decides which side is out).
+			var n := Vector3(d.y, 0.0, -d.x).normalized() * (1.0 if ccw > 0.0 else -1.0)
+			var ga := terrain_height(a.x, a.y) - 0.3
+			var gb := terrain_height(b.x, b.y) - 0.3
+			var shade := CITY_WALL.darkened(0.04 * float(i % 3))
+			_quad(st, Vector3(a.x, ga, a.y), Vector3(b.x, gb, b.y), Vector3(b.x, tops[j], b.y), Vector3(a.x, tops[i], a.y), n, shade)
+			if h >= 1.0:
+				_wall_faces.append_array([Vector3(a.x, ga, a.y), Vector3(b.x, gb, b.y), Vector3(b.x, tops[j] + 1.5, b.y),
+						Vector3(a.x, ga, a.y), Vector3(b.x, tops[j] + 1.5, b.y), Vector3(a.x, tops[i] + 1.5, a.y)])
+	_uv2 = Vector2.ZERO
+
+
+## Walls (and fences) drawn otherwise than OSM's 1.9 m grey wall, by the line's first point: [point, style],
+## the style a BARRIER_STYLE key, or "" when a landmark site builds the wall itself. Kino
+## Muranów's square (F, 2026-11-07, with a street photo and the aerial): the fountain basin's ring
+## is the site's; the metro Ratusz Arsenał stair by the fountain has a granite parapet with a
+## steel rail round it, not walls; the stairs up to the cinema's roof terrace at both ends of the
+## pavilion have the terrace's white balustrade down their sides (photos 2 and 4).
+const SITE_WALLS := [
+	[Vector2(-1639.7, -1217.3), ""],
+	[Vector2(-1667.0, -1217.7), "balustrade_white"],
+	[Vector2(-1657.7, -1219.1), "balustrade_white"],
+	[Vector2(-1644.7, -1190.0), "balustrade_white"],
+	[Vector2(-1656.4, -1197.6), "balustrade_white"],
+	[Vector2(-1624.6, -1230.3), "balustrade_rail"],
+	[Vector2(-1621.2, -1219.2), "balustrade_rail"],
+	[Vector2(-1625.5, -1232.3), "balustrade_rail"],
+	[Vector2(-1628.1, -1232.1), "balustrade_rail"],
+	# The pair of `fence` lines along the ramp south of the fountain: its handrails.
+	[Vector2(-1635.1, -1234.3), "tram_railing"],
+	[Vector2(-1635.7, -1235.6), "tram_railing"],
+]
+
+
+## The SITE_WALLS entry for a wall line, or [] when it has none.
+func _site_wall(flat: Array) -> Array:
+	if flat.size() < 4:
+		return []
+	var first := Vector2(flat[0], flat[1])
+	for e: Array in SITE_WALLS:
+		if first.distance_to(e[0]) < 0.5:
+			return e
+	return []
+
+
 func _build_barriers(st) -> void:
 	_uv2 = Vector2(0.5, -1.0)
 	_load_object_overrides()
+	_stairs_for_walls()
 	for l in data.get("lines", []):
+		var site_wall: Array = _site_wall(l["p"]) if l["k"] == "wall" or l["k"] == "fence" else []
+		if not site_wall.is_empty() and str(site_wall[1]) == "":
+			continue
+		if l["k"] != "platform" and _in_pkin_forecourt(l["p"]):
+			continue
 		var style: Array = BARRIER_STYLE.get(l["k"], ["#999999", 0.3, 1.0])
-		if l["k"] == "wall":
+		if not site_wall.is_empty():
+			style = BARRIER_STYLE[str(site_wall[1])]
+		elif l["k"] == "wall":
 			if _garden_ring(l["p"]):
 				style = GARDEN_RING
 			elif _low_wall(l["p"]):
 				style = LOW_WALL
 			elif _in_island(l["p"]):
 				style = ISLAND_EDGE
+			elif _in_pkin_zone(l["p"]):
+				style = BARRIER_STYLE["balustrade"] if _by_steps(l["p"]) else PKIN_WALL
+			elif l.has("h"):
+				var wh := float(l["h"])
+				style = [style[0], 0.3 if wh <= 1.0 else 0.35, wh]
+			elif _rim_ring(_pts(l["p"])):
+				style = BASIN_RIM
+			elif _wraps_stairwell(_pts(l["p"])):
+				style = BARRIER_STYLE["balustrade_rail"]
+		style = _mapped_style(l, style)
 		if not _object_overrides.is_empty() and l["k"] != "platform":
 			var o: Variant = _object_overrides.get(barrier_id(l["k"], l["p"]))
 			if o is Array:
@@ -5799,7 +6908,9 @@ func _build_barriers(st) -> void:
 		var pts := _pts(l["p"])
 		if style.size() > 3:
 			var open: Array = style[3]
-			_railing_along(st, pts, float(style[2]), float(open[0]), Color(style[0]), Color(str(open[1])), true)
+			# A railing OSM maps (tools/barrier_tags.py) has a post every 3 m: 30 km of them.
+			_railing_along(st, pts, float(style[2]), float(open[0]), Color(style[0]), Color(str(open[1])), true,
+					3.0 if l.has("ft") or (l["k"] == "fence" and float(l.get("h", 0.0)) > FENCE_SOLID_MAX) else 2.0)
 			continue
 		# Loop 3b: a stop's platform is kerb height (0.25 m), not a wall: like the kerbs and
 		# islands, the car drives over it (check_drive.gd found buses brushing them).
@@ -5815,7 +6926,12 @@ func _build_barriers(st) -> void:
 			if piece.size() >= 2:
 				_wall_along(st, piece, float(style[1]), float(style[2]), Color(style[0]), true)
 			continue
+		if l["k"] == "wall" and not _stair_idx.is_empty():
+			for piece in _stair_gaps(pts):
+				_wall_along(st, piece, float(style[1]), float(style[2]), Color(style[0]), true)
+			continue
 		_wall_along(st, pts, float(style[1]), float(style[2]), Color(style[0]), l["k"] != "platform")
+	_build_pkin_bushes(st)
 	_uv2 = Vector2.ZERO
 
 
@@ -6680,6 +7796,7 @@ func _build_markings(st) -> void:
 		else:
 			_dashes(st, poly, 0.0, 1000000.0, 0.0, float(style[1]))
 	_dk = -1
+	_build_pkin_bays(st)
 	_layer = L_GROUND
 
 
@@ -8982,23 +10099,62 @@ func _cylinder(st, centre: Vector3, radius: float, height: float, sides: int, co
 
 
 ## Benches, bins, bike racks, bus shelters and Warsaw's advertising columns. The easy-driving
+## Benches OSM puts down loosely that stand in a straight row: [the row's middle, its direction,
+## the point it faces, the radius that takes OSM's benches in]. Kino Muranów's square (F,
+## 2026-11-07, a street photo): the four benches by the metro parapet stand in one line, square to
+## the fountain; OSM had them on a crooked line, one turned round.
+const BENCH_ROWS := [[Vector2(-1623.8, -1213.9), Vector2(-0.49, 0.872), Vector2(-1636.8, -1221.6), 4.5]]
+const BENCH_GAP := 2.3
+
+
+## `list` ([x, z, yaw] flat) with BENCH_ROWS' benches set in their rows.
+static func _bench_rows(list: Array) -> Array:
+	var out := list.duplicate()
+	for row: Array in BENCH_ROWS:
+		var mid: Vector2 = row[0]
+		var dir: Vector2 = (row[1] as Vector2).normalized()
+		var idx: Array[int] = []
+		for i in range(0, out.size() - 2, 3):
+			if Vector2(float(out[i]), float(out[i + 1])).distance_to(mid) < float(row[3]):
+				idx.append(i)
+		# In order along the row, evenly spaced about its middle, all facing the point's side.
+		idx.sort_custom(func(a: int, b: int) -> bool:
+			return Vector2(float(out[a]), float(out[a + 1])).dot(dir) < Vector2(float(out[b]), float(out[b + 1])).dot(dir))
+		var f := Vector2(-dir.y, dir.x)
+		if f.dot((row[2] as Vector2) - mid) < 0.0:
+			f = -f
+		for k in idx.size():
+			var p := mid + dir * BENCH_GAP * (k - (idx.size() - 1) * 0.5)
+			out[idx[k]] = p.x
+			out[idx[k] + 1] = p.y
+			out[idx[k] + 2] = atan2(-f.x, -f.y)
+	return out
+
+
 ## loop (2026-10-30, the user's call): the small ones (benches, bins, bike racks, columns) are not
 ## obstacles, the car drives through them like the lamps and signal poles; shelters stay solid.
 func _build_props() -> void:
 	_make_shared()
 	var metal: Material = _shared["prop_metal"]
 	var none: Array[Color] = []
-	var split := _split_chopin_benches(data.get("benches", []))
-	_props(_shared["bench"], metal, split[0], 0.0, none, true)
+	var split := _split_chopin_benches(_bench_rows(data.get("benches", [])))
+	_props(_shared["bench"], metal, split[0], 0.0, none, true, [], _station_benches)
 	_props(_shared["bench_chopin"], metal, split[1], 0.0, none, true)
-	_props(_shared["bin"], metal, data.get("bins", []), 0.0, none, true)
+	_props(_shared["bin"], metal, data.get("bins", []), 0.0, none, true, [], _station_bins)
 	_props(_shared["rack"], metal, data.get("bikes", []), 0.0, none, true)
 	var tints: Array[Color] = []
 	var list: Array = data.get("columns", [])
 	for i in range(0, list.size() - 2, 3):
 		tints.append(Color(POSTER[int(absf(float(list[i]) * 7.0 + float(list[i + 1]) * 3.0)) % POSTER.size()]))
 	_props(_shared["column"], metal, list, 0.0, tints)
-	var shelters: Array = data.get("shelters", [])
+	# The Ratusz Arsenał hub's platforms carry their own arched canopies (ratusz_hub.gd): no
+	# generic shelter there.
+	var hub := RatuszHub.hub_platforms(data)
+	var shelters: Array = []
+	var all_shelters: Array = data.get("shelters", [])
+	for i in range(0, all_shelters.size() - 2, 3):
+		if not RatuszHub.covers(float(all_shelters[i]), float(all_shelters[i + 1]), hub):
+			shelters.append_array([all_shelters[i], all_shelters[i + 1], all_shelters[i + 2]])
 	var glows: Array[Color] = []
 	glows.resize(shelters.size() / 3)
 	glows.fill(SHELTER_GLOW)
@@ -9049,12 +10205,13 @@ func _split_chopin_benches(list: Array) -> Array:
 ## Instances of one prop at (x, z, yaw) triples; props bigger than `solid` metres
 ## across become obstacles. `fine`: under a metre tall (loop 2b: no shadow, FINE_GROUP).
 func _props(mesh: Mesh, material: Material, list: Array, solid: float, tints: Array[Color], fine := false,
-		custom: Array[Color] = []) -> void:
+		custom: Array[Color] = [], extra: Array[Transform3D] = []) -> void:
 	var spots: Array[Transform3D] = []
 	for i in range(0, list.size() - 2, 3):
 		var x := float(list[i])
 		var z := float(list[i + 1])
 		spots.append(Transform3D(Basis(Vector3.UP, float(list[i + 2])), Vector3(x, terrain_height(x, z), z)))
+	spots.append_array(extra)
 	for mmi in _tree_multimesh(mesh, material, spots, tints, custom):
 		if fine:
 			mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

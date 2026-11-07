@@ -14,6 +14,7 @@ extends RefCounted
 ## version 1 and loads as before (loop G1's High → Auto rule is that migration); the next save
 ## writes version 2. A file from a newer version is read and never overwritten.
 
+const FollowCamera := preload("res://scripts/follow_camera.gd")
 const Tiers := preload("res://scripts/tiers.gd")
 const PATH := "user://settings.cfg"
 ## Loop 3h slice 1: the settings file's format version (1: before loop 3h, no `[meta]`).
@@ -58,6 +59,9 @@ var fps := 60
 ## The follow-camera loop (2026-10-30): the driving view's height in metres, the player's zoom
 ## (follow_camera.gd VIEWS; 80 is DEFAULT_SIZE).
 var view := 80.0
+## F, 2026-11-07: the camera's angle over the ground in degrees (follow_camera.gd PITCHES; 30, the
+## game's look, is the default). Settings → Obraz, key "angle".
+var pitch := FollowCamera.DEFAULT_PITCH
 ## Loop 2e: main.gd STYLES (Sharp, Fine, Clean, Chunky) and the VHS overlay.
 var style := 0
 var vhs := false
@@ -131,7 +135,10 @@ func load_file() -> void:
 		fps = FPS[0]
 	style = clampi(int(cfg.get_value("display", "style", style)), 0, 3)
 	vhs = bool(cfg.get_value("display", "vhs", vhs))
-	view = clampf(float(cfg.get_value("display", "view", view)), 50.0, 125.0)
+	view = clampf(float(cfg.get_value("display", "view", view)), FollowCamera.VIEWS[0], FollowCamera.VIEWS[-1])
+	pitch = float(cfg.get_value("display", "pitch", pitch))
+	if not pitch in FollowCamera.PITCHES:
+		pitch = FollowCamera.DEFAULT_PITCH
 	wander = bool(cfg.get_value("game", "wander", wander))
 	wander_offered = bool(cfg.get_value("game", "wander_offered", wander_offered))
 	zone_cap = bool(cfg.get_value("game", "zone_cap", zone_cap))
@@ -173,6 +180,7 @@ func save() -> void:
 	cfg.set_value("display", "style", style)
 	cfg.set_value("display", "vhs", vhs)
 	cfg.set_value("display", "view", view)
+	cfg.set_value("display", "pitch", pitch)
 	cfg.set_value("game", "wander", wander)
 	cfg.set_value("game", "wander_offered", wander_offered)
 	cfg.set_value("game", "zone_cap", zone_cap)

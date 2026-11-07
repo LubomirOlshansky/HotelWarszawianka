@@ -70,6 +70,7 @@ scrolls.
 | --- | --- | --- | --- |
 | Wiślana Szprotka (boat race) | Szymek | the pontoon at Port Czerniakowski | 7:00-22:00 |
 | Sekretny rave | Ziomek | his block at Osiedle Za Żelazną Bramą | Thu-Sat 19:00-4:00 |
+| Nocny spot (night racing club) | Darek „Bawarka” | Plac Defilad | 21:00-4:00 |
 
 ## Adding a questline (for the padel, cinema, coffee run and night meet threads)
 
