@@ -701,6 +701,9 @@ const INFO := {
 	"port_majami": ["Majami Wawa",
 			"Klub na cyplu Portu Czerniakowskiego: drewniany taras pod wierzbami, czerwony namiot, ogniska i biały ponton na Wiśle.",
 			"The club on the tip of Port Czerniakowski: a timber deck under the willows, a red tent, fire pits and a white pontoon on the Vistula."],
+	"monkey_love": ["Małpi Love",
+			"Ogródek przy Bulwarze Flotylli Pińskiej, pod Mostem Łazienkowskim: drewniane domki, żółte drzwi, białe parasole i lampki pod drzewami.",
+			"A garden on Bulwar Flotylli Pińskiej by Most Łazienkowski: timber cabins, a yellow door, white umbrellas and fairy lights under the trees."],
 	"port_wtw": ["WTW · Warszawskie Towarzystwo Wioślarskie",
 			"Klub wioślarski od 1878 roku, Zaruskiego 12: biały hangar z niebieskim dachem, kotwice przy bramie.",
 			"A rowing club since 1878, Zaruskiego 12: a white boathouse under a blue roof, anchors at the gate."],
@@ -1172,6 +1175,7 @@ func _find_sites() -> void:
 	_find_marina()
 	# Port Czerniakowski's spit and basin (F, 2026-11-07, his photos: port-czerniakowski).
 	_find_port()
+	_find_monkey()
 	# The boulevards' dressing (2026-11-02, spec docs/landmarks/specs/bulwary.md).
 	_find_bulwar_dress()
 	_find_bulwary_pool()
@@ -1821,6 +1825,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_port_majami(s)
 			"port_wtw":
 				_build_port_wtw(s)
+			"monkey_love":
+				_build_monkey_love(s)
 			"port_halls":
 				_id = 0  # club halls and sheds: no card, not on the picking grid
 				_build_port_halls(s)
@@ -19502,6 +19508,114 @@ func _port_houseboat(c: Vector2, i: int) -> void:
 		if i % 3 == 1:
 			_barge_rail(-hu + 1.0, hu - 2.2, -hv + 0.3, hv - 0.3, g + 3.4, 0.9, 0.05, Color("#c9ccd0"))
 	_collide(_rect(0.0, 0.0, hu, hv))
+
+
+## Monkey Love's garden at Bulwar Flotylli Pińskiej 1A, south of Most Łazienkowski (F, 2026-11-07,
+## his photos IMG_7476-7477), as the parody "Małpi Love": dark vertical-board timber cabins under
+## low black metal gables, one end wall painted yolk yellow, a grey-roofed kiosk, and between them a
+## gravel garden of plank tables and benches under white market umbrellas, with festoons. The OSM
+## outline (one block, 4.3 m) is the whole garden: the cabins take its two ends and its two bumps.
+const MONKEY_AT := Vector2(1736.0, 1320.0)
+const MONKEY_WALL := Color("#5c3d28")
+const MONKEY_BATTEN := Color("#3f291b")
+const MONKEY_ROOF := Color("#2a2d30")
+const MONKEY_KIOSK_ROOF := Color("#8b9095")
+const MONKEY_YELLOW := Color("#f0ac1c")
+const MONKEY_GRAVEL := Color("#cdc3ae")
+const MONKEY_UMBRELLA := Color("#ecebe4")
+const MONKEY_PLANK := Color("#9a7552")
+
+
+func _find_monkey() -> void:
+	var q := _tallest_at(MONKEY_AT)
+	if q.size() < 3:
+		return
+	_add_site("monkey_love", [_largest(Geometry2D.offset_polygon(q, 0.8, Geometry2D.JOIN_MITER))])
+	if not sites.is_empty() and sites[-1]["key"] == "monkey_love":
+		sites[-1]["garden"] = q
+
+
+## A timber cabin at a local spot: board walls (dark battens every 0.6 m on the long sides), a
+## low gable along u with an overhang, and its ring for the cars. Returns the eaves height.
+func _monkey_cabin(cu: float, cv: float, hu: float, hv: float, g: float, h: float, roof: Color) -> float:
+	var none := Color(0, 0, 0, 0)
+	var eave := g + h
+	_prism(_rect(cu, cv, hu, hv), g - 0.3, eave, MONKEY_WALL, none, M_STONE)
+	_collide(_rect(cu, cv, hu, hv))
+	for sd: float in [-1.0, 1.0]:
+		var k := 0
+		var u := cu - hu + 0.3
+		while u < cu + hu - 0.2:
+			if k % 2 == 1:
+				_lbox(u, cv + sd * (hv + 0.03), 0.04, 0.03, g, eave - 0.05, MONKEY_BATTEN, M_STONE)
+			u += 0.6
+			k += 1
+	var keep := _o
+	_o = _w(cu, cv)
+	_gable(hu + 0.4, -hu - 0.4, 0.0, hv + 0.45, eave, minf(0.9, hv * 0.3), MONKEY_WALL, roof)
+	_o = keep
+	return eave
+
+
+func _build_monkey_love(site: Dictionary) -> void:
+	var q: PackedVector2Array = site["garden"]
+	var f := _barge_frame(q)
+	if f.is_empty():
+		return
+	_barge_set(f)
+	var hu: float = f[3]
+	var hv: float = f[4]
+	var g := INF
+	for p in q:
+		g = minf(g, map.terrain_height(p.x, p.y))
+	_g = g
+	_mode = M_STONE
+	var none := Color(0, 0, 0, 0)
+	# The gravel garden over the strip between the cabins.
+	var mid := minf(7.5, hu * 0.45)
+	_prism(_rect(0.0, 0.0, mid, hv - 0.3), g - 0.3, g + 0.05, MONKEY_GRAVEL.darkened(0.2), MONKEY_GRAVEL, M_STONE, M_STONE)
+	# The cabins at both ends of the strip (the north one with the yellow end wall and door).
+	var cab := minf(4.0, (hu - mid) * 0.5 + 0.3)
+	var n_u := -hu + cab + 0.3
+	var s_u := hu - cab - 0.3
+	var cv := minf(4.5, hv - 0.6)
+	var eave := _monkey_cabin(n_u, 0.0, cab, cv, g, 3.0, MONKEY_ROOF)
+	_monkey_cabin(s_u, 0.0, cab, cv, g, 2.8, MONKEY_ROOF)
+	# The yellow bay on the north cabin's garden end: the painted wall and a dark door in it.
+	_lbox(n_u + cab + 0.04, -cv * 0.35, 0.04, cv * 0.45, g, eave - 0.1, MONKEY_YELLOW, M_STONE)
+	_lbox(n_u + cab + 0.08, -cv * 0.35, 0.03, 0.55, g, g + 2.1, Color("#2c2620"), M_STONE)
+	# The kiosk on the river-side bump (grey roof, as behind the cabins in IMG_7476) and the bar
+	# hut on the land-side bump, if the outline has them (the strip is half as wide as the box).
+	if hv > 8.0:
+		var bump := hv - 5.6
+		_monkey_cabin(3.6, -hv + bump * 0.5 + 0.2, 2.9, bump * 0.45, g, 2.6, MONKEY_KIOSK_ROOF)
+		_monkey_cabin(-3.7, hv - bump * 0.5 - 0.2, 2.9, bump * 0.45, g, 2.6, MONKEY_ROOF)
+	# Plank tables with two benches each, under white market umbrellas: two rows down the garden.
+	var k := 0
+	for row: float in [-1.0, 1.0]:
+		var uu := -mid + 2.4
+		while uu <= mid - 2.0:
+			var v := row * minf(2.6, hv * 0.3)
+			_lbox(uu, v, 0.9, 0.4, g, g + 0.75, MONKEY_PLANK.darkened(0.2), M_STONE, MONKEY_PLANK)
+			for sd: float in [-1.0, 1.0]:
+				_lbox(uu, v + sd * 0.75, 0.9, 0.16, g, g + 0.45, MONKEY_PLANK.darkened(0.3), M_STONE, MONKEY_PLANK.darkened(0.1))
+			if k % 2 == 0:
+				_prism(_rect(uu, v, 0.04, 0.04), g + 0.75, g + 2.4, BARGE_POST, none, M_STONE)
+				_mode = M_STONE
+				_pyramid(_circle(_w(uu, v), 1.7, 8), g + 2.25, g + 2.75, MONKEY_UMBRELLA)
+			uu += 3.4
+			k += 1
+	# Festoons between the cabins' garden corners over the tables.
+	var posts: Array[Vector3] = []
+	for c: Vector2 in [Vector2(n_u + cab, -cv), Vector2(s_u - cab, -cv), Vector2(s_u - cab, cv), Vector2(n_u + cab, cv)]:
+		posts.append(_barge_post(c.x, c.y, g, 3.1))
+	_barge_festoon(posts[0], posts[1], 0.6, 9)
+	_barge_festoon(posts[3], posts[2], 0.6, 9)
+	_barge_festoon(posts[0], posts[2], 0.8, 10)
+	# The name on the north cabin's garden end, above the yellow bay, in warm neon.
+	var at := _w(n_u + cab + 0.12, cv * 0.3)
+	signs.append(["MAŁPI LOVE", Vector3(at.x, eave - 0.55, at.y), Vector3(_a.x, 0.0, _a.y), 0.34, Color(1.0, 0.72, 0.3)])
+	_g = g
 
 
 ## True where the water map says there is open water (a boat's centre wants a metre of it).

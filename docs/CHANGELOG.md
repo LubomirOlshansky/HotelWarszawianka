@@ -10,6 +10,7 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-07
+- Under Most Łazienkowski, on the river side, Małpi Love opened its garden: dark timber cabins with a yellow wall, plank tables under white umbrellas and string lights under the trees.
 - The railway got its signals: green and red lights at every platform's end and both tunnel mouths, trains rumble past (louder on the bridge), sound their horn out of the tunnel and get a platform gong, and show red lamps at the back.
 - The Old Town's brick city walls stand round it now, park walls are their real low height, and railings along the streets are see-through steel instead of grey slabs.
 - Stairs across the city are real stone steps now, with side walls and handrails, from Kamienne Schodki to the Skarpa's park stairs; walls that blocked stairs are opened and fountain basins have low rims instead of tall grey walls.

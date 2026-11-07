@@ -374,6 +374,8 @@ with ✕ back to the car, the boat mark on the minimap and the full map. Left:
   - WTW's boathouse with its blue roof, gate, hexagon sign and anchors;
   - low halls in place of the 14 m blocks;
   - boats moored stern-to along both quays, with houseboats.
+- [x] Monkey Love (Bulwar Flotylli Pińskiej 1A, south of Most Łazienkowski) from F's two exterior photos (2026-11-07), as the parody MAŁPI LOVE (site `monkey_love`): two dark timber cabins with black gables, a yolk-yellow end wall, a kiosk and a bar hut, a gravel garden of plank tables under white umbrellas, festoons. Its neon wants the same Mac night check.
+- [x] The roads to the spit checked on 2026-11-07 against the aerials: Zaruskiego joins the network under Most Łazienkowski, the spit's lane runs to the kayak yard, the promenade and the riverside walk are continuous (steps at the tip and the cross links), and the race pontoon's car spot sits on the riverside walk. Open: the real promenade is about 5 m of grey asphalt, the game draws a 2 m red cycle path (a width change in the bake, not done: no new road geometry).
 - [ ] The rest of F's port photos, still to build:
   - the mouth footbridge's green steel edges;
   - Pomnik Saperów's bar deck at the mouth;
@@ -381,7 +383,6 @@ with ✕ back to the car, the boat mark on the minimap and the full map. Left:
   - the rental pier with its blue solar cabin;
   - the HERBATNIK barge on the slipway;
   - Przystań Warszawa's timber pavilions;
-  - Monkey Love (Bulwar Flotylli Pińskiej 1A, south of Most Łazienkowski). Only interior photos exist; an exterior photo is needed.
 - [ ] The MAJAMI WAWA and WTW neon signs did not show in the cloud's night frames. Check them on the Mac.
 - [ ] The PRZYSTAŃ pill is up (logged, on screen at the top centre) but missing from the cloud's
   `--shots` frames; check on the Mac that it shows when the car stops by the pontoon
