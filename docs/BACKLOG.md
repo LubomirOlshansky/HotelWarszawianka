@@ -322,6 +322,47 @@ barge and its wake. Left:
 - [ ] The marina (PR #251) as the start once the harbour's 8 m entrance can be widened or raced in single file
 - [ ] Pan Zdzisiek fishing from the Złota Rybka after the race; Kamil's "relacja" as a ticker joke
 
+## Walls, fences and the city walls from the map's data (F, 2026-11-07)
+
+F after the stairs: "what else can you improve in the city environment?". Done 2026-11-07
+(`tools/barrier_tags.py`, `map_builder.gd` `_mapped_style`, `_build_city_walls`): 1,100 walls,
+fences and hedges carry OSM's height, material or fence type; walls coloured by material (brick,
+stone, concrete, gabion, glass, wood, noise barrier at 4 m); 719 railing fences open steel railings;
+chain-link fences and the 6 m ball-stop nets an open mesh (a solid fence is at most 2.5 m); hedges
+their height (at most 3 m). The Old Town's city walls (22 OSM city_wall areas) were not on the map at
+all: brick walls at their mapped heights (Baszta Rycerska 13.5 m, curtain walls 5-6 m by default).
+Left:
+- **City walls look check** from photos gathered on the Mac (batch2-old-town): battlements, the
+  coping, the gates, the międzymurze's ground; heights where OSM has none are the 5 m default.
+- **Most walls and fences still carry no OSM tags** (about 1,900 walls, 4,200 fences): a street
+  pass from photos (Mapillary) can tag them in `game/data/road_objects.json`.
+
+## Stairs across the city (F, 2026-11-07)
+
+F: "look on the map to the places where we have stairs, map them and improve; if you need photos,
+give me the list". Done 2026-11-07: `tools/stairs.py` copies every flight's OSM tags onto the map
+(step count, width, which end is the top, handrails, pram/bike ramps, surface; 2,014 of 2,262
+flights; the tags came from the Mac's OSM export, the cloud can't reach Overpass) and the walls'
+mapped heights (179 walls); `bake_osm.py` keeps both on a re-bake; `stairs.py report` writes the
+ranked inventory; verify step `stairs`. `map_builder.gd` `_build_stair_flights`: every flight that
+drops at least 0.35 m over the drawn ground (or off a deck its step count says it climbs to) is a
+stone flight (treads and ~0.16 m risers, landings where the ground levels off, cheek walls, OSM's
+handrails, pram channels), in the building meshes (no draw call, no collider). The walls: OSM
+heights used, fountain basin rings and small rings by a flight a 0.45 m rim, a wall across a flight
+opened (not at a stairwell's dead end), short walls wrapping a stairwell a balustrade.
+Photo list: `/mnt/project-files/stairs/stairs-photo-list.md`. Left:
+- **Flights deeper than the ground shows** (about 400: the 10 m grid smooths any drop narrower than
+  ~20 m): the Skarpa's long flights by the Muzeum Narodowe and Smolna (82 steps, 13 m mapped, 3.6 m
+  on the grid), Karowa, Tamka, Dynasy, the BUW roof garden. Each needs a SUNKEN-like ground cut or a
+  terrace, best from F's photos.
+- **Stairwells to the underpasses and the metro** still flat under their walls/tubes (Rondo ONZ,
+  Rondo Dmowskiego's twelve, Świętokrzyska, Ratusz Arsenał, Dworzec Gdański): the next SUNKEN entries.
+- **Escalators** (`cv`, 50 flights, all in stations) are left as painted strips.
+- **Collisions**: the stone flights don't collide (the car drives the ground under them, as before).
+  Whether a long flight's cheek walls should redirect the car is a driving call for F.
+- **Small wall rings away from stairs** (about 380 under 6 m across, many planters) still stand 1.9 m
+  unless OSM maps a height: a pass by photos.
+
 ### Free ride and the marina's access (F, 2026-11-07)
 
 Built: three boats from F's photos moored by the start pontoon, each with its own physics (jet ski
