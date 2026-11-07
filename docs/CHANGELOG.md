@@ -43,6 +43,9 @@ someone writes its lines.
 - Wilcza, Piękna and Targowa: 83 more houses got street fronts from real photos.
 - 46 named buildings across the centre got street fronts from real photos.
 
+- Saski Crescent is green-teal glass now and Senator pale cladding, as in the photos.
+- Brama Zachodnia, Proximo I and Proximo II on Aleje Jerozolimskie wear their photo colours: ochre punched cladding, light blue glass, dark navy glass.
+
 ## 2026-11-06
 - A night racing club: Darek calls you to a meet on Plac Defilad, where tuned cars glow and Lena drifts donuts in the smoke until the police raid it. Escape, race everyone to the next meet by the National Stadium, survive a second raid, then line up for a drag on Aleja Zieleniecka: watch the lights, shift on time, hit the nitro and beat Tadek for the club's respect.
 - New side job: your bestie Zuzia phones for a coffee run in Powiśle. Swap the car for a city bike, race to four fancy cafés for stamps and very expensive coffee, and get it all back by BLIK if you make it in time.

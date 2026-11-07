@@ -5369,6 +5369,16 @@ const SKINS := [
 	{"key": "arcybiskupi", "osm": "Pałac Arcybiskupi d. Pałac Borchów", "mode": M_MONUMENT, "wall": "#e8dcae", "roof": "#ad6446"},
 	{"key": "paca", "osm": "Pałac Paca", "mode": M_MONUMENT, "wall": "#ebe3cc", "roof": "#7fa391"},
 	{"key": "nobilium", "osm": "Collegium Nobilium", "mode": M_MONUMENT, "wall": "#e8dcc2", "roof": "#8c8f86"},
+
+	# Saski Crescent and Senator from F's photos (2026-11-07, docs/landmarks/specs/saski.md): the
+	# crescent's green-teal curtain wall (M_GLASS) and Senator's pale cladding with punched windows.
+	{"key": "saski", "osm": "Saski Crescent", "hull": true, "mode": M_GLASS, "wall": "#5f948f", "roof": "#7d8589"},
+	{"key": "senator", "osm": "Senator", "mode": M_SKIN + float(S_PUNCHED) / 16.0, "wall": "#dbd0bc", "roof": "#a3a7a8"},
+	# The office pass from F's photos (2026-11-07, docs/landmarks/specs/offices.md): Brama Zachodnia's apricot
+	# cladding, Proximo I's glass with ochre mullions, Proximo II's dark glass.
+	{"key": "brama_zach", "osm": "Brama Zachodnia", "hull": true, "mode": M_SKIN + float(S_PUNCHED) / 16.0, "wall": "#d9a27c", "roof": "#878d8f"},
+	{"key": "proximo1", "osm": "Proximo I", "hull": true, "mode": M_GLASS, "wall": "#667f93", "roof": "#6d7377"},
+	{"key": "proximo2", "osm": "Proximo II", "hull": true, "mode": M_SKIN + float(S_DARK) / 16.0, "wall": "#35495b", "roof": "#596168"},
 ]
 
 
@@ -5378,7 +5388,8 @@ func _find_skins() -> void:
 		var outline := _landmark_near(t["osm"], t["near"], 60.0) if t.has("near") else _landmark(t["osm"])
 		if outline.size() < 3:
 			continue
-		_add_site(t["key"], [outline])
+		# `hull`: a curved plan's centre falls outside it (Saski Crescent), so the hull joins the zone
+		_add_site(t["key"], [outline, Geometry2D.convex_hull(outline)] if t.get("hull", false) else [outline])
 		if not sites.is_empty() and sites[-1]["key"] == t["key"]:
 			sites[-1]["skin"] = {"mode": t["mode"], "wall": Color(t["wall"]), "roof": Color(t["roof"])}
 			if t.has("steep"):

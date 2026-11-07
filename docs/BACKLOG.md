@@ -247,6 +247,13 @@ to 185 MB. Left:
 - **Photo fronts, Mokotowska and Hoża (2026-11-07)**: 61 more houses. Left: the small Mokotowska 69 rotunda and the shrine at 65, which fronts can't show; Hoża 1's bare firewall.
 - **Photo fronts, Wilcza, Piękna, Targowa (2026-11-07)**: 83 more houses, which closes part 1 of the list (305 houses with street fronts in all). Left: part 2 (named buildings) and part 3 of the photo folder, and rows with aerial photos only.
 - **Photo fronts, named buildings (2026-11-07)**: 46 more across the centre, 351 houses in all. Left for their own builds: Mała PAST-a, Pałac Przezdzieckich, the Elektoralna 12 portico, Mokotowska 25; Old Town rows 778 and 795 stay as they are; 189 named rows have no street photo yet.
+
+## Saski Crescent and Senator from F's photos (F, 2026-11-07; spec docs/landmarks/specs/saski.md)
+
+Built: both in photo-read skins. Left (photos in F's `warsaw-other-buildings-part-2`, M571 and M551):
+- Saski Crescent: the grey stone wing on Królewska, the canopy, the dark crown band with a parody sign (SASKI ROGAL); needs a mapped-parts tower build.
+- Senator: the triangular glass light well and the atrium ridge; seven storeys in the photo against 14 m mapped.
+
 ## Quest map and starts (F, 2026-11-07; docs/design/quest-map.md)
 
 Built: three map tiers (the main star's glow, questline "!" badges, street job icons), quest focus
