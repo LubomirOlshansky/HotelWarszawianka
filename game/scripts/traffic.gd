@@ -2283,19 +2283,22 @@ const N_GLYPH := ["#..#", "##.#", "#.##", "#..#", "#..#"]
 static func night_bus_mesh() -> ArrayMesh:
 	if _bus_night != null:
 		return _bus_night
-	var s := Models.Shape.new()
 	var plate := Models.fin(Color("#16171b"))
 	var lit := Models.fin(Color("#ffb21e"), Models.LIT_SIGN)
-	# A side's "right" as seen from outside it: -z on the +x side, +z on the -x side.
-	for sgn: float in [-1.0, 1.0]:
-		_n_sign(s, Vector3(sgn * 1.262, 2.12, -6.55), Vector3(0, 0, -sgn), Vector3(sgn, 0, 0), Vector2(1.2, 1.0), 0.19, plate, lit)
-	_n_sign(s, Vector3(0.0, 2.44, 8.995), Vector3.RIGHT, Vector3.BACK, Vector2(1.0, 0.8), 0.15, plate, lit)
-	_n_sign(s, Vector3(0.0, 2.56, -8.9), Vector3.LEFT, Vector3.FORWARD, Vector2(0.9, 0.72), 0.13, plate, lit)
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	st.append_from(Models.bus_mesh(), 0, Transform3D.IDENTITY)
-	st.append_from(s.mesh(), 0, Transform3D.IDENTITY)
-	_bus_night = st.commit()
+	# One shape per bus (models.gd bus_mesh: the articulated and the solo bus), the signs placed
+	# by its front (-9 or -6) and back (9 or 6).
+	var shapes: Array = []
+	for solo: bool in [false, true]:
+		var s := Models.bus_shape(solo)
+		var front := -6.0 if solo else -9.0
+		var back := 6.0 if solo else 9.0
+		# A side's "right" as seen from outside it: -z on the +x side, +z on the -x side.
+		for sgn: float in [-1.0, 1.0]:
+			_n_sign(s, Vector3(sgn * 1.262, 2.12, front + 2.45), Vector3(0, 0, -sgn), Vector3(sgn, 0, 0), Vector2(1.2, 1.0), 0.19, plate, lit)
+		_n_sign(s, Vector3(0.0, 2.44, back - 0.005), Vector3.RIGHT, Vector3.BACK, Vector2(1.0, 0.8), 0.15, plate, lit)
+		_n_sign(s, Vector3(0.0, 2.56, front + 0.1), Vector3.LEFT, Vector3.FORWARD, Vector2(0.9, 0.72), 0.13, plate, lit)
+		shapes.append(s)
+	_bus_night = Models.family(shapes)
 	return _bus_night
 
 

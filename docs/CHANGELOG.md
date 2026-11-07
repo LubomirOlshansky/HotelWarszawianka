@@ -10,6 +10,11 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-07
+- Bus stops look like Warsaw's: the white zigzag on the road where the bus pulls in, the yellow line along the kerb, red-framed glass shelters with a lit poster and the red stop pole with its timetable, and shorter 12 m buses now run beside the long bendy ones.
+- Stacja Muzeum, Nocny Targ and Kolejowa: the old Warszawa Główna hall has its arched cream front with gold letters, steam engines on red wheels and green tank engines stand on the museum's sidings, the night market glows under two rusty platform roofs with coloured tubes and painted benches, and Kolejowa's old railway warehouses, the pinball museum and the teal club line the street.
+- Wola by Kolejowa looks like itself: the old drug works' plot is a busy building site with bare concrete floors, three cranes and stacks of materials, the estate's blocks have their cream walls and brown window frames, and the two tall towers wear their orange and gold frames.
+- Under Most Łazienkowski, on the river side, Małpi Love opened its garden: dark timber cabins with a yellow wall, plank tables under white umbrellas and string lights under the trees.
+- The railway got its signals: green and red lights at every platform's end and both tunnel mouths, trains rumble past (louder on the bridge), sound their horn out of the tunnel and get a platform gong, and show red lamps at the back.
 - The guide for new players now points you down to Powiśle and the river after about seven minutes, as it was meant to (that step was silently broken).
 - The Old Town's brick city walls stand round it now, park walls are their real low height, and railings along the streets are see-through steel instead of grey slabs.
 - Stairs across the city are real stone steps now, with side walls and handrails, from Kamienne Schodki to the Skarpa's park stairs; walls that blocked stairs are opened and fountain basins have low rims instead of tall grey walls.
@@ -31,6 +36,7 @@ someone writes its lines.
 - Miodowa's palaces look like themselves: cream and pink plaster under tile-red roofs (Paca's are green copper), and Pałac Branickich's long front has pink pilaster strips, a cornice, an attic crowded with statues, three scrolled dormers and its balconied gate.
 
 
+- Andersa by Ratusz Arsenał drives cleaner: straight kerbs where the street splits round the median, no bite out of the asphalt by the tram stop, and lane lines that run on smoothly instead of breaking off. The same kerb jog is smoothed at 25 more places where a street splits round a median, from Solec and Tamka to Bonifraterska and Wybrzeże Szczecińskie.
 - Three boats now wait at the race pontoon by Port Czerniakowski (a jet ski, a silver electric runabout and a black offshore racer, each handling its own way): stop there, pick one and take it out on the Vistula whenever you like. A boat sign marks them on the map.
 - Junctions across the city look cleaner: lane lines now end at the zebra or the stop line instead of running on into the middle of the junction, turn arrows sit before the stop line instead of on or past the crossing, and a few crossings that stopped short now reach the kerb.
 - The map shows what matters: the main story's star glows gold, the big quests (the boat race, the secret rave) have their own "!" badges at their start spots, and while you're on a quest everything else hides. Drive up to a start and your friend comes out to talk in person, and a new STORIES tab on the map starts any big quest right away. Landmarks on the map are now quiet little drawings instead of big pins.
@@ -43,6 +49,9 @@ someone writes its lines.
 - Mokotowska and Hoża: 61 more houses got street fronts from real photos.
 - Wilcza, Piękna and Targowa: 83 more houses got street fronts from real photos.
 - 46 named buildings across the centre got street fronts from real photos.
+- 21 more houses got their real wall colours after a check against street photos, from Filtrowa to Marszałkowska.
+- 15 more houses got street fronts from new photos, among them Bracka 16, Atlas Tower and Dom Dysydentów.
+- 39 more buildings got street fronts from new photos, from Klif and Babka Tower to Freta and Plac Trzech Krzyży.
 
 - Saski Crescent is green-teal glass now and Senator pale cladding, as in the photos.
 - Brama Zachodnia, Proximo I and Proximo II on Aleje Jerozolimskie wear their photo colours: ochre punched cladding, light blue glass, dark navy glass.

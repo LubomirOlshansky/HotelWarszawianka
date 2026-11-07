@@ -151,6 +151,10 @@ SITE_AREAS = [
     (-2765.0, 135.0, -2735.0, 170.0),       # and its north-west wing
     (-2700.0, 560.0, -2655.0, 650.0),       # The Warsaw HUB's towers (landmarks.gd TOWERS "at")
     (-2723.0, 487.0, -2689.0, 538.0),       # and its round-ended hotel tower (TOWERS crowne "at")
+    (-3085.0, 690.0, -2745.0, 915.0),       # Wola's 19. Dzielnica estate (landmarks.gd D19_ESTATE's box)
+    (-2884.0, 526.0, -2738.0, 656.0),       # and Asbud's Towarowa Towers quarter (ASBUD_ZONE's box)
+    (-2795.0, 805.0, -2465.0, 1000.0),  # Stacja Muzeum, its sidings and Nocny Targ
+    (-3112.0, 928.0, -2928.0, 1046.0),  # Kolejowa 8/10, the pinball museum, the teal club
     (-260.0, 325.0, -240.0, 345.0),         # the BGK building, Al. Jerozolimskie 7 (unnamed in OSM; landmarks.gd BGK_AT)
     (-165.0, 55.0, -155.0, 65.0),           # Foksal 13 (unnamed in OSM; landmarks.gd _find_foksal, its address point)
     (-193.0, 46.0, -183.0, 56.0),           # and Foksal 15
@@ -219,6 +223,7 @@ SITE_AREAS = [
     (-1058, -1559, -985, -1487),   # church_cerkiew
     (-1609, -268, -1529, -188),   # church_nozykow
     (1575.0, 1570.0, 1605.0, 1610.0),       # the sailing marina's club house (landmarks.gd MARINA_AT, unnamed in OSM)
+    (1715.0, 1295.0, 1755.0, 1345.0),       # the Monkey Love garden (landmarks.gd MONKEY_AT, built as Małpi Love)
     (1385.0, 670.0, 1480.0, 900.0),         # Port Czerniakowski's spit: Majami, WTW and the halls (landmarks.gd PORT_TIP, PORT_WTW, PORT_HALLS)
     (1025.0, -2032.0, 1135.0, -1962.0),     # Bazar Różyckiego's stalls (landmarks.gd BAZAR_BOX, unnamed retail outlines)
 ]

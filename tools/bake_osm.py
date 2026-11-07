@@ -485,6 +485,10 @@ def main(src, trees_src, dst, extras_src=None, more_src=None):
     # junctions' mouths, zebras and cycle crossings run on to the kerbs (tools/road_fixes.py).
     import road_fixes
     print("road_fixes: " + road_fixes.apply(out))
+    # The buses thread (2026-11-07): the stops' white zigzag (P-17) and yellow kerb line, after
+    # road_fixes, on the smoothed lanes and the zebras as they end (tools/bus_stops.py; the same code runs on a baked map).
+    import bus_stops
+    bus_stops.apply(out)
     # Loop "content POIs" (2026-10-31): the corner shops, metro entrances, city bike docks, the
     # places' missing addresses and the Leżaks with their zones, appended after every older poi
     # on the finished data (they keep clear of its solids; tools/bake_street_pois.py).

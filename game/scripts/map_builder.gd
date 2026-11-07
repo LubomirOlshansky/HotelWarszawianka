@@ -610,6 +610,7 @@ func _build_parts(marks, roofs_only: bool) -> void:
 	_build_footbridge_stairs(walls)
 	_build_station_furniture(walls)
 	_build_catenary(walls)
+	_build_rail_signals(walls)
 	_build_srednicowy(walls)
 	_build_poniatowski(walls)
 	_build_powisle(walls)
@@ -2756,7 +2757,7 @@ const WIRE_COL := Color("#2a2c2f")
 
 
 func _build_catenary(st) -> void:
-	var rails: Array = Trains.trim_rails(data.get("rails", []))
+	var rails: Array = Trains.service_rails(data.get("rails", []))
 	if rails.is_empty():
 		return
 	_uv2 = Vector2(0.5, -1.0)
@@ -2835,6 +2836,274 @@ func _build_catenary(st) -> void:
 
 ## Tracks this close where they cross a grid line share a portal.
 const GANTRY_GAP := 9.0
+
+
+## Railway audit (F, 2026-11-07): the line had no signals. A colour-light signal stands on the
+## right of each track (trains keep right in Poland) SIGNAL_PAST m beyond each end of a railway
+## platform, facing the trains about to leave it, and SIGNAL_MOUTH m before each tunnel mouth for
+## the trains going in. Where another track is on that side the signal is a dwarf between the
+## two (real yards do the same). A grey mast, a black head on a white-rimmed board with three
+## lenses (green, amber, red; green or red lit, steady), all in the walls surface (no draw call
+## of its own); the lit lens glows at night (M_LAMP_CODE). Not solid, like the catenary.
+const SIGNAL_PAST := 8.0
+const SIGNAL_MOUTH := 25.0
+const SIGNAL_OUT := 2.6
+const SIGNAL_DWARF_OUT := 2.05
+const SIGNAL_NEAR := 5.0
+const SIGNAL_MAST := Color("#8b9095")
+const SIGNAL_HEAD := Color("#1b1c1e")
+const SIGNAL_RIM := Color("#ecebe6")
+const SIGNAL_GREEN := Color("#3df07a")
+const SIGNAL_RED := Color("#ff3b2c")
+const SIGNAL_OFF := [Color("#1f3d2a"), Color("#4a3a17"), Color("#3e1714")]
+
+
+## Where the signals stand: [point, the direction of the trains it faces, the rails' height, dwarf,
+## red]. Both city paths and every sector find the same list (a sector keeps its own points).
+static var _signal_cache: Array = []
+static var _signal_key := -1
+
+
+func rail_signal_spots() -> Array:
+	# The whole map's rails and platforms (a sector's file holds only its own; the index keeps
+	# them all for trains.gd), found once per map: every sector's build asks for the same list.
+	var whole: Dictionary = index_data if _in_sector and index_data.has("rails") else data
+	var rails: Array = Trains.service_rails(whole.get("rails", []))
+	if rails.is_empty():
+		return []
+	var key: int = rails.size() * 1000 + (whole.get("platforms", []) as Array).size()
+	if key == _signal_key:
+		return _signal_cache
+	var spots := _find_signal_spots(rails, whole.get("platforms", []))
+	_signal_key = key
+	_signal_cache = spots
+	return spots
+
+
+func _find_signal_spots(rails: Array, platforms: Array) -> Array:
+	var grid := {}
+	var samples := {}   # 32 m cell -> [[point, tangent, dk]]
+	for r in rails:
+		var poly := _pts(r["p"])
+		var dk := int(r.get("dk", -1))
+		for i in poly.size() - 1:
+			var a := poly[i]
+			var b := poly[i + 1]
+			var len := a.distance_to(b)
+			if len < 0.05:
+				continue
+			# The segment in every 8 m cell it passes (sampled every 4 m), once per cell.
+			var cells := {}
+			var m := maxi(1, ceili(len / 4.0))
+			for k in m + 1:
+				var q := a.lerp(b, float(k) / m)
+				cells[Vector2i(floori(q.x / 8.0), floori(q.y / 8.0))] = true
+			for key: Vector2i in cells:
+				var segs: PackedVector2Array = grid.get(key, PackedVector2Array())
+				segs.append_array(PackedVector2Array([a, b]))
+				grid[key] = segs
+			var n := maxi(1, ceili(len / 2.0))
+			for k in n:
+				var sp := a.lerp(b, (k + 0.5) / n)
+				var cell := Vector2i(floori(sp.x / 32.0), floori(sp.y / 32.0))
+				var list: Array = samples.get(cell, [])
+				list.append([sp, (b - a) / len, dk])
+				samples[cell] = list
+	var wanted: Array = []   # [point on the track, travel direction, dk]
+	for pl in platforms:
+		if float(pl.get("h", 0.0)) < 0.9:
+			continue
+		var poly := _pts(pl["p"])
+		if poly.size() < 3:
+			continue
+		# The platform's axis: its longest edge.
+		var axis := Vector2.ZERO
+		var c := Vector2.ZERO
+		for i in poly.size():
+			var e := poly[(i + 1) % poly.size()] - poly[i]
+			if e.length() > axis.length():
+				axis = e
+			c += poly[i]
+		c /= poly.size()
+		if axis.length() < 20.0:
+			continue
+		axis = axis.normalized()
+		var side := Vector2(-axis.y, axis.x)
+		var box := Rect2(poly[0], Vector2.ZERO)
+		for q in poly:
+			box = box.expand(q)
+		box = box.grow(SIGNAL_NEAR + 1.0)
+		# Tracks beside it: samples within SIGNAL_NEAR of its edge, running along it, grouped by
+		# their offset across it.
+		var tracks: Array = []   # [offset, lo, hi, dk]
+		var near: Array = []
+		for cy in range(floori(box.position.y / 32.0), floori(box.end.y / 32.0) + 1):
+			for cx in range(floori(box.position.x / 32.0), floori(box.end.x / 32.0) + 1):
+				near.append_array(samples.get(Vector2i(cx, cy), []))
+		for sm: Array in near:
+			var p: Vector2 = sm[0]
+			if not box.has_point(p) or absf((sm[1] as Vector2).dot(axis)) < 0.95:
+				continue
+			if Geometry2D.is_point_in_polygon(p, poly) or _poly_dist(poly, p) > SIGNAL_NEAR:
+				continue
+			var off := (p - c).dot(side)
+			var u := (p - c).dot(axis)
+			var hit := false
+			for t: Array in tracks:
+				if absf(float(t[0]) - off) < 1.2:
+					t[1] = minf(t[1], u)
+					t[2] = maxf(t[2], u)
+					hit = true
+					break
+			if not hit:
+				tracks.append([off, u, u, sm[2]])
+		for t: Array in tracks:
+			if float(t[2]) - float(t[1]) < 30.0:
+				continue
+			for e: float in [-1.0, 1.0]:
+				var u := (float(t[2]) + SIGNAL_PAST) if e > 0.0 else (float(t[1]) - SIGNAL_PAST)
+				wanted.append([c + axis * u + side * float(t[0]), axis * e, int(t[3])])
+	# The tunnel mouths: each track's end there, walked back SIGNAL_MOUTH m.
+	for q: Vector2 in Trains.PORTALS:
+		for r in rails:
+			var poly := _pts(r["p"])
+			if poly.size() < 2:
+				continue
+			for k: int in [0, poly.size() - 1]:
+				if poly[k].distance_to(q) >= Trains.PORTAL_R:
+					continue
+				var path := poly.duplicate() if k == poly.size() - 1 else _reversed(poly)
+				var left := SIGNAL_MOUTH
+				var j := path.size() - 1
+				while j > 0 and path[j].distance_to(path[j - 1]) < left:
+					left -= path[j].distance_to(path[j - 1])
+					j -= 1
+				if j == 0:
+					continue
+				var dir := (path[j] - path[j - 1]).normalized()
+				wanted.append([path[j] - dir * left, dir, int(r.get("dk", -1))])
+	var spots: Array = []
+	for w: Array in wanted:
+		var d: Vector2 = w[1]
+		# On the track itself (its height there, not the street's over a platform's end), and the
+		# track runs on past it (no signal facing a buffer stop).
+		var on: Variant = _rail_sample_near(samples, w[0], d)
+		if on == null or _rail_sample_near(samples, (on[0] as Vector2) + d * 20.0, d) == null:
+			continue
+		var p: Vector2 = on[0]
+		w[2] = on[2]
+		var right := Vector2(-d.y, d.x)
+		var dup := false
+		for o: Array in spots:
+			if (o[4] as Vector2).distance_to(p) < 6.0 and (o[1] as Vector2).dot(d) > 0.7:
+				dup = true
+				break
+		if dup:
+			continue
+		# A main signal where it stands clear of every track, else a dwarf between two tracks
+		# (on the right, or the left as a last resort), else none.
+		var at := Vector2.INF
+		var dwarf := false
+		for o: float in [SIGNAL_OUT, SIGNAL_OUT + 0.6]:
+			if at == Vector2.INF and not _track_within(grid, p + right * o, 2.4):
+				at = p + right * o
+		if at == Vector2.INF:
+			dwarf = true
+			for o: float in [SIGNAL_DWARF_OUT, 2.25, 1.95, -SIGNAL_DWARF_OUT, -2.25, -1.95]:
+				if at == Vector2.INF and not _track_within(grid, p + right * o, 1.85):
+					at = p + right * o
+		if at == Vector2.INF:
+			continue
+		var red := fposmod(sin(p.x * 12.9898 + p.y * 78.233) * 43758.5453, 1.0) < 0.3
+		spots.append([at, d, deck_height(int(w[2]), p.x, p.y), dwarf, p, red])
+	return spots
+
+
+## Whether any track's centre line passes within reach of p (the grid's 8 m cells round it).
+func _track_within(grid: Dictionary, p: Vector2, reach: float) -> bool:
+	for dy in range(-1, 2):
+		for dx in range(-1, 2):
+			var segs: PackedVector2Array = grid.get(Vector2i(floori(p.x / 8.0) + dx, floori(p.y / 8.0) + dy), PackedVector2Array())
+			for i in range(0, segs.size(), 2):
+				if Geometry2D.get_closest_point_to_segment(p, segs[i], segs[i + 1]).distance_to(p) < reach:
+					return true
+	return false
+
+
+## The rail sample nearest p (within 2.5 m) running along d either way, or null.
+func _rail_sample_near(samples: Dictionary, p: Vector2, d: Vector2) -> Variant:
+	var best: Variant = null
+	var best_d := 2.5
+	for cy in range(floori((p.y - 3.0) / 32.0), floori((p.y + 3.0) / 32.0) + 1):
+		for cx in range(floori((p.x - 3.0) / 32.0), floori((p.x + 3.0) / 32.0) + 1):
+			for sm: Array in samples.get(Vector2i(cx, cy), []):
+				var dist := (sm[0] as Vector2).distance_to(p)
+				if dist < best_d and absf((sm[1] as Vector2).dot(d)) > 0.9:
+					best_d = dist
+					best = sm
+	return best
+
+
+func _reversed(poly: PackedVector2Array) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for i in range(poly.size() - 1, -1, -1):
+		out.append(poly[i])
+	return out
+
+
+func _poly_dist(poly: PackedVector2Array, p: Vector2) -> float:
+	var best := INF
+	for i in poly.size():
+		var q := Geometry2D.get_closest_point_to_segment(p, poly[i], poly[(i + 1) % poly.size()])
+		best = minf(best, q.distance_to(p))
+	return best
+
+
+func _build_rail_signals(st) -> void:
+	for sp: Array in rail_signal_spots():
+		var at: Vector2 = sp[0]
+		if _in_sector and not _sector_rect.has_point(at):
+			continue
+		var d: Vector2 = sp[1]
+		var y: float = sp[2]
+		var dwarf: bool = sp[3]
+		var red: bool = sp[5]
+		_uv2 = Vector2(0.5, -1.0)
+		# Local +Z faces the trains coming (against d), +X to the track's right.
+		var basis := Basis(Vector3.UP, atan2(-d.x, -d.y))
+		var fwd := Vector3(-d.x, 0.0, -d.y)
+		var p3 := Vector3(at.x, y, at.y)
+		_box_oriented(st, p3 + Vector3(0, 0.1, 0), basis, Vector3(0.6, 0.45, 0.6), PORTAL_CONCRETE)
+		var lenses: Array[float] = []
+		var h0: float
+		var h1: float
+		if dwarf:
+			h0 = 0.35
+			h1 = 1.15
+			lenses = [0.95, 0.55]
+		else:
+			h0 = 4.0
+			h1 = 5.6
+			_box_oriented(st, p3 + Vector3(0, 2.35, 0), basis, Vector3(0.16, 4.5, 0.16), SIGNAL_MAST)
+			# The number plate on the mast (white, a black band).
+			_box_oriented(st, p3 + Vector3(0, 2.6, 0) + fwd * 0.09, basis, Vector3(0.34, 0.42, 0.03), SIGNAL_RIM)
+			_box_oriented(st, p3 + Vector3(0, 2.6, 0) + fwd * 0.1, basis, Vector3(0.34, 0.1, 0.03), SIGNAL_HEAD)
+			lenses = [5.25, 4.8, 4.35]
+		var mid := (h0 + h1) * 0.5
+		_box_oriented(st, p3 + Vector3(0, mid, 0), basis, Vector3(0.42, h1 - h0, 0.24), SIGNAL_HEAD)
+		_box_oriented(st, p3 + Vector3(0, mid, 0) + fwd * 0.13, basis, Vector3(0.66, h1 - h0 + 0.24, 0.03), SIGNAL_RIM)
+		_box_oriented(st, p3 + Vector3(0, mid, 0) + fwd * 0.145, basis, Vector3(0.52, h1 - h0 + 0.1, 0.03), SIGNAL_HEAD)
+		for k in lenses.size():
+			# Main: green, amber, red from the top; a dwarf: green over red.
+			var role := k if not dwarf else (0 if k == 0 else 2)
+			var lit := (role == 2) if red else (role == 0)
+			var col: Color = (SIGNAL_RED if role == 2 else SIGNAL_GREEN) if lit else SIGNAL_OFF[role]
+			_uv2 = Vector2(M_LAMP_CODE, 0.0) if lit else Vector2(0.5, -1.0)
+			_box_oriented(st, p3 + Vector3(0, lenses[k], 0) + fwd * 0.17, basis, Vector3(0.24, 0.24, 0.04), col)
+			# A hood over each lens.
+			_uv2 = Vector2(0.5, -1.0)
+			_box_oriented(st, p3 + Vector3(0, lenses[k] + 0.15, 0) + fwd * 0.24, basis, Vector3(0.3, 0.04, 0.16), SIGNAL_HEAD)
+	_uv2 = Vector2.ZERO
 
 
 ## A portal over a row of tracks ([point, normal, dir, rails' height] each, in order across): a
@@ -7774,6 +8043,13 @@ const MARK_STYLE := {
 	"edge": [0.0, 0.2], "lane": [3.0, 0.22], "centre": [0.0, 0.2], "stop": [0.0, 0.5],
 	"bus": [0.0, 0.3], "cycle": [0.0, 0.18], "stripe": [0.0, 0.45],
 }
+## The bus stops' paint (tools/bus_stops.py, 2026-11-07, from street photos at our stops): the
+## white stop zigzag (P-17) in the kerb lane, a 0.22 m line (the real one is 0.12 m: too thin to read
+## from the game's camera), and the yellow line on the kerb along
+## the bus's length, laid at the footway's height.
+const STOPZZ_W := 0.22
+const STOPKERB_W := 0.22
+const STOPKERB_COL := Color("#e8c22e")
 
 
 func _build_markings(st) -> void:
@@ -7790,6 +8066,13 @@ func _build_markings(st) -> void:
 			_drape_bias = keep_bias
 			continue
 		_layer = L_MARK
+		if kind == "stopzz":
+			# One strip through the corners (extended), so the zigzag's points are closed.
+			_strip(st, poly, STOPZZ_W, Y_MARK, COL["mark"], true)
+			continue
+		if kind == "stopkerb":
+			_strip(st, poly, STOPKERB_W, KERB_UP + 0.012, STOPKERB_COL, false)
+			continue
 		var style: Array = MARK_STYLE.get(kind, [0.0, 0.2])
 		if float(style[0]) > 0.0:
 			_dashes(st, poly, 0.0, float(style[0]), 5.0, float(style[1]))
@@ -9081,49 +9364,64 @@ func _make_shared() -> void:
 	_cylinder(column, Vector3(0, 3.08, 0), 0.45, 0.35, 8, green)
 	_cylinder(column, Vector3(0, 3.43, 0), 0.12, 0.3, 6, Color("#c9a24a"))
 	_shared["column"] = column.commit()
-	# Bus and tram shelter. The landmarks loop (2026-10-30): Warsaw's glass shelter, as seen
-	# from the game's camera: a pale glass roof in a graphite frame overhanging the kerb, a
-	# dark fascia, glass back and end, three posts, a bench, a lit poster box at the far end
-	# (its faces glow at night: SHELTER_POSTER, fixture.gdshader) and the stop's blue sign
-	# (D-15) on its own pole. The road is on its -z side.
+	# Bus and tram shelter: Warsaw's standard glass shelter, as street photos at our own stops
+	# show it (Mapillary 2021-2026, the buses thread, 2026-11-07; first built 2026-10-30, red frame
+	# from the Rondo photos 2026-10-31). A flat pale glass roof on thin silver posts with a red
+	# edge all round it; at each end a red loop (front post, roof edge, back post) round the end
+	# panel: glass at the -x end, a lit two-sided poster panel (SHELTER_POSTER, glowing at night,
+	# fixture.gdshader) at the +x end; a glass back with a bench before it; the stop's name plate
+	# hanging under the roof's front edge. The stop's pole stands at the kerb before the -x end:
+	# red, the blue D-15 sign on top, the timetable case below. The road is on its -z side. The
+	# footprint (4.3 x 1.95 m round the origin) is unchanged: snap_props.py and the collider use it.
 	var shelter := SurfaceTool.new()
 	shelter.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var glass := Color("#b8d3df")
-	var graphite := Color("#33363b")
-	# The Rondo photos (2026-10-31): Warsaw's shelter has a red frame: the roof's edge, the
-	# posts and a red loop round the glass end, with an ad panel in a black case.
+	var silver := Color("#a9aeb4")
 	var red := Color("#c8282a")
-	_box(shelter, Vector3(0, 2.5, 0.08), Vector3(4.3, 0.12, 1.95), graphite)
-	_box(shelter, Vector3(0, 2.57, 0.08), Vector3(4.0, 0.03, 1.7), Color("#a7c2cf"))
-	_box(shelter, Vector3(0, 2.38, -0.86), Vector3(4.3, 0.3, 0.06), red)
-	_box(shelter, Vector3(0, 1.3, 0.75), Vector3(3.85, 2.05, 0.04), glass)
-	_box(shelter, Vector3(0, 0.12, 0.75), Vector3(3.9, 0.1, 0.06), graphite)
-	_box(shelter, Vector3(-1.95, 1.3, 0.17), Vector3(0.04, 2.05, 1.15), glass)
-	for x in [-1.95, 0.0, 1.95]:
-		_box(shelter, Vector3(x, 1.25, 0.78), Vector3(0.09, 2.5, 0.09), red)
-	# The red loop round the glass end: a post at each corner and a bar along the foot.
-	_box(shelter, Vector3(-1.95, 0.05, 0.17), Vector3(0.06, 0.06, 1.2), red)
-	_box(shelter, Vector3(-1.95, 2.4, -0.4), Vector3(0.06, 0.2, 0.06), red)
-	# The poster box: a graphite case, a poster on each face.
-	_box(shelter, Vector3(1.95, 1.2, 0.12), Vector3(0.2, 1.95, 1.3), graphite)
-	for sx in [-0.11, 0.11]:
-		_box(shelter, Vector3(1.95 + sx, 1.5, 0.12), Vector3(0.02, 1.0, 1.12), SHELTER_POSTER[0])
-		_box(shelter, Vector3(1.95 + sx, 0.78, 0.12), Vector3(0.02, 0.44, 1.12), SHELTER_POSTER[1])
-	_box(shelter, Vector3(-0.2, 0.46, 0.5), Vector3(2.2, 0.06, 0.38), Color("#5c6168"))
-	for x in [-1.1, 0.7]:
-		_box(shelter, Vector3(x, 0.22, 0.5), Vector3(0.06, 0.44, 0.3), graphite)
-	# The stop's sign: a grey pole, a blue square with a white bus.
-	_box(shelter, Vector3(-2.45, 1.35, -0.7), Vector3(0.07, 2.7, 0.07), Color("#9aa0a6"))
-	_box(shelter, Vector3(-2.45, 2.45, -0.7), Vector3(0.56, 0.56, 0.05), Color("#1f5fae"))
-	for sz in [-0.03, 0.03]:
-		_box(shelter, Vector3(-2.45, 2.47, -0.7 + sz), Vector3(0.34, 0.2, 0.02), Color("#f2f2ee"))
-		_box(shelter, Vector3(-2.45, 2.34, -0.7 + sz), Vector3(0.3, 0.05, 0.02), Color("#f2f2ee"))
-	# The Rondo photos' ad panel: a big lit panel in a black case on the glass end, a poster
-	# (orange over cream, SHELTER_POSTER) on both faces, glowing at night.
-	_box(shelter, Vector3(-2.3, 1.3, 0.3), Vector3(0.12, 1.95, 1.2), Color("#141518"))
+	# The roof: a glass plate and the red edge round it (thicker along the front).
+	_box(shelter, Vector3(0, 2.52, 0.08), Vector3(4.24, 0.05, 1.89), Color("#bccdd5"))
+	_box(shelter, Vector3(0, 2.5, -0.88), Vector3(4.3, 0.14, 0.05), red)
+	_box(shelter, Vector3(0, 2.52, 1.04), Vector3(4.3, 0.08, 0.05), red)
+	for x: float in [-2.13, 2.13]:
+		_box(shelter, Vector3(x, 2.52, 0.08), Vector3(0.05, 0.08, 1.95), red)
+		# The end's red loop: a front and a back post, a sill, and a bevel at the top corners
+		# (the real frame is rounded there).
+		_box(shelter, Vector3(x, 1.2, -0.78), Vector3(0.06, 2.3, 0.06), red)
+		_box(shelter, Vector3(x, 1.2, 0.94), Vector3(0.06, 2.3, 0.06), red)
+		_box(shelter, Vector3(x, 0.06, 0.08), Vector3(0.06, 0.06, 1.72), red)
+		_box(shelter, Vector3(x, 2.38, -0.72), Vector3(0.06, 0.12, 0.14), red)
+		_box(shelter, Vector3(x, 2.38, 0.88), Vector3(0.06, 0.12, 0.14), red)
+	# The back: glass between silver posts, a silver rail at the foot.
+	_box(shelter, Vector3(0, 1.3, 0.92), Vector3(4.2, 2.0, 0.03), glass)
+	_box(shelter, Vector3(0, 0.15, 0.92), Vector3(4.2, 0.06, 0.06), silver)
+	for x: float in [-0.7, 0.7]:
+		_box(shelter, Vector3(x, 1.26, 0.95), Vector3(0.07, 2.5, 0.07), silver)
+	# The -x end: glass. The +x end: the lit poster panel, a pale case, a poster on each face.
+	_box(shelter, Vector3(-2.13, 1.25, 0.08), Vector3(0.025, 2.0, 1.66), glass)
+	_box(shelter, Vector3(2.08, 1.22, 0.1), Vector3(0.14, 1.9, 1.32), Color("#d8dadc"))
 	for sx: float in [-0.075, 0.075]:
-		_box(shelter, Vector3(-2.3 + sx, 1.5, 0.3), Vector3(0.02, 1.4, 1.02), SHELTER_POSTER[0])
-		_box(shelter, Vector3(-2.3 + sx, 0.72, 0.3), Vector3(0.02, 0.2, 1.02), SHELTER_POSTER[1])
+		_box(shelter, Vector3(2.08 + sx, 1.32, 0.1), Vector3(0.02, 1.5, 1.14), SHELTER_POSTER[0])
+		_box(shelter, Vector3(2.08 + sx, 0.66, 0.1), Vector3(0.02, 0.18, 1.14), SHELTER_POSTER[1])
+	# The bench before the back glass.
+	_box(shelter, Vector3(-0.3, 0.46, 0.62), Vector3(2.4, 0.06, 0.38), Color("#5c6168"))
+	for x: float in [-1.3, 0.7]:
+		_box(shelter, Vector3(x, 0.22, 0.62), Vector3(0.06, 0.44, 0.3), silver)
+	# The stop's name plate under the roof's front edge: pale, a dark line of lettering.
+	_box(shelter, Vector3(-1.0, 2.3, -0.84), Vector3(1.4, 0.24, 0.04), Color("#eeeeea"))
+	for sz: float in [-0.025, 0.025]:
+		_box(shelter, Vector3(-1.05, 2.3, -0.84 + sz), Vector3(1.0, 0.07, 0.01), Color("#2b2e33"))
+		_box(shelter, Vector3(-0.42, 2.3, -0.84 + sz), Vector3(0.14, 0.12, 0.01), Color("#2b2e33"))
+	# The stop's pole at the kerb before the -x end: red, the blue D-15 square with a white bus on
+	# top, the timetable case (a pale frame round the white sheets) at eye height.
+	_box(shelter, Vector3(-2.55, 1.4, -0.72), Vector3(0.08, 2.8, 0.08), red)
+	_box(shelter, Vector3(-2.55, 2.55, -0.72), Vector3(0.58, 0.58, 0.05), Color("#1f5fae"))
+	for sz: float in [-0.03, 0.03]:
+		_box(shelter, Vector3(-2.55, 2.57, -0.72 + sz), Vector3(0.34, 0.2, 0.02), Color("#f2f2ee"))
+		_box(shelter, Vector3(-2.55, 2.44, -0.72 + sz), Vector3(0.3, 0.05, 0.02), Color("#f2f2ee"))
+	_box(shelter, Vector3(-2.55, 1.55, -0.72), Vector3(0.5, 0.72, 0.07), Color("#d2d4d6"))
+	for sz: float in [-0.04, 0.04]:
+		_box(shelter, Vector3(-2.55, 1.55, -0.72 + sz), Vector3(0.42, 0.62, 0.01), Color("#f6f4ec"))
+		_box(shelter, Vector3(-2.55, 1.8, -0.72 + sz), Vector3(0.42, 0.06, 0.012), Color("#f2c12e"))
 	_shared["shelter"] = _mark_glow(shelter.commit(), SHELTER_POSTER)
 
 
