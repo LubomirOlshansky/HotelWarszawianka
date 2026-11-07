@@ -138,7 +138,6 @@ var _bodies: StaticBody3D
 var _pots_mmi: MultiMeshInstance3D
 var _haze_mmi: MultiMeshInstance3D
 var _fog_mmi: MultiMeshInstance3D
-var _banners: MeshInstance3D
 var _fog_mat: ShaderMaterial
 var _puff_mm: MultiMesh
 var _puff_mmi: MultiMeshInstance3D
@@ -219,7 +218,6 @@ func _build() -> void:
 	var t0 := Time.get_ticks_msec()
 	_build_crowd()
 	_build_barriers()
-	_build_banners()
 	if smoke_on:
 		_build_glow()
 	_build_bands()
@@ -328,7 +326,7 @@ func _build_crowd() -> void:
 			var fsc := 1.7 if not bool(s["big"]) else 3.2
 			var fv := Vector3(fsc, fsc, fsc)
 			if bool(s["banner"]):
-				fv = Vector3(9.0, 3.4, 3.0)
+				fv = Vector3(6.0, 2.4, 2.0)
 			# The flag rides on a raised arm: next to the head, a little behind.
 			var fp := p + right * 0.28 * sc
 			CityLife.put(fbuf, fi, fp, yaw + sin(float(s["ph"])) * 0.35, fv * sc, Color.WHITE, 0.0)
@@ -340,34 +338,6 @@ func _build_crowd() -> void:
 	_crowd_aabb = box.grow(4.0).expand(box.end + Vector3(0, 10.0, 0))
 	_crowd_mm.visible_instance_count = 0
 	_flag_mm.visible_instance_count = 0
-
-
-## Three giant white-red banners carried overhead down the arms of the cross (Aleje Jerozolimskie
-## east, Marszałkowska north and south): 7 m wide, 4 m above the street, a gentle wave, held up
-## by the crowd. One mesh, the flags' material.
-func _build_banners() -> void:
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for arm: Array in [[V, 45.0, 260.0], [U, 45.0, 175.0], [-U, 45.0, 175.0]]:
-		var dir: Vector2 = arm[0]
-		var side := Vector2(-dir.y, dir.x)
-		var yaw := atan2(-dir.y, dir.x)
-		var s: float = arm[1]
-		while s < float(arm[2]):
-			var c := C + dir * (s + 2.0)
-			var y := _ground(c) + 4.2 + sin(s * 0.11) * 0.45
-			var w := C + dir * (s + 2.0)
-			for k in 2:
-				var off := side * (-1.75 if k == 0 else 1.75)
-				_oriented_box(st, Vector3(w.x + off.x, y + 0.06 * k, w.y + off.y), Vector3(4.05, 0.08, 3.5), yaw, WHITE if k == 0 else RED)
-			s += 4.0
-	var mi := MeshInstance3D.new()
-	mi.name = "EventBanners"
-	mi.mesh = st.commit()
-	mi.material_override = Models.material()
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(mi)
-	_banners = mi
 
 
 ## A flag on a pole, 2.3 m: white over red, the cloth 0.95 × 0.6 m, hanging to +x. Vertex colours
@@ -850,8 +820,6 @@ func _update() -> void:
 		_puff_mmi.visible = smoky and PUFFS_ON
 		if smoky and _puff_mm.visible_instance_count == 0:
 			_puff_mm.visible_instance_count = PUFFS
-	if _banners != null:
-		_banners.visible = share > 0.3
 	if _fog_mmi != null:
 		var in_dark := lit.is_valid() and bool(lit.call())
 		_fog_mmi.visible = smoke_on and share > 0.3
