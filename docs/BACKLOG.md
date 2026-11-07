@@ -2055,6 +2055,25 @@ Plan: docs/design/railway.md. One PR per item, in this order:
   the phone's speaker, the coloured light washes under the saucer (the game's camera never sees the
   underside, so none were built), the projected line patterns of F's night photo, planters.
 
+- **Railway audit (F, 2026-11-07).** Built: light signals (`map_builder` `rail_signal_spots`,
+  `_build_rail_signals`: 50, in the walls surface, +0 draw calls; `check_rail_signals` in verify),
+  train sounds (`trains.gd` `_sounds`; `train_rumble`, `train_bridge`, `train_horn`, `station_gong`
+  from tools/make_sfx.py), red tail lamps on a train's last car. Open: the signals' look and the
+  sounds' levels on the phone (the rumble's body is low, the phone's speaker loses some of it);
+  signals stay at one aspect (they do not change as a train passes); no signals on the bridges or at
+  Główna's yard islands; S3d Gdańska.
+- **check_trains is not repeatable (found 2026-11-07).** The same commit gives different runs: main f7b6cc58 ran three times gave Główna 2, 0 and 1 stops, so "no train stopped at Główna" (and "no train turned back") fail now and then. The trains' `_rng` is seeded (1955) and the check has no map or view, so the drift comes from somewhere else in `trains.gd`; find it, or loosen those two asserts to a longer run.
+- **Stacja Muzeum (paused by F's freeze, 2026-11-07).** Done: 19 Commons photos on F's Mac
+  (`~/Documents/warsaw-needed-photos/stacja-muzeum{,-claude}/`, sources.txt; `small/` holds 1100 px
+  copies), read; the museum's four sidings kept free of trains, wires and signals
+  (`Trains.service_rails`). Not built: the hall and its locomotives. Found: the hall is OSM's L
+  outline at about (-2512, 862) (7.6 m), the sidings end at its yard side (-2531, 870); the photos
+  show a cream gable with a segmental-arch top, eight pilasters, gold WARSZAWA GŁÓWNA letters on a
+  frame over the roof, a red-brown canopy over steps, a long low wing with a dark roof, rows of
+  black steam locos with red wheels, green tank locos and the streamlined green Pm3, a cobbled
+  platform with lamps, a white fence and a water crane. Open: which end of the L the gable is on
+  (photos disagree: needs GUGiK's ortho from the Mac).
+
 ## Krakowskie Przedmieście street by street (F, 2026-11-02), pass 1
 Built (cloud, Sonnet): eight shopfronts (`Storefronts.KRAKOWSKIE`, 93 venue signs in check_parodies), original names, at the mapped house numbers 20/22, 19, 27, 56, 45, 58/60, 64, 69. Open:
 - Mac look check of the eight signs (QUESTIONS); move them to real doors.
