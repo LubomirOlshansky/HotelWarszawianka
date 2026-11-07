@@ -209,6 +209,7 @@ const BUDGET := {
 	"port_majami": 4200,
 	"port_wtw": 1400,
 	"port_halls": 900,
+	"monkey_love": 2400,
 	"stadion_pkp": 1900,
 	"wschodnia": 7000,
 	"srodmiescie": 580,

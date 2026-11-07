@@ -276,6 +276,10 @@ to 185 MB. Left:
 - **Photo fronts, Mokotowska and Hoża (2026-11-07)**: 61 more houses. Left: the small Mokotowska 69 rotunda and the shrine at 65, which fronts can't show; Hoża 1's bare firewall.
 - **Photo fronts, Wilcza, Piękna, Targowa (2026-11-07)**: 83 more houses, which closes part 1 of the list (305 houses with street fronts in all). Left: part 2 (named buildings) and part 3 of the photo folder, and rows with aerial photos only.
 - **Photo fronts, named buildings (2026-11-07)**: 46 more across the centre, 351 houses in all. Left for their own builds: Mała PAST-a, Pałac Przezdzieckich, the Elektoralna 12 portico, Mokotowska 25; Old Town rows 778 and 795 stay as they are; 189 named rows have no street photo yet.
+- **Block colours checked against F's photos (2026-11-07)**: all 186 blocks with a street photo in F's folder were compared front-on; 21 had the wrong wall colour and now match (Filtrowa 62, 64, 81, Marszałkowska 84/92, Grójecka 32, 34, Ogrodowa 31, Szpitalna 3 and others). Kaskada now brick, Aleje Jerozolimskie 49 stone grey, Plac Zamkowy 1/13's gable ochre. Emilii Plater 28 now has its ochre body under a glass crown, Kaskada its green glass top.
+- **Photo fronts from F's second photo round (2026-11-07)**: 15 more (Bracka 16, Aleje Jerozolimskie 31, 42, 93, 123A, Krakowskie Przedmieście 16/18, Hoża 37, Wilcza 46, Piękna 11A, 11B, 21, Targowa 25, Karowa 18, Wierzbowa 9, Dom Dysydentów). 404 houses on the list still need a street photo (STREET-PHOTOS-NEEDED, kept outside the repo).
+- **Photo fronts from F's 402-list follow-up (2026-11-07)**: 39 more (MDM and the Rotunda block on Marszałkowska, Jasna 14/16, Plac Trzech Krzyży 16, Aleje Ujazdowskie 28 and 45, Freta 4/6, Klif, Okopowa 59, Teatr Powszechny, Gmach Architektury, Babka Tower, Opera Kameralna and others), 403 houses in all. Not used: photos of a square, an empty lot, a detail or taken from below, and the landmarks Sąd Najwyższy, Teatr Narodowy, Auditorium Maximum, Muzeum Niepodległości, Pałac na Miodowej 22.
+
 ## Quest map and starts (F, 2026-11-07; docs/design/quest-map.md)
 
 Built: three map tiers (the main star's glow, questline "!" badges, street job icons), quest focus
@@ -403,6 +407,8 @@ with ✕ back to the car, the boat mark on the minimap and the full map. Left:
   - WTW's boathouse with its blue roof, gate, hexagon sign and anchors;
   - low halls in place of the 14 m blocks;
   - boats moored stern-to along both quays, with houseboats.
+- [x] Monkey Love (Bulwar Flotylli Pińskiej 1A, south of Most Łazienkowski) from F's two exterior photos (2026-11-07), as the parody MAŁPI LOVE (site `monkey_love`): two dark timber cabins with black gables, a yolk-yellow end wall, a kiosk and a bar hut, a gravel garden of plank tables under white umbrellas, festoons. Its neon wants the same Mac night check.
+- [x] The roads to the spit checked on 2026-11-07 against the aerials: Zaruskiego joins the network under Most Łazienkowski, the spit's lane runs to the kayak yard, the promenade and the riverside walk are continuous (steps at the tip and the cross links), and the race pontoon's car spot sits on the riverside walk. Open: the real promenade is about 5 m of grey asphalt, the game draws a 2 m red cycle path (a width change in the bake, not done: no new road geometry).
 - [ ] The rest of F's port photos, still to build:
   - the mouth footbridge's green steel edges;
   - Pomnik Saperów's bar deck at the mouth;
@@ -410,7 +416,6 @@ with ✕ back to the car, the boat mark on the minimap and the full map. Left:
   - the rental pier with its blue solar cabin;
   - the HERBATNIK barge on the slipway;
   - Przystań Warszawa's timber pavilions;
-  - Monkey Love (Bulwar Flotylli Pińskiej 1A, south of Most Łazienkowski). Only interior photos exist; an exterior photo is needed.
 - [ ] The MAJAMI WAWA and WTW neon signs did not show in the cloud's night frames. Check them on the Mac.
 - [ ] The PRZYSTAŃ pill is up (logged, on screen at the top centre) but missing from the cloud's
   `--shots` frames; check on the Mac that it shows when the car stops by the pontoon
