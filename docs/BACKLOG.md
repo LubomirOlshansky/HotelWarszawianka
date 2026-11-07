@@ -9,17 +9,23 @@ Small problems that agents reported or that showed up in screenshots. They are f
 Audit of the five Vistula bridges in game shots, the map data and public sources. Transport is right on all of them:
 trams on Śląsko-Dąbrowski and Poniatowski, trains on Średnicowy, cars and buses only on Świętokrzyski and
 Łazienkowski (true to life); Gdański is off the map. The Powiśle viaduct (arcade, bays, stairs, tram bed, lamps) is fine.
-Fixed: Śląsko-Dąbrowski's middle lanes are the tram-and-bus lane: solid yellow lines instead of white dashes over the rails, BUS between each track's rails (`map_builder._build_slasko_bus`).
+Fixed: Śląsko-Dąbrowski's middle lanes are the tram-and-bus lane: solid lines instead of dashes over the rails (white, as F's
+photo SD-5 shows; first drawn yellow), BUS between each track's rails (`map_builder._build_slasko_bus`).
+Built from F's photos (2026-11-07, `~/Documents/warsaw-needed-photos/bridges`, SD/LZ/SW):
+- Most Śląsko-Dąbrowski: five stone piers with cutwaters (sloped tops) in dressed courses, eight grey-green plate girders with
+  arched bottom flanges (deep over the piers), cross frames, the deck's edge red at the top, a red railing of vertical bars
+  (`map_builder._build_slasko`). The piers stand every ~70 m on the rubble islands OSM maps round two of them; the land
+  supports at each end stay the bake's.
+- Most Łazienkowski: a box girder under each carriageway with the two cycle bridges on brackets at its foot, their own posts
+  gone (F: "why does the bike path hang in the air?"); six pairs of broad concrete columns under the five spans' ends instead
+  of the rows of thin posts (`map_builder._build_lazienkowski`, `_build_lazienkowski_piers`). Grey, as the photos show.
+- Most Świętokrzyski: the median is grey concrete, not grass (photo SW-1).
 Left:
-- Most Śląsko-Dąbrowski's structure: a plain slab on thin posts; the real one is steel plate girders on the Kierbedź bridge's
-  stone piers. Photo build: F's photos of one pier, the girder and the balustrade (asked 2026-11-07). The AK plaque on the north balustrade.
-- Most Łazienkowski's structure: the deck stands on rows of thin posts; the real one is 5 steel box-girder spans on a few piers.
-  Done 2026-11-07 (F: "why does the bike path hang in the air?"): a box girder under each carriageway over the river, the two cycle
-  bridges (opened 2017) on steel brackets at its foot, their own posts gone (`map_builder._build_lazienkowski`). Left for F's photos
-  (`~/Documents/warsaw-needed-photos/bridges`): the girders' real colour and depth, the river piers' count and shape, the brackets'
-  look; on the Praga floodplain the slab hides the girder, so the brackets read as thin poles from the default camera.
+- Most Łazienkowski's cycle decks: the photos (LZ-3, LZ-3b) show them right under the deck's cantilever, about 4 m under the
+  road; OSM puts them ~8 m under it, and the bake keeps that height. Raising them needs the ramps at both ends re-sloped.
+- Pier places on both bridges are estimates (the islands, the banks, the paths under them); exact ones from an orthophoto.
+- The AK plaque on Śląsko-Dąbrowski's north railing; the metal barriers on Świętokrzyski's median.
 - Tram overhead wires: none anywhere in the city (on the tram bridges most visible). Trams lane.
-- Świętokrzyski's median is drawn green; check against photos (concrete with the stays' anchors?).
 
 ## The Palace of Culture's grounds and venues (F, 2026-11-07, with F's aerial photo)
 

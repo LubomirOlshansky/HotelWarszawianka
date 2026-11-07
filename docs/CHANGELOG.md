@@ -11,7 +11,8 @@ someone writes its lines.
 
 ## 2026-11-07
 - The cycle bridges under Most Łazienkowski no longer float in the air: they hang on steel brackets from the bridge's box girders.
-- Most Śląsko-Dąbrowski's middle lanes are marked as the real tram-and-bus lane: solid yellow lines and BUS painted between the rails.
+- Most Śląsko-Dąbrowski's middle lanes are marked as the real tram-and-bus lane: solid white lines and BUS painted between the rails.
+- Three bridges rebuilt from photos: Most Śląsko-Dąbrowski stands on old stone piers under arched steel girders with its red railing, Most Łazienkowski on pairs of broad concrete piers, and Most Świętokrzyski's median is grey concrete.
 - The railway got its signals: green and red lights at every platform's end and both tunnel mouths, trains rumble past (louder on the bridge), sound their horn out of the tunnel and get a platform gong, and show red lamps at the back.
 - The Old Town's brick city walls stand round it now, park walls are their real low height, and railings along the streets are see-through steel instead of grey slabs.
 - Stairs across the city are real stone steps now, with side walls and handrails, from Kamienne Schodki to the Skarpa's park stairs; walls that blocked stairs are opened and fountain basins have low rims instead of tall grey walls.
