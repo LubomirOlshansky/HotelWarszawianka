@@ -394,6 +394,8 @@ with ✕ back to the car, the boat mark on the minimap and the full map. Left:
   - WTW's boathouse with its blue roof, gate, hexagon sign and anchors;
   - low halls in place of the 14 m blocks;
   - boats moored stern-to along both quays, with houseboats.
+- [x] Monkey Love (Bulwar Flotylli Pińskiej 1A, south of Most Łazienkowski) from F's two exterior photos (2026-11-07), as the parody MAŁPI LOVE (site `monkey_love`): two dark timber cabins with black gables, a yolk-yellow end wall, a kiosk and a bar hut, a gravel garden of plank tables under white umbrellas, festoons. Its neon wants the same Mac night check.
+- [x] The roads to the spit checked on 2026-11-07 against the aerials: Zaruskiego joins the network under Most Łazienkowski, the spit's lane runs to the kayak yard, the promenade and the riverside walk are continuous (steps at the tip and the cross links), and the race pontoon's car spot sits on the riverside walk. Open: the real promenade is about 5 m of grey asphalt, the game draws a 2 m red cycle path (a width change in the bake, not done: no new road geometry).
 - [ ] The rest of F's port photos, still to build:
   - the mouth footbridge's green steel edges;
   - Pomnik Saperów's bar deck at the mouth;
@@ -401,7 +403,6 @@ with ✕ back to the car, the boat mark on the minimap and the full map. Left:
   - the rental pier with its blue solar cabin;
   - the HERBATNIK barge on the slipway;
   - Przystań Warszawa's timber pavilions;
-  - Monkey Love (Bulwar Flotylli Pińskiej 1A, south of Most Łazienkowski). Only interior photos exist; an exterior photo is needed.
 - [ ] The MAJAMI WAWA and WTW neon signs did not show in the cloud's night frames. Check them on the Mac.
 - [ ] The PRZYSTAŃ pill is up (logged, on screen at the top centre) but missing from the cloud's
   `--shots` frames; check on the Mac that it shows when the car stops by the pontoon
@@ -936,6 +937,15 @@ then whole-map in `tools/road_fixes.py` (run after road_smooth; verify step `fix
 - [x] 61 zebras under 1 m (dots left by the asphalt clip) dropped; zebra ends short of the kerb run on (158 m)
 - [x] Dark patches in junction boxes: not in the game (every ribbon and area is one colour at one height);
   they came from the flat comparison pictures, which draw ribbons half transparent over the photo
+- [x] Andersa by Ratusz Arsenał (F's screenshot): where the 4-lane street splits round the median, the west
+  kerb jogged out, the asphalt had a notch beside the tram stop and the lane lines broke off and drifted.
+  Site fix 5 in `road_fixes.py`: one straight east kerb along the platform, a gentle west taper (the third
+  southbound lane opens by paint), lane lines joined by smooth curves, the centre line on to the median's
+  nose, asphalt filled out to the new kerbs; `--check` counts `site_gaps` (0). Shelters not touched
+- [x] The same jog at 25 more mid-block splits (a two-way way meeting two one-way ways of the same street,
+  no other street there): `road_fixes.auto_sites` frames each like Andersa and redraws kerbs and edge lines
+  (lane lines only where they pair up); a side is skipped when its new kerb would sit inside the asphalt or
+  the fill would reach a tram bed or platform (Waszyngtona, Karowa, Nowowiejska, Polna, Rozbrat kept as they were)
 Found:
 - [ ] Zebras and cycle crossings already run kerb to kerb (or kerb to median) on the data: no dual
   carriageway crossed on one side only, 1 cycle crossing shorter than its zebra. What still reads as
@@ -943,6 +953,9 @@ Found:
   main streets (a map_builder change, not done: F's call, main as base)
 - [ ] Lane lines through a junction where the same street turns (one name both ways) are kept
 - [ ] Unsignalled crossings more than 12 m from the junction's ribbons count as mid-block (lines kept)
+- [ ] Lane lines at most auto-fixed splits are kept as they were (lane counts differ across the split);
+  kerb jogs at junction corners, bus bays and slip roads are not touched (about 100 more flagged spots
+  in a kerb-jog scan, mostly real corners)
 
 ## Operation Unslop: streets that don't look generated (F, 2026-11-05)
 
@@ -2074,6 +2087,25 @@ Plan: docs/design/railway.md. One PR per item, in this order:
   boxes and the bulbs (draw calls unchanged, triangles up), the jazz loop's level against the radio on
   the phone's speaker, the coloured light washes under the saucer (the game's camera never sees the
   underside, so none were built), the projected line patterns of F's night photo, planters.
+
+- **Railway audit (F, 2026-11-07).** Built: light signals (`map_builder` `rail_signal_spots`,
+  `_build_rail_signals`: 50, in the walls surface, +0 draw calls; `check_rail_signals` in verify),
+  train sounds (`trains.gd` `_sounds`; `train_rumble`, `train_bridge`, `train_horn`, `station_gong`
+  from tools/make_sfx.py), red tail lamps on a train's last car. Open: the signals' look and the
+  sounds' levels on the phone (the rumble's body is low, the phone's speaker loses some of it);
+  signals stay at one aspect (they do not change as a train passes); no signals on the bridges or at
+  Główna's yard islands; S3d Gdańska.
+- **check_trains is not repeatable (found 2026-11-07).** The same commit gives different runs: main f7b6cc58 ran three times gave Główna 2, 0 and 1 stops, so "no train stopped at Główna" (and "no train turned back") fail now and then. The trains' `_rng` is seeded (1955) and the check has no map or view, so the drift comes from somewhere else in `trains.gd`; find it, or loosen those two asserts to a longer run.
+- **Stacja Muzeum (paused by F's freeze, 2026-11-07).** Done: 19 Commons photos on F's Mac
+  (`~/Documents/warsaw-needed-photos/stacja-muzeum{,-claude}/`, sources.txt; `small/` holds 1100 px
+  copies), read; the museum's four sidings kept free of trains, wires and signals
+  (`Trains.service_rails`). Not built: the hall and its locomotives. Found: the hall is OSM's L
+  outline at about (-2512, 862) (7.6 m), the sidings end at its yard side (-2531, 870); the photos
+  show a cream gable with a segmental-arch top, eight pilasters, gold WARSZAWA GŁÓWNA letters on a
+  frame over the roof, a red-brown canopy over steps, a long low wing with a dark roof, rows of
+  black steam locos with red wheels, green tank locos and the streamlined green Pm3, a cobbled
+  platform with lamps, a white fence and a water crane. Open: which end of the L the gable is on
+  (photos disagree: needs GUGiK's ortho from the Mac).
 
 ## Krakowskie Przedmieście street by street (F, 2026-11-02), pass 1
 Built (cloud, Sonnet): eight shopfronts (`Storefronts.KRAKOWSKIE`, 93 venue signs in check_parodies), original names, at the mapped house numbers 20/22, 19, 27, 56, 45, 58/60, 64, 69. Open:
