@@ -4,12 +4,12 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
-## Nowogrodzka 31 and the rooftop billboard (F's four photos, 2026-11-07; docs/landmarks/nowogrodzka31.md)
+## Nowogrodzka 31, the rooftop billboard and Marszałkowska 99 (F's photos and 3D views, 2026-11-07; docs/landmarks/nowogrodzka31.md)
 
-Built (cloud, Sonnet): the office block on the corner of Marszałkowska and Nowogrodzka as a model, its end-wall ad
-banner, the billboard on the roof with 15 floodlights and visible beams (new `landmarks.beams`, drawn by
-`map_builder._build_landmark_beams`). Left: the balconied block beside it (OSM 421, two floors taller in the photos)
-stays LoD2; awnings and the vertical BIM BAR sign; phone look check of the beams (the glow bands on the iPhone).
+Built (cloud): the office block south of Nowogrodzka between Marszałkowska and Parkingowa (OSM 445 and 444) as a model,
+its end-wall ad banner facing the Novotel, the billboard on its roof with 15 lamps; Marszałkowska 99 (OSM 5505), the
+white balconied slab beside it. Left: awnings and the vertical BIM BAR sign; Marszałkowska 99's shop names; a phone
+look check of both.
 
 ## The Palace of Culture's grounds and venues (F, 2026-11-07, with F's aerial photo)
 

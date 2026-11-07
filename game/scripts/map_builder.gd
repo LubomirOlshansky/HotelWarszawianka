@@ -620,7 +620,6 @@ func _build_parts(marks, roofs_only: bool) -> void:
 	_add_mesh(walls, building_material, true)
 	_build_neon(keep, marks)
 	_build_landmark_signs(marks)
-	_build_landmark_beams(marks)
 
 	_build_trees()
 	_build_street_furniture()
@@ -10238,56 +10237,6 @@ func _build_landmark_signs(marks) -> void:
 	_tree_multimesh(_shared["neon_quad"], _shared["neon"], spots, colours, custom, holder)
 	for c in holder.get_children():
 		(c as GeometryInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-
-
-## The landmarks' floodlight beams (`marks.beams`: base, direction, length, tip half-width, colour
-## whose alpha is the base's brightness): each a tapering ribbon, two crossed, in the additive glow
-## material (glow.gdshader's ground-light bands, so the beam reads as three hard pixel steps like
-## the lamp pools). One mesh for all, in the group the game shows when the lights are on. Like the
-## signs, a sector takes only the beams that start in it and the list is emptied.
-func _build_landmark_beams(marks) -> void:
-	var list: Array = marks.beams.duplicate()
-	marks.beams.clear()
-	if _in_sector:
-		list = list.filter(func(b: Array) -> bool: return _sector_rect.has_point(Vector2((b[0] as Vector3).x, (b[0] as Vector3).z)))
-	if list.is_empty():
-		return
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for beam: Array in list:
-		var base: Vector3 = beam[0]
-		var dir: Vector3 = (beam[1] as Vector3).normalized()
-		var length: float = beam[2]
-		var tip_w: float = beam[3]
-		var col: Color = beam[4]
-		var side := dir.cross(Vector3.UP)
-		if side.length_squared() < 0.001:
-			side = Vector3.RIGHT
-		side = side.normalized()
-		var side2 := dir.cross(side).normalized()
-		var tip := base + dir * length
-		var clear := Color(col.r, col.g, col.b, 0.0)
-		for s: Vector3 in [side, side2]:
-			var a := base - s * 0.14
-			var b := base + s * 0.14
-			var c := tip + s * tip_w
-			var d := tip - s * tip_w
-			for v: Array in [[a, col], [b, col], [c, clear], [a, col], [c, clear], [d, clear]]:
-				st.set_color(v[1])
-				st.add_vertex(v[0])
-	var mat := ShaderMaterial.new()
-	mat.shader = load("res://shaders/glow.gdshader")
-	mat.set_shader_parameter("lift", 0.0)
-	mat.render_priority = 1
-	var holder := Node3D.new()
-	holder.name = "LandmarkBeams"
-	holder.add_to_group("night_lights", true)
-	_out.add_child(holder)
-	var mi := MeshInstance3D.new()
-	mi.mesh = st.commit()
-	mi.material_override = mat
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	holder.add_child(mi)
 
 
 func _build_neon(keep: Array, marks) -> void:
