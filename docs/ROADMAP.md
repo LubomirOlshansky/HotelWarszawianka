@@ -81,6 +81,14 @@ then the Launch gate.
 - [x] The Emilii Plater underpass's five entrances sunk with real stairs: granite parapets round the two
       wells, steel canopies over the pavement flights (green on the south side), dark passage mouths, and
       people walking in and out (F, 2026-11-06; spec `underpass-emilii-plater.md`; site `underpass`)
+- [x] Stairs across the city: every OSM flight that drops over the ground is a stone flight with treads,
+      risers, cheek walls, OSM's handrails and pram channels; walls across stairs opened, stairwell walls
+      balustrades, fountain basins low rims, OSM wall heights (F, 2026-11-07; `tools/stairs.py`)
+- [x] Walls, fences and hedges from OSM's heights, materials and fence types (see-through railings, low
+      park walls, noise barriers), and the Old Town's city walls in brick (F, 2026-11-07; `tools/barrier_tags.py`)
+- [ ] City walls look check from photos (battlements, gates), photo-tag the untagged walls and fences
+- [ ] Stairs deeper than the 10 m ground shows (Skarpa, Karowa, Tamka, metro stairwells) cut into the
+      ground from F's photos (photo list `stairs-photo-list.md`)
 - [x] Arkadka redesign, roof car park, BANK PEPEO sign and the Forest roof terrace (F, 2026-11-01; spec `arkadia.md`)
 - [x] Cobalt-style motorboat on the Forest tower's roof (F, 2026-11-06; spec `forest.md` section 4)
 - [x] Warszawa Powiśle's round pavilion rebuilt from F's photos with jazz nights: the saucer's knife edge, WARSZAWA POWIŚLE in yellow tube letters in dark boxes on the rim, bulbs round the rim and out over the terrace, orange deck chairs, red café tables, a jazz stage with a band of four, an audience and our own swung jazz tune every evening 18:30-23:30 (F, 2026-11-06; spec `powisle.md` sections 1 and 9; phone look and sound level open)
