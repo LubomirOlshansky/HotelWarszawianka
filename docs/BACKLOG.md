@@ -4,6 +4,23 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## Buses and bus stops like Warsaw's (F, 2026-11-07)
+
+Compared with 22 recent street photos at our own stops (Mapillary 2021-2026). Built: the white stop
+zigzag (P-17) in the kerb lane at 167 stops and the yellow kerb line along the bus at 130
+(`tools/bus_stops.py`, check_stops K6), the shelter rebuilt as the real red-framed one (thin silver
+posts, red loops at both ends, a lit poster end, the name plate under the roof) with the red stop
+pole and its timetable case, and a 12 m solo bus beside the 18 m articulated one (40 %, one
+family: +0 draw calls; the long bus's rear door moved off its axle). Left:
+- Only the stops OpenStreetMap maps with a shelter exist (208 on bus roads). Real Warsaw has many
+  more poles without a shelter; they need the raw OSM `highway=bus_stop` nodes (a Mac re-bake: the
+  cloud can't reach OpenStreetMap), then a pole-only stop kind with its own zigzag.
+- The stop's name on its plate and the line numbers on the buses' displays are blank bars: real
+  names need the OSM `name` of each stop (same re-bake) and a pixel font small enough.
+- Electric buses (roof battery pods, the charger pantograph) as a third shape; bus bays (zatoki)
+  where the kerb steps back are not drawn because the road rework is dropped.
+- Phone look check: zigzag line width (0.22 m) and the yellow line (0.22 m) at the default view.
+
 ## Stacja Muzeum, Nocny Targ and Kolejowa (F, 2026-11-07; spec docs/landmarks/specs/stacja_muzeum.md)
 
 - **Built** (sites `stacja_muzeum`, `nocny`, `kolejowa`): the old Warszawa Główna hall (barrel roof, arched
@@ -32,6 +49,7 @@ Small problems that agents reported or that showed up in screenshots. They are f
 - **D19-3** the green south of the roundabout (next to Generation Park) is an OpenStreetMap
   `construction` area drawn as grass; a building site there too if F's photos show one.
 - **D19-4** the glass footbridge between two blocks (F's courtyard photo) is not built: where is it?
+
 
 ## The Palace of Culture's grounds and venues (F, 2026-11-07, with F's aerial photo)
 
@@ -216,6 +234,7 @@ Al. Jerozolimskie 4-6, every name a parody (SOWA CLUB, CITY 25, PEPSZY, KACBERG)
   and the terrace's printed banner are plain colour; a texture pass would add them.
 - **Phone**: the look of the pink glass and tubes at night, and a bench there (1,298 triangles,
   one shader branch for the pink glow).
+
 ## Novotel Warszawa Centrum from F's photos (F, 2026-11-07; docs/landmarks/novotel.md)
 
 Built: the white tiled slab with its paired windows and the lift core's blank strip, the blank narrow ends round

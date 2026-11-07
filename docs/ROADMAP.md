@@ -569,6 +569,7 @@ Beta goal: a visitor explores the city with everything open, an easy city drive,
 - [x] G6 Under-the-bridge entries (2026-11-02): a car coming onto a ramp at an angle off its fill climbs on instead of driving under the slab (`map_builder.gd` ramp feet); check_drive drives onto every ramp foot across its width (4 → 0); phone feel open
 - [x] G7 Old Town roofs less repetitive (the dormer and tile pattern) (Sonnet) (2026-11-01, tile tones, dormer/skylight/chimney variants)
 - [x] G8 Bus stops on the kerb; buses dwell about ten seconds, people get off and on, people wait (2026-11-01; shelters snapped and turned by tools/snap_props.py, service in buses.gd; phone look check open)
+- [x] Bus stops and buses like Warsaw's: stop zigzag and yellow kerb line, the red-framed shelter and red pole, the 12 m solo bus beside the articulated one (2026-11-07, `tools/bus_stops.py`; pole-only stops and real stop names wait on a Mac OSM re-bake, BACKLOG)
 - [x] G9 Street furniture (chairs, benches) placed where it belongs, not at random (2026-11-01; benches face the walk, cafe sets only on a shopfront, tools/check_stops.py)
 - [x] G10 Podwózka off the main line: a visible rider icon and a START RIDE button with clear directions (Opus) · 2026-11-02, START KURS button within 25 m, bigger "!"; phone check open
 - [x] G11 Better map icons on the minimap and the full map (Sonnet) (2026-11-01, kind shapes, metro and hospital pins, legend; rider and heli icons ride with G10)
