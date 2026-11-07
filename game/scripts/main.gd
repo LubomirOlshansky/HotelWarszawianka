@@ -1745,6 +1745,8 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	trains = Trains.new()
 	world.add_child(trains)
 	trains.setup(map, data)
+	# The railway audit (2026-11-07): the trains' rumble, horn and platform gong.
+	trains.sfx = sfx
 	if train_at != Vector2.INF:
 		trains.place_near(train_at, train_kind)
 	walkers = Pedestrians.new()
