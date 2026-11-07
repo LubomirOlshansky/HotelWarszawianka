@@ -96,6 +96,8 @@ then the Launch gate.
 - [x] Arkadka rebuilt from F's photos: the fountain plaza, curved entrance with piers, canopies and fanned glass gables, the sign tower with its crown, logo panels and screen, the office wing, the brick wing and rotunda with yellow awnings, the letter sign (F, 2026-11-03; spec `arkadia.md`)
 - [x] Forest rebuilt from F's photos: the stepped three-slab tower with colour fins and PEPEO ŻUBR in its crown, the finned wings with black top storeys and roof gardens, the courtyard amphitheatre and trees (F, 2026-11-03; spec `forest.md`; wing heights parked)
 - [x] Towarowa 22 built as finished, the "Warsaw of the future": tower row, the printing hall's yellow frame over a garden, Park Słowa, a drone port and the gilded last crane of Wola (F, 2026-11-03; spec `towarowa22.md`, from F's renders; look check parked)
+- [x] Stacja Muzeum, Nocny Targ and Kolejowa from photos: the old Warszawa Główna hall's arched front, engines and coaches on the museum's sidings, the night market's two rusty canopies with tubes and benches, Kolejowa 8/10's brick warehouses, the pinball museum and the teal club (F, 2026-11-07; spec `stacja_muzeum.md`; Space Club and Splot Słoneczny parked, SM-3/SM-4)
+- [x] Wola's 19. Dzielnica from F's photos: the old Polfa plot as NOHO ONE's building site (concrete frames, three cranes, a yard of pallets, cabins and cars, the OHO ONE hoarding), the Kolejowa estate's blocks in cream with rust window frames, the Towarowa Towers in blue glass with orange and gold frames (F, 2026-11-07; spec `dzielnica19.md`; photo list D19-1 parked)
 - [x] Prosta 32, Prosta 28 and Łucka City (Łucka 15) rebuilt from F's photos: Prosta 32's white diamond lattice over blue glass with MARZYPOL, Prosta 28's X-braced base, stone stack and stepped tree terraces with PROSTO, Łucka City's white stepped block, dark top and INTERBRUK board (F, 2026-11-06; specs `prosta32.md`, `prosta28.md`, `lucka.md`; Prosta 28's height parked)
 - [x] Rondo Daszyńskiego towers rebuilt from Mac photos: Skyliner, Warsaw Unit, Mennica Legacy, Generation Park Y, The Warsaw HUB and its hotel tower (F, 2026-11-03; reports in docs/landmarks/photo-reports/; Mac look check parked)
 - [x] Rondo Daszyńskiego towers, second pass (2026-11-06): Unit's taper and gate hall, Mennica's column arcade, GPY's black patches and wing terraces, the HUB's parapets, roof plant and podium skylight (BACKLOG RD-1..4)
@@ -395,7 +397,7 @@ then the Launch gate.
   - [x] Hala Mirowska glazed east gallery and the Metropolitan's silver top storey, from F's photos, 2026-11-07 (rest of the photo pass: BACKLOG)
   - [x] Aleja Jana Pawła II: mid-century plasters on every plain building along it, 2026-11-01
   - [ ] Mac photo checks for the estate and the stalls (QUESTIONS); then the boulevard street by street
-- [x] Street blocks across the city (F, 2026-11-06): 512 plain blocks modelled, Nowy Świat's 50 with real windows, trim, dormers and roofs (BACKLOG "Street blocks across the city") Marszałkowska added 16 photo fronts Aleje Jerozolimskie 21 and the streets from Świętokrzyska to Ujazdowskie 25, Krakowskie Przedmieście, Senatorska and Miodowa 41, Długa, Jana Pawła II and Krucza 41, Mokotowska and Hoża 61, Wilcza, Piękna and Targowa 83, and 46 named buildings on 2026-11-07 (351 in all).
+- [x] Street blocks across the city (F, 2026-11-06): 512 plain blocks modelled, Nowy Świat's 50 with real windows, trim, dormers and roofs (BACKLOG "Street blocks across the city") Marszałkowska added 16 photo fronts Aleje Jerozolimskie 21 and the streets from Świętokrzyska to Ujazdowskie 25, Krakowskie Przedmieście, Senatorska and Miodowa 41, Długa, Jana Pawła II and Krucza 41, Mokotowska and Hoża 61, Wilcza, Piękna and Targowa 83, and 46 named buildings on 2026-11-07 (351 in all); 21 block colours corrected from F's photos; 15 more fronts from F's second photo round and 39 from the follow-up (403 in all).
 - [ ] Nowy Świat street by street (F, 2026-11-01; BACKLOG "Nowy Świat"):
   - [x] N1 café terraces along the whole street (about three times as many) and six named houses with skins and cards, 2026-11-01
   - [x] N2 three more neon shops (BLIKLINA OD 1869 pastry parody near no. 35, Chmielna, Foksal), 2026-11-02
@@ -414,6 +416,7 @@ then the Launch gate.
 - [ ] Mac photo check of the marina (club house colours and storeys, berth count)
 - [x] Port Czerniakowski's spit and basin from F's photos (2026-11-07): MAJAMI WAWA (terrace, tents, fire pits,
   white pontoon), WTW's boathouse and gate, low halls instead of 14 m blocks, boats along both quays, houseboats
+- [x] Monkey Love's garden as MAŁPI LOVE from F's photos (2026-11-07, site `monkey_love`); roads to the spit checked
 - [ ] Mac photo check of the barges (hull colours, deckhouse length and place, the terraces)
 - [ ] Mariensztat and Krakowskie Przedmieście review (F, 2026-11-01; BACKLOG section):
   - [x] M1 Mariensztat's houses in pastel with red tile roofs and dormers, 2026-11-01

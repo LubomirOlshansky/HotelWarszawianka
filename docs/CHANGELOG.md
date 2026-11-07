@@ -12,6 +12,9 @@ someone writes its lines.
 ## 2026-11-07
 - A new ride, "Dekalog na kółkach": Claire, a film student from Lyon, wants to see where Kieślowski shot the Dekalog. Pick her up at Centralna and drive her through six real filming places to the Muranów estate on Inflancka.
 - The Dekalog estate on Inflancka is rebuilt from photos: six cream 14-storey slabs with ochre stairwells and white balconies, and across the street the Inflancka pools with their air dome, round pools and red and green slides.
+- Stacja Muzeum, Nocny Targ and Kolejowa: the old Warszawa Główna hall has its arched cream front with gold letters, steam engines on red wheels and green tank engines stand on the museum's sidings, the night market glows under two rusty platform roofs with coloured tubes and painted benches, and Kolejowa's old railway warehouses, the pinball museum and the teal club line the street.
+- Wola by Kolejowa looks like itself: the old drug works' plot is a busy building site with bare concrete floors, three cranes and stacks of materials, the estate's blocks have their cream walls and brown window frames, and the two tall towers wear their orange and gold frames.
+- Under Most Łazienkowski, on the river side, Małpi Love opened its garden: dark timber cabins with a yellow wall, plank tables under white umbrellas and string lights under the trees.
 - The railway got its signals: green and red lights at every platform's end and both tunnel mouths, trains rumble past (louder on the bridge), sound their horn out of the tunnel and get a platform gong, and show red lamps at the back.
 - The Old Town's brick city walls stand round it now, park walls are their real low height, and railings along the streets are see-through steel instead of grey slabs.
 - Stairs across the city are real stone steps now, with side walls and handrails, from Kamienne Schodki to the Skarpa's park stairs; walls that blocked stairs are opened and fountain basins have low rims instead of tall grey walls.
@@ -46,6 +49,9 @@ someone writes its lines.
 - Mokotowska and Hoża: 61 more houses got street fronts from real photos.
 - Wilcza, Piękna and Targowa: 83 more houses got street fronts from real photos.
 - 46 named buildings across the centre got street fronts from real photos.
+- 21 more houses got their real wall colours after a check against street photos, from Filtrowa to Marszałkowska.
+- 15 more houses got street fronts from new photos, among them Bracka 16, Atlas Tower and Dom Dysydentów.
+- 39 more buildings got street fronts from new photos, from Klif and Babka Tower to Freta and Plac Trzech Krzyży.
 
 ## 2026-11-06
 - A night racing club: Darek calls you to a meet on Plac Defilad, where tuned cars glow and Lena drifts donuts in the smoke until the police raid it. Escape, race everyone to the next meet by the National Stadium, survive a second raid, then line up for a drag on Aleja Zieleniecka: watch the lights, shift on time, hit the nitro and beat Tadek for the club's respect.
