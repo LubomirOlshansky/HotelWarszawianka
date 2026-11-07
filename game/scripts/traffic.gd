@@ -465,6 +465,9 @@ var _view_mid := Vector2.ZERO
 var _jc_at := PackedVector2Array()
 ## The ground in view, kept by _update_view(): centre, right and ahead axes, half size (m).
 var view_centre := Vector2.ZERO
+## A zone the traffic keeps out of (event_day.gd's cordon): (Vector2 game-plane point) -> bool.
+## Cars inside it are released and none spawn there. Invalid: no zone.
+var keep_out: Callable
 var view_right := Vector2.RIGHT
 var view_ahead := Vector2.UP
 var view_half := Vector2.ONE
@@ -726,6 +729,10 @@ func _manage() -> void:
 		i += 1
 		if d.persistent or d.ghost or d.visible:
 			continue
+		if keep_out.is_valid() and keep_out.call(Vector2(d.pos.x, d.pos.z)):
+			_release(d)
+			i -= 1
+			continue
 		var l := _local(Vector2(d.pos.x, d.pos.z))
 		var gone := absf(l.x) > far.x or absf(l.y) > far.y
 		# Too many (zoomed in, or the frame governor's CPU step lowered the density): thin out the
@@ -803,6 +810,8 @@ func _try_spawn(anywhere: bool) -> bool:
 	if graph.closed_at(e, s + SHUT_ROOM) or graph.closed_at(e, s - SHUT_ROOM):
 		return false
 	var q := graph.point_at(e, s, graph.lane_offset(e, lane))
+	if keep_out.is_valid() and keep_out.call(q):
+		return false
 	var kind := Kind.CAR
 	var r := _rng.randf()
 	if cls == 0 and lane == graph.e_lanes[e] - 1 and r < 0.07:

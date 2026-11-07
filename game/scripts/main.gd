@@ -155,6 +155,8 @@ const EvTow := preload("res://scripts/ev_tow.gd")
 const Packs := preload("res://scripts/packs.gd")
 ## Kibice (docs/design/city-life-satire.md 7): friendly fans by Stadion Leguminy on match evenings.
 const Fans := preload("res://scripts/fans.gd")
+## 11 listopada (event_day.gd): the Independence Day crowd, barriers and lights round the rondo.
+const EventDay := preload("res://scripts/event_day.gd")
 const LoudCars := preload("res://scripts/loud_cars.gd")
 const CrazyDrivers := preload("res://scripts/crazy_drivers.gd")
 ## Wellness circles (docs/design/city-life-satire.md): sound healing, techno yoga, the 40+ club, park kung-fu.
@@ -600,6 +602,12 @@ var packs_log := false
 ## Kibice (fans.gd): the fans by Stadion Leguminy; flags --fans=0 (none), --fans-now (out whatever the
 ## clock), --fans-log, --fans-phase= and --fans-result= (the match day's walkers).
 var fans: Fans
+## --event-day forces the 11 listopada event on (any date), --event-day=0 turns it off, --event-smoke=0
+## leaves out its glow and haze, --event-log prints its summary.
+var event_day: EventDay
+var event_flag := -1
+var event_smoke := 1
+var event_log := false
 var fans_flag := 1
 var fans_now := false
 var fans_log := false
@@ -1639,6 +1647,7 @@ func _build_world() -> void:
 	_build_storefronts(data, world)
 	_build_packs(data, world)
 	_build_fans(data, world)
+	_build_event_day(data, world)
 	_build_loud_cars(world)
 	_build_crazy_drivers(world)
 	_build_wellness(world)
@@ -1966,6 +1975,8 @@ func _set_quality(choice: int) -> void:
 		packs.amount = _crowd_scale()
 	if fans != null:
 		fans.amount = _crowd_scale()
+	if event_day != null:
+		event_day.amount = _crowd_scale()
 	if wellness != null:
 		wellness.amount = _crowd_scale()
 	if life != null:
@@ -2610,6 +2621,43 @@ func _build_fans(data: Dictionary, world: Node3D) -> void:
 	hud.horn_pressed.connect(func() -> void:
 		if fans != null and not flying:
 			fans.honk(car.global_position))
+## 11 listopada (event_day.gd): built idle on both city paths; it switches itself on on the date
+## (live clock) or with --event-day. None with --event-day=0.
+func _build_event_day(data: Dictionary, world: Node3D) -> void:
+	if event_flag == 0:
+		return
+	event_day = EventDay.new()
+	event_day.name = "EventDay"
+	event_day.map = map
+	event_day.hud = hud
+	event_day.force = event_flag == 1
+	event_day.smoke_on = event_smoke == 1
+	event_day.amount = _crowd_scale()
+	event_day.log_on = event_log
+	event_day.clock = tod.local_clock
+	event_day.calendar = _crowd_calendar
+	event_day.focus = func() -> Vector3: return cam_focus
+	event_day.lit = func() -> bool: return tod != null and tod.lights_on > 0.001
+	event_day.vehicle = func() -> Array:
+		if flying:
+			return [heli.global_position, heli.speed() * 3.6, true]
+		return [car.global_position, car.vel.length() * 3.6, false]
+	event_day.kick = func(at: Vector3, yaw: float) -> void:
+		var spot := _free_car_spot(at, yaw)
+		car.global_position = spot
+		car.rotation.y = yaw
+		car.vel = Vector3.ZERO
+		car.forward_speed = 0.0
+		car.reset_physics_interpolation()
+		car.reset_stall()
+		hud.toast("Święto: tędy dziś nie przejedziesz. Spróbuj helikopterem!", "A holiday: closed to cars today. Try the helicopter!")
+		_cut_camera()
+	event_day.traffic = traffic
+	event_day.trams = trams
+	world.add_child(event_day)
+	event_day.setup(data)
+
+
 ## City-life satire #1 (loud_cars.gd): the meet at Browary on both city paths, and the loud
 ## cars in traffic (none with --no-traffic). None at all with --loud=0.
 func _build_loud_cars(world: Node3D) -> void:
@@ -4837,6 +4885,14 @@ func _parse_args() -> void:
 			fans_now = true
 		elif arg == "--fans-log":
 			fans_log = true
+		elif arg == "--event-day":
+			event_flag = 1
+		elif arg.begins_with("--event-day="):
+			event_flag = clampi(int(arg.trim_prefix("--event-day=")), 0, 1)
+		elif arg.begins_with("--event-smoke="):
+			event_smoke = clampi(int(arg.trim_prefix("--event-smoke=")), 0, 1)
+		elif arg == "--event-log":
+			event_log = true
 		elif arg.begins_with("--fans-phase="):
 			fans_phase = arg.trim_prefix("--fans-phase=")
 		elif arg.begins_with("--fans-result="):

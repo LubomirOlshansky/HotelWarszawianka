@@ -5748,6 +5748,10 @@ Command-line options (after `--`):
 | `--fans=0` | the fans by Stadion Leguminy (fans.gd) off (also off with `--crowd=0`) |
 | `--fans-now` | fans: the three groups out on whatever the clock says (shots, checks); otherwise only on match evenings (Wed 17:00-21:30, Sat 15:00-21:30, Sun 14:00-20:30) |
 | `--fans-log` | fans: print `fans:` lines: out and home, each chant (and the horn's), every line |
+| `--event-day` | 11 listopada (event_day.gd): the Independence Day event on whatever the date and clock say, full strength (the crowd and flags at Rondo Dmowskiego and Al. Jerozolimskie, the four barrier lines, the Palace, Złota 44 and Stadion Narodowy lit white and red, the glow and haze); otherwise it switches itself on only on 11 November (the Warsaw date, live clock) |
+| `--event-day=0` | the event off even on the date |
+| `--event-smoke=0` | the event without the glow pots, the haze and the smoke puffs (the "smoke off" look) |
+| `--event-log` | event: print its build line (people, flags, glow pots, bands) |
 | `--fans-phase=arrive\|match\|leave` | fans: the match day's phase whatever the clock (its busy part: arrive at 0.75, leave at 0.15), so shots show the walkers |
 | `--fans-result=win\|draw` | fans: the result at full time instead of the roll (65 % win) |
 | `--wellness=0` | wellness circles (docs/design/wellness.md): no sound-healing rings, techno-yoga rows, 40+ circles or kung-fu schools (`--crowd=0` drops them too) |
