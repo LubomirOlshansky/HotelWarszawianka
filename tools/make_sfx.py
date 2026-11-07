@@ -58,6 +58,11 @@ levels (if their folder is given) to balance the buses against.
   club_leak      loop MW-5 (city_sounds.gd): a club's four-on-the-floor through a door,
       124 BPM, low-passed (a 7.7 s loop)
   metro_chime    our own three-note chime for a train below a metro entrance
+  train_rumble / train_bridge   the railway audit (trains.gd): a train's wheels going by, 2.4 s:
+      a swelling low rumble and two "tu-dum" bogie pairs over rail joints; on a bridge the
+      girders' drone and ringing clacks
+  train_horn     our own two-tone horn, 622 then 523 Hz, 1.5 s (a train out of a tunnel mouth)
+  station_gong   our own four-tone platform gong (G4 C5 E5 C5), 2.6 s (a train pulling in)
   church_bell    one toll of a church bell (the hour is struck by repeating it)
   busker         an original street-guitar loop for the Patelnia at 19:00 (9.6 s)
   crowd_murmur   loop MW-3 (crowds.gd): a crowd talking, fourteen formant-noise voices in
@@ -86,7 +91,7 @@ levels (if their folder is given) to balance the buses against.
   church_bell, busker, crowd_murmur, steps_guitar; loop MW-4's bark_small, bark_mid, bark_big,
   bike_bell, watch_beep, queue_chatter, phone_shutter, cafe_bell; loop MW-2's frog_chime,
   scooter_clatter; the night-buses loop's horn_player; the vintage-tram loop's tram_creak,
-  old_tram_bell) and leaves the other files as
+  old_tram_bell; the railway audit's train_rumble, train_bridge, train_horn, station_gong) and leaves the other files as
   they are.
 """
 import array
@@ -1684,6 +1689,88 @@ def techno_thump(seed):
     return biquad(biquad(out, "lp", 1600.0, 0.7, True), "hp", 35.0, 0.7, True)
 
 
+
+# --- the railway audit (trains.gd, 2026-11-07) ------------------------------------
+
+def _clack(n, at, rnd, ring=None):
+    """One wheel over a rail joint: a low thud and a short bright tick (and, on a steel deck,
+    a short ring)."""
+    out = zeros(n)
+    m = int(0.18 * RATE)
+    for j in range(min(m, n - at)):
+        t = j / RATE
+        out[at + j] += 0.9 * math.sin(TAU * 62.0 * t) * math.exp(-t / 0.045)
+    tick = biquad([rnd.uniform(-1, 1) * math.exp(-j / (0.008 * RATE)) for j in range(int(0.04 * RATE))], "bp", 1100.0, 1.2)
+    for j, v in enumerate(tick):
+        if at + j < n:
+            out[at + j] += 1.4 * v
+    if ring:
+        sig = bell(min(int(0.5 * RATE), n - at), ring, 0.0)
+        for j, v in enumerate(sig):
+            out[at + j] += 0.35 * v
+    return out
+
+
+def train_pass(seed, bridge):
+    """A train's wheels going by (trains.gd plays one every ~2 s while a train runs near):
+    a rumble of low noise swelling and fading, and two "tu-dum" pairs as a car's bogies cross a
+    rail joint. `bridge`: on a steel deck, a drone of the girders (110 / 233 / 347 Hz, beating)
+    and every clack rings. 2.4 s, one-shot."""
+    rnd = random.Random(seed)
+    n = int(2.4 * RATE)
+    bed = noise(n, rnd)
+    low = mix((1.0, biquad(bed, "lp", 240.0, 0.7)), (0.7, biquad(bed, "bp", 95.0, 1.4)),
+              (0.4, biquad(bed, "bp", 1700.0, 1.6)))
+    out = zeros(n)
+    for i in range(n):
+        t = i / n
+        out[i] = low[i] * (0.35 + 0.65 * math.sin(math.pi * t) ** 1.5)
+    ring = [(410.0, 1.0, 0.25), (987.0, 0.5, 0.12), (1630.0, 0.25, 0.07)] if bridge else None
+    for at in (0.35, 0.47, 1.45, 1.57):
+        place(out, _clack(n, int(at * RATE), rnd, ring), 0, 0.8 if bridge else 0.6)
+    if bridge:
+        for i in range(n):
+            t = i / RATE
+            env = math.sin(math.pi * i / n) ** 1.2
+            out[i] += env * 0.22 * (math.sin(TAU * 110.0 * t) + 0.6 * math.sin(TAU * 233.0 * t + 1.3)
+                                    + 0.35 * math.sin(TAU * 347.0 * t + 0.4) + 0.3 * math.sin(TAU * 820.0 * t + 2.1)) * (0.75 + 0.25 * math.sin(TAU * 3.1 * t))
+    out = biquad(out, "hp", 35.0, 0.7)
+    return fade(out, 0.15, 0.4)
+
+
+def train_horn(seed):
+    """Our own two-tone train horn: a long high note falling to a lower one (622 then 523 Hz),
+    reedy (a narrow pulse with a little vibrato) through two horn resonances, with an open
+    echo as from a cutting. 1.5 s."""
+    n = int(1.5 * RATE)
+    out = zeros(n)
+    for start, end, f in ((0.0, 0.55, 622.0), (0.6, 1.15, 523.0)):
+        ph = 0.0
+        for i in range(int(start * RATE), int(end * RATE)):
+            t = (i - start * RATE) / RATE
+            ph += f * (1.0 + 0.004 * math.sin(TAU * 5.5 * t)) / RATE
+            sq = 1.0 if ph % 1.0 < 0.3 else -0.43
+            env = min(1.0, t / 0.03) * min(1.0, ((end - start) - t) / 0.06)
+            out[i] += sq * env
+    out = mix((0.5, biquad(out, "lp", 2200.0, 0.7)), (0.9, biquad(out, "bp", 1250.0, 1.8)),
+              (0.5, biquad(out, "bp", 640.0, 1.2)))
+    out = saturate(out, 1.4)
+    return fade(echo(out, [(0.18, 0.25), (0.41, 0.12)], 0.0), 0.0, 0.08)
+
+
+def station_gong(seed):
+    """Our own platform gong before an announcement (not the real one): four soft
+    vibraphone tones, G4 C5 E5 C5, 0.3 s apart, ringing out over an open platform. 2.6 s."""
+    rnd = random.Random(seed)
+    n = int(2.6 * RATE)
+    out = zeros(n)
+    for k, f in enumerate((392.0, 523.3, 659.3, 523.3)):
+        at = int(k * 0.3 * RATE)
+        sig = bell(n - at, [(f, 1.0, 0.9), (f * 4.0, 0.18, 0.18), (f * 10.0, 0.05, 0.05)], 0.04, rnd)
+        place(out, sig, at, 0.8)
+    out = biquad(out, "lp", 3000.0, 0.7)
+    return fade(echo(out, [(0.13, 0.22), (0.29, 0.12)], 0.4), 0.0, 0.4)
+
 LOOPS = ["engine_idle", "engine_mid", "engine_high", "tyre_roll", "tyre_wet", "tyre_squeal", "rotor",
          "city_day", "city_night", "rain", "police_siren", "club_leak", "busker", "crowd_murmur", "steps_guitar",
          "queue_chatter", "amb_river", "amb_park", "amb_square", "amb_yard", "fan_chant", "gong_bowls", "techno_thump",
@@ -1792,7 +1879,10 @@ CITY = {"club_leak": lambda: [club_leak(71)], "metro_chime": lambda: [metro_chim
         # The wellness circles (wellness.gd, through city_sounds.gd's `gong` and `thump`).
         "gong_bowls": lambda: [gong_bowls(100)], "techno_thump": lambda: [techno_thump(101)],
         # The jazz evenings under the Powiśle saucer (crowds.gd's `jazz`, city_sounds.gd's `jazz`).
-        "jazz_trio": lambda: [jazz_trio(102)]}
+        "jazz_trio": lambda: [jazz_trio(102)],
+        # The railway audit (trains.gd): the wheels, the wheels on a bridge, the horn, the platform gong.
+        "train_rumble": lambda: [train_pass(103, False)], "train_bridge": lambda: [train_pass(104, True)],
+        "train_horn": lambda: [train_horn(105)], "station_gong": lambda: [station_gong(106)]}
 
 
 def main(out_dir, radio_dir=None, only=None):
