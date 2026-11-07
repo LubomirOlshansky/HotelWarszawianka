@@ -77,6 +77,9 @@ const SHOTS := {
 	# City-life satire #1 (loud_cars.gd, tools/make_sfx.py): a loud car's rev and crackle as it
 	# passes (loud on purpose: a little over the horns by the files' RMS).
 	"loud_rev": -11.0,
+	# The railway audit (trains.gd, tools/make_sfx.py, 2026-11-07): a train's wheels going by (on
+	# a bridge, with the girders' drone), its horn out of a tunnel mouth, the platform gong.
+	"train_rumble": -5.0, "train_bridge": -4.0, "train_horn": -13.0, "station_gong": -12.0,
 }
 ## Loop 3g-2: the siren loop (one positional voice) and its level there.
 const SIREN := "police_siren"
@@ -518,7 +521,8 @@ func sound_check() -> void:
 	await _meter("(beds and engine idling)", 2.0)
 	for n in SHOTS:
 		var at := focus + Vector3(15.0, 0.0, 0.0)
-		if n in ["tram_bell", "horn", "horn_double", "pigeons", "tram_creak", "old_tram_bell", "loud_rev"]:
+		if n in ["tram_bell", "horn", "horn_double", "pigeons", "tram_creak", "old_tram_bell", "loud_rev",
+				"train_rumble", "train_bridge", "train_horn", "station_gong"]:
 			_play3(n, at, 0.0)
 		elif n in ["birds_a", "birds_b", "siren_far", "dog_far"]:
 			_play2(n, 0.0, &"Ambience")
