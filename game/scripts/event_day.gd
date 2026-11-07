@@ -54,9 +54,11 @@ const CORRIDOR := 30.0
 const KICK_DEPTH := 3.0
 
 ## The crowd: figures built, the flag share, the hours (hour -> share of the crowd out).
-const CROWD_MAX := 2600
+const CROWD_MAX := 6000
 const FLAG_SHARE := 0.6
-const BIG_FLAG_SHARE := 0.08
+const BIG_FLAG_SHARE := 0.12
+## Share of the flags that are giant sector banners (5 m cloth on a 5 m pole), seen from the helicopter.
+const BANNER_SHARE := 0.06
 const ROAD_PAD := 2.5
 
 const WHITE := Color("#f4f1ea")
@@ -74,11 +76,16 @@ const SHIRTS: Array[Color] = [Color("#f4f1ea"), Color("#d8262b"), Color("#f4f1ea
 		Color("#d8262b"), Color("#6d7178"), Color("#3a4a63"), Color("#8c5a3c"), Color("#f4f1ea")]
 
 ## The glow pots and the haze (smoke on): counts, haze height and size.
-const POTS := 56
-const HAZE := 64
-const HAZE_Y := Vector2(7.0, 11.0)
-const HAZE_SIZE := Vector2(18.0, 32.0)
-const PUFFS := 110
+const POTS := 200
+const HAZE := 160
+## The standing smoke (event_fog.gdshader): big see-through blobs over the crowd, day and night.
+const FOG := 520
+const FOG_SIZE := Vector2(30.0, 74.0)
+const FOG_Y := Vector2(2.0, 24.0)
+const HAZE_Y := Vector2(9.0, 16.0)
+const PUFFS := 700
+## The lit puff boxes read as dark crates against the fog, which does the smoke now (event_fog.gdshader).
+const PUFFS_ON := false
 const PUFF_LIFE := 7.0
 
 ## The Palace's bands: heights as shares of the tower (bottom to top), the colours (0 red, 1 white);
@@ -130,6 +137,9 @@ var _static: MeshInstance3D
 var _bodies: StaticBody3D
 var _pots_mmi: MultiMeshInstance3D
 var _haze_mmi: MultiMeshInstance3D
+var _fog_mmi: MultiMeshInstance3D
+var _banners: MeshInstance3D
+var _fog_mat: ShaderMaterial
 var _puff_mm: MultiMesh
 var _puff_mmi: MultiMeshInstance3D
 var _puff_buf := PackedFloat32Array()
@@ -209,6 +219,7 @@ func _build() -> void:
 	var t0 := Time.get_ticks_msec()
 	_build_crowd()
 	_build_barriers()
+	_build_banners()
 	if smoke_on:
 		_build_glow()
 	_build_bands()
@@ -287,8 +298,8 @@ func _build_crowd() -> void:
 			var kid := rng.randf() < 0.1
 			_slots.append({"p": Vector3(q.x, y, q.y), "yaw": atan2(-face.x, -face.y),
 					"shirt": (WHITE if rng.randf() < 0.5 else RED) if kid else SHIRTS[rng.randi() % SHIRTS.size()],
-					"flag": kid or rng.randf() < FLAG_SHARE, "big": rng.randf() < BIG_FLAG_SHARE,
-					"s": 0.66 if kid else rng.randf_range(0.92, 1.06), "ph": rng.randf() * TAU})
+					"flag": kid or rng.randf() < FLAG_SHARE, "big": rng.randf() < BIG_FLAG_SHARE, "banner": rng.randf() < BANNER_SHARE,
+					"s": 0.8 if kid else rng.randf_range(1.12, 1.3), "ph": rng.randf() * TAU})
 	var cap := _slots.size()
 	var mat := Models.material().duplicate() as ShaderMaterial
 	mat.set_shader_parameter("walk", 0.0)
@@ -314,18 +325,49 @@ func _build_crowd() -> void:
 		if bool(s["flag"]):
 			var yaw := float(s["yaw"])
 			var right := Vector3(cos(yaw), 0.0, -sin(yaw))
-			var fsc := 1.3 if not bool(s["big"]) else 2.0
+			var fsc := 1.7 if not bool(s["big"]) else 3.2
+			var fv := Vector3(fsc, fsc, fsc)
+			if bool(s["banner"]):
+				fv = Vector3(9.0, 3.4, 3.0)
 			# The flag rides on a raised arm: next to the head, a little behind.
 			var fp := p + right * 0.28 * sc
-			CityLife.put(fbuf, fi, fp, yaw + sin(float(s["ph"])) * 0.35, Vector3(fsc, fsc, fsc) * sc, Color.WHITE, 0.0)
+			CityLife.put(fbuf, fi, fp, yaw + sin(float(s["ph"])) * 0.35, fv * sc, Color.WHITE, 0.0)
 			fi += 1
 		box = AABB(p, Vector3.ZERO) if i == 0 else box.expand(p)
 	_flag_n = fi
 	_crowd_buf = buf
 	_flag_buf = fbuf
-	_crowd_aabb = box.grow(4.0).expand(box.end + Vector3(0, 6.0, 0))
+	_crowd_aabb = box.grow(4.0).expand(box.end + Vector3(0, 10.0, 0))
 	_crowd_mm.visible_instance_count = 0
 	_flag_mm.visible_instance_count = 0
+
+
+## Three giant white-red banners carried overhead down the arms of the cross (Aleje Jerozolimskie
+## east, Marszałkowska north and south): 7 m wide, 4 m above the street, a gentle wave, held up
+## by the crowd. One mesh, the flags' material.
+func _build_banners() -> void:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for arm: Array in [[V, 45.0, 260.0], [U, 45.0, 175.0], [-U, 45.0, 175.0]]:
+		var dir: Vector2 = arm[0]
+		var side := Vector2(-dir.y, dir.x)
+		var yaw := atan2(-dir.y, dir.x)
+		var s: float = arm[1]
+		while s < float(arm[2]):
+			var c := C + dir * (s + 2.0)
+			var y := _ground(c) + 4.2 + sin(s * 0.11) * 0.45
+			var w := C + dir * (s + 2.0)
+			for k in 2:
+				var off := side * (-1.75 if k == 0 else 1.75)
+				_oriented_box(st, Vector3(w.x + off.x, y + 0.06 * k, w.y + off.y), Vector3(4.05, 0.08, 3.5), yaw, WHITE if k == 0 else RED)
+			s += 4.0
+	var mi := MeshInstance3D.new()
+	mi.name = "EventBanners"
+	mi.mesh = st.commit()
+	mi.material_override = Models.material()
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(mi)
+	_banners = mi
 
 
 ## A flag on a pole, 2.3 m: white over red, the cloth 0.95 × 0.6 m, hanging to +x. Vertex colours
@@ -516,7 +558,7 @@ func _build_glow() -> void:
 	# The pots: small bright red-orange halos.
 	var pm := MultiMesh.new()
 	pm.transform_format = MultiMesh.TRANSFORM_3D
-	pm.mesh = Props.halo(9.0, Color(1.0, 0.22, 0.14, 0.95))
+	pm.mesh = Props.halo(13.0, Color(1.0, 0.22, 0.14, 0.95))
 	pm.instance_count = pts.size()
 	for i in pts.size():
 		pm.set_instance_transform(i, Transform3D(Basis.IDENTITY, pts[i]))
@@ -529,19 +571,38 @@ func _build_glow() -> void:
 	# The haze: big soft pink-red blobs at lamp-post height over the crowd.
 	var hm := MultiMesh.new()
 	hm.transform_format = MultiMesh.TRANSFORM_3D
-	hm.mesh = Props.halo(1.0, Color(1.0, 0.36, 0.34, 0.2))
+	hm.mesh = Props.halo(36.0, Color(1.0, 0.36, 0.34, 0.2))
 	hm.instance_count = HAZE
 	for i in HAZE:
 		var s: Dictionary = _slots[rng.randi() % maxi(_slots.size(), 1)] if not _slots.is_empty() else {"p": Vector3(C.x, 0, C.y)}
 		var p: Vector3 = s["p"]
-		var sz := rng.randf_range(HAZE_SIZE.x, HAZE_SIZE.y)
-		hm.set_instance_transform(i, Transform3D(Basis.IDENTITY.scaled(Vector3(sz, sz, sz)), p + Vector3(0, rng.randf_range(HAZE_Y.x, HAZE_Y.y), 0)))
+		hm.set_instance_transform(i, Transform3D(Basis.IDENTITY, p + Vector3(0, rng.randf_range(HAZE_Y.x, HAZE_Y.y), 0)))
 	_haze_mmi = MultiMeshInstance3D.new()
 	_haze_mmi.name = "EventHaze"
 	_haze_mmi.multimesh = hm
 	_haze_mmi.material_override = Props.glow_material(true, 0.0)
 	_haze_mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(_haze_mmi)
+	# The standing fog: soft blobs, grey-pink by day, lit red from inside at night.
+	var fm := MultiMesh.new()
+	fm.transform_format = MultiMesh.TRANSFORM_3D
+	fm.mesh = Props.halo(1.0, Color.WHITE)
+	fm.instance_count = FOG
+	for i in FOG:
+		var fs: Dictionary = _slots[rng.randi() % maxi(_slots.size(), 1)] if not _slots.is_empty() else {"p": Vector3(C.x, 0, C.y)}
+		var fp: Vector3 = fs["p"]
+		var fz := rng.randf_range(FOG_SIZE.x, FOG_SIZE.y)
+		fm.set_instance_transform(i, Transform3D(Basis.IDENTITY.scaled(Vector3(fz, fz * 0.7, fz)), fp + Vector3(rng.randf_range(-6, 6), rng.randf_range(FOG_Y.x, FOG_Y.y), rng.randf_range(-6, 6))))
+	fm.custom_aabb = AABB(Vector3(C.x - 900.0, -20.0, C.y - 600.0), Vector3(1800.0, 120.0, 1200.0))
+	_fog_mat = ShaderMaterial.new()
+	_fog_mat.shader = load("res://shaders/event_fog.gdshader")
+	_fog_mat.render_priority = 1
+	_fog_mmi = MultiMeshInstance3D.new()
+	_fog_mmi.name = "EventFog"
+	_fog_mmi.multimesh = fm
+	_fog_mmi.material_override = _fog_mat
+	_fog_mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(_fog_mmi)
 	# The puffs: fans.gd's smoke clump, rising from the pots, pink fading to grey.
 	_puff_mm = _new_mm(Fans.puff_mesh(), PUFFS)
 	_puff_mmi = _new_mmi(_puff_mm, "EventPuffs", Models.material())
@@ -554,11 +615,11 @@ func _build_glow() -> void:
 func _puff(k: int, j: int, age: float) -> Array:
 	var pot := _pot_pos[k % _pot_pos.size()]
 	var wind := Vector3(0.9, 0.0, 0.4)
-	var rise := 1.0 + age * 9.0
-	var sz := lerpf(0.9, 2.6, age)
+	var rise := 1.0 + age * 24.0
+	var sz := lerpf(0.9, 3.0, age)
 	var jx := sin(float(k * 7 + j) * 1.7) * 0.9
 	var jz := cos(float(k * 5 + j) * 2.3) * 0.9
-	var pos := pot + Vector3(jx, 0.0, jz) + wind * (age * 5.0) + Vector3(0, rise, 0)
+	var pos := pot + Vector3(jx, 0.0, jz) + wind * (age * 9.0) + Vector3(0, rise, 0)
 	var col := Color("#ff6a7a").lerp(Color("#e9d6d6"), clampf(age * 1.4, 0.0, 1.0))
 	return [pos, sz, col]
 
@@ -786,9 +847,17 @@ func _update() -> void:
 	if _pots_mmi != null:
 		_pots_mmi.visible = smoky
 		_haze_mmi.visible = smoky
-		_puff_mmi.visible = smoky
+		_puff_mmi.visible = smoky and PUFFS_ON
 		if smoky and _puff_mm.visible_instance_count == 0:
 			_puff_mm.visible_instance_count = PUFFS
+	if _banners != null:
+		_banners.visible = share > 0.3
+	if _fog_mmi != null:
+		var in_dark := lit.is_valid() and bool(lit.call())
+		_fog_mmi.visible = smoke_on and share > 0.3
+		_fog_mmi.multimesh.visible_instance_count = int(FOG * tier)
+		_fog_mat.set_shader_parameter("glow", 1.0 if in_dark else 0.0)
+		_fog_mat.set_shader_parameter("density", 0.085 if in_dark else 0.06)
 	if _bands != null:
 		var dark := lit.is_valid() and bool(lit.call())
 		_bands.visible = dark and _hours >= 14.0 or (force and dark)
@@ -818,7 +887,7 @@ func _move_puffs() -> void:
 		box = AABB(p, Vector3.ZERO) if first else box.expand(p)
 		first = false
 	InstanceBuffers.send(_puff_mm.get_rid(), _puff_buf)
-	_puff_mm.custom_aabb = box.grow(6.0)
+	_puff_mm.custom_aabb = box.grow(14.0)
 
 
 ## The car is never in the zone: one that got in (the event began under it, or a side street led
