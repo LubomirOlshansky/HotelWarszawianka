@@ -1353,6 +1353,7 @@ be modelled, (Norblin, Browary, Koszyki and Elektrownia are the next section). D
 - **Hala Mirowska**: it was already a model; added ten market stalls with awnings on the square
   side of the east front.
   Photo pass 2026-11-07 added the glazed east gallery. Left: the lattice-glazed gable arch, the HALA MIROWSKA letters (a neon atlas word), Hala Gwardii.
+- **Next landmark photo passes (F's `warsaw-needed-photos`, paused 2026-11-07):** Sejm and Senat (#42; use `side-1`, `detail-2`, `night-3`, `exterior-4` is an interior) and Narodowy Bank Polski (#75, `refs/nbp`), then the Metropolitan and Mirowska leftovers above.
 - **Aleja Jana Pawła II**: every plain LoD2 building within 42 m of the boulevard takes a mid-century
   plaster by its position (`map_builder._boulevard_dress`, both city paths). Towers and the
   landmarks along it keep their own models.
