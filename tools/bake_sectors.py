@@ -151,6 +151,10 @@ SITE_AREAS = [
     (-2765.0, 135.0, -2735.0, 170.0),       # and its north-west wing
     (-2700.0, 560.0, -2655.0, 650.0),       # The Warsaw HUB's towers (landmarks.gd TOWERS "at")
     (-2723.0, 487.0, -2689.0, 538.0),       # and its round-ended hotel tower (TOWERS crowne "at")
+    (-3085.0, 690.0, -2745.0, 915.0),       # Wola's 19. Dzielnica estate (landmarks.gd D19_ESTATE's box)
+    (-2884.0, 526.0, -2738.0, 656.0),       # and Asbud's Towarowa Towers quarter (ASBUD_ZONE's box)
+    (-2795.0, 805.0, -2465.0, 1000.0),  # Stacja Muzeum, its sidings and Nocny Targ
+    (-3112.0, 928.0, -2928.0, 1046.0),  # Kolejowa 8/10, the pinball museum, the teal club
     (-260.0, 325.0, -240.0, 345.0),         # the BGK building, Al. Jerozolimskie 7 (unnamed in OSM; landmarks.gd BGK_AT)
     (-165.0, 55.0, -155.0, 65.0),           # Foksal 13 (unnamed in OSM; landmarks.gd _find_foksal, its address point)
     (-193.0, 46.0, -183.0, 56.0),           # and Foksal 15
