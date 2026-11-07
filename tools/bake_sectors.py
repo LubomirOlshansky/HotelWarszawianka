@@ -78,6 +78,7 @@ SECTOR_LISTS = {
     "carriage": "p", "kerbs": "p", "medians": "s", "guards": "p", "symbols": "xz", "sand": "p",
     "sandbars": "p", "rails": "p", "platforms": "p", "islands": "p", "lines": "p", "surfaces": "p",
     "steps": "p", "walls": "p", "garage_doors": "c", "tram_xings": "p", "asphalt_fills": "p", "tram_noses": "p",
+    "citywalls": "p",
 }
 # Flat point lists: values per thing.
 SECTOR_POINTS = {"trees": 4, "lamps": 2, "signals": 3, "parked": 4, "benches": 3, "bins": 3,
@@ -88,7 +89,8 @@ SECTOR_WHOLE = ["lod2_cuts", "lod2_open"]
 # index too: trains.gd runs on the whole network (docs/design/railway.md T1).
 SECTOR_ONLY = {"buildings", "markings", "carriage", "symbols", "sand", "sandbars", "surfaces",
                "steps", "lines", "walls", "garage_doors", "lamps", "benches", "bins",
-               "bikes", "shelters", "trees", "trees3d_crown", "tram_xings", "asphalt_fills", "tram_noses"}
+               "bikes", "shelters", "trees", "trees3d_crown", "tram_xings", "asphalt_fills", "tram_noses",
+               "citywalls"}
 
 # Where landmarks.gd looks for the building parts its sites are made of (it reads every
 # building whose centre lies inside one of these): the outlines it finds by name and the
