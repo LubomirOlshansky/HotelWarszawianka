@@ -27,6 +27,53 @@ Left:
 - The AK plaque on Śląsko-Dąbrowski's north railing; the metal barriers on Świętokrzyski's median.
 - Tram overhead wires: none anywhere in the city (on the tram bridges most visible). Trams lane.
 
+## Buses and bus stops like Warsaw's (F, 2026-11-07)
+
+Compared with 22 recent street photos at our own stops (Mapillary 2021-2026). Built: the white stop
+zigzag (P-17) in the kerb lane at 167 stops and the yellow kerb line along the bus at 130
+(`tools/bus_stops.py`, check_stops K6), the shelter rebuilt as the real red-framed one (thin silver
+posts, red loops at both ends, a lit poster end, the name plate under the roof) with the red stop
+pole and its timetable case, and a 12 m solo bus beside the 18 m articulated one (40 %, one
+family: +0 draw calls; the long bus's rear door moved off its axle). Left:
+- Only the stops OpenStreetMap maps with a shelter exist (208 on bus roads). Real Warsaw has many
+  more poles without a shelter; they need the raw OSM `highway=bus_stop` nodes (a Mac re-bake: the
+  cloud can't reach OpenStreetMap), then a pole-only stop kind with its own zigzag.
+- The stop's name on its plate and the line numbers on the buses' displays are blank bars: real
+  names need the OSM `name` of each stop (same re-bake) and a pixel font small enough.
+- Electric buses (roof battery pods, the charger pantograph) as a third shape; bus bays (zatoki)
+  where the kerb steps back are not drawn because the road rework is dropped.
+- Phone look check: zigzag line width (0.22 m) and the yellow line (0.22 m) at the default view.
+
+## Stacja Muzeum, Nocny Targ and Kolejowa (F, 2026-11-07; spec docs/landmarks/specs/stacja_muzeum.md)
+
+- **Built** (sites `stacja_muzeum`, `nocny`, `kolejowa`): the old Warszawa Główna hall (barrel roof, arched
+  cream front, eight pilasters, gold WARSZAWA GŁÓWNA, red-brown canopy, steps), its Towarowa wing and yard
+  arm; 17 engines and coaches on the museum's four sidings (Trains.MUSEUM_ENDS, PR #521 keeps them free
+  of trains); Nocny Targ's two canopies on the old platforms; Kolejowa 8/10's brick warehouses, the pinball
+  museum at 8a (FLIPEROWNIA) and the teal club (ODESSKA).
+- **SM-1** the order of the engines on the sidings is a default (the photos show kinds, not the order).
+- **SM-2** which Kolejowa outline is the pinball museum (8a) and which is 8/10 is read from the photos and
+  the one address point (Kolejowa 8); check on the Mac with GUGiK's ortho.
+- **SM-3** Space Club (Kolejowa 37/39, the 1912 foundry with arched windows): no address point in the map;
+  likely at or past the west edge. Smok Lounge (Kolejowa 43) not built: no front photo.
+- **SM-4** Splot Słoneczny (Tunelowa 2A) is past the map's west edge: build when the map grows west.
+
+## Wola's 19. Dzielnica, Asbud's towers and the drug works' building site (F, 2026-11-07; spec docs/landmarks/specs/dzielnica19.md)
+
+- **Built from F's 11 photos** (sites `noho`, `d19`, `asbud`): the old Polfa plot on Kasprzaka as NOHO
+  ONE's building site (OHO ONE on the hoarding), four bare concrete frames, three cranes, the yard;
+  the estate's 58 mapped parts in cream with rust window frames (two blocks in the dark grid); the
+  Towarowa Towers in blue glass with orange and gold frames and the ASBUDKA crown.
+- **D19-1** the photo list for the next pass is /mnt/project-files/dzielnica19/PHOTOS-NEEDED.txt
+  (which blocks wear the dark grid, the cascade terraces, the crane count). Storey counts done from
+  F's October photos: both NOHO blocks topped out at 11 storeys in scaffolding, grey hoarding.
+- **D19-2** the old "ruins" building on Prosta west of the towers (OpenStreetMap `ruins`, 27 m) is
+  still drawn as a plain block; check what stands there now.
+- **D19-3** the green south of the roundabout (next to Generation Park) is an OpenStreetMap
+  `construction` area drawn as grass; a building site there too if F's photos show one.
+- **D19-4** the glass footbridge between two blocks (F's courtyard photo) is not built: where is it?
+
+
 ## The Palace of Culture's grounds and venues (F, 2026-11-07, with F's aerial photo)
 
 Built: the walls OSM maps round the Palace's beds and raised lawns (59 retaining walls, planters)
@@ -210,6 +257,7 @@ Al. Jerozolimskie 4-6, every name a parody (SOWA CLUB, CITY 25, PEPSZY, KACBERG)
   and the terrace's printed banner are plain colour; a texture pass would add them.
 - **Phone**: the look of the pink glass and tubes at night, and a bench there (1,298 triangles,
   one shader branch for the pink glow).
+
 ## Novotel Warszawa Centrum from F's photos (F, 2026-11-07; docs/landmarks/novotel.md)
 
 Built: the white tiled slab with its paired windows and the lift core's blank strip, the blank narrow ends round
@@ -270,6 +318,10 @@ to 185 MB. Left:
 - **Photo fronts, Mokotowska and Hoża (2026-11-07)**: 61 more houses. Left: the small Mokotowska 69 rotunda and the shrine at 65, which fronts can't show; Hoża 1's bare firewall.
 - **Photo fronts, Wilcza, Piękna, Targowa (2026-11-07)**: 83 more houses, which closes part 1 of the list (305 houses with street fronts in all). Left: part 2 (named buildings) and part 3 of the photo folder, and rows with aerial photos only.
 - **Photo fronts, named buildings (2026-11-07)**: 46 more across the centre, 351 houses in all. Left for their own builds: Mała PAST-a, Pałac Przezdzieckich, the Elektoralna 12 portico, Mokotowska 25; Old Town rows 778 and 795 stay as they are; 189 named rows have no street photo yet.
+- **Block colours checked against F's photos (2026-11-07)**: all 186 blocks with a street photo in F's folder were compared front-on; 21 had the wrong wall colour and now match (Filtrowa 62, 64, 81, Marszałkowska 84/92, Grójecka 32, 34, Ogrodowa 31, Szpitalna 3 and others). Kaskada now brick, Aleje Jerozolimskie 49 stone grey, Plac Zamkowy 1/13's gable ochre. Emilii Plater 28 now has its ochre body under a glass crown, Kaskada its green glass top.
+- **Photo fronts from F's second photo round (2026-11-07)**: 15 more (Bracka 16, Aleje Jerozolimskie 31, 42, 93, 123A, Krakowskie Przedmieście 16/18, Hoża 37, Wilcza 46, Piękna 11A, 11B, 21, Targowa 25, Karowa 18, Wierzbowa 9, Dom Dysydentów). 404 houses on the list still need a street photo (STREET-PHOTOS-NEEDED, kept outside the repo).
+- **Photo fronts from F's 402-list follow-up (2026-11-07)**: 39 more (MDM and the Rotunda block on Marszałkowska, Jasna 14/16, Plac Trzech Krzyży 16, Aleje Ujazdowskie 28 and 45, Freta 4/6, Klif, Okopowa 59, Teatr Powszechny, Gmach Architektury, Babka Tower, Opera Kameralna and others), 403 houses in all. Not used: photos of a square, an empty lot, a detail or taken from below, and the landmarks Sąd Najwyższy, Teatr Narodowy, Auditorium Maximum, Muzeum Niepodległości, Pałac na Miodowej 22.
+
 ## Quest map and starts (F, 2026-11-07; docs/design/quest-map.md)
 
 Built: three map tiers (the main star's glow, questline "!" badges, street job icons), quest focus
@@ -397,6 +449,8 @@ with ✕ back to the car, the boat mark on the minimap and the full map. Left:
   - WTW's boathouse with its blue roof, gate, hexagon sign and anchors;
   - low halls in place of the 14 m blocks;
   - boats moored stern-to along both quays, with houseboats.
+- [x] Monkey Love (Bulwar Flotylli Pińskiej 1A, south of Most Łazienkowski) from F's two exterior photos (2026-11-07), as the parody MAŁPI LOVE (site `monkey_love`): two dark timber cabins with black gables, a yolk-yellow end wall, a kiosk and a bar hut, a gravel garden of plank tables under white umbrellas, festoons. Its neon wants the same Mac night check.
+- [x] The roads to the spit checked on 2026-11-07 against the aerials: Zaruskiego joins the network under Most Łazienkowski, the spit's lane runs to the kayak yard, the promenade and the riverside walk are continuous (steps at the tip and the cross links), and the race pontoon's car spot sits on the riverside walk. Open: the real promenade is about 5 m of grey asphalt, the game draws a 2 m red cycle path (a width change in the bake, not done: no new road geometry).
 - [ ] The rest of F's port photos, still to build:
   - the mouth footbridge's green steel edges;
   - Pomnik Saperów's bar deck at the mouth;
@@ -404,7 +458,6 @@ with ✕ back to the car, the boat mark on the minimap and the full map. Left:
   - the rental pier with its blue solar cabin;
   - the HERBATNIK barge on the slipway;
   - Przystań Warszawa's timber pavilions;
-  - Monkey Love (Bulwar Flotylli Pińskiej 1A, south of Most Łazienkowski). Only interior photos exist; an exterior photo is needed.
 - [ ] The MAJAMI WAWA and WTW neon signs did not show in the cloud's night frames. Check them on the Mac.
 - [ ] The PRZYSTAŃ pill is up (logged, on screen at the top centre) but missing from the cloud's
   `--shots` frames; check on the Mac that it shows when the car stops by the pontoon

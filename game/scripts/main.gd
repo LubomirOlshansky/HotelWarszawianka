@@ -5878,7 +5878,8 @@ func _activity() -> String:
 
 ## Loop 2c, --lineup: every vehicle model standing round the car, all facing its way: beside it
 ## the taxi, Podwózka, the police car, the guards' car and the two vans; a row ahead the cars'
-## four shapes; a row behind the six rivals; further back the bus and a tram cab car.
+## four shapes; a row behind the six rivals; further back the articulated and the solo bus (and the
+## solo one with its night sign) and a tram cab car.
 ## Family shapes go through a MultiMesh with the shape in the custom alpha, as traffic draws
 ## them. Prints each model's triangles.
 func _build_lineup(parent: Node3D) -> void:
@@ -5905,6 +5906,8 @@ func _build_lineup(parent: Node3D) -> void:
 		[cars, 0, "#b8bcc0", -4.8, 7.5, 0.0, "hatch"], [cars, 1, "#24324a", -1.6, 7.5, 0.0, "saloon"],
 		[cars, 2, "#4c6650", 1.6, 7.5, 0.0, "estate"], [cars, 3, "#2b2c2f", 4.8, 7.5, 0.0, "suv"],
 		[Models.traffic_mesh(3), 0, "#ffffff", -4.0, -17.5, 0.0, "bus"],
+		[Models.traffic_mesh(3), 1, "#ffffff", 0.0, -14.5, 0.0, "solo bus"],
+		[Traffic.night_bus_mesh(), 1, "#ffffff", 4.0, -14.5, 0.0, "solo bus, night sign"],
 	]
 	for r: Array in rows:
 		var mm := MultiMesh.new()
