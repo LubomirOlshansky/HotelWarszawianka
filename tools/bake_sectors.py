@@ -192,6 +192,8 @@ SITE_AREAS = [
     (-1858.0, 350.0, -1832.0, 395.0),
     # Pokorna 2 (landmarks.gd _find_pokorna2): the 57 m residential block, found by the outline under POKORNA2_AT
     (-2141.0, -2234.0, -2105.0, -2198.0),
+    # Nowogrodzka 31 (landmarks.gd _find_nowogrodzka31, 2026-11-07): the office block's outline under N31_AT (OSM building 110)
+    (-694.0, 462.0, -647.0, 525.0),
     # Kino Muranów (landmarks.gd _find_kino_muranow): the cinema pavilion's outline under KM_AT
     (-1700.0, -1240.0, -1640.0, -1170.0),
     (-450.0, 1580.0, -385.0, 1670.0),       # Kościół Zbawiciela's nave and towers (landmarks.gd ZB_*; MDM's box ends at z 1620)

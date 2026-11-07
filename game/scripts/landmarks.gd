@@ -775,6 +775,9 @@ var _no_roof := false  # true: triangles go into the mesh but not the roof grid 
 ## The landmarks loop: big signs on the landmarks for map_builder's _build_landmark_signs:
 ## [word (neon_signs.gd LANDMARK_WORDS), bottom middle, outward normal, scale, tube colour].
 var signs: Array = []
+## The floodlights' visible beams: [base, direction, length, tip half-width, colour with alpha]; map_builder
+## _build_landmark_beams draws them (glow.gdshader, night only) and empties the list.
+var beams: Array = []
 ## Collision outlines a site hands to map_builder's `_bridge_pockets`, so the slits and notches
 ## between it and the kept buildings next door get the same low collider walls as two kept
 ## buildings would (Jabłkowski's corner by the glass block on the Chmielna square, PT-7). Opt-in:
@@ -1211,6 +1214,8 @@ func _find_sites() -> void:
 	_find_mlotek()
 	_find_kozia9()
 	_find_karowa18a()
+	# Nowogrodzka 31 and its rooftop billboard (F's four photos, 2026-11-07).
+	_find_nowogrodzka31()
 	# Plac Zbawiciela (Marszałkowska street by street, 2026-11-01): the basilica, a model.
 	_find_zbawiciela()
 	# F's ask (2026-11-01): every church designed by the same rules (the church kit).
@@ -1882,6 +1887,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_kozia9(s)
 			"karowa18a":
 				_build_karowa18a(s)
+			"nowogrodzka31":
+				_build_nowogrodzka31(s)
 			"filtry":
 				_build_filtry(s)
 			"scena_relax":
@@ -28779,3 +28786,229 @@ func _build_scena_relax(site: Dictionary) -> void:
 	for k in 7:
 		_lbox(1.2 + k * (width - 2.4) / 6.0, 0.15, 0.12, 0.12, g, g + 3.9, concrete.darkened(0.2))
 	_collide_raw(site)
+
+
+# --- Nowogrodzka 31 and the rooftop billboard (F's four photos, 2026-11-07) ---------------------
+
+## The cream six-storey office block on the north-east corner of Marszałkowska and Nowogrodzka
+## (OpenStreetMap building 110, LoD2 roof 23.4 m over the pavement), across the junction from the
+## Novotel. A slab 59.7 x 12.75 m along Marszałkowska (the west front) with a wing at its south
+## end that makes the end wall 25.7 m wide. F's photos: a long regular grid of square windows
+## (22 bays on the long front, five office floors and a row of small attic windows), thin floor
+## bands and a projecting cornice, shops and bars along the ground floor (fairy lights, neon,
+## violet glass), two white "offices to let" banners on the front. The end wall wears a huge dark
+## ad banner from the second floor up (a cat-food advert; here the parody MRAU, whose slogan is
+## the parody's own), and over the end wall's roof edge stands a white billboard 30 m wide on a
+## steel stand, lit at night by 15 floodlights on arms whose beams show in the air (`beams`,
+## map_builder's _build_landmark_beams). The balconied block beside it stays LoD2's.
+## Frame: u along the slab from the north end, v out of the east (court) side; the front is -v.
+const N31_AT := Vector2(-676.0, 495.0)
+const N31_O := Vector2(-692.3, 467.2)
+const N31_A := Vector2(0.3287, 0.9444)
+const N31_U0 := 0.1
+const N31_U1 := 59.8
+const N31_VS := 12.75        # the slab's depth
+const N31_VW := 25.7         # the wing's, at the south end
+const N31_WING := 48.1       # where the wing starts
+const N31_GROUND := 4.6      # the shops' storey
+const N31_FLOOR := 3.1
+const N31_TOP := 23.4        # LoD2: the roof over the pavement
+const N31_BAYS := 22
+const N31_WALL := Color("#dbd6c9")
+const N31_BAND := Color("#efebe0")
+const N31_FRAME := Color("#f1efe8")
+const N31_GLASS := Color("#232b33")
+const N31_BASE := Color("#7b756a")
+const N31_FASCIA := Color("#4b4741")
+const N31_ROOF := Color("#6d6f70")
+const N31_STEEL := Color("#6b7075")
+const N31_BANNER := Color("#2b2e33")
+const N31_PANEL := Color("#c3c8cb")
+const N31_ART := Color("#40444a")
+const N31_LAMP := Color("#fff4dc")
+const N31_FAIRY := Color("#ffd98a")
+## The shop panes along the front, bay by bay from the north: 0 dark glass, 1 warm, 2 pink, 3 cool;
+## then the south end's nine.
+const N31_SHOPS_W := [1, 2, 1, 3, 1, 2, 1, 1, 3, 1, 2, 1, 0, 0, 1, 1, 1, 1, 0, 2, 0, 2]
+const N31_SHOPS_S := [2, 0, 1, 1, 0, 1, 3, 1, 0]
+## The two banners on the front (bays i0..i1, floors 3 and 4 over the shops).
+const N31_TO_LET := [Vector2i(6, 9), Vector2i(14, 17)]
+
+
+func _find_nowogrodzka31() -> void:
+	var q := _tallest_at(N31_AT)
+	if q.size() < 8:
+		return
+	_add_site("nowogrodzka31", [_largest(Geometry2D.offset_polygon(q, 1.5, Geometry2D.JOIN_MITER))])
+	if not sites.is_empty() and sites[-1]["key"] == "nowogrodzka31":
+		sites[-1]["ring"] = _simplify(q, 0.15)
+		sites[-1]["raw"] = q
+
+
+## A shop pane on a wall a→b: dark glass, or lit from inside (warm, pink, cool).
+func _n31_pane(a: Vector2, b: Vector2, y0: float, y1: float, out: Vector2, kind: int, run: float) -> void:
+	var keep := _mode
+	var e := (b - a).normalized()
+	_mode = M_STONE
+	_wall(a - e * 0.1 + out * 0.06, b + e * 0.1 + out * 0.06, y0 - 0.12, y1 + 0.12, out, N31_FRAME.darkened(0.25), run)
+	_mode = [M_GLASS, M_PAVILION, M_PAVILION + 0.375, M_PAVILION + 0.5][kind]
+	_wall(a + out * 0.1, b + out * 0.1, y0, y1, out, Color("#2c3a40") if kind == 0 else Color("#4a5560"), run)
+	_mode = keep
+
+
+## A small bulb on a string (fairy lights): a lit square 14 cm wide.
+func _n31_bulb(c: Vector2, e: Vector2, y: float, out: Vector2, col: Color) -> void:
+	var keep := _mode
+	_mode = M_LAMP
+	_wall(c - e * 0.07, c + e * 0.07, y, y + 0.14, out, col)
+	_mode = keep
+
+
+func _build_nowogrodzka31(site: Dictionary) -> void:
+	var raw: PackedVector2Array = site["raw"]
+	_g = _ground_under(raw)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	_o = N31_O
+	_a = N31_A
+	_b = Vector2(_a.y, -_a.x)   # out of the east side
+	var top := g + N31_TOP
+	var out_w := -_b            # the front, onto Marszałkowska
+	var out_s := _a             # the end wall, onto Nowogrodzka
+	var plan := PackedVector2Array([_w(N31_U0, 0.0), _w(N31_U1, 0.0), _w(N31_U1, N31_VW), _w(N31_WING, N31_VW),
+			_w(N31_WING, N31_VS), _w(N31_U0, N31_VS)])
+	_mode = M_STONE
+	_prism(plan, g - 0.8, top + 0.3, N31_WALL, none, M_STONE, M_STONE)
+	_rimmed(plan, top + 0.3, N31_BAND, N31_ROOF)
+	# The shops' plinth and fascia on the two street faces.
+	_wall(_w(N31_U0, -0.05), _w(N31_U1, -0.05), g - 0.8, g + 0.55, out_w, N31_BASE)
+	_wall(_w(N31_U1 + 0.05, 0.0), _w(N31_U1 + 0.05, N31_VW), g - 0.8, g + 0.55, out_s, N31_BASE)
+	_hang(_rect((N31_U0 + N31_U1) * 0.5, -0.2, (N31_U1 - N31_U0) * 0.5, 0.2), g + 4.0, g + N31_GROUND, N31_FASCIA, N31_BASE, N31_FASCIA)
+	_hang(_rect(N31_U1 + 0.2, N31_VW * 0.5, 0.2, N31_VW * 0.5), g + 4.0, g + N31_GROUND, N31_FASCIA, N31_BASE, N31_FASCIA)
+	# The floor bands (the slab edges) and the cornice, along the front and round the end wall.
+	for k in range(0, 6):
+		var yb := g + N31_GROUND + N31_FLOOR * k - 0.1
+		_hang(_rect((N31_U0 + N31_U1) * 0.5, -0.08, (N31_U1 - N31_U0) * 0.5, 0.08), yb, yb + 0.32, N31_BAND, N31_BAND, N31_WALL)
+		_hang(_rect(N31_U1 + 0.08, N31_VW * 0.5, 0.08, N31_VW * 0.5), yb, yb + 0.32, N31_BAND, N31_BAND, N31_WALL)
+	_hang(_rect((N31_U0 + N31_U1) * 0.5, -0.32, (N31_U1 - N31_U0) * 0.5, 0.32), top - 1.05, top + 0.05, N31_BAND, N31_BAND, N31_WALL)
+	_hang(_rect(N31_U1 + 0.32, N31_VW * 0.5 - 0.32, 0.32, N31_VW * 0.5 + 0.32), top - 1.05, top + 0.05, N31_BAND, N31_BAND, N31_WALL)
+	# The front: 22 bays of square windows over the shops.
+	var bw := (N31_U1 - N31_U0) / float(N31_BAYS)
+	for i in N31_BAYS:
+		var uc := N31_U0 + bw * (float(i) + 0.5)
+		var let := false
+		for r: Vector2i in N31_TO_LET:
+			if i >= r.x and i <= r.y:
+				let = true
+		for k in 5:
+			if let and (k == 1 or k == 2):
+				continue   # under the banner
+			var y := g + N31_GROUND + N31_FLOOR * k
+			_framed(_w(uc - 0.65, 0.0), _w(uc + 0.65, 0.0), y + 0.85, y + 2.3, out_w, N31_FRAME, N31_GLASS, float(i) * 4.5 + float(k) * 13.5)
+		var ya := g + N31_GROUND + N31_FLOOR * 5.0
+		_framed(_w(uc - 0.5, 0.0), _w(uc + 0.5, 0.0), ya + 0.6, ya + 1.5, out_w, N31_FRAME, N31_GLASS, float(i) * 4.5 + 71.0)
+		var a := _w(uc - 1.15, 0.0)
+		var b := _w(uc + 1.15, 0.0)
+		_n31_pane(a, b, g + 0.6, g + 3.9, out_w, int(N31_SHOPS_W[i]), float(i) * 3.1)
+	# The "offices to let" banners: white, a red strip under the writing.
+	for r: Vector2i in N31_TO_LET:
+		var u0 := N31_U0 + bw * float(r.x) + 0.2
+		var u1 := N31_U0 + bw * float(r.y + 1) - 0.2
+		var y0 := g + N31_GROUND + N31_FLOOR + 0.3
+		_mode = M_STONE
+		_wall(_w(u0, -0.16), _w(u1, -0.16), y0, y0 + 5.6, out_w, Color("#f1efe9"))
+		_wall(_w(u0, -0.2), _w(u1, -0.2), y0, y0 + 1.1, out_w, Color("#c8242c"))
+		var mid := _w((u0 + u1) * 0.5, -0.2)
+		signs.append(["BIURA", Vector3(mid.x, y0 + 3.2, mid.y), Vector3(out_w.x, 0.0, out_w.y), 0.5, Color(0.8, 0.08, 0.1)])
+		signs.append(["DO WYNAJĘCIA", Vector3(mid.x, y0 + 1.7, mid.y), Vector3(out_w.x, 0.0, out_w.y), 0.34, Color(0.8, 0.08, 0.1)])
+	# Fairy lights along the fascia: over the bars by the south end and the north strip's start.
+	for u: float in [3.0, 5.2, 7.4, 9.6, 11.8, 13.9, 16.1, 18.3, 20.5, 22.7, 24.9, 27.1]:
+		_n31_bulb(_w(u, -0.22), _a, g + 3.7, out_w, N31_FAIRY)
+	for k in 16:
+		_n31_bulb(_w(36.0 + float(k) * 1.1, -0.22), _a, g + 3.7 + 0.12 * float(k % 2), out_w, N31_FAIRY)
+	# The shop names, in neon on the fascia.
+	var restau := _w(17.0, -0.3)
+	signs.append(["RESTAURACJA", Vector3(restau.x, g + 4.0, restau.y), Vector3(out_w.x, 0.0, out_w.y), 0.5, Color(1.0, 0.14, 0.1)])
+	var bar := _w(43.0, -0.3)
+	signs.append(["BUM BAR", Vector3(bar.x, g + 4.0, bar.y), Vector3(out_w.x, 0.0, out_w.y), 0.5, Color(1.0, 0.72, 0.2)])
+	# The end wall: the shops, the first floor's windows under the banner's hem, and the banner.
+	var sbw := N31_VW / 9.0
+	for i in 9:
+		var vc := sbw * (float(i) + 0.5)
+		_n31_pane(_w(N31_U1, vc - 1.2), _w(N31_U1, vc + 1.2), g + 0.6, g + 3.9, out_s, int(N31_SHOPS_S[i]), 90.0 + float(i) * 3.1)
+		var y := g + N31_GROUND
+		_framed(_w(N31_U1, vc - 0.65), _w(N31_U1, vc + 0.65), y + 0.85, y + 2.3, out_s, N31_FRAME, N31_GLASS, 130.0 + float(i) * 4.5)
+	_mode = M_STONE
+	var hem := g + N31_GROUND + N31_FLOOR + 0.4
+	_wall(_w(N31_U1 + 0.3, 0.25), _w(N31_U1 + 0.3, N31_VW - 0.25), hem, top + 0.3, out_s, N31_BANNER)
+	_wall(_w(N31_U1 + 0.34, 0.25), _w(N31_U1 + 0.34, N31_VW - 0.25), hem, hem + 0.4, out_s, N31_BANNER.darkened(0.3))
+	for v: float in [6.4, 12.8, 19.2]:
+		_wall(_w(N31_U1 + 0.32, v - 0.04), _w(N31_U1 + 0.32, v + 0.04), hem + 0.4, top + 0.3, out_s, N31_BANNER.lightened(0.1))
+	var slogan: Array = [["SZTUKA", 1.3, 9.8], ["UKŁADANIA", 1.3, 7.0], ["MISKI", 1.3, 4.2]]
+	for s: Array in slogan:
+		var p := _w(N31_U1 + 0.3, N31_VW * 0.46)
+		signs.append([s[0], Vector3(p.x, hem + float(s[2]), p.y), Vector3(out_s.x, 0.0, out_s.y), float(s[1]), Color(0.96, 0.96, 0.93)])
+	var small := _w(N31_U1 + 0.3, N31_VW * 0.5)
+	signs.append(["DLA KOTÓW", Vector3(small.x, hem + 3.0, small.y), Vector3(out_s.x, 0.0, out_s.y), 0.5, Color(0.9, 0.9, 0.88)])
+	# The lamps under the banner's hem, throwing light up its face.
+	for k in 11:
+		var vv := 1.6 + float(k) * 2.25
+		var lp := _w(N31_U1 + 0.9, vv)
+		var arm0 := _w(N31_U1 + 0.1, vv)
+		_beam(Vector3(arm0.x, hem - 0.15, arm0.y), Vector3(lp.x, hem - 0.35, lp.y), 0.06, N31_STEEL)
+		_mode = M_LAMP
+		_prism(_square(lp, 0.12), hem - 0.45, hem - 0.3, N31_LAMP, N31_LAMP, M_LAMP, M_LAMP)
+	# The roof: a lift head, the vent boxes, the parapet's rim is the deck's.
+	_mode = M_STONE
+	_lbox(18.0, 6.0, 2.2, 2.0, top + 0.3, top + 3.0, N31_WALL.darkened(0.04), M_STONE, N31_ROOF)
+	_lbox(38.0, 5.5, 1.6, 1.4, top + 0.3, top + 1.8, N31_STEEL.lightened(0.2), M_STONE, N31_ROOF)
+	_lbox(8.0, 6.5, 1.2, 0.9, top + 0.3, top + 1.5, N31_STEEL.lightened(0.15), M_STONE, N31_ROOF)
+	_n31_billboard(top)
+	_collide_raw(site)
+
+
+## The rooftop billboard on the end wall's edge: a white panel 30.7 m wide and 9 m tall on a
+## steel base and raking stays, with the advert on it (a cat and its bowl, the parody MRAU), 15
+## floodlights on arms along its top edge, and the beams they throw into the night air.
+func _n31_billboard(top: float) -> void:
+	var u := N31_U1 + 0.5
+	var v0 := -0.6
+	var v1 := 30.1
+	var y0 := top + 0.9
+	var y1 := y0 + 8.6
+	var vm := (v0 + v1) * 0.5
+	var hv := (v1 - v0) * 0.5
+	_mode = M_STONE
+	_lbox(u - 0.7, vm, 0.4, hv, top + 0.3, top + 1.0, N31_STEEL, M_STONE, N31_STEEL)   # the base beam
+	for v: float in [0.8, 5.8, 10.8, 15.8, 20.8, 25.8, 29.0]:
+		var foot := _w(u - 3.0, v)
+		var head := _w(u - 0.1, v)
+		_beam(Vector3(foot.x, top + 0.3, foot.y), Vector3(head.x, y1 - 1.0, head.y), 0.16, N31_STEEL)
+	_lbox(u, vm, 0.14, hv, y0, y1, N31_PANEL, M_LAMP, N31_STEEL)       # the white face, lit
+	var fu := u + 0.2   # the art's plane
+	_lbox(fu, 13.4, 0.07, 12.9, y0 + 0.9, y1 - 0.7, N31_ART, M_LAMP, N31_ART)
+	# The bowl of food with its steam, left; the cat, right of the middle.
+	_lbox(fu + 0.2, 6.2, 0.1, 2.3, y0 + 1.7, y0 + 2.5, Color("#6b7276"), M_LAMP, Color("#6b7276"))
+	_lbox(fu + 0.3, 6.0, 0.1, 1.4, y0 + 2.5, y0 + 3.6, Color("#b2432b"), M_LAMP, Color("#b2432b"))
+	for v: float in [4.9, 6.0, 7.2]:
+		_lbox(fu + 0.2, v, 0.06, 0.32, y0 + 3.8, y0 + 6.6, Color("#9aa0a4"), M_LAMP, Color("#9aa0a4"))
+	_lbox(fu + 0.3, 12.8, 0.1, 1.5, y0 + 1.0, y0 + 4.6, Color("#9a7448"), M_LAMP, Color("#9a7448"))   # the cat's body
+	_lbox(fu + 0.3, 12.8, 0.1, 1.0, y0 + 4.6, y0 + 6.1, Color("#a9804f"), M_LAMP, Color("#a9804f"))   # its head
+	_pyramid(_rect(fu + 0.3, 12.1, 0.12, 0.3), y0 + 6.1, y0 + 7.3, Color("#9a7448"))
+	_pyramid(_rect(fu + 0.3, 13.5, 0.12, 0.3), y0 + 6.1, y0 + 7.3, Color("#9a7448"))
+	var mark := _w(fu + 0.4, 24.0)
+	signs.append(["MRAU", Vector3(mark.x, y0 + 3.3, mark.y), Vector3(_a.x, 0.0, _a.y), 1.8, Color(0.97, 0.97, 0.95)])
+	var sub := _w(fu + 0.4, 24.0)
+	signs.append(["DLA KOTÓW", Vector3(sub.x, y0 + 2.0, sub.y), Vector3(_a.x, 0.0, _a.y), 0.5, Color(0.9, 0.9, 0.88)])
+	# Fifteen floodlights on arms along the top edge.
+	for k in 15:
+		var vv := 0.4 + float(k) * 2.05
+		var root := _w(u + 0.1, vv)
+		var head := _w(u + 1.7, vv)
+		_beam(Vector3(root.x, y1 - 0.15, root.y), Vector3(head.x, y1 + 0.5, head.y), 0.07, N31_STEEL)
+		_prism(_square(head, 0.2), y1 + 0.38, y1 + 0.82, N31_LAMP, N31_LAMP, M_LAMP, M_LAMP)
+		# A fan: each beam leans a little more out and sideways than its neighbour, as in F's photos.
+		var lean := 0.2 + 0.025 * float(k)
+		var side := (float(k) - 7.0) * 0.04
+		var dir := Vector3(_a.x * lean + _b.x * side, 1.0, _a.y * lean + _b.y * side).normalized()
+		beams.append([Vector3(head.x, y1 + 0.8, head.y), dir, 20.0, 0.9, Color(0.74, 0.84, 1.0, 0.22)])
