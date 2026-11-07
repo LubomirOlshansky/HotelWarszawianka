@@ -45,6 +45,9 @@ someone writes its lines.
 - Mokotowska and Hoża: 61 more houses got street fronts from real photos.
 - Wilcza, Piękna and Targowa: 83 more houses got street fronts from real photos.
 - 46 named buildings across the centre got street fronts from real photos.
+- 21 more houses got their real wall colours after a check against street photos, from Filtrowa to Marszałkowska.
+- 15 more houses got street fronts from new photos, among them Bracka 16, Atlas Tower and Dom Dysydentów.
+- 39 more buildings got street fronts from new photos, from Klif and Babka Tower to Freta and Plac Trzech Krzyży.
 
 ## 2026-11-06
 - A night racing club: Darek calls you to a meet on Plac Defilad, where tuned cars glow and Lena drifts donuts in the smoke until the police raid it. Escape, race everyone to the next meet by the National Stadium, survive a second raid, then line up for a drag on Aleja Zieleniecka: watch the lights, shift on time, hit the nitro and beat Tadek for the club's respect.
