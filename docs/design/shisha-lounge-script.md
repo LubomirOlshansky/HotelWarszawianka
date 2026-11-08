@@ -68,7 +68,7 @@ On arrival at the court ring: Ivan: „O, widzisz go? Ten w opasce." / "See him?
 
 Bogdan walks up (bubble), tag `board_bogdan`:
 1. „Siema! Pół godziny forhendu o ósmej rano i teraz chcę tylko dymu, który pachnie arbuzem." / "Hey! Half an hour of forehand at eight this morning and now I only want smoke that smells of watermelon."
-2. „Nie przegrałem. Mam remis. Wiem, że w tenisie nie ma remisu, ale ja mam. A w szishy jestem mistrzem Woli." / "I didn't lose. I have a draw. I know there are no draws in tennis, but I have one. And in shisha I'm the champion of Wola."
+2. „Mam remis, ale w szishy jestem mistrzem Woli." / "I have a draw, but I'm the Wola shisha champion."
 3. „Trener mówi: oddychaj głęboko. Zrobiłem z tego plan treningowy." / "My coach says: breathe deeply. I made it a training plan."
 4. „Najlepszy serw dnia był do kelnera w szatni." / "My best serve of the day was to the waiter in the locker room."
 

@@ -66,7 +66,7 @@ board_bogdan, flavour, strength, nickname, arrive). PL first, English in the fil
 
 **Bogdan and the tennis (opening, when he gets in).**
 - „Pół godziny forhendu o ósmej rano i tak chcę tylko dymu, który pachnie arbuzem." / "Half an hour of forehand at eight in the morning and all I want is smoke that smells of watermelon."
-- „Nie przegrałem, mam remis. A w szishy jestem mistrzem Woli." / "I didn't lose, I have a draw. And in shisha I'm the champion of Wola."
+- „Mam remis, ale w szishy jestem mistrzem Woli." / "I have a draw, but I'm the Wola shisha champion."
 - „Trener mówi: oddychaj głęboko. Zrobiłem z tego plan treningowy." / "My coach says: breathe deeply. I turned it into a training plan."
 - „Najlepszy serw dnia był do kelnera w szatni." / "My best serve of the day was to the waiter in the locker room."
 
