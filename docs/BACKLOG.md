@@ -58,8 +58,10 @@ look check of both.
 ## Top-50 buildings from photos (F, 2026-11-08; list /mnt/project-files/pkin-surroundings/PHOTOS-NEEDED-2026-11-08.md section F, photos on the Mac in warsaw-needed-photos/top-50)
 - Done, batch 1: Q22 (dark green glass, graphite crown with DELOJT, the wing's sloping glass roof, lattice mast and red-and-white antenna; spec q22.md) and Rondo 1 (silver-blue banded slab with the rounded end, the open screen over the roof, the graphite west block with EJ and its yellow stroke, the steps to the south-west, the antenna to 192 m instead of the 33 m cage; spec rondo1.md).
 - Done, batch 2: Warsaw Trade Tower (parts clad by their mapped colours: the dark blue ribbon-glass drum, the beige stone slab with punched windows, the silver crown with UNIKWA; new tower-table key `skins`) and Teatr Wielki's front (ten columns, not eight; the raised middle block with windows, the pediment with its relief and copper slopes; the Apollo quadriga in bronze; spec teatr.md).
+- Done, batch 3: Spektrum (parts clad by their mapped colours: blue glass between white bands on the drum, the dark square-grid slabs, the pale green glass ring round the crown), Pałac Prezydencki (the photo shows no free portico: a risalit with an arcade of seven round-headed openings, six engaged columns to the cornice, a balustrade with statues along the main block; the wings' dark slate roofs; spec prezydencki.md) and Święty Krzyż's helms (octagonal copper lanterns with openings, bell roofs and slim needles, not big onions; whiter walls; spec krzyz.md).
+- Left from batch 3: Spektrum's sloping glass fin up the drum; the Presidential Palace's dormers and the pediments of the main block's side wings; Holy Cross's statues on the attic.
 - Left from batch 2: WTT's curved crown slits and the fin with the mast down the dark side; Teatr Wielki's side colonnades.
-- Left: Q22's faceted folds in the glass and the base's entrance; Rondo 1's curved screen follows the roof edge as straight facets, the ground-floor stone columns on Śliska (T03-08) not modelled; the night look of both on the phone. Next batches by visibility: T35 Spektrum, T36-T38 the Rondo Daszyńskiego towers, T08 Pałac Prezydencki, T09 Święty Krzyż. T04 InterContinental and T26 Polonia are the Palace thread's.
+- Left: Q22's faceted folds in the glass and the base's entrance; Rondo 1's curved screen follows the roof edge as straight facets, the ground-floor stone columns on Śliska (T03-08) not modelled; the night look of both on the phone. Next batch by visibility: T36-T38 the Rondo Daszyńskiego towers (Platinum, Pekao and Atlas, Prosta Tower and Crown Point). T04 InterContinental and T26 Polonia are the Palace thread's.
 
 ## Skyline towers near the Palace from F's photos (F, 2026-11-08; specs plater49.md, wcf.md, polonia.md)
 - Done: InterContinental (the gap over the podium, the sloped roof, the corner column, lit gap at night), the Warsaw Financial Centre (white slab and ribbon slab on the curve, granite podium, mast) and Hotel Polonia Palace (photo pass: mansard, pediment and oval window, name on the frieze, balconies). Złota 44 was already rebuilt from F's photos (PR #321).
@@ -954,10 +956,6 @@ Built (spec `docs/landmarks/specs/forest.md`): the three-slab tower with crown b
 - **The roof boat** (F, 2026-11-06): a 10 m cobalt-blue bowrider on a cradle on the tallest slab's roof (`_forest_boat`), clear of the sign. Left: a crane or sling to explain it, a night glow.
 - **The roof crane and the tower's lobby**: the window-cleaning crane on the crown and the glazed double-height lobby are not modelled.
 - **Older docs still name the real tenant** in a few places (CITY_INVENTORY, LANDMARKS, QUESTIONS, MUSIC, inventory candidates, wiki_build.py): a sweep to the parody is open.
-
-## Ground check holes in the far west
-
-`check_ground` fails with 13 holes around `--at=-2591,905` to `-2861,1015`, and one at `-1711,-2765`, found 2026-11-05 on the modernism branch. They are far from anything that branch touches, so they came from elsewhere; not chased there.
 
 ## Warsaw modernism and brutalism (F, 2026-11-03, high priority)
 
