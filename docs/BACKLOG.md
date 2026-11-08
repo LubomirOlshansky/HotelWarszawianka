@@ -214,7 +214,7 @@ ground and bend with the cutting's sub-cells (`map_builder._drape_edge`); check_
 - [x] Test flags: the coffee run moved to `--trend-job=9` (8 is Mrożulo's Dżemini call; both PRs had taken 8)
 - [ ] Map PRs left to their owners (they touch centrum.json and need a re-bake): #485, #511, #515, #517, #518
 - [x] Second small train: #503, #505, #526 (owner threads quiet since the morning; green, docs conflicts only)
-- [x] Train 3 on the same branch: #535 (11 listopada), #540 (day rave under Most Poniatowskiego), #541 (SOWA CITY 25 neon), #527 (docs), after #511 and #516; then #538, #515, #518, #485, #530 and the Metropol follow-up one slot at a time
+- [x] Train 3 on the same branch: #535 (11 listopada), #540 (day rave under Most Poniatowskiego), #541 (SOWA CITY 25 neon), #527 (docs), #512 (bridges photo rebuilds), #542 (Stacja Muzeum colliders), after #511 and #516; then #538, #515, #518, #485, #530 and the Metropol follow-up one slot at a time
 - [ ] ~330 merged `claude/*` branches to delete: the cloud proxy blocks it; F runs `delete-merged-branches.sh` (project files, audit/) on the Mac
 - [ ] Closed #455 (bump to 1.0.2, Android code 9) never reached main; F decided to drop it (branch on the delete list)
 - [ ] Docs conflicts: many PRs edit CHANGELOG/BACKLOG/ROADMAP/CITY_INVENTORY and verify.sh's step lists at once, so every merge conflicts the next; a PR left 12 h with conflicts gets re-pinged
