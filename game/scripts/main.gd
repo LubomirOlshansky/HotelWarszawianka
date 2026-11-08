@@ -139,7 +139,7 @@ const Police := preload("res://scripts/police.gd")
 const Buses := preload("res://scripts/buses.gd")
 const OldTram := preload("res://scripts/old_tram.gd")
 const CrashScenes := preload("res://scripts/crash_scenes.gd")
-## Sekretny rave (rave.gd, F's ask 2026-11-06): LEKTI on MORDOR FM, Ziomek's call, the raves' rigs.
+## Sekretny rave (rave.gd, F's ask 2026-11-06): LEKTI on MORDOR FM, Mati's call, the raves' rigs.
 const Rave := preload("res://scripts/rave.gd")
 ## Nocny spot (street_meet.gd, F's ask 2026-11-06): the WARSAW NIGHT RACING CLUB's meets, raids and drag.
 const StreetMeet := preload("res://scripts/street_meet.gd")
@@ -554,7 +554,7 @@ var ev_flag := ""
 var ev_log := false
 var _ev_auto := false
 var _crash_auto := false
-## Sekretny rave (rave.gd): flags --rave-call (LEKTI and Ziomek's call now), --rave-smola (Ziomek's
+## Sekretny rave (rave.gd): flags --rave-call (LEKTI and Mati's call now), --rave-smola (Mati's
 ## Smoła night now), --rave=on / --rave=day (that rave on at any hour), --rave-spot=ID, --rave=0,
 ## --rave-log.
 var rave: Rave
@@ -3113,6 +3113,18 @@ func _kino_free() -> bool:
 ## The questlines (story_quests.gd): each big quest joins with one `stories.add` here. A new quest
 ## thread adds its own block (id, names, friend, words, start spot, colour, hours, call / meet /
 ## busy / idle); nothing else changes.
+const STORY_BLURBS := {
+	"boat": ["Wyścig łodzi po Wiśle, trzy kółka.", "A boat race down the Vistula, three laps."],
+	"rave": ["Sekretny rave: Mati zna drogę.", "A secret rave: Mati knows the way."],
+	"dekalog": ["Warszawa Kieślowskiego z Claire.", "Kieślowski's Warsaw, with Claire."],
+	"kawa": ["Kawowy rajd po mieście.", "A coffee run across the city."],
+	"padel": ["Czwarty do padla w WTS Deska.", "A fourth for padel at WTS Deska."],
+	"meet": ["Nocny spot na Defiladzie.", "A night car meet on Plac Defilad."],
+	"kino": ["Kopia filmu, cztery kina.", "One film print, four cinemas."],
+	"tesla": ["Bartek, śmigłowiec i martwe TESŁO.", "Bartek, a helicopter and a dead TESŁO."],
+}
+
+
 func _build_stories(world: Node3D) -> void:
 	stories = StoryQuests.new()
 	stories.name = "Stories"
@@ -3142,7 +3154,7 @@ func _build_stories(world: Node3D) -> void:
 				"call": boat_race.ring, "meet": boat_race.meet, "busy": boat_race.busy, "idle": boat_race.idle})
 	if rave != null and not rave.home.is_empty():
 		var h: Vector3 = rave.home["at"]
-		stories.add({"id": "rave", "pl": "Sekretny rave", "en": "Secret rave", "who": ["Ziomek", "Ziomek"],
+		stories.add({"id": "rave", "pl": "Sekretny rave", "en": "Secret rave", "who": ["Mati", "Mati"],
 				"hello": ["„Siema! Słyszałeś? Lekti robi dziś sekretny rave. Ja wiem, jak tam trafić. Wsiadam?”",
 						"\"Hey! Did you hear? Lekti's throwing a secret rave tonight. I know how to get there. Can I get in?\""],
 				"closed": ["„Rave? Dziś cisza. Lekti gra od czwartku do soboty, wpadnij wieczorem”",
@@ -3184,18 +3196,41 @@ func _build_stories(world: Node3D) -> void:
 						"\"The cinemas are asleep. So are the distributors. Come by after two in the afternoon, we'll start with Amondo\""],
 				"at": KinoTour.PICKUP["at"], "colour": KinoTour.COLOUR, "hours": Vector2(KinoTour.HOURS[0], KinoTour.HOURS[1]),
 				"call": kino_tour.ring, "meet": kino_tour.meet, "busy": kino_tour.busy, "idle": kino_tour.idle})
-	if shisha != null and not shisha.home.is_empty():
-		var sh: Vector3 = shisha.home["at"]
-		stories.add({"id": "shisha", "pl": Shisha.NAME[0], "en": Shisha.NAME[1], "who": [Shisha.FRIEND, Shisha.FRIEND],
-				"hello": ["„Siema! Szisza dziś? Wsiadam, jeszcze Bogdan z kortu i jedziemy na Emilii Plater.”",
-						"\"Hey! Shisha tonight? I'm getting in, we grab Bogdan from the court and go to Emilii Plater.\""],
-				"closed": ["„Szisza dopiero wieczorem. Wpadnij po siedemnastej.”", "\"Shisha's for the evening. Come by after five.\""],
-				"at": Vector2(sh.x, sh.z), "colour": Shisha.COLOUR, "hours": Shisha.HOURS, "days": [],
-				"call": shisha.ring, "meet": shisha.meet_in_person, "busy": shisha.busy, "idle": shisha.idle})
+	# The shisha night is a hidden quest (F 2026-11-08): no story, no pin, no phone call. Press and
+	# hold "+" for SHISHA_HOLD_S seconds at Ivan's block in 19. Dzielnica and he rings (`_story_tick`).
+	if shisha != null:
+		shisha.auto = false
+	# Bartek's dead TESŁO (ev_tow.gd, F 2026-11-08): a helicopter story with no fixed start, so it
+	# is in the STORIES tab only (a tap there rings Bartek), no pin on the map.
+	if ev_tow != null and not ev_tow.chargers.is_empty():
+		stories.add({"id": "tesla", "pl": "Stanęło TESŁO", "en": "The dead TESŁO", "who": ["Bartek", "Bartek"],
+				"hello": ["", ""], "closed": ["", ""], "at": Vector2.INF, "colour": EvTow.COLOUR,
+				"hours": Vector2(-1.0, -1.0), "days": [],
+				"call": ev_tow.ring, "meet": func() -> bool: return false, "busy": ev_tow.busy,
+				"idle": func() -> bool: return ev_tow.state == EvTow.State.IDLE})
+	# One line per questline for the full map's pin (a tap shows it): [pl, en].
+	for d: Dictionary in stories.defs:
+		d["blurb"] = STORY_BLURBS.get(str(d["id"]), ["", ""])
 	if story_flag != "":
 		get_tree().create_timer(1.5).timeout.connect(func() -> void: stories.start(story_flag))
 	print("stories: %d questlines (%s)" % [stories.defs.size(), ", ".join(stories.defs.map(func(d: Dictionary) -> String:
 			return "%s %s" % [d["id"], "%.0f,%.0f" % [d["at"].x, d["at"].y] if d["at"] != Vector2.INF else "no start"]))])
+
+
+## Hold "+" this long (s), standing at Ivan's block, and he rings.
+const SHISHA_HOLD_S := 5.0
+const SHISHA_R := 30.0
+
+
+## The shisha night's hidden start: nothing on, the car near Ivan's block and slow, "+" held 5 s.
+func _shisha_secret(busy: bool) -> void:
+	if shisha == null or shisha.home.is_empty() or busy or flying or car == null or not shisha.idle():
+		return
+	var h: Vector3 = shisha.home["at"]
+	var p := car.global_position
+	if Vector2(p.x, p.z).distance_to(Vector2(h.x, h.z)) > SHISHA_R or hud.zoom_in_held_s() < SHISHA_HOLD_S:
+		return
+	shisha.ring()
 
 
 ## Something runs: a race, a job, a ride, a rescue, a questline, a tow (quest focus: the map goes quiet).
@@ -3219,17 +3254,23 @@ func _story_tick() -> void:
 		return
 	var focus := _quest_running()
 	stories.focus = focus
+	_shisha_secret(focus)
 	var m: Array = StoryQuests.marks(stories.defs, focus or flying)
 	var names := PackedStringArray()
+	var blurbs := PackedStringArray()
+	var small := PackedByteArray()
 	if not (focus or flying):
 		for d: Dictionary in stories.defs:
 			if d["at"] != Vector2.INF:
 				names.append(Lang.pick(str(d["pl"]), str(d["en"])))
+				var b: Array = d.get("blurb", ["", ""])
+				blurbs.append(Lang.pick(str(b[0]), str(b[1])))
+				small.append(1 if d.get("small", false) else 0)
 	var key := "%s %d %s" % [focus, (m[0] as PackedVector2Array).size(), Lang.pick("pl", "en")]
 	if key == _story_key:
 		return
 	_story_key = key
-	hud.set_story(m[0], m[1], focus, names)
+	hud.set_story(m[0], m[1], focus, names, blurbs, small)
 	if stories_log:
 		print("stories: focus %s, %d starts on the map" % ["on" if focus else "off", (m[0] as PackedVector2Array).size()])
 
@@ -3299,7 +3340,7 @@ func _boat_frame() -> void:
 
 # --- the secret raves ---------------------------------------------------------------------------
 
-## LEKTI's invites, Ziomek's calls and the raves' rigs (rave.gd). None with --no-traffic or --rave=0.
+## LEKTI's invites, Mati's calls and the raves' rigs (rave.gd). None with --no-traffic or --rave=0.
 func _build_rave(data: Dictionary, world: Node3D) -> void:
 	if traffic == null or graph == null or rave_flag == "0":
 		return
@@ -6729,7 +6770,7 @@ func _process(dt: float) -> void:
 		# Loop 2d-1: no ride is offered from the helicopter, on the title screen or the bench.
 		rides.flying = flying or boating or touring
 		rides.away = title != null or _bench_ghost != null or _phone_bench
-		# 2026-11-07 (BACKLOG "Secret rave"): no ride or "Na czasie" card while Ziomek's rave run,
+		# 2026-11-07 (BACKLOG "Secret rave"): no ride or "Na czasie" card while Mati's rave run,
 		# the club or Bartek's tow is on (their calls already held the rescue calls).
 		rides.away = rides.away or (rave != null and rave.busy()) or (club != null and club.inside) \
 				or (ev_tow != null and ev_tow.busy()) or (crawl != null and crawl.busy()) \

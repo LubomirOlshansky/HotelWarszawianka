@@ -15,7 +15,7 @@ the industry, the flavours and the arguing, not about getting high (see "Content
 
 | Who | Role | Notes |
 | --- | --- | --- |
-| **Ivan** | the caller and first friend, lives at 19. Dzielnica | F 2026-11-08: Ivan calls, Mati is not in this quest (Mati is Smolna's friend, the renamed Ziomek). A new character: his own call card, portrait and lines; the call/pickup code is reused from `rave.gd`, only the name and lines differ. |
+| **Ivan** | the caller and first friend, lives at 19. Dzielnica | F 2026-11-08: Ivan calls, Mati is not in this quest (Mati is Smolna's friend, the renamed Mati). A new character: his own call card, portrait and lines; the call/pickup code is reused from `rave.gd`, only the name and lines differ. |
 | **Bogdan** | second friend, picked up at a sports court on the way | Plays tennis, comes straight from a court between Dzielnica 19 and Emilii Plater (WTS DESKA at Zaruskiego was too far: 3.5 km east, and by car reachable only from Czerniakowska, PT-31). Arrives sweaty, in a headband, talks about his backhand and how glad he is to finally smoke shisha. |
 | **Mistrz Fajki** (name TBD: "Pan Dymek") | the shisha master | Calm, in a waistcoat, speaks like a sommelier about tobacco-free "mixes". Never rushed. |
 | **You** | the driver | Silent as always; your choices are the buttons. |
