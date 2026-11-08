@@ -744,7 +744,8 @@ func _layout_fixed() -> void:
 	if _minimap != null:
 		_minimap.position = Vector2(x0, below)
 		_minimap.size = Vector2.ONE * MINI_D * pt
-		_mini_overlay.size = _minimap.size
+		if _mini_overlay != null:  # the loading bar: a relayout can land while setup_minimap waits for a frame
+			_mini_overlay.size = _minimap.size
 		# G3: the zoom buttons stand in a column right of the minimap (the top row has no room
 		# beside a centred context button on a small phone).
 		var zy := _minimap.position.y
@@ -1890,7 +1891,9 @@ func setup_minimap(data: Dictionary, outline := PackedVector2Array(), outside: A
 	if _map_outline.size() < 3:
 		_map_outline = PackedVector2Array([_map_bounds.position, Vector2(_map_bounds.end.x, _map_bounds.position.y),
 				_map_bounds.end, Vector2(_map_bounds.position.x, _map_bounds.end.y)])
+	await LoadYield.tick("minimap start")
 	_mini_mesh = _minimap_mesh(data)
+	await LoadYield.tick("minimap mesh")
 	var outline_now := _map_outline
 	var outside_now := _map_outside.duplicate()
 	_map_art_task = WorkerThreadPool.add_task(func() -> void:

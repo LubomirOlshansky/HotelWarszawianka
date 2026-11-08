@@ -134,17 +134,21 @@ func setup(lane_graph: LaneGraph, map_node: Node3D, data: Dictionary) -> void:
 		_halts.append(PackedFloat32Array())
 		_heights.append(PackedFloat32Array())
 	for i in _pts.size():
+		await LoadYield.tick("trams joins")
 		var end := _pts[i][_pts[i].size() - 1]
 		var out := _dir(i, _len[i])
 		for j in _pts.size():
 			if j != i and _pts[j][0].distance_to(end) < 0.6 and absf(out.angle_to(_dir(j, 0.0))) < 1.2:
 				_succ[i].append(j)
 				_pred[j].append(i)
+	await LoadYield.tick("trams joins")
 	_find_halts(data)
+	await LoadYield.tick("trams halts")
 	# Night: headlight cones ahead of the first car, a red glow behind the last.
 	var cones := Models.headlight_pools(CAR * 0.5 + 0.2, 0.75, 16.0, false)
 	var taken := PackedVector2Array()
 	for n in COUNT:
+		await LoadYield.tick("tram %d" % n)
 		var tram := Tram.new()
 		tram.kind = FLEET[n % FLEET.size()]
 		for k in 3:

@@ -61,3 +61,7 @@ image, not what the report says it shows.
 3. **Shots wanted**: exact `tools/shots.sh` commands (or game flags) for what you couldn't see.
 4. Art-bible changes you propose (if any), for the user to decide.
 5. **Open Questions** for the user (taste calls), each with your recommended default.
+
+## Reference photos (F, 2026-11-08)
+
+When photos are missing, download them yourself from any internet source and don't look at the licence: they are references for modelling only, kept in the gitignored `refs/`, never committed or shipped (model-from-photos skill, section 1). Don't stop or wait for the user over missing photos.

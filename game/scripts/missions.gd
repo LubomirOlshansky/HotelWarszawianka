@@ -123,10 +123,15 @@ func setup(map_node: Node3D, data: Dictionary, world: Node3D, hud_layer: CanvasL
 		_places[k] = []
 	var t0 := Time.get_ticks_msec()
 	_collect_road_names(data["roads"])
+	await LoadYield.tick("missions roads")
 	_find_roofs(data.get("landmarks", []))
+	await LoadYield.tick("missions roofs")
 	_find_peacock()
+	await LoadYield.tick("missions peacock")
 	_find_streets(data["roads"])
+	await LoadYield.tick("missions streets")
 	_find_pois(data.get("pois", []))
+	await LoadYield.tick("missions pois")
 	print("missions: %d roofs (peacock %s), %d streets, %d riverside, %d parks, %d hospitals in %d ms" % [
 			_places[Kind.ROOF].size(), str(_peacock.get("short", "none")), _places[Kind.STREET].size(), _places[Kind.RIVER].size(),
 			_places[Kind.PARK].size(), _hospitals.size(), Time.get_ticks_msec() - t0])
@@ -134,6 +139,7 @@ func setup(map_node: Node3D, data: Dictionary, world: Node3D, hud_layer: CanvasL
 	var t1 := Time.get_ticks_usec()
 	if warm_haptics():
 		print("haptics: engine built and starting in %.1f ms (sweep 2)" % ((Time.get_ticks_usec() - t1) / 1000.0))
+	await LoadYield.tick("missions haptics")
 
 	_pickup = Beacon.new()
 	world.add_child(_pickup)

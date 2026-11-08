@@ -102,7 +102,7 @@ const SPOTS := [
 	[-1625.8, 419.5, 70.0, 8.0, 2.5, 0.6, "Centralny car park tunnel, the way in east under the avenue", null, true],
 	[-1566.0, 427.0, 60.0, 7.0, 5.0, 0.3, "Centralny car park tunnel, turning round in the hall and back into the tube", -100.0, true],
 	[-1631.6, 416.1, -121.0, 7.0, 3.0, 0.6, "Centralny car park tunnel, the way out west to the mouth and up", -128.0, true],
-	[-1649.5, 427.9, -134.0, 7.0, 3.0, 0.6, "Centralny car park ramp, the way out up from the mouth", -145.0],
+	[-1649.5, 427.9, -134.0, 7.0, 2.0, 0.6, "Centralny car park ramp, the way out up from the mouth", -145.0],
 	[-1013.0, -45.0, -20.0, 27.0, 4.0, 0.9, "PT-1 Marszałkowska, the left lane along Centrum's tram-stop fence"],
 	[-1013.0, -45.0, -25.0, 27.0, 3.0, 0.85, "PT-1 Marszałkowska, drifting 5° into the tram-stop fence"],
 	[-1001.2, -5.0, -20.0, 27.0, 4.0, 0.8, "PT-1 Marszałkowska, the left side clipping the tram platform's north tip"],
