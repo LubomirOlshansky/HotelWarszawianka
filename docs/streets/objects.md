@@ -68,9 +68,11 @@ signals and bins under decks and inside the station.
 
 ## Left for a person (CHECK)
 
-- P9 lone signals: Wybrzeże Szczecińskie (976, -71) ×3, Aleja Waszyngtona (2000, -490) ×4,
-  Plac Piłsudskiego (-824, -879) ×2, Wioślarska (1160, -698) ×4, Targowa (1093, -1826). Probably
-  mid-block crossings or tram signals with no crossing mapped; Mapillary check next.
+- P9 lone signals, checked on Mapillary's detections (2026-11-08): all 14 are real, each has
+  detected traffic lights within 1-7 m. Wybrzeże Szczecińskie (976, -71) ×3, Aleja Waszyngtona
+  (2000, -490) ×4, Wioślarska (1160, -698) ×4 and Targowa (1093, -1826) also show stop lines and
+  zebras there that the map lacks; Plac Piłsudskiego (-824, -879) ×2 are pedestrian lights. KEEP;
+  the missing crossings go to the roads backlog.
 - P8 benches on steps: (-7, -1021) ×2 and (129, 1506) ×2 are amphitheatre steps (real); (-434, -722),
   (386, -1849), bins at (-651, -1165), (-1451, 742), (-842, -1521), a rack at (-2293, -2741).
 

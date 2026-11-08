@@ -966,7 +966,8 @@ yards and car parks); fences ran unbroken across footways (the bake never read g
 were 1.9 m grey slabs city-wide (street_pass B5 only fixed Marszałkowska); props stand on terrain_height,
 so OSM nodes on bridges and viaducts were drawn on the ground under the deck.
 - [x] Audit and fix pass, whole map, verify `objects` (2026-11-07)
-- [ ] P9: 14 signal poles far from any crossing (list in objects.md): Mapillary check, then a mid-block crossing or REMOVE
+- [x] P9: the 14 signal poles far from any crossing are real (Mapillary detects lights within 1-7 m of each), KEEP (2026-11-08)
+- [ ] Crossings the map lacks where those lights stand (Mapillary shows stop lines and zebras): Wybrzeże Szczecińskie (976, -71), Aleja Waszyngtona (2000, -490), Wioślarska (1160, -698), Targowa (1093, -1826): a roads item, not objects
 - [ ] P8: 10 benches, bins and racks on steps: keep the amphitheatre ones, move the rest
 - [ ] Models: a picnic roof and a smoking shelter for the ex-bus-shelter spots (a bench stands there now); bollards or a gate frame at the cut gates
 
