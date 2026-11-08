@@ -1032,6 +1032,7 @@ func _ready() -> void:
 		return
 	if title != null:
 		get_tree().paused = true  # the loading bar: nothing half-built moves between the build's steps
+		title.cap = lerpf(LOAD_FILES, LOAD_BUILT, LOAD_MARKS[0])
 		LoadYield.begin()  # the long setups let a frame through now and then (load_yield.gd)
 	await _build_world()
 	LoadYield.finish()
@@ -1097,6 +1098,8 @@ var _title_pending := 0
 ## start's sectors fill the rest (_title_frame). Test runs (no title) build in one go, as before.
 const LOAD_FILES := 0.12
 const LOAD_BUILT := 0.6
+## The shares `_load_mark` reports, in order: the bar creeps towards the next one between two.
+const LOAD_MARKS: Array[float] = [0.1, 0.26, 0.53, 0.66, 0.67, 0.85, 0.99, 1.0]
 ## The threaded requests' paths, and what they loaded (held until the build has used them, so the
 ## streamer's own `load` takes them from the cache).
 var _preload_paths: PackedStringArray = []
@@ -1158,6 +1161,8 @@ func _load_step(share: float) -> void:
 	if title == null:
 		return
 	title.progress = maxf(title.progress, lerpf(LOAD_FILES, LOAD_BUILT, share))
+	var i := LOAD_MARKS.find(share)
+	title.cap = lerpf(LOAD_FILES, LOAD_BUILT, LOAD_MARKS[mini(i + 1, LOAD_MARKS.size() - 1)])
 	await get_tree().process_frame
 	LoadYield.mark()
 
@@ -1592,7 +1597,7 @@ func _build_world() -> void:
 		if not follow:
 			_rotate_camera(d))
 	hud.pinched.connect(_on_pinch)
-	hud.setup_minimap(data, map.map_outline(), map.outside)  # map north: the L, not the box
+	await hud.setup_minimap(data, map.map_outline(), map.outside)  # map north: the L, not the box
 	await LoadYield.tick("minimap")
 	hud.map_landmarks = map.landmark_info  # the full map's landmark icons (map_icons.gd)
 	hud.vehicle_pressed.connect(_toggle_vehicle)
@@ -1603,7 +1608,7 @@ func _build_world() -> void:
 	missions = Missions.new()
 	missions.line_split = start_mission == 0  # G12: calls follow the vehicle (quest_lines.gd)
 	add_child(missions)
-	missions.setup(map, data, world, hud)
+	await missions.setup(map, data, world, hud)
 	await LoadYield.tick("missions")
 	missions.player = car.global_position
 	# Speech bubbles (anyone can talk) and everybody's lines.
@@ -1766,7 +1771,7 @@ func _build_world() -> void:
 	await LoadYield.tick("_build_stories")
 	_build_crawl(data, world)
 	await LoadYield.tick("_build_crawl")
-	_build_storefronts(data, world)
+	await _build_storefronts(data, world)
 	await LoadYield.tick("_build_storefronts")
 	_build_packs(data, world)
 	await LoadYield.tick("_build_packs")
@@ -1883,7 +1888,7 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	car.bumped.connect(traffic.on_player_bump)
 	trams = Trams.new()
 	world.add_child(trams)
-	trams.setup(graph, map, data)
+	await trams.setup(graph, map, data)
 	await LoadYield.tick("trams.setup")
 	trams.traffic = traffic
 	traffic.trams = trams
@@ -2596,7 +2601,7 @@ func _build_storefronts(data: Dictionary, world: Node3D) -> void:
 	storefronts.lit = func() -> bool: return tod != null and tod.lights_on > 0.001
 	storefronts.fine_shown = func() -> bool: return _fine_shown
 	world.add_child(storefronts)
-	storefronts.setup(data, notes.places)
+	await storefronts.setup(data, notes.places)
 	if stamps_flag >= 0:
 		storefronts.preset_stamps(stamps_flag)
 	if rides != null:
@@ -3909,7 +3914,7 @@ func _build_city_life(data: Dictionary, world: Node3D) -> void:
 	wallet.keep["life_sessions"] = life.session + 1
 	wallet.save()
 	world.add_child(life)
-	life.setup(notes.places, data)
+	await life.setup(notes.places, data)
 	await LoadYield.tick("life.setup")
 	# The Wiralek slots' doors: the trend queues' (crowds.gd), else the places themselves.
 	var at := {}
