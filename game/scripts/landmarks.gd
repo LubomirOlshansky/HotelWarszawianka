@@ -69,12 +69,18 @@ const TOWERS := [
 	{"key": "zlota44", "osm": "Złota 44", "style": S_SAIL, "glass": "#bccdd8", "roof": "#e4e8ea", "crest": "slope"},
 	{"key": "spire", "osm": "Warsaw Spire", "style": S_MIRROR, "glass": "#5a8ecb", "roof": "#b9c4cc",
 			"with": [Vector2(-2672.0, 195.0), Vector2(-2745.0, 150.0)]},  # the two crescent wings
-	{"key": "q22", "osm": "Q22", "style": S_BANDS, "glass": "#8ba2b4", "roof": "#bcc4ca"},
-	{"key": "rondo1", "osm": "Rondo 1", "style": S_FINS, "glass": "#6f8ea4", "roof": "#a9b3b9", "crest": "frame",
+	# Q22 and Rondo 1 rebuilt from the top-50 photo set (2026-11-08): _build_q22, _build_rondo1.
+	{"key": "q22", "osm": "Q22", "style": S_BANDS, "glass": "#3f5e5c", "roof": "#9ea4a6", "sign": "DELOJT"},
+	{"key": "rondo1", "osm": "Rondo 1", "style": S_BANDS, "glass": "#8aa3b5", "roof": "#a9b3b9",
 			"base_sign": "ENELMEDIK"},
 	{"key": "plater49", "osm": "InterContinental", "style": S_GRID, "glass": "#5f7f9a", "roof": "#c3c7c9", "sign": "INTERKONTI"},
 	{"key": "cosmopolitan", "osm": "Cosmopolitan", "style": S_RIBBON, "glass": "#4d6574", "roof": "#dfe2e0"},
-	{"key": "wtt", "osm": "Warsaw Trade Tower", "style": S_BANDS, "glass": "#3d6a7a", "roof": "#8d979c"},
+	# WTT from the top-50 photo set (T05, 2026-11-08): the parts by their mapped colours, the dark
+	# blue ribbon-glass drum, the beige stone slab with punched windows, the silver crown and its name.
+	{"key": "wtt", "osm": "Warsaw Trade Tower", "style": S_RIBBON, "glass": "#2f4558", "roof": "#8d979c",
+			"crown_from": 162.0, "crown": "#bfc6ca", "crown_sign": true, "sign": "UNIKWA", "sign_col": Color(0.95, 0.97, 1.0),
+			"skins": {"#f4d9c6": [S_PUNCHED, "#e6d8c6"], "#839099": [S_TILE, "#bfc6ca"], "#2e404e": [S_RIBBON, "#2f4558"],
+					"#a6abaa": [S_BANDS, "#9aa3a8"]}},
 	# The Rondo Daszyńskiego towers rebuilt from the Mac's photo reports (F, 2026-11-03;
 	# docs/landmarks/photo-reports/skyliner.md, warsaw_unit.md, mennica.md, gpy.md, warsaw_hub.md).
 	# `crown_from`: parts standing from that height up are the black crown block (`crown`);
@@ -144,7 +150,12 @@ const TOWERS := [
 	# 2026-11-06), as the parody CZERY.
 	{"key": "chalubinskiego8", "osm": "Chałubińskiego 8", "style": S_FINS, "glass": "#2f6f8f", "roof": "#c9cfd2", "mapped": true,
 			"sign": "CZERY"},
-	{"key": "spektrum", "osm": "Spektrum Tower", "style": S_BANDS, "glass": "#2f5563", "roof": "#7c878c", "mapped": true},
+	# Spektrum from the top-50 photo set (T35, 2026-11-08): the parts by their mapped colours, the
+	# drum in blue glass between white aluminium bands, the dark slabs in a square dark-glass grid, the
+	# pale green glass ring round the crown and the grey plant ring on top.
+	{"key": "spektrum", "osm": "Spektrum Tower", "style": S_BANDS, "glass": "#2f5563", "roof": "#7c878c", "mapped": true,
+			"skins": {"#637780": [S_BANDS, "#5f86a3"], "#274754": [S_GRID, "#26384a"], "#a2b5af": [S_RIBBON, "#a8cbcb"],
+					"": [S_BANDS, "#9aa4a9"]}},
 	# The Bridge is its own site now (_build_bridge, F's photos 2026-11-06).
 	# The second pass: the rest of the skyline over 80 m (the hotels by their addresses).
 	{"key": "grzybowska63", "osm": "Hilton Warsaw City", "style": S_BANDS, "glass": "#4d7590", "roof": "#9aa5ad", "sign": "CHILTON"},
@@ -225,11 +236,11 @@ const INFO := {
 			"220 m. Szklana wieża, smukła przy ziemi i pękata w połowie, z lustrzanym daszkiem nad wejściem i stalowymi kolumnami. Obok dwa łukowe biurowce, Spire B i C, a między nimi plac z fontannami. Otwarta w 2016 roku.",
 			"220 m. A glass tower, slim at the ground and swelling halfway up, with a mirrored canopy over the entrance and steel columns. Beside it two curved office blocks, Spire B and C, with a fountain plaza between them. Opened in 2016."],
 	"q22": ["Q22",
-			"155 m. Otwarty w 2016 roku.",
-			"155 m. Opened in 2016."],
+			"155 m. Ciemnozielone szkło, grafitowa korona i maszt w biało-czerwone pasy. Obok niższe skrzydło ze szklanym, pochyłym dachem. Otwarty w 2016 roku.",
+			"155 m. Dark green glass, a graphite crown and a red-and-white mast. Beside it a lower wing with a sloping glass roof. Opened in 2016."],
 	"rondo1": ["Rondo 1",
-			"192 m razem z ażurową koroną. Otwarty w 2006 roku.",
-			"192 m with its open crown. Opened in 2006."],
+			"159 m, a z anteną 192 m. Zaokrąglony, srebrny front do ronda, ciemna płyta z boku i szklany ekran ponad dachem. Otwarty w 2006 roku.",
+			"159 m, 192 m to the antenna. A rounded silver front to the roundabout, a dark slab on its side and a glass screen over the roof. Opened in 2006."],
 	"plater49": ["Emilii Plater 49",
 			"164 m. Dolne piętra przecina wielki prześwit.",
 			"164 m. A great gap cuts through its lower floors."],
@@ -237,8 +248,8 @@ const INFO := {
 			"160 m. Projekt Helmuta Jahna, białe pasy balkonów.",
 			"160 m. Designed by Helmut Jahn: white bands of balconies."],
 	"wtt": ["Warsaw Trade Tower",
-			"208 m z iglicą. Otwarty w 1999 roku.",
-			"208 m with its spire. Opened in 1999."],
+			"208 m z iglicą. Ciemnoniebieski szklany walec, beżowa kamienna ściana z oknami i srebrna korona. Otwarty w 1999 roku.",
+			"208 m with its spire. A dark blue glass drum, a beige stone wall of windows and a silver crown. Opened in 1999."],
 	"skyliner": ["Skyliner",
 			"195 m przy rondzie Daszyńskiego.",
 			"195 m by Rondo Daszyńskiego."],
@@ -273,8 +284,8 @@ const INFO := {
 			"140 m. Białe żebra na niebieskim szkle.",
 			"140 m. White ribs on blue glass."],
 	"spektrum": ["Spektrum Tower",
-			"Ciemne szkło przy Twardej.",
-			"Dark glass on Twarda."],
+			"Niebieski walec w białych pasach i szklany pierścień na szczycie, przy Twardej.",
+			"A blue drum in white bands with a glass ring on top, on Twarda."],
 	"bridge": ["The Bridge",
 			"174 m szkła przy Placu Europejskim. Fasada złamana ukośnymi szwami jak kartka papieru, na szczycie ciemna korona, a na dachu bank ERZATZ.",
 			"174 m of glass on Plac Europejski. Its faces fold along diagonal seams like a sheet of paper, a dark crown on top, and the ERZATZ bank on the roof."],
@@ -302,8 +313,8 @@ const INFO := {
 	"jm": ["JM Tower", "Biurowiec przy Alejach Jerozolimskich, ciemne szkło i szare żebra.",
 			"An office tower on Al. Jerozolimskie, dark glass and grey fins."],
 	"teatr": ["Teatr Wielki",
-			"Opera Narodowa. Gmach Antonia Corazziego z 1833 roku.",
-			"The National Opera. Antonio Corazzi's building of 1833."],
+			"Opera Narodowa. Gmach Antonia Corazziego z 1833 roku: dziesięć kolumn, tympanon z płaskorzeźbą i kwadryga Apollina na attyce.",
+			"The National Opera. Antonio Corazzi's building of 1833: ten columns, a carved pediment and Apollo's quadriga on the attic."],
 	"kopernik": ["Centrum Nauki Kopernik",
 			"Otwarte w 2010 roku. Ogród na dachu, obok miedzianoczerwone planetarium.",
 			"Opened in 2010. A roof garden, the copper-red planetarium beside it."],
@@ -3779,6 +3790,12 @@ func _build_tower(site: Dictionary) -> void:
 	if spec["key"] == "wcf":
 		_build_wcf(zone, spec)
 		return
+	if spec["key"] == "q22":
+		_build_q22(zone, spec)
+		return
+	if spec["key"] == "rondo1":
+		_build_rondo1(zone, spec)
+		return
 	_g = _ground_under(zone)
 	var g := _g
 	var glass := Color(spec["glass"])
@@ -3896,6 +3913,11 @@ func _build_tower(site: Dictionary) -> void:
 					else glass.darkened(0.12).lerp(Color("#b8a88c"), 0.0 if spec.get("cool", false) else 0.15)
 			if spec.has("podium_style"):
 				part_skin = M_SKIN + float(spec["podium_style"]) / 16.0
+		if spec.has("skins") and (spec["skins"] as Dictionary).has(str(b.get("c", "")).to_lower()):
+			# A part's own cladding by its mapped colour (WTT's stone slab, silver crown, dark glass).
+			var sk: Array = spec["skins"][str(b.get("c", "")).to_lower()]
+			wall = Color(sk[1])
+			part_skin = M_SKIN + float(sk[0]) / 16.0
 		if spec.has("arcade") and absf(h - float(spec["arcade"])) < 0.5 and mh < 0.5:
 			# RD-2 the arcade's lobby: copper-tinted glass 5 m in from the column line, lit warm.
 			var lobby := Geometry2D.offset_polygon(poly, -5.0)
@@ -4119,6 +4141,207 @@ func _build_wcf(zone: PackedVector2Array, _spec: Dictionary) -> void:
 	_aviation(low, roof_lo)
 
 
+# --- Q22 and Rondo 1 (the top-50 photo pass, 2026-11-08) ---------------------------------------
+
+## Q22 (Al. Jana Pawła II 22, 2016, 155 m), rebuilt from the top-50 photo set (T02: the tower
+## from Rondo ONZ, two views from Varso, its crown close, the skyline from the west; spec
+## docs/landmarks/specs/q22.md). The mapped parts: the shaft (the five-sided outline, 155 m), the
+## 60 m wing on its south-east side, a two-storey glass base and the roof's mast. The shaft is
+## dark green glass in fine floor bands; its top four storeys (141 to 155 m) are a solid
+## graphite crown 0.15 m proud of the glass, with the tenant's name (the parody DELOJT) on it in
+## white. The wing's roof is one sloping glass plane, high against the shaft and 9 m lower at its
+## south-east edge. On the roof the plant behind a parapet, a grey lattice mast (155 to 172 m)
+## and over it the red-and-white antenna to 195 m.
+const Q22_SHAFT_H := 155.0
+const Q22_CROWN := 14.0             ## the graphite crown's height (T02-02, about four storeys)
+const Q22_WING_H := 60.0
+const Q22_WING_DROP := 9.0          ## the wing's glass roof falls this much away from the shaft
+const Q22_LATTICE := 172.0          ## the lattice mast's top (T02-02)
+const Q22_ANTENNA := 195.0          ## the antenna's tip (OSM)
+const Q22_GLASS := Color("#3f5e5c")     ## dark green glass, a step paler than the photos
+const Q22_CROWN_COL := Color("#40464b") ## the crown's graphite panels (T02-02)
+const Q22_BASE_GLASS := Color("#526a6c")
+const Q22_ROOF := Color("#9ea4a6")
+const Q22_WING_ROOF := Color("#33464c") ## the wing's glass roof, dark (T02-01, T02-06)
+const Q22_SIGN := Color(0.96, 0.97, 1.0)
+
+
+func _build_q22(zone: PackedVector2Array, spec: Dictionary) -> void:
+	_g = _ground_under(zone)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	var bands := M_SKIN + float(S_BANDS) / 16.0
+	var dark := M_SKIN + float(S_DARK) / 16.0
+	var parts := _parts_in(zone, func(b: Dictionary) -> bool: return float(b["h"]) > float(b["mh"]) + 0.5)
+	var shaft := PackedVector2Array()
+	var wing := PackedVector2Array()
+	var mast_at := Vector2.INF
+	for b in parts:
+		var poly := _pts(b["p"])
+		var h := float(b["h"])
+		var small := _box_of([poly]).size.length() < 9.0
+		if small:
+			# The mast's mapped pieces: only where it stands is used (the lattice's footprint).
+			if absf(h - 159.0) < 0.5 and float(b["mh"]) > 150.0:
+				mast_at = _centre(poly)
+			continue
+		if absf(h - Q22_SHAFT_H) < 0.5:
+			shaft = poly
+		elif absf(h - Q22_WING_H) < 0.5:
+			wing = poly
+		elif h < 12.0:
+			# The glass base: one or two storeys round the shaft and the wing.
+			_prism(poly, g - 0.4, g + h, Q22_BASE_GLASS, Q22_ROOF, bands, M_STONE)
+			_collide(poly)
+	if shaft.size() < 3 or wing.size() < 3:
+		push_warning("landmarks: Q22's mapped shaft or wing is missing")
+		return
+	# The wing: glass to a roof that slopes away from the shaft (the high side `slope_to`).
+	var to_shaft := (_centre(shaft) - _centre(wing)).normalized()
+	_tower_cut(wing, g - 0.4, g + Q22_WING_H, {"slope_to": to_shaft, "cut_drop": Q22_WING_DROP},
+			Q22_GLASS, Q22_WING_ROOF, bands)
+	_collide(wing)
+	# The shaft: glass to the crown, the crown proud of it, the roof and its parapet.
+	var top := g + Q22_SHAFT_H
+	_prism(shaft, g - 0.4, top - Q22_CROWN, Q22_GLASS, none, bands)
+	var proud := Geometry2D.offset_polygon(shaft, 0.15, Geometry2D.JOIN_MITER)
+	var crown: PackedVector2Array = proud[0] if proud.size() == 1 else shaft
+	_prism(crown, top - Q22_CROWN, top, Q22_CROWN_COL, Q22_ROOF, dark, M_STONE)
+	_collide(shaft)
+	_tower_roof(crown, top, Q22_CROWN_COL.lightened(0.1), Vector2.ZERO)
+	# The plant: a low grey box on the roof's middle, under the mast.
+	var plant := Geometry2D.offset_polygon(shaft, -6.0)
+	if plant.size() == 1:
+		_prism(plant[0], top, top + 3.5, Color("#8d9396"), Color("#a3a8aa"), M_STONE, M_STONE)
+	# The mast: the grey lattice (an open frame on a 3.6 m square) and the antenna in red and white.
+	if mast_at == Vector2.INF:
+		mast_at = _centre(shaft)
+	_prism(_square(mast_at, 1.8), top + 3.5, g + Q22_LATTICE, Color("#9aa0a4"), none, M_SKIN + float(S_FRAME) / 16.0)
+	_prism(_square(mast_at, 1.8), g + Q22_LATTICE, g + Q22_LATTICE + 0.4, Color("#9aa0a4"), Color("#9aa0a4"), M_STONE, M_STONE)
+	var seg := (Q22_ANTENNA - Q22_LATTICE - 0.4) / 5.0
+	for k in 5:
+		var c := Color("#c8302a") if k % 2 == 0 else Color("#ecebe6")
+		var y0 := g + Q22_LATTICE + 0.4 + seg * k
+		_prism(_square(mast_at, 0.45 - 0.05 * k), y0, y0 + seg, c, c, M_STONE, M_STONE)
+	_prism(_square(mast_at, 0.3), g + Q22_ANTENNA, g + Q22_ANTENNA + 0.8, DUSK_RED, DUSK_RED, M_LAMP, M_LAMP)
+	# The name in white on the crown, on the faces seen from Rondo ONZ and from Varso.
+	_crown_signs(crown, top, str(spec["sign"]), Q22_SIGN, 4.0, 0.6)
+	var roof_y := func(_q: Vector2) -> float: return top + 1.5
+	_aviation(shaft, roof_y)
+
+
+## Rondo 1 (Rondo ONZ 1, 2006, 159 m, 192 m to the antenna), rebuilt from the top-50 photo set
+## (T03: the tower from Rondo ONZ by day and by night, two views from Varso, the stepped back
+## from Śliska, the roof from the Palace; spec docs/landmarks/specs/rondo1.md). The long slab
+## with its rounded north end, towards the roundabout, is silver-blue glass in floor bands; its
+## glass runs on over the roof as a screen of open framing, 12 m tall over the rounded end and
+## 4 m at the south end. The narrow west block is a graphite slab, flat-topped at 159 m, the
+## tenant's name (the parody EJ under a yellow stroke) on its north and south faces. Behind it
+## the glass steps down to the south-west (146, 125 and 80 m). On the roof the plant, a lattice
+## and the red-and-white antenna to 192 m.
+const R1_TOP := 159.0
+const R1_ANTENNA := 192.0
+const R1_SCREEN_HI := 12.0     ## the screen over the rounded north end (T03-05)
+const R1_SCREEN_LO := 4.0      ## and over the south end
+const R1_GLASS := Color("#8aa3b5")     ## silver-blue glass in light floor bands (T03-05, T03-08)
+const R1_SLAB := Color("#3b4147")      ## the west block's graphite panels (T03-02, T03-05)
+const R1_SCREEN := Color("#b9c2c8")    ## the screen's silver framing
+const R1_ROOF := Color("#a9b3b9")
+const R1_BASE := Color("#7c8e9a")
+const R1_STROKE := Color(1.0, 0.86, 0.1)
+
+
+func _build_rondo1(zone: PackedVector2Array, spec: Dictionary) -> void:
+	_g = _ground_under(zone)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	var bands := M_SKIN + float(S_BANDS) / 16.0
+	var dark := M_SKIN + float(S_DARK) / 16.0
+	var parts := _parts_in(zone, func(b: Dictionary) -> bool: return float(b["h"]) > float(b["mh"]) + 0.5)
+	parts = parts.filter(func(b: Dictionary) -> bool: return str(b.get("name", "")) != spec.get("osm", ""))
+	var main := PackedVector2Array()
+	var slab := PackedVector2Array()
+	for b in parts:
+		var poly := _pts(b["p"])
+		var h := float(b["h"])
+		var mh := float(b["mh"])
+		if _box_of([poly]).size.length() < 9.0:
+			continue  # the roof's mapped bits (the mast is built below)
+		if absf(h - R1_TOP) < 0.5:
+			# The three parts at 159 m: the slab with the rounded end (the largest), the west block,
+			# and a white sliver along the block's north face (taken into the block's cladding).
+			var area := absf(_area(poly))
+			if area > 600.0:
+				main = poly
+			elif area > 40.0:
+				slab = poly
+			continue
+		var base := g + mh - (0.4 if mh < 0.5 else 0.0)
+		if h >= 40.0:
+			# The steps down to the south-west: the slab's glass, a parapet on each roof.
+			_prism(poly, base, g + h, R1_GLASS, R1_ROOF, bands, M_STONE)
+			_tower_roof(poly, g + h, R1_ROOF.darkened(0.1), Vector2.ZERO)
+		else:
+			# The base and the neighbours in the outline, in their mapped colours where mapped
+			# (the car park's teal); Rondo 1's own base a darker glass.
+			var col := R1_BASE if str(b.get("c", "")).to_upper() == "#87CEEB" else _osm(b["c"], R1_BASE)
+			_prism(poly, base, g + h, col, R1_ROOF, bands, M_STONE)
+		if mh < 2.0:
+			_collide(poly)
+	if main.size() < 3 or slab.size() < 3:
+		push_warning("landmarks: Rondo 1's mapped slab or west block is missing")
+		return
+	var top := g + R1_TOP
+	# The slab: glass to the roof, then the screen of open framing over its edge, falling from the
+	# rounded north end to the south end (the high side `slope_to`, along the slab).
+	_prism(main, g - 0.4, top, R1_GLASS, R1_ROOF, bands, M_STONE)
+	_collide(main)
+	var north := Vector2(0.0, -1.0)
+	_tower_cut(main, top, top + R1_SCREEN_HI, {"slope_to": north, "cut_drop": R1_SCREEN_HI - R1_SCREEN_LO},
+			R1_SCREEN, none, M_SKIN + float(S_FRAME) / 16.0)
+	var plant := Geometry2D.offset_polygon(main, -5.0)
+	if plant.size() >= 1:
+		_prism(plant[0], top, top + 3.0, Color("#8f979b"), Color("#a6adb0"), M_STONE, M_STONE)
+	# The west block: graphite, 0.15 m proud where it meets the slab's glass.
+	var proud := Geometry2D.offset_polygon(slab, 0.15, Geometry2D.JOIN_MITER)
+	var block: PackedVector2Array = proud[0] if proud.size() == 1 else slab
+	_prism(block, g - 0.4, top + 1.0, R1_SLAB, R1_SLAB.lightened(0.15), dark, M_STONE)
+	_collide(slab)
+	# The name on the block's north and south faces: EJ, a yellow stroke over it.
+	for i in block.size():
+		var a := block[i]
+		var b := block[(i + 1) % block.size()]
+		var o := _out(block, a, b)
+		if absf(o.y) < 0.7 or a.distance_to(b) < 6.0:
+			continue
+		_face_sign(a, b, o, top - 9.0, "EJ", Color(0.95, 0.95, 0.93), 0.55)
+		_face_sign(a, b, o, top - 3.0, "--", R1_STROKE, 0.4)
+	# The mast: a lattice on the plant, then the antenna in red and white to 192 m; it stands on
+	# the slab's middle, a little south of the centre (T03-02).
+	var c := _centre(main)
+	var foot := c + (c - _centre(PackedVector2Array([main[0], main[main.size() - 1]]))).normalized() * 6.0
+	if not Geometry2D.is_point_in_polygon(foot, main):
+		foot = c
+	_prism(_square(foot, 1.5), top + 3.0, top + 12.0, Color("#9aa0a4"), none, M_SKIN + float(S_FRAME) / 16.0)
+	var seg := (g + R1_ANTENNA - top - 12.0) / 6.0
+	for k in 6:
+		var col := Color("#c8302a") if k % 2 == 0 else Color("#ecebe6")
+		_prism(_square(foot, 0.5 - 0.05 * k), top + 12.0 + seg * k, top + 12.0 + seg * (k + 1), col, col, M_STONE, M_STONE)
+	_prism(_square(foot, 0.3), g + R1_ANTENNA, g + R1_ANTENNA + 0.8, DUSK_RED, DUSK_RED, M_LAMP, M_LAMP)
+	# The clinic's name over the ground floor (kept from the tower table).
+	if spec.has("base_sign"):
+		_crown_signs(main, g + 5.2, str(spec["base_sign"]), Color(0.75, 1.0, 0.95), 0.0, 0.3)
+	var roof_y := func(_q: Vector2) -> float: return top + 3.0
+	_aviation(main, roof_y)
+
+
+## A sign on one face (a→b, outward `o`), its letters' middle `y`, as wide as `share` of the face.
+func _face_sign(a: Vector2, b: Vector2, o: Vector2, y: float, word: String, colour: Color, share: float) -> void:
+	var mid := (a + b) * 0.5
+	var k := share * a.distance_to(b) / Neon.length_of(word)
+	signs.append([word, Vector3(mid.x, y - Neon.ROW_H * Neon.PIXEL * k * 0.5, mid.y), Vector3(o.x, 0.0, o.y), k, colour])
+
+
 ## Emilii Plater 53 at street level, from F's photos (2026-11-08, /mnt/project-files/shisha-lounge/
 ## photos/07-13): the podium's granite in bands over its glass, with thin sun fins over each glass
 ## ribbon (photos 7, 8); a black granite base band and granite piers along both street faces
@@ -4261,10 +4484,12 @@ func _tower_cut(poly: PackedVector2Array, y0: float, hi: float, spec: Dictionary
 		run += l
 	_mode = M_STONE
 	# The sloped roof over the outline, untangled first (a mapped outline that doubles back would
-	# triangulate into overlapping triangles: _cap does the same).
-	for flat in Geometry2D.merge_polygons(poly, PackedVector2Array()):
-		if flat.size() >= 3 and not Geometry2D.is_polygon_clockwise(flat):
-			_cut_roof(flat, top, roof)
+	# triangulate into overlapping triangles: _cap does the same). A clear roof colour leaves it
+	# open (Rondo 1's screen: walls only).
+	if roof.a > 0.0:
+		for flat in Geometry2D.merge_polygons(poly, PackedVector2Array()):
+			if flat.size() >= 3 and not Geometry2D.is_polygon_clockwise(flat):
+				_cut_roof(flat, top, roof)
 	if spec.has("fin"):
 		_cut_fin(poly, c, axis, hi, top, Color(spec["fin"]))
 	_mode = keep
@@ -13423,8 +13648,16 @@ const TEATR_STONE := Color("#eee6d0")
 const TEATR_BASE := Color("#cdc3a9")
 const TEATR_COLUMN := Color("#f1ead7")
 const TEATR_SCULPT := Color("#d9d2bf")
-## Portico column centres across the front, u from the middle: eight.
-const TEATR_COLS := [-11.9, -8.5, -5.1, -1.7, 1.7, 5.1, 8.5, 11.9]
+## Portico column centres across the front, u from the middle: ten (T06-04, 2026-11-08).
+const TEATR_COLS := [-15.3, -11.9, -8.5, -5.1, -1.7, 1.7, 5.1, 8.5, 11.9, 15.3]
+const TEATR_HALF := 17.0          ## the portico's half width over its columns
+const TEATR_ARCADE := 8.6         ## the arcaded ground storey under the columns (F's photo, 2026-11-08)
+const TEATR_COL_H := 11.2         ## the columns' height
+const TEATR_ARCH := Color("#4a4136")    ## the arcade's openings in shade, lamp-lit at night
+const TEATR_PED_HALF := 15.0      ## the raised middle block and its pediment, half width
+const TEATR_RELIEF := Color("#cfc6ae")   ## the tympanum's relief, in the stone's shade
+const TEATR_BRONZE := Color("#4d5a52")   ## the quadriga's dark green-bronze (T06-04)
+const TEATR_COPPER := Color("#7fa894")   ## the green copper roofs (T06-08)
 
 
 ## The Royal Castle (Zamek Królewski). Pass 1 kept LoD2's mass in its skin and added the stone
@@ -14247,32 +14480,114 @@ func _build_teatr(_site: Dictionary) -> void:
 	_g = map.terrain_height(_w(m, 3.0).x, _w(m, 3.0).y)
 	var g := _g
 	var light := TEATR_STONE.lightened(0.04)
+	var hw := TEATR_HALF
+	var y0 := g + TEATR_ARCADE      # the columns' floor, over the arcaded ground storey
+	var y1 := y0 + TEATR_COL_H      # their tops
 	_mode = M_STONE
-	# the base, as deep as the portico, and steps across it
-	_lbox(m, 3.5, 15.2, 3.5, g - 0.6, g + 3.4, TEATR_BASE, M_STONE, light)
-	for k in 5:
-		var depth := (k + 1) * 0.8
-		_lbox(m, 7.0 + depth * 0.5, 12.5, depth * 0.5, g - 0.6, g + 2.5 - 0.5 * k, TEATR_BASE, M_STONE,
+	# the ground storey (F's dusk photo, 2026-11-08): a rusticated arcade as deep as the portico,
+	# square piers with dark arched openings between them, two low steps along its front
+	_lbox(m, 3.5, hw + 1.6, 3.5, g - 0.6, y0 - 1.0, TEATR_BASE, M_STONE, light)
+	_lbox(m, 3.6, hw + 1.8, 3.6, y0 - 1.0, y0, light, M_STONE, light)
+	for k in 2:
+		_lbox(m, 7.2 + 0.4 * k, hw + 1.0 - k, 0.2 + 0.4 * k, g - 0.6, g + 0.3 - 0.15 * k, TEATR_BASE, M_STONE,
 				TEATR_BASE.lightened(0.04))
-	# eight Ionic columns on the base
-	for u: float in TEATR_COLS:
-		_column(m + u, 4.6, 0.62, g + 3.4, g + 14.6, TEATR_COLUMN)
-	# the entablature, back to the wall, then the attic and its sculpture group
-	_lbox(m, 3.0, 14.0, 3.2, g + 14.6, g + 16.0, light, M_STONE, light)
-	_lbox(m, 3.0, 14.3, 3.4, g + 16.0, g + 17.2, TEATR_STONE, M_STONE, light)
-	_lbox(m, 3.0, 14.6, 3.7, g + 17.2, g + 17.7, light, M_STONE, light)
-	_lbox(m, 2.0, 13.4, 2.0, g + 17.7, g + 20.3, TEATR_STONE, M_STONE, light)
-	_lbox(m, 2.0, 13.8, 2.3, g + 20.3, g + 20.7, light, M_STONE, light)
-	for grp: Array in [[-9.0, 1.4, 2.4], [-4.5, 1.6, 3.2], [0.0, 2.0, 4.6], [4.5, 1.6, 3.2], [9.0, 1.4, 2.4]]:
-		_lbox(m + float(grp[0]), 2.0, float(grp[1]), 0.9, g + 20.7, g + 20.7 + float(grp[2]), TEATR_SCULPT, M_STONE,
-				TEATR_SCULPT)
-	# the portico's back wall (proud of LoD2's), and the doors in it, in shade between the columns
-	_lbox(m, -0.1, 13.6, 0.2, g + 3.4, g + 14.6, TEATR_STONE.darkened(0.06), M_STONE, TEATR_STONE)
 	_mode = M_GLASS
-	for u: float in [-6.8, -3.4, 0.0, 3.4, 6.8]:
-		_wall(_w(m + u - 1.0, 0.13), _w(m + u + 1.0, 0.13), g + 3.6, g + 8.0, _b, Color("#3a3d40"))
+	for u: float in TEATR_COLS:
+		# an arch between each pair of the columns' bays: a dark opening with a round head (a
+		# pointed pair of triangles reads as one from the game's distance)
+		var c := m + u
+		var wa := _w(c - 1.15, 7.03)
+		var wb := _w(c + 1.15, 7.03)
+		_wall(wa, wb, g + 0.3, y0 - 3.2, _b, TEATR_ARCH)
+		var top := _w(c, 7.03)
+		_tri(Vector3(wa.x, y0 - 3.2, wa.y), Vector3(wb.x, y0 - 3.2, wb.y), Vector3(top.x, y0 - 2.0, top.y),
+				Vector3(_b.x, 0.0, _b.y), TEATR_ARCH, Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), y0 - 2.0 - g)
 	_mode = M_STONE
-	_collide(_rect(m, 4.0, 15.0, 6.0))
+	# the balustrade round the columns' floor
+	for side: Array in [[m, 7.0, hw + 1.6, 0.15], [m - hw - 1.45, 3.5, 0.15, 3.5], [m + hw + 1.45, 3.5, 0.15, 3.5]]:
+		_lbox(float(side[0]), float(side[1]), float(side[2]), float(side[3]), y0, y0 + 1.1, light, M_STONE, light)
+	# ten columns across the front on the arcade (T06-04, F's photo)
+	for u: float in TEATR_COLS:
+		_column(m + u, 4.6, 0.62, y0, y1, TEATR_COLUMN)
+	# the entablature, back to the wall (architrave, the carved frieze a shade darker, cornice)
+	_lbox(m, 3.0, hw + 0.5, 3.2, y1, y1 + 1.4, light, M_STONE, light)
+	_lbox(m, 3.0, hw + 0.8, 3.4, y1 + 1.4, y1 + 2.6, TEATR_SCULPT, M_STONE, light)
+	_lbox(m, 3.0, hw + 1.1, 3.7, y1 + 2.6, y1 + 3.1, light, M_STONE, light)
+	var ya := y1 + 3.1
+	# the attic over the portico: a plain block, the quadriga at its front edge
+	_lbox(m, 2.6, hw - 0.2, 2.6, ya, ya + 2.0, TEATR_STONE, M_STONE, light)
+	_lbox(m, 2.6, hw + 0.2, 2.9, ya + 2.0, ya + 2.4, light, M_STONE, light)
+	_teatr_quadriga(m, 3.4, ya + 2.4)
+	# behind the attic, the raised middle block with its windows (three a side), its cornice and
+	# the pediment with the relief in the tympanum (T06-04, T06-08, F's photo)
+	var pv0 := -0.5
+	var pv1 := -9.0
+	var pc := (pv0 + pv1) * 0.5
+	var ph := (pv0 - pv1) * 0.5
+	var yc := ya + 7.6
+	_lbox(m, pc, TEATR_PED_HALF, ph, y1, yc, TEATR_STONE, M_MONUMENT, light)
+	_lbox(m, pc, TEATR_PED_HALF + 0.5, ph + 0.5, yc, yc + 0.6, TEATR_SCULPT, M_STONE, light)
+	_lbox(m, pc, TEATR_PED_HALF + 0.8, ph + 0.8, yc + 0.6, yc + 1.2, light, M_STONE, light)
+	_teatr_pediment(m, pv0 + 0.8, pv1 - 0.8, TEATR_PED_HALF + 0.8, yc + 1.2, yc + 6.4)
+	# the portico's back wall (proud of LoD2's) on the columns' floor, and its doors in shade
+	_lbox(m, -0.1, hw - 1.6, 0.2, y0, y1, TEATR_STONE.darkened(0.06), M_STONE, TEATR_STONE)
+	_mode = M_GLASS
+	for u: float in [-10.2, -6.8, -3.4, 0.0, 3.4, 6.8, 10.2]:
+		_wall(_w(m + u - 1.0, 0.13), _w(m + u + 1.0, 0.13), y0 + 0.2, y0 + 4.6, _b, Color("#3a3d40"))
+	_mode = M_STONE
+	_collide(_rect(m, 3.5, hw + 1.6, 3.6))
+
+
+## The pediment over the middle block: a triangular gable from v0 (front) to v1 (back), half
+## width `hw`, from y0 to the ridge y1; two green copper slopes, stone ends, and the tympanum's
+## relief a shade darker, 0.15 m proud of the front.
+func _teatr_pediment(m: float, v0: float, v1: float, hw: float, y0: float, y1: float) -> void:
+	var l := _w(m - hw, v0)
+	var r := _w(m + hw, v0)
+	var t := _w(m, v0)
+	var lb := _w(m - hw, v1)
+	var rb := _w(m + hw, v1)
+	var tb := _w(m, v1)
+	var out := Vector3(_b.x, 0.0, _b.y)
+	var top := y1 - _g
+	_mode = M_STONE
+	_tri(Vector3(l.x, y0, l.y), Vector3(r.x, y0, r.y), Vector3(t.x, y1, t.y), out, TEATR_STONE,
+			Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), top)
+	_tri(Vector3(lb.x, y0, lb.y), Vector3(rb.x, y0, rb.y), Vector3(tb.x, y1, tb.y), -out, TEATR_STONE,
+			Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), top)
+	# the relief: a smaller triangle just proud of the tympanum
+	var k := 0.78
+	var f := _b * 0.15
+	var rl := _w(m - hw * k, v0) + f
+	var rr := _w(m + hw * k, v0) + f
+	var rt := _w(m, v0) + f
+	var ry0 := y0 + 0.4
+	_tri(Vector3(rl.x, ry0, rl.y), Vector3(rr.x, ry0, rr.y), Vector3(rt.x, ry0 + (y1 - y0) * k - 0.4, rt.y), out,
+			TEATR_RELIEF, Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), top)
+	# the two slopes, green copper
+	for side: float in [-1.0, 1.0]:
+		var a0 := _w(m + side * hw, v0)
+		var a1 := _w(m + side * hw, v1)
+		var n2 := _a * side * (y1 - y0) / hw
+		var nrm := Vector3(n2.x, 1.0, n2.y).normalized()
+		_quad(Vector3(a0.x, y0, a0.y), Vector3(a1.x, y0, a1.y), Vector3(tb.x, y1, tb.y), Vector3(t.x, y1, t.y), nrm,
+				TEATR_COPPER, Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), top)
+
+
+## The Apollo quadriga (T06-04): a plinth, four horses abreast rearing out to the square, the
+## chariot and the god behind them, all in dark bronze; low boxes, read from above.
+func _teatr_quadriga(m: float, v: float, y: float) -> void:
+	_lbox(m, v, 4.6, 1.6, y, y + 0.9, TEATR_STONE, M_STONE, TEATR_STONE.lightened(0.04))
+	var b := y + 0.9
+	for u: float in [-2.7, -0.95, 0.95, 2.7]:
+		var lean := 0.5 if absf(u) > 2.0 else 0.2  # the outer pair rear higher
+		_lbox(m + u * 1.05, v + 0.3, 0.32, 1.1, b + 0.9, b + 1.9, TEATR_BRONZE)       # body
+		_lbox(m + u * 1.1, v + 1.3, 0.25, 0.35, b + 1.6, b + 2.9 + lean, TEATR_BRONZE)  # neck and head
+		_lbox(m + u * 1.05, v - 0.6, 0.25, 0.25, b, b + 0.9, TEATR_BRONZE)             # hind legs
+		_lbox(m + u * 1.1, v + 1.0, 0.2, 0.3, b + 0.6, b + 1.3, TEATR_BRONZE)          # raised forelegs
+	_lbox(m, v - 1.0, 1.0, 0.5, b, b + 1.2, TEATR_BRONZE)       # the chariot
+	_lbox(m, v - 1.0, 0.35, 0.3, b + 1.2, b + 3.4, TEATR_BRONZE)  # Apollo
+	_lbox(m + 0.5, v - 0.8, 0.12, 0.12, b + 2.6, b + 3.9, TEATR_BRONZE)  # his raised arm
 
 
 # --- Plac Bankowy: Corazzi's palaces and the Bank Polski rotunda -----------------------------
@@ -14687,7 +15002,7 @@ func _build_teatr_polski(_site: Dictionary) -> void:
 const KRZYZ := Vector2(-456.1, -510.0)
 const KRZYZ_AXIS := Vector2(-0.323, -0.946)
 const KRZYZ_MID := 15.65
-const KRZYZ_WALL := Color("#e6dcc2")
+const KRZYZ_WALL := Color("#eee7d3")   # F's photo T09-02: whiter than first guessed
 const KRZYZ_TRIM := Color("#f1ebdc")
 const KRZYZ_BASE := Color("#bdb39c")
 const KRZYZ_COPPER := Color("#5a8a78")
@@ -14808,12 +15123,15 @@ func _krzyz_tower(cu: float) -> void:
 	# the helm
 	var c := _w(cu, cv)
 	_mode = M_STONE
-	var prof := [[3.4, 32.3], [3.4, 34.4], [4.0, 35.5], [3.0, 37.6], [1.8, 39.8], [1.2, 40.5]]
+	# F's front photo (T09-02, 2026-11-08): no big onion but an octagonal copper lantern with
+	# arched openings, a bell roof, a small bulb and a slim needle to the gilt ball and cross
+	_prism(_circle(c, 3.0, 8), g + 32.3, g + 36.5, KRZYZ_COPPER, KRZYZ_COPPER, M_MONUMENT, M_STONE)
+	var prof := [[3.4, 36.5], [3.2, 37.2], [2.0, 38.4], [0.7, 39.2], [1.1, 39.9], [0.3, 40.8]]
 	for k in prof.size() - 1:
 		_frustum(_circle(c, float(prof[k][0]), 8), g + float(prof[k][1]), _circle(c, float(prof[k + 1][0]), 8),
 				g + float(prof[k + 1][1]), KRZYZ_COPPER.lightened(0.03 * k), KRZYZ_COPPER)
-	_prism(_circle(c, 1.1, 8), g + 40.5, g + 43.5, KRZYZ_TRIM, KRZYZ_COPPER, M_MONUMENT, M_STONE)
-	_frustum(_circle(c, 1.4, 8), g + 43.5, _circle(c, 0.25, 8), g + 45.6, KRZYZ_COPPER, KRZYZ_COPPER)
+	_frustum(_circle(c, 0.22, 6), g + 40.8, _circle(c, 0.06, 6), g + 45.0, KRZYZ_COPPER, KRZYZ_COPPER)
+	_lbox(cu, cv, 0.3, 0.3, g + 45.0, g + 45.6, KRZYZ_GOLD, M_STONE, KRZYZ_GOLD)
 	_lbox(cu, cv, 0.18, 0.18, g + 45.6, g + 48.6, KRZYZ_GOLD, M_STONE, KRZYZ_GOLD)
 	_lbox(cu, cv, 0.7, 0.18, g + 47.2, g + 47.6, KRZYZ_GOLD, M_STONE, KRZYZ_GOLD)
 
@@ -15205,6 +15523,9 @@ const PREZ_BRONZE := Color("#3f4a45")
 const PREZ_GRANITE := Color("#8d8a86")
 const PREZ_LION := Color("#d8d2c4")
 const PREZ_IRON := Color("#2f3432")
+const PREZ_SLATE := Color("#6b7275")    ## the wings' dark slate roofs (the aerial, T08-04)
+const PREZ_ARCH := Color("#4d4a42")     ## the arcade's openings in shade
+const PREZ_STATUES := Color("#e4ded0")  ## the balustrade's stone figures
 ## Blocks: [cu, cv, hu, hv, eaves, roof rise] (from the outline in the frame above).
 const PREZ_BLOCKS := [
 	[-12.5, 0.5, 12.5, 41.5, 15.5, 5.0],   # main block
@@ -15246,7 +15567,8 @@ func _build_prezydencki(site: Dictionary) -> void:
 		_lbox(cu, cv, hu, hv, g + 4.0, g + top, PREZ_WALL, M_MONUMENT, none)
 		_prism(_largest(Geometry2D.offset_polygon(_rect(cu, cv, hu, hv), 0.4, Geometry2D.JOIN_MITER)),
 				g + top - 0.2, g + top + 0.5, light, PREZ_ROOF.lightened(0.1), M_STONE, M_STONE)
-		_hip(cu, cv, hu - 0.3, hv - 0.3, g + top + 0.5, blk[5], PREZ_ROOF)
+		# the main block's roof grey-green sheet, the wings' dark slate (the aerial, T08-04)
+		_hip(cu, cv, hu - 0.3, hv - 0.3, g + top + 0.5, blk[5], PREZ_ROOF if top > 13.0 else PREZ_SLATE)
 	# the street pavilions: a storey higher than the wings, a pediment to the street
 	for p: Array in PREZ_PAVILIONS:
 		var cu: float = p[0]
@@ -15256,13 +15578,33 @@ func _build_prezydencki(site: Dictionary) -> void:
 		_lbox(cu, cv, hu, hv, g - 0.6, g + 4.0, PREZ_BASE, M_STONE, none)
 		_lbox(cu, cv, hu, hv, g + 4.0, g + 12.0, PREZ_WALL, M_MONUMENT, none)
 		_lbox(cu, cv, hu + 0.3, hv + 0.3, g + 12.0, g + 12.7, light, M_STONE, PREZ_ROOF.lightened(0.1))
-		_gable(cu + hu + 0.3, cu - hu - 0.3, cv, hv + 0.3, g + 12.7, 3.2, PREZ_WALL, PREZ_ROOF)
-	# the portico: a rusticated base, four giant columns, the entablature and the pediment
-	_lbox(2.0, 0.0, 2.0, 9.5, g - 0.6, g + 4.0, PREZ_BASE, M_STONE, PREZ_BASE.lightened(0.05))
-	for v: float in [-6.9, -2.3, 2.3, 6.9]:
-		_column(3.0, v, 0.6, g + 4.0, g + 15.5, PREZ_WALL)
-	_lbox(2.1, 0.0, 2.1, 9.6, g + 15.5, g + 16.7, light, M_STONE, PREZ_ROOF.lightened(0.1))
-	_gable(4.2, -3.0, 0.0, 9.6, g + 16.7, 3.8, PREZ_WALL, PREZ_ROOF)
+		_gable(cu + hu + 0.3, cu - hu - 0.3, cv, hv + 0.3, g + 12.7, 3.2, PREZ_WALL, PREZ_SLATE)
+	# The middle of the main block (the 2026-11-08 front photo, T08-03): no free portico but a
+	# risalit a step proud, an arcade of seven round-headed openings in its rusticated ground
+	# floor, six engaged columns over it to the cornice and a balustrade with statues on top.
+	_lbox(0.6, 0.0, 0.6, 14.0, g - 0.6, g + 4.0, PREZ_BASE, M_STONE, PREZ_BASE.lightened(0.05))
+	_lbox(0.6, 0.0, 0.6, 14.0, g + 4.0, g + 15.4, PREZ_WALL, M_MONUMENT, none)
+	_lbox(0.75, 0.0, 0.75, 14.3, g + 15.4, g + 16.4, light, M_STONE, PREZ_ROOF.lightened(0.1))
+	_mode = M_GLASS
+	for v: float in [-12.0, -8.0, -4.0, 0.0, 4.0, 8.0, 12.0]:
+		# the edge runs along -v so the face looks out to the street (+u)
+		var wa := _w(1.23, v + 1.1)
+		var wb := _w(1.23, v - 1.1)
+		_wall(wa, wb, g + 0.2, g + 2.6, _a, PREZ_ARCH)
+		var top := _w(1.23, v)
+		_tri(Vector3(wa.x, g + 2.6, wa.y), Vector3(wb.x, g + 2.6, wb.y), Vector3(top.x, g + 3.5, top.y),
+				Vector3(_a.x, 0.0, _a.y), PREZ_ARCH, Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), 3.3)
+	_mode = M_STONE
+	for v: float in [-11.5, -6.9, -2.3, 2.3, 6.9, 11.5]:
+		_column(1.45, v, 0.5, g + 4.2, g + 15.4, PREZ_WALL)
+	# the balustrade along the main block's front and over the risalit, statues on the risalit
+	_lbox(-0.25, 0.5, 0.2, 41.3, g + 15.9, g + 16.9, light, M_STONE, light)
+	_lbox(1.2, 0.0, 0.2, 14.1, g + 16.4, g + 17.4, light, M_STONE, light)
+	for v: float in [-11.5, -6.9, -2.3, 2.3, 6.9, 11.5, -27.0, -38.0, 27.0, 38.0]:
+		var su0 := 1.2 if absf(v) < 14.0 else -0.25
+		var sy := g + (17.4 if absf(v) < 14.0 else 16.9)
+		_lbox(su0, v, 0.32, 0.32, sy, sy + 0.5, light, M_STONE, light)
+		_lbox(su0, v, 0.2, 0.22, sy + 0.5, sy + 1.9, PREZ_STATUES, M_STONE, PREZ_STATUES)
 	# the fence along the street with the gate open in the middle, posts every few metres
 	for span: Vector2 in [Vector2(-25.0, -6.0), Vector2(6.0, 22.5)]:
 		var a := _w(PREZ_FENCE_U, span.x)

@@ -50,3 +50,7 @@ as Warsaw. You don't spawn agents and you don't touch git.
 Per street: objects by verdict, the contacts each verdict addresses (from the contact log), the
 CHECK list with the evidence missing (Mac crop, street-level photo, F's photo, A/B), and Open
 Questions with the default you'd build.
+
+## Reference photos (F, 2026-11-08)
+
+When photos are missing, download them yourself from any internet source and don't look at the licence: they are references for modelling only, kept in the gitignored `refs/`, never committed or shipped (model-from-photos skill, section 1). Don't stop or wait for the user over missing photos.

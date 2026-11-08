@@ -1149,9 +1149,13 @@ func setup(places: Array, data: Dictionary, seed_value := 1703) -> void:
 			if float(plats[k][0]) < 900.0:
 				ends.append(["tram_%d" % k, plats[k][1]])
 	_route_in = {"from": from.map(func(s: Dictionary) -> Array: return [s["id"], s["at"]]), "to": ends}
+	await LoadYield.tick("crowds sites")
 	_scan_paths(data, from, ends)
+	await LoadYield.tick("crowds footways")
 	for s in sites:
+		await LoadYield.tick("crowds place %s" % str(s.get("id", "")))
 		_place_site(s)
+	await LoadYield.tick("crowds places")
 	_build_drawing()
 	var kinds := {}
 	for s in sites:

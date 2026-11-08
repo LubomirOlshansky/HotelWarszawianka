@@ -1,6 +1,6 @@
 ---
 name: model-from-photos
-description: How Around Warsaw builds a landmark or building model that reads as the real one - reference photos first (Wikimedia Commons and street-level Mapillary/Panoramax, free licences, kept in refs/), a spec written from the photos at a set detail level, the build, and a side-by-side check of the game shot against the photo with a scored checklist. Use when writing a landmark spec, building or reworking a model (landmarks.gd, models.gd, props.gd, map_builder facades), and when accepting one.
+description: How Around Warsaw builds a landmark or building model that reads as the real one - reference photos first (any photo from the internet, any licence, as reference only; Commons, Mapillary/Panoramax and the rest, kept in the gitignored refs/ and never shipped), a spec written from the photos at a set detail level, the build, and a side-by-side check of the game shot against the photo with a scored checklist. Use when writing a landmark spec, building or reworking a model (landmarks.gd, models.gd, props.gd, map_builder facades), and when accepting one.
 ---
 
 # Models from photos: the detail bar and the photo check
@@ -12,14 +12,15 @@ GUGiK LoD2 heights and what the model remembered; nobody put a photo beside the 
 
 ## 1. Reference photos (before any spec)
 
-- **Where**: `refs/<slug>/` at the repo root, gitignored (other people's photos under CC BY-SA
-  don't go into the MIT repo). `refs/<slug>/SOURCES.md` lists each file: Commons page URL,
+- **Any photo from the internet (F, 2026-11-08)**: when a building lacks photos, download them yourself from anywhere (Commons, Mapillary, Panoramax, news, blogs, company or architect sites, any search result) without checking the licence: they are modelling references only, kept in the gitignored `refs/`, never shipped in the repo or the game. Don't wait for the user for photos.
+- **Where**: `refs/<slug>/` at the repo root, gitignored (other people's photos, whatever their licence,
+  never go into the repo). `refs/<slug>/SOURCES.md` lists each file: Commons page URL,
   author, licence, and one line on what it shows (angle, which face). `refs/INDEX.md` lists
   the buildings. The slug is the site key in `landmarks.gd` when there is one.
 - **What**: 3-4 photos a building: one street-level front, one elevated or aerial view that
   shows the whole silhouette and roof (the game is seen from above), one detail (base,
   entrance, crown). Daylight; a night photo only for what lights up.
-- **From**: Wikimedia Commons only (CC0, CC BY, CC BY-SA, public domain), the API
+- **From**: Wikimedia Commons first (the API
   (`commons.wikimedia.org/w/api.php`, `generator=search`, `gsrnamespace=6`,
   `prop=imageinfo`, `iiprop=url|extmetadata`, `iiurlwidth=1600`), the 1600 px thumb, a
   descriptive User-Agent. Free downloads are pre-approved (CLAUDE.md "Hard rules").
@@ -37,7 +38,7 @@ GUGiK LoD2 heights and what the model remembered; nobody put a photo beside the 
   Google Street View (its terms forbid it).
 - **Who**: Commons and the orthophoto from the Mac (or a Remote Control session on it); street-level
   photos from anywhere. Cloud containers get 403 from
-  Wikimedia: a cloud thread asks for the photos, or uses the photos the user drops in chat.
+  Wikimedia: a cloud thread fetches from other web sources itself, the Mac, or the photos the user drops in chat.
   Photos are never published, never traced into textures, and never shipped in the game.
 - Open every photo before using it; drop the wrong building, crops and interiors.
 - **The view from above: `refs/<slug>/ortho.jpg`**, a crop of GUGiK's orthophoto (geoportal.gov.pl,

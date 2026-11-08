@@ -500,6 +500,7 @@ func setup(lane_graph: LaneGraph, map_node: Node3D, camera: Camera3D, data: Dict
 	for i in MAX_CARS + 8:
 		_free.append(Driver.new())
 	for k in POOL.size():
+		await LoadYield.tick("traffic kind %d" % k)  # the loading bar: a frame between the kinds' meshes
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
 		mm.use_custom_data = true
@@ -560,6 +561,7 @@ func setup(lane_graph: LaneGraph, map_node: Node3D, camera: Camera3D, data: Dict
 		add_child(body)
 		_bodies.append(body)
 		_body_driver.append(null)
+	await LoadYield.tick("traffic bodies")
 	_build_lamps(data.get("signals", []))
 
 
