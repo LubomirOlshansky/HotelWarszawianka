@@ -5033,6 +5033,43 @@ const ZLOTA_EAST_SEGS := 10
 const ZLOTA_SOUTH_SEGS := 6
 const ZLOTA_RINGS := [0.0, 0.04, 0.1, 0.17, 0.25, 0.33, 0.42, 0.52, 0.62, 0.72, 0.81, 0.89, 0.95, 1.0]
 const ZLOTA_CROWN_GLASS := Color("#58788c")
+## The LED line on the sharp south-east corner (F's photos, 2026-11-08): a thin blue light up the
+## whole wing edge to the tip, lit at night (M_LAMP). A strip ZLOTA_EDGE_W wide, standing
+## ZLOTA_EDGE_OUT off the corner along its bisector, through the same rings as the tower.
+const ZLOTA_EDGE := Color("#7d96ff")
+const ZLOTA_EDGE_W := 1.6
+const ZLOTA_EDGE_OUT := 0.25
+
+func _zlota_edge_light(rings: Array[PackedVector2Array], tops: PackedFloat32Array, g: float) -> void:
+	var keep := _mode
+	_mode = M_LAMP
+	var c := ZLOTA_EAST_SEGS
+	var pts: Array[Vector3] = []
+	var outs: Array[Vector2] = []
+	for k in ZLOTA_RINGS.size():
+		var r: PackedVector2Array = rings[k]
+		var n := r.size()
+		var p := r[c]
+		var a := (p - r[(c - 1 + n) % n]).normalized()
+		var b := (p - r[(c + 1) % n]).normalized()
+		var o := (a + b).normalized()
+		var y := g + float(ZLOTA_RINGS[k]) * tops[c] if k > 0 else g + 1.0
+		pts.append(Vector3(p.x + o.x * ZLOTA_EDGE_OUT, y, p.y + o.y * ZLOTA_EDGE_OUT))
+		outs.append(o)
+	for k in pts.size() - 1:
+		var s0 := Vector2(-outs[k].y, outs[k].x) * (ZLOTA_EDGE_W * 0.5)
+		var s1 := Vector2(-outs[k + 1].y, outs[k + 1].x) * (ZLOTA_EDGE_W * 0.5)
+		var a0 := pts[k] + Vector3(s0.x, 0.0, s0.y)
+		var b0 := pts[k] - Vector3(s0.x, 0.0, s0.y)
+		var a1 := pts[k + 1] + Vector3(s1.x, 0.0, s1.y)
+		var b1 := pts[k + 1] - Vector3(s1.x, 0.0, s1.y)
+		var nrm := Vector3(outs[k].x, 0.0, outs[k].y)
+		var none := Vector2(-1, -1)
+		_tri(a0, b0, b1, nrm, ZLOTA_EDGE, none, none, none, -1.0, false)
+		_tri(a0, b1, a1, nrm, ZLOTA_EDGE, none, none, none, -1.0, false)
+	_mode = keep
+
+
 ## The podium's roof garden: smaller trees than Varso's sky garden, a lawn bed, a few benches.
 const ZLOTA_TERRACE := {"trees": 10, "h": 4.8, "r": 1.7, "pines": 6, "benches": 3, "step": 4.8}
 
@@ -5148,6 +5185,7 @@ func _zlota_sail(g: float, glass: Color, roof: Color, skin: float) -> void:
 			_quad(a0, b0, b1, a1, nrm, glass, Vector2(run, ya0 - _g), Vector2(run + length, yb0 - _g),
 					Vector2(run + length, b1.y - _g), Vector2(run, a1.y - _g), hi)
 			run += length
+	_zlota_edge_light(rings, tops, g)
 	# The sloped roof: glazed like the walls (a white slab facing the camera blew out).
 	_mode = M_SKIN
 	var up := Vector3(axis.x * fall, 1.0, axis.y * fall).normalized()
