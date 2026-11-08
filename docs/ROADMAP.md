@@ -180,6 +180,7 @@ then the Launch gate.
   - [x] R2 Plac Centralny's ground (the tenements' outlines in red and grey slabs, the
         courtyards' and walks' setts; the pond and lawns were already mapped), 2026-11-01
   - [x] Plac Centralny rework (F's photos, 2026-11-05): 97 young trees on the lawns and axis, perennial beds, benches, the stone seat-wall, wooden step seating round a pale heart, red WARSZAWA letters, deckchairs, lamps (tools/plac_centralny.py, sites `plac_centralny*`); phone look and a Mac photo check parked
+  - [x] Trybuna honorowa on Plac Centralny from F's photos (2026-11-08): the stepped granite tribune with its sitting steps, west stair, planters and young trees on its real spot (it was a low "seat-wall" 38 m west, and OSM's walls drew as grey walls and a ramp); the striped field moved in front of it, towards Marszałkowska (site `trybuna`); phone look and real heights parked
   - [x] R3 part 1: footways as grey concrete pavers (red cycle paths were already in), 2026-11-01
   - [ ] R3 part 2: granite kerbs, the crossings (orthophoto check on the Mac)
   - [x] Skwer Linearny na Złotej (the green Złota, opened 3 Aug 2026): car-free, limes, stone

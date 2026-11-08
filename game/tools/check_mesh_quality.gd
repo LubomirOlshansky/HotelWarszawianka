@@ -191,7 +191,8 @@ const BUDGET := {
 	"pilsudski": 160,
 	"kaczynski": 100,
 	"plac_maszty": 520,
-	"plac_centralny": 1400,
+	"plac_centralny": 700,  # 2026-11-08 the flat striped field: 560 tris
+	"trybuna": 900,  # 2026-11-08 the tribune from F's photos: 751 tris
 	"plac_centralny_lamps": 700,
 	"getto": 650,
 	"nike": 200,

@@ -622,6 +622,9 @@ const INFO := {
 	"msn": ["Muzeum Sztuki Nowoczesnej",
 			"Biały gmach Thomasa Phifera przy Placu Defilad. Otwarty w 2024 roku.",
 			"Thomas Phifer's white museum on Plac Defilad. Opened in 2024."],
+	"trybuna": ["Trybuna honorowa",
+			"Ocalały fragment trybuny z placu Defilad (1955), złożony z dawnego granitu. Dziś ogród widokowy na placu Centralnym.",
+			"What is left of Plac Defilad's 1955 parade tribune, rebuilt in its old granite. Now a garden with a view over Plac Centralny."],
 	"tr": ["Plac budowy TR Warszawa",
 			"Ogrodzony plac pod nowy gmach teatru TR Warszawa, obok białego muzeum.",
 			"The fenced plot for TR Warszawa's new theatre, next to the white museum."],
@@ -1801,6 +1804,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"plac_centralny":
 				_id = 0  # the square's furniture: no card, not on the picking grid
 				_build_plac_centralny(s)
+			"trybuna":
+				_build_trybuna(s)
 			"plac_centralny_lamps":
 				_id = 0
 				_build_plac_centralny_lamps(s)
@@ -27694,24 +27699,39 @@ func _build_plac_masts(_site: Dictionary) -> void:
 		_collide(_rect(0.0, 0.0, 0.3, 0.3))
 
 
-# --- Plac Centralny (F's photos, 2026-11-05) -------------------------------------------------------
-## The new square in front of the Palace of Culture (2024-25): the wooden step seating with its pale
-## paved heart, the stone seat-wall, the red WARSZAWA letters, the green deckchairs and the lamps. The
-## trees, beds and benches are tools/plac_centralny.py's (map data); the lawns, plazas and the pool
-## are OpenStreetMap's. Spec docs/landmarks/specs/plac_centralny.md. The frame: local u north, v east,
+# --- Plac Centralny (F's photos, 2026-11-05; the tribune and the field's place, 2026-11-08) ---------
+## The new square in front of the Palace of Culture (2024-25): the old parade tribune (`trybuna`),
+## and before it, towards Marszałkowska, the striped field (granite slabs with grass joints) round a
+## pale paved heart, the red WARSZAWA letters, the green deckchairs and the lamps. The trees, beds and
+## benches are tools/plac_centralny.py's (map data); the lawns, plazas and the pool are
+## OpenStreetMap's. Spec docs/landmarks/specs/plac_centralny.md. The frame: local u north, v east,
 ## from the square's axis (Marszałkowska's frame s 64, t -130; first_scene.gd FRAME_*).
+## 2026-11-08 (F's photos of the tribune and the aerial render): the 2026-11-05 build had the field
+## west of the tribune and the tribune itself as a low "seat-wall" 38 m further west; OSM's walls on
+## its real spot were drawn as low grey walls and a ramp. The field now lies east of the tribune.
 const PCZ_O := Vector2(-937.0 + 64.0 * -0.34917 + -130.0 * 0.93706, 210.1 + 64.0 * -0.93706 + -130.0 * -0.34917)
 const PCZ_N := Vector2(-0.34917, -0.93706)
 const PCZ_E := Vector2(0.93706, -0.34917)
-const PCZ_WOOD := Color("#a98258")
 const PCZ_GRASS := Color("#6f9e42")
-const PCZ_STONE := Color("#7d8077")
+const PCZ_SLAB := Color("#c4beb3")
 const PCZ_PALE := Color("#d3cbbf")
 const PCZ_RED := Color("#c9242b")
 const PCZ_GREEN := Color("#58a85a")
+## The striped field (u0, u1, v0, v1) and its pale heart: from the tribune's east face to the
+## cross path, between the two rows of trees along the axis (tools/plac_centralny.py ROWS).
+const PCZ_FIELD := Rect2(-15.0, 10.4, 34.0, 37.6)
+const PCZ_HEART := Rect2(-3.0, 10.4, 10.0, 25.6)
 ## The lamps, [s, t] in Marszałkowska's frame (tools/plac_centralny.py keeps its trees off them).
-const PCZ_LAMPS := [[64.0, -205.0], [64.0, -190.0], [64.0, -100.0], [64.0, -88.0], [42.0, -200.0], [86.0, -200.0],
+const PCZ_LAMPS := [[64.0, -205.0], [64.0, -190.0], [64.0, -76.0], [64.0, -64.0], [42.0, -200.0], [86.0, -200.0],
 		[42.0, -120.0], [86.0, -120.0], [42.0, -160.0], [86.0, -160.0]]
+## The tribune (OSM's walls, u -14.5..10.5, v -0.4..10; the west stair's landing to v -4.5): the
+## granite, its lighter coping and the bronze plaque.
+const TRY_GRANITE := Color("#bab6ad")
+const TRY_COPING := Color("#d4d0c6")
+const TRY_SOIL := Color("#5f7d3c")
+const TRY_LEAF := Color("#7fa04a")
+const TRY_TRUNK := Color("#5a4a3a")
+const TRY_PLAQUE := Color("#3a3833")
 
 
 func _pcz_frame() -> void:
@@ -27727,7 +27747,9 @@ func _pcz_world(s: float, t: float) -> Vector2:
 
 func _find_plac_centralny() -> void:
 	_pcz_frame()
-	_add_site("plac_centralny", [_rect(0.0, -11.0, 15.0, 31.0)])
+	var f := PCZ_FIELD
+	_add_site("plac_centralny", [_rect(f.get_center().x, f.get_center().y, f.size.x * 0.5, f.size.y * 0.5)])
+	_add_site("trybuna", [_rect(-2.0, 2.8, 12.6, 7.4)])
 	var zones: Array = []
 	for l: Array in PCZ_LAMPS:
 		zones.append(_circle(_pcz_world(l[0], l[1]), 0.4, 6))
@@ -27738,38 +27760,99 @@ func _build_plac_centralny(_site: Dictionary) -> void:
 	_pcz_frame()
 	var g := _g
 	_mode = M_STONE
-	# The stone seat-wall on the axis (t -168): a rough grey-green block with a gravel bed on top and
-	# a larch bench along each long side.
-	_lbox(0.0, -38.0, 14.0, 1.7, g - 0.3, g + 1.1, PCZ_STONE, M_STONE, PCZ_STONE.lightened(0.1))
-	_lbox(0.0, -38.0, 13.4, 0.8, g + 1.1, g + 1.16, Color("#4b4a45"), M_STONE)
-	for side: float in [-1.0, 1.0]:
-		_lbox(0.0, -38.0 + side * 1.2, 13.2, 0.3, g + 1.16, g + 1.55, PCZ_WOOD, M_STONE, PCZ_WOOD.lightened(0.1))
-	_collide(_rect(0.0, -38.0, 14.0, 1.7))
-	# The wooden steps: two wings of larch decking and grass strips rising towards the Palace, round a
-	# pale paved heart (v -30 west to 8 east).
-	var rows := 12
-	var dv := 38.0 / rows
-	for wing: float in [-1.0, 1.0]:
-		for k in rows:
-			var v1 := 8.0 - k * dv
-			var top := g + 0.1 * (k + 1)
-			var cu := wing * 9.25
-			_lbox(cu, v1 - dv * 0.5, 3.75, dv * 0.5, g - 0.2, top, PCZ_GRASS.darkened(0.15), M_STONE, PCZ_GRASS)
-			_lbox(cu, v1 - dv * 0.3, 3.8, dv * 0.3, top - 0.05, top + 0.04, PCZ_WOOD.darkened(0.1), M_STONE, PCZ_WOOD)
-	_lbox(0.0, -4.0, 5.2, 9.0, g - 0.2, g + 0.07, PCZ_PALE.darkened(0.1), M_STONE, PCZ_PALE)
-	_collide(_rect(0.0, -11.0, 13.2, 19.0))
-	# WARSZAWA: red letters on two slim steel posts, facing east, standing on the pale heart.
+	# The striped field: pale granite slabs in rows across the axis, a strip of grass between each
+	# two (the render's stripes; laid flat, the car and the walkers cross it), the pale heart on it.
+	var f := PCZ_FIELD
+	var cu := f.get_center().x
+	var hu := f.size.x * 0.5
+	_lbox(cu, f.get_center().y, hu, f.size.y * 0.5, g - 0.2, g + 0.04, PCZ_GRASS.darkened(0.15), M_STONE, PCZ_GRASS.darkened(0.08))
+	var rows := 24
+	var dv := f.size.y / rows
+	for k in rows:
+		var v0 := f.position.y + k * dv + 0.22
+		_lbox(cu, v0 + (dv - 0.44) * 0.5, hu - 0.15, (dv - 0.44) * 0.5, g + 0.02, g + 0.07, PCZ_SLAB, M_STONE,
+				PCZ_SLAB.lightened(0.04 * float(k % 3)))
+	var h := PCZ_HEART
+	_lbox(h.get_center().x, h.get_center().y, h.size.x * 0.5, h.size.y * 0.5, g - 0.2, g + 0.09, PCZ_PALE.darkened(0.1), M_STONE, PCZ_PALE)
+	# WARSZAWA: red letters on two slim steel posts, facing east, at the heart's east end.
+	var sv := h.end.y - 2.0
 	for su: float in [-3.8, 3.8]:
-		var pp := _w(su, -14.4)
+		var pp := _w(h.get_center().x + su, sv - 0.4)
 		_prism(_circle(pp, 0.08, 5), g, g + 1.3, Color("#8b8f93"), Color("#8b8f93"), M_STONE, M_STONE)
-	var mid := _w(0.0, -14.0)
+	var mid := _w(h.get_center().x, sv)
 	signs.append(["WARSZAWA", Vector3(mid.x, g + 1.0, mid.y), Vector3(_b.x, 0.0, _b.y), 1.3, PCZ_RED])
-	# Green deckchairs scattered on the heart's east end.
+	# Green deckchairs scattered on the heart, facing the tribune.
 	for i in 12:
-		var u := (fposmod(sin(i * 12.9898) * 43758.5453, 1.0) - 0.5) * 9.0
-		var v := -8.0 + fposmod(sin(i * 78.233) * 43758.5453, 1.0) * 14.0
-		_lbox(u, v, 0.28, 0.25, g + 0.07, g + 0.34, PCZ_GREEN, M_STONE, PCZ_GREEN.lightened(0.12))
-		_lbox(u, v - 0.22, 0.28, 0.05, g + 0.34, g + 0.78, PCZ_GREEN.darkened(0.1), M_STONE, PCZ_GREEN)
+		var u := h.get_center().x + (fposmod(sin(i * 12.9898) * 43758.5453, 1.0) - 0.5) * 8.0
+		var v := h.position.y + 3.0 + fposmod(sin(i * 78.233) * 43758.5453, 1.0) * 16.0
+		_lbox(u, v, 0.28, 0.25, g + 0.09, g + 0.36, PCZ_GREEN, M_STONE, PCZ_GREEN.lightened(0.12))
+		_lbox(u, v + 0.22, 0.28, 0.05, g + 0.36, g + 0.8, PCZ_GREEN.darkened(0.1), M_STONE, PCZ_GREEN)
+
+
+## Trybuna honorowa (F's photos, 2026-11-08: the south face, the planters being planted, the
+## aerial render): the rebuilt remnant of the 1955 parade tribune, its old granite cladding on a new
+## frame, made a garden with a view. A battered granite block 25 m along the axis's cross (u) by
+## 10.4 m, its east face to Marszałkowska 4.5 m high; from the west a broad stair between two
+## planters climbs to a landing at 2.4 m between two corner piers (the plaque on the south one),
+## three deep sitting steps rise from it to a walk at 4.1 m, and behind the east parapet a long
+## planter holds the young trees. The side cheeks step up with the seats: the zig-zag of the photo.
+func _build_trybuna(site: Dictionary) -> void:
+	_pcz_frame()
+	_g = _ground_under((site["zone"] as Array)[0])
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	_mode = M_STONE
+	# The core, its walls leaning in a little (the photo's batter), to the landing's height.
+	_frustum(_rect(-2.0, 4.8, 12.65, 5.35), g - 0.3, _rect(-2.0, 4.8, 12.5, 5.2), g + 2.4, TRY_GRANITE.darkened(0.06), TRY_COPING)
+	# Three sitting steps across the block (v 1.2..4.6), the walk (v 4.6..6.4) and the east planter
+	# with its coping rim (v 6.4..10).
+	var tops: Array[float] = [2.8, 3.25, 3.7]
+	for k in 3:
+		var v0 := 1.2 + k * 1.133
+		_lbox(-2.0, v0 + 0.567, 11.7, 0.567, g + 2.3, g + tops[k], TRY_GRANITE.darkened(0.12), M_STONE,
+				TRY_COPING if k % 2 == 0 else TRY_GRANITE.lightened(0.05))
+	_lbox(-2.0, 5.5, 11.7, 0.9, g + 2.3, g + 4.1, TRY_GRANITE, M_STONE, TRY_COPING.darkened(0.04))
+	_lbox(-2.0, 8.2, 12.5, 1.8, g + 2.3, g + 4.3, TRY_GRANITE.darkened(0.04), M_STONE, TRY_SOIL)
+	for rim: Array in [[-2.0, 6.6, 12.5, 0.2], [-2.0, 9.8, 12.5, 0.2], [-14.3, 8.2, 0.2, 1.8], [10.3, 8.2, 0.2, 1.8]]:
+		_lbox(rim[0], rim[1], rim[2], rim[3], g + 4.3, g + 4.55, TRY_COPING, M_STONE, TRY_COPING.lightened(0.05))
+	# The side cheeks, 0.8 m thick, a step above the seats: the stepped profile on the south and
+	# north faces; the corner piers at the landing (3.3 m).
+	for side: float in [-1.0, 1.0]:
+		var cu := -2.0 + side * 12.1
+		_lbox(cu, 0.4, 0.4, 0.8, g + 2.3, g + 3.3, TRY_GRANITE, M_STONE, TRY_COPING)
+		for k in 3:
+			_lbox(cu, 1.2 + k * 1.133 + 0.567, 0.4, 0.567, g + 2.3, g + tops[k] + 0.35, TRY_GRANITE, M_STONE, TRY_COPING)
+		_lbox(cu, 5.5, 0.4, 0.9, g + 2.3, g + 4.45, TRY_GRANITE, M_STONE, TRY_COPING)
+	# The plaque on the south pier's south face: a dark bronze panel, the old photo pale on it.
+	_lbox(-14.55, 0.4, 0.04, 0.6, g + 1.5, g + 2.7, TRY_PLAQUE, M_STONE, TRY_PLAQUE)
+	_lbox(-14.6, 0.4, 0.02, 0.5, g + 2.25, g + 2.6, Color("#9d9a92"), M_STONE, Color("#9d9a92"))
+	# The west stair (v -4.5..-0.4) from the square to the landing, and the two low planters that
+	# frame it (OSM's west wall, u -5.3..8.4).
+	var n := 15
+	var run := 4.1 / n
+	for k in n:
+		_lbox(1.5, -4.5 + (k + 0.5) * run, 3.0, run * 0.5, g - 0.2, g + 2.4 * (k + 1) / n, TRY_COPING.darkened(0.08),
+				M_STONE, TRY_COPING)
+	for pl: Array in [[-3.4, 1.9], [6.45, 1.95]]:
+		_lbox(pl[0], -2.45, pl[1], 2.05, g - 0.2, g + 1.2, TRY_GRANITE, M_STONE, TRY_COPING)
+		_lbox(pl[0], -2.45, pl[1] - 0.25, 1.8, g + 1.2, g + 1.25, TRY_SOIL, M_STONE, TRY_SOIL)
+		for j in 3:
+			var su: float = pl[0] + (j - 1) * (pl[1] - 0.8) * 0.75
+			_frustum(_circle(_w(su, -2.45 + 0.6 * (j - 1)), 0.7, 6), g + 1.2, _circle(_w(su, -2.45 + 0.6 * (j - 1)), 0.3, 6), g + 1.85,
+					TRY_LEAF.darkened(0.2), TRY_LEAF.darkened(0.1))
+	# The young trees: five in the east planter, one in each stair planter.
+	var spots := [[-11.0, 8.2, 4.3], [-6.6, 8.0, 4.3], [-2.0, 8.3, 4.3], [2.6, 8.0, 4.3], [7.0, 8.2, 4.3],
+			[-3.4, -3.3, 1.25], [6.45, -1.6, 1.25]]
+	for sp: Array in spots:
+		var p := _w(sp[0], sp[1])
+		var y: float = g + float(sp[2])
+		var j := 0.85 + 0.3 * fposmod(sin(p.x * 12.9898 + p.y * 78.233) * 43758.5453, 1.0)
+		_prism(_square(p, 0.1), y, y + 2.6 * j, TRY_TRUNK, none, M_STONE)
+		_mode = M_STONE
+		_frustum(_circle(p, 0.5, 6), y + 2.0 * j, _circle(p, 1.7 * j, 6), y + 3.6 * j, TRY_LEAF.darkened(0.12))
+		_frustum(_circle(p, 1.7 * j, 6), y + 3.6 * j, _circle(p, 0.6, 6), y + 5.4 * j, TRY_LEAF, TRY_LEAF.lightened(0.08))
+	_collide(_rect(-2.0, 4.8, 12.6, 5.3))
+	_collide(_rect(1.5, -2.45, 6.9, 2.05))
 
 
 func _build_plac_centralny_lamps(_site: Dictionary) -> void:
