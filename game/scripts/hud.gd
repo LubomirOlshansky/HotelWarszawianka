@@ -958,6 +958,11 @@ func _pedal_rects() -> Array[Rect2]:
 		out.append(disc.call(_gas_centre(), (GAS_R + 4.0) * pt))
 		var o := _strip_hint_centre()
 		out.append(Rect2(o - Vector2(52, 12) * pt, Vector2(104, 24) * pt))
+		if _stick_index != -1:
+			# PT-35 (2026-11-08): while a thumb steers, the strip itself (wider than its hint, and
+			# wherever the thumb came down) is a hard rect, so a job's "KEBAB n m" never covers its arrow.
+			var half := STICK_R * pt
+			out.append(Rect2(_stick_origin - Vector2(half + 20.0 * pt, 20.0 * pt), Vector2(half * 2.0 + 40.0 * pt, 40.0 * pt)))
 	return out
 
 

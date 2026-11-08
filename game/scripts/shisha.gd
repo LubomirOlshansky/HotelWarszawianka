@@ -203,11 +203,11 @@ static func vote_card(k: int) -> Array:
 		0:
 			return ["KTO WYBIERA SMAK?", "WHO PICKS THE FLAVOUR?",
 					"Ivan chce arbuz z miętą. Bogdan chce lody z ogórka.", "Ivan wants watermelon-mint. Bogdan wants cucumber ice cream.",
-					PackedStringArray(["ARBUZ Z MIĘTĄ|WATERMELON MINT", "LODY Z OGÓRKA|CUCUMBER ICE CREAM", "MISTRZ WYBIERZE|THE MASTER PICKS"])]
+					PackedStringArray(["IVAN|IVAN", "BOGDAN|BOGDAN", "MISTRZ|MASTER"])]
 		1:
 			return ["JAK MOCNA?", "HOW STRONG?",
-					"Bogdan: mocna. Ivan: lekka, mocnej nie da rady.", "Bogdan: strong. Ivan: light, he can't take strong.",
-					PackedStringArray(["1 · HERBATA|1 · TEA", "3 · RANDKA|3 · A DATE", "5 · ROZMOWA O POLITYCE|5 · TALK ABOUT POLITICS"])]
+					"Bogdan: mocna. Ivan: lekka, mocnej nie da rady. Skala: herbata 1, Sejm 5.", "Bogdan: strong. Ivan: light, he can't take strong. Scale: tea 1, politics 5.",
+					PackedStringArray(["HERBATA|TEA", "RANDKA|DATE", "SEJM|POLITICS"])]
 		_:
 			return ["JAK NAZYWAMY FAJKĘ?", "WHAT DO WE CALL THE PIPE?",
 					"Bogdan już wie: Forhend.", "Bogdan already knows: Forehand.",
@@ -273,7 +273,10 @@ func step(dt: float) -> void:
 			if _arrived(dt, at, kmh, court["at"], PICK_R):
 				_board_bogdan()
 		State.TO_LOUNGE:
-			_status("SENATOREK · Emilii Plater 53", "Zatrzymaj się przy wejściu", "Stop at the entrance", at, door["at"], COLOUR)
+			# PT-46 (Autopilot 2026-11-08): the status panel takes the side card's spot, so it
+			# steps aside while a vote card is up (as rides.gd's story question does).
+			if not _card:
+				_status("SENATOREK · Emilii Plater 53", "Zatrzymaj się przy wejściu", "Stop at the entrance", at, door["at"], COLOUR)
 			_votes_tick(dt, at)
 			if _arrived(dt, at, kmh, door["at"], DOOR_R):
 				_at_door()
@@ -463,7 +466,8 @@ func _votes_tick(dt: float, at: Vector3) -> void:
 	var left := Vector2(at.x, at.z).distance_to(Vector2(door["at"].x, door["at"].z)) / _way
 	if left <= float(VOTE_AT[votes_done]):
 		var c := vote_card(votes_done)
-		_show_side(c[0], c[2], c[4], c[1], c[3], true)
+		hud.hide_status()
+		_show_side(c[0], c[2], c[4], c[1], c[3])
 		_vote_t = 0.0
 		if votes_done == 1:
 			_scene("strength")
