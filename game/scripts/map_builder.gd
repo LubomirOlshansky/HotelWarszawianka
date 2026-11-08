@@ -610,6 +610,7 @@ func _build_parts(marks, roofs_only: bool) -> void:
 	_build_footbridge_stairs(walls)
 	_build_station_furniture(walls)
 	_build_catenary(walls)
+	_build_tram_catenary(walls)
 	_build_rail_signals(walls)
 	_build_srednicowy(walls)
 	_build_poniatowski(walls)
@@ -3179,6 +3180,221 @@ func _mast(st, p: Vector2, out: Vector2, d: Vector2, y: float) -> void:
 	_box_oriented(st, Vector3(mid.x, y + CATENARY_H + 0.35, mid.y), sideways, Vector3(0.12, 0.12, MAST_OUT + 0.4), MAST_COL.darkened(0.15))
 	_box_oriented(st, Vector3(mid.x, y + CATENARY_H + 1.2, mid.y), sideways, Vector3(0.08, 0.08, MAST_OUT + 0.2), MAST_COL.darkened(0.15))
 	_box_oriented(st, Vector3(p.x, y + CATENARY_H + 0.2, p.y), arm, Vector3(0.06, 0.4, 0.06), WIRE_COL)
+
+
+## Tram stops and tracks (F, 2026-11-07): Warsaw's tram overhead line (sieć trakcyjna), which the
+## tracks never had. The contact wire TRAM_WIRE_H m over every tram track; where a track crosses a
+## TRAM_POLE_STEP grid line (so poles stand in step on both tracks of a pair, in every sector
+## alike) the tracks there are one row: a pair with room between them (a median with the poles
+## down its middle, like Jerozolimskie's and Marszałkowska's) gets one pole between the tracks with
+## an arm out over each; otherwise a pole on each side at the first free spot outside the tracks
+## and off every road's ribbon (the median's edge, or the pavement where the tracks run in the
+## street) with a span wire across, or one pole and an arm when only one side is free. Into the
+## walls' surface (no draw call of its own); drive-through like the lamps. On a bridge deck the poles stand
+## at the deck's height (Poniatowskiego's on its pavements, the span wires across the carriageways).
+const TRAM_WIRE_H := 5.6
+const TRAM_POLE_STEP := 36.0
+const TRAM_POLE_H := 7.8
+const TRAM_POLE_COL := Color("#5f6668")
+const TRAM_ARM_COL := Color("#4b5153")
+## A pole keeps this far from a track's centre line (the tram is 2.4 m wide).
+const TRAM_POLE_CLEAR := 1.65
+## The farthest a side pole stands from its outer track, and the longest span wire.
+const TRAM_POLE_REACH := 14.0
+const TRAM_SPAN_MAX := 34.0
+## A side pole this near its outer track stands beside it (a median, a verge).
+const TRAM_POLE_NEAR := 4.5
+## Tracks this close where they cross a grid line share a row.
+const TRAM_ROW_GAP := 7.0
+
+
+func _build_tram_catenary(st) -> void:
+	var trams: Array = data.get("trams", [])
+	if trams.is_empty():
+		return
+	_uv2 = Vector2(0.5, -1.0)
+	var tgrid := {}
+	for t in trams:
+		var poly := _pts(t["p"])
+		for i in poly.size() - 1:
+			_seg_cells(tgrid, poly[i], poly[i + 1], 0.0, 8.0)
+	var rgrid := {}
+	for r in data.get("roads", []):
+		var poly := _pts(r["p"])
+		var half := float(r.get("w", 6.0)) * 0.5
+		for i in poly.size() - 1:
+			_seg_cells(rgrid, poly[i], poly[i + 1], half, 16.0)
+	var crossings := {}
+	for t in trams:
+		var poly := _pts(t["p"])
+		var dk := int(t.get("dk", -1))
+		for i in poly.size() - 1:
+			var a := poly[i]
+			var b := poly[i + 1]
+			var len := a.distance_to(b)
+			if len < 0.05:
+				continue
+			var d := (b - a) / len
+			var n := Vector2(-d.y, d.x)
+			var pieces := maxi(1, ceili(len / 10.0))
+			for k in pieces:
+				var p0 := a.lerp(b, float(k) / pieces)
+				var p1 := a.lerp(b, float(k + 1) / pieces)
+				if _in_sector and not _sector_rect.has_point((p0 + p1) * 0.5):
+					continue
+				var y0 := deck_height(dk, p0.x, p0.y) + TRAM_WIRE_H
+				var y1 := deck_height(dk, p1.x, p1.y) + TRAM_WIRE_H
+				var w := n * 0.06
+				_quad(st, Vector3(p0.x - w.x, y0, p0.y - w.y), Vector3(p1.x - w.x, y1, p1.y - w.y),
+						Vector3(p1.x + w.x, y1, p1.y + w.y), Vector3(p0.x + w.x, y0, p0.y + w.y), Vector3.UP, WIRE_COL)
+			var axis := 0 if absf(d.x) >= absf(d.y) else 1
+			var u0 := a[axis]
+			var u1 := b[axis]
+			for g in range(ceili(minf(u0, u1) / TRAM_POLE_STEP), floori(maxf(u0, u1) / TRAM_POLE_STEP) + 1):
+				var f := (g * TRAM_POLE_STEP - u0) / (u1 - u0) if absf(u1 - u0) > 0.001 else 0.0
+				var p := a.lerp(b, clampf(f, 0.0, 1.0))
+				var key := Vector3i(axis, g, dk)
+				var list: Array = crossings.get(key, [])
+				list.append([p, d, deck_height(dk, p.x, p.y), dk])
+				crossings[key] = list
+	for key: Vector3i in crossings:
+		var list: Array = crossings[key]
+		var along := 1 - key.x
+		list.sort_custom(func(l: Array, r: Array) -> bool: return (l[0] as Vector2)[along] < (r[0] as Vector2)[along])
+		var row: Array = []
+		for k in list.size() + 1:
+			if k < list.size() and (row.is_empty() or (list[k][0] as Vector2).distance_to(row[row.size() - 1][0]) < TRAM_ROW_GAP):
+				row.append(list[k])
+				continue
+			if not row.is_empty():
+				_tram_pole_row(st, row, tgrid, rgrid)
+			row = [] if k >= list.size() else [list[k]]
+	_uv2 = Vector2.ZERO
+
+
+## Adds segment a-b (with a payload `half`: a road's half width) to every `cell` m cell its box,
+## grown by `half`, touches: flat [a, b, Vector2(half, 0)] triples.
+func _seg_cells(grid: Dictionary, a: Vector2, b: Vector2, half: float, cell: float) -> void:
+	var box := Rect2(a, Vector2.ZERO).expand(b).grow(half)
+	for cz in range(floori(box.position.y / cell), floori(box.end.y / cell) + 1):
+		for cx in range(floori(box.position.x / cell), floori(box.end.x / cell) + 1):
+			var key := Vector2i(cx, cz)
+			var segs: PackedVector2Array = grid.get(key, PackedVector2Array())
+			segs.append_array(PackedVector2Array([a, b, Vector2(half, 0.0)]))
+			grid[key] = segs
+
+
+## Whether p is within `reach` (+ each segment's own half width) of a segment in `grid`.
+func _seg_near(grid: Dictionary, p: Vector2, reach: float, cell: float) -> bool:
+	var segs: PackedVector2Array = grid.get(Vector2i(floori(p.x / cell), floori(p.y / cell)), PackedVector2Array())
+	for i in range(0, segs.size(), 3):
+		var a := segs[i]
+		var ab := segs[i + 1] - a
+		var l2 := ab.length_squared()
+		var t := clampf((p - a).dot(ab) / l2, 0.0, 1.0) if l2 > 0.000001 else 0.0
+		if p.distance_to(a + ab * t) < reach + segs[i + 2].x:
+			return true
+	return false
+
+
+## Where a tram pole may stand: clear of every track and off every road's asphalt.
+func _tram_pole_free(p: Vector2, tgrid: Dictionary, rgrid: Dictionary) -> bool:
+	return not _seg_near(tgrid, p, TRAM_POLE_CLEAR, 8.0) and not _seg_near(rgrid, p, 0.3, 16.0)
+
+
+## One row of tracks crossing a grid line ([point, dir, rails' height, deck] each, in order across).
+func _tram_pole_row(st, row: Array, tgrid: Dictionary, rgrid: Dictionary) -> void:
+	if row.size() > 4:
+		return  # a junction's fan of curves: its wires hang from the rows before and after
+	var first: Vector2 = row[0][0]
+	var last: Vector2 = row[row.size() - 1][0]
+	var mid := (first + last) * 0.5
+	if _in_sector and not _sector_rect.has_point(mid):
+		return
+	var d: Vector2 = row[0][1]
+	for r: Array in row:
+		if absf((r[1] as Vector2).dot(d)) < 0.9:
+			return  # tracks crossing at an angle (a junction): no pole in the middle of it
+	var y := -INF
+	var on_deck := false
+	for r: Array in row:
+		y = maxf(y, float(r[2]))
+		on_deck = on_deck or int(r[3]) >= 0
+	var across := Vector2(-d.y, d.x)
+	if row.size() >= 2:
+		across = (last - first).normalized()
+	var wire := y + TRAM_WIRE_H
+	# A pair with room between: one pole in the middle, an arm out over each track.
+	if row.size() == 2 and first.distance_to(last) >= 2.0 * TRAM_POLE_CLEAR and _tram_pole_free(mid, tgrid, rgrid):
+		var foot := y if on_deck else terrain_height(mid.x, mid.y)
+		_tram_pole(st, mid, foot, wire)
+		_tram_arm(st, first - across * 0.4, last + across * 0.4, wire + 0.55)
+		for r: Array in row:
+			var q: Vector2 = r[0]
+			_tram_arm(st, q, q, wire + 0.55, 0.55)
+		return
+	var sides: Array = []
+	for s: Array in [[first, -1.0], [last, 1.0]]:
+		var found := Vector2.INF
+		var off := TRAM_POLE_CLEAR + 0.4
+		while off <= TRAM_POLE_REACH:
+			var p: Vector2 = (s[0] as Vector2) + across * float(s[1]) * off
+			if _tram_pole_free(p, tgrid, rgrid):
+				found = p
+				break
+			off += 0.5
+		sides.append(found)
+	var a: Vector2 = sides[0]
+	var b: Vector2 = sides[1]
+	# A pole beside its track (on the median) wins over one across a carriageway: the span wire
+	# crosses the road only where the tracks run in it (no free spot near either side).
+	var near_a := a != Vector2.INF and a.distance_to(first) <= TRAM_POLE_NEAR
+	var near_b := b != Vector2.INF and b.distance_to(last) <= TRAM_POLE_NEAR
+
+	if near_a and not near_b:
+		b = Vector2.INF
+	elif near_b and not near_a:
+		a = Vector2.INF
+	if a != Vector2.INF and b != Vector2.INF and a.distance_to(b) <= TRAM_SPAN_MAX:
+		var ya := y if on_deck else terrain_height(a.x, a.y)
+		var yb := y if on_deck else terrain_height(b.x, b.y)
+		_tram_pole(st, a, ya, wire)
+		_tram_pole(st, b, yb, wire)
+		_tram_arm(st, a, b, wire + 0.7, 0.05)
+		for r: Array in row:
+			var q: Vector2 = r[0]
+			_tram_arm(st, q, q, wire + 0.7, 0.7)
+		return
+	var pole := a if a != Vector2.INF else b
+	if pole == Vector2.INF:
+		return
+	var far := last if pole == a else first
+	if pole.distance_to(far) > TRAM_POLE_REACH:
+		return
+	_tram_pole(st, pole, y if on_deck else terrain_height(pole.x, pole.y), wire)
+	_tram_arm(st, pole, far + (far - pole).normalized() * 0.4, wire + 0.55)
+	for r: Array in row:
+		var q: Vector2 = r[0]
+		_tram_arm(st, q, q, wire + 0.55, 0.55)
+
+
+## A tubular steel tram pole at p, from `foot` to a little over the wire, on a concrete footing.
+func _tram_pole(st, p: Vector2, foot: float, wire: float) -> void:
+	var top := maxf(foot + TRAM_POLE_H, wire + 1.2)
+	_box_oriented(st, Vector3(p.x, (foot - 0.3 + top) * 0.5, p.y), Basis(), Vector3(0.24, top - foot + 0.3, 0.24), TRAM_POLE_COL)
+	_box_oriented(st, Vector3(p.x, foot + 0.12, p.y), Basis(), Vector3(0.42, 0.24, 0.42), PORTAL_CONCRETE)
+
+
+## A horizontal arm (or span wire) from a to b at height h, `size` m thick; a == b makes a dropper
+## from h down `size` m (to the wire).
+func _tram_arm(st, a: Vector2, b: Vector2, h: float, size := 0.1) -> void:
+	if a.distance_to(b) < 0.01:
+		_box_oriented(st, Vector3(a.x, h - size * 0.5, a.y), Basis(), Vector3(0.05, size, 0.05), WIRE_COL)
+		return
+	var dir := (b - a).normalized()
+	var c := (a + b) * 0.5
+	_box_oriented(st, Vector3(c.x, h, c.y), Basis(Vector3.UP, atan2(-dir.x, -dir.y)), Vector3(size, size, a.distance_to(b)),
+			TRAM_ARM_COL if size >= 0.08 else WIRE_COL)
 
 
 ## Railway L4 (Mac photo check 2026-11-01): Most Średnicowy, the cross-city line's bridge over
@@ -6998,7 +7214,8 @@ const BARRIER_STYLE := {
 ## An open railing along `poly`: an optional concrete upstand, then round-ish posts every 2 m and a
 ## top and a middle rail you can see through (Operation Unslop's tram railing and stair balustrade).
 ## It collides like a wall of the same height, so driving stays as it was.
-func _railing_along(st, poly: PackedVector2Array, height: float, upstand: float, up_col: Color, rail_col: Color, collide: bool, post_every := 2.0) -> void:
+func _railing_along(st, poly: PackedVector2Array, height: float, upstand: float, up_col: Color, rail_col: Color, collide: bool,
+		post_every := 2.0, base := NAN) -> void:
 	if upstand > 0.0:
 		_wall_along(st, poly, 0.2, upstand, up_col, false)
 	var run := 0.0
@@ -7012,8 +7229,9 @@ func _railing_along(st, poly: PackedVector2Array, height: float, upstand: float,
 			continue
 		var dir := (b - a) / length
 		var side := Vector2(-dir.y, dir.x) * 0.03
-		var ga := terrain_height(a.x, a.y)
-		var gb := terrain_height(b.x, b.y)
+		# `base`: the railing stands on a slab at that height (a tram island), not on the ground.
+		var ga := terrain_height(a.x, a.y) if is_nan(base) else base
+		var gb := terrain_height(b.x, b.y) if is_nan(base) else base
 		var n := Vector3(side.x, 0, side.y).normalized()
 		for h in [low, height - 0.05]:
 			for sgn in [1.0, -1.0]:
@@ -8318,7 +8536,7 @@ func _platform_roads() -> Array:
 	var box := Rect2()
 	var any := false
 	for a in data.get("platforms", []):
-		if float(a["h"]) < SOLID_PLATFORM:
+		if float(a["h"]) < SOLID_PLATFORM and not a.has("tram"):
 			continue
 		for q in _pts(a["p"]):
 			if any:
@@ -8372,6 +8590,8 @@ func _build_platforms(st) -> void:
 		if rail:
 			col = PLATFORM_TILES
 		_fill(st, poly, ground + h + 0.1, col)
+		if a.has("tram"):
+			_tram_island(st, a, poly, ground + h + 0.1)
 		if rail:
 			# F 2026-11-06 (photos of Warszawa Główna's new platforms): a white edge band and the
 			# yellow safety line 0.9 m in, the tactile strip inside it.
@@ -8395,12 +8615,103 @@ func _build_platforms(st) -> void:
 			var n := Vector3(e.y, 0.0, -e.x).normalized()
 			_quad(st, Vector3(p0.x, ground - 0.3, p0.y), Vector3(p1.x, ground - 0.3, p1.y),
 					Vector3(p1.x, ground + h + 0.1, p1.y), Vector3(p0.x, ground + h + 0.1, p0.y), n, col.darkened(0.12))
-			if h >= SOLID_PLATFORM and not _by_road(p0, p1, roads):
+			# Tram stops (2026-11-07): a tram island is 0.3 m now, but keeps its solid sides (PT-1: off
+			# the tracks into its side, the car slides along it instead of climbing onto the shelter).
+			if (h >= SOLID_PLATFORM or a.has("tram")) and not _by_road(p0, p1, roads):
 				var b0 := Vector3(p0.x, terrain_height(p0.x, p0.y) - 0.3, p0.y)
 				var b1 := Vector3(p1.x, terrain_height(p1.x, p1.y) - 0.3, p1.y)
 				var up := Vector3(0.0, ground + h + 1.6 - minf(b0.y, b1.y), 0.0)
 				_wall_faces.append_array([b0, b1, b1 + up, b0, b1 + up, b0 + up])
 	_uv2 = Vector2.ZERO
+
+
+## Tram stops (F, 2026-11-07, tools/tram_stops.py): a tram island (`tram`, 0.3 m high) gets, along
+## its boarding edge (`te`), the light kerb band and, TRAM_TACTILE_IN m in, the tactile strip (the
+## first scene's look, now on every island), and along the road (`re`) the black tram railing on
+## its top (drive-through like the lamps: the island's ends and the lanes it overlaps stay free).
+## Flat strips and thin boxes in the walls' mesh: +0 draw calls.
+const TRAM_EDGE_BAND := 0.25
+const TRAM_TACTILE_IN := 0.5
+const TRAM_TACTILE_W := 0.4
+const TRAM_EDGE_COL := Color("#e9e7e0")
+const TRAM_TACTILE_COL := Color("#c9a640")
+const TRAM_RAILING_COL := Color("#22262a")
+
+
+func _tram_island(st, a: Dictionary, poly: PackedVector2Array, top: float) -> void:
+	for flat: Array in a.get("te", []):
+		var run := _pts(flat)
+		_strip(st, _inset_run(run, poly, TRAM_EDGE_BAND * 0.5), TRAM_EDGE_BAND, top + 0.006, TRAM_EDGE_COL, false)
+		_strip(st, _inset_run(run, poly, TRAM_TACTILE_IN + TRAM_TACTILE_W * 0.5), TRAM_TACTILE_W, top + 0.008,
+				TRAM_TACTILE_COL, false)
+	for flat: Array in a.get("re", []):
+		_railing_along(st, _inset_run(_pts(flat), poly, 0.15), 1.1, 0.0, TRAM_RAILING_COL, TRAM_RAILING_COL, false, 2.0, top)
+
+
+## A run of a polygon's outline moved `d` m into the polygon (each point along its segments' mean
+## normal, turned to the inside).
+func _inset_run(run: PackedVector2Array, poly: PackedVector2Array, d: float) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	if run.size() < 2:
+		return out
+	for i in run.size():
+		var t := Vector2.ZERO
+		if i > 0:
+			t += (run[i] - run[i - 1]).normalized()
+		if i < run.size() - 1:
+			t += (run[i + 1] - run[i]).normalized()
+		var n := Vector2(-t.y, t.x).normalized()
+		var mid := (run[maxi(i - 1, 0)] + run[mini(i + 1, run.size() - 1)]) * 0.5
+		if Geometry2D.is_point_in_polygon(mid - n * 0.3, poly) and not Geometry2D.is_point_in_polygon(mid + n * 0.3, poly):
+			n = -n
+		out.append(run[i] + n * d)
+	return out
+
+
+## Where a platform's top is at (x, z) (its slab's height over the lowest ground of its outline +
+## its 0.1 m top, as _build_platforms draws it), NAN off the platforms. The props on a platform
+## (the mapped shelters, benches and bins: they stood sunk into the slab) and the stop kits
+## (street_details.gd, first_scene.gd) stand on it.
+var _plat_index := {}
+var _plat_polys: Array[PackedVector2Array] = []
+var _plat_tops := PackedFloat32Array()
+var _plat_ready := false
+
+
+func platform_top(x: float, z: float) -> float:
+	if not _plat_ready:
+		_index_platforms()
+	var p := Vector2(x, z)
+	var best := NAN
+	for k: int in _plat_index.get(Vector2i(floori(x / 16.0), floori(z / 16.0)), PackedInt32Array()):
+		if Geometry2D.is_point_in_polygon(p, _plat_polys[k]) and (is_nan(best) or _plat_tops[k] > best):
+			best = _plat_tops[k]
+	return best
+
+
+func _index_platforms() -> void:
+	_plat_ready = true
+	_plat_index.clear()
+	_plat_polys.clear()
+	_plat_tops.clear()
+	for a in data.get("platforms", []):
+		var poly := _pts(a["p"])
+		if poly.size() < 3:
+			continue
+		var ground := INF
+		var box := Rect2(poly[0], Vector2.ZERO)
+		for q in poly:
+			ground = minf(ground, terrain_height(q.x, q.y))
+			box = box.expand(q)
+		var k := _plat_polys.size()
+		_plat_polys.append(poly)
+		_plat_tops.append(ground + float(a["h"]) + 0.1)
+		for cz in range(floori(box.position.y / 16.0), floori(box.end.y / 16.0) + 1):
+			for cx in range(floori(box.position.x / 16.0), floori(box.end.x / 16.0) + 1):
+				var key := Vector2i(cx, cz)
+				var list: PackedInt32Array = _plat_index.get(key, PackedInt32Array())
+				list.append(k)
+				_plat_index[key] = list
 
 
 ## A cycle crossing's edge squares (P-11): their side in metres, a gap as long between them.
@@ -11078,7 +11389,12 @@ func _props(mesh: Mesh, material: Material, list: Array, solid: float, tints: Ar
 	for i in range(0, list.size() - 2, 3):
 		var x := float(list[i])
 		var z := float(list[i + 1])
-		spots.append(Transform3D(Basis(Vector3.UP, float(list[i + 2])), Vector3(x, terrain_height(x, z), z)))
+		# Tram stops (2026-11-07): a shelter, bench or bin on a platform stands on its top.
+		var y := terrain_height(x, z)
+		var top := platform_top(x, z)
+		if not is_nan(top):
+			y = maxf(y, top)
+		spots.append(Transform3D(Basis(Vector3.UP, float(list[i + 2])), Vector3(x, y, z)))
 	spots.append_array(extra)
 	for mmi in _tree_multimesh(mesh, material, spots, tints, custom):
 		if fine:

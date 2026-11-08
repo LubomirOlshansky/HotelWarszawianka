@@ -237,19 +237,31 @@ func _height(i: int, s: float) -> float:
 	return lerpf(h[int(f)], h[int(f) + 1], f - int(f))
 
 
-## Platforms within a few metres of a track become stops; a car stop line on a road
+## Platforms (and `tram_halts`' shelters) within a few metres of a track become stops; a car stop line on a road
 ## running alongside (same direction, within 14 m) becomes the tram's stop line too.
 func _find_halts(data: Dictionary) -> void:
 	var halt_id := 0
+	var centres: Array[Vector2] = []
+	var reach := PackedFloat32Array()
 	for plat in data.get("platforms", []):
 		var flat: Array = plat["p"]
 		var centre := Vector2.ZERO
 		for k in range(0, flat.size() - 1, 2):
 			centre += Vector2(flat[k], flat[k + 1])
 		centre /= flat.size() / 2.0
+		centres.append(centre)
+		reach.append(7.5)
+	# Tram stops (2026-11-07, tools/tram_stops.py): the stops OpenStreetMap has no island for, at
+	# their shelter beside the track (Muranowska's tracks ran 2 km without a stop).
+	var extra: Array = data.get("tram_halts", [])
+	for k in range(0, extra.size() - 1, 2):
+		centres.append(Vector2(float(extra[k]), float(extra[k + 1])))
+		reach.append(9.0)  # tram_stops.py HALT_SHELTER
+	for c in centres.size():
+		var centre := centres[c]
 		for i in _pts.size():
 			var near := _project(i, centre)
-			if near.y < 7.5 and _len[i] > 20.0:
+			if near.y < reach[c] and _len[i] > 20.0:
 				var at := clampf(near.x + LENGTH * 0.5, minf(LENGTH, _len[i] - 1.0), _len[i] - 1.0)
 				# Platforms on both sides of a stop are one stop (else the tram would
 				# stop at each in turn, forever).
