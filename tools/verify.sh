@@ -191,6 +191,10 @@
 # moves smoothly frame to frame; no map (CI too).
 # Smooth roads (2026-11-05): `smooth` runs tools/road_smooth.py --check (the map is smoothed: the
 # width steps at the joins tapered, the lane lines stitched; its steps and jogs never grow).
+# Street objects (2026-11-07): `objects` runs tools/object_fixes.py --check (the map's lamps, signals,
+# benches, bins, racks, columns, shelters, parked cars and barriers carry no artifact object_audit.py
+# fixes by itself: inside a wall, in a carriageway, under a deck, doubles, stubs, stair slabs, paths
+# walled off; the CHECK rules are only counted).
 # Stairs across the city (2026-11-07): `stairs` runs tools/stairs.py --check (the map's flights carry
 # their OSM tags: step count, width, handrails, ramps; map_builder.gd builds the stone flights from them)
 # and tools/barrier_tags.py --check (walls, fences and hedges carry their mapped heights, materials and
@@ -259,12 +263,12 @@ zmodload zsh/datetime
 ROOT=${0:A:h:h}
 GAME=$ROOT/game
 GODOT=${GODOT:-godot}
-STEPS_ALL=(map roads smooth fixes stairs streets outline pois streetdetails streetpass design models overrides stops streetmesh ratuszhub parkdetails parkmesh monuments monumentmesh spiremotion tarasyscreen spec lod2 courts drape ground drive drive-prebuilt deckxray stuckspots stuckspots-prebuilt lanedrive lanedrive-grounded finite steering laneassist stuckoffer handling grounded stopassist questlines stories settings credits language tiers governor heliview hud places edge roadworks roadworks-prebuilt eggs tape crowds life buses zaglebie crashes rave meet boatrace dekalog kinotour evtow crawl loud crazy oldtram tramfleet trains railsignals packs wellness fans eventday coffeerun garage save districts syrenki cassettes ladder racecuts first10 mainline chatter endcard opening parodies jobs2 rescues couriers delivery rides cost landmarks oldtownroofs roofdress tenementtrim osmroofs sites palacelights meshq sfx juice gamepad radio sounds water water-prebuilt streaming police plain ram teleport firstlife heli race trzy-mosty first10-run kebab coffee ride ride-police splash rain prebuilt classic police-runs police-soak life-soak)
-STEPS_QUICK=(map roads smooth fixes stairs streets outline pois streetdetails streetpass design models overrides stops streetmesh ratuszhub parkdetails parkmesh monuments monumentmesh spiremotion tarasyscreen spec drape drive deckxray stuckspots finite steering laneassist stuckoffer handling grounded stopassist questlines stories settings credits language tiers governor heliview hud places edge roadworks eggs tape crowds life buses zaglebie crashes rave meet boatrace dekalog kinotour evtow crawl loud crazy oldtram tramfleet trains railsignals packs wellness fans eventday coffeerun garage save districts syrenki cassettes ladder racecuts first10 mainline chatter endcard opening parodies jobs2 rescues couriers delivery rides cost landmarks oldtownroofs roofdress tenementtrim osmroofs sites palacelights meshq sfx juice gamepad radio sounds police plain ram teleport firstlife prebuilt)
+STEPS_ALL=(map roads smooth fixes objects stairs streets outline pois streetdetails streetpass design models overrides stops streetmesh ratuszhub parkdetails parkmesh monuments monumentmesh spiremotion tarasyscreen spec lod2 courts drape ground drive drive-prebuilt deckxray stuckspots stuckspots-prebuilt lanedrive lanedrive-grounded finite steering laneassist stuckoffer handling grounded stopassist questlines stories settings credits language tiers governor heliview hud places edge roadworks roadworks-prebuilt eggs tape crowds life buses zaglebie crashes rave meet boatrace dekalog kinotour evtow crawl loud crazy oldtram tramfleet trains railsignals packs wellness fans eventday coffeerun garage save districts syrenki cassettes ladder racecuts first10 mainline chatter endcard opening parodies jobs2 rescues couriers delivery rides cost landmarks oldtownroofs roofdress tenementtrim osmroofs sites palacelights meshq sfx juice gamepad radio sounds water water-prebuilt streaming police plain ram teleport firstlife heli race trzy-mosty first10-run kebab coffee ride ride-police splash rain prebuilt classic police-runs police-soak life-soak)
+STEPS_QUICK=(map roads smooth fixes objects stairs streets outline pois streetdetails streetpass design models overrides stops streetmesh ratuszhub parkdetails parkmesh monuments monumentmesh spiremotion tarasyscreen spec drape drive deckxray stuckspots finite steering laneassist stuckoffer handling grounded stopassist questlines stories settings credits language tiers governor heliview hud places edge roadworks eggs tape crowds life buses zaglebie crashes rave meet boatrace dekalog kinotour evtow crawl loud crazy oldtram tramfleet trains railsignals packs wellness fans eventday coffeerun garage save districts syrenki cassettes ladder racecuts first10 mainline chatter endcard opening parodies jobs2 rescues couriers delivery rides cost landmarks oldtownroofs roofdress tenementtrim osmroofs sites palacelights meshq sfx juice gamepad radio sounds police plain ram teleport firstlife prebuilt)
 # Operation Unslop review (2026-11-05): the road loop ran the whole --quick (~100 steps, most start
 # the game) after every tweak. --roads keeps only the steps a road rule can break; steps not in
 # STEPS_ALL on this branch (e.g. `smooth` before the smooth-roads PR) are skipped.
-STEPS_ROADS=(map roads streets streetdetails streetpass design models overrides smooth fixes drive stuckspots)
+STEPS_ROADS=(map roads streets streetdetails streetpass design models overrides smooth fixes objects drive stuckspots)
 # Loop 3g-1: minutes of play in the police soak (P13; the full one is 10).
 SOAK_MINUTES=${NW_SOAK_MINUTES:-3}
 # Longest a single step may take, in seconds, before it is stopped (macOS has no `timeout`).
@@ -781,6 +785,15 @@ for s in $want; do
 			case $code in
 				0) row PASS "smooth" $secs "$(grep '^road_smooth: ' $logs/smooth.log | tail -1)" ;;
 				*) row FAIL "smooth" $secs "$(grep '^road_smooth: ' $logs/smooth.log | tail -1) ($logs/smooth.log)" ;;
+			esac ;;
+		objects)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/object_fixes.py --check > $logs/objects.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			case $code in
+				0) row PASS "objects" $secs "$(grep '^object_fixes: ' $logs/objects.log | tail -1)" ;;
+				*) row FAIL "objects" $secs "$(grep '^object_fixes: ' $logs/objects.log | tail -1) ($logs/objects.log)" ;;
 			esac ;;
 		stairs)
 			t0=$EPOCHREALTIME

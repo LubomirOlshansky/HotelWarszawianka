@@ -26,6 +26,7 @@ someone writes its lines.
 - The museum's steam engines and coaches by Warszawa Główna are solid now: the car stops at them instead of driving through.
 
 ## 2026-11-07
+- Street objects tidied across the city: no more lamps, bins or traffic lights standing in the road, inside walls, in the river or under bridges; the sides of underpass and metro stairs that were still tall grey walls are open railings; park paths go through gates in the fences; picnic shelters in parks and car parks are no longer bus stops.
 - The car park behind the Novotel on Nowogrodzka stands as it does: eight open decks painted with red roses turning green and teal down Parkingowa, a blue-neon bar on the corner, the barrier at the entry and the poster-covered wall beside it.
 - Nowogrodzka 31, the cream office block across from the Novotel, is built from real photos: rows of square windows, bars and shops with fairy lights and neon, a huge cat-food advert (MRAU) on the end wall facing the Novotel, and on the roof a big white billboard lit at night by fifteen lamps. Next to it, Marszałkowska 99 is the white block with its balconies.
 - The cycle bridges under Most Łazienkowski no longer float in the air: they hang on steel brackets from the bridge's box girders.
