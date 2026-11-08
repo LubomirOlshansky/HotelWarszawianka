@@ -115,6 +115,14 @@ var story_spots := PackedVector2Array()
 var story_colours := PackedColorArray()
 ## The questlines' names (in the language shown) by start, for their labels.
 var story_names := PackedStringArray()
+## Each questline's one-line description (a tap on its pin shows it, `_tap_story`) and, per
+## questline, 1 for a smaller "!" (the shisha night: it starts only at its pin).
+var story_blurbs := PackedStringArray()
+var story_small := PackedByteArray()
+var _qdrag := -1
+var _qdrag_px := 0.0
+var _tap_at := Vector2.INF
+var _tap_ms := 0
 var focus := false
 ## F (2026-11-07): the hospitals only matter to a rescue; their marks show only while one is on
 ## (main.gd sets it on open).
@@ -159,9 +167,9 @@ var _legend_icons: Array[Control] = []
 ## The legend's icons are drawn here, on top of its card (the overlay is under the cards).
 var _legend_art: Control
 ## The legend's rows: [Polish · English]; their icons in order: the star, the ringed dot, the
-## kebab stand's badge, the station's triangle, the garage's diamond, the metro's pin, the "?".
+## kebab stand's badge, the station's triangle, the garage's diamond, the metro's pin.
 const LEGEND := ["główny wątek · main line", "wątek: start · questline start", "zlecenie · side job", "kebab · kebab stand", "stacja · job station",
-		"warsztat · garage", "metro · underground", "nieodkryte · not found yet"]
+		"warsztat · garage", "metro · underground"]
 ## For checks: the last spot teleported to (INF: none).
 var last_teleport := Vector2.INF
 var _overlay: Control
@@ -548,7 +556,6 @@ func _paint_legend() -> void:
 	hud.poi_mark(ic[4], 5.4 * pt, Color("#4fd8c4"), MapIcons.POI_STATION)  # jobs.gd SLOIK_COLOUR
 	hud._tri_diamond(ic[5], 4.6 * pt, Color("#5aa0ff"))  # garage.gd GARAGE_COLOUR
 	MapIcons.paint_quiet(hud, "metro", MapIcons.METRO, ic[6], 7.5 * pt)
-	hud._tri_question(ic[7], 1.3)
 	hud._tri_flush(_legend_art)
 
 
@@ -664,8 +671,11 @@ func set_districts(view: Array[Dictionary], total: int, syrenki_found := 0, syre
 
 
 ## The questlines' starts and quest focus (hud.gd `set_story`).
-func set_story(points: PackedVector2Array, colours: PackedColorArray, in_focus: bool, names := PackedStringArray()) -> void:
+func set_story(points: PackedVector2Array, colours: PackedColorArray, in_focus: bool, names := PackedStringArray(),
+		blurbs := PackedStringArray(), small := PackedByteArray()) -> void:
 	story_names = names
+	story_blurbs = blurbs
+	story_small = small
 	story_spots = points
 	story_colours = colours
 	focus = in_focus
@@ -917,7 +927,8 @@ func _paint() -> void:
 		if close_in:
 			named.append(ic)
 	# The side quests' places to start one: squares in their job's colour.
-	for i in (0 if focus else side_spots.size()):
+	# F 2026-11-08: fewer pins, the street jobs show only zoomed in.
+	for i in (0 if focus or not close_in else side_spots.size()):
 		var at := to_screen(side_spots[i])
 		if view.has_point(at):
 			hud.poi_mark(at, 5.2 * pt, side_colours[i] if i < side_colours.size() else Color.WHITE,
@@ -927,10 +938,7 @@ func _paint() -> void:
 		if view.has_point(at):
 			hud._tri_fan(at, 4.2 * pt, 0.0, TAU, hud.OUTLINE)
 			hud._tri_fan(at, 3.0 * pt, 0.0, TAU, GOLD)
-	for q in (PackedVector2Array() if focus else unknown):
-		var at := to_screen(q)
-		if view.has_point(at):
-			hud._tri_question(at, 1.6)
+	# F 2026-11-08: the "?" marks of the places not found yet are gone from the map.
 	if scene_mark != Vector2.INF:
 		var at := to_screen(scene_mark)
 		if view.has_point(at):
@@ -940,7 +948,8 @@ func _paint() -> void:
 	for i in story_spots.size():
 		var at := to_screen(story_spots[i])
 		if view.has_point(at):
-			hud.story_badge(at, 2.3, story_colours[i] if i < story_colours.size() else Color.WHITE)
+			var small: bool = i < story_small.size() and story_small[i] == 1
+			hud.story_badge(at, 1.4 if small else 2.3, story_colours[i] if i < story_colours.size() else Color.WHITE)
 	if garage != Vector2.INF and not focus:
 		var g := to_screen(garage)
 		if view.has_point(g):
@@ -1129,6 +1138,36 @@ func _start_hold(index: int, at: Vector2) -> void:
 	_hold_t = 0.0
 
 
+## A short tap on a questline's "!" pin: its name and one line about it (F 2026-11-08).
+func _tap_story(at: Vector2) -> bool:
+	var best := -1
+	var best_d := 16.0 * pt
+	for i in story_spots.size():
+		var d := to_screen(story_spots[i]).distance_to(at)
+		if d < best_d and i < story_blurbs.size() and i < story_names.size():
+			best = i
+			best_d = d
+	if best < 0:
+		return false
+	_cancel_hold()
+	var text := story_names[best] + " · " + story_blurbs[best]
+	_say([text, text])
+	_note_t = 4.5
+	return true
+
+
+## A finger drag on the quest list: scrolls it; past a few points the row under the finger is not
+## pressed when it lets go (the viewport cancels the press).
+func _drag_quests(dy: float) -> void:
+	var sc := _quests.find_child("story_scroll", true, false) as ScrollContainer
+	if sc == null:
+		return
+	_qdrag_px += absf(dy)
+	sc.scroll_vertical -= int(dy)
+	if _qdrag_px > 8.0 * pt:
+		get_viewport().gui_cancel_input()
+
+
 func _cancel_hold() -> void:
 	if _hold_index >= 0:
 		_hold_index = -1
@@ -1179,19 +1218,34 @@ func _input(event: InputEvent) -> void:
 		if t.pressed:
 			if _close.get_global_rect().has_point(t.position) or _cards.get_global_rect().has_point(t.position) \
 					or (_quests.visible and _quests.get_global_rect().has_point(t.position)):
+				# F 2026-11-08: a finger dragged on the list scrolls it (the bar alone was too thin).
+				_qdrag = t.index if _quests.visible and _quests.get_global_rect().has_point(t.position) else -1
+				_qdrag_px = 0.0
 				return  # the ✕, ≡ or the ZADANIA card takes it
 			_touches[t.index] = t.position
 			if _touches.size() == 1:
+				_tap_at = t.position
+				_tap_ms = Time.get_ticks_msec()
 				_start_hold(t.index, t.position)
 			else:
 				_cancel_hold()  # a second finger: a pinch
 		else:
+			if t.index == _qdrag:
+				_qdrag = -1
+			if _touches.size() == 1 and _tap_at != Vector2.INF and t.position.distance_to(_tap_at) <= HOLD_SLOP * pt \
+					and Time.get_ticks_msec() - _tap_ms < 350:
+				_tap_story(t.position)
+			_tap_at = Vector2.INF
 			_touches.erase(t.index)
 			if t.index == _hold_index:
 				_cancel_hold()  # let go too soon
 		_pinch = _span()
 	elif event is InputEventScreenDrag:
 		var d := event as InputEventScreenDrag
+		if d.index == _qdrag:
+			_drag_quests(d.relative.y)
+			get_viewport().set_input_as_handled()
+			return
 		if not _touches.has(d.index):
 			return
 		if d.index == _hold_index and d.position.distance_to(_hold_at) > HOLD_SLOP * pt:
