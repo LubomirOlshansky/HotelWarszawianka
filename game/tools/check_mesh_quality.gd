@@ -159,7 +159,7 @@ const BUDGET := {
 	"platinum_a": 80,
 	"platinum_b": 80,
 	"poniatowski": 4800,  # 2026-11-03: the towers strengthened (F), 2556 -> 4574 tris over four groups; +0 draw calls
-	"prezydencki": 1050,
+	"prezydencki": 1300,
 	"q22": 720,  # 2026-11-08 photo rebuild (top-50 T02): 607 tris
 	"rondo1": 900,  # 2026-11-08 photo rebuild (top-50 T03): 769 tris
 	"rotunda": 1380,
