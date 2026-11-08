@@ -122,6 +122,9 @@ family: +0 draw calls; the long bus's rear door moved off its axle). Left:
 - Electric buses (roof battery pods, the charger pantograph) as a third shape; bus bays (zatoki)
   where the kerb steps back are not drawn because the road rework is dropped.
 - Phone look check: zigzag line width (0.22 m) and the yellow line (0.22 m) at the default view.
+- Shelters facing (F, 2026-11-08, Ratusz Arsenał): every shelter now turns its open side to its
+  boarding edge (`snap_props.face_shelters`, check_stops K7). Left: 11 with nothing to face (10 park
+  or square roofs over 16 m from any road, one mapped right on the track at -1907, -2673); those park roofs might be benches or pergolas, not stops (a Mac OSM look).
 
 ## Stacja Muzeum, Nocny Targ and Kolejowa (F, 2026-11-07; spec docs/landmarks/specs/stacja_muzeum.md)
 
