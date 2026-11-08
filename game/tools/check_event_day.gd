@@ -11,6 +11,7 @@ extends SceneTree
 ##   godot --headless --path game --script res://tools/check_event_day.gd
 
 const EventDay := preload("res://scripts/event_day.gd")
+const CameraShots := preload("res://scripts/camera_shots.gd")
 
 var _fails: Array[String] = []
 
@@ -22,6 +23,7 @@ func _initialize() -> void:
 	_lines(data)
 	_gate()
 	_flag()
+	_take()
 	if _fails.is_empty():
 		print("check_event_day: OK (hours, zone, %d barrier lines, gate, flag)" % EventDay.cordon().size())
 		quit(0)
@@ -132,3 +134,28 @@ func _flag() -> void:
 		if c.is_equal_approx(EventDay.RED):
 			red = true
 	_expect(white and red, "the flag has a white and a red half")
+
+
+## The 15 s take (camera_shots.gd EVENT_KEYS): no cut anywhere (the focus never jumps more than a
+## glide's step between frames), it opens on the Palace, passes the rondo at 9.5 s, is on the bridge
+## at 13 s, and ends on a wide view of the Palace.
+func _take() -> void:
+	var flat := func(_x: float, _z: float) -> float: return 100.0
+	var prev: Dictionary = CameraShots.event_view(0.0, flat)
+	var worst := 0.0
+	var t := 0.05
+	while t <= CameraShots.EVENT_TIME + 0.001:
+		var v: Dictionary = CameraShots.event_view(t, flat)
+		worst = maxf(worst, (v["focus"] as Vector3).distance_to(prev["focus"]))
+		_expect(float(v["size"]) > 10.0 and float(v["size"]) < 700.0, "view size sane at %.2f s" % t)
+		prev = v
+		t += 0.05
+	_expect(worst < 80.0, "no cut in the take (largest focus step %.1f m per frame at 20 fps)" % worst)
+	var f0: Vector3 = CameraShots.event_view(0.0, flat)["focus"]
+	_expect(Vector2(f0.x, f0.z).distance_to(EventDay.PALACE_AT) < 5.0, "the take opens on the Palace")
+	var f95: Vector3 = CameraShots.event_view(9.5, flat)["focus"]
+	_expect(Vector2(f95.x, f95.z).distance_to(EventDay.C) < 5.0, "9.5 s: the rondo")
+	var f13: Vector3 = CameraShots.event_view(13.0, flat)["focus"]
+	_expect(EventDay.in_bridge(Vector2(f13.x, f13.z), 0.0), "13 s: over the bridge deck")
+	var f15: Vector3 = CameraShots.event_view(15.0, flat)["focus"]
+	_expect(Vector2(f15.x, f15.z).distance_to(EventDay.PALACE_AT) < 400.0, "ends looking at the Palace")

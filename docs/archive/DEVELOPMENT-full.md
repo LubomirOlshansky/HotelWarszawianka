@@ -5794,6 +5794,11 @@ Command-line options (after `--`):
 | `--rave-call` | secret rave (`rave.gd`): LEKTI's break-in on MORDOR FM now (with his voice) and Ziomek rings a second later, whatever the time |
 | `--rave-smola` | secret rave: Ziomek rings now for the club night at Smoła (the door's three questions, then the room) |
 | `--rave-club` | secret rave: straight into Smoła's cutaway room (option A: the jungle, the DJ, the dancers, the lights, TAŃCZ, PATIO and WYJDŹ) |
+| `--shisha-call` | shisha night (shisha.gd): Ivan rings now (ODBIERZ, then JADĘ!) |
+| `--shisha-meet` | shisha night: Ivan gets in now, on to Bogdan at the Żelazna court |
+| `--shisha-lounge` | shisha night: straight into SENATOREK (lounge.gd), the mini-game playing itself (best jars, clean coal and draw), then PALIĆ |
+| `--shisha-terrace` | shisha night: as `--shisha-lounge`, then TARAS (the terrace with the Palace) |
+| `--shisha=0` / `--shisha-log` | no shisha night / its steps in the log (shisha: ..., lounge: ...) |
 | `--rave-patio` | secret rave: straight into Smoła and out to its patio (the courtyard, the mirror ball, PÓŁNOC FM, SALA back in) |
 | `--rave=on` / `--rave=day` / `--rave=0` | secret rave: the night rig on now (the lights in the lit look), the day rave's crowd now, or no raves and no calls |
 | `--rave-spot=ID` | secret rave: tonight's spot (`wiadukt`, `zajezdnia`, `hala`; `plaza` is the day spot) |

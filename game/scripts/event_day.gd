@@ -22,7 +22,7 @@ extends Node3D
 ##    cross-shaped zone (`in_zone`: traffic.gd and trams.gd `keep_out`), a car that is inside when
 ##    the event starts (or comes in by a side street) is set down outside the nearest barrier.
 ##    +1 draw call;
-##  - **the light**: white and red bands round the Palace's tiers and Złota 44 (the Level 26 band
+##  - **the light**: the Palace floodlit white over red (building.gdshader, palace_lights.gd), bands on Złota 44 (the Level 26 band
 ##    trick of crowds.gd: Models.LIT_SIGN, so they glow while the city's lights are on), +1 draw call;
 ##  - **the glow and the haze**: red glow pots and big soft pink-red blobs at lamp-post height
 ##    (the additive glow material: they show at dusk and at night), and pink-grey smoke puffs
@@ -73,6 +73,10 @@ const BRIDGE_CROWD := 2200
 
 const WHITE := Color("#f4f1ea")
 const RED := Color("#d8262b")
+## The lit bands on the towers: softer than the flags (F, 2026-11-08: "too bright"; his photo has a
+## pink-white top and a deep rose-red base, a floodlight, not a neon). LIT_SIGN glows 1.6x its colour.
+const BAND_WHITE := Color("#b9a2b4")
+const BAND_RED := Color("#8a1f33")
 const STEEL := Color("#9aa0a6")
 const STEEL_DARK := Color("#5b6066")
 const POLE := Color("#c9ccd0")
@@ -98,10 +102,8 @@ const PUFFS := 700
 const PUFFS_ON := false
 const PUFF_LIFE := 7.0
 
-## The Palace's bands: heights as shares of the tower (bottom to top), the colours (0 red, 1 white);
 ## Złota 44 is lit as in the photos F sent (white on one side fading to red, `_tower_gradient`) and
 ## Stadion Narodowy gets a ring of white and red panels (`_stadium_bands`).
-const PALACE_LEVELS: Array = [[0.07, 0], [0.14, 0], [0.21, 0], [0.28, 0], [0.35, 0], [0.42, 0], [0.49, 1], [0.56, 1], [0.63, 1], [0.70, 1], [0.77, 1], [0.84, 1], [0.91, 1]]
 const PALACE_AT := Vector2(-1214.0, 247.0)
 const ZLOTA_AT := Vector2(-1466.0, 311.0)
 const RING_RAYS := 64
@@ -157,6 +159,18 @@ var _bands: MeshInstance3D
 var _bands_tries := 0
 var _bands_ok := false
 var _band_quads := 0
+## The 15 s video's script (docs/design/event-11-listopad-15s.md): the camera path's clock in
+## seconds (camera_shots.gd sets it each frame; -1 = no script). While it runs the fog thickens, the
+## Palace's floodlight turns white-red, Złota 44 follows and the flares ignite in turns, all by this clock.
+var scene_t := -1.0
+## The Palace is floodlit white over red on the day (F, 2026-11-08: no bands, the windows must
+## show): palace_lights.gd's "independence" row on building.gdshader, switched by main.gd through
+## this Callable (true: the event's light, false: the date's own). In the video it comes on at
+## PALACE_LIT_AT s.
+var palace_flood: Callable
+var palace_lit := false
+const PALACE_LIT_AT := 1.0
+const ZLOTA_LIT_AT := 3.8
 var _t := 0.0
 var _tick := 0.0
 var _kicks := 0
@@ -364,7 +378,9 @@ func _build_crowd() -> void:
 		if bool(s["flag"]):
 			flags_cap += 1
 	_flag_mm = _new_mm(flag_mesh(), maxi(flags_cap, 1))
-	_flag_mmi = _new_mmi(_flag_mm, "EventFlags", Models.material())
+	var flag_mat := Models.material().duplicate() as ShaderMaterial
+	flag_mat.set_shader_parameter("sway", 0.16)
+	_flag_mmi = _new_mmi(_flag_mm, "EventFlags", flag_mat)
 	var fbuf := PackedFloat32Array()
 	fbuf.resize(maxi(flags_cap, 1) * 16)
 	var fi := 0
@@ -400,8 +416,9 @@ static func flag_mesh() -> ArrayMesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	Models.box(st, Vector3(0, 1.15, 0), Vector3(0.04, 2.3, 0.04), POLE, Models.FIXED)
-	Models.box(st, Vector3(0.5, 2.0, 0), Vector3(0.95, 0.3, 0.03), WHITE, Models.FIXED)
-	Models.box(st, Vector3(0.5, 1.7, 0), Vector3(0.95, 0.3, 0.03), RED, Models.FIXED)
+	# leg 2.0 marks the cloth: actor.gdshader ripples it in the wind (its `sway`).
+	Models.box(st, Vector3(0.5, 2.0, 0), Vector3(0.95, 0.3, 0.03), WHITE, Models.FIXED, 2.0)
+	Models.box(st, Vector3(0.5, 1.7, 0), Vector3(0.95, 0.3, 0.03), RED, Models.FIXED, 2.0)
 	return st.commit()
 
 
@@ -662,7 +679,6 @@ func _build_bands() -> void:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var n := 0
-	n += _tower_bands(st, PALACE_AT, PALACE_LEVELS, 13.0, 1.6)
 	n += _tower_gradient(st, ZLOTA_AT, 11.0, 0.7)
 	n += _stadium_bands(st)
 	if n == 0:
@@ -677,50 +693,6 @@ func _build_bands() -> void:
 	_bands.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	_bands.visible = false
 	add_child(_bands)
-
-
-## Bands round a tower at the `levels` (share of its height over the ground, colour 0 red / 1
-## white), each from crowds.gd's roof_ring at that height. Returns the quads added.
-func _tower_bands(st: SurfaceTool, at: Vector2, levels: Array, band_h: float, out: float) -> int:
-	var ground := _ground(at)
-	var top: float = map.roof_height(at.x, at.y)
-	if top - ground < 50.0:
-		if log_on:
-			print("event day: no tall roof at %s (%.0f m)" % [str(at), top - ground])
-		return 0
-	var roof := func(x: float, z: float) -> float: return map.roof_height(x, z)
-	var count := 0
-	for lv: Array in levels:
-		var y1: float = ground + (top - ground) * float(lv[0])
-		var ring := Crowds.roof_ring(at, y1 + 4.0, roof, RING_RAYS)
-		if ring.size() < RING_RAYS / 2:
-			continue
-		var col := WHITE if int(lv[1]) == 1 else RED
-		var pts: Array[Vector2] = []
-		for k in ring.size():
-			var d := 0.0
-			for o in range(-1, 2):
-				d += ((ring[(k + o + ring.size()) % ring.size()][0] as Vector2) - at).length()
-			pts.append(at + (ring[k][1] as Vector2) * (d / 3.0 + out))
-		for k in ring.size():
-			var a: Vector2 = pts[k]
-			var b: Vector2 = pts[(k + 1) % ring.size()]
-			if a.distance_to(b) > 40.0:
-				continue
-			var n2 := Vector2((b - a).y, -(b - a).x).normalized()
-			if n2.dot(ring[k][1] as Vector2) < 0.0:
-				n2 = -n2
-			var nrm := Vector3(n2.x, 0.0, n2.y)
-			var q := [Vector3(a.x, y1 - band_h, a.y), Vector3(b.x, y1 - band_h, b.y), Vector3(b.x, y1, b.y), Vector3(a.x, y1, a.y)]
-			if (q[1] - q[0]).cross(q[2] - q[0]).dot(nrm) > 0.0:
-				q = [q[0], q[3], q[2], q[1]]
-			for idx in [0, 1, 2, 0, 2, 3]:
-				st.set_color(col)
-				st.set_normal(nrm)
-				st.set_uv(Vector2(Models.LIT_SIGN, 0.0))
-				st.add_vertex(q[idx])
-			count += 1
-	return count
 
 
 ## Złota 44 as in F's photo: the whole shaft in contiguous bands (`band_h` m), the colour by the
@@ -752,7 +724,7 @@ func _tower_gradient(st: SurfaceTool, at: Vector2, band_h: float, out: float) ->
 				var dir: Vector2 = ring[k][1]
 				var low := clampf(1.0 - (y1 - ground) / maxf(top - ground, 1.0) * 2.2, 0.0, 0.5)
 				var t := smoothstep(-0.9, 0.7, dir.x) * (1.0 - low)
-				var col := WHITE.lerp(RED, t)
+				var col := BAND_WHITE.lerp(BAND_RED, t)
 				count += _quad(st, a, b, y1 - band_h, y1, dir, col)
 		y1 += band_h
 	return count
@@ -794,7 +766,7 @@ func _stadium_bands(st: SurfaceTool) -> int:
 		# to the roof's rim at about 44 m): two rows of panels, red and white alternating.
 		var g := _ground(outer[k])
 		for row in 2:
-			var col := RED if (k + row) % 2 == 0 else WHITE
+			var col := BAND_RED if (k + row) % 2 == 0 else BAND_WHITE
 			count += _quad(st, a, b, g + 15.0 + row * 12.0, g + 26.0 + row * 12.0, dir, col)
 	return count
 
@@ -828,6 +800,8 @@ func _process(dt: float) -> void:
 		_update()
 	if on and _puff_mmi != null and _puff_mmi.visible:
 		_move_puffs()
+	if scene_t >= 0.0 and _built and on:
+		_scene_frame()
 	if log_on and on:
 		_dbg -= dt
 		if _dbg <= 0.0:
@@ -847,6 +821,8 @@ func _update() -> void:
 	share = 1.0 if force else crowd_share(_hours)
 	var show_all := on
 	visible = show_all
+	if scene_t < 0.0:
+		_set_palace(on)
 	if not show_all:
 		if was:
 			_crowd_mm.visible_instance_count = 0
@@ -879,18 +855,48 @@ func _update() -> void:
 		_puff_mmi.visible = smoky and PUFFS_ON
 		if smoky and _puff_mm.visible_instance_count == 0:
 			_puff_mm.visible_instance_count = PUFFS
-	if _fog_mmi != null:
+	if _fog_mmi != null and scene_t < 0.0:
 		var in_dark := lit.is_valid() and bool(lit.call())
 		_fog_mmi.visible = smoke_on and share > 0.3
 		_fog_mmi.multimesh.visible_instance_count = int(FOG * tier)
 		_fog_mat.set_shader_parameter("glow", 1.0 if in_dark else 0.0)
 		_fog_mat.set_shader_parameter("density", 0.085 if in_dark else 0.06)
-	if _bands != null:
+	if _bands != null and scene_t < 0.0:
 		var dark := lit.is_valid() and bool(lit.call())
 		_bands.visible = dark and _hours >= 14.0 or (force and dark)
 	elif _bands_tries < 12 and int(_t) % 3 == 0:
 		_build_bands()
 	_keep_player_out()
+
+
+func _set_palace(want: bool) -> void:
+	if want == palace_lit:
+		return
+	palace_lit = want
+	if palace_flood.is_valid():
+		palace_flood.call(want)
+
+
+## One frame of the video's script: everything by `scene_t` (the beats are in the plan doc).
+func _scene_frame() -> void:
+	var t := scene_t
+	var dark := lit.is_valid() and bool(lit.call())
+	if _fog_mmi != null:
+		# 0 to full over 5 s from 4 s; held back to 55 % over the last 2 s so the crowd does not white out.
+		var ramp := smoothstep(0.0, 1.0, clampf((t - 4.0) / 5.0, 0.0, 1.0))
+		ramp *= lerpf(1.0, 0.55, clampf((t - 13.0) / 2.0, 0.0, 1.0))
+		_fog_mmi.visible = smoke_on and ramp > 0.01
+		_fog_mmi.multimesh.visible_instance_count = int(FOG * clampf(amount, 0.25, 1.0))
+		_fog_mat.set_shader_parameter("glow", 1.0 if dark else 0.0)
+		_fog_mat.set_shader_parameter("density", (0.085 if dark else 0.06) * ramp)
+	if _pots_mmi != null:
+		var f := clampf((t - 4.5) / 4.5, 0.0, 1.0)
+		_pots_mmi.visible = smoke_on
+		_pots_mmi.multimesh.visible_instance_count = int(_pot_pos.size() * f)
+		_haze_mmi.visible = smoke_on and f > 0.0
+	_set_palace(t >= PALACE_LIT_AT)
+	if _bands != null:
+		_bands.visible = t >= ZLOTA_LIT_AT
 
 
 func _move_puffs() -> void:
