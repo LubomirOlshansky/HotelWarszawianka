@@ -657,6 +657,8 @@ Beta goal: a visitor explores the city with everything open, an easy city drive,
 - [x] The four streets round the Palace of Culture (F, 2026-11-05): Marszałkowska 83, Świętokrzyska 92/82, Emilii Plater 93, Jerozolimskie 91, before/after pairs (2026-11-06, #441 #461 #462 #463)
 - [ ] Palace streets round 2: entrances at Emilii Plater / Jerozolimskie sunk with stairs and people (metro entrances thread), median kerb, bus-lane line ends
 - [ ] Next streets with the same pipeline unchanged: Nowy Świat, Krakowskie Przedmieście
+- [x] Street objects unslopped, whole map (F, 2026-11-07): `tools/object_audit.py` (16 artifact rules: objects in walls, roads, water, under decks, on rails, doubles; barrier stubs, doubles, walls across paths, stair slabs; shelters that are not bus stops) and `tools/object_fixes.py` (run by bake_osm): 750 findings → 24 CHECK; 192 stair walls → balustrades, 153 gates, 17 park shelters → benches; verify `objects`; docs/streets/objects.md
+- [ ] Street objects part 2: the CHECK list (lone signals, benches on steps) against Mapillary; picnic roof and smoking shelter models; bollards at the new gates
 
 ### Left: street races that feel like races (F, 2026-11-04; plan docs/design/street-races.md)
 - [x] Research and race AI audit: why Halina drives slowly and by the rules, R1-R7 (2026-11-04, docs only)

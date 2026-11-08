@@ -7656,6 +7656,12 @@ func _build_barriers(st) -> void:
 			elif _wraps_stairwell(_pts(l["p"])):
 				style = BARRIER_STYLE["balustrade_rail"]
 		style = _mapped_style(l, style)
+		# Street objects unslopped (tools/object_fixes.py, 2026-11-07): a barrier's own style, the
+		# balustrade of a wall or fence beside a flight of steps that OSM gives no height, material or
+		# fence type (tools/barrier_tags.py's tags win: object_fixes leaves tagged lines alone).
+		# A street pass's override still wins.
+		if site_wall.is_empty() and l.has("st") and BARRIER_STYLE.has(str(l["st"])):
+			style = BARRIER_STYLE[str(l["st"])]
 		if not _object_overrides.is_empty() and l["k"] != "platform":
 			var o: Variant = _object_overrides.get(barrier_id(l["k"], l["p"]))
 			if o is Array:
