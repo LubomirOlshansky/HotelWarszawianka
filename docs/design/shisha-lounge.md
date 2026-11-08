@@ -229,8 +229,8 @@ flat tagged list (as `rave_ziomek`) is enough. Beehave: not used (no NPC behavio
   a recommendation. The joke is the industry: price, premium everything, silly names, strength
   bragging. No drug jokes (as the rave). The driver does not smoke while driving: PALIĆ is the
   friends and a mint tea for you.
-- Rating/store check: parked in QUESTIONS (is smoking OK in a 12+ build? default built: yes with
-  the "bez dymu" option).
+- Rating/store check: F (2026-11-08): build it as is for now; decide the rating and the "bez dymu"
+  (smoke-free) setting before release.
 - On-screen text in Polish with English until the one-language switch lands (F 2026-11-08), then
   the player's language only.
 
