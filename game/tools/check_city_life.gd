@@ -232,6 +232,9 @@ func _check_trends() -> void:
 	_expect(TrendJob.MATCH_SCORES.size() == TrendJob.DESKI_POINTS + 1, "deski match scores: one per result")
 	var dm := TrendJob.match_pay(3, true)
 	_expect(int(dm["zl"]) == 18 and int(dm["respect"]) == 11 and int(TrendJob.match_pay(0, false)["zl"]) == 0, "deski match pay: %s" % [dm])
+	# The arcade match (padel_match.gd) pays by games as the card match's tiers.
+	_expect(TrendJob.arcade_tier(2, 0) == 3 and TrendJob.arcade_tier(2, 1) == 2 and TrendJob.arcade_tier(1, 2) == 1 and TrendJob.arcade_tier(0, 2) == 0,
+			"deski arcade tiers")
 	# "Mlask" (docs/design/gaulle-and-food-hype.md G5): 40 zł + 10 zł a km both ways, tip 15 when
 	# warm and on time, half otherwise; his grade's Polish forms; the van's spots and hours, its mesh.
 	var mp := TrendJob.ml_pay(1500.0, true, true)

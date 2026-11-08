@@ -37,3 +37,7 @@ data. Facts, ids, dates and counts only.
 
 Never write a judgement ("wrong", "should be"); say what the data and the dates are. If a step
 fails twice, stop and report the error.
+
+## Reference photos (F, 2026-11-08)
+
+When photos are missing, download them yourself from any internet source and don't look at the licence: they are references for modelling only, kept in the gitignored `refs/`, never committed or shipped (model-from-photos skill, section 1). Don't stop or wait for the user over missing photos.

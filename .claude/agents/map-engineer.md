@@ -80,3 +80,7 @@ the next item in the brief. The orchestrator parks your Open Questions in `docs/
 What changed per item, the defect classes with counts before → after, the bake counts, files
 new/changed, overlays and shots list, verify table, bench and vertices, downloads made
 (source, size, time), known issues, **Open Questions**.
+
+## Reference photos (F, 2026-11-08)
+
+When photos are missing, download them yourself from any internet source and don't look at the licence: they are references for modelling only, kept in the gitignored `refs/`, never committed or shipped (model-from-photos skill, section 1). Don't stop or wait for the user over missing photos.
