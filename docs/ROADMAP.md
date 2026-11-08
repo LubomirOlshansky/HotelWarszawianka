@@ -95,7 +95,10 @@ then the Launch gate.
       balustrades, fountain basins low rims, OSM wall heights (F, 2026-11-07; `tools/stairs.py`)
 - [x] Walls, fences and hedges from OSM's heights, materials and fence types (see-through railings, low
       park walls, noise barriers), and the Old Town's city walls in brick (F, 2026-11-07; `tools/barrier_tags.py`)
-- [ ] City walls look check from photos (battlements, gates), photo-tag the untagged walls and fences
+- [x] City walls look check from photos: battlements and a brick coping (F, 2026-11-08, BACKLOG "Old Town trailer pass")
+- [ ] City walls' towers and gates from photos, photo-tag the untagged walls and fences
+- [x] Old Town trailer pass (F, 2026-11-08): the Jesuit church's blue glass fixed, Rynek rings, umbrellas and
+      café fences, zinc dormers, an autopilot drive check round the Old Town (`check_old_town_drive.gd`)
 - [ ] Stairs deeper than the 10 m ground shows (Skarpa, Karowa, Tamka, metro stairwells) cut into the
       ground from F's photos (photo list `stairs-photo-list.md`)
 - [x] Arkadka redesign, roof car park, BANK PEPEO sign and the Forest roof terrace (F, 2026-11-01; spec `arkadia.md`)
@@ -207,6 +210,7 @@ then the Launch gate.
 - [ ] A full `tools/verify.sh` and `--ios` on the Mac on today's main, both city paths
 - [x] The NaN car (2026-11-02): not reproduced (5 more first-10 replays, now frame-identical each run), `check_finite` sweeps every map height, lane and junction curve and the car's step; a NaN input no longer freezes the car for good (car.gd `_clean_inputs`)
 - [x] Map checks in GitHub CI (the derived map pack as a release asset, `tools/map_pack.py`, the `map` job), 2026-11-02 (release `map-pack-1` to publish)
+  - [x] the map pack fetch through the GitHub API with a token, since the repository is private, 2026-11-08
   - [x] verify --quick clean in the cloud with the map pack: the K7 splash pool flown over by design in `check_landmarks`, park and street details re-stamped and `parkdetails`, `streetdetails`, `stops` in CI quick, the prebuilt bake under xvfb-run (or skipped as a WARN with no display), 2026-11-02
 - [x] check_streaming's look pass green on the Mac (a look pre-loads what each of its views
       shows), 2026-11-01, PR #183

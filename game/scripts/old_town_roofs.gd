@@ -10,6 +10,10 @@ const MIN_INRADIUS := 1.25   ## m, room for a dormer and its cheeks inside the t
 const FRAME := Color("#efe3cb")
 const GLASS := Color("#2c3a4d")
 const BRICK := Color("#8c4a3a")
+## The trailer pass (F's drone photos E05, 2026-11-08): most Old Town stacks are white-plastered,
+## and most dormers wear dark grey zinc on their cheeks and caps.
+const PLASTER := Color("#ebe5da")
+const ZINC := Color("#5d6266")
 const SINK := 0.45           ## m, a chimney's foot under the slope
 const NO_UV := Vector2(-1.0, -1.0)
 const RYNEK := Vector2(-812.4, -1753.8)  ## the market square's centre (OSM place node)
@@ -104,7 +108,9 @@ static func _dormer(out: Dictionary, p: Vector3, run: Vector3, across: Vector3, 
 	var q2 := e2 - run * (wall_h / r)
 	var ridge := apex - run * ((wall_h + rise) / r)
 	var centre := p + up * (wall_h * 0.5) - run * 0.5
-	var roof := tile.darkened(0.12)
+	var zinc := fposmod(seed * 59.0, 1.0) < 0.7
+	var roof := ZINC if zinc else tile.darkened(0.12)
+	var cheek := ZINC.lightened(0.08) if zinc else wall
 	var front := wall.lerp(FRAME, 0.7)
 	# The front: a cream pentagon, then the window pane just proud of it.
 	_tri(out, b1, b2, e2, front, centre)
@@ -118,8 +124,8 @@ static func _dormer(out: Dictionary, p: Vector3, run: Vector3, across: Vector3, 
 	_tri(out, g1, g2, g3, GLASS, centre)
 	_tri(out, g1, g3, g4, GLASS, centre)
 	# The cheeks, then the two slopes of the cap.
-	_tri(out, b1, e1, q1, wall, centre)
-	_tri(out, b2, e2, q2, wall, centre)
+	_tri(out, b1, e1, q1, cheek, centre)
+	_tri(out, b2, e2, q2, cheek, centre)
 	_tri(out, e1, apex, ridge, roof, centre)
 	_tri(out, e1, ridge, q1, roof, centre)
 	_tri(out, e2, apex, ridge, roof, centre)
@@ -153,7 +159,9 @@ static func _chimney(out: Dictionary, cb: Vector3, seed: float, wall: Color) -> 
 	var up := Vector3.UP
 	var s := 0.3 + 0.16 * fposmod(seed * 41.0, 1.0)
 	var top := 1.1 + 1.4 * fposmod(seed * 43.0, 1.0) + SINK
-	var body := BRICK.lerp(wall, 0.65) if fposmod(seed * 47.0, 1.0) < 0.3 else BRICK.darkened(0.12 * fposmod(seed * 53.0, 1.0))
+	var pick := fposmod(seed * 47.0, 1.0)
+	var body := PLASTER.darkened(0.08 * fposmod(seed * 53.0, 1.0)) if pick < 0.65 \
+			else (BRICK.lerp(wall, 0.65) if pick < 0.8 else BRICK.darkened(0.12 * fposmod(seed * 53.0, 1.0)))
 	cb.y -= SINK  # its foot goes under the slope, so no gap shows on the downhill side
 	var c0 := cb + Vector3(-s, 0, -s)
 	var c1 := cb + Vector3(s, 0, -s)
