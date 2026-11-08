@@ -306,6 +306,8 @@ var _mini_poi_colours := PackedColorArray()
 var _mini_story := PackedVector2Array()
 var _mini_story_colours := PackedColorArray()
 var _story_names := PackedStringArray()
+var _story_blurbs := PackedStringArray()
+var _story_small := PackedByteArray()
 const STORY_REACH := 1500.0
 ## Quest focus (main.gd `_story_tick`): something runs; the minimap and the full map hide the side
 ## places, the garage, the "?" marks and the starts, and the main star dims.
@@ -2094,7 +2096,7 @@ func _paint_minimap_overlay() -> void:
 		if _mini_story[i].distance_to(_mini_car) > STORY_REACH:
 			continue
 		var r := ((_mini_story[i] - _mini_car) * s).rotated(_mini_yaw).limit_length(_mini_radius - 7.0 * pt)
-		story_badge(centre + r, 0.85, _mini_story_colours[i])
+		story_badge(centre + r, 0.6 if i < _story_small.size() and _story_small[i] == 1 else 0.85, _mini_story_colours[i])
 	if _scene_mark != Vector2.INF:
 		# A crash scene: an amber dot with a white ring, pulsing slowly (not the chasers' flicker).
 		var r := ((_scene_mark - _mini_car) * s).rotated(_mini_yaw)
@@ -2331,13 +2333,16 @@ func set_minimap_final(p: Vector2, colour: Color) -> void:
 
 ## The questlines' starts on the minimap and the full map, and quest focus (main.gd, a few
 ## times a second; both only when they change).
-func set_story(points: PackedVector2Array, colours: PackedColorArray, focus: bool, names := PackedStringArray()) -> void:
+func set_story(points: PackedVector2Array, colours: PackedColorArray, focus: bool, names := PackedStringArray(),
+		blurbs := PackedStringArray(), small := PackedByteArray()) -> void:
+	_story_blurbs = blurbs
+	_story_small = small
 	_mini_story = points
 	_mini_story_colours = colours
 	_story_names = names
 	quest_focus = focus
 	if full_map != null and full_map.is_open():
-		full_map.set_story(points, colours, focus, names)
+		full_map.set_story(points, colours, focus, names, blurbs, small)
 
 
 ## Side-job places on the minimap (map coordinates), drawn as blinking squares.
@@ -2875,7 +2880,7 @@ func open_full_map(car_xz: Vector2, car_yaw: float, found: PackedVector2Array) -
 	full_map.side_spots = _mini_pois
 	full_map.side_colours = _mini_poi_colours
 	full_map.side_shapes = _mini_poi_shapes
-	full_map.set_story(_mini_story, _mini_story_colours, quest_focus, _story_names)
+	full_map.set_story(_mini_story, _mini_story_colours, quest_focus, _story_names, _story_blurbs, _story_small)
 	full_map.set_main_line(_main_at, main_goal[0], main_goal[1])
 	full_map.open(car_xz, car_yaw)
 
