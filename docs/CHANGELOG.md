@@ -10,6 +10,9 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-07
+- The cycle bridges under Most Łazienkowski no longer float in the air: they hang on steel brackets from the bridge's box girders.
+- Most Śląsko-Dąbrowski's middle lanes are marked as the real tram-and-bus lane: solid white lines and BUS painted between the rails.
+- Three bridges rebuilt from photos: Most Śląsko-Dąbrowski stands on old stone piers under arched steel girders with its red railing, Most Łazienkowski on pairs of broad concrete piers, and Most Świętokrzyski's median is grey concrete.
 - A new ride, "Dekalog na kółkach": Claire, a film student from Lyon, wants to see where Kieślowski shot the Dekalog. Pick her up at Centralna and drive her through six real filming places to the Muranów estate on Inflancka.
 - The Dekalog estate on Inflancka is rebuilt from photos: six cream 14-storey slabs with ochre stairwells and white balconies, and across the street the Inflancka pools with their air dome, round pools and red and green slides.
 - The CITY 25 neon sign, its door and canopy at the SOWA CLUB pavilion now face west, towards the Palm, so you see them as you drive in from Rondo de Gaulle'a.

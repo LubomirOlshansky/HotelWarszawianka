@@ -17,6 +17,29 @@ estate (`dekalog_tour.gd`, check `dekalog`). Left:
 - **Muranów around it** (K11): the rubble-brick blocks on Andersa, Nowolipki yards, the POLIN park.
 
 
+## Bridges audit: transport and details (F, 2026-11-07)
+
+Audit of the five Vistula bridges in game shots, the map data and public sources. Transport is right on all of them:
+trams on Śląsko-Dąbrowski and Poniatowski, trains on Średnicowy, cars and buses only on Świętokrzyski and
+Łazienkowski (true to life); Gdański is off the map. The Powiśle viaduct (arcade, bays, stairs, tram bed, lamps) is fine.
+Fixed: Śląsko-Dąbrowski's middle lanes are the tram-and-bus lane: solid lines instead of dashes over the rails (white, as F's
+photo SD-5 shows; first drawn yellow), BUS between each track's rails (`map_builder._build_slasko_bus`).
+Built from F's photos (2026-11-07, `~/Documents/warsaw-needed-photos/bridges`, SD/LZ/SW):
+- Most Śląsko-Dąbrowski: five stone piers with cutwaters (sloped tops) in dressed courses, eight grey-green plate girders with
+  arched bottom flanges (deep over the piers), cross frames, the deck's edge red at the top, a red railing of vertical bars
+  (`map_builder._build_slasko`). The piers stand every ~70 m on the rubble islands OSM maps round two of them; the land
+  supports at each end stay the bake's.
+- Most Łazienkowski: a box girder under each carriageway with the two cycle bridges on brackets at its foot, their own posts
+  gone (F: "why does the bike path hang in the air?"); six pairs of broad concrete columns under the five spans' ends instead
+  of the rows of thin posts (`map_builder._build_lazienkowski`, `_build_lazienkowski_piers`). Grey, as the photos show.
+- Most Świętokrzyski: the median is grey concrete, not grass (photo SW-1).
+Left:
+- Most Łazienkowski's cycle decks: the photos (LZ-3, LZ-3b) show them right under the deck's cantilever, about 4 m under the
+  road; OSM puts them ~8 m under it, and the bake keeps that height. Raising them needs the ramps at both ends re-sloped.
+- Pier places on both bridges are estimates (the islands, the banks, the paths under them); exact ones from an orthophoto.
+- The AK plaque on Śląsko-Dąbrowski's north railing; the metal barriers on Świętokrzyski's median.
+- Tram overhead wires: none anywhere in the city (on the tram bridges most visible). Trams lane.
+
 ## Buses and bus stops like Warsaw's (F, 2026-11-07)
 
 Compared with 22 recent street photos at our own stops (Mapillary 2021-2026). Built: the white stop
