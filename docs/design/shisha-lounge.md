@@ -34,13 +34,14 @@ Tension: Ivan wants light and fruity and cannot smoke strong shisha, Bogdan love
    ring at the kerb, he waves, gets in (rave's pickup, `_board`).
 3. **Pick up Bogdan** (F, 2026-11-08: WTS DESKA is too far, pick him up in the area between
    19. Dzielnica and Emilii Plater): a mapped sports court (`game/data/courts.json`) with a car
-   road beside it. The best candidates in the mapped data, in game metres from the origin: one
-   at about (-1848, 47), roughly 350 m from the 19. Dzielnica block and 355 m from Plater 53;
-   others at (-1706, -124) (170 m / 413 m) and (-1809, 241) (530 m / 240 m). Built default: the
-   first (about 52.2336 N, 20.9969 E, 57-62 m from Al. Jana Pawła II, Pereca and Prosta; no street
-   address in the data, a court inside a block), subject to the map engineer checking that a kerb is reachable and that it is a
-   tennis-like pitch (the data holds every sports court); a tennis net, a bag and Bogdan in white
-   are added there for the quest only. The whole drive is then about 1 km and 3-4 minutes, so the
+   road beside it. Built (2026-11-08): the court on Żelazna at about (-2126, 371) game metres,
+   52.2307 N, 20.9928 E, its kerb on Żelazna; Ivan's block is at about (-2900, 735), 52.2274 N,
+   20.9815 E (Kolejowa / Przyokopowa), and the lounge's door on Emilii Plater at (-1465, 59). The
+   legs are about 890 m and 705 m on a straight line, 1.6 km in all (the court sits on the way:
+   the direct line is the same length). An earlier draft of this section measured from a wrong
+   19. Dzielnica point and named a court near Pereca; that was wrong. The court is any mapped
+   sports pitch, not checked to be tennis; a net, a bag and Bogdan waiting there in white are
+   left for later (BACKLOG). The whole drive is then about 2 km and 4-6 minutes, so the
    car argument is the heart of it: the three rounds run over the two legs (Ivan alone, then both
    with Bogdan). A longer way round (Rondo ONZ, Świętokrzyska) can be offered as a scenic
    detour on the second leg if the banter needs more time. Bogdan's tennis monologue (below). The

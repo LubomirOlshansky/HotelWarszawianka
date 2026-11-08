@@ -12,7 +12,7 @@ Everything invented, no real brands, no drug jokes. Button labels in CAPS.
 | --- | --- | --- | --- | --- | --- |
 | 0 | Start | anywhere, 17:00-02:00, or the beacon at 19. Dzielnica | Ivan | the phone rings, or Ivan walks up in person | ODBIERZ then JADĘ! |
 | 1 | Ride to Ivan | to the 19. Dzielnica block | you | dashed ring at the kerb | you stop in the ring |
-| 2 | Leg 1 | 19. Dzielnica to the court (~350 m) | Ivan | banter 1: flavours, "how strong" | you reach the court ring |
+| 2 | Leg 1 | 19. Dzielnica to the court on Żelazna (~900 m) | Ivan | banter 1: flavours, "how strong" | you reach the court ring |
 | 3 | Bogdan | sports court between the estate and Plater | Bogdan | tennis monologue, he gets in | seated |
 | 4 | Leg 2 | court to Emilii Plater 53 (~355 m) | Ivan, Bogdan | the vote: flavour, strength, pipe's name | arrival ring at the portico |
 | 5 | Door | under the portico | doorman | dress code gag | PRZEPUŚĆ |

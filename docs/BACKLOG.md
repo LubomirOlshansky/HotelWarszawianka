@@ -482,20 +482,27 @@ strict three-question door, Smoła's cutaway room (option A). Left:
 - [ ] Opaski (wristbands) collected per spot, a card in the notebook
 - [ ] Option B: a walk-around room (a person controller inside), only if A plays well
 
-## Shisha lounge quest "Dym u Senatorka" (F, 2026-11-08; analysis in docs/design/shisha-lounge.md)
+## Shisha lounge quest "Dym u Senatorka" (F, 2026-11-08; docs/design/shisha-lounge.md)
 
-Analysis and design only, nothing built. Ivan rings ("wanna smoke some shisha?"), pick him up at
-19. Dzielnica, pick up Bogdan at a sports court between 19. Dzielnica and Emilii Plater (WTS DESKA is too far, F 2026-11-08), argue in the car about flavours
-and strength, SENATOREK LOUNGE (parody of "Senator lounge", on a high floor of the Warsaw Financial Centre, Emilii Plater 53, with a roof terrace, from F's photos), the lounge cutaway room, the flavour
-mini-game with the shisha master, then smoke or exit as at Smoła.
-- [ ] F's call: lounge name SENATOREK LOUNGE ok? (Ivan calls, Bogdan second: F 2026-11-08)
-- [ ] Lounge entrance: kerb ring under the WFC portico on Emilii Plater 53, a lift card, a rock-wall room with olive trees and velvet banquettes, a roof terrace with the Palace view (spec `wcf.md` exists); pickup rings at 19. Dzielnica and at a court between it and Plater (candidates in the design doc)
-- [ ] `shisha.gd`: call, two pickups, drop, `stories.add` id `shisha`, `--shisha-call` flags
-- [ ] The car argument: Bogdan's tennis lines, flavour and strength votes (dialogue.json `shisha_ride`)
-- [ ] Lounge room (club.gd cutaway), smoke haze, lounge track
-- [ ] Mini-game "Miks u Mistrza": six jars, two pins, coal timing, first draw
+Built: Ivan's call (17:00-02:00, or in person at his block in 19. Dzielnica, WĄTKI id `shisha`),
+Bogdan at the court on Żelazna, the car argument in bubbles (data/shisha.json, every line PL+EN),
+three votes on side cards (flavour, strength, the pipe's name), the WFC portico on Emilii Plater 53
+(canopy with downlights, revolving door, the SENATOREK and EMILII PLATER 53 letters, granite piers,
+steel fins, the glass rail on the low roof), the door and lift cards, the lounge upstairs
+(`lounge.gd`: rock wall with bars and gold letters, rust-velvet banquettes, grey armchairs, olive
+trees, the travertine bar with jars and coals, the window wall with the Palace, the terrace with
+teak chairs and the Palace's tower), the mini-game "Miks u Mistrza" (two jars on a sweet/cool
+chart, coal timing, the first draw and a smoke ring), PALIĆ / TARAS / WYJDŹ with smoke animations
+(bowls' trickle, exhales, rings, ceiling haze), both drops, the pay. Flags `--shisha-call`,
+`--shisha-meet`, `--shisha-lounge`, `--shisha=0`, `--shisha-log`; `check_shisha.gd` in verify.sh.
+Left:
+- [ ] F's call: lounge name SENATOREK LOUNGE ok? Which floor (the lift card says 38, invented)
 - [ ] Portraits of Ivan, Bogdan and the master (PixelLab on the Mac, from F's photos)
-- [ ] Voices (ElevenLabs), `check_shisha.gd` in verify.sh, bench, phone look
+- [ ] Voices (ElevenLabs) and a lounge track on the radio (docs/MUSIC.md "lounge" slot)
+- [ ] Bogdan waiting at the court: a net, a bag, a figure in white (now only the pickup ring)
+- [ ] Phone look: the lounge's mini-game panel size, the smoke's overdraw, the portico at night
+- [ ] Autopilot run of the whole night on the Mac (`--shisha-meet`, then the lounge)
+- [ ] Before release: the rating and a "bez dymu" (no smoke) setting
 
 ## Cinema tour "Kino objazdowe" (F, 2026-11-07; docs/design/kino-tour.md)
 
