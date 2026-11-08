@@ -33,6 +33,9 @@ sport is mostly about the hoodie, the story from the court and finding a fourth 
   line (3/3: the club hoodie and "from Monday you're our regular fourth"). Landing the helicopter
   by the court: Pani Basia's "the helicopter parking is on the river side" and +5 respect. Late:
   no match, they played three-a-side.
+- **On the quest map (2026-11-07)**: a yellow-green start at the gate (`stories.add` id `padel`,
+  8:00-22:00); the list rings the call, and stopping by the gate brings Kuba out in person: the
+  match starts at once, no drive.
 
 ## Characters (ideas, none built yet)
 - **Trener Dominik**: ex-tennis, "nie biegaj, ustaw się". Appears as a padel court voice.

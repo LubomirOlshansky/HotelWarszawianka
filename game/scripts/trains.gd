@@ -74,6 +74,7 @@ class Train:
 	var rear := Vector2.ZERO
 	var exits := 0
 	var stops_made := 0
+	var rumble := 0.0         # seconds to its next wheel rumble (sounds)
 
 
 var map: Node3D
@@ -89,6 +90,16 @@ var last_usec := 0
 ## ever held one physical track piece at once.
 var stop_log: Array[Vector2i] = []
 var most_on_a_piece := 0
+## Railway audit (F, 2026-11-07): the trains were silent. sfx.gd (main.gd sets it): the wheels'
+## rumble and rail-joint beats while a train runs near the player (a steel drone over it on a
+## bridge), its horn as it comes out of a tunnel mouth or in at the map's edge, and the platform
+## gong as it pulls in at a stop. All original (tools/make_sfx.py). `heard` counts what played.
+var sfx: Node
+var heard := {}
+var _snd_rng := RandomNumberGenerator.new()   # its own, so sound never changes the trains' run
+const EARSHOT := 80.0
+const RUMBLE_GAP := 2.2
+const HORN_REACH := 85.0
 
 # Directed pieces: 2 i runs along rail i as mapped, 2 i + 1 against it.
 var _pts: Array[PackedVector2Array] = []
@@ -116,6 +127,42 @@ var _rng := RandomNumberGenerator.new()
 
 ## The rails with the stretch under Plac Zawiszy (TUNNEL_ZAWISZY) cut away: each polyline that
 ## touches it comes back as its pieces outside. Others are returned as they are.
+## Stacja Muzeum (the railway museum at Warszawa Główna, 2026-11-07): its four sidings (found by
+## their ends at the museum's hall and its platform) hold the locomotives on show, so east of
+## MUSEUM_X no train runs on them, and they get no wires and no signals. The tracks stay drawn.
+const MUSEUM_ENDS := [Vector2(-2531.6, 870.1), Vector2(-2529.9, 874.5), Vector2(-2638.9, 933.1), Vector2(-2636.8, 936.9)]
+const MUSEUM_X := -2895.0
+
+
+## The rails trains run on (trim_rails without the museum's sidings east of MUSEUM_X).
+static func service_rails(rails: Array) -> Array:
+	var out: Array = []
+	for r in trim_rails(rails):
+		var f: Array = r["p"]
+		var n := f.size()
+		var museum := false
+		for e: Vector2 in MUSEUM_ENDS:
+			museum = museum or Vector2(f[0], f[1]).distance_to(e) < 0.5 or Vector2(f[n - 2], f[n - 1]).distance_to(e) < 0.5
+		if not museum:
+			out.append(r)
+			continue
+		var pts := PackedVector2Array()
+		for i in range(0, n - 1, 2):
+			pts.append(Vector2(f[i], f[i + 1]))
+		var west := PackedVector2Array([Vector2(MUSEUM_X, -1e5), Vector2(MUSEUM_X, 1e5), Vector2(-1e5, 1e5), Vector2(-1e5, -1e5)])
+		for piece: PackedVector2Array in Geometry2D.intersect_polyline_with_polygon(pts, west):
+			if piece.size() < 2 or piece[0].distance_to(piece[piece.size() - 1]) < 0.5:
+				continue
+			var np: Dictionary = r.duplicate()
+			var g: Array = []
+			for q in piece:
+				g.append(q.x)
+				g.append(q.y)
+			np["p"] = g
+			out.append(np)
+	return out
+
+
 static func trim_rails(rails: Array) -> Array:
 	var poly := PackedVector2Array(TUNNEL_ZAWISZY)
 	var box := Rect2(poly[0], Vector2.ZERO)
@@ -153,7 +200,7 @@ func setup(map_node: Node3D, data: Dictionary) -> void:
 	_bounds = Rect2(float(b[0]), float(b[1]), float(b[2]) - float(b[0]), float(b[3]) - float(b[1]))
 	var lines: Array[PackedVector2Array] = []
 	var decks := PackedInt32Array()
-	for r in trim_rails(data.get("rails", [])):
+	for r in service_rails(data.get("rails", [])):
 		var flat: Array = r["p"]
 		var p := PackedVector2Array()
 		for i in range(0, flat.size() - 1, 2):
@@ -440,7 +487,10 @@ func _make_trains() -> void:
 			loco["body"] = kind["loco"]
 			loco["band"] = "#d9dcdf"
 			front = car_mesh(loco, 2)
-		meshes.append([front, car_mesh(kind, 1)])
+		# The rear: a unit's other cab, or a train's last coach, with red tail lamps (railway audit,
+		# 2026-11-07: both ends showed white lamps).
+		var rear := car_mesh(kind, 1, true) if kind.has("loco") else car_mesh(kind, 0, true)
+		meshes.append([front, car_mesh(kind, 1), rear])
 	var most := 0
 	for kind: Dictionary in KINDS:
 		most = maxi(most, int(kind["cars"]))
@@ -489,8 +539,8 @@ func _dress(t: Train, meshes: Array) -> void:
 		var mi := t.cars[k].get_child(0) as MeshInstance3D
 		# A unit has a cab at each end; a long-distance train its locomotive at the front.
 		var loco: bool = (KINDS[t.kind] as Dictionary).has("loco")
-		var end := k == 0 or (k == t.n_cars - 1 and not loco)
-		mi.mesh = meshes[t.kind][0 if end else 1]
+		var last := k == t.n_cars - 1 and k > 0
+		mi.mesh = meshes[t.kind][2 if last else (0 if k == 0 else 1)]
 		mi.rotation.y = PI if k == t.n_cars - 1 and k > 0 and not loco else 0.0
 
 
@@ -511,6 +561,11 @@ func _enter(t: Train, meshes: Array) -> bool:
 		t.dwell = 0.0
 		t.wait = 0.0
 		t.active = true
+		t.rumble = 0.5
+		# Out of a tunnel mouth or in from the edge near the player: the horn.
+		var from := _pts[i][0]
+		if map != null and from.distance_to(Vector2(player_pos.x, player_pos.z)) < HORN_REACH:
+			_play("train_horn", Vector3(from.x, player_pos.y + 2.0, from.y))
 		return true
 	return false
 
@@ -646,6 +701,8 @@ func step(dt: float) -> void:
 			_hide(t)
 	if _pax_mm != null:
 		_step_pax(dt)
+	if sfx != null:
+		_sounds(dt)
 	last_usec = Time.get_ticks_usec() - t0
 
 
@@ -969,6 +1026,8 @@ func _move(t: Train, dt: float) -> void:
 				if ahead < 0.8 and t.v < 0.3:
 					if t.dwell == 0.0 and map != null:
 						_board(t, int(halts[k + 1]))
+						if Vector2(t.pos.x, t.pos.z).distance_to(Vector2(player_pos.x, player_pos.z)) < EARSHOT:
+							_play("station_gong", t.pos + Vector3.UP * 3.0)
 					t.dwell += dt
 					if t.dwell > DWELL:
 						t.served = int(halts[k + 1])
@@ -1046,9 +1105,37 @@ func _turn_back(t: Train) -> void:
 		var a := t.cars[c]
 		t.cars[c] = t.cars[t.n_cars - 1 - c]
 		t.cars[t.n_cars - 1 - c] = a
-	for c in t.n_cars:
-		var mi := t.cars[c].get_child(0) as MeshInstance3D
-		mi.rotation.y = PI if c == t.n_cars - 1 and c > 0 else 0.0
+	# The new front cab shows white lamps, the new last car red ones.
+	_dress(t, get_meta("meshes"))
+
+
+## The wheels: every RUMBLE_GAP s (sooner when fast) a train running within EARSHOT of the
+## player rumbles from its car nearest the player; on a bridge deck the steel drone instead.
+func _sounds(dt: float) -> void:
+	var ear := Vector2(player_pos.x, player_pos.z)
+	for t in trains:
+		if not t.active or t.v < 4.0:
+			continue
+		t.rumble -= dt * (t.v / CRUISE)
+		if t.rumble > 0.0:
+			continue
+		t.rumble = RUMBLE_GAP * _snd_rng.randf_range(0.85, 1.15)
+		# The point of the train nearest the ear.
+		var head := Vector2(t.pos.x, t.pos.z)
+		var ab := t.rear - head
+		var u := clampf((ear - head).dot(ab) / maxf(ab.length_squared(), 0.01), 0.0, 1.0)
+		var at := head + ab * u
+		if at.distance_to(ear) > EARSHOT:
+			continue
+		var on_deck := _deck[_head(t)] >= 0
+		_play("train_bridge" if on_deck else "train_rumble", Vector3(at.x, t.pos.y + 1.0, at.y),
+				lerpf(-6.0, 0.0, t.v / CRUISE))
+
+
+func _play(n: String, at: Vector3, gain_db := 0.0) -> void:
+	heard[n] = int(heard.get(n, 0)) + 1
+	if sfx != null:
+		sfx.play_at(n, at, gain_db)
 
 
 ## Off the map or into the tunnel: gone, and back in a while somewhere.
@@ -1135,8 +1222,9 @@ func _pose(t: Train) -> void:
 ## side in the door colour, a grey skirt, air-conditioning boxes on the roof and the pantograph
 ## over the cab car. The long-distance kind ("shape" ic) is a locomotive with a blunt sloped cab
 ## at each end (grilles down its sides, two pantographs) and coaches with a dark window band
-## over a navy stripe and a door near each end.
-static func car_mesh(kind: Dictionary, role: int) -> ArrayMesh:
+## over a navy stripe and a door near each end. `tail`: the train's last car, its lamps at the far
+## end red (a cab's nose lamps; on a coach, two at its +Z end).
+static func car_mesh(kind: Dictionary, role: int, tail := false) -> ArrayMesh:
 	var s := Models.Shape.new()
 	var body := Models.fin(Color(kind["body"]))
 	var band := Models.fin(Color(kind["band"]))
@@ -1146,7 +1234,7 @@ static func car_mesh(kind: Dictionary, role: int) -> ArrayMesh:
 	var skirt := Models.fin(Color("#55595e"))
 	var glass := Models.fin(Models.GLASS)
 	var lit := Models.fin(Models.GLASS, Models.LIT_WINDOW)
-	var lamp := Models.fin(Models.HEADLIGHT, Models.HEAD_LAMP)
+	var lamp := Models.fin(Models.TAIL, Models.TAIL_LAMP) if tail else Models.fin(Models.HEADLIGHT, Models.HEAD_LAMP)
 	var unit := String(kind.get("shape", "unit")) == "unit"
 	var hl := CAR * 0.5
 	var W := 1.45
@@ -1234,6 +1322,10 @@ static func car_mesh(kind: Dictionary, role: int) -> ArrayMesh:
 			s.side_rect(x + sgn * 0.004, sgn, floor_y + 0.15, 3.35, d - 0.7, d + 0.7, door)
 			s.side_rect(x + sgn * 0.01, sgn, 2.0, 3.15, d - 0.6, d - 0.06, glass)
 			s.side_rect(x + sgn * 0.01, sgn, 2.0, 3.15, d + 0.06, d + 0.6, glass)
+	if tail and role == 1:
+		# The last coach's tail lamps, low on its end wall.
+		for x: float in [-0.9, 0.9]:
+			s.box(Vector3(x, 1.45, hl + 0.03), Vector3(0.3, 0.3, 0.08), lamp)
 	# Under the floor: the skirt and two bogies.
 	s.box(Vector3(0.0, 0.75, 0.0), Vector3(2.0 * W - 0.1, 0.5, CAR - 0.6), skirt)
 	for z: float in [-hl + 3.0, hl - 3.0]:

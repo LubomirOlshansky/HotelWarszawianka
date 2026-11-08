@@ -87,6 +87,13 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		# Towarowa 22 built as finished (2026-11-03): the drone port, the superblock's name and the
 		# gilded last crane's plaque (the "Warsaw of the future" jokes).
 		"WARSZAWA 2050", "DRONOPORT", "TOWAROWA 22", "OSTATNI ŻURAW WOLI",
+		# Wola's 19. Dzielnica (F's photos, 2026-11-07): parodies of the building site's name on its
+		# hoarding, the contractor's on its cabins and the developer's on the towers' crown.
+		"OHO ONE", "ATLAS WIATR", "ASBUDKA",
+		# Stacja Muzeum's gold letters over its canopy and the night market on the old platform.
+		"WARSZAWA GŁÓWNA", "NOCNY TARG",
+		# Kolejowa: parodies of the pinball museum's and the teal club's names.
+		"FLIPEROWNIA", "ODESSKA",
 		# Prosta 32, Prosta 28 and Łucka City from F's photos (2026-11-06): parodies of the
 		# developer's red roof letters, a tenant's small red logo and the printer's roof board.
 		"MARZYPOL", "PROSTO", "INTERBRUK",
@@ -102,7 +109,12 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		"ROSZMAN", "MILENIUSZ", "PALUSZKI", "HYM", "LEKSUS", "CZERY",
 		# The Palace of Culture's venues (F, 2026-11-07): its stages, cinema, bars, museum and terrace.
 		"KINOTEKA", "KULTURALNA", "TEATR", "DRAMATYCZNY", "MUZEUM", "TECHNIKI", "KONGRESOWA", "STUDIO",
-		"TARAS", "30 PIĘTRO", "LALKA", "THE FUTURE", "SHOULD", "ALWAYS BE", "BETTER"]
+		"TARAS", "30 PIĘTRO", "LALKA", "THE FUTURE", "SHOULD", "ALWAYS BE", "BETTER",
+		# Nowogrodzka 31 (F's photos, 2026-11-07): the offices-to-let banners, two shops' neon, the
+		# cat-food advert on the end wall and the rooftop billboard (a parody, MRAU).
+		"BIURA", "RESTAURACJA", "BUM BAR", "SZTUKA", "UKŁADANIA", "MISKI", "MRAU", "DLA KOTÓW",
+		# The car park behind the Novotel (F's photos, 2026-11-07): the corner bar's parody names.
+		"KLUBOLEJNIA", "LEJALNIA", "DRINK BAR"]
 ## Tube colours (linear, bright): pink, cyan, violet, and a few words' usual colours.
 const PINK := Color(1.0, 0.1, 0.55)
 const CYAN := Color(0.1, 0.9, 1.0)

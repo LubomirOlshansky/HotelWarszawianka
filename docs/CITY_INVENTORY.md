@@ -174,7 +174,7 @@ often, known to every visitor; **B** characteristic, known to locals, gives a st
 | 103 | Dom pod Orłami and Skwer Linearny na Złotej | Jasna / Złota | historic office, new park | ★ | Mac look check |
 | 104 | Hotel Wiktoria (Sofitel Victoria) and Królewska (OSM: Sofitel Victoria) | Królewska | hotel | ◐ | photo check |
 | 105 | Ministerstwo Finansów | Świętokrzyska | ministry | ◐ | photo check |
-| 106 | Saski Crescent, Saski Park, Senator | Królewska / Bielańska | offices | ✗ | photo build of the curved glass on the Saxon Garden |
+| 106 | Saski Crescent, Saski Park, Senator | Królewska / Bielańska | offices | ◐ | 2026-11-07 from F's photos (spec `saski.md`): Saski Crescent in teal curtain-wall skin, Senator in pale cladding; left: the stone wing, dark crown and SASKI ROGAL sign, Senator's light well, Saski Park |
 | 107 | Gmach Główny Politechniki Warszawskiej (OSM: Gmach Główny PW) | Noakowskiego / Plac Politechniki | university | ✗ | **photo build**: the courtyard hall's front and the dome |
 | 108 | Uniwersytet: Auditorium Maximum, Stary BUW, Biblioteka Królewska | Krakowskie Przedmieście | university | ✗ | photo pass of the campus |
 | 109 | Pałac Pod Blachą and Biblioteka Królewska | Plac Zamkowy / Wybrzeże Gdańskie | palace | ✗ | with the Castle (after PR #299) |
@@ -189,7 +189,7 @@ often, known to every visitor; **B** characteristic, known to locals, gives a st
 | 118 | Kamienica Wedla | Szpitalna | tenement, chocolate shop | ✗ | photo build of the corner and its sign (parody) |
 | 119 | Kamienica pod Gryfami, Kamienica Johna | Plac Trzech Krzyży / Krakowskie Przedmieście | tenements | ✗ | photo pass |
 | 120 | Kamienica pod Zegarem and Chłodna's footbridge memorial (Kładka) | Chłodna | tenement, memorial | ✗ | the clock, the Kładka light sculpture |
-| 121 | Hotel Saski, Pasaż Muranów, the Muranów estate | Plac Bankowy / Andersa | hotel, 1950s estate | ✗ | Muranów's rubble-brick blocks as a street dress |
+| 121 | Hotel Saski, Pasaż Muranów, the Muranów estate | Plac Bankowy / Andersa | hotel, 1950s estate | ✗ | Muranów's rubble-brick blocks as a street dress (the 1970s Dekalog estate on Inflancka and the pools are built: sites `dekalog_estate`, `inflancka_pools`) |
 | 122 | Osiedle Za Żelazną Bramą | Plac Żelaznej Bramy | 1960s estate | ◐ | photo check |
 | 123 | Aleja Jana Pawła II's blocks and Kaskada | Aleja Jana Pawła II | 1950s blocks, offices | ○ | block-by-block pass from photos |
 | 124 | Babka Tower, Atrium 2, Intraco Prime, North Gate | Aleja Jana Pawła II / Stawki / Bonifraterska | offices, flats | ✗ | photo build (Babka is the north's tallest) |
@@ -236,6 +236,11 @@ landmarks.
 | 153 | Pawilon Emilia (1970, taken down in the 2010s) | Emilii Plater | lost pavilion | ✗ | a KASETA then card with its ghost, not a model (the album's lost slide) |
 | 154 | Towarowa 22 (superkwartał on the Dom Słowa Polskiego site) | Towarowa / Pańska / Miedziana | new city quarter | ◐ | built 2026-11-03 as finished, from F's masterplan renders and photos (spec `towarowa22.md`): the tower row, the tanks block, Gutenberga, the printing hall's yellow frame, Pawilon DSP, Park Słowa, a drone port and the gilded last crane; the Office House, M7 and the octagon stay the map's; photo pass once the towers stand |
 | 155 | Prosta 32, Prosta 28 and Łucka City (Łucka 15) | Prosta / Łucka | offices and residential tower | ★ | built 2026-11-06 from F's photos (specs `prosta32.md`, `prosta28.md`, `lucka.md`): Prosta 32's white diamond lattice over blue glass with MARZYPOL, Prosta 28's X-braced base, stone stack and tree terraces with PROSTO, Łucka City's white stepped block, dark top and INTERBRUK board; left: Prosta 28's real height (OSM 80 m, photos ~92 m) |
+| 156 | 19. Dzielnica (the Kolejowa estate) | Kolejowa / Przyokopowa | housing estate | ◐ | built 2026-11-07 from F's photos (spec `dzielnica19.md`): the mapped parts in cream with rust window frames, two blocks in the dark grid, garden podiums; photo pass D19-1 |
+| 157 | Towarowa Towers | Kolejowa / Prosta | twin residential towers | ◐ | built 2026-11-07 from F's five photos: blue glass, staggered orange and gold frames, white spine, open crown with ASBUDKA (parody); the white blocks with orange balconies |
+| 158 | NOHO ONE building site (the old Polfa drug works) | Kasprzaka / Karolkowa | building site | ◐ | built 2026-11-07 as a site under construction (OHO ONE, parody): four concrete frames, cores, three cranes, the yard; finished cascades later, from photos |
+| 159 | Stacja Muzeum (old Warszawa Główna) | Towarowa 3 | railway museum | ◐ | built 2026-11-07 from the Mac's Commons photos (spec `stacja_muzeum.md`): the barrel hall's arched cream front with WARSZAWA GŁÓWNA, the Towarowa wing, 17 engines and coaches on the four sidings, water crane, lamps, white fence |
+| 160 | Nocny Targ (Nocny Market) | Towarowa 3, the old platforms | night market | ◐ | built 2026-11-07 from F's photos: two rusty platform canopies (single pitch over kiosks; twin gables over stalls), coloured tubes, bulb strings, painted benches, a food truck; parody NOCNY TARG |
 
 Tier C (named tenements, offices, embassies, small institutions) has no rows here: Part 2
 lists all of them street by street with their status.
@@ -558,7 +563,7 @@ Generated by `python3 -I tools/city_inventory.py` from the map data and Part 1. 
 - **Filtrowa**: *monuments:* Gabriel Narutowicz ○ in game; *plaques and memorial stones:* 6
 - **Jaktorowska**: *monuments:* Janusz Korczak ○
 - **Kaliska**: *plaques and memorial stones:* 2
-- **Kolejowa**: *bars:* Odessa ✗, Smok ✗, Space Club ✗; *museums:* Pinball Station ✗, Stacja Muzeum ✗
+- **Kolejowa**: **#156 19. Dzielnica** ◐; **#157 Towarowa Towers** ◐; **#159 Stacja Muzeum** ◐; **#160 Nocny Targ (Nocny Market)** ◐; *bars:* Odessa ◐ (ODESSKA), Smok ✗, Space Club ✗; *museums:* Pinball Station ◐ (FLIPEROWNIA)
 - **Koszykowa**: *plaques and memorial stones:* 1
 - **Leszno**: *monuments:* Pomnik Ofiar Rzezi Woli ○
 - **Miedziana**: M7 ✗
