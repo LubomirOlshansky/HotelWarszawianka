@@ -906,10 +906,6 @@ Built (spec `docs/landmarks/specs/forest.md`): the three-slab tower with crown b
 - **The roof crane and the tower's lobby**: the window-cleaning crane on the crown and the glazed double-height lobby are not modelled.
 - **Older docs still name the real tenant** in a few places (CITY_INVENTORY, LANDMARKS, QUESTIONS, MUSIC, inventory candidates, wiki_build.py): a sweep to the parody is open.
 
-## Ground check holes in the far west
-
-`check_ground` fails with 13 holes around `--at=-2591,905` to `-2861,1015`, and one at `-1711,-2765`, found 2026-11-05 on the modernism branch. They are far from anything that branch touches, so they came from elsewhere; not chased there.
-
 ## Warsaw modernism and brutalism (F, 2026-11-03, high priority)
 
 F loves Warsaw modernism and asked for every modernist and brutalist building as good as photos allow

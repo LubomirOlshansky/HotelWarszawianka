@@ -18,7 +18,7 @@
 # WARN before). `drive` runs game/tools/check_drive.gd (loop 3b): a car and a bus along every
 # lane against the colliders, the autopilot over the bridges and tunnels. `drape` runs
 # game/tools/check_drape.gd (loop 3b-2): the ground poking through the water, grass and plazas.
-# `ground` runs game/tools/check_ground.gd (loop 3d-2a, ~2 min, not in --quick): no ground left
+# `ground` runs game/tools/check_ground.gd (loop 3d-2a, ~9 min, not in --quick; CI map job since 2026-11-08): no ground left
 # under what covers it whole, no hole where it was left out, the ground on the height rule.
 # `streets` runs tools/check_streets.py (map review B): poles on the asphalt, zebras off it,
 # grass medians on tram tracks (S1, S2, S4 FAIL; S3, medians in a junction, is reported).
@@ -947,7 +947,7 @@ for s in $want; do
 		# Loop 3b-2: the bare ground poking through the areas laid on it (water, grass, plazas, sand).
 		drape) check drape '^check_drape:' --script res://tools/check_drape.gd ;;
 		# Loop 3d-2a: the ground left out under the layers that cover it, no holes, on the heights.
-		ground) check ground '^check_ground:' --script res://tools/check_ground.gd ;;
+		ground) STEP_LIMIT=$(( STEP_LIMIT > 1500 ? STEP_LIMIT : 1500 )) check ground '^check_ground:' --script res://tools/check_ground.gd ;;
 		# Loop 3b: every lane for a car and a bus against the colliders; the autopilot over the
 		# bridges and tunnels (height jumps). The runtime city (the prebuilt one: --prebuilt).
 		drive) check drive '^check_drive:' --script res://tools/check_drive.gd ;;
