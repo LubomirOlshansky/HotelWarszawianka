@@ -174,6 +174,7 @@ then the Launch gate.
   - [x] R4 ordinary buildings by type (pre-war tenement, 1960s-80s slab or point block, office),
         shader only, 2026-11-01 (socialist-realist left for a later pass)
   - [x] R5 Scena Relax, Zodiak and the Cepelia pavilion as models
+  - [x] PKiN surroundings from F's photos (2026-11-08): Cepelia and Zodiak rebuilt to the photos, Centrum Marszałkowska (Marszałkowska 126/134) as a stepped glass model with fins and night LED strokes; Widok Towers, Złote Tarasy and the Jerozolimskie 47 dome still to do (PR pending; phone look check open)
   - [x] R6 a trend spot in the start box (MACZA in Pasaż Wiecha, built by the trends thread) and
         six lines on the empty stores, Frogs XXL, Plac Centralny, Scena Relax, 2026-11-01
   - [x] R7 street details in the box (street name plates, bike dock, tram stops, bollards), 2026-11-01
