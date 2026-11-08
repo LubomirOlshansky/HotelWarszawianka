@@ -39,6 +39,7 @@ const DRAG := 0.05
 const SUB := 2
 ## Reach: horizontal metres from the player's middle; the highest normal contact; with a jump.
 const REACH := 1.3
+const LUNGE := 0.35
 const REACH_H := 2.2
 const JUMP_H := 3.2
 ## The human's swing: a tap opens a window this long in which the first reachable ball is hit.
@@ -196,8 +197,8 @@ func setup(seed: int, partner: String, rivals: Array) -> void:
 	rng.seed = seed
 	players.clear()
 	var names := ["Ty", partner, String(rivals[0]), String(rivals[1])]
-	var skills := [0.75, 0.7, 0.62, 0.68]
-	var speeds := [5.4, 4.7, 4.5, 4.6]
+	var skills := [0.75, 0.7, 0.72, 0.78]
+	var speeds := [5.4, 4.7, 4.8, 4.9]
 	for i in 4:
 		var pl := Player.new()
 		pl.idx = i
@@ -473,8 +474,17 @@ func _hit(pl: Player, shot: int, q: float) -> void:
 			to = Vector2(NET_X + dir * rng.randf_range(3.5, 7.2), _open_y(pl.team, 1.0))
 			t = Vector2(from.x, from.y).distance_to(to) / (14.0 + 3.0 * q)
 		_:
-			to = Vector2(NET_X + dir * rng.randf_range(5.2, 8.2), _open_y(pl.team, 1.0))
-			t = Vector2(from.x, from.y).distance_to(to) / (12.5 + 4.0 * q)
+			var deep := 0
+			for o in players:
+				if o.team != pl.team and absf(o.pos.x - NET_X) > 6.0:
+					deep += 1
+			if deep == 2 and absf(from.x - NET_X) < 4.5 and q > 0.45:
+				# A drop shot: the pair is on the back glass, the ball dies short of the net.
+				to = Vector2(NET_X + dir * rng.randf_range(1.8, 3.4), _open_y(pl.team, 1.0))
+				t = Vector2(from.x, from.y).distance_to(to) / (7.5 + 2.0 * q)
+			else:
+				to = Vector2(NET_X + dir * rng.randf_range(5.2, 8.2), _open_y(pl.team, 1.0))
+				t = Vector2(from.x, from.y).distance_to(to) / (12.5 + 4.0 * q)
 	if q >= 0.9:
 		t *= 0.9
 	var err: float = (1.0 - q) * float(SCATTER[shot])
@@ -510,7 +520,14 @@ func _home(team: int, shot: int) -> void:
 		if pl.team != team:
 			continue
 		var x := NET_X - dir * (3.4 if up else 7.2)
-		pl.target = Vector2(x, 2.8 if pl.idx % 2 == 0 else 7.2)
+		# One at the net and one a step behind after an attack, so a lob has an answer; the pair
+		# splits the width by who is where (not by a fixed seat).
+		var mate: Player = null
+		for o in players:
+			if o.team == team and o != pl:
+				mate = o
+		var low := mate == null or pl.pos.y <= mate.pos.y
+		pl.target = Vector2(x, 2.9 if low else 7.1)
 		pl.planned = false
 
 
@@ -601,13 +618,21 @@ func _plan(team: int) -> void:
 	best_pl.plan_p = bp
 	best_pl.plan_t = float(best_c[0])
 	best_pl.target = Vector2(bp.x - dir * 0.35, bp.y + (0.3 if bp.y < WID * 0.5 else -0.3))
-	var chance := 0.55 + 0.42 * best_pl.skill - float(PRESSURE[last_shot]) * last_q
+	# A planned ball it can physically reach is only misread under pressure (a smash, a hard corner
+	# ball); the old flat dice made good positioning look like luck.
+	var chance := 0.9 + 0.1 * best_pl.skill - float(PRESSURE[last_shot]) * last_q * (1.4 - best_pl.skill)
 	best_pl.will_reach = (best_pl.human and not auto_human) or rng.randf() < chance
 	if not best_pl.will_reach:
 		best_pl.target += Vector2(rng.randf_range(-1.0, 1.0), rng.randf_range(-1.6, 1.6))
+	# The other one covers: at the net on the open side, but back for a lob (it would be lobbed
+	# over), and shaded toward where the ball is going.
+	var lobbed := last_shot == Shot.LOB
 	for pl in mates:
 		if pl != best_pl:
-			pl.target = Vector2(NET_X - dir * 4.0, 7.2 if best_pl.pos.y < WID * 0.5 else 2.8)
+			var cy := 7.2 if best_pl.pos.y < WID * 0.5 else 2.8
+			cy = lerpf(cy, bp.y, 0.25)
+			var cx := NET_X - dir * (6.2 if lobbed else 3.2)
+			pl.target = Vector2(cx, clampf(cy, 1.4, WID - 1.4))
 
 
 # --- the players ------------------------------------------------------------------------------
@@ -659,12 +684,17 @@ func can_hit(pl: Player, smash := true) -> bool:
 	var z := ball.p.z
 	if z < 0.12 or z > (JUMP_H if smash else REACH_H):
 		return false
-	return Vector2(ball.p.x, ball.p.y).distance_to(pl.pos) < REACH
+	return Vector2(ball.p.x, ball.p.y).distance_to(pl.pos) < _reach(pl)
+
+
+## The racket's reach: a player at a run stretches for it (the lunge), one standing still doesn't.
+func _reach(pl: Player) -> float:
+	return REACH + LUNGE * clampf(pl.vel.length() / maxf(pl.speed, 0.1), 0.0, 1.0)
 
 
 ## The timing's quality: the ball near the middle of the reach at the sweet height is 1.
 func quality(pl: Player) -> float:
-	var d := Vector2(ball.p.x, ball.p.y).distance_to(pl.pos) / REACH
+	var d := Vector2(ball.p.x, ball.p.y).distance_to(pl.pos) / _reach(pl)
 	var hz := absf(ball.p.z - SWEET_Z) / 1.4
 	if ball.p.z > REACH_H:
 		hz = 0.15
