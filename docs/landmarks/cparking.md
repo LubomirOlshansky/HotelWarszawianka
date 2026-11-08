@@ -21,3 +21,7 @@ Site key `cparking` (card "Cyfrowy Parking Novotel"), built by `landmarks.gd` `_
   swoosh.
 - Differs from the photos: the mural is flat colour and white discs (no swirl texture); the far end's blue-grey at
   night and the east and south faces are guessed; shop units and their signs down Parkingowa are generic.
+
+## 2026-11-08: brighter at night (F's ask)
+
+- The spandrels, roses and the corrugated wall use `M_MEMBRANE + 0.5`, a floodlit-paint branch in `building.gdshader` (glow 0.7 of the colour at night, one extra ternary), so the mural reads up the whole facade; the lit core is lighter (#6d7573).
