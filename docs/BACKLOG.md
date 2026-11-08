@@ -128,6 +128,11 @@ THEATRES, `theatre` curve, dark on Mondays). Left:
   the camera never sees) have no sign; the terrace has no ticket queue at the east portico yet.
 - Joke billboard "UWAGA:" by the pigeons on Plac Defilad shows the camera its dark back.
 - The bake still turns scrub into plain lawn city-wide; only the Palace's beds are bushes.
+- Event lighting (palace_lights.gd + data/palace_lights.json, F 2026-11-07): built with 14 dates and five
+  patterns. Left: the Independence Day thread's white-red tier bands (event_day.gd) join as the 11 November
+  row's extra; a phone look at the colours' strength; F's call on the event list (QUESTIONS).
+- The floodlight's reach (a circle round the Palace) also tints the TR Warszawa site's crane and the forecourt's
+  stone furniture; an old quirk of the gold, louder in the event colours.
 
 ## Ratusz Arsenał interchange and passengers (F, 2026-11-07, six photos)
 

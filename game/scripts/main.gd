@@ -723,6 +723,10 @@ var weather: Weather
 var start_weather := 0
 var live_clock := ""
 var live_date := 0
+## --palace-lights=ID: the Palace's event lighting forced to one row of data/palace_lights.json
+## ("gold" for the nightly gold), whatever the date (shots).
+var palace_lights_id := ""
+var _palace_night := -1
 var show_perf := false
 ## Low, Medium, High, Ultra (loop G1: tiers.gd QUALITY): the pixel size (loop 2b: "step" whole
 ## screen pixels coarser than High's; the old 0.85 / 0.7 render scales gave Medium High's image
@@ -4817,6 +4821,8 @@ func _parse_args() -> void:
 			live_clock = arg.trim_prefix("--clock=")
 		elif arg.begins_with("--date="):
 			live_date = int(arg.trim_prefix("--date="))
+		elif arg.begins_with("--palace-lights="):
+			palace_lights_id = arg.trim_prefix("--palace-lights=")
 		elif arg == "--perf":
 			_flag_perf = true
 		elif arg == "--sound-check":
@@ -6646,6 +6652,21 @@ func _set_palace_clock() -> void:
 	var minutes := float(local["minute"])
 	var hours := float(int(local["hour"]) % 12) + minutes / 60.0
 	building_mat.set_shader_parameter("clock_hands", Vector2(TAU * hours / 12.0, TAU * minutes / 60.0))
+	_set_palace_lights(local)
+
+
+## The Palace's event lighting (palace_lights.gd): set when the night changes (a night is the
+## date it began, to 06:00), or the --palace-lights= row.
+func _set_palace_lights(local: Dictionary) -> void:
+	var night: Array = PalaceLights.night_of(local)
+	var key := int(night[0]) * 10000 + int(night[1]) * 100 + int(night[2])
+	if key == _palace_night:
+		return
+	_palace_night = key
+	var e := PalaceLights.for_date(int(night[0]), int(night[1]), int(night[2]))
+	if palace_lights_id != "":
+		e = PalaceLights.by_id(palace_lights_id)
+	PalaceLights.apply(building_mat, e)
 
 
 ## Where the player is, for traffic (obstacle, spawn band), trams and rivals.

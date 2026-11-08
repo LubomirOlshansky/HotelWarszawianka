@@ -39,6 +39,13 @@ uniform float windows = 1.0;
 // The floodlit landmark: x, z of its centre and a radius (map_builder.gd, from the
 // Palace of Culture's outline); only its sandstone walls light up.
 uniform vec4 floodlit = vec4(0.0, 0.0, -1.0, 0.0);
+// Its event lighting by date (palace_lights.gd, main.gd): 0 the nightly gold, 1 one colour,
+// 2 colour a on the base and pavilions and b up the tower, 3 a rainbow across the facades
+// (drifting `flood_cycle` turns a minute).
+uniform int flood_mode = 0;
+uniform vec3 flood_a : source_color = vec3(1.0, 0.7, 0.3);
+uniform vec3 flood_b : source_color = vec3(1.0, 0.7, 0.3);
+uniform float flood_cycle = 0.0;
 varying vec3 world_pos;
 varying vec2 style;
 // The roofs lane: the plane's world normal (a roof's slope and which way it falls).
@@ -868,9 +875,26 @@ vec3 landmark(int mode, float param, vec3 col, vec2 uv, float top, bool wall, ve
 // bright edge at the top of every wall, where the next terrace's lamps stand.
 vec3 floodlight(vec3 col, float h, float top) {
 	vec3 gold = vec3(1.0, 0.7, 0.3);
-	vec3 light = gold * (0.62 + 0.5 * exp(-h / 18.0) + 0.3 * smoothstep(30.0, 140.0, h));
-	light += vec3(1.0, 0.88, 0.62) * smoothstep(top - 9.0, top - 0.5, h) * 0.5;
-	return col * light * 1.3;
+	float shape = 0.62 + 0.5 * exp(-h / 18.0) + 0.3 * smoothstep(30.0, 140.0, h);
+	float edge = smoothstep(top - 9.0, top - 0.5, h) * 0.5;
+	if (flood_mode == 0) {
+		return col * (gold * shape + vec3(1.0, 0.88, 0.62) * edge) * 1.3;
+	}
+	// Event colours (F's photos): LED washes read as the light's own colour on the pale stone,
+	// so the sandstone's warmth is mostly taken out before tinting.
+	vec3 tint = flood_a;
+	if (flood_mode == 2) {
+		tint = mix(flood_a, flood_b, smoothstep(40.0, 52.0, h));
+	} else if (flood_mode == 3) {
+		vec2 d = world_pos.xz - floodlit.xy;
+		float across = dot(d, vec2(0.9403, -0.3404)) + dot(d, vec2(0.3404, 0.9403)) * 0.35;
+		float hue = fract(across / 150.0 + 0.5 + TIME * flood_cycle / 60.0);
+		tint = clamp(abs(fract(hue + vec3(0.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0) - 1.0, 0.0, 1.0);
+		tint = mix(tint, vec3(1.0), 0.22);
+	}
+	float l = dot(col, vec3(0.3, 0.59, 0.11));
+	vec3 stone = mix(col, vec3(l), 0.75);
+	return stone * tint * (shape * 1.25 + edge) * 1.45;
 }
 
 // The roofs lane (docs/design/roofs.md, RF1): a thin line every `period` metres along x,

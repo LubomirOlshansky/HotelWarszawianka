@@ -63,6 +63,7 @@ someone writes its lines.
 - 21 more houses got their real wall colours after a check against street photos, from Filtrowa to Marszałkowska.
 - 15 more houses got street fronts from new photos, among them Bracka 16, Atlas Tower and Dom Dysydentów.
 - 39 more buildings got street fronts from new photos, from Klif and Babka Tower to Freta and Plac Trzech Krzyży.
+- The Palace of Culture lights up for the city's days: white and red for 3 May, 1 August and 11 November, a rainbow for New Year and the Equality Parade, pink all October, green and red at Christmas, and its usual gold on every other night.
 
 - Saski Crescent is green-teal glass now and Senator pale cladding, as in the photos.
 - Brama Zachodnia, Proximo I and Proximo II on Aleje Jerozolimskie wear their photo colours: ochre punched cladding, light blue glass, dark navy glass.
