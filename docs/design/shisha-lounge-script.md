@@ -43,7 +43,7 @@ After ODBIERZ, card:
 
 ## 1. Ride to Ivan
 
-Title `IVAN · pod blokiem`, hint „Zatrzymaj się przy Ivanie" / "Stop by Ivan". Distance label as for Ziomek.
+Title `IVAN · pod blokiem`, hint „Zatrzymaj się przy Ivanie" / "Stop by Ivan". Distance label as for Mati.
 Toast on accept: „Jedź po Ivana" / "Go and pick up Ivan".
 
 ## 2. Leg 1 (Ivan alone), banter 1
@@ -85,7 +85,7 @@ Banter before the card (tag `flavour_2`):
 - BOGDAN: „Ogórek z lodami to klasyka. Klasyka z mojej głowy." / "Cucumber ice cream is a classic. A classic from my head."
 - IVAN: „Każdy lounge ma siedemdziesiąt smaków. I zawsze bierzemy to samo." / "Every lounge has seventy flavours. And we always take the same."
 - BOGDAN: „To weźmy 'Zupę pomidorową z makaronem'." IVAN: „Nie." BOGDAN: „Raz, tylko raz." / "Then let's take 'Tomato Soup with Noodles'." "No." "Once, just once."
-Buttons: ARBUZ Z MIĘTĄ (Ivan's) / LODY Z OGÓRKA (Bogdan's) / MISTRZ WYBIERZE (neutral: both hearts +1, the master's mix later).
+Buttons: ARBUZ (Ivan's) / OGÓREK (Bogdan's) / MISTRZ (neutral: both hearts +1, the master's mix later). Short words (PT-46), the body names the full flavours.
 Reactions:
 - Ivan wins: IVAN „Widzisz? Spokojny wybór." BOGDAN „Spokojny wybór to bank ma w nazwie." / "See? Calm choice." "A calm choice is what a bank has in its name."
 - Bogdan wins: BOGDAN „Mówiłem! Ogórek!" IVAN „Wezmę piwo." / "I told you! Cucumber!" "I'll have a beer."
@@ -97,7 +97,7 @@ F, 2026-11-08: **Bogdan likes strong shisha, Ivan can't smoke strong.** So stren
 fight and a trade-off: Bogdan's hearts rise with strength, Ivan's fall (above 3 he coughs and
 his hearts drop fast). The pipe has a way out later (the master's two-hose idea, step 1).
 
-Card `JAK MOCNA?` / "HOW STRONG?" Buttons: 1 HERBATA / 3 RANDKA / 5 ROZMOWA O POLITYCE (TEA / A DATE / A TALK ABOUT POLITICS). A hint under the card: „Bogdan: mocna. Ivan: lekka." / "Bogdan: strong. Ivan: light."
+Card `JAK MOCNA?` / "HOW STRONG?" Buttons: 1 HERBATA / 3 RANDKA / 5 POLITYKA (TEA / A DATE / POLITICS; short, PT-46: longer answers left the side card no room). A hint under the card: „Bogdan: mocna. Ivan: lekka." / "Bogdan: strong. Ivan: light."
 Banter (tag `strength`):
 - BOGDAN: „Mocna! Jak backhand! Do końca!" / "Strong! Like a backhand! All the way!"
 - IVAN: „Bogdan, ja nie mogę mocnej. Ostatnio po jednym buchu widziałem Pałac z drugiej strony." / "Bogdan, I can't do strong. Last time one puff and I saw the Palace from the other side."

@@ -2,7 +2,7 @@ extends SceneTree
 ## Sekretny rave (scripts/rave.gd, F's ask 2026-11-06): its rules headless, from the committed map
 ## data (map/centrum.json: the lane graph and the origin) and data/dialogue.json; seeded:
 ##   1. the meshes: the light cone, the booth and the club's room one surface each (one draw call apiece);
-##   2. the lines: LEKTI's invites name {pw}, the rumours name MORDOR FM, Ziomek's tags (board,
+##   2. the lines: LEKTI's invites name {pw}, the rumours name MORDOR FM, Mati's tags (board,
 ##      board_smola, ride 10+, meet, go, go_smola, door_ok, door_out, abort), the
 ##      meeting point's lines name {where}, the crowd's night and day; Polish and English, bubbles
 ##      under 90 characters (the radio's under 200), no real brand (brand_denylist.json); the club's
@@ -14,7 +14,7 @@ extends SceneTree
 ##      anything less sends you home ("Nie tym razem"); the lights' pose has no NaN, the strobe dark with
 ##      `calm`; the club's lights stay inside the room, the dance's beat check is on the beat;
 ##   5. the real lane graph: every spot and Smoła found with a door on a ground road within 160 m,
-##      Ziomek's pickup found from 30 seeded places, a meeting point 260-820 m from each night spot.
+##      Mati's pickup found from 30 seeded places, a meeting point 260-820 m from each night spot.
 ## Prints "check_rave: OK (...)" or the problems (exit 1).
 ##   godot --headless --path game --script res://tools/check_rave.gd [-- --verbose]
 
@@ -244,6 +244,11 @@ func _check_door(digest: PackedStringArray) -> void:
 			problems.append("entry note: %s" % l)
 	if Club.beat_offset(60.0 / Club.BPM * 7.0) > 0.001 or Club.beat_offset(60.0 / Club.BPM * 7.5) < 0.2:
 		problems.append("beat_offset off the beat")
+	if Club.beat_offset(60.0 / Club.PATIO_BPM * 5.0, Club.PATIO_BPM) > 0.001 or Club.beat_offset(60.0 / Club.PATIO_BPM * 5.5, Club.PATIO_BPM) < 0.2:
+		problems.append("beat_offset off the patio's beat")
+	for f: String in [Club.MUSIC_SALA, Club.MUSIC_PATIO]:
+		if not ResourceLoader.exists(f):
+			problems.append("no club music " + f)
 	digest.append("door 80 quizzes, room and patio lights inside")
 
 
@@ -280,5 +285,5 @@ func _check_map(g: LaneGraph, map: Node3D, origin: Array, digest: PackedStringAr
 		if not Rave.kerb_ring(g, from, Rave.PICK_FROM, Rave.PICK_TO, Vector2.ZERO, rng).is_empty():
 			found += 1
 	if found < 27:
-		problems.append("Ziomek's pickup found from %d of 30 places" % found)
+		problems.append("Mati's pickup found from %d of 30 places" % found)
 	digest.append("%d spots + Smoła, doors within %.0f m, pickups %d/30" % [spots.size(), far, found])

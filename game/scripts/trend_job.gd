@@ -97,7 +97,7 @@ const DESKI_FLY_R := 28.0
 const DESKI_NEAR := 250.0
 const DESKI_CALLERS := ["Kuba", "Zuzia", "Bartek", "Iga", "Olek", "Magda"]
 const DESKI_INJURED := ["Marta", "Ola", "Michał od Excela", "Prezes z Mokotowa"]
-## The DESKA call's opening (as Szymek's boat race and Ziomek's rave): the phone rings first, with
+## The DESKA call's opening (as Szymek's boat race and Mati's rave): the phone rings first, with
 ## who it is, ODBIERZ / ODRZUĆ, and only an answered call says what it wants. A short bio per caller.
 const DESKI_BIOS := {
 	"Kuba": ["Kumpel z liceum. Od marca „zaczyna padla od poniedziałku”. Ma już trzy rakiety.", "Your mate from school. Since March he has been \"starting padel on Monday\". He has three rackets already."],
@@ -615,7 +615,7 @@ func offer_czwarty() -> bool:
 
 
 ## The DESKA call (--trend-job=7 too): a friend phones, the club is short of a fourth. It rings
-## first (the caller and a bio, ODBIERZ / ODRZUĆ, as Szymek's boat race and Ziomek's rave); an
+## first (the caller and a bio, ODBIERZ / ODRZUĆ, as Szymek's boat race and Mati's rave); an
 ## answered call says what it wants (_deski_offer). Accepting sets the gate as the target at once
 ## (no pickup). False in the air or with a job on.
 func offer_deski_call(force := false) -> bool:

@@ -466,19 +466,22 @@ Built: three map tiers (the main star's glow, questline "!" badges, street job i
 full map's WĄTKI tab that starts any questline now. Boat race, rave and the coffee run are in. Left:
 - [ ] Padel, cinema tour and night meet: one `stories.add` each in `main.gd` `_build_stories` (their own threads)
 - [ ] Phone look: the badge's "!" at minimap size, the glow under the main star, the WĄTKI tab with ten rows scrolling
-- [ ] The friend at the start is the beacon's generic waving figure; give each friend their own look (Szymek's shirt, Ziomek in black)
+- [ ] The friend at the start is the beacon's generic waving figure; give each friend their own look (Szymek's shirt, Mati in black)
 - [ ] A speech bubble over the friend as they walk up, besides the card
 - [ ] Bench by a start (the beacon: about 10 draw calls expected) on the phone
 
-## Secret rave: LEKTI, Ziomek, Smoła (F, 2026-11-06; docs/design/secret-rave.md)
+## Secret rave: LEKTI, Mati, Smoła (F, 2026-11-06; docs/design/secret-rave.md)
 
-Built: night and day raves, LEKTI's voiced break-in on MORDOR FM, Ziomek's call and ride, the
+Built: night and day raves, LEKTI's voiced break-in on MORDOR FM, Mati's call and ride, the
 strict three-question door, Smoła's cutaway room (option A). Left:
-- [ ] Portraits and icons in one style (PixelLab, on the Mac with F's OK, about 50 generations): Ziomek, Bartek, LEKTI, Pan Kołek and the doorman on the call cards, icons for the door's questions
+- [ ] Portraits and icons in one style (PixelLab, on the Mac with F's OK, about 50 generations): Mati, Bartek, LEKTI, Pan Kołek and the doorman on the call cards, icons for the door's questions
 - [ ] Techno tracks for MORDOR FM (it has one mall track, so "pick a track" in the room is not built yet); ElevenLabs Music on F's Creator plan, then a track button in the room
 - [ ] Phone check: the rig's beams and strobe at night, the room's look and the TAŃCZ timing on the iPhone; bench by an active spot (4 draw calls expected) and inside the room (3-4)
 - [x] Other cards held during the quest (2026-11-07): no Podwózka request or "Na czasie" card while the rave run, the club or Bartek's tow is on (`main.gd`, `rides.away`); the calls were already held
-- [ ] The dawn after: leaving at 05:00-06:00, Ziomek's last line, the city in the dawn look
+- [x] Smoła from F's photos (2026-11-08): one palm in the room's right corner and one on the patio, the photos' cyan lines, red bars and truss tower, TAŃCZ on the patio, two synthesised loops (room 132 BPM techno, patio 112 BPM house; `tools/make_club_loops.py`), Smolna 38's facade with the red gate, two black tents, barriers and GUEST LIST (`landmarks.gd` site `smolna38`), three doormen and the queue under the tents (`crowds.gd` SMOLA_GATE); the quest's Smoła door moved to the real Smolna 38 (it was 350 m east); the pay card waits 45 s (PT-44)
+- [ ] Smoła on the phone: the loops' level against KEBAB FM and the door at night (the block to the south hides most of the front from the default camera)
+- [ ] Smolna 38's tents and barriers reach 0.5-3.5 m from the wall and partly onto the carriageway; pull them in if they get in the car's way
+- [ ] The dawn after: leaving at 05:00-06:00, Mati's last line, the city in the dawn look
 - [ ] Opaski (wristbands) collected per spot, a card in the notebook
 - [ ] Option B: a walk-around room (a person controller inside), only if A plays well
 
@@ -729,11 +732,12 @@ Left:
 
 ## Autopilot findings, Old Town and bridges (2026-11-07; docs/PLAYTEST.md, rows P4, P5)
 
-- PT-35 (S3): with Classic controls the KEBAB distance label covers the steering strip's right arrow.
 - PT-36 (suspect): two dead stops with an unstick at the edge of Podwale's bends (-987,-1668; -834,-1507).
 - PT-37 (suspect): pinned on Poniatowskiego's tram strip for 8 s while the speed reads 60 km/h, no unstick or tow.
 - PT-38 (suspect): an 11 m snap down off the ground above the W-Z tunnel's east portal.
 - PT-39 (suspect, design): a ram of a crash scene's police car starts a chase that is lost in the next frame.
+- Found 2026-11-08 (PT-44 fix): on Trasa W-Z's south pavement by Stare Miasto a retaining wall turns solid in mid-run with a square end inside the OSM tram platform; the car now slips past it, but the platform itself still slopes 0.4-0.9 m into the trench (bake_structures fill edge across the platform). A flat platform is a map change for later.
+- PT-45 (not reproduced, 2026-11-08): 26 to 1 km/h in the W-Z tunnel's west part; the tube drives clean with no traffic. Re-run with `--no-traffic` on the Mac to rule a traffic car in or out.
 - Found 2026-11-08 (PT-40's kerb lines, cloud): a car crossing Most Poniatowskiego's west end diagonally
   stops on the square end of the guard rail between the eastbound deck and the tram deck (945.7,-138.9, by
   the slip road's tram crossing), and one hugging the westbound median stops on the end of the tram stop
@@ -2912,6 +2916,15 @@ plan: docs/design/start-area-real.md (items R1-R8, ticked in ROADMAP "v1.0 check
   already have photo fronts. Open: Widok's two offset slabs and its square notch (the mapped
   parts give one 95 m mass). Only the phone shows the LED
   strokes' size at the default zoom.
+- **PKiN surroundings, part 3 (2026-11-08): plain houses south of Al. Jerozolimskie** (between
+  Marszałkowska and Emilii Plater, down past Nowogrodzka, F's circled area): 18 plain LoD2 houses
+  got photo fronts (ids `lod<n>` in game/data/photo_fronts.json) with wall colours, floors and
+  style read from Mapillary street photos. Seven more from F's pkin-south photos
+  (project files pkin-surroundings/photos-south/): Emilii Plater 30, Pankiewicza 1 (grey with
+  rusticated piers), Pankiewicza 3, Nowogrodzka 44 (yellow) and 46 (grey, mansard), the white
+  ribbed block on Świętej Barbary (fins) and Świętej Barbary 4 (candidate house). Open: S01, S07,
+  S10 and S11 of PHOTOS-NEEDED-2026-11-08.md have no confirmed photo yet; the Mapillary colour
+  reads are moderate confidence.
 - **R5 done 2026-11-01**: the Cepelia pavilion at Rondo Dmowskiego is a site (landmarks.gd
   "cepelia"): a recessed glass shop floor, a frame band, a glass upper storey with mullions, a
   white edge and the red EMPIRYK sign (the book and vinyl store, a parody). Zodiak in Pasaż

@@ -50,6 +50,23 @@ extends SceneTree
 ## the last spot fail on the old map; a car that leaves Solec 3 m or more onto the verge can still
 ## meet the pier, as at any pier.
 ##
+## PT-44 (2026-11-08, Autopilot hunt 2): on Trasa W-Z by the Stare Miasto tram stop the car went
+## 57 to 0 km/h in 0.2 s at (-589, -1421), nothing seen touching it. On the pavement south of the
+## carriageway a retaining wall turns solid in mid-run (where its step passes 0.6 m) with a square
+## end on its line at (-587.2, -1421.6); a car half over the low ground beside it met that end
+## 0.2 m off its middle, further in than the corner slip's reach. Across the road, the mapped
+## tram shelter's corner (-600, -1404.8), 1.1 m past the kerb, stopped a car 0.7 m over the kerb the
+## same way. Fixed: a fixed thing's end met nose on that a sidestep of at most 1.1 m clears slips the
+## car past (car.gd SLIP_WIDE). The first and third spots fail on the old car; the second (the low
+## strip beside the wall) guards against a fix that walls the strip.
+##
+## PT-45 (2026-11-08, same run): 26 to 1 km/h in 1 s in the W-Z tunnel's west part (-742, -1404),
+## the car hidden in every frame. Not reproduced: 16 lines through the tunnel both ways, 7.5 m/s
+## and the gas held, drive clean (glancing touches of the walls only); the most likely cause is a
+## traffic car met in the tube (G17 lets the car through after 1.5 s, the crawl the log saw).
+## Three lines stay as guards. These spots start on the tunnel's floor (a 9th field), not the
+## street above it.
+##
 ## PT-40 (Autopilot, 2026-11-07): at Most Poniatowskiego's west bridgehead the autopilot, with its
 ## right wheels over the kerb at 58-60 km/h, stopped dead on the square end of the approach's
 ## retaining wall, which runs along the walk between the kerb and the gate tower. Fixed: inside a
@@ -70,7 +87,8 @@ const INDEX_JSON := "res://map/index.json"
 const INDEX_SCENE := "res://map/index.res"
 
 ## [x, z, compass heading, start speed m/s, seconds, the share of the start speed kept at the end, what,
-## optional: the compass heading the stick points to (point-to-steer, held)].
+## optional: the compass heading the stick points to (point-to-steer, held; null for none),
+## optional: true to start on a tunnel's floor].
 const SPOTS := [
 	[-1013.0, -45.0, -20.0, 27.0, 4.0, 0.9, "PT-1 Marszałkowska, the left lane along Centrum's tram-stop fence"],
 	[-1013.0, -45.0, -25.0, 27.0, 3.0, 0.85, "PT-1 Marszałkowska, drifting 5° into the tram-stop fence"],
@@ -105,6 +123,12 @@ const SPOTS := [
 	# median at Złota, from the southbound mouth onto the northbound carriageway, the stick to the
 	# north-north-east: no kerb, nose or rail end on the way (the car speeds up all the way).
 	[-962.0, 139.3, 100.0, 6.0, 2.5, 1.0, "Smooth roads 4: the U-turn through Marszałkowska's tram median at Złota", 30.0],
+	[-625.0, -1420.5, 88.0, 16.0, 3.0, 0.8, "PT-44 W-Z east, the pavement by Stare Miasto's stop, half over the low ground into the wall's solid end"],
+	[-625.0, -1419.5, 83.0, 16.0, 3.0, 0.8, "PT-44 W-Z east, onto the low strip beside the wall"],
+	[-545.0, -1411.5, -97.0, 16.0, 3.0, 0.8, "PT-44 W-Z west, drifting over the kerb into the tram shelter's corner"],
+	[-700.0, -1401.5, -86.0, 7.5, 3.0, 0.8, "PT-45 the W-Z tunnel west, the inner lane", null, true],
+	[-700.0, -1404.0, -86.0, 7.5, 3.0, 0.8, "PT-45 the W-Z tunnel west, the outer lane", null, true],
+	[-790.0, -1396.5, 86.0, 7.5, 3.0, 0.8, "PT-45 the W-Z tunnel east", null, true],
 	[913.2, -119.5, 68.0, 16.7, 3.0, 0.8, "PT-40 Most Poniatowskiego east, the kerb lane's wheels on the kerb past the south-west tower"],
 	[913.5, -119.0, 68.0, 16.7, 3.0, 0.5, "PT-40 Most Poniatowskiego east, half over the kerb onto the walk"],
 	[913.2, -119.5, 70.0, 16.7, 3.0, 0.5, "PT-40 Most Poniatowskiego east, the kerb lane drifting 2° towards the tower"],
@@ -188,11 +212,13 @@ func _next() -> bool:
 	car.kerb_feel = map.kerb_feel
 	root.add_child(car)
 	car.global_position = Vector3(s[0], map.ground_height(s[0], s[1]), s[1])
+	if s.size() > 8 and s[8]:
+		car.global_position.y = map.tunnel_floor_under(s[0], s[1])
 	car.rotation.y = -deg_to_rad(float(s[2]))
 	car.vel = -car.global_transform.basis.z * float(s[3])
 	car.forward_speed = float(s[3])
 	car.throttle = 1.0
-	if s.size() > 7:
+	if s.size() > 7 and s[7] != null:
 		var aim := deg_to_rad(float(s[7]))
 		car.target_dir = Vector3(sin(aim), 0.0, -cos(aim))
 	_v0 = float(s[3])

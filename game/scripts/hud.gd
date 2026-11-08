@@ -191,6 +191,7 @@ var _speed_text := ""
 var _vehicle_button: Button
 var _zoom_out_button: Button
 var _zoom_in_button: Button
+var _zoom_in_down_ms := -1
 var _radio_button: Button
 ## Beta radio (2026-11-02): DALEJ · NEXT under RADIO while the station has more than one song
 ## (the hold on RADIO and Shift+R stay); set_radio_skip shows it.
@@ -289,6 +290,11 @@ var _taps := {}
 ## The status panel's picture row: a kebab's steam or the słoiki run's jars.
 var _status_icons: Control
 var _icons := {}
+## How long the "+" zoom chip has been held down (s; 0 when not): the shisha night's hidden start.
+func zoom_in_held_s() -> float:
+	return 0.0 if _zoom_in_down_ms < 0 else float(Time.get_ticks_msec() - _zoom_in_down_ms) / 1000.0
+
+
 ## Side-job places on the minimap (kebab stands, the station), blinking.
 var _mini_pois := PackedVector2Array()
 ## Loop MW-1: the notebook's places not found yet near the car (map x, z), drawn as "?".
@@ -306,6 +312,8 @@ var _mini_poi_colours := PackedColorArray()
 var _mini_story := PackedVector2Array()
 var _mini_story_colours := PackedColorArray()
 var _story_names := PackedStringArray()
+var _story_blurbs := PackedStringArray()
+var _story_small := PackedByteArray()
 const STORY_REACH := 1500.0
 ## Quest focus (main.gd `_story_tick`): something runs; the minimap and the full map hide the side
 ## places, the garage, the "?" marks and the starts, and the main star dims.
@@ -544,6 +552,8 @@ func _ready() -> void:
 	_zoom_in_button = _chip(self, "+", "", Color(0, 0, 0, 0))
 	_zoom_in_button.name = "zoom_in"
 	_zoom_in_button.pressed.connect(func(): zoom_pressed.emit(-1))
+	_zoom_in_button.button_down.connect(func(): _zoom_in_down_ms = Time.get_ticks_msec())
+	_zoom_in_button.button_up.connect(func(): _zoom_in_down_ms = -1)
 	for zb: Button in [_zoom_out_button, _zoom_in_button]:
 		_set_chip(zb, zb.get_child(0).get_child(0).text, "", 44.0)
 
@@ -958,6 +968,11 @@ func _pedal_rects() -> Array[Rect2]:
 		out.append(disc.call(_gas_centre(), (GAS_R + 4.0) * pt))
 		var o := _strip_hint_centre()
 		out.append(Rect2(o - Vector2(52, 12) * pt, Vector2(104, 24) * pt))
+		if _stick_index != -1:
+			# PT-35 (2026-11-08): while a thumb steers, the strip itself (wider than its hint, and
+			# wherever the thumb came down) is a hard rect, so a job's "KEBAB n m" never covers its arrow.
+			var half := STICK_R * pt
+			out.append(Rect2(_stick_origin - Vector2(half + 20.0 * pt, 20.0 * pt), Vector2(half * 2.0 + 40.0 * pt, 40.0 * pt)))
 	return out
 
 
@@ -2094,7 +2109,7 @@ func _paint_minimap_overlay() -> void:
 		if _mini_story[i].distance_to(_mini_car) > STORY_REACH:
 			continue
 		var r := ((_mini_story[i] - _mini_car) * s).rotated(_mini_yaw).limit_length(_mini_radius - 7.0 * pt)
-		story_badge(centre + r, 0.85, _mini_story_colours[i])
+		story_badge(centre + r, 0.6 if i < _story_small.size() and _story_small[i] == 1 else 0.85, _mini_story_colours[i])
 	if _scene_mark != Vector2.INF:
 		# A crash scene: an amber dot with a white ring, pulsing slowly (not the chasers' flicker).
 		var r := ((_scene_mark - _mini_car) * s).rotated(_mini_yaw)
@@ -2331,13 +2346,16 @@ func set_minimap_final(p: Vector2, colour: Color) -> void:
 
 ## The questlines' starts on the minimap and the full map, and quest focus (main.gd, a few
 ## times a second; both only when they change).
-func set_story(points: PackedVector2Array, colours: PackedColorArray, focus: bool, names := PackedStringArray()) -> void:
+func set_story(points: PackedVector2Array, colours: PackedColorArray, focus: bool, names := PackedStringArray(),
+		blurbs := PackedStringArray(), small := PackedByteArray()) -> void:
+	_story_blurbs = blurbs
+	_story_small = small
 	_mini_story = points
 	_mini_story_colours = colours
 	_story_names = names
 	quest_focus = focus
 	if full_map != null and full_map.is_open():
-		full_map.set_story(points, colours, focus, names)
+		full_map.set_story(points, colours, focus, names, blurbs, small)
 
 
 ## Side-job places on the minimap (map coordinates), drawn as blinking squares.
@@ -2875,7 +2893,7 @@ func open_full_map(car_xz: Vector2, car_yaw: float, found: PackedVector2Array) -
 	full_map.side_spots = _mini_pois
 	full_map.side_colours = _mini_poi_colours
 	full_map.side_shapes = _mini_poi_shapes
-	full_map.set_story(_mini_story, _mini_story_colours, quest_focus, _story_names)
+	full_map.set_story(_mini_story, _mini_story_colours, quest_focus, _story_names, _story_blurbs, _story_small)
 	full_map.set_main_line(_main_at, main_goal[0], main_goal[1])
 	full_map.open(car_xz, car_yaw)
 

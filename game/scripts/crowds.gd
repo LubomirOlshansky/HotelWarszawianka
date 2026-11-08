@@ -180,11 +180,17 @@ const LOG_EVERY := 60.0
 ## vision.md 4.5's clubs (places.json ids): max_len, the hour curve, the police and the dawn crowd.
 const CLUBS := {
 	"lusterko": {"max": 24, "curve": "after", "police": true, "dawn": true},
-	"smola": {"max": 24, "curve": "club", "police": true, "dawn": true},
+	"smola": {"max": 24, "curve": "club", "police": true, "dawn": true, "gate": SMOLA_GATE, "along": SMOLA_ALONG, "guards": 3},
 	"jasna_0": {"max": 16, "curve": "club", "dawn": true},
 	"lombard": {"max": 16, "curve": "club"},
 	"milosc_hipoteczna": {"max": 16, "curve": "club"},
 }
+## Smoła's door (F's photos, 2026-11-08; landmarks.gd builds Smolna 38's gate and the tents): the
+## gate in the street front, the way along the facade the queue runs (east, under the two black
+## tents, behind the barriers), and the queue's distance out from the wall. Three doormen.
+const SMOLA_GATE := Vector2(-150.22, 153.2)
+const SMOLA_ALONG := Vector2(0.945, -0.327)
+const SMOLA_OUT := 1.7
 ## Loop MW-4: the trend queues (places.json ids) and their longest line (vision 3.4: day 1's 30,
 ## Fat Thursday's 60 at Lukrownia).
 const TRENDS := {"wiralek_zbawiciela": 30, "wiralek_chmielna": 30, "wiralek_tamka": 30, "lukrownia": 60}
@@ -991,8 +997,11 @@ func setup(places: Array, data: Dictionary, seed_value := 1703) -> void:
 	for id: String in CLUBS:
 		if at.has(id):
 			var c: Dictionary = CLUBS[id]
-			_add_site({"id": id, "kind": "queue", "at": at[id], "max": int(c["max"]), "curve": str(c["curve"]),
-					"police": bool(c.get("police", false)), "dawn": bool(c.get("dawn", false))})
+			_add_site({"id": id, "kind": "queue", "at": c.get("gate", at[id]), "max": int(c["max"]), "curve": str(c["curve"]),
+					"police": bool(c.get("police", false)), "dawn": bool(c.get("dawn", false)), "guards": int(c.get("guards", 1))})
+			if c.has("gate"):
+				sites[-1]["gate"] = c["gate"]
+				sites[-1]["along"] = c["along"]
 	for id: String in TRENDS:
 		if at.has(id):
 			_add_site({"id": id, "kind": "trend", "at": at[id], "max": int(TRENDS[id]), "tag": ""})
@@ -1341,6 +1350,9 @@ func _place_site(s: Dictionary) -> void:
 	var at: Vector2 = s["at"]
 	match str(s["kind"]):
 		"queue", "trend":
+			if s.has("gate"):
+				_place_gate(s)
+				return
 			var hit := nearest_foot(at, FOOT_REACH)
 			var line := PackedVector2Array()
 			var out := Vector2.RIGHT
@@ -1386,6 +1398,22 @@ func _place_site(s: Dictionary) -> void:
 			_place_deck(s)
 		"meet":
 			s["door"] = s["at"]
+
+
+## A queue at a known gate (Smoła): the door at the gate, the line straight along the facade from
+## a step past it, SMOLA_OUT m out from the wall.
+func _place_gate(s: Dictionary) -> void:
+	var gate: Vector2 = s["gate"]
+	var along: Vector2 = s["along"]
+	var out := Vector2(-along.y, along.x)
+	if out.dot(Vector2(0.327, 0.945)) < 0.0 and str(s["id"]) == "smola":
+		out = -out
+	var line := PackedVector2Array()
+	for k in int(s["max"]) * 2 + 2:
+		line.append(gate + out * SMOLA_OUT + along * (2.2 + k * QUEUE_GAP))
+	s["door"] = gate + out * 0.6
+	s["out"] = out
+	s["line"] = line
 
 
 ## The points of a polyline from q (on segment j) one way along it, then straight on past its end.
@@ -1900,8 +1928,14 @@ func _figures(s: Dictionary) -> Array:
 			var door: Vector2 = s["door"]
 			if n > 0:
 				var head := door - out_v * 0.0
-				var bp := head + (line[1] - line[0]).normalized() * -0.9 + out_v * 0.3 if line.size() > 1 else head
+				var dir := (line[1] - line[0]).normalized() if line.size() > 1 else Vector2.RIGHT
+				var bp := head + dir * -0.9 + out_v * 0.3 if line.size() > 1 else head
 				out.append([_ground(bp), atan2(-out_v.x, -out_v.y), BROAD, BOUNCER_SHIRT, 0.3])
+				# More doormen (Smoła's three): one on the queue's side of the gate, arms folded,
+				# one a step inside it, facing the street.
+				var spots := [head + dir * 1.3 + out_v * 0.5, head - out_v * 1.2]
+				for g in mini(int(s.get("guards", 1)) - 1, spots.size()):
+					out.append([_ground(spots[g]), atan2(-out_v.x, -out_v.y) + (0.5 if g == 0 else 0.0), BROAD, BOUNCER_SHIRT, 0.3])
 			for k in mini(n, line.size() - 1):
 				var p := line[k] + Vector2(rng.randf_range(-0.12, 0.12), rng.randf_range(-0.12, 0.12))
 				var to := (line[maxi(k - 1, 0)] - line[k + 1]).normalized()
