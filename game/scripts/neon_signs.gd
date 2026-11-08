@@ -90,6 +90,9 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		# Wola's 19. Dzielnica (F's photos, 2026-11-07): parodies of the building site's name on its
 		# hoarding, the contractor's on its cabins and the developer's on the towers' crown.
 		"OHO ONE", "ATLAS WIATR", "ASBUDKA",
+		# Emilii Plater 53 (F's photos, 2026-11-08): the shisha lounge's parody name in gold, the
+		# address on the plinth and the parody coffee shop on the ground floor.
+		"SENATOREK", "EMILII PLATER 53", "COFFEECHAIR",
 		# Stacja Muzeum's gold letters over its canopy and the night market on the old platform.
 		"WARSZAWA GŁÓWNA", "NOCNY TARG",
 		# Kolejowa: parodies of the pinball museum's and the teal club's names.

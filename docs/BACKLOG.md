@@ -482,6 +482,28 @@ strict three-question door, Smoła's cutaway room (option A). Left:
 - [ ] Opaski (wristbands) collected per spot, a card in the notebook
 - [ ] Option B: a walk-around room (a person controller inside), only if A plays well
 
+## Shisha lounge quest "Dym u Senatorka" (F, 2026-11-08; docs/design/shisha-lounge.md)
+
+Built: Ivan's call (17:00-02:00, or in person at his block in 19. Dzielnica, WĄTKI id `shisha`),
+Bogdan at the court on Żelazna, the car argument in bubbles (data/shisha.json, every line PL+EN),
+three votes on side cards (flavour, strength, the pipe's name), the WFC portico on Emilii Plater 53
+(canopy with downlights, revolving door, the SENATOREK and EMILII PLATER 53 letters, granite piers,
+steel fins, the glass rail on the low roof), the door and lift cards, the lounge upstairs
+(`lounge.gd`: rock wall with bars and gold letters, rust-velvet banquettes, grey armchairs, olive
+trees, the travertine bar with jars and coals, the window wall with the Palace, the terrace with
+teak chairs and the Palace's tower), the mini-game "Miks u Mistrza" (two jars on a sweet/cool
+chart, coal timing, the first draw and a smoke ring), PALIĆ / TARAS / WYJDŹ with smoke animations
+(bowls' trickle, exhales, rings, ceiling haze), both drops, the pay. Flags `--shisha-call`,
+`--shisha-meet`, `--shisha-lounge`, `--shisha=0`, `--shisha-log`; `check_shisha.gd` in verify.sh.
+Left:
+- [ ] F's call: lounge name SENATOREK LOUNGE ok? Which floor (the lift card says 38, invented)
+- [ ] Portraits of Ivan, Bogdan and the master (PixelLab on the Mac, from F's photos)
+- [ ] Voices (ElevenLabs) and a lounge track on the radio (docs/MUSIC.md "lounge" slot)
+- [ ] Bogdan waiting at the court: a net, a bag, a figure in white (now only the pickup ring)
+- [ ] Phone look: the lounge's mini-game panel size, the smoke's overdraw, the portico at night
+- [ ] Autopilot run of the whole night on the Mac (`--shisha-meet`, then the lounge)
+- [ ] Before release: the rating and a "bez dymu" (no smoke) setting
+
 ## Cinema tour "Kino objazdowe" (F, 2026-11-07; docs/design/kino-tour.md)
 
 Built: Wiktor's call, the pickup on Plac Zbawiciela, four cinemas (Amondo, Atlantic, Kinoteka,
@@ -712,6 +734,8 @@ Left:
 - PT-37 (suspect): pinned on Poniatowskiego's tram strip for 8 s while the speed reads 60 km/h, no unstick or tow.
 - PT-38 (suspect): an 11 m snap down off the ground above the W-Z tunnel's east portal.
 - PT-39 (suspect, design): a ram of a crash scene's police car starts a chase that is lost in the next frame.
+- Found 2026-11-08 (PT-44 fix): on Trasa W-Z's south pavement by Stare Miasto a retaining wall turns solid in mid-run with a square end inside the OSM tram platform; the car now slips past it, but the platform itself still slopes 0.4-0.9 m into the trench (bake_structures fill edge across the platform). A flat platform is a map change for later.
+- PT-45 (not reproduced, 2026-11-08): 26 to 1 km/h in the W-Z tunnel's west part; the tube drives clean with no traffic. Re-run with `--no-traffic` on the Mac to rule a traffic car in or out.
 - Found 2026-11-08 (PT-40's kerb lines, cloud): a car crossing Most Poniatowskiego's west end diagonally
   stops on the square end of the guard rail between the eastbound deck and the tram deck (945.7,-138.9, by
   the slip road's tram crossing), and one hugging the westbound median stops on the end of the tram stop
