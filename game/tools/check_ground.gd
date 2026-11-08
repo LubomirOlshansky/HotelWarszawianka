@@ -30,10 +30,11 @@ const HEIGHT_TOL := 0.02
 ## builder leaves out what its own quick point tests and Clipper agree on, and a handful of
 ## triangles whose test points fall on a seam between two pieces stay (6 on the demo map).
 const HIDDEN_MAX := 30
-## The flat layers that hide the ground under them: [UV.y layer ids], by their depth bias (UV.x):
-## the areas 0.01, paving 0.08, footways and steps 0.1, rail beds 0.2, roads 0.3 (the ones on the
-## ground: tested by height below). Islands, medians, kerbs, markings and rails lie over these.
-const COVER_BIAS := [0.01, 0.08, 0.1, 0.2, 0.3]
+## The flat layers that hide the ground under them are told by their depth bias (UV.x): the ones
+## the builder laid while it noted cover (MapBuilder.cover_biases: the areas 0.01, paving 0.08,
+## footways and steps 0.1, the cutting's floor 0.16, rail beds 0.18 / 0.2, minor roads 0.25, roads
+## 0.3), tested by height below. Islands, medians, kerbs, markings and rails lie over these. A
+## list kept here by hand fell behind three new covering layers, and their ground read as holes.
 const ROAD_LAYER := 6
 ## A cover triangle is on the ground when its centre lies within MapBuilder.COVER_GRADE of the grid
 ## (decks over it, tunnels under it, approaches over the grid and pieces sunk under a hump are not).
@@ -98,11 +99,7 @@ func _initialize() -> void:
 							worst_h = dh
 							worst_at = Vector2(p.x, p.z)
 					continue
-				var is_cover := false
-				for cb: float in COVER_BIAS:
-					if absf(bias - cb) < 0.001:
-						is_cover = true
-				if not is_cover:
+				if not map.cover_biases.has(snappedf(bias, 0.0001)):
 					continue
 				var m := (a + b + cc) / 3.0
 				var dy: float = m.y - map._grid_height(m.x, m.z)
@@ -247,7 +244,18 @@ func _initialize() -> void:
 			var f := FileAccess.open(arg.trim_prefix("--dump="), FileAccess.WRITE)
 			f.store_string(JSON.stringify({"x0": gx, "z0": gz, "step": step, "ground": Array(tris), "left": Array(left)}))
 			f.close()
-	var ok := holes == 0 and worst_h <= HEIGHT_TOL and hidden <= HIDDEN_MAX
+	# The covering layers' biases must be theirs alone, or a layer over them would count as cover.
+	var shared := PackedStringArray()
+	for b: float in map.cover_biases:
+		if map.other_biases.has(b):
+			shared.append("%.4f" % b)
+	var cb := PackedStringArray()
+	for b: float in map.cover_biases:
+		cb.append("%.3f" % b)
+	cb.sort()
+	print("check_ground: covering layers' depth biases %s%s" % [", ".join(cb),
+			(" · ALSO used by layers that don't cover: %s" % ", ".join(shared)) if not shared.is_empty() else ""])
+	var ok: bool = holes == 0 and worst_h <= HEIGHT_TOL and hidden <= HIDDEN_MAX and shared.is_empty() and not map.cover_biases.is_empty()
 	print("check_ground: %s · ground %d triangles (%d 10 m halves left out), hidden %d (max %d), holes %d, heights off by %.3f m · %d ms (build %d)" % [
 			"OK" if ok else "FAIL", n_ground, dropped, hidden, HIDDEN_MAX, holes, worst_h, Time.get_ticks_msec() - t0, t_build])
 	map.free()
