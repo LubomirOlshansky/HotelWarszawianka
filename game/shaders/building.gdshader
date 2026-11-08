@@ -460,10 +460,10 @@ vec3 skin(int s, vec3 col, float u, float h, float top, out vec3 glow, out bool 
 		}
 		return tile;
 	} else if (s == S_EASTWALL) {
-		// The Eastern Wall's stores (the Mac photo check, 2026-11-01): a vertical-led grid, strong
-		// dark grey mullions every 1.5 m, only a thin dark spandrel line at each floor.
-		frame = fract(u / 1.5) < 0.13 || fract(h / fh) < 0.035;
-		frame_col = srgb_to_linear(vec3(0.247, 0.278, 0.298)) * mix(0.3, 1.0, daylight);
+		// The Eastern Wall's stores (F's photos and Mapillary 2024-26, 2026-11-08): pale blue-grey
+		// glass in big panes, a light silver grid, mullions every 3 m and four rows of 2.7 m.
+		frame = fract(u / 3.0) < 0.035 || fract(h / 2.7) < 0.045;
+		frame_col = srgb_to_linear(vec3(0.80, 0.82, 0.84)) * mix(0.3, 1.0, daylight);
 	} else if (s == S_PUNCHED) {
 		// A re-clad 1970s point block (the start area's 75 m tower, 2026-11-01): light horizontal
 		// metal cladding, punched windows in bands (2 x 1.4 m every 3.2 m, white frames, dark

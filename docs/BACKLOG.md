@@ -772,6 +772,11 @@ Plan only, nothing built (F paused new work; this wants his "go" for the Mac pho
   use something like ZMYWAKA or PRALKA PLUS, Polish, affectionate). Both are lit roof signs, `_dtc_sign` style.
 - **Chmielna:** keep the street clean, no excavation or roadworks. **Pasaż slabs:** the report's grey-white #D8D8D4 with a
   slightly warm tint (palette change in the existing `wiecha` model).
+- **Done 2026-11-08 (thread "Rebuild Rotunda and Eastern Wall stores")**: the stores' glazing and top storey from F's
+  photo set (`pkin-surroundings/photos/E1-centre`) and Mapillary: pale glass in a light 3 m grid, a 0.9 m cornice band, a
+  louvred grey top storey carrying UNIKAT / PÓŁ CENY / TAK MAKS boxes. Still to shoot: Sawa's street face straight on (no
+  street photo since 2021), the east (Wiecha) faces by day, the roof from the Metro footbridge. The Rotunda rebuilt from
+  `E3-rotunda` (glass points, 40 bays, funnel roof); still open: its violet-lit crown at night (not built).
 - Open for the gather: the Sezam corner's exact outline, the Żabka corner on Wars. (2026-11-05: the Amica parody PRALKA PLUS is on `tower75`; the cola sign is off the tower and waits for this Sezam build.)
 
 ## The helicopter high up (F's playtest, 2026-11-03; GAMEPLAY_PLAN 0.4 / 3.1)
