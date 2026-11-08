@@ -613,7 +613,7 @@ Beta goal: a visitor explores the city with everything open, an easy city drive,
 - [x] G13c Police keep pace with the upgraded car (0.8 of the player's real top speed), the pad's nitro on LB / RB, the view's turn on the right stick (2026-11-02; phone feel parked in QUESTIONS; the nitro's tank stays on screen in pad mode, 2026-11-03)
 - [x] G14 POMOC DROGOWA (unstuck) and NOWA GRA (two-tap reset) at the top of Settings → Jazda (quick win)
 - [x] G14 later: stuck for 8 s (driving and getting nowhere), POMOC DROGOWA comes up on screen and a tap tows the car to the road (2026-11-03, `check_stuck_offer`; phone look open; 2026-11-06 PT-23/24: shows over the ride app's PODWÓZKA, and backing off a wall no longer restarts the count)
-- [x] Language choice (F, 2026-11-02): POLSKI / ENGLISH on the title screen and in Settings → DŹWIĘK → Język; the whole game shows one language, saved in settings, the phone's language by default (`lang.gd`, `check_language`; the phone look check is parked in QUESTIONS)
+- [x] Language choice (F, 2026-11-02): POLSKI / ENGLISH on the title screen and in Settings → DŹWIĘK → Język; the whole game shows one language, saved in settings, English by default (F, 2026-11-08; `lang.gd`, `check_language`; the phone look check is parked in QUESTIONS)
 - [x] G15 Stop assist works better: bigger quest start and end rings, looser "stopped", longer look-ahead (quick win; phone check)
 - [x] G16 Fewer text popups while driving on the road: ambient bubbles muted above 40 km/h, ambient toasts one per 20 s, traffic is a slider (2026-11-01, Sonnet)
 - [x] G17 Car stuck against other cars: held against traffic 1.5 s it ghosts through them for 3 s, tow after 8 s among cars (2026-11-02, check_steering `car_sandwich`)
