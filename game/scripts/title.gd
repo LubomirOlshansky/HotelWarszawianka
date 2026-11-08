@@ -65,6 +65,8 @@ var _t := 0.0
 ## steps, the start's sectors); the bar eases towards it and never goes back; set_ready fills it
 ## and fades it out.
 var progress := 0.0
+## The share the next report will reach: the bar creeps towards it between two reports.
+var cap := 0.0
 var _shown := 0.0
 var _bar_plate: Panel
 var _bar_fill: ColorRect
@@ -332,6 +334,11 @@ func _process(dt: float) -> void:
 		var next := minf(_shown + (target - _shown) * minf(dt * 8.0, 1.0), 1.0)
 		if next - _shown < 0.0005 and _shown < minf(progress + 0.05, 0.99):
 			next = _shown + dt * 0.01
+		# Between two reports the bar keeps moving towards the next report's share (`cap`, set by
+		# main.gd; F, 2026-11-08: it stood at 56 % for 10 s while frames were flowing), slowing as it
+		# nears it, never reaching it.
+		if cap > _shown and next - _shown < dt * 0.03:
+			next = minf(_shown + maxf(cap * 0.97 - _shown, 0.0) * (1.0 - exp(-dt / 5.0)) + dt * 0.003, 0.99)
 		if next != _shown:
 			var pct := roundi(_shown * 100.0)
 			_shown = next

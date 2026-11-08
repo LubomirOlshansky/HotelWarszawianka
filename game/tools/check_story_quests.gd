@@ -153,6 +153,19 @@ func _initialize() -> void:
 	_expect("any-time questlines have no opening hour", Story.open_hour({"hours": Vector2(-1, -1)}) < 0.0)
 	_expect("looks: 21:00 Night, 14:00 Day, 19:00 Dusk, 6:00 Dawn",
 			Story.look_for(21.05) == "Night" and Story.look_for(14.05) == "Day" and Story.look_for(19.05) == "Dusk" and Story.look_for(6.05) == "Dawn")
+	# The night meet's def (jump): outside its hours the friend says hello with WCHODZĘ; the tap
+	# jumps the clock and starts it, no CZEKAM card.
+	s.defs[0]["jump"] = true
+	car[0] = Vector3(300, 0, 0)
+	s.step()
+	hour[0] = 23.0
+	jumped[0] = -1.0
+	car[0] = Vector3(12, 0, 0)
+	s.step()
+	_expect("jump: closed, still WCHODZĘ: %s" % [hud.buttons], s.talking() and hud.buttons.size() == 2 and hud.buttons[0].begins_with("WCHODZĘ"))
+	hud.card_pressed.emit(0)
+	_expect("jump: WCHODZĘ jumps the clock and starts it", met[0] == 3 and absf(jumped[0] - 7.05) < 0.001)
+	s.defs[0]["jump"] = false
 	s.skip_to = Callable()
 	# A card nobody answered (the car passed by, the card ran out): stopping in the ring after a
 	# short drive out of the greeting circle brings the friend back (was: 80 m away first).

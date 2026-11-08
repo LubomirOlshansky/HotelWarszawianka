@@ -32,7 +32,8 @@ extends Node
 ##   [] any day; a night past midnight counts as the day before, as rave.gd's night_day),
 ##   call: Callable() -> bool (phone now), meet: Callable() -> bool (start in person, here),
 ##   busy: Callable() -> bool (under way), idle: Callable() -> bool (can start now: not ringing,
-##   not cooling down after a card).
+##   not cooling down after a card), jump: bool (outside its hours the friend still says hello with
+##   WCHODZĘ, and the clock jumps to the opening hour on the tap: the night meet, F 2026-11-08).
 ##
 ## Cost: a 0.25 s timer; one shared start beacon (ring, column, waving friend: about 10 draw calls)
 ## shown only within BEACON_R of the nearest start, never during a quest.
@@ -269,7 +270,8 @@ func _greet(i: int) -> void:
 	var who: Array = d["who"]
 	var title_pl := "👋 %s" % str(who[0]).to_upper()
 	var title_en := "%s, in person" % who[1]
-	if open_at(d, float(c[0]), int(c[1])):
+	var jump := bool(d.get("jump", false)) and skip_to.is_valid() and open_hour(d) >= 0.0
+	if open_at(d, float(c[0]), int(c[1])) or jump:
 		var hello: Array = d["hello"]
 		hud.show_side_card(title_pl, str(hello[0]), PackedStringArray(["WCHODZĘ!|I'M IN!", "NIE TERAZ|NOT NOW"]),
 				d["colour"], title_en, str(hello[1]))
