@@ -5239,6 +5239,9 @@ func _emit_draped(st, a: Vector3, b: Vector3, c: Vector3, col: Color) -> bool:
 		if dy >= COVER_GRADE.x and dy <= COVER_GRADE.y:
 			_cover_add(PackedVector2Array([Vector2(p[0].x, p[0].z), Vector2(p[1].x, p[1].z), Vector2(p[2].x, p[2].z)]))
 			noted = true
+		cover_biases[snappedf(_drape_bias, 0.0001)] = true
+	elif not _cover_on and _drape_bias >= 0.0:
+		other_biases[snappedf(_drape_bias, 0.0001)] = true
 	var axis := _axis if _axis != Vector2.ZERO else CITY_GRID
 	for v in p:
 		st.set_color(col)
@@ -5666,6 +5669,54 @@ func _fine_index() -> void:
 		for j in range(clampi(floori((lo.y - gz) / step), 0, nz - 2), clampi(floori((hi.y - gz) / step), 0, nz - 2) + 1):
 			for i in range(clampi(floori((lo.x - gx) / step), 0, nx - 2), clampi(floori((hi.x - gx) / step), 0, nx - 2) + 1):
 				_fine_cells[Vector2i(i, j)] = GROUND_SUB
+	# ...and every cell next to one whose shared edge the two would draw apart: rail_cut.gd's reach
+	# misses some of its floor and banks (a floor running on to another track's), and a wall's 1 m
+	# sub-cells meet the 2 m ones by it; there the drawn ground cracked up to 3.3 m deep
+	# (check_ground's height rule, 2026-11-05 to -08: west of Centralna, -3050..-2090, 810..1200).
+	# The coarser side takes the finer one's sub-cells, until every edge in the cutting agrees.
+	var todo: Array[Vector2i] = []
+	var near_cut: Rect2 = _cut.box.grow(step)
+	for c: Vector2i in _fine_cells:
+		if near_cut.has_point(Vector2(gx + (c.x + 0.5) * step, gz + (c.y + 0.5) * step)):
+			todo.append(c)
+	while not todo.is_empty():
+		var c: Vector2i = todo.pop_back()
+		for d: Vector2i in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var nb := c + d
+			if nb.x < 0 or nb.y < 0 or nb.x > nx - 2 or nb.y > nz - 2:
+				continue
+			var sc := int(_fine_cells[c])
+			var sn := int(_fine_cells.get(nb, 1))
+			if sn >= sc and _fine_cells.has(nb):
+				continue  # the finer side checks it when it comes up
+			# The shared edge, from the corner both cells share at (ex, ez), along `dir`.
+			var ex := gx + (c.x + maxi(d.x, 0)) * step
+			var ez := gz + (c.y + maxi(d.y, 0)) * step
+			var dir := Vector2(0.0, step) if d.x != 0 else Vector2(step, 0.0)
+			if not near_cut.has_point(Vector2(ex, ez) + dir * 0.5):
+				continue
+			if not _edge_splits(Vector2(ex, ez), dir, sc, sn, _fine_cells.has(nb)):
+				continue
+			_fine_cells[nb] = sc
+			todo.append(nb)
+
+
+## Whether two cells sharing the edge from `o` along `dir` draw it apart: the finer side's
+## sub-cell corners (`fine` a side) at the drawn height, the coarser's (`coarse`; the grid's own when
+## `coarse_drawn` is false: a plain cell) joined by straight lines between its own (_fine_index).
+func _edge_splits(o: Vector2, dir: Vector2, fine: int, coarse: int, coarse_drawn: bool) -> bool:
+	for t in fine + 1:
+		var p := o + dir * (float(t) / fine)
+		var h := _drawn_corner_raw(p.x, p.y)
+		var u := float(t) * coarse / fine
+		var k := mini(int(u), coarse - 1)
+		var pa := o + dir * (float(k) / coarse)
+		var pb := o + dir * (float(k + 1) / coarse)
+		var ha := _drawn_corner_raw(pa.x, pa.y) if coarse_drawn else _grid_height(pa.x, pa.y)
+		var hb := _drawn_corner_raw(pb.x, pb.y) if coarse_drawn else _grid_height(pb.x, pb.y)
+		if absf(h - lerpf(ha, hb, u - k)) > 0.001:
+			return true
+	return false
 
 
 ## Loop 3e: whether a ground profile's segment a-b (its lower end at h) lies under the grid
@@ -5990,6 +6041,12 @@ var ground_hidden := 0
 ## False: the ground as before loop 3d-2a (nothing left out, every apron sub-cell drawn), for
 ## check_ground.gd's before count (`--whole`).
 var ground_lean := true
+## The depth biases (UV.x, by 0.0001) the flat layers that hide the ground were laid with, and the
+## ones every other flat layer was: check_ground.gd reads the cover from the meshes by the first
+## set, so a new covering layer's bias can't leave its ground dropped and the check calling it a
+## hole (the cutting's floor 0.16, its gravel shoulders 0.18 and minor roads 0.25 did: 516 "holes").
+var cover_biases := {}
+var other_biases := {}
 var _cover_on := false
 var _cover: Array[PackedVector2Array] = []
 var _cover_box: Array[Rect2] = []
@@ -7402,6 +7459,11 @@ func _low_wall(flat: Array) -> bool:
 
 ## Operation Unslop, Świętokrzyska (2026-11-06): OSM maps the planter edges inside traffic islands (Emilii Plater's median by the Palace: two wavy walls 95 m long) as `wall`; drawn 1.9 m high they read as a twisting beige ribbon across the junction. A wall lying inside a traffic island is a low planter edge (13 on the map), like the garden rings. They are a planting bed's granite kerb (Mapillary 2995066364107910, 2020-07), 0.2 m.
 const ISLAND_EDGE := ["#8e8b84", 0.25, 0.2]
+## Emilii Plater's invisible wall (F, 2026-11-08, a screenshot of the car stopped on the paved median
+## by the Palace): the planter edges drew at ISLAND_EDGE's 0.2 m but kept the 1.9 m wall's collider
+## (1.7 m of invisible wall, twisting across the median). A barrier drawn lower than this is a kerb
+## the car climbs, like the stop platforms and the islands' own kerbs: drawn, not solid.
+const BARRIER_SOLID_MIN := 0.3
 var _island_boxes: Array = []
 var _island_src: Array = []
 
@@ -8025,6 +8087,7 @@ func _build_barriers(st) -> void:
 				if (o as Array).size() > 1 and BARRIER_STYLE.has(str(o[1])):
 					style = BARRIER_STYLE[str(o[1])]
 		var pts := _pts(l["p"])
+		var solid: bool = l["k"] != "platform" and float(style[2]) >= BARRIER_SOLID_MIN
 		if style.size() > 3:
 			var open: Array = style[3]
 			# A railing OSM maps (tools/barrier_tags.py) has a post every 3 m: 30 km of them.
@@ -8039,17 +8102,17 @@ func _build_barriers(st) -> void:
 			for i in pts.size():
 				if i > 0 and _on_sunk_edge(pts[i - 1], pts[i]):
 					if piece.size() >= 2:
-						_wall_along(st, piece, float(style[1]), float(style[2]), Color(style[0]), true)
+						_wall_along(st, piece, float(style[1]), float(style[2]), Color(style[0]), solid)
 					piece = PackedVector2Array()
 				piece.append(pts[i])
 			if piece.size() >= 2:
-				_wall_along(st, piece, float(style[1]), float(style[2]), Color(style[0]), true)
+				_wall_along(st, piece, float(style[1]), float(style[2]), Color(style[0]), solid)
 			continue
 		if l["k"] == "wall" and not _stair_idx.is_empty():
 			for piece in _stair_gaps(pts):
-				_wall_along(st, piece, float(style[1]), float(style[2]), Color(style[0]), true)
+				_wall_along(st, piece, float(style[1]), float(style[2]), Color(style[0]), solid)
 			continue
-		_wall_along(st, pts, float(style[1]), float(style[2]), Color(style[0]), l["k"] != "platform")
+		_wall_along(st, pts, float(style[1]), float(style[2]), Color(style[0]), solid)
 	_build_pkin_bushes(st)
 	_uv2 = Vector2.ZERO
 
