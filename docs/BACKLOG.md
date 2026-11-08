@@ -2792,9 +2792,12 @@ plan: docs/design/start-area-real.md (items R1-R8, ticked in ROADMAP "v1.0 check
   core, ribbed silver band and teal glass ribbon, EMPIRYK in white) and Zodiak rebuilt (white-framed
   glass, slab with grass terrace and glass rail, set-back glass room, pergola), spec
   docs/landmarks/specs/pavilions.md. Centrum Marszałkowska is the new site `cmarsz` (spec cmarsz.md):
-  it retires photo front b5494 and street block 579369105. Left from F's list: Widok Towers (two
-  offset slabs, white grid), Złote Tarasy/Lumen/Skylight from the W3 photos, the Jerozolimskie 47
-  corner dome; Świętokrzyska 30 and 32 already have photo fronts. Only the phone shows the LED
+  it retires photo front b5494 and street block 579369105. Part 2: Widok Towers in blue-grey glass
+  with a light grid (was green). Checked against the W3 and S4 photos and left as they are: Złote
+  Tarasy, Lumen and Skylight (rebuilt 2026-10-31 and 2026-11-05), and Jerozolimskie 47, whose
+  domed corner is already in the LoD2 mass next to photo front b8403. Świętokrzyska 30 and 32
+  already have photo fronts. Open: Widok's two offset slabs and its square notch (the mapped
+  parts give one 95 m mass). Only the phone shows the LED
   strokes' size at the default zoom.
 - **R5 done 2026-11-01**: the Cepelia pavilion at Rondo Dmowskiego is a site (landmarks.gd
   "cepelia"): a recessed glass shop floor, a frame band, a glass upper storey with mullions, a
