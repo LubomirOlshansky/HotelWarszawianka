@@ -93,9 +93,32 @@ sign: SENATOREK · dym & sofy, EN: smoke & sofas). Alternatives if F prefers: SE
 LOUNGE PRZY SENACIE. Parody sign through `neon_signs` LANDMARK_WORDS; no real brand
 (`brand_denylist.json` unchanged; "Senator" alone stays a plain word).
 
-Where: a basement-style lounge on Senatorska / Plac Bankowy side of Śródmieście (a notebook
-place `senatorek`, a kerb ring at the door). Final street decided at build with the map
-engineer (needs a car-reachable kerb 3-4 km from both pickups; BACKLOG lists the candidates).
+Where: **in the Senator building itself**, Bielańska 12, Śródmieście (the mapped office block
+beside Saski Crescent, already in the game: BACKLOG "Saski Crescent and Senator", CITY_INVENTORY
+row 106). Research (2026-11-08): Senator is a ~25,000 m² office building on the site of the
+pre-war Polish Bank, rebuilt to follow the old facade (Ghelamco's press release); nothing found
+online ties a shisha lounge named Senator to it, so this is our invention, not a real venue. The
+lounge door sits down a few steps at the building's Bielańska front under a lit sign. Needs a
+car-reachable kerb on Bielańska/Królewska (the map engineer checks which side is open);
+fallback: the Senatorska tenements nearby. Notebook place `senatorek`.
+
+### Research: what a shisha lounge looks like inside
+
+No verified photo set of a "Senator lounge" in Warsaw was found, so the room is built from the
+genre plus one Warsaw reference. The genre list is design knowledge, not verified.
+- Warsaw reference: the oriental-styled Aura Bar in a pre-war Śródmieście tenement
+  ([Trendland](https://trendland.com/oriental-aura-bar-warsaw/)): brass and marble counter, bar
+  clad in left-over stone slabs, brass details made on site, Moroccan carpets, locally made
+  upholstery, a "mystic" mood. We borrow the brass-and-marble bar and the carpets.
+- Genre (unverified): low sofas and floor cushions round low brass or mosaic tables, one pipe
+  per table with a long hose, dim warm light (lanterns, pendant lamps, string lights), arches and
+  niches, dark wood and patterned tiles, plants, curtains between booths, smoke haze at ceiling
+  height, a counter with rows of jars for flavours, a coal station at the bar, soft oriental
+  lounge music.
+- For the pre-war Senator front: a basement under brick vaults, so the exposed brick and
+  arched niches below fit the building.
+
+Question for F: if a real lounge was meant (a name or street), the room and site follow it.
 
 ## The room (cutaway like Smoła's, reuse of `club.gd`)
 
