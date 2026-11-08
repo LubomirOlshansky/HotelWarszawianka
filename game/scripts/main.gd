@@ -150,6 +150,10 @@ const DekalogTour := preload("res://scripts/dekalog_tour.gd")
 
 ## "Kino objazdowe", the director friend's cinema tour (kino_tour.gd, F's ask 2026-11-07).
 const KinoTour := preload("res://scripts/kino_tour.gd")
+## "Dym u Senatorka", Ivan's shisha night (shisha.gd, F's ask 2026-11-08), and the lounge upstairs
+## at Emilii Plater 53 (lounge.gd).
+const Shisha := preload("res://scripts/shisha.gd")
+const Lounge := preload("res://scripts/lounge.gd")
 ## Wątki (story_quests.gd, F's ask 2026-11-07): the questlines' starts on the map, the friend in
 ## person at the start, the beta list; quest focus (the map goes quiet while a quest runs).
 const StoryQuests := preload("res://scripts/story_quests.gd")
@@ -600,6 +604,14 @@ var _boat_paused := false
 var kino_tour: KinoTour
 var kino_flag := ""
 var kino_log := false
+## The shisha night (shisha.gd): --shisha-call (Ivan rings now), --shisha-meet (Ivan gets in now),
+## --shisha-lounge (straight into the lounge, the mini-game playing itself), --shisha=0 (none),
+## --shisha-log.
+var shisha: Shisha
+var lounge: Lounge
+var shisha_flag := ""
+var shisha_log := false
+var _shisha_auto := false
 var old_tram_flag := ""
 var tram_log := false
 ## Packs (packs.gd): running clubs, cycling packs, coffee raves; flags --packs=0 (none), --packs-now
@@ -1698,6 +1710,7 @@ func _build_world() -> void:
 	_build_boat_race(world)
 	_build_dekalog_tour(world)
 	_build_kino_tour(world)
+	_build_shisha(data, world)
 	_build_ev_tow(world)
 	_build_stories(world)
 	_build_crawl(data, world)
@@ -3169,6 +3182,14 @@ func _build_stories(world: Node3D) -> void:
 						"\"The cinemas are asleep. So are the distributors. Come by after two in the afternoon, we'll start with Amondo\""],
 				"at": KinoTour.PICKUP["at"], "colour": KinoTour.COLOUR, "hours": Vector2(KinoTour.HOURS[0], KinoTour.HOURS[1]),
 				"call": kino_tour.ring, "meet": kino_tour.meet, "busy": kino_tour.busy, "idle": kino_tour.idle})
+	if shisha != null and not shisha.home.is_empty():
+		var sh: Vector3 = shisha.home["at"]
+		stories.add({"id": "shisha", "pl": Shisha.NAME[0], "en": Shisha.NAME[1], "who": [Shisha.FRIEND, Shisha.FRIEND],
+				"hello": ["„Siema! Szisza dziś? Wsiadam, jeszcze Bogdan z kortu i jedziemy na Emilii Plater.”",
+						"\"Hey! Shisha tonight? I'm getting in, we grab Bogdan from the court and go to Emilii Plater.\""],
+				"closed": ["„Szisza dopiero wieczorem. Wpadnij po siedemnastej.”", "\"Shisha's for the evening. Come by after five.\""],
+				"at": Vector2(sh.x, sh.z), "colour": Shisha.COLOUR, "hours": Shisha.HOURS, "days": [],
+				"call": shisha.ring, "meet": shisha.meet_in_person, "busy": shisha.busy, "idle": shisha.idle})
 	if story_flag != "":
 		get_tree().create_timer(1.5).timeout.connect(func() -> void: stories.start(story_flag))
 	print("stories: %d questlines (%s)" % [stories.defs.size(), ", ".join(stories.defs.map(func(d: Dictionary) -> String:
@@ -3349,9 +3370,84 @@ func _on_club_left() -> void:
 	_cut_camera()
 
 
+# --- the shisha night ---------------------------------------------------------------------------
+
+## Ivan's call, the two pickups, the votes on the way and the lounge (shisha.gd, lounge.gd). None
+## with --no-traffic or --shisha=0.
+func _build_shisha(data: Dictionary, world: Node3D) -> void:
+	if traffic == null or graph == null or shisha_flag == "0":
+		return
+	shisha = Shisha.new()
+	shisha.name = "Shisha"
+	shisha.hud = hud
+	shisha.dialogue = dialogue
+	shisha.wallet = wallet
+	shisha.missions = missions
+	shisha.map = map
+	shisha.graph = graph
+	shisha.origin = data.get("origin", [52.234, 21.024])
+	shisha.log_on = shisha_log
+	shisha.auto = _shisha_auto
+	shisha.vehicle = func() -> Array:
+		if flying:
+			return [heli.global_position, heli.speed() * 3.6, true]
+		return [car.global_position, car.vel.length() * 3.6, false]
+	shisha.clock = tod.local_clock
+	shisha.free_now = _shisha_free
+	shisha.enter_lounge = _enter_lounge
+	world.add_child(shisha)
+	shisha.setup(world)
+	match shisha_flag:
+		"call":
+			get_tree().create_timer(1.0).timeout.connect(func() -> void: shisha.ring())
+		"meet":
+			get_tree().create_timer(1.0).timeout.connect(func() -> void: shisha.meet_in_person())
+		"lounge", "terrace":
+			get_tree().create_timer(1.0).timeout.connect(func() -> void:
+				shisha.meet_in_person()
+				shisha.state = Shisha.State.INSIDE
+				_enter_lounge({"flavour": "master", "strength": 5, "name": ["Forhend", "Forehand"]}, true)
+				lounge.auto_how = "terrace" if shisha_flag == "terrace" else "smoke")
+
+
+## Up the lift into Senatorek (lounge.gd): the HUD aside, the car waiting, the camera on the room.
+func _enter_lounge(votes: Dictionary, auto_play := false) -> void:
+	if lounge == null:
+		lounge = Lounge.new()
+		lounge.name = "Lounge"
+		lounge.hud = hud
+		lounge.cam = cam
+		lounge.log_on = shisha_log
+		add_child(lounge)
+		lounge.done.connect(_on_lounge_done)
+	lounge.auto_play = auto_play
+	lounge.enter(car.get_parent(), votes)
+	hud.visible = false
+	car.vel = Vector3.ZERO
+	car.forward_speed = 0.0
+	car.process_mode = Node.PROCESS_MODE_DISABLED
+
+
+func _on_lounge_done(how: String, score: int) -> void:
+	hud.visible = not hide_hud
+	car.process_mode = Node.PROCESS_MODE_INHERIT
+	_cut_camera()
+	if shisha != null:
+		shisha.lounge_done(how, score)
+
+
+## Nothing else on, on the ground, no rave or boat race either.
+func _shisha_free() -> bool:
+	if lounge != null and lounge.inside:
+		return false
+	return _boat_free()
+
+
 ## Nothing else on: no title, bench, Spacer, guide, card, call, ride, job, race; on the ground.
 func _rave_free() -> bool:
 	if club != null and club.inside:
+		return false
+	if (lounge != null and lounge.inside) or (shisha != null and shisha.busy()):
 		return false
 	if meet != null and meet.busy():
 		return false
@@ -3500,6 +3596,8 @@ func _build_ev_tow(world: Node3D) -> void:
 ## Nothing else on: no title, bench, Spacer, guide, card, rescue, ride, job, race or tow.
 func _ev_free() -> bool:
 	if (rave != null and rave.busy()) or (club != null and club.inside) or (crawl != null and crawl.busy()):
+		return false
+	if shisha != null and shisha.busy():
 		return false
 	if meet != null and meet.busy():
 		return false
@@ -5003,6 +5101,12 @@ func _parse_args() -> void:
 			crawl_log = true
 		elif arg == "--rave-log":
 			rave_log = true
+		elif arg in ["--shisha-call", "--shisha-meet", "--shisha-lounge", "--shisha-terrace"]:
+			shisha_flag = arg.trim_prefix("--shisha-")
+		elif arg.begins_with("--shisha="):
+			shisha_flag = arg.trim_prefix("--shisha=")
+		elif arg == "--shisha-log":
+			shisha_log = true
 		elif arg == "--meet-call":
 			meet_flag = "call"
 		elif arg.begins_with("--meet-at="):
@@ -5279,6 +5383,7 @@ func _parse_args() -> void:
 	# The crash scenes' timer: a normal launch only (a test run with --crash=on or =now too).
 	_crash_auto = not test_run
 	_rave_auto = not test_run
+	_shisha_auto = not test_run
 	_meet_auto = not test_run
 	_ev_auto = not test_run
 	_crawl_auto = not test_run
@@ -6617,7 +6722,8 @@ func _process(dt: float) -> void:
 		# 2026-11-07 (BACKLOG "Secret rave"): no ride or "Na czasie" card while Ziomek's rave run,
 		# the club or Bartek's tow is on (their calls already held the rescue calls).
 		rides.away = rides.away or (rave != null and rave.busy()) or (club != null and club.inside) \
-				or (ev_tow != null and ev_tow.busy()) or (crawl != null and crawl.busy())
+				or (ev_tow != null and ev_tow.busy()) or (crawl != null and crawl.busy()) \
+				or (shisha != null and shisha.busy())
 		if trend_job != null:
 			trend_job.flying = flying or boating or touring
 			trend_job.player_pos = pos
@@ -7201,6 +7307,15 @@ func _show_target() -> void:
 		hud.set_target(on_k, "%d m" % mk, kino_tour.target_colour(), mk > 12)
 		_put_target(Vector2(kp.x, kp.z), kino_tour.target_colour(), false)
 		_new_target("job", kp)
+		return
+	if shisha != null and shisha.has_target() and not flying:
+		var sp: Vector3 = shisha.target_position()
+		var at_s := _vehicle_position()
+		var ms := roundi(Vector2(sp.x - at_s.x, sp.z - at_s.z).length())
+		var on_s := cam.unproject_position(sp + Vector3(0, 3.5, 0)) * float(view.stretch_shrink)
+		hud.set_target(on_s, "%d m" % ms, shisha.target_colour(), ms > 12)
+		_put_target(Vector2(sp.x, sp.z), shisha.target_colour(), false)
+		_new_target("job", sp)
 		return
 	if rave != null and rave.has_target() and not flying:
 		var vp: Vector3 = rave.target_position()
@@ -7952,6 +8067,13 @@ func _screen_to_world(s: Vector2) -> Vector3:
 
 
 func _update_camera(dt: float) -> void:
+	if lounge != null and lounge.inside:
+		# Senatorek (lounge.gd): the same fixed cutaway view.
+		var lb := Basis.from_euler(Vector3(deg_to_rad(camera_pitch), deg_to_rad(lounge.yaw), 0.0))
+		cam.size = lounge.view_size
+		cam.global_transform = Transform3D(lb, lounge.centre + lb.z * 120.0)
+		cam.far = 300.0
+		return
 	if club != null and club.inside:
 		# The club's room (club.gd): a fixed cutaway view from its open corner.
 		var cb := Basis.from_euler(Vector3(deg_to_rad(camera_pitch), deg_to_rad(club.yaw), 0.0))
