@@ -30385,6 +30385,13 @@ func _sm_siding(pts: Array, kinds: Array) -> void:
 		var dir := (p1 - p0).normalized()
 		var y: float = minf(map.terrain_height(p0.x, p0.y), map.terrain_height(p1.x, p1.y)) + 0.05
 		_sm_vehicle(kind, p0, dir, y)
+		# The car stops at an engine or a coach: its footprint (3.1 m wide, as the stock's
+		# buffers) collides, and goes to the pocket bridging so two neighbours leave no slit.
+		var side := Vector2(-dir.y, dir.x) * 1.55
+		var p_end := p0 + dir * length
+		var foot := PackedVector2Array([p0 - side, p_end - side, p_end + side, p0 + side])
+		_collide(foot)
+		pocket_rings.append(foot)
 		at += length + 1.5
 
 
@@ -30766,7 +30773,10 @@ func _build_kolejowa(site: Dictionary) -> void:
 		if not eave.is_empty():
 			var er: PackedVector2Array = eave[0]
 			_prism(er, g + h, g + h + 0.25, KJ_ROOF.darkened(0.1), KJ_ROOF, M_STONE, M_STONE)
-		_collide(ring)
+		# The car's walls on the mapped outline (8/10 shares a party wall: a simplified edge
+		# would open a slit), handed to the pocket bridging as `_collide_raw` does.
+		_collide(raw)
+		pocket_rings.append(raw)
 		var si := _kj_street_side(ring)
 		var a := ring[si]
 		var b := ring[(si + 1) % ring.size()]
