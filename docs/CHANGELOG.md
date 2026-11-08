@@ -11,6 +11,11 @@ someone writes its lines.
 
 ## 2026-11-08
 - Próżna looks like itself: granite setts on the street and pale slabs on the pavements, bollards along the kerbs and the south tenements with their arched ground floors, balconies and cornices; the Cosmopolitan tower is dark glass with its red underside over the street, and Plac Grzybowski has its stepped water garden, benches and the café on the corner.
+- At the west end of Most Poniatowskiego a car with its wheels over the kerb no longer stops dead by the gate tower: it glances back onto the road, and it no longer drops for a moment between the road and the tram tracks.
+- 11 November: the flags in the crowd now wave in the wind.
+- The Old Town is ready for its close-up: the odd blue glass boxes next to the Cathedral are now the Jesuit church in salmon plaster, the city walls have battlements, the Market Square has pale stone rings, cream umbrellas and café fences, and the roofs have grey zinc dormers and white chimneys.
+- A new job offer no longer pops up over the result card of the one you just finished, so tapping OK can't accept it by accident.
+- The cycle bridges under Most Łazienkowski hang right under the road now, one storey down as in real life, instead of halfway to the river.
 - The Rotunda looks like itself from the street: its glass rises into a ring of points under a thin white zigzag edge, with slimmer frames, and its folded silver roof dips into the round skylight. The three glass stores across from the Palace have their pale glass in big panes, a light band along the roof and the grey louvred top floor with the shops' names.
 - Around the Palace: the EMPIRYK bookshop pavilion and the Zodiak pavilion are rebuilt from photos, and the glass office building on the corner of Marszałkowska and Świętokrzyska now has its stepped glass tiers, silver fins and white LED dashes that light up at night.
 - Widok Towers on Aleje Jerozolimskie now has its real blue-grey glass in a light grid instead of green.

@@ -70,7 +70,7 @@ often, known to every visitor; **B** characteristic, known to locals, gives a st
 | 9 | Warszawa Centralna | Aleje Jerozolimskie | station | ★ | the wings' walls (QUESTIONS) |
 | 10 | Zamek Królewski (OSM: Wieża Zegarowa) | Plac Zamkowy | royal castle | ⏳ | PR #299 (Clock Tower, Vistula front, Kubicki's Arcades); then a photo check |
 | 11 | Kolumna Zygmunta | Plac Zamkowy | monument | ◐ | photo-checked 2026-11-06 (zygmunt.md): granite, bronze ring and capital, four steps; cross/sabre sides still need an in-game look |
-| 12 | Rynek Starego Miasta and its Syrenka | Rynek Starego Miasta | square, statue | ◐ | photo re-pass: paving, umbrellas, the statue's pose; the north and west fronts' gables |
+| 12 | Rynek Starego Miasta and its Syrenka | Rynek Starego Miasta | square, statue | ◐ | paving rings, umbrellas and fences from photos 2026-11-08; left: the statue's pose, each house's facade |
 | 13 | Stadion Narodowy | Aleja Zieleniecka | stadium | ★ | the bank's grass against the orthophoto |
 | 14 | Most Poniatowskiego (towers and deck) | Aleja Poniatowskiego | bridge | ★ | built 2026-11-02 from `refs/poniatowski/` (30 Commons photos, four orthos), spec `poniatowski.md`; the Powiśle viaduct's arcade and the north stairs 2026-11-03, rebuilt the same day as open ribs and struts with bars in the closed bays (F's answer); F's look on the Mac or the phone |
 | 15 | Most Świętokrzyski | Wybrzeże Kościuszkowskie | bridge | ◐ | photo check of the pylon and stays |
@@ -81,7 +81,7 @@ often, known to every visitor; **B** characteristic, known to locals, gives a st
 | 20 | Muzeum Historii Żydów Polskich Polin and Pomnik Bohaterów Getta | Mordechaja Anielewicza | museum, monument | ★ | built 2026-11-02 from `refs/polin/` (25 Commons photos, the ortho) and LoD2, spec `polin.md`; F's look on the Mac or the phone |
 | 21 | Muzeum Powstania Warszawskiego (OSM: Elektrownia Tramwajów Miejskich) | Przyokopowa / Grzybowska | museum | ★ | built 2026-11-02 from `refs/mpw/` (25 Commons photos, the ortho, REPORT/PARTS) and LoD2, spec `mpw.md`: the brick front, the halls, the tower with the Kotwica, the Wall of Remembrance; F's look on the Mac or the phone; F's look-check answers applied 2026-11-03 (BACKLOG "Landmark look-check fixes"). |
 | 22 | Pomnik Powstania Warszawskiego | Plac Krasińskich | monument | ★ | built 2026-11-02 from `refs/pomnik_powstania/` (14 Commons photos, the ortho), spec `pomnik_powstania.md`; F's look on the Mac or the phone |
-| 23 | Barbakan and the city walls (OSM: Baszta Prochowa) | Nowomiejska / Podwale | fortification | ◐ | Barbakan photo check; the walls and towers along Podwale are ✗ |
+| 23 | Barbakan and the city walls (OSM: Baszta Prochowa) | Nowomiejska / Podwale | fortification | ◐ | walls with battlements from photos 2026-11-08; left: towers' roofs, gates, Barbakan photo check |
 | 24 | Archikatedra św. Jana | Świętojańska | cathedral | ◐ | photo check; the tower |
 | 25 | Kościół św. Anny | Krakowskie Przedmieście | church | ◐ | photo check: columns, the bell tower |
 | 26 | Hotel Bristol and Hotel Europejski | Krakowskie Przedmieście | grand hotels | ★ | photos gathered (`refs/krakowskie/`); Bristol built 2026-11-02 (cream, zinc mansard, the open belvedere on the Karowa corner); Europejski rebuilt 2026-11-03 from F's photos (bow-fronts with column tiers, pedimented bays, plaque, balustrade attic, louvred roof storey, courtyard; spec `europejski.md`); phone look check |

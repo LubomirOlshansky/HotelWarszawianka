@@ -1024,6 +1024,18 @@ func _near_apron(x: float, z: float) -> bool:
 	return false
 
 
+## PT-41 (Autopilot, 2026-11-07): Most Poniatowskiego's west approach is two pieces side by side,
+## the road's and the tram's, whose corridors leave a sliver of the grid open between them (15 cm
+## at the deck's foot, at 937.5, -135.9): a car crossing it read the boulevard 7 m below for a
+## tick. A point that no approach holds but that lies within FILL_SEAM of the sides of two
+## different ones, at levels within FILL_SEAM_STEP of each other, takes the lower one's level (a
+## lone approach's edge, or a slot between two levels, is unchanged). Across the map ~15 places
+## had such a sliver over a drop of more than a metre (Most Gdański's and the Trasa
+## Łazienkowska's approaches among them); tools/check_roads.py mirrors it.
+const FILL_SEAM := 0.4
+const FILL_SEAM_STEP := 1.0
+
+
 func _fill_height_base(x: float, z: float) -> float:
 	var h := _grid_height(x, z)
 	_set_hit = false
@@ -1045,6 +1057,13 @@ func _fill_height_base(x: float, z: float) -> float:
 	var p := Vector2(x, z)
 	var set_h := NAN
 	var set_d := INF
+	# PT-41: whether any approach holds the point, and the first two just outside whose sides it
+	# lies (FILL_SEAM) with their levels there (no dictionary: this runs for every height read).
+	var held := false
+	var seam_a := -1
+	var seam_b := -1
+	var seam_ha := -INF
+	var seam_hb := -INF
 	for code in codes:
 		var d: Dictionary = _fills[code >> 12]
 		var k := code & 4095
@@ -1079,6 +1098,19 @@ func _fill_height_base(x: float, z: float) -> float:
 					set_d = absf(lat)
 			else:
 				h = maxf(h, v)
+				held = true
+		elif not is_set and lat >= -float(d["l"]) - FILL_SEAM and lat <= float(d["r"]) + FILL_SEAM:
+			var i := code >> 12
+			var v := lerpf(hs[k], hs[k + 1], t)
+			if seam_a < 0 or seam_a == i:
+				seam_a = i
+				seam_ha = maxf(seam_ha, v)
+			elif seam_b < 0 or seam_b == i:
+				seam_b = i
+				seam_hb = maxf(seam_hb, v)
+	if not held and seam_b >= 0 and absf(seam_ha - seam_hb) <= FILL_SEAM_STEP:
+		# Between two approaches side by side (a sliver their corridors leave open), the lower one's level.
+		h = maxf(h, minf(seam_ha, seam_hb))
 	_set_hit = not is_nan(set_h)
 	if _set_hit:
 		return set_h
@@ -1960,6 +1992,8 @@ func _build_walls(st) -> void:
 		_build_fill_sides(st)
 		return
 	_uv2 = Vector2(0.5, -1.0)
+	# PT-40: the Poniatowski towers' zones (the sectors' files leave them in the index).
+	var towers: Array = data.get("towers", index_data.get("towers", []))
 	for w: Dictionary in data["walls"]:
 		var pts := _pts(w["p"])
 		var tops: Array = w["t"]
@@ -2004,7 +2038,44 @@ func _build_walls(st) -> void:
 				var y0b := float(lows[i + 1]) - 1.0
 				_wall_faces.append_array([Vector3(a.x, y0a, a.y), Vector3(b.x, y0b, b.y), Vector3(b.x, tb + 1.6, b.y),
 						Vector3(a.x, y0a, a.y), Vector3(b.x, tb + 1.6, b.y), Vector3(a.x, ta + 1.6, a.y)])
+				# PT-40: a solid run's open end by a Poniatowski tower gets a lead-in.
+				if i == 0 or not int(flags[i - 1]) & 1:
+					_wall_taper(a, -dir, out, y0a, ta + 1.6, towers)
+				if i == pts.size() - 2 or not int(flags[i + 1]) & 1:
+					_wall_taper(b, dir, out, y0b, tb + 1.6, towers)
 	_uv2 = Vector2.ZERO
+
+
+## PT-40 (Autopilot, 2026-11-07): on each abutment of Most Poniatowskiego the approach's
+## retaining wall runs along the walk between the kerb and the tower group (landmarks.gd
+## `_pt_group`), 0.5-1.2 m out from the tower's collider, and its solid run ends square a metre
+## past the kerb. A car on the kerb lane with its wheels over the kerb (the autopilot cut onto
+## the walk at 58-60 km/h) met that end head on and stopped dead. Inside a tower's zone each
+## open end of a solid run gets a collider-only lead-in: from the end, WALL_TAPER_LEN on past it
+## and WALL_TAPER_IN over to the wall's outer (tower) side, behind the tower's own collider, so a
+## car meeting it glances back onto the road instead.
+const WALL_TAPER_LEN := 8.0
+const WALL_TAPER_IN := 1.2
+## ...and from this far under its top (the wall's top + 1.6 m) up: 1 m under the walk.
+const WALL_TAPER_DEEP := 2.6
+## How many lead-ins the build added (check_stuck_spots prints it).
+var wall_tapers := 0
+
+
+## The lead-in at wall end `e`, `on` the way past the end, `out` the wall's outer side.
+func _wall_taper(e: Vector2, on: Vector2, out: Vector2, y0: float, top: float, towers: Array) -> void:
+	var inside := false
+	for t: Dictionary in towers:
+		inside = inside or Geometry2D.is_point_in_polygon(e, _pts(t["zone"]))
+	if not inside:
+		return
+	var f := e + on * WALL_TAPER_LEN + out * WALL_TAPER_IN
+	# Only round the approach's own level: past a river end the lead-in hangs over the boulevard
+	# road that runs under the deck (check_drive: Wybrzeże's lane at 939, -152).
+	y0 = maxf(y0, top - WALL_TAPER_DEEP)
+	_wall_faces.append_array([Vector3(e.x, y0, e.y), Vector3(f.x, y0, f.y), Vector3(f.x, top, f.y),
+			Vector3(e.x, y0, e.y), Vector3(f.x, top, f.y), Vector3(e.x, top, e.y)])
+	wall_tapers += 1
 
 
 ## Loop 3b: a frame at each tunnel portal (`tunnels.frames`, tools/bake_structures.py): a
@@ -3803,8 +3874,9 @@ func _sd_pier(st, o: Vector2, u: Vector2, n: Vector2, s: float, top: float) -> v
 ## Most Łazienkowski's cycle bridges (F, 2026-11-07: "why does the bike path hang in the air on
 ## its own?"). Since 2017 two steel footbridges, one on each side, hang under the river bridge on
 ## brackets at the level of its steel box girders' bottom (ZDM's 2016 programme: "na wspornikach w
-## poziomie dolnym skrzynek"). OpenStreetMap gives them as their own decks some 8 m under the road
-## (the right level), but the bake built them as slabs on their own posts under a thin slab, so
+## poziomie dolnym skrzynek"). OpenStreetMap gives them as their own decks; the deck solver put
+## them at the river's clearance, 9-12 m under the road, and tools/cycle_hang.py hangs them 4 m
+## under it (F's photos LZ-1, LZ-3c). The bake built them as slabs on their own posts, so
 ## they floated in the air beside the bridge. Under each carriageway this draws the box girder
 ## (its sides from the slab's underside down to the cycle deck's level) and every LZ_BRACKET_STEP
 ## a bracket from the girder's foot out under the cycle deck with a strut; the cycle decks' own
@@ -7774,7 +7846,17 @@ func _mapped_style(l: Dictionary, style: Array) -> Array:
 ## they were not on the map at all, only the Barbakan and two towers. Brick, each its mapped height
 ## (Baszta Rycerska 13.5 m; the rebuilt curtain walls 5-6 m; the ruins' stubs 1-1.5 m), the coping a
 ## shade darker; from 1 m up they stop the car like any wall.
+## The trailer pass (F, 2026-11-08, F's photos E14-E16 of Międzymurze Biegańskiego and Podwale): the
+## coping a pale brick cap, and the curtain walls from WALL_MERLON_MIN m up crenellated on their
+## outer face (the one facing away from the Rynek): wide merlons with narrow embrasures.
 const CITY_WALL := Color("#b8704f")
+const CITY_WALL_CAP := Color("#c98a6c")
+const WALL_MERLON_MIN := 5.0
+const WALL_MERLON := 1.6
+const WALL_CRENEL := 0.7
+const WALL_MERLON_H := 0.9
+## The Rynek's middle: a wall face pointing away from it faces out of the town.
+const OLD_TOWN_HEART := Vector2(-805.0, -1745.0)
 
 
 func _build_city_walls(st) -> void:
@@ -7796,7 +7878,7 @@ func _build_city_walls(st) -> void:
 			var b := ring[idx[i + 1]]
 			var c := ring[idx[i + 2]]
 			_tri(st, Vector3(a.x, tops[idx[i]], a.y), Vector3(b.x, tops[idx[i + 1]], b.y), Vector3(c.x, tops[idx[i + 2]], c.y),
-					Vector3.UP, CITY_WALL.darkened(0.12))
+					Vector3.UP, CITY_WALL_CAP)
 		var ccw := 0.0
 		for i in ring.size():
 			ccw += ring[i].cross(ring[(i + 1) % ring.size()])
@@ -7816,7 +7898,52 @@ func _build_city_walls(st) -> void:
 			if h >= 1.0:
 				_wall_faces.append_array([Vector3(a.x, ga, a.y), Vector3(b.x, gb, b.y), Vector3(b.x, tops[j] + 1.5, b.y),
 						Vector3(a.x, ga, a.y), Vector3(b.x, tops[j] + 1.5, b.y), Vector3(a.x, tops[i] + 1.5, a.y)])
+			if h >= WALL_MERLON_MIN and Vector2(n.x, n.z).dot((a + b) * 0.5 - OLD_TOWN_HEART) > 0.0:
+				_merlons(st, a, b, tops[i], tops[j], Vector2(n.x, n.z), _wall_depth(ring))
 	_uv2 = Vector2.ZERO
+
+
+## A wall ring's thickness, about: twice its area over its perimeter (a long thin strip), at most
+## 1.2 m (a merlon on a tower's ring would otherwise be as deep as the tower).
+func _wall_depth(ring: PackedVector2Array) -> float:
+	var area := 0.0
+	var per := 0.0
+	for i in ring.size():
+		var q := ring[(i + 1) % ring.size()]
+		area += ring[i].cross(q)
+		per += ring[i].distance_to(q)
+	return clampf(absf(area) / maxf(per, 0.1), 0.45, 1.2)
+
+
+## Merlons along one outer edge of a city wall (a..b, its top at ta..tb, `out` its outward
+## normal): a row of brick blocks WALL_MERLON wide, set in from the edge's ends, each with a pale cap.
+func _merlons(st, a: Vector2, b: Vector2, ta: float, tb: float, out: Vector2, depth: float) -> void:
+	var length := a.distance_to(b)
+	var step := WALL_MERLON + WALL_CRENEL
+	var count := floori((length - WALL_CRENEL) / step)
+	if count < 1:
+		return
+	var d := (b - a) / length
+	var inward := -out.normalized()
+	var start := (length - (count * step - WALL_CRENEL)) * 0.5
+	for k in count:
+		var s0 := start + k * step
+		var s1 := s0 + WALL_MERLON
+		var top0 := lerpf(ta, tb, s0 / length)
+		var top1 := lerpf(ta, tb, s1 / length)
+		var p0 := a + d * s0
+		var p1 := a + d * s1
+		var q0 := p0 + inward * depth
+		var q1 := p1 + inward * depth
+		var up0 := top0 + WALL_MERLON_H
+		var up1 := top1 + WALL_MERLON_H
+		var o3 := Vector3(out.x, 0.0, out.y).normalized()
+		var d3 := Vector3(d.x, 0.0, d.y)
+		_quad(st, Vector3(p0.x, top0, p0.y), Vector3(p1.x, top1, p1.y), Vector3(p1.x, up1, p1.y), Vector3(p0.x, up0, p0.y), o3, CITY_WALL)
+		_quad(st, Vector3(q1.x, top1, q1.y), Vector3(q0.x, top0, q0.y), Vector3(q0.x, up0, q0.y), Vector3(q1.x, up1, q1.y), -o3, CITY_WALL.darkened(0.08))
+		_quad(st, Vector3(q0.x, top0, q0.y), Vector3(p0.x, top0, p0.y), Vector3(p0.x, up0, p0.y), Vector3(q0.x, up0, q0.y), -d3, CITY_WALL.darkened(0.04))
+		_quad(st, Vector3(p1.x, top1, p1.y), Vector3(q1.x, top1, q1.y), Vector3(q1.x, up1, q1.y), Vector3(p1.x, up1, p1.y), d3, CITY_WALL.darkened(0.04))
+		_quad(st, Vector3(p0.x, up0, p0.y), Vector3(p1.x, up1, p1.y), Vector3(q1.x, up1, q1.y), Vector3(q0.x, up0, q0.y), Vector3.UP, CITY_WALL_CAP)
 
 
 ## Walls (and fences) drawn otherwise than OSM's 1.9 m grey wall, by the line's first point: [point, style],
@@ -9903,11 +10030,20 @@ func _skin_run(skin: Dictionary, pos: PackedVector3Array, nrm: PackedVector3Arra
 		uv2: PackedVector2Array, t0: int, t1: int) -> void:
 	var steep: float = skin.get("steep", 0.7)
 	var pale: Dictionary = skin.get("pale", {})
+	# `upper`: walls higher than `over` m above the building's foot in another colour (a brick tower
+	# over a plastered church, the Jesuits on Świętojańska).
+	var upper: Dictionary = skin.get("upper", {})
+	var foot := INF
+	if not upper.is_empty():
+		for t in range(t0, t1):
+			foot = minf(foot, pos[t].y)
 	for t in range(t0, t1, 3):
 		var c: Color = skin["wall"]
 		var n := nrm[t]
 		if n.y >= steep:
 			c = skin["roof"]
+		elif not upper.is_empty() and (pos[t].y + pos[t + 1].y + pos[t + 2].y) / 3.0 > foot + float(upper["over"]):
+			c = upper["wall"]
 		elif not pale.is_empty() and absf(n.y) < 0.3:
 			var mid3 := (pos[t] + pos[t + 1] + pos[t + 2]) / 3.0
 			var mid := Vector2(mid3.x, mid3.z)
