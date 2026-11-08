@@ -448,6 +448,12 @@ def main(src, trees_src, dst, extras_src=None, more_src=None):
         out[key] = [_lv({k: v for k, v in m.items() if k != "dk"}, m.get("dk", -1)) for m in out[key]]
     _strip_private(out)
     final_poles(out)
+    # Bridge cycle paths (F, 2026-11-07, photos LZ-1/LZ-1b/LZ-3c): Most Łazienkowski's cycle bridges
+    # hang 4 m under the road deck, not at the river's clearance; before the structures see the decks
+    # (tools/cycle_hang.py; the same code runs on a baked map).
+    import cycle_hang
+    map_dir = os.path.dirname(os.path.abspath(dst))
+    print("cycle_hang: " + cycle_hang.apply(out, cycle_hang.terrain_of(map_dir, out)))
     # Loop 3b: the builder's structures (piers, retaining walls, building cuts, the
     # Poniatowski towers' seats), placed on the finished map data (tools/bake_structures.py).
     import bake_structures
