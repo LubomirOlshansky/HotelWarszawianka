@@ -37,6 +37,7 @@ const LOOK := {
 	"monument_structure": [Color(0.70, 0.68, 0.64), Color(0.60, 0.58, 0.55), 3.0],
 	"staircase_or_lift_head": [Color(0.66, 0.66, 0.64), Color(0.34, 0.35, 0.38), 3.2],
 	"historic": [Color(0.80, 0.74, 0.62), Color(0.45, 0.32, 0.26), 4.0],
+	"annex": [Color(0.66, 0.63, 0.58), Color(0.36, 0.36, 0.38), 4.0],
 	"unknown": [Color(0.62, 0.60, 0.56), Color(0.36, 0.36, 0.38), 2.8],
 }
 ## Uses drawn as a roof on posts (no walls the car hits).

@@ -12,8 +12,11 @@ Mapillary street photos) and is drawn as what it is (`small_buildings.gd`): 36 l
 vents, 33 bin shelters, 34 kiosks and pavilions, 16 substations, 11 toilets, 74 sheds, 19 garages,
 houseboats, canopies...; 50 pieces of bigger buildings or empty outlines are left out. Verify step
 `heights`. Left:
-- 98 drawn as "unknown" (a plain 3 m shed) and most sheds/garages are low-confidence guesses: no
-  street photo shows them (courtyards). A photo pass on the Mac would settle them.
+- Mac photo pass (2026-11-08, 0.1 m GUGiK ortho + fresh OSM tags) settled 94 of the 98 "unknown":
+  33 pieces of bigger buildings (the Royal Castle's 0-2 m² slivers, church turrets), 17 low annexes
+  with their own outline (new use `annex`, 4 m), 22 sheds... 4 stay unknown (tiny, under trees).
+  Still no street photo for the courtyard sheds and garages (Codex was blocked by the Godot guard
+  hook on the Mac); heights are typical values, not measured.
 - Courtyard outbuildings over 150 m² with no height tags still get 14 m (fair for a tenement).
 
 ## Plac Pięciu Rogów, Chmielna and Krucza in 2026 (F, 2026-11-06)
@@ -87,9 +90,12 @@ Built from F's photos (2026-11-07, `~/Documents/warsaw-needed-photos/bridges`, S
   gone (F: "why does the bike path hang in the air?"); six pairs of broad concrete columns under the five spans' ends instead
   of the rows of thin posts (`map_builder._build_lazienkowski`, `_build_lazienkowski_piers`). Grey, as the photos show.
 - Most Świętokrzyski: the median is grey concrete, not grass (photo SW-1).
+- Most Łazienkowski's cycle decks hang 4 m under the road (2026-11-08, photos LZ-1, LZ-1b, LZ-3c), not at the river's
+  clearance 8.6-11.7 m under it: `tools/cycle_hang.py` (bake_osm runs it before the structures; verify step `cyclehang`)
+  raises them under the road deck and brings them down at 6 % to where they meet the ground, so the bank ramps, paths and
+  crossings still meet them. On the Praga side the decks come down over the floodplain to OSM's ground ends (the real ramps
+  there are not checked against a photo yet).
 Left:
-- Most Łazienkowski's cycle decks: the photos (LZ-3, LZ-3b) show them right under the deck's cantilever, about 4 m under the
-  road; OSM puts them ~8 m under it, and the bake keeps that height. Raising them needs the ramps at both ends re-sloped.
 - Pier places on both bridges are estimates (the islands, the banks, the paths under them); exact ones from an orthophoto.
 - The AK plaque on Śląsko-Dąbrowski's north railing; the metal barriers on Świętokrzyski's median.
 - Tram overhead wires: none anywhere in the city (on the tram bridges most visible). Trams lane.

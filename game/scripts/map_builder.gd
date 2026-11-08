@@ -3869,8 +3869,9 @@ func _sd_pier(st, o: Vector2, u: Vector2, n: Vector2, s: float, top: float) -> v
 ## Most Łazienkowski's cycle bridges (F, 2026-11-07: "why does the bike path hang in the air on
 ## its own?"). Since 2017 two steel footbridges, one on each side, hang under the river bridge on
 ## brackets at the level of its steel box girders' bottom (ZDM's 2016 programme: "na wspornikach w
-## poziomie dolnym skrzynek"). OpenStreetMap gives them as their own decks some 8 m under the road
-## (the right level), but the bake built them as slabs on their own posts under a thin slab, so
+## poziomie dolnym skrzynek"). OpenStreetMap gives them as their own decks; the deck solver put
+## them at the river's clearance, 9-12 m under the road, and tools/cycle_hang.py hangs them 4 m
+## under it (F's photos LZ-1, LZ-3c). The bake built them as slabs on their own posts, so
 ## they floated in the air beside the bridge. Under each carriageway this draws the box girder
 ## (its sides from the slab's underside down to the cycle deck's level) and every LZ_BRACKET_STEP
 ## a bracket from the girder's foot out under the cycle deck with a strut; the cycle decks' own
