@@ -109,7 +109,7 @@ At about (-171, 273), the lawn's curved cut-out north-west of the Party House's 
   1. Stop by his van: "Siema, tu Mrożulo! Nowe miejsce, nikt jeszcze nie był. Weź mi coś,
      tylko szybko, ma być ciepłe." The new place is the nearest open Wiralek slot on its days
      1-3 (or KUKŁA if none).
-  2. Stop 2 s at the place ("na wynos dla Cringula": the queue lets you through).
+  2. Stop 2 s at the place ("na wynos dla Mrożula": the queue lets you through).
   3. Back to the van within 5 min (the food cools: a thermometer on the card, like the kebab).
   4. His review (a card): a mouthful, three lines in his manner, a grade on his own scale, e.g.
      "Ciasto chrupie, sos jest, ser się ciągnie jak kredyt. Siedem i pół MLASKA." / "The crust
@@ -129,6 +129,34 @@ At about (-171, 273), the lawn's curved cut-out north-west of the Party House's 
 - Flags: `--mrozulo` (the van by the car, the job offered at once), `--mrozulo-log`.
 - Check: `check_mrozulo.gd` (the steps, the pay, the cooling, the effect's queue, the lines,
   the denylist) joins verify and CI.
+
+### G5b · "Dżemini": Mrożulo's call (F, 2026-11-06; built)
+F's ask: Mrożulo phones, you buy him a kebab at a newly opened place named like the AI agent,
+bring it, he tries it and says "wjeżdżam w to", a Telegram-style message comes from him, his
+sticker goes on the shop, and after that a huge queue stands there for good, with jokes.
+- **DŻEMINI KEBAB** (a parody of the Gemini assistant; "KEBAB 24H", blue-violet tube): an
+  invented shop on the north side of Świętokrzyska (Storefronts.HYPE `dzemini_kebab`,
+  52.23595, 21.0105; the Mac look check parks its door). The meat is carved by an AI agent: the
+  joke of every line.
+- **The call** (trend_job.gd `offer_dzemini`): once per save, after 5 min of play, while his van
+  is out (11:00-21:00), "📞 MROŻULO DZWONI": "Siema, tu Mrożulo! Na Świętokrzyskiej otworzyli
+  DŻEMINI KEBAB, mięso kroi agent AI. Kup mi jednego i przywieź do vana, póki ciepły!" Skipped,
+  he rings again 15 min later.
+- **Pickup**: stop 2 s by the queue (the agent: "Na pewno kebab? Mogę też napisać o nim
+  wiersz."); **delivery** to his van at today's spot in 5 min (warm).
+- **His verdict** (a card): "*mlask* … Wjeżdżam w to." (cold: "Letni, ale… wjeżdżam w to."),
+  60 zł + 10 zł a km, +25 respect, 20 zł tip *guess* (cold: half, no tip, no respect).
+- **TYGRAM** (our messenger parody, a blue card): "DŻEMINI: MLASK! Naklejka już wisi na szybie.
+  Jutro kolejka do Marszałkowskiej. Dzięki, kierowco!"
+- **For good** (the save's `keep` `dzemini_mlask`): the MLASK sticker (yellow, pink edge, pixel
+  letters) on the shop's wall beside its sign, and the longest line in town at its door
+  (crowds.gd `dzemini_queue`: 40, 26 at 02-07; 3 before the call), with the `viral` "dzemini"
+  jokes (generated sauce, hallucinated fries, a five-step plan for "spicy", a million-token
+  context that remembers your sauce).
+- "Muala" stays MLASK (our sound), as in section 2. "Wjeżdżam w to" is F's line: ordinary Polish
+  slang, used once by Mrożulo and quoted by the fans.
+- Test flag `--trend-job=8` (the car by the shop, the call at once); check `life` covers the pay,
+  the queue rule and the sticker's triangles.
 
 ## 3b. What was built (2026-11-01)
 G1 and G2 as specified (PR #185). G2's bars, G3 and G4 as neons in `Storefronts.HYPE`, LORETKA as

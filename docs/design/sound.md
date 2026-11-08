@@ -90,7 +90,7 @@ Preview text: `Dzień dobry, Warszawo! Pogoda na dziś: słonecznie i przyjemnie
 
 The game plays hello + weather + bye for the hour and the weather (the same choice the ticker's
 text makes, `dialogue.gd` `greeting`), the music ducked under her. Files go in
-`data/raw/voice/`; wiring them in is the next step once they exist.
+`data/raw/voice/`. Built (F, 2026-11-05): on every launch AFTER the first (not the first start or a new game, which keep the opening line) KEBAB FM's host plays hello + weather + bye over the radio turned down, `greeting_clips.gd`; files in `game/audio/voice/radio/`.
 
 ## 4. KEBAB FM 87,3: vaporwave
 

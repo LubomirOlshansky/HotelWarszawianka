@@ -135,7 +135,7 @@
       "Breaking: Mrożulo ate pierogi in Mokotów. The queue's on Puławska."
     ],
     [
-      "Pizza Cringula znowu wyprzedana. Frogsy proszą: nie stójcie w drzwiach.",
+      "Pizza Mrożula znowu wyprzedana. Frogsy proszą: nie stójcie w drzwiach.",
       "Mrożulo's pizza is sold out again. Frogs asks: don't block the door."
     ],
     [
@@ -261,6 +261,54 @@
       }
     ],
     [
+      "Pozdrowienia dla BLUZOFTU z dziewiątego piętra Equatora II. Build przeszedł, kawa nie.",
+      "Greetings to BLUZOFT on the ninth floor of Equator II. The build passed, the coffee didn't."
+    ],
+    [
+      "Sztuczna inteligencja zastąpi programistów za pół roku. Mówią to od trzech lat. Prognoza stabilna.",
+      "AI will replace programmers in six months. They've been saying that for three years. Outlook: stable."
+    ],
+    [
+      "Vibe coding: nie czytam kodu, tylko go czuję. Po wdrożeniu kod też mnie czuje.",
+      "Vibe coding: I don't read the code, I feel it. After the deploy, the code feels me too."
+    ],
+    [
+      "Oferta pracy dla juniora: pięć lat doświadczenia w technologii z zeszłego tygodnia.",
+      "Job ad for a junior: five years of experience in a technology from last week."
+    ],
+    [
+      "Programista na Rondzie Daszyńskiego mówi: „u mnie działa”. Tramwaj mówi: „u mnie też, jadę”.",
+      "A developer at Rondo Daszyńskiego says: 'works on my machine'. The tram says: 'mine too, I'm off'."
+    ],
+    [
+      "Asystent AI napisał mi funkcję w sekundę. Szukam od dwóch godzin, czemu wywołuje samą siebie.",
+      "The AI assistant wrote me a function in a second. I've spent two hours finding out why it calls itself."
+    ],
+    [
+      "Agent AI przeprosił, że skasował bazę produkcyjną. Był bardzo uprzejmy. Baza nie wróciła.",
+      "The AI agent apologised for deleting the production database. Very polite. The database didn't come back."
+    ],
+    [
+      "Junior z asystentem napisał tysiąc linii przed obiadem. Seniorów prosimy nie czytać, tylko usiąść.",
+      "A junior with an assistant wrote a thousand lines before lunch. Seniors: please don't read it, just sit down."
+    ],
+    [
+      "Piątkowy deploy to jak Pasatini na lewym pasie: wszyscy wiedzą, że nie wolno, i wszyscy się modlą.",
+      "A Friday deploy is like a Pasatini in the left lane: everybody knows you mustn't, and everybody prays."
+    ],
+    [
+      "Szef prosi o „małą zmianę”. W programowaniu znaczy to: nie ruszaj, jeszcze działa.",
+      "The boss asks for 'a small change'. In programming that means: don't touch it, it still works."
+    ],
+    [
+      "Najpopularniejsza technika programowania w Polsce: Ctrl+C, Ctrl+V i modlitwa.",
+      "The most popular programming technique in Poland: Ctrl+C, Ctrl+V and a prayer."
+    ],
+    [
+      "Spotkanie, które mogło być mailem, spotkało się z mailem, który mógł być ciszą.",
+      "A meeting that could have been an email met an email that could have been silence."
+    ],
+    [
       "{street}: elektryk stoi z zerem na baterii. Kierowcy diesli pozdrawiają i trąbią.",
       "{street}: an electric car stands with a flat battery. Diesel drivers wave and honk.",
       {
@@ -354,6 +402,20 @@
       "To the mall car park: level −2, zone \"where did I park\".",
       {
         "only": "mall"
+      }
+    ],
+    [
+      "Equator II, dziewiąte piętro. W uwagach: „stand-up trwa, poczekaj”.",
+      "Equator II, ninth floor. Note: \"stand-up's still on, wait\".",
+      {
+        "only": "office"
+      }
+    ],
+    [
+      "Zamówienie z BLUZOFTU: „bez wdrożeń przed kebabem”.",
+      "Order from BLUZOFT: \"no deploys before the kebab\".",
+      {
+        "only": "office"
       }
     ]
   ],
@@ -542,6 +604,18 @@
     [
       "Deweloper: „klimatyczne wnętrze”. To była komórka lokatorska.",
       "Developer: \"atmospheric interior\". It was a storage cupboard."
+    ],
+    [
+      "Pracuję w BLUZOFCIE. Naprawiam to, co AI zepsuło w piątek.",
+      "I work at BLUZOFT. I fix what the AI broke on Friday."
+    ],
+    [
+      "Jestem programistą. Wierzę w Ctrl+Z i w to, że klient nie zerknie.",
+      "I'm a developer. I believe in Ctrl+Z and that the client won't look."
+    ],
+    [
+      "Tata pyta, czy AI zabierze mi pracę. Mówię: tak, ale najpierw spotkanie.",
+      "Dad asks if AI will take my job. I say yes, but first a meeting."
     ]
   ],
   "podwozka_request": [
@@ -2683,6 +2757,104 @@
       {
         "only": "mieszane"
       }
+    ],
+    [
+      "Nowe miejsce. Kebab kręci agent AI. Jeszcze nikt nie wie.",
+      "New place. An AI agent carves the kebab. Nobody knows yet.",
+      {
+        "only": "dzemini_new"
+      }
+    ],
+    [
+      "Otwarte od wczoraj. Agent prosi każdego o feedback.",
+      "Opened yesterday. The agent asks everyone for feedback.",
+      {
+        "only": "dzemini_new"
+      }
+    ],
+    [
+      "Zamówiłem mieszane. Agent dał mi trzy wersje do wyboru.",
+      "Ordered it mixed. The agent gave me three versions to pick from.",
+      {
+        "only": "dzemini_new"
+      }
+    ],
+    [
+      "Mrożulo powiedział „wjeżdżam w to”. Stoję od szóstej.",
+      "Mrożulo said \"I'm going in\". I've been here since six.",
+      {
+        "only": "dzemini"
+      }
+    ],
+    [
+      "Kebab od agenta AI. Sos wygenerowany, ale smakuje.",
+      "A kebab by an AI agent. The sauce is generated, but it tastes good.",
+      {
+        "only": "dzemini"
+      }
+    ],
+    [
+      "Agent przeprosił, że wyhalucynował frytki w rollo.",
+      "The agent apologised for hallucinating fries into my wrap.",
+      {
+        "only": "dzemini"
+      }
+    ],
+    [
+      "Proszę ostry. Agent: „Rozumiem. Oto plan w pięciu krokach.”",
+      "Spicy, please. The agent: \"Understood. Here's a five-step plan.\"",
+      {
+        "only": "dzemini"
+      }
+    ],
+    [
+      "Ta kolejka jest widoczna z tarasu Pałacu Kultury.",
+      "You can see this queue from the Palace of Culture's terrace.",
+      {
+        "only": "dzemini"
+      }
+    ],
+    [
+      "Kebab z kontekstem na milion tokenów. Pamięta mój sos.",
+      "A kebab with a million-token context. It remembers my sauce.",
+      {
+        "only": "dzemini"
+      }
+    ],
+    [
+      "Kolega z IT mówi, że to tylko dobrze napisany prompt.",
+      "My mate in IT says it's just a well-written prompt.",
+      {
+        "only": "dzemini"
+      }
+    ],
+    [
+      "Naklejka MLASK na szybie. Teraz już nie odpuszczę.",
+      "The MLASK sticker's on the window. No giving up now.",
+      {
+        "only": "dzemini"
+      }
+    ],
+    [
+      "Wjeżdżam w to. Za godzinę. Może za dwie.",
+      "I'm going in. In an hour. Maybe two.",
+      {
+        "only": "dzemini"
+      }
+    ],
+    [
+      "Agent pyta, czy rozważałem falafel. Nie rozważałem.",
+      "The agent asks if I've considered falafel. I haven't.",
+      {
+        "only": "dzemini"
+      }
+    ],
+    [
+      "Agent wydał paragon w formie wiersza. Zachowam go.",
+      "The agent printed the receipt as a poem. I'm keeping it.",
+      {
+        "only": "dzemini"
+      }
     ]
   ],
   "runners": [
@@ -2951,7 +3123,7 @@
       }
     ],
     [
-      "Pizzy Cringula nie ma od wtorku. Pytają co pięć minut.",
+      "Pizzy Mrożula nie ma od wtorku. Pytają co pięć minut.",
       "No Mrożulo pizza since Tuesday. They ask every five minutes."
     ],
     [
@@ -3777,7 +3949,7 @@
       "Sticking it on the window. Tomorrow the queue reaches the Palace."
     ],
     [
-      "Mlask od Cringula? Mama będzie dumna. Kucharz płacze.",
+      "Mlask od Mrożula? Mama będzie dumna. Kucharz płacze.",
       "A smack from Mrożulo? Mum will be proud. The chef is crying."
     ],
     [
@@ -4347,6 +4519,78 @@
     [
       "Nasz „value proposition” to proposition, którego nie ma.",
       "Our 'value proposition' is a proposition we don't have."
+    ],
+    [
+      "Zrobiłem to vibe codingiem. Nie wiem jak, nie dotykać.",
+      "Did it by vibe coding. No idea how. Don't touch."
+    ],
+    [
+      "AI napisało testy. Wszystkie zielone. Bo nic nie sprawdzają.",
+      "The AI wrote the tests. All green. They check nothing."
+    ],
+    [
+      "Wdrożenie w piątek? Odważnie. Kto jest twoim następcą?",
+      "A Friday deploy? Bold. Who's your successor?"
+    ],
+    [
+      "Code review: cztery tysiące linii. Zatwierdzam, ufam wibracjom.",
+      "Code review: four thousand lines. Approved, I trust the vibes."
+    ],
+    [
+      "W BLUZOFCIE stand-up jest na stojąco. Reszta też.",
+      "At BLUZOFT the stand-up is on your feet. So is the rest."
+    ],
+    [
+      "Działa u mnie. — To wyślemy twój laptop do klienta.",
+      "Works on mine. — Then we'll ship your laptop to the client."
+    ],
+    [
+      "Dług techniczny spłacimy w następnym kwartale. Od trzech lat.",
+      "We'll pay off the tech debt next quarter. For three years now."
+    ],
+    [
+      "Prompt inżynier: ktoś, kto prosi maszynę uprzejmie.",
+      "Prompt engineer: someone who asks a machine nicely."
+    ],
+    [
+      "AI zabierze mi pracę? Niech najpierw zabierze ten ticket.",
+      "AI will take my job? Let it take this ticket first."
+    ],
+    [
+      "Zapytałem AI o architekturę. Narysowało pudełka i strzałki. Jak ja.",
+      "Asked the AI about architecture. It drew boxes and arrows. Like me."
+    ],
+    [
+      "To nie bug, to feature. Dokumentacja: to bug.",
+      "It's not a bug, it's a feature. The docs: it's a bug."
+    ],
+    [
+      "Pierwsza kawa, druga kawa. Stand-up o dziewiątej, ja o dziesiątej.",
+      "First coffee, second coffee. Stand-up at nine, me at ten.",
+      {
+        "only": "morning"
+      }
+    ],
+    [
+      "Lunch: sałatka i dyskusja, tabulatory czy spacje.",
+      "Lunch: a salad and tabs-versus-spaces.",
+      {
+        "only": "lunch"
+      }
+    ],
+    [
+      "Wracam do domu. Laptop też. Obaj udajemy, że nie pracujemy.",
+      "Heading home. So's my laptop. We both pretend we're off.",
+      {
+        "only": "evening"
+      }
+    ],
+    [
+      "Na dworze chmura, w biurze też. Wdrożenie przesunięte.",
+      "Cloud outside, cloud in the office. Deploy postponed.",
+      {
+        "only": "rain"
+      }
     ]
   ],
   "radio_hello_morning": [
@@ -6010,6 +6254,48 @@
       "At dawn I play birdsong. The real ones turn up on their own."
     ]
   ],
+  "sowa_club": [
+    [
+      "Steki o czwartej rano. Tylko tu i tylko w tej różowej poświacie.",
+      "Steak at four in the morning. Only here, only in this pink glow."
+    ],
+    [
+      "CITY 25, bo dwadzieścia cztery godziny to dla amatorów.",
+      "CITY 25, because twenty-four hours is for amateurs."
+    ],
+    [
+      "Kelner mówi, że 25. godzina jest między trzecią a czwartą.",
+      "The waiter says the 25th hour is between three and four."
+    ],
+    [
+      "Sowa Club? Ja tylko na burgera. Serio. Na burgera.",
+      "Sowa Club? I'm only here for a burger. Really. A burger."
+    ],
+    [
+      "Kacberg. Prawdopodobnie najlepszy kac na świecie.",
+      "Kacberg. Probably the best hangover in the world."
+    ],
+    [
+      "Pepszy, bo lepszy. Tak przynajmniej pisze na lodówce.",
+      "Pepszy, because it's \"better\". Or so the fridge says."
+    ],
+    [
+      "Ten neon widać z Pałacu. Pilot pytał, czy to lądowisko.",
+      "You can see that neon from the Palace. A pilot asked if it's a helipad."
+    ],
+    [
+      "Mecz na sześciu telewizorach, pizza po północy. Ameryka po warszawsku.",
+      "The match on six TVs, pizza after midnight. America, Warsaw style."
+    ],
+    [
+      "Siedzimy na trawie z frytkami. Taras jest dla tych z kasą.",
+      "We sit on the grass with fries. The terrace is for people with cash."
+    ],
+    [
+      "Nocne sowy przylatują po pierwszej. Ranne ptaszki już wychodzą.",
+      "The night owls fly in after one. The early birds are already leaving."
+    ]
+  ],
   "boat_race": [
     [
       "Gaz do dechy! Znaczy… do pokładu!",
@@ -6255,6 +6541,165 @@
       {
         "only": "kamil_finish"
       }
+    ]
+  ],
+  "kino_wiktor": [
+    [
+      "Cześć! Uważaj na puszkę, to jedyna kopia. Kopia zapasowa jest w mojej głowie.",
+      "Hi! Mind the can, it's the only copy. The backup is in my head.",
+      {
+        "only": "hello"
+      }
+    ],
+    [
+      "Wsiadam. Jedź tak, jakby to był travelling, nie dostawa pizzy.",
+      "I'm in. Drive like it's a tracking shot, not a pizza run.",
+      {
+        "only": "hello"
+      }
+    ],
+    [
+      "Ała! Rysa! No dobra, Nojé by to nazwał fakturą.",
+      "Ouch! A scratch! Fine, Nojé would call it texture.",
+      {
+        "only": "bump"
+      }
+    ],
+    [
+      "Hamuj kadrem, nie zderzakiem!",
+      "Brake with the frame, not the bumper!",
+      {
+        "only": "bump"
+      }
+    ],
+    [
+      "Kolejna rysa. Mój operator płakałby. Gdybym miał operatora.",
+      "Another scratch. My cameraman would cry. If I had a cameraman.",
+      {
+        "only": "bump"
+      }
+    ],
+    [
+      "To była klatka z gołębiem. Najważniejsza klatka.",
+      "That was the pigeon frame. The key frame.",
+      {
+        "only": "bump"
+      }
+    ],
+    [
+      "Nie ma już czystej klatki. Teraz to kino eksperymentalne. Lepiej.",
+      "No clean frame left. Now it's experimental cinema. Better.",
+      {
+        "only": "ruined"
+      }
+    ],
+    [
+      "Piętnaście sekund bez cięcia. Béla Tartak by się popłakał. Ze szczęścia albo z nudów.",
+      "Fifteen seconds without a cut. Béla Tartak would weep. With joy or boredom.",
+      {
+        "only": "shot_long"
+      }
+    ],
+    [
+      "Stoimy. Miasto oddycha. Tak, to jest ujęcie.",
+      "We stand still. The city breathes. Yes, that's the shot.",
+      {
+        "only": "shot_static"
+      }
+    ],
+    [
+      "Wstecz! Koniec przed początkiem! Gaspar Nojé dzwonił, chce prawa.",
+      "Reverse! The end before the start! Gaspar Nojé called, he wants the rights.",
+      {
+        "only": "shot_reverse"
+      }
+    ],
+    [
+      "Pęd! Światła się rozmazują! Tak wygląda dusza nad Alejami.",
+      "The rush! The lights blur! That's what a soul over the Aleje looks like.",
+      {
+        "only": "shot_rush"
+      }
+    ],
+    [
+      "Gaspar Nojé nakręcił film o duszy, która lata nad Tokio. Ja o gołębiu nad rondem. Bliżej ludzi.",
+      "Gaspar Nojé made a film about a soul flying over Tokyo. I made one about a pigeon over a roundabout. Closer to the people."
+    ],
+    [
+      "U Nojé czołówka miga przez trzy minuty. U mnie miga sygnalizacja na Marszałkowskiej. Za darmo.",
+      "Nojé's opening titles strobe for three minutes. Mine strobe for free: the lights on Marszałkowska."
+    ],
+    [
+      "Paolo Sorrentello: piękni ludzie nudzą się na tarasie. Warszawa: piękni ludzie nudzą się w korku.",
+      "Paolo Sorrentello: beautiful people bored on a terrace. Warsaw: beautiful people bored in traffic."
+    ],
+    [
+      "Sorrentello ma Rzym i flamingi. Ja mam Pałac i gołębie. Wygrywam liczbą ptaków.",
+      "Sorrentello has Rome and flamingos. I have the Palace and pigeons. I win on bird count."
+    ],
+    [
+      "Béla Tartak kręcił siedem godzin krowę w deszczu. Ja trzy czterdzieści. Jestem komercyjny.",
+      "Béla Tartak shot a cow in the rain for seven hours. I did three forty. I'm commercial."
+    ],
+    [
+      "Lars von Tramwaj ma dogmat: bez muzyki, bez światła, bez scenariusza. U mnie też bez widzów.",
+      "Lars von Tramwaj has a dogma: no music, no light, no script. Mine has no audience either."
+    ],
+    [
+      "Wiesz, czemu kręcę na taśmie? Bo cyfra nie pachnie. Taśma pachnie octem i ambicją.",
+      "Know why I shoot on film? Digital doesn't smell. Film smells of vinegar and ambition."
+    ],
+    [
+      "Mój film nie ma bohatera. Ma rondo. Rondo to też charakter, tylko się nie rozwija.",
+      "My film has no hero. It has a roundabout. A roundabout is a character too, it just doesn't develop."
+    ],
+    [
+      "Festiwal w Gdyni odpisał: „Dziękujemy”. Bez wykrzyknika. To dobry znak.",
+      "The Gdynia festival wrote back: \"Thank you\". No exclamation mark. That's a good sign."
+    ],
+    [
+      "Krytyk z Mokotowa napisał, że mój poprzedni film to „dziewięćdziesiąt minut parkingu”. Był ze mnie dumny.",
+      "A Mokotów critic said my last film was \"ninety minutes of a car park\". He was proud of me."
+    ],
+    [
+      "Długie ujęcie to szacunek do widza. Krótkie to szacunek do jego pęcherza.",
+      "A long take is respect for the viewer. A short one is respect for his bladder."
+    ],
+    [
+      "W napisach końcowych dziękuję gołębiowi. Nie odpisał, ale to artysta.",
+      "In the credits I thank the pigeon. He didn't reply, but he's an artist."
+    ],
+    [
+      "Kino Muranów pamięta, kiedy ludzie palili na sali. Teraz palą tylko krytycy. Swoje mosty.",
+      "Kino Muranów remembers when people smoked in the hall. Now only critics burn. Their bridges."
+    ],
+    [
+      "Tu kiedyś na Złotej był Relax, pierwsze siedemdziesiąt milimetrów w Polsce. Mój film by się tam zmieścił. Wszerz.",
+      "Relax on Złota was once Poland's first 70 mm screen. My film would have fitted. Sideways."
+    ],
+    [
+      "Zobacz te światła. Wong Kar-Wajs dałby za to jedno zwolnione tempo.",
+      "Look at those lights. Wong Kar-Wajs would give a slow-motion for that."
+    ],
+    [
+      "Moja była też jest reżyserką. Jej film ma fabułę. Nie rozmawiamy.",
+      "My ex is a director too. Her film has a plot. We don't talk."
+    ],
+    [
+      "Jak nikt nie kupi, puszczę to na klatce schodowej na Pradze. Ludzie i tak tam stoją po trzy godziny.",
+      "If nobody takes it, I'll screen it in a stairwell in Praga. People stand there three hours anyway."
+    ],
+    [
+      "Muzyka? Tylko szum Alej. Dwanaście minut tramwaju numer 25. Hipnotyczne.",
+      "Music? Only the hum of the Aleje. Twelve minutes of the number 25 tram. Hypnotic."
+    ],
+    [
+      "Nie mów nikomu, ale w drugiej godzinie gołąb mruga. To jest mój zwrot akcji.",
+      "Don't tell anyone, but in the second hour the pigeon blinks. That's my plot twist."
+    ],
+    [
+      "Ludzie pytają, o czym jest film. Pytam ich, o czym jest rondo.",
+      "People ask what the film's about. I ask them what a roundabout is about."
     ]
   ]
 }

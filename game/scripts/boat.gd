@@ -22,7 +22,7 @@ extends Node3D
 ##
 ## Frame: +Z forward (the mesh, `yaw` from +Z towards +X), origin at the waterline.
 
-enum Kind { RUNABOUT, TUB, JETSKI }
+enum Kind { RUNABOUT, TUB, JETSKI, SKUTER, ELECTRIC, OFFSHORE }
 
 ## Per kind: top speed (m/s), pull at rest (m/s²), turn (rad/s), grip across at rest and on the
 ## plane (1/s), the speed where it planes (m/s), mass (bumps), radius (m), length (m), the wake's
@@ -34,6 +34,25 @@ const SPECS := {
 			"mass": 1.8, "r": 2.6, "len": 6.4, "wake": 0.42},
 	Kind.JETSKI: {"top": 22.6, "pull": 8.0, "turn": 2.1, "grip0": 0.9, "grip1": 2.6, "plane": 7.0,
 			"mass": 0.55, "r": 1.4, "len": 3.2, "wake": 0.2},
+	# The free-ride fleet at the start pontoon (F 2026-11-07, his three photos), each with its own
+	# feel through the optional keys below:
+	# - SKUTER "Rekin X", a 3.4 m black-and-red jet ski: light, twitchy, slides; jet steering
+	#   (it turns only with thrust: let go of the gas and it runs straight), leans hard, jumps
+	#   off the smallest wake, lands soft.
+	# - ELECTRIC "Srebrna Strzała", a 7.5 m silver electric runabout: full torque to the top
+	#   (falloff power 5: no fade until the very end), stays flat and grippy, a gentle turn.
+	# - OFFSHORE "Czarna Pantera", a 13 m black offshore boat on five outboards: heavy and slow off
+	#   the line until it planes, then the fastest thing on the river; a wide slow turn, a big
+	#   wake, it hardly notices other wakes and keeps its speed on a hard landing.
+	Kind.SKUTER: {"top": 20.0, "pull": 9.5, "turn": 2.5, "grip0": 0.7, "grip1": 2.2, "plane": 6.0,
+			"mass": 0.6, "r": 1.4, "len": 3.4, "wake": 0.22, "jet": true, "roll": 1.8, "launch": 1.6,
+			"land_keep": 0.95, "bleed": 0.03},
+	Kind.ELECTRIC: {"top": 17.5, "pull": 7.5, "turn": 1.45, "grip0": 1.8, "grip1": 4.2, "plane": 7.5,
+			"mass": 1.3, "r": 2.2, "len": 7.5, "wake": 0.3, "falloff": 5.0, "roll": 0.6, "bow": 0.4,
+			"launch": 3.0},
+	Kind.OFFSHORE: {"top": 27.0, "pull": 3.0, "pull_plane": 2.4, "turn": 0.95, "grip0": 1.4, "grip1": 3.0,
+			"plane": 11.0, "mass": 3.2, "r": 3.0, "len": 13.0, "wake": 0.75, "roll": 0.7, "bow": 1.8,
+			"launch": 4.2, "land_keep": 0.97, "bleed": 0.09, "feel": 0.45},
 }
 const DRAG := 0.06           # water drag on top of the thrust curve (1/s)
 const REVERSE := 4.0         # m/s back
@@ -49,6 +68,11 @@ const PUSH := 0.35           # share of the speed into a wall that bounces back
 ## prop wash over it), so the player can turn off the bank instead of having to reverse.
 const CONTACT_BITE := 0.55
 const CONTACT_HOLD := 0.8
+## A boat still pinned on a bank or the pontoon after PIN_TIME s of throttle (a long hull whose
+## rudder can't swing it off) gets pushed back off the contact at PIN_PUSH m/s, so the player is
+## never left grinding there (Autopilot, 2026-11-07: Czarna Pantera sat 12 s at 0.4 km/h).
+const PIN_TIME := 1.2
+const PIN_PUSH := 3.0
 
 ## The kind's spec, and the boost the race grants (rhythm, gold rings): top speed × `boost`.
 var kind := Kind.RUNABOUT
@@ -88,6 +112,8 @@ var solid: Callable = Callable()
 ## the wall or boat), a landing's strength.
 var bumped := 0.0
 var _contact := 0.0
+var _contact_n := Vector2.ZERO
+var _pinned := 0.0
 var landed := 0.0
 ## The race's boats on the same water (for the boat-to-boat bumps).
 var others: Array = []
@@ -108,12 +134,18 @@ func setup(k: int, mesh: ArrayMesh, material: Material) -> void:
 	_body.add_child(_mesh)
 
 
+## Swap the hull's mesh (a free-ride boat: parked empty, or with the player at the wheel).
+func set_mesh(mesh: ArrayMesh) -> void:
+	_mesh.mesh = mesh
+
+
 func place(at: Vector2, heading: float) -> void:
 	pos = at
 	yaw = heading
 	vel = Vector2.ZERO
 	yaw_rate = 0.0
 	_contact = 0.0
+	_pinned = 0.0
 	y = 0.0
 	vy = 0.0
 	air = false
@@ -175,7 +207,11 @@ func step(dt: float) -> void:
 				vf = maxf(vf - float(spec["pull"]) * 0.5 * dt, -REVERSE)
 		elif thr > 0.0 and vf < top_v:
 			var share := clampf(vf / top_v, 0.0, 1.0)
-			vf += float(spec["pull"]) * thr * (1.0 - share * share) * dt
+			# The thrust curve: falloff 2 for a propeller (fades towards the top), higher for an
+			# electric motor (full torque almost to the top); pull_plane: a heavy hull pulls
+			# weakly until it is up on the plane.
+			var pull := float(spec["pull"]) * lerpf(1.0, float(spec.get("pull_plane", 1.0)), planing)
+			vf += pull * thr * (1.0 - pow(share, float(spec.get("falloff", 2.0)))) * dt
 		vf -= vf * DRAG * dt
 		if vf > top_v:
 			vf = lerpf(vf, top_v, 1.0 - exp(-1.5 * dt))
@@ -185,13 +221,23 @@ func step(dt: float) -> void:
 	vr *= exp(-grip * dt)
 	# A hard turn on the plane bleeds speed (the hull digs in).
 	if on_water:
-		vf -= absf(yaw_rate) * absf(vf) * 0.06 * dt
+		vf -= absf(yaw_rate) * absf(vf) * float(spec.get("bleed", 0.06)) * dt
 	rel = f * vf + right * vr
 	# The rudder.
 	var authority := clampf(absf(vf) / 5.0, 0.0, 1.0) * (1.0 - 0.3 * clampf((absf(vf) - 12.0) / 10.0, 0.0, 1.0))
 	_contact = maxf(0.0, _contact - dt)
 	if _contact > 0.0 and throttle > 0.1 and on_water:
 		authority = maxf(authority, CONTACT_BITE)
+		_pinned = _pinned + dt if absf(vf) < 1.0 else 0.0
+		if _pinned > PIN_TIME:
+			rel += _contact_n * PIN_PUSH
+			_pinned = 0.0
+	else:
+		_pinned = 0.0
+	if bool(spec.get("jet", false)) and on_water:
+		# Jet steering: the nozzle turns the thrust, so no gas means (almost) no turn, and gas
+		# turns it even from a standstill.
+		authority = maxf(authority, thr * 0.7) * lerpf(0.2, 1.0, thr)
 	if not on_water:
 		authority *= 0.25
 	var want_rate := float(spec["turn"]) * clampf(steer, -1.0, 1.0) * authority * (1.0 if vf >= -0.5 else -1.0)
@@ -208,7 +254,7 @@ func step(dt: float) -> void:
 
 ## The water's height under (x, z) over its rest level.
 func _water(x: float, z: float) -> float:
-	return wave.call(x, z)
+	return float(wave.call(x, z)) * float(spec.get("feel", 1.0))
 
 
 func _vertical(dt: float, vf: float) -> void:
@@ -225,14 +271,14 @@ func _vertical(dt: float, vf: float) -> void:
 		if y <= hc:
 			landed = maxf(0.0, -vy)
 			if landed > HARD_LANDING:
-				vel = flow + (vel - flow) * 0.86
+				vel = flow + (vel - flow) * float(spec.get("land_keep", 0.86))
 			air = false
 			y = hc
 			vy = 0.0
 	else:
 		# Up the face of a crest, fast: the boat leaves it.
 		var climb := slope * vf
-		if climb > LAUNCH and vf > 6.0:
+		if climb > float(spec.get("launch", LAUNCH)) and vf > 6.0:
 			air = true
 			vy = climb * 0.85
 			y = hc + 0.05
@@ -240,8 +286,9 @@ func _vertical(dt: float, vf: float) -> void:
 			var y0 := y
 			y = lerpf(y, hc, 1.0 - exp(-12.0 * dt))
 			vy = (y - y0) / maxf(dt, 0.0001)
-		pitch = lerpf(pitch, -atan(slope) - BOW_UP * planing * (1.0 - planing * 0.5), 1.0 - exp(-8.0 * dt))
-	roll = lerpf(roll, clampf(yaw_rate * ROLL * (0.3 + planing), -0.35, 0.35), 1.0 - exp(-6.0 * dt))
+		pitch = lerpf(pitch, -atan(slope) - BOW_UP * float(spec.get("bow", 1.0)) * planing * (1.0 - planing * 0.5), 1.0 - exp(-8.0 * dt))
+	var lean := float(spec.get("roll", 1.0))
+	roll = lerpf(roll, clampf(yaw_rate * ROLL * lean * (0.3 + planing), -0.35 * lean, 0.35 * lean), 1.0 - exp(-6.0 * dt))
 
 
 ## The banks: out along the shore field's slope, the speed into the bank taken away.
@@ -291,6 +338,7 @@ func _boats() -> void:
 
 func _hit(n: Vector2) -> void:
 	_contact = CONTACT_HOLD
+	_contact_n = n
 	var into := vel.dot(n)
 	if into < 0.0:
 		vel -= n * into * (1.0 + PUSH)
@@ -468,4 +516,130 @@ static func jetski_mesh() -> ArrayMesh:
 	Models.box(st, Vector3(0.22, 1.2, 0.5), Vector3(0.1, 0.1, 0.6), Color("#1b1c20"))
 	Models.box(st, Vector3(-0.22, 1.2, 0.5), Vector3(0.1, 0.1, 0.6), Color("#1b1c20"))
 	_nav(st, 0.4, 0.66, 0.9, -1.45, 0.62)
+	return st.commit()
+
+
+## The free-ride jet ski "Rekin X" (F's photo 1: black, red graphics, a black-and-red saddle): 3.4 m,
+## a stepped deck, the handlebar pod, a rider seated astride. `rider` false: parked.
+static func skuter_mesh(rider: bool) -> ArrayMesh:
+	var st := Models._begin()
+	_part = Models.HERO
+	_glow = 0.35
+	var black := Color("#17181c")
+	var red := Color("#d8322c")
+	var stations := [[-1.6, 0.6, 0.22, 0.48], [-0.5, 0.62, 0.28, 0.52], [0.7, 0.52, 0.28, 0.6], [1.5, 0.3, 0.2, 0.64], [1.85, 0.03, 0.08, 0.62]]
+	_hull(st, stations, black, Color("#26282e"), Color("#0e0f12"))
+	# the red flash along each side
+	for s: float in [-1.0, 1.0]:
+		_quad(st, Vector3(s * 0.63, 0.24, -1.2), Vector3(s * 0.6, 0.3, 0.9), Vector3(s * 0.56, 0.42, 1.1), Vector3(s * 0.64, 0.38, -0.7), red, s)
+		_quad(st, Vector3(s * 0.62, 0.42, -1.5), Vector3(s * 0.63, 0.46, -0.6), Vector3(s * 0.63, 0.5, -0.6), Vector3(s * 0.62, 0.5, -1.5), Color("#c9ccd1"), s)
+	# the hood and the handlebar pod, the saddle in black with red panels, the footwells
+	Models.box(st, Vector3(0, 0.72, 0.85), Vector3(0.78, 0.3, 1.0), black)
+	Models.box(st, Vector3(0, 0.9, 0.85), Vector3(0.5, 0.06, 0.6), red)
+	Models.box(st, Vector3(0, 0.98, 0.35), Vector3(0.24, 0.3, 0.24), black)
+	Models.box(st, Vector3(0, 1.12, 0.32), Vector3(0.8, 0.06, 0.08), Color("#3a3d44"))
+	Models.box(st, Vector3(0, 0.74, -0.45), Vector3(0.46, 0.22, 1.25), black)
+	Models.box(st, Vector3(0, 0.86, -0.45), Vector3(0.3, 0.04, 1.1), red)
+	Models.box(st, Vector3(0, 0.6, -1.45), Vector3(0.9, 0.12, 0.35), Color("#26282e"))
+	if rider:
+		Models.box(st, Vector3(0, 1.15, -0.25), Vector3(0.42, 0.62, 0.3), Color("#ff8a1a"))
+		Models.box(st, Vector3(0, 1.62, -0.15), Vector3(0.3, 0.3, 0.3), Color("#1b1c20"))
+		Models.box(st, Vector3(0, 1.63, 0.0), Vector3(0.26, 0.1, 0.02), GLASS)
+		Models.box(st, Vector3(0.24, 1.2, 0.05), Vector3(0.1, 0.1, 0.55), Color("#ff8a1a"))
+		Models.box(st, Vector3(-0.24, 1.2, 0.05), Vector3(0.1, 0.1, 0.55), Color("#ff8a1a"))
+		for s: float in [-1.0, 1.0]:
+			Models.box(st, Vector3(s * 0.28, 0.82, -0.35), Vector3(0.14, 0.3, 0.5), Color("#2a3550"))
+	_nav(st, 0.45, 0.7, 1.0, -1.55, 0.62)
+	return st.commit()
+
+
+## The free-ride electric runabout "Srebrna Strzała" (F's photo 2: silver, yellow seats, no engine
+## noise): 7.5 m, a long silver hull with a rounded tumblehome stern, a flush foredeck, a low dark
+## screen, two yellow buckets and a yellow bench, a grilled hatch over the motor aft, a dark
+## line along the sheer. `driver` false: parked, a grey cover over the cockpit.
+static func electric_mesh(driver: bool) -> ArrayMesh:
+	var st := Models._begin()
+	_part = Models.HERO
+	_glow = 0.35
+	var silver := Color("#c3c7cc")
+	var yellow := Color("#f2c230")
+	var stations := [[-3.6, 1.1, 0.35, 0.82], [-2.8, 1.28, 0.45, 0.86], [-0.8, 1.3, 0.52, 0.9],
+			[1.3, 1.12, 0.5, 0.94], [2.8, 0.62, 0.36, 0.98], [3.9, 0.06, 0.12, 1.0]]
+	_hull(st, stations, silver, silver.lightened(0.12), Color("#5d6268"))
+	for s: float in [-1.0, 1.0]:
+		for i in stations.size() - 1:
+			var a: Array = stations[i]
+			var b: Array = stations[i + 1]
+			_quad(st, Vector3(s * a[1] * 1.005, a[3] - 0.2, a[0]), Vector3(s * b[1] * 1.005, b[3] - 0.2, b[0]),
+					Vector3(s * b[1] * 1.005, b[3] - 0.16, b[0]), Vector3(s * a[1] * 1.005, a[3] - 0.16, a[0]), Color("#2b2e33"), s)
+	# the cockpit well (dark), the low wrap-around screen
+	Models.box(st, Vector3(0, 0.86, -0.3), Vector3(2.0, 0.06, 2.6), Color("#2b2e33"))
+	for s: float in [-1.0, 1.0]:
+		_quad(st, Vector3(0, 1.0, 1.15), Vector3(s * 1.05, 1.0, 0.9), Vector3(s * 0.95, 1.3, 0.75), Vector3(0, 1.3, 0.98), GLASS, s)
+	# the yellow seats: two buckets and the bench behind
+	Models.box(st, Vector3(0.48, 1.0, 0.25), Vector3(0.62, 0.32, 0.6), yellow)
+	Models.box(st, Vector3(-0.48, 1.0, 0.25), Vector3(0.62, 0.32, 0.6), yellow)
+	Models.box(st, Vector3(0.48, 1.25, -0.02), Vector3(0.6, 0.45, 0.14), Color("#2b2e33"))
+	Models.box(st, Vector3(-0.48, 1.25, -0.02), Vector3(0.6, 0.45, 0.14), Color("#2b2e33"))
+	Models.box(st, Vector3(0, 0.98, -1.2), Vector3(1.9, 0.28, 0.6), yellow)
+	# the motor hatch aft with its dark grille, a thin bright name plate on the transom
+	Models.box(st, Vector3(0, 0.98, -2.6), Vector3(1.6, 0.12, 1.6), silver.lightened(0.08))
+	Models.box(st, Vector3(0, 1.05, -2.5), Vector3(0.9, 0.04, 0.8), Color("#3a3d44"))
+	Models.box(st, Vector3(0, 0.6, -3.62), Vector3(0.7, 0.06, 0.02), Color("#2b2e33"))
+	if driver:
+		_driver(st, Vector3(0.48, 1.0, 0.3), Color("#ff8a1a"), Color("#3a2a1c"))
+	else:
+		Models.box(st, Vector3(0, 1.12, -0.5), Vector3(2.1, 0.05, 2.2), Color("#8e949b"))
+	_nav(st, 1.05, 1.0, 2.0, -3.5, 1.2)
+	return st.commit()
+
+
+## The free-ride offshore boat "Czarna Pantera" (F's photo 3: gloss black, red upholstery, a hardtop,
+## five outboards): 13 m, a sharp black hull with a silver rub line and three portholes a side, a
+## red bow lounge, a black hardtop on pillars over the helm, red buckets and an aft lounge, five
+## black outboards on the transom. `driver` false: parked.
+static func offshore_mesh(driver: bool) -> ArrayMesh:
+	var st := Models._begin()
+	_part = Models.HERO
+	_glow = 0.3
+	var black := Color("#141519")
+	var red := Color("#c92a2a")
+	var stations := [[-6.2, 1.55, 0.55, 1.15], [-4.0, 1.7, 0.75, 1.2], [-1.0, 1.72, 0.85, 1.28],
+			[2.0, 1.55, 0.85, 1.36], [4.5, 0.95, 0.65, 1.44], [6.6, 0.08, 0.2, 1.5]]
+	_hull(st, stations, black, Color("#2a2c31"), Color("#0b0c0e"))
+	for s: float in [-1.0, 1.0]:
+		for i in stations.size() - 1:
+			var a: Array = stations[i]
+			var b: Array = stations[i + 1]
+			_quad(st, Vector3(s * a[1] * 1.005, a[3] - 0.1, a[0]), Vector3(s * b[1] * 1.005, b[3] - 0.1, b[0]),
+					Vector3(s * b[1] * 1.005, b[3] - 0.05, b[0]), Vector3(s * a[1] * 1.005, a[3] - 0.05, a[0]), Color("#c9ccd1"), s)
+		for z: float in [-2.6, -1.9, -1.2]:
+			Models.box(st, Vector3(s * 1.74, 0.75, z), Vector3(0.03, 0.18, 0.3), Color("#5a6470"))
+	# the red bow lounge round a teak sole
+	Models.box(st, Vector3(0, 1.3, 4.0), Vector3(1.2, 0.06, 1.6), Color("#b08a60"))
+	Models.box(st, Vector3(0.75, 1.42, 3.9), Vector3(0.4, 0.28, 2.2), red)
+	Models.box(st, Vector3(-0.75, 1.42, 3.9), Vector3(0.4, 0.28, 2.2), red)
+	Models.box(st, Vector3(0, 1.42, 2.6), Vector3(1.9, 0.28, 0.9), red)
+	# the console and the screen, the hardtop on four pillars
+	Models.box(st, Vector3(0, 1.55, 1.1), Vector3(2.3, 0.6, 0.9), black)
+	for s: float in [-1.0, 1.0]:
+		_quad(st, Vector3(s * 0.05, 1.85, 1.45), Vector3(s * 1.15, 1.85, 1.35), Vector3(s * 1.1, 2.4, 0.95), Vector3(s * 0.05, 2.4, 1.05), GLASS, s)
+		for z: float in [0.9, -1.4]:
+			Models.box(st, Vector3(s * 1.15, 2.2, z), Vector3(0.1, 1.5, 0.1), black)
+	Models.box(st, Vector3(0, 2.98, -0.25), Vector3(2.6, 0.12, 3.0), black)
+	Models.box(st, Vector3(0, 3.1, -0.25), Vector3(1.4, 0.06, 1.6), Color("#2a2c31"))
+	# the red buckets under the top, the aft lounge, the engine bay hatch
+	for x: float in [-0.75, 0.0, 0.75]:
+		Models.box(st, Vector3(x, 1.5, 0.0), Vector3(0.6, 0.5, 0.6), red)
+	Models.box(st, Vector3(0, 1.45, -2.4), Vector3(2.9, 0.4, 1.2), red)
+	Models.box(st, Vector3(0, 1.3, -4.4), Vector3(2.8, 0.1, 2.6), Color("#2a2c31"))
+	# five outboards
+	for k in 5:
+		var x := -1.2 + 0.6 * k
+		Models.box(st, Vector3(x, 1.25, -6.45), Vector3(0.48, 0.9, 0.62), black)
+		Models.box(st, Vector3(x, 1.72, -6.45), Vector3(0.5, 0.06, 0.64), Color("#3a3d44"))
+		Models.box(st, Vector3(x, 0.35, -6.5), Vector3(0.16, 1.0, 0.24), black)
+	if driver:
+		_driver(st, Vector3(0.0, 1.5, 0.05), Color("#ff8a1a"), Color("#3a2a1c"))
+	_nav(st, 1.5, 1.5, 4.8, -6.0, 3.15)
 	return st.commit()

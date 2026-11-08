@@ -111,6 +111,8 @@ var start_heat := 1.0
 var start_broken := 0
 ## Loop 2d-1: the Podwózka job (rides.gd), so the two never run at once.
 var rides: Node
+## () -> bool: something else runs (main.gd `_quest_running`: a questline, a tow): no stands' rings.
+var others_busy: Callable
 ## Loop MW-4: the "Na czasie" job (trend_job.gd), likewise.
 var trend: Node
 ## Loop 3g-2 (police.md 8.3): the kebab's heat stands still while a pull-over's card is open
@@ -162,6 +164,9 @@ var _ring_mats := {}
 var _stand_halo: ArrayMesh
 var _halo_mat: ShaderMaterial
 var _places_shown := false
+## The free-ride boat's mooring (boat_race.gd fleet_spot(1), set by main.gd; INF: none) and its mark's colour.
+var boat_spot := Vector2.INF
+const BOAT_COLOUR := Color("#1f4fa8")
 var _rng := RandomNumberGenerator.new()
 ## Loop 3h slice 4: the stand whose next order is the guided first order (first10.gd `pin_first`;
 ## -1: none). Cleared once that order is made.
@@ -584,6 +589,8 @@ func target_colour() -> Color:
 func _free() -> bool:
 	if flying or missions.has_target():
 		return false
+	if others_busy.is_valid() and state == State.IDLE and bool(others_busy.call()):
+		return false  # story_quests.gd: a questline (boat race, rave...) is on
 	if rides != null and rides.busy():
 		return false  # loop 2d-1: one activity at a time
 	if trend != null and trend.busy():
@@ -694,6 +701,11 @@ func _show_places(on: bool, again := false) -> void:
 			pts.append(Vector2(st["ring"].x, st["ring"].z))
 			colours.append(SLOIK_COLOUR)
 			shapes.append(MapIcons.POI_STATION)
+	# The free-ride boat at the start pontoon (boat_race.gd): its mark stays with the places.
+	if on and boat_spot != Vector2.INF:
+		pts.append(boat_spot)
+		colours.append(BOAT_COLOUR)
+		shapes.append(MapIcons.POI_BOAT)
 	# Loop jobs-2: the Leżak depots at night.
 	if roundup != null and roundup._shown and not round_busy():
 		for q: Vector2 in roundup.depot_points():

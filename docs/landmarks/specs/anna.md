@@ -91,3 +91,7 @@ L3 for the front, L2 for the tower trim; 514 triangles measured, budget 620
 | tower cornice | 2 boxes | 11.2 and 11.7 m square | 23.2..25.1 m | M_STONE | 3 bell tower |
 | octagon core and ring | octagon prism, frustum | r 2.9 m and 3.9 m | 25.1..34.5 m | M_STONE | 4 roof |
 | tower cross | 2 boxes | 0.36 x 3.5 m, arm 1.4 m | 34.5..38 m | M_STONE | 4 roof |
+
+## Update
+
+Photo pass 2026-11-06 (refs/st_anne 1-2): the front is one cream plane 25.5 m wide; corner pilasters at m ± 11.8, giant Corinthian columns at m ± 3.9 and ± 7.9 (r 0.8, 9 m shafts, gilded-cream capitals), a 17.5 m high front under a wide pediment with a round emblem, four pedimented statue niches (m ± 5.9 and ± 9.7), side doors at m ± 5.9, the arched relief and the great oak door in a two-column porch in the middle bay, a stepped attic behind the pediment and the cross; the tower's octagon carries arched louvres and a copper dome with a lantern. Replaces the 4-column portico below.

@@ -781,6 +781,13 @@ vec3 landmark(int mode, float param, vec3 col, vec2 uv, float top, bool wall, ve
 		}
 		return col * (wall && uv.y > top - 0.2 ? 1.12 : 1.0);
 	} else if (mode == M_GOLD) {
+		if (param > 0.25) {
+			// Polished steel (M_GOLD + 0.5: the Warsaw Spire's columns and mirrored canopy): streaks
+			// of sky and ground slide over it, no warm glow at night.
+			float streak = value_noise(vec2(wp.y * 0.9 + (wp.x + wp.z) * 0.35, (wp.x - wp.z) * 0.15));
+			vec3 mirror = mix(col, srgb_to_linear(sky_colour) * 1.15, 0.4 * smoothstep(0.3, 0.9, streak));
+			return mirror * (0.8 + 0.45 * streak) * mix(0.35, 1.0, daylight);
+		}
 		float sheen = 0.75 + 0.5 * smoothstep(0.2, 1.0, value_noise(vec2(wp.y * 0.6, wp.x + wp.z)));
 		if (lights_on > 0.001) {
 			glow = col * vec3(1.0, 0.8, 0.45) * 1.25;
@@ -822,8 +829,9 @@ vec3 landmark(int mode, float param, vec3 col, vec2 uv, float top, bool wall, ve
 		}
 		vec3 c = glass_wall(col, uv.x, uv.y, top, 1.6, 4.2, 0.0, glow);
 		if (lights_on > 0.001 && fract(uv.x / 1.6) > 0.1 && fract(uv.x / 1.6) < 0.9 && fract(uv.y / 4.2) > 0.06) {
-			// param 0: warm (the Rotunda), 0.5: cool white (Varso's crown).
-			vec3 tone = param > 0.25 ? vec3(0.78, 0.88, 1.0) : vec3(1.0, 0.86, 0.62);
+			// param 0: warm (the Rotunda), 0.5: cool white (Varso's crown), 0.375: the neon club's
+			// pink (SOWA CLUB's glass box, landmarks.gd SOWA_LIT).
+			vec3 tone = param > 0.3 && param < 0.45 ? vec3(1.0, 0.58, 0.86) : (param > 0.25 ? vec3(0.78, 0.88, 1.0) : vec3(1.0, 0.86, 0.62));
 			glow = tone * (0.9 + 0.35 * hash12(vec2(floor(uv.x / 1.6), floor(uv.y / 4.2))));
 			c *= 0.4;
 		}

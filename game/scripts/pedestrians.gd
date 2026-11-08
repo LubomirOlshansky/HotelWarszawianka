@@ -84,15 +84,18 @@ var _stops_new := false
 var _scene_buf := PackedFloat32Array()
 var _rng := RandomNumberGenerator.new()
 ## First scene item 6 (docs/design/first-scene.md, 2026-11-02): busy pavements. While the view's
-## centre is inside `_busy_box`, the walkers' target is `limit` × BUSY_BOOST (never above MAX: the
+## centre is inside a busy box, the walkers' target is `limit` × BUSY_BOOST (never above MAX: the
 ## same MultiMesh, +0 draw calls) and BUSY_SHARE of the spawns pick a point on the busy footways
 ## (set_busy: Marszałkowska's two pavements by the start) instead of anywhere in the view, so the
-## first frame has people on both pavements.
+## first frame has people on both pavements. F's LIM photos (2026-11-06): more than one busy
+## place (add_busy: the pavement and the tram stop in front of Centrum LIM); each point keeps its
+## place's index (`_busy_b`) and a spawn only takes points of the place under the view.
 const BUSY_BOOST := 1.6
 const BUSY_SHARE := 0.6
 ## Points on the busy footways every BUSY_STEP m: the footway and the distance along it.
 const BUSY_STEP := 3.0
-var _busy_box := Rect2()
+var _busy_boxes: Array[Rect2] = []
+var _busy_b := PackedInt32Array()
 var _busy_i := PackedInt32Array()
 ## The underpasses' ways in (map_builder SUNKEN `walk`, F 2026-11-06: "people going in and out"):
 ## footways from the street down a sunken stair and on through the passage's mouth, their last
@@ -317,9 +320,18 @@ func _at(i: int, s: float, off := 0.0) -> Vector2:
 ## ([s0, s1, t0, t1] each) is a busy spawn point; `box` (world x, z) is where the boost applies.
 ## Returns how many points it found. Looks only at the footways in the grid cells under the box.
 func set_busy(origin: Vector2, s_axis: Vector2, t_axis: Vector2, bands: Array, box: Rect2) -> int:
-	_busy_box = box
+	_busy_boxes.clear()
+	_busy_b.clear()
 	_busy_i.clear()
 	_busy_s.clear()
+	return add_busy(origin, s_axis, t_axis, bands, box)
+
+
+## One more busy place (as set_busy, keeping the others): returns its number of points.
+func add_busy(origin: Vector2, s_axis: Vector2, t_axis: Vector2, bands: Array, box: Rect2) -> int:
+	var zone := _busy_boxes.size()
+	_busy_boxes.append(box)
+	var before := _busy_i.size()
 	var seen := {}
 	var x := box.position.x
 	while x <= box.end.x + CELL:
@@ -340,16 +352,27 @@ func set_busy(origin: Vector2, s_axis: Vector2, t_axis: Vector2, bands: Array, b
 						if qs >= float(b[0]) and qs <= float(b[1]) and qt >= float(b[2]) and qt <= float(b[3]):
 							_busy_i.append(i)
 							_busy_s.append(u)
+							_busy_b.append(zone)
 							break
 					u += BUSY_STEP
 			z += CELL
 		x += CELL
-	return _busy_i.size()
+	return _busy_i.size() - before
+
+
+## The busy place under the view's centre (-1: none).
+func _busy_zone() -> int:
+	if _busy_i.is_empty() or traffic == null:
+		return -1
+	for z in _busy_boxes.size():
+		if _busy_boxes[z].has_point(traffic.view_centre):
+			return z
+	return -1
 
 
 ## First scene item 6: the view's centre is over the busy pavements (the walkers' boost is on).
 func busy_now() -> bool:
-	return not _busy_i.is_empty() and traffic != null and _busy_box.has_point(traffic.view_centre)
+	return _busy_zone() >= 0
 
 
 ## First scene item 6: how many walkers are within `reach` m (along their footway) of a busy
@@ -580,7 +603,14 @@ func _try_spawn(centre: Vector2, right: Vector2, ahead: Vector2, half: Vector2, 
 
 ## First scene item 6: a spawn at a random busy footway point (set_busy), a metre or two either way.
 func _try_spawn_busy(centre: Vector2, right: Vector2, ahead: Vector2, half: Vector2, anywhere: bool) -> void:
+	var zone := _busy_zone()
 	var k := _rng.randi() % _busy_i.size()
+	for t in 24:
+		if _busy_b[k] == zone:
+			break
+		k = _rng.randi() % _busy_i.size()
+	if _busy_b[k] != zone:
+		return
 	var i := _busy_i[k]
 	_spawn_on(i, clampf(_busy_s[k] + _rng.randf_range(-1.5, 1.5), _lo[i], _hi[i]), centre, right, ahead, half, anywhere)
 

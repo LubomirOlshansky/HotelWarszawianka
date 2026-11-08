@@ -123,12 +123,30 @@ const OFFICE := {
 	"office_zebra_s": [Vector2(-2742.0, 445.0), 14, 12.0],
 	"office_zebra_e": [Vector2(-2650.0, 425.0), 14, 12.0],
 	"office_hub": [Vector2(-2672.0, 366.0), 14, 12.0],
+	# F's ask (2026-11-07): the other five of the station's seven entrances (OSM refs 5, 6, 7, 2, 1),
+	# so every mouth has its crowd, not two.
+	"office_metro_5": [Vector2(-2878.4, 485.1), 10, 10.0],
+	"office_metro_6": [Vector2(-2890.5, 440.1), 10, 10.0],
+	"office_metro_7": [Vector2(-2845.5, 424.8), 10, 10.0],
+	"office_metro_2": [Vector2(-2771.8, 416.4), 10, 10.0],
+	"office_metro_1": [Vector2(-2786.5, 400.2), 10, 10.0],
 }
 const OFFICE_AT := Vector2(-2795.0, 442.0)
 const OFFICE_REACH := 230.0
 const OFFICE_ENDS := [["office_spire", Vector2(-2700.0, 195.0)], ["office_hub_b", Vector2(-2670.0, 565.0)]]
 ## Most walkers at once (before `amount`), and how far from their box the view wakes them.
-const OFFICE_MAX := 56
+const OFFICE_MAX := 104
+## F's ask (2026-11-07): waves at the crossings. A walker reaching a zebra's kerb on a red waits
+## there (a queue XING_QUEUE m deep) and the whole bunch crosses when it turns green, so the
+## flow comes in waves like the real rondo. Each zebra has a XING_CYCLE s cycle with XING_WALK s
+## of walk, offset by one of XING_PHASES (so the approaches take turns); nobody steps out in the
+## last XING_LATE s of the walk. All *guesses*; not the cars' signals (lane_graph.gd), whose
+## controllers are only built with the traffic.
+const XING_CYCLE := 60.0
+const XING_WALK := 24.0
+const XING_LATE := 5.0
+const XING_PHASES := 3
+const XING_QUEUE := 2.4
 const OFFICE_NEAR := 450.0
 ## A bubble from an office walker or group every OFFICE_GAP seconds on screen.
 const OFFICE_GAP := Vector2(12.0, 25.0)
@@ -137,10 +155,23 @@ const OFFICE_SHIRTS := ["#f2efe8", "#bcd3e6", "#8c9199", "#1c2a45", "#d9c9ad", "
 ## F's ask (2026-11-01, Marszałkowska street by street): people waiting on the tram platforms of
 ## Marszałkowska. A platform (centrum.json `platforms`) within STOP_REACH m of a road named
 ## `STOP_STREET` gets a site; its most people = area / STOP_AREA, at most STOP_MAX.
+## F's ask (2026-11-07, "people at tram and bus stops and so on"): every tram platform in the city
+## gets one (ids `stop_N`; Marszałkowska's keep `stop_marsz_N`), standing on the platform's top
+## (not sunk into a 0.9 m slab). Only crowds within ACTIVE_R of the view have figures, so the
+## city-wide sites cost a distance check each per tick. The bus stops' people are buses.gd's own
+## (they board the buses).
 const STOP_STREET := "Marszałkowska"
 const STOP_REACH := 25.0
 const STOP_AREA := 22.0
 const STOP_MAX := 12
+## F's LIM photos (2026-11-06): the Dworzec Centralny tram stop on Aleje Jerozolimskie, in front
+## of Centrum LIM, is full at all hours (the station across the street). Its platforms (centres
+## within STOP_CENTRALNY_REACH m of the point) get `stop` sites too, up to STOP_CENTRALNY_MAX
+## people each, never under STOP_CENTRALNY_FLOOR of that even at night.
+const STOP_CENTRALNY := Vector2(-1410.0, 660.0)
+const STOP_CENTRALNY_REACH := 40.0
+const STOP_CENTRALNY_MAX := 16
+const STOP_CENTRALNY_FLOOR := 0.4
 const DAWN_MIN := 20
 const DAWN_MAX := 40
 ## The night's minute log (--night-log).
@@ -313,6 +344,12 @@ const MAZOWIECKA := {
 	"club_maz_bank": [Vector2(-751.0, -460.0), 12, 12.0],
 	"club_maz_lombard": [Vector2(-760.0, -497.0), 10, 10.0],
 }
+## SOWA CLUB and CITY 25 (F's photos, 2026-11-06; landmarks.gd `_build_sowa`): night owls on the
+## pavement in front of the neon pavilion's terrace on Al. Jerozolimskie, on the `club` curve like
+## MAZOWIECKA, with their own lines (`sowa_club`, `talk`). id -> [spot, most people, radius].
+const SOWA := {
+	"club_sowa": [Vector2(56.6, 134.2), 10, 4.5],
+}
 ## The pub crowd's weekday factor *guess*, Monday first, by the night's day (01:00 Saturday is
 ## Friday's night): milder than the clubs', the strip is never empty after work.
 const PUB_WEEKDAY := [0.45, 0.45, 0.55, 0.75, 1.0, 1.0, 0.4]
@@ -332,6 +369,14 @@ const FIRST_SCENE := {
 	# Chmielna lies past the start box's edge).
 	"street_wiecha_north": [90.0, 69.0, 8, 8.0, true],
 }
+## The Palace of Culture's venues (F, 2026-11-07): Bar Studio's garden (landmarks.gd
+## pkin_studio_plan, sitters in its deck chairs on the jazz café's curve: a summer evening's
+## garden) and the evening audiences outside the Palace's stages (Landmarks.pkin_theatre_doors):
+## id -> most people. Same machinery as CHILL on the `theatre` curve (theatre_level).
+const STUDIO_ID := "bar_studio"
+const THEATRES := {"theatre_dramatyczny": 16, "theatre_studio": 12, "theatre_kinoteka": 14, "theatre_kongresowa": 22}
+## The stages' weekday factor *guess*, Monday first: most are dark on Mondays, full at weekends.
+const THEATRE_WEEKDAY := [0.15, 0.7, 0.75, 0.8, 1.0, 1.0, 0.85]
 ## The boulevard's reach (m) round a BULWARY spot: the view this near it is "on the boulevards".
 const BULWARY_R := 90.0
 ## KROWA 2.0, the milk bar in Norblin (our parody; a bar mleczny rebuilt as a start-up): it opens
@@ -367,6 +412,14 @@ const KRINGULA_MIN := 24
 ## tag "mieszane" (the people in it say the two words; no new system, trend-queue machinery).
 const MIESZANE := ["kebab_mieszane"]
 const MIESZANE_MAX := 14
+## DŻEMINI KEBAB (F, 2026-11-06; trend_job.gd "Dżemini"): the new kebab an AI agent carves, open
+## round the clock. Before Mrożulo's MLASK a handful wait (tag "dzemini_new"); after it (the save's
+## `keep` "dzemini_mlask", `dzemini_hype`) the city's longest line for good: DZEMINI_MAX by day,
+## DZEMINI_NIGHT 02:00-07:00, tag "dzemini" (the jokes about the agent).
+const DZEMINI_ID := "dzemini_kebab"
+const DZEMINI_MAX := 40
+const DZEMINI_NIGHT := 26
+const DZEMINI_NEW := 3
 ## The other hyped chains' morning lines (F's #5, huge queues everywhere): the green-café's pavilion
 ## and KOSZTA on Marszałkowska, 7:00-11:00 on a working day 16 and a half-length line later, tag "kolejka".
 const COFFEE := ["nerwo_pawilon", "koszta_marszalkowska"]
@@ -394,6 +447,9 @@ const CURVES := {
 			3: 0.25},
 	# *guess*: 20 walkers at the edges of 05-09, 40 at the peak
 	"dawn": {5: 0.5, 6: 1.0, 7: 1.0, 8: 0.4},
+	# *guess*: the Palace's stages (THEATRES): the audience gathers from 18:30 for a 19:00 curtain,
+	# smokes at the interval near 20:30 and pours out at 21:30-22:00
+	"theatre": {17: 0.1, 18: 0.55, 19: 0.9, 20: 0.35, 21: 0.6, 22: 0.8, 23: 0.15},
 }
 ## vision 4.5's weekday factor *guess*, Monday first, by the night's day (01:00 Saturday is
 ## Friday's night).
@@ -415,6 +471,8 @@ enum { STAND, SIT, BROAD }
 
 ## The "Mrożulo effect": trend site id -> the weekday it was reviewed on (mrozulo_boost).
 var mrozulo := {}
+## DŻEMINI KEBAB has had Mrożulo's MLASK (trend_job.gd sets it, from the save too): its line for good.
+var dzemini_hype := false
 var _weekday_now := 0
 var _month_now := 7
 ## The view's focus (the camera's), -> Vector3.
@@ -497,6 +555,10 @@ var _route_mode := "dawn"
 var _dawn_asked := false
 var _office_asked := false
 var _office_bubble := 0.0
+## The zebras (polylines) the office walkers may cross; a route's `xs` index into this.
+var _office_zebras: Array[PackedVector2Array] = []
+## Walker-ticks spent waiting at a red kerb (for the check).
+var held_ticks := 0
 var _night_key := -1
 var _last_hour := 0.0
 ## F's asks: Level 26's violet band (null until built: no tall roof there, or no map).
@@ -723,6 +785,13 @@ static func club_level(hour: float, weekday: int, month: int, rain: bool) -> flo
 			* (0.3 if rain else 1.0), 1.0)
 
 
+## The Palace stages' audience level 0..1: the `theatre` curve x THEATRE_WEEKDAY (no night-day
+## shift: the last show ends before midnight); the season runs all year, rain keeps a half under
+## the porticoes *guess*.
+static func theatre_level(hour: float, weekday: int, rain: bool) -> float:
+	return curve_at("theatre", hour) * float(THEATRE_WEEKDAY[clampi(weekday, 1, 7) - 1]) * (0.5 if rain else 1.0)
+
+
 ## First scene item 6: the start's street level 0..1 (FIRST_SCENE): the `street` curve, winter keeps
 ## 60 % (people still buy papers and coffee), rain a third *guess*.
 static func street_level(hour: float, month: int, rain: bool) -> float:
@@ -767,6 +836,16 @@ static func mieszane_queue(hour: float, weekday: int) -> Array:
 	if weekday == 5 or weekday == 6:
 		return [MIESZANE_MAX * 2 / 3, "mieszane"]
 	return [MIESZANE_MAX / 3, "mieszane"]
+
+
+## DŻEMINI KEBAB's line now: [people, tag]. Open round the clock; a few before the MLASK
+## ("dzemini_new"), the longest line in town after it ("dzemini"), a little shorter 02:00-07:00.
+static func dzemini_queue(hour: float, hype: bool) -> Array:
+	if not hype:
+		return [DZEMINI_NEW, "dzemini_new"]
+	if hour >= 2.0 and hour < 7.0:
+		return [DZEMINI_NIGHT, "dzemini"]
+	return [DZEMINI_MAX, "dzemini"]
 
 
 ## The hyped coffee chains' line now: [people, "kolejka"]. 7:00-18:00, the working-day morning rush
@@ -835,6 +914,14 @@ static func padel_queue(hour: float, weekday: int) -> Array:
 	if weekday >= 6 and hour >= 9.0 and hour < 13.0:
 		return [PADEL_MAX * 3 / 4, "padel"]
 	return [3, "padel"]
+
+
+## DŻEMINI KEBAB got Mrożulo's MLASK (trend_job.gd "Dżemini", or the save at start): its line for
+## good, rewritten at the next tick.
+func dzemini_mlask() -> void:
+	dzemini_hype = true
+	if by_id.has(DZEMINI_ID):
+		sites[by_id[DZEMINI_ID]]["next"] = 0.0
 
 
 ## The "Mrożulo effect" on a trend site (a Wiralek slot or KUKŁA) for today: its queue at its
@@ -913,7 +1000,7 @@ func setup(places: Array, data: Dictionary, seed_value := 1703) -> void:
 		var ll: Array = Storefronts.TRENDY[vid]
 		_add_site({"id": vid, "kind": "trend", "max": PISTACJA_MAX if vid == PISTACJA_ID else PADEL_MAX, "tag": "",
 				"at": Notebook.project(data.get("origin", [52.234, 21.024]), float(ll[0]), float(ll[1]))})
-	for vid: String in KUKLA + [PIURE_ID] + MILK + GELATO + KRINGULA + MIESZANE + COFFEE:
+	for vid: String in KUKLA + [PIURE_ID] + MILK + GELATO + KRINGULA + MIESZANE + COFFEE + [DZEMINI_ID]:
 		var ll: Array = Storefronts.HYPE[vid]
 		var vmax := KUKLA_MAX
 		if vid == PIURE_ID:
@@ -928,6 +1015,8 @@ func setup(places: Array, data: Dictionary, seed_value := 1703) -> void:
 			vmax = MIESZANE_MAX
 		elif vid in COFFEE:
 			vmax = COFFEE_MAX
+		elif vid == DZEMINI_ID:
+			vmax = DZEMINI_MAX
 		_add_site({"id": vid, "kind": "trend", "max": vmax, "tag": "",
 				"at": Notebook.project(data.get("origin", [52.234, 21.024]), float(ll[0]), float(ll[1]))})
 	var zak: Dictionary = Zaglebie.shop(ZAKWAS_TAG)
@@ -981,6 +1070,15 @@ func setup(places: Array, data: Dictionary, seed_value := 1703) -> void:
 	for kid: String in MAZOWIECKA:
 		var ks: Array = MAZOWIECKA[kid]
 		_add_site({"id": kid, "kind": "chill", "club": true, "sit": false, "at": ks[0], "max": int(ks[1]), "radius": float(ks[2])})
+	for sid: String in SOWA:
+		var ss: Array = SOWA[sid]
+		_add_site({"id": sid, "kind": "chill", "club": true, "sit": false, "at": ss[0], "max": int(ss[1]), "radius": float(ss[2]),
+				"talk": "sowa_club"})
+	var studio := Landmarks.pkin_studio_plan()
+	_add_site({"id": STUDIO_ID, "kind": "jazz_cafe", "at": studio["centre"], "max": (studio["seats"] as Array).size(), "plan": studio})
+	var doors := Landmarks.pkin_theatre_doors()
+	for tid: String in THEATRES:
+		_add_site({"id": tid, "kind": "chill", "theatre": true, "sit": false, "at": doors[tid], "max": int(THEATRES[tid]), "radius": 10.0})
 	for fid: String in FIRST_SCENE:
 		var fs: Array = FIRST_SCENE[fid]
 		_add_site({"id": fid, "kind": "chill", "street": true, "sit": bool(fs[4]), "at": first_scene_at(float(fs[0]), float(fs[1])),
@@ -1069,6 +1167,7 @@ func _setup_office(data: Dictionary) -> void:
 	# Both kerbs of every zebra crossing round the rondo: a route from an exit to the far kerb
 	# has to cross the road, so the walkers use the crossings.
 	var zi := 0
+	_office_zebras.clear()
 	for p: Dictionary in data.get("paths", []):
 		if str(p.get("k", "")) != "zebra":
 			continue
@@ -1076,6 +1175,10 @@ func _setup_office(data: Dictionary) -> void:
 		var a := Vector2(float(flat[0]), float(flat[1]))
 		var b := Vector2(float(flat[flat.size() - 2]), float(flat[flat.size() - 1]))
 		if a.distance_to(OFFICE_AT) <= OFFICE_REACH + 40.0:
+			var line := PackedVector2Array()
+			for i in range(0, flat.size() - 1, 2):
+				line.append(Vector2(float(flat[i]), float(flat[i + 1])))
+			_office_zebras.append(line)
 			to.append(["office_zebra_%d_a" % zi, a])
 			to.append(["office_zebra_%d_b" % zi, b])
 			zi += 1
@@ -1091,7 +1194,7 @@ static func first_scene_at(s: float, t: float) -> Vector2:
 	return FirstScene.FRAME_O + FirstScene.FRAME_S * s + FirstScene.FRAME_T * t
 
 
-## The tram platforms beside STOP_STREET: one `stop` site each (poly, centre, most people).
+## Every tram platform (poly, centre, most people, its top): one `stop` site each.
 func _add_stops(data: Dictionary) -> void:
 	var segs: Array = []
 	for r: Dictionary in data.get("roads", []):
@@ -1101,6 +1204,7 @@ func _add_stops(data: Dictionary) -> void:
 		for i in range(0, p.size() - 3, 2):
 			segs.append([Vector2(float(p[i]), float(p[i + 1])), Vector2(float(p[i + 2]), float(p[i + 3]))])
 	var idx := 0
+	var other := 0
 	for pl: Dictionary in data.get("platforms", []):
 		var flat: Array = pl.get("p", [])
 		if flat.size() < 6:
@@ -1119,9 +1223,32 @@ func _add_stops(data: Dictionary) -> void:
 				near = true
 				break
 		var cap := clampi(roundi(poly_area(flat) / STOP_AREA), 0, STOP_MAX)
-		if near and cap >= 3:
-			_add_site({"id": "stop_marsz_%d" % idx, "kind": "stop", "at": c, "poly": poly, "max": cap})
+		var centralny := not near and c.distance_to(STOP_CENTRALNY) <= STOP_CENTRALNY_REACH
+		if centralny:
+			cap = clampi(roundi(poly_area(flat) / STOP_AREA), 3, STOP_CENTRALNY_MAX)
+		if cap < 3:
+			continue
+		# The platform's walking top (map_builder's slab: the outline's lowest ground + h + 0.1).
+		var top := INF
+		if map != null:
+			for v in poly:
+				top = minf(top, map.terrain_height(v.x, v.y))
+			top += float(pl.get("h", 0.25)) + 0.1
+		var id := "stop_%d" % other
+		if near:
+			id = "stop_marsz_%d" % idx
+		elif centralny:
+			id = "stop_centralny_%d" % idx
+		var site := {"id": id, "kind": "stop", "at": c, "poly": poly, "max": cap}
+		if centralny:
+			site["floor"] = STOP_CENTRALNY_FLOOR
+		if top != INF:
+			site["top"] = top
+		_add_site(site)
+		if near or centralny:
 			idx += 1
+		else:
+			other += 1
 
 
 func _add_site(s: Dictionary) -> void:
@@ -1419,7 +1546,10 @@ func _place_stop(s: Dictionary) -> void:
 		for i in g:
 			var p := mid + Vector2.from_angle(TAU * i / g + yaw) * 0.5
 			if slots.size() < cap * 2 and Geometry2D.is_point_in_polygon(p, poly):
-				slots.append({"p": p, "yaw": yaw + rng.randf_range(-0.6, 0.6), "shirt": BRIGHT[rng.randi() % BRIGHT.size()]})
+				var slot := {"p": p, "yaw": yaw + rng.randf_range(-0.6, 0.6), "shirt": BRIGHT[rng.randi() % BRIGHT.size()]}
+				if s.has("top"):
+					slot["y"] = float(s["top"])
+				slots.append(slot)
 		if slots.size() >= cap * 2:
 			break
 	s["slots"] = slots
@@ -1921,9 +2051,11 @@ func tick(step: float) -> void:
 					lvl = pub_level(hour, weekday, month, rain)
 				if bool(s.get("club", false)):
 					lvl = club_level(hour, weekday, month, rain)
+				if bool(s.get("theatre", false)):
+					lvl = theatre_level(hour, weekday, rain)
 				want = roundi(int(s["max"]) * k * lvl)
 			"stop":
-				want = roundi(int(s["max"]) * k * stop_level(hour, weekday, rain))
+				want = roundi(int(s["max"]) * k * maxf(stop_level(hour, weekday, rain), float(s.get("floor", 0.0))))
 			"office":
 				want = office_count(int(s["max"]), hour, weekday, rain, k)
 			"meet":
@@ -1956,6 +2088,8 @@ func tick(step: float) -> void:
 					q = piure_queue(hour, weekday)
 				elif s["id"] == ZAKWAS_ID:
 					q = zakwas_queue(hour, weekday)
+				elif s["id"] == DZEMINI_ID:
+					q = dzemini_queue(hour, dzemini_hype)
 				elif trend.is_valid():
 					q = trend.call(str(s["id"]))
 				if int(q[0]) > 0 and int(mrozulo.get(str(s["id"]), -1)) == weekday:
@@ -1999,6 +2133,8 @@ func tick(step: float) -> void:
 			_office_talk(s, step, hour, rain)
 		elif near and kind == "meet":
 			_meet_talk(s, step)
+		elif near and kind == "chill" and s.has("talk"):
+			_site_talk(s, step)
 	_redraw()
 	_dawn(hour, weekday, live, look, step, eye2)
 	_office(hour, weekday, rain, step, eye2)
@@ -2145,6 +2281,19 @@ func _meet_talk(s: Dictionary, step: float) -> void:
 		return
 	s["chat_t"] = _rng.randf_range(CHAT_GAP.x, CHAT_GAP.y)
 	_say(_anchor(s, _rng.randi() % maxi(int(s["n"]), 1)), "", "car_meet", "", BUBBLE)
+
+
+## A chill spot with lines of its own (`talk`: SOWA's night owls): one every CHAT_GAP s on screen.
+func _site_talk(s: Dictionary, step: float) -> void:
+	if int(s["n"]) < 2:
+		return
+	if on_screen.is_valid() and not on_screen.call(_ground(s["door"]), 2.0):
+		return
+	s["chat_t"] = float(s.get("chat_t", 0.0)) - step
+	if float(s["chat_t"]) > 0.0:
+		return
+	s["chat_t"] = _rng.randf_range(CHAT_GAP.x, CHAT_GAP.y)
+	_say(_anchor(s, _rng.randi() % maxi(int(s["n"]), 1)), "", str(s["talk"]), "", BUBBLE)
 
 
 ## An office group's overheard line every 12-25 s while it is on screen (the `office` lines).
@@ -2308,6 +2457,7 @@ func _office(hour: float, weekday: int, rain: bool, step: float, eye2: Vector2) 
 	for w in walkers:
 		if float(w["s"]) + float(w["v"]) * (t - float(w["t"])) >= float(office_routes[int(w["r"])]["len"]):
 			_restart(w)
+	_gate_office(step)
 	_office_bubble -= step
 	if _office_bubble > 0.0:
 		return
@@ -2367,7 +2517,8 @@ func _finish_routes() -> void:
 			h.append(map.deck_height(dk[i], pts[i].x, pts[i].y) if map != null else 0.0)
 		if office and run < 40.0:
 			continue
-		made.append({"pts": pts, "h": h, "cum": cum, "len": run, "from": r["from"], "to": r["to"], "end": pts[pts.size() - 1]})
+		made.append({"pts": pts, "h": h, "cum": cum, "len": run, "from": r["from"], "to": r["to"], "end": pts[pts.size() - 1],
+				"xs": _route_crossings(pts, cum) if office else []})
 	if office:
 		office_routes = made
 		if log_on:
@@ -2386,6 +2537,57 @@ func _finish_routes() -> void:
 		_route_in["to"] = []  # nothing to walk: the dawn crowd stays home
 
 
+## The zebras a route walks over: [[from s, to s, zebra index], ...] in order along it, found
+## from the route's pieces that lie on a zebra and run along it.
+func _route_crossings(pts: PackedVector2Array, cum: PackedFloat32Array) -> Array:
+	var out: Array = []
+	for k in pts.size() - 1:
+		var d := pts[k + 1] - pts[k]
+		if d.length() < 0.5:
+			continue
+		var m := (pts[k] + pts[k + 1]) * 0.5
+		for zi in _office_zebras.size():
+			var z := _office_zebras[zi]
+			var best := INF
+			var along := 0.0
+			for j in z.size() - 1:
+				var cp := Geometry2D.get_closest_point_to_segment(m, z[j], z[j + 1])
+				var dd := cp.distance_to(m)
+				if dd < best:
+					best = dd
+					along = absf(d.normalized().dot((z[j + 1] - z[j]).normalized()))
+			if best < 1.3 and along > 0.9:
+				if not out.is_empty() and int(out[out.size() - 1][2]) == zi and absf(float(out[out.size() - 1][1]) - cum[k]) < 0.5:
+					out[out.size() - 1][1] = cum[k + 1]
+				else:
+					out.append([cum[k], cum[k + 1], zi])
+				break
+	return out
+
+
+## Is zebra `zi`'s walk phase on (and, for someone about to step out, not nearly over)?
+func xing_walk(zi: int, entering: bool) -> bool:
+	var ph := fposmod(t + float(zi % XING_PHASES) * XING_CYCLE / XING_PHASES, XING_CYCLE)
+	return ph < XING_WALK - (XING_LATE if entering else 0.0)
+
+
+## Holds the office walkers at the kerb of a zebra whose walk phase is off: their clock is put
+## back by `dt`, so they stand where they are and the next walkers pile up behind them.
+func _gate_office(dt: float) -> void:
+	for w in walkers:
+		var xs: Array = office_routes[int(w["r"])]["xs"]
+		var s := float(w["s"]) + float(w["v"]) * (t - float(w["t"]))
+		for x: Array in xs:
+			if s >= float(x[1]):
+				continue
+			if s < float(x[0]) - 0.8 - float(w["q"]):
+				break
+			if s < float(x[0]) + 0.3 and not xing_walk(int(x[2]), true):
+				w["t"] = float(w["t"]) + dt
+				held_ticks += 1
+			break
+
+
 func _spawn_walkers(count: int, spread: bool) -> void:
 	var left := count
 	while left > 0:
@@ -2395,7 +2597,7 @@ func _spawn_walkers(count: int, spread: bool) -> void:
 		var v := _rng.randf_range(0.9, 1.25)
 		for i in g:
 			walkers.append({"r": r, "s": s0 - i * 0.9, "t": t, "v": v, "off": (i - (g - 1) * 0.5) * 0.7 + _rng.randf_range(-0.1, 0.1),
-					"k": 0, "shirt": _walker_shirt(),
+					"k": 0, "shirt": _walker_shirt(), "q": _rng.randf() * XING_QUEUE,
 					"tr": _rng.randf() * 0.99})
 		left -= g
 

@@ -391,6 +391,9 @@ func _check_words(lines: Dictionary) -> void:
 		world.append(Storefronts.NAMED_STANDS[id][0])
 	for w: String in Storefronts.BILLBOARDS:
 		world.append(w)
+	# The landmarks' own signs (towers' crowns, Centrum LIM's tenants, the roof screens' adverts).
+	for w: String in Neon.LANDMARK_WORDS:
+		world.append(w)
 	for g: String in GROUPS:
 		_expect(lines.has(g), "dialogue.json: no group %s" % g)
 		for l: Array in lines.get(g, []):

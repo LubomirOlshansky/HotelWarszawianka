@@ -32,7 +32,8 @@ zebras, tram tracks, water, steps and decks. A rule is an artifact the player ca
     L3 double  a barrier that runs on top of another one (two OSM ways for one fence)
     L4 path    a barrier across a footway or a zebra (the path walks into a wall; really a gate)
     L5 stairs  a wall or fence that frames a flight of steps (an underpass or metro stair): drawn as
-               the 1.6-1.9 m grey slab, really a 1 m balustrade (street_pass B5, now city-wide)
+               the 1.6-1.9 m grey slab, really a 1 m balustrade (street_pass B5, now city-wide); a line
+               with OSM's height, material or fence type (tools/barrier_tags.py) keeps its mapped look
 
 tools/object_fixes.py applies the confident verdicts to the map; this file only measures, so
 it is also the before/after scorecard of every street. Deterministic, standard library only.
@@ -436,7 +437,7 @@ def audit_lines(d, w, keep):
                 continue
         # L5: most of a wall or fence lies within STAIR m of a flight of steps (and the line is styled
         # nothing yet): the stair's balustrade.
-        if k in ("wall", "fence") and L <= STAIR_RUN and not l.get("st"):
+        if k in ("wall", "fence") and L <= STAIR_RUN and not l.get("st") and not any(t in l for t in ("h", "m", "ft")):
             by = sum(1 for s in ss if w.near_any(w.steps, s, STAIR))
             if by >= 0.6 * len(ss):
                 out.append(("L5", "lines", i, k, round(mid[0], 1), round(mid[1], 1), f"{L:.1f} m"))

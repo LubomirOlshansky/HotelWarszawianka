@@ -12,14 +12,67 @@
       "colour": "#ff5fc8",
       "tracks": [
         {
-          "file": "res://audio/radio/nocna_fm/palma_de_gaulle.ogg",
+          "file": "res://audio/radio/nocna_fm/kb1_palma_de_gaulle_a.ogg",
           "title": "Palma de Gaulle'a",
           "artist": "Around Warsaw",
-          "seconds": 53.33,
-          "gain_db": -0.1,
-          "licence": "own: synthesised by tools/make_music.py (all rights reserved)",
-          "source": "palma_de_gaulle.wav"
+          "seconds": 132.84,
+          "gain_db": -2.25,
+          "licence": "ElevenLabs Creator, commercial",
+          "source": "KB1_palma_de_gaulle_a.mp3"
+        },
+        {
+          "file": "res://audio/radio/nocna_fm/kb2_neon_a.ogg",
+          "title": "Neon na Marszałkowskiej",
+          "artist": "Around Warsaw",
+          "seconds": 120.0,
+          "gain_db": -3.0,
+          "licence": "ElevenLabs Creator, commercial",
+          "source": "KB2_neon_a.mp3"
+        },
+        {
+          "file": "res://audio/radio/nocna_fm/kb5_sos_czosnkowy_a.ogg",
+          "title": "Sos czosnkowy",
+          "artist": "Around Warsaw",
+          "seconds": 119.62,
+          "gain_db": -3.2,
+          "licence": "ElevenLabs Creator, commercial",
+          "source": "KB5_sos_czosnkowy_a.mp3"
+        },
+        {
+          "file": "res://audio/radio/nocna_fm/kb5_sos_czosnkowy_b.ogg",
+          "title": "Sos czosnkowy (druga wersja)",
+          "artist": "Around Warsaw",
+          "seconds": 119.66,
+          "gain_db": -2.25,
+          "licence": "ElevenLabs Creator, commercial",
+          "source": "KB5_sos_czosnkowy_b.mp3"
+        },
+        {
+          "file": "res://audio/radio/nocna_fm/kb6_wisla_w_rozu_b.ogg",
+          "title": "Wisła w różu",
+          "artist": "Around Warsaw",
+          "seconds": 119.13,
+          "gain_db": -0.95,
+          "licence": "ElevenLabs Creator, commercial",
+          "source": "KB6_wisla_w_rozu_b.mp3"
+        },
+        {
+          "file": "res://audio/radio/nocna_fm/kb8_mhz_b.ogg",
+          "title": "87,3 MHz",
+          "artist": "Around Warsaw",
+          "seconds": 120.0,
+          "gain_db": -3.3,
+          "licence": "ElevenLabs Creator, commercial",
+          "source": "KB8_mhz_b.mp3"
         }
+      ],
+      "encode": {
+        "kbps": 64
+      },
+      "jingles": [
+        "res://audio/radio/nocna_fm/jingles/j1.ogg",
+        "res://audio/radio/nocna_fm/jingles/j2.ogg",
+        "res://audio/radio/nocna_fm/jingles/j3.ogg"
       ]
     },
     {
@@ -46,14 +99,66 @@
       "colour": "#b98cff",
       "tracks": [
         {
-          "file": "res://audio/radio/mordor_fm/mordor_mall.ogg",
-          "title": "Mordor Mall Muzak",
+          "file": "res://audio/radio/mordor_fm/md1_open_space_a.ogg",
+          "title": "Open Space",
           "artist": "Around Warsaw",
-          "seconds": 41.74,
-          "gain_db": -0.8,
-          "licence": "own: synthesised by tools/make_music.py (all rights reserved)",
-          "source": "mordor_mall.wav"
+          "seconds": 115.36,
+          "gain_db": -1.15,
+          "licence": "ElevenLabs Creator, commercial",
+          "source": "MD1_open_space_a.mp3"
+        },
+        {
+          "file": "res://audio/radio/mordor_fm/md4_deadline_a.ogg",
+          "title": "Deadline",
+          "artist": "Around Warsaw",
+          "seconds": 118.25,
+          "gain_db": -1.2,
+          "licence": "ElevenLabs Creator, commercial",
+          "source": "MD4_deadline_a.mp3"
+        },
+        {
+          "file": "res://audio/radio/mordor_fm/md4_deadline_b.ogg",
+          "title": "Deadline (druga wersja)",
+          "artist": "Around Warsaw",
+          "seconds": 119.54,
+          "gain_db": -2.2,
+          "licence": "ElevenLabs Creator, commercial",
+          "source": "MD4_deadline_b.mp3"
+        },
+        {
+          "file": "res://audio/radio/mordor_fm/md5_winda_a.ogg",
+          "title": "Winda na 30. piętro",
+          "artist": "Around Warsaw",
+          "seconds": 117.27,
+          "gain_db": -3.5,
+          "licence": "ElevenLabs Creator, commercial",
+          "source": "MD5_winda_a.mp3"
+        },
+        {
+          "file": "res://audio/radio/mordor_fm/md6_sluzewiec_b.ogg",
+          "title": "Służewiec 3:00",
+          "artist": "Around Warsaw",
+          "seconds": 119.48,
+          "gain_db": -2.3,
+          "licence": "ElevenLabs Creator, commercial",
+          "source": "MD6_sluzewiec_b.mp3"
+        },
+        {
+          "file": "res://audio/radio/mordor_fm/md8_fajrant_a.ogg",
+          "title": "Fajrant",
+          "artist": "Around Warsaw",
+          "seconds": 115.76,
+          "gain_db": -2.15,
+          "licence": "ElevenLabs Creator, commercial",
+          "source": "MD8_fajrant_a.mp3"
         }
+      ],
+      "encode": {
+        "kbps": 64
+      },
+      "jingles": [
+        "res://audio/radio/mordor_fm/jingles/j1.ogg",
+        "res://audio/radio/mordor_fm/jingles/j2.ogg"
       ]
     },
     {

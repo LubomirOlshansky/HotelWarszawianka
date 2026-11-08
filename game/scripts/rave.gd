@@ -56,6 +56,9 @@ const SPOTS := [
 	{"id": "plaza", "name": "Rave na plaży", "ll": [52.2378, 21.0437], "night": false,
 			"where": ["na plaży po praskiej stronie", "on the Praga-side beach"]},
 ]
+## Ziomek's block (story_quests.gd's start spot, F 2026-11-07): Osiedle Za Żelazną Bramą, the
+## big slab blocks by Hala Mirowska; drive there in the evening and he comes out to talk.
+const HOME_LL := [52.2366, 20.9983]
 ## Smoła, the club on Smolna (places.json `smola`): Ziomek's other night out, the Berlin-style door.
 const SMOLA := {"id": "smola", "name": "Smoła", "ll": [52.2333, 21.0268]}
 ## The door's questions (three a night, shuffled; "pw" is the password LEKTI gave, asked only at a
@@ -192,6 +195,8 @@ var meet := {}
 ## "rave" (after LEKTI, the secret spot) or "smola" (the club); the next call's kind.
 var kind := ""
 var next_kind := "smola"
+## Ziomek's block on the map: a kerb ({at, side, street...}), or {}.
+var home := {}
 ## Smoła found on the map: {at: Vector3, door: kerb}, or {}.
 var smola := {}
 ## The door: the three questions ([q, answers: [[pl, en]] ×3, right index]), the one asked now
@@ -242,6 +247,7 @@ func setup(world: Node3D, seed_value := -1) -> void:
 			day_spot = i
 	if graph != null:
 		smola = find_club(graph, map, origin)
+		home = kerb_near(graph, Notebook.project(origin, float(HOME_LL[0]), float(HOME_LL[1])), 120.0)
 	var nights := night_spots()
 	if not nights.is_empty():
 		night_spot = nights[_rng.randi() % nights.size()]
@@ -898,6 +904,32 @@ func ring(k := "") -> bool:
 	Access.buzz(60, 0.6)
 	_log("call ringing")
 	return true
+
+
+## Met in person at his block (story_quests.gd: he came out, the player said WCHODZĘ): no call, no
+## pickup; he gets in and the night goes on as after a pickup (the meeting point, the door).
+func meet_in_person() -> bool:
+	if spots.is_empty() or graph == null or state not in [State.IDLE, State.WAIT_CALL] or not vehicle.is_valid():
+		return false
+	if state == State.IDLE or kind != "rave":
+		password = PASSWORDS[_rng.randi() % PASSWORDS.size()]
+		heard = false
+	kind = "rave"
+	next_kind = "smola"
+	quest_spot = night_spot
+	var p: Vector3 = vehicle.call()[0]
+	pickup = {"at": p, "side": p, "street": home.get("street", "")}
+	_calls_were = missions.paused if missions != null else false
+	if missions != null:
+		missions.paused = true
+	_log("met Ziomek in person at his block")
+	_board()
+	return true
+
+
+## Idle: no call ringing, no night under way (a questline may start now).
+func idle() -> bool:
+	return state in [State.IDLE, State.WAIT_CALL]
 
 
 ## He asks: the pickup at his block; JADĘ! / NIE DZIŚ.

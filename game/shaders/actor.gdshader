@@ -8,7 +8,7 @@ shader_type spatial;
 // beat with their halos, glow.gdshader); 8 = the player's car (car.gd, the look loop): its own
 // colour, lit from within at night by UV.y (a hero material: never darker than the road
 // under it), a little brighter on the faces that look up. UV.y = +1 / -1 marks the left /
-// right leg of a pedestrian, which swing as they walk. Under the street lamps (night.gdshaderinc; main.gd
+// right leg of a pedestrian, which swing as they walk (not when INSTANCE_CUSTOM.a >= 2: standing). Under the street lamps (night.gdshaderinc; main.gd
 // hands this material the baked light map) they catch the light at night.
 //
 // Loop 2c (car models): a traffic family's mesh (models.gd family()) holds up to four shapes of
@@ -71,7 +71,7 @@ void vertex() {
 	if (part == 0) {
 		c *= srgb_to_linear(INSTANCE_CUSTOM.rgb);
 	} else if (part == 2) {
-		c = srgb_to_linear(TROUSERS[int(clamp(INSTANCE_CUSTOM.a * 4.0, 0.0, 3.0))]);
+		c = srgb_to_linear(TROUSERS[int(clamp(fract(INSTANCE_CUSTOM.a) * 4.0, 0.0, 3.0))]);
 	} else if (part == 3) {
 		glow = vec3(1.0, 0.9, 0.7) * 3.0;
 	} else if (part == 4) {
@@ -92,7 +92,8 @@ void vertex() {
 		glow = (c + vec3(0.0, 0.028, 0.008)) * UV.y * (0.75 + 0.25 * max(NORMAL.y, 0.0));
 	}
 	tint = c;
-	if (walk > 0.0 && abs(UV.y) > 0.5) {
+	// A pedestrian's alpha of 2 or more (trains.gd STAND_A): one waiting on a platform, standing still.
+	if (walk > 0.0 && abs(UV.y) > 0.5 && INSTANCE_CUSTOM.a < 2.0) {
 		float phase = TIME * 9.0 + float(INSTANCE_ID) * 1.7;
 		VERTEX.z += UV.y * sin(phase) * walk * clamp(1.0 - VERTEX.y / 0.9, 0.0, 1.0);
 	}

@@ -33,8 +33,10 @@ Verdicts, per object_audit.py rule:
     P8 on steps, P9 lone signal: CHECK only (an amphitheatre's seats, a mid-block crossing's lights).
 
 Barriers with an Operation Unslop override (game/data/road_objects.json) are never touched, so
-their stable ids stay. bake_osm.py calls apply(out) last, after road_smooth. Re-run
-tools/bake_sectors.py and bake_city.gd after it. Deterministic, standard library only.
+their stable ids stay. bake_osm.py calls apply(out) after road_smooth and road_fixes, before
+bus_stops (it paints at the shelters this leaves). On a baked map run, in order: this,
+tools/bus_stops.py, tools/bake_street_details.py, tools/bake_park_details.py, tools/bake_sectors.py,
+then bake_city.gd. Deterministic, standard library only.
 """
 import json
 import math

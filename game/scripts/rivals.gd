@@ -249,6 +249,8 @@ enum State { CRUISE, PROMPT, CHALLENGE, COUNTDOWN, RACE, RESULT }
 
 var graph: LaneGraph
 var traffic: Traffic
+## Nocny spot (street_meet.gd): no challenge while the club's night runs.
+var meet: Node
 var hud: CanvasLayer
 var bubbles: Control
 var missions: Node
@@ -906,7 +908,7 @@ func _look_for_challenge() -> void:
 
 ## Close behind the rival (within 15 m, roughly in its lane), both moving.
 func _can_challenge(i: int) -> bool:
-	if flying or missions.has_target() or (jobs != null and jobs.busy()):
+	if flying or missions.has_target() or (jobs != null and jobs.busy()) or (meet != null and meet.busy()):
 		return false
 	var d = _drivers[i]
 	var rel := Vector2(d.pos.x - car.global_position.x, d.pos.z - car.global_position.z)

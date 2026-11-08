@@ -147,6 +147,7 @@ func _check_screen(screen: Vector2i) -> int:
 	_check_bubble_sweep(hud, bubbles, screen, tag)
 	_check_ticker_slide(hud, tag)
 	_check_target_pointer(hud, bubbles, screen, tag)
+	_check_finger_hint(hud, bubbles, tag)
 	# The longest call the map gives (the longest hospital name), Polish over English as in missions.gd.
 	var call_pl := "Ranny rowerzysta: Aleksandra Krywulta. Wystarczy auto albo helikopter.\nSzpital: Samodzielny Szpital Kliniczny im. prof. Witolda Orłowskiego · czas 3:40"
 	var call_en := "A cyclist is hurt: the car or the helicopter will do. Get them to the hospital in 3:40."
@@ -310,16 +311,15 @@ func _check_screen(screen: Vector2i) -> int:
 			bubbles.layout()
 			_check_state(hud, bubbles, "%s %s%s" % [tag, state, " + " + mode if mode != "" else ""])
 			if mode == "left-handed" and state in ["car, Point", "car, Classic", "helicopter"]:
-				# The pressable discs all on the left half; the credit line on the right.
+				# The pressable discs all on the left half; the credit line is gone (credits page in Settings).
 				var tt: Dictionary = hud.touch_targets()
 				for k in ["brake", "gas", "horn", "climb", "sink"]:
 					if tt.has(k) and (tt[k] as Rect2).get_center().x > screen.x * 0.5:
 						problems.append("%s %s + left-handed: %s is on the right" % [tag, state, k])
 				if not hud.call("_stick_side", screen.x * 0.8, float(screen.x)) or hud.call("_stick_side", screen.x * 0.2, float(screen.x)):
 					problems.append("%s %s + left-handed: the stick's side is not the right" % [tag, state])
-				var nr: Dictionary = hud.named_rects()
-				if nr.has("credit") and (nr["credit"] as Rect2).get_center().x < screen.x * 0.5:
-					problems.append("%s %s + left-handed: the credit line is on the left, under the pedals" % [tag, state])
+				if hud.named_rects().has("credit"):
+					problems.append("%s %s: the credit line is back on the main screen" % [tag, state])
 			# Landmark card fix: with the ticker up and the car parked, a tapped landmark's card
 			# (and a note card) must be on screen at once, not waiting for room, and not over the car.
 			if state in ["landmark card", "note card"]:
@@ -951,9 +951,11 @@ func _check_target_pointer(hud: CanvasLayer, bubbles: Control, screen: Vector2i,
 	var centre := Vector2(screen) * 0.5
 	var into := 0
 	var under := 0
-	for k in 72:
-		var dir := Vector2.from_angle(TAU * k / 72.0)
-		hud.set_target(centre + dir * float(screen.x) * 2.0, "1888 m", Color("#ff9a3c"), true)
+	# PT-27 (2026-11-07): both schemes (Classic's BRAKE sits left of GAS) and a job's long label.
+	for k in 144:
+		hud.set_scheme(0 if k < 72 else 1)
+		var dir := Vector2.from_angle(TAU * (k % 72) / 72.0)
+		hud.set_target(centre + dir * float(screen.x) * 2.0, "1888 m" if k % 2 == 0 else "KEBAB 1948 m", Color("#ff9a3c"), true)
 		var e: Dictionary = hud.edge_pointer()
 		if e.is_empty():
 			continue
@@ -977,8 +979,9 @@ func _check_target_pointer(hud: CanvasLayer, bubbles: Control, screen: Vector2i,
 			if (n in ["minimap", "wallet", "zoom_in", "zoom_out"] or n.begins_with("pedal")) and (fixed[n] as Rect2).intersects(edge_box):
 				under += 1
 				if under <= 2:
-					problems.append("%s: the edge arrow %s pointing %d° sits under %s %s" % [tag, _pts(edge_box, pt), k * 5, n, _pts(fixed[n], pt)])
+					problems.append("%s: the edge arrow %s pointing %d° (scheme %d) sits under %s %s" % [tag, _pts(edge_box, pt), (k % 72) * 5, k / 72, n, _pts(fixed[n], pt)])
 	# A bubble right where the left edge arrow points: the arrow moves along the edge, clear of it.
+	hud.set_scheme(0)
 	hud.set_target(Vector2(-float(screen.x), centre.y), "297 m", Color("#ff9a3c"), true)
 	var before: Dictionary = hud.edge_pointer()
 	if not before.is_empty():
@@ -991,6 +994,31 @@ func _check_target_pointer(hud: CanvasLayer, bubbles: Control, screen: Vector2i,
 			if r.intersects(box):
 				problems.append("%s PT-10: the edge arrow %s stays under a bubble %s" % [tag, _pts(box, pt), _pts(r, pt)])
 	hud.set_target(Vector2.ZERO, "", Color.WHITE, false)
+	bubbles.clear()
+	hud.clear_all()
+
+
+## PT-26 (2026-11-07, run 20261106-004005): the roadworks sign's bubble by the start covered the
+## ghost finger's steering hint. With the finger on, a bubble whose speaker stands right under the
+## hint (both schemes) keeps off it, and the hint's room goes when the finger does.
+func _check_finger_hint(hud: CanvasLayer, bubbles: Control, tag: String) -> void:
+	for s in [0, 1]:
+		hud.clear_all()
+		bubbles.clear()
+		hud.set_scheme(s)
+		hud.ghost_finger(true)
+		var hint: Rect2 = hud.finger_hint_rect()
+		if not hud.panel_rects().has(hint):
+			problems.append("%s PT-26: scheme %d: the ghost finger's hint %s takes no room" % [tag, s, _pts(hint, hud.pt)])
+		_say(bubbles, "", hint.get_center() + Vector2(0.0, hint.size.y), "MARSZAŁKOWSKA: REMONT · ETAP 47 Z 312", "MARSZAŁKOWSKA ROADWORKS · PHASE 47 OF 312")
+		bubbles.layout()
+		for r: Rect2 in bubbles.rects:
+			if r.intersects(hint):
+				problems.append("%s PT-26: scheme %d: a bubble %s covers the steering hint %s" % [tag, s, _pts(r, hud.pt), _pts(hint, hud.pt)])
+		hud.ghost_finger(false)
+		if hud.panel_rects().has(hint):
+			problems.append("%s PT-26: the hint's room stays after the finger goes" % tag)
+	hud.set_scheme(0)
 	bubbles.clear()
 	hud.clear_all()
 
