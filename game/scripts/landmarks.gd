@@ -171,9 +171,9 @@ const TOWERS := [
 			"skins": {"#c1a48b": [S_PUNCHED, "#e4e0d6"], "#647887": [S_BANDS, "#8aa1ad"]}},
 	{"key": "platinum_b", "osm": "Platinum Tower B", "style": S_RIBBON, "glass": "#6b7f8e", "roof": "#c4c8c8", "mapped": true,
 			"skins": {"#c1a48b": [S_PUNCHED, "#e4e0d6"], "#647887": [S_BANDS, "#8aa1ad"]}},
-	# Pekao Tower on Grzybowska (T37, 2026-11-08): beige stone with punched windows over a green
+	# The bank tower on Grzybowska (T37, 2026-11-08; OSM name kept for the lookup only): beige stone with punched windows over a green
 	# glass grid on the lower floors, the bank's name (the parody) on the crown, grey glass podium.
-	{"key": "pekao", "osm": "Pekao Tower", "style": S_PUNCHED, "glass": "#d9d2c2", "roof": "#a9a69c", "mapped": true,
+	{"key": "pepeo_tower", "osm": "Pekao Tower", "style": S_PUNCHED, "glass": "#d9d2c2", "roof": "#a9a69c", "mapped": true,
 			"sign": "PEPEO ŻUBR",
 			"skins": {"#ffffff": [S_PUNCHED, "#d9d2c2"], "#2c4c50": [S_GRID, "#4f7a76"], "#545a56": [S_DARK, "#545a56"],
 					"": [S_GRID, "#6f7c80"]}},
@@ -309,7 +309,7 @@ const INFO := {
 	"ilmet": ["Ilmet", "103 m.", "103 m."],
 	"platinum_a": ["Platinum Tower A", "83 m kremowego kamienia i szklanych balkonów.", "83 m of cream stone and glass balconies."],
 	"platinum_b": ["Platinum Tower B", "Bliźniak A: kamienne narożniki, szklane balkony.", "A's twin: stone corners, glass balconies."],
-	"pekao": ["Pekao Tower", "Beżowy kamień nad zielonym szkłem, na Grzybowskiej.", "Beige stone over green glass, on Grzybowska."],
+	"pepeo_tower": ["Wieża PEPEO ŻUBR", "Beżowy kamień nad zielonym szkłem, na Grzybowskiej.", "Beige stone over green glass, on Grzybowska."],
 	"lucka": ["Łucka City", "Biały wieżowiec mieszkalny przy Łuckiej 15, 100 m, schodkami w dół do Łuckiej i do Prostej. Na dachu INTERBRUK.",
 			"A white residential tower at Łucka 15, 100 m, stepping down to Łucka and to Prosta. INTERBRUK on the roof."],
 	"prosta32": ["Prosta 32",

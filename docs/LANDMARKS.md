@@ -219,7 +219,7 @@ Checks: `check_landmarks.gd` runs on the full map for EVERY site that has a card
 | Central Tower | S_DARK | - | - |
 | Ilmet | S_BANDS | brown glass | - |
 | Platinum Tower A / B | S_PUNCHED corners, S_BANDS glass (`skins`, top-50 T36, 2026-11-08) | #e4e0d6 / #8aa1ad | - |
-| Pekao Tower | S_PUNCHED stone, S_GRID green glass (`skins`, top-50 T37, 2026-11-08) | #d9d2c2 / #4f7a76 | PEPEO ŻUBR |
+| PEPEO ŻUBR tower, Grzybowska (`pepeo_tower`) | S_PUNCHED stone, S_GRID green glass (`skins`, top-50 T37, 2026-11-08) | #d9d2c2 / #4f7a76 | PEPEO ŻUBR |
 | Widok Towers | S_GRID (green glass #5d8478, white grid; Mac photo check 2026-11-01) | - | - |
 | PZU Tower | S_RIBBON (pale green-blue glass #8fb5bd; 2026-11-01, spec `pzu_jm.md`) | - | - |
 | JM Tower | S_FINS on dark navy glass, mapped grey pilasters (spec `pzu_jm.md`) | - | - |

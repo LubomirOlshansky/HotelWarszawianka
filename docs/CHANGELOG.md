@@ -31,7 +31,7 @@ someone writes its lines.
 - Two towers by Rondo ONZ rebuilt from photos: Q22 in dark green glass under a graphite crown with a red-and-white mast, and Rondo 1 with its rounded silver front, the dark slab with its name and a glass screen over the roof instead of the tall cage.
 - The Warsaw Trade Tower now has its beige stone wall of windows, the dark blue glass drum and the silver crown, and the Grand Theatre (Teatr Wielki) its ten columns on the arched ground storey, the carved pediment and Apollo's bronze four-horse chariot on top.
 - Spektrum Tower has its blue glass drum in white bands, the dark gridded slabs and the pale green glass ring at the top; the Presidential Palace has its arcade, columns and stone figures along the roof instead of a made-up portico, and Holy Cross's towers end in copper lanterns and slim spires.
-- The Platinum Towers have their cream stone corners and glass balconies, and the Pekao Tower on Grzybowska its beige stone over green glass with the bank's name on top.
+- The Platinum Towers have their cream stone corners and glass balconies, and the PEPEO ŻUBR bank tower on Grzybowska its beige stone over green glass with its name on top.
 
 ## 2026-11-08
 - Three more towers by the Palace look like themselves: the InterContinental stands over its huge open gap, glowing white at night, under a sloping roof; the Warsaw Financial Centre is a white tower wrapped round a teal glass one with a red-and-white mast; and Hotel Polonia Palace has its tall zinc roof, the pediment with the round window and its gold name.
