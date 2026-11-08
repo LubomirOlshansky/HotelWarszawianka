@@ -10,6 +10,9 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-07
+- The cycle bridges under Most Łazienkowski no longer float in the air: they hang on steel brackets from the bridge's box girders.
+- Most Śląsko-Dąbrowski's middle lanes are marked as the real tram-and-bus lane: solid white lines and BUS painted between the rails.
+- Three bridges rebuilt from photos: Most Śląsko-Dąbrowski stands on old stone piers under arched steel girders with its red railing, Most Łazienkowski on pairs of broad concrete piers, and Most Świętokrzyski's median is grey concrete.
 - Bus stops look like Warsaw's: the white zigzag on the road where the bus pulls in, the yellow line along the kerb, red-framed glass shelters with a lit poster and the red stop pole with its timetable, and shorter 12 m buses now run beside the long bendy ones.
 - Stacja Muzeum, Nocny Targ and Kolejowa: the old Warszawa Główna hall has its arched cream front with gold letters, steam engines on red wheels and green tank engines stand on the museum's sidings, the night market glows under two rusty platform roofs with coloured tubes and painted benches, and Kolejowa's old railway warehouses, the pinball museum and the teal club line the street.
 - Wola by Kolejowa looks like itself: the old drug works' plot is a busy building site with bare concrete floors, three cranes and stacks of materials, the estate's blocks have their cream walls and brown window frames, and the two tall towers wear their orange and gold frames.
