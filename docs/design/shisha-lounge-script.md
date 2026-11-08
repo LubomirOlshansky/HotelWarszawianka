@@ -67,13 +67,11 @@ On arrival at the court ring: Ivan: „O, widzisz go? Ten w opasce." / "See him?
 ## 3. Bogdan at the court
 
 Bogdan walks up (bubble), tag `board_bogdan`:
-1. „Siema! Pół godziny forhendu o ósmej rano i teraz chcę tylko dymu, który pachnie arbuzem." / "Hey! Half an hour of forehand at eight this morning and now I only want smoke that smells of watermelon."
+1. „Siema!" (a wave, the racket over his shoulder)
 2. „Mam remis, ale w szishy jestem mistrzem Woli." / "I have a draw, but I'm the Wola shisha champion."
 3. „Trener mówi: oddychaj głęboko. Zrobiłem z tego plan treningowy." / "My coach says: breathe deeply. I made it a training plan."
 4. „Najlepszy serw dnia był do kelnera w szatni." / "My best serve of the day was to the waiter in the locker room."
 
-Ivan: „Bogdan, spokojnie. Dziś bez tenisa." / "Bogdan, easy. No tennis tonight."
-Bogdan: „Spokojnie? Spokojnie to ja gram w niedzielę." / "Easy? I only play easy on Sundays."
 
 ## 4. Leg 2: the vote (three rounds, three cards)
 
@@ -90,7 +88,7 @@ Banter before the card (tag `flavour_2`):
 Buttons: ARBUZ Z MIĘTĄ (Ivan's) / LODY Z OGÓRKA (Bogdan's) / MISTRZ WYBIERZE (neutral: both hearts +1, the master's mix later).
 Reactions:
 - Ivan wins: IVAN „Widzisz? Spokojny wybór." BOGDAN „Spokojny wybór to bank ma w nazwie." / "See? Calm choice." "A calm choice is what a bank has in its name."
-- Bogdan wins: BOGDAN „Mówiłem! Ogórek!" IVAN „Wezmę herbatę." / "I told you! Cucumber!" "I'll have tea."
+- Bogdan wins: BOGDAN „Mówiłem! Ogórek!" IVAN „Wezmę piwo." / "I told you! Cucumber!" "I'll have a beer."
 - Master: IVAN „Zrzucamy na mistrza." BOGDAN „Mistrz zawsze mówi: 'zaufaj dymowi'." / "We leave it to the master." "The master always says: trust the smoke."
 
 ### Round 2: the strength (1 to 5), Bogdan against Ivan
@@ -141,7 +139,11 @@ Button: NA GÓRĘ / UP.
 ## 7. The lounge
 
 Cut to the room (rock wall, olive trees, velvet banquettes, the Palace in the window).
-KELNER (bubble) as you sit: „Dobry wieczór. Wodę? Herbatę? Czy od razu pana Dymka?" / "Good evening. Water? Tea? Or straight to Mr Dymek?"
+KELNER (bubble) as you sit: „Dobry wieczór. Co do picia, zanim przyjdzie pan Dymek?" / "Good evening. Something to drink before Mr Dymek arrives?"
+- IVAN: „Piwo. Jasne, zimne. Bez filozofii." / "A beer. Pale, cold. No philosophy."
+- BOGDAN: „Herbata. Zielona, bez cukru." / "Tea. Green, no sugar."
+- IVAN: „Herbata? Przed szishą? Jesteś pewien?" BOGDAN: „Herbata to paliwo. Piwo to rozmowa." / "Tea? Before shisha? Are you sure?" "Tea is fuel. Beer is conversation."
+- KELNER (to you): „A dla kierowcy woda z miętą. Na koszt lokalu." / "And for the driver, mint water. On the house."
 Tap lines (tap a person, as Smoła):
 - Kelner: „Z okna widać Pałac. Z Pałacu widać, jak palimy." / "From the window you see the Palace. From the Palace, they see us smoking."
 - Barman: „Mamy siedemdziesiąt smaków. Siedem jest dobrych." / "We have seventy flavours. Seven are good."
@@ -177,7 +179,7 @@ Button: ZACZYNAMY / LET'S START.
 
 **Step 3, the first draw.** Hold and release in the band; a ring of smoke is a bonus.
 - Clean: „Kółko. Kółko to znak jakości." / "A ring. A ring is a sign of quality."
-- Cough (Ivan, if strength 4-5 without two hoses, or a late tap): IVAN „Kh... kh... okno, proszę okno." BOGDAN „Mówiłem, że lekka." IVAN „Mówiłeś, że mocna." / "Kh... kh... a window, please." "I told you light." "You told me strong."
+- Cough (Ivan, if strength 4-5 without two hoses, or a late tap): IVAN „Kh... kh... okno, proszę okno. I piwo." BOGDAN „Weź mojej herbaty." IVAN „Wolę piwo." / "Kh... kh... a window, please. And a beer." "Have my tea." "I'd rather have the beer."
 
 **Result card** (hearts Ivan + Bogdan + bonus, 0-9):
 - 7-9: MISTRZ „Dawno nie było takiego miksu. Zapisuję go w księdze." IVAN „Spokojnie, a jednak." BOGDAN „6:0, 6:0." / "It's been a while since a mix like this. I'm writing it in the book." "Calm, and yet." "6-0, 6-0."
@@ -197,13 +199,14 @@ Card: MISTRZ „Fajka gotowa. Proszę się rozsiadać." / "The pipe is ready. Pl
 3. **The exhale**: a soft white cloud leaves the friend's mouth (8-12 sprites, scale up, alpha down), drifts and rises in a slow spiral. Bogdan's clouds are big and thick, Ivan's thin and short (strong against light).
 4. **Your tap makes a ring**: a smoke ring (a torus-like quad) leaves the player's seat, expands as it rises, wobbles and dissolves; a clean ring (tap in the beat band) is slower and larger, Bogdan applauds.
 5. **The haze**: the ceiling layer thickens over the 20 s, track spotlights show light shafts through it (an additive cone), and the haze slides slowly towards the window glass.
-6. **A cough**: now and then Ivan coughs (a puff plus a small shake) and Bogdan hands him water; with the two-hose pipe he doesn't.
+6. **A cough**: now and then Ivan coughs (a puff plus a small shake) and Bogdan slides his tea across; with the two-hose pipe he doesn't.
 7. **The waiter's coal change**: a spark shower from the tongs, a bright puff on the new coal.
 
 Lines:
 - IVAN: „No, to teraz możemy porozmawiać." / "Now we can talk."
 - BOGDAN: „Ja bym chciał podziękować mojemu trenerowi i mojemu kolanu." / "I'd like to thank my coach and my knee."
-- IVAN: „Kierowca pije herbatę. Mistrz, herbatę dla kierowcy." MISTRZ: „Z miętą. Prosto z Wilanowa." / "The driver drinks tea. Master, tea for the driver." "With mint. Straight from Wilanów."
+- IVAN (raising his beer): „Szisza bez piwa to jak tenis bez siatki." BOGDAN (with his tea): „A szisza z piwem to jak tenis z dwiema piłkami." / "Shisha without beer is like tennis without a net." "And shisha with beer is like tennis with two balls."
+- MISTRZ (to you): „A dla kierowcy jeszcze woda z miętą. Prosto z Wilanowa." / "And for the driver more mint water. Straight from Wilanów."
 - BOGDAN (a long exhale): „Patrz, chmura jak Pałac." IVAN: „Pałac ma wyższą wieżę." / "Look, a cloud like the Palace." "The Palace has a taller tower."
 - IVAN (a ring rises): „Kółko! Dawaj, dawaj, drugie." BOGDAN: „To jest lepsze niż mój serw." / "A ring! Go on, a second one." "This is better than my serve."
 - BOGDAN: „Patrz, Pałac świeci." IVAN: „Pałac zawsze świeci. To jego praca." / "Look, the Palace is lit." "The Palace is always lit. That's its job."
