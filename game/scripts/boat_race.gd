@@ -101,18 +101,39 @@ const BARGE_WAKE := 0.8      # m
 const OWN_WAKE := 0.7        # s: a boat does not feel its own newest rings
 
 ## The rivals: name, kind, paint, shirt, hair, line offset share, mistake chance a ring, block,
-## pace (share of the kind's top), start delay (s), the dialogue tag.
+## pace (share of the kind's top), start delay (s), the dialogue tag; `stunt`: the chance at each
+## ring, with the player close behind, that he shows off for his camera (STUNT_TIME s of spins and
+## a wheelie at half throttle: Kamil films everything, and the player gets past).
 const RIVALS := [
 	{"name": "Szymek", "kind": Boat.Kind.RUNABOUT, "paint": "#c8302c", "shirt": "#2f6fb5", "hair": "#4a3426",
-		"line": 0.15, "miss": 0.03, "block": 0.3, "pace": 0.975, "delay": 0.35, "tag": "szymek"},
+		"line": 0.15, "miss": 0.02, "block": 0.3, "pace": 0.975, "delay": 0.35, "tag": "szymek"},
 	{"name": "Pan Zdzisiek", "kind": Boat.Kind.TUB, "line": 0.0, "miss": 0.0, "block": 0.0, "pace": 1.0,
 		"delay": 0.8, "tag": "zdzisiek"},
-	{"name": "Kamil", "kind": Boat.Kind.JETSKI, "line": 0.35, "miss": 0.05, "block": 0.8, "pace": 1.0,
-		"delay": 0.15, "tag": "kamil"},
+	{"name": "Kamil", "kind": Boat.Kind.JETSKI, "line": 0.35, "miss": 0.035, "block": 0.8, "pace": 0.96,
+		"delay": 0.15, "tag": "kamil", "stunt": 0.5},
 ]
+const STUNT_TIME := 1.8
+const STUNT_MAX := 3
 const PLAYER_PAINT := Color("#ff8a1a")
-const RUBBER := 0.07
-const RUBBER_GAP := 60.0
+const RUBBER := 0.08
+const RUBBER_GAP := 45.0
+## Slipstream (F 2026-11-08, "it's boring, the jet ski is always in front"): a boat running in
+## another's wake, DRAFT_AHEAD m behind it and within DRAFT_SIDE m of its line, pulls up to
+## DRAFT more top speed after DRAFT_BUILD s there: the catch-up is in the player's hands and on
+## screen, and the leader is never safe. Every boat gets it, the rivals too.
+const DRAFT := 0.09
+const DRAFT_AHEAD := Vector2(3.0, 28.0)
+const DRAFT_SIDE := 3.4
+const DRAFT_BUILD := 0.6
+## Floating jump ramps on the crossings (tools/boat_course.py `ramps`): a boat over one at more
+## than RAMP_MIN m/s takes off (up at RAMP_UP x its speed, RAMP_VY limits), lands soft and gets
+## JUMP_BOOST top speed for JUMP_TIME s (Hydro Thunder's ramps; the gold ring is past the landing).
+const RAMP_MIN := 7.0
+const RAMP_UP := 0.28
+const RAMP_VY := Vector2(3.5, 6.0)
+const RAMP_H := 1.1
+const JUMP_BOOST := 1.12
+const JUMP_TIME := 1.8
 
 enum State { IDLE, RING, OFFER, TO_PIER, COUNTDOWN, RACE, OUT, DONE, MENU, FREE }
 
@@ -141,6 +162,10 @@ var line: PackedVector2Array = PackedVector2Array()
 var half_w: PackedFloat32Array = PackedFloat32Array()
 var rings: Array = []
 var grid: Array = []
+var ramps: Array = []
+## Ramp take-offs this race (check_boat_race.gd).
+var jumps := 0
+var _ramp_nodes: Array[MeshInstance3D] = []
 var barge_cfg: Dictionary = {}
 var flow_dir := Vector2(-0.36, -0.93)
 var water_y := 0.0
@@ -178,7 +203,13 @@ var _pontoon: MeshInstance3D
 var _wakes: Array = []
 var _wake_t: Array = []
 var _query: PhysicsShapeQueryParameters3D
-var _sphere: SphereShape3D
+## The hull's band for the world test: a flat cylinder from HULL_BAND.x to HULL_BAND.y m over the
+## water's rest level, whatever height the boat asks at. A sphere round the boat reached 3.1 m up
+## and caught the fascias of the bridge decks (Most Świętokrzyski's is 2.9 m over the water), so
+## every boat stopped dead under the bridge (F, 2026-11-08); a deck, a beam or a footbridge over
+## the hull is not in the boat's way, only what stands in the water.
+const HULL_BAND := Vector2(-0.4, 1.3)
+var _hull: CylinderShape3D
 var _car_spot := Vector3.ZERO
 var _car_yaw := 0.0
 var _result: Dictionary = {}
@@ -202,12 +233,14 @@ func setup(world: Node3D) -> void:
 	world.add_child(_beacon)
 	_beacon.setup(COLOUR, Color("#1f3a5f"))
 	_beacon.visible = false
-	_sphere = SphereShape3D.new()
+	_hull = CylinderShape3D.new()
+	_hull.height = HULL_BAND.y - HULL_BAND.x
 	_query = PhysicsShapeQueryParameters3D.new()
-	_query.shape = _sphere
+	_query.shape = _hull
 	_build_boats()
 	_build_free_boat()
 	_build_rings()
+	_build_ramps()
 	_build_barge()
 	_foam_mesh = ImmediateMesh.new()
 	_foam = MeshInstance3D.new()
@@ -236,6 +269,7 @@ func _load_course() -> void:
 	rings = data["rings"]
 	grid = data["grid"]
 	barge_cfg = data["barge"]
+	ramps = data.get("ramps", [])
 	flow_dir = Vector2(float(data["flow"][0]), float(data["flow"][1]))
 	# The bridge piers in the water (tools/boat_course.py, circles): solid whether or not their
 	# sector's colliders are loaded, bucketed by PIER_CELL m.
@@ -439,6 +473,7 @@ func _start_grid() -> void:
 	var heading := atan2(f.x, f.y)
 	racers.clear()
 	_finish_order.clear()
+	jumps = 0
 	for k in boats.size():
 		var b: Boat = boats[k]
 		var g: Array = grid[k]
@@ -446,7 +481,9 @@ func _start_grid() -> void:
 		b.visible = true
 		var r := {"name": "Ty" if k == 0 else String(RIVALS[k - 1]["name"]), "next": 0, "misses": 0, "rhythm": 0,
 				"gold_t": 0.0, "out": false, "finished": false, "time": 0.0, "li": 0.0, "prev": b.pos,
-				"aim": _rng.randf_range(-1.0, 1.0), "mistake": false, "block_t": 0.0, "said": 0.0}
+				"aim": _rng.randf_range(-1.0, 1.0), "mistake": false, "block_t": 0.0, "said": 0.0,
+				"draft": 0.0, "draft_said": -99.0, "jump_t": 0.0, "jumping": false, "ramp_cd": 0.0,
+				"stunt_t": 0.0, "stunts": 0}
 		racers.append(r)
 	_place_barge()
 	for w: Array in _wakes:
@@ -459,7 +496,7 @@ func _start_grid() -> void:
 	_count = COUNT + 0.6
 	clock_t = 0.0
 	_t = 0.0
-	_log("grid: 4 boats, %d rings" % rings.size())
+	_log("grid: 4 boats, %d rings, water at %.2f m" % [rings.size(), water_y])
 
 
 func _countdown_tick(dt: float) -> void:
@@ -670,10 +707,14 @@ func _race_tick(dt: float) -> void:
 		elif autopilot or bool(r["finished"]):
 			_drive_rival(0, dt)
 		r["gold_t"] = maxf(0.0, float(r["gold_t"]) - dt)
+		r["jump_t"] = maxf(0.0, float(r["jump_t"]) - dt)
 		b.boost = (1.0 + RHYTHM_STEP * mini(int(r["rhythm"]), RHYTHM_MAX)) * (GOLD_BOOST if float(r["gold_t"]) > 0.0 else 1.0)
+		b.boost *= JUMP_BOOST if float(r["jump_t"]) > 0.0 else 1.0
+		b.boost *= 1.0 + DRAFT * _draft(k, dt)
 		if k > 0:
 			b.boost *= _rubber(k)
 		b.step(dt)
+		_ramps_tick(k, dt)
 		_check_rings(k)
 		_progress(k)
 		if k == 0 and (b.bumped > 2.5 or b.landed > Boat.HARD_LANDING):
@@ -723,6 +764,7 @@ func _check_rings(k: int) -> void:
 					Access.buzz(30, 0.5)
 			else:
 				r["rhythm"] = int(r["rhythm"]) + 1
+				_maybe_stunt(k)
 				if k == 0 and int(r["rhythm"]) > 1 and int(r["rhythm"]) <= RHYTHM_MAX:
 					hud.ambient_toast("Rytm ×%d" % int(r["rhythm"]), "Rhythm ×%d" % int(r["rhythm"]))
 		elif not bool(g["gold"]):
@@ -894,8 +936,97 @@ func _drive_rival(k: int, dt: float) -> void:
 	b.braking = go == 0.0 and vf > corner + 3.0
 	if absf(err) > 1.4 and vf > 8.0:
 		b.throttle = 0.3
-	if bool(g["gold"]) and float(cfg["line"]) > 0.3:
-		pass
+	if float(r.get("stunt_t", 0.0)) > 0.0:
+		# Showing off for the camera: weaving and a wheelie at half throttle.
+		r["stunt_t"] = float(r["stunt_t"]) - dt
+		b.throttle = 0.45
+		b.braking = false
+		b.steer = clampf(err * 1.2 + sin(float(r["stunt_t"]) * 9.0) * 0.9, -1.0, 1.0)
+
+
+## Kamil after a ring, the player close behind and the next ring straight on: sometimes he
+## shows off for his camera (a line, STUNT_TIME s at half throttle), at most STUNT_MAX a race.
+func _maybe_stunt(k: int) -> void:
+	if k == 0 or not RIVALS[k - 1].has("stunt"):
+		return
+	var r: Dictionary = racers[k]
+	if int(r["stunts"]) >= STUNT_MAX or bool(racers[0]["out"]):
+		return
+	var gap := (float(r["li"]) - float(racers[0]["li"])) * 10.0
+	if gap < 0.0 or gap > 70.0:
+		return
+	if _rng.randf() >= float(RIVALS[k - 1]["stunt"]):
+		return
+	r["stunt_t"] = STUNT_TIME
+	r["stunts"] = int(r["stunts"]) + 1
+	_say(k, "stunt")
+	_log("%s shows off for the camera" % r["name"])
+
+
+## Boat k's slipstream share 0..1 now: in another boat's wake (behind it, on its line, both
+## heading the same way at speed) it builds over DRAFT_BUILD s; out of it, it fades twice as fast.
+func _draft(k: int, dt: float) -> float:
+	var r: Dictionary = racers[k]
+	var b: Boat = boats[k]
+	var f: Vector2 = b.forward()
+	var right := Vector2(f.y, -f.x)
+	var inside := false
+	var leader := -1
+	if not b.air and b.forward_speed() > 8.0:
+		for j in boats.size():
+			if j == k or bool(racers[j]["finished"]) or bool(racers[j]["out"]):
+				continue
+			var o: Boat = boats[j]
+			var rel: Vector2 = o.pos - b.pos
+			var ahead := rel.dot(f)
+			if ahead > DRAFT_AHEAD.x and ahead < DRAFT_AHEAD.y and absf(rel.dot(right)) < DRAFT_SIDE \
+					and o.forward().dot(f) > 0.85 and o.forward_speed() > 8.0:
+				inside = true
+				leader = j
+				break
+	var d := float(r["draft"])
+	d = minf(d + dt, DRAFT_BUILD * 2.0) if inside else maxf(0.0, d - dt * 2.0)
+	r["draft"] = d
+	var share := clampf((d - DRAFT_BUILD * 0.5) / (DRAFT_BUILD * 0.5), 0.0, 1.0)
+	if k == 0 and share >= 1.0 and leader > 0 and clock_t - float(r["draft_said"]) > 12.0:
+		r["draft_said"] = clock_t
+		var who := String(RIVALS[leader - 1]["name"])
+		hud.ambient_toast("W ŚLADZIE! Ciągnie cię %s" % who, "SLIPSTREAM! %s pulls you along" % who)
+	return share
+
+
+## The floating ramps: boat k over one at speed takes off, lands soft with a short boost.
+func _ramps_tick(k: int, dt: float) -> void:
+	var r: Dictionary = racers[k]
+	var b: Boat = boats[k]
+	r["ramp_cd"] = maxf(0.0, float(r["ramp_cd"]) - dt)
+	if bool(r["jumping"]) and not b.air:
+		r["jumping"] = false
+		r["jump_t"] = JUMP_TIME
+		if k == 0:
+			hud.ambient_toast("SKOK! Dopalacz", "JUMP! Boost")
+			Access.buzz(30, 0.4)
+	if b.air or float(r["ramp_cd"]) > 0.0 or b.forward_speed() < RAMP_MIN:
+		return
+	for rp: Dictionary in ramps:
+		var c := Vector2(float(rp["x"]), float(rp["z"]))
+		var yaw := float(rp["yaw"])
+		var f := Vector2(sin(yaw), cos(yaw))
+		var rel := b.pos - c
+		var along := rel.dot(f)
+		var across := absf(rel.dot(Vector2(f.y, -f.x)))
+		if absf(along) > float(rp["len"]) * 0.5 or across > float(rp["w"]) * 0.5 or b.forward().dot(f) < 0.5:
+			continue
+		var vf := b.forward_speed()
+		b.air = true
+		b.soft_landing = true
+		b.vy = clampf(vf * RAMP_UP, RAMP_VY.x, RAMP_VY.y)
+		b.y = maxf(b.y, RAMP_H)
+		r["jumping"] = true
+		r["ramp_cd"] = 1.5
+		jumps += 1
+		_log("%s jumps a ramp at %.0f km/h" % [r["name"], vf * 3.6])
+		return
 
 
 ## Where boat k aims through ring i: the ring's centre at its own share of the opening (fixed per
@@ -1172,8 +1303,8 @@ func solid_at(centre: Vector3, r: float) -> Vector2:
 	if not is_inside_tree():
 		return out
 	var space := get_world_3d().direct_space_state
-	_sphere.radius = r
-	_query.transform = Transform3D(Basis.IDENTITY, centre)
+	_hull.radius = r
+	_query.transform = Transform3D(Basis.IDENTITY, Vector3(centre.x, water_y + (HULL_BAND.x + HULL_BAND.y) * 0.5, centre.z))
 	if car != null and car is CollisionObject3D:
 		_query.exclude = [(car as CollisionObject3D).get_rid()]
 	var info := space.get_rest_info(_query)
@@ -1189,7 +1320,7 @@ func solid_at(centre: Vector3, r: float) -> Vector2:
 			out += nn.normalized() * maxf(0.0, r - d + 0.05)
 			if log_on and wave_t - _solid_log > 1.0:
 				_solid_log = wave_t
-				_log("solid at %.0f, %.0f (%s)" % [centre.x, centre.z, str(info.get("collider_id", ""))])
+				_log("solid at %.0f, %.0f, contact %.1f m over the water (%s)" % [centre.x, centre.z, pt.y - water_y, str(info.get("collider_id", ""))])
 	return out
 
 
@@ -1266,6 +1397,63 @@ func _build_rings() -> void:
 		mi.visible = false
 		add_child(mi)
 		_ring_nodes.append(mi)
+
+
+## The floating ramps (one mesh each, shown only while racing).
+func _build_ramps() -> void:
+	var m := StandardMaterial3D.new()
+	m.vertex_color_use_as_albedo = true
+	m.roughness = 0.8
+	for rp: Dictionary in ramps:
+		var mi := MeshInstance3D.new()
+		mi.mesh = ramp_mesh(float(rp["w"]), float(rp["len"]))
+		mi.material_override = m
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mi.position = Vector3(float(rp["x"]), water_y, float(rp["z"]))
+		mi.rotation.y = float(rp["yaw"])
+		mi.visible = false
+		add_child(mi)
+		_ramp_nodes.append(mi)
+
+
+## A floating ski-jump ramp: a wedge w wide and l long rising to RAMP_H at its far end (+Z), white
+## with orange chevrons pointing the way, on two orange pontoon floats, a red lip.
+static func ramp_mesh(w: float, l: float) -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var h := RAMP_H
+	var hw := w * 0.5
+	var strips := 6
+	for i in strips:
+		var z0 := -l * 0.5 + l * float(i) / strips
+		var z1 := -l * 0.5 + l * float(i + 1) / strips
+		var y0 := h * float(i) / strips + 0.08
+		var y1 := h * float(i + 1) / strips + 0.08
+		var c := Color("#ff7a1a") if i % 2 == 1 else Color("#f4f2ea")
+		var n := Vector3(0.0, l / strips, -(y1 - y0)).normalized()
+		for v: Vector3 in [Vector3(-hw, y0, z0), Vector3(hw, y0, z0), Vector3(hw, y1, z1),
+				Vector3(-hw, y0, z0), Vector3(hw, y1, z1), Vector3(-hw, y1, z1)]:
+			st.set_color(c)
+			st.set_normal(n)
+			st.set_uv(Vector2(Models.FIXED, 0.0))
+			st.add_vertex(v)
+	# The sides and the back face.
+	for s: float in [-1.0, 1.0]:
+		for v: Vector3 in [Vector3(s * hw, 0.0, -l * 0.5), Vector3(s * hw, 0.0, l * 0.5), Vector3(s * hw, h + 0.08, l * 0.5)]:
+			st.set_color(Color("#d8d4c8"))
+			st.set_normal(Vector3(s, 0.0, 0.0))
+			st.set_uv(Vector2(Models.FIXED, 0.0))
+			st.add_vertex(v)
+	for v: Vector3 in [Vector3(-hw, 0.0, l * 0.5), Vector3(hw, h + 0.08, l * 0.5), Vector3(hw, 0.0, l * 0.5),
+			Vector3(-hw, 0.0, l * 0.5), Vector3(-hw, h + 0.08, l * 0.5), Vector3(hw, h + 0.08, l * 0.5)]:
+		st.set_color(Color("#d8d4c8"))
+		st.set_normal(Vector3(0.0, 0.0, 1.0))
+		st.set_uv(Vector2(Models.FIXED, 0.0))
+		st.add_vertex(v)
+	Models.box(st, Vector3(0.0, h + 0.12, l * 0.5 - 0.15), Vector3(w + 0.2, 0.18, 0.3), Color("#c8202c"))
+	for s: float in [-1.0, 1.0]:
+		Models.box(st, Vector3(s * (hw + 0.45), 0.2, 0.0), Vector3(0.9, 0.6, l + 0.6), Color("#ff7a1a"))
+	return st.commit()
 
 
 ## The player's next ring bright, the two after it dim, the finish when near; the rest hidden.
@@ -1449,6 +1637,8 @@ func _draw_foam() -> void:
 func _show_race(on: bool) -> void:
 	for b: Boat in boats:
 		b.visible = on
+	for mi in _ramp_nodes:
+		mi.visible = on
 	if not on:
 		for mi in _ring_nodes:
 			mi.visible = false

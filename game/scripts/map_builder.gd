@@ -7989,6 +7989,8 @@ func _build_barriers(st) -> void:
 			continue
 		if l["k"] != "platform" and _in_pkin_forecourt(l["p"]):
 			continue
+		if l["k"] == "fence" and _over_river(l["p"]):
+			continue
 		var style: Array = BARRIER_STYLE.get(l["k"], ["#999999", 0.3, 1.0])
 		if not site_wall.is_empty():
 			style = BARRIER_STYLE[str(site_wall[1])]
@@ -8050,6 +8052,32 @@ func _build_barriers(st) -> void:
 		_wall_along(st, pts, float(style[1]), float(style[2]), Color(style[0]), l["k"] != "platform")
 	_build_pkin_bushes(st)
 	_uv2 = Vector2.ZERO
+
+
+## A fence OSM maps along a bridge (its railing) is the deck's own parapet, which the bridge
+## builds; drawn from the ground at its two ends it ran as a straight slanting fence through the
+## river, and its collider stopped every boat under Most Świętokrzyski (F, 2026-11-08; two 300 m
+## fences there, two 70 m ones by Most Łazienkowski). A fence with RIVER_FENCE_SHARE or more of
+## its length over open water (RIVER_FENCE_M m past the shore, water.bin) is left out.
+const RIVER_FENCE_M := 8.0
+const RIVER_FENCE_SHARE := 0.3
+
+
+func _over_river(flat: Array) -> bool:
+	if _shore_zip.is_empty() and _shore.is_empty():
+		return false
+	var wet := 0
+	var n := 0
+	for i in range(0, flat.size() - 3, 2):
+		var a := Vector2(float(flat[i]), float(flat[i + 1]))
+		var b := Vector2(float(flat[i + 2]), float(flat[i + 3]))
+		var k := maxi(1, int(a.distance_to(b) / 3.0))
+		for t in k:
+			var q := a.lerp(b, float(t) / k)
+			n += 1
+			if shore_distance(q.x, q.y) > RIVER_FENCE_M:
+				wet += 1
+	return n > 0 and wet >= 6 and float(wet) / n >= RIVER_FENCE_SHARE
 
 
 static func _box_of_pts(pts: PackedVector2Array) -> Rect2:

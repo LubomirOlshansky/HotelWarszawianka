@@ -65,7 +65,7 @@ An arcade planing model on the water plane, the same code for the player and the
 | --- | --- | --- | --- | --- | --- | --- |
 | Runabout 5.4 m | 21.0 m/s | 6.5 | 1.55 rad/s | 1.1 → 3.2 | 1.0 | the player, Szymek |
 | Tub 6.4 m "Złota Rybka" | 19.3 | 4.6 | 1.25 | 2.0 → 4.2 | 1.8 | Pan Zdzisiek |
-| Jet ski 3.2 m | 22.6 | 8.0 | 2.1 | 0.9 → 2.6 | 0.55 | Kamil |
+| Jet ski 3.2 m | 21.6 | 7.2 | 1.95 | 0.9 → 2.6 | 0.55 | Kamil (was 22.6 / 8.0 / 2.1 till 2026-11-08: he won every race) |
 
 ## 4. The rivals' brains
 
@@ -75,9 +75,9 @@ ring is sharp), keeps off a boat just ahead, and some block a player close behin
 
 | Rival | Boat | Line | Mistakes | Blocks | Says |
 | --- | --- | --- | --- | --- | --- |
-| Szymek (the caller) | red runabout | near the middle | 3 % a ring | a little | lody, his paint |
+| Szymek (the caller) | red runabout | near the middle | 2 % a ring | a little | lody, his paint |
 | Pan Zdzisiek | "Złota Rybka", cream and wood | dead centre | never | no | slow and steady, slows for the barge |
-| Kamil | lime jet ski | wide | 5 % a ring | hard | films everything, "content" |
+| Kamil | lime jet ski, pace 0.96 | wide | 3.5 % a ring | hard | films everything, "content"; with the player close behind, half the time after a ring he weaves for his camera for 1.8 s (at most 3 a race) |
 
 They play by the same rules (a rival can drop out on three misses). The rubber band only works off
 screen (±7 % top speed past a 60 m gap), never where the player sees it. Headless race (all four
@@ -130,3 +130,49 @@ and off the gas).
 ## 9. Left
 
 In docs/BACKLOG.md "Boat race".
+
+## 9. Passable and fun (F, 2026-11-08)
+
+F, with two phone shots: "you can't get under the bridge with the boat, and it's somehow boring,
+and the jet ski is always in front; add something more interesting, buoys closer to the bank or
+something; research how such water games are made".
+
+**The bridge.** Every boat stopped dead at Most Świętokrzyski's upstream face. The cause was not
+the deck (14 m over the water) but two OSM `barrier=fence` ways mapped along the bridge, 290 and
+330 m long, which map_builder drew as straight fences from the ground at their two ends: a wall
+slanting through the river from the water up to the deck, solid to the boat's test. Fences with
+30 % or more of their length over open water (8 m past the shore, water.bin) are left out now
+(`map_builder.gd` `_over_river`; two more by Most Łazienkowski went with them; the bridges' own
+parapets are the decks'). The boat's world test is a flat cylinder from 0.4 m under to 1.3 m over
+the water (was a sphere reaching 3.1 m up), so nothing overhead stops a hull. Left as they are
+(not fences, or mostly on land): a 117 m fence and a 31 m wall by Port Praski, a wall ring south
+of Łazienkowski.
+
+**What the reference games do to keep a water race interesting** (no content copied):
+
+| Game | Idea | Taken |
+| --- | --- | --- |
+| Wave Race 64 / Blue Storm | Buoys close to the course's edge, passed on a side, the course runs along the shore so the scenery rushes by; a power meter fed by clean passes | Gates in runs along the banks, 17 and 34 m off the shore by turns (a slalom along the boulevards and beaches); the rhythm meter stays |
+| Hydro Thunder | Ramps on the fast line, boost pickups, shortcuts | A floating jump ramp on every crossing, a soft landing and +12 % for 1.8 s; the gold ring right past the landing |
+| Riptide GP | Air and tricks pay boost; rivals close enough to fight | The jump's boost; a close pack (see the times below) |
+| Mario Kart, Burnout, F-Zero (racing in general) | Slipstream behind a rival as the visible catch-up, rubber band only where you can't see it | The slipstream: 3-28 m behind any boat, within 3.4 m of its line, builds over 0.6 s to +9 % top speed, for everyone; the off-screen rubber band a bit stronger (±8 % past 45 m) |
+| Jet Moto / Splashdown | Rival personalities with tells | Kamil films himself: a visible stunt the player can pass |
+
+**The course** (`tools/boat_course.py` SECTIONS): bank run on the Praga side (Saska Kępa, the
+Poniatówka beach), a crossing, the long left-bank run under Poniatowski, the railway bridge and
+Świętokrzyski along the boulevards (the barge's stretch, it comes up the right bank), a crossing,
+the Praga beaches under the footbridge, a crossing, under the Old Town to Śląsko-Dąbrowski and the
+finish. 34 rings (3 gold), 3 ramps. Each crossing: a mid-river ring a third of the way across, the
+ramp 45 m before it on the run to it, the gold ring 30 m past it, then 100 m+ to the next bank's
+first ring. The bake keeps every straight run between two rings 11 m off the bank (the Praga
+bank's groynes stuck out between two bank rings and the boats ran aground) and 7 m off the piers,
+eases any ring where the line turns more than 40°, and turns each ring to face the racing line
+through it (from the ring before to the one after), not just down the river.
+
+**Headless race** (all four on the rivals' driver, `check_boat_race`): a close pack, the player's
+careful line 155-158 s, Szymek and Kamil within about a second of it and each winning some races,
+Pan Zdzisiek ~167 s; Kamil sometimes out on misses. The careful line may miss one ring in a tight
+pack now (the check allows one).
+
+**Cost.** The ramps: three meshes shown only while racing (one on screen at a time). The
+slipstream: a loop over four boats a frame. No change idle.

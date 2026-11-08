@@ -4,15 +4,17 @@ Follows the river from the mouth of Port Czerniakowski downstream (north-west) t
 Śląsko-Dąbrowski on game/map/water.bin's shore-distance channel (R: metres to the shore x 4):
 every STEP metres the cross-section's two shores are found, the centre point taken, the
 centreline smoothed (the side harbours, Port Praski above all, would pull it sideways), and the
-half width clamped. Then the rings go along it every RING_GAP metres in a slalom from bank side
-to bank side, a few small gold rings on the fast line, a quiet stretch where the sand barge
-comes up the right-bank lane (rings keep to the left there), and the finish arch.
+half width clamped. Then the rings go along it in SECTIONS (2026-11-08): bank runs, rings every
+80 m swinging 17-34 m off one bank, and crossings to the other bank with a mid-river ring, a
+ramp on the run to it and a gold ring past the landing; the left-bank run covers the stretch
+where the sand barge comes up the right-bank lane; then the finish arch.
 
 Writes game/data/boat_race.json:
     line   [[x, z, half_width], ...] every STEP m from the start, downstream
     rings  [{"i": line index, "x", "z", "yaw" (radians, the ring faces down the line), "w"
              (opening width, m), "gold": bool, "finish": bool}, ...]
     grid   four start slots [[x, z], ...] behind the start line, side by side
+    ramps  [{"x", "z", "yaw" (facing along the run), "w", "len"}, ...] floating jump ramps
     barge  {"from": line index where it starts, "to": index it heads for, "side": lateral offset
             as a share of the half width (+ is the right bank, Praga)}
     flow   unit vector of the current, downstream at the start (the game samples the line)
@@ -22,7 +24,7 @@ bridge piers and runs the rivals down it.
 Bridge piers: the bake's piers standing in the water (centrum.json decks.piers) and Most
 Poniatowskiego's own river piers (map_builder.gd PN_*, longer, with cutwaters) are circles the
 course keeps clear of: a ring's opening PIER_RING m from any, the straight run between two rings
-(and from the grid to the first) PIER_RUN m; a ring that fails moves across the river to the
+(and from the grid to the first) PIER_RUN m and RUN_SHORE m off the bank; a ring that fails moves across the river to the
 nearest offset that clears both runs. The barge's lane does the same, line point by line point.
 
 Usage:
@@ -45,15 +47,32 @@ MAX_SCAN = 260.0            # a side harbour wider than this does not count as t
 SMOOTH = 9                  # moving-average half window (points)
 HW_MAX = 120.0
 FIRST = 14                  # the first ring this many points after the start line
-RING_GAP = 12               # points between rings (120 m)
-SWING = 0.42                # the slalom's lateral swing, a share of the half width
-EDGE = 22.0                 # a ring's centre keeps this far from the shore
+# The sections (line points from, to, kind, bank: +1 the right bank, Praga; -1 the left, the
+# boulevards). The left-bank run covers the barge's stretch (it comes up the right bank).
+SECTIONS = [
+    (FIRST, 50, "bank", 1.0),       # Saska Kępa and the Poniatówka beach
+    (50, 80, "cross", 0.0),
+    (80, 188, "bank", -1.0),        # the boulevards: Poniatowski, the railway bridge, Świętokrzyski
+    (188, 222, "cross", 0.0),
+    (222, 262, "bank", 1.0),        # the Praga beaches under the footbridge
+    (262, 288, "cross", 0.0),
+    (288, 308, "bank", -1.0),       # under the Old Town to Śląsko-Dąbrowski
+]
+BANK_GAP = 8                # points between rings on a bank run (80 m)
+NEAR = 17.0                 # a bank ring's centre this far off the shore...
+FAR = 34.0                  # ...and every other one this far (a slalom along the bank)
+SHORE_MIN = 14.0            # check_boat_race.gd's SHORE_MIN
+EDGE = 22.0                 # a moved ring's centre keeps this far from the shore (x 0.6)
+MAX_TURN = math.radians(40.0)   # the most the racing line may turn at a ring
+RUN_SHORE = 11.0            # the straight run between two rings keeps this far off the bank
+RAMP_BEFORE = 45.0          # a ramp this far short of the mid-river ring
+RAMP_W = 7.0
+RAMP_LEN = 6.0
 RING_W = 16.0
 GOLD_W = 9.0
 BARGE_FROM = 175
 BARGE_TO = 20
 BARGE_SIDE = 0.55
-BARGE_CLEAR = (95, 185)     # rings in this index range keep to the left (west) half
 PN_PIERS = [(1036.0, -171.0), (1106.0, -195.0), (1178.0, -219.0)]   # Poniatowski's river piers
 PN_R = 16.0                 # half their length with the cutwaters
 PN_HALF = 4.9               # half their thickness along the bridge (+0.4 m)
@@ -202,6 +221,17 @@ def ring_ends(r):
     return (r["x"] - across[0] * h, r["z"] - across[1] * h), (r["x"] + across[0] * h, r["z"] + across[1] * h)
 
 
+def run_clear(a, b, piers, sd):
+    """The straight run a -> b clears the piers by PIER_RUN m and the bank by RUN_SHORE m: the
+    Praga bank's groynes (ostrogi) stick out between two bank rings (2026-11-08: a run passed
+    2 m off one and the boats ran aground)."""
+    if seg_clear(a, b, piers, PIER_RUN) < 0.0:
+        return False
+    n = 40
+    return all(sd(a[0] + (b[0] - a[0]) * t / n, a[1] + (b[1] - a[1]) * t / n) >= RUN_SHORE
+               for t in range(n + 1))
+
+
 def clear_rings(rs, line, grid, piers, sd):
     """Moves rings across the river until each opening and each run between rings clears the
     piers: ring by ring down the course, a ring and (when the run between them crosses a bridge)
@@ -227,7 +257,7 @@ def clear_rings(rs, line, grid, piers, sd):
                 and sd(e1[0], e1[1]) >= 4.0 and sd(c["x"], c["z"]) >= EDGE * 0.6)
 
     def run_ok(a, c):
-        return seg_clear(a, (c["x"], c["z"]), piers, PIER_RUN) >= 0.0
+        return run_clear(a, (c["x"], c["z"]), piers, sd)
 
     moved = 0
     for k in range(len(rs)):
@@ -287,36 +317,117 @@ def barge_lane(line, piers, side):
     return lane
 
 
+def shore_off(line, i, side, sd):
+    """Metres from line point i to the shore on `side` (+1 towards +n), along n."""
+    x, z, hw, n = line[i]
+    a = 0.0
+    while a < MAX_SCAN and sd(x + n[0] * side * a, z + n[1] * side * a) > 0.0:
+        a += 1.0
+    return a
+
+
+def ring_at(line, i, off, gold=False):
+    x, z, hw, n = line[i]
+    j = min(i + 1, len(line) - 1)
+    yaw = math.atan2(line[j][0] - line[i - 1][0], line[j][1] - line[i - 1][1])
+    return {"i": i, "x": round(x + n[0] * off, 1), "z": round(z + n[1] * off, 1), "yaw": round(yaw, 4),
+            "w": GOLD_W if gold else RING_W, "gold": gold, "finish": False}
+
+
 def rings(line, sd):
+    """The course in sections (F 2026-11-08: "buoys closer to the bank", Wave Race's buoy runs):
+    a BANK run threads rings along one bank every BANK_GAP points, swinging between NEAR and FAR
+    metres off the shore (the boulevards, the beaches and the bridges' shore spans go past
+    close), then a CROSS to the other bank: one ring in mid-river, a ramp on the run to it and a
+    gold ring past the ramp's landing for whoever takes the jump straight."""
     out = []
-    k = 0
-    i = FIRST
-    while i < len(line) - 4:
-        x, z, hw, n = line[i]
-        # +n is which bank? +x is the right bank (Praga) on this stretch
-        east = 1.0 if n[0] > 0 else -1.0
-        side = 1.0 if k % 2 == 0 else -1.0
-        amt = SWING * (0.6 if k % 4 == 1 else 1.0)
-        off = side * amt * hw
-        if BARGE_CLEAR[0] <= i <= BARGE_CLEAR[1]:
-            off = -east * abs(off) if k % 2 == 0 else -east * 0.1 * hw
-        off = max(-(hw - EDGE), min(hw - EDGE, off))
-        rx, rz = x + n[0] * off, z + n[1] * off
-        j = min(i + 1, len(line) - 1)
-        yaw = math.atan2(line[j][0] - line[i - 1][0], line[j][1] - line[i - 1][1])
-        gold = k % 5 == 3
-        out.append({"i": i, "x": round(rx, 1), "z": round(rz, 1), "yaw": round(yaw, 4),
-                    "w": GOLD_W if gold else RING_W, "gold": gold, "finish": False})
-        k += 1
-        i += RING_GAP
+    ramps = []
+    for (a, b, kind, bank) in SECTIONS:
+        if kind == "bank":
+            k = 0
+            for i in range(a, b, BANK_GAP):
+                if i >= len(line) - 4:
+                    break
+                side = bank if line[i][3][0] > 0 else -bank   # +n towards that bank (+x is Praga)
+                near = NEAR if k % 2 == 0 else FAR
+                # The bank, not a side harbour's back (Port Praski's mouth): at most the
+                # centreline's half width.
+                d = min(shore_off(line, i, side, sd), line[i][2] * 1.1)
+                off = side * max(0.0, d - near)
+                # never past the centreline's other half
+                off = max(-(line[i][2] + d), min(line[i][2] + d, off))
+                out.append(ring_at(line, i, off))
+                k += 1
+        else:
+            # Mid-river: the ring, then a gold one on the far side of it.
+            # A crossing gives the turn room: the mid ring a third of the way, the gold one 30 m
+            # on, then 100 m or more to the next bank's first ring.
+            mid = a + (b - a) // 3
+            out.append(ring_at(line, mid, 0.0))
+            out.append(ring_at(line, mid + 3, 0.0, True))
+            # The ramp on the straight from the last ring to the mid ring, 40 m before it.
+            ramps.append({"i": mid - 4})
+    out.sort(key=lambda r: r["i"])
     # the finish arch on the centreline at the end, wide
     x, z, hw, n = line[-3]
     yaw = math.atan2(line[-1][0] - line[-5][0], line[-1][1] - line[-5][1])
     out.append({"i": len(line) - 3, "x": x, "z": z, "yaw": round(yaw, 4), "w": min(2.0 * hw - 2 * EDGE, 60.0),
                 "gold": False, "finish": True})
-    for r in out:
-        if sd(r["x"], r["z"]) < EDGE * 0.5:
-            print("boat_course: ring at line %d is near the shore (%.1f m)" % (r["i"], sd(r["x"], r["z"])), file=sys.stderr)
+    return out, ramps
+
+
+def turn_at(rs, k):
+    a, r, b = rs[k - 1], rs[k], rs[k + 1]
+    u = (r["x"] - a["x"], r["z"] - a["z"])
+    v = (b["x"] - r["x"], b["z"] - r["z"])
+    return abs(math.atan2(u[0] * v[1] - u[1] * v[0], u[0] * v[0] + u[1] * v[1]))
+
+
+def ease_turns(rs, sd, piers):
+    """A ring where the line turns more than MAX_TURN (the bank's bends and groynes put two
+    bank rings almost side by side) slides towards its neighbours' chord, a few metres a step,
+    staying SHORE_MIN + 1.5 m off the bank."""
+    for _ in range(3):
+        for k in range(1, len(rs) - 1):
+            r = rs[k]
+            if r["finish"]:
+                continue
+            for _step in range(40):
+                if turn_at(rs, k) <= MAX_TURN:
+                    break
+                m = ((rs[k - 1]["x"] + rs[k + 1]["x"]) / 2, (rs[k - 1]["z"] + rs[k + 1]["z"]) / 2)
+                d = (m[0] - r["x"], m[1] - r["z"])
+                ln = math.hypot(*d)
+                if ln < 1.0:
+                    break
+                nx, nz = r["x"] + d[0] / ln * 2.0, r["z"] + d[1] / ln * 2.0
+                if sd(nx, nz) < SHORE_MIN + 1.5 or not all(
+                        run_clear((o["x"], o["z"]), (nx, nz), piers, sd) for o in (rs[k - 1], rs[k + 1])):
+                    break
+                r["x"], r["z"] = round(nx, 1), round(nz, 1)
+
+
+def place_ramps(ramps, rs, piers, sd):
+    """Each ramp on the straight from the ring before it to the ring after it, RAMP_BEFORE m
+    short of the next ring, facing along that run; dropped when a pier or the bank is near."""
+    out = []
+    for rp in ramps:
+        nxt = next(r for r in rs if r["i"] > rp["i"])
+        prev = [r for r in rs if r["i"] < nxt["i"] and not r["gold"]]
+        if not prev:
+            continue
+        a = (prev[-1]["x"], prev[-1]["z"])
+        b = (nxt["x"], nxt["z"])
+        d = (b[0] - a[0], b[1] - a[1])
+        ln = math.hypot(*d)
+        if ln < RAMP_BEFORE + 30.0:
+            continue
+        u = (d[0] / ln, d[1] / ln)
+        c = (b[0] - u[0] * RAMP_BEFORE, b[1] - u[1] * RAMP_BEFORE)
+        if sd(*c) < SHORE_MIN or seg_clear(c, c, piers, 12.0) < 0.0:
+            continue
+        out.append({"x": round(c[0], 1), "z": round(c[1], 1), "yaw": round(math.atan2(u[0], u[1]), 4),
+                    "w": RAMP_W, "len": RAMP_LEN})
     return out
 
 
@@ -326,7 +437,7 @@ def main():
     out = args.get("--out", os.path.join(ROOT, "game/data/boat_race.json"))
     sd = load(water)
     line = smooth(centreline(sd), sd)
-    rs = rings(line, sd)
+    rs, ramp_at = rings(line, sd)
     piers = load_piers(args.get("--map", os.path.join(ROOT, "game/map/centrum.json")), sd)
     x, z, hw, n = line[2]
     d = (line[3][0] - line[1][0], line[3][1] - line[1][1])
@@ -336,7 +447,33 @@ def main():
     for s in (-1.5, -0.5, 0.5, 1.5):
         grid.append([round(x + n[0] * s * 9.0 - d[0] * 6.0, 1), round(z + n[1] * s * 9.0 - d[1] * 6.0, 1)])
     east = 1.0 if line[BARGE_FROM][3][0] > 0 else -1.0
+    ease_turns(rs, sd, piers)
     moved = clear_rings(rs, line, grid, piers, sd)
+    ease_turns(rs, sd, piers)
+    # A ring a pier pushed towards a bank comes back out to SHORE_MIN + 1.5 m.
+    for r in rs:
+        x, z, hw, n = line[r["i"]]
+        off = (r["x"] - x) * n[0] + (r["z"] - z) * n[1]
+        while sd(r["x"], r["z"]) < SHORE_MIN + 1.5 and abs(off) > 1.0:
+            off -= math.copysign(1.0, off)
+            r["x"], r["z"] = round(x + n[0] * off, 1), round(z + n[1] * off, 1)
+    # Each ring faces the racing line through it (from the ring before to the one after), not
+    # just down the river: a bank slalom comes at it up to 45 degrees off the river's line, which
+    # made its opening a narrow slot.
+    start = ((grid[1][0] + grid[2][0]) / 2, (grid[1][1] + grid[2][1]) / 2)
+    for k, r in enumerate(rs):
+        if r["finish"]:
+            continue
+        a = start if k == 0 else (rs[k - 1]["x"], rs[k - 1]["z"])
+        b = (rs[k + 1]["x"], rs[k + 1]["z"])
+        u = (r["x"] - a[0], r["z"] - a[1])
+        v = (b[0] - r["x"], b[1] - r["z"])
+        lu, lv = math.hypot(*u) or 1.0, math.hypot(*v) or 1.0
+        r["yaw"] = round(math.atan2(u[0] / lu + v[0] / lv, u[1] / lu + v[1] / lv), 4)
+    ramps = place_ramps(ramp_at, rs, piers, sd)
+    for r in rs:
+        if sd(r["x"], r["z"]) < SHORE_MIN:
+            print("boat_course: ring at line %d is near the shore (%.1f m)" % (r["i"], sd(r["x"], r["z"])), file=sys.stderr)
     lane = barge_lane(line, piers, east * BARGE_SIDE)
     print("boat_course: %d pier circles in the water, %d rings moved clear of them" % (len(piers), moved))
     data = {
@@ -344,13 +481,15 @@ def main():
         "rings": rs,
         "grid": grid,
         "barge": {"from": BARGE_FROM, "to": BARGE_TO, "side": round(east * BARGE_SIDE, 2), "lane": lane},
+        "ramps": ramps,
         "piers": [[round(p[0], 1), round(p[1], 1), p[2]] for p in piers],
         "flow": [round(d[0], 3), round(d[1], 3)],
     }
     with open(out, "w") as f:
         json.dump(data, f, separators=(",", ":"))
         f.write("\n")
-    print("boat_course: %d line points (%.0f m), %d rings -> %s" % (len(line), len(line) * STEP, len(rs), out))
+    print("boat_course: %d line points (%.0f m), %d rings (%d gold), %d ramps -> %s" % (
+        len(line), len(line) * STEP, len(rs), sum(1 for r in rs if r["gold"]), len(ramps), out))
     png = args.get("--png")
     if png:
         try:
