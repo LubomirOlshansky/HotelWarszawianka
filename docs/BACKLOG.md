@@ -37,6 +37,10 @@ its end-wall ad banner facing the Novotel, the billboard on its roof with 15 lam
 white balconied slab beside it. Left: awnings and the vertical BIM BAR sign; Marszałkowska 99's shop names; a phone
 look check of both.
 
+## Top-50 buildings from photos (F, 2026-11-08; list /mnt/project-files/pkin-surroundings/PHOTOS-NEEDED-2026-11-08.md section F, photos on the Mac in warsaw-needed-photos/top-50)
+- Done, batch 1: Q22 (dark green glass, graphite crown with DELOJT, the wing's sloping glass roof, lattice mast and red-and-white antenna; spec q22.md) and Rondo 1 (silver-blue banded slab with the rounded end, the open screen over the roof, the graphite west block with EJ and its yellow stroke, the steps to the south-west, the antenna to 192 m instead of the 33 m cage; spec rondo1.md).
+- Left: Q22's faceted folds in the glass and the base's entrance; Rondo 1's curved screen follows the roof edge as straight facets, the ground-floor stone columns on Śliska (T03-08) not modelled; the night look of both on the phone. Next batches by visibility: T05 Warsaw Trade Tower, T06 Teatr Wielki, T35 Spektrum, T36-T38 the Rondo Daszyńskiego towers, T08 Pałac Prezydencki, T09 Święty Krzyż. T04 InterContinental and T26 Polonia are the Palace thread's.
+
 ## Skyline towers near the Palace from F's photos (F, 2026-11-08; specs plater49.md, wcf.md, polonia.md)
 - Done: InterContinental (the gap over the podium, the sloped roof, the corner column, lit gap at night), the Warsaw Financial Centre (white slab and ribbon slab on the curve, granite podium, mast) and Hotel Polonia Palace (photo pass: mansard, pediment and oval window, name on the frieze, balconies). Złota 44 was already rebuilt from F's photos (PR #321).
 - Left: Polonia's rounded front corners and its side/back faces (no photos); InterContinental's lobby and Emilii Plater entrance; WCF's curved crown louvres; the night look of all three on the phone. Shots still needed are in /mnt/project-files/pkin-surroundings/PKIN-SURROUNDINGS-BUILDINGS.txt.
@@ -295,8 +299,6 @@ check `tramfleet`. No maker's or model name anywhere: nicknames only.
 ## Batch 4: Rondo ONZ towers, Platinum, Ilmet, Spektrum, Teatr Wielki (2026-11-06)
 
 Cloud pass with Mapillary street photos only (refs/<site>/street/ on the cloud box; Commons and the orthophoto are Mac-only). Done: Ilmet (terracotta shaft `#8a5e4c`, `chamfer` stepped top; photos 2025-2026). Left, needs a Mac photo pass (street photos were night/rain, too far or the wrong building):
-- [ ] Q22: only night-rain frames; needs daylight Commons photos of the sail crown and skin
-- [ ] Rondo 1: street frames show curved blue glass, balcony ledges at the base volume and a dark-glass entrance pavilion; crown frame and base not rebuilt
 - [ ] Cosmopolitan, WTT (the OSM building at (-2838,-154) is a 14 m podium; the Mapillary frames there show another building), Platinum A/B (frames 100+ m away), Spektrum
 - [ ] Teatr Wielki: the Plac Teatralny frames show the side colonnade and the Jabłonowski palace; the side wings' colonnades are not built
 
