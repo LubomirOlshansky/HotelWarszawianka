@@ -14,7 +14,11 @@ Fails (exit 1) when
   K6  the stops' paint (tools/bus_stops.py) is missing or out of place: the map's `stopzz` and
       `stopkerb` markings differ from what bus_stops.py makes of it now (re-run it), a zigzag point
       is outside the lanes or on a zebra's, cycle crossing's or stop line's reach, a yellow kerb line
-      point is in a lane, or fewer than ZZ_MIN_COUNT zigzags are on the map.
+      point is in a lane, or fewer than ZZ_MIN_COUNT zigzags are on the map;
+  K7  any shelter does not face its boarding edge (snap_props.shelter_want, within 0.2 rad): a tram
+      stop's open side to its track, a bus stop's to its kerb, any other's to the nearest road (F,
+      2026-11-08: the stops at Ratusz Arsenał stood turned the wrong way), or more than
+      FACE_LEFT_MAX shelters have nothing to face.
 Prints `check_stops: OK` and the counts. Standard library only.
 """
 import json
@@ -33,6 +37,7 @@ LEFT_MAX = 25
 BENCH_LEFT_MAX = 80
 BENCH_TOL = 0.3
 ZZ_MIN_COUNT = 150   # 167 on 2026-11-07
+FACE_LEFT_MAX = 15   # 11 on 2026-11-08 (no road within FACE_REACH, or a track under the shelter)
 
 
 def main():
@@ -67,6 +72,16 @@ def main():
             else:
                 continue
             break
+    n_free = 0
+    for i in range(0, len(sh) - 2, 3):
+        kind, want = S.shelter_want(w, sh[i], sh[i + 1])
+        if want is None:
+            n_free += 1
+        elif abs(math.remainder(sh[i + 2] - want, 2 * math.pi)) > 0.2:
+            bad.append("K7 %s shelter at %.1f, %.1f does not face its %s (yaw %.2f, want %.2f): python3 -I tools/snap_props.py --face-only"
+                       % (kind, sh[i], sh[i + 1], {"tram": "track", "bus": "kerb"}.get(kind, "road"), sh[i + 2], want))
+    if n_free > FACE_LEFT_MAX:
+        bad.append("K7 %d shelters have nothing to face (at most %d)" % (n_free, FACE_LEFT_MAX))
     if n_left > LEFT_MAX:
         bad.append("K1 %d bus-road shelters are not on the kerb (at most %d without a clear spot)" % (n_left, LEFT_MAX))
     bn = d["benches"]

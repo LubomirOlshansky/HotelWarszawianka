@@ -200,6 +200,30 @@ float kp_setts_at(vec2 wp) {
 	return 1.0 - smoothstep(KP_HALF - 0.4, KP_HALF, best);
 }
 
+// Próżna (F's photos, 2026-11-08; docs/landmarks/photo-reports/prozna.md): the one-way street is
+// granite setts kerb to kerb, and its pavements are pale grey granite slabs behind a darker kerb
+// stone. PZ_LINE is the street's centreline from the map (Plac Grzybowski to Marszałkowska); the box
+// test keeps the cost off every other fragment.
+const vec4 PZ_BOX = vec4(-1390.0, -1195.0, -325.0, -222.0);   // x0, x1, z0, z1
+const float PZ_HALF = 3.15;
+const vec2 PZ_LINE[4] = vec2[4](
+	vec2(-1361.0, -243.6), vec2(-1352.0, -247.3), vec2(-1279.1, -277.2), vec2(-1240.0, -293.1));
+
+// Distance from wp to Próżna's centreline (1e4 outside the box).
+float pz_dist(vec2 wp) {
+	if (any(bvec4(wp.x < PZ_BOX.x, wp.x > PZ_BOX.y, wp.y < PZ_BOX.z, wp.y > PZ_BOX.w))) {
+		return 1e4;
+	}
+	float best = 1e4;
+	for (int i = 0; i < 3; i++) {
+		vec2 a = PZ_LINE[i];
+		vec2 ab = PZ_LINE[i + 1] - a;
+		float t = clamp(dot(wp - a, ab) / dot(ab, ab), 0.0, 1.0);
+		best = min(best, length(wp - a - ab * t));
+	}
+	return best;
+}
+
 // Plac Piłsudskiego (photos, 2026-11-02; docs/landmarks/photo-reports/pilsudskiego.md): the paved
 // field is grey granite slabs in ~6 m squares, a chequer of lighter and darker panels outlined by
 // darker grey bands (the drone photo). The map has it as bare ground crossed by footpaths; inside
@@ -259,6 +283,19 @@ void fragment() {
 			float joint = step(0.44, f.x) + step(0.4, f.y);
 			shade = 0.95 + 0.07 * hash12(floor(q)) - 0.07 * min(joint, 1.0);
 		}
+		float pzd = id == 4 ? pz_dist(wp) : 1e4;
+		if (pzd < 11.0) {
+			// Próżna's walk: pale grey granite slabs 0.6 x 0.4 m, the kerb stone darker and wider.
+			vec2 q = street / vec2(0.6, 0.4);
+			q.x += 0.5 * mod(floor(q.y), 2.0);
+			vec2 f = abs(fract(q) - 0.5);
+			float joint = step(0.46, f.x) + step(0.45, f.y);
+			base = srgb_to_linear(mix(vec3(0.74, 0.72, 0.69), vec3(0.66, 0.65, 0.63), step(0.8, hash12(floor(q)))));
+			shade = 0.97 + 0.05 * hash12(floor(q) + 3.1) - 0.08 * min(joint, 1.0);
+			if (pzd < PZ_HALF + 0.75) {
+				base = srgb_to_linear(vec3(0.58, 0.57, 0.55));
+			}
+		}
 		vec4 stones = centralny(wp, id == 4);
 		if (stones.a > 0.0) {
 			base = srgb_to_linear(stones.rgb);
@@ -274,7 +311,7 @@ void fragment() {
 		float grain = hash12(floor(wp * 6.0));
 		float patch = smoothstep(0.63, 0.7, value_noise(wp * 0.11 + 3.7));
 		shade = 0.95 + 0.07 * grain - 0.06 * patch + 0.04 * n1;
-		if (kp_setts_at(wp) > 0.5) {
+		if (any(bvec2(kp_setts_at(wp) > 0.5, pz_dist(wp) < PZ_HALF + 0.35))) {
 			// Granite setts, 0.12 x 0.1 m in rows broken like bricks; each stone its own grey
 			// or warm pink; dark joints.
 			vec2 q = wp / vec2(0.12, 0.1);

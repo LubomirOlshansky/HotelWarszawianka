@@ -844,6 +844,9 @@ var fullmap_span := 0.0
 ## G12 part 2, --quest-pick=N (tests, shots): the full map opens at the start and row N of the
 ## ZADANIA tab shown (the vehicle's) is tapped; a place's pick then closes the map.
 var quest_pick_flag := -1
+## --quest-quit=S (F 2026-11-08): S s into the run, open the full map and tap its quit button twice
+## (the quest under way gives up; Autopilot and test runs).
+var quest_quit_flag := -1.0
 var map_jump := Vector2.INF
 ## GAMEPLAY_PLAN 0.1, --teleport-test (verify step `teleport`): teleports to each of
 ## TELEPORT_TESTS in turn and fails (push_error) if the car lands in a tunnel, off the level of the
@@ -3284,6 +3287,8 @@ func _build_stories(world: Node3D) -> void:
 		d["blurb"] = STORY_BLURBS.get(str(d["id"]), ["", ""])
 	if story_flag != "":
 		get_tree().create_timer(1.5).timeout.connect(func() -> void: stories.start(story_flag))
+	if quest_quit_flag >= 0.0:
+		get_tree().create_timer(quest_quit_flag).timeout.connect(_quest_quit_test)
 	print("stories: %d questlines (%s)" % [stories.defs.size(), ", ".join(stories.defs.map(func(d: Dictionary) -> String:
 			return "%s %s" % [d["id"], "%.0f,%.0f" % [d["at"].x, d["at"].y] if d["at"] != Vector2.INF else "no start"]))])
 
@@ -5227,6 +5232,8 @@ func _parse_args() -> void:
 			# 2026-10-31: the full map's hold-to-teleport to x,z once the drive starts (tests).
 			var xz := arg.trim_prefix("--map-jump=").split(",")
 			map_jump = Vector2(float(xz[0]), float(xz[1]))
+		elif arg.begins_with("--quest-quit="):
+			quest_quit_flag = float(arg.trim_prefix("--quest-quit="))
 		elif arg.begins_with("--quest-pick="):
 			quest_pick_flag = int(arg.trim_prefix("--quest-pick="))
 			open_map_at_start = true
@@ -5772,6 +5779,7 @@ func _open_full_map() -> void:
 				syrenki.entries.size() if syrenki != null else 0)  # loop 3h slice 1 (+ slice 2: the Syrenki line)
 	if rivals != null:
 		hud.full_map.set_ladder(rivals.ladder_rows())  # loop 3h slice 3: the DRABINKA card
+	hud.full_map.quit_what = _quest_quit_name()  # F 2026-11-08: the card's quit button
 	hud.full_map.set_quests(_quest_entries(), Lines.Line.HELI if flying else Lines.Line.CAR,
 			str(quest_pin.get("id", "")))  # G12 part 2: the ZADANIA card
 	if quest_tab_flag >= 0:
@@ -5797,6 +5805,7 @@ func _wire_full_map() -> void:
 	hud.full_map.closed.connect(_close_full_map)
 	hud.full_map.teleport.connect(_teleport_from_map)
 	hud.full_map.quest_picked.connect(_on_quest_picked)
+	hud.full_map.quit_quest.connect(_quit_quest)
 	hud.full_map.can_teleport = _teleport_refusal
 
 
@@ -5890,11 +5899,67 @@ func _quest_now() -> Dictionary:
 		what = ["Teraz · akcja ratunkowa", "Now · rescue"]
 		at = missions.target_position()
 		colour = missions.target_colour()
+	elif stories != null:
+		# F 2026-11-08: a questline taken has its "Teraz" row too, at the target shown now.
+		for d: Dictionary in stories.defs:
+			var b: Callable = d.get("busy", Callable())
+			if b.is_valid() and bool(b.call()):
+				what = ["Teraz · %s" % d["pl"], "Now · %s" % d["en"]]
+				var mt: Vector2 = hud._mini_target
+				at = Vector3(mt.x, 0.0, mt.y) if mt != Vector2.INF else Vector3.INF
+				colour = d.get("colour", Lines.STORY_COLOUR)
+				break
 	if what.is_empty():
 		return {}
 	var line := Lines.Line.HELI if flying else Lines.Line.CAR
 	var xz := Vector2(at.x, at.z) if at != Vector3.INF else Vector2.INF
 	return Lines.entry("now", "now", line, str(what[0]), str(what[1]), xz, colour, Lines.NOW)
+
+
+## F (2026-11-08): the name of the quest under way, [pl, en], for the full map's quit button
+## (empty: nothing is on that the player took). A questline by its own name, else the "Teraz" row's.
+func _quest_quit_name() -> Array:
+	if not _quest_running():
+		return []
+	if stories != null:
+		for d: Dictionary in stories.defs:
+			var b: Callable = d.get("busy", Callable())
+			if b.is_valid() and bool(b.call()):
+				return [str(d["pl"]), str(d["en"])]
+	var now := _quest_now()
+	if not now.is_empty():
+		return [str(now["pl"]).trim_prefix("Teraz · "), str(now["en"]).trim_prefix("Now · ")]
+	return ["zadanie", "quest"]
+
+
+## --quest-quit: the full map open, its quit button tapped twice (if it shows).
+func _quest_quit_test() -> void:
+	print("quest quit test: running %s, %s" % [_quest_running(), _quest_quit_name()])
+	_open_full_map()
+	var qb := hud.full_map.find_child("quit_quest", true, false) as Button
+	if qb == null:
+		print("quest quit test: no quit button")
+		hud.full_map.close()
+		return
+	print("quest quit test: button \"%s\"" % qb.text)
+	qb.pressed.emit()
+	qb = hud.full_map.find_child("quit_quest", true, false) as Button
+	print("quest quit test: armed \"%s\"" % (qb.text if qb != null else "?"))
+	if qb != null:
+		qb.pressed.emit()
+	print("quest quit test: after, running %s, map open %s" % [_quest_running(), hud.full_map.is_open()])
+
+
+## F (2026-11-08): the full map's quit button, tapped twice: whatever runs gives up the way its
+## own ✕ on the status card does (hud.abort_pressed: each quest checks it is the one on), the
+## quest pin goes too. If something still runs (a quest with no ✕ in this beat), a toast says so.
+func _quit_quest() -> void:
+	quest_pin = {}
+	hud.abort_pressed.emit()
+	var still := _quest_running()
+	print("quest list: quit quest%s" % (" (still running)" if still else ""))
+	if still:
+		hud.toast("Tego teraz nie przerwiesz", "You can't quit this one right now")
 
 
 ## G12 part 2: a row of the ZADANIA card: a request starts now (the map has closed: a ride's
@@ -7408,6 +7473,13 @@ var _nudge_arrow := false
 var _free_now := false
 
 
+## The main line still shows (main_line.gd `now`): the guide is on and no job is done yet.
+func _main_live() -> bool:
+	if MainLine.FIRST_JOB_ONLY and (not _guide_on() or (wallet != null and wallet.jobs_done() >= 1)):
+		return false
+	return true
+
+
 func _guide_on() -> bool:
 	return first10 != null and first10.guide_on()
 
@@ -7415,6 +7487,9 @@ func _guide_on() -> bool:
 ## The active target on the minimap: a side quest's dot in its colour, or (`main`) the main line's
 ## star (hud.gd `set_main_line`, from `_main_line_tick`).
 func _put_target(xz: Vector2, colour: Color, main: bool) -> void:
+	# F 2026-11-08: past the first job the main line is off (main_line.gd FIRST_JOB_ONLY): its
+	# targets are ordinary pins then, so nothing hides behind a star that isn't drawn.
+	main = main and _main_live()
 	hud.set_minimap_target(Vector2.INF if main else xz, colour)
 	_main_target = xz if main else Vector2.INF
 
@@ -7446,7 +7521,9 @@ func _main_line_tick(dt: float) -> void:
 	else:
 		f["next"] = Ladder.FINAL + 1
 		f["end_seen"] = true
-	main_step = MainLine.step(f)
+	if wallet != null:
+		f["jobs"] = wallet.jobs_done()
+	main_step = MainLine.now(f)
 	hud.set_main_line(main_step["at"], str(main_step["pl"]), str(main_step["en"]))
 	# Nothing comes by itself on the title, in a camera moment or in Spacer (spacer.gd).
 	var quiet := title != null or (moments != null and moments.playing()) or (spacer != null and spacer.on)
