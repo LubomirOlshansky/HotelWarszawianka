@@ -12,6 +12,7 @@ someone writes its lines.
 ## 2026-11-08
 - The Rotunda looks like itself from the street: its glass rises into a ring of points under a thin white zigzag edge, with slimmer frames, and its folded silver roof dips into the round skylight. The three glass stores across from the Palace have their pale glass in big panes, a light band along the roof and the grey louvred top floor with the shops' names.
 - Around the Palace: the EMPIRYK bookshop pavilion and the Zodiak pavilion are rebuilt from photos, and the glass office building on the corner of Marszałkowska and Świętokrzyska now has its stepped glass tiers, silver fins and white LED dashes that light up at night.
+- Widok Towers on Aleje Jerozolimskie now has its real blue-grey glass in a light grid instead of green.
 
 ## 2026-11-08
 - Three more towers by the Palace look like themselves: the InterContinental stands over its huge open gap, glowing white at night, under a sloping roof; the Warsaw Financial Centre is a white tower wrapped round a teal glass one with a red-and-white mast; and Hotel Polonia Palace has its tall zinc roof, the pediment with the round window and its gold name.
