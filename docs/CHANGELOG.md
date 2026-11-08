@@ -10,6 +10,7 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-08
+- 11 November: the flags in the crowd now wave in the wind.
 - The Old Town is ready for its close-up: the odd blue glass boxes next to the Cathedral are now the Jesuit church in salmon plaster, the city walls have battlements, the Market Square has pale stone rings, cream umbrellas and café fences, and the roofs have grey zinc dormers and white chimneys.
 - A new job offer no longer pops up over the result card of the one you just finished, so tapping OK can't accept it by accident.
 - The cycle bridges under Most Łazienkowski hang right under the road now, one storey down as in real life, instead of halfway to the river.
