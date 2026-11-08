@@ -744,7 +744,8 @@ func _layout_fixed() -> void:
 	if _minimap != null:
 		_minimap.position = Vector2(x0, below)
 		_minimap.size = Vector2.ONE * MINI_D * pt
-		_mini_overlay.size = _minimap.size
+		if _mini_overlay != null:  # the loading bar: a relayout can land while setup_minimap waits for a frame
+			_mini_overlay.size = _minimap.size
 		# G3: the zoom buttons stand in a column right of the minimap (the top row has no room
 		# beside a centred context button on a small phone).
 		var zy := _minimap.position.y
@@ -1890,7 +1891,9 @@ func setup_minimap(data: Dictionary, outline := PackedVector2Array(), outside: A
 	if _map_outline.size() < 3:
 		_map_outline = PackedVector2Array([_map_bounds.position, Vector2(_map_bounds.end.x, _map_bounds.position.y),
 				_map_bounds.end, Vector2(_map_bounds.position.x, _map_bounds.end.y)])
+	await LoadYield.tick("minimap start")
 	_mini_mesh = _minimap_mesh(data)
+	await LoadYield.tick("minimap mesh")
 	var outline_now := _map_outline
 	var outside_now := _map_outside.duplicate()
 	_map_art_task = WorkerThreadPool.add_task(func() -> void:
@@ -2129,8 +2132,9 @@ func _paint_minimap_overlay() -> void:
 		# A side quest's target, pinned to the rim when it's beyond the map's reach: a dot in the
 		# job's colour inside a white ring (the main line's is the star below).
 		var t := ((_mini_target - _mini_car) * s).rotated(_mini_yaw)
-		t = t.limit_length(_mini_radius - 5.0 * pt)
-		side_pin(centre + t, 1.0, _mini_target_colour)
+		# F 2026-11-08: the quest taken reads much stronger: a breathing glow and ring in its colour.
+		t = t.limit_length(_mini_radius - 7.0 * pt)
+		active_pin(centre + t, 1.15, _mini_target_colour)
 	if _main_at != Vector2.INF:
 		# The main line: a gold star in a pulsing ring, pinned to the rim at any distance.
 		var mr := ((_main_at - _mini_car) * s).rotated(_mini_yaw).limit_length(_mini_radius - 8.0 * pt)
@@ -2227,6 +2231,19 @@ func poi_mark(at: Vector2, half: float, colour: Color, shape: int) -> void:
 		_:
 			_tri_rect(Rect2(at - Vector2.ONE * (half + o), Vector2.ONE * (half + o) * 2.0), Color(OUTLINE, colour.a))
 			_tri_rect(Rect2(at - Vector2.ONE * half, Vector2.ONE * half * 2.0), colour)
+
+
+## The active quest's target at `at` (k: its size, 1 on the minimap): F (2026-11-08) "mark the
+## quest I took much stronger on the map and the minimap". A soft glow in the quest's colour
+## breathes under it, a ring pulses out, and the pin itself is a size up, so the one thing the
+## player is doing outshines every start badge and street-job icon (into the overlay's batch).
+func active_pin(at: Vector2, k: float, colour: Color) -> void:
+	var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.006)
+	for g: Array in [[12.0, 0.12], [9.0, 0.2], [6.8, 0.3]]:
+		_tri_fan(at, (float(g[0]) + 2.0 * pulse) * pt * k, 0.0, TAU, Color(colour, float(g[1]) * (0.7 + 0.3 * pulse)))
+	var r0 := (5.4 + 3.0 * pulse) * pt * k
+	_tri_ring(at, r0, r0 + 1.3 * pt * k, 0.0, TAU, Color(1, 1, 1, 0.85 * (1.0 - pulse)))
+	side_pin(at, 1.35 * k, colour)
 
 
 ## A side quest's target at `at` (k: its size): a dot in its colour inside a white ring, with the
