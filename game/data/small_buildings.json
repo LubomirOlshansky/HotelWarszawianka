@@ -1,0 +1,4364 @@
+{
+ "about": "Small OpenStreetMap buildings with no height tags, each researched (F, 2026-11-07): its tags and the map points inside it, else the GUGiK aerial and Mapillary street photos. x z = the outline's centre in map metres; u = what it is (game/scripts/small_buildings.gd draws it; part = a piece of a bigger building, none = nothing there: not drawn); h = height seen, m; conf = how sure; osm = the way id. tools/building_heights.py writes u and h into centrum.json.",
+ "buildings": [
+  {
+   "x": -217.3,
+   "z": -855.0,
+   "u": "substation",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "blue service box in park, unseen",
+   "osm": 62300584
+  },
+  {
+   "x": -2049.6,
+   "z": -1322.5,
+   "u": "unknown",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "tiny box under trees by road",
+   "osm": 151571912
+  },
+  {
+   "x": -1798.9,
+   "z": -1624.9,
+   "u": "monument_structure",
+   "h": 1.5,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "water_well tag, round footprint in greenery",
+   "osm": 152453590
+  },
+  {
+   "x": -2925.7,
+   "z": 117.3,
+   "u": "historic",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=bunker, bunker_type=pillbox, historic=yes",
+   "osm": 167109417
+  },
+  {
+   "x": 301.3,
+   "z": 1403.7,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 194448961
+  },
+  {
+   "x": -812.1,
+   "z": -1871.3,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 196756149
+  },
+  {
+   "x": -736.1,
+   "z": -1662.2,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 196756170
+  },
+  {
+   "x": -729.7,
+   "z": -1660.4,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 196756201
+  },
+  {
+   "x": -2408.6,
+   "z": -147.5,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 198815024
+  },
+  {
+   "x": -955.0,
+   "z": -235.8,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 221744437
+  },
+  {
+   "x": -921.5,
+   "z": -348.0,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 221774468
+  },
+  {
+   "x": -853.6,
+   "z": -267.8,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 221788400
+  },
+  {
+   "x": -1507.0,
+   "z": 768.2,
+   "u": "part",
+   "h": 6.0,
+   "conf": "high",
+   "src": "aerial + Mapillary",
+   "why": "building:part under overhang of large bank building",
+   "osm": 237174732
+  },
+  {
+   "x": -154.6,
+   "z": 494.0,
+   "u": "kiosk",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "disused retail, small box in square",
+   "osm": 240448429
+  },
+  {
+   "x": -3014.7,
+   "z": -1860.8,
+   "u": "unknown",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small box in green, photos not conclusive",
+   "osm": 243157680
+  },
+  {
+   "x": -1463.0,
+   "z": 1096.1,
+   "u": "part",
+   "h": 6.0,
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "narrow L-shape squeezed between Old Town buildings",
+   "osm": 244019994
+  },
+  {
+   "x": -722.1,
+   "z": -1614.9,
+   "u": "historic",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building:colour=#af8473, building:material=brick, building:part=yes · near historic=memori",
+   "osm": 249227128
+  },
+  {
+   "x": -737.8,
+   "z": -1633.0,
+   "u": "historic",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building:colour=#af8473, building:material=brick, building:part=yes · near historic=memori",
+   "osm": 249227134
+  },
+  {
+   "x": -931.9,
+   "z": -1782.4,
+   "u": "shed",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "tiny box in courtyard green",
+   "osm": 255303025
+  },
+  {
+   "x": -906.9,
+   "z": -1674.4,
+   "u": "shed",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "tiny box in courtyard trees",
+   "osm": 255303026
+  },
+  {
+   "x": -2641.9,
+   "z": -1310.3,
+   "u": "kiosk",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes, name=Super Warzywko, opening_hours=Mo-Fr 09:00-19:00; Sa 09:00-15:00",
+   "osm": 256922560
+  },
+  {
+   "x": -2635.2,
+   "z": -1233.3,
+   "u": "substation",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small light-roof box in trees by block",
+   "osm": 256923440
+  },
+  {
+   "x": -838.5,
+   "z": -1203.3,
+   "u": "unknown",
+   "h": 4.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "L-shaped sliver among trees and buildings",
+   "osm": 258620240
+  },
+  {
+   "x": -699.7,
+   "z": 995.6,
+   "u": "metro_vent",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes, railway=ventilation_shaft",
+   "osm": 271340650
+  },
+  {
+   "x": -1284.0,
+   "z": 1336.1,
+   "u": "guard_booth",
+   "h": 3,
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "small box at campus gate, Politechnika",
+   "osm": 271660579
+  },
+  {
+   "x": 1831.8,
+   "z": 504.4,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 278212326
+  },
+  {
+   "x": -2613.0,
+   "z": -1937.2,
+   "u": "kiosk",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "amenity=fast_food, building=retail, check_date=2026-04-04",
+   "osm": 279706502
+  },
+  {
+   "x": -2808.4,
+   "z": -2770.9,
+   "u": "none",
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "grassy lot by rail, nothing clear",
+   "osm": 294958951
+  },
+  {
+   "x": 1607.7,
+   "z": 86.4,
+   "u": "toilet",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes · near access=customers, amenity=toilets",
+   "osm": 303625253
+  },
+  {
+   "x": 1696.9,
+   "z": 255.2,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 303625254
+  },
+  {
+   "x": 1465.2,
+   "z": -135.2,
+   "u": "unknown",
+   "h": 4.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "long thin strip beside road, unclear",
+   "osm": 303625762
+  },
+  {
+   "x": -1270.8,
+   "z": 666.2,
+   "u": "bus_tram_shelter",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "strip at kerb on avenue median, unclear",
+   "osm": 306265045
+  },
+  {
+   "x": 2097.3,
+   "z": -63.9,
+   "u": "garage",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=garage",
+   "osm": 309630833
+  },
+  {
+   "x": 1938.4,
+   "z": -233.4,
+   "u": "bin_shelter",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "amenity=waste_disposal, building=shed · near barrier=gate",
+   "osm": 312781857
+  },
+  {
+   "x": 982.4,
+   "z": -1604.0,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 317517234
+  },
+  {
+   "x": 877.1,
+   "z": -1767.5,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 318195931
+  },
+  {
+   "x": -2591.2,
+   "z": -1169.3,
+   "u": "substation",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=service, frequency=50, location=indoor",
+   "osm": 320944681
+  },
+  {
+   "x": -486.2,
+   "z": 211.0,
+   "u": "pavilion",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=retail · near description=sklep czarodziejski, name=Fraida.pl",
+   "osm": 327005426
+  },
+  {
+   "x": -726.6,
+   "z": -1299.0,
+   "u": "pavilion",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "addr:city=Warszawa, addr:city:simc=0918123, addr:housenumber=69 · near amenity=fast_food, ",
+   "osm": 328625307
+  },
+  {
+   "x": -710.1,
+   "z": -1140.9,
+   "u": "historic",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes, layer=1 · near artist:wikidata=Q8865537, artist_name=Karol Tchorek",
+   "osm": 328625311
+  },
+  {
+   "x": -2741.0,
+   "z": 413.8,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=elevator_housing, highway=elevator, indoor=room · near amenity=atm, brand=Planet ",
+   "osm": 329047321
+  },
+  {
+   "x": -2774.3,
+   "z": 391.2,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=elevator_housing, highway=elevator, indoor=room · near entrance=yes",
+   "osm": 329047322
+  },
+  {
+   "x": -2846.1,
+   "z": 476.5,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=elevator_housing, highway=elevator, indoor=room",
+   "osm": 329047323
+  },
+  {
+   "x": -2740.5,
+   "z": 462.2,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=elevator_housing, highway=elevator, indoor=room · near entrance=yes",
+   "osm": 329047326
+  },
+  {
+   "x": -2861.4,
+   "z": 428.1,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=elevator_housing, highway=elevator, indoor=room · near entrance=yes",
+   "osm": 329047327
+  },
+  {
+   "x": 1331.2,
+   "z": -1466.4,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=elvator_housing, buildingpart=verticalpassage, buildingpart:verticalpassage=eleva",
+   "osm": 329673189
+  },
+  {
+   "x": 1325.1,
+   "z": -1367.4,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=elvator_housing, buildingpart=verticalpassage, buildingpart:verticalpassage=eleva",
+   "osm": 329673190
+  },
+  {
+   "x": 1277.4,
+   "z": -1356.8,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=elevator, buildingpart=verticalpassage, buildingpart:verticalpassage=elevator · n",
+   "osm": 329673191
+  },
+  {
+   "x": -1621.6,
+   "z": -1347.2,
+   "u": "metro_vent",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=service, railway=ventilation_shaft, service=ventilation",
+   "osm": 331003777
+  },
+  {
+   "x": -1632.6,
+   "z": -1376.4,
+   "u": "metro_vent",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=service, railway=ventilation_shaft",
+   "osm": 331003779
+  },
+  {
+   "x": -1584.5,
+   "z": -1273.7,
+   "u": "kiosk",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small square in park by bench and bin",
+   "osm": 331003780
+  },
+  {
+   "x": -1609.6,
+   "z": -1328.9,
+   "u": "metro_vent",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=service, railway=ventilation_shaft, service=ventilation",
+   "osm": 331003782
+  },
+  {
+   "x": -1636.4,
+   "z": -1757.0,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 331309221
+  },
+  {
+   "x": 927.3,
+   "z": -149.5,
+   "u": "historic",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes, gez:inscription_date=2012-07-24, heritage=2",
+   "osm": 331948054
+  },
+  {
+   "x": 935.3,
+   "z": -124.4,
+   "u": "historic",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes, gez:inscription_date=2012-07-24, heritage=2 · near amenity=pub, name=Pod Mos",
+   "osm": 331948055
+  },
+  {
+   "x": 1426.3,
+   "z": -285.0,
+   "u": "historic",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes, gez:inscription_date=2012-07-24, heritage=2 · near amenity=pub",
+   "osm": 331948809
+  },
+  {
+   "x": 1416.5,
+   "z": -315.4,
+   "u": "historic",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes, gez:inscription_date=2012-07-24, heritage=2 · near shop=alcohol",
+   "osm": 331948810
+  },
+  {
+   "x": 716.0,
+   "z": -79.0,
+   "u": "historic",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes, gez:inscription_date=2012-07-24, heritage=2 · near accor_ticket_acceptant=ye",
+   "osm": 331950453
+  },
+  {
+   "x": 725.1,
+   "z": -54.5,
+   "u": "historic",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes, gez:inscription_date=2012-07-24, heritage=2",
+   "osm": 331950462
+  },
+  {
+   "x": 655.6,
+   "z": -59.4,
+   "u": "historic",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes, gez:inscription_date=2012-07-24, heritage=2 · near amenity=fast_food, cuisin",
+   "osm": 331951388
+  },
+  {
+   "x": 663.6,
+   "z": -33.9,
+   "u": "historic",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes, gez:inscription_date=2012-07-24, heritage=2",
+   "osm": 331951389
+  },
+  {
+   "x": -689.5,
+   "z": 1511.3,
+   "u": "shed",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small box in back-yard lane",
+   "osm": 337372667
+  },
+  {
+   "x": -1467.9,
+   "z": -619.5,
+   "u": "historic",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes, historic=memorial, memorial=statue",
+   "osm": 337848189
+  },
+  {
+   "x": -1018.2,
+   "z": -1852.2,
+   "u": "kiosk",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "addr:city=Warszawa, addr:city:simc=0918123, addr:housenumber=1",
+   "osm": 338647743
+  },
+  {
+   "x": -775.3,
+   "z": -1825.5,
+   "u": "pavilion",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=apartments, roof:colour=#B26539, roof:material=roof_tiles · near shop=vacant, whe",
+   "osm": 356466582
+  },
+  {
+   "x": -739.7,
+   "z": -1523.9,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 358095109
+  },
+  {
+   "x": 905.3,
+   "z": 1335.6,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 365887343
+  },
+  {
+   "x": -1522.9,
+   "z": -1751.2,
+   "u": "shed",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "hut-like patch in dense greenery by pond",
+   "osm": 368465563
+  },
+  {
+   "x": -1558.9,
+   "z": -1753.2,
+   "u": "unknown",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "hexagon in trees, maybe gazebo",
+   "osm": 368465564
+  },
+  {
+   "x": -2375.0,
+   "z": -414.6,
+   "u": "pavilion",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes, end_date=2012, name=Dom Kereta · near entrance=main",
+   "osm": 369781007
+  },
+  {
+   "x": -2484.6,
+   "z": -2099.8,
+   "u": "bin_shelter",
+   "h": 2.5,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "tiny box at parking edge",
+   "osm": 378983933
+  },
+  {
+   "x": -1809.5,
+   "z": -1826.3,
+   "u": "bin_shelter",
+   "h": 2.5,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small box in courtyard between blocks",
+   "osm": 379027465
+  },
+  {
+   "x": -1180.0,
+   "z": -1482.0,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 379997095
+  },
+  {
+   "x": -1195.5,
+   "z": -1464.2,
+   "u": "shed",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small wedge between buildings",
+   "osm": 380000688
+  },
+  {
+   "x": -1149.3,
+   "z": -1528.1,
+   "u": "garage",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "long narrow outbuilding beside block",
+   "osm": 380000689
+  },
+  {
+   "x": -858.6,
+   "z": -1356.4,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 380002236
+  },
+  {
+   "x": -1147.7,
+   "z": -1975.4,
+   "u": "shed",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small box in green courtyard",
+   "osm": 380902063
+  },
+  {
+   "x": -2314.8,
+   "z": -1673.2,
+   "u": "substation",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes, power=substation",
+   "osm": 383653112
+  },
+  {
+   "x": 875.5,
+   "z": 1397.1,
+   "u": "part",
+   "h": 4.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "narrow strip against warehouse",
+   "osm": 390507318
+  },
+  {
+   "x": -947.5,
+   "z": -500.2,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 397278928
+  },
+  {
+   "x": -963.8,
+   "z": -503.0,
+   "u": "substation",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=service, nohousenumber=yes, power=substation",
+   "osm": 397278929
+  },
+  {
+   "x": -650.2,
+   "z": -1182.1,
+   "u": "toilet",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "abandoned toilets tag; long strip, photos show wall",
+   "osm": 402416084
+  },
+  {
+   "x": -1681.1,
+   "z": -1138.8,
+   "u": "shed",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small box beside corner of building",
+   "osm": 403176033
+  },
+  {
+   "x": -778.9,
+   "z": -1672.1,
+   "u": "pavilion",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "addr:city=Warszawa, addr:city:simc=0918123, addr:housenumber=14 · near name=World of Amber",
+   "osm": 404049369
+  },
+  {
+   "x": -717.8,
+   "z": -1608.9,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 404050658
+  },
+  {
+   "x": -578.1,
+   "z": -497.4,
+   "u": "part",
+   "h": 3.0,
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "on flat roof of large building",
+   "osm": 414779119
+  },
+  {
+   "x": -580.2,
+   "z": -503.4,
+   "u": "part",
+   "h": 3.0,
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "on flat roof of large building",
+   "osm": 414779120
+  },
+  {
+   "x": -430.4,
+   "z": -216.4,
+   "u": "bin_shelter",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "access=private, amenity=waste_disposal, building=garbage_shed",
+   "osm": 415150798
+  },
+  {
+   "x": 1627.8,
+   "z": -63.6,
+   "u": "shed",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=shed",
+   "osm": 421879830
+  },
+  {
+   "x": 1651.9,
+   "z": -76.4,
+   "u": "shed",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=shed · near access=private, barrier=gate",
+   "osm": 421879831
+  },
+  {
+   "x": 1933.8,
+   "z": 800.4,
+   "u": "boathouse",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=boathouse",
+   "osm": 423432575
+  },
+  {
+   "x": 1949.0,
+   "z": 758.2,
+   "u": "unknown",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "in trees beside bridge ramp",
+   "osm": 423432577
+  },
+  {
+   "x": 1940.5,
+   "z": 811.4,
+   "u": "boathouse",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=boathouse",
+   "osm": 423432578
+  },
+  {
+   "x": 1956.8,
+   "z": 839.6,
+   "u": "boathouse",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=boathouse",
+   "osm": 423432579
+  },
+  {
+   "x": 1947.2,
+   "z": 818.5,
+   "u": "boathouse",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=boathouse",
+   "osm": 423432580
+  },
+  {
+   "x": 1942.0,
+   "z": 759.0,
+   "u": "unknown",
+   "h": 4.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "in trees beside bridge ramp",
+   "osm": 423432581
+  },
+  {
+   "x": 1954.3,
+   "z": 754.7,
+   "u": "unknown",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "in trees beside bridge ramp",
+   "osm": 423432582
+  },
+  {
+   "x": 1950.5,
+   "z": 774.3,
+   "u": "unknown",
+   "h": 4.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "under trees by ramp car park",
+   "osm": 423432583
+  },
+  {
+   "x": -1184.3,
+   "z": -1426.3,
+   "u": "historic",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=summer_house, historic=building, name=Altana ogrodowa",
+   "osm": 423475731
+  },
+  {
+   "x": 2163.5,
+   "z": 1023.7,
+   "u": "unknown",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "by parking, nothing visible",
+   "osm": 426918589
+  },
+  {
+   "x": 2125.5,
+   "z": 1046.9,
+   "u": "canopy",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "amenity=shelter, bench=yes, building=yes",
+   "osm": 426918596
+  },
+  {
+   "x": -2823.0,
+   "z": -1403.7,
+   "u": "monument_structure",
+   "h": 2.5,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "oligocene well tag, small box in trees",
+   "osm": 430591415
+  },
+  {
+   "x": 566.5,
+   "z": -665.7,
+   "u": "lift",
+   "h": 4,
+   "conf": "high",
+   "src": "aerial + Mapillary",
+   "why": "tagged elevator nearby; glass pavilion at metro entrance",
+   "osm": 432807476
+  },
+  {
+   "x": 557.6,
+   "z": -671.3,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=elvator_housing · near entrance=yes",
+   "osm": 434664547
+  },
+  {
+   "x": 507.6,
+   "z": -628.6,
+   "u": "metro_entrance_roof",
+   "h": 3.5,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "park plaza by metro entrance, structure unclear",
+   "osm": 436481328
+  },
+  {
+   "x": 481.2,
+   "z": -613.5,
+   "u": "lift",
+   "h": 4,
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "elevator tag 7 m; boxy lift pavilion at entrance",
+   "osm": 436481329
+  },
+  {
+   "x": 474.3,
+   "z": -619.4,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=elevator_housing · near entrance=yes",
+   "osm": 436481330
+  },
+  {
+   "x": 507.0,
+   "z": -1757.5,
+   "u": "bin_shelter",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "access=private, amenity=waste_disposal, building=service",
+   "osm": 443932581
+  },
+  {
+   "x": 560.2,
+   "z": -1478.8,
+   "u": "boathouse",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small box on waterside peninsula",
+   "osm": 444955601
+  },
+  {
+   "x": 1075.9,
+   "z": -1521.5,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 445070330
+  },
+  {
+   "x": -1586.9,
+   "z": -170.0,
+   "u": "monument_structure",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "drinking_water tag, octagon in trees",
+   "osm": 460252595
+  },
+  {
+   "x": -1562.4,
+   "z": -188.7,
+   "u": "shed",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=shed",
+   "osm": 460286226
+  },
+  {
+   "x": -1708.8,
+   "z": -35.8,
+   "u": "guard_booth",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=guardhouse · near natural=tree",
+   "osm": 462440065
+  },
+  {
+   "x": 112.2,
+   "z": 1541.6,
+   "u": "pavilion",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "addr:city=Warszawa, addr:city:simc=0918123, addr:housenumber=7",
+   "osm": 462904511
+  },
+  {
+   "x": -1634.7,
+   "z": -26.8,
+   "u": "part",
+   "h": 4.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "narrow strip inside dark courtyard of retail block",
+   "osm": 463340409
+  },
+  {
+   "x": -1651.6,
+   "z": -136.3,
+   "u": "pavilion",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "addr:housenumber=33, addr:street=Grzybowska, building=retail",
+   "osm": 467118389
+  },
+  {
+   "x": -3085.2,
+   "z": 518.9,
+   "u": "metro_vent",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=service, operator=Metro Warszawskie, railway=ventilation_shaft",
+   "osm": 470930737
+  },
+  {
+   "x": -2998.9,
+   "z": 501.4,
+   "u": "metro_vent",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=service, railway=ventilation_shaft",
+   "osm": 470930740
+  },
+  {
+   "x": -3013.8,
+   "z": 491.0,
+   "u": "metro_vent",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=service, railway=ventilation_shaft",
+   "osm": 470930745
+  },
+  {
+   "x": -2889.9,
+   "z": 470.4,
+   "u": "metro_vent",
+   "h": 4,
+   "conf": "high",
+   "src": "aerial + Mapillary",
+   "why": "grey louvred vent building by Rondo Daszynskiego road",
+   "osm": 470930747
+  },
+  {
+   "x": -2779.1,
+   "z": 419.6,
+   "u": "lift",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small box near subway entrance, unseen",
+   "osm": 470930748
+  },
+  {
+   "x": -2821.9,
+   "z": 437.4,
+   "u": "metro_vent",
+   "h": 4,
+   "conf": "high",
+   "src": "aerial + Mapillary",
+   "why": "grey vent box with grilles next to tram tracks",
+   "osm": 470930749
+  },
+  {
+   "x": 2110.8,
+   "z": -451.5,
+   "u": "garage",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=garage",
+   "osm": 492643014
+  },
+  {
+   "x": 2117.6,
+   "z": -20.2,
+   "u": "shed",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "narrow box in garden greenery",
+   "osm": 495206072
+  },
+  {
+   "x": 2160.8,
+   "z": -78.8,
+   "u": "shed",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "narrow box in garden",
+   "osm": 495621045
+  },
+  {
+   "x": 1923.9,
+   "z": 384.6,
+   "u": "unknown",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "tiny box by road, photos show only hedge",
+   "osm": 498123228
+  },
+  {
+   "x": 2108.2,
+   "z": 431.4,
+   "u": "pavilion",
+   "h": 3.5,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "former cafe tag, hidden behind hedge",
+   "osm": 498865840
+  },
+  {
+   "x": -2168.7,
+   "z": 291.1,
+   "u": "part",
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "sliver at office building edge by gate",
+   "osm": 504082714
+  },
+  {
+   "x": -3002.2,
+   "z": -673.7,
+   "u": "bin_shelter",
+   "h": 2.5,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small box inside car park",
+   "osm": 506175202
+  },
+  {
+   "x": -1557.3,
+   "z": -1217.8,
+   "u": "pavilion",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=service · near level=-1, name=Franco",
+   "osm": 554605389
+  },
+  {
+   "x": 1415.6,
+   "z": -321.2,
+   "u": "historic",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes, gez:inscription_date=2012-07-24, heritage=2 · near amenity=restaurant, name=",
+   "osm": 589204906
+  },
+  {
+   "x": 1429.8,
+   "z": -279.3,
+   "u": "historic",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes, gez:inscription_date=2012-07-24, heritage=2",
+   "osm": 589204912
+  },
+  {
+   "x": 923.5,
+   "z": -155.0,
+   "u": "historic",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes, gez:inscription_date=2012-07-24, heritage=2",
+   "osm": 589900430
+  },
+  {
+   "x": 936.1,
+   "z": -118.4,
+   "u": "historic",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes, gez:inscription_date=2012-07-24, heritage=2 · near amenity=pub, name=Pod Mos",
+   "osm": 589900431
+  },
+  {
+   "x": 1029.1,
+   "z": -3.3,
+   "u": "part",
+   "h": 4.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "beside large building in shadow",
+   "osm": 590197794
+  },
+  {
+   "x": -2302.6,
+   "z": -1102.2,
+   "u": "garage",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "addr:city=Warszawa, addr:city:simc=0918123, addr:housenumber=19G",
+   "osm": 614827453
+  },
+  {
+   "x": -2304.1,
+   "z": -1105.1,
+   "u": "garage",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "addr:city=Warszawa, addr:city:simc=0918123, addr:housenumber=19F",
+   "osm": 614827455
+  },
+  {
+   "x": -2305.6,
+   "z": -1108.0,
+   "u": "garage",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "addr:city=Warszawa, addr:city:simc=0918123, addr:housenumber=19E",
+   "osm": 614827457
+  },
+  {
+   "x": -2307.1,
+   "z": -1110.9,
+   "u": "garage",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "addr:city=Warszawa, addr:city:simc=0918123, addr:housenumber=19D",
+   "osm": 614827459
+  },
+  {
+   "x": -2310.1,
+   "z": -1114.7,
+   "u": "garage",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "addr:city=Warszawa, addr:city:simc=0918123, addr:housenumber=19C",
+   "osm": 614827461
+  },
+  {
+   "x": -600.8,
+   "z": -773.6,
+   "u": "part",
+   "h": 4.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "blurry aerial, inside dense blocks",
+   "osm": 628930713
+  },
+  {
+   "x": -615.4,
+   "z": -782.9,
+   "u": "part",
+   "h": 4.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "blurry aerial, inside dense blocks",
+   "osm": 628930723
+  },
+  {
+   "x": -737.1,
+   "z": -180.9,
+   "u": "metro_vent",
+   "h": 4,
+   "conf": "high",
+   "src": "aerial + Mapillary",
+   "why": "tagged Wentylatornia metra; long strip on boulevard",
+   "osm": 647267553
+  },
+  {
+   "x": 1318.0,
+   "z": -1202.9,
+   "u": "metro_vent",
+   "h": 4,
+   "conf": "high",
+   "src": "aerial + Mapillary",
+   "why": "grey stone-clad box on slope by railway",
+   "osm": 647305892
+  },
+  {
+   "x": 1311.2,
+   "z": -1090.0,
+   "u": "metro_vent",
+   "h": 4,
+   "conf": "high",
+   "src": "aerial + Mapillary",
+   "why": "stone-clad stepped vent/stair housing next to rail",
+   "osm": 647305893
+  },
+  {
+   "x": 1311.3,
+   "z": -1113.6,
+   "u": "metro_vent",
+   "h": 4,
+   "conf": "high",
+   "src": "aerial + Mapillary",
+   "why": "stone-clad box beside rail embankment, same series",
+   "osm": 647305895
+  },
+  {
+   "x": 1298.5,
+   "z": -1349.9,
+   "u": "metro_vent_tower",
+   "h": 5,
+   "conf": "high",
+   "src": "aerial + Mapillary",
+   "why": "tall brown louvred vent tower by road",
+   "osm": 647305898
+  },
+  {
+   "x": 1287.1,
+   "z": -1274.2,
+   "u": "metro_vent",
+   "h": 4,
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "grey stone-clad box under tree by road",
+   "osm": 647305903
+  },
+  {
+   "x": 1278.0,
+   "z": -1325.4,
+   "u": "metro_vent",
+   "h": 4,
+   "conf": "high",
+   "src": "aerial + Mapillary",
+   "why": "grey stone-clad vent box on grass",
+   "osm": 647305904
+  },
+  {
+   "x": 1925.0,
+   "z": 783.6,
+   "u": "unknown",
+   "h": 4.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "in trees beside bridge ramp",
+   "osm": 674918695
+  },
+  {
+   "x": 1956.7,
+   "z": 767.0,
+   "u": "unknown",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "in trees beside bridge ramp",
+   "osm": 674929320
+  },
+  {
+   "x": 1297.4,
+   "z": -1384.5,
+   "u": "metro_vent_tower",
+   "h": 6,
+   "conf": "high",
+   "src": "aerial + Mapillary",
+   "why": "round louvred vent tower, Stadion Narodowy",
+   "osm": 678925246
+  },
+  {
+   "x": 1295.6,
+   "z": -1456.2,
+   "u": "metro_vent_tower",
+   "h": 6,
+   "conf": "high",
+   "src": "aerial + Mapillary",
+   "why": "round louvred vent tower, Stadion Narodowy",
+   "osm": 678925247
+  },
+  {
+   "x": 1296.7,
+   "z": -1408.4,
+   "u": "metro_vent_tower",
+   "h": 6,
+   "conf": "high",
+   "src": "aerial + Mapillary",
+   "why": "round louvred vent tower, Stadion Narodowy",
+   "osm": 678925248
+  },
+  {
+   "x": 1295.9,
+   "z": -1432.2,
+   "u": "metro_vent_tower",
+   "h": 6,
+   "conf": "high",
+   "src": "aerial + Mapillary",
+   "why": "round louvred vent tower, Stadion Narodowy",
+   "osm": 678925249
+  },
+  {
+   "x": 459.3,
+   "z": -1999.7,
+   "u": "chapel_shrine",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "chapel tag, small round plan in courtyard",
+   "osm": 699118891
+  },
+  {
+   "x": -691.0,
+   "z": -1113.0,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 718193811
+  },
+  {
+   "x": 1969.4,
+   "z": -375.5,
+   "u": "shed",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=shed",
+   "osm": 760019801
+  },
+  {
+   "x": 2090.5,
+   "z": -262.0,
+   "u": "shed",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=shed",
+   "osm": 760031947
+  },
+  {
+   "x": -1188.9,
+   "z": -1193.5,
+   "u": "unknown",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "tiny box at building corner",
+   "osm": 764638592
+  },
+  {
+   "x": 1428.7,
+   "z": -159.3,
+   "u": "shed",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=shed",
+   "osm": 769050434
+  },
+  {
+   "x": 1887.6,
+   "z": 611.2,
+   "u": "toilet",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "amenity=toilets, building=toilets, changing_table=yes",
+   "osm": 769101699
+  },
+  {
+   "x": 2141.2,
+   "z": 978.4,
+   "u": "shed",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=shed",
+   "osm": 769152350
+  },
+  {
+   "x": 2148.9,
+   "z": 985.2,
+   "u": "shed",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "tiny box in trees near road",
+   "osm": 769152351
+  },
+  {
+   "x": 2153.2,
+   "z": 990.0,
+   "u": "shed",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "narrow box at edge of garden",
+   "osm": 769152352
+  },
+  {
+   "x": 2145.9,
+   "z": 992.4,
+   "u": "part",
+   "h": 5.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "against red-roofed house",
+   "osm": 769152353
+  },
+  {
+   "x": 2035.4,
+   "z": -316.9,
+   "u": "shed",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=shed",
+   "osm": 779158349
+  },
+  {
+   "x": 1915.5,
+   "z": 713.4,
+   "u": "shed",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "narrow box in allotment-like area",
+   "osm": 780990604
+  },
+  {
+   "x": -993.6,
+   "z": -1434.4,
+   "u": "part",
+   "h": 5.0,
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "attached to large pale-roofed building",
+   "osm": 788004645
+  },
+  {
+   "x": -2253.9,
+   "z": -854.5,
+   "u": "bin_shelter",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "amenity=waste_disposal, building=yes",
+   "osm": 805568615
+  },
+  {
+   "x": -540.4,
+   "z": -1698.6,
+   "u": "part",
+   "h": 5.0,
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "abuts larger grey-roofed building",
+   "osm": 821982067
+  },
+  {
+   "x": -461.1,
+   "z": -595.3,
+   "u": "kiosk",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "amenity=ice_cream, building=kiosk, check_date=2025-08-11 · near currency:PLN=yes, disused:",
+   "osm": 825403088
+  },
+  {
+   "x": -695.8,
+   "z": -1243.2,
+   "u": "kiosk",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "amenity=cafe, building=kiosk, check_date=2025-08-11",
+   "osm": 825462224
+  },
+  {
+   "x": 1475.8,
+   "z": 1353.8,
+   "u": "shed",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small grey-roofed box at car park",
+   "osm": 854668377
+  },
+  {
+   "x": 1890.8,
+   "z": 1468.1,
+   "u": "shed",
+   "h": 4.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "square roof in trees",
+   "osm": 854682317
+  },
+  {
+   "x": 1694.8,
+   "z": 1280.1,
+   "u": "shed",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small grey roof by trees",
+   "osm": 854697560
+  },
+  {
+   "x": 1681.3,
+   "z": 1294.5,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 854697561
+  },
+  {
+   "x": 1678.5,
+   "z": 1343.6,
+   "u": "part",
+   "h": 4.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "touches large white-roofed building",
+   "osm": 854700023
+  },
+  {
+   "x": -1878.2,
+   "z": -1053.8,
+   "u": "shed",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=shed",
+   "osm": 855186442
+  },
+  {
+   "x": -772.5,
+   "z": -1820.7,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 858328567
+  },
+  {
+   "x": -1379.3,
+   "z": -1000.6,
+   "u": "garage",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=garage",
+   "osm": 860252012
+  },
+  {
+   "x": 1256.9,
+   "z": 542.9,
+   "u": "toilet",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "amenity=toilets, building=toilets, charge=1 PLN",
+   "osm": 864567416
+  },
+  {
+   "x": 1129.0,
+   "z": 188.0,
+   "u": "toilet",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "amenity=toilets, building=yes, charge=1 PLN",
+   "osm": 864647737
+  },
+  {
+   "x": 1139.4,
+   "z": 146.9,
+   "u": "unknown",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "thin box by path",
+   "osm": 864717189
+  },
+  {
+   "x": 1014.3,
+   "z": -21.1,
+   "u": "toilet",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "amenity=toilets, building=yes, charge=1 PLN",
+   "osm": 864801335
+  },
+  {
+   "x": 410.1,
+   "z": -835.3,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=elevator_housing · near highway=elevator",
+   "osm": 866658851
+  },
+  {
+   "x": 460.7,
+   "z": -780.3,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=elevator_housing · near highway=elevator, level=-1;0",
+   "osm": 866658852
+  },
+  {
+   "x": 385.8,
+   "z": -813.0,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=elevator_housing · near highway=elevator, level=-1;0",
+   "osm": 866708042
+  },
+  {
+   "x": 142.8,
+   "z": -1028.8,
+   "u": "substation",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=service, power=substation, ref=6560",
+   "osm": 867996686
+  },
+  {
+   "x": -286.5,
+   "z": -1513.1,
+   "u": "substation",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=service, operator=Stoen Operator, operator:wikidata=Q11833155 · near leaf_type=br",
+   "osm": 868059121
+  },
+  {
+   "x": 1062.8,
+   "z": 206.3,
+   "u": "monument_structure",
+   "h": 1.5,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "drinking_water tag, tiny wedge at car park",
+   "osm": 886789000
+  },
+  {
+   "x": 1252.9,
+   "z": 416.4,
+   "u": "shed",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small box under trees",
+   "osm": 888765980
+  },
+  {
+   "x": 1254.7,
+   "z": 419.0,
+   "u": "shed",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small hut visible in park photo",
+   "osm": 888765981
+  },
+  {
+   "x": 1163.6,
+   "z": 237.1,
+   "u": "pavilion",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "amenity=bar, building=yes, check_date=2026-06-12",
+   "osm": 888765994
+  },
+  {
+   "x": 1173.2,
+   "z": 248.5,
+   "u": "toilet",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "amenity=toilets, building=yes, check_date=2024-09-06",
+   "osm": 888765996
+  },
+  {
+   "x": 642.4,
+   "z": -155.4,
+   "u": "part",
+   "h": 4.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "adjoins red building",
+   "osm": 888875149
+  },
+  {
+   "x": 1923.8,
+   "z": 754.0,
+   "u": "shed",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small box in green near parking",
+   "osm": 889513522
+  },
+  {
+   "x": 742.6,
+   "z": -1670.8,
+   "u": "unknown",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "narrow strip in yard",
+   "osm": 890831520
+  },
+  {
+   "x": 704.6,
+   "z": -1605.5,
+   "u": "unknown",
+   "h": 4.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "box hidden under trees",
+   "osm": 890831529
+  },
+  {
+   "x": 721.2,
+   "z": -1605.0,
+   "u": "unknown",
+   "h": 4.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "box hidden under trees",
+   "osm": 890831530
+  },
+  {
+   "x": 500.1,
+   "z": -1504.1,
+   "u": "boathouse",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "addr:city=Warszawa, addr:city:simc=0918123, addr:housenumber=8",
+   "osm": 890953720
+  },
+  {
+   "x": 504.5,
+   "z": -1483.0,
+   "u": "boathouse",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=boathouse",
+   "osm": 890953721
+  },
+  {
+   "x": 544.4,
+   "z": -1492.7,
+   "u": "boathouse",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=boathouse",
+   "osm": 890953722
+  },
+  {
+   "x": -1202.2,
+   "z": -1090.5,
+   "u": "shed",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small box between trees and buildings",
+   "osm": 898500640
+  },
+  {
+   "x": -436.1,
+   "z": -264.8,
+   "u": "bin_shelter",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "access=private, amenity=waste_disposal, building=garbage_shed",
+   "osm": 899022892
+  },
+  {
+   "x": -2060.2,
+   "z": 1215.6,
+   "u": "shed",
+   "h": 3.0,
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "small outbuilding in industrial yard",
+   "osm": 900170194
+  },
+  {
+   "x": -1897.5,
+   "z": 1640.1,
+   "u": "substation",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "grey rectangle on lawn edge by road",
+   "osm": 900345737
+  },
+  {
+   "x": -1942.3,
+   "z": 1638.2,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 900345738
+  },
+  {
+   "x": -803.5,
+   "z": 183.2,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 903924225
+  },
+  {
+   "x": -399.2,
+   "z": 168.4,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 905975462
+  },
+  {
+   "x": -306.0,
+   "z": 176.8,
+   "u": "garage",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=garage",
+   "osm": 905975466
+  },
+  {
+   "x": -2791.2,
+   "z": 1562.8,
+   "u": "shed",
+   "h": 2.5,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small box in courtyard greenery, unseen",
+   "osm": 907012219
+  },
+  {
+   "x": -404.9,
+   "z": -107.1,
+   "u": "part",
+   "h": 4.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "narrow strip against buildings",
+   "osm": 907823802
+  },
+  {
+   "x": 2056.7,
+   "z": 440.1,
+   "u": "shed",
+   "h": 2.5,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "tiny narrow box in garden",
+   "osm": 908886151
+  },
+  {
+   "x": 2039.7,
+   "z": 363.2,
+   "u": "shed",
+   "h": 2.5,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "tiny box in garden",
+   "osm": 908886154
+  },
+  {
+   "x": -2376.5,
+   "z": -2260.2,
+   "u": "unknown",
+   "h": 3.0,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "tiny box next to brown roof",
+   "osm": 913622846
+  },
+  {
+   "x": -1840.4,
+   "z": -1132.4,
+   "u": "bin_shelter",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "amenity=waste_disposal, building=yes",
+   "osm": 914890702
+  },
+  {
+   "x": -2615.3,
+   "z": -1337.2,
+   "u": "kiosk",
+   "h": 3,
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "disused:shop=kiosk tag; small box beside street, DPD locker nearby",
+   "osm": 918603673
+  },
+  {
+   "x": -1380.1,
+   "z": -1293.9,
+   "u": "substation",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=service, frequency=50, location=indoor",
+   "osm": 920108716
+  },
+  {
+   "x": 934.9,
+   "z": 1117.1,
+   "u": "shed",
+   "h": 2.5,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small box in courtyard greenery, unseen",
+   "osm": 922640465
+  },
+  {
+   "x": -1210.4,
+   "z": -1226.2,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 934657052
+  },
+  {
+   "x": -1118.8,
+   "z": -1136.6,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 934682193
+  },
+  {
+   "x": -1230.2,
+   "z": 1622.4,
+   "u": "part",
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "flat grey roof inside courtyard block cluster",
+   "osm": 943507680
+  },
+  {
+   "x": -1206.6,
+   "z": 1638.0,
+   "u": "part",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "building:part on paved passage between larger buildings",
+   "osm": 943507682
+  },
+  {
+   "x": -2732.3,
+   "z": -196.2,
+   "u": "shed",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "narrow grey-roof outbuilding in courtyard, no photo",
+   "osm": 947203557
+  },
+  {
+   "x": -1420.7,
+   "z": -1139.1,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 956205033
+  },
+  {
+   "x": -709.6,
+   "z": -1162.7,
+   "u": "part",
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "narrow footprint within dense old-town block; passage photos show walls",
+   "osm": 958285832
+  },
+  {
+   "x": 267.7,
+   "z": 811.6,
+   "u": "part",
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "inside shadowed gap abutting big government block",
+   "osm": 964367409
+  },
+  {
+   "x": -1343.8,
+   "z": -1180.3,
+   "u": "bin_shelter",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "access=private, amenity=waste_disposal, building=yes",
+   "osm": 971712930
+  },
+  {
+   "x": 2029.8,
+   "z": -1709.5,
+   "u": "shed",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "tiny structure in overgrown yard beside private gate",
+   "osm": 972282862
+  },
+  {
+   "x": 2025.7,
+   "z": -1703.9,
+   "u": "shed",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "tiny structure in overgrown yard beside private gate",
+   "osm": 972282863
+  },
+  {
+   "x": 2050.3,
+   "z": -1695.9,
+   "u": "shed",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small structure in trees near gate and street lamp",
+   "osm": 972282864
+  },
+  {
+   "x": -1294.0,
+   "z": 741.8,
+   "u": "staircase_or_lift_head",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "narrow roof near underground car park entrance, hotel block",
+   "osm": 973355140
+  },
+  {
+   "x": -1655.5,
+   "z": -1918.3,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 974122100
+  },
+  {
+   "x": -3087.2,
+   "z": 1025.8,
+   "u": "shed",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "addr:city=Warszawa, addr:housenumber=4/6, addr:street=Kolejowa",
+   "osm": 977365955
+  },
+  {
+   "x": -2354.4,
+   "z": -2336.2,
+   "u": "part",
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "long thin strip along bright building edge, like a wall or canopy",
+   "osm": 978152665
+  },
+  {
+   "x": -2374.9,
+   "z": -2375.8,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 978152667
+  },
+  {
+   "x": -2358.1,
+   "z": -2357.8,
+   "u": "shed",
+   "h": 2.5,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small box against big building edge in green strip",
+   "osm": 978152669
+  },
+  {
+   "x": -1912.8,
+   "z": 386.9,
+   "u": "none",
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "abandoned; photo shows only road and corner building, trees on aerial",
+   "osm": 982201349
+  },
+  {
+   "x": -2121.4,
+   "z": 1037.4,
+   "u": "bin_shelter",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "access=private, amenity=waste_disposal, building=shed",
+   "osm": 986921160
+  },
+  {
+   "x": -1396.2,
+   "z": -439.6,
+   "u": "bin_shelter",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "access=private, amenity=waste_disposal, building=shed",
+   "osm": 990304607
+  },
+  {
+   "x": -909.2,
+   "z": 1080.2,
+   "u": "shed",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small box in green courtyard near gate",
+   "osm": 1001804103
+  },
+  {
+   "x": -906.7,
+   "z": 1084.4,
+   "u": "shed",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small box in green courtyard near gate",
+   "osm": 1001804104
+  },
+  {
+   "x": -585.4,
+   "z": 555.1,
+   "u": "pavilion",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes · near amenity=bar, hookah=yes",
+   "osm": 1003702499
+  },
+  {
+   "x": 324.9,
+   "z": -1653.0,
+   "u": "bin_shelter",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "access=private, amenity=waste_disposal, building=yes",
+   "osm": 1009160843
+  },
+  {
+   "x": 604.6,
+   "z": -2010.5,
+   "u": "monument_structure",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes, building:material=wood, fee=no",
+   "osm": 1012154009
+  },
+  {
+   "x": -187.0,
+   "z": 1211.4,
+   "u": "garage",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small box in courtyard strip between rowhouse blocks",
+   "osm": 1014265800
+  },
+  {
+   "x": -190.6,
+   "z": 1181.4,
+   "u": "garage",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small box in courtyard strip between rowhouse blocks",
+   "osm": 1014265801
+  },
+  {
+   "x": -675.5,
+   "z": -1099.9,
+   "u": "kiosk",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=kiosk, check_date=2025-08-11, name=Kołacze",
+   "osm": 1029028330
+  },
+  {
+   "x": 1035.6,
+   "z": 1349.2,
+   "u": "none",
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "photos show trees and road only; tiny strip by gate",
+   "osm": 1033632745
+  },
+  {
+   "x": 1014.9,
+   "z": 1350.7,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1033873129
+  },
+  {
+   "x": 1005.6,
+   "z": 1299.8,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1033873130
+  },
+  {
+   "x": 969.9,
+   "z": 1326.7,
+   "u": "part",
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "long narrow strip alongside bigger blue-roof building",
+   "osm": 1033873132
+  },
+  {
+   "x": -2566.0,
+   "z": 174.0,
+   "u": "part",
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "building:part, low elongated annex in commercial yard near beauty shops",
+   "osm": 1039457828
+  },
+  {
+   "x": -2192.8,
+   "z": -328.4,
+   "u": "shed",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=shed",
+   "osm": 1039575117
+  },
+  {
+   "x": -834.8,
+   "z": -566.8,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=elevator_housing · near highway=elevator, level=-1;0",
+   "osm": 1050794359
+  },
+  {
+   "x": -329.0,
+   "z": 127.1,
+   "u": "bin_shelter",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "access=private, amenity=waste_disposal, building=yes",
+   "osm": 1056543616
+  },
+  {
+   "x": 1572.6,
+   "z": 1411.2,
+   "u": "pavilion",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "access=customers, addr:city=Warszawa, addr:housenumber=136",
+   "osm": 1065558622
+  },
+  {
+   "x": -1135.5,
+   "z": -519.2,
+   "u": "toilet",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=toilets",
+   "osm": 1071255414
+  },
+  {
+   "x": 2121.5,
+   "z": 328.8,
+   "u": "shed",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small rectangle in tree-covered yard",
+   "osm": 1072468098
+  },
+  {
+   "x": -1320.8,
+   "z": -1160.4,
+   "u": "canopy",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building:part=roof · near name=Delimaro, opening_hours=Mo-Fr 13:00-18:00",
+   "osm": 1072827827
+  },
+  {
+   "x": -2637.2,
+   "z": -1093.0,
+   "u": "garage",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=garage",
+   "osm": 1075936057
+  },
+  {
+   "x": -2638.7,
+   "z": -1095.8,
+   "u": "garage",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=garage",
+   "osm": 1075936058
+  },
+  {
+   "x": -2640.1,
+   "z": -1098.4,
+   "u": "garage",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=garage",
+   "osm": 1075936059
+  },
+  {
+   "x": -2641.6,
+   "z": -1101.2,
+   "u": "garage",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=garage",
+   "osm": 1075936060
+  },
+  {
+   "x": -2567.1,
+   "z": -1064.0,
+   "u": "bin_shelter",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "access=private, amenity=waste_disposal, building=yes · near amenity=recycling, description",
+   "osm": 1075944646
+  },
+  {
+   "x": -2585.2,
+   "z": -1101.0,
+   "u": "bin_shelter",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "access=private, amenity=waste_disposal, building=yes",
+   "osm": 1075944663
+  },
+  {
+   "x": 142.6,
+   "z": 77.7,
+   "u": "toilet",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "amenity=toilets, building=yes, check_date=2023-08-04",
+   "osm": 1080806674
+  },
+  {
+   "x": -1912.5,
+   "z": -15.0,
+   "u": "shed",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=shed",
+   "osm": 1089771570
+  },
+  {
+   "x": 1879.9,
+   "z": -1848.5,
+   "u": "staircase_or_lift_head",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "narrow part over rail platform, near underpass stair sign",
+   "osm": 1090506672
+  },
+  {
+   "x": 2029.1,
+   "z": -1906.7,
+   "u": "canopy",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "narrow part along rail platform edge, likely platform roof",
+   "osm": 1090506687
+  },
+  {
+   "x": -1834.0,
+   "z": 267.2,
+   "u": "shed",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "tiny box in yard behind street trees, not visible in photos",
+   "osm": 1092187518
+  },
+  {
+   "x": -432.8,
+   "z": 1263.0,
+   "u": "shed",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "narrow outbuilding in courtyard between blocks",
+   "osm": 1095276493
+  },
+  {
+   "x": -2877.2,
+   "z": -83.0,
+   "u": "guard_booth",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=guardhouse",
+   "osm": 1098918392
+  },
+  {
+   "x": 1836.3,
+   "z": -1371.9,
+   "u": "part",
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "irregular strip in industrial yard attached to larger roofs",
+   "osm": 1101311041
+  },
+  {
+   "x": -2313.1,
+   "z": -305.6,
+   "u": "part",
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "thin strip against block wall, unseen",
+   "osm": 1104122755
+  },
+  {
+   "x": -1183.3,
+   "z": 1272.1,
+   "u": "bin_shelter",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "access=private, amenity=waste_disposal, building=yes · near barrier=bollard, bollard=fixed",
+   "osm": 1104770018
+  },
+  {
+   "x": -1203.3,
+   "z": 1447.6,
+   "u": "bin_shelter",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "access=private, amenity=waste_disposal, building=yes",
+   "osm": 1104770022
+  },
+  {
+   "x": -1007.8,
+   "z": 1437.2,
+   "u": "bin_shelter",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=service · near amenity=waste_basket, material=wood",
+   "osm": 1104821178
+  },
+  {
+   "x": -1097.3,
+   "z": 1483.8,
+   "u": "metro_vent",
+   "h": 4,
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "tagged Wentylatornia; ivy-covered courtyard vent hut",
+   "osm": 1105040301
+  },
+  {
+   "x": -1150.6,
+   "z": 1461.8,
+   "u": "metro_vent",
+   "h": 4,
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "tagged Wentylatornia in courtyard greenery",
+   "osm": 1105040302
+  },
+  {
+   "x": -942.6,
+   "z": 1091.8,
+   "u": "part",
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "narrow strip squeezed between large buildings",
+   "osm": 1108407701
+  },
+  {
+   "x": 440.9,
+   "z": -728.7,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1109034648
+  },
+  {
+   "x": -2714.5,
+   "z": -754.4,
+   "u": "pavilion",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=kiosk, contact:facebook=Warzywniak_uaktora, name=Warzywniak u Aktora · near leaf_",
+   "osm": 1111090580
+  },
+  {
+   "x": -1407.0,
+   "z": -1423.7,
+   "u": "shed",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "square structure in green courtyard, tree cover",
+   "osm": 1112575534
+  },
+  {
+   "x": -1327.5,
+   "z": -1535.8,
+   "u": "bin_shelter",
+   "h": 2.5,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small trapezoid near gates and bench in park path",
+   "osm": 1112769560
+  },
+  {
+   "x": -1344.4,
+   "z": -1505.2,
+   "u": "shed",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small outbuilding beside larger block, trees",
+   "osm": 1112781306
+  },
+  {
+   "x": -1347.3,
+   "z": -1489.3,
+   "u": "shed",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "long outbuilding under trees beside building",
+   "osm": 1112781308
+  },
+  {
+   "x": -1326.0,
+   "z": -1366.8,
+   "u": "garage",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=garage",
+   "osm": 1113133842
+  },
+  {
+   "x": -1195.4,
+   "z": 1275.0,
+   "u": "bin_shelter",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "access=private, amenity=waste_disposal, building=yes · near access=permissive, amenity=bic",
+   "osm": 1115005890
+  },
+  {
+   "x": -1618.5,
+   "z": -1837.1,
+   "u": "canopy",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "long thin strip along fenced street, bollards nearby",
+   "osm": 1117489898
+  },
+  {
+   "x": -1479.0,
+   "z": -1782.7,
+   "u": "shed",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "square structure hidden in trees",
+   "osm": 1117489913
+  },
+  {
+   "x": -1434.2,
+   "z": -1842.8,
+   "u": "shed",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small structure by gate in trees",
+   "osm": 1117489927
+  },
+  {
+   "x": -1585.3,
+   "z": -1884.8,
+   "u": "shed",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "mid-size roof in courtyard near gate",
+   "osm": 1117489929
+  },
+  {
+   "x": -1213.9,
+   "z": -1720.3,
+   "u": "none",
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "photo shows square and cathedral; only trees at spot",
+   "osm": 1117916235
+  },
+  {
+   "x": -588.5,
+   "z": -1498.7,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1118056735
+  },
+  {
+   "x": -485.0,
+   "z": -983.5,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1127846575
+  },
+  {
+   "x": -3104.6,
+   "z": -819.8,
+   "u": "bin_shelter",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "amenity=waste_disposal, building=yes",
+   "osm": 1136162745
+  },
+  {
+   "x": -3101.8,
+   "z": -621.7,
+   "u": "bin_shelter",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "amenity=waste_disposal, building=yes",
+   "osm": 1136162828
+  },
+  {
+   "x": -3087.9,
+   "z": -506.4,
+   "u": "bin_shelter",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "amenity=waste_disposal, building=yes · near natural=tree",
+   "osm": 1136176405
+  },
+  {
+   "x": -207.1,
+   "z": 363.3,
+   "u": "kiosk",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small box on pedestrian street near benches; photos unclear",
+   "osm": 1136328647
+  },
+  {
+   "x": -3124.3,
+   "z": -1136.9,
+   "u": "substation",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes, frequency=50, location=indoor",
+   "osm": 1137307370
+  },
+  {
+   "x": -3119.2,
+   "z": -1135.2,
+   "u": "substation",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=service, frequency=50, location=indoor · near natural=tree",
+   "osm": 1137307371
+  },
+  {
+   "x": -1606.0,
+   "z": -613.0,
+   "u": "guard_booth",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=guardhouse · near natural=tree",
+   "osm": 1145093078
+  },
+  {
+   "x": -1900.8,
+   "z": 946.8,
+   "u": "toilet",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=toilets, disused:amenity=toilets, location=underground",
+   "osm": 1146069071
+  },
+  {
+   "x": -1578.3,
+   "z": 236.6,
+   "u": "guard_booth",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=gatehouse",
+   "osm": 1149290745
+  },
+  {
+   "x": -2989.2,
+   "z": 1435.6,
+   "u": "bin_shelter",
+   "h": 2.5,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "curved small shape by bike racks, bench in courtyard",
+   "osm": 1173092099
+  },
+  {
+   "x": -1568.6,
+   "z": 1386.1,
+   "u": "canopy",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "thin strip along pavement edge beside building",
+   "osm": 1178187587
+  },
+  {
+   "x": -2348.6,
+   "z": -1194.4,
+   "u": "pavilion",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "addr:city=Warszawa, addr:housenumber=9A, addr:postcode=01-023",
+   "osm": 1188217298
+  },
+  {
+   "x": -1437.0,
+   "z": -1988.5,
+   "u": "shed",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small structure under trees; photos show only street",
+   "osm": 1188350607
+  },
+  {
+   "x": 615.0,
+   "z": -1769.2,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1189215067
+  },
+  {
+   "x": -2677.1,
+   "z": -848.9,
+   "u": "part",
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "tiny building:part on rooftop of building near hackerspace",
+   "osm": 1190492678
+  },
+  {
+   "x": -2676.7,
+   "z": -849.7,
+   "u": "part",
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "tiny building:part on rooftop of building near hackerspace",
+   "osm": 1190491480
+  },
+  {
+   "x": -2676.3,
+   "z": -848.4,
+   "u": "part",
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "tiny building:part on rooftop of building near hackerspace",
+   "osm": 1190491481
+  },
+  {
+   "x": -2676.7,
+   "z": -847.5,
+   "u": "part",
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "tiny building:part on rooftop of building near hackerspace",
+   "osm": 1190491482
+  },
+  {
+   "x": -2677.6,
+   "z": -848.0,
+   "u": "part",
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "tiny building:part on rooftop of building near hackerspace",
+   "osm": 1190491483
+  },
+  {
+   "x": -2678.5,
+   "z": -848.5,
+   "u": "part",
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "tiny building:part on rooftop of building near hackerspace",
+   "osm": 1190491484
+  },
+  {
+   "x": -2676.7,
+   "z": -847.5,
+   "u": "part",
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "tiny building:part on rooftop of building near hackerspace",
+   "osm": 1190491482
+  },
+  {
+   "x": -2676.2,
+   "z": -848.4,
+   "u": "part",
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "tiny building:part on rooftop of building near hackerspace",
+   "osm": 1190491481
+  },
+  {
+   "x": -2675.8,
+   "z": -849.2,
+   "u": "part",
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "tiny building:part on rooftop of building near hackerspace",
+   "osm": 1190492676
+  },
+  {
+   "x": -2676.7,
+   "z": -849.7,
+   "u": "part",
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "tiny building:part on rooftop of building near hackerspace",
+   "osm": 1190491480
+  },
+  {
+   "x": -2677.1,
+   "z": -848.9,
+   "u": "part",
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "tiny building:part on rooftop of building near hackerspace",
+   "osm": 1190492678
+  },
+  {
+   "x": -2677.6,
+   "z": -848.0,
+   "u": "part",
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "tiny building:part on rooftop of building near hackerspace",
+   "osm": 1190491483
+  },
+  {
+   "x": -2678.5,
+   "z": -848.5,
+   "u": "part",
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "tiny building:part on rooftop of building near hackerspace",
+   "osm": 1190491484
+  },
+  {
+   "x": -2678.0,
+   "z": -849.3,
+   "u": "part",
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "tiny building:part on rooftop of building near hackerspace",
+   "osm": 1190492681
+  },
+  {
+   "x": -2677.5,
+   "z": -850.2,
+   "u": "part",
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "tiny building:part on rooftop of building near hackerspace",
+   "osm": 1190492682
+  },
+  {
+   "x": -424.0,
+   "z": 949.8,
+   "u": "kiosk",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=kiosk",
+   "osm": 1190685917
+  },
+  {
+   "x": 42.4,
+   "z": -1090.3,
+   "u": "canopy",
+   "h": 3,
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "riverside strip; neighbours show wooden canopy shelters",
+   "osm": 1192417834
+  },
+  {
+   "x": 48.4,
+   "z": -1083.0,
+   "u": "canopy",
+   "h": 3.5,
+   "conf": "high",
+   "src": "aerial + Mapillary",
+   "why": "wooden riverside canopy shelter with scooters",
+   "osm": 1192417835
+  },
+  {
+   "x": 54.3,
+   "z": -1075.6,
+   "u": "canopy",
+   "h": 3,
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "riverside strip, same wooden canopy series",
+   "osm": 1192417836
+  },
+  {
+   "x": 35.9,
+   "z": -1098.5,
+   "u": "canopy",
+   "h": 3.5,
+   "conf": "high",
+   "src": "aerial + Mapillary",
+   "why": "wooden curved-post riverside shelter with benches",
+   "osm": 1192417837
+  },
+  {
+   "x": -1395.3,
+   "z": -1399.2,
+   "u": "canopy",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building:part=roof",
+   "osm": 1192943203
+  },
+  {
+   "x": 11.7,
+   "z": -957.7,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building:part=yes · near access=permissive, door=hinged",
+   "osm": 1196076991
+  },
+  {
+   "x": 357.9,
+   "z": -269.6,
+   "u": "kiosk",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=kiosk · near disused:shop=yes",
+   "osm": 1208169412
+  },
+  {
+   "x": 623.1,
+   "z": -91.9,
+   "u": "kiosk",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=retail · near noname=yes, shop=greengrocer",
+   "osm": 1208264894
+  },
+  {
+   "x": 894.2,
+   "z": 131.6,
+   "u": "pavilion",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=kiosk",
+   "osm": 1208330055
+  },
+  {
+   "x": 1547.2,
+   "z": 1418.0,
+   "u": "houseboat",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=houseboat",
+   "osm": 1220123349
+  },
+  {
+   "x": 1544.5,
+   "z": 1442.6,
+   "u": "houseboat",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=houseboat",
+   "osm": 1220123350
+  },
+  {
+   "x": 1551.8,
+   "z": 1466.6,
+   "u": "houseboat",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=houseboat",
+   "osm": 1220123351
+  },
+  {
+   "x": 1557.5,
+   "z": 1494.2,
+   "u": "houseboat",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=houseboat",
+   "osm": 1220123352
+  },
+  {
+   "x": 1559.8,
+   "z": 1515.5,
+   "u": "houseboat",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=houseboat",
+   "osm": 1220123353
+  },
+  {
+   "x": 1564.0,
+   "z": 1532.5,
+   "u": "houseboat",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=houseboat",
+   "osm": 1220123354
+  },
+  {
+   "x": 1565.5,
+   "z": 1548.5,
+   "u": "houseboat",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=houseboat",
+   "osm": 1220123355
+  },
+  {
+   "x": -2516.6,
+   "z": -2039.7,
+   "u": "part",
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "flat grey roof attached to large building at sports track",
+   "osm": 1228287003
+  },
+  {
+   "x": -146.8,
+   "z": -588.2,
+   "u": "canopy",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building:part=roof · near entrance=main",
+   "osm": 1251761762
+  },
+  {
+   "x": 1399.5,
+   "z": -1686.6,
+   "u": "substation",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=service, power=substation",
+   "osm": 1295819421
+  },
+  {
+   "x": -1207.0,
+   "z": -1714.0,
+   "u": "shed",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=shed · near entrance=yes",
+   "osm": 1302824706
+  },
+  {
+   "x": -2306.8,
+   "z": -2745.0,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=service · near highway=elevator",
+   "osm": 1312488771
+  },
+  {
+   "x": -2306.2,
+   "z": -2762.4,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=service, operator=PKP Polskie Linie Kolejowe, operator:short=PKP PLK · near highw",
+   "osm": 1312488774
+  },
+  {
+   "x": -2006.1,
+   "z": -2770.3,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=service, operator=PKP Polskie Linie Kolejowe, operator:short=PKP PLK · near highw",
+   "osm": 1312488821
+  },
+  {
+   "x": -2007.3,
+   "z": -2754.3,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=service · near highway=elevator, level=0;1",
+   "osm": 1312488822
+  },
+  {
+   "x": -2246.7,
+   "z": -1988.8,
+   "u": "garage",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small box by parking yard in housing estate",
+   "osm": 1334369174
+  },
+  {
+   "x": -2233.3,
+   "z": -1962.6,
+   "u": "shed",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small box at edge of parking yard",
+   "osm": 1334369175
+  },
+  {
+   "x": -2199.9,
+   "z": -2011.2,
+   "u": "shed",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small box between estate blocks",
+   "osm": 1334369177
+  },
+  {
+   "x": -2207.2,
+   "z": -2007.5,
+   "u": "shed",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small box beside stair entrance of estate block",
+   "osm": 1334369178
+  },
+  {
+   "x": 389.5,
+   "z": 399.2,
+   "u": "toilet",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "access=yes, amenity=toilets, building=yes",
+   "osm": 1334369423
+  },
+  {
+   "x": -2215.0,
+   "z": -1806.1,
+   "u": "shed",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "narrow structure in trees",
+   "osm": 1334577795
+  },
+  {
+   "x": -2112.7,
+   "z": -1871.1,
+   "u": "shed",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "narrow structure in trees between blocks",
+   "osm": 1334577796
+  },
+  {
+   "x": -2118.8,
+   "z": -2073.5,
+   "u": "shed",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "narrow structure in trees",
+   "osm": 1335778885
+  },
+  {
+   "x": -1912.2,
+   "z": -1774.2,
+   "u": "shed",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "narrow structure in trees",
+   "osm": 1337174154
+  },
+  {
+   "x": -1843.3,
+   "z": -1760.3,
+   "u": "shed",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small box beyond trees; photos show only street",
+   "osm": 1337206988
+  },
+  {
+   "x": 1355.1,
+   "z": -1308.7,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=service · near elevator=yes, highway=elevator",
+   "osm": 1344654668
+  },
+  {
+   "x": 1368.0,
+   "z": -1308.7,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=service · near elevator=yes, highway=elevator",
+   "osm": 1344654677
+  },
+  {
+   "x": -3116.2,
+   "z": 671.9,
+   "u": "guard_booth",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "square roof beside lift gate and gate near school yard",
+   "osm": 1351273572
+  },
+  {
+   "x": -2277.2,
+   "z": -1090.6,
+   "u": "bin_shelter",
+   "h": 2.5,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small box on courtyard path between blocks",
+   "osm": 1362927968
+  },
+  {
+   "x": -2327.4,
+   "z": -1104.3,
+   "u": "garage",
+   "h": 3,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small box in courtyard parking area",
+   "osm": 1362927976
+  },
+  {
+   "x": -1516.2,
+   "z": -1157.0,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=service · near highway=elevator, level=0;-1",
+   "osm": 1408288366
+  },
+  {
+   "x": -1520.8,
+   "z": -1166.6,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=service · near highway=elevator, level=0;-1",
+   "osm": 1408288367
+  },
+  {
+   "x": -1585.5,
+   "z": -1068.0,
+   "u": "bin_shelter",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "access=private, amenity=waste_disposal, building=yes",
+   "osm": 1408444817
+  },
+  {
+   "x": -1690.7,
+   "z": -1846.2,
+   "u": "part",
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "building:part in dark shadow beside bigger building, bollards nearby",
+   "osm": 1408747397
+  },
+  {
+   "x": -898.7,
+   "z": -56.2,
+   "u": "none",
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "photo shows glass facade reflection; only thin strip on aerial",
+   "osm": 1409403324
+  },
+  {
+   "x": 1570.8,
+   "z": 1349.3,
+   "u": "houseboat",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=houseboat",
+   "osm": 1412624940
+  },
+  {
+   "x": 1583.2,
+   "z": 1372.5,
+   "u": "houseboat",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=houseboat",
+   "osm": 1412624941
+  },
+  {
+   "x": -2867.1,
+   "z": 543.3,
+   "u": "canopy",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building:part=roof · near amenity=bicycle_parking, bicycle_parking=stands",
+   "osm": 1424085645
+  },
+  {
+   "x": -2281.8,
+   "z": -2577.3,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1424488578
+  },
+  {
+   "x": -1889.1,
+   "z": -2660.5,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes · near highway=elevator",
+   "osm": 1424628446
+  },
+  {
+   "x": -1919.9,
+   "z": -2743.5,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes · near highway=elevator",
+   "osm": 1424628460
+  },
+  {
+   "x": -1952.4,
+   "z": -2690.0,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes · near highway=elevator",
+   "osm": 1424628476
+  },
+  {
+   "x": -1777.3,
+   "z": -307.6,
+   "u": "guard_booth",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=guardhouse",
+   "osm": 1424946686
+  },
+  {
+   "x": -2785.3,
+   "z": 1026.3,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes · near highway=elevator",
+   "osm": 1425791522
+  },
+  {
+   "x": -2777.4,
+   "z": 1047.5,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes · near highway=elevator",
+   "osm": 1425791529
+  },
+  {
+   "x": -2755.7,
+   "z": 1109.9,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes · near highway=elevator",
+   "osm": 1425791538
+  },
+  {
+   "x": -1524.2,
+   "z": 995.2,
+   "u": "shed",
+   "h": 2.5,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "tiny footprint in courtyard, no photo",
+   "osm": 1426925638
+  },
+  {
+   "x": -1044.6,
+   "z": 1622.4,
+   "u": "shed",
+   "h": 2.5,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small rectangle on lawn by gate, unseen",
+   "osm": 1430571557
+  },
+  {
+   "x": -1804.6,
+   "z": 499.9,
+   "u": "shed",
+   "h": 2.5,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "tiny block beside courtyard street; photos show nothing",
+   "osm": 1431165506
+  },
+  {
+   "x": -1780.2,
+   "z": 384.0,
+   "u": "shed",
+   "h": 2.5,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small courtyard outbuilding between blocks, unseen",
+   "osm": 1431654176
+  },
+  {
+   "x": -3112.3,
+   "z": -2478.1,
+   "u": "substation",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=service, frequency=50, location=indoor",
+   "osm": 1450070686
+  },
+  {
+   "x": -2360.5,
+   "z": -1543.9,
+   "u": "bin_shelter",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "amenity=waste_disposal, building=yes · near man_made=carpet_hanger",
+   "osm": 1450759967
+  },
+  {
+   "x": -2376.2,
+   "z": -1581.3,
+   "u": "substation",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes, power=substation",
+   "osm": 1450760001
+  },
+  {
+   "x": -2345.5,
+   "z": -1612.6,
+   "u": "bin_shelter",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "amenity=waste_disposal, building=yes",
+   "osm": 1450760020
+  },
+  {
+   "x": -2291.9,
+   "z": -1630.0,
+   "u": "bin_shelter",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "amenity=waste_disposal, building=yes · near man_made=carpet_hanger",
+   "osm": 1450760057
+  },
+  {
+   "x": -2279.0,
+   "z": -1606.8,
+   "u": "bin_shelter",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "amenity=waste_disposal, building=yes",
+   "osm": 1450760085
+  },
+  {
+   "x": -2267.4,
+   "z": -1590.9,
+   "u": "bin_shelter",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "amenity=waste_disposal, building=yes · near leaf_type=broadleaved, natural=tree",
+   "osm": 1450760087
+  },
+  {
+   "x": -754.6,
+   "z": -64.1,
+   "u": "part",
+   "h": 4,
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "narrow strip at colonnade edge of long block, bike parking",
+   "osm": 1452725115
+  },
+  {
+   "x": 811.5,
+   "z": 1446.0,
+   "u": "part",
+   "h": 4,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "tiny square on edge of large building with gate",
+   "osm": 1452965414
+  },
+  {
+   "x": -983.3,
+   "z": -146.7,
+   "u": "part",
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "strip in shadow under large building; grey wall at pavement",
+   "osm": 1458812229
+  },
+  {
+   "x": 1011.5,
+   "z": -2037.0,
+   "u": "shed",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=outbuilding",
+   "osm": 1462448309
+  },
+  {
+   "x": 984.2,
+   "z": -2020.4,
+   "u": "shed",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=outbuilding",
+   "osm": 1462448316
+  },
+  {
+   "x": 1274.8,
+   "z": -1946.3,
+   "u": "historic",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes · near denomination=catholic, historic=wayside_shrine",
+   "osm": 1463820515
+  },
+  {
+   "x": -1483.7,
+   "z": 1555.8,
+   "u": "pavilion",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "access=private, building=yes, leisure=sports_hall",
+   "osm": 1468780746
+  },
+  {
+   "x": 582.0,
+   "z": 1215.8,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1474796629
+  },
+  {
+   "x": 271.1,
+   "z": 6.7,
+   "u": "substation",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=service, power=substation",
+   "osm": 1480623756
+  },
+  {
+   "x": 174.0,
+   "z": 64.7,
+   "u": "shed",
+   "h": 2.5,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "tiny box in trees at gate, unseen",
+   "osm": 1480623819
+  },
+  {
+   "x": 171.8,
+   "z": 62.1,
+   "u": "shed",
+   "h": 2.5,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "tiny box in trees at gate, unseen",
+   "osm": 1480623820
+  },
+  {
+   "x": 168.2,
+   "z": 64.2,
+   "u": "shed",
+   "h": 2.5,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "tiny box in trees near gate, unseen",
+   "osm": 1480623821
+  },
+  {
+   "x": -2435.9,
+   "z": -186.2,
+   "u": "shed",
+   "h": 2.5,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "tiny box near recycling and parking entrance",
+   "osm": 1488382968
+  },
+  {
+   "x": 875.6,
+   "z": -1573.5,
+   "u": "unknown",
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small footprint in overgrown park lawn, rubble-like, unseen",
+   "osm": 1494104640
+  },
+  {
+   "x": 872.6,
+   "z": -1573.6,
+   "u": "unknown",
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small footprint in overgrown park lawn, rubble-like, unseen",
+   "osm": 1494104641
+  },
+  {
+   "x": 848.8,
+   "z": -1581.8,
+   "u": "unknown",
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small footprint in overgrown park lawn, rubble-like, unseen",
+   "osm": 1494104642
+  },
+  {
+   "x": 868.1,
+   "z": -1574.8,
+   "u": "unknown",
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small footprint in overgrown park lawn, rubble-like, unseen",
+   "osm": 1494104643
+  },
+  {
+   "x": 863.9,
+   "z": -1577.2,
+   "u": "unknown",
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small footprint in overgrown park lawn, rubble-like, unseen",
+   "osm": 1494104644
+  },
+  {
+   "x": 860.6,
+   "z": -1577.9,
+   "u": "unknown",
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small footprint in overgrown park lawn, rubble-like, unseen",
+   "osm": 1494104645
+  },
+  {
+   "x": 857.2,
+   "z": -1578.4,
+   "u": "unknown",
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small footprint in overgrown park lawn, rubble-like, unseen",
+   "osm": 1494104646
+  },
+  {
+   "x": 851.2,
+   "z": -1578.0,
+   "u": "unknown",
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small footprint in overgrown park lawn, rubble-like, unseen",
+   "osm": 1494104647
+  },
+  {
+   "x": 816.3,
+   "z": -1597.3,
+   "u": "unknown",
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small footprint in overgrown park lawn, rubble-like, unseen",
+   "osm": 1494104648
+  },
+  {
+   "x": 817.5,
+   "z": -1596.4,
+   "u": "unknown",
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small footprint in overgrown park lawn, rubble-like, unseen",
+   "osm": 1494104649
+  },
+  {
+   "x": 818.5,
+   "z": -1589.9,
+   "u": "unknown",
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small footprint in overgrown park lawn, rubble-like, unseen",
+   "osm": 1494104650
+  },
+  {
+   "x": 824.3,
+   "z": -1590.6,
+   "u": "unknown",
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small footprint in overgrown park lawn, rubble-like, unseen",
+   "osm": 1494104651
+  },
+  {
+   "x": 603.2,
+   "z": 436.4,
+   "u": "unknown",
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small footprint in trees at roundabout, nothing visible",
+   "osm": 1504351869
+  },
+  {
+   "x": -3069.8,
+   "z": -2524.2,
+   "u": "shed",
+   "h": 2.5,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "narrow outbuilding between block and street, unseen",
+   "osm": 1507752563
+  },
+  {
+   "x": -2159.5,
+   "z": -2757.2,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes · near highway=elevator, level=0;-1",
+   "osm": 1515453541
+  },
+  {
+   "x": -2159.0,
+   "z": -2774.4,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes · near highway=elevator, level=0;-1",
+   "osm": 1515453549
+  },
+  {
+   "x": 1184.7,
+   "z": -814.5,
+   "u": "bin_shelter",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "access=private, amenity=waste_disposal, building=yes",
+   "osm": 1525875221
+  },
+  {
+   "x": -2855.3,
+   "z": -525.0,
+   "u": "metro_vent",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=service, man_made=ventilation_shaft · near natural=tree",
+   "osm": 1528246122
+  },
+  {
+   "x": 702.8,
+   "z": -531.8,
+   "u": "pavilion",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes · near amenity=cafe, cuisine=matcha",
+   "osm": 1529205392
+  },
+  {
+   "x": 704.0,
+   "z": -540.2,
+   "u": "pavilion",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes · near amenity=fast_food, cuisine=pizza",
+   "osm": 1529205393
+  },
+  {
+   "x": 686.1,
+   "z": -550.8,
+   "u": "pavilion",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes · near amenity=fast_food, cuisine=korean",
+   "osm": 1529205394
+  },
+  {
+   "x": 678.3,
+   "z": -567.4,
+   "u": "pavilion",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes · near amenity=bar, contact:facebook=placzabawnadwisla",
+   "osm": 1529205395
+  },
+  {
+   "x": -2166.5,
+   "z": -2736.6,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes · near highway=elevator, level=0;-1",
+   "osm": 1534560133
+  },
+  {
+   "x": 436.8,
+   "z": -616.2,
+   "u": "lift",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building=yes · near highway=elevator",
+   "osm": 1535989799
+  },
+  {
+   "x": -780.7,
+   "z": -1902.1,
+   "u": "shed",
+   "h": 2.5,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "small outbuilding in courtyard greenery with wicket gate",
+   "osm": 1560790041
+  },
+  {
+   "x": -873.8,
+   "z": -2020.7,
+   "u": "canopy",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building:part=roof",
+   "osm": 1562728667
+  },
+  {
+   "x": -638.9,
+   "z": -1473.6,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1565617001
+  },
+  {
+   "x": -634.1,
+   "z": -1473.5,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1565617002
+  },
+  {
+   "x": -671.1,
+   "z": -1567.5,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1565617004
+  },
+  {
+   "x": -677.0,
+   "z": -1475.1,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1565617005
+  },
+  {
+   "x": -633.2,
+   "z": -1568.1,
+   "u": "part",
+   "conf": "high",
+   "src": "aerial + Mapillary",
+   "why": "building:part inside big roofed complex, tiny sliver",
+   "osm": 1565617006
+  },
+  {
+   "x": -637.2,
+   "z": -1568.1,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1565617007
+  },
+  {
+   "x": 1493.7,
+   "z": -1027.5,
+   "u": "substation",
+   "h": 4,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "square box by industrial wall near road, unclear",
+   "osm": 1566437392
+  },
+  {
+   "x": -592.0,
+   "z": -1461.2,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1567703398
+  },
+  {
+   "x": -598.2,
+   "z": -1459.7,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1567703399
+  },
+  {
+   "x": -606.4,
+   "z": -1597.6,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1568227635
+  },
+  {
+   "x": -592.0,
+   "z": -1560.2,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1568227636
+  },
+  {
+   "x": -599.9,
+   "z": -1580.8,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1568227637
+  },
+  {
+   "x": -585.4,
+   "z": -1543.2,
+   "u": "part",
+   "conf": "high",
+   "src": "aerial + Mapillary",
+   "why": "building:part sliver on Royal Castle wing",
+   "osm": 1568227638
+  },
+  {
+   "x": -926.1,
+   "z": -1789.2,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1568915069
+  },
+  {
+   "x": -886.6,
+   "z": -1737.0,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1571088397
+  },
+  {
+   "x": -866.6,
+   "z": -1753.6,
+   "u": "kiosk",
+   "conf": "high",
+   "src": "osm tags",
+   "why": "building:part=yes, source:geometry=EGiB · near amenity=waste_basket, fixme=Position",
+   "osm": 1571088400
+  },
+  {
+   "x": -857.5,
+   "z": -1803.4,
+   "u": "part",
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "thin strip between Old Town house roofs",
+   "osm": 1571123084
+  },
+  {
+   "x": -856.0,
+   "z": -1801.8,
+   "u": "part",
+   "conf": "high",
+   "src": "aerial + Mapillary",
+   "why": "building:part brick, tiny, among Old Town houses",
+   "osm": 1571123085
+  },
+  {
+   "x": -612.8,
+   "z": -1488.1,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1571455257
+  },
+  {
+   "x": -617.0,
+   "z": -1488.2,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1571455258
+  },
+  {
+   "x": -621.2,
+   "z": -1488.2,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1571455259
+  },
+  {
+   "x": -625.6,
+   "z": -1488.3,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1571455260
+  },
+  {
+   "x": -629.2,
+   "z": -1488.4,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1571455261
+  },
+  {
+   "x": -642.7,
+   "z": -1488.6,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1571455262
+  },
+  {
+   "x": -646.5,
+   "z": -1488.7,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1571455263
+  },
+  {
+   "x": -650.3,
+   "z": -1488.7,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1571455264
+  },
+  {
+   "x": -654.1,
+   "z": -1488.8,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1571455265
+  },
+  {
+   "x": -638.5,
+   "z": -1488.5,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1571455272
+  },
+  {
+   "x": -633.6,
+   "z": -1488.4,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1571455273
+  },
+  {
+   "x": -658.9,
+   "z": -1516.7,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1571455274
+  },
+  {
+   "x": -658.7,
+   "z": -1521.4,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1571455275
+  },
+  {
+   "x": -635.5,
+   "z": -1549.5,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1571455276
+  },
+  {
+   "x": -591.3,
+   "z": -1481.8,
+   "u": "unknown",
+   "conf": "low",
+   "src": "not drawn",
+   "why": "",
+   "osm": 1571455282
+  },
+  {
+   "x": 131.3,
+   "z": -489.8,
+   "u": "metro_vent",
+   "h": 3.5,
+   "conf": "medium",
+   "src": "aerial + Mapillary",
+   "why": "grey blocky vent box visible at street edge near crossing",
+   "osm": null
+  },
+  {
+   "x": 110.1,
+   "z": -478.6,
+   "u": "metro_vent",
+   "h": 3.5,
+   "conf": "low",
+   "src": "aerial + Mapillary",
+   "why": "same grey vent-box cluster by road, not clearly seen",
+   "osm": null
+  }
+ ]
+}

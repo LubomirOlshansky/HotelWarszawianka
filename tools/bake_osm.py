@@ -481,6 +481,10 @@ def main(src, trees_src, dst, extras_src=None, more_src=None):
     # the lane lines stitched across them, small line kinks rounded (tools/road_smooth.py).
     import road_smooth
     print("road_smooth: " + road_smooth.apply(out))
+    # Thin towers (F, 2026-11-07): each researched small building's use and seen height
+    # (game/data/small_buildings.json; small_buildings.gd draws it).
+    import building_heights
+    print("building_heights: " + building_heights.apply(out))
     # Main's road bugs (F, 2026-11-07, "main as base, small fixes"): lane lines and arrows out of the
     # junctions' mouths, zebras and cycle crossings run on to the kerbs (tools/road_fixes.py).
     import road_fixes
@@ -784,7 +788,11 @@ def make_building(t, pts, is_part):
     if height is None and levels is not None:
         height = levels * 3.3 + 1.0
     if height is None:
-        height = 14.0
+        # No height tags: a guess by kind and footprint (tools/building_heights.py; a flat
+        # 14 m stood kiosks and metro lift housings up as thin towers, F 2026-11-07).
+        import building_heights
+        height = building_heights.default_height(t.get("building") or t.get("building:part") or "",
+                                                 abs(ring_area(pts)))
     min_height = num(t.get("min_height"))
     if min_height is None and num(t.get("building:min_level")) is not None:
         min_height = num(t.get("building:min_level")) * 3.3

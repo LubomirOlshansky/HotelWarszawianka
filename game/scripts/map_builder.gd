@@ -17,6 +17,7 @@ const Trains := preload("res://scripts/trains.gd")
 const RailCut := preload("res://scripts/rail_cut.gd")
 const RailYard := preload("res://scripts/rail_yard.gd")
 const StationLines := preload("res://scripts/station_lines.gd")
+const SmallBuildings := preload("res://scripts/small_buildings.gd")
 const MapEdge := preload("res://scripts/map_edge.gd")
 const EdgeRoadworks := preload("res://scripts/edge_roadworks.gd")
 const RatuszHub := preload("res://scripts/ratusz_hub.gd")
@@ -9264,6 +9265,9 @@ func _build_buildings(st, keep: Array, marks) -> void:
 			continue  # a landmark (landmarks.gd) stands here
 		if float(bld["h"]) <= float(bld["mh"]):
 			continue
+		var use := str(bld.get("u", ""))
+		if use == "part" or use == "none":
+			continue  # researched: a piece of a bigger building, or nothing there (small_buildings.json)
 		drawn.append(int(index))
 	var bottoms := _part_bottoms(list, drawn, marks)
 	var royal := _royal_segments()
@@ -9284,6 +9288,20 @@ func _build_buildings(st, keep: Array, marks) -> void:
 			# Loop 3b: under a deck, cut to the slab's bottom - 0.5 m (tools/bake_structures.py).
 			h = minf(h, float(bld["cut"]) - ground)
 		var hsh := absi(int(poly[0].x * 73.0 + poly[0].y * 31.0))
+		var use := str(bld.get("u", ""))
+		if use != "" and SmallBuildings.draws(use) and not bld.has("pil") and not bld.has("cut") and mh < 0.5:
+			# Thin towers (F, 2026-11-07): a researched small building drawn as what it is.
+			SmallBuildings.build(self, st, use, poly, ground, h, hsh)
+			if SmallBuildings.solid(use):
+				for i in poly.size():
+					var a := poly[i]
+					var b := poly[(i + 1) % poly.size()]
+					if not _open_wall((a + b) * 0.5, open):
+						var g1 := ground + minf(5.0, h)
+						_wall_faces.append_array([Vector3(a.x, ground - 1.0, a.y), Vector3(b.x, ground - 1.0, b.y),
+								Vector3(b.x, g1, b.y), Vector3(a.x, ground - 1.0, a.y), Vector3(b.x, g1, b.y),
+								Vector3(a.x, g1, a.y)])
+			continue
 		var glass := h > 55.0
 		var wall := _osm_colour(bld["c"], Color(GLASS[hsh % GLASS.size()] if glass else FACADES[hsh % FACADES.size()]))
 		var roof := _osm_colour(bld["rc"], Color(ROOFS[hsh % ROOFS.size()]))

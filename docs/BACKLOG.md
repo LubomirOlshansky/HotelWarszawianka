@@ -4,6 +4,18 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## Thin towers across the map (F, 2026-11-07; docs/design/small-buildings.md)
+Fixed: 469 small OpenStreetMap buildings with no height tag stood at the bake's flat 14 m guess and
+showed as thin windowed towers (F's crop: the two metro lifts by the Ratusz-Arsenał tram stop).
+Each was researched (OSM tags and the map points inside it from the raw data, the GUGiK aerial,
+Mapillary street photos) and is drawn as what it is (`small_buildings.gd`): 36 lifts, 25 metro
+vents, 33 bin shelters, 34 kiosks and pavilions, 16 substations, 11 toilets, 74 sheds, 19 garages,
+houseboats, canopies...; 50 pieces of bigger buildings or empty outlines are left out. Verify step
+`heights`. Left:
+- 98 drawn as "unknown" (a plain 3 m shed) and most sheds/garages are low-confidence guesses: no
+  street photo shows them (courtyards). A photo pass on the Mac would settle them.
+- Courtyard outbuildings over 150 m² with no height tags still get 14 m (fair for a tenement).
+
 ## Plac Pięciu Rogów, Chmielna and Krucza in 2026 (F, 2026-11-06)
 Done: the square car-free on its 2022 slabs (car_free.py polygon zone, plac_pieciu_rogow.gd), Chmielna's
 lamps and café gardens, Krucza Jerozolimskie to Piękna on the road design system (docs/roads/krucza.json).

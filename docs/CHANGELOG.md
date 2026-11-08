@@ -27,6 +27,7 @@ someone writes its lines.
 - The museum's steam engines and coaches by Warszawa Główna are solid now: the car stops at them instead of driving through.
 
 ## 2026-11-07
+- The stray thin towers are gone: each one was looked up and is now what it really is, from the glass metro lifts by the Ratusz-Arsenał tram stop and the slatted vent towers by the stadium to kiosks, bin shelters, substations, toilets and houseboats.
 - Street objects tidied across the city: no more lamps, bins or traffic lights standing in the road, inside walls, in the river or under bridges; the sides of underpass and metro stairs that were still tall grey walls are open railings; park paths go through gates in the fences; picnic shelters in parks and car parks are no longer bus stops.
 - Padel is on the quest map now: a yellow-green start by the DESKA club. Stop by the gate and your friend comes out with a racket, or ring them from the list.
 - The car park behind the Novotel on Nowogrodzka stands as it does: eight open decks painted with red roses turning green and teal down Parkingowa, a blue-neon bar on the corner, the barrier at the entry and the poster-covered wall beside it.
