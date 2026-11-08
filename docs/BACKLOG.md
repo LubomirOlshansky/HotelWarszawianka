@@ -322,7 +322,7 @@ check `tramfleet`. No maker's or model name anywhere: nicknames only.
 ## Batch 4: Rondo ONZ towers, Platinum, Ilmet, Spektrum, Teatr Wielki (2026-11-06)
 
 Cloud pass with Mapillary street photos only (refs/<site>/street/ on the cloud box; Commons and the orthophoto are Mac-only). Done: Ilmet (terracotta shaft `#8a5e4c`, `chamfer` stepped top; photos 2025-2026). Left, needs a Mac photo pass (street photos were night/rain, too far or the wrong building):
-- [ ] Cosmopolitan, Platinum A/B (frames 100+ m away), Spektrum
+- [x] ~~Cosmopolitan~~ (done 2026-11-08 from F's photos), [ ] Platinum A/B (frames 100+ m away), Spektrum
 - [ ] Teatr Wielki: the side wings' colonnades (Wierzbowa, Moliera) are not built (the front got its photo pass 2026-11-08)
 
 ## Warsaw Spire, Spire B and C from F's photos (F, 2026-11-06)
