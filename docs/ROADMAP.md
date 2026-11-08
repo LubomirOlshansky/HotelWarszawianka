@@ -212,6 +212,7 @@ then the Launch gate.
   - [x] PT-18 car pinned on Solec's ramp up to Trasa Łazienkowska (a gap between guard-rail pieces) and on the ramp's pier 2 m off Solec's kerb, 2026-11-03 (rail gaps under 1.5 m on decks closed by a shallow V, piers keep 2 m more room beside main roads; `check_stuck_spots`)
   - [x] PT-44 dead stop on Trasa W-Z by the Stare Miasto tram stop (a retaining wall's square end on the pavement, the tram shelter's corner): the end of a thin fixed thing met nose on now slips the car past (car.gd SLIP_WIDE), 2026-11-08; PT-45 in the W-Z tunnel not reproduced (16 lines clean, likely a traffic car), three guard lines (`check_stuck_spots`)
   - [x] PT-40 dead stop at Most Poniatowskiego's west gate tower at 58-60 km/h (the approach wall's square end on the walk, led in behind each tower) and PT-41 the one-tick 7 m drop just before it (a sliver between the road's and tram's approaches, closed map-wide), 2026-11-08 (`check_stuck_spots`)
+  - [x] PT-47 invisible wall on Emilii Plater's paved median by the Palace (the planter edges drawn 0.2 m high kept a 1.7 m collider; barriers under 0.3 m are no longer solid, city-wide), 2026-11-08 (`check_stuck_spots`)
 - [x] Larger HUD text fits the phones (2026-11-02, this PR): panels with no room step their own text down (never below normal), `check_hud` large-text pass is a gate
 - [ ] The phone's own text size drives the HUD: needs a native read (BACKLOG "Accessibility follow-ups")
 - [ ] A full `tools/verify.sh` and `--ios` on the Mac on today's main, both city paths
