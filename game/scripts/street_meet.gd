@@ -37,9 +37,17 @@ extends Node3D
 ## stick's aim and a part push lost 1.4 s against the sums). 402 m. A win: RESPECT, the club card (wallet.keep `wnrc_member`), the best time; a loss:
 ## REWANŻ.
 ##
+## **F's pass, 2026-11-08** ("the car mission is lame"): the second meet moved to clear paving
+## north-east of the stadium (the old one had two fences through the ring) and Lena and Darek
+## drift a tandem there; the first meet talks 9 s, not 15; a raid drives CORDON patrol cars in
+## across the plaza to box you in (the road chasers still come); the racers show on the minimap
+## and race at about your own pace with every shortcut; the drag has a start gate over the line
+## (stop on it to stage), a big 3-2-1-START! count, and a rev counter (DragTacho) you shift on
+## yourself.
+##
 ## Nothing here per frame when idle (a TICK s look). During the quest: the meet's few draw calls
-## (marks, smoke, glow, the crowd, three own cars and their lights), the parked racers are the
-## traffic's pool cars (no new draw calls).
+## (marks, smoke, glow, the crowd, three own cars and their lights, the start gate at the drag), the
+## parked racers and the cordon are the traffic's pool cars (no new draw calls).
 ##
 ## Flags (main.gd): --meet-call (Darek rings now), --meet=on (night rules at any hour), --meet=0,
 ## --meet-at=raid|race|meet2|drag|stage (jump to that beat), --meet-log.
@@ -52,6 +60,7 @@ const Notebook := preload("res://scripts/notebook.gd")
 const InstanceBuffers := preload("res://scripts/instance_buffers.gd")
 const Rave := preload("res://scripts/rave.gd")
 const Lang := preload("res://scripts/lang.gd")
+const RaceCuts := preload("res://scripts/race_cuts.gd")
 
 const CLUB := "WARSAW NIGHT RACING CLUB"
 const FRIEND := "Darek „Bawarka”"
@@ -63,10 +72,13 @@ const BUBBLE := Color("#ff8aa8")
 const MOTTO := ["Ćwiartka nie kłamie.", "The quarter mile doesn't lie."]
 
 ## The meets: [lat, lon] of the ring's middle (map/centrum.json's plazas: Plac Defilad east of the
-## Palace; the coach park south of the National Stadium, by Aleja Poniatowskiego).
+## Palace; the paved square at the National Stadium's north foot, under its facade: F 2026-11-08
+## found the old spot south of the stadium cut by two fences through the ring, so the second meet
+## moved to the paving round the stadium with the most room from fences, roads, trees and the car
+## park's parked cars, about 15 m; check_street_meet.gd keeps both rings clear of fences and walls).
 const MEETS := [
 	{"id": "defilad", "name": ["Plac Defilad", "Plac Defilad"], "ll": [52.232327, 21.008892]},
-	{"id": "narodowy", "name": ["Parking pod Narodowym", "The car park by the National Stadium"], "ll": [52.237753, 21.047322]},
+	{"id": "narodowy", "name": ["Parking pod Narodowym", "The car park by the National Stadium"], "ll": [52.241117, 21.043449]},
 ]
 ## The drag strip: Aleja Zieleniecka's straight, north end `a` to south end `b`; the line START_AT m
 ## from `a`, the finish QUARTER m on.
@@ -92,19 +104,36 @@ const CROWD_R := 9.5
 const DONUT_R := 5.6
 const DONUT_W := 1.15
 const DONUT_SLIP := 0.62
+## The tandem at meet 2 (F 2026-11-08: "on the second car park they stand among barriers and don't
+## drift"): Darek's Bawarka chases Lena round the same circle, TANDEM_LAG rad behind, TANDEM_OUT m
+## wider.
+const TANDEM_LAG := 0.8
+const TANDEM_OUT := 0.9
 const SMOKE := 22
 const SMOKE_LIFE := 1.7
 ## Stopping in the ring's gap: within MEET_R m, under STOP_KMH, for HOLD s.
 const MEET_R := 9.0
 const STOP_KMH := 9.0
 const HOLD := 0.8
-## The club talks this long at a meet before the sirens.
-const MEET_TALK := 15.0
+## The club talks this long at a meet before the sirens (F 2026-11-08: the first meet's drift ran
+## too long at 15 s).
+const MEET_TALK := 9.0
 ## The raid: patrol cars sent in, the chase's koguty, and how long the quest waits for a chase that
 ## never started (then the pin comes anyway).
 const RAID_CARS := 3
 const RAID_LEVEL := 2
 const RAID_WAIT := 6.0
+## The cordon (F 2026-11-08: "you don't see the cops coming in from every side and boxing you in,
+## only icons"): CORDON patrol cars drive in across the plaza from CORDON_FROM m out, CORDON_STAGGER
+## s apart, each over CORDON_T s, and stop CORDON_R m round the player, noses in, lights on (police.gd
+## `scene_car`: parked, solid, never a chaser), with the gaps between them the way out. They leave
+## out of sight once the player is CORDON_GONE m away.
+const CORDON := 4
+const CORDON_R := 9.5
+const CORDON_FROM := 34.0
+const CORDON_T := 2.4
+const CORDON_STAGGER := 0.5
+const CORDON_GONE := 90.0
 ## The pin comes only once the player is this far from the raided meet (a meet off the road is
 ## no hiding place: sitting still there is not an escape).
 const PIN_AWAY := 220.0
@@ -113,9 +142,12 @@ const GLIDE_V := 9.0
 const STAGGER := 0.35
 ## The race to meet 2: arriving within ARRIVE_R m counts (any speed); the racers' racer stats.
 const ARRIVE_R := 22.0
-const RACE_SHARE := Vector2(0.86, 0.97)
-const RACE_ACCEL := Vector2(4.5, 6.5)
-const RACE_LAT := 7.0
+## F 2026-11-08 ("they drive dumb and slow"): about the player's own top speed, a sports car's
+## pull, corners near the ladder's best rivals, and every shortcut in the city (race_cuts.gd:
+## they are locals).
+const RACE_SHARE := Vector2(0.97, 1.06)
+const RACE_ACCEL := Vector2(6.0, 8.0)
+const RACE_LAT := 7.6
 ## [złoty, respect] by place (1st, 2nd, 3rd, the rest).
 const PLACE_PAY := [[200, 40], [120, 25], [60, 12], [0, 5]]
 ## The drag win and the loss.
@@ -134,13 +166,24 @@ const SHIFT_BOOST := 1.7
 const BOOST_S := 1.1
 const EARLY_BOG := 0.6
 const BOG_S := 0.6
-const AUTO_SHIFT := 1.0
+## F 2026-11-08 ("a gearbox you shift yourself, with a rev counter and its zones"): the box never
+## shifts for you on time; only after AUTO_SHIFT s bouncing on the limiter it saves a sleeping run
+## (a late, slow shift). The tacho (DragTacho) shows the zones: yellow from SHIFT_SHOW, green from
+## SHIFT_AT, red the limiter.
+const AUTO_SHIFT := 2.5
 ## The tree: the pre-stage, the three ambers TREE_STEP apart, then green after up to TREE_JITTER s
 ## more; moving FALSE_M m before green is a false start.
-const TREE_PRE := 1.4
-const TREE_STEP := 0.5
-const TREE_JITTER := 0.45
+## F 2026-11-08 ("no 3, 2, 1 before the drag"): each amber is a big 3, 2, 1 on screen, a second's
+## beat apart, and green is START! on the beat (an arcade count, no random hold).
+const TREE_PRE := 1.0
+const TREE_STEP := 0.8
+const TREE_JITTER := 0.0
 const FALSE_M := 1.2
+## The start gate over the line (F 2026-11-08: "the START DRAG icon at the top is hard to see"):
+## seen from the watch spot and from the road in; stopping in its lane on the line (within
+## LINE_R m) stages the run. GATE_H m tall.
+const GATE_H := 7.0
+const LINE_R := 6.0
 ## Off the strip sideways by this much: out of the race.
 const STRIP_HALF := 9.0
 ## Tadek: his reaction, and how far between the "ok" run and a perfect one his time sits.
@@ -158,14 +201,12 @@ const TICK := 0.25
 const MEET_LINES := [
 	[FRIEND, "Jesteś! Stań tu, przy mnie. Tylko nie na krawężniku, Lena go za chwilę potrzebuje.", "You made it! Park here by me. Not on the kerb, Lena needs it in a second."],
 	[DRIFTER, "Kółko numer czterdzieści. Opony mówią, że mają dość. Ja nie.", "Lap forty. The tyres say they've had enough. I haven't."],
-	["Widz", "Nagrywam! Tylko nie wjeżdżaj mi w kadr, bo się obrazi algorytm.", "I'm filming! Stay out of the frame or the algorithm gets upset."],
-	[BOSS, "Nowy? Zobaczymy na Zielenieckiej. Ćwiartka nie kłamie.", "New guy? We'll see on Zieleniecka. The quarter mile doesn't lie."],
 	["Widz", "Ten dym to jej perfumy. Serio, tak mówi.", "That smoke is her perfume. Seriously, that's what she says."],
-	[FRIEND, "Nie gap się na wydech, bo się zakochasz.", "Don't stare at the exhaust, you'll fall in love."],
+	[BOSS, "Nowy? Zobaczymy na Zielenieckiej. Ćwiartka nie kłamie.", "New guy? We'll see on Zieleniecka. The quarter mile doesn't lie."],
 ]
 const MEET2_LINES := [
 	[FRIEND, "Ty to masz nogę. Psy jeszcze szukają nas na Marszałkowskiej.", "What a right foot. The cops are still looking for us on Marszałkowska."],
-	[DRIFTER, "Opony na wymianę. Znowu. Mechanik mówi do mnie po imieniu.", "New tyres. Again. My mechanic calls me by my first name."],
+	[DRIFTER, "Darek, trzymaj się mojego zderzaka! Tandem, nie wycieczka!", "Darek, stay on my bumper! It's a tandem, not a sightseeing tour!"],
 	[BOSS, "Dobra, nowy. Po tym wszystkim: ty i ja. Drag.", "Fine, new guy. After all this: you and me. A drag."],
 	["Widz", "Tu jest ciszej. Tylko stadion patrzy.", "It's quieter here. Only the stadium's watching."],
 ]
@@ -266,6 +307,20 @@ var _smoke_at: Array[Vector3] = []
 var _smoke_next := 0
 var _drift_a := 0.0
 var _drifting := false
+## Meet 2's tandem: Darek's Bawarka on Lena's bumper.
+var _tandem := false
+## The raid's cordon: {d: police Driver, from, to: Vector3, yaw, t, dur, e, s}; leaving once the
+## player is away (out of sight, one a tick).
+var _cordon: Array[Dictionary] = []
+var _cordon_leaving := false
+## Red and blue light pools on the ground under the cordon's cars (one draw call, raids only), so
+## the box-in reads at night and from the far camera.
+var _flash: MultiMeshInstance3D
+var _flash_t := 0.0
+## The race's distances with the club's shortcuts (race_cuts.gd), and the cuts' table.
+var _cuts: RaceCuts
+var _cut_table := {}
+var _race_cut_dist := PackedFloat32Array()
 
 ## The drag: the exhibition pairs ({cars: [Node3D, Node3D], t, profile, lanes}), the run.
 var _shows: Array[Dictionary] = []
@@ -274,6 +329,8 @@ var _rival_k := 1.0
 ## His run\'s time from the line (s): shown on the card when you beat him before he crossed.
 var _rival_time := 0.0
 var _tree: DragTree
+var _tacho: DragTacho
+var _gate: MeshInstance3D
 var _tree_t := 0.0
 var _green_at := 0.0
 var _run_t := 0.0
@@ -480,6 +537,17 @@ func strip_yaw() -> float:
 	return atan2(-d.x, -d.y)
 
 
+## The start gate over both lanes at the line (built the first time).
+func _show_gate(on: bool) -> void:
+	if _gate == null or not bool(strip.get("ok", false)):
+		return
+	if on and _gate.mesh == null:
+		_gate.mesh = gate_mesh(float(strip["lane_gap"]) + 9.0)
+	if on:
+		_gate.global_transform = Transform3D(Basis(Vector3.UP, strip_yaw()), strip_at(0.0, -float(strip["lane_gap"]) * 0.5))
+	_gate.visible = on
+
+
 # --- the meshes -------------------------------------------------------------------------------
 
 ## The quest's own cars: "bawarka" Darek's dark saloon (a two-part grille, M-ish stripes), "porsze"
@@ -525,6 +593,38 @@ static func car_mesh(kind: String) -> ArrayMesh:
 			Models._vehicle(s, p, Models.fin(Color("#ff8a1e")))
 			var tail: float = float(p["L"]) * 0.5 - 0.3
 			s.box(Vector3(0.0, 1.2, tail), Vector3(1.9, 0.05, 0.4), Models.fin(Color("#1c1c1e")))
+	return s.mesh()
+
+
+## The drag's start gate (F 2026-11-08), `width` m across the two lanes, the line at z 0, the cars
+## coming from +z: a chequered line on the road, two posts, a lit club-red banner with a chequered
+## band each side, and a small tree of lights between the lanes. One surface.
+static func gate_mesh(width: float) -> ArrayMesh:
+	var s := Models.Shape.new()
+	var white := Models.fin(Color("#f2f2f2"))
+	var black := Models.fin(Color("#151517"))
+	var n := maxi(4, int(width / 0.5))
+	var sq := width / float(n)
+	for i in n:
+		for row in 2:
+			var col := white if (i + row) % 2 == 0 else black
+			s.box(Vector3(-width * 0.5 + sq * (i + 0.5), 0.03, (row - 0.5) * sq), Vector3(sq, 0.03, sq), col)
+	var post := Models.fin(Color("#2a2a30"))
+	for sg: float in [-1.0, 1.0]:
+		s.box(Vector3(sg * (width * 0.5 + 0.45), GATE_H * 0.5, 0.0), Vector3(0.4, GATE_H, 0.4), post)
+	s.box(Vector3(0.0, GATE_H - 0.8, 0.0), Vector3(width + 1.4, 1.6, 0.34), Models.fin(COLOUR, Models.LIT_SIGN))
+	var m := maxi(6, int((width + 1.2) / 0.7))
+	var bs := (width + 1.2) / float(m)
+	for i in m:
+		for row in 2:
+			var col := white if (i + row) % 2 == 0 else black
+			for face: float in [-1.0, 1.0]:
+				s.box(Vector3(-(width + 1.2) * 0.5 + bs * (i + 0.5), GATE_H - 0.35 - row * bs * 0.9, face * 0.18),
+						Vector3(bs, bs * 0.9, 0.02), col)
+	s.box(Vector3(0.0, 0.8, 0.6), Vector3(0.22, 1.6, 0.22), post)
+	for k in 3:
+		s.box(Vector3(0.0, 1.75 + k * 0.3, 0.6), Vector3(0.34, 0.22, 0.3), Models.fin(Color("#ffb21e"), Models.LIT_SIGN))
+	s.box(Vector3(0.0, 2.65, 0.6), Vector3(0.34, 0.22, 0.3), Models.fin(Color("#3cff6a"), Models.LIT_SIGN))
 	return s.mesh()
 
 
@@ -657,30 +757,189 @@ func _build_scene() -> void:
 	_tree = DragTree.new()
 	_tree.name = "DragTree"
 	_tree.visible = false
+	_tacho = DragTacho.new()
+	_tacho.name = "DragTacho"
+	_tacho.visible = false
+	_tacho.shift.connect(func() -> void:
+		if state == State.RUN:
+			_shift_pressed())
 	if hud != null:
 		hud.add_child(_tree)
+		hud.add_child(_tacho)
+	var disc := CylinderMesh.new()
+	disc.top_radius = 3.6
+	disc.bottom_radius = 3.6
+	disc.height = 0.03
+	disc.radial_segments = 16
+	disc.rings = 1
+	var fm := MultiMesh.new()
+	fm.transform_format = MultiMesh.TRANSFORM_3D
+	fm.use_colors = true
+	fm.mesh = disc
+	fm.instance_count = CORDON
+	_flash = MultiMeshInstance3D.new()
+	_flash.name = "CordonFlash"
+	_flash.multimesh = fm
+	_flash.material_override = Models.glow_material()
+	_flash.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_flash.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	_flash.visible = false
+	world.add_child(_flash)
+	_gate = MeshInstance3D.new()
+	_gate.name = "DragGate"
+	_gate.material_override = Models.material()
+	_gate.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_gate.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	_gate.visible = false
+	world.add_child(_gate)
 
 
-## The tree of lights over the screen's top middle: three ambers, a green, and red for FALSTART.
+## The tree of lights over the screen's top middle: three ambers, a green, and red for FALSTART;
+## beside it the count as a big number (3, 2, 1, START!) in the middle of the screen.
 class DragTree extends Control:
 	## How many ambers are lit (0-3), green, red.
 	var ambers := 0
 	var green := false
 	var red := false
+	## Seconds since green (START! shows for a moment).
+	var since_green := 0.0
 
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
-		set_anchors_preset(Control.PRESET_FULL_RECT)
+		# The offsets too (F 2026-11-08: with the anchors alone the control stayed 0 × 0 under the
+		# HUD's CanvasLayer and the tree drew as a sliver in the top-left corner).
+		set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+	## The big word now: "3", "2", "1", "START!", "FALSTART" or "".
+	func count_text() -> String:
+		if red:
+			return "FALSTART"
+		if green:
+			return "START!" if since_green < 0.9 else ""
+		return ["", "3", "2", "1"][clampi(ambers, 0, 3)]
 
 	func _draw() -> void:
+		if size.y < 50.0:
+			return
 		var r := clampf(size.y * 0.03, 10.0, 40.0)
 		var cx := size.x * 0.5
 		var y0 := size.y * 0.12
-		draw_rect(Rect2(cx - r * 1.6, y0 - r * 1.6, r * 3.2, r * 11.6), Color(0.05, 0.05, 0.06, 0.82))
+		var x0 := cx - size.y * 0.32
+		draw_rect(Rect2(x0 - r * 1.6, y0 - r * 1.6, r * 3.2, r * 11.6), Color(0.05, 0.05, 0.06, 0.82))
 		for k in 3:
 			var on := ambers > k
-			draw_circle(Vector2(cx, y0 + k * r * 2.6), r, Color("#ffb21e") if on else Color("#3a2c12"))
-		draw_circle(Vector2(cx, y0 + 3 * r * 2.6), r, Color("#3cff6a") if green else (Color("#ff2a2a") if red else Color("#123a1c")))
+			draw_circle(Vector2(x0, y0 + k * r * 2.6), r, Color("#ffb21e") if on else Color("#3a2c12"))
+		draw_circle(Vector2(x0, y0 + 3 * r * 2.6), r, Color("#3cff6a") if green else (Color("#ff2a2a") if red else Color("#123a1c")))
+		var word := count_text()
+		if word == "":
+			return
+		var font := get_theme_default_font()
+		var fs := int(size.y * (0.2 if word.length() <= 1 else 0.11))
+		var col := Color("#3cff6a") if green else (Color("#ff2a2a") if red else Color("#ffb21e"))
+		var w := font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+		var at := Vector2(cx - w * 0.5, size.y * 0.42 + fs * 0.35)
+		draw_string_outline(font, at, word, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, maxi(4, fs / 9), Color(0.03, 0.03, 0.04, 0.9))
+		draw_string(font, at, word, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, col)
+
+
+## The drag's manual gearbox (F 2026-11-08): a rev counter at the bottom middle, 0-9 thousand, its
+## zones (yellow: get ready; green: shift now, a perfect shift; red: the limiter), the needle, the
+## gear and the speed in the middle. A tap anywhere on it shifts up (a second finger, the gas held);
+## the context button (keyboard, pad A) still does too.
+class DragTacho extends Control:
+	signal shift
+	## The needle: the speed over the gear's cap (0-1), the gear (0-based), gears in all, km/h.
+	var k := 0.0
+	var gear := 0
+	var gears := 4
+	var kmh := 0.0
+	## Show / green from the street_meet constants (shares of the gear's cap).
+	var show_at := 0.82
+	var green_at := 0.96
+	var limiter := false
+	var _t := 0.0
+
+	func _ready() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# The offsets too (F 2026-11-08: with the anchors alone the control stayed 0 × 0 under the
+		# HUD's CanvasLayer and the tree drew as a sliver in the top-left corner).
+		set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+	func radius() -> float:
+		return clampf(size.y * 0.15, 64.0, 200.0)
+
+	func centre() -> Vector2:
+		return Vector2(size.x * 0.5, size.y - radius() * 1.12)
+
+	## The needle's share of the dial for a share `x` of the gear's cap (1000 rpm at rest, 8000 at
+	## the cap, the dial to 9000).
+	static func dial(x: float) -> float:
+		return (1000.0 + 7000.0 * clampf(x, 0.0, 1.1)) / 9000.0
+
+	func _process(dt: float) -> void:
+		if visible:
+			_t += dt
+			queue_redraw()
+
+	func _input(event: InputEvent) -> void:
+		if not visible:
+			return
+		if event is InputEventScreenTouch and (event as InputEventScreenTouch).pressed:
+			if (event as InputEventScreenTouch).position.distance_to(centre()) <= radius() * 1.2:
+				get_viewport().set_input_as_handled()
+				shift.emit()
+
+	func _arc(c: Vector2, r: float, f0: float, f1: float, w: float, col: Color) -> void:
+		var a0 := deg_to_rad(135.0) + deg_to_rad(270.0) * f0
+		var a1 := deg_to_rad(135.0) + deg_to_rad(270.0) * f1
+		draw_arc(c, r, a0, a1, maxi(4, int(48.0 * (f1 - f0))), col, w, true)
+
+	func _draw() -> void:
+		if size.y < 50.0:
+			return
+		var r := radius()
+		var c := centre()
+		var top := gear >= gears - 1
+		var in_green := not top and k >= green_at
+		var flash := limiter and fmod(_t, 0.2) < 0.1
+		draw_circle(c, r * 1.08, Color(0.04, 0.04, 0.05, 0.86))
+		var w := r * 0.13
+		_arc(c, r * 0.9, 0.0, 1.0, w, Color(1, 1, 1, 0.14))
+		if not top:
+			_arc(c, r * 0.9, dial(show_at), dial(green_at), w, Color("#ffb21e"))
+			_arc(c, r * 0.9, dial(green_at), dial(1.0), w * (1.35 if in_green else 1.0), Color("#3cff6a"))
+		_arc(c, r * 0.9, dial(1.0), 1.0, w, Color("#ff2a2a"))
+		var font := get_theme_default_font()
+		for n in 10:
+			var a := deg_to_rad(135.0) + deg_to_rad(270.0) * n / 9.0
+			var dir := Vector2(cos(a), sin(a))
+			draw_line(c + dir * r * 0.72, c + dir * r * 0.8, Color(1, 1, 1, 0.7), maxf(2.0, r * 0.02))
+			var fs := int(r * 0.13)
+			var tw := font.get_string_size(str(n), HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+			draw_string(font, c + dir * r * 0.6 + Vector2(-tw * 0.5, fs * 0.35), str(n), HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1, 1, 1, 0.6))
+		var f := dial(k)
+		if k >= 0.995:
+			f += 0.012 * sin(_t * 70.0) + 0.015  # bouncing on the limiter
+		var a := deg_to_rad(135.0) + deg_to_rad(270.0) * f
+		var nd := Vector2(cos(a), sin(a))
+		draw_line(c - nd * r * 0.12, c + nd * r * 0.86, Color("#ff3d6e"), maxf(3.0, r * 0.045), true)
+		draw_circle(c, r * 0.24, Color(0.1, 0.1, 0.12))
+		var g := str(gear + 1)
+		var gs := int(r * 0.42)
+		var gw := font.get_string_size(g, HORIZONTAL_ALIGNMENT_LEFT, -1, gs).x
+		draw_string(font, c + Vector2(-gw * 0.5, gs * 0.36), g, HORIZONTAL_ALIGNMENT_LEFT, -1, gs, Color("#3cff6a") if in_green else Color.WHITE)
+		var sp := "%d km/h" % roundi(kmh)
+		var ss := int(r * 0.13)
+		var sw := font.get_string_size(sp, HORIZONTAL_ALIGNMENT_LEFT, -1, ss).x
+		draw_string(font, c + Vector2(-sw * 0.5, r * 0.5), sp, HORIZONTAL_ALIGNMENT_LEFT, -1, ss, Color(1, 1, 1, 0.8))
+		if top:
+			return
+		var word := Lang.pick("BIEG ⬆ TERAZ!", "SHIFT ⬆ NOW!") if in_green or limiter else Lang.pick("BIEG ⬆", "SHIFT ⬆")
+		var ws := int(r * 0.17)
+		var ww := font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1, ws).x
+		var col := Color("#ff2a2a") if flash else (Color("#3cff6a") if in_green else Color(1, 1, 1, 0.75))
+		draw_string_outline(font, c + Vector2(-ww * 0.5, -r * 1.16), word, HORIZONTAL_ALIGNMENT_LEFT, -1, ws, maxi(3, ws / 6), Color(0.03, 0.03, 0.04, 0.9))
+		draw_string(font, c + Vector2(-ww * 0.5, -r * 1.16), word, HORIZONTAL_ALIGNMENT_LEFT, -1, ws, col)
 
 
 # --- the frame ------------------------------------------------------------------------------
@@ -693,6 +952,9 @@ func _process(dt: float) -> void:
 		_scene_frame(dt)
 	if not _racers.is_empty():
 		_glides(dt)
+		_racer_dots()
+	if not _cordon.is_empty():
+		_cordon_frame(dt)
 	if not _shows.is_empty():
 		_shows_frame(dt)
 	if state == State.STAGE or state == State.RUN:
@@ -709,6 +971,11 @@ func step(dt: float) -> void:
 	var v: Array = vehicle.call() if vehicle.is_valid() else [Vector3.ZERO, 0.0, false]
 	var at: Vector3 = v[0]
 	var kmh: float = v[1]
+	if not _cordon.is_empty():
+		var c0: Vector3 = (_cordon[0]["to"] as Vector3)
+		if _cordon_leaving or Vector2(at.x, at.z).distance_to(Vector2(c0.x, c0.z)) > CORDON_GONE or not (state == State.RAID or state == State.RAID2):
+			_cordon_leaving = true
+			_cordon_leave()
 	match state:
 		State.IDLE:
 			if auto and _free() and (force or night_on(_hour())):
@@ -741,8 +1008,15 @@ func step(dt: float) -> void:
 			if _arrived(dt, at, kmh, strip["watch"], MEET_R * 1.6):
 				_watch()
 		State.WATCH:
-			if _shows.is_empty() and not hud.pill_shown("drag"):
-				hud.show_pill("START DRAG", "START DRAG", "drag")
+			if _shows.is_empty():
+				if not hud.pill_shown("drag"):
+					hud.show_pill("START DRAG", "START DRAG", "drag")
+					_beacon.place(strip_at(0.0), LINE_R * 0.6, true, false)
+					_beacon.visible = true
+				_status("ZIELENIECKA · DRAG", "Stań na linii pod bramą", "Stop on the line under the gate", at, strip_at(0.0), COLOUR)
+				if _arrived(dt, at, kmh, strip_at(0.0), LINE_R):
+					hud.hide_pill()
+					_stage()
 		State.RUN:
 			_clear_strip()
 		State.RESULT:
@@ -763,7 +1037,7 @@ func busy() -> bool:
 
 
 func has_target() -> bool:
-	return state in [State.TO_MEET, State.RACE, State.TO_DRAG]
+	return state in [State.TO_MEET, State.RACE, State.TO_DRAG] or (state == State.WATCH and _shows.is_empty())
 
 
 func target_position() -> Vector3:
@@ -774,6 +1048,8 @@ func target_position() -> Vector3:
 			return meets[1]["at"]
 		State.TO_DRAG:
 			return strip["watch"]
+		State.WATCH:
+			return strip_at(0.0)
 	return Vector3.ZERO
 
 
@@ -929,11 +1205,14 @@ func _show_meet(i: int) -> void:
 	var c: Vector3 = m["at"]
 	_scene.position = c
 	_scene.visible = true
-	_marks.visible = i == 0
+	_marks.visible = true
 	_marks.position = Vector3(0, 0.02, 0)
-	_smoke.visible = i == 0
-	_drifting = i == 0
-	_porsze.visible = i == 0 or _porsze.visible
+	_smoke.visible = true
+	_drifting = true
+	_tandem = i == 1
+	_porsze.visible = true
+	if _tandem:
+		_bawarka.visible = true
 	_crowd_run = 0.0
 	_crowd_at.clear()
 	var cm := _crowd.multimesh
@@ -997,8 +1276,10 @@ func _raid() -> void:
 		sent = int(police.raid(m["at"], RAID_CARS, RAID_LEVEL))
 	_crowd_run = 0.01
 	_drifting = false
+	_tandem = false
 	_scatter()
-	_log("raid at %s: %d patrol cars" % [m["id"], sent])
+	var boxed := _cordon_in()
+	_log("raid at %s: %d patrol cars, %d in the cordon" % [m["id"], sent, boxed])
 
 
 func _t_raid(dt: float) -> void:
@@ -1028,6 +1309,108 @@ func _on_chase_ended(how: String) -> void:
 		_chase_seen = true
 
 
+# --- the cordon -------------------------------------------------------------------------------
+
+## The raid's cordon: CORDON patrol cars (police.gd `scene_car`, lights on) placed CORDON_FROM m out
+## round the player, the gaps facing the meet's door, and driven in over the plaza to CORDON_R m
+## (`_cordon_frame`). Returns how many came (the police pool may be short; none in Spacer).
+func _cordon_in() -> int:
+	_cordon_leave(true)
+	_cordon_leaving = false
+	if police == null or not police.has_method("scene_car") or graph == null or ("gentle" in police and bool(police.gentle)):
+		return 0
+	var v: Array = vehicle.call() if vehicle.is_valid() else [car.global_position, 0.0, false]
+	if bool(v[2]):
+		return 0
+	var c: Vector3 = v[0]
+	var door: Dictionary = meets[meet_i]["door"]
+	var e: int = door["e"]
+	var s: float = door["s"]
+	var lane: int = graph.e_lanes[e] - 1
+	var d3: Vector3 = door["at"]
+	var a0 := atan2(d3.z - c.z, d3.x - c.x) + PI / float(CORDON)
+	for k in CORDON:
+		var a := a0 + TAU * float(k) / float(CORDON)
+		var out := Vector3(cos(a), 0.0, sin(a))
+		var from := c + out * CORDON_FROM
+		var to := c + out * CORDON_R
+		from.y = _ground(from.x, from.z)
+		to.y = _ground(to.x, to.z)
+		# Nose in, a little across (they swerve in to block, not park in a neat star).
+		var yaw := atan2(out.x, out.z) + (0.35 if k % 2 == 0 else -0.35)
+		var d = police.scene_car(e, lane, s, from, yaw, 0)
+		if d == null:
+			break
+		traffic.park(d, e, s, from, yaw, -1)
+		_cordon.append({"d": d, "from": from, "to": to, "yaw": yaw, "t": -k * CORDON_STAGGER, "dur": CORDON_T, "e": e, "s": s})
+	return _cordon.size()
+
+
+## Per frame: the cordon's cars coming in (fast, braking hard at the end), their light pools.
+func _cordon_frame(dt: float) -> void:
+	_flash_t += dt
+	var fm := _flash.multimesh
+	for i in CORDON:
+		fm.set_instance_color(i, Color(0, 0, 0, 0))
+	for i in _cordon.size():
+		var d0 = _cordon[i]["d"]
+		if d0 == null or not d0.active or i >= CORDON:
+			continue
+		var red := fmod(_flash_t * 3.0 + i * 0.5, 1.0) < 0.5
+		var on := 0.0 if Access.calm else 1.0
+		fm.set_instance_transform(i, Transform3D(Basis(), d0.pos + Vector3(0, 0.06, 0)))
+		fm.set_instance_color(i, (Color("#ff2a3a") if red else Color("#2a6bff")) * Color(1, 1, 1, 0.75 * on))
+	_flash.visible = true
+	for cd in _cordon:
+		var d = cd["d"]
+		if d == null or not d.active:
+			continue
+		var t: float = float(cd["t"]) + dt
+		cd["t"] = t
+		if t < 0.0 or t > float(cd["dur"]) + dt:
+			continue
+		var k := clampf(t / float(cd["dur"]), 0.0, 1.0)
+		k = 1.0 - pow(1.0 - k, 3.0)
+		var p: Vector3 = (cd["from"] as Vector3).lerp(cd["to"], k)
+		p.y = _ground(p.x, p.z)
+		traffic.park(d, int(cd["e"]), float(cd["s"]), p, float(cd["yaw"]), -1)
+
+
+## The cordon goes: each car out of sight leaves (all of them with `now`).
+func _cordon_leave(now := false) -> void:
+	var kept: Array[Dictionary] = []
+	for cd in _cordon:
+		var d = cd["d"]
+		if d == null or not d.active:
+			continue
+		if now or not traffic.on_screen(d.pos, 2.0):
+			police.scene_leave(d)
+		else:
+			kept.append(cd)
+	_cordon = kept
+	if _cordon.is_empty():
+		_cordon_leaving = false
+		if _flash != null:
+			_flash.visible = false
+
+
+## The club on the minimap (F 2026-11-08: "you can't see the other racers on the map"): every racer
+## while they scatter and race, in its neon.
+func _racer_dots() -> void:
+	if hud == null or not hud.has_method("set_quest_dots"):
+		return
+	var pts := PackedVector2Array()
+	var cols := PackedColorArray()
+	if state in [State.RAID, State.RAID2, State.RACE]:
+		for r in _racers:
+			if r["d"] == null and r["node"] == null:
+				continue
+			var p := _racer_pos(r)
+			pts.append(Vector2(p.x, p.z))
+			cols.append(GLOWS[clampi(int(r.get("glow", 0)), 0, GLOWS.size() - 1)])
+	hud.set_quest_dots(pts, cols)
+
+
 ## The TYGRAM pin after a raid: meet 2 (and the race to it), or the drag.
 func _pin() -> void:
 	_scene.visible = false
@@ -1040,6 +1423,7 @@ func _pin() -> void:
 		hud.show_note("TYGRAM · WNRC", Lang.pick("📍 Zieleniecka, pod dworcem Stadion. Drag. %s" % MOTTO[0],
 				"📍 Zieleniecka, by Stadion station. Drag. %s" % MOTTO[1]), PIN_COLOUR)
 		_release_racers()
+		_show_gate(true)
 		state = State.TO_DRAG
 		_beacon.place(strip["watch"], MEET_R, true, false)
 		_beacon.visible = true
@@ -1128,7 +1512,13 @@ func _hand_over(r: Dictionary, then: String, e: int, s: float) -> void:
 	d.speed_factor = 1.4
 	d.accel_factor = 1.6
 	if state == State.RACE and not _race_dist.is_empty():
-		traffic.race_to(d, _race_node, _race_dist)
+		_race_off(d)
+
+
+## A racer off to meet 2 by the club's shortcuts.
+func _race_off(d) -> void:
+	d.cuts = _cut_table
+	traffic.race_to(d, _race_node, _race_cut_dist)
 
 
 func _player_top() -> float:
@@ -1143,11 +1533,20 @@ func _start_race() -> void:
 	var door: Dictionary = m["door"]
 	_race_node = graph.e_b[int(door["e"])]
 	_race_dist = graph.distances_to(_race_node)
+	_race_cut_dist = _race_dist
+	_cut_table = {}
+	if _cuts == null:
+		_cuts = RaceCuts.new()
+		_cuts.load_cuts(graph)
+	if _cuts.a.size() > 0:
+		var both: Array = _cuts.links(1.0, 873)
+		_cut_table = both[0]
+		_race_cut_dist = graph.distances_to(_race_node, INF, true, both[1])
 	_there.clear()
 	for r in _racers:
 		var d = r["d"]
 		if d != null and r["glide"].is_empty() and not d.parked:
-			traffic.race_to(d, _race_node, _race_dist)
+			_race_off(d)
 	state = State.RACE
 	_t = 0.0
 	_line(RACE_LINES[_rng.randi() % RACE_LINES.size()], 3.5)
@@ -1226,6 +1625,13 @@ func _race_done(p: int) -> void:
 		var d = r["d"]
 		var slot: Vector3 = slots[i % slots.size()]
 		var yaw := atan2(slot.x - c.x, slot.z - c.z)
+		if r["node"] == _porsze or r["node"] == _bawarka:
+			# The tandem in the middle (_scene_frame drives both).
+			r["glide"] = {}
+			if d != null:
+				traffic.remove(d)
+				r["d"] = null
+			continue
 		if d == null:
 			if r["node"] != null:
 				_put_node(r["node"], slot, yaw)
@@ -1261,6 +1667,8 @@ func _release_racers() -> void:
 			(r["node"] as Node3D).visible = false
 	_racers.clear()
 	_scene.visible = false
+	if hud != null and hud.has_method("set_quest_dots"):
+		hud.set_quest_dots(PackedVector2Array(), PackedColorArray())
 
 
 # --- the meet's frame -------------------------------------------------------------------------
@@ -1276,6 +1684,14 @@ func _scene_frame(dt: float) -> void:
 		_porsze.visible = true
 		var back := Basis(Vector3.UP, yaw) * Vector3(0, 0, 1.6)
 		_puff(c + p + back + Vector3(0, 0.5, 0))
+		if _tandem:
+			var a2 := _drift_a - TANDEM_LAG
+			var r2 := DONUT_R + TANDEM_OUT
+			var p2 := Vector3(cos(a2) * r2, 0.0, sin(a2) * r2)
+			var t2 := Vector3(-sin(a2), 0.0, cos(a2))
+			var yaw2 := atan2(-t2.x, -t2.z) + DONUT_SLIP + 0.08
+			_bawarka.global_transform = Transform3D(Basis(Vector3.UP, yaw2), c + p2)
+			_puff(c + p2 + Basis(Vector3.UP, yaw2) * Vector3(0, 0, 1.7) + Vector3(0, 0.5, 0))
 	if _smoke.visible:
 		var mm := _smoke.multimesh
 		for i in SMOKE:
@@ -1370,6 +1786,9 @@ func _stage() -> void:
 			c.visible = false
 	_shows.clear()
 	state = State.STAGE
+	hud.hide_status()
+	_beacon.visible = false
+	_show_gate(true)
 	_tree_t = 0.0
 	_green_at = TREE_PRE + 3.0 * TREE_STEP + _rng.randf_range(0.0, TREE_JITTER)
 	_react = -1.0
@@ -1404,7 +1823,16 @@ func _stage() -> void:
 	_tree.ambers = 0
 	_tree.green = false
 	_tree.red = false
+	_tree.since_green = 0.0
 	_tree.queue_redraw()
+	_tacho.show_at = SHIFT_SHOW
+	_tacho.green_at = SHIFT_AT
+	_tacho.gears = GEARS.size()
+	_tacho.gear = 0
+	_tacho.k = 0.0
+	_tacho.kmh = 0.0
+	_tacho.limiter = false
+	_tacho.visible = true
 	_line(DRAG_LINES["boss"], 3.0)
 	_log("stage: Tadek's run %.2f s (ok %.2f, perfect %.2f)" % [rr[2], rr[3], rr[4]])
 
@@ -1442,6 +1870,8 @@ func _drag_frame(dt: float) -> void:
 		if a != _tree.ambers:
 			_tree.ambers = a
 			_tree.queue_redraw()
+			if a > 0:
+				Access.buzz(30, 0.4)
 		if _player_s > FALSE_M or absf(lat) > 3.0:
 			_tree.red = true
 			_tree.queue_redraw()
@@ -1464,7 +1894,8 @@ func _drag_frame(dt: float) -> void:
 	_skajlajner.global_transform = Transform3D(Basis(Vector3.UP, strip_yaw()), strip_at(_rival_s, -float(strip["lane_gap"])))
 	if _rival_done < 0.0 and _rival_s >= QUARTER:
 		_rival_done = _run_t
-	# The gears.
+	# The gears: yours to shift (the tacho, or the context button); the box only saves a run
+	# left on the limiter AUTO_SHIFT s.
 	_boost_t = maxf(0.0, _boost_t - dt)
 	_bog_t = maxf(0.0, _bog_t - dt)
 	car.accel_mult = _accel_was * (SHIFT_BOOST if _boost_t > 0.0 else 1.0) * (EARLY_BOG if _bog_t > 0.0 else 1.0)
@@ -1474,15 +1905,21 @@ func _drag_frame(dt: float) -> void:
 	if _gear < GEARS.size() - 1:
 		if v >= cap * SHIFT_AT:
 			_shift_w = 0.0 if _shift_w < 0.0 else _shift_w + dt
-			hud.show_pill("BIEG! ⬆ TERAZ", "SHIFT! NOW", "drag_shift")
 			if _shift_w >= AUTO_SHIFT:
 				_shift("auto")
-		elif v >= cap * SHIFT_SHOW:
-			hud.show_pill("BIEG %d" % (_gear + 2), "GEAR %d" % (_gear + 2), "drag_shift")
-		elif hud.pill_shown("drag_shift"):
-			hud.hide_pill()
+		if not hud.pill_shown("drag_shift"):
+			hud.show_pill("⬆ BIEG", "⬆ SHIFT", "drag_shift")
+	elif hud.pill_shown("drag_shift"):
+		hud.hide_pill()
+	_tacho.k = v / maxf(cap, 0.1)
+	_tacho.gear = _gear
+	_tacho.kmh = v * 3.6
+	_tacho.limiter = _shift_w > PERFECT
+	_tree.since_green += dt
 	if _tree.visible and _run_t > 1.5:
 		_tree.visible = false
+	elif _tree.visible:
+		_tree.queue_redraw()
 	if absf(lat) > STRIP_HALF or _player_s < -10.0:
 		_drag_end(false, "off")
 		return
@@ -1530,6 +1967,7 @@ func _drag_end(won: bool, how: String) -> void:
 	_restore_car()
 	hud.hide_pill()
 	hud.hide_banner()
+	_tacho.visible = false
 	_tree.visible = how == "false"
 	if _tree.visible:
 		get_tree().create_timer(2.0).timeout.connect(func() -> void: _tree.visible = false)
@@ -1625,9 +2063,12 @@ func _finish() -> void:
 	_release_racers()
 	_beacon.visible = false
 	_tree.visible = false
+	_tacho.visible = false
+	_show_gate(false)
 	for n: Node3D in [_bawarka, _porsze, _skajlajner] + _show_cars:
 		n.visible = false
 	_shows.clear()
+	_cordon_leave(true)
 	if missions != null:
 		missions.paused = _calls_were
 	_reset()
@@ -1673,6 +2114,7 @@ func jump(beat: String) -> void:
 			_beacon.visible = false
 			if place_car.is_valid():
 				place_car.call(strip["watch"], strip_yaw())
+			_show_gate(true)
 			_watch()
 			if beat == "stage":
 				_stage()

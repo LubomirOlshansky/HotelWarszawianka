@@ -338,6 +338,10 @@ var _target_colour := Color.WHITE
 var _mini_target := Vector2.INF
 var _mini_target_colour := Color.WHITE
 var _mini_dots := PackedVector2Array()
+## A quest's own racers on the minimap (street_meet.gd's club), kept apart from the rivals' dots,
+## which rivals.gd writes every frame.
+var _quest_dots := PackedVector2Array()
+var _quest_dot_colours := PackedColorArray()
 var _mini_dot_colours := PackedColorArray()
 ## Loop 2d-1: whose the context button is ("call" or "ride").
 var pill_owner := "call"
@@ -1749,6 +1753,14 @@ func set_minimap_dots(points: PackedVector2Array, colours: PackedColorArray) -> 
 	_mini_dot_colours = colours
 
 
+## A quest's racers on the minimap (street_meet.gd, F 2026-11-08: "the other racers don't show on
+## the map"): a little bigger than the rivals' dots, pinned to the rim when out of reach so the
+## pack's direction always shows. Empty arrays clear them.
+func set_quest_dots(points: PackedVector2Array, colours: PackedColorArray) -> void:
+	_quest_dots = points
+	_quest_dot_colours = colours
+
+
 # --- every frame -----------------------------------------------------------------------------
 
 ## RADIO held RADIO_HOLD s skips once per press (called every frame with the time; a check can
@@ -2089,6 +2101,10 @@ func _paint_minimap_overlay() -> void:
 		if r.length() < _mini_radius - 4.0 * pt:
 			_tri_fan(centre + r, 2.8 * pt, 0.0, TAU, OUTLINE)
 			_tri_fan(centre + r, 2.0 * pt, 0.0, TAU, _mini_dot_colours[i])
+	for i in _quest_dots.size():
+		var r := ((_quest_dots[i] - _mini_car) * s).rotated(_mini_yaw).limit_length(_mini_radius - 5.0 * pt)
+		_tri_fan(centre + r, 3.6 * pt, 0.0, TAU, OUTLINE)
+		_tri_fan(centre + r, 2.7 * pt, 0.0, TAU, _quest_dot_colours[i] if i < _quest_dot_colours.size() else Color.WHITE)
 	# Loop 3g-1: known speed traps (a small hair dryer in police blue) and the chasers (blue and
 	# red in turns, a white outline), within the minimap's reach.
 	for q in _trap_marks:
