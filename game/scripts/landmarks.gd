@@ -700,6 +700,9 @@ const INFO := {
 	"cepelia": ["Pawilon Cepelii",
 			"Szklany pawilon z 1966 roku na rogu Alej, odnowiony w 2024: książki i winyle na trzech poziomach.",
 			"A 1966 glass pavilion on the Aleje corner, restored in 2024: books and vinyl on three levels."],
+	"pijana": ["Pijana Czereśnia",
+			"Ciemny ośmioboczny pawilon w parku, z beczkowatym bębnem na dachu. Nalewka z czereśni, drewniany taras i światełka. Tak, to parodia.",
+			"A dark octagonal pavilion in the park with a barrel-like drum on its roof. Cherry liqueur, a timber deck and string lights. Yes, a parody."],
 	"zodiak": ["Zodiak",
 			"Pawilon w Pasażu Wiecha: dawny bar, dziś Warszawski Pawilon Architektury z kawiarnią.",
 			"A pavilion in Pasaż Wiecha: once a bar, now the Warsaw Architecture Pavilion and its café."],
@@ -1200,6 +1203,8 @@ func _find_sites() -> void:
 	_find_kino_muranow()
 	# R5 of docs/design/start-area-real.md: the Cepelia pavilion and Zodiak.
 	_find_modern_pavilions()
+	# F's photos (2026-11-08): the cherry-liqueur kiosk in the park by Emilii Plater, as a parody.
+	_find_pijana()
 	# First scene items 4-5 (2026-11-02, the Mac photo report dt_pawilony): Pasaż Wiecha's pavilions.
 	_find_wiecha()
 	# F's photos (2026-11-06): SOWA CLUB and CITY 25, the neon glass pavilion on Al. Jerozolimskie.
@@ -1859,6 +1864,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_rondo(s)
 			"zodiak":
 				_build_zodiak(s)
+			"pijana":
+				_build_pijana(s)
 			"wiecha":
 				_build_wiecha(s)
 			"orly":
@@ -17539,6 +17546,190 @@ func _build_zodiak(site: Dictionary) -> void:
 	# The white neon word over the back (on the brick wall behind in the photos), facing the square.
 	_usign(ZOD_WORD, (u0 + u1) * 0.5, v0 + 0.3, g + ZOD_H + ZOD_ROOF + 0.6, _b, 0.55 * (u1 - u0), 1.6, ZOD_COLOUR)
 	_collide(low)
+
+
+# --- PIJANA CZEREŚNIA (F's photos, 2026-11-08) -----------------------------------------------
+
+## The cherry-liqueur kiosk in the park by Emilii Plater (OSM "Pijana Wiśnia"), from F's photos
+## and a Commons shot: a dark octagonal glass pavilion on a low plinth, a shallow glazed roof under
+## a barrel-like brown drum with two darker bands, the red cherry cartouche on the drum, painted
+## front windows (a man in a flat cap with his dog, a woman with cherries), bottle shelves in the
+## side bays, a timber deck in front with dark X-braced railings and planters, and string lights.
+## The name is the parody PIJANA CZEREŚNIA (cherry, not sour cherry: the same drunk fruit).
+## Frame: _o the outline's middle, _b out of the front (the path side, east), _a along it.
+const PIJ_OSM := "Pijana Wiśnia"
+const PIJ_FRONT := Vector2(0.98, 0.2)
+const PIJ_R := 5.3             # the octagon's corner radius (about 10 m across the flats)
+const PIJ_KNEE := 0.9          # the dark knee wall's height over the floor
+const PIJ_WALL := 3.1          # the glass wall's top over the floor
+const PIJ_FASCIA := 0.45
+const PIJ_DRUM_R := 3.9
+const PIJ_DRUM_H := 2.9
+const PIJ_DECK_V0 := 3.3
+const PIJ_DECK_V1 := 8.2
+const PIJ_DECK_U := 6.4
+const PIJ_DARK := Color("#1f1a1c")
+const PIJ_PLINTH := Color("#4a4744")
+const PIJ_GLASS := Color("#2e3c3e")
+const PIJ_ROOF := Color("#5c554c")
+const PIJ_BARREL := Color("#523a2e")
+const PIJ_BAND := Color("#2f221c")
+const PIJ_WOOD := Color("#6b5238")
+const PIJ_CHERRY := Color("#c3202b")
+const PIJ_LEAF := Color("#4f7a2c")
+const PIJ_CREAM := Color("#e7d9b6")
+const PIJ_SKIN := Color("#d9a47a")
+const PIJ_FUR := Color("#b8641c")
+const PIJ_HAIR := Color("#8a3b1f")
+const PIJ_CYAN := Color(0.35, 0.8, 1.0)
+const PIJ_CREAM_T := Color(1.0, 0.93, 0.78)
+const PIJ_WORD_A := "PIJANA"
+const PIJ_WORD_B := "CZEREŚNIA"
+
+
+func _find_pijana() -> void:
+	var q := _landmark(PIJ_OSM)
+	if q.size() < 3:
+		return
+	_add_site("pijana", [_largest(Geometry2D.offset_polygon(q, 1.5, Geometry2D.JOIN_MITER))])
+	if not sites.is_empty() and sites[-1]["key"] == "pijana":
+		sites[-1]["outline"] = _simplify(q, 0.4)
+
+
+## The octagon (or any even n-gon) of corner radius r in the local plan; face k faces angle k*TAU/n.
+func _pij_poly(r: float, n: int) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for k in n:
+		var a := TAU * (k + 0.5) / n
+		out.append(_w(r * cos(a), r * sin(a)))
+	return out
+
+
+## A world point on octagon face k: `s` along the face, `d` out of it (the apothem is the zero).
+func _pij_pt(k: int, s: float, d: float) -> Vector2:
+	var th := k * PI / 4.0
+	var n := Vector2(cos(th), sin(th))
+	var t := Vector2(-sin(th), cos(th))
+	var l := n * (PIJ_R * cos(PI / 8.0) + d) + t * s
+	return _w(l.x, l.y)
+
+
+## A thin painted panel on octagon face k, from s0 to s1 and y0 to y1, `proud` m out of the glass.
+func _pij_panel(k: int, s0: float, s1: float, y0: float, y1: float, col: Color, proud := 0.04, mode := M_STONE) -> void:
+	var poly := PackedVector2Array([_pij_pt(k, s0, 0.0), _pij_pt(k, s1, 0.0), _pij_pt(k, s1, proud), _pij_pt(k, s0, proud)])
+	_prism(poly, y0, y1, col, Color(0, 0, 0, 0), mode)
+
+
+func _build_pijana(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	_pav_frame(outline, Vector2(-PIJ_FRONT.y, PIJ_FRONT.x), PIJ_FRONT)
+	var none := Color(0, 0, 0, 0)
+	var foot := _pij_poly(PIJ_R + 0.6, 8)
+	var g := _ground_under(foot)
+	var top := g
+	for q in _pij_poly(PIJ_R + 6.0, 8):
+		top = maxf(top, map.terrain_height(q.x, q.y))
+	var f := minf(top, g + 0.6) + 0.25   # the floor, a little over the park's ground
+	_g = f
+	_mode = M_STONE
+	var ap := PIJ_R * cos(PI / 8.0)
+	# The plinth and the dark knee wall, the glass wall lit warm at night, the corner posts.
+	_prism(foot, g - 0.5, f, PIJ_PLINTH, PIJ_PLINTH.darkened(0.05), M_STONE, M_STONE)
+	var shell := _pij_poly(PIJ_R, 8)
+	_prism(shell, f, f + PIJ_KNEE, PIJ_DARK, none, M_STONE)
+	var glass := _pij_poly(PIJ_R - 0.04, 8)
+	_prism(glass, f + PIJ_KNEE, f + PIJ_WALL, PIJ_GLASS.lightened(0.12), none, M_PAVILION)
+	_mullions(glass, f + PIJ_KNEE, f + PIJ_WALL, 1.4, 0.05, PIJ_DARK)
+	for v in shell:
+		var l := _local(v)
+		_ubox(l.x - 0.11, l.x + 0.11, l.y - 0.11, l.y + 0.11, f, f + PIJ_WALL + PIJ_FASCIA, PIJ_DARK)
+	# The fascia ring with the chalk-blue name, a shallow glazed roof and the drum on it.
+	var fascia := _pij_poly(PIJ_R + 0.14, 8)
+	_prism(fascia, f + PIJ_WALL, f + PIJ_WALL + PIJ_FASCIA, PIJ_DARK, PIJ_DARK.lightened(0.05), M_STONE, M_STONE)
+	_mode = M_STONE
+	var ry := f + PIJ_WALL + PIJ_FASCIA
+	_pyramid(_pij_poly(PIJ_R + 0.3, 8), ry, ry + 1.1, PIJ_ROOF)
+	var d0 := ry + 0.3
+	var drum := _pij_poly(PIJ_DRUM_R, 16)
+	_prism(drum, d0, d0 + PIJ_DRUM_H, PIJ_BARREL, PIJ_BAND, M_STONE, M_STONE)
+	for by: float in [0.5, 2.0]:
+		_prism(_pij_poly(PIJ_DRUM_R + 0.1, 16), d0 + by, d0 + by + 0.22, PIJ_BAND, none, M_STONE)
+	_prism(_pij_poly(PIJ_DRUM_R - 0.3, 16), d0 + PIJ_DRUM_H, d0 + PIJ_DRUM_H + 0.25, PIJ_BAND, PIJ_BAND.lightened(0.08), M_STONE, M_STONE)
+	_ubox(-1.4, -0.2, -2.2, -1.2, d0 + PIJ_DRUM_H + 0.25, d0 + PIJ_DRUM_H + 0.95, Color("#9a9fa3"))   # the air handler
+	# The red cherry cartouche on the drum's front: PIJANA over CZEREŚNIA, a pair of cherries below.
+	var py := d0 + 0.7
+	_ubox(-1.75, 1.75, 3.5, 3.9, py, py + 1.65, PIJ_CHERRY, M_STONE, PIJ_CHERRY.darkened(0.1))
+	_ubox(-1.6, 1.6, 3.9, 3.94, py + 0.08, py + 1.57, PIJ_CHERRY.lightened(0.12))
+	_usign(PIJ_WORD_A, 0.0, 3.97, py + 1.0, _b, 2.6, 0.48, PIJ_CREAM_T)
+	_usign(PIJ_WORD_B, 0.0, 3.97, py + 0.45, _b, 3.0, 0.45, PIJ_CREAM_T)
+	_ubox(-0.9, 0.9, 3.92, 3.99, py + 0.02, py + 0.3, PIJ_LEAF)
+	for cu: float in [-0.35, 0.35]:
+		_ubox(cu - 0.17, cu + 0.17, 3.9, 4.2, py - 0.3, py + 0.04, PIJ_CHERRY.lightened(0.05), M_LAMP)
+	_usign(PIJ_WORD_B, 0.0, ap + 0.18, f + PIJ_WALL + 0.06, _b, 3.0, 0.33, PIJ_CYAN)
+	# The painted front windows (k = 2 faces the front): the man in a flat cap with his dog, the
+	# woman with cherries, the door between them; the flanking faces hold the bottle shelves.
+	_pij_panel(2, -1.95, -0.65, f + 0.2, f + 2.9, PIJ_DARK.lightened(0.06), 0.06)
+	_pij_panel(2, -1.4, -1.0, f + 0.5, f + 2.0, PIJ_CREAM, 0.10)     # his coat
+	_pij_panel(2, -1.35, -1.05, f + 2.0, f + 2.35, PIJ_SKIN, 0.11)   # head
+	_pij_panel(2, -1.45, -0.95, f + 2.35, f + 2.5, Color("#a8896a"), 0.11)   # flat cap
+	_pij_panel(2, -0.9, -0.68, f + 0.5, f + 1.4, PIJ_FUR, 0.11)      # the dog
+	_pij_panel(2, -0.95, -0.7, f + 1.4, f + 1.7, PIJ_FUR.darkened(0.15), 0.11)
+	_pij_panel(2, 0.65, 1.95, f + 0.2, f + 2.9, PIJ_DARK.lightened(0.06), 0.06)
+	_pij_panel(2, 0.7, 1.9, f + 0.25, f + 0.7, PIJ_LEAF, 0.10)       # leaves
+	_pij_panel(2, 0.95, 1.55, f + 0.7, f + 1.8, PIJ_CREAM, 0.11)     # her dress
+	_pij_panel(2, 1.05, 1.45, f + 1.8, f + 2.2, PIJ_SKIN, 0.11)
+	_pij_panel(2, 0.95, 1.55, f + 2.2, f + 2.55, PIJ_HAIR, 0.11)
+	_pij_panel(2, 1.1, 1.4, f + 1.25, f + 1.6, PIJ_CHERRY, 0.14, M_LAMP)   # the cherries
+	_pij_panel(2, -0.45, 0.45, f + 0.1, f + 2.6, PIJ_DARK, 0.08)   # the door frame
+	_pij_panel(2, 0.3, 0.36, f + 1.1, f + 1.6, Color("#c9c9c9"), 0.11)
+	for k: int in [1, 3]:
+		for sy: float in [1.35, 2.05]:
+			_pij_panel(k, -1.3, 1.3, f + sy, f + sy + 0.06, PIJ_DARK, 0.05)
+			for i in 6:
+				var s := -1.1 + i * 0.44
+				_pij_panel(k, s, s + 0.14, f + sy + 0.06, f + sy + 0.42, PIJ_CHERRY if i % 2 == 0 else PIJ_BAND, 0.06)
+	# The timber deck in front, its dark X-braced rail with planters, two posts of string lights.
+	var dk := _urect(-PIJ_DECK_U, PIJ_DECK_U, PIJ_DECK_V0, PIJ_DECK_V1)
+	_prism(dk, g - 0.5, f, PIJ_WOOD.darkened(0.15), PIJ_WOOD, M_STONE, M_STONE)
+	_ubox(-0.95, 0.95, PIJ_DECK_V1, PIJ_DECK_V1 + 0.6, g - 0.5, f - 0.17, PIJ_WOOD, M_STONE, PIJ_WOOD)
+	var runs: Array = []   # rail runs as [u0, v0, u1, v1]
+	runs.append([-PIJ_DECK_U, PIJ_DECK_V1, -0.95, PIJ_DECK_V1])
+	runs.append([0.95, PIJ_DECK_V1, PIJ_DECK_U, PIJ_DECK_V1])
+	runs.append([-PIJ_DECK_U, PIJ_DECK_V0 + 0.2, -PIJ_DECK_U, PIJ_DECK_V1])
+	runs.append([PIJ_DECK_U, PIJ_DECK_V0 + 0.2, PIJ_DECK_U, PIJ_DECK_V1])
+	var planter := 0
+	for r: Array in runs:
+		var a := Vector2(r[0], r[1])
+		var b := Vector2(r[2], r[3])
+		var len := a.distance_to(b)
+		var n := maxi(2, roundi(len / 0.9))
+		for i in n + 1:
+			var c := a.lerp(b, float(i) / n)
+			_ubox(c.x - 0.05, c.x + 0.05, c.y - 0.05, c.y + 0.05, f, f + 1.05, PIJ_DARK)
+		var mid := (a + b) * 0.5
+		var hu := maxf(absf(b.x - a.x) * 0.5, 0.04)
+		var hv := maxf(absf(b.y - a.y) * 0.5, 0.04)
+		for ry2: float in [0.12, 0.55, 1.0]:
+			_ubox(mid.x - hu, mid.x + hu, mid.y - hv, mid.y + hv, f + ry2, f + ry2 + 0.07, PIJ_DARK)
+		for i in n:
+			var c2 := a.lerp(b, (i + 0.5) / n)
+			planter += 1
+			if planter % 2 == 0:
+				_ubox(c2.x - 0.3, c2.x + 0.3, c2.y - 0.16, c2.y + 0.16, f + 1.05, f + 1.3, PIJ_BAND, M_STONE, PIJ_CHERRY)
+	# String lights: two black posts at the deck's front corners and a sagging line of warm lamps.
+	for pu: float in [-PIJ_DECK_U + 0.1, PIJ_DECK_U - 0.1]:
+		_ubox(pu - 0.06, pu + 0.06, PIJ_DECK_V1 - 0.16, PIJ_DECK_V1 - 0.04, f, f + 3.6, PIJ_DARK)
+	var wy := f + 3.6
+	_ubox(-PIJ_DECK_U + 0.1, PIJ_DECK_U - 0.1, PIJ_DECK_V1 - 0.12, PIJ_DECK_V1 - 0.08, wy - 0.05, wy, PIJ_DARK)
+	var nl := 14
+	for i in nl + 1:
+		var t := float(i) / nl
+		var lu := lerpf(-PIJ_DECK_U + 0.1, PIJ_DECK_U - 0.1, t)
+		var ly := wy - 0.1 - 0.5 * sin(t * PI)
+		_ubox(lu - 0.015, lu + 0.015, PIJ_DECK_V1 - 0.115, PIJ_DECK_V1 - 0.085, ly + 0.1, wy - 0.05, PIJ_DARK)
+		_prism(_rect(lu, PIJ_DECK_V1 - 0.1, 0.06, 0.06), ly, ly + 0.12, Color(1.0, 0.85, 0.5), Color(1.0, 0.85, 0.5), M_LAMP, M_LAMP)
+	_collide(_pij_poly(PIJ_R + 0.3, 8))
+	_collide(dk)
 
 
 # --- SOWA CLUB and CITY 25 (F's photos, 2026-11-06) ------------------------------------------
