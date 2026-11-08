@@ -1143,6 +1143,26 @@ func _load_step(share: float) -> void:
 		return
 	title.progress = maxf(title.progress, lerpf(LOAD_FILES, LOAD_BUILT, share))
 	await get_tree().process_frame
+	_last_yield_ms = Time.get_ticks_msec()
+
+
+## The loading bar (F, 2026-11-08: "the loading animation lags"): the build runs on the main
+## thread, so the title's bar and prompt only move in the frames it yields. The eight `_load_mark`
+## yields left stretches of 100+ ms on the phone, which read as a stutter. Between the build's
+## `_build_*` calls this yields a frame whenever LOAD_YIELD_MS have passed since the last one
+## (title only; test runs build in one go), so no stretch is longer than the longest single call.
+const LOAD_YIELD_MS := 12
+var _last_yield_ms := 0
+
+
+func _load_yield() -> void:
+	if title == null:
+		return
+	var now := Time.get_ticks_msec()
+	if now - _last_yield_ms < LOAD_YIELD_MS:
+		return
+	await get_tree().process_frame
+	_last_yield_ms = Time.get_ticks_msec()
 
 
 func _title_frame() -> void:
@@ -1629,19 +1649,33 @@ func _build_world() -> void:
 	if graph != null:
 		_build_side_jobs(data, world)
 	_build_notebook(data)
+	await _load_yield()
 	_build_moments(data, world)
+	await _load_yield()
 	_build_districts()
+	await _load_yield()
 	_build_syrenki(world)
+	await _load_yield()
 	_build_cassettes(world)
+	await _load_yield()
 	_build_first_scene(world)
+	await _load_yield()
 	_build_skwer_zlota(world)
+	await _load_yield()
 	_build_plac_pieciu_rogow(world)
+	await _load_yield()
 	_build_tarasy_screen(world)
+	await _load_yield()
 	_build_spire_motion(world)
+	await _load_yield()
 	_build_street_details(world)
+	await _load_yield()
 	_build_ratusz_hub(data, world)
+	await _load_yield()
 	_build_park_details(world)
+	await _load_yield()
 	_build_garage(world)
+	await _load_yield()
 	await _load_mark(0.66)
 	# Loop MW-5: a PÓŁNOC FM track opened (a chapter, an egg, --unlock=N): a toast.
 	radio.track_unlocked.connect(func(_n: int, track: Dictionary, _why: String) -> void:
@@ -1695,33 +1729,56 @@ func _build_world() -> void:
 	if cam_test != "":
 		_start_cam_test()
 	_build_sound(data, world)
+	await _load_yield()
 	await _load_mark(0.67)
 	# Loop 3g-1: the police, on the traffic's lane graph (none with --no-police).
 	if traffic != null and not police_opts.get("off", false):
 		_build_police(data, world)
 	_build_crowds(data, world)
+	await _load_yield()
 	_build_city_life(data, world)
+	await _load_yield()
 	await _load_mark(0.85)
 	_build_buses(data, world)
+	await _load_yield()
 	_build_old_tram(world)
+	await _load_yield()
 	_build_crash_scenes()
+	await _load_yield()
 	_build_rave(data, world)
+	await _load_yield()
 	_build_meet(data, world)
+	await _load_yield()
 	_build_boat_race(world)
+	await _load_yield()
 	_build_dekalog_tour(world)
+	await _load_yield()
 	_build_kino_tour(world)
+	await _load_yield()
 	_build_shisha(data, world)
+	await _load_yield()
 	_build_ev_tow(world)
+	await _load_yield()
 	_build_stories(world)
+	await _load_yield()
 	_build_crawl(data, world)
+	await _load_yield()
 	_build_storefronts(data, world)
+	await _load_yield()
 	_build_packs(data, world)
+	await _load_yield()
 	_build_fans(data, world)
+	await _load_yield()
 	_build_event_day(data, world)
+	await _load_yield()
 	_build_loud_cars(world)
+	await _load_yield()
 	_build_crazy_drivers(world)
+	await _load_yield()
 	_build_wellness(world)
+	await _load_yield()
 	_build_first10()
+	await _load_yield()
 	await _load_mark(0.99)
 	_set_quality(quality_choice)
 	get_tree().root.size_changed.connect(_apply_style)
