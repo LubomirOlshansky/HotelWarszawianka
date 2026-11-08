@@ -12,8 +12,11 @@ Mapillary street photos) and is drawn as what it is (`small_buildings.gd`): 36 l
 vents, 33 bin shelters, 34 kiosks and pavilions, 16 substations, 11 toilets, 74 sheds, 19 garages,
 houseboats, canopies...; 50 pieces of bigger buildings or empty outlines are left out. Verify step
 `heights`. Left:
-- 98 drawn as "unknown" (a plain 3 m shed) and most sheds/garages are low-confidence guesses: no
-  street photo shows them (courtyards). A photo pass on the Mac would settle them.
+- Mac photo pass (2026-11-08, 0.1 m GUGiK ortho + fresh OSM tags) settled 94 of the 98 "unknown":
+  33 pieces of bigger buildings (the Royal Castle's 0-2 m² slivers, church turrets), 17 low annexes
+  with their own outline (new use `annex`, 4 m), 22 sheds... 4 stay unknown (tiny, under trees).
+  Still no street photo for the courtyard sheds and garages (Codex was blocked by the Godot guard
+  hook on the Mac); heights are typical values, not measured.
 - Courtyard outbuildings over 150 m² with no height tags still get 14 m (fair for a tenement).
 
 ## Plac Pięciu Rogów, Chmielna and Krucza in 2026 (F, 2026-11-06)

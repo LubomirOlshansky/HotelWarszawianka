@@ -15,10 +15,9 @@
    "x": -2049.6,
    "z": -1322.5,
    "u": "unknown",
-   "h": 3.0,
    "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "tiny box under trees by road",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "7 m2 dark box at the foot of steps beside a building; nothing identifiable",
    "osm": 151571912
   },
   {
@@ -43,74 +42,80 @@
   {
    "x": 301.3,
    "z": 1403.7,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 194448961
+   "u": "historic",
+   "conf": "medium",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "OSM: building=ruins, \"domek spalony\" (burnt cottage) at Jazdow 3/4; roof still visible, Finnish-cottage row",
+   "osm": 194448961,
+   "h": 4.0
   },
   {
    "x": -812.1,
    "z": -1871.3,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 196756149
+   "u": "historic",
+   "conf": "medium",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "Brzozowa 37 tenement (wikidata Q33533501), tiled roof in the Old Town frontage; a real house, not a small structure",
+   "osm": 196756149,
+   "h": 12.0
   },
   {
    "x": -736.1,
    "z": -1662.2,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "building:part: turret of the Jesuit church (Swietojanska), circle outline on a tower",
    "osm": 196756170
   },
   {
    "x": -729.7,
    "z": -1660.4,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "building:part: turret of the Jesuit church",
    "osm": 196756201
   },
   {
    "x": -2408.6,
    "z": -147.5,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 198815024
+   "u": "pavilion",
+   "conf": "medium",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "hipped red-tile pavilion in a playground courtyard (kindergarten/yard house)",
+   "osm": 198815024,
+   "h": 4.5
   },
   {
    "x": -955.0,
    "z": -235.8,
-   "u": "unknown",
+   "u": "annex",
    "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 221744437
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "flat-roof annex lower than the block around it, in a courtyard",
+   "osm": 221744437,
+   "h": 4.0
   },
   {
    "x": -921.5,
    "z": -348.0,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 221774468
+   "u": "annex",
+   "conf": "medium",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "flat-roof wing attached to the green-roofed building at a car park",
+   "osm": 221774468,
+   "h": 4.0
   },
   {
    "x": -853.6,
    "z": -267.8,
-   "u": "unknown",
+   "u": "shed",
    "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 221788400
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "dark roof under trees beside a bicycle park and lift gate",
+   "osm": 221788400,
+   "h": 3.0
   },
   {
    "x": -1507.0,
@@ -135,11 +140,11 @@
   {
    "x": -3014.7,
    "z": -1860.8,
-   "u": "unknown",
+   "u": "substation",
    "h": 3.0,
-   "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "small box in green, photos not conclusive",
+   "conf": "medium",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "grey hipped-roof box 4x5 m at a road corner in grass, looks like a transformer house",
    "osm": 243157680
   },
   {
@@ -212,11 +217,11 @@
   {
    "x": -838.5,
    "z": -1203.3,
-   "u": "unknown",
-   "h": 4.0,
-   "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "L-shaped sliver among trees and buildings",
+   "u": "shed",
+   "h": 3.0,
+   "conf": "medium",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "L-shaped green-roof outbuilding along a fence",
    "osm": 258620240
   },
   {
@@ -241,11 +246,12 @@
   {
    "x": 1831.8,
    "z": 504.4,
-   "u": "unknown",
+   "u": "pavilion",
    "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 278212326
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "small flat-roof house with brick wall and hatch beside viaduct steps; use unclear",
+   "osm": 278212326,
+   "h": 4.0
   },
   {
    "x": -2613.0,
@@ -277,20 +283,21 @@
   {
    "x": 1696.9,
    "z": 255.2,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 303625254
+   "u": "pavilion",
+   "conf": "medium",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "service building beside a water-slide tower (stairs to the slide meet its roof)",
+   "osm": 303625254,
+   "h": 4.0
   },
   {
    "x": 1465.2,
    "z": -135.2,
-   "u": "unknown",
-   "h": 4.0,
+   "u": "canopy",
+   "h": 3.0,
    "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "long thin strip beside road, unclear",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "30x3 m grey flat roof strip beside a road terrace, looks like a long open shelter",
    "osm": 303625762
   },
   {
@@ -324,20 +331,22 @@
   {
    "x": 982.4,
    "z": -1604.0,
-   "u": "unknown",
+   "u": "annex",
    "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 317517234
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "vegetated footprint attached to a flat-roof building at Jagiellonska 1",
+   "osm": 317517234,
+   "h": 4.0
   },
   {
    "x": 877.1,
    "z": -1767.5,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 318195931
+   "u": "annex",
+   "conf": "medium",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "glass-roofed atrium on top of a school building",
+   "osm": 318195931,
+   "h": 4.0
   },
   {
    "x": -2591.2,
@@ -487,11 +496,12 @@
   {
    "x": -1636.4,
    "z": -1757.0,
-   "u": "unknown",
+   "u": "garage",
    "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 331309221
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "building=service: dark flat roof by a car park, technical/garage block",
+   "osm": 331309221,
+   "h": 3.0
   },
   {
    "x": 927.3,
@@ -605,20 +615,21 @@
   {
    "x": -739.7,
    "z": -1523.9,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "building:part h=14 gabled; part of Kamienica Pod Pelikanem (Plac Zamkowy 1/13)",
    "osm": 358095109
   },
   {
    "x": 905.3,
    "z": 1335.6,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 365887343
+   "u": "annex",
+   "conf": "medium",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "grey roof with curved front and vent pipe attached to a historic building by the viaduct",
+   "osm": 365887343,
+   "h": 4.0
   },
   {
    "x": -1522.9,
@@ -633,11 +644,11 @@
   {
    "x": -1558.9,
    "z": -1753.2,
-   "u": "unknown",
-   "h": 3.0,
+   "u": "pavilion",
+   "h": 4.0,
    "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "hexagon in trees, maybe gazebo",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "hexagon in dense trees: probably a gazebo (altanka); nothing visible",
    "osm": 368465564
   },
   {
@@ -672,11 +683,12 @@
   {
    "x": -1180.0,
    "z": -1482.0,
-   "u": "unknown",
+   "u": "annex",
    "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 379997095
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "dark flat roof on a plot along a brick wall, annex of the house",
+   "osm": 379997095,
+   "h": 4.0
   },
   {
    "x": -1195.5,
@@ -701,11 +713,12 @@
   {
    "x": -858.6,
    "z": -1356.4,
-   "u": "unknown",
+   "u": "canopy",
    "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 380002236
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "timber deck/pergola with raised planters on a square; not a closed building",
+   "osm": 380002236,
+   "h": 3.0
   },
   {
    "x": -1147.7,
@@ -739,11 +752,12 @@
   {
    "x": -947.5,
    "z": -500.2,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 397278928
+   "u": "annex",
+   "conf": "medium",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "black flat roof beside an apartments block in a courtyard: annex",
+   "osm": 397278928,
+   "h": 4.0
   },
   {
    "x": -963.8,
@@ -786,11 +800,12 @@
   {
    "x": -717.8,
    "z": -1608.9,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 404050658
+   "u": "historic",
+   "conf": "medium",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "Dziekania: pyramid-roofed Old Town tenement in the street frontage (rebuilt)",
+   "osm": 404050658,
+   "h": 13.0
   },
   {
    "x": -578.1,
@@ -851,11 +866,11 @@
   {
    "x": 1949.0,
    "z": 758.2,
-   "u": "unknown",
-   "h": 3.0,
+   "u": "shed",
+   "h": 2.5,
    "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "in trees beside bridge ramp",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "boat-club outbuilding under trees (Wal Miedzeszynski sailing centre)",
    "osm": 423432577
   },
   {
@@ -888,31 +903,31 @@
   {
    "x": 1942.0,
    "z": 759.0,
-   "u": "unknown",
-   "h": 4.0,
+   "u": "shed",
+   "h": 2.5,
    "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "in trees beside bridge ramp",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "boat-club outbuilding mostly under trees; roof edge visible at the south end",
    "osm": 423432581
   },
   {
    "x": 1954.3,
    "z": 754.7,
-   "u": "unknown",
-   "h": 3.0,
+   "u": "shed",
+   "h": 2.5,
    "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "in trees beside bridge ramp",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "outbuilding under trees, same boat-club row",
    "osm": 423432582
   },
   {
    "x": 1950.5,
    "z": 774.3,
-   "u": "unknown",
-   "h": 4.0,
-   "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "under trees by ramp car park",
+   "u": "shed",
+   "h": 3.0,
+   "conf": "medium",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "grey-roof hut in trees beside the boat yard",
    "osm": 423432583
   },
   {
@@ -927,11 +942,11 @@
   {
    "x": 2163.5,
    "z": 1023.7,
-   "u": "unknown",
+   "u": "annex",
    "h": 3.0,
-   "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "by parking, nothing visible",
+   "conf": "medium",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "long red-brown lean-to along the wall of the building",
    "osm": 426918589
   },
   {
@@ -1023,11 +1038,12 @@
   {
    "x": 1075.9,
    "z": -1521.5,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 445070330
+   "u": "guard_booth",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "named \"Dawna portiernia\" (former gatehouse), Zamoyskiego 2; flat roof with hatch",
+   "osm": 445070330,
+   "h": 3.5
   },
   {
    "x": -1586.9,
@@ -1175,10 +1191,9 @@
    "x": 1923.9,
    "z": 384.6,
    "u": "unknown",
-   "h": 3.0,
    "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "tiny box by road, photos show only hedge",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "10 m2 beside a lift gate; only a hedge/grass seen",
    "osm": 498123228
   },
   {
@@ -1403,21 +1418,20 @@
   {
    "x": 1925.0,
    "z": 783.6,
-   "u": "unknown",
-   "h": 4.0,
+   "u": "shed",
+   "h": 2.5,
    "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "in trees beside bridge ramp",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "dark patch in grass at the boat yard; roof not clear",
    "osm": 674918695
   },
   {
    "x": 1956.7,
    "z": 767.0,
    "u": "unknown",
-   "h": 3.0,
    "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "in trees beside bridge ramp",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "under tree shadow, nothing readable",
    "osm": 674929320
   },
   {
@@ -1473,11 +1487,12 @@
   {
    "x": -691.0,
    "z": -1113.0,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 718193811
+   "u": "annex",
+   "conf": "medium",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "rear flat-roof section of the Krakowskie Przedmiescie 31 block (Hotel de Saxe)",
+   "osm": 718193811,
+   "h": 4.0
   },
   {
    "x": 1969.4,
@@ -1500,11 +1515,11 @@
   {
    "x": -1188.9,
    "z": -1193.5,
-   "u": "unknown",
-   "h": 3.0,
+   "u": "annex",
+   "h": 4.0,
    "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "tiny box at building corner",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "tiny box at a building corner above a parking-aisle tunnel",
    "osm": 764638592
   },
   {
@@ -1663,11 +1678,12 @@
   {
    "x": 1681.3,
    "z": 1294.5,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 854697561
+   "u": "shed",
+   "conf": "medium",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "pale flat-roof box in trees by a car park, container-like",
+   "osm": 854697561,
+   "h": 3.0
   },
   {
    "x": 1678.5,
@@ -1691,11 +1707,12 @@
   {
    "x": -772.5,
    "z": -1820.7,
-   "u": "unknown",
+   "u": "annex",
    "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 858328567
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "dark roof piece between two Brzozowa tenement wings in a courtyard",
+   "osm": 858328567,
+   "h": 4.0
   },
   {
    "x": -1379.3,
@@ -1727,11 +1744,11 @@
   {
    "x": 1139.4,
    "z": 146.9,
-   "u": "unknown",
-   "h": 3.0,
+   "u": "kiosk",
+   "h": 2.5,
    "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "thin box by path",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "grey metal box 5x2.5 m beside tram tracks, looks like a container kiosk",
    "osm": 864717189
   },
   {
@@ -1860,30 +1877,29 @@
    "x": 742.6,
    "z": -1670.8,
    "u": "unknown",
-   "h": 3.0,
    "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "narrow strip in yard",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "14 m2 strip in a yard; trees and bare ground only",
    "osm": 890831520
   },
   {
    "x": 704.6,
    "z": -1605.5,
-   "u": "unknown",
-   "h": 4.0,
+   "u": "shed",
+   "h": 3.0,
    "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "box hidden under trees",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "mostly tree-covered; a light shed roof at the east edge",
    "osm": 890831529
   },
   {
    "x": 721.2,
    "z": -1605.0,
-   "u": "unknown",
-   "h": 4.0,
-   "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "box hidden under trees",
+   "u": "shed",
+   "h": 3.0,
+   "conf": "medium",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "light-roof shed inside the outline, trees around",
    "osm": 890831530
   },
   {
@@ -1955,29 +1971,32 @@
   {
    "x": -1942.3,
    "z": 1638.2,
-   "u": "unknown",
+   "u": "pavilion",
    "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 900345738
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "80 m2 flat verdigris roof box on a lawn beside a tram line; maybe vent/pavilion",
+   "osm": 900345738,
+   "h": 3.0
   },
   {
    "x": -803.5,
    "z": 183.2,
-   "u": "unknown",
+   "u": "garage",
    "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 903924225
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "grey flat roof in a courtyard car park behind a block",
+   "osm": 903924225,
+   "h": 3.0
   },
   {
    "x": -399.2,
    "z": 168.4,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 905975462
+   "u": "annex",
+   "conf": "medium",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "roof section between two larger blocks, cut corner",
+   "osm": 905975462,
+   "h": 4.0
   },
   {
    "x": -306.0,
@@ -2031,11 +2050,11 @@
   {
    "x": -2376.5,
    "z": -2260.2,
-   "u": "unknown",
-   "h": 3.0,
+   "u": "substation",
+   "h": 1.5,
    "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "tiny box next to brown roof",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "3 m2 small blue-topped cabinet beside a gate",
    "osm": 913622846
   },
   {
@@ -2079,20 +2098,22 @@
   {
    "x": -1210.4,
    "z": -1226.2,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 934657052
+   "u": "annex",
+   "conf": "medium",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "roof ledge/annex attached to a large block",
+   "osm": 934657052,
+   "h": 4.0
   },
   {
    "x": -1118.8,
    "z": -1136.6,
-   "u": "unknown",
+   "u": "annex",
    "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 934682193
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "dark flat-roofed annex between buildings",
+   "osm": 934682193,
+   "h": 4.0
   },
   {
    "x": -1230.2,
@@ -2126,11 +2147,12 @@
   {
    "x": -1420.7,
    "z": -1139.1,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 956205033
+   "u": "annex",
+   "conf": "medium",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "irregular footprint with a green-roof strip between blocks",
+   "osm": 956205033,
+   "h": 4.0
   },
   {
    "x": -709.6,
@@ -2202,11 +2224,12 @@
   {
    "x": -1655.5,
    "z": -1918.3,
-   "u": "unknown",
+   "u": "substation",
    "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 974122100
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "grey flat-roof hut with brick base in a park corner by a road",
+   "osm": 974122100,
+   "h": 3.0
   },
   {
    "x": -3087.2,
@@ -2229,11 +2252,12 @@
   {
    "x": -2374.9,
    "z": -2375.8,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 978152667
+   "u": "canopy",
+   "conf": "medium",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "light flat-roof covered passage between a block and a domed building",
+   "osm": 978152667,
+   "h": 3.0
   },
   {
    "x": -2358.1,
@@ -2360,20 +2384,22 @@
   {
    "x": 1014.9,
    "z": 1350.7,
-   "u": "unknown",
+   "u": "shed",
    "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 1033873129
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "small light-roof lean-to in a yard beside a barracks-type building",
+   "osm": 1033873129,
+   "h": 3.0
   },
   {
    "x": 1005.6,
    "z": 1299.8,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 1033873130
+   "u": "annex",
+   "conf": "medium",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "flat-roof piece inside a building complex",
+   "osm": 1033873130,
+   "h": 4.0
   },
   {
    "x": 969.9,
@@ -2655,11 +2681,12 @@
   {
    "x": 440.9,
    "z": -728.7,
-   "u": "unknown",
+   "u": "staircase_or_lift_head",
    "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 1109034648
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "low grey flat roof on a lawn at the edge of a green-roofed building",
+   "osm": 1109034648,
+   "h": 3.0
   },
   {
    "x": -2714.5,
@@ -2780,19 +2807,19 @@
   {
    "x": -588.5,
    "z": -1498.7,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "building:part strip along a tiled roof ridge of a palace wing",
    "osm": 1118056735
   },
   {
    "x": -485.0,
    "z": -983.5,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "building:part dome on a roof; ortho shows the white dome",
    "osm": 1127846575
   },
   {
@@ -2919,11 +2946,12 @@
   {
    "x": 615.0,
    "z": -1769.2,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 1189215067
+   "u": "annex",
+   "conf": "medium",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "building=construction on a rooftop, 5 floors; part of the big block",
+   "osm": 1189215067,
+   "h": 4.0
   },
   {
    "x": -2677.1,
@@ -3511,11 +3539,12 @@
   {
    "x": -2281.8,
    "z": -2577.3,
-   "u": "unknown",
+   "u": "shed",
    "conf": "low",
-   "src": "not drawn",
-   "why": "",
-   "osm": 1424488578
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "8 m2 under trees beside an allotment",
+   "osm": 1424488578,
+   "h": 2.5
   },
   {
    "x": -1889.1,
@@ -3751,10 +3780,10 @@
   {
    "x": 582.0,
    "z": 1215.8,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "building:part h=14 skillion beside tile roof",
    "osm": 1474796629
   },
   {
@@ -3809,119 +3838,130 @@
   {
    "x": 875.6,
    "z": -1573.5,
-   "u": "unknown",
-   "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "small footprint in overgrown park lawn, rubble-like, unseen",
-   "osm": 1494104640
+   "u": "shed",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "allotment shed row at the escarpment foot",
+   "osm": 1494104640,
+   "h": 2.5
   },
   {
    "x": 872.6,
    "z": -1573.6,
-   "u": "unknown",
-   "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "small footprint in overgrown park lawn, rubble-like, unseen",
-   "osm": 1494104641
+   "u": "shed",
+   "conf": "medium",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "4 m2 lean-to beside an allotment shed",
+   "osm": 1494104641,
+   "h": 2.5
   },
   {
    "x": 848.8,
    "z": -1581.8,
-   "u": "unknown",
-   "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "small footprint in overgrown park lawn, rubble-like, unseen",
-   "osm": 1494104642
+   "u": "shed",
+   "conf": "medium",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "thin allotment shed beside the cottages",
+   "osm": 1494104642,
+   "h": 2.5
   },
   {
    "x": 868.1,
    "z": -1574.8,
-   "u": "unknown",
-   "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "small footprint in overgrown park lawn, rubble-like, unseen",
-   "osm": 1494104643
+   "u": "shed",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "allotment shed with dark roof",
+   "osm": 1494104643,
+   "h": 2.5
   },
   {
    "x": 863.9,
    "z": -1577.2,
-   "u": "unknown",
-   "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "small footprint in overgrown park lawn, rubble-like, unseen",
-   "osm": 1494104644
+   "u": "shed",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "allotment shed",
+   "osm": 1494104644,
+   "h": 2.5
   },
   {
    "x": 860.6,
    "z": -1577.9,
-   "u": "unknown",
-   "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "small footprint in overgrown park lawn, rubble-like, unseen",
-   "osm": 1494104645
+   "u": "shed",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "allotment shed",
+   "osm": 1494104645,
+   "h": 2.5
   },
   {
    "x": 857.2,
    "z": -1578.4,
-   "u": "unknown",
-   "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "small footprint in overgrown park lawn, rubble-like, unseen",
-   "osm": 1494104646
+   "u": "shed",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "allotment shed",
+   "osm": 1494104646,
+   "h": 2.5
   },
   {
    "x": 851.2,
    "z": -1578.0,
-   "u": "unknown",
-   "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "small footprint in overgrown park lawn, rubble-like, unseen",
-   "osm": 1494104647
+   "u": "shed",
+   "conf": "medium",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "thin allotment shed or lean-to",
+   "osm": 1494104647,
+   "h": 2.5
   },
   {
    "x": 816.3,
    "z": -1597.3,
-   "u": "unknown",
+   "u": "none",
    "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "small footprint in overgrown park lawn, rubble-like, unseen",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "1 m2, small white box in a garden; below drawing size",
    "osm": 1494104648
   },
   {
    "x": 817.5,
    "z": -1596.4,
-   "u": "unknown",
+   "u": "none",
    "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "small footprint in overgrown park lawn, rubble-like, unseen",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "1 m2, small white box in a garden; below drawing size",
    "osm": 1494104649
   },
   {
    "x": 818.5,
    "z": -1589.9,
-   "u": "unknown",
-   "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "small footprint in overgrown park lawn, rubble-like, unseen",
-   "osm": 1494104650
+   "u": "shed",
+   "conf": "medium",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "garden shed with grey roof",
+   "osm": 1494104650,
+   "h": 2.5
   },
   {
    "x": 824.3,
    "z": -1590.6,
-   "u": "unknown",
-   "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "small footprint in overgrown park lawn, rubble-like, unseen",
-   "osm": 1494104651
+   "u": "shed",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "garden shed with white roof",
+   "osm": 1494104651,
+   "h": 2.5
   },
   {
    "x": 603.2,
    "z": 436.4,
-   "u": "unknown",
+   "u": "substation",
    "conf": "low",
-   "src": "aerial + Mapillary",
-   "why": "small footprint in trees at roundabout, nothing visible",
-   "osm": 1504351869
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "9 m2 dark box under trees at a roundabout; likely an electrical cabinet",
+   "osm": 1504351869,
+   "h": 2.5
   },
   {
    "x": -3069.8,
@@ -4045,37 +4085,37 @@
   {
    "x": -638.9,
    "z": -1473.6,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "Royal Castle building:part sliver (0-2 m2) on the castle roofs/walls",
    "osm": 1565617001
   },
   {
    "x": -634.1,
    "z": -1473.5,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "Royal Castle building:part sliver (0-2 m2) on the castle roofs/walls",
    "osm": 1565617002
   },
   {
    "x": -671.1,
    "z": -1567.5,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "Royal Castle building:part sliver (0-2 m2) on the castle roofs/walls",
    "osm": 1565617004
   },
   {
    "x": -677.0,
    "z": -1475.1,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "Royal Castle building:part sliver (0-2 m2) on the castle roofs/walls",
    "osm": 1565617005
   },
   {
@@ -4090,10 +4130,10 @@
   {
    "x": -637.2,
    "z": -1568.1,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "Royal Castle building:part sliver (0-2 m2) on the castle roofs/walls",
    "osm": 1565617007
   },
   {
@@ -4109,46 +4149,46 @@
   {
    "x": -592.0,
    "z": -1461.2,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "Royal Castle building:part sliver (0-2 m2) on the castle roofs/walls",
    "osm": 1567703398
   },
   {
    "x": -598.2,
    "z": -1459.7,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "Royal Castle building:part sliver (0-2 m2) on the castle roofs/walls",
    "osm": 1567703399
   },
   {
    "x": -606.4,
    "z": -1597.6,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "Royal Castle building:part sliver (0-2 m2) on the castle roofs/walls",
    "osm": 1568227635
   },
   {
    "x": -592.0,
    "z": -1560.2,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "Royal Castle building:part sliver (0-2 m2) on the castle roofs/walls",
    "osm": 1568227636
   },
   {
    "x": -599.9,
    "z": -1580.8,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "Royal Castle building:part sliver (0-2 m2) on the castle roofs/walls",
    "osm": 1568227637
   },
   {
@@ -4163,19 +4203,19 @@
   {
    "x": -926.1,
    "z": -1789.2,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "Royal Castle building:part sliver (0-2 m2) on the castle roofs/walls",
    "osm": 1568915069
   },
   {
    "x": -886.6,
    "z": -1737.0,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "Royal Castle building:part sliver (0-2 m2) on the castle roofs/walls",
    "osm": 1571088397
   },
   {
@@ -4208,136 +4248,136 @@
   {
    "x": -612.8,
    "z": -1488.1,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "Royal Castle building:part sliver (0-2 m2) on the castle roofs/walls",
    "osm": 1571455257
   },
   {
    "x": -617.0,
    "z": -1488.2,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "Royal Castle building:part sliver (0-2 m2) on the castle roofs/walls",
    "osm": 1571455258
   },
   {
    "x": -621.2,
    "z": -1488.2,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "Royal Castle building:part sliver (0-2 m2) on the castle roofs/walls",
    "osm": 1571455259
   },
   {
    "x": -625.6,
    "z": -1488.3,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "Royal Castle building:part sliver (0-2 m2) on the castle roofs/walls",
    "osm": 1571455260
   },
   {
    "x": -629.2,
    "z": -1488.4,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "Royal Castle building:part sliver (0-2 m2) on the castle roofs/walls",
    "osm": 1571455261
   },
   {
    "x": -642.7,
    "z": -1488.6,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "Royal Castle building:part sliver (0-2 m2) on the castle roofs/walls",
    "osm": 1571455262
   },
   {
    "x": -646.5,
    "z": -1488.7,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "Royal Castle building:part sliver (0-2 m2) on the castle roofs/walls",
    "osm": 1571455263
   },
   {
    "x": -650.3,
    "z": -1488.7,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "Royal Castle building:part sliver (0-2 m2) on the castle roofs/walls",
    "osm": 1571455264
   },
   {
    "x": -654.1,
    "z": -1488.8,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "Royal Castle building:part sliver (0-2 m2) on the castle roofs/walls",
    "osm": 1571455265
   },
   {
    "x": -638.5,
    "z": -1488.5,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "Royal Castle building:part sliver (0-2 m2) on the castle roofs/walls",
    "osm": 1571455272
   },
   {
    "x": -633.6,
    "z": -1488.4,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "Royal Castle building:part sliver (0-2 m2) on the castle roofs/walls",
    "osm": 1571455273
   },
   {
    "x": -658.9,
    "z": -1516.7,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "Royal Castle building:part sliver (0-2 m2) on the castle roofs/walls",
    "osm": 1571455274
   },
   {
    "x": -658.7,
    "z": -1521.4,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "Royal Castle building:part sliver (0-2 m2) on the castle roofs/walls",
    "osm": 1571455275
   },
   {
    "x": -635.5,
    "z": -1549.5,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "Royal Castle building:part sliver (0-2 m2) on the castle roofs/walls",
    "osm": 1571455276
   },
   {
    "x": -591.3,
    "z": -1481.8,
-   "u": "unknown",
-   "conf": "low",
-   "src": "not drawn",
-   "why": "",
+   "u": "part",
+   "conf": "high",
+   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
+   "why": "Royal Castle building:part sliver (0-2 m2) on the castle roofs/walls",
    "osm": 1571455282
   },
   {
