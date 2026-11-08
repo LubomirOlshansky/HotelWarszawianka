@@ -22,7 +22,7 @@ sport is mostly about the hoodie, the story from the court and finding a fourth 
   "Czwarty" phone call (`trend_job.gd offer_deski_call`, `--trend-job=7`): a friend rings, one of
   the four hurt a leg at pole dance, drive or fly to the gate within 8 minutes (the helicopter
   counts within 28 m). Tone: affectionate, no private people.
-- **The call, reworked (2026-11-07)**: it opens like Szymek's boat race and Ziomek's rave. First
+- **The call, reworked (2026-11-07)**: it opens like Szymek's boat race and Mati's rave. First
   "📞 KUBA DZWONI" with a one-line bio of the caller (`DESKI_BIOS`) and ODBIERZ / ODRZUĆ, the
   phone buzzes; only an answered call says what's wrong (BRAKUJE CZWARTEGO!, JADĘ! / NIE DZIŚ).
   On time at the court you play: **a three-point match**, one card per point with a rally
