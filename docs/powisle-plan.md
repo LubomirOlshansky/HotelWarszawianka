@@ -104,6 +104,12 @@ bridge abutments. Check against the bridges audit (photo lists in /mnt/project-f
 After each of the above: Mac shots at phone size, then the iPhone. Phone-only: draw calls near
 Elektrownia and the boulevard, jazz level, night readability.
 
+### P13. Many more real houses: up to 300, the quest loop first (F, 2026-11-08 22:30)
+F: add 100-200, maybe 300 houses between the coffee-run stops (dock, KROPKA., GLON, STORCZYK, MANTRA),
+make Tamka alive, and add the Museum of Fryderyk Chopin (Okólnik 1, in the Ostrogski castle; today
+site `ostrogski`). The numbered list H001-H300 (tiers: Tamka, the quest loop, other Powiśle streets,
+rest) is in `docs/powisle-photos-needed.txt` section I. Order: Tamka (T1), the loop (T2), the rest.
+
 ## Photos
 The shoot list with every address: `docs/powisle-photos-needed.txt`.
 Fetch them in the thread that takes the item (Mapillary, Panoramax, any web source, any licence;

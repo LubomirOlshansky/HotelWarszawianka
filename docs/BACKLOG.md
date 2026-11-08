@@ -18,6 +18,7 @@ F: too little detail in Powiśle; wants real houses, street details and the powe
 - [ ] P10 Roofs and terraces (takes RF4b)
 - [ ] P11 Wybrzeże Kościuszkowskie and the water edge
 - [ ] P12 Mac and phone look pass
+- [ ] P13 Up to 300 more real houses, quest loop and Tamka first, Museum of Fryderyk Chopin (list H001-H300 in docs/powisle-photos-needed.txt)
 
 ## Thin towers across the map (F, 2026-11-07; docs/design/small-buildings.md)
 Fixed: 469 small OpenStreetMap buildings with no height tag stood at the bake's flat 14 m guess and
