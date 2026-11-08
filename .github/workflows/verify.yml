@@ -84,9 +84,9 @@ jobs:
       matrix:
         include:
           - part: data and roads
-            steps: map,roads,cyclehang,streets,outline,pois,streetmesh,lod2,courts,drape,drive,drive-prebuilt,deckxray,stuckspots,stuckspots-prebuilt,lanedrive,finite,questlines,stopassist,language,cost,oldtownroofs,water-prebuilt,prebuilt
+            steps: map,roads,cyclehang,streets,outline,pois,streetmesh,lod2,courts,drape,drive,drive-prebuilt,deckxray,stuckspots,stuckspots-prebuilt,lanedrive,finite,questlines,stopassist,language,cost,oldtownroofs,water-prebuilt,prebuilt,ground
           - part: landmarks, water and runs
-            steps: landmarks,water,plain,ram,teleport,ground
+            steps: landmarks,water,plain,ram,teleport
     steps:
       - uses: actions/checkout@v4
 
