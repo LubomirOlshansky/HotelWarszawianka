@@ -328,6 +328,9 @@ const INFO := {
 	"archikatedra": ["Archikatedra św. Jana",
 			"Gotycki kościół z cegły na Starym Mieście.",
 			"A Gothic brick church in the Old Town."],
+	"jezuici": ["Kościół Jezuitów",
+			"Sanktuarium Matki Bożej Łaskawej przy Świętojańskiej, tuż obok katedry.",
+			"The Jesuit church on Świętojańska, right next to the Cathedral."],
 	"sw_anna": ["Kościół Świętej Anny",
 			"Na początku Krakowskiego Przedmieścia.",
 			"Where Krakowskie Przedmieście begins."],
@@ -5565,6 +5568,11 @@ const SKINS := [
 	{"key": "zamek", "osm": "Zamek Królewski", "mode": M_MONUMENT, "wall": ZAMEK_WALL, "roof": ZAMEK_ROOF,
 			"steep": 0.3},
 	{"key": "archikatedra", "osm": "Archikatedra pw. Świętego Jana Chrzciciela", "mode": M_GOTHIC, "wall": "#9a4b38", "roof": "#6e3a2e"},
+	# The Jesuit church (F's Old Town trailer pass, 2026-11-08): LoD2 draws the church with its tower
+	# over 55 m, so the bake gave it the office towers' blue glass. Salmon plaster with white
+	# pilasters on Świętojańska and the brick tower above the roofs (Mapillary photos, refs/oldtown_jezuici2).
+	{"key": "jezuici", "osm": "Sanktuarium Matki Bożej Łaskawej", "mode": M_MONUMENT, "wall": "#dc9f8a", "roof": "#a5553c",
+			"upper": [20.0, "#9a4b38"]},
 	{"key": "sw_anna", "osm": "Kościół pw. Świętej Anny", "mode": M_MONUMENT, "wall": "#e6dcc4", "roof": "#8a5a44"},
 	{"key": "sw_krzyz", "osm": "Kościół pw. Świętego Krzyża", "mode": M_MONUMENT, "wall": "#e3d9c0", "roof": "#5d6e64"},
 	{"key": "staszic", "osm": "Pałac Staszica", "mode": M_MONUMENT, "wall": "#e6dcc4", "roof": "#6a8f80"},
@@ -5635,6 +5643,8 @@ func _find_skins() -> void:
 			sites[-1]["skin"] = {"mode": t["mode"], "wall": Color(t["wall"]), "roof": Color(t["roof"])}
 			if t.has("steep"):
 				sites[-1]["skin"]["steep"] = t["steep"]
+			if t.has("upper"):
+				sites[-1]["skin"]["upper"] = {"over": float(t["upper"][0]), "wall": Color(t["upper"][1])}
 			if t["key"] == "zamek":
 				sites[-1]["skin"]["pale"] = {"wall": ZAMEK_VISTULA, "edges": _zamek_river_edges(outline), "near": 3.0}
 				_zamek_tops()
@@ -6427,9 +6437,16 @@ const RYNEK_FOUNTAIN := Vector2(-806.5, -1745.5)
 const RYNEK_REACH := 0.5
 const RYNEK_BAND := 1.3
 const RYNEK_DISC := 11.0
-const RYNEK_FIELD := Color("#d8d1bf")
-const RYNEK_BORDER := Color("#bbb3a1")
-const RYNEK_LIGHT := Color("#e8e2d1")
+## The trailer pass (F, 2026-11-08, Mapillary photos in refs/oldtown_rynek_*): the square is
+## blue-grey granite setts, not sand, with pale granite bands in rings round the fountain (F's
+## drone photo E05); the cafe gardens are mostly cream umbrellas inside low dark fences.
+const RYNEK_FIELD := Color("#9d9b95")
+const RYNEK_BORDER := Color("#86847f")
+const RYNEK_LIGHT := Color("#b9b5ab")
+const RYNEK_PATH := Color("#c6c2b8")
+const RYNEK_PATH_W := 0.8
+const RYNEK_RINGS := [17.0, 25.0, 33.0]
+const RYNEK_FENCE := Color("#4f3424")
 const RYNEK_RIM := Color("#ddd5c1")
 const RYNEK_STONE := Color("#cfc8b5")
 const RYNEK_STONE_HI := Color("#e0dac8")
@@ -6441,8 +6458,8 @@ const RYNEK_TABLE := Color("#ece6d8")
 const RYNEK_CHAIR := Color("#5a3b26")
 ## One restaurant's umbrellas share a colour: runs of this many along a side.
 const RYNEK_RUN := 5
-const RYNEK_CANOPY := [Color("#c8282a"), Color("#f2efe8"), Color("#2f6b4f"), Color("#d9a441"), Color("#24324a"),
-		Color("#e07a5f"), Color("#3b7ea1"), Color("#efe3c0"), Color("#8c3a4a")]
+const RYNEK_CANOPY := [Color("#efe8d6"), Color("#f3efe6"), Color("#2f5e45"), Color("#e6dcc2"), Color("#8c2f36"),
+		Color("#f0eadb"), Color("#ddd2b6"), Color("#efe3c0"), Color("#f2eee4")]
 ## x, z, yaw (the side's direction), side: the umbrellas' places.
 const RYNEK_UMBRELLAS := [
 	-851.1, -1759, 2.33, 0, -847.7, -1762.2, 2.33, 0, -844.4, -1765.3, 2.33, 0,
@@ -6514,7 +6531,27 @@ func _build_rynek(site: Dictionary) -> void:
 		_cap_holes(inner[0], [hole], top + 0.015, RYNEK_FIELD)
 	_cap(_circle(RYNEK_FOUNTAIN, RYNEK_DISC + 0.5, 28), top + 0.03, RYNEK_BORDER)
 	_cap_holes(_circle(RYNEK_FOUNTAIN, RYNEK_DISC, 28), [hole], top + 0.045, RYNEK_LIGHT)
-	# The café gardens: the umbrellas on their lines, a colour to each run.
+	# The pale granite bands in the setts (F's drone photo E05): rings round the fountain, each
+	# drawn in short pieces, a piece left out where it would leave the field.
+	var field: PackedVector2Array = inner[0] if not inner.is_empty() else poly
+	for r: float in RYNEK_RINGS:
+		var pieces := 72
+		for k in pieces:
+			var t0 := TAU * k / pieces
+			var t1 := TAU * (k + 1) / pieces
+			var d0 := Vector2(cos(t0), sin(t0))
+			var d1 := Vector2(cos(t1), sin(t1))
+			var mid := RYNEK_FOUNTAIN + (d0 + d1) * 0.5 * r
+			if not Geometry2D.is_point_in_polygon(mid, field):
+				continue
+			var w := RYNEK_PATH_W * 0.5
+			var piece := PackedVector2Array([RYNEK_FOUNTAIN + d0 * (r - w), RYNEK_FOUNTAIN + d1 * (r - w),
+					RYNEK_FOUNTAIN + d1 * (r + w), RYNEK_FOUNTAIN + d0 * (r + w)])
+			if Geometry2D.is_polygon_clockwise(piece):
+				piece.reverse()
+			_cap(piece, top + 0.025, RYNEK_PATH)
+	# The café gardens: the umbrellas on their lines, a colour to each run, a low fence on the
+	# square's side of each run with a gap at the run's start (the garden's way in).
 	var u := RYNEK_UMBRELLAS
 	var run := 0
 	var last_side := -1
@@ -6524,18 +6561,24 @@ func _build_rynek(site: Dictionary) -> void:
 			last_side = side
 			run = 0
 		var col: Color = RYNEK_CANOPY[(side * 3 + run / RYNEK_RUN) % RYNEK_CANOPY.size()]
+		var gate := run % RYNEK_RUN == 0
 		run += 1
-		_umbrella(Vector2(u[k], u[k + 1]), float(u[k + 2]), top, col)
+		_umbrella(Vector2(u[k], u[k + 1]), float(u[k + 2]), top, col, not gate)
 	_no_roof = false
 
 
 ## One café set: a round-ish table on a pole, two chairs, a square umbrella 3.4 m across on
-## the pole (its canopy a low pyramid in `col`). 52 triangles.
-func _umbrella(p: Vector2, yaw: float, y: float, col: Color) -> void:
+## the pole (its canopy a low pyramid in `col`). 52 triangles; with `fence`, the garden's low
+## dark-wood fence on the square's side (12 more).
+func _umbrella(p: Vector2, yaw: float, y: float, col: Color, fence := false) -> void:
 	_o = p
 	_a = Vector2(sin(yaw), cos(yaw))
 	_b = Vector2(-_a.y, _a.x)
 	_mode = M_STONE
+	if fence:
+		# The garden's fence, 1.9 m out towards the fountain, one umbrella's length.
+		var v := 1.9 if _b.dot(RYNEK_FOUNTAIN - p) > 0.0 else -1.9
+		_lbox(0.0, v, 1.6, 0.05, y, y + 0.85, RYNEK_FENCE, M_STONE, RYNEK_FENCE.lightened(0.15))
 	_lbox(0.0, 0.0, 0.04, 0.04, y, y + 2.75, RYNEK_STONE_HI.darkened(0.45), M_STONE)
 	_lbox(0.0, 0.0, 0.4, 0.4, y + 0.72, y + 0.77, RYNEK_TABLE, M_STONE)
 	for v: float in [-0.8, 0.8]:
@@ -31640,7 +31683,7 @@ const CP_TEAL := Color("#4fa9a6")
 const CP_BLUE := Color("#93c4d6")
 const CP_CONC := Color("#bdb8ab")
 const CP_FLOOR := Color("#9c9a92")
-const CP_CORE := Color("#515957")
+const CP_CORE := Color("#6d7573")
 const CP_DARK := Color("#24282d")
 const CP_NAVY := Color("#1f2f6b")
 const CP_BLUE_NEON := Color(0.2, 0.5, 1.0)
@@ -31764,13 +31807,14 @@ func _build_cparking(site: Dictionary) -> void:
 				var base := _cp_mural(face, pp, k)
 				var j1 := 0.92 + 0.12 * _cp_hash(pp, float(k) + 0.5)
 				var j2 := 0.9 + 0.14 * _cp_hash(pp + 3.1, float(k) + 1.5)
-				_mode = M_STONE
+				_mode = M_MEMBRANE + 0.5   # floodlit paint: bright at night
 				if face == 4:
 					_wall(p0, p1, y0, y1, out, Color(base.r * j1, base.g * j1, base.b * j1))
 				else:
 					_wall(p0, p1, y0, ym, out, Color(base.r * j1, base.g * j1, base.b * j1))
 					_wall(p0, p1, ym, y1, out, Color(base.r * j2, base.g * j2, base.b * j2))
 			# The parapet's top edge.
+			_mode = M_STONE
 			_cap(PackedVector2Array([a, b - e * 0.35, b - e * 0.35 - out * 0.35, a - out * 0.35]), y1, Color("#c9c4b6"))
 			if face >= 4:
 				continue
@@ -31799,7 +31843,7 @@ func _build_cparking(site: Dictionary) -> void:
 					var r := 0.45 + 0.5 * _cp_hash(h2, float(k))
 					var pos := m2 + out * 0.07
 					var yc := f + 0.25 + 0.2 * (h2 - 0.3)
-					_mode = M_STONE
+					_mode = M_MEMBRANE + 0.5
 					_disc(Vector3(pos.x, yc, pos.y), Vector3(out.x, 0.0, out.y), r, 8, CP_WHITE)
 					var pos2 := m2 + out * 0.15 + e * (r * 0.12)
 					_disc(Vector3(pos2.x, yc + r * 0.1, pos2.y), Vector3(out.x, 0.0, out.y), r * 0.5, 6, CP_RED_D)
@@ -31889,7 +31933,7 @@ func _cp_wall_panel(g: float) -> void:
 	var out := Vector2(e.y, -e.x)
 	var gw: float = map.terrain_height(a.x, a.y)
 	var n := ceili(ln / 0.55)
-	_mode = M_STONE
+	_mode = M_MEMBRANE + 0.5
 	for j in n:
 		var t0 := ln * float(j) / n
 		var t1 := ln * float(j + 1) / n

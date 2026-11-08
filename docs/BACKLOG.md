@@ -12,8 +12,11 @@ Mapillary street photos) and is drawn as what it is (`small_buildings.gd`): 36 l
 vents, 33 bin shelters, 34 kiosks and pavilions, 16 substations, 11 toilets, 74 sheds, 19 garages,
 houseboats, canopies...; 50 pieces of bigger buildings or empty outlines are left out. Verify step
 `heights`. Left:
-- 98 drawn as "unknown" (a plain 3 m shed) and most sheds/garages are low-confidence guesses: no
-  street photo shows them (courtyards). A photo pass on the Mac would settle them.
+- Mac photo pass (2026-11-08, 0.1 m GUGiK ortho + fresh OSM tags) settled 94 of the 98 "unknown":
+  33 pieces of bigger buildings (the Royal Castle's 0-2 m² slivers, church turrets), 17 low annexes
+  with their own outline (new use `annex`, 4 m), 22 sheds... 4 stay unknown (tiny, under trees).
+  Still no street photo for the courtyard sheds and garages (Codex was blocked by the Godot guard
+  hook on the Mac); heights are typical values, not measured.
 - Courtyard outbuildings over 150 m² with no height tags still get 14 m (fair for a tenement).
 
 ## Plac Pięciu Rogów, Chmielna and Krucza in 2026 (F, 2026-11-06)
@@ -87,9 +90,12 @@ Built from F's photos (2026-11-07, `~/Documents/warsaw-needed-photos/bridges`, S
   gone (F: "why does the bike path hang in the air?"); six pairs of broad concrete columns under the five spans' ends instead
   of the rows of thin posts (`map_builder._build_lazienkowski`, `_build_lazienkowski_piers`). Grey, as the photos show.
 - Most Świętokrzyski: the median is grey concrete, not grass (photo SW-1).
+- Most Łazienkowski's cycle decks hang 4 m under the road (2026-11-08, photos LZ-1, LZ-1b, LZ-3c), not at the river's
+  clearance 8.6-11.7 m under it: `tools/cycle_hang.py` (bake_osm runs it before the structures; verify step `cyclehang`)
+  raises them under the road deck and brings them down at 6 % to where they meet the ground, so the bank ramps, paths and
+  crossings still meet them. On the Praga side the decks come down over the floodplain to OSM's ground ends (the real ramps
+  there are not checked against a photo yet).
 Left:
-- Most Łazienkowski's cycle decks: the photos (LZ-3, LZ-3b) show them right under the deck's cantilever, about 4 m under the
-  road; OSM puts them ~8 m under it, and the bake keeps that height. Raising them needs the ramps at both ends re-sloped.
 - Pier places on both bridges are estimates (the islands, the banks, the paths under them); exact ones from an orthophoto.
 - The AK plaque on Śląsko-Dąbrowski's north railing; the metal barriers on Świętokrzyski's median.
 - Tram overhead wires: none anywhere in the city (on the tram bridges most visible). Trams lane.
@@ -490,6 +496,10 @@ Left:
 - [ ] The Atlantic stop is on Widok, 70 m from the door (Chmielna is car-free there): a walk-round line, or a stop on Zgoda
 - [ ] Autopilot run of the whole tour on the Mac (`--kino-tour=go`)
 
+## Offers over result cards (Autopilot, 2026-11-08)
+Fixed: a Mrożulo "fetch" offer opened over the padel result card at the DESKA gate and the OK tap accepted it. No offer or prompt (trend jobs, "Na czasie", Podwózka, rivals) opens while a card is up, nor for 2.5 s after one closes; it is queued, not dropped. Test: `check_hud` `_check_offers_wait`.
+- [ ] Question for F: on a fresh save the first-10 guide holds every questline walk-up (`guide_hold`, `first10.gd` `_hold_offers`) for the first 10 minutes. By design? Left as it is (parked, not changed).
+
 ## Padel call at WTS DESKA (coordinator, 2026-11-07; docs/design/padel.md)
 
 Built: the call opens like the boat race and the rave (ringing card with the caller's bio,
@@ -539,10 +549,30 @@ chain-link fences and the 6 m ball-stop nets an open mesh (a solid fence is at m
 their height (at most 3 m). The Old Town's city walls (22 OSM city_wall areas) were not on the map at
 all: brick walls at their mapped heights (Baszta Rycerska 13.5 m, curtain walls 5-6 m by default).
 Left:
-- **City walls look check** from photos gathered on the Mac (batch2-old-town): battlements, the
-  coping, the gates, the międzymurze's ground; heights where OSM has none are the 5 m default.
+- City walls look check DONE 2026-11-08 (BACKLOG "Old Town trailer pass"): battlements and a
+  brick coping from F's photos; the gates and towers' roofs are still open there.
 - **Most walls and fences still carry no OSM tags** (about 1,900 walls, 4,200 fences): a street
   pass from photos (Mapillary) can tag them in `game/data/road_objects.json`.
+
+## Old Town trailer pass (F, 2026-11-08)
+
+F wants the Old Town 10/10 for the trailer. Done 2026-11-08 from F's photos (Mac
+warsaw-needed-photos/old-town, E01-E24) and Mapillary references:
+- The blue glass boxes beside the Cathedral were the Jesuit church's LoD2 (its 60 m tower over the
+  glass threshold): new skin `jezuici` (salmon plaster, brick tower top, terracotta roof) and a card.
+- City walls: merlons on the outer side of every wall 5 m or higher, a lighter brick coping
+  (`_merlons`, photos E14-E16).
+- Rynek: three paler stone rings round the fountain, mostly cream umbrellas, a low dark café fence
+  on each umbrella's fountain side with gaps at the run starts (drone photo E05).
+- Old Town roofs: 70% of dormers zinc-grey, most chimneys white plaster (E05).
+- `check_old_town_drive.gd` (verify `oldtowndrive`): the real car round the Old Town, 10 legs.
+Left:
+- **Rynek facades**: each house's own colour, sgraffito, portals and signs (photos E01-E04); the
+  houses' windows have no frames, dormers float on LoD2 roofs in places.
+- **City wall towers and gates**: the towers' roofs, the Podwale gates and the white arch gate
+  (E14-01, E16); the Barbican's gate passage.
+- **The Cathedral's nave roof** is one LoD2 slab (E06-E08).
+- The fountain park stays off the map (F 2026-11-08: don't grow the map).
 
 ## Stairs across the city (F, 2026-11-07)
 
@@ -1375,7 +1405,13 @@ Left:
   same way with K6's planted trees (items unchanged), re-stamped, and `streetdetails` and `stops`
   moved from the skipped map job to the quick job (all three are Python on the committed map); the prebuilt bake failed with no display, so
   `tools/verify.sh` now runs it under xvfb-run, or skips the prebuilt steps as a WARN without one.
-- Open: F publishes release `map-pack-1` (until then the map job skips with a warning). A required
+- Fixed 2026-11-08: the repository became LubomirOlshansky/HotelWarszawianka and private, so the old
+  public download link redirected and failed (curl 56 in CI, 401 in the cloud) and the map jobs went
+  red at "Fetch the map pack". `tools/map_pack.py fetch` now finds the asset through the GitHub API
+  with a token (GITHUB_TOKEN, GH_TOKEN or `gh auth token`) and downloads it as
+  application/octet-stream; verify.yml passes the job's token (`contents: read`). On the Mac, sign in
+  gh (or export GITHUB_TOKEN) before a fetch.
+- Open: A required
   check: GitHub Settings → Rules → a ruleset on main requiring `quick` and `map`, so a PR can't merge
   on red or before its run ends (#261 did). After a full bake that changes lod2 or terrain:
   `python3 -I tools/map_pack.py make`, publish, commit `tools/map_pack.json`.
