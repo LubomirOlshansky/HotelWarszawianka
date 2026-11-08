@@ -4,6 +4,13 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## Hotel Warszawa pass 2 and the blue office (F's photos, 2026-11-08)
+Fixed: the 70 m blue glass office north of the hotel (LoD2 building 3177) drew see-through with a
+broken top because its GUGiK mesh is open; it is now site `powstancow_blue` (mapped outline, blue
+mirror glass, 58 tris). The hotel got 0.9 m pilasters 0.4 m proud and the tall copper-framed doors.
+Left: the blue tower's real chamfered crown and name (needs a street photo); the hotel's wings are
+25 m, the photos suggest ~30 m (LoD2 says 24).
+
 ## Thin towers across the map (F, 2026-11-07; docs/design/small-buildings.md)
 Fixed: 469 small OpenStreetMap buildings with no height tag stood at the bake's flat 14 m guess and
 showed as thin windowed towers (F's crop: the two metro lifts by the Ratusz-Arsenał tram stop).

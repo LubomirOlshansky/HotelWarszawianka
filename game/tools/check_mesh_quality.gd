@@ -163,6 +163,7 @@ const BUDGET := {
 	"rotunda": 1380,
 	"skyliner": 400,
 	"skysawa": 170,
+	"powstancow_blue": 100,
 	"slabs": 1100,   # 2026-11-03: balcony bands, a ledge every storey on the long faces (look check)
 	"zelazna": 1030,
 	"pokorna2": 1500,

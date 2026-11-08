@@ -272,6 +272,7 @@ then the Launch gate.
       Muzeum Powstania, Pomnik Powstania, Hotel Warszawa and Cedet, Rondo ONZ towers, the monuments pass,
       Plac Bankowy, Świętokrzyska's NBP/Poczta/PAST-a, the outline builds' photo re-pass, Praga's faces)
   - [x] Hotel Warszawa and Cedet from the Mac's photos (item 4, 2026-11-02, specs `hotel_warszawa.md`, `cedet.md`)
+    - [x] Hotel Warszawa pass 2 and the blue glass office beside it (F's photos, 2026-11-08): solid landmark tower `powstancow_blue` (its LoD2 mesh was open), deeper pilasters, tall copper doors
     - [x] Cedet after F's look check (2026-11-03): upswept roof wings with underside shadows, 11 m Krucza corner,
           3.7 m storeys over a taller ground floor, recessed pavilion, grey-bronze loop
   - [x] Praga's faces from the Mac's photo reports (2026-11-02): St Florian's cathedral (site `florian`) and Bazar
