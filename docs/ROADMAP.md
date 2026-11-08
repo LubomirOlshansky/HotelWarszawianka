@@ -295,6 +295,8 @@ then the Launch gate.
   - [x] K4 Zielona Świętokrzyska: 17 planters on the pavements where the scanned trees leave a gap (2026-11-02)
   - [x] K5 Rondo Daszyńskiego plazas: three tiers of planting and benches round Skyliner, Generation Park and Mennica Legacy Tower (2026-11-02)
   - [x] K2b Chmielna's 64 benches (2026-11-02; the Atlantic fountain's rim was already there)
+  - [x] Plac Pięciu Rogów as rebuilt in 2022 (F's photos + ortho, 2026-11-06): no asphalt, pale slabs over the whole square, the bus/permit route kept, wooden-top cubes, lamps, café gardens, the egg, the flush water patch, 3 maples; Chmielna's lamps and café gardens
+  - [x] ul. Krucza Jerozolimskie to Piękna as it is in 2026 (road design area `krucza`): 19-20 m, 2+2 lanes, parking lanes with parked cars, zebras at every cross street (ZDM's green boulevard starts 2026-27: later)
   - [x] K9 the stadium's grounds: tree rows on the four entrance avenues, pollarded willow groups (80 trees)
   - [x] K6 Browary's Central Garden yard (12 young trees) and Norblin's court (5 candelabra planes), 2026-11-02 (Mac photo check of the places; wall climbers and upstairs terraces not modelled)
   - [x] K6 rebuilt from the Mac's photo reports, 2026-11-02: Norblin moved onto its real block (Plater, Galwan) with its courts open, 4 candelabra planes and 8 more young trees, green roofs and the terraces upstairs; Browary's Central Garden at 22 trees round an S-shaped gravel path with café clearings, sedum roofs and the north slab's roof garden (climbers and the glass street's roof left)

@@ -4754,6 +4754,18 @@ keeps no shade under the new limes until the next full bake.
 check_drive `--no-allow`: 51 lane spots → 26 (jumps 11, unchanged), allowlist 11 → 8 entries; check_roads
 0 not allowed / 304 allowed (unchanged); the bench route is not near these places: 135 draw calls, 3.04 ms.
 `check_drive.gd --who` prints the colliders a lane hit meets (the sector's one body, so only the sector).
+
+**Plac Pięciu Rogów and Krucza (F, 2026-11-06).** `car_free.py` zones can be a polygon (`{"poly": ring, "pad": m}`):
+zone `pieciu_rogow` is the OSM square (opened 5 July 2022). 5 roads out, 4 more hidden inside it (`hide` ranges),
+Chmielna's and Zgoda's 4 graph edges `cf: 1`; the bus/permit route Szpitalna - Bracka/Krucza stays in the graph
+(`KEEP_TRAFFIC`) with no asphalt under it. New surfaces `concrete` (#d8d5cd, over the whole outline and Chmielna's
+granite) and `wet` (the flush 4.6 m "sadzawka" in place of OSM's raised 3 m pond and its bank). +3 field maples
+(`EXTRA_XZ`): trees3d 271,734 → 271,752, crowns 45,289 → 45,292. Furniture: `game/scripts/plac_pieciu_rogow.gd`
+(runtime, both city paths, one mesh): 17 wooden-top cubes + 6 plain, 7 lamps, 11 café sets, the egg, 3 bollard
+rows, and Chmielna's 17 lamps and 26 café sets either side. Krucza Al. Jerozolimskie → Piękna (543 m) is road
+design area `krucza` (docs/roads/krucza.json): 19-20 m one carriageway, 2+2 lanes (3 northbound at
+Jerozolimskie), parking lanes, 8 zebras, side streets as openings; `park_cars: true` (new, area level) puts 58
+parked cars in the parking lanes (6 old ones on the new asphalt out). Continuity 0.
 | Vertices (`count_vertices.gd`) | 18.70 M (meshes 11.50, instances 7.20) | 19.70 M (12.15, 7.55): +1.00 M, the extension's (0.96 M a km²); LoD2 in the box 1,549,362 → 1,548,197 vertices |
 | Probe draw calls (spawn, river, zoomed out, helicopter; 3D main / shadow) | 137, 104, 150, 220 (58/38, 36/25, 66/40, 111/74) | 138, 104, 151, 224 (58/38, 36/25, 66/41, 112/76): the city +0 (the helicopter view with `--no-traffic` 102/68 both); one more car or tram in view |
 | Probe over Rondo Radosława (`--at=-2833,-2292 --heading=60 --heli --size=150`; the car on Jana Pawła II `--at=-2790,-2200 --heading=340`) | (the map's edge) | 203 (100/68), 115 (46/28): inside the helicopter's 224 |

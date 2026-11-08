@@ -88,6 +88,7 @@ someone writes its lines.
 - Brama Zachodnia, Proximo I and Proximo II on Aleje Jerozolimskie wear their photo colours: ochre punched cladding, light blue glass, dark navy glass.
 
 ## 2026-11-06
+- Plac Pięciu Rogów looks as it has since 2022: no road across it any more, one level of pale slabs, stone cubes with wooden seats, café umbrellas, slim lamps, the blue egg and the shallow water patch. Chmielna got its café gardens and lamps, and Krucza is as wide as the real one, with parked cars along it.
 - A night racing club: Darek calls you to a meet on Plac Defilad, where tuned cars glow and Lena drifts donuts in the smoke until the police raid it. Escape, race everyone to the next meet by the National Stadium, survive a second raid, then line up for a drag on Aleja Zieleniecka: watch the lights, shift on time, hit the nitro and beat Tadek for the club's respect.
 - New side job: your bestie Zuzia phones for a coffee run in Powiśle. Swap the car for a city bike, race to four fancy cafés for stamps and very expensive coffee, and get it all back by BLIK if you make it in time.
 - Landmarks checked against photos: Sigismund's Column now has its grey granite shaft on a dark pedestal with bronze plaques, ring and capital, and four broad steps; All Saints' church has its pointed green spires instead of domes, the open arcade galleries beside the towers, a green dome over the crossing and weathered sandy stone; Staszic Palace has its cream walls and green copper roof.

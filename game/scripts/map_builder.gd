@@ -6541,6 +6541,13 @@ const SURFACE_STYLE := {
 	# Krajobraz K2 (2026-11-02): Chmielna's new granite slabs (tools/planted_trees.py re-tags its
 	# pedestrian areas), a cooler grey than the old concrete setts' warm paving.
 	"granite": ["#c9c7c1", 4.0],
+	# Plac Pięciu Rogów (2026-11-06, F's photos; tools/car_free.py ZONE_SURFACE): the square's pale
+	# fibre-concrete slabs, one level over the old junction and over Chmielna's granite crossing it;
+	# the plaza's 2.4 m slab joints (ground.gdshader id 2), the photos' ~2 m slabs.
+	"concrete": ["#d8d5cd", 2.0],
+	# The square's flush "sadzawka": a round film of water on the slabs, a drain in its middle (the
+	# wet band's shading, L_WET, its colour from the vertex).
+	"wet": ["#a3adb0", 17.0],
 	"ballast": ["#8f887d", 15.0],
 	"flowerbed": ["#6c9844", 11.0],
 	"construction": ["#a48b6a", 12.0],

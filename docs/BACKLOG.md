@@ -4,6 +4,20 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## Plac Pięciu Rogów, Chmielna and Krucza in 2026 (F, 2026-11-06)
+Done: the square car-free on its 2022 slabs (car_free.py polygon zone, plac_pieciu_rogow.gd), Chmielna's
+lamps and café gardens, Krucza Jerozolimskie to Piękna on the road design system (docs/roads/krucza.json).
+Left:
+- P5R-1 the bus route's two thin seam lines and the slatted wooden kiosk (the ortho couldn't place it).
+- P5R-2 Chmielna's shrub beds along the east side and the winter string lights in the trees (F's night photo).
+- P5R-3 Szpitalna's ~40 slatted-wood planters along both sides (Commons photo, 2022).
+- KR-1 Krucza's south end (Hoża to Piękna) read at 0.25 m and far from the photo's centre: re-measure on
+  a 0.1 m ortho; the Piękna junction and Krucza from the square to Jerozolimskie are not designed yet.
+- KR-2 ZDM's green boulevard (two narrow carriageways, a promenade, 247 trees; Skanska picked 29 Sep 2026,
+  ~18 months): build it when it opens (about 2028), or earlier if F wants the future version.
+- KR-3 the parked rows are parallel; the 2025 dashcam photos show perpendicular cars on the pavement in
+  places (Wspólna to Hoża): needs a pavement-parking kind in the road design system.
+
 ## Nowogrodzka 31, the rooftop billboard and Marszałkowska 99 (F's photos and 3D views, 2026-11-07; docs/landmarks/nowogrodzka31.md)
 
 Built (cloud): the office block south of Nowogrodzka between Marszałkowska and Parkingowa (OSM 445 and 444) as a model,
