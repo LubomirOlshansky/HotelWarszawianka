@@ -795,10 +795,16 @@ log give each step's ms). Test runs (no title) build in one go as before. Left:
   renderer (the city 10 %, the core 16 %, traffic and life 27 %, jobs and places 13 %, police and
   crowds 19 %, the rest 14 %); a run on the iPhone 16 Pro Max (and the 11) should read the
   "loading bar:" lines and retune `_load_mark`'s shares and LOAD_FILES / LOAD_BUILT.
-- **Loading animation lag (F, 2026-11-08)**: the bar only moved in the 8 `_load_mark` frames, so long
-  `_build_*` stretches froze it. `_build_world` now also yields a frame after each `_build_*` call
-  once 12 ms have passed (`_load_yield`, title only). Not measured (no Godot in the cloud): a phone
-  run should read the title's frame times; if a single `_build_*` call is still long, split that one.
+- **Loading animation lag (F, 2026-11-08)**: first fix (#576): a frame after each `_build_*` call
+  was not enough on F's Nothing Phone (logcat build steps 805, 2419, 4095, 1809, 73, 4470, 2306 ms; ~8 s
+  of plain blue before the title; the bar frozen 1-4 s at a time). Now: the title is drawn before the
+  settings, radio, wallet and save are set up (two frames right after it is added), and `load_yield.gd`
+  (`LoadYield.tick("what")`, a frame every 12 ms of work, only under the title) is called inside the long
+  setups: traffic (per kind), pedestrians (per footway), crowds (per site), and between the hud,
+  minimap, missions, trams, trains, walkers, rivals, police, crowds and city-life setups. Slices over
+  150 ms print "loading bar: slice N ms, up to X" in the log. Not measured on a phone: read those lines
+  from the next run and split the call named by the longest slice (still open: city_life.setup, rivals,
+  trams, trains, and the ~8 s before the engine's first frame, which no script can shorten).
 - **The yields cost a frame each** (8 frames, ~0.15 s on the phone at most, the title only); in
   the cloud the threaded load of the two files took ~0.5 s longer than the plain load (the
   software renderer competes for the CPU there); check on the phone, else load them in place.
