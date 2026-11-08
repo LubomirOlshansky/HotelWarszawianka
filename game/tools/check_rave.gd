@@ -244,6 +244,11 @@ func _check_door(digest: PackedStringArray) -> void:
 			problems.append("entry note: %s" % l)
 	if Club.beat_offset(60.0 / Club.BPM * 7.0) > 0.001 or Club.beat_offset(60.0 / Club.BPM * 7.5) < 0.2:
 		problems.append("beat_offset off the beat")
+	if Club.beat_offset(60.0 / Club.PATIO_BPM * 5.0, Club.PATIO_BPM) > 0.001 or Club.beat_offset(60.0 / Club.PATIO_BPM * 5.5, Club.PATIO_BPM) < 0.2:
+		problems.append("beat_offset off the patio's beat")
+	for f: String in [Club.MUSIC_SALA, Club.MUSIC_PATIO]:
+		if not ResourceLoader.exists(f):
+			problems.append("no club music " + f)
 	digest.append("door 80 quizzes, room and patio lights inside")
 
 

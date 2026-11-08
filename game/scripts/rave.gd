@@ -60,7 +60,7 @@ const SPOTS := [
 ## big slab blocks by Hala Mirowska; drive there in the evening and he comes out to talk.
 const HOME_LL := [52.2366, 20.9983]
 ## Smoła, the club on Smolna (places.json `smola`): Mati's other night out, the Berlin-style door.
-const SMOLA := {"id": "smola", "name": "Smoła", "ll": [52.2333, 21.0268]}
+const SMOLA := {"id": "smola", "name": "Smoła", "ll": [52.23261, 21.0218]}
 ## The door's questions (three a night, shuffled; "pw" is the password LEKTI gave, asked only at a
 ## secret rave): [question], the right answer, two wrong ones; each [Polish, English].
 const QUESTIONS := [
@@ -124,6 +124,9 @@ const ENTRY := 50
 ## The door waits this long for an answer, then turns you away (never a quest stuck at the door).
 const DOOR_LIFE := 90.0
 const RESULT_LIFE := 12.0
+## The verdict card that offers the club's entry waits longer (Autopilot 2026-11-08: at 12 s it closed
+## while the player was still reading, and the night ended outside).
+const PAY_LIFE := 45.0
 
 ## The rig: drawn within RIG_FAR m of the view's focus (the beams show over the skyline), the
 ## dancers move within DANCE_R m, the crowd talks within TALK_R m, the toast within NOTICE_R m.
@@ -669,7 +672,8 @@ func step(dt: float) -> void:
 				_enter("out")
 		State.RESULT:
 			_result_t += dt
-			if _result_t > RESULT_LIFE:
+			var pay := String(last_pay.get("result", "")) != "out" and enter_club.is_valid()
+			if _result_t > (PAY_LIFE if pay else RESULT_LIFE):
 				hud.hide_card()
 				_finish()
 
