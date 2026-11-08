@@ -43,7 +43,7 @@ After ODBIERZ, card:
 
 ## 1. Ride to Ivan
 
-Title `IVAN · pod blokiem`, hint „Zatrzymaj się przy Ivanie" / "Stop by Ivan". Distance label as for Ziomek.
+Title `IVAN · pod blokiem`, hint „Zatrzymaj się przy Ivanie" / "Stop by Ivan". Distance label as for Mati.
 Toast on accept: „Jedź po Ivana" / "Go and pick up Ivan".
 
 ## 2. Leg 1 (Ivan alone), banter 1

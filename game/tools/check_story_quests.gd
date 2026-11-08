@@ -60,7 +60,7 @@ func _initialize() -> void:
 	var defs := [
 		{"id": "far", "pl": "Daleki", "en": "Far", "who": ["Ala", "Ala"], "at": Vector2(900, 0)},
 		{"id": "near", "pl": "Bliski", "en": "Near", "who": ["Ola", "Ola"], "at": Vector2(100, 0)},
-		{"id": "night", "pl": "Nocny", "en": "Night", "who": ["Ziomek", "Ziomek"], "at": Vector2(10, 0), "hours": Vector2(22, 4)},
+		{"id": "night", "pl": "Nocny", "en": "Night", "who": ["Mati", "Mati"], "at": Vector2(10, 0), "hours": Vector2(22, 4)},
 		{"id": "none", "pl": "Bez startu", "en": "No start", "who": ["", ""], "at": Vector2.INF},
 	]
 	var e := Story.entries(defs, 12.0, 3)
