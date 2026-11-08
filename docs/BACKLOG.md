@@ -4,6 +4,13 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## Nowogrodzka 31, the rooftop billboard and Marszałkowska 99 (F's photos and 3D views, 2026-11-07; docs/landmarks/nowogrodzka31.md)
+
+Built (cloud): the office block south of Nowogrodzka between Marszałkowska and Parkingowa (OSM 445 and 444) as a model,
+its end-wall ad banner facing the Novotel, the billboard on its roof with 15 lamps; Marszałkowska 99 (OSM 5505), the
+white balconied slab beside it. Left: awnings and the vertical BIM BAR sign; Marszałkowska 99's shop names; a phone
+look check of both.
+
 ## Skyline towers near the Palace from F's photos (F, 2026-11-08; specs plater49.md, wcf.md, polonia.md)
 - Done: InterContinental (the gap over the podium, the sloped roof, the corner column, lit gap at night), the Warsaw Financial Centre (white slab and ribbon slab on the curve, granite podium, mast) and Hotel Polonia Palace (photo pass: mansard, pediment and oval window, name on the frieze, balconies). Złota 44 was already rebuilt from F's photos (PR #321).
 - Left: Polonia's rounded front corners and its side/back faces (no photos); InterContinental's lobby and Emilii Plater entrance; WCF's curved crown louvres; the night look of all three on the phone. Shots still needed are in /mnt/project-files/pkin-surroundings/PKIN-SURROUNDINGS-BUILDINGS.txt.

@@ -199,6 +199,12 @@ SITE_AREAS = [
     # The Dekalog estate and the Inflancka pools (landmarks.gd DE_AT, IP_*): the six slabs, the dome and the decks
     (-2720.0, -2370.0, -2200.0, -2110.0),
     (-2390.0, -2450.0, -2200.0, -2340.0),
+    # Nowogrodzka 31 (landmarks.gd _find_nowogrodzka31, 2026-11-07): the office block's two outlines under
+    # N31_AT and N31_AT2 (OSM buildings 445 and 444)
+    (-742.0, 555.0, -687.0, 605.0),
+    (-718.0, 605.0, -676.0, 643.0),
+    # Marszałkowska 99 (landmarks.gd _find_marszalkowska99): OSM building 5505 under M99_AT
+    (-756.0, 566.0, -726.0, 650.0),
     # Kino Muranów (landmarks.gd _find_kino_muranow): the cinema pavilion's outline under KM_AT
     (-1700.0, -1240.0, -1640.0, -1170.0),
     (-450.0, 1580.0, -385.0, 1670.0),       # Kościół Zbawiciela's nave and towers (landmarks.gd ZB_*; MDM's box ends at z 1620)

@@ -22,6 +22,7 @@ someone writes its lines.
 - The museum's steam engines and coaches by Warszawa Główna are solid now: the car stops at them instead of driving through.
 
 ## 2026-11-07
+- Nowogrodzka 31, the cream office block across from the Novotel, is built from real photos: rows of square windows, bars and shops with fairy lights and neon, a huge cat-food advert (MRAU) on the end wall facing the Novotel, and on the roof a big white billboard lit at night by fifteen lamps. Next to it, Marszałkowska 99 is the white block with its balconies.
 - The cycle bridges under Most Łazienkowski no longer float in the air: they hang on steel brackets from the bridge's box girders.
 - Most Śląsko-Dąbrowski's middle lanes are marked as the real tram-and-bus lane: solid white lines and BUS painted between the rails.
 - Three bridges rebuilt from photos: Most Śląsko-Dąbrowski stands on old stone piers under arched steel girders with its red railing, Most Łazienkowski on pairs of broad concrete piers, and Most Świętokrzyski's median is grey concrete.
