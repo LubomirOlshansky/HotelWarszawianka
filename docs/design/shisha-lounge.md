@@ -22,7 +22,7 @@ the industry, the flavours and the arguing, not about getting high (see "Content
 
 Ivan: easy-going, always has a plan, vetoes everything with "no, that's too sweet". Bogdan:
 earnest, competitive, turns everything into a match ("15:0 for menthol"), wants the strongest.
-Tension: Ivan wants light and fruity, Bogdan wants strong, you cast the deciding vote.
+Tension: Ivan wants light and fruity and cannot smoke strong shisha, Bogdan loves it strong (F, 2026-11-08); you cast the deciding vote, and the master's two-hose pipe (strong bowl for Bogdan, ice-and-water filter for Ivan) is the way out.
 
 ## Beats
 
@@ -65,35 +65,35 @@ Authored lines in `dialogue.json` under `shisha_ride` (tags like `rave_ziomek`'s
 board_bogdan, flavour, strength, nickname, arrive). PL first, English in the file as everywhere.
 
 **Bogdan and the tennis (opening, when he gets in).**
-- „Pół godziny forhendu o ósmej rano i tak chcę tylko dymu, który pachnie arbuzem.” / "Half an hour of forehand at eight in the morning and all I want is smoke that smells of watermelon."
-- „Przegrałem 6:4, 6:3, ale w szishy jestem mistrzem Mokotowa.” / "I lost 6-4, 6-3, but I'm the Mokotów shisha champion."
-- „Trener mówi: oddychaj głęboko. Zrobiłem z tego plan treningowy.” / "My coach says: breathe deeply. I turned it into a training plan."
-- „Najlepszy serw dnia był do kelnera w szatni.” / "My best serve of the day was to the waiter in the locker room."
+- „Pół godziny forhendu o ósmej rano i tak chcę tylko dymu, który pachnie arbuzem." / "Half an hour of forehand at eight in the morning and all I want is smoke that smells of watermelon."
+- „Nie przegrałem, mam remis. A w szishy jestem mistrzem Woli." / "I didn't lose, I have a draw. And in shisha I'm the champion of Wola."
+- „Trener mówi: oddychaj głęboko. Zrobiłem z tego plan treningowy." / "My coach says: breathe deeply. I turned it into a training plan."
+- „Najlepszy serw dnia był do kelnera w szatni." / "My best serve of the day was to the waiter in the locker room."
 
 **Ivan against Bogdan on flavours (vote round 1: pick whose flavour wins).**
 Invented flavours, the stranger the better (each is a button in the mini-game too):
-- **Arbuz-Mięta "Lato w Wilanowie"**, **Podwójne jabłko po warszawsku** (apple with a second apple), **Guma balonowa z Pragi**, **Ruskie pierogi** (savoury, a legend: "tylko Bogdan zamawia"), **Kebab z białym sosem** ("na wynos, ale dla fajki"), **Zupa pomidorowa z makaronem**, **Lody z ogórka**, **Kompot babci Zosi**, **Mgła nad Wisłą** (grey, mystery menthol), **Różowy autobus 175** (rose + something), **Beton cytrusowy**, **Syrenka Truskawka**, **Tramwaj Cola**, **Pan Cebulka** (the one nobody chooses), **Paczek w smogu**.
-- Ivan: „Ruskie pierogi? Bogdan, to nie jest smak, to jest zarzut.” / "Pierogi ruskie? Bogdan, that's not a flavour, that's an accusation."
-- Bogdan: „Ogórek z lodami to klasyka. Klasyka z mojej głowy.” / "Cucumber ice cream is a classic. A classic from my head."
-- Ivan: „Każdy lounge ma menu z siedemdziesięcioma smakami. I zawsze bierzemy to samo: arbuz z miętą.” / "Every lounge has seventy flavours. And we always take the same: watermelon-mint."
-- „A pamiętasz, jak wzięliśmy 'Zupę pomidorową'? Pachniało obiadem do końca tygodnia.” / "Remember when we took the tomato soup? It smelled of lunch for the rest of the week."
+- **Arbuz-Mięta "Lato w Wilanowie"**, **Podwójne jabłko po warszawsku** (apple with a second apple), **Guma balonowa z Pragi**, **Zupa pomidorowa z makaronem** (savoury, a legend: "tylko Bogdan zamawia"), **Kebab z białym sosem** ("na wynos, ale dla fajki"), **Zupa pomidorowa z makaronem**, **Lody z ogórka**, **Kompot babci Zosi**, **Mgła nad Wisłą** (grey, mystery menthol), **Różowy autobus 175** (rose + something), **Beton cytrusowy**, **Syrenka Truskawka**, **Tramwaj Cola**, **Pan Cebulka** (the one nobody chooses), **Paczek w smogu**.
+- Ivan: „Zupa pomidorowa? Bogdan, to nie jest smak, to jest zarzut." / "Tomato soup? Bogdan, that's not a flavour, that's an accusation."
+- Bogdan: „Ogórek z lodami to klasyka. Klasyka z mojej głowy." / "Cucumber ice cream is a classic. A classic from my head."
+- Ivan: „Każdy lounge ma menu z siedemdziesięcioma smakami. I zawsze bierzemy to samo: arbuz z miętą." / "Every lounge has seventy flavours. And we always take the same: watermelon-mint."
+- „A pamiętasz, jak wzięliśmy 'Zupę pomidorową'? Pachniało obiadem do końca tygodnia." / "Remember when we took the tomato soup? It smelled of lunch for the rest of the week."
 
 **The industry, strength and the "ale mocna" debate (round 2: strength 1-5).**
-- „Mistrz mówi 'lekka', ale u niego lekka to taka, że sąsiad płacze z okna.” / "The master says 'light', but his light makes the neighbour cry from a window."
-- Bogdan: „Mocna! Jak backhand! Do końca!” Ivan: „Mocna to jest kawa. A to ma być spokojnie.” / "Strong! Like a backhand! Ivan: Strong is coffee. This is meant to be calm."
-- „Teraz wszystko jest 'premium'. Premium węgiel, premium woda, premium kłęby.” / "Everything is 'premium' now. Premium coal, premium water, premium puffs."
-- „Cena fajki rosła szybciej niż czynsz na Mokotowie. A czynsz tam też rośnie.” / "The pipe's price rose faster than rent in Mokotów. And rent there is rising too."
-- „Mistrz fajki: kiedyś kelner, teraz konsultant dymu. Z certyfikatem. Z dwoma.” / "Shisha master: used to be a waiter, now a smoke consultant. Certified. Twice."
-- „Węgiel na miejscu, węgiel w rurze, węgiel w rachunku.” / "Coal on the spot, coal in the pipe, coal on the bill."
-- „Aromat? W Warszawie aromat to każdy smak, który ma w nazwie słowo 'ice'.” / "Flavour? In Warsaw, every flavour with 'ice' in its name counts as a flavour."
-- „Moc: 1 to herbata, 3 to randka, 5 to rozmowa o polityce.” / "Strength: 1 is tea, 3 is a date, 5 is a talk about politics."
+- „Mistrz mówi 'lekka', ale u niego lekka to taka, że sąsiad płacze z okna." / "The master says 'light', but his light makes the neighbour cry from a window."
+- Bogdan: „Mocna! Jak backhand! Do końca!" Ivan: „Mocna to jest kawa. A to ma być spokojnie." / "Strong! Like a backhand! Ivan: Strong is coffee. This is meant to be calm."
+- „Teraz wszystko jest 'premium'. Premium węgiel, premium woda, premium kłęby." / "Everything is 'premium' now. Premium coal, premium water, premium puffs."
+- „Cena fajki rosła szybciej niż czynsz na Woli. A czynsz tam też rośnie." / "The pipe's price rose faster than rent in Wola. And rent there is rising too."
+- „Mistrz fajki: kiedyś kelner, teraz konsultant dymu. Z certyfikatem. Z dwoma." / "Shisha master: used to be a waiter, now a smoke consultant. Certified. Twice."
+- „Węgiel na miejscu, węgiel w rurze, węgiel w rachunku." / "Coal on the spot, coal in the pipe, coal on the bill."
+- „Aromat? W Warszawie aromat to każdy smak, który ma w nazwie słowo 'ice'." / "Flavour? In Warsaw, every flavour with 'ice' in its name counts as a flavour."
+- „Moc: 1 to herbata, 3 to randka, 5 to rozmowa o polityce." / "Strength: 1 is tea, 3 is a date, 5 is a talk about politics."
 
 **The pipe's nickname (round 3, a joke vote with no effect except a toast at the end).** The
 three of you name the pipe: „Kazik", „Premier", „Tramwaj". Bogdan insists on „Forhend".
 
 **At the door of SENATOREK LOUNGE.**
-- „Dress code: 'smart casual'. Bogdan: smart? Casual? Tenis.” / "Dress code smart casual. Bogdan: smart? Casual? Tennis."
-- Ivan: „Przepraszam, mamy rezerwację. Na 'Ivan x3'.” / "Excuse me, we have a reservation for 'Ivan x3'."
+- „Dress code: 'smart casual'. Bogdan: smart? Casual? Tenis." / "Dress code smart casual. Bogdan: smart? Casual? Tennis."
+- Ivan: „Przepraszam, mamy rezerwację. Na 'Ivan x3'." / "Excuse me, we have a reservation for 'Ivan x3'."
 
 ## The lounge: "SENATOREK LOUNGE" (parody)
 
@@ -175,7 +175,7 @@ have different tastes set by the car argument. One screen, about 40 seconds, thr
 
 Result: Ivan's hearts + Bogdan's hearts + your bonus (0-9) set the pay and the closing line;
 perfect = both friends 3 hearts, "Mistrz Fajki: 'Dawno nie było takiego miksu'" and the pipe is
-named in the toast. Wrong choices are funny, not punishing (the "Ruskie pierogi" mix is a
+named in the toast. Wrong choices are funny, not punishing (the "Tomato soup" mix is a
 legend: Bogdan beams, Ivan leaves the table, the master writes it on the wall).
 
 Reused: the club's tap-on-beat ring (`club.gd` `_draw_beat`, DANCE_PAY streak), the door card
@@ -217,7 +217,7 @@ flat tagged list (as `rave_ziomek`) is enough. Beehave: not used (no NPC behavio
 1. **The votes matter.** The car argument is not only jokes: each friend's flavour pick and the
    strength set the mini-game's targets and the pay.
 2. **A running tennis gag.** Bogdan scores everything as a match; at the end he gives the evening
-   a score ("6:4, 6:3, my pipe wins").
+   a score ("a draw, the pipe draws too").
 3. **The master as a sommelier.** Rare "master's choice" mix when the player picks two flavours
    that pair well; a note in the notebook (new place `senatorek`).
 4. **Coal runs.** A repeatable street job: deliver coal and "premium" water to lounges

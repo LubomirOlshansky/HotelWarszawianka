@@ -68,7 +68,7 @@ On arrival at the court ring: Ivan: „O, widzisz go? Ten w opasce." / "See him?
 
 Bogdan walks up (bubble), tag `board_bogdan`:
 1. „Siema! Pół godziny forhendu o ósmej rano i teraz chcę tylko dymu, który pachnie arbuzem." / "Hey! Half an hour of forehand at eight this morning and now I only want smoke that smells of watermelon."
-2. „Przegrałem 6:4, 6:3, ale w szishy jestem mistrzem Mokotowa." / "I lost 6-4, 6-3, but I'm Mokotów's shisha champion."
+2. „Nie przegrałem. Mam remis. Wiem, że w tenisie nie ma remisu, ale ja mam. A w szishy jestem mistrzem Woli." / "I didn't lose. I have a draw. I know there are no draws in tennis, but I have one. And in shisha I'm the champion of Wola."
 3. „Trener mówi: oddychaj głęboko. Zrobiłem z tego plan treningowy." / "My coach says: breathe deeply. I made it a training plan."
 4. „Najlepszy serw dnia był do kelnera w szatni." / "My best serve of the day was to the waiter in the locker room."
 
@@ -86,25 +86,32 @@ Banter before the card (tag `flavour_2`):
 - IVAN: „Znowu ten ogórek? Bogdan, to nie jest smak, to jest zarzut." / "That cucumber again? Bogdan, that's not a flavour, that's an accusation."
 - BOGDAN: „Ogórek z lodami to klasyka. Klasyka z mojej głowy." / "Cucumber ice cream is a classic. A classic from my head."
 - IVAN: „Każdy lounge ma siedemdziesiąt smaków. I zawsze bierzemy to samo." / "Every lounge has seventy flavours. And we always take the same."
-- BOGDAN: „To weźmy 'Pierogi ruskie'." IVAN: „Nie." BOGDAN: „Raz, tylko raz." / "Then let's take 'Pierogi Ruskie'." "No." "Once, just once."
+- BOGDAN: „To weźmy 'Zupę pomidorową z makaronem'." IVAN: „Nie." BOGDAN: „Raz, tylko raz." / "Then let's take 'Tomato Soup with Noodles'." "No." "Once, just once."
 Buttons: ARBUZ Z MIĘTĄ (Ivan's) / LODY Z OGÓRKA (Bogdan's) / MISTRZ WYBIERZE (neutral: both hearts +1, the master's mix later).
 Reactions:
 - Ivan wins: IVAN „Widzisz? Spokojny wybór." BOGDAN „Spokojny wybór to bank ma w nazwie." / "See? Calm choice." "A calm choice is what a bank has in its name."
 - Bogdan wins: BOGDAN „Mówiłem! Ogórek!" IVAN „Wezmę herbatę." / "I told you! Cucumber!" "I'll have tea."
 - Master: IVAN „Zrzucamy na mistrza." BOGDAN „Mistrz zawsze mówi: 'zaufaj dymowi'." / "We leave it to the master." "The master always says: trust the smoke."
 
-### Round 2: the strength (1 to 5)
+### Round 2: the strength (1 to 5), Bogdan against Ivan
 
-Card `JAK MOCNA?` / "HOW STRONG?" Buttons: 1 HERBATA / 3 RANDKA / 5 ROZMOWA O POLITYCE (TEA / A DATE / A TALK ABOUT POLITICS).
+F, 2026-11-08: **Bogdan likes strong shisha, Ivan can't smoke strong.** So strength is the real
+fight and a trade-off: Bogdan's hearts rise with strength, Ivan's fall (above 3 he coughs and
+his hearts drop fast). The pipe has a way out later (the master's two-hose idea, step 1).
+
+Card `JAK MOCNA?` / "HOW STRONG?" Buttons: 1 HERBATA / 3 RANDKA / 5 ROZMOWA O POLITYCE (TEA / A DATE / A TALK ABOUT POLITICS). A hint under the card: „Bogdan: mocna. Ivan: lekka." / "Bogdan: strong. Ivan: light."
 Banter (tag `strength`):
 - BOGDAN: „Mocna! Jak backhand! Do końca!" / "Strong! Like a backhand! All the way!"
-- IVAN: „Mocna to jest kawa. A to ma być spokojnie." / "Strong is coffee. This is supposed to be calm."
+- IVAN: „Bogdan, ja nie mogę mocnej. Ostatnio po jednym buchu widziałem Pałac z drugiej strony." / "Bogdan, I can't do strong. Last time one puff and I saw the Palace from the other side."
+- BOGDAN: „Ty nie możesz mocnej. Ty nie możesz nawet średniej." / "You can't do strong. You can't even do medium."
 - IVAN: „Mistrz mówi 'lekka', ale u niego lekka to taka, że sąsiad płacze z okna." / "The master says 'light', but his light makes the neighbour cry from the window."
 - BOGDAN: „Teraz wszystko jest 'premium'. Premium węgiel, premium woda, premium kłęby." / "Everything is 'premium' now. Premium coal, premium water, premium puffs."
-- IVAN: „Cena fajki rośnie szybciej niż czynsz na Mokotowie." / "The pipe's price climbs faster than rent in Mokotów."
+- IVAN: „Cena fajki rośnie szybciej niż czynsz na Woli." / "The pipe's price climbs faster than rent in Wola."
 - BOGDAN: „Mistrz fajki: kiedyś kelner, dziś konsultant dymu. Z certyfikatem. Z dwoma." / "Shisha master: used to be a waiter, now a smoke consultant. Certified. Twice."
 - IVAN: „Węgiel na miejscu, węgiel w rurze, węgiel w rachunku." / "Coal on the spot, coal in the pipe, coal on the bill."
-Reactions: strength 1-2 BOGDAN „To nie szisza, to parówka." / "That's not shisha, that's a steamer." ; 3 IVAN+BOGDAN „Randka. Dobrze." / "A date. Good." ; 4-5 IVAN „Dobra, ale ja siedzę przy oknie." / "Fine, but I'm sitting by the window."
+- BOGDAN: „Mocna szisza to jak mocny serw. Albo wchodzi, albo nie ma gry." / "Strong shisha is like a strong serve. Either it's in or there's no game."
+- IVAN: „A moja szisza jest jak mój backhand: lepiej nie pytaj." / "And my shisha is like my backhand: better not ask."
+Reactions: 1-2 BOGDAN „To nie szisza, to parówka." IVAN „No, wreszcie." / "That's not shisha, that's a steamer." "Finally." ; 3 BOTH „Randka. Dobrze." / "A date. Good." ; 4-5 BOGDAN „TAK!" IVAN „Dobra, ale ja siedzę przy oknie. I mam wodę." / "YES!" "Fine, but I'm sitting by the window. And I'm having water."
 
 ### Round 3: the pipe's name (no effect, a toast at the end)
 
@@ -155,11 +162,12 @@ Button: ZACZYNAMY / LET'S START.
 3. GUMA BALONOWA Z PRAGI — sweet 5, cool 0
 4. LODY Z OGÓRKA — sweet 1, cool 5
 5. MGŁA NAD WISŁĄ — sweet 1, cool 4 — „mięta w szarym słoiku"
-6. PIEROGI RUSKIE — sweet 0, cool 0, savoury (the legend)
+6. ZUPA POMIDOROWA Z MAKARONEM — sweet 0, cool 0, savoury (the legend; Ivan's callback from leg 1)
 (The rest rotate in: Kebab z białym sosem, Zupa pomidorowa, Kompot babci Zosi, Różowy autobus 175, Beton cytrusowy, Syrenka Truskawka, Tramwaj Cola, Pan Cebulka, Pączek w smogu.)
 - MISTRZ on opening: „Dwa słoiki. Nie trzy, nie jeden. Dwa. Tak działa świat." / "Two jars. Not three, not one. Two. That's how the world works."
+- If strength is 4-5 (Bogdan strong, Ivan can't): MISTRZ „Mam rozwiązanie: dwa wężyki. Mocna misa dla pana w opasce, a dla pana obok ten sam dym przez lód i mętną wodę. Dymu mniej, a charakter ten sam." IVAN „Mistrzu, jesteś geniuszem." BOGDAN „To nie to samo." / "I have a solution: two hoses. A strong bowl for the gentleman in the headband, and for the one next to him the same smoke through ice and cloudy water. Less smoke, same character." "Master, you're a genius." "It's not the same."  (Ivan's hearts get a +1 for the two-hose)
 - On picking: IVAN „Arbuz, błagam." BOGDAN „Ogórek, bracie." (a heart per friend, 0-3, by distance of the midpoint from their pin)
-- Special: Pierogi ruskie picked → BOGDAN „TAK!" IVAN odchodzi od stołu / "YES!" Ivan leaves the table. MISTRZ: „Zapiszę to na ścianie." / "I'll write it on the wall."
+- Special: Tomato Soup picked → BOGDAN „TAK!" IVAN „Znowu pachnie obiadem." (Ivan leaves the table) / "YES!" "It smells of lunch again." MISTRZ: „Zapiszę to na ścianie, obok 'Kebab z białym sosem'." / "I'll write it on the wall, next to 'Kebab with White Sauce'."
 
 **Step 2, the coal (timing).** Tap when the glow is in the green band (wider at strength 1-2).
 - MISTRZ: „Węgiel to nie ogień. Węgiel to cierpliwość." / "Coal is not fire. Coal is patience."
@@ -169,7 +177,7 @@ Button: ZACZYNAMY / LET'S START.
 
 **Step 3, the first draw.** Hold and release in the band; a ring of smoke is a bonus.
 - Clean: „Kółko. Kółko to znak jakości." / "A ring. A ring is a sign of quality."
-- Cough: IVAN „Spokojnie, spokojnie." BOGDAN „To nie ja, to forhend." / "Easy, easy." "That wasn't me, that was the forehand."
+- Cough (Ivan, if strength 4-5 without two hoses, or a late tap): IVAN „Kh... kh... okno, proszę okno." BOGDAN „Mówiłem, że lekka." IVAN „Mówiłeś, że mocna." / "Kh... kh... a window, please." "I told you light." "You told me strong."
 
 **Result card** (hearts Ivan + Bogdan + bonus, 0-9):
 - 7-9: MISTRZ „Dawno nie było takiego miksu. Zapisuję go w księdze." IVAN „Spokojnie, a jednak." BOGDAN „6:0, 6:0." / "It's been a while since a mix like this. I'm writing it in the book." "Calm, and yet." "6-0, 6-0."
@@ -181,16 +189,29 @@ Toast with the pipe's name: „Fajka 'Forhend' gotowa." / "The pipe 'Forehand' i
 
 Card: MISTRZ „Fajka gotowa. Proszę się rozsiadać." / "The pipe is ready. Please settle in." Buttons: PALIĆ / TARAS (the terrace, same smoking scene outside) / WYJDŹ.
 
-**PALIĆ** (20 s, lounge): the pipe passes round, a tap makes a ring, smoke haze.
+**PALIĆ** (20 s, lounge), with smoke animations (F, 2026-11-08):
+
+*Animation beats, in order (cheap: one smoke MultiMesh plus one for rings):*
+1. **The hose passes**: the mouthpiece moves along the table, Ivan to Bogdan to you, about 2 s each, the friend leans in (a head tilt).
+2. **The draw**: the bowl glows orange under the coal, a thin trickle of smoke climbs from the bowl and curls; the friend's cheeks puff (a small scale pulse on the head).
+3. **The exhale**: a soft white cloud leaves the friend's mouth (8-12 sprites, scale up, alpha down), drifts and rises in a slow spiral. Bogdan's clouds are big and thick, Ivan's thin and short (strong against light).
+4. **Your tap makes a ring**: a smoke ring (a torus-like quad) leaves the player's seat, expands as it rises, wobbles and dissolves; a clean ring (tap in the beat band) is slower and larger, Bogdan applauds.
+5. **The haze**: the ceiling layer thickens over the 20 s, track spotlights show light shafts through it (an additive cone), and the haze slides slowly towards the window glass.
+6. **A cough**: now and then Ivan coughs (a puff plus a small shake) and Bogdan hands him water; with the two-hose pipe he doesn't.
+7. **The waiter's coal change**: a spark shower from the tongs, a bright puff on the new coal.
+
+Lines:
 - IVAN: „No, to teraz możemy porozmawiać." / "Now we can talk."
 - BOGDAN: „Ja bym chciał podziękować mojemu trenerowi i mojemu kolanu." / "I'd like to thank my coach and my knee."
 - IVAN: „Kierowca pije herbatę. Mistrz, herbatę dla kierowcy." MISTRZ: „Z miętą. Prosto z Wilanowa." / "The driver drinks tea. Master, tea for the driver." "With mint. Straight from Wilanów."
+- BOGDAN (a long exhale): „Patrz, chmura jak Pałac." IVAN: „Pałac ma wyższą wieżę." / "Look, a cloud like the Palace." "The Palace has a taller tower."
+- IVAN (a ring rises): „Kółko! Dawaj, dawaj, drugie." BOGDAN: „To jest lepsze niż mój serw." / "A ring! Go on, a second one." "This is better than my serve."
 - BOGDAN: „Patrz, Pałac świeci." IVAN: „Pałac zawsze świeci. To jego praca." / "Look, the Palace is lit." "The Palace is always lit. That's its job."
 - Closing toast: „Wieczór udany. +respekt." / "Evening a success. +respect."
 
-**TARAS** (the roof, Palace behind a glass balustrade, golden hour or night lights):
-- BOGDAN: „Z tej wysokości widzę nawet ten kort, na którym przegrałem." / "From this height I can even see the court where I lost."
-- IVAN: „Przegrałeś z wiatrem." BOGDAN: „Z wiatrem się nie przegrywa. Wiatr jest sędzią." / "You lost to the wind." "You don't lose to the wind. The wind is the umpire."
+**TARAS** (the roof, Palace behind a glass balustrade, golden hour or night lights; the same smoke animations, the wind carries the haze and rings away across the Palace):
+- BOGDAN: „Z tej wysokości widzę nawet ten kort, na którym zrobiłem remis." / "From this height I can even see the court where I got my draw."
+- IVAN: „Remis z wiatrem." BOGDAN: „Z wiatrem się nie remisuje. Wiatr jest sędzią." / "A draw with the wind." "You don't draw with the wind. The wind is the umpire."
 - MISTRZ (from the door): „Taras tylko dla tych, którzy znają hasło: 'zaufaj dymowi'." / "The terrace is for those who know the password: 'trust the smoke'."
 
 **WYJDŹ**: IVAN „Serio? Po tym wszystkim?" BOGDAN „Zmarnowałem ogórek." / "Seriously? After all that?" "I wasted a cucumber." Half pay, back in the car at the portico.
@@ -198,7 +219,7 @@ Card: MISTRZ „Fajka gotowa. Proszę się rozsiadać." / "The pipe is ready. Pl
 ## 10. After (the drop-offs)
 
 Dawn or late-evening ride, quiet radio. Tag `after` (PALIĆ/TARAS path):
-- BOGDAN (sleepy): „Wynik wieczoru: sześć cztery, sześć trzy, wygrywa fajka." / "Score of the evening: six-four, six-three, the pipe wins."
+- BOGDAN (sleepy): „Wynik wieczoru: remis. Fajka też remis." / "Score of the evening: a draw. The pipe draws too."
 - IVAN: „Dzięki za podwózkę. Następnym razem ja wybieram." BOGDAN: „Ogórek." IVAN: „Arbuz." / "Thanks for the ride. Next time I choose." "Cucumber." "Watermelon."
 - IVAN: „Spokojnie, a jednak." / "Calm, and yet."
 Drop-offs: Ivan at the estate, Bogdan at the court (or any kerb). Pay card:
