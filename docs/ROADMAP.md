@@ -15,6 +15,7 @@ item. Updated 2026-11-01 from the audit. v1.0 = the Demo and TestFlight gates in
 then the Launch gate.
 
 ### Done (built and checked headless)
+- [x] No offer pops over a result or win card (Autopilot, padel at DESKA, 2026-11-08): a Mrożulo "fetch" offer opened over the padel result card and the OK tap accepted it. Now no job, ride, Wiralek/Mrożulo, Czwarty/DESKA or rival offer opens while any card is up, nor for 2.5 s after one closes; it waits and comes afterwards (`trend_job.gd` `offers_held`, `jobs.gd`, `rides.gd`, `rivals.gd`; `check_hud` `_check_offers_wait`; PR pending; Autopilot re-run on the Mac open)
 - [x] Thin towers researched and rebuilt (F, 2026-11-07; `docs/design/small-buildings.md`): 469 small untagged OSM buildings identified from tags, map points, the aerial and Mapillary, and drawn as what they are: glass metro lifts (the Ratusz-Arsenał pair), louvred metro vents, kiosks, pavilions, bin shelters, substations, toilets, booths, canopies, houseboats, sheds and garages (`small_buildings.gd`, verify step `heights`; low-confidence courtyard ones open)
 - [x] Nowogrodzka 31, the rooftop billboard and Marszałkowska 99 (F's photos and 3D views, 2026-11-07; `docs/landmarks/nowogrodzka31.md`): the cream office block across from the Novotel with its windows, shops and neon, the MRAU ad banner on the end wall, the rooftop billboard with 15 lamps, the white balconied slab beside it (PR #538)
 - [x] Skyline towers near the Palace from F's photos (F, 2026-11-08; specs `plater49.md`, `wcf.md`, `polonia.md`): InterContinental's 53 m gap over the podium lit white at night and its sloped roof, the Warsaw Financial Centre's white and ribbon-glass slabs on their curve with the granite podium and mast, Hotel Polonia Palace's mansard, pediment with the oval window and name on the frieze (PR pending; phone look open)
@@ -94,7 +95,10 @@ then the Launch gate.
       balustrades, fountain basins low rims, OSM wall heights (F, 2026-11-07; `tools/stairs.py`)
 - [x] Walls, fences and hedges from OSM's heights, materials and fence types (see-through railings, low
       park walls, noise barriers), and the Old Town's city walls in brick (F, 2026-11-07; `tools/barrier_tags.py`)
-- [ ] City walls look check from photos (battlements, gates), photo-tag the untagged walls and fences
+- [x] City walls look check from photos: battlements and a brick coping (F, 2026-11-08, BACKLOG "Old Town trailer pass")
+- [ ] City walls' towers and gates from photos, photo-tag the untagged walls and fences
+- [x] Old Town trailer pass (F, 2026-11-08): the Jesuit church's blue glass fixed, Rynek rings, umbrellas and
+      café fences, zinc dormers, an autopilot drive check round the Old Town (`check_old_town_drive.gd`)
 - [ ] Stairs deeper than the 10 m ground shows (Skarpa, Karowa, Tamka, metro stairwells) cut into the
       ground from F's photos (photo list `stairs-photo-list.md`)
 - [x] Arkadka redesign, roof car park, BANK PEPEO sign and the Forest roof terrace (F, 2026-11-01; spec `arkadia.md`)
