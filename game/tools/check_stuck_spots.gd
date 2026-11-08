@@ -77,6 +77,12 @@ extends SceneTree
 ## sliver between the road's and the tram's approaches read the boulevard below. Fixed: such a
 ## sliver takes the lower approach's level (map_builder.gd FILL_SEAM); SEAMS reads the height there.
 ##
+## Port Czerniakowski's footbridge (F, 2026-11-08, screenshots by Miami Wars): the boulevard's cycle
+## path ran down into the mouth's cutting between grey walls and broke off at the water, the car
+## stuck at the gap; north-west of it the fences of a long finished building site stood across the
+## car park. Fixed: one flat railed deck W to E, the paths joined to it, the lot a car park
+## (tools/port_bridge.py). Three lines: over the bridge both ways, and out of the car park.
+##
 ## Prints one line per spot and `check_stuck_spots: OK`, or the failures and exit 1. ~10 s on the Mac.
 ##   godot --headless --path game --fixed-fps 60 --script res://tools/check_stuck_spots.gd [-- --prebuilt --verbose]
 
@@ -133,6 +139,9 @@ const SPOTS := [
 	[913.5, -119.0, 68.0, 16.7, 3.0, 0.5, "PT-40 Most Poniatowskiego east, half over the kerb onto the walk"],
 	[913.2, -119.5, 70.0, 16.7, 3.0, 0.5, "PT-40 Most Poniatowskiego east, the kerb lane drifting 2° towards the tower"],
 	[913.2, -119.5, 72.0, 16.7, 3.0, 0.5, "PT-40 Most Poniatowskiego east, drifting 4°: turned off the lead-in, clear of the median rail's end"],
+	[1322.0, 676.2, 107.0, 8.0, 5.0, 0.6, "Port Czerniakowski footbridge east, the boulevard's cycle path over the mouth to Majami Wawa"],
+	[1394.0, 698.4, 287.0, 8.0, 5.0, 0.5, "Port Czerniakowski footbridge west, from the spit onto the deck"],
+	[1298.0, 674.0, 20.0, 7.0, 2.0, 0.6, "Port Czerniakowski footbridge, north out of the car park over the old site fence onto the cycle path"],
 ]
 ## PT-41: [x, z, the level a car drives at there, what]: drive_height must give it within SEAM_TOL m.
 const SEAMS := [
