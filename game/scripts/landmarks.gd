@@ -74,10 +74,8 @@ const TOWERS := [
 			"base_sign": "ENELMEDIK"},
 	{"key": "plater49", "osm": "InterContinental", "style": S_GRID, "glass": "#5f7f9a", "roof": "#c3c7c9", "sign": "INTERKONTI"},
 	# Cosmopolitan (Twarda 2/4, F's photos 2026-11-08, docs/landmarks/photo-reports/cosmopolitan.md): a dark
-	# glass shaft with a red-soffit cantilever over a stepped glass podium (_build_cosmopolitan); `with`
-	# claims the east wing's podium parts.
-	{"key": "cosmopolitan", "osm": "Cosmopolitan", "style": S_GRID, "glass": "#33485d", "roof": "#8d9399",
-			"with": [Vector2(-1494.0, -176.0)]},
+	# glass shaft with a red-soffit cantilever over a stepped glass podium (_build_cosmopolitan).
+	{"key": "cosmopolitan", "osm": "Cosmopolitan", "style": S_GRID, "glass": "#33485d", "roof": "#8d9399"},
 	{"key": "wtt", "osm": "Warsaw Trade Tower", "style": S_BANDS, "glass": "#3d6a7a", "roof": "#8d979c"},
 	# The Rondo Daszyńskiego towers rebuilt from the Mac's photo reports (F, 2026-11-03;
 	# docs/landmarks/photo-reports/skyliner.md, warsaw_unit.md, mennica.md, gpy.md, warsaw_hub.md).
@@ -32123,11 +32121,6 @@ const CS_SHAFT := [Vector2(-1537.4, -144.5), Vector2(-1548.1, -175.5), Vector2(-
 ## The strip that hangs out over the street, 44 m up.
 const CS_STRIP := [Vector2(-1512.8, -152.8), Vector2(-1511.1, -148.2), Vector2(-1508.8, -141.2),
 		Vector2(-1533.4, -132.9), Vector2(-1533.7, -134.0), Vector2(-1537.4, -144.5)]
-## The east wing of the podium (two mapped parts) and the canopy's plan.
-const CS_WING_A := [Vector2(-1477.5, -180.3), Vector2(-1483.5, -165.7), Vector2(-1505.2, -184.7),
-		Vector2(-1502.5, -191.2), Vector2(-1476.8, -182.4)]
-const CS_WING_B := [Vector2(-1483.5, -165.7), Vector2(-1492.4, -160.0), Vector2(-1500.7, -154.7),
-		Vector2(-1510.5, -182.2), Vector2(-1507.5, -183.6), Vector2(-1505.2, -184.7)]
 const CS_PODIUM := 17.5     ## the podium's roof (4 storeys, OSM)
 const CS_SOFFIT := 44.0     ## the overhang's red underside (OSM)
 const CS_TOP := 160.0
@@ -32154,10 +32147,6 @@ func _build_cosmopolitan(zone: PackedVector2Array, spec: Dictionary) -> void:
 	# The podium: the whole mapped plot and the east wing, four glass storeys in bands, a pale terrace roof.
 	_prism(zone, g - 0.4, g + CS_PODIUM, CS_PODIUM_GLASS, Color("#b6bbb9"), bands, M_STONE)
 	_collide(zone)
-	for wing: Array in [CS_WING_A, CS_WING_B]:
-		var w := _ic_ring(wing)
-		_prism(w, g - 0.4, g + CS_PODIUM, CS_PODIUM_GLASS, Color("#b6bbb9"), bands, M_STONE)
-		_collide(w)
 	# The podium roof's glass parapet, 1.1 m (F-IMG_7537).
 	for i in zone.size():
 		var pa := zone[i]
@@ -32168,14 +32157,16 @@ func _build_cosmopolitan(zone: PackedVector2Array, spec: Dictionary) -> void:
 	var box := Geometry2D.offset_polygon(strip, -1.4)
 	if box.size() == 1:
 		_prism(box[0], g + CS_PODIUM, g + CS_PODIUM + 5.0, Color("#7e9a98"), Color("#b6bbb9"), M_PAVILION + 0.5, M_STONE)
-	# The canopy over the east wing's forecourt: a lattice of pale glass on four slender posts.
-	var cw := _ic_ring(CS_WING_B)
-	_prism(cw, g + 25.0, g + 26.2, CS_CANOPY, CS_CANOPY, frame, frame)
-	for q: Vector2 in [Vector2(-1486.0, -165.5), Vector2(-1496.0, -161.0), Vector2(-1505.0, -181.0), Vector2(-1499.0, -178.0)]:
-		_prism(_square(q, 0.25), g + CS_PODIUM, g + 25.0, Color("#575f63"), Color("#575f63"), M_STONE, M_STONE)
 	# The shaft over the podium and the strip over the street, one glass skin; the strip's red soffit.
 	_prism(shaft, g + CS_PODIUM, g + CS_TOP - CS_CROWN, CS_GLASS, none, ribbon, M_STONE)
 	_prism(strip, g + CS_SOFFIT, g + CS_TOP - CS_CROWN, CS_GLASS, none, ribbon, M_STONE)
+	# The shaft and the overhang are solid to the helicopter as well; the collision faces want the same
+	# winding as the mapped outline's.
+	for pair: Array in [[shaft, g], [strip, g + CS_SOFFIT]]:
+		var ring: PackedVector2Array = pair[0]
+		if Geometry2D.is_polygon_clockwise(ring) != Geometry2D.is_polygon_clockwise(zone):
+			ring = PackedVector2Array(Array(ring).duplicate()); ring.reverse()
+		_collide_span(ring, float(pair[1]), g + CS_TOP)
 	_mode = M_LAMP
 	_soffit(strip, g + CS_SOFFIT - 0.02, CS_RED)
 	# A dark spandrel band at the soffit so the red reads as a deep underside, not a floor.
