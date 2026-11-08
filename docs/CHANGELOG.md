@@ -10,6 +10,7 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-08
+- Quests on the map are clearer: the gold main-line star now only guides your first kebab delivery and then gets out of the way, the quest you took glows and pulses on the map and the minimap with a dotted line to it, the map's quest card has a "✕ Quit" button (tap twice) to drop it, and scrolling the quest list no longer starts a quest and closes the map.
 - Tram and bus shelters face the right way: the open side with the bench looks at the tracks or the kerb, not along the street or at the pavement (Ratusz Arsenał and over fifty other stops).
 - The loading bar on the start screen moves smoothly now instead of in jerks while the city is built.
 
