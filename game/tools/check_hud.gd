@@ -1010,7 +1010,7 @@ func _check_target_pointer(hud: CanvasLayer, bubbles: Control, screen: Vector2i,
 	# PT-35 (2026-11-08): with a Classic thumb down the steering strip is on screen, so the edge
 	# arrow's "KEBAB n m" must treat it as a no-go rect (as it does the pedals), wherever the thumb
 	# came down; with the thumb up only the resting hint is.
-	hud.set_scheme(0)
+	hud.set_scheme(1)  # Classic
 	var strip_at := Vector2(float(screen.x) * 0.3, float(screen.y) - 70.0 * pt)
 	var strip_half: float = (float(hud.STICK_R) + 16.0) * pt
 	var strip := Rect2(strip_at - Vector2(strip_half, 16.0 * pt), Vector2(strip_half * 2.0, 32.0 * pt))
