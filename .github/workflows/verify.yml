@@ -9,6 +9,9 @@
 # (docs/WORKFLOW.md).
 name: verify
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [main]
@@ -115,8 +118,12 @@ jobs:
 
       # Exit 3: the pack tools/map_pack.json names is not published yet (a new pack's PR, before
       # its release asset is up): the map checks are skipped with a warning instead of failing.
+      # The repository is private since 2026-11-08: the release asset downloads through the API
+      # with the job's token.
       - name: Fetch the map pack
         id: pack
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set +e
           python3 -I tools/map_pack.py fetch
