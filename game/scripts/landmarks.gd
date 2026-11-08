@@ -13599,6 +13599,9 @@ const TEATR_SCULPT := Color("#d9d2bf")
 ## Portico column centres across the front, u from the middle: ten (T06-04, 2026-11-08).
 const TEATR_COLS := [-15.3, -11.9, -8.5, -5.1, -1.7, 1.7, 5.1, 8.5, 11.9, 15.3]
 const TEATR_HALF := 17.0          ## the portico's half width over its columns
+const TEATR_ARCADE := 8.6         ## the arcaded ground storey under the columns (F's photo, 2026-11-08)
+const TEATR_COL_H := 11.2         ## the columns' height
+const TEATR_ARCH := Color("#4a4136")    ## the arcade's openings in shade, lamp-lit at night
 const TEATR_PED_HALF := 15.0      ## the raised middle block and its pediment, half width
 const TEATR_RELIEF := Color("#cfc6ae")   ## the tympanum's relief, in the stone's shade
 const TEATR_BRONZE := Color("#4d5a52")   ## the quadriga's dark green-bronze (T06-04)
@@ -14426,42 +14429,61 @@ func _build_teatr(_site: Dictionary) -> void:
 	var g := _g
 	var light := TEATR_STONE.lightened(0.04)
 	var hw := TEATR_HALF
+	var y0 := g + TEATR_ARCADE      # the columns' floor, over the arcaded ground storey
+	var y1 := y0 + TEATR_COL_H      # their tops
 	_mode = M_STONE
-	# the base, as deep as the portico, and steps across it
-	_lbox(m, 3.5, hw + 1.6, 3.5, g - 0.6, g + 3.4, TEATR_BASE, M_STONE, light)
-	for k in 5:
-		var depth := (k + 1) * 0.8
-		_lbox(m, 7.0 + depth * 0.5, hw - 1.1, depth * 0.5, g - 0.6, g + 2.5 - 0.5 * k, TEATR_BASE, M_STONE,
+	# the ground storey (F's dusk photo, 2026-11-08): a rusticated arcade as deep as the portico,
+	# square piers with dark arched openings between them, two low steps along its front
+	_lbox(m, 3.5, hw + 1.6, 3.5, g - 0.6, y0 - 1.0, TEATR_BASE, M_STONE, light)
+	_lbox(m, 3.6, hw + 1.8, 3.6, y0 - 1.0, y0, light, M_STONE, light)
+	for k in 2:
+		_lbox(m, 7.2 + 0.4 * k, hw + 1.0 - k, 0.2 + 0.4 * k, g - 0.6, g + 0.3 - 0.15 * k, TEATR_BASE, M_STONE,
 				TEATR_BASE.lightened(0.04))
-	# ten columns on the base (T06-04: ten across the front)
+	_mode = M_GLASS
 	for u: float in TEATR_COLS:
-		_column(m + u, 4.6, 0.62, g + 3.4, g + 14.6, TEATR_COLUMN)
+		# an arch between each pair of the columns' bays: a dark opening with a round head (a
+		# pointed pair of triangles reads as one from the game's distance)
+		var c := m + u
+		var wa := _w(c - 1.15, 7.03)
+		var wb := _w(c + 1.15, 7.03)
+		_wall(wa, wb, g + 0.3, y0 - 3.2, _b, TEATR_ARCH)
+		var top := _w(c, 7.03)
+		_tri(Vector3(wa.x, y0 - 3.2, wa.y), Vector3(wb.x, y0 - 3.2, wb.y), Vector3(top.x, y0 - 2.0, top.y),
+				Vector3(_b.x, 0.0, _b.y), TEATR_ARCH, Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), y0 - 2.0 - g)
+	_mode = M_STONE
+	# the balustrade round the columns' floor
+	for side: Array in [[m, 7.0, hw + 1.6, 0.15], [m - hw - 1.45, 3.5, 0.15, 3.5], [m + hw + 1.45, 3.5, 0.15, 3.5]]:
+		_lbox(float(side[0]), float(side[1]), float(side[2]), float(side[3]), y0, y0 + 1.1, light, M_STONE, light)
+	# ten columns across the front on the arcade (T06-04, F's photo)
+	for u: float in TEATR_COLS:
+		_column(m + u, 4.6, 0.62, y0, y1, TEATR_COLUMN)
 	# the entablature, back to the wall (architrave, the carved frieze a shade darker, cornice)
-	_lbox(m, 3.0, hw + 0.5, 3.2, g + 14.6, g + 16.0, light, M_STONE, light)
-	_lbox(m, 3.0, hw + 0.8, 3.4, g + 16.0, g + 17.2, TEATR_SCULPT, M_STONE, light)
-	_lbox(m, 3.0, hw + 1.1, 3.7, g + 17.2, g + 17.7, light, M_STONE, light)
-	# the attic over the portico: a plain block (T06-04)
-	_lbox(m, 2.0, hw - 0.2, 2.0, g + 17.7, g + 20.3, TEATR_STONE, M_STONE, light)
-	_lbox(m, 2.0, hw + 0.2, 2.3, g + 20.3, g + 20.7, light, M_STONE, light)
-	# the Apollo quadriga in dark bronze on its plinth in the middle of the attic
-	_teatr_quadriga(m, 2.0, g + 20.7)
-	# behind the attic, the raised middle block with its windows, its cornice and the pediment with
-	# the relief in the tympanum (T06-04, T06-08)
+	_lbox(m, 3.0, hw + 0.5, 3.2, y1, y1 + 1.4, light, M_STONE, light)
+	_lbox(m, 3.0, hw + 0.8, 3.4, y1 + 1.4, y1 + 2.6, TEATR_SCULPT, M_STONE, light)
+	_lbox(m, 3.0, hw + 1.1, 3.7, y1 + 2.6, y1 + 3.1, light, M_STONE, light)
+	var ya := y1 + 3.1
+	# the attic over the portico: a plain block, the quadriga at its front edge
+	_lbox(m, 2.6, hw - 0.2, 2.6, ya, ya + 2.0, TEATR_STONE, M_STONE, light)
+	_lbox(m, 2.6, hw + 0.2, 2.9, ya + 2.0, ya + 2.4, light, M_STONE, light)
+	_teatr_quadriga(m, 3.4, ya + 2.4)
+	# behind the attic, the raised middle block with its windows (three a side), its cornice and
+	# the pediment with the relief in the tympanum (T06-04, T06-08, F's photo)
 	var pv0 := -0.5
 	var pv1 := -9.0
 	var pc := (pv0 + pv1) * 0.5
 	var ph := (pv0 - pv1) * 0.5
-	_lbox(m, pc, TEATR_PED_HALF, ph, g + 17.7, g + 27.4, TEATR_STONE, M_MONUMENT, light)
-	_lbox(m, pc, TEATR_PED_HALF + 0.5, ph + 0.5, g + 27.4, g + 28.0, TEATR_SCULPT, M_STONE, light)
-	_lbox(m, pc, TEATR_PED_HALF + 0.8, ph + 0.8, g + 28.0, g + 28.6, light, M_STONE, light)
-	_teatr_pediment(m, pv0 + 0.8, pv1 - 0.8, TEATR_PED_HALF + 0.8, g + 28.6, g + 34.0)
-	# the portico's back wall (proud of LoD2's), and the doors in it, in shade between the columns
-	_lbox(m, -0.1, hw - 1.6, 0.2, g + 3.4, g + 14.6, TEATR_STONE.darkened(0.06), M_STONE, TEATR_STONE)
+	var yc := ya + 7.6
+	_lbox(m, pc, TEATR_PED_HALF, ph, y1, yc, TEATR_STONE, M_MONUMENT, light)
+	_lbox(m, pc, TEATR_PED_HALF + 0.5, ph + 0.5, yc, yc + 0.6, TEATR_SCULPT, M_STONE, light)
+	_lbox(m, pc, TEATR_PED_HALF + 0.8, ph + 0.8, yc + 0.6, yc + 1.2, light, M_STONE, light)
+	_teatr_pediment(m, pv0 + 0.8, pv1 - 0.8, TEATR_PED_HALF + 0.8, yc + 1.2, yc + 6.4)
+	# the portico's back wall (proud of LoD2's) on the columns' floor, and its doors in shade
+	_lbox(m, -0.1, hw - 1.6, 0.2, y0, y1, TEATR_STONE.darkened(0.06), M_STONE, TEATR_STONE)
 	_mode = M_GLASS
 	for u: float in [-10.2, -6.8, -3.4, 0.0, 3.4, 6.8, 10.2]:
-		_wall(_w(m + u - 1.0, 0.13), _w(m + u + 1.0, 0.13), g + 3.6, g + 8.0, _b, Color("#3a3d40"))
+		_wall(_w(m + u - 1.0, 0.13), _w(m + u + 1.0, 0.13), y0 + 0.2, y0 + 4.6, _b, Color("#3a3d40"))
 	_mode = M_STONE
-	_collide(_rect(m, 4.0, hw + 2.0, 6.0))
+	_collide(_rect(m, 3.5, hw + 1.6, 3.6))
 
 
 ## The pediment over the middle block: a triangular gable from v0 (front) to v1 (back), half
