@@ -823,7 +823,7 @@ var lod2_tops: Array = []
 var embankment: Array[PackedVector2Array] = []
 var _g := 0.0          # the landmark's ground height
 var _id := 0           # landmark id for the picking grid (0: none)
-var _pick := PackedByteArray()
+var _pick := PackedByteArray()  # 16-bit landmark ids, two bytes a cell (257 sites by 2026-11-08)
 ## Walls already drawn by the current site, to cut a later coplanar wall back to what shows
 ## (z-fighting fix, 2026-10-31): [ax, az, bx, bz, y0, y1, nx, nz] per wall.
 var _walls: Array[PackedFloat32Array] = []
@@ -1561,7 +1561,7 @@ static func _median3(a: float, b: float, c: float) -> float:
 func build(surface, near := Rect2(), only := "") -> void:
 	st = surface
 	pocket_rings.clear()
-	_pick.resize(map._roof_nx * map._roof_nz)
+	_pick.resize(map._roof_nx * map._roof_nz * 2)
 	_pick.fill(0)
 	var t0 := Time.get_ticks_msec()
 	var built := 0
@@ -2006,7 +2006,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 const SITE_REACH := 24.0
 
 
-## Which landmark covers a roof-grid cell (0: none), for map_builder.landmark_at.
+## Which landmark covers a roof-grid cell (0: none), for map_builder.landmark_at: a 16-bit id per
+## cell, two bytes each, since one byte ran out at 255 sites (the 2026-11-08 merge train had 257).
 func pick_grid() -> PackedByteArray:
 	return _pick
 
@@ -2050,7 +2051,7 @@ func _mark_pick(a: Vector3, b: Vector3, c: Vector3) -> void:
 		return  # a long thin piece (a cable): not worth the cells
 	for j in range(maxi(j0, 0), mini(j1, map._roof_nz - 1) + 1):
 		for i in range(maxi(i0, 0), mini(i1, map._roof_nx - 1) + 1):
-			_pick[j * map._roof_nx + i] = _id
+			_pick.encode_u16((j * map._roof_nx + i) * 2, _id)
 
 
 ## A quad a-b-c-d (in order round its edge).
@@ -8656,7 +8657,7 @@ func _mark_zone(site: Dictionary) -> void:
 			var p := Vector2(map._roof_x0 + (i + 0.5) * cell, map._roof_z0 + (j + 0.5) * cell)
 			for z: PackedVector2Array in site["zone"]:
 				if Geometry2D.is_point_in_polygon(p, z):
-					_pick[j * map._roof_nx + i] = _id
+					_pick.encode_u16((j * map._roof_nx + i) * 2, _id)
 					break
 
 
@@ -22445,7 +22446,7 @@ func _build_hotel(site: Dictionary) -> void:
 		for i in range(i0, i1 + 1):
 			var q := Vector2(map._roof_x0 + (i + 0.5) * cell, map._roof_z0 + (j + 0.5) * cell)
 			if Geometry2D.is_point_in_polygon(q, pick):
-				_pick[j * map._roof_nx + i] = _id
+				_pick.encode_u16((j * map._roof_nx + i) * 2, _id)
 
 
 ## --- The palace hotels (F, 2026-11-01: "model the Bristol and the other hotels properly") ------

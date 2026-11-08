@@ -222,7 +222,7 @@ const NO_ROOF := -1000.0
 ## v0.8 landmarks (landmarks.gd): what each one's info card says, and which landmark
 ## (1-based, 0 for none) covers each roof-grid cell, for tapping.
 @export_storage var landmark_info: Array[Dictionary] = []
-@export_storage var _pick := PackedByteArray()
+@export_storage var _pick := PackedByteArray()  # a 16-bit id per cell, two bytes each (landmarks.gd pick_grid)
 ## The loading fix (2026-10-31): what colour tops each roof-grid cell, for the proxies
 ## (sector_proxies.gd), from the same buildings the sectors are built from: the roof's colour where
 ## a roof gives the cell its height (RGBA8, 0 for none), and the colour of a wall standing in it.
@@ -304,7 +304,7 @@ func setup_streamed(index: Dictionary, building_mat: ShaderMaterial, flat_mat: S
 			"buildings": index.get("site_parts", []), "areas": index.get("areas", []),
 			"platforms": index.get("platforms", [])})
 	landmark_info = _marks.info
-	_pick.resize(_roof_nx * _roof_nz)
+	_pick.resize(_roof_nx * _roof_nz * 2)
 	_pick.fill(0)
 	_index_decks()
 	_ground_normals()
@@ -657,8 +657,9 @@ func _merge_pick(grid: PackedByteArray) -> void:
 	var r := _cell_range()
 	for j in range(r.position.y, r.end.y):
 		for i in range(r.position.x, r.end.x):
-			var k := j * _roof_nx + i
+			var k := (j * _roof_nx + i) * 2
 			_pick[k] = grid[k]
+			_pick[k + 1] = grid[k + 1]
 
 
 ## Loop 3c: the roof-grid cells whose centres lie in the sector being built (i, j from, to).
@@ -4714,7 +4715,7 @@ func landmark_at(x: float, z: float) -> int:
 	var j := floori((z - _roof_z0) / ROOF_CELL)
 	if i < 0 or j < 0 or i >= _roof_nx or j >= _roof_nz:
 		return -1
-	return int(_pick[j * _roof_nx + i]) - 1
+	return _pick.decode_u16((j * _roof_nx + i) * 2) - 1
 
 
 ## Marks the cell holding a point as at least `y` high.

@@ -248,6 +248,7 @@ ground and bend with the cutting's sub-cells (`map_builder._drape_edge`); check_
 - [ ] Map PRs left to their owners (they touch centrum.json and need a re-bake): #485, #511, #515, #517, #518
 - [x] Second small train: #503, #505, #526 (owner threads quiet since the morning; green, docs conflicts only)
 - [x] Train 3 on the same branch: #535 (11 listopada), #540 (day rave under Most Poniatowskiego), #541 (SOWA CITY 25 neon), #527 (docs), #512 (bridges photo rebuilds), #542 (Stacja Muzeum colliders), and the planned train 4 folded in: #533 (PT-42/43 log), #538 (Nowogrodzka 31, Marszałkowska 99), #539 (Cyfrowy Parking), #543 (bar crawl), #545 (Grounded handling), #546 (InterContinental, WCF, Polonia), #547 (Rotunda, Eastern Wall stores), the rest of #535; after #511, #516 and #534; then #538, #515, #518, #485, #530 and the Metropol follow-up one slot at a time
+- [x] Landmark picking grid ran out at 255 sites (train 3 brought 257: Kamienica Wedla and Ławrynowicza lost their taps). The grid now stores 16-bit ids, two bytes a cell (landmarks.gd, map_builder.gd, check_sites.gd, check_landmarks.gd)
 - [ ] ~330 merged `claude/*` branches to delete: the cloud proxy blocks it; F runs `delete-merged-branches.sh` (project files, audit/) on the Mac
 - [ ] Closed #455 (bump to 1.0.2, Android code 9) never reached main; F decided to drop it (branch on the delete list)
 - [ ] Docs conflicts: many PRs edit CHANGELOG/BACKLOG/ROADMAP/CITY_INVENTORY and verify.sh's step lists at once, so every merge conflicts the next; a PR left 12 h with conflicts gets re-pinged
