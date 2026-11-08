@@ -44,11 +44,11 @@ Stadium. Coming on the road to the 1.0 demo ([docs/ROADMAP.md](docs/ROADMAP.md))
 ## Run it
 
 1. Install [Godot 4.7.2](https://godotengine.org/download/).
-2. `git clone https://github.com/LubomirOlshansky/AroundWarsaw.git`
-3. `AroundWarsaw/tools/setup_map.sh --full` once: it builds the map files the repo doesn't carry
+2. Get the source (a clone of this repository).
+3. `tools/setup_map.sh --full` once: it builds the map files the repo doesn't carry
    (the 3D buildings and the terrain from GUGiK's raw data in `data/raw`, which it tells you how to
    fetch, then the city's sectors; a few minutes, a window opens).
-4. `godot --path AroundWarsaw/game`, or open `game/project.godot` in the editor and press F5.
+4. `godot --path game`, or open `game/project.godot` in the editor and press F5.
 
 | | iPhone / Android | Mac / PC |
 | --- | --- | --- |
@@ -83,8 +83,10 @@ Add-ons, music and the full list: [CREDITS.md](CREDITS.md).
 
 ## Licence
 
-All rights reserved ([LICENSE](LICENSE)): the code and the game's own art, music and sound are
-not open source for now. The map data in `game/map/` keeps its sources' licences (ODbL, GUGiK open
+Source-available, **non-commercial use only**. The code is under the
+[PolyForm Noncommercial License 1.0.0](LICENSE); the game's own art, music, sounds and text are under
+[CC BY-NC 4.0](LICENSE-ASSETS.md). Read, run, learn from and change it for hobby, study or research;
+no commercial use without the author's written permission. The map data in `game/map/` keeps its sources' licences (ODbL, GUGiK open
 data, CC BY 4.0), as [CREDITS.md](CREDITS.md) says.
 
 ## Related Warsaw projects

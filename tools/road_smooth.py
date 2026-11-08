@@ -66,7 +66,7 @@ VERSION = 2
 # for a taper), 969 line jogs -> 16. Lower these when a change leaves fewer; never raise them.
 CHECK_STEPS = 10
 CHECK_JOGS = 23
-CHECK_ZLINES = 2        # lane or centre lines still under a zebra (Unslop L4; 215 before the final cut; ratchet down)
+CHECK_ZLINES = 1        # lane or centre lines still under a zebra (Unslop L4; 215 before the final cut; ratchet down)
 CHECK_EDGEX = 400       # edge-line segments across a kerb (Unslop L3; 540 before seating; many are real corner mouths; ratchet down)
 MINOR = {"service", "living_street"}
 CHAIN_COS = 0.85        # ways carry on: their directions at the join within ~32 degrees

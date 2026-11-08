@@ -37,6 +37,7 @@ func _initialize() -> void:
 	var unknown: Array[String] = []
 	var total_bytes := 0
 	var tracks := 0
+	var jingles := 0
 	var data: Variant = null
 	if FileAccess.file_exists(Radio.PATH):
 		data = JSON.parse_string(FileAccess.get_file_as_string(Radio.PATH))
@@ -59,6 +60,15 @@ func _initialize() -> void:
 		if not (s.get("tracks") is Array):
 			problems.append("station %s: no tracks list" % id)
 			continue
+		# Station jingles (2026-11-05): each file exists, is under the station's folder and imports.
+		for j: Variant in s.get("jingles", []):
+			var jf := String(j)
+			if not jf.begins_with("res://audio/radio/%s/jingles/" % id) or not jf.ends_with(".ogg"):
+				problems.append("station %s: jingle %s is not res://audio/radio/%s/jingles/*.ogg" % [id, jf, id])
+			elif not (load(jf) is AudioStreamOggVorbis):
+				problems.append("station %s: jingle %s is missing or did not import" % [id, jf])
+			else:
+				jingles += 1
 		for t: Dictionary in s["tracks"]:
 			tracks += 1
 			var name := "%s / %s" % [id, t.get("title", "?")]
@@ -93,8 +103,8 @@ func _initialize() -> void:
 	await _check_radio(problems)
 	await _check_polnoc(problems)
 	await _check_greeting(problems)
-	var summary := "%d stations, %d tracks, %.2f MB of Ogg in game/audio/radio" % [
-			(data["stations"] as Array).size(), tracks, total_bytes / 1048576.0]
+	var summary := "%d stations, %d tracks, %d jingles, %.2f MB of Ogg in game/audio/radio" % [
+			(data["stations"] as Array).size(), tracks, jingles, total_bytes / 1048576.0]
 	print("radio: ", summary)
 	if not unknown.is_empty():
 		print("radio: WARN licence unknown on %d track(s), check before a release: %s" % [unknown.size(), ", ".join(unknown)])
@@ -467,6 +477,14 @@ func _host_run(radio: Node, si: int, look: Array, seconds: float) -> Array:
 ## the weather with the temperature in good Polish ("1 stopień", "22 stopnie", "20 stopni"), a
 ## sign-off, nothing left as {t}; the Polish fits the ticker (at most 160 characters).
 func _check_greeting(problems: Array[String]) -> void:
+	# The spoken greeting (greeting_clips.gd): every part of the day and every sky has its clip.
+	for part: String in ["morning", "day", "evening", "night"]:
+		for name: String in ["hello_" + part, "bye_" + part]:
+			if not (load("res://audio/voice/radio/%s.ogg" % name) is AudioStreamOggVorbis):
+				problems.append("greeting clip %s.ogg is missing or did not import" % name)
+	for sky: String in ["warm", "mild", "cold", "rain"]:
+		if not (load("res://audio/voice/radio/weather_%s.ogg" % sky) is AudioStreamOggVorbis):
+			problems.append("greeting clip weather_%s.ogg is missing or did not import" % sky)
 	for pair: Array in [[1, "1 stopień"], [2, "2 stopnie"], [5, "5 stopni"], [12, "12 stopni"], [22, "22 stopnie"], [25, "25 stopni"], [-3, "minus 3 stopnie"]]:
 		if Dialogue.stopnie(pair[0]) != pair[1]:
 			problems.append("stopnie(%d) = '%s' (want '%s')" % [pair[0], Dialogue.stopnie(pair[0]), pair[1]])

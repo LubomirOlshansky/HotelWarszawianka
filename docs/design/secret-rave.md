@@ -16,7 +16,7 @@ Pan Kołek a fictional club and doorman. No real crews, DJs, venues or brands; n
 | | When (game clock) | Where | What you see |
 | --- | --- | --- | --- |
 | Night rave | Thu-Sat nights, 22:00-06:00 | one of three spots a weekend: under the Poniatowski viaduct, a depot past the tracks in Praga, a hall by the railway towards Ochota | booth, stacks, truss, 46 dancers on the beat, six beams into the sky, a laser fan, a strobe cone (lit look only) |
-| Day rave | Fri-Sun, 12:00-20:00 | the Praga beach | the booth and a crowd in colour, no lights |
+| Day rave | Fri-Sun, 12:00-20:00 | the Praga beach under Most Poniatowskiego (F, 2026-11-07: the sand under the east arch, by the pier) | the booth and a crowd in colour, no lights |
 
 A techno thump plays by the active spot and the crowd talks (`rave_crowd`, tags night/day). Far
 away nothing is drawn (RIG_FAR 1.4 km).

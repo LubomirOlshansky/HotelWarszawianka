@@ -87,7 +87,9 @@ const TRAFFIC := [
 			"paint": ["#f2f2ee", "#e9e9e6", "#d8d2c2", "#b8bcc0"]},
 	],
 	[
-		{"name": "bus", "share": 1.0, "size": Vector3(2.5, 3.2, 18.0), "paint": ["#ffffff"]},
+		# Shape 0 the articulated bus (buses.gd's hub ring always takes it), shape 1 the solo bus.
+		{"name": "bus", "share": 0.6, "size": Vector3(2.5, 3.2, 18.0), "paint": ["#ffffff"]},
+		{"name": "solo bus", "share": 0.4, "size": Vector3(2.5, 3.2, 12.0), "paint": ["#ffffff"]},
 	],
 ]
 ## Loop 2c: the parked cars' paints (map_builder.gd picks one by the bake's index): traffic's
@@ -727,17 +729,28 @@ static func _van(boxed: bool) -> Shape:
 	return s
 
 
-## Warsaw's city bus, an 18 m articulated Solaris (the Rondo night photos, 2026-10-31): red
-## below the windows, yellow above, a long dark window band (lit at night) with pillars, a big
-## windscreen with a destination display, doors on the right, the air-conditioning box on the
-## roof; a front section (z -9 to 3), the black bellows (3 to 3.7) and a rear section (3.7 to
-## 9) on its own axle. Its length is traffic.gd's LENGTH and TRAFFIC's size.z.
+## Warsaw's city buses, red below the windows and yellow above (the Rondo night photos,
+## 2026-10-31; street photos at our stops, 2026-11-07): shape 0 the 18 m articulated bus, shape 1
+## the 12 m solo bus that runs beside it on many lines (TRAFFIC's shares), one family in the BUS
+## MultiMesh (+0 draw calls). A long dark window band (lit at night) with pillars, a big
+## windscreen under a lit destination display, doors on the right, the air-conditioning box on the
+## roof. The articulated bus: a front section (z -9 to 3), the black bellows (3 to 3.7) and a rear
+## section (3.7 to 9) on its own axle, three doors (the rear one behind the bellows, clear of the
+## axle). The solo bus: the front section alone (z -6 to 6) with its axles where a 12 m bus has
+## them, a third door behind the rear axle, its own tail lamps and back window; the rear section's
+## and the bellows' parts collapse out of sight. Its length is TRAFFIC's size.z (traffic.gd's
+## LENGTH keeps the longest).
 static func bus_mesh() -> ArrayMesh:
+	return family([bus_shape(false), bus_shape(true)])
+
+
+## One of the buses (bus_mesh) as a Shape, so traffic.gd's night signs can join it.
+static func bus_shape(solo: bool) -> Shape:
 	var s := Shape.new()
 	var red := fin(Color("#c8282a"))
 	var yellow := fin(Color("#f2c12e"))
 	var W := 1.25
-	s.xform = Transform3D(Basis.IDENTITY, Vector3(0.0, 0.0, -3.0))
+	s.xform = Transform3D(Basis.IDENTITY, Vector3(0.0, 0.0, 0.0 if solo else -3.0))
 	var lower := PackedVector2Array([Vector2(-5.96, 0.36), Vector2(-6.0, 0.6), Vector2(-5.98, 1.0),
 			Vector2(-5.96, 1.04), Vector2(5.97, 1.15), Vector2(5.99, 1.15), Vector2(6.0, 0.6), Vector2(5.96, 0.36)])
 	var lw := PackedFloat32Array([W, W, W, W, W, W, W, W])
@@ -753,7 +766,7 @@ static func bus_mesh() -> ArrayMesh:
 		var side := s.side_face(house, hw, sgn)
 		for b: Vector2 in bands:
 			s.pane(side, b.x, b.y, 0.28, 0.82, glass)
-	# Doors on the right (+x): front and middle of the front section.
+	# Doors on the right (+x): the front one ahead of the front axle and one mid-section.
 	for z: float in [-5.0, -0.6]:
 		s.side_rect(W + 0.014, 1.0, 0.42, 2.6, z - 0.6, z + 0.6, fin(Color("#2d3640")))
 	s.box(Vector3(0.0, 3.12, 1.0), Vector3(1.7, 0.28, 3.2), fin(Color("#d9d4c8")))
@@ -761,14 +774,25 @@ static func bus_mesh() -> ArrayMesh:
 	s.pane(nose, 0.05, 0.22, 0.25, 0.85, fin(HEADLIGHT, HEAD_LAMP))
 	s.pane(nose, 0.78, 0.95, 0.25, 0.85, fin(HEADLIGHT, HEAD_LAMP))
 	s.box(Vector3(0.0, 0.3, -5.92), Vector3(2.54, 0.2, 0.2), fin(TRIM))
+	# The section's back end: tail lamps and a back window (the solo bus's own; on the
+	# articulated bus they sit inside the bellows).
+	var tail := s.edge_face(lower, lw, 5)
+	s.pane(tail, 0.04, 0.18, 0.1, 0.9, fin(TAIL, TAIL_LAMP))
+	s.pane(tail, 0.82, 0.96, 0.1, 0.9, fin(TAIL, TAIL_LAMP))
+	s.pane(s.edge_face(house, hw, 2), 0.1, 0.9, 0.12, 0.5, fin(GLASS))
 	var r := 0.48
 	var wc := r * cos(PI / 6.0)
-	for z: float in [-3.9, 3.4]:
+	# A 12 m bus's axles: 2.7 m behind its front, 3.4 m ahead of its back.
+	for z: float in ([-3.3, 2.6] if solo else [-3.9, 3.4]):
 		for sgn: float in [-1.0, 1.0]:
 			s.arch(sgn * (W + 0.006), sgn, z, wc, r + 0.08, 0.36, fin(WELL))
 			s.wheel(Vector3(sgn * (W + 0.02 - 0.15), wc, z), r, 0.3, 6, sgn, fin(TYRE), fin(HUB))
-	# The rear section: its own lower and upper bodies with square ends, a door, an axle.
+	# The third door: behind the solo bus's rear axle, or behind the articulated bus's bellows.
 	s.xform = Transform3D.IDENTITY
+	var d3 := 4.25 if solo else 4.8
+	s.side_rect(W + 0.014, 1.0, 0.42, 2.6, d3 - 0.6, d3 + 0.6, fin(Color("#2d3640")))
+	# The rear section: its own lower and upper bodies with square ends, an axle.
+	s.keep_if(not solo, Vector3(0.0, 1.5, 0.0))
 	var rl := PackedVector2Array([Vector2(3.7, 0.36), Vector2(3.7, 1.15), Vector2(8.97, 1.15), Vector2(9.0, 0.6),
 			Vector2(8.96, 0.36)])
 	var rlw := PackedFloat32Array([W, W, W, W, W])
@@ -781,7 +805,6 @@ static func bus_mesh() -> ArrayMesh:
 		var rside := s.side_face(rh, rhw, sgn)
 		for b: Vector2 in rb:
 			s.pane(rside, b.x, b.y, 0.28, 0.82, glass)
-	s.side_rect(W + 0.014, 1.0, 0.42, 2.6, 6.3, 7.5, fin(Color("#2d3640")))
 	var back := s.edge_face(rl, rlw, 2)
 	s.pane(back, 0.04, 0.18, 0.1, 0.7, fin(TAIL, TAIL_LAMP))
 	s.pane(back, 0.82, 0.96, 0.1, 0.7, fin(TAIL, TAIL_LAMP))
@@ -794,7 +817,8 @@ static func bus_mesh() -> ArrayMesh:
 	var bellows := fin(Color("#1c1d20"))
 	s.box(Vector3(0.0, 1.95, 3.35), Vector3(2.3, 2.1, 0.8), bellows)
 	s.box(Vector3(0.0, 0.62, 3.35), Vector3(2.3, 0.5, 0.8), fin(TRIM))
-	return s.mesh()
+	s.show()
+	return s
 
 
 ## Loop 2c, for loop 3g: the police estate and the city guards' car in one family (police.md
@@ -974,6 +998,8 @@ static func renew_parked(nodes: Array[Node]) -> bool:
 ## spoiler, round head lamps and light hub caps make it the one retro hot hatch in town.
 ## G13: `kind` "player" (the hatch) or "player_tt" (the shop's coupe, no roof spoiler).
 static func player_meshes(paint: Array, stripes: Array, kind := "player") -> Array[ArrayMesh]:
+	if kind == "player_bike":
+		return player_bike_meshes(paint, stripes)
 	var s := Shape.new()
 	var p := spec(kind)
 	_vehicle(s, p, paint, [], fin(Color("#2f3f52")), false)
@@ -1045,6 +1071,49 @@ static func player_meshes(paint: Array, stripes: Array, kind := "player") -> Arr
 	var deck := tails.edge_face(lower, lw, 4)
 	tails.pane(deck, 0.03, 0.26, 0.72, 1.0, fin(Color.WHITE), 0.02)
 	tails.pane(deck, 0.74, 0.97, 0.72, 1.0, fin(Color.WHITE), 0.02)
+	return [body, heads.mesh(), tails.mesh()]
+
+
+## The coffee run (coffee_run.gd): the player on a ROWERILO city bike, [body, head lamp, tail
+## lamp] like the cars (three draw calls, the same material). Facing -Z, the rider's shirt is the
+## hero paint (lit from within at night like the car), the helmet the stripes. The bike is drawn
+## 1.6x life size: at the 80 m view a true 1.8 m bike is a few pixels, and the joke needs reading.
+static func player_bike_meshes(paint: Array, stripes: Array) -> Array[ArrayMesh]:
+	var k := 1.6
+	var s := Shape.new()
+	var tyre := fin(TYRE)
+	var cream := fin(Color("#efe6cf"))
+	var grey := fin(Color("#8a8d91"))
+	var skin := fin(Color("#e2b48c"))
+	var jeans := fin(Color("#33415c"))
+	var black := fin(Color("#202024"))
+	# Wheels: dark discs with light hubs, the cream step-through frame, mudguards, the basket.
+	for z: float in [-0.55, 0.55]:
+		s.box(Vector3(0, 0.34, z) * k, Vector3(0.07, 0.68, 0.68) * k, tyre)
+		s.box(Vector3(0, 0.34, z) * k, Vector3(0.09, 0.18, 0.18) * k, grey)
+		s.box(Vector3(0, 0.7, z) * k, Vector3(0.12, 0.04, 0.5) * k, cream)
+	s.box(Vector3(0, 0.45, 0.0) * k, Vector3(0.07, 0.07, 1.0) * k, cream)
+	s.box(Vector3(0, 0.62, -0.42) * k, Vector3(0.07, 0.5, 0.07) * k, cream)
+	s.box(Vector3(0, 0.62, 0.2) * k, Vector3(0.07, 0.42, 0.07) * k, cream)
+	s.box(Vector3(0, 0.88, -0.66) * k, Vector3(0.4, 0.26, 0.32) * k, grey)
+	# A paper cup in the basket (the run's whole point) and the handlebar.
+	s.box(Vector3(0.06, 1.06, -0.66) * k, Vector3(0.1, 0.14, 0.1) * k, fin(Color("#f4efe4")))
+	s.box(Vector3(0.06, 1.14, -0.66) * k, Vector3(0.11, 0.03, 0.11) * k, fin(Color("#6b4a32")))
+	s.box(Vector3(0, 1.02, -0.46) * k, Vector3(0.56, 0.04, 0.05) * k, black)
+	s.box(Vector3(0, 0.9, 0.24) * k, Vector3(0.14, 0.05, 0.22) * k, black)
+	# The rider: legs on the pedals, the shirt in the car's paint, arms to the bar, a helmet.
+	s.box(Vector3(-0.11, 0.66, 0.06) * k, Vector3(0.14, 0.5, 0.16) * k, jeans)
+	s.box(Vector3(0.11, 0.62, -0.04) * k, Vector3(0.14, 0.5, 0.16) * k, jeans)
+	s.box(Vector3(0, 1.24, 0.12) * k, Vector3(0.44, 0.56, 0.28) * k, paint)
+	for x: float in [-0.24, 0.24]:
+		s.box(Vector3(x, 1.12, -0.17) * k, Vector3(0.1, 0.1, 0.5) * k, paint)
+	s.box(Vector3(0, 1.64, 0.02) * k, Vector3(0.24, 0.24, 0.24) * k, skin)
+	s.box(Vector3(0, 1.79, 0.04) * k, Vector3(0.3, 0.12, 0.34) * k, stripes)
+	var body := s.mesh()
+	var heads := Shape.new()
+	heads.box(Vector3(0, 0.92, -0.83) * k, Vector3(0.12, 0.1, 0.04) * k, fin(Color.WHITE))
+	var tails := Shape.new()
+	tails.box(Vector3(0, 0.74, 0.82) * k, Vector3(0.12, 0.08, 0.04) * k, fin(Color.WHITE))
 	return [body, heads.mesh(), tails.mesh()]
 
 
@@ -1131,6 +1200,46 @@ static func _widths(profile: PackedVector2Array, w: float) -> PackedFloat32Array
 	return out
 
 
+## F's ask (2026-11-07): people riding inside the trams and buses. Seated (and now and then
+## standing) passengers painted just outside one window band of a vehicle's side face (`face`,
+## Shape.side_face; the band from u0 to u1 of its length, the window from v0 to v1 of its height):
+## a seat every PASSENGER_PITCH m, taken on about three in four by a hash of `seed` and the seat,
+## each a pair of shoulders in a shirt colour, a head and hair; a stander's head sits higher. Not
+## lit: at night they are dark shapes against the lit window. Part of the vehicle's own mesh, so
+## +0 draw calls; 6 triangles a passenger, ~100 a tram car.
+const PASSENGER_PITCH := 0.8
+const PASSENGER_SHIRTS := ["#2f3e5c", "#8c2f2f", "#d9d2c0", "#3e5a3a", "#5a5a60", "#c97a2b", "#1f2024", "#7a8fa8",
+		"#b54a6a", "#e6e1d3"]
+const PASSENGER_SKIN := ["#e2b48c", "#c99a74", "#a77452", "#f0c9a5"]
+const PASSENGER_HAIR := ["#2a1f18", "#4a3426", "#8a6a3c", "#bdbab2", "#141414"]
+
+
+static func passengers(s: Shape, face: Array, u0: float, u1: float, v0: float, v1: float, seed: int) -> void:
+	var c0: Vector3 = face[0]
+	var c1: Vector3 = face[1]
+	var c3: Vector3 = face[3]
+	var length := c0.distance_to(c1)
+	var height := c0.distance_to(c3)
+	if length < 0.1 or height < 0.1:
+		return
+	var seats := int(floorf((u1 - u0) * length / PASSENGER_PITCH))
+	var dv := (v1 - v0) / 0.51  # the shares below are of a tram's 0.51 window band
+	for k in seats:
+		var h := absi(hash(seed * 7919 + k * 104729))
+		if h % 4 == 0:
+			continue
+		var u := u0 + (k + 0.5) * (u1 - u0) / float(seats)
+		var hu := 0.2 / length
+		var stand := 0.12 * dv if h % 7 == 0 else 0.0
+		var shirt := fin(Color(PASSENGER_SHIRTS[(h >> 3) % PASSENGER_SHIRTS.size()]))
+		var skin := fin(Color(PASSENGER_SKIN[(h >> 7) % PASSENGER_SKIN.size()]))
+		var hair := fin(Color(PASSENGER_HAIR[(h >> 11) % PASSENGER_HAIR.size()]))
+		s.pane(face, u - hu, u + hu, v0, v0 + 0.1 * dv + stand, shirt, 0.022)
+		var hh := 0.11 / length
+		s.pane(face, u - hh, u + hh, v0 + 0.1 * dv + stand, v0 + 0.2 * dv + stand, skin, 0.022)
+		s.pane(face, u - hh * 1.1, u + hh * 1.1, v0 + 0.18 * dv + stand, v0 + 0.225 * dv + stand, hair, 0.024)
+
+
 ## A tram car about 10.5 m long; `cab` adds a driver's cab at -Z. Warsaw colours: a yellow
 ## body over a red skirt, a dark window band (lit at night) between the doors, a grey roof plate.
 ## The rear car (`rear`, turned round by the trams) shows red tail lamps at its cab. Loop 2c:
@@ -1148,7 +1257,7 @@ static func tram_mesh(cab: bool, rear := false) -> ArrayMesh:
 	var zf := -hl - nose
 	var lower := PackedVector2Array([Vector2(-hl, 0.32), Vector2(zf, 0.62), Vector2(zf, 1.1), Vector2(hl, 1.1), Vector2(hl, 0.32)])
 	var lw := _widths(lower, W)
-	# The Rondo photos (2026-10-31): a Pesa Swing is yellow with a black skirt and a red roof.
+	# The Rondo photos (2026-10-31): today's yellow tram has a black skirt and a red roof.
 	var skirt := fin(Color("#1d1e20"))
 	s.loft(lower, lw, [skirt, skirt, skirt, skirt, null], skirt)
 	var house := PackedVector2Array([Vector2(zf, 1.1), Vector2(zf + (0.38 if cab else 0.0), 3.2), Vector2(hl, 3.2), Vector2(hl, 1.1)])
@@ -1174,6 +1283,8 @@ static func tram_mesh(cab: bool, rear := false) -> ArrayMesh:
 		var side := s.side_face(house, hw, sgn)
 		for p: Vector2 in panes:
 			s.pane(side, (p.x - zf) / (hl - zf), (p.y - zf) / (hl - zf), 0.27, 0.78, fin(GLASS, LIT_WINDOW))
+			passengers(s, side, (p.x - zf) / (hl - zf), (p.y - zf) / (hl - zf), 0.27, 0.78,
+					int(p.x * 10.0) + (31 if sgn > 0.0 else 0) + (7 if cab else 0) + (3 if rear else 0))
 		for z: float in doors:
 			s.side_rect(sgn * (W + 0.014), sgn, 0.42, 2.78, z - 0.65, z + 0.65, fin(Color("#3a4048")))
 	for z: float in [-3.2, 3.2]:

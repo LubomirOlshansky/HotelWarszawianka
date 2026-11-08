@@ -7,7 +7,8 @@ extends SceneTree
 ## Auto, once (a file saved since keeps High, Medium stays Medium, Ultra round-trips). Loop G1b:
 ## Auto's image state (`[auto_image]`) round-trips, a file without it starts sharp, hand-edited
 ## values are cleaned, and --nosave writes none of it either. F's asks (2026-10-30): the
-## pedestrian zones' cap (`zone_cap`) is off in a missing file and round-trips on. The real
+## pedestrian zones' cap (`zone_cap`) is off in a missing file and round-trips on. F (2026-11-07): the closest zoom (40 m) and
+## the camera angle (`pitch`) round-trip; an angle that isn't a choice loads as 30°. The real
 ## user://settings.cfg is never touched. Deletes its scratch files.
 ##   godot --headless --path game --script res://tools/check_settings.gd
 
@@ -27,7 +28,7 @@ func _initialize() -> void:
 			and fresh.master == 1.0 and fresh.music == 1.0 and fresh.effects == 1.0 and not fresh.perf and fresh.classic_follow \
 			and fresh.fps == 60 and fresh.style == 0 and not fresh.vhs and not fresh.zone_cap and fresh.handling == 0 and is_equal_approx(fresh.sensitivity, 0.5) \
 			and not fresh.text_large and not fresh.calm and not fresh.color_safe and fresh.vibration and fresh.stop_assist \
-			and not fresh.left_handed and not fresh.lane_assist
+			and not fresh.left_handed and not fresh.lane_assist and fresh.view == 80.0 and fresh.pitch == 30.0
 	print("defaults from a missing file: %s (%s)" % ["OK" if defaults else "WRONG", fresh.summary()])
 	ok = ok and defaults
 
@@ -116,11 +117,24 @@ func _initialize() -> void:
 	a.stop_assist = false
 	a.left_handed = true
 	a.lane_assist = true
+	a.view = 40.0
+	a.pitch = 50.0
 	a.save()
 	var b := Settings.new()
 	b.path = SCRATCH
 	b.load_file()
-	var same := a.summary() == b.summary() and b.classic_follow == a.classic_follow
+	var same := a.summary() == b.summary() and b.classic_follow == a.classic_follow and b.view == 40.0 and b.pitch == 50.0
+	# F (2026-11-07): a hand-edited angle that isn't one of the choices loads as the default.
+	var cfg_p := ConfigFile.new()
+	cfg_p.set_value("display", "pitch", 33.0)
+	cfg_p.set_value("display", "view", 10.0)
+	cfg_p.save(SCRATCH_OLD)
+	var sp := Settings.new()
+	sp.path = SCRATCH_OLD
+	sp.load_file()
+	var angle_ok := sp.pitch == 30.0 and sp.view == 40.0
+	print("camera angle and zoom from a hand-edited file: %s (%.0f°, %.0f m)" % ["OK" if angle_ok else "WRONG", sp.pitch, sp.view])
+	ok = ok and angle_ok
 	print("round trip: %s\n  saved  %s\n  loaded %s" % ["OK" if same else "DIFFERENT", a.summary(), b.summary()])
 	ok = ok and same
 

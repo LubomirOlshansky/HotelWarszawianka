@@ -15,18 +15,27 @@ extends SceneTree
 ##     nothing and ends the streak; the player's rating (the last 20 rides, a new save 4,87);
 ##  5. the words: the star text, every dialogue group and tag rides.gd and gps_moments.gd ask for
 ##     has a line, Polish and English, Polish bubbles at most 70 characters, card buttons at most
-##     28.
+##     28;
+##  6. the story rides (scripts/taxi_stories.gd, data/taxi_stories.json): at least 18 stories with
+##     unique ids, each with a name, type, teaser, a real place to go to, three lines, a question and two answers (button,
+##     reply, tip, outro), every text Polish and English, bubbles at most 70 characters, buttons at
+##     most 28, the question at most 90, no brand from data/brand_denylist.json; the rotation (every
+##     story heard once before any comes back, the night one only at night, a forced id wins); the
+##     beats' timing (the first line after 3 s, 7.5 s apart, the question by 45 % of the way or
+##     32 s); a good talk's half star once; the story tip on the pay (a negative one takes the tip
+##     and the streak, never the fare).
 ## Prints `check_rides: OK`, or the problems and their count (exit 1). Under a second.
 ##   godot --headless --path game --script res://tools/check_rides.gd
 
 const Rules := preload("res://scripts/ride_rules.gd")
+const Stories := preload("res://scripts/taxi_stories.gd")
 
 ## The groups and tags the ride code asks dialogue.gd for ("" = an untagged line).
 const NEEDED := {
-	"podwozka_request": ["", "timber"],
+	"podwozka_request": ["", "timber", "date"],
 	"podwozka_pickup": ["", "offset"],
 	"podwozka_gps": ["river", "zone", "oldtown", "rechotka", "reroute", "arrive"],
-	"podwozka_passenger": ["", "believer", "hurry", "followed", "timber"],
+	"podwozka_passenger": ["", "believer", "hurry", "followed", "timber", "date"],
 	"podwozka_rating": ["5", "4", "low", "police", "cancel"],
 	"podwozka_driver": ["arrive", "reroute", "river"],
 }
@@ -43,8 +52,9 @@ func _initialize() -> void:
 	_streak()
 	_cancel_and_rating()
 	_words()
+	_stories()
 	if _problems == 0:
-		print("check_rides: OK (%d checks: stars, pay, streak, cancel, rating, words)" % _checks)
+		print("check_rides: OK (%d checks: stars, pay, streak, cancel, rating, words, stories)" % _checks)
 		quit(0)
 	else:
 		print("check_rides: %d problems in %d checks" % [_problems, _checks])
@@ -225,3 +235,100 @@ func _words() -> void:
 		if String(b).length() > 28:
 			_problems += 1
 			print("check_rides: button '%s' over 28 characters" % b)
+
+
+func _stories() -> void:
+	var all: Array = Stories.load_all()
+	_expect("story count ≥ 18", all.size() >= 18, true)
+	var deny: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/brand_denylist.json"))
+	var brands: Array = deny.get("names", []) + deny.get("rejected", [])
+	var ids := {}
+	for st in all:
+		var id := String(st.get("id", ""))
+		_expect("story id set", id != "", true)
+		_expect("story id %s unique" % id, ids.has(id), false)
+		ids[id] = true
+		var texts: Array = []  # [text, limit]
+		_expect("%s: a name" % id, String(st.get("name", "")) != "", true)
+		for key in ["who", "teaser", "ask"]:
+			texts.append([st.get(key, []), 90])
+		var lines: Array = st.get("lines", [])
+		_expect("%s: three lines" % id, lines.size(), 3)
+		for l in lines:
+			texts.append([l, 70])
+		var answers: Array = st.get("answers", [])
+		_expect("%s: two answers" % id, answers.size(), 2)
+		for a in answers:
+			texts.append([a.get("say", []), 28])
+			texts.append([a.get("reply", []), 70])
+			texts.append([a.get("outro", []), 90])
+			_expect("%s: an answer's tip is a number" % id, typeof(a.get("tip")) in [TYPE_INT, TYPE_FLOAT], true)
+			_expect("%s: an answer's star is true or false" % id, typeof(a.get("star")) == TYPE_BOOL, true)
+		var to: Dictionary = st.get("to", {})
+		_expect("%s: a real place to go to (to.name, to.at, to.r)" % id, to.has("name") and (to.get("at", []) as Array).size() == 2
+				and float(to.get("r", 0)) > 0.0 and (to.get("drop", []) as Array).size() == 2, true)
+		texts.append([to.get("name", []), 28])
+		if st.has("silent"):
+			texts.append([st["silent"], 70])
+		for t in texts:
+			var pair: Array = t[0]
+			_expect("%s: Polish and English %s" % [id, str(pair)], pair.size() == 2 and String(pair[0]) != "" and String(pair[1]) != "", true)
+			if pair.size() < 2:
+				continue
+			if String(pair[0]).length() > int(t[1]):
+				_expect("%s: ≤ %d characters: %s" % [id, t[1], pair[0]], String(pair[0]).length(), t[1])
+			for side in pair:
+				var low := " %s " % String(side).to_lower()
+				for b in brands:
+					var rx := RegEx.create_from_string("(?<![\\p{L}\\p{N}])%s(?![\\p{L}\\p{N}])" % _escape(String(b)))
+					if rx.search(low) != null:
+						_expect("%s: no brand '%s' in %s" % [id, b, side], true, false)
+	var night := all.filter(func(st: Dictionary) -> bool: return String(st.get("when", "")) == "night")
+	# The rotation: a whole round by day hears each day story exactly once.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var seen: Array = []
+	var day := all.size() - night.size()
+	var heard := {}
+	for i in day:
+		var st: Dictionary = Stories.pick(all, seen, rng, false)
+		_expect("a day pick is not a night story", String(st.get("when", "")) == "night", false)
+		heard[st["id"]] = true
+		seen = Stories.heard(seen, st["id"])
+	_expect("one day round hears every day story once", heard.size(), day)
+	var next: Dictionary = Stories.pick(all, seen, rng, false)
+	_expect("after the round, not one of the last four", seen.slice(seen.size() - 4).has(next["id"]), false)
+	if not night.is_empty():
+		var by_night: Dictionary = Stories.pick(all, seen, rng, true)
+		_expect("at night the unheard night story comes next", by_night["id"], night[0]["id"])
+	_expect("a forced story", Stories.pick(all, [], rng, false, "mordor").get("id", ""), "mordor")
+	_expect("heard() moves an id to the end", Stories.heard(["a", "b", "c"], "a"), ["b", "c", "a"])
+	# The beats.
+	_expect("no line before 3 s", Stories.due(0, 1.0, 2.0, 99.0), false)
+	_expect("the first line at 3 s", Stories.due(0, 0.0, 3.0, 0.0), true)
+	_expect("lines 7.5 s apart", Stories.due(1, 0.9, 20.0, 7.0), false)
+	_expect("line 2 at 16 % of the way", Stories.due(1, 0.16, 5.0, 8.0), true)
+	_expect("the question waits for 45 %", Stories.due(3, 0.44, 20.0, 9.0), false)
+	_expect("the question at 45 %", Stories.due(3, 0.45, 20.0, 9.0), true)
+	_expect("the question by 32 s anyway", Stories.due(3, 0.1, 32.0, 9.0), true)
+	_expect("no beat after the question", Stories.due(4, 1.0, 99.0, 99.0), false)
+	# The half star and the pay.
+	var r := Rules.new()
+	r.begin(100.0)
+	r.drive_event("bump", 9.0)
+	_expect("a good talk's half star", r.chat(), true)
+	_expect("only once", r.chat(), false)
+	_expect("stars after a bump and a good talk", r.stars(), 5.0)
+	var plain := Rules.pay(1800.0, 5.0, false, false, false, 0)
+	var talk := Rules.pay(1800.0, 5.0, false, false, false, 0, 12)
+	_expect("a story tip adds to the total", int(talk["total"]) - int(plain["total"]), 12)
+	var invest := Rules.pay(1800.0, 5.0, false, false, false, 0, -20)
+	_expect("an investment of 20 zł takes the 12 zł tip, not the fare", int(invest["total"]), int(plain["fare"]))
+	_expect("the result card says the story tip", String(Rules.result_text({"stars": 5.0, "pay": talk, "rating": 4.9})[1]).contains("rozmowa 12"), true)
+
+
+func _escape(t: String) -> String:
+	var out := ""
+	for c in t:
+		out += ("\\" + c) if ".+*?()[]{}|^$\\".contains(c) else c
+	return out

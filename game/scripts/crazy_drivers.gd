@@ -7,6 +7,10 @@ extends Node
 ## the chatter budget (dialogue.say_reaction, key "crazy"), at most one line per car; and KEBAB
 ## FM's host reports a Pasatini sighting (`radio_host` "pasatini") at most once every RADIO_GAP s
 ## when it passes near the view. Everything ticks at TICK (4 Hz): no per-frame work, no drawing.
+## PT-25 (2026-11-07): a line the budget refuses at the cut (the player over Chatter.MUTE_KMH, the
+## reaction window, the car struggling, the car off screen) no longer spends that car's one line:
+## the cut stays pending for PENDING s and the line comes as soon as the budget lets it while the
+## car is on screen within SPEAK_NEAR m.
 
 ## A cut-in or block counts within this of the player's car (m).
 const CUT_NEAR := 25.0
@@ -14,6 +18,10 @@ const CUT_NEAR := 25.0
 const SIGHT_NEAR := 45.0
 const RADIO_GAP := 600.0
 const TICK := 0.25
+## A refused line is tried again for this long after the cut (s), while the car is close.
+const PENDING := 6.0
+## The pending line is said only while the car is within this of the player's car (m).
+const SPEAK_NEAR := 40.0
 ## The line groups by `crazy` (0 unused).
 const GROUPS := ["", "crazy_taxi", "crazy_courier", "crazy_pasatini"]
 const BUBBLE := Color("#f3c72b")
@@ -30,11 +38,15 @@ var cuts := 0
 var lines := 0
 var horns := 0
 var radio_lines := 0
+## Cuts whose line never came (the budget kept refusing for PENDING s, or the car left).
+var lost_lines := 0
 
 var _t := 0.0
 ## Driver -> [blocks, race_passes] last tick; Driver -> true once it has spoken.
 var _seen := {}
 var _talked := {}
+## Driver -> seconds left to say its pending line.
+var _pending := {}
 var _radio_wait := 0.0
 
 
@@ -73,6 +85,21 @@ func step(dt: float) -> void:
 	for d in _talked.keys():
 		if not now.has(d):
 			_talked.erase(d)
+	for d in _pending.keys():
+		var left: float = float(_pending[d]) - dt
+		var at2 := Vector2(d.pos.x, d.pos.z)
+		if not now.has(d) or not d.active or _talked.has(d):
+			_pending.erase(d)
+			if not _talked.has(d):
+				lost_lines += 1
+		elif d.visible and at2.distance_to(me2) < SPEAK_NEAR and _speak(d):
+			_pending.erase(d)
+		elif left <= 0.0:
+			_pending.erase(d)
+			lost_lines += 1
+			_log("%s line lost" % GROUPS[d.crazy])
+		else:
+			_pending[d] = left
 
 
 ## A crazy driver cut in or blocked near the player: a horn, and a line once per car.
@@ -82,14 +109,22 @@ func _cut(d: Object) -> void:
 		sfx.play_at("horn", (d.pos as Vector3) + Vector3.UP * 0.5)
 		horns += 1
 	_log("%s cut in at %.0f, %.0f" % [GROUPS[d.crazy], d.pos.x, d.pos.z])
-	if _talked.has(d) or dialogue == null or not d.visible:
+	if _talked.has(d) or dialogue == null:
 		return
-	_talked[d] = true
+	if not (d.visible and _speak(d)):
+		_pending[d] = PENDING
+
+
+## Says the car's one line if the budget lets it; only a line really shown spends it.
+func _speak(d: Object) -> bool:
 	var kind: int = d.crazy
 	var anchor := func() -> Vector3:
 		return (d.pos as Vector3) + Vector3(0.0, 1.5, 0.0) if d.active and d.crazy == kind else Vector3.INF
-	if not dialogue.say_reaction(anchor, "", GROUPS[kind], "", 3.4, BUBBLE, 2.0, true, "crazy").is_empty():
-		lines += 1
+	if dialogue.say_reaction(anchor, "", GROUPS[kind], "", 3.4, BUBBLE, 2.0, true, "crazy").is_empty():
+		return false
+	_talked[d] = true
+	lines += 1
+	return true
 
 
 ## KEBAB FM's host: a Pasatini sighting (once per RADIO_GAP, a station on).

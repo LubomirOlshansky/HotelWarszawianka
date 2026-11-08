@@ -64,3 +64,7 @@ L3 for the front, L1 elsewhere; budget 1100 (`check_mesh_quality.gd`). Shot:
 | window | pointed panel | 4.2 x 8 m, head to 25.4 m | the second tier | M_GLASS | 3 facade |
 | pinnacles | posts with pointed caps | tier height | tier corners, the two buttresses | M_STONE | 4 roof |
 | cross | two bars | to 35 m | the top step | M_STONE | 4 roof |
+
+## Update
+
+Photo pass 2026-11-06 (refs/archikatedra 1 and 3, Commons photos): body 16 m of brick (M_GOTHIC) with three pointed windows in white splays (side ones 2 m wide to 13.4 m, middle 2.3 m to 14.2 m), two buttresses at m ± 5.5, a stone frieze at 16-17.2 m, then a gable of six levels (full width 26 m, each level 2.2 m narrower per side and 3.3 m taller, to 21 m over the frieze) with brick shafts and cream panels each holding a blind lancet, gilt cross; an octagonal copper bell turret on the ridge. Replaces the four-tier gable below.

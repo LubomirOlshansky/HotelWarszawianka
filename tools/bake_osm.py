@@ -16,6 +16,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import cycleways  # noqa: E402  (cycle paths: gaps closed, split ways joined, corners smoothed)
 import bake_roads  # noqa: E402  (v0.75: carriageways, decks, markings, kerbs)
 from map_shape import Shape  # noqa: E402  (map north: the box with its north extension)
+import stairs  # noqa: E402  (stairs across the city: OSM stair tags)
+import barrier_tags  # noqa: E402  (walls, fences, hedges: heights, materials; the city walls)
 
 # Loop 3d-1: the demo box (docs/DEMO.md 2.1, the user's decision 2026-10-29): Rondo Daszyńskiego
 # to past the stadium and Most Łazienkowski, MDM to just past the Barbakan, 5,318 × 3,782 m =
@@ -446,6 +448,12 @@ def main(src, trees_src, dst, extras_src=None, more_src=None):
         out[key] = [_lv({k: v for k, v in m.items() if k != "dk"}, m.get("dk", -1)) for m in out[key]]
     _strip_private(out)
     final_poles(out)
+    # Bridge cycle paths (F, 2026-11-07, photos LZ-1/LZ-1b/LZ-3c): Most Łazienkowski's cycle bridges
+    # hang 4 m under the road deck, not at the river's clearance; before the structures see the decks
+    # (tools/cycle_hang.py; the same code runs on a baked map).
+    import cycle_hang
+    map_dir = os.path.dirname(os.path.abspath(dst))
+    print("cycle_hang: " + cycle_hang.apply(out, cycle_hang.terrain_of(map_dir, out)))
     # Loop 3b: the builder's structures (piers, retaining walls, building cuts, the
     # Poniatowski towers' seats), placed on the finished map data (tools/bake_structures.py).
     import bake_structures
@@ -479,6 +487,28 @@ def main(src, trees_src, dst, extras_src=None, more_src=None):
     # the lane lines stitched across them, small line kinks rounded (tools/road_smooth.py).
     import road_smooth
     print("road_smooth: " + road_smooth.apply(out))
+    # Thin towers (F, 2026-11-07): each researched small building's use and seen height
+    # (game/data/small_buildings.json; small_buildings.gd draws it).
+    import building_heights
+    print("building_heights: " + building_heights.apply(out))
+    # Main's road bugs (F, 2026-11-07, "main as base, small fixes"): lane lines and arrows out of the
+    # junctions' mouths, zebras and cycle crossings run on to the kerbs (tools/road_fixes.py).
+    import road_fixes
+    print("road_fixes: " + road_fixes.apply(out))
+    # Street objects unslopped (F, 2026-11-07): lamps, signals, benches, bins, racks, shelters, parked
+    # cars and barriers out of walls, carriageways, water and decks; gates where paths cross fences;
+    # balustrades round stairs (tools/object_fixes.py; the same code runs on a baked map). Before
+    # bus_stops: it paints at the shelters this leaves.
+    import object_fixes
+    print("object_fixes: " + object_fixes.apply(out))
+    # The buses thread (2026-11-07): the stops' white zigzag (P-17) and yellow kerb line, after
+    # road_fixes, on the smoothed lanes and the zebras as they end (tools/bus_stops.py; the same code runs on a baked map).
+    import bus_stops
+    bus_stops.apply(out)
+    # Tram stops (F, 2026-11-07): tram islands 0.3 m high (not a train's 0.9 m), their boarding
+    # edge and the railing along the road found once (tools/tram_stops.py).
+    import tram_stops
+    print("tram_stops: " + tram_stops.apply(out))
     # Loop "content POIs" (2026-10-31): the corner shops, metro entrances, city bike docks, the
     # places' missing addresses and the Leżaks with their zones, appended after every older poi
     # on the finished data (they keep clear of its solids; tools/bake_street_pois.py).
@@ -764,7 +794,11 @@ def make_building(t, pts, is_part):
     if height is None and levels is not None:
         height = levels * 3.3 + 1.0
     if height is None:
-        height = 14.0
+        # No height tags: a guess by kind and footprint (tools/building_heights.py; a flat
+        # 14 m stood kiosks and metro lift housings up as thin towers, F 2026-11-07).
+        import building_heights
+        height = building_heights.default_height(t.get("building") or t.get("building:part") or "",
+                                                 abs(ring_area(pts)))
     min_height = num(t.get("min_height"))
     if min_height is None and num(t.get("building:min_level")) is not None:
         min_height = num(t.get("building:min_level")) * 3.3
@@ -1002,7 +1036,7 @@ def bake_details(els, nodes, ways, more_src, roads, rect):
     def line(ids):
         return [project(*nodes[i]) for i in ids if i in nodes]
 
-    out = {k: [] for k in ("rails", "platforms", "islands", "lines", "surfaces", "steps")}
+    out = {k: [] for k in ("rails", "platforms", "islands", "lines", "surfaces", "steps", "citywalls")}
     rail_ends = []   # loop 3d-1: (first node, last node, has no layer of its own, all nodes) per rail
     for w in all_ways.values():
         t = w.get("tags", {})
@@ -1026,9 +1060,16 @@ def bake_details(els, nodes, ways, more_src, roads, rect):
             out["surfaces"].append({"k": "paving", "p": flat(pts[:-1])})
         elif t.get("barrier") in ("hedge", "fence", "wall", "retaining_wall"):
             kind = {"retaining_wall": "wall"}.get(t["barrier"], t["barrier"])
-            out["lines"].append({"k": kind, "p": flat(pts)})
+            # Stairs and walls (2026-11-07): a barrier's mapped height, a wall's material and a
+            # fence's type (tools/barrier_tags.py), instead of one height and colour per kind.
+            out["lines"].append(dict({"k": kind, "p": flat(pts)}, **barrier_tags.barrier_fields(t)))
+        elif t.get("barrier") == "city_wall":
+            # The Old Town's defence walls (OSM areas), drawn as brick walls (map_builder.gd).
+            cw = barrier_tags.city_wall(t, pts)
+            if cw:
+                out["citywalls"].append(cw)
         elif t.get("highway") == "steps":
-            out["steps"].append({"p": flat(pts)})
+            out["steps"].append(dict({"p": flat(pts)}, **stairs.stair_tags(t)))
         elif closed and (t.get("landuse") in ("railway", "flowerbed", "construction", "brownfield")
                          or t.get("leisure") in ("playground", "fountain") or t.get("amenity") == "fountain"
                          or t.get("man_made") == "planter"):

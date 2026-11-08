@@ -85,3 +85,6 @@ L2, 1508 triangles, budget 1810 (check_mesh_quality BUDGET "krasinski"). Shots: 
 | porch | 4 columns, slab, rail | 6.8 x 1.9 m at 5 m | street door | M_STONE #c3c5bc | 3 the porch |
 | doors | 2 portals | 3.2 x 4.3 m | both fronts | M_STONE #c3c5bc, door #5e432f | facade |
 | steps | 6 boxes | 6.8-8.4 m wide | both doors | M_STONE #c3c5bc | ground |
+
+## The garden (2026-11-06, F's aerial photos)
+Site `krasinski_ogrod`, no card: the flower ring round the two fountains, a cross of lawn on gravel with flower corners and four clipped cones, two hedged lawn panels, all on the palace's axis and inside the mapped paths. Budget 900.

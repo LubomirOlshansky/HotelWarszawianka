@@ -51,7 +51,7 @@ const PAD_ZOOM := 1.4
 const PAD_HOLD := 99
 ## The icons' badge radius in points, and the zoom (metres across the screen's height) under
 ## which their names show.
-const ICON_R := 13.0
+const ICON_R := 11.0
 const NAMES_M := 2200.0
 ## The side streets (residential, service: map_art.gd's minor mesh) show under this zoom only.
 const MINOR_M := 2600.0
@@ -109,6 +109,16 @@ var side_spots := PackedVector2Array()
 var side_colours := PackedColorArray()
 ## G11: each place's shape (hud.gd POI_*), parallel to side_spots.
 var side_shapes := PackedInt32Array()
+## The questlines' starts (story_quests.gd) and their colours; quest focus (a quest under way: the
+## side places, the garage, the "?" marks and the starts stay off, the main star dims).
+var story_spots := PackedVector2Array()
+var story_colours := PackedColorArray()
+## The questlines' names (in the language shown) by start, for their labels.
+var story_names := PackedStringArray()
+var focus := false
+## F (2026-11-07): the hospitals only matter to a rescue; their marks show only while one is on
+## (main.gd sets it on open).
+var hospitals := false
 ## The minimap's night (kept for hud.gd; the full map has one look day and night).
 var night := 0.0
 ## Loop 3h slice 1: districts.gd `view()` (names, label point, polygons, found, pct) and the total %.
@@ -150,7 +160,7 @@ var _legend_icons: Array[Control] = []
 var _legend_art: Control
 ## The legend's rows: [Polish · English]; their icons in order: the star, the ringed dot, the
 ## kebab stand's badge, the station's triangle, the garage's diamond, the metro's pin, the "?".
-const LEGEND := ["główny wątek · main line", "zlecenie · side job", "kebab · kebab stand", "stacja · job station",
+const LEGEND := ["główny wątek · main line", "wątek: start · questline start", "zlecenie · side job", "kebab · kebab stand", "stacja · job station",
 		"warsztat · garage", "metro · underground", "nieodkryte · not found yet"]
 ## For checks: the last spot teleported to (INF: none).
 var last_teleport := Vector2.INF
@@ -531,13 +541,14 @@ func _paint_legend() -> void:
 	for c in _legend_icons:
 		ic.append(c.get_global_rect().get_center() - _legend_art.get_global_rect().position)
 	hud._tri_begin()
-	hud.main_star(ic[0], 1.2)
-	hud.side_pin(ic[1], 1.2, Color("#ff8a3d"))  # jobs.gd KEBAB_COLOUR
-	hud.poi_mark(ic[2], 5.4 * pt, Color("#ff8a3d"), MapIcons.POI_KEBAB)
-	hud.poi_mark(ic[3], 5.4 * pt, Color("#4fd8c4"), MapIcons.POI_STATION)  # jobs.gd SLOIK_COLOUR
-	hud._tri_diamond(ic[4], 4.6 * pt, Color("#5aa0ff"))  # garage.gd GARAGE_COLOUR
-	MapIcons.paint(hud, "metro", MapIcons.METRO, ic[5] + Vector2(0.0, 8.0 * pt), 6.2 * pt)
-	hud._tri_question(ic[6], 1.3)
+	hud.main_star(ic[0], 1.0)
+	hud.story_badge(ic[1], 1.0, Color("#2fb8e0"))  # boat_race.gd COLOUR
+	hud.side_pin(ic[2], 1.2, Color("#ff8a3d"))  # jobs.gd KEBAB_COLOUR
+	hud.poi_mark(ic[3], 5.4 * pt, Color("#ff8a3d"), MapIcons.POI_KEBAB)
+	hud.poi_mark(ic[4], 5.4 * pt, Color("#4fd8c4"), MapIcons.POI_STATION)  # jobs.gd SLOIK_COLOUR
+	hud._tri_diamond(ic[5], 4.6 * pt, Color("#5aa0ff"))  # garage.gd GARAGE_COLOUR
+	MapIcons.paint_quiet(hud, "metro", MapIcons.METRO, ic[6], 7.5 * pt)
+	hud._tri_question(ic[7], 1.3)
 	hud._tri_flush(_legend_art)
 
 
@@ -652,6 +663,14 @@ func set_districts(view: Array[Dictionary], total: int, syrenki_found := 0, syre
 	_fit()
 
 
+## The questlines' starts and quest focus (hud.gd `set_story`).
+func set_story(points: PackedVector2Array, colours: PackedColorArray, in_focus: bool, names := PackedStringArray()) -> void:
+	story_names = names
+	story_spots = points
+	story_colours = colours
+	focus = in_focus
+
+
 ## G12 part 2: the quests on offer now (quest_lines.gd entries), the tab to show first and the id
 ## of the quest pin (""); call after open().
 func set_quests(entries: Array, line: int, pick_id := "") -> void:
@@ -681,10 +700,12 @@ func _fill_quests() -> void:
 	var tabs := HBoxContainer.new()
 	tabs.add_theme_constant_override("separation", int(6.0 * pt))
 	box.add_child(tabs)
-	for line in [Lines.Line.CAR, Lines.Line.HELI]:
+	# F (2026-11-07): a third tab, WĄTKI, the big questlines (story_quests.gd); in the beta a tap
+	# starts one now.
+	for line in [Lines.Line.CAR, Lines.Line.HELI, Lines.Line.STORY]:
 		var b := Button.new()
-		b.name = "tab_car" if line == Lines.Line.CAR else "tab_heli"
-		b.text = Lang.pick("ZADANIA AUTO", "CAR QUESTS") if line == Lines.Line.CAR else Lang.pick("ZADANIA HELI", "HELI QUESTS")
+		b.name = ["tab_car", "tab_heli", "tab_story"][line]
+		b.text = [Lang.pick("AUTO", "CAR"), Lang.pick("HELI", "HELI"), Lang.pick("WĄTKI", "STORIES")][line]
 		b.focus_mode = Control.FOCUS_NONE
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.custom_minimum_size.y = TAB_H * pt
@@ -710,7 +731,7 @@ func _fill_quests() -> void:
 		# G12b: the pad's words for the card (A stays the teleport hold).
 		var keys := Label.new()
 		keys.name = "pad_keys"
-		keys.text = Gamepad.fmt(Lang.pick("{x}: AUTO / HELI · krzyżak: wybór · {y}: bierz", "{x}: CAR / HELI · D-pad: pick · {y}: take"))
+		keys.text = Gamepad.fmt(Lang.pick("{x}: AUTO / HELI / WĄTKI · krzyżak: wybór · {y}: bierz", "{x}: CAR / HELI / STORIES · D-pad: pick · {y}: take"))
 		keys.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		keys.custom_minimum_size.x = QUEST_W * pt
 		keys.add_theme_font_size_override("font_size", _px(T_SUB))
@@ -725,6 +746,18 @@ func _fill_quests() -> void:
 		none.add_theme_font_size_override("font_size", _px(T_SUB))
 		none.add_theme_color_override("font_color", Color("#c9c2d8"))
 		box.add_child(none)
+	# The WĄTKI tab lists every questline: past MAX_ROWS rows they scroll (the card keeps its size).
+	var holder: Container = box
+	if quest_rows.size() > Lines.MAX_ROWS:
+		var scroll := ScrollContainer.new()
+		scroll.name = "story_scroll"
+		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		scroll.custom_minimum_size = Vector2(QUEST_W, (ROW_H + 4.0) * Lines.MAX_ROWS) * pt
+		box.add_child(scroll)
+		var inner := VBoxContainer.new()
+		inner.add_theme_constant_override("separation", int(4.0 * pt))
+		scroll.add_child(inner)
+		holder = inner
 	for i in quest_rows.size():
 		var r: Dictionary = quest_rows[i]
 		var b := Button.new()
@@ -760,16 +793,21 @@ func _fill_quests() -> void:
 			sb.content_margin_left = 12.0 * pt
 			sb.content_margin_right = 6.0 * pt
 			b.add_theme_stylebox_override(st, sb)
+		if not bool(r.get("open", true)):
+			b.modulate = Color(1, 1, 1, 0.7)  # a questline closed at this hour (the beta still starts it)
 		b.pressed.connect(pick_row.bind(i))
-		box.add_child(b)
+		holder.add_child(b)
 		_quest_buttons.append(b)
 	_quests.reset_size()
 	_quests.visible = not cards_shown and not quest_entries.is_empty()
 	_fit()
 
 
-## A tab's colour: the car's amber pickup, the helicopter's violet (colour-safe aware).
+## A tab's colour: the car's amber pickup, the helicopter's violet, the questlines' pink
+## (colour-safe aware).
 func _line_colour(line: int) -> Color:
+	if line == Lines.Line.STORY:
+		return Access.tint(Lines.STORY_COLOUR)
 	return Access.tint(Lines.HELI_COLOUR if line == Lines.Line.HELI else Color("#ff8a3d"))
 
 
@@ -788,7 +826,7 @@ func pad_quest(button: int) -> bool:
 		return false
 	match button:
 		JOY_BUTTON_X:
-			show_line(Lines.Line.HELI if quest_line == Lines.Line.CAR else Lines.Line.CAR)
+			show_line((quest_line + 1) % 3)  # AUTO, HELI, WĄTKI
 			pad_select(0)
 		JOY_BUTTON_DPAD_DOWN:
 			pad_select(1)
@@ -853,30 +891,33 @@ func _paint() -> void:
 	var fog := Color(0.12, 0.13, 0.2, 0.34)
 	for i in range(0, _fog.size() - 2, 3):
 		hud._tri(to_screen(_fog[i]), to_screen(_fog[i + 1]), to_screen(_fog[i + 2]), fog, fog, fog)
-	# The landmarks' pins: the most important first; one that would touch a pin already drawn is
-	# left out (they come back as it zooms in).
+	# The landmarks, printed small on the map (no pins since 2026-11-07): the most important first;
+	# one that would touch one already drawn is left out (they come back as it zooms in).
 	var r := ICON_R * pt
 	var shown: Array[Vector2] = []
 	var named: Array[Dictionary] = []
 	var close_in := _view().y / ppm <= NAMES_M
 	for ic in icons:
+		if str(ic["shape"]) == "hospital" and not hospitals:
+			continue
 		var tip := to_screen(ic["at"])
 		if not view.grow(r * 2.0).has_point(tip):
 			continue
-		var c := tip - Vector2(0.0, r * 1.45)
+		var c := tip
 		var crowded := false
 		for q in shown:
-			if q.distance_to(c) < r * 2.3:
+			if q.distance_to(c) < r * 1.7:
 				crowded = true
 				break
 		if crowded:
 			continue
 		shown.append(c)
-		MapIcons.paint(hud, ic["shape"], ic["colour"], tip, r)
+		# F (2026-11-07): printed on the map, quiet (no pins); fainter still while a quest runs.
+		MapIcons.paint_quiet(hud, ic["shape"], ic["colour"], c, r, 0.5 if focus else 0.9)
 		if close_in:
 			named.append(ic)
 	# The side quests' places to start one: squares in their job's colour.
-	for i in side_spots.size():
+	for i in (0 if focus else side_spots.size()):
 		var at := to_screen(side_spots[i])
 		if view.has_point(at):
 			hud.poi_mark(at, 5.2 * pt, side_colours[i] if i < side_colours.size() else Color.WHITE,
@@ -886,7 +927,7 @@ func _paint() -> void:
 		if view.has_point(at):
 			hud._tri_fan(at, 4.2 * pt, 0.0, TAU, hud.OUTLINE)
 			hud._tri_fan(at, 3.0 * pt, 0.0, TAU, GOLD)
-	for q in unknown:
+	for q in (PackedVector2Array() if focus else unknown):
 		var at := to_screen(q)
 		if view.has_point(at):
 			hud._tri_question(at, 1.6)
@@ -895,7 +936,12 @@ func _paint() -> void:
 		if view.has_point(at):
 			hud._tri_fan(at, 4.4 * pt, 0.0, TAU, hud.OUTLINE)
 			hud._tri_fan(at, 3.2 * pt, 0.0, TAU, hud.SCENE_AMBER)
-	if garage != Vector2.INF:
+	# The questlines' starts: the "!" badges, bigger than any street job's icon (none in focus).
+	for i in story_spots.size():
+		var at := to_screen(story_spots[i])
+		if view.has_point(at):
+			hud.story_badge(at, 2.3, story_colours[i] if i < story_colours.size() else Color.WHITE)
+	if garage != Vector2.INF and not focus:
 		var g := to_screen(garage)
 		if view.has_point(g):
 			hud._tri_diamond(g, 6.5 * pt, garage_colour)
@@ -909,9 +955,9 @@ func _paint() -> void:
 		var mp := to_screen(main_at)
 		var inner := Rect2(Vector2.ZERO, _view()).grow(-24.0 * pt)
 		if inner.has_point(mp):
-			hud.main_star(mp, 1.9)
+			hud.main_star(mp, 2.2, focus)
 		else:
-			hud.main_star(mp.clamp(inner.position, inner.end), 1.3)
+			hud.main_star(mp.clamp(inner.position, inner.end), 1.4, focus)
 	var c := to_screen(car)
 	var d := Vector2(-sin(car_yaw), -cos(car_yaw))
 	var side := Vector2(-d.y, d.x)
@@ -984,10 +1030,29 @@ func _paint() -> void:
 			o.draw_string(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, size, ink)
 	# The pins' names, close in.
 	var ns := _px(T_SUB)
+	# The questlines' names under their badges (any zoom: there are few; a clash leaves one out).
+	for i in mini(story_spots.size(), story_names.size()):
+		var text := story_names[i]
+		var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, ns).x
+		var p := to_screen(story_spots[i]) + Vector2(-w * 0.5, 21.0 * pt + ns)
+		var box := Rect2(p - Vector2(0.0, ns), Vector2(w, ns * 1.3)).grow(2.0 * pt)
+		if not view.has_point(p):
+			continue
+		var clash := false
+		for q in taken:
+			if q.intersects(box):
+				clash = true
+				break
+		if clash:
+			continue
+		taken.append(box)
+		var col := Access.tint(story_colours[i]) if i < story_colours.size() else Color.WHITE
+		o.draw_string_outline(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, ns, _px(5), Color(0.11, 0.1, 0.14, 0.95))
+		o.draw_string(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, ns, col.lightened(0.35))
 	for ic in named:
 		var text: String = ic["pl"]
 		var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, ns).x
-		var p := to_screen(ic["at"]) + Vector2(-w * 0.5, ns * 1.1)
+		var p := to_screen(ic["at"]) + Vector2(-w * 0.5, ICON_R * pt * 0.85 + ns)
 		var box := Rect2(p - Vector2(0.0, ns), Vector2(w, ns * 1.3)).grow(2.0 * pt)
 		var clash := false
 		for q in taken:
@@ -997,8 +1062,9 @@ func _paint() -> void:
 		if clash:
 			continue
 		taken.append(box)
-		o.draw_string_outline(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, ns, _px(4), Color(0.11, 0.1, 0.14, 0.92))
-		o.draw_string(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, ns, Color("#fff8e8"))
+		# Printed like a map's own labels: dark ink in a cream outline (quieter than the quests' names).
+		o.draw_string_outline(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, ns, _px(4), Color(1.0, 0.97, 0.9, 0.85))
+		o.draw_string(font, p, text, HORIZONTAL_ALIGNMENT_LEFT, -1, ns, Color(0.16, 0.14, 0.2, 0.95))
 
 
 ## The map point (m) under a screen point (px).

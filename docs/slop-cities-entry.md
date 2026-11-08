@@ -15,7 +15,7 @@ Under `cities.regions` → `Europe` → `- city: Warsaw` → `takes:`, after the
 
 ```yaml
           - tag: Around Warsaw
-            source: https://github.com/LubomirOlshansky/AroundWarsaw
+            source: (repo link withheld; the repo is not linked publicly)
             by: LubomirOlshansky
             desc: A small-car arcade drive and a helicopter through the real centre, with gentle police, side jobs, a car radio and Warsaw humour; Godot 4.7 for iPhone and Android, from OSM and GUGiK data.
             flags: [source only, isometric, own engine]

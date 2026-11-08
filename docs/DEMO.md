@@ -966,10 +966,10 @@ should list them when the user accepts this plan.
 9. **Moving the HUD loop (2e) ahead of the car models (2c) and jokes (2d)**? *Default: yes.*
 10. **The screenshot's location**: this plan reads it as the east end. Both ends share the
     defects and both get fixed. *Default: no action needed.*
-11. **Open-source licence**: decided by the user on 2026-10-28: **MIT** for the code and the
-    game's own sounds, music and art (`LICENSE`); the map data keeps ODbL (OSM), CC BY 4.0 (the
-    trees) and the GUGiK terms (`CREDITS.md`). The repo is
-    https://github.com/LubomirOlshansky/AroundWarsaw (public).
+11. **Licence**: changed by the user on 2026-11-06 to source-available, non-commercial:
+    PolyForm Noncommercial 1.0.0 for the code (`LICENSE`), CC BY-NC 4.0 for the game's own art,
+    sounds, music and text (`LICENSE-ASSETS.md`); the map data keeps ODbL (OSM), CC BY 4.0 (the
+    trees) and the GUGiK terms (`CREDITS.md`). The repo is not linked from public pages.
 12. **TestFlight**: agents prepare a signed-ready archive and the user uploads it from Xcode or
     Transporter. *Default: yes.*
 
