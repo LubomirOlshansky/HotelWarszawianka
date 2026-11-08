@@ -37,7 +37,8 @@ Tension: Ivan wants light and fruity, Bogdan wants strong, you cast the deciding
    road beside it. The best candidates in the mapped data, in game metres from the origin: one
    at about (-1848, 47), roughly 350 m from the 19. Dzielnica block and 355 m from Plater 53;
    others at (-1706, -124) (170 m / 413 m) and (-1809, 241) (530 m / 240 m). Built default: the
-   first, subject to the map engineer checking that a kerb is reachable and that it is a
+   first (about 52.2336 N, 20.9969 E, 57-62 m from Al. Jana Pawła II, Pereca and Prosta; no street
+   address in the data, a court inside a block), subject to the map engineer checking that a kerb is reachable and that it is a
    tennis-like pitch (the data holds every sports court); a tennis net, a bag and Bogdan in white
    are added there for the quest only. The whole drive is then about 1 km and 3-4 minutes, so the
    car argument is the heart of it: the three rounds run over the two legs (Ivan alone, then both
