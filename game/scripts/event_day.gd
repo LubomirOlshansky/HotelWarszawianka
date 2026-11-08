@@ -61,6 +61,16 @@ const BIG_FLAG_SHARE := 0.12
 const BANNER_SHARE := 0.06
 const ROAD_PAD := 2.5
 
+## Most Poniatowskiego (the march crosses it, F 2026-11-07): the bridge's frame from map_builder.gd
+## (PN_A back 8.9 m and across -6.67 m; the axis from the river piers), its length to the east
+## towers, and the half width of the deck's walks and carriageways. Marchers fill it, the cars and
+## trams keep out, and two more barrier lines close its ends.
+const BRIDGE_O := Vector2(928.8, -136.1)
+const BRIDGE_U := Vector2(0.9473, -0.3202)
+const BRIDGE_LEN := 515.6
+const BRIDGE_HALF := 14.0
+const BRIDGE_CROWD := 2200
+
 const WHITE := Color("#f4f1ea")
 const RED := Color("#d8262b")
 const STEEL := Color("#9aa0a6")
@@ -188,11 +198,26 @@ static func from_vu(v: float, u: float) -> Vector2:
 ## Is the game-plane point inside the cross-shaped zone, `shrink` m in from its edge (negative:
 ## out from it)?
 static func in_zone(p: Vector2, shrink := 0.0) -> bool:
+	if in_bridge(p, shrink):
+		return true
 	var q := to_vu(p)
 	var w := CORRIDOR - shrink
 	if q.x >= V_WEST + shrink and q.x <= V_EAST - shrink and absf(q.y) <= w:
 		return true
 	return absf(q.x) <= w and absf(q.y) <= ARM - shrink
+
+
+## Is the point on the Poniatowski bridge (its deck and the approach ends), `shrink` m in from the edge?
+static func in_bridge(p: Vector2, shrink := 0.0) -> bool:
+	var d := p - BRIDGE_O
+	var s := d.dot(BRIDGE_U)
+	var t := d.dot(Vector2(-BRIDGE_U.y, BRIDGE_U.x))
+	return s >= -14.0 + shrink and s <= BRIDGE_LEN + 14.0 - shrink and absf(t) <= BRIDGE_HALF + 2.0 - shrink
+
+
+## A point on the bridge: `s` along it from the west towers, `t` across (+ towards the south).
+static func bridge_at(s: float, t: float) -> Vector2:
+	return BRIDGE_O + BRIDGE_U * s + Vector2(-BRIDGE_U.y, BRIDGE_U.x) * t
 
 
 ## The four barrier lines: [centre (v, u), the direction along the line, the road direction out of the zone].
@@ -202,6 +227,8 @@ static func cordon() -> Array:
 		{"id": "east", "at": from_vu(V_EAST, 0.0), "line": U, "out": V},
 		{"id": "north", "at": from_vu(0.0, -ARM), "line": V, "out": -U},
 		{"id": "south", "at": from_vu(0.0, ARM), "line": V, "out": U},
+		{"id": "bridge_west", "at": bridge_at(-12.0, 0.0), "line": Vector2(-BRIDGE_U.y, BRIDGE_U.x), "out": -BRIDGE_U, "half": BRIDGE_HALF + 2.0},
+		{"id": "bridge_east", "at": bridge_at(BRIDGE_LEN + 12.0, 0.0), "line": Vector2(-BRIDGE_U.y, BRIDGE_U.x), "out": BRIDGE_U, "half": BRIDGE_HALF + 2.0},
 	]
 
 
@@ -298,6 +325,33 @@ func _build_crowd() -> void:
 					"shirt": (WHITE if rng.randf() < 0.5 else RED) if kid else SHIRTS[rng.randi() % SHIRTS.size()],
 					"flag": kid or rng.randf() < FLAG_SHARE, "big": rng.randf() < BIG_FLAG_SHARE, "banner": rng.randf() < BANNER_SHARE,
 					"s": 0.8 if kid else rng.randf_range(1.12, 1.3), "ph": rng.randf() * TAU})
+	# The march on the bridge: knots across the deck, facing east (the way the march goes).
+	var bridge_face := BRIDGE_U
+	var bridge_made := 0
+	var btries := 0
+	while bridge_made < BRIDGE_CROWD and btries < BRIDGE_CROWD * 3:
+		btries += 1
+		var bp := bridge_at(rng.randf_range(10.0, BRIDGE_LEN - 10.0), rng.randf_range(-BRIDGE_HALF + 1.2, BRIDGE_HALF - 1.2))
+		var bknot := rng.randi_range(3, 8)
+		for j in bknot:
+			if bridge_made >= BRIDGE_CROWD:
+				break
+			var bq := bp + Vector2.from_angle(rng.randf() * TAU) * rng.randf_range(0.0, 2.2)
+			if not in_bridge(bq, 2.0):
+				continue
+			var bface := bridge_face.rotated(rng.randf_range(-0.6, 0.6)) if rng.randf() < 0.9 else Vector2.from_angle(rng.randf() * TAU)
+			var bkid := rng.randf() < 0.08
+			_slots.append({"p": Vector3(bq.x, _ground(bq), bq.y), "yaw": atan2(-bface.x, -bface.y),
+					"shirt": (WHITE if rng.randf() < 0.5 else RED) if bkid else SHIRTS[rng.randi() % SHIRTS.size()],
+					"flag": bkid or rng.randf() < FLAG_SHARE, "big": rng.randf() < BIG_FLAG_SHARE, "banner": rng.randf() < BANNER_SHARE,
+					"s": 0.8 if bkid else rng.randf_range(1.12, 1.3), "ph": rng.randf() * TAU})
+			bridge_made += 1
+	# Shuffle, so the first n shown (the crowd's share of the day) cover the rondo and the bridge alike.
+	for i in range(_slots.size() - 1, 0, -1):
+		var k := rng.randi_range(0, i)
+		var tmp = _slots[i]
+		_slots[i] = _slots[k]
+		_slots[k] = tmp
 	var cap := _slots.size()
 	var mat := Models.material().duplicate() as ShaderMaterial
 	mat.set_shader_parameter("walk", 0.0)
@@ -388,7 +442,7 @@ func _build_barriers() -> void:
 		var yaw := atan2(-line.y, line.x)  # the box's x along the line: (cos, 0, -sin) = (line.x, 0, line.y)
 		var van_yaw := atan2(-out.y, out.x)
 		var g := _ground(at)
-		var half := CORRIDOR if str(c["id"]) in ["west", "east"] else CORRIDOR
+		var half := float(c.get("half", CORRIDOR))
 		# A box collider across the road, car height, a metre thick.
 		var cs := CollisionShape3D.new()
 		var bx := BoxShape3D.new()
@@ -524,6 +578,11 @@ func _build_glow() -> void:
 		var s: Dictionary = _slots[rng.randi() % _slots.size()]
 		var p: Vector3 = s["p"]
 		pts.append(p + Vector3(rng.randf_range(-1.0, 1.0), 1.7, rng.randf_range(-1.0, 1.0)))
+	# The flares on the bridge's four towers (the end pairs, at the deck's edges), as in the photo.
+	for s_t: float in [1.0, 13.0, BRIDGE_LEN - 13.0, BRIDGE_LEN - 1.0]:
+		for t_t: float in [-11.5, 11.5]:
+			var tp := bridge_at(s_t, t_t)
+			pts.append(Vector3(tp.x, _ground(tp) + 3.2, tp.y))
 	_pot_pos = pts
 	# The pots: small bright red-orange halos.
 	var pm := MultiMesh.new()
@@ -563,7 +622,7 @@ func _build_glow() -> void:
 		var fp: Vector3 = fs["p"]
 		var fz := rng.randf_range(FOG_SIZE.x, FOG_SIZE.y)
 		fm.set_instance_transform(i, Transform3D(Basis.IDENTITY.scaled(Vector3(fz, fz * 0.7, fz)), fp + Vector3(rng.randf_range(-6, 6), rng.randf_range(FOG_Y.x, FOG_Y.y), rng.randf_range(-6, 6))))
-	fm.custom_aabb = AABB(Vector3(C.x - 900.0, -20.0, C.y - 600.0), Vector3(1800.0, 120.0, 1200.0))
+	fm.custom_aabb = AABB(Vector3(C.x - 900.0, -20.0, -500.0), Vector3(2900.0, 140.0, 1300.0))
 	_fog_mat = ShaderMaterial.new()
 	_fog_mat.shader = load("res://shaders/event_fog.gdshader")
 	_fog_mat.render_priority = 1

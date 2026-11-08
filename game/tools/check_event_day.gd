@@ -92,7 +92,8 @@ func _lines(data: Dictionary) -> void:
 		var near := false
 		for r: Dictionary in data["roads"]:
 			var nm := str(r.get("name", ""))
-			if not (nm == "Aleje Jerozolimskie" or nm == "Marszałkowska"):
+			var bridge_line := str(c["id"]).begins_with("bridge")
+			if not bridge_line and not (nm == "Aleje Jerozolimskie" or nm == "Marszałkowska"):
 				continue
 			var flat: Array = r["p"]
 			for i in range(0, flat.size() - 1, 2):
@@ -103,7 +104,7 @@ func _lines(data: Dictionary) -> void:
 				break
 		_expect(near, "barrier %s has the corridor's road within 40 m (%s)" % [c["id"], str(at)])
 		road_ends += 1
-	_expect(road_ends == 4, "four barrier lines")
+	_expect(road_ends == 6, "six barrier lines (the rondo's four and the bridge's two)")
 
 
 func _gate() -> void:
