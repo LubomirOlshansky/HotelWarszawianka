@@ -34,7 +34,10 @@ tool for a baked map):
   the mapped walls (`lines` k wall) inside the bridge's corridor go; of a wall cut there only runs of
   WALL_KEEP m or more stay (the channel's quays), the short crooked bits by the abutments go.
 - The construction lot (`surfaces` k construction, the one holding LOT) becomes a `parking`
-  surface (asphalt, map_builder.gd SURFACE_STYLE) and the fences along its outline go.
+  surface (asphalt, map_builder.gd SURFACE_STYLE) and the fences along its outline go, as does the
+  works' fence ring round the lawn north of the cycle path (GARDEN; open lawn in the 2025 photos).
+- The footpaths that ended on the old cycle path where the deck now passes over it end at the
+  deck's nearer end instead (check_roads C3: a path under a deck).
 
 Idempotent: the map carries `port_bridge` = VERSION once done; a second run changes nothing.
 Standard library only, deterministic. Re-run tools/bake_sectors.py and bake_city.gd after it.
@@ -65,6 +68,10 @@ SPIT_NEW = [(1383.2, 704.5)]  # the spit path from E bends south here to its old
 # to its outline to count as the site's.
 LOT = (1300.0, 685.0)
 LOT_FENCE = 1.5
+# The lawn north of the cycle path by the lot: OpenStreetMap still rings it with the works' fence
+# (closed, along the path), Mapillary 2025 shows open lawn, shrubs and paths. A closed fence ring
+# holding this point goes.
+GARDEN = (1305.0, 645.0)
 
 
 def _pairs(flat):
@@ -214,6 +221,14 @@ def apply(d, terrain, dry=False):
             spit_line = [E] + SPIT_NEW + keep
             p = dict(p, p=_flat(spit_line))
             n_cut += 1
+        elif p.get("dk") is None:
+            q = _pairs(p["p"])
+            for i in (0, len(q) - 1):
+                s_, t_ = _local(q[i])
+                if 0.3 < s_ < _frame()[0] - 0.3 and abs(t_) <= HALF + 0.5:
+                    q[i] = W if s_ < _frame()[0] / 2 else E
+                    n_cut += 1
+            p = dict(p, p=_flat(q))
         paths.append(p)
     d["paths"] = paths
     notes.append(f"{n_cut} paths rejoined")
@@ -268,6 +283,9 @@ def apply(d, terrain, dry=False):
     lines, n_fence, n_wall = [], 0, 0
     for ln in d.get("lines", []):
         pts = _pairs(ln["p"])
+        if ln.get("k") == "fence" and len(pts) >= 4 and _near(pts[0], pts[-1], 0.3) and _point_in_poly(GARDEN, pts):
+            n_fence += 1
+            continue
         if lot is not None and ln.get("k") == "fence" and all(
                 _poly_dist(q, lot) <= LOT_FENCE or _point_in_poly(q, lot) for q in pts):
             n_fence += 1
@@ -325,6 +343,10 @@ def check(d):
         if lots and ln.get("k") == "fence" and all(
                 _poly_dist(q, lots[0]) <= LOT_FENCE or _point_in_poly(q, lots[0]) for q in _pairs(ln["p"])):
             bad.append(f"a site fence stands round the car park at {_pairs(ln['p'])[0]}")
+    for ln in d["lines"]:
+        pts = _pairs(ln["p"])
+        if ln.get("k") == "fence" and len(pts) >= 4 and _near(pts[0], pts[-1], 0.3) and _point_in_poly(GARDEN, pts):
+            bad.append("the old works' fence round the lawn north of the cycle path is back")
     return bad
 
 
