@@ -125,12 +125,24 @@ func _line_ok(group: String, l: Array, banned: Array) -> void:
 				problems.append("%s: brand '%s' in %s" % [group, b, t])
 
 
+## A vote card's three answers in one row, letters (PT-46: stacked or longer answers left the side
+## card beside the car no room, so it never showed; 'HERBATA RANDKA POLITYKA' was too wide).
+const VOTE_ROW := 20
+
+
 func _check_votes(digest: PackedStringArray) -> void:
 	var scenes := Shisha.load_scenes()
 	for k in 3:
 		var c := Shisha.vote_card(k)
 		if (c[4] as PackedStringArray).size() != 3:
 			problems.append("vote %d: %d answers (3)" % [k, (c[4] as PackedStringArray).size()])
+		# PT-46: a vote card rides in the side column beside the car, its answers in one row.
+		for side in 2:
+			var row := 0
+			for b: String in c[4]:
+				row += b.get_slice("|", side).length()
+			if row > VOTE_ROW:
+				problems.append("vote %d: answers %d letters in a row (over %d: the side card won't fit)" % [k, row, VOTE_ROW])
 		for i in 3:
 			var v := {}
 			Shisha.apply_vote(v, k, i)
