@@ -10,6 +10,9 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-08
+- New night quest, the bar crawl: a hen party, a stag night, students after exams or a team after launch day call you to drive them through three bars before they close, waiting at the kerb while they have a round.
+
+## 2026-11-08
 - The museum's steam engines and coaches by Warszawa Główna are solid now: the car stops at them instead of driving through.
 
 ## 2026-11-07

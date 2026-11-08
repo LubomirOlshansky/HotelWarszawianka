@@ -1,0 +1,113 @@
+{
+  "_about": "Bar-crawl taxi quests (F, 2026-11-04; docs/design/bar-crawl.md). bar_crawl.gd rings with one of these groups at night: `name` is the call's title, `speaker` the bubble's name, `call` the card's body ({route} becomes the route's name, {bars} the bar count), `board` said on getting in, `ride` in the car between bars (one per leg, in order), `in` on the way into a bar, `out` back in the car, `bump` after a knock, `late` once the clock is under 45 s, `end_good` / `end_late` the result card's quote. Each line [Polish, English], under ~70 characters (the call and the end lines under ~150), warsaw-tone rules: invented people, parody names only, no brands. tools: game/tools/check_bar_crawl.gd checks the table.",
+  "groups": [
+    {
+      "id": "panienski",
+      "name": ["WIECZÓR PANIEŃSKI OLI", "OLA'S HEN PARTY"],
+      "speaker": "Ola i dziewczyny",
+      "call": ["„Pięć nas, jedna szarfa, zero planu. To znaczy plan jest: trasa {route}, {bars} bary, zanim zamkną!”", "\"Five of us, one sash, no plan. Well, there is a plan: the {route} route, {bars} bars, before they close!\""],
+      "board": ["Szarfa jest, welon jest, świadkowa ma listę. Jedziemy!", "Sash, check. Veil, check. The maid of honour has a list. Go!"],
+      "ride": [
+        ["Ola, nie dzwoń do Michała. Ola. Oddaj telefon.", "Ola, don't call Michał. Ola. Give me the phone."],
+        ["Panie kierowco, a pan by się ożenił drugi raz?", "Driver, would you marry again?"],
+        ["Śpiewamy! Nie, nie to. To też nie. Dobra, to.", "Let's sing! No, not that one. Not that either. Fine, that."]
+      ],
+      "in": [
+        ["Jedna runda i wracamy. Słowo świadkowej.", "One round and we're back. Maid of honour's word."],
+        ["Niech pan nie odjeżdża! Welon zostawiamy w zastaw.", "Don't drive off! We'll leave the veil as a deposit."]
+      ],
+      "out": [
+        ["Wróciłyśmy! Prawie wszystkie. Kasia, wsiadaj!", "We're back! Almost all of us. Kasia, get in!"],
+        ["Barman dał nam zniżkę za szarfę. Szarfa działa.", "The barman gave us a discount for the sash. The sash works."]
+      ],
+      "bump": [
+        ["Welon! Uważaj na welon!", "The veil! Mind the veil!"],
+        ["Ola mówi, że to znak. Ola wszystko uważa za znak.", "Ola says it's a sign. Ola thinks everything's a sign."]
+      ],
+      "late": ["Panie, zamykają nam bary! Gaz!", "They're closing our bars! Step on it!"],
+      "end_good": ["„Najlepszy panieński w historii Śródmieścia. Zapraszamy pana na wesele. Serio. Chyba.”", "\"Best hen night in the history of Śródmieście. You're invited to the wedding. Seriously. Probably.\""],
+      "end_late": ["„No trudno. Ostatnia runda w domu u świadkowej. Ona i tak ma najlepszą lodówkę.”", "\"Oh well. Last round at the maid of honour's. She has the best fridge anyway.\""]
+    },
+    {
+      "id": "kawalerski",
+      "name": ["KAWALERSKI MICHAŁA", "MICHAŁ'S STAG NIGHT"],
+      "speaker": "Michał i chłopaki",
+      "call": ["„Kawalerski! Czterech chłopa i pan młody w stroju syrenki. Trasa {route}, {bars} bary, czas start!”", "\"Stag night! Four lads and a groom dressed as a mermaid. The {route} route, {bars} bars, clock's running!\""],
+      "board": ["Michał, ogon do środka, bo drzwi się nie domkną.", "Michał, tail in, or the door won't shut."],
+      "ride": [
+        ["Pan młody ma zakaz telefonu do jutra. Telefon jest u mnie.", "The groom's banned from his phone till tomorrow. I've got it."],
+        ["Kto ma mapę? Nikt? Pan ma mapę. Super, pan prowadzi.", "Who's got a map? Nobody? You've got one. Great, you lead."],
+        ["Michał, syrenka nie płacze. Syrenka jest symbolem miasta.", "Michał, mermaids don't cry. The mermaid's the city's symbol."]
+      ],
+      "in": [
+        ["Pięć minut. Dziesięć. Wrócimy, zanim pan zatęskni.", "Five minutes. Ten. We'll be back before you miss us."],
+        ["Jakby ktoś pytał, nie było nas tu.", "If anyone asks, we were never here."]
+      ],
+      "out": [
+        ["Jesteśmy! Michał zgubił ogon, ale znalazł kolegę.", "We're back! Michał lost the tail but found a new friend."],
+        ["DJ puścił disco polo na życzenie. Wygraliśmy wieczór.", "The DJ played disco polo on request. We've won the night."]
+      ],
+      "bump": [
+        ["Spokojnie! Pan młody ma być w jednym kawałku!", "Easy! The groom has to arrive in one piece!"],
+        ["To był krawężnik czy kolega? Policzcie się.", "Was that the kerb or one of us? Count heads."]
+      ],
+      "late": ["Szybciej, bo ostatnie zamówienia!", "Faster, it's last orders!"],
+      "end_good": ["„Jest pan legendą. Opowiemy o panu na weselu, zaraz po toaście.”", "\"You're a legend. We'll tell them about you at the wedding, right after the toast.\""],
+      "end_late": ["„No to kebab i do domu. Michał, ogon zostaw kierowcy na pamiątkę.”", "\"Right, a kebab and home. Michał, leave the tail with the driver as a souvenir.\""]
+    },
+    {
+      "id": "sesja",
+      "name": ["KONIEC SESJI", "END OF EXAMS"],
+      "speaker": "Studenci z Polibudy",
+      "call": ["„Zdaliśmy! Wszyscy! No, prawie wszyscy. Trasa {route}, {bars} bary, budżet: studencki.”", "\"We passed! All of us! Well, nearly all. The {route} route, {bars} bars, budget: student.\""],
+      "board": ["Zrzutka na kurs już jest. Głównie w drobnych.", "We've had a whip-round for the ride. Mostly in coins."],
+      "ride": [
+        ["Za tydzień poprawka z analizy. Ale to za tydzień.", "Maths resit next week. But that's next week."],
+        ["Kto liczy rachunek? Ten, co zdał statystykę.", "Who's splitting the bill? Whoever passed statistics."],
+        ["Pan studiował? Na czym pan oblał najwięcej?", "Did you study? What did you fail most?"]
+      ],
+      "in": [
+        ["Jedno piwo i lecimy. Mamy plan zajęć, znaczy barów.", "One beer and we're off. We've got a timetable. Of bars."],
+        ["Niech pan czeka! Indeks zostawiamy w zastaw.", "Wait for us! We'll leave a student card as a deposit."]
+      ],
+      "out": [
+        ["Wracamy! Promocja dla studentów nie działa po 22.", "We're back! The student deal stops at ten."],
+        ["Spotkaliśmy prowadzącego. Postawił nam kolejkę. Dziwny wieczór.", "We met our lecturer. He bought a round. Strange night."]
+      ],
+      "bump": [
+        ["Ała! Wzory mi wypadły z głowy. Zostały tylko dwa.", "Ouch! The formulas fell out. Only two left."],
+        ["To się liczy jako przeciążenie? Bo coś czuję.", "Does that count as g-force? Because I felt it."]
+      ],
+      "late": ["Zamykają za chwilę, a my mamy jeszcze budżet!", "They're closing soon and we've still got budget!"],
+      "end_good": ["„Pięć gwiazdek! W ankiecie dla prowadzącego też by pan dostał pięć.”", "\"Five stars! You'd get five in the lecturer survey too.\""],
+      "end_late": ["„Trudno. Akademik ma swój bar: lodówkę na trzecim piętrze.”", "\"Oh well. The halls have a bar too: the fridge on the third floor.\""]
+    },
+    {
+      "id": "wdrozenie",
+      "name": ["ZESPÓŁ PO WDROŻENIU", "THE TEAM AFTER LAUNCH DAY"],
+      "speaker": "Ekipa z open space'u",
+      "call": ["„Wdrożyliśmy w piątek i nic nie wybuchło! Trasa {route}, {bars} bary. Szef płaci, szef nie wie.”", "\"We shipped on a Friday and nothing blew up! The {route} route, {bars} bars. The boss pays, the boss doesn't know.\""],
+      "board": ["Laptopy zostały w biurze. Prawie wszystkie.", "The laptops stayed at the office. Nearly all of them."],
+      "ride": [
+        ["Nie gadamy o pracy. – Dobra. Ale ten bug z wtorku…", "\"No work talk.\" \"Fine. But that bug from Tuesday…\""],
+        ["Ktoś ma powiadomienia? Wyłączcie. Wszyscy. Teraz.", "Anyone getting notifications? Off. Everyone. Now."],
+        ["Pan też pracuje zdalnie? Kierownica to dobre biuro.", "You work remotely too? A steering wheel's a fine office."]
+      ],
+      "in": [
+        ["Szybki stand-up przy barze i wracamy.", "A quick stand-up at the bar and we're back."],
+        ["Kwadrans. Według estymacji. Czyli godzina.", "Fifteen minutes. As estimated. So an hour."]
+      ],
+      "out": [
+        ["Jesteśmy! Retro z piwem wyszło lepiej niż w biurze.", "We're back! The retro over a beer went better than at the office."],
+        ["Product owner zamówił dla wszystkich. Nie pytał nikogo o zdanie.", "The product owner ordered for everyone. Didn't ask anyone."]
+      ],
+      "bump": [
+        ["Ostrożnie, to nie testy na produkcji!", "Careful, this isn't testing in production!"],
+        ["Zgłaszam incydent. Priorytet niski, ale bolało.", "Filing an incident. Low priority, but it hurt."]
+      ],
+      "late": ["Deadline się zbliża! Ostatnie zamówienia!", "The deadline's coming! Last orders!"],
+      "end_good": ["„Dowieźliśmy w terminie! Pierwszy raz w tym kwartale. Daje pan pięć gwiazdek naszemu sprintowi.”", "\"Delivered on time! First time this quarter. You've earned our sprint five stars.\""],
+      "end_late": ["„Nie zdążyliśmy. Jak zawsze. Przenosimy resztę na następny sprint.”", "\"We didn't make it. As usual. The rest moves to the next sprint.\""]
+    }
+  ]
+}

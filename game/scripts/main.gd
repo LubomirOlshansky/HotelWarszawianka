@@ -154,6 +154,8 @@ const StoryQuests := preload("res://scripts/story_quests.gd")
 ## Inside the club after the door (club.gd): the cutaway room.
 const Club := preload("res://scripts/club.gd")
 const EvTow := preload("res://scripts/ev_tow.gd")
+## Bar crawl (bar_crawl.gd, F's ask 2026-11-04): a group through three bars before they close.
+const BarCrawl := preload("res://scripts/bar_crawl.gd")
 ## Packs (docs/design/packs.md): running clubs, cycling packs and coffee raves.
 const Packs := preload("res://scripts/packs.gd")
 ## Kibice (docs/design/city-life-satire.md 7): friendly fans by Stadion Leguminy on match evenings.
@@ -534,6 +536,14 @@ var crash_log := false
 ## --ev-tow (accepted, the helicopter over his car), --ev-tow=carry (his car already on the rope),
 ## --ev-stranded (one about 30 m ahead now), --ev=0 (none), --ev-log.
 var ev_tow: EvTow
+## Bar crawl (bar_crawl.gd): flags --crawl-call (the group rings a second in, any hour),
+## --crawl-route=ID, --crawl-group=ID, --crawl=0 (none), --crawl-log.
+var crawl: BarCrawl
+var crawl_flag := ""
+var crawl_route := ""
+var crawl_group := ""
+var crawl_log := false
+var _crawl_auto := false
 var ev_flag := ""
 var ev_log := false
 var _ev_auto := false
@@ -1658,6 +1668,7 @@ func _build_world() -> void:
 	_build_kino_tour(world)
 	_build_ev_tow(world)
 	_build_stories(world)
+	_build_crawl(data, world)
 	_build_storefronts(data, world)
 	_build_packs(data, world)
 	_build_fans(data, world)
@@ -3295,6 +3306,8 @@ func _rave_free() -> bool:
 		return false
 	if meet != null and meet.busy():
 		return false
+	if crawl != null and crawl.busy():
+		return false
 	if ev_tow != null and ev_tow.busy():
 		return false
 	if title != null or _phone_bench or _bench_ghost != null or (spacer != null and spacer.on):
@@ -3371,6 +3384,39 @@ func _place_car(at: Vector3, yaw: float) -> void:
 	print("teleport: the car to %.0f, %.0f for the meet" % [at.x, at.z])
 
 
+# --- the bar crawl ----------------------------------------------------------------------------
+
+## The night groups' calls and their crawls (bar_crawl.gd). None with --no-traffic or --crawl=0.
+func _build_crawl(data: Dictionary, world: Node3D) -> void:
+	if traffic == null or graph == null or crawl_flag == "0":
+		return
+	crawl = BarCrawl.new()
+	crawl.name = "BarCrawl"
+	crawl.hud = hud
+	crawl.bubbles = bubbles
+	crawl.wallet = wallet
+	crawl.missions = missions
+	crawl.map = map
+	crawl.graph = graph
+	crawl.origin = data.get("origin", [52.234, 21.024])
+	crawl.log_on = crawl_log
+	crawl.auto = _crawl_auto
+	crawl.autopilot = autopilot
+	crawl.force_route = crawl_route
+	crawl.force_group = crawl_group
+	crawl.vehicle = func() -> Array:
+		if flying:
+			return [heli.global_position, heli.speed() * 3.6, true]
+		return [car.global_position, car.vel.length() * 3.6, false]
+	crawl.clock = tod.local_clock
+	crawl.free_now = func() -> bool: return _rave_free() and not (rave != null and rave.busy())
+	world.add_child(crawl)
+	crawl.setup(world)
+	car.bumped.connect(func(_c: Object, speed: float) -> void: crawl.on_bump(speed))
+	if crawl_flag == "call":
+		get_tree().create_timer(1.0).timeout.connect(func() -> void: crawl.ring())
+
+
 # --- dead electric cars ----------------------------------------------------------------------
 
 ## Bartek's call and the stranded TESŁO cars (ev_tow.gd). None with --no-traffic or --ev=0.
@@ -3404,7 +3450,7 @@ func _build_ev_tow(world: Node3D) -> void:
 
 ## Nothing else on: no title, bench, Spacer, guide, card, rescue, ride, job, race or tow.
 func _ev_free() -> bool:
-	if (rave != null and rave.busy()) or (club != null and club.inside):
+	if (rave != null and rave.busy()) or (club != null and club.inside) or (crawl != null and crawl.busy()):
 		return false
 	if meet != null and meet.busy():
 		return false
@@ -4894,6 +4940,16 @@ func _parse_args() -> void:
 			rave_spot = arg.trim_prefix("--rave-spot=")
 		elif arg.begins_with("--rave="):
 			rave_flag = arg.trim_prefix("--rave=")
+		elif arg == "--crawl-call":
+			crawl_flag = "call"
+		elif arg.begins_with("--crawl-route="):
+			crawl_route = arg.trim_prefix("--crawl-route=")
+		elif arg.begins_with("--crawl-group="):
+			crawl_group = arg.trim_prefix("--crawl-group=")
+		elif arg.begins_with("--crawl="):
+			crawl_flag = arg.trim_prefix("--crawl=")
+		elif arg == "--crawl-log":
+			crawl_log = true
 		elif arg == "--rave-log":
 			rave_log = true
 		elif arg == "--meet-call":
@@ -5164,6 +5220,7 @@ func _parse_args() -> void:
 	_rave_auto = not test_run
 	_meet_auto = not test_run
 	_ev_auto = not test_run
+	_crawl_auto = not test_run
 	# Loop G1b: test runs (and --last-session=) never write Auto's image state, even with the
 	# governor on and without --nosave.
 	_image_write = not test_run and _flag_last_session == ""
@@ -6499,7 +6556,7 @@ func _process(dt: float) -> void:
 		# 2026-11-07 (BACKLOG "Secret rave"): no ride or "Na czasie" card while Ziomek's rave run,
 		# the club or Bartek's tow is on (their calls already held the rescue calls).
 		rides.away = rides.away or (rave != null and rave.busy()) or (club != null and club.inside) \
-				or (ev_tow != null and ev_tow.busy())
+				or (ev_tow != null and ev_tow.busy()) or (crawl != null and crawl.busy())
 		if trend_job != null:
 			trend_job.flying = flying or boating or touring
 			trend_job.player_pos = pos
@@ -7101,6 +7158,15 @@ func _show_target() -> void:
 		_put_target(Vector2(kp.x, kp.z), meet.target_colour(), false)
 		_new_target("job", kp)
 		return
+	if crawl != null and crawl.has_target() and not flying:
+		var cp: Vector3 = crawl.target_position()
+		var at_c := _vehicle_position()
+		var mc := roundi(Vector2(cp.x - at_c.x, cp.z - at_c.z).length())
+		var on_c := cam.unproject_position(cp + Vector3(0, 3.5, 0)) * float(view.stretch_shrink)
+		hud.set_target(on_c, "%d m" % mc, crawl.target_colour(), mc > 12)
+		_put_target(Vector2(cp.x, cp.z), crawl.target_colour(), false)
+		_new_target("job", cp)
+		return
 	if ev_tow != null and ev_tow.has_target():
 		var ep: Vector3 = ev_tow.target_position()
 		var at_e := _vehicle_position()
@@ -7417,6 +7483,8 @@ func _autopilot(dt: float) -> void:
 		return
 	if rides != null and rides.drive_player():
 		return  # loop 2d-1
+	if crawl != null and not flying and crawl.drive_player(car, dt):
+		return  # the bar crawl
 	if trend_job != null and trend_job.drive_player():
 		return  # loop MW-4
 	if jobs != null and jobs.drive_player():

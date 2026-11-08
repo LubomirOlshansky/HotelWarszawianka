@@ -1145,43 +1145,18 @@ the railway cutting next to Warta Tower; today an OSM extrusion. Later, photo wa
 `refs/chmielna89/` plus F's four photos (project files), then the wedge, the zigzag frame on the
 sloped face, the V legs, blue-grey glass. No bank name or logo (brands only as parodies).
 
-## Bar-crawl taxi quests (F, 2026-11-04, plan only)
+## Bar-crawl taxi quests, next steps (found 2026-11-07)
 
-F: "quests about a bar crawl: you drive a company through famous bars in Warsaw for a limited amount of time."
-Nothing is built (PAUSE; Opus for the quest design, Sonnet for the lines). Plan first in `docs/design/` (a
-short `bar-crawl.md`), then build on the Podwózka rides (`rides.gd`, `ride_rules.gd`), the ZADANIA list
-(`main.gd` `_quest_entries`, quest-lists) and `StopAssist`. Same pattern as the ride stories above.
-- **The shape.** A group of 3-5 (a hen party, a stag night, students on a last-night-of-term, office
-  colleagues after a deal; each a named passenger group with its own voice lines) books the car for the
-  night. Three to five stops in a row, each a bar with a stop ring (9 m, `StopAssist`). The clock is the
-  limit: a hard budget for the whole crawl (for example 25 game minutes, or one real 8-10 minutes) and a
-  per-stop "stay" the group wants (they sit for a round, then pile back in, so you wait at the kerb with
-  the engine running). Late means the mood bar drops, a bar closes ("ostatnie zamówienia"), the crawl ends
-  early with a smaller tip; on time with a happy group is a bigger tip and a stamp. Mood: bumps, police
-  and sudden braking lower it, drift-free driving and shortcuts raise it.
-- **Routes from places already on the map** (all names are the existing parodies; real bars never
-  named, per the parodies rule):
-  1. *Nowogrodzka → Mazowiecka → Wilcza* (the "klasyczna"): KWARTA, KRAFTOWNIA IPA DO DNA, SCHRON PIWNY
-     (`Storefronts.NOWOGRODZKA`), TYGRYS JAZZ or SZKIC NOCĄ (`MAZOWIECKA`), MUZA NA BIS or GORĄCZKA PIĄTKOWA
-     (`WILCZA`). Dense, short hops: a skill route for tight streets and one-way grids.
-  2. *Powiśle and the river* (the "nad wodą"): Q-BAR POD WIADUKTEM and WINO POD ŁUKIEM in the viaduct's bays,
-     then the boulevard pavilions CUDAK, POMOSTEK, RZECZKA, ending on a bar barge (the `barka_*` sites).
-     Scenic, longer drives; the ending is the water's edge with the stop ring on the quay.
-  3. *Dom Partii and the Śródmieście clubs* (the "dla odważnych"): NEWTWICE, ZAMĘT, PRZEGRYWKI (the
-     G2 neons), then a Mazowiecka club at 01:00-03:00 when the `club` curve is full.
-  4. *Praga* (the "na drugą stronę", later): ŚWIAT PO PRASKU, POD KUFLEM ZA ROGIEM, KIJOWSKA DWÓJKA
-     (`Storefronts.PRAGA`) with a bridge crossing (Trzy mosty, Poniatowskiego) in the middle of the clock.
-  Ząbkowska stays out until the map grows north-east ("Grow the map north-east").
-- **Rules.** Night only (the quest is offered 20:00-04:00, Fri/Sat busiest, like the `pub` curve). Open
-  one at a time, not on the main line; the intro is a phone call or a flag at a kerb outside the first
-  bar. Drop-off ends at a Syrena-friendly address (a hotel, a night bus stop). Group chatter uses the
-  chatter budget (class `quest`); the passenger story format is the one from "Vitkac quests and ride
-  stories". Bars are reached by street, not teleported; stop assist applies. Colour-safe rings apply.
-- **Add-ons check** (when built): NPC conversation → Dialogue Manager is for authored branching scenes; a
-  linear crawl with set lines per stop is plain tables, "not used, because the stops are linear".
-- **Open to decide when built:** the clock (game vs real minutes), whether a crawl can be failed outright,
-  whether the tip feeds the post-beta economy ("Od słoika do Złotej"), a "Barowa karta" stamp collection
-  (all four routes) next to the notebook, and a phone feel test of the waiting at the kerb.
+The first version is built (`game/scripts/bar_crawl.gd`, `game/data/bar_crawl.json`, plan and the
+decisions in `docs/design/bar-crawl.md`): four groups, four routes of three bars, a real-seconds
+clock, the mood, the stays at the kerb and the pay. Left:
+- **Phone feel test:** is the clock fair when driven by hand (10 m/s on 1.6 × the straight line, +20 s
+  a leg), and does waiting 15 s at the kerb feel like a beat or like dead time.
+- **"Barowa karta":** a stamp per route (all four), next to the notebook; a save field.
+- **Busier at the weekend:** Fri/Sat nights call more often (the `pub` curve).
+- **The tip and the economy:** whether the crawl's pay feeds "Od słoika do Złotej" (post-beta plan).
+- **More routes and groups:** Ząbkowska once the map grows north-east; a bar barge as an end stop.
+- **Street-triggered lines** and a drop-off at a hotel or night bus stop instead of the last bar.
 
 ## Vitkac quests and ride stories (F, 2026-11-03)
 
