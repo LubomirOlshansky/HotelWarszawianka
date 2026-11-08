@@ -294,7 +294,7 @@ check `tramfleet`. No maker's or model name anywhere: nicknames only.
 Cloud pass with Mapillary street photos only (refs/<site>/street/ on the cloud box; Commons and the orthophoto are Mac-only). Done: Ilmet (terracotta shaft `#8a5e4c`, `chamfer` stepped top; photos 2025-2026). Left, needs a Mac photo pass (street photos were night/rain, too far or the wrong building):
 - [ ] Q22: only night-rain frames; needs daylight Commons photos of the sail crown and skin
 - [ ] Rondo 1: street frames show curved blue glass, balcony ledges at the base volume and a dark-glass entrance pavilion; crown frame and base not rebuilt
-- [ ] Cosmopolitan, WTT (the OSM building at (-2838,-154) is a 14 m podium; the Mapillary frames there show another building), Platinum A/B (frames 100+ m away), Spektrum
+- [x] ~~Cosmopolitan~~ (done 2026-11-08 from F's photos), [ ] WTT (the OSM building at (-2838,-154) is a 14 m podium; the Mapillary frames there show another building), Platinum A/B (frames 100+ m away), Spektrum
 - [ ] Teatr Wielki: the Plac Teatralny frames show the side colonnade and the Jabłonowski palace; the side wings' colonnades are not built
 
 ## Warsaw Spire, Spire B and C from F's photos (F, 2026-11-06)

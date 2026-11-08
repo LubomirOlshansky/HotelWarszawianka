@@ -197,7 +197,7 @@ Checks: `check_landmarks.gd` runs on the full map for EVERY site that has a card
 | Q22 | S_BANDS | - | - |
 | Rondo 1 | S_FINS | crest "frame" (open crown to 192 m) | tenant names / PHN unlit |
 | Emilii Plater 49 (InterContinental, "INTERKONTI" sign) | S_GRID | REBUILT 2026-11-08 from F's four photos (L2, spec `plater49.md`, `_build_interkonti`): the 53 m gap over the podium on the shaft's north-east half, its pale stone back wall and warm ceiling floodlit at night, the north corner's glass column, the roof cut on a slope (164 to 154 m), dark bands over the gap and under the name, a banded glass podium | grid cells cold/many vs warm sparse in photos; the podium's lobby and entrance not modelled |
-| Cosmopolitan | S_RIBBON | - | - |
+| Cosmopolitan | S_RIBBON, rebuilt 2026-11-08 (`_build_cosmopolitan`: red-soffit overhang, louvred crown, glass podium; docs/landmarks/photo-reports/cosmopolitan.md) | - | - |
 | Warsaw Trade Tower | S_BANDS | - | - |
 | Skyliner | S_BANDS dark teal (photo report `skyliner.md`, 2026-11-03) | roof cut rising east (`slope_to`) with a glass fin, black crown block 130-180 m (`crown_from`), NOSE AGENCY on the block | - |
 | Warsaw Unit | S_BANDS sky blue (`warsaw_unit.md`, 2026-11-03) | black crown block 168-202 m with WARTKA (red), black strips at the long faces' ends and middles (`strips`); taper not modelled | - |

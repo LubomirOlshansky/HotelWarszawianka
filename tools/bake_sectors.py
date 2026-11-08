@@ -135,6 +135,8 @@ SITE_PAD = 12.0
 # Building kinds landmarks.gd finds wherever they lie (the barges, 2026-11-01: _find_barges).
 SITE_KINDS = ("boat", "houseboat")
 SITE_AREAS = [
+    (-1360.0, -262.0, -1275.0, -225.0),     # Próżna's two south tenements (landmarks.gd _find_prozna, F's photos 2026-11-08)
+    (-1512.0, -195.0, -1470.0, -150.0),     # Cosmopolitan's east wing and canopy (landmarks.gd CS_WING_A/B, TOWERS "with")
     (-1345.0, -1790.0, -1200.0, -1690.0),   # Sąd Najwyższy's colonnade (landmarks.gd SN_BOX: unnamed OSM columns)
     (-270.0, -1510.0, -20.0, -1260.0),      # the boulevards' bar pavilions (landmarks.gd BULWAR_PAW_BOX)
     (25.0, -1110.0, 65.0, -1065.0),         # and their containers and kiosks (BULWAR_BAR_BOXES)
