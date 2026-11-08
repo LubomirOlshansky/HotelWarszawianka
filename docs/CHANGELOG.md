@@ -27,7 +27,6 @@ someone writes its lines.
 - Widok Towers on Aleje Jerozolimskie now has its real blue-grey glass in a light grid instead of green.
 - 25 more ordinary houses south of Aleje Jerozolimskie, between Marszałkowska and Emilii Plater, now have their real wall colours, windows and cornices.
 - Smoła on Smolna looks like itself: the grey tenement with the stone cartouche over the gate, black tents and barriers, three doormen and the queue along the wall. Inside, the room has blue panels, red light bars and a truss tower with just one palm left, the club plays its own techno (house on the patio), and you can dance on the patio too.
-- The thin cracks in the ground along the railway cutting west of Centralna are closed.
 - Your clubbing mate from the Smolna and secret-rave nights is now called Mati (short for Mateusz).
 
 ## 2026-11-08
