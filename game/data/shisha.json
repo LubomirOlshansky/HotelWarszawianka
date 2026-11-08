@@ -1,0 +1,221 @@
+{
+  "_about": "Dym u Senatorka, the shisha lounge quest (F 2026-11-08; docs/design/shisha-lounge.md, the script docs/design/shisha-lounge-script.md). Scenes are lists of [speaker, Polish, English] played in order, a few seconds apart (shisha.gd, lounge.gd). Speakers: Ivan, Bogdan, Mistrz, Kelner, Bramkarz, Winda. Bubbles under 90 characters. Taps are random lines per person in the lounge. All names invented, no real brands, no drug jokes.",
+  "scenes": {
+    "board_ivan": [
+      ["Ivan", "Dobra, jedź. Bogdan jest na korcie na Żelaznej.", "Right, drive. Bogdan's on the court on Żelazna."],
+      ["Ivan", "Dziś robimy to na spokojnie. Żadnych zakładów.", "Tonight we do it calm. No bets."]
+    ],
+    "leg1": [
+      ["Ivan", "Zamawiam arbuz z miętą. Zawsze arbuz z miętą.", "I'm ordering watermelon-mint. Always watermelon-mint."],
+      ["Ivan", "Ostatnio wzięliśmy 'Zupę pomidorową'. Aromat obiadu do czwartku.", "Last time we took 'Tomato Soup'. Smell of lunch till Thursday."],
+      ["Ivan", "Ile smaków w karcie? Siedemdziesiąt. A bierzemy to samo.", "Seventy flavours on the menu. And we take the same one."],
+      ["Ivan", "Podobno nowy: 'Beton cytrusowy'. Brzmi jak remont.", "They say there's a new one: 'Citrus Concrete'. Sounds like a renovation."],
+      ["Ivan", "Dziś każdy smak ma 'ice' w nazwie. Nawet ten z kebabem.", "Today every flavour has 'ice' in its name. Even the kebab one."],
+      ["Ivan", "'Mgła nad Wisłą' to po prostu mięta. W szarym słoiku.", "'Mist over the Vistula' is just mint. In a grey jar."]
+    ],
+    "court": [
+      ["Ivan", "O, widzisz go? Ten w opasce.", "See him? The one in the headband."]
+    ],
+    "board_bogdan": [
+      ["Bogdan", "Siema!", "Hey!"],
+      ["Bogdan", "Mam remis, ale w szishy jestem mistrzem Woli.", "I have a draw, but I'm the Wola shisha champion."],
+      ["Bogdan", "Trener mówi: oddychaj głęboko. Zrobiłem z tego plan treningowy.", "My coach says: breathe deeply. I made it a training plan."],
+      ["Bogdan", "Najlepszy serw dnia był do kelnera w szatni.", "My best serve of the day was to the waiter in the locker room."]
+    ],
+    "flavour": [
+      ["Ivan", "Znowu ten ogórek? Bogdan, to nie jest smak, to jest zarzut.", "That cucumber again? Bogdan, that's not a flavour, it's an accusation."],
+      ["Bogdan", "Ogórek z lodami to klasyka. Klasyka z mojej głowy.", "Cucumber ice cream is a classic. A classic from my head."],
+      ["Bogdan", "To weźmy 'Zupę pomidorową z makaronem'.", "Then let's take 'Tomato Soup with Noodles'."],
+      ["Ivan", "Nie.", "No."],
+      ["Bogdan", "Raz. Tylko raz.", "Once. Just once."]
+    ],
+    "flavour_ivan": [
+      ["Ivan", "Widzisz? Spokojny wybór.", "See? A calm choice."],
+      ["Bogdan", "Spokojny wybór to ma bank w nazwie.", "A calm choice is what a bank has in its name."]
+    ],
+    "flavour_bogdan": [
+      ["Bogdan", "Mówiłem! Ogórek!", "I told you! Cucumber!"],
+      ["Ivan", "To ja wezmę piwo.", "Then I'll have a beer."]
+    ],
+    "flavour_master": [
+      ["Ivan", "Zrzucamy na mistrza.", "We leave it to the master."],
+      ["Bogdan", "Mistrz zawsze mówi: zaufaj dymowi.", "The master always says: trust the smoke."]
+    ],
+    "strength": [
+      ["Bogdan", "Mocna! Jak backhand! Do końca!", "Strong! Like a backhand! All the way!"],
+      ["Ivan", "Bogdan, ja nie mogę mocnej. Ostatnio widziałem Pałac z drugiej strony.", "Bogdan, I can't do strong. Last time I saw the Palace from the other side."],
+      ["Bogdan", "Ty nie możesz nawet średniej.", "You can't even do medium."],
+      ["Ivan", "Teraz wszystko jest 'premium'. Premium węgiel, premium woda.", "Everything is 'premium' now. Premium coal, premium water."],
+      ["Bogdan", "Cena fajki rośnie szybciej niż czynsz na Woli.", "The pipe's price climbs faster than rent in Wola."],
+      ["Ivan", "Mistrz fajki: kiedyś kelner, dziś konsultant dymu. Z dwoma certyfikatami.", "Shisha master: once a waiter, now a smoke consultant. Twice certified."]
+    ],
+    "strength_low": [
+      ["Bogdan", "To nie szisza, to parówka.", "That's not shisha, that's a steamer."],
+      ["Ivan", "No, wreszcie.", "Finally."]
+    ],
+    "strength_mid": [
+      ["Ivan", "Randka. Dobrze.", "A date. Good."],
+      ["Bogdan", "Randka to też sport.", "A date is a sport too."]
+    ],
+    "strength_high": [
+      ["Bogdan", "TAK!", "YES!"],
+      ["Ivan", "Dobra, ale siedzę przy oknie. I mam piwo.", "Fine, but I sit by the window. And I have a beer."]
+    ],
+    "name": [
+      ["Bogdan", "Fajka będzie się nazywać Forhend.", "The pipe shall be called Forehand."],
+      ["Ivan", "Bogdan, fajka nie jest zawodnikiem.", "Bogdan, a pipe isn't an athlete."]
+    ],
+    "door": [
+      ["Bramkarz", "Dobry wieczór. Dress code: smart casual.", "Good evening. Dress code: smart casual."],
+      ["Bogdan", "Smart? Casual? Tenis.", "Smart? Casual? Tennis."],
+      ["Bramkarz", "Tenis jest casual. Szorty nie.", "Tennis is casual. Shorts are not."],
+      ["Ivan", "Mamy rezerwację. Na 'Ivan razy trzy'.", "We have a reservation. Under 'Ivan times three'."],
+      ["Bramkarz", "…Proszę. Winda po lewej.", "...Please. The lift is on the left."]
+    ],
+    "lift": [
+      ["Winda", "Piętro trzydzieste ósme. Salon. Proszę wysiadać spokojnie.", "Thirty-eighth floor. The lounge. Please exit calmly."],
+      ["Bogdan", "Ludzie, ja się boję wysokości.", "Guys, I'm afraid of heights."],
+      ["Ivan", "Ty? Na korcie skaczesz po siatce.", "You? On the court you jump the net."]
+    ],
+    "order": [
+      ["Kelner", "Dobry wieczór. Co do picia, zanim przyjdzie pan Dymek?", "Good evening. Something to drink before Mr Dymek comes?"],
+      ["Ivan", "Piwo. Jasne, zimne. Bez filozofii.", "A beer. Pale, cold. No philosophy."],
+      ["Bogdan", "Herbata. Zielona, bez cukru.", "Tea. Green, no sugar."],
+      ["Ivan", "Herbata? Przed szishą? Jesteś pewien?", "Tea? Before shisha? Are you sure?"],
+      ["Bogdan", "Herbata to paliwo. Piwo to rozmowa.", "Tea is fuel. Beer is conversation."],
+      ["Kelner", "A dla kierowcy woda z miętą. Na koszt lokalu.", "And mint water for the driver. On the house."],
+      ["Mistrz", "Panowie. Mistrz Dymek. Nikt stąd nie wychodzi rozczarowany.", "Gentlemen. Master Dymek. Nobody leaves here disappointed."],
+      ["Mistrz", "Powiedzcie mi, co dziś czuje wasza dusza.", "Tell me what your soul feels tonight."],
+      ["Bogdan", "Dusza? Ja chcę ogórek.", "Soul? I want cucumber."],
+      ["Mistrz", "Ogórek też jest duszą. Proszę słoiki.", "Cucumber is also a soul. The jars, please."]
+    ],
+    "jars": [
+      ["Mistrz", "Dwa słoiki. Nie trzy, nie jeden. Dwa. Tak działa świat.", "Two jars. Not three, not one. Two. That's how the world works."]
+    ],
+    "two_hoses": [
+      ["Mistrz", "Mam rozwiązanie: dwa wężyki. Mocna misa i ten sam dym przez lód dla pana obok.", "I have a solution: two hoses. A strong bowl, and the same smoke through ice for you, sir."],
+      ["Ivan", "Mistrzu, jesteś geniuszem.", "Master, you're a genius."],
+      ["Bogdan", "To nie to samo.", "It's not the same."]
+    ],
+    "soup": [
+      ["Bogdan", "TAK!", "YES!"],
+      ["Ivan", "Znowu pachnie obiadem.", "It smells of lunch again."],
+      ["Mistrz", "Zapiszę to na ścianie, obok 'Kebaba z białym sosem'.", "I'll write it on the wall, next to 'Kebab with White Sauce'."]
+    ],
+    "coal": [
+      ["Mistrz", "Węgiel to nie ogień. Węgiel to cierpliwość.", "Coal is not fire. Coal is patience."]
+    ],
+    "coal_good": [
+      ["Mistrz", "Idealnie. Ani za gorąco, ani za zimno, ani za tanio.", "Perfect. Not too hot, not too cold, not too cheap."]
+    ],
+    "coal_early": [
+      ["Mistrz", "Za wcześnie. Dym się jeszcze nie obudził.", "Too early. The smoke hasn't woken up."]
+    ],
+    "coal_late": [
+      ["Mistrz", "Za późno. To już grill.", "Too late. That's a barbecue now."]
+    ],
+    "draw_good": [
+      ["Mistrz", "Kółko. Kółko to znak jakości.", "A ring. A ring is a sign of quality."]
+    ],
+    "draw_bad": [
+      ["Ivan", "Kh… kh… okno, proszę okno. I piwo.", "Kh... kh... a window, please. And a beer."],
+      ["Bogdan", "Weź mojej herbaty.", "Have my tea."],
+      ["Ivan", "Wolę piwo.", "I'd rather have the beer."]
+    ],
+    "result_high": [
+      ["Mistrz", "Dawno nie było takiego miksu. Zapisuję go w księdze.", "It's been a while since a mix like this. It goes in the book."],
+      ["Ivan", "Spokojnie, a jednak.", "Calm, and yet."],
+      ["Bogdan", "Sześć zero, sześć zero.", "Six-love, six-love."]
+    ],
+    "result_mid": [
+      ["Mistrz", "Przyzwoicie. Dym ma charakter.", "Decent. The smoke has character."],
+      ["Ivan", "Mogło być gorzej.", "Could be worse."],
+      ["Bogdan", "Mogło być ogórkiem.", "Could have been cucumber."]
+    ],
+    "result_low": [
+      ["Mistrz", "Ciekawe. Zostawmy to bez komentarza.", "Interesting. Let's leave it without comment."],
+      ["Bogdan", "Ja bym jeszcze raz.", "I'd go again."],
+      ["Ivan", "Ja bym poszedł do domu.", "I'd go home."]
+    ],
+    "smoke": [
+      ["Ivan", "No, to teraz możemy porozmawiać.", "Now we can talk."],
+      ["Bogdan", "Chciałbym podziękować mojemu trenerowi i mojemu kolanu.", "I'd like to thank my coach and my knee."],
+      ["Ivan", "Szisza bez piwa to jak tenis bez siatki.", "Shisha without beer is like tennis without a net."],
+      ["Bogdan", "A szisza z piwem to jak tenis z dwiema piłkami.", "And shisha with beer is like tennis with two balls."],
+      ["Bogdan", "Patrz, chmura jak Pałac.", "Look, a cloud like the Palace."],
+      ["Ivan", "Pałac ma wyższą wieżę.", "The Palace has a taller tower."],
+      ["Mistrz", "A dla kierowcy jeszcze woda z miętą. Prosto z Wilanowa.", "And more mint water for the driver. Straight from Wilanów."]
+    ],
+    "terrace": [
+      ["Bogdan", "Z tej wysokości widzę nawet kort, na którym zrobiłem remis.", "From up here I can even see the court where I got my draw."],
+      ["Ivan", "Remis z wiatrem.", "A draw with the wind."],
+      ["Bogdan", "Z wiatrem się nie remisuje. Wiatr jest sędzią.", "You don't draw with the wind. The wind is the umpire."],
+      ["Ivan", "Patrz, Pałac świeci.", "Look, the Palace is lit."],
+      ["Bogdan", "Pałac zawsze świeci. To jego praca.", "The Palace is always lit. That's its job."]
+    ],
+    "ring": [
+      ["Ivan", "Kółko! Dawaj, drugie.", "A ring! Go on, another."],
+      ["Bogdan", "To jest lepsze niż mój serw.", "That's better than my serve."]
+    ],
+    "leave": [
+      ["Ivan", "Serio? Po tym wszystkim?", "Seriously? After all that?"],
+      ["Bogdan", "Zmarnowałem ogórek.", "I wasted a cucumber."]
+    ],
+    "after": [
+      ["Bogdan", "Wynik wieczoru: remis. Fajka też remis.", "Score of the evening: a draw. The pipe draws too."],
+      ["Ivan", "Następnym razem ja wybieram.", "Next time I choose."],
+      ["Bogdan", "Ogórek.", "Cucumber."],
+      ["Ivan", "Arbuz.", "Watermelon."]
+    ],
+    "drop_bogdan": [
+      ["Bogdan", "Dzięki! Jutro rewanż na korcie.", "Thanks! Rematch on the court tomorrow."]
+    ],
+    "drop_ivan": [
+      ["Ivan", "Dzięki za kurs. Spokojnie, a jednak.", "Thanks for the ride. Calm, and yet."]
+    ],
+    "abort": [
+      ["Ivan", "Dobra, łapię nocny autobus.", "Fine, I'll catch the night bus."]
+    ]
+  },
+  "taps": {
+    "Kelner": [
+      ["Z okna widać Pałac. Z Pałacu widać, jak palimy.", "From the window you see the Palace. From the Palace, they see us smoking."],
+      ["Woda z miętą dla kierowcy. U nas kierowca to VIP.", "Mint water for the driver. Here the driver is a VIP."],
+      ["Rezerwacja na 'Ivan razy trzy'? Mamy. Od tygodnia.", "A booking for 'Ivan times three'? We have it. Since last week."]
+    ],
+    "Barman": [
+      ["Mamy siedemdziesiąt smaków. Siedem jest dobrych.", "We have seventy flavours. Seven are good."],
+      ["Słoiki są podpisane ręcznie. Mój charakter pisma to też smak.", "The jars are hand-labelled. My handwriting is a flavour too."],
+      ["Piwo jasne? Zawsze jasne. Ciemne jest tylko niebo nad Wolą.", "Pale beer? Always pale. Only the sky over Wola is dark."]
+    ],
+    "Goście": [
+      ["W Warszawie szisza jest jak kawa: każdy ma swój skład i swoje zdanie.", "In Warsaw shisha is like coffee: everyone has a blend and an opinion."],
+      ["Byliśmy tu na urodzinach. I na stypie. Ta sama fajka.", "We were here for a birthday. And a wake. Same pipe."],
+      ["Mój szef siedzi dwa stoliki dalej. Udajemy, że się nie znamy.", "My boss sits two tables away. We pretend we've never met."]
+    ],
+    "Oliwka": [
+      ["Prawdziwa oliwka. Podobno ma ubezpieczenie.", "A real olive tree. Reportedly insured."],
+      ["Oliwka ma lepszy widok niż połowa Woli.", "The olive tree has a better view than half of Wola."]
+    ],
+    "Mistrz": [
+      ["Zaufaj dymowi.", "Trust the smoke."],
+      ["Dobra szisza jest jak dobra rozmowa: nie spiesz się.", "A good shisha is like a good talk: don't rush it."]
+    ],
+    "Ivan": [
+      ["Piwo, okno i lekka. Tak wygląda szczęście.", "A beer, a window and a light one. That's what happiness looks like."],
+      ["Ja jestem od planu. Bogdan jest od kondycji.", "I'm the plan guy. Bogdan is the fitness guy."]
+    ],
+    "Bogdan": [
+      ["Herbata i mocna. Tak trenują mistrzowie.", "Tea and a strong one. That's how champions train."],
+      ["Trener mówi: oddychaj głęboko. Zrobiłem z tego plan treningowy.", "My coach says: breathe deeply. I made it a training plan."]
+    ]
+  },
+  "jars": [
+    {"id": "arbuz", "pl": "ARBUZ Z MIĘTĄ", "en": "WATERMELON MINT", "sweet": 3.0, "cool": 2.0},
+    {"id": "jablko", "pl": "PODWÓJNE JABŁKO", "en": "DOUBLE APPLE", "sweet": 4.0, "cool": 1.0},
+    {"id": "guma", "pl": "GUMA BALONOWA", "en": "BUBBLEGUM", "sweet": 5.0, "cool": 0.0},
+    {"id": "ogorek", "pl": "LODY Z OGÓRKA", "en": "CUCUMBER ICE CREAM", "sweet": 1.0, "cool": 5.0},
+    {"id": "mgla", "pl": "MGŁA NAD WISŁĄ", "en": "MIST OVER THE VISTULA", "sweet": 1.0, "cool": 4.0},
+    {"id": "zupa", "pl": "ZUPA POMIDOROWA", "en": "TOMATO SOUP", "sweet": 0.0, "cool": 0.0}
+  ]
+}
