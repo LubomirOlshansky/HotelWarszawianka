@@ -81,8 +81,8 @@ func _check_resolve() -> void:
 		_fail("a saved choice must win over the phone's language")
 	if not Lang.resolve("") in Lang.CODES or not Lang.resolve("xx") in Lang.CODES:
 		_fail("no or an unknown saved choice must fall back to the phone's language, pl or en")
-	if Lang.resolve("") != Lang.device_code():
-		_fail("with nothing saved the phone's language decides")
+	if Lang.resolve("") != Lang.EN or Lang.resolve("xx") != Lang.EN:
+		_fail("with nothing saved the game starts in English, whatever the phone's language")
 	Lang.set_code("zz")
 	if Lang.code != Lang.PL:
 		_fail("set_code with an unknown code must stay Polish")

@@ -3113,6 +3113,18 @@ func _kino_free() -> bool:
 ## The questlines (story_quests.gd): each big quest joins with one `stories.add` here. A new quest
 ## thread adds its own block (id, names, friend, words, start spot, colour, hours, call / meet /
 ## busy / idle); nothing else changes.
+const STORY_BLURBS := {
+	"boat": ["Wyścig łodzi po Wiśle, trzy kółka.", "A boat race down the Vistula, three laps."],
+	"rave": ["Sekretny rave: Ziomek zna drogę.", "A secret rave: Ziomek knows the way."],
+	"dekalog": ["Warszawa Kieślowskiego z Claire.", "Kieślowski's Warsaw, with Claire."],
+	"kawa": ["Kawowy rajd po mieście.", "A coffee run across the city."],
+	"padel": ["Czwarty do padla w WTS Deska.", "A fourth for padel at WTS Deska."],
+	"meet": ["Nocny spot na Defiladzie.", "A night car meet on Plac Defilad."],
+	"kino": ["Kopia filmu, cztery kina.", "One film print, four cinemas."],
+	"tesla": ["Bartek, śmigłowiec i martwe TESŁO.", "Bartek, a helicopter and a dead TESŁO."],
+}
+
+
 func _build_stories(world: Node3D) -> void:
 	stories = StoryQuests.new()
 	stories.name = "Stories"
@@ -3184,18 +3196,41 @@ func _build_stories(world: Node3D) -> void:
 						"\"The cinemas are asleep. So are the distributors. Come by after two in the afternoon, we'll start with Amondo\""],
 				"at": KinoTour.PICKUP["at"], "colour": KinoTour.COLOUR, "hours": Vector2(KinoTour.HOURS[0], KinoTour.HOURS[1]),
 				"call": kino_tour.ring, "meet": kino_tour.meet, "busy": kino_tour.busy, "idle": kino_tour.idle})
-	if shisha != null and not shisha.home.is_empty():
-		var sh: Vector3 = shisha.home["at"]
-		stories.add({"id": "shisha", "pl": Shisha.NAME[0], "en": Shisha.NAME[1], "who": [Shisha.FRIEND, Shisha.FRIEND],
-				"hello": ["„Siema! Szisza dziś? Wsiadam, jeszcze Bogdan z kortu i jedziemy na Emilii Plater.”",
-						"\"Hey! Shisha tonight? I'm getting in, we grab Bogdan from the court and go to Emilii Plater.\""],
-				"closed": ["„Szisza dopiero wieczorem. Wpadnij po siedemnastej.”", "\"Shisha's for the evening. Come by after five.\""],
-				"at": Vector2(sh.x, sh.z), "colour": Shisha.COLOUR, "hours": Shisha.HOURS, "days": [],
-				"call": shisha.ring, "meet": shisha.meet_in_person, "busy": shisha.busy, "idle": shisha.idle})
+	# The shisha night is a hidden quest (F 2026-11-08): no story, no pin, no phone call. Press and
+	# hold "+" for SHISHA_HOLD_S seconds at Ivan's block in 19. Dzielnica and he rings (`_story_tick`).
+	if shisha != null:
+		shisha.auto = false
+	# Bartek's dead TESŁO (ev_tow.gd, F 2026-11-08): a helicopter story with no fixed start, so it
+	# is in the STORIES tab only (a tap there rings Bartek), no pin on the map.
+	if ev_tow != null and not ev_tow.chargers.is_empty():
+		stories.add({"id": "tesla", "pl": "Stanęło TESŁO", "en": "The dead TESŁO", "who": ["Bartek", "Bartek"],
+				"hello": ["", ""], "closed": ["", ""], "at": Vector2.INF, "colour": EvTow.COLOUR,
+				"hours": Vector2(-1.0, -1.0), "days": [],
+				"call": ev_tow.ring, "meet": func() -> bool: return false, "busy": ev_tow.busy,
+				"idle": func() -> bool: return ev_tow.state == EvTow.State.IDLE})
+	# One line per questline for the full map's pin (a tap shows it): [pl, en].
+	for d: Dictionary in stories.defs:
+		d["blurb"] = STORY_BLURBS.get(str(d["id"]), ["", ""])
 	if story_flag != "":
 		get_tree().create_timer(1.5).timeout.connect(func() -> void: stories.start(story_flag))
 	print("stories: %d questlines (%s)" % [stories.defs.size(), ", ".join(stories.defs.map(func(d: Dictionary) -> String:
 			return "%s %s" % [d["id"], "%.0f,%.0f" % [d["at"].x, d["at"].y] if d["at"] != Vector2.INF else "no start"]))])
+
+
+## Hold "+" this long (s), standing at Ivan's block, and he rings.
+const SHISHA_HOLD_S := 5.0
+const SHISHA_R := 30.0
+
+
+## The shisha night's hidden start: nothing on, the car near Ivan's block and slow, "+" held 5 s.
+func _shisha_secret(busy: bool) -> void:
+	if shisha == null or shisha.home.is_empty() or busy or flying or car == null or not shisha.idle():
+		return
+	var h: Vector3 = shisha.home["at"]
+	var p := car.global_position
+	if Vector2(p.x, p.z).distance_to(Vector2(h.x, h.z)) > SHISHA_R or hud.zoom_in_held_s() < SHISHA_HOLD_S:
+		return
+	shisha.ring()
 
 
 ## Something runs: a race, a job, a ride, a rescue, a questline, a tow (quest focus: the map goes quiet).
@@ -3219,17 +3254,23 @@ func _story_tick() -> void:
 		return
 	var focus := _quest_running()
 	stories.focus = focus
+	_shisha_secret(focus)
 	var m: Array = StoryQuests.marks(stories.defs, focus or flying)
 	var names := PackedStringArray()
+	var blurbs := PackedStringArray()
+	var small := PackedByteArray()
 	if not (focus or flying):
 		for d: Dictionary in stories.defs:
 			if d["at"] != Vector2.INF:
 				names.append(Lang.pick(str(d["pl"]), str(d["en"])))
+				var b: Array = d.get("blurb", ["", ""])
+				blurbs.append(Lang.pick(str(b[0]), str(b[1])))
+				small.append(1 if d.get("small", false) else 0)
 	var key := "%s %d %s" % [focus, (m[0] as PackedVector2Array).size(), Lang.pick("pl", "en")]
 	if key == _story_key:
 		return
 	_story_key = key
-	hud.set_story(m[0], m[1], focus, names)
+	hud.set_story(m[0], m[1], focus, names, blurbs, small)
 	if stories_log:
 		print("stories: focus %s, %d starts on the map" % ["on" if focus else "off", (m[0] as PackedVector2Array).size()])
 
@@ -3403,7 +3444,13 @@ func _build_shisha(data: Dictionary, world: Node3D) -> void:
 		"call":
 			get_tree().create_timer(1.0).timeout.connect(func() -> void: shisha.ring())
 		"meet":
-			get_tree().create_timer(1.0).timeout.connect(func() -> void: shisha.meet_in_person())
+			# The car at Ivan's kerb, as a player meeting him in person (Autopilot 2026-11-08: it
+			# started at the spawn, 1.3 km off).
+			get_tree().create_timer(1.0).timeout.connect(func() -> void:
+				var k: Vector3 = shisha.home["at"]
+				car.global_position = Vector3(k.x, map.ground_height(k.x, k.z), k.z)
+				car.reset_physics_interpolation()
+				shisha.meet_in_person())
 		"lounge", "terrace":
 			get_tree().create_timer(1.0).timeout.connect(func() -> void:
 				shisha.meet_in_person()

@@ -5795,7 +5795,7 @@ Command-line options (after `--`):
 | `--rave-smola` | secret rave: Ziomek rings now for the club night at Smoła (the door's three questions, then the room) |
 | `--rave-club` | secret rave: straight into Smoła's cutaway room (option A: the jungle, the DJ, the dancers, the lights, TAŃCZ, PATIO and WYJDŹ) |
 | `--shisha-call` | shisha night (shisha.gd): Ivan rings now (ODBIERZ, then JADĘ!) |
-| `--shisha-meet` | shisha night: Ivan gets in now, on to Bogdan at the Żelazna court |
+| `--shisha-meet` | shisha night: the car at Ivan's kerb in 19. Dzielnica, Ivan gets in, on to Bogdan at the Żelazna court |
 | `--shisha-lounge` | shisha night: straight into SENATOREK (lounge.gd), the mini-game playing itself (best jars, clean coal and draw), then PALIĆ |
 | `--shisha-terrace` | shisha night: as `--shisha-lounge`, then TARAS (the terrace with the Palace) |
 | `--shisha=0` / `--shisha-log` | no shisha night / its steps in the log (shisha: ..., lounge: ...) |

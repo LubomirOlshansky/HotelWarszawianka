@@ -75,8 +75,11 @@ const WHITE := Color("#f4f1ea")
 const RED := Color("#d8262b")
 ## The lit bands on the towers: softer than the flags (F, 2026-11-08: "too bright"; his photo has a
 ## pink-white top and a deep rose-red base, a floodlight, not a neon). LIT_SIGN glows 1.6x its colour.
-const BAND_WHITE := Color("#b9a2b4")
-const BAND_RED := Color("#8a1f33")
+## F, 2026-11-08 (again): no solid stripes on any tower, the windows must show. The bands are additive
+## light (glow.gdshader, only while the city's lights are on): the colour washes over the facade
+## and its lit windows; the alpha is the strength (glow's three steps: 0.15 -> 0.27, 0.25 -> 0.46).
+const BAND_WHITE := Color(1.0, 0.86, 0.92, 0.15)
+const BAND_RED := Color(1.0, 0.12, 0.2, 0.25)
 const STEEL := Color("#9aa0a6")
 const STEEL_DARK := Color("#5b6066")
 const POLE := Color("#c9ccd0")
@@ -688,7 +691,7 @@ func _build_bands() -> void:
 	_bands = MeshInstance3D.new()
 	_bands.name = "EventBands"
 	_bands.mesh = st.commit()
-	_bands.material_override = Models.material()
+	_bands.material_override = Props.glow_material(false, 0.5)
 	_bands.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_bands.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	_bands.visible = false
