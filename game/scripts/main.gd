@@ -3401,7 +3401,13 @@ func _build_shisha(data: Dictionary, world: Node3D) -> void:
 		"call":
 			get_tree().create_timer(1.0).timeout.connect(func() -> void: shisha.ring())
 		"meet":
-			get_tree().create_timer(1.0).timeout.connect(func() -> void: shisha.meet_in_person())
+			# The car at Ivan's kerb, as a player meeting him in person (Autopilot 2026-11-08: it
+			# started at the spawn, 1.3 km off).
+			get_tree().create_timer(1.0).timeout.connect(func() -> void:
+				var k: Vector3 = shisha.home["at"]
+				car.global_position = Vector3(k.x, map.ground_height(k.x, k.z), k.z)
+				car.reset_physics_interpolation()
+				shisha.meet_in_person())
 		"lounge", "terrace":
 			get_tree().create_timer(1.0).timeout.connect(func() -> void:
 				shisha.meet_in_person()
