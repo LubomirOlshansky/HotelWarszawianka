@@ -41,9 +41,21 @@ The podium brings the car walls. At night the punched windows and ribbons light 
 
 ## 7. Detail level and budget
 
-L2; budget 550 triangles in `check_mesh_quality.gd` (454 measured, was 190 for the plain box).
+L2; budget 1400 triangles in `check_mesh_quality.gd` (1319 measured with the street front below; 454 before it, 190 for the plain box).
 
 Shots: `--at=-1525,62 --yaw=-45 --lift=75 --size=190` (from Varso, photo 1), day; `--solo=wcf --solo-look=lit`.
+
+## 7b. The street front on Emilii Plater (F's 13 photos, 2026-11-08)
+
+The entrance faces Emilii Plater (east). A black base band to 0.8 m, two granite bands on the
+podium (8.4-10.6 m and 13.6-15.8 m), steel sun fins standing 1.1 m proud at 5.4, 10.8 and 16 m,
+granite piers every 4.6 m along the east and north faces. The portico: a canopy 6-7 m deep with a
+curved front edge at 5.6-6.1 m, nine downlights in it, one round steel column on a black foot,
+a revolving-door drum (r 1.5 m, lit glass) with glass side doors, a black plinth. Letters
+"EMILII PLATER 53" in silver over the door, "SENATOREK" in gold on the canopy's fascia (the
+lounge upstairs, shisha quest), "COFFEECHAIR" over the ground-floor café. On the low roof a glass
+rail round the edge and lamps every 6 m (the lounge's terrace). `_wcf_street`, `_wcf_terrace` in
+landmarks.gd.
 
 ## 8. Parts table
 
