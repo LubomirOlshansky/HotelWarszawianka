@@ -141,7 +141,7 @@ func _check() -> int:
 			var img := Image.create(map._roof_nx, map._roof_nz, false, Image.FORMAT_RGBA8)
 			for j in map._roof_nz:
 				for i in map._roof_nx:
-					var id: int = map._pick[j * map._roof_nx + i]
+					var id: int = map._pick.decode_u16((j * map._roof_nx + i) * 2)  # 16-bit ids, two bytes a cell
 					if id > 0:
 						img.set_pixel(i, j, Color8(id * 30, 255, 0, 255))
 			img.save_png(arg.trim_prefix("--grid="))

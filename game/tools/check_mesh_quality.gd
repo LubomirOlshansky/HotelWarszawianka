@@ -78,6 +78,9 @@ const BUDGET := {
 	"mlotek": 2400,
 	"kozia9": 7000,
 	"karowa18a": 1500,
+	"nowogrodzka31": 3200,
+	"marszalkowska99": 5000,
+	"cparking": 6500,
 	"hotel_kasztel": 330,
 	"hotel_canaletto": 330,
 	"hotel_starowka": 330,
@@ -162,6 +165,8 @@ const BUDGET := {
 	"slabs": 1100,   # 2026-11-03: balcony bands, a ledge every storey on the long faces (look check)
 	"zelazna": 1030,
 	"pokorna2": 1500,
+	"dekalog_estate": 18000,
+	"inflancka_pools": 1000,
 	"spektrum": 990,
 	"spire": 6600,  # 2026-11-06 photo rebuild (F), 6151 tris (vase, steel crown ring, drum): steel columns, canopy bow, Spire B/C crowns and eaves, plaza kerbs, channel, 26 trees; +0 draw calls
 	"tr": 500,
@@ -238,7 +243,7 @@ const BUDGET := {
 	"unit": 1160,
 	"varso": 2500,
 	"varso_place": 1100,
-	"wcf": 190,
+	"wcf": 550,
 	"wszystkich": 1300,
 	"wizytki": 690,
 	"branickich": 1500,

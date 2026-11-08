@@ -74,7 +74,8 @@ var wander_offered := false
 ## pill, off by default (driving made easier); Settings → JAZDA turns it on. The guards stand in
 ## the zones either way, and the footway clamp is not part of it.
 var zone_cap := false
-## G4: car.gd Handling (0 Cruise, the default; 1 Sport, the loop 2a feel). Settings → Jazda, key "handling".
+## G4: car.gd Handling (0 Cruise, the default; 1 Sport, the loop 2a feel; 2 Grounded, the car with
+## weight, F 2026-11-04 "too arcade"). Settings → Jazda, key "handling".
 var handling := 0
 ## Steering sensitivity 0..1 (0.5 = the profile as is; car.gd set_sensitivity). Settings → Jazda, key "sensitivity".
 var sensitivity := 0.5
@@ -142,7 +143,7 @@ func load_file() -> void:
 	wander = bool(cfg.get_value("game", "wander", wander))
 	wander_offered = bool(cfg.get_value("game", "wander_offered", wander_offered))
 	zone_cap = bool(cfg.get_value("game", "zone_cap", zone_cap))
-	handling = clampi(int(cfg.get_value("game", "handling", handling)), 0, 1)
+	handling = clampi(int(cfg.get_value("game", "handling", handling)), 0, 2)
 	sensitivity = clampf(float(cfg.get_value("game", "sensitivity", sensitivity)), 0.0, 1.0)
 	lane_assist = bool(cfg.get_value("game", "lane_assist", lane_assist))
 	chatter = clampi(int(cfg.get_value("world", "chatter", chatter)), 0, 2)
