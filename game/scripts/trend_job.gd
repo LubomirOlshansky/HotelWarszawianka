@@ -184,6 +184,8 @@ const EGG_SECS := 3.0
 const DEST_ID := "rondo_daszynskiego"
 const DEST_R := 300.0
 const RESULT_LIFE := 10.0
+## Seconds after a card closes before the next offer may open (the OK tap must not hit it).
+const CARD_REST := 2.5
 const CUSTOMERS := ["Ania z HR", "Tomek z IT", "Kasia z marketingu", "Paweł z finansów", "Ola z działu prawnego", "Michał ze sprzedaży"]
 
 enum State { IDLE, OFFER, PICKUP, DELIVER, RESULT }
@@ -223,6 +225,8 @@ var done := 0
 
 var _dest := Vector2.INF
 var _cool := {}
+## Session time before which no new offer opens (set when a card closes: CARD_REST).
+var _card_rest := 0.0
 var _t := 0.0
 var _clock := 0.0
 var _hold := 0.0
@@ -338,6 +342,16 @@ func busy() -> bool:
 	return state != State.IDLE and state != State.OFFER
 
 
+## A card is up, or one closed a moment ago: new offers wait (see `_free`).
+func offers_held() -> bool:
+	return hold_offers(_session, _card_rest, hud != null and hud.cards_up())
+
+
+## The rule itself: a card is up, or one closed less than CARD_REST s ago.
+static func hold_offers(session: float, rest_until: float, card_up: bool) -> bool:
+	return card_up or session < rest_until
+
+
 func has_target() -> bool:
 	return state == State.PICKUP or state == State.DELIVER
 
@@ -369,8 +383,13 @@ func secondary() -> bool:
 	return false
 
 
+## No offer or call opens while any card is on screen (a result or win card included), nor for
+## CARD_REST s after one closed: the OK tap on a result card must never land on the next offer
+## (Autopilot, padel at DESKA, 2026-11-08). The offer is only queued: `_look` asks again.
 func _free() -> bool:
 	if flying or away or quiet or guide_hold or car.in_water or missions.has_target():
+		return false
+	if offers_held():
 		return false
 	if not (missions.state == Missions.State.CLOSED or missions.state == Missions.State.RINGING):
 		return false
@@ -1456,6 +1475,7 @@ func _release() -> void:
 	_kawa_car_back()
 	state = State.IDLE
 	_t = 0.0
+	_card_rest = _session + CARD_REST
 	_beacon.visible = false
 	hud.hide_card()
 	hud.hide_status()

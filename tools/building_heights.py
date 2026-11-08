@@ -101,13 +101,14 @@ USES_FILE = os.path.join(ROOT, "game", "data", "small_buildings.json")
 USES = {"lift", "metro_vent", "metro_vent_tower", "metro_entrance_roof", "kiosk", "pavilion",
         "bin_shelter", "substation", "toilet", "guard_booth", "ticket_booth", "garage", "shed",
         "canopy", "bus_tram_shelter", "houseboat", "boathouse", "chapel_shrine",
-        "monument_structure", "staircase_or_lift_head", "historic", "unknown", "part", "none"}
+        "monument_structure", "staircase_or_lift_head", "historic", "annex", "unknown", "part", "none"}
 # Heights (m) for a researched use when no height was seen (small_buildings.gd LOOK keeps the same).
 USE_HEIGHTS = {"lift": 3.6, "metro_vent": 4.0, "metro_vent_tower": 5.5, "metro_entrance_roof": 3.2,
                "kiosk": 2.8, "pavilion": 3.6, "bin_shelter": 2.0, "substation": 2.7, "toilet": 2.8,
                "guard_booth": 2.6, "ticket_booth": 2.6, "garage": 2.5, "shed": 2.6, "canopy": 3.0,
                "bus_tram_shelter": 2.6, "houseboat": 3.2, "boathouse": 4.2, "chapel_shrine": 3.5,
-               "monument_structure": 3.0, "staircase_or_lift_head": 3.2, "historic": 4.0, "unknown": 3.0}
+               "monument_structure": 3.0, "staircase_or_lift_head": 3.2, "historic": 4.0, "annex": 4.0,
+               "unknown": 3.0}
 MATCH = 1.0  # m: a researched row names the building whose outline's centre is this close
 
 

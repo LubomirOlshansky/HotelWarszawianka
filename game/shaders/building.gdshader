@@ -863,7 +863,8 @@ vec3 landmark(int mode, float param, vec3 col, vec2 uv, float top, bool wall, ve
 		return col;
 	} else if (mode == M_MEMBRANE) {
 		if (lights_on > 0.001) {
-			glow = col * vec3(1.0, 0.95, 0.9) * 0.18;
+			// param 0.5: a floodlit painted wall (the Novotel car park's mural), lit well up the facade.
+			glow = col * vec3(1.0, 0.95, 0.9) * (param > 0.25 ? 0.7 : 0.18);
 		}
 		return col * (0.96 + 0.06 * value_noise(wp.xz * 0.5));
 	}
