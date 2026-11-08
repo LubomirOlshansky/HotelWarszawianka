@@ -19,6 +19,7 @@ extends SceneTree
 ##   a player who sits still after START! (`first_start_step`: wait, the GO nudge, release at
 ##   FIRST_HOLD), a player still for 8 s wins like an ordinary one, and the stall nudge mid-race
 ##   (`first_stall_due`) skips red-light stops, the last stretch and comes at most FIRST_STALLS times;
+## - PT-30: the Powiśle arrow's spot comes from the real districts data (it read "at" off an index);
 ## - the words (the director's, Halina's, the end card's) in Polish and English, each line at most
 ##   70 characters (the card's at most 100), the repo's name as README has it.
 ##   godot --headless --path game --script res://tools/check_first10.gd
@@ -27,6 +28,7 @@ const First10 := preload("res://scripts/first10.gd")
 const Rivals := preload("res://scripts/rivals.gd")
 const Ladder := preload("res://scripts/ladder.gd")
 const Wallet := preload("res://scripts/wallet.gd")
+const Districts := preload("res://scripts/districts.gd")
 const STEP := 0.2
 
 var _problems := 0
@@ -51,6 +53,7 @@ func _initialize() -> void:
 	_judge()
 	_band()
 	_words()
+	_powisle()
 	if _problems == 0:
 		print("first10: OK (%s)" % ", ".join(_summary))
 		quit(0)
@@ -492,3 +495,20 @@ func _line(done: Dictionary) -> String:
 	for id: String in First10.BEATS:
 		parts.append("%s %s" % [id.substr(0, 2), str(roundi(_at(done, id))) if done.has(id) else "-"])
 	return " ".join(parts)
+
+
+## PT-30: the Powiśle beat's arrow, from the real districts data.
+func _powisle() -> void:
+	var d := Districts.new()
+	var f := First10.new()
+	_expect(f.powisle_at() == Vector3.INF, "no districts: no Powiśle arrow")
+	if not d.load_data():
+		_expect(false, "districts data loads")
+	else:
+		f.districts = d
+		var at := f.powisle_at()
+		var want: Vector2 = d.districts[int(d.by_id["powisle"])]["at"]
+		_expect(at != Vector3.INF and Vector2(at.x, at.z).distance_to(want) < 0.01, "the Powiśle arrow at the district's label: %s" % at)
+		_summary.append("Powiśle arrow at %.0f, %.0f" % [at.x, at.z])
+	f.free()
+	d.free()

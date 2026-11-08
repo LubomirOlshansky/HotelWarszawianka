@@ -222,7 +222,7 @@ const NO_ROOF := -1000.0
 ## v0.8 landmarks (landmarks.gd): what each one's info card says, and which landmark
 ## (1-based, 0 for none) covers each roof-grid cell, for tapping.
 @export_storage var landmark_info: Array[Dictionary] = []
-@export_storage var _pick := PackedByteArray()
+@export_storage var _pick := PackedByteArray()  # a 16-bit id per cell, two bytes each (landmarks.gd pick_grid)
 ## The loading fix (2026-10-31): what colour tops each roof-grid cell, for the proxies
 ## (sector_proxies.gd), from the same buildings the sectors are built from: the roof's colour where
 ## a roof gives the cell its height (RGBA8, 0 for none), and the colour of a wall standing in it.
@@ -304,7 +304,7 @@ func setup_streamed(index: Dictionary, building_mat: ShaderMaterial, flat_mat: S
 			"buildings": index.get("site_parts", []), "areas": index.get("areas", []),
 			"platforms": index.get("platforms", [])})
 	landmark_info = _marks.info
-	_pick.resize(_roof_nx * _roof_nz)
+	_pick.resize(_roof_nx * _roof_nz * 2)
 	_pick.fill(0)
 	_index_decks()
 	_ground_normals()
@@ -614,6 +614,8 @@ func _build_parts(marks, roofs_only: bool) -> void:
 	_build_rail_signals(walls)
 	_build_srednicowy(walls)
 	_build_poniatowski(walls)
+	_build_lazienkowski(walls)
+	_build_slasko(walls)
 	_build_powisle(walls)
 	_build_garage_doors(walls)
 	_build_guard_rails(walls)
@@ -656,8 +658,9 @@ func _merge_pick(grid: PackedByteArray) -> void:
 	var r := _cell_range()
 	for j in range(r.position.y, r.end.y):
 		for i in range(r.position.x, r.end.x):
-			var k := j * _roof_nx + i
+			var k := (j * _roof_nx + i) * 2
 			_pick[k] = grid[k]
+			_pick[k + 1] = grid[k + 1]
 
 
 ## Loop 3c: the roof-grid cells whose centres lie in the sector being built (i, j from, to).
@@ -3561,6 +3564,477 @@ func _ms_pier(st, o: Vector2, u: Vector2, n: Vector2, s: float, top: float) -> v
 				Vector3(a.x, y0, a.y), Vector3(b.x, top, b.y), Vector3(a.x, top, a.y)])
 
 
+## Most Śląsko-Dąbrowski's river spans (F's photos SD-1..SD-4, 2026-11-07). The 1949 bridge lies
+## on the stone piers of the Kierbedź bridge (1864): six steel spans of plate girders, their
+## bottom flanges arched (deep over the piers, shallow at mid-span), grey-green under a deck whose
+## edge is painted red, and a red railing of plain vertical bars. The bake gives it the rows of
+## thin piers every road bridge gets; between the two land supports it keeps (SD_ENDS) those are
+## skipped (`_slasko_skips`) and this draws the stone piers, the girders and the railing in the
+## walls surface (no new draw calls). The piers stand on the rubble islands OpenStreetMap maps
+## round two of them (s ~247 and ~317), every ~70 m; their exact places are estimates.
+## Along the bridge from SD_A (its Praga end): the land supports kept, and the stone piers.
+const SD_ENDS := Vector2(24.0, 476.0)
+const SD_PIERS: Array[float] = [107.0, 177.0, 247.0, 317.0, 387.0]
+## Across it from the carriageway's axis (+ north, downstream): the girder webs.
+const SD_GIRDERS: Array[float] = [-9.4, -6.7, -4.0, -1.3, 1.3, 4.0, 6.7, 9.2]
+const SD_SIDE := 12.5         ## the pier's straight sides end here; the cutwaters run past them
+const SD_NOSE := 4.5          ## a cutwater's length past the side
+const SD_HALF := 2.4          ## half a pier's thickness along the bridge
+const SD_SLAB := 1.38         ## the slab's underside under the road (map_builder's deck slab)
+const SD_DEPTH_PIER := 5.2    ## girder depth over a stone pier
+const SD_DEPTH_END := 1.4     ## over a land support
+const SD_DEPTH_MID := 1.5     ## and at mid-span
+const SD_PANELS := 12
+const SD_RAIL_STEP := 0.6
+const SD_STEEL := Color("#6f7a74")
+const SD_STONE := Color("#a39d92")
+const SD_RED := Color("#9b2d2b")
+
+
+## The bridge's frame [origin at SD_A on the carriageway's axis, along, across, deck group], or []
+## when the bake has no such deck.
+func _slasko_frame() -> Array:
+	for d: Dictionary in _decks:
+		if d["k"] != "road":
+			continue
+		var pts: PackedVector2Array = d["pts"]
+		if pts[0].distance_to(SD_A) < 2.0 and pts[0].distance_to(pts[pts.size() - 1]) > 400.0:
+			var u := (pts[pts.size() - 1] - pts[0]).normalized()
+			return [pts[0], u, Vector2(-u.y, u.x), int(d["g"])]
+	return []
+
+
+## True for a bake pier the stone piers and plate girders replace.
+func _slasko_skips(f: Array, c: Vector2) -> bool:
+	if f.is_empty():
+		return false
+	var q: Vector2 = c - f[0]
+	var s: float = q.dot(f[1])
+	return s > SD_ENDS.x + 4.0 and s < SD_ENDS.y - 4.0 and absf(q.dot(f[2])) < SD_SIDE + SD_NOSE
+
+
+func _build_slasko(st) -> void:
+	var f := _slasko_frame()
+	if f.is_empty():
+		return
+	_uv2 = Vector2(0.5, -1.0)
+	var o: Vector2 = f[0]
+	var u: Vector2 = f[1]
+	var n: Vector2 = f[2]
+	var g: int = f[3]
+	var u3 := Vector3(u.x, 0.0, u.y)
+	var n3 := Vector3(n.x, 0.0, n.y)
+	for s: float in SD_PIERS:
+		var c := o + u * s
+		if _in_sector and not _sector_rect.has_point(c):
+			continue
+		var top := INF
+		for t: float in SD_GIRDERS:
+			var p := o + u * s + n * t
+			top = minf(top, deck_height(g, p.x, p.y) - SD_SLAB - SD_DEPTH_PIER - 0.3)
+		_sd_pier(st, o, u, n, s, top)
+	# The spans: from a land support or a pier's face to the next.
+	var stops: Array[float] = [SD_ENDS.x + 0.8]
+	var deep: Array[float] = [SD_DEPTH_END]
+	for s: float in SD_PIERS:
+		stops.append_array([s - SD_HALF, s + SD_HALF])
+		deep.append_array([SD_DEPTH_PIER, SD_DEPTH_PIER])
+	stops.append(SD_ENDS.y - 0.8)
+	deep.append(SD_DEPTH_END)
+	for k in range(0, stops.size(), 2):
+		var s0: float = stops[k]
+		var s1: float = stops[k + 1]
+		for t: float in SD_GIRDERS:
+			var tops: Array[Vector3] = []
+			var bots: Array[Vector3] = []
+			for i in SD_PANELS + 1:
+				var a := float(i) / SD_PANELS
+				var p := o + u * lerpf(s0, s1, a) + n * t
+				var yt := deck_height(g, p.x, p.y) - SD_SLAB
+				var e: float = deep[k] if a < 0.5 else deep[k + 1]
+				var depth := SD_DEPTH_MID + (e - SD_DEPTH_MID) * pow(2.0 * a - 1.0, 2.0)
+				tops.append(Vector3(p.x, yt, p.y))
+				bots.append(Vector3(p.x, yt - depth, p.y))
+			for i in SD_PANELS:
+				var m := (tops[i] + bots[i + 1]) * 0.5
+				if _in_sector and not _sector_rect.has_point(Vector2(m.x, m.z)):
+					continue  # the sector holding the panel's middle draws it
+				# The web, both faces; the bottom flange; a stiffener at each panel point.
+				for sgn: float in [1.0, -1.0]:
+					var w: Vector3 = n3 * 0.06 * sgn
+					_lz_quad(st, tops[i] + w, tops[i + 1] + w, bots[i + 1] + w, bots[i] + w, n3 * sgn, SD_STEEL)
+				_pn_strut(st, bots[i], bots[i + 1], 0.6, 0.25, n3, SD_STEEL.darkened(0.12))
+				if i > 0:
+					_pn_strut(st, bots[i], tops[i], 0.32, 0.14, n3, SD_STEEL.darkened(0.06))
+		# Cross frames between neighbouring girders, at the third points.
+		for j in SD_GIRDERS.size() - 1:
+			for a: float in [1.0 / 3.0, 2.0 / 3.0]:
+				var s := lerpf(s0, s1, a)
+				var p0 := o + u * s + n * SD_GIRDERS[j]
+				var p1 := o + u * s + n * SD_GIRDERS[j + 1]
+				var pm := (p0 + p1) * 0.5
+				if _in_sector and not _sector_rect.has_point(pm):
+					continue
+				var y := deck_height(g, pm.x, pm.y) - SD_SLAB - SD_DEPTH_MID * 0.6
+				_pn_strut(st, Vector3(p0.x, y, p0.y), Vector3(p1.x, y, p1.y), 0.25, 0.3, u3, SD_STEEL.darkened(0.1))
+	_sd_edges(st, o, u, n, g)
+	_uv2 = Vector2.ZERO
+
+
+## Along both walks' outer edges: the deck's edge painted grey below and red at the top, and the
+## red railing of vertical bars on the parapet (photo SD-4).
+func _sd_edges(st, o: Vector2, u: Vector2, n: Vector2, g: int) -> void:
+	for d: Dictionary in _decks:
+		if d["k"] != "path" or int(d["g"]) != g:
+			continue
+		var pts: PackedVector2Array = d["pts"]
+		var hs: PackedFloat32Array = d["h"]
+		var reach := float(d["l"]) + 0.2  # the slab's outer edge (map_builder's deck slab)
+		var side := signf((pts[0] - o).dot(n))
+		var carry := 0.0  # metres since the last bar
+		for i in pts.size() - 1:
+			var a := pts[i]
+			var b := pts[i + 1]
+			var length := a.distance_to(b)
+			if length < 0.05:
+				continue
+			var dir := (b - a) / length
+			var out := Vector2(-dir.y, dir.x)
+			if out.dot(n) * side < 0.0:
+				out = -out
+			var out3 := Vector3(out.x, 0.0, out.y)
+			var p0 := a + out * (reach + 0.04)
+			var p1 := b + out * (reach + 0.04)
+			var pm := (p0 + p1) * 0.5
+			var sm := (pm - o).dot(u)
+			if sm < SD_ENDS.x - 18.0 or sm > SD_ENDS.y + 30.0:
+				carry += length
+				continue
+			if _in_sector and not _sector_rect.has_point(pm):
+				carry += length
+				continue
+			var y0 := hs[i] - 0.08
+			var y1 := hs[i + 1] - 0.08
+			_quad(st, Vector3(p0.x, y0 - 1.32, p0.y), Vector3(p1.x, y1 - 1.32, p1.y), Vector3(p1.x, y1 - 0.15, p1.y),
+					Vector3(p0.x, y0 - 0.15, p0.y), out3, SD_STEEL.lightened(0.05))
+			_quad(st, Vector3(p0.x, y0 - 0.15, p0.y), Vector3(p1.x, y1 - 0.15, p1.y), Vector3(p1.x, y1 + 0.56, p1.y),
+					Vector3(p0.x, y0 + 0.56, p0.y), out3, SD_RED)
+			# The railing on the parapet's top: a top rail, and the bars.
+			var r0 := a + out * (reach - 0.15)
+			var r1 := b + out * (reach - 0.15)
+			_pn_strut(st, Vector3(r0.x, y0 + 1.3, r0.y), Vector3(r1.x, y1 + 1.3, r1.y), 0.08, 0.07, out3, SD_RED)
+			var at := SD_RAIL_STEP - carry
+			while at < length:
+				var q := r0.lerp(r1, at / length)
+				var y := lerpf(y0, y1, at / length)
+				var w := Vector2(dir.x, dir.y) * 0.03
+				for sgn: float in [1.0, -1.0]:
+					var f: Vector2 = out * 0.03 * sgn
+					_lz_quad(st, Vector3(q.x - w.x + f.x, y + 0.55, q.y - w.y + f.y), Vector3(q.x + w.x + f.x, y + 0.55, q.y + w.y + f.y),
+							Vector3(q.x + w.x + f.x, y + 1.27, q.y + w.y + f.y), Vector3(q.x - w.x + f.x, y + 1.27, q.y - w.y + f.y),
+							out3 * sgn, SD_RED.darkened(0.1))
+				at += SD_RAIL_STEP
+			carry = length - (at - SD_RAIL_STEP)
+
+
+## One stone pier at s along the bridge (photos SD-1, SD-2): a block across the whole deck in
+## dressed courses with a cutwater at each end whose top slopes down to its point, a paler cap,
+## solid for the car.
+func _sd_pier(st, o: Vector2, u: Vector2, n: Vector2, s: float, top: float) -> void:
+	var c := o + u * s
+	var ground := INF
+	var at := func(q: Vector2) -> Vector2: return o + u * (s + q.x) + n * q.y
+	var shaft := PackedVector2Array([at.call(Vector2(-SD_HALF, -SD_SIDE)), at.call(Vector2(SD_HALF, -SD_SIDE)),
+			at.call(Vector2(SD_HALF, SD_SIDE)), at.call(Vector2(-SD_HALF, SD_SIDE))])
+	var tips: Array[Vector2] = [at.call(Vector2(0.0, -SD_SIDE - SD_NOSE)), at.call(Vector2(0.0, SD_SIDE + SD_NOSE))]
+	for p in shaft:
+		ground = minf(ground, terrain_height(p.x, p.y))
+	for p in tips:
+		ground = minf(ground, terrain_height(p.x, p.y))
+	var y0 := ground - 1.5
+	var y1 := top - 0.6
+	var low := y1 - 5.0  # the cutwaters' points
+	# The shaft's long faces, in courses.
+	for k: Array in [[1, 2], [3, 0]]:
+		var a := shaft[int(k[0])]
+		var b := shaft[int(k[1])]
+		var nn := ((a + b) * 0.5 - c).normalized()
+		var y := y0
+		var band := 0
+		while y < y1 - 0.01:
+			var y2 := minf(y + 1.1, y1)
+			_lz_quad(st, Vector3(a.x, y, a.y), Vector3(b.x, y, b.y), Vector3(b.x, y2, b.y), Vector3(a.x, y2, a.y),
+					Vector3(nn.x, 0.0, nn.y), SD_STONE.darkened(0.06) if band % 2 == 1 else SD_STONE)
+			y = y2
+			band += 1
+	# The cutwaters: two faces each from the shaft's corners to the point, the sloped top.
+	for e in 2:
+		var tip := tips[e]
+		var c0 := shaft[1] if e == 0 else shaft[3]
+		var c1 := shaft[0] if e == 0 else shaft[2]
+		for corner: Vector2 in [c0, c1]:
+			var nn := ((corner + tip) * 0.5 - c).normalized()
+			_lz_quad(st, Vector3(corner.x, y0, corner.y), Vector3(tip.x, y0, tip.y), Vector3(tip.x, low, tip.y),
+					Vector3(corner.x, y1, corner.y), Vector3(nn.x, 0.0, nn.y), SD_STONE.darkened(0.03))
+		var mid := (c0 + c1) * 0.5
+		var up := Vector3((tip - mid).normalized().x * 0.6, 1.0, (tip - mid).normalized().y * 0.6).normalized()
+		_lz_quad(st, Vector3(c0.x, y1, c0.y), Vector3(c1.x, y1, c1.y), Vector3(tip.x, low, tip.y), Vector3(tip.x, low, tip.y),
+				up, SD_STONE.lightened(0.1))
+	# The cap: a paler course over the shaft, a little proud of it.
+	var cap := PackedVector2Array()
+	for p in shaft:
+		cap.append(p + (p - c).normalized() * 0.35)
+	for i in 4:
+		var a := cap[i]
+		var b := cap[(i + 1) % 4]
+		var nn := ((a + b) * 0.5 - c).normalized()
+		_lz_quad(st, Vector3(a.x, y1, a.y), Vector3(b.x, y1, b.y), Vector3(b.x, top, b.y), Vector3(a.x, top, a.y),
+				Vector3(nn.x, 0.0, nn.y), SD_STONE.lightened(0.12))
+	_fill(st, cap, top, SD_STONE.lightened(0.15))
+	var ring := PackedVector2Array([shaft[0], tips[0], shaft[1], shaft[2], tips[1], shaft[3]])
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		_wall_faces.append_array([Vector3(a.x, y0, a.y), Vector3(b.x, y0, b.y), Vector3(b.x, top, b.y),
+				Vector3(a.x, y0, a.y), Vector3(b.x, top, b.y), Vector3(a.x, top, a.y)])
+
+
+## Most Łazienkowski's cycle bridges (F, 2026-11-07: "why does the bike path hang in the air on
+## its own?"). Since 2017 two steel footbridges, one on each side, hang under the river bridge on
+## brackets at the level of its steel box girders' bottom (ZDM's 2016 programme: "na wspornikach w
+## poziomie dolnym skrzynek"). OpenStreetMap gives them as their own decks some 8 m under the road
+## (the right level), but the bake built them as slabs on their own posts under a thin slab, so
+## they floated in the air beside the bridge. Under each carriageway this draws the box girder
+## (its sides from the slab's underside down to the cycle deck's level) and every LZ_BRACKET_STEP
+## a bracket from the girder's foot out under the cycle deck with a strut; the cycle decks' own
+## posts are left out (`_lazienkowski_skips`). Found from the cycle decks' pieces that start at
+## LZ_CYCLE; the girders' colour is a placeholder until F's photos (BACKLOG "Bridges audit").
+const LZ_CYCLE: Array[Vector2] = [Vector2(1971.8, 858.2), Vector2(1974.2, 883.5)]
+const LZ_BOX_HALF := 3.8        ## half a box girder's width, under its carriageway's axis
+const LZ_REACH := 9.0           ## a carriageway's axis this close to the cycle deck carries it
+const LZ_MAX_DEPTH := 10.0      ## no girder where the cycle deck is further under the road (the ramps)
+const LZ_BRACKET_STEP := 6.0
+const LZ_HANG := 2.0            ## and none where the cycle deck runs this close over the ground (it lies on it)
+const LZ_STEEL := Color("#7d8790")
+
+
+## The cycle decks' indices in _decks (empty when the bake has none).
+func _lazienkowski_cycle() -> Array[int]:
+	var out: Array[int] = []
+	for di in _decks.size():
+		var d: Dictionary = _decks[di]
+		if d["k"] != "path":
+			continue
+		var pts: PackedVector2Array = d["pts"]
+		for a: Vector2 in LZ_CYCLE:
+			if pts[0].distance_to(a) < 2.0 and pts[0].distance_to(pts[pts.size() - 1]) > 300.0:
+				out.append(di)
+	return out
+
+
+## True for a bake post holding up one of the cycle decks (not the bridge's own piers).
+func _lazienkowski_skips(cycle: Array[int], p: Dictionary) -> bool:
+	var c := Vector2(float(p["c"][0]), float(p["c"][1]))
+	var top := float(p["y"][1])
+	for di in cycle:
+		var d: Dictionary = _decks[di]
+		if not (d["box"] as Rect2).has_point(c):
+			continue
+		var pts: PackedVector2Array = d["pts"]
+		var hs: PackedFloat32Array = d["h"]
+		for i in pts.size() - 1:
+			var ab := pts[i + 1] - pts[i]
+			var t := clampf((c - pts[i]).dot(ab) / maxf(ab.length_squared(), 0.000001), 0.0, 1.0)
+			if c.distance_to(pts[i] + ab * t) < float(d["l"]) + 1.5 and top < lerpf(hs[i], hs[i + 1], t) + 0.5:
+				return true
+	return false
+
+
+## The nearest carriageway over `p` that stands higher than `y` + 3 m: [axis point, road height,
+## signed distance of p from the axis (+ to the axis's right)], or [] when none is within LZ_REACH.
+func _lz_carriageway(p: Vector2, y: float) -> Array:
+	var best := LZ_REACH
+	var out: Array = []
+	for d: Dictionary in _decks:
+		if d["k"] != "road" or not (d["box"] as Rect2).grow(LZ_REACH).has_point(p):
+			continue
+		var pts: PackedVector2Array = d["pts"]
+		var hs: PackedFloat32Array = d["h"]
+		for i in pts.size() - 1:
+			var ab := pts[i + 1] - pts[i]
+			var len2 := ab.length_squared()
+			if len2 < 0.0001:
+				continue
+			var t := clampf((p - pts[i]).dot(ab) / len2, 0.0, 1.0)
+			var q := pts[i] + ab * t
+			var dist := p.distance_to(q)
+			var h := lerpf(hs[i], hs[i + 1], t)
+			if dist < best and h > y + 3.0:
+				best = dist
+				var dir := ab / sqrt(len2)
+				out = [q, h, (p - q).dot(Vector2(-dir.y, dir.x))]
+	return out
+
+
+## A steel member from a to b, w by w across.
+func _lz_member(st, a: Vector3, b: Vector3, w: float, col: Color) -> void:
+	var z := b - a
+	var length := z.length()
+	if length < 0.01:
+		return
+	z /= length
+	var x := Vector3.UP.cross(z)
+	if x.length() < 0.01:
+		x = Vector3.RIGHT
+	x = x.normalized()
+	_box_oriented(st, (a + b) * 0.5, Basis(x, z.cross(x), z), Vector3(w, w, length), col)
+
+
+## A quad wound to face `n` whichever way round its corners come (the map's winding: the cross
+## of its first two edges points away from n), so both cycle bridges' girders face out.
+func _lz_quad(st, a: Vector3, b: Vector3, c: Vector3, d: Vector3, n: Vector3, col: Color) -> void:
+	if (b - a).cross(c - a).dot(n) > 0.0:
+		_quad(st, a, d, c, b, n, col)
+	else:
+		_quad(st, a, b, c, d, n, col)
+
+
+func _build_lazienkowski(st) -> void:
+	var cycle := _lazienkowski_cycle()
+	if cycle.is_empty():
+		return
+	_uv2 = Vector2(0.5, -1.0)
+	for di in cycle:
+		var d: Dictionary = _decks[di]
+		var pts: PackedVector2Array = d["pts"]
+		var hs: PackedFloat32Array = d["h"]
+		var half := float(d["l"])
+		var next := 0.0
+		var s := 0.0
+		for i in pts.size() - 1:
+			var a := pts[i]
+			var b := pts[i + 1]
+			var length := a.distance_to(b)
+			if length < 0.05:
+				continue
+			var mid := (a + b) * 0.5
+			var ca := _lz_carriageway(a, hs[i])
+			var cb := _lz_carriageway(b, hs[i + 1])
+			if ca.is_empty() or cb.is_empty() or _in_sector and not _sector_rect.has_point(mid):
+				s += length
+				continue
+			var ra: float = ca[1]
+			var rb: float = cb[1]
+			if ra - hs[i] > LZ_MAX_DEPTH or rb - hs[i + 1] > LZ_MAX_DEPTH \
+					or hs[i] - terrain_height(a.x, a.y) < LZ_HANG or hs[i + 1] - terrain_height(b.x, b.y) < LZ_HANG:
+				s += length
+				continue
+			# The girder: its axis under the carriageway's, its sides towards and away from the
+			# cycle deck, from the slab's underside to just under the cycle deck, and its bottom.
+			var side := signf(float(ca[2]))
+			var qa: Vector2 = ca[0]
+			var qb: Vector2 = cb[0]
+			var out := (a - qa).normalized()
+			var ta := ra - 1.4
+			var tb := rb - 1.4
+			var ba := hs[i] - 0.45
+			var bb := hs[i + 1] - 0.45
+			for k in [-1.0, 1.0]:
+				var fa: Vector2 = qa + out * LZ_BOX_HALF * k
+				var fb: Vector2 = qb + out * LZ_BOX_HALF * k
+				var n := Vector3(out.x * k, 0.0, out.y * k)
+				_lz_quad(st, Vector3(fa.x, ba, fa.y), Vector3(fb.x, bb, fb.y), Vector3(fb.x, tb, fb.y), Vector3(fa.x, ta, fa.y), n,
+						LZ_STEEL if k > 0.0 else LZ_STEEL.darkened(0.12))
+				# A stiffener line along the side, a third of the way down.
+				var sa := lerpf(ta, ba, 0.35)
+				var sb := lerpf(tb, bb, 0.35)
+				var ea: Vector2 = fa + out * k * 0.06
+				var eb: Vector2 = fb + out * k * 0.06
+				_lz_quad(st, Vector3(ea.x, sa - 0.12, ea.y), Vector3(eb.x, sb - 0.12, eb.y), Vector3(eb.x, sb + 0.12, eb.y),
+						Vector3(ea.x, sa + 0.12, ea.y), n, LZ_STEEL.lightened(0.1))
+			var ia: Vector2 = qa - out * LZ_BOX_HALF
+			var ib: Vector2 = qb - out * LZ_BOX_HALF
+			var oa: Vector2 = qa + out * LZ_BOX_HALF
+			var ob: Vector2 = qb + out * LZ_BOX_HALF
+			_lz_quad(st, Vector3(ia.x, ba, ia.y), Vector3(oa.x, ba, oa.y), Vector3(ob.x, bb, ob.y), Vector3(ib.x, bb, ib.y), Vector3.DOWN,
+					LZ_STEEL.darkened(0.25))
+			# Brackets: a cross beam from the girder's foot out under the cycle deck to its far
+			# edge, and a strut from higher up the girder down to that edge.
+			while next <= s + length:
+				var f := (next - s) / length
+				var p := a.lerp(b, f)
+				var y := lerpf(hs[i], hs[i + 1], f)
+				var q := qa.lerp(qb, f)
+				var foot := q + out * LZ_BOX_HALF
+				var tip := p + out * (half + 0.3)
+				var yr := lerpf(ra, rb, f) - 1.4
+				_lz_member(st, Vector3(foot.x, y - 0.4, foot.y), Vector3(tip.x, y - 0.4, tip.y), 0.3, LZ_STEEL.darkened(0.1))
+				_lz_member(st, Vector3(foot.x, lerpf(yr, y, 0.45), foot.y), Vector3(tip.x, y - 0.3, tip.y), 0.2, LZ_STEEL.darkened(0.1))
+				next += LZ_BRACKET_STEP
+			s += length
+	_uv2 = Vector2.ZERO
+
+
+## The river bridge's piers (F's photos LZ-1, LZ-2, 2026-11-07): under each span's end a pair of
+## broad concrete columns, one under each carriageway's box girder, where the bake set rows of
+## thin piers every 38 m. Along the westbound carriageway from LZ_ROAD_A (its east end); the five
+## spans' ends are estimates from the photos, the river's banks and the paths under the bridge.
+const LZ_ROAD_A := Vector2(1869.1, 899.4)
+const LZ_PIERS: Array[float] = [-100.0, -20.8, 58.4, 137.6, 216.8, 296.0]
+const LZ_COLUMNS: Array[float] = [0.0, -10.2]   ## across from that carriageway's axis (+ north)
+const LZ_COLUMN := Vector2(6.4, 4.2)             ## a column's size across and along the bridge
+const LZ_CONCRETE := Color("#aaa69d")
+
+
+## The bridge's frame [origin, along, across, road group], or [] when the bake has no such deck.
+func _lazienkowski_frame() -> Array:
+	for d: Dictionary in _decks:
+		if d["k"] != "road":
+			continue
+		var pts: PackedVector2Array = d["pts"]
+		if pts[0].distance_to(LZ_ROAD_A) < 2.0 and pts[0].distance_to(pts[pts.size() - 1]) > 300.0:
+			var u := (pts[pts.size() - 1] - pts[0]).normalized()
+			return [pts[0], u, Vector2(-u.y, u.x), int(d["g"])]
+	return []
+
+
+## True for a bake pier under the carriageways that the column pairs replace.
+func _lazienkowski_road_skips(f: Array, c: Vector2) -> bool:
+	if f.is_empty():
+		return false
+	var q: Vector2 = c - f[0]
+	var s: float = q.dot(f[1])
+	var t: float = q.dot(f[2])
+	return s > LZ_PIERS[0] - 4.0 and s < LZ_PIERS[LZ_PIERS.size() - 1] + 4.0 and t > -16.0 and t < 6.0
+
+
+## The column pairs, solid for the car; each up to its box girder's bottom (just under the cycle
+## decks' level, `_build_lazienkowski`), or to the slab where the cycle deck lies near the ground
+## and no girder is drawn.
+func _build_lazienkowski_piers(st, cycle: Array[int]) -> void:
+	var f := _lazienkowski_frame()
+	if f.is_empty() or cycle.is_empty():
+		return
+	var o: Vector2 = f[0]
+	var u: Vector2 = f[1]
+	var n: Vector2 = f[2]
+	var g: int = f[3]
+	var cg := int(_decks[cycle[0]]["g"])
+	for s: float in LZ_PIERS:
+		for t: float in LZ_COLUMNS:
+			var c := o + u * s + n * t
+			if _in_sector and not _sector_rect.has_point(c):
+				continue
+			var ground := terrain_height(c.x, c.y)
+			var road := deck_height(g, c.x, c.y)
+			var bike := deck_height(cg, c.x, c.y)
+			var top := bike - 0.45 if bike - ground >= LZ_HANG and road - bike <= LZ_MAX_DEPTH else road - 1.4
+			_pier(st, {"c": [c.x, c.y], "d": [u.x, u.y], "s": [LZ_COLUMN.x, LZ_COLUMN.y],
+					"y": [ground - 1.5, top - 0.5], "k": "pier"}, LZ_CONCRETE)
+			_pier(st, {"c": [c.x, c.y], "d": [u.x, u.y], "s": [LZ_COLUMN.x + 0.5, LZ_COLUMN.y + 0.5],
+					"y": [top - 0.5, top], "k": "cap"}, LZ_CONCRETE)
+
+
 ## Most Poniatowskiego's river spans (CITY_INVENTORY #14), from the Mac photo set (report
 ## docs/landmarks/photo-reports/poniatowski.md, spec docs/landmarks/specs/poniatowski.md): a
 ## steel deck-arch bridge, 506 m (Szyller, Marszewski and Paszkowski, 1914; the spans rebuilt
@@ -4457,7 +4931,7 @@ func landmark_at(x: float, z: float) -> int:
 	var j := floori((z - _roof_z0) / ROOF_CELL)
 	if i < 0 or j < 0 or i >= _roof_nx or j >= _roof_nz:
 		return -1
-	return int(_pick[j * _roof_nx + i]) - 1
+	return _pick.decode_u16((j * _roof_nx + i) * 2) - 1
 
 
 ## Marks the cell holding a point as at least `y` high.
@@ -6514,14 +6988,29 @@ const TRAM_GRAVEL := Color("#958e83")
 const TRAM_XING := Color("#a9a69f")
 
 
+## Most Świętokrzyski's median (F's photo SW-1, 2026-11-07): the strip between its carriageways,
+## where the stays come down, is grey concrete, not grass. Found from the deck piece that starts at
+## SW_A; its group's grass medians are drawn as that concrete.
+const SW_A := Vector2(876.0, -1002.7)
+const SW_MEDIAN := Color("#a29e96")
+
+
 ## Dual-carriageway medians: raised grass, or the tram bed at road level where trams run.
 func _build_medians(st) -> void:
+	var sw := -1
+	for d: Dictionary in _decks:
+		var pts: PackedVector2Array = d["pts"]
+		if d["k"] == "road" and pts[0].distance_to(SW_A) < 2.0 and pts[0].distance_to(pts[pts.size() - 1]) > 400.0:
+			sw = int(d["g"])
 	for m in data.get("medians", []):
 		_dk = int(m.get("dk", -1))
 		var grass: bool = m["k"] == "grass"
 		# Smooth roads loop 7 (F's ChatGPT target): the bed is gravel, as the ballast round it.
 		_layer = L_GREEN if grass else L_GRAVEL
 		var col: Color = COL["grass"] if grass else TRAM_BED
+		if grass and sw >= 0 and _dk == sw:
+			_layer = L_ISLAND
+			col = SW_MEDIAN
 		var y := KERB_UP if grass else Y_ROAD + 0.005
 		var s4: Array = m["s"]
 		for i in range(0, s4.size() - 7, 4):
@@ -7385,6 +7874,12 @@ func _build_barriers(st) -> void:
 			elif _wraps_stairwell(_pts(l["p"])):
 				style = BARRIER_STYLE["balustrade_rail"]
 		style = _mapped_style(l, style)
+		# Street objects unslopped (tools/object_fixes.py, 2026-11-07): a barrier's own style, the
+		# balustrade of a wall or fence beside a flight of steps that OSM gives no height, material or
+		# fence type (tools/barrier_tags.py's tags win: object_fixes leaves tagged lines alone).
+		# A street pass's override still wins.
+		if site_wall.is_empty() and l.has("st") and BARRIER_STYLE.has(str(l["st"])):
+			style = BARRIER_STYLE[str(l["st"])]
 		if not _object_overrides.is_empty() and l["k"] != "platform":
 			var o: Variant = _object_overrides.get(barrier_id(l["k"], l["p"]))
 			if o is Array:
@@ -7590,7 +8085,16 @@ func _build_bridge_structures(st) -> void:
 	var ms := _srednicowy_frame()
 	var pn := _poniatowski_frame()
 	var pv := _powisle_frame()
+	var lz := _lazienkowski_cycle()
+	var sd := _slasko_frame()
+	var lf := _lazienkowski_frame()
 	for p: Dictionary in data.get("decks", {}).get("piers", []):
+		if not lz.is_empty() and _lazienkowski_road_skips(lf, Vector2(float(p["c"][0]), float(p["c"][1]))):
+			continue  # Most Łazienkowski's column pairs stand here (`_build_lazienkowski_piers`)
+		if _slasko_skips(sd, Vector2(float(p["c"][0]), float(p["c"][1]))):
+			continue  # Most Śląsko-Dąbrowski's stone piers and plate girders stand here (`_build_slasko`)
+		if not lz.is_empty() and _lazienkowski_skips(lz, p):
+			continue  # Most Łazienkowski's cycle bridges hang on brackets (`_build_lazienkowski`)
 		if _srednicowy_skips(ms, Vector2(float(p["c"][0]), float(p["c"][1]))):
 			continue  # Most Średnicowy's stone piers stand here (`_build_srednicowy`)
 		if _poniatowski_skips(pn, Vector2(float(p["c"][0]), float(p["c"][1]))):
@@ -7598,6 +8102,7 @@ func _build_bridge_structures(st) -> void:
 		if _powisle_skips(pv, Vector2(float(p["c"][0]), float(p["c"][1]))):
 			continue  # the Powiśle viaduct's arcade stands here (`_build_powisle`)
 		_pier(st, p, concrete.darkened(0.1))
+	_build_lazienkowski_piers(st, lz)
 	_uv2 = Vector2.ZERO
 	if not _in_sector:
 		print("decks: %.0f m of deck edges joined across a gap to the bridge's next piece (loop 3b-2)" % joined)
@@ -8354,14 +8859,77 @@ const MARK_STYLE := {
 	"edge": [0.0, 0.2], "lane": [3.0, 0.22], "centre": [0.0, 0.2], "stop": [0.0, 0.5],
 	"bus": [0.0, 0.3], "cycle": [0.0, 0.18], "stripe": [0.0, 0.45],
 }
+## The bus stops' paint (tools/bus_stops.py, 2026-11-07, from street photos at our stops): the
+## white stop zigzag (P-17) in the kerb lane, a 0.22 m line (the real one is 0.12 m: too thin to read
+## from the game's camera), and the yellow line on the kerb along
+## the bus's length, laid at the footway's height.
+const STOPZZ_W := 0.22
+const STOPKERB_W := 0.22
+const STOPKERB_COL := Color("#e8c22e")
+
+
+## Most Śląsko-Dąbrowski (bridges audit, 2026-11-07): its trams run in the middle of the one
+## 13 m carriageway, and a solid line on each side keeps the two inner lanes for trams and (since
+## 2009) buses; F's photo SD-5 shows those lines white. OpenStreetMap gives it 4 plain lanes, so
+## the bake paints dashes over the rails; on this deck the lane lines are drawn solid instead, the
+## centre line between the tracks is left out, and BUS is painted between each track's rails
+## (`_build_slasko_bus`). Found from the carriageway's deck piece that starts at SD_A.
+const SD_A := Vector2(72.7, -1835.4)
+const SD_LINE := Color("#f4f1e8")   ## the tram-and-bus lane's solid line (COL["mark"])
+const SD_BUS_STEP := 95.0           ## BUS every this many metres along each track
+const SD_BUS_END := 45.0            ## and none this close to the bridge's ends
+
+
+## The bridge's carriageway deck group, or -1 when the bake has no such deck.
+func _slasko_group() -> int:
+	for d: Dictionary in _decks:
+		if d["k"] != "road":
+			continue
+		var pts: PackedVector2Array = d["pts"]
+		if pts[0].distance_to(SD_A) < 2.0 and pts[0].distance_to(pts[pts.size() - 1]) > 400.0:
+			return int(d["g"])
+	return -1
+
+
+## BUS between the rails of each tram track on Most Śląsko-Dąbrowski, facing the way it runs.
+func _build_slasko_bus(st, group: int) -> void:
+	if group < 0:
+		return
+	for t in data["trams"]:
+		if int(t.get("dk", -1)) != group:
+			continue
+		var poly := _pts(t["p"])
+		_dk = group
+		var s := 0.0
+		var total := 0.0
+		for i in poly.size() - 1:
+			total += poly[i].distance_to(poly[i + 1])
+		var next := SD_BUS_END
+		for i in poly.size() - 1:
+			var a := poly[i]
+			var b := poly[i + 1]
+			var length := a.distance_to(b)
+			while length > 0.01 and next <= s + length and next <= total - SD_BUS_END:
+				var at := a.lerp(b, (next - s) / length)
+				if not _in_sector or _sector_rect.has_point(at):
+					_pixel_shape(st, BUS_TEXT, at, (b - a) / length, 0.12, 0.8, false)
+				next += SD_BUS_STEP
+			s += length
+	_dk = -1
 
 
 func _build_markings(st) -> void:
 	var keep_bias := _drape_bias
+	var slasko := _slasko_group()
 	for m in data.get("markings", []):
 		var poly := _pts(m["p"])
 		_dk = int(m.get("dk", -1))
 		var kind: String = m["k"]
+		if slasko >= 0 and _dk == slasko and (kind == "lane" or kind == "centre"):
+			if kind == "lane":
+				_layer = L_MARK
+				_strip(st, poly, 0.2, Y_MARK, SD_LINE, false)
+			continue
 		if kind == "cyclefill":
 			# Under the white lines: a touch lower in the depth order.
 			_layer = L_CYCLE
@@ -8370,11 +8938,20 @@ func _build_markings(st) -> void:
 			_drape_bias = keep_bias
 			continue
 		_layer = L_MARK
+		if kind == "stopzz":
+			# One strip through the corners (extended), so the zigzag's points are closed.
+			_strip(st, poly, STOPZZ_W, Y_MARK, COL["mark"], true)
+			continue
+		if kind == "stopkerb":
+			_strip(st, poly, STOPKERB_W, KERB_UP + 0.012, STOPKERB_COL, false)
+			continue
 		var style: Array = MARK_STYLE.get(kind, [0.0, 0.2])
 		if float(style[0]) > 0.0:
 			_dashes(st, poly, 0.0, float(style[0]), 5.0, float(style[1]))
 		else:
 			_dashes(st, poly, 0.0, 1000000.0, 0.0, float(style[1]))
+	_layer = L_MARK
+	_build_slasko_bus(st, slasko)
 	_dk = -1
 	_build_pkin_bays(st)
 	_layer = L_GROUND
@@ -9661,49 +10238,64 @@ func _make_shared() -> void:
 	_cylinder(column, Vector3(0, 3.08, 0), 0.45, 0.35, 8, green)
 	_cylinder(column, Vector3(0, 3.43, 0), 0.12, 0.3, 6, Color("#c9a24a"))
 	_shared["column"] = column.commit()
-	# Bus and tram shelter. The landmarks loop (2026-10-30): Warsaw's glass shelter, as seen
-	# from the game's camera: a pale glass roof in a graphite frame overhanging the kerb, a
-	# dark fascia, glass back and end, three posts, a bench, a lit poster box at the far end
-	# (its faces glow at night: SHELTER_POSTER, fixture.gdshader) and the stop's blue sign
-	# (D-15) on its own pole. The road is on its -z side.
+	# Bus and tram shelter: Warsaw's standard glass shelter, as street photos at our own stops
+	# show it (Mapillary 2021-2026, the buses thread, 2026-11-07; first built 2026-10-30, red frame
+	# from the Rondo photos 2026-10-31). A flat pale glass roof on thin silver posts with a red
+	# edge all round it; at each end a red loop (front post, roof edge, back post) round the end
+	# panel: glass at the -x end, a lit two-sided poster panel (SHELTER_POSTER, glowing at night,
+	# fixture.gdshader) at the +x end; a glass back with a bench before it; the stop's name plate
+	# hanging under the roof's front edge. The stop's pole stands at the kerb before the -x end:
+	# red, the blue D-15 sign on top, the timetable case below. The road is on its -z side. The
+	# footprint (4.3 x 1.95 m round the origin) is unchanged: snap_props.py and the collider use it.
 	var shelter := SurfaceTool.new()
 	shelter.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var glass := Color("#b8d3df")
-	var graphite := Color("#33363b")
-	# The Rondo photos (2026-10-31): Warsaw's shelter has a red frame: the roof's edge, the
-	# posts and a red loop round the glass end, with an ad panel in a black case.
+	var silver := Color("#a9aeb4")
 	var red := Color("#c8282a")
-	_box(shelter, Vector3(0, 2.5, 0.08), Vector3(4.3, 0.12, 1.95), graphite)
-	_box(shelter, Vector3(0, 2.57, 0.08), Vector3(4.0, 0.03, 1.7), Color("#a7c2cf"))
-	_box(shelter, Vector3(0, 2.38, -0.86), Vector3(4.3, 0.3, 0.06), red)
-	_box(shelter, Vector3(0, 1.3, 0.75), Vector3(3.85, 2.05, 0.04), glass)
-	_box(shelter, Vector3(0, 0.12, 0.75), Vector3(3.9, 0.1, 0.06), graphite)
-	_box(shelter, Vector3(-1.95, 1.3, 0.17), Vector3(0.04, 2.05, 1.15), glass)
-	for x in [-1.95, 0.0, 1.95]:
-		_box(shelter, Vector3(x, 1.25, 0.78), Vector3(0.09, 2.5, 0.09), red)
-	# The red loop round the glass end: a post at each corner and a bar along the foot.
-	_box(shelter, Vector3(-1.95, 0.05, 0.17), Vector3(0.06, 0.06, 1.2), red)
-	_box(shelter, Vector3(-1.95, 2.4, -0.4), Vector3(0.06, 0.2, 0.06), red)
-	# The poster box: a graphite case, a poster on each face.
-	_box(shelter, Vector3(1.95, 1.2, 0.12), Vector3(0.2, 1.95, 1.3), graphite)
-	for sx in [-0.11, 0.11]:
-		_box(shelter, Vector3(1.95 + sx, 1.5, 0.12), Vector3(0.02, 1.0, 1.12), SHELTER_POSTER[0])
-		_box(shelter, Vector3(1.95 + sx, 0.78, 0.12), Vector3(0.02, 0.44, 1.12), SHELTER_POSTER[1])
-	_box(shelter, Vector3(-0.2, 0.46, 0.5), Vector3(2.2, 0.06, 0.38), Color("#5c6168"))
-	for x in [-1.1, 0.7]:
-		_box(shelter, Vector3(x, 0.22, 0.5), Vector3(0.06, 0.44, 0.3), graphite)
-	# The stop's sign: a grey pole, a blue square with a white bus.
-	_box(shelter, Vector3(-2.45, 1.35, -0.7), Vector3(0.07, 2.7, 0.07), Color("#9aa0a6"))
-	_box(shelter, Vector3(-2.45, 2.45, -0.7), Vector3(0.56, 0.56, 0.05), Color("#1f5fae"))
-	for sz in [-0.03, 0.03]:
-		_box(shelter, Vector3(-2.45, 2.47, -0.7 + sz), Vector3(0.34, 0.2, 0.02), Color("#f2f2ee"))
-		_box(shelter, Vector3(-2.45, 2.34, -0.7 + sz), Vector3(0.3, 0.05, 0.02), Color("#f2f2ee"))
-	# The Rondo photos' ad panel: a big lit panel in a black case on the glass end, a poster
-	# (orange over cream, SHELTER_POSTER) on both faces, glowing at night.
-	_box(shelter, Vector3(-2.3, 1.3, 0.3), Vector3(0.12, 1.95, 1.2), Color("#141518"))
+	# The roof: a glass plate and the red edge round it (thicker along the front).
+	_box(shelter, Vector3(0, 2.52, 0.08), Vector3(4.24, 0.05, 1.89), Color("#bccdd5"))
+	_box(shelter, Vector3(0, 2.5, -0.88), Vector3(4.3, 0.14, 0.05), red)
+	_box(shelter, Vector3(0, 2.52, 1.04), Vector3(4.3, 0.08, 0.05), red)
+	for x: float in [-2.13, 2.13]:
+		_box(shelter, Vector3(x, 2.52, 0.08), Vector3(0.05, 0.08, 1.95), red)
+		# The end's red loop: a front and a back post, a sill, and a bevel at the top corners
+		# (the real frame is rounded there).
+		_box(shelter, Vector3(x, 1.2, -0.78), Vector3(0.06, 2.3, 0.06), red)
+		_box(shelter, Vector3(x, 1.2, 0.94), Vector3(0.06, 2.3, 0.06), red)
+		_box(shelter, Vector3(x, 0.06, 0.08), Vector3(0.06, 0.06, 1.72), red)
+		_box(shelter, Vector3(x, 2.38, -0.72), Vector3(0.06, 0.12, 0.14), red)
+		_box(shelter, Vector3(x, 2.38, 0.88), Vector3(0.06, 0.12, 0.14), red)
+	# The back: glass between silver posts, a silver rail at the foot.
+	_box(shelter, Vector3(0, 1.3, 0.92), Vector3(4.2, 2.0, 0.03), glass)
+	_box(shelter, Vector3(0, 0.15, 0.92), Vector3(4.2, 0.06, 0.06), silver)
+	for x: float in [-0.7, 0.7]:
+		_box(shelter, Vector3(x, 1.26, 0.95), Vector3(0.07, 2.5, 0.07), silver)
+	# The -x end: glass. The +x end: the lit poster panel, a pale case, a poster on each face.
+	_box(shelter, Vector3(-2.13, 1.25, 0.08), Vector3(0.025, 2.0, 1.66), glass)
+	_box(shelter, Vector3(2.08, 1.22, 0.1), Vector3(0.14, 1.9, 1.32), Color("#d8dadc"))
 	for sx: float in [-0.075, 0.075]:
-		_box(shelter, Vector3(-2.3 + sx, 1.5, 0.3), Vector3(0.02, 1.4, 1.02), SHELTER_POSTER[0])
-		_box(shelter, Vector3(-2.3 + sx, 0.72, 0.3), Vector3(0.02, 0.2, 1.02), SHELTER_POSTER[1])
+		_box(shelter, Vector3(2.08 + sx, 1.32, 0.1), Vector3(0.02, 1.5, 1.14), SHELTER_POSTER[0])
+		_box(shelter, Vector3(2.08 + sx, 0.66, 0.1), Vector3(0.02, 0.18, 1.14), SHELTER_POSTER[1])
+	# The bench before the back glass.
+	_box(shelter, Vector3(-0.3, 0.46, 0.62), Vector3(2.4, 0.06, 0.38), Color("#5c6168"))
+	for x: float in [-1.3, 0.7]:
+		_box(shelter, Vector3(x, 0.22, 0.62), Vector3(0.06, 0.44, 0.3), silver)
+	# The stop's name plate under the roof's front edge: pale, a dark line of lettering.
+	_box(shelter, Vector3(-1.0, 2.3, -0.84), Vector3(1.4, 0.24, 0.04), Color("#eeeeea"))
+	for sz: float in [-0.025, 0.025]:
+		_box(shelter, Vector3(-1.05, 2.3, -0.84 + sz), Vector3(1.0, 0.07, 0.01), Color("#2b2e33"))
+		_box(shelter, Vector3(-0.42, 2.3, -0.84 + sz), Vector3(0.14, 0.12, 0.01), Color("#2b2e33"))
+	# The stop's pole at the kerb before the -x end: red, the blue D-15 square with a white bus on
+	# top, the timetable case (a pale frame round the white sheets) at eye height.
+	_box(shelter, Vector3(-2.55, 1.4, -0.72), Vector3(0.08, 2.8, 0.08), red)
+	_box(shelter, Vector3(-2.55, 2.55, -0.72), Vector3(0.58, 0.58, 0.05), Color("#1f5fae"))
+	for sz: float in [-0.03, 0.03]:
+		_box(shelter, Vector3(-2.55, 2.57, -0.72 + sz), Vector3(0.34, 0.2, 0.02), Color("#f2f2ee"))
+		_box(shelter, Vector3(-2.55, 2.44, -0.72 + sz), Vector3(0.3, 0.05, 0.02), Color("#f2f2ee"))
+	_box(shelter, Vector3(-2.55, 1.55, -0.72), Vector3(0.5, 0.72, 0.07), Color("#d2d4d6"))
+	for sz: float in [-0.04, 0.04]:
+		_box(shelter, Vector3(-2.55, 1.55, -0.72 + sz), Vector3(0.42, 0.62, 0.01), Color("#f6f4ec"))
+		_box(shelter, Vector3(-2.55, 1.8, -0.72 + sz), Vector3(0.42, 0.06, 0.012), Color("#f2c12e"))
 	_shared["shelter"] = _mark_glow(shelter.commit(), SHELTER_POSTER)
 
 

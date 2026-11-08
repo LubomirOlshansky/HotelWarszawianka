@@ -12,6 +12,7 @@ extends SceneTree
 ##   6. the real car (car.gd on a flat floor, its inputs held as hold_car holds them, a stick aimed
 ##      20° off at 75 %): a clean run (0.46 s reaction, shifts 0.15 s after BIEG!) beats Tadek, a
 ##      lazy one doesn't, and the real time stays within 0.3 s of sim_run's (PT-33);
+##      the same two runs in the Grounded handling (car.gd GROUNDED) straddle Tadek too;
 ##   7. the real lane graph: both meets found with a door on a ground road within 160 m, the ring's
 ##      slots clear of the gap, the strip found and long enough, straight on the southbound lane.
 ## Prints "check_street_meet: OK (...)" or the problems (exit 1).
@@ -155,7 +156,7 @@ func _check_drag(digest: PackedStringArray) -> void:
 
 
 ## One real-car run: [time (s), Tadek's time]. The gear logic is street_meet.gd's _drag_frame.
-func _real_run(react: float, delay: float) -> Array:
+func _real_run(react: float, delay: float, handling := 0) -> Array:
 	var world := Node3D.new()
 	root.add_child(world)
 	var floor_body := StaticBody3D.new()
@@ -167,6 +168,7 @@ func _real_run(react: float, delay: float) -> Array:
 	floor_body.position = Vector3(0, -0.5, -500)
 	world.add_child(floor_body)
 	var car := Car.new()
+	car.set_handling(handling)
 	world.add_child(car)
 	var on := {"start": Vector2.ZERO, "dir": Vector2(0, -1), "right": Vector2(1, 0)}
 	var top0 := float(car.top_mult)
@@ -217,6 +219,15 @@ func _check_real_car(digest: PackedStringArray) -> void:
 	if absf(float(clean[0]) - float(sim[0])) > 0.3:
 		problems.append("the real car (%.2f s) and sim_run (%.2f s) differ" % [clean[0], sim[0]])
 	digest.append("real car: clean %.2f < Tadek %.2f < lazy %.2f s" % [clean[0], clean[1], lazy[0]])
+	# The Grounded handling (car.gd GROUNDED) pulls the same, so the drag stays fair in it too.
+	var g_clean: Array = await _real_run(0.46, 0.15, Car.Handling.GROUNDED)
+	var g_lazy: Array = await _real_run(0.6, 0.9, Car.Handling.GROUNDED)
+	if float(g_clean[0]) >= float(g_clean[1]) or float(g_lazy[0]) <= float(g_lazy[1]):
+		problems.append("in Grounded the clean run (%.2f s) and the lazy one (%.2f s) don't straddle Tadek (%.2f s)"
+				% [g_clean[0], g_lazy[0], g_clean[1]])
+	if absf(float(g_clean[0]) - float(clean[0])) > 0.15:
+		problems.append("the drag in Grounded (%.2f s) differs from Cruise (%.2f s)" % [g_clean[0], clean[0]])
+	digest.append("Grounded: clean %.2f, lazy %.2f s" % [g_clean[0], g_lazy[0]])
 
 
 func _check_map(g: LaneGraph, map: Node3D, origin: Array, digest: PackedStringArray) -> void:

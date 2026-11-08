@@ -78,6 +78,9 @@ const BUDGET := {
 	"mlotek": 2400,
 	"kozia9": 7000,
 	"karowa18a": 1500,
+	"nowogrodzka31": 3200,
+	"marszalkowska99": 5000,
+	"cparking": 6500,
 	"hotel_kasztel": 330,
 	"hotel_canaletto": 330,
 	"hotel_starowka": 330,
@@ -162,12 +165,15 @@ const BUDGET := {
 	"slabs": 1100,   # 2026-11-03: balcony bands, a ledge every storey on the long faces (look check)
 	"zelazna": 1030,
 	"pokorna2": 1500,
+	"dekalog_estate": 18000,
+	"inflancka_pools": 1000,
 	"spektrum": 990,
 	"spire": 6600,  # 2026-11-06 photo rebuild (F), 6151 tris (vase, steel crown ring, drum): steel columns, canopy bow, Spire B/C crowns and eaves, plaza kerbs, channel, 26 trees; +0 draw calls
 	"tr": 500,
 	"tower75": 220,
-	"cepelia": 900,
-	"zodiak": 600,
+	"cepelia": 1100,  # 2026-11-08 photo rebuild (F): 970 tris
+	"zodiak": 720,  # 2026-11-08 photo rebuild (F): 620 tris
+	"cmarsz": 2200,
 	"sowa": 1500,  # SOWA CLUB and CITY 25 (F's photos, 2026-11-06): 1298 tris
 	"brama": 100,
 	"equator": 120,
@@ -238,7 +244,7 @@ const BUDGET := {
 	"unit": 1160,
 	"varso": 2500,
 	"varso_place": 1100,
-	"wcf": 190,
+	"wcf": 550,
 	"wszystkich": 1300,
 	"wizytki": 690,
 	"branickich": 1500,
@@ -257,6 +263,17 @@ const BUDGET := {
 	"towarowa22": 5000,
 	# The Warsaw HUB's round-ended hotel tower (the photo report, 2026-11-03).
 	"crowne": 380,
+	# Wola's 19. Dzielnica (F's photos, 2026-11-07): the drug works' building site (four concrete
+	# frames, cores, three cranes, the yard), the Kolejowa estate's 58 mapped parts, Asbud's towers.
+	"noho": 12700,
+	"d19": 9000,
+	"asbud": 3900,
+	# Stacja Muzeum (the Mac's Commons photos, 2026-11-07): the arched hall, its wings, 17 engines
+	# and coaches on the four sidings; Nocny Targ's two platform canopies (F's photos).
+	"stacja_muzeum": 9000,
+	"nocny": 7000,
+	# Kolejowa's old railway warehouses, the pinball museum and the teal club (F's photos).
+	"kolejowa": 2500,
 }
 ## Known defects per site: {"zfight": n, "degenerate": n, "badnormal": n, "float": n}.
 ## Towarowa 22's drone taxi hovers 7 m over its pad by design (the "Warsaw of the future").

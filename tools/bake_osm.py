@@ -485,6 +485,16 @@ def main(src, trees_src, dst, extras_src=None, more_src=None):
     # junctions' mouths, zebras and cycle crossings run on to the kerbs (tools/road_fixes.py).
     import road_fixes
     print("road_fixes: " + road_fixes.apply(out))
+    # Street objects unslopped (F, 2026-11-07): lamps, signals, benches, bins, racks, shelters, parked
+    # cars and barriers out of walls, carriageways, water and decks; gates where paths cross fences;
+    # balustrades round stairs (tools/object_fixes.py; the same code runs on a baked map). Before
+    # bus_stops: it paints at the shelters this leaves.
+    import object_fixes
+    print("object_fixes: " + object_fixes.apply(out))
+    # The buses thread (2026-11-07): the stops' white zigzag (P-17) and yellow kerb line, after
+    # road_fixes, on the smoothed lanes and the zebras as they end (tools/bus_stops.py; the same code runs on a baked map).
+    import bus_stops
+    bus_stops.apply(out)
     # Tram stops (F, 2026-11-07): tram islands 0.3 m high (not a train's 0.9 m), their boarding
     # edge and the railing along the road found once (tools/tram_stops.py).
     import tram_stops

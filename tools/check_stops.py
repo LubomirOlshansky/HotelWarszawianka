@@ -10,7 +10,11 @@ Fails (exit 1) when
   K3  a shelter or bench stands in a lane, a building, the water or a carriageway polygon;
   K4  a bench does not face the nearest footway or path (within 0.3 rad), BENCH_LEFT_MAX excepted;
   K5  a cafe set (game/data/street_details.json) is not against a shopfront on paving: not CAFE_FRONT
-      from a building outline, or in a park or on a lawn.
+      from a building outline, or in a park or on a lawn;
+  K6  the stops' paint (tools/bus_stops.py) is missing or out of place: the map's `stopzz` and
+      `stopkerb` markings differ from what bus_stops.py makes of it now (re-run it), a zigzag point
+      is outside the lanes or on a zebra's, cycle crossing's or stop line's reach, a yellow kerb line
+      point is in a lane, or fewer than ZZ_MIN_COUNT zigzags are on the map.
 Prints `check_stops: OK` and the counts. Standard library only.
 """
 import json
@@ -23,10 +27,12 @@ ROOT = os.path.dirname(TOOLS)
 sys.path.insert(0, TOOLS)
 import snap_props as S  # noqa: E402
 import bake_street_details as B  # noqa: E402
+import bus_stops as BS  # noqa: E402
 
 LEFT_MAX = 25
 BENCH_LEFT_MAX = 80
 BENCH_TOL = 0.3
+ZZ_MIN_COUNT = 150   # 167 on 2026-11-07
 
 
 def main():
@@ -98,8 +104,10 @@ def main():
         gap = pl.solids.segs.dist(x, z, "building")
         if pl.green.inside(x, z) or not (B.CAFE_FRONT[0] - 0.2 <= gap <= B.CAFE_FRONT[1] + 0.2):
             bad.append("K5 cafe set at %.1f, %.1f is not on paving against a shopfront" % (x, z))
+    n_zz, n_kb = stop_paint(d, w, bad)
     print("check_stops counts: %d bus-road shelters (%d without a clear spot, %d tram stops skipped), %d benches "
-          "(%d not facing a walk), %d cafe sets" % (n_stop, n_left, n_tram, n_bench, n_blind, n_cafe))
+          "(%d not facing a walk), %d cafe sets, %d stop zigzags, %d yellow kerb lines"
+          % (n_stop, n_left, n_tram, n_bench, n_blind, n_cafe, n_zz, n_kb))
     for b in bad[:30]:
         print("check_stops: FAIL " + b)
     if bad:
@@ -107,6 +115,43 @@ def main():
         return 1
     print("check_stops: OK")
     return 0
+
+
+def stop_paint(d, w, bad):
+    """K6: the stops' zigzags and kerb lines; returns their counts."""
+    have = [m for m in d["markings"] if m["k"] in BS.KINDS]
+    fresh = {"markings": [m for m in d["markings"] if m["k"] not in BS.KINDS]}
+    fresh.update({k: v for k, v in d.items() if k != "markings"})
+    import contextlib
+    import io
+    with contextlib.redirect_stdout(io.StringIO()):
+        BS.apply(fresh)
+    want = [m for m in fresh["markings"] if m["k"] in BS.KINDS]
+    if sorted(json.dumps(m, sort_keys=True) for m in have) != sorted(json.dumps(m, sort_keys=True) for m in want):
+        bad.append("K6 the stops' paint is stale (%d markings, bus_stops.py makes %d): python3 -I tools/bus_stops.py"
+                   % (len(have), len(want)))
+    blocks = BS.Blocks(d)
+    n_zz = n_kb = 0
+    for m in have:
+        pts = list(zip(m["p"][0::2], m["p"][1::2]))
+        if m["k"] == "stopzz":
+            n_zz += 1
+            for x, z in pts:
+                if not w.in_lane(x, z, 0.05):
+                    bad.append("K6 a stop zigzag's point at %.1f, %.1f is outside the lanes" % (x, z))
+                    break
+                if blocks.hit(x, z) and blocks.segs.near(x, z, -BS.END_GAP + 0.3) is not None:
+                    bad.append("K6 a stop zigzag's point at %.1f, %.1f is on a crossing or stop line" % (x, z))
+                    break
+        else:
+            n_kb += 1
+            for x, z in pts:
+                if w.in_lane(x, z, 0.0):
+                    bad.append("K6 a yellow kerb line's point at %.1f, %.1f is in a lane" % (x, z))
+                    break
+    if n_zz < ZZ_MIN_COUNT:
+        bad.append("K6 only %d stop zigzags (at least %d)" % (n_zz, ZZ_MIN_COUNT))
+    return n_zz, n_kb
 
 
 if __name__ == "__main__":

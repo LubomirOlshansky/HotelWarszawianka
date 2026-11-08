@@ -30,6 +30,10 @@ Order: fixes waiting for proof, then what F asked about, then the plan rows neve
 - [ ] T15 Patelnia from the west by Kokota, and the Rotunda stair once more after #452 merges · run -092040: north-east side and the stair done (P18); west still open
 - [ ] T16 The look of the starting street shops and Świętokrzyska tents (#449): frames, day and night
 
+- [x] T27 The boat race (#494) to the finish, after the 11-06 fail-path run · run 20261107-111523: finished 4th in 4:08.6, one miss, no stop or pier contact; PT-31, PT-32
+- [x] T28 The night racing club (#499) before merge · run 20261107-113803: every beat in order; PT-33 (the drag), PT-34; PT-30 found on the way (the guide's Powiśle beat)
+- [ ] T29 The coffee run (#481) once merged: the bike, the rush, the drop-offs
+
 ## 3. Plan rows never run or left open
 
 - [ ] T17 P1 the other start streets (only Marszałkowska driven) · run -103535: Emilii Plater, Bracka, Krucza clean; Chmielna, Mokotowska still open · run -110225: Mokotowska clean bar one stop at -111,612; Chmielna open

@@ -107,7 +107,7 @@ SITE_NAMES = ["Pałac Kultury i Nauki", "Złote Tarasy", "Lumen", "Skylight", "R
               # RD-3 (2026-11-06): the roof terraces on Generation Park Z and X (landmarks.gd _find_terraces)
               "Generation Park Z", "Generation Park X",
               "Skysawa", "Błękitny Wieżowiec", "Warszawskie Centrum Finansowe", "Centrum LIM", "Chałubińskiego 8",
-              "Spektrum Tower", "The Bridge", "Bellona", "Hilton Warsaw City", "The Westin Warsaw", "Novotel Warszawa Centrum",
+              "Spektrum Tower", "The Bridge", "Bellona", "Hilton Warsaw City", "The Westin Warsaw", "Novotel Warszawa Centrum", "Centrum Marszałkowska",
               "Central Tower", "Ilmet", "Platinum Tower A", "Platinum Tower B", "Łucka City", "Prosta Tower", "Widok Towers", "PZU Tower", "JM Tower",
               # map north (2026-10-31): Arkadia, for the landmarks lane (docs/DEMO.md 2.2)
               "Westfield Arkadia",
@@ -151,11 +151,16 @@ SITE_AREAS = [
     (-2765.0, 135.0, -2735.0, 170.0),       # and its north-west wing
     (-2700.0, 560.0, -2655.0, 650.0),       # The Warsaw HUB's towers (landmarks.gd TOWERS "at")
     (-2723.0, 487.0, -2689.0, 538.0),       # and its round-ended hotel tower (TOWERS crowne "at")
+    (-3085.0, 690.0, -2745.0, 915.0),       # Wola's 19. Dzielnica estate (landmarks.gd D19_ESTATE's box)
+    (-2884.0, 526.0, -2738.0, 656.0),       # and Asbud's Towarowa Towers quarter (ASBUD_ZONE's box)
+    (-2795.0, 805.0, -2465.0, 1000.0),  # Stacja Muzeum, its sidings and Nocny Targ
+    (-3112.0, 928.0, -2928.0, 1046.0),  # Kolejowa 8/10, the pinball museum, the teal club
     (-260.0, 325.0, -240.0, 345.0),         # the BGK building, Al. Jerozolimskie 7 (unnamed in OSM; landmarks.gd BGK_AT)
     (-165.0, 55.0, -155.0, 65.0),           # Foksal 13 (unnamed in OSM; landmarks.gd _find_foksal, its address point)
     (-193.0, 46.0, -183.0, 56.0),           # and Foksal 15
     (70.0, 20.0, 100.0, 45.0),              # Młotek, Smolna 8 (landmarks.gd ML_AT)
     (-820.0, -1185.0, -790.0, -1160.0),     # Kozia 9 (unnamed in OSM; landmarks.gd KZ_AT)
+    (-690.0, 525.0, -628.0, 635.0),         # Cyfrowy Parking Novotel, Nowogrodzka 27 (landmarks.gd CP_AT)
     (-475.0, -960.0, -450.0, -940.0),       # Karowa 18a (unnamed in OSM; landmarks.gd KR_AT)
     (-650.0, -790.0, -630.0, -765.0),       # Plac Piłsudskiego's south-east block (landmarks.gd KROLEWSKA_BLOCK)
     (-3105.0, -2455.0, -2920.0, -2335.0),   # map north: the Forest tower's office block (unnamed in OSM; docs/DEMO.md 2.2)
@@ -192,6 +197,15 @@ SITE_AREAS = [
     (-1858.0, 350.0, -1832.0, 395.0),
     # Pokorna 2 (landmarks.gd _find_pokorna2): the 57 m residential block, found by the outline under POKORNA2_AT
     (-2141.0, -2234.0, -2105.0, -2198.0),
+    # The Dekalog estate and the Inflancka pools (landmarks.gd DE_AT, IP_*): the six slabs, the dome and the decks
+    (-2720.0, -2370.0, -2200.0, -2110.0),
+    (-2390.0, -2450.0, -2200.0, -2340.0),
+    # Nowogrodzka 31 (landmarks.gd _find_nowogrodzka31, 2026-11-07): the office block's two outlines under
+    # N31_AT and N31_AT2 (OSM buildings 445 and 444)
+    (-742.0, 555.0, -687.0, 605.0),
+    (-718.0, 605.0, -676.0, 643.0),
+    # Marszałkowska 99 (landmarks.gd _find_marszalkowska99): OSM building 5505 under M99_AT
+    (-756.0, 566.0, -726.0, 650.0),
     # Kino Muranów (landmarks.gd _find_kino_muranow): the cinema pavilion's outline under KM_AT
     (-1700.0, -1240.0, -1640.0, -1170.0),
     (-450.0, 1580.0, -385.0, 1670.0),       # Kościół Zbawiciela's nave and towers (landmarks.gd ZB_*; MDM's box ends at z 1620)
