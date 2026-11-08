@@ -3337,6 +3337,17 @@ func _on_boat_left() -> void:
 
 
 ## While boating: the car's spot, heading and speed are the boat's.
+## What the player is in, for the engine's and tyres' loops (sfx.gd `mode`): the bike on the coffee
+## run (PT 2026-11-08: the car's engine kept on after the swap), a boat (the electric one silent),
+## on foot in a room or on the court, else the car.
+func _sound_mode() -> String:
+	if boat_race != null and boat_race.boating() and boat_race.player != null:
+		return "electric" if boat_race.player.kind == BoatRace.Boat.Kind.ELECTRIC else "boat"
+	if (club != null and club.inside) or (lounge != null and lounge.inside) or (padel != null and padel.inside):
+		return "foot"
+	return "bike" if car.model == "bike" else "car"
+
+
 func _boat_frame() -> void:
 	if boat_race == null or not boat_race.boating():
 		return
@@ -6850,6 +6861,7 @@ func _process(dt: float) -> void:
 	car.wet = weather.wet
 	if sfx != null:
 		sfx.flying = flying
+		sfx.mode = _sound_mode()
 		sfx.focus = cam_focus
 		sfx.yaw = cam_yaw
 	if weather.amount > 0.0:

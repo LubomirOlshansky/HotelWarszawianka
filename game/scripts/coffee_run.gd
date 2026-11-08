@@ -18,8 +18,8 @@ const COLOUR := Color("#c98a4b")
 ## The ROWERILO dock by Elektrownia Powiśle (centrum.json pois `bicycle_rental`).
 const DOCK := Vector2(284.7, -805.8)
 ## Seconds for the four stamps, from the bike leaving the dock (about 1.6 km by road at
-## BIKE_TOP 8.5 m/s is ~190 s, plus the stamps and the corners) *guess*.
-const COFFEE_LIMIT := 300.0
+## BIKE_TOP 11.5 m/s is ~140 s, plus the stamps and the corners) *guess*; was 300 s at 8.5 m/s.
+const COFFEE_LIMIT := 240.0
 ## The camera's view on the bike, a share of the player's own (main.gd's follow camera): the bike
 ## is a small thing at the car's 80 m view.
 const BIKE_VIEW := 0.55
@@ -55,6 +55,10 @@ const STOPS := [
 		"line": ["Chmurka to piana z cukru. Płacisz za pogodę: 34 zł.", "The cloud is sugar foam. You're paying for the weather: 34 zł."]},
 ]
 
+## A café's stamp joke (STOPS "line") holds the ride card's line this long (s) after the stamp,
+## instead of going by inside the stamp toast (F 2026-11-08: too fast to read).
+const JOKE_HOLD := 12.0
+
 ## Zuzia's lines while you ride, one every LINE_EVERY s, in order (third-wave jokes) [pl, en].
 const LINE_EVERY := 22.0
 const RIDE_LINES := [
@@ -69,8 +73,8 @@ const RIDE_LINES := [
 ]
 
 ## The quest map (story_quests.gd): Zuzia waits at the dock and walks up, in person [pl, en].
-const HELLO := ["„Psiapsi, jesteś! Rowery stoją, paszport kawowy mam. Cztery kawiarnie, pięć minut. Jedziemy?”",
-		"\"Bestie, you made it! The bikes are here, I've got the coffee passport. Four cafés, five minutes. Shall we?\""]
+const HELLO := ["„Psiapsi, jesteś! Rowery stoją, paszport kawowy mam. Cztery kawiarnie, cztery minuty. Jedziemy?”",
+		"\"Bestie, you made it! The bikes are here, I've got the coffee passport. Four cafés, four minutes. Shall we?\""]
 const CLOSED := ["„Kawiarnie już zamknięte, trzecia fala śpi. Wpadnij rano, od ósmej”",
 		"\"The cafés are shut, the third wave's asleep. Come by in the morning, from eight\""]
 
