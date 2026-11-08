@@ -737,6 +737,8 @@ Left:
 - PT-37 (suspect): pinned on Poniatowskiego's tram strip for 8 s while the speed reads 60 km/h, no unstick or tow.
 - PT-38 (suspect): an 11 m snap down off the ground above the W-Z tunnel's east portal.
 - PT-39 (suspect, design): a ram of a crash scene's police car starts a chase that is lost in the next frame.
+- Found 2026-11-08 (PT-44 fix): on Trasa W-Z's south pavement by Stare Miasto a retaining wall turns solid in mid-run with a square end inside the OSM tram platform; the car now slips past it, but the platform itself still slopes 0.4-0.9 m into the trench (bake_structures fill edge across the platform). A flat platform is a map change for later.
+- PT-45 (not reproduced, 2026-11-08): 26 to 1 km/h in the W-Z tunnel's west part; the tube drives clean with no traffic. Re-run with `--no-traffic` on the Mac to rule a traffic car in or out.
 - Found 2026-11-08 (PT-40's kerb lines, cloud): a car crossing Most Poniatowskiego's west end diagonally
   stops on the square end of the guard rail between the eastbound deck and the tram deck (945.7,-138.9, by
   the slip road's tram crossing), and one hugging the westbound median stops on the end of the tram stop
