@@ -162,7 +162,7 @@ Built (event_day.gd): date gate, hours, crowd + flags, four barrier lines, white
 - Look checks from F's photos: flag density, haze height, the Palace tiers (upper white, lower red), Złota 44's gradient side.
 - Traffic and trams are released at the zone edge (they pop out at the barrier); a real lane closure (lane_graph `e_shut`) would queue them at the line.
 - Side streets into the corridor are not walled: a car that gets in is set down at the nearest barrier (toast).
-- Flags are still (no sway); heli-only day missions, the notebook stamp, event sounds and the Settings toggle for smoke are not built yet (plan sections 3.3, 3.5, 6 E5).
+- Flags now sway in the wind (`actor.gdshader` `sway`, cloth marked UV.y 2). The 15 s video take is built: `--cinematic=event` (camera keys in `camera_shots.gd` `EVENT_KEYS`, light cascade, fog ramp, flares in turns in `event_day.gd` `scene_t`, title card), `--event-t=SEC` freezes it for stills; the 4K capture on the Mac and the sound are not done. Heli-only day missions, the notebook stamp, event sounds and the Settings toggle for smoke are not built yet (plan sections 3.3, 3.5, 6 E5).
 - Stadion Narodowy white-red panels are coded (`_stadium_bands`) but did not show in the cloud shot: unverified, check on the Mac or phone (mast heights, radius).
 - Max look for the promo (F, 2026-11-07, recorded on iPhone 17 Pro or M4 Pro, no performance limit): up to 6,000 people, 520 standing-fog blobs (`event_fog.gdshader`, day and night), 200 flare halos. Heavy on purpose: the quality tier scales it down. Phone bench still open. The lit puff boxes are off (`PUFFS_ON`).
 - The METROPOLKA roof neon (Hotel Metropol, `landmarks.gd` `_build_metropol_sign`) reads mirrored and looks like it floats when seen from the north from the air: not the event's, needs a look.
@@ -194,9 +194,9 @@ THEATRES, `theatre` curve, dark on Mondays). Left:
   the camera never sees) have no sign; the terrace has no ticket queue at the east portico yet.
 - Joke billboard "UWAGA:" by the pigeons on Plac Defilad shows the camera its dark back.
 - The bake still turns scrub into plain lawn city-wide; only the Palace's beds are bushes.
-- Event lighting (palace_lights.gd + data/palace_lights.json, F 2026-11-07): built with 14 dates and five
+- Event lighting (palace_lights.gd + data/palace_lights.json, F 2026-11-07): built with 13 dates (Pink October dropped, F 2026-11-08) and five
   patterns. Left: the Independence Day thread's white-red tier bands (event_day.gd) join as the 11 November
-  row's extra; a phone look at the colours' strength; F's call on the event list (QUESTIONS).
+  row's extra; a phone look at the colours' strength. The event list is settled (F, 2026-11-08).
 - The floodlight's reach (a circle round the Palace) also tints the TR Warszawa site's crane and the forecourt's
   stone furniture; an old quirk of the gold, louder in the event colours.
 
@@ -486,6 +486,28 @@ strict three-question door, Smoła's cutaway room (option A). Left:
 - [ ] Opaski (wristbands) collected per spot, a card in the notebook
 - [ ] Option B: a walk-around room (a person controller inside), only if A plays well
 
+## Shisha lounge quest "Dym u Senatorka" (F, 2026-11-08; docs/design/shisha-lounge.md)
+
+Built: Ivan's call (17:00-02:00, or in person at his block in 19. Dzielnica, WĄTKI id `shisha`),
+Bogdan at the court on Żelazna, the car argument in bubbles (data/shisha.json, every line PL+EN),
+three votes on side cards (flavour, strength, the pipe's name), the WFC portico on Emilii Plater 53
+(canopy with downlights, revolving door, the SENATOREK and EMILII PLATER 53 letters, granite piers,
+steel fins, the glass rail on the low roof), the door and lift cards, the lounge upstairs
+(`lounge.gd`: rock wall with bars and gold letters, rust-velvet banquettes, grey armchairs, olive
+trees, the travertine bar with jars and coals, the window wall with the Palace, the terrace with
+teak chairs and the Palace's tower), the mini-game "Miks u Mistrza" (two jars on a sweet/cool
+chart, coal timing, the first draw and a smoke ring), PALIĆ / TARAS / WYJDŹ with smoke animations
+(bowls' trickle, exhales, rings, ceiling haze), both drops, the pay. Flags `--shisha-call`,
+`--shisha-meet`, `--shisha-lounge`, `--shisha=0`, `--shisha-log`; `check_shisha.gd` in verify.sh.
+Left:
+- [ ] F's call: lounge name SENATOREK LOUNGE ok? Which floor (the lift card says 38, invented)
+- [ ] Portraits of Ivan, Bogdan and the master (PixelLab on the Mac, from F's photos)
+- [ ] Voices (ElevenLabs) and a lounge track on the radio (docs/MUSIC.md "lounge" slot)
+- [ ] Bogdan waiting at the court: a net, a bag, a figure in white (now only the pickup ring)
+- [ ] Phone look: the lounge's mini-game panel size, the smoke's overdraw, the portico at night
+- [ ] Autopilot run of the whole night on the Mac (`--shisha-meet`, then the lounge)
+- [ ] Before release: the rating and a "bez dymu" (no smoke) setting
+
 ## Cinema tour "Kino objazdowe" (F, 2026-11-07; docs/design/kino-tour.md)
 
 Built: Wiktor's call, the pickup on Plac Zbawiciela, four cinemas (Amondo, Atlantic, Kinoteka,
@@ -553,10 +575,30 @@ chain-link fences and the 6 m ball-stop nets an open mesh (a solid fence is at m
 their height (at most 3 m). The Old Town's city walls (22 OSM city_wall areas) were not on the map at
 all: brick walls at their mapped heights (Baszta Rycerska 13.5 m, curtain walls 5-6 m by default).
 Left:
-- **City walls look check** from photos gathered on the Mac (batch2-old-town): battlements, the
-  coping, the gates, the międzymurze's ground; heights where OSM has none are the 5 m default.
+- City walls look check DONE 2026-11-08 (BACKLOG "Old Town trailer pass"): battlements and a
+  brick coping from F's photos; the gates and towers' roofs are still open there.
 - **Most walls and fences still carry no OSM tags** (about 1,900 walls, 4,200 fences): a street
   pass from photos (Mapillary) can tag them in `game/data/road_objects.json`.
+
+## Old Town trailer pass (F, 2026-11-08)
+
+F wants the Old Town 10/10 for the trailer. Done 2026-11-08 from F's photos (Mac
+warsaw-needed-photos/old-town, E01-E24) and Mapillary references:
+- The blue glass boxes beside the Cathedral were the Jesuit church's LoD2 (its 60 m tower over the
+  glass threshold): new skin `jezuici` (salmon plaster, brick tower top, terracotta roof) and a card.
+- City walls: merlons on the outer side of every wall 5 m or higher, a lighter brick coping
+  (`_merlons`, photos E14-E16).
+- Rynek: three paler stone rings round the fountain, mostly cream umbrellas, a low dark café fence
+  on each umbrella's fountain side with gaps at the run starts (drone photo E05).
+- Old Town roofs: 70% of dormers zinc-grey, most chimneys white plaster (E05).
+- `check_old_town_drive.gd` (verify `oldtowndrive`): the real car round the Old Town, 10 legs.
+Left:
+- **Rynek facades**: each house's own colour, sgraffito, portals and signs (photos E01-E04); the
+  houses' windows have no frames, dormers float on LoD2 roofs in places.
+- **City wall towers and gates**: the towers' roofs, the Podwale gates and the white arch gate
+  (E14-01, E16); the Barbican's gate passage.
+- **The Cathedral's nave roof** is one LoD2 slab (E06-E08).
+- The fountain park stays off the map (F 2026-11-08: don't grow the map).
 
 ## Stairs across the city (F, 2026-11-07)
 
@@ -679,6 +721,8 @@ Left:
 ## Autopilot findings on recent work (2026-11-06; docs/PLAYTEST.md)
 
 - [ ] Bump the Autopilot add-on again once upstream releases past v1.0.0-753232a (HEAD has unreleased fixes #36 and #31).
+- [ ] Autopilot harness template (2026-11-08 lessons): one shared harness file the runs start from, logging the side offset from the road centre and tapping keys with `physical_keycode`, so each run stops re-writing (and re-breaking) the same harness. Kept out of git like the plugin, or in `tools/` if it needs no plugin code.
+- [ ] Find the ~6 min kill (-9) of Mac Autopilot runs (since run 11): the sandbox, memory or the Remote Control session; every long quest line is split around it.
 
 - PT-23 (S2): the tow offer never comes while the ride button is up; a pinned car gets no help.
 - PT-24 (suspect): backing off a wall resets the stall timer, so the offer may never come.
@@ -694,6 +738,13 @@ Left:
 - PT-37 (suspect): pinned on Poniatowskiego's tram strip for 8 s while the speed reads 60 km/h, no unstick or tow.
 - PT-38 (suspect): an 11 m snap down off the ground above the W-Z tunnel's east portal.
 - PT-39 (suspect, design): a ram of a crash scene's police car starts a chase that is lost in the next frame.
+- Found 2026-11-08 (PT-40's kerb lines, cloud): a car crossing Most Poniatowskiego's west end diagonally
+  stops on the square end of the guard rail between the eastbound deck and the tram deck (945.7,-138.9, by
+  the slip road's tram crossing), and one hugging the westbound median stops on the end of the tram stop
+  platform's fence (909.8,-134.5). Both are off the lanes; a lead-in like PT-40's would turn them away.
+- Found 2026-11-08 (PT-41): the approach-sliver rule (map_builder.gd FILL_SEAM) closed ~1,200 sampled points
+  in ~15 places that had a drop of more than a metre (Most Gdański's and the Trasa Łazienkowska's
+  approaches among them); a Mac look at those places' drawn ground is open.
 - Podwózka story ride played by Autopilot (accept, the "!" pickup, boarding, story lines, the question card, +½ star): no bug; the door and the result card still unplayed (the 2 km ride outlasts one Mac run).
 
 ## Road design rollout: every street on the map (F, 2026-11-06; docs/design/road-design-rollout.md)
@@ -1390,7 +1441,13 @@ Left:
   same way with K6's planted trees (items unchanged), re-stamped, and `streetdetails` and `stops`
   moved from the skipped map job to the quick job (all three are Python on the committed map); the prebuilt bake failed with no display, so
   `tools/verify.sh` now runs it under xvfb-run, or skips the prebuilt steps as a WARN without one.
-- Open: F publishes release `map-pack-1` (until then the map job skips with a warning). A required
+- Fixed 2026-11-08: the repository became LubomirOlshansky/HotelWarszawianka and private, so the old
+  public download link redirected and failed (curl 56 in CI, 401 in the cloud) and the map jobs went
+  red at "Fetch the map pack". `tools/map_pack.py fetch` now finds the asset through the GitHub API
+  with a token (GITHUB_TOKEN, GH_TOKEN or `gh auth token`) and downloads it as
+  application/octet-stream; verify.yml passes the job's token (`contents: read`). On the Mac, sign in
+  gh (or export GITHUB_TOKEN) before a fetch.
+- Open: A required
   check: GitHub Settings → Rules → a ruleset on main requiring `quick` and `map`, so a PR can't merge
   on red or before its run ends (#261 did). After a full bake that changes lod2 or terrain:
   `python3 -I tools/map_pack.py make`, publish, commit `tools/map_pack.json`.

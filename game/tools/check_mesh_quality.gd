@@ -244,7 +244,7 @@ const BUDGET := {
 	"unit": 1160,
 	"varso": 2500,
 	"varso_place": 1100,
-	"wcf": 550,
+	"wcf": 1400,  # 2026-11-08 F's 13 photos: the Emilii Plater portico, piers, fins, the low roof's rail (1319)
 	"wszystkich": 1300,
 	"wizytki": 690,
 	"branickich": 1500,

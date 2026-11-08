@@ -71,6 +71,8 @@ TRAM_HALF, RAIL_HALF = 1.5, 2.0
 HEIGHT_STEP = 8.0         # lane_graph.gd
 DECK_CELL = 16.0          # map_builder.gd
 APRON_TAPER = 3.0         # map_builder.gd APRON_TAPER (map round 2): an apron fades out past its sides
+FILL_SEAM = 0.4           # map_builder.gd FILL_SEAM (PT-41): a sliver between two approaches takes the lower level
+FILL_SEAM_STEP = 1.0      # map_builder.gd FILL_SEAM_STEP: ...when their levels there are this close
 SET_SINK = 0.1            # map_builder.gd SET_SINK (loop 3e): the drawn ground under a lowering ground profile
 SET_FINE = 0.001          # map_builder.gd SET_FINE (loop 3e): sub-cells only where a profile lies this far under the grid
 TUNNEL_MOUTH = 4.8        # tools/bake_structures.py MOUTH: a tunnel's mouth (C5 over a tunnel, loop 3e)
@@ -316,6 +318,7 @@ class Map:
         point; loop 3e: a ground profile's ("s" fills) level where one holds it (the nearest)."""
         h = self.grid(x, z)
         set_h, set_lat = None, 1e9
+        held, seam = False, {}   # PT-41: map_builder FILL_SEAM
         for i, k in self.fill_cells.get((math.floor(x / 16.0), math.floor(z / 16.0)), ()):
             d = self.fills.p[i]
             a, b = d["pts"][k], d["pts"][k + 1]
@@ -343,6 +346,15 @@ class Map:
                         set_h, set_lat = v, abs(lat)
                 else:
                     h = max(h, v)
+                    held = True
+            elif not d["s"] and -d["l"] - FILL_SEAM <= lat <= d["r"] + FILL_SEAM:
+                t = min(max(u, 0.0), 1.0)
+                seam[i] = max(seam.get(i, -1e9), d["h"][k] + (d["h"][k + 1] - d["h"][k]) * t)
+        if not held and len(seam) >= 2:
+            # PT-41: between two approaches side by side (the first two found), the lower one's level.
+            ha, hb = list(seam.values())[:2]
+            if abs(ha - hb) <= FILL_SEAM_STEP:
+                h = max(h, min(ha, hb))
         self.set_hit = set_h is not None
         if set_h is not None:
             h = set_h

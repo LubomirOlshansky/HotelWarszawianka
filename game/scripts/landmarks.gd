@@ -334,6 +334,9 @@ const INFO := {
 	"archikatedra": ["Archikatedra św. Jana",
 			"Gotycki kościół z cegły na Starym Mieście.",
 			"A Gothic brick church in the Old Town."],
+	"jezuici": ["Kościół Jezuitów",
+			"Sanktuarium Matki Bożej Łaskawej przy Świętojańskiej, tuż obok katedry.",
+			"The Jesuit church on Świętojańska, right next to the Cathedral."],
 	"sw_anna": ["Kościół Świętej Anny",
 			"Na początku Krakowskiego Przedmieścia.",
 			"Where Krakowskie Przedmieście begins."],
@@ -4094,6 +4097,8 @@ func _build_wcf(zone: PackedVector2Array, _spec: Dictionary) -> void:
 		_prism(plinth[0], g - 0.4, g + 5.2, WCF_STONE, WCF_STONE.lightened(0.1), M_STONE, M_STONE)
 		_prism(plinth[0], g + WCF_PODIUM - 1.2, g + WCF_PODIUM + 0.3, WCF_STONE, WCF_STONE.lightened(0.1), M_STONE, M_STONE)
 	_collide(base)
+	_wcf_street(base, g)
+	_wcf_terrace(low, g + WCF_LOW_ROOF - 3.6)
 	# The ribbon slab first (its curved face is inside the white slab), then the white slab.
 	_prism(low, g + WCF_PODIUM + 0.3, g + WCF_LOW_ROOF - 3.6, WCF_RIBBON, none, M_SKIN + float(S_RIBBON) / 16.0)
 	var top_floor := Geometry2D.offset_polygon(low, -1.6, Geometry2D.JOIN_MITER)
@@ -4321,6 +4326,109 @@ func _face_sign(a: Vector2, b: Vector2, o: Vector2, y: float, word: String, colo
 	var mid := (a + b) * 0.5
 	var k := share * a.distance_to(b) / Neon.length_of(word)
 	signs.append([word, Vector3(mid.x, y - Neon.ROW_H * Neon.PIXEL * k * 0.5, mid.y), Vector3(o.x, 0.0, o.y), k, colour])
+
+
+## Emilii Plater 53 at street level, from F's photos (2026-11-08, /mnt/project-files/shisha-lounge/
+## photos/07-13): the podium's granite in bands over its glass, with thin sun fins over each glass
+## ribbon (photos 7, 8); a black granite base band and granite piers along both street faces
+## (photos 12, 13); on the Emilii Plater face the porte-cochère: a steel canopy with a curved front
+## on one round steel column, the revolving door's glass drum under it, the black plinth with the
+## address in silver, the parody coffee shop's name on the glass beside it and SENATOREK in gold on
+## the canopy's fascia (the shisha lounge upstairs, docs/design/shisha-lounge.md).
+const WCF_DOOR_T := 0.45       ## where the portico stands along the east face (WCF_LOW's first edge)
+const WCF_STEEL := Color("#b9bdc1")
+const WCF_BLACK := Color("#1d1d20")
+const WCF_GOLD := Color("#e2bf7a")
+
+
+func _wcf_street(base: PackedVector2Array, g: float) -> void:
+	# The base band: black granite 0.8 m, just proud of the plinth.
+	var band := Geometry2D.offset_polygon(base, 0.35, Geometry2D.JOIN_MITER)
+	if band.size() == 1:
+		_prism(band[0], g - 0.4, g + 0.8, WCF_BLACK, WCF_BLACK, M_STONE, M_STONE)
+	# Granite bands over the podium's glass, a thin fin over each glass ribbon.
+	var skin := Geometry2D.offset_polygon(base, 0.25, Geometry2D.JOIN_MITER)
+	var fin := Geometry2D.offset_polygon(base, 1.1, Geometry2D.JOIN_MITER)
+	if skin.size() == 1 and fin.size() == 1:
+		for b: Vector2 in [Vector2(8.4, 10.6), Vector2(13.6, 15.8)]:
+			_prism(skin[0], g + b.x, g + b.y, WCF_STONE, WCF_STONE.lightened(0.1), M_STONE, M_STONE)
+		for y: float in [5.4, 10.8, 16.0]:
+			_prism(fin[0], g + y, g + y + 0.16, WCF_STEEL, WCF_STEEL, M_STONE, M_STONE)
+	# The east face (to Emilii Plater) and the north face (to Świętokrzyska): granite piers.
+	var a0: Vector2 = WCF_LOW[0]
+	var a1: Vector2 = WCF_LOW[1]
+	var n := _out(base, a0, a1)
+	var t_len := a0.distance_to(a1)
+	var along := (a1 - a0) / t_len
+	_o = a0
+	_a = n
+	_b = along
+	for k in int(t_len / 4.6):
+		if absf((2.3 + 4.6 * k) / t_len - WCF_DOOR_T) < 0.16:
+			continue  # the portico's opening
+		_lbox(0.55, 2.3 + 4.6 * k, 0.6, 0.6, g - 0.4, g + 5.2, WCF_STONE.lightened(0.04), M_STONE)
+	var b0: Vector2 = WCF_HIGH[15]
+	var b1: Vector2 = WCF_HIGH[16]
+	var nb := _out(base, b0, b1)
+	var b_len := b0.distance_to(b1)
+	_o = b0
+	_a = nb
+	_b = (b1 - b0) / b_len
+	for k in int(b_len / 4.6):
+		_lbox(0.55, 2.3 + 4.6 * k, 0.6, 0.6, g - 0.4, g + 5.2, WCF_STONE.lightened(0.04), M_STONE)
+	# The porte-cochère.
+	var door := a0.lerp(a1, WCF_DOOR_T)
+	_o = door
+	_a = n
+	_b = along
+	# The canopy: 0.5 m thick at 5.6 m, 7 m out, its front a shallow curve (photo 13).
+	var canopy := PackedVector2Array([_w(0.0, -4.8), _w(0.0, 4.8)])
+	for k in 9:
+		var s := 1.0 - 2.0 * k / 8.0
+		canopy.append(_w(6.2 + 0.8 * (1.0 - s * s), 4.8 * s))
+	_prism(canopy, g + 5.6, g + 6.1, WCF_STEEL, WCF_STEEL.lightened(0.08), M_STONE, M_STONE)
+	# Its soffit's downlights, lit at night.
+	for u: float in [1.5, 3.5, 5.5]:
+		for v: float in [-2.8, 0.0, 2.8]:
+			_lbox(u, v, 0.12, 0.12, g + 5.5, g + 5.6, Color("#fff1c8"), M_LAMP)
+	# The round steel column with its black foot, under the canopy's middle.
+	var col := _w(4.6, 0.0)
+	_prism(_circle(col, 0.42, 10), g - 0.4, g + 0.9, WCF_BLACK, WCF_BLACK, M_STONE, M_STONE)
+	_prism(_circle(col, 0.36, 10), g + 0.9, g + 5.6, WCF_STEEL, WCF_STEEL, M_STONE, M_STONE)
+	_collide(_circle(col, 0.5, 6))
+	# The revolving door: a lit glass drum and its steel cap, glass doors either side.
+	var drum := _w(0.9, 0.0)
+	_prism(_circle(drum, 1.5, 12), g, g + 2.7, Color("#a8c4c8"), Color(0, 0, 0, 0), M_PAVILION + 0.5)
+	_prism(_circle(drum, 1.6, 12), g + 2.7, g + 3.0, WCF_STEEL, WCF_STEEL, M_STONE, M_STONE)
+	for v: float in [-3.0, 3.0]:
+		_lbox(0.35, v, 0.12, 1.0, g, g + 2.6, Color("#a8c4c8"), M_PAVILION + 0.5)
+	# The plinth with the address (photo 13): black granite right of the door, silver letters.
+	_lbox(0.45, 4.4, 0.25, 1.2, g, g + 1.4, WCF_BLACK, M_STONE)
+	var plate := _w(0.72, 4.4)
+	signs.append(["EMILII PLATER 53", Vector3(plate.x, g + 0.9, plate.y), Vector3(n.x, 0.0, n.y), 0.06, Color("#d8dade")])
+	# The lounge's name in gold on the canopy's fascia, and the coffee shop on the glass left of the door.
+	var fascia := _w(7.05, 0.0)
+	signs.append(["SENATOREK", Vector3(fascia.x, g + 5.63, fascia.y), Vector3(n.x, 0.0, n.y), 0.21, WCF_GOLD])
+	var cafe := _w(0.45, -6.4)
+	signs.append(["COFFEECHAIR", Vector3(cafe.x, g + 3.6, cafe.y), Vector3(n.x, 0.0, n.y), 0.12, Color("#e9f2ea")])
+
+
+## The lounge's roof terrace on the glass slab's set-back (F's photos 1, 4 and 10: lit
+## setbacks, a glass balustrade, the Palace beyond): a glass rail round the ledge and warm lamps
+## along it, lit at night.
+func _wcf_terrace(low: PackedVector2Array, y: float) -> void:
+	for i in low.size():
+		var a := low[i]
+		var b := low[(i + 1) % low.size()]
+		var length := a.distance_to(b)
+		if length < 2.0:
+			continue
+		var n := _out(low, a, b)
+		var rail := PackedVector2Array([a - n * 0.05, b - n * 0.05, b - n * 0.18, a - n * 0.18])
+		_prism(rail, y + 0.3, y + 1.4, Color("#9fc0c4"), Color(0, 0, 0, 0), M_PAVILION + 0.5)
+		for k in int(length / 6.0):
+			var p := a.lerp(b, (k + 0.5) * 6.0 / length) - n * 0.9
+			_prism(_square(p, 0.14), y + 0.3, y + 0.9, Color("#ffd89a"), Color("#ffd89a"), M_LAMP, M_LAMP)
 
 
 ## Skyliner's cut roof (the photo report, 2026-11-03): the shaft's top falls 24 m from the side
@@ -5785,6 +5893,11 @@ const SKINS := [
 	{"key": "zamek", "osm": "Zamek Królewski", "mode": M_MONUMENT, "wall": ZAMEK_WALL, "roof": ZAMEK_ROOF,
 			"steep": 0.3},
 	{"key": "archikatedra", "osm": "Archikatedra pw. Świętego Jana Chrzciciela", "mode": M_GOTHIC, "wall": "#9a4b38", "roof": "#6e3a2e"},
+	# The Jesuit church (F's Old Town trailer pass, 2026-11-08): LoD2 draws the church with its tower
+	# over 55 m, so the bake gave it the office towers' blue glass. Salmon plaster with white
+	# pilasters on Świętojańska and the brick tower above the roofs (Mapillary photos, refs/oldtown_jezuici2).
+	{"key": "jezuici", "osm": "Sanktuarium Matki Bożej Łaskawej", "mode": M_MONUMENT, "wall": "#dc9f8a", "roof": "#a5553c",
+			"upper": [20.0, "#9a4b38"]},
 	{"key": "sw_anna", "osm": "Kościół pw. Świętej Anny", "mode": M_MONUMENT, "wall": "#e6dcc4", "roof": "#8a5a44"},
 	{"key": "sw_krzyz", "osm": "Kościół pw. Świętego Krzyża", "mode": M_MONUMENT, "wall": "#e3d9c0", "roof": "#5d6e64"},
 	{"key": "staszic", "osm": "Pałac Staszica", "mode": M_MONUMENT, "wall": "#e6dcc4", "roof": "#6a8f80"},
@@ -5855,6 +5968,8 @@ func _find_skins() -> void:
 			sites[-1]["skin"] = {"mode": t["mode"], "wall": Color(t["wall"]), "roof": Color(t["roof"])}
 			if t.has("steep"):
 				sites[-1]["skin"]["steep"] = t["steep"]
+			if t.has("upper"):
+				sites[-1]["skin"]["upper"] = {"over": float(t["upper"][0]), "wall": Color(t["upper"][1])}
 			if t["key"] == "zamek":
 				sites[-1]["skin"]["pale"] = {"wall": ZAMEK_VISTULA, "edges": _zamek_river_edges(outline), "near": 3.0}
 				_zamek_tops()
@@ -6647,9 +6762,16 @@ const RYNEK_FOUNTAIN := Vector2(-806.5, -1745.5)
 const RYNEK_REACH := 0.5
 const RYNEK_BAND := 1.3
 const RYNEK_DISC := 11.0
-const RYNEK_FIELD := Color("#d8d1bf")
-const RYNEK_BORDER := Color("#bbb3a1")
-const RYNEK_LIGHT := Color("#e8e2d1")
+## The trailer pass (F, 2026-11-08, Mapillary photos in refs/oldtown_rynek_*): the square is
+## blue-grey granite setts, not sand, with pale granite bands in rings round the fountain (F's
+## drone photo E05); the cafe gardens are mostly cream umbrellas inside low dark fences.
+const RYNEK_FIELD := Color("#9d9b95")
+const RYNEK_BORDER := Color("#86847f")
+const RYNEK_LIGHT := Color("#b9b5ab")
+const RYNEK_PATH := Color("#c6c2b8")
+const RYNEK_PATH_W := 0.8
+const RYNEK_RINGS := [17.0, 25.0, 33.0]
+const RYNEK_FENCE := Color("#4f3424")
 const RYNEK_RIM := Color("#ddd5c1")
 const RYNEK_STONE := Color("#cfc8b5")
 const RYNEK_STONE_HI := Color("#e0dac8")
@@ -6661,8 +6783,8 @@ const RYNEK_TABLE := Color("#ece6d8")
 const RYNEK_CHAIR := Color("#5a3b26")
 ## One restaurant's umbrellas share a colour: runs of this many along a side.
 const RYNEK_RUN := 5
-const RYNEK_CANOPY := [Color("#c8282a"), Color("#f2efe8"), Color("#2f6b4f"), Color("#d9a441"), Color("#24324a"),
-		Color("#e07a5f"), Color("#3b7ea1"), Color("#efe3c0"), Color("#8c3a4a")]
+const RYNEK_CANOPY := [Color("#efe8d6"), Color("#f3efe6"), Color("#2f5e45"), Color("#e6dcc2"), Color("#8c2f36"),
+		Color("#f0eadb"), Color("#ddd2b6"), Color("#efe3c0"), Color("#f2eee4")]
 ## x, z, yaw (the side's direction), side: the umbrellas' places.
 const RYNEK_UMBRELLAS := [
 	-851.1, -1759, 2.33, 0, -847.7, -1762.2, 2.33, 0, -844.4, -1765.3, 2.33, 0,
@@ -6734,7 +6856,27 @@ func _build_rynek(site: Dictionary) -> void:
 		_cap_holes(inner[0], [hole], top + 0.015, RYNEK_FIELD)
 	_cap(_circle(RYNEK_FOUNTAIN, RYNEK_DISC + 0.5, 28), top + 0.03, RYNEK_BORDER)
 	_cap_holes(_circle(RYNEK_FOUNTAIN, RYNEK_DISC, 28), [hole], top + 0.045, RYNEK_LIGHT)
-	# The café gardens: the umbrellas on their lines, a colour to each run.
+	# The pale granite bands in the setts (F's drone photo E05): rings round the fountain, each
+	# drawn in short pieces, a piece left out where it would leave the field.
+	var field: PackedVector2Array = inner[0] if not inner.is_empty() else poly
+	for r: float in RYNEK_RINGS:
+		var pieces := 72
+		for k in pieces:
+			var t0 := TAU * k / pieces
+			var t1 := TAU * (k + 1) / pieces
+			var d0 := Vector2(cos(t0), sin(t0))
+			var d1 := Vector2(cos(t1), sin(t1))
+			var mid := RYNEK_FOUNTAIN + (d0 + d1) * 0.5 * r
+			if not Geometry2D.is_point_in_polygon(mid, field):
+				continue
+			var w := RYNEK_PATH_W * 0.5
+			var piece := PackedVector2Array([RYNEK_FOUNTAIN + d0 * (r - w), RYNEK_FOUNTAIN + d1 * (r - w),
+					RYNEK_FOUNTAIN + d1 * (r + w), RYNEK_FOUNTAIN + d0 * (r + w)])
+			if Geometry2D.is_polygon_clockwise(piece):
+				piece.reverse()
+			_cap(piece, top + 0.025, RYNEK_PATH)
+	# The café gardens: the umbrellas on their lines, a colour to each run, a low fence on the
+	# square's side of each run with a gap at the run's start (the garden's way in).
 	var u := RYNEK_UMBRELLAS
 	var run := 0
 	var last_side := -1
@@ -6744,18 +6886,24 @@ func _build_rynek(site: Dictionary) -> void:
 			last_side = side
 			run = 0
 		var col: Color = RYNEK_CANOPY[(side * 3 + run / RYNEK_RUN) % RYNEK_CANOPY.size()]
+		var gate := run % RYNEK_RUN == 0
 		run += 1
-		_umbrella(Vector2(u[k], u[k + 1]), float(u[k + 2]), top, col)
+		_umbrella(Vector2(u[k], u[k + 1]), float(u[k + 2]), top, col, not gate)
 	_no_roof = false
 
 
 ## One café set: a round-ish table on a pole, two chairs, a square umbrella 3.4 m across on
-## the pole (its canopy a low pyramid in `col`). 52 triangles.
-func _umbrella(p: Vector2, yaw: float, y: float, col: Color) -> void:
+## the pole (its canopy a low pyramid in `col`). 52 triangles; with `fence`, the garden's low
+## dark-wood fence on the square's side (12 more).
+func _umbrella(p: Vector2, yaw: float, y: float, col: Color, fence := false) -> void:
 	_o = p
 	_a = Vector2(sin(yaw), cos(yaw))
 	_b = Vector2(-_a.y, _a.x)
 	_mode = M_STONE
+	if fence:
+		# The garden's fence, 1.9 m out towards the fountain, one umbrella's length.
+		var v := 1.9 if _b.dot(RYNEK_FOUNTAIN - p) > 0.0 else -1.9
+		_lbox(0.0, v, 1.6, 0.05, y, y + 0.85, RYNEK_FENCE, M_STONE, RYNEK_FENCE.lightened(0.15))
 	_lbox(0.0, 0.0, 0.04, 0.04, y, y + 2.75, RYNEK_STONE_HI.darkened(0.45), M_STONE)
 	_lbox(0.0, 0.0, 0.4, 0.4, y + 0.72, y + 0.77, RYNEK_TABLE, M_STONE)
 	for v: float in [-0.8, 0.8]:

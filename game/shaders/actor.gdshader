@@ -29,6 +29,9 @@ shader_type spatial;
 uniform float clouds = 0.18;
 // Pedestrians swing their legs; vehicles leave this at 0.
 uniform float walk = 0.0;
+// Event flags (event_day.gd, 11 listopada): the cloth (UV.y = 2) ripples in the wind, more the
+// further it is from the pole; every other material leaves this at 0.
+uniform float sway = 0.0;
 varying vec3 world_pos;
 varying vec3 tint;
 varying vec3 glow;
@@ -96,6 +99,12 @@ void vertex() {
 	if (walk > 0.0 && abs(UV.y) > 0.5 && INSTANCE_CUSTOM.a < 2.0) {
 		float phase = TIME * 9.0 + float(INSTANCE_ID) * 1.7;
 		VERTEX.z += UV.y * sin(phase) * walk * clamp(1.0 - VERTEX.y / 0.9, 0.0, 1.0);
+	}
+	if (sway > 0.0 && UV.y > 1.5) {
+		float w = TIME * 3.4 + float(INSTANCE_ID) * 2.3 + VERTEX.x * 5.0;
+		float arm = clamp(VERTEX.x * 1.1, 0.0, 1.0);
+		VERTEX.z += sin(w) * sway * arm;
+		VERTEX.y += sin(w * 0.7 + 1.3) * sway * 0.35 * arm;
 	}
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 }

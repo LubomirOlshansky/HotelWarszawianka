@@ -42,6 +42,9 @@
 # an unstick, leaving the route or sinking fails it. About 3.5 min (44 sectors built).
 # `stuckspots` runs game/tools/check_stuck_spots.gd (PT-1, 2026-11-02): the real car with the gas
 # held through the playtest's dead-stop spots; none may stall, need an unstick or lose its speed.
+# `oldtowndrive` runs game/tools/check_old_town_drive.gd (2026-11-08): the real car drives ten legs
+# round the Old Town (Plac Zamkowy, Świętojańska, Rynek, Podwale, the Międzymurze) on fixed
+# waypoints and fails on a stall, an unstick or a timeout.
 # `stuckoffer` runs game/tools/check_stuck_offer.gd (2026-11-03): the car counts the time spent
 # trying to drive in one spot (boxed in, idle, parked, driving on, the tows' reset); no map, CI too.
 # `finite` runs game/tools/check_finite.gd (the NaN car, 2026-11-02): every map height, lane and
@@ -106,6 +109,10 @@
 # Sekretny rave (2026-11-06): `rave` runs game/tools/check_rave.gd: the cone, booth and club-room meshes,
 # LEKTI's, Ziomek's, the door's and the club's lines (no brand), the rave clock, the door's three
 # questions, the lights' poses, the spots and Smoła on the real lane graph; centrum.json only (CI too).
+# Dym u Senatorka (2026-11-08): `shisha` runs game/tools/check_shisha.gd: data/shisha.json's scenes,
+# taps and jars (both languages, under 90 characters, no brand), the votes and the pay, the
+# mini-game's hearts, coal and draw, the lounge's one-surface mesh, Ivan's block, the courts and
+# the door on Emilii Plater found on the real lane graph; centrum.json only (CI too).
 # Kieślowski tour (2026-11-07): `dekalog` runs game/tools/check_dekalog_tour.gd: Claire's pickup and
 # six Dekalog stops stand on drivable roads near their real places, the call, legs, shots, hits, the
 # last question and the pay (docs/design/dekalog-tour.md).
@@ -270,8 +277,8 @@ zmodload zsh/datetime
 ROOT=${0:A:h:h}
 GAME=$ROOT/game
 GODOT=${GODOT:-godot}
-STEPS_ALL=(map roads smooth fixes cyclehang heights objects tramstops stairs streets outline pois streetdetails streetpass design models overrides stops streetmesh ratuszhub parkdetails parkmesh monuments monumentmesh spiremotion tarasyscreen spec lod2 courts drape ground drive drive-prebuilt deckxray stuckspots stuckspots-prebuilt lanedrive lanedrive-grounded finite steering laneassist stuckoffer handling grounded stopassist questlines stories settings credits language tiers governor heliview hud places edge roadworks roadworks-prebuilt eggs tape crowds life buses zaglebie crashes rave meet boatrace dekalog kinotour evtow crawl loud crazy oldtram tramfleet trains railsignals packs wellness fans eventday coffeerun garage save districts syrenki cassettes ladder racecuts first10 mainline chatter endcard opening parodies jobs2 rescues couriers delivery rides cost landmarks oldtownroofs roofdress tenementtrim osmroofs sites palacelights meshq sfx juice gamepad radio sounds water water-prebuilt streaming police plain ram teleport firstlife heli race trzy-mosty first10-run kebab coffee ride ride-police splash rain prebuilt classic police-runs police-soak life-soak)
-STEPS_QUICK=(map roads smooth fixes cyclehang heights objects tramstops stairs streets outline pois streetdetails streetpass design models overrides stops streetmesh ratuszhub parkdetails parkmesh monuments monumentmesh spiremotion tarasyscreen spec drape drive deckxray stuckspots finite steering laneassist stuckoffer handling grounded stopassist questlines stories settings credits language tiers governor heliview hud places edge roadworks eggs tape crowds life buses zaglebie crashes rave meet boatrace dekalog kinotour evtow crawl loud crazy oldtram tramfleet trains railsignals packs wellness fans eventday coffeerun garage save districts syrenki cassettes ladder racecuts first10 mainline chatter endcard opening parodies jobs2 rescues couriers delivery rides cost landmarks oldtownroofs roofdress tenementtrim osmroofs sites palacelights meshq sfx juice gamepad radio sounds police plain ram teleport firstlife prebuilt)
+STEPS_ALL=(map roads smooth fixes cyclehang heights objects tramstops stairs streets outline pois streetdetails streetpass design models overrides stops streetmesh ratuszhub parkdetails parkmesh monuments monumentmesh spiremotion tarasyscreen spec lod2 courts drape ground drive drive-prebuilt deckxray stuckspots stuckspots-prebuilt oldtowndrive lanedrive lanedrive-grounded finite steering laneassist stuckoffer handling grounded stopassist questlines stories settings credits language tiers governor heliview hud places edge roadworks roadworks-prebuilt eggs tape crowds life buses zaglebie crashes rave shisha meet boatrace dekalog kinotour evtow crawl loud crazy oldtram tramfleet trains railsignals packs wellness fans eventday coffeerun garage save districts syrenki cassettes ladder racecuts first10 mainline chatter endcard opening parodies jobs2 rescues couriers delivery rides cost landmarks oldtownroofs roofdress tenementtrim osmroofs sites palacelights meshq sfx juice gamepad radio sounds water water-prebuilt streaming police plain ram teleport firstlife heli race trzy-mosty first10-run kebab coffee ride ride-police splash rain prebuilt classic police-runs police-soak life-soak)
+STEPS_QUICK=(map roads smooth fixes cyclehang heights objects tramstops stairs streets outline pois streetdetails streetpass design models overrides stops streetmesh ratuszhub parkdetails parkmesh monuments monumentmesh spiremotion tarasyscreen spec drape drive deckxray stuckspots oldtowndrive finite steering laneassist stuckoffer handling grounded stopassist questlines stories settings credits language tiers governor heliview hud places edge roadworks eggs tape crowds life buses zaglebie crashes rave shisha meet boatrace dekalog kinotour evtow crawl loud crazy oldtram tramfleet trains railsignals packs wellness fans eventday coffeerun garage save districts syrenki cassettes ladder racecuts first10 mainline chatter endcard opening parodies jobs2 rescues couriers delivery rides cost landmarks oldtownroofs roofdress tenementtrim osmroofs sites palacelights meshq sfx juice gamepad radio sounds police plain ram teleport firstlife prebuilt)
 # Operation Unslop review (2026-11-05): the road loop ran the whole --quick (~100 steps, most start
 # the game) after every tweak. --roads keeps only the steps a road rule can break; steps not in
 # STEPS_ALL on this branch (e.g. `smooth` before the smooth-roads PR) are skipped.
@@ -956,6 +963,7 @@ for s in $want; do
 		lanedrive-grounded) check lanedrive-grounded '^check_lane_drive:' --fixed-fps 60 --script res://tools/check_lane_drive.gd -- --handling=grounded ;;
 		stuckspots) check stuckspots '^check_stuck_spots:' --fixed-fps 60 --script res://tools/check_stuck_spots.gd ;;
 		stuckspots-prebuilt) skip_prebuilt stuckspots-prebuilt || check stuckspots-prebuilt '^check_stuck_spots:' --fixed-fps 60 --script res://tools/check_stuck_spots.gd -- --prebuilt ;;
+		oldtowndrive) check oldtowndrive '^check_old_town_drive:' --fixed-fps 60 --script res://tools/check_old_town_drive.gd ;;
 		finite) check finite '^check_finite:' --fixed-fps 60 --script res://tools/check_finite.gd ;;
 		steering) check steering 'check_steering:' --fixed-fps 60 --script res://tools/check_steering.gd ;;
 		laneassist) check laneassist '^check_lane_assist:' --fixed-fps 60 --script res://tools/check_lane_assist.gd ;;
@@ -1015,6 +1023,8 @@ for s in $want; do
 		crashes) check crashes '^check_crash_scenes:' --script res://tools/check_crash_scenes.gd ;;
 		# Sekretny rave: LEKTI's lines, the door's questions, the rigs and the club's room, the spots on the real graph.
 		rave) check rave '^check_rave:' --script res://tools/check_rave.gd ;;
+		# Dym u Senatorka: the shisha night's lines, votes, pay, the mini-game's rules, the lounge mesh, the places on the real graph.
+		shisha) check shisha '^check_shisha:' --script res://tools/check_shisha.gd ;;
 		# Nocny spot: the club's cars, lines, clock, pay, the drag's times, the meets and the strip on the real graph.
 		meet) check meet '^check_street_meet:' --fixed-fps 60 --script res://tools/check_street_meet.gd ;;
 		# Boat race: the course in open water, the boat, a whole race, the three-miss rule, the lines.
