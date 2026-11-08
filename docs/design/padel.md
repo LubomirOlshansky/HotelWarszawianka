@@ -57,6 +57,12 @@ sport is mostly about the hoodie, the story from the court and finding a fourth 
   card match's tiers: 2:0 is 3/3, 2:1 2/3, 1:2 1/3, 0:2 or ✕ 0/3. The card match stays as the
   fallback where the arcade isn't wired (the checks). The city's own court matches the photos too
   (charcoal, black frame and mesh to 4 m, white posts, two deckchairs).
+  The AI (tuned over 20-match runs): each player reads the ball by simulating its flight, takes
+  the earliest moment they can reach with time to spare (the read and the first step counted),
+  the partner keeps the same line in the other lane; a hard ball (pace, little time, a smash, off
+  the glass) is sometimes misread (chased and missed) or botched (net, long, wide). Shots by the
+  situation: smash or bandeja at the net, lob over a pair at the net, drive or volley otherwise;
+  a weak smash is slower, so only a strong one bounces back out. About 6-7 hits a rally.
 
 ## Characters (ideas, none built yet)
 - **Trener Dominik**: ex-tennis, "nie biegaj, ustaw się". Appears as a padel court voice.

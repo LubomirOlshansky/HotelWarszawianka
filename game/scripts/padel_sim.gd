@@ -33,7 +33,7 @@ const G := 9.0
 const R := 0.04
 const FLOOR_E := 0.72
 const FLOOR_F := 0.85
-const GLASS_E := 0.64
+const GLASS_E := 0.58
 const MESH_E := 0.32
 const DRAG := 0.05
 const SUB := 2
@@ -59,26 +59,36 @@ const RALLY_MAX := 40.0
 const STICK_HOLD := 0.7
 const CALLS := ["0", "15", "30", "40"]
 
-enum Shot { DRIVE, LOB, SMASH, VOLLEY, SERVE }
+enum Shot { DRIVE, LOB, SMASH, VOLLEY, SERVE, BANDEJA }
 enum Phase { SERVE, PLAY, POINT, GAME, OVER }
 
 ## Shot names [pl, en] for the callouts.
-const SHOT_NAMES := [["DRIVE", "DRIVE"], ["LOB", "LOB"], ["SMECZ!", "SMASH!"], ["WOLEJ", "VOLLEY"], ["SERWIS", "SERVE"]]
+const SHOT_NAMES := [["DRIVE", "DRIVE"], ["LOB", "LOB"], ["SMECZ!", "SMASH!"], ["WOLEJ", "VOLLEY"], ["SERWIS", "SERVE"], ["BANDEJA", "BANDEJA"]]
 ## How far a poor shot scatters (m at quality 0), per Shot.
-const SCATTER := [2.0, 1.5, 2.3, 1.7, 0.4]
+const SCATTER := [2.0, 1.5, 2.3, 1.7, 0.4, 1.2]
 ## How hard each shot is to return at quality 1 (taken off the receiver's chance).
-const PRESSURE := [0.08, 0.04, 0.38, 0.14, 0.0]
+const PRESSURE := [0.1, 0.03, 0.42, 0.18, 0.0, 0.12]
+## The floor's bounce per shot (the spin): a sliced drive or volley skids low, a lob sits up.
+const BOUNCE := [0.64, 0.76, 0.7, 0.6, 0.66, 0.58]
+## The pair's lines, metres from the net: up at the net after an attack, back by the glass to defend.
+const NET_LINE := 2.9
+const BACK_LINE := 7.6
+## How long (s) a player takes to read a new ball before moving.
+const REACT := 0.16
 
 
 ## The ball's flight: position and velocity; `step` moves it one sub-step and says what it hit.
 class BallState:
 	var p := Vector3.ZERO
 	var v := Vector3.ZERO
+	## The floor's bounce for this shot (its spin; BOUNCE).
+	var e := FLOOR_E
 
 	func copy() -> BallState:
 		var b := BallState.new()
 		b.p = p
 		b.v = v
+		b.e = e
 		return b
 
 	## One sub-step of `h` s. Returns what happened: "" or one of "net", "cross", "floor",
@@ -100,7 +110,7 @@ class BallState:
 			p.z = R
 			if v.z < 0.0:
 				var impact := -v.z
-				v.z = impact * FLOOR_E
+				v.z = impact * e
 				v.x *= FLOOR_F
 				v.y *= FLOOR_F
 				if impact > 0.7:
@@ -149,6 +159,11 @@ class Player:
 	## Planned: the ball is to be taken at `plan_p` at sim time `plan_t`; false: misjudged.
 	var planned := false
 	var will_reach := true
+	## A misread ball that is still reached: the contact is poor (into the net, long, wide).
+	var botch := false
+	var last_d := 99.0
+	## Seconds left before moving to a new plan (reading the ball).
+	var react := 0.0
 	var plan_p := Vector3.ZERO
 	var plan_t := 0.0
 	## Sim time of the last hit (the racket smear), its quality.
@@ -413,6 +428,7 @@ func _serve() -> void:
 func _launch(pl: Player, from: Vector3, to: Vector2, t: float, shot: int, q: float) -> void:
 	ball.p = from
 	ball.v = solve(from, to, t)
+	ball.e = float(BOUNCE[shot])
 	last_team = pl.team
 	crossed = false
 	bounces = 0
@@ -431,7 +447,7 @@ func _launch(pl: Player, from: Vector3, to: Vector2, t: float, shot: int, q: flo
 		stats["perfect"] = int(stats["perfect"]) + 1
 	events.append(["hit", {"who": pl.idx, "team": pl.team, "shot": shot, "q": q, "p": from}])
 	_plan(1 - pl.team)
-	_home(pl.team, shot)
+	_home(pl.team, shot, q, to.y)
 
 
 ## The launch velocity from `from` to land on `to` after `t` s, `t` stretched until the ball clears
@@ -468,7 +484,11 @@ func _hit(pl: Player, shot: int, q: float) -> void:
 			t = rng.randf_range(1.6, 1.9)
 		Shot.SMASH:
 			to = Vector2(NET_X + dir * rng.randf_range(3.0, 5.5), _open_y(pl.team, 1.0))
-			t = maxf(Vector2(from.x, from.y).distance_to(to) / (21.0 + 5.0 * q), 0.26)
+			t = maxf(Vector2(from.x, from.y).distance_to(to) / (13.0 + 9.0 * q), 0.28)
+		Shot.BANDEJA:
+			# The padel overhead that keeps the net: deep and sliced, not a winner.
+			to = Vector2(NET_X + dir * rng.randf_range(6.8, 8.6), _open_y(pl.team, 0.7))
+			t = Vector2(from.x, from.y).distance_to(to) / (13.0 + 2.0 * q)
 		Shot.VOLLEY:
 			to = Vector2(NET_X + dir * rng.randf_range(3.5, 7.2), _open_y(pl.team, 1.0))
 			t = Vector2(from.x, from.y).distance_to(to) / (14.0 + 3.0 * q)
@@ -501,17 +521,25 @@ func _open_y(team: int, spread: float) -> float:
 	return best
 
 
-## Where `team` waits after hitting `shot` (to the net after an attack, back after a defence) and
-## for the side not taking the ball.
-func _home(team: int, shot: int) -> void:
+## Where `team` goes after hitting `shot` at quality `q`: a pair moves as one, up to the net after
+## an attacking ball (a deep lob, a volley, an overhead, a good drive from near the net), back by
+## the glass after a defensive one; each in their lane, shifted towards where the ball went.
+func _home(team: int, shot: int, q := 0.7, to_y := WID * 0.5) -> void:
 	var dir := 1.0 if team == 0 else -1.0
-	var up := shot in [Shot.LOB, Shot.VOLLEY, Shot.SMASH, Shot.DRIVE]
+	var hitter_x := 0.0
+	for pl in players:
+		if pl.team == team and pl.hit_at == time:
+			hitter_x = absf(pl.pos.x - NET_X)
+	var up := shot in [Shot.VOLLEY, Shot.SMASH, Shot.BANDEJA] or (shot == Shot.LOB and q > 0.55) \
+			or (shot == Shot.DRIVE and q > 0.7 and hitter_x < 6.5)
+	var line := NET_LINE if up else BACK_LINE
+	var shift := (to_y - WID * 0.5) * 0.3
 	for pl in players:
 		if pl.team != team:
 			continue
-		var x := NET_X - dir * (3.4 if up else 7.2)
-		pl.target = Vector2(x, 2.8 if pl.idx % 2 == 0 else 7.2)
+		pl.target = Vector2(NET_X - dir * line, (2.6 if pl.idx % 2 == 0 else 7.4) + shift)
 		pl.planned = false
+		pl.react = 0.0
 
 
 ## Reads the ball for `team`: simulates its flight ahead and picks, for the player who can get there
@@ -525,6 +553,7 @@ func _plan(team: int) -> void:
 	var t := 0.0
 	var h := 1.0 / 60.0
 	var team_side := false
+	var walled := false
 	while t < 3.4:
 		var ev := b.step(h)
 		t += h
@@ -538,6 +567,8 @@ func _plan(team: int) -> void:
 				break
 		if ev in ["glass", "mesh"] and side_of(b.p.x) == team and bn == 0 and cr:
 			break
+		if ev in ["glass", "mesh"] and side_of(b.p.x) == team:
+			walled = true
 		if side_of(b.p.x) != team:
 			if team_side:
 				break
@@ -555,7 +586,7 @@ func _plan(team: int) -> void:
 			elif z > 0.3 and z < REACH_H and absf(b.p.x - NET_X) < 4.5:
 				ok = true
 		if ok:
-			cands.append([time + t, b.p, smash, absf(z - SWEET_Z)])
+			cands.append([time + t, b.p, smash, absf(z - SWEET_Z), walled])
 	var mates: Array[Player] = []
 	for pl in players:
 		if pl.team == team:
@@ -564,22 +595,34 @@ func _plan(team: int) -> void:
 	var best_c: Array = []
 	var best_score := INF
 	for pl in mates:
+		# Each player's own ball: the earliest comfortable moment they reach with time to spare
+		# (the read, the first step and settling count), else the one with the most time to spare.
+		var react := REACT * (1.4 - pl.skill) + 0.14
+		var pick: Array = []
+		var pick_slack := -INF
+		var spare: Array = []
 		for c: Array in cands:
 			var p: Vector3 = c[1]
-			var need := Vector2(p.x, p.y).distance_to(pl.pos) / pl.speed + 0.12
-			if need - REACH / pl.speed > float(c[0]) - time:
-				continue
-			# Prefer the earliest comfortable ball; the human takes the near half.
-			var score := float(c[0]) - time + float(c[3]) * 0.6
-			if pl.human and p.y < WID * 0.5:
-				score -= 0.5
-			if not pl.human and pl.team == 0 and p.y < WID * 0.5:
-				score += 0.5
-			if score < best_score:
-				best_score = score
-				best_pl = pl
-				best_c = c
-			break
+			var run := maxf(Vector2(p.x, p.y).distance_to(pl.pos) - REACH * 0.45, 0.0)
+			var sl := float(c[0]) - time - react - run / pl.speed
+			if sl > 0.12 and spare.is_empty():
+				spare = c
+			if sl > pick_slack:
+				pick_slack = sl
+				pick = c
+		var c2: Array = spare if not spare.is_empty() else pick
+		if c2.is_empty() or pick_slack < -0.05:
+			continue
+		var p2: Vector3 = c2[1]
+		var score := float(c2[0]) - time + float(c2[3]) * 0.6 + (0.0 if not spare.is_empty() else 0.6)
+		if pl.human and p2.y < WID * 0.5:
+			score -= 0.5
+		if not pl.human and pl.team == 0 and p2.y < WID * 0.5:
+			score += 0.5
+		if score < best_score:
+			best_score = score
+			best_pl = pl
+			best_c = c2
 	if best_pl == null and not cands.is_empty():
 		# Nobody gets there in time: the nearest chases the last chance.
 		var last: Array = cands[-1]
@@ -601,13 +644,35 @@ func _plan(team: int) -> void:
 	best_pl.plan_p = bp
 	best_pl.plan_t = float(best_c[0])
 	best_pl.target = Vector2(bp.x - dir * 0.35, bp.y + (0.3 if bp.y < WID * 0.5 else -0.3))
-	var chance := 0.55 + 0.42 * best_pl.skill - float(PRESSURE[last_shot]) * last_q
-	best_pl.will_reach = (best_pl.human and not auto_human) or rng.randf() < chance
-	if not best_pl.will_reach:
-		best_pl.target += Vector2(rng.randf_range(-1.0, 1.0), rng.randf_range(-1.6, 1.6))
+	# How hard this ball is: the shot's pressure, its pace, how little time is left to get there,
+	# a ball off the glass a little harder. A misread one is either chased and missed, or reached
+	# with a poor contact.
+	# The time to spare: the best over every reachable moment (they can wait for a better ball).
+	var slack := -1.0
+	for c: Array in cands:
+		var cp: Vector3 = c[1]
+		slack = maxf(slack, float(c[0]) - time - Vector2(cp.x, cp.y).distance_to(best_pl.pos) / best_pl.speed)
+	var pace := ball.v.length()
+	var diff := float(PRESSURE[last_shot]) * last_q + clampf((pace - 13.0) / 28.0, 0.0, 0.3) \
+			+ clampf(0.3 - slack, 0.0, 0.5) * 0.7 + (0.05 if bool(best_c[4]) else 0.0)
+	var ok_p := clampf(1.0 - diff * (1.7 - best_pl.skill), 0.4, 0.985)
+	var read := (best_pl.human and not auto_human) or rng.randf() < ok_p
+	best_pl.will_reach = true
+	best_pl.botch = false
+	best_pl.react = REACT * (1.4 - best_pl.skill)
+	best_pl.last_d = 99.0
+	if not read:
+		if rng.randf() < 0.5:
+			best_pl.will_reach = false
+			best_pl.target += Vector2(rng.randf_range(-1.0, 1.0), rng.randf_range(-1.6, 1.6))
+		else:
+			best_pl.botch = true
+	# The partner covers: the same line as the one taking it (a pair moves together), the other lane.
+	var line_x := clampf(absf(best_pl.target.x - NET_X), NET_LINE, BACK_LINE)
 	for pl in mates:
 		if pl != best_pl:
-			pl.target = Vector2(NET_X - dir * 4.0, 7.2 if best_pl.pos.y < WID * 0.5 else 2.8)
+			pl.target = Vector2(NET_X - dir * line_x, 7.4 if bp.y < WID * 0.5 else 2.6)
+			pl.react = REACT
 
 
 # --- the players ------------------------------------------------------------------------------
@@ -624,6 +689,8 @@ func _players_step(dt: float) -> void:
 		var manual := pl.human and not auto_human and _stick_idle < STICK_HOLD
 		if manual:
 			want = stick.limit_length(1.0) * pl.speed
+		elif pl.react > 0.0:
+			pl.react -= dt
 		else:
 			var to := pl.target - pl.pos
 			var sp := pl.speed * (0.9 if pl.human else 1.0)
@@ -688,23 +755,76 @@ func _ai_tick(pl: Player) -> void:
 	var z := ball.p.z
 	var good := z > 0.45 and z < 1.75
 	var smash := z > 1.95 and bounces == 0
-	var going := (bounces == 1 and ball.v.z < 0.0 and z < 0.55) or time > pl.plan_t + 0.05
+	var d := Vector2(ball.p.x, ball.p.y).distance_to(pl.pos)
+	var leaving := d > REACH * 0.7 and d > pl.last_d
+	pl.last_d = d
+	var going := (bounces == 1 and ball.v.z < 0.0 and z < 0.55) or time > pl.plan_t + 0.05 or leaving
 	if not (good or smash or going):
 		return
-	var shot := Shot.DRIVE
-	if smash:
-		shot = Shot.SMASH if rng.randf() < 0.55 + pl.skill * 0.4 else Shot.LOB
-	else:
-		var at_net := 0
-		for o in players:
-			if o.team != pl.team and absf(o.pos.x - NET_X) < 4.0:
-				at_net += 1
-		var lob_p := 0.55 if at_net == 2 else (0.25 if at_net == 1 else 0.12)
-		if absf(ball.p.x - NET_X) < 3.0:
-			lob_p *= 0.3
-		if rng.randf() < lob_p:
-			shot = Shot.LOB
-	var q := clampf(pl.skill * rng.randf_range(0.8, 1.25) - (0.15 if going else 0.0), 0.0, 1.0)
+	var shot := _choose(pl, smash)
+	var q := clampf(pl.skill * rng.randf_range(0.85, 1.25) - (0.15 if going else 0.0), 0.0, 1.0)
+	if pl.botch:
+		pl.botch = false
+		_error(pl)
+		return
 	_hit(pl, shot, q)
 	if pl.human:
 		pl.swing = -1.0
+
+
+## The AI's shot, padel's way: a high ball at the net is a smash for a winner or a bandeja to keep
+## the net; from the back, a pair at the net gets a lob over them, a defensive ball off the glass
+## is lobbed to win the net back; a pair at the back gets a drive or, near the net, a volley.
+func _choose(pl: Player, smash: bool) -> int:
+	var at_net := 0
+	for o in players:
+		if o.team != pl.team and absf(o.pos.x - NET_X) < 4.5:
+			at_net += 1
+	var my_d := absf(pl.pos.x - NET_X)
+	if smash:
+		# Close to the net and a good player: go for it; deeper, the bandeja keeps the net.
+		var go := 0.35 + pl.skill * 0.5 - maxf(my_d - 3.0, 0.0) * 0.12
+		return Shot.SMASH if rng.randf() < go else Shot.BANDEJA
+	if my_d < 4.0:
+		return Shot.LOB if (at_net == 0 and rng.randf() < 0.08) else Shot.DRIVE
+	var lob_p := 0.12
+	if at_net == 2:
+		lob_p = 0.5
+	elif at_net == 1:
+		lob_p = 0.28
+	if my_d > 6.5 and bounces == 1 and ball.p.z < 0.9:
+		lob_p += 0.15
+	return Shot.LOB if rng.randf() < lob_p else Shot.DRIVE
+
+
+## A misread ball, reached: a poor contact that loses the point, padel's usual ways: into the net,
+## long into the far glass, or wide into the side fence.
+func _error(pl: Player) -> void:
+	var dir := 1.0 if pl.team == 0 else -1.0
+	var from := ball.p
+	var roll := rng.randf()
+	if roll < 0.45:
+		# Into the net: flat, low, short of the tape.
+		ball.p = from
+		ball.v = Vector3(dir * rng.randf_range(9.0, 13.0), rng.randf_range(-1.5, 1.5), rng.randf_range(-0.5, 1.0))
+		ball.e = BOUNCE[Shot.DRIVE]
+		last_team = pl.team
+		crossed = false
+		bounces = 0
+		last_shot = Shot.DRIVE
+		last_q = 0.0
+		rally_hits += 1
+		pl.hit_at = time
+		pl.hit_q = 0.0
+		pl.cool = SWING_COOL
+		stats["hits"] = int(stats["hits"]) + 1
+		events.append(["hit", {"who": pl.idx, "team": pl.team, "shot": Shot.DRIVE, "q": 0.0, "p": from}])
+		_home(pl.team, Shot.DRIVE, 0.0)
+		for o in players:
+			if o.team != pl.team:
+				o.planned = false
+		return
+	var to := Vector2(NET_X + dir * rng.randf_range(10.6, 12.0), rng.randf_range(1.0, WID - 1.0))
+	if roll > 0.75:
+		to = Vector2(NET_X + dir * rng.randf_range(4.0, 8.0), -1.2 if rng.randf() < 0.5 else WID + 1.2)
+	_launch(pl, from, to, rng.randf_range(0.7, 0.95), Shot.DRIVE, 0.0)

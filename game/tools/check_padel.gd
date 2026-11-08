@@ -20,7 +20,7 @@ const PadelMatch := preload("res://scripts/padel_match.gd")
 const SEEDS := 24
 const STEP := 1.0 / 60.0
 const MATCH_MAX := 900.0
-const RALLY_MIN := 3.0
+const RALLY_MIN := 5.0
 
 var fails: Array[String] = []
 
