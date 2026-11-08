@@ -58,6 +58,7 @@ then the Launch gate.
 - [x] Source-available, non-commercial licence: PolyForm Noncommercial 1.0.0 for code (`LICENSE`), CC BY-NC 4.0 for art, sound and text (`LICENSE-ASSETS.md`); GitHub repo links removed from README run steps, wiki and console, site licence line updated (2026-11-06; F deploys the site and makes the repo private)
 - [x] Closed source for now (superseded by the line above): MIT replaced by an all-rights-reserved `LICENSE`, CONTRIBUTING.md and the open-source/contribute lines removed from README, CREDITS, the in-game credits and the site (2026-11-03, PR pending; F makes the repo private and deploys the site; the design wiki is untouched)
 - [x] Opening fly-over sound: the announcer line (Opening_line_a) plays once with the flight, radio dipped to -20 dB, then swells to full (2026-11-03, PR pending; phone listen check open)
+- [x] Arcade padel at WTS DESKA (F, 2026-11-08): the friend's call ends in a playable 2v2 pixel-art match (touch stick, UDERZ / LOB / smash, padel rules with the glass, a reacting crowd, day / golden hour / floodlit night, chiptune), the city's court recoloured from F's photos (`padel_match.gd`, `padel_sim.gd`, `check_padel`; PR pending; phone check open)
 - [x] WTS DESKA tennis club (hall + one padel court), players, DESKA neon and a friend's "Czwarty" phone call that sends you there (2026-11-01, PR pending; phone check open)
 - [x] Map: the 21 km² demo box in streamed sectors, 1 m terrain, map north (3c, 3d-1, 3d-2, 3e)
 - [x] Roads: checks C1-C10 and `check_drive` green on the Mac at the time (3a, 3b, 3b-2)
