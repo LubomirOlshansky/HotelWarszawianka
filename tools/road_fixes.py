@@ -44,6 +44,17 @@ Mazowiecka and x Jasna, docs/BACKLOG.md "Main's real bugs"), and what this does 
    nothing: a side whose new kerb would sit inside the asphalt, or whose fill would reach a tram bed
    or platform, keeps its old lines; lane lines are joined only where they pair up across the split.
 
+6. Splits redrawn (fix_splits; F, 2026-11-08, two screenshots on Świętokrzyska between the metro
+   and Rondo ONZ: doubled and crossed lane lines, a notch, a bike lane's red band jumping). OSM ends a
+   street's two-way way and its two one-way carriageways at one node on the axis, so the legs fanned
+   out from the middle of the wide street. Each such split is redrawn from its cross-sections: the
+   wide street's kerbs, edge lines, bike lanes and lane lines each join the same line of their leg
+   past the median's nose by one smooth curve, the centre line ends at the nose, the legs' inner
+   kerbs meet there, and asphalt fills the ground up to the new kerbs. Forks (a leg turning away),
+   splits with a mapped median, island, hatching or stop line before the ribbons part, and any split
+   where a new kerb would leave asphalt outside it or lines would still cross stay as they were.
+   `--check` measures every split (split_defects: paint across the street, kerb gaps, loose line ends).
+
 The dark patches in junction boxes (bug 5 in BACKLOG) are not in the game: every ribbon, area and
 fill is one opaque colour at one height. They came from the flat comparison pictures, which draw the
 ribbons half transparent over the photo, so two overlapping ribbons look darker there.
@@ -60,7 +71,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import road_smooth as RS  # noqa: E402  (the asphalt tests, the tram beds, the polyline helpers)
 import map_shape  # noqa: E402  (the map's outline: nothing runs on past it)
 
-VERSION = 2  # 1: the whole-map fixes 1-4; 2: the site fixes (5)
+VERSION = 3  # 1: the whole-map fixes 1-4; 2: the site fixes (5); 3: the splits redrawn (6)
 # --check ratchets (2026-11-07, the whole map after the first pass). Lower them, never raise them.
 CHECK_MOUTH_M = 5      # m of lane, centre, solid or bus line left in a junction's mouth
 CHECK_BOX_M = 0        # m of such lines left on another main street's ribbon
@@ -69,6 +80,11 @@ CHECK_PARTNERS = 0     # dual carriageways crossed on one side only
 CHECK_DOTS = 0         # zebras under 1 m
 CHECK_SHORT_CYCLE = 1  # cycle crossings beside a zebra that stop short of it
 CHECK_SITE_GAPS = 0    # m of a site's kerb stretch where no single kerb runs on (a jog or a notch)
+# 2026-11-08, the whole map after fix 6 (split_defects; the forks and splits it leaves as they were
+# keep theirs: lower these when a change fixes more of them)
+CHECK_SPLIT_FAN_M = 170      # m of paint or kerb running across the street between a split's node and nose
+CHECK_SPLIT_GAP_M = 592      # m of a split's outer edges with no kerb (the notch)
+CHECK_SPLIT_ENDS = 154       # lane, centre and edge lines ending in the road inside a split
 
 MINOR = {"service", "living_street"}
 MAIN = {"motorway", "trunk", "primary", "secondary", "tertiary",
@@ -1097,6 +1113,594 @@ def fix_sites(out):
                 out.setdefault("road_fix_sites", []).append(site["name"])
     return fixed, round(redrawn), notes
 
+# --- 6. split legs ----------------------------------------------------------------------------------
+
+# F, 2026-11-08 (two screenshots on Świętokrzyska between the metro and Rondo ONZ): where a two-way
+# street splits into its two one-way carriageways, OpenStreetMap ends all three ways at one node on
+# the wide way's axis. bake_roads draws each way round its own centreline, so both legs fan out from
+# the middle of the wide street: their lane lines run diagonally across the wide street's lanes (the
+# doubled, crossed lines), their kerbs and edge lines start inside its asphalt, the outer kerb steps
+# in by half the wide street's width minus the leg's (the notch), and a bike lane's red band jumps
+# sideways. Fix 5 only joined kerbs inside fixed bands, so where a crossing stood near the node, the
+# legs ran apart slowly or a centre line was left, it fixed half a split or none.
+# This redraws the split from its real cross-sections: each line of the wide street (s < 0) is
+# joined by one smooth curve to the same line of its leg past the median's nose (lane lines in order
+# from the centre, kerbs, edge lines and bike lanes from the outside), the centre line ends at the
+# nose, the legs' inner kerbs and edge lines meet at the nose, and asphalt fills the ground between
+# the new outer kerbs and the nose. Each split is all or nothing.
+SPLIT_BACK = (10.0, 7.0, 4.0)  # m back along the wide way where the redraw may start (first that works)
+SPLIT_PAD = 1.0       # m past a ribbon's edge a kerb or line still belongs to it
+SPLIT_AFTER = 8.0     # m past the median's nose where the legs' lines are picked up
+SPLIT_NOSE_GAP = 0.4  # m between the legs' ribbons: the median's nose
+SPLIT_EDGE_BACK = 1.2  # m in front of the nose where the legs' inner edge lines meet
+SPLIT_NOSE_MAX = 70.0  # m: legs still side by side further than this are not a split
+SPLIT_END = 1.5       # m: a cut end this near s_a or s_b is a stub there
+SPLIT_KINDS = ("lane", "solid", "centre", "edge", "cycle", "cyclefill")
+SPLIT_NEAR = 40.0     # m from the node: the check counts crossed lines this near
+SPLIT_SLOPE = 0.36    # a leg moving sideways faster than this (20 degrees) at its pick-up is a fork
+
+
+class _Leg:
+    """A way's drawn centreline in a split's frame, as n (and half width) by s."""
+
+    def __init__(self, fr, chain):
+        """chain: [(road, end at the near side)], the way at the node first and the ways it runs on into."""
+        self.sn, self.hw = [], []
+        for r, end in chain:
+            q = RS.pts_of(r["p"])
+            n = len(q)
+            wv = r.get("wv") if r.get("wv") and len(r["wv"]) == n else [r["w"]] * n
+            cv = r.get("cv") if r.get("cv") and len(r["cv"]) == n else [r.get("c", 0.0)] * n
+            mid = []
+            for i in range(n):
+                a, b = (q[i], q[i + 1]) if i < n - 1 else (q[i - 1], q[i])
+                u = _unit(a, b) or (1.0, 0.0)
+                mid.append((q[i][0] - u[1] * cv[i], q[i][1] + u[0] * cv[i]))
+            if end == 1:
+                mid, wv = mid[::-1], wv[::-1]
+            skip = 1 if self.sn else 0
+            self.sn += [fr.sn(*p) for p in mid[skip:]]
+            self.hw += [w / 2 for w in wv[skip:]]
+
+
+    def at(self, s):
+        """(n, half width) at s, or None past the way's reach."""
+        for (s0, n0), (s1, n1), h0, h1 in zip(self.sn, self.sn[1:], self.hw, self.hw[1:]):
+            if min(s0, s1) - 1e-6 <= s <= max(s0, s1) + 1e-6 and abs(s1 - s0) > 1e-6:
+                t = (s - s0) / (s1 - s0)
+                return n0 + (n1 - n0) * t, h0 + (h1 - h0) * t
+        return None
+
+
+def _chain(out, ri, end, reach=150.0):
+    """The way ri from its `end` on, and the ways of its name it runs on into (one at each node, no
+    junction), up to `reach` m: [(road, near end)]."""
+    name = out["roads"][ri].get("name")
+    at = defaultdict(list)
+    for i, r in enumerate(out["roads"]):
+        if r.get("name") != name or not _ground(r):
+            continue
+        q = RS.pts_of(r["p"])
+        at[(round(q[0][0], 1), round(q[0][1], 1))].append((i, 0))
+        at[(round(q[-1][0], 1), round(q[-1][1], 1))].append((i, 1))
+    chain, seen, d = [], {ri}, 0.0
+    while True:
+        r = out["roads"][ri]
+        chain.append((r, end))
+        q = RS.pts_of(r["p"])
+        d += RS.length(q)
+        far = q[-1] if end == 0 else q[0]
+        nxt = [(i, e) for i, e in at[(round(far[0], 1), round(far[1], 1))] if i not in seen]
+        if d >= reach or len(nxt) != 1:
+            return chain
+        ri, end = nxt[0]
+        seen.add(ri)
+
+def split_nodes(out):
+    """Every mid-block split of a main street: one two-way way and two one-way ways of the same name
+    end at a node no other street reaches (as auto_sites). [(node, wide index, wide end, legs)]"""
+    ends = defaultdict(list)
+    names_at = defaultdict(set)
+    for i, r in enumerate(out["roads"]):
+        if not _ground(r):
+            continue
+        q = RS.pts_of(r["p"])
+        for x, z in q:
+            names_at[(round(x, 1), round(z, 1))].add(r.get("name") or r["k"])
+        if r["k"] not in MAIN or len(q) < 2:
+            continue
+        ends[(round(q[0][0], 1), round(q[0][1], 1))].append((i, 0))
+        ends[(round(q[-1][0], 1), round(q[-1][1], 1))].append((i, 1))
+    found = []
+    for node, lst in sorted(ends.items()):
+        if len(lst) != 3 or len(names_at[node]) != 1:
+            continue
+        name = out["roads"][lst[0][0]].get("name")
+        if not name or any(out["roads"][i].get("name") != name for i, _ in lst):
+            continue
+        two = [(i, e) for i, e in lst if not out["roads"][i]["oneway"]]
+        if len(two) != 1:
+            continue
+        legs = [(i, e) for i, e in lst if (i, e) != two[0]]
+        found.append((node, two[0][0], two[0][1], legs))
+    return found
+
+
+def _split_frame(out, node, wi, we):
+    q = RS.pts_of(out["roads"][wi]["p"])
+    if we == 0:
+        q = q[::-1]
+    back, d = q[-1], 0.0
+    for a2, b2 in zip(reversed(q[:-1]), reversed(q[1:])):
+        d += math.dist(a2, b2)
+        back = a2
+        if d >= 15.0:
+            break
+    u = _unit(back, node)
+    if u is None or d < 8.0:
+        return None, 0.0
+    return Frame({"a": node, "u": u}), RS.length(q)
+
+
+def _cut_corridor(items, inside, near_pt, end_ok, kinds=None):
+    """Cuts the points `inside(x, z)` out of each ground polyline (kinds: the markings' k to cut, None
+    for kerbs). Returns (kept items, stubs [(piece, end, (x, z))]). A line whose cut leaves an end
+    where `end_ok` says no (it runs out of the corridor sideways: a driveway's kerb, a crossing) is
+    kept whole."""
+    keep, stubs = [], []
+    for m in items:
+        if kinds is not None and m.get("k") not in kinds:
+            keep.append(m)
+            continue
+        pts = RS.pts_of(m["p"])
+        if len(pts) < 2 or not _ground(m) or min(math.dist(p, near_pt) for p in pts) > 140.0:
+            keep.append(m)
+            continue
+        dense = _dense(pts)
+        flags = [inside(x, z) for x, z in dense]
+        if not any(flags):
+            keep.append(m)
+            continue
+        runs, run = [], []
+        for p, f in zip(dense, flags):
+            if f:
+                if run:
+                    runs.append(run)
+                run = []
+            else:
+                run.append(p)
+        if run:
+            runs.append(run)
+        mine_keep, mine_stubs = [], []
+        for r in runs:
+            if len(r) < 2 or RS.length(r) < LINE_MIN:
+                continue
+            piece = dict(m, p=RS.flat_of(RS.simplify(r, 0.002)))
+            mine_keep.append(piece)
+            if r[-1] != dense[-1]:
+                mine_stubs.append((piece, "tail", r[-1]))
+            if r[0] != dense[0]:
+                mine_stubs.append((piece, "head", r[0]))
+        if all(end_ok(p) for _, _, p in mine_stubs):
+            keep += mine_keep
+            stubs += mine_stubs
+        else:
+            keep.append(m)
+    return keep, stubs
+
+
+def _hermite_sn(p0, p1, step=SITE_STEP):
+    """(s, n) points from p0 = (s, n, dn/ds) to p1, matching positions and headings."""
+    s0, n0, m0 = p0
+    s1, n1, m1 = p1
+    L = s1 - s0
+    k = max(2, int(math.ceil(abs(L) / step)))
+    out = []
+    for i in range(k + 1):
+        t = i / k
+        h00, h10 = 2 * t ** 3 - 3 * t ** 2 + 1, t ** 3 - 2 * t ** 2 + t
+        h01, h11 = -2 * t ** 3 + 3 * t ** 2, t ** 3 - t ** 2
+        out.append((s0 + L * t, h00 * n0 + h10 * L * m0 + h01 * n1 + h11 * L * m1))
+    return out
+
+
+def _seq(piece, end, last):
+    """The piece's points, ordered so its cut end comes last (last=True) or first."""
+    q = RS.pts_of(piece["p"])
+    cut_last = end == "tail"
+    return q if cut_last == last else q[::-1]
+
+
+def _joined(fr, a, b, curve_sn, directed):
+    """One line: stub a, the curve (s, n points from a's cut end to b's), stub b. None when a kerb's
+    two stubs run opposite ways."""
+    (pa, ea, _), (pb, eb, _) = a, b
+    curve = [fr.xz(s, n) for s, n in curve_sn]
+    line = _seq(pa, ea, True) + curve[1:-1] + _seq(pb, eb, False)
+    if ea == "tail" and eb == "head":
+        pass
+    elif ea == "head" and eb == "tail":
+        line = line[::-1]
+    elif directed:
+        return None
+    return dict(pa, p=RS.flat_of(RS.simplify(line, 0.002)))
+
+
+def _stub_sn(fr, stub):
+    piece, end, p = stub
+    s, n = fr.sn(*p)
+    q = _seq(piece, end, True)
+    b = _back(q[::-1], False) if len(q) > 1 else q[0]
+    sb, nb = fr.sn(*b)
+    slope = (n - nb) / (s - sb) if abs(s - sb) > 0.05 else 0.0
+    return s, n, max(-0.6, min(0.6, slope))
+
+
+def _crossings(lines):
+    """Crossings between segments of different lines (each line a list of points)."""
+    segs = []
+    for li, q in enumerate(lines):
+        segs += [(li, a, b) for a, b in zip(q, q[1:])]
+    hits = 0
+    for i in range(len(segs)):
+        li, a, b = segs[i]
+        for j in range(i + 1, len(segs)):
+            lj, c, d = segs[j]
+            if li != lj and RS._segs_cross(a, b, c, d):
+                hits += 1
+    return hits
+
+
+def _split_geom(out, node, wi, we, legs):
+    """A split's frame, its ways as seen from the node and the median's nose (where the legs'
+    ribbons part): (frame, wide way length, wide, [leg, leg], nose), or (None, why)."""
+    fr, wlen = _split_frame(out, node, wi, we)
+    if fr is None:
+        return None, "wide way too short"
+    wide = _Leg(fr, [(out["roads"][wi], 1 - we)])  # from the node back: s < 0 along it
+    ls = [_Leg(fr, _chain(out, i, e)) for i, e in legs]
+    s = 0.5
+    while s <= SPLIT_NOSE_MAX:
+        a, b = ls[0].at(s), ls[1].at(s)
+        if a is None or b is None:
+            return None, "a leg ends before the legs part"
+        lo, hi = (a, b) if a[0] < b[0] else (b, a)
+        if (hi[0] - hi[1]) - (lo[0] + lo[1]) >= SPLIT_NOSE_GAP:
+            return (fr, wlen, wide, ls, s), None
+        s += 0.5
+    return None, "the legs never part"
+
+
+def fix_split(out, node, wi, we, legs, ribbons, beds):
+    """Redraws one split (see above). Returns (True, metres redrawn) or (False, why)."""
+    geom, why = _split_geom(out, node, wi, we, legs)
+    if geom is None:
+        return False, why
+    fr, wlen, wide, ls, nose = geom
+    s_b = nose + SPLIT_AFTER
+    at_b = [lg.at(s_b) for lg in ls]
+    if None in at_b:
+        return False, "a leg is shorter than its nose"
+    # a dual carriageway's split, not a fork: both legs still run along the street at s_b
+    for lg in ls:
+        a2, b2 = lg.at(s_b - 4.0), lg.at(s_b)
+        if a2 is None or abs(b2[0] - a2[0]) / 4.0 > SPLIT_SLOPE:
+            return False, "a leg turns away (a fork, not a split)"
+    # a mapped median or island before the ribbons part: its nose is the real one
+    for m in out.get("medians", []):
+        for x, z in RS.pts_of(m["s"]):
+            ms, mn = fr.sn(x, z)
+            if 0.0 < ms < nose - 1.0 and abs(mn) < 12.0:
+                return False, "a median starts before the legs' ribbons part"
+    for m in out.get("markings", []):
+        if m.get("k") in ("stripe", "stop", "stopkerb") and _ground(m):
+            for x, z in RS.pts_of(m["p"]):
+                ms, mn = fr.sn(x, z)
+                if -2.0 < ms < nose - 1.0 and abs(mn) < 12.0:
+                    return False, "hatching or a stop line in the split"
+    for isl in out.get("islands", []):
+        for x, z in RS.pts_of(isl["p"]):
+            ms, mn = fr.sn(x, z)
+            if 0.0 < ms < nose - 1.0 and abs(mn) < 12.0:
+                return False, "an island starts before the legs' ribbons part"
+    L, R = (0, 1) if at_b[0][0] < at_b[1][0] else (1, 0)
+    a_nose, b_nose = ls[L].at(nose), ls[R].at(nose)
+    n_nose = ((a_nose[0] + a_nose[1]) + (b_nose[0] - b_nose[1])) / 2
+    why = "the wide way is too short"
+    w0 = wide.at(-0.01) or wide.at(0.0)
+    if w0 is None:
+        return False, "no wide way at the node"
+    for s_back in SPLIT_BACK:
+        if s_back > wlen - 2.0:
+            continue
+        s_a = -s_back
+
+        def inside(x, z, s_a=s_a):
+            s, n = fr.sn(x, z)
+            if s < s_a or s > s_b:
+                return False
+            if s <= 0:
+                w = wide.at(s)
+                return w is not None and abs(n - w[0]) <= w[1] + SPLIT_PAD
+            lo, hi = ls[L].at(s), ls[R].at(s)
+            if lo is None or hi is None:
+                return False
+            # out to the wide street's kerbs too: the new kerbs run from those to the legs'
+            if not (min(lo[0] - lo[1], w0[0] - w0[1]) - SPLIT_PAD <= n <= max(hi[0] + hi[1], w0[0] + w0[1]) + SPLIT_PAD):
+                return False
+            if s < nose:
+                return True
+            return n <= lo[0] + lo[1] + SPLIT_PAD or n >= hi[0] - hi[1] - SPLIT_PAD
+        res = _try_split(out, fr, node, inside, s_a, s_b, nose, n_nose, ls, L, R, ribbons, beds,
+                         out["roads"][wi].get("name"))
+        if res[0]:
+            return res
+        why = res[1]
+    return False, why
+
+
+def _try_split(out, fr, node, inside, s_a, s_b, nose, n_nose, ls, L, R, ribbons, beds, name):
+    """fix_split's work for one start s_a: (True, metres redrawn) or (False, why); the map is
+    changed only on success."""
+    def end_ok(p):
+        s = fr.sn(*p)[0]
+        return abs(s - s_a) < SPLIT_END or abs(s - s_b) < SPLIT_END
+
+    kerbs, k_stubs = _cut_corridor(out["kerbs"], inside, node, end_ok)
+    marks, m_stubs = _cut_corridor(out["markings"], inside, node, end_ok, SPLIT_KINDS)
+    mid_b = (ls[L].at(s_b)[0] + ls[R].at(s_b)[0]) / 2
+
+    def group(stubs, kinds=None):
+        a, bl, br = [], [], []
+        for st in stubs:
+            if kinds is not None and st[0].get("k") not in kinds:
+                continue
+            sn = _stub_sn(fr, st)
+            if abs(sn[0] - s_a) < SPLIT_END:
+                a.append((st, sn))
+            elif sn[1] < mid_b:
+                bl.append((st, sn))
+            else:
+                br.append((st, sn))
+        key = lambda x: x[1][1]
+        return sorted(a, key=key), sorted(bl, key=key), sorted(br, key=key)
+
+    new_k, new_m, gone = [], [], []
+    curves = {}
+    redrawn = 0.0
+
+    def join(a, b, directed):
+        nonlocal redrawn
+        sn = _hermite_sn(a[1], b[1])
+        line = _joined(fr, a[0], b[0], sn, directed)
+        if line is None:
+            return None
+        gone.extend([a[0][0], b[0][0]])
+        redrawn += RS.length([fr.xz(*q) for q in sn])
+        return line, sn
+
+    def to_nose(stubs, directed, back=0.0):
+        """The legs' inner lines meet at the nose (one line round it when both are there); edge lines
+        `back` m in front of it, so they stay on the asphalt inside the kerbs."""
+        nonlocal redrawn
+        parts = [(st, sn, _hermite_sn((nose - back, n_nose, 0.0), sn)) for st, sn in stubs]
+        if len(parts) == 2:
+            (sa, _, ca), (sb, _, cb) = parts
+            curve = list(reversed(ca)) + cb[1:]
+            line = _joined(fr, sa, sb, curve, directed)
+            if line is None:
+                return None
+            gone.extend([sa[0], sb[0]])
+            redrawn += RS.length([fr.xz(*q) for q in curve])
+            return [line]
+        made = []
+        for st, sn, c in parts:
+            pts = [fr.xz(*q) for q in c]
+            q = _seq(st[0], st[1], False)
+            line = pts[:-1] + q
+            if st[1] == "tail":
+                line = line[::-1]
+            gone.append(st[0])
+            redrawn += RS.length(pts)
+            made.append(dict(st[0], p=RS.flat_of(RS.simplify(line, 0.002))))
+        return made
+
+    # kerbs: the wide street's two, each leg's outer one and its inner one (the median's)
+    a, bl, br = group(k_stubs)
+    if len(a) != 2 or not 1 <= len(bl) <= 2 or not 1 <= len(br) <= 2:
+        return False, f"kerb stubs {len(a)}/{len(bl)}/{len(br)}"
+    for (sa, sb, side) in ((a[0], bl[0], "lo"), (a[1], br[-1], "hi")):
+        j = join(sa, sb, True)
+        if j is None:
+            return False, "kerb stubs run opposite ways"
+        new_k.append(j[0])
+        curves[side] = j[1]
+        # no asphalt of the street just outside it (up to the nose: past it the legs' ribbons and
+        # kerbs are as they were, a ribbon a little wider than its kerb among them)
+        out_n = -1.0 if side == "lo" else 1.0
+        g = (ls[L] if side == "lo" else ls[R]).at(s_b)
+        over = max(0.0, out_n * (g[0] + out_n * g[1] - sb[1][1]))  # the leg's ribbon past its kerb
+        if any(out["roads"][pc[3]].get("name") == name
+               for q in j[1] for pc in ribbons.at(*fr.xz(q[0], q[1] + out_n * (0.8 + (over if q[0] > nose - 5.0 else 0.0))), 0.1)):
+            return False, "a new kerb would leave asphalt outside it"
+    inner = ([bl[-1]] if len(bl) == 2 else []) + ([br[0]] if len(br) == 2 else [])
+    made = to_nose(inner, True) if inner else []
+    if made is None:
+        return False, "the median's kerbs run opposite ways"
+    new_k += made
+    inner_sn = {}
+    for st, sn in inner:
+        inner_sn["lo" if sn[1] < mid_b else "hi"] = _hermite_sn((nose, n_nose, 0.0), sn)
+    c_a = None
+    # centre line: on to the nose
+    a_c, _, _ = group(m_stubs, ("centre",))
+    for st, sn in a_c:
+        c_a = sn[1] if c_a is None else c_a
+        # it ends where the legs' inner edge lines meet, just in front of the nose
+        curve = [fr.xz(*q) for q in _hermite_sn(sn, (nose - SPLIT_EDGE_BACK - 0.5, n_nose + sn[1] - a_c[0][1][1], 0.0))]
+        line = _seq(st[0], st[1], True) + curve[1:]
+        if st[1] == "head":
+            line = line[::-1]
+        gone.append(st[0])
+        redrawn += RS.length(curve)
+        new_m.append(dict(st[0], p=RS.flat_of(RS.simplify(line, 0.002))))
+    if c_a is None:
+        c_a = (a[0][1][1] + a[1][1][1]) / 2
+    # lane lines: in order from the centre
+    a_l, bl_l, br_l = group(m_stubs, ("lane", "solid"))
+    for xs, ys in (([x for x in reversed(a_l) if x[1][1] < c_a], list(reversed(bl_l))),
+                   ([x for x in a_l if x[1][1] >= c_a], br_l)):
+        for sa, sb in zip(xs, ys):
+            new_m.append(join(sa, sb, False)[0])
+        # a lane that only one side has (a lane added or dropped at the split) starts or ends at the
+        # nose beside the kerb, as a line, never in the middle of the road
+    for xs, ys, side in (([x for x in reversed(a_l) if x[1][1] < c_a], list(reversed(bl_l)), "lo"),
+                         ([x for x in a_l if x[1][1] >= c_a], br_l, "hi")):
+        for st, sn in ys[len(xs):]:
+            new_m.append(_beside(fr, st, sn, curves[side], nose, gone))
+        for st, sn in xs[len(ys):]:
+            new_m.append(_beside(fr, st, sn, curves[side], nose, gone))
+    # edge lines, bike lanes: in order from the outside; an unpaired one runs on beside the kerb
+    for kinds in (("edge",), ("cycle",), ("cyclefill",)):
+        a_e, bl_e, br_e = group(m_stubs, kinds)
+        if kinds == ("edge",):
+            in_l = [bl_e.pop()] if len(bl_e) >= 2 else []
+            in_r = [br_e.pop(0)] if len(br_e) >= 2 else []
+            nose_made = to_nose(in_l + in_r, False, SPLIT_EDGE_BACK)
+            new_m += nose_made or []
+        for xs, ys, side in (([x for x in a_e if x[1][1] < c_a], bl_e, "lo"),
+                             (list(reversed([x for x in a_e if x[1][1] >= c_a])), list(reversed(br_e)), "hi")):
+            for sa, sb in zip(xs, ys):
+                new_m.append(join(sa, sb, False)[0])
+            for st, sn in ys[len(xs):]:
+                new_m.append(_beside(fr, st, sn, curves[side], max(s_a, 0.0), gone))
+            for st, sn in xs[len(ys):]:
+                new_m.append(_beside(fr, st, sn, curves[side], nose, gone))
+    # nothing crossed: the lines left and made in the corridor
+    ids = {id(g) for g in gone}
+    kept_m = [m for m in marks if id(m) not in ids]
+    near = [RS.pts_of(m["p"]) for m in kept_m + new_m
+            if m["k"] in ("lane", "solid", "centre", "edge") and _ground(m)
+            and any(inside(x, z) or math.dist((x, z), node) < 6.0 for x, z in _dense(RS.pts_of(m["p"]), 2.0))]
+    clipped = [[p for p in q if math.dist(p, node) < SPLIT_NEAR + 20] for q in near]
+    if _crossings([q for q in clipped if len(q) >= 2]):
+        return False, "lines would still cross"
+    # asphalt between the new outer kerbs and the nose
+    fills = []
+    centre = _hermite_sn((s_a, c_a, 0.0), (nose, n_nose, 0.0))
+    for side in ("lo", "hi"):
+        out_sn = curves[side]
+        leg = ls[L] if side == "lo" else ls[R]
+        inner_pts = list(centre)
+        if side in inner_sn:
+            inner_pts += inner_sn[side][1:]
+        else:
+            for k in range(1, int(s_b - nose) + 1):
+                g = leg.at(nose + k)
+                inner_pts.append((nose + k, g[0] + (g[1] if side == "lo" else -g[1])))
+        ring = [fr.xz(*q) for q in out_sn] + [fr.xz(*q) for q in reversed(inner_pts)]
+        if any(beds.hit(x, z) for x, z in ring):
+            return False, "a fill would reach a tram bed"
+        fills.append({"p": RS.flat_of(ring)})
+    kerbs = [k for k in kerbs if id(k) not in ids] + new_k
+    out["kerbs"] = kerbs
+    out["markings"] = kept_m + new_m
+    out.setdefault("asphalt_fills", []).extend(fills)
+    return True, redrawn
+
+
+def _beside(fr, st, sn, kerb_sn, s_to, gone):
+    """A line with no partner across the split runs on to s_to at its distance from the new kerb."""
+    def kerb_n(s):
+        for (s0, n0), (s1, n1) in zip(kerb_sn, kerb_sn[1:]):
+            if s0 <= s <= s1:
+                return n0 + (n1 - n0) * ((s - s0) / (s1 - s0) if s1 > s0 else 0.0)
+        return kerb_sn[0][1] if s < kerb_sn[0][0] else kerb_sn[-1][1]
+    off = sn[1] - kerb_n(sn[0])
+    k = max(2, int(abs(sn[0] - s_to) / SITE_STEP))
+    pts = [fr.xz(sn[0] + (s_to - sn[0]) * i / k, kerb_n(sn[0] + (s_to - sn[0]) * i / k) + off) for i in range(k + 1)]
+    line = _seq(st[0], st[1], True) + pts[1:]
+    if st[1] == "head":
+        line = line[::-1]
+    gone.append(st[0])
+    return dict(st[0], p=RS.flat_of(RS.simplify(line, 0.002)))
+
+
+def fix_splits(out):
+    """Fix 6 over the whole map: (splits redrawn, m redrawn, the ones left with why)."""
+    ribbons = Ribbons(out, lambda r: True)
+    beds = Beds(out)
+    done, metres, left = 0, 0.0, []
+    for node, wi, we, legs in split_nodes(out):
+        ok, res = fix_split(out, node, wi, we, legs, ribbons, beds)
+        name = out["roads"][wi].get("name")
+        if ok:
+            done += 1
+            metres += res
+            out.setdefault("road_split_fixes", []).append(f"{name} at {node[0]:.0f},{node[1]:.0f}")
+        else:
+            left.append(f"{name} at {node[0]:.0f},{node[1]:.0f}: {res}")
+    return done, round(metres), left
+
+
+def split_defects(out):
+    """What F saw at a split, measured over every split the fix takes on (split_nodes with a nose):
+    `fan_m`, metres of lane, centre, edge and bike-lane paint and of kerb between the node and the
+    nose running across the street (steeper than SPLIT_SLOPE: the legs' lines fanning out from the
+    middle, the bike lane's jump), `kerb_gap_m`, metres of that stretch (from 4 m before the node to
+    4 m past the nose) where no kerb runs along a side's outer edge (the notch), and `loose_ends`,
+    lane, centre and edge lines ending in the road there (the wide street's lines stopping at the
+    node and the legs' starting from it, crossed and doubled)."""
+    fan = gap = 0.0
+    ends = 0
+    kinds = ("lane", "solid", "centre", "edge", "cycle", "cyclefill")
+    for node, wi, we, legs in split_nodes(out):
+        geom, _ = _split_geom(out, node, wi, we, legs)
+        if geom is None:
+            continue
+        fr, _, wide, ls, nose = geom
+        w0 = wide.at(-0.01) or wide.at(0.0)
+        if w0 is None:
+            continue
+        reach = w0[1] + 2.0
+        near = [m for m in out.get("markings", []) if m.get("k") in kinds and _ground(m)] + \
+               [k for k in out.get("kerbs", []) if _ground(k)]
+        covered = {"lo": set(), "hi": set()}
+        for m in near:
+            q = RS.pts_of(m["p"])
+            if min(math.dist(p, node) for p in q) > nose + 30.0:
+                continue
+            sn = [fr.sn(*p) for p in _dense(q, 0.5)]
+            for (s0, n0), (s1, n1) in zip(sn, sn[1:]):
+                if not (0.5 <= s0 <= nose and 0.5 <= s1 <= nose and abs(n0) <= reach and abs(n1) <= reach):
+                    continue
+                if abs(n1 - n0) > SPLIT_SLOPE * abs(s1 - s0):
+                    fan += math.hypot(s1 - s0, n1 - n0)
+            if m in out.get("kerbs", []):
+                for s0, n0 in sn:
+                    if -4.0 <= s0 <= nose + 4.0:
+                        lo, hi = ls[0].at(max(s0, 0.5)), ls[1].at(max(s0, 0.5))
+                        if lo is None or hi is None:
+                            continue
+                        lo, hi = (lo, hi) if lo[0] < hi[0] else (hi, lo)
+                        if s0 < 0.5:
+                            e_lo, e_hi = w0[0] - w0[1], w0[0] + w0[1]
+                        else:
+                            e_lo = min(lo[0] - lo[1], w0[0] - w0[1])
+                            e_hi = max(hi[0] + hi[1], w0[0] + w0[1])
+                        if abs(n0 - e_lo) <= 1.5:
+                            covered["lo"].add(int(math.floor(s0 + 4.0)))
+                        if abs(n0 - e_hi) <= 1.5:
+                            covered["hi"].add(int(math.floor(s0 + 4.0)))
+            if m.get("k") in ("lane", "solid", "centre", "edge"):
+                for e_s, e_n in (sn[0], sn[-1]):
+                    if -3.0 < e_s < nose - 2.5 and abs(e_n - w0[0]) < w0[1] - 1.0:
+                        ends += 1
+        span = int(math.floor(nose + 8.0)) + 1
+        gap += sum(max(0, span - len(c)) for c in covered.values())
+    return {"fan_m": round(fan), "kerb_gap_m": gap, "loose_ends": ends}
+
+
 def measure(out):
     """What is left (the --check numbers)."""
     asphalt, raised = _tests(out)
@@ -1110,8 +1714,10 @@ def measure(out):
     probe = json.loads(json.dumps({k: out[k] for k in ("paths", "roads", "bounds", "outside") if k in out}))
     dots, _, partners = fix_zebras(probe, asphalt, raised, on_bed, all_ribbons, dry=True)
     _, _, _, short = fix_cycle_crossings(probe, asphalt, raised, dry=True)
+    sd = split_defects(out)
     return {"mouth_m": m_mouth, "box_m": m_box, "arrows": arrows, "partners": partners, "dots": dots, "short_cycle": short,
-            "site_gaps": site_gaps(out)}
+            "site_gaps": site_gaps(out), "split_fan_m": sd["fan_m"], "split_gap_m": sd["kerb_gap_m"],
+            "split_ends": sd["loose_ends"]}
 
 
 def apply(out):
@@ -1122,8 +1728,12 @@ def apply(out):
     said = []
     if done < 1:
         said.append(_apply_v1(out))
-    sites, redrawn, notes = fix_sites(out)
-    said.append(f"{sites} sites fixed ({redrawn} m of kerb and paint redrawn)" + "".join("; " + n for n in notes))
+    if done < 2:
+        sites, redrawn, notes = fix_sites(out)
+        said.append(f"{sites} sites fixed ({redrawn} m of kerb and paint redrawn)" + "".join("; " + n for n in notes))
+    if done < 3:
+        splits, metres, left = fix_splits(out)
+        said.append(f"{splits} splits redrawn ({metres} m of kerb and paint), {len(left)} left as they were")
     out["road_fixes"] = VERSION
     return "; ".join(said)
 
@@ -1155,7 +1765,8 @@ def main():
         m = measure(d)
         limits = {"mouth_m": CHECK_MOUTH_M, "box_m": CHECK_BOX_M, "arrows": CHECK_ARROWS,
                   "partners": CHECK_PARTNERS, "dots": CHECK_DOTS, "short_cycle": CHECK_SHORT_CYCLE,
-                  "site_gaps": CHECK_SITE_GAPS}
+                  "site_gaps": CHECK_SITE_GAPS, "split_fan_m": CHECK_SPLIT_FAN_M, "split_gap_m": CHECK_SPLIT_GAP_M,
+                  "split_ends": CHECK_SPLIT_ENDS}
         ok = int(d.get("road_fixes", 0)) >= VERSION and all(m[k] <= v for k, v in limits.items())
         why = "" if int(d.get("road_fixes", 0)) >= VERSION else " (the map is not fixed to this version: run tools/road_fixes.py)"
         print(f"road_fixes: {'OK' if ok else 'FAIL'}: " + ", ".join(f"{k} {m[k]} (max {v})" for k, v in limits.items()) + why)

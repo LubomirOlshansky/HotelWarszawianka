@@ -211,7 +211,8 @@
 # and tools/barrier_tags.py --check (walls, fences and hedges carry their mapped heights, materials and
 # fence types, and the Old Town's city walls are on the map).
 # Main's road bugs (2026-11-07): `fixes` runs tools/road_fixes.py --check (the map is fixed: no lane
-# line or arrow in a junction's mouth, no dot zebras; its ratchets never grow).
+# line or arrow in a junction's mouth, no dot zebras; 2026-11-08: no street split whose legs fan out
+# from the wide street's middle beyond the split_* ratchets; its ratchets never grow).
 # Bridge cycle paths (2026-11-08): `cyclehang` runs tools/cycle_hang.py --check (Most Łazienkowski's
 # cycle bridges hang 4 m under the road deck, as on F's photos, and come down to their ramps; needs
 # terrain.json from the map pack).
