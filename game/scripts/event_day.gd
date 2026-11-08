@@ -73,6 +73,10 @@ const BRIDGE_CROWD := 2200
 
 const WHITE := Color("#f4f1ea")
 const RED := Color("#d8262b")
+## The lit bands on the towers: softer than the flags (F, 2026-11-08: "too bright"; his photo has a
+## pink-white top and a deep rose-red base, a floodlight, not a neon). LIT_SIGN glows 1.6x its colour.
+const BAND_WHITE := Color("#b9a2b4")
+const BAND_RED := Color("#8a1f33")
 const STEEL := Color("#9aa0a6")
 const STEEL_DARK := Color("#5b6066")
 const POLE := Color("#c9ccd0")
@@ -725,7 +729,7 @@ func _tower_bands(st: SurfaceTool, at: Vector2, levels: Array, band_h: float, ou
 		var ring := Crowds.roof_ring(at, y1 + 4.0, roof, RING_RAYS)
 		if ring.size() < RING_RAYS / 2:
 			continue
-		var col := WHITE if int(lv[1]) == 1 else RED
+		var col := BAND_WHITE if int(lv[1]) == 1 else BAND_RED
 		var pts: Array[Vector2] = []
 		for k in ring.size():
 			var d := 0.0
@@ -782,7 +786,7 @@ func _tower_gradient(st: SurfaceTool, at: Vector2, band_h: float, out: float) ->
 				var dir: Vector2 = ring[k][1]
 				var low := clampf(1.0 - (y1 - ground) / maxf(top - ground, 1.0) * 2.2, 0.0, 0.5)
 				var t := smoothstep(-0.9, 0.7, dir.x) * (1.0 - low)
-				var col := WHITE.lerp(RED, t)
+				var col := BAND_WHITE.lerp(BAND_RED, t)
 				count += _quad(st, a, b, y1 - band_h, y1, dir, col)
 		y1 += band_h
 	return count
@@ -824,7 +828,7 @@ func _stadium_bands(st: SurfaceTool) -> int:
 		# to the roof's rim at about 44 m): two rows of panels, red and white alternating.
 		var g := _ground(outer[k])
 		for row in 2:
-			var col := RED if (k + row) % 2 == 0 else WHITE
+			var col := BAND_RED if (k + row) % 2 == 0 else BAND_WHITE
 			count += _quad(st, a, b, g + 15.0 + row * 12.0, g + 26.0 + row * 12.0, dir, col)
 	return count
 
