@@ -10,7 +10,8 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-08
-- Your clubbing mate from the Smolna and secret-rave nights is now called Mati (short for Mateusz).
+
+- The map is quieter: tap a quest's "!" to read one line about it, the old "?" marks are gone, kebab and job pins show only when you zoom in, the shisha night is now a hidden quest (not on the map or in the list: stand at Ivan's block in 19. Dzielnica and hold the "+" for 5 seconds), the Tesla helicopter rescue is in the STORIES list, and you can drag the quest list on the map with a finger to see all of it.- The car no longer stops dead when its nose clips the end of a low wall or a tram shelter: it slips past, as it already did at corners (Trasa W-Z by the Old Town).
 - The job distance label ("KEBAB 1948 m") no longer covers the steering strip's arrows while you steer with your thumb.
 - The game starts in English on every phone; pick Polish on the title screen or in Settings and it stays one language everywhere.
 - The car no longer stops dead when its nose clips the end of a low wall or a tram shelter: it slips past, as it already did at corners (Trasa W-Z by the Old Town).
@@ -24,7 +25,9 @@ someone writes its lines.
 - The Rotunda looks like itself from the street: its glass rises into a ring of points under a thin white zigzag edge, with slimmer frames, and its folded silver roof dips into the round skylight. The three glass stores across from the Palace have their pale glass in big panes, a light band along the roof and the grey louvred top floor with the shops' names.
 - Around the Palace: the EMPIRYK bookshop pavilion and the Zodiak pavilion are rebuilt from photos, and the glass office building on the corner of Marszałkowska and Świętokrzyska now has its stepped glass tiers, silver fins and white LED dashes that light up at night.
 - Widok Towers on Aleje Jerozolimskie now has its real blue-grey glass in a light grid instead of green.
+- 25 more ordinary houses south of Aleje Jerozolimskie, between Marszałkowska and Emilii Plater, now have their real wall colours, windows and cornices.
 - Smoła on Smolna looks like itself: the grey tenement with the stone cartouche over the gate, black tents and barriers, three doormen and the queue along the wall. Inside, the room has blue panels, red light bars and a truss tower with just one palm left, the club plays its own techno (house on the patio), and you can dance on the patio too.
+- Your clubbing mate from the Smolna and secret-rave nights is now called Mati (short for Mateusz).
 
 ## 2026-11-08
 - Three more towers by the Palace look like themselves: the InterContinental stands over its huge open gap, glowing white at night, under a sloping roof; the Warsaw Financial Centre is a white tower wrapped round a teal glass one with a red-and-white mast; and Hotel Polonia Palace has its tall zinc roof, the pediment with the round window and its gold name.

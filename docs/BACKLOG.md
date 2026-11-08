@@ -2916,6 +2916,15 @@ plan: docs/design/start-area-real.md (items R1-R8, ticked in ROADMAP "v1.0 check
   already have photo fronts. Open: Widok's two offset slabs and its square notch (the mapped
   parts give one 95 m mass). Only the phone shows the LED
   strokes' size at the default zoom.
+- **PKiN surroundings, part 3 (2026-11-08): plain houses south of Al. Jerozolimskie** (between
+  Marszałkowska and Emilii Plater, down past Nowogrodzka, F's circled area): 18 plain LoD2 houses
+  got photo fronts (ids `lod<n>` in game/data/photo_fronts.json) with wall colours, floors and
+  style read from Mapillary street photos. Seven more from F's pkin-south photos
+  (project files pkin-surroundings/photos-south/): Emilii Plater 30, Pankiewicza 1 (grey with
+  rusticated piers), Pankiewicza 3, Nowogrodzka 44 (yellow) and 46 (grey, mansard), the white
+  ribbed block on Świętej Barbary (fins) and Świętej Barbary 4 (candidate house). Open: S01, S07,
+  S10 and S11 of PHOTOS-NEEDED-2026-11-08.md have no confirmed photo yet; the Mapillary colour
+  reads are moderate confidence.
 - **R5 done 2026-11-01**: the Cepelia pavilion at Rondo Dmowskiego is a site (landmarks.gd
   "cepelia"): a recessed glass shop floor, a frame band, a glass upper storey with mullions, a
   white edge and the red EMPIRYK sign (the book and vinyl store, a parody). Zodiak in Pasaż
