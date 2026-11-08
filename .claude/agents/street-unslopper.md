@@ -95,3 +95,7 @@ touch git, game code, bakes or the map data.
 4. Wanted models with a one-paragraph spec each, from the photos.
 5. Building fronts: the rung per building (landmark, photo kit, baseline) and what the kit reads.
 6. Open questions for F, each with the default you would build.
+
+## Reference photos (F, 2026-11-08)
+
+When photos are missing, download them yourself from any internet source and don't look at the licence: they are references for modelling only, kept in the gitignored `refs/`, never committed or shipped (model-from-photos skill, section 1). Don't stop or wait for the user over missing photos.
