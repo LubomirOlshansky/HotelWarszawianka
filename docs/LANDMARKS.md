@@ -78,6 +78,7 @@ re-passes). Photos first: each slug's `refs/<slug>/` and REPORT on the Mac befor
 | 1b.4 | Żyletkowiec and the Ekspozytura (`zyletkowiec`) | plain block | L2: the repeating facade module (shader), the monumental neighbour | not yet |
 | 1b.5 | Dom Chłopa, NBP, the Kopernika skyscraper, Torwar, Ministerstwo Komunikacji, Dom Słowa Polskiego | plain blocks | L2 each, one thread each | not yet |
 | 1b.6 | Osiedle Za Żelazną Bramą (`zelazna_brama`) | plain blocks | one shared slab kit, one material, draw calls per sector not per slab | not yet |
+| 1b.7 | The Dekalog estate and the Inflancka pools (`dekalog_estate`, `inflancka_pools`) | BUILT 2026-11-07 (spec `dekalog_estate.md`, from F's K01-K09 photos): six staggered 14-storey slabs with ochre stair strips, white balcony stacks and lift houses; the air dome, three round pools, the lap pool, slides and sand courts | F's look; Stawki 8, Dzika 4A, Stawki 4A and the yards | yes: 98 |
 
 
 | # | Object | To do |

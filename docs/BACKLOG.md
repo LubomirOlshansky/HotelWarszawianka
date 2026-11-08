@@ -21,6 +21,19 @@ drives the drag in Grounded too). `lanedrive-grounded` drives the 13 lane routes
 - [ ] If Grounded wins: tune the Point and Fixed aims for it on the phone (the yaw lag is small, but the
       point-to-steer gains were set for the arcade car), and the first race's start hold
 
+## Kieślowski tour and the Dekalog estate (F, 2026-11-07; docs/design/dekalog-tour.md)
+
+Built: "Dekalog na kółkach", Claire from Lyon from Centralna to six Dekalog places and the Inflancka
+estate (`dekalog_tour.gd`, check `dekalog`). Left:
+- **The estate, the rest** (K07, K08): the six main slabs and the pools are built from F's photos
+  (sites `dekalog_estate`, `inflancka_pools`, spec `docs/landmarks/specs/dekalog_estate.md`);
+  Stawki 8, Dzika 4A, the Stawki 4A tower and the yards (benches, lamps, playgrounds) are still OSM.
+- **The pools, the rest** (K09): fence, cashier, benches; the spiral's real path.
+- **The stops' fronts** (K12-K19): Noakowskiego 12's courtyard shrine, the café at Krakowskie
+  Przedmieście 27, St Alexander's portico, the W-Z tunnel portals.
+- **Muranów around it** (K11): the rubble-brick blocks on Andersa, Nowolipki yards, the POLIN park.
+
+
 ## Buses and bus stops like Warsaw's (F, 2026-11-07)
 
 Compared with 22 recent street photos at our own stops (Mapillary 2021-2026). Built: the white stop

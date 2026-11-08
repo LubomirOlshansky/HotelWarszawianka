@@ -196,6 +196,9 @@ SITE_AREAS = [
     (-1858.0, 350.0, -1832.0, 395.0),
     # Pokorna 2 (landmarks.gd _find_pokorna2): the 57 m residential block, found by the outline under POKORNA2_AT
     (-2141.0, -2234.0, -2105.0, -2198.0),
+    # The Dekalog estate and the Inflancka pools (landmarks.gd DE_AT, IP_*): the six slabs, the dome and the decks
+    (-2720.0, -2370.0, -2200.0, -2110.0),
+    (-2390.0, -2450.0, -2200.0, -2340.0),
     # Kino Muranów (landmarks.gd _find_kino_muranow): the cinema pavilion's outline under KM_AT
     (-1700.0, -1240.0, -1640.0, -1170.0),
     (-450.0, 1580.0, -385.0, 1670.0),       # Kościół Zbawiciela's nave and towers (landmarks.gd ZB_*; MDM's box ends at z 1620)
