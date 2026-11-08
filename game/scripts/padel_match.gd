@@ -211,6 +211,8 @@ func enter(info: Dictionary) -> void:
 	if flew:
 		_say_sub(_line("basia"), 4.5)
 	set_process(true)
+	_log("city before: %d draw calls, %d objects in the frame" % [int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)),
+			int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME))])
 	_log("in: %s with %s vs %s, hour %.1f%s" % ["auto" if auto_play else "player", partner, rivals, hour, ", landed by helicopter" if flew else ""])
 
 
@@ -355,6 +357,9 @@ func _process(dt: float) -> void:
 		_on_event(String(ev[0]), ev[1])
 	sim.events.clear()
 	_fx_tick(dt)
+	if log_on and int(_t / 10.0) != int((_t - dt) / 10.0):
+		_log("bench: %d draw calls, %d objects, %.0f fps" % [int(Performance.get_monitor(Performance.RENDER_TOTAL_DRAW_CALLS_IN_FRAME)),
+				int(Performance.get_monitor(Performance.RENDER_TOTAL_OBJECTS_IN_FRAME)), Engine.get_frames_per_second()])
 	if sim.over():
 		if _end_t < 0.0:
 			_end_t = _t
