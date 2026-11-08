@@ -1419,7 +1419,7 @@ func _build_world() -> void:
 	_add_environment(world)
 
 	building_mat = ShaderMaterial.new()
-	building_mat.shader = load("res://shaders/building.gdshader")
+	building_mat.shader = GpuQuirks.building_shader()  # Adreno 6xx: its lite copy (gpu_quirks.gd)
 	if solo_site != "" and solo_look != "lit":
 		building_mat.shader = load("res://shaders/solo.gdshader")
 		building_mat.set_shader_parameter("look", 1 if solo_look == "sil" else 0)
@@ -4847,6 +4847,8 @@ func _parse_args() -> void:
 			prebuilt = true
 		elif arg == "--no-ao":
 			no_ao = true
+		elif arg == "--lite-shaders":
+			GpuQuirks.forced = true  # the Adreno 6xx shaders on any GPU (gpu_quirks.gd)
 		elif arg == "--nohud":
 			hide_hud = true
 		elif arg == "--no-touch":
@@ -8459,6 +8461,8 @@ func _open_streamed_city(world: Node3D, flat_mat: ShaderMaterial) -> Dictionary:
 	var data := streamer.open(world, use_prebuilt, building_mat, flat_mat, start_at)
 	map = streamer.map
 	building_mat = map.building_material
+	if GpuQuirks.lite() and building_mat.shader != null and building_mat.shader.resource_path == GpuQuirks.BUILDING:
+		building_mat.shader = GpuQuirks.building_shader()  # the prebuilt city's shared material too
 	# The ground's AO flags (--debug-ao, --no-ao) on either path's material.
 	map.flat_material.set_shader_parameter("debug_ao", debug_ao)
 	map.flat_material.set_shader_parameter("ao_strength", 0.0 if no_ao else 1.0)

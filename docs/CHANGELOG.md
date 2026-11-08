@@ -10,6 +10,7 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-08
+- On Android phones with older Adreno graphics (like the Nothing Phone 1) the streets, ground and buildings now appear; before, only cars, people and trees did.
 - The job distance label ("KEBAB 1948 m") no longer covers the steering strip's arrows while you steer with your thumb.
 - The game starts in English on every phone; pick Polish on the title screen or in Settings and it stays one language everywhere.
 - The car no longer stops dead when its nose clips the end of a low wall or a tram shelter: it slips past, as it already did at corners (Trasa W-Z by the Old Town).
