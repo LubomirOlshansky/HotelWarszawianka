@@ -979,6 +979,10 @@ func _ready() -> void:
 		# The loading bar: the title runs while the tree is paused for the build (_load_step).
 		title.process_mode = Node.PROCESS_MODE_ALWAYS
 		add_child(title)
+		# The first frame (F, 2026-11-08: ~8 s of a plain blue screen on a Nothing Phone): the
+		# title is drawn before the settings, radio, wallet and save below, not after them.
+		await get_tree().process_frame
+		await get_tree().process_frame
 	else:
 		loading = _loading_card()
 	radio = Radio.new()
@@ -1031,7 +1035,10 @@ func _ready() -> void:
 		return
 	if title != null:
 		get_tree().paused = true  # the loading bar: nothing half-built moves between the build's steps
+		title.cap = lerpf(LOAD_FILES, LOAD_BUILT, LOAD_MARKS[0])
+		LoadYield.begin()  # the long setups let a frame through now and then (load_yield.gd)
 	await _build_world()
+	LoadYield.finish()
 	if title != null:
 		get_tree().paused = false
 	view.visible = true
@@ -1094,6 +1101,8 @@ var _title_pending := 0
 ## start's sectors fill the rest (_title_frame). Test runs (no title) build in one go, as before.
 const LOAD_FILES := 0.12
 const LOAD_BUILT := 0.6
+## The shares `_load_mark` reports, in order: the bar creeps towards the next one between two.
+const LOAD_MARKS: Array[float] = [0.1, 0.26, 0.53, 0.66, 0.67, 0.85, 0.99, 1.0]
 ## The threaded requests' paths, and what they loaded (held until the build has used them, so the
 ## streamer's own `load` takes them from the cache).
 var _preload_paths: PackedStringArray = []
@@ -1155,7 +1164,10 @@ func _load_step(share: float) -> void:
 	if title == null:
 		return
 	title.progress = maxf(title.progress, lerpf(LOAD_FILES, LOAD_BUILT, share))
+	var i := LOAD_MARKS.find(share)
+	title.cap = lerpf(LOAD_FILES, LOAD_BUILT, LOAD_MARKS[mini(i + 1, LOAD_MARKS.size() - 1)])
 	await get_tree().process_frame
+	LoadYield.mark()
 
 
 func _title_frame() -> void:
@@ -1485,6 +1497,7 @@ func _build_world() -> void:
 	_xray = TunnelXray.new()
 	world.add_child(_xray)
 	_xray.setup(car)
+	await LoadYield.tick("car and x-ray")
 	car.stuck.connect(_on_car_stuck)
 	car.jammed.connect(_on_car_stuck)  # G17: 8 s among traffic cars
 	car.water_at = map.in_water
@@ -1542,12 +1555,14 @@ func _build_world() -> void:
 	moments = CameraShots.new()
 	add_child(moments)
 	moments.setup(cam, world)
+	await LoadYield.tick("camera shots")
 
 	tod = TimeOfDay.new()
 	add_child(tod)
 	if live_clock != "":
 		tod.clock_start = TimeOfDay.warsaw_to_utc(live_clock, live_date)
 	tod.setup(env, sun, post_mat, sun_pitch)
+	await LoadYield.tick("time of day")
 	tod.lights_switched.connect(_show_night_nodes)
 	weather = Weather.new()
 	weather.tod = tod
@@ -1558,6 +1573,7 @@ func _build_world() -> void:
 	# Loop 2a: the HUD (and the settings panel in it) works while the game is paused.
 	hud.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(hud)
+	await LoadYield.tick("hud")
 	hud.set_scheme(controls.scheme)
 	hud.set_left_handed(Access.left_handed)  # accessibility (2026-11-01)
 	hud.set_touch_off(no_touch)  # desktop: --no-touch
@@ -1584,7 +1600,8 @@ func _build_world() -> void:
 		if not follow:
 			_rotate_camera(d))
 	hud.pinched.connect(_on_pinch)
-	hud.setup_minimap(data, map.map_outline(), map.outside)  # map north: the L, not the box
+	await hud.setup_minimap(data, map.map_outline(), map.outside)  # map north: the L, not the box
+	await LoadYield.tick("minimap")
 	hud.map_landmarks = map.landmark_info  # the full map's landmark icons (map_icons.gd)
 	hud.vehicle_pressed.connect(_toggle_vehicle)
 	hud.zoom_pressed.connect(_zoom_view)  # G3: the − and + buttons
@@ -1594,7 +1611,8 @@ func _build_world() -> void:
 	missions = Missions.new()
 	missions.line_split = start_mission == 0  # G12: calls follow the vehicle (quest_lines.gd)
 	add_child(missions)
-	missions.setup(map, data, world, hud)
+	await missions.setup(map, data, world, hud)
+	await LoadYield.tick("missions")
 	missions.player = car.global_position
 	# Speech bubbles (anyone can talk) and everybody's lines.
 	bubbles = Bubbles.new()
@@ -1637,24 +1655,38 @@ func _build_world() -> void:
 		world.add_child(dr)
 		dr.setup(map, graph, _vehicle_position, data)
 	if not no_traffic and graph != null:
-		_build_life(data, world)
+		await _build_life(data, world)
 	await _load_mark(0.53)
 	if graph != null:
 		_build_side_jobs(data, world)
 	_build_notebook(data)
+	await LoadYield.tick("_build_notebook")
 	_build_moments(data, world)
+	await LoadYield.tick("_build_moments")
 	_build_districts()
+	await LoadYield.tick("_build_districts")
 	_build_syrenki(world)
+	await LoadYield.tick("_build_syrenki")
 	_build_cassettes(world)
+	await LoadYield.tick("_build_cassettes")
 	_build_first_scene(world)
+	await LoadYield.tick("_build_first_scene")
 	_build_skwer_zlota(world)
+	await LoadYield.tick("_build_skwer_zlota")
 	_build_plac_pieciu_rogow(world)
+	await LoadYield.tick("_build_plac_pieciu_rogow")
 	_build_tarasy_screen(world)
+	await LoadYield.tick("_build_tarasy_screen")
 	_build_spire_motion(world)
+	await LoadYield.tick("_build_spire_motion")
 	_build_street_details(world)
+	await LoadYield.tick("_build_street_details")
 	_build_ratusz_hub(data, world)
+	await LoadYield.tick("_build_ratusz_hub")
 	_build_park_details(world)
+	await LoadYield.tick("_build_park_details")
 	_build_garage(world)
+	await LoadYield.tick("_build_garage")
 	await _load_mark(0.66)
 	# Loop MW-5: a PÓŁNOC FM track opened (a chapter, an egg, --unlock=N): a toast.
 	radio.track_unlocked.connect(func(_n: int, track: Dictionary, _why: String) -> void:
@@ -1708,33 +1740,56 @@ func _build_world() -> void:
 	if cam_test != "":
 		_start_cam_test()
 	_build_sound(data, world)
+	await LoadYield.tick("_build_sound")
 	await _load_mark(0.67)
 	# Loop 3g-1: the police, on the traffic's lane graph (none with --no-police).
 	if traffic != null and not police_opts.get("off", false):
-		_build_police(data, world)
-	_build_crowds(data, world)
-	_build_city_life(data, world)
+		await _build_police(data, world)
+	await _build_crowds(data, world)
+	await LoadYield.tick("_build_crowds")
+	await _build_city_life(data, world)
+	await LoadYield.tick("_build_city_life")
 	await _load_mark(0.85)
 	_build_buses(data, world)
+	await LoadYield.tick("_build_buses")
 	_build_old_tram(world)
+	await LoadYield.tick("_build_old_tram")
 	_build_crash_scenes()
+	await LoadYield.tick("_build_crash_scenes")
 	_build_rave(data, world)
+	await LoadYield.tick("_build_rave")
 	_build_meet(data, world)
+	await LoadYield.tick("_build_meet")
 	_build_boat_race(world)
+	await LoadYield.tick("_build_boat_race")
 	_build_dekalog_tour(world)
+	await LoadYield.tick("_build_dekalog_tour")
 	_build_kino_tour(world)
+	await LoadYield.tick("_build_kino_tour")
 	_build_shisha(data, world)
+	await LoadYield.tick("_build_shisha")
 	_build_ev_tow(world)
+	await LoadYield.tick("_build_ev_tow")
 	_build_stories(world)
+	await LoadYield.tick("_build_stories")
 	_build_crawl(data, world)
-	_build_storefronts(data, world)
+	await LoadYield.tick("_build_crawl")
+	await _build_storefronts(data, world)
+	await LoadYield.tick("_build_storefronts")
 	_build_packs(data, world)
+	await LoadYield.tick("_build_packs")
 	_build_fans(data, world)
+	await LoadYield.tick("_build_fans")
 	_build_event_day(data, world)
+	await LoadYield.tick("_build_event_day")
 	_build_loud_cars(world)
+	await LoadYield.tick("_build_loud_cars")
 	_build_crazy_drivers(world)
+	await LoadYield.tick("_build_crazy_drivers")
 	_build_wellness(world)
+	await LoadYield.tick("_build_wellness")
 	_build_first10()
+	await LoadYield.tick("_build_first10")
 	await _load_mark(0.99)
 	_set_quality(quality_choice)
 	get_tree().root.size_changed.connect(_apply_style)
@@ -1830,25 +1885,29 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	traffic.race_debug = race_debug
 	traffic.count_overlaps = _traffic_overlaps
 	world.add_child(traffic)
-	traffic.setup(graph, map, cam, data)
+	await traffic.setup(graph, map, cam, data)
+	await LoadYield.tick("traffic.setup")
 	traffic.player_pos = car.global_position
 	car.bumped.connect(traffic.on_player_bump)
 	trams = Trams.new()
 	world.add_child(trams)
-	trams.setup(graph, map, data)
+	await trams.setup(graph, map, data)
+	await LoadYield.tick("trams.setup")
 	trams.traffic = traffic
 	traffic.trams = trams
 	_first_scene_trams()
 	trains = Trains.new()
 	world.add_child(trains)
 	trains.setup(map, data)
+	await LoadYield.tick("trains.setup")
 	# The railway audit (2026-11-07): the trains' rumble, horn and platform gong.
 	trains.sfx = sfx
 	if train_at != Vector2.INF:
 		trains.place_near(train_at, train_kind)
 	walkers = Pedestrians.new()
 	world.add_child(walkers)
-	walkers.setup(map, cam, traffic, data)
+	await walkers.setup(map, cam, traffic, data)
+	await LoadYield.tick("walkers.setup")
 	# First scene item 6: busier pavements on Marszałkowska by the start.
 	var busy := walkers.set_busy(FirstScene.FRAME_O, FirstScene.FRAME_S, FirstScene.FRAME_T, FirstScene.BUSY_BANDS, FIRST_SCENE)
 	print("first scene: %d busy pavement points" % busy)
@@ -1866,6 +1925,7 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	rivals.wallet = wallet
 	rivals.tod = tod  # loop 3h slice 3: the final waits for the night
 	rivals.setup(graph, traffic, hud, bubbles, missions, map, world, car, data)
+	await LoadYield.tick("rivals.setup")
 	if ladder_flag >= 0 or trzy_mosty_flag:
 		rivals.preset_ladder(ladder_flag if ladder_flag >= 0 else Ladder.RUNGS.size())  # loop 3h slice 3
 	print("living city: %d lanes, %d trams in %d ms" % [graph.lane_count, trams.trams.size(), Time.get_ticks_msec() - t0])
@@ -2544,7 +2604,7 @@ func _build_storefronts(data: Dictionary, world: Node3D) -> void:
 	storefronts.lit = func() -> bool: return tod != null and tod.lights_on > 0.001
 	storefronts.fine_shown = func() -> bool: return _fine_shown
 	world.add_child(storefronts)
-	storefronts.setup(data, notes.places)
+	await storefronts.setup(data, notes.places)
 	if stamps_flag >= 0:
 		storefronts.preset_stamps(stamps_flag)
 	if rides != null:
@@ -2607,7 +2667,8 @@ func _build_crowds(data: Dictionary, world: Node3D) -> void:
 	crowds.paint = func() -> String: return str(wallet.paint)
 	crowds.egg = func(id: String) -> bool: return egg_book != null and egg_book.fire(id, _egg_state())
 	world.add_child(crowds)
-	crowds.setup(notes.places, data)
+	await crowds.setup(notes.places, data)
+	await LoadYield.tick("crowds.setup")
 	tod.changed.connect(func(_m: int) -> void: crowds.refresh())
 	# The crowds' sounds: each queue's and the steps' murmur, the guitarist.
 	if city_sounds != null:
@@ -3858,7 +3919,8 @@ func _build_city_life(data: Dictionary, world: Node3D) -> void:
 	wallet.keep["life_sessions"] = life.session + 1
 	wallet.save()
 	world.add_child(life)
-	life.setup(notes.places, data)
+	await life.setup(notes.places, data)
+	await LoadYield.tick("life.setup")
 	# The Wiralek slots' doors: the trend queues' (crowds.gd), else the places themselves.
 	var at := {}
 	for p: Dictionary in notes.places:
@@ -4812,6 +4874,7 @@ func _build_police(data: Dictionary, world: Node3D) -> void:
 			"project": func(p: Vector3) -> Vector2: return cam.unproject_position(p) * float(view.stretch_shrink)}
 	add_child(police)
 	police.setup(nodes, data, world)
+	await LoadYield.tick("police.setup")
 
 
 ## The police's testing flags (README's flags table): --no-police, --police=1|2|3, --trap=N,

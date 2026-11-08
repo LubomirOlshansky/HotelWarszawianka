@@ -121,6 +121,7 @@ func setup(map_node: Node3D, camera: Camera3D, traffic_node: Node3D, data: Dicti
 			water.append(_poly(a["p"]))
 	var ends := {}
 	for p in data.get("paths", []):
+		await LoadYield.tick("pedestrian footways")  # the loading bar
 		if p["k"] != "foot":
 			continue
 		var line := _poly(p["p"])
