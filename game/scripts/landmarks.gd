@@ -1310,6 +1310,8 @@ func _find_sites() -> void:
 	if not sites.is_empty() and sites[-1]["key"] == "ujazdowskie47":
 		sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": U47_WALL, "roof": Color("#5f6264")}
 		sites[-1]["quiet"] = true
+	# Centrum Marszałkowska (F's photos, 2026-11-08): the stepped glass office on the corner.
+	_find_cmarsz()
 	# Scena Relax (F's photos, 2026-11-06): the old cinema with its yellow banner.
 	if _landmark("Scena Relax").size() >= 3:
 		_add_site("scena_relax", [_landmark("Scena Relax")])
@@ -1939,6 +1941,9 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"scena_relax":
 				_id = 0  # not tappable
 				_build_scena_relax(s)
+			"cmarsz":
+				_id = 0  # not tappable
+				_build_cmarsz(s)
 			"tides":
 				_id = 0  # not tappable
 				_build_tides(s)
@@ -16639,32 +16644,54 @@ func _paw_row(strip: int, u0: float, u1: float, vb: float, vf: float, side: floa
 			_mode = M_STONE
 
 
-# --- The Cepelia pavilion and Zodiak (R5 of docs/design/start-area-real.md, 2026-11-01) ------
+# --- The Cepelia pavilion and Zodiak (F's photos, 2026-11-08) ---------------------------------
 
-## Two 1960s modernist pavilions in the start area, from their OpenStreetMap outlines. Cepelia
-## (Marszałkowska x Aleje Jerozolimskie, Zygmunt Stępiński, 1966; restored and reopened on
-## 13 December 2024 as a book and vinyl flagship store): a glazed ground floor set back under an
-## upper storey that seems to float, all glass in a light steel frame, a thin white roof edge,
-## the shop's parody name over the corner. Zodiak (Pasaż Wiecha, behind Sawa; the Warsaw
-## Architecture Pavilion and its café since 2019): one glass storey under a thin flat roof that
-## overhangs on slender posts, its name on the roof edge. Built from the outline alone (no photo in
-## the cloud): the Mac photo check sets the mullion rhythm and the colours.
+## Two 1960s modernist pavilions in the start area (R5 of docs/design/start-area-real.md), rebuilt
+## from F's photos (/mnt/project-files/pkin-surroundings/photos/S3-cepelia, E1-zodiak; spec
+## docs/landmarks/specs/pavilions.md). Cepelia (Marszałkowska by Al. Jerozolimskie, Zygmunt
+## Stępiński 1966, restored 2024 as a book and vinyl store): on a granite plinth with steps, a dark
+## glass ground floor set back under an upper storey that floats on it; the upper storey is a ribbed
+## silver band, a ribbon of dark teal glass and a deep ribbed silver fascia; a white stair core with
+## upright fins closes the south end; a teal tile mosaic on the west front; the shop's parody name on
+## the roof over the north end. Zodiak (Pasaż Wiecha, the Warsaw Architecture Pavilion): a white
+## frame round a glass ground floor, a white concrete slab with a glass rail and a strip of grasses,
+## a glass upper room set back behind a terrace under a white slatted pergola, the white neon word
+## over the back. Both frames: u along the long side (north to south), v out of the front.
 const CEP_OSM := "Pawilon Cepelii"
-const CEP_LOW := 3.5          # the ground floor's top (OSM part mh 3.5)
-const CEP_TOP := 8.0          # the upper storey's top (OSM h 8)
-const CEP_RECESS := 1.6       # the ground floor's set-back under the upper storey
-const CEP_GLASS := Color("#5f7380")
-const CEP_FRAME := Color("#2e3236")
+const CEP_ALONG := Vector2(0.344, 0.939)
+const CEP_FRONT := Vector2(0.939, -0.344)   # east: Marszałkowska
+const CEP_PLINTH := 0.45       # the granite plinth over the pavement
+const CEP_LOW := 3.6           # the ground floor's top over the plinth
+const CEP_BAND := 4.9          # the ribbed band's top
+const CEP_GLASS_TOP := 7.1     # the glass ribbon's top
+const CEP_TOP := 8.0           # the fascia's top (OSM h 8)
+const CEP_RECESS := 1.6        # the ground floor's set-back under the upper storey
+const CEP_CORE := 5.5          # the stair core's length at the south end
+const CEP_GLASS := Color("#3f5866")
+const CEP_FRAME := Color("#33383d")
+const CEP_SILVER := Color("#c3c7cb")
+const CEP_RIB := Color("#a9aeb3")
 const CEP_EDGE := Color("#e8e8e4")
-const CEP_ROOF := Color("#6b7073")
+const CEP_ROOF := Color("#80858a")
+const CEP_CORE_WALL := Color("#e7e3da")
+const CEP_GRANITE := Color("#b9b6ae")
+const CEP_MOSAIC := Color("#2b7a86")
 const CEP_WORD := "EMPIRYK"
-const CEP_RED := Color(1.0, 0.18, 0.2)
+const CEP_SIGN := Color(0.96, 0.97, 1.0)
 const ZOD_OSM := "Zodiak"
-const ZOD_H := 4.6
+const ZOD_FRONT := Vector2(-0.939, 0.344)   # west: Pasaż Wiecha's square
+const ZOD_LOW := 3.4           # the ground floor's top
+const ZOD_SLAB := 4.2          # the terrace slab's top
+const ZOD_H := 7.1             # the upper room's top
 const ZOD_ROOF := 0.45
-const ZOD_OVER := 1.4          # the roof's overhang
+const ZOD_TERRACE := 3.2       # the upper room's set-back from the front
+const ZOD_WHITE := Color("#eceae4")
+const ZOD_CONCRETE := Color("#dddad2")
+const ZOD_GLASS := Color("#5f7782")
+const ZOD_RAIL := Color("#a9bcc6")
+const ZOD_GRASS := Color("#7d8a4e")
 const ZOD_WORD := "ZODIAK"
-const ZOD_COLOUR := Color(1.0, 0.25, 0.3)
+const ZOD_COLOUR := Color(0.86, 0.93, 1.0)
 
 
 func _find_modern_pavilions() -> void:
@@ -16697,63 +16724,121 @@ func _mullions(poly: PackedVector2Array, y0: float, y1: float, step: float, prou
 					Vector3(o.x, 0.0, o.y), col)
 
 
+## Puts the local frame on a pavilion: _o the outline's centre, _a along `along`, _b turned to
+## `front`. Returns the outline's extent in (u, v).
+func _pav_frame(outline: PackedVector2Array, along: Vector2, front: Vector2) -> Rect2:
+	var c := Vector2.ZERO
+	for q in outline:
+		c += q
+	_o = c / outline.size()
+	_a = along.normalized()
+	_b = Vector2(-_a.y, _a.x)
+	if _b.dot(front) < 0.0:
+		_b = -_b
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for q in outline:
+		var l := _local(q)
+		lo = lo.min(l)
+		hi = hi.max(l)
+	return Rect2(lo, hi - lo)
+
+
+## A box between u0..u1 and v0..v1 in the local frame.
+func _ubox(u0: float, u1: float, v0: float, v1: float, y0: float, y1: float, col: Color, mode := M_STONE,
+		top_col := Color(0, 0, 0, 0)) -> void:
+	_lbox((u0 + u1) * 0.5, (v0 + v1) * 0.5, (u1 - u0) * 0.5, (v1 - v0) * 0.5, y0, y1, col, mode, top_col)
+
+
+func _urect(u0: float, u1: float, v0: float, v1: float) -> PackedVector2Array:
+	return _rect((u0 + u1) * 0.5, (v0 + v1) * 0.5, (u1 - u0) * 0.5, (v1 - v0) * 0.5)
+
+
+## A sign word at local (u, v), height y, facing `face` (a plan direction), about `w` m long.
+func _usign(word: String, u: float, v: float, y: float, face: Vector2, w: float, h: float, col: Color) -> void:
+	var p := _w(u, v)
+	var k := minf(w / Neon.length_of(word), h / (Neon.ROW_H * Neon.PIXEL))
+	signs.append([word, Vector3(p.x, y, p.y), Vector3(face.x, 0.0, face.y), k, col])
+
+
 func _build_cepelia(site: Dictionary) -> void:
 	var outline: PackedVector2Array = site["outline"]
 	_g = _ground_under(outline)
+	var r := _pav_frame(outline, CEP_ALONG, CEP_FRONT)
+	var u0 := r.position.x
+	var u1 := r.end.x
+	var v0 := r.position.y
+	var v1 := r.end.y
 	var g := _g
 	var none := Color(0, 0, 0, 0)
-	var low := _largest(Geometry2D.offset_polygon(outline, -CEP_RECESS, Geometry2D.JOIN_MITER))
-	if low.size() < 3:
-		low = outline
-	# The ground floor: a glass box set back, lit warm at night (M_PAVILION's glass).
-	_prism(low, g - 0.4, g + CEP_LOW, CEP_GLASS.lightened(0.08), none, M_PAVILION)
-	_mullions(low, g, g + CEP_LOW, 2.4, 0.05, CEP_FRAME)
-	# The upper storey: a dark steel band under it, the glass, the white roof edge.
-	_prism(outline, g + CEP_LOW, g + CEP_LOW + 0.5, CEP_FRAME, none, M_STONE)
+	# The granite plinth with its steps (F's corner photos): a metre and a half round the pavilion.
+	_ubox(u0 - 1.5, u1 + 1.5, v0 - 1.5, v1 + 1.5, g - 0.4, g + CEP_PLINTH, CEP_GRANITE, M_STONE, CEP_GRANITE)
+	_ubox(u0 - 2.2, u1 + 2.2, v0 - 2.2, v1 + 2.2, g - 0.4, g + CEP_PLINTH * 0.5, CEP_GRANITE.darkened(0.05), M_STONE,
+			CEP_GRANITE.darkened(0.05))
+	var b := g + CEP_PLINTH
+	var uc := u1 - CEP_CORE   # where the stair core starts
+	# The ground floor: dark glass set back under the upper storey, lit warm at night.
+	var low := _urect(u0 + CEP_RECESS, uc, v0 + CEP_RECESS, v1 - CEP_RECESS)
+	_prism(low, b, b + CEP_LOW, CEP_GLASS.lightened(0.1), none, M_PAVILION)
+	_mullions(low, b, b + CEP_LOW, 2.4, 0.05, CEP_FRAME)
+	# The teal tile mosaic on the west front's north half (the street-front photo).
+	_ubox(u0 + 3.0, u0 + 10.0, v0 + CEP_RECESS - 0.25, v0 + CEP_RECESS - 0.02, b, b + CEP_LOW - 0.2, CEP_MOSAIC)
+	# The white stair core with its upright fins at the south end, the full height.
+	_ubox(uc, u1, v0 + 1.0, v1 - 1.0, b, g + CEP_TOP, CEP_CORE_WALL, M_STONE, CEP_ROOF)
+	var core := _urect(uc, u1, v0 + 1.0, v1 - 1.0)
+	_mullions(core, b + 0.3, g + CEP_TOP - 0.4, 0.55, 0.12, CEP_CORE_WALL.darkened(0.1))
+	# The upper storey: the ribbed silver band, the glass ribbon, the deep fascia.
+	var top := _urect(u0, uc, v0, v1)
 	_mode = M_STONE
-	_soffit(outline, g + CEP_LOW, CEP_FRAME.lightened(0.15))
-	_prism(outline, g + CEP_LOW + 0.5, g + CEP_TOP - 0.6, CEP_GLASS, none, M_PAVILION)
-	_mullions(outline, g + CEP_LOW + 0.5, g + CEP_TOP - 0.6, 1.5, 0.06, CEP_FRAME)
-	_prism(outline, g + CEP_TOP - 0.6, g + CEP_TOP, CEP_EDGE, CEP_ROOF, M_STONE, M_STONE)
-	# The name: on the roof edge's face the start's camera sees.
-	var i := _edge_facing(outline, BEHIND_FACE, 8.0)
-	if i >= 0:
-		var a := outline[i]
-		var b := outline[(i + 1) % outline.size()]
-		var o := _out(outline, a, b)
-		var mid := (a + b) * 0.5
-		var k := minf(0.7 * a.distance_to(b) / Neon.length_of(CEP_WORD), 1.3 / (Neon.ROW_H * Neon.PIXEL))
-		signs.append([CEP_WORD, Vector3(mid.x, g + CEP_TOP + 0.1, mid.y), Vector3(o.x, 0.0, o.y), k, CEP_RED])
-	_collide(low)
+	_soffit(top, b + CEP_LOW, CEP_EDGE.darkened(0.05))
+	_prism(top, b + CEP_LOW, g + CEP_BAND, CEP_SILVER, none, M_STONE)
+	_mullions(top, b + CEP_LOW, g + CEP_BAND, 0.6, 0.03, CEP_RIB)
+	_prism(top, g + CEP_BAND, g + CEP_GLASS_TOP, CEP_GLASS, none, M_PAVILION)
+	_mullions(top, g + CEP_BAND, g + CEP_GLASS_TOP, 1.6, 0.05, CEP_FRAME)
+	_prism(top, g + CEP_GLASS_TOP, g + CEP_TOP, CEP_SILVER, CEP_ROOF, M_STONE, M_STONE)
+	_mullions(top, g + CEP_GLASS_TOP, g + CEP_TOP, 0.6, 0.03, CEP_RIB)
+	# The name on the roof over the north end, facing the crossing, and on the street front.
+	_usign(CEP_WORD, u0 + 0.8, (v0 + v1) * 0.5, g + CEP_TOP + 0.1, -_a, 0.6 * (v1 - v0), 1.5, CEP_SIGN)
+	_usign(CEP_WORD, u0 + 6.0, v1 - 0.5, g + CEP_TOP + 0.1, _b, 9.0, 1.5, CEP_SIGN)
+	_collide(_urect(u0 + CEP_RECESS, u1, v0 + 1.0, v1 - 1.0))
 
 
 func _build_zodiak(site: Dictionary) -> void:
 	var outline: PackedVector2Array = site["outline"]
 	_g = _ground_under(outline)
+	var r := _pav_frame(outline, CEP_ALONG, ZOD_FRONT)
+	var u0 := r.position.x
+	var u1 := r.end.x
+	var v0 := r.position.y
+	var v1 := r.end.y
 	var g := _g
 	var none := Color(0, 0, 0, 0)
-	var room := _largest(Geometry2D.offset_polygon(outline, -ZOD_OVER, Geometry2D.JOIN_MITER))
-	if room.size() < 3:
-		room = outline
-	# The glass room under the roof, lit warm at night.
-	_prism(room, g - 0.4, g + ZOD_H, CEP_GLASS.lightened(0.12), none, M_PAVILION)
-	_mullions(room, g, g + ZOD_H, 1.8, 0.05, CEP_FRAME)
-	# The thin flat roof over the whole outline, its posts at the corners.
-	_prism(outline, g + ZOD_H, g + ZOD_H + ZOD_ROOF, CEP_EDGE, CEP_ROOF, M_STONE, M_STONE)
+	# The ground floor: glass in a white frame, lit warm at night.
+	var low := _urect(u0, u1, v0, v1 - 0.3)
+	_prism(low, g - 0.4, g + ZOD_LOW, ZOD_GLASS.lightened(0.15), none, M_PAVILION)
+	_mullions(low, g, g + ZOD_LOW, 1.7, 0.05, ZOD_WHITE)
+	# The white terrace slab over it, a little proud at the front.
+	_ubox(u0, u1, v0, v1 + 0.5, g + ZOD_LOW, g + ZOD_SLAB, ZOD_CONCRETE, M_STONE, ZOD_CONCRETE.darkened(0.08))
 	_mode = M_STONE
-	_soffit(outline, g + ZOD_H, CEP_EDGE.darkened(0.12))
-	var inner := _largest(Geometry2D.offset_polygon(outline, -0.4, Geometry2D.JOIN_MITER))
-	for q in (inner if inner.size() >= 3 else outline):
-		_prism(_square(q, 0.12), g, g + ZOD_H, CEP_FRAME, CEP_FRAME, M_STONE, M_STONE)
-	var i := _edge_facing(outline, BEHIND_FACE, 6.0)
-	if i >= 0:
-		var a := outline[i]
-		var b := outline[(i + 1) % outline.size()]
-		var o := _out(outline, a, b)
-		var mid := (a + b) * 0.5
-		var k := minf(0.6 * a.distance_to(b) / Neon.length_of(ZOD_WORD), 1.0 / (Neon.ROW_H * Neon.PIXEL))
-		signs.append([ZOD_WORD, Vector3(mid.x, g + ZOD_H + ZOD_ROOF + 0.05, mid.y), Vector3(o.x, 0.0, o.y), k, ZOD_COLOUR])
-	_collide(room)
+	_soffit(_urect(u0, u1, v1 - 0.3, v1 + 0.5), g + ZOD_LOW, ZOD_WHITE.darkened(0.1))
+	# The strip of grasses and the glass rail at the terrace's front.
+	_ubox(u0 + 0.6, u1 - 0.6, v1 - 0.9, v1 - 0.15, g + ZOD_SLAB, g + ZOD_SLAB + 0.45, ZOD_GRASS)
+	_ubox(u0, u1, v1 + 0.3, v1 + 0.4, g + ZOD_SLAB, g + ZOD_SLAB + 1.0, ZOD_RAIL)
+	# The glass upper room behind the terrace, its flat white roof.
+	var up := _urect(u0, u1, v0, v1 - ZOD_TERRACE)
+	_prism(up, g + ZOD_SLAB, g + ZOD_H, ZOD_GLASS.lightened(0.1), none, M_PAVILION)
+	_mullions(up, g + ZOD_SLAB, g + ZOD_H, 1.7, 0.05, ZOD_WHITE)
+	_prism(up, g + ZOD_H, g + ZOD_H + ZOD_ROOF, ZOD_WHITE, ZOD_CONCRETE, M_STONE, M_STONE)
+	# The slatted pergola over the terrace: thin white slats across it, a beam along its front.
+	var y := g + ZOD_H + 0.05
+	_ubox(u0, u1, v1 + 0.15, v1 + 0.45, y, y + 0.35, ZOD_WHITE)
+	var n := maxi(2, roundi((u1 - u0) / 0.8))
+	for k in n + 1:
+		var u := lerpf(u0 + 0.1, u1 - 0.1, float(k) / n)
+		_ubox(u - 0.06, u + 0.06, v1 - ZOD_TERRACE, v1 + 0.15, y + 0.1, y + 0.3, ZOD_WHITE)
+	# The white neon word over the back (on the brick wall behind in the photos), facing the square.
+	_usign(ZOD_WORD, (u0 + u1) * 0.5, v0 + 0.3, g + ZOD_H + ZOD_ROOF + 0.6, _b, 0.55 * (u1 - u0), 1.6, ZOD_COLOUR)
+	_collide(low)
 
 
 # --- SOWA CLUB and CITY 25 (F's photos, 2026-11-06) ------------------------------------------
@@ -28296,7 +28381,7 @@ func _find_blocks() -> void:
 		var q := _pts(d["outline"])
 		if q.size() < 3:
 			continue
-		if str(d["id"]) in DE_BLOCKS:
+		if str(d["id"]) in DE_BLOCKS or str(d["id"]) == CM_BLOCK:
 			continue
 		var key := "blk_" + str(d["id"])
 		var zone: Array = [_largest(Geometry2D.offset_polygon(q, 1.0, Geometry2D.JOIN_MITER))]
@@ -30777,4 +30862,133 @@ func _build_kolejowa(site: Dictionary) -> void:
 			var sp := a + d * (ln * 0.5) + o * 0.3
 			var ks := 0.7 / (Neon.ROW_H * Neon.PIXEL)
 			signs.append(["ODESSKA", Vector3(sp.x, g + 2.2, sp.y), n3, ks, Color(0.45, 1.0, 0.75)])
+	_mode = M_STONE
+
+
+# --- Centrum Marszałkowska (F's photos, 2026-11-08): spec docs/landmarks/specs/cmarsz.md ----------
+
+## The glass office on Marszałkowska 126/134 at Świętokrzyska (2017), from F's four photos
+## (/mnt/project-files/pkin-surroundings/photos/N1-marszalkowska: the corner by day and by night,
+## the straight front from the Palace's side, the aerial): a curtain wall of pale blue-green glass in
+## tiers that step back towards the top, dense upright aluminium fins on every face, some of them a
+## white LED line at night, a dark shop storey with the store's parody name, two office names on the
+## top tier's edge (HEJ! for the recruiter, SPACJE for the shared offices). Massed from the map's
+## OpenStreetMap parts (podium 8.9 m, a tier to 17.8 m, the main tier to 34 m, the corner block to
+## 40 m); the 4 m posts of the arcade are left out.
+const CM_OSM := "Centrum Marszałkowska"
+## The street block (game/data/street_blocks) that stood in for it: this site builds it now.
+const CM_BLOCK := "579369105"
+const CM_GLASS := Color("#6f98a4")
+const CM_SHOP := Color("#2f3a42")
+const CM_FIN := Color("#c9d0d4")
+const CM_LED := Color("#e6eef6")
+const CM_ROOF := Color("#6f7477")
+const CM_FIN_STEP := 1.35
+const CM_STOREY := 3.7
+const CM_FRONT := Vector2(-0.94, 0.34)     # west: Marszałkowska and the Palace
+const CM_NORTH := Vector2(-0.34, -0.94)    # north: Świętokrzyska
+
+
+func _find_cmarsz() -> void:
+	var q := _landmark(CM_OSM)
+	if q.size() < 3:
+		return
+	var parts := _parts_in(q, func(b: Dictionary) -> bool:
+			return float(b["h"]) > float(b["mh"]) and absf(_area(_pts(b["p"]))) > 30.0)
+	_add_site("cmarsz", [q, Geometry2D.convex_hull(q)])
+	if not sites.is_empty() and sites[-1]["key"] == "cmarsz":
+		sites[-1]["raw"] = q
+		sites[-1]["parts"] = parts
+		sites[-1]["quiet"] = true
+
+
+func _build_cmarsz(site: Dictionary) -> void:
+	var ring: PackedVector2Array = site["raw"]
+	_g = _ground_under(ring)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	var top_y := g
+	# The parts stack (each tier's foot is the one under it's top) but overlap a little in the map:
+	# a tier starts no lower than the podium's top, and only a top no other tier stands on gets a
+	# parapet (two walls or fins in one plane flicker).
+	var podium := 0.0
+	var feet: Array[float] = []
+	for b: Dictionary in site["parts"]:
+		if float(b["mh"]) < 0.5:
+			podium = maxf(podium, float(b["h"]))
+		else:
+			feet.append(float(b["mh"]))
+	for b: Dictionary in site["parts"]:
+		var poly := _pts(b["p"])
+		var y0 := g + maxf(float(b["mh"]), podium if float(b["mh"]) >= 0.5 else 0.0)
+		var y1 := g + float(b["h"])
+		if y1 <= y0 + 0.5:
+			continue
+		top_y = maxf(top_y, y1)
+		if float(b["mh"]) < 0.5:
+			if y1 < g + 6.0:
+				continue  # a low piece (the arcade's posts): the podium's shop storey covers it
+			# The podium: the dark shop storey, then the glass over it.
+			_prism(poly, g - 0.4, g + 4.4, CM_SHOP, none, M_PAVILION)
+			_prism(poly, g + 4.4, y1, CM_GLASS, CM_ROOF, M_GLASS, M_STONE)
+			_mullions(poly, g + 4.6, y1 - 0.2, CM_FIN_STEP, 0.18, CM_FIN)
+			_cm_leds(poly, g + 4.4, y1)
+		else:
+			_prism(poly, y0, y1, CM_GLASS, CM_ROOF, M_GLASS, M_STONE)
+			_mullions(poly, y0 + 0.2, y1 - 0.2, CM_FIN_STEP, 0.18, CM_FIN)
+			_cm_leds(poly, y0, y1)
+		var covered := false
+		for f in feet:
+			covered = covered or absf(f - float(b["h"])) < 0.3
+		if not covered:
+			_prism(poly, y1, y1 + 0.6, CM_FIN, none, M_STONE)  # the parapet
+	# The names: the store over the shop storey on the corner, the offices on the top tier.
+	var i := _edge_facing(ring, CM_FRONT, 10.0)
+	if i >= 0:
+		var a := ring[i]
+		var c := ring[(i + 1) % ring.size()]
+		var o := _out(ring, a, c)
+		var mid := (a + c) * 0.5 + o * 0.3
+		var k := minf(0.35 * a.distance_to(c) / Neon.length_of("SEZON"), 1.4 / (Neon.ROW_H * Neon.PIXEL))
+		signs.append(["SEZON", Vector3(mid.x, g + 5.0, mid.y), Vector3(o.x, 0.0, o.y), k, Color(0.3, 0.85, 1.0)])
+		k = minf(0.3 * a.distance_to(c) / Neon.length_of("HEJ!"), 2.4 / (Neon.ROW_H * Neon.PIXEL))
+		signs.append(["HEJ!", Vector3(mid.x, top_y + 0.7, mid.y), Vector3(o.x, 0.0, o.y), k, Color(0.25, 0.45, 1.0)])
+	var j := _edge_facing(ring, CM_NORTH, 6.0)
+	if j >= 0:
+		var a := ring[j]
+		var c := ring[(j + 1) % ring.size()]
+		var o := _out(ring, a, c)
+		var mid := (a + c) * 0.5 + o * 0.3
+		var k := minf(0.7 * a.distance_to(c) / Neon.length_of("SPACJE"), 1.8 / (Neon.ROW_H * Neon.PIXEL))
+		signs.append(["SPACJE", Vector3(mid.x, top_y + 0.7, mid.y), Vector3(o.x, 0.0, o.y), k, Color(0.95, 0.96, 1.0)])
+	_collide(ring)
+
+
+## The night photo's white LED lines: on every fourth fin a short lit stroke in each storey, the
+## strokes of one storey two fins over from the one below, so the faces read as a staggered dash
+## pattern rather than full-height stripes. M_LAMP glows only at night.
+func _cm_leds(poly: PackedVector2Array, y0: float, y1: float) -> void:
+	if y1 - y0 < 2.0:
+		return
+	_mode = M_LAMP
+	var floors := maxi(1, floori((y1 - y0) / CM_STOREY))
+	var h := (y1 - y0) / floors
+	for i in poly.size():
+		var a := poly[i]
+		var b := poly[(i + 1) % poly.size()]
+		var len := a.distance_to(b)
+		if len < 4.0:
+			continue
+		var o := _out(poly, a, b)
+		var d := (b - a) / len
+		var n := maxi(1, roundi(len / CM_FIN_STEP))
+		for f in floors:
+			var ya := y0 + f * h + 0.5
+			var yb := ya + h * 0.55
+			for k in range(1 + 2 * (f % 2), n, 4):
+				var c := a + d * len * k / n + o * 0.26
+				var p0 := c - d * 0.17
+				var p1 := c + d * 0.17
+				_quad(Vector3(p0.x, ya, p0.y), Vector3(p1.x, ya, p1.y), Vector3(p1.x, yb, p1.y),
+						Vector3(p0.x, yb, p0.y), Vector3(o.x, 0.0, o.y), CM_LED)
 	_mode = M_STONE

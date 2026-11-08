@@ -9,6 +9,9 @@ that day here, in plain words a player would understand (no file names, no spoil
 rows in the progress log but no section here is listed automatically from the log's labels until
 someone writes its lines.
 
+## 2026-11-08
+- Around the Palace: the Empik-style EMPIRYK pavilion and the Zodiak pavilion are rebuilt from photos, and the glass office building on the corner of Marszałkowska and Świętokrzyska now has its stepped glass tiers, silver fins and white LED dashes that light up at night.
+
 ## 2026-11-07
 - A new ride, "Dekalog na kółkach": Claire, a film student from Lyon, wants to see where Kieślowski shot the Dekalog. Pick her up at Centralna and drive her through six real filming places to the Muranów estate on Inflancka.
 - The Dekalog estate on Inflancka is rebuilt from photos: six cream 14-storey slabs with ochre stairwells and white balconies, and across the street the Inflancka pools with their air dome, round pools and red and green slides.

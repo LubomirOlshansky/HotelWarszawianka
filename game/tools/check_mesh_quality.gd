@@ -168,8 +168,9 @@ const BUDGET := {
 	"spire": 6600,  # 2026-11-06 photo rebuild (F), 6151 tris (vase, steel crown ring, drum): steel columns, canopy bow, Spire B/C crowns and eaves, plaza kerbs, channel, 26 trees; +0 draw calls
 	"tr": 500,
 	"tower75": 220,
-	"cepelia": 900,
-	"zodiak": 600,
+	"cepelia": 1100,  # 2026-11-08 photo rebuild (F): 970 tris
+	"zodiak": 720,  # 2026-11-08 photo rebuild (F): 620 tris
+	"cmarsz": 2200,
 	"sowa": 1500,  # SOWA CLUB and CITY 25 (F's photos, 2026-11-06): 1298 tris
 	"brama": 100,
 	"equator": 120,
