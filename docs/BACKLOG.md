@@ -4,7 +4,21 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
-## Thin towers across the map (F, 2026-11-07; docs/design/small-buildings.md)
+## Dworzec Centralny's car park ramp (F, 2026-11-08, Street View photos and a screenshot)
+Fixed: the two one-way lanes off Al. Jana Pawła II north of Chmielna that loop round the hedge island
+down to the tunnel under the avenue were a spiral that went nowhere: the bake leaves service tunnels
+out, so the inner lane dove to a wall at the portal and the outer lane (the way back up) was cut
+halfway with a garage door across it (R9). `tools/centralny_ramp.py` adds the tunnel (one tube with
+both lanes, as on the photo, to a turning hall under Złote Tarasy's forecourt), its portal and walls,
+the way out's lower part, and cuts the fence and two scanned trees that stood across the way out at
+the mouth; `centralny_ramp.gd` hangs the direction board with the 3.3 m sign over the mouth and the
+red and white bollards between the lanes. check_stuck_spots drives down, along, round and back up.
+Open:
+- The real tunnel goes on to Złote Tarasy's car park gates and the station's taxi and bus road
+  (OSM 185123967, 128214245, the covered ways under the station); the game turns round in a hall
+  there. The hall has no car park gates or signs yet (only the car's x-ray shows underground).
+- `ao.bin` was not baked again (two trees' shade out, a few pixels), nor the prebuilt sectors on the Mac.
+- The board reads from the ramp (the camera behind the car); from the default view it is edge-on. (F, 2026-11-07; docs/design/small-buildings.md)
 Fixed: 469 small OpenStreetMap buildings with no height tag stood at the bake's flat 14 m guess and
 showed as thin windowed towers (F's crop: the two metro lifts by the Ratusz-Arsenał tram stop).
 Each was researched (OSM tags and the map points inside it from the raw data, the GUGiK aerial,

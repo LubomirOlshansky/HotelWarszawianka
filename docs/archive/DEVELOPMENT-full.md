@@ -5269,6 +5269,17 @@ System Trace: the iPhone 11 at ×2 holds 60 at its lowest GPU clock, Loop G1 abo
 
 ## Map data
 
+**Dworzec Centralny's car park ramp (F, 2026-11-08)**: `tools/centralny_ramp.py` (bake_osm right after
+bake_structures, or as a CLI on a baked map; idempotent, `--check` is verify step `centralnyramp`) makes the
+service tunnel under Al. Jana Pawła II north of Chmielna a drive: tunnel group 10 (one 10.8 m tube on the
+middle line of OSM's 30611690/143461289, floor 8.5 m = the entry ramp's foot, and a 22 × 22 m turning hall
+under Złote Tarasy's forecourt, its west shoulders splayed), one portal and frame, the way out's lower 38 m
+(143461245, which R9's `garage_ramps` cut) back as a road with a ground profile 8.5 → 10.6 m, its garage door
+gone; the site's walls (box x −1690..−1530, z 395..500) placed again by `place_walls`/`place_tunnels`, 7 m of
+fence across the mouth cut, 2 scanned trees on the way out taken out: trees3d 271,752 → 271,740, crowns
+45,292 → 45,290. Signs and bollards: `game/scripts/centralny_ramp.gd` (runtime, both city paths, one mesh).
+check_stuck_spots has 5 lines through it.
+
 **Bike markings (idea #9, 2026-11-02)**: `tools/bike_marks.py` (bake_osm after car_free, or as a
 CLI on a baked map) adds 660 `symbols` of kind `bike` marked `"on": "path"` on the cycle paths;
 `map_builder.gd` edges each `cyclecross` with P-11 squares (`CROSS_SQ`, `CROSS_EDGE`). No counted
