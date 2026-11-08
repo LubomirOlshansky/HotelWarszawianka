@@ -980,6 +980,21 @@ func _check_target_pointer(hud: CanvasLayer, bubbles: Control, screen: Vector2i,
 				under += 1
 				if under <= 2:
 					problems.append("%s: the edge arrow %s pointing %d° (scheme %d) sits under %s %s" % [tag, _pts(edge_box, pt), (k % 72) * 5, k / 72, n, _pts(fixed[n], pt)])
+	# PT-35 (2026-11-08): with a Classic thumb down the steering strip is on screen; the job's
+	# "KEBAB n m" and its arrow keep off it, pointing down-left, down and down-right.
+	hud.set_scheme(0)
+	var strip_at := Vector2(float(screen.x) * 0.3, float(screen.y) - 70.0 * pt)
+	hud.hold_stick(strip_at, Vector2.ZERO)
+	var strip := Rect2(strip_at - Vector2(hud.STICK_R + 16.0, 16.0) * pt, Vector2((hud.STICK_R + 16.0) * 2.0, 32.0 * pt))
+	for deg in [100, 120, 140, 160, 200]:
+		hud.set_target(centre + Vector2.from_angle(deg_to_rad(float(deg))) * float(screen.x) * 2.0, "KEBAB 1948 m", Color("#ff9a3c"), true)
+		var pe: Dictionary = hud.edge_pointer()
+		if pe.is_empty():
+			continue
+		var pbox := (pe["label"] as Rect2).merge(Rect2(pe["tip"], Vector2.ZERO).grow((hud.EDGE_ARROW + 2.0) * pt))
+		if pbox.intersects(strip):
+			problems.append("%s PT-35: the edge arrow %s pointing %d° covers the steering strip %s" % [tag, _pts(pbox, pt), deg, _pts(strip, pt)])
+	hud.release_all()
 	# A bubble right where the left edge arrow points: the arrow moves along the edge, clear of it.
 	hud.set_scheme(0)
 	hud.set_target(Vector2(-float(screen.x), centre.y), "297 m", Color("#ff9a3c"), true)
