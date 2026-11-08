@@ -7,7 +7,7 @@ extends RefCounted
 ## `pair` / `pick`, so the secondary label is simply never filled. A text with no English
 ## (a street, a place, a parody name, a song) shows as it is in both languages.
 ##   code      "pl" or "en": settings.gd keeps the choice (`lang`, "" until the player makes one,
-##             then the phone's language decides: Polish phones get Polish, every other English).
+##             then English).
 ##   pair      (pl, en) -> [shown, ""]: the second slot is always empty, so a caller that fills a
 ##             "gloss" label with it hides that label.
 ##   pick      (pl, en) -> the shown one, for a single label.
@@ -26,9 +26,9 @@ static func is_en() -> bool:
 	return code == EN
 
 
-## The phone's language as one of ours: Polish when the phone is set to Polish, else English.
+## The language of a player who has not chosen yet (F, 2026-11-08): English, on every phone.
 static func device_code() -> String:
-	return PL if OS.get_locale_language() == "pl" else EN
+	return EN
 
 
 ## "" (never chosen) follows the device; anything else must be a known code.

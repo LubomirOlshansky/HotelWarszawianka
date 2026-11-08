@@ -682,6 +682,9 @@ const INFO := {
 	"kozia9": ["Kozia 9",
 			"1974–76, Kuźmienko i Sembrat: blok wspina się po piętrze, okna chowają się w zębach.",
 			"1974-76, Kuźmienko and Sembrat: the block climbs a storey at a time, windows hidden in its teeth."],
+	"smolna38": ["Smolna 38",
+			"Przedwojenna kamienica z bramą pod kamienną konsolą i erkerem; wieczorem czerwone światło i kolejka do klubu.",
+			"A pre-war tenement: a gate under a stone console and an oriel; at night red light and the club queue."],
 	"cparking": ["Cyfrowy Parking Novotel",
 			"Nowogrodzka 27: osiem otwartych poziomów, murale w czerwone róże i na dole bar. Wjazd od Parkingowej.",
 			"Nowogrodzka 27: eight open decks painted with red roses, a bar on the corner. The way in is off Parkingowa."],
@@ -957,6 +960,8 @@ static func tower_colour(key: String, fallback: Color) -> Color:
 		return ML_WALL
 	if key == "kozia9":
 		return KZ_WALL
+	if key == "smolna38":
+		return S38_CREAM
 	if key == "cparking":
 		return CP_RED
 	if key == "karowa18a":
@@ -1261,6 +1266,8 @@ func _find_sites() -> void:
 	_find_mlotek()
 	_find_kozia9()
 	_find_karowa18a()
+	# Smolna 38 (F's photos, 2026-11-08): the tenement with the club gate.
+	_find_smolna38()
 	# Nowogrodzka 31 and its rooftop billboard (F's four photos, 2026-11-07).
 	_find_nowogrodzka31()
 	_find_marszalkowska99()
@@ -1959,6 +1966,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_cparking(s)
 			"karowa18a":
 				_build_karowa18a(s)
+			"smolna38":
+				_build_smolna38(s)
 			"nowogrodzka31":
 				_id = 0  # no card, not on the picking grid
 				_build_nowogrodzka31(s)
@@ -28566,6 +28575,347 @@ func _kozia9_jogs(poly: PackedVector2Array, top: float, g: float) -> void:
 			var p := m + out * 0.05
 			_hang(PackedVector2Array([p - e * hw, p + e * hw, p + e * hw + out * depth, p - e * hw + out * depth]),
 					y - 1.45, y - 0.15, KZ_WALL, KZ_RIM, KZ_SHADE.darkened(0.3))
+
+
+## Smolna 38 (a pre-war tenement, the Smoła club's house), from F's own photos of 2026-11-08
+## (refs/smolna38/: the street front by day, the gate, the club door at night). Four storeys: a
+## grey rusticated ground floor with a deep gate, three cream-plaster floors with grey stone
+## window surrounds, and over the gate a big fluted stone cartouche carrying a two-storey oriel
+## and a third-floor balcony. The street front is detailed, the other faces plain. On the
+## pavement the club's dressing: a plank awning, two black pop-up tents, steel crowd barriers and
+## a "GUEST LIST" banner. Frame: origin at the front's west end on the outline, u along it to the
+## east (25.08 m), +v out to Smolna. Spec smolna38.md.
+const S38_AT := Vector2(-157.0, 135.0)
+const S38_O := Vector2(-164.4, 158.1)
+const S38_A := Vector2(0.94504, -0.32697)
+const S38_LEN := 25.08
+const S38_GATE_U := 15.0
+const S38_GATE_HW := 1.6
+const S38_GATE_H := 3.9
+const S38_GROUND := 4.2        # the ground floor's top over the ground
+const S38_FLOOR := 3.1
+const S38_TOP := 14.2
+const S38_AXES := [1.8, 5.1, 8.4, 11.7, 18.3, 21.6]   # the window axes either side of the bay
+const S38_CREAM := Color("#d6c6a6")
+const S38_STONE := Color("#a8a49c")
+const S38_STONE_L := Color("#b9b5ad")
+const S38_PLINTH := Color("#7d7a74")
+const S38_GROOVE := Color("#8a867f")
+const S38_FRAME := Color("#ece9e2")
+const S38_GLASS := Color("#2e3640")
+const S38_ROOF := Color("#7a7874")
+const S38_WOOD := Color("#35271c")
+const S38_PLANK := Color("#8b6b46")
+const S38_RED := Color("#d42a1c")
+const S38_PIPE := Color("#7b3f2f")
+const S38_IRON := Color("#2a2c2e")
+const S38_BLUE := Color("#1c4fa0")
+const S38_TENT := Color("#17171a")
+const S38_STEEL := Color("#9fa2a6")
+const S38_FONT := {
+	"G": ["###", "#..", "#.#", "#.#", "###"], "U": ["#.#", "#.#", "#.#", "#.#", "###"],
+	"E": ["###", "#..", "##.", "#..", "###"], "S": ["###", "#..", "###", "..#", "###"],
+	"T": ["###", ".#.", ".#.", ".#.", ".#."], "L": ["#..", "#..", "#..", "#..", "###"],
+	"I": ["###", ".#.", ".#.", ".#.", "###"], "3": ["###", "..#", "###", "..#", "###"],
+	"8": ["###", "#.#", "###", "#.#", "###"],
+}
+var _sm_run := 0.0
+
+
+func _find_smolna38() -> void:
+	var q := _tallest_at(S38_AT)
+	if q.size() < 10:
+		return
+	_add_site("smolna38", [_largest(Geometry2D.offset_polygon(q, 1.5, Geometry2D.JOIN_MITER))])
+	if not sites.is_empty() and sites[-1]["key"] == "smolna38":
+		# 0.35 m: the street front's two 0.2 m jogs (the OSM outline's) would bury the windows.
+		sites[-1]["ring"] = _simplify(q, 0.35)
+		sites[-1]["raw"] = q
+
+
+func _build_smolna38(site: Dictionary) -> void:
+	var ring: PackedVector2Array = site["ring"]
+	_g = _ground_under(ring)
+	var g := _g
+	_o = S38_O
+	_a = S38_A.normalized()
+	_b = Vector2(-_a.y, _a.x)
+	_mode = M_STONE
+	_sm_run = 0.0
+	var none := Color(0, 0, 0, 0)
+	# body: the ground floor with the gate notched out of it, the lintel course over the gate,
+	# three plaster floors, the stepped cornice.
+	var gated := _largest(Geometry2D.clip_polygons(ring, _rect(S38_GATE_U, -1.5, S38_GATE_HW, 2.5)))
+	_prism(gated, g - 0.8, g + S38_GATE_H, S38_STONE, none, M_STONE, M_STONE)
+	_prism(ring, g + S38_GATE_H, g + S38_GROUND, S38_STONE, none, M_STONE, M_STONE)
+	_prism(ring, g + S38_GROUND, g + 13.55, S38_CREAM, none, M_STONE, M_STONE)
+	_prism(_largest(Geometry2D.offset_polygon(ring, 0.15, Geometry2D.JOIN_MITER)), g + 13.35, g + 13.55, S38_STONE_L, none, M_STONE, M_STONE)
+	_prism(_largest(Geometry2D.offset_polygon(ring, 0.4, Geometry2D.JOIN_MITER)), g + 13.55, g + S38_TOP, S38_STONE_L, S38_ROOF, M_STONE, M_STONE)
+	for p: Vector2 in [Vector2(4.0, -6.0), Vector2(20.0, -6.0)]:
+		_lbox(p.x, p.y, 0.5, 0.5, g + S38_TOP, g + S38_TOP + 1.8, Color("#8a5a48"), M_STONE, S38_ROOF)
+	_sm_ground(g)
+	_sm_upper(g)
+	_sm_gate(g)
+	_sm_cartouche(g)
+	_sm_oriel(g)
+	_sm_street(g)
+	_collide_raw(site)
+
+
+## rustication, plinth, ground windows: grooves every 0.45 m, the dark plinth with its basement
+## windows, the flat splayed lintels, the cornice band, the number plate, the drainpipe.
+func _sm_ground(g: float) -> void:
+	_mode = M_STONE
+	# plinth in two pieces, the gate between them
+	var l0 := S38_GATE_U - S38_GATE_HW
+	var r0 := S38_GATE_U + S38_GATE_HW
+	_lbox(l0 * 0.5, 0.06, l0 * 0.5, 0.06, g - 0.5, g + 0.9, S38_PLINTH, M_STONE, S38_STONE_L)
+	_lbox((r0 + S38_LEN) * 0.5, 0.06, (S38_LEN - r0) * 0.5, 0.06, g - 0.5, g + 0.9, S38_PLINTH, M_STONE, S38_STONE_L)
+	# grooves: the stones' bed joints, broken round the windows and the gate
+	for k in range(1, 8):
+		var y := g + 0.9 + 0.45 * k
+		var spans: Array[Vector2] = [Vector2(0.1, S38_LEN - 0.1)]
+		var gaps: Array[Vector2] = []
+		if y < g + S38_GATE_H + 0.05:
+			gaps.append(Vector2(l0 - 0.05, r0 + 0.05))
+		if y > g + 1.2 and y < g + 3.8:
+			for u: float in S38_AXES:
+				gaps.append(Vector2(u - 0.98, u + 0.98))
+		for gp in gaps:
+			var next: Array[Vector2] = []
+			for s in spans:
+				if gp.y <= s.x or gp.x >= s.y:
+					next.append(s)
+					continue
+				if gp.x > s.x + 0.05:
+					next.append(Vector2(s.x, gp.x))
+				if gp.y < s.y - 0.05:
+					next.append(Vector2(gp.y, s.y))
+			spans = next
+		for s in spans:
+			_wall(_w(s.x, 0.04), _w(s.y, 0.04), y, y + 0.05, _b, S38_GROOVE, s.x)
+	for u: float in S38_AXES:
+		_sm_win(u, g + 1.35, g + 3.15, 0.0, 0.6)
+		_sm_sill(u, g + 1.35, 0.0, 0.6)
+		_sm_lintel(u, g + 3.2)
+		_sm_win(u, g + 0.18, g + 0.66, 0.12, 0.35)
+	# the cornice band over the ground floor
+	_lbox(S38_LEN * 0.5, 0.17, S38_LEN * 0.5, 0.17, g + S38_GROUND, g + 4.55, S38_STONE_L, M_STONE, S38_STONE_L.lightened(0.08))
+	# the blue number plate right of the gate
+	_wall(_w(17.15, 0.08), _w(17.6, 0.08), g + 2.35, g + 2.65, _b, S38_BLUE, 17.15)
+	_sm_text("38", 17.24, 0.12, g + 2.6, 0.04, 0.04, 0.17, S38_FRAME)
+	# the red-brown drainpipe
+	_lbox(24.2, 0.1, 0.07, 0.07, g - 0.3, g + 13.7, S38_PIPE, M_STONE, S38_PIPE)
+
+
+## The three plaster floors: a window per axis with its grey surround and sill, the pediments
+## on the first floor either side of the bay.
+func _sm_upper(g: float) -> void:
+	for f in 3:
+		var fb := g + S38_GROUND + S38_FLOOR * f
+		for u: float in S38_AXES:
+			_sm_win(u, fb + 0.85, fb + 2.6, 0.0, 0.62)
+			_sm_surround(u, fb + 0.85, fb + 2.6, 0.0, 0.62)
+			_sm_sill(u, fb + 0.85, 0.0, 0.62)
+			if f == 0 and (u == 11.7 or u == 18.3):
+				_sm_pediment(u, fb + 2.85, 0.0)
+	# the bay's door onto the balcony, third floor
+	var y3 := g + S38_GROUND + S38_FLOOR * 2.0
+	_sm_win(S38_GATE_U, y3 + 0.25, y3 + 2.5, 0.0, 0.5)
+	_sm_surround(S38_GATE_U, y3 + 0.25, y3 + 2.5, 0.0, 0.5)
+
+
+## The gate: the passage glows red (M_LAMP, lit after dark), the two dark leaves folded back on its sides.
+func _sm_gate(g: float) -> void:
+	var l0 := S38_GATE_U - S38_GATE_HW
+	var r0 := S38_GATE_U + S38_GATE_HW
+	_mode = M_LAMP
+	_wall(_w(l0, -3.96), _w(r0, -3.96), g, g + S38_GATE_H, _b, S38_RED, 0.0)
+	_wall(_w(l0 + 0.04, -3.96), _w(l0 + 0.04, 0.0), g, g + S38_GATE_H, _a, S38_RED.darkened(0.15), 0.0)
+	_wall(_w(r0 - 0.04, -3.96), _w(r0 - 0.04, 0.0), g, g + S38_GATE_H, -_a, S38_RED.darkened(0.15), 0.0)
+	_cap(_rect(S38_GATE_U, -2.0, S38_GATE_HW - 0.04, 2.0), g + 0.03, S38_RED.darkened(0.5))
+	_mode = M_STONE
+	for s: float in [-1.0, 1.0]:
+		_lbox(S38_GATE_U + s * (S38_GATE_HW - 0.2), -0.9, 0.05, 0.8, g, g + 3.2, S38_WOOD, M_STONE, S38_WOOD.lightened(0.1))
+	# plank awning under the cartouche, hung off the wall over the gate
+	for k in 6:
+		_lbox(S38_GATE_U, 0.4 + 0.3 * k, 1.9, 0.13, g + 3.0, g + 3.1, S38_PLANK.darkened(0.08 * float(k % 2)), M_STONE, S38_PLANK)
+
+
+## The curved stone console: five stacked bowls, wide at the top, narrowing to the tip, fluted
+## and garlanded, carrying the oriel.
+func _sm_cartouche(g: float) -> void:
+	_mode = M_STONE
+	var hws := [1.75, 1.6, 1.35, 1.0, 0.6]
+	var ps := [1.15, 1.05, 0.9, 0.7, 0.45]
+	for i in 5:
+		var hw: float = hws[i]
+		var p: float = ps[i]
+		var poly := PackedVector2Array()
+		for c: Vector2 in [Vector2(-hw, 0.05), Vector2(hw, 0.05), Vector2(hw, 0.4 * p), Vector2(0.82 * hw, 0.8 * p),
+				Vector2(0.5 * hw, p), Vector2(-0.5 * hw, p), Vector2(-0.82 * hw, 0.8 * p), Vector2(-hw, 0.4 * p)]:
+			poly.append(_w(S38_GATE_U + c.x, c.y))
+		var y1 := g + 4.55 - 0.2 * i
+		_prism(poly, y1 - 0.2, y1, S38_STONE_L if i % 2 == 0 else S38_STONE, S38_STONE_L if i == 0 else Color(0, 0, 0, 0), M_STONE, M_STONE)
+		if i == 4:
+			_soffit(poly, y1 - 0.2, S38_STONE.darkened(0.2))
+		if i < 3:
+			var u := -0.45 * hw
+			while u <= 0.451 * hw:
+				_wall(_w(S38_GATE_U + u - 0.03, p + 0.04), _w(S38_GATE_U + u + 0.03, p + 0.04), y1 - 0.18, y1 - 0.02, _b, S38_GROOVE.darkened(0.1), u)
+				u += 0.28
+	# garlands: two lighter swags at the bowl's shoulders
+	for s: float in [-1.0, 1.0]:
+		_lbox(S38_GATE_U + s * 1.3, 0.75, 0.22, 0.18, g + 3.75, g + 4.25, S38_STONE_L.lightened(0.1), M_STONE, S38_STONE_L.lightened(0.15))
+
+
+## The oriel on floors 1 and 2 and the third-floor balcony with its thin iron railing.
+func _sm_oriel(g: float) -> void:
+	_mode = M_STONE
+	var y0 := g + 4.55
+	var y1 := g + S38_GROUND + S38_FLOOR * 2.0
+	_lbox(S38_GATE_U, 0.35, 1.7, 0.35, y0, y1, S38_STONE, M_STONE, S38_STONE)
+	# rusticated piers either side of the windows
+	for k in 13:
+		var y := y0 + 0.2 + 0.45 * k
+		if y + 0.05 >= y1:
+			break
+		_wall(_w(S38_GATE_U - 1.7, 0.74), _w(S38_GATE_U - 0.86, 0.74), y, y + 0.05, _b, S38_GROOVE, 0.0)
+		_wall(_w(S38_GATE_U + 0.86, 0.74), _w(S38_GATE_U + 1.7, 0.74), y, y + 0.05, _b, S38_GROOVE, 0.0)
+	for f in 2:
+		var fb := g + S38_GROUND + S38_FLOOR * f
+		_sm_win(S38_GATE_U, fb + 0.85, fb + 2.6, 0.7, 0.62)
+		_sm_surround(S38_GATE_U, fb + 0.85, fb + 2.6, 0.7, 0.62)
+		_sm_sill(S38_GATE_U, fb + 0.85, 0.7, 0.62)
+	# balcony slab and railing
+	_hang(_rect(S38_GATE_U, 0.6, 1.9, 0.6), y1, y1 + 0.2, S38_STONE_L, S38_STONE_L.lightened(0.1), S38_STONE.darkened(0.2))
+	var ry := y1 + 0.2
+	for k in 9:
+		_lbox(S38_GATE_U - 1.8 + 0.45 * k, 1.12, 0.018, 0.018, ry, ry + 0.95, S38_IRON, M_STONE, S38_IRON)
+	for s: float in [-1.0, 1.0]:
+		for v: float in [0.35, 0.75]:
+			_lbox(S38_GATE_U + s * 1.8, v, 0.018, 0.018, ry, ry + 0.95, S38_IRON, M_STONE, S38_IRON)
+		_lbox(S38_GATE_U + s * 1.8, 0.62, 0.02, 0.52, ry + 0.93, ry + 1.0, S38_IRON, M_STONE, S38_IRON)
+	_lbox(S38_GATE_U, 1.12, 1.82, 0.02, ry + 0.93, ry + 1.0, S38_IRON, M_STONE, S38_IRON)
+
+
+## The club's dressing on the pavement: two black pop-up tents east of the gate, steel crowd
+## barriers along their kerb side and one left of the gate carrying the "GUEST LIST" banner.
+func _sm_street(g: float) -> void:
+	_mode = M_STONE
+	_sm_tent(19.6, 2.0, g, true, false)
+	_sm_tent(22.7, 2.0, g, false, true)
+	for u: float in [18.0, 20.1, 22.2]:
+		_sm_barrier(u, u + 2.1, 3.85, g)
+	_sm_barrier(10.1, 12.3, 1.1, g)
+	_mode = M_STONE
+	_wall(_w(10.15, 1.14), _w(12.25, 1.14), g + 0.25, g + 0.95, _b, S38_TENT, 10.15)
+	_sm_text("GUEST LIST", 10.3, 1.19, g + 0.85, 0.05, 0.09, 0.19, Color("#f2f2ee"))
+
+
+## A 3 x 3 m pop-up tent: four thin legs, a low black canopy with a valance, black curtains on
+## the street side and on one end.
+func _sm_tent(u: float, v: float, g: float, west_curtain: bool, east_curtain: bool) -> void:
+	_mode = M_STONE
+	for du: float in [-1.5, 1.5]:
+		for dv: float in [-1.5, 1.5]:
+			_lbox(u + du, v + dv, 0.035, 0.035, g - 0.05, g + 2.4, S38_STEEL, M_STONE, S38_STEEL)
+	_prism(_rect(u, v, 1.6, 1.6), g + 2.15, g + 2.4, S38_TENT, Color(0, 0, 0, 0), M_STONE, M_STONE)
+	_pyramid(_rect(u, v, 1.6, 1.6), g + 2.4, g + 2.9, S38_TENT.lightened(0.04))
+	for s: float in [1.0, -1.0]:
+		_wall(_w(u - 1.5, v + 1.56), _w(u + 1.5, v + 1.56), g + 0.15, g + 2.2, _b * s, S38_TENT, u)
+	if west_curtain:
+		for s: float in [1.0, -1.0]:
+			_wall(_w(u - 1.56, v - 1.5), _w(u - 1.56, v + 1.5), g + 0.15, g + 2.2, _a * s, S38_TENT, u)
+	if east_curtain:
+		for s: float in [1.0, -1.0]:
+			_wall(_w(u + 1.56, v - 1.5), _w(u + 1.56, v + 1.5), g + 0.15, g + 2.2, _a * s, S38_TENT, u)
+
+
+## A steel crowd barrier: two posts, two rails and seven bars.
+func _sm_barrier(u0: float, u1: float, v: float, g: float) -> void:
+	_mode = M_STONE
+	var m := (u0 + u1) * 0.5
+	var hu := (u1 - u0) * 0.5
+	for u: float in [u0 + 0.03, u1 - 0.03]:
+		_lbox(u, v, 0.025, 0.025, g, g + 1.05, S38_STEEL, M_STONE, S38_STEEL)
+	_lbox(m, v, hu, 0.018, g + 0.93, g + 1.02, S38_STEEL, M_STONE, S38_STEEL)
+	_lbox(m, v, hu, 0.018, g + 0.15, g + 0.22, S38_STEEL, M_STONE, S38_STEEL)
+	for k in 7:
+		var u := u0 + 0.2 + float(k) * (u1 - u0 - 0.4) / 6.0
+		for s: float in [1.0, -1.0]:
+			_wall(_w(u - 0.012, v), _w(u + 0.012, v), g + 0.22, g + 0.93, _b * s, S38_STEEL.darkened(0.15), 0.0)
+
+
+## Pixel lettering on the facade plane: `text` from u0, its top at ytop, one `px` x `py` quad per run of a 3 x 5 glyph.
+func _sm_text(text: String, u0: float, v: float, ytop: float, px: float, py: float, pitch: float, col: Color) -> void:
+	_mode = M_STONE
+	for ci in text.length():
+		var ch := text.substr(ci, 1)
+		if ch == " " or not S38_FONT.has(ch):
+			continue
+		var rows: Array = S38_FONT[ch]
+		for r in 5:
+			var row: String = rows[r]
+			var c := 0
+			while c < 3:
+				if row[c] != "#":
+					c += 1
+					continue
+				var c1 := c
+				while c1 + 1 < 3 and row[c1 + 1] == "#":
+					c1 += 1
+				var ua := u0 + float(ci) * pitch + float(c) * px
+				var ub := u0 + float(ci) * pitch + float(c1 + 1) * px
+				_wall(_w(ua, v), _w(ub, v), ytop - float(r + 1) * py, ytop - float(r) * py, _b, col, ua)
+				c = c1 + 1
+
+
+## A window on the plane at v: white frame and glass, a mullion cross; each its own stretch of the shader's room grid.
+func _sm_win(u: float, y0: float, y1: float, v: float, hw: float) -> void:
+	_sm_run += 7.3
+	_framed(_w(u - hw, v), _w(u + hw, v), y0, y1, _b, S38_FRAME, S38_GLASS, _sm_run)
+	_mode = M_STONE
+	_wall(_w(u - 0.025, v + 0.13), _w(u + 0.025, v + 0.13), y0 + 0.1, y1 - 0.1, _b, S38_FRAME, _sm_run)
+	var ym := y0 + (y1 - y0) * 0.65
+	_wall(_w(u - hw + 0.1, v + 0.13), _w(u + hw - 0.1, v + 0.13), ym, ym + 0.05, _b, S38_FRAME, _sm_run)
+
+
+## Grey stone jambs and a head round a window.
+func _sm_surround(u: float, y0: float, y1: float, v: float, hw: float) -> void:
+	_mode = M_STONE
+	_wall(_w(u - hw - 0.22, v + 0.04), _w(u - hw, v + 0.04), y0, y1 + 0.25, _b, S38_STONE, u)
+	_wall(_w(u + hw, v + 0.04), _w(u + hw + 0.22, v + 0.04), y0, y1 + 0.25, _b, S38_STONE, u)
+	_wall(_w(u - hw - 0.22, v + 0.04), _w(u + hw + 0.22, v + 0.04), y1, y1 + 0.25, _b, S38_STONE, u)
+
+
+func _sm_sill(u: float, y: float, v: float, hw: float) -> void:
+	_lbox(u, v + 0.09, hw + 0.2, 0.09, y - 0.14, y, S38_STONE_L, M_STONE, S38_STONE_L.lightened(0.1))
+
+
+## A flat lintel with splayed voussoirs over a ground-floor window.
+func _sm_lintel(u: float, y: float) -> void:
+	_mode = M_STONE
+	var n := Vector3(_b.x, 0.0, _b.y)
+	var pt := func(du: float, yy: float, v: float) -> Vector3:
+		var p := _w(u + du, v)
+		return Vector3(p.x, yy, p.y)
+	_quad(pt.call(-0.7, y, 0.08), pt.call(0.7, y, 0.08), pt.call(0.98, y + 0.5, 0.08), pt.call(-0.98, y + 0.5, 0.08), n, S38_STONE_L)
+	for k in 4:
+		var xb: float = -0.42 + 0.28 * k
+		var xt: float = -0.64 + 0.427 * k
+		_quad(pt.call(xb - 0.015, y, 0.12), pt.call(xb + 0.015, y, 0.12), pt.call(xt + 0.015, y + 0.5, 0.12), pt.call(xt - 0.015, y + 0.5, 0.12), n, S38_GROOVE)
+
+
+## A triangular pediment on its cornice over a window head.
+func _sm_pediment(u: float, y: float, v: float) -> void:
+	_lbox(u, v + 0.09, 1.15, 0.09, y, y + 0.12, S38_STONE_L, M_STONE, S38_STONE_L.lightened(0.1))
+	_mode = M_STONE
+	var pa := _w(u - 1.1, v + 0.1)
+	var pb := _w(u + 1.1, v + 0.1)
+	var pc := _w(u, v + 0.1)
+	var uvn := Vector2(-1, -1)
+	_tri(Vector3(pa.x, y + 0.12, pa.y), Vector3(pb.x, y + 0.12, pb.y), Vector3(pc.x, y + 0.65, pc.y), Vector3(_b.x, 0.0, _b.y), S38_STONE, uvn, uvn, uvn, -1.0)
 
 
 ## Karowa 18a (1978, Dąbrowski, Kuźmienko, Nowak, Sembrat), from the Mac photo gather

@@ -2712,7 +2712,9 @@ func _build_event_day(data: Dictionary, world: Node3D) -> void:
 	event_day.map = map
 	event_day.hud = hud
 	event_day.force = event_flag == 1
-	event_day.cascade = _flag_cinematic == "event"
+	event_day.palace_flood = func(_lit: bool) -> void:
+		_palace_night = -1
+		_set_palace_clock()
 	event_day.smoke_on = event_smoke == 1
 	event_day.amount = _crowd_scale()
 	event_day.log_on = event_log
@@ -6888,6 +6890,8 @@ func _set_palace_lights(local: Dictionary) -> void:
 		return
 	_palace_night = key
 	var e := PalaceLights.for_date(int(night[0]), int(night[1]), int(night[2]))
+	if event_day != null and event_day.palace_lit:
+		e = PalaceLights.by_id("independence")
 	if palace_lights_id != "":
 		e = PalaceLights.by_id(palace_lights_id)
 	PalaceLights.apply(building_mat, e)
