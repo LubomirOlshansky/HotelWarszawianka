@@ -13,6 +13,7 @@ const Landmarks := preload("res://scripts/landmarks.gd")
 const CityMaps := preload("res://scripts/city_maps.gd")
 ## Loop 2c: the parked cars' mesh and paints come from the vehicles' models (one source).
 const Models := preload("res://scripts/models.gd")
+const Tamka := preload("res://scripts/tamka.gd")
 const Trains := preload("res://scripts/trains.gd")
 const RailCut := preload("res://scripts/rail_cut.gd")
 const RailYard := preload("res://scripts/rail_yard.gd")
@@ -9517,6 +9518,8 @@ func _build_buildings(st, keep: Array, marks) -> void:
 				roof = _district_roof(plan.get_center(), hsh, str(bld["kind"]), royal)
 		if skin.is_empty() and not glass and _nowy_swiat(plan.get_center()):
 			wall = Color(NOWY_PASTELS[(hsh / 7) % NOWY_PASTELS.size()]).lerp(wall, 0.25)
+		elif skin.is_empty() and not glass and not _tamka_look(bld, poly, plan.get_center(), hsh).is_empty():
+			wall = _tamka_look(bld, poly, plan.get_center(), hsh)["plaster"]
 		elif skin.is_empty() and not glass and _powisle_house(bld, poly, plan.get_center()):
 			wall = Color(POWISLE_PASTELS[(hsh / 7) % POWISLE_PASTELS.size()]).lerp(wall, 0.25)
 
@@ -10986,6 +10989,7 @@ func _tenement_facades(pos: PackedVector3Array, nrm: PackedVector3Array, col: Pa
 	var roofs: Array[Color] = []
 	var plain: Array[bool] = []  # Nowy Świat's and Dobra and Tamka's houses: the plaster only
 	var trim: Array[bool] = []  # Dobra and Tamka's: the cornice and shop fronts too
+	var styles: Array = []  # Tamka's photo looks (tamka.gd): balconies, a brick base, an attic
 	for bld in data.get("buildings", []):
 		var p: Array = bld["p"]
 		if p.size() < 6 or NOT_TENEMENTS.has(str(bld.get("kind", ""))):
@@ -10995,17 +10999,23 @@ func _tenement_facades(pos: PackedVector3Array, nrm: PackedVector3Array, col: Pa
 		for q in poly:
 			box = box.expand(q)
 		var nowy := _nowy_swiat(box.get_center())
-		var powisle := not nowy and _powisle_house(bld, poly, box.get_center())
+		var hsh := absi(int(poly[0].x * 73.0 + poly[0].y * 31.0))
+		var tk := {} if nowy else _tamka_look(bld, poly, box.get_center(), hsh)
+		var powisle := not nowy and (not tk.is_empty() or _powisle_house(bld, poly, box.get_center()))
 		if not nowy and not powisle and not _historic(box.get_center(), 40.0):
 			continue
-		var hsh := absi(int(poly[0].x * 73.0 + poly[0].y * 31.0))
 		var k := polys.size()
 		polys.append(poly)
 		plain.append(nowy or powisle)
 		trim.append(powisle)
+		styles.append(tk.get("style", {}))
+		if not tk.is_empty():
+			tamka_houses += 1
 		var look := _osm_colour(bld["c"], Color(TENEMENTS[hsh % TENEMENTS.size()]))
 		if nowy:
 			look = Color(NOWY_PASTELS[(hsh / 7) % NOWY_PASTELS.size()]).lerp(look, 0.25)
+		elif not tk.is_empty():
+			look = tk["plaster"]
 		elif powisle:
 			look = Color(POWISLE_PASTELS[(hsh / 7) % POWISLE_PASTELS.size()]).lerp(look, 0.25)
 		if box.get_center().distance_to(OldTownRoofs.PLAC) < PLAC_PALETTE_R:
@@ -11021,6 +11031,7 @@ func _tenement_facades(pos: PackedVector3Array, nrm: PackedVector3Array, col: Pa
 				(grid[key] as Array).append(k)
 	if polys.is_empty():
 		return [col, uv2, dress]
+	var balc0 := TenementTrim.balconies
 	var covered := _gable_ends(pos, nrm)
 	for t in range(0, pos.size(), 3):
 		if dropped[t / 3] or uv2[t].x >= 1.0 or col[t].a < 0.9 or nrm[t].y > 0.95 or nrm[t].y < -0.3:
@@ -11041,7 +11052,7 @@ func _tenement_facades(pos: PackedVector3Array, nrm: PackedVector3Array, col: Pa
 							col[t + v] = looks[k]
 							uv2[t + v].x = seeds[k]
 						if trim[k] and absf(nrm[t].y) < 0.05:
-							_powisle_trim(pos, nrm, t, looks[k], dress)
+							_powisle_trim(pos, nrm, t, looks[k], dress, styles[k])
 					break
 				for v in 3:
 					if pitched:
@@ -11060,6 +11071,8 @@ func _tenement_facades(pos: PackedVector3Array, nrm: PackedVector3Array, col: Pa
 				else:
 					_square_gables(pos, nrm, t, polys, grid, cell, looks, seeds, covered, dress)
 				break
+	if not _in_sector and tamka_houses > 0:
+		print("tamka: %d houses in the photos' looks, %d balconies" % [tamka_houses, TenementTrim.balconies - balc0])
 	return [col, uv2, dress]
 
 
@@ -11175,6 +11188,22 @@ func _powisle_house(bld: Dictionary, poly: PackedVector2Array, centre: Vector2) 
 	return _building_type(kind, poly, float(bld.get("h", 0.0))) == 1
 
 
+## Tamka's photo look for a house (tamka.gd `house`): one of the photographed houses, or an
+## ordinary home on Tamka (outside the historic districts) in the photos' plasters; {} otherwise.
+func _tamka_look(bld: Dictionary, poly: PackedVector2Array, centre: Vector2, hsh: int) -> Dictionary:
+	if absf(centre.x - 110.0) > 420.0 or absf(centre.y + 440.0) > 260.0:
+		return {}
+	var kind := str(bld.get("kind", ""))
+	var home := TAMKA_HOMES.has(kind) and float(bld.get("h", 0.0)) >= 8.0 and not _historic(centre, 0.0)
+	var on := home and Tamka.distance(centre) < Tamka.REACH
+	return Tamka.house(poly, on, hsh)
+
+
+## Tamka's houses given a photo look in this build (tamka.gd), for the build's report.
+var tamka_houses := 0
+const TAMKA_HOMES := ["apartments", "yes", "residential", "house"]
+
+
 ## The distance from a point to the nearest Dobra or Tamka centre line (INF beyond 80 m).
 func _powisle_distance(at: Vector2) -> float:
 	if _powisle_segs.is_empty():
@@ -11195,7 +11224,8 @@ var _powisle_segs: Array = []
 
 ## One wall triangle `t` of a Dobra or Tamka tenement: its cornice, string course and, when the
 ## wall faces the street, its shop front (TenementTrim) into `dress`.
-func _powisle_trim(pos: PackedVector3Array, nrm: PackedVector3Array, t: int, plaster: Color, dress: Dictionary) -> void:
+func _powisle_trim(pos: PackedVector3Array, nrm: PackedVector3Array, t: int, plaster: Color, dress: Dictionary,
+		style := {}) -> void:
 	var n := Vector3(nrm[t].x, 0.0, nrm[t].z)
 	if n.length() < 0.9:
 		return
@@ -11203,13 +11233,19 @@ func _powisle_trim(pos: PackedVector3Array, nrm: PackedVector3Array, t: int, pla
 	var mid := (pos[t] + pos[t + 1] + pos[t + 2]) / 3.0
 	var at := Vector2(mid.x, mid.z)
 	# the wall faces the street when a point 8 m out is nearer to it than the wall itself
-	var street := _powisle_distance(at) < POWISLE_SHOP_REACH and \
-			_powisle_distance(at + Vector2(n.x, n.z) * 8.0) < _powisle_distance(at)
+	var street := _street_distance(at) < POWISLE_SHOP_REACH and \
+			_street_distance(at + Vector2(n.x, n.z) * 8.0) < _street_distance(at)
 	var out := {"pos": [], "nrm": [], "col": []}
-	TenementTrim.wall(out, pos[t], pos[t + 1], pos[t + 2], n, plaster, street)
+	TenementTrim.wall(out, pos[t], pos[t + 1], pos[t + 2], n, plaster, street, style)
 	if not (out["pos"] as Array).is_empty():
 		_add_dress(dress, {"pos": PackedVector3Array(out["pos"]), "nrm": PackedVector3Array(out["nrm"]),
 				"col": PackedColorArray(out["col"])})
+
+
+## The distance to Dobra's or Tamka's centre line: the sector's own roads, and Tamka's whole line
+## (tamka.gd CENTRE) since a sector may hold a house but not the street in front of it.
+func _street_distance(at: Vector2) -> float:
+	return minf(_powisle_distance(at), Tamka.distance(at))
 
 
 ## Whether a point is within `slack` metres of a historic district (HISTORIC), or inside

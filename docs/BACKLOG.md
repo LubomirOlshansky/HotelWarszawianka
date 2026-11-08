@@ -18,6 +18,7 @@ F: too little detail in Powiśle; wants real houses, street details and the powe
 - [ ] P10 Roofs and terraces (takes RF4b)
 - [ ] P11 Wybrzeże Kościuszkowskie and the water edge
 - [ ] P12 Mac and phone look pass
+- [x] P13a Tamka pass 1 from F's photos (2026-11-08, spec `docs/landmarks/specs/tamka.md`): the houses' plasters and balconies, Tamka 10/12's attic, Tamka 16's brick base, the bollards, the footbridge, KEBONAFIDE with his dalmatian. Left: the firewall murals and ad wraps, the Ostrogski castle from photos (no turret), Tamka 16's glass bays, the Kopernika end's planters and bank stairs
 - [ ] P13 Up to 300 more real houses, quest loop and Tamka first, Museum of Fryderyk Chopin (list H001-H300 in docs/powisle-photos-needed.txt)
 
 ## Thin towers across the map (F, 2026-11-07; docs/design/small-buildings.md)

@@ -26,7 +26,24 @@ const GLASS := Color("#34444e")
 const GLASS_LIT := Color("#6f6a52")  ## every fifth pane: a lit window of a shop that is open
 const FASCIA_SEEDS := [Color("#4a3f38"), Color("#3c4a45"), Color("#4d3a3f"), Color("#33404f"), Color("#5a4c39")]
 
+## Tamka from F's photos (2026-11-08, docs/landmarks/specs/tamka.md): the post-war blocks' balconies,
+## stacked in columns on the street walls, a slab and a dark steel rail; and a ground floor faced in
+## another material (Tamka 16's red brick). `style` keys: "balc" (rail colour), "base" (ground-floor
+## colour), "shops" (false: no shop front), "crenel" (Tamka 10/12's attic of small square openings).
+const BALC_BAY := 3.6           ## m, a balcony column every second bay of this
+const BALC_W := 2.3
+const BALC_DEEP := 0.95
+const BALC_FIRST := 3.4         ## m, the first balcony's slab over the foot
+const FLOOR := 2.9              ## m, one storey
+const BALC_TOP_GAP := 2.2       ## m, no balcony nearer the top of the wall than this
+const RAIL_H := 1.0
+const BASE_TOP := 3.9           ## m, the faced ground floor's top
+const CRENEL_W := 0.7
+const CRENEL_H := 0.55
+const CRENEL_STEP := 2.2
+
 ## Counts for the build's report: cornice edges, shop fronts, triangles added.
+static var balconies := 0
 static var cornices := 0
 static var shops := 0
 static var triangles := 0
@@ -37,7 +54,8 @@ static var triangles := 0
 ## `street` whether the wall faces a street close by. A triangle takes the cornice on a horizontal top
 ## edge (the third corner under it), the string course and shop front on a bottom edge (the third
 ## corner 3 m or more over it; the foot may follow a slope).
-static func wall(out: Dictionary, a: Vector3, b: Vector3, c: Vector3, n: Vector3, plaster: Color, street: bool) -> void:
+static func wall(out: Dictionary, a: Vector3, b: Vector3, c: Vector3, n: Vector3, plaster: Color, street: bool,
+		style := {}) -> void:
 	var v: Array[Vector3] = [a, b, c]
 	for i in 3:
 		var p := v[i]
@@ -47,11 +65,19 @@ static func wall(out: Dictionary, a: Vector3, b: Vector3, c: Vector3, n: Vector3
 		if length < MIN_EDGE:
 			continue
 		if absf(p.y - q.y) < 0.02 and o.y < p.y - 0.5:
-			_cornice(out, p, q, n, plaster)
+			if style.has("crenel") and street:
+				_crenels(out, p, q, n, Color(style["crenel"]))
+			else:
+				_cornice(out, p, q, n, plaster)
 		elif o.y > maxf(p.y, q.y) + 3.0:
-			_course(out, p, q, n, plaster, o.y - maxf(p.y, q.y))
-			if street and length >= SHOP_MIN_EDGE:
+			var wall_h := o.y - maxf(p.y, q.y)
+			_course(out, p, q, n, plaster, wall_h)
+			if style.has("base") and street:
+				_ledge(out, p, q, n, 0.0, BASE_TOP, 0.05, Color(style["base"]))
+			if street and length >= SHOP_MIN_EDGE and bool(style.get("shops", true)):
 				_shop(out, p, q, n, plaster)
+			if style.has("balc") and street and length >= BALC_W + 1.0:
+				_balconies(out, p, q, n, plaster, Color(style["balc"]), wall_h)
 
 
 ## The cornice: two steps, each a front face and a top face, running past both ends by its depth
@@ -131,3 +157,76 @@ static func _ledge(out: Dictionary, p: Vector3, q: Vector3, n: Vector3, h0: floa
 	RoofDress._tri2(out, hi_a, hi_b, wb, top, top, top, below)
 	RoofDress._tri2(out, hi_a, wb, wa, top, top, top, below)
 	triangles += 4
+
+
+## Balconies up a street wall (Tamka's post-war blocks, F's photos): a column of them every second
+## BALC_BAY along the edge (one in the middle on a narrow wall), from BALC_FIRST up a storey at a
+## time to BALC_TOP_GAP under the top; each a slab (front and top) and a dark rail (front and ends).
+static func _balconies(out: Dictionary, p: Vector3, q: Vector3, n: Vector3, plaster: Color, rail: Color,
+		wall_h: float) -> void:
+	var length := Vector2(q.x - p.x, q.z - p.z).length()
+	var along := Vector3(q.x - p.x, 0.0, q.z - p.z) / length
+	var bays := maxi(1, floori(length / BALC_BAY))
+	var step := length / bays
+	var slab := plaster.darkened(0.12)
+	var seed := fposmod((p.x + q.x) * 0.0713 + (p.z + q.z) * 0.0457, 1.0)
+	var first := 0 if seed < 0.5 else 1
+	if bays == 1:
+		first = 0
+	var top := minf(p.y, q.y) + wall_h - BALC_TOP_GAP
+	for k in range(first, bays, 2):
+		var mid := step * (k + 0.5)
+		var u0 := mid - BALC_W * 0.5
+		var u1 := mid + BALC_W * 0.5
+		if u0 < 0.3 or u1 > length - 0.3:
+			continue
+		var y := BALC_FIRST
+		while p.lerp(q, mid / length).y + y + RAIL_H < top:
+			var a := p + along * u0 + Vector3.UP * (y + (q.y - p.y) * u0 / length)
+			var b := p + along * u1 + Vector3.UP * (y + (q.y - p.y) * u0 / length)
+			_slab_rail(out, a, b, n, slab, rail)
+			balconies += 1
+			y += FLOOR
+
+
+## One balcony from wall points a-b (the slab's top at their height): the slab's front and top,
+## the rail's front and its two ends.
+static func _slab_rail(out: Dictionary, a: Vector3, b: Vector3, n: Vector3, slab: Color, rail: Color) -> void:
+	var o := n * BALC_DEEP
+	var t := Vector3.UP * 0.16
+	var inside := (a + b) * 0.5 - n * 2.0
+	RoofDress._tri2(out, a + o - t, b + o - t, b + o, slab, slab, slab, inside)
+	RoofDress._tri2(out, a + o - t, b + o, a + o, slab, slab, slab, inside)
+	var up := slab.lightened(0.05)
+	RoofDress._tri2(out, a + o, b + o, b, up, up, up, inside - Vector3.UP * 3.0)
+	RoofDress._tri2(out, a + o, b, a, up, up, up, inside - Vector3.UP * 3.0)
+	var r := Vector3.UP * RAIL_H
+	RoofDress._tri2(out, a + o, b + o, b + o + r, rail, rail, rail, inside)
+	RoofDress._tri2(out, a + o, b + o + r, a + o + r, rail, rail, rail, inside)
+	RoofDress._tri2(out, a, a + o, a + o + r, rail, rail, rail, (a + b) * 0.5 + r * 0.5)
+	RoofDress._tri2(out, a, a + o + r, a + r, rail, rail, rail, (a + b) * 0.5 + r * 0.5)
+	RoofDress._tri2(out, b, b + o, b + o + r, rail, rail, rail, (a + b) * 0.5 + r * 0.5)
+	RoofDress._tri2(out, b, b + o + r, b + r, rail, rail, rail, (a + b) * 0.5 + r * 0.5)
+	triangles += 12
+
+
+## Tamka 10/12's attic (F's photo): a plain parapet band with a row of small dark square openings
+## under the top edge instead of a cornice.
+static func _crenels(out: Dictionary, p: Vector3, q: Vector3, n: Vector3, dark: Color) -> void:
+	var length := Vector2(q.x - p.x, q.z - p.z).length()
+	var along := Vector3(q.x - p.x, 0.0, q.z - p.z) / length
+	var inside := (p + q) * 0.5 - n * 2.0
+	var off := n * 0.04
+	var count := floori((length - 1.0) / CRENEL_STEP)
+	if count < 1:
+		return
+	var start := (length - (count - 1) * CRENEL_STEP) * 0.5
+	for k in count:
+		var u := start + k * CRENEL_STEP
+		var lo := p + along * (u - CRENEL_W * 0.5) + Vector3.UP * (-0.95) + off
+		var lo2 := p + along * (u + CRENEL_W * 0.5) + Vector3.UP * (-0.95) + off
+		var h := Vector3.UP * CRENEL_H
+		RoofDress._tri2(out, lo, lo2, lo2 + h, dark, dark, dark, inside)
+		RoofDress._tri2(out, lo, lo2 + h, lo + h, dark, dark, dark, inside)
+		triangles += 2
+	cornices += 1
