@@ -9,6 +9,9 @@ that day here, in plain words a player would understand (no file names, no spoil
 rows in the progress log but no section here is listed automatically from the log's labels until
 someone writes its lines.
 
+## 2026-11-08
+- Three more towers by the Palace look like themselves: the InterContinental stands over its huge open gap, glowing white at night, under a sloping roof; the Warsaw Financial Centre is a white tower wrapped round a teal glass one with a red-and-white mast; and Hotel Polonia Palace has its tall zinc roof, the pediment with the round window and its gold name.
+
 ## 2026-11-07
 - Bus stops look like Warsaw's: the white zigzag on the road where the bus pulls in, the yellow line along the kerb, red-framed glass shelters with a lit poster and the red stop pole with its timetable, and shorter 12 m buses now run beside the long bendy ones.
 - Stacja Muzeum, Nocny Targ and Kolejowa: the old Warszawa Główna hall has its arched cream front with gold letters, steam engines on red wheels and green tank engines stand on the museum's sidings, the night market glows under two rusty platform roofs with coloured tubes and painted benches, and Kolejowa's old railway warehouses, the pinball museum and the teal club line the street.

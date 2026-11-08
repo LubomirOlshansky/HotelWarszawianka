@@ -4,6 +4,10 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## Skyline towers near the Palace from F's photos (F, 2026-11-08; specs plater49.md, wcf.md, polonia.md)
+- Done: InterContinental (the gap over the podium, the sloped roof, the corner column, lit gap at night), the Warsaw Financial Centre (white slab and ribbon slab on the curve, granite podium, mast) and Hotel Polonia Palace (photo pass: mansard, pediment and oval window, name on the frieze, balconies). Złota 44 was already rebuilt from F's photos (PR #321).
+- Left: Polonia's rounded front corners and its side/back faces (no photos); InterContinental's lobby and Emilii Plater entrance; WCF's curved crown louvres; the night look of all three on the phone. Shots still needed are in /mnt/project-files/pkin-surroundings/PKIN-SURROUNDINGS-BUILDINGS.txt.
+
 ## Buses and bus stops like Warsaw's (F, 2026-11-07)
 
 Compared with 22 recent street photos at our own stops (Mapillary 2021-2026). Built: the white stop

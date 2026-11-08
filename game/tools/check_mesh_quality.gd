@@ -238,7 +238,7 @@ const BUDGET := {
 	"unit": 1160,
 	"varso": 2500,
 	"varso_place": 1100,
-	"wcf": 190,
+	"wcf": 550,
 	"wszystkich": 1300,
 	"wizytki": 690,
 	"branickich": 1500,
