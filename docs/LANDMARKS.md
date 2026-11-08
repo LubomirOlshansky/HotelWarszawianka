@@ -198,7 +198,7 @@ Checks: `check_landmarks.gd` runs on the full map for EVERY site that has a card
 | Rondo 1 | S_BANDS silver-blue #8aa3b5 | open screen over the roof (12 m north, 4 m south), graphite west block with EJ and a yellow stroke, steps, antenna to 192 m (2026-11-08, `rondo1.md`) | ground-floor stone columns not modelled |
 | Emilii Plater 49 (InterContinental, "INTERKONTI" sign) | S_GRID | REBUILT 2026-11-08 from F's four photos (L2, spec `plater49.md`, `_build_interkonti`): the 53 m gap over the podium on the shaft's north-east half, its pale stone back wall and warm ceiling floodlit at night, the north corner's glass column, the roof cut on a slope (164 to 154 m), dark bands over the gap and under the name, a banded glass podium | grid cells cold/many vs warm sparse in photos; the podium's lobby and entrance not modelled |
 | Cosmopolitan | S_RIBBON | - | - |
-| Warsaw Trade Tower | S_BANDS | - | - |
+| Warsaw Trade Tower | by mapped colour (`skins`): S_RIBBON dark blue drum, S_PUNCHED beige stone slab, S_TILE silver crown | crown 162-184 m with UNIKWA (2026-11-08, top-50 T05) | crown slits, the fin with the mast |
 | Skyliner | S_BANDS dark teal (photo report `skyliner.md`, 2026-11-03) | roof cut rising east (`slope_to`) with a glass fin, black crown block 130-180 m (`crown_from`), NOSE AGENCY on the block | - |
 | Warsaw Unit | S_BANDS sky blue (`warsaw_unit.md`, 2026-11-03) | black crown block 168-202 m with WARTKA (red), black strips at the long faces' ends and middles (`strips`); taper not modelled | - |
 | The Warsaw HUB B and C (found by point `_tallest_at`) | S_BANDS blue-green (`warsaw_hub.md`, 2026-11-03) | flat roofs; C capped at 112 m (`top`); two cards share a name. The 85 m round-ended hotel is its own site `crowne` (S_TILE cream, dark band) | - |
@@ -226,7 +226,7 @@ Atlas Tower: the map's own tower plus the Level 26 rooftop club on its crown (la
 All with a card; check_landmarks only (except where noted). Open issue common to all (BACKLOG "Left"): colour-only, no portico/gables/towers modelled.
 | Name | Mode | Wall / roof | Note |
 |---|---|---|---|
-| Teatr Wielki | M_MONUMENT + portico model | #ddd2b6 / #7fa894 | 8-column portico, steps, attic (spec teatr.md, 2026-11-01; photo check on the Mac: column count, attic sculpture) |
+| Teatr Wielki | M_MONUMENT + portico model | #ddd2b6 / #7fa894 | 10-column portico, steps, attic with the bronze Apollo quadriga, raised middle block with the pediment and relief (spec teatr.md, 2026-11-01; photo pass 2026-11-08 from the top-50 set T06) |
 | Zamek Królewski | M_MONUMENT + model | #cf9580 / #ad5c3f | pass 2 (2026-11-02, spec zamek.md): Clock Tower and helm, turrets, cream Vistula front and dome, plinth; site `arkady` for the arcades and gardens |
 | Ratusz (Plac Bankowy) | M_MONUMENT + colonnades and portico model | #e6d6ae / #7da894 | `_build_ratusz` (spec bankowy.md, photo report ratusz.md, 2026-11-02): the 34 mapped columns as colonnades with stylobates and entablatures, the six-column giant portico on its arcaded base under an attic; 2054 tris |
 | Giełda i Bank Polski | M_MONUMENT + corner model | #e6d6ae / #7da894 | `_build_gielda` (spec bankowy.md, 2026-11-02): the arcade's piers round the corner, the upper tier of arches, the drum with sixteen windows, the shallow green dome; 874 tris |

@@ -75,7 +75,12 @@ const TOWERS := [
 			"base_sign": "ENELMEDIK"},
 	{"key": "plater49", "osm": "InterContinental", "style": S_GRID, "glass": "#5f7f9a", "roof": "#c3c7c9", "sign": "INTERKONTI"},
 	{"key": "cosmopolitan", "osm": "Cosmopolitan", "style": S_RIBBON, "glass": "#4d6574", "roof": "#dfe2e0"},
-	{"key": "wtt", "osm": "Warsaw Trade Tower", "style": S_BANDS, "glass": "#3d6a7a", "roof": "#8d979c"},
+	# WTT from the top-50 photo set (T05, 2026-11-08): the parts by their mapped colours, the dark
+	# blue ribbon-glass drum, the beige stone slab with punched windows, the silver crown and its name.
+	{"key": "wtt", "osm": "Warsaw Trade Tower", "style": S_RIBBON, "glass": "#2f4558", "roof": "#8d979c",
+			"crown_from": 162.0, "crown": "#bfc6ca", "crown_sign": true, "sign": "UNIKWA", "sign_col": Color(0.95, 0.97, 1.0),
+			"skins": {"#f4d9c6": [S_PUNCHED, "#e6d8c6"], "#839099": [S_TILE, "#bfc6ca"], "#2e404e": [S_RIBBON, "#2f4558"],
+					"#a6abaa": [S_BANDS, "#9aa3a8"]}},
 	# The Rondo Daszyńskiego towers rebuilt from the Mac's photo reports (F, 2026-11-03;
 	# docs/landmarks/photo-reports/skyliner.md, warsaw_unit.md, mennica.md, gpy.md, warsaw_hub.md).
 	# `crown_from`: parts standing from that height up are the black crown block (`crown`);
@@ -238,8 +243,8 @@ const INFO := {
 			"160 m. Projekt Helmuta Jahna, białe pasy balkonów.",
 			"160 m. Designed by Helmut Jahn: white bands of balconies."],
 	"wtt": ["Warsaw Trade Tower",
-			"208 m z iglicą. Otwarty w 1999 roku.",
-			"208 m with its spire. Opened in 1999."],
+			"208 m z iglicą. Ciemnoniebieski szklany walec, beżowa kamienna ściana z oknami i srebrna korona. Otwarty w 1999 roku.",
+			"208 m with its spire. A dark blue glass drum, a beige stone wall of windows and a silver crown. Opened in 1999."],
 	"skyliner": ["Skyliner",
 			"195 m przy rondzie Daszyńskiego.",
 			"195 m by Rondo Daszyńskiego."],
@@ -303,8 +308,8 @@ const INFO := {
 	"jm": ["JM Tower", "Biurowiec przy Alejach Jerozolimskich, ciemne szkło i szare żebra.",
 			"An office tower on Al. Jerozolimskie, dark glass and grey fins."],
 	"teatr": ["Teatr Wielki",
-			"Opera Narodowa. Gmach Antonia Corazziego z 1833 roku.",
-			"The National Opera. Antonio Corazzi's building of 1833."],
+			"Opera Narodowa. Gmach Antonia Corazziego z 1833 roku: dziesięć kolumn, tympanon z płaskorzeźbą i kwadryga Apollina na attyce.",
+			"The National Opera. Antonio Corazzi's building of 1833: ten columns, a carved pediment and Apollo's quadriga on the attic."],
 	"kopernik": ["Centrum Nauki Kopernik",
 			"Otwarte w 2010 roku. Ogród na dachu, obok miedzianoczerwone planetarium.",
 			"Opened in 2010. A roof garden, the copper-red planetarium beside it."],
@@ -3891,6 +3896,11 @@ func _build_tower(site: Dictionary) -> void:
 					else glass.darkened(0.12).lerp(Color("#b8a88c"), 0.0 if spec.get("cool", false) else 0.15)
 			if spec.has("podium_style"):
 				part_skin = M_SKIN + float(spec["podium_style"]) / 16.0
+		if spec.has("skins") and (spec["skins"] as Dictionary).has(str(b.get("c", "")).to_lower()):
+			# A part's own cladding by its mapped colour (WTT's stone slab, silver crown, dark glass).
+			var sk: Array = spec["skins"][str(b.get("c", "")).to_lower()]
+			wall = Color(sk[1])
+			part_skin = M_SKIN + float(sk[0]) / 16.0
 		if spec.has("arcade") and absf(h - float(spec["arcade"])) < 0.5 and mh < 0.5:
 			# RD-2 the arcade's lobby: copper-tinted glass 5 m in from the column line, lit warm.
 			var lobby := Geometry2D.offset_polygon(poly, -5.0)
@@ -13438,8 +13448,13 @@ const TEATR_STONE := Color("#eee6d0")
 const TEATR_BASE := Color("#cdc3a9")
 const TEATR_COLUMN := Color("#f1ead7")
 const TEATR_SCULPT := Color("#d9d2bf")
-## Portico column centres across the front, u from the middle: eight.
-const TEATR_COLS := [-11.9, -8.5, -5.1, -1.7, 1.7, 5.1, 8.5, 11.9]
+## Portico column centres across the front, u from the middle: ten (T06-04, 2026-11-08).
+const TEATR_COLS := [-15.3, -11.9, -8.5, -5.1, -1.7, 1.7, 5.1, 8.5, 11.9, 15.3]
+const TEATR_HALF := 17.0          ## the portico's half width over its columns
+const TEATR_PED_HALF := 15.0      ## the raised middle block and its pediment, half width
+const TEATR_RELIEF := Color("#cfc6ae")   ## the tympanum's relief, in the stone's shade
+const TEATR_BRONZE := Color("#4d5a52")   ## the quadriga's dark green-bronze (T06-04)
+const TEATR_COPPER := Color("#7fa894")   ## the green copper roofs (T06-08)
 
 
 ## The Royal Castle (Zamek Królewski). Pass 1 kept LoD2's mass in its skin and added the stone
@@ -14262,32 +14277,95 @@ func _build_teatr(_site: Dictionary) -> void:
 	_g = map.terrain_height(_w(m, 3.0).x, _w(m, 3.0).y)
 	var g := _g
 	var light := TEATR_STONE.lightened(0.04)
+	var hw := TEATR_HALF
 	_mode = M_STONE
 	# the base, as deep as the portico, and steps across it
-	_lbox(m, 3.5, 15.2, 3.5, g - 0.6, g + 3.4, TEATR_BASE, M_STONE, light)
+	_lbox(m, 3.5, hw + 1.6, 3.5, g - 0.6, g + 3.4, TEATR_BASE, M_STONE, light)
 	for k in 5:
 		var depth := (k + 1) * 0.8
-		_lbox(m, 7.0 + depth * 0.5, 12.5, depth * 0.5, g - 0.6, g + 2.5 - 0.5 * k, TEATR_BASE, M_STONE,
+		_lbox(m, 7.0 + depth * 0.5, hw - 1.1, depth * 0.5, g - 0.6, g + 2.5 - 0.5 * k, TEATR_BASE, M_STONE,
 				TEATR_BASE.lightened(0.04))
-	# eight Ionic columns on the base
+	# ten columns on the base (T06-04: ten across the front)
 	for u: float in TEATR_COLS:
 		_column(m + u, 4.6, 0.62, g + 3.4, g + 14.6, TEATR_COLUMN)
-	# the entablature, back to the wall, then the attic and its sculpture group
-	_lbox(m, 3.0, 14.0, 3.2, g + 14.6, g + 16.0, light, M_STONE, light)
-	_lbox(m, 3.0, 14.3, 3.4, g + 16.0, g + 17.2, TEATR_STONE, M_STONE, light)
-	_lbox(m, 3.0, 14.6, 3.7, g + 17.2, g + 17.7, light, M_STONE, light)
-	_lbox(m, 2.0, 13.4, 2.0, g + 17.7, g + 20.3, TEATR_STONE, M_STONE, light)
-	_lbox(m, 2.0, 13.8, 2.3, g + 20.3, g + 20.7, light, M_STONE, light)
-	for grp: Array in [[-9.0, 1.4, 2.4], [-4.5, 1.6, 3.2], [0.0, 2.0, 4.6], [4.5, 1.6, 3.2], [9.0, 1.4, 2.4]]:
-		_lbox(m + float(grp[0]), 2.0, float(grp[1]), 0.9, g + 20.7, g + 20.7 + float(grp[2]), TEATR_SCULPT, M_STONE,
-				TEATR_SCULPT)
+	# the entablature, back to the wall (architrave, the carved frieze a shade darker, cornice)
+	_lbox(m, 3.0, hw + 0.5, 3.2, g + 14.6, g + 16.0, light, M_STONE, light)
+	_lbox(m, 3.0, hw + 0.8, 3.4, g + 16.0, g + 17.2, TEATR_SCULPT, M_STONE, light)
+	_lbox(m, 3.0, hw + 1.1, 3.7, g + 17.2, g + 17.7, light, M_STONE, light)
+	# the attic over the portico: a plain block (T06-04)
+	_lbox(m, 2.0, hw - 0.2, 2.0, g + 17.7, g + 20.3, TEATR_STONE, M_STONE, light)
+	_lbox(m, 2.0, hw + 0.2, 2.3, g + 20.3, g + 20.7, light, M_STONE, light)
+	# the Apollo quadriga in dark bronze on its plinth in the middle of the attic
+	_teatr_quadriga(m, 2.0, g + 20.7)
+	# behind the attic, the raised middle block with its windows, its cornice and the pediment with
+	# the relief in the tympanum (T06-04, T06-08)
+	var pv0 := -0.5
+	var pv1 := -9.0
+	var pc := (pv0 + pv1) * 0.5
+	var ph := (pv0 - pv1) * 0.5
+	_lbox(m, pc, TEATR_PED_HALF, ph, g + 17.7, g + 27.4, TEATR_STONE, M_MONUMENT, light)
+	_lbox(m, pc, TEATR_PED_HALF + 0.5, ph + 0.5, g + 27.4, g + 28.0, TEATR_SCULPT, M_STONE, light)
+	_lbox(m, pc, TEATR_PED_HALF + 0.8, ph + 0.8, g + 28.0, g + 28.6, light, M_STONE, light)
+	_teatr_pediment(m, pv0 + 0.8, pv1 - 0.8, TEATR_PED_HALF + 0.8, g + 28.6, g + 34.0)
 	# the portico's back wall (proud of LoD2's), and the doors in it, in shade between the columns
-	_lbox(m, -0.1, 13.6, 0.2, g + 3.4, g + 14.6, TEATR_STONE.darkened(0.06), M_STONE, TEATR_STONE)
+	_lbox(m, -0.1, hw - 1.6, 0.2, g + 3.4, g + 14.6, TEATR_STONE.darkened(0.06), M_STONE, TEATR_STONE)
 	_mode = M_GLASS
-	for u: float in [-6.8, -3.4, 0.0, 3.4, 6.8]:
+	for u: float in [-10.2, -6.8, -3.4, 0.0, 3.4, 6.8, 10.2]:
 		_wall(_w(m + u - 1.0, 0.13), _w(m + u + 1.0, 0.13), g + 3.6, g + 8.0, _b, Color("#3a3d40"))
 	_mode = M_STONE
-	_collide(_rect(m, 4.0, 15.0, 6.0))
+	_collide(_rect(m, 4.0, hw + 2.0, 6.0))
+
+
+## The pediment over the middle block: a triangular gable from v0 (front) to v1 (back), half
+## width `hw`, from y0 to the ridge y1; two green copper slopes, stone ends, and the tympanum's
+## relief a shade darker, 0.15 m proud of the front.
+func _teatr_pediment(m: float, v0: float, v1: float, hw: float, y0: float, y1: float) -> void:
+	var l := _w(m - hw, v0)
+	var r := _w(m + hw, v0)
+	var t := _w(m, v0)
+	var lb := _w(m - hw, v1)
+	var rb := _w(m + hw, v1)
+	var tb := _w(m, v1)
+	var out := Vector3(_b.x, 0.0, _b.y)
+	var top := y1 - _g
+	_mode = M_STONE
+	_tri(Vector3(l.x, y0, l.y), Vector3(r.x, y0, r.y), Vector3(t.x, y1, t.y), out, TEATR_STONE,
+			Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), top)
+	_tri(Vector3(lb.x, y0, lb.y), Vector3(rb.x, y0, rb.y), Vector3(tb.x, y1, tb.y), -out, TEATR_STONE,
+			Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), top)
+	# the relief: a smaller triangle just proud of the tympanum
+	var k := 0.78
+	var f := _b * 0.15
+	var rl := _w(m - hw * k, v0) + f
+	var rr := _w(m + hw * k, v0) + f
+	var rt := _w(m, v0) + f
+	var ry0 := y0 + 0.4
+	_tri(Vector3(rl.x, ry0, rl.y), Vector3(rr.x, ry0, rr.y), Vector3(rt.x, ry0 + (y1 - y0) * k - 0.4, rt.y), out,
+			TEATR_RELIEF, Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), top)
+	# the two slopes, green copper
+	for side: float in [-1.0, 1.0]:
+		var a0 := _w(m + side * hw, v0)
+		var a1 := _w(m + side * hw, v1)
+		var n2 := _a * side * (y1 - y0) / hw
+		var nrm := Vector3(n2.x, 1.0, n2.y).normalized()
+		_quad(Vector3(a0.x, y0, a0.y), Vector3(a1.x, y0, a1.y), Vector3(tb.x, y1, tb.y), Vector3(t.x, y1, t.y), nrm,
+				TEATR_COPPER, Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), top)
+
+
+## The Apollo quadriga (T06-04): a plinth, four horses abreast rearing out to the square, the
+## chariot and the god behind them, all in dark bronze; low boxes, read from above.
+func _teatr_quadriga(m: float, v: float, y: float) -> void:
+	_lbox(m, v, 4.6, 1.6, y, y + 0.9, TEATR_STONE, M_STONE, TEATR_STONE.lightened(0.04))
+	var b := y + 0.9
+	for u: float in [-2.7, -0.95, 0.95, 2.7]:
+		var lean := 0.5 if absf(u) > 2.0 else 0.2  # the outer pair rear higher
+		_lbox(m + u * 1.05, v + 0.3, 0.32, 1.1, b + 0.9, b + 1.9, TEATR_BRONZE)       # body
+		_lbox(m + u * 1.1, v + 1.3, 0.25, 0.35, b + 1.6, b + 2.9 + lean, TEATR_BRONZE)  # neck and head
+		_lbox(m + u * 1.05, v - 0.6, 0.25, 0.25, b, b + 0.9, TEATR_BRONZE)             # hind legs
+		_lbox(m + u * 1.1, v + 1.0, 0.2, 0.3, b + 0.6, b + 1.3, TEATR_BRONZE)          # raised forelegs
+	_lbox(m, v - 1.0, 1.0, 0.5, b, b + 1.2, TEATR_BRONZE)       # the chariot
+	_lbox(m, v - 1.0, 0.35, 0.3, b + 1.2, b + 3.4, TEATR_BRONZE)  # Apollo
+	_lbox(m + 0.5, v - 0.8, 0.12, 0.12, b + 2.6, b + 3.9, TEATR_BRONZE)  # his raised arm
 
 
 # --- Plac Bankowy: Corazzi's palaces and the Bank Polski rotunda -----------------------------
