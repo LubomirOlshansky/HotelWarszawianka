@@ -1406,7 +1406,13 @@ Left:
   same way with K6's planted trees (items unchanged), re-stamped, and `streetdetails` and `stops`
   moved from the skipped map job to the quick job (all three are Python on the committed map); the prebuilt bake failed with no display, so
   `tools/verify.sh` now runs it under xvfb-run, or skips the prebuilt steps as a WARN without one.
-- Open: F publishes release `map-pack-1` (until then the map job skips with a warning). A required
+- Fixed 2026-11-08: the repository became LubomirOlshansky/HotelWarszawianka and private, so the old
+  public download link redirected and failed (curl 56 in CI, 401 in the cloud) and the map jobs went
+  red at "Fetch the map pack". `tools/map_pack.py fetch` now finds the asset through the GitHub API
+  with a token (GITHUB_TOKEN, GH_TOKEN or `gh auth token`) and downloads it as
+  application/octet-stream; verify.yml passes the job's token (`contents: read`). On the Mac, sign in
+  gh (or export GITHUB_TOKEN) before a fetch.
+- Open: A required
   check: GitHub Settings → Rules → a ruleset on main requiring `quick` and `map`, so a PR can't merge
   on red or before its run ends (#261 did). After a full bake that changes lod2 or terrain:
   `python3 -I tools/map_pack.py make`, publish, commit `tools/map_pack.json`.
