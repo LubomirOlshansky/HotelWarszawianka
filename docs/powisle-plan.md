@@ -105,6 +105,7 @@ After each of the above: Mac shots at phone size, then the iPhone. Phone-only: d
 Elektrownia and the boulevard, jazz level, night readability.
 
 ## Photos
+The shoot list with every address: `docs/powisle-photos-needed.txt`.
 Fetch them in the thread that takes the item (Mapillary, Panoramax, any web source, any licence;
 reference only, never committed; note the source in the photo report). The Mapillary token is not on
 the Mac and Wikimedia Commons is blocked from the cloud, so Panoramax and web search come first.

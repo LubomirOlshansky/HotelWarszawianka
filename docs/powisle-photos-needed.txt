@@ -1,0 +1,95 @@
+POWIŚLE: PHOTOS AND EVERYTHING ELSE NEEDED (2026-11-08)
+Plan: docs/powisle-plan.md (PR #590). Photos are reference only, never committed.
+Folder suggestion on the Mac: warsaw-needed-photos/powisle/<id>/ plus a SOURCES.md.
+How to shoot: from the street, whole facade straight on, then 2-3 close-ups (ground floor
+shops, gate, cornice), then a view of the roof from an angle or a window. Evening shot of
+lit windows where marked (N). Where a thread can fetch the photo itself (Mapillary,
+Panoramax, web), it will; this list is what F can shoot or pick if easy.
+
+=== A. ELEKTROWNIA POWIŚLE (Dobra 42), most important ===
+A01 Dobra side, whole front, wide
+A02 Corner Dobra / Wiślana (or Elektryczna), both walls
+A03 Browarna side
+A04 The chimneys: all of them in one frame from the yard or the river side, so the count shows
+A05 Each chimney's top (cap, bands), and its base
+A06 The yard east: floor, benches, trees, the chill spots
+A07 The food hall inside: the big roof, the steel frame, the coal chutes, the glass lift tower
+A08 The glass lift / coal crane tower from outside, with the roof it stands on
+A09 Dormers on the roof (a close-up of two)
+A10 The arched windows: one close-up (frame colour, how deep)
+A11 New blocks beside it (hotel, offices, flats): each whole facade
+A12 Night: the whole front lit (N), and the yard lit (N)
+A13 The entrance with the sign: where it is, what it says (we will only use a parody)
+
+=== B. MISSING BUILDINGS (not in the game yet) ===
+B01 Barceló hotel, Zajęcza
+B02 Carpathia Office House, Zajęcza
+B03 RPZ Powiśle substation 110/15 kV, Zajęcza (brick)
+B04 Klub Bankowca, Smolna
+B05 Autoreduta Powiśle, Aleja 3 Maja
+B06 Arkada shopping centre, Aleja 3 Maja
+B07 Orlen station, Aleja 3 Maja
+B08 Nordic Park offices, Aleja 3 Maja
+B09 UW Wydział Artes Liberales, Dobra
+B10 UW Collegium Iuridicum IV (Prawa i Administracji), Dobra
+B11 Pawilon Tańca, Dobra
+B12 XVIII LO im. Zamoyskiego, Smolna
+B13 Chopin Museum front, Tamka (the Ostrogski side from the street)
+B14 Kamienica Jana Struskiego, Dobra
+B15 Bella Italia / Młodsza Siostra corner (Dobra) as shops
+
+=== C. STREETS: one photo per house, then the whole row (house numbers from the map) ===
+Tamka: 1A 4 5 10/12 13 13A 14 16 17 18 19/23 20 22/24 29 31 33 33A 34 34A 36 37
+Dobra: 3 5 6 7 8/10 9 11 13 15 17 18/20 19 22/24 27 28 29 31 32 40 54 56/66
+Solec: 28 30 30A 36 48 52 54 56 58/60 62 66 79 83 85 97 99 101 103 109 109A 111 113 115
+Smolna: 8 9 10 10A 16 18 20 32
+Zajęcza: 1A 2A 2B 4 7 8 9 10 11 13 15
+Topiel: 6 11 15B 18 19 21 23 25 27 29
+Radna: 1/7 2/4 6 9 10 11 12 13 15 15A 17
+Leszczyńska: 1 1A 3 4 6 8 10 12
+Lipowa: 1A 5 7
+Browarna: 4 6
+Drewniana: 1 5 7 9
+Oboźna: 1 1A 3
+Czerwonego Krzyża: 2 4 6
+Cicha: 1 3 5 7
+Dynasy: 2 2A 4 6 8 10
+Juliana Smulikowskiego: 1/3 2 2A 3 4 4A 4B 4C 5 6/8 7 7A 9 10 11 12 13 14
+Stefana Jaracza: 1 3 6 8
+Św. Franciszka Salezego: 1 2 4 6
+Foksal: 1A 2A
+Leona Kruczkowskiego: 3 3B 12A 12C 14 16
+Aleja 3 Maja: 2 3 5 5B 7 7A 14
+Wybrzeże Kościuszkowskie: 17 19 21 21A 35 37A 39 41 43 43B 43C 45
+(If shooting is too much: priority streets are Solec, Smolna, Zajęcza, Radna, Browarna, Topiel.)
+
+=== D. STREET DETAILS (per street, 3-5 photos each) ===
+D01 Surface: setts, cobbles, asphalt patches, kerbs, tram-less narrow streets (Browarna, Radna, Lipowa, Leszczyńska)
+D02 Lamps: the old cast-iron / arm lamps on the tenement streets, and the new ones
+D03 Benches, bins, bike racks, planters, bollards, kiosks, advertising columns
+D04 Street name plates and house number plates
+D05 Pavement cafés: umbrellas, chairs, planters (Browarna, Tamka, Dobra)
+D06 Crossings and kerb ramps; the Aleja 3 Maja underpass edge
+D07 Parked cars on both kerbs (how tight)
+D08 Shop fronts: bakery, vinyl shop, bookshop, bars on Zajęcza (Centrala, Champs, Gatsby, Kakadu) as place types, we use parody names
+
+=== E. PARKS AND OPEN PLACES ===
+E01 Skwer Kahla   E02 Park Odkrywców   E03 Park Beyera   E04 Skwer Wodiczko
+E05 Złota Kaczka corner   E06 BUW garden surroundings   E07 Smolna steps / escarpment stairs
+E08 Plac Zofii Wóycickiej   E09 Playgrounds (where they are)
+
+=== F. WATER EDGE ===
+F01 Wybrzeże Kościuszkowskie road and flood wall   F02 Stairs down to the boulevard
+F03 Syrenka plinth   F04 Moorings   F05 Bridge abutments (Świętokrzyski, Poniatowski)
+
+=== G. LIFE (notes, not photos) ===
+G01 Where students gather on Dobra and at what times
+G02 Where runners/cyclists go on the boulevard; evening crowd on Zajęcza
+G03 A morning queue (which bakery/café)
+
+=== H. DECISIONS FOR F ===
+H1 Elektrownia chimney count and height: fix from photos (game has 2 at 48 m; sources say recreated 30 m stacks). Default: yes.
+H2 Furniture density 1.5 x the city average for Powiśle. Default: yes.
+H3 Order of work: Elektrownia first, then houses street by street. Default: yes.
+H4 Device: Mac look checks and iPhone run after each item need F's yes.
+H5 OK to fetch all photos from the web ourselves (reference only)? Standing yes since 2026-11-08.
