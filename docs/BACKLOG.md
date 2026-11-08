@@ -217,6 +217,13 @@ THEATRES, `theatre` curve, dark on Mondays). Left:
   row's extra; a phone look at the colours' strength. The event list is settled (F, 2026-11-08).
 - The floodlight's reach (a circle round the Palace) also tints the TR Warszawa site's crane and the forecourt's
   stone furniture; an old quirk of the gold, louder in the event colours.
+- The underground car park's ramp by Metro Centrum (F, 2026-11-08: "looks like a tunnel entrance"): OSM's
+  parking aisle between two walls down a 3-4 m pit ended at a blank wall. It is the entry ramp of the
+  underground car park Plac Defilad 1 (260 spaces, 2.8 m, from Marszałkowska); built: a concrete hood over
+  the ramp's foot with the dark mouth, hazard band and lit strip, a red-white barrier (solid), P boards and a
+  striped 2,8 m gauge at the top (map_builder.gd GARAGE_MOUTHS). Left: the 10 m grid makes the pit only
+  ~2.5 m deep, so the hood stands ~2 m over the lot behind it; a night/phone look at the lit strip; the
+  other 27 R9 garage doors city-wide could get the same mouth.
 
 ## Ratusz Arsenał interchange and passengers (F, 2026-11-07, six photos)
 

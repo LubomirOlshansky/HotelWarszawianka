@@ -619,6 +619,7 @@ func _build_parts(marks, roofs_only: bool) -> void:
 	_build_slasko(walls)
 	_build_powisle(walls)
 	_build_garage_doors(walls)
+	_build_garage_mouths(walls)
 	_build_guard_rails(walls)
 	_build_shore()
 	_add_mesh(walls, building_material, true)
@@ -4841,6 +4842,111 @@ func _build_garage_doors(st) -> void:
 		_wall_faces.append_array([Vector3(a.x, y - 0.5, a.y), Vector3(b.x, y - 0.5, b.y), Vector3(b.x, y + 2.9, b.y),
 				Vector3(a.x, y - 0.5, a.y), Vector3(b.x, y + 2.9, b.y), Vector3(a.x, y + 2.9, a.y)])
 	_uv2 = Vector2.ZERO
+
+
+## Open car-park ramps whose way OSM maps on, between its walls, to a mouth the map doesn't
+## have (F, 2026-11-08: "what is this by the Palace, it looks like a tunnel entrance"). On Plac
+## Defilad, next to Metro Centrum's north pavilion, parking aisle 221935338 runs between walls
+## 1341260301 down a 3-4 m pit (the GUGiK grid) and stopped at a blank wall: it is the entry ramp
+## of the underground car park Plac Defilad 1 (260 spaces, 2.8 m clearance, entry from
+## Marszałkowska). Each mouth: "c" the mouth's middle at the ramp's foot, "d" the way in (down
+## the ramp), "w" its width between the walls, "top" the ramp's top (the height gauge and the P).
+const GARAGE_MOUTHS := [
+	{"c": Vector2(-993.95, 252.5), "d": Vector2(0.338, 0.941), "w": 5.2, "top": Vector2(-1004.3, 223.0)},
+]
+const MOUTH_DARK := Color("#17181c")
+const MOUTH_HAZARD := Color("#e0b22a")
+const MOUTH_BLUE := Color("#1d4fa0")
+const MOUTH_STEEL := Color("#6e7378")
+## The opening's clear height (it shows 2.8 m on the gauge; the 10 m grid leaves the pit shallower).
+const MOUTH_OPEN := 2.4
+## How far the hood over the ramp's foot runs in from the mouth.
+const MOUTH_HOOD := 4.0
+
+
+## The car park's mouth at each ramp's foot (GARAGE_MOUTHS): a concrete hood over the foot with
+## the dark opening, a lit strip and a hazard band on its face, a red and white barrier arm before
+## it (solid: the car park itself isn't built), a blue P board on its roof, and at the ramp's
+## top a striped "2,8 m" height gauge and a P post.
+func _build_garage_mouths(st) -> void:
+	_uv2 = Vector2(0.5, -1.0)
+	for g: Dictionary in GARAGE_MOUTHS:
+		var c: Vector2 = g["c"]
+		if _in_sector and not _sector_rect.has_point(c):
+			continue
+		var d: Vector2 = (g["d"] as Vector2).normalized()
+		var side := Vector2(-d.y, d.x)
+		var w := float(g["w"])
+		var basis := Basis(Vector3.UP, atan2(-d.x, -d.y))
+		var y := terrain_height(c.x, c.y)
+		var open := y + MOUTH_OPEN
+		# The hood over the ramp's last MOUTH_HOOD metres: a concrete box (its roof a little over the
+		# opening, its sides and back standing on the car park, where the 10 m grid sinks the ground
+		# towards the pit), the dark mouth on its face up the ramp.
+		var mid := c + d * (MOUTH_HOOD * 0.5)
+		var roof := open + 0.45
+		_box_oriented(st, Vector3(mid.x, (y - 0.6 + roof) * 0.5, mid.y), basis,
+				Vector3(w + 0.9, roof - y + 0.6, MOUTH_HOOD), PORTAL_CONCRETE)
+		_box_oriented(st, Vector3(mid.x, roof + 0.05, mid.y), basis, Vector3(w + 1.1, 0.1, MOUTH_HOOD + 0.2), WALL_COPING)
+		var l0 := c - side * w * 0.5 - d * 0.02
+		var r0 := c + side * w * 0.5 - d * 0.02
+		_quad(st, Vector3(l0.x, y - 0.05, l0.y), Vector3(r0.x, y - 0.05, r0.y), Vector3(r0.x, open, r0.y),
+				Vector3(l0.x, open, l0.y), Vector3(-d.x, 0.0, -d.y), MOUTH_DARK)
+		# A warm lit strip just inside, along the opening's top.
+		var lit := c - d * 0.05
+		_box_oriented(st, Vector3(lit.x, open - 0.12, lit.y), basis, Vector3(w - 0.6, 0.06, 0.04), Color("#ffe3a6"))
+		# The hazard band over the opening: yellow and black blocks.
+		var band := c - d * 0.04
+		var n := int(round(w / 0.6))
+		for k in n:
+			var p := band + side * ((k + 0.5) * w / n - w * 0.5)
+			_box_oriented(st, Vector3(p.x, open + 0.17, p.y), basis, Vector3(w / n, 0.3, 0.06),
+					MOUTH_HAZARD if k % 2 == 0 else MOUTH_DARK)
+		# The barrier just before the mouth: a post on the right and its red and white arm across.
+		var bar := c - d * 0.6
+		var post := bar + side * (w * 0.5 - 0.35)
+		_box_oriented(st, Vector3(post.x, y + 0.55, post.y), basis, Vector3(0.3, 1.1, 0.3), Color("#d9822b"))
+		for k in 7:
+			var p := bar + side * (w * 0.5 - 0.6 - (k + 0.5) * (w - 0.8) / 7.0)
+			_box_oriented(st, Vector3(p.x, y + 0.95, p.y), basis, Vector3((w - 0.8) / 7.0, 0.1, 0.08),
+					Color("#c23a32") if k % 2 == 0 else Color("#f2f2ee"))
+		var a := bar - side * w * 0.5
+		var b := bar + side * w * 0.5
+		_wall_faces.append_array([Vector3(a.x, y - 0.5, a.y), Vector3(b.x, y - 0.5, b.y), Vector3(b.x, open, b.y),
+				Vector3(a.x, y - 0.5, a.y), Vector3(b.x, open, b.y), Vector3(a.x, open, a.y)])
+		# The P board on the hood's roof, read from up the ramp and from over the car park.
+		_mouth_p(st, Vector3(mid.x, roof + 0.75, mid.y), basis, 1.1)
+		# The ramp's top: the height gauge across the way (a striped bar at 2.8 m), and a P post.
+		var t: Vector2 = g["top"]
+		var ty := terrain_height(t.x, t.y)
+		for sgn in [-1.0, 1.0]:
+			var p: Vector2 = t + side * sgn * (w * 0.5 + 0.3)
+			_box_oriented(st, Vector3(p.x, ty + 1.6, p.y), basis, Vector3(0.14, 3.2, 0.14), MOUTH_STEEL)
+		var m := int(round((w + 0.6) / 0.5))
+		for k in m:
+			var p := t + side * ((k + 0.5) * (w + 0.6) / m - (w + 0.6) * 0.5)
+			_box_oriented(st, Vector3(p.x, ty + 2.95, p.y), basis, Vector3((w + 0.6) / m, 0.22, 0.1),
+					MOUTH_HAZARD if k % 2 == 0 else MOUTH_DARK)
+		var pp := t - side * (w * 0.5 + 1.1)
+		_box_oriented(st, Vector3(pp.x, ty + 1.3, pp.y), basis, Vector3(0.08, 2.6, 0.08), MOUTH_STEEL)
+		_mouth_p(st, Vector3(pp.x, ty + 2.6, pp.y), basis, 0.7)
+	_uv2 = Vector2.ZERO
+
+
+## A square blue board `s` metres with a white P on both faces, centred at `at` (basis: local x
+## along the board, -z the way in).
+func _mouth_p(st, at: Vector3, basis: Basis, s: float) -> void:
+	_box_oriented(st, at, basis, Vector3(s, s, 0.08), MOUTH_BLUE)
+	var u := s / 7.0
+	# The P in a 4 x 5 cell grid: the stem, the bowl's top, right and middle bars.
+	for face in [-1.0, 1.0]:
+		var f: float = face * 0.05
+		var flip: float = face
+		var bars := [[-1.0, 0.0, 1.0, 5.0], [-0.5, 2.0, 2.0, 1.0], [1.0, 1.0, 1.0, 1.0], [-0.5, 0.0, 2.0, 1.0]]
+		for r: Array in bars:
+			var lx: float = float(r[0]) * u * flip
+			var ly: float = (2.5 - float(r[1]) - float(r[3]) * 0.5) * u
+			_box_oriented(st, at + basis * Vector3(lx, ly, f), basis, Vector3(float(r[2]) * u, float(r[3]) * u, 0.03), Color(1, 1, 1))
 
 
 ## Loop 3b: the aprons and their cell index (`terrain_height` reads them).

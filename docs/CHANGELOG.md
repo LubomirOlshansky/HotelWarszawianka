@@ -10,6 +10,7 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-08
+- The walled ramp on Plac Defilad by the Metro Centrum pavilion no longer dead-ends at a blank wall: it is the way down into the underground car park again, with its entrance, barrier, blue P signs and a 2,8 m height gauge.
 - The invisible wall on Emilii Plater's paved median by the Palace of Culture is gone: the low planting-bed edges there no longer stop the car.
 - Quests on the map are clearer: the gold main-line star now only guides your first kebab delivery and then gets out of the way, the quest you took glows and pulses on the map and the minimap with a dotted line to it, the map's quest card has a "✕ Quit" button (tap twice) to drop it, and scrolling the quest list no longer starts a quest and closes the map.
 - Tram and bus shelters face the right way: the open side with the bench looks at the tracks or the kerb, not along the street or at the pavement (Ratusz Arsenał and over fifty other stops).
