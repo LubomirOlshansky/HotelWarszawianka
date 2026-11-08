@@ -3106,6 +3106,11 @@ func _build_stories(world: Node3D) -> void:
 				"hello": CoffeeRun.HELLO, "closed": CoffeeRun.CLOSED,
 				"at": CoffeeRun.DOCK, "colour": CoffeeRun.COLOUR, "hours": Vector2(CoffeeRun.HOURS[0], CoffeeRun.HOURS[1]), "days": [],
 				"call": trend_job.kawa_ring, "meet": trend_job.kawa_meet, "busy": trend_job.kawa_busy, "idle": trend_job.kawa_idle})
+		# Padel at WTS DESKA (docs/design/padel.md): the friend short of a fourth, at the club's gate.
+		stories.add({"id": "padel", "pl": TrendJob.PADEL_NAME[0], "en": TrendJob.PADEL_NAME[1], "who": ["Kuba", "Kuba"],
+				"hello": TrendJob.PADEL_HELLO, "closed": TrendJob.PADEL_CLOSED,
+				"at": TrendJob.DESKI_GATE, "colour": TrendJob.PADEL_COLOUR, "hours": Vector2(TrendJob.DESKI_HOURS[0], TrendJob.DESKI_HOURS[1]), "days": [],
+				"call": trend_job.padel_ring, "meet": trend_job.padel_meet, "busy": trend_job.padel_busy, "idle": trend_job.padel_idle})
 	# The night racing club (street_meet.gd): Darek at Plac Defilad, 21:00-4:00. Null with
 	# --no-traffic or --meet=0.
 	if meet != null and meet.meets.size() > 0:

@@ -12,6 +12,7 @@ someone writes its lines.
 ## 2026-11-08
 - The Rotunda looks like itself from the street: its glass rises into a ring of points under a thin white zigzag edge, with slimmer frames, and its folded silver roof dips into the round skylight. The three glass stores across from the Palace have their pale glass in big panes, a light band along the roof and the grey louvred top floor with the shops' names.
 - Around the Palace: the EMPIRYK bookshop pavilion and the Zodiak pavilion are rebuilt from photos, and the glass office building on the corner of Marszałkowska and Świętokrzyska now has its stepped glass tiers, silver fins and white LED dashes that light up at night.
+- Widok Towers on Aleje Jerozolimskie now has its real blue-grey glass in a light grid instead of green.
 
 ## 2026-11-08
 - Three more towers by the Palace look like themselves: the InterContinental stands over its huge open gap, glowing white at night, under a sloping roof; the Warsaw Financial Centre is a white tower wrapped round a teal glass one with a red-and-white mast; and Hotel Polonia Palace has its tall zinc roof, the pediment with the round window and its gold name.
@@ -27,6 +28,7 @@ someone writes its lines.
 
 ## 2026-11-07
 - Street objects tidied across the city: no more lamps, bins or traffic lights standing in the road, inside walls, in the river or under bridges; the sides of underpass and metro stairs that were still tall grey walls are open railings; park paths go through gates in the fences; picnic shelters in parks and car parks are no longer bus stops.
+- Padel is on the quest map now: a yellow-green start by the DESKA club. Stop by the gate and your friend comes out with a racket, or ring them from the list.
 - The car park behind the Novotel on Nowogrodzka stands as it does: eight open decks painted with red roses turning green and teal down Parkingowa, a blue-neon bar on the corner, the barrier at the entry and the poster-covered wall beside it.
 - Nowogrodzka 31, the cream office block across from the Novotel, is built from real photos: rows of square windows, bars and shops with fairy lights and neon, a huge cat-food advert (MRAU) on the end wall facing the Novotel, and on the roof a big white billboard lit at night by fifteen lamps. Next to it, Marszałkowska 99 is the white block with its balconies.
 - The cycle bridges under Most Łazienkowski no longer float in the air: they hang on steel brackets from the bridge's box girders.

@@ -474,7 +474,7 @@ at DESKA (the generic three-a-side line overwrote it). Left:
 - [ ] hud.gd: a card with no spot that fits (a side card wider or taller than the room beside the car, a centred one taller than the screen) is never placed and stays hidden, so a quest waits on an invisible card (PT-30, 2026-11-07). Fall back to any spot, or log it
 - [ ] PT-31 (map lane): the Solec-Zaruskiego service road is mapped as a bridge the car can't drive onto, so DESKA is reachable by car only from Czerniakowska (or by helicopter); Mac Autopilot 2026-11-07
 - [ ] PT-32 (suspect): a district discovery card during the ringing call may end the call
-- [ ] Hook the call into the quest map (PR #504's `stories.add`, docs/design/quest-map.md "Adding a questline") once it is on main
+- [x] On the quest map (2026-11-07): a yellow-green start at the DESKA gate, the list's call, Kuba walks up in person and the match starts at once (`trend_job.gd` padel_ring/meet/busy/idle)
 - [ ] A racket detour: the friend calls back mid-drive ("masz rakietę?"), a stop at a pro shop "Rakieta w Cenie" for +1 point's head start
 - [ ] The court booked till the hour: the 8 min limit becomes the minutes to the full hour (at least 5), shown as "KORT DO 18:00"
 - [ ] Ściana Płaczu, the rooftop glass court (padel.md idea), as a second venue for the call
@@ -2812,9 +2812,12 @@ plan: docs/design/start-area-real.md (items R1-R8, ticked in ROADMAP "v1.0 check
   core, ribbed silver band and teal glass ribbon, EMPIRYK in white) and Zodiak rebuilt (white-framed
   glass, slab with grass terrace and glass rail, set-back glass room, pergola), spec
   docs/landmarks/specs/pavilions.md. Centrum Marszałkowska is the new site `cmarsz` (spec cmarsz.md):
-  it retires photo front b5494 and street block 579369105. Left from F's list: Widok Towers (two
-  offset slabs, white grid), Złote Tarasy/Lumen/Skylight from the W3 photos, the Jerozolimskie 47
-  corner dome; Świętokrzyska 30 and 32 already have photo fronts. Only the phone shows the LED
+  it retires photo front b5494 and street block 579369105. Part 2: Widok Towers in blue-grey glass
+  with a light grid (was green). Checked against the W3 and S4 photos and left as they are: Złote
+  Tarasy, Lumen and Skylight (rebuilt 2026-10-31 and 2026-11-05), and Jerozolimskie 47, whose
+  domed corner is already in the LoD2 mass next to photo front b8403. Świętokrzyska 30 and 32
+  already have photo fronts. Open: Widok's two offset slabs and its square notch (the mapped
+  parts give one 95 m mass). Only the phone shows the LED
   strokes' size at the default zoom.
 - **R5 done 2026-11-01**: the Cepelia pavilion at Rondo Dmowskiego is a site (landmarks.gd
   "cepelia"): a recessed glass shop floor, a frame band, a glass upper storey with mullions, a

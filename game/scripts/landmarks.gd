@@ -156,7 +156,9 @@ const TOWERS := [
 	{"key": "ilmet", "osm": "Ilmet", "style": S_BANDS, "glass": "#8a5e4c", "roof": "#8c8278", "chamfer": true},
 	{"key": "platinum_a", "osm": "Platinum Tower A", "style": S_RIBBON, "glass": "#6b7f8e", "roof": "#c4c8c8"},
 	{"key": "platinum_b", "osm": "Platinum Tower B", "style": S_RIBBON, "glass": "#6b7f8e", "roof": "#c4c8c8"},
-	{"key": "widok", "osm": "Widok Towers", "style": S_GRID, "glass": "#5d8478", "roof": "#8d969c"},
+	# Widok Towers (F's photos, 2026-11-08, folder E4-widok): pale blue-grey glass in a white
+	# aluminium grid, not green; a white roof edge.
+	{"key": "widok", "osm": "Widok Towers", "style": S_GRID, "glass": "#86a3b8", "roof": "#c6cbcf", "cool": true},
 	# The PZU Tower's two stepped glass volumes (92 and 97 m, one round-topped) in pale
 	# green-blue glass with ribbon bands, and its slim white mast (106 m). JM Tower's grey fins
 	# stand on dark navy glass (a dozen small mapped pilasters in #bfbfc4: kept as mapped).
