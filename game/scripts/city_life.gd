@@ -852,6 +852,7 @@ func setup(places: Array, data: Dictionary, seed_value := 4404) -> void:
 	_index_out = [null]
 	var out := _index_out
 	_index_task = WorkerThreadPool.add_task(func() -> void: out[0] = build_index(paths, trees, start, end, walk), false, "city life index")
+	await LoadYield.tick("life zones")
 	_build_drawing()
 	print("life: %d dog zones, %d runner zones, the index being built (%d paths, %d trees), amount %.2f" % [
 			_zones.size(), _run_zones.size(), paths.size(), trees.size() / 6, amount])

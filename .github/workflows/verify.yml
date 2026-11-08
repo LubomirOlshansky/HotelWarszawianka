@@ -4,7 +4,7 @@
 #   map    the map pack (tools/map_pack.py: lod2.bin, lod2.json, terrain.json, a release asset,
 #          since loop 3d-1 took them out of git), the derived split and prebuilt sectors
 #          (tools/setup_map.sh, with a software Vulkan renderer under Xvfb), then the map, road,
-#          street, drape, drive, landmark and water checks and short game runs on both city paths.
+#          street, drape, ground, drive, landmark and water checks and short game runs on both city paths.
 # Screenshots, the bench, the long autopilot runs and the phone stay on the Mac's tools/verify.sh
 # (docs/WORKFLOW.md).
 name: verify
@@ -84,7 +84,7 @@ jobs:
       matrix:
         include:
           - part: data and roads
-            steps: map,roads,cyclehang,streets,outline,pois,streetmesh,lod2,courts,drape,drive,drive-prebuilt,deckxray,stuckspots,stuckspots-prebuilt,lanedrive,finite,questlines,stopassist,language,cost,oldtownroofs,water-prebuilt,prebuilt
+            steps: map,roads,cyclehang,streets,outline,pois,streetmesh,lod2,courts,drape,drive,drive-prebuilt,deckxray,stuckspots,stuckspots-prebuilt,lanedrive,finite,questlines,stopassist,language,cost,oldtownroofs,water-prebuilt,prebuilt,ground
           - part: landmarks, water and runs
             steps: landmarks,water,plain,ram,teleport
     steps:
