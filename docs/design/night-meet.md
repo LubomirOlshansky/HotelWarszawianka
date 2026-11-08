@@ -101,7 +101,7 @@ F played it and found it weak. Changed in `street_meet.gd`:
   the way out; the road chasers still come. They leave out of sight once you are 90 m away.
 - **Minimap.** The racers show as neon dots (hud.gd `set_quest_dots`, pinned to the rim when far)
   during the raids and the race.
-- **Racers** race at 0.97-1.06 of your top speed, 6-8 m/s² and 7.6 m/s² in corners, with every
+- **Racers** race at 1.0-1.06 of your top speed, 6-8 m/s² and 7.6 m/s² in corners, with every
   shortcut in race_cuts.json.
 - **Drag.** A start gate over both lanes (chequered line, lit club-red banner, a small tree of
   lights); stop on the line under it to stage (START DRAG still works). The count is a big 3, 2, 1,

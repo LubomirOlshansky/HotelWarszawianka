@@ -142,10 +142,10 @@ const GLIDE_V := 9.0
 const STAGGER := 0.35
 ## The race to meet 2: arriving within ARRIVE_R m counts (any speed); the racers' racer stats.
 const ARRIVE_R := 22.0
-## F 2026-11-08 ("they drive dumb and slow"): about the player's own top speed, a sports car's
-## pull, corners near the ladder's best rivals, and every shortcut in the city (race_cuts.gd:
-## they are locals).
-const RACE_SHARE := Vector2(0.97, 1.06)
+## F 2026-11-08 ("they drive dumb and slow"; "the other racers too"): at least the player's own top
+## speed (as the ladder's rivals now), a sports car's pull, corners near the ladder's best rivals,
+## and every shortcut in the city (race_cuts.gd: they are locals).
+const RACE_SHARE := Vector2(1.0, 1.06)
 const RACE_ACCEL := Vector2(6.0, 8.0)
 const RACE_LAT := 7.6
 ## [złoty, respect] by place (1st, 2nd, 3rd, the rest).
