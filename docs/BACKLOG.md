@@ -484,17 +484,17 @@ strict three-question door, Smoła's cutaway room (option A). Left:
 
 ## Shisha lounge quest "Dym u Senatorka" (F, 2026-11-08; analysis in docs/design/shisha-lounge.md)
 
-Analysis and design only, nothing built. Mati rings ("wanna smoke some shisha?"), pick him up at
+Analysis and design only, nothing built. Ivan rings ("wanna smoke some shisha?"), pick him up at
 19. Dzielnica, pick up Bogdan from the tennis courts (WTS DESKA), argue in the car about flavours
 and strength, SENATOREK LOUNGE (parody of "Senator lounge", on a high floor of the Warsaw Financial Centre, Emilii Plater 53, with a roof terrace, from F's photos), the lounge cutaway room, the flavour
 mini-game with the shisha master, then smoke or exit as at Smoła.
-- [ ] F's call: who rings, Mati or "Ivan" (parked in QUESTIONS; default Mati); lounge name SENATOREK LOUNGE ok?
+- [ ] F's call: lounge name SENATOREK LOUNGE ok? (Ivan calls, Bogdan second: F 2026-11-08)
 - [ ] Lounge entrance: kerb ring under the WFC portico on Emilii Plater 53, a lift card, a rock-wall room with olive trees and velvet banquettes, a roof terrace with the Palace view (spec `wcf.md` exists); pickup rings at 19. Dzielnica and WTS DESKA
 - [ ] `shisha.gd`: call, two pickups, drop, `stories.add` id `shisha`, `--shisha-call` flags
 - [ ] The car argument: Bogdan's tennis lines, flavour and strength votes (dialogue.json `shisha_ride`)
 - [ ] Lounge room (club.gd cutaway), smoke haze, lounge track
 - [ ] Mini-game "Miks u Mistrza": six jars, two pins, coal timing, first draw
-- [ ] Portraits of Mati, Bogdan and the master (PixelLab on the Mac, from F's photos)
+- [ ] Portraits of Ivan, Bogdan and the master (PixelLab on the Mac, from F's photos)
 - [ ] Voices (ElevenLabs), `check_shisha.gd` in verify.sh, bench, phone look
 
 ## Cinema tour "Kino objazdowe" (F, 2026-11-07; docs/design/kino-tour.md)
