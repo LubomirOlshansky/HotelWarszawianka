@@ -56,12 +56,40 @@ const CAPTION_IN := 0.6
 const CAPTION_OUT := 5.4
 const CAPTION_FADE := 0.6
 
-enum { IDLE, FLY, OUT_MID, OUT, HOLD, BACK_MID, HOME, OPEN }
+## The 11 listopada video (--cinematic=event, docs/design/event-11-listopad-15s.md): one take of
+## EVENT_TIME s, no cuts, through EVENT_KEYS. Each key: t (s), a ground point x/z, its height above
+## the ground there, the view's size in m, the camera's yaw (absolute, degrees: the camera sits on
+## the side the yaw points to and looks back at the focus) and the pitch. The march road is the line
+## from the rondo along (0.947, -0.320): the bridge starts 1863 m along it. The title card fades in
+## at CARD_IN s. event_day.gd runs its beats by the same clock (scene_t).
+const EVENT_TIME := 15.0
+const CARD_IN := 13.5
+const CARD_FADE := 0.7
+const EVENT_KEYS: Array[Dictionary] = [
+	{"t": 0.0, "at": Vector2(-1214.0, 247.0), "up": 110.0, "size": 430.0, "yaw": 135.0, "pitch": -30.0},
+	{"t": 1.0, "at": Vector2(-1214.0, 247.0), "up": 110.0, "size": 425.0, "yaw": 135.0, "pitch": -30.0},
+	{"t": 4.5, "at": Vector2(-1190.0, 260.0), "up": 120.0, "size": 300.0, "yaw": 132.0, "pitch": -28.0},
+	{"t": 7.0, "at": Vector2(-990.0, 380.0), "up": 30.0, "size": 120.0, "yaw": 150.0, "pitch": -26.0},
+	{"t": 9.5, "at": Vector2(-836.0, 461.0), "up": 4.0, "size": 60.0, "yaw": 168.0, "pitch": -22.0},
+	{"t": 11.0, "at": Vector2(-173.0, 237.0), "up": 60.0, "size": 190.0, "yaw": 285.0, "pitch": -26.0},
+	{"t": 12.0, "at": Vector2(584.0, -19.0), "up": 50.0, "size": 150.0, "yaw": 289.0, "pitch": -25.0},
+	{"t": 13.0, "at": Vector2(1173.0, -218.0), "up": 14.0, "size": 90.0, "yaw": 289.0, "pitch": -24.0},
+	{"t": 14.0, "at": Vector2(200.0, 50.0), "up": 150.0, "size": 300.0, "yaw": 200.0, "pitch": -24.0},
+	{"t": 15.0, "at": Vector2(-1000.0, 250.0), "up": 120.0, "size": 640.0, "yaw": 105.0, "pitch": -20.0},
+]
+
+enum { IDLE, FLY, OUT_MID, OUT, HOLD, BACK_MID, HOME, OPEN, EVENT }
 
 ## A moment ended (done, skipped or stopped): its name ("fly-in", "look", "opening").
 signal ended(what: String)
 
 var host: Node
+## Told the take's second and the view's focus each frame (event_day.gd's scene_t, the streamer).
+var event_tick: Callable
+## The ground's height at x, z (map.ground_height) for the event keys.
+var event_ground: Callable
+## -1 plays the take; >= 0 freezes it at that second (stills for checking the path).
+var _event_freeze := -1.0
 var follow_pcam: Node3D
 var shot_pcam: Node3D
 var mid_pcam: Node3D
@@ -162,6 +190,21 @@ func opening(car: Vector3, yaw: float, pitch: float, caption: PackedStringArray 
 		print("camera: opening, %.0f m over the Palace → the car in %.1f s" % [v["size"], OPEN_TIME])
 
 
+## The 11 listopada video: the take from t = 0 (or frozen at `freeze` s for a still). The HUD
+## and the car are hidden by main.gd. `card` (PL, EN) is the title card shown at the end.
+func event(ground: Callable, tick: Callable, card: PackedStringArray, freeze := -1.0) -> void:
+	_age = 0.0
+	event_ground = ground
+	event_tick = tick
+	_event_freeze = freeze
+	_pending = func() -> void:
+		moment = "event"
+		state = EVENT
+		_leg = maxf(freeze, 0.0)
+		_make_event_card(card)
+		print("camera: event take, %.0f s%s" % [EVENT_TIME, " (frozen at %.1f s)" % freeze if freeze >= 0.0 else ""])
+
+
 ## A look at a new target and back: `car` and `target` on the ground, the follow camera's `yaw`,
 ## `pitch` and view `size`, the screen's `aspect` (width / height).
 func look_at_target(car: Vector3, target: Vector3, yaw: float, pitch: float, size: float, aspect: float) -> void:
@@ -220,7 +263,7 @@ func skip() -> void:
 		_pending = Callable()
 		ended.emit("skipped before it began")
 		return
-	if state == IDLE or _skipped:
+	if state == IDLE or _skipped or state == EVENT:
 		return
 	_skipped = true
 	_caption_out()
@@ -273,6 +316,9 @@ func frame(follow_xf: Transform3D, follow_size: float, dt: float) -> bool:
 	follow_pcam.set_size(follow_size)
 	if state == OPEN:
 		_open_frame(follow_xf, follow_size, dt)
+		return true
+	if state == EVENT:
+		_event_frame(dt)
 		return true
 	host.process(dt)
 	_leg += dt
@@ -446,6 +492,78 @@ static func _cr(p0: float, p1: float, p2: float, p3: float, t: float) -> float:
 
 static func _cr3(p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3, t: float) -> Vector3:
 	return Vector3(_cr(p0.x, p1.x, p2.x, p3.x, t), _cr(p0.y, p1.y, p2.y, p3.y, t), _cr(p0.z, p1.z, p2.z, p3.z, t))
+
+
+# --- the 11 listopada take -------------------------------------------------------------------
+
+## The take's view at second `t`: a Catmull-Rom curve through EVENT_KEYS by their times (the size in
+## log space), the focus's height from `ground` (a Callable x, z -> m). Static and pure.
+static func event_view(t: float, ground: Callable) -> Dictionary:
+	t = clampf(t, 0.0, EVENT_TIME)
+	var n := EVENT_KEYS.size() - 1
+	var seg := 0
+	while seg < n - 1 and t >= float(EVENT_KEYS[seg + 1]["t"]):
+		seg += 1
+	var k1: Dictionary = EVENT_KEYS[seg]
+	var k2: Dictionary = EVENT_KEYS[seg + 1]
+	var k0: Dictionary = EVENT_KEYS[maxi(seg - 1, 0)]
+	var k3: Dictionary = EVENT_KEYS[mini(seg + 2, n)]
+	var u := clampf((t - float(k1["t"])) / (float(k2["t"]) - float(k1["t"])), 0.0, 1.0)
+	var ks := [k0, k1, k2, k3]
+	var fx := _cr(_k(ks[0], "at").x, _k(ks[1], "at").x, _k(ks[2], "at").x, _k(ks[3], "at").x, u)
+	var fz := _cr(_k(ks[0], "at").y, _k(ks[1], "at").y, _k(ks[2], "at").y, _k(ks[3], "at").y, u)
+	var up := _cr(ks[0]["up"], ks[1]["up"], ks[2]["up"], ks[3]["up"], u)
+	var size := exp(_cr(log(ks[0]["size"]), log(ks[1]["size"]), log(ks[2]["size"]), log(ks[3]["size"]), u))
+	var yaw := _cr(ks[0]["yaw"], ks[1]["yaw"], ks[2]["yaw"], ks[3]["yaw"], u)
+	var pitch := _cr(ks[0]["pitch"], ks[1]["pitch"], ks[2]["pitch"], ks[3]["pitch"], u)
+	var g := float(ground.call(fx, fz)) if ground.is_valid() else 0.0
+	var focus := Vector3(fx, g + up, fz)
+	return {"xf": _view(focus, size, yaw, pitch), "size": size, "focus": focus}
+
+
+static func _k(k: Dictionary, key: String) -> Vector2:
+	return k[key]
+
+
+func _event_frame(dt: float) -> void:
+	if _event_freeze < 0.0:
+		_leg = minf(_leg + dt, EVENT_TIME)
+	var v := event_view(_leg, event_ground)
+	var cam: Camera3D = host.get_parent()
+	cam.size = v["size"]
+	cam.global_transform = v["xf"]
+	if event_tick.is_valid():
+		event_tick.call(_leg, v["focus"])
+	if _caption_box != null:
+		_caption_box.modulate.a = clampf((_leg - CARD_IN) / CARD_FADE, 0.0, 1.0)
+
+
+## The title card, centred: "11 LISTOPADA" big, the game's name and "za darmo" under it. Drawn by the
+## game so every take has it (the font is the caption's).
+func _make_event_card(lines: PackedStringArray) -> void:
+	_caption_free()
+	_caption = CanvasLayer.new()
+	_caption.layer = 5
+	add_child(_caption)
+	var h := get_viewport().get_visible_rect().size.y
+	var centre := CenterContainer.new()
+	centre.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_caption.add_child(centre)
+	_caption_box = VBoxContainer.new()
+	_caption_box.add_theme_constant_override("separation", int(h * 0.012))
+	_caption_box.modulate.a = 0.0
+	centre.add_child(_caption_box)
+	var big := FontVariation.new()
+	big.base_font = ThemeDB.fallback_font
+	big.variation_embolden = 1.1
+	big.variation_transform = Transform2D(Vector2(1.0, 0.0), Vector2(-0.2, 1.0), Vector2.ZERO)
+	big.spacing_glyph = int(h * 0.012)
+	var title := _caption_label(lines[0] if lines.size() > 0 else "11 LISTOPADA", big, h * 0.13, Color.WHITE)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_caption_box.add_child(title)
+	var sub := _caption_label(lines[1] if lines.size() > 1 else "Around Warsaw · za darmo", ThemeDB.fallback_font, h * 0.045, Color("#ffd2d2"))
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_caption_box.add_child(sub)
 
 
 # --- the caption -------------------------------------------------------------------------------

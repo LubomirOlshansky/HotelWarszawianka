@@ -156,7 +156,7 @@ Built (event_day.gd): date gate, hours, crowd + flags, four barrier lines, white
 - Look checks from F's photos: flag density, haze height, the Palace tiers (upper white, lower red), Złota 44's gradient side.
 - Traffic and trams are released at the zone edge (they pop out at the barrier); a real lane closure (lane_graph `e_shut`) would queue them at the line.
 - Side streets into the corridor are not walled: a car that gets in is set down at the nearest barrier (toast).
-- Flags are still (no sway); heli-only day missions, the notebook stamp, event sounds and the Settings toggle for smoke are not built yet (plan sections 3.3, 3.5, 6 E5).
+- Flags now sway in the wind (`actor.gdshader` `sway`, cloth marked UV.y 2). The 15 s video take is built: `--cinematic=event` (camera keys in `camera_shots.gd` `EVENT_KEYS`, light cascade, fog ramp, flares in turns in `event_day.gd` `scene_t`, title card), `--event-t=SEC` freezes it for stills; the 4K capture on the Mac and the sound are not done. Heli-only day missions, the notebook stamp, event sounds and the Settings toggle for smoke are not built yet (plan sections 3.3, 3.5, 6 E5).
 - Stadion Narodowy white-red panels are coded (`_stadium_bands`) but did not show in the cloud shot: unverified, check on the Mac or phone (mast heights, radius).
 - Max look for the promo (F, 2026-11-07, recorded on iPhone 17 Pro or M4 Pro, no performance limit): up to 6,000 people, 520 standing-fog blobs (`event_fog.gdshader`, day and night), 200 flare halos. Heavy on purpose: the quality tier scales it down. Phone bench still open. The lit puff boxes are off (`PUFFS_ON`).
 - The METROPOLKA roof neon (Hotel Metropol, `landmarks.gd` `_build_metropol_sign`) reads mirrored and looks like it floats when seen from the north from the air: not the event's, needs a look.
@@ -1409,7 +1409,13 @@ Left:
   same way with K6's planted trees (items unchanged), re-stamped, and `streetdetails` and `stops`
   moved from the skipped map job to the quick job (all three are Python on the committed map); the prebuilt bake failed with no display, so
   `tools/verify.sh` now runs it under xvfb-run, or skips the prebuilt steps as a WARN without one.
-- Open: F publishes release `map-pack-1` (until then the map job skips with a warning). A required
+- Fixed 2026-11-08: the repository became LubomirOlshansky/HotelWarszawianka and private, so the old
+  public download link redirected and failed (curl 56 in CI, 401 in the cloud) and the map jobs went
+  red at "Fetch the map pack". `tools/map_pack.py fetch` now finds the asset through the GitHub API
+  with a token (GITHUB_TOKEN, GH_TOKEN or `gh auth token`) and downloads it as
+  application/octet-stream; verify.yml passes the job's token (`contents: read`). On the Mac, sign in
+  gh (or export GITHUB_TOKEN) before a fetch.
+- Open: A required
   check: GitHub Settings → Rules → a ruleset on main requiring `quick` and `map`, so a PR can't merge
   on red or before its run ends (#261 did). After a full bake that changes lod2 or terrain:
   `python3 -I tools/map_pack.py make`, publish, commit `tools/map_pack.json`.
