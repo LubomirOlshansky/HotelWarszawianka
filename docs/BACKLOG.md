@@ -2787,6 +2787,15 @@ plan: docs/design/start-area-real.md (items R1-R8, ticked in ROADMAP "v1.0 check
 - **R6 done 2026-11-01**: the trends thread's MACZA already stands in Pasaż Wiecha behind Sawa;
   four KEBAB FM host lines and two passenger lines joined dialogue.json (the stores to let, the
   two-storey Frogs, Plac Centralny's vanished tenements, the matcha queue, Scena Relax).
+- **PKiN surroundings, part 1 done 2026-11-08** (F's photos, `pkin-surroundings/photos/` in the
+  project files): Cepelia rebuilt (granite plinth, recessed shop floor, teal mosaic, white stair
+  core, ribbed silver band and teal glass ribbon, EMPIRYK in white) and Zodiak rebuilt (white-framed
+  glass, slab with grass terrace and glass rail, set-back glass room, pergola), spec
+  docs/landmarks/specs/pavilions.md. Centrum Marszałkowska is the new site `cmarsz` (spec cmarsz.md):
+  it retires photo front b5494 and street block 579369105. Left from F's list: Widok Towers (two
+  offset slabs, white grid), Złote Tarasy/Lumen/Skylight from the W3 photos, the Jerozolimskie 47
+  corner dome; Świętokrzyska 30 and 32 already have photo fronts. Only the phone shows the LED
+  strokes' size at the default zoom.
 - **R5 done 2026-11-01**: the Cepelia pavilion at Rondo Dmowskiego is a site (landmarks.gd
   "cepelia"): a recessed glass shop floor, a frame band, a glass upper storey with mullions, a
   white edge and the red EMPIRYK sign (the book and vinyl store, a parody). Zodiak in Pasaż
