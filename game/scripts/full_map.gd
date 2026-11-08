@@ -119,6 +119,8 @@ var story_names := PackedStringArray()
 ## questline, 1 for a smaller "!" (the shisha night: it starts only at its pin).
 var story_blurbs := PackedStringArray()
 var story_small := PackedByteArray()
+var _qdrag := -1
+var _qdrag_px := 0.0
 var _tap_at := Vector2.INF
 var _tap_ms := 0
 var focus := false
@@ -1154,6 +1156,18 @@ func _tap_story(at: Vector2) -> bool:
 	return true
 
 
+## A finger drag on the quest list: scrolls it; past a few points the row under the finger is not
+## pressed when it lets go (the viewport cancels the press).
+func _drag_quests(dy: float) -> void:
+	var sc := _quests.find_child("story_scroll", true, false) as ScrollContainer
+	if sc == null:
+		return
+	_qdrag_px += absf(dy)
+	sc.scroll_vertical -= int(dy)
+	if _qdrag_px > 8.0 * pt:
+		get_viewport().gui_cancel_input()
+
+
 func _cancel_hold() -> void:
 	if _hold_index >= 0:
 		_hold_index = -1
@@ -1204,6 +1218,9 @@ func _input(event: InputEvent) -> void:
 		if t.pressed:
 			if _close.get_global_rect().has_point(t.position) or _cards.get_global_rect().has_point(t.position) \
 					or (_quests.visible and _quests.get_global_rect().has_point(t.position)):
+				# F 2026-11-08: a finger dragged on the list scrolls it (the bar alone was too thin).
+				_qdrag = t.index if _quests.visible and _quests.get_global_rect().has_point(t.position) else -1
+				_qdrag_px = 0.0
 				return  # the ✕, ≡ or the ZADANIA card takes it
 			_touches[t.index] = t.position
 			if _touches.size() == 1:
@@ -1213,6 +1230,8 @@ func _input(event: InputEvent) -> void:
 			else:
 				_cancel_hold()  # a second finger: a pinch
 		else:
+			if t.index == _qdrag:
+				_qdrag = -1
 			if _touches.size() == 1 and _tap_at != Vector2.INF and t.position.distance_to(_tap_at) <= HOLD_SLOP * pt \
 					and Time.get_ticks_msec() - _tap_ms < 350:
 				_tap_story(t.position)
@@ -1223,6 +1242,10 @@ func _input(event: InputEvent) -> void:
 		_pinch = _span()
 	elif event is InputEventScreenDrag:
 		var d := event as InputEventScreenDrag
+		if d.index == _qdrag:
+			_drag_quests(d.relative.y)
+			get_viewport().set_input_as_handled()
+			return
 		if not _touches.has(d.index):
 			return
 		if d.index == _hold_index and d.position.distance_to(_hold_at) > HOLD_SLOP * pt:
