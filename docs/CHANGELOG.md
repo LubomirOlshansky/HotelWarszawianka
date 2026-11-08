@@ -9,6 +9,9 @@ that day here, in plain words a player would understand (no file names, no spoil
 rows in the progress log but no section here is listed automatically from the log's labels until
 someone writes its lines.
 
+## 2026-11-08
+- The cycle bridges under Most Łazienkowski hang right under the road now, one storey down as in real life, instead of halfway to the river.
+
 ## 2026-11-07
 - The cycle bridges under Most Łazienkowski no longer float in the air: they hang on steel brackets from the bridge's box girders.
 - Most Śląsko-Dąbrowski's middle lanes are marked as the real tram-and-bus lane: solid white lines and BUS painted between the rails.

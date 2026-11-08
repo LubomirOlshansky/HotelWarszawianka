@@ -112,6 +112,7 @@ then the Launch gate.
 - [x] Most Poniatowskiego's river bridge on 8 spans after F's answer: seven granite piers, the new west-bank pier found on the Mac's photos 22 and 1, the 7th on the east floodplain (2026-11-03; the floodplain piers' exact places parked)
 - [x] Bridges audit (F, 2026-11-07): transport right on all five bridges; Most Śląsko-Dąbrowski's tram-and-bus lane painted (solid white lines, BUS)
 - [x] Most Łazienkowski's cycle bridges hang on brackets from box girders (F, 2026-11-07)
+- [x] Most Łazienkowski's cycle bridges at their real height, 4 m under the road, their ramps re-sloped (F's photos, 2026-11-08, `tools/cycle_hang.py`)
 - [x] Most Śląsko-Dąbrowski (plate girders on the Kierbedź stone piers, red railing), Most Łazienkowski (paired concrete piers) and Most Świętokrzyski (grey median) from F's photos (2026-11-07, BACKLOG "Bridges audit")
 - [x] Most Poniatowskiego's towers strengthened after F's look check: corner piers, string courses and a corbel table on the shafts, bigger windows, a taller belfry; the pavilion arcades with proud piers, keystones and an impost band (2026-11-03)
 - [x] The Powiśle viaduct rebuilt after F's answer: two rows of open concrete arch ribs with struts up to a steel edge girder (27 arched spans per row plus 4 beam spans), the closed bays between Kruczkowskiego and Solec with doors and windows, five parody bars with neon, lit windows, café tables and people outside (2026-11-03; which bays and spans parked in QUESTIONS)
