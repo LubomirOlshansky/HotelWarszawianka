@@ -53,6 +53,7 @@ someone writes its lines.
 - 21 more houses got their real wall colours after a check against street photos, from Filtrowa to Marszałkowska.
 - 15 more houses got street fronts from new photos, among them Bracka 16, Atlas Tower and Dom Dysydentów.
 - 39 more buildings got street fronts from new photos, from Klif and Babka Tower to Freta and Plac Trzech Krzyży.
+- The Palace of Culture lights up for the city's days: white and red for 3 May, 1 August and 11 November, a rainbow for New Year and the Equality Parade, pink all October, green and red at Christmas, and its usual gold on every other night.
 
 ## 2026-11-06
 - A night racing club: Darek calls you to a meet on Plac Defilad, where tuned cars glow and Lena drifts donuts in the smoke until the police raid it. Escape, race everyone to the next meet by the National Stadium, survive a second raid, then line up for a drag on Aleja Zieleniecka: watch the lights, shift on time, hit the nitro and beat Tadek for the club's respect.
