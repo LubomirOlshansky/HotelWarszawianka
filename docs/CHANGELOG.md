@@ -10,7 +10,7 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-08
-- Próżna looks like itself: granite setts on the street and pale slabs on the pavements, bollards along the kerbs and the south tenements with their arched ground floors, balconies and cornices; the Cosmopolitan tower is dark glass with its red underside over the street, and Plac Grzybowski has its stepped water garden, benches and the café on the corner.
+- Próżna looks like itself: granite setts in the middle of the street, pale slab pavements, bollards, the restored white tenement row with its glowing window heads at night, Próżna 12's rounded oriels and Próżna 14 under its netting; the Cosmopolitan tower is dark glass with its glowing red underside over the street and a louvred crown; Plac Grzybowski has its stepped stone cascade, curved wall, lantern bollards and the café on the corner.
 - New evening quest, "Dym u Senatorka": Ivan calls for a shisha night. Pick him up at 19. Dzielnica and Bogdan at the courts on Żelazna, vote on flavour and strength while they argue, then go up to SENATOREK at Emilii Plater 53: mix two jars with the master, time the coal, blow a smoke ring, and smoke inside or on the terrace with the Palace in view. The Warsaw Financial Centre has its granite-and-steel portico with the revolving door now.
 - At the west end of Most Poniatowskiego a car with its wheels over the kerb no longer stops dead by the gate tower: it glances back onto the road, and it no longer drops for a moment between the road and the tram tracks.
 - 11 November: the flags in the crowd now wave in the wind.

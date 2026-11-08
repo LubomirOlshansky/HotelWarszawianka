@@ -202,9 +202,8 @@ float kp_setts_at(vec2 wp) {
 // test keeps the cost off every other fragment.
 const vec4 PZ_BOX = vec4(-1390.0, -1195.0, -325.0, -222.0);   // x0, x1, z0, z1
 const float PZ_HALF = 3.15;
-const vec2 PZ_LINE[6] = vec2[6](
-	vec2(-1371.1, -239.4), vec2(-1361.0, -243.6), vec2(-1279.1, -277.2),
-	vec2(-1217.2, -302.4), vec2(-1215.1, -303.3), vec2(-1208.1, -306.1));
+const vec2 PZ_LINE[4] = vec2[4](
+	vec2(-1361.0, -243.6), vec2(-1352.0, -247.3), vec2(-1279.1, -277.2), vec2(-1240.0, -293.1));
 
 // Distance from wp to Próżna's centreline (1e4 outside the box).
 float pz_dist(vec2 wp) {
@@ -212,7 +211,7 @@ float pz_dist(vec2 wp) {
 		return 1e4;
 	}
 	float best = 1e4;
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < 3; i++) {
 		vec2 a = PZ_LINE[i];
 		vec2 ab = PZ_LINE[i + 1] - a;
 		float t = clamp(dot(wp - a, ab) / dot(ab, ab), 0.0, 1.0);
