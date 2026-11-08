@@ -985,7 +985,7 @@ func _check_target_pointer(hud: CanvasLayer, bubbles: Control, screen: Vector2i,
 	# came down; with the thumb up only the resting hint is.
 	hud.set_scheme(0)
 	var strip_at := Vector2(float(screen.x) * 0.3, float(screen.y) - 70.0 * pt)
-	var strip_half := (hud.STICK_R + 16.0) * pt
+	var strip_half: float = (float(hud.STICK_R) + 16.0) * pt
 	var strip := Rect2(strip_at - Vector2(strip_half, 16.0 * pt), Vector2(strip_half * 2.0, 32.0 * pt))
 	var covered_up := false
 	for r: Rect2 in hud.call("_pedal_rects"):
