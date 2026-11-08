@@ -712,6 +712,13 @@ Left:
 - PT-37 (suspect): pinned on Poniatowskiego's tram strip for 8 s while the speed reads 60 km/h, no unstick or tow.
 - PT-38 (suspect): an 11 m snap down off the ground above the W-Z tunnel's east portal.
 - PT-39 (suspect, design): a ram of a crash scene's police car starts a chase that is lost in the next frame.
+- Found 2026-11-08 (PT-40's kerb lines, cloud): a car crossing Most Poniatowskiego's west end diagonally
+  stops on the square end of the guard rail between the eastbound deck and the tram deck (945.7,-138.9, by
+  the slip road's tram crossing), and one hugging the westbound median stops on the end of the tram stop
+  platform's fence (909.8,-134.5). Both are off the lanes; a lead-in like PT-40's would turn them away.
+- Found 2026-11-08 (PT-41): the approach-sliver rule (map_builder.gd FILL_SEAM) closed ~1,200 sampled points
+  in ~15 places that had a drop of more than a metre (Most Gdański's and the Trasa Łazienkowska's
+  approaches among them); a Mac look at those places' drawn ground is open.
 - Podwózka story ride played by Autopilot (accept, the "!" pickup, boarding, story lines, the question card, +½ star): no bug; the door and the result card still unplayed (the 2 km ride outlasts one Mac run).
 
 ## Road design rollout: every street on the map (F, 2026-11-06; docs/design/road-design-rollout.md)

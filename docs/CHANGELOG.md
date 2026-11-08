@@ -10,6 +10,7 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-08
+- At the west end of Most Poniatowskiego a car with its wheels over the kerb no longer stops dead by the gate tower: it glances back onto the road, and it no longer drops for a moment between the road and the tram tracks.
 - 11 November: the flags in the crowd now wave in the wind.
 - The Old Town is ready for its close-up: the odd blue glass boxes next to the Cathedral are now the Jesuit church in salmon plaster, the city walls have battlements, the Market Square has pale stone rings, cream umbrellas and café fences, and the roofs have grey zinc dormers and white chimneys.
 - A new job offer no longer pops up over the result card of the one you just finished, so tapping OK can't accept it by accident.
