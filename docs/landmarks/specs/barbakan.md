@@ -49,3 +49,7 @@ L2, triangle budget 900. Shots: city, from the east (inside the C) and from the 
 | wall | prism | 3.5 m thick, 11 m tall | mapped C outline | M_GOTHIC | curtain |
 | parapet | attic | 1.5 m | on the wall top | M_ATTIC | merlons |
 | tower x4 | octagonal prism and cone | r 2.6 m, 13 m + 6.2 m | wall mid-line | M_GOTHIC | turrets |
+
+## Update
+
+Photo pass 2026-11-06 (refs/barbakan 1-2, ortho): turret roofs are terracotta (`#a9502f`) cones with a deep eave swelling out over twelve-sided brick turrets; stone-capped merlons every 1.6 m along the crest; the colour of the table below for cones is superseded. Not modelled: the gate passage, the long curtain walls.

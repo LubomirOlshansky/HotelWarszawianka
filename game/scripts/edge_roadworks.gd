@@ -42,6 +42,10 @@ const EDGE_END := CLOSE_IN - 1.0
 ## A road that runs along the edge (no crossing of the CLOSE_IN line within WALK m) is closed where it
 ## comes within ALONG_IN m of the outline instead, just before the wall: barriers across the road.
 const ALONG_IN := 6.5
+## Each end of such a line stays ALONG_END m inside the outline (the wall is 5 m in), stepping back
+## at most ALONG_BACK_STEPS half metres.
+const ALONG_END := 6.0
+const ALONG_BACK_STEPS := 5
 ## A small road's barriers that would stand within TIGHT_GAP m of a street's carriageway move out to
 ## TIGHT_IN m from the outline (or go, the wall closing the road).
 const TIGHT_GAP := 2.5
@@ -351,6 +355,12 @@ static func _merge(mb, raw: Array) -> Array:
 		if along_edge:
 			# No room for the works behind the barriers before the wall.
 			tier = mini(tier, Tier.MEDIUM)
+			# An outline slanting across the road brings the wall nearer on one side: step the line
+			# back until both its ends stand in front of the wall (Bonifraterska's lane 0, PT W3).
+			var back := 0
+			while back < ALONG_BACK_STEPS and not (mb.in_map(at + side * half, -ALONG_END) and mb.in_map(at - side * half, -ALONG_END)):
+				at -= dir * 0.5
+				back += 1
 		var y: float = mb.ground_height(at.x, at.y) if deck else mb.terrain_height(at.x, at.y)
 		out.append({"at": at, "dir": dir, "half": half, "tier": tier, "y": y, "name": name, "ends": parts.size(),
 				"along": along_edge})
@@ -358,6 +368,69 @@ static func _merge(mb, raw: Array) -> Array:
 		var pa: Vector2 = a["at"]
 		var pb: Vector2 = b["at"]
 		return pa.x < pb.x or (pa.x == pb.x and pa.y < pb.y))
+	return out
+
+
+## PT-28 (2026-11-07): a tram strip between two closed carriageways (Grochowska at the east edge)
+## was an open way out: the car drove up it level with the barriers. The strip gets a collider
+## across it on the barrier line, from one closure's end to the other's, and barriers drawn on it
+## wherever a tram's sides (TRAM_CLEAR m from its track: half a 2.4 m car and a little) leave room:
+## the trams still run out over the line (trams.gd, no physics), so their own way stays clear.
+## {at, dir, half, y, rails (the tracks' offsets along the line)} each, in the closures' frame
+## (`frame`). A tram crossing with a closure on one side only, or none within RAIL_REACH m, is left
+## to the edge wall.
+const RAIL_REACH := 12.0
+const TRAM_CLEAR := 1.4
+
+
+static func rail_gaps(mb) -> Array:
+	if mb.has_meta(&"edge_rail_gaps"):
+		return mb.get_meta(&"edge_rail_gaps")
+	var out: Array = []
+	var list := closures(mb)
+	var idx: Dictionary = mb.index_data if not mb.index_data.is_empty() else mb.data
+	var trams: Array = idx.get("trams", [])
+	var joins := _joins(trams)
+	var seen := {}
+	for ti in trams.size():
+		if (trams[ti]["p"] as Array).size() < 4:
+			continue
+		for first in [true, false]:
+			var c := crossing(mb, trams, joins, ti, first)
+			if c.is_empty():
+				continue
+			var at: Vector2 = c["at"]
+			var n := _normal(mb, at, c["dir"])
+			var side := Vector2(n.y, -n.x)
+			var left := -INF
+			var right := INF
+			var line := 0.0
+			var covered := false
+			for k: Dictionary in list:
+				if (k["dir"] as Vector2).dot(n) < 0.99 or bool(k.get("along", false)):
+					continue
+				var rel: Vector2 = (k["at"] as Vector2) - at
+				if absf(rel.dot(n)) > 2.5:
+					continue
+				var x := rel.dot(side)
+				var half := float(k["half"])
+				if x - half < 0.0 and x + half > 0.0:
+					covered = true
+					break
+				if x + half <= 0.0 and x + half > -RAIL_REACH and x + half > left:
+					left = x + half
+					line = rel.dot(n)
+				elif x - half >= 0.0 and x - half < RAIL_REACH and x - half < right:
+					right = x - half
+			if covered or left == -INF or right == INF:
+				continue
+			var mid := at + n * line + side * (left + right) * 0.5
+			var key := Vector2i(roundi(mid.x), roundi(mid.y))
+			if not seen.has(key):
+				seen[key] = {"at": mid, "dir": n, "half": (right - left) * 0.5 + 0.3, "y": mb.terrain_height(mid.x, mid.y), "rails": []}
+				out.append(seen[key])
+			(seen[key]["rails"] as Array).append((at - mid).dot(side))
+	mb.set_meta(&"edge_rail_gaps", out)
 	return out
 
 
@@ -389,15 +462,16 @@ static func build(mb, now := false) -> Node3D:
 		return null
 	var b = (load("res://scripts/edge_roadworks.gd") as GDScript).new()
 	b._en = Lang.is_en()  # read here, not on the worker thread
-	var root: Node3D = b._colliders(list)
+	var gaps := rail_gaps(mb)
+	var root: Node3D = b._colliders(list + gaps)
 	print("edge roadworks: %d closures (%d big, %d medium), placed in %d ms" % [list.size(),
 			b._count(list, Tier.BIG), b._count(list, Tier.MEDIUM), Time.get_ticks_msec() - t0])
 	if now:
-		b._attach(weakref(root) as WeakRef, b._shapes(list), false)
+		b._attach(weakref(root) as WeakRef, b._shapes(list + gaps), false)
 	else:
 		var ref: WeakRef = weakref(root)
 		b._task = WorkerThreadPool.add_task(func() -> void:
-			var shapes: Dictionary = b._shapes(list)
+			var shapes: Dictionary = b._shapes(list + gaps)
 			b._attach.bind(ref, shapes, true).call_deferred())
 		# Quitting (or a tool's quick run) before the meshes are ready: wait for the thread first.
 		root.tree_exiting.connect(b._finish)
@@ -488,7 +562,10 @@ func _shapes(list: Array) -> Dictionary:
 			lamps[key] = []
 		var rng := RandomNumberGenerator.new()
 		rng.seed = hash(Vector2i(roundi((c["at"] as Vector2).x), roundi((c["at"] as Vector2).y)))
-		_closure(tools[key], frame(c), c, rng, lamps[key])
+		if c.has("rails"):
+			_rail_gap(tools[key], frame(c), c, lamps[key])
+		else:
+			_closure(tools[key], frame(c), c, rng, lamps[key])
 	var out := {}
 	for k: Vector2i in tools:
 		out[k] = [(tools[k] as SurfaceTool).commit_to_arrays(), lamps[k]]
@@ -622,6 +699,22 @@ func _closure(st: SurfaceTool, xf: Transform3D, c: Dictionary, rng: RandomNumber
 			else:
 				_toilet(st, xf, spot)
 	_fence_line(st, xf, half + 2.5, 10.0 if tier == Tier.BIG else 7.0, tarp)
+
+
+## PT-28: a tram strip's barriers, wherever a tram's sides leave room for one (2 m each).
+func _rail_gap(st: SurfaceTool, xf: Transform3D, c: Dictionary, lamps: Array) -> void:
+	var half: float = c["half"]
+	var x := -half + 1.0
+	while x <= half - 1.0 + 0.01:
+		var clear := true
+		for r: float in c["rails"]:
+			if absf(x - r) < TRAM_CLEAR + 1.0:
+				clear = false
+		if clear:
+			_barrier(st, xf, Vector3(x, 0, 0), lamps, true)
+			x += 2.0
+		else:
+			x += 0.25
 
 
 ## The site fence across the road at z, `span` m each side of the middle, in panels of about 3.5 m.

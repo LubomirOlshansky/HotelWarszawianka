@@ -332,6 +332,8 @@ func _check_sites(c: Crowds) -> void:
 	# before 21 and by morning, 01:00 Saturday still Friday's, a Tuesday a fifth, rain under a third.
 	_expect(Crowds.MAZOWIECKA.size() >= 5 and Crowds.MAZOWIECKA.keys().all(func(id: String) -> bool: return c.by_id.has(id)),
 			"Mazowiecka: %d club spots are sites" % Crowds.MAZOWIECKA.size())
+	_expect(Crowds.SOWA.keys().all(func(id: String) -> bool: return c.by_id.has(id) and str(c.sites[c.by_id[id]].get("talk", "")) == "sowa_club"),
+			"SOWA CLUB: the night owls' spot is a site with its own lines")
 	_expect(Crowds.club_level(0.5, 6, 7, false) == 0.6 and Crowds.club_level(1.5, 6, 7, false) == 1.0
 			and Crowds.club_level(10.0, 5, 7, false) == 0.0 and Crowds.club_level(0.5, 3, 7, false) <= 0.25
 			and Crowds.club_level(1.5, 6, 1, false) >= 0.6 and Crowds.club_level(1.5, 6, 7, true) <= 0.3,
@@ -353,6 +355,10 @@ func _check_sites(c: Crowds) -> void:
 			stops += 1
 			_expect(not (ss["slots"] as Array).is_empty(), "%s: no slots on its platform" % ss["id"])
 	_expect(stops >= 4, "Marszałkowska: only %d tram platforms with a crowd" % stops)
+	# F's LIM photos (2026-11-06): the Dworzec Centralny stop in front of Centrum LIM, busy at night too.
+	var centralny := c.sites.filter(func(ss: Dictionary) -> bool: return str(ss["id"]).begins_with("stop_centralny"))
+	_expect(centralny.size() >= 2 and centralny.all(func(ss: Dictionary) -> bool: return float(ss.get("floor", 0.0)) > 0.0),
+			"Dworzec Centralny: %d tram platforms with a night crowd (want 2)" % centralny.size())
 	_expect(Crowds.piure_queue(17.0, 5)[0] == 0 and Crowds.piure_queue(20.0, 2) == [10, "timber"]
 			and Crowds.piure_queue(20.0, 5)[0] == Crowds.PIURE_MAX and Crowds.piure_queue(0.5, 7)[0] == Crowds.PIURE_MAX
 			and Crowds.piure_queue(0.5, 1)[0] == 10 and Crowds.piure_queue(1.5, 6)[0] == 0, "HOTEL PIURE: its line by hour")
@@ -707,6 +713,18 @@ func _check_office(c: Crowds, data: Dictionary, dlg: FakeDialogue) -> void:
 	var want := Crowds.office_count(Crowds.OFFICE_MAX, 8.5, 3, false)
 	_expect(c.office_on and c.walk_mode == "office" and c.walkers.size() == want, "office walkers on a Wednesday at 08:30: %d (want %d)" % [c.walkers.size(), want])
 	_expect(float(c.levels.get("office", 0.0)) == 1.0, "the office level for the eggs")
+	# F's ask (2026-11-07): waves at the crossings. Routes know their zebras, and over two minutes
+	# of walking some walkers wait at a red kerb; nobody is ever inside a zebra's span
+	# without having entered it on a walk phase (checked as: the held count grows, and a
+	# walker never stands held inside a crossing).
+	var with_xs := 0
+	for r: Dictionary in c.office_routes:
+		if not (r["xs"] as Array).is_empty():
+			with_xs += 1
+	_expect(with_xs >= 3, "office: %d routes with a crossing recorded (want 3 or more)" % with_xs)
+	_run_ticks(c, 120.0)
+	_expect(c.held_ticks > 20, "office: walkers waited at red kerbs: %d walker-ticks in 120 s (want more than 20)" % c.held_ticks)
+	_expect(c.walkers.size() == want, "office walkers after 2 min: %d (want %d)" % [c.walkers.size(), want])
 	for s: Dictionary in offices:
 		_expect(int(s["n"]) >= int(s["max"]) - 1, "office site %s holds %d at 08:30 (max %d)" % [s["id"], s["n"], s["max"]])
 	var said := 0

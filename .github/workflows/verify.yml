@@ -61,7 +61,7 @@ jobs:
         env:
           GODOT: /home/runner/godot/godot
           NW_MAP_PACK: "off"   # the map job fetches and builds the map; this one stays map-free
-        run: zsh tools/verify.sh --only=parkdetails,streetdetails,smooth,streetpass,models,overrides,stops,spec,steering,laneassist,stuckoffer,handling,settings,credits,tiers,governor,heliview,hud,places,edge,eggs,tape,crowds,life,buses,crashes,rave,boatrace,evtow,loud,crazy,oldtram,packs,wellness,fans,garage,save,districts,syrenki,cassettes,ladder,first10,chatter,endcard,opening,parodies,jobs2,rescues,couriers,delivery,rides,roofdress,tenementtrim,osmroofs,sites,meshq,sfx,juice,gamepad,radio,sounds,police --logs="$RUNNER_TEMP/verify"
+        run: zsh tools/verify.sh --only=parkdetails,streetdetails,ratuszhub,smooth,objects,fixes,streetpass,models,overrides,stops,spec,steering,laneassist,stuckoffer,handling,settings,credits,tiers,governor,heliview,hud,places,edge,eggs,tape,crowds,life,buses,crashes,rave,meet,boatrace,dekalog,kinotour,evtow,loud,crazy,oldtram,tramfleet,packs,wellness,fans,garage,save,districts,syrenki,cassettes,ladder,first10,chatter,endcard,opening,parodies,jobs2,rescues,couriers,delivery,rides,roofdress,tenementtrim,osmroofs,sites,palacelights,meshq,sfx,juice,gamepad,radio,sounds,police --logs="$RUNNER_TEMP/verify"
 
       - name: Keep the logs
         if: always()
@@ -71,11 +71,11 @@ jobs:
           path: ${{ runner.temp }}/verify
           retention-days: 14
 
-  # Two halves in parallel (~15 min each on a runner, the setup included; serial they take ~30).
+  # Two halves in parallel. "data and roads" grew to ~45 min on a runner with the prebuilt city (2026-11-07), so 75.
   map:
     name: map (${{ matrix.part }})
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 75
     strategy:
       fail-fast: false
       matrix:

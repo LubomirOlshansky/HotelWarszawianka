@@ -503,9 +503,9 @@ func _fire(id: String) -> void:
 				var words: Array = LINES["tape"] if _cassette() >= 0 else LINES["tape_ground"]
 				hud.toast(words[0], words[1])
 		"powisle":
-			if districts != null and districts.by_id.has("powisle"):
-				var p: Vector2 = districts.by_id["powisle"]["at"]
-				_hint(Vector3(p.x, map.ground_height(p.x, p.y) if map != null else 0.0, p.y), "POWIŚLE", HINT_S)
+			var at := powisle_at()
+			if at != Vector3.INF:
+				_hint(at, "POWIŚLE", HINT_S)
 				hud.toast(LINES["powisle"][0], LINES["powisle"][1])
 		"garage":
 			if garage == null:
@@ -557,6 +557,16 @@ func _hint(at: Vector3, word: String, seconds: float) -> void:
 	hint_at = at
 	hint_word = word
 	hint_until = t + seconds
+
+
+## Where the Powiśle arrow points: the district's label (districts.gd), or INF with no districts.
+## PT-30: `by_id` holds the district's index, not the district; reading "at" off it failed every
+## frame from the beat's time, so the beat never fired and the guide stalled there.
+func powisle_at() -> Vector3:
+	if districts == null or not districts.by_id.has("powisle"):
+		return Vector3.INF
+	var p: Vector2 = districts.districts[int(districts.by_id["powisle"])]["at"]
+	return Vector3(p.x, map.ground_height(p.x, p.y) if map != null else 0.0, p.y)
 
 
 ## The beat the arrow is for has been met.

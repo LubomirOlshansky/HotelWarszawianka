@@ -39,6 +39,10 @@ uniform float ao_strength = 1.0;
 // to it (world space), for ghosted footprints (main.gd).
 uniform vec3 ghost_sun = vec3(0.0);
 uniform vec3 ghost_sun_dir = vec3(0.0, 1.0, 0.0);
+// F's ask (2026-11-07): the car's ground height (main.gd _update_ghost; -1e4: off). A bridge or
+// viaduct deck's own surface more than DECK_GHOST_OVER m over it is cut by the occlusion ghost
+// like a building, so the car and the traffic under the Trasa show through it.
+uniform float ghost_car_y = -10000.0;
 global uniform float wetness;
 global uniform float rain;
 varying vec3 world_pos;
@@ -53,6 +57,11 @@ const vec3 GRASS_TINT = vec3(0.86, 1.0, 1.2);
 const float GRASS_CHROMA = 0.88;
 const vec3 BRICK = vec3(0.6, 0.31, 0.28);
 const vec3 DAY_WATER = vec3(0.41, 0.6, 0.6);
+// The deck ghost: a deck's surface this far over the car's ground or more is cut (a car on the
+// deck itself, or on a ramp beside it, keeps its road), keeping building.gdshader's ghost_keep.
+const float DECK_GHOST_OVER = 2.5;
+const float DECK_GHOST_KEEP = 0.19;
+const float BAYER[16] = float[16](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0, 3.0, 11.0, 1.0, 9.0, 15.0, 7.0, 13.0, 5.0);
 
 void vertex() {
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
@@ -220,6 +229,16 @@ void fragment() {
 	// A bridge deck over this point, and whether this fragment lies under it.
 	float deck_y = surf.a > 0.0 ? surf.a * 255.0 / 4.0 - 32.0 : -1e4;
 	bool under_deck = world_pos.y < deck_y - 1.5;
+	// The deck ghost (F, 2026-11-07): a deck's road, walks and markings between the car under it
+	// and the camera keep only the ghost's thin dither, as a building's walls do; the ground under
+	// the deck (under_deck) and everything near the car's own height stay whole.
+	if (surf.a > 0.0 && !under_deck && world_pos.y > ghost_car_y + DECK_GHOST_OVER) {
+		float cut = ghost_fade(VERTEX.xy, wp);
+		ivec2 bp = ivec2(FRAGCOORD.xy) % 4;
+		if ((BAYER[bp.y * 4 + bp.x] + 0.5) / 16.0 < cut * (1.0 - DECK_GHOST_KEEP)) {
+			discard;
+		}
+	}
 	vec3 emit = vec3(0.0);
 	float puddle = 0.0;
 	float sheen = 0.0;

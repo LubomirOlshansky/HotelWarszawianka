@@ -17,6 +17,12 @@ extends SceneTree
 ##    point's depth towards the camera is height * PITCH_SIN + its bias; a strip sample counts
 ##    when an area triangle under it (the same x, z) is as near the camera or nearer.
 ##
+## 3. The railway's flat layers in the cutting west of Centralna (rail_cut.gd's box): the floor, the
+##    tracks' gravel shoulders and dark beds, the rails. Where the drawn ground stands over one of
+##    them by more than twice its depth bias (the 30° pitch), the beige ground shows through it
+##    (F's phone videos, 2026-11-07: the ground tore through the ballast and cut the rails into
+##    crawling dashes from the helicopter). Under RAIL_ALLOWED m2 each.
+##
 ## Prints the area per kind and `check_drape: OK` when every kind has under ALLOWED m2 (strips:
 ## ALLOWED_STRIPS); else exit 1. ~12 s (6 s of it building the city).
 ##   godot --headless --path game --script res://tools/check_drape.gd [-- --verbose]
@@ -48,6 +54,11 @@ const PITCH_SIN := 0.5
 ## bias over AREA_BIAS_MAX: a strip sample clear of that is clear of every area.
 const AREA_TOP_Y := 0.032
 const CELL := 8.0
+## Pass 3: the cutting's box (rail_cut.gd BOX), the layers and the area each may lose (m2; rails
+## 6 and 6 m2 after the fix, 5,872, 687 and 30 before it; gravel: 318).
+const RAIL_BOX := Rect2(-3140.0, 740.0, 1250.0, 460.0)
+const RAILS := {8: "rails", 9: "track beds", 15: "track gravel and the cutting's floor"}
+const RAIL_ALLOWED := 400.0
 const STRIPS := {4: "footways and paving", 5: "cycle paths", 10: "steps", 17: "wet bands and rims", 18: "foam lines"}
 
 
@@ -62,6 +73,8 @@ func _initialize() -> void:
 	var total := {}
 	var hidden := {}
 	var strips := {}
+	var rail_hid := {}
+	var rail_total := {}
 	var worst: Array = []
 	# The areas' triangles (a, b, c each) and their bias; the strip samples some area could hide
 	# (x, y, z and bias), with their kind and share of area, and the cells they are in.
@@ -87,13 +100,25 @@ func _initialize() -> void:
 				var bias := uv[i0].x
 				var area_pass := KINDS.has(id) and bias >= 0.0 and bias <= AREA_BIAS_MAX
 				var strip := STRIPS.has(id) and bias > AREA_BIAS_MAX and bias <= STRIP_BIAS_MAX
-				if not area_pass and not strip:
+				var rail := RAILS.has(id) and bias > STRIP_BIAS_MAX - 0.05 and bias <= 0.5
+				if not area_pass and not strip and not rail:
 					continue
 				var a := v[i0]
 				var b := v[idx[t + 1] if idx.size() > 0 else t + 1]
 				var cc := v[idx[t + 2] if idx.size() > 0 else t + 2]
 				var area := absf((b.x - a.x) * (cc.z - a.z) - (cc.x - a.x) * (b.z - a.z)) * 0.5
 				var centre := (a + b + cc) / 3.0
+				if rail:
+					if not RAIL_BOX.has_point(Vector2(centre.x, centre.z)):
+						continue
+					rail_total[id] = float(rail_total.get(id, 0.0)) + area
+					for p: Vector3 in [centre, (centre + a) * 0.5, (centre + b) * 0.5, (centre + cc) * 0.5]:
+						var over: float = map._drawn_height(p.x, p.z) - p.y
+						if over * PITCH_SIN >= bias:
+							rail_hid[id] = float(rail_hid.get(id, 0.0)) + area * 0.25
+							if verbose:
+								worst.append([over, p.x, p.z, RAILS[id]])
+					continue
 				if area_pass:
 					total[id] = float(total.get(id, 0.0)) + area
 					tris.append_array([a, b, cc])
@@ -163,6 +188,11 @@ func _initialize() -> void:
 		var h := float(hidden.get(id, 0.0))
 		print("check_drape: %s: %.0f m2 of %.0f m2 hidden by an area under them" % [STRIPS[id], h, float(strips.get(id, 0.0))])
 		if h >= ALLOWED_STRIPS:
+			fails += 1
+	for id in RAILS:
+		var h := float(rail_hid.get(id, 0.0))
+		print("check_drape: %s in the cutting: %.0f m2 of %.0f m2 under the ground" % [RAILS[id], h, float(rail_total.get(id, 0.0))])
+		if h >= RAIL_ALLOWED:
 			fails += 1
 	if verbose:
 		worst.sort_custom(func(x: Array, y: Array) -> bool: return x[0] > y[0])

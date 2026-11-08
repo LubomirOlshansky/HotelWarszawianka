@@ -118,3 +118,13 @@ city at day and night from the station side.
 | crown | frustum, 18 % in | 105-113 m | on Skylight | M_PAVILION +0.5 #b9d2dc | 4 Skylight |
 | drum | mapped cylinder and rim | 0-30.5 m | (-1459, 476) | M_PAVILION #c9b98f, rim M_STONE | 5 drum |
 | red | mapped prisms | 0-11 m | Jana Pawła II entrance | M_STONE #c0624c | 5 entrance |
+
+## Update 2026-11-05 (F's photos + the Mac gather, refs/skylight/REPORT.md)
+
+- **Skylight** (`_tarasy_skylight`): light silver-grey cladding with a dark window dash per floor (not
+  a blue-green curtain wall); 26 floors of about 3.3 m, 105 m as mapped; dark lobby glass with a 5 m
+  canopy; a 4-floor glazed belt at 20-33 m. The lit glass frustum crown is gone: the east half
+  of the roof stays at 105 m, the west half is scooped to 100 m with an oval glass cap.
+- **The screen block**: the mapped plate over the entrance (x -1409..-1368, z 437..449) is a graphite
+  box 17 to 38 m; the 3D LED screen (`tarasy_screen.gd`) hangs on its south face and curved west
+  return, an L in plan, 44 x 20 m.

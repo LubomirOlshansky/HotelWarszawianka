@@ -15,12 +15,35 @@ item. Updated 2026-11-01 from the audit. v1.0 = the Demo and TestFlight gates in
 then the Launch gate.
 
 ### Done (built and checked headless)
-- [x] Boat race "Wiślana Szprotka" (F, 2026-11-06; `boat-race.md`): Szymek phones, the start pontoon at the mouth of Port Czerniakowski, 3.2 km down the Vistula under four bridges through 25 rings (gold ones for a boost), three misses and you're out with JESZCZE RAZ / WYJDŹ, rhythm speed-ups, planing boats that slide and jump wakes, rivals Szymek, Pan Zdzisiek and Kamil with their own lines and mistakes, a sand barge throwing big waves (`check_boat_race`, verify step `boatrace`; phone feel, engine sound, Mac Autopilot run open)
-- [x] Secret rave quest line (F, 2026-11-06; `secret-rave.md`): night raves with beams, lasers and a strobe at three spots, a day rave on the Praga beach, LEKTI's voiced break-in on MORDOR FM with the password, Ziomek's call, pickup, meeting point and the strict three-question door, the cash-only ticket, Smoła's cutaway room in a jungle with the DJ, dancers, Pan Kołek, tap-to-talk and TAŃCZ, and its patio (courtyard, fairy-lit trees, mirror ball, lighter music) (`check_rave`, verify step `rave`; PR pending; phone feel, PixelLab portraits, techno tracks open)
+- [x] Nowogrodzka 31, the rooftop billboard and Marszałkowska 99 (F's photos and 3D views, 2026-11-07; `docs/landmarks/nowogrodzka31.md`): the cream office block across from the Novotel with its windows, shops and neon, the MRAU ad banner on the end wall, the rooftop billboard with 15 lamps, the white balconied slab beside it (PR #538)
+- [x] Skyline towers near the Palace from F's photos (F, 2026-11-08; specs `plater49.md`, `wcf.md`, `polonia.md`): InterContinental's 53 m gap over the podium lit white at night and its sloped roof, the Warsaw Financial Centre's white and ribbon-glass slabs on their curve with the granite podium and mast, Hotel Polonia Palace's mansard, pediment with the oval window and name on the frieze (PR pending; phone look open)
+- [x] 11 listopada day event (F, 2026-11-07; `docs/design/event-11-listopad.md`, `event_day.gd`): on 11 November (or `--event-day`) the crowd with white-red flags fills Rondo Dmowskiego and Al. Jerozolimskie to Rondo de Gaulle'a, four grey barrier lines shut the arms (cars and trams kept out, the helicopter flies over), the Palace, Złota 44 and Stadion Narodowy are lit white and red, a red glow and haze at dusk (`--event-smoke=0` leaves them out); trailer left for later (PR pending; phone bench open)
+- [x] Palace of Culture grounds and venues (F, 2026-11-07): low granite planters instead of 1.9 m walls, shrub beds, the Plac Defilad lot in asphalt with its bays, pavers at the kerbside lots; KINOTEKA moved to its real door, signs for Teatr Dramatyczny, Teatr Studio, Teatr Lalka, Sala Kongresowa, Muzeum Techniki, Kulturalna and the 30th-floor terrace; Bar Studio's deck-chair garden under festoons and evening theatre crowds (`bake_pkin_grounds.py`; PR pending; Mac/phone look check open)
+- [x] The Palace's event lighting by date (F, 2026-11-07, with photos): one calendar `data/palace_lights.json` (14 dates: New Year rainbow, 3 May and 11 November white over red, Pink October, the Equality Parade's rainbow, Christmas green and red...), the floodlight's colour patterns in building.gdshader (gold, one colour, two by height, rainbow), `--palace-lights=ID` for shots
+- [x] Ratusz Arsenał interchange (F's photos, 2026-11-07): arched glass tram canopies lit at night, benches and departure boards, Gruba Kaśka between the tracks, stop 03 on Andersa left with its shelters, the glass escalator pavilion and stone metro entrances with yellow roundels; passengers seated in the trams, people waiting on every tram platform (`check_ratusz_hub`, verify step `ratuszhub`; bus passengers after #511, phone look open)
+- [x] Cinema tour "Kino objazdowe" (F, 2026-11-07; `kino-tour.md`): director Wiktor phones, pickup on Plac Zbawiciela, pitches at Amondo, Atlantic, the Kinoteka and Kino Muranów (the premiere), the reel scratched by hits, four optional shots, banter about niche cinema under parody names; Kino Muranów rebuilt from F's photos (`check_kino_tour`, verify step `kinotour`; Atlantic and Amondo photos, voice, premiere crowd open)
+- [x] Padel call at WTS DESKA reworked (coordinator, 2026-11-07; `padel.md`): the friend's call rings first with a bio (ODBIERZ / ODRZUĆ) like the boat race and the rave, then a three-point match on arrival (LOB / ZE ŚCIANY / SMECZ, +6 zł and +2 respect a point), a helicopter landing remark, the late line fixed (`check_city_life`; Mac Autopilot run, PT-30 fixed; on the quest map with an in-person start at the gate; phone check open)
+- [x] Night racing club quest (F, 2026-11-06; `night-meet.md`): Darek „Bawarka" calls, the WARSAW NIGHT RACING CLUB meets on Plac Defilad with Lena's donuts in a Porszę 912, two police raids, the TYGRAM pin and the race to the National Stadium's car park (first there pays most), then the drag on Aleja Zieleniecka: START DRAG, the tree, BIEG! shifts, nitro, Tadek's Skajlajner (`check_street_meet`, verify step `meet`; voice, Autopilot run and phone feel open)
+- [x] Kawowy rajd, the coffee run on a ROWERILO bike (F, 2026-11-06; spec `coffee-run.md`): Zuzia calls, you swap the car for a city bike at the dock by Elektrownia Powiśle, ride to four specialty-café parodies (KROPKA., GLON, STORCZYK, MANTRA) for stamps and overpriced coffee against a 5:00 clock, third-wave jokes on the way, Zuzia BLIKs you back; on the quest map she waits at the dock and starts the run in person (`check_coffee_run`, verify steps `coffeerun` and `coffee`; phone look open)
+- [x] Credits off the main screen: the OSM/GUGiK line left the HUD; the data credits live on their own page (Settings → DŹWIĘK → LICENCJE) (2026-11-07, F; Godot not run in the cloud session, `check_hud` and `check_credits` for CI)
+- [x] Flicker over the railway from the helicopter (F, 2026-11-07, phone videos): the cutting's floor no longer z-fights the gravel, and the railway's ballast and rails no longer sink under the ground of the cutting by Główna and Ochota (`check_drape` rail pass; phone look open)
+- [x] Open-PR audit and merge train (F, 2026-11-07; `docs/PR_AUDIT.md`): 12 orphan PRs whose threads had ended merged to main together (#456 #473 #477 #478 #479 #482 #484 #487 #489 #490 #493 #496), plus 13 finished PRs from live threads (#481 #499 #500 #506 #507 #509 #510 #513 #519 #522 #524 #525 #528), and #371 #467 #486 #488 on their own; then #503 #505 #526 in a second small train, and #535 #540 #541 #527 #512 #542 #533 #538 #539 #543 #545 #546 #547 with it as train 3; map PRs one slot at a time; no work lost
+- [x] Batch 3 landmark photo pass (F, 2026-11-06; reports `docs/landmarks/photo-reports/staszic.md`, `wszystkich.md`, `zygmunt.md`, `swietokrzyski.md`): Sigismund's Column in granite and bronze with four steps, All Saints with spired towers, arcade galleries and the crossing dome, Staszic colours; Staszic front/statue and the Świętokrzyski A-frame pylon stay open (QUESTIONS), Browary unchanged (same 3 photos)
+- [x] Zachodnia offices (F, 2026-11-06): Brama Zachodnia (terracotta), Equator (graphite ribbon glazing), Equator II (blue-grey ribbon glass) skinned from Mapillary/Panoramax street photos (TOWERS keys `brama`, `equator`, `equator2`), the parody BLUZOFT on Equator II (9th floor); about 40 developer / AI / vibe-coding jokes in dialogue.json (radio_host, office, passenger, kebab_order office); PR pending, phone check open
+- [x] SOWA CLUB and CITY 25 (F's photos, 2026-11-06): the neon glass pavilion on Al. Jerozolimskie 2-6 (the club's glass box lit pink, pink tubes on every edge, the restaurant's white box and roof sign round a blue crescent, a terrace with KACBERG banners and umbrellas, the PEPSZY panel), an info card and a night-owl crowd with its own lines (PR #484; the restaurant's neon, door and canopy turned to face the Palm on F's ask, 2026-11-07; phone look and bench open)
+- [x] Warsaw's trams new and old (F, 2026-11-06, from F's six photos; `tram_fleet.gd`): the newest bidirectional tram with its black glass face and smiling yellow chin, the old boxy high-floor pairs (yellow over red, the round red "t") and a rebuilt pair with the hood and black nose run beside today's yellow trams: 3 newest, 3 today's, 2 pairs of the 8; the first scene's passing tram is the newest, the one coming down is an old pair; +0 draw calls (a pair draws one car fewer) (`check_tram_fleet`, verify step `tramfleet`; phone look open)
+- [x] Warsaw Spire, Spire B and C rebuilt from F's ten photos (F, 2026-11-06; spec `spire.md`): the shaft flares out with concave sides to a saddle crown, lit spines, polished steel Λ columns round the lobby, the mirrored bow canopy, B and C's pale top storeys and white eaves, an LED ticker with SAMSONG parody adverts round the crown, the plaza's kerbed pools, planted islands, pebble channel, jets and 26 trees (`spire_motion.gd`, verify step `spiremotion`; PR pending; phone look and bench open)
+- [x] 3D corner screen at Złote Tarasy (F, 2026-11-05, from his photos; PR pending): a 44 m L-shaped LED screen on a graphite block over the glass entrance (Skylight rebuilt from the Mac photo gather: silver-grey shaft, scooped roof with an oval glass cap), with an original anamorphic loop that floats out of its frame (glowing flowers, a cat leaning out, the SCENA WARSZAWA title); `tarasy_screen.gd` + `led_screen.gdshader`, one draw call, `tools/verify.sh --only=tarasyscreen`; phone look and bench check open
+- [x] Closed-beta S3 bugs (2026-11-07, PR pending): crazy drivers' lines no longer lost to the chatter budget (PT-25), bubbles keep off the steering hint (PT-26), the target arrow and its "KEBAB 1948 m" never sit on BRAKE (PT-27), Grochowska's tram strip closed at the east edge (PT-28), the map's "Nie teraz" refusal back in play (it only worked under a test flag, PT-19), no ride cards during the rave run or the tow; build 4's What to Test and Play notes (EN/PL) in `docs/store/beta-testing.md`
+- [x] Kieślowski tour "Dekalog na kółkach" (F, 2026-11-07; `dekalog-tour.md`): Claire from Lyon phones, pickup at Centralna, six real Dekalog places (Noakowskiego 12, Plac Trzech Krzyży, the University, the Europejski taxi rank, Krakowskie Przedmieście 27, the Inflancka estate by Dzika 6) with KADR cards and a shot per leg, her question at the estate (`check_dekalog_tour`, verify step `dekalog`); the six Dekalog slabs and the Inflancka pools built from F's photos (sites `dekalog_estate`, `inflancka_pools`, `check_sites`); the stops' fronts and the rest of the estate wait
+- [x] Boat race "Wiślana Szprotka" (F, 2026-11-06; `boat-race.md`): Szymek phones, the start pontoon at the mouth of Port Czerniakowski, 3.2 km down the Vistula under four bridges through 25 rings (gold ones for a boost), three misses and you're out with JESZCZE RAZ / WYJDŹ, rhythm speed-ups, planing boats that slide and jump wakes, rivals Szymek, Pan Zdzisiek and Kamil with their own lines and mistakes, a sand barge throwing big waves (`check_boat_race`, verify step `boatrace`; phone feel and engine sound open; Mac Autopilot runs 2026-11-06 and 2026-11-07: the fail path and a full race to the finish)
+- [x] Free-ride boat at the start pontoon (F, 2026-11-07; `boat-race.md` section 8): three boats from F's photos moored there with their own physics (jet ski Rekin X, electric Srebrna Strzała, offshore Czarna Pantera), the PRZYSTAŃ pill opens the pick (or WYŚCIG), a ride with no rings or clock, ✕ back to the car, a boat mark on the minimap and the full map (`check_boat_race`; the pier and its access road wait for F's photos)
+- [x] Secret rave quest line (F, 2026-11-06; `secret-rave.md`): night raves with beams, lasers and a strobe at three spots, a day rave on the Praga beach under Most Poniatowskiego (moved there 2026-11-07, F), LEKTI's voiced break-in on MORDOR FM with the password, Ziomek's call, pickup, meeting point and the strict three-question door, the cash-only ticket, Smoła's cutaway room in a jungle with the DJ, dancers, Pan Kołek, tap-to-talk and TAŃCZ, and its patio (courtyard, fairy-lit trees, mirror ball, lighter music) (`check_rave`, verify step `rave`; PR pending; phone feel, PixelLab portraits, techno tracks open)
 - [x] Dead electric cars (F, 2026-11-06, `ev_tow.gd`): Bartek phones, his TESŁO Model Ś is at 0 %; LECĘ! takes you up in the helicopter, the car hooks onto a sling and swings under you to a charger by Elektrownia Powiśle, Hala Koszyki, Złote Tarasy or the Palace while he talks EV memes (winter range, green plates, a diesel on the charger); stranded TESŁOs with hazards block a kerb lane now and then and can be carried for a tip (`check_ev_tow`, verify step `evtow`; phone feel and ringtone open)
 - [x] Loading bar on the title screen (F, 2026-11-05: the start looked frozen, then the city popped in): the map files load on threads, the build yields between its steps, a neon bar with "building the city… 42 %" runs to "TAP TO DRIVE" (PR pending; phone timing check open)
 - [x] Crazy drivers in traffic (F, 2026-11-05; spec `crazy-drivers.md`): Szkoda Oktawia taxis, Szprynter couriers and one Pasatini 1.9 TDJ in the race rivals' racer mode with no route: fast, tailgating, passing, cutting in and blocking, a fresh red now and then; a horn and a line when one cuts you off, KEBAB FM's Pasatini sightings (`check_crazy_drivers`, verify step `crazy`; phone feel open)
 - [x] Readable messages (F, 2026-11-05): speech bubbles, toasts and the radio ticker stay up by text length (chatter.gd `read_time`, 3-11 s, more with large text), never shorter than before (PR pending; tap to dismiss/recall not built)
+- [ ] Trybunał Konstytucyjny (al. Szucha 12a): parked until the map grows south, photos gathered (F, 2026-11-06; BACKLOG "Trybunał Konstytucyjny")
 - [x] Landmark look-check fixes from F's answers: Hotel Warszawa's one stone base, portal and cornices; Poczta's recessed colonnade and canopy, PAST-a darker; MPW's pale bannered wing and deeper arches; Norblin's white workshops, copper base, finned storeys and glass passage; Browary's tree clumps, path and clearings; Wschodnia's eave, struts and suburban roofs; Bazar's patched stalls; Pasaż Wiecha's grey slabs and Y masts (2026-11-03, #403)
 - [x] Developer console (F, 2026-11-04): `tools/console.py` -> `build/console/index.html`: overview, city map with layers, sliders, area picker and counts (cafés, shops, roads km, bridges, trees…), content tables, approvals queue, renders; `--watch` keeps it current; deploy notes in `console/README.md`. Next: Mapillary/road-objects census layer once PR #429 lands, A/B pairs
 - [x] Status page, review sheet and resumable bake (2026-11-04, from the Isometric Istanbul docs): `tools/status_page.py` (map of ranked places by stage, clickable, % by tier and district), `tools/shot_sheet.py` (before/after sheet), `tools/bake_all.sh --resume`
@@ -44,6 +67,9 @@ then the Launch gate.
 - [x] Warsaw Spire rebuilt to the real shape (F's photos, 2026-11-02; spec `spire.md`): a shaft that widens
       upward over a lit glass lobby, a domed roof with a fin and two masts, the mirrored entrance canopy on
       V legs, the two curved 15-storey wings and the paved plaza; Mac look check parked (QUESTIONS)
+- [x] Centrum LIM's podium rebuilt from F's night photos (2026-11-06; spec `lim-podium.md`): panel bands, the
+      set-back gallery, the arcade, the tenants' parody signs (PEPEO ŻUBR's bison and more), three LED screens,
+      busy pavement and Dworzec Centralny tram stop; phone look check open
 - [x] Royal Castle pass 2 and its gardens (F, 2026-11-02; spec `zamek.md`): the Clock Tower and helm, corner
       turrets, the cream Vistula front with its dome, Kubicki's Arcades and the Upper and Lower Gardens from
       the Krajobraz project, photos and the orthophoto; Mac look check parked (QUESTIONS)
@@ -60,13 +86,26 @@ then the Launch gate.
 - [x] The Emilii Plater underpass's five entrances sunk with real stairs: granite parapets round the two
       wells, steel canopies over the pavement flights (green on the south side), dark passage mouths, and
       people walking in and out (F, 2026-11-06; spec `underpass-emilii-plater.md`; site `underpass`)
+- [x] Stairs across the city: every OSM flight that drops over the ground is a stone flight with treads,
+      risers, cheek walls, OSM's handrails and pram channels; walls across stairs opened, stairwell walls
+      balustrades, fountain basins low rims, OSM wall heights (F, 2026-11-07; `tools/stairs.py`)
+- [x] Walls, fences and hedges from OSM's heights, materials and fence types (see-through railings, low
+      park walls, noise barriers), and the Old Town's city walls in brick (F, 2026-11-07; `tools/barrier_tags.py`)
+- [ ] City walls look check from photos (battlements, gates), photo-tag the untagged walls and fences
+- [ ] Stairs deeper than the 10 m ground shows (Skarpa, Karowa, Tamka, metro stairwells) cut into the
+      ground from F's photos (photo list `stairs-photo-list.md`)
 - [x] Arkadka redesign, roof car park, BANK PEPEO sign and the Forest roof terrace (F, 2026-11-01; spec `arkadia.md`)
 - [x] Cobalt-style motorboat on the Forest tower's roof (F, 2026-11-06; spec `forest.md` section 4)
 - [x] Warszawa Powiśle's round pavilion rebuilt from F's photos with jazz nights: the saucer's knife edge, WARSZAWA POWIŚLE in yellow tube letters in dark boxes on the rim, bulbs round the rim and out over the terrace, orange deck chairs, red café tables, a jazz stage with a band of four, an audience and our own swung jazz tune every evening 18:30-23:30 (F, 2026-11-06; spec `powisle.md` sections 1 and 9; phone look and sound level open)
 - [x] Arkadka rebuilt from F's photos: the fountain plaza, curved entrance with piers, canopies and fanned glass gables, the sign tower with its crown, logo panels and screen, the office wing, the brick wing and rotunda with yellow awnings, the letter sign (F, 2026-11-03; spec `arkadia.md`)
 - [x] Forest rebuilt from F's photos: the stepped three-slab tower with colour fins and PEPEO ŻUBR in its crown, the finned wings with black top storeys and roof gardens, the courtyard amphitheatre and trees (F, 2026-11-03; spec `forest.md`; wing heights parked)
 - [x] Towarowa 22 built as finished, the "Warsaw of the future": tower row, the printing hall's yellow frame over a garden, Park Słowa, a drone port and the gilded last crane of Wola (F, 2026-11-03; spec `towarowa22.md`, from F's renders; look check parked)
+- [x] Stacja Muzeum, Nocny Targ and Kolejowa from photos: the old Warszawa Główna hall's arched front, engines and coaches on the museum's sidings, the night market's two rusty canopies with tubes and benches, Kolejowa 8/10's brick warehouses, the pinball museum and the teal club (F, 2026-11-07; spec `stacja_muzeum.md`; Space Club and Splot Słoneczny parked, SM-3/SM-4)
+- [x] Wola's 19. Dzielnica from F's photos: the old Polfa plot as NOHO ONE's building site (concrete frames, three cranes, a yard of pallets, cabins and cars, the OHO ONE hoarding), the Kolejowa estate's blocks in cream with rust window frames, the Towarowa Towers in blue glass with orange and gold frames (F, 2026-11-07; spec `dzielnica19.md`; photo list D19-1 parked)
+- [x] Prosta 32, Prosta 28 and Łucka City (Łucka 15) rebuilt from F's photos: Prosta 32's white diamond lattice over blue glass with MARZYPOL, Prosta 28's X-braced base, stone stack and stepped tree terraces with PROSTO, Łucka City's white stepped block, dark top and INTERBRUK board (F, 2026-11-06; specs `prosta32.md`, `prosta28.md`, `lucka.md`; Prosta 28's height parked)
 - [x] Rondo Daszyńskiego towers rebuilt from Mac photos: Skyliner, Warsaw Unit, Mennica Legacy, Generation Park Y, The Warsaw HUB and its hotel tower (F, 2026-11-03; reports in docs/landmarks/photo-reports/; Mac look check parked)
+- [x] Rondo Daszyńskiego towers, second pass (2026-11-06): Unit's taper and gate hall, Mennica's column arcade, GPY's black patches and wing terraces, the HUB's parapets, roof plant and podium skylight (BACKLOG RD-1..4)
+- [ ] Rondo ONZ towers (#28), Łucka/Ilmet/Spektrum (#129) and Teatr Wielki (#18) by photo: batch 4 (2026-11-06) had only Mapillary street photos (cloud; F's refs/ is on the Mac). Ilmet done (terracotta shaft, stepped crown); Q22, Rondo 1, Cosmopolitan, WTT, Platinum, Spektrum, Teatr Wielki wait for a Mac photo pass (BACKLOG "Batch 4")
 - [x] The Bridge (folded glass facets, the dark notched crown, the ERZATZ sign, the timber atrium) and Grzybowska 77 in front of it, rebuilt from F's photos (F, 2026-11-06; spec `bridge.md`)
 
 
@@ -76,6 +115,9 @@ then the Launch gate.
 - [x] Most Poniatowskiego from photos gathered on the Mac (refs/poniatowski: 30 Commons photos, four orthos, a measured report): the four tower groups with arcaded pavilions, 20 m shafts and stair turrets; granite piers, steel arch ribs, the red fascia and black railing with the pier pedestals (2026-11-02, spec `poniatowski.md`; F's look check and the west pier parked)
 - [x] Most Poniatowskiego's Powiśle viaduct as an arch viaduct (pilasters, segmental arches, ribbed spandrels, big arches over Kruczkowskiego, Solec and Wybrzeże) and the north tower groups' switchback stairs with iron lanterns (2026-11-03, spec `poniatowski.md`; the arches' real count parked for F's photos)
 - [x] Most Poniatowskiego's river bridge on 8 spans after F's answer: seven granite piers, the new west-bank pier found on the Mac's photos 22 and 1, the 7th on the east floodplain (2026-11-03; the floodplain piers' exact places parked)
+- [x] Bridges audit (F, 2026-11-07): transport right on all five bridges; Most Śląsko-Dąbrowski's tram-and-bus lane painted (solid white lines, BUS)
+- [x] Most Łazienkowski's cycle bridges hang on brackets from box girders (F, 2026-11-07)
+- [x] Most Śląsko-Dąbrowski (plate girders on the Kierbedź stone piers, red railing), Most Łazienkowski (paired concrete piers) and Most Świętokrzyski (grey median) from F's photos (2026-11-07, BACKLOG "Bridges audit")
 - [x] Most Poniatowskiego's towers strengthened after F's look check: corner piers, string courses and a corbel table on the shafts, bigger windows, a taller belfry; the pavilion arcades with proud piers, keystones and an impost band (2026-11-03)
 - [x] The Powiśle viaduct rebuilt after F's answer: two rows of open concrete arch ribs with struts up to a steel edge girder (27 arched spans per row plus 4 beam spans), the closed bays between Kruczkowskiego and Solec with doors and windows, five parody bars with neon, lit windows, café tables and people outside (2026-11-03; which bays and spans parked in QUESTIONS)
 - [x] POLIN and the Ghetto Heroes Monument from photos gathered on the Mac (refs/polin: 25 Commons photos, the ortho, a measured report) and the LoD2 roof: the glass-fin box, the canyon, the roof slot and the west lens; the monument with its reliefs and menorahs (2026-11-02, spec `polin.md`; F's look check parked)
@@ -83,8 +125,9 @@ then the Launch gate.
 - [x] Plac Krasińskich from photos gathered on the Mac (refs/pomnik_powstania, refs/krasinski: 31 Commons photos, the ortho, measured reports) and LoD2: the Warsaw Uprising Monument (the storming insurgents under the two falling slabs, the descent into the sewers) and Pałac Krasińskich (white walls, green copper roof, pediments with statues, corner pavilions, loggias, porch) (2026-11-02, specs `pomnik_powstania.md`, `krasinski.md`; F's look check parked)
 - [x] Sąd Najwyższy's colonnade from the Plac Krasińskich photo reports: the 54 columns green and ribbed with the lettering band and rosette capitals, the beams green (OSM drew them white) (2026-11-02, spec `sad_najwyzszy.md`; the main block waits on a Mac gather)
 - [x] Bracka and Plac Trzech Krzyży from the Mac photo reports and the OSM outlines: Vitkac (dark banded stone, glass top with terrace trees, as VIPKAC), Dom Towarowy Braci Jabłkowskich (arched shop windows, balcony band, Doric door, atrium roof), the Sheraton (white bands, ribbon windows, the corner drum with its crown, as SZERATON) (2026-11-03, specs `vitkac.md`, `jablkowscy.md`, `sheraton.md`; F's look check parked); and the BGK building on Al. Jerozolimskie 7 (F asked, 2026-11-03; grey granite, paired windows, corner blocks, the gilded monogram; spec `bgk.md`)
+- [x] Beta radio songs: 6 vaporwave for KEBAB FM, 6 minimal techno for MORDOR FM (ElevenLabs, F's picks, 2026-11-05); station jingles wired between songs (3 KEBAB FM, 2 MORDOR FM); her 12 greeting clips play on launches after the first (the first start keeps the opening line)
+- [x] Foksal 13 and 15 from F's photos (2026-11-05, spec `foksal.md`): both street fronts modelled over the kept LoD2 masses and mansards (the Tiny Warsaw pack's model of 13 was wrong, so no port)
 - [x] Foksal 13 and 15 from F's photos (2026-11-05, spec `foksal.md`): both street fronts modelled over the kept LoD2 masses and mansards
-- [ ] Beta radio songs: 8 vaporwave for KEBAB FM, 8 minimal techno for MORDOR FM, idents (F generates on a paid plan; `tools/add_music.py`)
 - [x] Gdański Business Center (tower, two blocks, parody logos; 2026-11-02, spec `gbc.md`; Mac photo check parked)
 - [x] Złota 44 rebuilt from F's photos: the flaring wing, the sharp tip, the glass crown box, white banded cladding, the podium garden (2026-11-02, spec `zlota44.md`; Mac photo check parked)
 - [x] Flat-price jokes: radio, passengers, Podwózka, traffic, dog walkers and three developer billboards (F, 2026-11-01; text only, billboard spots need a Mac look)
@@ -98,6 +141,7 @@ then the Launch gate.
 
 ### Left: the start of the game
 - [x] Metro entrances modelled at the real M1/M2 stairs: vaulted glass canopies, stairwells, passage mouths, red M posts, lifts (F, 2026-11-01; Mac look check parked in QUESTIONS)
+- [~] Metro entrances by station from photos (F, 2026-11-07): done Centrum, Świętokrzyska M2, Stadion Narodowy, Kopernik, Gdański, Nowy Świat, Rondo ONZ (Rondo Daszyńskiego in PR #479, Ratusz-Arsenał its own thread); left Politechnika, Centrum stairwells and passage mouths (shoot list for F)
 - [x] Merge PR #115 (start facing the first stand, short first order, BUW roof cassette), then
       PR #121 (the opening flyover) (both on main; ticked 2026-11-01)
 - [x] First-scene items 4-5, paving and kerbs (2026-11-02): grey pavements and paving round the
@@ -130,6 +174,7 @@ then the Launch gate.
   - [x] R4 ordinary buildings by type (pre-war tenement, 1960s-80s slab or point block, office),
         shader only, 2026-11-01 (socialist-realist left for a later pass)
   - [x] R5 Scena Relax, Zodiak and the Cepelia pavilion as models
+  - [x] PKiN surroundings from F's photos (2026-11-08): Cepelia and Zodiak rebuilt to the photos, Centrum Marszałkowska (Marszałkowska 126/134) as a stepped glass model with fins and night LED strokes; #548 merged; Widok Towers recoloured to the photos (blue-grey glass, light grid); Złote Tarasy, Lumen and Skylight and Jerozolimskie 47's corner dome already match the photos (phone look check open)
   - [x] R6 a trend spot in the start box (MACZA in Pasaż Wiecha, built by the trends thread) and
         six lines on the empty stores, Frogs XXL, Plac Centralny, Scena Relax, 2026-11-01
   - [x] R7 street details in the box (street name plates, bike dock, tram stops, bollards), 2026-11-01
@@ -142,7 +187,7 @@ then the Launch gate.
 
 ### Left: map and roads
 - [ ] Free-play playtest plan P1-P10 run with Autopilot and every confirmed PT bug fixed
-      (F, 2026-11-02; docs/PLAYTEST.md; setup and Autopilot plugin done 2026-11-02)
+      (F, 2026-11-02; docs/PLAYTEST.md; setup and Autopilot plugin done 2026-11-02, updated to release v1.0.0-753232a 2026-11-06)
   - [x] PT-1 dead stop at Centrum's tram stop on Marszałkowska, 2026-11-02 (PR #289)
   - [x] PT-7 car pinned and towed at the Chmielna square's glass corner (notches and slits in building fronts bridged city-wide), 2026-11-02
   - [x] PT-2 (NE of Plac Defilad) and PT-5 (side streets west of Marszałkowska) not reproduced, 2026-11-02: ~680 swept road lines clean, six guard lines in `check_stuck_spots.gd`
@@ -197,7 +242,8 @@ then the Launch gate.
 
 ### Left: landmarks and street details
 
-- [ ] Eastern Wall photo pass (F, 2026-11-03; plan in BACKLOG "Eastern Wall photo pass"; the shops and banners on the fronts done from F's own photos 2026-11-05, the Mac gather for the glazing and the Widok corner still open): Marszałkowska fronts of Junior, Sawa and Wars from a Mac `refs/dt_centrum/` REPORT, the Widok corner, WACZEK at the former Sezam (Świętokrzyska), the rooftop cola parody sign at Sezam/Centrum and a fictional Amica brand, Pasaż slabs warm grey-white; high priority, waits on F's go for the Mac gather
+- [x] Rotunda and the Eastern Wall stores rebuilt from F's photo set around the Palace (2026-11-08, `pkin-surroundings/photos` E1/E3 + Mapillary): the Rotunda's glass rising into points under a thin zigzag edge, 40 bays, the folded roof a funnel into the oculus; Junior, Sawa and Wars in pale glass in a light grid, a louvred top storey with the shops' boxes (specs `rotunda.md`, `dtc.md`)
+- [ ] Eastern Wall photo pass (F, 2026-11-03; the stores' glazing done from F's photos 2026-11-08; plan in BACKLOG "Eastern Wall photo pass"; the shops and banners on the fronts done from F's own photos 2026-11-05, the Mac gather for the glazing and the Widok corner still open): Marszałkowska fronts of Junior, Sawa and Wars from a Mac `refs/dt_centrum/` REPORT, the Widok corner, WACZEK at the former Sezam (Świętokrzyska), the rooftop cola parody sign at Sezam/Centrum and a fictional Amica brand, Pasaż slabs warm grey-white; high priority, waits on F's go for the Mac gather
 - [x] City inventory, street by street (F, 2026-11-02): every characteristic place in the box ranked S/A/B
       with its status (photo build, outline build, dress only, not done) in docs/CITY_INVENTORY.md, Part 2
       street by street from the map data (`tools/city_inventory.py`). Its Part 3 is the order of the next
@@ -216,20 +262,28 @@ then the Launch gate.
   - [x] Plac Bankowy's colonnades and the Bank Polski corner, Filharmonia, Teatr Polski from the Mac photo reports (2026-11-02, specs `bankowy.md`, `filharmonia.md`, `teatr_polski.md`)
   - [x] Poczta Główna and PAST-a from the Mac photo reports (2026-11-03, specs `poczta.md`, `pasta.md`)
   - [ ] Narodowy Bank Polski (waits on its photo report)
+  - [x] Novotel Warszawa Centrum from F's photos (2026-11-07, log `novotel.md`): windows, neon ends, roof light boxes, podium, entrance
+  - [x] Cyfrowy Parking Novotel (Nowogrodzka 27) from F's photos (2026-11-07, log `cparking.md`): eight painted decks, corner bar with neon, entry, poster boards, the corrugated wall
   - [x] Miodowa's palaces from F's photos (2026-11-07, spec `miodowa.md`): Branickich's front modelled, six more palaces in photo-read skins
   - [ ] Miodowa's palaces, the rest: Młodziejowskiego's pediment block and fence, Paca's gate court, Collegium Nobilium's tower block, Pałac Prymasowski and Pałac Blanka
+
+  - [x] Saski Crescent and Senator in photo-read skins (2026-11-07, spec `saski.md`)
+  - [x] Brama Zachodnia, Proximo I and II in photo-read skins (2026-11-07, spec `offices.md`)
+  - [ ] Offices: stepped crowns, name strips, ochre mullions, parody signs; Equator and Crown Square need photos
+  - [ ] Saski Crescent's stone wing, dark crown and SASKI ROGAL sign; Senator's glass light well
 - [ ] **Warsaw modernism and brutalism, high priority** (F, 2026-11-03; docs/design/modernism-collection.md,
       CITY_INVENTORY 147-153, BACKLOG "Warsaw modernism and brutalism"): photo builds from the Mac's `refs/<slug>/`
   - [x] The plan: the buildings ranked M1-M17, the modelling recipe, the quest design (2026-11-03, docs only)
   - [x] M1 Młotek (Smolna 8), M2 Kozia 9, M3 Karowa 18a: photo builds (2026-11-05, specs `mlotek.md`, `kozia9.md`, `karowa18a.md`)
   - [ ] Kozia 9 re-spec from walk photos of its north-east side (Mapillary has none) (below the L3 bar in review, `docs/landmarks/kozia9.md`)
   - [ ] M4-M12: Żyletkowiec, Dom Chłopa, NBP, the Kopernika skyscraper, Za Żelazną Bramą, Torwar, Ministerstwo Komunikacji, Dom Słowa Polskiego (M10 BGK built 2026-11-03, site `bgk`)
-  - [ ] M13-M17 photo re-passes: Sofitel Victoria, Plac Defilad's pavilions, Muzeum Narodowe, the Sejm's hall, Warszawa Wschodnia
+  - [ ] M13-M17 photo re-passes: Sofitel Victoria, Plac Defilad's pavilions, the Sejm's hall, Warszawa Wschodnia (Muzeum Narodowe done 2026-11-06, piers, fence, flagpoles, doors; Mac look check parked)
+  - [x] Batch 2 of the next 20 buildings (CITY_INVENTORY #47, #24, #23, #25, #34): Muzeum Narodowe, Archikatedra, Barbakan, St Anne's and Holy Cross rebuilt from photos (2026-11-06)
 - [ ] Monuments pass (City inventory Part 3 item 6)
   - [x] Every OSM monument, sculpture, talking bench and memorial plaque in the box as a generic piece, plaques on their walls with candles (2026-11-02, tools/bake_monuments.py)
   - [x] Plac Piłsudskiego from photos: the Smolensk memorial, Piłsudski, Kaczyński, the masts and the granite chequer (2026-11-02, refs/pilsudskiego/)
   - [x] Plac Piłsudskiego paving no longer reads as a chess board: half the panel contrast, thin dark bands, granite grain, panels fade out in wide views (2026-11-03, GAMEPLAY_PLAN Phase 0.5; phone look still open)
-  - [ ] Photo builds: Nike, Słowacki and Starzyński, Mały Powstaniec and Kiliński, the Eastern memorial, Umschlagplatz (reports in docs/landmarks/photo-reports/)
+  - [x] Photo builds from the Mac's photo reports: Nike, Słowacki and Starzyński, Mały Powstaniec and Kiliński, the Eastern memorial, Umschlagplatz (2026-11-02; F's look check parked)
 - [ ] Krajobraz places (F, 2026-11-02; docs/design/krajobraz-places.md, BACKLOG "Krajobraz places"): the newest public spaces as built
   - [x] K1 ul. Bracka's woonerf: its 22 missing young trees planted in the mapped beds (33 in all)
   - [x] K2 ul. Chmielna: 65 young elms and planes in its tree pits (85 in all), granite paving, Ali's stone and plate
@@ -351,12 +405,16 @@ then the Launch gate.
       weekday rush-hour workers in business dress at the metro exits and zebras and walking over the
       crossings (`crowds.gd` OFFICE, mode `office`, up to 56 walkers + 88 standing, scaled by
       `amount`), 65 overheard corporate lines in `dialogue.json` "office"; phone look check parked
+- [x] Rondo Daszyńskiego crowded like the real one, 2026-11-07 (F): up to 104 office walkers, a
+      crowd at all seven metro entrances, and waves at the zebras (walkers wait at a red kerb and
+      cross together; `crowds.gd` XING_*, check_crowds); phone bench parked
 - [ ] The estate, the halls and Jana Pawła II (F, 2026-11-01; BACKLOG section):
   - [x] Osiedle Za Żelazną Bramą: eleven blocks as a model with its own skin, 2026-11-01
   - [x] Hala Mirowska: market stalls on the square, 2026-11-01 (the hall itself was done)
+  - [x] Hala Mirowska glazed east gallery and the Metropolitan's silver top storey, from F's photos, 2026-11-07 (rest of the photo pass: BACKLOG)
   - [x] Aleja Jana Pawła II: mid-century plasters on every plain building along it, 2026-11-01
   - [ ] Mac photo checks for the estate and the stalls (QUESTIONS); then the boulevard street by street
-- [x] Street blocks across the city (F, 2026-11-06): 512 plain blocks modelled, Nowy Świat's 50 with real windows, trim, dormers and roofs (BACKLOG "Street blocks across the city") Marszałkowska added 16 photo fronts Aleje Jerozolimskie 21 and the streets from Świętokrzyska to Ujazdowskie 25, Krakowskie Przedmieście, Senatorska and Miodowa 41, Długa, Jana Pawła II and Krucza 41, Mokotowska and Hoża 61, Wilcza, Piękna and Targowa 83, and 46 named buildings on 2026-11-07 (351 in all).
+- [x] Street blocks across the city (F, 2026-11-06): 512 plain blocks modelled, Nowy Świat's 50 with real windows, trim, dormers and roofs (BACKLOG "Street blocks across the city") Marszałkowska added 16 photo fronts Aleje Jerozolimskie 21 and the streets from Świętokrzyska to Ujazdowskie 25, Krakowskie Przedmieście, Senatorska and Miodowa 41, Długa, Jana Pawła II and Krucza 41, Mokotowska and Hoża 61, Wilcza, Piękna and Targowa 83, and 46 named buildings on 2026-11-07 (351 in all); 21 block colours corrected from F's photos; 15 more fronts from F's second photo round and 39 from the follow-up (403 in all).
 - [ ] Nowy Świat street by street (F, 2026-11-01; BACKLOG "Nowy Świat"):
   - [x] N1 café terraces along the whole street (about three times as many) and six named houses with skins and cards, 2026-11-01
   - [x] N2 three more neon shops (BLIKLINA OD 1869 pastry parody near no. 35, Chmielna, Foksal), 2026-11-02
@@ -373,6 +431,9 @@ then the Launch gate.
 - [x] The sailing marina in Port Czerniakowski (2026-11-02): club house on piles, 18 sailboats,
   pier lamps (site `marina`); Marinka as the two-deck white party barge of F's photo
 - [ ] Mac photo check of the marina (club house colours and storeys, berth count)
+- [x] Port Czerniakowski's spit and basin from F's photos (2026-11-07): MAJAMI WAWA (terrace, tents, fire pits,
+  white pontoon), WTW's boathouse and gate, low halls instead of 14 m blocks, boats along both quays, houseboats
+- [x] Monkey Love's garden as MAŁPI LOVE from F's photos (2026-11-07, site `monkey_love`); roads to the spit checked
 - [ ] Mac photo check of the barges (hull colours, deckhouse length and place, the terraces)
 - [ ] Mariensztat and Krakowskie Przedmieście review (F, 2026-11-01; BACKLOG section):
   - [x] M1 Mariensztat's houses in pastel with red tile roofs and dormers, 2026-11-01
@@ -402,12 +463,15 @@ then the Launch gate.
   - [x] S3b Warszawa Śródmieście: the two glass stair pavilions by the Palace, 2026-11-01
   - [x] S3c-e the WKD stops: Śródmieście WKD's two concrete propellers over the stairs, Ochota WKD's slab on V legs, from the Mac photo gather, 2026-11-02
   - [x] S3c-e Warszawa Wschodnia: the glazed hall under its folded-edge roof on green and white V struts, WARSZAWA WSCHODNIA on the fascia, rust-brown roofs over the five island platforms, from the Mac photo report, 2026-11-03; F's look parked
+  - [x] Railway audit (F, 2026-11-07): light signals at every railway platform's end and both tunnel mouths (a main signal where it stands clear, a dwarf between tracks; green or red lit, glowing at night; `check_rail_signals`), the trains' sounds (wheels and rail-joint beats, the bridge's drone, the horn out of a tunnel mouth, the platform gong), red tail lamps at a train's back; Mac/phone look and listen check
+  - [x] Stacja Muzeum, the railway museum on Towarowa with its locomotives in the yard (railway audit 2026-11-07; built in PR #523, the engines collide 2026-11-08; gable end SM-5)
   - [ ] S3d Warszawa Gdańska (the map's north edge, mostly off the map; the photo report shows it being rebuilt)
   - [x] Parks come alive (2026-11-01, `park_details.gd`, `tools/bake_park_details.py`): Ogród Saski, Ogród Krasińskich, Park Ujazdowski and the castle's park get sandstone statues, a fountain, a carousel, a playground, a gazebo, pergolas, a sundial, a footbridge, ducks and swans, squirrels, people on the benches, picnics and a yoga class; the Mac look check parked
   - [ ] Łazienki Królewskie (Palace on the Isle, Chopin monument, peacocks): south of the map's edge, waits for a map extension (QUESTIONS)
   - [x] Footbridges over a trench sagged onto the floor (Armii Ludowej (380, 1500), Ochota cutting (-2170, 880) x2, (-2324, 927); deck 48 at (1590, 1650) too): `_lift_sagging_deck` lifts a path deck to the line between its ends, 2026-11-05 (F's night screenshot); bake solver left as is (Mac re-bake would fix at the source), Mac look check
   - [x] Plac Zawiszy: rails, sleepers, wires and trains cut at the cutting's end (`Trains.trim_rails`, polygon `TUNNEL_ZAWISZY`), the tunnel mouth moved to (-1964, 812), 2026-11-05 (F's screenshot); left: the cutting's slopes on the 10 m grid (Mac 1 m corridor), wire clutter over the 12 tracks, Mac look check
   - [x] Centralna to Ochota reworked (F, 2026-11-06): the cutting with a flat track bed, straight grass banks, concrete retaining walls with pilasters at the tunnel mouth, fences along the top, lattice gantries over the multi-track runs; Warszawa Główna's island platforms (OSM maps them as footways) raised with tiles, white edge, yellow line and lamps; the Główna footbridge held over the catenary with glass parapets, a stair and a glass lift down to each platform; trains stop at Główna and turn back at its buffers; people get off and on at every door; the suburban units are modern low-floor units (sloped nose, black windscreen, yellow doors), the long-distance train is a locomotive with coaches; Mac look check
+  - [x] Every open-air station dressed (F, 2026-11-06): lamps, shelters, benches, bins and name boards on the platforms of Główna, Ochota, Powiśle, Stadion and Wschodnia, people waiting who board the next train, the ballast no longer drawn over Stadion's and Wschodnia's platforms; Mac look check
   - [x] The map's edges: the land runs on past the outline (ground fading into the sky, a tree line, blocks beyond, the rails and roads running out), Wschodnia and Gdańska first, 2026-11-01; the Mac look check parked
   - [x] Roadworks close every road at the map's edge (barriers, ROBOTY DROGOWE and OBJAZD boards, cones, an excavator, a tarp fence, blinking lamps; solid; traffic stops there), 2026-11-02; the Mac look check parked
   - [x] The roadworks' boards speak the player's language (ROAD WORKS / DETOUR → in English), 2026-11-02
@@ -421,7 +485,7 @@ then the Launch gate.
 
 ### Left: content and feel
 - [ ] **"Betonowy album", collect every modernist building** (F, 2026-11-03; docs/design/modernism-collection.md section 2): Pani Wanda's lost slides as Fotka Kadr shots, five story slides, the Emilia then card, the "Betonowa" paint for the whole album. Designed, not built; ships with the nine ★ buildings and grows as M1-M17 land
-- [ ] **Bar-crawl taxi quests** (F, 2026-11-04; backlog "Bar-crawl taxi quests"): drive a company of 3-5 through three to five famous bars (existing parody fascias on Nowogrodzka, Mazowiecka, Wilcza, the Powiśle viaduct, the boulevards, Dom Partii, Praga) against the clock; mood, waiting at the kerb, tips, four routes. Plan only, not started (PAUSE)
+- [x] **Bar-crawl taxi quests** (F, 2026-11-04): drive a company of 3-5 through three famous bars (the parody fascias on Nowogrodzka, Mazowiecka, Wilcza, the Powiśle viaduct, the boulevard, the Party House, Praga) against the clock. Done 2026-11-07: `bar_crawl.gd`, four groups and four routes, the stays at the kerb, the mood and the pay, a night call (20:00-04:00); `check_bar_crawl` in verify. Stamps, the phone feel test and more routes in BACKLOG "Bar-crawl taxi quests, next steps"
 - [ ] **Vitkac quests** (F, 2026-11-03; backlog "Vitkac quests and ride stories"): the black-stone luxury block on Bracka as a quest place, with the quests built around it. Not started; the landmark is the 2026-11-03 photo build (PR #385)
 - [x] **Every Podwózka ride gets its own passenger story** (F, 2026-11-03; built 2026-11-07, F's "taxi rides with stories"): 18 story passengers in `data/taxi_stories.json`, each driven to a real place (Warsaw Spire, Pałac Kultury, Dworzec Centralny, Hala Koszyki, Hala Mirowska, the Nowy Świat pavilions, the Royal Castle, Varso, Złote Tarasy, Bazar Polna, BUW, Park Ujazdowski, Kopernik, the Stadium, Teatr Wielki, Pod Gigantami, the Powiśle UFO's jazz, the Presidential Palace) (Mordor's Kamil, a film star incognito, a słoik, Zbawix's hipster, Pani Krysia, a stag-party tourist, a Krakus, an influencer live, a rival app's driver, Pan Mietek, a student, Pimpuś the dachshund, a pigeon startup, the Pasatini's brother, a night ghost, a first date, a jazz saxophonist, a beekeeper getting a medal at the Presidential Palace) tell three lines on the way and ask one question on a two-answer card: the answer changes the tip and a good talk is +½ star; the outro is on the result card; in turn, unheard ones first (`taxi_stories.gd`, `check_rides`). Open: F's pass on the texts, the Wilanów-Vitkac couple (needs a far pickup), voices
 - [x] Photo mode no longer lets the car reverse into buildings (its hold parks the car and puts it
@@ -437,8 +501,9 @@ then the Launch gate.
       → Muranów, `jobs.gd` GDANSKI) and the Łazienki peacock rescue (a roof by Ujazdów, helicopter,
       `missions.gd` `_find_peacock`); the Old Town tourist is the "fainted" rescue on Rynek Starego Miasta;
       verify step `rescues`. Phone check of both is open (below)
-- [ ] Loop 3i juice: sparks and dust (no particles yet), money pops, district ambiences,
-      haptics working on the iPhone
+- [x] Loop 3i juice (checked 2026-11-07, all in code): crash sparks and dust (`crash_fx.gd`), the
+      wallet's "+54 zł" pop (`hud.gd` `set_wallet`), district beds (`sfx.gd` DISTRICT_BEDS: river,
+      park, yard, the square's talk). Haptics on the iPhone is a phone check (the bench line below)
 - [x] DEMO 6.3 counts, rescues and słoiki: the second słoiki station is done (Dworzec Gdański,
       `jobs.gd`); the Old Town tourist rescue is the "fainted" call on Rynek Starego Miasta (ticked
       2026-11-03: a stale duplicate of the line above)
@@ -470,6 +535,7 @@ then the Launch gate.
   - [x] G3 HOTEL PIURE, the LORETKA date bar and TIMBER jokes, 2026-11-01
   - [x] G4 KOSZTA COFFEE, GREEN CAFFE NERWO, KUKŁA and the queues, 2026-11-01
   - [x] G5 Mrożulo: the "Mlask" job, his pizza, fans and news, 2026-11-01 (renamed from Cringulo, 2026-11-06)
+  - [x] G5b "Dżemini": Mrożulo's call, the AI-agent kebab, "Wjeżdżam w to", TYGRAM, the MLASK sticker and the queue for good, 2026-11-06
   - [x] LORETKA's summer terrace with couples, PRZEGRYWKI, WACZEK burger neons, 2026-11-01
   - [x] The "Kolejki" notebook card at KUKŁA on Nowy Świat (place `kolejki`, 2026-11-02; `check_places` not run in the cloud, no Godot)
   - [x] Podwózka TIMBER date passengers, fans by Mrożulo's van and the egg `easter_mlask`, 2026-11-02
@@ -513,19 +579,22 @@ then the Launch gate.
 Beta goal: a visitor explores the city with everything open, an easy city drive, a calm street.
 - [x] G1 Heli and map teleport open from the first second (the guide no longer gates them)
 - [x] G2 Calmer default traffic: Low is the default and Settings → Świat → Ruch uliczny is a stepped slider with a live label (default 2026-11-01, slider with G16; `check_settings`)
-- [x] G3 +/- zoom buttons on the driving screen (5 steps, saved)
+- [x] G3 +/- zoom buttons on the driving screen (6 steps since 2026-11-07: + goes one step closer, to 40 m; saved)
+- [x] Camera angle in Settings → Obraz: 30° (the default), 40°, 50°, saved; the bench always runs at 30° (F, 2026-11-07, `check_settings`). Phone feel open (BACKLOG)
 - [x] G4 Easy city drive: Cruise handling by default, Sport in Settings → Jazda → Prowadzenie, check_handling, 2026-11-01 (the phone feel check is parked in QUESTIONS)
 - [x] G5 Flicker and "lag wall" audit: the dithered fade patches, wall-like props, the metro
       entrances (what stays, what stops colliding, what goes) (Opus)
 - [x] G6 Under-the-bridge entries (2026-11-02): a car coming onto a ramp at an angle off its fill climbs on instead of driving under the slab (`map_builder.gd` ramp feet); check_drive drives onto every ramp foot across its width (4 → 0); phone feel open
 - [x] G7 Old Town roofs less repetitive (the dormer and tile pattern) (Sonnet) (2026-11-01, tile tones, dormer/skylight/chimney variants)
 - [x] G8 Bus stops on the kerb; buses dwell about ten seconds, people get off and on, people wait (2026-11-01; shelters snapped and turned by tools/snap_props.py, service in buses.gd; phone look check open)
+- [x] Bus stops and buses like Warsaw's: stop zigzag and yellow kerb line, the red-framed shelter and red pole, the 12 m solo bus beside the articulated one (2026-11-07, `tools/bus_stops.py`; pole-only stops and real stop names wait on a Mac OSM re-bake, BACKLOG)
 - [x] G9 Street furniture (chairs, benches) placed where it belongs, not at random (2026-11-01; benches face the walk, cafe sets only on a shopfront, tools/check_stops.py)
 - [x] G10 Podwózka off the main line: a visible rider icon and a START RIDE button with clear directions (Opus) · 2026-11-02, START KURS button within 25 m, bigger "!"; phone check open
 - [x] G11 Better map icons on the minimap and the full map (Sonnet) (2026-11-01, kind shapes, metro and hospital pins, legend; rider and heli icons ride with G10)
 - [x] G12 Separate quest lines: helicopter quests and car quests, each with its own list and map colour (Opus) · 2026-11-02, first pass: rescue calls follow the vehicle, heli colour, car arrows hide while flying
 - [x] G12 part 2, the two lists (2026-11-02): the full map's ZADANIA card, tabs ZADANIA AUTO / ZADANIA HELI (the vehicle's first), what can start now nearest first with distance and compass point; a tapped place is the quest pin (arrow and minimap dot until reached), a ride or heli rescue call request starts at once (`check_quest_lines`, `check_hud`). Phone look and the pad's way into the card open (BACKLOG "Gameplay pass" G12b)
 - [x] G12b + G12c, the quest card with a gamepad and more quest kinds (2026-11-02): X / D-pad / Y on the ZADANIA card; Na czasie, Mlask, Limitka, the next rival (pin follows them), Seba's final, the peacock call, and the quest under way as a row (`check_quest_lines`, `check_hud`). Phone look open
+- [x] Quest map and starts (F, 2026-11-07): the main star glows, questline starts get "!" badges in their own colours, the map goes quiet while a quest runs, the friend greets you in person at a questline's start, and the full map's WĄTKI tab starts any questline now (beta) (`story_quests.gd`, `check_story_quests`, docs/design/quest-map.md). Phone look open; padel, cinema, coffee run and night meet join with one `stories.add` each
 - [x] G13 Upgrade shop: Audi TT parody (faster car), nitro, tuning, paid in zł (Opus design, Sonnet content) · 2026-11-02, the Ołdi TT 2,500 zł, Kebab Boost nitro 600 zł, tyres and engine levels 1-3; phone check and nitro flame/sound open (BACKLOG G13a, G13b)
 - [x] G13c Police keep pace with the upgraded car (0.8 of the player's real top speed), the pad's nitro on LB / RB, the view's turn on the right stick (2026-11-02; phone feel parked in QUESTIONS; the nitro's tank stays on screen in pad mode, 2026-11-03)
 - [x] G14 POMOC DROGOWA (unstuck) and NOWA GRA (two-tap reset) at the top of Settings → Jazda (quick win)
@@ -542,10 +611,11 @@ Beta goal: a visitor explores the city with everything open, an easy city drive,
 - [x] 0.1 Teleport and tow never land in a tunnel (2026-11-03, verify step `teleport`)
 - [x] Phase 0.2 chatter budget: one budget for every bubble, no comment on every bump, quiet while stuck, merged ride star toasts, "Gadatliwość miasta" setting (2026-11-03, `chatter.gd`, `check_chatter`; phone feel parked)
 - [x] Phase 0 quick fixes 0.1-0.5 all done (2026-11-03)
-- [x] 0.3 The car visible under decks (2026-11-03): its warm silhouette through Trasa Łazienkowska, Most Łazienkowski's land spans and the viaducts whenever a deck hides it from the camera (`check_deck_xray`); phone look open
+- [x] 0.3 The car visible under decks (2026-11-03): its warm silhouette through Trasa Łazienkowska, Most Łazienkowski's land spans and the viaducts whenever a deck hides it from the camera (`check_deck_xray`); since 2026-11-07 the see-through circle cuts the decks themselves, so the car and the traffic under them show as they are; phone bench on the 16 Pro Max shows no cost; phone look and iPhone 11 bench open
 - [x] Phase 0.4 helicopter high up: framed in the screen's middle, no blue sky or floating towers, 220 m cap except by towers (GAMEPLAY_PLAN 0.4, 2026-11-03, PR pending; phone check open)
 - [x] Steer + GAS / BRAKE (Classic) is the default controls (F, 2026-11-04): fresh saves and saves still on the old Point default start in Classic once; Point and Fixed stay in Settings → Jazda; the first-10 ghost finger holds GAZ and slides the steering strip (`check_settings`; phone feel open)
 - [x] Walls redirect, never stop, in Classic too: a head-on wall turns the car along it (the side the strip leans), no dead stop and no unstick; the unstick only turns the car where it fits (2026-11-04, `check_steering`, `check_stuck_offer`; phone feel open)
+- [x] Driving feels less arcade: a Grounded ("Realnie") handling with weight, real brakes, grip-limited turns and body roll, A/B against Cruise in Settings → Jazda (F, 2026-11-04; 2026-11-08, `check_grounded`, `lanedrive-grounded`; phone feel and the default open)
 - [ ] Phase 1: drivability sweep of every lane and turn, lane graph data fixes, Autopilot rows P11-P16
       (2026-11-04: P14 and the Trzy mosty legs drive clean steered, `check_lane_drive`; left: P15 flights, P16 frames)
 - [ ] Phase 2: road fixes street by street with a score baseline in CI
@@ -582,9 +652,15 @@ Beta goal: a visitor explores the city with everything open, an easy city drive,
 - [x] Unslop progress on the console's City map: each street pass block coloured by its score (green 90+, light green 80+, amber 65+, red), with the baseline in the label; "Show on map" in the Streets tab (2026-11-05)
 - [x] Faster street-pass loop, same gates: `street_pass.py --dump` (block probe) and `--photos` (one evidence pack), the rule-bug alarm with a cause map, `--spots=` (all cameras in one game run; a missing `--out` is made, a failed PNG exits 1), `bake_all.sh --roads` with step timings, agent `street-scout` (Haiku) before `street-unslopper` (Opus) (2026-11-05)
 - [x] Road loop from the smooth-roads review: `verify.sh --roads`, fixed cameras per street (`street_pass.py --spots`), target image step (Codex), rounds with a handoff note (2026-11-05)
+- [x] Main's real road bugs, whole map (F 2026-11-07, main as base): lane lines cut between each junction's zebra or stop line and the junction (7.7 km in 1,682 mouths), 406 turn arrows moved behind the stop line, 61 dot zebras dropped, zebra ends run on to the kerb (`tools/road_fixes.py`, verify `fixes`), 2026-11-07
+- [x] Andersa by Ratusz Arsenał (F 2026-11-07): straight kerbs and joined lane lines where the street splits round the median, no notch by the tram stop (`road_fixes.py` site fix), and the same fix found by itself at 25 more splits across the map, 2026-11-07
 - [ ] One road layout per street chain plus junction templates, replacing the road_smooth repair passes
 - [ ] Next wanted models, most-asked first (canopy on posts, Jersey barrier, yard gate, park fence)
-- [ ] Next streets with the same pipeline unchanged: Aleje Jerozolimskie, Nowy Świat, Świętokrzyska
+- [x] The four streets round the Palace of Culture (F, 2026-11-05): Marszałkowska 83, Świętokrzyska 92/82, Emilii Plater 93, Jerozolimskie 91, before/after pairs (2026-11-06, #441 #461 #462 #463)
+- [ ] Palace streets round 2: entrances at Emilii Plater / Jerozolimskie sunk with stairs and people (metro entrances thread), median kerb, bus-lane line ends
+- [ ] Next streets with the same pipeline unchanged: Nowy Świat, Krakowskie Przedmieście
+- [x] Street objects unslopped, whole map (F, 2026-11-07): `tools/object_audit.py` (16 artifact rules: objects in walls, roads, water, under decks, on rails, doubles; barrier stubs, doubles, walls across paths, stair slabs; shelters that are not bus stops) and `tools/object_fixes.py` (run by bake_osm): 750 findings → 24 CHECK; 192 stair walls → balustrades, 153 gates, 17 park shelters → benches; verify `objects`; docs/streets/objects.md
+- [ ] Street objects part 2: the CHECK list (lone signals, benches on steps) against Mapillary; picnic roof and smoking shelter models; bollards at the new gates
 
 ### Left: street races that feel like races (F, 2026-11-04; plan docs/design/street-races.md)
 - [x] Research and race AI audit: why Halina drives slowly and by the rules, R1-R7 (2026-11-04, docs only)
@@ -617,7 +693,7 @@ Beta goal: a visitor explores the city with everything open, an easy city drive,
 - [x] First race waits for a new player and tells them to drive (PT-11 design half, 2026-11-02): Halina holds at the line until the car moves, GAZ! banner + ghost finger + her line after 2 s still, a nudge if stopped mid-race; heli, tape, Powiśle and garage beats pass the headless first10 replay
 - [x] The guide's beats no longer wait behind back-to-back rides (run 12, 2026-11-03): while a beat is due or 45 s away, no Podwózka request or "Na czasie" offer comes by itself (the PODWÓZKA button still asks); a player who takes every ride meets Halina, the call, the tape and Powiśle in their windows (`check_first10` rider)
 - [ ] P2 by hand on the Mac (Autopilot): fly to the BUW cassette and drive to Mirek's garage as a new player would
-- [ ] A 30-minute soak with no crash or soft-lock; the HUD re-checked at 375, 390 and 440 pt (PT-9 bubble tails fixed 2026-11-02, `check_hud` covers them; the phone look is open)
+- [ ] A 30-minute soak with no crash or soft-lock; the HUD re-checked at 375, 390 and 440 pt (PT-9 bubble tails fixed 2026-11-02, `check_hud` covers them; the phone look is open). Headless half done 2026-11-07 on #496's branch: police soak 30 min (busy traffic, police on, autopilot) and life soak 30 min both clean, 0 errors; `check_hud` passes at 375, 390 and 440 pt. Left: the same on the phone
 
 ### Left: TestFlight and the stores
 - [ ] F fills App Information in App Store Connect; keep or drop iPad

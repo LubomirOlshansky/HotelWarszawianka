@@ -21,6 +21,12 @@ extends Node3D
 ## mistakes by temperament, and are rubber-banded only off screen. Waves: a low chop plus wake
 ## rings each boat and the barge drop as they go (`wave`), felt by every hull.
 ##
+## Free ride (F 2026-11-07): three boats of his photos stay moored along the pontoon, each with its
+## own feel (boat.gd SPECS): the jet ski "Rekin X", the electric runabout "Srebrna Strzała" and the
+## offshore "Czarna Pantera". Stop there and the pill PRZYSTAŃ opens the marina card: pick one and
+## take it out with nobody else (no rings, no clock; the sand barge passes for its wake), ✕ on the
+## panel ends the ride and the car is where it was left; WYŚCIG starts the race as before.
+##
 ## While the race is on, the game shadows the car on the player's boat (main.gd `_boat_frame`), so
 ## the camera, the streamer and the minimap follow it; the car itself waits on the bank.
 ##
@@ -47,6 +53,19 @@ const PONTOON := [Vector2(1464.0, 703.0), Vector2(1500.0, 690.0)]
 ## The pontoon's deck is 3.2 m wide: solid for the boats (solid_at), a capsule along PONTOON.
 const PONTOON_HALF_W := 1.8
 const CAR_SPOT := Vector2(1446.0, 716.0)
+## The free-ride fleet, moored alongside the pontoon on its upstream (south) side, bows to the river
+## (MOOR_YAW): `along` m out along the deck from its bank end, `off` m off its centre line
+## (the deck's half width + the boat's radius + a metre or so: the current sets them on the deck).
+## Their places are worked out from PONTOON in `_fleet_spot`.
+const FLEET := [
+	{"kind": Boat.Kind.SKUTER, "name": "Rekin X", "short": "REKIN X", "what": ["skuter", "jet ski"], "along": 7.0, "off": 4.0},
+	{"kind": Boat.Kind.ELECTRIC, "name": "Srebrna Strzała", "short": "STRZAŁA", "what": ["elektryczna", "electric"], "along": 17.0, "off": 5.0},
+	{"kind": Boat.Kind.OFFSHORE, "name": "Czarna Pantera", "short": "PANTERA", "what": ["offshore", "offshore"], "along": 30.0, "off": 7.0},
+]
+## Bows 35° off the deck towards the open river, in echelon: each boat leaves clear of the ones
+## moored further out.
+const MOOR_YAW := 1.31
+const FREE_COLOUR := Color("#1f4fa8")
 const ARRIVE := 9.0
 const PILL_R := 45.0
 
@@ -95,7 +114,7 @@ const PLAYER_PAINT := Color("#ff8a1a")
 const RUBBER := 0.07
 const RUBBER_GAP := 60.0
 
-enum State { IDLE, RING, OFFER, TO_PIER, COUNTDOWN, RACE, OUT, DONE }
+enum State { IDLE, RING, OFFER, TO_PIER, COUNTDOWN, RACE, OUT, DONE, MENU, FREE }
 
 ## Set by the game.
 var hud: CanvasLayer
@@ -127,6 +146,13 @@ var flow_dir := Vector2(-0.36, -0.93)
 var water_y := 0.0
 
 var player: Boat
+## The free-ride fleet (FLEET order; moored, or one of them the player's while State.FREE), each
+## with its two looks [parked, ridden], and the one out now (-1: none).
+var fleet: Array[Boat] = []
+var _fleet_meshes: Array = []
+var riding := -1
+var free_boat: Boat
+var _free_status_t := 0.0
 var boats: Array[Boat] = []          # player first, then the rivals
 var racers: Array = []         # per boat: {name, next, misses, rhythm, gold_t, out, finished, place, time, li, ...}
 var clock_t := 0.0
@@ -162,6 +188,8 @@ var _piers := {}
 const PIER_CELL := 40.0
 ## Testing aids.
 var force_hours := false
+## The WYŚCIG ŁODZI pill by the pontoon; off when story_quests.gd's in-person start owns the spot.
+var walk_up_pill := true
 
 
 func setup(world: Node3D) -> void:
@@ -178,6 +206,7 @@ func setup(world: Node3D) -> void:
 	_query = PhysicsShapeQueryParameters3D.new()
 	_query.shape = _sphere
 	_build_boats()
+	_build_free_boat()
 	_build_rings()
 	_build_barge()
 	_foam_mesh = ImmediateMesh.new()
@@ -190,11 +219,13 @@ func setup(world: Node3D) -> void:
 	hud.card_pressed.connect(_on_card)
 	hud.abort_pressed.connect(func() -> void:
 		if state in [State.TO_PIER, State.COUNTDOWN, State.RACE]:
-			_quit())
+			_quit()
+		elif state == State.FREE:
+			end_free_ride())
 	hud.context_pressed.connect(func(owner: String) -> void:
 		if owner == "boat" and state == State.IDLE:
 			hud.hide_pill()
-			_board())
+			_marina_card())
 
 
 func _load_course() -> void:
@@ -221,7 +252,7 @@ func busy() -> bool:
 
 ## The player is in the boat (the game drives it and shadows the car on it).
 func boating() -> bool:
-	return state in [State.COUNTDOWN, State.RACE, State.OUT, State.DONE]
+	return state in [State.COUNTDOWN, State.RACE, State.OUT, State.DONE, State.FREE]
 
 
 func has_target() -> bool:
@@ -251,6 +282,14 @@ func _process(dt: float) -> void:
 	match state:
 		State.IDLE:
 			_idle_tick()
+		State.MENU:
+			var mv: Array = vehicle.call() if vehicle.is_valid() else []
+			var away := not mv.is_empty() and Vector2(mv[0].x, mv[0].z).distance_to(CAR_SPOT) > PILL_R
+			if _t > CARD_LIFE or away:
+				hud.hide_card()
+				state = State.IDLE  # the call's timer runs on untouched
+		State.FREE:
+			_free_tick(dt)
 		State.RING, State.OFFER:
 			if _t > CARD_LIFE:
 				hud.hide_card()
@@ -274,10 +313,10 @@ func _idle_tick() -> void:
 		return
 	var v: Array = vehicle.call()
 	var p: Vector3 = v[0]
-	var near := Vector2(p.x, p.z).distance_to(CAR_SPOT) < PILL_R and not bool(v[2])
+	var near := walk_up_pill and Vector2(p.x, p.z).distance_to(CAR_SPOT) < PILL_R and not bool(v[2])
 	if near and free_now.call() and hud.pill_free_for("boat"):
 		if not hud.pill_shown("boat"):
-			hud.show_pill("WYŚCIG ŁODZI", "BOAT RACE", "boat")
+			hud.show_pill("PRZYSTAŃ", "MARINA", "boat")
 	elif hud.pill_shown("boat"):
 		hud.hide_pill()
 	if _session < _next_call or int(_session * 2.0) == int((_session - get_process_delta_time()) * 2.0):
@@ -288,6 +327,23 @@ func _idle_tick() -> void:
 	if bool(v[2]) or not free_now.call():
 		return
 	ring()
+
+
+## Szymek met in person at the pontoon (story_quests.gd: he walks up, the player said WCHODZĘ):
+## no call, straight to the start. False unless idle.
+func meet() -> bool:
+	if state != State.IDLE:
+		return false
+	if hud.pill_shown("boat"):
+		hud.hide_pill()
+	_log("met Szymek at the pontoon")
+	_go_to_pier()
+	return true
+
+
+## Idle: not ringing, not racing (a questline may start now).
+func idle() -> bool:
+	return state == State.IDLE
 
 
 ## Szymek phones.
@@ -334,6 +390,13 @@ func _on_card(i: int) -> void:
 				_start_grid()
 			else:
 				_quit()
+		State.MENU:
+			hud.hide_card()
+			state = State.IDLE
+			if i < FLEET.size():
+				free_ride(i)
+			elif i == FLEET.size():
+				_board()
 
 
 func _go_to_pier() -> void:
@@ -449,6 +512,139 @@ func _idle_boats(dt: float) -> void:
 			b.braking = b.forward_speed() > 1.0
 		b.step(dt)
 	_draw_foam()
+
+
+# --- free ride ---------------------------------------------------------------------------------------
+
+## The pill PRZYSTAŃ: the marina's card (one of the three boats, or the race).
+func _marina_card() -> void:
+	state = State.MENU
+	_t = 0.0
+	# Short names in one row (a name reads the same in both languages: one line a button), so the
+	# card fits a phone beside the other panels; no NIE TERAZ: the card goes by itself
+	# (CARD_LIFE) or when the car drives off.
+	var buttons := PackedStringArray()
+	for f: Dictionary in FLEET:
+		buttons.append(String(f["short"]))
+	buttons.append("WYŚCIG")
+	hud.show_card("PRZYSTAŃ · wybierz łódź", "Rekin X: skuter. Srebrna Strzała: elektryczna. Czarna Pantera: offshore, najszybsza, ponad 70 km/h.",
+			buttons, FREE_COLOUR, false, "MARINA · pick a boat", "Rekin X: jet ski. Srebrna Strzała: electric. Czarna Pantera: offshore, the fastest, over 70 km/h.")
+	_log("marina card")
+
+
+## The mooring of FLEET[i] (x, z).
+static func fleet_spot(i: int) -> Vector2:
+	var a: Vector2 = PONTOON[0]
+	var dir: Vector2 = (PONTOON[1] - PONTOON[0]).normalized()
+	var south := Vector2(-dir.y, dir.x)
+	if south.y < 0.0:
+		south = -south
+	return a + dir * float(FLEET[i]["along"]) + south * float(FLEET[i]["off"])
+
+
+## Out on the river in FLEET[i]: no rings, no rivals, no clock; ✕ ends it.
+func free_ride(i := 1) -> void:
+	i = clampi(i, 0, FLEET.size() - 1)
+	_beacon.visible = false
+	hud.hide_pill()
+	_car_spot = car.global_position if car != null else _car_spot_3d()
+	_car_yaw = car.rotation.y if car != null else 0.0
+	state = State.FREE
+	_t = 0.0
+	_free_status_t = 0.0
+	riding = i
+	free_boat = fleet[i]
+	free_boat.set_mesh(_fleet_meshes[i][1])
+	free_boat.place(fleet_spot(i), MOOR_YAW)
+	player = free_boat
+	for w: Array in _wakes:
+		w.clear()
+	_place_barge()
+	boarded.emit()
+	var name: String = FLEET[i]["name"]
+	hud.toast("%s jest twoja. ✕ na panelu: z powrotem do auta" % name, "The %s is yours. ✕ on the panel: back to the car" % name)
+	_free_status()
+	_log("free ride: %s" % name)
+
+
+func _free_tick(dt: float) -> void:
+	_tick_wakes(dt)
+	_barge_tick(dt)
+	var b := free_boat
+	_wake_t[0] = float(_wake_t[0]) + dt
+	var v: float = b.speed()
+	if v > 4.0 and not b.air and float(_wake_t[0]) >= WAKE_EVERY:
+		_wake_t[0] = 0.0
+		_drop(0, b.pos - b.forward() * float(b.spec["len"]) * 0.45, float(b.spec["wake"]) * clampf(v / float(b.spec["top"]), 0.0, 1.2), b.forward())
+	b.boost = 1.0
+	b.step(dt)
+	if b.bumped > 2.5 or b.landed > Boat.HARD_LANDING:
+		Access.buzz(40, clampf(maxf(b.bumped, b.landed) / 10.0, 0.3, 0.9))
+	_draw_foam()
+	_free_status_t -= dt
+	if _free_status_t <= 0.0:
+		_free_status()
+
+
+func _free_status() -> void:
+	_free_status_t = 0.25
+	var kmh := roundi(free_boat.forward_speed() * 3.6)
+	var home := roundi(free_boat.pos.distance_to(fleet_spot(riding)))
+	hud.show_status("Rejs · %s" % FLEET[riding]["name"], _clock_text(_t), "%d km/h" % maxi(kmh, 0),
+			"Przystań %d m · ✕ do auta" % home, 0.0, FREE_COLOUR, "", {}, "Marina %d m · ✕ to the car" % home)
+
+
+## Back to the car on the bank; the boat goes back to its mooring.
+func end_free_ride() -> void:
+	if state != State.FREE:
+		return
+	hud.hide_status()
+	_barge.visible = false
+	_foam_mesh.clear_surfaces()
+	player = boats[0]
+	_park(riding)
+	riding = -1
+	state = State.IDLE
+	_t = 0.0
+	left_boat.emit()
+	_log("free ride over")
+
+
+func _park(i: int) -> void:
+	var b: Boat = fleet[i]
+	b.set_mesh(_fleet_meshes[i][0])
+	b.place(fleet_spot(i), MOOR_YAW)
+	b.visible = true
+
+
+## The fleet: hulls on the same water as the race's boats (slot 0's wakes while one is ridden: the
+## race's boat 0 is not out then); the moored ones are solid for the boat out (solid_at).
+func _build_free_boat() -> void:
+	var mat := Models.material()
+	for i in FLEET.size():
+		var k := int(FLEET[i]["kind"])
+		var looks: Array
+		match k:
+			Boat.Kind.SKUTER:
+				looks = [Boat.skuter_mesh(false), Boat.skuter_mesh(true)]
+			Boat.Kind.ELECTRIC:
+				looks = [Boat.electric_mesh(false), Boat.electric_mesh(true)]
+			_:
+				looks = [Boat.offshore_mesh(false), Boat.offshore_mesh(true)]
+		_fleet_meshes.append(looks)
+		var b := Boat.new()
+		b.name = "Fleet%d" % i
+		add_child(b)
+		b.setup(k, looks[0], mat)
+		b.water_y = water_y
+		b.flow = flow_dir * FLOW
+		b.wave = func(x: float, z: float) -> float: return wave(x, z, 0)
+		if map != null:
+			b.shore = map.shore_distance
+		b.solid = solid_at
+		fleet.append(b)
+		_park(i)
+	free_boat = fleet[1]
 
 
 # --- the race --------------------------------------------------------------------------------------
@@ -955,6 +1151,14 @@ func solid_at(centre: Vector3, r: float) -> Vector2:
 	var pd := p2.distance_to(pq)
 	if pd < PONTOON_HALF_W + r and pd > 0.001:
 		out += (p2 - pq) / pd * (PONTOON_HALF_W + r - pd)
+	# The moored fleet (not the one out).
+	for i in fleet.size():
+		if i == riding:
+			continue
+		var mq := p2 - fleet_spot(i)
+		var mr := float(fleet[i].spec["r"]) + r
+		if mq.length_squared() < mr * mr and mq.length_squared() > 0.0001:
+			out += mq.normalized() * (mr - mq.length())
 	var cell := Vector2i(floori(p2.x / PIER_CELL), floori(p2.y / PIER_CELL))
 	for dx in range(-1, 2):
 		for dz in range(-1, 2):

@@ -44,7 +44,9 @@ skill; one file per `refs/` folder. A cloud thread that needs to see a photo ask
 | [skyliner](skyliner.md) | Skyliner (Prosta 67): cut roof, glass fin, crown and mast | 6 | 1 |
 | [slowacki](slowacki.md) | Pomnik Juliusza Słowackiego (Plac Bankowy) | 3 | 1 |
 | [st_florian](st_florian.md) | Katedra św. Michała Archanioła i św. Floriana (Praga) | 3 | 1 |
+| [staszic](staszic.md) | Pałac Staszica + the Copernicus monument | 2 | 1 |
 | [starzynski](starzynski.md) | Pomnik Stefana Starzyńskiego (Plac Bankowy) | 4 | 1 |
+| [swietokrzyski](swietokrzyski.md) | Most Świętokrzyski (pylon, deck, stays) | 4 | 1 |
 | [teatr_polski](teatr_polski.md) | Teatr Polski im. Arnolda Szyfmana (Karasia 2) | 4 | 1 |
 | [umschlagplatz](umschlagplatz.md) | Pomnik Umschlagplatz | 2 | 1 |
 | [vitkac](vitkac.md) | Vitkac (Bracka 9) | 1 | 1 |
@@ -53,4 +55,6 @@ skill; one file per `refs/` folder. A cloud thread that needs to see a photo ask
 | [wkd_ochota](wkd_ochota.md) | Warszawa Ochota WKD (railway S3d) | 3 | 2 |
 | [wkd_srodmiescie](wkd_srodmiescie.md) | Warszawa Śródmieście WKD (railway S3c) | 3 | 1 |
 | [wschodnia](wschodnia.md) | Warszawa Wschodnia (railway S3e; mostly off the map's edge) | 6 | 1 |
+| [wszystkich](wszystkich.md) | Kościół Wszystkich Świętych + Plac Grzybowski | 3 | 1 |
+| [zygmunt](zygmunt.md) | Kolumna Zygmunta (Plac Zamkowy) | 3 | 1 |
 | [zamek](zamek.md) | Royal Castle (Zamek Królewski) | 18 | 1 |

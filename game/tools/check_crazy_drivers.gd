@@ -47,11 +47,15 @@ class FakeSfx extends Node:
 
 class FakeBubbles extends Control:
 	var said := 0
+	## false: the budget refuses (the player too fast, the reaction window).
+	var ok := true
 	func say(_anchor: Variant, _speaker: String, _line: String, _sub := "", _s := 4.0, _a := Color.WHITE, _h := 2.6, _k := 0, _key := "") -> bool:
+		if not ok:
+			return false
 		said += 1
 		return true
 	func allows(_k: int, _key := "") -> bool:
-		return true
+		return ok
 	func is_talking(_anchor: Variant) -> bool:
 		return false
 	func hush(_anchor: Variant) -> void:
@@ -272,10 +276,20 @@ func _check_traffic(g: LaneGraph, map: Node3D, digest: PackedStringArray) -> voi
 		traffic.player_pos = one.pos + Vector3(3.0, 0.0, 6.0)
 		one.visible = true
 		cd.step(0.25)
+		# PT-25: the budget refuses at the cut (the player fast): a horn, no line, and the line
+		# is not spent; it comes once the budget lets it, a tick later.
+		bubbles.ok = false
 		one.blocks += 1
 		cd.step(0.25)
-		if cd.cuts != 1 or cd.lines != 1 or fsfx.played.size() != 1 or str(fsfx.played[0][0]) != "horn":
-			problems.append("tick: cut-in made %d cuts, %d lines, sounds %s (want 1, 1, a horn)" % [cd.cuts, cd.lines, fsfx.played])
+		if cd.cuts != 1 or cd.lines != 0 or fsfx.played.size() != 1 or str(fsfx.played[0][0]) != "horn":
+			problems.append("tick: refused cut-in made %d cuts, %d lines, sounds %s (want 1, 0, a horn)" % [cd.cuts, cd.lines, fsfx.played])
+		cd.step(0.25)
+		if cd.lines != 0:
+			problems.append("tick: a refused line showed anyway (%d lines)" % cd.lines)
+		bubbles.ok = true
+		cd.step(0.25)
+		if cd.cuts != 1 or cd.lines != 1 or cd.lost_lines != 0:
+			problems.append("tick: pending line made %d cuts, %d lines, %d lost (want 1, 1, 0)" % [cd.cuts, cd.lines, cd.lost_lines])
 		one.race_passes += 1
 		cd.step(0.25)
 		if cd.cuts != 2 or cd.lines != 1:

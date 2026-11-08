@@ -16,6 +16,27 @@ ends; its roof lights are small square skylights in pairs and 2 x 2 clusters wit
 and a few big plant boxes; Junior's roof is stepped; printed ad banners hang on the faces the
 camera sees. The sections below are updated to it.
 
+**Photo pass, 2026-11-08** (thread "Rebuild Rotunda and Eastern Wall stores"): F's photo set
+`/mnt/project-files/pkin-surroundings/photos/E1-centre/` (the drone and Varso aerials, the
+Marszałkowska front by day and at dusk, Junior's corner, the 2025 Junior front, the Wiecha side by
+day and night), F's aerials M015/M016/M023 (`~/Documents/warsaw-other-buildings-part/`), the Mac's
+`refs/dt_centrum/` (Commons 1-4, ortho) and Mapillary (Wars's street face 2024-09 straight on, 14
+photos; Sawa 9; Junior 8). What the photos changed:
+- **The curtain wall is pale blue-grey glass (#7f97a4) in big panes**, a light silver grid (mullions
+  every 3 m, four rows of 2.7 m), not dark glass with strong dark mullions: the 2026-11-01 check
+  was a dusk view. Skin S_EASTWALL redrawn.
+- **The cornice is a light band 0.9 m deep** along the roof edge.
+- **The top storey is a light grey louvred screen** (#b4babd, skin S_FINS), not pale panels; it
+  carries the shops' boxes on the street face: Junior UNIKAT, Sawa PÓŁ CENY (the off-price store,
+  parody), Wars TAK MAKS (`eastern_wall_shops.json`, `top`).
+- Not changed (the photos agree): the massing and set-backs, the recessed shop floor under the
+  aluminium fascia, the roof's skylights and vents, the banners and shop fronts (from F's photos,
+  2026-11-05).
+- Still to shoot (only F): Sawa's street face straight on (Mapillary has none since 2021), the
+  three stores' east (Wiecha) faces in daylight, the roof from the Metro footbridge.
+
+The sections below are the 2026-11-01 spec; where they differ, the list above wins.
+
 ## 1. Identity
 
 Zbigniew Karpiński's three department stores of 1962-1970 on Marszałkowska's east side,
