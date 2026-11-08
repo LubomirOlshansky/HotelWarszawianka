@@ -683,6 +683,8 @@ Left:
 - PT-37 (suspect): pinned on Poniatowskiego's tram strip for 8 s while the speed reads 60 km/h, no unstick or tow.
 - PT-38 (suspect): an 11 m snap down off the ground above the W-Z tunnel's east portal.
 - PT-39 (suspect, design): a ram of a crash scene's police car starts a chase that is lost in the next frame.
+- Found 2026-11-08 (PT-44 fix): on Trasa W-Z's south pavement by Stare Miasto a retaining wall turns solid in mid-run with a square end inside the OSM tram platform; the car now slips past it, but the platform itself still slopes 0.4-0.9 m into the trench (bake_structures fill edge across the platform). A flat platform is a map change for later.
+- PT-45 (not reproduced, 2026-11-08): 26 to 1 km/h in the W-Z tunnel's west part; the tube drives clean with no traffic. Re-run with `--no-traffic` on the Mac to rule a traffic car in or out.
 - Podwózka story ride played by Autopilot (accept, the "!" pickup, boarding, story lines, the question card, +½ star): no bug; the door and the result card still unplayed (the 2 km ride outlasts one Mac run).
 
 ## Road design rollout: every street on the map (F, 2026-11-06; docs/design/road-design-rollout.md)
