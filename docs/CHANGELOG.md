@@ -10,6 +10,9 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-08
+- Three more towers by the Palace look like themselves: the InterContinental stands over its huge open gap, glowing white at night, under a sloping roof; the Warsaw Financial Centre is a white tower wrapped round a teal glass one with a red-and-white mast; and Hotel Polonia Palace has its tall zinc roof, the pediment with the round window and its gold name.
+
+## 2026-11-08
 - A new way to drive, "Realnie" (Grounded) in Settings: the car has weight now, with brakes that take a few car lengths, a nose that dips when you brake, a body that leans in the bends, and fast corners you have to brake for.
 
 ## 2026-11-08

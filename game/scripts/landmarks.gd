@@ -3728,6 +3728,12 @@ func _build_tower(site: Dictionary) -> void:
 	if spec.get("novotel", false):
 		_build_novotel(zone)
 		return
+	if spec["key"] == "plater49":
+		_build_interkonti(zone, spec)
+		return
+	if spec["key"] == "wcf":
+		_build_wcf(zone, spec)
+		return
 	_g = _ground_under(zone)
 	var g := _g
 	var glass := Color(spec["glass"])
@@ -3917,6 +3923,155 @@ func _build_tower(site: Dictionary) -> void:
 	_dusk_details(spec, top_poly, g, top_h)
 
 
+# --- InterContinental and the Warsaw Financial Centre (F's photos, 2026-11-08) ---------------
+
+## The hotel tower on Emilii Plater 49 (2003), rebuilt from F's four photos (front from the
+## Palace at dusk, the north view up Emilii Plater, the aerial over Osiedle Emilia, the night
+## view with the Palace; spec docs/landmarks/specs/plater49.md). The parts are OpenStreetMap's:
+## a square shaft turned like the street grid on a four-storey glass podium; from the podium to
+## the 20th floor the shaft's north-east half is missing, so the hotel stands over a 53 m high
+## gap open to the Palace, its back wall stone, its ceiling warm, the whole hole floodlit white
+## at night; a one-bay glass column runs down the north corner. The roof is cut on a slope, high
+## over the south-west face (164 m) and 10 m lower over the north-east one. Two dark bands: the
+## storey over the gap and the top two storeys, under the hotel's name (the parody INTERKONTI).
+const IC_SHAFT := [Vector2(-1455.3, 157.9), Vector2(-1445.6, 187.6), Vector2(-1474.6, 198.4), Vector2(-1485.5, 169.0)]
+## The shaft under the gap: its south-west half, cut on the diagonal from the north-west face to
+## the east corner.
+const IC_LOWER := [Vector2(-1471.2, 163.7), Vector2(-1445.6, 187.6), Vector2(-1474.6, 198.4), Vector2(-1485.5, 169.0)]
+## The glass column at the north corner, one bay (5 m) along each face.
+const IC_COLUMN := [Vector2(-1455.3, 157.9), Vector2(-1453.6, 162.6), Vector2(-1460.0, 159.6)]
+const IC_PODIUM := 16.5    ## the podium's roof, where the shaft and the gap start (OSM)
+const IC_GAP_TOP := 69.3   ## the gap's ceiling (OSM)
+const IC_ROOF := 164.0
+const IC_DROP := 10.0      ## the roof's slope, from the south-west face to the north-east one
+const IC_GLASS := Color("#7f98ab")      ## silver-blue glass in a white grid (photos 1, 3)
+const IC_STONE := Color("#d2cbbb")      ## the gap's back wall: pale grey stone (photo 3, sunlit)
+const IC_CEILING := Color("#e6cf9e")    ## the gap's ceiling, lit warm (photos 1, 4)
+const IC_BAND := Color("#2a3440")       ## the dark storeys
+const IC_PODIUM_GLASS := Color("#9db3bd")
+
+
+func _ic_ring(pts: Array) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for q: Vector2 in pts:
+		out.append(q)
+	return out
+
+
+func _build_interkonti(zone: PackedVector2Array, spec: Dictionary) -> void:
+	_g = _ground_under(zone)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	var shaft := _ic_ring(IC_SHAFT)
+	var lower := _ic_ring(IC_LOWER)
+	var column := _ic_ring(IC_COLUMN)
+	var grid := M_SKIN + float(S_GRID) / 16.0
+	var dark := M_SKIN + float(S_DARK) / 16.0
+	# The podium: four storeys of glass in light bands over the whole plot, its roof pale.
+	_prism(zone, g - 0.4, g + IC_PODIUM, IC_PODIUM_GLASS, Color("#b9bec0"), M_SKIN + float(S_BANDS) / 16.0, M_STONE)
+	_collide(zone)
+	# Under the gap: the shaft's south-west half and the north corner's column, in the grid; the
+	# half's diagonal face (the gap's back wall) in stone, lit white at night (M_LAMP glows).
+	var cut_a: Vector2 = IC_LOWER[0]
+	var cut_b: Vector2 = IC_LOWER[1]
+	var back_out := _out(lower, cut_a, cut_b)
+	_mode = M_LAMP
+	_wall(cut_a, cut_b, g + IC_PODIUM, g + IC_GAP_TOP, back_out, IC_STONE)
+	_mode = grid
+	for i in lower.size():
+		var a := lower[i]
+		var b := lower[(i + 1) % lower.size()]
+		if i == 0:
+			continue  # the back wall, done above
+		_wall(a, b, g + IC_PODIUM, g + IC_GAP_TOP, _out(lower, a, b), IC_GLASS)
+	_prism(column, g + IC_PODIUM, g + IC_GAP_TOP, IC_GLASS, none, grid)
+	# The gap's ceiling: the underside of the shaft over the missing half, lit warm.
+	var gap := PackedVector2Array([shaft[0], shaft[1], cut_a])
+	_mode = M_LAMP
+	_soffit(gap, g + IC_GAP_TOP, IC_CEILING)
+	# Over the gap: the whole shaft to the cut roof; the dark storey right over the gap and the
+	# dark top storeys as rings 0.1 m proud of the glass.
+	var cut_spec := {"slope_to": Vector2(-0.94, 0.35), "cut_drop": IC_DROP}
+	_tower_cut(shaft, g + IC_GAP_TOP, g + IC_ROOF, cut_spec, IC_GLASS, Color("#c3c7c9"), grid)
+	var proud := Geometry2D.offset_polygon(shaft, 0.1, Geometry2D.JOIN_MITER)
+	if proud.size() == 1:
+		_prism(proud[0], g + IC_GAP_TOP, g + IC_GAP_TOP + 3.8, IC_BAND, none, dark)
+		_prism(proud[0], g + IC_ROOF - IC_DROP - 7.6, g + IC_ROOF - IC_DROP - 0.4, IC_BAND, none, dark)
+	_mode = M_STONE
+	# The name on the top's dark band, on the faces seen from the Palace and Emilii Plater.
+	_crown_signs(shaft, g + IC_ROOF - IC_DROP, str(spec["sign"]), DUSK_WARM, 3.0, 0.7)
+	var roof_y := func(q: Vector2) -> float:
+		return g + IC_ROOF - IC_DROP * (1.0 - clampf(inverse_lerp(-14.0, 14.0, (q - _centre(shaft)).dot(Vector2(-0.94, 0.35))), 0.0, 1.0))
+	_aviation(shaft, roof_y)
+
+
+## Warsaw Financial Centre (Emilii Plater 53, 1998, 144 m), rebuilt from F's five photos (the
+## whole tower from Varso, its crown, the street elevation, the corner from Emilii Plater; spec
+## docs/landmarks/specs/wcf.md). Two slabs on a stone-and-glass podium, split on a curve: the
+## taller north-west slab (144 m) in white cladding with punched windows, its concave face turned
+## south-east; the lower south-east slab (130 m) in ribbon glazing, dark teal glass between white
+## bands, a dark set-back top storey. On the white slab's roof the plant behind a parapet and the
+## red-and-white mast.
+const WCF_HIGH := [Vector2(-1501.2, 38.5), Vector2(-1502.0, 41.0), Vector2(-1504.5, 46.1), Vector2(-1507.3, 50.9),
+		Vector2(-1510.3, 55.1), Vector2(-1514.7, 60.7), Vector2(-1519.1, 65.2), Vector2(-1523.3, 69.1),
+		Vector2(-1528.5, 73.2), Vector2(-1531.9, 75.7), Vector2(-1535.8, 78.1), Vector2(-1543.1, 81.4),
+		Vector2(-1554.4, 85.4), Vector2(-1562.9, 60.3), Vector2(-1545.1, 54.6), Vector2(-1546.0, 52.0),
+		Vector2(-1500.8, 37.0)]
+const WCF_LOW := [Vector2(-1501.6, 41.9), Vector2(-1492.9, 66.5), Vector2(-1542.7, 82.8), Vector2(-1543.1, 81.4),
+		Vector2(-1535.8, 78.1), Vector2(-1531.9, 75.7), Vector2(-1528.5, 73.2), Vector2(-1523.3, 69.1),
+		Vector2(-1519.1, 65.2), Vector2(-1514.7, 60.7), Vector2(-1510.3, 55.1), Vector2(-1507.3, 50.9),
+		Vector2(-1504.5, 46.1), Vector2(-1502.0, 41.0)]
+const WCF_PODIUM := 19.8
+const WCF_HIGH_ROOF := 144.0
+const WCF_LOW_ROOF := 130.0
+const WCF_WHITE := Color("#d8d9d4")        ## the white slab's cladding (photos 2, 3)
+const WCF_RIBBON := Color("#2f5d60")       ## the south-east slab's teal glass (photos 1, 3)
+const WCF_STONE := Color("#bba595")        ## the podium's pink-beige granite (photos 1, 3)
+const WCF_PODIUM_GLASS := Color("#7ea29e") ## the podium's green glass (photo 4)
+
+
+func _build_wcf(zone: PackedVector2Array, _spec: Dictionary) -> void:
+	_g = _ground_under(zone)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	var high := _ic_ring(WCF_HIGH)
+	var low := _ic_ring(WCF_LOW)
+	var base := _largest(Geometry2D.merge_polygons(high, low))
+	# The podium: green glass in a fine grid over a granite ground floor 0.2 m proud.
+	_prism(base, g - 0.4, g + WCF_PODIUM, WCF_PODIUM_GLASS, Color("#9a9f9c"), M_SKIN + float(S_GRID) / 16.0, M_STONE)
+	var plinth := Geometry2D.offset_polygon(base, 0.2, Geometry2D.JOIN_MITER)
+	if plinth.size() == 1:
+		_prism(plinth[0], g - 0.4, g + 5.2, WCF_STONE, WCF_STONE.lightened(0.1), M_STONE, M_STONE)
+		_prism(plinth[0], g + WCF_PODIUM - 1.2, g + WCF_PODIUM + 0.3, WCF_STONE, WCF_STONE.lightened(0.1), M_STONE, M_STONE)
+	_collide(base)
+	# The ribbon slab first (its curved face is inside the white slab), then the white slab.
+	_prism(low, g + WCF_PODIUM + 0.3, g + WCF_LOW_ROOF - 3.6, WCF_RIBBON, none, M_SKIN + float(S_RIBBON) / 16.0)
+	var top_floor := Geometry2D.offset_polygon(low, -1.6, Geometry2D.JOIN_MITER)
+	_prism(low, g + WCF_LOW_ROOF - 3.6, g + WCF_LOW_ROOF - 3.3, WCF_WHITE, Color("#a9adab"), M_STONE, M_STONE)
+	if top_floor.size() == 1:
+		_prism(top_floor[0], g + WCF_LOW_ROOF - 3.3, g + WCF_LOW_ROOF, WCF_RIBBON.darkened(0.3), Color("#a9adab"), M_SKIN + float(S_DARK) / 16.0, M_STONE)
+	_prism(high, g + WCF_PODIUM + 0.3, g + WCF_HIGH_ROOF, WCF_WHITE, none, M_SKIN + float(S_PUNCHED) / 16.0)
+	_tower_roof(high, g + WCF_HIGH_ROOF, Color("#cfd1cf"), Vector2.ZERO)
+	# The plant (photo 2): two grey blocks on the roof's straight west half, clear of the curve.
+	var y := g + WCF_HIGH_ROOF
+	var west: Vector2 = WCF_HIGH[13]
+	var north: Vector2 = WCF_HIGH[16]
+	for t: float in [0.3, 0.55]:
+		var p := west.lerp(north, t).lerp(_centre(high), 0.5)
+		_prism(_square(p, 4.0), y, y + 4.2, Color("#a4a9ad"), Color("#8f9599"), M_STONE, M_STONE)
+	# The mast: red and white segments on the roof's west half, a red lamp on top.
+	var foot := west.lerp(_centre(high), 0.35)
+	for k in 6:
+		var c := Color("#c8302a") if k % 2 == 0 else Color("#ecebe6")
+		var w := 0.9 - 0.1 * k
+		_prism(_square(foot, w), y + 4.0 * k, y + 4.0 * (k + 1), c, c, M_STONE, M_STONE)
+	_prism(_square(foot, 0.3), y + 24.0, y + 24.8, DUSK_RED, DUSK_RED, M_LAMP, M_LAMP)
+	var roof_hi := func(_q: Vector2) -> float: return g + WCF_HIGH_ROOF + 1.5
+	_aviation(high, roof_hi)
+	var roof_lo := func(_q: Vector2) -> float: return g + WCF_LOW_ROOF
+	_aviation(low, roof_lo)
+
+
 ## Skyliner's cut roof (the photo report, 2026-11-03): the shaft's top falls 24 m from the side
 ## `slope_to` points at to the far side, and a glass fin stands on the high edge, rising 20 m over
 ## it. Walls from `y0`; the roof is the sloped plane.
@@ -3928,8 +4083,9 @@ func _tower_cut(poly: PackedVector2Array, y0: float, hi: float, spec: Dictionary
 	for q in poly:
 		lo_d = minf(lo_d, (q - c).dot(axis))
 		hi_d = maxf(hi_d, (q - c).dot(axis))
+	var drop: float = spec.get("cut_drop", 24.0)
 	var top := func(q: Vector2) -> float:
-		return lerpf(hi - 24.0, hi, inverse_lerp(lo_d, hi_d, (q - c).dot(axis)))
+		return lerpf(hi - drop, hi, inverse_lerp(lo_d, hi_d, (q - c).dot(axis)))
 	var keep := _mode
 	_mode = skin
 	var run := 0.0
@@ -22353,12 +22509,19 @@ func _palace_hotel(ring: PackedVector2Array, g: float, h: float, spec: Dictionar
 	_prism(_inset_ring(ring, -0.35), g + h - 2.0, g + h - 1.2, trim, none, M_STONE)  # the cornice's frieze
 	_prism(_inset_ring(ring, -0.8), g + h - 1.2, g + h - 0.5, trim, trim.darkened(0.08), M_STONE, M_STONE)  # its ledge
 	_prism(_inset_ring(ring, -0.3), g + h - 0.5, g + h + 0.35, trim, none, M_STONE)  # the parapet's plinth
-	# The mansard: slate, pitched in from the parapet to a flat top.
+	if spec.has("balcony_rows"):
+		# Polonia's long balconies (F's photos 2, 4): a slab 0.6 m out with a dark iron railing.
+		for yb: float in spec["balcony_rows"]:
+			_prism(_inset_ring(ring, -0.6), g + yb, g + yb + 0.25, trim, trim.darkened(0.05), M_STONE, M_STONE)
+			_prism(_inset_ring(ring, -0.58), g + yb + 0.25, g + yb + 0.85, Color("#5a5450"), Color(0, 0, 0, 0), M_STONE)
+	# The mansard: slate, pitched in from the parapet to a flat top (`mansard_h` tall; Polonia's
+	# is a storey and a half, steep, F's photos).
+	var mh: float = spec.get("mansard_h", 3.25)
 	var m0 := _inset_ring(ring, 0.9)
 	var m1 := _inset_ring(ring, 2.8)
 	_mode = M_STONE
-	_slope(ring, m0, g + h + 0.35, m1, g + h + 3.6, slate)
-	_cap(m1, g + h + 3.6, slate.lightened(0.06))
+	_slope(ring, m0, g + h + 0.35, m1, g + h + 0.35 + mh, slate)
+	_cap(m1, g + h + 0.35 + mh, slate.lightened(0.06))
 	# Dormers, one every 4.4 m on each public front, each in its edge's frame (u along, v out).
 	var avoid: Vector2 = spec.get("avoid", Vector2(INF, INF))
 	var avoid_r: float = spec.get("avoid_r", 0.0)
@@ -22384,10 +22547,11 @@ func _palace_hotel(ring: PackedVector2Array, g: float, h: float, spec: Dictionar
 				continue
 			var y := g + h + 0.35
 			_mode = M_STONE
-			_lbox(u, -1.7, 0.55, 0.6, y + 0.3, y + 2.0, wall, M_STONE, wall)
-			_hip(u, -1.7, 0.7, 0.75, y + 2.0, 0.8, slate.lightened(0.1))
+			var dh := 1.7 if mh < 4.0 else 2.4   # Polonia's dormers are a full storey (photo 4)
+			_lbox(u, -1.7, 0.55, 0.6, y + 0.3, y + 0.3 + dh, wall, M_STONE, wall)
+			_hip(u, -1.7, 0.7, 0.75, y + 0.3 + dh, 0.8, slate.lightened(0.1))
 			_mode = M_GLASS
-			_wall(_w(u - 0.32, -1.07), _w(u + 0.32, -1.07), y + 0.65, y + 1.75, e["out"], spec["glass"])
+			_wall(_w(u - 0.32, -1.07), _w(u + 0.32, -1.07), y + 0.65, y + dh, e["out"], spec["glass"])
 	if front < 0 or front_len < 18.0:
 		return
 	# The forward bay on the longest public front.
@@ -22419,6 +22583,9 @@ func _palace_hotel(ring: PackedVector2Array, g: float, h: float, spec: Dictionar
 	var face := _w(0.0, 1.13)
 	signs.append([word, Vector3(face.x, g + 4.78, face.y), Vector3(_b.x, 0.0, _b.y),
 			minf(0.2, float(spec["name_w"]) / Neon.length_of(word)), spec["tube"]])
+	if spec.has("pediment_w"):
+		_wide_pediment(fe, g, h, float(spec["pediment_w"]), wall, trim, slate, spec)
+		return
 	# The pediment, in a frame turned to face out of the bay.
 	_a = fe["out"]
 	_b = Vector2(-_a.y, _a.x)
@@ -22428,15 +22595,57 @@ func _palace_hotel(ring: PackedVector2Array, g: float, h: float, spec: Dictionar
 	_gable(0.62, -0.5, 0.0, 3.7, g + h + 2.4, 1.9, wall, slate.lightened(0.05))
 
 
+## Polonia's crown over the entrance (F's photos 1, 3, 4): the middle five bays rise through the
+## mansard as a wall `w` m either side of the bay's centre to a wide low pediment with an oval
+## window in its tympanum, and the hotel's name in gold letters on the frieze under it.
+func _wide_pediment(fe: Dictionary, g: float, h: float, w: float, wall: Color, trim: Color, slate: Color, spec: Dictionary) -> void:
+	_o = (fe["a"] + fe["b"]) * 0.5
+	_b = fe["out"]
+	_a = (fe["b"] - fe["a"]) / float(fe["len"])
+	var y0 := g + h + 0.35
+	var yt := y0 + 0.3
+	_mode = M_STONE
+	_lbox(0.0, -0.8, w + 0.3, 1.85, y0 - 0.4, yt + 0.2, trim, M_STONE, trim)   # the cornice under the gable
+	# The gable's two raking cornices and its face, in a frame turned to face out of the front.
+	var mid: Vector2 = (fe["a"] + fe["b"]) * 0.5
+	_a = fe["out"]
+	_b = Vector2(-_a.y, _a.x)
+	_o = mid
+	_gable(1.0, -2.6, 0.0, w + 0.3, yt + 0.2, 3.8, wall, slate.lightened(0.05))
+	# The oval window: a dark pane in a pale ring, on the gable's face.
+	_o = mid
+	_b = fe["out"]
+	_a = (fe["b"] - fe["a"]) / float(fe["len"])
+	var n3 := Vector3(_b.x, 0.0, _b.y)
+	var oc := _w(0.0, 1.04)
+	_mode = M_STONE
+	_disc(Vector3(oc.x, yt + 1.7, oc.y), n3, 1.2, 12, trim.lightened(0.05))
+	var og := _w(0.0, 1.08)
+	_mode = M_GLASS
+	_disc(Vector3(og.x, yt + 1.7, og.y), n3, 0.85, 12, spec["glass"])
+	_mode = M_STONE
+	var word: String = spec.get("name_high", "")
+	if word != "":
+		var at := _w(0.0, 0.96)
+		signs.append([word, Vector3(at.x, g + h - 3.4, at.y), Vector3(_b.x, 0.0, _b.y),
+				minf(0.24, w * 1.5 / Neon.length_of(word)), spec["tube"]])
+
+
 ## Hotel Polonia Palace (1913), Al. Jerozolimskie 45: the one grand hotel that came through the
 ## Uprising standing. Built whole (the OSM outline is a low shed) from the outline's `ring`.
 func _build_polonia(site: Dictionary) -> void:
 	var ring: PackedVector2Array = site["ring"]
 	var party := _landmark("Hotel Metropol")
+	# F's photos (2026-11-08): warm cream stone, a pale ground floor of tall shop windows, long
+	# balconies on the first and fourth floors, a steep grey-blue zinc mansard a storey and a half
+	# high with a dormer at every bay, and the middle bays' wide pediment with the oval window and
+	# the gold name on the frieze (spec docs/landmarks/specs/polonia.md).
 	_palace_hotel(ring, _ground_under(ring), POLONIA_H, {
-			"wall": Color("#e6d9b2"), "base": Color("#b8a888"), "trim": Color("#f2ebd8"), "slate": Color("#6e6a66"),
+			"wall": Color("#e2d0aa"), "base": Color("#d3c19c"), "trim": Color("#efe5cf"), "slate": Color("#626b72"),
 			"glass": Color("#353a40"), "name": "POLONIA PALACE", "name_w": 6.6, "board": Color("#3a1f24"),
-			"tube": Color(1.0, 0.85, 0.5), "whole": true, "canopy": Color("#6b2a2f")}, party)
+			"tube": Color(1.0, 0.85, 0.5), "whole": true, "canopy": Color("#6b2a2f"),
+			"mansard_h": 5.6, "pediment_w": 8.5, "name_high": "POLONIA PALACE HOTEL",
+			"balcony_rows": [9.2, 20.4]}, party)
 	_collide(ring)
 
 
