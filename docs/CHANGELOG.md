@@ -30,6 +30,7 @@ someone writes its lines.
 
 ## 2026-11-08
 - The museum's steam engines and coaches by Warszawa Główna are solid now: the car stops at them instead of driving through.
+- The Palace of Culture no longer turns pink for all of October: it stays gold until its orange Halloween night.
 
 ## 2026-11-07
 - The stray thin towers are gone: each one was looked up and is now what it really is, from the glass metro lifts by the Ratusz-Arsenał tram stop and the slatted vent towers by the stadium to kiosks, bin shelters, substations, toilets and houseboats.
