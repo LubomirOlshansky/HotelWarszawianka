@@ -77,3 +77,7 @@ escalate: the spec needs changing, not a third try.
 - **Escalate:** each open item with the options and your pick.
 
 Never claim a check passed that you didn't run.
+
+## Reference photos (F, 2026-11-08)
+
+When photos are missing, download them yourself from any internet source and don't look at the licence: they are references for modelling only, kept in the gitignored `refs/`, never committed or shipped (model-from-photos skill, section 1). Don't stop or wait for the user over missing photos.

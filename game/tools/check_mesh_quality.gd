@@ -160,8 +160,8 @@ const BUDGET := {
 	"platinum_b": 80,
 	"poniatowski": 4800,  # 2026-11-03: the towers strengthened (F), 2556 -> 4574 tris over four groups; +0 draw calls
 	"prezydencki": 1050,
-	"q22": 960,
-	"rondo1": 630,
+	"q22": 720,  # 2026-11-08 photo rebuild (top-50 T02): 607 tris
+	"rondo1": 900,  # 2026-11-08 photo rebuild (top-50 T03): 769 tris
 	"rotunda": 1380,
 	"skyliner": 400,
 	"skysawa": 170,
@@ -226,7 +226,7 @@ const BUDGET := {
 	"wkd_ochota": 650,  # the stair has up to 40 steps on the real ground (6 on the flat stub)
 	"stadium": 4750,
 	"swieto": 240,
-	"teatr": 600,
+	"teatr": 820,  # 2026-11-08 photo pass (top-50 T06): ten columns, pediment, quadriga: 705 tris
 	# Plac Bankowy, Filharmonia, Teatr Polski (the Mac photo reports, 2026-11-02): fronts on kept skins.
 	"ratusz": 2500,
 	"gielda": 1050,
