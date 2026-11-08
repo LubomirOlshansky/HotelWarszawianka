@@ -22962,8 +22962,11 @@ func _build_polonia(site: Dictionary) -> void:
 ## WTS DESKA, the parody of WTS DeSki (Zaruskiego 8, by Most Łazienkowski). F (2026-11-02): the real
 ## club has closed tennis courts and one outdoor padel court. The model: a hipped-roof tennis hall
 ## over the four western mapped pitches (OSM `pitch` quads), one outdoor glass padel court beside
-## it (blue, lit at night, four players, floodlights) and the DESKA neon on the clubhouse, which
-## keeps its mapped box. The other mapped pitches stay as the map draws them. docs/design/padel.md.
+## it (lit at night, four players, floodlights) and the DESKA neon on the clubhouse, which keeps its
+## mapped box. The other mapped pitches stay as the map draws them. docs/design/padel.md. F's photos
+## of the real court (2026-11-08): a dark charcoal surface with white lines (not blue), frameless
+## glass back walls with black mesh above, black mesh sides on a black steel frame, white padded
+## net posts, black floodlight poles, beige deckchairs on the lawn beside it.
 const DESKI_PITCHES := [
 	[1508.6, 966.3, 1516.4, 963.7, 1521.8, 979.9, 1514.1, 982.5],
 	[1500.1, 979.7, 1507.4, 976.0, 1515.2, 991.3, 1508.0, 995.0],
@@ -22985,10 +22988,10 @@ const DESKI_CLUBHOUSE := [Vector2(1491.7, 913.2), Vector2(1498.8, 909.0), Vector
 const DESKI_CLUBHOUSE_H := 7.6
 const DESKI_CLAY := Color("#b5573a")
 const DESKI_HARD := Color("#3e7396")
-const DESKI_PADEL_BLUE := Color("#2c68b0")
+const DESKI_PADEL_BLUE := Color("#3a3f44")
 const DESKI_LINE := Color("#f1efe6")
 const DESKI_GLASS := Color("#a9c7d4")
-const DESKI_FRAME := Color("#2b3138")
+const DESKI_FRAME := Color("#16191d")
 const DESKI_SHIRTS := [Color("#e8e04a"), Color("#ef5a8a"), Color("#f4f4f0"), Color("#3fb6a8"), Color("#ff8a2a"), Color("#8a6ae0")]
 const DESKI_SKIN := Color("#d9a984")
 
@@ -23068,9 +23071,11 @@ func _deski_padel(g: float, idx: int) -> void:
 		_lbox(su * 9.85, 0.0, 0.05, 5.0, g + 0.06, g + 0.075, lc, M_STONE, lc)
 		_lbox(su * 6.95, 0.0, 0.04, 4.9, g + 0.06, g + 0.075, lc, M_STONE, lc)
 	_lbox(0.0, 0.0, 6.95, 0.04, g + 0.06, g + 0.075, lc, M_STONE, lc)
-	# The net.
-	_lbox(0.0, 0.0, 0.03, 5.0, g + 0.55, g + 0.95, Color("#4a525a"), M_STONE)
-	_lbox(0.0, 0.0, 0.04, 5.0, g + 0.93, g + 0.97, DESKI_LINE, M_STONE)
+	# The net: black, a white tape, white padded posts.
+	_lbox(0.0, 0.0, 0.03, 5.0, g + 0.15, g + 0.92, Color("#15171a"), M_STONE)
+	_lbox(0.0, 0.0, 0.04, 5.0, g + 0.9, g + 0.95, DESKI_LINE, M_STONE)
+	for sv: float in [-1.0, 1.0]:
+		_lbox(0.0, sv * 5.15, 0.09, 0.09, g, g + 1.05, DESKI_LINE, M_STONE)
 	# Glass: the back walls (10 m), the sides' first 4 m at each end; 3 m high, a dark frame on top.
 	var gl := DESKI_GLASS
 	for su: float in [-1.0, 1.0]:
@@ -23081,6 +23086,16 @@ func _deski_padel(g: float, idx: int) -> void:
 			_lbox(su * 3.5, sv * 5.2, 0.05, 0.05, g, g + 3.0, DESKI_FRAME, M_STONE)
 			_lbox(0.0, sv * 5.2, 5.0, 0.03, g + 2.9, g + 3.0, DESKI_FRAME, M_STONE)
 		_lbox(su * 10.1, 0.0, 0.07, 5.25, g + 3.0, g + 3.08, DESKI_FRAME, M_STONE)
+		# The black mesh above the back glass to 4 m, on a top rail.
+		_lbox(su * 10.1, 0.0, 0.02, 5.2, g + 3.08, g + 3.95, Color("#22262b"), M_STONE)
+		_lbox(su * 10.1, 0.0, 0.07, 5.25, g + 3.95, g + 4.03, DESKI_FRAME, M_STONE)
+	# Two beige DESKA deckchairs on the lawn by the side glass (F's photos): a sling on a black frame.
+	if idx == 0:
+		for k in 2:
+			var cu := -7.5 + k * 1.4
+			_lbox(cu, -6.3, 0.32, 0.03, g + 0.25, g + 0.9, Color("#e9dfc6"), M_STONE)
+			_lbox(cu, -6.05, 0.32, 0.25, g + 0.3, g + 0.36, Color("#e9dfc6"), M_STONE)
+			_lbox(cu, -6.2, 0.34, 0.03, g, g + 0.3, DESKI_FRAME, M_STONE)
 	# The players: padel court 0 has four, court 1 two.
 	var spots := [Vector2(-6.0, -2.4), Vector2(-5.5, 2.5), Vector2(6.0, -2.4), Vector2(5.5, 2.5)]
 	for k in (4 if idx == 0 else 2):

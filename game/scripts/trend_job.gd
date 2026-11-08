@@ -133,6 +133,8 @@ const RALLIES := [
 ]
 ## The score line per points won (0..3): [pl, en].
 const MATCH_SCORES := [["2:6, 1:6", "2-6, 1-6"], ["4:6, 6:7", "4-6, 6-7"], ["6:4, 4:6, 10:8 w tie-breaku", "6-4, 4-6, 10-8 in the tie-break"], ["6:2, 6:3", "6-2, 6-3"]]
+## The arcade match's rivals (padel_match.gd, F 2026-11-08): Prezes z Mokotowa and his partner.
+const ARCADE_RIVALS := ["Prezes", "Zbyszek"]
 ## Landing the helicopter by the court counts (DESKI_FLY_R) and earns the reception's remark and
 ## FLY_RESPECT more.
 const FLY_RESPECT := 5
@@ -213,6 +215,11 @@ var quiet := false
 ## The first-10 guide (first10.gd `_hold_offers`): a beat is due, no offer until it has fired.
 var guide_hold := false
 var autopilot := false
+## Onto the arcade court (main.gd `_enter_padel`, padel_match.gd) with {partner, rivals, hour, flew,
+## seed}; its end comes back through `arcade_done`. Unset (the checks): the card match.
+var enter_padel: Callable
+## The game clock's hour for the arcade's light (main.gd sets it).
+var hour_now: Callable
 ## --trend-job=4: the drop never ends (the test run).
 var force_drop := false
 ## --trend-log: `trend job:` lines.
@@ -425,7 +432,9 @@ func _process(dt: float) -> void:
 		State.DELIVER:
 			_deliver_tick(dt)
 		State.RESULT:
-			if str(order.get("stage", "")) == "match":
+			if str(order.get("stage", "")) == "arcade":
+				pass
+			elif str(order.get("stage", "")) == "match":
 				if autopilot and _t > 2.0:
 					_match_answer(int(RALLIES[int(order["rallies"][int(order["point"])])][1]))
 				elif _t > POINT_LIFE:
@@ -1125,6 +1134,8 @@ func _on_card(index: int) -> void:
 					print("trend job: DESKA call declined (%s)" % order.get("stage", ""))
 				_withdraw()
 		State.RESULT:
+			if str(order.get("stage", "")) == "arcade":
+				return
 			if str(order.get("stage", "")) == "match":
 				_match_answer(index)
 			elif _is_ml() and str(order.get("stage", "")) == "review":
@@ -1367,6 +1378,16 @@ static func match_pay(won: int, flew: bool) -> Dictionary:
 ## 2026-11-07).
 func _start_match() -> void:
 	state = State.RESULT
+	if enter_padel.is_valid():
+		# The arcade match (F 2026-11-08): the court, two games, the crowd; `arcade_done` pays.
+		order["stage"] = "arcade"
+		_t = 0.0
+		hud.hide_card()
+		enter_padel.call({"partner": str(order["customer"]), "rivals": ARCADE_RIVALS, "flew": bool(order.get("flew", false)),
+				"seed": int(order.get("seed", done)), "hour": float(hour_now.call()) if hour_now.is_valid() else 12.0})
+		if log_on:
+			print("trend job: DESKA arcade match starts (%s)" % ("landed by helicopter" if bool(order["flew"]) else "by car"))
+		return
 	order["stage"] = "match"
 	order["rallies"] = match_rallies(int(order.get("seed", done)))
 	order["point"] = 0
@@ -1375,6 +1396,31 @@ func _start_match() -> void:
 	_ask_point()
 	if log_on:
 		print("trend job: DESKA match starts (%s)" % ("landed by helicopter" if bool(order["flew"]) else "by car"))
+
+
+## The arcade match's end (padel_match.gd): games won by the pair and by the rivals. The pay's
+## tier as the card match's points: 2:0 is 3, 2:1 is 2, 1:2 is 1, 0:2 (or given up) is 0.
+static func arcade_tier(g_us: int, g_them: int) -> int:
+	if g_us > g_them:
+		return 3 if g_them == 0 else 2
+	return 1 if g_us > 0 else 0
+
+
+func arcade_done(g_us: int, g_them: int, stats: Dictionary) -> void:
+	if state != State.RESULT or str(order.get("stage", "")) != "arcade":
+		return
+	var tier := arcade_tier(g_us, g_them)
+	order["won"] = tier
+	order["score"] = ["gemy %d:%d" % [g_us, g_them], "games %d-%d" % [g_us, g_them]]
+	var sm := int(stats.get("smashes", 0))
+	order["said"] = "Twoje uderzenia: %d, najdłuższa wymiana: %d." % [int(stats.get("your_hits", 0)), int(stats.get("longest", 0))]
+	order["said_en"] = "Your hits: %d, longest rally: %d." % [int(stats.get("your_hits", 0)), int(stats.get("longest", 0))]
+	if sm > 0:
+		order["said"] += " Smecze: %d." % sm
+		order["said_en"] += " Smashes: %d." % sm
+	if log_on:
+		print("trend job: DESKA arcade match over: games %d:%d, tier %d, %s" % [g_us, g_them, tier, stats])
+	_end_match()
 
 
 func _ask_point() -> void:
@@ -1429,7 +1475,7 @@ func _end_match() -> void:
 	var respect := int(r["respect"]) + int(m["respect"])
 	wallet.pay(zl, respect, "trend")
 	done += 1
-	var score: Array = MATCH_SCORES[won]
+	var score: Array = order.get("score", MATCH_SCORES[won])
 	var line: Array = [["Przegraliśmy, ale zdjęcie na story wyszło świetnie.", "We lost, but the story photo came out great."],
 			["Przegraliśmy po walce. %s z gipsem mówi, że to przez kort." % order["hurt"], "We lost after a fight. %s in plaster says it was the court." % order["hurt"]],
 			["Wygrane w tie-breaku! %s stuka gipsem w ławkę." % order["hurt"], "Won in the tie-break! %s bangs the cast on the bench." % order["hurt"]],

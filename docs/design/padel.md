@@ -37,6 +37,27 @@ sport is mostly about the hoodie, the story from the court and finding a fourth 
   8:00-22:00); the list rings the call, and stopping by the gate brings Kuba out in person: the
   match starts at once, no drive.
 
+- **The arcade match, "Padel na Desce" (2026-11-08, F's ask)**: on time at the gate (or met in
+  person) the three-card match is now a real game (`padel_match.gd` draws and plays it,
+  `padel_sim.gd` is the rules, the ball and the AI; `check_padel`; `--padel-match[=HOUR]`). You and
+  the caller (orange) against Prezes z Mokotowa and Pan Zbyszek (cyan), 2v2 in a pixel-art 3/4
+  side view of DESKA's court from F's photos (dark charcoal court, frameless glass back walls with
+  black mesh on top, black mesh sides, black net and white posts, black swan-neck floodlights,
+  beige DESKA deckchairs, the grey tennis hall and the trees behind, maple leaves in front). Two
+  games of 0/15/30/40 with the golden point. Touch: the left thumb is a stick (let go and you run
+  to the ball yourself), UDERZ (a drive, a volley at the net, a jumping smash on a high ball:
+  fire trail and a camera shake) and LOB; timing sets the quality, a bad hit goes long into the
+  glass, wide into the side fence or into the net. Real padel rules, simplified: one bounce on the
+  far side before any wall, then the glass plays; a second bounce or a ball over the fence wins.
+  The club's crowd behind the far fence cheers smashes and points, goes "ooh" at a ball off the
+  glass, one moment per game (phones up and clapping, a Mexican wave, the dog along the fence); a
+  flip-card scoreboard; Trener Dominik's shouts after your lost points; Pani Basia's helicopter
+  remark. Day, golden hour and night under the floodlights by the clock. A made-on-the-spot
+  chiptune loop at 120 BPM and the racket, bounce, glass, mesh, net and crowd sounds. Pay as the
+  card match's tiers: 2:0 is 3/3, 2:1 2/3, 1:2 1/3, 0:2 or ✕ 0/3. The card match stays as the
+  fallback where the arcade isn't wired (the checks). The city's own court matches the photos too
+  (charcoal, black frame and mesh to 4 m, white posts, two deckchairs).
+
 ## Characters (ideas, none built yet)
 - **Trener Dominik**: ex-tennis, "nie biegaj, ustaw się". Appears as a padel court voice.
 - **Pani Basia z recepcji**: knows who booked what, since 2024; "wolny kort jest tylko w
