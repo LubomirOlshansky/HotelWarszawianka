@@ -1520,6 +1520,51 @@ func kawa_idle() -> bool:
 	return state == State.IDLE and _session >= _kawa_rest
 
 
+# --- Padel at DESKA on the quest map (story_quests.gd, docs/design/quest-map.md) ---------------
+
+## The questline's start spot: the club's gate on Zaruskiego.
+const PADEL_NAME := ["Czwarty do padla", "Fourth for padel"]
+const PADEL_HELLO := ["„Jesteś! Jedno z nas ma nogę w gipsie po pole dance, a kort opłacony do pełnej. Bierz rakietę, gramy do trzech punktów?”",
+		"\"You're here! One of us has a leg in plaster after pole dance and the court is paid till the hour. Grab a racket, three points?\""]
+## The questline's colour on the maps: the padel ball's yellow-green (the call's teal is too near
+## the boat race's blue there).
+const PADEL_COLOUR := Color("#c6e83a")
+const PADEL_CLOSED := ["„Korty już zamknięte. Pani Basia z recepcji poszła do domu. Wpadnij od ósmej”",
+		"\"The courts are closed. Pani Basia from reception has gone home. Come by from eight\""]
+
+
+## The quest map's call (the list's start): the DESKA call rings now. False unless idle.
+func padel_ring() -> bool:
+	return state == State.IDLE and offer_deski_call(true)
+
+
+## Met in person at the gate (the friend walks up, the player said yes): no call, no drive,
+## straight to the match. False unless idle.
+func padel_meet() -> bool:
+	if state != State.IDLE or not offer_deski_call(true):
+		return false
+	hud.hide_card()
+	missions.close()
+	missions.paused = true
+	_clock = 0.0
+	order["stage"] = "offer"
+	order["flew"] = flying
+	if log_on:
+		print("trend job: DESKA met in person at the gate")
+	_start_match()
+	return true
+
+
+## True while the DESKA call runs (quest focus): the drive or the match.
+func padel_busy() -> bool:
+	return busy() and _is_cz() and bool(order.get("call", false))
+
+
+## Idle: no job and no call (the padel questline may start now).
+func padel_idle() -> bool:
+	return state == State.IDLE
+
+
 func _ring_at(at: Vector2) -> Vector3:
 	return Vector3(at.x, map.terrain_height(at.x, at.y), at.y)
 
