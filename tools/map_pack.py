@@ -10,8 +10,8 @@ Loop 3d-1 took game/map/lod2.bin (90 MB), lod2.json and terrain.json out of git:
 from GUGiK's raw downloads (tools/setup_map.sh --full), which only the Mac has. Without them a clone
 cannot split the map or build the city, so GitHub CI and the cloud threads could not run the map,
 road, drape, drive and landmark checks. The pack carries exactly those three files, as a
-GitHub release asset of this repository (public, like the data: GUGiK's open data, the same files
-that were committed before loop 3d-1).
+GitHub release asset of this repository (GUGiK's open data, the same files that were committed
+before loop 3d-1).
 
 `make` (on the Mac, after a full bake that changed one of them) writes
 build/map-pack/map-pack-<N>.tar.gz, byte for byte the same for the same files (sorted, no times,
@@ -20,7 +20,8 @@ archive and of each file). Commit tools/map_pack.json and publish the archive as
 release tagged map-pack-<N> (the command prints the link). The version goes up by one each time.
 
 `fetch` skips the download when game/map already has the pack's files. Otherwise it downloads the
-asset with curl (the proxy and CA settings of the shell apply), checks the archive's SHA-256 and
+asset with curl through the GitHub API (the repository is private: the token is GITHUB_TOKEN,
+GH_TOKEN or `gh auth token`; the proxy and CA settings of the shell apply), checks the archive's SHA-256 and
 each file's, and unpacks into game/map. tools/setup_map.sh runs it when the files are missing.
 
 Exit codes: 0 done (or already there), 1 an error (a hash mismatch, a broken download), 2 usage,
@@ -40,7 +41,10 @@ ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
 MAP = os.path.join(ROOT, "game", "map")
 MANIFEST = os.path.join(ROOT, "tools", "map_pack.json")
 OUT = os.path.join(ROOT, "build", "map-pack")
-REPO = "LubomirOlshansky/AroundWarsaw"
+# The repository was renamed (AroundWarsaw -> HotelWarszawianka) and made private on 2026-11-08: the
+# old public download link now redirects and answers 401, so `fetch` asks the GitHub API with a token.
+REPO = "LubomirOlshansky/HotelWarszawianka"
+API = "https://api.github.com/repos/" + REPO
 # What the pack holds: the files setup_map.sh cannot make without the GUGiK raw downloads.
 FILES = ["lod2.bin", "lod2.json", "terrain.json"]
 
@@ -58,8 +62,40 @@ def load_manifest():
         return json.load(f)
 
 
-def url_of(m):
-    return "https://github.com/%s/releases/download/%s/%s" % (REPO, m["tag"], m["asset"])
+def token():
+    """GITHUB_TOKEN (CI, cloud) or GH_TOKEN, else what a signed-in gh CLI holds, else None."""
+    for name in ("GITHUB_TOKEN", "GH_TOKEN"):
+        if os.environ.get(name):
+            return os.environ[name]
+    try:
+        r = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True, timeout=20)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return r.stdout.strip() or None
+
+
+def curl(args, tok):
+    """curl with retries; the token goes in through stdin (-H @-), never on the command line."""
+    cmd = ["curl", "-sSL", "--retry", "4", "--retry-delay", "2", "-w", "%{http_code}"] + args
+    stdin = None
+    if tok:
+        cmd += ["-H", "@-"]
+        stdin = "Authorization: Bearer %s\n" % tok
+    return subprocess.run(cmd, input=stdin, capture_output=True, text=True)
+
+
+def asset_url(m, tok):
+    """The API link of the release asset (a private repo's assets download only through the API),
+    or (None, http code) when the release or the asset is not there."""
+    r = curl(["-H", "Accept: application/vnd.github+json", "-o", "-",
+            "%s/releases/tags/%s" % (API, m["tag"])], tok)
+    body, code = r.stdout[:-3], r.stdout[-3:]
+    if r.returncode != 0 or code != "200":
+        return None, code
+    for a in json.loads(body).get("assets", []):
+        if a.get("name") == m["asset"]:
+            return a["url"], code
+    return None, "404"
 
 
 def have_pack(m):
@@ -131,15 +167,19 @@ def cmd_fetch(_args):
     os.makedirs(OUT, exist_ok=True)
     path = os.path.join(OUT, m["asset"])
     if not (os.path.isfile(path) and sha256(path) == m["sha256"]):
-        url = url_of(m)
+        tok = token()
+        url, code = asset_url(m, tok)
+        if url is None:
+            if code == "404":
+                print("map_pack: pack %d is not published yet (no asset %s in release %s of %s)" % (m["version"], m["asset"], m["tag"], REPO))
+                return 3
+            print("map_pack: the release %s of %s answers HTTP %s%s" % (m["tag"], REPO, code,
+                    "" if tok else " (no token: set GITHUB_TOKEN or sign in gh, the repository is private)"))
+            return 1
         print("map_pack: downloading %s (%.1f MB)" % (url, m.get("bytes", 0) / 1e6))
         part = path + ".part"
-        r = subprocess.run(["curl", "-sSL", "--retry", "4", "--retry-delay", "2", "-o", part,
-                "-w", "%{http_code}", url], capture_output=True, text=True)
+        r = curl(["-H", "Accept: application/octet-stream", "-o", part, url], tok)
         code = r.stdout.strip()
-        if code == "404":
-            print("map_pack: pack %d is not published yet (%s answers 404)" % (m["version"], url))
-            return 3
         if r.returncode != 0 or code != "200":
             print("map_pack: download failed (HTTP %s, curl %d): %s" % (code, r.returncode, r.stderr.strip()[:200]))
             return 1
