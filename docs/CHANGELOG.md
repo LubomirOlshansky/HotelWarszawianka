@@ -10,6 +10,8 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-08
+- The game starts in English on every phone; pick Polish on the title screen or in Settings and it stays one language everywhere.
+- The car no longer stops dead when its nose clips the end of a low wall or a tram shelter: it slips past, as it already did at corners (Trasa W-Z by the Old Town).
 - New evening quest, "Dym u Senatorka": Ivan calls for a shisha night. Pick him up at 19. Dzielnica and Bogdan at the courts on Żelazna, vote on flavour and strength while they argue, then go up to SENATOREK at Emilii Plater 53: mix two jars with the master, time the coal, blow a smoke ring, and smoke inside or on the terrace with the Palace in view. The Warsaw Financial Centre has its granite-and-steel portico with the revolving door now.
 - Shisha night: the three votes on the way to the lounge (flavour, strength, the pipe's name) now show on screen beside the car instead of quietly picking themselves.
 - At the west end of Most Poniatowskiego a car with its wheels over the kerb no longer stops dead by the gate tower: it glances back onto the road, and it no longer drops for a moment between the road and the tram tracks.
@@ -20,6 +22,7 @@ someone writes its lines.
 - The Rotunda looks like itself from the street: its glass rises into a ring of points under a thin white zigzag edge, with slimmer frames, and its folded silver roof dips into the round skylight. The three glass stores across from the Palace have their pale glass in big panes, a light band along the roof and the grey louvred top floor with the shops' names.
 - Around the Palace: the EMPIRYK bookshop pavilion and the Zodiak pavilion are rebuilt from photos, and the glass office building on the corner of Marszałkowska and Świętokrzyska now has its stepped glass tiers, silver fins and white LED dashes that light up at night.
 - Widok Towers on Aleje Jerozolimskie now has its real blue-grey glass in a light grid instead of green.
+- Smoła on Smolna looks like itself: the grey tenement with the stone cartouche over the gate, black tents and barriers, three doormen and the queue along the wall. Inside, the room has blue panels, red light bars and a truss tower with just one palm left, the club plays its own techno (house on the patio), and you can dance on the patio too.
 
 ## 2026-11-08
 - Three more towers by the Palace look like themselves: the InterContinental stands over its huge open gap, glowing white at night, under a sloping roof; the Warsaw Financial Centre is a white tower wrapped round a teal glass one with a red-and-white mast; and Hotel Polonia Palace has its tall zinc roof, the pediment with the round window and its gold name.
