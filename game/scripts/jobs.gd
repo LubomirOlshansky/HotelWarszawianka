@@ -593,6 +593,8 @@ func _free() -> bool:
 		return false  # story_quests.gd: a questline (boat race, rave...) is on
 	if rides != null and rides.busy():
 		return false  # loop 2d-1: one activity at a time
+	if state == State.IDLE and hud != null and hud.cards_up():
+		return false  # no offer over a result or win card (2026-11-08)
 	if trend != null and trend.busy():
 		return false  # loop MW-4
 	if round_busy():

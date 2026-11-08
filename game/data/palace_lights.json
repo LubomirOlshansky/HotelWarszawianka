@@ -9,7 +9,6 @@
   {"id": "parade", "name": "Parada Równości", "nth_weekday": [6, 6, 3], "pattern": "rainbow", "a": "#ffffff", "b": "#ffffff", "cycle": 0.0},
   {"id": "uprising", "name": "Rocznica Powstania Warszawskiego", "from": "08-01", "to": "08-01", "pattern": "split_height", "a": "#ff2a3a", "b": "#ffffff"},
   {"id": "ukraine", "name": "Dzień Niepodległości Ukrainy", "from": "08-24", "to": "08-24", "pattern": "split_height", "a": "#ffd23a", "b": "#2f7bff"},
-  {"id": "pink_october", "name": "Różowy Październik", "from": "10-01", "to": "10-31", "pattern": "solid", "a": "#ff5fb4", "b": "#ff5fb4"},
   {"id": "halloween", "name": "Halloween", "from": "10-31", "to": "10-31", "pattern": "solid", "a": "#ff8a1f", "b": "#ff8a1f"},
   {"id": "independence", "name": "Narodowe Święto Niepodległości", "from": "11-10", "to": "11-11", "pattern": "split_height", "a": "#ff2a3a", "b": "#ffffff"},
   {"id": "preemie", "name": "Światowy Dzień Wcześniaka", "from": "11-17", "to": "11-17", "pattern": "solid", "a": "#a53dff", "b": "#a53dff"},
