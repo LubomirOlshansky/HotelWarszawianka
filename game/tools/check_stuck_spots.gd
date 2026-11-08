@@ -54,7 +54,8 @@ extends SceneTree
 ## right wheels over the kerb at 58-60 km/h, stopped dead on the square end of the approach's
 ## retaining wall, which runs along the walk between the kerb and the gate tower. Fixed: inside a
 ## tower's zone each open end of a solid wall run gets a collider-only lead-in back behind the tower
-## (map_builder.gd `_wall_taper`). Three kerb lines, all failing on the old map.
+## (map_builder.gd `_wall_taper`). Four kerb lines, all failing on the old map (the 4° one on the
+## median rail's end at 945.7, -138.9 after a steeper lead-in turned it across).
 ## PT-41 (the same runs): a one-tick 7 m height flicker just before, at 937.5, -135.9: a 15 cm
 ## sliver between the road's and the tram's approaches read the boulevard below. Fixed: such a
 ## sliver takes the lower approach's level (map_builder.gd FILL_SEAM); SEAMS reads the height there.
@@ -107,6 +108,7 @@ const SPOTS := [
 	[913.2, -119.5, 68.0, 16.7, 3.0, 0.8, "PT-40 Most Poniatowskiego east, the kerb lane's wheels on the kerb past the south-west tower"],
 	[913.5, -119.0, 68.0, 16.7, 3.0, 0.5, "PT-40 Most Poniatowskiego east, half over the kerb onto the walk"],
 	[913.2, -119.5, 70.0, 16.7, 3.0, 0.5, "PT-40 Most Poniatowskiego east, the kerb lane drifting 2° towards the tower"],
+	[913.2, -119.5, 72.0, 16.7, 3.0, 0.5, "PT-40 Most Poniatowskiego east, drifting 4°: turned off the lead-in, clear of the median rail's end"],
 ]
 ## PT-41: [x, z, the level a car drives at there, what]: drive_height must give it within SEAM_TOL m.
 const SEAMS := [

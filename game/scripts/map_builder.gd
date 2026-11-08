@@ -2054,8 +2054,10 @@ func _build_walls(st) -> void:
 ## open end of a solid run gets a collider-only lead-in: from the end, WALL_TAPER_LEN on past it
 ## and WALL_TAPER_IN over to the wall's outer (tower) side, behind the tower's own collider, so a
 ## car meeting it glances back onto the road instead.
-const WALL_TAPER_LEN := 5.0
+const WALL_TAPER_LEN := 8.0
 const WALL_TAPER_IN := 1.2
+## ...and from this far under its top (the wall's top + 1.6 m) up: 1 m under the walk.
+const WALL_TAPER_DEEP := 2.6
 ## How many lead-ins the build added (check_stuck_spots prints it).
 var wall_tapers := 0
 
@@ -2068,6 +2070,9 @@ func _wall_taper(e: Vector2, on: Vector2, out: Vector2, y0: float, top: float, t
 	if not inside:
 		return
 	var f := e + on * WALL_TAPER_LEN + out * WALL_TAPER_IN
+	# Only round the approach's own level: past a river end the lead-in hangs over the boulevard
+	# road that runs under the deck (check_drive: Wybrzeże's lane at 939, -152).
+	y0 = maxf(y0, top - WALL_TAPER_DEEP)
 	_wall_faces.append_array([Vector3(e.x, y0, e.y), Vector3(f.x, y0, f.y), Vector3(f.x, top, f.y),
 			Vector3(e.x, y0, e.y), Vector3(f.x, top, f.y), Vector3(e.x, top, e.y)])
 	wall_tapers += 1
