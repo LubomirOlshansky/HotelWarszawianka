@@ -3121,7 +3121,6 @@ const STORY_BLURBS := {
 	"padel": ["Czwarty do padla w WTS Deska.", "A fourth for padel at WTS Deska."],
 	"meet": ["Nocny spot na Defiladzie.", "A night car meet on Plac Defilad."],
 	"kino": ["Kopia filmu, cztery kina.", "One film print, four cinemas."],
-	"shisha": ["Szisza z Ivanem i Bogdanem.", "Shisha with Ivan and Bogdan."],
 	"tesla": ["Bartek, śmigłowiec i martwe TESŁO.", "Bartek, a helicopter and a dead TESŁO."],
 }
 
@@ -3197,16 +3196,9 @@ func _build_stories(world: Node3D) -> void:
 						"\"The cinemas are asleep. So are the distributors. Come by after two in the afternoon, we'll start with Amondo\""],
 				"at": KinoTour.PICKUP["at"], "colour": KinoTour.COLOUR, "hours": Vector2(KinoTour.HOURS[0], KinoTour.HOURS[1]),
 				"call": kino_tour.ring, "meet": kino_tour.meet, "busy": kino_tour.busy, "idle": kino_tour.idle})
-	if shisha != null and not shisha.home.is_empty():
-		var sh: Vector3 = shisha.home["at"]
-		stories.add({"id": "shisha", "pl": Shisha.NAME[0], "en": Shisha.NAME[1], "who": [Shisha.FRIEND, Shisha.FRIEND],
-				"hello": ["„Siema! Szisza dziś? Wsiadam, jeszcze Bogdan z kortu i jedziemy na Emilii Plater.”",
-						"\"Hey! Shisha tonight? I'm getting in, we grab Bogdan from the court and go to Emilii Plater.\""],
-				"closed": ["„Szisza dopiero wieczorem. Wpadnij po siedemnastej.”", "\"Shisha's for the evening. Come by after five.\""],
-				"at": Vector2(sh.x, sh.z), "colour": Shisha.COLOUR, "hours": Shisha.HOURS, "days": [],
-				# F 2026-11-08: no phone call; it starts only on its small "!" in 19. Dzielnica.
-				"call": func() -> bool: return false, "small": true,
-				"meet": shisha.meet_in_person, "busy": shisha.busy, "idle": shisha.idle})
+	# The shisha night is a hidden quest (F 2026-11-08): no story, no pin, no phone call. Press and
+	# hold "+" for SHISHA_HOLD_S seconds at Ivan's block in 19. Dzielnica and he rings (`_story_tick`).
+	if shisha != null:
 		shisha.auto = false
 	# Bartek's dead TESŁO (ev_tow.gd, F 2026-11-08): a helicopter story with no fixed start, so it
 	# is in the STORIES tab only (a tap there rings Bartek), no pin on the map.
@@ -3223,6 +3215,22 @@ func _build_stories(world: Node3D) -> void:
 		get_tree().create_timer(1.5).timeout.connect(func() -> void: stories.start(story_flag))
 	print("stories: %d questlines (%s)" % [stories.defs.size(), ", ".join(stories.defs.map(func(d: Dictionary) -> String:
 			return "%s %s" % [d["id"], "%.0f,%.0f" % [d["at"].x, d["at"].y] if d["at"] != Vector2.INF else "no start"]))])
+
+
+## Hold "+" this long (s), standing at Ivan's block, and he rings.
+const SHISHA_HOLD_S := 5.0
+const SHISHA_R := 30.0
+
+
+## The shisha night's hidden start: nothing on, the car near Ivan's block and slow, "+" held 5 s.
+func _shisha_secret(busy: bool) -> void:
+	if shisha == null or shisha.home.is_empty() or busy or flying or car == null or not shisha.idle():
+		return
+	var h: Vector3 = shisha.home["at"]
+	var p := car.global_position
+	if Vector2(p.x, p.z).distance_to(Vector2(h.x, h.z)) > SHISHA_R or hud.zoom_in_held_s() < SHISHA_HOLD_S:
+		return
+	shisha.ring()
 
 
 ## Something runs: a race, a job, a ride, a rescue, a questline, a tow (quest focus: the map goes quiet).
@@ -3246,6 +3254,7 @@ func _story_tick() -> void:
 		return
 	var focus := _quest_running()
 	stories.focus = focus
+	_shisha_secret(focus)
 	var m: Array = StoryQuests.marks(stories.defs, focus or flying)
 	var names := PackedStringArray()
 	var blurbs := PackedStringArray()

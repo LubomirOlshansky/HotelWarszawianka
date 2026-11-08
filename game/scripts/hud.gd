@@ -191,6 +191,7 @@ var _speed_text := ""
 var _vehicle_button: Button
 var _zoom_out_button: Button
 var _zoom_in_button: Button
+var _zoom_in_down_ms := -1
 var _radio_button: Button
 ## Beta radio (2026-11-02): DALEJ · NEXT under RADIO while the station has more than one song
 ## (the hold on RADIO and Shift+R stay); set_radio_skip shows it.
@@ -289,6 +290,11 @@ var _taps := {}
 ## The status panel's picture row: a kebab's steam or the słoiki run's jars.
 var _status_icons: Control
 var _icons := {}
+## How long the "+" zoom chip has been held down (s; 0 when not): the shisha night's hidden start.
+func zoom_in_held_s() -> float:
+	return 0.0 if _zoom_in_down_ms < 0 else float(Time.get_ticks_msec() - _zoom_in_down_ms) / 1000.0
+
+
 ## Side-job places on the minimap (kebab stands, the station), blinking.
 var _mini_pois := PackedVector2Array()
 ## Loop MW-1: the notebook's places not found yet near the car (map x, z), drawn as "?".
@@ -546,6 +552,8 @@ func _ready() -> void:
 	_zoom_in_button = _chip(self, "+", "", Color(0, 0, 0, 0))
 	_zoom_in_button.name = "zoom_in"
 	_zoom_in_button.pressed.connect(func(): zoom_pressed.emit(-1))
+	_zoom_in_button.button_down.connect(func(): _zoom_in_down_ms = Time.get_ticks_msec())
+	_zoom_in_button.button_up.connect(func(): _zoom_in_down_ms = -1)
 	for zb: Button in [_zoom_out_button, _zoom_in_button]:
 		_set_chip(zb, zb.get_child(0).get_child(0).text, "", 44.0)
 
