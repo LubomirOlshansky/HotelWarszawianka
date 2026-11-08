@@ -31928,7 +31928,7 @@ const CP_TEAL := Color("#4fa9a6")
 const CP_BLUE := Color("#93c4d6")
 const CP_CONC := Color("#bdb8ab")
 const CP_FLOOR := Color("#9c9a92")
-const CP_CORE := Color("#515957")
+const CP_CORE := Color("#6d7573")
 const CP_DARK := Color("#24282d")
 const CP_NAVY := Color("#1f2f6b")
 const CP_BLUE_NEON := Color(0.2, 0.5, 1.0)
@@ -32052,13 +32052,14 @@ func _build_cparking(site: Dictionary) -> void:
 				var base := _cp_mural(face, pp, k)
 				var j1 := 0.92 + 0.12 * _cp_hash(pp, float(k) + 0.5)
 				var j2 := 0.9 + 0.14 * _cp_hash(pp + 3.1, float(k) + 1.5)
-				_mode = M_STONE
+				_mode = M_MEMBRANE + 0.5   # floodlit paint: bright at night
 				if face == 4:
 					_wall(p0, p1, y0, y1, out, Color(base.r * j1, base.g * j1, base.b * j1))
 				else:
 					_wall(p0, p1, y0, ym, out, Color(base.r * j1, base.g * j1, base.b * j1))
 					_wall(p0, p1, ym, y1, out, Color(base.r * j2, base.g * j2, base.b * j2))
 			# The parapet's top edge.
+			_mode = M_STONE
 			_cap(PackedVector2Array([a, b - e * 0.35, b - e * 0.35 - out * 0.35, a - out * 0.35]), y1, Color("#c9c4b6"))
 			if face >= 4:
 				continue
@@ -32087,7 +32088,7 @@ func _build_cparking(site: Dictionary) -> void:
 					var r := 0.45 + 0.5 * _cp_hash(h2, float(k))
 					var pos := m2 + out * 0.07
 					var yc := f + 0.25 + 0.2 * (h2 - 0.3)
-					_mode = M_STONE
+					_mode = M_MEMBRANE + 0.5
 					_disc(Vector3(pos.x, yc, pos.y), Vector3(out.x, 0.0, out.y), r, 8, CP_WHITE)
 					var pos2 := m2 + out * 0.15 + e * (r * 0.12)
 					_disc(Vector3(pos2.x, yc + r * 0.1, pos2.y), Vector3(out.x, 0.0, out.y), r * 0.5, 6, CP_RED_D)
@@ -32177,7 +32178,7 @@ func _cp_wall_panel(g: float) -> void:
 	var out := Vector2(e.y, -e.x)
 	var gw: float = map.terrain_height(a.x, a.y)
 	var n := ceili(ln / 0.55)
-	_mode = M_STONE
+	_mode = M_MEMBRANE + 0.5
 	for j in n:
 		var t0 := ln * float(j) / n
 		var t1 := ln * float(j + 1) / n

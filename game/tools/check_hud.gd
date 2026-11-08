@@ -25,6 +25,7 @@ extends SceneTree
 
 const Access := preload("res://scripts/access.gd")
 const Hud := preload("res://scripts/hud.gd")
+const TrendJob := preload("res://scripts/trend_job.gd")
 const Bubbles := preload("res://scripts/bubbles.gd")
 ## Loop 3g-1: the pull-over card (police.gd lays it out with the HUD's panels).
 const PoliceBalloon := preload("res://scripts/police/police_balloon.gd")
@@ -97,12 +98,38 @@ func _check_quiet_driving() -> void:
 	b.queue_free()
 
 
+## 2026-11-08 (Autopilot, padel at DESKA): a new offer opened over a result card and the OK tap
+## accepted it. While a card is up (a result or win card included), and for TrendJob.CARD_REST s
+## after one closes, no offer opens; it is queued and shows afterwards.
+func _check_offers_wait() -> void:
+	var hud: CanvasLayer = Hud.new()
+	root.add_child(hud)
+	if hud.cards_up():
+		problems.append("offers: cards_up() is true with no card showing")
+	if TrendJob.hold_offers(100.0, 0.0, hud.cards_up()):
+		problems.append("offers: held with no card up")
+	hud.show_card("PADEL · 2:0 · +60 zł", "Wygrane!", PackedStringArray(["OK"]), Color("#40c0c0"))
+	if not hud.cards_up():
+		problems.append("offers: cards_up() is false with a result card showing")
+	if not TrendJob.hold_offers(100.0, 0.0, hud.cards_up()):
+		problems.append("offers: an offer may open over a result card")
+	hud.hide_card()
+	if hud.cards_up():
+		problems.append("offers: cards_up() stays true after the card closed")
+	if not TrendJob.hold_offers(101.0, 100.0 + TrendJob.CARD_REST, hud.cards_up()):
+		problems.append("offers: an offer may open the moment a card closed")
+	if TrendJob.hold_offers(103.0, 100.0 + TrendJob.CARD_REST, hud.cards_up()):
+		problems.append("offers: still held after the rest")
+	hud.queue_free()
+
+
 func _run() -> void:
 	await process_frame  # the tree is ready for nodes only once the first frame runs
 	var states := 0
 	for screen in SCREENS:
 		states += await _check_screen(screen)
 	_check_quiet_driving()
+	_check_offers_wait()
 	for w in _waits:
 		print("  waits for room: %s" % w)
 	# The x1.25 pass is a gate (2026-11-02): a panel that must show and has no room at the larger

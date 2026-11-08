@@ -12,8 +12,11 @@ Mapillary street photos) and is drawn as what it is (`small_buildings.gd`): 36 l
 vents, 33 bin shelters, 34 kiosks and pavilions, 16 substations, 11 toilets, 74 sheds, 19 garages,
 houseboats, canopies...; 50 pieces of bigger buildings or empty outlines are left out. Verify step
 `heights`. Left:
-- 98 drawn as "unknown" (a plain 3 m shed) and most sheds/garages are low-confidence guesses: no
-  street photo shows them (courtyards). A photo pass on the Mac would settle them.
+- Mac photo pass (2026-11-08, 0.1 m GUGiK ortho + fresh OSM tags) settled 94 of the 98 "unknown":
+  33 pieces of bigger buildings (the Royal Castle's 0-2 m² slivers, church turrets), 17 low annexes
+  with their own outline (new use `annex`, 4 m), 22 sheds... 4 stay unknown (tiny, under trees).
+  Still no street photo for the courtyard sheds and garages (Codex was blocked by the Godot guard
+  hook on the Mac); heights are typical values, not measured.
 - Courtyard outbuildings over 150 m² with no height tags still get 14 m (fair for a tenement).
 
 ## Plac Pięciu Rogów, Chmielna and Krucza in 2026 (F, 2026-11-06)
@@ -496,6 +499,10 @@ Left:
 - [ ] A voice for Wiktor (later, like the night racing club's); a notebook card for the cinemas
 - [ ] The Atlantic stop is on Widok, 70 m from the door (Chmielna is car-free there): a walk-round line, or a stop on Zgoda
 - [ ] Autopilot run of the whole tour on the Mac (`--kino-tour=go`)
+
+## Offers over result cards (Autopilot, 2026-11-08)
+Fixed: a Mrożulo "fetch" offer opened over the padel result card at the DESKA gate and the OK tap accepted it. No offer or prompt (trend jobs, "Na czasie", Podwózka, rivals) opens while a card is up, nor for 2.5 s after one closes; it is queued, not dropped. Test: `check_hud` `_check_offers_wait`.
+- [ ] Question for F: on a fresh save the first-10 guide holds every questline walk-up (`guide_hold`, `first10.gd` `_hold_offers`) for the first 10 minutes. By design? Left as it is (parked, not changed).
 
 ## Padel call at WTS DESKA (coordinator, 2026-11-07; docs/design/padel.md)
 
