@@ -635,11 +635,14 @@ func setup(data: Dictionary, places: Array) -> void:
 	for st: Dictionary in CoffeeRun.STOPS:
 		if st["door"] != Vector2.INF:
 			with_cafes.append({"id": "kawa_" + str(st["id"]), "at": st["door"]})
+	await LoadYield.tick("storefronts addresses")
 	venues = venue_list(with_cafes, addrs, graph)
+	await LoadYield.tick("storefronts venues")
 	for v in venues:
 		avoid.append(v["road"])
 	var polys := landmark_index(data.get("landmarks", []))
 	shops = pick_shops(addrs, convenience_list(data.get("pois", [])), jpos, triple_at, polys, avoid)
+	await LoadYield.tick("storefronts shops")
 	var nt := 0
 	for s in shops:
 		if s["triple"] != "" and not s["spare"]:
@@ -664,9 +667,13 @@ func setup(data: Dictionary, places: Array) -> void:
 		_by_key[payphone["key"]] = {"shops": [], "venues": [], "scooters": [], "zones": [], "metros": [], "docks": []}
 	_shop_mesh = Props.frogs_shop()
 	_lezak_mesh = Props.lezak()
+	await LoadYield.tick("storefronts meshes")
 	_build_atlas()
+	await LoadYield.tick("storefronts atlas")
 	_kebab_boards(at)
+	await LoadYield.tick("storefronts boards")
 	_billboards(at)
+	await LoadYield.tick("storefronts billboards")
 	_load_stamps()
 	# The eggs where their things are: the first triple corner's junction, the standing Leżak's zone.
 	if egg_book != null:

@@ -43,8 +43,10 @@ look check of both.
 ## Top-50 buildings from photos (F, 2026-11-08; list /mnt/project-files/pkin-surroundings/PHOTOS-NEEDED-2026-11-08.md section F, photos on the Mac in warsaw-needed-photos/top-50)
 - Done, batch 1: Q22 (dark green glass, graphite crown with DELOJT, the wing's sloping glass roof, lattice mast and red-and-white antenna; spec q22.md) and Rondo 1 (silver-blue banded slab with the rounded end, the open screen over the roof, the graphite west block with EJ and its yellow stroke, the steps to the south-west, the antenna to 192 m instead of the 33 m cage; spec rondo1.md).
 - Done, batch 2: Warsaw Trade Tower (parts clad by their mapped colours: the dark blue ribbon-glass drum, the beige stone slab with punched windows, the silver crown with UNIKWA; new tower-table key `skins`) and Teatr Wielki's front (ten columns, not eight; the raised middle block with windows, the pediment with its relief and copper slopes; the Apollo quadriga in bronze; spec teatr.md).
+- Done, batch 3: Spektrum (parts clad by their mapped colours: blue glass between white bands on the drum, the dark square-grid slabs, the pale green glass ring round the crown), Pałac Prezydencki (the photo shows no free portico: a risalit with an arcade of seven round-headed openings, six engaged columns to the cornice, a balustrade with statues along the main block; the wings' dark slate roofs; spec prezydencki.md) and Święty Krzyż's helms (octagonal copper lanterns with openings, bell roofs and slim needles, not big onions; whiter walls; spec krzyz.md).
+- Left from batch 3: Spektrum's sloping glass fin up the drum; the Presidential Palace's dormers and the pediments of the main block's side wings; Holy Cross's statues on the attic.
 - Left from batch 2: WTT's curved crown slits and the fin with the mast down the dark side; Teatr Wielki's side colonnades.
-- Left: Q22's faceted folds in the glass and the base's entrance; Rondo 1's curved screen follows the roof edge as straight facets, the ground-floor stone columns on Śliska (T03-08) not modelled; the night look of both on the phone. Next batches by visibility: T35 Spektrum, T36-T38 the Rondo Daszyńskiego towers, T08 Pałac Prezydencki, T09 Święty Krzyż. T04 InterContinental and T26 Polonia are the Palace thread's.
+- Left: Q22's faceted folds in the glass and the base's entrance; Rondo 1's curved screen follows the roof edge as straight facets, the ground-floor stone columns on Śliska (T03-08) not modelled; the night look of both on the phone. Next batch by visibility: T36-T38 the Rondo Daszyńskiego towers (Platinum, Pekao and Atlas, Prosta Tower and Crown Point). T04 InterContinental and T26 Polonia are the Palace thread's.
 
 ## Skyline towers near the Palace from F's photos (F, 2026-11-08; specs plater49.md, wcf.md, polonia.md)
 - Done: InterContinental (the gap over the podium, the sloped roof, the corner column, lit gap at night), the Warsaw Financial Centre (white slab and ribbon slab on the curve, granite podium, mast) and Hotel Polonia Palace (photo pass: mansard, pediment and oval window, name on the frieze, balconies). Złota 44 was already rebuilt from F's photos (PR #321).
@@ -122,6 +124,9 @@ family: +0 draw calls; the long bus's rear door moved off its axle). Left:
 - Electric buses (roof battery pods, the charger pantograph) as a third shape; bus bays (zatoki)
   where the kerb steps back are not drawn because the road rework is dropped.
 - Phone look check: zigzag line width (0.22 m) and the yellow line (0.22 m) at the default view.
+- Shelters facing (F, 2026-11-08, Ratusz Arsenał): every shelter now turns its open side to its
+  boarding edge (`snap_props.face_shelters`, check_stops K7). Left: 11 with nothing to face (10 park
+  or square roofs over 16 m from any road, one mapped right on the track at -1907, -2673); those park roofs might be benches or pergolas, not stops (a Mac OSM look).
 
 ## Stacja Muzeum, Nocny Targ and Kolejowa (F, 2026-11-07; spec docs/landmarks/specs/stacja_muzeum.md)
 
@@ -808,6 +813,20 @@ log give each step's ms). Test runs (no title) build in one go as before. Left:
   renderer (the city 10 %, the core 16 %, traffic and life 27 %, jobs and places 13 %, police and
   crowds 19 %, the rest 14 %); a run on the iPhone 16 Pro Max (and the 11) should read the
   "loading bar:" lines and retune `_load_mark`'s shares and LOAD_FILES / LOAD_BUILT.
+- **Loading animation lag (F, 2026-11-08)**: first fix (#576): a frame after each `_build_*` call
+  was not enough on F's Nothing Phone (logcat build steps 805, 2419, 4095, 1809, 73, 4470, 2306 ms; ~8 s
+  of plain blue before the title; the bar frozen 1-4 s at a time). Now: the title is drawn before the
+  settings, radio, wallet and save are set up (two frames right after it is added), and `load_yield.gd`
+  (`LoadYield.tick("what")`, a frame every 12 ms of work, only under the title) is called inside the long
+  setups: traffic (per kind), pedestrians (per footway), crowds (per site), and between the hud,
+  minimap, missions, trams, trains, walkers, rivals, police, crowds and city-life setups. Slices over
+  150 ms print "loading bar: slice N ms, up to X" in the log. Not measured on a phone: read those lines
+  from the next run and split the call named by the longest slice (still open: city_life.setup, rivals,
+  trams, trains, and the ~8 s before the engine's first frame, which no script can shorten).
+  Second Nothing Phone run: the bar stood at 56 % for 10 s with frames flowing, so it now creeps
+  towards the next report's share between reports (`title.cap`); ticks added in trams, storefronts,
+  missions, the minimap and city life. One-call costs left (phone ms): `warm_haptics` and the HUD's
+  own build (~0.5-1 s each), `_build_notebook` 611, packs 525, fans 310.
 - **The yields cost a frame each** (8 frames, ~0.15 s on the phone at most, the title only); in
   the cloud the threaded load of the two files took ~0.5 s longer than the plain load (the
   software renderer competes for the CPU there); check on the phone, else load them in place.
