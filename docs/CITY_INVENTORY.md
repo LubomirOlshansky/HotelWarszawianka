@@ -189,7 +189,7 @@ often, known to every visitor; **B** characteristic, known to locals, gives a st
 | 118 | Kamienica Wedla | Szpitalna | tenement, chocolate shop | ✗ | photo build of the corner and its sign (parody) |
 | 119 | Kamienica pod Gryfami, Kamienica Johna | Plac Trzech Krzyży / Krakowskie Przedmieście | tenements | ✗ | photo pass |
 | 120 | Kamienica pod Zegarem and Chłodna's footbridge memorial (Kładka) | Chłodna | tenement, memorial | ✗ | the clock, the Kładka light sculpture |
-| 121 | Hotel Saski, Pasaż Muranów, the Muranów estate | Plac Bankowy / Andersa | hotel, 1950s estate | ✗ | Muranów's rubble-brick blocks as a street dress |
+| 121 | Hotel Saski, Pasaż Muranów, the Muranów estate | Plac Bankowy / Andersa | hotel, 1950s estate | ✗ | Muranów's rubble-brick blocks as a street dress (the 1970s Dekalog estate on Inflancka and the pools are built: sites `dekalog_estate`, `inflancka_pools`) |
 | 122 | Osiedle Za Żelazną Bramą | Plac Żelaznej Bramy | 1960s estate | ◐ | photo check |
 | 123 | Aleja Jana Pawła II's blocks and Kaskada | Aleja Jana Pawła II | 1950s blocks, offices | ○ | block-by-block pass from photos |
 | 124 | Babka Tower, Atrium 2, Intraco Prime, North Gate | Aleja Jana Pawła II / Stawki / Bonifraterska | offices, flats | ✗ | photo build (Babka is the north's tallest) |
