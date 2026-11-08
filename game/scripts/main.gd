@@ -619,6 +619,7 @@ var padel: PadelMatch
 var padel_flag := -1.0
 var padel_log := false
 var _padel_heli_mode := Node.PROCESS_MODE_INHERIT
+var _padel_sv_mode := SubViewport.UPDATE_ALWAYS
 var shisha_log := false
 var _shisha_auto := false
 var old_tram_flag := ""
@@ -3467,6 +3468,11 @@ func _enter_padel(info: Dictionary, auto_play := false) -> void:
 	padel.auto_play = auto_play or autopilot
 	padel.enter(info)
 	hud.visible = false
+	# The city stops rendering under the court (its SubViewport, not the root, draws the 3D).
+	if sv != null:
+		_padel_sv_mode = sv.render_target_update_mode
+		sv.render_target_update_mode = SubViewport.UPDATE_DISABLED
+		view.visible = false
 	car.vel = Vector3.ZERO
 	car.forward_speed = 0.0
 	car.process_mode = Node.PROCESS_MODE_DISABLED
@@ -3477,6 +3483,9 @@ func _enter_padel(info: Dictionary, auto_play := false) -> void:
 
 func _on_padel_done(g_us: int, g_them: int, stats: Dictionary) -> void:
 	hud.visible = not hide_hud
+	if sv != null:
+		sv.render_target_update_mode = _padel_sv_mode
+		view.visible = true
 	car.process_mode = Node.PROCESS_MODE_INHERIT
 	if heli != null:
 		heli.process_mode = _padel_heli_mode

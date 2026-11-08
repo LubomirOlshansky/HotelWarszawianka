@@ -24,8 +24,8 @@ extends Node
 ## bounce, the glass, the mesh, the net, the crowd's cheer and ooh) plus the city's crowd murmur;
 ## the radio is ducked while it plays.
 ##
-## Cost: while it runs the city's 3D is off (the main viewport's disable_3d), so the frame is the
-## 2D canvas alone: one SubViewport of about 470 x 216 px, a few hundred rects. Built once.
+## Cost: while it runs the city's 3D is off (main.gd stops the city's SubViewport), so the frame is
+## the 2D canvas alone: one SubViewport of about 470 x 216 px, a few hundred rects. Built once.
 
 const PadelSim := preload("res://scripts/padel_sim.gd")
 const PixelFont := preload("res://scripts/pixel_font.gd")
@@ -152,7 +152,6 @@ var _music: AudioStreamPlayer
 var _amb: AudioStreamPlayer
 var _sounds := {}
 var _radio_duck := 0.0
-var _vp3d_was := false
 ## Touch: index -> "stick" / "hit" / "lob" / "quit"; the stick's base and knob (screen px).
 var _touches := {}
 var _stick_on := false
@@ -196,9 +195,6 @@ func enter(info: Dictionary) -> void:
 	inside = true
 	_layer.visible = true
 	_resize()
-	var vp := get_viewport()
-	_vp3d_was = vp.disable_3d
-	vp.disable_3d = true
 	if radio != null and "duck_db" in radio:
 		_radio_duck = float(radio.duck_db)
 		radio.duck_db = -60.0
@@ -231,7 +227,6 @@ func _finish(g0: int, g1: int) -> void:
 	inside = false
 	_layer.visible = false
 	set_process(false)
-	get_viewport().disable_3d = _vp3d_was
 	if radio != null and "duck_db" in radio:
 		radio.duck_db = _radio_duck
 	if _music != null:
