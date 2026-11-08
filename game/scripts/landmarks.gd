@@ -1145,6 +1145,7 @@ func _find_sites() -> void:
 	_find_zygmunt()
 	_find_gaulle()
 	_find_rondo()
+	_find_sunken()
 	_find_deski()
 	_find_dom_partii()
 	_find_rynek()
@@ -1857,6 +1858,9 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"rondo":
 				_id = 0
 				_build_rondo(s)
+			"sunken", "underpass":
+				_id = 0
+				_build_sunken(s)
 			"zodiak":
 				_build_zodiak(s)
 			"wiecha":
@@ -6721,6 +6725,447 @@ func _rondo_disc(m: Vector2, along: Vector2, nrm: Vector3, y: float, r: float, c
 				Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
 
 
+# --- Sunken places: the Patelnia and the Rotunda's stair (F's aerial, 2026-11-05) -------------
+
+## map_builder.gd SUNKEN lowers the ground of each ring (terrain_height and the drawn ground); this
+## site builds what makes the drop read (spec docs/landmarks/specs/patelnia.md):
+##  - on every ring edge that drops: a concrete retaining face from the floor to just over the
+##    street, its coping, a band of paving over the street side (the drawn ground's sunken band
+##    lies under it), a dark steel railing and the car's collision (the stair tops stay open);
+##  - a stair's treads across its ring (risers ~0.16 m) from the street down to the floor;
+##  - the Patelnia: Metro Centrum's two glass barrel vaults over the stairs down to the station
+##    (F's aerial: smoky ribbed glass, open to the square, closed against the pavilions; the
+##    OpenStreetMap outlines are their plans), dark wells inside;
+##  - the Rotunda: the lower floor's glazed doorway at the foot of the stair.
+## Zone: the barrels' outlines (their boxes go) and two 0.2 m squares at the corners of it all.
+const SUNK_CONCRETE := Color("#bfb9ad")
+const SUNK_COPING := Color("#cdc7bb")
+const SUNK_RAIL := Color("#3b4046")
+const SUNK_TREAD := Color("#c4beb1")
+const SUNK_PLANTER := Color("#5f8a3f")
+## The barrels (`buildings` outlines, 4.5 m): the long side's ends, then the mouth's far corner.
+const PATELNIA_BARRELS := [
+	[Vector2(-897.4, 378.1), Vector2(-890.6, 392.1), Vector2(-897.8, 395.5), Vector2(-904.6, 381.5)],
+	[Vector2(-926.5, 392.0), Vector2(-919.9, 406.0), Vector2(-927.1, 409.4), Vector2(-933.8, 395.4)],
+]
+const BARREL_SKIN := Color("#a9b9c2")
+const BARREL_RIB := Color("#5c666e")
+const BARREL_WELL := Color("#2a2e33")
+const SUNK_BOX := [Vector2(-955.0, 360.0), Vector2(-805.0, 432.0)]
+const UNDERPASS_BOX := [Vector2(-1315.0, 546.0), Vector2(-1211.0, 625.0)]
+## The underpass's entrances (street photos, Mapillary 2020-2026, refs/epl_*): a granite parapet
+## round the wells in the lawn and the forecourt, steel canopies over the pavement flights
+## (Śródmieście's green ones on the south side, a dark one on the north).
+const PARAPET_FACE := Color("#8e8a83")
+const PARAPET_TOP := Color("#a8a49c")
+const CANOPY_GREEN := Color("#2e5a45")
+const CANOPY_DARK := Color("#2b3035")
+const CANOPY_GLASS := Color("#8fa9a6")
+const PASSAGE_DARK := Color("#24272b")
+const POSTERS := [Color("#d94f3d"), Color("#3f6fb0"), Color("#e8c547"), Color("#f2efe8")]
+
+
+func _find_sunken() -> void:
+	if map._sunk.is_empty():
+		return
+	var zone: Array = []
+	for b: Array in PATELNIA_BARRELS:
+		zone.append(PackedVector2Array(b))
+	for a: Vector2 in SUNK_BOX:
+		zone.append(PackedVector2Array([a, a + Vector2(0.2, 0), a + Vector2(0.2, 0.2), a + Vector2(0, 0.2)]))
+	_add_site("sunken", zone)
+	# The Emilii Plater underpass's entrances: their own site (another sector), tiny squares at
+	# its box's corners (nothing mapped is replaced: the walls are map_builder's to leave out).
+	var under: Array = []
+	for a: Vector2 in UNDERPASS_BOX:
+		under.append(PackedVector2Array([a, a + Vector2(0.2, 0), a + Vector2(0.2, 0.2), a + Vector2(0, 0.2)]))
+	_add_site("underpass", under)
+
+
+var _sunk_done: Array[PackedVector2Array] = []
+
+
+func _build_sunken(site: Dictionary) -> void:
+	_no_roof = true
+	_sunk_done.clear()
+	var key: String = site["key"]
+	for sk: Dictionary in map._sunk:
+		if str(sk.get("site", "sunken")) != key:
+			continue
+		_sunk_edges(sk)
+		if (sk["a"] as Vector2).distance_to(sk["b"]) > 0.1:
+			_sunk_treads(sk)
+		if not (sk.get("walk", PackedVector2Array()) as PackedVector2Array).is_empty():
+			_sunk_mouth(sk)
+		if str(sk.get("style", "")).begins_with("canopy"):
+			_sunk_canopy(sk)
+	if key == "sunken":
+		for b: Array in PATELNIA_BARRELS:
+			_glass_barrel(b)
+		for sk: Dictionary in map._sunk:
+			if sk["key"] == "rotunda_stair":
+				_sunk_doorway(sk)
+	_no_roof = false
+
+
+## The street's height beside a ring's edge point p (outward `out`): the grid's highest over the
+## next 3 m out (the 10 m grid blurs the drop: right at the edge it lies metres low).
+func _sunk_upper(p: Vector2, out: Vector2) -> float:
+	var u: float = map._grid_height(p.x, p.y)
+	for d: float in [0.8, 1.8, 3.0]:
+		var q := p + out * d
+		u = maxf(u, map._grid_height(q.x, q.y))
+	return u
+
+
+## Each edge of ring `sk` in pieces up to 2 m: where the street side stands over the floor, a
+## retaining face, coping, paving band, railing and collision; an edge another ring continues
+## (a stair's foot on the square) or a stair's top (no drop) stays open.
+func _sunk_edges(sk: Dictionary) -> void:
+	var ring: PackedVector2Array = sk["ring"]
+	var band := 1.42 * 2.0 * 10.0 / float(sk["sub"]) + 0.2
+	var planted: bool = sk["key"] == "rotunda_stair"
+	# The edge's top over the street: the coping (a railing on it), a granite parapet, or the
+	# low parapet a canopy's frame stands on.
+	var style := str(sk.get("style", "rail"))
+	var rise := 0.12
+	var face_col := SUNK_CONCRETE
+	var top_col := SUNK_COPING.lightened(0.05)
+	if style == "parapet":
+		rise = 1.1
+		face_col = PARAPET_FACE
+		top_col = PARAPET_TOP
+	elif style.begins_with("canopy"):
+		rise = 0.9
+		face_col = PARAPET_FACE
+		top_col = PARAPET_TOP
+	# A stair's band lies over the square's where they meet: 0.1 m higher (no flicker).
+	var band_lift := 0.0 if (sk["a"] as Vector2).distance_to(sk["b"]) < 0.1 else 0.1
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var length := a.distance_to(b)
+		if length < 0.05:
+			continue
+		var d := (b - a) / length
+		var out := Vector2(d.y, -d.x)
+		if Geometry2D.is_point_in_polygon((a + b) * 0.5 + out * 0.1, ring):
+			out = -out
+		# Open where the ground past the edge is another ring's at this floor.
+		var mid := (a + b) * 0.5
+		var past: float = map.sunk_floor(mid.x + out.x * 0.8, mid.y + out.y * 0.8)
+		if past < INF and absf(past - map.sunk_level(sk, mid)) < 0.8:
+			continue
+		var n := maxi(1, ceili(length / 2.0))
+		for k in n:
+			var p0 := a + d * (length * k / n)
+			var p1 := a + d * (length * (k + 1) / n)
+			var f0: float = map.sunk_level(sk, p0)
+			var f1: float = map.sunk_level(sk, p1)
+			var u0 := _sunk_upper(p0, out)
+			var u1 := _sunk_upper(p1, out)
+			if u0 - f0 < 0.35 and u1 - f1 < 0.35:
+				continue  # a stair's top: level with the street
+			var t0 := u0 + rise
+			var t1 := u1 + rise
+			var nin := Vector3(-out.x, 0.0, -out.y)
+			var nout := Vector3(out.x, 0.0, out.y)
+			var q0 := p0 + out * 0.3
+			var q1 := p1 + out * 0.3
+			# The retaining face (the square's side), the coping on top and its street face.
+			_mode = M_STONE
+			_quad(Vector3(p0.x, f0 - 0.3, p0.y), Vector3(p1.x, f1 - 0.3, p1.y), Vector3(p1.x, t1, p1.y), Vector3(p0.x, t0, p0.y),
+					nin, face_col)
+			var along := func(v: Vector2) -> float:
+				return lerpf(t0, t1, clampf((v - p0).dot(d) / maxf(p0.distance_to(p1), 0.01), 0.0, 1.0))
+			_sunk_top(PackedVector2Array([p0, p1, q1, q0]), along, top_col)
+			var g0: float = map._grid_height(q0.x, q0.y)
+			var g1: float = map._grid_height(q1.x, q1.y)
+			_quad(Vector3(q0.x, minf(t0, g0 + 0.05), q0.y), Vector3(q1.x, minf(t1, g1 + 0.05), q1.y),
+					Vector3(q1.x, t1, q1.y), Vector3(q0.x, t0, q0.y), nout, face_col.darkened(0.05))
+			# The band over the street side's sunken ground: paving (planting by the Rotunda).
+			var on_grid := func(v: Vector2) -> float:
+				return map._grid_height(v.x, v.y) + 0.05 + band_lift
+			# By the Rotunda the first 1.3 m are the planters' planting, the rest paving.
+			var split := 1.3 if planted else 0.3
+			if planted:
+				_sunk_top(PackedVector2Array([q0, q1, p1 + out * split, p0 + out * split]), on_grid, SUNK_PLANTER)
+			_sunk_top(PackedVector2Array([p0 + out * split, p1 + out * split, p1 + out * band, p0 + out * band]), on_grid, SUNK_COPING)
+			# The railing: a post every piece and a top rail at 1.05 m, thin two-sided bands.
+			var w0 := p0 + out * 0.12
+			var w1 := p1 + out * 0.12
+			if style == "rail":
+				_sunk_band(w0, w1, t0 + 0.99, t1 + 0.99, 0.07, nout)
+				_sunk_band(w0 + d * 0.02, w0 + d * 0.08, t0, t0, 0.99, nout)
+			# The car: from the floor to well over the railing (or the parapet), on the edge.
+			var over := 1.6 if style == "rail" else 0.6
+			map._wall_faces.append_array([Vector3(p0.x, f0 - 0.5, p0.y), Vector3(p1.x, f1 - 0.5, p1.y), Vector3(p1.x, t1 + over, p1.y),
+					Vector3(p0.x, f0 - 0.5, p0.y), Vector3(p1.x, t1 + over, p1.y), Vector3(p0.x, t0 + over, p0.y)])
+
+
+## A flat top over plan polygon `poly`, less what this build already covered (neighbouring edges'
+## coping and bands overlap at the corners and would flicker), each corner at `height`(corner).
+func _sunk_top(poly: PackedVector2Array, height: Callable, col: Color) -> void:
+	var parts: Array[PackedVector2Array] = [poly]
+	for done: PackedVector2Array in _sunk_done:
+		var left: Array[PackedVector2Array] = []
+		for part in parts:
+			for q in Geometry2D.clip_polygons(part, done):
+				if not Geometry2D.is_polygon_clockwise(q) or q.size() < 3:
+					left.append(q)
+		parts = left
+	_sunk_done.append(poly)
+	_mode = M_STONE
+	for part in parts:
+		var idx := Geometry2D.triangulate_polygon(part)
+		for t in range(0, idx.size() - 2, 3):
+			var a := part[idx[t]]
+			var b := part[idx[t + 1]]
+			var c := part[idx[t + 2]]
+			var pa := Vector3(a.x, float(height.call(a)), a.y)
+			var pb := Vector3(b.x, float(height.call(b)), b.y)
+			var pc := Vector3(c.x, float(height.call(c)), c.y)
+			if (pb - pa).cross(pc - pa).length() < 0.001:
+				continue  # a clipped sliver
+			_tri(pa, pb, pc, Vector3.UP, col, Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
+
+
+## A thin vertical band from a to b (plan), bottom y0/y1 at each end, `h` tall, both faces dark steel.
+func _sunk_band(a: Vector2, b: Vector2, y0: float, y1: float, h: float, n: Vector3) -> void:
+	_mode = M_STONE
+	var pa := Vector3(a.x, y0, a.y)
+	var pb := Vector3(b.x, y1, b.y)
+	var up := Vector3(0.0, h, 0.0)
+	_quad(pa, pb, pb + up, pa + up, n, SUNK_RAIL)
+	_quad(pb, pa, pa + up, pb + up, -n, SUNK_RAIL)
+
+
+## A stair's treads across its ring from its top `a` (the street's height) to its foot `b`
+## (the floor): risers ~0.16 m, each tread level with the higher end of its strip so the sunken
+## ground's slope stays under them; a darker nosing on each.
+func _sunk_treads(sk: Dictionary) -> void:
+	var ring: PackedVector2Array = sk["ring"]
+	var a: Vector2 = sk["a"]
+	var b: Vector2 = sk["b"]
+	var length := a.distance_to(b)
+	var d := (b - a) / length
+	var side := Vector2(-d.y, d.x)
+	var ha := float(sk["ha"])
+	var hb := float(sk["hb"])
+	var n := maxi(3, roundi((ha - hb) / 0.16))
+	for k in n:
+		var s0 := length * k / n
+		var s1 := length * (k + 1) / n
+		var strip := PackedVector2Array([a + d * s0 - side * 40.0, a + d * s1 - side * 40.0, a + d * s1 + side * 40.0,
+				a + d * s0 + side * 40.0])
+		var top := lerpf(ha, hb, float(k) / n)
+		for poly in Geometry2D.intersect_polygons(strip, ring):
+			if Geometry2D.is_polygon_clockwise(poly):
+				continue  # a hole: none in a convex strip
+			_prism(poly, top - 0.4, top, SUNK_TREAD.darkened(0.12), SUNK_TREAD.darkened(0.04 if k % 2 == 0 else 0.0), M_STONE, M_STONE)
+
+
+## One of Metro Centrum's glass barrels on the Patelnia over a stair down to the station: plan
+## `q` (q0-q1 the long side, q1-q2 the mouth), a half barrel springing from 0.45 m (crown at
+## the outline's 4.5 m), smoky ribbed glass, closed at the far end, open at the mouth, a dark
+## well inside and a concrete sill along each side.
+func _glass_barrel(q: Array) -> void:
+	var q0: Vector2 = q[0]
+	var q1: Vector2 = q[1]
+	var q2: Vector2 = q[2]
+	var q3: Vector2 = q[3]
+	var length := q0.distance_to(q1)
+	var up := (q1 - q0) / length
+	var c := (q0 + q1 + q2 + q3) * 0.25
+	var side := Vector2(-up.y, up.x)
+	var width := q1.distance_to(q2)
+	var r := width * 0.5 - 0.15
+	var g: float = map.terrain_height(c.x, c.y)
+	var y0 := g + 0.45
+	var half := length * 0.5
+	var segs := 9
+	var arc: Array[Vector2] = []
+	for k in segs + 1:
+		var ang := PI * float(k) / float(segs)
+		arc.append(Vector2(cos(ang) * r, sin(ang) * r))
+	var at := func(s: float, p: Vector2) -> Vector3:
+		var w := c + up * s + side * p.x
+		return Vector3(w.x, y0 + p.y, w.y)
+	_mode = M_PAVILION + 0.5
+	for k in segs:
+		var p0: Vector2 = arc[k]
+		var p1: Vector2 = arc[k + 1]
+		var n3: Vector3 = ((at.call(0.0, (p0 + p1) * 0.5) as Vector3) - Vector3(c.x, y0, c.y)).normalized()
+		_quad(at.call(-half, p0), at.call(half, p0), at.call(half, p1), at.call(-half, p1), n3, BARREL_SKIN)
+	var back := Vector3(-up.x, 0.0, -up.y)
+	var hub: Vector3 = at.call(-half, Vector2.ZERO)
+	for k in segs:
+		_tri(hub, at.call(-half, arc[k]), at.call(-half, arc[k + 1]), back, BARREL_SKIN.darkened(0.08),
+				Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
+	# Ribs every ~1.3 m (the mouth's a little heavier), steel.
+	var n_rib := maxi(4, roundi(length / 1.3) + 1)
+	for i in n_rib:
+		var s := -half + length * float(i) / float(n_rib - 1)
+		_barrel_rib(at, s, 0.22 if i == n_rib - 1 else 0.12, arc, r)
+	# Sills along both sides, the dark well between them (the stair going down under the pavilions).
+	_o = c
+	_a = up
+	_b = side
+	for sx: float in [-1.0, 1.0]:
+		_lbox(0.0, r * sx, half, 0.14, g, y0 + 0.02, SUNK_CONCRETE, M_STONE, SUNK_CONCRETE.lightened(0.05))
+	_mode = M_STONE
+	var w0 := c + up * (half - 0.6) - side * (r - 0.2)
+	var w1 := c + up * (half - 0.6) + side * (r - 0.2)
+	var w2 := c - up * (half - 0.2) + side * (r - 0.2)
+	var w3 := c - up * (half - 0.2) - side * (r - 0.2)
+	_quad(Vector3(w0.x, g + 0.03, w0.y), Vector3(w1.x, g + 0.03, w1.y), Vector3(w2.x, g + 0.03, w2.y), Vector3(w3.x, g + 0.03, w3.y),
+			Vector3.UP, BARREL_WELL)
+	# The well's first steps at the mouth, lighter, so it reads as a stair going down.
+	for k in 3:
+		var s := half - 0.6 - 0.45 * k
+		var e0 := c + up * s - side * (r - 0.25)
+		var e1 := c + up * s + side * (r - 0.25)
+		var e2 := c + up * (s - 0.18) + side * (r - 0.25)
+		var e3 := c + up * (s - 0.18) - side * (r - 0.25)
+		_quad(Vector3(e0.x, g + 0.07, e0.y), Vector3(e1.x, g + 0.07, e1.y), Vector3(e2.x, g + 0.07, e2.y), Vector3(e3.x, g + 0.07, e3.y),
+				Vector3.UP, SUNK_TREAD.darkened(0.25 + 0.15 * k))
+
+
+## A barrel's steel rib at `s` along it, `w` wide: an annular band 0.1 m proud of the glass.
+func _barrel_rib(at: Callable, s: float, w: float, arc: Array[Vector2], r: float) -> void:
+	_mode = M_STONE
+	var k_in := (r + 0.01) / r
+	var k_out := (r + 0.11) / r
+	var axis := ((at.call(s + 0.1, Vector2.ZERO) as Vector3) - (at.call(s - 0.1, Vector2.ZERO) as Vector3)).normalized()
+	for k in arc.size() - 1:
+		var pa: Vector2 = arc[k]
+		var pb: Vector2 = arc[k + 1]
+		var hub: Vector3 = at.call(s, Vector2.ZERO)
+		var n_out: Vector3 = ((at.call(s, (pa + pb) * 0.5) as Vector3) - hub).normalized()
+		var fa_o: Vector3 = at.call(s - w * 0.5, pa * k_out)
+		var fb_o: Vector3 = at.call(s - w * 0.5, pb * k_out)
+		var ba_o: Vector3 = at.call(s + w * 0.5, pa * k_out)
+		var bb_o: Vector3 = at.call(s + w * 0.5, pb * k_out)
+		# The face towards the mouth and the outer band (the far face is never seen past the glass).
+		_quad(at.call(s + w * 0.5, pa * k_in), at.call(s + w * 0.5, pb * k_in), bb_o, ba_o, axis, BARREL_RIB)
+		_quad(fa_o, fb_o, bb_o, ba_o, n_out, BARREL_RIB.lightened(0.08))
+
+
+## The Rotunda's lower floor at the foot of its stair: a glazed doorway across the landing 2.5 m
+## past the last step, dark glass in a steel frame under a concrete lintel up to the street.
+func _sunk_doorway(sk: Dictionary) -> void:
+	var a: Vector2 = sk["a"]
+	var b: Vector2 = sk["b"]
+	var d := (b - a).normalized()
+	var side := Vector2(-d.y, d.x)
+	var at := b + d * 2.5
+	var hits := Geometry2D.intersect_polyline_with_polygon(PackedVector2Array([at - side * 20.0, at + side * 20.0]), sk["ring"])
+	if hits.is_empty() or (hits[0] as PackedVector2Array).size() < 2:
+		return
+	var seg: PackedVector2Array = hits[0]
+	var p0 := seg[0]
+	var p1 := seg[seg.size() - 1]
+	var f := float(sk["hb"])
+	var u := _sunk_upper(at, d)
+	var n := Vector3(-d.x, 0.0, -d.y)
+	_mode = M_GLASS_ROOF
+	_quad(Vector3(p0.x, f, p0.y), Vector3(p1.x, f, p1.y), Vector3(p1.x, f + 2.4, p1.y), Vector3(p0.x, f + 2.4, p0.y), n, Color("#33424d"))
+	_mode = M_STONE
+	_quad(Vector3(p0.x, f + 2.4, p0.y), Vector3(p1.x, f + 2.4, p1.y), Vector3(p1.x, u + 0.12, p1.y), Vector3(p0.x, u + 0.12, p0.y), n, SUNK_CONCRETE)
+	var mid := (p0 + p1) * 0.5
+	for p: Vector2 in [p0.lerp(p1, 0.04), mid, p1.lerp(p0, 0.04)]:
+		_beam(Vector3(p.x, f, p.y) - Vector3(d.x, 0.0, d.y) * 0.05, Vector3(p.x, f + 2.4, p.y) - Vector3(d.x, 0.0, d.y) * 0.05, 0.08, SUNK_RAIL, false)
+
+
+## Where a sunken entry's `walk` leaves its ring (the passage's mouth under the street): a dark
+## opening 2.2 m wide and 2.3 m tall on that edge, just inside the retaining face, so the walkers
+## going in pass behind the face and under the street (pedestrians.gd hides them there).
+func _sunk_mouth(sk: Dictionary) -> void:
+	var walk: PackedVector2Array = sk["walk"]
+	if walk.size() < 2:
+		return
+	var ring: PackedVector2Array = sk["ring"]
+	var w0 := walk[walk.size() - 2]
+	var w1 := walk[walk.size() - 1]
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var hit: Variant = Geometry2D.segment_intersects_segment(w0, w1, a, b)
+		if hit == null:
+			continue
+		var at: Vector2 = hit
+		var d := (b - a).normalized()
+		var inward := (w0 - w1).normalized()
+		var f := float(map.sunk_level(sk, at))
+		var p0 := at - d * 1.1 + inward * 0.03
+		var p1 := at + d * 1.1 + inward * 0.03
+		var n := Vector3(inward.x, 0.0, inward.y)
+		_mode = M_STONE
+		_quad(Vector3(p0.x, f - 0.3, p0.y), Vector3(p1.x, f - 0.3, p1.y), Vector3(p1.x, f + 2.3, p1.y), Vector3(p0.x, f + 2.3, p0.y),
+				n, PASSAGE_DARK)
+		# A lighter lintel band over the opening.
+		_quad(Vector3(p0.x, f + 2.3, p0.y), Vector3(p1.x, f + 2.3, p1.y), Vector3(p1.x, f + 2.55, p1.y), Vector3(p0.x, f + 2.55, p0.y),
+				n, PARAPET_TOP)
+		return
+
+
+## A steel canopy over a pavement flight (its ring): posts along both long sides every ~2.6 m on
+## the parapet, a beam along each side and across every bay at 2.8 m over the street, glass in
+## the lower bays only where posters hang (the green Śródmieście canopies carry ads), the roof
+## left open between the beams (the glass there would hide the stair and its people from the
+## game's camera: the frame reads as the canopy).
+func _sunk_canopy(sk: Dictionary) -> void:
+	var ring: PackedVector2Array = sk["ring"]
+	if ring.size() != 4:
+		return
+	var col := CANOPY_GREEN if str(sk["style"]) == "canopy_green" else CANOPY_DARK
+	# The long sides: ring[0]-ring[1] and ring[3]-ring[2] (the top end ring[3]-ring[0]).
+	var sides := [[ring[0], ring[1]], [ring[3], ring[2]]]
+	var length := ring[0].distance_to(ring[1])
+	var n := maxi(2, roundi(length / 2.6))
+	var top: float = map._grid_height(ring[0].x, ring[0].y)
+	for sd: Array in sides:
+		var a: Vector2 = sd[0]
+		var b: Vector2 = sd[1]
+		var d := (b - a) / length
+		var y := top + 2.8
+		for k in n + 1:
+			var p := a + d * (length * k / n)
+			var g: float = map._grid_height(p.x, p.y)
+			_beam(Vector3(p.x, g + 0.9, p.y), Vector3(p.x, y, p.y), 0.1, col, false)
+		_beam(Vector3(a.x, y, a.y), Vector3(b.x, y, b.y), 0.14, col, false)
+	for k in n + 1:
+		var t := float(k) / n
+		var p := ring[0].lerp(ring[1], t)
+		var q := ring[3].lerp(ring[2], t)
+		_beam(Vector3(p.x, top + 2.8, p.y), Vector3(q.x, top + 2.8, q.y), 0.08, col, false)
+	# Posters behind glass in the two middle bays of both long sides (green canopies only).
+	if str(sk["style"]) != "canopy_green":
+		return
+	var c := 0
+	for sd: Array in sides:
+		var a: Vector2 = sd[0]
+		var b: Vector2 = sd[1]
+		var d := (b - a) / length
+		var out := Vector2(d.y, -d.x)
+		var mid := (ring[0] + ring[1] + ring[2] + ring[3]) * 0.25
+		if out.dot(a - mid) < 0.0:
+			out = -out
+		for k: int in [n / 2 - 1, n / 2]:
+			if k < 0 or k >= n:
+				continue
+			var p0 := a + d * (length * k / n + 0.25) + out * 0.02
+			var p1 := a + d * (length * (k + 1) / n - 0.25) + out * 0.02
+			var g: float = map._grid_height(p0.x, p0.y)
+			var nn := Vector3(out.x, 0.0, out.y)
+			_mode = M_STONE
+			_quad(Vector3(p0.x, g + 0.9, p0.y), Vector3(p1.x, g + 0.9, p1.y), Vector3(p1.x, g + 2.6, p1.y), Vector3(p0.x, g + 2.6, p0.y),
+					nn, POSTERS[c % POSTERS.size()])
+			_quad(Vector3(p1.x, g + 0.9, p1.y), Vector3(p0.x, g + 0.9, p0.y), Vector3(p0.x, g + 2.6, p0.y), Vector3(p1.x, g + 2.6, p1.y),
+					-nn, CANOPY_GLASS)
+			c += 1
+
+
 # --- Dom Partii (F's photos, 2026-11-01) --------------------------------------------------------
 
 ## The Party House (1948-1952, Nowy Świat 6/12, today Centrum Bankowo-Finansowe): its massing is
@@ -8297,6 +8742,8 @@ func _forest_tower(poly: PackedVector2Array, g: float) -> void:
 		_no_roof = true
 		_prism(_square(c, 2.2), top, top + 2.4, Color("#5b5f60"), Color("#6a6e6f"), M_STONE, M_STONE)
 		_no_roof = false
+		if float(s[2]) >= 119.0:
+			_forest_boat(slab, c, top)
 
 
 ## PEPEO ŻUBR (F, 2026-11-03), F's parody of the tenant's name, in the south slab's crown band:
@@ -8318,6 +8765,63 @@ func _forest_sign(slab: PackedVector2Array, top: float) -> void:
 	# The east end: 0.85 (about 10 m), on the slab's own 12 m end.
 	var east := FOREST_O + FOREST_U * (hi.x + 0.1) + v * ((lo.y + hi.y) * 0.5)
 	signs.append(["PEPEO ŻUBR", Vector3(east.x, y + 1.2, east.y), Vector3(FOREST_U.x, 0.0, FOREST_U.y), 0.85, FOREST_BANK])
+
+
+## F's joke (2026-11-06): a cobalt-blue motor bowrider on a cradle on the tallest slab's roof, well
+## clear of the crown band that carries PEPEO ŻUBR and of the plant box. Ten metres long, white
+## hull with a cobalt sheer and stripe, a swept windshield, bow and stern seats, a sun pad over
+## the engine, a chrome rail. Two metres beside the slab's axis and turned 25 degrees, as if it
+## were being lifted.
+const FOREST_BOAT_BLUE := Color("#0b3d91")
+func _forest_boat(slab: PackedVector2Array, c: Vector2, top: float) -> void:
+	var none := Color(0, 0, 0, 0)
+	var a := Vector2(FOREST_U.x, FOREST_U.y).rotated(deg_to_rad(25.0))
+	var b := Vector2(-a.y, a.x)
+	var m := c + FOREST_U * 9.0
+	var hl := 5.0
+	var hb := 1.35
+	var hull := PackedVector2Array([m + a * hl, m + a * hl * 0.4 + b * hb * 0.85, m - a * hl * 0.85 + b * hb,
+			m - a * hl + b * hb * 0.9, m - a * hl - b * hb * 0.9, m - a * hl * 0.85 - b * hb, m + a * hl * 0.4 - b * hb * 0.85])
+	for q in hull:
+		if not Geometry2D.is_point_in_polygon(q, slab):
+			return
+	_no_roof = true
+	_mode = M_STONE
+	# Cradle: two steel skids and a keel block.
+	for sd: float in [-0.9, 0.9]:
+		_prism(PackedVector2Array([m - a * 3.6 + b * (sd - 0.12), m + a * 3.2 + b * (sd - 0.12), m + a * 3.2 + b * (sd + 0.12),
+				m - a * 3.6 + b * (sd + 0.12)]), top, top + 0.55, Color("#4a4f54"), Color("#4a4f54"), M_STONE, M_STONE)
+	var y := top + 0.55
+	_prism(hull, y, y + 0.55, FOREST_BOAT_BLUE, none, M_STONE)
+	_prism(hull, y + 0.55, y + 1.0, Color("#f4f5f2"), none, M_STONE)
+	var sheer := _largest(Geometry2D.offset_polygon(hull, -0.12, Geometry2D.JOIN_MITER))
+	if sheer.size() >= 3:
+		_prism(sheer, y + 1.0, y + 1.12, FOREST_BOAT_BLUE, Color("#e8dcc0"), M_STONE, M_STONE)
+	var d := y + 1.12
+	# Bow seat, dash console, stern bench and the engine-cover sun pad.
+	_prism(PackedVector2Array([m + a * 3.3 + b * 0.9, m + a * 2.2 + b * 1.0, m + a * 2.2 - b * 1.0, m + a * 3.3 - b * 0.9]),
+			d, d + 0.35, Color("#f1efe8"), Color("#f1efe8"), M_STONE, M_STONE)
+	_prism(PackedVector2Array([m + a * 1.0 + b * 1.0, m + a * 0.3 + b * 1.0, m + a * 0.3 - b * 1.0, m + a * 1.0 - b * 1.0]),
+			d, d + 0.8, Color("#e9e8e2"), Color("#2b2d2f"), M_STONE, M_STONE)
+	_prism(PackedVector2Array([m - a * 2.0 + b * 1.15, m - a * 3.0 + b * 1.15, m - a * 3.0 - b * 1.15, m - a * 2.0 - b * 1.15]),
+			d, d + 0.4, Color("#f1efe8"), Color("#f1efe8"), M_STONE, M_STONE)
+	_prism(PackedVector2Array([m - a * 3.2 + b * 1.2, m - a * 4.3 + b * 1.2, m - a * 4.3 - b * 1.2, m - a * 3.2 - b * 1.2]),
+			d, d + 0.45, Color("#0b3d91"), Color("#f1efe8"), M_STONE, M_STONE)
+	# Windshield: a tinted glass quad, leaning back.
+	var w0 := m + a * 1.1 + b * 0.95
+	var w1 := m + a * 1.1 - b * 0.95
+	var t0 := m + a * 0.4 + b * 0.95
+	var t1 := m + a * 0.4 - b * 0.95
+	_mode = M_PAVILION
+	_quad(Vector3(w0.x, d + 0.8, w0.y), Vector3(w1.x, d + 0.8, w1.y), Vector3(t1.x, d + 1.5, t1.y), Vector3(t0.x, d + 1.5, t0.y),
+			Vector3(a.x, 0.5, a.y).normalized(), Color("#6b8794"))
+	_mode = M_STONE
+	# Chrome rail round the bow and a flag staff at the stern.
+	var bow := m + a * 4.6
+	_beam(Vector3(bow.x, d, bow.y), Vector3(bow.x, d + 0.5, bow.y), 0.05, Color("#c9ced2"), false)
+	var st := m - a * 4.6
+	_beam(Vector3(st.x, d, st.y), Vector3(st.x, d + 1.6, st.y), 0.05, Color("#c9ced2"), false)
+	_no_roof = false
 
 
 ## A wing: glass behind the colour fins up to a planted ledge, the black-clad top storey set

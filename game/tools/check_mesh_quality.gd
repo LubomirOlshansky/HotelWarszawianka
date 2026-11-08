@@ -20,6 +20,7 @@ extends SceneTree
 ## Prints a line per site, then `check_mesh_quality: OK` (exit 0) or the problems (exit 1).
 ##   godot --headless --path game --script res://tools/check_mesh_quality.gd
 
+const MapBuilderRef := preload("res://scripts/map_builder.gd")
 const Landmarks := preload("res://scripts/landmarks.gd")
 ## Triangles a site may hold: measured on 2026-10-31 plus about 20 % (raise on purpose only).
 const BUDGET := {
@@ -115,6 +116,8 @@ const BUDGET := {
 	"gpy": 2000,  # RD-3 (2026-11-06): black patches, the wings' decks, trees and tables
 	"gaulle": 880,
 	"rondo": 7000,
+	"sunken": 5600,  # 2026-11-05: the Patelnia and the Rotunda's stair: walls, railings, treads, two barrels
+	"underpass": 3000,  # 2026-11-06: the Emilii Plater underpass: five entrances, parapets, treads, two canopies
 	"gbc": 750,
 	"grob": 340,
 	"grzybowska63": 500,
@@ -307,6 +310,28 @@ class StubMap:
 	var _roof_nz := 0
 	var _wall_faces := PackedVector3Array()
 
+	## The sunken places (map_builder SUNKEN) on the flat ground: tops at 0, floors 3.4 m under it.
+	var _sunk: Array[Dictionary] = []
+
+	func _init() -> void:
+		for e: Dictionary in MapBuilderRef.SUNKEN:
+			var f := e.duplicate()
+			if not is_nan(float(f["hb"])):
+				f["hb"] = -3.4
+			_sunk.append(MapBuilderRef.sunk_entry(f, 0.0, 10.0))
+
+	func _grid_height(_x: float, _z: float) -> float:
+		return 0.0
+
+	func sunk_floor(x: float, z: float, _grown := false) -> float:
+		for sk: Dictionary in _sunk:
+			if Geometry2D.is_point_in_polygon(Vector2(x, z), sk["ring"]):
+				return MapBuilderRef.sunk_level(sk, Vector2(x, z))
+		return INF
+
+	func sunk_level(sk: Dictionary, p: Vector2) -> float:
+		return MapBuilderRef.sunk_level(sk, p)
+
 	func terrain_height(_x: float, _z: float) -> float:
 		return 0.0
 
@@ -377,6 +402,12 @@ func _initialize() -> void:
 	for key: String in BUDGET:
 		if not measured.has(key):
 			problems.append("%s: has a budget but builds nothing (site gone?)" % key)
+	# Every sunken ground (map_builder SUNKEN) needs its site's walls, stairs and parapets: without
+	# them the ground is a bare slope (a merge dropped the site once, 2026-11-07, #495).
+	for e: Dictionary in MapBuilderRef.SUNKEN:
+		var site := String(e.get("site", "sunken"))
+		if not measured.has(site) and not problems.has(site + ": SUNKEN ground without its site"):
+			problems.append(site + ": SUNKEN ground without its site")
 	for n in notes:
 		print("  note: " + n)
 	if problems.is_empty():
