@@ -76,7 +76,9 @@ MAP = os.path.join(ROOT, "game", "map")
 # ashes and magnolias on the new square's lawns and axis; 10 beds in surfaces, 6 benches). Before: 271152 / 45192.
 # Plac Pięciu Rogów (F's photos + the ortho, 2026-11-06, tools/car_free.py EXTRA_XZ): 45,292 trees (+3
 # field maples the scan lacks: one by Zgoda, two at the Krucza end). Before: 271734 / 45289.
-EXPECTED = {"trees3d": 271752, "pois": 4572, "trees3d_crown": 45292}
+# Marszałkowska by the art museum (F, 2026-11-08, road design area marsz_defilad): 45,318 trees (+26
+# young columnar elms on the green strips either side of the tram track). Before: 271752 / 45292.
+EXPECTED = {"trees3d": 271908, "pois": 4572, "trees3d_crown": 45318}
 # docs/DEMO.md 7 row 7: the lane graph's strongly connected share at least this.
 SCC_SHARE = 0.95
 

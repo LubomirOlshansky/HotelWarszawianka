@@ -790,8 +790,12 @@ history at 0cfc1ff). Areas and progress: docs/plan/road-areas.json, `python3 -I 
   junctions before applying it to the shipped map.
 - Emilii Plater × Świętokrzyska and × Jerozolimskie (IMG_7264 "Y", IMG_7266 stepped widening) still
   come from the OSM ribbons.
-- Marszałkowska's two U-turns through the tram bed (s 191, 283-291 from the junction): the spec has no
-  paved gap in a tram median yet.
+- Marszałkowska's two U-turns through the tram bed (s 191, 283-291 from the junction): gone with F's ask of
+  2026-11-08 (area `marsz_defilad`, docs/plan/marszalkowska-defilad.md); the real zawrotka by Złota waits on
+  F (QUESTIONS), and the spec still has no paved gap in a tram median if it comes back.
+- Marszałkowska south of Złota to Rondo Dmowskiego (s 328-490): still main's OSM ribbons, a pre-existing
+  beige sliver across the west carriageway just south of the Złota crossing (s ~333) and 3 lanes where
+  the rebuild left 2; the next area if F wants it.
 - The traffic lane graph still follows the OSM ways; make it from the spec's lanes.
 - The GUGiK ortho predates the Marszałkowska crossings at Sienkiewicza and by the metro (taken from OSM).
 

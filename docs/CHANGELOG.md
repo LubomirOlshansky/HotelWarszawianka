@@ -10,6 +10,7 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-08
+- Marszałkowska past the new art museum is as rebuilt in real life: two lanes each way, no odd turnarounds across the tram tracks, a row of young columnar elms on green strips on both sides of the tracks, and parked cars in the bays along the museum.
 - The loading bar on the start screen moves smoothly now instead of in jerks while the city is built.
 
 - The map is quieter: tap a quest's "!" to read one line about it, the old "?" marks are gone, kebab and job pins show only when you zoom in, the shisha night is now a hidden quest (not on the map or in the list: stand at Ivan's block in 19. Dzielnica and hold the "+" for 5 seconds), the Tesla helicopter rescue is in the STORIES list, and you can drag the quest list on the map with a finger to see all of it.- The car no longer stops dead when its nose clips the end of a low wall or a tram shelter: it slips past, as it already did at corners (Trasa W-Z by the Old Town).
