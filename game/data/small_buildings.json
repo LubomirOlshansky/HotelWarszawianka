@@ -246,12 +246,11 @@
   {
    "x": 1831.8,
    "z": 504.4,
-   "u": "pavilion",
-   "conf": "low",
-   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
-   "why": "small flat-roof house with brick wall and hatch beside viaduct steps; use unclear",
-   "osm": 278212326,
-   "h": 4.0
+   "u": "substation",
+   "conf": "medium",
+   "src": "0.1 m ortho + Mapillary",
+   "why": "white windowless box with a door by the playground (Mapillary panorama)",
+   "osm": 278212326
   },
   {
    "x": -2613.0,
@@ -497,11 +496,10 @@
    "x": -1636.4,
    "z": -1757.0,
    "u": "garage",
-   "conf": "low",
-   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
-   "why": "building=service: dark flat roof by a car park, technical/garage block",
-   "osm": 331309221,
-   "h": 3.0
+   "conf": "medium",
+   "src": "0.1 m ortho + Mapillary",
+   "why": "plain grey windowless wall behind the fence (Mapillary)",
+   "osm": 331309221
   },
   {
    "x": 927.3,
@@ -2385,11 +2383,11 @@
    "x": 1014.9,
    "z": 1350.7,
    "u": "shed",
-   "conf": "low",
-   "src": "0.1 m ortho + fresh OSM (Mac, 2026-11-08)",
-   "why": "small light-roof lean-to in a yard beside a barracks-type building",
+   "conf": "medium",
+   "src": "0.1 m ortho + Mapillary",
+   "why": "one-storey plastered annex with a door and window by the brick hall (Mapillary)",
    "osm": 1033873129,
-   "h": 3.0
+   "h": 3.5
   },
   {
    "x": 1005.6,

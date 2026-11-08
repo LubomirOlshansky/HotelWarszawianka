@@ -12,10 +12,10 @@ Photo pass (F, 2026-11-08): the 98 still unknown were checked again on the Mac w
 | Piece of a bigger building (not drawn) | 83 | left out |
 | Lift (metro / street, glass) | 36 | glass shaft on a plinth, overhanging roof slab |
 | Bin shelter | 33 | slatted walls, flat roof |
-| Shop / café pavilion | 25 | low base, lit glass, sign strip |
+| Shop / café pavilion | 24 | low base, lit glass, sign strip |
 | Historic small building | 22 | plain walls, darker base, roof slab |
+| Substation | 21 | plain walls, darker base, roof slab |
 | Garage | 21 | plain walls, darker base, roof slab |
-| Substation | 20 | plain walls, darker base, roof slab |
 | Metro vent box | 20 | stone-clad box, dark grille band, thin cap |
 | Low annex of a bigger building (own outline) | 17 | plain walls, darker base, roof slab |
 | Canopy on posts | 16 | roof on posts |
@@ -106,7 +106,7 @@ x z are map metres (outline centre); OSM is the way id.
 | 935 | 1117 | 2.5 | low | aerial + Mapillary | small box in courtyard greenery, unseen | 922640465 |
 | 984 | -2020 |  | high | osm tags | building=outbuilding | 1462448316 |
 | 1012 | -2037 |  | high | osm tags | building=outbuilding | 1462448309 |
-| 1015 | 1351 | 3.0 | low | 0.1 m ortho + fresh OSM (Mac, 2026-11-08) | small light-roof lean-to in a yard beside a barracks-type building | 1033873129 |
+| 1015 | 1351 | 3.5 | medium | 0.1 m ortho + Mapillary | one-storey plastered annex with a door and window by the brick hall (Mapillary) | 1033873129 |
 | 1253 | 416 | 3.0 | low | aerial + Mapillary | small box under trees | 888765980 |
 | 1255 | 419 | 3.0 | low | aerial + Mapillary | small hut visible in park photo | 888765981 |
 | 1429 | -159 |  | high | osm tags | building=shed | 769050434 |
@@ -305,7 +305,7 @@ x z are map metres (outline centre); OSM is the way id.
 | 1185 | -814 |  | high | osm tags | access=private, amenity=waste_disposal, building=yes | 1525875221 |
 | 1938 | -233 |  | high | osm tags | amenity=waste_disposal, building=shed · near barrier=gate | 312781857 |
 
-### Shop / café pavilion (25)
+### Shop / café pavilion (24)
 
 | x | z | h | conf | source | why | OSM |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -332,7 +332,6 @@ x z are map metres (outline centre); OSM is the way id.
 | 1164 | 237 |  | high | osm tags | amenity=bar, building=yes, check_date=2026-06-12 | 888765994 |
 | 1573 | 1411 |  | high | osm tags | access=customers, addr:city=Warszawa, addr:housenumber=136 | 1065558622 |
 | 1697 | 255 | 4.0 | medium | 0.1 m ortho + fresh OSM (Mac, 2026-11-08) | service building beside a water-slide tower (stairs to the slide meet its roof) | 303625254 |
-| 1832 | 504 | 4.0 | low | 0.1 m ortho + fresh OSM (Mac, 2026-11-08) | small flat-roof house with brick wall and hatch beside viaduct steps; use unclear | 278212326 |
 | 2108 | 431 | 3.5 | low | aerial + Mapillary | former cafe tag, hidden behind hedge | 498865840 |
 
 ### Historic small building (22)
@@ -362,33 +361,7 @@ x z are map metres (outline centre); OSM is the way id.
 | 1426 | -285 |  | high | osm tags | building=yes, gez:inscription_date=2012-07-24, heritage=2 · near amenity=pub | 331948809 |
 | 1430 | -279 |  | high | osm tags | building=yes, gez:inscription_date=2012-07-24, heritage=2 | 589204912 |
 
-### Garage (21)
-
-| x | z | h | conf | source | why | OSM |
-| --- | --- | --- | --- | --- | --- | --- |
-| -2642 | -1101 |  | high | osm tags | building=garage | 1075936060 |
-| -2640 | -1098 |  | high | osm tags | building=garage | 1075936059 |
-| -2639 | -1096 |  | high | osm tags | building=garage | 1075936058 |
-| -2637 | -1093 |  | high | osm tags | building=garage | 1075936057 |
-| -2327 | -1104 | 3.0 | low | aerial + Mapillary | small box in courtyard parking area | 1362927976 |
-| -2310 | -1115 |  | high | osm tags | addr:city=Warszawa, addr:city:simc=0918123, addr:housenumber=19C | 614827461 |
-| -2307 | -1111 |  | high | osm tags | addr:city=Warszawa, addr:city:simc=0918123, addr:housenumber=19D | 614827459 |
-| -2306 | -1108 |  | high | osm tags | addr:city=Warszawa, addr:city:simc=0918123, addr:housenumber=19E | 614827457 |
-| -2304 | -1105 |  | high | osm tags | addr:city=Warszawa, addr:city:simc=0918123, addr:housenumber=19F | 614827455 |
-| -2303 | -1102 |  | high | osm tags | addr:city=Warszawa, addr:city:simc=0918123, addr:housenumber=19G | 614827453 |
-| -2247 | -1989 | 3.0 | low | aerial + Mapillary | small box by parking yard in housing estate | 1334369174 |
-| -1636 | -1757 | 3.0 | low | 0.1 m ortho + fresh OSM (Mac, 2026-11-08) | building=service: dark flat roof by a car park, technical/garage block | 331309221 |
-| -1379 | -1001 |  | high | osm tags | building=garage | 860252012 |
-| -1326 | -1367 |  | high | osm tags | building=garage | 1113133842 |
-| -1149 | -1528 | 3.0 | low | aerial + Mapillary | long narrow outbuilding beside block | 380000689 |
-| -804 | 183 | 3.0 | low | 0.1 m ortho + fresh OSM (Mac, 2026-11-08) | grey flat roof in a courtyard car park behind a block | 903924225 |
-| -306 | 177 |  | high | osm tags | building=garage | 905975466 |
-| -191 | 1181 | 3.0 | low | aerial + Mapillary | small box in courtyard strip between rowhouse blocks | 1014265801 |
-| -187 | 1211 | 3.0 | low | aerial + Mapillary | small box in courtyard strip between rowhouse blocks | 1014265800 |
-| 2097 | -64 |  | high | osm tags | building=garage | 309630833 |
-| 2111 | -452 |  | high | osm tags | building=garage | 492643014 |
-
-### Substation (20)
+### Substation (21)
 
 | x | z | h | conf | source | why | OSM |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -412,6 +385,33 @@ x z are map metres (outline centre); OSM is the way id.
 | 603 | 436 | 2.5 | low | 0.1 m ortho + fresh OSM (Mac, 2026-11-08) | 9 m2 dark box under trees at a roundabout; likely an electrical cabinet | 1504351869 |
 | 1400 | -1687 |  | high | osm tags | building=service, power=substation | 1295819421 |
 | 1494 | -1028 | 4.0 | low | aerial + Mapillary | square box by industrial wall near road, unclear | 1566437392 |
+| 1832 | 504 |  | medium | 0.1 m ortho + Mapillary | white windowless box with a door by the playground (Mapillary panorama) | 278212326 |
+
+### Garage (21)
+
+| x | z | h | conf | source | why | OSM |
+| --- | --- | --- | --- | --- | --- | --- |
+| -2642 | -1101 |  | high | osm tags | building=garage | 1075936060 |
+| -2640 | -1098 |  | high | osm tags | building=garage | 1075936059 |
+| -2639 | -1096 |  | high | osm tags | building=garage | 1075936058 |
+| -2637 | -1093 |  | high | osm tags | building=garage | 1075936057 |
+| -2327 | -1104 | 3.0 | low | aerial + Mapillary | small box in courtyard parking area | 1362927976 |
+| -2310 | -1115 |  | high | osm tags | addr:city=Warszawa, addr:city:simc=0918123, addr:housenumber=19C | 614827461 |
+| -2307 | -1111 |  | high | osm tags | addr:city=Warszawa, addr:city:simc=0918123, addr:housenumber=19D | 614827459 |
+| -2306 | -1108 |  | high | osm tags | addr:city=Warszawa, addr:city:simc=0918123, addr:housenumber=19E | 614827457 |
+| -2304 | -1105 |  | high | osm tags | addr:city=Warszawa, addr:city:simc=0918123, addr:housenumber=19F | 614827455 |
+| -2303 | -1102 |  | high | osm tags | addr:city=Warszawa, addr:city:simc=0918123, addr:housenumber=19G | 614827453 |
+| -2247 | -1989 | 3.0 | low | aerial + Mapillary | small box by parking yard in housing estate | 1334369174 |
+| -1636 | -1757 |  | medium | 0.1 m ortho + Mapillary | plain grey windowless wall behind the fence (Mapillary) | 331309221 |
+| -1379 | -1001 |  | high | osm tags | building=garage | 860252012 |
+| -1326 | -1367 |  | high | osm tags | building=garage | 1113133842 |
+| -1149 | -1528 | 3.0 | low | aerial + Mapillary | long narrow outbuilding beside block | 380000689 |
+| -804 | 183 | 3.0 | low | 0.1 m ortho + fresh OSM (Mac, 2026-11-08) | grey flat roof in a courtyard car park behind a block | 903924225 |
+| -306 | 177 |  | high | osm tags | building=garage | 905975466 |
+| -191 | 1181 | 3.0 | low | aerial + Mapillary | small box in courtyard strip between rowhouse blocks | 1014265801 |
+| -187 | 1211 | 3.0 | low | aerial + Mapillary | small box in courtyard strip between rowhouse blocks | 1014265800 |
+| 2097 | -64 |  | high | osm tags | building=garage | 309630833 |
+| 2111 | -452 |  | high | osm tags | building=garage | 492643014 |
 
 ### Metro vent box (20)
 
