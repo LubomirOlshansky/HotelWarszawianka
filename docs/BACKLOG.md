@@ -156,7 +156,7 @@ Built (event_day.gd): date gate, hours, crowd + flags, four barrier lines, white
 - Look checks from F's photos: flag density, haze height, the Palace tiers (upper white, lower red), Złota 44's gradient side.
 - Traffic and trams are released at the zone edge (they pop out at the barrier); a real lane closure (lane_graph `e_shut`) would queue them at the line.
 - Side streets into the corridor are not walled: a car that gets in is set down at the nearest barrier (toast).
-- Flags are still (no sway); heli-only day missions, the notebook stamp, event sounds and the Settings toggle for smoke are not built yet (plan sections 3.3, 3.5, 6 E5).
+- Flags now sway in the wind (`actor.gdshader` `sway`, cloth marked UV.y 2). The 15 s video take is built: `--cinematic=event` (camera keys in `camera_shots.gd` `EVENT_KEYS`, light cascade, fog ramp, flares in turns in `event_day.gd` `scene_t`, title card), `--event-t=SEC` freezes it for stills; the 4K capture on the Mac and the sound are not done. Heli-only day missions, the notebook stamp, event sounds and the Settings toggle for smoke are not built yet (plan sections 3.3, 3.5, 6 E5).
 - Stadion Narodowy white-red panels are coded (`_stadium_bands`) but did not show in the cloud shot: unverified, check on the Mac or phone (mast heights, radius).
 - Max look for the promo (F, 2026-11-07, recorded on iPhone 17 Pro or M4 Pro, no performance limit): up to 6,000 people, 520 standing-fog blobs (`event_fog.gdshader`, day and night), 200 flare halos. Heavy on purpose: the quality tier scales it down. Phone bench still open. The lit puff boxes are off (`PUFFS_ON`).
 - The METROPOLKA roof neon (Hotel Metropol, `landmarks.gd` `_build_metropol_sign`) reads mirrored and looks like it floats when seen from the north from the air: not the event's, needs a look.
@@ -695,6 +695,8 @@ Left:
 ## Autopilot findings on recent work (2026-11-06; docs/PLAYTEST.md)
 
 - [ ] Bump the Autopilot add-on again once upstream releases past v1.0.0-753232a (HEAD has unreleased fixes #36 and #31).
+- [ ] Autopilot harness template (2026-11-08 lessons): one shared harness file the runs start from, logging the side offset from the road centre and tapping keys with `physical_keycode`, so each run stops re-writing (and re-breaking) the same harness. Kept out of git like the plugin, or in `tools/` if it needs no plugin code.
+- [ ] Find the ~6 min kill (-9) of Mac Autopilot runs (since run 11): the sandbox, memory or the Remote Control session; every long quest line is split around it.
 
 - PT-23 (S2): the tow offer never comes while the ride button is up; a pinned car gets no help.
 - PT-24 (suspect): backing off a wall resets the stall timer, so the offer may never come.
