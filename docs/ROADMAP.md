@@ -196,6 +196,7 @@ then the Launch gate.
 ### Left: map and roads
 - [ ] Free-play playtest plan P1-P10 run with Autopilot and every confirmed PT bug fixed
       (F, 2026-11-02; docs/PLAYTEST.md; setup and Autopilot plugin done 2026-11-02, updated to release v1.0.0-753232a 2026-11-06)
+  - [x] Autopilot workflow lessons of the first week in the skill, qa-tester, WORKFLOW and PLAYTEST (one Mac session at a time with `tools/autopilot.sh on <thread>`, stops a player could make go straight to a cloud fix thread, PT ids from the shared register), 2026-11-08
   - [x] PT-1 dead stop at Centrum's tram stop on Marszałkowska, 2026-11-02 (PR #289)
   - [x] PT-7 car pinned and towed at the Chmielna square's glass corner (notches and slits in building fronts bridged city-wide), 2026-11-02
   - [x] PT-2 (NE of Plac Defilad) and PT-5 (side streets west of Marszałkowska) not reproduced, 2026-11-02: ~680 swept road lines clean, six guard lines in `check_stuck_spots.gd`
@@ -205,6 +206,7 @@ then the Launch gate.
   - [x] PT-15 taxi card over Pani Halina's flash-back, PT-16 the delivered card never closing (one order "driven six times"), PT-17 car ping-ponging in a shallow facade bay on Jasna by Plac Dąbrowskiego, 2026-11-03 (`check_stuck_spots`)
   - [x] PT-18 car pinned on Solec's ramp up to Trasa Łazienkowska (a gap between guard-rail pieces) and on the ramp's pier 2 m off Solec's kerb, 2026-11-03 (rail gaps under 1.5 m on decks closed by a shallow V, piers keep 2 m more room beside main roads; `check_stuck_spots`)
   - [x] PT-44 dead stop on Trasa W-Z by the Stare Miasto tram stop (a retaining wall's square end on the pavement, the tram shelter's corner): the end of a thin fixed thing met nose on now slips the car past (car.gd SLIP_WIDE), 2026-11-08; PT-45 in the W-Z tunnel not reproduced (16 lines clean, likely a traffic car), three guard lines (`check_stuck_spots`)
+  - [x] PT-40 dead stop at Most Poniatowskiego's west gate tower at 58-60 km/h (the approach wall's square end on the walk, led in behind each tower) and PT-41 the one-tick 7 m drop just before it (a sliver between the road's and tram's approaches, closed map-wide), 2026-11-08 (`check_stuck_spots`)
 - [x] Larger HUD text fits the phones (2026-11-02, this PR): panels with no room step their own text down (never below normal), `check_hud` large-text pass is a gate
 - [ ] The phone's own text size drives the HUD: needs a native read (BACKLOG "Accessibility follow-ups")
 - [ ] A full `tools/verify.sh` and `--ios` on the Mac on today's main, both city paths

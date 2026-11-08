@@ -1,6 +1,6 @@
 # 11 Listopada: the 15-second video, how to direct it
 
-Status: PLAN (F, 2026-11-07). Recorded on an iPhone 17 Pro or an M4 Pro Mac, so performance is not a limit for the take.
+Status: BUILT except sound and the Mac capture (2026-11-08): items 1-4 and 6 below are in the game (`--cinematic=event`, `--event-t=SEC` for stills, `--clock=16:10|16:40|17:10` for the grade). Recorded on an iPhone 17 Pro or an M4 Pro Mac, so performance is not a limit for the take.
 One continuous camera move in three beats, no cuts, so it reads in a feed with the sound off. Neutral and civic: colours,
 flags, light and crowd only, no words except the title card. Our own music only.
 
