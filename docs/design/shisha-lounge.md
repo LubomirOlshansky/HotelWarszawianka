@@ -37,9 +37,9 @@ Tension: Mati wants light and fruity, Bogdan wants strong, you cast the deciding
    `trend_job.gd` "Czwarty" already does with three stops.
 4. **The car argument** on the way to the lounge: a vote scene with three rounds (flavour,
    strength, the nickname of the pipe), banter in between (below). Your votes set the mini-game.
-5. **Arrive at SENATOREK LOUNGE.** Park at the kerb ring; a door line, a short bouncer-free
-   "dress code" gag (Bogdan's tennis shorts), in.
-6. **The lounge room** (cutaway, like Smoła): sofas, cushions, the three of you sitting.
+5. **Arrive at SENATOREK LOUNGE** (Emilii Plater 53). Park at the kerb ring under the portico, a
+   "dress code" gag at the door (Bogdan's tennis shorts), the lift card.
+6. **The lounge room** (cutaway, like Smoła): rock wall, olive trees, velvet banquettes, the three of you seated.
 7. **Mini-game "Miks u Mistrza"** with the master (below): choose the bowl.
 8. **The pipe arrives; smoke or leave** (the Smolna choice): PALIĆ (a short smoking scene) or
    WYJDŹ (back to the car). Either ends the quest; PALIĆ pays more respect and unlocks the
@@ -89,46 +89,63 @@ three of you name the pipe: „Kazik", „Premier", „Tramwaj". Bogdan insists 
 
 F's name is "Senator lounge". The real Senator is a building on Królewska (BACKLOG "Saski Crescent
 and Senator"), so the lounge takes a clear parody name: **SENATOREK LOUNGE** ("little senator";
-sign: SENATOREK · dym & sofy, EN: smoke & sofas). Alternatives if F prefers: SENATORSKA FAJKA,
+gold serif sign SENATOREK, tagline dym & sofy / smoke & sofas). Alternatives if F prefers: SENATORSKA FAJKA,
 LOUNGE PRZY SENACIE. Parody sign through `neon_signs` LANDMARK_WORDS; no real brand
 (`brand_denylist.json` unchanged; "Senator" alone stays a plain word).
 
-Where: **in the Senator building itself**, Bielańska 12, Śródmieście (the mapped office block
-beside Saski Crescent, already in the game: BACKLOG "Saski Crescent and Senator", CITY_INVENTORY
-row 106). Research (2026-11-08): Senator is a ~25,000 m² office building on the site of the
-pre-war Polish Bank, rebuilt to follow the old facade (Ghelamco's press release); nothing found
-online ties a shisha lounge named Senator to it, so this is our invention, not a real venue. The
-lounge door sits down a few steps at the building's Bielańska front under a lit sign. Needs a
-car-reachable kerb on Bielańska/Królewska (the map engineer checks which side is open);
-fallback: the Senatorska tenements nearby. Notebook place `senatorek`.
+Where (F's photos, 2026-11-08): **on a high floor of the Warsaw Financial Centre, ul. Emilii
+Plater 53**, with a roof terrace looking at the Palace of Culture. F's photo set shows the real
+Senator lounge there: floor-to-ceiling glass with the Palace in the window, a roof terrace over
+the city, and the building's porte-cochère with "EMILII PLATER 53" on the black granite plinth.
+The tower is already in the game (spec `docs/landmarks/specs/wcf.md`, site `wcf`, white and glass
+slabs, granite podium), so the quest needs no new building, only the entrance and the rooms. The
+floor number is not in the photos (left to F or a later check). The mapped Senator office block on
+Bielańska (BACKLOG "Saski Crescent and Senator") is a different building; the first draft of this
+doc put the lounge there by mistake.
 
-### Research: what a shisha lounge looks like inside
+How you get in: park at the porte-cochère on Emilii Plater (kerb ring), the three of you walk
+through the revolving door, a short **lift card** ("Winda na 38. piętro", the floor invented, a
+bell, the friends bicker about the flavours one more time) and the room opens. Ground-floor
+cafe in the photo is a real chain: in game it is a parody coffee shop under the existing shop-front
+rules, never the real logo.
 
-No verified photo set of a "Senator lounge" in Warsaw was found, so the room is built from the
-genre plus one Warsaw reference. The genre list is design knowledge, not verified.
-- Warsaw reference: the oriental-styled Aura Bar in a pre-war Śródmieście tenement
-  ([Trendland](https://trendland.com/oriental-aura-bar-warsaw/)): brass and marble counter, bar
-  clad in left-over stone slabs, brass details made on site, Moroccan carpets, locally made
-  upholstery, a "mystic" mood. We borrow the brass-and-marble bar and the carpets.
-- Genre (unverified): low sofas and floor cushions round low brass or mosaic tables, one pipe
-  per table with a long hose, dim warm light (lanterns, pendant lamps, string lights), arches and
-  niches, dark wood and patterned tiles, plants, curtains between booths, smoke haze at ceiling
-  height, a counter with rows of jars for flavours, a coal station at the bar, soft oriental
-  lounge music.
-- For the pre-war Senator front: a basement under brick vaults, so the exposed brick and
-  arched niches below fit the building.
+### The room, from F's photos (design reference, not shipped)
 
-Question for F: if a real lounge was meant (a name or street), the room and site follow it.
+- **The main hall** (photos 3, 5, 6): a dark, tall room, black steel beams and track
+  spotlights under a black ceiling; one wall of rough grey rock panels cut in vertical strips by
+  thin dark steel bars, with the gold serif logo letters on it, a warm spotlight pooling on the
+  rock; olive trees in black planters between the seats; a stone-clad bar on the right with
+  a steel hood. Parody sign: **SENATOREK** in the same gold serif letters.
+- **Seating**: a long row of curved banquettes in rust/terracotta velvet (photo 5), square black
+  tables, grey upholstered armchairs and two-seater sofas with brass-coloured legs (photos 3, 5),
+  a burnt-orange leather armchair in the foreground.
+- **The windows** (photos 5, 6): floor-to-ceiling glass on one side, the Palace of Culture and
+  the towers in the haze, golden sunlight through it; the olive trees stand against the glass.
+- **The terrace** (photos 1, 4): a roof terrace with a glass balustrade and the Palace behind,
+  teak armchairs with woven backs and cream cushions, light travertine-looking square tables,
+  steel pedestal legs, salt and pepper sets, hazy sky.
+- **An alternative reference** (photo 2): a dark-leather airport-style lounge with warm table
+  lamps on wooden plinths, wood floor, big window at dusk. Not our direction; the Senator look
+  above wins.
+
+The mood: **"quiet money"**, a calm, warm, dark-stone lounge, nothing like a basement den.
+That changes the design: no Moroccan carpets or brick vaults; the room is rock, olive trees,
+velvet and glass.
 
 ## The room (cutaway like Smoła's, reuse of `club.gd`)
 
-A 14 × 10 m cutaway, back and left walls cut away, camera at 45°. Exposed brick, arched
-niches, low ceiling beams, string lights, a long bar, a wall of jars (flavours in rows with
-handwritten labels), a coal stove with orange glow, Persian carpet, low tables, cushions.
-Three of you on a corner sofa; other tables with 8-12 seated silhouettes in smoke. Smoke
+An 18 × 12 m cutaway, back wall (the rock wall with the gold SENATOREK letters) and the glass
+wall cut away in the camera's view, camera at 45°. Black ceiling beams with a few track
+spotlights (lights as `club.gd`'s MultiMesh), olive trees in planters, the curved rust-velvet
+banquettes in rows, grey armchairs with brass legs, black tables, the stone bar with the jars of
+flavours behind it and the coal station on the counter, a window wall with the Palace of Culture
+in a lit backdrop (day: golden haze, night: the city's lights; one textured quad, no new
+material). A door to the **TERRACE** (the patio's twin in `club.gd`): teak armchairs, cream
+cushions, travertine tables, the Palace behind a glass balustrade, the same turning-light rig
+reduced to warm bulbs. Three of you on a corner sofa; other tables with 8-12 seated silhouettes in smoke. Smoke
 particles are a MultiMesh of soft puffs rising to a haze (like the club's lights, same draw
 budget: room mesh, people MultiMesh, haze MultiMesh = 3 draw calls). Music: a lounge track on a
-radio (lo-fi, oriental-house flavour, `docs/MUSIC.md` has a "lounge" slot to fill) played at
+radio (deep-house lounge, `docs/MUSIC.md` has a "lounge" slot to fill) played at
 low volume; ElevenLabs Music on F's Creator plan.
 
 ## Mini-game "Miks u Mistrza" (flavour choice with the master)
@@ -171,6 +188,7 @@ Like Smoła's end of room. After the mix:
 | Quest map start, in-person greeting, WĄTKI entry | `story_quests.gd` `add` (id `shisha`, colour teal-green, hours 17:00-02:00) |
 | Two pickups and a drop route | `trend_job.gd` three-stop job ("Czwarty") |
 | Bogdan's pickup site | WTS DESKA (`landmarks.gd` DESKI) |
+| The lounge's tower, entrance and view | `wcf` (spec `wcf.md`), the Palace as the backdrop |
 | The room, camera, people to tap, exit | `club.gd` cutaway (`enter`, `people`, tap, WYJDŹ) |
 | Beat/timing ring | `club.gd` `_draw_beat` and DANCE streak |
 | Dialogue banter | `dialogue.json` tags; `dialogue.say` over the car (`rave_ziomek` pattern) |
@@ -184,7 +202,7 @@ Dialogue Manager: a branching authored scene with three votes would fit it (`dia
 skill); decide at build. Default here: not used, because the votes only set three numbers and a
 flat tagged list (as `rave_ziomek`) is enough. Beehave: not used (no NPC behaviour change).
 
-## Ideas to make it better
+## Ideas to make it better (the list grew to 11)
 
 1. **The votes matter.** The car argument is not only jokes: each friend's flavour pick and the
    strength set the mini-game's targets and the pay.
@@ -202,7 +220,8 @@ flat tagged list (as `rave_ziomek`) is enough. Beehave: not used (no NPC behavio
 8. **A second visit** with different jars each week (rotating "menu sezonowe"), parody trend
    humour (pumpkin spice, "jesienna mgła").
 9. **A secret flavour** unlocked by finding three real-looking jars in the city (an easter egg).
-10. **Voices**: ElevenLabs lines for the master and the friends (F's plan), as LEKTI's clips.
+10. **The terrace at golden hour**: PALIĆ outside on the roof, the Palace in the sunset (time of day decides the light; night shows the Palace lit). The lift ride and the terrace make the lounge feel like a place high above the city, which suits an isometric game.
+11. **Voices**: ElevenLabs lines for the master and the friends (F's plan), as LEKTI's clips.
 
 ## Content notes
 

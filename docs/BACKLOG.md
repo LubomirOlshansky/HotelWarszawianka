@@ -486,10 +486,10 @@ strict three-question door, Smoła's cutaway room (option A). Left:
 
 Analysis and design only, nothing built. Mati rings ("wanna smoke some shisha?"), pick him up at
 19. Dzielnica, pick up Bogdan from the tennis courts (WTS DESKA), argue in the car about flavours
-and strength, SENATOREK LOUNGE (parody of "Senator lounge"), the lounge cutaway room, the flavour
+and strength, SENATOREK LOUNGE (parody of "Senator lounge", on a high floor of the Warsaw Financial Centre, Emilii Plater 53, with a roof terrace, from F's photos), the lounge cutaway room, the flavour
 mini-game with the shisha master, then smoke or exit as at Smoła.
 - [ ] F's call: who rings, Mati or "Ivan" (parked in QUESTIONS; default Mati); lounge name SENATOREK LOUNGE ok?
-- [ ] Lounge site and kerb ring in Śródmieście (map engineer), pickup rings at 19. Dzielnica and WTS DESKA
+- [ ] Lounge entrance: kerb ring under the WFC portico on Emilii Plater 53, a lift card, a rock-wall room with olive trees and velvet banquettes, a roof terrace with the Palace view (spec `wcf.md` exists); pickup rings at 19. Dzielnica and WTS DESKA
 - [ ] `shisha.gd`: call, two pickups, drop, `stories.add` id `shisha`, `--shisha-call` flags
 - [ ] The car argument: Bogdan's tennis lines, flavour and strength votes (dialogue.json `shisha_ride`)
 - [ ] Lounge room (club.gd cutaway), smoke haze, lounge track
