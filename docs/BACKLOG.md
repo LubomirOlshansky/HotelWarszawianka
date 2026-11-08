@@ -87,9 +87,12 @@ Built from F's photos (2026-11-07, `~/Documents/warsaw-needed-photos/bridges`, S
   gone (F: "why does the bike path hang in the air?"); six pairs of broad concrete columns under the five spans' ends instead
   of the rows of thin posts (`map_builder._build_lazienkowski`, `_build_lazienkowski_piers`). Grey, as the photos show.
 - Most Świętokrzyski: the median is grey concrete, not grass (photo SW-1).
+- Most Łazienkowski's cycle decks hang 4 m under the road (2026-11-08, photos LZ-1, LZ-1b, LZ-3c), not at the river's
+  clearance 8.6-11.7 m under it: `tools/cycle_hang.py` (bake_osm runs it before the structures; verify step `cyclehang`)
+  raises them under the road deck and brings them down at 6 % to where they meet the ground, so the bank ramps, paths and
+  crossings still meet them. On the Praga side the decks come down over the floodplain to OSM's ground ends (the real ramps
+  there are not checked against a photo yet).
 Left:
-- Most Łazienkowski's cycle decks: the photos (LZ-3, LZ-3b) show them right under the deck's cantilever, about 4 m under the
-  road; OSM puts them ~8 m under it, and the bake keeps that height. Raising them needs the ramps at both ends re-sloped.
 - Pier places on both bridges are estimates (the islands, the banks, the paths under them); exact ones from an orthophoto.
 - The AK plaque on Śląsko-Dąbrowski's north railing; the metal barriers on Świętokrzyski's median.
 - Tram overhead wires: none anywhere in the city (on the tram bridges most visible). Trams lane.
