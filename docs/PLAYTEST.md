@@ -121,8 +121,8 @@ keeping to `shots/autopilot/`, never into git) · **status** (suspect → confir
 | PT-30 | Padel call (PR #500) | arriving at the DESKA gate (`--at=1546,1172`, `--trend-job=7`), 1278x719 editor window | the match's point cards were never placed (side card: 3 shots in a row wider than the room beside the car; stacked: taller than the screen), so no shot could be played and each point timed out | S2 | Autopilot run 20261107-120130 ep 3, 5 | fixed (PR #500: the centred card, shots in a row; shots at 1278x719 and 1266x585) |
 | PT-31 | Padel call | the street route from Solec to Zaruskiego (the service road mapped as a bridge, (1452,1225)-(1536,1176)) | the car can't get onto it: it ends at the bridge end on the bank and is towed; DESKA is reached by car only from Czerniakowska in the south | S2 | Autopilot run 20261107-120130 ep 1 t=60-200 | confirmed (frames); map lane |
 | PT-32 | Padel call | a district discovery card ("Discovered: Ujazdów and Łazienki") came up while the call rang | the call ended (Idle) right after it was answered | S3 | Autopilot run 20261107-120130 ep 4 | suspect (no repro without the district card) |
-| PT-40 | P5 | Poniatowskiego west bridgehead, the right gate tower (`--at=925,-123` and `--at=937,-136`, heading about -60) | two passes east at 58-60 km/h from the teleport at (900,-128): both times the car hit the base of the right tower and fell from 58-60 to 3-4 km/h (frames: no other car touching); the second pass then crawled at 1-14 km/h for 1 s | S3? | run 20261107-201455 ep1 t=14.0, ep2 t=48.4 (frames 13.9-14.2, 48.2-48.4) | suspect: the harness line (waypoint (939,-133)) cuts the corner onto the tower base; check whether a car on the carriageway centre clears the towers |
-| PT-41 | P5 | Poniatowskiego west end, the lower road under the ramp (`--at=937.5,-135.9`) | pass 2: the car's y went -4.5, -11.7, -4.5 in two ticks (a 7 m flicker) just before the tower hit, no picture jump in the frames | S3 | run 20261107-201455 ep2 t=48.37-48.45 `height_jump` | suspect: `drive_height` flips between the ramp and a lower road for one tick; check with `check_drive --debug=937,-136` |
+| PT-40 | P5 | Poniatowskiego west bridgehead, the right gate tower (`--at=925,-123` and `--at=937,-136`, heading about -60) | two passes east at 58-60 km/h from the teleport at (900,-128): both times the car hit the base of the right tower and fell from 58-60 to 3-4 km/h (frames: no other car touching); the second pass then crawled at 1-14 km/h for 1 s | S3? | run 20261107-201455 ep1 t=14.0, ep2 t=48.4 (frames 13.9-14.2, 48.2-48.4) | fixed 2026-11-08: confirmed in the cloud (the kerb lane with its wheels over the kerb stops dead at 925,-124 on the square end of the approach's retaining wall, which runs along the walk 0.5-1.2 m out from the tower; all four towers have one); each open end of a solid wall run in a tower's zone gets a lead-in behind the tower (map_builder.gd `_wall_taper`); 3 lines in `check_stuck_spots` |
+| PT-41 | P5 | Poniatowskiego west end, the lower road under the ramp (`--at=937.5,-135.9`) | pass 2: the car's y went -4.5, -11.7, -4.5 in two ticks (a 7 m flicker) just before the tower hit, no picture jump in the frames | S3 | run 20261107-201455 ep2 t=48.37-48.45 `height_jump` | fixed 2026-11-08: a 15 cm sliver between the road's and the tram's approaches read the grid (-11.9 m); a point within 0.4 m of two approaches at about the same level takes the lower one (map_builder.gd FILL_SEAM, mirrored in check_roads); `check_stuck_spots` SEAMS |
 | R7 | P4, P5 re-checks (2026-11-07) | PT-36 (Podwale bends `-834,-1507`, `-987,-1668`) and PT-37 (Poniatowskiego tram strip `1325,-266`) | PT-36: two passes at 40-45 km/h, no stop or unstick; PT-37: two drives over the strip at 49-60 km/h, never pinned | - | runs 20261107-200914, -201455 | neither reproduced on main 6d4dfe51 (one pass of PT-37 ended 3 m short of the spot, the other reached it); set both to `closed (no repro)` when their rows land on main |
 | PT-42 | P9 menus | the pause card, `Escape` right after the city build (editor run, 1266x585) | two harness presses of Escape (3-4 s after the first input) left `settings_open` false and no tab ids on screen; in the earlier run it opened on a later press after other clicks | S3? | runs 20261108-010405, -010909 (`pause_state`) | suspect: key injection without `physical_keycode`, or the first press eaten by the district card; a real Escape on the Mac or a `physical_keycode` event decides |
 | R8 | P9 menus (2026-11-08) | the full map | opens from `_open_full_map`, shows MAP OF WARSAW with its legend and hint (English), and closes with its cross; the pause tabs, TOW TRUCK and the garage card were not reached (teleport to Mirek's garage snapped to a road, no card) | - | runs 20261108-010405, -010909 | the pause tabs, TOW TRUCK and the garage card stay open for a run with `physical_keycode` Escape |
@@ -133,6 +133,10 @@ keeping to `shots/autopilot/`, never into git) · **status** (suspect → confir
 | R9 | quest lines (2026-11-08, main merged into the branch) | rave, night meet, boat race, cinema tour, coffee run, rides, side jobs, rescues, first ten, kebab, helicopter rescue | `tools/verify.sh --only=questlines,stories,rave,meet,boatrace,kinotour,coffeerun,rides,jobs2,rescues,first10,coffee,kebab,ride,heli`: 15 of 15 PASS (headless plays: coffee run done in 49 s, kebab delivered in 212 s, ride pay 56 zł, rescue done) | - | log /tmp only | not run through Autopilot in the editor (the person-in-the-loop part: card readability, the friend walking up, the phone feel stay open); the Dekalog line is not in the checks |
 | R4 | P3 | on-road hard stops on Krucza, Świętokrzyska, Królewska | 50 km/h to 1-8 km/h for 1-2 s, a traffic driver's bubble ("The indicator isn't an optional extra!") as it slows | – | runs -154847, -160539, -161411 frames | closed (not bugs: bumps into traffic cars; the bubble is dialogue.gd's shout from a car the player hits) |
 
+Ids PT-30..PT-32 were taken twice on 2026-11-07 (the P2/P19/P20 rows and the padel rows); the
+padel ones are named "PT-30 (padel)" etc. in fixes. New ids come from
+`/mnt/project-files/autopilot/bug-log.md` first (autopilot-playtest skill, section 3).
+
 No run so far put the car under the ground (it stayed 0.7-1.0 m above the terrain at every
 logged event in run 2).
 
@@ -141,13 +145,18 @@ logged event in run 2).
 1. **Run** one plan row (Mac, autopilot-playtest skill). The harness logs every stop, clip and
    height jump with its position; frame-describer describes the frames at each.
 2. **Log** each finding above as `suspect`, with its evidence.
-3. **Confirm**: reproduce it once, cheapest first: drive there with `--at=`, or a `verify` run, or
-   a check (`check_drive.gd --debug=X,Z`). Confirmed → S1/S2/S3. Not reproducible after two tries
-   → `closed (no repro)` with the reason.
-4. **Triage**: S1 first, then S2 by how early a player meets it (row order), then S3. Message the
-   coordinator one confirmed bug at a time (or a batch of small ones on the same street); the
-   coordinator starts **one fix thread per bug**, named after the place ("Fix the dead stop on
-   Świętokrzyska").
+3. **Sort**: harness-only findings (the car 10+ m off the road, a traffic bump, a key sent
+   without `physical_keycode` or held, a wait frozen under the pause) are closed in the run.
+   Everything a player could do (a stop in a lane, on the kerb, the pavement or the tram strip; a
+   card that never shows; a script error) goes to step 4 **without a second Mac pass**: the
+   Autopilot's cause guesses were wrong as often as right (PT-40 "the harness line" and PT-44
+   "beside a tram" were real wall ends), while a cloud thread reproduced both headless in minutes.
+4. **Triage and hand on**: S1 first, then S2 by how early a player meets it (row order), then
+   S3. Message the coordinator one bug at a time (or a batch of small ones on the same street),
+   with `--at=`, heading, speed and the car's place on the road; the coordinator starts **one
+   fix thread per bug**, named after the place ("Fix the dead stop on Świętokrzyska"). The fix
+   thread confirms it (lane centre, kerb lane, with and without `--no-traffic`, `check_drive.gd
+   --debug=X,Z`); not reproducible there after both lines → `closed (no repro)` with the reason.
 5. **Fix thread**: prove the cause first (WORKFLOW "Prove the cause first"), fix, and add the
    spot to a check where one fits (`check_drive` routes, `check_roads` allow list, a new
    `--at=` shot), so the bug can't come back silently. The PR names the `PT-<n>` id and sets

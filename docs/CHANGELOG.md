@@ -11,6 +11,7 @@ someone writes its lines.
 
 ## 2026-11-08
 - Smoła on Smolna looks like itself: the grey tenement with the stone cartouche over the gate, black tents and barriers, three doormen and the queue along the wall. Inside, the room has blue panels, red light bars and a truss tower with just one palm left, the club plays its own techno (house on the patio), and you can dance on the patio too.
+- At the west end of Most Poniatowskiego a car with its wheels over the kerb no longer stops dead by the gate tower: it glances back onto the road, and it no longer drops for a moment between the road and the tram tracks.
 - 11 November: the flags in the crowd now wave in the wind.
 - The Old Town is ready for its close-up: the odd blue glass boxes next to the Cathedral are now the Jesuit church in salmon plaster, the city walls have battlements, the Market Square has pale stone rings, cream umbrellas and café fences, and the roofs have grey zinc dormers and white chimneys.
 - A new job offer no longer pops up over the result card of the one you just finished, so tapping OK can't accept it by accident.
@@ -30,6 +31,7 @@ someone writes its lines.
 
 ## 2026-11-08
 - The museum's steam engines and coaches by Warszawa Główna are solid now: the car stops at them instead of driving through.
+- The Palace of Culture no longer turns pink for all of October: it stays gold until its orange Halloween night.
 
 ## 2026-11-07
 - The stray thin towers are gone: each one was looked up and is now what it really is, from the glass metro lifts by the Ratusz-Arsenał tram stop and the slatted vent towers by the stadium to kiosks, bin shelters, substations, toilets and houseboats.

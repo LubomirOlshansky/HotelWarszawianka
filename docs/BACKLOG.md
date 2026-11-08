@@ -188,9 +188,9 @@ THEATRES, `theatre` curve, dark on Mondays). Left:
   the camera never sees) have no sign; the terrace has no ticket queue at the east portico yet.
 - Joke billboard "UWAGA:" by the pigeons on Plac Defilad shows the camera its dark back.
 - The bake still turns scrub into plain lawn city-wide; only the Palace's beds are bushes.
-- Event lighting (palace_lights.gd + data/palace_lights.json, F 2026-11-07): built with 14 dates and five
+- Event lighting (palace_lights.gd + data/palace_lights.json, F 2026-11-07): built with 13 dates (Pink October dropped, F 2026-11-08) and five
   patterns. Left: the Independence Day thread's white-red tier bands (event_day.gd) join as the 11 November
-  row's extra; a phone look at the colours' strength; F's call on the event list (QUESTIONS).
+  row's extra; a phone look at the colours' strength. The event list is settled (F, 2026-11-08).
 - The floodlight's reach (a circle round the Palace) also tints the TR Warszawa site's crane and the forecourt's
   stone furniture; an old quirk of the gold, louder in the event colours.
 
@@ -698,6 +698,8 @@ Left:
 ## Autopilot findings on recent work (2026-11-06; docs/PLAYTEST.md)
 
 - [ ] Bump the Autopilot add-on again once upstream releases past v1.0.0-753232a (HEAD has unreleased fixes #36 and #31).
+- [ ] Autopilot harness template (2026-11-08 lessons): one shared harness file the runs start from, logging the side offset from the road centre and tapping keys with `physical_keycode`, so each run stops re-writing (and re-breaking) the same harness. Kept out of git like the plugin, or in `tools/` if it needs no plugin code.
+- [ ] Find the ~6 min kill (-9) of Mac Autopilot runs (since run 11): the sandbox, memory or the Remote Control session; every long quest line is split around it.
 
 - PT-23 (S2): the tow offer never comes while the ride button is up; a pinned car gets no help.
 - PT-24 (suspect): backing off a wall resets the stall timer, so the offer may never come.
@@ -713,6 +715,13 @@ Left:
 - PT-37 (suspect): pinned on Poniatowskiego's tram strip for 8 s while the speed reads 60 km/h, no unstick or tow.
 - PT-38 (suspect): an 11 m snap down off the ground above the W-Z tunnel's east portal.
 - PT-39 (suspect, design): a ram of a crash scene's police car starts a chase that is lost in the next frame.
+- Found 2026-11-08 (PT-40's kerb lines, cloud): a car crossing Most Poniatowskiego's west end diagonally
+  stops on the square end of the guard rail between the eastbound deck and the tram deck (945.7,-138.9, by
+  the slip road's tram crossing), and one hugging the westbound median stops on the end of the tram stop
+  platform's fence (909.8,-134.5). Both are off the lanes; a lead-in like PT-40's would turn them away.
+- Found 2026-11-08 (PT-41): the approach-sliver rule (map_builder.gd FILL_SEAM) closed ~1,200 sampled points
+  in ~15 places that had a drop of more than a metre (Most Gdański's and the Trasa Łazienkowska's
+  approaches among them); a Mac look at those places' drawn ground is open.
 - Podwózka story ride played by Autopilot (accept, the "!" pickup, boarding, story lines, the question card, +½ star): no bug; the door and the result card still unplayed (the 2 km ride outlasts one Mac run).
 
 ## Road design rollout: every street on the map (F, 2026-11-06; docs/design/road-design-rollout.md)
