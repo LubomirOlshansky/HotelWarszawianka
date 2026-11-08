@@ -311,6 +311,12 @@ const INFO := {
 	"zamek": ["Zamek Królewski",
 			"Zniszczony w 1944 roku, odbudowany w latach 1971–1984.",
 			"Destroyed in 1944, rebuilt in 1971–1984."],
+	"dekalog_estate": ["Osiedle Inflancka, Dzika 6",
+			"Tu Kieślowski kręcił Dekalog: okna naprzeciw okien, 14 pięter.",
+			"Kieślowski shot the Dekalog here: windows facing windows, 14 floors."],
+	"inflancka_pools": ["Ośrodek Sportowy Inflancka",
+			"Balon nad krytym basenem, latem okrągłe baseny i zjeżdżalnie.",
+			"An air dome over the indoor pool; round pools and slides in summer."],
 	"arkady": ["Arkady Kubickiego i ogrody zamkowe",
 			"Arkady z 1821 roku, na nich Ogród Górny, niżej Ogród Dolny.",
 			"Kubicki's arcades of 1821, the Upper Garden on top, the Lower below."],
@@ -1167,6 +1173,8 @@ func _find_sites() -> void:
 	_find_zelazna()
 	# Pokorna 2 (F, 2026-11-01): the 57 m residential block by Muranów, a model with balconies.
 	_find_pokorna2()
+	_find_dekalog_estate()
+	_find_inflancka_pools()
 	# Kino Muranów (F's photos, 2026-11-07): the cinema pavilion, its terrace, the arch, the fountain.
 	_find_kino_muranow()
 	# R5 of docs/design/start-area-real.md: the Cepelia pavilion and Zodiak.
@@ -1804,6 +1812,10 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"pokorna2":
 				_id = 0
 				_build_pokorna2(s)
+			"dekalog_estate":
+				_build_dekalog_estate(s)
+			"inflancka_pools":
+				_build_inflancka_pools(s)
 			"kino_muranow":
 				_build_kino_muranow(s)
 			"pawilony":
@@ -27942,6 +27954,338 @@ const BLOCKS_DIR := "res://data/street_blocks"
 ## game/data/street_blocks/index.json lists each modelled block's id and our outline: a site
 ## "blk_<id>" over it. `extra` claims an L-shaped LoD2 block's box centre, which falls outside the
 ## outline. A skin on the same outline stays (its card and name); only the block's LoD2 goes.
+# --- The Dekalog estate and the Inflancka pools (F's photos, 2026-11-07) -------------------------
+
+## The large-panel estate between Inflancka, Dzika and Stawki where Kieślowski shot most of the
+## Dekalog (mapadekalogu.pl: Dzika 6, episodes I, IV, VI), from F's photo set
+## (~/Documents/warsaw-kieslowski-photos, rows K01-K08: Dzika 6 from the south 2026, two 1970s
+## fronts, GUGiK ortho and the city's 2018 oblique flights; spec docs/landmarks/specs/dekalog_estate.md).
+## Six 14-storey slabs, each a chain of staggered segments: pale cream plaster with punched windows,
+## narrow ochre stair strips where one segment steps back from the next, blank gable ends, and
+## at both ends of every segment's long face a stack of white concrete balconies, one per floor.
+## Dark flat roofs with lift houses. OpenStreetMap draws them with every balcony notch; the model
+## simplifies the outline to the segments (DE_SIMPLIFY) and builds the balconies itself.
+## Interior points of the six OSM outlines: Dzika 6, Inflancka 15, Inflancka 19, Inflancka 11,
+## Dzika 19/23, Stawki 6.
+const DE_AT := [Vector2(-2522.3, -2182.1), Vector2(-2427.1, -2241.4), Vector2(-2522.9, -2328.4),
+		Vector2(-2343.4, -2208.7), Vector2(-2647.1, -2153.7), Vector2(-2248.0, -2192.1)]
+## The street blocks (game/data/street_blocks) that stood in for four of them: the site builds those.
+const DE_BLOCKS := ["118344657", "118344539", "279988290", "138607846"]
+const DE_SIMPLIFY := 1.8
+const DE_FLOORS := 14
+const DE_FLOOR := 2.95                 # the S_PUNCHED shader's floor height
+const DE_ATTIC := 0.9
+const DE_FACE := 9.0                   # a long face at least this long carries balconies
+const DE_BAL_W := 3.2                  # a balcony stack's width along the face
+const DE_BAL_D := 1.25                 # how far it stands out
+const DE_BAL_IN := 0.5                 # held in from the face's ends
+const DE_PLASTER := Color("#ece3c8")   # the 2026 photo: pale cream
+const DE_GABLE := Color("#e2d7b8")
+const DE_STAIR := Color("#d9b874")     # the ochre stair strips between segments
+const DE_SLAB := Color("#f2f0ea")      # the balconies' white concrete
+const DE_PARAPET := Color("#e9e7df")
+const DE_ROOF := Color("#55585c")
+const DE_LIFT := Color("#d8cfb4")
+
+
+func _find_dekalog_estate() -> void:
+	var zones: Array[PackedVector2Array] = []
+	var outlines: Array[PackedVector2Array] = []
+	for at: Vector2 in DE_AT:
+		var q := _outline_at(at)
+		if q.size() >= 3:
+			zones.append(_largest(Geometry2D.offset_polygon(q, 2.5, Geometry2D.JOIN_MITER)))
+			outlines.append(q)
+	_add_site("dekalog_estate", zones)
+	if not sites.is_empty() and sites[-1]["key"] == "dekalog_estate":
+		sites[-1]["outlines"] = outlines
+
+
+func _build_dekalog_estate(site: Dictionary) -> void:
+	for raw: PackedVector2Array in site["outlines"]:
+		var poly := _simplify(raw, DE_SIMPLIFY)
+		if poly.size() < 3:
+			continue
+		_dekalog_slab(poly)
+	_mode = M_STONE
+
+
+## One staggered slab: walls by face kind, the roof, lift houses, the balcony stacks, the ring.
+func _dekalog_slab(poly: PackedVector2Array) -> void:
+	_g = _ground_under(poly)
+	var g := _g
+	var top := g + DE_FLOOR * DE_FLOORS + DE_ATTIC
+	# The long axis: the direction the longest run of parallel edges adds up along.
+	var axis := Vector2.ZERO
+	for i in poly.size():
+		var e := poly[(i + 1) % poly.size()] - poly[i]
+		if e.length() > axis.length():
+			axis = e
+	axis = axis.normalized()
+	var run := 0.0
+	var faces: Array = []
+	for i in poly.size():
+		var a := poly[i]
+		var b := poly[(i + 1) % poly.size()]
+		var len := a.distance_to(b)
+		var o := _out(poly, a, b)
+		var end_on := absf(o.dot(axis)) > 0.7
+		if end_on and len < DE_FACE:
+			_mode = M_STONE
+			_wall(a, b, g - 0.4, top + 0.6, o, DE_STAIR, run)
+		elif end_on:
+			_mode = M_STONE
+			_wall(a, b, g - 0.4, top, o, DE_GABLE, run)
+		else:
+			_mode = M_SKIN + float(S_PUNCHED) / 16.0
+			_wall(a, b, g - 0.4, top, o, DE_PLASTER, run)
+			if len >= DE_FACE:
+				faces.append([a, b, o])
+		run += len
+	_mode = M_STONE
+	_cap(poly, top, DE_ROOF)
+	# Lift houses over each segment's middle: one every ~22 m along the axis.
+	var c0 := _centre(poly)
+	var span := 0.0
+	for q in poly:
+		span = maxf(span, absf((q - c0).dot(axis)))
+	var across := Vector2(-axis.y, axis.x)
+	var n := maxi(1, roundi(span * 2.0 / 22.0))
+	for k in n:
+		var p := c0 + axis * span * (-1.0 + (2.0 * k + 1.0) / n) * 0.85
+		if not Geometry2D.is_point_in_polygon(p, poly):
+			continue
+		_prism(PackedVector2Array([p - axis * 2.4 - across * 1.8, p + axis * 2.4 - across * 1.8, p + axis * 2.4 + across * 1.8,
+				p - axis * 2.4 + across * 1.8]), top, top + 2.8, DE_LIFT, DE_ROOF, M_STONE, M_STONE)
+	# The balcony stacks: at both ends of each long face, floors 1 to 13.
+	for f: Array in faces:
+		var a: Vector2 = f[0]
+		var b: Vector2 = f[1]
+		var o: Vector2 = f[2]
+		var d := (b - a).normalized()
+		for end: Array in [[a + d * DE_BAL_IN, a + d * (DE_BAL_IN + DE_BAL_W)], [b - d * (DE_BAL_IN + DE_BAL_W), b - d * DE_BAL_IN]]:
+			_dekalog_stack(end[0], end[1], o, g, top)
+	_collide(poly)
+
+
+## A stack of balconies on the face between p and q, standing out along o: a slab and a solid
+## parapet front with short sides on every floor above the ground floor.
+func _dekalog_stack(p: Vector2, q: Vector2, o: Vector2, g: float, top: float) -> void:
+	var p2 := p + o * DE_BAL_D
+	var q2 := q + o * DE_BAL_D
+	var d := (q - p).normalized()
+	_mode = M_STONE
+	for n in range(1, DE_FLOORS):
+		var y := g + DE_FLOOR * n
+		if y + 1.1 > top:
+			break
+		var slab := PackedVector2Array([p, q, q2, p2])
+		if Geometry2D.is_polygon_clockwise(slab):
+			slab.reverse()
+		_prism(slab, y - 0.18, y, DE_SLAB, DE_SLAB, M_STONE, M_STONE)
+		_wall(p2, q2, y, y + 1.05, o, DE_PARAPET)
+		_wall(p, p2, y, y + 1.05, -d, DE_PARAPET)
+		_wall(q2, q, y, y + 1.05, d, DE_PARAPET)
+
+
+## Ośrodek Sportowy Inflancka 8, across Inflancka from the estate (F, 2026-11-07: "the centre of
+## Muranów where the pools are"), from F's row K09: the GUGiK ortho (georeferenced, 0.15 m a
+## pixel, it matches OSM's lap pool to under a metre), the 2018 oblique and five 2022 summer
+## photos. The white air dome over the indoor pool (OSM's 14 m `building` outline), the yellow
+## deck with three round leisure pools (a pale one, one with a red-brown painted floor, a deep
+## blue one), the 25 m lap pool with its lanes on a sand-yellow deck, the slide tower with a red
+## chute and a green spiral, and a beach volleyball court.
+const IP_DOME_AT := Vector2(-2336.0, -2370.0)
+const IP_DOME_H := 11.0
+const IP_DOME_WALL := 1.1
+const IP_DECK_H := 0.35                # the decks stand this far over the ground
+const IP_LEISURE := [Vector2(-2325.9, -2413.8), Vector2(-2304.5, -2427.4), Vector2(-2289.8, -2400.6), Vector2(-2311.3, -2389.3)]
+## The round pools: centre, radius, water colour.
+const IP_ROUND := [[Vector2(-2310.3, -2415.2), 4.2, Color("#8fd0e2")], [Vector2(-2309.2, -2405.0), 6.4, Color("#b4806c")],
+		[Vector2(-2299.3, -2406.1), 6.2, Color("#2f5e98")]]
+const IP_LAP := [Vector2(-2294.6, -2381.9), Vector2(-2271.4, -2393.5), Vector2(-2265.5, -2381.8), Vector2(-2288.7, -2370.2)]
+const IP_SPIRAL := Vector2(-2255.8, -2385.8)
+const IP_CHUTE_END := Vector2(-2258.0, -2377.6)
+const IP_SAND := Vector2(-2220.5, -2374.5)
+const IP_DOME := Color("#eef0ec")
+const IP_DOME_BASE := Color("#c9c7c0")
+const IP_DECK := Color("#e1c35c")
+const IP_LAP_DECK := Color("#d9b85a")
+const IP_RIM := Color("#e8eeee")
+const IP_RING := Color("#3d8fb5")
+const IP_WATER := Color("#41c3e6")
+const IP_LANE := Color("#1d5fa8")
+const IP_RED := Color("#d8343a")
+const IP_GREEN := Color("#3fa66a")
+const IP_STEEL := Color("#9aa1a6")
+const IP_SANDC := Color("#dccb9d")
+
+
+func _find_inflancka_pools() -> void:
+	var dome := _outline_at(IP_DOME_AT)
+	var zone: Array = []
+	if dome.size() >= 3:
+		zone.append(_largest(Geometry2D.offset_polygon(dome, 1.5, Geometry2D.JOIN_MITER)))
+	zone.append(PackedVector2Array(IP_LEISURE))
+	zone.append(_ip_lap_deck())
+	zone.append(_ip_circle(IP_SAND, 10.5, 8))
+	_add_site("inflancka_pools", zone)
+	if sites.is_empty() or sites[-1]["key"] != "inflancka_pools":
+		return
+	sites[-1]["dome"] = dome
+	for plan: PackedVector2Array in [PackedVector2Array(IP_LEISURE), _ip_lap_deck()]:
+		var grown := _largest(Geometry2D.offset_polygon(plan, 1.5, Geometry2D.JOIN_MITER))
+		tree_free.append([grown, 0.0, _box_of([grown])])
+	tree_free.append([IP_SPIRAL, 5.0])
+	tree_free.append([IP_SAND, 10.0])
+
+
+## The lap pool's deck: the pool grown 3.5 m, and 6 m more on the slide's end.
+func _ip_lap_deck() -> PackedVector2Array:
+	var p := PackedVector2Array(IP_LAP)
+	var u := (p[1] - p[0]).normalized()       # along the pool, towards the slide
+	var v := (p[3] - p[0]).normalized()
+	var m := 3.5
+	return PackedVector2Array([p[0] - u * m - v * m, p[1] + u * (m + 6.0) - v * m, p[2] + u * (m + 6.0) + v * m, p[3] - u * m + v * m])
+
+
+static func _ip_circle(c: Vector2, r: float, sides := 28) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for k in sides:
+		var t := TAU * k / sides
+		out.append(c + Vector2(cos(t), sin(t)) * r)
+	return out
+
+
+func _build_inflancka_pools(site: Dictionary) -> void:
+	var leisure := PackedVector2Array(IP_LEISURE)
+	_g = _ground_under(leisure)
+	var g := _g
+	_mode = M_STONE
+	# The decks are low slabs (IP_DECK_H) so the park's pitch and grass under them never show
+	# through; on the leisure deck the three round pools: a blue ring, then the water.
+	var top := g + IP_DECK_H
+	_prism(leisure, g - 0.3, top, IP_DECK.darkened(0.15), IP_DECK, M_STONE, M_STONE)
+	for r: Array in IP_ROUND:
+		_cap(_ip_circle(r[0], float(r[1]) + 0.35), top + 0.03, IP_RING)
+	for r: Array in IP_ROUND:
+		_cap(_ip_circle(r[0], float(r[1])), top + 0.06, r[2])
+	# The lap pool: the deck, a white rim, the water and five lane lines.
+	var lap := PackedVector2Array(IP_LAP)
+	_prism(_ip_lap_deck(), g - 0.3, top, IP_LAP_DECK.darkened(0.15), IP_LAP_DECK, M_STONE, M_STONE)
+	var rim := Geometry2D.offset_polygon(lap, 0.45, Geometry2D.JOIN_MITER)
+	if not rim.is_empty():
+		_cap(rim[0], top + 0.03, IP_RIM)
+	_cap(lap, top + 0.06, IP_WATER)
+	var u := lap[1] - lap[0]
+	var v := lap[3] - lap[0]
+	for k in range(1, 6):
+		var s := float(k) / 6.0
+		var a := lap[0] + v * s + u.normalized() * 1.5
+		var b := lap[1] + v * s - u.normalized() * 1.5
+		var w := v.normalized() * 0.12
+		_cap(PackedVector2Array([a - w, b - w, b + w, a + w]), top + 0.08, IP_LANE)
+	# The beach volleyball court (turned with the lap pool), a low sand bed; the playground's
+	# sand circle is OpenStreetMap's own.
+	var cu := u.normalized()
+	var cv := v.normalized()
+	var court := PackedVector2Array([IP_SAND - cu * 9.0 - cv * 4.5, IP_SAND + cu * 9.0 - cv * 4.5, IP_SAND + cu * 9.0 + cv * 4.5,
+			IP_SAND - cu * 9.0 + cv * 4.5])
+	if Geometry2D.is_polygon_clockwise(court):
+		court.reverse()
+	_prism(court, g - 0.3, g + 0.2, IP_SANDC.darkened(0.2), IP_SANDC, M_STONE, M_STONE)
+	for sgn: float in [-1.0, 1.0]:
+		var post := IP_SAND + cv * 4.8 * sgn
+		_beam(Vector3(post.x, g, post.y), Vector3(post.x, g + 2.5, post.y), 0.1, IP_STEEL)
+	var n0 := IP_SAND - cv * 4.8
+	var n1 := IP_SAND + cv * 4.8
+	_beam(Vector3(n0.x, g + 2.35, n0.y), Vector3(n1.x, g + 2.35, n1.y), 0.06, Color("#f4f4f0"), false)
+	_ip_slide(g)
+	_ip_dome(site.get("dome", PackedVector2Array()))
+
+
+## The slide tower: four posts and a deck at 6.5 m, the red chute down to the end of the strip
+## by the lap pool and the green spiral wound round the tower down to the splash basin.
+func _ip_slide(g: float) -> void:
+	var c := IP_SPIRAL
+	var h := 6.5
+	for k in 4:
+		var p := c + Vector2(cos(TAU * k / 4.0 + 0.4), sin(TAU * k / 4.0 + 0.4)) * 1.3
+		_beam(Vector3(p.x, g, p.y), Vector3(p.x, g + h + 1.0, p.y), 0.2, IP_STEEL)
+	_prism(_ip_circle(c, 1.6, 8), g + h - 0.15, g + h, IP_STEEL, IP_STEEL.darkened(0.1), M_STONE, M_STONE)
+	# The red straight chute.
+	var top := c + (IP_CHUTE_END - c).normalized() * 1.6
+	_beam(Vector3(top.x, g + h, top.y), Vector3(IP_CHUTE_END.x, g + 0.6, IP_CHUTE_END.y), 1.0, IP_RED)
+	# The green spiral: 1.5 turns at 3.3 m, from the deck down to 1 m.
+	var steps := 18
+	var prev := Vector3.INF
+	for k in steps + 1:
+		var t := float(k) / steps
+		var ang := 0.4 + t * TAU * 1.5
+		var p := c + Vector2(cos(ang), sin(ang)) * 3.3
+		var y := g + lerpf(h, 1.0, t)
+		var here := Vector3(p.x, y, p.y)
+		if prev != Vector3.INF:
+			_beam(prev, here, 0.9, IP_GREEN)
+		prev = here
+	_cap(_ip_circle(c + Vector2(cos(0.4 + TAU * 1.5), sin(0.4 + TAU * 1.5)) * 5.0, 1.6, 12), g + IP_DECK_H + 0.06, IP_WATER)
+	_collide(_ip_circle(c, 1.6, 8))
+
+
+## The air dome over the indoor pool: a concrete kerb round OSM's outline, then a cushion over
+## the outline's turned rectangle, rising IP_DOME_H with rounded shoulders (a superellipse).
+func _ip_dome(outline: PackedVector2Array) -> void:
+	var poly := _simplify(outline, 1.0)
+	if poly.size() < 3:
+		return
+	_g = _ground_under(poly)
+	var g := _g
+	var axis := Vector2.ZERO
+	for i in poly.size():
+		var e := poly[(i + 1) % poly.size()] - poly[i]
+		if e.length() > axis.length():
+			axis = e
+	axis = axis.normalized()
+	var across := Vector2(-axis.y, axis.x)
+	var c := _centre(poly)
+	var hu := 0.0
+	var hv := 0.0
+	for q in poly:
+		hu = maxf(hu, absf((q - c).dot(axis)))
+		hv = maxf(hv, absf((q - c).dot(across)))
+	hu -= 0.4
+	hv -= 0.4
+	var ring := PackedVector2Array([c - axis * hu - across * hv, c + axis * hu - across * hv, c + axis * hu + across * hv,
+			c - axis * hu + across * hv])
+	_prism(ring, g - 0.3, g + IP_DOME_WALL, IP_DOME_BASE, Color(0, 0, 0, 0), M_STONE)
+	var nu := 16
+	var nv := 11
+	var base := g + IP_DOME_WALL
+	var pts: Array = []
+	for i in nu + 1:
+		var row: Array = []
+		var s := -1.0 + 2.0 * i / nu
+		for j in nv + 1:
+			var t := -1.0 + 2.0 * j / nv
+			var hgt := IP_DOME_H * pow(maxf(0.0, 1.0 - pow(absf(s), 4.0)), 0.25) * pow(maxf(0.0, 1.0 - pow(absf(t), 3.0)), 0.33)
+			var p := c + axis * hu * s + across * hv * t
+			row.append(Vector3(p.x, base + hgt, p.y))
+		pts.append(row)
+	for i in nu:
+		for j in nv:
+			var a: Vector3 = pts[i][j]
+			var b: Vector3 = pts[i + 1][j]
+			var d: Vector3 = pts[i + 1][j + 1]
+			var e: Vector3 = pts[i][j + 1]
+			var nrm := (d - a).cross(b - e).normalized()
+			if nrm.y < 0.0:
+				nrm = -nrm
+			# A faint quilting: every other cell a shade darker.
+			var col := IP_DOME if (i + j) % 2 == 0 else IP_DOME.darkened(0.04)
+			_quad(a, b, d, e, nrm, col)
+	_collide(ring)
+
+
 func _find_blocks() -> void:
 	if not FileAccess.file_exists(BLOCKS_DIR + "/index.json"):
 		return
@@ -27951,6 +28295,8 @@ func _find_blocks() -> void:
 	for d: Dictionary in list:
 		var q := _pts(d["outline"])
 		if q.size() < 3:
+			continue
+		if str(d["id"]) in DE_BLOCKS:
 			continue
 		var key := "blk_" + str(d["id"])
 		var zone: Array = [_largest(Geometry2D.offset_polygon(q, 1.0, Geometry2D.JOIN_MITER))]

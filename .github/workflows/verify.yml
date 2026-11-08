@@ -61,7 +61,7 @@ jobs:
         env:
           GODOT: /home/runner/godot/godot
           NW_MAP_PACK: "off"   # the map job fetches and builds the map; this one stays map-free
-        run: zsh tools/verify.sh --only=parkdetails,streetdetails,ratuszhub,smooth,fixes,streetpass,models,overrides,stops,spec,steering,laneassist,stuckoffer,handling,settings,credits,tiers,governor,heliview,hud,places,edge,eggs,tape,crowds,life,buses,crashes,rave,meet,boatrace,kinotour,evtow,loud,crazy,oldtram,tramfleet,packs,wellness,fans,garage,save,districts,syrenki,cassettes,ladder,first10,chatter,endcard,opening,parodies,jobs2,rescues,couriers,delivery,rides,roofdress,tenementtrim,osmroofs,sites,meshq,sfx,juice,gamepad,radio,sounds,police --logs="$RUNNER_TEMP/verify"
+        run: zsh tools/verify.sh --only=parkdetails,streetdetails,ratuszhub,smooth,fixes,streetpass,models,overrides,stops,spec,steering,laneassist,stuckoffer,handling,settings,credits,tiers,governor,heliview,hud,places,edge,eggs,tape,crowds,life,buses,crashes,rave,meet,boatrace,dekalog,kinotour,evtow,loud,crazy,oldtram,tramfleet,packs,wellness,fans,garage,save,districts,syrenki,cassettes,ladder,first10,chatter,endcard,opening,parodies,jobs2,rescues,couriers,delivery,rides,roofdress,tenementtrim,osmroofs,sites,meshq,sfx,juice,gamepad,radio,sounds,police --logs="$RUNNER_TEMP/verify"
 
       - name: Keep the logs
         if: always()

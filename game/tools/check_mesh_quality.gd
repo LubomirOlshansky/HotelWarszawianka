@@ -162,6 +162,8 @@ const BUDGET := {
 	"slabs": 1100,   # 2026-11-03: balcony bands, a ledge every storey on the long faces (look check)
 	"zelazna": 1030,
 	"pokorna2": 1500,
+	"dekalog_estate": 18000,
+	"inflancka_pools": 1000,
 	"spektrum": 990,
 	"spire": 6600,  # 2026-11-06 photo rebuild (F), 6151 tris (vase, steel crown ring, drum): steel columns, canopy bow, Spire B/C crowns and eaves, plaza kerbs, channel, 26 trees; +0 draw calls
 	"tr": 500,
