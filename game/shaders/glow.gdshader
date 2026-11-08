@@ -12,6 +12,8 @@ render_mode unshaded, blend_add, depth_draw_never, cull_disabled, fog_disabled, 
 
 global uniform float lights_on;
 
+#include "res://shaders/tunnel_cut.gdshaderinc"
+
 uniform float strength = 1.0;
 // Metres the surface is pulled towards the camera (depth only): pools lie on the
 // road, whose layers are already pulled up to 0.42 m (ground.gdshader).
@@ -24,6 +26,8 @@ uniform bool radial = false;
 uniform bool blink = false;
 
 void vertex() {
+	// The tunnel cutaway (tunnel_cut.gdshaderinc): a lamp's halo over the opened ground goes with it.
+	VERTEX = tunnel_hide(VERTEX, MODEL_MATRIX[3].xyz);
 	if (billboard) {
 		MODELVIEW_MATRIX = VIEW_MATRIX * mat4(INV_VIEW_MATRIX[0], INV_VIEW_MATRIX[1], INV_VIEW_MATRIX[2], MODEL_MATRIX[3]);
 	}

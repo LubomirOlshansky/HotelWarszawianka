@@ -6800,7 +6800,10 @@ func _process(dt: float) -> void:
 	# F (2026-11-07): under a deck the occlusion ghost now cuts the deck itself (ground.gdshader's
 	# deck ghost, building.gdshader for its slab), so the car and the traffic round it show as
 	# they are; the silhouette stays for the tunnels, and for decks with --no-ghost.
-	_xray.show_through(not flying and (map.in_tunnel(pos.x, pos.z, pos.y) or (_deck_hid and no_ghost)))
+	# F (2026-11-08): in a tunnel the ground over it opens round the car (the tunnel cutaway), so
+	# the silhouette is only for --no-ghost, the top-down view and Fotka's photo.
+	var cut := _update_tunnel_cut(pos)
+	_xray.show_through(not flying and not cut and (map.in_tunnel(pos.x, pos.z, pos.y) or (_deck_hid and no_ghost)))
 	# Loop 3d-1: the pedestrian zones cap the player's car (police.md 5.6); the log says when.
 	# F's asks (2026-10-30): only with the Settings switch on (off by default).
 	var zone: String = ped_zones.at(car.global_position.x, car.global_position.z) if ped_zones != null and not flying else ""
@@ -6959,6 +6962,41 @@ func _update_ghost(pos: Vector3, car_view: Vector3) -> void:
 		var ppm := float(sv.size.y) / cam.size * float(view.stretch_shrink)
 		var c := cam.unproject_position(pos + Vector3(0, 3.5 if flying else 1.0, 0)) * float(view.stretch_shrink)
 		_ghost_px = Vector4(c.x, c.y - 0.2 * ghost_r * ppm, ghost_r / 0.78 * ppm, ghost_r * ppm)
+
+
+## F (2026-11-08): the tunnel cutaway (tunnel_cut.gdshaderinc). While the car drives in
+## a tunnel, the ground over the tunnel's corridor within TUNNEL_CUT_SIZE x the view's height
+## (TUNNEL_CUT_MIN..MAX m) of it is dropped, with the trees, lamps, benches and any building part
+## standing there: the tunnel's dark walls close the cut's sides and its
+## road and the car show from above. Off for the helicopter, --no-ghost, the top-down view and
+## Fotka's photo (the silhouette, tunnel_xray.gd, shows then). Returns whether the cut is open.
+## A few hundred chord tests in GDScript a frame while in a tunnel, nothing elsewhere.
+const TUNNEL_CUT_SIZE := 0.3
+const TUNNEL_CUT_MIN := 16.0
+const TUNNEL_CUT_MAX := 45.0
+const TUNNEL_CUT_CHORDS := 6
+## The chords reach this far past the cut's radius each way (the walls' ghost guard, the slot's ends).
+const TUNNEL_CUT_PAST := 24.0
+var _tunnel_cut_on := false
+
+
+func _update_tunnel_cut(pos: Vector3) -> bool:
+	var chords: Array = []
+	if not flying and not no_ghost and not top_down and (fotka == null or not fotka.is_open()):
+		var reach := clampf(cam.size * TUNNEL_CUT_SIZE, TUNNEL_CUT_MIN, TUNNEL_CUT_MAX)
+		chords = map.tunnel_cut_chords(pos.x, pos.z, pos.y, reach + TUNNEL_CUT_PAST, TUNNEL_CUT_CHORDS)
+		if not chords.is_empty():
+			for m: ShaderMaterial in [map.flat_material, building_mat] + map.cut_materials:
+				m.set_shader_parameter("tunnel_cut", Vector4(pos.x, pos.z, reach, float(chords[2])))
+				m.set_shader_parameter("tunnel_view", -cam.global_transform.basis.z)
+				m.set_shader_parameter("tunnel_seg", chords[0])
+				m.set_shader_parameter("tunnel_reach", chords[1])
+	var on := not chords.is_empty()
+	if not on and _tunnel_cut_on:
+		for m: ShaderMaterial in [map.flat_material, building_mat] + map.cut_materials:
+			m.set_shader_parameter("tunnel_cut", Vector4(0.0, 0.0, 0.0, -10000.0))
+	_tunnel_cut_on = on
+	return on
 
 
 # --- sweep 2: the neon signs are ghosted too ------------------------------------------------

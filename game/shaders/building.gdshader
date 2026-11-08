@@ -23,6 +23,7 @@ render_mode cull_disabled;
 #include "res://shaders/common.gdshaderinc"
 #include "res://shaders/night.gdshaderinc"
 #include "res://shaders/ghost.gdshaderinc"
+#include "res://shaders/tunnel_cut.gdshaderinc"
 
 uniform float clouds = 0.18;
 uniform float fade_radius = 7.5;
@@ -1062,9 +1063,17 @@ void fragment() {
 		// a tower keeps its shape and nothing above the cut floats. Every fragment goes,
 		// near walls, far walls and roofs alike; looking into a cut building, its inner
 		// faces go too (a little past the car, where the building runs on beyond it).
+		// The tunnel cutaway (tunnel_cut.gdshaderinc): whatever of a building stands in the
+		// tunnel's corridor round the car goes, down to the floor (its walls reach into it).
+		if (tunnel_in(world_pos, -1.0)) {
+			discard;
+		}
 		float fade = ghost_fade(VERTEX.xy, world_pos.xz);
 		if (!FRONT_FACING) {
 			fade = ghost_fade(VERTEX.xy, world_pos.xz - occluder.zw * 8.0);
+		}
+		if (fade > 0.0 && tunnel_wall(world_pos)) {
+			fade = 0.0;
 		}
 		if (ghost_debug == 1) {
 			if (fade > 0.5) {

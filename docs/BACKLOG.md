@@ -3595,11 +3595,13 @@ twice the dog walkers there, twice the cyclists (cap 16) and 45 % of them fast. 
 - **The minimap doesn't draw the tunnels yet** (DEMO 4.4: dashed). It is `hud.gd`
   `_minimap_mesh` (the HUD agent's file): after the roads loop, the `tunnels.roads` as 8 m
   dashes in the road colour. The snippet is in the loop 3b report.
-- **The car in a tunnel is a silhouette, not the plan's dithered ghost.** `tunnel_xray.gd` draws
-  the car's meshes once more with an unshaded material that ignores depth (after the post pass);
-  the ground over the tunnel stays whole. A dither in `ground.gdshader` would need `discard` in
-  the ground's shader (a cost on the phone's tile GPU for the whole ground); the look is the
-  user's to judge on the phone.
+- **The tunnel cutaway on the phone** (F, 2026-11-08; the silhouette item is fixed: the ground,
+  trees, lamps, benches and building parts over the tunnel open round the car,
+  `shaders/tunnel_cut.gdshaderinc`, `check_tunnel_cut`). Open: the look and a bench on the iPhone
+  (no new discard-capable shader: ground, building and foliage already discard; fixture and glow
+  only collapse vertices; ~70 µs of GDScript a frame while in a tunnel). The cut's edge shows no
+  earth thickness (the walls' tops meet the grass); pedestrians walking over the cut and the
+  portal frames' headwalls are not cut; a car in one Wisłostrada tube opens only its own tube.
 - The portal frames are simple (a headwall, two posts, a dark mouth 3 m in); the 10 m grid's
   slope over the first metres of a tunnel covers part of the mouth. The open ramp's walls stand
   on the grid's blurred trench sides.
