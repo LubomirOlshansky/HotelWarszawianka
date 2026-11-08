@@ -5598,6 +5598,7 @@ Command-line options (after `--`):
 
 | Option | Effect |
 | --- | --- |
+| `--palace-lights=ID` | the Palace of Culture's night lighting forced to one row of `data/palace_lights.json` (`independence`, `parade`, `christmas`...; `gold` the nightly gold), whatever the date (2026-11-07) |
 | `--demo` | the car drives by itself; with `--heli` the helicopter flies a slow circle |
 | `--shots=60,240` / `--out=DIR` | save screenshots at those frames (counted from when the city is built), then quit (sweep 2: the sounds are stopped 0.15 s before, so a windowed run no longer ends with leaked audio streams). The window never takes the keyboard focus, as with `--no-input`, and a run that ends before a shot prints `shots: missing [frames]` with the game and engine frame and the pause state (2026-10-30) |
 | `--spots=NAME:X,Z[,HEADING];...` | with `--shots`: shoots every spot in one run (the city is built once; the car and camera jump to the next spot after each spot's last shot frame, the frames shift by the frames spent), files `NAME_FFFF.png`. `--out` is made when missing, and a PNG that can't be written ends the run with exit 1 (it used to exit 0 with no file) (Operation Unslop, 2026-11-05) |
@@ -5633,6 +5634,7 @@ Command-line options (after `--`):
 | `--mission=N` | start rescue call N at once (N = 1, 5, 9… streets, 2, 6… roofs, 3, 7… river, 4, 8… parks) |
 | `--autopilot` | testing aid: fly (or, ghosting through walls, drive) to each mission target; in a race or a side job, drive the route; with `--rival`, tail the rival |
 | `--ghost-pace=X` | testing aid (street races, 2026-11-04): the autopilot's speed factor in a race (default 1.8, an average player; 2.4 a quick one; `racer`: a skilled player in traffic.gd's racer mode at the car's top), for the race-AI runs (`tools/race_ai.sh`) |
+| `--handling=cruise\|sport\|grounded` | Grounded handling (2026-11-08): drive this run in that profile (car.gd PROFILES), whatever Settings → Jazda says; `check_lane_drive.gd` takes it too |
 | `--lane-assist=on\|off` | beta values (2026-11-04): the lane assist "Asysta pasa" (`lane_assist.gd`, Classic only) for this run, whatever Settings → Jazda says (off by default) |
 | `--race-debug` | testing aid (street races, 2026-11-04): once a second while a racing rival or a chaser stands still, traffic.gd prints what holds it (the car ahead, the player, a crossing car, a red, the lane) |
 | `--no-traffic` | no traffic, trams, pedestrians or rivals |
@@ -5653,6 +5655,7 @@ Command-line options (after `--`):
 | `--sloik` / `--sloik=K` | start the słoiki run at Dworzec Centralny (K jars already broken); `--sloik-station=1` starts it at Dworzec Gdański (to Muranów) |
 | `--ride=N` | loop 2d-1: Podwózka ride N's request, the car on the road 60 m before its passenger (the same N gives the same ride; with `--ride-quirk=river` or `zone` the passenger is picked near river spot / park N, so the leg fits); with `--autopilot` it is accepted after 2 s and driven |
 | `--ride-quirk=river\|zone\|oldtown\|rechotka\|reroute` | loop 2d-1: force the ride's quirk (`oldtown` becomes `zone` on today's map; `rechotka`, the Frogs turn: in the random pool since loop MW-2) |
+| `--crawl-call` / `--crawl-route=ID` / `--crawl-group=ID` / `--crawl=0` / `--crawl-log` | 2026-11-07: the bar crawl (bar_crawl.gd): the group rings a second in at any hour, that route (`klasyczna`, `nad_woda`, `odwazni`, `praga`) or group (`panienski`, `kawalerski`, `sesja`, `wdrozenie`), none of it, the `crawl:` log lines; with `--autopilot` the call is answered, accepted and driven |
 | `--passenger=normal\|believer\|hurry\|detour` | loop 2d-1: force the passenger type (loop MW-2: `detour` asks for a Frogs stop, +½ star once) |
 | `--ride-story=ID\|none` | 2026-11-07: that story passenger (`data/taxi_stories.json` id) on the rides, or `none` for the old chat |
 | `--ride-answer=0\|1` | 2026-11-07: the autopilot's answer to the story passenger's question (default 0) |
@@ -5748,6 +5751,10 @@ Command-line options (after `--`):
 | `--fans=0` | the fans by Stadion Leguminy (fans.gd) off (also off with `--crowd=0`) |
 | `--fans-now` | fans: the three groups out on whatever the clock says (shots, checks); otherwise only on match evenings (Wed 17:00-21:30, Sat 15:00-21:30, Sun 14:00-20:30) |
 | `--fans-log` | fans: print `fans:` lines: out and home, each chant (and the horn's), every line |
+| `--event-day` | 11 listopada (event_day.gd): the Independence Day event on whatever the date and clock say, full strength (the crowd and flags at Rondo Dmowskiego and Al. Jerozolimskie, the four barrier lines, the Palace, Złota 44 and Stadion Narodowy lit white and red, the glow and haze); otherwise it switches itself on only on 11 November (the Warsaw date, live clock) |
+| `--event-day=0` | the event off even on the date |
+| `--event-smoke=0` | the event without the glow pots, the haze and the smoke puffs (the "smoke off" look) |
+| `--event-log` | event: print its build line (people, flags, glow pots, bands) |
 | `--fans-phase=arrive\|match\|leave` | fans: the match day's phase whatever the clock (its busy part: arrive at 0.75, leave at 0.15), so shots show the walkers |
 | `--fans-result=win\|draw` | fans: the result at full time instead of the roll (65 % win) |
 | `--wellness=0` | wellness circles (docs/design/wellness.md): no sound-healing rings, techno-yoga rows, 40+ circles or kung-fu schools (`--crowd=0` drops them too) |

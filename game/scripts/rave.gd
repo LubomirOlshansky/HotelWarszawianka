@@ -53,8 +53,8 @@ const SPOTS := [
 			"where": ["w starej zajezdni za torami na Pradze", "in the old depot past the tracks in Praga"]},
 	{"id": "hala", "name": "Hala przy torach", "ll": [52.2265, 20.9935], "night": true,
 			"where": ["w hali przy torach na Ochocie", "in the hall by the tracks towards Ochota"]},
-	{"id": "plaza", "name": "Rave na plaży", "ll": [52.2378, 21.0437], "night": false,
-			"where": ["na plaży po praskiej stronie", "on the Praga-side beach"]},
+	{"id": "plaza", "name": "Rave pod mostem", "ll": [52.23642, 21.04301], "night": false,
+			"where": ["na plaży pod Mostem Poniatowskiego, po praskiej stronie", "on the Praga beach under the Poniatowski bridge"]},
 ]
 ## Ziomek's block (story_quests.gd's start spot, F 2026-11-07): Osiedle Za Żelazną Bramą, the
 ## big slab blocks by Hala Mirowska; drive there in the evening and he comes out to talk.

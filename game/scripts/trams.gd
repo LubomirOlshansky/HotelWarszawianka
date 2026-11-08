@@ -337,6 +337,10 @@ func _head(tram: Tram) -> int:
 	return tram.trail[tram.trail.size() - 1]
 
 
+## A zone the trams keep out of (event_day.gd): (Vector2) -> bool. Invalid: no zone.
+var keep_out: Callable
+
+
 func _process(dt: float) -> void:
 	if dt <= 0.0 or _pts.is_empty():
 		return
@@ -349,6 +353,11 @@ func _process(dt: float) -> void:
 		tram.rear = _back_point(tram, length)
 	for tram in trams:
 		_move(tram, dt)
+	# A zone the trams keep out of (event_day.gd's cordon): the one that reaches it goes round again.
+	if keep_out.is_valid():
+		for tram in trams:
+			if keep_out.call(_back_point(tram, 0.0)):
+				_reenter(tram)
 	_greet_step(dt)
 	# Only trams that could be seen get their cars placed (moving physics bodies
 	# costs more than the rest); the others just keep track of their head.

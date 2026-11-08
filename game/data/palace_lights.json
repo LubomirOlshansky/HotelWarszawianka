@@ -1,0 +1,19 @@
+{
+ "_about": "The Palace of Culture's night lighting by date (palace_lights.gd, F 2026-11-07 with photos of the real event colours). Each event: id, name, from and to as MM-DD (to may wrap past New Year) or nth_weekday [month, weekday 0 Sunday..6 Saturday, n], pattern (gold, solid, split_height: a on the base and pavilions, b up the tower; rainbow), colours a and b, cycle (rainbow drift, turns per minute). The shortest matching event wins; no match is the nightly gold. A night belongs to the date it began (the lights keep the evening's colours until dawn).",
+ "events": [
+  {"id": "new_year", "name": "Nowy Rok", "from": "12-31", "to": "01-01", "pattern": "rainbow", "a": "#ffffff", "b": "#ffffff", "cycle": 0.25},
+  {"id": "valentines", "name": "Walentynki", "from": "02-14", "to": "02-14", "pattern": "solid", "a": "#ff3d7a", "b": "#ff3d7a"},
+  {"id": "st_patrick", "name": "Dzień św. Patryka", "from": "03-17", "to": "03-17", "pattern": "solid", "a": "#2bd96a", "b": "#2bd96a"},
+  {"id": "autism", "name": "Światowy Dzień Świadomości Autyzmu", "from": "04-02", "to": "04-02", "pattern": "solid", "a": "#2f6dff", "b": "#2f6dff"},
+  {"id": "may_3", "name": "Święto Konstytucji 3 Maja", "from": "05-02", "to": "05-03", "pattern": "split_height", "a": "#ff2a3a", "b": "#ffffff"},
+  {"id": "parade", "name": "Parada Równości", "nth_weekday": [6, 6, 3], "pattern": "rainbow", "a": "#ffffff", "b": "#ffffff", "cycle": 0.0},
+  {"id": "uprising", "name": "Rocznica Powstania Warszawskiego", "from": "08-01", "to": "08-01", "pattern": "split_height", "a": "#ff2a3a", "b": "#ffffff"},
+  {"id": "ukraine", "name": "Dzień Niepodległości Ukrainy", "from": "08-24", "to": "08-24", "pattern": "split_height", "a": "#ffd23a", "b": "#2f7bff"},
+  {"id": "pink_october", "name": "Różowy Październik", "from": "10-01", "to": "10-31", "pattern": "solid", "a": "#ff5fb4", "b": "#ff5fb4"},
+  {"id": "halloween", "name": "Halloween", "from": "10-31", "to": "10-31", "pattern": "solid", "a": "#ff8a1f", "b": "#ff8a1f"},
+  {"id": "independence", "name": "Narodowe Święto Niepodległości", "from": "11-10", "to": "11-11", "pattern": "split_height", "a": "#ff2a3a", "b": "#ffffff"},
+  {"id": "preemie", "name": "Światowy Dzień Wcześniaka", "from": "11-17", "to": "11-17", "pattern": "solid", "a": "#a53dff", "b": "#a53dff"},
+  {"id": "orange_world", "name": "Pomarańczowy Świat (16 dni przeciw przemocy)", "from": "11-25", "to": "11-25", "pattern": "solid", "a": "#ff8a1f", "b": "#ff8a1f"},
+  {"id": "christmas", "name": "Boże Narodzenie", "from": "12-20", "to": "12-26", "pattern": "split_height", "a": "#ff2a3a", "b": "#2bd96a"}
+ ]
+}
