@@ -16,7 +16,7 @@ the industry, the flavours and the arguing, not about getting high (see "Content
 | Who | Role | Notes |
 | --- | --- | --- |
 | **Ivan** | the caller and first friend, lives at 19. Dzielnica | F 2026-11-08: Ivan calls, Mati is not in this quest (Mati is Smolna's friend, the renamed Ziomek). A new character: his own call card, portrait and lines; the call/pickup code is reused from `rave.gd`, only the name and lines differ. |
-| **Bogdan** | second friend, picked up from the tennis courts | Plays tennis (WTS DESKA, Zaruskiego, already in game as the padel call's courts, so the detour is free). Arrives sweaty, in a headband, talks about his backhand and how glad he is to finally smoke shisha. |
+| **Bogdan** | second friend, picked up at a sports court on the way | Plays tennis, comes straight from a court between Dzielnica 19 and Emilii Plater (WTS DESKA at Zaruskiego was too far: 3.5 km east, and by car reachable only from Czerniakowska, PT-31). Arrives sweaty, in a headband, talks about his backhand and how glad he is to finally smoke shisha. |
 | **Mistrz Fajki** (name TBD: "Pan Dymek") | the shisha master | Calm, in a waistcoat, speaks like a sommelier about tobacco-free "mixes". Never rushed. |
 | **You** | the driver | Silent as always; your choices are the buttons. |
 
@@ -32,9 +32,18 @@ Tension: Ivan wants light and fruity, Bogdan wants strong, you cast the deciding
    `shisha`): a start beacon at the 19. Dzielnica block, a greeting in person, a WĄTKI list entry.
 2. **Pick up Ivan** at 19. Dzielnica (Kolejowa / Przyokopowa, sites `d19` / `noho`): a dashed
    ring at the kerb, he waves, gets in (rave's pickup, `_board`).
-3. **Pick up Bogdan** at the WTS DESKA gate (Zaruskiego): second ring, 3-4 km across the city
-   (Wola -> Śródmieście -> Powiśle). Bogdan tennis monologue (below). A two-stop route is what
-   `trend_job.gd` "Czwarty" already does with three stops.
+3. **Pick up Bogdan** (F, 2026-11-08: WTS DESKA is too far, pick him up in the area between
+   19. Dzielnica and Emilii Plater): a mapped sports court (`game/data/courts.json`) with a car
+   road beside it. The best candidates in the mapped data, in game metres from the origin: one
+   at about (-1848, 47), roughly 350 m from the 19. Dzielnica block and 355 m from Plater 53;
+   others at (-1706, -124) (170 m / 413 m) and (-1809, 241) (530 m / 240 m). Built default: the
+   first, subject to the map engineer checking that a kerb is reachable and that it is a
+   tennis-like pitch (the data holds every sports court); a tennis net, a bag and Bogdan in white
+   are added there for the quest only. The whole drive is then about 1 km and 3-4 minutes, so the
+   car argument is the heart of it: the three rounds run over the two legs (Ivan alone, then both
+   with Bogdan). A longer way round (Rondo ONZ, Świętokrzyska) can be offered as a scenic
+   detour on the second leg if the banter needs more time. Bogdan's tennis monologue (below). The
+   two-stop route is what `trend_job.gd` "Czwarty" already does.
 4. **The car argument** on the way to the lounge: a vote scene with three rounds (flavour,
    strength, the nickname of the pipe), banter in between (below). Your votes set the mini-game.
 5. **Arrive at SENATOREK LOUNGE** (Emilii Plater 53). Park at the kerb ring under the portico, a
@@ -187,7 +196,7 @@ Like Smoła's end of room. After the mix:
 | Call card, answer/decline, JADĘ, pickup ring | `rave.gd` `ring`, `_offer`, `_on_card`, `_board`; `hud.show_side_card` |
 | Quest map start, in-person greeting, WĄTKI entry | `story_quests.gd` `add` (id `shisha`, colour teal-green, hours 17:00-02:00) |
 | Two pickups and a drop route | `trend_job.gd` three-stop job ("Czwarty") |
-| Bogdan's pickup site | WTS DESKA (`landmarks.gd` DESKI) |
+| Bogdan's pickup site | a mapped sports court near 19. Dzielnica (`courts.json`), kerb ring by `rave.kerb_near` |
 | The lounge's tower, entrance and view | `wcf` (spec `wcf.md`), the Palace as the backdrop |
 | The room, camera, people to tap, exit | `club.gd` cutaway (`enter`, `people`, tap, WYJDŹ) |
 | Beat/timing ring | `club.gd` `_draw_beat` and DANCE streak |

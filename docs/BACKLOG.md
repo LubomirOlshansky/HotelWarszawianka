@@ -485,11 +485,11 @@ strict three-question door, Smoła's cutaway room (option A). Left:
 ## Shisha lounge quest "Dym u Senatorka" (F, 2026-11-08; analysis in docs/design/shisha-lounge.md)
 
 Analysis and design only, nothing built. Ivan rings ("wanna smoke some shisha?"), pick him up at
-19. Dzielnica, pick up Bogdan from the tennis courts (WTS DESKA), argue in the car about flavours
+19. Dzielnica, pick up Bogdan at a sports court between 19. Dzielnica and Emilii Plater (WTS DESKA is too far, F 2026-11-08), argue in the car about flavours
 and strength, SENATOREK LOUNGE (parody of "Senator lounge", on a high floor of the Warsaw Financial Centre, Emilii Plater 53, with a roof terrace, from F's photos), the lounge cutaway room, the flavour
 mini-game with the shisha master, then smoke or exit as at Smoła.
 - [ ] F's call: lounge name SENATOREK LOUNGE ok? (Ivan calls, Bogdan second: F 2026-11-08)
-- [ ] Lounge entrance: kerb ring under the WFC portico on Emilii Plater 53, a lift card, a rock-wall room with olive trees and velvet banquettes, a roof terrace with the Palace view (spec `wcf.md` exists); pickup rings at 19. Dzielnica and WTS DESKA
+- [ ] Lounge entrance: kerb ring under the WFC portico on Emilii Plater 53, a lift card, a rock-wall room with olive trees and velvet banquettes, a roof terrace with the Palace view (spec `wcf.md` exists); pickup rings at 19. Dzielnica and at a court between it and Plater (candidates in the design doc)
 - [ ] `shisha.gd`: call, two pickups, drop, `stories.add` id `shisha`, `--shisha-call` flags
 - [ ] The car argument: Bogdan's tennis lines, flavour and strength votes (dialogue.json `shisha_ride`)
 - [ ] Lounge room (club.gd cutaway), smoke haze, lounge track
