@@ -179,6 +179,9 @@ vec3 facade(vec3 col, float u, float h, float seed, float top, bool glass, out v
 const int T_TENEMENT = 1;
 const int T_SLAB = 2;
 const int T_OFFICE = 3;
+// The Old Town and New Town (F's photos E01-E04, 2026-11-08): map_builder.gd _tenement_facades
+// tags their walls 4, the seed's upper half marking a front on the market square.
+const int T_OLDTOWN = 4;
 
 // A pane's colour by day, and a lit room at night: the same rules as facade()'s windows.
 vec3 typed_pane(vec3 col, vec2 cell, float seed, bool office, out vec3 glow) {
@@ -249,6 +252,87 @@ vec3 typed_facade(int kind, vec3 col, float u, float h, float seed, float top, o
 		}
 		if (wx < 0.25 && fy > 0.08 && fy < 0.13) {
 			return col * 0.78;                          // the sill's shadow
+		}
+		return col;
+	}
+	if (kind == T_OLDTOWN) {
+		// A rebuilt Old Town house: a stone portal with a round head on some axes of the ground
+		// floor and shop windows on the rest, a string course, then floors of tall casements in
+		// cream surrounds with white glazing bars, a sill under each and a head over it, a
+		// cornice under the eaves; on the market square a painted band along every floor line.
+		float s0 = clamp(seed / 0.96, 0.0, 0.999);
+		bool square = s0 >= 0.5;
+		float s = fract(s0 * 2.0);
+		float g = 3.4 + 0.5 * fract(s * 7.13);      // the ground floor
+		float fh = 3.0 + 0.5 * fract(s * 3.31);     // upper floors
+		float sp = 2.2 + 0.6 * fract(s * 5.71);     // window axes
+		vec3 frame = srgb_to_linear(vec3(0.94, 0.91, 0.84));
+		if (top > 6.0 && h > top - 0.75) {
+			return col * 1.15;                          // the cornice
+		}
+		if (top > 6.0 && h > top - 0.95) {
+			return col * 0.66;                          // its shadow
+		}
+		float dx = (fract(u / sp) - 0.5) * sp;          // metres from the window axis
+		vec2 unit = vec2(floor(u / sp), s * 77.0);
+		if (h < g) {
+			if (hash12(unit + 3.7) < 0.28) {
+				float spring = min(2.3, g - 1.1);
+				float edge = h < spring ? abs(dx) : length(vec2(dx, h - spring));
+				if (edge < 0.72) {
+					return srgb_to_linear(vec3(0.24, 0.17, 0.12));   // the door
+				}
+				if (edge < 1.0) {
+					return srgb_to_linear(vec3(0.83, 0.8, 0.74));    // its stone surround
+				}
+				return h < 0.45 ? col * 0.82 : col;
+			}
+			bool shop = abs(dx) < 0.36 * sp && h > 0.55 && h < g - 0.75;
+			vec3 window_col = mix(col * 0.45, srgb_to_linear(vec3(0.2, 0.24, 0.28)), 0.75);
+			if (night && shop && hash12(unit) < 0.72 * lights_on) {
+				glow = (hash12(unit + 5.1) < 0.65 ? WARM_PALE : vec3(0.9, 0.92, 1.0)) * 1.35;
+				return window_col * 0.6;
+			}
+			if (shop) {
+				return window_col;
+			}
+			if (abs(dx) < 0.36 * sp + 0.14 && h > 0.41 && h < g - 0.61) {
+				return frame * 0.9;                     // the shop window's frame
+			}
+			return h < 0.45 ? col * 0.82 : col;         // the plinth
+		}
+		if (h < g + 0.24) {
+			return col * 1.12;                          // the string course
+		}
+		float y = h - g;
+		float wy = fract(y / fh) * fh;                  // metres over this floor's line
+		vec2 cell = vec2(floor(u / sp), floor(y / fh));
+		float hw = 0.42 + 0.08 * fract(s * 9.1);        // a casement's half width
+		float wb = 0.8;                                 // its foot over the floor line
+		float wt = wb + 1.45 + 0.2 * fract(s * 4.3);    // its head
+		float ax = abs(dx);
+		if (ax < hw && wy > wb && wy < wt) {
+			if (ax < 0.035 || abs(wy - (wb + (wt - wb) * 0.64)) < 0.035) {
+				return frame;                           // the glazing bars
+			}
+			return typed_pane(col, cell, s, false, glow);
+		}
+		if (ax < hw + (square ? 0.26 : 0.18) && wy >= wt && wy < wt + 0.24) {
+			return frame * 1.02;                        // the head
+		}
+		if (ax < hw + 0.13 && wy > wb - 0.13 && wy < wt) {
+			return frame;                               // the surround
+		}
+		if (ax < hw + 0.2 && wy > wb - 0.25 && wy <= wb - 0.13) {
+			return frame * 0.86;                        // the sill
+		}
+		if (ax < hw + 0.2 && wy > wb - 0.36 && wy <= wb - 0.25) {
+			return col * 0.74;                          // its shadow
+		}
+		if (square && wy < 0.34) {
+			vec3 band = dot(col, vec3(0.2126, 0.7152, 0.0722)) > 0.3 ? col * 0.8 : col * 1.25;
+			float diamond = abs(fract(u / 0.9) - 0.5) + abs(wy / 0.34 - 0.5);
+			return diamond < 0.28 ? mix(band, frame, 0.7) : band;   // the painted band
 		}
 		return col;
 	}

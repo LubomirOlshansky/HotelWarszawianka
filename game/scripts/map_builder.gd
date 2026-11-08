@@ -10672,12 +10672,21 @@ const CANDELABRA_HEAD := Vector3(0, 8.5, 0)
 ## The landmarks loop (Old Town): the historic districts (x, z, radius), the Old Town and the
 ## New Town, where GUGiK models a whole block of tenements as one building (Rynek's sides are
 ## 49 and 84 OpenStreetMap houses in one model), so it stood in one colour like a modern block.
-const HISTORIC := [Vector3(-760.0, -1680.0, 200.0), Vector3(-830.0, -1920.0, 170.0), Vector3(-724.2, -1465.4, 105.0)]
+## F (2026-11-08): the rebuilt tenements at Krakowskie Przedmieście's north end that have no
+## photo front (Hôtel de Saxe, Kamienica Heyna, Pałac Wesslów's row; the pair by Bednarska)
+## take the Old Town dress too.
+const HISTORIC := [Vector3(-760.0, -1680.0, 200.0), Vector3(-830.0, -1920.0, 170.0), Vector3(-724.2, -1465.4, 105.0),
+		Vector3(-696.0, -1106.0, 26.0), Vector3(-735.0, -1316.0, 16.0)]
 ## Plac Zamkowy's houses (F, 2026-11-01): OpenStreetMap's colours there are muddy (olive,
 ## mustard, brown), so within PLAC_PALETTE_R of the column a house takes one of these pastels
 ## (the rebuilt Old Town's cream, apricot, rose, sage, powder blue, sand), a quarter of the
 ## mapped colour left in for variety.
 const PLAC_PALETTE_R := 110.0
+## The market square's fronts (the shader's painted bands): walls within this of its centre that
+## face it.
+const SQUARE_FRONT_R := 48.0
+## building.gdshader's T_OLDTOWN: the historic districts' walls (F's photos, 2026-11-08).
+const OLD_TOWN_TYPE := 4
 const PLAC_PASTELS := ["#ecd9a4", "#e9bda8", "#e3b5b0", "#c6d3b3", "#bfd2e0", "#efe4cf", "#e6cba0", "#d9c6d6"]
 ## Mariensztat (the Mariensztat review, 2026-11-01): the 1948-49 estate under the escarpment
 ## (Rynek Mariensztacki, Mariensztat, Sowia, Garbarska, Furmańska and lower Bednarska), small
@@ -10986,12 +10995,15 @@ func _tenement_facades(pos: PackedVector3Array, nrm: PackedVector3Array, col: Pa
 						if trim[k] and absf(nrm[t].y) < 0.05:
 							_powisle_trim(pos, nrm, t, looks[k], dress)
 					break
+				# F's photos (2026-11-08): the walls take the shader's Old Town type (portals,
+				# casements in cream surrounds, sills, painted bands on the market square's fronts)
+				var wall_seed := typed_seed(OLD_TOWN_TYPE, seeds[k] * 0.5 + (0.5 if _faces_square(pos, nrm, t) else 0.0))
 				for v in 3:
 					if pitched:
 						col[t + v] = col[t + v].lerp(roofs[k], 0.5)
 					else:
 						col[t + v] = looks[k]
-						uv2[t + v].x = seeds[k]
+						uv2[t + v].x = wall_seed
 				if pitched:
 					# Old Town roof detail (OldTownRoofs): a dormer, now and then a chimney. The
 					# seed from the slope's place, not its index (a sector's batch numbers its
@@ -11004,6 +11016,17 @@ func _tenement_facades(pos: PackedVector3Array, nrm: PackedVector3Array, col: Pa
 					_square_gables(pos, nrm, t, polys, grid, cell, looks, seeds, covered, dress)
 				break
 	return [col, uv2, dress]
+
+
+## Whether wall triangle `t` faces the Old Town market square (within SQUARE_FRONT_R of its
+## centre, turned towards it): the shader paints its floor lines in bands.
+func _faces_square(pos: PackedVector3Array, nrm: PackedVector3Array, t: int) -> bool:
+	var n := Vector2(nrm[t].x, nrm[t].z)
+	if n.length() < 0.9:
+		return false
+	var mid := (pos[t] + pos[t + 1] + pos[t + 2]) / 3.0
+	var to_square := OldTownRoofs.RYNEK - Vector2(mid.x, mid.z)
+	return to_square.length() < SQUARE_FRONT_R and n.normalized().dot(to_square.normalized()) > 0.6
 
 
 ## G7: a house's roof colour from its hash: a weighted pick from TILES, then a lightness shift of

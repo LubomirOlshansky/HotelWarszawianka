@@ -6719,8 +6719,8 @@ func _build_syrenka(_site: Dictionary) -> void:
 
 
 ## The mermaid, bronze: the tail coiled on the rock with its fin flicked up, the torso, the
-## head with its long hair, the right arm raising the sword, the left holding the round shield
-## forward. `y` is the rock's top; the local frame is _o/_a/_b (u forward).
+## head with its long hair, the right arm raising the sword over her head, the left raising the
+## round shield (F's photo, 2026-11-08). `y` is the rock's top; the local frame is _o/_a/_b (u forward).
 func _syrenka_figure(y: float) -> void:
 	var bz := RYNEK_BRONZE
 	var none := Color(0, 0, 0, 0)
@@ -6742,19 +6742,22 @@ func _syrenka_figure(y: float) -> void:
 	_prism(_rect(0.02, 0.0, 0.11, 0.1), y + 1.88, y + 2.14, bz.lightened(0.05), bz, M_STONE, M_STONE)
 	_prism(_rect(-0.1, 0.0, 0.09, 0.14), y + 1.9, y + 2.2, RYNEK_BRONZE_DEEP, RYNEK_BRONZE_DEEP, M_STONE, M_STONE)
 	_beam(pt.call(-0.14, 0.0, 2.0), pt.call(-0.42, 0.0, 1.3), 0.2, RYNEK_BRONZE_DEEP)
-	# The right arm (on the right of her heading) up with the sword, the guard, a gilt-like blade.
-	_beam(pt.call(0.0, -0.3, 1.68), pt.call(0.06, -0.5, 2.0), 0.14, bz)
-	_beam(pt.call(0.06, -0.5, 2.0), pt.call(0.1, -0.45, 2.45), 0.13, bz)
-	_lbox(0.1, -0.45, 0.05, 0.3, y + 2.42, y + 2.5, RYNEK_BRONZE_SHADE, M_STONE)
-	_beam(pt.call(0.1, -0.45, 2.45), pt.call(0.12, -0.45, 3.5), 0.07, RYNEK_BRONZE_HI)
-	# The left arm forward, the round shield at its hand, facing forward: a rim, a face, a boss.
-	_beam(pt.call(0.0, 0.3, 1.68), pt.call(0.3, 0.5, 1.45), 0.14, bz)
-	var hand: Vector3 = pt.call(0.55, 0.45, 1.5)
-	_beam(pt.call(0.3, 0.5, 1.45), hand, 0.13, bz)
-	var face := Vector3(_a.x, 0.0, _a.y)
-	_disc(hand, face, 0.52, 12, RYNEK_BRONZE_SHADE)
-	_disc(hand + face * 0.03, face, 0.4, 12, RYNEK_BRONZE_HI)
-	_disc(hand + face * 0.06, face, 0.13, 8, RYNEK_BRONZE_DEEP)
+	# F's photo (2026-11-08): the right arm raised high over her head, the sword held across above
+	# it, blade out to her left and a little up; the left arm raised too, the round shield up at
+	# head height to her left, turned half forward.
+	_beam(pt.call(0.0, -0.3, 1.68), pt.call(0.02, -0.42, 2.12), 0.14, bz)
+	var fist: Vector3 = pt.call(0.04, -0.22, 2.5)
+	_beam(pt.call(0.02, -0.42, 2.12), fist, 0.13, bz)
+	_beam(fist + Vector3.UP * 0.02, pt.call(0.0, -0.36, 2.48), 0.1, RYNEK_BRONZE_SHADE)
+	_beam(fist, pt.call(-0.04, 0.82, 2.7), 0.07, RYNEK_BRONZE_HI)
+	_beam(pt.call(0.0, 0.3, 1.68), pt.call(0.14, 0.58, 1.82), 0.14, bz)
+	var hand: Vector3 = pt.call(0.22, 0.6, 2.05)
+	_beam(pt.call(0.14, 0.58, 1.82), hand, 0.13, bz)
+	var face := Vector3(_a.x * 0.75 + _b.x * 0.66, 0.0, _a.y * 0.75 + _b.y * 0.66).normalized()
+	var boss := hand + face * 0.08 + Vector3.UP * 0.05
+	_disc(boss, face, 0.52, 12, RYNEK_BRONZE_SHADE)
+	_disc(boss + face * 0.03, face, 0.4, 12, RYNEK_BRONZE_HI)
+	_disc(boss + face * 0.06, face, 0.13, 8, RYNEK_BRONZE_DEEP)
 
 
 # --- The Powiśle boulevards: the riverside Syrenka, Dworzec Wodny, Kaskada (2026-11-01) -----------
@@ -13857,14 +13860,29 @@ func _vase(p: Vector2, g: float) -> void:
 ## (`M_GOTHIC`: buttresses and lancets) with a crenellated parapet and four octagonal turrets with
 ## conical roofs on its curve. Spec docs/landmarks/specs/barbakan.md. Heights are estimates (no LoD2
 ## in the cloud).
-const BARB_WALL := Color("#ab5a42")
+const BARB_WALL := Color("#b2604a")  # F's photos 2026-11-08: a warmer orange-red brick
 const BARB_ROOF := Color("#a9502f")   # photos 1-2 and the ortho: terracotta tile
 const BARB_STONE := Color("#c4b69a")
 const BARB_HEIGHT := 9.5
 const BARB_TOWER_H := 13.0
-const BARB_TOWER_R := 2.6
+const BARB_TOWER_R := 2.2
 ## The turrets' centres on the wall's mid-line, world x and z.
-const BARB_TOWERS := [Vector2(-940.9, -1841.4), Vector2(-953.0, -1841.2), Vector2(-950.8, -1832.0), Vector2(-941.9, -1828.3)]
+## F's photos (2026-11-08): the four towers stand in two pairs on the arms toward the city, at
+## the mapped 13 m tower outlines (the 2026-11-02 spots were guesses), radius 2.2 m.
+const BARB_TOWERS := [Vector2(-946.8, -1827.5), Vector2(-938.4, -1825.1), Vector2(-939.4, -1841.6), Vector2(-930.5, -1836.5)]
+## The round bastion's centre (the C's west end); the arms' centre lines, tower to tower; the
+## arms' half thickness; the passage's middle; the grille and passage colours.
+const BARB_BASTION := Vector2(-949.4, -1837.2)
+const BARB_ARMS := [[Vector2(-950.5, -1831.3), Vector2(-934.5, -1826.2)], [Vector2(-947.5, -1843.6), Vector2(-931.5, -1835.3)]]
+const BARB_ARM_HALF := 1.75
+const BARB_PASSAGE_MID := Vector2(-941.0, -1833.5)
+const BARB_GRILLE := Color("#1d1b19")
+const BARB_PASSAGE := Color("#2a211d")
+const BARB_MERLON := 1.45
+## The gates: [foot in plan, outward normal]: the bastion's front toward Freta and its inner face.
+const BARB_GATES := [[Vector2(-955.95, -1836.6), Vector2(-1.0, 0.05)], [Vector2(-952.85, -1837.0), Vector2(1.0, 0.25)]]
+## The gate wall across the C's open east end, between the eastern towers (photo 4).
+const BARB_GATE_WALL := [Vector2(-934.6, -1826.6), Vector2(-929.4, -1832.9)]
 
 
 func _find_barbakan() -> void:
@@ -13885,37 +13903,150 @@ func _build_barbakan(site: Dictionary) -> void:
 	_g = _ground_under(ring)
 	var g := _g
 	var top := g + BARB_HEIGHT
-	# the curtain: brick Gothic to the walk, a stone top, then the crenellated parapet
-	_prism(ring, g - 1.5, top, BARB_WALL, BARB_STONE, M_GOTHIC, M_STONE)
-	_attic(ring, top, 1.5, BARB_WALL.darkened(0.04))
-	# the four turrets: an octagon above the wall, a corbel ring, a steep cone and a finial
-	for c: Vector2 in BARB_TOWERS:
-		var th := g + BARB_TOWER_H
-		_prism(_circle(c, BARB_TOWER_R, 12), g - 1.5, th, BARB_WALL, BARB_STONE, M_GOTHIC, M_STONE)
-		_prism(_circle(c, BARB_TOWER_R + 0.3, 12), th, th + 0.5, BARB_WALL.darkened(0.08), BARB_WALL.darkened(0.08), M_STONE, M_STONE)
-		# photo 1: the cone swells out over the tower (a deep eave), then rises to a short spike
-		_frustum(_circle(c, BARB_TOWER_R + 0.75, 12), th + 0.5, _circle(c, BARB_TOWER_R + 0.2, 12), th + 1.1, BARB_ROOF, BARB_ROOF)
-		_frustum(_circle(c, BARB_TOWER_R + 0.2, 12), th + 1.1, _circle(c, 0.2, 12), th + 5.6, BARB_ROOF.lightened(0.04), BARB_ROOF)
-		_lbox_at(c, 0.06, th + 5.6, th + 7.0, BARB_STONE.darkened(0.3))
-	# the merlons' stone caps along the curtain's crest (photo 2: grey-capped brick merlons every
-	# 1.6 m round the bastion), set 0.45 m in from the outer face
-	var cap := 0.0
+	# the curtain: plain brick to the walk under a stone course (the photos show loopholes, not
+	# the Gothic shader's tall lancets)
+	_prism(ring, g - 1.5, top, BARB_WALL, BARB_STONE, M_STONE, M_STONE)
+	var centre := BARB_BASTION
+	# F's photos (2026-11-08): only the round bastion wears the crown; the arms carry tiled roofs
+	var outer: Array = []  # the bastion's outer face, as [a, b, out]
 	for i in ring.size():
 		var a := ring[i]
 		var b := ring[(i + 1) % ring.size()]
+		var m := (a + b) * 0.5
+		var out := _out(ring, a, b)
+		if m.x < centre.x + 0.5 and out.dot(m - centre) > 0.0 and a.distance_to(b) > 0.2:
+			outer.append([a, b, out])
+	for e: Array in outer:
+		var a: Vector2 = e[0]
+		var b: Vector2 = e[1]
+		var out: Vector2 = e[2]
+		# a corbel band 0.6 m under the crown, standing 0.18 m proud, then the parapet
+		var band := PackedVector2Array([a + out * 0.18, b + out * 0.18, b - out * 0.2, a - out * 0.2])
+		_prism(band, top - 0.75, top, BARB_WALL.darkened(0.1), BARB_WALL.darkened(0.06), M_STONE, M_STONE)
+		var par := PackedVector2Array([a + out * 0.1, b + out * 0.1, b - out * 0.35, a - out * 0.35])
+		_prism(par, top, top + 0.9, BARB_WALL, BARB_WALL.darkened(0.05), M_STONE, M_STONE)
+	# loopholes: two rows of slits and a row of round holes under the crown (photo 3)
+	var hole := 0.0
+	for e: Array in outer:
+		var a: Vector2 = e[0]
+		var b: Vector2 = e[1]
+		var out: Vector2 = e[2]
 		var len := a.distance_to(b)
-		if len < 1.6:
-			continue
-		var e := (b - a) / len
-		var inn := -_out(ring, a, b) * 0.45
-		var t := 0.8
-		while t < len - 0.4:
-			var cc := a + e * t + inn
-			var q := PackedVector2Array([cc - e * 0.36, cc + e * 0.36, cc + e * 0.36 + inn.normalized() * 0.5, cc - e * 0.36 + inn.normalized() * 0.5])
-			_prism(q, top + 1.5, top + 1.95, BARB_STONE.darkened(0.25), BARB_STONE.darkened(0.3), M_STONE, M_STONE)
-			t += 1.6
-			cap += 1.0
+		var d := (b - a) / len
+		var t := fposmod(-hole, 2.6)
+		while t < len:
+			var c := a + d * t + out * 0.04
+			var row := int(hole + t) / 3 % 2
+			for y: float in ([g + 3.2, g + 7.6] if row == 0 else [g + 5.4]):
+				var slit := PackedVector2Array([c - d * 0.14, c + d * 0.14, c + d * 0.14 - out * 0.08, c - d * 0.14 - out * 0.08])
+				_prism(slit, y, y + (0.28 if y > g + 7.0 else 0.6), BARB_GRILLE, Color(0, 0, 0, 0), M_STONE, M_STONE)
+			t += 2.6
+		hole += len
+	# the merlons: brick posts every BARB_MERLON along the outer face, each under a grey stone
+	# pyramid, a little pointed gable between each pair (photos 2, 3 and 5)
+	var walked := 0.0
+	var next := 0.6
+	for e: Array in outer:
+		var a: Vector2 = e[0]
+		var b: Vector2 = e[1]
+		var out: Vector2 = e[2]
+		var len := a.distance_to(b)
+		var d := (b - a) / len
+		while next < walked + len:
+			var c := a + d * (next - walked) - out * 0.12
+			var post := PackedVector2Array([c - d * 0.3 - out * 0.25, c + d * 0.3 - out * 0.25, c + d * 0.3 + out * 0.25, c - d * 0.3 + out * 0.25])
+			_prism(post, top + 0.9, top + 1.75, BARB_WALL, Color(0, 0, 0, 0), M_STONE, M_STONE)
+			_pyramid(post, top + 1.75, top + 2.25, BARB_STONE.darkened(0.15))
+			var gc := c + d * (BARB_MERLON * 0.5)
+			if next + BARB_MERLON * 0.5 < walked + len:
+				var l := gc - d * (BARB_MERLON * 0.5 - 0.3) + out * 0.13
+				var r := gc + d * (BARB_MERLON * 0.5 - 0.3) + out * 0.13
+				var n3 := Vector3(out.x, 0.0, out.y)
+				_tri(Vector3(l.x, top + 0.9, l.y), Vector3(r.x, top + 0.9, r.y), Vector3(gc.x + out.x * 0.13, top + 1.55, gc.y + out.y * 0.13),
+						n3, BARB_WALL.lightened(0.04), Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
+			next += BARB_MERLON
+		walked += len
+	# the four towers: round brick drums with a tile cone swelling out over a deep eave
+	for c: Vector2 in BARB_TOWERS:
+		var th := g + BARB_TOWER_H
+		_prism(_circle(c, BARB_TOWER_R, 12), g - 1.5, th, BARB_WALL, BARB_STONE, M_STONE, M_STONE)
+		for y: float in [g + 4.0, g + 7.5, g + 10.5]:  # a slit window a storey, on the outer side
+			var o := (c - BARB_PASSAGE_MID).normalized()
+			var sc := c + o * (BARB_TOWER_R + 0.03)
+			var sd := Vector2(-o.y, o.x)
+			_prism(PackedVector2Array([sc - sd * 0.13, sc + sd * 0.13, sc + sd * 0.13 - o * 0.1, sc - sd * 0.13 - o * 0.1]), y, y + 0.6, BARB_GRILLE, Color(0, 0, 0, 0), M_STONE, M_STONE)
+		_frustum(_circle(c, BARB_TOWER_R + 0.55, 12), th - 0.1, _circle(c, BARB_TOWER_R - 0.1, 12), th + 0.6, BARB_ROOF, BARB_ROOF)
+		_frustum(_circle(c, BARB_TOWER_R - 0.1, 12), th + 0.6, _circle(c, 0.15, 12), th + 5.2, BARB_ROOF.lightened(0.04), BARB_ROOF)
+		_lbox_at(c, 0.06, th + 5.2, th + 6.4, BARB_STONE.darkened(0.3))
+	# the arms between each pair of towers: a tiled ridge roof over the walk (photo 2)
+	for arm: Array in BARB_ARMS:
+		var p0: Vector2 = arm[0]
+		var p1: Vector2 = arm[1]
+		var d := (p1 - p0).normalized()
+		var n := Vector2(-d.y, d.x)
+		var foot := PackedVector2Array([p0 - n * 1.9, p1 - n * 1.9, p1 + n * 1.9, p0 + n * 1.9])
+		var ridge := PackedVector2Array([p0 - n * 0.06, p1 - n * 0.06, p1 + n * 0.06, p0 + n * 0.06])
+		_frustum(foot, top - 0.1, ridge, top + 1.5, BARB_ROOF, BARB_ROOF)
+		# the bridge's two pointed arches over the moat on the arm's outer face, iron grilles in
+		# brick fans (photos 1, 2 and 5)
+		var side := n if n.dot((p0 + p1) * 0.5 - centre) > 0.0 else -n
+		side = side if (((p0 + p1) * 0.5 + side * 3.0) - BARB_PASSAGE_MID).length() > (((p0 + p1) * 0.5) - BARB_PASSAGE_MID).length() else -side
+		for f: float in [0.3, 0.7]:
+			var at := p0.lerp(p1, f) + side * BARB_ARM_HALF
+			_lancet_panel(at, d, side, 2.2, g - 0.5, g + 1.9, BARB_WALL.lightened(0.07), 0.04, M_STONE)
+			_lancet_panel(at, d, side, 1.6, g - 0.5, g + 1.9, BARB_GRILLE, 0.09, M_STONE)
+	# the gates: a pointed arch through the bastion's front (photo 3) and its inner face, and the
+	# gate wall between the eastern towers toward Nowomiejska (photo 4)
+	for gate: Array in BARB_GATES:
+		var at: Vector2 = gate[0]
+		var out: Vector2 = (gate[1] as Vector2).normalized()
+		var along := Vector2(-out.y, out.x)
+		_lancet_panel(at, along, out, 2.3, g - 0.5, g + 3.4, BARB_STONE.darkened(0.05), 0.04, M_STONE)
+		_lancet_panel(at, along, out, 1.75, g - 0.5, g + 3.4, BARB_PASSAGE, 0.09, M_STONE)
+	_o = BARB_GATE_WALL[0]
+	_a = (BARB_GATE_WALL[1] - BARB_GATE_WALL[0]).normalized()
+	_b = Vector2(-_a.y, _a.x)
+	var span: float = BARB_GATE_WALL[0].distance_to(BARB_GATE_WALL[1])
+	var u0 := span * 0.5 - 1.8
+	var u1 := span * 0.5 + 1.8
+	_lbox(u0 * 0.5, 0.0, u0 * 0.5, 0.45, g - 0.5, top - 1.0, BARB_WALL, M_STONE, BARB_STONE)
+	_lbox((u1 + span) * 0.5, 0.0, (span - u1) * 0.5, 0.45, g - 0.5, top - 1.0, BARB_WALL, M_STONE, BARB_STONE)
+	_arch(u0, u1, 0.45, g + 3.6, top - 1.0, BARB_WALL)
+	_arch(u0, u1, -0.45, g + 3.6, top - 1.0, BARB_WALL)
+	_lbox(span * 0.5, 0.0, span * 0.5, 0.45, top - 1.0, top - 0.6, BARB_STONE.darkened(0.1), M_STONE, BARB_STONE)
+	var k := 0.4
+	while k < span - 0.3:
+		_lbox(k, 0.0, 0.32, 0.4, top - 0.6, top + 0.5, BARB_WALL, M_STONE, BARB_STONE.darkened(0.15))
+		k += 1.3
+	_o = Vector2.ZERO
+	_a = Vector2(1, 0)
+	_b = Vector2(0, 1)
 	_collide(ring)
+
+
+## A pointed (equilateral) panel on a wall: a rectangle to the spring line and a lancet head of
+## two arcs meeting at the apex, three steps a side. `at` is the foot centre in plan, `along` the
+## wall's direction, `out` its outward normal, `proud` how far it stands off the wall.
+func _lancet_panel(at: Vector2, along: Vector2, out: Vector2, hw: float, y0: float, spring: float, col: Color,
+		proud: float, mode: float) -> void:
+	var keep := _mode
+	_mode = mode
+	var p := at + out * proud
+	_wall(p - along * hw, p + along * hw, y0, spring, out, col)
+	var n := Vector3(out.x, 0.0, out.y)
+	var t := Vector3(along.x, 0.0, along.y)
+	var c := Vector3(p.x, spring, p.y)
+	var r := hw * 2.0
+	var steps := 3
+	for s: float in [-1.0, 1.0]:
+		# the arc on this side is centred at the other spring point
+		var prev: Vector3 = c + t * (hw * s)
+		for k in range(1, steps + 1):
+			var ang: float = PI / 3.0 * k / steps
+			var q: Vector3 = c + t * (s * (r * cos(ang) - hw)) + Vector3.UP * (r * sin(ang))
+			_tri(c, prev, q, n, col, Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
+			prev = q
+	_mode = keep
 
 
 ## A thin square post at world point c (a finial).
