@@ -23,10 +23,9 @@ const SOLID := {"kiosk": Vector2(1.45, 1.1), "stall": Vector2(1.2, 0.9), "cart":
 ## Per-sector and total limits (the budget in the spec); check_street_details.gd holds the file to them.
 const MAX_ITEMS := 900
 const MAX_SECTOR := 100
-## A stop kit item whose colour is this stands on a tram island (map `platforms`: a 0.9 m slab and
-## its 0.1 m top above the lowest ground of its outline), not on the paving.
+## A stop kit item whose colour is this stands on a tram island (map `platforms`), on its top
+## (map_builder.platform_top), not on the paving.
 const ON_PLATFORM := "platform"
-const PLATFORM_TOP := 1.0
 
 var map: Node3D
 var count := 0
@@ -90,7 +89,11 @@ func build() -> void:
 		for item: Array in cells[key]:
 			var x := float(item[1])
 			var z := float(item[2])
-			var y: float = map.ground_height(x, z) + (PLATFORM_TOP if str(item[4]) == ON_PLATFORM else 0.0)
+			var y: float = map.ground_height(x, z)
+			if str(item[4]) == ON_PLATFORM:
+				var top: float = map.platform_top(x, z)
+				if not is_nan(top):
+					y = maxf(y, top)
 			var xf := Transform3D(Basis(Vector3.UP, float(item[3])), Vector3(x, y, z))
 			var kind: String = item[0]
 			add_item(st, kind, xf, str(item[4]))

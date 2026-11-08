@@ -16,7 +16,7 @@ extends SceneTree
 ## the box, and no Trzy mosty; --route=NAME:x,z>x,z[>...][;NAME2:...] adds a route through the graph
 ## nodes nearest those points (into and out of side roads) (a road design check: tools/road_design.py streets driven end to end).
 ##
-##   godot --headless --path game --fixed-fps 60 --script res://tools/check_lane_drive.gd [-- --prebuilt --verbose --only=NAME --streets=A,B --box=...]
+##   godot --headless --path game --fixed-fps 60 --script res://tools/check_lane_drive.gd [-- --prebuilt --handling=grounded --verbose --only=NAME --streets=A,B --box=...]
 
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const SectorStreamer := preload("res://scripts/sector_streamer.gd")
@@ -42,6 +42,8 @@ const CRUISE_NARROW := 14.0
 const CRUISE_FAST := 30.0
 
 var prebuilt := false
+## --handling=cruise|sport|grounded: drive the routes in that profile (-1: the car's default, Cruise).
+var handling := -1
 var verbose := false
 var only := ""
 var streets: Array = STREETS
@@ -73,6 +75,8 @@ func _initialize() -> void:
 			prebuilt = true
 		elif a == "--verbose":
 			verbose = true
+		elif a.begins_with("--handling="):
+			handling = Car.parse_handling(a.trim_prefix("--handling="))
 		elif a.begins_with("--only="):
 			only = a.trim_prefix("--only=")
 		elif a.begins_with("--streets="):
@@ -238,6 +242,8 @@ func _next() -> bool:
 	_path = r["pts"]
 	_cruise = float(r["cruise"])
 	car = Car.new()
+	if handling >= 0:
+		car.set_handling(handling)
 	car.ground_height = map.drive_height
 	car.water_at = map.in_water
 	car.kerb_feel = map.kerb_feel
@@ -296,7 +302,8 @@ func _physics_process(dt: float) -> bool:
 	var ahead := mini(_idx + int(ceil(look / STEP)), _path.size() - 1)
 	var aim := _path[ahead] - p
 	aim.y = 0.0
-	var bend := _bend(_idx, BEND_AHEAD + v)
+	# Grounded brakes at ~1.1 g, not 3 g: a careful driver looks a stopping distance further on.
+	var bend := _bend(_idx, BEND_AHEAD + v + (v * v / 18.0 if car.weighty else 0.0))
 	var want := _cruise
 	if bend > deg_to_rad(70.0):
 		want = 6.0
@@ -304,6 +311,12 @@ func _physics_process(dt: float) -> bool:
 		want = 9.0
 	elif bend > deg_to_rad(20.0):
 		want = minf(_cruise, 14.0)
+	if car.weighty:
+		# Grounded turns with ~1.2 g at most: no faster than 80 % of that grip allows on the bend's radius.
+		var reach := BEND_AHEAD + v
+		var curve := _bend(_idx, reach)
+		if curve > 0.02:
+			want = minf(want, maxf(6.0, sqrt(0.8 * car.turn_pull * reach / curve)))
 	car.target_dir = aim.normalized() if aim.length() > 0.5 else Vector3.ZERO
 	car.throttle = clampf(want / car.top_speed(), 0.0, 1.0)
 	car.braking = v > want + 4.0

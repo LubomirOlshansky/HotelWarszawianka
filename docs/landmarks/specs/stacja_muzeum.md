@@ -60,7 +60,9 @@ tubes blue, green, orange, pink, white. Kolejowa brick #6e3d2e, plaster #a6a49e,
 ## 6. Ground and night
 
 Engines stand on the sidings' ground; each market piece stands on its own terrain sample. The car
-collides with the hall, the market's back walls and stall row, and the Kolejowa buildings. At night the
+collides with the hall, every engine and coach on the sidings, the market's back walls and stall row,
+and the Kolejowa buildings (on their mapped outlines, so 8/10's shared wall leaves no slit). The hall,
+the stock and Kolejowa go to the pocket bridging. At night the
 letters, the tubes, the lit hatches, the bulb strings, the platform lamps and the two neon names glow.
 
 ## 7. Detail level and budget

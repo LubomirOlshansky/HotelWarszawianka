@@ -74,7 +74,9 @@ MAP = os.path.join(ROOT, "game", "map")
 # Browary's Central Garden (22 with the scan's 5), +4 by Willa Schielego. Before: 271056 / 45176.
 # Plac Centralny (F's photos, 2026-11-05, tools/plac_centralny.py): 45,289 trees (+97 young locusts, ginkgos,
 # ashes and magnolias on the new square's lawns and axis; 10 beds in surfaces, 6 benches). Before: 271152 / 45192.
-EXPECTED = {"trees3d": 271734, "pois": 4572, "trees3d_crown": 45289}
+# Plac Pięciu Rogów (F's photos + the ortho, 2026-11-06, tools/car_free.py EXTRA_XZ): 45,292 trees (+3
+# field maples the scan lacks: one by Zgoda, two at the Krucza end). Before: 271734 / 45289.
+EXPECTED = {"trees3d": 271752, "pois": 4572, "trees3d_crown": 45292}
 # docs/DEMO.md 7 row 7: the lane graph's strongly connected share at least this.
 SCC_SHARE = 0.95
 

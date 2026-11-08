@@ -487,14 +487,28 @@ def main(src, trees_src, dst, extras_src=None, more_src=None):
     # the lane lines stitched across them, small line kinks rounded (tools/road_smooth.py).
     import road_smooth
     print("road_smooth: " + road_smooth.apply(out))
+    # Thin towers (F, 2026-11-07): each researched small building's use and seen height
+    # (game/data/small_buildings.json; small_buildings.gd draws it).
+    import building_heights
+    print("building_heights: " + building_heights.apply(out))
     # Main's road bugs (F, 2026-11-07, "main as base, small fixes"): lane lines and arrows out of the
     # junctions' mouths, zebras and cycle crossings run on to the kerbs (tools/road_fixes.py).
     import road_fixes
     print("road_fixes: " + road_fixes.apply(out))
+    # Street objects unslopped (F, 2026-11-07): lamps, signals, benches, bins, racks, shelters, parked
+    # cars and barriers out of walls, carriageways, water and decks; gates where paths cross fences;
+    # balustrades round stairs (tools/object_fixes.py; the same code runs on a baked map). Before
+    # bus_stops: it paints at the shelters this leaves.
+    import object_fixes
+    print("object_fixes: " + object_fixes.apply(out))
     # The buses thread (2026-11-07): the stops' white zigzag (P-17) and yellow kerb line, after
     # road_fixes, on the smoothed lanes and the zebras as they end (tools/bus_stops.py; the same code runs on a baked map).
     import bus_stops
     bus_stops.apply(out)
+    # Tram stops (F, 2026-11-07): tram islands 0.3 m high (not a train's 0.9 m), their boarding
+    # edge and the railing along the road found once (tools/tram_stops.py).
+    import tram_stops
+    print("tram_stops: " + tram_stops.apply(out))
     # Loop "content POIs" (2026-10-31): the corner shops, metro entrances, city bike docks, the
     # places' missing addresses and the Leżaks with their zones, appended after every older poi
     # on the finished data (they keep clear of its solids; tools/bake_street_pois.py).
@@ -780,7 +794,11 @@ def make_building(t, pts, is_part):
     if height is None and levels is not None:
         height = levels * 3.3 + 1.0
     if height is None:
-        height = 14.0
+        # No height tags: a guess by kind and footprint (tools/building_heights.py; a flat
+        # 14 m stood kiosks and metro lift housings up as thin towers, F 2026-11-07).
+        import building_heights
+        height = building_heights.default_height(t.get("building") or t.get("building:part") or "",
+                                                 abs(ring_area(pts)))
     min_height = num(t.get("min_height"))
     if min_height is None and num(t.get("building:min_level")) is not None:
         min_height = num(t.get("building:min_level")) * 3.3

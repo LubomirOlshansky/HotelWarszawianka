@@ -11,16 +11,42 @@ someone writes its lines.
 
 ## 2026-11-08
 - The cycle bridges under Most Łazienkowski hang right under the road now, one storey down as in real life, instead of halfway to the river.
+- The Rotunda looks like itself from the street: its glass rises into a ring of points under a thin white zigzag edge, with slimmer frames, and its folded silver roof dips into the round skylight. The three glass stores across from the Palace have their pale glass in big panes, a light band along the roof and the grey louvred top floor with the shops' names.
+- Around the Palace: the EMPIRYK bookshop pavilion and the Zodiak pavilion are rebuilt from photos, and the glass office building on the corner of Marszałkowska and Świętokrzyska now has its stepped glass tiers, silver fins and white LED dashes that light up at night.
+- Widok Towers on Aleje Jerozolimskie now has its real blue-grey glass in a light grid instead of green.
+
+## 2026-11-08
+- Three more towers by the Palace look like themselves: the InterContinental stands over its huge open gap, glowing white at night, under a sloping roof; the Warsaw Financial Centre is a white tower wrapped round a teal glass one with a red-and-white mast; and Hotel Polonia Palace has its tall zinc roof, the pediment with the round window and its gold name.
+
+## 2026-11-08
+- A new way to drive, "Realnie" (Grounded) in Settings: the car has weight now, with brakes that take a few car lengths, a nose that dips when you brake, a body that leans in the bends, and fast corners you have to brake for.
+
+## 2026-11-08
+- New night quest, the bar crawl: a hen party, a stag night, students after exams or a team after launch day call you to drive them through three bars before they close, waiting at the kerb while they have a round.
+
+## 2026-11-08
+- The museum's steam engines and coaches by Warszawa Główna are solid now: the car stops at them instead of driving through.
 
 ## 2026-11-07
+- The stray thin towers are gone: each one was looked up and is now what it really is, from the glass metro lifts by the Ratusz-Arsenał tram stop and the slatted vent towers by the stadium to kiosks, bin shelters, substations, toilets and houseboats.
+- Street objects tidied across the city: no more lamps, bins or traffic lights standing in the road, inside walls, in the river or under bridges; the sides of underpass and metro stairs that were still tall grey walls are open railings; park paths go through gates in the fences; picnic shelters in parks and car parks are no longer bus stops.
+- Padel is on the quest map now: a yellow-green start by the DESKA club. Stop by the gate and your friend comes out with a racket, or ring them from the list.
+- The car park behind the Novotel on Nowogrodzka stands as it does: eight open decks painted with red roses turning green and teal down Parkingowa, a blue-neon bar on the corner, the barrier at the entry and the poster-covered wall beside it.
+- Nowogrodzka 31, the cream office block across from the Novotel, is built from real photos: rows of square windows, bars and shops with fairy lights and neon, a huge cat-food advert (MRAU) on the end wall facing the Novotel, and on the roof a big white billboard lit at night by fifteen lamps. Next to it, Marszałkowska 99 is the white block with its balconies.
 - The cycle bridges under Most Łazienkowski no longer float in the air: they hang on steel brackets from the bridge's box girders.
 - Most Śląsko-Dąbrowski's middle lanes are marked as the real tram-and-bus lane: solid white lines and BUS painted between the rails.
 - Three bridges rebuilt from photos: Most Śląsko-Dąbrowski stands on old stone piers under arched steel girders with its red railing, Most Łazienkowski on pairs of broad concrete piers, and Most Świętokrzyski's median is grey concrete.
+- A new ride, "Dekalog na kółkach": Claire, a film student from Lyon, wants to see where Kieślowski shot the Dekalog. Pick her up at Centralna and drive her through six real filming places to the Muranów estate on Inflancka.
+- The Dekalog estate on Inflancka is rebuilt from photos: six cream 14-storey slabs with ochre stairwells and white balconies, and across the street the Inflancka pools with their air dome, round pools and red and green slides.
+- The CITY 25 neon sign, its door and canopy at the SOWA CLUB pavilion now face west, towards the Palm, so you see them as you drive in from Rondo de Gaulle'a.
+- The secret day rave moved to the Praga beach under Most Poniatowskiego: the DJ's booth and the crowd in colour stand on the sand under the bridge's arch, by the pier.
+- On 11 November the city celebrates: crowds with white-and-red flags at Rondo Dmowskiego, barriers that stop cars (the helicopter can fly over), the Palace of Culture, Złota 44 and the National Stadium lit white and red, and a red glow at dusk.
 - Bus stops look like Warsaw's: the white zigzag on the road where the bus pulls in, the yellow line along the kerb, red-framed glass shelters with a lit poster and the red stop pole with its timetable, and shorter 12 m buses now run beside the long bendy ones.
 - Stacja Muzeum, Nocny Targ and Kolejowa: the old Warszawa Główna hall has its arched cream front with gold letters, steam engines on red wheels and green tank engines stand on the museum's sidings, the night market glows under two rusty platform roofs with coloured tubes and painted benches, and Kolejowa's old railway warehouses, the pinball museum and the teal club line the street.
 - Wola by Kolejowa looks like itself: the old drug works' plot is a busy building site with bare concrete floors, three cranes and stacks of materials, the estate's blocks have their cream walls and brown window frames, and the two tall towers wear their orange and gold frames.
 - Under Most Łazienkowski, on the river side, Małpi Love opened its garden: dark timber cabins with a yellow wall, plank tables under white umbrellas and string lights under the trees.
 - The railway got its signals: green and red lights at every platform's end and both tunnel mouths, trains rumble past (louder on the bridge), sound their horn out of the tunnel and get a platform gong, and show red lamps at the back.
+- The guide for new players now points you down to Powiśle and the river after about seven minutes, as it was meant to (that step was silently broken).
 - The Old Town's brick city walls stand round it now, park walls are their real low height, and railings along the streets are see-through steel instead of grey slabs.
 - Stairs across the city are real stone steps now, with side walls and handrails, from Kamienne Schodki to the Skarpa's park stairs; walls that blocked stairs are opened and fountain basins have low rims instead of tall grey walls.
 - The Palace of Culture's grounds are tidier: knee-high planters instead of grey walls, real shrub beds, a proper car park with painted bays, and the Palace's venues lit at their doors: Kinoteka, the theatres, Sala Kongresowa, the technology museum, the 30th-floor terrace. Teatr Studio has its columned portico with steps, banners and neon, Bar Studio's tables under umbrellas and palms on a granite square with corten planters and trees, busy on summer evenings.
@@ -36,6 +62,7 @@ someone writes its lines.
 - Under Trasa Łazienkowska, the bridges and the viaducts, the see-through circle now opens the deck over you, so you see your car and the traffic around it instead of a glowing outline.
 - The railway by Warszawa Główna no longer flickers from the helicopter: the ground stops tearing through the ballast and the rails stay whole.
 - Small beta fixes: the crazy taxi and courier drivers now really shout at you after cutting you off, speech bubbles no longer cover the steering hint at the start, the job arrow no longer lands on the brake button, and the tram strip on Grochowska at the east edge is closed like the road beside it. Holding a spot on the map no longer teleports you away in the middle of a race, a job, a rescue or a police chase.
+- Tram stops sit low like Warsaw's, with their yellow edge strip, railings, stop posts and ticket machines, and the trams finally run under overhead wires on poles.
 - Hala Mirowska has its glazed gallery along the market front, and the Metropolitan's top floor is silver metal, both from real photos.
 - The Novotel by Rondo Dmowskiego looks like itself: a white tower with rows of small paired windows, its name in blue neon down both narrow ends and in light boxes on the roof, a glazed podium with a lit edge, and a curved cream entrance canopy under a blue sign.
 - Miodowa's palaces look like themselves: cream and pink plaster under tile-red roofs (Paca's are green copper), and Pałac Branickich's long front has pink pilaster strips, a cornice, an attic crowded with statues, three scrolled dormers and its balconied gate.
@@ -57,8 +84,13 @@ someone writes its lines.
 - 21 more houses got their real wall colours after a check against street photos, from Filtrowa to Marszałkowska.
 - 15 more houses got street fronts from new photos, among them Bracka 16, Atlas Tower and Dom Dysydentów.
 - 39 more buildings got street fronts from new photos, from Klif and Babka Tower to Freta and Plac Trzech Krzyży.
+- The Palace of Culture lights up for the city's days: white and red for 3 May, 1 August and 11 November, a rainbow for New Year and the Equality Parade, pink all October, green and red at Christmas, and its usual gold on every other night.
+
+- Saski Crescent is green-teal glass now and Senator pale cladding, as in the photos.
+- Brama Zachodnia, Proximo I and Proximo II on Aleje Jerozolimskie wear their photo colours: ochre punched cladding, light blue glass, dark navy glass.
 
 ## 2026-11-06
+- Plac Pięciu Rogów looks as it has since 2022: no road across it any more, one level of pale slabs, stone cubes with wooden seats, café umbrellas, slim lamps, the blue egg and the shallow water patch. Chmielna got its café gardens and lamps, and Krucza is as wide as the real one, with parked cars along it.
 - A night racing club: Darek calls you to a meet on Plac Defilad, where tuned cars glow and Lena drifts donuts in the smoke until the police raid it. Escape, race everyone to the next meet by the National Stadium, survive a second raid, then line up for a drag on Aleja Zieleniecka: watch the lights, shift on time, hit the nitro and beat Tadek for the club's respect.
 - New side job: your bestie Zuzia phones for a coffee run in Powiśle. Swap the car for a city bike, race to four fancy cafés for stamps and very expensive coffee, and get it all back by BLIK if you make it in time.
 - Landmarks checked against photos: Sigismund's Column now has its grey granite shaft on a dark pedestal with bronze plaques, ring and capital, and four broad steps; All Saints' church has its pointed green spires instead of domes, the open arcade galleries beside the towers, a green dome over the crossing and weathered sandy stone; Staszic Palace has its cream walls and green copper roof.

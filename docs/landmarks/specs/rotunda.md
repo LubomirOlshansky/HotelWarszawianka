@@ -6,6 +6,28 @@ start spot `--at=-961.6,95.0 --heading=339.8`, the Rondo photos) and the mapped 
 `Rotunda PKO` in `centrum.json` (a 96-point circle, mean radius 17.1 m, centre about
 (-793.7, 391.6)).
 
+**Photo rebuild, 2026-11-08** (thread "Rebuild Rotunda and Eastern Wall stores"): from F's photo set
+`/mnt/project-files/pkin-surroundings/photos/E3-rotunda/` (street front, the crown close up, the
+glazing under the overhang, the view from Varso, a night front), the Mac's `refs/rotunda/`
+(Commons 1-5, the GUGiK ortho) and Mapillary 2026-05 panoramas (`refs/rotunda/street/`). What the
+photos changed against the 2026-11-01 model:
+- **40 bays, not 52**, with slim silver mullions (0.12 x 0.14 m), not proud fins; two thin transoms
+  at 3.4 and 7.1 m (the panes in three rows).
+- **The glass rises into a point over every mullion** (the street photos): one fold per bay, the
+  ridges over the mullions at 12.3 m, the valleys over each bay's middle at 10.8 m. The "teeth" are
+  not solid white triangles but a thin white zigzag edge (0.4 m) at the folds' ends, standing out
+  0.6 m (not 2.2 m) from the glass.
+- **The roof is a shallow funnel**: the folds slope DOWN from the rim (ridges 12.55 m, valleys
+  11.05 m) to the oculus (11.9 / 11.5 m); the oculus's kerb stands 1.1 m over the folds (glass at
+  12.6 m). From the street nothing shows over the edge (old photo 1); from the Palace the far half
+  of the fan faces the camera.
+- The two triangular plates on the edge are gone (none in the 2022-2026 photos); the canopies are white.
+- Not changed: the outline (map radius 17.1 m), the glass colour, the doors, BANK POLSKA (parody).
+- Still to shoot (only F): the crown's night lighting (the night photo shows a violet-lit edge:
+  not built, a lit line would read wrong by day), the plaza door up close.
+
+The sections below are the 2026-11-01 spec; where they differ, the list above wins.
+
 ## 1. Identity
 
 The round glass bank pavilion (1966, rebuilt 2017) on the corner of Marszałkowska and Aleje
