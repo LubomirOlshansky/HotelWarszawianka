@@ -5764,6 +5764,9 @@ Command-line options (after `--`):
 | `--boat-race`, `--boat-race=call` | boat race (`boat_race.gd`): Szymek rings now, whatever the time |
 | `--boat-race=race` | boat race: the car at the start pontoon and straight onto the grid (3-2-1) |
 | `--boat-race=auto` | boat race: as `race`, with the player's boat driven by the rivals' driver (the shots and the full-race probe) |
+| `--dekalog`, `--dekalog=call` | Kieślowski tour (`dekalog_tour.gd`): Claire rings now, whatever the time |
+| `--dekalog=go` / `=auto` / `=0` | Kieślowski tour: the car at Centralna and the tour started (`auto`: the cards answer themselves); `0`: none |
+| `--dekalog-log` | Kieślowski tour: print `dekalog:` lines (pickup, frames, shots, hits, the pay) |
 | `--boat-race=free`, `=free0`..`=free2` | free ride: the car at the start pontoon, out in a fleet boat (0 jet ski Rekin X, 1 electric Srebrna Strzała, the default, 2 offshore Czarna Pantera; no rings, no rivals) |
 | `--boat-race=marina` | the car at the start pontoon with the marina card up (REKIN X / STRZAŁA / PANTERA / WYŚCIG) |
 | `--boat-race=0` | no boat race (no call, no pontoon) |

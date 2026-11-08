@@ -10,6 +10,8 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-07
+- A new ride, "Dekalog na kółkach": Claire, a film student from Lyon, wants to see where Kieślowski shot the Dekalog. Pick her up at Centralna and drive her through six real filming places to the Muranów estate on Inflancka.
+- The Dekalog estate on Inflancka is rebuilt from photos: six cream 14-storey slabs with ochre stairwells and white balconies, and across the street the Inflancka pools with their air dome, round pools and red and green slides.
 - The CITY 25 neon sign, its door and canopy at the SOWA CLUB pavilion now face west, towards the Palm, so you see them as you drive in from Rondo de Gaulle'a.
 - The secret day rave moved to the Praga beach under Most Poniatowskiego: the DJ's booth and the crowd in colour stand on the sand under the bridge's arch, by the pier.
 - On 11 November the city celebrates: crowds with white-and-red flags at Rondo Dmowskiego, barriers that stop cars (the helicopter can fly over), the Palace of Culture, Złota 44 and the National Stadium lit white and red, and a red glow at dusk.
