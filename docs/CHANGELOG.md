@@ -11,6 +11,7 @@ someone writes its lines.
 
 ## 2026-11-08
 - Próżna looks like itself: granite setts on the street and pale slabs on the pavements, bollards along the kerbs and the south tenements with their arched ground floors, balconies and cornices; the Cosmopolitan tower is dark glass with its red underside over the street, and Plac Grzybowski has its stepped water garden, benches and the café on the corner.
+- New evening quest, "Dym u Senatorka": Ivan calls for a shisha night. Pick him up at 19. Dzielnica and Bogdan at the courts on Żelazna, vote on flavour and strength while they argue, then go up to SENATOREK at Emilii Plater 53: mix two jars with the master, time the coal, blow a smoke ring, and smoke inside or on the terrace with the Palace in view. The Warsaw Financial Centre has its granite-and-steel portico with the revolving door now.
 - At the west end of Most Poniatowskiego a car with its wheels over the kerb no longer stops dead by the gate tower: it glances back onto the road, and it no longer drops for a moment between the road and the tram tracks.
 - 11 November: the flags in the crowd now wave in the wind.
 - The Old Town is ready for its close-up: the odd blue glass boxes next to the Cathedral are now the Jesuit church in salmon plaster, the city walls have battlements, the Market Square has pale stone rings, cream umbrellas and café fences, and the roofs have grey zinc dormers and white chimneys.
@@ -31,6 +32,7 @@ someone writes its lines.
 
 ## 2026-11-08
 - The museum's steam engines and coaches by Warszawa Główna are solid now: the car stops at them instead of driving through.
+- The Palace of Culture no longer turns pink for all of October: it stays gold until its orange Halloween night.
 
 ## 2026-11-07
 - The stray thin towers are gone: each one was looked up and is now what it really is, from the glass metro lifts by the Ratusz-Arsenał tram stop and the slatted vent towers by the stadium to kiosks, bin shelters, substations, toilets and houseboats.

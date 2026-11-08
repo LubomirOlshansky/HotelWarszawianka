@@ -188,9 +188,9 @@ THEATRES, `theatre` curve, dark on Mondays). Left:
   the camera never sees) have no sign; the terrace has no ticket queue at the east portico yet.
 - Joke billboard "UWAGA:" by the pigeons on Plac Defilad shows the camera its dark back.
 - The bake still turns scrub into plain lawn city-wide; only the Palace's beds are bushes.
-- Event lighting (palace_lights.gd + data/palace_lights.json, F 2026-11-07): built with 14 dates and five
+- Event lighting (palace_lights.gd + data/palace_lights.json, F 2026-11-07): built with 13 dates (Pink October dropped, F 2026-11-08) and five
   patterns. Left: the Independence Day thread's white-red tier bands (event_day.gd) join as the 11 November
-  row's extra; a phone look at the colours' strength; F's call on the event list (QUESTIONS).
+  row's extra; a phone look at the colours' strength. The event list is settled (F, 2026-11-08).
 - The floodlight's reach (a circle round the Palace) also tints the TR Warszawa site's crane and the forecourt's
   stone furniture; an old quirk of the gold, louder in the event colours.
 
@@ -481,6 +481,28 @@ strict three-question door, Smoła's cutaway room (option A). Left:
 - [ ] The dawn after: leaving at 05:00-06:00, Ziomek's last line, the city in the dawn look
 - [ ] Opaski (wristbands) collected per spot, a card in the notebook
 - [ ] Option B: a walk-around room (a person controller inside), only if A plays well
+
+## Shisha lounge quest "Dym u Senatorka" (F, 2026-11-08; docs/design/shisha-lounge.md)
+
+Built: Ivan's call (17:00-02:00, or in person at his block in 19. Dzielnica, WĄTKI id `shisha`),
+Bogdan at the court on Żelazna, the car argument in bubbles (data/shisha.json, every line PL+EN),
+three votes on side cards (flavour, strength, the pipe's name), the WFC portico on Emilii Plater 53
+(canopy with downlights, revolving door, the SENATOREK and EMILII PLATER 53 letters, granite piers,
+steel fins, the glass rail on the low roof), the door and lift cards, the lounge upstairs
+(`lounge.gd`: rock wall with bars and gold letters, rust-velvet banquettes, grey armchairs, olive
+trees, the travertine bar with jars and coals, the window wall with the Palace, the terrace with
+teak chairs and the Palace's tower), the mini-game "Miks u Mistrza" (two jars on a sweet/cool
+chart, coal timing, the first draw and a smoke ring), PALIĆ / TARAS / WYJDŹ with smoke animations
+(bowls' trickle, exhales, rings, ceiling haze), both drops, the pay. Flags `--shisha-call`,
+`--shisha-meet`, `--shisha-lounge`, `--shisha=0`, `--shisha-log`; `check_shisha.gd` in verify.sh.
+Left:
+- [ ] F's call: lounge name SENATOREK LOUNGE ok? Which floor (the lift card says 38, invented)
+- [ ] Portraits of Ivan, Bogdan and the master (PixelLab on the Mac, from F's photos)
+- [ ] Voices (ElevenLabs) and a lounge track on the radio (docs/MUSIC.md "lounge" slot)
+- [ ] Bogdan waiting at the court: a net, a bag, a figure in white (now only the pickup ring)
+- [ ] Phone look: the lounge's mini-game panel size, the smoke's overdraw, the portico at night
+- [ ] Autopilot run of the whole night on the Mac (`--shisha-meet`, then the lounge)
+- [ ] Before release: the rating and a "bez dymu" (no smoke) setting
 
 ## Cinema tour "Kino objazdowe" (F, 2026-11-07; docs/design/kino-tour.md)
 
