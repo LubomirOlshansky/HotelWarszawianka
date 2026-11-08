@@ -166,6 +166,9 @@ Don't change the project's files during a run; the game is acted on only through
 
 ## 4. Scheduling hunts
 
+- **Autopilot never gates a merge** (F, 2026-11-08: waiting would slow merges down badly). A PR
+  merges on its green CI and the usual go; Autopilot then plays it from main in the next hunt.
+  A feature thread doesn't queue for the Mac before merging, and nobody holds a merge for a run.
 - Hunts run in a Remote Control session on the Mac, which only starts from F's own message and
   goes offline when the Mac sleeps or the session idles. A routine in the cloud can't start one
   and can't message it. So: a hunt starts on F's "start" or after a merge train, not on a timer;

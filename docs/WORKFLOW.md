@@ -81,7 +81,9 @@ minutes on the latest main; a stop a player could make (lane, kerb, pavement, tr
 straight to a cloud fix thread, which reproduces it headless in minutes, instead of a second Mac
 pass; only a car 10+ m off the road, a traffic bump or a key the harness sent wrong is "harness
 only". PT ids come from `/mnt/project-files/autopilot/bug-log.md` first, so two threads never
-take the same number. Hunts start on F's word or after a merge train, not on a timer.
+take the same number. Hunts start on F's word or after a merge train, not on a timer. **Autopilot never gates a merge**
+(F, 2026-11-08): PRs merge on green CI, and the after-merge hunt (the routine "Autopilot hunt
+after merges") plays them from main.
 
 ## Who owns what
 
