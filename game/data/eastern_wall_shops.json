@@ -48,6 +48,16 @@
             "KAT"
           ],
           "bg": "#d0161e"
+        },
+        {
+          "face": "west",
+          "at": 0.5,
+          "top": true,
+          "w": 6.0,
+          "lines": [
+            "UNIKAT"
+          ],
+          "bg": "#d0161e"
         }
       ],
       "fronts": [
@@ -135,6 +145,16 @@
             "TAK MAKS"
           ],
           "bg": "#d0161e"
+        },
+        {
+          "face": "west",
+          "at": 0.6,
+          "top": true,
+          "w": 7.0,
+          "lines": [
+            "PÓŁ CENY"
+          ],
+          "bg": "#c8322e"
         }
       ],
       "fronts": [
@@ -236,6 +256,16 @@
             "FROGS"
           ],
           "bg": "#4fae3b"
+        },
+        {
+          "face": "west",
+          "at": 0.5,
+          "top": true,
+          "w": 6.5,
+          "lines": [
+            "TAK MAKS"
+          ],
+          "bg": "#d0161e"
         }
       ],
       "fronts": [

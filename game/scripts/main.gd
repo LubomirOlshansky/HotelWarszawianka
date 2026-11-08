@@ -154,10 +154,14 @@ const StoryQuests := preload("res://scripts/story_quests.gd")
 ## Inside the club after the door (club.gd): the cutaway room.
 const Club := preload("res://scripts/club.gd")
 const EvTow := preload("res://scripts/ev_tow.gd")
+## Bar crawl (bar_crawl.gd, F's ask 2026-11-04): a group through three bars before they close.
+const BarCrawl := preload("res://scripts/bar_crawl.gd")
 ## Packs (docs/design/packs.md): running clubs, cycling packs and coffee raves.
 const Packs := preload("res://scripts/packs.gd")
 ## Kibice (docs/design/city-life-satire.md 7): friendly fans by Stadion Leguminy on match evenings.
 const Fans := preload("res://scripts/fans.gd")
+## 11 listopada (event_day.gd): the Independence Day crowd, barriers and lights round the rondo.
+const EventDay := preload("res://scripts/event_day.gd")
 const LoudCars := preload("res://scripts/loud_cars.gd")
 const CrazyDrivers := preload("res://scripts/crazy_drivers.gd")
 ## Wellness circles (docs/design/city-life-satire.md): sound healing, techno yoga, the 40+ club, park kung-fu.
@@ -532,6 +536,14 @@ var crash_log := false
 ## --ev-tow (accepted, the helicopter over his car), --ev-tow=carry (his car already on the rope),
 ## --ev-stranded (one about 30 m ahead now), --ev=0 (none), --ev-log.
 var ev_tow: EvTow
+## Bar crawl (bar_crawl.gd): flags --crawl-call (the group rings a second in, any hour),
+## --crawl-route=ID, --crawl-group=ID, --crawl=0 (none), --crawl-log.
+var crawl: BarCrawl
+var crawl_flag := ""
+var crawl_route := ""
+var crawl_group := ""
+var crawl_log := false
+var _crawl_auto := false
 var ev_flag := ""
 var ev_log := false
 var _ev_auto := false
@@ -609,6 +621,12 @@ var packs_log := false
 ## Kibice (fans.gd): the fans by Stadion Leguminy; flags --fans=0 (none), --fans-now (out whatever the
 ## clock), --fans-log, --fans-phase= and --fans-result= (the match day's walkers).
 var fans: Fans
+## --event-day forces the 11 listopada event on (any date), --event-day=0 turns it off, --event-smoke=0
+## leaves out its glow and haze, --event-log prints its summary.
+var event_day: EventDay
+var event_flag := -1
+var event_smoke := 1
+var event_log := false
 var fans_flag := 1
 var fans_now := false
 var fans_log := false
@@ -783,6 +801,8 @@ var traffic_level := Settings.DEFAULT_TRAFFIC
 ## -2: no --quality= (Tiers.AUTO is -1).
 var _flag_quality := -2
 var _flag_controls := -1
+## --handling=cruise|sport|grounded (or 0..2): the run drives that profile whatever the settings say.
+var _flag_handling := -1
 ## Beta values: --lane-assist=on|off overrides Settings → Jazda → Asysta pasa for the run; the
 ## lane's direction is looked up every LANE_EVERY s (lane_assist.gd).
 var _flag_lane := -1
@@ -1405,7 +1425,8 @@ func _build_world() -> void:
 	car = Car.new()
 	car.ground_height = map.drive_height
 	car.set_sensitivity(settings.sensitivity)
-	car.set_handling(settings.handling)  # G4: Cruise by default, Sport from Settings → Jazda
+	# G4: Cruise by default, Sport or Grounded from Settings → Jazda (--handling= for a run).
+	car.set_handling(settings.handling if _flag_handling < 0 else _flag_handling)
 	car.lane_assist = settings.lane_assist if _flag_lane < 0 else _flag_lane == 1
 	world.add_child(car)
 	_xray = TunnelXray.new()
@@ -1650,9 +1671,11 @@ func _build_world() -> void:
 	_build_kino_tour(world)
 	_build_ev_tow(world)
 	_build_stories(world)
+	_build_crawl(data, world)
 	_build_storefronts(data, world)
 	_build_packs(data, world)
 	_build_fans(data, world)
+	_build_event_day(data, world)
 	_build_loud_cars(world)
 	_build_crazy_drivers(world)
 	_build_wellness(world)
@@ -1980,6 +2003,8 @@ func _set_quality(choice: int) -> void:
 		packs.amount = _crowd_scale()
 	if fans != null:
 		fans.amount = _crowd_scale()
+	if event_day != null:
+		event_day.amount = _crowd_scale()
 	if wellness != null:
 		wellness.amount = _crowd_scale()
 	if life != null:
@@ -2624,6 +2649,43 @@ func _build_fans(data: Dictionary, world: Node3D) -> void:
 	hud.horn_pressed.connect(func() -> void:
 		if fans != null and not flying:
 			fans.honk(car.global_position))
+## 11 listopada (event_day.gd): built idle on both city paths; it switches itself on on the date
+## (live clock) or with --event-day. None with --event-day=0.
+func _build_event_day(data: Dictionary, world: Node3D) -> void:
+	if event_flag == 0:
+		return
+	event_day = EventDay.new()
+	event_day.name = "EventDay"
+	event_day.map = map
+	event_day.hud = hud
+	event_day.force = event_flag == 1
+	event_day.smoke_on = event_smoke == 1
+	event_day.amount = _crowd_scale()
+	event_day.log_on = event_log
+	event_day.clock = tod.local_clock
+	event_day.calendar = _crowd_calendar
+	event_day.focus = func() -> Vector3: return cam_focus
+	event_day.lit = func() -> bool: return tod != null and tod.lights_on > 0.001
+	event_day.vehicle = func() -> Array:
+		if flying:
+			return [heli.global_position, heli.speed() * 3.6, true]
+		return [car.global_position, car.vel.length() * 3.6, false]
+	event_day.kick = func(at: Vector3, yaw: float) -> void:
+		var spot := _free_car_spot(at, yaw)
+		car.global_position = spot
+		car.rotation.y = yaw
+		car.vel = Vector3.ZERO
+		car.forward_speed = 0.0
+		car.reset_physics_interpolation()
+		car.reset_stall()
+		hud.toast("Święto: tędy dziś nie przejedziesz. Spróbuj helikopterem!", "A holiday: closed to cars today. Try the helicopter!")
+		_cut_camera()
+	event_day.traffic = traffic
+	event_day.trams = trams
+	world.add_child(event_day)
+	event_day.setup(data)
+
+
 ## City-life satire #1 (loud_cars.gd): the meet at Browary on both city paths, and the loud
 ## cars in traffic (none with --no-traffic). None at all with --loud=0.
 func _build_loud_cars(world: Node3D) -> void:
@@ -3247,6 +3309,8 @@ func _rave_free() -> bool:
 		return false
 	if meet != null and meet.busy():
 		return false
+	if crawl != null and crawl.busy():
+		return false
 	if ev_tow != null and ev_tow.busy():
 		return false
 	if title != null or _phone_bench or _bench_ghost != null or (spacer != null and spacer.on):
@@ -3323,6 +3387,39 @@ func _place_car(at: Vector3, yaw: float) -> void:
 	print("teleport: the car to %.0f, %.0f for the meet" % [at.x, at.z])
 
 
+# --- the bar crawl ----------------------------------------------------------------------------
+
+## The night groups' calls and their crawls (bar_crawl.gd). None with --no-traffic or --crawl=0.
+func _build_crawl(data: Dictionary, world: Node3D) -> void:
+	if traffic == null or graph == null or crawl_flag == "0":
+		return
+	crawl = BarCrawl.new()
+	crawl.name = "BarCrawl"
+	crawl.hud = hud
+	crawl.bubbles = bubbles
+	crawl.wallet = wallet
+	crawl.missions = missions
+	crawl.map = map
+	crawl.graph = graph
+	crawl.origin = data.get("origin", [52.234, 21.024])
+	crawl.log_on = crawl_log
+	crawl.auto = _crawl_auto
+	crawl.autopilot = autopilot
+	crawl.force_route = crawl_route
+	crawl.force_group = crawl_group
+	crawl.vehicle = func() -> Array:
+		if flying:
+			return [heli.global_position, heli.speed() * 3.6, true]
+		return [car.global_position, car.vel.length() * 3.6, false]
+	crawl.clock = tod.local_clock
+	crawl.free_now = func() -> bool: return _rave_free() and not (rave != null and rave.busy())
+	world.add_child(crawl)
+	crawl.setup(world)
+	car.bumped.connect(func(_c: Object, speed: float) -> void: crawl.on_bump(speed))
+	if crawl_flag == "call":
+		get_tree().create_timer(1.0).timeout.connect(func() -> void: crawl.ring())
+
+
 # --- dead electric cars ----------------------------------------------------------------------
 
 ## Bartek's call and the stranded TESŁO cars (ev_tow.gd). None with --no-traffic or --ev=0.
@@ -3356,7 +3453,7 @@ func _build_ev_tow(world: Node3D) -> void:
 
 ## Nothing else on: no title, bench, Spacer, guide, card, rescue, ride, job, race or tow.
 func _ev_free() -> bool:
-	if (rave != null and rave.busy()) or (club != null and club.inside):
+	if (rave != null and rave.busy()) or (club != null and club.inside) or (crawl != null and crawl.busy()):
 		return false
 	if meet != null and meet.busy():
 		return false
@@ -4799,6 +4896,8 @@ func _parse_args() -> void:
 			_stress_to = maxf(0.0, float(arg.trim_prefix("--stress-to=")))
 		elif arg.begins_with("--controls="):
 			_flag_controls = Controls.parse(arg.trim_prefix("--controls="))
+		elif arg.begins_with("--handling="):
+			_flag_handling = Car.parse_handling(arg.trim_prefix("--handling="))
 		elif arg.begins_with("--lane-assist="):
 			_flag_lane = 1 if arg.trim_prefix("--lane-assist=") in ["on", "1", "true"] else 0
 		elif arg.begins_with("--traffic="):
@@ -4846,6 +4945,16 @@ func _parse_args() -> void:
 			rave_spot = arg.trim_prefix("--rave-spot=")
 		elif arg.begins_with("--rave="):
 			rave_flag = arg.trim_prefix("--rave=")
+		elif arg == "--crawl-call":
+			crawl_flag = "call"
+		elif arg.begins_with("--crawl-route="):
+			crawl_route = arg.trim_prefix("--crawl-route=")
+		elif arg.begins_with("--crawl-group="):
+			crawl_group = arg.trim_prefix("--crawl-group=")
+		elif arg.begins_with("--crawl="):
+			crawl_flag = arg.trim_prefix("--crawl=")
+		elif arg == "--crawl-log":
+			crawl_log = true
 		elif arg == "--rave-log":
 			rave_log = true
 		elif arg == "--meet-call":
@@ -4917,6 +5026,14 @@ func _parse_args() -> void:
 			fans_now = true
 		elif arg == "--fans-log":
 			fans_log = true
+		elif arg == "--event-day":
+			event_flag = 1
+		elif arg.begins_with("--event-day="):
+			event_flag = clampi(int(arg.trim_prefix("--event-day=")), 0, 1)
+		elif arg.begins_with("--event-smoke="):
+			event_smoke = clampi(int(arg.trim_prefix("--event-smoke=")), 0, 1)
+		elif arg == "--event-log":
+			event_log = true
 		elif arg.begins_with("--fans-phase="):
 			fans_phase = arg.trim_prefix("--fans-phase=")
 		elif arg.begins_with("--fans-result="):
@@ -5108,6 +5225,7 @@ func _parse_args() -> void:
 	_rave_auto = not test_run
 	_meet_auto = not test_run
 	_ev_auto = not test_run
+	_crawl_auto = not test_run
 	# Loop G1b: test runs (and --last-session=) never write Auto's image state, even with the
 	# governor on and without --nosave.
 	_image_write = not test_run and _flag_last_session == ""
@@ -5675,7 +5793,7 @@ func _on_setting(key: String, value: Variant) -> void:
 			settings.sensitivity = clampf(float(value), 0.0, 1.0)
 			car.set_sensitivity(settings.sensitivity)
 		"handling":
-			settings.handling = clampi(int(value), 0, 1)
+			settings.handling = clampi(int(value), 0, 2)
 			car.set_handling(settings.handling)
 		"lane_assist":
 			settings.lane_assist = int(value) == 1
@@ -6443,7 +6561,7 @@ func _process(dt: float) -> void:
 		# 2026-11-07 (BACKLOG "Secret rave"): no ride or "Na czasie" card while Ziomek's rave run,
 		# the club or Bartek's tow is on (their calls already held the rescue calls).
 		rides.away = rides.away or (rave != null and rave.busy()) or (club != null and club.inside) \
-				or (ev_tow != null and ev_tow.busy())
+				or (ev_tow != null and ev_tow.busy()) or (crawl != null and crawl.busy())
 		if trend_job != null:
 			trend_job.flying = flying or boating or touring
 			trend_job.player_pos = pos
@@ -7045,6 +7163,15 @@ func _show_target() -> void:
 		_put_target(Vector2(kp.x, kp.z), meet.target_colour(), false)
 		_new_target("job", kp)
 		return
+	if crawl != null and crawl.has_target() and not flying:
+		var cp: Vector3 = crawl.target_position()
+		var at_c := _vehicle_position()
+		var mc := roundi(Vector2(cp.x - at_c.x, cp.z - at_c.z).length())
+		var on_c := cam.unproject_position(cp + Vector3(0, 3.5, 0)) * float(view.stretch_shrink)
+		hud.set_target(on_c, "%d m" % mc, crawl.target_colour(), mc > 12)
+		_put_target(Vector2(cp.x, cp.z), crawl.target_colour(), false)
+		_new_target("job", cp)
+		return
 	if ev_tow != null and ev_tow.has_target():
 		var ep: Vector3 = ev_tow.target_position()
 		var at_e := _vehicle_position()
@@ -7361,6 +7488,8 @@ func _autopilot(dt: float) -> void:
 		return
 	if rides != null and rides.drive_player():
 		return  # loop 2d-1
+	if crawl != null and not flying and crawl.drive_player(car, dt):
+		return  # the bar crawl
 	if trend_job != null and trend_job.drive_player():
 		return  # loop MW-4
 	if jobs != null and jobs.drive_player():

@@ -191,7 +191,7 @@ func _check_site(marks, map: StubMap, key: String) -> void:
 	var s: Dictionary = marks.sites[k]
 	var rec := Recorder.new()
 	marks.st = rec
-	marks._pick.resize(map._roof_nx * map._roof_nz)
+	marks._pick.resize(map._roof_nx * map._roof_nz * 2)  # 16-bit ids, two bytes a cell
 	marks._pick.fill(0)
 	marks._id = k + 1
 	var walls0 := map._wall_faces.size()
@@ -238,8 +238,8 @@ func _check_site(marks, map: StubMap, key: String) -> void:
 			plain += 1
 		tiles[Chunked.tile_of(c)] = true
 	var cells := 0
-	for b in marks._pick:
-		if b == k + 1:
+	for c in map._roof_nx * map._roof_nz:
+		if marks._pick.decode_u16(c * 2) == k + 1:
 			cells += 1
 	var walls := (map._wall_faces.size() - walls0) / 6
 	print("check_sites: %-10s %5d triangles (budget %d), %d tiles of the city mesh, %d car walls, %d tap cells" % [
