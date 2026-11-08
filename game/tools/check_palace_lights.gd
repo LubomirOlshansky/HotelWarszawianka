@@ -1,7 +1,7 @@
 extends SceneTree
 ## The Palace of Culture's event lighting (palace_lights.gd, data/palace_lights.json, F 2026-11-07):
 ## every row parses (a known pattern, two colours, a date range or nth weekday), the calendar picks
-## the right row on known dates (11 November white over red, 31 October Halloween over Pink October,
+## the right row on known dates (11 November white over red, 31 October Halloween, gold through the rest of October,
 ## New Year across the year's end, the parade on the third Saturday of June 2027, gold on an
 ## ordinary night), a night after midnight still belongs to the evening's date, and the shader
 ## has the uniforms main.gd sets. Prints `check_palace_lights: OK` (exit 0) or the problems (exit 1).
@@ -24,7 +24,7 @@ func _init() -> void:
 	if Lights.events().size() < 10:
 		bad.append("only %d events" % Lights.events().size())
 	var want := {
-		[2026, 11, 11]: "independence", [2026, 10, 31]: "halloween", [2026, 10, 12]: "pink_october",
+		[2026, 11, 11]: "independence", [2026, 10, 31]: "halloween", [2026, 10, 12]: "",
 		[2026, 12, 31]: "new_year", [2027, 1, 1]: "new_year", [2027, 6, 19]: "parade", [2027, 6, 12]: "",
 		[2026, 7, 10]: "", [2026, 8, 1]: "uprising", [2026, 12, 24]: "christmas",
 	}

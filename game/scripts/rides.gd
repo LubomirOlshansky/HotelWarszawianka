@@ -521,6 +521,8 @@ func _on_bump(_collider: Object, speed: float) -> void:
 func _free() -> bool:
 	if flying or away or car.in_water or missions.has_target() or not _calls_quiet():
 		return false
+	if state == State.IDLE and hud != null and hud.cards_up():
+		return false  # no request over a result or win card (2026-11-08)
 	if jobs != null and jobs.side_busy():
 		return false  # loop MW-4: the "Na czasie" job too
 	# PT-15 (2026-11-03): nor while a rival's prompt is up or Pani Halina rolls up to flash for the

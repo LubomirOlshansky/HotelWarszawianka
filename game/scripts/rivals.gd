@@ -889,6 +889,8 @@ func _look_for_challenge() -> void:
 	# PT-15: not over a ride request's card either.
 	if flying or missions.has_target() or (jobs != null and (jobs.busy() or jobs.ride_offered())):
 		return
+	if hud != null and hud.cards_up():
+		return  # no prompt over a result or win card (2026-11-08)
 	for i in _drivers.size():
 		if _cooldown[i] <= 0.0 and _can_challenge(i):
 			rival = i

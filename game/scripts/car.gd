@@ -199,6 +199,13 @@ const SLIP_REACH := 0.6
 const SLIP_RATE := 7.0
 const SLIP_KEEP := 0.96
 const SLIP_HIT := 0.35
+## PT-44 (2026-11-08): the end of something thin met nose on further in than SLIP_REACH (on
+## Trasa W-Z's south pavement by the Stare Miasto tram stop, a retaining wall's solid stretch
+## began with a square end on the wall's line; a car half over the low ground beside it met that
+## end 0.2 m off its middle and stopped dead, 28 to 0 m/s in a frame). A fixed thing's end that a
+## sidestep of at most SLIP_WIDE m clears (a wall end, a shelter's end, a post: not a building's
+## front, which a sidestep never clears) slips the car past it too, away from the touch.
+const SLIP_WIDE := 1.1
 ## Pushing into a car or a tram (not fixed) this long with the gas on and going nowhere: steer
 ## round it as round a wall.
 const CAR_PUSH_TIME := 0.35
@@ -1223,25 +1230,44 @@ func _corner_slip(speed: float, dt: float) -> bool:
 	var right := f.cross(Vector3.UP)
 	var half := Vector2(0.9, 2.0)  # the collision box's half width and half length
 	var side := 0.0
+	var reach := SLIP_REACH
+	var wide := false
 	for k in get_slide_collision_count():
 		var hit := get_slide_collision(k)
 		var rel := hit.get_position() - global_position
 		var lat := rel.dot(right)
 		var n := hit.get_normal()
 		# Met nose on (within ~37°): a wall met at an angle is the glancing hit's to turn along.
-		if rel.dot(f) < half.y - 0.8 or absf(lat) < half.x - SLIP_REACH or Vector2(n.x, n.z).normalized().dot(Vector2(f.x, f.z)) > -0.8:
+		if rel.dot(f) < half.y - 0.8 or Vector2(n.x, n.z).normalized().dot(Vector2(f.x, f.z)) > -0.8:
 			return false
+		if absf(lat) < half.x - SLIP_REACH:
+			# PT-44: further in than a corner: only a fixed thing's end, by up to SLIP_WIDE.
+			var other := hit.get_collider()
+			if not other is StaticBody3D or other is AnimatableBody3D:
+				return false
+			# (The touch is reported on the car's nose, not at the thing's edge, so either way may
+			# be the shorter: both are tried, the nearer clear one first.)
+			wide = true
+			continue
 		var s := -signf(lat)
 		if side != 0.0 and s != side:
 			return false
 		side = s
+	if wide:
+		reach = SLIP_WIDE
+		if side == 0.0:
+			side = 1.0
 	if side == 0.0:
 		return false
-	var away := right * side
-	for need: float in [0.15, 0.3, 0.45, SLIP_REACH]:
-		if not test_move(global_transform.translated(away * need), f * 0.6):
-			move_and_collide(away * minf(need, SLIP_RATE * dt))
-			return true
+	var need := 0.15
+	while need < reach + 0.149:
+		var step := minf(need, reach)
+		for s: float in ([side, -side] if wide else [side]):
+			var away := right * s
+			if not test_move(global_transform.translated(away * step), f * 0.6):
+				move_and_collide(away * minf(step, SLIP_RATE * dt))
+				return true
+		need += 0.15
 	return false
 
 
