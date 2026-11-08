@@ -10,6 +10,7 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-08
+- At the west end of Most Poniatowskiego a car with its wheels over the kerb no longer stops dead by the gate tower: it glances back onto the road, and it no longer drops for a moment between the road and the tram tracks.
 - The Rotunda looks like itself from the street: its glass rises into a ring of points under a thin white zigzag edge, with slimmer frames, and its folded silver roof dips into the round skylight. The three glass stores across from the Palace have their pale glass in big panes, a light band along the roof and the grey louvred top floor with the shops' names.
 - Around the Palace: the EMPIRYK bookshop pavilion and the Zodiak pavilion are rebuilt from photos, and the glass office building on the corner of Marszałkowska and Świętokrzyska now has its stepped glass tiers, silver fins and white LED dashes that light up at night.
 - Widok Towers on Aleje Jerozolimskie now has its real blue-grey glass in a light grid instead of green.

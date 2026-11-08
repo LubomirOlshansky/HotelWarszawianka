@@ -1024,6 +1024,18 @@ func _near_apron(x: float, z: float) -> bool:
 	return false
 
 
+## PT-41 (Autopilot, 2026-11-07): Most Poniatowskiego's west approach is two pieces side by side,
+## the road's and the tram's, whose corridors leave a sliver of the grid open between them (15 cm
+## at the deck's foot, at 937.5, -135.9): a car crossing it read the boulevard 7 m below for a
+## tick. A point that no approach holds but that lies within FILL_SEAM of the sides of two
+## different ones, at levels within FILL_SEAM_STEP of each other, takes the lower one's level (a
+## lone approach's edge, or a slot between two levels, is unchanged). Across the map ~15 places
+## had such a sliver over a drop of more than a metre (Most Gdański's and the Trasa
+## Łazienkowska's approaches among them); tools/check_roads.py mirrors it.
+const FILL_SEAM := 0.4
+const FILL_SEAM_STEP := 1.0
+
+
 func _fill_height_base(x: float, z: float) -> float:
 	var h := _grid_height(x, z)
 	_set_hit = false
@@ -1045,6 +1057,13 @@ func _fill_height_base(x: float, z: float) -> float:
 	var p := Vector2(x, z)
 	var set_h := NAN
 	var set_d := INF
+	# PT-41: whether any approach holds the point, and the first two just outside whose sides it
+	# lies (FILL_SEAM) with their levels there (no dictionary: this runs for every height read).
+	var held := false
+	var seam_a := -1
+	var seam_b := -1
+	var seam_ha := -INF
+	var seam_hb := -INF
 	for code in codes:
 		var d: Dictionary = _fills[code >> 12]
 		var k := code & 4095
@@ -1079,6 +1098,19 @@ func _fill_height_base(x: float, z: float) -> float:
 					set_d = absf(lat)
 			else:
 				h = maxf(h, v)
+				held = true
+		elif not is_set and lat >= -float(d["l"]) - FILL_SEAM and lat <= float(d["r"]) + FILL_SEAM:
+			var i := code >> 12
+			var v := lerpf(hs[k], hs[k + 1], t)
+			if seam_a < 0 or seam_a == i:
+				seam_a = i
+				seam_ha = maxf(seam_ha, v)
+			elif seam_b < 0 or seam_b == i:
+				seam_b = i
+				seam_hb = maxf(seam_hb, v)
+	if not held and seam_b >= 0 and absf(seam_ha - seam_hb) <= FILL_SEAM_STEP:
+		# Between two approaches side by side (a sliver their corridors leave open), the lower one's level.
+		h = maxf(h, minf(seam_ha, seam_hb))
 	_set_hit = not is_nan(set_h)
 	if _set_hit:
 		return set_h
@@ -1960,6 +1992,8 @@ func _build_walls(st) -> void:
 		_build_fill_sides(st)
 		return
 	_uv2 = Vector2(0.5, -1.0)
+	# PT-40: the Poniatowski towers' zones (the sectors' files leave them in the index).
+	var towers: Array = data.get("towers", index_data.get("towers", []))
 	for w: Dictionary in data["walls"]:
 		var pts := _pts(w["p"])
 		var tops: Array = w["t"]
@@ -2004,7 +2038,39 @@ func _build_walls(st) -> void:
 				var y0b := float(lows[i + 1]) - 1.0
 				_wall_faces.append_array([Vector3(a.x, y0a, a.y), Vector3(b.x, y0b, b.y), Vector3(b.x, tb + 1.6, b.y),
 						Vector3(a.x, y0a, a.y), Vector3(b.x, tb + 1.6, b.y), Vector3(a.x, ta + 1.6, a.y)])
+				# PT-40: a solid run's open end by a Poniatowski tower gets a lead-in.
+				if i == 0 or not int(flags[i - 1]) & 1:
+					_wall_taper(a, -dir, out, y0a, ta + 1.6, towers)
+				if i == pts.size() - 2 or not int(flags[i + 1]) & 1:
+					_wall_taper(b, dir, out, y0b, tb + 1.6, towers)
 	_uv2 = Vector2.ZERO
+
+
+## PT-40 (Autopilot, 2026-11-07): on each abutment of Most Poniatowskiego the approach's
+## retaining wall runs along the walk between the kerb and the tower group (landmarks.gd
+## `_pt_group`), 0.5-1.2 m out from the tower's collider, and its solid run ends square a metre
+## past the kerb. A car on the kerb lane with its wheels over the kerb (the autopilot cut onto
+## the walk at 58-60 km/h) met that end head on and stopped dead. Inside a tower's zone each
+## open end of a solid run gets a collider-only lead-in: from the end, WALL_TAPER_LEN on past it
+## and WALL_TAPER_IN over to the wall's outer (tower) side, behind the tower's own collider, so a
+## car meeting it glances back onto the road instead.
+const WALL_TAPER_LEN := 5.0
+const WALL_TAPER_IN := 1.2
+## How many lead-ins the build added (check_stuck_spots prints it).
+var wall_tapers := 0
+
+
+## The lead-in at wall end `e`, `on` the way past the end, `out` the wall's outer side.
+func _wall_taper(e: Vector2, on: Vector2, out: Vector2, y0: float, top: float, towers: Array) -> void:
+	var inside := false
+	for t: Dictionary in towers:
+		inside = inside or Geometry2D.is_point_in_polygon(e, _pts(t["zone"]))
+	if not inside:
+		return
+	var f := e + on * WALL_TAPER_LEN + out * WALL_TAPER_IN
+	_wall_faces.append_array([Vector3(e.x, y0, e.y), Vector3(f.x, y0, f.y), Vector3(f.x, top, f.y),
+			Vector3(e.x, y0, e.y), Vector3(f.x, top, f.y), Vector3(e.x, top, e.y)])
+	wall_tapers += 1
 
 
 ## Loop 3b: a frame at each tunnel portal (`tunnels.frames`, tools/bake_structures.py): a

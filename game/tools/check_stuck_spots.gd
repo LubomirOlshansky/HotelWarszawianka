@@ -50,6 +50,15 @@ extends SceneTree
 ## the last spot fail on the old map; a car that leaves Solec 3 m or more onto the verge can still
 ## meet the pier, as at any pier.
 ##
+## PT-40 (Autopilot, 2026-11-07): at Most Poniatowskiego's west bridgehead the autopilot, with its
+## right wheels over the kerb at 58-60 km/h, stopped dead on the square end of the approach's
+## retaining wall, which runs along the walk between the kerb and the gate tower. Fixed: inside a
+## tower's zone each open end of a solid wall run gets a collider-only lead-in back behind the tower
+## (map_builder.gd `_wall_taper`). Three kerb lines, all failing on the old map.
+## PT-41 (the same runs): a one-tick 7 m height flicker just before, at 937.5, -135.9: a 15 cm
+## sliver between the road's and the tram's approaches read the boulevard below. Fixed: such a
+## sliver takes the lower approach's level (map_builder.gd FILL_SEAM); SEAMS reads the height there.
+##
 ## Prints one line per spot and `check_stuck_spots: OK`, or the failures and exit 1. ~10 s on the Mac.
 ##   godot --headless --path game --fixed-fps 60 --script res://tools/check_stuck_spots.gd [-- --prebuilt --verbose]
 
@@ -95,7 +104,16 @@ const SPOTS := [
 	# median at Złota, from the southbound mouth onto the northbound carriageway, the stick to the
 	# north-north-east: no kerb, nose or rail end on the way (the car speeds up all the way).
 	[-962.0, 139.3, 100.0, 6.0, 2.5, 1.0, "Smooth roads 4: the U-turn through Marszałkowska's tram median at Złota", 30.0],
+	[913.2, -119.5, 68.0, 16.7, 3.0, 0.8, "PT-40 Most Poniatowskiego east, the kerb lane's wheels on the kerb past the south-west tower"],
+	[913.5, -119.0, 68.0, 16.7, 3.0, 0.5, "PT-40 Most Poniatowskiego east, half over the kerb onto the walk"],
+	[913.2, -119.5, 70.0, 16.7, 3.0, 0.5, "PT-40 Most Poniatowskiego east, the kerb lane drifting 2° towards the tower"],
 ]
+## PT-41: [x, z, the level a car drives at there, what]: drive_height must give it within SEAM_TOL m.
+const SEAMS := [
+	[938.0, -136.05, -4.48, "PT-41 Most Poniatowskiego west, between the road's and the tram's approaches"],
+	[934.0, -134.75, -4.55, "PT-41 Most Poniatowskiego west, the same sliver 4 m back"],
+]
+const SEAM_TOL := 0.5
 ## Sectors within this of a spot are loaded.
 const REACH := 300.0
 const STALL := 3.0
@@ -146,7 +164,13 @@ func _initialize() -> void:
 		map.measure_sectors()
 	IndexPack.pack(map.index_data)
 	print("check_stuck_spots: %d sectors %s in %d ms%s" % [n, "loaded" if prebuilt else "built", Time.get_ticks_msec() - t0,
-			"" if prebuilt else ", %d pocket walls, %d guard rail gaps closed" % [map.pocket_walls, map.guard_joins]])
+			"" if prebuilt else ", %d pocket walls, %d guard rail gaps closed, %d wall lead-ins" % [map.pocket_walls, map.guard_joins, map.wall_tapers]])
+	for s: Array in SEAMS:
+		var h: float = map.drive_height(s[0], s[1], float(s[2]))
+		var bad := absf(h - float(s[2])) > SEAM_TOL
+		print("%s %s: drives at %.2f (want %.2f)  (--at=%.1f,%.2f)" % ["FAIL" if bad else "ok  ", s[3], h, s[2], s[0], s[1]])
+		if bad:
+			_failures += 1
 
 
 func _next() -> bool:
@@ -210,6 +234,6 @@ func _physics_process(dt: float) -> bool:
 	if _failures == 0:
 		print("check_stuck_spots: OK")
 	else:
-		print("check_stuck_spots: %d of %d spots fail" % [_failures, SPOTS.size()])
+		print("check_stuck_spots: %d of %d spots fail" % [_failures, SPOTS.size() + SEAMS.size()])
 	quit(1 if _failures > 0 else 0)
 	return false
