@@ -96,7 +96,10 @@ then the Launch gate.
       balustrades, fountain basins low rims, OSM wall heights (F, 2026-11-07; `tools/stairs.py`)
 - [x] Walls, fences and hedges from OSM's heights, materials and fence types (see-through railings, low
       park walls, noise barriers), and the Old Town's city walls in brick (F, 2026-11-07; `tools/barrier_tags.py`)
-- [ ] City walls look check from photos (battlements, gates), photo-tag the untagged walls and fences
+- [x] City walls look check from photos: battlements and a brick coping (F, 2026-11-08, BACKLOG "Old Town trailer pass")
+- [ ] City walls' towers and gates from photos, photo-tag the untagged walls and fences
+- [x] Old Town trailer pass (F, 2026-11-08): the Jesuit church's blue glass fixed, Rynek rings, umbrellas and
+      café fences, zinc dormers, an autopilot drive check round the Old Town (`check_old_town_drive.gd`)
 - [ ] Stairs deeper than the 10 m ground shows (Skarpa, Karowa, Tamka, metro stairwells) cut into the
       ground from F's photos (photo list `stairs-photo-list.md`)
 - [x] Arkadka redesign, roof car park, BANK PEPEO sign and the Forest roof terrace (F, 2026-11-01; spec `arkadia.md`)
@@ -194,6 +197,7 @@ then the Launch gate.
 ### Left: map and roads
 - [ ] Free-play playtest plan P1-P10 run with Autopilot and every confirmed PT bug fixed
       (F, 2026-11-02; docs/PLAYTEST.md; setup and Autopilot plugin done 2026-11-02, updated to release v1.0.0-753232a 2026-11-06)
+  - [x] Autopilot workflow lessons of the first week in the skill, qa-tester, WORKFLOW and PLAYTEST (one Mac session at a time with `tools/autopilot.sh on <thread>`, stops a player could make go straight to a cloud fix thread, PT ids from the shared register), 2026-11-08
   - [x] PT-1 dead stop at Centrum's tram stop on Marszałkowska, 2026-11-02 (PR #289)
   - [x] PT-7 car pinned and towed at the Chmielna square's glass corner (notches and slits in building fronts bridged city-wide), 2026-11-02
   - [x] PT-2 (NE of Plac Defilad) and PT-5 (side streets west of Marszałkowska) not reproduced, 2026-11-02: ~680 swept road lines clean, six guard lines in `check_stuck_spots.gd`
@@ -202,11 +206,13 @@ then the Launch gate.
   - [x] PT-9 radio ticker cut off at the left edge at 2.16:1, and PT-10 the order tracker over speech bubbles and its distance into its arrow, 2026-11-02 (`check_hud`; phone look open)
   - [x] PT-15 taxi card over Pani Halina's flash-back, PT-16 the delivered card never closing (one order "driven six times"), PT-17 car ping-ponging in a shallow facade bay on Jasna by Plac Dąbrowskiego, 2026-11-03 (`check_stuck_spots`)
   - [x] PT-18 car pinned on Solec's ramp up to Trasa Łazienkowska (a gap between guard-rail pieces) and on the ramp's pier 2 m off Solec's kerb, 2026-11-03 (rail gaps under 1.5 m on decks closed by a shallow V, piers keep 2 m more room beside main roads; `check_stuck_spots`)
+  - [x] PT-40 dead stop at Most Poniatowskiego's west gate tower at 58-60 km/h (the approach wall's square end on the walk, led in behind each tower) and PT-41 the one-tick 7 m drop just before it (a sliver between the road's and tram's approaches, closed map-wide), 2026-11-08 (`check_stuck_spots`)
 - [x] Larger HUD text fits the phones (2026-11-02, this PR): panels with no room step their own text down (never below normal), `check_hud` large-text pass is a gate
 - [ ] The phone's own text size drives the HUD: needs a native read (BACKLOG "Accessibility follow-ups")
 - [ ] A full `tools/verify.sh` and `--ios` on the Mac on today's main, both city paths
 - [x] The NaN car (2026-11-02): not reproduced (5 more first-10 replays, now frame-identical each run), `check_finite` sweeps every map height, lane and junction curve and the car's step; a NaN input no longer freezes the car for good (car.gd `_clean_inputs`)
 - [x] Map checks in GitHub CI (the derived map pack as a release asset, `tools/map_pack.py`, the `map` job), 2026-11-02 (release `map-pack-1` to publish)
+  - [x] the map pack fetch through the GitHub API with a token, since the repository is private, 2026-11-08
   - [x] verify --quick clean in the cloud with the map pack: the K7 splash pool flown over by design in `check_landmarks`, park and street details re-stamped and `parkdetails`, `streetdetails`, `stops` in CI quick, the prebuilt bake under xvfb-run (or skipped as a WARN with no display), 2026-11-02
 - [x] check_streaming's look pass green on the Mac (a look pre-loads what each of its views
       shows), 2026-11-01, PR #183

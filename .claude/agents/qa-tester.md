@@ -34,6 +34,18 @@ For a free-play bug hunt, follow `.claude/skills/autopilot-playtest/SKILL.md` an
 `docs/PLAYTEST.md`. The bug log rows are the one doc you may write: add findings as `suspect`,
 never fix them.
 
+- One Autopilot session on the Mac at a time: `tools/autopilot.sh status` first, then
+  `tools/autopilot.sh on <your thread>`; if it says busy, report that and don't start. Finish
+  with `tools/autopilot.sh off` and say "the Mac is free" in the report.
+- Pull main and restart the editor before the first run; keep each run under 6 minutes of play.
+- Teleport only to the start of the row's area, never next to the goal; name every teleport.
+- For every stop, give `--at=`, heading, speed before/after and where the car was on the road
+  (lane, kerb, pavement, tram strip, side offset from the centre line). Call a stop "harness
+  only" only when the car was 10+ m off the road, touched a traffic car, or the harness sent a
+  key without `physical_keycode` or held it; everything else goes under "for a fix thread".
+- Take PT ids from the highest in `/mnt/project-files/autopilot/bug-log.md`, main's
+  PLAYTEST.md and open PRs touching it, and write the id into bug-log.md first.
+
 ## Rules
 
 - Every game run: `--nosave` and a way to quit (`--quit-after N` or `--shots=`); autopilot runs

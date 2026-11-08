@@ -640,6 +640,8 @@ var fans: Fans
 var event_day: EventDay
 var event_flag := -1
 var event_smoke := 1
+## --event-t=SEC: with --cinematic=event, freeze the take at that second (stills for the path check).
+var event_t := -1.0
 var event_log := false
 var fans_flag := 1
 var fans_now := false
@@ -1280,6 +1282,9 @@ func _opening_due() -> bool:
 ## Camera loop: the fly-in from over the city down to the car (camera_shots.gd), or the opening
 ## flyover on a first launch.
 func _fly_in() -> void:
+	if _flag_cinematic == "event":
+		_event_take()
+		return
 	var vehicle: Node3D = heli if flying else car
 	# First scene items 6-7: the start's trams where the first frame wants them when the camera lands.
 	_first_scene_trams(CameraShots.OPEN_TIME if _opening_due() else CameraShots.FLY_TIME)
@@ -1295,6 +1300,27 @@ func _fly_in() -> void:
 		return
 	var ahead := -vehicle.global_transform.basis.z
 	moments.fly_in(vehicle.global_position, ahead, cam_yaw, camera_pitch, _view_size)
+
+
+## --cinematic=event: the 15 s take of 11 listopada (camera_shots.gd EVENT_KEYS, event_day.gd's
+## scene_t). No HUD, no car; the camera and the script run on one clock.
+func _event_take() -> void:
+	hud.visible = false
+	car.visible = false
+	if event_day != null:
+		event_day.scene_t = 0.0
+	var last := [Vector3(INF, 0.0, 0.0)]
+	var tick := func(t: float, focus: Vector3) -> void:
+		if event_day != null:
+			event_day.scene_t = t
+		cam_focus = focus
+		# The sectors under the camera, at once when it has moved on (a capture, not a phone run: a
+		# stall costs a frame of the movie, not a hitch).
+		if streamer != null and focus.distance_to(last[0]) > 120.0:
+			last[0] = focus
+			streamer.finish_view(focus, cam)
+	var ground := func(x: float, z: float) -> float: return map.ground_height(x, z)
+	moments.event(ground, tick, PackedStringArray(["11 LISTOPADA", "Around Warsaw · za darmo"]), event_t)
 
 
 func _on_opening_ended(_what: String) -> void:
@@ -2686,6 +2712,7 @@ func _build_event_day(data: Dictionary, world: Node3D) -> void:
 	event_day.map = map
 	event_day.hud = hud
 	event_day.force = event_flag == 1
+	event_day.cascade = _flag_cinematic == "event"
 	event_day.smoke_on = event_smoke == 1
 	event_day.amount = _crowd_scale()
 	event_day.log_on = event_log
@@ -5157,6 +5184,8 @@ func _parse_args() -> void:
 			event_smoke = clampi(int(arg.trim_prefix("--event-smoke=")), 0, 1)
 		elif arg == "--event-log":
 			event_log = true
+		elif arg.begins_with("--event-t="):
+			event_t = maxf(0.0, float(arg.trim_prefix("--event-t=")))
 		elif arg.begins_with("--fans-phase="):
 			fans_phase = arg.trim_prefix("--fans-phase=")
 		elif arg.begins_with("--fans-result="):
@@ -5337,7 +5366,15 @@ func _parse_args() -> void:
 		show_title = true
 	# Camera loop: the cinematic moments in a normal launch only (never with screenshots or a bench).
 	var normal := show_title and shots.is_empty() and not bench and not probe and not bench_button and not demo
-	cinematic_flyin = normal or _flag_cinematic in ["all", "flyin", "opening"]
+	if _flag_cinematic == "event":
+		# The 15 s video: the event day on, the clock 16:40 in the dusk look unless --clock says other.
+		if event_flag < 0:
+			event_flag = 1
+		if live_clock == "":
+			live_clock = "16:40"
+		if start_time == TimeOfDay.DAY:
+			start_time = TimeOfDay.DUSK
+	cinematic_flyin = normal or _flag_cinematic in ["all", "flyin", "opening", "event"]
 	cinematic_look = normal or _flag_cinematic in ["all", "look"]
 	# Loop G1: the governor runs in a normal launch; test runs hold it so they repeat.
 	var test_run := DisplayServer.get_name() == "headless" or not shots.is_empty() or bench or probe or autopilot \

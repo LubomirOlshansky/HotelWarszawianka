@@ -157,6 +157,16 @@ var _bands: MeshInstance3D
 var _bands_tries := 0
 var _bands_ok := false
 var _band_quads := 0
+## The 15 s video's script (docs/design/event-11-listopad-15s.md): the camera path's clock in
+## seconds (camera_shots.gd sets it each frame; -1 = no script). While it runs the fog thickens, the
+## Palace lights tier by tier, Złota 44 follows and the flares ignite in turns, all by this clock.
+var scene_t := -1.0
+## Build the Palace's bands as one mesh per tier (13 draw calls) so they can light in turn.
+var cascade := false
+const CASCADE_AT := 1.0
+const CASCADE_STEP := 0.27
+const ZLOTA_LIT_AT := 3.8
+var _palace_tiers: Array[MeshInstance3D] = []
 var _t := 0.0
 var _tick := 0.0
 var _kicks := 0
@@ -364,7 +374,9 @@ func _build_crowd() -> void:
 		if bool(s["flag"]):
 			flags_cap += 1
 	_flag_mm = _new_mm(flag_mesh(), maxi(flags_cap, 1))
-	_flag_mmi = _new_mmi(_flag_mm, "EventFlags", Models.material())
+	var flag_mat := Models.material().duplicate() as ShaderMaterial
+	flag_mat.set_shader_parameter("sway", 0.16)
+	_flag_mmi = _new_mmi(_flag_mm, "EventFlags", flag_mat)
 	var fbuf := PackedFloat32Array()
 	fbuf.resize(maxi(flags_cap, 1) * 16)
 	var fi := 0
@@ -400,8 +412,9 @@ static func flag_mesh() -> ArrayMesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	Models.box(st, Vector3(0, 1.15, 0), Vector3(0.04, 2.3, 0.04), POLE, Models.FIXED)
-	Models.box(st, Vector3(0.5, 2.0, 0), Vector3(0.95, 0.3, 0.03), WHITE, Models.FIXED)
-	Models.box(st, Vector3(0.5, 1.7, 0), Vector3(0.95, 0.3, 0.03), RED, Models.FIXED)
+	# leg 2.0 marks the cloth: actor.gdshader ripples it in the wind (its `sway`).
+	Models.box(st, Vector3(0.5, 2.0, 0), Vector3(0.95, 0.3, 0.03), WHITE, Models.FIXED, 2.0)
+	Models.box(st, Vector3(0.5, 1.7, 0), Vector3(0.95, 0.3, 0.03), RED, Models.FIXED, 2.0)
 	return st.commit()
 
 
@@ -662,7 +675,24 @@ func _build_bands() -> void:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var n := 0
-	n += _tower_bands(st, PALACE_AT, PALACE_LEVELS, 13.0, 1.6)
+	if cascade:
+		for lv: Array in PALACE_LEVELS:
+			var st1 := SurfaceTool.new()
+			st1.begin(Mesh.PRIMITIVE_TRIANGLES)
+			var q := _tower_bands(st1, PALACE_AT, [lv], 13.0, 1.6)
+			if q > 0:
+				n += q
+				var tier := MeshInstance3D.new()
+				tier.name = "EventPalaceTier"
+				tier.mesh = st1.commit()
+				tier.material_override = Models.material()
+				tier.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				tier.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+				tier.visible = false
+				add_child(tier)
+				_palace_tiers.append(tier)
+	else:
+		n += _tower_bands(st, PALACE_AT, PALACE_LEVELS, 13.0, 1.6)
 	n += _tower_gradient(st, ZLOTA_AT, 11.0, 0.7)
 	n += _stadium_bands(st)
 	if n == 0:
@@ -828,6 +858,8 @@ func _process(dt: float) -> void:
 		_update()
 	if on and _puff_mmi != null and _puff_mmi.visible:
 		_move_puffs()
+	if scene_t >= 0.0 and _built and on:
+		_scene_frame()
 	if log_on and on:
 		_dbg -= dt
 		if _dbg <= 0.0:
@@ -879,18 +911,41 @@ func _update() -> void:
 		_puff_mmi.visible = smoky and PUFFS_ON
 		if smoky and _puff_mm.visible_instance_count == 0:
 			_puff_mm.visible_instance_count = PUFFS
-	if _fog_mmi != null:
+	if _fog_mmi != null and scene_t < 0.0:
 		var in_dark := lit.is_valid() and bool(lit.call())
 		_fog_mmi.visible = smoke_on and share > 0.3
 		_fog_mmi.multimesh.visible_instance_count = int(FOG * tier)
 		_fog_mat.set_shader_parameter("glow", 1.0 if in_dark else 0.0)
 		_fog_mat.set_shader_parameter("density", 0.085 if in_dark else 0.06)
-	if _bands != null:
+	if _bands != null and scene_t < 0.0:
 		var dark := lit.is_valid() and bool(lit.call())
 		_bands.visible = dark and _hours >= 14.0 or (force and dark)
 	elif _bands_tries < 12 and int(_t) % 3 == 0:
 		_build_bands()
 	_keep_player_out()
+
+
+## One frame of the video's script: everything by `scene_t` (the beats are in the plan doc).
+func _scene_frame() -> void:
+	var t := scene_t
+	var dark := lit.is_valid() and bool(lit.call())
+	if _fog_mmi != null:
+		# 0 to full over 5 s from 4 s; held back to 55 % over the last 2 s so the crowd does not white out.
+		var ramp := smoothstep(0.0, 1.0, clampf((t - 4.0) / 5.0, 0.0, 1.0))
+		ramp *= lerpf(1.0, 0.55, clampf((t - 13.0) / 2.0, 0.0, 1.0))
+		_fog_mmi.visible = smoke_on and ramp > 0.01
+		_fog_mmi.multimesh.visible_instance_count = int(FOG * clampf(amount, 0.25, 1.0))
+		_fog_mat.set_shader_parameter("glow", 1.0 if dark else 0.0)
+		_fog_mat.set_shader_parameter("density", (0.085 if dark else 0.06) * ramp)
+	if _pots_mmi != null:
+		var f := clampf((t - 4.5) / 4.5, 0.0, 1.0)
+		_pots_mmi.visible = smoke_on
+		_pots_mmi.multimesh.visible_instance_count = int(_pot_pos.size() * f)
+		_haze_mmi.visible = smoke_on and f > 0.0
+	for i in _palace_tiers.size():
+		_palace_tiers[i].visible = t >= CASCADE_AT + i * CASCADE_STEP
+	if _bands != null:
+		_bands.visible = t >= ZLOTA_LIT_AT
 
 
 func _move_puffs() -> void:
