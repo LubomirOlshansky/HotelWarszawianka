@@ -27,6 +27,7 @@ someone writes its lines.
 - Widok Towers on Aleje Jerozolimskie now has its real blue-grey glass in a light grid instead of green.
 - 25 more ordinary houses south of Aleje Jerozolimskie, between Marszałkowska and Emilii Plater, now have their real wall colours, windows and cornices.
 - Smoła on Smolna looks like itself: the grey tenement with the stone cartouche over the gate, black tents and barriers, three doormen and the queue along the wall. Inside, the room has blue panels, red light bars and a truss tower with just one palm left, the club plays its own techno (house on the patio), and you can dance on the patio too.
+- Your clubbing mate from the Smolna and secret-rave nights is now called Mati (short for Mateusz).
 
 ## 2026-11-08
 - Three more towers by the Palace look like themselves: the InterContinental stands over its huge open gap, glowing white at night, under a sloping roof; the Warsaw Financial Centre is a white tower wrapped round a teal glass one with a red-and-white mast; and Hotel Polonia Palace has its tall zinc roof, the pediment with the round window and its gold name.

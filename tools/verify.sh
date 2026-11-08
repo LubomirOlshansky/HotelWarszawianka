@@ -107,7 +107,7 @@
 # Bar crawl (2026-11-07): `crawl` runs game/tools/check_bar_crawl.gd: the groups' lines, the routes,
 # the call's hours, the clock and the pay.
 # Sekretny rave (2026-11-06): `rave` runs game/tools/check_rave.gd: the cone, booth and club-room meshes,
-# LEKTI's, Ziomek's, the door's and the club's lines (no brand), the rave clock, the door's three
+# LEKTI's, Mati's, the door's and the club's lines (no brand), the rave clock, the door's three
 # questions, the lights' poses, the spots and Smoła on the real lane graph; centrum.json only (CI too).
 # Dym u Senatorka (2026-11-08): `shisha` runs game/tools/check_shisha.gd: data/shisha.json's scenes,
 # taps and jars (both languages, under 90 characters, no brand), the votes and the pay, the

@@ -139,7 +139,7 @@ const Police := preload("res://scripts/police.gd")
 const Buses := preload("res://scripts/buses.gd")
 const OldTram := preload("res://scripts/old_tram.gd")
 const CrashScenes := preload("res://scripts/crash_scenes.gd")
-## Sekretny rave (rave.gd, F's ask 2026-11-06): LEKTI on MORDOR FM, Ziomek's call, the raves' rigs.
+## Sekretny rave (rave.gd, F's ask 2026-11-06): LEKTI on MORDOR FM, Mati's call, the raves' rigs.
 const Rave := preload("res://scripts/rave.gd")
 ## Nocny spot (street_meet.gd, F's ask 2026-11-06): the WARSAW NIGHT RACING CLUB's meets, raids and drag.
 const StreetMeet := preload("res://scripts/street_meet.gd")
@@ -554,7 +554,7 @@ var ev_flag := ""
 var ev_log := false
 var _ev_auto := false
 var _crash_auto := false
-## Sekretny rave (rave.gd): flags --rave-call (LEKTI and Ziomek's call now), --rave-smola (Ziomek's
+## Sekretny rave (rave.gd): flags --rave-call (LEKTI and Mati's call now), --rave-smola (Mati's
 ## Smoła night now), --rave=on / --rave=day (that rave on at any hour), --rave-spot=ID, --rave=0,
 ## --rave-log.
 var rave: Rave
@@ -3115,7 +3115,7 @@ func _kino_free() -> bool:
 ## busy / idle); nothing else changes.
 const STORY_BLURBS := {
 	"boat": ["Wyścig łodzi po Wiśle, trzy kółka.", "A boat race down the Vistula, three laps."],
-	"rave": ["Sekretny rave: Ziomek zna drogę.", "A secret rave: Ziomek knows the way."],
+	"rave": ["Sekretny rave: Mati zna drogę.", "A secret rave: Mati knows the way."],
 	"dekalog": ["Warszawa Kieślowskiego z Claire.", "Kieślowski's Warsaw, with Claire."],
 	"kawa": ["Kawowy rajd po mieście.", "A coffee run across the city."],
 	"padel": ["Czwarty do padla w WTS Deska.", "A fourth for padel at WTS Deska."],
@@ -3154,7 +3154,7 @@ func _build_stories(world: Node3D) -> void:
 				"call": boat_race.ring, "meet": boat_race.meet, "busy": boat_race.busy, "idle": boat_race.idle})
 	if rave != null and not rave.home.is_empty():
 		var h: Vector3 = rave.home["at"]
-		stories.add({"id": "rave", "pl": "Sekretny rave", "en": "Secret rave", "who": ["Ziomek", "Ziomek"],
+		stories.add({"id": "rave", "pl": "Sekretny rave", "en": "Secret rave", "who": ["Mati", "Mati"],
 				"hello": ["„Siema! Słyszałeś? Lekti robi dziś sekretny rave. Ja wiem, jak tam trafić. Wsiadam?”",
 						"\"Hey! Did you hear? Lekti's throwing a secret rave tonight. I know how to get there. Can I get in?\""],
 				"closed": ["„Rave? Dziś cisza. Lekti gra od czwartku do soboty, wpadnij wieczorem”",
@@ -3340,7 +3340,7 @@ func _boat_frame() -> void:
 
 # --- the secret raves ---------------------------------------------------------------------------
 
-## LEKTI's invites, Ziomek's calls and the raves' rigs (rave.gd). None with --no-traffic or --rave=0.
+## LEKTI's invites, Mati's calls and the raves' rigs (rave.gd). None with --no-traffic or --rave=0.
 func _build_rave(data: Dictionary, world: Node3D) -> void:
 	if traffic == null or graph == null or rave_flag == "0":
 		return
@@ -6768,7 +6768,7 @@ func _process(dt: float) -> void:
 		# Loop 2d-1: no ride is offered from the helicopter, on the title screen or the bench.
 		rides.flying = flying or boating or touring
 		rides.away = title != null or _bench_ghost != null or _phone_bench
-		# 2026-11-07 (BACKLOG "Secret rave"): no ride or "Na czasie" card while Ziomek's rave run,
+		# 2026-11-07 (BACKLOG "Secret rave"): no ride or "Na czasie" card while Mati's rave run,
 		# the club or Bartek's tow is on (their calls already held the rescue calls).
 		rides.away = rides.away or (rave != null and rave.busy()) or (club != null and club.inside) \
 				or (ev_tow != null and ev_tow.busy()) or (crawl != null and crawl.busy()) \
