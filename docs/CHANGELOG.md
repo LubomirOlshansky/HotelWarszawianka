@@ -26,6 +26,7 @@ someone writes its lines.
 - The museum's steam engines and coaches by Warszawa Główna are solid now: the car stops at them instead of driving through.
 
 ## 2026-11-07
+- Padel is on the quest map now: a yellow-green start by the DESKA club. Stop by the gate and your friend comes out with a racket, or ring them from the list.
 - The car park behind the Novotel on Nowogrodzka stands as it does: eight open decks painted with red roses turning green and teal down Parkingowa, a blue-neon bar on the corner, the barrier at the entry and the poster-covered wall beside it.
 - Nowogrodzka 31, the cream office block across from the Novotel, is built from real photos: rows of square windows, bars and shops with fairy lights and neon, a huge cat-food advert (MRAU) on the end wall facing the Novotel, and on the roof a big white billboard lit at night by fifteen lamps. Next to it, Marszałkowska 99 is the white block with its balconies.
 - The cycle bridges under Most Łazienkowski no longer float in the air: they hang on steel brackets from the bridge's box girders.

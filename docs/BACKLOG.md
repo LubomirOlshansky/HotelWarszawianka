@@ -454,7 +454,7 @@ at DESKA (the generic three-a-side line overwrote it). Left:
 - [ ] hud.gd: a card with no spot that fits (a side card wider or taller than the room beside the car, a centred one taller than the screen) is never placed and stays hidden, so a quest waits on an invisible card (PT-30, 2026-11-07). Fall back to any spot, or log it
 - [ ] PT-31 (map lane): the Solec-Zaruskiego service road is mapped as a bridge the car can't drive onto, so DESKA is reachable by car only from Czerniakowska (or by helicopter); Mac Autopilot 2026-11-07
 - [ ] PT-32 (suspect): a district discovery card during the ringing call may end the call
-- [ ] Hook the call into the quest map (PR #504's `stories.add`, docs/design/quest-map.md "Adding a questline") once it is on main
+- [x] On the quest map (2026-11-07): a yellow-green start at the DESKA gate, the list's call, Kuba walks up in person and the match starts at once (`trend_job.gd` padel_ring/meet/busy/idle)
 - [ ] A racket detour: the friend calls back mid-drive ("masz rakietę?"), a stop at a pro shop "Rakieta w Cenie" for +1 point's head start
 - [ ] The court booked till the hour: the 8 min limit becomes the minutes to the full hour (at least 5), shown as "KORT DO 18:00"
 - [ ] Ściana Płaczu, the rooftop glass court (padel.md idea), as a second venue for the call
