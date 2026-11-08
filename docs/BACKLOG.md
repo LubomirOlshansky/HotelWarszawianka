@@ -321,6 +321,19 @@ the restaurant's roof sign, door, canopy, soda panel and menu words face the Pal
   and the terrace's printed banner are plain colour; a texture pass would add them.
 - **Phone**: the look of the pink glass and tubes at night, and a bench there (1,298 triangles,
   one shader branch for the pink glow).
+## Cyfrowy Parking Novotel from F's photos (F, 2026-11-07; docs/landmarks/cparking.md)
+
+Built: the L-shaped car park (OSM "parking", 30.7 m) as a ground storey and eight open decks with painted spandrels
+(red swirls, orange patches, white roses, green and teal down Parkingowa), lit core behind the decks, columns, roof
+deck with stair heads and lamps, the corner bar (parody names KLUBOLEJNIA, LEJALNIA drink bar) in blue neon with a red
+lit pier, the dark entry with the red-and-white barrier and the blue P, three lit shops, the poster boards, and the
+next block's corrugated wall with the red mural head and the parody wordmark KOLORKI. Left:
+- The mural is colour blocks and discs, not paint: the swirl pattern, the figure on the wall and the far end's
+  grey-blue (night photos) are approximations; the east and south faces are read from nothing (no photo of them).
+- Where the barrier and the entry really are along Parkingowa (placed from the night photos, 14-24 m from the corner).
+- The corrugated wall is the LoD2 block's Nowogrodzka face with a panel 25 cm proud; its height (22 m) is LoD2's.
+- Phone: bench for the added triangles and the lit core (one M_LAMP wall).
+
 
 ## Novotel Warszawa Centrum from F's photos (F, 2026-11-07; docs/landmarks/novotel.md)
 

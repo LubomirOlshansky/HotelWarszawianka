@@ -160,6 +160,7 @@ SITE_AREAS = [
     (-193.0, 46.0, -183.0, 56.0),           # and Foksal 15
     (70.0, 20.0, 100.0, 45.0),              # Młotek, Smolna 8 (landmarks.gd ML_AT)
     (-820.0, -1185.0, -790.0, -1160.0),     # Kozia 9 (unnamed in OSM; landmarks.gd KZ_AT)
+    (-690.0, 525.0, -628.0, 635.0),         # Cyfrowy Parking Novotel, Nowogrodzka 27 (landmarks.gd CP_AT)
     (-475.0, -960.0, -450.0, -940.0),       # Karowa 18a (unnamed in OSM; landmarks.gd KR_AT)
     (-650.0, -790.0, -630.0, -765.0),       # Plac Piłsudskiego's south-east block (landmarks.gd KROLEWSKA_BLOCK)
     (-3105.0, -2455.0, -2920.0, -2335.0),   # map north: the Forest tower's office block (unnamed in OSM; docs/DEMO.md 2.2)

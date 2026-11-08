@@ -80,6 +80,7 @@ const BUDGET := {
 	"karowa18a": 1500,
 	"nowogrodzka31": 3200,
 	"marszalkowska99": 5000,
+	"cparking": 6500,
 	"hotel_kasztel": 330,
 	"hotel_canaletto": 330,
 	"hotel_starowka": 330,

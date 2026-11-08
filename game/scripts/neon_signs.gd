@@ -112,7 +112,9 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		"TARAS", "30 PIĘTRO", "LALKA", "THE FUTURE", "SHOULD", "ALWAYS BE", "BETTER",
 		# Nowogrodzka 31 (F's photos, 2026-11-07): the offices-to-let banners, two shops' neon, the
 		# cat-food advert on the end wall and the rooftop billboard (a parody, MRAU).
-		"BIURA", "RESTAURACJA", "BUM BAR", "SZTUKA", "UKŁADANIA", "MISKI", "MRAU", "DLA KOTÓW"]
+		"BIURA", "RESTAURACJA", "BUM BAR", "SZTUKA", "UKŁADANIA", "MISKI", "MRAU", "DLA KOTÓW",
+		# The car park behind the Novotel (F's photos, 2026-11-07): the corner bar's parody names.
+		"KLUBOLEJNIA", "LEJALNIA", "DRINK BAR"]
 ## Tube colours (linear, bright): pink, cyan, violet, and a few words' usual colours.
 const PINK := Color(1.0, 0.1, 0.55)
 const CYAN := Color(0.1, 0.9, 1.0)
