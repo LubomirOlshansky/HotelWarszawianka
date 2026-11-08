@@ -7775,7 +7775,17 @@ func _mapped_style(l: Dictionary, style: Array) -> Array:
 ## they were not on the map at all, only the Barbakan and two towers. Brick, each its mapped height
 ## (Baszta Rycerska 13.5 m; the rebuilt curtain walls 5-6 m; the ruins' stubs 1-1.5 m), the coping a
 ## shade darker; from 1 m up they stop the car like any wall.
+## The trailer pass (F, 2026-11-08, F's photos E14-E16 of Międzymurze Biegańskiego and Podwale): the
+## coping a pale brick cap, and the curtain walls from WALL_MERLON_MIN m up crenellated on their
+## outer face (the one facing away from the Rynek): wide merlons with narrow embrasures.
 const CITY_WALL := Color("#b8704f")
+const CITY_WALL_CAP := Color("#c98a6c")
+const WALL_MERLON_MIN := 5.0
+const WALL_MERLON := 1.6
+const WALL_CRENEL := 0.7
+const WALL_MERLON_H := 0.9
+## The Rynek's middle: a wall face pointing away from it faces out of the town.
+const OLD_TOWN_HEART := Vector2(-805.0, -1745.0)
 
 
 func _build_city_walls(st) -> void:
@@ -7797,7 +7807,7 @@ func _build_city_walls(st) -> void:
 			var b := ring[idx[i + 1]]
 			var c := ring[idx[i + 2]]
 			_tri(st, Vector3(a.x, tops[idx[i]], a.y), Vector3(b.x, tops[idx[i + 1]], b.y), Vector3(c.x, tops[idx[i + 2]], c.y),
-					Vector3.UP, CITY_WALL.darkened(0.12))
+					Vector3.UP, CITY_WALL_CAP)
 		var ccw := 0.0
 		for i in ring.size():
 			ccw += ring[i].cross(ring[(i + 1) % ring.size()])
@@ -7817,7 +7827,52 @@ func _build_city_walls(st) -> void:
 			if h >= 1.0:
 				_wall_faces.append_array([Vector3(a.x, ga, a.y), Vector3(b.x, gb, b.y), Vector3(b.x, tops[j] + 1.5, b.y),
 						Vector3(a.x, ga, a.y), Vector3(b.x, tops[j] + 1.5, b.y), Vector3(a.x, tops[i] + 1.5, a.y)])
+			if h >= WALL_MERLON_MIN and Vector2(n.x, n.z).dot((a + b) * 0.5 - OLD_TOWN_HEART) > 0.0:
+				_merlons(st, a, b, tops[i], tops[j], Vector2(n.x, n.z), _wall_depth(ring))
 	_uv2 = Vector2.ZERO
+
+
+## A wall ring's thickness, about: twice its area over its perimeter (a long thin strip), at most
+## 1.2 m (a merlon on a tower's ring would otherwise be as deep as the tower).
+func _wall_depth(ring: PackedVector2Array) -> float:
+	var area := 0.0
+	var per := 0.0
+	for i in ring.size():
+		var q := ring[(i + 1) % ring.size()]
+		area += ring[i].cross(q)
+		per += ring[i].distance_to(q)
+	return clampf(absf(area) / maxf(per, 0.1), 0.45, 1.2)
+
+
+## Merlons along one outer edge of a city wall (a..b, its top at ta..tb, `out` its outward
+## normal): a row of brick blocks WALL_MERLON wide, set in from the edge's ends, each with a pale cap.
+func _merlons(st, a: Vector2, b: Vector2, ta: float, tb: float, out: Vector2, depth: float) -> void:
+	var length := a.distance_to(b)
+	var step := WALL_MERLON + WALL_CRENEL
+	var count := floori((length - WALL_CRENEL) / step)
+	if count < 1:
+		return
+	var d := (b - a) / length
+	var inward := -out.normalized()
+	var start := (length - (count * step - WALL_CRENEL)) * 0.5
+	for k in count:
+		var s0 := start + k * step
+		var s1 := s0 + WALL_MERLON
+		var top0 := lerpf(ta, tb, s0 / length)
+		var top1 := lerpf(ta, tb, s1 / length)
+		var p0 := a + d * s0
+		var p1 := a + d * s1
+		var q0 := p0 + inward * depth
+		var q1 := p1 + inward * depth
+		var up0 := top0 + WALL_MERLON_H
+		var up1 := top1 + WALL_MERLON_H
+		var o3 := Vector3(out.x, 0.0, out.y).normalized()
+		var d3 := Vector3(d.x, 0.0, d.y)
+		_quad(st, Vector3(p0.x, top0, p0.y), Vector3(p1.x, top1, p1.y), Vector3(p1.x, up1, p1.y), Vector3(p0.x, up0, p0.y), o3, CITY_WALL)
+		_quad(st, Vector3(q1.x, top1, q1.y), Vector3(q0.x, top0, q0.y), Vector3(q0.x, up0, q0.y), Vector3(q1.x, up1, q1.y), -o3, CITY_WALL.darkened(0.08))
+		_quad(st, Vector3(q0.x, top0, q0.y), Vector3(p0.x, top0, p0.y), Vector3(p0.x, up0, p0.y), Vector3(q0.x, up0, q0.y), -d3, CITY_WALL.darkened(0.04))
+		_quad(st, Vector3(p1.x, top1, p1.y), Vector3(q1.x, top1, q1.y), Vector3(q1.x, up1, q1.y), Vector3(p1.x, up1, p1.y), d3, CITY_WALL.darkened(0.04))
+		_quad(st, Vector3(p0.x, up0, p0.y), Vector3(p1.x, up1, p1.y), Vector3(q1.x, up1, q1.y), Vector3(q0.x, up0, q0.y), Vector3.UP, CITY_WALL_CAP)
 
 
 ## Walls (and fences) drawn otherwise than OSM's 1.9 m grey wall, by the line's first point: [point, style],
@@ -9904,11 +9959,20 @@ func _skin_run(skin: Dictionary, pos: PackedVector3Array, nrm: PackedVector3Arra
 		uv2: PackedVector2Array, t0: int, t1: int) -> void:
 	var steep: float = skin.get("steep", 0.7)
 	var pale: Dictionary = skin.get("pale", {})
+	# `upper`: walls higher than `over` m above the building's foot in another colour (a brick tower
+	# over a plastered church, the Jesuits on Świętojańska).
+	var upper: Dictionary = skin.get("upper", {})
+	var foot := INF
+	if not upper.is_empty():
+		for t in range(t0, t1):
+			foot = minf(foot, pos[t].y)
 	for t in range(t0, t1, 3):
 		var c: Color = skin["wall"]
 		var n := nrm[t]
 		if n.y >= steep:
 			c = skin["roof"]
+		elif not upper.is_empty() and (pos[t].y + pos[t + 1].y + pos[t + 2].y) / 3.0 > foot + float(upper["over"]):
+			c = upper["wall"]
 		elif not pale.is_empty() and absf(n.y) < 0.3:
 			var mid3 := (pos[t] + pos[t + 1] + pos[t + 2]) / 3.0
 			var mid := Vector2(mid3.x, mid3.z)

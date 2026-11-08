@@ -95,7 +95,10 @@ then the Launch gate.
       balustrades, fountain basins low rims, OSM wall heights (F, 2026-11-07; `tools/stairs.py`)
 - [x] Walls, fences and hedges from OSM's heights, materials and fence types (see-through railings, low
       park walls, noise barriers), and the Old Town's city walls in brick (F, 2026-11-07; `tools/barrier_tags.py`)
-- [ ] City walls look check from photos (battlements, gates), photo-tag the untagged walls and fences
+- [x] City walls look check from photos: battlements and a brick coping (F, 2026-11-08, BACKLOG "Old Town trailer pass")
+- [ ] City walls' towers and gates from photos, photo-tag the untagged walls and fences
+- [x] Old Town trailer pass (F, 2026-11-08): the Jesuit church's blue glass fixed, Rynek rings, umbrellas and
+      café fences, zinc dormers, an autopilot drive check round the Old Town (`check_old_town_drive.gd`)
 - [ ] Stairs deeper than the 10 m ground shows (Skarpa, Karowa, Tamka, metro stairwells) cut into the
       ground from F's photos (photo list `stairs-photo-list.md`)
 - [x] Arkadka redesign, roof car park, BANK PEPEO sign and the Forest roof terrace (F, 2026-11-01; spec `arkadia.md`)
