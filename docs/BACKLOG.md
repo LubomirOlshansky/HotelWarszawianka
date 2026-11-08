@@ -4,6 +4,19 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## Quests on the map, simpler (F, 2026-11-08; docs/design/main-line.md section 0)
+Fixed: after the first task the main line's gold star kept pointing at Pani Halina while the player
+was on a quest they took. The star, the goal card and the nudge now show only for the first kebab
+(`main_line.gd` FIRST_JOB_ONLY; the chapters stay written). The quest taken glows and pulses in its
+colour on the minimap and the full map, with a dotted line from the car; the full map's quest card
+has a two-tap "✕ Quit" button. Fixed: a finger drag on the quest list ended as a tap on the row
+under it, so on the CAR and STORIES tabs a scroll started a request and closed the map (the
+`gui_cancel_input` call it relied on does not exist in Godot 4.7).
+- [ ] The quit button gives up through each quest's own ✕ (hud `abort_pressed`), which covers only
+  some beats: a questline in its offer card, or the coffee run on the bike, may answer "can't quit
+  this one right now". Check each quest's quit on the phone and widen the beats where needed.
+- [ ] Phone look: the glow's size on the minimap (1.15) and the full map (2.0), the dotted line.
+
 ## Thin towers across the map (F, 2026-11-07; docs/design/small-buildings.md)
 Fixed: 469 small OpenStreetMap buildings with no height tag stood at the bake's flat 14 m guess and
 showed as thin windowed towers (F's crop: the two metro lifts by the Ratusz-Arsenał tram stop).
@@ -124,6 +137,9 @@ family: +0 draw calls; the long bus's rear door moved off its axle). Left:
 - Electric buses (roof battery pods, the charger pantograph) as a third shape; bus bays (zatoki)
   where the kerb steps back are not drawn because the road rework is dropped.
 - Phone look check: zigzag line width (0.22 m) and the yellow line (0.22 m) at the default view.
+- Shelters facing (F, 2026-11-08, Ratusz Arsenał): every shelter now turns its open side to its
+  boarding edge (`snap_props.face_shelters`, check_stops K7). Left: 11 with nothing to face (10 park
+  or square roofs over 16 m from any road, one mapped right on the track at -1907, -2673); those park roofs might be benches or pergolas, not stops (a Mac OSM look).
 
 ## Stacja Muzeum, Nocny Targ and Kolejowa (F, 2026-11-07; spec docs/landmarks/specs/stacja_muzeum.md)
 
@@ -313,7 +329,7 @@ check `tramfleet`. No maker's or model name anywhere: nicknames only.
 ## Batch 4: Rondo ONZ towers, Platinum, Ilmet, Spektrum, Teatr Wielki (2026-11-06)
 
 Cloud pass with Mapillary street photos only (refs/<site>/street/ on the cloud box; Commons and the orthophoto are Mac-only). Done: Ilmet (terracotta shaft `#8a5e4c`, `chamfer` stepped top; photos 2025-2026). Left, needs a Mac photo pass (street photos were night/rain, too far or the wrong building):
-- [ ] Cosmopolitan, Platinum A/B (frames 100+ m away), Spektrum
+- [x] ~~Cosmopolitan~~ (done 2026-11-08 from F's photos), [ ] Platinum A/B (frames 100+ m away), Spektrum
 - [ ] Teatr Wielki: the side wings' colonnades (Wierzbowa, Moliera) are not built (the front got its photo pass 2026-11-08)
 
 ## Warsaw Spire, Spire B and C from F's photos (F, 2026-11-06)

@@ -7565,6 +7565,11 @@ func _low_wall(flat: Array) -> bool:
 
 ## Operation Unslop, Świętokrzyska (2026-11-06): OSM maps the planter edges inside traffic islands (Emilii Plater's median by the Palace: two wavy walls 95 m long) as `wall`; drawn 1.9 m high they read as a twisting beige ribbon across the junction. A wall lying inside a traffic island is a low planter edge (13 on the map), like the garden rings. They are a planting bed's granite kerb (Mapillary 2995066364107910, 2020-07), 0.2 m.
 const ISLAND_EDGE := ["#8e8b84", 0.25, 0.2]
+## Emilii Plater's invisible wall (F, 2026-11-08, a screenshot of the car stopped on the paved median
+## by the Palace): the planter edges drew at ISLAND_EDGE's 0.2 m but kept the 1.9 m wall's collider
+## (1.7 m of invisible wall, twisting across the median). A barrier drawn lower than this is a kerb
+## the car climbs, like the stop platforms and the islands' own kerbs: drawn, not solid.
+const BARRIER_SOLID_MIN := 0.3
 var _island_boxes: Array = []
 var _island_src: Array = []
 
@@ -8186,6 +8191,7 @@ func _build_barriers(st) -> void:
 				if (o as Array).size() > 1 and BARRIER_STYLE.has(str(o[1])):
 					style = BARRIER_STYLE[str(o[1])]
 		var pts := _pts(l["p"])
+		var solid: bool = l["k"] != "platform" and float(style[2]) >= BARRIER_SOLID_MIN
 		if style.size() > 3:
 			var open: Array = style[3]
 			# A railing OSM maps (tools/barrier_tags.py) has a post every 3 m: 30 km of them.
@@ -8200,17 +8206,17 @@ func _build_barriers(st) -> void:
 			for i in pts.size():
 				if i > 0 and _on_sunk_edge(pts[i - 1], pts[i]):
 					if piece.size() >= 2:
-						_wall_along(st, piece, float(style[1]), float(style[2]), Color(style[0]), true)
+						_wall_along(st, piece, float(style[1]), float(style[2]), Color(style[0]), solid)
 					piece = PackedVector2Array()
 				piece.append(pts[i])
 			if piece.size() >= 2:
-				_wall_along(st, piece, float(style[1]), float(style[2]), Color(style[0]), true)
+				_wall_along(st, piece, float(style[1]), float(style[2]), Color(style[0]), solid)
 			continue
 		if l["k"] == "wall" and not _stair_idx.is_empty():
 			for piece in _stair_gaps(pts):
-				_wall_along(st, piece, float(style[1]), float(style[2]), Color(style[0]), true)
+				_wall_along(st, piece, float(style[1]), float(style[2]), Color(style[0]), solid)
 			continue
-		_wall_along(st, pts, float(style[1]), float(style[2]), Color(style[0]), l["k"] != "platform")
+		_wall_along(st, pts, float(style[1]), float(style[2]), Color(style[0]), solid)
 	_build_pkin_bushes(st)
 	_uv2 = Vector2.ZERO
 
