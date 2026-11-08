@@ -299,6 +299,11 @@ var cam_yaw := 45.0
 ## round the car, so a
 ## wide framed shot centred on a spot behind a building keeps that building whole.
 var no_ghost := false
+## Road view (F 2026-11-07, "photos of the roads from height, like GTA"): the camera looks
+## straight down, north up, with no occlusion ghost, to check kerbs, asphalt and paint from above.
+## `--topdown` starts in it; T toggles it on a keyboard. A debug view: the pitch setting is untouched.
+var top_down := false
+const TOP_DOWN_PITCH := -89.9
 var cam_yaw_target := 45.0
 ## --yaw= was given (the follow camera then doesn't start behind the vehicle).
 var _flag_yaw := false
@@ -1756,6 +1761,8 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	trains = Trains.new()
 	world.add_child(trains)
 	trains.setup(map, data)
+	# The railway audit (2026-11-07): the trains' rumble, horn and platform gong.
+	trains.sfx = sfx
 	if train_at != Vector2.INF:
 		trains.place_near(train_at, train_kind)
 	walkers = Pedestrians.new()
@@ -4728,6 +4735,8 @@ func _parse_args() -> void:
 			free_roam = true
 		elif arg == "--no-ghost":
 			no_ghost = true
+		elif arg == "--topdown":
+			top_down = true
 		elif arg.begins_with("--tap="):
 			var xy := arg.trim_prefix("--tap=").split(",")
 			tap_at = Vector2(float(xy[0]), float(xy[1]))
@@ -5926,7 +5935,8 @@ func _activity() -> String:
 
 ## Loop 2c, --lineup: every vehicle model standing round the car, all facing its way: beside it
 ## the taxi, Podwózka, the police car, the guards' car and the two vans; a row ahead the cars'
-## four shapes; a row behind the six rivals; further back the bus and a tram cab car.
+## four shapes; a row behind the six rivals; further back the articulated and the solo bus (and the
+## solo one with its night sign) and a tram cab car.
 ## Family shapes go through a MultiMesh with the shape in the custom alpha, as traffic draws
 ## them. Prints each model's triangles.
 func _build_lineup(parent: Node3D) -> void:
@@ -5953,6 +5963,8 @@ func _build_lineup(parent: Node3D) -> void:
 		[cars, 0, "#b8bcc0", -4.8, 7.5, 0.0, "hatch"], [cars, 1, "#24324a", -1.6, 7.5, 0.0, "saloon"],
 		[cars, 2, "#4c6650", 1.6, 7.5, 0.0, "estate"], [cars, 3, "#2b2c2f", 4.8, 7.5, 0.0, "suv"],
 		[Models.traffic_mesh(3), 0, "#ffffff", -4.0, -17.5, 0.0, "bus"],
+		[Models.traffic_mesh(3), 1, "#ffffff", 0.0, -14.5, 0.0, "solo bus"],
+		[Traffic.night_bus_mesh(), 1, "#ffffff", 4.0, -14.5, 0.0, "solo bus, night sign"],
 	]
 	for r: Array in rows:
 		var mm := MultiMesh.new()
@@ -6457,7 +6469,7 @@ func _process(dt: float) -> void:
 	# rarely hidden; a full-size one cuts into the roof edge it has landed on.
 	var car_view := cam.global_transform.affine_inverse() * (pos + Vector3(0, 3.5 if flying else 1.0, 0))
 	var hole := clampf(cam.size * 0.11, 7.0, 20.0) * (0.55 if flying else 1.0)
-	if no_ghost:
+	if no_ghost or top_down:
 		hole = 0.0  # --no-ghost: the see-through hole is off too
 	building_mat.set_shader_parameter("fade_radius", hole)
 	_update_ghost(pos, car_view)
@@ -6505,7 +6517,7 @@ func _update_ghost(pos: Vector3, car_view: Vector3) -> void:
 	var ahead_xz := Vector2(ahead.x, ahead.z).normalized()
 	var occ := Vector4(pos.x, pos.z, ahead_xz.x, ahead_xz.y)
 	var ghost_r := clampf(cam.size * 0.22, 14.0, 50.0) * (0.6 if flying else 1.0)
-	if no_ghost:
+	if no_ghost or top_down:
 		ghost_r = 0.0
 	for m: ShaderMaterial in [building_mat, map.flat_material, post_mat] + _neon_materials():  # sweep 2: + neon
 		m.set_shader_parameter("car_view", car_view)
@@ -7591,6 +7603,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 				_rotate_camera(1)
 			KEY_C:
 				_toggle_follow()
+			KEY_T:
+				top_down = not top_down
+				print("road view: %s" % ("on" if top_down else "off"))
 			KEY_H:
 				_toggle_vehicle()
 			KEY_B:
@@ -7719,7 +7734,11 @@ func _update_camera(dt: float) -> void:
 		return
 	var vehicle: Node3D = heli if flying else car
 	var speed: float = heli.speed() if flying else absf(car.forward_speed)
-	if follow:
+	if top_down:
+		fcam.stop_turning()
+		cam_yaw = 0.0
+		cam_yaw_target = 0.0
+	elif follow:
 		# Camera loop (follow_camera.gd): the helicopter waits while the stick is held and 0.6 s
 		# after, then eases round; Classic turns with the car; never faster than 64°/s. The
 		# follow-camera loop: Point turns with the car too, finger down or not, more gently
@@ -7737,7 +7756,7 @@ func _update_camera(dt: float) -> void:
 	else:
 		fcam.stop_turning()
 		cam_yaw = lerpf(cam_yaw, cam_yaw_target, 1.0 - exp(-8.0 * dt))
-	var basis := Basis.from_euler(Vector3(deg_to_rad(camera_pitch), deg_to_rad(cam_yaw), 0.0))
+	var basis := Basis.from_euler(Vector3(deg_to_rad(_view_pitch()), deg_to_rad(cam_yaw), 0.0))
 	var focus := vehicle.get_global_transform_interpolated().origin
 	focus.y += cam_lift
 	var size: float
@@ -7824,8 +7843,13 @@ static func heli_widen(above_ground: float) -> float:
 	return minf(maxf(above_ground - Heli.CRUISE, 0.0) * 0.8, HELI_WIDEN_MAX)
 
 
+## The camera's pitch this frame: the road view's straight down, or the player's setting.
+func _view_pitch() -> float:
+	return TOP_DOWN_PITCH if top_down else camera_pitch
+
+
 func _camera_far(distance: float, size: float) -> float:
-	var t := 1.0 / tan(deg_to_rad(maxf(absf(camera_pitch), 5.0)))
+	var t := 1.0 / tan(deg_to_rad(maxf(absf(_view_pitch()), 5.0)))
 	var aspect := float(sv.size.x) / float(maxi(sv.size.y, 1))
 	# The view's centre ray meets the ground this far past the focus: the focus's height over the
 	# ground under it along the ray (1 / sin pitch), the camera's own aim over the helicopter's
@@ -7834,7 +7858,7 @@ func _camera_far(distance: float, size: float) -> float:
 	var above := 0.0
 	if flying:
 		above = maxf(cam_focus.y - minf(map.ground_height(cam_focus.x, cam_focus.z), heli.global_position.y - heli.above_ground), 0.0)
-	var low: float = FAR_MARGIN + above / sin(deg_to_rad(maxf(absf(camera_pitch), 5.0)))
+	var low: float = FAR_MARGIN + above / sin(deg_to_rad(maxf(absf(_view_pitch()), 5.0)))
 	# The widest this zoom gets: the car's view at top speed, the helicopter's as it is.
 	var widest := maxf(cam.size, size if flying else base_size * (1.0 + FollowCamera.SPEED_ZOOM))
 	var reach: float = maxf(CAMERA_DISTANCE, widest * 1.6) + 0.5 * widest * t + low
