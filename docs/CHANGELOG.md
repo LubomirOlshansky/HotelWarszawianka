@@ -11,6 +11,8 @@ someone writes its lines.
 
 ## 2026-11-08
 - The invisible wall on Emilii Plater's paved median by the Palace of Culture is gone: the low planting-bed edges there no longer stop the car.
+- Quests on the map are clearer: the gold main-line star now only guides your first kebab delivery and then gets out of the way, the quest you took glows and pulses on the map and the minimap with a dotted line to it, the map's quest card has a "✕ Quit" button (tap twice) to drop it, and scrolling the quest list no longer starts a quest and closes the map.
+- Tram and bus shelters face the right way: the open side with the bench looks at the tracks or the kerb, not along the street or at the pavement (Ratusz Arsenał and over fifty other stops).
 - The loading bar on the start screen moves smoothly now instead of in jerks while the city is built.
 
 - The map is quieter: tap a quest's "!" to read one line about it, the old "?" marks are gone, kebab and job pins show only when you zoom in, the shisha night is now a hidden quest (not on the map or in the list: stand at Ivan's block in 19. Dzielnica and hold the "+" for 5 seconds), the Tesla helicopter rescue is in the STORIES list, and you can drag the quest list on the map with a finger to see all of it.- The car no longer stops dead when its nose clips the end of a low wall or a tram shelter: it slips past, as it already did at corners (Trasa W-Z by the Old Town).
@@ -35,6 +37,7 @@ someone writes its lines.
 - Two towers by Rondo ONZ rebuilt from photos: Q22 in dark green glass under a graphite crown with a red-and-white mast, and Rondo 1 with its rounded silver front, the dark slab with its name and a glass screen over the roof instead of the tall cage.
 - The Warsaw Trade Tower now has its beige stone wall of windows, the dark blue glass drum and the silver crown, and the Grand Theatre (Teatr Wielki) its ten columns on the arched ground storey, the carved pediment and Apollo's bronze four-horse chariot on top.
 - Spektrum Tower has its blue glass drum in white bands, the dark gridded slabs and the pale green glass ring at the top; the Presidential Palace has its arcade, columns and stone figures along the roof instead of a made-up portico, and Holy Cross's towers end in copper lanterns and slim spires.
+- Próżna looks like itself: granite setts in the middle of the street, pale slab pavements, bollards, the restored white tenement row with its glowing window heads at night, Próżna 12's rounded oriels and Próżna 14 under its netting; the Cosmopolitan tower is dark glass with its glowing red underside over the street and a louvred crown; Plac Grzybowski has its stepped stone cascade, curved wall, lantern bollards and the café on the corner.
 
 ## 2026-11-08
 - Three more towers by the Palace look like themselves: the InterContinental stands over its huge open gap, glowing white at night, under a sloping roof; the Warsaw Financial Centre is a white tower wrapped round a teal glass one with a red-and-white mast; and Hotel Polonia Palace has its tall zinc roof, the pediment with the round window and its gold name.

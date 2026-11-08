@@ -100,7 +100,9 @@ const BUDGET := {
 	"central": 340,
 	"centralna": 1650,
 	"chalubinskiego8": 1520,
-	"cosmopolitan": 110,
+	"cosmopolitan": 420,  # 2026-11-08 photo rebuild (F)
+	"plac_grzybowski": 1500,  # 2026-11-08 photo build (F): 1429 tris, the cascade field is 48 blocks
+	"prozna": 5100,  # 2026-11-08 photo build (F): 5014 tris, 1,300 of them the 90 bollards
 	"dom_partii_extras": 100,
 	"deski": 2300,
 	"rynek": 3100,
