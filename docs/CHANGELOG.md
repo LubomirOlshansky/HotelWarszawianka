@@ -11,6 +11,9 @@ someone writes its lines.
 
 ## 2026-11-08
 - The blue glass office next to Hotel Warszawa is now a solid blue tower (it looked see-through with a broken top), and Hotel Warszawa has deeper pilasters and the tall copper doors from the photos.
+- The loading bar on the start screen moves smoothly now instead of in jerks while the city is built.
+
+- The map is quieter: tap a quest's "!" to read one line about it, the old "?" marks are gone, kebab and job pins show only when you zoom in, the shisha night is now a hidden quest (not on the map or in the list: stand at Ivan's block in 19. Dzielnica and hold the "+" for 5 seconds), the Tesla helicopter rescue is in the STORIES list, and you can drag the quest list on the map with a finger to see all of it.- The car no longer stops dead when its nose clips the end of a low wall or a tram shelter: it slips past, as it already did at corners (Trasa W-Z by the Old Town).
 - Padel at DESKA is a real game now: answer the friend's call, get to the court in time and play a 2v2 arcade match on the glass court by the Vistula. Run with your left thumb, tap HIT for drives, volleys and jumping smashes, LOB over a pair at the net, play the ball off the glass. The club's crowd cheers, the floodlights come on at night, and the court in the city got its real dark surface and black frame.
 - The map is quieter: tap a quest's "!" to read one line about it, the old "?" marks are gone, kebab and job pins show only when you zoom in, the shisha night is now a hidden quest (not on the map or in the list: stand at Ivan's block in 19. Dzielnica and hold the "+" for 5 seconds), the Tesla helicopter rescue is in the STORIES list, and you can drag the quest list on the map with a finger to see all of it.
 - The job distance label ("KEBAB 1948 m") no longer covers the steering strip's arrows while you steer with your thumb.
@@ -31,6 +34,7 @@ someone writes its lines.
 - Your clubbing mate from the Smolna and secret-rave nights is now called Mati (short for Mateusz).
 - Two towers by Rondo ONZ rebuilt from photos: Q22 in dark green glass under a graphite crown with a red-and-white mast, and Rondo 1 with its rounded silver front, the dark slab with its name and a glass screen over the roof instead of the tall cage.
 - The Warsaw Trade Tower now has its beige stone wall of windows, the dark blue glass drum and the silver crown, and the Grand Theatre (Teatr Wielki) its ten columns on the arched ground storey, the carved pediment and Apollo's bronze four-horse chariot on top.
+- Spektrum Tower has its blue glass drum in white bands, the dark gridded slabs and the pale green glass ring at the top; the Presidential Palace has its arcade, columns and stone figures along the roof instead of a made-up portico, and Holy Cross's towers end in copper lanterns and slim spires.
 
 ## 2026-11-08
 - Three more towers by the Palace look like themselves: the InterContinental stands over its huge open gap, glowing white at night, under a sloping roof; the Warsaw Financial Centre is a white tower wrapped round a teal glass one with a red-and-white mast; and Hotel Polonia Palace has its tall zinc roof, the pediment with the round window and its gold name.
