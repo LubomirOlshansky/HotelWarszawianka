@@ -130,6 +130,10 @@ keeping to `shots/autopilot/`, never into git) · **status** (suspect → confir
 | R9 | quest lines (2026-11-08, main merged into the branch) | rave, night meet, boat race, cinema tour, coffee run, rides, side jobs, rescues, first ten, kebab, helicopter rescue | `tools/verify.sh --only=questlines,stories,rave,meet,boatrace,kinotour,coffeerun,rides,jobs2,rescues,first10,coffee,kebab,ride,heli`: 15 of 15 PASS (headless plays: coffee run done in 49 s, kebab delivered in 212 s, ride pay 56 zł, rescue done) | - | log /tmp only | not run through Autopilot in the editor (the person-in-the-loop part: card readability, the friend walking up, the phone feel stay open); the Dekalog line is not in the checks |
 | R4 | P3 | on-road hard stops on Krucza, Świętokrzyska, Królewska | 50 km/h to 1-8 km/h for 1-2 s, a traffic driver's bubble ("The indicator isn't an optional extra!") as it slows | – | runs -154847, -160539, -161411 frames | closed (not bugs: bumps into traffic cars; the bubble is dialogue.gd's shout from a car the player hits) |
 
+Ids PT-30..PT-32 were taken twice on 2026-11-07 (the P2/P19/P20 rows and the padel rows); the
+padel ones are named "PT-30 (padel)" etc. in fixes. New ids come from
+`/mnt/project-files/autopilot/bug-log.md` first (autopilot-playtest skill, section 3).
+
 No run so far put the car under the ground (it stayed 0.7-1.0 m above the terrain at every
 logged event in run 2).
 
@@ -138,13 +142,18 @@ logged event in run 2).
 1. **Run** one plan row (Mac, autopilot-playtest skill). The harness logs every stop, clip and
    height jump with its position; frame-describer describes the frames at each.
 2. **Log** each finding above as `suspect`, with its evidence.
-3. **Confirm**: reproduce it once, cheapest first: drive there with `--at=`, or a `verify` run, or
-   a check (`check_drive.gd --debug=X,Z`). Confirmed → S1/S2/S3. Not reproducible after two tries
-   → `closed (no repro)` with the reason.
-4. **Triage**: S1 first, then S2 by how early a player meets it (row order), then S3. Message the
-   coordinator one confirmed bug at a time (or a batch of small ones on the same street); the
-   coordinator starts **one fix thread per bug**, named after the place ("Fix the dead stop on
-   Świętokrzyska").
+3. **Sort**: harness-only findings (the car 10+ m off the road, a traffic bump, a key sent
+   without `physical_keycode` or held, a wait frozen under the pause) are closed in the run.
+   Everything a player could do (a stop in a lane, on the kerb, the pavement or the tram strip; a
+   card that never shows; a script error) goes to step 4 **without a second Mac pass**: the
+   Autopilot's cause guesses were wrong as often as right (PT-40 "the harness line" and PT-44
+   "beside a tram" were real wall ends), while a cloud thread reproduced both headless in minutes.
+4. **Triage and hand on**: S1 first, then S2 by how early a player meets it (row order), then
+   S3. Message the coordinator one bug at a time (or a batch of small ones on the same street),
+   with `--at=`, heading, speed and the car's place on the road; the coordinator starts **one
+   fix thread per bug**, named after the place ("Fix the dead stop on Świętokrzyska"). The fix
+   thread confirms it (lane centre, kerb lane, with and without `--no-traffic`, `check_drive.gd
+   --debug=X,Z`); not reproducible there after both lines → `closed (no repro)` with the reason.
 5. **Fix thread**: prove the cause first (WORKFLOW "Prove the cause first"), fix, and add the
    spot to a check where one fits (`check_drive` routes, `check_roads` allow list, a new
    `--at=` shot), so the bug can't come back silently. The PR names the `PT-<n>` id and sets

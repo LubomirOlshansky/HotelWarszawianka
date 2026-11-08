@@ -196,6 +196,7 @@ then the Launch gate.
 ### Left: map and roads
 - [ ] Free-play playtest plan P1-P10 run with Autopilot and every confirmed PT bug fixed
       (F, 2026-11-02; docs/PLAYTEST.md; setup and Autopilot plugin done 2026-11-02, updated to release v1.0.0-753232a 2026-11-06)
+  - [x] Autopilot workflow lessons of the first week in the skill, qa-tester, WORKFLOW and PLAYTEST (one Mac session at a time with `tools/autopilot.sh on <thread>`, stops a player could make go straight to a cloud fix thread, PT ids from the shared register), 2026-11-08
   - [x] PT-1 dead stop at Centrum's tram stop on Marszałkowska, 2026-11-02 (PR #289)
   - [x] PT-7 car pinned and towed at the Chmielna square's glass corner (notches and slits in building fronts bridged city-wide), 2026-11-02
   - [x] PT-2 (NE of Plac Defilad) and PT-5 (side streets west of Marszałkowska) not reproduced, 2026-11-02: ~680 swept road lines clean, six guard lines in `check_stuck_spots.gd`
