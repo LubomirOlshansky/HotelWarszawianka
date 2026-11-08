@@ -418,6 +418,7 @@ then the Launch gate.
       fronts, terraces, bulbs, parody neon), 14 bar containers and kiosks, 17 timber deck strips
       with leżaki (`bulwary_*` sites, spec `bulwary.md`, Mac photo check parked)
 - [ ] Powiśle left: the Mac photo checks (BACKLOG "Powiśle street by street")
+- [ ] Powiśle, more real (F, 2026-11-08; plan `docs/powisle-plan.md`, items P1-P12 in BACKLOG): the power plant from photos, real houses on every street, the missing buildings, setts and kerbs, furniture, shops, parks, life, night look. Plan written; items open
 - [x] Street furniture along the main line's route (Krakowskie Przedmieście, Nowy Świat, the Old
       Town's edge, Plac Zbawiciela, the boulevards, Rondo Daszyńskiego)
 - [x] Office crowds at Rondo Daszyńskiego, 2026-11-02 (F; BACKLOG "Rondo Daszyńskiego office crowd"):

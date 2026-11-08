@@ -4,6 +4,21 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## Powiśle, more real (F, 2026-11-08; plan docs/powisle-plan.md)
+F: too little detail in Powiśle; wants real houses, street details and the power plant. Items by impact:
+- [ ] P1 Elektrownia Powiśle rebuilt from photos (chimney count/height, separate halls, coal chute frame, lift, new blocks)
+- [ ] P2 Real houses on Solec, Smolna, Zajęcza, Topiel, Radna, Leszczyńska, Lipowa, Browarna, Aleja 3 Maja (and a check of Tamka/Dobra)
+- [ ] P3 The missing buildings: Barceló, Carpathia, RPZ substation, Klub Bankowca, Arkada, Nordic Park, UW faculties on Dobra, Pawilon Tańca
+- [ ] P4 Setts, kerbs and crossings on the side streets
+- [ ] P5 Street furniture to 1.5 x the city density
+- [ ] P6 Shops, cafés and bars with parody names (8 signs to ~40)
+- [ ] P7 Parks and courtyards as places
+- [ ] P8 People and life (students, runners, evening crowd)
+- [ ] P9 Night look of the district
+- [ ] P10 Roofs and terraces (takes RF4b)
+- [ ] P11 Wybrzeże Kościuszkowskie and the water edge
+- [ ] P12 Mac and phone look pass
+
 ## Thin towers across the map (F, 2026-11-07; docs/design/small-buildings.md)
 Fixed: 469 small OpenStreetMap buildings with no height tag stood at the bake's flat 14 m guess and
 showed as thin windowed towers (F's crop: the two metro lifts by the Ratusz-Arsenał tram stop).
