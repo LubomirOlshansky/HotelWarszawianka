@@ -10,6 +10,7 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-08
+- No more trees growing out of the Vistula or standing in the traffic lanes: about 1,000 street trees stepped back onto the pavement, and the fences that stood in the river by the DESKA club are gone.
 - Tram and bus shelters face the right way: the open side with the bench looks at the tracks or the kerb, not along the street or at the pavement (Ratusz Arsenał and over fifty other stops).
 - The loading bar on the start screen moves smoothly now instead of in jerks while the city is built.
 

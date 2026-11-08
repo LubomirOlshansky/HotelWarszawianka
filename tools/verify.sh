@@ -205,7 +205,8 @@
 # Street objects (2026-11-07): `objects` runs tools/object_fixes.py --check (the map's lamps, signals,
 # benches, bins, racks, columns, shelters, parked cars and barriers carry no artifact object_audit.py
 # fixes by itself: inside a wall, in a carriageway, under a deck, doubles, stubs, stair slabs, paths
-# walled off; the CHECK rules are only counted).
+# walled off; 2026-11-08: no scanned tree in the water or on the asphalt, no fence or hedge in the
+# water; the CHECK rules are only counted).
 # Stairs across the city (2026-11-07): `stairs` runs tools/stairs.py --check (the map's flights carry
 # their OSM tags: step count, width, handrails, ramps; map_builder.gd builds the stone flights from them)
 # and tools/barrier_tags.py --check (walls, fences and hedges carry their mapped heights, materials and

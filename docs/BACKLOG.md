@@ -4,6 +4,17 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## Trees and fences in the water and on the roads (F, 2026-11-08)
+Fixed: the 2023 laser-scanned trees were kept wherever the scan put them, and the map's water outlines
+and road widths are OSM's, so 211 trunks stood in the Vistula or a pond and 1,149 on the drawn asphalt
+(F's screenshots: a tree in the river by a bridge, a street with trees in the lane); OSM fences at the
+old waterline stood in the river by Most Łazienkowski and WTS DESKA. `object_fixes.py` T1/T2/L6 remove,
+move or trim them; `verify.sh objects` keeps them at 0. Left:
+- TR-1 181 scanned trees stand inside a building outline over 2.5 m high (a courtyard mapped as part of
+  the building, or the outline grown over the crown): not touched, a person should look at a few.
+- TR-2 Walls in the water (17 quay, breakwater and fountain walls by Port Czerniakowski and a pond in
+  the west) are left as they are on purpose; check on the phone whether any reads as wrong.
+
 ## Thin towers across the map (F, 2026-11-07; docs/design/small-buildings.md)
 Fixed: 469 small OpenStreetMap buildings with no height tag stood at the bake's flat 14 m guess and
 showed as thin windowed towers (F's crop: the two metro lifts by the Ratusz-Arsenał tram stop).
