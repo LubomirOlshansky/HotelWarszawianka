@@ -4,6 +4,19 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## Quests on the map, simpler (F, 2026-11-08; docs/design/main-line.md section 0)
+Fixed: after the first task the main line's gold star kept pointing at Pani Halina while the player
+was on a quest they took. The star, the goal card and the nudge now show only for the first kebab
+(`main_line.gd` FIRST_JOB_ONLY; the chapters stay written). The quest taken glows and pulses in its
+colour on the minimap and the full map, with a dotted line from the car; the full map's quest card
+has a two-tap "✕ Quit" button. Fixed: a finger drag on the quest list ended as a tap on the row
+under it, so on the CAR and STORIES tabs a scroll started a request and closed the map (the
+`gui_cancel_input` call it relied on does not exist in Godot 4.7).
+- [ ] The quit button gives up through each quest's own ✕ (hud `abort_pressed`), which covers only
+  some beats: a questline in its offer card, or the coffee run on the bike, may answer "can't quit
+  this one right now". Check each quest's quit on the phone and widen the beats where needed.
+- [ ] Phone look: the glow's size on the minimap (1.15) and the full map (2.0), the dotted line.
+
 ## Thin towers across the map (F, 2026-11-07; docs/design/small-buildings.md)
 Fixed: 469 small OpenStreetMap buildings with no height tag stood at the bake's flat 14 m guess and
 showed as thin windowed towers (F's crop: the two metro lifts by the Ratusz-Arsenał tram stop).
