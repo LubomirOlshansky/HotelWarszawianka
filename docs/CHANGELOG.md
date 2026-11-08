@@ -11,9 +11,11 @@ someone writes its lines.
 
 ## 2026-11-08
 - Your clubbing mate from the Smolna and secret-rave nights is now called Mati (short for Mateusz).
+- The job distance label ("KEBAB 1948 m") no longer covers the steering strip's arrows while you steer with your thumb.
 - The game starts in English on every phone; pick Polish on the title screen or in Settings and it stays one language everywhere.
 - The car no longer stops dead when its nose clips the end of a low wall or a tram shelter: it slips past, as it already did at corners (Trasa W-Z by the Old Town).
 - New evening quest, "Dym u Senatorka": Ivan calls for a shisha night. Pick him up at 19. Dzielnica and Bogdan at the courts on Żelazna, vote on flavour and strength while they argue, then go up to SENATOREK at Emilii Plater 53: mix two jars with the master, time the coal, blow a smoke ring, and smoke inside or on the terrace with the Palace in view. The Warsaw Financial Centre has its granite-and-steel portico with the revolving door now.
+- Shisha night: the three votes on the way to the lounge (flavour, strength, the pipe's name) now show on screen beside the car instead of quietly picking themselves.
 - At the west end of Most Poniatowskiego a car with its wheels over the kerb no longer stops dead by the gate tower: it glances back onto the road, and it no longer drops for a moment between the road and the tram tracks.
 - 11 November: the flags in the crowd now wave in the wind.
 - The Old Town is ready for its close-up: the odd blue glass boxes next to the Cathedral are now the Jesuit church in salmon plaster, the city walls have battlements, the Market Square has pale stone rings, cream umbrellas and café fences, and the roofs have grey zinc dormers and white chimneys.
