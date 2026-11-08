@@ -980,21 +980,23 @@ func _check_target_pointer(hud: CanvasLayer, bubbles: Control, screen: Vector2i,
 				under += 1
 				if under <= 2:
 					problems.append("%s: the edge arrow %s pointing %d° (scheme %d) sits under %s %s" % [tag, _pts(edge_box, pt), (k % 72) * 5, k / 72, n, _pts(fixed[n], pt)])
-	# PT-35 (2026-11-08): with a Classic thumb down the steering strip is on screen; the job's
-	# "KEBAB n m" and its arrow keep off it, pointing down-left, down and down-right.
+	# PT-35 (2026-11-08): with a Classic thumb down the steering strip is on screen, so the edge
+	# arrow's "KEBAB n m" must treat it as a no-go rect (as it does the pedals), wherever the thumb
+	# came down; with the thumb up only the resting hint is.
 	hud.set_scheme(0)
 	var strip_at := Vector2(float(screen.x) * 0.3, float(screen.y) - 70.0 * pt)
+	var strip_half := (hud.STICK_R + 16.0) * pt
+	var strip := Rect2(strip_at - Vector2(strip_half, 16.0 * pt), Vector2(strip_half * 2.0, 32.0 * pt))
+	var covered_up := false
+	for r: Rect2 in hud.call("_pedal_rects"):
+		covered_up = covered_up or r.encloses(strip)
 	hud.hold_stick(strip_at, Vector2.ZERO)
-	var strip := Rect2(strip_at - Vector2(hud.STICK_R + 16.0, 16.0) * pt, Vector2((hud.STICK_R + 16.0) * 2.0, 32.0 * pt))
-	for deg in [100, 120, 140, 160, 200]:
-		hud.set_target(centre + Vector2.from_angle(deg_to_rad(float(deg))) * float(screen.x) * 2.0, "KEBAB 1948 m", Color("#ff9a3c"), true)
-		var pe: Dictionary = hud.edge_pointer()
-		if pe.is_empty():
-			continue
-		var pbox := (pe["label"] as Rect2).merge(Rect2(pe["tip"], Vector2.ZERO).grow((hud.EDGE_ARROW + 2.0) * pt))
-		if pbox.intersects(strip):
-			problems.append("%s PT-35: the edge arrow %s pointing %d° covers the steering strip %s" % [tag, _pts(pbox, pt), deg, _pts(strip, pt)])
+	var covered_down := false
+	for r: Rect2 in hud.call("_pedal_rects"):
+		covered_down = covered_down or r.encloses(strip)
 	hud.release_all()
+	if covered_up or not covered_down:
+		problems.append("%s PT-35: the steering strip %s is %s the edge arrow's no-go rects with the thumb %s" % [tag, _pts(strip, pt), "missing from" if not covered_down else "wrongly in", "down" if not covered_down else "up"])
 	# A bubble right where the left edge arrow points: the arrow moves along the edge, clear of it.
 	hud.set_scheme(0)
 	hud.set_target(Vector2(-float(screen.x), centre.y), "297 m", Color("#ff9a3c"), true)
