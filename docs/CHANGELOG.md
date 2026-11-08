@@ -10,8 +10,8 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-08
-
-- The map is quieter: tap a quest's "!" to read one line about it, the old "?" marks are gone, kebab and job pins show only when you zoom in, the shisha night is now a hidden quest (not on the map or in the list: stand at Ivan's block in 19. Dzielnica and hold the "+" for 5 seconds), the Tesla helicopter rescue is in the STORIES list, and you can drag the quest list on the map with a finger to see all of it.- The car no longer stops dead when its nose clips the end of a low wall or a tram shelter: it slips past, as it already did at corners (Trasa W-Z by the Old Town).
+- Padel at DESKA is a real game now: answer the friend's call, get to the court in time and play a 2v2 arcade match on the glass court by the Vistula. Run with your left thumb, tap HIT for drives, volleys and jumping smashes, LOB over a pair at the net, play the ball off the glass. The club's crowd cheers, the floodlights come on at night, and the court in the city got its real dark surface and black frame.
+- The map is quieter: tap a quest's "!" to read one line about it, the old "?" marks are gone, kebab and job pins show only when you zoom in, the shisha night is now a hidden quest (not on the map or in the list: stand at Ivan's block in 19. Dzielnica and hold the "+" for 5 seconds), the Tesla helicopter rescue is in the STORIES list, and you can drag the quest list on the map with a finger to see all of it.
 - The job distance label ("KEBAB 1948 m") no longer covers the steering strip's arrows while you steer with your thumb.
 - The game starts in English on every phone; pick Polish on the title screen or in Settings and it stays one language everywhere.
 - The car no longer stops dead when its nose clips the end of a low wall or a tram shelter: it slips past, as it already did at corners (Trasa W-Z by the Old Town).

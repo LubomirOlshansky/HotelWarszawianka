@@ -540,6 +540,10 @@ at DESKA (the generic three-a-side line overwrote it). Left:
 - [ ] The court booked till the hour: the 8 min limit becomes the minutes to the full hour (at least 5), shown as "KORT DO 18:00"
 - [ ] Ściana Płaczu, the rooftop glass court (padel.md idea), as a second venue for the call
 - [ ] The DESKA players animate (a racket swing loop) while a match is on; now they stand
+- [x] The arcade match "Padel na Desce" (F, 2026-11-08): a playable 2v2 pixel-art match replaces the three-card match on arrival (`padel_match.gd`, `padel_sim.gd`, `check_padel`, `--padel-match`); the city's court recoloured from F's photos
+- [ ] Phone check of the arcade match: thumb stick and UDERZ / LOB together, the timing window (SWING_S 0.34 s) and the rivals' strength (skill 0.62 / 0.68) by feel, the 120 BPM loop's level against the crowd, 60 fps on the iPhone
+- [ ] Arcade padel: a "bandeja" (the padel overhead that isn't a smash) and a serve the player aims; the rivals get better after a won match
+- [ ] The city court's side gate frames (the white padded frames by the net in F's photos) and the curved swan-neck floodlights in 3D
 - [ ] PADELNIA's "Czwarty" (the proximity job) could open with a call too; it stays a queue offer for now, since the queue is the joke
 - [ ] A match record in the notebook (won / played) and the hoodie as a cosmetic after 3/3
 - [ ] Portraits for the callers on the ringing card (PixelLab, with the other call cards' portraits)

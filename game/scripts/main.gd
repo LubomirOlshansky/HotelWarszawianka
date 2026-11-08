@@ -154,6 +154,9 @@ const KinoTour := preload("res://scripts/kino_tour.gd")
 ## at Emilii Plater 53 (lounge.gd).
 const Shisha := preload("res://scripts/shisha.gd")
 const Lounge := preload("res://scripts/lounge.gd")
+## "Padel na Desce", the arcade padel match at WTS DESKA's court (padel_match.gd, padel_sim.gd),
+## played when the friend's "Czwarty" call (trend_job.gd) arrives on time.
+const PadelMatch := preload("res://scripts/padel_match.gd")
 ## Wątki (story_quests.gd, F's ask 2026-11-07): the questlines' starts on the map, the friend in
 ## person at the start, the beta list; quest focus (the map goes quiet while a quest runs).
 const StoryQuests := preload("res://scripts/story_quests.gd")
@@ -610,6 +613,13 @@ var kino_log := false
 var shisha: Shisha
 var lounge: Lounge
 var shisha_flag := ""
+## The arcade padel match (padel_match.gd): --padel-match[=HOUR] (straight onto the court, it plays
+## itself, then the game quits), --padel-log.
+var padel: PadelMatch
+var padel_flag := -1.0
+var padel_log := false
+var _padel_heli_mode := Node.PROCESS_MODE_INHERIT
+var _padel_sv_mode := SubViewport.UPDATE_ALWAYS
 var shisha_log := false
 var _shisha_auto := false
 var old_tram_flag := ""
@@ -3485,6 +3495,50 @@ func _on_lounge_done(how: String, score: int) -> void:
 		shisha.lounge_done(how, score)
 
 
+## Onto the court at WTS DESKA (padel_match.gd): the HUD aside, the vehicle waiting, the city's 3D
+## off while the pixel match covers the screen.
+func _enter_padel(info: Dictionary, auto_play := false) -> void:
+	if padel == null:
+		padel = PadelMatch.new()
+		padel.name = "PadelMatch"
+		padel.hud = hud
+		padel.radio = radio
+		add_child(padel)
+		padel.done.connect(_on_padel_done)
+	padel.log_on = padel_log or trend_log
+	padel.auto_play = auto_play or autopilot
+	padel.enter(info)
+	hud.visible = false
+	# The city stops rendering under the court (its SubViewport, not the root, draws the 3D).
+	if sv != null:
+		_padel_sv_mode = sv.render_target_update_mode
+		sv.render_target_update_mode = SubViewport.UPDATE_DISABLED
+		view.visible = false
+	car.vel = Vector3.ZERO
+	car.forward_speed = 0.0
+	car.process_mode = Node.PROCESS_MODE_DISABLED
+	if heli != null:
+		_padel_heli_mode = heli.process_mode
+		heli.process_mode = Node.PROCESS_MODE_DISABLED
+
+
+func _on_padel_done(g_us: int, g_them: int, stats: Dictionary) -> void:
+	hud.visible = not hide_hud
+	if sv != null:
+		sv.render_target_update_mode = _padel_sv_mode
+		view.visible = true
+	car.process_mode = Node.PROCESS_MODE_INHERIT
+	if heli != null:
+		heli.process_mode = _padel_heli_mode
+	_cut_camera()
+	if padel_flag >= 0.0:
+		print("padel: --padel-match over, games %d:%d" % [g_us, g_them])
+		get_tree().quit()
+		return
+	if trend_job != null:
+		trend_job.arcade_done(g_us, g_them, stats)
+
+
 ## Nothing else on, on the ground, no rave or boat race either.
 func _shisha_free() -> bool:
 	if lounge != null and lounge.inside:
@@ -3833,6 +3887,11 @@ func _build_city_life(data: Dictionary, world: Node3D) -> void:
 		trend_job.setup({"hud": hud, "dialogue": dialogue, "wallet": wallet, "missions": missions, "rivals": rivals, "jobs": jobs,
 				"rides": rides, "graph": graph, "map": map, "car": car, "life": life, "crowds": crowds}, at, world)
 		jobs.trend = trend_job
+		trend_job.enter_padel = _enter_padel
+		trend_job.hour_now = func() -> float: return float(tod.local_clock()["hour"])
+		if padel_flag >= 0.0:
+			get_tree().create_timer(1.0).timeout.connect(func() -> void:
+				_enter_padel({"partner": "Kuba", "rivals": TrendJob.ARCADE_RIVALS, "hour": padel_flag, "seed": 3}, true))
 		trend_job.egg = func(id: String) -> bool: return egg_book != null and egg_book.fire(id, _egg_state())
 		if spacer != null:
 			trend_job.quiet = spacer.on
@@ -5156,6 +5215,12 @@ func _parse_args() -> void:
 			shisha_flag = arg.trim_prefix("--shisha=")
 		elif arg == "--shisha-log":
 			shisha_log = true
+		elif arg == "--padel-match":
+			padel_flag = 12.0
+		elif arg.begins_with("--padel-match="):
+			padel_flag = float(arg.trim_prefix("--padel-match="))
+		elif arg == "--padel-log":
+			padel_log = true
 		elif arg == "--meet-call":
 			meet_flag = "call"
 		elif arg.begins_with("--meet-at="):
