@@ -53,11 +53,11 @@ main line's goal toast also waits (it used to pop up over the boat race's countd
 for the nearest start within 320 m). Drive within 30 m and slow below 22 km/h: the friend's card
 comes up with their name and no phone ("👋 SZYMEK"), what they'd say in person, and WCHODZĘ! /
 NIE TERAZ. WCHODZĘ starts the questline from where you are: Szymek takes you straight to the
-pontoon's grid; Ziomek gets in and the night goes on to the meeting point and the door. Outside the
+pontoon's grid; Mati gets in and the night goes on to the meeting point and the door. Outside the
 questline's hours the friend says when to come back. They greet again only after you have driven
 80 m away. The old WYŚCIG ŁODZI pill by the pontoon is replaced by this.
 
-**Calls stay.** Szymek, Ziomek and LEKTI's timers are untouched.
+**Calls stay.** Szymek, Mati and LEKTI's timers are untouched.
 
 **The beta list.** The full map's quest card has a third tab, WĄTKI (STORIES). It lists every
 questline, open ones first and nearest first, with the distance; one closed at this hour is
@@ -69,7 +69,7 @@ scrolls.
 | Questline | Friend | Start | Open |
 | --- | --- | --- | --- |
 | Wiślana Szprotka (boat race) | Szymek | the pontoon at Port Czerniakowski | 7:00-22:00 |
-| Sekretny rave | Ziomek | his block at Osiedle Za Żelazną Bramą | Thu-Sat 19:00-4:00 |
+| Sekretny rave | Mati | his block at Osiedle Za Żelazną Bramą | Thu-Sat 19:00-4:00 |
 | Nocny spot (night racing club) | Darek „Bawarka” | Plac Defilad | 21:00-4:00 |
 
 ## Adding a questline (for the padel, cinema, coffee run and night meet threads)
@@ -96,7 +96,7 @@ calls), never during a quest.
 
 ## Open for F (QUESTIONS)
 
-- Ziomek's block: built at Osiedle Za Żelazną Bramą; another spot?
+- Mati's block: built at Osiedle Za Żelazną Bramą; another spot?
 - The greeting radius (30 m) and speed (22 km/h): too easy to trigger by accident on Wioślarska?
 - A list tap phones the friend; or should it teleport you to the start?
 - Badge look on the phone: the "!" at 7 pt on the minimap.
