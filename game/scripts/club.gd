@@ -18,22 +18,28 @@ extends Node3D
 ## who insists he is only here for the music (`club_kolek`, our own parody character), and the
 ## crowd (`club_crowd`: the techno scene, Lusterko's after, Berlin, phones). TAŃCZ: tap on the
 ## beat (the ring on the button pulses at BPM); eight in a row earn respect (DANCE_PAY, up to
-## DANCE_MAX times a visit). WYJDŹ goes back to the car. MORDOR FM plays (the radio tunes to it).
+## DANCE_MAX times a visit, on the patio too). WYJDŹ goes back to the car. The club's own loop
+## plays (MUSIC_SALA), the radio ducked under it and tuned to MORDOR FM for when you leave.
 ##
-## The jungle (F, 2026-11-06): palms, vines from the trusses and walls, big leaves round the
-## booth, all in the room's one mesh. PATIO (the green-lit door behind the bar) goes out to the
+## The jungle (F, 2026-11-06; one palm left in the right corner since 2026-11-08): vines from the
+## trusses and walls, big leaves round the booth, all in the room's one mesh. PATIO (the green-lit door behind the bar) goes out to the
 ## patio, its own cutaway next door (PATIO_AT): a tenement courtyard with a deck, red deck
 ## chairs, trees full of fairy lights, garlands, a mirror ball whose rays turn, the bar kiosk and
-## a small DJ; lighter music there (PÓŁNOC FM), the room's kick muffled through the wall; the
-## barmaid, the patio's DJ and the crowd to tap (`club_patio*`). SALA goes back in.
+## a small DJ; lighter music there (MUSIC_PATIO; the radio waits on PÓŁNOC FM); the barmaid, the patio's DJ and the crowd to tap (`club_patio*`). SALA goes back in.
 ##
 ## Cost: three draw calls in the room (its mesh, the dancers, the lights), three on the patio
 ## (its mesh, its crowd, the same lights moved there); the city is out of view. Both are built
 ## once, on the first visit (about 13k triangles together).
 
-## The room's kick under the music: the city's techno thump, looped.
-const THUMP_FILE := "res://audio/sfx/techno_thump.wav"
-const THUMP_DB := -8.0
+## The music (F, 2026-11-08): two short loops of our own (tools/make_club_loops.py), the room's
+## techno at BPM and the patio's house at PATIO_BPM; the radio is ducked under them while inside.
+## TAŃCZ counts the beat from the loop's playback position, so the beat ring is on the music.
+const MUSIC_SALA := "res://audio/club/smola_sala.wav"
+const MUSIC_PATIO := "res://audio/club/smola_patio.wav"
+const MUSIC_DB := -6.0
+const PATIO_MUSIC_DB := -9.0
+## The radio's duck while the club's own music plays.
+const RADIO_DUCK_DB := -60.0
 const Models := preload("res://scripts/models.gd")
 const Rave := preload("res://scripts/rave.gd")
 const InstanceBuffers := preload("res://scripts/instance_buffers.gd")
@@ -58,6 +64,8 @@ const DANCE_MAX := 3
 const RED_GAP := Vector2(35.0, 55.0)
 const RED_LONG := 6.0
 const VIOLET := Color("#b44cff")
+## The truss tower in the middle of the floor (F's photo).
+const TRUSS := Vector2(0.0, 4.0)
 const TAP_R := 1.6
 ## The patio (F, 2026-11-06, from photos of a tenement courtyard club garden): its own cutaway
 ## next to the room, PATIO.x × PATIO.y m, tenement walls PATIO_H high on two sides.
@@ -66,8 +74,6 @@ const PATIO := Vector2(20.0, 15.0)
 const PATIO_H := 10.0
 const PATIO_VIEW := 23.0
 const PATIO_CROWD := 26
-## The patio's music: lighter (PÓŁNOC FM), the room's kick muffled through the wall.
-const PATIO_THUMP_DB := -24.0
 const PATIO_BPM := 112.0
 ## The mirror ball (patio local).
 const BALL := Vector3(2.0, 4.4, 0.0)
@@ -80,7 +86,10 @@ var hud: CanvasLayer
 var dialogue: Node
 var wallet: Node
 var radio: Node
-var _thump: AudioStreamPlayer
+var _music: AudioStreamPlayer
+var _streams := {}
+## The radio's duck before we went in (put back on the way out).
+var _radio_duck := 0.0
 ## The view's camera (main.gd's), for taps.
 var cam: Camera3D
 var log_on := false
@@ -135,8 +144,8 @@ static func room_mesh() -> ArrayMesh:
 	var st := Models._begin()
 	var hx := ROOM.x * 0.5
 	var hz := ROOM.y * 0.5
-	var concrete := Color("#3b3a3f")
-	var dark := Color("#1c1b20")
+	var concrete := Color("#323a46")
+	var dark := Color("#1a1f27")
 	var black := Color("#0d0d10")
 	var steel := Color("#4a4a52")
 	# The void: a black slab far round the room, then the floor.
@@ -153,6 +162,7 @@ static func room_mesh() -> ArrayMesh:
 		Models.box(st, Vector3(-hx + 0.05, WALL_H * 0.5, z), Vector3(0.3, WALL_H, 0.5), dark, Models.FIXED)
 	for p: Vector2 in [Vector2(-4, -1), Vector2(4, -1), Vector2(-4, 4), Vector2(4, 4)]:
 		Models.box(st, Vector3(p.x, WALL_H * 0.5, p.y), Vector3(0.6, WALL_H, 0.6), concrete, Models.FIXED)
+	_photo_look(st)
 	# The riser, booth, stacks and truss at the back wall's middle.
 	Models.box(st, Vector3(0, 0.3, -hz + 2.0), Vector3(8.0, 0.6, 3.4), dark, Models.FIXED)
 	Models.box(st, Vector3(0, 1.1, -hz + 2.2), Vector3(2.8, 1.0, 0.9), black, Models.FIXED)
@@ -195,6 +205,38 @@ static func room_mesh() -> ArrayMesh:
 	return st.commit()
 
 
+## The room from F's photo of the real floor (2026-11-08): concrete gone blue in a cyan wash, the
+## acoustic panels hung under the ceiling along the walls (only there, or they would hide the
+## floor from the camera), a cyan line along the walls' top, red LED bars upright on the back and
+## left walls, and the truss tower standing in the middle of the floor.
+static func _photo_look(st: SurfaceTool) -> void:
+	var hx := ROOM.x * 0.5
+	var hz := ROOM.y * 0.5
+	var panel := Color("#1d4656")
+	var cyan := Color("#3ad8ff")
+	var red := Color("#ff2a2a")
+	var steel := Color("#7a7f88")
+	for i in 11:
+		Models.box(st, Vector3(-hx + 1.4 + i * 2.1, WALL_H - 0.5, -hz + 0.9), Vector3(1.6, 0.14, 1.1), panel, Models.FIXED)
+	for i in 7:
+		Models.box(st, Vector3(-hx + 0.9, WALL_H - 0.5, -hz + 3.2 + i * 2.0), Vector3(1.1, 0.14, 1.5), panel, Models.FIXED)
+	Models.box(st, Vector3(0, WALL_H - 0.06, -hz + 0.02), Vector3(ROOM.x, 0.08, 0.04), cyan, Models.LIT_SIGN)
+	Models.box(st, Vector3(-hx + 0.02, WALL_H - 0.06, 0), Vector3(0.04, 0.08, ROOM.y), cyan, Models.LIT_SIGN)
+	for x: float in [-hx + 4.0, hx - 9.0]:
+		Models.box(st, Vector3(x, 2.4, -hz + 0.03), Vector3(0.12, 3.6, 0.04), red, Models.LIT_SIGN)
+	Models.box(st, Vector3(-hx + 0.03, 2.4, 2.5), Vector3(0.04, 3.6, 0.12), red, Models.LIT_SIGN)
+	# The truss tower: four chords and a zig-zag of braces on each face, floor to the trusses.
+	var c := TRUSS
+	for s: Vector2 in [Vector2(-0.2, -0.2), Vector2(0.2, -0.2), Vector2(-0.2, 0.2), Vector2(0.2, 0.2)]:
+		Models.box(st, Vector3(c.x + s.x, WALL_H * 0.5, c.y + s.y), Vector3(0.05, WALL_H, 0.05), steel, Models.FIXED)
+	for k in 12:
+		var y := 0.25 + k * 0.48
+		Models.box(st, Vector3(c.x, y, c.y - 0.2), Vector3(0.4, 0.04, 0.04), steel, Models.FIXED)
+		Models.box(st, Vector3(c.x, y, c.y + 0.2), Vector3(0.4, 0.04, 0.04), steel, Models.FIXED)
+		Models.box(st, Vector3(c.x - 0.2, y + 0.24, c.y), Vector3(0.04, 0.04, 0.4), steel, Models.FIXED)
+		Models.box(st, Vector3(c.x + 0.2, y + 0.24, c.y), Vector3(0.04, 0.04, 0.4), steel, Models.FIXED)
+
+
 ## The jungle inside (F, 2026-11-06, from a photo of a jungle-dressed booth): palms by the
 ## pillars and in the corners, vines hanging from the trusses and over the booth, big leaves
 ## along the walls and round the riser, ferns in pots. Low poly: tilted boxes, deep greens.
@@ -204,9 +246,8 @@ static func _jungle(st: SurfaceTool) -> void:
 	var greens := [Color("#1f5a2a"), Color("#2c7a34"), Color("#3f8f3a"), Color("#17482a"), Color("#4fa04a")]
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 707
-	for p: Vector3 in [Vector3(-hx + 1.4, 0, -hz + 1.4), Vector3(hx - 1.2, 0, -hz + 3.4), Vector3(-5.2, 0, -hz + 2.2),
-			Vector3(5.2, 0, -hz + 2.2), Vector3(-hx + 1.5, 0, hz - 6.6), Vector3(-4.6, 0, 4.6), Vector3(hx - 1.2, 0, 1.5)]:
-		_palm(st, p, 3.2 + rng.randf() * 1.6, rng, greens)
+	# One palm, in the right corner by the sofa (F, 2026-11-08: the others went).
+	_palm(st, Vector3(hx - 1.2, 0, -hz + 3.4), 4.2, rng, greens)
 	# Vines: from the two trusses and the back wall's top, swaying lengths, a leaf every half metre.
 	for z: float in [-hz + 3.0, 2.0]:
 		for i in 9:
@@ -387,8 +428,8 @@ static func patio_mesh() -> ArrayMesh:
 	Models.box(st, Vector3(hx - 4.0, 0.5, -hz + 1.5), Vector3(2.2, 1.0, 0.9), Color("#1c1c20"), Models.FIXED)
 	Models.box(st, Vector3(hx - 4.0, 1.02, -hz + 1.45), Vector3(1.6, 0.04, 0.5), Color("#3ad8ff"), Models.LIT_SIGN)
 	var greens := [Color("#1f5a2a"), Color("#2c7a34"), Color("#3f8f3a"), Color("#17482a"), Color("#4fa04a")]
-	for p: Vector3 in [Vector3(hx - 5.8, 0, -hz + 1.2), Vector3(hx - 2.2, 0, -hz + 1.2), Vector3(hx - 0.8, 0, -1.0), Vector3(-hx + 0.9, 0, -hz + 0.9)]:
-		_palm(st, p, 2.2 + rng.randf() * 1.0, rng, greens)
+	# One palm, in the right corner behind the DJ table (F, 2026-11-08).
+	_palm(st, Vector3(hx - 1.2, 0, -hz + 1.2), 2.8, rng, greens)
 	return st.commit()
 
 
@@ -441,7 +482,7 @@ func _build(world: Node3D) -> void:
 	while _floor.size() < DANCERS:
 		var p := Vector3(frng.randf_range(-7.5, 7.5), frng.randf(), frng.randf_range(-hz + 4.4, hz - 2.0))
 		var clear := true
-		for q: Vector2 in [Vector2(-4, -1), Vector2(4, -1), Vector2(-4, 4), Vector2(4, 4), Vector2(5.2, 4.6)]:
+		for q: Vector2 in [Vector2(-4, -1), Vector2(4, -1), Vector2(-4, 4), Vector2(4, 4), Vector2(5.2, 4.6), TRUSS]:
 			if Vector2(p.x, p.z).distance_to(q) < 0.9:
 				clear = false
 		if clear:
@@ -625,7 +666,7 @@ static func _box(bg: Color, edge: Color) -> StyleBoxFlat:
 
 
 func _draw_beat() -> void:
-	var ph := fmod(_clock * BPM / 60.0, 1.0)
+	var ph := fmod(_beat_time() * _bpm() / 60.0, 1.0)
 	var a := 1.0 - ph
 	_beat.draw_rect(Rect2(Vector2.ZERO, _beat.size).grow(-2.0 - ph * 6.0), Color(VIOLET, a * 0.9), false, 3.0)
 	if streak > 0:
@@ -675,9 +716,7 @@ func _go(where: String) -> void:
 	_title.text = "%s · %s" % [title_pl, "patio" if patio else "w środku / inside"]
 	_lights.position = PATIO_AT if patio else PLACE
 	_show(true)
-	_thump_on(true)
-	if _thump != null:
-		_thump.volume_db = PATIO_THUMP_DB if patio else THUMP_DB
+	_music_on(MUSIC_PATIO if patio else MUSIC_SALA)
 	if radio != null:
 		var want := _mordor_i
 		if patio and radio.has_method("polnoc_index") and int(radio.polnoc_index()) >= 0:
@@ -691,33 +730,52 @@ func leave() -> void:
 		return
 	inside = false
 	_show(false)
-	_thump_on(false)
+	_music_on("")
 	area = "sala"
 	_log("out (danced %d)" % danced)
 	left.emit()
 
 
-## The room's kick (the city's techno thump, looped) under the radio while inside; silent
-## headless.
-func _thump_on(on: bool) -> void:
+## The club's loop `path` (looped forward, from its start) with the radio ducked under it; ""
+## stops it and gives the radio back. Silent headless.
+func _music_on(path: String) -> void:
+	if radio != null and "duck_db" in radio:
+		if path != "" and _music == null:
+			_radio_duck = float(radio.duck_db)
+		radio.duck_db = RADIO_DUCK_DB if path != "" else _radio_duck
 	if DisplayServer.get_name() == "headless":
 		return
-	if on and _thump == null and ResourceLoader.exists(THUMP_FILE):
-		var w := (load(THUMP_FILE) as AudioStreamWAV).duplicate() as AudioStreamWAV
+	if _music == null:
+		_music = AudioStreamPlayer.new()
+		_music.bus = &"SFX"
+		add_child(_music)
+	if path == "":
+		_music.stop()
+		_music.stream = null
+		return
+	if not _streams.has(path):
+		if not ResourceLoader.exists(path):
+			return
+		var w := (load(path) as AudioStreamWAV).duplicate() as AudioStreamWAV
 		w.loop_mode = AudioStreamWAV.LOOP_FORWARD
 		w.loop_begin = 0
 		w.loop_end = int(w.get_length() * w.mix_rate)
-		_thump = AudioStreamPlayer.new()
-		_thump.stream = w
-		_thump.volume_db = THUMP_DB
-		_thump.bus = &"SFX"
-		add_child(_thump)
-	if _thump == null:
-		return
-	if on:
-		_thump.play()
-	else:
-		_thump.stop()
+		_streams[path] = w
+	_music.stream = _streams[path]
+	_music.volume_db = PATIO_MUSIC_DB if path == MUSIC_PATIO else MUSIC_DB
+	_music.play()
+
+
+## The music's time in seconds (the loop's playback position, so the beat is on the music);
+## the frame clock when nothing plays (headless, the checks).
+func _beat_time() -> float:
+	if _music != null and _music.playing:
+		return _music.get_playback_position() + AudioServer.get_time_since_last_mix()
+	return _clock
+
+
+func _bpm() -> float:
+	return PATIO_BPM if area == "patio" else BPM
 
 
 func _show(on: bool) -> void:
@@ -729,7 +787,6 @@ func _show(on: bool) -> void:
 	_lights.visible = on
 	_ui.visible = on
 	_talk.visible = false
-	_dance_btn.visible = not patio
 	_patio_btn.visible = not patio
 	_sala_btn.visible = patio
 
@@ -748,6 +805,7 @@ func _process(dt: float) -> void:
 			_sway()
 		else:
 			_dance()
+	_beat.queue_redraw()
 	if area == "patio":
 		return
 	_red_in -= dt
@@ -756,7 +814,6 @@ func _process(dt: float) -> void:
 		_red_in = _rng.randf_range(RED_GAP.x, RED_GAP.y)
 		_say(["DJ", "club_red", people[0][2]])
 	_red_t = maxf(0.0, _red_t - dt)
-	_beat.queue_redraw()
 
 
 ## The lights in the room: BEAMS cones from the two trusses down onto the floor, swinging on the
@@ -796,7 +853,7 @@ func _pose_lights() -> void:
 
 func _dance() -> void:
 	var dm := _dancers.multimesh
-	var beat := _clock * BPM / 60.0
+	var beat := _beat_time() * BPM / 60.0
 	for i in _floor.size():
 		var f := _floor[i]
 		var ph := fmod(beat + f.y * 0.3, 1.0)
@@ -812,7 +869,7 @@ func _dance() -> void:
 ## The patio's crowd: most chat and sway slowly in small turns, every third one dances.
 func _sway() -> void:
 	var dm := _crowd.multimesh
-	var beat := _clock * PATIO_BPM / 60.0
+	var beat := _beat_time() * PATIO_BPM / 60.0
 	for i in _crowd_at.size():
 		var f := _crowd_at[i]
 		var dancer := i % 3 == 0
@@ -890,8 +947,7 @@ func _say(person: Array) -> void:
 
 ## TAŃCZ: a tap near a beat keeps the streak, else it starts again; STREAK in a row pays.
 func _on_dance() -> void:
-	var beat := _clock * BPM / 60.0
-	var off := absf(beat - roundf(beat)) * 60.0 / BPM
+	var off := beat_offset(_beat_time(), _bpm())
 	if off <= BEAT_WINDOW:
 		streak += 1
 	else:
@@ -902,14 +958,15 @@ func _on_dance() -> void:
 			danced += 1
 			wallet.pay(0, DANCE_PAY, "club_dance")
 			_say(["Ziomek", "club_dance", people[1][2]])
+			_log("dance paid (%s, %d)" % [area, danced])
 		elif danced >= DANCE_MAX:
 			_say(["Ziomek", "club_dance", people[1][2]])
 
 
 ## On the beat (for the check): seconds from `t` to the nearest beat.
-static func beat_offset(t: float) -> float:
-	var beat := t * BPM / 60.0
-	return absf(beat - roundf(beat)) * 60.0 / BPM
+static func beat_offset(t: float, bpm := BPM) -> float:
+	var beat := t * bpm / 60.0
+	return absf(beat - roundf(beat)) * 60.0 / bpm
 
 
 func _log(text: String) -> void:

@@ -478,6 +478,9 @@ strict three-question door, Smoła's cutaway room (option A). Left:
 - [ ] Techno tracks for MORDOR FM (it has one mall track, so "pick a track" in the room is not built yet); ElevenLabs Music on F's Creator plan, then a track button in the room
 - [ ] Phone check: the rig's beams and strobe at night, the room's look and the TAŃCZ timing on the iPhone; bench by an active spot (4 draw calls expected) and inside the room (3-4)
 - [x] Other cards held during the quest (2026-11-07): no Podwózka request or "Na czasie" card while the rave run, the club or Bartek's tow is on (`main.gd`, `rides.away`); the calls were already held
+- [x] Smoła from F's photos (2026-11-08): one palm in the room's right corner and one on the patio, the photos' cyan lines, red bars and truss tower, TAŃCZ on the patio, two synthesised loops (room 132 BPM techno, patio 112 BPM house; `tools/make_club_loops.py`), Smolna 38's facade with the red gate, two black tents, barriers and GUEST LIST (`landmarks.gd` site `smolna38`), three doormen and the queue under the tents (`crowds.gd` SMOLA_GATE); the quest's Smoła door moved to the real Smolna 38 (it was 350 m east); the pay card waits 45 s (PT-44)
+- [ ] Smoła on the phone: the loops' level against KEBAB FM and the door at night (the block to the south hides most of the front from the default camera)
+- [ ] Smolna 38's tents and barriers reach 0.5-3.5 m from the wall and partly onto the carriageway; pull them in if they get in the car's way
 - [ ] The dawn after: leaving at 05:00-06:00, Ziomek's last line, the city in the dawn look
 - [ ] Opaski (wristbands) collected per spot, a card in the notebook
 - [ ] Option B: a walk-around room (a person controller inside), only if A plays well
@@ -729,7 +732,6 @@ Left:
 
 ## Autopilot findings, Old Town and bridges (2026-11-07; docs/PLAYTEST.md, rows P4, P5)
 
-- PT-35 (S3): with Classic controls the KEBAB distance label covers the steering strip's right arrow.
 - PT-36 (suspect): two dead stops with an unstick at the edge of Podwale's bends (-987,-1668; -834,-1507).
 - PT-37 (suspect): pinned on Poniatowskiego's tram strip for 8 s while the speed reads 60 km/h, no unstick or tow.
 - PT-38 (suspect): an 11 m snap down off the ground above the W-Z tunnel's east portal.
