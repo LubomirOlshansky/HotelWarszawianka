@@ -98,7 +98,7 @@
 # lane graph (main roads, 2+ lanes, no overlaps), the real traffic queueing and going round a scene,
 # the timer (first, life, gap); centrum.json only (CI too).
 # Sekretny rave (2026-11-06): `rave` runs game/tools/check_rave.gd: the cone, booth and club-room meshes,
-# LEKTI's, Ziomek's, the door's and the club's lines (no brand), the rave clock, the door's three
+# LEKTI's, Mati's, the door's and the club's lines (no brand), the rave clock, the door's three
 # questions, the lights' poses, the spots and Smoła on the real lane graph; centrum.json only (CI too).
 # Dead electric cars (2026-11-06): `evtow` runs game/tools/check_ev_tow.gd: the TESŁO's meshes, Bartek's
 # and the stranded drivers' lines (no brand), the sling's pendulum, hook and pay rules, the chargers and

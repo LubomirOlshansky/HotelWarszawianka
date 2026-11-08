@@ -4,15 +4,15 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
-## Secret rave: LEKTI, Ziomek, Smoła (F, 2026-11-06; docs/design/secret-rave.md)
+## Secret rave: LEKTI, Mati, Smoła (F, 2026-11-06; docs/design/secret-rave.md)
 
-Built: night and day raves, LEKTI's voiced break-in on MORDOR FM, Ziomek's call and ride, the
+Built: night and day raves, LEKTI's voiced break-in on MORDOR FM, Mati's call and ride, the
 strict three-question door, Smoła's cutaway room (option A). Left:
-- [ ] Portraits and icons in one style (PixelLab, on the Mac with F's OK, about 50 generations): Ziomek, Bartek, LEKTI, Pan Kołek and the doorman on the call cards, icons for the door's questions
+- [ ] Portraits and icons in one style (PixelLab, on the Mac with F's OK, about 50 generations): Mati, Bartek, LEKTI, Pan Kołek and the doorman on the call cards, icons for the door's questions
 - [ ] Techno tracks for MORDOR FM (it has one mall track, so "pick a track" in the room is not built yet); ElevenLabs Music on F's Creator plan, then a track button in the room
 - [ ] Phone check: the rig's beams and strobe at night, the room's look and the TAŃCZ timing on the iPhone; bench by an active spot (4 draw calls expected) and inside the room (3-4)
 - [ ] Other cards (rides, jobs) can still pop up during the quest; hold them while it runs
-- [ ] The dawn after: leaving at 05:00-06:00, Ziomek's last line, the city in the dawn look
+- [ ] The dawn after: leaving at 05:00-06:00, Mati's last line, the city in the dawn look
 - [ ] Opaski (wristbands) collected per spot, a card in the notebook
 - [ ] Option B: a walk-around room (a person controller inside), only if A plays well
 

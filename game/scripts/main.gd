@@ -129,7 +129,7 @@ const Police := preload("res://scripts/police.gd")
 const Buses := preload("res://scripts/buses.gd")
 const OldTram := preload("res://scripts/old_tram.gd")
 const CrashScenes := preload("res://scripts/crash_scenes.gd")
-## Sekretny rave (rave.gd, F's ask 2026-11-06): LEKTI on MORDOR FM, Ziomek's call, the raves' rigs.
+## Sekretny rave (rave.gd, F's ask 2026-11-06): LEKTI on MORDOR FM, Mati's call, the raves' rigs.
 const Rave := preload("res://scripts/rave.gd")
 ## Inside the club after the door (club.gd): the cutaway room.
 const Club := preload("res://scripts/club.gd")
@@ -507,7 +507,7 @@ var ev_flag := ""
 var ev_log := false
 var _ev_auto := false
 var _crash_auto := false
-## Sekretny rave (rave.gd): flags --rave-call (LEKTI and Ziomek's call now), --rave-smola (Ziomek's
+## Sekretny rave (rave.gd): flags --rave-call (LEKTI and Mati's call now), --rave-smola (Mati's
 ## Smoła night now), --rave=on / --rave=day (that rave on at any hour), --rave-spot=ID, --rave=0,
 ## --rave-log.
 var rave: Rave
@@ -2712,7 +2712,7 @@ func _build_crash_scenes() -> void:
 
 # --- the secret raves ---------------------------------------------------------------------------
 
-## LEKTI's invites, Ziomek's calls and the raves' rigs (rave.gd). None with --no-traffic or --rave=0.
+## LEKTI's invites, Mati's calls and the raves' rigs (rave.gd). None with --no-traffic or --rave=0.
 func _build_rave(data: Dictionary, world: Node3D) -> void:
 	if traffic == null or graph == null or rave_flag == "0":
 		return
