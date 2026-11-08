@@ -79,7 +79,7 @@ const FPS := [["60 płynnie", "60 smooth"], ["30 bateria", "30 battery"]]
 ## Loop MW-6: the game's mode (settings.gd `wander`).
 const MODE := [["Miasto", "City"], ["Spacer", "Wander"]]
 ## G4: the car's handling (settings.gd `handling`, car.gd PROFILES).
-const HANDLING := [["Spokojnie", "Cruise"], ["Sportowo", "Sport"]]
+const HANDLING := [["Spokojnie", "Cruise"], ["Sportowo", "Sport"], ["Realnie", "Grounded"]]
 ## Phase 0.2: the city's chattiness (settings.gd `chatter`, chatter.gd GAPS).
 const CHATTER := [["Mało", "Quiet"], ["Średnio", "Some"], ["Dużo", "Lots"]]
 const LEVELS := [["master", "Głośność", "Volume"], ["music", "Radio", "Radio"], ["effects", "Efekty", "Effects"]]

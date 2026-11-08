@@ -10,6 +10,9 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-08
+- A new way to drive, "Realnie" (Grounded) in Settings: the car has weight now, with brakes that take a few car lengths, a nose that dips when you brake, a body that leans in the bends, and fast corners you have to brake for.
+
+## 2026-11-08
 - New night quest, the bar crawl: a hen party, a stag night, students after exams or a team after launch day call you to drive them through three bars before they close, waiting at the kerb while they have a round.
 
 ## 2026-11-08

@@ -86,13 +86,58 @@ var zone_cap := INF
 ## profiles of the same car (settings.gd `handling`, Settings → Jazda): CRUISE (the default) holds
 ## the road (stronger grip, a lower steering limit at speed, slower steering, a softer gas) and
 ## SPORT is the loop 2a feel. `set_handling` writes the numbers; check_handling.gd measures both.
-enum Handling { CRUISE, SPORT }
+##
+## GROUNDED ("Realnie", F 2026-11-04: "driving feels too arcade") is the same car with weight
+## (`weighty`): the brakes bite progressively to about 1.1 g instead of 3 g, the car coasts on
+## rolling and air drag instead of stopping off the gas, the yaw follows the steering through the
+## body's inertia (a short lag that grows with speed), the turn is limited by the tyres' sideways
+## grip (about 1.2 g, so a fast corner needs braking first), and the load moves: braking puts weight
+## on the nose (sharper turn-in, a lighter tail that can step out), the gas lifts it (a little
+## wider), and braking and turning share one friction circle, so hard braking in a bend slides.
+## The body pitches and rolls on a damped spring from the real accelerations. The pull (accel),
+## the top speed and every wall rule are the other profiles' own, so races and the drag are fair.
+enum Handling { CRUISE, SPORT, GROUNDED }
 const PROFILES := {
 	Handling.CRUISE: {"grip": 16.0, "drift_grip": 5.0, "turn_cap": 1.8, "turn_pull": 10.0, "turn_floor": 0.3,
-			"pivot": 1.4, "steer_time": 0.14, "onset": 0.25},
+			"pivot": 1.4, "steer_time": 0.14, "onset": 0.25, "weighty": false},
 	Handling.SPORT: {"grip": 9.0, "drift_grip": 1.6, "turn_cap": 2.3, "turn_pull": 18.0, "turn_floor": 0.35,
-			"pivot": 1.5, "steer_time": 0.08, "onset": 0.35},
+			"pivot": 1.5, "steer_time": 0.08, "onset": 0.35, "weighty": false},
+	# turn_pull is the tyres' sideways grip here (m/s², with no floor: turn = turn_pull / speed).
+	Handling.GROUNDED: {"grip": 11.0, "drift_grip": 5.0, "turn_cap": 1.7, "turn_pull": 12.0, "turn_floor": 0.0,
+			"pivot": 1.2, "steer_time": 0.12, "onset": 0.22, "weighty": true},
 }
+## GROUNDED's numbers (see PROFILES). The brakes' peak (m/s²) and how long they take to build to it
+## from BRAKE_FIRST of it (s); the coast off the gas (m/s², plus AIR_DRAG × speed²) and the engine
+## braking when the gas asks for less than the speed now.
+const GR_BRAKE := 11.0
+const BRAKE_FIRST := 0.45
+const BRAKE_BUILD := 0.25
+const COAST := 1.4
+const AIR_DRAG := 0.0012
+const ENGINE_BRAKE := 2.6
+## The yaw's lag behind the steering (s): YAW_LAG + YAW_LAG_V × speed (0.04 s slow, 0.085 s at 108 km/h);
+## the steering's own smoothing grows by speed / STEER_SLOW (×1.33 at 108 km/h).
+const YAW_LAG := 0.04
+const YAW_LAG_V := 0.0015
+const STEER_SLOW := 90.0
+## The load (-1 full gas lift .. +1 full braking on the nose) follows the pull with the suspension's
+## LOAD_TIME; it scales the turn by 1 + LOAD_STEER × load and the tail's grip by 1 - LOAD_REAR × load.
+const LOAD_TIME := 0.12
+const LOAD_STEER := 0.18
+const LOAD_REAR := 0.25
+## The body's pitch and roll (rad) per unit of load and per m/s² of sideways pull, on a spring of
+## BODY_HZ with BODY_DAMP damping (a little overshoot as it settles).
+const BODY_PITCH := 0.045
+const BODY_ROLL := 0.0055
+const BODY_HZ := 1.9
+const BODY_DAMP := 0.45
+## True in GROUNDED (set by set_handling).
+var weighty := false
+## GROUNDED: the load now (see LOAD_TIME), the brakes' build (0..1) and the body spring's state.
+var nose_load := 0.0
+var _brake_build := 0.0
+var _pitch_v := 0.0
+var _roll_v := 0.0
 var handling := Handling.CRUISE
 ## F (2026-11-01): "adjustments of the car's reactions, like the sensitivity of the driving" (Settings
 ## → Jazda, settings.gd `sensitivity` 0..1, 0.5 the profile as is). A multiplier on how hard the
@@ -562,21 +607,30 @@ func _step(dt: float) -> void:
 			s = signf(w) * maxf(absf(w), absf(s)) if signf(s) == signf(w) else w
 			# Turning off the wall from a crawl: hold the speed until it has turned, as Point does.
 			top = minf(top, maxf(speed, TURN_CRAWL))
-	steer_now = lerpf(steer_now, clampf(s, -1.0, 1.0), 1.0 - exp(-dt / (steer_time / steer_gain)))
+	# GROUNDED: the wheel answers a little slower the faster the car goes.
+	var st := steer_time / steer_gain * ((1.0 + absf(speed) / STEER_SLOW) if weighty else 1.0)
+	steer_now = lerpf(steer_now, clampf(s, -1.0, 1.0), 1.0 - exp(-dt / st))
 	var yaw := steer_now * max_turn(absf(speed), maxf(gas, throttle)) * backwards
 	lane_pull = _lane_pull(fwd, speed)
 	if lane_pull != 0.0:
 		var most := max_turn(absf(speed), maxf(gas, throttle))
 		yaw = clampf(yaw + lane_pull, -most, most)
-	rotate_y(yaw * dt)
-	yaw_rate = yaw
+	if weighty:
+		# GROUNDED: the body's inertia: the yaw follows what the wheels ask for with a short lag.
+		yaw_rate = lerpf(yaw_rate, yaw, 1.0 - exp(-dt / (YAW_LAG + YAW_LAG_V * absf(speed))))
+	else:
+		yaw_rate = yaw
+	rotate_y(yaw_rate * dt)
 
 	fwd = _forward()
 	speed = vel.dot(fwd)
 	var lateral := vel - fwd * speed
 	slip = lateral.length()
 
-	if brake_now:
+	var speed_in := speed
+	if weighty:
+		speed = _weighty_speed(speed, top, gas, brake_now, dt)
+	elif brake_now:
 		if speed > 0.5:
 			speed = move_toward(speed, 0.0, brake_decel * (1.0 - 0.15 * wet) * dt)
 		elif parked:
@@ -586,7 +640,7 @@ func _step(dt: float) -> void:
 	elif gas > 0.0:
 		# The gas sets a speed to drive at; a light push accelerates gently.
 		if speed < top:
-			speed = minf(top, speed + accel * (BIKE_PULL if model == "bike" else accel_mult) * (NITRO_ACCEL if nitro_on else 1.0) * (onset + (1.0 - onset) * gas) * dt * (1.0 - 0.6 * clampf(speed / top_speed(), 0.0, 1.0)))
+			speed = _pull(speed, top, gas, dt)
 		else:
 			speed = move_toward(speed, top, 4.0 * dt)
 	else:
@@ -598,9 +652,12 @@ func _step(dt: float) -> void:
 		brake_now = true
 	brakes_on = brake_now
 
-	# Wet roads: the tail lets go a little sooner and slides a little longer.
-	var g := (drift_grip if brake_now and speed > 10.0 else grip) * (1.0 - 0.22 * wet)
-	lateral *= exp(-g * dt)
+	if weighty:
+		lateral = _grounded_grip(lateral, (speed - speed_in) / maxf(dt, 0.0001), dt)
+	else:
+		# Wet roads: the tail lets go a little sooner and slides a little longer.
+		var g := (drift_grip if brake_now and speed > 10.0 else grip) * (1.0 - 0.22 * wet)
+		lateral *= exp(-g * dt)
 	vel = fwd * speed + lateral
 
 	velocity = vel
@@ -783,11 +840,73 @@ func _step(dt: float) -> void:
 	if trying and not assisting and collision_mask != 0:
 		stalled += dt
 
+	if weighty:
+		_body_spring(speed, dt)
+		return
 	# Lean into turns and squat under braking, just for the look.
 	var lean := clampf(lateral.dot(global_transform.basis.x) * 0.012, -0.08, 0.08)
 	_body.rotation.z = lerpf(_body.rotation.z, lean, 1.0 - exp(-10.0 * dt))
 	var pitch := 0.03 if brake_now and speed > 1.0 else (-0.02 if gas > 0.0 else 0.0)
 	_body.rotation.x = lerpf(_body.rotation.x, pitch, 1.0 - exp(-8.0 * dt))
+
+
+## The gas's pull from `speed` towards `top` this step (every profile: the drag and the races
+## measure it). A light push accelerates gently; the pull fades as the car nears its top speed.
+func _pull(speed: float, top: float, gas: float, dt: float) -> float:
+	return minf(top, speed + accel * (BIKE_PULL if model == "bike" else accel_mult) * (NITRO_ACCEL if nitro_on else 1.0) \
+			* (onset + (1.0 - onset) * gas) * dt * (1.0 - 0.6 * clampf(speed / top_speed(), 0.0, 1.0)))
+
+
+## GROUNDED's forward speed this step: brakes that build to GR_BRAKE over BRAKE_BUILD s (a
+## crisp full bite under 3 m/s, so it stops where the player meant), the same pull as the other
+## profiles, engine braking when the gas asks for less, and rolling and air drag off the gas.
+func _weighty_speed(speed: float, top: float, gas: float, brake_now: bool, dt: float) -> float:
+	if brake_now:
+		_brake_build = minf(_brake_build + dt / BRAKE_BUILD, 1.0)
+		if speed > 0.5:
+			var bite := GR_BRAKE * (BRAKE_FIRST + (1.0 - BRAKE_FIRST) * _brake_build)
+			if speed < 3.0:
+				bite = GR_BRAKE
+			return move_toward(speed, 0.0, bite * (1.0 - 0.25 * wet) * dt)
+		if parked:
+			return move_toward(speed, 0.0, brake_decel * dt)
+		return move_toward(speed, -reverse_speed, accel * 0.6 * dt)
+	_brake_build = 0.0
+	if gas > 0.0:
+		if speed < top:
+			return _pull(speed, top, gas, dt)
+		return move_toward(speed, top, ENGINE_BRAKE * dt)
+	return move_toward(speed, 0.0, (COAST + AIR_DRAG * speed * speed) * dt)
+
+
+## GROUNDED's tyres sideways: the slide dies away at `grip` (less on a light tail under braking, less
+## in the rain), but by no more than the grip the tyres have left after braking or pulling (one
+## friction circle), so a hard stop in a bend, or a turn past the limit, lets the car slide wide.
+## `lateral` is the sideways velocity, `a_long` the forward pull this step (m/s²); returns what is left.
+func _grounded_grip(lateral: Vector3, a_long: float, dt: float) -> Vector3:
+	var wet_k := 1.0 - 0.22 * wet
+	nose_load = lerpf(nose_load, clampf(-a_long / GR_BRAKE, -0.6, 1.0), 1.0 - exp(-dt / LOAD_TIME))
+	var side := lateral.length()
+	if side < 0.0001:
+		return lateral
+	var g := grip * wet_k * (1.0 - LOAD_REAR * maxf(nose_load, 0.0))
+	var circle := sqrt(maxf(1.0 - pow(a_long / (GR_BRAKE * 1.15), 2.0), 0.4))
+	var most := turn_pull * 1.08 * grip_mult * circle * wet_k * dt
+	var keep := maxf(side * exp(-g * dt), side - most)
+	return lateral * (keep / side)
+
+
+## GROUNDED's body: it pitches with the load (the nose dips under braking, lifts under the gas) and
+## rolls out of a turn with the sideways pull, on a damped spring, so it overshoots a little and
+## settles. Only the look: the collision box never tilts.
+func _body_spring(speed: float, dt: float) -> void:
+	var pitch_to := clampf(-nose_load * BODY_PITCH, -0.05, 0.03)
+	var roll_to := clampf(-yaw_rate * speed * BODY_ROLL, -0.07, 0.07)
+	var w := TAU * BODY_HZ
+	_pitch_v += (w * w * (pitch_to - _body.rotation.x) - 2.0 * BODY_DAMP * w * _pitch_v) * dt
+	_roll_v += (w * w * (roll_to - _body.rotation.z) - 2.0 * BODY_DAMP * w * _roll_v) * dt
+	_body.rotation.x += _pitch_v * dt
+	_body.rotation.z += _roll_v * dt
 
 
 ## Loop 3b-2: a kerb hopped takes a little speed and bounces the body; an island or a median
@@ -856,6 +975,11 @@ func reset_motion() -> void:
 	velocity = Vector3.ZERO
 	forward_speed = 0.0
 	steer_now = 0.0
+	yaw_rate = 0.0
+	nose_load = 0.0
+	_brake_build = 0.0
+	_pitch_v = 0.0
+	_roll_v = 0.0
 	_pinned = 0.0
 	_contact = 0.0
 	_fixed_contact = 0.0
@@ -873,6 +997,18 @@ func reset_motion() -> void:
 ## F: the steering sensitivity slider (0..1, 0.5 = 1.0) sets `steer_gain`.
 func set_sensitivity(level: float) -> void:
 	steer_gain = lerpf(SENS_MIN, SENS_MAX, clampf(level, 0.0, 1.0))
+
+
+## The --handling= flag's word (cruise, sport, grounded, or the number) as a Handling; -1 if unknown.
+static func parse_handling(word: String) -> int:
+	match word.to_lower():
+		"cruise", "0":
+			return Handling.CRUISE
+		"sport", "1":
+			return Handling.SPORT
+		"grounded", "real", "2":
+			return Handling.GROUNDED
+	return -1
 
 
 ## G4: switch the handling profile (see PROFILES); anything else goes with the numbers it sets.
@@ -967,7 +1103,9 @@ func _lane_pull(fwd: Vector3, speed: float) -> float:
 func max_turn(v: float, gas := 0.0) -> float:
 	var w := minf(turn_cap, turn_pull / maxf(v, 0.1) + turn_floor)
 	var roll := clampf(v / 2.0, 0.0, 1.0)
-	return maxf(w * roll, pivot * gas * (1.0 - roll)) * steer_gain
+	# GROUNDED: weight on the nose turns it in sharper, a lifted nose a little wider.
+	var weight := (1.0 + LOAD_STEER * nose_load) if weighty else 1.0
+	return maxf(w * roll, pivot * gas * (1.0 - roll)) * steer_gain * weight
 
 
 ## Classic (steer strip + GAS/BRAKE, the default since 2026-11-04): touching a wall with the

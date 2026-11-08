@@ -4,6 +4,23 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## Grounded handling, "Realnie" (F, 2026-11-04: "driving feels too arcade"; built 2026-11-08)
+
+A third handling profile, Settings → Jazda → Prowadzenie → Realnie / Grounded (`car.gd`
+`Handling.GROUNDED`, `--handling=grounded` for a run). Cruise stays the default, so F can A/B on the
+phone. Measured by `check_grounded` (Cruise / Sport / Grounded): stop from 90 km/h 10 / 11 / 30 m
+(brakes ~1.1 g that build over 0.25 s, not 3 g), 3 s coasting from 50 km/h ends at 0 / 0 / 33 km/h,
+the yaw answers a step of the wheel in 0.15 / 0.08 / 0.20 s, full lock at 90 km/h pulls 17.5 / 26.8 /
+11.9 m/s² (the tyres' ~1.2 g limit: brake before a fast bend), braking in a bend slides 1.8 / 4.0 /
+4.1 m/s (weight on the nose, a light tail, one friction circle), the nose dips and the body rolls on a
+spring. The full-gas pull is the same in all three (the drag and races stay fair: `check_street_meet`
+drives the drag in Grounded too). `lanedrive-grounded` drives the 13 lane routes in it (verify, full set).
+- [ ] F's phone feel on the iPhone 16: Grounded against Cruise; then which one is the default (QUESTIONS)
+- [ ] The look in Cruise and Sport: their body pitches nose-up under braking (`rotation.x` +0.03 lifts the
+      front, the nose is at -Z); Grounded's spring dips it. Fix the old ones too if F keeps them
+- [ ] If Grounded wins: tune the Point and Fixed aims for it on the phone (the yaw lag is small, but the
+      point-to-steer gains were set for the arcade car), and the first race's start hold
+
 ## Kieślowski tour and the Dekalog estate (F, 2026-11-07; docs/design/dekalog-tour.md)
 
 Built: "Dekalog na kółkach", Claire from Lyon from Centralna to six Dekalog places and the Inflancka

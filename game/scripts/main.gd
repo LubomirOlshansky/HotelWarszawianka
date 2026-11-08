@@ -801,6 +801,8 @@ var traffic_level := Settings.DEFAULT_TRAFFIC
 ## -2: no --quality= (Tiers.AUTO is -1).
 var _flag_quality := -2
 var _flag_controls := -1
+## --handling=cruise|sport|grounded (or 0..2): the run drives that profile whatever the settings say.
+var _flag_handling := -1
 ## Beta values: --lane-assist=on|off overrides Settings → Jazda → Asysta pasa for the run; the
 ## lane's direction is looked up every LANE_EVERY s (lane_assist.gd).
 var _flag_lane := -1
@@ -1423,7 +1425,8 @@ func _build_world() -> void:
 	car = Car.new()
 	car.ground_height = map.drive_height
 	car.set_sensitivity(settings.sensitivity)
-	car.set_handling(settings.handling)  # G4: Cruise by default, Sport from Settings → Jazda
+	# G4: Cruise by default, Sport or Grounded from Settings → Jazda (--handling= for a run).
+	car.set_handling(settings.handling if _flag_handling < 0 else _flag_handling)
 	car.lane_assist = settings.lane_assist if _flag_lane < 0 else _flag_lane == 1
 	world.add_child(car)
 	_xray = TunnelXray.new()
@@ -4893,6 +4896,8 @@ func _parse_args() -> void:
 			_stress_to = maxf(0.0, float(arg.trim_prefix("--stress-to=")))
 		elif arg.begins_with("--controls="):
 			_flag_controls = Controls.parse(arg.trim_prefix("--controls="))
+		elif arg.begins_with("--handling="):
+			_flag_handling = Car.parse_handling(arg.trim_prefix("--handling="))
 		elif arg.begins_with("--lane-assist="):
 			_flag_lane = 1 if arg.trim_prefix("--lane-assist=") in ["on", "1", "true"] else 0
 		elif arg.begins_with("--traffic="):
@@ -5788,7 +5793,7 @@ func _on_setting(key: String, value: Variant) -> void:
 			settings.sensitivity = clampf(float(value), 0.0, 1.0)
 			car.set_sensitivity(settings.sensitivity)
 		"handling":
-			settings.handling = clampi(int(value), 0, 1)
+			settings.handling = clampi(int(value), 0, 2)
 			car.set_handling(settings.handling)
 		"lane_assist":
 			settings.lane_assist = int(value) == 1
