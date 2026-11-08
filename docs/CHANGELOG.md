@@ -31,6 +31,8 @@ someone writes its lines.
 - 25 more ordinary houses south of Aleje Jerozolimskie, between Marszałkowska and Emilii Plater, now have their real wall colours, windows and cornices.
 - Smoła on Smolna looks like itself: the grey tenement with the stone cartouche over the gate, black tents and barriers, three doormen and the queue along the wall. Inside, the room has blue panels, red light bars and a truss tower with just one palm left, the club plays its own techno (house on the patio), and you can dance on the patio too.
 - Your clubbing mate from the Smolna and secret-rave nights is now called Mati (short for Mateusz).
+- Two towers by Rondo ONZ rebuilt from photos: Q22 in dark green glass under a graphite crown with a red-and-white mast, and Rondo 1 with its rounded silver front, the dark slab with its name and a glass screen over the roof instead of the tall cage.
+- The Warsaw Trade Tower now has its beige stone wall of windows, the dark blue glass drum and the silver crown, and the Grand Theatre (Teatr Wielki) its ten columns on the arched ground storey, the carved pediment and Apollo's bronze four-horse chariot on top.
 
 ## 2026-11-08
 - Three more towers by the Palace look like themselves: the InterContinental stands over its huge open gap, glowing white at night, under a sloping roof; the Warsaw Financial Centre is a white tower wrapped round a teal glass one with a red-and-white mast; and Hotel Polonia Palace has its tall zinc roof, the pediment with the round window and its gold name.
