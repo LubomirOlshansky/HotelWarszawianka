@@ -10,6 +10,7 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-09
+- The turning hall at the bottom of the Dworzec Centralny car park ramp is dressed as the car park's entry: two gates with raised barriers and ticket machines, the blue "P PARKING ZŁOTE TARASY" sign, a green exit door and the 2,1 m limit.
 - Street race rivals are as fast as your car now. Pani Halina corners harder too, and if you drive fast she races you for real to the line instead of letting you win.
 - Nineteen more Powiśle houses look like their photos: their own colours, balconies and shop bands on Leszczyńska, Browarna, Dobra, Topiel, Solec, Aleja 3 Maja and Zajęcza.
 - Elektrownia Powiśle got its real look: the gabled brick hall, the glass lift with the blue box on top and four silver stacks. The Chopin Museum is white with an orange roof on its brick bastion, without the made-up tower.
