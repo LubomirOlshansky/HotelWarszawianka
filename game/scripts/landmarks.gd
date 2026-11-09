@@ -22843,7 +22843,7 @@ const CHOPIN_A := Vector2(-0.9877, 0.1565)
 const OSTROG_WALL := Color("#ece8dc")
 const OSTROG_TRIM := Color("#f4f1ea")
 const OSTROG_BASE := Color("#b9b4a8")
-const OSTROG_ROOF := Color("#b4664a")
+const OSTROG_ROOF := Color("#a8705a")
 ## F's photos (2026-11-09, Mac powisle/M01-M05, B13): grey stone quoins at the corners and the
 ## middle bays, the red-brick bastion under the castle on the Tamka side, and the Institute next
 ## door a modern block (a stone base and a blue-green glass tower), no turret.

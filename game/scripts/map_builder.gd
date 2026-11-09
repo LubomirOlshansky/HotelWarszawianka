@@ -10768,11 +10768,15 @@ const NOWY_STREET := "Nowy Świat"
 ## fronts (TenementTrim). Within POWISLE_REACH metres of a street's centre line, tenements only
 ## (R4 type 1: slabs, offices and the landmarks keep their own look). A *guess* from memory of the
 ## streets until the Mac photo check (QUESTIONS).
-const POWISLE_STREETS := ["Dobra", "Tamka"]
+## Dobra and Tamka first (2026-11-02); the side streets F photographed joined them (2026-11-09).
+const POWISLE_STREETS := ["Dobra", "Tamka", "Lipowa", "Radna", "Cicha", "Topiel", "Leszczyńska", "Browarna", "Zajęcza",
+		"Dynasy", "Oboźna", "Solec", "Drewniana", "Czerwonego Krzyża", "Wiślana", "Bartoszewicza", "Jaracza"]
 const POWISLE_REACH := 24.0
 const POWISLE_SHOP_REACH := 15.0
-const POWISLE_PASTELS := ["#d6cbb2", "#cdb996", "#dcc7a0", "#c9b0a0", "#b9c0aa", "#d3c0bb", "#c8ccd0", "#e0d3ab",
-		"#bda78d", "#d8bb9e"]
+## F's street photos (2026-11-09, Mac powisle/C-*): Powiśle's post-war blocks are white, pale grey,
+## cream, beige, light pink and pale yellow, a few in grey-brown render.
+const POWISLE_PASTELS := ["#ecebe6", "#d9d9d4", "#e3d7bd", "#e8cfc4", "#e6d27a", "#8f8a82", "#d2c3a5", "#c8c4bc",
+		"#e6dfcf", "#b9ad9b"]
 
 ## Their tenements' own colours where OpenStreetMap has none (ochre, salmon, cream, terracotta,
 ## pale yellow, sage, blue-grey, peach, oxblood): the rebuilt Old Town's palette.

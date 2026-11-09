@@ -8,7 +8,8 @@ extends Node3D
 ##    red-brick ground floor, Tamka 20's tower of balconies, Tamka 34's salmon corner, the ornate
 ##    white tenements of 45-49 by Kopernika.
 ##  - **The bollards**: black steel posts with a small cap every ~2 m along both kerbs of the whole
-##    street, the first thing every photo shows.
+##    street, the first thing every photo shows; since pass 2 (2026-11-09, F's street photos) along
+##    Powiśle's side streets too (BOLLARD_STREETS), in cells of BOLLARD_CELL m, a mesh each.
 ##  - **The footbridge** (kładka) from the Ostrogski castle's terrace over Tamka to the bank on the
 ##    south side: a concrete deck on a square pier, steel railings, the 3.9 m clearance sign.
 ##  - **KEBONAFIDE** (F's ask, 2026-11-08 22:46): a parody rap star who lives on Tamka walks his
@@ -97,6 +98,14 @@ static func house(poly: PackedVector2Array, on_tamka: bool, seed: int) -> Dictio
 ## The bollards: [kerb offset out of the carriageway's edge, spacing], and what keeps them away.
 const BOLLARD_OUT := 0.45
 const BOLLARD_STEP := 2.1
+## F's street photos (2026-11-09, Mac powisle/C-*, D03): the same black posts line the kerbs of
+## Powiśle's side streets too, so the posts go along these as well as Tamka; the box they are
+## looked for in, and the cell size the posts are split by (one mesh a cell, so the camera draws
+## only the cells near it).
+const BOLLARD_STREETS := ["Tamka", "Lipowa", "Radna", "Cicha", "Topiel", "Leszczyńska", "Browarna", "Dobra",
+		"Zajęcza", "Dynasy", "Oboźna", "Wiślana", "Solec", "Kruczkowskiego", "Smulikowskiego", "Gęsta", "Karowa"]
+const BOLLARD_AREA := Rect2(-300.0, -1150.0, 1150.0, 1000.0)
+const BOLLARD_CELL := 300.0
 const BOLLARD_MIN_W := 6.0
 const JUNCTION_CLEAR := 2.5
 const ZEBRA_CLEAR := 3.0
@@ -152,9 +161,17 @@ var _t := 0.0
 
 ## Builds the bollards and the footbridge (one mesh, the deck's collider) and the walker.
 func build() -> void:
+	var cells := {}
+	_bollards(cells)
+	for key: Vector2i in cells:
+		var cell := MeshInstance3D.new()
+		cell.name = "Bollards_%d_%d" % [key.x, key.y]
+		cell.mesh = (cells[key] as SurfaceTool).commit()
+		cell.material_override = Models.material()
+		cell.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(cell)
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	_bollards(st)
 	var body := StaticBody3D.new()
 	body.name = "TamkaSolids"
 	_footbridge(st, body)
@@ -182,7 +199,7 @@ func build() -> void:
 
 ## Bollards along both kerbs of every Tamka carriageway BOLLARD_MIN_W wide or more, BOLLARD_STEP
 ## apart, not across another road's mouth, a zebra or the other carriageway.
-func _bollards(st: SurfaceTool) -> void:
+func _bollards(cells: Dictionary) -> void:
 	var data: Dictionary = map.data
 	var own := []
 	var others := []
@@ -190,7 +207,7 @@ func _bollards(st: SurfaceTool) -> void:
 		var p: Array = r["p"]
 		var near := false
 		for i in range(0, p.size(), 2):
-			if float(p[i]) > -280.0 and float(p[i]) < 500.0 and float(p[i + 1]) > -660.0 and float(p[i + 1]) < -220.0:
+			if BOLLARD_AREA.has_point(Vector2(float(p[i]), float(p[i + 1]))):
 				near = true
 				break
 		if not near or bool(r.get("bridge", false)):
@@ -198,7 +215,7 @@ func _bollards(st: SurfaceTool) -> void:
 		var w := float(r.get("w", 6.0))
 		for i in range(0, p.size() - 3, 2):
 			var sg := [Vector2(float(p[i]), float(p[i + 1])), Vector2(float(p[i + 2]), float(p[i + 3])), w]
-			if str(r.get("name", "")) == "Tamka":
+			if BOLLARD_STREETS.has(_short(str(r.get("name", "")))):
 				own.append(sg)
 			else:
 				others.append(sg)
@@ -208,7 +225,7 @@ func _bollards(st: SurfaceTool) -> void:
 			continue
 		var p: Array = pa["p"]
 		var a := Vector2(float(p[0]), float(p[1]))
-		if a.x > -280.0 and a.x < 500.0 and a.y > -660.0 and a.y < -220.0:
+		if BOLLARD_AREA.has_point(a):
 			for i in range(0, p.size() - 3, 2):
 				zebras.append([Vector2(float(p[i]), float(p[i + 1])), Vector2(float(p[i + 2]), float(p[i + 3]))])
 	for sg: Array in own:
@@ -227,7 +244,18 @@ func _bollards(st: SurfaceTool) -> void:
 			for sgn: float in [-1.0, 1.0]:
 				var at: Vector2 = a + dir * (BOLLARD_STEP * (k + 0.5)) + side * sgn * (w * 0.5 + BOLLARD_OUT)
 				if _clear(at, own, others, zebras):
-					_bollard(st, at)
+					var key := Vector2i(floori(at.x / BOLLARD_CELL), floori(at.y / BOLLARD_CELL))
+					if not cells.has(key):
+						var cst := SurfaceTool.new()
+						cst.begin(Mesh.PRIMITIVE_TRIANGLES)
+						cells[key] = cst
+					_bollard(cells[key], at)
+
+
+## A street's name without the first names OpenStreetMap gives some (Juliana Smulikowskiego).
+static func _short(name: String) -> String:
+	var parts := name.split(" ")
+	return parts[parts.size() - 1] if parts.size() > 1 and not name.begins_with("Wybrzeże") else name
 
 
 ## Whether a bollard at `at` stands clear of every carriageway, road mouth and zebra.
