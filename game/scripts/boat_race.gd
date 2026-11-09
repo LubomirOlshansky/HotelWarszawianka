@@ -899,7 +899,9 @@ func _drive_rival(k: int, dt: float) -> void:
 	var rp := _ramp_ahead(b.pos, aim)
 	if rp != Vector2.INF:
 		want = rp
-		# Keep clear of a boat just ahead; block a boat close behind.
+	# Keep clear of a boat just ahead; block a boat close behind. Both fade out in the last
+	# metres before a ring: a boat commits to the opening instead of swerving out of it.
+	var commit := clampf((d - 8.0) / 14.0, 0.0, 1.0)
 	var f: Vector2 = b.forward()
 	var right := Vector2(f.y, -f.x)
 	for j in boats.size():
@@ -910,11 +912,11 @@ func _drive_rival(k: int, dt: float) -> void:
 		var ahead := rel.dot(f)
 		var side := rel.dot(right)
 		if ahead > 0.0 and ahead < 14.0 and absf(side) < 4.5:
-			want += right * (-signf(side) if side != 0.0 else 1.0) * 5.0
+			want += right * (-signf(side) if side != 0.0 else 1.0) * 5.0 * commit
 		elif ahead < -3.0 and ahead > -22.0 and absf(side) < 7.0 and float(cfg["block"]) > 0.0 and j == 0:
 			r["block_t"] = float(r["block_t"]) + dt
 			if float(r["block_t"]) < 2.5 * float(cfg["block"]):
-				want += right * side * 0.6
+				want += right * side * 0.6 * commit
 		else:
 			r["block_t"] = maxf(0.0, float(r["block_t"]) - dt * 0.5)
 	# The turn at this ring: slow before a sharp one.
