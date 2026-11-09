@@ -77,6 +77,14 @@ extends SceneTree
 ## sliver between the road's and the tram's approaches read the boulevard below. Fixed: such a
 ## sliver takes the lower approach's level (map_builder.gd FILL_SEAM); SEAMS reads the height there.
 ##
+## Dworzec Centralny's car park ramp (F, 2026-11-08, a screenshot: the car stuck at the spiral by
+## Aleja Jana Pawła II north of Chmielna). The inner lane dove to a wall where OpenStreetMap's
+## service tunnel under the avenue starts (the bake left service tunnels out) and the outer lane,
+## the way back up, was cut halfway with a garage door across it. Fixed: tools/centralny_ramp.py
+## (the tunnel, both lanes in one tube, to a turning hall under Złote Tarasy's forecourt; the way
+## out's lower part back). The lines drive down into the mouth, along the tube, round the hall and
+## back up the way out; the last three fail on the old map.
+##
 ## PT-47 (F, 2026-11-08, a screenshot): an invisible wall on Emilii Plater's paved median by the
 ## Palace, the car stopped dead with nothing in sight. OSM's two wavy planter-edge walls (gabion)
 ## inside the median islands drew as a 0.2 m granite kerb (ISLAND_EDGE) but kept the 1.9 m wall's
@@ -98,6 +106,11 @@ const INDEX_SCENE := "res://map/index.res"
 ## optional: the compass heading the stick points to (point-to-steer, held; null for none),
 ## optional: true to start on a tunnel's floor].
 const SPOTS := [
+	[-1659.5, 452.0, 41.0, 8.0, 2.5, 0.6, "Centralny car park ramp, the way in down into the tunnel's mouth", 41.0],
+	[-1625.8, 419.5, 70.0, 8.0, 2.5, 0.6, "Centralny car park tunnel, the way in east under the avenue", null, true],
+	[-1566.0, 427.0, 60.0, 7.0, 5.0, 0.3, "Centralny car park tunnel, turning round in the hall and back into the tube", -100.0, true],
+	[-1631.6, 416.1, -121.0, 7.0, 3.0, 0.6, "Centralny car park tunnel, the way out west to the mouth and up", -128.0, true],
+	[-1649.5, 427.9, -134.0, 7.0, 2.0, 0.6, "Centralny car park ramp, the way out up from the mouth", -145.0],
 	[-1013.0, -45.0, -20.0, 27.0, 4.0, 0.9, "PT-1 Marszałkowska, the left lane along Centrum's tram-stop fence"],
 	[-1013.0, -45.0, -25.0, 27.0, 3.0, 0.85, "PT-1 Marszałkowska, drifting 5° into the tram-stop fence"],
 	[-1001.2, -5.0, -20.0, 27.0, 4.0, 0.8, "PT-1 Marszałkowska, the left side clipping the tram platform's north tip"],
