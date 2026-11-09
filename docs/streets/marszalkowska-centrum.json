@@ -1,14 +1,14 @@
 {
  "slug": "marszalkowska-centrum",
  "title": "Marszałkowska: Rondo Dmowskiego to Świętokrzyska",
- "updated": "2026-11-09",
+ "updated": "2026-11-08",
  "stage": "evidence",
  "score": 78,
  "counts": {
   "F1": 7,
   "L1": 3,
   "L2": 19,
-  "O1": 17
+  "O1": 16
  },
  "blocks": [
   {
@@ -40,9 +40,9 @@
     "F1": 1,
     "L1": 1,
     "L2": 8,
-    "O1": 2
+    "O1": 1
    },
-   "score": 84
+   "score": 85
   }
  ],
  "history": [
@@ -311,21 +311,6 @@
     "A": 68,
     "B": 82,
     "C": 85
-   }
-  },
-  {
-   "date": "2026-11-09",
-   "score": 78,
-   "counts": {
-    "F1": 7,
-    "L1": 3,
-    "L2": 19,
-    "O1": 17
-   },
-   "blocks": {
-    "A": 68,
-    "B": 82,
-    "C": 84
    }
   }
  ],
@@ -783,10 +768,10 @@
   },
   {
    "check": "L2",
-   "x": -991.1,
-   "z": 6.0,
-   "s": 210.1,
-   "t": 20.6,
+   "x": -1008.7,
+   "z": 15.7,
+   "s": 207.3,
+   "t": 0.7,
    "note": "lane line ends mid-block",
    "block": "C",
    "status": "open"
@@ -853,21 +838,11 @@
   },
   {
    "check": "O1",
-   "x": -1036.4,
-   "z": -95.2,
-   "s": 320.8,
-   "t": 13.4,
-   "note": "shelter/shelter 0.2 m from a lane's edge",
-   "block": "C",
-   "status": "open"
-  },
-  {
-   "check": "O1",
    "x": -1038.2,
    "z": -102.7,
    "s": 328.4,
    "t": 14.4,
-   "note": "barrier/fence 0.0 m from a lane's edge",
+   "note": "barrier/fence 0.7 m from a lane's edge",
    "block": "C",
    "status": "open"
   }
@@ -1117,7 +1092,7 @@
    "id": "shelter:shelter:-998:-24",
    "cls": "shelter",
    "kind": "shelter",
-   "gap": 1.47,
+   "gap": 2.81,
    "len": 10.0,
    "angle": 90,
    "s": 239,
@@ -1137,7 +1112,7 @@
    "id": "shelter:shelter:-1036:-92",
    "cls": "shelter",
    "kind": "shelter",
-   "gap": 0.17,
+   "gap": 1.66,
    "len": 10.0,
    "angle": 90,
    "s": 321,
@@ -1377,7 +1352,7 @@
    "id": "barrier:fence:-1024:-64",
    "cls": "barrier",
    "kind": "fence",
-   "gap": 0.0,
+   "gap": 0.71,
    "len": 83.0,
    "angle": 0,
    "s": 328,

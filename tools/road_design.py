@@ -2240,6 +2240,20 @@ def retarget_graph(out, d):
                 continue
             free0 = st.spec.get("start") is None
             free1 = st.spec.get("end") is None
+            # An edge that runs on past a free end keeps its first lane (the median side's, for
+            # traffic on the right) where it was out there: the new lanes are centred on the line
+            # (o below), so the line first moves by the difference, or that lane slides onto what
+            # the old street put beside it (the Metro Świętokrzyska tram platform's edge on
+            # Marszałkowska north of the area marsz_sienkiewicza, check_drive 2026-11-09).
+            o_old = float(e.get("o", 0.0))
+            beyond = (free0 or free1) and any(x is None for x in proj)
+            shift = (o_old + (mid[1] - 1) / 2.0 * mid[2]) if beyond else 0.0
+            if abs(shift) > 0.01:
+                moved_p = []
+                for k, q in enumerate(p):
+                    a, b = p[max(0, k - 1)], p[min(len(p) - 1, k + 1)]
+                    moved_p.append(add(q, mul(right_of(norm(sub(b, a))), shift)))
+                p = moved_p
             new = []
             for q, x in zip(p, proj):
                 if x is None:
