@@ -180,6 +180,9 @@ vec3 facade(vec3 col, float u, float h, float seed, float top, bool glass, out v
 const int T_TENEMENT = 1;
 const int T_SLAB = 2;
 const int T_OFFICE = 3;
+// The Old Town and New Town (F's photos E01-E04, 2026-11-08): map_builder.gd _tenement_facades
+// tags their walls 4, the seed's upper half marking a front on the market square.
+const int T_OLDTOWN = 4;
 
 // A pane's colour by day, and a lit room at night: the same rules as facade()'s windows.
 vec3 typed_pane(vec3 col, vec2 cell, float seed, bool office, out vec3 glow) {
@@ -252,6 +255,77 @@ vec3 typed_facade(int kind, vec3 col, float u, float h, float seed, float top, o
 			return col * 0.78;                          // the sill's shadow
 		}
 		return col;
+	}
+	if (kind == T_OLDTOWN) {
+		// A rebuilt Old Town house: a stone portal with a round head on some axes of the ground
+		// floor and shop windows on the rest, a string course, then floors of tall casements in
+		// cream surrounds with white glazing bars, a sill under each and a head over it, a
+		// cornice under the eaves; on the market square a painted band along every floor line.
+		// Written as masks (step / mix, layered bottom to top) with one return: every if, && and
+		// ternary counts against the Adreno budget (tools/check_shader_budget.gd).
+		float s0 = clamp(seed / 0.96, 0.0, 0.999);
+		float sq = step(0.5, s0);                       // 1 on the market square
+		float s = fract(s0 * 2.0);
+		float g = 3.4 + 0.5 * fract(s * 7.13);      // the ground floor
+		float fh = 3.0 + 0.5 * fract(s * 3.31);     // upper floors
+		float sp = 2.2 + 0.6 * fract(s * 5.71);     // window axes
+		vec3 frame = srgb_to_linear(vec3(0.94, 0.91, 0.84));
+		float dx = (fract(u / sp) - 0.5) * sp;          // metres from the window axis
+		float ax = abs(dx);
+		vec2 unit = vec2(floor(u / sp), s * 77.0);
+		vec3 base = mix(col, col * 0.82, step(h, 0.45));   // the plinth
+		// The ground floor: a portal (door in a stone surround) or a shop window in a frame.
+		float portal = step(hash12(unit + 3.7), 0.28);
+		float spring = min(2.3, g - 1.1);
+		float edge = mix(ax, length(vec2(dx, h - spring)), step(spring, h));
+		float shop = (1.0 - portal) * step(ax, 0.36 * sp) * step(0.55, h) * step(h, g - 0.75);
+		float shop_frame = (1.0 - portal) * step(ax, 0.36 * sp + 0.14) * step(0.41, h) * step(h, g - 0.61);
+		float lit = float(night) * shop * step(hash12(unit), 0.72 * lights_on);
+		vec3 window_col = mix(col * 0.45, srgb_to_linear(vec3(0.2, 0.24, 0.28)), 0.75);
+		vec3 ground = mix(base, frame * 0.9, shop_frame);
+		ground = mix(ground, window_col * mix(1.0, 0.6, lit), shop);
+		ground = mix(ground, srgb_to_linear(vec3(0.83, 0.8, 0.74)), portal * step(edge, 1.0));
+		ground = mix(ground, srgb_to_linear(vec3(0.24, 0.17, 0.12)), portal * step(edge, 0.72));
+		vec3 shop_glow = mix(vec3(0.9, 0.92, 1.0), WARM_PALE, step(hash12(unit + 5.1), 0.65)) * 1.35;
+		// The upper floors: casements with bars, surround, head, sill, and the square's band.
+		float y = h - g;
+		float wy = fract(y / fh) * fh;                  // metres over this floor's line
+		vec2 cell = vec2(floor(u / sp), floor(y / fh));
+		float hw = 0.42 + 0.08 * fract(s * 9.1);        // a casement's half width
+		float wb = 0.8;                                 // its foot over the floor line
+		float wt = wb + 1.45 + 0.2 * fract(s * 4.3);    // its head
+		float pane = step(ax, hw) * step(wb, wy) * step(wy, wt);
+		float bar = pane * max(step(ax, 0.035), step(abs(wy - (wb + (wt - wb) * 0.64)), 0.035));
+		// typed_pane()'s rules written flat (no call, no branch): a pane by day, a lit room at night.
+		float pane_pick = hash12(cell + s * 31.0);
+		vec3 glass_col = mix(srgb_to_linear(vec3(0.22, 0.27, 0.34)), srgb_to_linear(vec3(0.55, 0.66, 0.77)), pane_pick * pane_pick);
+		float room_on = step(hash12(cell * 1.37 + s * 59.0 + 7.7), 0.34 * (0.35 + 1.3 * fract(s * 17.31)) * lights_on) * step(0.001, lights_on);
+		glass_col *= mix(1.0, mix(0.45, 1.0, daylight), step(0.001, lights_on));
+		vec3 glass = mix(mix(col * 0.45, glass_col, 0.7), mix(col * 0.5, glass_col, 0.66) * 0.35, room_on);
+		float room_pick = hash12(cell + s * 13.0);
+		vec3 room_col = mix(mix(WARM, WARM_PALE, step(0.62, room_pick)), COOL, step(0.76, room_pick));
+		vec3 pane_glow = room_col * (1.05 + 0.5 * hash12(cell + 2.2)) * room_on;
+		float lum = dot(col, vec3(0.2126, 0.7152, 0.0722));
+		vec3 band = col * mix(1.25, 0.8, step(0.3, lum));
+		float diamond = step(abs(fract(u / 0.9) - 0.5) + abs(wy / 0.34 - 0.5), 0.28);
+		vec3 upper = mix(col, mix(band, mix(band, frame, 0.7), diamond), sq * step(wy, 0.34));
+		float sill_x = step(ax, hw + 0.2);
+		upper = mix(upper, col * 0.74, sill_x * step(wb - 0.36, wy) * step(wy, wb - 0.25));
+		upper = mix(upper, frame * 0.86, sill_x * step(wb - 0.25, wy) * step(wy, wb - 0.13));
+		upper = mix(upper, frame, step(ax, hw + 0.13) * step(wb - 0.13, wy) * step(wy, wt));
+		upper = mix(upper, frame * 1.02, step(ax, hw + mix(0.18, 0.26, sq)) * step(wt, wy) * step(wy, wt + 0.24));
+		upper = mix(upper, glass, pane);
+		upper = mix(upper, frame, bar);
+		// Stack them: ground floor, string course, upper floors, the cornice and its shadow.
+		float is_ground = step(h, g);
+		float is_upper = step(g + 0.24, h);
+		vec3 c = mix(mix(col * 1.12, upper, is_upper), ground, is_ground);
+		float tall = step(6.0, top);
+		c = mix(c, col * 0.66, tall * step(top - 0.95, h));
+		c = mix(c, col * 1.15, tall * step(top - 0.75, h));
+		float under = 1.0 - tall * step(top - 0.95, h);
+		glow = (shop_glow * lit * is_ground + pane_glow * pane * (1.0 - bar) * is_upper) * under;
+		return c;
 	}
 	if (kind == T_SLAB) {
 		// A large-panel slab or point block: pale panels with dark joints, wide windows,
