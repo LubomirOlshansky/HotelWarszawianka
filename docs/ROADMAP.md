@@ -112,6 +112,8 @@ then the Launch gate.
 - [x] The Emilii Plater underpass's five entrances sunk with real stairs: granite parapets round the two
       wells, steel canopies over the pavement flights (green on the south side), dark passage mouths, and
       people walking in and out (F, 2026-11-06; spec `underpass-emilii-plater.md`; site `underpass`)
+- [x] The underpass entrances, the Patelnia barrels, the Rotunda stair and the Forest roof boat restored after
+      #495's merge dropped their code (F, 2026-11-08: "no entrances to the underpass at this crossing")
 - [x] Stairs across the city: every OSM flight that drops over the ground is a stone flight with treads,
       risers, cheek walls, OSM's handrails and pram channels; walls across stairs opened, stairwell walls
       balustrades, fountain basins low rims, OSM wall heights (F, 2026-11-07; `tools/stairs.py`)

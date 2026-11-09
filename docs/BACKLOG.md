@@ -836,7 +836,10 @@ Built from F's photos (`tarasy_screen.gd`, `led_screen.gdshader`). Open:
 - More scenes for the loop (F's ideas: sea, a car driving out of the screen) and a day/night level pass.
 ## The Emilii Plater underpass entrances (F, 2026-11-06)
 
-F's screenshots: walled boxes with steps on flat ground. Done 2026-11-06 (spec
+F's screenshots: walled boxes with steps on flat ground. Lost on 2026-11-07 (the squash merge of #495
+dropped the whole `sunken`/`underpass` site and the Forest roof boat from landmarks.gd; only the sunken
+ground stayed, so F saw bare slopes with people standing on them, 2026-11-08) and restored 2026-11-08.
+Done 2026-11-06 (spec
 `docs/landmarks/specs/underpass-emilii-plater.md`, site `underpass`, SUNKEN `epl_*`): the five
 entrances within ~100 m of the crossing are sunk with stairs and passage mouths, and walkers go in
 and come out (pedestrians.gd `_portals`). Left:
