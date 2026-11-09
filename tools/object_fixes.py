@@ -387,7 +387,24 @@ def _pass(out, dry):
         out["trees3d"] = kept
         if crowns:
             out["trees3d_crown"] = kept_crowns
+        if tree_moves:
+            tally["T2 crowns trimmed by a deck"] = _trim_moved_crowns(out)
     return ", ".join(f"{k} {v}" for k, v in sorted(tally.items()))
+
+
+def _trim_moved_crowns(out):
+    """A tree moved off the road can now stand beside a deck (a footbridge's ramp): its crown is
+    trimmed to clear the slab as bake_structures.trim_crowns did for the others (check_roads C9).
+    Needs game/map/terrain.json (the map pack); without it nothing is trimmed (-1)."""
+    map_dir = os.path.join(ROOT, "game", "map")
+    tp = os.path.join(map_dir, "terrain.json")
+    if not os.path.exists(tp):
+        return -1
+    import bake_structures
+    import check_roads as cr
+    with open(tp, encoding="utf-8") as f:
+        terrain = json.load(f)
+    return bake_structures.trim_crowns(cr.Map.from_data(map_dir, out, terrain))[0]
 
 
 def check(path):

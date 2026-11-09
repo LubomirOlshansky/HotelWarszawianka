@@ -5284,7 +5284,7 @@ scanned tree's trunk in a water area, a sandbar excepted), T2 (on the drawn asph
 S1's test, not on an island or a median) and L6 (a fence or hedge more than `WET_IN` 0.6 m inside a water
 area; walls are left: quays, breakwaters, fountain rims); `tools/object_fixes.py` VERSION 2 removes T1
 (211), moves T2 up to `TREE_SHIFT` 3 m to a spot `TREE_CLEAR` 0.8 m off the asphalt (1,033) or removes it
-(114), and trims L6's wet parts (6 fences, three of them by Most Łazienkowski at WTS DESKA). trees3d
+(114; a moved tree beside a deck gets its crown trimmed by `bake_structures.trim_crowns`, check_roads C9), and trims L6's wet parts (6 fences, three of them by Most Łazienkowski at WTS DESKA). trees3d
 271,896 → 269,946, crowns 45,316 → 44,991 (`check_map_data.py` EXPECTED). `verify.sh objects` holds T1, T2
 and L6 at 0. ao.bin, street_details.json and park_details.json re-baked.
 
