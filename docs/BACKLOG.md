@@ -550,6 +550,11 @@ Left:
 - [ ] The Atlantic stop is on Widok, 70 m from the door (Chmielna is car-free there): a walk-round line, or a stop on Zgoda
 - [ ] Autopilot run of the whole tour on the Mac (`--kino-tour=go`)
 
+## Questline ring would not start from the car (F, 2026-11-08)
+Fixed: F stopped the car in Darek's pink ring on Plac Defilad (the night meet, 21:00-4:00) by day and nothing could start it. The game's default Day look keeps a 14:00 clock, so a night questline's start only ever said "come after nine". Now a closed questline's friend offers CZEKAM DO 21:00 / NIE TERAZ: the clock jumps to the opening hour (the look follows: Night, Dusk, Day or Dawn) and the quest starts. Also: a rescue call still ringing (the WEZWANIE pill) no longer stops the friend walking up (it is put off when the quest starts), and a card that ran out unanswered comes back after a short drive out of the 30 m circle (was 80 m). The night meet goes further (F, 2026-11-08: accepting it should turn night at once): Darek says hello with WCHODZĘ at any hour, and however the meet is taken (in person, his call, the list) the clock jumps to 21:05 when it starts (`main.gd` `_meet_night`). Test: `check_story_quests`.
+- [ ] Phone check: stop in the ring by day, tap WCHODZĘ (CZEKAM DO for the other questlines), the city turns to night and Darek's meet starts (Autopilot on the Mac)
+- [ ] The first-10 guide still holds the friend for a fresh save's first minutes (the parked question below)
+
 ## Offers over result cards (Autopilot, 2026-11-08)
 Fixed: a Mrożulo "fetch" offer opened over the padel result card at the DESKA gate and the OK tap accepted it. No offer or prompt (trend jobs, "Na czasie", Podwózka, rivals) opens while a card is up, nor for 2.5 s after one closes; it is queued, not dropped. Test: `check_hud` `_check_offers_wait`.
 - [ ] Question for F: on a fresh save the first-10 guide holds every questline walk-up (`guide_hold`, `first10.gd` `_hold_offers`) for the first 10 minutes. By design? Left as it is (parked, not changed).

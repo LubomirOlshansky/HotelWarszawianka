@@ -3209,7 +3209,8 @@ func _build_stories(world: Node3D) -> void:
 		if flying:
 			return [heli.global_position, heli.speed() * 3.6, true]
 		return [car.global_position, car.vel.length() * 3.6, false]
-	stories.free_now = _boat_free
+	stories.free_now = _story_free
+	stories.skip_to = _story_skip_to
 	stories.ground = func(x: float, z: float) -> float: return map.ground_height(x, z)
 	stories.clock = func() -> Array:
 		var c: Dictionary = tod.local_clock()
@@ -3260,7 +3261,7 @@ func _build_stories(world: Node3D) -> void:
 		stories.add({"id": "meet", "pl": "Nocny spot", "en": "Night meet", "who": [StreetMeet.FRIEND, StreetMeet.FRIEND],
 				"hello": ["„Siema! Dziś spot na Defiladzie. Wbijasz?”", "\"Hey! Meet's on Plac Defilad tonight. You in?\""],
 				"closed": ["„Za dnia tu tylko turyści. Wpadnij po 21.”", "\"By day it's all tourists here. Come after nine.\""],
-				"at": Vector2(g.x, g.z), "colour": StreetMeet.COLOUR, "hours": StreetMeet.NIGHT_HOURS, "days": [],
+				"at": Vector2(g.x, g.z), "colour": StreetMeet.COLOUR, "hours": StreetMeet.NIGHT_HOURS, "days": [], "jump": true,
 				"call": meet.ring, "meet": meet.meet_in_person, "busy": meet.busy, "idle": meet.idle})
 	if kino_tour != null:
 		stories.add({"id": "kino", "pl": KinoTour.NAME, "en": "Cinema tour", "who": ["Wiktor", "Wiktor"],
@@ -3282,9 +3283,16 @@ func _build_stories(world: Node3D) -> void:
 				"hours": Vector2(-1.0, -1.0), "days": [],
 				"call": ev_tow.ring, "meet": func() -> bool: return false, "busy": ev_tow.busy,
 				"idle": func() -> bool: return ev_tow.state == EvTow.State.IDLE})
-	# One line per questline for the full map's pin (a tap shows it): [pl, en].
+	# One line per questline for the full map's pin (a tap shows it): [pl, en]. A start in person
+	# first puts off a rescue call still ringing (its pill), which no longer stops the friend.
 	for d: Dictionary in stories.defs:
 		d["blurb"] = STORY_BLURBS.get(str(d["id"]), ["", ""])
+		var own: Callable = d.get("meet", Callable())
+		if own.is_valid():
+			d["meet"] = func() -> bool:
+				if missions.state == Missions.State.RINGING:
+					missions.close()
+				return bool(own.call())
 	if story_flag != "":
 		get_tree().create_timer(1.5).timeout.connect(func() -> void: stories.start(story_flag))
 	if quest_quit_flag >= 0.0:
@@ -3331,6 +3339,7 @@ func _story_tick() -> void:
 	var focus := _quest_running()
 	stories.focus = focus
 	_shisha_secret(focus)
+	_meet_night()
 	var m: Array = StoryQuests.marks(stories.defs, focus or flying)
 	var names := PackedStringArray()
 	var blurbs := PackedStringArray()
@@ -3349,6 +3358,47 @@ func _story_tick() -> void:
 	hud.set_story(m[0], m[1], focus, names, blurbs, small)
 	if stories_log:
 		print("stories: focus %s, %d starts on the map" % ["on" if focus else "off", (m[0] as PackedVector2Array).size()])
+
+
+## The questline friend may walk up (story_quests.gd): as `_boat_free`, but a rescue call that only
+## rings (the WEZWANIE pill, waiting until pressed) does not stop it (F, 2026-11-08: stopped in the
+## night meet's ring, nothing came).
+func _story_free() -> bool:
+	if rave != null and rave.busy():
+		return false
+	return _rave_free(true)
+
+
+## True once the night meet's night was set for the run under way (cleared when the meet ends).
+var _meet_dark := false
+
+
+## The night meet is a night (F, 2026-11-08): taken by day (Darek's call, the list, in person), the
+## clock jumps to 21:05 at once, so the meet, the raid and the drag all run in the dark.
+func _meet_night() -> void:
+	if meet == null or not meet.busy():
+		_meet_dark = false
+		return
+	if _meet_dark:
+		return
+	_meet_dark = true
+	if not StreetMeet.night_on(float(tod.local_clock()["hour"])):
+		_story_skip_to(StoryQuests.open_hour({"hours": StreetMeet.NIGHT_HOURS}))
+
+
+## CZEKAM DO 21:00 (story_quests.gd): the clock jumps to `hour` in the look that fits it (Dawn,
+## Day, Dusk or Night, blended), the way the TIME setting's fixed looks keep a running clock. True
+## when it was set. Live time becomes that fixed look until the player picks Live again.
+func _story_skip_to(hour: float) -> bool:
+	if tod == null:
+		return false
+	tod.set_mode(TimeOfDay.parse(StoryQuests.look_for(hour)))
+	tod.fixed_start = hour
+	if hud.settings_panel != null:
+		hud.settings_panel.sync(_settings_state())
+	var hm := "%02d:%02d" % [int(hour), int(fmod(hour, 1.0) * 60.0)]
+	hud.toast("Czekacie do %s." % hm, "You wait until %s." % hm)
+	return true
 
 
 ## Nothing else on, on the ground (the rave's test, and no rave either).
@@ -3613,7 +3663,8 @@ func _shisha_free() -> bool:
 
 
 ## Nothing else on: no title, bench, Spacer, guide, card, call, ride, job, race; on the ground.
-func _rave_free() -> bool:
+## `ringing_ok`: a rescue call still ringing (not answered) does not count (the questline friend).
+func _rave_free(ringing_ok := false) -> bool:
 	if club != null and club.inside:
 		return false
 	if (lounge != null and lounge.inside) or (shisha != null and shisha.busy()):
@@ -3628,7 +3679,8 @@ func _rave_free() -> bool:
 		return false
 	if first10 != null and first10.guide_on():
 		return false
-	if hud.cards_up() or missions.state != Missions.State.CLOSED or missions.has_target():
+	var ringing: bool = ringing_ok and missions.state == Missions.State.RINGING
+	if hud.cards_up() or (missions.state != Missions.State.CLOSED and not ringing) or missions.has_target():
 		return false
 	if (rides != null and rides.busy()) or (jobs != null and jobs.busy()) or (trend_job != null and trend_job.busy()):
 		return false
