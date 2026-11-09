@@ -32,7 +32,7 @@ const SPECS := {
 			"mass": 1.0, "r": 2.1, "len": 5.4, "wake": 0.32},
 	Kind.TUB: {"top": 19.3, "pull": 4.6, "turn": 1.25, "grip0": 2.0, "grip1": 4.2, "plane": 8.0,
 			"mass": 1.8, "r": 2.6, "len": 6.4, "wake": 0.42},
-	Kind.JETSKI: {"top": 22.6, "pull": 8.0, "turn": 2.1, "grip0": 0.9, "grip1": 2.6, "plane": 7.0,
+	Kind.JETSKI: {"top": 21.6, "pull": 7.2, "turn": 1.95, "grip0": 0.9, "grip1": 2.6, "plane": 7.0,
 			"mass": 0.55, "r": 1.4, "len": 3.2, "wake": 0.2},
 	# The free-ride fleet at the start pontoon (F 2026-11-07, his three photos), each with its own
 	# feel through the optional keys below:
@@ -115,6 +115,8 @@ var _contact := 0.0
 var _contact_n := Vector2.ZERO
 var _pinned := 0.0
 var landed := 0.0
+## Set by the race when a ramp throws the boat up: the next landing costs no speed.
+var soft_landing := false
 ## The race's boats on the same water (for the boat-to-boat bumps).
 var others: Array = []
 
@@ -149,6 +151,7 @@ func place(at: Vector2, heading: float) -> void:
 	y = 0.0
 	vy = 0.0
 	air = false
+	soft_landing = false
 	planing = 0.0
 	boost = 1.0
 	throttle = 0.0
@@ -270,9 +273,10 @@ func _vertical(dt: float, vf: float) -> void:
 		pitch = lerpf(pitch, clampf(vy * 0.03, -0.25, 0.2), 1.0 - exp(-3.0 * dt))
 		if y <= hc:
 			landed = maxf(0.0, -vy)
-			if landed > HARD_LANDING:
+			if landed > HARD_LANDING and not soft_landing:
 				vel = flow + (vel - flow) * float(spec.get("land_keep", 0.86))
 			air = false
+			soft_landing = false
 			y = hc
 			vy = 0.0
 	else:

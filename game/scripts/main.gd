@@ -177,6 +177,8 @@ const LoudCars := preload("res://scripts/loud_cars.gd")
 const CrazyDrivers := preload("res://scripts/crazy_drivers.gd")
 ## Wellness circles (docs/design/city-life-satire.md): sound healing, techno yoga, the 40+ club, park kung-fu.
 const Wellness := preload("res://scripts/wellness.gd")
+## Tamka from F's photos (2026-11-08): bollards, the footbridge, KEBONAFIDE (tamka.gd).
+const Tamka := preload("res://scripts/tamka.gd")
 ## The garage loop: Warsztat u Mirka and its paint jobs (garage.gd, its card garage_card.gd).
 const Garage := preload("res://scripts/garage.gd")
 ## Loop 3h slice 4: the guided first 10 minutes and the end card.
@@ -663,9 +665,11 @@ var fans_phase := ""
 var fans_result := ""
 ## Wellness circles (wellness.gd); flags --wellness=0 (none), --wellness-now (every spot on at any hour), --wellness-log.
 var wellness: Wellness
+var tamka: Tamka
 var wellness_flag := 1
 var wellness_now := false
 var wellness_log := false
+var tamka_log := false
 ## The garage loop (garage.gd): Warsztat u Mirka on Brzeska; flags --paint=<id> (the car starts in
 ## that paint, owned for the run), --garage (the car in the garage's ring, the card open; the
 ## garage shown whatever the wallet), --garage-log (`garage:` lines).
@@ -1446,7 +1450,7 @@ func _build_world() -> void:
 	_add_environment(world)
 
 	building_mat = ShaderMaterial.new()
-	building_mat.shader = load("res://shaders/building.gdshader")
+	building_mat.shader = GpuQuirks.building_shader()  # Adreno 6xx: its lite copy (gpu_quirks.gd)
 	if solo_site != "" and solo_look != "lit":
 		building_mat.shader = load("res://shaders/solo.gdshader")
 		building_mat.set_shader_parameter("look", 1 if solo_look == "sil" else 0)
@@ -1792,6 +1796,7 @@ func _build_world() -> void:
 	await LoadYield.tick("_build_crazy_drivers")
 	_build_wellness(world)
 	await LoadYield.tick("_build_wellness")
+	_build_tamka(world)
 	_build_first10()
 	await LoadYield.tick("_build_first10")
 	await _load_mark(0.99)
@@ -2871,6 +2876,26 @@ func _build_crazy_drivers(world: Node3D) -> void:
 	world.add_child(crazy_drivers)
 
 
+## Tamka (tamka.gd): the bollards, the footbridge by the castle and KEBONAFIDE with his dalmatian,
+## on both city paths.
+func _build_tamka(world: Node3D) -> void:
+	if solo_site != "":
+		return
+	tamka = Tamka.new()
+	tamka.name = "Tamka"
+	tamka.map = map
+	tamka.dialogue = dialogue
+	tamka.log_on = tamka_log
+	tamka.clock = tod.local_clock
+	tamka.focus = func() -> Vector3: return cam_focus
+	tamka.vehicle = func() -> Array:
+		if flying:
+			return [heli.global_position, heli.speed() * 3.6, true]
+		return [car.global_position, car.vel.length() * 3.6, false]
+	world.add_child(tamka)
+	tamka.build()
+
+
 ## The wellness circles (wellness.gd): none with --wellness=0 or --crowd=0.
 func _build_wellness(world: Node3D) -> void:
 	if wellness_flag == 0 or crowd_flag == 0:
@@ -2913,6 +2938,7 @@ func _build_first10() -> void:
 	first10.garage = garage
 	first10.cassettes = cassettes
 	first10.flying = func() -> bool: return flying
+	first10.side_busy = func() -> bool: return boat_race != null and boat_race.boating()
 	first10.scripted = first10_flag and autopilot
 	add_child(first10)
 	first10.setup(first10_flag or show_title)
@@ -5094,6 +5120,8 @@ func _parse_args() -> void:
 			prebuilt = true
 		elif arg == "--no-ao":
 			no_ao = true
+		elif arg == "--lite-shaders":
+			GpuQuirks.forced = true  # the Adreno 6xx shaders on any GPU (gpu_quirks.gd)
 		elif arg == "--nohud":
 			hide_hud = true
 		elif arg == "--no-touch":
@@ -5459,6 +5487,8 @@ func _parse_args() -> void:
 			wellness_now = true
 		elif arg == "--wellness-log":
 			wellness_log = true
+		elif arg == "--tamka-log":
+			tamka_log = true  # tamka.gd: the bollards' count, KEBONAFIDE's place and lines
 		elif arg.begins_with("--honk="):
 			for f in arg.trim_prefix("--honk=").split(",", false):
 				honk_frames.append(int(f))
@@ -7007,7 +7037,10 @@ func _process(dt: float) -> void:
 	# F (2026-11-07): under a deck the occlusion ghost now cuts the deck itself (ground.gdshader's
 	# deck ghost, building.gdshader for its slab), so the car and the traffic round it show as
 	# they are; the silhouette stays for the tunnels, and for decks with --no-ghost.
-	_xray.show_through(not flying and (map.in_tunnel(pos.x, pos.z, pos.y) or (_deck_hid and no_ghost)))
+	# F (2026-11-08): in a tunnel the ground over it opens round the car (the tunnel cutaway), so
+	# the silhouette is only for --no-ghost, the top-down view and Fotka's photo.
+	var cut := _update_tunnel_cut(pos)
+	_xray.show_through(not flying and not cut and (map.in_tunnel(pos.x, pos.z, pos.y) or (_deck_hid and no_ghost)))
 	# Loop 3d-1: the pedestrian zones cap the player's car (police.md 5.6); the log says when.
 	# F's asks (2026-10-30): only with the Settings switch on (off by default).
 	var zone: String = ped_zones.at(car.global_position.x, car.global_position.z) if ped_zones != null and not flying else ""
@@ -7169,6 +7202,41 @@ func _update_ghost(pos: Vector3, car_view: Vector3) -> void:
 		var ppm := float(sv.size.y) / cam.size * float(view.stretch_shrink)
 		var c := cam.unproject_position(pos + Vector3(0, 3.5 if flying else 1.0, 0)) * float(view.stretch_shrink)
 		_ghost_px = Vector4(c.x, c.y - 0.2 * ghost_r * ppm, ghost_r / 0.78 * ppm, ghost_r * ppm)
+
+
+## F (2026-11-08): the tunnel cutaway (tunnel_cut.gdshaderinc). While the car drives in
+## a tunnel, the ground over the tunnel's corridor within TUNNEL_CUT_SIZE x the view's height
+## (TUNNEL_CUT_MIN..MAX m) of it is dropped, with the trees, lamps, benches and any building part
+## standing there: the tunnel's dark walls close the cut's sides and its
+## road and the car show from above. Off for the helicopter, --no-ghost, the top-down view and
+## Fotka's photo (the silhouette, tunnel_xray.gd, shows then). Returns whether the cut is open.
+## A few hundred chord tests in GDScript a frame while in a tunnel, nothing elsewhere.
+const TUNNEL_CUT_SIZE := 0.3
+const TUNNEL_CUT_MIN := 16.0
+const TUNNEL_CUT_MAX := 45.0
+const TUNNEL_CUT_CHORDS := 6
+## The chords reach this far past the cut's radius each way (the walls' ghost guard, the slot's ends).
+const TUNNEL_CUT_PAST := 24.0
+var _tunnel_cut_on := false
+
+
+func _update_tunnel_cut(pos: Vector3) -> bool:
+	var chords: Array = []
+	if not flying and not no_ghost and not top_down and (fotka == null or not fotka.is_open()):
+		var reach := clampf(cam.size * TUNNEL_CUT_SIZE, TUNNEL_CUT_MIN, TUNNEL_CUT_MAX)
+		chords = map.tunnel_cut_chords(pos.x, pos.z, pos.y, reach + TUNNEL_CUT_PAST, TUNNEL_CUT_CHORDS)
+		if not chords.is_empty():
+			for m: ShaderMaterial in [map.flat_material, building_mat] + map.cut_materials:
+				m.set_shader_parameter("tunnel_cut", Vector4(pos.x, pos.z, reach, float(chords[2])))
+				m.set_shader_parameter("tunnel_view", -cam.global_transform.basis.z)
+				m.set_shader_parameter("tunnel_seg", chords[0])
+				m.set_shader_parameter("tunnel_reach", chords[1])
+	var on := not chords.is_empty()
+	if not on and _tunnel_cut_on:
+		for m: ShaderMaterial in [map.flat_material, building_mat] + map.cut_materials:
+			m.set_shader_parameter("tunnel_cut", Vector4(0.0, 0.0, 0.0, -10000.0))
+	_tunnel_cut_on = on
+	return on
 
 
 # --- sweep 2: the neon signs are ghosted too ------------------------------------------------
@@ -8787,6 +8855,8 @@ func _open_streamed_city(world: Node3D, flat_mat: ShaderMaterial) -> Dictionary:
 	var data := streamer.open(world, use_prebuilt, building_mat, flat_mat, start_at)
 	map = streamer.map
 	building_mat = map.building_material
+	if GpuQuirks.lite() and building_mat.shader != null and building_mat.shader.resource_path == GpuQuirks.BUILDING:
+		building_mat.shader = GpuQuirks.building_shader()  # the prebuilt city's shared material too
 	# The ground's AO flags (--debug-ao, --no-ao) on either path's material.
 	map.flat_material.set_shader_parameter("debug_ao", debug_ao)
 	map.flat_material.set_shader_parameter("ao_strength", 0.0 if no_ao else 1.0)

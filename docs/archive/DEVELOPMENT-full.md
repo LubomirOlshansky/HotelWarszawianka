@@ -5135,6 +5135,24 @@ chip, a card button's own two words), `missions.gd` (`held`, `ring_in`), `garage
   only while shown; the arrow is the HUD's own; the end card is the HUD's card. +0 draw calls while
   driving.
 
+## Adreno 6xx shader budget
+
+Found 2026-11-08 on the Nothing Phone 1 (Adreno 642L, Vulkan driver 1.1.128, EV031.35.01.12):
+the driver failed to link 8 pipelines ("Failed to link shaders", VkResult -13), all of
+building.gdshader and ground.gdshader, so the ground, roads and buildings did not draw. A probe app
+(each shader on a box, one at a time, logcat between) bisected it: no single construct is at fault;
+the driver has a ceiling on the fragment stage's control flow, Godot's own lighting code included.
+Each `if`, loop, early `return`, short-circuit `&&` / `||` and function call costs (a call costs its
+callee's whole body again: the driver inlines it); a plain ternary, all() / any(), step() / mix() and
+straight-line maths cost nothing. One extra trivial call or two `if`s turned a passing ground shader
+into a failing one. The fix: hash12, value_noise and srgb_to_linear are macros (common.gdshaderinc,
+same arithmetic), the conditions in building and ground are all()/any(), and on Adreno below 700
+building.gdshader runs as a lite copy with `specular_disabled` (`gpu_quirks.gd`). Measured ceilings
+(our counting, `check_shader_budget.gd`): ground passed at 275, failed at 285; the lite building
+passed at 508, failed at 518 (it stands at 498: little room); led_screen (unshaded) passes at 309.
+The GL Compatibility renderer linked the original shaders on the same phone, but it is not used.
+Room for later: landmarks in their own material (their codes cost ~300 of building's 498).
+
 ## Performance budgets
 
 Set in loop 2b from the measurements above; loop 2c (the player's car and the traffic as nicer
@@ -5670,6 +5688,7 @@ Command-line options (after `--`):
 | `--no-ghost` | 2026-10-31, for the landing's screenshots: no occlusion ghost and no see-through hole round the car (the dither and the hole that open buildings between the camera and the car), so a wide framed shot (`--yaw` / `--pitch` / `--size`) centred on a spot behind a building keeps it whole. The landing's Palace shot: `--at=-1180,215 --yaw=225 --pitch=-38 --size=400 --time=live --clock=18:15 --date=20260915 --nohud --no-ghost` at 1920x1080 |
 | `--topdown` | 2026-11-07, F: road photos from height, like GTA: the camera looks straight down, north up, with no occlusion ghost, to check kerbs, asphalt and paint. T toggles the same road view in a running game (keyboard). With `--at=X,Z --size=55 --nohud --no-traffic --shots=30 --out=DIR` it makes a road plan shot of any spot |
 | `--debug-ao` / `--no-ao` | show / switch off the baked ground shadows |
+| `--lite-shaders` | 2026-11-08: the Adreno 6xx shaders on any GPU (`gpu_quirks.gd`: building.gdshader without its specular lobe), to see on the Mac what the Nothing Phone 1 draws |
 | `--heli` | start in the helicopter |
 | `--heli-stick=X,Z` | the L-shaped map loop (2026-10-31): the helicopter's stick held towards that world direction (x east, z south; length up to 1) the whole run, for screenshots of the clamp along the map's outline (with `--heli --at=`) |
 | `--heli-alt=M` | loop 3d-2b: start in the helicopter M metres over the ground, placed there at once (360 = its highest; the memory and far-level probes) |
@@ -5803,6 +5822,7 @@ Command-line options (after `--`):
 | `--wellness=0` | wellness circles (docs/design/wellness.md): no sound-healing rings, techno-yoga rows, 40+ circles or kung-fu schools (`--crowd=0` drops them too) |
 | `--wellness-now` | wellness: every spot on whatever the clock says (shots) |
 | `--wellness-log` | wellness: print `wellness:` lines: each spot starting and packing up, every line and meeting, the minute's summary |
+| `--tamka-log` | Tamka (tamka.gd): print `tamka:` lines: bollards built, the walk length, KEBONAFIDE's position every 0.5 s and each line he says |
 | `--tram-log` | vintage-tram loop: print `old tram:` lines: each run taken out of sight and turned modern, the follow count every 50 m and its resets, E39 |
 | `--bus-log` | night-buses loop: print `buses:` lines: the hub's bays and stops, each gathering and ring bus, the car at the ring, the race to the Palm, each honk and called bus, the stop lines, a summary every 20 s |
 | `--crash=now` / `--crash=X,Z` / `--crash=on` / `--crash=0` | crash scenes (`crash_scenes.gd`): a scene now 45-130 m ahead of the car (shots; it may be in view), or on the fitting road nearest X,Z; `on`: the 3-5 minute timer in a test run too (it runs in a normal launch only); `0`: none |

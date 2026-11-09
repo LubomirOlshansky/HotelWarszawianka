@@ -3,7 +3,7 @@
     python3 -I tools/plac_centralny.py [MAP.json] [--dry]     (rewrites the map in place, idempotent)
 
 The new square in front of the Palace of Culture (Marszałkowska side, laid 2024-25: paved plazas,
-lawns, a pool, wooden step seating, a stone seat-wall, 109 young trees of locust, ash, ginkgo and
+lawns, a pool, the old parade tribune, a striped field of slabs and grass, 109 young trees of locust, ash, ginkgo and
 magnolia) is in OpenStreetMap as lawns, plazas, paths and the pool, but the 2023 laser scan
 predates the trees, so the lawns are bare. This module adds, on the finished map data and after
 plaza_gardens (bake_osm.py calls `apply(out)` there):
@@ -14,8 +14,8 @@ plaza_gardens (bake_osm.py calls `apply(out)` there):
   * perennial beds (`surfaces` kind flowerbed) under the groves and by the pool;
   * larch benches along the axis, seats towards the Palace.
 
-The seat-wall, the wooden steps, the WARSZAWA letters and the lamps are the landmark site
-`plac_centralny` (game/scripts/landmarks.gd); trees keep out of its footprint (KEEP_OUT).
+The tribune, the striped field, the WARSZAWA letters and the lamps are the landmark sites
+`trybuna` and `plac_centralny` (game/scripts/landmarks.gd); trees keep out of its footprint (KEEP_OUT).
 Everything is deterministic (hashes of the position, never Python's hash) and `plac_centralny` in
 the data marks the place as planted, so a second run adds nothing. Standard library only.
 Spec: docs/landmarks/specs/plac_centralny.md.
@@ -52,11 +52,13 @@ SPECIES = {
     "magnolia": [4.8, 1.8, 1.2, 0],   # magnolia: the small tree by the lawns' edge
 }
 
-# The wooden steps, the seat-wall and the sign (landmarks.gd plac_centralny): no trunk here (s0, s1, t0, t1).
-KEEP_OUT = [(49.0, 79.0, -178.0, -106.0)]
+# The tribune and the striped field with the sign (landmarks.gd trybuna, plac_centralny): no trunk here
+# (s0, s1, t0, t1). 2026-11-08: moved with them onto the tribune's real spot (OSM's walls) and east of
+# it; the rows along the axis (s 47.5 and 84) stay outside, so the planting is unchanged.
+KEEP_OUT = [(49.0, 82.5, -136.0, -80.0)]
 
 # The lamps of landmarks.gd PCZ_LAMPS [s, t]: no trunk within LAMP_GAP of one.
-LAMPS = [(64.0, -205.0), (64.0, -190.0), (64.0, -100.0), (64.0, -88.0), (42.0, -200.0), (86.0, -200.0),
+LAMPS = [(64.0, -205.0), (64.0, -190.0), (64.0, -76.0), (64.0, -64.0), (42.0, -200.0), (86.0, -200.0),
          (42.0, -120.0), (86.0, -120.0), (42.0, -160.0), (86.0, -160.0)]
 LAMP_GAP = 1.6
 

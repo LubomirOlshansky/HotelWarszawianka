@@ -1,7 +1,8 @@
 extends Node3D
-## Loop 3b: the player's car seen through the ground while it drives inside a tunnel. The
-## ground over a tunnel stays drawn (docs/DEMO.md 4.4); the car shows as a warm silhouette
-## through it: copies of its meshes with one unshaded material that ignores depth, drawn
+## Loop 3b: the player's car seen through the ground while it drives inside a tunnel. Since
+## 2026-11-08 (F) the ground over the tunnel opens round the car instead (the tunnel cutaway,
+## main.gd `_update_tunnel_cut`); the silhouette stays for --no-ghost, the top-down view and
+## Fotka's photo, and for decks with --no-ghost. The car shows as a warm silhouette through it: copies of its meshes with one unshaded material that ignores depth, drawn
 ## after the post pass, shown only while map_builder.gd `in_tunnel` says the car is down in a
 ## tunnel (one extra draw call per mesh then, none otherwise).
 
