@@ -449,6 +449,8 @@ then the Launch gate.
 - [x] Elektrownia Powiśle and the Chopin museum from F's photos (2026-11-09): the gabled turbine hall with the glass lift and blue box, four aluminium stacks; the castle white with grey quoins, orange roofs, the brick bastion, no turret; the Institute in glass
 - [x] Powiśle side streets from F's street photos (2026-11-09): black bollards along 17 streets (about 4200, in 300 m cells), the photos' palette (white, pale grey, cream, pink, yellow, grey-brown) and cornices and shop fronts on their houses
 - [x] Rotunda Dynasy, Park Odkrywców's listening pipes and parabolic dishes, the Kahl stone (2026-11-09, F's photos)
+- [x] Powiśle street name plates (2026-11-09, `tamka.gd` `plate_spots`): Warsaw's navy plate on a grey pole at 50+ corners where Powiśle's side streets meet Tamka, Dobra, Topiel and the embankment, the main street's name high and the side street's low (check_tamka; phone look open)
+- [x] Teatr Ateneum's portico on Jaracza from F's photos (2026-11-09, `tamka.gd` `_ateneum`): two stout columns on steps, the TEATR IM. STEFANA JARACZA architrave, the pale arched band with ATENEUM in red, green, black and blue block letters, the dark door and poster cases (check_tamka; phone look open)
 - [ ] Powiśle, more real (F, 2026-11-08; plan `docs/powisle-plan.md`, items P1-P12 in BACKLOG): the power plant from photos, real houses on every street, the missing buildings, setts and kerbs, furniture, shops, parks, life, night look. Plan written; items open
 - [x] Street furniture along the main line's route (Krakowskie Przedmieście, Nowy Świat, the Old
       Town's edge, Plac Zbawiciela, the boulevards, Rondo Daszyńskiego)
