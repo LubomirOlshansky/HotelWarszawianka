@@ -10,6 +10,7 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-09
+- The iPhone home-screen name now reads "Around Warsaw" with the space.
 - The speckled flower beds behind the Museum of Modern Art no longer flicker: they, and other ground patches like playgrounds and fountains, now sit in a fixed order over the paving.
 - Metro Świętokrzyska's entrances are the real thing now: a big tilted panel of milky perforated glass on a white steel truss over a concrete stair box, the yellow M roundel on the tall post and the white name sign with M1 and M2 (the Marszałkowska side wears the older green glass).
 - No more trees growing through the walls of houses: about 180 trees that stood inside building outlines (mostly in courtyards) are gone or stepped just outside.
