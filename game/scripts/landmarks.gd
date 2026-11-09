@@ -143,6 +143,11 @@ const TOWERS := [
 	# Błękitny Wieżowiec (Plac Bankowy 2, 1991): untinted reflective float glass that mirrors the
 	# sky, hence blue (its first cladding was copper, the "Golden Tower"; spec blekitny.md).
 	{"key": "blekitny", "osm": "Błękitny Wieżowiec", "style": S_MIRROR, "glass": "#5f94c6", "roof": "#9aa3aa", "cool": true},
+	# The blue glass office north of Hotel Warszawa on Plac Powstańców (F's photos, 2026-11-08): the
+	# GUGiK LoD2 mesh of this 70 m tower is open (walls and roof in pieces: it read see-through with
+	# a broken top), so the mapped outline is built whole, in solid blue reflective glass.
+	{"key": "powstancow_blue", "at": Vector2(-792.0, -97.0), "style": S_MIRROR, "glass": "#35649f", "roof": "#8d969e",
+			"h": 70.0, "cool": true},
 	{"key": "wcf", "osm": "Warszawskie Centrum Finansowe", "style": S_DARK, "glass": "#4d6862", "roof": "#7d8580"},
 	# The dusk loop (2026-10-31): Centrum LIM holds the Marriott (the 140 m tower at about
 	# (-1308, 697)), so the one site is dressed as it: dark green-black glass in a fine grid,
@@ -167,8 +172,18 @@ const TOWERS := [
 	{"key": "central", "osm": "Central Tower", "style": S_DARK, "glass": "#3e5c78", "roof": "#6f7d88"},
 	# Ilmet (Mapillary 2026-02 and 2025 street photos): a round-cornered terracotta-banded shaft whose top steps in twice.
 	{"key": "ilmet", "osm": "Ilmet", "style": S_BANDS, "glass": "#8a5e4c", "roof": "#8c8278", "chamfer": true},
-	{"key": "platinum_a", "osm": "Platinum Tower A", "style": S_RIBBON, "glass": "#6b7f8e", "roof": "#c4c8c8"},
-	{"key": "platinum_b", "osm": "Platinum Tower B", "style": S_RIBBON, "glass": "#6b7f8e", "roof": "#c4c8c8"},
+	# Platinum Towers from the top-50 photo set (T36, 2026-11-08): cream stone piers with punched
+	# windows at the corners, the glass between them banded by the balconies' white glass railings.
+	{"key": "platinum_a", "osm": "Platinum Tower A", "style": S_RIBBON, "glass": "#6b7f8e", "roof": "#c4c8c8", "mapped": true,
+			"skins": {"#c1a48b": [S_PUNCHED, "#e4e0d6"], "#647887": [S_BANDS, "#8aa1ad"]}},
+	{"key": "platinum_b", "osm": "Platinum Tower B", "style": S_RIBBON, "glass": "#6b7f8e", "roof": "#c4c8c8", "mapped": true,
+			"skins": {"#c1a48b": [S_PUNCHED, "#e4e0d6"], "#647887": [S_BANDS, "#8aa1ad"]}},
+	# The bank tower on Grzybowska (T37, 2026-11-08; OSM name kept for the lookup only): beige stone with punched windows over a green
+	# glass grid on the lower floors, the bank's name (the parody) on the crown, grey glass podium.
+	{"key": "pepeo_tower", "osm": "Pekao Tower", "style": S_PUNCHED, "glass": "#d9d2c2", "roof": "#a9a69c", "mapped": true,
+			"sign": "PEPEO ŻUBR",
+			"skins": {"#ffffff": [S_PUNCHED, "#d9d2c2"], "#2c4c50": [S_GRID, "#4f7a76"], "#545a56": [S_DARK, "#545a56"],
+					"": [S_GRID, "#6f7c80"]}},
 	# Widok Towers (F's photos, 2026-11-08, folder E4-widok): pale blue-grey glass in a white
 	# aluminium grid, not green; a white roof edge.
 	{"key": "widok", "osm": "Widok Towers", "style": S_GRID, "glass": "#86a3b8", "roof": "#c6cbcf", "cool": true},
@@ -270,6 +285,9 @@ const INFO := {
 	"gpy": ["Generation Park Y",
 			"140 m przy rondzie Daszyńskiego.",
 			"140 m by Rondo Daszyńskiego."],
+	"powstancow_blue": ["Szklana wieża przy placu Powstańców",
+			"70 m niebieskiego szkła przy Hotelu Warszawa.",
+			"70 m of blue glass beside Hotel Warszawa."],
 	"skysawa": ["Skysawa",
 			"155 m przy Świętokrzyskiej.",
 			"155 m on Świętokrzyska."],
@@ -299,8 +317,9 @@ const INFO := {
 	"marszalkowska94": ["Nowotel", "Hotel przy Marszałkowskiej 94/98, 95 m. Nowy od 1974 roku.", "A hotel at Marszałkowska 94/98, 95 m. New since 1974."],
 	"central": ["Central Tower", "115 m przy Alejach Jerozolimskich.", "115 m on Al. Jerozolimskie."],
 	"ilmet": ["Ilmet", "103 m.", "103 m."],
-	"platinum_a": ["Platinum Tower A", "83 m.", "83 m."],
-	"platinum_b": ["Platinum Tower B", "83 m.", "83 m."],
+	"platinum_a": ["Platinum Tower A", "83 m kremowego kamienia i szklanych balkonów.", "83 m of cream stone and glass balconies."],
+	"platinum_b": ["Platinum Tower B", "Bliźniak A: kamienne narożniki, szklane balkony.", "A's twin: stone corners, glass balconies."],
+	"pepeo_tower": ["Wieża PEPEO ŻUBR", "Beżowy kamień nad zielonym szkłem, na Grzybowskiej.", "Beige stone over green glass, on Grzybowska."],
 	"lucka": ["Łucka City", "Biały wieżowiec mieszkalny przy Łuckiej 15, 100 m, schodkami w dół do Łuckiej i do Prostej. Na dachu INTERBRUK.",
 			"A white residential tower at Łucka 15, 100 m, stepping down to Łucka and to Prosta. INTERBRUK on the roof."],
 	"prosta32": ["Prosta 32",
@@ -25566,8 +25585,8 @@ func _build_hotel_warszawa(site: Dictionary) -> void:
 	var pitch := s.size.x / 7.0
 	for k in 8:
 		var u := u0 + pitch * k
-		_lbox(u, 0.15, 0.3, 0.15, g + HW_BASE_TOP - 3.6, g + HW_CORNICE, HW_PIER, M_STONE, HW_PIER)
-		_hw_glow_strip(Vector2(u, 0.37), Vector2(0.0, 1.0), g + HW_BASE_TOP, g + HW_CORNICE - 0.4)
+		_lbox(u, 0.2, 0.45, 0.2, g + HW_BASE_TOP - 3.6, g + HW_CORNICE, HW_PIER, M_STONE, HW_PIER)
+		_hw_glow_strip(Vector2(u, 0.42), Vector2(0.0, 1.0), g + HW_BASE_TOP, g + HW_CORNICE - 0.4)
 	for side: float in [-1.0, 1.0]:
 		var uf := u1 if side > 0.0 else u0
 		for k in 7:
@@ -25649,8 +25668,17 @@ func _build_hotel_warszawa(site: Dictionary) -> void:
 	_lbox(0.4, pf * 0.5, 4.7, pf * 0.5, g - 0.6, g + 5.0, HW_PIER, M_STONE, HW_SHADE)
 	_lbox(0.4, pf * 0.5 + 0.25, 5.1, pf * 0.5 + 0.25, g + 5.0, g + 5.5, HW_PIER, M_STONE, HW_SHADE)
 	_wall(_w(-4.7, pf + 0.52), _w(5.5, pf + 0.52), g + 4.86, g + 5.0, _b, HW_DARK.lightened(0.15))
+	# F's photos (2026-11-08): the end doors are tall copper-framed panels (about 2.3 m wide and 5 m
+	# high, the 2018 restoration) around a dark glass door with a bronze handle, and the centre
+	# opening holds a slim copper door with a lit slit.
 	for d: float in [-6.6, 7.6]:
-		_wall(_w(d - 0.7, 0.08), _w(d + 0.7, 0.08), g, g + 3.1, _b, HW_COPPER)
+		_wall(_w(d - 1.15, 0.08), _w(d + 1.15, 0.08), g, g + 5.0, _b, HW_COPPER)
+		_wall(_w(d - 0.7, 0.14), _w(d + 0.7, 0.14), g, g + 3.4, _b, HW_DARK)
+		_wall(_w(d - 0.05, 0.17), _w(d + 0.05, 0.17), g + 0.9, g + 2.1, _b, HW_COPPER.lightened(0.3))
+	_wall(_w(-0.2, pf + 0.1), _w(1.0, pf + 0.1), g, g + 3.9, _b, HW_COPPER)
+	_mode = M_LAMP
+	_wall(_w(0.3, pf + 0.13), _w(0.5, pf + 0.13), g + 0.6, g + 3.4, _b, HW_GLOW)
+	_mode = M_STONE
 	_hw_panes(false, 0.0, 1.0, [-8.9, 9.7], [0.9], 1.8, 3.4, HW_GLASS)
 	var scale := 0.42 / (Neon.ROW_H * Neon.PIXEL)
 	var mid := _w(0.4, pf + 0.1)

@@ -120,6 +120,22 @@ func _check_offers_wait() -> void:
 		problems.append("offers: an offer may open the moment a card closed")
 	if TrendJob.hold_offers(103.0, 100.0 + TrendJob.CARD_REST, hud.cards_up()):
 		problems.append("offers: still held after the rest")
+	# F 2026-11-08: a friend's call (Mrożulo) never rings mid-mission, nor right after one, nor
+	# over a rescue call already ringing; it rings once the rest is over.
+	if not TrendJob.hold_calls(true, 500.0, 0.0, false):
+		problems.append("calls: a friend's call may ring during a mission")
+	if not TrendJob.hold_calls(false, 505.0, 500.0 + TrendJob.CALL_REST, false):
+		problems.append("calls: a friend's call may ring the moment a mission ended")
+	if not TrendJob.hold_calls(false, 900.0, 0.0, true):
+		problems.append("calls: a friend's call may ring over a rescue call")
+	if TrendJob.hold_calls(false, 500.0 + TrendJob.CALL_REST + 1.0, 500.0 + TrendJob.CALL_REST, false):
+		problems.append("calls: still held after the rest")
+	var tj: Node = TrendJob.new()
+	tj.mission_on = true
+	tj.mission_on = false
+	if not TrendJob.hold_calls(tj.mission_on, 1.0, tj._call_rest, false):
+		problems.append("calls: a mission's end does not start the call rest")
+	tj.free()
 	hud.queue_free()
 
 
