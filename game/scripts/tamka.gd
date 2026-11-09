@@ -106,6 +106,9 @@ const BOLLARD_STREETS := ["Tamka", "Lipowa", "Radna", "Cicha", "Topiel", "Leszcz
 		"Zajęcza", "Dynasy", "Oboźna", "Wiślana", "Solec", "Kruczkowskiego", "Smulikowskiego", "Gęsta", "Karowa"]
 const BOLLARD_AREA := Rect2(-300.0, -1150.0, 1150.0, 1000.0)
 const BOLLARD_CELL := 300.0
+## Street name plates: the box they are looked for in and how far past the kerb the pole stands.
+const PLATE_AREA := Rect2(-300.0, -1150.0, 1150.0, 1000.0)
+const PLATE_OUT := 0.9
 ## Park Odkrywców by the science centre (F's photos E02, 2026-11-09): the steel listening pipes on
 ## the lawn, each a tube with a bent horn on top, and two parabolic dishes facing each other 14 m
 ## apart (whisper to one, hear it at the other). Spots on open grass clear of the paths (from
@@ -159,6 +162,7 @@ var vehicle: Callable
 var log_on := false
 
 var bollards := 0
+var plates := 0
 var lines_said := 0
 var _walker: MeshInstance3D
 var _s := 0.0
@@ -175,6 +179,7 @@ func build() -> void:
 	var cells := {}
 	_bollards(cells)
 	_park(cells)
+	_plates(cells)
 	for key: Vector2i in cells:
 		var cell := MeshInstance3D.new()
 		cell.name = "Bollards_%d_%d" % [key.x, key.y]
@@ -206,7 +211,7 @@ func build() -> void:
 	_s = 0.3 * _cum[_cum.size() - 1]
 	_ambient_t = AMBIENT_GAP.x
 	if log_on:
-		print("tamka: %d bollards, walk %.0f m" % [bollards, _cum[_cum.size() - 1]])
+		print("tamka: %d bollards, %d plates, walk %.0f m" % [bollards, plates, _cum[_cum.size() - 1]])
 
 
 ## Bollards along both kerbs of every Tamka carriageway BOLLARD_MIN_W wide or more, BOLLARD_STEP
@@ -257,6 +262,138 @@ func _bollards(cells: Dictionary) -> void:
 				var at: Vector2 = a + dir * (BOLLARD_STEP * (k + 0.5)) + side * sgn * (w * 0.5 + BOLLARD_OUT)
 				if _clear(at, own, others, zebras):
 					_bollard(_cell(cells, at), at)
+
+
+## Street name plates (Warsaw's navy plate on a grey pole, Props.add_street_plates) at the corners
+## where a Powiśle side street meets another named street: one pole a junction, the main street's
+## name on the high plate, the side street's on the low one, on the pavement corner that is clear
+## of every carriageway and house. F's street photos show the plates at every crossing; the poles
+## join the bollards' cell meshes (no draw call of their own).
+func _plates(cells: Dictionary) -> void:
+	for sp: Dictionary in plate_spots(map.data):
+		var at: Vector2 = sp["at"]
+		var d: Vector2 = sp["dir"]
+		var g: float = map.ground_height(at.x, at.y)
+		var dx := Vector3(d.x, 0.0, d.y)
+		var xf := Transform3D(Basis(dx, Vector3.UP, dx.cross(Vector3.UP)), Vector3(at.x, g, at.y))
+		Props.add_street_plates(_cell(cells, at), xf, str(sp["along"]), str(sp["across"]))
+		plates += 1
+
+
+## The name a plate carries: the street without the first names OpenStreetMap gives some, "al."
+## and "pl." for avenues and squares, "Wyb." for the embankment.
+static func plate_name(name: String) -> String:
+	var parts := name.split(" ")
+	if parts.size() < 2:
+		return name
+	var last: String = parts[parts.size() - 1]
+	match parts[0]:
+		"Aleja", "Aleje":
+			return "al. " + last
+		"Plac":
+			return "pl. " + last
+		"Wybrzeże":
+			return "Wyb. " + last
+		"Most", "Wiadukt", "Zaułek":
+			return name
+	return last
+
+
+## Where the plates stand: [{at, dir (the main street's direction), along, across}] for every
+## junction in PLATE_AREA of a named street with another named one (the side street's end on the
+## main street), at the corner clear of roads (PLATE_OUT m from the kerbs) and of buildings, 12 m
+## or more from another plate.
+static func plate_spots(data: Dictionary) -> Array:
+	var segs := []
+	var named := []
+	for r: Dictionary in data.get("roads", []):
+		if bool(r.get("bridge", false)) or bool(r.get("tunnel", false)):
+			continue
+		var p: Array = r["p"]
+		var w := float(r.get("w", 6.0))
+		var nm := str(r.get("name", ""))
+		var near := false
+		for i in range(0, p.size(), 2):
+			if PLATE_AREA.has_point(Vector2(float(p[i]), float(p[i + 1]))):
+				near = true
+				break
+		if not near:
+			continue
+		for i in range(0, p.size() - 3, 2):
+			segs.append([Vector2(float(p[i]), float(p[i + 1])), Vector2(float(p[i + 2]), float(p[i + 3])), w, nm])
+		if nm != "" and w >= 5.0:
+			named.append(r)
+	var houses := []
+	for b: Dictionary in data.get("buildings", []):
+		var q := PackedVector2Array()
+		var bp: Array = b["p"]
+		for i in range(0, bp.size() - 1, 2):
+			q.append(Vector2(float(bp[i]), float(bp[i + 1])))
+		if q.size() < 3:
+			continue
+		var box := Rect2(q[0], Vector2.ZERO)
+		for v in q:
+			box = box.expand(v)
+		if PLATE_AREA.grow(10.0).intersects(box):
+			houses.append([q, box.grow(PLATE_OUT)])
+	var out := []
+	for r: Dictionary in named:
+		var p: Array = r["p"]
+		var nm := plate_name(str(r["name"]))
+		var ws := float(r.get("w", 6.0))
+		for end in [0, 1]:
+			var i: int = 0 if end == 0 else p.size() - 2
+			var j: int = 2 if end == 0 else p.size() - 4
+			var e := Vector2(float(p[i]), float(p[i + 1]))
+			if not PLATE_AREA.has_point(e):
+				continue
+			var sd := (Vector2(float(p[j]), float(p[j + 1])) - e).normalized()
+			# the nearest other named carriageway: the main street
+			var best := 1e9
+			var main: Array = []
+			for sg: Array in segs:
+				var other := plate_name(str(sg[3]))
+				if str(sg[3]) == "" or other == nm or other.right(8) == nm.right(8) or float(sg[2]) < 5.0:
+					continue
+				var dd := Geometry2D.get_closest_point_to_segment(e, sg[0], sg[1]).distance_to(e)
+				if dd < best:
+					best = dd
+					main = sg
+			if main.is_empty() or best > 3.0:
+				continue
+			var md: Vector2 = ((main[1] as Vector2) - (main[0] as Vector2)).normalized()
+			var wm: float = main[2]
+			var foot := Geometry2D.get_closest_point_to_segment(e, main[0], main[1])
+			var out_n := Vector2(md.y, -md.x)
+			if out_n.dot(sd) < 0.0:
+				out_n = -out_n
+			var across := Vector2(sd.y, -sd.x)
+			for sgn: float in [1.0, -1.0]:
+				var at: Vector2 = foot + out_n * (wm * 0.5 + PLATE_OUT) + across * sgn * (ws * 0.5 + PLATE_OUT)
+				if _plate_ok(at, segs, houses, out):
+					out.append({"at": at, "dir": md, "along": plate_name(str(main[3])), "across": nm})
+					break
+	return out
+
+
+static func _plate_ok(at: Vector2, segs: Array, houses: Array, placed: Array) -> bool:
+	for sg: Array in segs:
+		if Geometry2D.get_closest_point_to_segment(at, sg[0], sg[1]).distance_to(at) < float(sg[2]) * 0.5 + 0.4:
+			return false
+	for h: Array in houses:
+		if (h[1] as Rect2).has_point(at) and (Geometry2D.is_point_in_polygon(at, h[0]) or _near_poly(at, h[0])):
+			return false
+	for o: Dictionary in placed:
+		if (o["at"] as Vector2).distance_to(at) < 12.0:
+			return false
+	return true
+
+
+static func _near_poly(at: Vector2, q: PackedVector2Array) -> bool:
+	for k in q.size():
+		if Geometry2D.get_closest_point_to_segment(at, q[k], q[(k + 1) % q.size()]).distance_to(at) < PLATE_OUT * 0.6:
+			return true
+	return false
 
 
 ## The surface tool of the cell `at` falls in (made on first use).

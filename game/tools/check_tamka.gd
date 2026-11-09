@@ -13,7 +13,9 @@ extends SceneTree
 ##   6. tamka.gd's CENTRE is the map's Tamka (a re-bake that moves the street must update it);
 ##   7. Powiśle's photographed houses (powisle_houses.gd): each point inside one mapped house, in
 ##      AREA, picking its own look; each front a unit-ish normal that one of its walls faces;
-##   8. Park Odkrywców's pipes and dishes and the Kahl stone stand outside every mapped building.
+##   8. Park Odkrywców's pipes and dishes and the Kahl stone stand outside every mapped building;
+##   9. the street name plates (plate_spots): 25 or more, each clear of every carriageway and house,
+##      12 m apart, two different names, none a duplicate of its own street.
 ## Prints "check_tamka: OK (...)" or the problems (exit 1).
 ##   godot --headless --path game --script res://tools/check_tamka.gd
 
@@ -33,9 +35,10 @@ func _init() -> void:
 	_centre(data)
 	_powisle(data)
 	_park(data)
+	var plates := _plates(data)
 	if problems.is_empty():
-		print("check_tamka: OK (%d Tamka + %d Powiśle photo houses, walk %.0f m, walker %d triangles, %d lines)" % [
-				Tamka.HOUSES.size(), PowisleHouses.HOUSES.size(), walk, tris, lines])
+		print("check_tamka: OK (%d Tamka + %d Powiśle photo houses, walk %.0f m, walker %d triangles, %d lines, %d plates)" % [
+				Tamka.HOUSES.size(), PowisleHouses.HOUSES.size(), walk, tris, lines, plates])
 		quit(0)
 	else:
 		for p in problems:
@@ -213,3 +216,32 @@ func _park(data: Dictionary) -> void:
 		for at: Vector2 in spots:
 			if Geometry2D.is_point_in_polygon(at, poly):
 				problems.append("park prop at %s inside %s" % [at, b.get("name", "a building")])
+
+
+func _plates(data: Dictionary) -> int:
+	var spots := Tamka.plate_spots(data)
+	if spots.size() < 25:
+		problems.append("only %d street name plates (25 or more)" % spots.size())
+	for a in spots.size():
+		var sp: Dictionary = spots[a]
+		if str(sp["along"]) == "" or str(sp["across"]) == "" or sp["along"] == sp["across"]:
+			problems.append("plate %d has no two names" % a)
+		for b in range(a + 1, spots.size()):
+			if (sp["at"] as Vector2).distance_to(spots[b]["at"]) < 12.0:
+				problems.append("plates %d and %d are closer than 12 m" % [a, b])
+		for r: Dictionary in data.get("roads", []):
+			var p: Array = r["p"]
+			for i in range(0, p.size() - 3, 2):
+				var d := Geometry2D.get_closest_point_to_segment(sp["at"], Vector2(float(p[i]), float(p[i + 1])), Vector2(float(p[i + 2]), float(p[i + 3]))).distance_to(sp["at"])
+				if d < float(r.get("w", 6.0)) * 0.5 and not bool(r.get("bridge", false)):
+					problems.append("plate %d stands on a carriageway" % a)
+					break
+		for bld: Dictionary in data.get("buildings", []):
+			var bp: Array = bld["p"]
+			var q := PackedVector2Array()
+			for i in range(0, bp.size() - 1, 2):
+				q.append(Vector2(float(bp[i]), float(bp[i + 1])))
+			if q.size() >= 3 and Geometry2D.is_point_in_polygon(sp["at"], q):
+				problems.append("plate %d stands inside a house" % a)
+				break
+	return spots.size()
