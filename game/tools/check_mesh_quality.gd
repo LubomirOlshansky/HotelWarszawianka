@@ -148,6 +148,7 @@ const BUDGET := {
 	"browary": 3900,   # 2026-11-03: paved main path and clearing edges (look check)
 	"koszyki": 1370,
 	"elektrownia": 1950,
+	"rotunda_dynasy": 1400,
 	"mpw": 3200,
 	"metropolitan": 3100,
 	"muzeum": 3500,  # 2026-11-06 photo pass: a stone pier on every bay boundary, fence, flagpoles

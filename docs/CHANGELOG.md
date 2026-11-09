@@ -14,6 +14,7 @@ someone writes its lines.
 - Nineteen more Powiśle houses look like their photos: their own colours, balconies and shop bands on Leszczyńska, Browarna, Dobra, Topiel, Solec, Aleja 3 Maja and Zajęcza.
 - Elektrownia Powiśle got its real look: the gabled brick hall, the glass lift with the blue box on top and four silver stacks. The Chopin Museum is white with an orange roof on its brick bastion, without the made-up tower.
 - Powiśle's side streets got their black posts along the kerbs and the colours of their real houses.
+- The round house on Dynasy stands on its brick base, and Park Odkrywców has its steel listening pipes and the two whisper dishes.
 
 ## 2026-11-08
 - Padel at DESKA is a real game now: answer the friend's call, get to the court in time and play a 2v2 arcade match on the glass court by the Vistula. Run with your left thumb, tap HIT for drives, volleys and jumping smashes, LOB over a pair at the net, play the ball off the glass. The club's crowd cheers, the floodlights come on at night, and the court in the city got its real dark surface and black frame.

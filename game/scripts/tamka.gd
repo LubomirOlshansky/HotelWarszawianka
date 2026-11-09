@@ -106,6 +106,17 @@ const BOLLARD_STREETS := ["Tamka", "Lipowa", "Radna", "Cicha", "Topiel", "Leszcz
 		"Zajęcza", "Dynasy", "Oboźna", "Wiślana", "Solec", "Kruczkowskiego", "Smulikowskiego", "Gęsta", "Karowa"]
 const BOLLARD_AREA := Rect2(-300.0, -1150.0, 1150.0, 1000.0)
 const BOLLARD_CELL := 300.0
+## Park Odkrywców by the science centre (F's photos E02, 2026-11-09): the steel listening pipes on
+## the lawn, each a tube with a bent horn on top, and two parabolic dishes facing each other 14 m
+## apart (whisper to one, hear it at the other). Spots on open grass clear of the paths (from
+## centrum.json). And Skwer Kahla's memorial stone (E01) with its dark plaque.
+const PARK_PIPES := [Vector2(429.0, -796.0), Vector2(432.2, -796.0), Vector2(430.6, -793.2), Vector2(427.4, -793.2),
+		Vector2(425.8, -796.0), Vector2(427.4, -798.8), Vector2(430.6, -798.8), Vector2(435.1, -794.1),
+		Vector2(432.0, -790.3), Vector2(427.1, -789.9), Vector2(423.3, -793.0), Vector2(422.9, -797.9),
+		Vector2(426.0, -801.7), Vector2(430.9, -802.1), Vector2(434.7, -799.0)]
+const PARK_DISHES := [Vector2(441.0, -806.0), Vector2(441.0, -792.0)]
+const PARK_STEEL := Color("#b9bec2")
+const KAHL_STONE := Vector2(569.9, -560.5)
 const BOLLARD_MIN_W := 6.0
 const JUNCTION_CLEAR := 2.5
 const ZEBRA_CLEAR := 3.0
@@ -163,6 +174,7 @@ var _t := 0.0
 func build() -> void:
 	var cells := {}
 	_bollards(cells)
+	_park(cells)
 	for key: Vector2i in cells:
 		var cell := MeshInstance3D.new()
 		cell.name = "Bollards_%d_%d" % [key.x, key.y]
@@ -244,12 +256,51 @@ func _bollards(cells: Dictionary) -> void:
 			for sgn: float in [-1.0, 1.0]:
 				var at: Vector2 = a + dir * (BOLLARD_STEP * (k + 0.5)) + side * sgn * (w * 0.5 + BOLLARD_OUT)
 				if _clear(at, own, others, zebras):
-					var key := Vector2i(floori(at.x / BOLLARD_CELL), floori(at.y / BOLLARD_CELL))
-					if not cells.has(key):
-						var cst := SurfaceTool.new()
-						cst.begin(Mesh.PRIMITIVE_TRIANGLES)
-						cells[key] = cst
-					_bollard(cells[key], at)
+					_bollard(_cell(cells, at), at)
+
+
+## The surface tool of the cell `at` falls in (made on first use).
+static func _cell(cells: Dictionary, at: Vector2) -> SurfaceTool:
+	var key := Vector2i(floori(at.x / BOLLARD_CELL), floori(at.y / BOLLARD_CELL))
+	if not cells.has(key):
+		var cst := SurfaceTool.new()
+		cst.begin(Mesh.PRIMITIVE_TRIANGLES)
+		cells[key] = cst
+	return cells[key]
+
+
+## Park Odkrywców's listening pipes and dishes, and the Kahl stone (PARK_*, KAHL_STONE).
+func _park(cells: Dictionary) -> void:
+	for i in PARK_PIPES.size():
+		var at: Vector2 = PARK_PIPES[i]
+		var st := _cell(cells, at)
+		var g: float = map.ground_height(at.x, at.y)
+		var h := 1.7 + fposmod(i * 0.618, 1.0) * 1.3
+		var turn := TAU * fposmod(i * 0.383, 1.0)
+		var d := Vector3(cos(turn), 0.0, sin(turn))
+		Props.box(st, Vector3(at.x, g + h * 0.5, at.y), Vector3(0.2, h, 0.2), PARK_STEEL)
+		var arm := Vector3(at.x, g + h, at.y) + d * 0.22
+		Props.obox(st, arm, Basis.looking_at(d, Vector3.UP), Vector3(0.16, 0.16, 0.6), PARK_STEEL)
+		Props.obox(st, arm + d * 0.36 + Vector3(0, -0.12, 0), Basis.looking_at(d, Vector3.UP), Vector3(0.46, 0.46, 0.1), PARK_STEEL.darkened(0.25))
+	for k in PARK_DISHES.size():
+		var at: Vector2 = PARK_DISHES[k]
+		var other: Vector2 = PARK_DISHES[1 - k]
+		var st := _cell(cells, at)
+		var g: float = map.ground_height(at.x, at.y)
+		var face := Vector3(other.x - at.x, 0.0, other.y - at.y).normalized()
+		var b := Basis.looking_at(face, Vector3.UP)
+		Props.box(st, Vector3(at.x, g + 0.6, at.y), Vector3(0.5, 1.2, 0.5), Color("#9a9a96"))
+		var c := Vector3(at.x, g + 2.3, at.y)
+		for q in 4:
+			var spin := Basis(face, PI * 0.25 * q)
+			Props.obox(st, c, spin * b, Vector3(2.4, 0.95, 0.08), Color("#d4d6d6"))
+		Props.obox(st, c + face * 0.06, b, Vector3(0.9, 0.9, 0.06), Color("#aeb2b3"))
+	var kst := _cell(cells, KAHL_STONE)
+	var kg: float = map.ground_height(KAHL_STONE.x, KAHL_STONE.y)
+	var tilt := Basis(Vector3.UP, 0.5) * Basis(Vector3.RIGHT, -0.08)
+	Props.obox(kst, Vector3(KAHL_STONE.x, kg + 0.7, KAHL_STONE.y), tilt, Vector3(1.3, 1.6, 0.9), Color("#8d8c88"))
+	Props.obox(kst, Vector3(KAHL_STONE.x, kg + 0.85, KAHL_STONE.y) + tilt * Vector3(0, 0, -0.47), tilt, Vector3(0.6, 0.7, 0.04), Color("#2f3133"))
+	Props.box(kst, Vector3(KAHL_STONE.x, kg + 0.03, KAHL_STONE.y), Vector3(2.6, 0.06, 2.0), Color("#a5a39d"))
 
 
 ## A street's name without the first names OpenStreetMap gives some (Juliana Smulikowskiego).

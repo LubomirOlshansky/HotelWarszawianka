@@ -12,7 +12,8 @@ extends SceneTree
 ##   5. the footbridge's ends lie on the mapped footway that crosses Tamka by the castle;
 ##   6. tamka.gd's CENTRE is the map's Tamka (a re-bake that moves the street must update it);
 ##   7. Powiśle's photographed houses (powisle_houses.gd): each point inside one mapped house, in
-##      AREA, picking its own look; each front a unit-ish normal that one of its walls faces.
+##      AREA, picking its own look; each front a unit-ish normal that one of its walls faces;
+##   8. Park Odkrywców's pipes and dishes and the Kahl stone stand outside every mapped building.
 ## Prints "check_tamka: OK (...)" or the problems (exit 1).
 ##   godot --headless --path game --script res://tools/check_tamka.gd
 
@@ -31,6 +32,7 @@ func _init() -> void:
 	_bridge(data)
 	_centre(data)
 	_powisle(data)
+	_park(data)
 	if problems.is_empty():
 		print("check_tamka: OK (%d Tamka + %d Powiśle photo houses, walk %.0f m, walker %d triangles, %d lines)" % [
 				Tamka.HOUSES.size(), PowisleHouses.HOUSES.size(), walk, tris, lines])
@@ -197,3 +199,17 @@ func _powisle(data: Dictionary) -> void:
 				seen = seen or n.dot(f.normalized()) > PowisleHouses.FRONT_DOT
 			if not seen:
 				problems.append("Powiśle house at %s: no wall faces %s" % [at, f])
+
+
+func _park(data: Dictionary) -> void:
+	var spots: Array = Tamka.PARK_PIPES + Tamka.PARK_DISHES + [Tamka.KAHL_STONE]
+	for b: Dictionary in data["buildings"] + data["landmarks"]:
+		var p: Array = b["p"]
+		if absf(float(p[0]) - 500.0) > 400.0 or absf(float(p[1]) + 700.0) > 400.0:
+			continue
+		var poly := PackedVector2Array()
+		for i in range(0, p.size() - 1, 2):
+			poly.append(Vector2(p[i], p[i + 1]))
+		for at: Vector2 in spots:
+			if Geometry2D.is_point_in_polygon(at, poly):
+				problems.append("park prop at %s inside %s" % [at, b.get("name", "a building")])

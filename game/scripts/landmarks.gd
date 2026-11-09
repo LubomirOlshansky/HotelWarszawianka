@@ -489,6 +489,9 @@ const INFO := {
 	"koszyki": ["Hala Koszyki",
 			"Ceglana hala targowa z 1909 roku. Dziś: ramen.",
 			"The brick market hall of 1909. Now: ramen."],
+	"rotunda_dynasy": ["Rotunda na Dynasach",
+			"Okrągły dom na miejscu dawnej panoramy na Dynasach: ceglany parter, białe ramy, szkło.",
+			"A round house where the old panorama stood on Dynasy: a brick base, white frames, glass."],
 	"elektrownia": ["Elektrownia Powiśle",
 			"Dawna elektrownia na Dobrej, dziś sklepy i jedzenie pod kominami.",
 			"The old power station on Dobra, shops and food under its chimneys."],
@@ -1734,6 +1737,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_koszyki(s)
 			"elektrownia":
 				_build_elektrownia(s)
+			"rotunda_dynasy":
+				_build_rotunda_dynasy(s)
 			"mpw":
 				_build_mpw(s)
 			"mf":
@@ -21054,6 +21059,11 @@ func _find_works() -> void:
 		_add_site("koszyki", [kosz])
 		if sites[-1]["key"] == "koszyki":
 			sites[-1]["ring"] = kosz
+	var rdyn := _landmark("Rotunda na Dynasach")
+	if rdyn.size() >= 3:
+		_add_site("rotunda_dynasy", [rdyn])
+		if sites[-1]["key"] == "rotunda_dynasy":
+			sites[-1]["ring"] = rdyn
 	var elek := _landmark("Elektrownia Powiśle")
 	if elek.size() >= 3:
 		_add_site("elektrownia", [elek])
@@ -21550,6 +21560,41 @@ func _build_elektrownia(site: Dictionary) -> void:
 		_frustum(_circle(c, 1.3, 12), g + ELEK_STACK_TOP - 3.0, _circle(c, 2.0, 12), g + ELEK_STACK_TOP, ELEK_ALU.lightened(0.08), ELEK_STEEL)
 		_prism(_circle(c, 1.42, 12), g + ELEK_STACK_TOP - 6.0, g + ELEK_STACK_TOP - 5.4, ELEK_ALU.darkened(0.2), none, M_STONE, M_STONE)
 	_collide(_rect(0.0, 0.0, hu, hv))
+
+
+## Rotunda Dynasy (F's photo set 2026-11-09, Mac powisle/X-Dynasy): the round block of flats on
+## the old panorama's site at Dynasy 22, its mapped round outline: a two-storey brick base with dark
+## shop glass, six storeys of glass behind white concrete frames (a slab and a band of fins each
+## floor), the top two set back with terraces, a flat roof.
+const RDYN_BRICK := Color("#9a5a44")
+const RDYN_WHITE := Color("#e6e5e0")
+const RDYN_GLASS := Color("#7f98a2")
+const RDYN_BASE := 7.0
+const RDYN_FLOOR := 3.2
+
+
+func _build_rotunda_dynasy(site: Dictionary) -> void:
+	var ring: PackedVector2Array = site["ring"]
+	_g = _ground_under(ring)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	_prism(ring, g - 0.6, g + RDYN_BASE, RDYN_BRICK, none, M_STONE, M_STONE)
+	var y := g + RDYN_BASE
+	for k in 6:
+		var inset := 0.6 if k < 4 else 2.6
+		var slab := _largest(Geometry2D.offset_polygon(ring, 0.3 - (inset - 0.6), Geometry2D.JOIN_MITER))
+		var glass := _largest(Geometry2D.offset_polygon(ring, -inset, Geometry2D.JOIN_MITER))
+		if slab.size() < 3 or glass.size() < 3:
+			break
+		_prism(slab, y, y + 0.35, RDYN_WHITE, RDYN_WHITE, M_STONE, M_STONE)
+		_mode = M_GLASS
+		_prism(glass, y + 0.35, y + RDYN_FLOOR, RDYN_GLASS, none, M_GLASS, M_STONE)
+		_mode = M_STONE
+		y += RDYN_FLOOR
+	var top := _largest(Geometry2D.offset_polygon(ring, -2.3, Geometry2D.JOIN_MITER))
+	if top.size() >= 3:
+		_prism(top, y, y + 0.5, RDYN_WHITE, RDYN_WHITE.darkened(0.15), M_STONE, M_STONE)
+	_collide(ring)
 
 
 # --- Muzeum Powstania Warszawskiego (2026-11-02, spec docs/landmarks/specs/mpw.md) ------------
