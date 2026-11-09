@@ -18,7 +18,7 @@
 # WARN before). `drive` runs game/tools/check_drive.gd (loop 3b): a car and a bus along every
 # lane against the colliders, the autopilot over the bridges and tunnels. `drape` runs
 # game/tools/check_drape.gd (loop 3b-2): the ground poking through the water, grass and plazas.
-# `ground` runs game/tools/check_ground.gd (loop 3d-2a, ~2 min, not in --quick): no ground left
+# `ground` runs game/tools/check_ground.gd (loop 3d-2a, ~9 min, not in --quick; CI map job since 2026-11-08): no ground left
 # under what covers it whole, no hole where it was left out, the ground on the height rule.
 # `streets` runs tools/check_streets.py (map review B): poles on the asphalt, zebras off it,
 # grass medians on tram tracks (S1, S2, S4 FAIL; S3, medians in a junction, is reported).
@@ -107,7 +107,7 @@
 # Bar crawl (2026-11-07): `crawl` runs game/tools/check_bar_crawl.gd: the groups' lines, the routes,
 # the call's hours, the clock and the pay.
 # Sekretny rave (2026-11-06): `rave` runs game/tools/check_rave.gd: the cone, booth and club-room meshes,
-# LEKTI's, Ziomek's, the door's and the club's lines (no brand), the rave clock, the door's three
+# LEKTI's, Mati's, the door's and the club's lines (no brand), the rave clock, the door's three
 # questions, the lights' poses, the spots and Smoła on the real lane graph; centrum.json only (CI too).
 # Dym u Senatorka (2026-11-08): `shisha` runs game/tools/check_shisha.gd: data/shisha.json's scenes,
 # taps and jars (both languages, under 90 characters, no brand), the votes and the pay, the
@@ -122,6 +122,10 @@
 # the Zieleniecka strip on the real lane graph; centrum.json only (CI too).
 # Cinema tour (2026-11-07): `kinotour` runs game/tools/check_kino_tour.gd: the stops on drivable roads by
 # their cinemas, the call, the pickup, the pitches, the shots, the scratches on the reel and the pay.
+# Arcade padel (2026-11-08): `padel` runs game/tools/check_padel.gd: the shot solver, 24 whole matches
+# with the human on autopilot (they end, no stuck rally, real rallies, both pairs win, smashes and
+# glass), an idle human loses 0:2, a tapping one hits, the net / glass / double-bounce rules, the
+# lines in Polish and English; no map (CI too).
 # Boat race (2026-11-06): `boatrace` runs game/tools/check_boat_race.gd: the course from water.bin
 # (every ring in open water, in order, the finish last), the boat's pull, turn and banks, a whole race
 # with the four boats driven by the rivals' driver (all finish or drop out, the careful one with no
@@ -201,16 +205,24 @@
 # Street objects (2026-11-07): `objects` runs tools/object_fixes.py --check (the map's lamps, signals,
 # benches, bins, racks, columns, shelters, parked cars and barriers carry no artifact object_audit.py
 # fixes by itself: inside a wall, in a carriageway, under a deck, doubles, stubs, stair slabs, paths
-# walled off; the CHECK rules are only counted).
+# walled off; 2026-11-08: no scanned tree in the water or on the asphalt, no fence or hedge in the
+# water; the CHECK rules are only counted).
 # Stairs across the city (2026-11-07): `stairs` runs tools/stairs.py --check (the map's flights carry
 # their OSM tags: step count, width, handrails, ramps; map_builder.gd builds the stone flights from them)
 # and tools/barrier_tags.py --check (walls, fences and hedges carry their mapped heights, materials and
 # fence types, and the Old Town's city walls are on the map).
 # Main's road bugs (2026-11-07): `fixes` runs tools/road_fixes.py --check (the map is fixed: no lane
-# line or arrow in a junction's mouth, no dot zebras; its ratchets never grow).
+# line or arrow in a junction's mouth, no dot zebras; 2026-11-08: no street split whose legs fan out
+# from the wide street's middle beyond the split_* ratchets; its ratchets never grow).
+# Dworzec Centralny's car park ramp (F, 2026-11-08): `centralnyramp` runs tools/centralny_ramp.py
+# --check (the service tunnel under Aleja Jana Pawła II is a drive: its tunnel, portal and frame, the
+# way out from the portal, no garage door across it; no map beyond centrum.json, CI too).
 # Bridge cycle paths (2026-11-08): `cyclehang` runs tools/cycle_hang.py --check (Most Łazienkowski's
 # cycle bridges hang 4 m under the road deck, as on F's photos, and come down to their ramps; needs
 # terrain.json from the map pack).
+# Port Czerniakowski's footbridge (2026-11-08): `portbridge` runs tools/port_bridge.py --check (the
+# mouth's bridge by Majami Wawa is one flat railed deck joining the boulevard's paths, the finished
+# construction lot north-west of it has no site fences).
 # Thin towers (2026-11-07): `heights` runs tools/building_heights.py --check (no small building at
 # the old 14 m height guess: kiosks and lift housings stood up as thin towers).
 # Tram stops (2026-11-07): `tramstops` runs tools/tram_stops.py --check (the tram islands are 0.3 m
@@ -277,12 +289,12 @@ zmodload zsh/datetime
 ROOT=${0:A:h:h}
 GAME=$ROOT/game
 GODOT=${GODOT:-godot}
-STEPS_ALL=(map roads smooth fixes cyclehang heights objects tramstops stairs streets outline pois streetdetails streetpass design models overrides stops streetmesh ratuszhub parkdetails parkmesh monuments monumentmesh spiremotion tarasyscreen spec lod2 courts drape ground drive drive-prebuilt deckxray stuckspots stuckspots-prebuilt oldtowndrive lanedrive lanedrive-grounded finite steering laneassist stuckoffer handling grounded stopassist questlines stories settings credits language tiers governor heliview hud places edge roadworks roadworks-prebuilt eggs tape crowds life buses zaglebie crashes rave shisha meet boatrace dekalog kinotour evtow crawl loud crazy oldtram tramfleet trains railsignals packs wellness fans eventday coffeerun garage save districts syrenki cassettes ladder racecuts first10 mainline chatter endcard opening parodies jobs2 rescues couriers delivery rides cost landmarks oldtownroofs roofdress tenementtrim osmroofs sites palacelights meshq sfx juice gamepad radio sounds water water-prebuilt streaming police plain ram teleport firstlife heli race trzy-mosty first10-run kebab coffee ride ride-police splash rain prebuilt classic police-runs police-soak life-soak)
-STEPS_QUICK=(map roads smooth fixes cyclehang heights objects tramstops stairs streets outline pois streetdetails streetpass design models overrides stops streetmesh ratuszhub parkdetails parkmesh monuments monumentmesh spiremotion tarasyscreen spec drape drive deckxray stuckspots oldtowndrive finite steering laneassist stuckoffer handling grounded stopassist questlines stories settings credits language tiers governor heliview hud places edge roadworks eggs tape crowds life buses zaglebie crashes rave shisha meet boatrace dekalog kinotour evtow crawl loud crazy oldtram tramfleet trains railsignals packs wellness fans eventday coffeerun garage save districts syrenki cassettes ladder racecuts first10 mainline chatter endcard opening parodies jobs2 rescues couriers delivery rides cost landmarks oldtownroofs roofdress tenementtrim osmroofs sites palacelights meshq sfx juice gamepad radio sounds police plain ram teleport firstlife prebuilt)
+STEPS_ALL=(map roads smooth fixes centralnyramp cyclehang portbridge heights objects tramstops stairs streets outline pois streetdetails streetpass design models overrides stops streetmesh ratuszhub parkdetails parkmesh monuments monumentmesh spiremotion tarasyscreen spec lod2 courts drape ground drive drive-prebuilt deckxray stuckspots stuckspots-prebuilt oldtowndrive lanedrive lanedrive-grounded finite steering laneassist stuckoffer handling grounded stopassist questlines stories settings credits language tiers governor heliview hud places edge roadworks roadworks-prebuilt eggs tape crowds life buses zaglebie crashes rave shisha padel meet boatrace dekalog kinotour evtow crawl loud crazy oldtram tramfleet trains railsignals packs wellness fans eventday coffeerun garage save districts syrenki cassettes ladder racecuts first10 mainline chatter endcard opening parodies jobs2 rescues couriers delivery rides cost landmarks oldtownroofs roofdress tenementtrim osmroofs sites palacelights meshq sfx juice gamepad radio sounds water water-prebuilt streaming police plain ram teleport firstlife heli race trzy-mosty first10-run kebab coffee ride ride-police splash rain prebuilt classic police-runs police-soak life-soak)
+STEPS_QUICK=(map roads smooth fixes centralnyramp cyclehang portbridge heights objects tramstops stairs streets outline pois streetdetails streetpass design models overrides stops streetmesh ratuszhub parkdetails parkmesh monuments monumentmesh spiremotion tarasyscreen spec drape drive deckxray stuckspots oldtowndrive finite steering laneassist stuckoffer handling grounded stopassist questlines stories settings credits language tiers governor heliview hud places edge roadworks eggs tape crowds life buses zaglebie crashes rave shisha padel meet boatrace dekalog kinotour evtow crawl loud crazy oldtram tramfleet trains railsignals packs wellness fans eventday coffeerun garage save districts syrenki cassettes ladder racecuts first10 mainline chatter endcard opening parodies jobs2 rescues couriers delivery rides cost landmarks oldtownroofs roofdress tenementtrim osmroofs sites palacelights meshq sfx juice gamepad radio sounds police plain ram teleport firstlife prebuilt)
 # Operation Unslop review (2026-11-05): the road loop ran the whole --quick (~100 steps, most start
 # the game) after every tweak. --roads keeps only the steps a road rule can break; steps not in
 # STEPS_ALL on this branch (e.g. `smooth` before the smooth-roads PR) are skipped.
-STEPS_ROADS=(map roads streets streetdetails streetpass design models overrides smooth fixes cyclehang objects tramstops drive stuckspots)
+STEPS_ROADS=(map roads streets streetdetails streetpass design models overrides smooth fixes centralnyramp cyclehang portbridge objects tramstops drive stuckspots)
 # Loop 3g-1: minutes of play in the police soak (P13; the full one is 10).
 SOAK_MINUTES=${NW_SOAK_MINUTES:-3}
 # Longest a single step may take, in seconds, before it is stopped (macOS has no `timeout`).
@@ -782,6 +794,15 @@ for s in $want; do
 				0) row PASS "streetdetails" $secs "check_street_details: OK · $counts" ;;
 				*) row FAIL "streetdetails" $secs "$(grep '^check_street_details: ' $logs/streetdetails.log | tail -1) · $counts ($logs/streetdetails.log)" ;;
 			esac ;;
+		portbridge)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/port_bridge.py --check > $logs/portbridge.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			case $code in
+				0) row PASS "portbridge" $secs "$(grep '^port_bridge: ' $logs/portbridge.log | tail -1)" ;;
+				*) row FAIL "portbridge" $secs "$(grep '^port_bridge: ' $logs/portbridge.log | tail -2 | head -1) ($logs/portbridge.log)" ;;
+			esac ;;
 		cyclehang)
 			t0=$EPOCHREALTIME
 			python3 -I $ROOT/tools/cycle_hang.py --check > $logs/cyclehang.log 2>&1
@@ -790,6 +811,15 @@ for s in $want; do
 			case $code in
 				0) row PASS "cyclehang" $secs "$(grep '^cycle_hang: ' $logs/cyclehang.log | tail -1)" ;;
 				*) row FAIL "cyclehang" $secs "$(grep '^cycle_hang: ' $logs/cyclehang.log | tail -1) ($logs/cyclehang.log)" ;;
+			esac ;;
+		centralnyramp)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/centralny_ramp.py --check > $logs/centralnyramp.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			case $code in
+				0) row PASS "centralnyramp" $secs "$(grep '^centralny_ramp: ' $logs/centralnyramp.log | tail -1)" ;;
+				*) row FAIL "centralnyramp" $secs "$(grep '^centralny_ramp: ' $logs/centralnyramp.log | tail -1) ($logs/centralnyramp.log)" ;;
 			esac ;;
 		fixes)
 			t0=$EPOCHREALTIME
@@ -951,7 +981,7 @@ for s in $want; do
 		# Loop 3b-2: the bare ground poking through the areas laid on it (water, grass, plazas, sand).
 		drape) check drape '^check_drape:' --script res://tools/check_drape.gd ;;
 		# Loop 3d-2a: the ground left out under the layers that cover it, no holes, on the heights.
-		ground) check ground '^check_ground:' --script res://tools/check_ground.gd ;;
+		ground) STEP_LIMIT=$(( STEP_LIMIT > 1500 ? STEP_LIMIT : 1500 )) check ground '^check_ground:' --script res://tools/check_ground.gd ;;
 		# Loop 3b: every lane for a car and a bus against the colliders; the autopilot over the
 		# bridges and tunnels (height jumps). The runtime city (the prebuilt one: --prebuilt).
 		drive) check drive '^check_drive:' --script res://tools/check_drive.gd ;;
@@ -1025,6 +1055,7 @@ for s in $want; do
 		rave) check rave '^check_rave:' --script res://tools/check_rave.gd ;;
 		# Dym u Senatorka: the shisha night's lines, votes, pay, the mini-game's rules, the lounge mesh, the places on the real graph.
 		shisha) check shisha '^check_shisha:' --script res://tools/check_shisha.gd ;;
+		padel) check padel '^check_padel:' --script res://tools/check_padel.gd ;;
 		# Nocny spot: the club's cars, lines, clock, pay, the drag's times, the meets and the strip on the real graph.
 		meet) check meet '^check_street_meet:' --fixed-fps 60 --script res://tools/check_street_meet.gd ;;
 		# Boat race: the course in open water, the boat, a whole race, the three-miss rule, the lines.

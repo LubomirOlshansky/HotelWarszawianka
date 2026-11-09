@@ -13,7 +13,7 @@ extends Node3D
 ## rave rig's light pose, the city's glow material). Now and then the lights turn red and the
 ## DJ jokes about the sprinklers (a nod to a famous film's blood rave, no blood: `club_red`).
 ##
-## People to tap (their lines in data/dialogue.json): the DJ (`club_dj`), Ziomek (`club_ziomek`),
+## People to tap (their lines in data/dialogue.json): the DJ (`club_dj`), Mati (`club_ziomek`),
 ## the bartender (`club_bar`), Pan Kołek, a tall vampire hunter in a long coat and sunglasses
 ## who insists he is only here for the music (`club_kolek`, our own parody character), and the
 ## crowd (`club_crowd`: the techno scene, Lusterko's after, Berlin, phones). TAŃCZ: tap on the
@@ -488,10 +488,10 @@ func _build(world: Node3D) -> void:
 		if clear:
 			dm.set_instance_custom_data(_floor.size(), Color(clothes[frng.randi() % 7], 0.25))
 			_floor.append(p)
-	# The DJ, Ziomek (front of the floor, his violet shirt), the bartender, the cloakroom lady.
+	# The DJ, Mati (front of the floor, his violet shirt), the bartender, the cloakroom lady.
 	var named := [
 		["DJ", "club_dj", Vector3(0, 0.6, -hz + 1.6), Color("#141416")],
-		["Ziomek", "club_ziomek", Vector3(1.5, 0, 0.8), Color("#7a3aa8")],
+		["Mati", "club_ziomek", Vector3(1.5, 0, 0.8), Color("#7a3aa8")],
 		["Barman", "club_bar", Vector3(-hx + 0.9, 0, 0.5), Color("#e8e2d6")],
 		["Szatnia", "club_crowd", Vector3(-hx + 0.6, 0, hz - 2.0), Color("#a83a3a")],
 	]
@@ -957,10 +957,10 @@ func _on_dance() -> void:
 		if danced < DANCE_MAX and wallet != null:
 			danced += 1
 			wallet.pay(0, DANCE_PAY, "club_dance")
-			_say(["Ziomek", "club_dance", people[1][2]])
+			_say(["Mati", "club_dance", people[1][2]])
 			_log("dance paid (%s, %d)" % [area, danced])
 		elif danced >= DANCE_MAX:
-			_say(["Ziomek", "club_dance", people[1][2]])
+			_say(["Mati", "club_dance", people[1][2]])
 
 
 ## On the beat (for the check): seconds from `t` to the nearest beat.

@@ -85,11 +85,13 @@ const CZ_MIN_QUEUE := 10
 const CZ_COLOUR := Color("#2fd0e0")
 ## "Czwarty" at WTS DESKA (landmarks.gd DESKI, docs/design/padel.md): a friend phones from the court
 ## by the Vistula: the fourth player broke a leg at pole dance, come at once (drive or fly) and play.
-## Once the player has driven a while, 8:00-22:00, then every DESKI_COOL s of play. No pickup: the
-## beacon is the club's gate; a helicopter within DESKI_FLY_R m of it counts.
+## Once the player has driven a while (after the first-10 guide's last window, 660 s: at 150 s the
+## call rang in the middle of the guide and the replay's three-point match pushed the rescue, the
+## cassette and the garage 4-5 minutes late), 8:00-22:00, then every DESKI_COOL s of play. No
+## pickup: the beacon is the club's gate; a helicopter within DESKI_FLY_R m of it counts.
 const DESKI_GATE := Vector2(1475.0, 985.0)
 const DESKI_HOURS := [8.0, 22.0]
-const DESKI_FIRST := 150.0
+const DESKI_FIRST := 660.0
 const DESKI_COOL := 1200.0
 const DESKI_LIMIT := 480.0
 const DESKI_FLY_R := 28.0
@@ -97,7 +99,7 @@ const DESKI_FLY_R := 28.0
 const DESKI_NEAR := 250.0
 const DESKI_CALLERS := ["Kuba", "Zuzia", "Bartek", "Iga", "Olek", "Magda"]
 const DESKI_INJURED := ["Marta", "Ola", "Michał od Excela", "Prezes z Mokotowa"]
-## The DESKA call's opening (as Szymek's boat race and Ziomek's rave): the phone rings first, with
+## The DESKA call's opening (as Szymek's boat race and Mati's rave): the phone rings first, with
 ## who it is, ODBIERZ / ODRZUĆ, and only an answered call says what it wants. A short bio per caller.
 const DESKI_BIOS := {
 	"Kuba": ["Kumpel z liceum. Od marca „zaczyna padla od poniedziałku”. Ma już trzy rakiety.", "Your mate from school. Since March he has been \"starting padel on Monday\". He has three rackets already."],
@@ -133,6 +135,8 @@ const RALLIES := [
 ]
 ## The score line per points won (0..3): [pl, en].
 const MATCH_SCORES := [["2:6, 1:6", "2-6, 1-6"], ["4:6, 6:7", "4-6, 6-7"], ["6:4, 4:6, 10:8 w tie-breaku", "6-4, 4-6, 10-8 in the tie-break"], ["6:2, 6:3", "6-2, 6-3"]]
+## The arcade match's rivals (padel_match.gd, F 2026-11-08): Prezes z Mokotowa and his partner.
+const ARCADE_RIVALS := ["Prezes", "Zbyszek"]
 ## Landing the helicopter by the court counts (DESKI_FLY_R) and earns the reception's remark and
 ## FLY_RESPECT more.
 const FLY_RESPECT := 5
@@ -186,6 +190,9 @@ const DEST_R := 300.0
 const RESULT_LIFE := 10.0
 ## Seconds after a card closes before the next offer may open (the OK tap must not hit it).
 const CARD_REST := 2.5
+## Seconds after a mission ends before a friend's phone call may ring (F 2026-11-08: Mrożulo rang
+## in the middle of a mission). The call waits, it is not dropped: `_look` asks again.
+const CALL_REST := 20.0
 const CUSTOMERS := ["Ania z HR", "Tomek z IT", "Kasia z marketingu", "Paweł z finansów", "Ola z działu prawnego", "Michał ze sprzedaży"]
 
 enum State { IDLE, OFFER, PICKUP, DELIVER, RESULT }
@@ -212,7 +219,19 @@ var away := false
 var quiet := false
 ## The first-10 guide (first10.gd `_hold_offers`): a beat is due, no offer until it has fired.
 var guide_hold := false
+## A mission of another script is on (main.gd `_quest_running`: a rescue, a race, a job, a
+## questline): no offer and no call. When it ends, calls wait CALL_REST s more (`_call_rest`).
+var mission_on := false:
+	set(v):
+		if mission_on and not v:
+			_call_rest = _session + CALL_REST
+		mission_on = v
 var autopilot := false
+## Onto the arcade court (main.gd `_enter_padel`, padel_match.gd) with {partner, rivals, hour, flew,
+## seed}; its end comes back through `arcade_done`. Unset (the checks): the card match.
+var enter_padel: Callable
+## The game clock's hour for the arcade's light (main.gd sets it).
+var hour_now: Callable
 ## --trend-job=4: the drop never ends (the test run).
 var force_drop := false
 ## --trend-log: `trend job:` lines.
@@ -227,6 +246,8 @@ var _dest := Vector2.INF
 var _cool := {}
 ## Session time before which no new offer opens (set when a card closes: CARD_REST).
 var _card_rest := 0.0
+## Session time before which no phone call rings (set when a mission ends: CALL_REST).
+var _call_rest := 0.0
 var _t := 0.0
 var _clock := 0.0
 var _hold := 0.0
@@ -246,6 +267,16 @@ var _kawa_at := CoffeeRun.FIRST
 var _kawa_rest := 0.0
 var _parked: Node3D
 var _line_t := 0.0
+## The coffee run: the last café's joke [pl, en] and how long it still holds the status line (s).
+## F 2026-11-08: inside the stamp toast the jokes went by too fast to read.
+var _kawa_joke: Array = []
+var _kawa_joke_t := 0.0
+## The coffee run: the warm glow over the café the player rides to (its front's glazing, from
+## storefronts.gd's wall), the stop it is on, and its pulse clock. F 2026-11-08: "the café's front
+## must light up, it's the quest".
+var _kawa_glow: MeshInstance3D
+var _kawa_glow_i := -1
+var _kawa_glow_t := 0.0
 ## The call comes only within this many metres of the dock (a coffee run, not a road trip).
 const KAWA_CALL_R := 1800.0
 ## "Mlask": the places' points (setup), the van {spot, at: Vector3, ring: Vector3, yaw} or {}, its node.
@@ -352,6 +383,12 @@ static func hold_offers(session: float, rest_until: float, card_up: bool) -> boo
 	return card_up or session < rest_until
 
 
+## No friend's call (Mrożulo's Dżemini, Zuzia's coffee run, the DESKA call) rings during a mission,
+## for CALL_REST s after one, or while a rescue call is already ringing (F 2026-11-08).
+static func hold_calls(on_mission: bool, session: float, rest_until: float, rescue_ringing: bool) -> bool:
+	return on_mission or rescue_ringing or session < rest_until
+
+
 func has_target() -> bool:
 	return state == State.PICKUP or state == State.DELIVER
 
@@ -387,7 +424,7 @@ func secondary() -> bool:
 ## CARD_REST s after one closed: the OK tap on a result card must never land on the next offer
 ## (Autopilot, padel at DESKA, 2026-11-08). The offer is only queued: `_look` asks again.
 func _free() -> bool:
-	if flying or away or quiet or guide_hold or car.in_water or missions.has_target():
+	if flying or away or quiet or guide_hold or mission_on or car.in_water or missions.has_target():
 		return false
 	if offers_held():
 		return false
@@ -414,7 +451,7 @@ func _process(dt: float) -> void:
 			if int(_session * 2.0) != int((_session - dt) * 2.0):
 				_look()
 		State.OFFER:
-			if flying or away or (jobs != null and jobs.own_busy()) or (rides != null and rides.busy()):
+			if flying or away or mission_on or (jobs != null and jobs.own_busy()) or (rides != null and rides.busy()):
 				_withdraw()
 			elif autopilot and _t > 2.0:
 				_on_card(0)
@@ -425,7 +462,9 @@ func _process(dt: float) -> void:
 		State.DELIVER:
 			_deliver_tick(dt)
 		State.RESULT:
-			if str(order.get("stage", "")) == "match":
+			if str(order.get("stage", "")) == "arcade":
+				pass
+			elif str(order.get("stage", "")) == "match":
 				if autopilot and _t > 2.0:
 					_match_answer(int(RALLIES[int(order["rallies"][int(order["point"])])][1]))
 				elif _t > POINT_LIFE:
@@ -453,7 +492,8 @@ func _look() -> void:
 		_cool[-3] = _session + ML_COOL
 		if offer_mlask():
 			return
-	if not dz_done and van_out(hour) and _session >= _dz_at:
+	var calls_ok := not hold_calls(mission_on, _session, _call_rest, missions.state == Missions.State.RINGING)
+	if calls_ok and not dz_done and van_out(hour) and _session >= _dz_at:
 		_dz_at = _session + DZ_COOL
 		if offer_dzemini():
 			return
@@ -463,12 +503,12 @@ func _look() -> void:
 			_cool[-1] = _session + SLOT_COOL
 			if offer_drop():
 				return
-	if hour >= CoffeeRun.HOURS[0] and hour < CoffeeRun.HOURS[1] and _session >= _kawa_at \
+	if calls_ok and hour >= CoffeeRun.HOURS[0] and hour < CoffeeRun.HOURS[1] and _session >= _kawa_at \
 			and p.distance_to(CoffeeRun.DOCK) <= KAWA_CALL_R:
 		_kawa_at = _session + CoffeeRun.COOL
 		if offer_kawa_call():
 			return
-	if hour >= DESKI_HOURS[0] and hour < DESKI_HOURS[1] and _session >= _deski_at:
+	if calls_ok and hour >= DESKI_HOURS[0] and hour < DESKI_HOURS[1] and _session >= _deski_at:
 		_deski_at = _session + DESKI_COOL
 		if offer_deski_call():
 			return
@@ -615,7 +655,7 @@ func offer_czwarty() -> bool:
 
 
 ## The DESKA call (--trend-job=7 too): a friend phones, the club is short of a fourth. It rings
-## first (the caller and a bio, ODBIERZ / ODRZUĆ, as Szymek's boat race and Ziomek's rave); an
+## first (the caller and a bio, ODBIERZ / ODRZUĆ, as Szymek's boat race and Mati's rave); an
 ## answered call says what it wants (_deski_offer). Accepting sets the gate as the target at once
 ## (no pickup). False in the air or with a job on.
 func offer_deski_call(force := false) -> bool:
@@ -1125,6 +1165,8 @@ func _on_card(index: int) -> void:
 					print("trend job: DESKA call declined (%s)" % order.get("stage", ""))
 				_withdraw()
 		State.RESULT:
+			if str(order.get("stage", "")) == "arcade":
+				return
 			if str(order.get("stage", "")) == "match":
 				_match_answer(index)
 			elif _is_ml() and str(order.get("stage", "")) == "review":
@@ -1367,6 +1409,16 @@ static func match_pay(won: int, flew: bool) -> Dictionary:
 ## 2026-11-07).
 func _start_match() -> void:
 	state = State.RESULT
+	if enter_padel.is_valid():
+		# The arcade match (F 2026-11-08): the court, two games, the crowd; `arcade_done` pays.
+		order["stage"] = "arcade"
+		_t = 0.0
+		hud.hide_card()
+		enter_padel.call({"partner": str(order["customer"]), "rivals": ARCADE_RIVALS, "flew": bool(order.get("flew", false)),
+				"seed": int(order.get("seed", done)), "hour": float(hour_now.call()) if hour_now.is_valid() else 12.0})
+		if log_on:
+			print("trend job: DESKA arcade match starts (%s)" % ("landed by helicopter" if bool(order["flew"]) else "by car"))
+		return
 	order["stage"] = "match"
 	order["rallies"] = match_rallies(int(order.get("seed", done)))
 	order["point"] = 0
@@ -1375,6 +1427,31 @@ func _start_match() -> void:
 	_ask_point()
 	if log_on:
 		print("trend job: DESKA match starts (%s)" % ("landed by helicopter" if bool(order["flew"]) else "by car"))
+
+
+## The arcade match's end (padel_match.gd): games won by the pair and by the rivals. The pay's
+## tier as the card match's points: 2:0 is 3, 2:1 is 2, 1:2 is 1, 0:2 (or given up) is 0.
+static func arcade_tier(g_us: int, g_them: int) -> int:
+	if g_us > g_them:
+		return 3 if g_them == 0 else 2
+	return 1 if g_us > 0 else 0
+
+
+func arcade_done(g_us: int, g_them: int, stats: Dictionary) -> void:
+	if state != State.RESULT or str(order.get("stage", "")) != "arcade":
+		return
+	var tier := arcade_tier(g_us, g_them)
+	order["won"] = tier
+	order["score"] = ["gemy %d:%d" % [g_us, g_them], "games %d-%d" % [g_us, g_them]]
+	var sm := int(stats.get("smashes", 0))
+	order["said"] = "Twoje uderzenia: %d, najdłuższa wymiana: %d." % [int(stats.get("your_hits", 0)), int(stats.get("longest", 0))]
+	order["said_en"] = "Your hits: %d, longest rally: %d." % [int(stats.get("your_hits", 0)), int(stats.get("longest", 0))]
+	if sm > 0:
+		order["said"] += " Smecze: %d." % sm
+		order["said_en"] += " Smashes: %d." % sm
+	if log_on:
+		print("trend job: DESKA arcade match over: games %d:%d, tier %d, %s" % [g_us, g_them, tier, stats])
+	_end_match()
 
 
 func _ask_point() -> void:
@@ -1429,7 +1506,7 @@ func _end_match() -> void:
 	var respect := int(r["respect"]) + int(m["respect"])
 	wallet.pay(zl, respect, "trend")
 	done += 1
-	var score: Array = MATCH_SCORES[won]
+	var score: Array = order.get("score", MATCH_SCORES[won])
 	var line: Array = [["Przegraliśmy, ale zdjęcie na story wyszło świetnie.", "We lost, but the story photo came out great."],
 			["Przegraliśmy po walce. %s z gipsem mówi, że to przez kort." % order["hurt"], "We lost after a fight. %s in plaster says it was the court." % order["hurt"]],
 			["Wygrane w tie-breaku! %s stuka gipsem w ławkę." % order["hurt"], "Won in the tie-break! %s bangs the cast on the bench." % order["hurt"]],
@@ -1614,9 +1691,11 @@ func _kawa_tick(dt: float) -> void:
 	if biking and flying:
 		_fail(["Rower nie lata. Rajd przerwany.", "Bikes don't fly. The run is off."])
 		return
+	_kawa_glow_tick(dt)
 	if stage == "stop":
 		_clock += dt
 		_line_t += dt
+	_kawa_joke_t = maxf(0.0, _kawa_joke_t - dt)
 	var d := _flat(car.global_position, order["door_ring"])
 	var still: bool = d < ARRIVE and car.vel.length() < ARRIVE_SPEED and not flying
 	if still:
@@ -1645,14 +1724,17 @@ func _kawa_status(d: float) -> void:
 		hud.show_status("KAWOWY RAJD → ROWERILO", "", "%d m" % roundi(d), hint[0], 0.0, CoffeeRun.COLOUR, "", {}, hint[1])
 		return
 	if stage == "return":
-		hud.show_status("KAWOWY RAJD → ROWERILO", "", "%d m" % roundi(d), "Odstaw rower, auto czeka", 0.0, CoffeeRun.COLOUR, "", {},
-				"Return the bike, the car's waiting")
+		var back: Array = _kawa_joke if _kawa_joke_t > 0.0 and not _kawa_joke.is_empty() \
+				else ["Odstaw rower, auto czeka", "Return the bike, the car's waiting"]
+		hud.show_status("KAWOWY RAJD → ROWERILO", "", "%d m" % roundi(d), str(back[0]), 0.0, CoffeeRun.COLOUR, "", {}, str(back[1]))
 		return
 	var i := int(order["i"])
 	var left := CoffeeRun.COFFEE_LIMIT - _clock
 	var clock := ("%d:%02d" % [int(left) / 60, int(left) % 60]) if left > 0.0 else "+%d:%02d" % [int(-left) / 60, int(-left) % 60]
 	var line: Array = CoffeeRun.RIDE_LINES[int(_line_t / CoffeeRun.LINE_EVERY) % CoffeeRun.RIDE_LINES.size()]
-	if d <= 40.0:
+	if _kawa_joke_t > 0.0 and not _kawa_joke.is_empty():
+		line = _kawa_joke
+	elif d <= 40.0:
 		line = ["Stań przy drzwiach po pieczątkę", "Stop at the door for the stamp"]
 	elif left <= 0.0:
 		line = ["Zuzia: „Moja kawa stygnie!”", "Zuzia: \"My coffee's going cold!\""]
@@ -1673,6 +1755,7 @@ func _kawa_take_bike() -> void:
 	_kawa_next(0)
 	_clock = 0.0
 	_line_t = 0.0
+	_kawa_joke_t = 0.0
 	hud.toast("Rower z ROWERILO! Zuzia czeka w KROPCE.", "A ROWERILO bike! Zuzia's waiting at KROPKA.")
 	if log_on:
 		print("trend job: coffee run: on the bike at the dock")
@@ -1697,10 +1780,14 @@ func _kawa_stamp() -> void:
 		order["paid"] = int(order["paid"]) + price
 	var drink: Array = st["drink"]
 	var line: Array = st["line"]
-	hud.toast("Pieczątka %s! %s, %s: %s. %s" % [CoffeeRun.stamps(i + 1), st["name"], drink[0],
-			("-%d zł" % price) if own else "na koszt Zuzi", line[0]],
-			"Stamp %s! %s, %s: %s. %s" % [CoffeeRun.stamps(i + 1), st["name"], drink[1],
-			("-%d zł" % price) if own else "Zuzia's treat", line[1]])
+	# The stamp and the bill in the toast; the café's joke on the status line after it, for
+	# CoffeeRun.JOKE_HOLD s, where it stays put while the player rides on (F 2026-11-08).
+	hud.toast("Pieczątka %s! %s, %s: %s" % [CoffeeRun.stamps(i + 1), st["name"], drink[0],
+			("-%d zł" % price) if own else "na koszt Zuzi"],
+			"Stamp %s! %s, %s: %s" % [CoffeeRun.stamps(i + 1), st["name"], drink[1],
+			("-%d zł" % price) if own else "Zuzia's treat"])
+	_kawa_joke = line
+	_kawa_joke_t = CoffeeRun.JOKE_HOLD
 	if log_on:
 		print("trend job: coffee run: stamp %d at %s after %.0f s (%s)" % [i + 1, st["name"], _clock, "paid %d zł" % price if own else "Zuzia paid"])
 	if i + 1 < CoffeeRun.STOPS.size():
@@ -1748,6 +1835,57 @@ func _kawa_car_back() -> void:
 	if _parked != null:
 		_parked.queue_free()
 		_parked = null
+	if _kawa_glow != null:
+		_kawa_glow.queue_free()
+		_kawa_glow = null
+	_kawa_glow_i = -1
+
+
+## The storefronts.gd venue id of coffee stop `i` (Glon is the notebook place's own sign).
+static func kawa_venue(i: int) -> String:
+	var st: Dictionary = CoffeeRun.STOPS[i]
+	return str(st["place"]) if str(st["place"]) != "" else "kawa_" + str(st["id"])
+
+
+## The café the player rides to glows: a warm additive panel over its glazing, pulsing, once its
+## sector has put the front on the wall (+1 draw call while the run is on). None on the way back.
+func _kawa_glow_tick(dt: float) -> void:
+	var stage := str(order.get("stage", ""))
+	var i := int(order.get("i", -1)) if stage == "stop" else -1
+	if i != _kawa_glow_i:
+		if _kawa_glow != null:
+			_kawa_glow.queue_free()
+			_kawa_glow = null
+		_kawa_glow_i = -1
+		if i < 0 or _world == null or storefronts == null or not storefronts.has_method("venue_wall"):
+			return
+		var w: Dictionary = storefronts.venue_wall(kawa_venue(i))
+		if w.is_empty():
+			return  # not placed yet (its sector loads as the bike comes near): try again next frame
+		_kawa_glow_i = i
+		_kawa_glow = MeshInstance3D.new()
+		_kawa_glow.name = "KawaGlow"
+		var q := QuadMesh.new()
+		q.size = Vector2(5.4, 2.5)
+		_kawa_glow.mesh = q
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+		m.albedo_color = Color(CoffeeRun.COLOUR.lightened(0.35), 0.5)
+		_kawa_glow.material_override = m
+		_kawa_glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_world.add_child(_kawa_glow)
+		var n: Vector3 = w["n"]
+		var t: Vector3 = w["t"]
+		_kawa_glow.global_transform = Transform3D(Basis(t, Vector3.UP, n), (w["p"] as Vector3) + Vector3.UP * 1.45 + n * 0.16)
+		if log_on:
+			print("trend job: coffee run: %s glows (front %s)" % [kawa_venue(i), "yes" if bool(w.get("front", false)) else "no"])
+	if _kawa_glow != null:
+		_kawa_glow_t += dt
+		var m: StandardMaterial3D = _kawa_glow.material_override
+		m.albedo_color.a = 0.35 + 0.3 * (0.5 + 0.5 * sin(_kawa_glow_t * 4.0))
 
 
 ## --autopilot: the car slides straight to the pickup, then the door (as the missions' autopilot).

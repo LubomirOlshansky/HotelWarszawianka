@@ -9,7 +9,7 @@ limited amount of time." First version built 2026-11-07 (`game/scripts/bar_crawl
 1. **The call.** At night (20:00-04:00 game clock), with nothing else on, 4-7 minutes into free play
    and then every 20-30 minutes, a group rings: ODBIERZ / ODRZUĆ. The second card names the route,
    its three bars and the clock: JEDZIEMY! / NIE DZIŚ.
-2. **The pickup.** The group waits at a kerb 250-600 m away (the dashed amber ring, like Ziomek).
+2. **The pickup.** The group waits at a kerb 250-600 m away (the dashed amber ring, like Mati).
 3. **The crawl.** Once they are in, the clock runs. Three bars in a row, each an orange stop ring at
    the kerb nearest the bar's fascia. At the first two the group goes in for a round (15 s): you
    wait at the kerb. The stay counts only within 30 m of the ring. Drive off and the mood drops
