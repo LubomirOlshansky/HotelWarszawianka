@@ -957,14 +957,19 @@ history at 0cfc1ff). Areas and progress: docs/plan/road-areas.json, `python3 -I 
   junctions before applying it to the shipped map.
 - Emilii Plater × Świętokrzyska and × Jerozolimskie (IMG_7264 "Y", IMG_7266 stepped widening) still
   come from the OSM ribbons.
-- Splits of a two-way street into two one-way carriageways that `road_fixes.py` fix 6 leaves as they
-  were (2026-11-08: 33 of 60; forks with a leg turning away, a mapped median or island before the
-  legs' ribbons part, a stop line or hatching other than the nose's chevrons, a painted island's
-  closed outline the new lines would cross, legs shorter than the nose, kerb stubs that don't pair).
-  Their legs still fan out from the wide street's axis (lines ending in the road, a kerb notch); the
-  `fixes` ratchets (split_fan_m 143, split_gap_m 552, split_ends 113) go down as they are fixed.
-  Worst: Waryńskiego by Polna (three splits), Waszyngtona, Wybrzeże Szczecińskie (840,-1136),
-  Żelazna, Tamka, Koszykowa.
+- Splits of a two-way street into two one-way carriageways that `road_fixes.py` fix 6 still leaves as
+  they were (2026-11-09, after round 2 redrew 8 of the 33: 25 of 60). Most are not the split F saw:
+  forks where a leg turns away (Koszykowa, Rozbrat, Zamoyskiego, Aleja Zieleniecka by the stadium,
+  Senatorska, Nowowiejska, Stawki), slip roads and ramps whose lines cross the main road's
+  (Waszyngtona at (2038,-505), Wybrzeże Szczecińskie (840,-1136) with a slip and a kerb gap on the
+  south side), junction approaches whose kerbs are already whole (Żelazna ×2, Krucza), a mapped
+  median or island right at the node (Anielewicza, Żelazna, Leszno, Zieleniecka), and Tamka's two
+  long splits (the legs run side by side 20-45 m before they part, a side street's kerb in between).
+  Each needs its own kind of fix (a slip-road merge, a fork's kerb return), not fix 6. The `fixes`
+  ratchets (split_fan_m 105, split_gap_m 510, split_ends 86) go down as they are fixed.
+- Dev tools (2026-11-09): `main.gd` parses `--spots=` twice, the shots list (`NAME:X,Z;...`, ~line 5046)
+  and the stream test's (`X,Z,HEADING/...`, ~line 8732), so a shots run with `--spots=` puts the car
+  somewhere else; use one `--at=X,Z` run per shot until one flag is renamed.
 - Marszałkowska's two U-turns through the tram bed (s 191, 283-291 from the junction): gone with F's ask of
   2026-11-08 (area `marsz_defilad`, docs/plan/marszalkowska-defilad.md); the real zawrotka by Złota waits on
   F (QUESTIONS), and the spec still has no paved gap in a tram median if it comes back.
