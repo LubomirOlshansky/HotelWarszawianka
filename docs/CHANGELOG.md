@@ -10,6 +10,7 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-09
+- The turning hall at the bottom of the Dworzec Centralny car park ramp is dressed as the car park's entry: two gates with raised barriers and ticket machines, the blue "P PARKING ZŁOTE TARASY" sign, a green exit door and the 2,1 m limit.
 - The Old Town is finished for the trailer: the Market Square houses are painted in their own ochre, salmon, sage, blue and pink fronts, the Cathedral has a steep tiled roof over its nave instead of a flat slab, and the city wall's towers wear tile-red cone roofs.
 - Street race rivals are as fast as your car now. Pani Halina corners harder too, and if you drive fast she races you for real to the line instead of letting you win.
 - Nineteen more Powiśle houses look like their photos: their own colours, balconies and shop bands on Leszczyńska, Browarna, Dobra, Topiel, Solec, Aleja 3 Maja and Zajęcza.

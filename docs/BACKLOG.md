@@ -70,7 +70,9 @@ red and white bollards between the lanes. check_stuck_spots drives down, along, 
 Open:
 - The real tunnel goes on to Złote Tarasy's car park gates and the station's taxi and bus road
   (OSM 185123967, 128214245, the covered ways under the station); the game turns round in a hall
-  there. The hall has no car park gates or signs yet (only the car's x-ray shows underground).
+  there. The hall's end wall has the car park's two gates, barriers, ticket machines and signs
+  (2026-11-09, `centralny_ramp.gd`); only the car's x-ray and the cutaway show underground, so the
+  phone look is open.
 - `ao.bin` was not baked again (two trees' shade out, a few pixels), nor the prebuilt sectors on the Mac.
 - The board reads from the ramp (the camera behind the car); from the default view it is edge-on.
 

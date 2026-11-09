@@ -8,6 +8,10 @@ extends Node3D
 ## Built at runtime on both city paths (it isn't in the sector scenes), as skwer_zlota.gd: one
 ## mesh in the actors' material (models.gd), one draw call in view. Nothing here is solid: the
 ## bollards stand on the strip between the lanes, drive-through like the map's benches.
+## The turning hall's shut east end carries the car park's gates (BACKLOG "Dworzec Centralny's
+## car park ramp": the real tunnel goes on to Złote Tarasy's car park): the wall is dressed as the
+## entry, a dark opening with a hazard-striped header, two boom barriers standing raised, a ticket
+## machine, the overhead "P" signs, a green exit door, the 2.1 m limit and a fire extinguisher.
 
 const Props := preload("res://scripts/props.gd")
 const Models := preload("res://scripts/models.gd")
@@ -46,6 +50,17 @@ const BOLLARDS := [
 ]
 ## Inside the mouth: this many more on along the tube's middle, this far apart.
 const MOUTH_BOLLARDS := 3
+## The hall's end wall (tools/centralny_ramp.py: the hall line's two ends, the wall across the
+## last one, 11.3 m to each side).
+const HALL_START := Vector2(-1572.1, 424.1)
+const HALL_END := Vector2(-1552.6, 438.1)
+const GATE_OPEN := 3.4          # the opening's width...
+const GATE_H := 3.0             # ...and height
+const GATE_AT := [-5.0, 5.0]    # each lane's gate: metres to the reader's right of the hall's middle
+const DARK := Color("#17191d")
+const STEEL := Color("#8d9298")
+const YELLOW := Color("#e2b21c")
+const GREEN := Color("#1e8a4c")
 const BOLLARD_STEP := 2.2
 
 var map: Node3D
@@ -62,6 +77,7 @@ func build() -> void:
 	for k in MOUTH_BOLLARDS:
 		var p := PORTAL + INTO * BOLLARD_STEP * (k + 1)
 		_bollard(st, Vector3(p.x, FLOOR, p.y))
+	_gates(st)
 	var mi := MeshInstance3D.new()
 	mi.name = "CentralnyRampProps"
 	mi.mesh = st.commit()
@@ -106,4 +122,72 @@ func _bollard(st: SurfaceTool, at: Vector3) -> void:
 	Props.obox(st, at + Vector3(0, 0.43, 0), b, Vector3(0.13, 0.8, 0.13), WHITE)
 	Props.obox(st, at + Vector3(0, 0.5, 0), b, Vector3(0.14, 0.14, 0.14), RED)
 	Props.obox(st, at + Vector3(0, 0.76, 0), b, Vector3(0.14, 0.12, 0.14), RED)
+	count += 1
+
+
+## The car park's gates on the hall's end wall. `at(s, y, d)` is a point s metres to the reader's
+## right of the wall's middle, y over the floor, d out from the wall into the hall.
+func _gates(st: SurfaceTool) -> void:
+	var u := (HALL_END - HALL_START).normalized()
+	var b := Basis(Vector3.UP, atan2(u.x, u.y))
+	var right: Vector3 = b * Vector3(-1, 0, 0)
+	var origin := Vector3(HALL_END.x, FLOOR, HALL_END.y)
+	var out: Vector3 = b * Vector3(0, 0, -1)
+	for s: float in GATE_AT:
+		_gate(st, origin + right * s, b, right, out)
+	# The overhead sign between the two openings: white P on blue, the car park's name under it.
+	var sign_c := origin + right * 0.0 + Vector3.UP * 4.1 + out * 0.12
+	Props.obox(st, sign_c, b, Vector3(5.2, 1.3, 0.12), NAVY)
+	var tl: Vector3 = sign_c + right * -2.4 + Vector3.UP * 0.55 + out * 0.07
+	PixelFont.add_quads(st, "P", tl + right * 0.15, right, Vector3.DOWN, 0.07, WHITE, Models.LIT_SIGN)
+	PixelFont.add_quads(st, "PARKING", tl + right * 1.0 + Vector3.DOWN * 0.1, right, Vector3.DOWN, 0.045, WHITE,
+			Models.LIT_SIGN)
+	PixelFont.add_quads(st, "ZŁOTE TARASY", tl + right * 1.0 + Vector3.DOWN * 0.65, right, Vector3.DOWN, 0.035, WHITE,
+			Models.LIT_SIGN)
+	# The green exit door and its lit sign, to the left of the gates; the 2.1 m limit on the right.
+	var door := origin + right * -9.0 + Vector3.UP * 1.1 + out * 0.05
+	Props.obox(st, door, b, Vector3(1.2, 2.2, 0.1), Color("#5b6168"))
+	Props.obox(st, door + Vector3.UP * 1.45 + out * 0.03, b, Vector3(0.9, 0.3, 0.08), GREEN, Models.LIT_SIGN)
+	PixelFont.add_quads(st, "WYJŚCIE", door + Vector3.UP * 1.54 + right * -0.38 + out * 0.08, right, Vector3.DOWN, 0.012,
+			WHITE, Models.LIT_SIGN)
+	var lim := origin + right * 9.0 + Vector3.UP * 3.3 + out * 0.08
+	for turn in [0.0, PI * 0.25]:
+		var tb := b * Basis(Vector3.BACK, turn)
+		Props.obox(st, lim, tb, Vector3(0.7, 0.7, 0.06), RED)
+		Props.obox(st, lim + out * 0.02, tb, Vector3(0.52, 0.52, 0.06), WHITE, Models.LIT_SIGN)
+	var w := PixelFont.width("2,1M") * 0.022
+	PixelFont.add_quads(st, "2,1M", lim + out * 0.06 - right * w * 0.5 + Vector3.UP * 0.1, right, Vector3.DOWN, 0.022,
+			Color("#1b1b1b"), Models.FIXED)
+	# A red fire extinguisher box on the wall by the door.
+	Props.obox(st, origin + right * -7.6 + Vector3.UP * 1.3 + out * 0.08, b, Vector3(0.3, 0.5, 0.16), RED)
+	count += 1
+
+
+## One lane's gate at `c` (on the wall's foot): the dark opening, a hazard header, the steel
+## jamb posts, a ticket machine on a kerb island and a boom barrier standing raised beside it.
+func _gate(st: SurfaceTool, c: Vector3, b: Basis, right: Vector3, out: Vector3) -> void:
+	Props.obox(st, c + Vector3.UP * GATE_H * 0.5 + out * 0.03, b, Vector3(GATE_OPEN, GATE_H, 0.06), DARK)
+	for sgn in [-1.0, 1.0]:
+		Props.obox(st, c + right * sgn * (GATE_OPEN * 0.5 + 0.15) + Vector3.UP * GATE_H * 0.5 + out * 0.08, b,
+				Vector3(0.3, GATE_H, 0.18), STEEL)
+	Props.obox(st, c + Vector3.UP * (GATE_H + 0.2) + out * 0.08, b, Vector3(GATE_OPEN + 0.9, 0.4, 0.18), STEEL)
+	var n := 8
+	for k in n:
+		var x := (float(k) + 0.5) / n * (GATE_OPEN + 0.9) - (GATE_OPEN + 0.9) * 0.5
+		if k % 2 == 0:
+			Props.obox(st, c + right * x + Vector3.UP * (GATE_H + 0.2) + out * 0.18, b,
+					Vector3((GATE_OPEN + 0.9) / n, 0.34, 0.02), YELLOW)
+	# The island two metres out, the machine on it (grey post, blue head, a lit screen) and the
+	# boom barrier beside it standing up: a white post with the arm raised, red bands on it.
+	var isl := c + out * 2.2 + right * (GATE_OPEN * 0.5 + 0.7)
+	Props.obox(st, isl + Vector3.UP * 0.08, b, Vector3(0.7, 0.16, 1.6), Color("#6e7278"))
+	Props.obox(st, isl + Vector3.UP * 0.7, b, Vector3(0.34, 1.2, 0.3), Color("#3b4a63"))
+	Props.obox(st, isl + Vector3.UP * 1.0 + out * 0.16, b, Vector3(0.22, 0.14, 0.02), Color("#a9e8ff"), Models.LIT_SIGN)
+	var post := isl + right * 0.0 + out * -0.55
+	Props.obox(st, post + Vector3.UP * 0.55, b, Vector3(0.22, 1.1, 0.22), WHITE)
+	Props.obox(st, post + Vector3.UP * 0.75, b, Vector3(0.23, 0.18, 0.23), RED)
+	for k in 5:
+		var h := 1.2 + 0.28 * k
+		Props.obox(st, post + Vector3.UP * (h + 0.14) + right * -0.1, b, Vector3(0.1, 0.28, 0.1),
+				RED if k % 2 == 0 else WHITE)
 	count += 1
