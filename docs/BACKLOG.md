@@ -276,9 +276,14 @@ the tree, BIEG! shifts and nitro. Left:
 Built 2026-11-06 (docs/design/coffee-run.md): Zuzia's call, the ROWERILO dock by Elektrownia, the
 player's bike, four café stamps against the clock, the BLIK back. Left:
 - **Phone check**: the bike's readability at the 80 m view, the clock, the hint lines.
-- **Café signs**: the four doors are beacons only; signs on existing shells or from photos.
+- **Café fronts (2026-11-08, F's photos of DOT and STOR)**: done as glazed dark-framed fronts with
+  warm windows, a wood bench and an A-board under neon names (storefronts.gd CAFE_FRONT_IDS,
+  Props.cafe_front), the target café glows. Left: each café's own front from photos, the phone look.
 - **Zuzia on screen**: she is a phone voice and a hint line; no figure rides along.
-- **Bike sound**: the engine loop still plays on the bike; a bell and pedalling instead.
+- **Bike sound** done 2026-11-08: no engine on the bike (nor in the electric boat, a room or the
+  padel court), its own tyre-and-chain loop and the hub's ticking when coasting. Left: a bell button.
+- **Bike speed** raised 2026-11-08 (F: very slow): 11.5 m/s, clock 4:00; phone feel open.
+- **Café jokes** held 12 s on the ride card after each stamp (F: they went by too fast).
 - **Free ROWERILO**: taking a bike at any dock outside the run.
 - **Zuzia's own look at the dock**: the quest map's in-person start uses the beacon's generic figure.
 - **Garage while biking**: entering the garage mid-run turns the bike back into the car's model.

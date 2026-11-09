@@ -2,16 +2,18 @@ extends SceneTree
 ## Checks the sound effects from tools/make_sfx.py as imported: the loops are seamless
 ## Forward loops (begin 0, end = the full length) with no jump in the decoded audio
 ## across the loop point (the step at the seam against the typical step elsewhere,
-## like check_radio.gd), and the one-shots don't loop. Also prints each file's
+## like check_radio.gd), and the one-shots don't loop; each vehicle mode (sfx.gd `speaks`) plays
+## only its own loops (no car engine on the bike, in a room or the helicopter). Also prints each file's
 ## import format and length.
 ##   godot --headless --path game --script res://tools/check_sfx.gd
 
 ## Loop MW-5: club_leak and busker are the city sounds' loops (city_sounds.gd); loop MW-3: crowd_murmur and
 ## steps_guitar the crowds' (crowds.gd).
+const Sfx := preload("res://scripts/sfx.gd")
 const LOOPS := ["engine_idle", "engine_mid", "engine_high", "tyre_roll", "tyre_wet", "tyre_squeal", "rotor",
 		"city_day", "city_night", "rain", "police_siren", "club_leak", "busker", "crowd_murmur", "steps_guitar",
 		"queue_chatter", "amb_river", "amb_park", "amb_square", "amb_yard", "fan_chant", "gong_bowls", "techno_thump",
-		"jazz_trio"]
+		"jazz_trio", "bike_roll", "bike_freewheel"]
 
 
 func _initialize() -> void:
@@ -42,6 +44,17 @@ func _initialize() -> void:
 			ok = false
 			line += "  <-- a one-shot that loops"
 		print(line)
+	# Every vehicle swap silences what does not belong (PT 2026-11-08: on the coffee run's bike the
+	# car's engine kept on): [engine, car tyres, bike] per sfx.gd mode, and nothing in the helicopter.
+	var want := {"car": [true, true, false], "bike": [false, false, true], "boat": [true, false, false],
+			"electric": [false, false, false], "foot": [false, false, false]}
+	for m in want:
+		for heli in [false, true]:
+			var got: Array[bool] = Sfx.speaks(m, heli)
+			var exp: Array = [false, false, false] if heli else want[m]
+			if got != exp:
+				ok = false
+				print("mode %s%s: speaks %s, want %s  <-- wrong loops" % [m, " (heli)" if heli else "", got, exp])
 	print("sfx: %d files, %s" % [names.size(), "OK" if ok else "PROBLEM"])
 	quit(0 if ok else 1)
 

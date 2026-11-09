@@ -10,6 +10,7 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-08
+- Coffee run: the car's engine no longer follows you onto the bike (you hear the tyres, the chain and the hub ticking instead), the bike is faster, the four cafés have real lit fronts with their names and the one you ride to glows, and the café jokes stay on screen long enough to read.
 - Friends no longer phone you in the middle of a mission: Mrożulo's call and the other job calls wait until you are done, and a few seconds more.
 - Stopping in a quest's ring always gets you somewhere now: if it's the wrong hour (Darek's night meet on Plac Defilad by day), the friend offers to wait, the clock jumps to the evening and the quest starts. Taking Darek's night meet by day, however you take it, turns the city to night straight away. A rescue call still ringing no longer keeps the friend away.
 - The walled ramp on Plac Defilad by the Metro Centrum pavilion no longer dead-ends at a blank wall: it is the way down into the underground car park again, with its entrance, barrier, blue P signs and a 2,8 m height gauge.

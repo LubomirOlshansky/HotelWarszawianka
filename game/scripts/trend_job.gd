@@ -265,6 +265,16 @@ var _kawa_at := CoffeeRun.FIRST
 var _kawa_rest := 0.0
 var _parked: Node3D
 var _line_t := 0.0
+## The coffee run: the last café's joke [pl, en] and how long it still holds the status line (s).
+## F 2026-11-08: inside the stamp toast the jokes went by too fast to read.
+var _kawa_joke: Array = []
+var _kawa_joke_t := 0.0
+## The coffee run: the warm glow over the café the player rides to (its front's glazing, from
+## storefronts.gd's wall), the stop it is on, and its pulse clock. F 2026-11-08: "the café's front
+## must light up, it's the quest".
+var _kawa_glow: MeshInstance3D
+var _kawa_glow_i := -1
+var _kawa_glow_t := 0.0
 ## The call comes only within this many metres of the dock (a coffee run, not a road trip).
 const KAWA_CALL_R := 1800.0
 ## "Mlask": the places' points (setup), the van {spot, at: Vector3, ring: Vector3, yaw} or {}, its node.
@@ -1679,9 +1689,11 @@ func _kawa_tick(dt: float) -> void:
 	if biking and flying:
 		_fail(["Rower nie lata. Rajd przerwany.", "Bikes don't fly. The run is off."])
 		return
+	_kawa_glow_tick(dt)
 	if stage == "stop":
 		_clock += dt
 		_line_t += dt
+	_kawa_joke_t = maxf(0.0, _kawa_joke_t - dt)
 	var d := _flat(car.global_position, order["door_ring"])
 	var still: bool = d < ARRIVE and car.vel.length() < ARRIVE_SPEED and not flying
 	if still:
@@ -1710,14 +1722,17 @@ func _kawa_status(d: float) -> void:
 		hud.show_status("KAWOWY RAJD → ROWERILO", "", "%d m" % roundi(d), hint[0], 0.0, CoffeeRun.COLOUR, "", {}, hint[1])
 		return
 	if stage == "return":
-		hud.show_status("KAWOWY RAJD → ROWERILO", "", "%d m" % roundi(d), "Odstaw rower, auto czeka", 0.0, CoffeeRun.COLOUR, "", {},
-				"Return the bike, the car's waiting")
+		var back: Array = _kawa_joke if _kawa_joke_t > 0.0 and not _kawa_joke.is_empty() \
+				else ["Odstaw rower, auto czeka", "Return the bike, the car's waiting"]
+		hud.show_status("KAWOWY RAJD → ROWERILO", "", "%d m" % roundi(d), str(back[0]), 0.0, CoffeeRun.COLOUR, "", {}, str(back[1]))
 		return
 	var i := int(order["i"])
 	var left := CoffeeRun.COFFEE_LIMIT - _clock
 	var clock := ("%d:%02d" % [int(left) / 60, int(left) % 60]) if left > 0.0 else "+%d:%02d" % [int(-left) / 60, int(-left) % 60]
 	var line: Array = CoffeeRun.RIDE_LINES[int(_line_t / CoffeeRun.LINE_EVERY) % CoffeeRun.RIDE_LINES.size()]
-	if d <= 40.0:
+	if _kawa_joke_t > 0.0 and not _kawa_joke.is_empty():
+		line = _kawa_joke
+	elif d <= 40.0:
 		line = ["Stań przy drzwiach po pieczątkę", "Stop at the door for the stamp"]
 	elif left <= 0.0:
 		line = ["Zuzia: „Moja kawa stygnie!”", "Zuzia: \"My coffee's going cold!\""]
@@ -1738,6 +1753,7 @@ func _kawa_take_bike() -> void:
 	_kawa_next(0)
 	_clock = 0.0
 	_line_t = 0.0
+	_kawa_joke_t = 0.0
 	hud.toast("Rower z ROWERILO! Zuzia czeka w KROPCE.", "A ROWERILO bike! Zuzia's waiting at KROPKA.")
 	if log_on:
 		print("trend job: coffee run: on the bike at the dock")
@@ -1762,10 +1778,14 @@ func _kawa_stamp() -> void:
 		order["paid"] = int(order["paid"]) + price
 	var drink: Array = st["drink"]
 	var line: Array = st["line"]
-	hud.toast("Pieczątka %s! %s, %s: %s. %s" % [CoffeeRun.stamps(i + 1), st["name"], drink[0],
-			("-%d zł" % price) if own else "na koszt Zuzi", line[0]],
-			"Stamp %s! %s, %s: %s. %s" % [CoffeeRun.stamps(i + 1), st["name"], drink[1],
-			("-%d zł" % price) if own else "Zuzia's treat", line[1]])
+	# The stamp and the bill in the toast; the café's joke on the status line after it, for
+	# CoffeeRun.JOKE_HOLD s, where it stays put while the player rides on (F 2026-11-08).
+	hud.toast("Pieczątka %s! %s, %s: %s" % [CoffeeRun.stamps(i + 1), st["name"], drink[0],
+			("-%d zł" % price) if own else "na koszt Zuzi"],
+			"Stamp %s! %s, %s: %s" % [CoffeeRun.stamps(i + 1), st["name"], drink[1],
+			("-%d zł" % price) if own else "Zuzia's treat"])
+	_kawa_joke = line
+	_kawa_joke_t = CoffeeRun.JOKE_HOLD
 	if log_on:
 		print("trend job: coffee run: stamp %d at %s after %.0f s (%s)" % [i + 1, st["name"], _clock, "paid %d zł" % price if own else "Zuzia paid"])
 	if i + 1 < CoffeeRun.STOPS.size():
@@ -1813,6 +1833,57 @@ func _kawa_car_back() -> void:
 	if _parked != null:
 		_parked.queue_free()
 		_parked = null
+	if _kawa_glow != null:
+		_kawa_glow.queue_free()
+		_kawa_glow = null
+	_kawa_glow_i = -1
+
+
+## The storefronts.gd venue id of coffee stop `i` (Glon is the notebook place's own sign).
+static func kawa_venue(i: int) -> String:
+	var st: Dictionary = CoffeeRun.STOPS[i]
+	return str(st["place"]) if str(st["place"]) != "" else "kawa_" + str(st["id"])
+
+
+## The café the player rides to glows: a warm additive panel over its glazing, pulsing, once its
+## sector has put the front on the wall (+1 draw call while the run is on). None on the way back.
+func _kawa_glow_tick(dt: float) -> void:
+	var stage := str(order.get("stage", ""))
+	var i := int(order.get("i", -1)) if stage == "stop" else -1
+	if i != _kawa_glow_i:
+		if _kawa_glow != null:
+			_kawa_glow.queue_free()
+			_kawa_glow = null
+		_kawa_glow_i = -1
+		if i < 0 or _world == null or storefronts == null or not storefronts.has_method("venue_wall"):
+			return
+		var w: Dictionary = storefronts.venue_wall(kawa_venue(i))
+		if w.is_empty():
+			return  # not placed yet (its sector loads as the bike comes near): try again next frame
+		_kawa_glow_i = i
+		_kawa_glow = MeshInstance3D.new()
+		_kawa_glow.name = "KawaGlow"
+		var q := QuadMesh.new()
+		q.size = Vector2(5.4, 2.5)
+		_kawa_glow.mesh = q
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		m.cull_mode = BaseMaterial3D.CULL_DISABLED
+		m.albedo_color = Color(CoffeeRun.COLOUR.lightened(0.35), 0.5)
+		_kawa_glow.material_override = m
+		_kawa_glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_world.add_child(_kawa_glow)
+		var n: Vector3 = w["n"]
+		var t: Vector3 = w["t"]
+		_kawa_glow.global_transform = Transform3D(Basis(t, Vector3.UP, n), (w["p"] as Vector3) + Vector3.UP * 1.45 + n * 0.16)
+		if log_on:
+			print("trend job: coffee run: %s glows (front %s)" % [kawa_venue(i), "yes" if bool(w.get("front", false)) else "no"])
+	if _kawa_glow != null:
+		_kawa_glow_t += dt
+		var m: StandardMaterial3D = _kawa_glow.material_override
+		m.albedo_color.a = 0.35 + 0.3 * (0.5 + 0.5 * sin(_kawa_glow_t * 4.0))
 
 
 ## --autopilot: the car slides straight to the pickup, then the door (as the missions' autopilot).
