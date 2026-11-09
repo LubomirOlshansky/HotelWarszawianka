@@ -11,6 +11,8 @@ someone writes its lines.
 
 ## 2026-11-09
 - Mati's two nights out are two quests on the map now: the secret rave starts at his block by Hala Mirowska, the Smoła club night under the Rotunda, and both can be started any time: taking one turns the clock to Friday night.
+- The speckled flower beds behind the Museum of Modern Art no longer flicker: they, and other ground patches like playgrounds and fountains, now sit in a fixed order over the paving.
+- Metro Świętokrzyska's entrances are the real thing now: a big tilted panel of milky perforated glass on a white steel truss over a concrete stair box, the yellow M roundel on the tall post and the white name sign with M1 and M2 (the Marszałkowska side wears the older green glass).
 - No more trees growing through the walls of houses: about 180 trees that stood inside building outlines (mostly in courtyards) are gone or stepped just outside.
 - Waryńskiego by Polna no longer has a bare patch of asphalt full of stray lane-line stubs and a step in the kerb where it splits into its two carriageways: the lanes and kerbs run smoothly into each side at all three of its splits there and at five more (Plac Małachowskiego, Polna, Topiel, Francuska, Anielewicza).
 - The turning hall at the bottom of the Dworzec Centralny car park ramp is dressed as the car park's entry: two gates with raised barriers and ticket machines, the blue "P PARKING ZŁOTE TARASY" sign, a green exit door and the 2,1 m limit.
