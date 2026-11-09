@@ -15,6 +15,7 @@ item. Updated 2026-11-01 from the audit. v1.0 = the Demo and TestFlight gates in
 then the Launch gate.
 
 ### Done (built and checked headless)
+- [x] Android: the city draws on Adreno 6xx (Nothing Phone 1, 2026-11-08): its driver refused the ground and building shaders; macros, branch-free conditions and a lite building shader there (`gpu_quirks.gd`, `check_shader_budget.gd`; PR #579; Android speed open in BACKLOG)
 - [x] Port Czerniakowski's mouth footbridge by Majami Wawa (F, 2026-11-08, screenshots and aerial): one flat railed deck with green steel railings and lamps joins the boulevard's cycle path across the mouth (the path no longer dives into the cutting and breaks off), and the finished building site's fences north-west of it are gone, the lot a car park (`tools/port_bridge.py`, verify `portbridge`, `check_stuck_spots`)
 - [x] Trees and fences off the water and the roads (F, 2026-11-08): 211 scanned trees out of the Vistula and the ponds, 1,033 moved off the drawn asphalt onto the pavement (114 with no room out), the parts of 6 fences standing in the river cut away (three by Most Łazienkowski at DESKA); `verify.sh objects` keeps all three at 0
 - [x] First-10 replay on time again (2026-11-09, `first10-run`): the DESKA padel call no longer rings inside the first-10 guide (DESKI_FIRST 660 s), so the rescue, helicopter, cassette and garage beats land in their windows.

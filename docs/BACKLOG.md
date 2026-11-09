@@ -4571,6 +4571,16 @@ twice the dog walkers there, twice the cyclists (cap 16) and 45 % of them fast. 
 
 ## From the first Android build (2026-10-29)
 
+- ~~**Adreno 6xx draws no city**~~ **Fixed 2026-11-08**: the Nothing Phone 1's driver (Adreno 642L)
+  failed to link building.gdshader and ground.gdshader (a control-flow ceiling, archive "Adreno 6xx
+  shader budget"); macros, all()/any() conditions and a lite building shader on Adreno < 700
+  (`gpu_quirks.gd`), guarded by `check_shader_budget.gd`. Phone BENCH with the city: 22.6 fps avg,
+  1% low 13.5, frame 44.3 ms, GPU 30.7 ms, scripts 19.7 ms, 152 draws (Auto→High).
+- **Android is slow on the Nothing Phone 1** (2026-11-08): 22.6 fps at Auto→High, GPU 30.7 ms and
+  scripts 19.7 ms. `tiers.gd` knows no Android model, so the phone gets High; an Android tier rule
+  (by GPU) and a perf pass are needed before Android is playable.
+- **building.gdshader is at 498 of its 505 Adreno budget** (`check_shader_budget.gd`): a new branch
+  in it fails verify. Room: put the landmarks' material codes in their own material (~300 of the 498).
 - **Nothing has run on an Android phone.** The AAB is built and signed, but the game has never
   started on Android: touch, haptics (`Input.vibrate_handheld`), the save path, the frame rate,
   the governor's tiers (`tiers.gd` knows iPhone model ids only, so an Android phone gets its

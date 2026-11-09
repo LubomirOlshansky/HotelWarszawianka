@@ -27,6 +27,10 @@ shader_type spatial;
 // Loop 3b-2: layers 16 (sand), 17 (a natural bank's wet bands, a sandbar's rim), 18 (the
 // foam line on a natural waterline) and 19 (the tram bed's slabs), map_builder.gd L_SAND,
 // L_WET, L_FOAM, L_TRAMBED.
+//
+// Conditions here are all(bvecN(...)) / any(bvecN(...)), not && / ||: a short-circuit is a branch,
+// and Adreno 6xx drivers only link a shader with so many (scripts/gpu_quirks.gd); keep new ones that
+// way. tools/check_shader_budget.gd counts the budget.
 
 #include "res://shaders/common.gdshaderinc"
 #include "res://shaders/night.gdshaderinc"
@@ -116,7 +120,7 @@ vec4 centralny(vec2 wp, bool walk) {
 	vec2 r = wp - CENTRALNY_O;
 	float s = dot(r, CENTRALNY_S);
 	float t = dot(r, CENTRALNY_T);
-	if (s < CENTRALNY_BOX.x || s > CENTRALNY_BOX.y || t < CENTRALNY_BOX.z || t > CENTRALNY_BOX.w) {
+	if (any(bvec4(s < CENTRALNY_BOX.x, s > CENTRALNY_BOX.y, t < CENTRALNY_BOX.z, t > CENTRALNY_BOX.w))) {
 		return vec4(0.0);
 	}
 	vec2 p = vec2(s, t);
@@ -130,7 +134,7 @@ vec4 centralny(vec2 wp, bool walk) {
 	float kt = fract(t / PLOT_DEEP) * PLOT_DEEP;
 	float edge = min(min(ks, PLOT_WIDE - ks), min(kt, PLOT_DEEP - kt));
 	bool house = kt < HOUSE_DEEP;
-	if (edge < 0.6 || (abs(kt - HOUSE_DEEP) < 0.3)) {
+	if (any(bvec2(edge < 0.6, (abs(kt - HOUSE_DEEP) < 0.3)))) {
 		// The outline: red slabs, every other plot's grey.
 		bool red = mod(floor(s / PLOT_WIDE) + floor(t / PLOT_DEEP), 2.0) < 1.0;
 		vec3 c = red ? vec3(0.66, 0.38, 0.32) : vec3(0.52, 0.52, 0.51);
@@ -183,7 +187,7 @@ const vec2 KP_LINE[15] = vec2[15](
 
 // 1 where wp lies on Krakowskie Przedmieście's carriageway, else 0.
 float kp_setts_at(vec2 wp) {
-	if (wp.x < KP_BOX.x || wp.x > KP_BOX.y || wp.y < KP_BOX.z || wp.y > KP_BOX.w) {
+	if (any(bvec4(wp.x < KP_BOX.x, wp.x > KP_BOX.y, wp.y < KP_BOX.z, wp.y > KP_BOX.w))) {
 		return 0.0;
 	}
 	float best = 1e4;
@@ -207,7 +211,7 @@ const vec2 PZ_LINE[4] = vec2[4](
 
 // Distance from wp to Próżna's centreline (1e4 outside the box).
 float pz_dist(vec2 wp) {
-	if (wp.x < PZ_BOX.x || wp.x > PZ_BOX.y || wp.y < PZ_BOX.z || wp.y > PZ_BOX.w) {
+	if (any(bvec4(wp.x < PZ_BOX.x, wp.x > PZ_BOX.y, wp.y < PZ_BOX.z, wp.y > PZ_BOX.w))) {
 		return 1e4;
 	}
 	float best = 1e4;
@@ -256,7 +260,7 @@ void fragment() {
 	// The deck ghost (F, 2026-11-07): a deck's road, walks and markings between the car under it
 	// and the camera keep only the ghost's thin dither, as a building's walls do; the ground under
 	// the deck (under_deck) and everything near the car's own height stay whole.
-	if (surf.a > 0.0 && !under_deck && world_pos.y > ghost_car_y + DECK_GHOST_OVER) {
+	if (all(bvec3(surf.a > 0.0, !under_deck, world_pos.y > ghost_car_y + DECK_GHOST_OVER))) {
 		float cut = ghost_fade(VERTEX.xy, wp);
 		ivec2 bp = ivec2(FRAGCOORD.xy) % 4;
 		if ((BAYER[bp.y * 4 + bp.x] + 0.5) / 16.0 < cut * (1.0 - DECK_GHOST_KEEP)) {
@@ -266,7 +270,7 @@ void fragment() {
 	vec3 emit = vec3(0.0);
 	float puddle = 0.0;
 	float sheen = 0.0;
-	if (id == 4 || id == 2) {
+	if (any(bvec2(id == 4, id == 2))) {
 		// Paving slabs: small along footpaths, large granite on plazas.
 		float size = id == 4 ? 1.2 : 2.4;
 		vec2 cell = floor(street / size);
@@ -307,7 +311,7 @@ void fragment() {
 		float grain = hash12(floor(wp * 6.0));
 		float patch = smoothstep(0.63, 0.7, value_noise(wp * 0.11 + 3.7));
 		shade = 0.95 + 0.07 * grain - 0.06 * patch + 0.04 * n1;
-		if (kp_setts_at(wp) > 0.5 || pz_dist(wp) < PZ_HALF + 0.35) {
+		if (any(bvec2(kp_setts_at(wp) > 0.5, pz_dist(wp) < PZ_HALF + 0.35))) {
 			// Granite setts, 0.12 x 0.1 m in rows broken like bricks; each stone its own grey
 			// or warm pink; dark joints.
 			vec2 q = wp / vec2(0.12, 0.1);
@@ -334,12 +338,12 @@ void fragment() {
 		shade = 0.94 + 0.08 * hash12(floor(wp * 5.0));
 	} else if (id == 7) {
 		shade = 0.88 + 0.12 * value_noise(wp * 1.3); // worn paint
-	} else if (id == 9 || id == 15) {
+	} else if (any(bvec2(id == 9, id == 15))) {
 		// Ballast gravel; along a track, concrete sleepers across it every 0.65 m.
 		shade = 0.86 + 0.24 * hash12(floor(wp * 7.0));
 		if (id == 9) {
 			float sl = fract(street.x / 0.65);
-			if (sl > 0.18 && sl < 0.62) {
+			if (all(bvec2(sl > 0.18, sl < 0.62))) {
 				// A concrete sleeper (0.28 m wide), each a little different.
 				base = srgb_to_linear(vec3(0.66, 0.64, 0.6));
 				shade = 0.9 + 0.14 * hash12(vec2(floor(street.x / 0.65), 3.0));
@@ -386,7 +390,7 @@ void fragment() {
 		// sleeper (0.24 m wide) across it every 0.6 m, each a little different.
 		shade = 0.9 + 0.18 * hash12(floor(wp * 7.0));
 		float sl = fract(street.x / 0.6);
-		if (sl > 0.3 && sl < 0.7) {
+		if (all(bvec2(sl > 0.3, sl < 0.7))) {
 			base = srgb_to_linear(vec3(0.43, 0.4, 0.37));
 			shade = 0.92 + 0.12 * hash12(vec2(floor(street.x / 0.6), 5.0));
 		}
@@ -394,7 +398,7 @@ void fragment() {
 		// Loop 3b-2: the tram bed: concrete track slabs, a joint across it every 3 m.
 		vec2 slab = floor(street / vec2(3.0, 2.0));
 		shade = 0.95 + 0.06 * hash12(slab) - 0.1 * step(fract(street.x / 3.0), 0.05);
-	} else if (id == 16 || id == 17) {
+	} else if (any(bvec2(id == 16, id == 17))) {
 		// Loop 3b-2: sand (beaches, sandbars) and the wet bands of a natural bank or a
 		// sandbar's rim (their colour, sand or earth, from the vertex): a fine grain, soft
 		// drifts on the dry sand; darker after dark (the beach read as a pale lavender plane).
@@ -470,7 +474,7 @@ void fragment() {
 		emit += srgb_to_linear(sky_colour) * night * (0.05 + 0.16 * broad + 0.1 * crest) * mix(1.0, 0.75, deep);
 		emit += srgb_to_linear(vec3(0.55, 0.32, 0.42)) * night * 0.1 * (1.0 - smoothstep(2.0, 40.0, d));
 	}
-	if (id <= 0 || id == 2 || id == 4) {
+	if (any(bvec3(id <= 0, id == 2, id == 4))) {
 		float plac = plac_at(wp);
 		if (plac > 0.0) {
 			vec2 q = (wp - vec2(PLAC_BOX.x, PLAC_BOX.z)) / 6.0;
@@ -490,17 +494,17 @@ void fragment() {
 		}
 	}
 	// Rain: wet asphalt and paving darken, puddles lie darker still and mirror the sky.
-	if (wetness > 0.001 && (id == 6 || id == 2 || id == 4 || id == 5 || id == 7 || id == 14 || id == 19)) {
+	if (all(bvec2(wetness > 0.001, (any(bvec2(any(bvec4(id == 6, id == 2, id == 4, id == 5)), any(bvec3(id == 7, id == 14, id == 19)))))))) {
 		base *= mix(1.0, id == 6 ? 0.62 : (id == 7 ? 0.82 : 0.74), wetness);
 		// Loop 3i: the markings (7) lie in the same puddles as the asphalt under them, so a
 		// painted line goes dark and mirrors the sky where it crosses one, not over it.
-		if (id == 6 || id == 2 || id == 4 || id == 7) {
+		if (any(bvec4(id == 6, id == 2, id == 4, id == 7))) {
 			float pm = value_noise(wp * 0.16 + 11.3) * 0.6 + value_noise(wp * 0.53 + 2.1) * 0.4;
 			puddle = smoothstep(0.64, 0.69, pm) * smoothstep(0.35, 0.9, wetness);
 		}
 		base *= 1.0 - 0.5 * puddle;
 		sheen = wetness * (id == 6 ? 0.14 : 0.09) + puddle * 0.32;
-		if (puddle > 0.0 && rain > 0.0) {
+		if (all(bvec2(puddle > 0.0, rain > 0.0))) {
 			// Rings where the drops land: one per 0.9 m cell, growing and fading.
 			vec2 cell = floor(wp / 0.9);
 			vec2 c = (cell + 0.2 + 0.6 * vec2(hash12(cell), hash12(cell + 7.1))) * 0.9;
@@ -538,7 +542,7 @@ void fragment() {
 			glow = lamp_reflection(wp, away, 2.6, 1.6) * 0.7 * (under_deck ? 0.3 : 1.0);
 		} else {
 			vec4 pool = lamp_pool(wp, FRAGCOORD.xy);
-			glow = pool_glow(base * shade * mix(1.0, ao, 0.6), pool, id == 1 || id == 5 || id == 11) * (under_deck ? 0.05 : 1.0);
+			glow = pool_glow(base * shade * mix(1.0, ao, 0.6), pool, any(bvec3(id == 1, id == 5, id == 11))) * (under_deck ? 0.05 : 1.0);
 			if (sheen > 0.0) {
 				glow += lamp_reflection(wp, away, 1.4, 0.4) * min(sheen * 2.2, 1.0) * 0.8;
 			}
