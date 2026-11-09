@@ -5722,6 +5722,7 @@ Command-line options (after `--`):
 | `--fullmap` | F's asks (2026-10-30): open the full-screen map at the start (the game paused; screenshots) |
 | `--fullmap=M` | 2026-10-31: the same, M metres across the screen's height (the game map's shots) |
 | `--quest-pick=N` | G12 part 2 (2026-11-02): open the full map at the start and tap row N of the ZADANIA tab shown (the vehicle's); a place's pick closes the map and becomes the quest pin |
+| `--quest-quit=S` | F 2026-11-08: S s into the run, open the full map and tap the quest card's "✕ Quit" button twice; prints `quest quit test:` lines (running before/after) |
 | `--quest-tab=N` | quest map (2026-11-07): the full map's quest card opens on tab N (0 AUTO, 1 HELI, 2 WĄTKI) |
 | `--story=ID` | quest map: questline ID (`boat`, `rave`) starts from the WĄTKI list 1.5 s in (its friend phones) |
 | `--story-meet` | quest map: the friend's WCHODZĘ is pressed by itself a second after they walk up (the in-person start without a tap) |
