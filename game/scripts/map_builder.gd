@@ -1739,7 +1739,8 @@ func _load_decks() -> void:
 			_lift_rail_footbridge(pts, cum, hs)
 		_decks.append({"pts": pts, "cum": cum, "h": hs, "l": float(piece["l"]),
 				"r": float(piece["r"]), "g": int(piece["g"]), "k": String(piece["k"]),
-				"o": PackedByteArray(piece.get("o", [])), "box": box.grow(reach)})
+				"o": PackedByteArray(piece.get("o", [])), "box": box.grow(reach),
+				"rail": String(piece.get("rail", "")), "lp": PackedFloat32Array(piece.get("lp", []))})
 
 
 # --- sunken places ---------------------------------------------------------------------------
@@ -6787,6 +6788,9 @@ const SURFACE_STYLE := {
 	"ballast": ["#8f887d", 15.0],
 	"flowerbed": ["#6c9844", 11.0],
 	"construction": ["#a48b6a", 12.0],
+	# A finished building site's car park (tools/port_bridge.py: the lot north-west of Port
+	# Czerniakowski's footbridge): the minor roads' asphalt.
+	"parking": ["#55595f", 6.0],
 	"playground": ["#c98a64", 13.0],
 	"fountain": ["#5ea8d8", 3.0],
 }
@@ -7451,7 +7455,7 @@ const BARRIER_STYLE := {
 ## top and a middle rail you can see through (Operation Unslop's tram railing and stair balustrade).
 ## It collides like a wall of the same height, so driving stays as it was.
 func _railing_along(st, poly: PackedVector2Array, height: float, upstand: float, up_col: Color, rail_col: Color, collide: bool,
-		post_every := 2.0, base := NAN) -> void:
+		post_every := 2.0, base := NAN, base_end := NAN) -> void:
 	if upstand > 0.0:
 		_wall_along(st, poly, 0.2, upstand, up_col, false)
 	var run := 0.0
@@ -7467,7 +7471,7 @@ func _railing_along(st, poly: PackedVector2Array, height: float, upstand: float,
 		var side := Vector2(-dir.y, dir.x) * 0.03
 		# `base`: the railing stands on a slab at that height (a tram island), not on the ground.
 		var ga := terrain_height(a.x, a.y) if is_nan(base) else base
-		var gb := terrain_height(b.x, b.y) if is_nan(base) else base
+		var gb := terrain_height(b.x, b.y) if is_nan(base) else (base if is_nan(base_end) else base_end)
 		var n := Vector3(side.x, 0, side.y).normalized()
 		for h in [low, height - 0.05]:
 			for sgn in [1.0, -1.0]:
@@ -8267,6 +8271,10 @@ static func _box_of_pts(pts: PackedVector2Array) -> Rect2:
 ## parapets there go and a low kerb marks each piece's edge (the car still can't cross it: the
 ## parapet's collider stays where there is a drop under it).
 const DECK_JOIN := 6.0
+## A deck with its own steel railing (`rail`, tools/port_bridge.py: Port Czerniakowski's
+## footbridge, green bars in the Mapillary photos): the railing's height and the bars' spacing.
+const DECK_RAIL_H := 1.1
+const DECK_RAIL_BARS := 0.2
 
 
 ## Per point of deck piece `di`, how far across the gap on each side another piece of its bridge
@@ -8338,6 +8346,7 @@ func _build_bridge_structures(st) -> void:
 		var hs: PackedFloat32Array = d["h"]
 		var outer: PackedByteArray = d["o"]
 		var piers: bool = d["k"] in ["road", "rail"]
+		var rail: String = d.get("rail", "")
 		var l := float(d["l"]) + 0.2
 		var r := float(d["r"]) + 0.2
 		var gaps := _deck_gaps(di)
@@ -8379,9 +8388,25 @@ func _build_bridge_structures(st) -> void:
 				var p1 := bl if side < 0.0 else br
 				var n := Vector3(right.x * side, 0.0, right.y * side)
 				var top := 0.55 if is_outer else 0.0
+				if is_outer and rail != "":
+					top = 0.12
 				_quad(st, Vector3(p0.x, ya - 1.3, p0.y), Vector3(p1.x, yb - 1.3, p1.y),
 						Vector3(p1.x, yb + top, p1.y), Vector3(p0.x, ya + top, p0.y), n, concrete)
-				if is_outer:
+				if is_outer and rail != "":
+					# A steel railing instead of the parapet (tools/port_bridge.py): a low kerb
+					# on the slab's edge, then posts, rails and bars in the deck's paint.
+					var r0: Vector2 = p0 - right * side * 0.12
+					var r1: Vector2 = p1 - right * side * 0.12
+					_quad(st, Vector3(p0.x, ya + top, p0.y), Vector3(p1.x, yb + top, p1.y), Vector3(r1.x, yb + top, r1.y),
+							Vector3(r0.x, ya + top, r0.y), Vector3.UP, concrete.lightened(0.1))
+					_railing_along(st, PackedVector2Array([r0, r1]), DECK_RAIL_H, 0.0, concrete, Color(rail), false,
+							DECK_RAIL_BARS, ya + 0.08, yb + 0.08)
+				if is_outer and rail != "":
+					var drop_r := maxf(ya - terrain_height(p0.x, p0.y), yb - terrain_height(p1.x, p1.y))
+					if drop_r > 1.0:
+						_wall_faces.append_array([Vector3(p0.x, ya - 0.2, p0.y), Vector3(p1.x, yb - 0.2, p1.y), Vector3(p1.x, yb + 1.6, p1.y),
+								Vector3(p0.x, ya - 0.2, p0.y), Vector3(p1.x, yb + 1.6, p1.y), Vector3(p0.x, ya + 1.6, p0.y)])
+				elif is_outer:
 					# The parapet's top and inner face.
 					var q0: Vector2 = p0 - right * side * 0.3
 					var q1: Vector2 = p1 - right * side * 0.3
@@ -10795,6 +10820,31 @@ func _build_street_furniture() -> void:
 		spots.append(t)
 		var head := t * Vector3(1.2, 0.0, 0.0)
 		glows.append(SODIUM_GLOW if _sodium_at(head.x, head.z) else LED_GLOW)
+	# A railed deck's own lamps (tools/port_bridge.py `lp`: shares of its length), on its left
+	# edge, the arm over the deck.
+	for d: Dictionary in _decks:
+		var lp: PackedFloat32Array = d.get("lp", PackedFloat32Array())
+		if lp.is_empty():
+			continue
+		var pts: PackedVector2Array = d["pts"]
+		var cum: PackedFloat32Array = d["cum"]
+		var total := cum[cum.size() - 1]
+		for share in lp:
+			var s := share * total
+			var k := 0
+			while k < pts.size() - 2 and cum[k + 1] < s:
+				k += 1
+			var f := clampf((s - cum[k]) / maxf(cum[k + 1] - cum[k], 0.01), 0.0, 1.0)
+			var dir := (pts[k + 1] - pts[k]).normalized()
+			var right := Vector2(-dir.y, dir.x)
+			var at := pts[k].lerp(pts[k + 1], f) - right * (float(d["l"]) - 0.05)
+			if not _owns(at):
+				continue
+			var y := lerpf((d["h"] as PackedFloat32Array)[k], (d["h"] as PackedFloat32Array)[k + 1], f)
+			var t := Transform3D(Basis(Vector3.UP, atan2(-right.y, right.x)), Vector3(at.x, y, at.y))
+			spots.append(t)
+			var head := t * Vector3(1.2, 0.0, 0.0)
+			glows.append(SODIUM_GLOW if _sodium_at(head.x, head.z) else LED_GLOW)
 	var none: Array[Color] = []
 	for mmi in _tree_multimesh(_shared["lamp"], _shared["fixture"], spots, none, glows):
 		mmi.add_to_group(SMALL_CASTERS, true)
