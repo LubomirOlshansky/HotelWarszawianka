@@ -413,7 +413,7 @@ then the Launch gate.
       balustrade on the crown (116 m), a bar, a DJ booth under a lighting truss with an LED wall
       and speakers, lounge sofas, planters, festoon lamps, the name in violet neon; the people,
       violet band, door queue, bass and hours were already there. Mac look check parked
-- [ ] Old Town Market Square leftovers (painted palette and sgraffito done 2026-11-09, still to check against photos): the
+- [ ] Old Town Market Square leftovers (painted palette done 2026-11-09, still to check against photos; sgraffito waits for shader budget): the
       four corner streets' mouths, a card for the Museum of Warsaw house (BACKLOG "Old Town square")
 - [x] Norblin, Browary Warszawskie, Hala Koszyki, Elektrownia Powiśle as models, people chilling
       in their yards and KROWA 2.0, the milk bar queue in Norblin (F, 2026-11-01; specs

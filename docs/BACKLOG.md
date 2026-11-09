@@ -744,7 +744,7 @@ Left:
   the Adreno budget, see #579); wall rings that are towers (Baszta
   Rycerska, the Altana) get tile cones (`_tower_roof`); the Cathedral's nave has a steep tiled
   gable over the LoD2 slab (`CATH_*` in landmarks.gd) and the ridge turret stands on it.
-- **Rynek facades, per house**: the colours and sgraffito are guesses; the real ones of Pod
+- **Rynek facades, per house**: the colours are guesses (sgraffito waits for shader budget); the real ones of Pod
   Murzynkiem, Baryczków, Fukier from photos (Mac, E-series) still to check; dormers float on LoD2
   roofs in places.
 - **City wall gates**: the Podwale gates and the white arch gate (E14-01, E16) are not built (no

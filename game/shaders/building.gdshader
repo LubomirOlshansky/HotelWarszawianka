@@ -39,6 +39,13 @@ uniform float windows = 1.0;
 // The floodlit landmark: x, z of its centre and a radius (map_builder.gd, from the
 // Palace of Culture's outline); only its sandstone walls light up.
 uniform vec4 floodlit = vec4(0.0, 0.0, -1.0, 0.0);
+// Its event lighting by date (palace_lights.gd, main.gd): 0 the nightly gold, 1 one colour,
+// 2 colour a on the base and pavilions and b up the tower, 3 a rainbow across the facades
+// (drifting `flood_cycle` turns a minute).
+uniform int flood_mode = 0;
+uniform vec3 flood_a : source_color = vec3(1.0, 0.7, 0.3);
+uniform vec3 flood_b : source_color = vec3(1.0, 0.7, 0.3);
+uniform float flood_cycle = 0.0;
 varying vec3 world_pos;
 varying vec2 style;
 // The roofs lane: the plane's world normal (a roof's slope and which way it falls).
@@ -172,6 +179,9 @@ vec3 facade(vec3 col, float u, float h, float seed, float top, bool glass, out v
 const int T_TENEMENT = 1;
 const int T_SLAB = 2;
 const int T_OFFICE = 3;
+// The Old Town and New Town (F's photos E01-E04, 2026-11-08): map_builder.gd _tenement_facades
+// tags their walls 4, the seed's upper half marking a front on the market square.
+const int T_OLDTOWN = 4;
 
 // A pane's colour by day, and a lit room at night: the same rules as facade()'s windows.
 vec3 typed_pane(vec3 col, vec2 cell, float seed, bool office, out vec3 glow) {
@@ -242,6 +252,87 @@ vec3 typed_facade(int kind, vec3 col, float u, float h, float seed, float top, o
 		}
 		if (wx < 0.25 && fy > 0.08 && fy < 0.13) {
 			return col * 0.78;                          // the sill's shadow
+		}
+		return col;
+	}
+	if (kind == T_OLDTOWN) {
+		// A rebuilt Old Town house: a stone portal with a round head on some axes of the ground
+		// floor and shop windows on the rest, a string course, then floors of tall casements in
+		// cream surrounds with white glazing bars, a sill under each and a head over it, a
+		// cornice under the eaves; on the market square a painted band along every floor line.
+		float s0 = clamp(seed / 0.96, 0.0, 0.999);
+		bool square = s0 >= 0.5;
+		float s = fract(s0 * 2.0);
+		float g = 3.4 + 0.5 * fract(s * 7.13);      // the ground floor
+		float fh = 3.0 + 0.5 * fract(s * 3.31);     // upper floors
+		float sp = 2.2 + 0.6 * fract(s * 5.71);     // window axes
+		vec3 frame = srgb_to_linear(vec3(0.94, 0.91, 0.84));
+		if (top > 6.0 && h > top - 0.75) {
+			return col * 1.15;                          // the cornice
+		}
+		if (top > 6.0 && h > top - 0.95) {
+			return col * 0.66;                          // its shadow
+		}
+		float dx = (fract(u / sp) - 0.5) * sp;          // metres from the window axis
+		vec2 unit = vec2(floor(u / sp), s * 77.0);
+		if (h < g) {
+			if (hash12(unit + 3.7) < 0.28) {
+				float spring = min(2.3, g - 1.1);
+				float edge = h < spring ? abs(dx) : length(vec2(dx, h - spring));
+				if (edge < 0.72) {
+					return srgb_to_linear(vec3(0.24, 0.17, 0.12));   // the door
+				}
+				if (edge < 1.0) {
+					return srgb_to_linear(vec3(0.83, 0.8, 0.74));    // its stone surround
+				}
+				return h < 0.45 ? col * 0.82 : col;
+			}
+			bool shop = abs(dx) < 0.36 * sp && h > 0.55 && h < g - 0.75;
+			vec3 window_col = mix(col * 0.45, srgb_to_linear(vec3(0.2, 0.24, 0.28)), 0.75);
+			if (night && shop && hash12(unit) < 0.72 * lights_on) {
+				glow = (hash12(unit + 5.1) < 0.65 ? WARM_PALE : vec3(0.9, 0.92, 1.0)) * 1.35;
+				return window_col * 0.6;
+			}
+			if (shop) {
+				return window_col;
+			}
+			if (abs(dx) < 0.36 * sp + 0.14 && h > 0.41 && h < g - 0.61) {
+				return frame * 0.9;                     // the shop window's frame
+			}
+			return h < 0.45 ? col * 0.82 : col;         // the plinth
+		}
+		if (h < g + 0.24) {
+			return col * 1.12;                          // the string course
+		}
+		float y = h - g;
+		float wy = fract(y / fh) * fh;                  // metres over this floor's line
+		vec2 cell = vec2(floor(u / sp), floor(y / fh));
+		float hw = 0.42 + 0.08 * fract(s * 9.1);        // a casement's half width
+		float wb = 0.8;                                 // its foot over the floor line
+		float wt = wb + 1.45 + 0.2 * fract(s * 4.3);    // its head
+		float ax = abs(dx);
+		if (ax < hw && wy > wb && wy < wt) {
+			if (ax < 0.035 || abs(wy - (wb + (wt - wb) * 0.64)) < 0.035) {
+				return frame;                           // the glazing bars
+			}
+			return typed_pane(col, cell, s, false, glow);
+		}
+		if (ax < hw + (square ? 0.26 : 0.18) && wy >= wt && wy < wt + 0.24) {
+			return frame * 1.02;                        // the head
+		}
+		if (ax < hw + 0.13 && wy > wb - 0.13 && wy < wt) {
+			return frame;                               // the surround
+		}
+		if (ax < hw + 0.2 && wy > wb - 0.25 && wy <= wb - 0.13) {
+			return frame * 0.86;                        // the sill
+		}
+		if (ax < hw + 0.2 && wy > wb - 0.36 && wy <= wb - 0.25) {
+			return col * 0.74;                          // its shadow
+		}
+		if (square && wy < 0.34) {
+			vec3 band = dot(col, vec3(0.2126, 0.7152, 0.0722)) > 0.3 ? col * 0.8 : col * 1.25;
+			float diamond = abs(fract(u / 0.9) - 0.5) + abs(wy / 0.34 - 0.5);
+			return diamond < 0.28 ? mix(band, frame, 0.7) : band;   // the painted band
 		}
 		return col;
 	}
@@ -324,6 +415,7 @@ const int M_MEMBRANE = 11;
 const int M_GLASS = 12;
 const int M_SKIN = 13;
 const int M_GOTHIC = 14;
+const int M_PANE = 15;
 
 // The towers' own skins (landmarks.gd TOWERS, the landmarks loop): M_SKIN's fraction picks the
 // pattern (style / 16), the vertex colour is the glass. Each reads as its tower from the
@@ -411,25 +503,58 @@ vec3 skin(int s, vec3 col, float u, float h, float top, out vec3 glow, out bool 
 		c = mix(c, sky * mix(0.4, 1.0, daylight), 0.28);
 		c *= 0.9 + 0.2 * value_noise(vec2(u * 0.11, h * 0.025));
 	} else if (s == S_TILE) {
-		// Novotel's shaft (the Rondo photos, 2026-10-31): white tiled panels, a hairline grid
-		// every 3.4 m by one floor, floodlit white at night, a window slit now and then.
-		float gx = fract(u / 3.4);
-		float gy = fract(h / fh);
-		bool seam = gx < 0.035 || gy < 0.03;
+		// White tiled panels, floodlit at night. The wall colour picks the face:
+		// warm (red over blue: the HUB's hotel, the Rondo photos' first Novotel, 2026-10-31): a
+		// hairline grid every 3.4 m by one floor, a window slit lit now and then;
+		// cool or neutral: the Novotel from F's five photos (2026-11-07), seams every 1.55 m and at
+		// every floor (2.95 m), the faces cooler white under the floodlights; a cool one (blue over
+		// red: the long faces) adds the punched windows, small dark squares 1.25 x 1.1 m in pairs
+		// in every 6.2 m bay, a share of them warm at night; a neutral one (the blank narrow ends
+		// and the lift core's strip) stays plain.
 		float flood = mix(0.3, 1.0, daylight);
-		vec3 tile = white * (seam ? 0.72 : 1.0) * flood;
-		if (lights_on > 0.001) {
-			glow = srgb_to_linear(vec3(0.62, 0.66, 0.74)) * (seam ? 0.3 : 0.62) * lights_on;
-			if (gx > 0.3 && gx < 0.62 && gy > 0.35 && gy < 0.62 && hash12(vec2(floor(u / 3.4), level) + 7.7) < 0.12 * lights_on) {
-				glow = WARM_PALE * 0.9;
+		if (col.r > col.b + 0.004) {
+			float gx = fract(u / 3.4);
+			float gy = fract(h / fh);
+			bool seam = gx < 0.035 || gy < 0.03;
+			vec3 tile = white * (seam ? 0.72 : 1.0) * flood;
+			if (lights_on > 0.001) {
+				glow = srgb_to_linear(vec3(0.62, 0.66, 0.74)) * (seam ? 0.3 : 0.62) * lights_on;
+				if (gx > 0.3 && gx < 0.62 && gy > 0.35 && gy < 0.62 && hash12(vec2(floor(u / 3.4), level) + 7.7) < 0.12 * lights_on) {
+					glow = WARM_PALE * 0.9;
+				}
 			}
+			return tile;
+		}
+		float pf = 2.95;
+		float lvl = floor(h / pf);
+		float gx = fract(u / 1.55);
+		float gy = fract(h / pf);
+		bool seam = gx < 0.02 || gy < 0.025;
+		vec3 tile = white * (seam ? 0.8 : 1.0) * flood;
+		if (col.b > col.r + 0.004) {
+			float bay = fract(u / 6.2) * 6.2;
+			float fy = gy * pf;
+			float x = bay - (bay < 3.1 ? 1.9 : 4.3);
+			if (abs(x) < 0.625 && fy > 0.95 && fy < 2.05) {
+				if (lights_on > 0.001 && hash12(vec2(floor(u / 3.1), lvl) + 5.3) < 0.3 * lights_on) {
+					glow = WARM_PALE * (0.8 + 0.3 * hash12(vec2(floor(u / 3.1), lvl) + 1.1));
+					return c * 0.3;
+				}
+				return mix(srgb_to_linear(vec3(0.13, 0.15, 0.18)), sky * 0.45, refl) * mix(0.35, 1.0, daylight);
+			}
+			if (abs(x) < 0.7 && fy > 0.88 && fy < 2.12) {
+				return tile * 0.86;
+			}
+		}
+		if (lights_on > 0.001) {
+			glow = srgb_to_linear(vec3(0.6, 0.68, 0.82)) * (seam ? 0.3 : 0.6) * lights_on;
 		}
 		return tile;
 	} else if (s == S_EASTWALL) {
-		// The Eastern Wall's stores (the Mac photo check, 2026-11-01): a vertical-led grid, strong
-		// dark grey mullions every 1.5 m, only a thin dark spandrel line at each floor.
-		frame = fract(u / 1.5) < 0.13 || fract(h / fh) < 0.035;
-		frame_col = srgb_to_linear(vec3(0.247, 0.278, 0.298)) * mix(0.3, 1.0, daylight);
+		// The Eastern Wall's stores (F's photos and Mapillary 2024-26, 2026-11-08): pale blue-grey
+		// glass in big panes, a light silver grid, mullions every 3 m and four rows of 2.7 m.
+		frame = fract(u / 3.0) < 0.035 || fract(h / 2.7) < 0.045;
+		frame_col = srgb_to_linear(vec3(0.80, 0.82, 0.84)) * mix(0.3, 1.0, daylight);
 	} else if (s == S_PUNCHED) {
 		// A re-clad 1970s point block (the start area's 75 m tower, 2026-11-01): light horizontal
 		// metal cladding, punched windows in bands (2 x 1.4 m every 3.2 m, white frames, dark
@@ -747,6 +872,13 @@ vec3 landmark(int mode, float param, vec3 col, vec2 uv, float top, bool wall, ve
 		}
 		return col * (wall && uv.y > top - 0.2 ? 1.12 : 1.0);
 	} else if (mode == M_GOLD) {
+		if (param > 0.25) {
+			// Polished steel (M_GOLD + 0.5: the Warsaw Spire's columns and mirrored canopy): streaks
+			// of sky and ground slide over it, no warm glow at night.
+			float streak = value_noise(vec2(wp.y * 0.9 + (wp.x + wp.z) * 0.35, (wp.x - wp.z) * 0.15));
+			vec3 mirror = mix(col, srgb_to_linear(sky_colour) * 1.15, 0.4 * smoothstep(0.3, 0.9, streak));
+			return mirror * (0.8 + 0.45 * streak) * mix(0.35, 1.0, daylight);
+		}
 		float sheen = 0.75 + 0.5 * smoothstep(0.2, 1.0, value_noise(vec2(wp.y * 0.6, wp.x + wp.z)));
 		if (lights_on > 0.001) {
 			glow = col * vec3(1.0, 0.8, 0.45) * 1.25;
@@ -788,12 +920,16 @@ vec3 landmark(int mode, float param, vec3 col, vec2 uv, float top, bool wall, ve
 		}
 		vec3 c = glass_wall(col, uv.x, uv.y, top, 1.6, 4.2, 0.0, glow);
 		if (lights_on > 0.001 && fract(uv.x / 1.6) > 0.1 && fract(uv.x / 1.6) < 0.9 && fract(uv.y / 4.2) > 0.06) {
-			// param 0: warm (the Rotunda), 0.5: cool white (Varso's crown).
-			vec3 tone = param > 0.25 ? vec3(0.78, 0.88, 1.0) : vec3(1.0, 0.86, 0.62);
+			// param 0: warm (the Rotunda), 0.5: cool white (Varso's crown), 0.375: the neon club's
+			// pink (SOWA CLUB's glass box, landmarks.gd SOWA_LIT).
+			vec3 tone = param > 0.3 && param < 0.45 ? vec3(1.0, 0.58, 0.86) : (param > 0.25 ? vec3(0.78, 0.88, 1.0) : vec3(1.0, 0.86, 0.62));
 			glow = tone * (0.9 + 0.35 * hash12(vec2(floor(uv.x / 1.6), floor(uv.y / 4.2))));
 			c *= 0.4;
 		}
 		return c;
+	} else if (mode == M_PANE) {
+		// One pane of a modelled block: param is the pane's own number, so a pane is lit whole.
+		return typed_pane(col, vec2(floor(param * 97.0), floor(param * 311.0)), param, false, glow);
 	} else if (mode == M_GLASS) {
 		return wall ? glass_wall(col, uv.x, uv.y, top, 1.5, 4.0, 0.34, glow) : col;
 	} else if (mode == M_GOTHIC) {
@@ -811,7 +947,8 @@ vec3 landmark(int mode, float param, vec3 col, vec2 uv, float top, bool wall, ve
 		return col;
 	} else if (mode == M_MEMBRANE) {
 		if (lights_on > 0.001) {
-			glow = col * vec3(1.0, 0.95, 0.9) * 0.18;
+			// param 0.5: a floodlit painted wall (the Novotel car park's mural), lit well up the facade.
+			glow = col * vec3(1.0, 0.95, 0.9) * (param > 0.25 ? 0.7 : 0.18);
 		}
 		return col * (0.96 + 0.06 * value_noise(wp.xz * 0.5));
 	}
@@ -823,9 +960,26 @@ vec3 landmark(int mode, float param, vec3 col, vec2 uv, float top, bool wall, ve
 // bright edge at the top of every wall, where the next terrace's lamps stand.
 vec3 floodlight(vec3 col, float h, float top) {
 	vec3 gold = vec3(1.0, 0.7, 0.3);
-	vec3 light = gold * (0.62 + 0.5 * exp(-h / 18.0) + 0.3 * smoothstep(30.0, 140.0, h));
-	light += vec3(1.0, 0.88, 0.62) * smoothstep(top - 9.0, top - 0.5, h) * 0.5;
-	return col * light * 1.3;
+	float shape = 0.62 + 0.5 * exp(-h / 18.0) + 0.3 * smoothstep(30.0, 140.0, h);
+	float edge = smoothstep(top - 9.0, top - 0.5, h) * 0.5;
+	if (flood_mode == 0) {
+		return col * (gold * shape + vec3(1.0, 0.88, 0.62) * edge) * 1.3;
+	}
+	// Event colours (F's photos): LED washes read as the light's own colour on the pale stone,
+	// so the sandstone's warmth is mostly taken out before tinting.
+	vec3 tint = flood_a;
+	if (flood_mode == 2) {
+		tint = mix(flood_a, flood_b, smoothstep(40.0, 52.0, h));
+	} else if (flood_mode == 3) {
+		vec2 d = world_pos.xz - floodlit.xy;
+		float across = dot(d, vec2(0.9403, -0.3404)) + dot(d, vec2(0.3404, 0.9403)) * 0.35;
+		float hue = fract(across / 150.0 + 0.5 + TIME * flood_cycle / 60.0);
+		tint = clamp(abs(fract(hue + vec3(0.0, 2.0 / 3.0, 1.0 / 3.0)) * 6.0 - 3.0) - 1.0, 0.0, 1.0);
+		tint = mix(tint, vec3(1.0), 0.22);
+	}
+	float l = dot(col, vec3(0.3, 0.59, 0.11));
+	vec3 stone = mix(col, vec3(l), 0.75);
+	return stone * tint * (shape * 1.25 + edge) * 1.45;
 }
 
 // The roofs lane (docs/design/roofs.md, RF1): a thin line every `period` metres along x,
