@@ -1,6 +1,7 @@
 """Bus shelters on the kerb and benches facing the walk (G8, G9 of the gameplay pass, 2026-11-01).
 
-    python3 -I tools/snap_props.py [MAP.json] [--dry]       (rewrites the map in place, idempotent)
+    python3 -I tools/snap_props.py [MAP.json] [--dry] [--face-only]   (rewrites the map in place, idempotent;
+                                    --face-only: only `face_shelters`, the last pass bake_osm.py runs)
 
 The OpenStreetMap shelter and bench nodes were given their yaw from the nearest road's *direction*
 (bake_osm.py `road_yaw`): a shelter's roof ran across the road, half of them with their glass back
@@ -18,6 +19,11 @@ cloud has no OpenStreetMap download):
   keeps its place and only turns. A tram stop's shelter (a tram track within TRAM_NEAR) is left.
   buses.gd `stop_from` takes the stop from the shelter's place, so the bay follows. The roof
   scooters standing on a moved shelter move with it.
+- **Every other shelter** (`face_shelters`, also run once more at the end of bake_osm.py, after the
+  later passes have moved them): a tram stop's (a track within TRAM_NEAR) is turned open side to the
+  nearest track, the boarding edge; one off the bus roads open side to the nearest road within
+  FACE_REACH. They had kept `road_yaw`: the roof across the street, the open side along it (F,
+  2026-11-08: "the stops at Ratusz Arsenał are turned the wrong way").
 - **Benches** are turned to face the nearest footway or path (or the kerb where there is none):
   the seat looks across the walk, not along it. A bench within BENCH_LANE m of a lane slides out.
 
@@ -49,6 +55,9 @@ BENCH_PATHS = ("foot", "cycle")
 CELL = 32.0
 SCOOTER_CLEAR = 3.4      # a lying scooter this near a shelter's origin (the roof's end plus the scooter) is moved
 ROOF_RADIUS = 2.6        # a poi this near a moved shelter's origin is on its roof
+FACE_REACH = 16.0        # a shelter off any bus road faces the nearest road this near (else it is left)
+TRAM_HALF = 1.3          # a tram's half width: its side is this far from the track's centre line
+TRACK_ON = 1.0           # a tram stop's shelter nearer a track than this stands on it: left as it is
 
 
 def _cell(x, z):
@@ -281,6 +290,94 @@ def snap_shelters(d, world=None):
     return moved, turned, left, tram, off, moves, len(drop)
 
 
+def _front_yaw(x, z, fx, fz):
+    """The yaw that turns a shelter at (x, z) open side (-z, map_builder.gd) toward (fx, fz)."""
+    return round(math.atan2(-(fx - x), -(fz - z)), 2)
+
+
+def _nearest_track(w, x, z):
+    """(distance, foot) of the nearest tram track within TRAM_NEAR, or None."""
+    best = None
+    for a, b, _ in w.tram_grid.near(x, z):
+        dx, dz = b[0] - a[0], b[1] - a[1]
+        ln = dx * dx + dz * dz
+        if ln == 0:
+            continue
+        u = max(0.0, min(1.0, ((x - a[0]) * dx + (z - a[1]) * dz) / ln))
+        foot = (a[0] + dx * u, a[1] + dz * u)
+        dd = math.hypot(x - foot[0], z - foot[1])
+        if dd < TRAM_NEAR and (best is None or dd < best[0]):
+            best = (dd, foot)
+    return best
+
+
+def _on_tram_island(w, x, z):
+    """True on a tram island (tools/tram_stops.py `tram` platforms): it boards from its tracks."""
+    if not hasattr(w, "tram_islands"):
+        w.tram_islands = P.Polys()
+        for a in w.d.get("platforms", []):
+            if a.get("tram"):
+                w.tram_islands.add(P.pairs(a["p"]), "tram")
+    return w.tram_islands.inside(x, z) is not None
+
+
+def _nearest_road(w, x, z):
+    """(distance, foot) of the nearest road's centre line within FACE_REACH (any class), a segment's
+    inside before its ends (at a junction the end's foot would turn the shelter diagonally), or None."""
+    best = None
+    for a, b, (info, k) in w.edge_grid.near(x, z):
+        foot, t, r, lat, s, u = w.frame(info, k, x, z)
+        dd = math.hypot(x - foot[0], z - foot[1])
+        if dd > FACE_REACH:
+            continue
+        key = (0 if 0.0 < u < 1.0 else 1, dd)
+        if best is None or key < best[0]:
+            best = (key, foot)
+    return None if best is None else (best[0][1], best[1])
+
+
+def shelter_want(w, x, z):
+    """What a shelter at (x, z) must face (PT, F 2026-11-08: Ratusz Arsenał's stood turned the wrong
+    way): ("bus", yaw) beside a bus road (unless a tram track is nearer than its kerb, or it stands on a
+    tram island) (snap_shelters' own turn: roof along the road, open side to
+    the kerb), ("tram", yaw) at a tram stop (open side to the nearest track, the boarding edge),
+    ("road", yaw) off the bus roads (open side to the nearest road within FACE_REACH), or (kind, None)
+    when nothing decides it (no road near, or a track right under it)."""
+    tr = _nearest_track(w, x, z)
+    hit = w.bus_stop_edge(x, z)
+    if tr is not None and hit is not None and not _on_tram_island(w, x, z) and hit[6] < tr[0] - TRAM_HALF:
+        tr = None   # on the pavement with the kerb nearer than the tram's side: the bus stop's
+    if tr is not None:
+        return ("tram", None) if tr[0] < TRACK_ON else ("tram", _front_yaw(x, z, *tr[1]))
+    if hit is not None:
+        r = hit[4]
+        return "bus", round(math.atan2(r[0], r[1]), 2)
+    rd = _nearest_road(w, x, z)
+    return ("road", None) if rd is None else ("road", _front_yaw(x, z, *rd[1]))
+
+
+def face_shelters(d, world=None):
+    """Turn every shelter open side to its boarding edge (`shelter_want`): the tram stops' and those
+    off the bus roads, which snap_shelters leaves, and any a later pass moved off its turn. bake_osm.py `road_yaw` gave them the nearest
+    road's *direction*, so their roof ran across the street with the open side along it, and a tram
+    island's could turn its glass back to the track. Returns (tram turned, road turned, left)."""
+    w = world or World(d)
+    sh = d.get("shelters", [])
+    n_tram = n_road = left = 0
+    for i in range(0, len(sh) - 2, 3):
+        kind, want = shelter_want(w, sh[i], sh[i + 1])
+        if want is None:
+            left += 1
+            continue
+        if abs(math.remainder(sh[i + 2] - want, 2 * math.pi)) > 0.005:
+            sh[i + 2] = want
+            if kind == "tram":
+                n_tram += 1
+            else:
+                n_road += 1   # off the bus roads, or a bus stop by a track snap_shelters left
+    return n_tram, n_road, left
+
+
 def move_roof_pois(d, moves):
     """The Leżaks on a moved shelter's roof ride along (the bake's order is shelters first, so this is
     only for a map that is already baked): p == "roof" pois within ROOF_RADIUS of an old origin."""
@@ -410,7 +507,9 @@ def apply(d, roof_pois=False):
     moved, turned, left, tram, off, moves, dropped = snap_shelters(d, w)
     roof = move_roof_pois(d, moves) if roof_pois else 0
     bt, bs, bl, bg = face_benches(d, w)
+    ft, fr, fl = face_shelters(d, w)
     msg = (f"stops (G8/G9): {moved} shelters moved to the kerb, {turned} turned only, {left} kept in place (no clear spot), {dropped} left out (no clear spot, their own in a lane or a building), "
+           f"facing: {ft} tram stop and {fr} other shelters turned open side to the track or road, {fl} left (nothing near or a track under them); "
            f"{tram} tram stops and {off} off any bus road left; {roof} roof scooters moved along; "
            f"benches: {bt} turned to face the walk, {bs} slid out of a lane's reach, {bl} left, {bg} inside a building or the water left out")
     print(msg)
@@ -422,7 +521,10 @@ def main(argv):
     path = args[0] if args else MAP
     with open(path, encoding="utf-8") as f:
         d = json.load(f)
-    apply(d, roof_pois=True)
+    if "--face-only" in argv:
+        print("face_shelters: %d tram, %d road turned, %d left" % face_shelters(d))
+    else:
+        apply(d, roof_pois=True)
     if "--dry" in argv:
         return 0
     with open(path, "w", encoding="utf-8") as f:
