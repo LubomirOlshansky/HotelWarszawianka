@@ -53,8 +53,8 @@ const LAPSED_R := GREET_R
 const BEACON_R := 320.0
 ## The minimap pins a questline's badge to its rim up to this far (the garage's reach).
 const MINI_REACH := 1500.0
-## The in-person card's life (s), then it goes as if NIE TERAZ.
-const CARD_LIFE := 15.0
+## The in-person card's life (s), then it goes as if NIE TERAZ (F 2026-11-09: 15 s was gone before a driver looked up).
+const CARD_LIFE := 45.0
 const TICK := 0.25
 ## The default accent (the full map's WĄTKI tab, quest_lines.gd).
 const COLOUR := Lines.STORY_COLOUR

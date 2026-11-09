@@ -3301,7 +3301,9 @@ func _build_stories(world: Node3D) -> void:
 	# The night racing club (street_meet.gd): Darek at Plac Defilad, 21:00-4:00. Null with
 	# --no-traffic or --meet=0.
 	if meet != null and meet.meets.size() > 0:
-		var g: Vector3 = meet.meets[0]["at"]
+		# The start is the road kerb by the plaza (the meet's door), not the plaza's middle: F
+		# (2026-11-09) could not drive up to the old spot in the middle of the paving.
+		var g: Vector3 = (meet.meets[0]["door"] as Dictionary)["at"]
 		stories.add({"id": "meet", "pl": "Nocny spot", "en": "Night meet", "who": [StreetMeet.FRIEND, StreetMeet.FRIEND],
 				"hello": ["„Siema! Dziś spot na Defiladzie. Wbijasz?”", "\"Hey! Meet's on Plac Defilad tonight. You in?\""],
 				"closed": ["„Za dnia tu tylko turyści. Wpadnij po 21.”", "\"By day it's all tourists here. Come after nine.\""],

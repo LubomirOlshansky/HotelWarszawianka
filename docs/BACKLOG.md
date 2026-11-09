@@ -96,6 +96,7 @@ under it, so on the CAR and STORIES tabs a scroll started a request and closed t
 - [x] The night meet ignored the quit during the meet, the raids and the drag (PT-52, Autopilot
   2026-11-09: the map closed and the quest went on). It gives up in every beat now except Darek's
   call, his offer and the drag's result card (`street_meet.gd` `can_quit`, `check_street_meet`).
+- [ ] Questline starts reported dead on F's phone (2026-11-09: night meet, Smolna/rave, others; no card): not reproducible on the Mac (runtime and prebuilt, all five starts greet and start). `--stories-log` now prints "the friend waits, blocked by: <gate>"; F's next run with it names the gate (speed over 22 km/h, a card or mission up, first-10 guide...). Done meanwhile: night meet start on the kerb, card life 45 s.
 - [ ] Autopilot 2026-11-09 suspects for the night meet's drag: no PERFECT LAUNCH! banner after a
   launch in the blue (PT-48); the first-10 guide's note and chatter over the rev counter on a fresh
   save (PT-49, also in the boat race); "SHIFT ↑" shown from green with the needle low (PT-50).
