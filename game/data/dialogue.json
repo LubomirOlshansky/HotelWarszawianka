@@ -6501,6 +6501,27 @@
       }
     ],
     [
+      "Uśmiech do kamery! Patrz, bez trzymanki!",
+      "Smile for the camera! Look, no hands!",
+      {
+        "only": "kamil_stunt"
+      }
+    ],
+    [
+      "Czekaj, nagrywam kręciołka dla followersów!",
+      "Hold on, filming a spin for my followers!",
+      {
+        "only": "kamil_stunt"
+      }
+    ],
+    [
+      "Zasięgi same się nie zrobią!",
+      "The views won't make themselves!",
+      {
+        "only": "kamil_stunt"
+      }
+    ],
+    [
       "Wjeżdżam w to, ziomek!",
       "I'm all in, mate!",
       {
