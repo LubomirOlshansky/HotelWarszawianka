@@ -128,6 +128,19 @@ func _check_rules(digest: PackedStringArray) -> void:
 		last = int(pay[0])
 	if Meet.shift_grade(-0.1) != "early" or Meet.shift_grade(0.1) != "perfect" or Meet.shift_grade(0.8) != "late":
 		problems.append("shift grades wrong")
+	# The genre's grades (F 2026-11-08): yellow is good, before it early, green perfect, long on
+	# the limiter late; the launch by the revs at green.
+	var grades := [Meet.shift_grade_at(0.5, -1.0), Meet.shift_grade_at(Meet.SHIFT_SHOW + 0.01, -1.0),
+			Meet.shift_grade_at(0.97, 0.1), Meet.shift_grade_at(1.0, Meet.PERFECT + 0.1), Meet.shift_grade_at(1.0, Meet.GOOD_LATE + 0.2)]
+	if grades != ["early", "good", "perfect", "good", "late"]:
+		problems.append("shift grades at the needle wrong: %s" % str(grades))
+	var launches := [Meet.launch_grade(0.2), Meet.launch_grade((Meet.LAUNCH.x + Meet.LAUNCH.y) * 0.5), Meet.launch_grade(1.0)]
+	if launches != ["bog", "perfect", "spin"]:
+		problems.append("launch grades wrong: %s" % str(launches))
+	# Holding the gas from the first amber overshoots the launch zone by green: the launch is a skill.
+	var revs_at_green := minf(1.0, Meet.REV_UP * (3.0 * Meet.TREE_STEP))
+	if Meet.launch_grade(revs_at_green) != "spin":
+		problems.append("gas held from the first amber lands a %s launch" % Meet.launch_grade(revs_at_green))
 	digest.append("clock, pay, shifts")
 
 

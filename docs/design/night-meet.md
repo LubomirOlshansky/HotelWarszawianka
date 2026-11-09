@@ -109,3 +109,12 @@ F played it and found it weak. Changed in `street_meet.gd`:
   shift now, red the limiter; gear and km/h in the middle): tap it (a second finger) or the ⬆ BIEG
   button to shift. No auto-shift on time any more: only 2.5 s on the limiter makes the box shift
   late for you.
+- **Launch and grades (F 2026-11-09, "look how arcade games do it", CSR-style drag games)**: on the
+  line the gas only revs the engine and the car stays put; at green the needle in the blue launch
+  zone (0.55-0.78 of the range) is a perfect launch (a burst), over it wheelspin (accel × 0.55 for
+  0.9 s), under it a bog. Holding the gas from the first amber overshoots: a tap-and-hold at "1"
+  lands it. Shifts: yellow = good, green = perfect (a burst), before the yellow = early (a bog),
+  0.8 s past the green on the limiter = late. No false start by gas any more.
+- **Less on screen during the drag** (F: "lots of dialogs one over another"): the bubbles clear on
+  the line, Tadek speaks while you watch instead, and the radio ticker, info notes and flavour toasts
+  wait until the result (`hud.set_hush`).

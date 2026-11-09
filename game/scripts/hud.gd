@@ -341,6 +341,9 @@ var _mini_dots := PackedVector2Array()
 ## A quest's own racers on the minimap (street_meet.gd's club), kept apart from the rivals' dots,
 ## which rivals.gd writes every frame.
 var _quest_dots := PackedVector2Array()
+## A focused moment (street_meet.gd's drag, F 2026-11-08: "too many dialogs one over another"):
+## while true the radio's ticker, the info notes (a district discovered) and flavour toasts wait.
+var hush := false
 var _quest_dot_colours := PackedColorArray()
 var _mini_dot_colours := PackedColorArray()
 ## Loop 2d-1: whose the context button is ("call" or "ride").
@@ -1411,6 +1414,8 @@ func _build_ticker() -> void:
 ## Shows a line on the now-playing ticker for a few seconds: the radio's station changes, and
 ## the radio host's lines with an English subtitle (held longer and wrapped to a readable width).
 func ticker(text: String, colour: Color, subtitle := "") -> void:
+	if hush:
+		return
 	text = Lang.pick(text, subtitle)
 	subtitle = ""
 	colour = Access.tint(colour)  # colour-safe (access.gd)
@@ -1476,6 +1481,8 @@ func _build_toast() -> void:
 ## another ambient toast came in the last AMBIENT_TOAST_GAP seconds (G16).
 ## Phase 0.2: also dropped while the car struggles (and a few seconds after: chatter.gd quiet()).
 func ambient_toast(text: String, gloss := "") -> void:
+	if hush:
+		return
 	var now := Time.get_ticks_msec() / 1000.0
 	if _kmh > 10 and now - _ambient_toast_at < AMBIENT_TOAST_GAP:
 		return
@@ -2432,6 +2439,15 @@ func ticker_out() -> void:
 		_ticker_left = 0.4
 
 
+## The focused moment on or off (see `hush`): on, what is up now fades out at once.
+func set_hush(on: bool) -> void:
+	hush = on
+	if on:
+		ticker_out()
+		_note_left = minf(_note_left, 0.4)
+		_toast_left = minf(_toast_left, 0.3)
+
+
 ## The app's route as a polyline in map coordinates (empty: none), drawn as dots on the minimap.
 ## Beta values (2026-11-04): `owner` names who drew it (route_line.gd's users: "jobs", "race"), so
 ## clear_minimap_route(owner) never wipes a route another activity has drawn since.
@@ -2604,6 +2620,8 @@ static func _money(amount: int) -> String:
 
 ## A small card under the wallet for a few seconds (an easter egg found).
 func show_note(title: String, body: String, colour: Color) -> void:
+	if hush:
+		return
 	colour = Access.tint(colour)  # colour-safe (access.gd)
 	_set_note_width()  # landmark card fix
 	_note_title.text = title

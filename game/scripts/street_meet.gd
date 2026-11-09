@@ -43,7 +43,11 @@ extends Node3D
 ## across the plaza to box you in (the road chasers still come); the racers show on the minimap
 ## and race at about your own pace with every shortcut; the drag has a start gate over the line
 ## (stop on it to stage), a big 3-2-1-START! count, and a rev counter (DragTacho) you shift on
-## yourself.
+## yourself. Then, as in the CSR-style drag games: on the line the gas only revs the engine (keep the
+## needle in the blue launch zone at green: a perfect launch; over it wheelspin, under it a bog;
+## no false start by gas any more), and a shift in the yellow is "good", in the green "perfect",
+## before the yellow "early", long on the limiter "late". During the drag the radio ticker,
+## info notes and flavour toasts wait (hud.set_hush) and the bubbles are cleared.
 ##
 ## Nothing here per frame when idle (a TICK s look). During the quest: the meet's few draw calls
 ## (marks, smoke, glow, the crowd, three own cars and their lights, the start gate at the drag), the
@@ -171,6 +175,19 @@ const BOG_S := 0.6
 ## (a late, slow shift). The tacho (DragTacho) shows the zones: yellow from SHIFT_SHOW, green from
 ## SHIFT_AT, red the limiter.
 const AUTO_SHIFT := 2.5
+## The genre's grades (CSR-style drag games, F 2026-11-08 "look how arcade games do the shifting"):
+## a press in the yellow (from SHIFT_SHOW) or up to GOOD_LATE s past the green is "good" (no burst,
+## no bog); before the yellow "early" (a bog); later than GOOD_LATE on the limiter "late".
+const GOOD_LATE := 0.8
+## The launch (the same games): on the line the car is held and the gas only revs the engine; the
+## needle climbs REV_UP a second with the gas, falls REV_DOWN without. At green the needle in the
+## launch zone LAUNCH (shares of the dial's 0-1 rev range) is a perfect start (a burst); over
+## it the tyres spin (accel × SPIN for SPIN_S s); under it a bog.
+const REV_UP := 0.9
+const REV_DOWN := 1.4
+const LAUNCH := Vector2(0.55, 0.78)
+const SPIN := 0.55
+const SPIN_S := 0.9
 ## The tree: the pre-stage, the three ambers TREE_STEP apart, then green after up to TREE_JITTER s
 ## more; moving FALSE_M m before green is a false start.
 ## F 2026-11-08 ("no 3, 2, 1 before the drag"): each amber is a big 3, 2, 1 on screen, a second's
@@ -339,6 +356,10 @@ var _gear := 0
 var _shift_w := -1.0
 var _boost_t := 0.0
 var _bog_t := 0.0
+## The launch: the revs on the line (0-1 of the gear's range) and the gas held now.
+var _revs := 0.0
+var _spin_t := 0.0
+var _rev_gas := false
 var _top_was := 1.0
 var _accel_was := 1.0
 var _nitro_was := false
@@ -404,6 +425,21 @@ static func shift_grade(w: float) -> String:
 	if w < 0.0:
 		return "early"
 	return "perfect" if w <= PERFECT else "late"
+
+
+## A press's grade with the needle at `k` of the gear's cap and `w` s since the green (negative:
+## not there yet): "perfect", "good", "early" or "late".
+static func shift_grade_at(k: float, w: float) -> String:
+	if w >= 0.0:
+		return shift_grade(w) if w <= PERFECT else ("good" if w <= GOOD_LATE else "late")
+	return "good" if k >= SHIFT_SHOW else "early"
+
+
+## The launch's grade from the revs at green: "perfect", "spin" or "bog".
+static func launch_grade(revs: float) -> String:
+	if revs > LAUNCH.y:
+		return "spin"
+	return "perfect" if revs >= LAUNCH.x else "bog"
 
 
 ## One 402 m run of a car with `accel` (m/s²) and `top` (m/s, the drag top), the car.gd equation,
@@ -857,6 +893,9 @@ class DragTacho extends Control:
 	var show_at := 0.82
 	var green_at := 0.96
 	var limiter := false
+	## On the line: the launch zone (shares of the rev range) shown instead of the shift zones.
+	var staging := false
+	var launch := Vector2(0.55, 0.78)
 	var _t := 0.0
 
 	func _ready() -> void:
@@ -900,12 +939,15 @@ class DragTacho extends Control:
 		var r := radius()
 		var c := centre()
 		var top := gear >= gears - 1
-		var in_green := not top and k >= green_at
+		var in_green := not top and not staging and k >= green_at
 		var flash := limiter and fmod(_t, 0.2) < 0.1
 		draw_circle(c, r * 1.08, Color(0.04, 0.04, 0.05, 0.86))
 		var w := r * 0.13
 		_arc(c, r * 0.9, 0.0, 1.0, w, Color(1, 1, 1, 0.14))
-		if not top:
+		if staging:
+			var in_l := k >= launch.x and k <= launch.y
+			_arc(c, r * 0.9, dial(launch.x), dial(launch.y), w * (1.35 if in_l else 1.0), Color("#38f6ff"))
+		elif not top:
 			_arc(c, r * 0.9, dial(show_at), dial(green_at), w, Color("#ffb21e"))
 			_arc(c, r * 0.9, dial(green_at), dial(1.0), w * (1.35 if in_green else 1.0), Color("#3cff6a"))
 		_arc(c, r * 0.9, dial(1.0), 1.0, w, Color("#ff2a2a"))
@@ -932,10 +974,12 @@ class DragTacho extends Control:
 		var ss := int(r * 0.13)
 		var sw := font.get_string_size(sp, HORIZONTAL_ALIGNMENT_LEFT, -1, ss).x
 		draw_string(font, c + Vector2(-sw * 0.5, r * 0.5), sp, HORIZONTAL_ALIGNMENT_LEFT, -1, ss, Color(1, 1, 1, 0.8))
-		if top:
+		if top and not staging:
 			return
 		var word := Lang.pick("BIEG ⬆ TERAZ!", "SHIFT ⬆ NOW!") if in_green or limiter else Lang.pick("BIEG ⬆", "SHIFT ⬆")
-		var ws := int(r * 0.17)
+		if staging:
+			word = Lang.pick("GAZ: OBROTY W NIEBIESKIM", "GAS: REVS IN THE BLUE")
+		var ws := int(r * 0.2)
 		var ww := font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1, ws).x
 		var col := Color("#ff2a2a") if flash else (Color("#3cff6a") if in_green else Color(1, 1, 1, 0.75))
 		draw_string_outline(font, c + Vector2(-ww * 0.5, -r * 1.16), word, HORIZONTAL_ALIGNMENT_LEFT, -1, ws, maxi(3, ws / 6), Color(0.03, 0.03, 0.04, 0.9))
@@ -1757,6 +1801,9 @@ func _watch() -> void:
 		for j in 2:
 			_put_node(cars[j], strip_at(0.0, -float(strip["lane_gap"]) * j), strip_yaw())
 	_put_node(_skajlajner, strip_at(-12.0, -float(strip["lane_gap"])), strip_yaw())
+	get_tree().create_timer(5.0).timeout.connect(func() -> void:
+		if state == State.WATCH:
+			_line(DRAG_LINES["boss"], 4.0))
 	_log("watch: two pairs, then START DRAG")
 
 
@@ -1796,6 +1843,7 @@ func _stage() -> void:
 	_shift_w = -1.0
 	_boost_t = 0.0
 	_bog_t = 0.0
+	_spin_t = 0.0
 	_player_s = 0.0
 	_rival_s = 0.0
 	_rival_done = -1.0
@@ -1825,6 +1873,15 @@ func _stage() -> void:
 	_tree.red = false
 	_tree.since_green = 0.0
 	_tree.queue_redraw()
+	_revs = 0.0
+	_rev_gas = false
+	_tacho.launch = LAUNCH
+	_tacho.staging = true
+	if hud.has_method("set_hush"):
+		hud.set_hush(true)
+	hud.hide_status()
+	if dialogue != null and dialogue.bubbles != null:
+		dialogue.bubbles.clear()
 	_tacho.show_at = SHIFT_SHOW
 	_tacho.green_at = SHIFT_AT
 	_tacho.gears = GEARS.size()
@@ -1833,7 +1890,6 @@ func _stage() -> void:
 	_tacho.kmh = 0.0
 	_tacho.limiter = false
 	_tacho.visible = true
-	_line(DRAG_LINES["boss"], 3.0)
 	_log("stage: Tadek's run %.2f s (ok %.2f, perfect %.2f)" % [rr[2], rr[3], rr[4]])
 
 
@@ -1844,6 +1900,11 @@ func hold_car(c: Node) -> void:
 	if c == null or not (state == State.STAGE or state == State.RUN) or not bool(strip.get("ok", false)):
 		return
 	hold_inputs(c, strip)
+	if state == State.STAGE:
+		# The launch: the gas revs the engine, the car stays on the line (no false start by gas).
+		_rev_gas = float(c.throttle) > 0.05 or bool(c.nitro_on)
+		c.throttle = 0.0
+		c.nitro_on = false
 
 
 ## hold_car's inputs for a car on a strip ({start, dir, right} as Vector2s), static for the check.
@@ -1878,11 +1939,16 @@ func _drag_frame(dt: float) -> void:
 			_line(DRAG_LINES["false"], 3.0)
 			_drag_end(false, "false")
 			return
+		_revs = clampf(_revs + (REV_UP if _rev_gas else -REV_DOWN) * dt, 0.0, 1.0)
+		_tacho.k = _revs
+		_tacho.kmh = 0.0
 		if _tree_t >= _green_at:
 			_tree.green = true
 			_tree.queue_redraw()
 			state = State.RUN
 			_run_t = 0.0
+			_tacho.staging = false
+			_launch(launch_grade(_revs))
 			Access.buzz(80, 0.8)
 		return
 	_run_t += dt
@@ -1898,7 +1964,9 @@ func _drag_frame(dt: float) -> void:
 	# left on the limiter AUTO_SHIFT s.
 	_boost_t = maxf(0.0, _boost_t - dt)
 	_bog_t = maxf(0.0, _bog_t - dt)
-	car.accel_mult = _accel_was * (SHIFT_BOOST if _boost_t > 0.0 else 1.0) * (EARLY_BOG if _bog_t > 0.0 else 1.0)
+	_spin_t = maxf(0.0, _spin_t - dt)
+	car.accel_mult = _accel_was * (SHIFT_BOOST if _boost_t > 0.0 else 1.0) * (EARLY_BOG if _bog_t > 0.0 else 1.0) \
+			* (SPIN if _spin_t > 0.0 else 1.0)
 	car.top_mult = _top_was * DRAG_TOP * float(GEARS[_gear])
 	var cap := float(car.max_speed) * float(car.top_mult)
 	var v: float = car.vel.length()
@@ -1930,10 +1998,29 @@ func _drag_frame(dt: float) -> void:
 		_drag_end(false, "slow")
 
 
+## Green: the launch's effect and its banner.
+func _launch(grade: String) -> void:
+	match grade:
+		"perfect":
+			_boost_t = BOOST_S
+			hud.show_banner(Lang.pick("IDEALNY START!", "PERFECT LAUNCH!"), Color("#3cff6a"))
+		"spin":
+			_spin_t = SPIN_S
+			hud.show_banner(Lang.pick("BUKSOWANIE!", "WHEELSPIN!"), Color("#ffb21e"))
+		_:
+			_bog_t = BOG_S
+			hud.show_banner(Lang.pick("ZA MAŁO OBROTÓW", "BOGGED DOWN"), Color("#ffb21e"))
+	get_tree().create_timer(0.9).timeout.connect(func() -> void:
+		if hud != null and state == State.RUN:
+			hud.hide_banner())
+	_log("launch: %s (revs %.2f)" % [grade, _revs])
+
+
 func _shift_pressed() -> void:
 	if _gear >= GEARS.size() - 1:
 		return
-	_shift("early" if _shift_w < 0.0 else shift_grade(_shift_w))
+	var cap := float(car.max_speed) * float(car.top_mult)
+	_shift(shift_grade_at(float(car.vel.length()) / maxf(cap, 0.1), _shift_w))
 
 
 ## A shift: "perfect" (a burst), "late" (just the gear), "early" (a bog), "auto" (the box did it).
@@ -1944,13 +2031,17 @@ func _shift(how: String) -> void:
 	match how:
 		"perfect":
 			_boost_t = BOOST_S
-			hud.show_banner("IDEALNIE!", Color("#3cff6a"))
+			hud.show_banner(Lang.pick("IDEALNIE!", "PERFECT!"), Color("#3cff6a"))
 			Access.buzz(40, 0.6)
 		"early":
 			_bog_t = BOG_S
-			hud.show_banner("ZA WCZEŚNIE", Color("#ffb21e"))
+			hud.show_banner(Lang.pick("ZA WCZEŚNIE", "TOO EARLY"), Color("#ffb21e"))
+		"good":
+			hud.show_banner(Lang.pick("DOBRZE", "GOOD"), Color("#f2f2f2"))
+		"late":
+			hud.show_banner(Lang.pick("ZA PÓŹNO", "LATE"), Color("#ffb21e"))
 		"auto":
-			hud.show_banner("SPÓŹNIONY BIEG", Color("#ffb21e"))
+			hud.show_banner(Lang.pick("SPÓŹNIONY BIEG", "MISSED SHIFT"), Color("#ffb21e"))
 		_:
 			hud.show_banner("BIEG %d" % (_gear + 1), Color("#f2f2f2"))
 	get_tree().create_timer(0.7).timeout.connect(func() -> void:
@@ -1968,6 +2059,8 @@ func _drag_end(won: bool, how: String) -> void:
 	hud.hide_pill()
 	hud.hide_banner()
 	_tacho.visible = false
+	if hud.has_method("set_hush"):
+		hud.set_hush(false)
 	_tree.visible = how == "false"
 	if _tree.visible:
 		get_tree().create_timer(2.0).timeout.connect(func() -> void: _tree.visible = false)
@@ -2064,6 +2157,8 @@ func _finish() -> void:
 	_beacon.visible = false
 	_tree.visible = false
 	_tacho.visible = false
+	if hud != null and hud.has_method("set_hush"):
+		hud.set_hush(false)
 	_show_gate(false)
 	for n: Node3D in [_bawarka, _porsze, _skajlajner] + _show_cars:
 		n.visible = false
