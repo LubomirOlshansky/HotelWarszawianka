@@ -10,6 +10,7 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-09
+- No more trees growing through the walls of houses: about 180 trees that stood inside building outlines (mostly in courtyards) are gone or stepped just outside.
 - No more trees growing out of the Vistula or standing in the traffic lanes: about 1,000 street trees stepped back onto the pavement, and the fences that stood in the river by the DESKA club are gone.
 
 ## 2026-11-08

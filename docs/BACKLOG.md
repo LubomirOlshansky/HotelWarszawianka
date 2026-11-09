@@ -9,9 +9,9 @@ Fixed: the 2023 laser-scanned trees were kept wherever the scan put them, and th
 and road widths are OSM's, so 211 trunks stood in the Vistula or a pond and 1,149 on the drawn asphalt
 (F's screenshots: a tree in the river by a bridge, a street with trees in the lane); OSM fences at the
 old waterline stood in the river by Most Łazienkowski and WTS DESKA. `object_fixes.py` T1/T2/L6 remove,
-move or trim them; `verify.sh objects` keeps them at 0. Left:
-- TR-1 181 scanned trees stand inside a building outline over 2.5 m high (a courtyard mapped as part of
-  the building, or the outline grown over the crown): not touched, a person should look at a few.
+move or trim them; `verify.sh objects` keeps them at 0. TR-1 fixed (2026-11-09): T3 moves the 181 scanned
+trees standing inside a building outline 2.5 m or higher out of the walls (52) or removes them (129, no free
+spot within 3 m: a courtyard mapped as part of the building); `verify.sh objects` keeps T3 at 0. Left:
 - TR-2 Walls in the water (17 quay, breakwater and fountain walls by Port Czerniakowski and a pond in
   the west) are left as they are on purpose; check on the phone whether any reads as wrong.
 

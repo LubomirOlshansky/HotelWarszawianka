@@ -5287,6 +5287,9 @@ area; walls are left: quays, breakwaters, fountain rims); `tools/object_fixes.py
 (114; a moved tree beside a deck gets its crown trimmed by `bake_structures.trim_crowns`, check_roads C9), and trims L6's wet parts (6 fences, three of them by Most Łazienkowski at WTS DESKA). trees3d
 271,896 → 269,946, crowns 45,316 → 44,991 (`check_map_data.py` EXPECTED). `verify.sh objects` holds T1, T2
 and L6 at 0. ao.bin, street_details.json and park_details.json re-baked.
+TR-1 (2026-11-09): object_audit rule T3 (a scanned tree inside a building outline 2.5 m or higher) with
+`object_fixes.py` VERSION 3: moved like T2 to a free spot within 3 m (52) else removed (129); trees3d
+269,946 → 269,172, crowns 44,991 → 44,862 (`check_map_data.py` EXPECTED). `verify.sh objects` holds T3 at 0.
 
 **Dworzec Centralny's car park ramp (F, 2026-11-08)**: `tools/centralny_ramp.py` (bake_osm right after
 bake_structures, or as a CLI on a baked map; idempotent, `--check` is verify step `centralnyramp`) makes the
