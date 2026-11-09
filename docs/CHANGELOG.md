@@ -10,6 +10,7 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-09
+- Teatr Ateneum has its portico now: two columns, the big coloured ATENEUM letters over the door.
 - Powiśle's crossings have street name plates now: a navy plate on a grey pole at the corners of Tamka, Dobra, Topiel and the other side streets.
 
 - Nineteen more Powiśle houses look like their photos: their own colours, balconies and shop bands on Leszczyńska, Browarna, Dobra, Topiel, Solec, Aleja 3 Maja and Zajęcza.

@@ -22,6 +22,7 @@ extends Node3D
 
 const Props := preload("res://scripts/props.gd")
 const Models := preload("res://scripts/models.gd")
+const PixelFont := preload("res://scripts/pixel_font.gd")
 
 ## The houses from the photos: [x, z (the address point, inside the house), plaster, style].
 ## style: "balc" rail colour, "base" ground-floor facing, "shops" false for none, "crenel" attic.
@@ -109,6 +110,9 @@ const BOLLARD_CELL := 300.0
 ## Street name plates: the box they are looked for in and how far past the kerb the pole stands.
 const PLATE_AREA := Rect2(-300.0, -1150.0, 1150.0, 1000.0)
 const PLATE_OUT := 0.9
+## Teatr Ateneum's portico: the middle of its east wall on Jaracza and the wall's outward direction.
+const ATENEUM_AT := Vector2(586.0, -378.35)
+const ATENEUM_OUT := Vector2(0.789, 0.614)
 ## Park Odkrywców by the science centre (F's photos E02, 2026-11-09): the steel listening pipes on
 ## the lawn, each a tube with a bent horn on top, and two parabolic dishes facing each other 14 m
 ## apart (whisper to one, hear it at the other). Spots on open grass clear of the paths (from
@@ -180,6 +184,7 @@ func build() -> void:
 	_bollards(cells)
 	_park(cells)
 	_plates(cells)
+	_ateneum(cells)
 	for key: Vector2i in cells:
 		var cell := MeshInstance3D.new()
 		cell.name = "Bollards_%d_%d" % [key.x, key.y]
@@ -262,6 +267,56 @@ func _bollards(cells: Dictionary) -> void:
 				var at: Vector2 = a + dir * (BOLLARD_STEP * (k + 0.5)) + side * sgn * (w * 0.5 + BOLLARD_OUT)
 				if _clear(at, own, others, zebras):
 					_bollard(_cell(cells, at), at)
+
+
+## Teatr Ateneum's portico on Jaracza (F's photos X-Ateneum, 2026-11-09): two stout grey columns on
+## three low steps carrying a flat architrave lettered TEATR IM. STEFANA JARACZA, over it the pale
+## arched band with ATENEUM in big coloured block letters (red, green, black, blue, red, green,
+## black), a dark wooden door between and a lit poster case either side. It stands on the middle of
+## the theatre's east wall (the 20.8 m house between Jaracza and the embankment, the wall that runs
+## along Jaracza), the way out being ATENEUM_OUT; in the bollards' cell mesh (no draw call).
+func _ateneum(cells: Dictionary) -> void:
+	var at := ATENEUM_AT
+	var n2 := ATENEUM_OUT
+	var n3 := Vector3(n2.x, 0.0, n2.y)
+	var b := Basis.looking_at(-n3, Vector3.UP)
+	var g: float = map.ground_height(at.x, at.y)
+	var st := _cell(cells, at)
+	var o := Vector3(at.x, g, at.y)
+	var stone := Color("#c6c2b8")
+	var grey := Color("#bdb8ab")
+	# steps, columns, architrave
+	Props.obox(st, o + b * Vector3(0, 0.08, 3.2), b, Vector3(7.8, 0.16, 1.4), grey)
+	Props.obox(st, o + b * Vector3(0, 0.24, 2.7), b, Vector3(7.0, 0.16, 0.9), grey)
+	for cx: float in [-1.9, 1.9]:
+		Props.obox(st, o + b * Vector3(cx, 2.4, 2.0), b, Vector3(0.9, 4.0, 0.9), stone)
+		Props.obox(st, o + b * Vector3(cx, 2.4, 2.0), b * Basis(Vector3.UP, PI * 0.25), Vector3(0.9, 4.0, 0.9), stone)
+		Props.obox(st, o + b * Vector3(cx, 4.5, 2.0), b, Vector3(1.3, 0.25, 1.3), grey)
+	Props.obox(st, o + b * Vector3(0, 5.0, 1.6), b, Vector3(7.8, 0.9, 3.4), grey)
+	Props.obox(st, o + b * Vector3(0, 5.0, 3.32), b, Vector3(6.6, 0.5, 0.06), Color("#d9d5ca"))
+	var right := b * Vector3.RIGHT
+	var title := "TEATR IM. STEFANA JARACZA"
+	var tpx := 0.036
+	var tw := PixelFont.width(title) * tpx
+	PixelFont.add_quads(st, title, o + b * Vector3(-tw * 0.5, 5.2, 3.36), right, Vector3.DOWN, tpx, Color("#4a4640"), Props.FIXED)
+	# the arched band and the big letters
+	Props.obox(st, o + b * Vector3(0, 7.4, 0.12), b, Vector3(10.8, 3.2, 0.24), Color("#d6d2c8"))
+	Props.obox(st, o + b * Vector3(0, 9.1, 0.12), b, Vector3(7.4, 0.5, 0.24), Color("#d6d2c8"))
+	var word := "ATENEUM"
+	var inks := [Color("#c8282a"), Color("#3d9a4a"), Color("#3a3d45"), Color("#2f5fb8"), Color("#c8282a"), Color("#3d9a4a"), Color("#3a3d45")]
+	var lpx := 0.12
+	var full := PixelFont.width(word) * lpx
+	var x := -full * 0.5
+	for k in word.length():
+		var ch := word.substr(k, 1)
+		PixelFont.add_quads(st, ch, o + b * Vector3(x, 8.0, 0.28), right, Vector3.DOWN, lpx, inks[k], Props.FIXED)
+		x += PixelFont.width(ch) * lpx + lpx
+	# the door and the two poster cases
+	Props.obox(st, o + b * Vector3(0, 1.7, 0.1), b, Vector3(2.6, 3.4, 0.2), Color("#5a3a28"))
+	Props.obox(st, o + b * Vector3(0, 3.5, 0.12), b, Vector3(2.6, 0.5, 0.2), Color("#2d3a38"))
+	for cx: float in [-4.6, 4.6]:
+		Props.obox(st, o + b * Vector3(cx, 2.3, 0.1), b, Vector3(1.3, 2.1, 0.12), Color("#4a3a32"))
+		Props.obox(st, o + b * Vector3(cx, 2.3, 0.18), b, Vector3(1.05, 1.8, 0.05), Color("#c98a5a"))
 
 
 ## Street name plates (Warsaw's navy plate on a grey pole, Props.add_street_plates) at the corners

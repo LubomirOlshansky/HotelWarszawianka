@@ -15,7 +15,8 @@ extends SceneTree
 ##      AREA, picking its own look; each front a unit-ish normal that one of its walls faces;
 ##   8. Park Odkrywców's pipes and dishes and the Kahl stone stand outside every mapped building;
 ##   9. the street name plates (plate_spots): 25 or more, each clear of every carriageway and house,
-##      12 m apart, two different names, none a duplicate of its own street.
+##      12 m apart, two different names, none a duplicate of its own street;
+##  10. Teatr Ateneum's portico stands on a mapped wall and points out of the house.
 ## Prints "check_tamka: OK (...)" or the problems (exit 1).
 ##   godot --headless --path game --script res://tools/check_tamka.gd
 
@@ -36,6 +37,7 @@ func _init() -> void:
 	_powisle(data)
 	_park(data)
 	var plates := _plates(data)
+	_ateneum(data)
 	if problems.is_empty():
 		print("check_tamka: OK (%d Tamka + %d Powiśle photo houses, walk %.0f m, walker %d triangles, %d lines, %d plates)" % [
 				Tamka.HOUSES.size(), PowisleHouses.HOUSES.size(), walk, tris, lines, plates])
@@ -245,3 +247,25 @@ func _plates(data: Dictionary) -> int:
 				problems.append("plate %d stands inside a house" % a)
 				break
 	return spots.size()
+
+
+func _ateneum(data: Dictionary) -> void:
+	var at: Vector2 = Tamka.ATENEUM_AT
+	var out: Vector2 = Tamka.ATENEUM_OUT
+	if absf(out.length() - 1.0) > 0.01:
+		problems.append("ATENEUM_OUT is not a unit vector")
+	var on_wall := false
+	for bld: Dictionary in data.get("buildings", []):
+		var bp: Array = bld["p"]
+		var q := PackedVector2Array()
+		for i in range(0, bp.size() - 1, 2):
+			q.append(Vector2(float(bp[i]), float(bp[i + 1])))
+		if q.size() < 3:
+			continue
+		for k in q.size():
+			if Geometry2D.get_closest_point_to_segment(at, q[k], q[(k + 1) % q.size()]).distance_to(at) < 0.6:
+				on_wall = true
+				if Geometry2D.is_point_in_polygon(at + out * 2.0, q) or not Geometry2D.is_point_in_polygon(at - out * 2.0, q):
+					problems.append("the Ateneum portico does not point out of its house")
+	if not on_wall:
+		problems.append("the Ateneum portico is not on a mapped wall")
