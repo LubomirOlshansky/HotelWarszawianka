@@ -8025,6 +8025,7 @@ func _mapped_style(l: Dictionary, style: Array) -> Array:
 ## outer face (the one facing away from the Rynek): wide merlons with narrow embrasures.
 const CITY_WALL := Color("#b8704f")
 const CITY_WALL_CAP := Color("#c98a6c")
+const TOWER_TILE := Color("#9a4a38")
 const WALL_MERLON_MIN := 5.0
 const WALL_MERLON := 1.6
 const WALL_CRENEL := 0.7
@@ -8074,7 +8075,50 @@ func _build_city_walls(st) -> void:
 						Vector3(a.x, ga, a.y), Vector3(b.x, tops[j] + 1.5, b.y), Vector3(a.x, tops[i] + 1.5, a.y)])
 			if h >= WALL_MERLON_MIN and Vector2(n.x, n.z).dot((a + b) * 0.5 - OLD_TOWN_HEART) > 0.0:
 				_merlons(st, a, b, tops[i], tops[j], Vector2(n.x, n.z), _wall_depth(ring))
+		if _is_wall_tower(ring, h):
+			_tower_roof(st, ring, maxf(tops[0], tops[ring.size() / 2]))
 	_uv2 = Vector2.ZERO
+
+
+## Whether a city-wall ring is a tower (Baszta Rycerska, the Altana): compact (at most 12 m
+## across, 15-60 m2) and at least 5 m high. The wall strips are long and thin; the little stairs
+## and rubble rings are lower or smaller.
+func _is_wall_tower(ring: PackedVector2Array, h: float) -> bool:
+	if h < 5.0 or ring.size() < 6:
+		return false
+	var lo := Vector2(INF, INF)
+	var hi := -lo
+	var area := 0.0
+	for i in ring.size():
+		lo = lo.min(ring[i])
+		hi = hi.max(ring[i])
+		area += ring[i].cross(ring[(i + 1) % ring.size()])
+	return absf(area) * 0.5 >= 15.0 and absf(area) * 0.5 <= 60.0 and maxf(hi.x - lo.x, hi.y - lo.y) <= 12.0
+
+
+## A tower's tile cone (F, 2026-11-09, photos E14-E16): the ring pushed out 0.45 m into an eave
+## at the tower's top, a steep tile-red cone over the ring's middle, a ball and a spike.
+func _tower_roof(st, ring: PackedVector2Array, top: float) -> void:
+	var c := Vector2.ZERO
+	for q in ring:
+		c += q
+	c /= ring.size()
+	var rad := 0.0
+	for q in ring:
+		rad = maxf(rad, q.distance_to(c))
+	var rise := rad * 1.7 + 1.5
+	var apex := Vector3(c.x, top + rise, c.y)
+	var scale := 1.0 + 0.45 / maxf(rad, 1.0)
+	for i in ring.size():
+		var a := c + (ring[i] - c) * scale
+		var b := c + (ring[(i + 1) % ring.size()] - c) * scale
+		var pa := Vector3(a.x, top, a.y)
+		var pb := Vector3(b.x, top, b.y)
+		var n := (pb - pa).cross(apex - pa).normalized()
+		if n.y < 0.0:
+			n = -n
+		_tri(st, pa, pb, apex, n, TOWER_TILE.darkened(0.04 * float(i % 3)))
+	_tri(st, Vector3(c.x - 0.1, top + rise, c.y), Vector3(c.x + 0.1, top + rise, c.y), Vector3(c.x, top + rise + 1.6, c.y), Vector3.UP, CITY_WALL_CAP)
 
 
 ## A wall ring's thickness, about: twice its area over its perimeter (a long thin strip), at most
@@ -10938,6 +10982,20 @@ const PLAC_PALETTE_R := 110.0
 const SQUARE_FRONT_R := 48.0
 ## building.gdshader's T_OLDTOWN: the historic districts' walls (F's photos, 2026-11-08).
 const OLD_TOWN_TYPE := 4
+## The Old Town Market Square's houses (F, 2026-11-09): within RYNEK_PALETTE_R of its centre each
+## house is a painted front in one of these (ochre, salmon, sage, powder blue, pale pink, cream,
+## terracotta, lilac, straw), unless OSM names its colour; the named houses below have their own,
+## by hand (a stand-in until the Mac photo check).
+const RYNEK_PALETTE_R := 75.0
+const RYNEK_PASTELS := ["#e3b560", "#dd9a85", "#a9c2a0", "#9bbdd0", "#ecc5c0", "#f0e5c8", "#cf7d59", "#bfaed0", "#dfc78c"]
+const RYNEK_NAMED := {
+	"Kamienica Fukierowska": "#e8c6a3",
+	"Kamienica pod św. Anną": "#d99b7c",
+	"Kamienica Gizińska": "#c9d4a6",
+	"Kamienica Busserowska": "#e9c4b6",
+	"Kamienica Balcerowska": "#b6cdd8",
+	"Staromiejski Dom Kultury Słowa": "#e6d6b0",
+}
 const PLAC_PASTELS := ["#ecd9a4", "#e9bda8", "#e3b5b0", "#c6d3b3", "#bfd2e0", "#efe4cf", "#e6cba0", "#d9c6d6"]
 ## Mariensztat (the Mariensztat review, 2026-11-01): the 1948-49 estate under the escarpment
 ## (Rynek Mariensztacki, Mariensztat, Sowia, Garbarska, Furmańska and lower Bednarska), small
@@ -11224,6 +11282,8 @@ func _tenement_facades(pos: PackedVector3Array, nrm: PackedVector3Array, col: Pa
 			look = Color(POWISLE_PASTELS[(hsh / 7) % POWISLE_PASTELS.size()]).lerp(look, 0.25)
 		if box.get_center().distance_to(OldTownRoofs.PLAC) < PLAC_PALETTE_R:
 			look = Color(PLAC_PASTELS[hsh % PLAC_PASTELS.size()]).lerp(look, 0.25)
+		if box.get_center().distance_to(OldTownRoofs.RYNEK) < RYNEK_PALETTE_R:
+			look = _rynek_look(str(bld.get("name", "")), str(bld["c"]), hsh, look)
 		looks.append(look)
 		seeds.append(fposmod(hsh * 0.6180339887, 1.0))
 		roofs.append(_tile_colour(hsh))
@@ -11281,6 +11341,16 @@ func _tenement_facades(pos: PackedVector3Array, nrm: PackedVector3Array, col: Pa
 	if not _in_sector and tamka_houses > 0:
 		print("tamka: %d houses in the photos' looks, %d balconies" % [tamka_houses, TenementTrim.balconies - balc0])
 	return [col, uv2, dress]
+
+
+## A Market Square house's painted colour: its OSM colour when it has one, the named table's,
+## else a pick from RYNEK_PASTELS by the house's hash (neighbours differ: the hash steps by 3).
+func _rynek_look(bname: String, osm: String, hsh: int, fallback: Color) -> Color:
+	if osm != "":
+		return fallback
+	if RYNEK_NAMED.has(bname):
+		return Color(RYNEK_NAMED[bname])
+	return Color(RYNEK_PASTELS[(hsh / 3) % RYNEK_PASTELS.size()])
 
 
 ## Whether wall triangle `t` faces the Old Town market square (within SQUARE_FRONT_R of its

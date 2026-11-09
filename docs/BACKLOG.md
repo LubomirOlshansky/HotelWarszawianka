@@ -724,11 +724,19 @@ warsaw-needed-photos/old-town, E01-E24) and Mapillary references:
   through the bastion, the gate wall toward Nowomiejska, the bridge's two arches with grilles.
 - The Syrenka's pose from F's photo: sword raised over her head, shield up at her left.
 Left:
-- **Rynek facades, per house**: the real colours, sgraffito and signs of named houses (Pod
-  Murzynkiem, Baryczków, Fukier) from photos; dormers float on LoD2 roofs in places.
-- **City wall towers and gates**: the towers' roofs, the Podwale gates and the white arch gate
-  (E14-01, E16); the Barbican's passage is a dark panel, not open.
-- **The Cathedral's nave roof** is one LoD2 slab (E06-E08).
+- **Done 2026-11-09 (trailer finish, no photos reachable from the cloud, so from memory, Mac look
+  check parked)**: Rynek houses within 75 m of the square's centre take a painted palette (OSM
+  colours kept, six named houses set by hand, `_rynek_look`) and about a third of the square-facing
+  houses get a diamond sgraffito (building.gdshader T_OLDTOWN); wall rings that are towers (Baszta
+  Rycerska, the Altana) get tile cones (`_tower_roof`); the Cathedral's nave has a steep tiled
+  gable over the LoD2 slab (`CATH_*` in landmarks.gd) and the ridge turret stands on it.
+- **Rynek facades, per house**: the colours and sgraffito are guesses; the real ones of Pod
+  Murzynkiem, Baryczków, Fukier from photos (Mac, E-series) still to check; dormers float on LoD2
+  roofs in places.
+- **City wall gates**: the Podwale gates and the white arch gate (E14-01, E16) are not built (no
+  gate outlines on the map); the Barbican's passage is a dark panel, not open (the bastion is one
+  solid prism).
+- The Cathedral's apse and south tower stay LoD2; the nave roof is untextured tile colour.
 - The fountain park stays off the map (F 2026-11-08: don't grow the map).
 - **Found 2026-11-08: check_streaming identity fails on main** (not run in CI): 2212 meshes and
   collider faces differ between the whole-city build and the 112 sector builds, across the map

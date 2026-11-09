@@ -10,6 +10,7 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-09
+- The Old Town is finished for the trailer: the Market Square houses are painted in their own ochre, salmon, sage, blue and pink fronts (some with incised diamond sgraffito), the Cathedral has a steep tiled roof over its nave instead of a flat slab, and the city wall's towers wear tile-red cone roofs.
 - Street race rivals are as fast as your car now. Pani Halina corners harder too, and if you drive fast she races you for real to the line instead of letting you win.
 - Nineteen more Powiśle houses look like their photos: their own colours, balconies and shop bands on Leszczyńska, Browarna, Dobra, Topiel, Solec, Aleja 3 Maja and Zajęcza.
 - Elektrownia Powiśle got its real look: the gabled brick hall, the glass lift with the blue box on top and four silver stacks. The Chopin Museum is white with an orange roof on its brick bastion, without the made-up tower.

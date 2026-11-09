@@ -334,6 +334,12 @@ vec3 typed_facade(int kind, vec3 col, float u, float h, float seed, float top, o
 			float diamond = abs(fract(u / 0.9) - 0.5) + abs(wy / 0.34 - 0.5);
 			return diamond < 0.28 ? mix(band, frame, 0.7) : band;   // the painted band
 		}
+		if (square && fract(s * 17.3) < 0.35 && h > g + 0.4) {
+			// sgraffito: a lozenge lattice incised in the plaster between the windows (the
+			// Rynek's painted houses), the lines a shade darker, the fields a shade lighter
+			float lat = min(abs(fract((u + h) / 0.62) - 0.5), abs(fract((u - h) / 0.62) - 0.5));
+			return lat > 0.43 ? col * 0.8 : col * 1.05;
+		}
 		return col;
 	}
 	if (kind == T_SLAB) {
