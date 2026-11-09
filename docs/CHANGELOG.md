@@ -10,6 +10,7 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-08
+- Night racing club, livelier: Lena and Darek drift a tandem at the second meet (now on the square at the foot of the National Stadium, no more fences through the ring), the first meet gets to the point sooner, a raid sends patrol cars driving in from every side to box you in, the other racers show on the minimap and drive fast with shortcuts, and the drag has a start gate over the line, a big 3-2-1-START! and a rev counter: shift up yourself in the green zone.
 - The blue glass office next to Hotel Warszawa is now a solid blue tower (it looked see-through with a broken top), and Hotel Warszawa has deeper pilasters and the tall copper doors from the photos.
 - Coffee run: the car's engine no longer follows you onto the bike (you hear the tyres, the chain and the hub ticking instead), the bike is faster, the four cafés have real lit fronts with their names and the one you ride to glows, and the café jokes stay on screen long enough to read.
 - Friends no longer phone you in the middle of a mission: Mrożulo's call and the other job calls wait until you are done, and a few seconds more.
