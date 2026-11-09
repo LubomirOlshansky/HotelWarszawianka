@@ -10,6 +10,18 @@ the guide, the rival ladder, the final "Trzy mosty", the end card). What it lack
 that says "this is the story, the rest is the city": every target looked the same (a dot in the
 job's colour), and between the guide and the final nothing on the map said where to go next.
 
+## 0. For now: only the first kebab (F, 2026-11-08)
+
+F: after the first task the star confused them while they were on a quest they had taken. Until
+the main line is reworked, `main_line.gd` FIRST_JOB_ONLY gates it (`now`): the star, the goal card
+under the full map's title and the nudge on the driving screen show only while the guide runs and
+no job is done yet, that is for the first kebab order. After it the main line is "done" and the
+guide's later targets (Pani Halina's race and the rest) are ordinary pins. The chapters below stay
+written; FIRST_JOB_ONLY false brings them back. The quest the player took is the marked one now:
+a glowing, pulsing pin in its colour (hud.gd `active_pin`) on the minimap and the full map, with a
+dotted line from the car on the full map, and the full map's quest card has a quit button (two
+taps) that gives the quest up as its status ✕ does.
+
 ## 1. The three chapters
 
 | Chapter | Time | What the player does | Where the marker points |

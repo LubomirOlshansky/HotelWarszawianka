@@ -188,6 +188,9 @@ const DEST_R := 300.0
 const RESULT_LIFE := 10.0
 ## Seconds after a card closes before the next offer may open (the OK tap must not hit it).
 const CARD_REST := 2.5
+## Seconds after a mission ends before a friend's phone call may ring (F 2026-11-08: Mrożulo rang
+## in the middle of a mission). The call waits, it is not dropped: `_look` asks again.
+const CALL_REST := 20.0
 const CUSTOMERS := ["Ania z HR", "Tomek z IT", "Kasia z marketingu", "Paweł z finansów", "Ola z działu prawnego", "Michał ze sprzedaży"]
 
 enum State { IDLE, OFFER, PICKUP, DELIVER, RESULT }
@@ -214,6 +217,13 @@ var away := false
 var quiet := false
 ## The first-10 guide (first10.gd `_hold_offers`): a beat is due, no offer until it has fired.
 var guide_hold := false
+## A mission of another script is on (main.gd `_quest_running`: a rescue, a race, a job, a
+## questline): no offer and no call. When it ends, calls wait CALL_REST s more (`_call_rest`).
+var mission_on := false:
+	set(v):
+		if mission_on and not v:
+			_call_rest = _session + CALL_REST
+		mission_on = v
 var autopilot := false
 ## Onto the arcade court (main.gd `_enter_padel`, padel_match.gd) with {partner, rivals, hour, flew,
 ## seed}; its end comes back through `arcade_done`. Unset (the checks): the card match.
@@ -234,6 +244,8 @@ var _dest := Vector2.INF
 var _cool := {}
 ## Session time before which no new offer opens (set when a card closes: CARD_REST).
 var _card_rest := 0.0
+## Session time before which no phone call rings (set when a mission ends: CALL_REST).
+var _call_rest := 0.0
 var _t := 0.0
 var _clock := 0.0
 var _hold := 0.0
@@ -369,6 +381,12 @@ static func hold_offers(session: float, rest_until: float, card_up: bool) -> boo
 	return card_up or session < rest_until
 
 
+## No friend's call (Mrożulo's Dżemini, Zuzia's coffee run, the DESKA call) rings during a mission,
+## for CALL_REST s after one, or while a rescue call is already ringing (F 2026-11-08).
+static func hold_calls(on_mission: bool, session: float, rest_until: float, rescue_ringing: bool) -> bool:
+	return on_mission or rescue_ringing or session < rest_until
+
+
 func has_target() -> bool:
 	return state == State.PICKUP or state == State.DELIVER
 
@@ -404,7 +422,7 @@ func secondary() -> bool:
 ## CARD_REST s after one closed: the OK tap on a result card must never land on the next offer
 ## (Autopilot, padel at DESKA, 2026-11-08). The offer is only queued: `_look` asks again.
 func _free() -> bool:
-	if flying or away or quiet or guide_hold or car.in_water or missions.has_target():
+	if flying or away or quiet or guide_hold or mission_on or car.in_water or missions.has_target():
 		return false
 	if offers_held():
 		return false
@@ -431,7 +449,7 @@ func _process(dt: float) -> void:
 			if int(_session * 2.0) != int((_session - dt) * 2.0):
 				_look()
 		State.OFFER:
-			if flying or away or (jobs != null and jobs.own_busy()) or (rides != null and rides.busy()):
+			if flying or away or mission_on or (jobs != null and jobs.own_busy()) or (rides != null and rides.busy()):
 				_withdraw()
 			elif autopilot and _t > 2.0:
 				_on_card(0)
@@ -472,7 +490,8 @@ func _look() -> void:
 		_cool[-3] = _session + ML_COOL
 		if offer_mlask():
 			return
-	if not dz_done and van_out(hour) and _session >= _dz_at:
+	var calls_ok := not hold_calls(mission_on, _session, _call_rest, missions.state == Missions.State.RINGING)
+	if calls_ok and not dz_done and van_out(hour) and _session >= _dz_at:
 		_dz_at = _session + DZ_COOL
 		if offer_dzemini():
 			return
@@ -482,12 +501,12 @@ func _look() -> void:
 			_cool[-1] = _session + SLOT_COOL
 			if offer_drop():
 				return
-	if hour >= CoffeeRun.HOURS[0] and hour < CoffeeRun.HOURS[1] and _session >= _kawa_at \
+	if calls_ok and hour >= CoffeeRun.HOURS[0] and hour < CoffeeRun.HOURS[1] and _session >= _kawa_at \
 			and p.distance_to(CoffeeRun.DOCK) <= KAWA_CALL_R:
 		_kawa_at = _session + CoffeeRun.COOL
 		if offer_kawa_call():
 			return
-	if hour >= DESKI_HOURS[0] and hour < DESKI_HOURS[1] and _session >= _deski_at:
+	if calls_ok and hour >= DESKI_HOURS[0] and hour < DESKI_HOURS[1] and _session >= _deski_at:
 		_deski_at = _session + DESKI_COOL
 		if offer_deski_call():
 			return

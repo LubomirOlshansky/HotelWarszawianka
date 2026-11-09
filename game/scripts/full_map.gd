@@ -30,6 +30,9 @@ signal closed
 ## G12 part 2: a row of the ZADANIA card was tapped (its entry, quest_lines.gd `entry`; {}: the
 ## pin was taken off).
 signal quest_picked(entry: Dictionary)
+## F (2026-11-08): the quest under way is to be dropped (the ZADANIA card's quit button, tapped
+## twice). main.gd gives up whatever runs (hud's abort, as the status card's ✕ does).
+signal quit_quest
 ## The hold's spot (map metres), when the hold was held to the end.
 signal teleport(at: Vector2)
 
@@ -121,6 +124,12 @@ var story_blurbs := PackedStringArray()
 var story_small := PackedByteArray()
 var _qdrag := -1
 var _qdrag_px := 0.0
+## F (2026-11-08): what is under way, [pl, en] (main.gd sets it on open; empty: nothing to quit).
+## The card's quit button names it; the first tap arms it for QUIT_ARM s, the second quits.
+var quit_what: Array = []
+var _quit_armed := 0.0
+const QUIT_ARM := 3.0
+const QUIT_COLOUR := Color("#ff5a5a")
 var _tap_at := Vector2.INF
 var _tap_ms := 0
 var focus := false
@@ -417,7 +426,7 @@ func show_cards(on: bool) -> void:
 		return
 	_list.visible = _has_list and on
 	_ladder.visible = _has_ladder and on
-	_quests.visible = not on and not quest_entries.is_empty()
+	_quests.visible = not on and _has_quests()
 	_fit()
 
 
@@ -433,6 +442,7 @@ func close() -> void:
 	visible = false
 	_touches.clear()
 	_hold_index = -1
+	_quit_armed = 0.0
 	closed.emit()
 
 
@@ -805,12 +815,71 @@ func _fill_quests() -> void:
 			b.add_theme_stylebox_override(st, sb)
 		if not bool(r.get("open", true)):
 			b.modulate = Color(1, 1, 1, 0.7)  # a questline closed at this hour (the beta still starts it)
-		b.pressed.connect(pick_row.bind(i))
+		b.pressed.connect(_row_tapped.bind(i))
 		holder.add_child(b)
 		_quest_buttons.append(b)
+	if not quit_what.is_empty():
+		# F 2026-11-08: a way out of the quest taken, under its row; a second tap within QUIT_ARM s.
+		var q := Button.new()
+		q.name = "quit_quest"
+		q.focus_mode = Control.FOCUS_NONE
+		q.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		q.clip_text = true
+		q.custom_minimum_size = Vector2(QUEST_W, ROW_H) * pt
+		q.add_theme_font_size_override("font_size", _px(T_SUB))
+		var armed := _quit_armed > 0.0
+		q.text = Lang.pick("Na pewno? Dotknij jeszcze raz", "Sure? Tap again") if armed \
+				else Lang.pick("✕ Porzuć: %s" % str(quit_what[0]), "✕ Quit: %s" % str(quit_what[1]))
+		var qc := Access.tint(QUIT_COLOUR)
+		for k in ["font_color", "font_hover_color", "font_pressed_color"]:
+			q.add_theme_color_override(k, Color("#1a1622") if armed else qc)
+		for st in ["normal", "hover", "pressed", "focus"]:
+			var sb := StyleBoxFlat.new()
+			sb.bg_color = qc if armed or st == "pressed" else Color(0.12, 0.11, 0.17, 0.9)
+			sb.set_corner_radius_all(_px(6))
+			sb.border_color = qc
+			sb.set_border_width_all(_px(2))
+			sb.content_margin_left = 8.0 * pt
+			sb.content_margin_right = 8.0 * pt
+			q.add_theme_stylebox_override(st, sb)
+		q.pressed.connect(_quit_tapped)
+		box.add_child(q)
 	_quests.reset_size()
-	_quests.visible = not cards_shown and not quest_entries.is_empty()
+	_quests.visible = not cards_shown and _has_quests()
 	_fit()
+
+
+## The card shows: something to list, or a quest to quit.
+func _has_quests() -> bool:
+	return not quest_entries.is_empty() or not quit_what.is_empty()
+
+
+## A finger let go on a row: a tap picks it, the end of a drag (the list scrolled, F 2026-11-08:
+## a scroll used to start the row under the finger and close the map) does not.
+func _row_tapped(i: int) -> void:
+	if _dragged():
+		print("full map: row %d not picked (a drag)" % i)
+		return
+	pick_row(i)
+
+
+func _dragged() -> bool:
+	return _qdrag_px > 8.0 * pt
+
+
+## The quit button: the first tap arms it (it asks "Sure?"), the second within QUIT_ARM s quits.
+func _quit_tapped() -> void:
+	if _dragged():
+		return
+	if _quit_armed > 0.0:
+		_quit_armed = 0.0
+		print("full map: quit quest %s" % str(quit_what[1]))
+		close()
+		quit_quest.emit()
+		return
+	_quit_armed = QUIT_ARM
+	print("full map: quit quest armed")
+	_fill_quests()
 
 
 ## A tab's colour: the car's amber pickup, the helicopter's violet, the questlines' pink
@@ -956,7 +1025,12 @@ func _paint() -> void:
 			hud._tri_diamond(g, 6.5 * pt, garage_colour)
 	# Loop 3h slice 3's diamond at the final's start is the main line's star now.
 	if target != Vector2.INF:
-		hud.side_pin(to_screen(target), 1.5, target_colour)
+		# F 2026-11-08: the quest taken, strongly: a dotted line from the car, the glowing pin; off
+		# the screen it waits at the edge on the way to it.
+		var tp := to_screen(target)
+		var inner_t := Rect2(Vector2.ZERO, _view()).grow(-24.0 * pt)
+		_dotted(to_screen(car), tp.clamp(inner_t.position, inner_t.end), target_colour)
+		hud.active_pin(tp.clamp(inner_t.position, inner_t.end), 2.0 if inner_t.has_point(tp) else 1.4, target_colour)
 	if quest_pick.get("at", Vector2.INF) != Vector2.INF:
 		hud.side_pin(to_screen(quest_pick["at"]), 1.9, Access.tint(quest_pick["colour"]))  # G12: the quest pin
 	if main_at != Vector2.INF:
@@ -1091,14 +1165,18 @@ func on_map(p: Vector2) -> bool:
 func _process(dt: float) -> void:
 	if not visible:
 		return
+	if _quit_armed > 0.0:
+		_quit_armed -= dt
+		if _quit_armed <= 0.0 and _built:
+			_fill_quests()  # not tapped again: the button asks no more
 	if _note_t > 0.0:
 		_note_t -= dt
 		if _note_t <= 0.0:
 			_note.visible = false
 			_fit()
 	_pad_frame(dt)
-	if main_at != Vector2.INF and _hold_index < 0:
-		_overlay.queue_redraw()  # the star's ring pulses (one batch, the game paused under it)
+	if (main_at != Vector2.INF or target != Vector2.INF) and _hold_index < 0:
+		_overlay.queue_redraw()  # the star's and the active pin's rings pulse (one batch, the game paused under it)
 		_legend_art.queue_redraw()
 	if _hold_index < 0:
 		return
@@ -1156,16 +1234,13 @@ func _tap_story(at: Vector2) -> bool:
 	return true
 
 
-## A finger drag on the quest list: scrolls it; past a few points the row under the finger is not
-## pressed when it lets go (the viewport cancels the press).
+## A finger drag on the quest list: scrolls it (the STORIES tab's scroll); past a few points the
+## row under the finger is not picked when it lets go (`_row_tapped`), on any tab.
 func _drag_quests(dy: float) -> void:
-	var sc := _quests.find_child("story_scroll", true, false) as ScrollContainer
-	if sc == null:
-		return
 	_qdrag_px += absf(dy)
-	sc.scroll_vertical -= int(dy)
-	if _qdrag_px > 8.0 * pt:
-		get_viewport().gui_cancel_input()
+	var sc := _quests.find_child("story_scroll", true, false) as ScrollContainer
+	if sc != null:
+		sc.scroll_vertical -= int(dy)
 
 
 func _cancel_hold() -> void:
@@ -1192,6 +1267,22 @@ func _say(lines: Array) -> void:
 	_note.visible = true
 	_note_t = 2.5
 	_fit()
+
+
+## A dotted line from `a` to `b` (px) in `colour`, a dark-rimmed square every 9 pt (the
+## active quest's way on the full map; into the overlay's batch).
+func _dotted(a: Vector2, b: Vector2, colour: Color) -> void:
+	var len := a.distance_to(b)
+	var gap := 9.0 * pt
+	if len < gap * 2.0:
+		return
+	var half := 1.8 * pt
+	var u := gap
+	while u < len - gap:
+		var p := a.lerp(b, u / len)
+		hud._tri_rect(Rect2(p - Vector2.ONE * (half + 0.9 * pt), Vector2.ONE * (half + 0.9 * pt) * 2.0), hud.OUTLINE)
+		hud._tri_rect(Rect2(p - Vector2.ONE * half, Vector2.ONE * half * 2.0), colour)
+		u += gap
 
 
 # --- gestures ------------------------------------------------------------------------------

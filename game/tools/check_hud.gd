@@ -120,6 +120,22 @@ func _check_offers_wait() -> void:
 		problems.append("offers: an offer may open the moment a card closed")
 	if TrendJob.hold_offers(103.0, 100.0 + TrendJob.CARD_REST, hud.cards_up()):
 		problems.append("offers: still held after the rest")
+	# F 2026-11-08: a friend's call (Mrożulo) never rings mid-mission, nor right after one, nor
+	# over a rescue call already ringing; it rings once the rest is over.
+	if not TrendJob.hold_calls(true, 500.0, 0.0, false):
+		problems.append("calls: a friend's call may ring during a mission")
+	if not TrendJob.hold_calls(false, 505.0, 500.0 + TrendJob.CALL_REST, false):
+		problems.append("calls: a friend's call may ring the moment a mission ended")
+	if not TrendJob.hold_calls(false, 900.0, 0.0, true):
+		problems.append("calls: a friend's call may ring over a rescue call")
+	if TrendJob.hold_calls(false, 500.0 + TrendJob.CALL_REST + 1.0, 500.0 + TrendJob.CALL_REST, false):
+		problems.append("calls: still held after the rest")
+	var tj: Node = TrendJob.new()
+	tj.mission_on = true
+	tj.mission_on = false
+	if not TrendJob.hold_calls(tj.mission_on, 1.0, tj._call_rest, false):
+		problems.append("calls: a mission's end does not start the call rest")
+	tj.free()
 	hud.queue_free()
 
 
@@ -646,6 +662,43 @@ func _check_quest_card(fm: Control, where: String, pt: float, safe: Rect2) -> vo
 	if got.size() != n0 or not fm.visible or fm.centre.distance_to(Vector2(-600, 200)) > 1.0:
 		problems.append("%s: the quest under way's row did not just look at its target" % where)
 	hud_pad(false)
+	# F 2026-11-08: a finger dragged on the list (scrolling) never picks the row it ends on.
+	fm.set_quests(e, L.Line.CAR)
+	await process_frame
+	var n1 := got.size()
+	fm.set("_qdrag_px", 40.0 * pt)
+	fm.call("_row_tapped", 0)  # the ride request: tapped, it would close the map
+	if got.size() != n1 or not fm.visible:
+		problems.append("%s: the end of a drag on the list picked a row" % where)
+	fm.set("_qdrag_px", 0.0)
+	# F 2026-11-08: the quest under way can be quit: a button names it, the first tap asks, the
+	# second closes the map and emits quit_quest.
+	fm.quit_what = ["Sekretny rave", "Secret rave"]
+	fm.set_quests([now], L.Line.CAR)
+	await process_frame
+	var qb := fm.get("_quests").find_child("quit_quest", true, false) as Button
+	var quits: Array = []
+	var on_quit := func() -> void: quits.append(1)
+	fm.quit_quest.connect(on_quit)
+	if qb == null or not qb.text.contains("Secret rave") and not qb.text.contains("Sekretny rave"):
+		problems.append("%s: no quit button naming the quest under way" % where)
+	else:
+		if qb.get_global_rect().size.y < MIN_TOUCH * pt - 0.5:
+			problems.append("%s: the quit button is %.0f pt tall (< %d)" % [where, qb.get_global_rect().size.y / pt, MIN_TOUCH])
+		var rq: Dictionary = fm.rects()
+		if rq.has("quests") and not safe.grow(0.5).encloses(rq["quests"]):
+			problems.append("%s: the card with the quit button %s is outside the safe area" % [where, _pts(rq["quests"], pt)])
+		qb.pressed.emit()
+		await process_frame
+		if not quits.is_empty() or not fm.visible:
+			problems.append("%s: one tap on quit already quit" % where)
+		qb = fm.get("_quests").find_child("quit_quest", true, false) as Button
+		if qb != null:
+			qb.pressed.emit()
+		if quits.size() != 1 or fm.visible:
+			problems.append("%s: the second tap on quit did not quit and close the map" % where)
+	fm.quit_quest.disconnect(on_quit)
+	fm.quit_what = []
 	fm.quest_picked.disconnect(on_pick)
 	fm.set_quests([], L.Line.CAR)
 	var hud: CanvasLayer = fm.hud
