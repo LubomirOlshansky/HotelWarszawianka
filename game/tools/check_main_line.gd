@@ -13,7 +13,9 @@ extends SceneTree
 ## - the nudge on the driving screen (main_nudge.gd): the guide's end brings the goal line after
 ##   TOAST_DELAY s and the gold arrow for SHOW s, both only while free and not quiet; busy pauses
 ##   the arrow; it comes back after GAP s of free driving; a step with no place gives the goal line
-##   and no arrow; "done" gives neither.
+##   and no arrow; "done" gives neither;
+## - the gate (F 2026-11-08, main_line.gd FIRST_JOB_ONLY): `now` is the guide's step until the
+##   first job is done, then "done" (no star, no line), and "done" with no guide at all.
 ##   godot --headless --path game --script res://tools/check_main_line.gd
 
 const MainLine := preload("res://scripts/main_line.gd")
@@ -43,6 +45,20 @@ func _step(f: Dictionary) -> Dictionary:
 	var st := MainLine.step(f)
 	_words(st)
 	return st
+
+
+func _check_gate(here: Vector2) -> void:
+	var st := MainLine.now({"guide": true, "jobs": 0, "target": here, "target_main": true})
+	_expect(st["id"] == "guide_target" and st["at"] == here, "gate: the first kebab is the main line: %s" % [st])
+	st = MainLine.now({"guide": true, "jobs": 0, "guide_at": here, "guide_word": "KEBAB"})
+	_expect(st["id"] == "guide_kebab", "gate: the guide's arrow before the first job: %s" % [st])
+	if MainLine.FIRST_JOB_ONLY:
+		st = MainLine.now({"guide": true, "jobs": 1, "target": here, "target_main": true})
+		_expect(st["id"] == "done" and st["at"] == Vector2.INF and st["pl"] == "", "gate: after the first job: %s" % [st])
+		st = MainLine.now({"next": 1, "open": true, "rival": "Pani Halina", "rival_at": here, "jobs": 3})
+		_expect(st["id"] == "done" and st["at"] == Vector2.INF, "gate: the ladder's rival is off: %s" % [st])
+		st = MainLine.now({"guide": false, "jobs": 0})
+		_expect(st["id"] == "done", "gate: no guide, no main line: %s" % [st])
 
 
 func _initialize() -> void:
@@ -97,6 +113,7 @@ func _initialize() -> void:
 	var side := Ladder.FINAL_RESPECT - 100 * Ladder.RUNGS.size()
 	_expect(side >= SIDE_MIN and side <= SIDE_MAX, "side quests' respect to the final: %d (want %d-%d)" % [side, SIDE_MIN, SIDE_MAX])
 	_check_nudge()
+	_check_gate(here)
 	if _problems == 0:
 		print("main_line: OK (side respect to the final %d)" % side)
 		quit(0)

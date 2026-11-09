@@ -4,6 +4,19 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## Quests on the map, simpler (F, 2026-11-08; docs/design/main-line.md section 0)
+Fixed: after the first task the main line's gold star kept pointing at Pani Halina while the player
+was on a quest they took. The star, the goal card and the nudge now show only for the first kebab
+(`main_line.gd` FIRST_JOB_ONLY; the chapters stay written). The quest taken glows and pulses in its
+colour on the minimap and the full map, with a dotted line from the car; the full map's quest card
+has a two-tap "✕ Quit" button. Fixed: a finger drag on the quest list ended as a tap on the row
+under it, so on the CAR and STORIES tabs a scroll started a request and closed the map (the
+`gui_cancel_input` call it relied on does not exist in Godot 4.7).
+- [ ] The quit button gives up through each quest's own ✕ (hud `abort_pressed`), which covers only
+  some beats: a questline in its offer card, or the coffee run on the bike, may answer "can't quit
+  this one right now". Check each quest's quit on the phone and widen the beats where needed.
+- [ ] Phone look: the glow's size on the minimap (1.15) and the full map (2.0), the dotted line.
+
 ## Thin towers across the map (F, 2026-11-07; docs/design/small-buildings.md)
 Fixed: 469 small OpenStreetMap buildings with no height tag stood at the bake's flat 14 m guess and
 showed as thin windowed towers (F's crop: the two metro lifts by the Ratusz-Arsenał tram stop).
@@ -44,9 +57,11 @@ look check of both.
 - Done, batch 1: Q22 (dark green glass, graphite crown with DELOJT, the wing's sloping glass roof, lattice mast and red-and-white antenna; spec q22.md) and Rondo 1 (silver-blue banded slab with the rounded end, the open screen over the roof, the graphite west block with EJ and its yellow stroke, the steps to the south-west, the antenna to 192 m instead of the 33 m cage; spec rondo1.md).
 - Done, batch 2: Warsaw Trade Tower (parts clad by their mapped colours: the dark blue ribbon-glass drum, the beige stone slab with punched windows, the silver crown with UNIKWA; new tower-table key `skins`) and Teatr Wielki's front (ten columns, not eight; the raised middle block with windows, the pediment with its relief and copper slopes; the Apollo quadriga in bronze; spec teatr.md).
 - Done, batch 3: Spektrum (parts clad by their mapped colours: blue glass between white bands on the drum, the dark square-grid slabs, the pale green glass ring round the crown), Pałac Prezydencki (the photo shows no free portico: a risalit with an arcade of seven round-headed openings, six engaged columns to the cornice, a balustrade with statues along the main block; the wings' dark slate roofs; spec prezydencki.md) and Święty Krzyż's helms (octagonal copper lanterns with openings, bell roofs and slim needles, not big onions; whiter walls; spec krzyz.md).
+- Done, batch 4: Platinum Towers A and B (cream stone corner piers with punched windows, the glass between them in balcony bands) and the PEPEO ŻUBR bank tower on Grzybowska (site `pepeo_tower`), new in the tower table (beige stone with punched windows over the green glass grid, PEPEO ŻUBR on the crown, a grey glass podium). Prosta Tower was already modelled from photos (`_build_prosta32`); Atlas Tower's mapped colours (dark blue glass drum, white stone) already match T37-03, and the Level 26 club sits on its roof, so it stays as is.
+- Left from batch 4: the Platinum balconies' white railings as geometry; Crown Point (T38) lies outside the current map.
 - Left from batch 3: Spektrum's sloping glass fin up the drum; the Presidential Palace's dormers and the pediments of the main block's side wings; Holy Cross's statues on the attic.
 - Left from batch 2: WTT's curved crown slits and the fin with the mast down the dark side; Teatr Wielki's side colonnades.
-- Left: Q22's faceted folds in the glass and the base's entrance; Rondo 1's curved screen follows the roof edge as straight facets, the ground-floor stone columns on Śliska (T03-08) not modelled; the night look of both on the phone. Next batch by visibility: T36-T38 the Rondo Daszyńskiego towers (Platinum, Pekao and Atlas, Prosta Tower and Crown Point). T04 InterContinental and T26 Polonia are the Palace thread's.
+- Left: Q22's faceted folds in the glass and the base's entrance; Rondo 1's curved screen follows the roof edge as straight facets, the ground-floor stone columns on Śliska (T03-08) not modelled; the night look of both on the phone. Next batches: the rest of T01-T50 by visibility. T04 InterContinental and T26 Polonia are the Palace thread's.
 
 ## Skyline towers near the Palace from F's photos (F, 2026-11-08; specs plater49.md, wcf.md, polonia.md)
 - Done: InterContinental (the gap over the podium, the sloped roof, the corner column, lit gap at night), the Warsaw Financial Centre (white slab and ribbon slab on the curve, granite podium, mast) and Hotel Polonia Palace (photo pass: mansard, pediment and oval window, name on the frieze, balconies). Złota 44 was already rebuilt from F's photos (PR #321).
@@ -124,6 +139,9 @@ family: +0 draw calls; the long bus's rear door moved off its axle). Left:
 - Electric buses (roof battery pods, the charger pantograph) as a third shape; bus bays (zatoki)
   where the kerb steps back are not drawn because the road rework is dropped.
 - Phone look check: zigzag line width (0.22 m) and the yellow line (0.22 m) at the default view.
+- Shelters facing (F, 2026-11-08, Ratusz Arsenał): every shelter now turns its open side to its
+  boarding edge (`snap_props.face_shelters`, check_stops K7). Left: 11 with nothing to face (10 park
+  or square roofs over 16 m from any road, one mapped right on the track at -1907, -2673); those park roofs might be benches or pergolas, not stops (a Mac OSM look).
 
 ## Stacja Muzeum, Nocny Targ and Kolejowa (F, 2026-11-07; spec docs/landmarks/specs/stacja_muzeum.md)
 
@@ -201,6 +219,13 @@ THEATRES, `theatre` curve, dark on Mondays). Left:
   row's extra; a phone look at the colours' strength. The event list is settled (F, 2026-11-08).
 - The floodlight's reach (a circle round the Palace) also tints the TR Warszawa site's crane and the forecourt's
   stone furniture; an old quirk of the gold, louder in the event colours.
+- The underground car park's ramp by Metro Centrum (F, 2026-11-08: "looks like a tunnel entrance"): OSM's
+  parking aisle between two walls down a 3-4 m pit ended at a blank wall. It is the entry ramp of the
+  underground car park Plac Defilad 1 (260 spaces, 2.8 m, from Marszałkowska); built: a concrete hood over
+  the ramp's foot with the dark mouth, hazard band and lit strip, a red-white barrier (solid), P boards and a
+  striped 2,8 m gauge at the top (map_builder.gd GARAGE_MOUTHS). Left: the 10 m grid makes the pit only
+  ~2.5 m deep, so the hood stands ~2 m over the lot behind it; a night/phone look at the lit strip; the
+  other 27 R9 garage doors city-wide could get the same mouth.
 
 ## Ratusz Arsenał interchange and passengers (F, 2026-11-07, six photos)
 
@@ -306,7 +331,7 @@ check `tramfleet`. No maker's or model name anywhere: nicknames only.
 ## Batch 4: Rondo ONZ towers, Platinum, Ilmet, Spektrum, Teatr Wielki (2026-11-06)
 
 Cloud pass with Mapillary street photos only (refs/<site>/street/ on the cloud box; Commons and the orthophoto are Mac-only). Done: Ilmet (terracotta shaft `#8a5e4c`, `chamfer` stepped top; photos 2025-2026). Left, needs a Mac photo pass (street photos were night/rain, too far or the wrong building):
-- [ ] Cosmopolitan, Platinum A/B (frames 100+ m away), Spektrum
+- [x] ~~Cosmopolitan~~ (done 2026-11-08 from F's photos), [ ] Platinum A/B (frames 100+ m away), Spektrum
 - [ ] Teatr Wielki: the side wings' colonnades (Wierzbowa, Moliera) are not built (the front got its photo pass 2026-11-08)
 
 ## Warsaw Spire, Spire B and C from F's photos (F, 2026-11-06)
@@ -526,6 +551,11 @@ Left:
 - [ ] A voice for Wiktor (later, like the night racing club's); a notebook card for the cinemas
 - [ ] The Atlantic stop is on Widok, 70 m from the door (Chmielna is car-free there): a walk-round line, or a stop on Zgoda
 - [ ] Autopilot run of the whole tour on the Mac (`--kino-tour=go`)
+
+## Questline ring would not start from the car (F, 2026-11-08)
+Fixed: F stopped the car in Darek's pink ring on Plac Defilad (the night meet, 21:00-4:00) by day and nothing could start it. The game's default Day look keeps a 14:00 clock, so a night questline's start only ever said "come after nine". Now a closed questline's friend offers CZEKAM DO 21:00 / NIE TERAZ: the clock jumps to the opening hour (the look follows: Night, Dusk, Day or Dawn) and the quest starts. Also: a rescue call still ringing (the WEZWANIE pill) no longer stops the friend walking up (it is put off when the quest starts), and a card that ran out unanswered comes back after a short drive out of the 30 m circle (was 80 m). The night meet goes further (F, 2026-11-08: accepting it should turn night at once): Darek says hello with WCHODZĘ at any hour, and however the meet is taken (in person, his call, the list) the clock jumps to 21:05 when it starts (`main.gd` `_meet_night`). Test: `check_story_quests`.
+- [ ] Phone check: stop in the ring by day, tap WCHODZĘ (CZEKAM DO for the other questlines), the city turns to night and Darek's meet starts (Autopilot on the Mac)
+- [ ] The first-10 guide still holds the friend for a fresh save's first minutes (the parked question below)
 
 ## Offers over result cards (Autopilot, 2026-11-08)
 Fixed: a Mrożulo "fetch" offer opened over the padel result card at the DESKA gate and the OK tap accepted it. No offer or prompt (trend jobs, "Na czasie", Podwózka, rivals) opens while a card is up, nor for 2.5 s after one closes; it is queued, not dropped. Test: `check_hud` `_check_offers_wait`.
