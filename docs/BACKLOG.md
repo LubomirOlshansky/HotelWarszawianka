@@ -299,6 +299,10 @@ THEATRES, `theatre` curve, dark on Mondays). Left:
 - The north courtyard's car park and the Muzeum Ewolucji / Pałac Młodzieży doors (north side, faces
   the camera never sees) have no sign; the terrace has no ticket queue at the east portico yet.
 - Joke billboard "UWAGA:" by the pigeons on Plac Defilad shows the camera its dark back.
+- The two driveways off the service road by Sala Kongresowa now end at gates in the south-west block (OSM
+  `tunnel=building_passage`, `landmarks.gd` P_GATES; F 2026-11-08, they ran into a bare wall). Left: the
+  gates' look from photos (width, the surround, iron or steel) and the south courtyard behind them,
+  which is not modelled (its own road, way 2886, runs under the base's roof).
 - The bake still turns scrub into plain lawn city-wide; only the Palace's beds are bushes.
 - Event lighting (palace_lights.gd + data/palace_lights.json, F 2026-11-07): built with 13 dates (Pink October dropped, F 2026-11-08) and five
   patterns. Left: the Independence Day thread's white-red tier bands (event_day.gd) join as the 11 November
@@ -846,7 +850,10 @@ Built from F's photos (`tarasy_screen.gd`, `led_screen.gdshader`). Open:
 - More scenes for the loop (F's ideas: sea, a car driving out of the screen) and a day/night level pass.
 ## The Emilii Plater underpass entrances (F, 2026-11-06)
 
-F's screenshots: walled boxes with steps on flat ground. Done 2026-11-06 (spec
+F's screenshots: walled boxes with steps on flat ground. Lost on 2026-11-07 (the squash merge of #495
+dropped the whole `sunken`/`underpass` site and the Forest roof boat from landmarks.gd; only the sunken
+ground stayed, so F saw bare slopes with people standing on them, 2026-11-08) and restored 2026-11-08.
+Done 2026-11-06 (spec
 `docs/landmarks/specs/underpass-emilii-plater.md`, site `underpass`, SUNKEN `epl_*`): the five
 entrances within ~100 m of the crossing are sunk with stairs and passage mouths, and walkers go in
 and come out (pedestrians.gd `_portals`). Left:
