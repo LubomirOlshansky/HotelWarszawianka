@@ -734,17 +734,27 @@ warsaw-needed-photos/old-town, E01-E24) and Mapillary references:
   shop windows on the rest, a string course, tall casements with white glazing bars in cream
   surrounds, sills and heads, a cornice, and on the Rynek's fronts a painted band along each floor
   line (photos E01-E04). No triangles added (a first try with modelled surrounds cost 160,000).
+  Written as flat masks (step / mix, one return, typed_pane's rules inlined) on 2026-11-09 so the
+  lite building shader stays under the Adreno budget (500 of 505 with the shader-budget PR).
 - The Barbican from F's five photos: the round bastion's crown of brick posts under stone pyramids
   with little gables between, a corbel band, loopholes, plain brick (no Gothic lancets); the four
   towers at the mapped 13 m outlines with tile cones; tiled roofs on the arms; the pointed gate
   through the bastion, the gate wall toward Nowomiejska, the bridge's two arches with grilles.
 - The Syrenka's pose from F's photo: sword raised over her head, shield up at her left.
 Left:
-- **Rynek facades, per house**: the real colours, sgraffito and signs of named houses (Pod
-  Murzynkiem, Baryczków, Fukier) from photos; dormers float on LoD2 roofs in places.
-- **City wall towers and gates**: the towers' roofs, the Podwale gates and the white arch gate
-  (E14-01, E16); the Barbican's passage is a dark panel, not open.
-- **The Cathedral's nave roof** is one LoD2 slab (E06-E08).
+- **Done 2026-11-09 (trailer finish, no photos reachable from the cloud, so from memory, Mac look
+  check parked)**: Rynek houses within 75 m of the square's centre take a painted palette (OSM
+  colours kept, six named houses set by hand, `_rynek_look`) (sgraffito is NOT built: building.gdshader is over
+  the Adreno budget, see #579); wall rings that are towers (Baszta
+  Rycerska, the Altana) get tile cones (`_tower_roof`); the Cathedral's nave has a steep tiled
+  gable over the LoD2 slab (`CATH_*` in landmarks.gd) and the ridge turret stands on it.
+- **Rynek facades, per house**: the colours are guesses (sgraffito waits for shader budget); the real ones of Pod
+  Murzynkiem, Baryczków, Fukier from photos (Mac, E-series) still to check; dormers float on LoD2
+  roofs in places.
+- **City wall gates**: the Podwale gates and the white arch gate (E14-01, E16) are not built (no
+  gate outlines on the map); the Barbican's passage is a dark panel, not open (the bastion is one
+  solid prism).
+- The Cathedral's apse and south tower stay LoD2; the nave roof is untextured tile colour.
 - The fountain park stays off the map (F 2026-11-08: don't grow the map).
 - **Found 2026-11-08: check_streaming identity fails on main** (not run in CI): 2212 meshes and
   collider faces differ between the whole-city build and the 112 sector builds, across the map
@@ -3764,11 +3774,13 @@ twice the dog walkers there, twice the cyclists (cap 16) and 45 % of them fast. 
 - **The minimap doesn't draw the tunnels yet** (DEMO 4.4: dashed). It is `hud.gd`
   `_minimap_mesh` (the HUD agent's file): after the roads loop, the `tunnels.roads` as 8 m
   dashes in the road colour. The snippet is in the loop 3b report.
-- **The car in a tunnel is a silhouette, not the plan's dithered ghost.** `tunnel_xray.gd` draws
-  the car's meshes once more with an unshaded material that ignores depth (after the post pass);
-  the ground over the tunnel stays whole. A dither in `ground.gdshader` would need `discard` in
-  the ground's shader (a cost on the phone's tile GPU for the whole ground); the look is the
-  user's to judge on the phone.
+- **The tunnel cutaway on the phone** (F, 2026-11-08; the silhouette item is fixed: the ground,
+  trees, lamps, benches and building parts over the tunnel open round the car,
+  `shaders/tunnel_cut.gdshaderinc`, `check_tunnel_cut`). Open: the look and a bench on the iPhone
+  (no new discard-capable shader: ground, building and foliage already discard; fixture and glow
+  only collapse vertices; ~70 µs of GDScript a frame while in a tunnel). The cut's edge shows no
+  earth thickness (the walls' tops meet the grass); pedestrians walking over the cut and the
+  portal frames' headwalls are not cut; a car in one Wisłostrada tube opens only its own tube.
 - The portal frames are simple (a headwall, two posts, a dark mouth 3 m in); the 10 m grid's
   slope over the first metres of a tunnel covers part of the mouth. The open ramp's walls stand
   on the grid's blurred trench sides.
@@ -4563,6 +4575,18 @@ twice the dog walkers there, twice the cyclists (cap 16) and 45 % of them fast. 
 
 ## From the first Android build (2026-10-29)
 
+- ~~**Adreno 6xx draws no city**~~ **Fixed 2026-11-08**: the Nothing Phone 1's driver (Adreno 642L)
+  failed to link building.gdshader and ground.gdshader (a control-flow ceiling, archive "Adreno 6xx
+  shader budget"); macros, all()/any() conditions and a lite building shader on Adreno < 700
+  (`gpu_quirks.gd`), guarded by `check_shader_budget.gd`. Phone BENCH with the city: 22.6 fps avg,
+  1% low 13.5, frame 44.3 ms, GPU 30.7 ms, scripts 19.7 ms, 152 draws (Auto→High).
+- **Android is slow on the Nothing Phone 1** (2026-11-08): 22.6 fps at Auto→High, GPU 30.7 ms and
+  scripts 19.7 ms. `tiers.gd` knows no Android model, so the phone gets High; an Android tier rule
+  (by GPU) and a perf pass are needed before Android is playable.
+- **building.gdshader is at 504 of its 505 Adreno budget** (`check_shader_budget.gd`, after #578,
+  #616 and the tunnel cutaway #601): the next PR that adds anything to building.gdshader must slim
+  something first, or verify fails. Room: put the landmarks' material codes in their own material
+  (~300 of the 504).
 - **Nothing has run on an Android phone.** The AAB is built and signed, but the game has never
   started on Android: touch, haptics (`Input.vibrate_handheld`), the save path, the frame rate,
   the governor's tiers (`tiers.gd` knows iPhone model ids only, so an Android phone gets its

@@ -15,6 +15,8 @@ item. Updated 2026-11-01 from the audit. v1.0 = the Demo and TestFlight gates in
 then the Launch gate.
 
 ### Done (built and checked headless)
+- [x] Tunnel cutaway (F, 2026-11-08, screenshot from the Wisłostrada tunnel: "still no cut in the tunnel, only the silhouette"): while the car drives in a tunnel the ground over it opens round the car, with the trees, lamps, benches and any building part standing there, so the tunnel's road, its dark walls and the car show from above; looking across a narrow tube the near side opens too; a floor from wall to wall under the tunnel roads; the occlusion ghost no longer dithers the tunnel's own walls away (PT-43's blue chequered blob); the yellow silhouette stays only for --no-ghost and Fotka's photo (`check_tunnel_cut`, verify step `tunnelcut`; phone look and bench open)
+- [x] Android: the city draws on Adreno 6xx (Nothing Phone 1, 2026-11-08): its driver refused the ground and building shaders; macros, branch-free conditions and a lite building shader there (`gpu_quirks.gd`, `check_shader_budget.gd`; PR #579; Android speed open in BACKLOG)
 - [x] Port Czerniakowski's mouth footbridge by Majami Wawa (F, 2026-11-08, screenshots and aerial): one flat railed deck with green steel railings and lamps joins the boulevard's cycle path across the mouth (the path no longer dives into the cutting and breaks off), and the finished building site's fences north-west of it are gone, the lot a car park (`tools/port_bridge.py`, verify `portbridge`, `check_stuck_spots`)
 - [x] Trees and fences off the water and the roads (F, 2026-11-08): 211 scanned trees out of the Vistula and the ponds, 1,033 moved off the drawn asphalt onto the pavement (114 with no room out), the parts of 6 fences standing in the river cut away (three by Most Łazienkowski at DESKA); `verify.sh objects` keeps all three at 0
 - [x] First-10 replay on time again (2026-11-09, `first10-run`): the DESKA padel call no longer rings inside the first-10 guide (DESKI_FIRST 660 s), so the rescue, helicopter, cassette and garage beats land in their windows.
@@ -116,7 +118,7 @@ then the Launch gate.
 - [x] Walls, fences and hedges from OSM's heights, materials and fence types (see-through railings, low
       park walls, noise barriers), and the Old Town's city walls in brick (F, 2026-11-07; `tools/barrier_tags.py`)
 - [x] City walls look check from photos: battlements and a brick coping (F, 2026-11-08, BACKLOG "Old Town trailer pass")
-- [ ] City walls' towers and gates from photos, photo-tag the untagged walls and fences
+- [x] City wall towers get tile cones (2026-11-09); [ ] the gates from photos, photo-tag the untagged walls and fences
 - [x] Old Town trailer pass (F, 2026-11-08): the Jesuit church's blue glass fixed, Rynek rings, umbrellas and
       café fences, zinc dormers, an autopilot drive check round the Old Town (`check_old_town_drive.gd`)
 - [x] Old Town pass 2 (F, 2026-11-08): every Old Town house front in the new Old Town style (portals, casements
@@ -413,7 +415,7 @@ then the Launch gate.
       balustrade on the crown (116 m), a bar, a DJ booth under a lighting truss with an LED wall
       and speakers, lounge sofas, planters, festoon lamps, the name in violet neon; the people,
       violet band, door queue, bass and hours were already there. Mac look check parked
-- [ ] Old Town Market Square leftovers: per-house plaster colours and sgraffito from photos, the
+- [ ] Old Town Market Square leftovers (painted palette done 2026-11-09, still to check against photos; sgraffito waits for shader budget): the
       four corner streets' mouths, a card for the Museum of Warsaw house (BACKLOG "Old Town square")
 - [x] Norblin, Browary Warszawskie, Hala Koszyki, Elektrownia Powiśle as models, people chilling
       in their yards and KROWA 2.0, the milk bar queue in Norblin (F, 2026-11-01; specs

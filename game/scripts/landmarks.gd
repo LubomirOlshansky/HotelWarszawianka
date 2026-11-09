@@ -17315,6 +17315,15 @@ const ARCH_GOLD := Color("#c9a24a")
 const ARCH_COPPER := Color("#6f9a8a")   # photo 3: the ridge lantern's weathered copper
 const CATH_SPLAY := Color("#e8e1d2")    # the window splays (photo 1: white plaster)
 const CATH_PANEL := Color("#e3dccf")    # the gable's cream panels
+## The nave roof (F, 2026-11-09, photos E06-E08): the LoD2 mass is a flat slab to about 18.5 m over
+## the ground; a steep tiled gable stands on it, eaves 0.7 m under the slab's top so the slab is
+## hidden inside, ridge along the nave's axis (u 14.2, half width 14.2 m, from the front gable
+## back to the tower at v -46).
+const CATH_TILE := Color("#85402f")
+const CATH_EAVE := 17.8
+const CATH_RISE := 11.2
+const CATH_NAVE_U := 14.2
+const CATH_NAVE_BACK := -46.0
 
 
 func _build_archikatedra(_site: Dictionary) -> void:
@@ -17378,11 +17387,23 @@ func _build_archikatedra(_site: Dictionary) -> void:
 	_lbox(m, 0.62, 0.7, 0.14, cy + 2.0, cy + 2.4, ARCH_GOLD, M_STONE, ARCH_GOLD)
 	# the lantern on the roof ridge behind (photo 3): an octagonal copper bell turret with a
 	# pointed cap, a ball and a cross
-	var tc := _w(m, -20.0)
-	_prism(_circle(tc, 0.9, 8), g - 0.6, base + 4.0, ARCH_BRICK, ARCH_BRICK, M_STONE, M_STONE)  # the shaft inside the nave, so the turret stands on something
-	_prism(_circle(tc, 0.95, 8), base + 4.0, base + 8.0, ARCH_COPPER, ARCH_COPPER, M_STONE, M_STONE)
-	_frustum(_circle(tc, 1.25, 8), base + 8.0, _circle(tc, 0.12, 8), base + 11.0, ARCH_COPPER, ARCH_COPPER)
-	_lbox_at(tc, 0.07, base + 11.0, base + 12.8, ARCH_GOLD)
+	# The nave roof: a steep tiled gable over the LoD2 slab, the ridge along the nave (see CATH_*)
+	var eave := g + CATH_EAVE
+	var ridge := eave + CATH_RISE
+	var fa := _a
+	var fb := _b
+	_a = fb
+	_b = fa
+	_gable(-1.0, CATH_NAVE_BACK, CATH_NAVE_U, 14.2, eave, CATH_RISE, ARCH_BRICK, CATH_TILE, true)
+	_a = fa
+	_b = fb
+	# a stone ridge cap and the ridge's end blocks
+	_lbox(CATH_NAVE_U, (-1.0 + CATH_NAVE_BACK) * 0.5, 0.22, absf(CATH_NAVE_BACK + 1.0) * 0.5, ridge - 0.05, ridge + 0.25, ARCH_TRIM, M_STONE, ARCH_TRIM)
+	var tc := _w(CATH_NAVE_U, -20.0)
+	_prism(_circle(tc, 0.9, 8), g - 0.6, ridge + 0.2, ARCH_BRICK, ARCH_BRICK, M_STONE, M_STONE)  # the shaft inside the nave, so the turret stands on something
+	_prism(_circle(tc, 0.95, 8), ridge + 0.2, ridge + 4.2, ARCH_COPPER, ARCH_COPPER, M_STONE, M_STONE)
+	_frustum(_circle(tc, 1.25, 8), ridge + 4.2, _circle(tc, 0.12, 8), ridge + 7.2, ARCH_COPPER, ARCH_COPPER)
+	_lbox_at(tc, 0.07, ridge + 7.2, ridge + 9.0, ARCH_GOLD)
 	_collide(_rect(m, 1.0, 4.4, 1.4))
 
 
