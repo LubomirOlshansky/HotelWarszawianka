@@ -64,6 +64,9 @@ var hud: CanvasLayer
 var vehicle: Callable
 ## () -> bool: nothing else on and no card up (main.gd `_boat_free`).
 var free_now: Callable = func() -> bool: return true
+## Why the friend may not walk up now ("" when free): logged with --stories-log, once per reason.
+var why_blocked: Callable
+var _last_why := ""
 ## () -> [hour: float, weekday: int]
 var clock: Callable = func() -> Array: return [12.0, 3]
 ## (x, z) -> float: the ground's height (map.gd ground_height).
@@ -252,7 +255,14 @@ func step() -> void:
 			_beacon.visible = false
 	if greeting >= 0 or near < 0 or _greeted.has(str(defs[near]["id"])):
 		return
-	if not greet_ready(at, defs[near]["at"], float(v[1]), flying) or not bool(free_now.call()):
+	if not greet_ready(at, defs[near]["at"], float(v[1]), flying):
+		return
+	if not bool(free_now.call()):
+		if log_on and why_blocked.is_valid():
+			var why := str(why_blocked.call())
+			if why != _last_why:
+				_last_why = why
+				print("stories: %s: the friend waits, blocked by: %s" % [defs[near]["id"], why])
 		return
 	var idle: Callable = defs[near].get("idle", Callable())
 	if idle.is_valid() and not bool(idle.call()):
