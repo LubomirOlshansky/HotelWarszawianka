@@ -266,7 +266,7 @@ void fragment() {
 	}
 	// The tunnel cutaway (F, 2026-11-08; tunnel_cut.gdshaderinc): the ground over the tunnel round the
 	// car opens down to the tunnel's walls and road.
-	if (tunnel_open(world_pos)) {
+	if (all(bvec2(tunnel_test(world_pos).x < 0.0, world_pos.y > tunnel_cut.w + TUNNEL_CUT_OVER))) {
 		discard;
 	}
 	vec3 emit = vec3(0.0);

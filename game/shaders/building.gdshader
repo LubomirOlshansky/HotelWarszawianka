@@ -1065,16 +1065,15 @@ void fragment() {
 		// faces go too (a little past the car, where the building runs on beyond it).
 		// The tunnel cutaway (tunnel_cut.gdshaderinc): whatever of a building stands in the
 		// tunnel's corridor round the car goes, down to the floor (its walls reach into it).
-		if (tunnel_in(world_pos, -1.0)) {
+		vec2 tunnel = tunnel_test(world_pos);
+		if (all(bvec2(tunnel.x < 0.0, world_pos.y > tunnel_cut.w - 1.0))) {
 			discard;
 		}
 		float fade = ghost_fade(VERTEX.xy, world_pos.xz);
 		if (!FRONT_FACING) {
 			fade = ghost_fade(VERTEX.xy, world_pos.xz - occluder.zw * 8.0);
 		}
-		if (fade > 0.0 && tunnel_wall(world_pos)) {
-			fade = 0.0;
-		}
+		fade *= step(TUNNEL_WALL_BAND, tunnel.y);  // the tunnel's own walls stay whole
 		if (ghost_debug == 1) {
 			if (fade > 0.5) {
 				ALBEDO = vec3(0.0);
