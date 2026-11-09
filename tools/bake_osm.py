@@ -459,6 +459,11 @@ def main(src, trees_src, dst, extras_src=None, more_src=None):
     import bake_structures
     map_dir = os.path.dirname(os.path.abspath(dst))
     bake_structures.add_structures(out, map_dir, json.load(open(os.path.join(map_dir, "terrain.json"))))
+    # The car park ramp by Dworzec Centralny (F, 2026-11-08): the service tunnel under Aleja Jana
+    # Pawła II made a drive, the way out's cut part back and its stray garage door gone, the portal
+    # and the site's walls placed (tools/centralny_ramp.py; the same code runs on a baked map).
+    import centralny_ramp
+    print("centralny_ramp: " + centralny_ramp.apply(out, map_dir))
     # G8/G9 (2026-11-01): shelters onto the kerb of their bus road, turned roof along it; benches
     # turned to face the walk (tools/snap_props.py; the same code runs on a baked map).
     import snap_props
@@ -509,6 +514,9 @@ def main(src, trees_src, dst, extras_src=None, more_src=None):
     # edge and the railing along the road found once (tools/tram_stops.py).
     import tram_stops
     print("tram_stops: " + tram_stops.apply(out))
+    # Stops turned the wrong way (F, 2026-11-08, Ratusz Arsenał): every tram stop's shelter open side
+    # to its track, every shelter off the bus roads to its road, on the shelters as they finally stand.
+    print("face_shelters: %d tram, %d road turned, %d left" % snap_props.face_shelters(out))
     # Loop "content POIs" (2026-10-31): the corner shops, metro entrances, city bike docks, the
     # places' missing addresses and the Leżaks with their zones, appended after every older poi
     # on the finished data (they keep clear of its solids; tools/bake_street_pois.py).
