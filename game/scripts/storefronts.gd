@@ -1510,6 +1510,9 @@ func _load_metros(pois: Array) -> void:
 		# the entrances: no canopy of our own.
 		if MapBuilderStatic.in_sunken(x, z):
 			form = "none"
+		# Świętokrzyska's entrances on the Marszałkowska side keep the older green M1 glass.
+		if form == "tent" and str(p.get("st", "")) == "Świętokrzyska" and x > -1075.0:
+			form = "tent_green"
 		metros.append({"at": Vector3(x, map.ground_height(x, z), z), "yaw": float(p["yaw"]), "station": str(p.get("st", "")),
 				"ref": str(p.get("ref", "")), "key": key_of(Vector2(x, z)), "form": form,
 				"lift": (int(absf(x * 7.0 + z * 13.0)) % 5) < 3})
