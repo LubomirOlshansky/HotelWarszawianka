@@ -5997,6 +5997,12 @@ func _quest_quit_name() -> Array:
 func _quest_quit_test() -> void:
 	print("quest quit test: running %s, %s" % [_quest_running(), _quest_quit_name()])
 	_open_full_map()
+	if not hud.full_map_open():
+		# The map can't open here (the title is up, a settings card...): quit the way its button does.
+		print("quest quit test: the map didn't open, quitting directly")
+		_quit_quest()
+		print("quest quit test: after, running %s" % _quest_running())
+		return
 	var qb := hud.full_map.find_child("quit_quest", true, false) as Button
 	if qb == null:
 		print("quest quit test: no quit button")

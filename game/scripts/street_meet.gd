@@ -1622,6 +1622,8 @@ func _give_up() -> void:
 	# The meet's crowd and parked cars go too (only the pin hid them before).
 	_scene.visible = false
 	_crowd_run = 0.0
+	if police != null and police.has_method("stand_down"):
+		police.stand_down()
 	hud.hide_status()
 	hud.toast("„Spoko, następnym razem.” Darek odjeżdża bokiem.", "\"No worries, next time.\" Darek leaves sideways.")
 	_log("gave up in %s" % STATES[state])
