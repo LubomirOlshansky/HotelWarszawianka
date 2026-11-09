@@ -100,7 +100,7 @@ re-passes). Photos first: each slug's `refs/<slug>/` and REPORT on the Mac befor
 | 2.16 | Aleja Jana Pawła II's frontage | DONE 2026-11-01 (palette): `map_builder._boulevard_dress` gives each plain building within 42 m of the boulevard a mid-century plaster. Left: model the blocks one by one, street by street, from the orthophoto and photos (Kaskada, the 1950s blocks, the Żelazna Brama corner) |
 | 2.8 | MDM and Plac Konstytucji | the blocks' arcades, reliefs, the corner towers |
 | 2.8 | MDM and Plac Konstytucji | DONE 2026-11-01 (L2 on the kept skin, site `mdm`, spec `mdm.md`, 2002 tris): ground-reworked 2026-11-05 from F's Street View shots after the spired towers were wrong (3403 tris): cream plaster over a sand-stone base with shopfronts on every street face, deep arcades on the square ring only, four stepped attic pavilions with finials, roof neons MDM (red), XIAOMY and BYDŁO (parodies) and HOTEL MDM; Mac photo check parked |
-| 2.9 | Towers missing from the table | PZU Tower, JM Tower, Pekao Tower, Warsaw Towers, Atlas, Prosta |
+| 2.9 | Towers missing from the table | PZU Tower, JM Tower, Pekao Tower (in TOWERS 2026-11-08), Warsaw Towers, Atlas, Prosta |
 | 2.9c | Hotel Warszawa (the Prudential) and Cedet (city inventory item 4) | DONE 2026-11-02 (L3 photo builds, sites `hotel_warszawa` and `cedet`, specs `hotel_warszawa.md` and `cedet.md`, logs in `docs/landmarks/`, 1894 + 1894 tris: from `refs/hotel_warszawa/` and `refs/cedet/` on the Mac and the LoD2 heights. The stone shaft with eight pilasters, crown, WARSZAWA portal, wings and floodlit pilasters; Cedet's ribbon glass between cream slabs, rounded corners, granite piers, the pavilion's swept roof wings and the blue loop; Cedet reworked 2026-11-03 from F's look check: upswept wings with underside shadows, 11 m Krucza corner, 3.7 m storeys, recessed pavilion, grey-bronze loop) | Hotel: Mac look check (QUESTIONS) |
 | 2.9b | Gdański Business Center (F, 2026-11-02) | DONE 2026-11-02 (L2, site `gbc`, spec `gbc.md`, 622 tris: the 74 m tower with its slanted dark crown and AWIWA, the two 45 m blocks and the 31 m block with white bands, dark crowns and NIELZEN; Mac photo check parked) |
 | 2.17 | Classic cinemas (F, 2026-11-02) | DONE 2026-11-02 (signs only, `Storefronts.CINEMAS`); 2026-11-07 Kino Muranów a photo build from F's four photos (site `kino_muranow`, spec `kino_muranow.md`) for the cinema tour: Atlantic, Luna, Kultura, Elektronik, Femina, Kinoteka as neon marquees on the nearest wall; the buildings stay the map's. Left: Iluzjon (south of the map), Kino Wisła, poster-board facades, evening queue; Mac look check parked |
@@ -199,7 +199,7 @@ Checks: `check_landmarks.gd` runs on the full map for EVERY site that has a card
 | Q22 | S_BANDS dark green #3f5e5c | graphite crown 141-155 m with DELOJT, the wing's sloping glass roof, lattice mast and red-and-white antenna to 195 m (2026-11-08, `q22.md`) | glass folds not modelled |
 | Rondo 1 | S_BANDS silver-blue #8aa3b5 | open screen over the roof (12 m north, 4 m south), graphite west block with EJ and a yellow stroke, steps, antenna to 192 m (2026-11-08, `rondo1.md`) | ground-floor stone columns not modelled |
 | Emilii Plater 49 (InterContinental, "INTERKONTI" sign) | S_GRID | REBUILT 2026-11-08 from F's four photos (L2, spec `plater49.md`, `_build_interkonti`): the 53 m gap over the podium on the shaft's north-east half, its pale stone back wall and warm ceiling floodlit at night, the north corner's glass column, the roof cut on a slope (164 to 154 m), dark bands over the gap and under the name, a banded glass podium | grid cells cold/many vs warm sparse in photos; the podium's lobby and entrance not modelled |
-| Cosmopolitan | S_RIBBON | - | - |
+| Cosmopolitan | S_RIBBON, rebuilt 2026-11-08 (`_build_cosmopolitan`: red-soffit overhang, louvred crown, glass podium; docs/landmarks/photo-reports/cosmopolitan.md) | - | - |
 | Warsaw Trade Tower | by mapped colour (`skins`): S_RIBBON dark blue drum, S_PUNCHED beige stone slab, S_TILE silver crown | crown 162-184 m with UNIKWA (2026-11-08, top-50 T05) | crown slits, the fin with the mast |
 | Skyliner | S_BANDS dark teal (photo report `skyliner.md`, 2026-11-03) | roof cut rising east (`slope_to`) with a glass fin, black crown block 130-180 m (`crown_from`), NOSE AGENCY on the block | - |
 | Warsaw Unit | S_BANDS sky blue (`warsaw_unit.md`, 2026-11-03) | black crown block 168-202 m with WARTKA (red), black strips at the long faces' ends and middles (`strips`); taper not modelled | - |
@@ -218,11 +218,12 @@ Checks: `check_landmarks.gd` runs on the full map for EVERY site that has a card
 | Nowotel (Novotel, Marszałkowska 94/98) | S_TILE's cool variant: punched windows in pairs (F's photos, 2026-11-07) | modelled whole (`_build_novotel`, log `docs/landmarks/novotel.md`): NOWOTEL letter over letter on both core bays with the orange rule and ACORN HOTELS, roof light boxes, glazed podium, east entrance | entrance side, Marszałkowska front |
 | Central Tower | S_DARK | - | - |
 | Ilmet | S_BANDS | brown glass | - |
-| Platinum Tower A / B | S_RIBBON | two entries | - |
+| Platinum Tower A / B | S_PUNCHED corners, S_BANDS glass (`skins`, top-50 T36, 2026-11-08) | #e4e0d6 / #8aa1ad | - |
+| PEPEO ŻUBR tower, Grzybowska (`pepeo_tower`) | S_PUNCHED stone, S_GRID green glass (`skins`, top-50 T37, 2026-11-08) | #d9d2c2 / #4f7a76 | PEPEO ŻUBR |
 | Widok Towers | S_GRID (green glass #5d8478, white grid; Mac photo check 2026-11-01) | - | - |
 | PZU Tower | S_RIBBON (pale green-blue glass #8fb5bd; 2026-11-01, spec `pzu_jm.md`) | - | - |
 | JM Tower | S_FINS on dark navy glass, mapped grey pilasters (spec `pzu_jm.md`) | - | - |
-Atlas Tower: the map's own tower plus the Level 26 rooftop club on its crown (landmarks.gd `_build_level26_club`, site `level26_club`). Not covered: Pekao Tower, Warsaw Towers, Prosta Tower, V Tower, Concept Tower, Sienna Center etc. (generic).
+Atlas Tower: the map's own tower plus the Level 26 rooftop club on its crown (landmarks.gd `_build_level26_club`, site `level26_club`). Not covered: Warsaw Towers, Prosta Tower, V Tower, Concept Tower, Sienna Center etc. (generic).
 
 #### 1c. Skin-only (kept LoD2/OSM massing, own wall + roof colour + facade mode; `SKINS` via `_find_skins`, `skin_at`, `_mark_zone`)
 All with a card; check_landmarks only (except where noted). Open issue common to all (BACKLOG "Left"): colour-only, no portico/gables/towers modelled.

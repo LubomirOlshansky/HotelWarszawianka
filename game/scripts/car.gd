@@ -152,8 +152,10 @@ var model := "hatch"
 ## The coffee run (coffee_run.gd): the player swaps the car for a ROWERILO bike at a dock. On the
 ## bike (model "bike") the top speed is BIKE_TOP whatever the engine, the pull BIKE_PULL of the
 ## car's and NITRO never lights; the collision box stays the car's (the same stuck and kerb rules).
-const BIKE_TOP := 8.5
-const BIKE_PULL := 0.55
+## F 2026-11-08: 8.5 m/s (31 km/h) felt very slow at the game's scale; now 11.5 (41 km/h, an
+## arcade city bike) and a livelier pull.
+const BIKE_TOP := 11.5
+const BIKE_PULL := 0.8
 var top_mult := 1.0
 var accel_mult := 1.0
 var grip_mult := 1.0

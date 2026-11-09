@@ -440,6 +440,43 @@ static func frogs_shop() -> ArrayMesh:
 	return st.commit()
 
 
+## The coffee run's café front (storefronts.gd CAFE_FRONT_IDS; F 2026-11-08 with photos of the real
+## ones: big dark-framed glazing, warm light inside, a reclaimed-wood bench at the window). Local
+## frame: x along the wall, y up, +z out of it; 5.6 m wide, the fascia 2.75-3.65 m behind the
+## venue's neon name (storefronts.gd puts it at 2.8 m, 0.14 m out). Glass and lamps lit at night
+## (LIT_WINDOW, LIT_SIGN). About 300 triangles.
+static func cafe_front() -> ArrayMesh:
+	var st := _begin()
+	var frame := Color("#2c2f33")
+	var glass := Color("#f0cf96")
+	var wood := Color("#8b6a48")
+	var counter := Color("#6e4f35")
+	# The fascia board, the plinth, the transom and the frame's posts.
+	box(st, Vector3(0, 3.2, 0.06), Vector3(5.6, 0.9, 0.12), frame)
+	box(st, Vector3(0, 0.12, 0.08), Vector3(5.6, 0.24, 0.16), frame)
+	box(st, Vector3(0, 2.68, 0.07), Vector3(5.6, 0.14, 0.14), frame)
+	for x in [-2.72, -0.42, 0.62, 2.72]:
+		box(st, Vector3(x, 1.4, 0.07), Vector3(0.16, 2.56, 0.14), frame)
+	# The glazing: the big window, the glass door, the side window; the counter and the pendant
+	# lamps seen through them.
+	box(st, Vector3(-1.57, 1.43, 0.03), Vector3(2.14, 2.38, 0.06), glass, LIT_WINDOW)
+	box(st, Vector3(0.1, 1.33, 0.035), Vector3(0.88, 2.18, 0.07), glass, LIT_WINDOW)
+	box(st, Vector3(0.1, 2.5, 0.06), Vector3(1.0, 0.1, 0.12), frame)
+	box(st, Vector3(0.4, 1.15, 0.09), Vector3(0.04, 0.5, 0.04), Color("#c9c9c9"))
+	box(st, Vector3(1.67, 1.43, 0.03), Vector3(1.94, 2.38, 0.06), glass, LIT_WINDOW)
+	box(st, Vector3(-1.57, 0.95, 0.065), Vector3(2.14, 0.22, 0.02), counter)
+	box(st, Vector3(1.67, 0.95, 0.065), Vector3(1.94, 0.22, 0.02), counter)
+	for x in [-2.2, -1.0, 1.2, 2.2]:
+		box(st, Vector3(x, 2.25, 0.065), Vector3(0.22, 0.12, 0.02), Color("#fff6dc"), LIT_SIGN)
+	# The window sill bench (a reclaimed beam on two blocks) and a chalk A-board by the door.
+	box(st, Vector3(-1.55, 0.48, 0.42), Vector3(1.9, 0.14, 0.42), wood)
+	for x in [-2.25, -0.85]:
+		box(st, Vector3(x, 0.21, 0.42), Vector3(0.3, 0.42, 0.36), wood.darkened(0.2))
+	box(st, Vector3(1.1, 0.42, 0.75), Vector3(0.56, 0.84, 0.08), Color("#1d1f22"))
+	for k in 3:
+		box(st, Vector3(1.1, 0.62 - k * 0.16, 0.795), Vector3(0.36 - k * 0.06, 0.035, 0.01), Color("#f2efe6"))
+	return st.commit()
+
 ## A Leżak (parodies.md 5.1): a dumped e-scooter, ≤ 120 triangles, standing, its length along
 ## z: the violet deck 1.1 × 0.06 × 0.18 m, the dark stem 0.95 m and handlebar, two small
 ## wheels, a white front lamp. Lying on its side is the same mesh turned 90° about z.

@@ -108,7 +108,7 @@ SITE_NAMES = ["Pałac Kultury i Nauki", "Złote Tarasy", "Lumen", "Skylight", "R
               "Generation Park Z", "Generation Park X",
               "Skysawa", "Błękitny Wieżowiec", "Warszawskie Centrum Finansowe", "Centrum LIM", "Chałubińskiego 8",
               "Spektrum Tower", "The Bridge", "Bellona", "Hilton Warsaw City", "The Westin Warsaw", "Novotel Warszawa Centrum", "Centrum Marszałkowska",
-              "Central Tower", "Ilmet", "Platinum Tower A", "Platinum Tower B", "Łucka City", "Prosta Tower", "Widok Towers", "PZU Tower", "JM Tower",
+              "Central Tower", "Ilmet", "Platinum Tower A", "Platinum Tower B", "Pekao Tower", "Łucka City", "Prosta Tower", "Widok Towers", "PZU Tower", "JM Tower",
               # map north (2026-10-31): Arkadia, for the landmarks lane (docs/DEMO.md 2.2)
               "Westfield Arkadia",
               # first scene item 3 (2026-10-31): the Eastern Wall's stores (landmarks.gd DTC)
@@ -135,6 +135,7 @@ SITE_PAD = 12.0
 # Building kinds landmarks.gd finds wherever they lie (the barges, 2026-11-01: _find_barges).
 SITE_KINDS = ("boat", "houseboat")
 SITE_AREAS = [
+    (-1360.0, -262.0, -1275.0, -225.0),     # Próżna's two south tenements (landmarks.gd _find_prozna, F's photos 2026-11-08)
     (-1345.0, -1790.0, -1200.0, -1690.0),   # Sąd Najwyższy's colonnade (landmarks.gd SN_BOX: unnamed OSM columns)
     (-270.0, -1510.0, -20.0, -1260.0),      # the boulevards' bar pavilions (landmarks.gd BULWAR_PAW_BOX)
     (25.0, -1110.0, 65.0, -1065.0),         # and their containers and kiosks (BULWAR_BAR_BOXES)
@@ -160,6 +161,7 @@ SITE_AREAS = [
     (-193.0, 46.0, -183.0, 56.0),           # and Foksal 15
     (70.0, 20.0, 100.0, 45.0),              # Młotek, Smolna 8 (landmarks.gd ML_AT)
     (-820.0, -1185.0, -790.0, -1160.0),     # Kozia 9 (unnamed in OSM; landmarks.gd KZ_AT)
+    (-815.0, -115.0, -770.0, -78.0),        # the blue glass office north of Hotel Warszawa (unnamed in OSM; landmarks.gd TOWERS powstancow_blue)
     (-690.0, 525.0, -628.0, 635.0),         # Cyfrowy Parking Novotel, Nowogrodzka 27 (landmarks.gd CP_AT)
     (-475.0, -960.0, -450.0, -940.0),       # Karowa 18a (unnamed in OSM; landmarks.gd KR_AT)
     (-175.0, 125.0, -145.0, 150.0),         # Smolna 38 (building=office, no name; landmarks.gd S38_AT)
