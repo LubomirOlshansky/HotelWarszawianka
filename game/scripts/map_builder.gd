@@ -13,6 +13,8 @@ const Landmarks := preload("res://scripts/landmarks.gd")
 const CityMaps := preload("res://scripts/city_maps.gd")
 ## Loop 2c: the parked cars' mesh and paints come from the vehicles' models (one source).
 const Models := preload("res://scripts/models.gd")
+const Tamka := preload("res://scripts/tamka.gd")
+const PowisleHouses := preload("res://scripts/powisle_houses.gd")
 const Trains := preload("res://scripts/trains.gd")
 const RailCut := preload("res://scripts/rail_cut.gd")
 const RailYard := preload("res://scripts/rail_yard.gd")
@@ -118,6 +120,10 @@ var data: Dictionary
 @export_storage var flat_material: ShaderMaterial
 ## Every material that opens a see-through hole around the car (trees, parked cars).
 @export_storage var fade_materials: Array[ShaderMaterial] = []
+## F (2026-11-08): the materials of what stands on the ground over a tunnel and goes with the
+## tunnel cutaway (tunnel_cut.gdshaderinc): the trees' crowns and trunks, the street lamps and their
+## halos, the benches and bins. The ground's (flat_material) and the buildings' are set beside them.
+@export_storage var cut_materials: Array[ShaderMaterial] = []
 ## The street-lamp light map's rectangle (tools/bake_lights.py; _sodium_at reads it).
 @export_storage var light_rect := Vector4(0, 0, 1, 1)
 ## v0.9: the surface map's rectangle (tools/bake_water.py: distance to the shore, the river's
@@ -1317,6 +1323,57 @@ func in_tunnel(x: float, z: float, y: float) -> bool:
 	return not is_nan(t) and terrain_height(x, z) - t > 2.0
 
 
+## F (2026-11-08): the tunnel cutaway's corridor round a vehicle at (x, y, z) in a tunnel: the
+## tunnel's centre line from `reach` m behind it to `reach` m ahead, as `chords` chords (a.xz, b.xz)
+## with each one's left and right half width less TUNNEL_CUT_INSET (so the cut edge lies just inside
+## the side walls, whose tops stand 0.2 m under the ground: no gap over a wall's top shows the void
+## outside). Empty when the vehicle is not in a tunnel. tunnel_cut.gdshaderinc uses it (main.gd);
+## the result is [chords (PackedVector4Array), half widths (PackedVector2Array), the floor's height].
+const TUNNEL_CUT_INSET := 0.3
+func tunnel_cut_chords(x: float, z: float, y: float, reach: float, chords: int) -> Array:
+	var p := Vector2(x, z)
+	for d in _tunnels:
+		if not (d["box"] as Rect2).has_point(p):
+			continue
+		var hit := _deck_hit(d, p)
+		if hit.z <= 0.0 or y > hit.x + 1.2 or y < hit.x - 1.2 or terrain_height(x, z) - hit.x <= 2.0:
+			continue
+		var pts: PackedVector2Array = d["pts"]
+		var cum: PackedFloat32Array = d["cum"]
+		# The vehicle's distance along the line: its nearest chord's, projected.
+		var along := 0.0
+		var best := INF
+		for k in pts.size() - 1:
+			var q := Geometry2D.get_closest_point_to_segment(p, pts[k], pts[k + 1])
+			var d2 := q.distance_squared_to(p)
+			if d2 < best:
+				best = d2
+				along = cum[k] + q.distance_to(pts[k])
+		var s0 := maxf(along - reach, 0.0)
+		var s1 := minf(along + reach, cum[cum.size() - 1])
+		var segs := PackedVector4Array()
+		var sides := PackedVector2Array()
+		var l := float(d["l"]) + 0.3 - TUNNEL_CUT_INSET
+		var r := float(d["r"]) + 0.3 - TUNNEL_CUT_INSET
+		var prev := _line_at(pts, cum, s0)
+		for k in range(1, chords + 1):
+			var nxt := _line_at(pts, cum, lerpf(s0, s1, float(k) / float(chords)))
+			segs.append(Vector4(prev.x, prev.y, nxt.x, nxt.y))
+			sides.append(Vector2(l, r))
+			prev = nxt
+		return [segs, sides, hit.x]
+	return []
+
+
+## The point `s` m along a polyline with running lengths `cum`.
+func _line_at(pts: PackedVector2Array, cum: PackedFloat32Array, s: float) -> Vector2:
+	for k in pts.size() - 1:
+		if s <= cum[k + 1] or k == pts.size() - 2:
+			var span := cum[k + 1] - cum[k]
+			return pts[k].lerp(pts[k + 1], clampf((s - cum[k]) / span, 0.0, 1.0) if span > 0.0 else 0.0)
+	return pts[0]
+
+
 ## GAMEPLAY_PLAN 3.5 (0.3): a bridge or viaduct deck stands between the point `at` (the car's
 ## middle) and the camera, `to_cam` the unit direction up to it (the ortho camera's back axis):
 ## the ray meets a deck's slab (from UNDER_DECK_SLAB under its road to its parapet's top) between
@@ -1739,7 +1796,8 @@ func _load_decks() -> void:
 			_lift_rail_footbridge(pts, cum, hs)
 		_decks.append({"pts": pts, "cum": cum, "h": hs, "l": float(piece["l"]),
 				"r": float(piece["r"]), "g": int(piece["g"]), "k": String(piece["k"]),
-				"o": PackedByteArray(piece.get("o", [])), "box": box.grow(reach)})
+				"o": PackedByteArray(piece.get("o", [])), "box": box.grow(reach),
+				"rail": String(piece.get("rail", "")), "lp": PackedFloat32Array(piece.get("lp", []))})
 
 
 # --- sunken places ---------------------------------------------------------------------------
@@ -6591,8 +6649,13 @@ func _build_roads(st) -> void:
 	_layer = L_GROUND
 
 
-## Loop 3b: the tunnels' roads (`tunnels.roads`), on their tunnel's floor, with a centre line;
-## under the ground, so seen only in the portals' mouths (and the car's x-ray inside).
+## The tunnels' floor beside their roads (the cutaway shows it): dark concrete.
+const TUNNEL_FLOOR := Color("#5f5b55")
+
+
+## Loop 3b: the tunnels' roads (`tunnels.roads`), on their tunnel's floor, with a centre line and
+## (2026-11-08) the floor from wall to wall; under the ground, so seen in the portals' mouths and
+## through the tunnel cutaway.
 func _build_tunnel_roads(st) -> void:
 	_layer = L_ROAD
 	for r in data.get("tunnels", {}).get("roads", []):
@@ -6600,6 +6663,16 @@ func _build_tunnel_roads(st) -> void:
 		if _tn < 0:
 			continue
 		var poly := _pts(r["p"])
+		# F (2026-11-08, the tunnel cutaway): the floor from wall to wall under the road, so the
+		# cut over the tunnel never looks past the road's edge into the void under the ground.
+		var half := 0.0
+		for d in _tunnels:
+			if int(d["g"]) == _tn:
+				half = maxf(half, maxf(float(d["l"]), float(d["r"])) + 0.3)
+		if half * 2.0 > float(r["w"]):
+			_layer = L_GROUND
+			_strip(st, poly, half * 2.0 + 0.4, Y_GROUND, TUNNEL_FLOOR, false)
+			_layer = L_ROAD
 		_strip(st, poly, float(r["w"]), Y_ROAD, COL["road"], true)
 		_layer = L_MARK
 		_dashes(st, poly, 0.0, 3.0, 6.0, 0.15)
@@ -6787,6 +6860,9 @@ const SURFACE_STYLE := {
 	"ballast": ["#8f887d", 15.0],
 	"flowerbed": ["#6c9844", 11.0],
 	"construction": ["#a48b6a", 12.0],
+	# A finished building site's car park (tools/port_bridge.py: the lot north-west of Port
+	# Czerniakowski's footbridge): the minor roads' asphalt.
+	"parking": ["#55595f", 6.0],
 	"playground": ["#c98a64", 13.0],
 	"fountain": ["#5ea8d8", 3.0],
 }
@@ -6897,6 +6973,8 @@ func _build_steps(st) -> void:
 	# towards the entrance's deep end.
 	for p in data.get("steps", []):
 		var poly := _pts(p["p"])
+		if _in_trybuna(p["p"]):
+			continue
 		var deep := int(p.get("down", -1))
 		if deep < 0 or poly.size() != 2:
 			_strip(st, poly, 2.4, Y_PATH + 0.01, Color("#d2cabb"))
@@ -6961,6 +7039,8 @@ func _build_stair_flights(st) -> int:
 
 
 func _stair_skipped(poly: PackedVector2Array) -> bool:
+	if Geometry2D.is_point_in_polygon((poly[0] + poly[poly.size() - 1]) * 0.5, PackedVector2Array(TRYBUNA_ZONE)):
+		return true
 	for q in [poly[0], poly[poly.size() - 1]]:
 		if not _sunk.is_empty() and _sunk_box.grow(1.0).has_point(q) and not is_inf(sunk_floor(q.x, q.y, true)):
 			return true
@@ -7451,7 +7531,7 @@ const BARRIER_STYLE := {
 ## top and a middle rail you can see through (Operation Unslop's tram railing and stair balustrade).
 ## It collides like a wall of the same height, so driving stays as it was.
 func _railing_along(st, poly: PackedVector2Array, height: float, upstand: float, up_col: Color, rail_col: Color, collide: bool,
-		post_every := 2.0, base := NAN) -> void:
+		post_every := 2.0, base := NAN, base_end := NAN) -> void:
 	if upstand > 0.0:
 		_wall_along(st, poly, 0.2, upstand, up_col, false)
 	var run := 0.0
@@ -7467,7 +7547,7 @@ func _railing_along(st, poly: PackedVector2Array, height: float, upstand: float,
 		var side := Vector2(-dir.y, dir.x) * 0.03
 		# `base`: the railing stands on a slab at that height (a tram island), not on the ground.
 		var ga := terrain_height(a.x, a.y) if is_nan(base) else base
-		var gb := terrain_height(b.x, b.y) if is_nan(base) else base
+		var gb := terrain_height(b.x, b.y) if is_nan(base) else (base if is_nan(base_end) else base_end)
 		var n := Vector3(side.x, 0, side.y).normalized()
 		for h in [low, height - 0.05]:
 			for sgn in [1.0, -1.0]:
@@ -7621,6 +7701,25 @@ func _in_pkin_zone(flat: Array) -> bool:
 	for i in n:
 		c += Vector2(flat[i * 2], flat[i * 2 + 1])
 	return Geometry2D.is_point_in_polygon(c / n, _pkin_zone)
+
+
+## The tribune on Plac Centralny (F's photos, 2026-11-08): landmarks.gd's `trybuna` builds the
+## granite block, its steps, stairs and planters, so OSM's wall lines and flights inside it (the
+## planters' rims, the stairs on top) are left out here: drawn on the ground they read as low grey
+## walls and a ramp. World corners of its zone (Plac Centralny's frame u -15.2..11.2, v -5.2..10.6).
+const TRYBUNA_ZONE: Array[Vector2] = [Vector2(-1080.7, 211.6), Vector2(-1089.9, 186.8),
+		Vector2(-1075.1, 181.3), Vector2(-1065.9, 206.1)]
+
+
+## Whether a line's (or a flight's) centre lies inside the tribune.
+func _in_trybuna(flat: Array) -> bool:
+	var n := flat.size() / 2
+	if n < 1:
+		return false
+	var c := Vector2.ZERO
+	for i in n:
+		c += Vector2(flat[i * 2], flat[i * 2 + 1])
+	return Geometry2D.is_point_in_polygon(c / n, PackedVector2Array(TRYBUNA_ZONE))
 
 
 ## Whether a barrier line's centre lies on Teatr Studio's open forecourt (pkin_grounds.json
@@ -8019,6 +8118,7 @@ func _mapped_style(l: Dictionary, style: Array) -> Array:
 ## outer face (the one facing away from the Rynek): wide merlons with narrow embrasures.
 const CITY_WALL := Color("#b8704f")
 const CITY_WALL_CAP := Color("#c98a6c")
+const TOWER_TILE := Color("#9a4a38")
 const WALL_MERLON_MIN := 5.0
 const WALL_MERLON := 1.6
 const WALL_CRENEL := 0.7
@@ -8068,7 +8168,50 @@ func _build_city_walls(st) -> void:
 						Vector3(a.x, ga, a.y), Vector3(b.x, tops[j] + 1.5, b.y), Vector3(a.x, tops[i] + 1.5, a.y)])
 			if h >= WALL_MERLON_MIN and Vector2(n.x, n.z).dot((a + b) * 0.5 - OLD_TOWN_HEART) > 0.0:
 				_merlons(st, a, b, tops[i], tops[j], Vector2(n.x, n.z), _wall_depth(ring))
+		if _is_wall_tower(ring, h):
+			_tower_roof(st, ring, maxf(tops[0], tops[ring.size() / 2]))
 	_uv2 = Vector2.ZERO
+
+
+## Whether a city-wall ring is a tower (Baszta Rycerska, the Altana): compact (at most 12 m
+## across, 15-60 m2) and at least 5 m high. The wall strips are long and thin; the little stairs
+## and rubble rings are lower or smaller.
+func _is_wall_tower(ring: PackedVector2Array, h: float) -> bool:
+	if h < 5.0 or ring.size() < 6:
+		return false
+	var lo := Vector2(INF, INF)
+	var hi := -lo
+	var area := 0.0
+	for i in ring.size():
+		lo = lo.min(ring[i])
+		hi = hi.max(ring[i])
+		area += ring[i].cross(ring[(i + 1) % ring.size()])
+	return absf(area) * 0.5 >= 15.0 and absf(area) * 0.5 <= 60.0 and maxf(hi.x - lo.x, hi.y - lo.y) <= 12.0
+
+
+## A tower's tile cone (F, 2026-11-09, photos E14-E16): the ring pushed out 0.45 m into an eave
+## at the tower's top, a steep tile-red cone over the ring's middle, a ball and a spike.
+func _tower_roof(st, ring: PackedVector2Array, top: float) -> void:
+	var c := Vector2.ZERO
+	for q in ring:
+		c += q
+	c /= ring.size()
+	var rad := 0.0
+	for q in ring:
+		rad = maxf(rad, q.distance_to(c))
+	var rise := rad * 1.7 + 1.5
+	var apex := Vector3(c.x, top + rise, c.y)
+	var scale := 1.0 + 0.45 / maxf(rad, 1.0)
+	for i in ring.size():
+		var a := c + (ring[i] - c) * scale
+		var b := c + (ring[(i + 1) % ring.size()] - c) * scale
+		var pa := Vector3(a.x, top, a.y)
+		var pb := Vector3(b.x, top, b.y)
+		var n := (pb - pa).cross(apex - pa).normalized()
+		if n.y < 0.0:
+			n = -n
+		_tri(st, pa, pb, apex, n, TOWER_TILE.darkened(0.04 * float(i % 3)))
+	_tri(st, Vector3(c.x - 0.1, top + rise, c.y), Vector3(c.x + 0.1, top + rise, c.y), Vector3(c.x, top + rise + 1.6, c.y), Vector3.UP, CITY_WALL_CAP)
 
 
 ## A wall ring's thickness, about: twice its area over its perimeter (a long thin strip), at most
@@ -8157,6 +8300,10 @@ func _build_barriers(st) -> void:
 			continue
 		if l["k"] != "platform" and _in_pkin_forecourt(l["p"]):
 			continue
+		if _in_trybuna(l["p"]):
+			continue
+		if l["k"] == "fence" and _over_river(l["p"]):
+			continue
 		var style: Array = BARRIER_STYLE.get(l["k"], ["#999999", 0.3, 1.0])
 		if not site_wall.is_empty():
 			style = BARRIER_STYLE[str(site_wall[1])]
@@ -8221,6 +8368,32 @@ func _build_barriers(st) -> void:
 	_uv2 = Vector2.ZERO
 
 
+## A fence OSM maps along a bridge (its railing) is the deck's own parapet, which the bridge
+## builds; drawn from the ground at its two ends it ran as a straight slanting fence through the
+## river, and its collider stopped every boat under Most Świętokrzyski (F, 2026-11-08; two 300 m
+## fences there, two 70 m ones by Most Łazienkowski). A fence with RIVER_FENCE_SHARE or more of
+## its length over open water (RIVER_FENCE_M m past the shore, water.bin) is left out.
+const RIVER_FENCE_M := 8.0
+const RIVER_FENCE_SHARE := 0.3
+
+
+func _over_river(flat: Array) -> bool:
+	if _shore_zip.is_empty() and _shore.is_empty():
+		return false
+	var wet := 0
+	var n := 0
+	for i in range(0, flat.size() - 3, 2):
+		var a := Vector2(float(flat[i]), float(flat[i + 1]))
+		var b := Vector2(float(flat[i + 2]), float(flat[i + 3]))
+		var k := maxi(1, int(a.distance_to(b) / 3.0))
+		for t in k:
+			var q := a.lerp(b, float(t) / k)
+			n += 1
+			if shore_distance(q.x, q.y) > RIVER_FENCE_M:
+				wet += 1
+	return n > 0 and wet >= 6 and float(wet) / n >= RIVER_FENCE_SHARE
+
+
 static func _box_of_pts(pts: PackedVector2Array) -> Rect2:
 	var r := Rect2(pts[0], Vector2.ZERO) if not pts.is_empty() else Rect2()
 	for q in pts:
@@ -8239,6 +8412,10 @@ static func _box_of_pts(pts: PackedVector2Array) -> Rect2:
 ## parapets there go and a low kerb marks each piece's edge (the car still can't cross it: the
 ## parapet's collider stays where there is a drop under it).
 const DECK_JOIN := 6.0
+## A deck with its own steel railing (`rail`, tools/port_bridge.py: Port Czerniakowski's
+## footbridge, green bars in the Mapillary photos): the railing's height and the bars' spacing.
+const DECK_RAIL_H := 1.1
+const DECK_RAIL_BARS := 0.2
 
 
 ## Per point of deck piece `di`, how far across the gap on each side another piece of its bridge
@@ -8310,6 +8487,7 @@ func _build_bridge_structures(st) -> void:
 		var hs: PackedFloat32Array = d["h"]
 		var outer: PackedByteArray = d["o"]
 		var piers: bool = d["k"] in ["road", "rail"]
+		var rail: String = d.get("rail", "")
 		var l := float(d["l"]) + 0.2
 		var r := float(d["r"]) + 0.2
 		var gaps := _deck_gaps(di)
@@ -8351,9 +8529,25 @@ func _build_bridge_structures(st) -> void:
 				var p1 := bl if side < 0.0 else br
 				var n := Vector3(right.x * side, 0.0, right.y * side)
 				var top := 0.55 if is_outer else 0.0
+				if is_outer and rail != "":
+					top = 0.12
 				_quad(st, Vector3(p0.x, ya - 1.3, p0.y), Vector3(p1.x, yb - 1.3, p1.y),
 						Vector3(p1.x, yb + top, p1.y), Vector3(p0.x, ya + top, p0.y), n, concrete)
-				if is_outer:
+				if is_outer and rail != "":
+					# A steel railing instead of the parapet (tools/port_bridge.py): a low kerb
+					# on the slab's edge, then posts, rails and bars in the deck's paint.
+					var r0: Vector2 = p0 - right * side * 0.12
+					var r1: Vector2 = p1 - right * side * 0.12
+					_quad(st, Vector3(p0.x, ya + top, p0.y), Vector3(p1.x, yb + top, p1.y), Vector3(r1.x, yb + top, r1.y),
+							Vector3(r0.x, ya + top, r0.y), Vector3.UP, concrete.lightened(0.1))
+					_railing_along(st, PackedVector2Array([r0, r1]), DECK_RAIL_H, 0.0, concrete, Color(rail), false,
+							DECK_RAIL_BARS, ya + 0.08, yb + 0.08)
+				if is_outer and rail != "":
+					var drop_r := maxf(ya - terrain_height(p0.x, p0.y), yb - terrain_height(p1.x, p1.y))
+					if drop_r > 1.0:
+						_wall_faces.append_array([Vector3(p0.x, ya - 0.2, p0.y), Vector3(p1.x, yb - 0.2, p1.y), Vector3(p1.x, yb + 1.6, p1.y),
+								Vector3(p0.x, ya - 0.2, p0.y), Vector3(p1.x, yb + 1.6, p1.y), Vector3(p0.x, ya + 1.6, p0.y)])
+				elif is_outer:
 					# The parapet's top and inner face.
 					var q0: Vector2 = p0 - right * side * 0.3
 					var q1: Vector2 = p1 - right * side * 0.3
@@ -9629,6 +9823,8 @@ func _build_buildings(st, keep: Array, marks) -> void:
 				roof = _district_roof(plan.get_center(), hsh, str(bld["kind"]), royal)
 		if skin.is_empty() and not glass and _nowy_swiat(plan.get_center()):
 			wall = Color(NOWY_PASTELS[(hsh / 7) % NOWY_PASTELS.size()]).lerp(wall, 0.25)
+		elif skin.is_empty() and not glass and not _tamka_look(bld, poly, plan.get_center(), hsh).is_empty():
+			wall = _tamka_look(bld, poly, plan.get_center(), hsh)["plaster"]
 		elif skin.is_empty() and not glass and _powisle_house(bld, poly, plan.get_center()):
 			wall = Color(POWISLE_PASTELS[(hsh / 7) % POWISLE_PASTELS.size()]).lerp(wall, 0.25)
 
@@ -10437,11 +10633,15 @@ func _make_shared() -> void:
 	trunk.radial_segments = 5
 	trunk.rings = 1
 	_shared["trunk"] = trunk
-	var trunk_mat := StandardMaterial3D.new()
-	trunk_mat.albedo_color = Color("#5e4636")
-	_shared["trunk_mat"] = trunk_mat
 	leaf_material = ShaderMaterial.new()
 	leaf_material.shader = load("res://shaders/foliage.gdshader")
+	# The trunks: the crowns' shader (so the tunnel cutaway takes them too), without the sway and
+	# the lumps, in the bark colour.
+	var trunk_mat := ShaderMaterial.new()
+	trunk_mat.shader = leaf_material.shader
+	trunk_mat.set_shader_parameter("sway", 0.0)
+	trunk_mat.set_shader_parameter("tint", Vector3(0.369, 0.275, 0.212))  # #5e4636
+	_shared["trunk_mat"] = trunk_mat
 	_shared["broadleaf"] = _broadleaf_mesh()
 	_shared["conifer"] = _conifer_mesh()
 
@@ -10494,6 +10694,7 @@ func _make_shared() -> void:
 	var fixture := ShaderMaterial.new()
 	fixture.shader = load("res://shaders/fixture.gdshader")
 	_shared["fixture"] = fixture
+	cut_materials = [leaf_material, trunk_mat, fixture]
 	var signal_mesh := SurfaceTool.new()
 	signal_mesh.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var dark := Color("#26282b")
@@ -10516,6 +10717,7 @@ func _make_shared() -> void:
 	halo.set_shader_parameter("radial", true)
 	halo.set_shader_parameter("lift", 1.5)
 	halo.render_priority = 1
+	cut_materials.append(halo)
 	_shared["halo"] = halo
 	_shared["halo_quad"] = halo_quad(4.6)
 	var neon := ShaderMaterial.new()
@@ -10525,11 +10727,12 @@ func _make_shared() -> void:
 	_shared["neon"] = neon
 	_shared["neon_quad"] = Neon.quad()
 
-	var prop_metal := StandardMaterial3D.new()
-	prop_metal.vertex_color_use_as_albedo = true
-	prop_metal.vertex_color_is_srgb = true
-	prop_metal.roughness = 0.75
+	# Benches, bins, racks, columns: vertex colours in sRGB, as the lamps (fixture.gdshader, with no
+	# lamp head), so the tunnel cutaway takes them too (F, 2026-11-08; was a StandardMaterial3D).
+	var prop_metal := ShaderMaterial.new()
+	prop_metal.shader = fixture.shader
 	_shared["prop_metal"] = prop_metal
+	cut_materials.append(prop_metal)
 	var bench := SurfaceTool.new()
 	bench.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var wood := Color("#8b6a48")
@@ -10767,6 +10970,31 @@ func _build_street_furniture() -> void:
 		spots.append(t)
 		var head := t * Vector3(1.2, 0.0, 0.0)
 		glows.append(SODIUM_GLOW if _sodium_at(head.x, head.z) else LED_GLOW)
+	# A railed deck's own lamps (tools/port_bridge.py `lp`: shares of its length), on its left
+	# edge, the arm over the deck.
+	for d: Dictionary in _decks:
+		var lp: PackedFloat32Array = d.get("lp", PackedFloat32Array())
+		if lp.is_empty():
+			continue
+		var pts: PackedVector2Array = d["pts"]
+		var cum: PackedFloat32Array = d["cum"]
+		var total := cum[cum.size() - 1]
+		for share in lp:
+			var s := share * total
+			var k := 0
+			while k < pts.size() - 2 and cum[k + 1] < s:
+				k += 1
+			var f := clampf((s - cum[k]) / maxf(cum[k + 1] - cum[k], 0.01), 0.0, 1.0)
+			var dir := (pts[k + 1] - pts[k]).normalized()
+			var right := Vector2(-dir.y, dir.x)
+			var at := pts[k].lerp(pts[k + 1], f) - right * (float(d["l"]) - 0.05)
+			if not _owns(at):
+				continue
+			var y := lerpf((d["h"] as PackedFloat32Array)[k], (d["h"] as PackedFloat32Array)[k + 1], f)
+			var t := Transform3D(Basis(Vector3.UP, atan2(-right.y, right.x)), Vector3(at.x, y, at.y))
+			spots.append(t)
+			var head := t * Vector3(1.2, 0.0, 0.0)
+			glows.append(SODIUM_GLOW if _sodium_at(head.x, head.z) else LED_GLOW)
 	var none: Array[Color] = []
 	for mmi in _tree_multimesh(_shared["lamp"], _shared["fixture"], spots, none, glows):
 		mmi.add_to_group(SMALL_CASTERS, true)
@@ -10841,12 +11069,35 @@ const CANDELABRA_HEAD := Vector3(0, 8.5, 0)
 ## The landmarks loop (Old Town): the historic districts (x, z, radius), the Old Town and the
 ## New Town, where GUGiK models a whole block of tenements as one building (Rynek's sides are
 ## 49 and 84 OpenStreetMap houses in one model), so it stood in one colour like a modern block.
-const HISTORIC := [Vector3(-760.0, -1680.0, 200.0), Vector3(-830.0, -1920.0, 170.0), Vector3(-724.2, -1465.4, 105.0)]
+## F (2026-11-08): the rebuilt tenements at Krakowskie Przedmieście's north end that have no
+## photo front (Hôtel de Saxe, Kamienica Heyna, Pałac Wesslów's row; the pair by Bednarska)
+## take the Old Town dress too.
+const HISTORIC := [Vector3(-760.0, -1680.0, 200.0), Vector3(-830.0, -1920.0, 170.0), Vector3(-724.2, -1465.4, 105.0),
+		Vector3(-696.0, -1106.0, 26.0), Vector3(-735.0, -1316.0, 16.0)]
 ## Plac Zamkowy's houses (F, 2026-11-01): OpenStreetMap's colours there are muddy (olive,
 ## mustard, brown), so within PLAC_PALETTE_R of the column a house takes one of these pastels
 ## (the rebuilt Old Town's cream, apricot, rose, sage, powder blue, sand), a quarter of the
 ## mapped colour left in for variety.
 const PLAC_PALETTE_R := 110.0
+## The market square's fronts (the shader's painted bands): walls within this of its centre that
+## face it.
+const SQUARE_FRONT_R := 48.0
+## building.gdshader's T_OLDTOWN: the historic districts' walls (F's photos, 2026-11-08).
+const OLD_TOWN_TYPE := 4
+## The Old Town Market Square's houses (F, 2026-11-09): within RYNEK_PALETTE_R of its centre each
+## house is a painted front in one of these (ochre, salmon, sage, powder blue, pale pink, cream,
+## terracotta, lilac, straw), unless OSM names its colour; the named houses below have their own,
+## by hand (a stand-in until the Mac photo check).
+const RYNEK_PALETTE_R := 75.0
+const RYNEK_PASTELS := ["#e3b560", "#dd9a85", "#a9c2a0", "#9bbdd0", "#ecc5c0", "#f0e5c8", "#cf7d59", "#bfaed0", "#dfc78c"]
+const RYNEK_NAMED := {
+	"Kamienica Fukierowska": "#e8c6a3",
+	"Kamienica pod św. Anną": "#d99b7c",
+	"Kamienica Gizińska": "#c9d4a6",
+	"Kamienica Busserowska": "#e9c4b6",
+	"Kamienica Balcerowska": "#b6cdd8",
+	"Staromiejski Dom Kultury Słowa": "#e6d6b0",
+}
 const PLAC_PASTELS := ["#ecd9a4", "#e9bda8", "#e3b5b0", "#c6d3b3", "#bfd2e0", "#efe4cf", "#e6cba0", "#d9c6d6"]
 ## Mariensztat (the Mariensztat review, 2026-11-01): the 1948-49 estate under the escarpment
 ## (Rynek Mariensztacki, Mariensztat, Sowia, Garbarska, Furmańska and lower Bednarska), small
@@ -10876,11 +11127,15 @@ const NOWY_STREET := "Nowy Świat"
 ## fronts (TenementTrim). Within POWISLE_REACH metres of a street's centre line, tenements only
 ## (R4 type 1: slabs, offices and the landmarks keep their own look). A *guess* from memory of the
 ## streets until the Mac photo check (QUESTIONS).
-const POWISLE_STREETS := ["Dobra", "Tamka"]
+## Dobra and Tamka first (2026-11-02); the side streets F photographed joined them (2026-11-09).
+const POWISLE_STREETS := ["Dobra", "Tamka", "Lipowa", "Radna", "Cicha", "Topiel", "Leszczyńska", "Browarna", "Zajęcza",
+		"Dynasy", "Oboźna", "Solec", "Drewniana", "Czerwonego Krzyża", "Wiślana", "Bartoszewicza", "Jaracza"]
 const POWISLE_REACH := 24.0
 const POWISLE_SHOP_REACH := 15.0
-const POWISLE_PASTELS := ["#d6cbb2", "#cdb996", "#dcc7a0", "#c9b0a0", "#b9c0aa", "#d3c0bb", "#c8ccd0", "#e0d3ab",
-		"#bda78d", "#d8bb9e"]
+## F's street photos (2026-11-09, Mac powisle/C-*): Powiśle's post-war blocks are white, pale grey,
+## cream, beige, light pink and pale yellow, a few in grey-brown render.
+const POWISLE_PASTELS := ["#ecebe6", "#d9d9d4", "#e3d7bd", "#e8cfc4", "#e6d27a", "#8f8a82", "#d2c3a5", "#c8c4bc",
+		"#e6dfcf", "#b9ad9b"]
 
 ## Their tenements' own colours where OpenStreetMap has none (ochre, salmon, cream, terracotta,
 ## pale yellow, sage, blue-grey, peach, oxblood): the rebuilt Old Town's palette.
@@ -11098,6 +11353,7 @@ func _tenement_facades(pos: PackedVector3Array, nrm: PackedVector3Array, col: Pa
 	var roofs: Array[Color] = []
 	var plain: Array[bool] = []  # Nowy Świat's and Dobra and Tamka's houses: the plaster only
 	var trim: Array[bool] = []  # Dobra and Tamka's: the cornice and shop fronts too
+	var styles: Array = []  # Tamka's photo looks (tamka.gd): balconies, a brick base, an attic
 	for bld in data.get("buildings", []):
 		var p: Array = bld["p"]
 		if p.size() < 6 or NOT_TENEMENTS.has(str(bld.get("kind", ""))):
@@ -11107,21 +11363,29 @@ func _tenement_facades(pos: PackedVector3Array, nrm: PackedVector3Array, col: Pa
 		for q in poly:
 			box = box.expand(q)
 		var nowy := _nowy_swiat(box.get_center())
-		var powisle := not nowy and _powisle_house(bld, poly, box.get_center())
+		var hsh := absi(int(poly[0].x * 73.0 + poly[0].y * 31.0))
+		var tk := {} if nowy else _tamka_look(bld, poly, box.get_center(), hsh)
+		var powisle := not nowy and (not tk.is_empty() or _powisle_house(bld, poly, box.get_center()))
 		if not nowy and not powisle and not _historic(box.get_center(), 40.0):
 			continue
-		var hsh := absi(int(poly[0].x * 73.0 + poly[0].y * 31.0))
 		var k := polys.size()
 		polys.append(poly)
 		plain.append(nowy or powisle)
 		trim.append(powisle)
+		styles.append(tk.get("style", {}))
+		if not tk.is_empty():
+			tamka_houses += 1
 		var look := _osm_colour(bld["c"], Color(TENEMENTS[hsh % TENEMENTS.size()]))
 		if nowy:
 			look = Color(NOWY_PASTELS[(hsh / 7) % NOWY_PASTELS.size()]).lerp(look, 0.25)
+		elif not tk.is_empty():
+			look = tk["plaster"]
 		elif powisle:
 			look = Color(POWISLE_PASTELS[(hsh / 7) % POWISLE_PASTELS.size()]).lerp(look, 0.25)
 		if box.get_center().distance_to(OldTownRoofs.PLAC) < PLAC_PALETTE_R:
 			look = Color(PLAC_PASTELS[hsh % PLAC_PASTELS.size()]).lerp(look, 0.25)
+		if box.get_center().distance_to(OldTownRoofs.RYNEK) < RYNEK_PALETTE_R:
+			look = _rynek_look(str(bld.get("name", "")), str(bld["c"]), hsh, look)
 		looks.append(look)
 		seeds.append(fposmod(hsh * 0.6180339887, 1.0))
 		roofs.append(_tile_colour(hsh))
@@ -11133,6 +11397,7 @@ func _tenement_facades(pos: PackedVector3Array, nrm: PackedVector3Array, col: Pa
 				(grid[key] as Array).append(k)
 	if polys.is_empty():
 		return [col, uv2, dress]
+	var balc0 := TenementTrim.balconies
 	var covered := _gable_ends(pos, nrm)
 	for t in range(0, pos.size(), 3):
 		if dropped[t / 3] or uv2[t].x >= 1.0 or col[t].a < 0.9 or nrm[t].y > 0.95 or nrm[t].y < -0.3:
@@ -11153,14 +11418,17 @@ func _tenement_facades(pos: PackedVector3Array, nrm: PackedVector3Array, col: Pa
 							col[t + v] = looks[k]
 							uv2[t + v].x = seeds[k]
 						if trim[k] and absf(nrm[t].y) < 0.05:
-							_powisle_trim(pos, nrm, t, looks[k], dress)
+							_powisle_trim(pos, nrm, t, looks[k], dress, styles[k])
 					break
+				# F's photos (2026-11-08): the walls take the shader's Old Town type (portals,
+				# casements in cream surrounds, sills, painted bands on the market square's fronts)
+				var wall_seed := typed_seed(OLD_TOWN_TYPE, seeds[k] * 0.5 + (0.5 if _faces_square(pos, nrm, t) else 0.0))
 				for v in 3:
 					if pitched:
 						col[t + v] = col[t + v].lerp(roofs[k], 0.5)
 					else:
 						col[t + v] = looks[k]
-						uv2[t + v].x = seeds[k]
+						uv2[t + v].x = wall_seed
 				if pitched:
 					# Old Town roof detail (OldTownRoofs): a dormer, now and then a chimney. The
 					# seed from the slope's place, not its index (a sector's batch numbers its
@@ -11172,7 +11440,30 @@ func _tenement_facades(pos: PackedVector3Array, nrm: PackedVector3Array, col: Pa
 				else:
 					_square_gables(pos, nrm, t, polys, grid, cell, looks, seeds, covered, dress)
 				break
+	if not _in_sector and tamka_houses > 0:
+		print("tamka: %d houses in the photos' looks, %d balconies" % [tamka_houses, TenementTrim.balconies - balc0])
 	return [col, uv2, dress]
+
+
+## A Market Square house's painted colour: its OSM colour when it has one, the named table's,
+## else a pick from RYNEK_PASTELS by the house's hash (neighbours differ: the hash steps by 3).
+func _rynek_look(bname: String, osm: String, hsh: int, fallback: Color) -> Color:
+	if osm != "":
+		return fallback
+	if RYNEK_NAMED.has(bname):
+		return Color(RYNEK_NAMED[bname])
+	return Color(RYNEK_PASTELS[(hsh / 3) % RYNEK_PASTELS.size()])
+
+
+## Whether wall triangle `t` faces the Old Town market square (within SQUARE_FRONT_R of its
+## centre, turned towards it): the shader paints its floor lines in bands.
+func _faces_square(pos: PackedVector3Array, nrm: PackedVector3Array, t: int) -> bool:
+	var n := Vector2(nrm[t].x, nrm[t].z)
+	if n.length() < 0.9:
+		return false
+	var mid := (pos[t] + pos[t + 1] + pos[t + 2]) / 3.0
+	var to_square := OldTownRoofs.RYNEK - Vector2(mid.x, mid.z)
+	return to_square.length() < SQUARE_FRONT_R and n.normalized().dot(to_square.normalized()) > 0.6
 
 
 ## G7: a house's roof colour from its hash: a weighted pick from TILES, then a lightness shift of
@@ -11287,6 +11578,25 @@ func _powisle_house(bld: Dictionary, poly: PackedVector2Array, centre: Vector2) 
 	return _building_type(kind, poly, float(bld.get("h", 0.0))) == 1
 
 
+## Powiśle's photographed houses (powisle_houses.gd) and Tamka's look (tamka.gd `house`): one of the photographed houses, or an
+## ordinary home on Tamka (outside the historic districts) in the photos' plasters; {} otherwise.
+func _tamka_look(bld: Dictionary, poly: PackedVector2Array, centre: Vector2, hsh: int) -> Dictionary:
+	var photo := PowisleHouses.look(poly, centre)
+	if not photo.is_empty():
+		return photo
+	if absf(centre.x - 110.0) > 420.0 or absf(centre.y + 440.0) > 260.0:
+		return {}
+	var kind := str(bld.get("kind", ""))
+	var home := TAMKA_HOMES.has(kind) and float(bld.get("h", 0.0)) >= 8.0 and not _historic(centre, 0.0)
+	var on := home and Tamka.distance(centre) < Tamka.REACH
+	return Tamka.house(poly, on, hsh)
+
+
+## Tamka's houses given a photo look in this build (tamka.gd), for the build's report.
+var tamka_houses := 0
+const TAMKA_HOMES := ["apartments", "yes", "residential", "house"]
+
+
 ## The distance from a point to the nearest Dobra or Tamka centre line (INF beyond 80 m).
 func _powisle_distance(at: Vector2) -> float:
 	if _powisle_segs.is_empty():
@@ -11307,7 +11617,8 @@ var _powisle_segs: Array = []
 
 ## One wall triangle `t` of a Dobra or Tamka tenement: its cornice, string course and, when the
 ## wall faces the street, its shop front (TenementTrim) into `dress`.
-func _powisle_trim(pos: PackedVector3Array, nrm: PackedVector3Array, t: int, plaster: Color, dress: Dictionary) -> void:
+func _powisle_trim(pos: PackedVector3Array, nrm: PackedVector3Array, t: int, plaster: Color, dress: Dictionary,
+		style := {}) -> void:
 	var n := Vector3(nrm[t].x, 0.0, nrm[t].z)
 	if n.length() < 0.9:
 		return
@@ -11315,13 +11626,21 @@ func _powisle_trim(pos: PackedVector3Array, nrm: PackedVector3Array, t: int, pla
 	var mid := (pos[t] + pos[t + 1] + pos[t + 2]) / 3.0
 	var at := Vector2(mid.x, mid.z)
 	# the wall faces the street when a point 8 m out is nearer to it than the wall itself
-	var street := _powisle_distance(at) < POWISLE_SHOP_REACH and \
-			_powisle_distance(at + Vector2(n.x, n.z) * 8.0) < _powisle_distance(at)
+	var street := _street_distance(at) < POWISLE_SHOP_REACH and \
+			_street_distance(at + Vector2(n.x, n.z) * 8.0) < _street_distance(at)
+	if style.has("fronts"):
+		street = PowisleHouses.faces_front(style, Vector2(n.x, n.z))
 	var out := {"pos": [], "nrm": [], "col": []}
-	TenementTrim.wall(out, pos[t], pos[t + 1], pos[t + 2], n, plaster, street)
+	TenementTrim.wall(out, pos[t], pos[t + 1], pos[t + 2], n, plaster, street, style)
 	if not (out["pos"] as Array).is_empty():
 		_add_dress(dress, {"pos": PackedVector3Array(out["pos"]), "nrm": PackedVector3Array(out["nrm"]),
 				"col": PackedColorArray(out["col"])})
+
+
+## The distance to Dobra's or Tamka's centre line: the sector's own roads, and Tamka's whole line
+## (tamka.gd CENTRE) since a sector may hold a house but not the street in front of it.
+func _street_distance(at: Vector2) -> float:
+	return minf(_powisle_distance(at), Tamka.distance(at))
 
 
 ## Whether a point is within `slack` metres of a historic district (HISTORIC), or inside

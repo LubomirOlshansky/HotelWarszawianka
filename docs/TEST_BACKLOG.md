@@ -33,6 +33,7 @@ Order: fixes waiting for proof, then what F asked about, then the plan rows neve
 - [x] T27 The boat race (#494) to the finish, after the 11-06 fail-path run · run 20261107-111523: finished 4th in 4:08.6, one miss, no stop or pier contact; PT-31, PT-32
 - [x] T28 The night racing club (#499) before merge · run 20261107-113803: every beat in order; PT-33 (the drag), PT-34; PT-30 found on the way (the guide's Powiśle beat)
 - [ ] T29 The coffee run (#481) once merged: the bike, the rush, the drop-offs
+- [x] T30 The 11-08 quest fixes (#582, #587, #588, #596, #597) · runs 20261109-014024..-024304: raid cordon, drag, night meet by day, boat race confirmed; PT-48..PT-50, PT-52 (fixed), PT-53; PT-51 harness only
 
 ## 3. Plan rows never run or left open
 

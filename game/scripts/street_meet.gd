@@ -396,7 +396,7 @@ func setup(world: Node3D, seed_value := -1) -> void:
 		hud.card_pressed.connect(_on_card)
 		hud.context_pressed.connect(_on_context)
 		hud.abort_pressed.connect(func() -> void:
-			if state in [State.TO_MEET, State.RACE, State.TO_DRAG, State.WATCH]:
+			if can_quit(state):
 				_give_up())
 	if police != null and police.has_signal("chase_ended"):
 		police.chase_ended.connect(_on_chase_ended)
@@ -408,6 +408,14 @@ func setup(world: Node3D, seed_value := -1) -> void:
 
 
 # --- the rules (static: check_street_meet.gd runs them) --------------------------------------
+
+## The full map's "✕ Quit" and the status ✕ give up in every beat under way (PT-52, Autopilot
+## 2026-11-09: before, only TO_MEET, RACE, TO_DRAG and WATCH did, so a quit during the meet or the
+## raid closed the map and left the quest running). Not while Darek's call or offer is up, nor on
+## the drag's result card (its own buttons end it).
+static func can_quit(s: int) -> bool:
+	return s != State.IDLE and s != State.RING and s != State.OFFER and s != State.RESULT
+
 
 ## Within hours [from, to) that may wrap past midnight.
 static func night_on(hour: float) -> bool:
@@ -2159,6 +2167,13 @@ func _clear_strip(all := false) -> void:
 # --- the end ----------------------------------------------------------------------------------
 
 func _give_up() -> void:
+	# The meet's crowd and parked cars go too (only the pin hid them before).
+	_scene.visible = false
+	_crowd_run = 0.0
+	_drifting = false
+	_tandem = false
+	if police != null and police.has_method("stand_down"):
+		police.stand_down()
 	hud.hide_status()
 	hud.toast("„Spoko, następnym razem.” Darek odjeżdża bokiem.", "\"No worries, next time.\" Darek leaves sideways.")
 	_log("gave up in %s" % STATES[state])

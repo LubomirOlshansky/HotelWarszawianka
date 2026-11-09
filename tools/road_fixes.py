@@ -57,6 +57,13 @@ Mazowiecka and x Jasna, docs/BACKLOG.md "Main's real bugs"), and what this does 
    away), splits with a mapped median, island, other hatching or a stop line before the ribbons
    part, and any split where a new kerb would leave asphalt outside it or new lines would cross
    others stay as they were.
+   Round 2 (2026-11-09, the 33 left; Waryńskiego by Polna, three splits, worst): chevrons with their
+   closed outline painted from the node on are the nose (nothing inside them is cut, the legs' edge
+   lines ending on their outline stay); a stop line on a leg just before the nose (the legs reach a
+   junction) is kept and the new lane lines end short of it; a side street's mouth in the old kerb
+   stays open in the new one; asphalt that was already outside the old kerb does not stop a side;
+   the legs' lines are picked up 8, 5 or 3 m past the nose (fewest lane lines left without a
+   partner); new lines may meet others within SPLIT_TIP_R of the nose's tip.
    `--check` measures every split (split_defects: paint across the street, kerb gaps, loose line ends).
 
 The dark patches in junction boxes (bug 5 in BACKLOG) are not in the game: every ribbon, area and
@@ -75,7 +82,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import road_smooth as RS  # noqa: E402  (the asphalt tests, the tram beds, the polyline helpers)
 import map_shape  # noqa: E402  (the map's outline: nothing runs on past it)
 
-VERSION = 3  # 1: the whole-map fixes 1-4; 2: the site fixes (5); 3: the splits redrawn (6)
+VERSION = 4  # 1: the whole-map fixes 1-4; 2: the site fixes (5); 3: the splits redrawn (6); 4: fix 6 round 2
 # --check ratchets (2026-11-07, the whole map after the first pass). Lower them, never raise them.
 CHECK_MOUTH_M = 5      # m of lane, centre, solid or bus line left in a junction's mouth
 CHECK_BOX_M = 0        # m of such lines left on another main street's ribbon
@@ -86,9 +93,9 @@ CHECK_SHORT_CYCLE = 1  # cycle crossings beside a zebra that stop short of it
 CHECK_SITE_GAPS = 0    # m of a site's kerb stretch where no single kerb runs on (a jog or a notch)
 # 2026-11-08, the whole map after fix 6 (split_defects; the forks and splits it leaves as they were
 # keep theirs: lower these when a change fixes more of them)
-CHECK_SPLIT_FAN_M = 143      # m of paint or kerb running across the street between a split's node and nose
-CHECK_SPLIT_GAP_M = 552      # m of a split's outer edges with no kerb (the notch)
-CHECK_SPLIT_ENDS = 113       # lane, centre and edge lines ending in the road inside a split
+CHECK_SPLIT_FAN_M = 105      # m of paint or kerb running across the street between a split's node and nose
+CHECK_SPLIT_GAP_M = 510      # m of a split's outer edges with no kerb (the notch)
+CHECK_SPLIT_ENDS = 86        # lane, centre and edge lines ending in the road inside a split
 
 MINOR = {"service", "living_street"}
 MAIN = {"motorway", "trunk", "primary", "secondary", "tertiary",
@@ -1134,7 +1141,8 @@ def fix_sites(out):
 # the new outer kerbs and the nose. Each split is all or nothing.
 SPLIT_BACK = (10.0, 7.0, 4.0)  # m back along the wide way where the redraw may start (first that works)
 SPLIT_PAD = 1.0       # m past a ribbon's edge a kerb or line still belongs to it
-SPLIT_AFTER = 8.0     # m past the median's nose where the legs' lines are picked up
+SPLIT_AFTER = 8.0     # m past the median's nose where the legs' lines are picked up (and a fork is told)
+SPLIT_AFTERS = (SPLIT_AFTER, 5.0, 3.0)  # pick-ups tried (fix_split)
 SPLIT_NOSE_GAP = 0.4  # m between the legs' ribbons: the median's nose
 SPLIT_EDGE_BACK = 1.2  # m in front of the nose where the legs' inner edge lines meet
 SPLIT_HATCH_N = 3.0   # m: hatching this near the nose's middle is the nose's own chevrons
@@ -1144,6 +1152,11 @@ SPLIT_END = 1.5       # m: a cut end this near s_a or s_b is a stub there
 SPLIT_KINDS = ("lane", "solid", "centre", "edge", "cycle", "cyclefill")
 SPLIT_NEAR = 40.0     # m from the node: the check counts crossed lines this near
 SPLIT_SLOPE = 0.36    # a leg moving sideways faster than this (20 degrees) at its pick-up is a fork
+# round 2 (2026-11-09, the 33 splits round 1 left):
+SPLIT_ISLAND_PAD = 0.5  # m round a painted nose (chevrons and their outline) where nothing is cut
+SPLIT_TOUCH = 0.6     # m: an edge line ending this near the painted nose's outline is that nose's own
+SPLIT_TIP_R = 2.5     # m round the nose's tip where the new lines meeting there may touch others
+SPLIT_STOP_BEFORE = 5.0  # m: a stop line no further than this before the nose is on a leg (a junction just past it)
 
 
 class _Leg:
@@ -1377,19 +1390,76 @@ def _split_geom(out, node, wi, we, legs):
     return None, "the legs never part"
 
 
+def _painted_bins(out, fr, hatch, tip, s_b):
+    """The painted nose's extent across the street by half-metre bins of s, from its tip on: the
+    chevrons and their closed outline (the lines along it stay as they are)."""
+    pts = list(hatch)
+    outline = []
+    for m in out.get("markings", []):
+        if m.get("k") not in SPLIT_KINDS + ("stripe",) or not _ground(m):
+            continue
+        q = RS.pts_of(m["p"])
+        closed = len(q) > 3 and math.dist(q[0], q[-1]) < 0.5
+        if m["k"] != "stripe" and not closed:
+            continue
+        sn = [fr.sn(x, z) for x, z in _dense(q, 0.25)]
+        if any(abs(a - tip[0]) < 0.5 and abs(b - tip[1]) < 0.5 for a, b in sn) or \
+                (m["k"] == "stripe" and all(tip[0] - 0.5 <= a <= s_b + 6.0 and abs(b - tip[1]) < SPLIT_HATCH_N + 1.0 for a, b in sn)):
+            pts += [(a, b) for a, b in sn if tip[0] - 0.5 <= a <= s_b + 6.0]
+            if closed:
+                outline += _dense(q, 0.25)
+    bins = {}
+    for a, b in pts:
+        k = int(math.floor(a * 2))
+        lo, hi = bins.get(k, (b, b))
+        bins[k] = (min(lo, b), max(hi, b))
+    if not bins:
+        return {}, []
+    ks = sorted(bins)
+    for k in range(ks[0], ks[-1] + 1):  # gaps between the chevrons: the neighbours' extent
+        if k not in bins:
+            lo = max(j for j in ks if j < k)
+            hi = min(j for j in ks if j > k)
+            bins[k] = (min(bins[lo][0], bins[hi][0]), max(bins[lo][1], bins[hi][1]))
+    return bins, outline
+
+
 def fix_split(out, node, wi, we, legs, ribbons, beds):
-    """Redraws one split (see above). Returns (True, metres redrawn) or (False, why)."""
+    """Redraws one split (see above). Returns (True, metres redrawn) or (False, why). The legs' lines
+    are picked up SPLIT_AFTERS past the nose; the pick-up leaving fewest lane lines without a partner
+    across the split wins (a leg's line that ends soon after the nose, at a stop line, still pairs)."""
+    best, why = None, None
+    for after in SPLIT_AFTERS:
+        res = _fix_split_at(out, node, wi, we, legs, ribbons, beds, after)
+        if not res[0]:
+            why = why or res[1]
+            continue
+        if best is None or res[3] < best[3]:
+            best = res
+        if res[3] == 0:
+            break
+    if best is None:
+        return False, why
+    best[2]()
+    return True, best[1]
+
+
+def _fix_split_at(out, node, wi, we, legs, ribbons, beds, after):
+    """fix_split with the legs' lines picked up `after` m past the nose: (True, metres, commit,
+    lane lines left without a partner) or (False, why); the map is changed only by commit()."""
     geom, why = _split_geom(out, node, wi, we, legs)
     if geom is None:
         return False, why
     fr, wlen, wide, ls, nose = geom
-    s_b = nose + SPLIT_AFTER
+    s_b = nose + after
     at_b = [lg.at(s_b) for lg in ls]
     if None in at_b:
         return False, "a leg is shorter than its nose"
-    # a dual carriageway's split, not a fork: both legs still run along the street at s_b
+    # a dual carriageway's split, not a fork: both legs still run along the street past the nose
     for lg in ls:
-        a2, b2 = lg.at(s_b - 4.0), lg.at(s_b)
+        a2, b2 = lg.at(nose + SPLIT_AFTER - 4.0), lg.at(nose + SPLIT_AFTER)
+        if b2 is None:
+            b2, a2 = lg.at(s_b), lg.at(s_b - 4.0)
         if a2 is None or abs(b2[0] - a2[0]) / 4.0 > SPLIT_SLOPE:
             return False, "a leg turns away (a fork, not a split)"
     # a mapped median or island before the ribbons part: its nose is the real one
@@ -1410,12 +1480,15 @@ def fix_split(out, node, wi, we, legs, ribbons, beds):
     # legs' inner edge lines meet at its tip and the centre line ends there. Any other hatching, or a
     # stop line, inside the split is a junction of its own: left as it is.
     paint = (nose - SPLIT_EDGE_BACK, n_nose)
-    hatch = []
+    hatch, stops = [], []
     for m in out.get("markings", []):
         if m.get("k") in ("stripe", "stop", "stopkerb") and _ground(m):
             win = [(ms, mn) for ms, mn in (fr.sn(x, z) for x, z in RS.pts_of(m["p"]))
                    if -2.0 < ms < nose - 1.0 and abs(mn) < 12.0]
             if not win:
+                continue
+            if m["k"] in ("stop", "stopkerb") and all(ms > nose - SPLIT_STOP_BEFORE for ms, mn in win):
+                stops.append(m)
                 continue
             if m["k"] != "stripe" or any(ms < SPLIT_HATCH_FROM or abs(mn - n_nose) > SPLIT_HATCH_N for ms, mn in win):
                 return False, "hatching or a stop line in the split"
@@ -1426,9 +1499,11 @@ def fix_split(out, node, wi, we, legs, ribbons, beds):
             if len(q) > 3 and math.dist(q[0], q[-1]) < 0.5:
                 hatch += [(ms, mn) for ms, mn in (fr.sn(x, z) for x, z in q)
                           if SPLIT_HATCH_FROM < ms < nose and abs(mn - n_nose) < SPLIT_HATCH_N]
+    painted, outline = {}, []
     if hatch:
         tip = min(hatch)
         paint = (min(paint[0], tip[0] - 0.3), tip[1])
+        painted, outline = _painted_bins(out, fr, hatch, tip, s_b)
     why = "the wide way is too short"
     w0 = wide.at(-0.01) or wide.at(0.0)
     if w0 is None:
@@ -1442,6 +1517,10 @@ def fix_split(out, node, wi, we, legs, ribbons, beds):
             s, n = fr.sn(x, z)
             if s < s_a or s > s_b:
                 return False
+            if painted:
+                rng = painted.get(int(math.floor(s * 2)))
+                if rng and rng[0] - SPLIT_ISLAND_PAD <= n <= rng[1] + SPLIT_ISLAND_PAD:
+                    return False
             if s <= 0:
                 w = wide.at(s)
                 return w is not None and abs(n - w[0]) <= w[1] + SPLIT_PAD
@@ -1454,6 +1533,8 @@ def fix_split(out, node, wi, we, legs, ribbons, beds):
             if s < nose:
                 return True
             return n <= lo[0] + lo[1] + SPLIT_PAD or n >= hi[0] - hi[1] - SPLIT_PAD
+        inside.outline = outline
+        inside.stops = stops
         res = _try_split(out, fr, node, inside, s_a, s_b, nose, n_nose, paint, ls, L, R, ribbons, beds,
                          out["roads"][wi].get("name"))
         if res[0]:
@@ -1470,7 +1551,14 @@ def _try_split(out, fr, node, inside, s_a, s_b, nose, n_nose, paint, ls, L, R, r
         return abs(s - s_a) < SPLIT_END or abs(s - s_b) < SPLIT_END
 
     kerbs, k_stubs = _cut_corridor(out["kerbs"], inside, node, end_ok)
-    marks, m_stubs = _cut_corridor(out["markings"], inside, node, end_ok, SPLIT_KINDS)
+    outline = getattr(inside, "outline", None) or []
+    def touches(m):
+        q = RS.pts_of(m["p"])
+        return m.get("k") == "edge" and any(min(math.dist(e, o) for o in outline) < SPLIT_TOUCH for e in (q[0], q[-1]))
+    held = [m for m in out["markings"] if outline and touches(m)]
+    hid = {id(m) for m in held}
+    marks, m_stubs = _cut_corridor([m for m in out["markings"] if id(m) not in hid], inside, node, end_ok, SPLIT_KINDS)
+    marks += held
     mid_b = (ls[L].at(s_b)[0] + ls[R].at(s_b)[0]) / 2
 
     def group(stubs, kinds=None):
@@ -1489,6 +1577,7 @@ def _try_split(out, fr, node, inside, s_a, s_b, nose, n_nose, paint, ls, L, R, r
         return sorted(a, key=key), sorted(bl, key=key), sorted(br, key=key)
 
     new_k, new_m, gone = [], [], []
+    lonely = 0
     curves = {}
     redrawn = 0.0
 
@@ -1542,6 +1631,20 @@ def _try_split(out, fr, node, inside, s_a, s_b, nose, n_nose, paint, ls, L, R, r
     if (len(a) != lo_cut + hi_cut or not lo_cut <= len(bl) <= lo_cut + 1
             or not hi_cut <= len(br) <= hi_cut + 1):
         return False, f"kerb stubs {len(a)}/{len(bl)}/{len(br)}"
+    # the old kerbs' outermost line on each side, by metre of s (their pieces inside the corridor)
+    old_kerb = {"lo": {}, "hi": {}}
+    for k in out["kerbs"]:
+        if not _ground(k):
+            continue
+        for x, z in _dense(RS.pts_of(k["p"]), 0.5):
+            if not inside(x, z):
+                continue
+            ks, kn = fr.sn(x, z)
+            sd = "lo" if kn < mid_b else "hi"
+            o = old_kerb[sd].get(int(math.floor(ks)))
+            sg = -1.0 if sd == "lo" else 1.0
+            if o is None or sg * kn > sg * o:
+                old_kerb[sd][int(math.floor(ks))] = kn
     pairs = []
     if lo_cut:
         pairs.append((a[0], bl[0], "lo"))
@@ -1552,15 +1655,50 @@ def _try_split(out, fr, node, inside, s_a, s_b, nose, n_nose, paint, ls, L, R, r
         j = join(sa, sb, True)
         if j is None:
             return False, "kerb stubs run opposite ways"
-        new_k.append(j[0])
         curves[side] = j[1]
-        # no asphalt of the street just outside it (up to the nose: past it the legs' ribbons and
-        # kerbs are as they were, a ribbon a little wider than its kerb among them)
         out_n = -1.0 if side == "lo" else 1.0
+        # a side street's mouth (another street's ribbon just outside, where the old kerb had its
+        # gap) stays open: the new kerb is cut there as the old one was
+        gaps = {int(math.floor(q[0])) for q in j[1] if old_kerb[side].get(int(math.floor(q[0]))) is None}
+        mouth = set()
+        for q in j[1]:
+            k = int(math.floor(q[0]))
+            if k in gaps and any(out["roads"][pc[3]].get("name") != name
+                                 for pc in ribbons.at(*fr.xz(q[0], q[1] + out_n * 0.8), 0.1)):
+                mouth.add(k)
+        for k in sorted(mouth):  # the whole gap round it
+            for step in (1, -1):
+                k2 = k + step
+                while k2 in gaps and k2 not in mouth:
+                    mouth.add(k2)
+                    k2 += step
+        if mouth:
+            piece, run = [], []
+            for p in _dense(RS.pts_of(j[0]["p"]), 0.25):
+                if int(math.floor(fr.sn(*p)[0])) in mouth:
+                    if len(run) > 1 and RS.length(run) >= LINE_MIN:
+                        piece.append(run)
+                    run = []
+                else:
+                    run.append(p)
+            if len(run) > 1 and RS.length(run) >= LINE_MIN:
+                piece.append(run)
+            new_k += [dict(j[0], p=RS.flat_of(RS.simplify(r, 0.002))) for r in piece]
+        else:
+            new_k.append(j[0])
+        # no asphalt of the street just outside it (up to the nose: past it the legs' ribbons and
+        # kerbs are as they were, a ribbon a little wider than its kerb among them), unless the old
+        # kerb already ran there (that asphalt was outside a kerb before) or it is a side street's mouth
         g = (ls[L] if side == "lo" else ls[R]).at(s_b)
         over = max(0.0, out_n * (g[0] + out_n * g[1] - sb[1][1]))  # the leg's ribbon past its kerb
+
+        def was_out(q):
+            k = int(math.floor(q[0]))
+            o = old_kerb[side].get(k)
+            return k in mouth or (o is not None and out_n * o <= out_n * q[1] + 0.3)
         if any(out["roads"][pc[3]].get("name") == name
-               for q in j[1] for pc in ribbons.at(*fr.xz(q[0], q[1] + out_n * (0.8 + (over if q[0] > nose - 5.0 else 0.0))), 0.1)):
+               for q in j[1] if not was_out(q)
+               for pc in ribbons.at(*fr.xz(q[0], q[1] + out_n * (0.8 + (over if q[0] > nose - 5.0 else 0.0))), 0.1)):
             return False, "a new kerb would leave asphalt outside it"
     inner = ([bl[-1]] if len(bl) == lo_cut + 1 else []) + ([br[0]] if len(br) == hi_cut + 1 else [])
     made = to_nose(inner, True, (nose, n_nose)) if inner else []
@@ -1590,11 +1728,20 @@ def _try_split(out, fr, node, inside, s_a, s_b, nose, n_nose, paint, ls, L, R, r
     for xs, ys in (([x for x in reversed(a_l) if x[1][1] < c_a], list(reversed(bl_l))),
                    ([x for x in a_l if x[1][1] >= c_a], br_l)):
         for sa, sb in zip(xs, ys):
-            new_m.append(join(sa, sb, False)[0])
+            line, sn = join(sa, sb, False)
+            if sa[0][0].get("k") == sb[0][0].get("k"):
+                new_m.append(line)
+                continue
+            # a dashed lane line meeting a leg's solid one (no changing lanes before the junction):
+            # the curve stays the wide street's kind, the leg's line stays as it was
+            del gone[next(i for i, g in enumerate(gone) if g is sb[0][0])]
+            pts = _seq(sa[0][0], sa[0][1], True) + [fr.xz(*q) for q in sn[1:]]
+            new_m.append(dict(sa[0][0], p=RS.flat_of(RS.simplify(pts, 0.002))))
         # a lane that only one side has (a lane added or dropped at the split) starts or ends at the
         # nose beside the kerb, as a line, never in the middle of the road
     for xs, ys, side in (([x for x in reversed(a_l) if x[1][1] < c_a], list(reversed(bl_l)), "lo"),
                          ([x for x in a_l if x[1][1] >= c_a], br_l, "hi")):
+        lonely += abs(len(ys) - len(xs))
         for st, sn in ys[len(xs):]:
             new_m.append(_beside(fr, st, sn, curves[side], nose, gone))
         for st, sn in xs[len(ys):]:
@@ -1615,6 +1762,42 @@ def _try_split(out, fr, node, inside, s_a, s_b, nose, n_nose, paint, ls, L, R, r
                 new_m.append(_beside(fr, st, sn, curves[side], max(s_a, 0.0), gone))
             for st, sn in xs[len(ys):]:
                 new_m.append(_beside(fr, st, sn, curves[side], nose, gone))
+    # a stop line on a leg (the legs reach a junction just past the nose): lane and centre lines
+    # stop STOP_GAP short of it, as fix 1 cuts them in a junction's mouth
+    for st in getattr(inside, "stops", None) or []:
+        sq = sorted(fr.sn(x, z) for x, z in RS.pts_of(st["p"]))
+        sq = sorted(sq, key=lambda p: p[1])
+        n_lo, n_hi = sq[0][1], sq[-1][1]
+
+        def past(p):
+            ps, pn = fr.sn(*p)
+            if not n_lo - 0.3 <= pn <= n_hi + 0.3:
+                return False
+            t = (pn - n_lo) / (n_hi - n_lo) if n_hi - n_lo > 1e-6 else 0.0
+            return ps > sq[0][0] + (sq[-1][0] - sq[0][0]) * t - STOP_GAP
+        clipped = []
+        for m in new_m:
+            if m.get("k") not in ("lane", "solid", "centre"):
+                clipped.append(m)
+                continue
+            q = _dense(RS.pts_of(m["p"]))
+            if not any(past(p) for p in q):
+                clipped.append(m)
+                continue
+            if past(q[0]):
+                q = q[::-1]
+            run = []
+            for p in q:
+                if past(p):
+                    break
+                run.append(p)
+            if len(run) > 1 and RS.length(run) >= LINE_MIN:
+                clipped.append(dict(m, p=RS.flat_of(RS.simplify(run, 0.002))))
+        new_m = clipped
+    # and never under a zebra (road_smooth.cut_zebras, its ratchet): a leg's crossing just past the nose
+    zl = {"paths": out.get("paths", []), "markings": [m for m in new_m if m.get("k") in RS.ZEBRA_CUT_KINDS]}
+    if zl["markings"] and RS.cut_zebras(zl):
+        new_m = [m for m in new_m if m.get("k") not in RS.ZEBRA_CUT_KINDS] + zl["markings"]
     # nothing crossed: the lines left and made in the corridor
     ids = {id(g) for g in gone}
     kept_m = [m for m in marks if id(m) not in ids]
@@ -1622,7 +1805,9 @@ def _try_split(out, fr, node, inside, s_a, s_b, nose, n_nose, paint, ls, L, R, r
         near = [RS.pts_of(m["p"]) for m in ms
                 if m["k"] in ("lane", "solid", "centre", "edge") and _ground(m)
                 and any(inside(x, z) or math.dist((x, z), node) < 6.0 for x, z in _dense(RS.pts_of(m["p"]), 2.0))]
-        clipped = [[p for p in q if math.dist(p, node) < SPLIT_NEAR + 20] for q in near]
+        tip_xz = fr.xz(*paint)
+        clipped = [[p for p in q if math.dist(p, node) < SPLIT_NEAR + 20 and math.dist(p, tip_xz) > SPLIT_TIP_R]
+                   for q in near]
         return _crossings([q for q in clipped if len(q) >= 2])
     # only the new lines count: a painted island's outline that crossed lines before stays as it was
     if crossed(kept_m + new_m) > crossed(kept_m):
@@ -1645,10 +1830,12 @@ def _try_split(out, fr, node, inside, s_a, s_b, nose, n_nose, paint, ls, L, R, r
             return False, "a fill would reach a tram bed"
         fills.append({"p": RS.flat_of(ring)})
     kerbs = [k for k in kerbs if id(k) not in ids] + new_k
-    out["kerbs"] = kerbs
-    out["markings"] = kept_m + new_m
-    out.setdefault("asphalt_fills", []).extend(fills)
-    return True, redrawn
+
+    def commit():
+        out["kerbs"] = kerbs
+        out["markings"] = kept_m + new_m
+        out.setdefault("asphalt_fills", []).extend(fills)
+    return True, redrawn, commit, lonely
 
 
 def _whole_kerb(fr, kerbs, inside, s_a, s_b, side, mid_b):
@@ -1690,14 +1877,17 @@ def _beside(fr, st, sn, kerb_sn, s_to, gone):
     return dict(st[0], p=RS.flat_of(RS.simplify(line, 0.002)))
 
 
-def fix_splits(out):
-    """Fix 6 over the whole map: (splits redrawn, m redrawn, the ones left with why)."""
+def fix_splits(out, skip=()):
+    """Fix 6 over the whole map: (splits redrawn, m redrawn, the ones left with why). `skip`: the
+    splits already redrawn ("name at x,z", as road_split_fixes lists them)."""
     ribbons = Ribbons(out, lambda r: True)
     beds = Beds(out)
     done, metres, left = 0, 0.0, []
     for node, wi, we, legs in split_nodes(out):
-        ok, res = fix_split(out, node, wi, we, legs, ribbons, beds)
         name = out["roads"][wi].get("name")
+        if f"{name} at {node[0]:.0f},{node[1]:.0f}" in skip:
+            continue
+        ok, res = fix_split(out, node, wi, we, legs, ribbons, beds)
         if ok:
             done += 1
             metres += res
@@ -1795,8 +1985,9 @@ def apply(out):
     if done < 2:
         sites, redrawn, notes = fix_sites(out)
         said.append(f"{sites} sites fixed ({redrawn} m of kerb and paint redrawn)" + "".join("; " + n for n in notes))
-    if done < 3:
-        splits, metres, left = fix_splits(out)
+    if done < 4:
+        # a map fixed to version 3 keeps round 1's splits and redraws the ones it left
+        splits, metres, left = fix_splits(out, set(out.get("road_split_fixes", [])) if done == 3 else ())
         said.append(f"{splits} splits redrawn ({metres} m of kerb and paint), {len(left)} left as they were")
     out["road_fixes"] = VERSION
     return "; ".join(said)
