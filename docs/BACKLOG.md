@@ -278,12 +278,17 @@ Kopernik (pale aqua crystal, `crystal_aqua`), Dworzec Gdański (clear glass in d
 
 Built: Darek's call, the meet on Plac Defilad with Lena's donuts, two police raids, the TYGRAM pin
 and the race to the National Stadium's car park, the drag on Aleja Zieleniecka with START DRAG,
-the tree, BIEG! shifts and nitro. Left:
+the tree, BIEG! shifts and nitro. F's pass (2026-11-08): meet 2 moved off the fences to the
+square at the stadium's north foot with a Lena-Darek tandem drift, the first meet 9 s, raids box you in
+with four patrol cars, racers on the minimap and faster with shortcuts, the drag's start gate,
+3-2-1-START! and a rev counter with manual shifts. Night on accepting: PR #582's WAIT TILL 21:00. Left:
 - [ ] Voice for Darek, Lena and Tadek (F: later)
 - [ ] Autopilot re-run on the Mac after PT-33/PT-34 (first run 2026-11-07: every beat ran; drag unwinnable and chase pill over the car, fixed in #499; the result card's REWANŻ/KONIEC showed in the cloud at 1280×720, so watch whether Autopilot lists them)
-- [ ] Phone check: smoke and marks at night, the tree's size, the BIEG! button under a thumb; bench at the meet
+- [ ] Phone check: smoke and marks at night, the tandem at meet 2, the cordon's cars coming in, the 3-2-1 and the rev counter under a thumb (a second finger with the gas held); bench at the meet
 - [ ] A stake to enter the drag? (parked for F, built without)
-- [ ] Meet 2 stands on a small plaza with a few trees inside the ring: check the look, move it if it clashes
+- [ ] Autopilot: the drag needs a tap on the rev counter or the ⬆ BIEG button for each gear now (no auto-shift on time; the box only saves a run left 2.5 s on the limiter)
+- [ ] Driving straight north out of meet 2's square lands on the railway bed, where the car crawls at ~6 km/h (Autopilot run 20261109-014024): a fence or kerb along the cutting there?
+- [ ] Later: the cordon cars could join the chase when you break out (now they stay parked, lights on, and leave out of sight)
 - [ ] Later: the club card in the notebook, more meet places (Browary, Wał Miedzeszyński), underglow paint in the garage after a win
 ## Coffee run (F, 2026-11-06)
 

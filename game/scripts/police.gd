@@ -1143,12 +1143,14 @@ func scene_leave(d) -> void:
 # --- the night meets' raids -------------------------------------------------------------------
 
 ## Night meets (street_meet.gd, F's ask 2026-11-06): a raid on a street racers' meet at `at`. Up to
-## `n` patrol cars come in, lights on, from lanes RAID_FROM..RAID_TO m round it (headed in where a
+## `n` patrol cars come in, lights on, from lanes RAID_FROM..RAID_TO m round it (out to RAID_FAR
+## when that ring has too few lanes) (headed in where a
 ## lane allows), and a chase at koguty `lvl` starts on the player at once: no start grace and no
 ## cooldown (the raid is the quest's beat). Still never one in Spacer (`gentle`) or while the player
 ## flies. Returns the cars placed (0: none, no chase).
 const RAID_FROM := 50.0
 const RAID_TO := 110.0
+const RAID_FAR := 200.0
 ## A raid's chase can't be lost in its first RAID_HOLD s, and its escape needs RAID_ESCAPE m from
 ## every chaser (PT-34: koguty 2 from a raid was lost in 8 s, the cars came in near ESCAPE_DIST).
 const RAID_HOLD := 15.0
@@ -1160,10 +1162,13 @@ func raid(at: Vector3, n: int, lvl := 2) -> int:
 		return 0
 	var placed: Array = []
 	var a0 := randf() * TAU
-	for k in 12:
+	# A ring at RAID_FROM..RAID_TO first, then a wider one out to RAID_FAR (F 2026-11-08: the second
+	# meet's square by the stadium has few lanes near it and a raid there sent no car at all).
+	for k in 24:
 		if placed.size() >= n:
 			break
-		var q := Vector2(at.x, at.z) + Vector2.from_angle(a0 + TAU * k / 12.0) * randf_range(RAID_FROM, RAID_TO)
+		var far := k >= 12
+		var q := Vector2(at.x, at.z) + Vector2.from_angle(a0 + TAU * k / 12.0 + (0.26 if far else 0.0)) * (randf_range(RAID_TO, RAID_FAR) if far else randf_range(RAID_FROM, RAID_TO))
 		var hit: Array = graph.snap(q, 40.0, Vector2.ZERO, true, true)
 		if hit.is_empty():
 			continue
