@@ -116,7 +116,7 @@ then the Launch gate.
 - [x] Walls, fences and hedges from OSM's heights, materials and fence types (see-through railings, low
       park walls, noise barriers), and the Old Town's city walls in brick (F, 2026-11-07; `tools/barrier_tags.py`)
 - [x] City walls look check from photos: battlements and a brick coping (F, 2026-11-08, BACKLOG "Old Town trailer pass")
-- [ ] City walls' towers and gates from photos, photo-tag the untagged walls and fences
+- [x] City wall towers get tile cones (2026-11-09); [ ] the gates from photos, photo-tag the untagged walls and fences
 - [x] Old Town trailer pass (F, 2026-11-08): the Jesuit church's blue glass fixed, Rynek rings, umbrellas and
       café fences, zinc dormers, an autopilot drive check round the Old Town (`check_old_town_drive.gd`)
 - [x] Old Town pass 2 (F, 2026-11-08): every Old Town house front in the new Old Town style (portals, casements
@@ -413,7 +413,7 @@ then the Launch gate.
       balustrade on the crown (116 m), a bar, a DJ booth under a lighting truss with an LED wall
       and speakers, lounge sofas, planters, festoon lamps, the name in violet neon; the people,
       violet band, door queue, bass and hours were already there. Mac look check parked
-- [ ] Old Town Market Square leftovers: per-house plaster colours and sgraffito from photos, the
+- [ ] Old Town Market Square leftovers (painted palette done 2026-11-09, still to check against photos; sgraffito waits for shader budget): the
       four corner streets' mouths, a card for the Museum of Warsaw house (BACKLOG "Old Town square")
 - [x] Norblin, Browary Warszawskie, Hala Koszyki, Elektrownia Powiśle as models, people chilling
       in their yards and KROWA 2.0, the milk bar queue in Norblin (F, 2026-11-01; specs
