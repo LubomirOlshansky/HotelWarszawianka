@@ -4,6 +4,17 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## Trees and fences in the water and on the roads (F, 2026-11-08)
+Fixed: the 2023 laser-scanned trees were kept wherever the scan put them, and the map's water outlines
+and road widths are OSM's, so 211 trunks stood in the Vistula or a pond and 1,149 on the drawn asphalt
+(F's screenshots: a tree in the river by a bridge, a street with trees in the lane); OSM fences at the
+old waterline stood in the river by Most Łazienkowski and WTS DESKA. `object_fixes.py` T1/T2/L6 remove,
+move or trim them; `verify.sh objects` keeps them at 0. Left:
+- TR-1 181 scanned trees stand inside a building outline over 2.5 m high (a courtyard mapped as part of
+  the building, or the outline grown over the crown): not touched, a person should look at a few.
+- TR-2 Walls in the water (17 quay, breakwater and fountain walls by Port Czerniakowski and a pond in
+  the west) are left as they are on purpose; check on the phone whether any reads as wrong.
+
 ## First-10 replay ran late (cloud, 2026-11-09)
 Fixed: `tools/verify.sh --only=first10-run` failed on main ("tape late: 536 s, window 330-450 s", later
 runs also rescue late). Cause: the DESKA padel call (`trend_job.gd` DESKI_FIRST) rang at 150 s of play,

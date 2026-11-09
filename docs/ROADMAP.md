@@ -15,6 +15,7 @@ item. Updated 2026-11-01 from the audit. v1.0 = the Demo and TestFlight gates in
 then the Launch gate.
 
 ### Done (built and checked headless)
+- [x] Trees and fences off the water and the roads (F, 2026-11-08): 211 scanned trees out of the Vistula and the ponds, 1,033 moved off the drawn asphalt onto the pavement (114 with no room out), the parts of 6 fences standing in the river cut away (three by Most Łazienkowski at DESKA); `verify.sh objects` keeps all three at 0
 - [x] First-10 replay on time again (2026-11-09, `first10-run`): the DESKA padel call no longer rings inside the first-10 guide (DESKI_FIRST 660 s), so the rescue, helicopter, cassette and garage beats land in their windows.
 - [x] Dworzec Centralny car park ramp (F, 2026-11-08, Street View and a screenshot: "the entrance to the car park is a mess"): the spiral by Al. Jana Pawła II north of Chmielna drives now: down the inner lane through one portal into the tunnel under the avenue (both lanes in one tube, 3.3 m board "ZŁOTE TARASY ← / DWORZEC CENTRALNY TAXI BUS →" over the mouth, red and white bollards between the lanes), round a turning hall under Złote Tarasy and back up the outer lane, whose cut half and stray garage door are fixed (`tools/centralny_ramp.py`, `centralny_ramp.gd`; 5 lines in `check_stuck_spots`)
 - [x] No phone call mid-mission (F, 2026-11-08): Mrożulo's Dżemini call, the coffee run's and the DESKA call wait while any mission, job, ride, race or questline is on, and 20 s after it, and never ring over a rescue call (`trend_job.gd` `hold_calls`, `check_hud`; PR pending)
