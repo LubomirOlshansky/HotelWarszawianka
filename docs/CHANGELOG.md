@@ -10,6 +10,11 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-09
+
+- Nineteen more Powiśle houses look like their photos: their own colours, balconies and shop bands on Leszczyńska, Browarna, Dobra, Topiel, Solec, Aleja 3 Maja and Zajęcza.
+- Elektrownia Powiśle got its real look: the gabled brick hall, the glass lift with the blue box on top and four silver stacks. The Chopin Museum is white with an orange roof on its brick bastion, without the made-up tower.
+- Powiśle's side streets got their black posts along the kerbs and the colours of their real houses.
+- The round house on Dynasy stands on its brick base, and Park Odkrywców has its steel listening pipes and the two whisper dishes.
 - No more trees growing out of the Vistula or standing in the traffic lanes: about 1,000 street trees stepped back onto the pavement, and the fences that stood in the river by the DESKA club are gone.
 
 ## 2026-11-08
@@ -47,6 +52,7 @@ someone writes its lines.
 - Two towers by Rondo ONZ rebuilt from photos: Q22 in dark green glass under a graphite crown with a red-and-white mast, and Rondo 1 with its rounded silver front, the dark slab with its name and a glass screen over the roof instead of the tall cage.
 - The Warsaw Trade Tower now has its beige stone wall of windows, the dark blue glass drum and the silver crown, and the Grand Theatre (Teatr Wielki) its ten columns on the arched ground storey, the carved pediment and Apollo's bronze four-horse chariot on top.
 - Spektrum Tower has its blue glass drum in white bands, the dark gridded slabs and the pale green glass ring at the top; the Presidential Palace has its arcade, columns and stone figures along the roof instead of a made-up portico, and Holy Cross's towers end in copper lanterns and slim spires.
+- Tamka looks like Tamka: cream post-war blocks with balconies, black bollards along both kerbs, the footbridge by the Chopin castle, and a rap star with a dalmatian walking the pavement and talking to slow drivers.
 - The Platinum Towers have their cream stone corners and glass balconies, and the PEPEO ŻUBR bank tower on Grzybowska its beige stone over green glass with its name on top.
 - Próżna looks like itself: granite setts in the middle of the street, pale slab pavements, bollards, the restored white tenement row with its glowing window heads at night, Próżna 12's rounded oriels and Próżna 14 under its netting; the Cosmopolitan tower is dark glass with its glowing red underside over the street and a louvred crown; Plac Grzybowski has its stepped stone cascade, curved wall, lantern bollards and the café on the corner.
 
