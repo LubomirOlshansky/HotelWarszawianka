@@ -78,7 +78,9 @@ MAP = os.path.join(ROOT, "game", "map")
 # field maples the scan lacks: one by Zgoda, two at the Krucza end). Before: 271734 / 45289.
 # Dworzec Centralny's car park ramp (F, 2026-11-08, tools/centralny_ramp.py): 45,290 trees (2 scanned
 # trees whose trunks stood on the way out at the tunnel's mouth taken out). Before: 271752 / 45292.
-EXPECTED = {"trees3d": 271740, "pois": 4572, "trees3d_crown": 45290}
+# Marszałkowska by the art museum (F, 2026-11-08, road design area marsz_defilad): 45,316 trees (+26
+# young columnar elms on the green strips either side of the tram track). Before: 271740 / 45290.
+EXPECTED = {"trees3d": 271896, "pois": 4572, "trees3d_crown": 45316}
 # docs/DEMO.md 7 row 7: the lane graph's strongly connected share at least this.
 SCC_SHARE = 0.95
 

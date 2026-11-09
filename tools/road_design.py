@@ -42,7 +42,12 @@ Spec (docs/roads/AREA.json), map metres, +x east, +z south; offsets are to the r
   [{"s0", "s1", "side"}] where the map has a road crossing the kerb but the photo has an unbroken
   kerb (a footway-only service way, a plaza access): no automatic opening there.
   greens: [{"s0", "s1", "l", "r", "med"}] grass strips inside a tram median (offsets, or "edge" for
-  the median's own edge on that side), raised and kerbed.
+  the median's own edge on that side), raised and kerbed; "trees": {"kind": "elm_column", "every": 9}
+  plants a row of young trees down the strip's middle (TREES; into trees3d, none where a tree stands).
+  bare: [{"s0", "s1", "cw"}] no lane lines on carriageway cw (index, default all) over s0..s1: a
+  junction mouth between a mid-block zebra and a side road (road_fixes rule 1, the photo's bare box).
+  close_median_links (area level): true closes the lane graph's `*_link` edges that cross a street's
+  median (OSM U-turns through a tram bed the design leaves without a gap; marked `cf` like car_free).
   A junction with "ring": {"c", "u", "ri", "rd", "track", "ro", "corners", "r", "lines"} is a
   roundabout: the island round c (ri, ri + rd on the diagonals of the frame u), the ring's outer
   edge a circle ro (per corner "a/b") met by each arm's kerbs in fillets of radius r, its dashed
@@ -87,6 +92,15 @@ ISLAND_MIN = 1.0     # m: carriageways closer than this have no island between t
 NOSE = 1.2            # m: a median's rounded end stops this far behind a crossing
 HATCH = 3.0           # m between a painted gap's bars
 CHUNK = 8.0           # m: carriageway polygons in pieces this long (they drape on the terrain)
+# Young street trees a design plants on its green strips (greens "trees"): [top, crown radius,
+# crown base] in metres, as tools/planted_trees.py SPECIES. 'Columella' and fiorente elms are the
+# narrow columnar elms of Zielona Marszałkowska (ZDM 2025), 2-3 years after planting.
+TREES = {
+    "elm_column": [7.4, 1.1, 2.0],
+    "elm": [7.8, 1.6, 2.6],
+}
+TREE_END = 3.0        # m: no tree closer than this to a green strip's end (crossings, refuges)
+TREE_SAME = 2.5       # m: a spot with a tree already this close gets none (the scanned ones)
 
 
 # --- small geometry -------------------------------------------------------------------------
@@ -435,7 +449,7 @@ class Design:
         self.area = spec["area"]
         self.streets = {s["id"]: Street(s) for s in spec["streets"]}
         self.out = {k: [] for k in ("carriage", "kerbs", "islands", "medians", "markings", "symbols",
-                                    "zebras", "cyclecross", "tram_xings")}
+                                    "zebras", "cyclecross", "tram_xings", "trees")}
         self.footprint = []     # polygons of designed asphalt and medians
         self.ring_islands = []  # (centre, radius) of roundabout islands the design draws itself
         self.mouths = []        # side-road mouths: old kerbs and lines go, the side road stays
@@ -881,7 +895,7 @@ class Design:
         """A cycle crossing (P-11) across the whole street at s."""
         self.crossings.setdefault(st.id, []).append((s - w / 2.0, s + w / 2.0))
         edges = st.edges(s)
-        self.out["cyclecross"].append({"p": flat([st.point(s, edges[0][0]), st.point(s, edges[-1][1])])})
+        self.out["cyclecross"].append({"p": flat([st.point(s, edges[0][0]), st.point(s, edges[-1][1])]), "w": round(w, 2)})
 
     # streets -------------------------------------------------------------------------------
 
@@ -931,6 +945,18 @@ class Design:
                     for s in frange(g0, g1, 2.0):
                         strip += list(st.point(s, gl(s))) + list(st.point(s, gr_(s)))
                     self.out["medians"].append({"k": "grass", "s": [round(v, 2) for v in strip]})
+                    # a row of young trees down the strip's middle ("trees": {"kind", "every"})
+                    tr = gr.get("trees")
+                    if tr:
+                        every = float(tr.get("every", 9.0))
+                        size = TREES[tr.get("kind", "elm_column")]
+                        a, b = g0 + TREE_END, g1 - TREE_END
+                        n = int((b - a) // every)
+                        first = a + ((b - a) - n * every) / 2.0
+                        for k in range(n + 1):
+                            s = first + k * every
+                            x, z = st.point(s, (gl(s) + gr_(s)) / 2.0)
+                            self.out["trees"].append([round(x, 1), round(z, 1)] + size + [0])
             else:
                 # a raised median (grass or paving) with rounded noses short of the crossings,
                 # broken where a side street crosses (gaps), the break paved as carriageway
@@ -1069,6 +1095,9 @@ class Design:
                         if kind == "lane" and din == d and int(b.get("d", 1)) == d and 0.0 <= (ss - s) * din <= SOLID:
                             kind = "solid"
                     if self.in_crossing(st, s) or self.past_stop(st, s, d, int(b.get("d", 1))):
+                        kind = None
+                    if any(float(x["s0"]) <= s <= float(x["s1"]) and int(x.get("cw", ci)) == ci
+                           for x in st.spec.get("bare", [])):
                         kind = None
                     key = (ci, li, id(a), id(b))
                     runs.setdefault(key, []).append(None if kind is None else (kind, st.point(s, row[li][2])))
@@ -1930,7 +1959,27 @@ def apply_design(out, d):
     drop("islands", lambda f: f.get("dk") is None and (centre_in(f) or in_ring_island(f)))
     drop("tram_noses", lambda f: centre_in(f))
     drop("tram_xings", lambda f: centre_in(f))
+    old_medians = out.get("medians", [])
     drop("medians", lambda f: f.get("dk") is None and centre_in(f, "s"))
+    # likewise an old median strip (rows of left/right points) that ran on past a free end keeps
+    # its rows beyond the end, or the tram bed past the end would lose its paving
+    kept = {id(f) for f in out["medians"]}
+    mtails = 0
+    for f in old_medians:
+        if id(f) in kept:
+            continue
+        sv = f["s"]
+        rows = [sv[i:i + 4] for i in range(0, len(sv) - 3, 4)]
+        for p, dd in ends:
+            if min(math.dist(p, (r[0], r[1])) for r in rows) > 80.0:
+                continue
+            out_ = [dot(sub(((r[0] + r[2]) / 2.0, (r[1] + r[3]) / 2.0), p), dd) > 0.0 for r in rows]
+            # one row on the near side too, so the strip reaches back under the design's end
+            beyond = [r for i, r in enumerate(rows) if out_[i] or (i + 1 < len(rows) and out_[i + 1]) or (i > 0 and out_[i - 1])]
+            if len(beyond) >= 2:
+                out["medians"].append({"k": f.get("k", "paving"), "s": [v for r in beyond for v in r]})
+                mtails += 1
+    stats["medians kept past free ends"] = mtails
     drop("symbols", lambda f: f.get("dk") is None and fp.has(f["x"], f["z"]))
     # the old medians' grass and planter walls (the design draws its own medians)
     drop("areas", lambda f: f.get("k") in ("grass", "park") and mostly_in(f, share=0.6))
@@ -2045,10 +2094,25 @@ def apply_design(out, d):
     out["markings"] += o["markings"]
     out["symbols"] += o["symbols"]
     out["paths"] += [{"k": "zebra", "p": z["p"], "w": z.get("w", CROSS_W)} for z in o["zebras"]]
-    out["paths"] += [{"k": "cyclecross", "p": z["p"]} for z in o["cyclecross"]]
+    out["paths"] += [{"k": "cyclecross", "p": z["p"], "w": z.get("w", 2.0)} for z in o["cyclecross"]]
     out.setdefault("tram_xings", [])
     out["tram_xings"] += o["tram_xings"]
     stats["traffic edges on the designed lanes"] = retarget_graph(out, d)
+    if d.spec.get("close_median_links"):
+        stats["links across the median closed"] = close_median_links(out, d)
+    if d.out["trees"]:
+        trees = out.setdefault("trees3d", [])
+        crowns = out.setdefault("trees3d_crown", [])
+        have = [(trees[i], trees[i + 1]) for i in range(0, len(trees) - 5, 6)]
+        planted = 0
+        for t in d.out["trees"]:
+            if any(math.hypot(t[0] - x, t[1] - z) < TREE_SAME for x, z in have):
+                continue
+            trees.extend(t)
+            crowns.append(100)
+            have.append((t[0], t[1]))
+            planted += 1
+        stats["trees planted on the green strips"] = planted
     stats["objects moved off the new asphalt"] = reseat_objects(out, d)
     if d.spec.get("park_cars"):
         stats["parked cars off the new asphalt"], stats["parked cars in the parking lanes"] = park_cars(out, d)
@@ -2132,6 +2196,36 @@ def retarget_graph(out, d):
             moved += 1
             break
     return moved
+
+
+def close_median_links(out, d):
+    """F (2026-11-08, Marszałkowska by the museum): the area's streets have no turn through their
+    median (no `gaps`), so the lane graph's links that cross it (an OSM U-turn `*_link` between the
+    two carriageways) are closed: marked `cf: 1` like tools/car_free.py does (lane_graph.gd leaves
+    them out; the indices stay for the portals and stops). Returns how many were closed."""
+    g = out.get("graph")
+    if not g:
+        return 0
+    closed = 0
+    for e in g["edges"]:
+        if e.get("cf") or not str(e.get("k", "")).endswith("_link"):
+            continue
+        for st in d.streets.values():
+            if st.ncw < 2 or st.spec.get("gaps"):
+                continue
+            inside = 0
+            for q in dense(pts_of(e["p"]), 1.0):
+                ss, off = project(st, q)
+                if ss is None or not (0.5 < ss < st.L - 0.5) or abs(off) > 30.0:
+                    continue
+                ed = st.edges(ss)
+                if any(ed[i][1] + 0.5 < off < ed[i + 1][0] - 0.5 for i in range(st.ncw - 1)):
+                    inside += 1
+            if inside >= 2:
+                e["cf"] = 1
+                closed += 1
+                break
+    return closed
 
 
 def load_spec(area):
