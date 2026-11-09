@@ -1,0 +1,110 @@
+POWISLE: EVERYTHING THAT CAN BE IN THE GAME (master list, 2026-11-08)
+Sources: docs/CITY_INVENTORY.md (Powiśle, 56 places), the map (centrum.json), docs/powisle-plan.md.
+Marks: ★ photo build  ◐ outline build  ○ dress only / in game  ✗ not in the game  ⏳ in progress.
+Real business names appear here only to say WHERE a place is; in the game every brand gets a parody name.
+
+=== 1. BUILDINGS AND LANDMARKS (by street) ===
+- Wybrzeże Kościuszkowskie: #15 Most Świętokrzyski ◐; #16 Centrum Nauki Kopernik and Planetarium ★; #31 Pomnik Syreny nad Wisłą ◐; #93 The river barges and the marina (Wieczorek, Biała Barka, Marinka, Kaskadka) ◐; #94 Bulwary Wiślane: Schodki, the pavilions, the containers ⏳; Dworzec Wodny ○ in game; Marina Warszawa (boat) ○ in game; Pawilon 512 ✗; Pracownia Przewrotu Kopernikańskiego ✗; monuments: 105 Rocznica Powstania ZNP ○ in game, Rockspinner ✗, Spragniony ○ in game, Syrena ✗, Wielka waga ✗; bars: BarKa ✗, Ivy Lounge ✗, Kalima ✗, Kandela Bar ✗, La Vinotheque ✗, Plac Zabaw nad Wisłą ✗, Schodki ⏳, Wir ✗, Wynurzenie ✗; stages: Teatr Ateneum - Scena 20 ✗; hotels: Sava Boutique Hotel ✗; plaques and memorial stones: 5
+- Dobra: #17 Biblioteka Uniwersytecka (BUW) and its roof garden ★; #55 Elektrownia Powiśle ◐; Bella Italia (shop) ✗; Kamienica Jana Struskiego (flats) ✗; Młodsza Siostra (shop) ✗; Pawilon Tańca ✗; Wydział "Artes Liberales" UW (university) ✗; Wydział Prawa i Administracji UW. Collegium Iuridicum IV (university) ✗; monuments: Inca Garcilaso de la Vega ○ in game, Kantata Ewolucji Wszechświata ✗, Ruszt biblioteczny ✗, Szkic sytuacyjny I ○ in game, Szkic sytuacyjny II ○ in game, Szkic sytuacyjny III ○ in game; bars: Messa ✗; plaques and memorial stones: 5
+- Smolna: #147 Młotek (Smolna 8, 1976, Bogusławski and Gniewiewski, 20 storeys, 66 m) ★; Dworzec PKP Powiśle ○ in game; Klub Bankowca (offices) ✗; XVIII Liceum Ogólnokształcące im. Jana Zamoyskiego (school) ✗; monuments: Dowborczykom ○ in game, Nieznanym Mieszkańcom Warszawy ✗, Obrona Warszawy ○ in game; bars: Chopin Taras Cafe ✗, Klub Wieżyca ✗; museums: Dom Kultury Śródmieście ✗; plaques and memorial stones: 6
+- Tamka: #110 Zamek Ostrogskich and the Chopin Institute ◐; Narodowy Instytut Fryderyka Chopina (offices) ○ in game; Parafia Świętej Teresy od Dzieciątka Jezus (church) ○ in game; Hostel Tatamka (hotel) ✗; monuments: Klucz wiolinowy ○ in game, Zgrupowanie AK "Krybar" ✗, Złota Kaczka ○ in game; bars: Winem Powiśle ✗; museums: Muzeum Fryderyka Chopina ✗; plaques and memorial stones: 1
+- Topiel: #111 Piano House, Cube House, Hortus, Moderna, Dobra and Tamka tenements ◐
+- Aleja 3 Maja: Autoreduta Powiśle (shop) ✗; Centrum Handlowe Arkada (shop) ✗; Nordic Park (offices) ✗; Orlen (shop) ✗; bars: Karma Crew Warsaw ✗, Przy3maj ✗; plaques and memorial stones: 2
+- Zajęcza: Moderna Powiśle (flats) ○ in game; Barceló (hotel) ✗; Carpathia Office House (offices) ✗; Stacja elektroenergetyczna 110/15 kV „RPZ Warszawa Powiśle” (offices) ✗; monuments: Captain America ○ in game; bars: Centrala Bar ✗, Champs ✗, Gatsby Warsaw ✗, Kakadu Karaoke ✗
+- Foksal: Dom Dziennikarza (commercial) ✗; Pawilon wystawowo-konferencyjny SARP (offices) ✗; Pałac Przezdzieckich (government) ✗; bars: Piw Paw ✗; plaques and memorial stones: 1
+- Frascati: Biały Pałacyk ✗; Willa Pniewskiego ✗; museums: Muzeum Harcerstwa ✗, Muzeum Ziemi PAN ✗; stages: Garnizon Sztuki ✗, Studio Buffo ✗
+- Wioślarska: The Tides (offices) ✗; Warszawskie Towarzystwo Wioślarskie (offices) ✗; bars: Przyjaźń ✗, Sen ✗
+- Wiślana: Bursa Salezjańska dla Młodzieży Męskiej imienia Księdza Siemca (dormitory) ✗; Szary Dom ✗; plaques and memorial stones: 1
+- Adama Idźkowskiego: Pałacyk Simona de Symonowicza (kindergarten) ✗; monuments: Płyta Desantu 3 Dywizji Piechoty I Armii WP ○ in game; bars: Cud nad Wisłą ✗, Pod Gigantami ✗
+- Browarna: Dom Księży Misjonarzy św. Wincentego a Paulo ✗; bars: Cheers! ✗; plaques and memorial stones: 1
+- Emiliana Konopczyńskiego: Motel One Warsaw-Chopin ✗; monuments: Emilian Konopczyński ○ in game; plaques and memorial stones: 2
+- Juliana Smulikowskiego: Związek Nauczycielstwa Polskiego (offices) ✗; museums: Kwiaciarnia Grafiki ✗; plaques and memorial stones: 3
+- Książęca: Domek Holenderski (house) ✗; Yours House (offices) ✗
+- Ludna: GfK Polonia (offices) ✗; monuments: Ławeczka Jerzego Janickiego ○; bars: Przekąski u Romana ✗; plaques and memorial stones: 2
+- Oboźna: Dom Strażaka (offices) ✗; plaques and memorial stones: 1
+- Aleja Na Skarpie: monuments: Wygasłe źródełko ✗
+- Aleje Jerozolimskie: bars: Emerald Irish Pub ✗, Luzztro ✗
+- Bednarska: Wydział Dziennikarstwa, Informacji i Bibliologii (university) ✗
+- Cicha: plaques and memorial stones: 1
+- Czerniakowska: museums: Visual Crafters ✗; plaques and memorial stones: 1
+- Czerwonego Krzyża: plaques and memorial stones: 3
+- Dynasy: Rotunda na Dynasach ✗
+- Elektryczna: museums: Pontiseum ✗
+- Ignacego Potockiego: plaques and memorial stones: 3
+- Leona Kruczkowskiego: monuments: Eliza Orzeszkowa ○ in game; bars: Warszawa Powiśle ○ in game; plaques and memorial stones: 1
+- Lipowa: Collegium Iuridicum II (university) ○ in game
+- Marii Konopnickiej: plaques and memorial stones: 1
+- Mieczysława Orłowicza: Rezydencja Orłowicza (flats) ✗
+- Okólnik: Gmach Biblioteki Ordynacji Krasińskich (commercial) ✗
+- Rozbrat: monuments: Unity ○ in game
+- Solec: bars: Heritage Shop & Wine ✗, Pod Mosteczkiem ✗; museums: Muzeum Azji i Pacyfiku ✗; plaques and memorial stones: 1
+- Stefana Jaracza: stages: Ateneum ✗; hotels: Logos ✗; plaques and memorial stones: 2
+- Szara: monuments: Pamięci Armii Krajowej ○ in game
+
+
+=== 2. THINGS THE INVENTORY DOES NOT COUNT (add as dress, one thread each) ===
+2.1 Houses: ~300 real houses (list H001-H300 in docs/powisle-photos-needed.txt)
+2.2 Courtyards (podwórka) behind the Tamka, Dobra, Solec, Radna tenements: bins, bikes, a tree, washing, a car
+2.3 Gates (bramy) with house numbers, lamps over the gate, the little shrine niche with a Mary figure
+2.4 Murals on firewalls (the blank side walls), neon signs, old painted ghost signs
+2.5 Balconies, loggias, satellite dishes, AC units, flower boxes: per house style
+2.6 Roofs: red tile, zinc, terraces on the new flats, chimneys, dormers (BACKLOG RF4b)
+2.7 Construction sites and scaffolding on one or two houses, a crane, hoardings with fake ads
+2.8 Gaps where the war took houses: lawns, parking, hoarded plots
+
+=== 3. STREET LEVEL ===
+3.1 Setts / cobbles on the side streets, asphalt patches, tram-less narrow streets
+3.2 Kerbs, ramps, bollards, tree guards, street plates (navy with white letters), house numbers
+3.3 Lamps: old arm lamps on the tenement streets, modern ones on the boulevard, festoon lights at cafés
+3.4 Benches, bins, bike racks, ROWERILO docks (7 now), scooters, e-bike parking
+3.5 Kiosks, advertising columns, bus shelters, phone boxes, flower stalls, a newsstand
+3.6 Pavement cafés: umbrellas, wooden decks, heaters, blankets, a summer set and a winter set
+3.7 Parked cars on both kerbs; delivery vans; a taxi rank; the Aleja 3 Maja underpass edge
+3.8 Crossings that meet paths; stairs and ramps on the Smolna / Kruczkowskiego slope
+3.9 Manholes, drains, road markings, bike lanes on Tamka and Solec; the viaduct underside
+
+=== 4. SHOPS AND FOOD (all parody names) ===
+4.1 Cafés: specialty coffee, matcha bars (KROPKA., GLON, STORCZYK, MANTRA exist as coffee-run stops)
+4.2 Bakeries (a morning queue), a milk bar, a pizza by the slice, a kebab, ramen, a Ukrainian place, a vegan place
+4.3 Bars on Zajęcza (four), the viaduct bars (five exist), the Dobra student bars, the boulevard bars (six pavilions exist)
+4.4 Shops: vinyl, books, flowers, a pharmacy, a Żabka-type frog shop, a 24h shop, a barber, a bike shop, a tattoo studio
+4.5 Elektrownia Powiśle's food hall and beauty hall, their stalls and signs
+4.6 Wine shop and bar on Solec, a delicatessen, a cheese shop
+
+=== 5. CULTURE, EDUCATION, FAITH ===
+5.1 Museum of Fryderyk Chopin (Okólnik 1), the Chopin Institute, the castle's courtyard, concerts
+5.2 BUW and its roof garden (★), UW faculties on Dobra and Lipowa, Collegium Iuridicum II and IV
+5.3 Ateneum theatre (Jaracza), Garnizon Sztuki, Studio Buffo, Dom Kultury Śródmieście, Pawilon Tańca
+5.4 Copernicus Science Centre and the Planetarium (★)
+5.5 St Thérèse church (Tamka), Dom Księży Misjonarzy (Browarna), parish life: a wedding, a funeral car, a Sunday crowd
+5.6 Schools: XVIII LO Zamoyski, a kindergarten (Idźkowskiego); the playground and its sound
+
+=== 6. PARKS, WATER, GREEN ===
+6.1 Skwer Kahla, Park Odkrywców, Park Beyera, Skwer Wodiczko, Skwer Cubryny, Skwer Fijewskich, Skwer Anki Kowalskiej, Złota Kaczka corner
+6.2 BUW garden, the Wisła boulevards, the beach, the stepped timber seating, volleyball
+6.3 Trees: avenue trees on Dobra / Tamka / Solec, linden on Lipowa, plane trees on Wybrzeże; benches under them
+6.4 Playgrounds, a dog park, outdoor gym, chess tables, a pétanque court
+6.5 River: barges and the marina (Wieczorek, Biała Barka, Marinka), moorings, kayaks, boat races, ferry, fishermen, birds
+
+=== 7. INFRASTRUCTURE ===
+7.1 Powiśle station (UFO pavilion, kite pavilion, platforms, catenary), trains passing (railway lane)
+7.2 Poniatowski and Świętokrzyski bridges, the viaduct arcade with bars, Kruczkowskiego underpass
+7.3 Trams on Tamka? (check) and Aleja 3 Maja, bus stops by real lines, the ROWERILO docks
+7.4 RPZ Powiśle substation, a transformer kiosk, power lines, the old Elektrownia chimneys
+7.5 Petrol station (Orlen on 3 Maja), car wash, parking meters
+
+=== 8. LIFE AND GAMEPLAY HOOKS ===
+8.1 People: students (Dobra, class times), office workers (Zajęcza, lunch), runners (boulevard), dog walkers, cyclists, tourists at the castle and the Chopin museum, a busker, a street musician in the evening
+8.2 Jazz at the UFO pavilion (built), concerts at the Chopin Institute, outdoor cinema, markets on weekends
+8.3 Quests: coffee run (bike), shisha lounge, Kieślowski tour, secret rave under the bridge, EV tow to the Elektrownia charger, bar crawl via the viaduct, taxi story (jazz)
+8.4 Mini-things: Captain America statue egg, Syrenka egg, pigeons, ducks on the river, a cat in a window, a street dog
+8.5 Events: 11 listopada, Wianki, Noc Muzeów, a Copernicus night, a Fat Thursday queue
+8.6 Rain, fog on the river, autumn leaves, snow: how Powiśle looks in each
+
+=== 9. LOOK AND SOUND ===
+9.1 Night: lit windows, signs, the Elektrownia lit inside, the boulevard festoons, the viaduct glow
+9.2 Sound: tram bell, river, bar music from the viaduct, jazz level, church bells, students, a kebab sizzle, cafés
+9.3 Plaques and memorial stones (about 25 in the inventory), the AK monuments (Krybar), the 1944 sites, wreaths on 1 August
+
+=== 10. WHAT TO PHOTOGRAPH ===
+See docs/powisle-photos-needed.txt (sections A-I): Elektrownia first, then the missing buildings, the street rows, details, parks, the water edge, Chopin Museum, Tamka, the 300-house list.

@@ -376,7 +376,7 @@ func _judge() -> void:
 var _led := false
 
 
-func _race(speed: float, band: bool, stop := 0.0, road := 800.0, late := 0.0, hold := false) -> float:
+func _race(speed: float, band: bool, stop := 0.0, road := 800.0, late := 0.0, hold := false, skill := 0.0) -> float:
 	var stats := Ladder.racer(0)
 	var top := 30.0 * float(stats["share"])
 	var pull := float(stats["race_accel"])
@@ -399,7 +399,7 @@ func _race(speed: float, band: bool, stop := 0.0, road := 800.0, late := 0.0, ho
 			k = 0.0
 			rate = lerpf(rate, (last - me) / 0.2, 0.07)
 			last = me
-			want = Rivals.first_speed(her, me, road, rate, top) if band else top
+			want = Rivals.first_speed(her, me, road, rate, top, skill) if band else top
 		var mine := speed if t >= late else 0.0
 		if held and Rivals.first_start_step(t, mine) == "release":
 			held = false
@@ -435,15 +435,25 @@ func _band() -> void:
 	_expect(Rivals.band_mult(400.0, 600.0, 0.25, 10.0, 28.0, true) >= Rivals.BAND_FLOOR, "Mike far ahead on screen: never under the higher floor")
 	_expect(Rivals.band_mult(100.0, 130.0, 0.8, 10.0, top, true) < Rivals.BAND_FLOOR_LOW, "Halina on the last stretch, the player close: she lifts off")
 	_expect(Rivals.band_mult(100.0, 130.0, 0.25, 10.0, 28.0, true) >= Rivals.BAND_FLOOR, "Mike never lifts off")
+	# The skill read (2026-11-09, F: "far too slow, I drive much faster"): a fast player races her.
+	_expect(Rivals.skill_of(10.0, 30.0) == 0.0 and Rivals.skill_of(21.0, 30.0) == 1.0, "skill: 10 m/s of a 30 m/s car slow, 21 fast")
+	_expect(Rivals.first_speed(100.0, 95.0, 800.0, 21.0, top, 1.0) >= top * 0.9, "a fast player close on the last stretch: no lift-off")
+	_expect(Rivals.first_speed(300.0, 600.0, 800.0, 21.0, top, 1.0) == top, "a fast player far behind: she goes flat out")
+	_expect(Rivals.band_mult(100.0, 130.0, 0.8, 21.0, top, true, 15.0, 1.0) >= Rivals.BAND_FLOOR, "Halina against a fast player: no lift-off")
+	_expect(Rivals.band_mult(500.0, 480.0, 0.8, 21.0, top, true, 15.0, 1.0) == 1.0, "Halina behind a fast player: flat out")
+	_expect(Rivals.band_mult(500.0, 400.0, 0.8, 8.0, top, true, 15.0, 0.0) <= Rivals.BAND_SLOW_TOP, "Halina behind a slow player: her old 0.8 of the top")
 	var ordinary := _race(9.5, true)
 	var led := _led
 	var fast := _race(14.0, true)
+	var quick := _race(21.0, true, 0.0, 800.0, 0.0, false, 1.0)
+	var quick_led := _led
 	var slow := _race(6.0, true)
 	var stops := _race(9.5, true, 60.0)
 	var plain := _race(9.5, false)
 	_expect(ordinary >= 0.5 and ordinary <= 6.0, "an ordinary player (34 km/h) wins by 0.5-6 s: %.1f s" % ordinary)
 	_expect(led, "she leads an ordinary player at half way (something to chase)")
 	_expect(fast > 0.0, "a fast player wins: %.1f s" % fast)
+	_expect(quick_led and quick < 0.0, "a very fast player (76 km/h on a straight) gets a real race: she leads and holds on (corners decide it on the map): %.1f s" % quick)
 	_expect(absf(slow) <= 8.0, "a slow player (22 km/h) is within a few seconds: %.1f s" % slow)
 	_expect(stops < 0.0, "a player who stops for a minute loses: %.1f s" % stops)
 	_expect(plain < 0.0, "Halina flat out beats the ordinary player: %.1f s" % plain)
@@ -463,7 +473,7 @@ func _band() -> void:
 	_expect(not Rivals.first_stall_due(60.0, 0, Rivals.FIRST_EASE - 1.0), "the last stretch: no nudge")
 	_expect(Rivals.FIRST_GO_BANNER.length() <= 24, "the GO banner fits: %s" % Rivals.FIRST_GO_BANNER)
 	_summary.append("start: 8 s still %+.1f s, %.0f s still %+.1f s" % [late_new, long_s, long_new])
-	_summary.append("first race: ordinary +%.1f s (she led at half way), fast +%.1f s, slow %+.1f s, a stop %.0f s, unbanded %.0f s" % [ordinary, fast, slow, stops, plain])
+	_summary.append("first race: ordinary +%.1f s (she led at half way), fast +%.1f s, very fast %+.1f s, slow %+.1f s, a stop %.0f s, unbanded %.0f s" % [ordinary, fast, quick, slow, stops, plain])
 
 
 func _words() -> void:
