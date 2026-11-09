@@ -14,6 +14,7 @@ const CityMaps := preload("res://scripts/city_maps.gd")
 ## Loop 2c: the parked cars' mesh and paints come from the vehicles' models (one source).
 const Models := preload("res://scripts/models.gd")
 const Tamka := preload("res://scripts/tamka.gd")
+const PowisleHouses := preload("res://scripts/powisle_houses.gd")
 const Trains := preload("res://scripts/trains.gd")
 const RailCut := preload("res://scripts/rail_cut.gd")
 const RailYard := preload("res://scripts/rail_yard.gd")
@@ -11188,9 +11189,12 @@ func _powisle_house(bld: Dictionary, poly: PackedVector2Array, centre: Vector2) 
 	return _building_type(kind, poly, float(bld.get("h", 0.0))) == 1
 
 
-## Tamka's photo look for a house (tamka.gd `house`): one of the photographed houses, or an
+## Powiśle's photographed houses (powisle_houses.gd) and Tamka's look (tamka.gd `house`): one of the photographed houses, or an
 ## ordinary home on Tamka (outside the historic districts) in the photos' plasters; {} otherwise.
 func _tamka_look(bld: Dictionary, poly: PackedVector2Array, centre: Vector2, hsh: int) -> Dictionary:
+	var photo := PowisleHouses.look(poly, centre)
+	if not photo.is_empty():
+		return photo
 	if absf(centre.x - 110.0) > 420.0 or absf(centre.y + 440.0) > 260.0:
 		return {}
 	var kind := str(bld.get("kind", ""))
@@ -11235,6 +11239,8 @@ func _powisle_trim(pos: PackedVector3Array, nrm: PackedVector3Array, t: int, pla
 	# the wall faces the street when a point 8 m out is nearer to it than the wall itself
 	var street := _street_distance(at) < POWISLE_SHOP_REACH and \
 			_street_distance(at + Vector2(n.x, n.z) * 8.0) < _street_distance(at)
+	if style.has("fronts"):
+		street = PowisleHouses.faces_front(style, Vector2(n.x, n.z))
 	var out := {"pos": [], "nrm": [], "col": []}
 	TenementTrim.wall(out, pos[t], pos[t + 1], pos[t + 2], n, plaster, street, style)
 	if not (out["pos"] as Array).is_empty():

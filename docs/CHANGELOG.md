@@ -9,6 +9,10 @@ that day here, in plain words a player would understand (no file names, no spoil
 rows in the progress log but no section here is listed automatically from the log's labels until
 someone writes its lines.
 
+## 2026-11-09
+
+- Nineteen more Powiśle houses look like their photos: their own colours, balconies and shop bands on Leszczyńska, Browarna, Dobra, Topiel, Solec, Aleja 3 Maja and Zajęcza.
+
 ## 2026-11-08
 - Padel at DESKA is a real game now: answer the friend's call, get to the court in time and play a 2v2 arcade match on the glass court by the Vistula. Run with your left thumb, tap HIT for drives, volleys and jumping smashes, LOB over a pair at the net, play the ball off the glass. The club's crowd cheers, the floodlights come on at night, and the court in the city got its real dark surface and black frame.
 - The map is quieter: tap a quest's "!" to read one line about it, the old "?" marks are gone, kebab and job pins show only when you zoom in, the shisha night is now a hidden quest (not on the map or in the list: stand at Ivan's block in 19. Dzielnica and hold the "+" for 5 seconds), the Tesla helicopter rescue is in the STORIES list, and you can drag the quest list on the map with a finger to see all of it.

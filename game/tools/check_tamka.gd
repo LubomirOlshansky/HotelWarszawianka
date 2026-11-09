@@ -10,11 +10,14 @@ extends SceneTree
 ##   4. his lines: 10 or more for the street, 3 or more tagged `car`, each with an English half,
 ##      at most 75 characters in Polish, no real brand (data/brand_denylist.json);
 ##   5. the footbridge's ends lie on the mapped footway that crosses Tamka by the castle;
-##   6. tamka.gd's CENTRE is the map's Tamka (a re-bake that moves the street must update it).
+##   6. tamka.gd's CENTRE is the map's Tamka (a re-bake that moves the street must update it);
+##   7. Powiśle's photographed houses (powisle_houses.gd): each point inside one mapped house, in
+##      AREA, picking its own look; each front a unit-ish normal that one of its walls faces.
 ## Prints "check_tamka: OK (...)" or the problems (exit 1).
 ##   godot --headless --path game --script res://tools/check_tamka.gd
 
 const Tamka := preload("res://scripts/tamka.gd")
+const PowisleHouses := preload("res://scripts/powisle_houses.gd")
 
 var problems: Array[String] = []
 
@@ -27,9 +30,10 @@ func _init() -> void:
 	var lines := _lines()
 	_bridge(data)
 	_centre(data)
+	_powisle(data)
 	if problems.is_empty():
-		print("check_tamka: OK (%d photo houses, walk %.0f m, walker %d triangles, %d lines)" % [
-				Tamka.HOUSES.size(), walk, tris, lines])
+		print("check_tamka: OK (%d Tamka + %d Powiśle photo houses, walk %.0f m, walker %d triangles, %d lines)" % [
+				Tamka.HOUSES.size(), PowisleHouses.HOUSES.size(), walk, tris, lines])
 		quit(0)
 	else:
 		for p in problems:
@@ -161,3 +165,35 @@ func _centre(data: Dictionary) -> void:
 				problems.append("Tamka's line at %s is not in tamka.gd CENTRE" % at)
 	if n != Tamka.CENTRE.size():
 		problems.append("Tamka has %d mapped lines, CENTRE %d" % [n, Tamka.CENTRE.size()])
+
+
+func _powisle(data: Dictionary) -> void:
+	for h: Array in PowisleHouses.HOUSES:
+		var at := Vector2(float(h[0]), float(h[1]))
+		var hits: Array[PackedVector2Array] = []
+		for b: Dictionary in data["buildings"]:
+			var p: Array = b["p"]
+			if absf(float(p[0]) - at.x) > 150.0 or absf(float(p[1]) - at.y) > 150.0:
+				continue
+			var poly := PackedVector2Array()
+			for i in range(0, p.size() - 1, 2):
+				poly.append(Vector2(p[i], p[i + 1]))
+			if Geometry2D.is_point_in_polygon(at, poly):
+				hits.append(poly)
+		if hits.size() != 1:
+			problems.append("Powiśle house at %s is in %d mapped houses" % [at, hits.size()])
+			continue
+		var got := PowisleHouses.look(hits[0], at)
+		if got.is_empty() or got["plaster"] != Color(h[2]):
+			problems.append("Powiśle house at %s not picked" % at)
+		for f: Vector2 in (h[3] as Dictionary).get("fronts", []):
+			var seen := false
+			var poly := hits[0]
+			for i in poly.size():
+				var e := poly[(i + 1) % poly.size()] - poly[i]
+				var n := Vector2(e.y, -e.x).normalized()
+				if Geometry2D.is_point_in_polygon((poly[i] + poly[(i + 1) % poly.size()]) * 0.5 + n * 0.5, poly):
+					n = -n
+				seen = seen or n.dot(f.normalized()) > PowisleHouses.FRONT_DOT
+			if not seen:
+				problems.append("Powiśle house at %s: no wall faces %s" % [at, f])
