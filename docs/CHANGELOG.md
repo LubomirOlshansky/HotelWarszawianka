@@ -10,10 +10,16 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-09
+- Street race rivals are as fast as your car now. Pani Halina corners harder too, and if you drive fast she races you for real to the line instead of letting you win.
+- Nineteen more Powiśle houses look like their photos: their own colours, balconies and shop bands on Leszczyńska, Browarna, Dobra, Topiel, Solec, Aleja 3 Maja and Zajęcza.
+- Elektrownia Powiśle got its real look: the gabled brick hall, the glass lift with the blue box on top and four silver stacks. The Chopin Museum is white with an orange roof on its brick bastion, without the made-up tower.
+- Powiśle's side streets got their black posts along the kerbs and the colours of their real houses.
+- The round house on Dynasy stands on its brick base, and Park Odkrywców has its steel listening pipes and the two whisper dishes.
 - No more trees growing out of the Vistula or standing in the traffic lanes: about 1,000 street trees stepped back onto the pavement, and the fences that stood in the river by the DESKA club are gone.
 
 ## 2026-11-08
 - Plac Centralny: the old parade tribune in the middle of the square is a stepped granite block again, with sitting steps, a stair, planters and young trees on top, and the striped paving with the WARSZAWA letters now lies in front of it, towards Marszałkowska.
+- The Wiślana Szprotka boat race is livelier: the boats pass under Most Świętokrzyski again, the gates now run close along the banks past the beaches and boulevards, each crossing of the river has a floating ramp to jump and a gold ring after it, tucking in behind another boat pulls you along, and Kamil on his jet ski sometimes stops to film himself, so he is beatable.
 - Marszałkowska past the new art museum is as rebuilt in real life: two lanes each way, no odd turnarounds across the tram tracks, a row of young columnar elms on green strips on both sides of the tracks, and parked cars in the bays along the museum.
 - Świętokrzyska between the metro and Rondo ONZ no longer has a tangle of crossed lane lines and a step in the kerb where the street splits into its two carriageways: the lanes, kerbs and bike lane now curve smoothly into each side, and the same is fixed at 25 more such splits around the centre (Królewska, Karowa, Dobra, Solec, Bonifraterska, Waryńskiego, Kruczkowskiego, Mokotowska and others).
 - The car park ramp by Dworzec Centralny on Aleja Jana Pawła II is a real drive now: the lanes go down into the tunnel under the avenue under the blue-and-white "ZŁOTE TARASY ← / DWORZEC CENTRALNY TAXI BUS →" board, past red and white bollards, turn round under Złote Tarasy and come back up, instead of a spiral that ended in a wall and a stray garage door.
@@ -31,6 +37,7 @@ someone writes its lines.
 - The map is quieter: tap a quest's "!" to read one line about it, the old "?" marks are gone, kebab and job pins show only when you zoom in, the shisha night is now a hidden quest (not on the map or in the list: stand at Ivan's block in 19. Dzielnica and hold the "+" for 5 seconds), the Tesla helicopter rescue is in the STORIES list, and you can drag the quest list on the map with a finger to see all of it.
 - The job distance label ("KEBAB 1948 m") no longer covers the steering strip's arrows while you steer with your thumb.
 - The game starts in English on every phone; pick Polish on the title screen or in Settings and it stays one language everywhere.
+- The Old Town's houses have real fronts now: round stone doorways, tall windows with white bars in cream frames, sills and cornices, and painted bands on the Market Square. The Barbican is rebuilt from photos with its crown of stone-capped battlements, cone-roofed towers, gate and bridge arches, and the mermaid raises her sword over her head.
 - The car no longer stops dead when its nose clips the end of a low wall or a tram shelter: it slips past, as it already did at corners (Trasa W-Z by the Old Town).
 - New evening quest, "Dym u Senatorka": Ivan calls for a shisha night. Pick him up at 19. Dzielnica and Bogdan at the courts on Żelazna, vote on flavour and strength while they argue, then go up to SENATOREK at Emilii Plater 53: mix two jars with the master, time the coal, blow a smoke ring, and smoke inside or on the terrace with the Palace in view. The Warsaw Financial Centre has its granite-and-steel portico with the revolving door now.
 - Shisha night: the three votes on the way to the lounge (flavour, strength, the pipe's name) now show on screen beside the car instead of quietly picking themselves.
@@ -48,6 +55,7 @@ someone writes its lines.
 - Two towers by Rondo ONZ rebuilt from photos: Q22 in dark green glass under a graphite crown with a red-and-white mast, and Rondo 1 with its rounded silver front, the dark slab with its name and a glass screen over the roof instead of the tall cage.
 - The Warsaw Trade Tower now has its beige stone wall of windows, the dark blue glass drum and the silver crown, and the Grand Theatre (Teatr Wielki) its ten columns on the arched ground storey, the carved pediment and Apollo's bronze four-horse chariot on top.
 - Spektrum Tower has its blue glass drum in white bands, the dark gridded slabs and the pale green glass ring at the top; the Presidential Palace has its arcade, columns and stone figures along the roof instead of a made-up portico, and Holy Cross's towers end in copper lanterns and slim spires.
+- Tamka looks like Tamka: cream post-war blocks with balconies, black bollards along both kerbs, the footbridge by the Chopin castle, and a rap star with a dalmatian walking the pavement and talking to slow drivers.
 - The Platinum Towers have their cream stone corners and glass balconies, and the PEPEO ŻUBR bank tower on Grzybowska its beige stone over green glass with its name on top.
 - Próżna looks like itself: granite setts in the middle of the street, pale slab pavements, bollards, the restored white tenement row with its glowing window heads at night, Próżna 12's rounded oriels and Próżna 14 under its netting; the Cosmopolitan tower is dark glass with its glowing red underside over the street and a louvred crown; Plac Grzybowski has its stepped stone cascade, curved wall, lantern bollards and the café on the corner.
 

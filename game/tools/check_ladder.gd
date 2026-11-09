@@ -88,8 +88,9 @@ func _data() -> void:
 		if i > 0:
 			_expect(int(r["stake"]) > int(Ladder.RUNGS[i - 1]["stake"]), "%s's stake does not rise" % r["rival"])
 			_expect(Ladder.pace(i).x > Ladder.pace(i - 1).x, "%s's pace does not rise" % r["rival"])
-			# Street races R4: the racing share rises up the ladder, the rubber band weakens.
-			_expect(float(Ladder.racer(i)["share"]) > float(Ladder.racer(i - 1)["share"]), "%s's racing share does not rise" % r["rival"])
+			# Street races R4: the racing share never falls up the ladder (every rival reaches the
+			# player's top since 2026-11-09), the rubber band weakens.
+			_expect(float(Ladder.racer(i)["share"]) >= float(Ladder.racer(i - 1)["share"]), "%s's racing share falls" % r["rival"])
 			_expect(float(Ladder.racer(i)["band"]) < float(Ladder.racer(i - 1)["band"]), "%s's band does not weaken" % r["rival"])
 		# The same rival and stake as rivals.gd.
 		var found := false

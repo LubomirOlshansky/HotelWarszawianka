@@ -7,7 +7,8 @@ extends SceneTree
 ##   back instead of letting it through;
 ## - a race with all four boats driven by the rivals' driver (the player's boat too, as on
 ##   autopilot) ends with every boat finished or out inside RACE_MAX s, the player's careful boat
-##   with no miss inside the expected time, the times spread (they are not one boat four times);
+##   with at most CAREFUL_MISSES misses inside the expected time, the times spread (they are not one boat four times);
+## - the course has 2+ jump ramps in open water and the boats take them (2026-11-08);
 ## - three misses put the player out (ODPADASZ!), JESZCZE RAZ starts the grid again, WYJDŹ ends it;
 ## - the free ride (F 2026-11-07): three boats moored in open water, clear of each other; each one
 ##   picked on the marina card goes out, gets away from the pontoon at full throttle without the
@@ -25,6 +26,7 @@ const SHORE_MIN := 14.0
 const PULL_S := 6.0
 const RACE_MAX := 320.0
 const PLAYER_TIME := Vector2(130.0, 230.0)
+const CAREFUL_MISSES := 1
 const SITUATIONS := ["start", "pass", "passed", "miss", "out", "bump", "finish"]
 const STEP := 1.0 / 60.0
 
@@ -221,6 +223,7 @@ func _make_race(map: WaterMap, hud: FakeHud) -> Node3D:
 	race.hud = hud
 	race.map = map
 	race.autopilot = true
+	race.log_on = OS.get_environment("BOAT_DEBUG") != ""
 	race.seen = func(_p: Vector3) -> bool: return false
 	root.add_child(race)
 	race.setup(map)
@@ -270,8 +273,17 @@ func _race(map: WaterMap, hud: FakeHud) -> Node3D:
 		elif not bool(r["out"]):
 			_fail("%s neither finished nor dropped out" % r["name"])
 	print("check_boat_race: race %s; player %d." % [", ".join(times), int(res["place"])])
-	if int(res["misses"]) > 0:
+	# The pack runs close since the slipstream and the bank slalom (2026-11-08): keeping clear of
+	# a boat alongside costs the careful driver a ring now and then, never two.
+	if int(res["misses"]) > CAREFUL_MISSES:
 		_fail("the careful driver missed %d rings" % int(res["misses"]))
+	if race.ramps.size() < 2:
+		_fail("only %d jump ramps on the course" % race.ramps.size())
+	for rp: Dictionary in race.ramps:
+		if map.shore_distance(float(rp["x"]), float(rp["z"])) < SHORE_MIN:
+			_fail("the ramp at %.0f, %.0f is by the bank" % [float(rp["x"]), float(rp["z"])])
+	if race.jumps == 0:
+		_fail("nobody jumped a ramp")
 	if float(res["time"]) < PLAYER_TIME.x or float(res["time"]) > PLAYER_TIME.y:
 		_fail("the player's time %.1f s is outside %s" % [float(res["time"]), PLAYER_TIME])
 	if spread.size() >= 2 and float(spread.max()) - float(spread.min()) < 1.0:

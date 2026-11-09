@@ -177,6 +177,8 @@ const LoudCars := preload("res://scripts/loud_cars.gd")
 const CrazyDrivers := preload("res://scripts/crazy_drivers.gd")
 ## Wellness circles (docs/design/city-life-satire.md): sound healing, techno yoga, the 40+ club, park kung-fu.
 const Wellness := preload("res://scripts/wellness.gd")
+## Tamka from F's photos (2026-11-08): bollards, the footbridge, KEBONAFIDE (tamka.gd).
+const Tamka := preload("res://scripts/tamka.gd")
 ## The garage loop: Warsztat u Mirka and its paint jobs (garage.gd, its card garage_card.gd).
 const Garage := preload("res://scripts/garage.gd")
 ## Loop 3h slice 4: the guided first 10 minutes and the end card.
@@ -663,9 +665,11 @@ var fans_phase := ""
 var fans_result := ""
 ## Wellness circles (wellness.gd); flags --wellness=0 (none), --wellness-now (every spot on at any hour), --wellness-log.
 var wellness: Wellness
+var tamka: Tamka
 var wellness_flag := 1
 var wellness_now := false
 var wellness_log := false
+var tamka_log := false
 ## The garage loop (garage.gd): Warsztat u Mirka on Brzeska; flags --paint=<id> (the car starts in
 ## that paint, owned for the run), --garage (the car in the garage's ring, the card open; the
 ## garage shown whatever the wallet), --garage-log (`garage:` lines).
@@ -1792,6 +1796,7 @@ func _build_world() -> void:
 	await LoadYield.tick("_build_crazy_drivers")
 	_build_wellness(world)
 	await LoadYield.tick("_build_wellness")
+	_build_tamka(world)
 	_build_first10()
 	await LoadYield.tick("_build_first10")
 	await _load_mark(0.99)
@@ -2871,6 +2876,26 @@ func _build_crazy_drivers(world: Node3D) -> void:
 	world.add_child(crazy_drivers)
 
 
+## Tamka (tamka.gd): the bollards, the footbridge by the castle and KEBONAFIDE with his dalmatian,
+## on both city paths.
+func _build_tamka(world: Node3D) -> void:
+	if solo_site != "":
+		return
+	tamka = Tamka.new()
+	tamka.name = "Tamka"
+	tamka.map = map
+	tamka.dialogue = dialogue
+	tamka.log_on = tamka_log
+	tamka.clock = tod.local_clock
+	tamka.focus = func() -> Vector3: return cam_focus
+	tamka.vehicle = func() -> Array:
+		if flying:
+			return [heli.global_position, heli.speed() * 3.6, true]
+		return [car.global_position, car.vel.length() * 3.6, false]
+	world.add_child(tamka)
+	tamka.build()
+
+
 ## The wellness circles (wellness.gd): none with --wellness=0 or --crowd=0.
 func _build_wellness(world: Node3D) -> void:
 	if wellness_flag == 0 or crowd_flag == 0:
@@ -2913,6 +2938,7 @@ func _build_first10() -> void:
 	first10.garage = garage
 	first10.cassettes = cassettes
 	first10.flying = func() -> bool: return flying
+	first10.side_busy = func() -> bool: return boat_race != null and boat_race.boating()
 	first10.scripted = first10_flag and autopilot
 	add_child(first10)
 	first10.setup(first10_flag or show_title)
@@ -5459,6 +5485,8 @@ func _parse_args() -> void:
 			wellness_now = true
 		elif arg == "--wellness-log":
 			wellness_log = true
+		elif arg == "--tamka-log":
+			tamka_log = true  # tamka.gd: the bollards' count, KEBONAFIDE's place and lines
 		elif arg.begins_with("--honk="):
 			for f in arg.trim_prefix("--honk=").split(",", false):
 				honk_frames.append(int(f))
