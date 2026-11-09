@@ -20,6 +20,7 @@ F: too little detail in Powiśle; wants real houses, street details and the powe
 - [ ] P12 Mac and phone look pass
 - [x] P13a Tamka pass 1 from F's photos (2026-11-08, spec `docs/landmarks/specs/tamka.md`): the houses' plasters and balconies, Tamka 10/12's attic, Tamka 16's brick base, the bollards, the footbridge, KEBONAFIDE with his dalmatian. Left: the firewall murals and ad wraps, the Ostrogski castle from photos (no turret), Tamka 16's glass bays, the Kopernika end's planters and bank stairs
 - [x] P13b Powiśle houses pass 2 (2026-11-09): 19 photographed houses off Tamka in `powisle_houses.gd` (plaster, balconies, base, street fronts from the map). Left: Tamka 36 and other firewall murals, Smolna 32 (no usable photo), Pawilon Tańca (inside only), the brick ornament on Klub Bankowca, the stone grid on Carpathia
+- [x] P1 Elektrownia Powiśle from photos and P2-ish Chopin museum rebuild (2026-11-09, specs elektrownia.md, ostrogski.md). Left: the new blocks round the Elektrownia, its yard and night look, the castle stairs from Tamka
 - [ ] P13 Up to 300 more real houses, quest loop and Tamka first, Museum of Fryderyk Chopin (list H001-H300 in docs/powisle-photos-needed.txt)
 
 ## Thin towers across the map (F, 2026-11-07; docs/design/small-buildings.md)

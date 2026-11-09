@@ -420,6 +420,7 @@ then the Launch gate.
 - [ ] Powiśle left: the Mac photo checks (BACKLOG "Powiśle street by street")
 - [x] Tamka from F's photos, pass 1 (2026-11-08, spec `tamka.md`): cream post-war blocks with balconies, the photographed houses' looks, black bollards on both kerbs, the castle footbridge, KEBONAFIDE (parody rapper) walking his dalmatian with his own lines; murals and the castle rebuild next
 - [x] Powiśle houses from F's photos, pass 2 (2026-11-09, `powisle_houses.gd`): 19 houses off Tamka (Leszczyńska, Browarna, Dobra, Topiel, Solec, Aleja 3 Maja, Zajęcza, Smolna, Foksal) take their plaster, balconies and ground-floor band on the street sides
+- [x] Elektrownia Powiśle and the Chopin museum from F's photos (2026-11-09): the gabled turbine hall with the glass lift and blue box, four aluminium stacks; the castle white with grey quoins, orange roofs, the brick bastion, no turret; the Institute in glass
 - [ ] Powiśle, more real (F, 2026-11-08; plan `docs/powisle-plan.md`, items P1-P12 in BACKLOG): the power plant from photos, real houses on every street, the missing buildings, setts and kerbs, furniture, shops, parks, life, night look. Plan written; items open
 - [x] Street furniture along the main line's route (Krakowskie Przedmieście, Nowy Świat, the Old
       Town's edge, Plac Zbawiciela, the boulevards, Rondo Daszyńskiego)

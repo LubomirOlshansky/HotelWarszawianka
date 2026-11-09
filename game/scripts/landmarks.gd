@@ -21473,18 +21473,83 @@ func _build_koszyki(site: Dictionary) -> void:
 	_collide(ring)
 
 
+## Elektrownia Powiśle from F's photo set (2026-11-09, Mac folder powisle/A01-A13; spec
+## docs/landmarks/specs/elektrownia.md): the turbine hall, a wide gabled brick hall under a dark
+## zinc roof with a glazed ridge, its front gable crossed by black steel braces round two big dark
+## windows, and before it the glass lift tower with the blue corrugated box on top and a blue box
+## bay half way up; four aluminium stacks with flared tops (the rebuilt chimneys) by the roof; the
+## rest of the outline in the same orange brick, 13 m, arched windows in dark steel frames.
+## The hall stands on the largest rectangle the outline holds (frame: u along it, the front at -u,
+## facing the Dobra corner).
+const ELEK_C := Vector2(245.0, -740.0)
+const ELEK_AXIS := Vector2(0.7885, -0.615)
+const ELEK_HU := 39.2
+const ELEK_HV := 15.4
+const ELEK_EAVE := 16.0
+const ELEK_RISE := 9.0
+const ELEK_BRICK := Color("#a35e42")
+const ELEK_STEEL := Color("#26292c")
+const ELEK_ZINC := Color("#737a7f")
+const ELEK_ALU := Color("#c3c7ca")
+const ELEK_BLUE := Color("#2f8fd4")
+const ELEK_LIFT := Color("#86aebd")
+## The stacks: [u, v] in the hall's frame (two by the front gable, two further back).
+const ELEK_STACKS := [Vector2(-27.0, -12.0), Vector2(-27.0, 12.0), Vector2(6.0, -11.0), Vector2(14.0, 11.0)]
+const ELEK_STACK_TOP := 33.0
+
+
 func _build_elektrownia(site: Dictionary) -> void:
 	var ring: PackedVector2Array = site["ring"]
 	_g = _ground_under(ring)
 	var g := _g
-	# The power station: two storeys of tall arches, the roof in zinc grey, two chimneys.
-	_works_walls(ring, 19.0, WORKS_BRICK, [[1.4, 7.4, 1.5], [9.4, 15.6, 1.4]], 5.0)
-	_parapet(ring, g + 19.0, 0.9, WORKS_TRIM)
-	var c := _centre(ring)
-	var far_a := _farthest(ring, c)
-	var far_b := _farthest(ring, far_a)
-	for p: Vector2 in [far_a, far_b]:
-		_works_chimney(p + (c - p).normalized() * 3.0, 48.0, 2.0, WORKS_BRICK)
+	var none := Color(0, 0, 0, 0)
+	_works_walls(ring, 13.0, ELEK_BRICK, [[1.4, 6.0, 1.6], [8.6, 11.0, 1.3]], 5.5, ELEK_STEEL)
+	_parapet(ring, g + 13.0, 0.6, ELEK_STEEL)
+	# The turbine hall over it.
+	_o = ELEK_C
+	_a = ELEK_AXIS
+	_b = Vector2(-_a.y, _a.x)
+	var hu := ELEK_HU
+	var hv := ELEK_HV
+	_prism(_rect(0.0, 0.0, hu, hv), g - 0.6, g + ELEK_EAVE, ELEK_BRICK, none, M_STONE, M_STONE)
+	_gable(-hu, hu, 0.0, hv, g + ELEK_EAVE, ELEK_RISE, ELEK_BRICK, ELEK_ZINC)
+	# the gable's stepped shoulders and the glazed ridge
+	for side: float in [-1.0, 1.0]:
+		_prism(_rect(-hu + 0.4, side * (hv - 2.0), 0.5, 2.0), g + ELEK_EAVE, g + ELEK_EAVE + 1.6, ELEK_BRICK, ELEK_STEEL, M_STONE, M_STONE)
+	_mode = M_GLASS
+	_prism(_rect(2.0, 0.0, hu - 8.0, 1.5), g + ELEK_EAVE + ELEK_RISE - 1.0, g + ELEK_EAVE + ELEK_RISE + 0.9, ELEK_LIFT, ELEK_STEEL, M_GLASS, M_STONE)
+	_mode = M_STONE
+	# the front: two big windows either side of the lift, black braces in a diamond over the brick
+	var out := -_a
+	for v: float in [-8.5, 8.5]:
+		_arch_win(_w(-hu, v), _b, out, 3.4, g + 2.0, g + 12.0, ELEK_STEEL)
+	var lift := 2.2
+	var f := func(v: float, y: float) -> Vector3:
+		var q := _w(-hu - 0.12, v)
+		return Vector3(q.x, g + y, q.y)
+	for k: Array in [[-hv + 0.6, 1.4, -lift - 0.2, 8.6], [-lift - 0.2, 9.4, -hv + 0.6, 15.6],
+			[hv - 0.6, 1.4, lift + 0.2, 8.6], [lift + 0.2, 9.4, hv - 0.6, 15.6],
+			[-hv + 3.4, 16.6, -lift - 0.2, 22.6], [hv - 3.4, 16.6, lift + 0.2, 22.6]]:
+		_beam(f.call(float(k[0]), float(k[1])), f.call(float(k[2]), float(k[3])), 0.3, ELEK_STEEL)
+	# The lift tower: glass in black posts, the blue box bay and the blue head.
+	var lc := -hu - lift - 0.3
+	_mode = M_GLASS
+	_prism(_rect(lc, 0.0, lift, lift), g, g + 27.0, ELEK_LIFT, none, M_GLASS, M_STONE)
+	_mode = M_STONE
+	for cu: float in [lc - lift, lc + lift]:
+		for cv: float in [-lift, lift]:
+			var q := _w(cu, cv)
+			_beam(Vector3(q.x, g, q.y), Vector3(q.x, g + 27.0, q.y), 0.22, ELEK_STEEL)
+	_prism(_rect(lc - 0.4, -lift - 2.4, 2.2, 2.6), g + 6.0, g + 9.2, ELEK_BLUE, ELEK_BLUE.darkened(0.15), M_STONE, M_STONE)
+	_prism(_rect(lc, 0.0, lift + 0.5, lift + 0.5), g + 27.0, g + 31.0, ELEK_BLUE, ELEK_BLUE.darkened(0.2), M_STONE, M_STONE)
+	_collide(_rect(lc, 0.0, lift, lift))
+	# The stacks: aluminium tubes from the roof, flared at the top.
+	for st: Vector2 in ELEK_STACKS:
+		var c := _w(st.x, st.y)
+		_prism(_circle(c, 1.3, 12), g + 12.0, g + ELEK_STACK_TOP - 3.0, ELEK_ALU, none, M_STONE, M_STONE)
+		_frustum(_circle(c, 1.3, 12), g + ELEK_STACK_TOP - 3.0, _circle(c, 2.0, 12), g + ELEK_STACK_TOP, ELEK_ALU.lightened(0.08), ELEK_STEEL)
+		_prism(_circle(c, 1.42, 12), g + ELEK_STACK_TOP - 6.0, g + ELEK_STACK_TOP - 5.4, ELEK_ALU.darkened(0.2), none, M_STONE, M_STONE)
+	_collide(_rect(0.0, 0.0, hu, hv))
 
 
 # --- Muzeum Powstania Warszawskiego (2026-11-02, spec docs/landmarks/specs/mpw.md) ------------
@@ -22765,20 +22830,28 @@ func _build_wyszynski(_site: Dictionary) -> void:
 
 ## The Ostrogski Castle (Zamek Ostrogskich; a 17th-century palace complex above the Vistula
 ## escarpment, rebuilt after 1945) and, across its courtyard, the block of the Fryderyk Chopin
-## Institute (the museum): a model instead of two mapped boxes. Cream plaster walls over a stone
-## plinth, a cornice, steep red-brown hipped roofs with dormers, cross gables on the castle's
-## middle bays, a round corner turret with a cone cap, and a small columned porch at the museum's
-## door. Spec docs/landmarks/specs/ostrogski.md. Heights are estimates (no LoD2 in the cloud).
+## Institute next door: a model instead of two mapped boxes. White plaster walls with grey stone
+## quoins over a stone plinth, a cornice, orange tiled hipped roofs with dormers, pedimented middle
+## bays with a statue, the red-brick bastion towards Tamka; the Institute a modern stone and glass
+## block. Spec docs/landmarks/specs/ostrogski.md; rebuilt from F's photos 2026-11-09.
 ## Frames: the castle's origin is its outline's centre, u east-north-east, +v south-south-east
 ## (the long way); the museum's is its outline's centre, u west, +v north.
 const OSTROG_O := Vector2(-70.3, -274.2)
 const OSTROG_A := Vector2(0.9472, -0.3206)
 const CHOPIN_O := Vector2(-112.86, -268.13)
 const CHOPIN_A := Vector2(-0.9877, 0.1565)
-const OSTROG_WALL := Color("#e4d3ae")
-const OSTROG_TRIM := Color("#efe6d0")
-const OSTROG_BASE := Color("#a89d89")
-const OSTROG_ROOF := Color("#8a4a3a")
+const OSTROG_WALL := Color("#ece8dc")
+const OSTROG_TRIM := Color("#f4f1ea")
+const OSTROG_BASE := Color("#b9b4a8")
+const OSTROG_ROOF := Color("#b4664a")
+## F's photos (2026-11-09, Mac powisle/M01-M05, B13): grey stone quoins at the corners and the
+## middle bays, the red-brick bastion under the castle on the Tamka side, and the Institute next
+## door a modern block (a stone base and a blue-green glass tower), no turret.
+const OSTROG_QUOIN := Color("#c4beb1")
+const OSTROG_BRICK := Color("#a1503a")
+const CHOPIN_GLASS := Color("#7fb3b0")
+const CHOPIN_STONE := Color("#d8d4ca")
+const CHOPIN_TOP := 26.0
 const OSTROG_DARK := Color("#3a3f42")
 const OSTROG_GOLD := Color("#c9a24a")
 const OSTROG_EAVE := 10.0
@@ -22814,44 +22887,35 @@ func _build_ostrogski(site: Dictionary) -> void:
 	for sgn: float in [-1.0, 1.0]:
 		for v: float in [-9.5, -7.2, 7.2, 9.5]:
 			_dormer(sgn, 5.6, v, g + OSTROG_EAVE + 0.6, 8.2, 12.9, 6.0)
-	# the turret on the north-west corner: a drum, a cornice, a cone cap, a ball
-	var tc := _w(-6.4, -11.8)
-	_prism(_circle(tc, 2.3, 10), g - 1.0, g + 13.6, OSTROG_WALL, none, M_MONUMENT)
-	_prism(_circle(tc, 2.75, 10), g + 13.6, g + 14.3, OSTROG_TRIM, OSTROG_TRIM, M_STONE, M_STONE)
-	_frustum(_circle(tc, 2.6, 10), g + 14.3, _circle(tc, 0.25, 10), g + 21.0, OSTROG_ROOF.lightened(0.04), OSTROG_ROOF)
-	_prism(_circle(tc, 0.35, 6), g + 21.0, g + 21.7, OSTROG_GOLD, OSTROG_GOLD, M_STONE, M_STONE)
+	# grey stone quoins at the corners and at the middle bays' edges, a statue on each pediment
+	for cu: float in [-8.0, 8.0]:
+		for cv: float in [-12.7, -5.9, 5.9, 12.7]:
+			_lbox(cu, cv, 0.35, 0.35, g - 1.0, g + OSTROG_EAVE, OSTROG_QUOIN, M_STONE, OSTROG_QUOIN)
+		_lbox(cu * 1.02, 0.0, 0.35, 0.35, g + OSTROG_EAVE + 5.2, g + OSTROG_EAVE + 6.6, OSTROG_QUOIN, M_STONE, OSTROG_QUOIN)
+	# the red-brick bastion under the castle where the ground drops to Tamka (the -v side)
+	var low := _ground_under(_rect(0.0, -15.5, 12.0, 1.0))
+	if g - low > 1.2:
+		_lbox(0.0, -13.8, 13.0, 1.0, low - 0.5, g + 0.3, OSTROG_BRICK, M_STONE, OSTROG_TRIM)
+		_lbox(0.0, -14.7, 13.0, 0.12, g + 0.3, g + 1.2, OSTROG_TRIM, M_STONE, OSTROG_TRIM)
+		_collide(_rect(0.0, -13.8, 13.0, 1.0))
 	# two chimneys on the ridge
 	for v: float in [-3.2, 3.2]:
 		_lbox(0.0, v, 0.55, 0.55, g + 15.0, g + 18.4, OSTROG_BASE.lightened(0.1), M_STONE, OSTROG_BASE)
 	_collide(castle)
-	# --- the museum
+	# --- the Institute: a stone base, a blue-green glass tower over it, a flat roof
 	_o = CHOPIN_O
 	_a = CHOPIN_A.normalized()
 	_b = Vector2(-_a.y, _a.x)
 	_g = _ground_under(museum)
 	g = _g
-	_body(museum, g, 9.2)
-	_hip(0.0, 0.0, 11.9, 9.3, g + 9.8, 5.0, OSTROG_ROOF.darkened(0.04))
-	_lbox(0.0, 0.0, 0.5, 0.5, g + 13.0, g + 16.2, OSTROG_BASE.lightened(0.1), M_STONE, OSTROG_BASE)
-	for sgn: float in [-1.0, 1.0]:
-		for v: float in [-5.5, 5.5]:
-			_dormer(sgn, 6.2, v, g + 9.8, 11.9, 9.3, 5.0)
-	# the porch at the museum's door on the courtyard side (u < 0)
-	var pv := 2.0
-	_mode = M_GLASS
-	_wall(_w(-10.32, pv - 1.0), _w(-10.32, pv + 1.0), g + 0.4, g + 4.1, -_a, OSTROG_DARK)
-	_mode = M_STONE
-	_lbox(-11.5, pv, 1.5, 2.4, g - 0.8, g + 0.4, OSTROG_BASE, M_STONE, OSTROG_BASE.lightened(0.06))
-	for v: float in [-1.45, 1.45]:
-		_column(-12.5, pv + v, 0.3, g + 0.4, g + 4.7, OSTROG_TRIM)
-	_lbox(-11.5, pv, 1.5, 2.4, g + 4.7, g + 5.3, OSTROG_TRIM, M_STONE, OSTROG_TRIM)
-	var ma := _a
-	var mb := _b
-	_a = -ma
-	_b = -mb
-	_gable(-12.9, -10.2, -pv, 2.3, g + 5.3, 1.2, OSTROG_WALL, OSTROG_ROOF)
-	_a = ma
-	_b = mb
+	_prism(museum, g - 1.0, g + 6.0, CHOPIN_STONE, CHOPIN_STONE.darkened(0.1), M_STONE, M_STONE)
+	var tower := _largest(Geometry2D.offset_polygon(museum, -1.2, Geometry2D.JOIN_MITER))
+	if tower.size() >= 3:
+		_mode = M_GLASS
+		_prism(tower, g + 6.0, g + CHOPIN_TOP, CHOPIN_GLASS, none, M_GLASS, M_STONE)
+		_mode = M_STONE
+		_parapet(tower, g + CHOPIN_TOP, 0.6, CHOPIN_STONE)
+		_prism(tower, g + CHOPIN_TOP - 0.2, g + CHOPIN_TOP, CHOPIN_STONE, OSTROG_BASE, M_STONE, M_STONE)
 	_collide(museum)
 
 
