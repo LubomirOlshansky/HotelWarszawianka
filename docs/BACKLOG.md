@@ -4,6 +4,15 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## First-10 replay ran late (cloud, 2026-11-09)
+Fixed: `tools/verify.sh --only=first10-run` failed on main ("tape late: 536 s, window 330-450 s", later
+runs also rescue late). Cause: the DESKA padel call (`trend_job.gd` DESKI_FIRST) rang at 150 s of play,
+in the middle of the first-10 guide; the replay's autopilot answered it and played the three-point
+match (about 280 s) with the missions paused, so the rescue call, the helicopter hint, the cassette
+and the garage all slid 4-5 minutes. DESKI_FIRST is now 660 s (after the guide's last window).
+Open: `first10-run` is not in CI (it needs the prebuilt city path); run it in the cloud after a change
+to any call, offer or job that can ring before 660 s of play.
+
 ## Dworzec Centralny's car park ramp (F, 2026-11-08, Street View photos and a screenshot)
 Fixed: the two one-way lanes off Al. Jana Pawła II north of Chmielna that loop round the hedge island
 down to the tunnel under the avenue were a spiral that went nowhere: the bake leaves service tunnels
