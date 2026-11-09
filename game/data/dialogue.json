@@ -6501,6 +6501,27 @@
       }
     ],
     [
+      "Uśmiech do kamery! Patrz, bez trzymanki!",
+      "Smile for the camera! Look, no hands!",
+      {
+        "only": "kamil_stunt"
+      }
+    ],
+    [
+      "Czekaj, nagrywam kręciołka dla followersów!",
+      "Hold on, filming a spin for my followers!",
+      {
+        "only": "kamil_stunt"
+      }
+    ],
+    [
+      "Zasięgi same się nie zrobią!",
+      "The views won't make themselves!",
+      {
+        "only": "kamil_stunt"
+      }
+    ],
+    [
       "Wjeżdżam w to, ziomek!",
       "I'm all in, mate!",
       {
@@ -6729,5 +6750,22 @@
       "Ludzie pytają, o czym jest film. Pytam ich, o czym jest rondo.",
       "People ask what the film's about. I ask them what a roundabout is about."
     ]
+  ],
+  "kebonafide": [
+    ["Objechałem pół świata. Najdłuższa trasa? Z Tamki na Dobrą w korku.", "I toured half the world. The longest trip? Tamka to Dobra in traffic."],
+    ["Plamka, nie! To nie jest nasz bit, to jest kosz na śmieci.", "Plamka, no! That's not our beat, that's a bin."],
+    ["Kończę karierę. Trzeci raz w tym roku. To trasa pożegnalna numer cztery.", "I'm retiring. Third time this year. This is farewell tour number four."],
+    ["Z Burrito Hemingwayem nagraliśmy jedną płytę i dwa tysiące memów.", "Burrito Hemingway and I made one album and two thousand memes."],
+    ["Ciechanów uczył pokory. Powiśle uczy płacić 31 zł za matchę.", "Ciechanów taught humility. Powiśle teaches paying 31 zł for a matcha."],
+    ["Tatuaż na twarzy to nie decyzja. To umowa z lustrem.", "A face tattoo isn't a decision. It's a contract with the mirror."],
+    ["Plamka ma sto jeden kropek. Ja mam sto jeden wersów o sobie. Remis.", "Plamka has a hundred and one spots. I have a hundred and one verses about myself. A draw."],
+    ["Następny album: Romantyczny Pies-cho. Plamka już jest na okładce.", "Next album: Romantic Pup-cho. Plamka's already on the cover."],
+    ["Nie, nie robię zdjęć. No dobra, jedno. Ale z psem, nie ze mną.", "No photos. Fine, one. With the dog, not with me."],
+    ["Mówią, że zniknąłem ze sceny. Ja tylko wyprowadzam psa.", "They say I vanished from the scene. I'm just walking the dog."],
+    ["Egzotyka? Egzotyka to jest wolne miejsce parkingowe na Tamce.", "Exotic? Exotic is a free parking space on Tamka."],
+    ["Ładna fura. Zwolnij, Plamka myśli, że to teledysk.", "Nice ride. Slow down, Plamka thinks it's a music video.", {"only": "car"}],
+    ["Ej, puszczasz KEBAB FM? Lecę tam co godzinę, bo nikt mnie nie zamawia.", "Hey, is KEBAB FM on? I'm on every hour because nobody requests me.", {"only": "car"}],
+    ["Nie trąb, bo Plamka zacznie freestyle'ować.", "Don't honk, Plamka will start freestyling.", {"only": "car"}],
+    ["Podwieziesz na Dobrą? Żartuję. Rapowałem, że wszędzie chodzę pieszo.", "A lift to Dobra? Kidding. I rapped that I walk everywhere.", {"only": "car"}]
   ]
 }

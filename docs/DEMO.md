@@ -497,9 +497,9 @@ buildings under decks and the tunnels done** (see 4.8); the rim's walls wait for
 
 **Tunnels in a top-down game.**
 
-- **Inside a tunnel the ground above stays drawn.** The car shows as an outlined silhouette
-  through it: the occlusion ghost's region, applied to the ground and roofs over a tunnel
-  corridor. The camera does not dive.
+- **Inside a tunnel the ground above opens round the car** (F, 2026-11-08; until then it stayed
+  drawn with the car as a silhouette through it): a cutaway over the tunnel's corridor, with what
+  stands on it, so the road, the walls and the car show. The camera does not dive.
 - Portals get a frame and retaining walls along the open ramp.
 - Traffic is simulated through the tunnel, but cars are hidden more than 15 m inside.
 - The minimap draws tunnels dashed.
@@ -643,8 +643,8 @@ The builder's side, placed in the bake (`tools/bake_structures.py`, run at the e
   (`lane_graph.gd TUNNELS_DRIVEN = true`, the graph's off-map links and connected part include
   them; `map_builder.drive_height` drives a tunnel's floor when the car is at it); traffic
   simulated through them and hidden more than 15 m from a portal (graph edges' `po`); the car
-  shows through the ground as a silhouette (`tunnel_xray.gd`; the plan's dithered ghost would
-  need `discard` in the ground shader); the Wisłostrada trench at (637, -554) is its portal.
+  shows through the ground as a silhouette (`tunnel_xray.gd`; since 2026-11-08 the ground opens
+  over it instead, `tunnel_cut.gdshaderinc`); the Wisłostrada trench at (637, -554) is its portal.
   Warecka's 7 m `tunnel=yes` is a gate (left out like the building passages). 27 garage doors
   drawn and solid. The minimap's dashed tunnels are a hud.gd change left for the HUD's owner.
 - **`game/tools/check_drive.gd`** (4.5) and the `roads` step FAILing on any rule. What the sweep
