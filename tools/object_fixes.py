@@ -35,6 +35,9 @@ Verdicts, per object_audit.py rule:
     T2 tree on the road  MOVE     to the nearest spot within TREE_SHIFT m whose trunk keeps TREE_CLEAR
                                   m off the drawn asphalt (an island or a median is fine), out of the
                                   water, buildings, tram tracks and zebras; else REMOVE
+    T3 tree in building  MOVE     (BACKLOG TR-1) the same way as T2 to the nearest free spot within
+                                  TREE_SHIFT m outside every building; else REMOVE (a courtyard tree
+                                  whose yard is mapped as part of the building)
     P8 on steps, P9 lone signal: CHECK only (an amphitheatre's seats, a mid-block crossing's lights).
 
 Barriers with an Operation Unslop override (game/data/road_objects.json) are never touched, so
@@ -52,7 +55,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import object_audit as oa  # noqa: E402
 
 ROOT = oa.ROOT
-VERSION = 2   # 2: L6, T1, T2 (F, 2026-11-08: trees and fences in the Vistula, trees in the lanes)
+VERSION = 3   # 3: T3; 2: L6, T1, T2 (F, 2026-11-08: trees and fences in the Vistula, trees in the lanes)
 PAVE = {"lamp": 0.7, "signal": 0.6}
 PAVE_OTHER = 0.9
 SHIFT_MAX = {"lamp": 4.5, "signal": 4.5}
@@ -64,12 +67,12 @@ TRIM_MIN = 1.0
 TREE_SHIFT = 3.0   # T2: a tree moves at most this far off the road...
 TREE_CLEAR = 0.8   # ...to a spot with the asphalt at least this far from its trunk
 REMOVE = ("P1", "P3", "P4", "P5", "P6", "P7", "P11")
-AUTO = REMOVE + ("P2", "P10", "L1", "L2", "L3", "L4", "L5", "L6", "T1", "T2")
+AUTO = REMOVE + ("P2", "P10", "L1", "L2", "L3", "L4", "L5", "L6", "T1", "T2", "T3")
 # map_builder.gd BARRIER_STYLE: a concrete upstand with an open rail, 1 m (street_pass B5's look).
 STAIR_STYLE = "balustrade_rail"
 # Left after the fixes on the demo map (2026-11-07): the ratchet of --check.
 CHECK_LEFT = {"P1": 0, "P2": 0, "P3": 0, "P4": 0, "P5": 0, "P6": 0, "P7": 0, "P10": 0, "P11": 0,
-              "L1": 0, "L2": 0, "L3": 0, "L4": 0, "L5": 0, "L6": 0, "T1": 0, "T2": 0}
+              "L1": 0, "L2": 0, "L3": 0, "L4": 0, "L5": 0, "L6": 0, "T1": 0, "T2": 0, "T3": 0}
 
 
 def overridden():
@@ -281,13 +284,14 @@ def _pass(out, dry):
         if key == "trees3d":
             if idx in tree_drop or idx in tree_moves:
                 continue
-            q = tree_spot(w, (x, z)) if rule == "T2" else None
+            q = tree_spot(w, (x, z)) if rule in ("T2", "T3") else None
+            moved = rule in ("T2", "T3")
             if q:
                 tree_moves[idx] = q
-                tally["T2 moved"] = tally.get("T2 moved", 0) + 1
+                tally[rule + " moved"] = tally.get(rule + " moved", 0) + 1
             else:
                 tree_drop.add(idx)
-                tally[rule + (" removed" if rule == "T2" else "")] = tally.get(rule + (" removed" if rule == "T2" else ""), 0) + 1
+                tally[rule + (" removed" if moved else "")] = tally.get(rule + (" removed" if moved else ""), 0) + 1
             continue
         if key == "lines":
             l = out["lines"][idx]
