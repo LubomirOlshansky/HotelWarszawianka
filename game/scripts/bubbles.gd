@@ -84,6 +84,8 @@ func _px(points: float) -> int:
 ## reaction ("bump", "near_miss"). Returns whether it shows.
 func say(anchor: Variant, speaker: String, line: String, subtitle := "", seconds := 4.0,
 		accent := Color("#ffd23f"), height := 2.6, kind := Chatter.QUEST, key := "") -> bool:
+	if quiet_all:
+		return false
 	var replacing := is_talking(anchor)
 	_sense()
 	if not chatter.take(kind, count() - (1 if replacing else 0), key):
@@ -129,6 +131,8 @@ var struggle: Callable
 var cards_up: Callable
 ## The one chatter budget (chatter.gd); its level is the setting (settings.gd `chatter`).
 var chatter := Chatter.new()
+## A focused moment (street_meet.gd's drag, PT-49): every speaker waits; nothing new shows.
+var quiet_all := false
 
 
 func muted() -> bool:

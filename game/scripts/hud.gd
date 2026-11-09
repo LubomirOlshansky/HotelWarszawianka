@@ -342,7 +342,7 @@ var _mini_dots := PackedVector2Array()
 ## which rivals.gd writes every frame.
 var _quest_dots := PackedVector2Array()
 ## A focused moment (street_meet.gd's drag, F 2026-11-08: "too many dialogs one over another"):
-## while true the radio's ticker, the info notes (a district discovered) and flavour toasts wait.
+## while true the radio's ticker, the info notes (a district discovered) and every toast wait.
 var hush := false
 var _quest_dot_colours := PackedColorArray()
 var _mini_dot_colours := PackedColorArray()
@@ -1493,6 +1493,8 @@ func ambient_toast(text: String, gloss := "") -> void:
 
 
 func toast(text: String, gloss := "") -> void:
+	if hush:
+		return  # PT-49: the first-10 guide's hints waited under the drag's rev counter
 	text = Lang.pick(text, gloss)
 	gloss = ""
 	# PT-20 (Autopilot run 20261103-152518): the same toast again while it is still up only

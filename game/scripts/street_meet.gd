@@ -839,6 +839,9 @@ class DragTree extends Control:
 	var red := false
 	## Seconds since green (START! shows for a moment).
 	var since_green := 0.0
+	## The launch's word shown in START!'s place (street_meet `_launch`), and its colour.
+	var word := ""
+	var word_colour := Color("#3cff6a")
 
 	func _ready() -> void:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -851,7 +854,7 @@ class DragTree extends Control:
 		if red:
 			return "FALSTART"
 		if green:
-			return "START!" if since_green < 0.9 else ""
+			return ("START!" if word == "" else word) if since_green < 1.3 else ""
 		return ["", "3", "2", "1"][clampi(ambers, 0, 3)]
 
 	func _draw() -> void:
@@ -871,7 +874,7 @@ class DragTree extends Control:
 			return
 		var font := get_theme_default_font()
 		var fs := int(size.y * (0.2 if word.length() <= 1 else 0.11))
-		var col := Color("#3cff6a") if green else (Color("#ff2a2a") if red else Color("#ffb21e"))
+		var col := (word_colour if word != "" else Color("#3cff6a")) if green else (Color("#ff2a2a") if red else Color("#ffb21e"))
 		var w := font.get_string_size(word, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 		var at := Vector2(cx - w * 0.5, size.y * 0.42 + fs * 0.35)
 		draw_string_outline(font, at, word, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, maxi(4, fs / 9), Color(0.03, 0.03, 0.04, 0.9))
@@ -974,7 +977,8 @@ class DragTacho extends Control:
 		var ss := int(r * 0.13)
 		var sw := font.get_string_size(sp, HORIZONTAL_ALIGNMENT_LEFT, -1, ss).x
 		draw_string(font, c + Vector2(-sw * 0.5, r * 0.5), sp, HORIZONTAL_ALIGNMENT_LEFT, -1, ss, Color(1, 1, 1, 0.8))
-		if top and not staging:
+		# PT-50: the shift word only from the yellow.
+		if (top or k < show_at) and not staging:
 			return
 		var word := Lang.pick("BIEG ⬆ TERAZ!", "SHIFT ⬆ NOW!") if in_green or limiter else Lang.pick("BIEG ⬆", "SHIFT ⬆")
 		if staging:
@@ -1872,13 +1876,13 @@ func _stage() -> void:
 	_tree.green = false
 	_tree.red = false
 	_tree.since_green = 0.0
+	_tree.word = ""
 	_tree.queue_redraw()
 	_revs = 0.0
 	_rev_gas = false
 	_tacho.launch = LAUNCH
 	_tacho.staging = true
-	if hud.has_method("set_hush"):
-		hud.set_hush(true)
+	_quiet(true)
 	hud.hide_status()
 	if dialogue != null and dialogue.bubbles != null:
 		dialogue.bubbles.clear()
@@ -1975,8 +1979,12 @@ func _drag_frame(dt: float) -> void:
 			_shift_w = 0.0 if _shift_w < 0.0 else _shift_w + dt
 			if _shift_w >= AUTO_SHIFT:
 				_shift("auto")
-		if not hud.pill_shown("drag_shift"):
-			hud.show_pill("⬆ BIEG", "⬆ SHIFT", "drag_shift")
+		# PT-50: the button only from the yellow (it was up from green, the needle at 1,500).
+		if v >= cap * SHIFT_SHOW:
+			if not hud.pill_shown("drag_shift"):
+				hud.show_pill("⬆ BIEG", "⬆ SHIFT", "drag_shift")
+		elif hud.pill_shown("drag_shift"):
+			hud.hide_pill()
 	elif hud.pill_shown("drag_shift"):
 		hud.hide_pill()
 	_tacho.k = v / maxf(cap, 0.1)
@@ -1998,21 +2006,31 @@ func _drag_frame(dt: float) -> void:
 		_drag_end(false, "slow")
 
 
-## Green: the launch's effect and its banner.
+## The drag's quiet screen on or off: the HUD's ticker, notes and toasts, and every bubble.
+func _quiet(on: bool) -> void:
+	if hud != null and hud.has_method("set_hush"):
+		hud.set_hush(on)
+	if dialogue != null and dialogue.bubbles != null and "quiet_all" in dialogue.bubbles:
+		dialogue.bubbles.quiet_all = on
+
+
+## Green: the launch's effect, and its word in the count's place (PT-48: a banner under the green
+## START! was lost in it; now the launch's word replaces START!, in its own colour).
 func _launch(grade: String) -> void:
 	match grade:
 		"perfect":
 			_boost_t = BOOST_S
-			hud.show_banner(Lang.pick("IDEALNY START!", "PERFECT LAUNCH!"), Color("#3cff6a"))
+			_tree.word = Lang.pick("IDEALNY START!", "PERFECT LAUNCH!")
+			_tree.word_colour = Color("#38f6ff")
 		"spin":
 			_spin_t = SPIN_S
-			hud.show_banner(Lang.pick("BUKSOWANIE!", "WHEELSPIN!"), Color("#ffb21e"))
+			_tree.word = Lang.pick("BUKSOWANIE!", "WHEELSPIN!")
+			_tree.word_colour = Color("#ffb21e")
 		_:
 			_bog_t = BOG_S
-			hud.show_banner(Lang.pick("ZA MAŁO OBROTÓW", "BOGGED DOWN"), Color("#ffb21e"))
-	get_tree().create_timer(0.9).timeout.connect(func() -> void:
-		if hud != null and state == State.RUN:
-			hud.hide_banner())
+			_tree.word = Lang.pick("ZA MAŁO OBROTÓW", "BOGGED DOWN")
+			_tree.word_colour = Color("#ffb21e")
+	_tree.queue_redraw()
 	_log("launch: %s (revs %.2f)" % [grade, _revs])
 
 
@@ -2059,8 +2077,7 @@ func _drag_end(won: bool, how: String) -> void:
 	hud.hide_pill()
 	hud.hide_banner()
 	_tacho.visible = false
-	if hud.has_method("set_hush"):
-		hud.set_hush(false)
+	_quiet(false)
 	_tree.visible = how == "false"
 	if _tree.visible:
 		get_tree().create_timer(2.0).timeout.connect(func() -> void: _tree.visible = false)
@@ -2157,8 +2174,7 @@ func _finish() -> void:
 	_beacon.visible = false
 	_tree.visible = false
 	_tacho.visible = false
-	if hud != null and hud.has_method("set_hush"):
-		hud.set_hush(false)
+	_quiet(false)
 	_show_gate(false)
 	for n: Node3D in [_bawarka, _porsze, _skajlajner] + _show_cars:
 		n.visible = false

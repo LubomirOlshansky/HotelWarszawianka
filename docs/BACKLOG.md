@@ -264,6 +264,7 @@ with four patrol cars, racers on the minimap and faster with shortcuts, the drag
 - [ ] Phone check: smoke and marks at night, the tandem at meet 2, the cordon's cars coming in, the 3-2-1 and the rev counter under a thumb (a second finger with the gas held); bench at the meet
 - [ ] A stake to enter the drag? (parked for F, built without)
 - [ ] Autopilot: the drag needs a tap on the rev counter or the ⬆ BIEG button for each gear now (no auto-shift on time; the box only saves a run left 2.5 s on the limiter)
+- [ ] Driving straight north out of meet 2's square lands on the railway bed, where the car crawls at ~6 km/h (Autopilot run 20261109-014024): a fence or kerb along the cutting there?
 - [ ] Later: the cordon cars could join the chase when you break out (now they stay parked, lights on, and leave out of sight)
 - [ ] Later: the club card in the notebook, more meet places (Browary, Wał Miedzeszyński), underglow paint in the garage after a win
 ## Coffee run (F, 2026-11-06)
