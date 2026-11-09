@@ -11,6 +11,7 @@ someone writes its lines.
 
 ## 2026-11-09
 
+- The website, the design wiki and the store listing now use the new app icon: the red car, the helicopter and the Palace at dusk.
 - Nineteen more Powiśle houses look like their photos: their own colours, balconies and shop bands on Leszczyńska, Browarna, Dobra, Topiel, Solec, Aleja 3 Maja and Zajęcza.
 - Elektrownia Powiśle got its real look: the gabled brick hall, the glass lift with the blue box on top and four silver stacks. The Chopin Museum is white with an orange roof on its brick bastion, without the made-up tower.
 - Powiśle's side streets got their black posts along the kerbs and the colours of their real houses.
