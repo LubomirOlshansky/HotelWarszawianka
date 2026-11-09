@@ -21,6 +21,14 @@ under it, so on the CAR and STORIES tabs a scroll started a request and closed t
 - [ ] The quit button gives up through each quest's own ✕ (hud `abort_pressed`), which covers only
   some beats: a questline in its offer card, or the coffee run on the bike, may answer "can't quit
   this one right now". Check each quest's quit on the phone and widen the beats where needed.
+- [x] The night meet ignored the quit during the meet, the raids and the drag (PT-52, Autopilot
+  2026-11-09: the map closed and the quest went on). It gives up in every beat now except Darek's
+  call, his offer and the drag's result card (`street_meet.gd` `can_quit`, `check_street_meet`).
+- [ ] Autopilot 2026-11-09 suspects for the night meet's drag: no PERFECT LAUNCH! banner after a
+  launch in the blue (PT-48); the first-10 guide's note and chatter over the rev counter on a fresh
+  save (PT-49, also in the boat race); "SHIFT ↑" shown from green with the needle low (PT-50).
+- [ ] Boat race: on the three crossings Autopilot's ring-to-ring line passed beside the ramp pads,
+  never over them (PT-53); check the pads sit on the natural line into the mid-river ring.
 - [ ] Phone look: the glow's size on the minimap (1.15) and the full map (2.0), the dotted line.
 
 ## Thin towers across the map (F, 2026-11-07; docs/design/small-buildings.md)

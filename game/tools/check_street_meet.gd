@@ -122,7 +122,11 @@ func _check_rules(digest: PackedStringArray) -> void:
 		last = int(pay[0])
 	if Meet.shift_grade(-0.1) != "early" or Meet.shift_grade(0.1) != "perfect" or Meet.shift_grade(0.8) != "late":
 		problems.append("shift grades wrong")
-	digest.append("clock, pay, shifts")
+	for st: int in Meet.State.values():
+		var want: bool = not (st in [Meet.State.IDLE, Meet.State.RING, Meet.State.OFFER, Meet.State.RESULT])
+		if Meet.can_quit(st) != want:
+			problems.append("quit in %s: %s (PT-52)" % [Meet.STATES[st], Meet.can_quit(st)])
+	digest.append("clock, pay, shifts, quit")
 
 
 func _check_drag(digest: PackedStringArray) -> void:

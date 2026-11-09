@@ -9,6 +9,10 @@ that day here, in plain words a player would understand (no file names, no spoil
 rows in the progress log but no section here is listed automatically from the log's labels until
 someone writes its lines.
 
+## 2026-11-09
+
+- Quitting the night meet from the map now works during the meet, the police raid and the drag too.
+
 ## 2026-11-08
 - The blue glass office next to Hotel Warszawa is now a solid blue tower (it looked see-through with a broken top), and Hotel Warszawa has deeper pilasters and the tall copper doors from the photos.
 - Coffee run: the car's engine no longer follows you onto the bike (you hear the tyres, the chain and the hub ticking instead), the bike is faster, the four cafés have real lit fronts with their names and the one you ride to glows, and the café jokes stay on screen long enough to read.
