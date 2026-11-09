@@ -10,6 +10,7 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-09
+- The Old Town is finished for the trailer: the Market Square houses are painted in their own ochre, salmon, sage, blue and pink fronts, the Cathedral has a steep tiled roof over its nave instead of a flat slab, and the city wall's towers wear tile-red cone roofs.
 - Street race rivals are as fast as your car now. Pani Halina corners harder too, and if you drive fast she races you for real to the line instead of letting you win.
 - Nineteen more Powiśle houses look like their photos: their own colours, balconies and shop bands on Leszczyńska, Browarna, Dobra, Topiel, Solec, Aleja 3 Maja and Zajęcza.
 - Elektrownia Powiśle got its real look: the gabled brick hall, the glass lift with the blue box on top and four silver stacks. The Chopin Museum is white with an orange roof on its brick bastion, without the made-up tower.
@@ -19,6 +20,11 @@ someone writes its lines.
 
 ## 2026-11-08
 - In a tunnel you now see your car for real: the ground, trees and lamps over the tunnel open up round the car like a cut-away model, showing the road, the tunnel walls and the traffic inside, instead of a yellow outline through the grass.
+- On Android phones with older Adreno graphics (like the Nothing Phone 1) the streets, ground and buildings now appear; before, only cars, people and trees did.
+- Quests on the map are clearer: the gold main-line star now only guides your first kebab delivery and then gets out of the way, the quest you took glows and pulses on the map and the minimap with a dotted line to it, the map's quest card has a "✕ Quit" button (tap twice) to drop it, and scrolling the quest list no longer starts a quest and closes the map.
+- Tram and bus shelters face the right way: the open side with the bench looks at the tracks or the kerb, not along the street or at the pavement (Ratusz Arsenał and over fifty other stops).
+- The loading bar on the start screen moves smoothly now instead of in jerks while the city is built.
+- The map is quieter: tap a quest's "!" to read one line about it, the old "?" marks are gone, kebab and job pins show only when you zoom in, the shisha night is now a hidden quest (not on the map or in the list: stand at Ivan's block in 19. Dzielnica and hold the "+" for 5 seconds), the Tesla helicopter rescue is in the STORIES list, and you can drag the quest list on the map with a finger to see all of it.- The car no longer stops dead when its nose clips the end of a low wall or a tram shelter: it slips past, as it already did at corners (Trasa W-Z by the Old Town).
 - Plac Centralny: the old parade tribune in the middle of the square is a stepped granite block again, with sitting steps, a stair, planters and young trees on top, and the striped paving with the WARSZAWA letters now lies in front of it, towards Marszałkowska.
 - The Wiślana Szprotka boat race is livelier: the boats pass under Most Świętokrzyski again, the gates now run close along the banks past the beaches and boulevards, each crossing of the river has a floating ramp to jump and a gold ring after it, tucking in behind another boat pulls you along, and Kamil on his jet ski sometimes stops to film himself, so he is beatable.
 - Marszałkowska past the new art museum is as rebuilt in real life: two lanes each way, no odd turnarounds across the tram tracks, a row of young columnar elms on green strips on both sides of the tracks, and parked cars in the bays along the museum.
