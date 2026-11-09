@@ -10,7 +10,7 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-08
-- The car park ramp by Dworzec Centralny on Aleja Jana Pawła II is a real drive now: the lanes go down into the tunnel under the avenue under the blue-and-white "ZŁOTE TARASY ← / DWORZEC CENTRALNY TAXI BUS →" board, past red and white bollards, turn round under Złote Tarasy and come back up, instead of a spiral that ended in a wall and a stray garage door.
+- The blue glass office next to Hotel Warszawa is now a solid blue tower (it looked see-through with a broken top), and Hotel Warszawa has deeper pilasters and the tall copper doors from the photos.
 - Coffee run: the car's engine no longer follows you onto the bike (you hear the tyres, the chain and the hub ticking instead), the bike is faster, the four cafés have real lit fronts with their names and the one you ride to glows, and the café jokes stay on screen long enough to read.
 - Friends no longer phone you in the middle of a mission: Mrożulo's call and the other job calls wait until you are done, and a few seconds more.
 - Stopping in a quest's ring always gets you somewhere now: if it's the wrong hour (Darek's night meet on Plac Defilad by day), the friend offers to wait, the clock jumps to the evening and the quest starts. Taking Darek's night meet by day, however you take it, turns the city to night straight away. A rescue call still ringing no longer keeps the friend away.

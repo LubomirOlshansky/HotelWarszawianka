@@ -161,6 +161,7 @@ SITE_AREAS = [
     (-193.0, 46.0, -183.0, 56.0),           # and Foksal 15
     (70.0, 20.0, 100.0, 45.0),              # Młotek, Smolna 8 (landmarks.gd ML_AT)
     (-820.0, -1185.0, -790.0, -1160.0),     # Kozia 9 (unnamed in OSM; landmarks.gd KZ_AT)
+    (-815.0, -115.0, -770.0, -78.0),        # the blue glass office north of Hotel Warszawa (unnamed in OSM; landmarks.gd TOWERS powstancow_blue)
     (-690.0, 525.0, -628.0, 635.0),         # Cyfrowy Parking Novotel, Nowogrodzka 27 (landmarks.gd CP_AT)
     (-475.0, -960.0, -450.0, -940.0),       # Karowa 18a (unnamed in OSM; landmarks.gd KR_AT)
     (-175.0, 125.0, -145.0, 150.0),         # Smolna 38 (building=office, no name; landmarks.gd S38_AT)
