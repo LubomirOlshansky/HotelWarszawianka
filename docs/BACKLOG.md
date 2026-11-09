@@ -732,6 +732,8 @@ warsaw-needed-photos/old-town, E01-E24) and Mapillary references:
   shop windows on the rest, a string course, tall casements with white glazing bars in cream
   surrounds, sills and heads, a cornice, and on the Rynek's fronts a painted band along each floor
   line (photos E01-E04). No triangles added (a first try with modelled surrounds cost 160,000).
+  Written as flat masks (step / mix, one return, typed_pane's rules inlined) on 2026-11-09 so the
+  lite building shader stays under the Adreno budget (500 of 505 with the shader-budget PR).
 - The Barbican from F's five photos: the round bastion's crown of brick posts under stone pyramids
   with little gables between, a corbel band, loopholes, plain brick (no Gothic lancets); the four
   towers at the mapped 13 m outlines with tile cones; tiled roofs on the arms; the pointed gate
