@@ -85,11 +85,13 @@ const CZ_MIN_QUEUE := 10
 const CZ_COLOUR := Color("#2fd0e0")
 ## "Czwarty" at WTS DESKA (landmarks.gd DESKI, docs/design/padel.md): a friend phones from the court
 ## by the Vistula: the fourth player broke a leg at pole dance, come at once (drive or fly) and play.
-## Once the player has driven a while, 8:00-22:00, then every DESKI_COOL s of play. No pickup: the
-## beacon is the club's gate; a helicopter within DESKI_FLY_R m of it counts.
+## Once the player has driven a while (after the first-10 guide's last window, 660 s: at 150 s the
+## call rang in the middle of the guide and the replay's three-point match pushed the rescue, the
+## cassette and the garage 4-5 minutes late), 8:00-22:00, then every DESKI_COOL s of play. No
+## pickup: the beacon is the club's gate; a helicopter within DESKI_FLY_R m of it counts.
 const DESKI_GATE := Vector2(1475.0, 985.0)
 const DESKI_HOURS := [8.0, 22.0]
-const DESKI_FIRST := 150.0
+const DESKI_FIRST := 660.0
 const DESKI_COOL := 1200.0
 const DESKI_LIMIT := 480.0
 const DESKI_FLY_R := 28.0

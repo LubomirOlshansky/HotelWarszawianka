@@ -1,16 +1,14 @@
 {
  "slug": "marszalkowska-centrum",
  "title": "Marszałkowska: Rondo Dmowskiego to Świętokrzyska",
- "updated": "2026-11-06",
+ "updated": "2026-11-08",
  "stage": "evidence",
- "score": 81,
+ "score": 78,
  "counts": {
   "F1": 7,
   "L1": 3,
-  "L2": 15,
-  "L3": 1,
-  "O1": 8,
-  "P1": 1
+  "L2": 19,
+  "O1": 16
  },
  "blocks": [
   {
@@ -19,10 +17,10 @@
    "counts": {
     "F1": 5,
     "L1": 1,
-    "L2": 4,
+    "L2": 7,
     "O1": 7
    },
-   "score": 71
+   "score": 68
   },
   {
    "id": "B",
@@ -30,11 +28,10 @@
    "counts": {
     "F1": 1,
     "L1": 1,
-    "L2": 3,
-    "L3": 1,
-    "P1": 1
+    "L2": 4,
+    "O1": 8
    },
-   "score": 87
+   "score": 82
   },
   {
    "id": "C",
@@ -300,6 +297,21 @@
     "B": 87,
     "C": 85
    }
+  },
+  {
+   "date": "2026-11-08",
+   "score": 78,
+   "counts": {
+    "F1": 7,
+    "L1": 3,
+    "L2": 19,
+    "O1": 16
+   },
+   "blocks": {
+    "A": 68,
+    "B": 82,
+    "C": 85
+   }
   }
  ],
  "baseline": {
@@ -378,7 +390,8 @@
   }
  ],
  "verdicts": {
-  "KEEP": 9,
+  "KEEP": 14,
+  "REMOVE": 1,
   "REPLACE": 7,
   "RETEXTURE": 4
  },
@@ -484,6 +497,36 @@
    "status": "open"
   },
   {
+   "check": "L2",
+   "x": -932.5,
+   "z": 173.2,
+   "s": 33.0,
+   "t": 17.1,
+   "note": "lane line ends mid-block [changed since the data: Skwer Linearny na Złotej (car-free since 2026-08) and its crossing to Plac Centralny]",
+   "block": "A",
+   "status": "changed"
+  },
+  {
+   "check": "L2",
+   "x": -929.8,
+   "z": 172.0,
+   "s": 33.2,
+   "t": 20.1,
+   "note": "lane line ends mid-block [changed since the data: Skwer Linearny na Złotej (car-free since 2026-08) and its crossing to Plac Centralny]",
+   "block": "A",
+   "status": "changed"
+  },
+  {
+   "check": "L2",
+   "x": -950.0,
+   "z": 179.2,
+   "s": 33.5,
+   "t": -1.4,
+   "note": "lane line ends mid-block [changed since the data: Skwer Linearny na Złotej (car-free since 2026-08) and its crossing to Plac Centralny]",
+   "block": "A",
+   "status": "changed"
+  },
+  {
    "check": "O1",
    "x": -877.7,
    "z": 437.8,
@@ -575,51 +618,121 @@
   },
   {
    "check": "L2",
-   "x": -957.0,
-   "z": 162.6,
-   "s": 51.6,
-   "t": -2.2,
+   "x": -951.9,
+   "z": 176.0,
+   "s": 37.2,
+   "t": -2.0,
    "note": "lane line ends mid-block [changed since the data: Skwer Linearny na Złotej (car-free since 2026-08) and its crossing to Plac Centralny]",
    "block": "B",
    "status": "changed"
   },
   {
    "check": "L2",
-   "x": -991.8,
-   "z": 61.6,
-   "s": 158.3,
-   "t": 0.5,
-   "note": "lane line ends mid-block",
+   "x": -942.7,
+   "z": 145.9,
+   "s": 62.1,
+   "t": 17.1,
+   "note": "lane line ends mid-block [changed since the data: Skwer Linearny na Złotej (car-free since 2026-08) and its crossing to Plac Centralny]",
    "block": "B",
-   "status": "open"
+   "status": "changed"
   },
   {
    "check": "L2",
-   "x": -993.7,
-   "z": 56.2,
-   "s": 164.0,
-   "t": 0.6,
-   "note": "lane line ends mid-block",
+   "x": -960.0,
+   "z": 152.3,
+   "s": 62.2,
+   "t": -1.4,
+   "note": "lane line ends mid-block [changed since the data: Skwer Linearny na Złotej (car-free since 2026-08) and its crossing to Plac Centralny]",
+   "block": "B",
+   "status": "changed"
+  },
+  {
+   "check": "L2",
+   "x": -961.4,
+   "z": 148.5,
+   "s": 66.2,
+   "t": -1.3,
+   "note": "lane line ends mid-block [changed since the data: Skwer Linearny na Złotej (car-free since 2026-08) and its crossing to Plac Centralny]",
+   "block": "B",
+   "status": "changed"
+  },
+  {
+   "check": "O1",
+   "x": -973.6,
+   "z": 125.7,
+   "s": 91.8,
+   "t": -4.8,
+   "note": "parked_car/car 0.4 m from a lane's edge",
    "block": "B",
    "status": "open"
   },
   {
-   "check": "L3",
-   "x": -964.3,
-   "z": 125.8,
-   "s": 88.6,
-   "t": 3.8,
-   "note": "edge line crosses a kerb",
+   "check": "O1",
+   "x": -977.6,
+   "z": 114.8,
+   "s": 103.5,
+   "t": -4.8,
+   "note": "parked_car/car 0.4 m from a lane's edge",
    "block": "B",
    "status": "open"
   },
   {
-   "check": "P1",
-   "x": -968.5,
-   "z": 38.4,
-   "s": 171.9,
-   "t": 30.4,
-   "note": "bin on the drawn road (strip Henryka Sienkiewicza)",
+   "check": "O1",
+   "x": -979.7,
+   "z": 109.3,
+   "s": 109.3,
+   "t": -4.8,
+   "note": "parked_car/car 0.4 m from a lane's edge",
+   "block": "B",
+   "status": "open"
+  },
+  {
+   "check": "O1",
+   "x": -983.7,
+   "z": 98.4,
+   "s": 121.0,
+   "t": -4.7,
+   "note": "parked_car/car 0.4 m from a lane's edge",
+   "block": "B",
+   "status": "open"
+  },
+  {
+   "check": "O1",
+   "x": -987.7,
+   "z": 87.6,
+   "s": 132.5,
+   "t": -4.7,
+   "note": "parked_car/car 0.4 m from a lane's edge",
+   "block": "B",
+   "status": "open"
+  },
+  {
+   "check": "O1",
+   "x": -991.7,
+   "z": 76.7,
+   "s": 144.1,
+   "t": -4.7,
+   "note": "parked_car/car 0.4 m from a lane's edge",
+   "block": "B",
+   "status": "open"
+  },
+  {
+   "check": "O1",
+   "x": -993.3,
+   "z": 72.2,
+   "s": 148.9,
+   "t": -4.6,
+   "note": "parked_car/car 0.4 m from a lane's edge",
+   "block": "B",
+   "status": "open"
+  },
+  {
+   "check": "O1",
+   "x": -995.7,
+   "z": 65.8,
+   "s": 155.7,
+   "t": -4.6,
+   "note": "parked_car/car 0.4 m from a lane's edge",
    "block": "B",
    "status": "open"
   },
@@ -645,10 +758,10 @@
   },
   {
    "check": "L2",
-   "x": -986.2,
-   "z": 23.3,
-   "s": 192.2,
-   "t": 19.1,
+   "x": -1001.1,
+   "z": 40.6,
+   "s": 181.2,
+   "t": -0.9,
    "note": "lane line ends mid-block",
    "block": "C",
    "status": "open"
@@ -756,26 +869,6 @@
    "status": "open"
   },
   {
-   "id": "platform:rail:-866:400",
-   "cls": "platform",
-   "kind": "rail",
-   "gap": 0.0,
-   "len": 172.2,
-   "angle": 90,
-   "s": -232,
-   "t": 4,
-   "x": -852.3,
-   "z": 425.9,
-   "street": "Rondo Romana Dmowskiego",
-   "jn": 0,
-   "rule": "-",
-   "verdict": "KEEP",
-   "why": "platform: not a barrier; C5/C10 checks cover it",
-   "model": "",
-   "style": "",
-   "status": "open"
-  },
-  {
    "id": "shelter:shelter:-856:420",
    "cls": "shelter",
    "kind": "shelter",
@@ -856,6 +949,146 @@
    "status": "open"
   },
   {
+   "id": "parked_car:car:-978:118",
+   "cls": "parked_car",
+   "kind": "car",
+   "gap": 0.36,
+   "len": 12.0,
+   "angle": 90,
+   "s": 103,
+   "t": -5,
+   "x": -977.6,
+   "z": 114.8,
+   "street": "Marszałkowska",
+   "jn": 0,
+   "rule": "B8",
+   "verdict": "KEEP",
+   "why": "parked row; corners SOFTEN with collision v2",
+   "model": "instanced:parked",
+   "style": "",
+   "status": "open"
+  },
+  {
+   "id": "parked_car:car:-980:112",
+   "cls": "parked_car",
+   "kind": "car",
+   "gap": 0.43,
+   "len": 12.0,
+   "angle": 90,
+   "s": 109,
+   "t": -5,
+   "x": -979.7,
+   "z": 109.3,
+   "street": "Marszałkowska",
+   "jn": 0,
+   "rule": "B8",
+   "verdict": "KEEP",
+   "why": "parked row; corners SOFTEN with collision v2",
+   "model": "instanced:parked",
+   "style": "",
+   "status": "open"
+  },
+  {
+   "id": "parked_car:car:-984:102",
+   "cls": "parked_car",
+   "kind": "car",
+   "gap": 0.42,
+   "len": 12.0,
+   "angle": 90,
+   "s": 121,
+   "t": -5,
+   "x": -983.7,
+   "z": 98.4,
+   "street": "Marszałkowska",
+   "jn": 0,
+   "rule": "B8",
+   "verdict": "KEEP",
+   "why": "parked row; corners SOFTEN with collision v2",
+   "model": "instanced:parked",
+   "style": "",
+   "status": "open"
+  },
+  {
+   "id": "parked_car:car:-988:90",
+   "cls": "parked_car",
+   "kind": "car",
+   "gap": 0.44,
+   "len": 12.0,
+   "angle": 90,
+   "s": 132,
+   "t": -5,
+   "x": -987.7,
+   "z": 87.6,
+   "street": "Marszałkowska",
+   "jn": 0,
+   "rule": "B8",
+   "verdict": "KEEP",
+   "why": "parked row; corners SOFTEN with collision v2",
+   "model": "instanced:parked",
+   "style": "",
+   "status": "open"
+  },
+  {
+   "id": "parked_car:car:-992:80",
+   "cls": "parked_car",
+   "kind": "car",
+   "gap": 0.43,
+   "len": 12.0,
+   "angle": 90,
+   "s": 144,
+   "t": -5,
+   "x": -991.7,
+   "z": 76.7,
+   "street": "Marszałkowska",
+   "jn": 0,
+   "rule": "B8",
+   "verdict": "KEEP",
+   "why": "parked row; corners SOFTEN with collision v2",
+   "model": "instanced:parked",
+   "style": "",
+   "status": "open"
+  },
+  {
+   "id": "parked_car:car:-994:74",
+   "cls": "parked_car",
+   "kind": "car",
+   "gap": 0.4,
+   "len": 12.0,
+   "angle": 90,
+   "s": 149,
+   "t": -5,
+   "x": -993.3,
+   "z": 72.2,
+   "street": "Marszałkowska",
+   "jn": 0,
+   "rule": "B8",
+   "verdict": "KEEP",
+   "why": "parked row; corners SOFTEN with collision v2",
+   "model": "instanced:parked",
+   "style": "",
+   "status": "open"
+  },
+  {
+   "id": "parked_car:car:-996:68",
+   "cls": "parked_car",
+   "kind": "car",
+   "gap": 0.41,
+   "len": 12.0,
+   "angle": 90,
+   "s": 156,
+   "t": -5,
+   "x": -995.7,
+   "z": 65.8,
+   "street": "Marszałkowska",
+   "jn": 0,
+   "rule": "B8",
+   "verdict": "KEEP",
+   "why": "parked row; corners SOFTEN with collision v2",
+   "model": "instanced:parked",
+   "style": "",
+   "status": "open"
+  },
+  {
    "id": "shelter:shelter:-998:-24",
    "cls": "shelter",
    "kind": "shelter",
@@ -896,22 +1129,22 @@
    "status": "open"
   },
   {
-   "id": "platform:rail:-1028:-70",
-   "cls": "platform",
-   "kind": "rail",
-   "gap": 0.0,
-   "len": 172.8,
+   "id": "parked_car:car:-974:128",
+   "cls": "parked_car",
+   "kind": "car",
+   "gap": 0.37,
+   "len": 12.0,
    "angle": 90,
-   "s": 325,
-   "t": 15,
-   "x": -1036.1,
-   "z": -99.3,
+   "s": 92,
+   "t": -5,
+   "x": -973.6,
+   "z": 125.7,
    "street": "Marszałkowska",
-   "jn": 0,
-   "rule": "-",
-   "verdict": "KEEP",
-   "why": "platform: not a barrier; C5/C10 checks cover it",
-   "model": "",
+   "jn": 1,
+   "rule": "B7",
+   "verdict": "REMOVE",
+   "why": "parked within 15 m of a junction",
+   "model": "instanced:parked",
    "style": "",
    "status": "open"
   },

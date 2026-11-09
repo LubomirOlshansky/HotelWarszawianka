@@ -93,6 +93,8 @@ const Cassettes := preload("res://scripts/cassettes.gd")
 const FirstScene := preload("res://scripts/first_scene.gd")
 ## Skwer Linearny na Złotej (2026-11-02): the park's stone blocks, benches, cafés (skwer_zlota.gd).
 const SkwerZlota := preload("res://scripts/skwer_zlota.gd")
+## The car park ramp by Dworzec Centralny (F, 2026-11-08): its signs and bollards (centralny_ramp.gd).
+const CentralnyRamp := preload("res://scripts/centralny_ramp.gd")
 ## Plac Pięciu Rogów (2026-11-06): the square's cubes, lamps, cafés and egg (plac_pieciu_rogow.gd).
 const PlacPieciuRogow := preload("res://scripts/plac_pieciu_rogow.gd")
 ## The 3D corner screen on Skylight at Złote Tarasy (2026-11-05, tarasy_screen.gd).
@@ -1673,6 +1675,8 @@ func _build_world() -> void:
 	await LoadYield.tick("_build_first_scene")
 	_build_skwer_zlota(world)
 	await LoadYield.tick("_build_skwer_zlota")
+	_build_centralny_ramp(world)
+	await LoadYield.tick("_build_centralny_ramp")
 	_build_plac_pieciu_rogow(world)
 	await LoadYield.tick("_build_plac_pieciu_rogow")
 	_build_tarasy_screen(world)
@@ -1958,6 +1962,18 @@ func _build_skwer_zlota(world: Node3D) -> void:
 	sz.map = map
 	world.add_child(sz)
 	sz.build()
+
+
+## The car park ramp by Dworzec Centralny (centralny_ramp.gd): the board over the tunnel's mouth
+## and the bollards between the lanes, on both city paths.
+func _build_centralny_ramp(world: Node3D) -> void:
+	if solo_site != "":
+		return
+	var cr := CentralnyRamp.new()
+	cr.name = "CentralnyRamp"
+	cr.map = map
+	world.add_child(cr)
+	cr.build()
 
 
 ## Plac Pięciu Rogów (plac_pieciu_rogow.gd): the square's furniture, on both city paths.
