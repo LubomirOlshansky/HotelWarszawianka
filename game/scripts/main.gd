@@ -3449,7 +3449,7 @@ var _rave_dark := false
 
 ## Mati's nights are nights (F, 2026-11-09: "always open, but when you start the quest the time
 ## should change to the night"): taken by day or on a weekday (his call, the list, in person), the
-## clock jumps to Friday 22:05 at once (a fixed look is always Friday), so the secret rave's rig is on.
+## clock jumps to Friday 22:03 at once (a fixed look is always Friday), so the secret rave's rig is on.
 func _rave_night() -> void:
 	if rave == null or not rave.busy():
 		_rave_dark = false
