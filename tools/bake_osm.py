@@ -454,6 +454,10 @@ def main(src, trees_src, dst, extras_src=None, more_src=None):
     import cycle_hang
     map_dir = os.path.dirname(os.path.abspath(dst))
     print("cycle_hang: " + cycle_hang.apply(out, cycle_hang.terrain_of(map_dir, out)))
+    # Port Czerniakowski's footbridge (F, 2026-11-08): one flat railed deck over the mouth by Majami
+    # Wawa, its paths joined, the finished construction lot north-west of it unfenced (tools/port_bridge.py).
+    import port_bridge
+    print("port_bridge: " + port_bridge.apply(out, cycle_hang.terrain_of(map_dir, out)))
     # Loop 3b: the builder's structures (piers, retaining walls, building cuts, the
     # Poniatowski towers' seats), placed on the finished map data (tools/bake_structures.py).
     import bake_structures
