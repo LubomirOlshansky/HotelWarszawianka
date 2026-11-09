@@ -7022,6 +7022,8 @@ func _process(dt: float) -> void:
 			trend_job.flying = flying or boating or touring
 			trend_job.player_pos = pos
 			trend_job.away = rides.away
+			# F 2026-11-08: no friend's call (Mrożulo's Dżemini, the coffee run, DESKA) mid-mission.
+			trend_job.mission_on = _quest_running()
 		eggs.player = pos
 		eggs.player_vel = heli.vel if flying else car.vel
 		eggs.flying = flying

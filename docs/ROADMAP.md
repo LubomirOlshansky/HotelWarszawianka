@@ -15,6 +15,7 @@ item. Updated 2026-11-01 from the audit. v1.0 = the Demo and TestFlight gates in
 then the Launch gate.
 
 ### Done (built and checked headless)
+- [x] No phone call mid-mission (F, 2026-11-08): Mrożulo's Dżemini call, the coffee run's and the DESKA call wait while any mission, job, ride, race or questline is on, and 20 s after it, and never ring over a rescue call (`trend_job.gd` `hold_calls`, `check_hud`; PR pending)
 - [x] Top-50 buildings from photos, batches 1 and 2 (F, 2026-11-08; specs `q22.md`, `rondo1.md`, `teatr.md`): Q22 in dark green glass under its graphite crown with the DELOJT name, the wing's sloping glass roof and the red-and-white mast; Rondo 1 in silver-blue bands with its rounded front, the open screen over the roof, the dark EJ slab, the steps and the 192 m antenna. Batch 2: the Warsaw Trade Tower's stone slab, dark glass drum and silver crown with UNIKWA, and Teatr Wielki's ten columns, pediment and Apollo quadriga.
 - [x] Top-50 buildings from photos, batch 3 (F, 2026-11-08; specs `prezydencki.md`, `krzyz.md`): Spektrum's blue banded drum, dark grid slabs and green glass crown ring; the Presidential Palace's arcaded centre with engaged columns and a statue balustrade, slate wing roofs; Holy Cross's copper lantern helms.
 - [x] Top-50 buildings from photos, batch 4 (F, 2026-11-08): Platinum Towers' cream stone corners and glass balcony bands; the PEPEO ŻUBR tower on Grzybowska (site `pepeo_tower`) in the tower table, beige stone over green glass with PEPEO ŻUBR on the crown. Batches for the rest of T01-T50 to follow

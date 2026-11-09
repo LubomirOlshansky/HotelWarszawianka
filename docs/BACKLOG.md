@@ -561,6 +561,10 @@ Fixed: F stopped the car in Darek's pink ring on Plac Defilad (the night meet, 2
 Fixed: a Mrożulo "fetch" offer opened over the padel result card at the DESKA gate and the OK tap accepted it. No offer or prompt (trend jobs, "Na czasie", Podwózka, rivals) opens while a card is up, nor for 2.5 s after one closes; it is queued, not dropped. Test: `check_hud` `_check_offers_wait`.
 - [ ] Question for F: on a fresh save the first-10 guide holds every questline walk-up (`guide_hold`, `first10.gd` `_hold_offers`) for the first 10 minutes. By design? Left as it is (parked, not changed).
 
+## Calls during missions (F, 2026-11-08)
+Fixed: Mrożulo could phone (the Dżemini call) in the middle of a mission. Now no friend's call from `trend_job.gd` (Mrożulo's Dżemini, Zuzia's coffee run, the DESKA call) and no walk-up offer rings while any mission is on (main.gd `_quest_running`: a rescue, a job, a ride, a race, any questline, the night meet included, which was not gated before), nor for 20 s after one ends, nor over a rescue call that is already ringing. The call waits and comes afterwards. Test: `check_hud` `_check_offers_wait` (`hold_calls`).
+- [ ] The other questlines' calls (Szymek, Mati, Claire, Wiktor, Darek, Bartek, Ivan) already wait for a free moment through main.gd's `_*_free`; none of them has the 20 s rest after a mission yet.
+
 ## Padel call at WTS DESKA (coordinator, 2026-11-07; docs/design/padel.md)
 
 Built: the call opens like the boat race and the rave (ringing card with the caller's bio,
