@@ -1,6 +1,6 @@
 # Tamka from F's photos: spec
 
-Not one site: a street pass (`game/scripts/tamka.gd`, the house looks read by `map_builder.gd`'s
+Not a landmark spec (so it lives outside docs/landmarks/specs/ and check_spec): a street pass (`game/scripts/tamka.gd`, the house looks read by `map_builder.gd`'s
 Dobra/Tamka dress through `TenementTrim`). Written 2026-11-08 from F's photo gather on the Mac
 (`warsaw-needed-photos/powisle`: C-Tamka 1-01..1-10, houses/tamka-10-12, -16, -20, -34, -36, M01-M04,
 I-STOR; sources in its SOURCES.md, Wikimedia Commons and fotopolska.eu). Photos are reference only,

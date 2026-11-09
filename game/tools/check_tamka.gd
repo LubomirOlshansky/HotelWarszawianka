@@ -1,5 +1,5 @@
 extends SceneTree
-## Tamka from F's photos (scripts/tamka.gd, spec docs/landmarks/specs/tamka.md), headless, from the
+## Tamka from F's photos (scripts/tamka.gd, spec docs/powisle-tamka.md), headless, from the
 ## committed map data (map/centrum.json) and data/dialogue.json:
 ##   1. the houses: every photographed house's point picks its own plaster and style; a house off
 ##      Tamka gets nothing; Tamka's other houses a plaster from PASTELS;

@@ -26,7 +26,7 @@ const GLASS := Color("#34444e")
 const GLASS_LIT := Color("#6f6a52")  ## every fifth pane: a lit window of a shop that is open
 const FASCIA_SEEDS := [Color("#4a3f38"), Color("#3c4a45"), Color("#4d3a3f"), Color("#33404f"), Color("#5a4c39")]
 
-## Tamka from F's photos (2026-11-08, docs/landmarks/specs/tamka.md): the post-war blocks' balconies,
+## Tamka from F's photos (2026-11-08, docs/powisle-tamka.md): the post-war blocks' balconies,
 ## stacked in columns on the street walls, a slab and a dark steel rail; and a ground floor faced in
 ## another material (Tamka 16's red brick). `style` keys: "balc" (rail colour), "base" (ground-floor
 ## colour), "shops" (false: no shop front), "crenel" (Tamka 10/12's attic of small square openings).

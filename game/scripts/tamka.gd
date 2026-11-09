@@ -1,6 +1,6 @@
 extends Node3D
 ## Tamka from F's photos (F, 2026-11-08: "Tamka should feel alive"; 18 photos in the Mac folder
-## warsaw-needed-photos/powisle, sources in its SOURCES.md; spec docs/landmarks/specs/tamka.md).
+## warsaw-needed-photos/powisle, sources in its SOURCES.md; spec docs/powisle-tamka.md).
 ## What the photos show and the map had no layer for:
 ##  - **The houses** (static `house`, read by map_builder's Dobra/Tamka dress on both city paths):
 ##    Tamka is mostly post-war blocks in cream, sand and pale yellow with columns of balconies on dark
