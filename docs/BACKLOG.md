@@ -712,13 +712,28 @@ warsaw-needed-photos/old-town, E01-E24) and Mapillary references:
   on each umbrella's fountain side with gaps at the run starts (drone photo E05).
 - Old Town roofs: 70% of dormers zinc-grey, most chimneys white plaster (E05).
 - `check_old_town_drive.gd` (verify `oldtowndrive`): the real car round the Old Town, 10 legs.
+- Pass 2 (F, 2026-11-08 evening): the Old Town and New Town walls (and the rebuilt houses at
+  Krakowskie Przedmieście's north end without a photo front) take a new shader type `T_OLDTOWN`
+  (building.gdshader; map_builder `OLD_TOWN_TYPE`): round-headed stone portals on some axes and
+  shop windows on the rest, a string course, tall casements with white glazing bars in cream
+  surrounds, sills and heads, a cornice, and on the Rynek's fronts a painted band along each floor
+  line (photos E01-E04). No triangles added (a first try with modelled surrounds cost 160,000).
+- The Barbican from F's five photos: the round bastion's crown of brick posts under stone pyramids
+  with little gables between, a corbel band, loopholes, plain brick (no Gothic lancets); the four
+  towers at the mapped 13 m outlines with tile cones; tiled roofs on the arms; the pointed gate
+  through the bastion, the gate wall toward Nowomiejska, the bridge's two arches with grilles.
+- The Syrenka's pose from F's photo: sword raised over her head, shield up at her left.
 Left:
-- **Rynek facades**: each house's own colour, sgraffito, portals and signs (photos E01-E04); the
-  houses' windows have no frames, dormers float on LoD2 roofs in places.
+- **Rynek facades, per house**: the real colours, sgraffito and signs of named houses (Pod
+  Murzynkiem, Baryczków, Fukier) from photos; dormers float on LoD2 roofs in places.
 - **City wall towers and gates**: the towers' roofs, the Podwale gates and the white arch gate
-  (E14-01, E16); the Barbican's gate passage.
+  (E14-01, E16); the Barbican's passage is a dark panel, not open.
 - **The Cathedral's nave roof** is one LoD2 slab (E06-E08).
 - The fountain park stays off the map (F 2026-11-08: don't grow the map).
+- **Found 2026-11-08: check_streaming identity fails on main** (not run in CI): 2212 meshes and
+  collider faces differ between the whole-city build and the 112 sector builds, across the map
+  (ground and building tiles far from the Old Town), the same count with and without pass 2, and
+  with freshly split sectors. Needs its own root-cause thread.
 
 ## Stairs across the city (F, 2026-11-07)
 
