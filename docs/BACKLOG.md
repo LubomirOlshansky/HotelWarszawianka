@@ -978,6 +978,13 @@ history at 0cfc1ff). Areas and progress: docs/plan/road-areas.json, `python3 -I 
   the rebuild left 2; the next area if F wants it.
 - The traffic lane graph still follows the OSM ways; make it from the spec's lanes.
 - The GUGiK ortho predates the Marszałkowska crossings at Sienkiewicza and by the metro (taken from OSM).
+- Marszałkowska Sienkiewicza to Świętokrzyska (area `marsz_sienkiewicza`, F 2026-11-09): built to the city's Zielona
+  Marszałkowska plan. Left: the stretch from its north end (s 50) into the Świętokrzyska junction is main's; the
+  east platform's railing and shelter now sit 0-0.2 m from the traffic graph's lanes (street pass O1 16 → 17,
+  re-recorded): retarget_graph gives a whole graph edge the design's lane width, also past the area's free end.
+- road_design.py free ends (fixed 2026-11-09): FOOT_PAD no longer clips the old kerbs and lines 2.5 m short of a
+  free end (the notch in the kerb at marsz_defilad's north seam), and walls on a kept median stay. krucza and
+  marsz_defilad pick the seam fix up on their next re-apply (a Mac re-bake).
 
 ## Loading bar on the title screen (F, 2026-11-05)
 
