@@ -179,6 +179,7 @@ then the Launch gate.
 - [x] Site visits and store-button clicks countable (F, 2026-11-02): `/go/ios` + `/go/android` counted in the Worker, Cloudflare traffic for visits; F deploys and sets the store URLs when listed (site/README "Visitors and store clicks")
 
 ### Left: the start of the game
+- [x] Świętokrzyska × Marszałkowska glass entrances (F, 2026-11-09): the green boxes are now the real one-sided perforated-glass truss lean-tos with roundel and M1/M2 sign (`Props._metro_tent`; phone look open)
 - [x] Metro entrances modelled at the real M1/M2 stairs: vaulted glass canopies, stairwells, passage mouths, red M posts, lifts (F, 2026-11-01; Mac look check parked in QUESTIONS)
 - [~] Metro entrances by station from photos (F, 2026-11-07): done Centrum, Świętokrzyska M2, Stadion Narodowy, Kopernik, Gdański, Nowy Świat, Rondo ONZ (Rondo Daszyńskiego in PR #479, Ratusz-Arsenał its own thread); left Politechnika, Centrum stairwells and passage mouths (shoot list for F)
 - [x] Merge PR #115 (start facing the first stand, short first order, BUW roof cassette), then
