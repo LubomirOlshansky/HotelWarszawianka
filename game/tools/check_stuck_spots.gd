@@ -82,6 +82,13 @@ extends SceneTree
 ## stuck at the gap; north-west of it the fences of a long finished building site stood across the
 ## car park. Fixed: one flat railed deck W to E, the paths joined to it, the lot a car park
 ## (tools/port_bridge.py). Three lines: over the bridge both ways, and out of the car park.
+## PT-47 (F, 2026-11-08, a screenshot): an invisible wall on Emilii Plater's paved median by the
+## Palace, the car stopped dead with nothing in sight. OSM's two wavy planter-edge walls (gabion)
+## inside the median islands drew as a 0.2 m granite kerb (ISLAND_EDGE) but kept the 1.9 m wall's
+## collider, 1.7 m of invisible wall braided along the median for ~300 m. Fixed: a barrier drawn
+## under 0.3 m is not solid, like the stop platforms (map_builder.gd BARRIER_SOLID_MIN). The five
+## spots drive along and across the median; all fail on the old map (a sweep of 120 lines along
+## and across it: 47 failed before, none on the median after).
 ##
 ## Prints one line per spot and `check_stuck_spots: OK`, or the failures and exit 1. ~10 s on the Mac.
 ##   godot --headless --path game --fixed-fps 60 --script res://tools/check_stuck_spots.gd [-- --prebuilt --verbose]
@@ -142,6 +149,11 @@ const SPOTS := [
 	[1322.0, 676.2, 107.0, 8.0, 5.0, 0.6, "Port Czerniakowski footbridge east, the boulevard's cycle path over the mouth to Majami Wawa"],
 	[1394.0, 698.4, 287.0, 8.0, 5.0, 0.5, "Port Czerniakowski footbridge west, from the spit onto the deck"],
 	[1298.0, 674.0, 20.0, 7.0, 2.0, 0.6, "Port Czerniakowski footbridge, north out of the car park over the old site fence onto the cycle path"],
+	[-1373.0, 290.0, 160.0, 10.0, 3.0, 0.8, "PT-47 Emilii Plater's median by the Palace, south along the planting beds"],
+	[-1368.0, 305.0, 170.0, 10.0, 3.0, 0.8, "PT-47 Emilii Plater's median, south, drifting 10° towards the west carriageway"],
+	[-1341.0, 380.0, 160.0, 10.0, 3.0, 0.8, "PT-47 Emilii Plater's median south, by the Palace's west terrace"],
+	[-1331.0, 410.0, -20.0, 10.0, 3.0, 0.8, "PT-47 Emilii Plater's median north from the Złota crossing (F's screenshot)"],
+	[-1362.0, 350.0, 130.0, 8.0, 3.0, 0.8, "PT-47 Emilii Plater, across the median from the west carriageway to the east"],
 ]
 ## PT-41: [x, z, the level a car drives at there, what]: drive_height must give it within SEAM_TOL m.
 const SEAMS := [
