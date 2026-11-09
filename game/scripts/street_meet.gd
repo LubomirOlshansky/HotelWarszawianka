@@ -2170,6 +2170,8 @@ func _give_up() -> void:
 	# The meet's crowd and parked cars go too (only the pin hid them before).
 	_scene.visible = false
 	_crowd_run = 0.0
+	_drifting = false
+	_tandem = false
 	if police != null and police.has_method("stand_down"):
 		police.stand_down()
 	hud.hide_status()
