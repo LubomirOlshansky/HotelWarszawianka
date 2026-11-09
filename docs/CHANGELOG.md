@@ -17,6 +17,7 @@ someone writes its lines.
 - Elektrownia Powiśle got its real look: the gabled brick hall, the glass lift with the blue box on top and four silver stacks. The Chopin Museum is white with an orange roof on its brick bastion, without the made-up tower.
 - Powiśle's side streets got their black posts along the kerbs and the colours of their real houses.
 - The round house on Dynasy stands on its brick base, and Park Odkrywców has its steel listening pipes and the two whisper dishes.
+- By Majami Wawa on the boulevard, the little bridge over the mouth of Port Czerniakowski is a real bridge now: flat, with bright green railings and lamps, the bike path running straight across it. No more walls, dips and gaps where the car got stuck, and the old building-site fences on the car park next to it are gone.
 - No more trees growing out of the Vistula or standing in the traffic lanes: about 1,000 street trees stepped back onto the pavement, and the fences that stood in the river by the DESKA club are gone.
 - Quitting the night meet from the map now works during the meet, the police raid and the drag too.
 
