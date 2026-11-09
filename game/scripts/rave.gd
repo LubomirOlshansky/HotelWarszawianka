@@ -23,6 +23,10 @@ extends Node3D
 ## board_smola, ride, meet, go, go_smola, door_ok, door_out, abort). ✕ gives up (Mati takes the night bus). The calls (missions.gd) are paused
 ## while it runs.
 ##
+## **Two questlines** (story_quests.gd, F 2026-11-09): "Sekretny rave" starts in person at Mati's
+## block (HOME_LL), "Smoła" pod Rotundą (SMOLA_START_LL); each has its own badge and WĄTKI row
+## (ring("rave") / ring("smola"), meet_in_person(kind), busy_kind(kind)).
+##
 ## Cost: idle, a 0.25 s timer; while a spot is active and near, four draw calls (the lights'
 ## MultiMesh, the dancers' MultiMesh, the booth, the DJ's strip is in the booth), the lights
 ## moved every frame (14 instances), the dancers at 15 Hz within DANCE_R.
@@ -41,6 +45,7 @@ const InstanceBuffers := preload("res://scripts/instance_buffers.gd")
 const HOST := "LEKTI"
 const FRIEND := "Mati"
 const COLOUR := Color("#b44cff")        ## the quest's colour: rave violet
+const SMOLA_COLOUR := Color("#ff4c6a")  ## the Smoła night's badge: the gate's red (its own questline)
 const PICK_COLOUR := Color("#ffc23a")   ## Mati waiting (the rides' amber)
 const BUBBLE := Color("#c58cff")
 
@@ -59,6 +64,9 @@ const SPOTS := [
 ## Mati's block (story_quests.gd's start spot, F 2026-11-07): Osiedle Za Żelazną Bramą, the
 ## big slab blocks by Hala Mirowska; drive there in the evening and he comes out to talk.
 const HOME_LL := [52.2366, 20.9983]
+## Where Mati waits for a Smoła night (F 2026-11-09: two questlines, two starts on the map): pod
+## Rotundą, Warsaw's oldest meeting point, about 800 m from the club's door on Smolna.
+const SMOLA_START_LL := [52.2317, 21.0110]
 ## Smoła, the club on Smolna (places.json `smola`): Mati's other night out, the Berlin-style door.
 const SMOLA := {"id": "smola", "name": "Smoła", "ll": [52.23261, 21.0218]}
 ## The door's questions (three a night, shuffled; "pw" is the password LEKTI gave, asked only at a
@@ -202,6 +210,8 @@ var next_kind := "smola"
 var home := {}
 ## Smoła found on the map: {at: Vector3, door: kerb}, or {}.
 var smola := {}
+## Where the Smoła night starts in person (SMOLA_START_LL): a kerb, or {}.
+var smola_home := {}
 ## The door: the three questions ([q, answers: [[pl, en]] ×3, right index]), the one asked now
 ## and how many were right.
 var quiz: Array = []
@@ -251,6 +261,9 @@ func setup(world: Node3D, seed_value := -1) -> void:
 	if graph != null:
 		smola = find_club(graph, map, origin)
 		home = kerb_near(graph, Notebook.project(origin, float(HOME_LL[0]), float(HOME_LL[1])), 120.0)
+		if not smola.is_empty():
+			smola_home = kerb_near(graph, Notebook.project(origin, float(SMOLA_START_LL[0]), float(SMOLA_START_LL[1])), 120.0)
+		_log("home %s, smola %s, smola start %s, %d spots" % [not home.is_empty(), not smola.is_empty(), not smola_home.is_empty(), spots.size()])
 	var nights := night_spots()
 	if not nights.is_empty():
 		night_spot = nights[_rng.randi() % nights.size()]
@@ -695,6 +708,12 @@ func busy() -> bool:
 	return state in [State.PICKUP, State.MEET, State.DRIVE, State.DOOR]
 
 
+## Busy with this night: "smola" the club, anything else the secret rave (the two questlines of
+## story_quests.gd each show only their own night as under way).
+func busy_kind(k: String) -> bool:
+	return busy() and (kind == "smola") == (k == "smola")
+
+
 func has_target() -> bool:
 	return state in [State.PICKUP, State.MEET, State.DRIVE]
 
@@ -888,9 +907,11 @@ func _next_voice() -> void:
 ## The phone rings (--rave-call too): `k` "smola" for the club night, else the secret rave
 ## (after LEKTI's line, or straight away with --rave-call). False with no spots or while busy.
 func ring(k := "") -> bool:
-	if spots.is_empty() or graph == null or state not in [State.IDLE, State.WAIT_CALL]:
+	if graph == null or state not in [State.IDLE, State.WAIT_CALL]:
 		return false
-	if k == "smola" and not smola.is_empty():
+	if (k == "smola" and smola.is_empty()) or (k != "smola" and spots.is_empty()):
+		return false
+	if k == "smola":
 		kind = "smola"
 		next_kind = "rave"
 		password = ""
@@ -912,8 +933,25 @@ func ring(k := "") -> bool:
 
 ## Met in person at his block (story_quests.gd: he came out, the player said WCHODZĘ): no call, no
 ## pickup; he gets in and the night goes on as after a pickup (the meeting point, the door).
-func meet_in_person() -> bool:
-	if spots.is_empty() or graph == null or state not in [State.IDLE, State.WAIT_CALL] or not vehicle.is_valid():
+func meet_in_person(k := "rave") -> bool:
+	if graph == null or state not in [State.IDLE, State.WAIT_CALL] or not vehicle.is_valid():
+		return false
+	var p: Vector3 = vehicle.call()[0]
+	if k == "smola":
+		# Pod Rotundą (SMOLA_START_LL): straight to the club, no password, no meeting point.
+		if smola.is_empty():
+			return false
+		kind = "smola"
+		next_kind = "rave"
+		password = ""
+		pickup = {"at": p, "side": p, "street": smola_home.get("street", "")}
+		_calls_were = missions.paused if missions != null else false
+		if missions != null:
+			missions.paused = true
+		_log("met Mati in person pod Rotundą; to Smoła")
+		_board()
+		return true
+	if spots.is_empty():
 		return false
 	if state == State.IDLE or kind != "rave":
 		password = PASSWORDS[_rng.randi() % PASSWORDS.size()]
@@ -921,7 +959,6 @@ func meet_in_person() -> bool:
 	kind = "rave"
 	next_kind = "smola"
 	quest_spot = night_spot
-	var p: Vector3 = vehicle.call()[0]
 	pickup = {"at": p, "side": p, "street": home.get("street", "")}
 	_calls_were = missions.paused if missions != null else false
 	if missions != null:

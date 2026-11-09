@@ -3232,6 +3232,7 @@ func _kino_free() -> bool:
 const STORY_BLURBS := {
 	"boat": ["Wyścig łodzi po Wiśle, trzy kółka.", "A boat race down the Vistula, three laps."],
 	"rave": ["Sekretny rave: Mati zna drogę.", "A secret rave: Mati knows the way."],
+	"smola": ["Smoła na Smolnej: selekcja jak w Berlinie.", "Smoła on Smolna: a Berlin-strict door."],
 	"dekalog": ["Warszawa Kieślowskiego z Claire.", "Kieślowski's Warsaw, with Claire."],
 	"kawa": ["Kawowy rajd po mieście.", "A coffee run across the city."],
 	"padel": ["Czwarty do padla w WTS Deska.", "A fourth for padel at WTS Deska."],
@@ -3269,15 +3270,28 @@ func _build_stories(world: Node3D) -> void:
 				"closed": ["„Po ciemku nie pływamy, policja wodna nie śpi. Wpadnij za dnia”", "\"No racing in the dark, the river police never sleep. Come by in the daytime\""],
 				"at": BoatRace.CAR_SPOT, "colour": BoatRace.COLOUR, "hours": Vector2(BoatRace.HOURS[0], BoatRace.HOURS[1]),
 				"call": boat_race.ring, "meet": boat_race.meet, "busy": boat_race.busy, "idle": boat_race.idle})
-	if rave != null and not rave.home.is_empty():
-		var h: Vector3 = rave.home["at"]
+	# Mati's two nights are two questlines (F 2026-11-09): the secret rave from his block at Osiedle
+	# Za Żelazną Bramą, Smoła from pod Rotundą. A start the map has no road for stays in the list.
+	if rave != null and not rave.spots.is_empty():
+		var h: Vector3 = rave.home["at"] if not rave.home.is_empty() else Vector3.INF
 		stories.add({"id": "rave", "pl": "Sekretny rave", "en": "Secret rave", "who": ["Mati", "Mati"],
 				"hello": ["„Siema! Słyszałeś? Lekti robi dziś sekretny rave. Ja wiem, jak tam trafić. Wsiadam?”",
 						"\"Hey! Did you hear? Lekti's throwing a secret rave tonight. I know how to get there. Can I get in?\""],
 				"closed": ["„Rave? Dziś cisza. Lekti gra od czwartku do soboty, wpadnij wieczorem”",
 						"\"A rave? Nothing tonight. Lekti plays Thursday to Saturday, come by in the evening\""],
-				"at": Vector2(h.x, h.z), "colour": Rave.COLOUR, "hours": Rave.TEASE_HOURS, "days": Rave.NIGHT_DAYS,
-				"call": func() -> bool: return rave.ring(), "meet": rave.meet_in_person, "busy": rave.busy, "idle": rave.idle})
+				"at": Vector2(h.x, h.z) if h != Vector3.INF else Vector2.INF, "colour": Rave.COLOUR, "hours": Rave.TEASE_HOURS, "days": Rave.NIGHT_DAYS,
+				"call": func() -> bool: return rave.ring("rave"), "meet": func() -> bool: return rave.meet_in_person("rave"),
+				"busy": func() -> bool: return rave.busy_kind("rave"), "idle": rave.idle})
+	if rave != null and not rave.smola.is_empty():
+		var sh: Vector3 = rave.smola_home["at"] if not rave.smola_home.is_empty() else Vector3.INF
+		stories.add({"id": "smola", "pl": "Smoła", "en": "Smoła", "who": ["Mati", "Mati"],
+				"hello": ["„Siema! Jedziemy na Smołę? Selekcja jak w Berlinie, ale ja mam patent: mów mało, patrz w dal. Wsiadam?”",
+						"\"Hey! Shall we hit Smoła? The door's Berlin-strict, but I've got a system: say little, stare into the distance. Can I get in?\""],
+				"closed": ["„Smoła dziś zamknięta. Gra od czwartku do soboty, wpadnij wieczorem pod Rotundę”",
+						"\"Smoła's shut tonight. It's open Thursday to Saturday, come by the Rotunda in the evening\""],
+				"at": Vector2(sh.x, sh.z) if sh != Vector3.INF else Vector2.INF, "colour": Rave.SMOLA_COLOUR, "hours": Rave.TEASE_HOURS, "days": Rave.NIGHT_DAYS,
+				"call": func() -> bool: return rave.ring("smola"), "meet": func() -> bool: return rave.meet_in_person("smola"),
+				"busy": func() -> bool: return rave.busy_kind("smola"), "idle": rave.idle})
 	if dekalog_tour != null:
 		stories.add({"id": "dekalog", "pl": "Dekalog na kółkach", "en": "Dekalog on wheels", "who": ["Claire", "Claire"],
 				"hello": ["„Bonjour! Pan z taksówki? Claire, studentka filmu z Lyonu. Pokaże mi pan Warszawę Kieślowskiego, aż do Inflanckiej?”",
