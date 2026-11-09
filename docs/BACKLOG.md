@@ -734,8 +734,8 @@ with ✕ back to the car, the boat mark on the minimap and the full map. Left:
   - boats moored stern-to along both quays, with houseboats.
 - [x] Monkey Love (Bulwar Flotylli Pińskiej 1A, south of Most Łazienkowski) from F's two exterior photos (2026-11-07), as the parody MAŁPI LOVE (site `monkey_love`): two dark timber cabins with black gables, a yolk-yellow end wall, a kiosk and a bar hut, a gravel garden of plank tables under white umbrellas, festoons. Its neon wants the same Mac night check.
 - [x] The roads to the spit checked on 2026-11-07 against the aerials: Zaruskiego joins the network under Most Łazienkowski, the spit's lane runs to the kayak yard, the promenade and the riverside walk are continuous (steps at the tip and the cross links), and the race pontoon's car spot sits on the riverside walk. Open: the real promenade is about 5 m of grey asphalt, the game draws a 2 m red cycle path (a width change in the bake, not done: no new road geometry).
+- [x] The mouth footbridge by Majami Wawa (F, 2026-11-08, screenshots, Google aerial and Street View; Mapillary 2021 and 2025): one flat 56 m deck 5.2 m wide between bright green steel railings with three lamps, the boulevard's cycle path laid on it end to end, no more dip into the cutting, crooked grey walls or gap where the car stuck (`tools/port_bridge.py`, verify step `portbridge`, three `check_stuck_spots` lines). The finished building site north-west of it (OSM still tags it construction, fenced) is a car park now, its fences gone, and so is the works' fence ring round the lawn north of the cycle path (open lawn and shrubs in the 2025 photos). Open: the second construction lot along the basin's west quay is still drawn as a fenced site (no fresh photo of it). Open: the deck is a little narrower than the real ~6 m; the second (south) cycle approach and the quay steps under it stay as OSM maps them.
 - [ ] The rest of F's port photos, still to build:
-  - the mouth footbridge's green steel edges;
   - Pomnik Saperów's bar deck at the mouth;
   - the new arched footbridge over the basin;
   - the rental pier with its blue solar cabin;
@@ -886,6 +886,9 @@ history at 0cfc1ff). Areas and progress: docs/plan/road-areas.json, `python3 -I 
   long splits (the legs run side by side 20-45 m before they part, a side street's kerb in between).
   Each needs its own kind of fix (a slip-road merge, a fork's kerb return), not fix 6. The `fixes`
   ratchets (split_fan_m 105, split_gap_m 510, split_ends 86) go down as they are fixed.
+- Dev tools (2026-11-09): `main.gd` parses `--spots=` twice, the shots list (`NAME:X,Z;...`, ~line 5046)
+  and the stream test's (`X,Z,HEADING/...`, ~line 8732), so a shots run with `--spots=` puts the car
+  somewhere else; use one `--at=X,Z` run per shot until one flag is renamed.
 - Marszałkowska's two U-turns through the tram bed (s 191, 283-291 from the junction): gone with F's ask of
   2026-11-08 (area `marsz_defilad`, docs/plan/marszalkowska-defilad.md); the real zawrotka by Złota waits on
   F (QUESTIONS), and the spec still has no paved gap in a tram median if it comes back.
