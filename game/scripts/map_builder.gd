@@ -6868,6 +6868,19 @@ const SURFACE_STYLE := {
 }
 
 
+## Each surface kind's height over Y_AREA + 0.01, 2 mm apart (Plac Defilad, F 2026-11-09: the
+## flowerbeds' speckled patches flickered behind the museum). All kinds were laid at exactly the
+## same height, so where a flowerbed, playground or fountain lies inside OSM paving the two were
+## coplanar and the depth test picked a winner per pixel, a different one every frame. Now a fixed
+## order: paving, then ballast and car park, concrete, granite, building site and playground,
+## beds and gardens, fountains, the wet film. Stays under the paths (Y_PATH 0.04).
+const SURFACE_LIFT := {
+	"paving": 0.0, "ballast": 0.002, "parking": 0.002, "concrete": 0.004, "granite": 0.006,
+	"construction": 0.008, "playground": 0.008, "flowerbed": 0.010, "garden": 0.010,
+	"fountain": 0.012, "wet": 0.014,
+}
+
+
 ## Paved surfaces that are really lawn (OpenStreetMap tags them `paving`): the Royal Castle's
 ## Lower Garden's sunken lawn carpet (Ogród Dolny, restored 2019; GUGiK orthophoto and the
 ## castle's photos, docs/landmarks/specs/zamek.md "Gardens"). Each is the outline's vertex mean.
@@ -6900,13 +6913,14 @@ func _build_surfaces(st) -> void:
 			style = [LAWN_CARPET, style[1]]
 		_layer = float(style[1])
 		_dk = int(a.get("dk", -1))
+		var y := Y_AREA + 0.01 + float(SURFACE_LIFT.get(a["k"], 0.0))
 		if _dk >= 0:
-			_fill(st, _pts(a["p"]), Y_AREA + 0.01, Color(style[0]))
+			_fill(st, _pts(a["p"]), y, Color(style[0]))
 		elif a["k"] == "ballast":
 			for part in _cut_out(_pts(a["p"]), platforms):
-				_fill_on_grid(st, part, Y_AREA + 0.01, Color(style[0]))
+				_fill_on_grid(st, part, y, Color(style[0]))
 		else:
-			_fill_on_grid(st, _pts(a["p"]), Y_AREA + 0.01, Color(style[0]))
+			_fill_on_grid(st, _pts(a["p"]), y, Color(style[0]))
 	_dk = -1
 	_build_pkin_ground(st)
 	_layer = L_GROUND
