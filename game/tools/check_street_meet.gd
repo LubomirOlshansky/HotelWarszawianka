@@ -141,7 +141,11 @@ func _check_rules(digest: PackedStringArray) -> void:
 	var revs_at_green := minf(1.0, Meet.REV_UP * (3.0 * Meet.TREE_STEP))
 	if Meet.launch_grade(revs_at_green) != "spin":
 		problems.append("gas held from the first amber lands a %s launch" % Meet.launch_grade(revs_at_green))
-	digest.append("clock, pay, shifts")
+	for st: int in Meet.State.values():
+		var want: bool = not (st in [Meet.State.IDLE, Meet.State.RING, Meet.State.OFFER, Meet.State.RESULT])
+		if Meet.can_quit(st) != want:
+			problems.append("quit in %s: %s (PT-52)" % [Meet.STATES[st], Meet.can_quit(st)])
+	digest.append("clock, pay, shifts, quit")
 
 
 func _check_drag(digest: PackedStringArray) -> void:

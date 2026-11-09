@@ -17,6 +17,7 @@ someone writes its lines.
 - Powiśle's side streets got their black posts along the kerbs and the colours of their real houses.
 - The round house on Dynasy stands on its brick base, and Park Odkrywców has its steel listening pipes and the two whisper dishes.
 - No more trees growing out of the Vistula or standing in the traffic lanes: about 1,000 street trees stepped back onto the pavement, and the fences that stood in the river by the DESKA club are gone.
+- Quitting the night meet from the map now works during the meet, the police raid and the drag too.
 
 ## 2026-11-08
 - In a tunnel you now see your car for real: the ground, trees and lamps over the tunnel open up round the car like a cut-away model, showing the road, the tunnel walls and the traffic inside, instead of a yellow outline through the grass.
