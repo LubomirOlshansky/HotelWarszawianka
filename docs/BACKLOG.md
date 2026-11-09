@@ -726,8 +726,8 @@ warsaw-needed-photos/old-town, E01-E24) and Mapillary references:
 Left:
 - **Done 2026-11-09 (trailer finish, no photos reachable from the cloud, so from memory, Mac look
   check parked)**: Rynek houses within 75 m of the square's centre take a painted palette (OSM
-  colours kept, six named houses set by hand, `_rynek_look`) and about a third of the square-facing
-  houses get a diamond sgraffito (building.gdshader T_OLDTOWN); wall rings that are towers (Baszta
+  colours kept, six named houses set by hand, `_rynek_look`) (sgraffito is NOT built: building.gdshader is over
+  the Adreno budget, see #579); wall rings that are towers (Baszta
   Rycerska, the Altana) get tile cones (`_tower_roof`); the Cathedral's nave has a steep tiled
   gable over the LoD2 slab (`CATH_*` in landmarks.gd) and the ridge turret stands on it.
 - **Rynek facades, per house**: the colours and sgraffito are guesses; the real ones of Pod
