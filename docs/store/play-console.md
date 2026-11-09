@@ -216,7 +216,7 @@ screen; the listing says "Polish with English" nowhere because Play shows one la
 
 | Asset | Requirement | File |
 | --- | --- | --- |
-| App icon | 512 × 512 PNG, 32-bit, ≤ 1 MB | `graphics/play-icon-512.png` (the website's icon: the Palace in pixels, with alpha) |
+| App icon | 512 × 512 PNG, 32-bit, ≤ 1 MB | `graphics/play-icon-512.png` (the game icon: red car, helicopter and the Palace at dusk) |
 | Feature graphic | 1024 × 500 JPEG or 24-bit PNG | `graphics/play-feature-1024x500.jpg`: the Palace at dusk, "Around Warsaw" in Pixelify Sans, "Drive and fly the real Warsaw". Source `graphics/play-feature.html` (the website's og.jpg and fonts), shot in Chromium at 1024 × 500 |
 | Phone screenshots | 2 to 8, 16:9 landscape, each side 320-3840 px, the long side at most twice the short | `screenshots/play-phone/01..07` (1920 × 1080, HUD on; `screenshots/README.md`) |
 | 7" and 10" tablet screenshots | optional for a phone game | skip for internal testing |

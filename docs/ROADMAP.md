@@ -761,7 +761,7 @@ Beta goal: a visitor explores the city with everything open, an easy city drive,
 - [x] Debug flags stripped from the release build; credits and licences screen checked
       (2026-11-01, `release.gd`, Settings → DŹWIĘK → LICENCJE `credits.gd`, `check_credits`; the page
       on the phone still to see)
-- [ ] Store screenshots re-shot after the opening lands; app icon; a short trailer
+- [ ] Store screenshots re-shot after the opening lands; (app icon: new icon now on the site, wiki and store listing); a short trailer
 - [ ] Deploy the support page; first TestFlight upload from the Mac; Play closed test
 - [ ] Gamepad testing in the beta: an Xbox, PlayStation or MFi pad on the iPhone (beta-testing.md)
 - [ ] Outside players finish the first ten minutes without help (the Demo gate)

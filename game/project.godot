@@ -8,7 +8,7 @@ config/name="Around Warsaw"
 run/main_scene="res://main.tscn"
 run/flush_stdout_on_print=true
 config/features=PackedStringArray("4.7", "Mobile")
-config/icon="res://icon.svg"
+config/icon="res://icon.png"
 boot_splash/bg_color=Color(0.659, 0.804, 0.902, 1)
 boot_splash/show_image=false
 
