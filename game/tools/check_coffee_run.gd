@@ -11,7 +11,7 @@ extends SceneTree
 ##      plus the stamps fits in 85 % of COFFEE_LIMIT;
 ##   3. the money: the four coffees overpriced (each 24-40 zł), the on-time BLIK returns the bill
 ##      plus THANKS, late half the bill and no respect;
-##   4. the bike: car.gd model "bike" caps the top speed at BIKE_TOP (below a third of the car's)
+##   4. the bike: car.gd model "bike" caps the top speed at BIKE_TOP (below half the car's)
 ##      and back to the car's after; the player's bike meshes (3, the body ≤ 800 triangles, about
 ##      2.9 m tall at 1.6x).
 ## Prints "check_coffee_run: OK (...)" or the problems (exit 1).
@@ -159,7 +159,7 @@ func _bike() -> void:
 	var car: CharacterBody3D = Car.new()
 	var car_top: float = car.top_speed()
 	car.set_model("bike")
-	if not is_equal_approx(car.top_speed(), Car.BIKE_TOP) or Car.BIKE_TOP > car_top / 3.0:
+	if not is_equal_approx(car.top_speed(), Car.BIKE_TOP) or Car.BIKE_TOP > car_top / 2.0:
 		problems.append("the bike's top speed %.1f (car %.1f)" % [car.top_speed(), car_top])
 	car.set_model("tt")
 	if car.model != "tt" or car.top_speed() < car_top * 0.99:

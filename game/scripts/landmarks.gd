@@ -172,8 +172,18 @@ const TOWERS := [
 	{"key": "central", "osm": "Central Tower", "style": S_DARK, "glass": "#3e5c78", "roof": "#6f7d88"},
 	# Ilmet (Mapillary 2026-02 and 2025 street photos): a round-cornered terracotta-banded shaft whose top steps in twice.
 	{"key": "ilmet", "osm": "Ilmet", "style": S_BANDS, "glass": "#8a5e4c", "roof": "#8c8278", "chamfer": true},
-	{"key": "platinum_a", "osm": "Platinum Tower A", "style": S_RIBBON, "glass": "#6b7f8e", "roof": "#c4c8c8"},
-	{"key": "platinum_b", "osm": "Platinum Tower B", "style": S_RIBBON, "glass": "#6b7f8e", "roof": "#c4c8c8"},
+	# Platinum Towers from the top-50 photo set (T36, 2026-11-08): cream stone piers with punched
+	# windows at the corners, the glass between them banded by the balconies' white glass railings.
+	{"key": "platinum_a", "osm": "Platinum Tower A", "style": S_RIBBON, "glass": "#6b7f8e", "roof": "#c4c8c8", "mapped": true,
+			"skins": {"#c1a48b": [S_PUNCHED, "#e4e0d6"], "#647887": [S_BANDS, "#8aa1ad"]}},
+	{"key": "platinum_b", "osm": "Platinum Tower B", "style": S_RIBBON, "glass": "#6b7f8e", "roof": "#c4c8c8", "mapped": true,
+			"skins": {"#c1a48b": [S_PUNCHED, "#e4e0d6"], "#647887": [S_BANDS, "#8aa1ad"]}},
+	# The bank tower on Grzybowska (T37, 2026-11-08; OSM name kept for the lookup only): beige stone with punched windows over a green
+	# glass grid on the lower floors, the bank's name (the parody) on the crown, grey glass podium.
+	{"key": "pepeo_tower", "osm": "Pekao Tower", "style": S_PUNCHED, "glass": "#d9d2c2", "roof": "#a9a69c", "mapped": true,
+			"sign": "PEPEO ŻUBR",
+			"skins": {"#ffffff": [S_PUNCHED, "#d9d2c2"], "#2c4c50": [S_GRID, "#4f7a76"], "#545a56": [S_DARK, "#545a56"],
+					"": [S_GRID, "#6f7c80"]}},
 	# Widok Towers (F's photos, 2026-11-08, folder E4-widok): pale blue-grey glass in a white
 	# aluminium grid, not green; a white roof edge.
 	{"key": "widok", "osm": "Widok Towers", "style": S_GRID, "glass": "#86a3b8", "roof": "#c6cbcf", "cool": true},
@@ -307,8 +317,9 @@ const INFO := {
 	"marszalkowska94": ["Nowotel", "Hotel przy Marszałkowskiej 94/98, 95 m. Nowy od 1974 roku.", "A hotel at Marszałkowska 94/98, 95 m. New since 1974."],
 	"central": ["Central Tower", "115 m przy Alejach Jerozolimskich.", "115 m on Al. Jerozolimskie."],
 	"ilmet": ["Ilmet", "103 m.", "103 m."],
-	"platinum_a": ["Platinum Tower A", "83 m.", "83 m."],
-	"platinum_b": ["Platinum Tower B", "83 m.", "83 m."],
+	"platinum_a": ["Platinum Tower A", "83 m kremowego kamienia i szklanych balkonów.", "83 m of cream stone and glass balconies."],
+	"platinum_b": ["Platinum Tower B", "Bliźniak A: kamienne narożniki, szklane balkony.", "A's twin: stone corners, glass balconies."],
+	"pepeo_tower": ["Wieża PEPEO ŻUBR", "Beżowy kamień nad zielonym szkłem, na Grzybowskiej.", "Beige stone over green glass, on Grzybowska."],
 	"lucka": ["Łucka City", "Biały wieżowiec mieszkalny przy Łuckiej 15, 100 m, schodkami w dół do Łuckiej i do Prostej. Na dachu INTERBRUK.",
 			"A white residential tower at Łucka 15, 100 m, stepping down to Łucka and to Prosta. INTERBRUK on the roof."],
 	"prosta32": ["Prosta 32",
