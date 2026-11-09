@@ -34,6 +34,13 @@ zebras, tram tracks, water, steps and decks. A rule is an artifact the player ca
     L5 stairs  a wall or fence that frames a flight of steps (an underpass or metro stair): drawn as
                the 1.6-1.9 m grey slab, really a 1 m balustrade (street_pass B5, now city-wide); a line
                with OSM's height, material or fence type (tools/barrier_tags.py) keeps its mapped look
+    L6 water   a fence or hedge with some of its length more than WET_IN m inside the river or a pond (F,
+               2026-11-08: fences standing in the Vistula by Most Łazienkowski, hanging over it)
+    T1 water   a scanned tree (trees3d) whose trunk stands in the river or a pond, not on a sandbar
+               (F, 2026-11-08: "some trees stand in the water")
+    T2 road    a scanned tree whose trunk stands on the drawn asphalt (a road strip or carriageway
+               area, check_streets S1's test), not on an island or a median (F, 2026-11-08: "... or
+               on the road"; the scan is 2023 and the map's road widths are estimates)
 
 tools/object_fixes.py applies the confident verdicts to the map; this file only measures, so
 it is also the before/after scorecard of every street. Deterministic, standard library only.
@@ -56,6 +63,9 @@ STUB = 1.5
 # A pole closer than this to a track's centreline stands on the rails (centre poles between two
 # tracks stand about 1.8 m from each, and are real).
 TRACK = 1.2
+# L6: a barrier sample this far inside a water area is in the water (the shore line itself is left:
+# the embankments' walls and railings stand on it).
+WET_IN = 0.6
 # L5: a stair's side wall stands within STAIR m of the flight's line, and is at most STAIR_RUN m long.
 STAIR = 2.2
 STAIR_RUN = 40.0
@@ -70,6 +80,7 @@ RULES = {
     "P10": "shelter far from any bus/tram road", "P11": "parked car in the wrong place",
     "L1": "barrier inside a building", "L2": "barrier stub", "L3": "barrier on top of another",
     "L4": "barrier across a path or zebra", "L5": "stair wall drawn as a slab",
+    "L6": "barrier in the water", "T1": "tree in the water", "T2": "tree on the road",
 }
 NO_ROOM = ("roof", "steps", "construction", "ruins", "bridge", "carport", "transformer_tower")
 
@@ -157,6 +168,11 @@ class World:
         for a in d.get("areas", []):
             if a.get("k") == "water":
                 self.water.add(pts(a["p"]), "water")
+        self.sandbars = Grid()
+        for a in d.get("sandbars", []):
+            poly = pts(a["p"])
+            if len(poly) >= 3:
+                self.sandbars.add(poly, "sandbar")
         self.isl = Grid()
         for key in ("islands",):
             for a in d.get(key, []):
@@ -226,6 +242,29 @@ class World:
 
     def in_water(self, p):
         return any(inside(p, poly) for poly, _ in self.water.near(p))
+
+    def on_sandbar(self, p):
+        return any(inside(p, poly) for poly, _ in self.sandbars.near(p))
+
+    def deep_water(self, p, depth=WET_IN):
+        """In a water area by more than `depth` m from its edge (and not on a sandbar)."""
+        for poly, _ in self.water.near(p):
+            if inside(p, poly):
+                if self.on_sandbar(p):
+                    return False
+                n = len(poly)
+                for k in range(n):
+                    a, b = poly[k], poly[(k + 1) % n]
+                    if min(a[0], b[0]) - depth <= p[0] <= max(a[0], b[0]) + depth and \
+                            min(a[1], b[1]) - depth <= p[1] <= max(a[1], b[1]) + depth and seg_d(p, a, b)[0] < depth:
+                        return False
+                return True
+        return False
+
+    def on_road(self, p):
+        """On the drawn asphalt at grade (check_streets S1), not on an island or a median."""
+        on, up = self.asphalt
+        return on(p[0], p[1]) and not up(p[0], p[1])
 
     def on_island(self, p):
         return any(inside(p, poly) for poly, _ in self.isl.near(p))
@@ -361,6 +400,24 @@ def audit(d, sd_items, keep=None):
         for rule, note in hit:
             out.append((rule, key, idx, kind, round(x, 1), round(z, 1), note))
     out += audit_lines(d, w, keep)
+    out += audit_trees(d, w, keep)
+    return out
+
+
+def audit_trees(d, w, keep):
+    """T1 and T2 for the scanned trees (trees3d: x, z, height, crown radius, crown base, kind);
+    the index is the tree's number (its crown scale is trees3d_crown[index])."""
+    out = []
+    t = d.get("trees3d", [])
+    for i in range(0, len(t) - 5, 6):
+        x, z = float(t[i]), float(t[i + 1])
+        if not keep(x, z):
+            continue
+        p = (x, z)
+        if w.in_water(p) and not w.on_sandbar(p):
+            out.append(("T1", "trees3d", i // 6, "tree", round(x, 1), round(z, 1), ""))
+        elif w.on_road(p):
+            out.append(("T2", "trees3d", i // 6, "tree", round(x, 1), round(z, 1), ""))
     return out
 
 
@@ -435,6 +492,12 @@ def audit_lines(d, w, keep):
             if on >= 0.8 * len(ss):
                 out.append(("L3", "lines", i, k, round(mid[0], 1), round(mid[1], 1), f"{L:.1f} m on #{other}"))
                 continue
+        # L6: some of it stands well inside the water.
+        # Walls are left: a quay's, a breakwater's or a fountain basin's wall stands in the water.
+        wet = sum(1 for s in ss if w.deep_water(s)) if k != "wall" else 0
+        if wet:
+            out.append(("L6", "lines", i, k, round(mid[0], 1), round(mid[1], 1), f"{wet} of {len(ss)} m wet"))
+            continue
         # L5: most of a wall or fence lies within STAIR m of a flight of steps (and the line is styled
         # nothing yet): the stair's balustrade.
         if k in ("wall", "fence") and L <= STAIR_RUN and not l.get("st") and not any(t in l for t in ("h", "m", "ft")):
