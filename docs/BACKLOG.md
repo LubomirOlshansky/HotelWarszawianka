@@ -19,7 +19,6 @@ Open:
   there. The hall has no car park gates or signs yet (only the car's x-ray shows underground).
 - `ao.bin` was not baked again (two trees' shade out, a few pixels), nor the prebuilt sectors on the Mac.
 - The board reads from the ramp (the camera behind the car); from the default view it is edge-on.
-- The CHANGELOG line waits for a follow-up once this is on main (left out to stop CHANGELOG merge churn).
 
 ## Hotel Warszawa pass 2 and the blue office (F's photos, 2026-11-08)
 Fixed: the 70 m blue glass office north of the hotel (LoD2 building 3177) drew see-through with a
