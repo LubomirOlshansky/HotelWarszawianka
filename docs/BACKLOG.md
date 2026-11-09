@@ -3772,11 +3772,13 @@ twice the dog walkers there, twice the cyclists (cap 16) and 45 % of them fast. 
 - **The minimap doesn't draw the tunnels yet** (DEMO 4.4: dashed). It is `hud.gd`
   `_minimap_mesh` (the HUD agent's file): after the roads loop, the `tunnels.roads` as 8 m
   dashes in the road colour. The snippet is in the loop 3b report.
-- **The car in a tunnel is a silhouette, not the plan's dithered ghost.** `tunnel_xray.gd` draws
-  the car's meshes once more with an unshaded material that ignores depth (after the post pass);
-  the ground over the tunnel stays whole. A dither in `ground.gdshader` would need `discard` in
-  the ground's shader (a cost on the phone's tile GPU for the whole ground); the look is the
-  user's to judge on the phone.
+- **The tunnel cutaway on the phone** (F, 2026-11-08; the silhouette item is fixed: the ground,
+  trees, lamps, benches and building parts over the tunnel open round the car,
+  `shaders/tunnel_cut.gdshaderinc`, `check_tunnel_cut`). Open: the look and a bench on the iPhone
+  (no new discard-capable shader: ground, building and foliage already discard; fixture and glow
+  only collapse vertices; ~70 µs of GDScript a frame while in a tunnel). The cut's edge shows no
+  earth thickness (the walls' tops meet the grass); pedestrians walking over the cut and the
+  portal frames' headwalls are not cut; a car in one Wisłostrada tube opens only its own tube.
 - The portal frames are simple (a headwall, two posts, a dark mouth 3 m in); the 10 m grid's
   slope over the first metres of a tunnel covers part of the mouth. The open ramp's walls stand
   on the grid's blurred trench sides.
@@ -4579,8 +4581,10 @@ twice the dog walkers there, twice the cyclists (cap 16) and 45 % of them fast. 
 - **Android is slow on the Nothing Phone 1** (2026-11-08): 22.6 fps at Auto→High, GPU 30.7 ms and
   scripts 19.7 ms. `tiers.gd` knows no Android model, so the phone gets High; an Android tier rule
   (by GPU) and a perf pass are needed before Android is playable.
-- **building.gdshader is at 498 of its 505 Adreno budget** (`check_shader_budget.gd`): a new branch
-  in it fails verify. Room: put the landmarks' material codes in their own material (~300 of the 498).
+- **building.gdshader is at 504 of its 505 Adreno budget** (`check_shader_budget.gd`, after #578,
+  #616 and the tunnel cutaway #601): the next PR that adds anything to building.gdshader must slim
+  something first, or verify fails. Room: put the landmarks' material codes in their own material
+  (~300 of the 504).
 - **Nothing has run on an Android phone.** The AAB is built and signed, but the game has never
   started on Android: touch, haptics (`Input.vibrate_handheld`), the save path, the frame rate,
   the governor's tiers (`tiers.gd` knows iPhone model ids only, so an Android phone gets its

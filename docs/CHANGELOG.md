@@ -19,6 +19,7 @@ someone writes its lines.
 - No more trees growing out of the Vistula or standing in the traffic lanes: about 1,000 street trees stepped back onto the pavement, and the fences that stood in the river by the DESKA club are gone.
 
 ## 2026-11-08
+- In a tunnel you now see your car for real: the ground, trees and lamps over the tunnel open up round the car like a cut-away model, showing the road, the tunnel walls and the traffic inside, instead of a yellow outline through the grass.
 - On Android phones with older Adreno graphics (like the Nothing Phone 1) the streets, ground and buildings now appear; before, only cars, people and trees did.
 - Quests on the map are clearer: the gold main-line star now only guides your first kebab delivery and then gets out of the way, the quest you took glows and pulses on the map and the minimap with a dotted line to it, the map's quest card has a "✕ Quit" button (tap twice) to drop it, and scrolling the quest list no longer starts a quest and closes the map.
 - Tram and bus shelters face the right way: the open side with the bench looks at the tracks or the kerb, not along the street or at the pavement (Ratusz Arsenał and over fifty other stops).

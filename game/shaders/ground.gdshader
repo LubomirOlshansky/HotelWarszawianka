@@ -35,6 +35,7 @@ shader_type spatial;
 #include "res://shaders/common.gdshaderinc"
 #include "res://shaders/night.gdshaderinc"
 #include "res://shaders/ghost.gdshaderinc"
+#include "res://shaders/tunnel_cut.gdshaderinc"
 
 uniform float clouds = 0.18;
 uniform bool debug_ao = false;
@@ -266,6 +267,11 @@ void fragment() {
 		if ((BAYER[bp.y * 4 + bp.x] + 0.5) / 16.0 < cut * (1.0 - DECK_GHOST_KEEP)) {
 			discard;
 		}
+	}
+	// The tunnel cutaway (F, 2026-11-08; tunnel_cut.gdshaderinc): the ground over the tunnel round the
+	// car opens down to the tunnel's walls and road.
+	if (all(bvec2(tunnel_test(world_pos).x < 0.0, world_pos.y > tunnel_cut.w + TUNNEL_CUT_OVER))) {
+		discard;
 	}
 	vec3 emit = vec3(0.0);
 	float puddle = 0.0;
