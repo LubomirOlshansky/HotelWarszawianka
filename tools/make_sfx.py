@@ -21,6 +21,8 @@ levels (if their folder is given) to balance the buses against.
       ~850, ~2400 and ~4500 rpm: firing pulses (one weak cylinder, a little timing
       jitter) through an exhaust and a small muffler, intake roar with load
   tyre_roll    the tyres on dry asphalt (low rumble), by speed
+  bike_roll / bike_freewheel   the coffee run's bike: thin tyres and the chain; the
+      rear hub's ratchet while coasting
   tyre_wet     the hiss of tyres on a wet road
   tyre_squeal  a squeal for slides and hard braking
   rotor        a light helicopter: four-blade slap at ~18 Hz, turbine whine, tail rotor
@@ -91,7 +93,8 @@ levels (if their folder is given) to balance the buses against.
   church_bell, busker, crowd_murmur, steps_guitar; loop MW-4's bark_small, bark_mid, bark_big,
   bike_bell, watch_beep, queue_chatter, phone_shutter, cafe_bell; loop MW-2's frog_chime,
   scooter_clatter; the night-buses loop's horn_player; the vintage-tram loop's tram_creak,
-  old_tram_bell; the railway audit's train_rumble, train_bridge, train_horn, station_gong) and leaves the other files as
+  old_tram_bell; the railway audit's train_rumble, train_bridge, train_horn, station_gong; the
+  coffee run's bike_roll, bike_freewheel) and leaves the other files as
   they are.
 """
 import array
@@ -286,6 +289,48 @@ def tyre_roll(seconds, seed):
         t = i / n
         out[i] *= 1.0 + 0.12 * math.sin(TAU * 3 * t + 0.4) + 0.07 * math.sin(TAU * 7 * t + 1.9)
     return biquad(out, "hp", 30.0, 0.7, True)
+
+
+def bike_roll(seconds, seed):
+    """The ROWERILO bike's own ride (trend_job.gd kawa, sfx.gd mode "bike"): thin tyres
+    on asphalt (a light whirr, far brighter and quieter than the car's rumble) and the
+    chain's soft purr over the sprockets (22.5 links a second at pitch 1, whole-sample
+    periods so the loop is seamless), by speed. 2 s loop."""
+    rnd = random.Random(seed)
+    n = int(seconds * RATE)
+    w = noise(n, rnd)
+    whirr = biquad(biquad(w, "bp", 1500.0, 0.9, True), "lp", 4200.0, 0.7, True)
+    body = biquad(w, "bp", 380.0, 1.4, True)
+    chain = zeros(n)
+    period = n // 45                   # 22.5 Hz at 2 s: 45 link knocks per loop, 980 samples apart
+    for k in range(45):
+        g = 0.6 + 0.4 * rnd.random()
+        for j in range(90):
+            chain[(k * period + j) % n] += g * math.exp(-j / 18.0) * rnd.uniform(-1.0, 1.0)
+    chain = biquad(chain, "bp", 2100.0, 1.6, True)
+    out = mix((1.0, whirr), (0.35, body), (0.55, chain))
+    for i in range(n):
+        t = i / n
+        out[i] *= 1.0 + 0.1 * math.sin(TAU * 2 * t + 0.7) + 0.06 * math.sin(TAU * 5 * t + 2.3)
+    return biquad(out, "hp", 120.0, 0.7, True)
+
+
+def bike_freewheel(seconds, seed):
+    """The rear hub's ratchet ticking while the rider coasts (sfx.gd mode "bike", off the
+    pedals): 30 sharp pawl clicks a second at pitch 1 (whole-sample periods), each a few ms
+    of bright filtered noise, a little uneven. 2 s loop."""
+    rnd = random.Random(seed)
+    n = int(seconds * RATE)
+    out = zeros(n)
+    period = n // 60
+    for k in range(60):
+        g = 0.75 + 0.25 * rnd.random()
+        for j in range(70):
+            out[(k * period + j) % n] += g * math.exp(-j / 9.0) * rnd.uniform(-1.0, 1.0)
+    out = biquad(biquad(out, "bp", 3400.0, 1.3, True), "hp", 900.0, 0.7, True)
+    # the hub's bearings under the clicks: a faint steady whirr, so the loop never drops to silence
+    bed = biquad(noise(n, rnd), "bp", 2600.0, 0.8, True)
+    return mix((1.0, out), (0.12, bed))
 
 
 def tyre_wet(seconds, seed):
@@ -1774,7 +1819,7 @@ def station_gong(seed):
 LOOPS = ["engine_idle", "engine_mid", "engine_high", "tyre_roll", "tyre_wet", "tyre_squeal", "rotor",
          "city_day", "city_night", "rain", "police_siren", "club_leak", "busker", "crowd_murmur", "steps_guitar",
          "queue_chatter", "amb_river", "amb_park", "amb_square", "amb_yard", "fan_chant", "gong_bowls", "techno_thump",
-         "jazz_trio"]
+         "jazz_trio", "bike_roll", "bike_freewheel"]
 
 
 def loud_rev(seed):
@@ -1882,7 +1927,9 @@ CITY = {"club_leak": lambda: [club_leak(71)], "metro_chime": lambda: [metro_chim
         "jazz_trio": lambda: [jazz_trio(102)],
         # The railway audit (trains.gd): the wheels, the wheels on a bridge, the horn, the platform gong.
         "train_rumble": lambda: [train_pass(103, False)], "train_bridge": lambda: [train_pass(104, True)],
-        "train_horn": lambda: [train_horn(105)], "station_gong": lambda: [station_gong(106)]}
+        "train_horn": lambda: [train_horn(105)], "station_gong": lambda: [station_gong(106)],
+        # The coffee run's bike (sfx.gd mode "bike"): the ride and the coasting hub.
+        "bike_roll": lambda: [bike_roll(2.0, 107)], "bike_freewheel": lambda: [bike_freewheel(2.0, 108)]}
 
 
 def main(out_dir, radio_dir=None, only=None):

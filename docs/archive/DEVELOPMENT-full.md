@@ -4766,6 +4766,16 @@ rows, and Chmielna's 17 lamps and 26 café sets either side. Krucza Al. Jerozoli
 design area `krucza` (docs/roads/krucza.json): 19-20 m one carriageway, 2+2 lanes (3 northbound at
 Jerozolimskie), parking lanes, 8 zebras, side streets as openings; `park_cars: true` (new, area level) puts 58
 parked cars in the parking lanes (6 old ones on the new asphalt out). Continuity 0.
+
+**Marszałkowska by the art museum (F, 2026-11-08).** Road design area `marsz_defilad` (docs/roads/marsz_defilad.json,
+plan docs/plan/marszalkowska-defilad.md): Marszałkowska s 170-328 from the Świętokrzyska junction (the Sienkiewicza
+crossing to past Złota) as rebuilt in 2025-26, cross-section from OSM's 2026 crossing ways. 2+2 lanes, the tram bed
+between kerbed green strips with 26 young columnar elms (greens `trees`, new; trees3d 271,740 → 271,896, crowns
+45,290 → 45,316), the museum's parking lay-by (8 parked cars), no gap in the median: `close_median_links` (new,
+area level) marks the OSM zawrotka's graph edge `cf: 1`. Old median strips that ran past a free end keep their rows
+beyond it (`medians kept past free ends`). Continuity 0. On a baked map: road_design.py, then
+`tools/bus_stops.py` (the bus stop's paint follows the new kerb), bake_sectors. street_pass
+marszalkowska-centrum re-recorded: O1 8 → 16 (the lay-by's parked cars by the lane, B8 KEEP), L2 15 → 19 (lane ends at the crossings).
 | Vertices (`count_vertices.gd`) | 18.70 M (meshes 11.50, instances 7.20) | 19.70 M (12.15, 7.55): +1.00 M, the extension's (0.96 M a km²); LoD2 in the box 1,549,362 → 1,548,197 vertices |
 | Probe draw calls (spawn, river, zoomed out, helicopter; 3D main / shadow) | 137, 104, 150, 220 (58/38, 36/25, 66/40, 111/74) | 138, 104, 151, 224 (58/38, 36/25, 66/41, 112/76): the city +0 (the helicopter view with `--no-traffic` 102/68 both); one more car or tram in view |
 | Probe over Rondo Radosława (`--at=-2833,-2292 --heading=60 --heli --size=150`; the car on Jana Pawła II `--at=-2790,-2200 --heading=340`) | (the map's edge) | 203 (100/68), 115 (46/28): inside the helicopter's 224 |
@@ -5273,10 +5283,21 @@ System Trace: the iPhone 11 at ×2 holds 60 at its lowest GPU clock, Loop G1 abo
 scanned tree's trunk in a water area, a sandbar excepted), T2 (on the drawn asphalt at grade, check_streets
 S1's test, not on an island or a median) and L6 (a fence or hedge more than `WET_IN` 0.6 m inside a water
 area; walls are left: quays, breakwaters, fountain rims); `tools/object_fixes.py` VERSION 2 removes T1
-(211), moves T2 up to `TREE_SHIFT` 3 m to a spot `TREE_CLEAR` 0.8 m off the asphalt (1,035) or removes it
+(211), moves T2 up to `TREE_SHIFT` 3 m to a spot `TREE_CLEAR` 0.8 m off the asphalt (1,033) or removes it
 (114), and trims L6's wet parts (6 fences, three of them by Most Łazienkowski at WTS DESKA). trees3d
-271,752 → 269,802, crowns 45,292 → 44,967 (`check_map_data.py` EXPECTED). `verify.sh objects` holds T1, T2
+271,896 → 269,946, crowns 45,316 → 44,991 (`check_map_data.py` EXPECTED). `verify.sh objects` holds T1, T2
 and L6 at 0. ao.bin, street_details.json and park_details.json re-baked.
+
+**Dworzec Centralny's car park ramp (F, 2026-11-08)**: `tools/centralny_ramp.py` (bake_osm right after
+bake_structures, or as a CLI on a baked map; idempotent, `--check` is verify step `centralnyramp`) makes the
+service tunnel under Al. Jana Pawła II north of Chmielna a drive: tunnel group 10 (one 10.8 m tube on the
+middle line of OSM's 30611690/143461289, floor 8.5 m = the entry ramp's foot, and a 22 × 22 m turning hall
+under Złote Tarasy's forecourt, its west shoulders splayed), one portal and frame, the way out's lower 38 m
+(143461245, which R9's `garage_ramps` cut) back as a road with a ground profile 8.5 → 10.6 m, its garage door
+gone; the site's walls (box x −1690..−1530, z 395..500) placed again by `place_walls`/`place_tunnels`, 7 m of
+fence across the mouth cut, 2 scanned trees on the way out taken out: trees3d 271,752 → 271,740, crowns
+45,292 → 45,290. Signs and bollards: `game/scripts/centralny_ramp.gd` (runtime, both city paths, one mesh).
+check_stuck_spots has 5 lines through it.
 
 **Bike markings (idea #9, 2026-11-02)**: `tools/bike_marks.py` (bake_osm after car_free, or as a
 CLI on a baked map) adds 660 `symbols` of kind `bike` marked `"on": "path"` on the cycle paths;
@@ -5720,6 +5741,7 @@ Command-line options (after `--`):
 | `--fullmap` | F's asks (2026-10-30): open the full-screen map at the start (the game paused; screenshots) |
 | `--fullmap=M` | 2026-10-31: the same, M metres across the screen's height (the game map's shots) |
 | `--quest-pick=N` | G12 part 2 (2026-11-02): open the full map at the start and tap row N of the ZADANIA tab shown (the vehicle's); a place's pick closes the map and becomes the quest pin |
+| `--quest-quit=S` | F 2026-11-08: S s into the run, open the full map and tap the quest card's "✕ Quit" button twice; prints `quest quit test:` lines (running before/after) |
 | `--quest-tab=N` | quest map (2026-11-07): the full map's quest card opens on tab N (0 AUTO, 1 HELI, 2 WĄTKI) |
 | `--story=ID` | quest map: questline ID (`boat`, `rave`) starts from the WĄTKI list 1.5 s in (its friend phones) |
 | `--story-meet` | quest map: the friend's WCHODZĘ is pressed by itself a second after they walk up (the in-person start without a tap) |
