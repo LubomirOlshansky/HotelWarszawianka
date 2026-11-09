@@ -454,11 +454,20 @@ def main(src, trees_src, dst, extras_src=None, more_src=None):
     import cycle_hang
     map_dir = os.path.dirname(os.path.abspath(dst))
     print("cycle_hang: " + cycle_hang.apply(out, cycle_hang.terrain_of(map_dir, out)))
+    # Port Czerniakowski's footbridge (F, 2026-11-08): one flat railed deck over the mouth by Majami
+    # Wawa, its paths joined, the finished construction lot north-west of it unfenced (tools/port_bridge.py).
+    import port_bridge
+    print("port_bridge: " + port_bridge.apply(out, cycle_hang.terrain_of(map_dir, out)))
     # Loop 3b: the builder's structures (piers, retaining walls, building cuts, the
     # Poniatowski towers' seats), placed on the finished map data (tools/bake_structures.py).
     import bake_structures
     map_dir = os.path.dirname(os.path.abspath(dst))
     bake_structures.add_structures(out, map_dir, json.load(open(os.path.join(map_dir, "terrain.json"))))
+    # The car park ramp by Dworzec Centralny (F, 2026-11-08): the service tunnel under Aleja Jana
+    # Pawła II made a drive, the way out's cut part back and its stray garage door gone, the portal
+    # and the site's walls placed (tools/centralny_ramp.py; the same code runs on a baked map).
+    import centralny_ramp
+    print("centralny_ramp: " + centralny_ramp.apply(out, map_dir))
     # G8/G9 (2026-11-01): shelters onto the kerb of their bus road, turned roof along it; benches
     # turned to face the walk (tools/snap_props.py; the same code runs on a baked map).
     import snap_props

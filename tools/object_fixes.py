@@ -30,6 +30,11 @@ Verdicts, per object_audit.py rule:
                                   the path plus GATE_PAD (the gates OSM maps as nodes, which the bake
                                   never read)
     L5 stair wall        RESTYLE  `st` = STAIR_STYLE: the 1 m balustrade instead of the grey slab
+    L6 in water          TRIM     the parts of a fence or hedge more than WET_IN m inside the water go
+    T1 tree in water     REMOVE   (its crown scale in trees3d_crown goes with it)
+    T2 tree on the road  MOVE     to the nearest spot within TREE_SHIFT m whose trunk keeps TREE_CLEAR
+                                  m off the drawn asphalt (an island or a median is fine), out of the
+                                  water, buildings, tram tracks and zebras; else REMOVE
     P8 on steps, P9 lone signal: CHECK only (an amphitheatre's seats, a mid-block crossing's lights).
 
 Barriers with an Operation Unslop override (game/data/road_objects.json) are never touched, so
@@ -47,7 +52,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import object_audit as oa  # noqa: E402
 
 ROOT = oa.ROOT
-VERSION = 1
+VERSION = 2   # 2: L6, T1, T2 (F, 2026-11-08: trees and fences in the Vistula, trees in the lanes)
 PAVE = {"lamp": 0.7, "signal": 0.6}
 PAVE_OTHER = 0.9
 SHIFT_MAX = {"lamp": 4.5, "signal": 4.5}
@@ -56,13 +61,15 @@ GATE_PAD = 0.4
 GATE_MIN = 1.6
 PASSES = 3
 TRIM_MIN = 1.0
+TREE_SHIFT = 3.0   # T2: a tree moves at most this far off the road...
+TREE_CLEAR = 0.8   # ...to a spot with the asphalt at least this far from its trunk
 REMOVE = ("P1", "P3", "P4", "P5", "P6", "P7", "P11")
-AUTO = REMOVE + ("P2", "P10", "L1", "L2", "L3", "L4", "L5")
+AUTO = REMOVE + ("P2", "P10", "L1", "L2", "L3", "L4", "L5", "L6", "T1", "T2")
 # map_builder.gd BARRIER_STYLE: a concrete upstand with an open rail, 1 m (street_pass B5's look).
 STAIR_STYLE = "balustrade_rail"
 # Left after the fixes on the demo map (2026-11-07): the ratchet of --check.
 CHECK_LEFT = {"P1": 0, "P2": 0, "P3": 0, "P4": 0, "P5": 0, "P6": 0, "P7": 0, "P10": 0, "P11": 0,
-              "L1": 0, "L2": 0, "L3": 0, "L4": 0, "L5": 0}
+              "L1": 0, "L2": 0, "L3": 0, "L4": 0, "L5": 0, "L6": 0, "T1": 0, "T2": 0}
 
 
 def overridden():
@@ -154,9 +161,33 @@ def split_gates(flat, cuts):
     return pieces
 
 
-def trim_inside(w, flat, step=0.5):
-    """The parts of the polyline `flat` outside every building at least 2.5 m high (pieces of at
-    least TRIM_MIN m), keeping its own vertices and the points where it enters or leaves a wall."""
+def tree_spot(w, p):
+    """T2: the nearest spot within TREE_SHIFT m of the tree p (on the road) where its trunk keeps
+    TREE_CLEAR m off the drawn asphalt, or None. Rings every 0.25 m, 24 directions."""
+    def ok(q):
+        return not w.on_road(q)
+
+    def free(q):
+        if not ok(q) or w.in_water(q) or w.in_building(q, 0.0) or w.on_track(q) or w.on_line(w.zebras, q, pad=-0.5):
+            return False
+        return all(ok((q[0] + math.cos(a) * TREE_CLEAR, q[1] + math.sin(a) * TREE_CLEAR))
+                   for a in (k * math.pi / 4 for k in range(8)))
+    r = 0.25
+    while r <= TREE_SHIFT + 1e-6:
+        for k in range(24):
+            a = k * math.pi / 12
+            q = (round(p[0] + math.cos(a) * r, 1), round(p[1] + math.sin(a) * r, 1))
+            if free(q):
+                return q
+        r += 0.25
+    return None
+
+
+def trim_inside(w, flat, step=0.5, gone=None):
+    """The parts of the polyline `flat` outside every building at least 2.5 m high (or, with
+    `gone`, where gone(point) is false; pieces of at least TRIM_MIN m), keeping its own vertices
+    and the points where it enters or leaves a wall."""
+    gone = gone or (lambda q: w.in_building(q, 2.5))
     line = oa.pts(flat)
     marks = []   # (x, z, outside, own vertex)
     for a, b in zip(line, line[1:]):
@@ -165,8 +196,8 @@ def trim_inside(w, flat, step=0.5):
         for k in range(n):
             t = k / n
             q = (a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t)
-            marks.append((q, not w.in_building(q, 2.5), k == 0))
-    marks.append((line[-1], not w.in_building(line[-1], 2.5), True))
+            marks.append((q, not gone(q), k == 0))
+    marks.append((line[-1], not gone(line[-1]), True))
     pieces = []
     cur = []
     for k, (q, out, own) in enumerate(marks):
@@ -244,13 +275,26 @@ def _pass(out, dry):
     gates = {}
     styles = {}
     trims = {}
+    tree_drop = set()
+    tree_moves = {}
     for rule, key, idx, kind, x, z, note in found:
+        if key == "trees3d":
+            if idx in tree_drop or idx in tree_moves:
+                continue
+            q = tree_spot(w, (x, z)) if rule == "T2" else None
+            if q:
+                tree_moves[idx] = q
+                tally["T2 moved"] = tally.get("T2 moved", 0) + 1
+            else:
+                tree_drop.add(idx)
+                tally[rule + (" removed" if rule == "T2" else "")] = tally.get(rule + (" removed" if rule == "T2" else ""), 0) + 1
+            continue
         if key == "lines":
             l = out["lines"][idx]
             if barrier_id(l["k"], l["p"]) in keep_ids or idx in line_drop:
                 continue
-            if rule == "L1":
-                trims[idx] = True
+            if rule in ("L1", "L6"):
+                trims[idx] = rule
                 tally[rule] = tally.get(rule, 0) + 1
             elif rule in ("L2", "L3"):
                 line_drop.add(idx)
@@ -291,7 +335,8 @@ def _pass(out, dry):
             l = dict(l)
             l["st"] = styles[i]
         if i in trims:
-            for pc in trim_inside(w, l["p"]):
+            gone = (lambda q: w.deep_water(q)) if trims[i] == "L6" else None
+            for pc in trim_inside(w, l["p"], gone=gone):
                 nl = dict(l)
                 nl["p"] = pc
                 new_lines.append(nl)
@@ -326,7 +371,40 @@ def _pass(out, dry):
         out[key] = res
     for x, z, yaw in benches:
         out["benches"] += [x, z, yaw]
+    if tree_drop or tree_moves:
+        t = out.get("trees3d", [])
+        crowns = out.get("trees3d_crown", [])
+        kept, kept_crowns = [], []
+        for k in range(len(t) // 6):
+            if k in tree_drop:
+                continue
+            rec = list(t[k * 6:k * 6 + 6])
+            if k in tree_moves:
+                rec[0], rec[1] = tree_moves[k]
+            kept += rec
+            if k < len(crowns):
+                kept_crowns.append(crowns[k])
+        out["trees3d"] = kept
+        if crowns:
+            out["trees3d_crown"] = kept_crowns
+        if tree_moves:
+            tally["T2 crowns trimmed by a deck"] = _trim_moved_crowns(out)
     return ", ".join(f"{k} {v}" for k, v in sorted(tally.items()))
+
+
+def _trim_moved_crowns(out):
+    """A tree moved off the road can now stand beside a deck (a footbridge's ramp): its crown is
+    trimmed to clear the slab as bake_structures.trim_crowns did for the others (check_roads C9).
+    Needs game/map/terrain.json (the map pack); without it nothing is trimmed (-1)."""
+    map_dir = os.path.join(ROOT, "game", "map")
+    tp = os.path.join(map_dir, "terrain.json")
+    if not os.path.exists(tp):
+        return -1
+    import bake_structures
+    import check_roads as cr
+    with open(tp, encoding="utf-8") as f:
+        terrain = json.load(f)
+    return bake_structures.trim_crowns(cr.Map.from_data(map_dir, out, terrain))[0]
 
 
 def check(path):
