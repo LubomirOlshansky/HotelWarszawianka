@@ -4,6 +4,42 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## Trees and fences in the water and on the roads (F, 2026-11-08)
+Fixed: the 2023 laser-scanned trees were kept wherever the scan put them, and the map's water outlines
+and road widths are OSM's, so 211 trunks stood in the Vistula or a pond and 1,149 on the drawn asphalt
+(F's screenshots: a tree in the river by a bridge, a street with trees in the lane); OSM fences at the
+old waterline stood in the river by Most Łazienkowski and WTS DESKA. `object_fixes.py` T1/T2/L6 remove,
+move or trim them; `verify.sh objects` keeps them at 0. Left:
+- TR-1 181 scanned trees stand inside a building outline over 2.5 m high (a courtyard mapped as part of
+  the building, or the outline grown over the crown): not touched, a person should look at a few.
+- TR-2 Walls in the water (17 quay, breakwater and fountain walls by Port Czerniakowski and a pond in
+  the west) are left as they are on purpose; check on the phone whether any reads as wrong.
+
+## First-10 replay ran late (cloud, 2026-11-09)
+Fixed: `tools/verify.sh --only=first10-run` failed on main ("tape late: 536 s, window 330-450 s", later
+runs also rescue late). Cause: the DESKA padel call (`trend_job.gd` DESKI_FIRST) rang at 150 s of play,
+in the middle of the first-10 guide; the replay's autopilot answered it and played the three-point
+match (about 280 s) with the missions paused, so the rescue call, the helicopter hint, the cassette
+and the garage all slid 4-5 minutes. DESKI_FIRST is now 660 s (after the guide's last window).
+Open: `first10-run` is not in CI (it needs the prebuilt city path); run it in the cloud after a change
+to any call, offer or job that can ring before 660 s of play.
+
+## Dworzec Centralny's car park ramp (F, 2026-11-08, Street View photos and a screenshot)
+Fixed: the two one-way lanes off Al. Jana Pawła II north of Chmielna that loop round the hedge island
+down to the tunnel under the avenue were a spiral that went nowhere: the bake leaves service tunnels
+out, so the inner lane dove to a wall at the portal and the outer lane (the way back up) was cut
+halfway with a garage door across it (R9). `tools/centralny_ramp.py` adds the tunnel (one tube with
+both lanes, as on the photo, to a turning hall under Złote Tarasy's forecourt), its portal and walls,
+the way out's lower part, and cuts the fence and two scanned trees that stood across the way out at
+the mouth; `centralny_ramp.gd` hangs the direction board with the 3.3 m sign over the mouth and the
+red and white bollards between the lanes. check_stuck_spots drives down, along, round and back up.
+Open:
+- The real tunnel goes on to Złote Tarasy's car park gates and the station's taxi and bus road
+  (OSM 185123967, 128214245, the covered ways under the station); the game turns round in a hall
+  there. The hall has no car park gates or signs yet (only the car's x-ray shows underground).
+- `ao.bin` was not baked again (two trees' shade out, a few pixels), nor the prebuilt sectors on the Mac.
+- The board reads from the ramp (the camera behind the car); from the default view it is edge-on.
+
 ## Hotel Warszawa pass 2 and the blue office (F's photos, 2026-11-08)
 Fixed: the 70 m blue glass office north of the hotel (LoD2 building 3177) drew see-through with a
 broken top because its GUGiK mesh is open; it is now site `powstancow_blue` (mapped outline, blue
@@ -270,12 +306,17 @@ Kopernik (pale aqua crystal, `crystal_aqua`), Dworzec Gdański (clear glass in d
 
 Built: Darek's call, the meet on Plac Defilad with Lena's donuts, two police raids, the TYGRAM pin
 and the race to the National Stadium's car park, the drag on Aleja Zieleniecka with START DRAG,
-the tree, BIEG! shifts and nitro. Left:
+the tree, BIEG! shifts and nitro. F's pass (2026-11-08): meet 2 moved off the fences to the
+square at the stadium's north foot with a Lena-Darek tandem drift, the first meet 9 s, raids box you in
+with four patrol cars, racers on the minimap and faster with shortcuts, the drag's start gate,
+3-2-1-START! and a rev counter with manual shifts. Night on accepting: PR #582's WAIT TILL 21:00. Left:
 - [ ] Voice for Darek, Lena and Tadek (F: later)
 - [ ] Autopilot re-run on the Mac after PT-33/PT-34 (first run 2026-11-07: every beat ran; drag unwinnable and chase pill over the car, fixed in #499; the result card's REWANŻ/KONIEC showed in the cloud at 1280×720, so watch whether Autopilot lists them)
-- [ ] Phone check: smoke and marks at night, the tree's size, the BIEG! button under a thumb; bench at the meet
+- [ ] Phone check: smoke and marks at night, the tandem at meet 2, the cordon's cars coming in, the 3-2-1 and the rev counter under a thumb (a second finger with the gas held); bench at the meet
 - [ ] A stake to enter the drag? (parked for F, built without)
-- [ ] Meet 2 stands on a small plaza with a few trees inside the ring: check the look, move it if it clashes
+- [ ] Autopilot: the drag needs a tap on the rev counter or the ⬆ BIEG button for each gear now (no auto-shift on time; the box only saves a run left 2.5 s on the limiter)
+- [ ] Driving straight north out of meet 2's square lands on the railway bed, where the car crawls at ~6 km/h (Autopilot run 20261109-014024): a fence or kerb along the cutting there?
+- [ ] Later: the cordon cars could join the chase when you break out (now they stay parked, lights on, and leave out of sight)
 - [ ] Later: the club card in the notebook, more meet places (Browary, Wał Miedzeszyński), underglow paint in the garage after a win
 ## Coffee run (F, 2026-11-06)
 
@@ -835,8 +876,20 @@ history at 0cfc1ff). Areas and progress: docs/plan/road-areas.json, `python3 -I 
   junctions before applying it to the shipped map.
 - Emilii Plater × Świętokrzyska and × Jerozolimskie (IMG_7264 "Y", IMG_7266 stepped widening) still
   come from the OSM ribbons.
-- Marszałkowska's two U-turns through the tram bed (s 191, 283-291 from the junction): the spec has no
-  paved gap in a tram median yet.
+- Splits of a two-way street into two one-way carriageways that `road_fixes.py` fix 6 leaves as they
+  were (2026-11-08: 33 of 60; forks with a leg turning away, a mapped median or island before the
+  legs' ribbons part, a stop line or hatching other than the nose's chevrons, a painted island's
+  closed outline the new lines would cross, legs shorter than the nose, kerb stubs that don't pair).
+  Their legs still fan out from the wide street's axis (lines ending in the road, a kerb notch); the
+  `fixes` ratchets (split_fan_m 143, split_gap_m 552, split_ends 113) go down as they are fixed.
+  Worst: Waryńskiego by Polna (three splits), Waszyngtona, Wybrzeże Szczecińskie (840,-1136),
+  Żelazna, Tamka, Koszykowa.
+- Marszałkowska's two U-turns through the tram bed (s 191, 283-291 from the junction): gone with F's ask of
+  2026-11-08 (area `marsz_defilad`, docs/plan/marszalkowska-defilad.md); the real zawrotka by Złota waits on
+  F (QUESTIONS), and the spec still has no paved gap in a tram median if it comes back.
+- Marszałkowska south of Złota to Rondo Dmowskiego (s 328-490): still main's OSM ribbons, a pre-existing
+  beige sliver across the west carriageway just south of the Złota crossing (s ~333) and 3 lanes where
+  the rebuild left 2; the next area if F wants it.
 - The traffic lane graph still follows the OSM ways; make it from the spec's lanes.
 - The GUGiK ortho predates the Marszałkowska crossings at Sienkiewicza and by the metro (taken from OSM).
 

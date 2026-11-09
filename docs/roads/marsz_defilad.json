@@ -1,0 +1,30 @@
+{
+  "area": "marsz_defilad",
+  "version": 1,
+  "park_cars": true,
+  "close_median_links": true,
+  "note": "Marszałkowska along Plac Defilad and Muzeum Sztuki Nowoczesnej, from just south of the Świętokrzyska junction past the Złota crossing, as rebuilt in 2025-26 (Zielona Marszałkowska: ZDM June 2025, trams back 13 Oct 2025, Złota crossing Nov 2025, Sienkiewicza-Fangora crossing 3 Aug 2026). Two lanes each way, a green strip with a row of columnar elms each side of the paved track, the parking lay-by along the museum, no turn through the median (F 2026-11-08: the OSM zawrotka and the closed Sienkiewicza link are left out; plan docs/plan/marszalkowska-defilad.md). Axis: the tram midline (palace.json m_south from s 170, just past Fangora's exit, to s 328). Offsets in metres to the right of the axis (the axis runs south; right = west, the museum side). Cross-section from the OSM crossing ways of 2026-10 (s 180 and s 310): west carriageway +6.0..+12.5, green +3.0..+6.0, track -3.3..+3.0, green -5.9..-3.3, east carriageway -12.4..-5.9; both ends blend into main's kerbs.",
+  "streets": [
+    {
+      "id": "m_defilad",
+      "name": "Marszałkowska",
+      "k": "secondary",
+      "axis": [[-996.96, 25.25], [-942.36, 173.52]],
+      "sections": [
+        {"s": 0, "med": ["tram"], "cw": [{"l": -12.55, "r": -5.91, "lanes": [{"d": -1}, {"d": -1}]}, {"l": 3.07, "r": 12.41, "lanes": [{"k": "gap", "d": 1, "w": 2.9}, {"d": 1}, {"d": 1}]}]},
+        {"s": 13, "taper": 13, "med": ["tram"], "cw": [{"l": -12.5, "r": -5.9, "lanes": [{"d": -1}, {"d": -1}]}, {"l": 6.0, "r": 12.4, "lanes": [{"d": 1}, {"d": 1}]}]},
+        {"s": 35, "taper": 12, "med": ["tram"], "cw": [{"l": -12.6, "r": -5.9, "lanes": [{"d": -1}, {"d": -1}]}, {"l": 6.0, "r": 15.0, "lanes": [{"d": 1}, {"d": 1}, {"k": "park", "d": 1, "w": 2.6}]}]},
+        {"s": 115, "taper": 10, "med": ["tram"], "cw": [{"l": -12.6, "r": -5.9, "lanes": [{"d": -1}, {"d": -1}]}, {"l": 6.0, "r": 12.4, "lanes": [{"d": 1}, {"d": 1}]}]},
+        {"s": 158, "taper": 14, "med": ["tram"], "cw": [{"l": -15.2, "r": -5.4, "lanes": [{"d": -1}, {"d": -1}, {"d": -1}]}, {"l": 3.0, "r": 13.6, "lanes": [{"k": "gap", "d": 1, "w": 3.0}, {"d": 1}, {"d": 1}]}]}
+      ],
+      "crossings": [{"s": 4.7, "w": 4.0, "bs": 10.7, "bw": 2.2}, {"s": 139.7, "w": 6.0, "bs": 129.8, "bw": 2.2}],
+      "openings": [{"s": 20.7, "side": -1, "w": 7.5, "r": 5.0}],
+      "bare": [{"s0": 6.7, "s1": 22.5, "cw": 0}],
+      "greens": [
+        {"s0": 13.5, "s1": 127.5, "l": 3.0, "r": "edge", "trees": {"kind": "elm_column", "every": 9}},
+        {"s0": 13.5, "s1": 127.5, "l": "edge", "r": -3.3, "trees": {"kind": "elm_column", "every": 9}}
+      ]
+    }
+  ],
+  "junctions": []
+}

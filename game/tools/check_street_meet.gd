@@ -14,7 +14,11 @@ extends SceneTree
 ##      lazy one doesn't, and the real time stays within 0.3 s of sim_run's (PT-33);
 ##      the same two runs in the Grounded handling (car.gd GROUNDED) straddle Tadek too;
 ##   7. the real lane graph: both meets found with a door on a ground road within 160 m, the ring's
-##      slots clear of the gap, the strip found and long enough, straight on the southbound lane.
+##      slots clear of the gap, the strip found and long enough, straight on the southbound lane;
+##   8. the rings clear (F 2026-11-08, meet 2 stood among fences): no fence, wall, guard rail or
+##      building within RING_R + 4 m of a meet's middle;
+##   9. the drag's tacho dial rises with the revs and the gate mesh is one surface; the count reads
+##      3, 2, 1, START!.
 ## Prints "check_street_meet: OK (...)" or the problems (exit 1).
 ##   godot --headless --path game --fixed-fps 60 --script res://tools/check_street_meet.gd [-- --verbose]
 
@@ -57,6 +61,8 @@ func _run() -> void:
 	root.add_child(map)
 	var g := LaneGraph.new(data["graph"], map)
 	_check_map(g, map, data.get("origin", [52.234, 21.024]), digest)
+	_check_clear(data, digest)
+	_check_drag_hud(digest)
 	if problems.is_empty():
 		print("check_street_meet: OK (%s)" % " · ".join(digest))
 		quit(0)
@@ -122,6 +128,19 @@ func _check_rules(digest: PackedStringArray) -> void:
 		last = int(pay[0])
 	if Meet.shift_grade(-0.1) != "early" or Meet.shift_grade(0.1) != "perfect" or Meet.shift_grade(0.8) != "late":
 		problems.append("shift grades wrong")
+	# The genre's grades (F 2026-11-08): yellow is good, before it early, green perfect, long on
+	# the limiter late; the launch by the revs at green.
+	var grades := [Meet.shift_grade_at(0.5, -1.0), Meet.shift_grade_at(Meet.SHIFT_SHOW + 0.01, -1.0),
+			Meet.shift_grade_at(0.97, 0.1), Meet.shift_grade_at(1.0, Meet.PERFECT + 0.1), Meet.shift_grade_at(1.0, Meet.GOOD_LATE + 0.2)]
+	if grades != ["early", "good", "perfect", "good", "late"]:
+		problems.append("shift grades at the needle wrong: %s" % str(grades))
+	var launches := [Meet.launch_grade(0.2), Meet.launch_grade((Meet.LAUNCH.x + Meet.LAUNCH.y) * 0.5), Meet.launch_grade(1.0)]
+	if launches != ["bog", "perfect", "spin"]:
+		problems.append("launch grades wrong: %s" % str(launches))
+	# Holding the gas from the first amber overshoots the launch zone by green: the launch is a skill.
+	var revs_at_green := minf(1.0, Meet.REV_UP * (3.0 * Meet.TREE_STEP))
+	if Meet.launch_grade(revs_at_green) != "spin":
+		problems.append("gas held from the first amber lands a %s launch" % Meet.launch_grade(revs_at_green))
 	digest.append("clock, pay, shifts")
 
 
@@ -256,3 +275,54 @@ func _check_map(g: LaneGraph, map: Node3D, origin: Array, digest: PackedStringAr
 				problems.append("no southbound lane under the strip at %.0f m" % s)
 		digest.append("strip %.0f m, lanes %.1f m apart" % [float(strip["length"]), float(strip["lane_gap"])])
 	digest.append("%d meets" % meets.size())
+
+
+static func _seg_dist(p: Vector2, a: Vector2, b: Vector2) -> float:
+	return p.distance_to(Geometry2D.get_closest_point_to_segment(p, a, b))
+
+
+func _check_clear(data: Dictionary, digest: PackedStringArray) -> void:
+	var origin: Array = data.get("origin", [52.234, 21.024])
+	var reach := Meet.RING_R + 4.0
+	for row: Dictionary in Meet.MEETS:
+		var ll: Array = row["ll"]
+		var c := Meet.Notebook.project(origin, float(ll[0]), float(ll[1]))
+		var near := INF
+		var what := ""
+		for key: String in ["lines", "guards", "walls", "buildings"]:
+			for item: Variant in data.get(key, []):
+				var p: Array = item["p"] if item is Dictionary else item
+				if p.size() < 4 or absf(float(p[0]) - c.x) > 600.0 or absf(float(p[1]) - c.y) > 600.0:
+					continue
+				for i in range(0, p.size() - 3, 2):
+					var dd := _seg_dist(c, Vector2(p[i], p[i + 1]), Vector2(p[i + 2], p[i + 3]))
+					if dd < near:
+						near = dd
+						what = "%s %s" % [key, item.get("k", item.get("kind", "")) if item is Dictionary else ""]
+		if near < reach:
+			problems.append("meet %s: a %s %.1f m from the middle (want %.0f m clear)" % [row["id"], what, near, reach])
+	digest.append("rings clear")
+
+
+func _check_drag_hud(digest: PackedStringArray) -> void:
+	var last := -1.0
+	for i in 11:
+		var f := Meet.DragTacho.dial(i / 10.0)
+		if f <= last:
+			problems.append("the tacho's dial doesn't rise at %.1f" % (i / 10.0))
+		last = f
+	if Meet.DragTacho.dial(Meet.SHIFT_AT) >= Meet.DragTacho.dial(1.0) or Meet.DragTacho.dial(1.0) >= 1.0:
+		problems.append("the tacho's green zone or limiter doesn't fit the dial")
+	if Meet.gate_mesh(8.4).get_surface_count() != 1:
+		problems.append("the start gate isn't one surface")
+	var tree := Meet.DragTree.new()
+	var words := PackedStringArray()
+	for a in 4:
+		tree.ambers = a
+		words.append(tree.count_text())
+	tree.green = true
+	words.append(tree.count_text())
+	tree.free()
+	if words != PackedStringArray(["", "3", "2", "1", "START!"]):
+		problems.append("the count reads %s" % str(words))
+	digest.append("tacho, gate, count")
