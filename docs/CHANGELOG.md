@@ -10,7 +10,7 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-08
-- Świętokrzyska between the metro and Rondo ONZ no longer has a tangle of crossed lane lines and a step in the kerb where the street splits into its two carriageways: the lanes, kerbs and bike lane now curve smoothly into each side, and the same is fixed at 12 more such splits around the centre (Królewska, Karowa, Dobra, Solec and others).
+- Świętokrzyska between the metro and Rondo ONZ no longer has a tangle of crossed lane lines and a step in the kerb where the street splits into its two carriageways: the lanes, kerbs and bike lane now curve smoothly into each side, and the same is fixed at 25 more such splits around the centre (Królewska, Karowa, Dobra, Solec, Bonifraterska, Waryńskiego, Kruczkowskiego, Mokotowska and others).
 - The loading bar on the start screen moves smoothly now instead of in jerks while the city is built.
 
 - The map is quieter: tap a quest's "!" to read one line about it, the old "?" marks are gone, kebab and job pins show only when you zoom in, the shisha night is now a hidden quest (not on the map or in the list: stand at Ivan's block in 19. Dzielnica and hold the "+" for 5 seconds), the Tesla helicopter rescue is in the STORIES list, and you can drag the quest list on the map with a finger to see all of it.- The car no longer stops dead when its nose clips the end of a low wall or a tram shelter: it slips past, as it already did at corners (Trasa W-Z by the Old Town).

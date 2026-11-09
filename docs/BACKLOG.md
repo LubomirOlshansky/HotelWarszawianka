@@ -791,11 +791,13 @@ history at 0cfc1ff). Areas and progress: docs/plan/road-areas.json, `python3 -I 
 - Emilii Plater × Świętokrzyska and × Jerozolimskie (IMG_7264 "Y", IMG_7266 stepped widening) still
   come from the OSM ribbons.
 - Splits of a two-way street into two one-way carriageways that `road_fixes.py` fix 6 leaves as they
-  were (2026-11-08: 46 of 60; forks with a leg turning away, a mapped median, island or hatching before
-  the legs' ribbons part, legs shorter than the nose, kerb stubs that don't pair). Their legs still fan
-  out from the wide street's axis (lines ending in the road, a kerb notch); the `fixes` ratchets
-  (split_fan_m 170, split_gap_m 592, split_ends 154) go down as they are fixed. Worst: Waryńskiego by
-  Polna, Aleja Zieleniecka, Senatorska by Plac Bankowy, Koszykowa, Waszyngtona.
+  were (2026-11-08: 33 of 60; forks with a leg turning away, a mapped median or island before the
+  legs' ribbons part, a stop line or hatching other than the nose's chevrons, a painted island's
+  closed outline the new lines would cross, legs shorter than the nose, kerb stubs that don't pair).
+  Their legs still fan out from the wide street's axis (lines ending in the road, a kerb notch); the
+  `fixes` ratchets (split_fan_m 143, split_gap_m 552, split_ends 113) go down as they are fixed.
+  Worst: Waryńskiego by Polna (three splits), Waszyngtona, Wybrzeże Szczecińskie (840,-1136),
+  Żelazna, Tamka, Koszykowa.
 - Marszałkowska's two U-turns through the tram bed (s 191, 283-291 from the junction): the spec has no
   paved gap in a tram median yet.
 - The traffic lane graph still follows the OSM ways; make it from the spec's lanes.
