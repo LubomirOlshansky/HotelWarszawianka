@@ -93,6 +93,8 @@ const Cassettes := preload("res://scripts/cassettes.gd")
 const FirstScene := preload("res://scripts/first_scene.gd")
 ## Skwer Linearny na Złotej (2026-11-02): the park's stone blocks, benches, cafés (skwer_zlota.gd).
 const SkwerZlota := preload("res://scripts/skwer_zlota.gd")
+## The car park ramp by Dworzec Centralny (F, 2026-11-08): its signs and bollards (centralny_ramp.gd).
+const CentralnyRamp := preload("res://scripts/centralny_ramp.gd")
 ## Plac Pięciu Rogów (2026-11-06): the square's cubes, lamps, cafés and egg (plac_pieciu_rogow.gd).
 const PlacPieciuRogow := preload("res://scripts/plac_pieciu_rogow.gd")
 ## The 3D corner screen on Skylight at Złote Tarasy (2026-11-05, tarasy_screen.gd).
@@ -1673,6 +1675,8 @@ func _build_world() -> void:
 	await LoadYield.tick("_build_first_scene")
 	_build_skwer_zlota(world)
 	await LoadYield.tick("_build_skwer_zlota")
+	_build_centralny_ramp(world)
+	await LoadYield.tick("_build_centralny_ramp")
 	_build_plac_pieciu_rogow(world)
 	await LoadYield.tick("_build_plac_pieciu_rogow")
 	_build_tarasy_screen(world)
@@ -1958,6 +1962,18 @@ func _build_skwer_zlota(world: Node3D) -> void:
 	sz.map = map
 	world.add_child(sz)
 	sz.build()
+
+
+## The car park ramp by Dworzec Centralny (centralny_ramp.gd): the board over the tunnel's mouth
+## and the bollards between the lanes, on both city paths.
+func _build_centralny_ramp(world: Node3D) -> void:
+	if solo_site != "":
+		return
+	var cr := CentralnyRamp.new()
+	cr.name = "CentralnyRamp"
+	cr.map = map
+	world.add_child(cr)
+	cr.build()
 
 
 ## Plac Pięciu Rogów (plac_pieciu_rogow.gd): the square's furniture, on both city paths.
@@ -3209,7 +3225,8 @@ func _build_stories(world: Node3D) -> void:
 		if flying:
 			return [heli.global_position, heli.speed() * 3.6, true]
 		return [car.global_position, car.vel.length() * 3.6, false]
-	stories.free_now = _boat_free
+	stories.free_now = _story_free
+	stories.skip_to = _story_skip_to
 	stories.ground = func(x: float, z: float) -> float: return map.ground_height(x, z)
 	stories.clock = func() -> Array:
 		var c: Dictionary = tod.local_clock()
@@ -3260,7 +3277,7 @@ func _build_stories(world: Node3D) -> void:
 		stories.add({"id": "meet", "pl": "Nocny spot", "en": "Night meet", "who": [StreetMeet.FRIEND, StreetMeet.FRIEND],
 				"hello": ["„Siema! Dziś spot na Defiladzie. Wbijasz?”", "\"Hey! Meet's on Plac Defilad tonight. You in?\""],
 				"closed": ["„Za dnia tu tylko turyści. Wpadnij po 21.”", "\"By day it's all tourists here. Come after nine.\""],
-				"at": Vector2(g.x, g.z), "colour": StreetMeet.COLOUR, "hours": StreetMeet.NIGHT_HOURS, "days": [],
+				"at": Vector2(g.x, g.z), "colour": StreetMeet.COLOUR, "hours": StreetMeet.NIGHT_HOURS, "days": [], "jump": true,
 				"call": meet.ring, "meet": meet.meet_in_person, "busy": meet.busy, "idle": meet.idle})
 	if kino_tour != null:
 		stories.add({"id": "kino", "pl": KinoTour.NAME, "en": "Cinema tour", "who": ["Wiktor", "Wiktor"],
@@ -3282,9 +3299,16 @@ func _build_stories(world: Node3D) -> void:
 				"hours": Vector2(-1.0, -1.0), "days": [],
 				"call": ev_tow.ring, "meet": func() -> bool: return false, "busy": ev_tow.busy,
 				"idle": func() -> bool: return ev_tow.state == EvTow.State.IDLE})
-	# One line per questline for the full map's pin (a tap shows it): [pl, en].
+	# One line per questline for the full map's pin (a tap shows it): [pl, en]. A start in person
+	# first puts off a rescue call still ringing (its pill), which no longer stops the friend.
 	for d: Dictionary in stories.defs:
 		d["blurb"] = STORY_BLURBS.get(str(d["id"]), ["", ""])
+		var own: Callable = d.get("meet", Callable())
+		if own.is_valid():
+			d["meet"] = func() -> bool:
+				if missions.state == Missions.State.RINGING:
+					missions.close()
+				return bool(own.call())
 	if story_flag != "":
 		get_tree().create_timer(1.5).timeout.connect(func() -> void: stories.start(story_flag))
 	if quest_quit_flag >= 0.0:
@@ -3331,6 +3355,7 @@ func _story_tick() -> void:
 	var focus := _quest_running()
 	stories.focus = focus
 	_shisha_secret(focus)
+	_meet_night()
 	var m: Array = StoryQuests.marks(stories.defs, focus or flying)
 	var names := PackedStringArray()
 	var blurbs := PackedStringArray()
@@ -3349,6 +3374,47 @@ func _story_tick() -> void:
 	hud.set_story(m[0], m[1], focus, names, blurbs, small)
 	if stories_log:
 		print("stories: focus %s, %d starts on the map" % ["on" if focus else "off", (m[0] as PackedVector2Array).size()])
+
+
+## The questline friend may walk up (story_quests.gd): as `_boat_free`, but a rescue call that only
+## rings (the WEZWANIE pill, waiting until pressed) does not stop it (F, 2026-11-08: stopped in the
+## night meet's ring, nothing came).
+func _story_free() -> bool:
+	if rave != null and rave.busy():
+		return false
+	return _rave_free(true)
+
+
+## True once the night meet's night was set for the run under way (cleared when the meet ends).
+var _meet_dark := false
+
+
+## The night meet is a night (F, 2026-11-08): taken by day (Darek's call, the list, in person), the
+## clock jumps to 21:05 at once, so the meet, the raid and the drag all run in the dark.
+func _meet_night() -> void:
+	if meet == null or not meet.busy():
+		_meet_dark = false
+		return
+	if _meet_dark:
+		return
+	_meet_dark = true
+	if not StreetMeet.night_on(float(tod.local_clock()["hour"])):
+		_story_skip_to(StoryQuests.open_hour({"hours": StreetMeet.NIGHT_HOURS}))
+
+
+## CZEKAM DO 21:00 (story_quests.gd): the clock jumps to `hour` in the look that fits it (Dawn,
+## Day, Dusk or Night, blended), the way the TIME setting's fixed looks keep a running clock. True
+## when it was set. Live time becomes that fixed look until the player picks Live again.
+func _story_skip_to(hour: float) -> bool:
+	if tod == null:
+		return false
+	tod.set_mode(TimeOfDay.parse(StoryQuests.look_for(hour)))
+	tod.fixed_start = hour
+	if hud.settings_panel != null:
+		hud.settings_panel.sync(_settings_state())
+	var hm := "%02d:%02d" % [int(hour), int(fmod(hour, 1.0) * 60.0)]
+	hud.toast("Czekacie do %s." % hm, "You wait until %s." % hm)
+	return true
 
 
 ## Nothing else on, on the ground (the rave's test, and no rave either).
@@ -3403,6 +3469,17 @@ func _on_boat_left() -> void:
 
 
 ## While boating: the car's spot, heading and speed are the boat's.
+## What the player is in, for the engine's and tyres' loops (sfx.gd `mode`): the bike on the coffee
+## run (PT 2026-11-08: the car's engine kept on after the swap), a boat (the electric one silent),
+## on foot in a room or on the court, else the car.
+func _sound_mode() -> String:
+	if boat_race != null and boat_race.boating() and boat_race.player != null:
+		return "electric" if boat_race.player.kind == BoatRace.Boat.Kind.ELECTRIC else "boat"
+	if (club != null and club.inside) or (lounge != null and lounge.inside) or (padel != null and padel.inside):
+		return "foot"
+	return "bike" if car.model == "bike" else "car"
+
+
 func _boat_frame() -> void:
 	if boat_race == null or not boat_race.boating():
 		return
@@ -3613,7 +3690,8 @@ func _shisha_free() -> bool:
 
 
 ## Nothing else on: no title, bench, Spacer, guide, card, call, ride, job, race; on the ground.
-func _rave_free() -> bool:
+## `ringing_ok`: a rescue call still ringing (not answered) does not count (the questline friend).
+func _rave_free(ringing_ok := false) -> bool:
 	if club != null and club.inside:
 		return false
 	if (lounge != null and lounge.inside) or (shisha != null and shisha.busy()):
@@ -3628,7 +3706,8 @@ func _rave_free() -> bool:
 		return false
 	if first10 != null and first10.guide_on():
 		return false
-	if hud.cards_up() or missions.state != Missions.State.CLOSED or missions.has_target():
+	var ringing: bool = ringing_ok and missions.state == Missions.State.RINGING
+	if hud.cards_up() or (missions.state != Missions.State.CLOSED and not ringing) or missions.has_target():
 		return false
 	if (rides != null and rides.busy()) or (jobs != null and jobs.busy()) or (trend_job != null and trend_job.busy()):
 		return false
@@ -6972,6 +7051,8 @@ func _process(dt: float) -> void:
 			trend_job.flying = flying or boating or touring
 			trend_job.player_pos = pos
 			trend_job.away = rides.away
+			# F 2026-11-08: no friend's call (Mrożulo's Dżemini, the coffee run, DESKA) mid-mission.
+			trend_job.mission_on = _quest_running()
 		eggs.player = pos
 		eggs.player_vel = heli.vel if flying else car.vel
 		eggs.flying = flying
@@ -6980,6 +7061,7 @@ func _process(dt: float) -> void:
 	car.wet = weather.wet
 	if sfx != null:
 		sfx.flying = flying
+		sfx.mode = _sound_mode()
 		sfx.focus = cam_focus
 		sfx.yaw = cam_yaw
 	if weather.amount > 0.0:

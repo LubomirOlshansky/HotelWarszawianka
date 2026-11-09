@@ -15,7 +15,11 @@ extends Node
 ##   - its friend phones, as before (each quest's own timer; unchanged);
 ##   - the player drives to the start spot and slows down: the friend walks up and talks in person
 ##     (a card with the friend's name and no phone: "Siema! Ścigamy się?"), WCHODZĘ / NIE TERAZ;
-##     outside the quest's hours the friend says when to come back instead;
+##     outside the quest's hours the friend says when it opens and offers to wait for it
+##     (CZEKAMY DO 21:00 / NIE TERAZ: the clock jumps to the opening hour through `skip_to` and the
+##     quest starts). Before (F, 2026-11-08) the closed card had one OK button, and with the game's
+##     default Day look (a 14:00 clock that never reaches 21:00) the night meet's ring could never
+##     start from the car at all;
 ##   - the beta list: the full map's WĄTKI tab lists every questline; a tap starts it now
 ##     (the friend phones at once, any hour).
 ##
@@ -28,7 +32,8 @@ extends Node
 ##   [] any day; a night past midnight counts as the day before, as rave.gd's night_day),
 ##   call: Callable() -> bool (phone now), meet: Callable() -> bool (start in person, here),
 ##   busy: Callable() -> bool (under way), idle: Callable() -> bool (can start now: not ringing,
-##   not cooling down after a card).
+##   not cooling down after a card), jump: bool (outside its hours the friend still says hello with
+##   WCHODZĘ, and the clock jumps to the opening hour on the tap: the night meet, F 2026-11-08).
 ##
 ## Cost: a 0.25 s timer; one shared start beacon (ring, column, waving friend: about 10 draw calls)
 ## shown only within BEACON_R of the nearest start, never during a quest.
@@ -39,8 +44,11 @@ const Lines := preload("res://scripts/quest_lines.gd")
 ## Within this many metres of a start (and slower than GREET_KMH) the friend walks up.
 const GREET_R := 30.0
 const GREET_KMH := 22.0
-## The friend greets again only after the car has been this far away.
+## The friend greets again only after the car has been this far away (after an answer).
 const REARM_R := 80.0
+## After the card ran out unanswered, a drive out of the greeting circle is enough: the player who
+## missed the card and stopped in the ring later still gets the friend (F, 2026-11-08).
+const LAPSED_R := GREET_R
 ## The start beacon stands within this many metres of the nearest start.
 const BEACON_R := 320.0
 ## The minimap pins a questline's badge to its rim up to this far (the garage's reach).
@@ -63,12 +71,16 @@ var ground: Callable
 var log_on := false
 ## --story-meet: WCHODZĘ is pressed a second after the friend walks up (test runs, autopilot).
 var auto_yes := false
+## (hour: float) -> bool: set the game's clock to `hour` (main.gd picks the look) and say whether
+## the questline is open now. Unset: a closed questline only says when to come back.
+var skip_to: Callable
 
 var defs: Array[Dictionary] = []
 ## The def whose friend is talking now (in person), -1 none; the card's age.
 var greeting := -1
 var _greet_t := 0.0
-## Per def id: true once greeted, until the car is REARM_R away.
+## Per def id: the distance (m) the car must get from the start before the friend greets again
+## (REARM_R after an answer, LAPSED_R after a card nobody answered).
 var _greeted := {}
 var _tick := 0.0
 var _beacon: Node3D
@@ -202,6 +214,7 @@ func _process(dt: float) -> void:
 		_greet_t += dt
 		if _greet_t > CARD_LIFE:
 			_log("%s: the friend walked off" % defs[greeting]["id"])
+			_greeted[str(defs[greeting]["id"])] = LAPSED_R
 			hud.hide_card()
 			greeting = -1
 	if _tick < TICK:
@@ -220,7 +233,7 @@ func step() -> void:
 	var flying := bool(v[2])
 	for id: String in _greeted.keys():
 		var k := find(id)
-		if k < 0 or at.distance_to(defs[k]["at"]) > REARM_R:
+		if k < 0 or at.distance_to(defs[k]["at"]) > float(_greeted[id]):
 			_greeted.erase(id)
 	var any_busy := focus
 	for d: Dictionary in defs:
@@ -250,28 +263,56 @@ func step() -> void:
 ## The friend walks up and talks (no phone): the questline's offer, or when to come back.
 func _greet(i: int) -> void:
 	var d := defs[i]
-	_greeted[str(d["id"])] = true
+	_greeted[str(d["id"])] = REARM_R
 	greeting = i
 	_greet_t = 0.0
 	var c := _now()
 	var who: Array = d["who"]
 	var title_pl := "👋 %s" % str(who[0]).to_upper()
 	var title_en := "%s, in person" % who[1]
-	if open_at(d, float(c[0]), int(c[1])):
+	var jump := bool(d.get("jump", false)) and skip_to.is_valid() and open_hour(d) >= 0.0
+	if open_at(d, float(c[0]), int(c[1])) or jump:
 		var hello: Array = d["hello"]
 		hud.show_side_card(title_pl, str(hello[0]), PackedStringArray(["WCHODZĘ!|I'M IN!", "NIE TERAZ|NOT NOW"]),
 				d["colour"], title_en, str(hello[1]))
 		_log("%s: %s walks up (open)" % [d["id"], who[1]])
-		if auto_yes:
-			get_tree().create_timer(1.0).timeout.connect(func() -> void:
-				if greeting == i:
-					hud.card_pressed.emit(0))
 	else:
 		var closed: Array = d["closed"]
 		var pl := "%s (%s)" % [closed[0], when_text(d, true)]
 		var en := "%s (%s)" % [closed[1], when_text(d, false)]
-		hud.show_side_card(title_pl, pl, PackedStringArray(["OK|OK"]), d["colour"], title_en, en)
+		hud.show_side_card(title_pl, pl, closed_buttons(d, skip_to.is_valid()), d["colour"], title_en, en)
 		_log("%s: %s walks up (closed now)" % [d["id"], who[1]])
+	if auto_yes:
+		get_tree().create_timer(1.0).timeout.connect(func() -> void:
+			if greeting == i:
+				hud.card_pressed.emit(0))
+
+
+## The hour a closed questline opens (a few minutes past its first hour, so the clock is inside the
+## window), -1 for one open any time.
+static func open_hour(def: Dictionary) -> float:
+	var h: Vector2 = def.get("hours", Vector2(-1, -1))
+	return -1.0 if h.x < 0.0 else fmod(h.x + 0.05, 24.0)
+
+
+## The fixed look (time_of_day.gd NAMES) whose light fits `hour`: the jump to a night quest's
+## opening hour turns the city dark too.
+static func look_for(hour: float) -> String:
+	if hour >= 5.0 and hour < 8.0:
+		return "Dawn"
+	if hour >= 8.0 and hour < 18.5:
+		return "Day"
+	if hour >= 18.5 and hour < 20.5:
+		return "Dusk"
+	return "Night"
+
+
+## The closed card's buttons: wait for the opening hour (when the clock can jump) or just OK.
+static func closed_buttons(def: Dictionary, can_skip: bool) -> PackedStringArray:
+	if not can_skip or open_hour(def) < 0.0:
+		return PackedStringArray(["OK|OK"])
+	var at := "%d:00" % int(open_hour(def))
+	return PackedStringArray(["CZEKAM DO %s|WAIT TILL %s" % [at, at], "NIE TERAZ|NOT NOW"])
 
 
 func _on_card(index: int) -> void:
@@ -282,6 +323,10 @@ func _on_card(index: int) -> void:
 	var open := open_at(d, float(c[0]), int(c[1]))
 	greeting = -1
 	hud.hide_card()
+	if not open and index == 0 and skip_to.is_valid() and open_hour(d) >= 0.0:
+		# CZEKAM DO ...: the clock jumps to the opening hour, then the quest starts as WCHODZĘ.
+		open = bool(skip_to.call(open_hour(d)))
+		_log("%s: waited till %.2f (%s)" % [d["id"], open_hour(d), "open" if open else "still closed"])
 	if open and index == 0:
 		var meet: Callable = d.get("meet", Callable())
 		var ok := meet.is_valid() and bool(meet.call())

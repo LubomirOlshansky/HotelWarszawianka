@@ -4,6 +4,48 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## Trees and fences in the water and on the roads (F, 2026-11-08)
+Fixed: the 2023 laser-scanned trees were kept wherever the scan put them, and the map's water outlines
+and road widths are OSM's, so 211 trunks stood in the Vistula or a pond and 1,149 on the drawn asphalt
+(F's screenshots: a tree in the river by a bridge, a street with trees in the lane); OSM fences at the
+old waterline stood in the river by Most Łazienkowski and WTS DESKA. `object_fixes.py` T1/T2/L6 remove,
+move or trim them; `verify.sh objects` keeps them at 0. Left:
+- TR-1 181 scanned trees stand inside a building outline over 2.5 m high (a courtyard mapped as part of
+  the building, or the outline grown over the crown): not touched, a person should look at a few.
+- TR-2 Walls in the water (17 quay, breakwater and fountain walls by Port Czerniakowski and a pond in
+  the west) are left as they are on purpose; check on the phone whether any reads as wrong.
+
+## First-10 replay ran late (cloud, 2026-11-09)
+Fixed: `tools/verify.sh --only=first10-run` failed on main ("tape late: 536 s, window 330-450 s", later
+runs also rescue late). Cause: the DESKA padel call (`trend_job.gd` DESKI_FIRST) rang at 150 s of play,
+in the middle of the first-10 guide; the replay's autopilot answered it and played the three-point
+match (about 280 s) with the missions paused, so the rescue call, the helicopter hint, the cassette
+and the garage all slid 4-5 minutes. DESKI_FIRST is now 660 s (after the guide's last window).
+Open: `first10-run` is not in CI (it needs the prebuilt city path); run it in the cloud after a change
+to any call, offer or job that can ring before 660 s of play.
+
+## Dworzec Centralny's car park ramp (F, 2026-11-08, Street View photos and a screenshot)
+Fixed: the two one-way lanes off Al. Jana Pawła II north of Chmielna that loop round the hedge island
+down to the tunnel under the avenue were a spiral that went nowhere: the bake leaves service tunnels
+out, so the inner lane dove to a wall at the portal and the outer lane (the way back up) was cut
+halfway with a garage door across it (R9). `tools/centralny_ramp.py` adds the tunnel (one tube with
+both lanes, as on the photo, to a turning hall under Złote Tarasy's forecourt), its portal and walls,
+the way out's lower part, and cuts the fence and two scanned trees that stood across the way out at
+the mouth; `centralny_ramp.gd` hangs the direction board with the 3.3 m sign over the mouth and the
+red and white bollards between the lanes. check_stuck_spots drives down, along, round and back up.
+Open:
+- The real tunnel goes on to Złote Tarasy's car park gates and the station's taxi and bus road
+  (OSM 185123967, 128214245, the covered ways under the station); the game turns round in a hall
+  there. The hall has no car park gates or signs yet (only the car's x-ray shows underground).
+- `ao.bin` was not baked again (two trees' shade out, a few pixels), nor the prebuilt sectors on the Mac.
+- The board reads from the ramp (the camera behind the car); from the default view it is edge-on.
+
+## Hotel Warszawa pass 2 and the blue office (F's photos, 2026-11-08)
+Fixed: the 70 m blue glass office north of the hotel (LoD2 building 3177) drew see-through with a
+broken top because its GUGiK mesh is open; it is now site `powstancow_blue` (mapped outline, blue
+mirror glass, 58 tris). The hotel got 0.9 m pilasters 0.4 m proud and the tall copper-framed doors.
+Left: the blue tower's real chamfered crown and name (needs a street photo); the hotel's wings are
+25 m, the photos suggest ~30 m (LoD2 says 24).
 ## Quests on the map, simpler (F, 2026-11-08; docs/design/main-line.md section 0)
 Fixed: after the first task the main line's gold star kept pointing at Pani Halina while the player
 was on a quest they took. The star, the goal card and the nudge now show only for the first kebab
@@ -57,9 +99,11 @@ look check of both.
 - Done, batch 1: Q22 (dark green glass, graphite crown with DELOJT, the wing's sloping glass roof, lattice mast and red-and-white antenna; spec q22.md) and Rondo 1 (silver-blue banded slab with the rounded end, the open screen over the roof, the graphite west block with EJ and its yellow stroke, the steps to the south-west, the antenna to 192 m instead of the 33 m cage; spec rondo1.md).
 - Done, batch 2: Warsaw Trade Tower (parts clad by their mapped colours: the dark blue ribbon-glass drum, the beige stone slab with punched windows, the silver crown with UNIKWA; new tower-table key `skins`) and Teatr Wielki's front (ten columns, not eight; the raised middle block with windows, the pediment with its relief and copper slopes; the Apollo quadriga in bronze; spec teatr.md).
 - Done, batch 3: Spektrum (parts clad by their mapped colours: blue glass between white bands on the drum, the dark square-grid slabs, the pale green glass ring round the crown), Pałac Prezydencki (the photo shows no free portico: a risalit with an arcade of seven round-headed openings, six engaged columns to the cornice, a balustrade with statues along the main block; the wings' dark slate roofs; spec prezydencki.md) and Święty Krzyż's helms (octagonal copper lanterns with openings, bell roofs and slim needles, not big onions; whiter walls; spec krzyz.md).
+- Done, batch 4: Platinum Towers A and B (cream stone corner piers with punched windows, the glass between them in balcony bands) and the PEPEO ŻUBR bank tower on Grzybowska (site `pepeo_tower`), new in the tower table (beige stone with punched windows over the green glass grid, PEPEO ŻUBR on the crown, a grey glass podium). Prosta Tower was already modelled from photos (`_build_prosta32`); Atlas Tower's mapped colours (dark blue glass drum, white stone) already match T37-03, and the Level 26 club sits on its roof, so it stays as is.
+- Left from batch 4: the Platinum balconies' white railings as geometry; Crown Point (T38) lies outside the current map.
 - Left from batch 3: Spektrum's sloping glass fin up the drum; the Presidential Palace's dormers and the pediments of the main block's side wings; Holy Cross's statues on the attic.
 - Left from batch 2: WTT's curved crown slits and the fin with the mast down the dark side; Teatr Wielki's side colonnades.
-- Left: Q22's faceted folds in the glass and the base's entrance; Rondo 1's curved screen follows the roof edge as straight facets, the ground-floor stone columns on Śliska (T03-08) not modelled; the night look of both on the phone. Next batch by visibility: T36-T38 the Rondo Daszyńskiego towers (Platinum, Pekao and Atlas, Prosta Tower and Crown Point). T04 InterContinental and T26 Polonia are the Palace thread's.
+- Left: Q22's faceted folds in the glass and the base's entrance; Rondo 1's curved screen follows the roof edge as straight facets, the ground-floor stone columns on Śliska (T03-08) not modelled; the night look of both on the phone. Next batches: the rest of T01-T50 by visibility. T04 InterContinental and T26 Polonia are the Palace thread's.
 
 ## Skyline towers near the Palace from F's photos (F, 2026-11-08; specs plater49.md, wcf.md, polonia.md)
 - Done: InterContinental (the gap over the podium, the sloped roof, the corner column, lit gap at night), the Warsaw Financial Centre (white slab and ribbon slab on the curve, granite podium, mast) and Hotel Polonia Palace (photo pass: mansard, pediment and oval window, name on the frieze, balconies). Złota 44 was already rebuilt from F's photos (PR #321).
@@ -217,6 +261,13 @@ THEATRES, `theatre` curve, dark on Mondays). Left:
   row's extra; a phone look at the colours' strength. The event list is settled (F, 2026-11-08).
 - The floodlight's reach (a circle round the Palace) also tints the TR Warszawa site's crane and the forecourt's
   stone furniture; an old quirk of the gold, louder in the event colours.
+- The underground car park's ramp by Metro Centrum (F, 2026-11-08: "looks like a tunnel entrance"): OSM's
+  parking aisle between two walls down a 3-4 m pit ended at a blank wall. It is the entry ramp of the
+  underground car park Plac Defilad 1 (260 spaces, 2.8 m, from Marszałkowska); built: a concrete hood over
+  the ramp's foot with the dark mouth, hazard band and lit strip, a red-white barrier (solid), P boards and a
+  striped 2,8 m gauge at the top (map_builder.gd GARAGE_MOUTHS). Left: the 10 m grid makes the pit only
+  ~2.5 m deep, so the hood stands ~2 m over the lot behind it; a night/phone look at the lit strip; the
+  other 27 R9 garage doors city-wide could get the same mouth.
 
 ## Ratusz Arsenał interchange and passengers (F, 2026-11-07, six photos)
 
@@ -255,21 +306,31 @@ Kopernik (pale aqua crystal, `crystal_aqua`), Dworzec Gdański (clear glass in d
 
 Built: Darek's call, the meet on Plac Defilad with Lena's donuts, two police raids, the TYGRAM pin
 and the race to the National Stadium's car park, the drag on Aleja Zieleniecka with START DRAG,
-the tree, BIEG! shifts and nitro. Left:
+the tree, BIEG! shifts and nitro. F's pass (2026-11-08): meet 2 moved off the fences to the
+square at the stadium's north foot with a Lena-Darek tandem drift, the first meet 9 s, raids box you in
+with four patrol cars, racers on the minimap and faster with shortcuts, the drag's start gate,
+3-2-1-START! and a rev counter with manual shifts. Night on accepting: PR #582's WAIT TILL 21:00. Left:
 - [ ] Voice for Darek, Lena and Tadek (F: later)
 - [ ] Autopilot re-run on the Mac after PT-33/PT-34 (first run 2026-11-07: every beat ran; drag unwinnable and chase pill over the car, fixed in #499; the result card's REWANŻ/KONIEC showed in the cloud at 1280×720, so watch whether Autopilot lists them)
-- [ ] Phone check: smoke and marks at night, the tree's size, the BIEG! button under a thumb; bench at the meet
+- [ ] Phone check: smoke and marks at night, the tandem at meet 2, the cordon's cars coming in, the 3-2-1 and the rev counter under a thumb (a second finger with the gas held); bench at the meet
 - [ ] A stake to enter the drag? (parked for F, built without)
-- [ ] Meet 2 stands on a small plaza with a few trees inside the ring: check the look, move it if it clashes
+- [ ] Autopilot: the drag needs a tap on the rev counter or the ⬆ BIEG button for each gear now (no auto-shift on time; the box only saves a run left 2.5 s on the limiter)
+- [ ] Driving straight north out of meet 2's square lands on the railway bed, where the car crawls at ~6 km/h (Autopilot run 20261109-014024): a fence or kerb along the cutting there?
+- [ ] Later: the cordon cars could join the chase when you break out (now they stay parked, lights on, and leave out of sight)
 - [ ] Later: the club card in the notebook, more meet places (Browary, Wał Miedzeszyński), underglow paint in the garage after a win
 ## Coffee run (F, 2026-11-06)
 
 Built 2026-11-06 (docs/design/coffee-run.md): Zuzia's call, the ROWERILO dock by Elektrownia, the
 player's bike, four café stamps against the clock, the BLIK back. Left:
 - **Phone check**: the bike's readability at the 80 m view, the clock, the hint lines.
-- **Café signs**: the four doors are beacons only; signs on existing shells or from photos.
+- **Café fronts (2026-11-08, F's photos of DOT and STOR)**: done as glazed dark-framed fronts with
+  warm windows, a wood bench and an A-board under neon names (storefronts.gd CAFE_FRONT_IDS,
+  Props.cafe_front), the target café glows. Left: each café's own front from photos, the phone look.
 - **Zuzia on screen**: she is a phone voice and a hint line; no figure rides along.
-- **Bike sound**: the engine loop still plays on the bike; a bell and pedalling instead.
+- **Bike sound** done 2026-11-08: no engine on the bike (nor in the electric boat, a room or the
+  padel court), its own tyre-and-chain loop and the hub's ticking when coasting. Left: a bell button.
+- **Bike speed** raised 2026-11-08 (F: very slow): 11.5 m/s, clock 4:00; phone feel open.
+- **Café jokes** held 12 s on the ride card after each stamp (F: they went by too fast).
 - **Free ROWERILO**: taking a bike at any dock outside the run.
 - **Zuzia's own look at the dock**: the quest map's in-person start uses the beacon's generic figure.
 - **Garage while biking**: entering the garage mid-run turns the bike back into the car's model.
@@ -543,9 +604,18 @@ Left:
 - [ ] The Atlantic stop is on Widok, 70 m from the door (Chmielna is car-free there): a walk-round line, or a stop on Zgoda
 - [ ] Autopilot run of the whole tour on the Mac (`--kino-tour=go`)
 
+## Questline ring would not start from the car (F, 2026-11-08)
+Fixed: F stopped the car in Darek's pink ring on Plac Defilad (the night meet, 21:00-4:00) by day and nothing could start it. The game's default Day look keeps a 14:00 clock, so a night questline's start only ever said "come after nine". Now a closed questline's friend offers CZEKAM DO 21:00 / NIE TERAZ: the clock jumps to the opening hour (the look follows: Night, Dusk, Day or Dawn) and the quest starts. Also: a rescue call still ringing (the WEZWANIE pill) no longer stops the friend walking up (it is put off when the quest starts), and a card that ran out unanswered comes back after a short drive out of the 30 m circle (was 80 m). The night meet goes further (F, 2026-11-08: accepting it should turn night at once): Darek says hello with WCHODZĘ at any hour, and however the meet is taken (in person, his call, the list) the clock jumps to 21:05 when it starts (`main.gd` `_meet_night`). Test: `check_story_quests`.
+- [ ] Phone check: stop in the ring by day, tap WCHODZĘ (CZEKAM DO for the other questlines), the city turns to night and Darek's meet starts (Autopilot on the Mac)
+- [ ] The first-10 guide still holds the friend for a fresh save's first minutes (the parked question below)
+
 ## Offers over result cards (Autopilot, 2026-11-08)
 Fixed: a Mrożulo "fetch" offer opened over the padel result card at the DESKA gate and the OK tap accepted it. No offer or prompt (trend jobs, "Na czasie", Podwózka, rivals) opens while a card is up, nor for 2.5 s after one closes; it is queued, not dropped. Test: `check_hud` `_check_offers_wait`.
 - [ ] Question for F: on a fresh save the first-10 guide holds every questline walk-up (`guide_hold`, `first10.gd` `_hold_offers`) for the first 10 minutes. By design? Left as it is (parked, not changed).
+
+## Calls during missions (F, 2026-11-08)
+Fixed: Mrożulo could phone (the Dżemini call) in the middle of a mission. Now no friend's call from `trend_job.gd` (Mrożulo's Dżemini, Zuzia's coffee run, the DESKA call) and no walk-up offer rings while any mission is on (main.gd `_quest_running`: a rescue, a job, a ride, a race, any questline, the night meet included, which was not gated before), nor for 20 s after one ends, nor over a rescue call that is already ringing. The call waits and comes afterwards. Test: `check_hud` `_check_offers_wait` (`hold_calls`).
+- [ ] The other questlines' calls (Szymek, Mati, Claire, Wiktor, Darek, Bartek, Ivan) already wait for a free moment through main.gd's `_*_free`; none of them has the 20 s rest after a mission yet.
 
 ## Padel call at WTS DESKA (coordinator, 2026-11-07; docs/design/padel.md)
 
@@ -664,8 +734,8 @@ with ✕ back to the car, the boat mark on the minimap and the full map. Left:
   - boats moored stern-to along both quays, with houseboats.
 - [x] Monkey Love (Bulwar Flotylli Pińskiej 1A, south of Most Łazienkowski) from F's two exterior photos (2026-11-07), as the parody MAŁPI LOVE (site `monkey_love`): two dark timber cabins with black gables, a yolk-yellow end wall, a kiosk and a bar hut, a gravel garden of plank tables under white umbrellas, festoons. Its neon wants the same Mac night check.
 - [x] The roads to the spit checked on 2026-11-07 against the aerials: Zaruskiego joins the network under Most Łazienkowski, the spit's lane runs to the kayak yard, the promenade and the riverside walk are continuous (steps at the tip and the cross links), and the race pontoon's car spot sits on the riverside walk. Open: the real promenade is about 5 m of grey asphalt, the game draws a 2 m red cycle path (a width change in the bake, not done: no new road geometry).
+- [x] The mouth footbridge by Majami Wawa (F, 2026-11-08, screenshots, Google aerial and Street View; Mapillary 2021 and 2025): one flat 56 m deck 5.2 m wide between bright green steel railings with three lamps, the boulevard's cycle path laid on it end to end, no more dip into the cutting, crooked grey walls or gap where the car stuck (`tools/port_bridge.py`, verify step `portbridge`, three `check_stuck_spots` lines). The finished building site north-west of it (OSM still tags it construction, fenced) is a car park now, its fences gone, and so is the works' fence ring round the lawn north of the cycle path (open lawn and shrubs in the 2025 photos). Open: the second construction lot along the basin's west quay is still drawn as a fenced site (no fresh photo of it). Open: the deck is a little narrower than the real ~6 m; the second (south) cycle approach and the quay steps under it stay as OSM maps them.
 - [ ] The rest of F's port photos, still to build:
-  - the mouth footbridge's green steel edges;
   - Pomnik Saperów's bar deck at the mouth;
   - the new arched footbridge over the basin;
   - the rental pier with its blue solar cabin;
@@ -806,8 +876,20 @@ history at 0cfc1ff). Areas and progress: docs/plan/road-areas.json, `python3 -I 
   junctions before applying it to the shipped map.
 - Emilii Plater × Świętokrzyska and × Jerozolimskie (IMG_7264 "Y", IMG_7266 stepped widening) still
   come from the OSM ribbons.
-- Marszałkowska's two U-turns through the tram bed (s 191, 283-291 from the junction): the spec has no
-  paved gap in a tram median yet.
+- Splits of a two-way street into two one-way carriageways that `road_fixes.py` fix 6 leaves as they
+  were (2026-11-08: 33 of 60; forks with a leg turning away, a mapped median or island before the
+  legs' ribbons part, a stop line or hatching other than the nose's chevrons, a painted island's
+  closed outline the new lines would cross, legs shorter than the nose, kerb stubs that don't pair).
+  Their legs still fan out from the wide street's axis (lines ending in the road, a kerb notch); the
+  `fixes` ratchets (split_fan_m 143, split_gap_m 552, split_ends 113) go down as they are fixed.
+  Worst: Waryńskiego by Polna (three splits), Waszyngtona, Wybrzeże Szczecińskie (840,-1136),
+  Żelazna, Tamka, Koszykowa.
+- Marszałkowska's two U-turns through the tram bed (s 191, 283-291 from the junction): gone with F's ask of
+  2026-11-08 (area `marsz_defilad`, docs/plan/marszalkowska-defilad.md); the real zawrotka by Złota waits on
+  F (QUESTIONS), and the spec still has no paved gap in a tram median if it comes back.
+- Marszałkowska south of Złota to Rondo Dmowskiego (s 328-490): still main's OSM ribbons, a pre-existing
+  beige sliver across the west carriageway just south of the Złota crossing (s ~333) and 3 lanes where
+  the rebuild left 2; the next area if F wants it.
 - The traffic lane graph still follows the OSM ways; make it from the spec's lanes.
 - The GUGiK ortho predates the Marszałkowska crossings at Sienkiewicza and by the metro (taken from OSM).
 

@@ -338,6 +338,13 @@ var _target_colour := Color.WHITE
 var _mini_target := Vector2.INF
 var _mini_target_colour := Color.WHITE
 var _mini_dots := PackedVector2Array()
+## A quest's own racers on the minimap (street_meet.gd's club), kept apart from the rivals' dots,
+## which rivals.gd writes every frame.
+var _quest_dots := PackedVector2Array()
+## A focused moment (street_meet.gd's drag, F 2026-11-08: "too many dialogs one over another"):
+## while true the radio's ticker, the info notes (a district discovered) and every toast wait.
+var hush := false
+var _quest_dot_colours := PackedColorArray()
 var _mini_dot_colours := PackedColorArray()
 ## Loop 2d-1: whose the context button is ("call" or "ride").
 var pill_owner := "call"
@@ -1407,6 +1414,8 @@ func _build_ticker() -> void:
 ## Shows a line on the now-playing ticker for a few seconds: the radio's station changes, and
 ## the radio host's lines with an English subtitle (held longer and wrapped to a readable width).
 func ticker(text: String, colour: Color, subtitle := "") -> void:
+	if hush:
+		return
 	text = Lang.pick(text, subtitle)
 	subtitle = ""
 	colour = Access.tint(colour)  # colour-safe (access.gd)
@@ -1472,6 +1481,8 @@ func _build_toast() -> void:
 ## another ambient toast came in the last AMBIENT_TOAST_GAP seconds (G16).
 ## Phase 0.2: also dropped while the car struggles (and a few seconds after: chatter.gd quiet()).
 func ambient_toast(text: String, gloss := "") -> void:
+	if hush:
+		return
 	var now := Time.get_ticks_msec() / 1000.0
 	if _kmh > 10 and now - _ambient_toast_at < AMBIENT_TOAST_GAP:
 		return
@@ -1482,6 +1493,8 @@ func ambient_toast(text: String, gloss := "") -> void:
 
 
 func toast(text: String, gloss := "") -> void:
+	if hush:
+		return  # PT-49: the first-10 guide's hints waited under the drag's rev counter
 	text = Lang.pick(text, gloss)
 	gloss = ""
 	# PT-20 (Autopilot run 20261103-152518): the same toast again while it is still up only
@@ -1748,6 +1761,14 @@ func hide_banner() -> void:
 func set_minimap_dots(points: PackedVector2Array, colours: PackedColorArray) -> void:
 	_mini_dots = points
 	_mini_dot_colours = colours
+
+
+## A quest's racers on the minimap (street_meet.gd, F 2026-11-08: "the other racers don't show on
+## the map"): a little bigger than the rivals' dots, pinned to the rim when out of reach so the
+## pack's direction always shows. Empty arrays clear them.
+func set_quest_dots(points: PackedVector2Array, colours: PackedColorArray) -> void:
+	_quest_dots = points
+	_quest_dot_colours = colours
 
 
 # --- every frame -----------------------------------------------------------------------------
@@ -2092,6 +2113,10 @@ func _paint_minimap_overlay() -> void:
 		if r.length() < _mini_radius - 4.0 * pt:
 			_tri_fan(centre + r, 2.8 * pt, 0.0, TAU, OUTLINE)
 			_tri_fan(centre + r, 2.0 * pt, 0.0, TAU, _mini_dot_colours[i])
+	for i in _quest_dots.size():
+		var r := ((_quest_dots[i] - _mini_car) * s).rotated(_mini_yaw).limit_length(_mini_radius - 5.0 * pt)
+		_tri_fan(centre + r, 3.6 * pt, 0.0, TAU, OUTLINE)
+		_tri_fan(centre + r, 2.7 * pt, 0.0, TAU, _quest_dot_colours[i] if i < _quest_dot_colours.size() else Color.WHITE)
 	# Loop 3g-1: known speed traps (a small hair dryer in police blue) and the chasers (blue and
 	# red in turns, a white outline), within the minimap's reach.
 	for q in _trap_marks:
@@ -2416,6 +2441,15 @@ func ticker_out() -> void:
 		_ticker_left = 0.4
 
 
+## The focused moment on or off (see `hush`): on, what is up now fades out at once.
+func set_hush(on: bool) -> void:
+	hush = on
+	if on:
+		ticker_out()
+		_note_left = minf(_note_left, 0.4)
+		_toast_left = minf(_toast_left, 0.3)
+
+
 ## The app's route as a polyline in map coordinates (empty: none), drawn as dots on the minimap.
 ## Beta values (2026-11-04): `owner` names who drew it (route_line.gd's users: "jobs", "race"), so
 ## clear_minimap_route(owner) never wipes a route another activity has drawn since.
@@ -2588,6 +2622,8 @@ static func _money(amount: int) -> String:
 
 ## A small card under the wallet for a few seconds (an easter egg found).
 func show_note(title: String, body: String, colour: Color) -> void:
+	if hush:
+		return
 	colour = Access.tint(colour)  # colour-safe (access.gd)
 	_set_note_width()  # landmark card fix
 	_note_title.text = title

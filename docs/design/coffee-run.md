@@ -25,7 +25,7 @@ verify step `coffee` (`--trend-job=9 --autopilot`).
 2. **The ROWERILO dock** by Elektrownia Powiśle (a real `bicycle_rental` point; ROWERILO is the
    game's Veturilo parody, city_life.gd). Drive there and stop: the car stays parked at the dock
    (a still copy) and you ride a cream ROWERILO bike with a paper cup in the basket (car.gd model
-   `bike`: 8.5 m/s top, gentler pull, no NITRO, the car's collision box; the rider's shirt is the
+   `bike`: 11.5 m/s top (was 8.5 until F found it too slow, 2026-11-08), a gentler pull, no NITRO, the car's collision box; the rider's shirt is the
    car's paint, the helmet its stripes, drawn at 1.6x, and the follow camera closes in to 0.55 of its view while you ride: the first Autopilot playtest found the bike too small at the car's view).
 3. **Four cafés, 5:00 on the clock** from the dock, about 1.2 km of loop. At each door stop 1.5 s
    for the stamp; the wallet pays the coffee (if it can't, "na koszt Zuzi"). While you ride, Zuzia's
@@ -42,6 +42,10 @@ Autopilot on F's Mac rode the first leg for real: dock to KROPKA. in 17 s, an av
 in). Its later legs never ran (the run's wall-clock budget went on the 70 s city build). By the lane
 graph the four stamp legs are ~1.4 km by road: at that measured 7 m/s plus the stamps, ~225 s of the
 300 s clock, so a clean ride has ~75 s to spare.
+
+F, 2026-11-08: the bike felt very slow. Now 11.5 m/s top and a livelier pull; the clock is 240 s
+(four minutes): the same ~1.4 km at the scaled ~9.5 m/s average is ~150 s, plus the stamps ~170 s, so
+the spare stays ~70 s.
 
 ## The cafés (parodies; the real names are in brand_denylist.json)
 
