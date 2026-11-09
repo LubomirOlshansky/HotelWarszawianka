@@ -12,7 +12,7 @@ extends SceneTree
 ## fly over them, not to be stopped. bulwary_basen (K7, 2026-11-02): the splash pool, its 0.3 m
 ## rim and fish on 0.55 m plinths, under 2 m in all.
 ## bazar (2026-11-02): Bazar Różyckiego's stalls and kiosks stand 2.5-3.4 m, under the 6 m floor the heli flies at.
-## plac_centralny and its lamps (2026-11-05): the seat-wall, steps and lamp posts stand 1-5 m, under the heli's 6 m floor.
+## plac_centralny and its lamps (2026-11-05): the flat striped field and the lamp posts (5 m) stand under the heli's 6 m floor.
 ## monkey_love (2026-11-07): the garden cabins stand under 4 m.
 ## port_wtw, port_halls, port_basin (2026-11-07): Port Czerniakowski's boathouse and halls stand 3.6-5 m to the eaves, the moored boats under 2 m (masts are lines).
 ## Towarowa 22 is a quarter: its box's middle is the printing hall's open frame and the 28 m tanks

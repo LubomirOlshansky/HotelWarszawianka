@@ -6903,6 +6903,8 @@ func _build_steps(st) -> void:
 	# towards the entrance's deep end.
 	for p in data.get("steps", []):
 		var poly := _pts(p["p"])
+		if _in_trybuna(p["p"]):
+			continue
 		var deep := int(p.get("down", -1))
 		if deep < 0 or poly.size() != 2:
 			_strip(st, poly, 2.4, Y_PATH + 0.01, Color("#d2cabb"))
@@ -6967,6 +6969,8 @@ func _build_stair_flights(st) -> int:
 
 
 func _stair_skipped(poly: PackedVector2Array) -> bool:
+	if Geometry2D.is_point_in_polygon((poly[0] + poly[poly.size() - 1]) * 0.5, PackedVector2Array(TRYBUNA_ZONE)):
+		return true
 	for q in [poly[0], poly[poly.size() - 1]]:
 		if not _sunk.is_empty() and _sunk_box.grow(1.0).has_point(q) and not is_inf(sunk_floor(q.x, q.y, true)):
 			return true
@@ -7629,6 +7633,25 @@ func _in_pkin_zone(flat: Array) -> bool:
 	return Geometry2D.is_point_in_polygon(c / n, _pkin_zone)
 
 
+## The tribune on Plac Centralny (F's photos, 2026-11-08): landmarks.gd's `trybuna` builds the
+## granite block, its steps, stairs and planters, so OSM's wall lines and flights inside it (the
+## planters' rims, the stairs on top) are left out here: drawn on the ground they read as low grey
+## walls and a ramp. World corners of its zone (Plac Centralny's frame u -15.2..11.2, v -5.2..10.6).
+const TRYBUNA_ZONE: Array[Vector2] = [Vector2(-1080.7, 211.6), Vector2(-1089.9, 186.8),
+		Vector2(-1075.1, 181.3), Vector2(-1065.9, 206.1)]
+
+
+## Whether a line's (or a flight's) centre lies inside the tribune.
+func _in_trybuna(flat: Array) -> bool:
+	var n := flat.size() / 2
+	if n < 1:
+		return false
+	var c := Vector2.ZERO
+	for i in n:
+		c += Vector2(flat[i * 2], flat[i * 2 + 1])
+	return Geometry2D.is_point_in_polygon(c / n, PackedVector2Array(TRYBUNA_ZONE))
+
+
 ## Whether a barrier line's centre lies on Teatr Studio's open forecourt (pkin_grounds.json
 ## `forecourt`): OSM still maps the TR Warszawa site's old fence along the Palace there; the
 ## 2025 photos show the square open, with Bar Studio's tables on it.
@@ -8206,6 +8229,8 @@ func _build_barriers(st) -> void:
 		if not site_wall.is_empty() and str(site_wall[1]) == "":
 			continue
 		if l["k"] != "platform" and _in_pkin_forecourt(l["p"]):
+			continue
+		if _in_trybuna(l["p"]):
 			continue
 		if l["k"] == "fence" and _over_river(l["p"]):
 			continue

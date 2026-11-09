@@ -19,6 +19,7 @@ someone writes its lines.
 - No more trees growing out of the Vistula or standing in the traffic lanes: about 1,000 street trees stepped back onto the pavement, and the fences that stood in the river by the DESKA club are gone.
 
 ## 2026-11-08
+- Plac Centralny: the old parade tribune in the middle of the square is a stepped granite block again, with sitting steps, a stair, planters and young trees on top, and the striped paving with the WARSZAWA letters now lies in front of it, towards Marszałkowska.
 - The Wiślana Szprotka boat race is livelier: the boats pass under Most Świętokrzyski again, the gates now run close along the banks past the beaches and boulevards, each crossing of the river has a floating ramp to jump and a gold ring after it, tucking in behind another boat pulls you along, and Kamil on his jet ski sometimes stops to film himself, so he is beatable.
 - Marszałkowska past the new art museum is as rebuilt in real life: two lanes each way, no odd turnarounds across the tram tracks, a row of young columnar elms on green strips on both sides of the tracks, and parked cars in the bays along the museum.
 - Świętokrzyska between the metro and Rondo ONZ no longer has a tangle of crossed lane lines and a step in the kerb where the street splits into its two carriageways: the lanes, kerbs and bike lane now curve smoothly into each side, and the same is fixed at 25 more such splits around the centre (Królewska, Karowa, Dobra, Solec, Bonifraterska, Waryńskiego, Kruczkowskiego, Mokotowska and others).

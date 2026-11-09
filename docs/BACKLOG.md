@@ -4,6 +4,20 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## Trybuna honorowa on Plac Centralny (F, 2026-11-08, five photos; spec docs/landmarks/specs/plac_centralny.md)
+Fixed: the old parade tribune in the middle of Plac Centralny was OSM's wall lines and steps drawn
+flat (low grey walls, a green patch and a stair that read as a ramp or a tunnel mouth), and the
+2026-11-05 build had put the tribune as a 1.1 m "seat-wall" 38 m further west with the striped
+field over the tribune's real spot. Now the site `trybuna` builds the battered granite block (25 x
+10.4 m), the corner piers with the plaque, three sitting steps whose side cheeks step up (the
+photo's zig-zag), the walk and the east planter with five young trees, the west stair between two
+planters; map_builder.gd leaves OSM's lines and flights inside it out (`TRYBUNA_ZONE`). The striped
+field (slabs with grass joints), its pale heart, WARSZAWA and the deckchairs lie east of it, towards
+Marszałkowska, as in the aerial render; two axis lamps moved off the field. Left:
+- Phone look; the real heights (read off one photo) and the stair's width from a Mac photo pass.
+- Whether the field's stripes are granite with grass joints or wooden decking (render vs. ZDM text).
+- Walkers don't climb the tribune's stairs (it is solid for them and the car).
+- At dusk the Palace floodlight's reach (the old quirk in "The Palace of Culture's grounds") lights the tribune and its trees warm gold.
 ## Powiśle, more real (F, 2026-11-08; plan docs/powisle-plan.md)
 F: too little detail in Powiśle; wants real houses, street details and the power plant. Items by impact:
 - [ ] P1 Elektrownia Powiśle rebuilt from photos (chimney count/height, separate halls, coal chute frame, lift, new blocks)
