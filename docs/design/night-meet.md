@@ -84,3 +84,37 @@ lines are short bubbles, no branching talk.
 - Pay to enter the drag (a stake)? Parked for F; built without.
 - A club card in the notebook, weekly meets at other places (Browary's meet, Wał Miedzeszyński),
   spectators filming with phone lights, underglow paint in Mirek's garage after a win.
+
+## F's pass (2026-11-08)
+
+F played it and found it weak. Changed in `street_meet.gd`:
+
+- **Night.** Accepting at the start ring jumps the clock to 21:00 (PR #582's WAIT TILL 21:00 card, the
+  questline start's own thread).
+- **Meet 2** moved from the plaza south of the stadium (two fences through the ring) to the paved
+  square at the stadium's north foot, under its facade (about 15 m from any fence, road, tree or the
+  car park's parked cars; the open apron off Zieleniecka was tried first and was full of parked cars). Lena and Darek drift a tandem there (Darek on her bumper, 0.8 rad behind, 0.9 m wider).
+  `check_street_meet` now fails if a fence, wall, guard rail or building comes within 17 m of a ring.
+- **Meet 1** talks 9 s (4 lines), not 15 s.
+- **Raids.** Four patrol cars (police.gd `scene_car`, lights on, solid, never chasers) drive in
+  across the plaza from 34 m out and stop 9.5 m round you, noses in, with the gaps between them as
+  the way out; the road chasers still come. They leave out of sight once you are 90 m away.
+- **Minimap.** The racers show as neon dots (hud.gd `set_quest_dots`, pinned to the rim when far)
+  during the raids and the race.
+- **Racers** race at 1.0-1.06 of your top speed, 6-8 m/s² and 7.6 m/s² in corners, with every
+  shortcut in race_cuts.json.
+- **Drag.** A start gate over both lanes (chequered line, lit club-red banner, a small tree of
+  lights); stop on the line under it to stage (START DRAG still works). The count is a big 3, 2, 1,
+  START! on a 0.8 s beat. A rev counter at the bottom middle (0-9 thousand; yellow get ready, green
+  shift now, red the limiter; gear and km/h in the middle): tap it (a second finger) or the ⬆ BIEG
+  button to shift. No auto-shift on time any more: only 2.5 s on the limiter makes the box shift
+  late for you.
+- **Launch and grades (F 2026-11-09, "look how arcade games do it", CSR-style drag games)**: on the
+  line the gas only revs the engine and the car stays put; at green the needle in the blue launch
+  zone (0.55-0.78 of the range) is a perfect launch (a burst), over it wheelspin (accel × 0.55 for
+  0.9 s), under it a bog. Holding the gas from the first amber overshoots: a tap-and-hold at "1"
+  lands it. Shifts: yellow = good, green = perfect (a burst), before the yellow = early (a bog),
+  0.8 s past the green on the limiter = late. No false start by gas any more.
+- **Less on screen during the drag** (F: "lots of dialogs one over another"): the bubbles clear on
+  the line, Tadek speaks while you watch instead, and the radio ticker, info notes and flavour toasts
+  wait until the result (`hud.set_hush`).

@@ -338,6 +338,13 @@ var _target_colour := Color.WHITE
 var _mini_target := Vector2.INF
 var _mini_target_colour := Color.WHITE
 var _mini_dots := PackedVector2Array()
+## A quest's own racers on the minimap (street_meet.gd's club), kept apart from the rivals' dots,
+## which rivals.gd writes every frame.
+var _quest_dots := PackedVector2Array()
+## A focused moment (street_meet.gd's drag, F 2026-11-08: "too many dialogs one over another"):
+## while true the radio's ticker, the info notes (a district discovered) and every toast wait.
+var hush := false
+var _quest_dot_colours := PackedColorArray()
 var _mini_dot_colours := PackedColorArray()
 ## Loop 2d-1: whose the context button is ("call" or "ride").
 var pill_owner := "call"
@@ -1407,6 +1414,8 @@ func _build_ticker() -> void:
 ## Shows a line on the now-playing ticker for a few seconds: the radio's station changes, and
 ## the radio host's lines with an English subtitle (held longer and wrapped to a readable width).
 func ticker(text: String, colour: Color, subtitle := "") -> void:
+	if hush:
+		return
 	text = Lang.pick(text, subtitle)
 	subtitle = ""
 	colour = Access.tint(colour)  # colour-safe (access.gd)
@@ -1472,6 +1481,8 @@ func _build_toast() -> void:
 ## another ambient toast came in the last AMBIENT_TOAST_GAP seconds (G16).
 ## Phase 0.2: also dropped while the car struggles (and a few seconds after: chatter.gd quiet()).
 func ambient_toast(text: String, gloss := "") -> void:
+	if hush:
+		return
 	var now := Time.get_ticks_msec() / 1000.0
 	if _kmh > 10 and now - _ambient_toast_at < AMBIENT_TOAST_GAP:
 		return
@@ -1482,6 +1493,8 @@ func ambient_toast(text: String, gloss := "") -> void:
 
 
 func toast(text: String, gloss := "") -> void:
+	if hush:
+		return  # PT-49: the first-10 guide's hints waited under the drag's rev counter
 	text = Lang.pick(text, gloss)
 	gloss = ""
 	# PT-20 (Autopilot run 20261103-152518): the same toast again while it is still up only
@@ -1748,6 +1761,14 @@ func hide_banner() -> void:
 func set_minimap_dots(points: PackedVector2Array, colours: PackedColorArray) -> void:
 	_mini_dots = points
 	_mini_dot_colours = colours
+
+
+## A quest's racers on the minimap (street_meet.gd, F 2026-11-08: "the other racers don't show on
+## the map"): a little bigger than the rivals' dots, pinned to the rim when out of reach so the
+## pack's direction always shows. Empty arrays clear them.
+func set_quest_dots(points: PackedVector2Array, colours: PackedColorArray) -> void:
+	_quest_dots = points
+	_quest_dot_colours = colours
 
 
 # --- every frame -----------------------------------------------------------------------------
@@ -2092,6 +2113,10 @@ func _paint_minimap_overlay() -> void:
 		if r.length() < _mini_radius - 4.0 * pt:
 			_tri_fan(centre + r, 2.8 * pt, 0.0, TAU, OUTLINE)
 			_tri_fan(centre + r, 2.0 * pt, 0.0, TAU, _mini_dot_colours[i])
+	for i in _quest_dots.size():
+		var r := ((_quest_dots[i] - _mini_car) * s).rotated(_mini_yaw).limit_length(_mini_radius - 5.0 * pt)
+		_tri_fan(centre + r, 3.6 * pt, 0.0, TAU, OUTLINE)
+		_tri_fan(centre + r, 2.7 * pt, 0.0, TAU, _quest_dot_colours[i] if i < _quest_dot_colours.size() else Color.WHITE)
 	# Loop 3g-1: known speed traps (a small hair dryer in police blue) and the chasers (blue and
 	# red in turns, a white outline), within the minimap's reach.
 	for q in _trap_marks:
@@ -2132,8 +2157,9 @@ func _paint_minimap_overlay() -> void:
 		# A side quest's target, pinned to the rim when it's beyond the map's reach: a dot in the
 		# job's colour inside a white ring (the main line's is the star below).
 		var t := ((_mini_target - _mini_car) * s).rotated(_mini_yaw)
-		t = t.limit_length(_mini_radius - 5.0 * pt)
-		side_pin(centre + t, 1.0, _mini_target_colour)
+		# F 2026-11-08: the quest taken reads much stronger: a breathing glow and ring in its colour.
+		t = t.limit_length(_mini_radius - 7.0 * pt)
+		active_pin(centre + t, 1.15, _mini_target_colour)
 	if _main_at != Vector2.INF:
 		# The main line: a gold star in a pulsing ring, pinned to the rim at any distance.
 		var mr := ((_main_at - _mini_car) * s).rotated(_mini_yaw).limit_length(_mini_radius - 8.0 * pt)
@@ -2230,6 +2256,19 @@ func poi_mark(at: Vector2, half: float, colour: Color, shape: int) -> void:
 		_:
 			_tri_rect(Rect2(at - Vector2.ONE * (half + o), Vector2.ONE * (half + o) * 2.0), Color(OUTLINE, colour.a))
 			_tri_rect(Rect2(at - Vector2.ONE * half, Vector2.ONE * half * 2.0), colour)
+
+
+## The active quest's target at `at` (k: its size, 1 on the minimap): F (2026-11-08) "mark the
+## quest I took much stronger on the map and the minimap". A soft glow in the quest's colour
+## breathes under it, a ring pulses out, and the pin itself is a size up, so the one thing the
+## player is doing outshines every start badge and street-job icon (into the overlay's batch).
+func active_pin(at: Vector2, k: float, colour: Color) -> void:
+	var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.006)
+	for g: Array in [[12.0, 0.12], [9.0, 0.2], [6.8, 0.3]]:
+		_tri_fan(at, (float(g[0]) + 2.0 * pulse) * pt * k, 0.0, TAU, Color(colour, float(g[1]) * (0.7 + 0.3 * pulse)))
+	var r0 := (5.4 + 3.0 * pulse) * pt * k
+	_tri_ring(at, r0, r0 + 1.3 * pt * k, 0.0, TAU, Color(1, 1, 1, 0.85 * (1.0 - pulse)))
+	side_pin(at, 1.35 * k, colour)
 
 
 ## A side quest's target at `at` (k: its size): a dot in its colour inside a white ring, with the
@@ -2400,6 +2439,15 @@ func _set_card_width(w: float) -> void:
 func ticker_out() -> void:
 	if _ticker_left > 0.4:
 		_ticker_left = 0.4
+
+
+## The focused moment on or off (see `hush`): on, what is up now fades out at once.
+func set_hush(on: bool) -> void:
+	hush = on
+	if on:
+		ticker_out()
+		_note_left = minf(_note_left, 0.4)
+		_toast_left = minf(_toast_left, 0.3)
 
 
 ## The app's route as a polyline in map coordinates (empty: none), drawn as dots on the minimap.
@@ -2574,6 +2622,8 @@ static func _money(amount: int) -> String:
 
 ## A small card under the wallet for a few seconds (an easter egg found).
 func show_note(title: String, body: String, colour: Color) -> void:
+	if hush:
+		return
 	colour = Access.tint(colour)  # colour-safe (access.gd)
 	_set_note_width()  # landmark card fix
 	_note_title.text = title
