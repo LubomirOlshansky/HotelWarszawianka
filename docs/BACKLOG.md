@@ -35,7 +35,7 @@ F: too little detail in Powiśle; wants real houses, street details and the powe
 - [x] P13a Tamka pass 1 from F's photos (2026-11-08, spec `docs/powisle-tamka.md`): the houses' plasters and balconies, Tamka 10/12's attic, Tamka 16's brick base, the bollards, the footbridge, KEBONAFIDE with his dalmatian. Left: the firewall murals and ad wraps, the Ostrogski castle from photos (no turret), Tamka 16's glass bays, the Kopernika end's planters and bank stairs
 - [x] P13b Powiśle houses pass 2 (2026-11-09): 19 photographed houses off Tamka in `powisle_houses.gd` (plaster, balconies, base, street fronts from the map). Left: Tamka 36 and other firewall murals, Smolna 32 (no usable photo), Pawilon Tańca (inside only), the brick ornament on Klub Bankowca, the stone grid on Carpathia
 - [x] P1 Elektrownia Powiśle from photos and P2-ish Chopin museum rebuild (2026-11-09, specs elektrownia.md, ostrogski.md). Left: the new blocks round the Elektrownia, its yard and night look, the castle stairs from Tamka
-- [x] P7/P8 from F's photos (2026-11-09): Rotunda Dynasy (`rotunda_dynasy`), Park Odkrywców's listening pipes and dishes, the Kahl stone (tamka.gd PARK_*). Left from the photo set: Teatr Ateneum's portico (which face is the door), Buffo, the BUW roof garden and canopy, the corten river stairs, the moorings and the port, the Zajęcza mural, street plates
+- [x] P7/P8 from F's photos (2026-11-09): Rotunda Dynasy (`rotunda_dynasy`), Park Odkrywców's listening pipes and dishes, the Kahl stone (tamka.gd PARK_*). Left from the photo set: Teatr Ateneum's portico (which face is the door), Buffo, the BUW roof garden and canopy, the corten river stairs, the moorings and the port, the Zajęcza mural. Street plates and Teatr Ateneum's portico done in follow-ups (2026-11-09). Still left: Buffo and the Zajęcza mural (parked in QUESTIONS, 2026-11-09: wall and outline not identifiable), the Bulwary's corten stair landing and terraced riverfront steps by the science centre (photos F02/*, needs the quay's heights from the terrain), the moorings and piers; the BUW roof garden is already detailed in `buw.md`
 - [ ] P13 Up to 300 more real houses, quest loop and Tamka first, Museum of Fryderyk Chopin (list H001-H300 in docs/powisle-photos-needed.txt)
 
 ## Trees and fences in the water and on the roads (F, 2026-11-08)
@@ -43,9 +43,9 @@ Fixed: the 2023 laser-scanned trees were kept wherever the scan put them, and th
 and road widths are OSM's, so 211 trunks stood in the Vistula or a pond and 1,149 on the drawn asphalt
 (F's screenshots: a tree in the river by a bridge, a street with trees in the lane); OSM fences at the
 old waterline stood in the river by Most Łazienkowski and WTS DESKA. `object_fixes.py` T1/T2/L6 remove,
-move or trim them; `verify.sh objects` keeps them at 0. Left:
-- TR-1 181 scanned trees stand inside a building outline over 2.5 m high (a courtyard mapped as part of
-  the building, or the outline grown over the crown): not touched, a person should look at a few.
+move or trim them; `verify.sh objects` keeps them at 0. TR-1 fixed (2026-11-09): T3 moves the 181 scanned
+trees standing inside a building outline 2.5 m or higher out of the walls (52) or removes them (129, no free
+spot within 3 m: a courtyard mapped as part of the building); `verify.sh objects` keeps T3 at 0. Left:
 - TR-2 Walls in the water (17 quay, breakwater and fountain walls by Port Czerniakowski and a pond in
   the west) are left as they are on purpose; check on the phone whether any reads as wrong.
 
@@ -957,14 +957,19 @@ history at 0cfc1ff). Areas and progress: docs/plan/road-areas.json, `python3 -I 
   junctions before applying it to the shipped map.
 - Emilii Plater × Świętokrzyska and × Jerozolimskie (IMG_7264 "Y", IMG_7266 stepped widening) still
   come from the OSM ribbons.
-- Splits of a two-way street into two one-way carriageways that `road_fixes.py` fix 6 leaves as they
-  were (2026-11-08: 33 of 60; forks with a leg turning away, a mapped median or island before the
-  legs' ribbons part, a stop line or hatching other than the nose's chevrons, a painted island's
-  closed outline the new lines would cross, legs shorter than the nose, kerb stubs that don't pair).
-  Their legs still fan out from the wide street's axis (lines ending in the road, a kerb notch); the
-  `fixes` ratchets (split_fan_m 143, split_gap_m 552, split_ends 113) go down as they are fixed.
-  Worst: Waryńskiego by Polna (three splits), Waszyngtona, Wybrzeże Szczecińskie (840,-1136),
-  Żelazna, Tamka, Koszykowa.
+- Splits of a two-way street into two one-way carriageways that `road_fixes.py` fix 6 still leaves as
+  they were (2026-11-09, after round 2 redrew 8 of the 33: 25 of 60). Most are not the split F saw:
+  forks where a leg turns away (Koszykowa, Rozbrat, Zamoyskiego, Aleja Zieleniecka by the stadium,
+  Senatorska, Nowowiejska, Stawki), slip roads and ramps whose lines cross the main road's
+  (Waszyngtona at (2038,-505), Wybrzeże Szczecińskie (840,-1136) with a slip and a kerb gap on the
+  south side), junction approaches whose kerbs are already whole (Żelazna ×2, Krucza), a mapped
+  median or island right at the node (Anielewicza, Żelazna, Leszno, Zieleniecka), and Tamka's two
+  long splits (the legs run side by side 20-45 m before they part, a side street's kerb in between).
+  Each needs its own kind of fix (a slip-road merge, a fork's kerb return), not fix 6. The `fixes`
+  ratchets (split_fan_m 105, split_gap_m 510, split_ends 86) go down as they are fixed.
+- Dev tools (2026-11-09): `main.gd` parses `--spots=` twice, the shots list (`NAME:X,Z;...`, ~line 5046)
+  and the stream test's (`X,Z,HEADING/...`, ~line 8732), so a shots run with `--spots=` puts the car
+  somewhere else; use one `--at=X,Z` run per shot until one flag is renamed.
 - Marszałkowska's two U-turns through the tram bed (s 191, 283-291 from the junction): gone with F's ask of
   2026-11-08 (area `marsz_defilad`, docs/plan/marszalkowska-defilad.md); the real zawrotka by Złota waits on
   F (QUESTIONS), and the spec still has no paved gap in a tram median if it comes back.

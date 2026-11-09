@@ -83,7 +83,10 @@ MAP = os.path.join(ROOT, "game", "map")
 # Trees off the water and the roads (F, 2026-11-08, tools/object_fixes.py T1/T2): 44,991 trees (211 scanned
 # trees standing in the river or a pond and 114 with no room off the drawn asphalt out; 1,033 more moved
 # up to 3 m off it). Before: 271896 / 45316.
-EXPECTED = {"trees3d": 269946, "pois": 4572, "trees3d_crown": 44991}
+# Trees out of the walls (BACKLOG TR-1, 2026-11-09, tools/object_fixes.py T3): 44,862 trees (129 scanned
+# trees standing inside a building outline 2.5 m or higher with no free spot within 3 m taken out; 52
+# more moved out of the walls). Before: 269946 / 44991.
+EXPECTED = {"trees3d": 269172, "pois": 4572, "trees3d_crown": 44862}
 # docs/DEMO.md 7 row 7: the lane graph's strongly connected share at least this.
 SCC_SHARE = 0.95
 

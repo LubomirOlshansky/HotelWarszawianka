@@ -45,6 +45,8 @@ triangles each, in the walls' own tile meshes (no draw call).
   either side of the crossing where the ground is low; railings with posts every 1.6 m; steps down
   at an end that stays over the ground. A collider for the deck and piers.
 
+- Street name plates (2026-11-09, `Tamka.plate_spots`): Warsaw's navy plate on a grey pole (`Props.add_street_plates`) at each corner where a named side street ends on a named street (Tamka, Dobra, Topiel, Wybrzeże...), PLATE_OUT 0.9 m off the kerb, clear of roads and houses, 12 m apart; the main street's name high, the side street's low; in the bollards' cell meshes.
+
 ## 4. KEBONAFIDE (F's ask, 2026-11-08)
 
 A parody rap star who lives on Tamka (own name, own lines, no lyrics): platinum hair, round dark

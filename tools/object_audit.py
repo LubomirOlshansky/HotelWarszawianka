@@ -41,6 +41,9 @@ zebras, tram tracks, water, steps and decks. A rule is an artifact the player ca
     T2 road    a scanned tree whose trunk stands on the drawn asphalt (a road strip or carriageway
                area, check_streets S1's test), not on an island or a median (F, 2026-11-08: "... or
                on the road"; the scan is 2023 and the map's road widths are estimates)
+    T3 building  a scanned tree whose trunk stands inside a building outline at least 2.5 m high (a
+               courtyard mapped as part of the building, or an outline grown over the crown; BACKLOG
+               TR-1): its crown is drawn through a wall
 
 tools/object_fixes.py applies the confident verdicts to the map; this file only measures, so
 it is also the before/after scorecard of every street. Deterministic, standard library only.
@@ -80,7 +83,7 @@ RULES = {
     "P10": "shelter far from any bus/tram road", "P11": "parked car in the wrong place",
     "L1": "barrier inside a building", "L2": "barrier stub", "L3": "barrier on top of another",
     "L4": "barrier across a path or zebra", "L5": "stair wall drawn as a slab",
-    "L6": "barrier in the water", "T1": "tree in the water", "T2": "tree on the road",
+    "L6": "barrier in the water", "T1": "tree in the water", "T2": "tree on the road", "T3": "tree inside a building",
 }
 NO_ROOM = ("roof", "steps", "construction", "ruins", "bridge", "carport", "transformer_tower")
 
@@ -405,7 +408,7 @@ def audit(d, sd_items, keep=None):
 
 
 def audit_trees(d, w, keep):
-    """T1 and T2 for the scanned trees (trees3d: x, z, height, crown radius, crown base, kind);
+    """T1, T2 and T3 for the scanned trees (trees3d: x, z, height, crown radius, crown base, kind);
     the index is the tree's number (its crown scale is trees3d_crown[index])."""
     out = []
     t = d.get("trees3d", [])
@@ -418,6 +421,8 @@ def audit_trees(d, w, keep):
             out.append(("T1", "trees3d", i // 6, "tree", round(x, 1), round(z, 1), ""))
         elif w.on_road(p):
             out.append(("T2", "trees3d", i // 6, "tree", round(x, 1), round(z, 1), ""))
+        elif w.in_building(p, 2.5):
+            out.append(("T3", "trees3d", i // 6, "tree", round(x, 1), round(z, 1), ""))
     return out
 
 

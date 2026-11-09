@@ -13,11 +13,15 @@ someone writes its lines.
 - The turning hall at the bottom of the Dworzec Centralny car park ramp is dressed as the car park's entry: two gates with raised barriers and ticket machines, the blue "P PARKING ZŁOTE TARASY" sign, a green exit door and the 2,1 m limit.
 - The Old Town is finished for the trailer: the Market Square houses are painted in their own ochre, salmon, sage, blue and pink fronts, the Cathedral has a steep tiled roof over its nave instead of a flat slab, and the city wall's towers wear tile-red cone roofs.
 - Street race rivals are as fast as your car now. Pani Halina corners harder too, and if you drive fast she races you for real to the line instead of letting you win.
+- Teatr Ateneum has its portico now: two columns, the big coloured ATENEUM letters over the door.
+- Powiśle's crossings have street name plates now: a navy plate on a grey pole at the corners of Tamka, Dobra, Topiel and the other side streets.
+
 - The website, the design wiki and the store listing now use the new app icon: the red car, the helicopter and the Palace at dusk.
 - Nineteen more Powiśle houses look like their photos: their own colours, balconies and shop bands on Leszczyńska, Browarna, Dobra, Topiel, Solec, Aleja 3 Maja and Zajęcza.
 - Elektrownia Powiśle got its real look: the gabled brick hall, the glass lift with the blue box on top and four silver stacks. The Chopin Museum is white with an orange roof on its brick bastion, without the made-up tower.
 - Powiśle's side streets got their black posts along the kerbs and the colours of their real houses.
 - The round house on Dynasy stands on its brick base, and Park Odkrywców has its steel listening pipes and the two whisper dishes.
+- By Majami Wawa on the boulevard, the little bridge over the mouth of Port Czerniakowski is a real bridge now: flat, with bright green railings and lamps, the bike path running straight across it. No more walls, dips and gaps where the car got stuck, and the old building-site fences on the car park next to it are gone.
 - No more trees growing out of the Vistula or standing in the traffic lanes: about 1,000 street trees stepped back onto the pavement, and the fences that stood in the river by the DESKA club are gone.
 - Quitting the night meet from the map now works during the meet, the police raid and the drag too.
 
