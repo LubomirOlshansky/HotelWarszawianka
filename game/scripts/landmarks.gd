@@ -2562,6 +2562,14 @@ const P_SHAFT := [[-21.6, 16.7], [-21.7, 10.8], [-20.4, 10.7], [-20.5, -10.3], [
 ## half width along the face.
 const P_BAYS := [[19.75, 0.75, 1.0, 0.0, 10.0], [-20.45, 0.2, -1.0, 0.0, 10.4], [0.1, 20.05, 0.0, 1.0, 10.4],
 		[-0.4, -20.2, 0.0, -1.0, 10.2]]
+## The gates into the south courtyard (F, 2026-11-08: "the road goes into the building"): OSM maps
+## the two driveways off the service road by the Congress Hall through the south-west block as
+## `tunnel=building_passage` (ways 365218395 and 960211301), which the bake never draws, so the
+## roads ended at a bare wall. Each gate: the wall's plane u, the centre v, the width and the
+## height of the opening (the passages' outer ends; the courtyard behind is private, so closed).
+const P_GATES := [[-82.4, 48.2, 4.2, 4.4], [-82.4, 55.7, 4.2, 4.4]]
+const P_GATE_DARK := Color("#2f2c28")
+const P_GATE_STEEL := Color("#5e6662")
 ## The courtyards (the relation's inner rings).
 const P_COURTS := [
 	[[-68.4, 40.7], [-67.6, 40.7], [-67.6, 36.1], [-48.8, 36.2], [-48.8, 32.8], [-34.4, 32.9], [-34.4, 65.1],
@@ -2706,6 +2714,10 @@ func _build_palace(site: Dictionary) -> void:
 	_prism(drum, g + 22.5, g + 26.0, HALL_METAL.darkened(0.12), HALL_METAL.lightened(0.06), M_STONE, M_STONE)
 	_lbox(-86.0, -0.75, 2.0, 2.0, g + 26.0, g + 27.0, HALL_METAL.darkened(0.2), M_STONE)
 
+	# The gates of the two building passages into the south courtyard.
+	for gt in P_GATES:
+		_palace_gate(float(gt[0]), float(gt[1]), float(gt[2]), float(gt[3]), g, light)
+
 	# The east portico (Mac photo check 2026-11-01: about 25 m wide): six columns before the
 	# entrance, an entablature on them.
 	for k in 6:
@@ -2819,6 +2831,30 @@ func _build_palace(site: Dictionary) -> void:
 	_prism(_rect(0.0, 0.0, 1.0, 1.0), g + 225.0, g + 225.8, SPIRE_GOLD, SPIRE_GOLD, M_GOLD, M_GOLD)
 	_palace_venues(g)
 
+
+
+## A gate in the Palace's base on the west-facing wall at plane u (the wall faces -u): a dark
+## opening of width w and height h at v, under a sandstone surround standing 0.3 m out, closed
+## by a steel gate of vertical bars. Opaque boxes only (M_STONE, no new material).
+func _palace_gate(u: float, v: float, w: float, h: float, g: float, light: Color) -> void:
+	var hw := w * 0.5
+	# the opening: dark, just in front of the wall so it does not fight the facade
+	var a := _w(u - 0.05, v - hw)
+	var b := _w(u - 0.05, v + hw)
+	_mode = M_STONE
+	_wall(a, b, g - 0.4, g + h, -_a, P_GATE_DARK)
+	# the surround: two jambs and a lintel with a keystone
+	_lbox(u - 0.15, v - hw - 0.35, 0.15, 0.35, g - 0.4, g + h, light, M_STONE)
+	_lbox(u - 0.15, v + hw + 0.35, 0.15, 0.35, g - 0.4, g + h, light, M_STONE)
+	_lbox(u - 0.18, v, 0.18, hw + 0.7, g + h, g + h + 0.8, light, M_STONE)
+	_lbox(u - 0.24, v, 0.24, 0.45, g + h - 0.3, g + h + 0.95, light, M_STONE)
+	# the steel gate: a top and a bottom rail, bars about every 0.3 m
+	_lbox(u - 0.12, v, 0.04, hw, g + 0.15, g + 0.3, P_GATE_STEEL, M_STONE)
+	_lbox(u - 0.12, v, 0.04, hw, g + h - 0.45, g + h - 0.3, P_GATE_STEEL, M_STONE)
+	var n := int(w / 0.3)
+	for k in n + 1:
+		var bv := v - hw + 0.15 + (w - 0.3) * float(k) / float(n)
+		_lbox(u - 0.12, bv, 0.03, 0.03, g, g + h - 0.3, P_GATE_STEEL, M_STONE)
 
 # --- The Palace's venues (F, 2026-11-07: "add the entertainment the Palace has, Bar Studio and the others")
 

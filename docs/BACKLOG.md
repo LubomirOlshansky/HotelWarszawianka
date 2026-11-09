@@ -289,6 +289,10 @@ THEATRES, `theatre` curve, dark on Mondays). Left:
 - The north courtyard's car park and the Muzeum Ewolucji / Pałac Młodzieży doors (north side, faces
   the camera never sees) have no sign; the terrace has no ticket queue at the east portico yet.
 - Joke billboard "UWAGA:" by the pigeons on Plac Defilad shows the camera its dark back.
+- The two driveways off the service road by Sala Kongresowa now end at gates in the south-west block (OSM
+  `tunnel=building_passage`, `landmarks.gd` P_GATES; F 2026-11-08, they ran into a bare wall). Left: the
+  gates' look from photos (width, the surround, iron or steel) and the south courtyard behind them,
+  which is not modelled (its own road, way 2886, runs under the base's roof).
 - The bake still turns scrub into plain lawn city-wide; only the Palace's beds are bushes.
 - Event lighting (palace_lights.gd + data/palace_lights.json, F 2026-11-07): built with 13 dates (Pink October dropped, F 2026-11-08) and five
   patterns. Left: the Independence Day thread's white-red tier bands (event_day.gd) join as the 11 November
