@@ -1,0 +1,293 @@
+extends SceneTree
+## The race bench's check (docs/design/race-ai.md, "How we test it"; F 2026-11-09: "racing is the
+## big part of the app ... build something progressive and reliable"). Headless, from the committed
+## map (map/centrum.json), seeded, no city: runs a matrix of races with tools/race_bench.gd (the
+## real traffic and the game's own race code), prints one line a race and the pass marks, and
+## holds the marks against the ones recorded for its matrix in data/race_bench.json:
+##   - a mark recorded "pass" that fails is a problem (exit 1): a change made the racers worse;
+##   - a mark recorded "fail" that passes prints "racebench: WARN ..." (verify.sh shows WARN):
+##     record the win with tools/race_bench.sh --write in the same change;
+##   - a mark recorded "fail" that fails is the known state of the rebuild, listed in the OK line.
+## The quick matrix (the default: the prototype race Powiśle -> Plac Trzech Krzyży with Pani
+## Halina, under a minute) is what tools/verify.sh and CI run; `--full` adds the second start, the
+## guided first race under every situation, two more draws of the traffic and all six rivals (a
+## few minutes; tools/race_bench.sh).
+##   godot --headless --path game --script res://tools/check_race_bench.gd [-- OPTIONS]
+##   --full          the full matrix          --only=TEXT   only races whose id contains TEXT
+##   --trace         once a second, what the rival does (use with --only)
+##   --json=PATH     write every race's numbers to PATH (a file outside the repo's tracked data)
+##   --against=PATH  show an earlier run's numbers (its --json file) beside this run's
+##   --write         record this run's marks (its matrix's) in data/race_bench.json
+##   --list          print the races' ids and quit
+## With Godot's own --verbose (before the --) every car driven through is printed where it happens.
+## Prints "check_race_bench: OK (...)" or the problems (exit 1).
+
+const RaceBench := preload("res://tools/race_bench.gd")
+const BASELINE := "res://data/race_bench.json"
+const HALINA := "Pani Halina"
+
+var _bench: RaceBench
+var _results: Array = []
+var _by_id := {}
+var _problems: Array[String] = []
+## --against: the earlier run's races and marks by id.
+var _before := {}
+var _before_marks := {}
+
+
+func _initialize() -> void:
+	_run()
+
+
+func _run() -> void:
+	await process_frame
+	var args := OS.get_cmdline_user_args()
+	var full := "--full" in args
+	var only := ""
+	var json_path := ""
+	for a in args:
+		if a.begins_with("--only="):
+			only = a.trim_prefix("--only=")
+		elif a.begins_with("--json="):
+			json_path = a.trim_prefix("--json=")
+		elif a.begins_with("--against="):
+			_load_before(a.trim_prefix("--against="))
+	_bench = RaceBench.new()
+	if not _bench.open(root):
+		print("check_race_bench: %s" % _bench.error)
+		quit(1)
+		return
+	var specs := _matrix(full)
+	if only != "":
+		specs = specs.filter(func(s: Dictionary) -> bool: return RaceBench.race_id(s).contains(only))
+	if "--list" in args:
+		for s: Dictionary in specs:
+			print(RaceBench.race_id(s))
+		_bench.close()
+		quit(0)
+		return
+	var t0 := Time.get_ticks_msec()
+	for s: Dictionary in specs:
+		s["trace"] = "--trace" in args
+		_race(s)
+	var secs := (Time.get_ticks_msec() - t0) / 1000.0
+	_bench.close()
+	for c in root.get_children():
+		c.queue_free()
+	await process_frame
+
+	var marks := RaceBench.judge(_results)
+	var matrix := "full" if full else "quick"
+	# --write records what this run found, so its marks are not held against the old record
+	# (a race that could not run stays a problem).
+	var writing := "--write" in args and only == ""
+	var recorded := _recorded(matrix, writing)
+	var passing := PackedStringArray()
+	var known := PackedStringArray()
+	print("")
+	for m: Dictionary in marks:
+		var want := String(recorded.get(m["id"], "?"))
+		var now := "not run" if m["pass"] == null else ("pass" if m["pass"] else "FAIL")
+		print("  %-16s %-8s recorded %-5s %s%s" % [m["title"], now, want, m["value"], "  [%s]" % m["worst"] if m["worst"] != "" else ""])
+		if _before_marks.has(m["id"]) and String(_before_marks[m["id"]]["value"]) != String(m["value"]):
+			print("  %-16s %-8s before: %s" % ["", "", _before_marks[m["id"]]["value"]])
+		if m["pass"] == null:
+			continue
+		if m["pass"]:
+			passing.append(m["title"])
+			if want == "fail" and only == "" and not writing:
+				print("racebench: WARN %s now passes: record it in game/data/race_bench.json (tools/race_bench.sh --write)" % m["title"])
+		else:
+			known.append(m["title"])
+			if want != "fail" and only == "" and not writing:
+				_problems.append("%s fails and is recorded as %s: %s [%s]" % [m["title"], want, m["value"], m["worst"]])
+	for r: Dictionary in _results:
+		if r.has("error"):
+			_problems.append(String(r["error"]))
+	if json_path != "":
+		_write_json(json_path, {"matrix": matrix, "seconds": secs, "marks": marks, "races": _results})
+	if writing:
+		_record(matrix, marks)
+	if _problems.is_empty():
+		print("check_race_bench: OK (%s matrix, %d races in %.0f s · pass: %s · known fails of the rebuild: %s)" % [
+				matrix, _results.size(), secs, ", ".join(passing) if not passing.is_empty() else "none",
+				", ".join(known) if not known.is_empty() else "none"])
+		quit(0)
+	else:
+		for p in _problems:
+			print("  PROBLEM " + p)
+		print("check_race_bench: %d problems" % _problems.size())
+		quit(1)
+
+
+## The races to run. Quick: the prototype race from Tamka (where F raced) with Pani Halina: a
+## ladder race on clear roads against every test player, in heavy traffic, with the street
+## blocked and with a crash; the guided first race; the three forced routes from Leszczyńska;
+## one race twice. Full: both starts and both tunings under everything, and all six rivals.
+func _matrix(full: bool) -> Array:
+	var out: Array = []
+	for player: String in RaceBench.PLAYERS:
+		out.append(_spec(HALINA, "ladder", "tamka", "clear", player))
+	for player: String in (RaceBench.PLAYERS if full else ["none", "stopped", "average", "follower"]):
+		out.append(_spec(HALINA, "ladder", "tamka", "heavy", player))
+	for situation: String in ["blocked", "crash"]:
+		for player: String in (["none", "average", "follower"] if full else ["none"]):
+			out.append(_spec(HALINA, "ladder", "tamka", situation, player))
+	for player: String in (RaceBench.PLAYERS if full else ["none", "stopped", "average", "follower"]):
+		out.append(_spec(HALINA, "first", "tamka", "clear", player))
+	# Route sense: the free choice from Leszczyńska and each of the three routes forced.
+	out.append(_spec(HALINA, "ladder", "leszczynska", "clear", "none"))
+	for route: String in RaceBench.ROUTES:
+		var s := _spec(HALINA, "ladder", "leszczynska", "clear", "none")
+		s["via"] = RaceBench.ROUTES[route]
+		s["via_name"] = route
+		out.append(s)
+	# The same race twice (heavy traffic: the most there is to differ).
+	out.append(_spec(HALINA, "ladder", "tamka", "heavy", "average"))
+	if not full:
+		return out
+	# Route sense in traffic: the free choice from Leszczyńska is in the loop below.
+	for route: String in RaceBench.ROUTES:
+		var s := _spec(HALINA, "ladder", "leszczynska", "heavy", "none")
+		s["via"] = RaceBench.ROUTES[route]
+		s["via_name"] = route
+		out.append(s)
+	# Two more draws of the town's cars.
+	for draw: int in [1, 2]:
+		for player: String in ["none", "average"]:
+			var s := _spec(HALINA, "ladder", "tamka", "heavy", player)
+			s["seed"] = draw
+			out.append(s)
+	for situation: String in ["heavy", "blocked", "crash"]:
+		for player: String in (RaceBench.PLAYERS if situation == "heavy" else ["none", "average"]):
+			out.append(_spec(HALINA, "first", "tamka", situation, player))
+	for tuning: String in ["ladder", "first"]:
+		for situation: String in RaceBench.SITUATIONS:
+			for player: String in RaceBench.PLAYERS:
+				if tuning == "ladder" and situation == "clear" and player == "none":
+					continue
+				if situation in ["blocked", "crash"] and not player in ["none", "average"]:
+					continue
+				out.append(_spec(HALINA, tuning, "leszczynska", situation, player))
+	for rung: Dictionary in RaceBench.Ladder.RUNGS:
+		if rung["rival"] == HALINA:
+			continue
+		for situation: String in ["clear", "heavy"]:
+			for player: String in ["none", "stopped", "average"]:
+				out.append(_spec(rung["rival"], "ladder", "tamka", situation, player))
+	return out
+
+
+func _spec(rival: String, tuning: String, start: String, situation: String, player: String) -> Dictionary:
+	return {"rival": rival, "tuning": tuning, "start": RaceBench.STARTS[start], "start_name": start, "situation": situation, "player": player}
+
+
+## Runs one race (first the clear one it is planned from, for a wall or a wreck) and prints it.
+func _race(spec: Dictionary) -> void:
+	var situation := String(spec["situation"])
+	if situation == "blocked" or situation == "crash":
+		var plan := spec.duplicate()
+		plan["situation"] = "clear"
+		plan["player"] = "none"
+		plan.erase("trace")
+		var ref_id := RaceBench.race_id(plan)
+		if not _by_id.has(ref_id):
+			_race(plan)
+		var edges := PackedInt32Array(_by_id[ref_id].get("edges", []))
+		if situation == "blocked":
+			spec["wall"] = _bench.plan_wall(spec, edges)
+		else:
+			spec["wreck"] = _bench.plan_wreck(spec, edges)
+	var r := _bench.race(spec)
+	_results.append(r)
+	if r.has("error"):
+		print("  %s: %s" % [r["id"], r["error"]])
+		return
+	var ratio := ""
+	if not _by_id.has(r["id"]):
+		_by_id[r["id"]] = r
+	var base: Dictionary = _by_id.get("%s/none" % String(r["id"]).get_slice("/via-", 0).rsplit("/", true, 1)[0], {})
+	if not base.is_empty() and base["finished"] and r["finished"] and not r.has("via"):
+		ratio = "x%.2f" % ((float(r["time"]) - float(r["hold_s"])) / maxf(float(base["time"]) - float(base["hold_s"]), 1.0))
+	var extras := PackedStringArray()
+	if float(r["hold_s"]) > 0.0:
+		extras.append("waited %.0f s at the line" % r["hold_s"])
+	if r.has("player_time"):
+		extras.append("the player home in %.1f s" % r["player_time"])
+	if int(r["overlaps"]) > 0:
+		extras.append("THROUGH %d cars (%s)" % [r["overlaps"], ", ".join(PackedStringArray(r["overlap_log"]))])
+	if int(r["slips"]) > 0:
+		extras.append("%d slips (%d seen)" % [r["slips"], r["slips_seen"]])
+	if int(r["jumps"]) > 0:
+		extras.append("put elsewhere by the game %d times (%d seen)" % [r["jumps"], r["jumps_seen"]])
+	if int(r["touches"]) > 0:
+		extras.append("touched %d cars" % r["touches"])
+	if int(r["hard_stops"]) > 0:
+		extras.append("stopped dead %d times (%s)" % [r["hard_stops"], ", ".join(PackedStringArray(r["hard_log"]))])
+	if float(r["lat_max"]) > RaceBench.PLAYER_GRIP:
+		extras.append("sideways %.0f m/s²: %s" % [r["lat_max"], r["lat_at"]])
+	if int(r["overtaken"]) > 0:
+		extras.append("passed by %d town cars" % r["overtaken"])
+	if r.has("wall"):
+		extras.append("wall on %s (its way %d m, the best other way %d m, turning round at the wall %d m)" % [r["wall"]["street"], r["wall"]["base_m"], r["wall"]["alt_m"], r["wall"]["turn_m"]])
+	if r.has("wreck"):
+		extras.append("wreck on %s, knocked at %.0f s" % [r["wreck"]["street"], r.get("knock_s", -1.0)])
+	if _before.has(r["id"]):
+		var b: Dictionary = _before[r["id"]]
+		extras.append("before: %s%.1f s, crawl %.1f s, behind %.1f s, through %d cars" % [
+				"" if b["finished"] else "DNF ", float(b["time"]), float(b["crawl_longest_s"]), float(b["behind_room_longest_s"]), int(b["overlaps"])])
+	print("  %-46s %s %6.1f s %-6s %3.0f km/h (top %3.0f) · crawl %5.1f s (longest %5.1f) · behind %4.1f s · stood %4.1f s · passed %d · pace x%.2f-%.2f · %s · %.0f cars, %.1f s%s" % [
+			r["id"], "    " if r["finished"] else "DNF ", r["time"], ratio, r["mean_kmh"], r["top_kmh"], r["crawl_s"], r["crawl_longest_s"],
+			r["behind_room_longest_s"], r["stopped_s"], r["passes"], r["pace_lo"], r["pace_hi"], " > ".join(PackedStringArray(r["streets"])),
+			r["cars"], float(r["wall_ms"]) / 1000.0, "\n      " + " · ".join(extras) if not extras.is_empty() else ""])
+
+
+## --against: an earlier run's races and marks (the file --json wrote).
+func _load_before(path: String) -> void:
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path)) if FileAccess.file_exists(path) else null
+	if not parsed is Dictionary:
+		_problems.append("cannot read %s" % path)
+		return
+	for r: Dictionary in parsed.get("races", []):
+		if not _before.has(r["id"]):
+			_before[r["id"]] = r
+	for m: Dictionary in parsed.get("marks", []):
+		_before_marks[m["id"]] = m
+
+
+## The marks recorded for `matrix` ("quick" or "full"): {mark id: "pass" | "fail"}. None recorded
+## is a problem, unless this run is the one that records them (`writing`).
+func _recorded(matrix: String, writing: bool) -> Dictionary:
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(BASELINE)) if FileAccess.file_exists(BASELINE) else null
+	if parsed is Dictionary and (parsed as Dictionary).get(matrix) is Dictionary:
+		return parsed[matrix]
+	if not writing:
+		_problems.append("%s has no marks for the %s matrix (record them: tools/race_bench.sh --write)" % [BASELINE, matrix])
+	return {}
+
+
+## --write: this run's marks become the ones recorded for its matrix (a mark this run did not
+## judge keeps its record; the other matrix's stay as they are).
+func _record(matrix: String, marks: Array) -> void:
+	var doc := {}
+	if FileAccess.file_exists(BASELINE):
+		var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(BASELINE))
+		if parsed is Dictionary:
+			doc = parsed
+	var gates: Dictionary = doc[matrix] if doc.get(matrix) is Dictionary else {}
+	for m: Dictionary in marks:
+		if m["pass"] != null:
+			gates[m["id"]] = "pass" if m["pass"] else "fail"
+	doc["about"] = "The race bench's pass marks as recorded (docs/design/race-ai.md, game/tools/check_race_bench.gd), for the quick matrix (verify and CI) and the full one (tools/race_bench.sh): a mark recorded pass that fails is a problem; one recorded fail that passes is a warning until it is recorded here (tools/race_bench.sh --write)."
+	doc[matrix] = gates
+	_write_json(BASELINE, doc)
+	print("check_race_bench: recorded the %s matrix's marks in %s" % [matrix, BASELINE])
+
+
+func _write_json(path: String, doc: Dictionary) -> void:
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	if f == null:
+		_problems.append("cannot write %s" % path)
+		return
+	f.store_string(JSON.stringify(doc, "\t", false) + "\n")
+	f.close()

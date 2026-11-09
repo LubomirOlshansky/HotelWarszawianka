@@ -729,6 +729,8 @@ Beta goal: a visitor explores the city with everything open, an easy city drive,
 - [x] R1 racer driving mode and R2 fair rubber band, R4's numbers per rung, police chasers in racer mode (2026-11-04; phone feel open)
 - [x] Human rivals: they lead and you chase, shortcuts across plazas and car parks, mistakes, Słoik's wrong turn, blocking and cutting in (F, 2026-11-05; street-races.md section 9; phone feel open)
 - [x] Rivals as fast as your car, and a fast player gets a real race (no lift-off, they aim to lead; F, 2026-11-09; Halina: skilled headless driver now loses by 28 m, was a 159 m win)
+- [x] Racer AI rebuild, step 1: the race bench and today's baseline (F, 2026-11-09: "she was still going very slow, and like the mob"; plan docs/design/race-ai.md; verify step `racebench`; nothing changes in the game yet)
+- [ ] Racer AI rebuild, steps 2-6b: skill instead of the rubber band, routes by arrival time, a racing line, real overtakes and recovery, race links, personalities, one race session for every race (race-ai.md section 8; BACKLOG "Racer AI rebuild")
 - [ ] R3 part 2: wrong-way hops, routes by time, the rival's shortcut shown after a loss
 - [x] R5 show the race, part 1: route on the minimap, gap in seconds, lead-change toast, finish margin (2026-11-04, beta values; A/B open in QUESTIONS); left: the rival's edge arrow, slipstream (A/B)
 - [ ] R6 the city reacts; R7 race kinds (later)

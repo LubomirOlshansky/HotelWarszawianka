@@ -4,6 +4,35 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## Racer AI rebuild (F, 2026-11-09; docs/design/race-ai.md)
+
+F (two phone screenshots, the race against Pani Halina from Powiśle to Plac Trzech Krzyży): "she was
+still going very slow, and like the mob, not behave like real racer and competitive", with a
+friend's six points (racers' own driving rules, shortcuts in the racers' map, routes by arrival
+time, the route apart from the driving with real recovery, personalities, difficulty from skill)
+and "the first prototype should be one race with three useful routes". Cause, measured: a rival's
+speed is a function of the player's (the ladder's band holds a rival to 0.30-0.77 of its pace, the
+guided first race copies the player's progress), so on the same empty streets Halina takes 74 s
+alone and 180 s with a slow player; flat out the six rivals are within 6 % of each other. Plan:
+eight PRs (race-ai.md section 8), each measured on the race bench.
+- [x] Step 1 (2026-11-09): the race bench (`game/tools/race_bench.gd`, `check_race_bench.gd`, `tools/race_bench.sh`; verify step `racebench`, in CI), the prototype race with three routes, clear roads, Busy traffic, a blocked street and a crash against six test players, eleven pass marks, today's driver recorded in `game/data/race_bench.json` (2 pass, 9 fail in the full matrix of 107 races); `rivals.gd`'s arming and pacing as a static core the bench calls (no behaviour change: the same race log line for line)
+- [ ] Step 2: skill profiles replace the band in the ladder and the guided first race (marks: Independence, No crawl, Skill ladder)
+- [ ] Step 3: the route planner by arrival time, a new plan at a blocked street (Re-routes; Route sense in traffic)
+- [ ] Step 4a: the racing line and a speed for every metre (Honest car's grip)
+- [ ] Step 4b: overtaking with a committed side, contact as a collision, recovery (Passes traffic, No ghosting, Recovers, Finishes, Honest car's brakes)
+- [ ] Step 5: race links (alleys, courtyards, car parks, wrong-way hops), each proven with the player's car
+- [ ] Step 6a: personalities, visible decisions, the result card with both routes; 6b: one race session for the pack race, Trzy mosty, police chasers and crazy drivers
+- [ ] F's four defaults (QUESTIONS, 2026-11-09): the first race easy but real, an easier rematch after two losses, wrong-way hops for Seba and Mike only, rivals defend but never ram
+
+Found by the bench in today's driver (each is fixed by a step above; listed so none is lost):
+- [ ] The guided first race never ends when the player does not move on a one-lane street (Tamka): Halina waits 12 s, then stands behind the player's car for good (step 4b)
+- [ ] The guided first race is not a sure win: from Leszczyńska the autopilot's average player loses to Halina (step 2, parked question 1)
+- [ ] A rival drives through the player's car when it is in its lane (first race, Solec, 11 s in) (step 4b)
+- [ ] In Busy traffic a rival drives through 3 to 14 cars a race and is stopped dead by the game 2 to 11 times: its brakes stop at 10 m/s² (`traffic.gd` `_drive`) (steps 4a, 4b)
+- [ ] 99 km/h through the 48° bend on Książęca (`--at=358,429`) and 96 km/h through a junction of Plac Zofii Wóycickiej (`--at=488,-220`): bends inside a street are taken at full speed (step 4a)
+- [ ] The town's cars pass a racing rival (up to 2 a race in Busy traffic) (step 4b)
+
+
 ## Trybuna honorowa on Plac Centralny (F, 2026-11-08, five photos; spec docs/landmarks/specs/plac_centralny.md)
 Fixed: the old parade tribune in the middle of Plac Centralny was OSM's wall lines and steps drawn
 flat (low grey walls, a green patch and a stair that read as a ramp or a tunnel mouth), and the
@@ -1383,7 +1412,7 @@ police smarter, then test with Autopilot": R1, R2, R4's numbers and the police c
 - [ ] R3 note (beta values R-4): rivals still route with the off-map links (`rivals.gd _distances`); the player can't drive them. Fix with routes by time
 - [ ] R6 the city reacts (honks, police on the rival); R7 race kinds (later)
 - [x] Race-AI runs: `tools/race_ai.sh` (every rival vs an average and a skilled autopilot), `--race-debug` (2026-11-04)
-- [ ] A headless `check_race_ai.gd` in verify (the runs take ~25 min: too long for verify; a short fixed-route version)
+- [x] A headless race check in verify: done as the race bench (2026-11-09, verify step `racebench`, 21 races in 30 s without the city; "Racer AI rebuild" at the top)
 - [ ] Street racer leaderboard "Ranking ulicy" (F, 2026-11-04; design in street-races.md section 8): 20 made-up drivers ranked by street points, win to climb, defence challenges, tier unlocks, an APKA: WYŚCIGI screen and best times per route; local first, online best times only with F's yes (L1-L5)
 
 ## Beta values: deliveries, races and steering (F, 2026-11-04)
