@@ -42,3 +42,16 @@ L2, triangle budget 1950. Shots: `--solo=elektrownia --solo-look=lit`, then in t
 | windows | arched panels x 2 rows | 5 m pitch | all walls | M_GLASS | 3 facade |
 | cornice | grown ring + parapet | 0.9 m | y 18.1..19.9 | M_STONE | 3 facade |
 | chimneys | 2 frustums, 2 bands | 48 m, r 2.0 to 1.2 | far ends | M_STONE | 1 identity |
+
+## Rebuild from F's photos (2026-11-09)
+
+F's Mac set `powisle/A01-A13` settles the photo checks: the turbine hall is a wide gabled brick
+hall (orange brick #a35e42) under a mid-grey zinc roof (#737a7f) with a glazed ridge, its front
+gable to the Dobra corner crossed by black steel braces round two big dark windows; before it the
+glass lift tower (27 m) with a blue corrugated box on top (#2f8fd4) and a blue box bay half way
+up; four aluminium stacks (#c3c7ca, 33 m) with flared tops, two by the front, two further back.
+The rest of the outline stays 13 m of brick with two rows of arched windows in dark steel frames.
+The hall stands on the largest rectangle the outline holds: centre (245, -740), axis
+(0.7885, -0.615), 78.4 x 30.8 m, eaves 16 m, ridge 25 m. 1634 triangles (budget 1950), no new
+material or draw call. Left: the new blocks round it (A11), the yard's lawn and string lights
+(A06), the night look (A12), the sign as a parody (A13).

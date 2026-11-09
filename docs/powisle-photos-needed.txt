@@ -1,0 +1,427 @@
+POWIŚLE: PHOTOS AND EVERYTHING ELSE NEEDED (2026-11-08)
+Plan: docs/powisle-plan.md (PR #590). Photos are reference only, never committed.
+Folder suggestion on the Mac: warsaw-needed-photos/powisle/<id>/ plus a SOURCES.md.
+How to shoot: from the street, whole facade straight on, then 2-3 close-ups (ground floor
+shops, gate, cornice), then a view of the roof from an angle or a window. Evening shot of
+lit windows where marked (N). Where a thread can fetch the photo itself (Mapillary,
+Panoramax, web), it will; this list is what F can shoot or pick if easy.
+
+=== A. ELEKTROWNIA POWIŚLE (Dobra 42), most important ===
+A01 Dobra side, whole front, wide
+A02 Corner Dobra / Wiślana (or Elektryczna), both walls
+A03 Browarna side
+A04 The chimneys: all of them in one frame from the yard or the river side, so the count shows
+A05 Each chimney's top (cap, bands), and its base
+A06 The yard east: floor, benches, trees, the chill spots
+A07 The food hall inside: the big roof, the steel frame, the coal chutes, the glass lift tower
+A08 The glass lift / coal crane tower from outside, with the roof it stands on
+A09 Dormers on the roof (a close-up of two)
+A10 The arched windows: one close-up (frame colour, how deep)
+A11 New blocks beside it (hotel, offices, flats): each whole facade
+A12 Night: the whole front lit (N), and the yard lit (N)
+A13 The entrance with the sign: where it is, what it says (we will only use a parody)
+
+=== B. MISSING BUILDINGS (not in the game yet) ===
+B01 Barceló hotel, Zajęcza
+B02 Carpathia Office House, Zajęcza
+B03 RPZ Powiśle substation 110/15 kV, Zajęcza (brick)
+B04 Klub Bankowca, Smolna
+B05 Autoreduta Powiśle, Aleja 3 Maja
+B06 Arkada shopping centre, Aleja 3 Maja
+B07 Orlen station, Aleja 3 Maja
+B08 Nordic Park offices, Aleja 3 Maja
+B09 UW Wydział Artes Liberales, Dobra
+B10 UW Collegium Iuridicum IV (Prawa i Administracji), Dobra
+B11 Pawilon Tańca, Dobra
+B12 XVIII LO im. Zamoyskiego, Smolna
+B13 Chopin Museum front, Tamka (the Ostrogski side from the street)
+B14 Kamienica Jana Struskiego, Dobra
+B15 Bella Italia / Młodsza Siostra corner (Dobra) as shops
+
+=== C. STREETS: one photo per house, then the whole row (house numbers from the map) ===
+Tamka: 1A 4 5 10/12 13 13A 14 16 17 18 19/23 20 22/24 29 31 33 33A 34 34A 36 37
+Dobra: 3 5 6 7 8/10 9 11 13 15 17 18/20 19 22/24 27 28 29 31 32 40 54 56/66
+Solec: 28 30 30A 36 48 52 54 56 58/60 62 66 79 83 85 97 99 101 103 109 109A 111 113 115
+Smolna: 8 9 10 10A 16 18 20 32
+Zajęcza: 1A 2A 2B 4 7 8 9 10 11 13 15
+Topiel: 6 11 15B 18 19 21 23 25 27 29
+Radna: 1/7 2/4 6 9 10 11 12 13 15 15A 17
+Leszczyńska: 1 1A 3 4 6 8 10 12
+Lipowa: 1A 5 7
+Browarna: 4 6
+Drewniana: 1 5 7 9
+Oboźna: 1 1A 3
+Czerwonego Krzyża: 2 4 6
+Cicha: 1 3 5 7
+Dynasy: 2 2A 4 6 8 10
+Juliana Smulikowskiego: 1/3 2 2A 3 4 4A 4B 4C 5 6/8 7 7A 9 10 11 12 13 14
+Stefana Jaracza: 1 3 6 8
+Św. Franciszka Salezego: 1 2 4 6
+Foksal: 1A 2A
+Leona Kruczkowskiego: 3 3B 12A 12C 14 16
+Aleja 3 Maja: 2 3 5 5B 7 7A 14
+Wybrzeże Kościuszkowskie: 17 19 21 21A 35 37A 39 41 43 43B 43C 45
+(If shooting is too much: priority streets are Solec, Smolna, Zajęcza, Radna, Browarna, Topiel.)
+
+=== D. STREET DETAILS (per street, 3-5 photos each) ===
+D01 Surface: setts, cobbles, asphalt patches, kerbs, tram-less narrow streets (Browarna, Radna, Lipowa, Leszczyńska)
+D02 Lamps: the old cast-iron / arm lamps on the tenement streets, and the new ones
+D03 Benches, bins, bike racks, planters, bollards, kiosks, advertising columns
+D04 Street name plates and house number plates
+D05 Pavement cafés: umbrellas, chairs, planters (Browarna, Tamka, Dobra)
+D06 Crossings and kerb ramps; the Aleja 3 Maja underpass edge
+D07 Parked cars on both kerbs (how tight)
+D08 Shop fronts: bakery, vinyl shop, bookshop, bars on Zajęcza (Centrala, Champs, Gatsby, Kakadu) as place types, we use parody names
+
+=== E. PARKS AND OPEN PLACES ===
+E01 Skwer Kahla   E02 Park Odkrywców   E03 Park Beyera   E04 Skwer Wodiczko
+E05 Złota Kaczka corner   E06 BUW garden surroundings   E07 Smolna steps / escarpment stairs
+E08 Plac Zofii Wóycickiej   E09 Playgrounds (where they are)
+
+=== F. WATER EDGE ===
+F01 Wybrzeże Kościuszkowskie road and flood wall   F02 Stairs down to the boulevard
+F03 Syrenka plinth   F04 Moorings   F05 Bridge abutments (Świętokrzyski, Poniatowski)
+
+=== G. LIFE (notes, not photos) ===
+G01 Where students gather on Dobra and at what times
+G02 Where runners/cyclists go on the boulevard; evening crowd on Zajęcza
+G03 A morning queue (which bakery/café)
+
+=== H. DECISIONS FOR F ===
+H1 Elektrownia chimney count and height: fix from photos (game has 2 at 48 m; sources say recreated 30 m stacks). Default: yes.
+H2 Furniture density 1.5 x the city average for Powiśle. Default: yes.
+H3 Order of work: Elektrownia first, then houses street by street. Default: yes.
+H4 Device: Mac look checks and iPhone run after each item need F's yes.
+H5 OK to fetch all photos from the web ourselves (reference only)? Standing yes since 2026-11-08.
+
+=== I. EXTRA (F, 2026-11-08 22:30): MORE HOUSES, THE BIKE QUEST, MUSEUM OF FRYDERYK CHOPIN, TAMKA ALIVE ===
+
+I1. The bike-quest route (Kawowy rajd): dock by Elektrownia -> KROPKA. (Leszczyńska 1A) -> GLON (Dobra)
+    -> STORCZYK (Tamka 33) -> MANTRA (Elektryczna 2) -> back to the dock. The houses along this
+    loop are tier T2 below (within 250 m of Elektrownia / the castle). Every house on the loop should
+    be a real, different house, with its own shop, gate and colour: that is what the rider sees.
+
+I2. Museum of Fryderyk Chopin (Muzeum Fryderyka Chopina, Okólnik 1, in the Ostrogski Castle,
+    next to the Chopin Institute at Tamka 43). Photos wanted:
+    M01 the castle from Okólnik (the museum entrance)    M02 the courtyard and the glass link
+    M03 the castle from Tamka (gate, fence, lawn)        M04 the Tamka front of the Institute
+    M05 the garden side and the staircase down to the river road
+    M06 night, lit (N)    M07 the entrance sign and the queue
+    Game today: site `ostrogski` (724 tris), Mac look check still open.
+
+I3. Tamka alive (the street the rider sees most). Wanted for the whole length, Nowy Świat end
+    to Wybrzeże, both sides:
+    T01 every house front (see section C, Tamka list)   T02 each ground floor: shop, café, door
+    T03 the kerb, setts and pavement, lamps, benches    T04 trees in the street and the gaps (missing houses)
+    T05 evening: lit windows, bar signs (N)             T06 the crossing at Tamka / Dobra / Topiel
+    T07 pavement café (STORCZYK, Tamka 33) with its chairs    T08 bus stop, bike dock, parked cars
+    In the game: shop fronts, people on the pavement, a dog walker, a delivery van, a queue at a
+    bakery, street music in the evening: all as notes for the thread (no photos needed beyond T01-T08).
+
+I4. THE HOUSE LIST: 300 buildings of Powiśle from the map (no outbuildings, no sheds under 90 m2),
+    numbered H001..H300. Tier T1 = Tamka (all), T2 = within 250 m of Elektrownia or the castle
+    (the quest loop), T3 = the other Powiśle streets, T4 = the rest. Shoot or fetch in this order.
+    Format: id, tier, nearest street | address if the map has one | name if any | OSM kind and height |
+    where it is on the game map (x east, z south, origin at Pl. Defilad side; approximate).
+    Not all will be found; skip what can't be found, the thread builds the rest from LoD2 and style.
+
+H001 T1 Tamka | no address | - | yes 27 m | game x -99, z -307
+H002 T1 Tamka | no address | - | yes 4 m | game x -98, z -321
+H003 T1 Tamka | no address | - | museum 4 m | game x -89, z -262
+H004 T1 Tamka | no address | - | yes 24 m | game x -86, z -305
+H005 T1 Tamka | no address | - | yes 8 m | game x -85, z -314
+H006 T1 Tamka | no address | Zamek Ostrogskich | palace 11 m | game x -71, z -275
+H007 T1 Tamka | no address | - | yes 41 m | game x -67, z -327
+H008 T1 Tamka | Tamka 36 | - | apartments 14 m | game x 1, z -330
+H009 T1 Tamka | Tamka 34 | - | apartments 18 m | game x 38, z -346
+H010 T1 Tamka | Tamka 31 | - | apartments 27 m | game x 84, z -324
+H011 T1 Tamka | no address | Hostel Tatamka | hotel 14 m | game x 97, z -366
+H012 T1 Tamka | Tamka 29 | - | apartments 27 m | game x 117, z -330
+H013 T1 Tamka | Tamka 20 | - | apartments 31 m | game x 165, z -403
+H014 T1 Tamka | Tamka 18 | - | apartments 18 m | game x 186, z -416
+H015 T1 Tamka | Tamka 17 | - | yes 4 m | game x 195, z -373
+H016 T1 Tamka | Tamka 17 | - | apartments 34 m | game x 203, z -375
+H017 T1 Tamka | Tamka 16 | - | office 24 m | game x 210, z -437
+H018 T1 Tamka | Tamka 14 | - | apartments 18 m | game x 229, z -443
+H019 T1 Tamka | Solec 66 | - | retail 4 m | game x 247, z -413
+H020 T1 Tamka | Tamka 10/12 | - | apartments 18 m | game x 249, z -477
+H021 T1 Tamka | Tamka 13A | - | apartments 18 m | game x 261, z -427
+H022 T1 Tamka | Tamka 13 | - | apartments 18 m | game x 275, z -435
+H023 T1 Tamka | no address | - | yes 21 m | game x 308, z -509
+H024 T1 Tamka | Tamka 4 | - | apartments 18 m | game x 335, z -538
+H025 T1 Tamka | no address | - | government 14 m | game x 400, z -533
+H026 T1 Tamka | Wybrzeże Kościuszkowskie 41 | - | office 8 m | game x 445, z -562
+H027 T2 Cicha | Cicha 5 | - | apartments 11 m | game x 8, z -406
+H028 T2 Cicha | Cicha 3 | - | apartments 14 m | game x 18, z -393
+H029 T2 Cicha | Cicha 1 | - | apartments 18 m | game x 28, z -373
+H030 T2 Dobra | Radna 1/7 | - | apartments 21 m | game x 79, z -779
+H031 T2 Dobra | Leszczyńska 6 | - | apartments 21 m | game x 90, z -754
+H032 T2 Dobra | Dobra 40 | - | yes 19 m | game x 206, z -678
+H033 T2 Dobra | Dobra 40 | - | yes 23 m | game x 207, z -679
+H034 T2 Dobra | Dobra 40 | - | yes 19 m | game x 207, z -685
+H035 T2 Dobra | Drewniana 1 | - | yes 23 m | game x 237, z -645
+H036 T2 Dobra | Dobra 29 | - | apartments 21 m | game x 243, z -516
+H037 T2 Dobra | Dobra 27 | - | apartments 18 m | game x 256, z -495
+H038 T2 Dobra | Dobra 28 | - | office 14 m | game x 279, z -530
+H039 T2 Dobra | no address | - | yes 14 m | game x 294, z -508
+H040 T2 Dobra | no address | - | warehouse 14 m | game x 298, z -526
+H041 T2 Dobra | no address | - | warehouse 8 m | game x 300, z -537
+H042 T2 Drewniana | no address | - | kindergarten 4 m | game x 41, z -627
+H043 T2 Drewniana | no address | - | kindergarten 8 m | game x 59, z -620
+H044 T2 Drewniana | Drewniana 9 | - | apartments 21 m | game x 113, z -575
+H045 T2 Drewniana | no address | - | school 14 m | game x 124, z -650
+H046 T2 Drewniana | no address | - | school 14 m | game x 138, z -640
+H047 T2 Drewniana | Drewniana 7 | - | apartments 14 m | game x 146, z -598
+H048 T2 Drewniana | Drewniana 5 | - | office 8 m | game x 169, z -610
+H049 T2 Dynasy | Dynasy 10 | - | apartments 14 m | game x -73, z -464
+H050 T2 Dynasy | Dynasy 8 | - | apartments 14 m | game x -63, z -451
+H051 T2 Dynasy | Dynasy 6 | - | apartments 14 m | game x -44, z -436
+H052 T2 Dynasy | Dynasy 4 | - | apartments 14 m | game x -19, z -406
+H053 T2 Dynasy | Dynasy 2 | - | apartments 14 m | game x -9, z -381
+H054 T2 Dynasy | Dynasy 2A | - | apartments 14 m | game x 1, z -362
+H055 T2 Elektryczna | no address | Parafia Świętej Teresy od Dzieciątka Jezus | church 14 m | game x 370, z -579
+H056 T2 Foksal | no address | - | church 14 m | game x -82, z -52
+H057 T2 Foksal | no address | - | yes 11 m | game x -25, z -64
+H058 T2 Foksal | Foksal 2A | Pawilon wystawowo-konferencyjny SARP | office 4 m | game x -9, z -77
+H059 T2 Foksal | no address | Pałac Zamoyskich | yes 8 m | game x 4, z -51
+H060 T2 Juliana Bartoszewicza | Juliana Bartoszewicza 1B | - | apartments 27 m | game x -89, z -373
+H061 T2 Juliana Bartoszewicza | Juliana Bartoszewicza 1C | - | apartments 27 m | game x -75, z -348
+H062 T2 Leszczyńska | Leszczyńska 10 | - | apartments 14 m | game x 23, z -711
+H063 T2 Leszczyńska | no address | - | apartments 27 m | game x 49, z -664
+H064 T2 Leszczyńska | Leszczyńska 8 | - | apartments 14 m | game x 61, z -728
+H065 T2 Leszczyńska | Leszczyńska 6 | - | retail 4 m | game x 90, z -742
+H066 T2 Leszczyńska | Leszczyńska 4 | - | apartments 24 m | game x 156, z -826
+H067 T2 Leszczyńska | Leszczyńska 1A | - | apartments 21 m | game x 194, z -739
+H068 T2 Leszczyńska | Dobra 42 | Elektrownia Powiśle | office 14 m | game x 258, z -737
+H069 T2 Leszczyńska | no address | - | yes 8 m | game x 322, z -858
+H070 T2 Leszczyńska | no address | - | yes 4 m | game x 347, z -886
+H071 T2 Leszczyńska | no address | - | yes 8 m | game x 363, z -884
+H072 T2 Leszczyńska | no address | - | yes 8 m | game x 377, z -891
+H073 T2 Lipowa | no address | - | yes 18 m | game x 36, z -842
+H074 T2 Lipowa | no address | Collegium Iuridicum II | university 11 m | game x 87, z -914
+H075 T2 Lipowa | Lipowa 1A | - | apartments 11 m | game x 115, z -892
+H076 T2 Lipowa | no address | - | yes 11 m | game x 124, z -947
+H077 T2 Lipowa | no address | - | yes 11 m | game x 125, z -925
+H078 T2 Most Świętokrzyski | no address | Pawilon 512 | yes 14 m | game x 444, z -817
+H079 T2 Okólnik | no address | - | university 14 m | game x -90, z -178
+H080 T2 Radna | Radna 11 | - | apartments 18 m | game x 14, z -747
+H081 T2 Radna | Radna 6 | - | apartments 21 m | game x 26, z -802
+H082 T2 Radna | Radna 9 | - | apartments 24 m | game x 29, z -759
+H083 T2 Radna | Radna 9 | - | apartments 27 m | game x 30, z -745
+H084 T2 Radna | Radna 2/4 | - | apartments 21 m | game x 48, z -812
+H085 T2 Radna | Dobra 54 | - | apartments 24 m | game x 106, z -826
+H086 T2 Szczygla | no address | Pałac Przezdzieckich | government 11 m | game x -60, z -73
+H087 T2 Szczygla | no address | - | monastery 14 m | game x 78, z -165
+H088 T2 Wybrzeże Kościuszkowskie | Wybrzeże Kościuszkowskie 45 | - | apartments 21 m | game x 203, z -865
+H089 T2 Wybrzeże Kościuszkowskie | no address | - | yes 4 m | game x 261, z -897
+H090 T2 Wybrzeże Kościuszkowskie | Zajęcza 2B | - | yes 14 m | game x 280, z -719
+H091 T2 Wybrzeże Kościuszkowskie | Zajęcza 2B | - | office 14 m | game x 286, z -702
+H092 T2 Wybrzeże Kościuszkowskie | Wybrzeże Kościuszkowskie 43C | - | office 14 m | game x 292, z -781
+H093 T2 Wybrzeże Kościuszkowskie | Zajęcza 2A | Stacja elektroenergetyczna 110/15 kV „RPZ Warszawa Powiśle” | office 8 m | game x 329, z -685
+H094 T2 Wybrzeże Kościuszkowskie | Wybrzeże Kościuszkowskie 43B | - | office 14 m | game x 331, z -721
+H095 T2 Wybrzeże Kościuszkowskie | no address | - | yes 8 m | game x 350, z -925
+H096 T2 Wybrzeże Kościuszkowskie | no address | - | service 14 m | game x 361, z -794
+H097 T2 Wybrzeże Kościuszkowskie | Elektryczna 2A | - | apartments 18 m | game x 405, z -637
+H098 T2 Wybrzeże Kościuszkowskie | Wybrzeże Kościuszkowskie 43 | - | office 14 m | game x 427, z -614
+H099 T2 Zajęcza | Cicha 7 | - | office 18 m | game x 2, z -420
+H100 T2 Zajęcza | no address | Piano House | apartments 21 m | game x 20, z -485
+H101 T2 Zajęcza | Zajęcza 15 | Carpathia Office House | office 18 m | game x 65, z -451
+H102 T2 Zajęcza | Zajęcza 10 | - | apartments 18 m | game x 150, z -526
+H103 T2 Zajęcza | Zajęcza 8 | - | apartments 14 m | game x 174, z -557
+H104 T2 Zajęcza | Zajęcza 7 | - | apartments 18 m | game x 196, z -514
+H105 T2 Zajęcza | Dobra 31 | Kamienica Jana Struskiego | apartments 18 m | game x 221, z -527
+H106 T2 Zajęcza | Dobra 32 | - | office 24 m | game x 256, z -585
+H107 T2 Zajęcza | no address | - | office 14 m | game x 273, z -626
+H108 T2 Zajęcza | no address | - | warehouse 4 m | game x 289, z -554
+H109 T2 Zajęcza | Zajęcza 1A | Moderna Powiśle | apartments 14 m | game x 319, z -568
+H110 T2 Zajęcza | no address | Barceló | hotel 24 m | game x 353, z -673
+H111 T2 Zajęcza | Elektryczna 2 | - | apartments 14 m | game x 392, z -614
+H112 T2 Zaułek Ku Szarytkom | Tamka 34A | - | apartments 18 m | game x 18, z -338
+H113 T2 Zaułek Ku Szarytkom | Tamka 37 | - | apartments 18 m | game x 24, z -297
+H114 T2 Zaułek Ku Szarytkom | Tamka 33 | - | apartments 18 m | game x 54, z -314
+H115 T2 Zaułek Ku Szarytkom | Tamka 33A | - | apartments 21 m | game x 60, z -297
+H116 T2 Zaułek Ku Szarytkom | no address | - | religious 14 m | game x 72, z -260
+H117 T2 Zaułek Ku Szarytkom | no address | - | yes 11 m | game x 74, z -222
+H118 T2 Zaułek Ku Szarytkom | no address | - | religious 8 m | game x 100, z -278
+H119 T3 Browarna | Browarna 6 | - | apartments 18 m | game x -85, z -753
+H120 T3 Browarna | Browarna 4 | - | retail 4 m | game x -65, z -694
+H121 T3 Browarna | Leszczyńska 12 | - | retail 4 m | game x -49, z -673
+H122 T3 Dobra | no address | - | yes 11 m | game x -2, z -971
+H123 T3 Dobra | no address | - | yes 11 m | game x 39, z -948
+H124 T3 Dobra | Dobra 19 | - | apartments 37 m | game x 291, z -439
+H125 T3 Dobra | Dobra 17 | - | apartments 24 m | game x 331, z -383
+H126 T3 Dobra | no address | - | apartments 18 m | game x 343, z -460
+H127 T3 Dobra | Dobra 18/20 | - | apartments 34 m | game x 355, z -424
+H128 T3 Dobra | Dobra 15 | - | apartments 18 m | game x 357, z -357
+H129 T3 Dobra | Dobra 13 | - | apartments 21 m | game x 376, z -337
+H130 T3 Dobra | Dobra 11 | - | apartments 18 m | game x 389, z -321
+H131 T3 Dobra | no address | Młodsza Siostra | retail 4 m | game x 390, z -413
+H132 T3 Dobra | Dobra 9 | - | apartments 21 m | game x 407, z -309
+H133 T3 Dobra | Dobra 3 | - | apartments 14 m | game x 443, z -265
+H134 T3 Dobra | no address | - | apartments 18 m | game x 461, z -246
+H135 T3 Leszczyńska | Leszczyńska 12 | - | apartments 31 m | game x -41, z -679
+H136 T3 Leszczyńska | Leszczyńska 3 | Cube House | apartments 27 m | game x 8, z -655
+H137 T3 Lipowa | Lipowa 7 | - | apartments 24 m | game x -64, z -799
+H138 T3 Radna | Browarna 6 | - | retail 4 m | game x -90, z -738
+H139 T3 Radna | Browarna 6 | Dom Księży Misjonarzy św. Wincentego a Paulo | yes 18 m | game x -70, z -752
+H140 T3 Radna | Browarna 4 | - | apartments 18 m | game x -61, z -707
+H141 T3 Radna | Radna 17 | - | apartments 14 m | game x -51, z -719
+H142 T3 Radna | Radna 12 | - | apartments 21 m | game x -45, z -762
+H143 T3 Radna | no address | - | retail 8 m | game x -41, z -813
+H144 T3 Radna | Radna 10 | - | apartments 18 m | game x -23, z -773
+H145 T3 Radna | Radna 15 | - | apartments 21 m | game x -20, z -731
+H146 T3 Radna | Lipowa 5 | - | apartments 24 m | game x -16, z -824
+H147 T3 Radna | Radna 15A | - | apartments 21 m | game x -16, z -721
+H148 T3 Radna | Radna 13 | - | apartments 21 m | game x -7, z -743
+H149 T3 Radna | Radna 6 | - | retail 8 m | game x 11, z -802
+H150 T3 Radna | no address | - | retail 8 m | game x 13, z -789
+H151 T3 Smolna | no address | - | school 11 m | game x -100, z 86
+H152 T3 Smolna | Smolna 32 | - | apartments 14 m | game x -89, z 109
+H153 T3 Smolna | no address | XVIII Liceum Ogólnokształcące im. Jana Zamoyskiego | school 14 m | game x -48, z 90
+H154 T3 Smolna | no address | - | commercial 8 m | game x -42, z 33
+H155 T3 Smolna | Smolna 20 | - | apartments 21 m | game x -12, z 34
+H156 T3 Smolna | Smolna 18 | - | apartments 21 m | game x -4, z 52
+H157 T3 Smolna | Smolna 16 | - | apartments 18 m | game x 0, z 70
+H158 T3 Smolna | Smolna 16 | Chopin | commercial 18 m | game x 10, z 83
+H159 T3 Smolna | no address | - | government 8 m | game x 21, z 57
+H160 T3 Smolna | Smolna 10A | - | office 14 m | game x 30, z 29
+H161 T3 Smolna | Smolna 10 | - | government 21 m | game x 35, z 79
+H162 T3 Smolna | Smolna 9 | - | apartments 27 m | game x 36, z 108
+H163 T3 Smolna | Smolna 10 | - | apartments 31 m | game x 42, z 72
+H164 T3 Smolna | Smolna 10 | - | retail 4 m | game x 54, z 75
+H165 T3 Smolna | no address | - | retail 8 m | game x 56, z 106
+H166 T3 Smolna | Smolna 8 | Młotek | apartments 66 m | game x 83, z 34
+H167 T3 Solec | no address | - | retail 4 m | game x 231, z -381
+H168 T3 Solec | Solec 115 | - | apartments 34 m | game x 250, z -360
+H169 T3 Solec | Solec 66 | - | apartments 21 m | game x 258, z -404
+H170 T3 Solec | Solec 109A | - | apartments 34 m | game x 270, z -287
+H171 T3 Solec | Solec 113 | - | apartments 14 m | game x 277, z -335
+H172 T3 Solec | Solec 111 | - | apartments 18 m | game x 294, z -322
+H173 T3 Solec | Solec 109 | - | yes 34 m | game x 305, z -310
+H174 T3 Solec | Solec 62 | - | apartments 21 m | game x 314, z -373
+H175 T3 Solec | Solec 58/60 | - | apartments 27 m | game x 334, z -330
+H176 T3 Solec | Solec 56 | - | apartments 18 m | game x 352, z -310
+H177 T3 Solec | Solec 54 | - | apartments 21 m | game x 368, z -294
+H178 T3 Solec | Solec 103 | - | apartments 18 m | game x 370, z -249
+H179 T3 Solec | Leona Kruczkowskiego 12C | - | office 11 m | game x 382, z -211
+H180 T3 Solec | Solec 52 | - | apartments 18 m | game x 389, z -285
+H181 T3 Solec | Solec 101 | - | apartments 18 m | game x 393, z -237
+H182 T3 Solec | no address | - | retail 8 m | game x 407, z -267
+H183 T3 Solec | Solec 99 | - | apartments 18 m | game x 417, z -226
+H184 T3 Solec | Solec 48 | - | office 21 m | game x 432, z -260
+H185 T3 Solec | Solec 97 | - | apartments 18 m | game x 440, z -217
+H186 T3 Solec | no address | - | office 8 m | game x 544, z -109
+H187 T3 Solec | Solec 85 | - | apartments 18 m | game x 570, z -129
+H188 T3 Solec | Solec 83 | - | apartments 34 m | game x 595, z -85
+H189 T3 Solec | no address | - | yes 21 m | game x 600, z -161
+H190 T3 Solec | no address | - | retail 4 m | game x 621, z -77
+H191 T3 Solec | Solec 36 | - | apartments 18 m | game x 632, z -130
+H192 T3 Solec | no address | - | supermarket 4 m | game x 653, z -122
+H193 T3 Solec | no address | - | apartments 37 m | game x 702, z 58
+H194 T3 Solec | Solec 79 | - | apartments 37 m | game x 758, z 39
+H195 T3 Solec | Solec 30 | - | apartments 18 m | game x 772, z -14
+H196 T3 Solec | Solec 28 | - | apartments 37 m | game x 795, z 2
+H197 T3 Solec | no address | - | sports_centre 4 m | game x 799, z 99
+H198 T3 Topiel | Topiel 29 | - | apartments 14 m | game x -40, z -613
+H199 T3 Topiel | Topiel 27 | - | apartments 18 m | game x -30, z -600
+H200 T3 Topiel | Topiel 25 | - | apartments 18 m | game x -22, z -589
+H201 T3 Topiel | Topiel 23 | - | apartments 18 m | game x -13, z -578
+H202 T3 Topiel | Topiel 18 | - | apartments 31 m | game x -12, z -632
+H203 T3 Topiel | Topiel 21 | - | apartments 18 m | game x 2, z -565
+H204 T3 Topiel | Topiel 19 | - | apartments 21 m | game x 9, z -554
+H205 T3 Topiel | Topiel 15B | - | retail 4 m | game x 14, z -537
+H206 T3 Topiel | no address | Hortus | commercial 21 m | game x 70, z -548
+H207 T3 Topiel | Topiel 6 | - | apartments 24 m | game x 127, z -446
+H208 T3 Topiel | Zajęcza 13 | - | apartments 18 m | game x 143, z -456
+H209 T3 Topiel | Tamka 22/24 | - | apartments 18 m | game x 148, z -404
+H210 T3 Wiślana | no address | - | yes 14 m | game x -52, z -923
+H211 T3 Wiślana | no address | - | yes 21 m | game x -30, z -933
+H212 T3 Zajęcza | Zajęcza 11 | - | apartments 18 m | game x 157, z -491
+H213 T3 Zajęcza | Zajęcza 9 | - | apartments 14 m | game x 170, z -501
+H214 T3 Zajęcza | no address | - | apartments 24 m | game x 211, z -481
+H215 T4 Adama Hanuszkiewicza | Oboźna 3 | - | apartments 31 m | game x -84, z -607
+H216 T4 Adama Hanuszkiewicza | Topiel 15B | - | apartments 37 m | game x 0, z -532
+H217 T4 Aleja 3 Maja | Leona Kruczkowskiego 3B | - | yes 4 m | game x 402, z -12
+H218 T4 Aleja 3 Maja | Aleja 3 Maja 14 | - | apartments 24 m | game x 533, z -57
+H219 T4 Aleja 3 Maja | no address | - | yes 24 m | game x 543, z -75
+H220 T4 Aleja 3 Maja | no address | Centrum Handlowe Arkada | retail 8 m | game x 577, z -19
+H221 T4 Aleja 3 Maja | Aleja 3 Maja 7 | - | apartments 27 m | game x 587, z 21
+H222 T4 Aleja 3 Maja | no address | - | apartments 37 m | game x 593, z 102
+H223 T4 Aleja 3 Maja | Aleja 3 Maja 7A | - | apartments 24 m | game x 594, z 43
+H224 T4 Aleja 3 Maja | Aleja 3 Maja 5 | - | apartments 24 m | game x 636, z 2
+H225 T4 Aleja 3 Maja | no address | - | apartments 37 m | game x 649, z 81
+H226 T4 Aleja 3 Maja | Aleja 3 Maja 5B | - | apartments 21 m | game x 662, z 27
+H227 T4 Aleja 3 Maja | Aleja 3 Maja 2 | - | apartments 24 m | game x 755, z -136
+H228 T4 Aleja 3 Maja | Solec 30A | - | apartments 24 m | game x 759, z -37
+H229 T4 Aleja 3 Maja | Aleja 3 Maja 3 | - | apartments 31 m | game x 782, z -48
+H230 T4 Aleje Jerozolimskie | no address | - | yes 4 m | game x 173, z 88
+H231 T4 Aleje Jerozolimskie | no address | Klub Bankowca | office 8 m | game x 177, z -14
+H232 T4 Aleje Jerozolimskie | no address | - | yes 8 m | game x 223, z -11
+H233 T4 Aleje Jerozolimskie | no address | - | yes 11 m | game x 226, z 0
+H234 T4 Czerwonego Krzyża | Czerwonego Krzyża 6 | - | apartments 18 m | game x 391, z -175
+H235 T4 Czerwonego Krzyża | Czerwonego Krzyża 4 | - | apartments 21 m | game x 417, z -193
+H236 T4 Czerwonego Krzyża | no address | - | hospital 4 m | game x 434, z -140
+H237 T4 Czerwonego Krzyża | Czerwonego Krzyża 2 | - | apartments 18 m | game x 438, z -203
+H238 T4 Czerwonego Krzyża | no address | - | hospital 14 m | game x 457, z -157
+H239 T4 Foksal | no address | Dom Dziennikarza | commercial 18 m | game x -38, z 4
+H240 T4 Foksal | no address | - | commercial 8 m | game x -11, z -20
+H241 T4 Grymaly-Siedleckiego | no address | Dworzec Wodny | yes 8 m | game x 632, z -681
+H242 T4 Grzymały-Siedleckiego | no address | Kaskada | boat 14 m | game x 755, z -522
+H243 T4 Ignacego Potockiego | Ignacego Potockiego 4 | - | apartments 57 m | game x 682, z -129
+H244 T4 Juliana Smulikowskiego | Tamka 5 | - | apartments 18 m | game x 353, z -494
+H245 T4 Juliana Smulikowskiego | Juliana Smulikowskiego 13 | - | apartments 14 m | game x 373, z -486
+H246 T4 Juliana Smulikowskiego | no address | - | government 11 m | game x 383, z -514
+H247 T4 Juliana Smulikowskiego | Juliana Smulikowskiego 11 | - | apartments 14 m | game x 389, z -475
+H248 T4 Juliana Smulikowskiego | Juliana Smulikowskiego 9 | - | apartments 14 m | game x 405, z -456
+H249 T4 Juliana Smulikowskiego | Juliana Smulikowskiego 3 | - | office 18 m | game x 410, z -493
+H250 T4 Juliana Smulikowskiego | Dobra 7 | - | apartments 18 m | game x 415, z -294
+H251 T4 Juliana Smulikowskiego | no address | - | government 4 m | game x 415, z -522
+H252 T4 Juliana Smulikowskiego | Juliana Smulikowskiego 7A | - | apartments 18 m | game x 423, z -444
+H253 T4 Juliana Smulikowskiego | Dobra 5 | - | apartments 18 m | game x 428, z -280
+H254 T4 Juliana Smulikowskiego | no address | - | office 21 m | game x 433, z -504
+H255 T4 Juliana Smulikowskiego | Juliana Smulikowskiego 14 | - | apartments 14 m | game x 444, z -467
+H256 T4 Juliana Smulikowskiego | Juliana Smulikowskiego 7 | - | apartments 18 m | game x 444, z -424
+H257 T4 Juliana Smulikowskiego | Dobra 8/10 | - | apartments 18 m | game x 446, z -330
+H258 T4 Juliana Smulikowskiego | Juliana Smulikowskiego 5 | - | apartments 14 m | game x 462, z -414
+H259 T4 Juliana Smulikowskiego | Juliana Smulikowskiego 12 | - | apartments 14 m | game x 463, z -451
+H260 T4 Juliana Smulikowskiego | Dobra 6 | - | apartments 21 m | game x 467, z -302
+H261 T4 Juliana Smulikowskiego | Juliana Smulikowskiego 2 | - | apartments 14 m | game x 478, z -318
+H262 T4 Juliana Smulikowskiego | Juliana Smulikowskiego 1/3 | - | apartments 14 m | game x 479, z -394
+H263 T4 Juliana Smulikowskiego | Juliana Smulikowskiego 10 | - | apartments 14 m | game x 482, z -435
+H264 T4 Juliana Smulikowskiego | Juliana Smulikowskiego 2A | - | apartments 18 m | game x 487, z -336
+H265 T4 Juliana Smulikowskiego | Wybrzeże Kościuszkowskie 37A | - | apartments 14 m | game x 502, z -451
+H266 T4 Juliana Smulikowskiego | Juliana Smulikowskiego 4 | - | office 14 m | game x 507, z -356
+H267 T4 Juliana Smulikowskiego | Juliana Smulikowskiego 6/8 | Związek Nauczycielstwa Polskiego | office 27 m | game x 508, z -425
+H268 T4 Juliana Smulikowskiego | Juliana Smulikowskiego 4 | - | office 4 m | game x 515, z -351
+H269 T4 Juliana Smulikowskiego | Juliana Smulikowskiego 4A | - | office 21 m | game x 533, z -373
+H270 T4 Juliana Smulikowskiego | Juliana Smulikowskiego 4C | - | apartments 24 m | game x 535, z -411
+H271 T4 Juliana Smulikowskiego | Juliana Smulikowskiego 4B | - | apartments 14 m | game x 549, z -410
+H272 T4 Leona Kruczkowskiego | Tamka 19/23 | - | apartments 34 m | game x 184, z -339
+H273 T4 Leona Kruczkowskiego | Leona Kruczkowskiego 16 | - | apartments 34 m | game x 203, z -302
+H274 T4 Leona Kruczkowskiego | Leona Kruczkowskiego 14 | - | apartments 34 m | game x 236, z -290
+H275 T4 Leona Kruczkowskiego | no address | - | yes 11 m | game x 291, z -235
+H276 T4 Leona Kruczkowskiego | no address | - | school 4 m | game x 295, z -254
+H277 T4 Leona Kruczkowskiego | Leona Kruczkowskiego 3 | - | office 8 m | game x 319, z -75
+H278 T4 Leona Kruczkowskiego | Leona Kruczkowskiego 12A | - | apartments 31 m | game x 341, z -178
+H279 T4 Leona Kruczkowskiego | no address | - | apartments 21 m | game x 364, z -156
+H280 T4 Leona Kruczkowskiego | no address | - | hospital 4 m | game x 420, z -110
+H281 T4 Leona Kruczkowskiego | no address | Nordic Park | office 24 m | game x 482, z -47
+H282 T4 Oboźna | Oboźna 1A | - | office 18 m | game x -65, z -620
+H283 T4 Oboźna | Oboźna 1 | Dom Strażaka | office 18 m | game x -54, z -625
+H284 T4 Stefana Jaracza | no address | - | apartments 21 m | game x 502, z -289
+H285 T4 Stefana Jaracza | no address | - | yes 18 m | game x 515, z -248
+H286 T4 Stefana Jaracza | no address | - | ruins 4 m | game x 529, z -330
+H287 T4 Stefana Jaracza | Stefana Jaracza 8 | - | apartments 18 m | game x 545, z -277
+H288 T4 Stefana Jaracza | Stefana Jaracza 3 | - | apartments 21 m | game x 555, z -359
+H289 T4 Stefana Jaracza | Stefana Jaracza 6 | - | apartments 21 m | game x 566, z -306
+H290 T4 Stefana Jaracza | Stefana Jaracza 1 | - | apartments 21 m | game x 580, z -383
+H291 T4 Stefana Jaracza | no address | - | commercial 8 m | game x 601, z -326
+H292 T4 Stefana Jaracza | no address | - | commercial 14 m | game x 607, z -362
+H293 T4 Tamka | no address | - | apartments 18 m | game x 178, z -447
+H294 T4 Tamka | no address | - | apartments 24 m | game x 189, z -467
+H295 T4 Wybrzeże Kościuszkowskie | no address | - | yes 11 m | game x 47, z -997
+H296 T4 Wybrzeże Kościuszkowskie | no address | - | yes 11 m | game x 104, z -977
+H297 T4 Wybrzeże Kościuszkowskie | no address | - | yes 11 m | game x 126, z -980
+H298 T4 Wybrzeże Kościuszkowskie | Wybrzeże Kościuszkowskie 41 | - | office 14 m | game x 451, z -570
+H299 T4 Wybrzeże Kościuszkowskie | Tamka 1A | - | apartments 14 m | game x 453, z -524
+H300 T4 Wybrzeże Kościuszkowskie | Wybrzeże Kościuszkowskie 39 | - | office 11 m | game x 474, z -501

@@ -4,6 +4,26 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## Powiśle, more real (F, 2026-11-08; plan docs/powisle-plan.md)
+F: too little detail in Powiśle; wants real houses, street details and the power plant. Items by impact:
+- [ ] P1 Elektrownia Powiśle rebuilt from photos (chimney count/height, separate halls, coal chute frame, lift, new blocks)
+- [ ] P2 Real houses on Solec, Smolna, Zajęcza, Topiel, Radna, Leszczyńska, Lipowa, Browarna, Aleja 3 Maja (and a check of Tamka/Dobra)
+- [ ] P3 The missing buildings: Barceló, Carpathia, RPZ substation, Klub Bankowca, Arkada, Nordic Park, UW faculties on Dobra, Pawilon Tańca
+- [ ] P4 Setts, kerbs and crossings on the side streets
+- [ ] P5 Street furniture to 1.5 x the city density
+- [ ] P6 Shops, cafés and bars with parody names (8 signs to ~40)
+- [ ] P7 Parks and courtyards as places
+- [ ] P8 People and life (students, runners, evening crowd)
+- [ ] P9 Night look of the district
+- [ ] P10 Roofs and terraces (takes RF4b)
+- [ ] P11 Wybrzeże Kościuszkowskie and the water edge
+- [ ] P12 Mac and phone look pass
+- [x] P13a Tamka pass 1 from F's photos (2026-11-08, spec `docs/powisle-tamka.md`): the houses' plasters and balconies, Tamka 10/12's attic, Tamka 16's brick base, the bollards, the footbridge, KEBONAFIDE with his dalmatian. Left: the firewall murals and ad wraps, the Ostrogski castle from photos (no turret), Tamka 16's glass bays, the Kopernika end's planters and bank stairs
+- [x] P13b Powiśle houses pass 2 (2026-11-09): 19 photographed houses off Tamka in `powisle_houses.gd` (plaster, balconies, base, street fronts from the map). Left: Tamka 36 and other firewall murals, Smolna 32 (no usable photo), Pawilon Tańca (inside only), the brick ornament on Klub Bankowca, the stone grid on Carpathia
+- [x] P1 Elektrownia Powiśle from photos and P2-ish Chopin museum rebuild (2026-11-09, specs elektrownia.md, ostrogski.md). Left: the new blocks round the Elektrownia, its yard and night look, the castle stairs from Tamka
+- [x] P7/P8 from F's photos (2026-11-09): Rotunda Dynasy (`rotunda_dynasy`), Park Odkrywców's listening pipes and dishes, the Kahl stone (tamka.gd PARK_*). Left from the photo set: Teatr Ateneum's portico (which face is the door), Buffo, the BUW roof garden and canopy, the corten river stairs, the moorings and the port, the Zajęcza mural, street plates
+- [ ] P13 Up to 300 more real houses, quest loop and Tamka first, Museum of Fryderyk Chopin (list H001-H300 in docs/powisle-photos-needed.txt)
+
 ## Trees and fences in the water and on the roads (F, 2026-11-08)
 Fixed: the 2023 laser-scanned trees were kept wherever the scan put them, and the map's water outlines
 and road widths are OSM's, so 211 trunks stood in the Vistula or a pond and 1,149 on the drawn asphalt
