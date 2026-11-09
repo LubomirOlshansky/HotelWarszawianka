@@ -678,6 +678,10 @@ Newest first. One entry per question.
 - ~~**2026-11-02 · landmarks · Hotel Warszawa**~~ — Built from `refs/hotel_warszawa/` on the Mac (Commons photos, the ortho, REPORT.md) and LoD2 (spec `hotel_warszawa.md`). Look check on the Mac or the phone against the photos: the hotel's front read as facing east onto the square (the portal on that side). Default built as listed. (Cedet, asked in the same entry, is answered below.)
   **Answered 2026-11-03 (F's look check):** the portal faces east onto Plac Powstańców; the stepped tower reads as the hotel; the wings now share one stone base with the shaft, the portal is refined and both cornices project further. Applied (look-check fixes PR).
 
+### Powiśle leftovers (2026-11-09, PR #615)
+- **Zajęcza mural** (photo D08/zajecza-mural-detail.jpg in F's Mac folder, Wikimedia "Graffiti at Zajęcza Street"): a long cream firewall with a girl in a white knotted tee and blue bikini briefs, a reclining woman on a patterned hill and a row of small figures (a guitarist, dancers) under a blue band, a lift tower and a bank sign beyond. The photo gives no address, and no mapped Zajęcza wall matches it unambiguously. Default: not built. Which wall is it (Zajęcza by the Elektrownia's lift tower?)
+- **Studio Buffo** (Konopnickiej 6; photos X-Buffo-1-01/02: a grey four-storey 1930s block, a green barrel awning on the ground floor, "TEATR Buffo" neon at the first floor): the map's Konopnickiej roads are at about x 120-160, z 620-800 (by Wiejska); no mapped building is named Buffo and the 17.5 m blocks there can't be told apart. Default: not built. Which outline is Konopnickiej 6?
+
 ## Answered
 
 Move an entry here with the user's answer and the date; its item goes back to the top of the
