@@ -1876,6 +1876,18 @@ const SUNKEN := [
 		"a": Vector2(-1215.4, 609.1), "b": Vector2(-1226.7, 612.9),
 		"ring": [Vector2(-1215.6, 607.7), Vector2(-1229.0, 612.2), Vector2(-1228.1, 614.9), Vector2(-1214.7, 610.3)],
 		"walk": [Vector2(-1215.4, 609.1), Vector2(-1226.7, 612.9), Vector2(-1232.4, 614.8)]},
+	# The entry ramp of the APCOA car park on Plac Defilad (F, 2026-11-09, Street View: a ramp
+	# between pink-tiled walls down under the plaza, GARAGE_MOUTHS' hood at its foot). Before this
+	# the mapped walls (`lines` wall 6411, 6412) and a flat road fill (`fills` 445 at the pit's
+	# 10.6 m) drew a grey slab over the grid's blurred pit. Now the corridor between the walls' inner
+	# faces is a ramp from the street (13.0 m) down 3.5 m to the hood's floor (9.5 m); `rim` holds
+	# the pink walls up to the real street (12.8 m) where the grid's pit dips under it; the site
+	# `defilad_ramp` draws the walls, the surface and the sign gantry (landmarks.gd). The last 4 m of
+	# the ring lie under the hood. The grid's pit lies below the profile only within ~0.2 m.
+	{"key": "defilad_ramp", "site": "defilad_ramp", "style": "ramp", "sub": 20, "hb": NAN, "drop": 3.5, "rim": 12.8,
+		"a": Vector2(-1004.35, 222.0), "b": Vector2(-993.7, 252.35),
+		"ring": [Vector2(-1007.8, 222.0), Vector2(-1000.9, 222.0), Vector2(-990.7, 251.3), Vector2(-989.3, 255.3),
+			Vector2(-995.3, 257.4), Vector2(-996.7, 253.4)]},
 ]
 ## How far past a ring's grown outline the drawn ground's cells go fine (a sub-cell touching it).
 const SINK_MARGIN := 0.5
@@ -1914,8 +1926,15 @@ static func sunk_entry(e: Dictionary, ha: float, step: float) -> Dictionary:
 	var hb := float(e["hb"])
 	if is_nan(hb):
 		hb = ha - float(e["drop"])
-	return {"key": e["key"], "ring": ring, "grown": grown, "box": box, "a": e["a"], "b": e["b"], "ha": ha, "hb": hb, "sub": sub,
-			"site": e.get("site", "sunken"), "style": e.get("style", "rail"), "walk": PackedVector2Array(e.get("walk", []))}
+	# A ramp between mapped walls (style "ramp"): the ring grown past those walls' thickness, so the
+	# wall lines inside it are the site's (`_walls_in_ramp`).
+	var wide := PackedVector2Array()
+	if str(e.get("style", "")) == "ramp":
+		var wl := Geometry2D.offset_polygon(ring, 1.4, Geometry2D.JOIN_MITER)
+		wide = wl[0] if not wl.is_empty() else ring
+	return {"key": e["key"], "ring": ring, "grown": grown, "wide": wide, "box": box, "a": e["a"], "b": e["b"], "ha": ha, "hb": hb, "sub": sub,
+			"site": e.get("site", "sunken"), "style": e.get("style", "rail"), "walk": PackedVector2Array(e.get("walk", [])),
+			"rim": float(e.get("rim", -INF))}
 
 
 ## A sunken ring's floor at a point (its ring, or `grown` its ring grown for the drawn ground),
@@ -1988,6 +2007,23 @@ func _load_cut() -> void:
 static func in_sunken(x: float, z: float) -> bool:
 	for e: Dictionary in SUNKEN:
 		if Geometry2D.is_point_in_polygon(Vector2(x, z), PackedVector2Array(e["ring"])):
+			return true
+	return false
+
+
+## Whether every point of a wall line lies inside a ramp ring grown by the walls' thickness (the
+## mapped walls along the car park ramp: its site draws the pink walls instead).
+func _walls_in_ramp(pts: PackedVector2Array) -> bool:
+	for sk: Dictionary in _sunk:
+		var wide: PackedVector2Array = sk["wide"]
+		if wide.is_empty():
+			continue
+		var all_in := true
+		for q in pts:
+			if not Geometry2D.is_point_in_polygon(q, wide):
+				all_in = false
+				break
+		if all_in:
 			return true
 	return false
 
@@ -4910,7 +4946,10 @@ func _build_garage_doors(st) -> void:
 ## Marszałkowska). Each mouth: "c" the mouth's middle at the ramp's foot, "d" the way in (down
 ## the ramp), "w" its width between the walls, "top" the ramp's top (the height gauge and the P).
 const GARAGE_MOUTHS := [
-	{"c": Vector2(-993.95, 252.5), "d": Vector2(0.338, 0.941), "w": 5.2, "top": Vector2(-1004.3, 223.0)},
+	# The Plac Defilad ramp's mouth now stands at the foot of its SUNKEN ramp (`defilad_ramp`), in the
+	# walls' pink tile (`tile`); the height gauge 4 m down the ramp from its top.
+	{"c": Vector2(-993.7, 252.35), "d": Vector2(0.338, 0.941), "w": 5.4, "top": Vector2(-1003.0, 225.8),
+		"tile": Color("#c9a69b")},
 ]
 const MOUTH_DARK := Color("#17181c")
 const MOUTH_HAZARD := Color("#e0b22a")
@@ -4943,8 +4982,9 @@ func _build_garage_mouths(st) -> void:
 		# towards the pit), the dark mouth on its face up the ramp.
 		var mid := c + d * (MOUTH_HOOD * 0.5)
 		var roof := open + 0.45
+		var tile: Color = g.get("tile", PORTAL_CONCRETE)
 		_box_oriented(st, Vector3(mid.x, (y - 0.6 + roof) * 0.5, mid.y), basis,
-				Vector3(w + 0.9, roof - y + 0.6, MOUTH_HOOD), PORTAL_CONCRETE)
+				Vector3(w + 0.9, roof - y + 0.6, MOUTH_HOOD), tile)
 		_box_oriented(st, Vector3(mid.x, roof + 0.05, mid.y), basis, Vector3(w + 1.1, 0.1, MOUTH_HOOD + 0.2), WALL_COPING)
 		var l0 := c - side * w * 0.5 - d * 0.02
 		var r0 := c + side * w * 0.5 - d * 0.02
@@ -8349,6 +8389,8 @@ func _build_barriers(st) -> void:
 		# islands, the car drives over it (check_drive.gd found buses brushing them).
 		if l["k"] == "wall" and not _sunk.is_empty() and _sunk_box.grow(2.0).intersects(_box_of_pts(pts)):
 			# The pieces off a sunken ring's edge (the site builds the walls on it).
+			if _walls_in_ramp(pts):
+				continue
 			var piece := PackedVector2Array()
 			for i in pts.size():
 				if i > 0 and _on_sunk_edge(pts[i - 1], pts[i]):

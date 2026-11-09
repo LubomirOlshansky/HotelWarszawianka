@@ -309,13 +309,22 @@ THEATRES, `theatre` curve, dark on Mondays). Left:
   row's extra; a phone look at the colours' strength. The event list is settled (F, 2026-11-08).
 - The floodlight's reach (a circle round the Palace) also tints the TR Warszawa site's crane and the forecourt's
   stone furniture; an old quirk of the gold, louder in the event colours.
-- The underground car park's ramp by Metro Centrum (F, 2026-11-08: "looks like a tunnel entrance"): OSM's
-  parking aisle between two walls down a 3-4 m pit ended at a blank wall. It is the entry ramp of the
-  underground car park Plac Defilad 1 (260 spaces, 2.8 m, from Marszałkowska); built: a concrete hood over
-  the ramp's foot with the dark mouth, hazard band and lit strip, a red-white barrier (solid), P boards and a
-  striped 2,8 m gauge at the top (map_builder.gd GARAGE_MOUTHS). Left: the 10 m grid makes the pit only
-  ~2.5 m deep, so the hood stands ~2 m over the lot behind it; a night/phone look at the lit strip; the
-  other 27 R9 garage doors city-wide could get the same mouth.
+- The underground car park's ramp by Metro Centrum (F, 2026-11-08: "looks like a tunnel entrance"; 2026-11-09:
+  "the parking is flying in the air", with Street View shots): OSM's parking aisle between two walls ended at a
+  blank wall, and the mapped walls plus a flat road fill over the grid's blurred pit drew a grey slab. Built
+  (2026-11-09): the corridor between the walls is a SUNKEN ramp (`defilad_ramp`, map_builder.gd: 3.5 m down
+  from the street to the hood's floor), the site draws pink-tiled retaining walls under a pale coping up to
+  the real street (`rim`), a ribbed ramp surface, the mouth's hood in the same tile with dark opening, hazard
+  band, barrier and P boards (`GARAGE_MOUTHS`), and over the top a dark sign gantry "PARKING PODZIEMNY 24h 7dni"
+  (centralny_ramp.gd). The mapped wall lines inside the ring are skipped. Left: the car park itself is not
+  built (the barrier is solid); a night/phone look; the other 27 R9 garage doors city-wide could get the same
+  mouth; the sign is read from the north only.
+- Metro Centrum's entrances by the Palace (F, 2026-11-09, Street View): two of them (refs 4 and 10) were dark
+  green boxes (OSM `transportation` outlines) with a small tube prop merged into the end. Built: the site
+  `metro_tubes` replaces the boxes with blue-ribbed glass barrels on pink-tiled walls with an escalator beside
+  the stair (the Patelnia's barrels wear the pink walls too); ref 9's and the others' tube prop is now the
+  long form (7 m, pink walls, escalator, M roundel at the deep end). Refs 5-8 (Marszałkowska crossing) are
+  another thread's (open stairs); the box next to ref 5 (outline 3223) and the vent box 3402 stay boxes.
 
 ## Ratusz Arsenał interchange and passengers (F, 2026-11-07, six photos)
 
