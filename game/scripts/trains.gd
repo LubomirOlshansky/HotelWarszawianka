@@ -196,6 +196,7 @@ static func trim_rails(rails: Array) -> Array:
 func setup(map_node: Node3D, data: Dictionary) -> void:
 	map = map_node
 	_rng.seed = 1955
+	_snd_rng.seed = 1956   # sounds repeat too (check_trains counts them)
 	var b: Array = data.get("bounds", [-1e6, -1e6, 1e6, 1e6])
 	_bounds = Rect2(float(b[0]), float(b[1]), float(b[2]) - float(b[0]), float(b[3]) - float(b[1]))
 	var lines: Array[PackedVector2Array] = []
@@ -546,8 +547,14 @@ func _dress(t: Train, meshes: Array) -> void:
 
 ## Brings train t in on a way in whose first stretch is free; false if none is.
 func _enter(t: Train, meshes: Array) -> bool:
+	# Shuffled with the seeded _rng (Array.shuffle uses the global one: two runs of one commit
+	# then ran different trains, and check_trains saw Główna stopped at 0 to 2 times).
 	var order := Array(_sources)
-	order.shuffle()
+	for k in range(order.size() - 1, 0, -1):
+		var j := _rng.randi_range(0, k)
+		var tmp: int = order[k]
+		order[k] = order[j]
+		order[j] = tmp
 	for i: int in order:
 		if _held(i, t):
 			continue

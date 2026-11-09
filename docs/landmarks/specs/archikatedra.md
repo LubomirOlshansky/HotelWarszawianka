@@ -29,7 +29,7 @@ thick on every tier.
 
 ## 4. Roof
 
-Porch gable in dark roof tone; the nave roof stays LoD2's. Pinnacles (stone, pointed caps) on
+Porch gable in dark roof tone; a steep tiled nave gable (eaves 17.8 m over the ground, ridge 11.2 m higher, 2026-11-09) stands on the LoD2 slab, the ridge turret on its ridge. Pinnacles (stone, pointed caps) on
 the tier corners and the front's two buttresses; a stone cross on the top step.
 
 ## 5. Colour and material

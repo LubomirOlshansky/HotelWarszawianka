@@ -13,10 +13,14 @@ shader_type spatial;
 
 #include "res://shaders/common.gdshaderinc"
 #include "res://shaders/night.gdshaderinc"
+#include "res://shaders/tunnel_cut.gdshaderinc"
 
 uniform float clouds = 0.18;
 // Crowns lean a little in the wind; parked cars use the same shader with sway = 0.
 uniform float sway = 1.0;
+// The paint's multiplier: the tree trunks (map_builder.gd `trunk_material`, sway 0, no instance
+// colours) take their bark colour from it (sRGB); crowns and parked cars keep 1.
+uniform vec3 tint = vec3(1.0);
 // Rotor wash from a low helicopter: x, z of the rotor and a strength (0 = none).
 uniform vec3 wash = vec3(0.0);
 varying vec3 world_pos;
@@ -58,7 +62,7 @@ vec3 autumn(vec3 c) {
 void vertex() {
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	lift_h = VERTEX.y;
-	paint = COLOR.rgb;
+	paint = COLOR.rgb * tint;
 	if (sway > 0.0) {
 		// Lumps: the crown pushed out and in along its own directions, three soft lobes
 		// seeded by the tree's position, so no two crowns are the same gumdrop.
@@ -80,6 +84,8 @@ void vertex() {
 	float w = sway * wash.z * smoothstep(26.0, 6.0, distance(world_pos.xz, wash.xy)) * lift;
 	VERTEX.x += w * 0.45 * sin(TIME * 17.0 + world_pos.x * 1.7);
 	VERTEX.z += w * 0.45 * cos(TIME * 15.0 + world_pos.z * 1.3);
+	// The tunnel cutaway (tunnel_cut.gdshaderinc): a tree standing over the opened ground goes.
+	VERTEX = tunnel_hide(VERTEX, MODEL_MATRIX[3].xyz);
 }
 
 void fragment() {

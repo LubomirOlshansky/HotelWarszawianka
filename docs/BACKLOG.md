@@ -4,6 +4,20 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## Trybuna honorowa on Plac Centralny (F, 2026-11-08, five photos; spec docs/landmarks/specs/plac_centralny.md)
+Fixed: the old parade tribune in the middle of Plac Centralny was OSM's wall lines and steps drawn
+flat (low grey walls, a green patch and a stair that read as a ramp or a tunnel mouth), and the
+2026-11-05 build had put the tribune as a 1.1 m "seat-wall" 38 m further west with the striped
+field over the tribune's real spot. Now the site `trybuna` builds the battered granite block (25 x
+10.4 m), the corner piers with the plaque, three sitting steps whose side cheeks step up (the
+photo's zig-zag), the walk and the east planter with five young trees, the west stair between two
+planters; map_builder.gd leaves OSM's lines and flights inside it out (`TRYBUNA_ZONE`). The striped
+field (slabs with grass joints), its pale heart, WARSZAWA and the deckchairs lie east of it, towards
+Marszałkowska, as in the aerial render; two axis lamps moved off the field. Left:
+- Phone look; the real heights (read off one photo) and the stair's width from a Mac photo pass.
+- Whether the field's stripes are granite with grass joints or wooden decking (render vs. ZDM text).
+- Walkers don't climb the tribune's stairs (it is solid for them and the car).
+- At dusk the Palace floodlight's reach (the old quirk in "The Palace of Culture's grounds") lights the tribune and its trees warm gold.
 ## Powiśle, more real (F, 2026-11-08; plan docs/powisle-plan.md)
 F: too little detail in Powiśle; wants real houses, street details and the power plant. Items by impact:
 - [ ] P1 Elektrownia Powiśle rebuilt from photos (chimney count/height, separate halls, coal chute frame, lift, new blocks)
@@ -56,7 +70,9 @@ red and white bollards between the lanes. check_stuck_spots drives down, along, 
 Open:
 - The real tunnel goes on to Złote Tarasy's car park gates and the station's taxi and bus road
   (OSM 185123967, 128214245, the covered ways under the station); the game turns round in a hall
-  there. The hall has no car park gates or signs yet (only the car's x-ray shows underground).
+  there. The hall's end wall has the car park's two gates, barriers, ticket machines and signs
+  (2026-11-09, `centralny_ramp.gd`); only the car's x-ray and the cutaway show underground, so the
+  phone look is open.
 - `ao.bin` was not baked again (two trees' shade out, a few pixels), nor the prebuilt sectors on the Mac.
 - The board reads from the ramp (the camera behind the car); from the default view it is edge-on.
 
@@ -77,6 +93,14 @@ under it, so on the CAR and STORIES tabs a scroll started a request and closed t
 - [ ] The quit button gives up through each quest's own ✕ (hud `abort_pressed`), which covers only
   some beats: a questline in its offer card, or the coffee run on the bike, may answer "can't quit
   this one right now". Check each quest's quit on the phone and widen the beats where needed.
+- [x] The night meet ignored the quit during the meet, the raids and the drag (PT-52, Autopilot
+  2026-11-09: the map closed and the quest went on). It gives up in every beat now except Darek's
+  call, his offer and the drag's result card (`street_meet.gd` `can_quit`, `check_street_meet`).
+- [ ] Autopilot 2026-11-09 suspects for the night meet's drag: no PERFECT LAUNCH! banner after a
+  launch in the blue (PT-48); the first-10 guide's note and chatter over the rev counter on a fresh
+  save (PT-49, also in the boat race); "SHIFT ↑" shown from green with the needle low (PT-50).
+- [ ] Boat race: on the three crossings Autopilot's ring-to-ring line passed beside the ramp pads,
+  never over them (PT-53); check the pads sit on the natural line into the mid-river ring.
 - [ ] Phone look: the glow's size on the minimap (1.15) and the full map (2.0), the dotted line.
 
 ## Thin towers across the map (F, 2026-11-07; docs/design/small-buildings.md)
@@ -275,6 +299,10 @@ THEATRES, `theatre` curve, dark on Mondays). Left:
 - The north courtyard's car park and the Muzeum Ewolucji / Pałac Młodzieży doors (north side, faces
   the camera never sees) have no sign; the terrace has no ticket queue at the east portico yet.
 - Joke billboard "UWAGA:" by the pigeons on Plac Defilad shows the camera its dark back.
+- The two driveways off the service road by Sala Kongresowa now end at gates in the south-west block (OSM
+  `tunnel=building_passage`, `landmarks.gd` P_GATES; F 2026-11-08, they ran into a bare wall). Left: the
+  gates' look from photos (width, the surround, iron or steel) and the south courtyard behind them,
+  which is not modelled (its own road, way 2886, runs under the base's roof).
 - The bake still turns scrub into plain lawn city-wide; only the Palace's beds are bushes.
 - Event lighting (palace_lights.gd + data/palace_lights.json, F 2026-11-07): built with 13 dates (Pink October dropped, F 2026-11-08) and five
   patterns. Left: the Independence Day thread's white-red tier bands (event_day.gd) join as the 11 November
@@ -665,11 +693,16 @@ at DESKA (the generic three-a-side line overwrote it). Left:
 Built: Szymek's call, the start pontoon at the mouth of Port Czerniakowski, the 3.2 km course of 26
 rings under four bridges, three misses and you're out (JESZCZE RAZ / WYJDŹ), the rhythm and gold
 rings, the planing physics with wakes and jumps, three rivals with their own temperaments, the sand
-barge and its wake. Left:
+barge and its wake. 2026-11-08 (F: "can't get under the bridge, boring, the jet ski always wins"):
+the bridge fix (OSM fences over the river left out, the boats' water-level hull band), the course
+of bank gates and crossings with jump ramps, the slipstream, Kamil's stunts (design section 9). Left:
+- [x] PT-53 (Mac Autopilot 2026-11-09): the line into each mid-river ring passed beside the ramp pads; the ramps are just past the ring now (12 m, 10 m wide), and the guide's notes wait during the race
+- [ ] Phone feel of the 2026-11-08 course: are 80 m bank gates 17-34 m off the shore readable at the iso scale, do the ramps read as jumpable, is the slipstream's toast enough or does it need a visible wake line; whether Kamil's stunts look like a stunt (now a weave at half throttle; a wheelie pose on the jet ski mesh would sell it)
+- [ ] A pier, a barge or a quay in the race's water that the course file doesn't list still stops a boat (the colliders are the city's): an Autopilot pass on the Mac under all four bridges (the cloud run passed Świętokrzyski)
+- [ ] The other fences and walls that reach over open water elsewhere (a 117 m fence by Port Praski, a 31 m wall there, a 134 m wall ring south of Łazienkowski: `tools/` scan in design section 9) are left as they are; look at them from photos
 - [ ] Phone feel (F): the turn and slide on the plane, the jump off the barge's wake, whether 16 m rings are too easy or too hard at the iso scale, the rings' readability at night
 - [ ] The race panel (top right) covers rings and rivals ahead in some frames (Mac Autopilot, 2026-11-06): shift the boat lower in the frame while racing, or a slimmer race panel. The fail path (3 misses, ODPADASZ, JESZCZE RAZ, WYJDŹ back to the car) passed on the Mac; seen again 2026-11-07 for the next ring and the finish arch (PT-31). A full race to the finish passed too (4:08.6, 4th, one miss, Quit back to the car)
 - [ ] A tall dark wedge at the top of the frame 11-13 s into the race (Mac frames): find what it is (a lamp post or a bridge pylon seen from above?)
-- [ ] Ring 7 by Most Poniatowskiego's pier: a straight line from ring 6 brushes the pier (52 → 26 km/h in the Mac run); the rivals' curved line clears it. Maybe move ring 7 a few metres off · 2026-11-07 Autopilot run to the finish: ring 7 at 50 km/h with no contact (an approach lined up on the ring's axis); open for a straight-line player
 - [ ] After a miss no ring may be on screen (the next is 130 m on) and the race shows no edge arrow while boating (PT-32): an edge arrow to the next ring?
 - [ ] `--boat-race=call` rings under the title screen and the 12 s card expires before the first tap (flag only; the real call waits 5 min of driving)
 - [ ] A boat engine sound (the car's engine plays now) and a splash on landing; a rooster tail of spray behind the jet ski
@@ -707,13 +740,38 @@ warsaw-needed-photos/old-town, E01-E24) and Mapillary references:
   on each umbrella's fountain side with gaps at the run starts (drone photo E05).
 - Old Town roofs: 70% of dormers zinc-grey, most chimneys white plaster (E05).
 - `check_old_town_drive.gd` (verify `oldtowndrive`): the real car round the Old Town, 10 legs.
+- Pass 2 (F, 2026-11-08 evening): the Old Town and New Town walls (and the rebuilt houses at
+  Krakowskie Przedmieście's north end without a photo front) take a new shader type `T_OLDTOWN`
+  (building.gdshader; map_builder `OLD_TOWN_TYPE`): round-headed stone portals on some axes and
+  shop windows on the rest, a string course, tall casements with white glazing bars in cream
+  surrounds, sills and heads, a cornice, and on the Rynek's fronts a painted band along each floor
+  line (photos E01-E04). No triangles added (a first try with modelled surrounds cost 160,000).
+  Written as flat masks (step / mix, one return, typed_pane's rules inlined) on 2026-11-09 so the
+  lite building shader stays under the Adreno budget (500 of 505 with the shader-budget PR).
+- The Barbican from F's five photos: the round bastion's crown of brick posts under stone pyramids
+  with little gables between, a corbel band, loopholes, plain brick (no Gothic lancets); the four
+  towers at the mapped 13 m outlines with tile cones; tiled roofs on the arms; the pointed gate
+  through the bastion, the gate wall toward Nowomiejska, the bridge's two arches with grilles.
+- The Syrenka's pose from F's photo: sword raised over her head, shield up at her left.
 Left:
-- **Rynek facades**: each house's own colour, sgraffito, portals and signs (photos E01-E04); the
-  houses' windows have no frames, dormers float on LoD2 roofs in places.
-- **City wall towers and gates**: the towers' roofs, the Podwale gates and the white arch gate
-  (E14-01, E16); the Barbican's gate passage.
-- **The Cathedral's nave roof** is one LoD2 slab (E06-E08).
+- **Done 2026-11-09 (trailer finish, no photos reachable from the cloud, so from memory, Mac look
+  check parked)**: Rynek houses within 75 m of the square's centre take a painted palette (OSM
+  colours kept, six named houses set by hand, `_rynek_look`) (sgraffito is NOT built: building.gdshader is over
+  the Adreno budget, see #579); wall rings that are towers (Baszta
+  Rycerska, the Altana) get tile cones (`_tower_roof`); the Cathedral's nave has a steep tiled
+  gable over the LoD2 slab (`CATH_*` in landmarks.gd) and the ridge turret stands on it.
+- **Rynek facades, per house**: the colours are guesses (sgraffito waits for shader budget); the real ones of Pod
+  Murzynkiem, Baryczków, Fukier from photos (Mac, E-series) still to check; dormers float on LoD2
+  roofs in places.
+- **City wall gates**: the Podwale gates and the white arch gate (E14-01, E16) are not built (no
+  gate outlines on the map); the Barbican's passage is a dark panel, not open (the bastion is one
+  solid prism).
+- The Cathedral's apse and south tower stay LoD2; the nave roof is untextured tile colour.
 - The fountain park stays off the map (F 2026-11-08: don't grow the map).
+- **Found 2026-11-08: check_streaming identity fails on main** (not run in CI): 2212 meshes and
+  collider faces differ between the whole-city build and the 112 sector builds, across the map
+  (ground and building tiles far from the Old Town), the same count with and without pass 2, and
+  with freshly split sectors. Needs its own root-cause thread.
 
 ## Stairs across the city (F, 2026-11-07)
 
@@ -792,7 +850,10 @@ Built from F's photos (`tarasy_screen.gd`, `led_screen.gdshader`). Open:
 - More scenes for the loop (F's ideas: sea, a car driving out of the screen) and a day/night level pass.
 ## The Emilii Plater underpass entrances (F, 2026-11-06)
 
-F's screenshots: walled boxes with steps on flat ground. Done 2026-11-06 (spec
+F's screenshots: walled boxes with steps on flat ground. Lost on 2026-11-07 (the squash merge of #495
+dropped the whole `sunken`/`underpass` site and the Forest roof boat from landmarks.gd; only the sunken
+ground stayed, so F saw bare slopes with people standing on them, 2026-11-08) and restored 2026-11-08.
+Done 2026-11-06 (spec
 `docs/landmarks/specs/underpass-emilii-plater.md`, site `underpass`, SUNKEN `epl_*`): the five
 entrances within ~100 m of the crossing are sunk with stairs and passage mouths, and walkers go in
 and come out (pedestrians.gd `_portals`). Left:
@@ -1306,6 +1367,8 @@ police smarter, then test with Autopilot": R1, R2, R4's numbers and the police c
 - [ ] R3 part 2: wrong-way hops along one-way streets (needs oncoming-car checks on a cut), routes by time, the rival's shortcut shown after a loss
 - [x] R4 part 1: racing share, pull, corner grip, band and aim per rung (2026-11-04)
 - [x] R4 part 2: rivals lead (aim ahead from Słoik up, Mike at the player's top speed, 12 s opening burst, higher side-street caps, grip in the band), mistakes near the player, Słoik's wrong turn, Mike's phone, blocking (one lateral move) and cutting in, their lines (F, 2026-11-05)
+- [x] Rivals as fast as the player's car (F, 2026-11-09: "Halina is far too slow, I drive much faster"): every ladder rival's racing top is the player's car's (`share` 1.0, Halina was 0.8, Słoik 0.84), Halina corners at 8.5 m/s² (was 6) and pulls 9.5; a skill read (`rivals.gd` `skill_of`: the player's average progress against the car's top) gives a fast player a real race: no lift-off at the end, the rival aims 20 m in front, the first race keeps her lead to the line, while a slow player still gets the old Halina and Słoik (0.8 of the top, the lift-off). `tools/race_ai.sh`, skilled driver vs Halina: lost by 28 m (was a 159 m win for the player); Autopilot (Mac, run 20261109-012549, the guided first race): a quick but stumbling driver won by 17 m, she was never more than 74 m behind
+- [ ] Rivals vs an average headless driver: Halina and Słoik now lead the autopilot ghost to the line by 2-25 m because the ghost can't pass her lift-off crawl in the lane (a human player can); judge on the phone, and the street meet's racers (#597) could use `Rivals.skill_of` too
 - [ ] Contact nudges from aggressive rivals (Seba) beyond the block; phone feel of the new rivals (Autopilot P17 rerun)
 - [x] Police chasers in racer mode: quicker pull, corners by radius, careful through reds, round traffic; top speed still 0.8 of the player's (2026-11-04)
 - [ ] Phone feel of the races and chases (F's next device run); Autopilot row P17
@@ -2494,7 +2557,6 @@ Plan: docs/design/railway.md. One PR per item, in this order:
   sounds' levels on the phone (the rumble's body is low, the phone's speaker loses some of it);
   signals stay at one aspect (they do not change as a train passes); no signals on the bridges or at
   Główna's yard islands; S3d Gdańska.
-- **check_trains is not repeatable (found 2026-11-07).** The same commit gives different runs: main f7b6cc58 ran three times gave Główna 2, 0 and 1 stops, so "no train stopped at Główna" (and "no train turned back") fail now and then. The trains' `_rng` is seeded (1955) and the check has no map or view, so the drift comes from somewhere else in `trains.gd`; find it, or loosen those two asserts to a longer run.
 
 ## Krakowskie Przedmieście street by street (F, 2026-11-02), pass 1
 Built (cloud, Sonnet): eight shopfronts (`Storefronts.KRAKOWSKIE`, 93 venue signs in check_parodies), original names, at the mapped house numbers 20/22, 19, 27, 56, 45, 58/60, 64, 69. Open:
@@ -3727,11 +3789,13 @@ twice the dog walkers there, twice the cyclists (cap 16) and 45 % of them fast. 
 - **The minimap doesn't draw the tunnels yet** (DEMO 4.4: dashed). It is `hud.gd`
   `_minimap_mesh` (the HUD agent's file): after the roads loop, the `tunnels.roads` as 8 m
   dashes in the road colour. The snippet is in the loop 3b report.
-- **The car in a tunnel is a silhouette, not the plan's dithered ghost.** `tunnel_xray.gd` draws
-  the car's meshes once more with an unshaded material that ignores depth (after the post pass);
-  the ground over the tunnel stays whole. A dither in `ground.gdshader` would need `discard` in
-  the ground's shader (a cost on the phone's tile GPU for the whole ground); the look is the
-  user's to judge on the phone.
+- **The tunnel cutaway on the phone** (F, 2026-11-08; the silhouette item is fixed: the ground,
+  trees, lamps, benches and building parts over the tunnel open round the car,
+  `shaders/tunnel_cut.gdshaderinc`, `check_tunnel_cut`). Open: the look and a bench on the iPhone
+  (no new discard-capable shader: ground, building and foliage already discard; fixture and glow
+  only collapse vertices; ~70 µs of GDScript a frame while in a tunnel). The cut's edge shows no
+  earth thickness (the walls' tops meet the grass); pedestrians walking over the cut and the
+  portal frames' headwalls are not cut; a car in one Wisłostrada tube opens only its own tube.
 - The portal frames are simple (a headwall, two posts, a dark mouth 3 m in); the 10 m grid's
   slope over the first metres of a tunnel covers part of the mouth. The open ramp's walls stand
   on the grid's blurred trench sides.
@@ -4526,6 +4590,18 @@ twice the dog walkers there, twice the cyclists (cap 16) and 45 % of them fast. 
 
 ## From the first Android build (2026-10-29)
 
+- ~~**Adreno 6xx draws no city**~~ **Fixed 2026-11-08**: the Nothing Phone 1's driver (Adreno 642L)
+  failed to link building.gdshader and ground.gdshader (a control-flow ceiling, archive "Adreno 6xx
+  shader budget"); macros, all()/any() conditions and a lite building shader on Adreno < 700
+  (`gpu_quirks.gd`), guarded by `check_shader_budget.gd`. Phone BENCH with the city: 22.6 fps avg,
+  1% low 13.5, frame 44.3 ms, GPU 30.7 ms, scripts 19.7 ms, 152 draws (Auto→High).
+- **Android is slow on the Nothing Phone 1** (2026-11-08): 22.6 fps at Auto→High, GPU 30.7 ms and
+  scripts 19.7 ms. `tiers.gd` knows no Android model, so the phone gets High; an Android tier rule
+  (by GPU) and a perf pass are needed before Android is playable.
+- **building.gdshader is at 504 of its 505 Adreno budget** (`check_shader_budget.gd`, after #578,
+  #616 and the tunnel cutaway #601): the next PR that adds anything to building.gdshader must slim
+  something first, or verify fails. Room: put the landmarks' material codes in their own material
+  (~300 of the 504).
 - **Nothing has run on an Android phone.** The AAB is built and signed, but the game has never
   started on Android: touch, haptics (`Input.vibrate_handheld`), the save path, the frame rate,
   the governor's tiers (`tiers.gd` knows iPhone model ids only, so an Android phone gets its

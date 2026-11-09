@@ -35,6 +35,8 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		"WYPRZEDAŻ", "DO WYNAJĘCIA", "DO", "WYNAJĘCIA", "FROGS XXL", "FROGS", "XXL", "KAPCIE", "SCENA RELAX",
 		# R5: the Cepelia pavilion's book and vinyl store (a parody) and Zodiak.
 		"EMPIRYK", "ZODIAK",
+		# The cherry-liqueur kiosk in the park by Emilii Plater (a parody; F, 2026-11-08).
+		"PIJANA", "CZEREŚNIA",
 		# Dom pod Orłami's metal letters over Złota's square (a parody of the council's name).
 		"KRAJOWA", "RADA SPÓŁDZIELNI ORŁÓW",
 		# Gdański Business Center: parodies of two tenants' logos on the tower and the blocks.

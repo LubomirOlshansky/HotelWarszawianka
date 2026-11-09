@@ -947,6 +947,13 @@ func _chase_frame(dt: float) -> void:
 
 
 ## Ends a chase or a pull-over: "escaped", "shift" (the cap), "heli", "pullover".
+## The raid's chase ends with its quest (PT-52: the night meet given up from the map mid-raid):
+## the police came for the meet, not for the player. A chase the player started stays on.
+func stand_down() -> void:
+	if raid_chase and chasing():
+		_end("quit")
+
+
 func _end(how: String) -> void:
 	var t := chase_t
 	raid_chase = false
@@ -973,6 +980,8 @@ func _end(how: String) -> void:
 			_log("pull-over done")
 		"guard":
 			_log("guard talk done")
+		"quit":
+			_log("raid chase called off after %.1f s: the meet was given up" % t)
 		"rescue":
 			# Loop 3g-2 (police.md 8.1): accepting a rescue ends the chase, straight to the cooldown.
 			_log("chase ended after %.1f s: rescue accepted" % t)

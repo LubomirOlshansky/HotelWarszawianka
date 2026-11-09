@@ -4,6 +4,7 @@ shader_type spatial;
 // (INSTANCE_CUSTOM.rgb: sodium orange or LED white, from the baked light map).
 
 #include "res://shaders/common.gdshaderinc"
+#include "res://shaders/tunnel_cut.gdshaderinc"
 
 global uniform float lights_on;
 
@@ -13,6 +14,8 @@ varying vec3 lamp;
 void vertex() {
 	head = UV.x;
 	lamp = INSTANCE_CUSTOM.rgb;
+	// The tunnel cutaway: a lamp standing over the opened ground goes with it.
+	VERTEX = tunnel_hide(VERTEX, MODEL_MATRIX[3].xyz);
 }
 
 void fragment() {
