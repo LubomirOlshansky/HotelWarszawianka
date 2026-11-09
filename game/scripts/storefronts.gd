@@ -43,6 +43,10 @@ const InstanceBuffers := preload("res://scripts/instance_buffers.gd")
 const Notebook := preload("res://scripts/notebook.gd")
 const EggBook := preload("res://scripts/egg_book.gd")
 const Zaglebie := preload("res://scripts/zaglebie.gd")
+const CoffeeRun := preload("res://scripts/coffee_run.gd")
+## The venues that also get a glazed café front under their sign (Props.cafe_front, one MultiMesh
+## per sector like the Frogs: +1 draw call where they stand): the coffee run's four cafés.
+const CAFE_FRONT_IDS := ["kawa_kropka", "glon_dobra", "kawa_storczyk", "kawa_mantra"]
 
 ## The sector size (the city's 512 m tiles: map_builder.gd SECTOR).
 const TILE := 512.0
@@ -191,6 +195,12 @@ const VENUES := {
 	"kino_elektronik": [["KINO", "ELEKTRONIK"], CINEMA_TUBE_B, 3.2],
 	# Powiśle's streets (F, 2026-11-02): the small shops of a student and cyclist quarter, original
 	# names, one tube each, low over the door.
+	# The coffee run's cafés (coffee_run.gd STOPS; F 2026-11-08: "no café fronts, just a person
+	# standing"): their names in the tube colours of their real fronts' letters (white on black,
+	# gold, matcha green); each also gets a glazed front (CAFE_FRONT_IDS). Glon's sign is above.
+	"kawa_kropka": [["KROPKA."], Color(1.0, 1.0, 1.0), 2.8],
+	"kawa_storczyk": [["STORCZYK"], Color(1.0, 0.8, 0.35), 2.8],
+	"kawa_mantra": [["MANTRA"], Color(0.55, 1.0, 0.6), 2.8],
 	"pow_flat_bialy": [["FLAT", "BIAŁY"], CAFE_TUBE, 2.8],
 	"pow_rowerownia": [["ROWEROWNIA", "SERWIS"], POWISLE_TUBE_A, 2.8],
 	"pow_winyle": [["WINYLE", "NA SKARPIE"], POWISLE_TUBE_B, 2.8],
@@ -575,6 +585,7 @@ var _roots := {}
 var _triple_placed := {}
 var _pending: Array[Vector2i] = []
 var _shop_mesh: ArrayMesh
+var _cafe_mesh: ArrayMesh
 var _lezak_mesh: ArrayMesh
 var _atlas: ImageTexture
 var _rows := 0
@@ -620,11 +631,18 @@ func setup(data: Dictionary, places: Array) -> void:
 			with_cafes.append({"id": id, "at": Notebook.project(data.get("origin", [52.234, 21.024]), float(ll[0]), float(ll[1]))})
 	for id: String in VIADUKT:
 		with_cafes.append({"id": id, "at": VIADUKT[id][1], "road": VIADUKT[id][0], "bld": VIADUKT[id][1]})
+	# The coffee run's cafés at their doors (map x, z; Glon is a notebook place, already in).
+	for st: Dictionary in CoffeeRun.STOPS:
+		if st["door"] != Vector2.INF:
+			with_cafes.append({"id": "kawa_" + str(st["id"]), "at": st["door"]})
+	await LoadYield.tick("storefronts addresses")
 	venues = venue_list(with_cafes, addrs, graph)
+	await LoadYield.tick("storefronts venues")
 	for v in venues:
 		avoid.append(v["road"])
 	var polys := landmark_index(data.get("landmarks", []))
 	shops = pick_shops(addrs, convenience_list(data.get("pois", [])), jpos, triple_at, polys, avoid)
+	await LoadYield.tick("storefronts shops")
 	var nt := 0
 	for s in shops:
 		if s["triple"] != "" and not s["spare"]:
@@ -649,9 +667,13 @@ func setup(data: Dictionary, places: Array) -> void:
 		_by_key[payphone["key"]] = {"shops": [], "venues": [], "scooters": [], "zones": [], "metros": [], "docks": []}
 	_shop_mesh = Props.frogs_shop()
 	_lezak_mesh = Props.lezak()
+	await LoadYield.tick("storefronts meshes")
 	_build_atlas()
+	await LoadYield.tick("storefronts atlas")
 	_kebab_boards(at)
+	await LoadYield.tick("storefronts boards")
 	_billboards(at)
+	await LoadYield.tick("storefronts billboards")
 	_load_stamps()
 	# The eggs where their things are: the first triple corner's junction, the standing Leżak's zone.
 	if egg_book != null:
@@ -1097,6 +1119,7 @@ func _physics_process(_dt: float) -> void:
 			if int(venues[i]["state"]) == 0:
 				_place_venue(i, space)
 		_build_shops(key, root)
+		_build_cafe_fronts(key, root)
 		_venue_neon(key, root)
 		_write_lezaks(key)
 	_index_doors()
@@ -1255,9 +1278,30 @@ func _place_venue(i: int, space: PhysicsDirectSpaceState3D) -> void:
 	v["n"] = n
 	v["t"] = t
 	v["state"] = 1
+	if v["id"] in CAFE_FRONT_IDS:
+		v["front"] = Transform3D(Basis(t, Vector3.UP, n), p + n * 0.02)
 	if log_on:
 		print("storefronts: venue %s \"%s\" on the wall at %.1f, %.1f, %.2f m out, letter pixel %.2f m" % [v["id"],
 				" / ".join(lines), p.x, p.z, v["off"], px])
+
+
+## The sector's café fronts (CAFE_FRONT_IDS): one MultiMesh under its root, no sun shadow.
+func _build_cafe_fronts(key: Vector2i, root: Node3D) -> void:
+	var placed: Array[Transform3D] = []
+	for i: int in _by_key[key]["venues"]:
+		if int(venues[i]["state"]) == 1 and venues[i].has("front"):
+			placed.append(venues[i]["front"])
+	if placed.is_empty() or root.get_node_or_null("CafeFronts") != null:
+		return
+	if _cafe_mesh == null:
+		_cafe_mesh = Props.cafe_front()
+	var mmi := MultiMeshInstance3D.new()
+	mmi.name = "CafeFronts"
+	mmi.multimesh = _static_mm(_cafe_mesh, placed)
+	mmi.material_override = Models.material()
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	root.add_child(mmi)
 
 
 ## The sector's Frogs: one MultiMesh under its root.
@@ -1958,7 +2002,7 @@ func venue_wall(id: String) -> Dictionary:
 		if str(v["id"]) == id:
 			if int(v["state"]) != 1 or not v.has("n"):
 				return {}
-			return {"p": v["p"], "n": v["n"], "t": v["t"], "up": float(v["up"])}
+			return {"p": v["p"], "n": v["n"], "t": v["t"], "up": float(v["up"]), "front": v.has("front")}
 	return {}
 
 

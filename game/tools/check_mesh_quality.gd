@@ -100,7 +100,9 @@ const BUDGET := {
 	"central": 340,
 	"centralna": 1650,
 	"chalubinskiego8": 1520,
-	"cosmopolitan": 110,
+	"cosmopolitan": 420,  # 2026-11-08 photo rebuild (F)
+	"plac_grzybowski": 1500,  # 2026-11-08 photo build (F): 1429 tris, the cascade field is 48 blocks
+	"prozna": 5100,  # 2026-11-08 photo build (F): 5014 tris, 1,300 of them the 90 bollards
 	"dom_partii_extras": 100,
 	"deski": 2300,
 	"rynek": 3100,
@@ -157,6 +159,7 @@ const BUDGET := {
 	"plater49": 140,
 	"platinum_a": 80,
 	"platinum_b": 80,
+	"pepeo_tower": 130,  # 2026-11-08 top-50 T37: mapped parts in their skins, the crown sign
 	"poniatowski": 4800,  # 2026-11-03: the towers strengthened (F), 2556 -> 4574 tris over four groups; +0 draw calls
 	"prezydencki": 1300,
 	"q22": 720,  # 2026-11-08 photo rebuild (top-50 T02): 607 tris
@@ -164,6 +167,7 @@ const BUDGET := {
 	"rotunda": 1380,
 	"skyliner": 400,
 	"skysawa": 170,
+	"powstancow_blue": 100,
 	"slabs": 1100,   # 2026-11-03: balcony bands, a ledge every storey on the long faces (look check)
 	"zelazna": 1030,
 	"pokorna2": 1500,
