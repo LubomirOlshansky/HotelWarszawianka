@@ -31,6 +31,9 @@ const LOOPS := {
 	"engine_idle": ["SFX", -10.0], "engine_mid": ["SFX", -10.0], "engine_high": ["SFX", -10.0],
 	"tyre_roll": ["SFX", -14.0], "tyre_wet": ["SFX", -11.5], "tyre_squeal": ["SFX", -15.0],
 	"rotor": ["SFX", -3.0],
+	# The coffee run's bike (PT 2026-11-08: the car's engine kept on after the swap): the ride's
+	# tyres and chain, and the hub's ratchet while coasting (tools/make_sfx.py).
+	"bike_roll": ["SFX", -16.0], "bike_freewheel": ["SFX", -11.0],
 	"city_day": ["Ambience", -7.0], "city_night": ["Ambience", -14.0], "rain": ["Ambience", -7.0],
 	# v1.0 juice: one bed per kind of district (DISTRICT_BEDS), set ~13 dB under the city bed by the
 	# files' RMS so they colour it and never cover it.
@@ -135,6 +138,11 @@ var _wash: AudioStreamPlayer
 var _wash_t := 0.0
 ## Guard rails on a 4 m grid (data["guards"]): a hit there clangs.
 var _rails := {}
+## What the player is in now (main.gd `_sound_mode`): "car", "bike" (the coffee run's ROWERILO),
+## "boat" (a petrol boat: the engine stays as its motor, no tyres), "electric" (Srebrna Strzała:
+## silent) or "foot" (the club's, the lounge's room or the padel court: the parked car is quiet).
+## The helicopter is `flying`.
+var mode := "car"
 ## Loop MW-5: seconds left of the softer engine (the 02:00 beat on Plac Trzech Krzyży).
 var _soft_t := 0.0
 ## Loop MW-5: the engine's level while softened (×0.45, about -7 dB).
@@ -273,7 +281,12 @@ func _process(dt: float) -> void:
 ## slips the clutch up to ~2400 rpm); load from the throttle or, for the autopilot,
 ## how hard the car is speeding up.
 func _engine(dt: float, wet: float) -> void:
-	var on := not flying
+	# What the player is in decides which loops speak: the car's engine and tyres only in the car,
+	# the engine alone (an outboard stand-in) in a petrol boat, the bike's own loops on the bike,
+	# nothing of the car's in the electric boat, on foot (a room, the court) or in the helicopter.
+	var say := speaks(mode, flying)
+	var on: bool = say[1]
+	var motor: bool = say[0]
 	var v := absf(car.forward_speed)
 	var accel := (v - _last_v) / dt
 	_last_v = v
@@ -295,7 +308,7 @@ func _engine(dt: float, wet: float) -> void:
 	var w_idle := clampf((1500.0 - _rpm) / 650.0, 0.0, 1.0)
 	var w_high := clampf((_rpm - 3100.0) / 1100.0, 0.0, 1.0)
 	var w_mid := clampf(1.0 - w_idle - w_high, 0.0, 1.0)
-	var level := (0.5 + 0.5 * _load) * (0.45 if _dip > 0.0 else 1.0) * float(on) * (ENGINE_SOFT if _soft_t > 0.0 else 1.0)
+	var level := (0.5 + 0.5 * _load) * (0.45 if _dip > 0.0 else 1.0) * float(motor) * (ENGINE_SOFT if _soft_t > 0.0 else 1.0)
 	var names := ["engine_idle", "engine_mid", "engine_high"]
 	var weights := [w_idle, w_mid, w_high]
 	for k in 3:
@@ -308,6 +321,21 @@ func _engine(dt: float, wet: float) -> void:
 		slide = maxf(slide, 0.55 * clampf((v - 9.0) / 10.0, 0.0, 1.0))
 	slide *= (1.0 - 0.6 * wet) * float(on)
 	_drive("tyre_squeal", slide, 0.92 + 0.15 * slide + 0.05 * fast, dt, 12.0)
+	# The bike: tyres and chain by speed (full at its top, car.gd BIKE_TOP); the hub ticks off
+	# the pedals while it still rolls.
+	var bike: bool = say[2]
+	var ride := clampf(v / maxf(car.top_speed(), 1.0), 0.0, 1.0) if bike else 0.0
+	_drive("bike_roll", pow(ride, 0.7) * (1.0 - 0.4 * wet) * float(bike), 0.6 + 0.6 * ride, dt, 6.0)
+	var coast := float(bike and car.throttle < 0.05 and v > 1.0)
+	_drive("bike_freewheel", coast * (0.4 + 0.6 * ride), 0.55 + 0.75 * ride, dt, 10.0)
+
+
+## Which of the player's own loops speak for `mode` (see `mode`): [the engine, the car's tyres,
+## the bike's ride]. Static so check_sfx.gd can hold every vehicle swap to it.
+static func speaks(what: String, in_heli: bool) -> Array[bool]:
+	if in_heli:
+		return [false, false, false]
+	return [what == "car" or what == "boat", what == "car", what == "bike"]
 
 
 ## Eases a loop towards `level` (0..1, `rate` per second) and pitch; starts it when it

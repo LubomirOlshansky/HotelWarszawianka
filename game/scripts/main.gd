@@ -93,6 +93,8 @@ const Cassettes := preload("res://scripts/cassettes.gd")
 const FirstScene := preload("res://scripts/first_scene.gd")
 ## Skwer Linearny na Złotej (2026-11-02): the park's stone blocks, benches, cafés (skwer_zlota.gd).
 const SkwerZlota := preload("res://scripts/skwer_zlota.gd")
+## The car park ramp by Dworzec Centralny (F, 2026-11-08): its signs and bollards (centralny_ramp.gd).
+const CentralnyRamp := preload("res://scripts/centralny_ramp.gd")
 ## Plac Pięciu Rogów (2026-11-06): the square's cubes, lamps, cafés and egg (plac_pieciu_rogow.gd).
 const PlacPieciuRogow := preload("res://scripts/plac_pieciu_rogow.gd")
 ## The 3D corner screen on Skylight at Złote Tarasy (2026-11-05, tarasy_screen.gd).
@@ -844,6 +846,9 @@ var fullmap_span := 0.0
 ## G12 part 2, --quest-pick=N (tests, shots): the full map opens at the start and row N of the
 ## ZADANIA tab shown (the vehicle's) is tapped; a place's pick then closes the map.
 var quest_pick_flag := -1
+## --quest-quit=S (F 2026-11-08): S s into the run, open the full map and tap its quit button twice
+## (the quest under way gives up; Autopilot and test runs).
+var quest_quit_flag := -1.0
 var map_jump := Vector2.INF
 ## GAMEPLAY_PLAN 0.1, --teleport-test (verify step `teleport`): teleports to each of
 ## TELEPORT_TESTS in turn and fails (push_error) if the car lands in a tunnel, off the level of the
@@ -976,6 +981,10 @@ func _ready() -> void:
 		# The loading bar: the title runs while the tree is paused for the build (_load_step).
 		title.process_mode = Node.PROCESS_MODE_ALWAYS
 		add_child(title)
+		# The first frame (F, 2026-11-08: ~8 s of a plain blue screen on a Nothing Phone): the
+		# title is drawn before the settings, radio, wallet and save below, not after them.
+		await get_tree().process_frame
+		await get_tree().process_frame
 	else:
 		loading = _loading_card()
 	radio = Radio.new()
@@ -1028,7 +1037,10 @@ func _ready() -> void:
 		return
 	if title != null:
 		get_tree().paused = true  # the loading bar: nothing half-built moves between the build's steps
+		title.cap = lerpf(LOAD_FILES, LOAD_BUILT, LOAD_MARKS[0])
+		LoadYield.begin()  # the long setups let a frame through now and then (load_yield.gd)
 	await _build_world()
+	LoadYield.finish()
 	if title != null:
 		get_tree().paused = false
 	view.visible = true
@@ -1091,6 +1103,8 @@ var _title_pending := 0
 ## start's sectors fill the rest (_title_frame). Test runs (no title) build in one go, as before.
 const LOAD_FILES := 0.12
 const LOAD_BUILT := 0.6
+## The shares `_load_mark` reports, in order: the bar creeps towards the next one between two.
+const LOAD_MARKS: Array[float] = [0.1, 0.26, 0.53, 0.66, 0.67, 0.85, 0.99, 1.0]
 ## The threaded requests' paths, and what they loaded (held until the build has used them, so the
 ## streamer's own `load` takes them from the cache).
 var _preload_paths: PackedStringArray = []
@@ -1152,7 +1166,10 @@ func _load_step(share: float) -> void:
 	if title == null:
 		return
 	title.progress = maxf(title.progress, lerpf(LOAD_FILES, LOAD_BUILT, share))
+	var i := LOAD_MARKS.find(share)
+	title.cap = lerpf(LOAD_FILES, LOAD_BUILT, LOAD_MARKS[mini(i + 1, LOAD_MARKS.size() - 1)])
 	await get_tree().process_frame
+	LoadYield.mark()
 
 
 func _title_frame() -> void:
@@ -1482,6 +1499,7 @@ func _build_world() -> void:
 	_xray = TunnelXray.new()
 	world.add_child(_xray)
 	_xray.setup(car)
+	await LoadYield.tick("car and x-ray")
 	car.stuck.connect(_on_car_stuck)
 	car.jammed.connect(_on_car_stuck)  # G17: 8 s among traffic cars
 	car.water_at = map.in_water
@@ -1539,12 +1557,14 @@ func _build_world() -> void:
 	moments = CameraShots.new()
 	add_child(moments)
 	moments.setup(cam, world)
+	await LoadYield.tick("camera shots")
 
 	tod = TimeOfDay.new()
 	add_child(tod)
 	if live_clock != "":
 		tod.clock_start = TimeOfDay.warsaw_to_utc(live_clock, live_date)
 	tod.setup(env, sun, post_mat, sun_pitch)
+	await LoadYield.tick("time of day")
 	tod.lights_switched.connect(_show_night_nodes)
 	weather = Weather.new()
 	weather.tod = tod
@@ -1555,6 +1575,7 @@ func _build_world() -> void:
 	# Loop 2a: the HUD (and the settings panel in it) works while the game is paused.
 	hud.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(hud)
+	await LoadYield.tick("hud")
 	hud.set_scheme(controls.scheme)
 	hud.set_left_handed(Access.left_handed)  # accessibility (2026-11-01)
 	hud.set_touch_off(no_touch)  # desktop: --no-touch
@@ -1581,7 +1602,8 @@ func _build_world() -> void:
 		if not follow:
 			_rotate_camera(d))
 	hud.pinched.connect(_on_pinch)
-	hud.setup_minimap(data, map.map_outline(), map.outside)  # map north: the L, not the box
+	await hud.setup_minimap(data, map.map_outline(), map.outside)  # map north: the L, not the box
+	await LoadYield.tick("minimap")
 	hud.map_landmarks = map.landmark_info  # the full map's landmark icons (map_icons.gd)
 	hud.vehicle_pressed.connect(_toggle_vehicle)
 	hud.zoom_pressed.connect(_zoom_view)  # G3: the − and + buttons
@@ -1591,7 +1613,8 @@ func _build_world() -> void:
 	missions = Missions.new()
 	missions.line_split = start_mission == 0  # G12: calls follow the vehicle (quest_lines.gd)
 	add_child(missions)
-	missions.setup(map, data, world, hud)
+	await missions.setup(map, data, world, hud)
+	await LoadYield.tick("missions")
 	missions.player = car.global_position
 	# Speech bubbles (anyone can talk) and everybody's lines.
 	bubbles = Bubbles.new()
@@ -1634,24 +1657,40 @@ func _build_world() -> void:
 		world.add_child(dr)
 		dr.setup(map, graph, _vehicle_position, data)
 	if not no_traffic and graph != null:
-		_build_life(data, world)
+		await _build_life(data, world)
 	await _load_mark(0.53)
 	if graph != null:
 		_build_side_jobs(data, world)
 	_build_notebook(data)
+	await LoadYield.tick("_build_notebook")
 	_build_moments(data, world)
+	await LoadYield.tick("_build_moments")
 	_build_districts()
+	await LoadYield.tick("_build_districts")
 	_build_syrenki(world)
+	await LoadYield.tick("_build_syrenki")
 	_build_cassettes(world)
+	await LoadYield.tick("_build_cassettes")
 	_build_first_scene(world)
+	await LoadYield.tick("_build_first_scene")
 	_build_skwer_zlota(world)
+	await LoadYield.tick("_build_skwer_zlota")
+	_build_centralny_ramp(world)
+	await LoadYield.tick("_build_centralny_ramp")
 	_build_plac_pieciu_rogow(world)
+	await LoadYield.tick("_build_plac_pieciu_rogow")
 	_build_tarasy_screen(world)
+	await LoadYield.tick("_build_tarasy_screen")
 	_build_spire_motion(world)
+	await LoadYield.tick("_build_spire_motion")
 	_build_street_details(world)
+	await LoadYield.tick("_build_street_details")
 	_build_ratusz_hub(data, world)
+	await LoadYield.tick("_build_ratusz_hub")
 	_build_park_details(world)
+	await LoadYield.tick("_build_park_details")
 	_build_garage(world)
+	await LoadYield.tick("_build_garage")
 	await _load_mark(0.66)
 	# Loop MW-5: a PÓŁNOC FM track opened (a chapter, an egg, --unlock=N): a toast.
 	radio.track_unlocked.connect(func(_n: int, track: Dictionary, _why: String) -> void:
@@ -1705,33 +1744,56 @@ func _build_world() -> void:
 	if cam_test != "":
 		_start_cam_test()
 	_build_sound(data, world)
+	await LoadYield.tick("_build_sound")
 	await _load_mark(0.67)
 	# Loop 3g-1: the police, on the traffic's lane graph (none with --no-police).
 	if traffic != null and not police_opts.get("off", false):
-		_build_police(data, world)
-	_build_crowds(data, world)
-	_build_city_life(data, world)
+		await _build_police(data, world)
+	await _build_crowds(data, world)
+	await LoadYield.tick("_build_crowds")
+	await _build_city_life(data, world)
+	await LoadYield.tick("_build_city_life")
 	await _load_mark(0.85)
 	_build_buses(data, world)
+	await LoadYield.tick("_build_buses")
 	_build_old_tram(world)
+	await LoadYield.tick("_build_old_tram")
 	_build_crash_scenes()
+	await LoadYield.tick("_build_crash_scenes")
 	_build_rave(data, world)
+	await LoadYield.tick("_build_rave")
 	_build_meet(data, world)
+	await LoadYield.tick("_build_meet")
 	_build_boat_race(world)
+	await LoadYield.tick("_build_boat_race")
 	_build_dekalog_tour(world)
+	await LoadYield.tick("_build_dekalog_tour")
 	_build_kino_tour(world)
+	await LoadYield.tick("_build_kino_tour")
 	_build_shisha(data, world)
+	await LoadYield.tick("_build_shisha")
 	_build_ev_tow(world)
+	await LoadYield.tick("_build_ev_tow")
 	_build_stories(world)
+	await LoadYield.tick("_build_stories")
 	_build_crawl(data, world)
-	_build_storefronts(data, world)
+	await LoadYield.tick("_build_crawl")
+	await _build_storefronts(data, world)
+	await LoadYield.tick("_build_storefronts")
 	_build_packs(data, world)
+	await LoadYield.tick("_build_packs")
 	_build_fans(data, world)
+	await LoadYield.tick("_build_fans")
 	_build_event_day(data, world)
+	await LoadYield.tick("_build_event_day")
 	_build_loud_cars(world)
+	await LoadYield.tick("_build_loud_cars")
 	_build_crazy_drivers(world)
+	await LoadYield.tick("_build_crazy_drivers")
 	_build_wellness(world)
+	await LoadYield.tick("_build_wellness")
 	_build_first10()
+	await LoadYield.tick("_build_first10")
 	await _load_mark(0.99)
 	_set_quality(quality_choice)
 	get_tree().root.size_changed.connect(_apply_style)
@@ -1827,25 +1889,29 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	traffic.race_debug = race_debug
 	traffic.count_overlaps = _traffic_overlaps
 	world.add_child(traffic)
-	traffic.setup(graph, map, cam, data)
+	await traffic.setup(graph, map, cam, data)
+	await LoadYield.tick("traffic.setup")
 	traffic.player_pos = car.global_position
 	car.bumped.connect(traffic.on_player_bump)
 	trams = Trams.new()
 	world.add_child(trams)
-	trams.setup(graph, map, data)
+	await trams.setup(graph, map, data)
+	await LoadYield.tick("trams.setup")
 	trams.traffic = traffic
 	traffic.trams = trams
 	_first_scene_trams()
 	trains = Trains.new()
 	world.add_child(trains)
 	trains.setup(map, data)
+	await LoadYield.tick("trains.setup")
 	# The railway audit (2026-11-07): the trains' rumble, horn and platform gong.
 	trains.sfx = sfx
 	if train_at != Vector2.INF:
 		trains.place_near(train_at, train_kind)
 	walkers = Pedestrians.new()
 	world.add_child(walkers)
-	walkers.setup(map, cam, traffic, data)
+	await walkers.setup(map, cam, traffic, data)
+	await LoadYield.tick("walkers.setup")
 	# First scene item 6: busier pavements on Marszałkowska by the start.
 	var busy := walkers.set_busy(FirstScene.FRAME_O, FirstScene.FRAME_S, FirstScene.FRAME_T, FirstScene.BUSY_BANDS, FIRST_SCENE)
 	print("first scene: %d busy pavement points" % busy)
@@ -1863,6 +1929,7 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	rivals.wallet = wallet
 	rivals.tod = tod  # loop 3h slice 3: the final waits for the night
 	rivals.setup(graph, traffic, hud, bubbles, missions, map, world, car, data)
+	await LoadYield.tick("rivals.setup")
 	if ladder_flag >= 0 or trzy_mosty_flag:
 		rivals.preset_ladder(ladder_flag if ladder_flag >= 0 else Ladder.RUNGS.size())  # loop 3h slice 3
 	print("living city: %d lanes, %d trams in %d ms" % [graph.lane_count, trams.trams.size(), Time.get_ticks_msec() - t0])
@@ -1895,6 +1962,18 @@ func _build_skwer_zlota(world: Node3D) -> void:
 	sz.map = map
 	world.add_child(sz)
 	sz.build()
+
+
+## The car park ramp by Dworzec Centralny (centralny_ramp.gd): the board over the tunnel's mouth
+## and the bollards between the lanes, on both city paths.
+func _build_centralny_ramp(world: Node3D) -> void:
+	if solo_site != "":
+		return
+	var cr := CentralnyRamp.new()
+	cr.name = "CentralnyRamp"
+	cr.map = map
+	world.add_child(cr)
+	cr.build()
 
 
 ## Plac Pięciu Rogów (plac_pieciu_rogow.gd): the square's furniture, on both city paths.
@@ -2541,7 +2620,7 @@ func _build_storefronts(data: Dictionary, world: Node3D) -> void:
 	storefronts.lit = func() -> bool: return tod != null and tod.lights_on > 0.001
 	storefronts.fine_shown = func() -> bool: return _fine_shown
 	world.add_child(storefronts)
-	storefronts.setup(data, notes.places)
+	await storefronts.setup(data, notes.places)
 	if stamps_flag >= 0:
 		storefronts.preset_stamps(stamps_flag)
 	if rides != null:
@@ -2604,7 +2683,8 @@ func _build_crowds(data: Dictionary, world: Node3D) -> void:
 	crowds.paint = func() -> String: return str(wallet.paint)
 	crowds.egg = func(id: String) -> bool: return egg_book != null and egg_book.fire(id, _egg_state())
 	world.add_child(crowds)
-	crowds.setup(notes.places, data)
+	await crowds.setup(notes.places, data)
+	await LoadYield.tick("crowds.setup")
 	tod.changed.connect(func(_m: int) -> void: crowds.refresh())
 	# The crowds' sounds: each queue's and the steps' murmur, the guitarist.
 	if city_sounds != null:
@@ -3145,7 +3225,8 @@ func _build_stories(world: Node3D) -> void:
 		if flying:
 			return [heli.global_position, heli.speed() * 3.6, true]
 		return [car.global_position, car.vel.length() * 3.6, false]
-	stories.free_now = _boat_free
+	stories.free_now = _story_free
+	stories.skip_to = _story_skip_to
 	stories.ground = func(x: float, z: float) -> float: return map.ground_height(x, z)
 	stories.clock = func() -> Array:
 		var c: Dictionary = tod.local_clock()
@@ -3196,7 +3277,7 @@ func _build_stories(world: Node3D) -> void:
 		stories.add({"id": "meet", "pl": "Nocny spot", "en": "Night meet", "who": [StreetMeet.FRIEND, StreetMeet.FRIEND],
 				"hello": ["„Siema! Dziś spot na Defiladzie. Wbijasz?”", "\"Hey! Meet's on Plac Defilad tonight. You in?\""],
 				"closed": ["„Za dnia tu tylko turyści. Wpadnij po 21.”", "\"By day it's all tourists here. Come after nine.\""],
-				"at": Vector2(g.x, g.z), "colour": StreetMeet.COLOUR, "hours": StreetMeet.NIGHT_HOURS, "days": [],
+				"at": Vector2(g.x, g.z), "colour": StreetMeet.COLOUR, "hours": StreetMeet.NIGHT_HOURS, "days": [], "jump": true,
 				"call": meet.ring, "meet": meet.meet_in_person, "busy": meet.busy, "idle": meet.idle})
 	if kino_tour != null:
 		stories.add({"id": "kino", "pl": KinoTour.NAME, "en": "Cinema tour", "who": ["Wiktor", "Wiktor"],
@@ -3218,11 +3299,20 @@ func _build_stories(world: Node3D) -> void:
 				"hours": Vector2(-1.0, -1.0), "days": [],
 				"call": ev_tow.ring, "meet": func() -> bool: return false, "busy": ev_tow.busy,
 				"idle": func() -> bool: return ev_tow.state == EvTow.State.IDLE})
-	# One line per questline for the full map's pin (a tap shows it): [pl, en].
+	# One line per questline for the full map's pin (a tap shows it): [pl, en]. A start in person
+	# first puts off a rescue call still ringing (its pill), which no longer stops the friend.
 	for d: Dictionary in stories.defs:
 		d["blurb"] = STORY_BLURBS.get(str(d["id"]), ["", ""])
+		var own: Callable = d.get("meet", Callable())
+		if own.is_valid():
+			d["meet"] = func() -> bool:
+				if missions.state == Missions.State.RINGING:
+					missions.close()
+				return bool(own.call())
 	if story_flag != "":
 		get_tree().create_timer(1.5).timeout.connect(func() -> void: stories.start(story_flag))
+	if quest_quit_flag >= 0.0:
+		get_tree().create_timer(quest_quit_flag).timeout.connect(_quest_quit_test)
 	print("stories: %d questlines (%s)" % [stories.defs.size(), ", ".join(stories.defs.map(func(d: Dictionary) -> String:
 			return "%s %s" % [d["id"], "%.0f,%.0f" % [d["at"].x, d["at"].y] if d["at"] != Vector2.INF else "no start"]))])
 
@@ -3265,6 +3355,7 @@ func _story_tick() -> void:
 	var focus := _quest_running()
 	stories.focus = focus
 	_shisha_secret(focus)
+	_meet_night()
 	var m: Array = StoryQuests.marks(stories.defs, focus or flying)
 	var names := PackedStringArray()
 	var blurbs := PackedStringArray()
@@ -3283,6 +3374,47 @@ func _story_tick() -> void:
 	hud.set_story(m[0], m[1], focus, names, blurbs, small)
 	if stories_log:
 		print("stories: focus %s, %d starts on the map" % ["on" if focus else "off", (m[0] as PackedVector2Array).size()])
+
+
+## The questline friend may walk up (story_quests.gd): as `_boat_free`, but a rescue call that only
+## rings (the WEZWANIE pill, waiting until pressed) does not stop it (F, 2026-11-08: stopped in the
+## night meet's ring, nothing came).
+func _story_free() -> bool:
+	if rave != null and rave.busy():
+		return false
+	return _rave_free(true)
+
+
+## True once the night meet's night was set for the run under way (cleared when the meet ends).
+var _meet_dark := false
+
+
+## The night meet is a night (F, 2026-11-08): taken by day (Darek's call, the list, in person), the
+## clock jumps to 21:05 at once, so the meet, the raid and the drag all run in the dark.
+func _meet_night() -> void:
+	if meet == null or not meet.busy():
+		_meet_dark = false
+		return
+	if _meet_dark:
+		return
+	_meet_dark = true
+	if not StreetMeet.night_on(float(tod.local_clock()["hour"])):
+		_story_skip_to(StoryQuests.open_hour({"hours": StreetMeet.NIGHT_HOURS}))
+
+
+## CZEKAM DO 21:00 (story_quests.gd): the clock jumps to `hour` in the look that fits it (Dawn,
+## Day, Dusk or Night, blended), the way the TIME setting's fixed looks keep a running clock. True
+## when it was set. Live time becomes that fixed look until the player picks Live again.
+func _story_skip_to(hour: float) -> bool:
+	if tod == null:
+		return false
+	tod.set_mode(TimeOfDay.parse(StoryQuests.look_for(hour)))
+	tod.fixed_start = hour
+	if hud.settings_panel != null:
+		hud.settings_panel.sync(_settings_state())
+	var hm := "%02d:%02d" % [int(hour), int(fmod(hour, 1.0) * 60.0)]
+	hud.toast("Czekacie do %s." % hm, "You wait until %s." % hm)
+	return true
 
 
 ## Nothing else on, on the ground (the rave's test, and no rave either).
@@ -3337,6 +3469,17 @@ func _on_boat_left() -> void:
 
 
 ## While boating: the car's spot, heading and speed are the boat's.
+## What the player is in, for the engine's and tyres' loops (sfx.gd `mode`): the bike on the coffee
+## run (PT 2026-11-08: the car's engine kept on after the swap), a boat (the electric one silent),
+## on foot in a room or on the court, else the car.
+func _sound_mode() -> String:
+	if boat_race != null and boat_race.boating() and boat_race.player != null:
+		return "electric" if boat_race.player.kind == BoatRace.Boat.Kind.ELECTRIC else "boat"
+	if (club != null and club.inside) or (lounge != null and lounge.inside) or (padel != null and padel.inside):
+		return "foot"
+	return "bike" if car.model == "bike" else "car"
+
+
 func _boat_frame() -> void:
 	if boat_race == null or not boat_race.boating():
 		return
@@ -3547,7 +3690,8 @@ func _shisha_free() -> bool:
 
 
 ## Nothing else on: no title, bench, Spacer, guide, card, call, ride, job, race; on the ground.
-func _rave_free() -> bool:
+## `ringing_ok`: a rescue call still ringing (not answered) does not count (the questline friend).
+func _rave_free(ringing_ok := false) -> bool:
 	if club != null and club.inside:
 		return false
 	if (lounge != null and lounge.inside) or (shisha != null and shisha.busy()):
@@ -3562,7 +3706,8 @@ func _rave_free() -> bool:
 		return false
 	if first10 != null and first10.guide_on():
 		return false
-	if hud.cards_up() or missions.state != Missions.State.CLOSED or missions.has_target():
+	var ringing: bool = ringing_ok and missions.state == Missions.State.RINGING
+	if hud.cards_up() or (missions.state != Missions.State.CLOSED and not ringing) or missions.has_target():
 		return false
 	if (rides != null and rides.busy()) or (jobs != null and jobs.busy()) or (trend_job != null and trend_job.busy()):
 		return false
@@ -3853,7 +3998,8 @@ func _build_city_life(data: Dictionary, world: Node3D) -> void:
 	wallet.keep["life_sessions"] = life.session + 1
 	wallet.save()
 	world.add_child(life)
-	life.setup(notes.places, data)
+	await life.setup(notes.places, data)
+	await LoadYield.tick("life.setup")
 	# The Wiralek slots' doors: the trend queues' (crowds.gd), else the places themselves.
 	var at := {}
 	for p: Dictionary in notes.places:
@@ -4807,6 +4953,7 @@ func _build_police(data: Dictionary, world: Node3D) -> void:
 			"project": func(p: Vector3) -> Vector2: return cam.unproject_position(p) * float(view.stretch_shrink)}
 	add_child(police)
 	police.setup(nodes, data, world)
+	await LoadYield.tick("police.setup")
 
 
 ## The police's testing flags (README's flags table): --no-police, --police=1|2|3, --trap=N,
@@ -5162,6 +5309,8 @@ func _parse_args() -> void:
 			# 2026-10-31: the full map's hold-to-teleport to x,z once the drive starts (tests).
 			var xz := arg.trim_prefix("--map-jump=").split(",")
 			map_jump = Vector2(float(xz[0]), float(xz[1]))
+		elif arg.begins_with("--quest-quit="):
+			quest_quit_flag = float(arg.trim_prefix("--quest-quit="))
 		elif arg.begins_with("--quest-pick="):
 			quest_pick_flag = int(arg.trim_prefix("--quest-pick="))
 			open_map_at_start = true
@@ -5707,6 +5856,7 @@ func _open_full_map() -> void:
 				syrenki.entries.size() if syrenki != null else 0)  # loop 3h slice 1 (+ slice 2: the Syrenki line)
 	if rivals != null:
 		hud.full_map.set_ladder(rivals.ladder_rows())  # loop 3h slice 3: the DRABINKA card
+	hud.full_map.quit_what = _quest_quit_name()  # F 2026-11-08: the card's quit button
 	hud.full_map.set_quests(_quest_entries(), Lines.Line.HELI if flying else Lines.Line.CAR,
 			str(quest_pin.get("id", "")))  # G12 part 2: the ZADANIA card
 	if quest_tab_flag >= 0:
@@ -5732,6 +5882,7 @@ func _wire_full_map() -> void:
 	hud.full_map.closed.connect(_close_full_map)
 	hud.full_map.teleport.connect(_teleport_from_map)
 	hud.full_map.quest_picked.connect(_on_quest_picked)
+	hud.full_map.quit_quest.connect(_quit_quest)
 	hud.full_map.can_teleport = _teleport_refusal
 
 
@@ -5825,11 +5976,67 @@ func _quest_now() -> Dictionary:
 		what = ["Teraz · akcja ratunkowa", "Now · rescue"]
 		at = missions.target_position()
 		colour = missions.target_colour()
+	elif stories != null:
+		# F 2026-11-08: a questline taken has its "Teraz" row too, at the target shown now.
+		for d: Dictionary in stories.defs:
+			var b: Callable = d.get("busy", Callable())
+			if b.is_valid() and bool(b.call()):
+				what = ["Teraz · %s" % d["pl"], "Now · %s" % d["en"]]
+				var mt: Vector2 = hud._mini_target
+				at = Vector3(mt.x, 0.0, mt.y) if mt != Vector2.INF else Vector3.INF
+				colour = d.get("colour", Lines.STORY_COLOUR)
+				break
 	if what.is_empty():
 		return {}
 	var line := Lines.Line.HELI if flying else Lines.Line.CAR
 	var xz := Vector2(at.x, at.z) if at != Vector3.INF else Vector2.INF
 	return Lines.entry("now", "now", line, str(what[0]), str(what[1]), xz, colour, Lines.NOW)
+
+
+## F (2026-11-08): the name of the quest under way, [pl, en], for the full map's quit button
+## (empty: nothing is on that the player took). A questline by its own name, else the "Teraz" row's.
+func _quest_quit_name() -> Array:
+	if not _quest_running():
+		return []
+	if stories != null:
+		for d: Dictionary in stories.defs:
+			var b: Callable = d.get("busy", Callable())
+			if b.is_valid() and bool(b.call()):
+				return [str(d["pl"]), str(d["en"])]
+	var now := _quest_now()
+	if not now.is_empty():
+		return [str(now["pl"]).trim_prefix("Teraz · "), str(now["en"]).trim_prefix("Now · ")]
+	return ["zadanie", "quest"]
+
+
+## --quest-quit: the full map open, its quit button tapped twice (if it shows).
+func _quest_quit_test() -> void:
+	print("quest quit test: running %s, %s" % [_quest_running(), _quest_quit_name()])
+	_open_full_map()
+	var qb := hud.full_map.find_child("quit_quest", true, false) as Button
+	if qb == null:
+		print("quest quit test: no quit button")
+		hud.full_map.close()
+		return
+	print("quest quit test: button \"%s\"" % qb.text)
+	qb.pressed.emit()
+	qb = hud.full_map.find_child("quit_quest", true, false) as Button
+	print("quest quit test: armed \"%s\"" % (qb.text if qb != null else "?"))
+	if qb != null:
+		qb.pressed.emit()
+	print("quest quit test: after, running %s, map open %s" % [_quest_running(), hud.full_map.is_open()])
+
+
+## F (2026-11-08): the full map's quit button, tapped twice: whatever runs gives up the way its
+## own ✕ on the status card does (hud.abort_pressed: each quest checks it is the one on), the
+## quest pin goes too. If something still runs (a quest with no ✕ in this beat), a toast says so.
+func _quit_quest() -> void:
+	quest_pin = {}
+	hud.abort_pressed.emit()
+	var still := _quest_running()
+	print("quest list: quit quest%s" % (" (still running)" if still else ""))
+	if still:
+		hud.toast("Tego teraz nie przerwiesz", "You can't quit this one right now")
 
 
 ## G12 part 2: a row of the ZADANIA card: a request starts now (the map has closed: a ride's
@@ -6845,6 +7052,8 @@ func _process(dt: float) -> void:
 			trend_job.flying = flying or boating or touring
 			trend_job.player_pos = pos
 			trend_job.away = rides.away
+			# F 2026-11-08: no friend's call (Mrożulo's Dżemini, the coffee run, DESKA) mid-mission.
+			trend_job.mission_on = _quest_running()
 		eggs.player = pos
 		eggs.player_vel = heli.vel if flying else car.vel
 		eggs.flying = flying
@@ -6853,6 +7062,7 @@ func _process(dt: float) -> void:
 	car.wet = weather.wet
 	if sfx != null:
 		sfx.flying = flying
+		sfx.mode = _sound_mode()
 		sfx.focus = cam_focus
 		sfx.yaw = cam_yaw
 	if weather.amount > 0.0:
@@ -7381,6 +7591,13 @@ var _nudge_arrow := false
 var _free_now := false
 
 
+## The main line still shows (main_line.gd `now`): the guide is on and no job is done yet.
+func _main_live() -> bool:
+	if MainLine.FIRST_JOB_ONLY and (not _guide_on() or (wallet != null and wallet.jobs_done() >= 1)):
+		return false
+	return true
+
+
 func _guide_on() -> bool:
 	return first10 != null and first10.guide_on()
 
@@ -7388,6 +7605,9 @@ func _guide_on() -> bool:
 ## The active target on the minimap: a side quest's dot in its colour, or (`main`) the main line's
 ## star (hud.gd `set_main_line`, from `_main_line_tick`).
 func _put_target(xz: Vector2, colour: Color, main: bool) -> void:
+	# F 2026-11-08: past the first job the main line is off (main_line.gd FIRST_JOB_ONLY): its
+	# targets are ordinary pins then, so nothing hides behind a star that isn't drawn.
+	main = main and _main_live()
 	hud.set_minimap_target(Vector2.INF if main else xz, colour)
 	_main_target = xz if main else Vector2.INF
 
@@ -7419,7 +7639,9 @@ func _main_line_tick(dt: float) -> void:
 	else:
 		f["next"] = Ladder.FINAL + 1
 		f["end_seen"] = true
-	main_step = MainLine.step(f)
+	if wallet != null:
+		f["jobs"] = wallet.jobs_done()
+	main_step = MainLine.now(f)
 	hud.set_main_line(main_step["at"], str(main_step["pl"]), str(main_step["en"]))
 	# Nothing comes by itself on the title, in a camera moment or in Spacer (spacer.gd).
 	var quiet := title != null or (moments != null and moments.playing()) or (spacer != null and spacer.on)
