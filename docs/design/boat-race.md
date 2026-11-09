@@ -163,8 +163,11 @@ Poniatówka beach), a crossing, the long left-bank run under Poniatowski, the ra
 Świętokrzyski along the boulevards (the barge's stretch, it comes up the right bank), a crossing,
 the Praga beaches under the footbridge, a crossing, under the Old Town to Śląsko-Dąbrowski and the
 finish. 34 rings (3 gold), 3 ramps. Each crossing: a mid-river ring a third of the way across, the
-ramp 45 m before it on the run to it, the gold ring 30 m past it, then 100 m+ to the next bank's
-first ring. The bake keeps every straight run between two rings 11 m off the bank (the Praga
+10 m wide ramp 12 m past it, the gold ring 50 m past it (the jump flies at it), then 100 m+ to the
+next bank's first ring. (First built 45 m before the mid ring: Mac Autopilot 2026-11-09, PT-53,
+passed beside all three pads, because the lines into the ring had not yet converged there; every
+line goes through the ring, so the pad is right after it now, and the rivals' driver steers over
+a ramp within 6 m of its line.) The bake keeps every straight run between two rings 11 m off the bank (the Praga
 bank's groynes stuck out between two bank rings and the boats ran aground) and 7 m off the piers,
 eases any ring where the line turns more than 40°, and turns each ring to face the racing line
 through it (from the ring before to the one after), not just down the river.
@@ -173,6 +176,9 @@ through it (from the ring before to the one after), not just down the river.
 careful line 155-158 s, Szymek and Kamil within about a second of it and each winning some races,
 Pan Zdzisiek ~167 s; Kamil sometimes out on misses. The careful line may miss one ring in a tight
 pack now (the check allows one).
+
+**The first-10 guide** holds its notes while a race is on (Autopilot 2026-11-09: the kebab-stand
+note came up mid-race on a fresh save; `first10.gd` `side_busy`).
 
 **Cost.** The ramps: three meshes shown only while racing (one on screen at a time). The
 slipstream: a loop over four boats a frame. No change idle.

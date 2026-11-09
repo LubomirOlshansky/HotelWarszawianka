@@ -2897,6 +2897,7 @@ func _build_first10() -> void:
 	first10.garage = garage
 	first10.cassettes = cassettes
 	first10.flying = func() -> bool: return flying
+	first10.side_busy = func() -> bool: return boat_race != null and boat_race.boating()
 	first10.scripted = first10_flag and autopilot
 	add_child(first10)
 	first10.setup(first10_flag or show_title)

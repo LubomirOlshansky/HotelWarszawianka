@@ -419,13 +419,20 @@ func _hold_offers(on: bool) -> void:
 		print("first10: offers %s at %.1f s" % ["held" if on else "free", t])
 
 
+## Other quests that make the moment not free (main.gd: out on the water in the boat race or a free
+## ride, not on the way to the pontoon; Autopilot 2026-11-09: the
+## guide's kebab-stand note came up mid-race on a fresh save).
+var side_busy: Callable = func() -> bool: return false
+
+
 ## What the director knows now (see `decide`).
 func facts() -> Dictionary:
 	var air: bool = flying.is_valid() and bool(flying.call())
 	# PT-15: a ride request's card up counts (Halina won't roll up over it).
 	var busy: bool = (jobs != null and (jobs.busy() or jobs.ride_offered())) or (rivals != null and (rivals.busy() or rivals.first_waiting())) \
 			or (missions != null and (missions.has_target() or int(missions.state) in [Missions.State.OFFER, Missions.State.RESULT])) \
-			or (police != null and int(police.phase) != 0) or (garage != null and garage.is_open()) or _end_up
+			or (police != null and int(police.phase) != 0) or (garage != null and garage.is_open()) or _end_up \
+			or bool(side_busy.call())
 	var orders: int = jobs.orders_started() if jobs != null else 0
 	if _delivered_t < 0.0 and wallet != null and wallet.jobs_done() > 0 and not busy:
 		_delivered_t = t

@@ -607,6 +607,7 @@ rings, the planing physics with wakes and jumps, three rivals with their own tem
 barge and its wake. 2026-11-08 (F: "can't get under the bridge, boring, the jet ski always wins"):
 the bridge fix (OSM fences over the river left out, the boats' water-level hull band), the course
 of bank gates and crossings with jump ramps, the slipstream, Kamil's stunts (design section 9). Left:
+- [x] PT-53 (Mac Autopilot 2026-11-09): the line into each mid-river ring passed beside the ramp pads; the ramps are just past the ring now (12 m, 10 m wide), and the guide's notes wait during the race
 - [ ] Phone feel of the 2026-11-08 course: are 80 m bank gates 17-34 m off the shore readable at the iso scale, do the ramps read as jumpable, is the slipstream's toast enough or does it need a visible wake line; whether Kamil's stunts look like a stunt (now a weave at half throttle; a wheelie pose on the jet ski mesh would sell it)
 - [ ] A pier, a barge or a quay in the race's water that the course file doesn't list still stops a boat (the colliders are the city's): an Autopilot pass on the Mac under all four bridges (the cloud run passed Świętokrzyski)
 - [ ] The other fences and walls that reach over open water elsewhere (a 117 m fence by Port Praski, a 31 m wall there, a 134 m wall ring south of Łazienkowski: `tools/` scan in design section 9) are left as they are; look at them from photos

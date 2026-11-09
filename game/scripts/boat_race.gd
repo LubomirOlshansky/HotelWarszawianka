@@ -132,6 +132,8 @@ const RAMP_MIN := 7.0
 const RAMP_UP := 0.28
 const RAMP_VY := Vector2(3.5, 6.0)
 const RAMP_H := 1.1
+## The rivals' driver (and the player's autopilot) steers over a ramp this close to its line.
+const RAMP_PULL := 6.0
 const JUMP_BOOST := 1.12
 const JUMP_TIME := 1.8
 
@@ -893,7 +895,11 @@ func _drive_rival(k: int, dt: float) -> void:
 		var look := 6.0 + b.speed() * 0.55
 		if d < look:
 			want = aim.lerp(aim2, clampf((look - d) / look, 0.0, 0.6))
-	# Keep clear of a boat just ahead; block a boat close behind.
+	# A jump ramp on the way to the ring: through it (PT-53: lines passed beside the pads).
+	var rp := _ramp_ahead(b.pos, aim)
+	if rp != Vector2.INF:
+		want = rp
+		# Keep clear of a boat just ahead; block a boat close behind.
 	var f: Vector2 = b.forward()
 	var right := Vector2(f.y, -f.x)
 	for j in boats.size():
@@ -1027,6 +1033,22 @@ func _ramps_tick(k: int, dt: float) -> void:
 		jumps += 1
 		_log("%s jumps a ramp at %.0f km/h" % [r["name"], vf * 3.6])
 		return
+
+
+## The centre of a ramp lying ahead on the run from `from` to `to` (at most RAMP_PULL m off that
+## straight line and before its end), or INF.
+func _ramp_ahead(from: Vector2, to: Vector2) -> Vector2:
+	var run := to - from
+	var l := run.length()
+	if l < 1.0:
+		return Vector2.INF
+	var u := run / l
+	for r: Dictionary in ramps:
+		var c := Vector2(float(r["x"]), float(r["z"]))
+		var along := (c - from).dot(u)
+		if along > 3.0 and along < l and absf((c - from).dot(Vector2(u.y, -u.x))) < RAMP_PULL:
+			return c
+	return Vector2.INF
 
 
 ## Where boat k aims through ring i: the ring's centre at its own share of the opening (fixed per

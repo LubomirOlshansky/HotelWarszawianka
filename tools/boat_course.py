@@ -6,7 +6,7 @@ every STEP metres the cross-section's two shores are found, the centre point tak
 centreline smoothed (the side harbours, Port Praski above all, would pull it sideways), and the
 half width clamped. Then the rings go along it in SECTIONS (2026-11-08): bank runs, rings every
 80 m swinging 17-34 m off one bank, and crossings to the other bank with a mid-river ring, a
-ramp on the run to it and a gold ring past the landing; the left-bank run covers the stretch
+ramp just past it and a gold ring past the landing; the left-bank run covers the stretch
 where the sand barge comes up the right-bank lane; then the finish arch.
 
 Writes game/data/boat_race.json:
@@ -65,8 +65,8 @@ SHORE_MIN = 14.0            # check_boat_race.gd's SHORE_MIN
 EDGE = 22.0                 # a moved ring's centre keeps this far from the shore (x 0.6)
 MAX_TURN = math.radians(40.0)   # the most the racing line may turn at a ring
 RUN_SHORE = 11.0            # the straight run between two rings keeps this far off the bank
-RAMP_BEFORE = 45.0          # a ramp this far short of the mid-river ring
-RAMP_W = 7.0
+RAMP_AFTER = 12.0           # a ramp this far past the mid-river ring, on the run to the gold one
+RAMP_W = 10.0
 RAMP_LEN = 6.0
 RING_W = 16.0
 GOLD_W = 9.0
@@ -338,7 +338,7 @@ def rings(line, sd):
     """The course in sections (F 2026-11-08: "buoys closer to the bank", Wave Race's buoy runs):
     a BANK run threads rings along one bank every BANK_GAP points, swinging between NEAR and FAR
     metres off the shore (the boulevards, the beaches and the bridges' shore spans go past
-    close), then a CROSS to the other bank: one ring in mid-river, a ramp on the run to it and a
+    close), then a CROSS to the other bank: one ring in mid-river, a ramp just past it and a
     gold ring past the ramp's landing for whoever takes the jump straight."""
     out = []
     ramps = []
@@ -364,9 +364,9 @@ def rings(line, sd):
             # on, then 100 m or more to the next bank's first ring.
             mid = a + (b - a) // 3
             out.append(ring_at(line, mid, 0.0))
-            out.append(ring_at(line, mid + 3, 0.0, True))
+            out.append(ring_at(line, mid + 5, 0.0, True))
             # The ramp on the straight from the last ring to the mid ring, 40 m before it.
-            ramps.append({"i": mid - 4})
+            ramps.append({"i": mid - 1})
     out.sort(key=lambda r: r["i"])
     # the finish arch on the centreline at the end, wide
     x, z, hw, n = line[-3]
@@ -408,22 +408,24 @@ def ease_turns(rs, sd, piers):
 
 
 def place_ramps(ramps, rs, piers, sd):
-    """Each ramp on the straight from the ring before it to the ring after it, RAMP_BEFORE m
-    short of the next ring, facing along that run; dropped when a pier or the bank is near."""
+    """Each ramp RAMP_AFTER m past the mid-river ring on the straight from it to the gold ring,
+    facing along that run: every line converges through the ring, so the pad is on it (PT-53,
+    Autopilot 2026-11-09: placed before the ring, the lines into it passed beside the pad), and
+    the jump flies at the gold ring. Dropped when a pier or the bank is near."""
     out = []
     for rp in ramps:
-        nxt = next(r for r in rs if r["i"] > rp["i"])
-        prev = [r for r in rs if r["i"] < nxt["i"] and not r["gold"]]
-        if not prev:
+        k = next(j for j, r in enumerate(rs) if r["i"] > rp["i"])
+        mid, gold = rs[k], rs[k + 1] if k + 1 < len(rs) else None
+        if gold is None or not gold["gold"]:
             continue
-        a = (prev[-1]["x"], prev[-1]["z"])
-        b = (nxt["x"], nxt["z"])
+        a = (mid["x"], mid["z"])
+        b = (gold["x"], gold["z"])
         d = (b[0] - a[0], b[1] - a[1])
         ln = math.hypot(*d)
-        if ln < RAMP_BEFORE + 30.0:
+        if ln < RAMP_AFTER + 20.0:
             continue
         u = (d[0] / ln, d[1] / ln)
-        c = (b[0] - u[0] * RAMP_BEFORE, b[1] - u[1] * RAMP_BEFORE)
+        c = (a[0] + u[0] * RAMP_AFTER, a[1] + u[1] * RAMP_AFTER)
         if sd(*c) < SHORE_MIN or seg_clear(c, c, piers, 12.0) < 0.0:
             continue
         out.append({"x": round(c[0], 1), "z": round(c[1], 1), "yaw": round(math.atan2(u[0], u[1]), 4),
