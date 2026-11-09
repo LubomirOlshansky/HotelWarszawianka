@@ -1493,9 +1493,9 @@ func _write_lezaks(key: Vector2i) -> void:
 	mmi.multimesh = _static_mm(_lezak_mesh, xfs)
 
 
-## Metro Centrum's entrances at the Marszałkowska crossing (OSM refs 5-9) that are open stairs
+## Metro Centrum's four entrances at the Marszałkowska crossing (OSM refs 6-9) that are open stairs
 ## between granite balustrades, with no tube and no lift (F, 2026-11-09).
-const CENTRUM_OPEN_STAIRS: Array[String] = ["5", "6", "7", "8", "9"]
+const CENTRUM_OPEN_STAIRS: Array[String] = ["6", "7", "8", "9"]
 
 
 ## The metro entrances from the bake's `subway_entrance` pois (content-POIs switch): `yaw` is the
