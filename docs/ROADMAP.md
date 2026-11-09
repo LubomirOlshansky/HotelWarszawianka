@@ -15,6 +15,7 @@ item. Updated 2026-11-01 from the audit. v1.0 = the Demo and TestFlight gates in
 then the Launch gate.
 
 ### Done (built and checked headless)
+- [x] Flower beds flicker behind the Museum of Modern Art (F, 2026-11-09, screen recording): surfaces (paving, flowerbed, playground, fountain, ...) were all laid at one height, so a bed inside paving z-fought; `SURFACE_LIFT` in map_builder.gd gives each kind its own 2 mm step. Needs a look on the phone (this cloud session has no Godot).
 - [x] Tunnel cutaway (F, 2026-11-08, screenshot from the Wisłostrada tunnel: "still no cut in the tunnel, only the silhouette"): while the car drives in a tunnel the ground over it opens round the car, with the trees, lamps, benches and any building part standing there, so the tunnel's road, its dark walls and the car show from above; looking across a narrow tube the near side opens too; a floor from wall to wall under the tunnel roads; the occlusion ghost no longer dithers the tunnel's own walls away (PT-43's blue chequered blob); the yellow silhouette stays only for --no-ghost and Fotka's photo (`check_tunnel_cut`, verify step `tunnelcut`; phone look and bench open)
 - [x] Android: the city draws on Adreno 6xx (Nothing Phone 1, 2026-11-08): its driver refused the ground and building shaders; macros, branch-free conditions and a lite building shader there (`gpu_quirks.gd`, `check_shader_budget.gd`; PR #579; Android speed open in BACKLOG)
 - [x] Port Czerniakowski's mouth footbridge by Majami Wawa (F, 2026-11-08, screenshots and aerial): one flat railed deck with green steel railings and lamps joins the boulevard's cycle path across the mouth (the path no longer dives into the cutting and breaks off), and the finished building site's fences north-west of it are gone, the lot a car park (`tools/port_bridge.py`, verify `portbridge`, `check_stuck_spots`)
@@ -178,6 +179,7 @@ then the Launch gate.
 - [x] Site visits and store-button clicks countable (F, 2026-11-02): `/go/ios` + `/go/android` counted in the Worker, Cloudflare traffic for visits; F deploys and sets the store URLs when listed (site/README "Visitors and store clicks")
 
 ### Left: the start of the game
+- [x] Świętokrzyska × Marszałkowska glass entrances (F, 2026-11-09): the green boxes are now the real one-sided perforated-glass truss lean-tos with roundel and M1/M2 sign (`Props._metro_tent`; phone look open)
 - [x] Metro entrances modelled at the real M1/M2 stairs: vaulted glass canopies, stairwells, passage mouths, red M posts, lifts (F, 2026-11-01; Mac look check parked in QUESTIONS)
 - [~] Metro entrances by station from photos (F, 2026-11-07): done Centrum, Świętokrzyska M2, Stadion Narodowy, Kopernik, Gdański, Nowy Świat, Rondo ONZ (Rondo Daszyńskiego in PR #479, Ratusz-Arsenał its own thread); left Politechnika, Centrum stairwells and passage mouths (shoot list for F)
 - [x] Merge PR #115 (start facing the first stand, short first order, BUW roof cassette), then
