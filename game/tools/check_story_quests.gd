@@ -124,9 +124,66 @@ func _initialize() -> void:
 	hour[0] = 23.0
 	car[0] = Vector3(12, 0, 0)
 	s.step()
-	_expect("closed: says when, one OK button", s.talking() and hud.buttons.size() == 1)
+	_expect("closed: says when, one OK button (no clock to jump)", s.talking() and hud.buttons.size() == 1)
 	hud.card_pressed.emit(0)
 	_expect("closed: OK starts nothing", met[0] == 1)
+	# F, 2026-11-08: stopped in the night meet's ring by day, nothing could start it. A closed
+	# questline now offers to wait for its opening hour: the clock jumps, the quest starts.
+	var jumped := [-1.0]
+	s.skip_to = func(h: float) -> bool:
+		jumped[0] = h
+		hour[0] = h
+		return true
+	car[0] = Vector3(300, 0, 0)
+	s.step()
+	car[0] = Vector3(12, 0, 0)
+	s.step()
+	_expect("closed: CZEKAM DO 7:00 / NIE TERAZ: %s" % [hud.buttons], s.talking() and hud.buttons.size() == 2 and hud.buttons[0].begins_with("CZEKAM DO 7:00"))
+	hud.card_pressed.emit(1)
+	_expect("closed: NIE TERAZ neither waits nor starts", met[0] == 1 and jumped[0] < 0.0)
+	car[0] = Vector3(300, 0, 0)
+	s.step()
+	hour[0] = 23.0
+	car[0] = Vector3(12, 0, 0)
+	s.step()
+	hud.card_pressed.emit(0)
+	_expect("closed: CZEKAM jumps to the opening hour and starts it (%.2f)" % jumped[0], met[0] == 2 and absf(jumped[0] - 7.05) < 0.001)
+	_expect("the opening hour is inside the window", Story.open_at(s.defs[0], Story.open_hour(s.defs[0]), 3))
+	_expect("a night meet's hour opens it (21-4)", Story.open_at({"hours": Vector2(21, 4)}, Story.open_hour({"hours": Vector2(21, 4)}), 5))
+	_expect("any-time questlines have no opening hour", Story.open_hour({"hours": Vector2(-1, -1)}) < 0.0)
+	_expect("looks: 21:00 Night, 14:00 Day, 19:00 Dusk, 6:00 Dawn",
+			Story.look_for(21.05) == "Night" and Story.look_for(14.05) == "Day" and Story.look_for(19.05) == "Dusk" and Story.look_for(6.05) == "Dawn")
+	# The night meet's def (jump): outside its hours the friend says hello with WCHODZĘ; the tap
+	# jumps the clock and starts it, no CZEKAM card.
+	s.defs[0]["jump"] = true
+	car[0] = Vector3(300, 0, 0)
+	s.step()
+	hour[0] = 23.0
+	jumped[0] = -1.0
+	car[0] = Vector3(12, 0, 0)
+	s.step()
+	_expect("jump: closed, still WCHODZĘ: %s" % [hud.buttons], s.talking() and hud.buttons.size() == 2 and hud.buttons[0].begins_with("WCHODZĘ"))
+	hud.card_pressed.emit(0)
+	_expect("jump: WCHODZĘ jumps the clock and starts it", met[0] == 3 and absf(jumped[0] - 7.05) < 0.001)
+	s.defs[0]["jump"] = false
+	s.skip_to = Callable()
+	# A card nobody answered (the car passed by, the card ran out): stopping in the ring after a
+	# short drive out of the greeting circle brings the friend back (was: 80 m away first).
+	car[0] = Vector3(300, 0, 0)
+	s.step()
+	hour[0] = 12.0
+	car[0] = Vector3(12, 0, 0)
+	s.step()
+	_expect("greets on the way past", s.talking())
+	s._process(Story.CARD_LIFE + 0.1)
+	_expect("the card runs out", not s.talking())
+	car[0] = Vector3(Story.GREET_R + 5.0, 0, 0)
+	s.step()
+	car[0] = Vector3(2, 0, 0)
+	car[1] = 0.0
+	s.step()
+	_expect("stopped in the ring after a lapsed card: the friend comes back", s.talking())
+	hud.card_pressed.emit(1)
 	_expect("the list's start phones (any hour)", s.start("boat") and called[0] == 1)
 	_expect("an unknown id starts nothing", not s.start("nope"))
 	s.focus = true
