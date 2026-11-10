@@ -3475,6 +3475,10 @@ func _story_tick() -> void:
 ## quests": a fresh save stopped in a questline's ring and nobody came, because the guide ran).
 ## Driving into a badge and stopping is the player's own choice, so the friend comes.
 func _story_free() -> bool:
+	# The beta trailer's gameplay takes: no friend walking up with an offer card over the shot (the
+	# Mac's check, 2026-11-10: Mati's "Smoła?" stayed on the chase, club and drag takes).
+	if trailer != null:
+		return false
 	if rave != null and rave.busy():
 		return false
 	return _rave_free(true, true)
