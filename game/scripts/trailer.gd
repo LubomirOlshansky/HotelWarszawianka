@@ -11,12 +11,13 @@ extends Node
 ##               round to the lit Stadion Narodowy (dusk by default).
 ## palace_drift  10 s: donuts on Plac Defilad under the Palace; a police raid sets off at 1.5 s and
 ##               the follow camera widens to show the patrols closing in (main.gd raid_view_extra).
+## old_town       6 s (day): Zygmunt's Column and Plac Zamkowy up to the Old Town Market Square.
 ## card           5 s: the Palace at night, slowly, and the end card JOIN THE BETA.
 ## Every take: the Palace in its everyday gold light and no quest or job markers (F 2026-11-10).
 
 const CameraShots := preload("res://scripts/camera_shots.gd")
 const Beacon := preload("res://scripts/beacon.gd")
-const TAKES := ["palace_time", "heli_dive", "palace_drift", "card"]
+const TAKES := ["palace_time", "heli_dive", "palace_drift", "card", "old_town"]
 const PALACE := Vector2(-1227.0, 244.0)
 ## The donut spot on Plac Defilad (the first street meet's square), the car's start for palace_drift.
 const DRIFT_AT := Vector3(-1030.0, 0.0, 186.0)
@@ -30,7 +31,7 @@ const SCRUB_FROM := 3.0
 const SCRUB_STEP := 3.0
 ## Each take's length (s). The game quits TAIL s after it ends, so a capture needs no --quit-after
 ## sum (keep one as a safety cap).
-const LENGTH := {"palace_time": 14.0, "heli_dive": 10.0, "palace_drift": 10.0, "card": 5.0}
+const LENGTH := {"palace_time": 14.0, "heli_dive": 10.0, "palace_drift": 10.0, "card": 5.0, "old_town": 6.0}
 const TAIL := 0.5
 ## palace_drift's own camera (the first Mac render's follow camera sat wide over the square and
 ## lost the car): the car in the middle of a DRIFT_VIEW m view, turning slowly round it, widened
@@ -60,6 +61,12 @@ const HELI_KEYS: Array[Dictionary] = [
 	{"t": 5.0, "at": Vector2(-200.0, 150.0), "up": 60.0, "size": 170.0, "yaw": 250.0, "pitch": -26.0},
 	{"t": 7.0, "at": Vector2(950.0, -260.0), "up": 8.0, "size": 90.0, "yaw": 280.0, "pitch": -26.0},
 	{"t": 10.0, "at": Vector2(1486.0, -611.0), "up": 30.0, "size": 200.0, "yaw": 240.0, "pitch": -26.0},
+]
+## old_town (day): from Zygmunt's Column on Plac Zamkowy up the Old Town to the Market Square.
+const OLD_TOWN_KEYS: Array[Dictionary] = [
+	{"t": 0.0, "at": Vector2(-702.0, -1471.0), "up": 25.0, "size": 110.0, "yaw": 200.0, "pitch": -34.0},
+	{"t": 3.0, "at": Vector2(-750.0, -1600.0), "up": 20.0, "size": 120.0, "yaw": 215.0, "pitch": -34.0},
+	{"t": 6.0, "at": Vector2(-796.0, -1736.0), "up": 15.0, "size": 95.0, "yaw": 230.0, "pitch": -36.0},
 ]
 const CARD_KEYS: Array[Dictionary] = [
 	{"t": 0.0, "at": PALACE, "up": 110.0, "size": 420.0, "yaw": 100.0, "pitch": -30.0},
@@ -149,6 +156,8 @@ func _frame(dt: float) -> void:
 		"heli_dive":
 			var v: Dictionary = _fly(HELI_KEYS)
 			_place_heli(v["focus"], dt)
+		"old_town":
+			_fly(OLD_TOWN_KEYS)
 		"card":
 			_fly(CARD_KEYS)
 			if _card_box != null:
