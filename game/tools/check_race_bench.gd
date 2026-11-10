@@ -7,7 +7,12 @@ extends SceneTree
 ##   - a mark recorded "pass" that fails is a problem (exit 1): a change made the racers worse;
 ##   - a mark recorded "fail" that passes prints "racebench: WARN ..." (verify.sh shows WARN):
 ##     record the win with tools/race_bench.sh --write in the same change;
-##   - a mark recorded "fail" that fails is the known state of the rebuild, listed in the OK line.
+##   - a mark recorded "fail" that fails is the known state of the rebuild, listed in the OK line;
+##   - a mark recorded "unsteady" is not held either way: it passes with one draw of the town's
+##     cars and fails with the next, and the step that fixes it has not been built (the quick
+##     matrix's Passes traffic: 8.3 s or 2.2 s behind a slower car with the same driver). It is set
+##     by hand in data/race_bench.json, `--write` leaves it, and the step that owns the mark
+##     records it as a pass when it passes with room to spare.
 ## The quick matrix (the default: the prototype race Powiśle -> Plac Trzech Krzyży with Pani
 ## Halina, under a minute) is what tools/verify.sh and CI run; `--full` adds the second start, the
 ## guided first race under every situation, two more draws of the traffic and all six rivals (a
@@ -30,6 +35,8 @@ var _bench: RaceBench
 var _results: Array = []
 var _by_id := {}
 var _problems: Array[String] = []
+## Races that did not run to their end (a script error): a problem, never an OK.
+var _broken := 0
 ## --against: the earlier run's races and marks by id.
 var _before := {}
 var _before_marks := {}
@@ -66,15 +73,26 @@ func _run() -> void:
 		_bench.close()
 		quit(0)
 		return
+	if specs.is_empty():
+		print("check_race_bench: no race's id contains '%s' (--list prints the ids)" % only)
+		_bench.close()
+		quit(1)
+		return
 	var t0 := Time.get_ticks_msec()
 	for s: Dictionary in specs:
 		s["trace"] = "--trace" in args
-		_race(s)
+		if not _race(s):
+			_broken += 1
 	var secs := (Time.get_ticks_msec() - t0) / 1000.0
 	_bench.close()
 	for c in root.get_children():
 		c.queue_free()
 	await process_frame
+	# Every race of the matrix has to have run. (Found on the Mac, 2026-11-09: on a clone Godot had
+	# never imported, the game's scripts did not load, no race ran, and this check said OK.)
+	if _broken > 0:
+		_problems.append("%d of %d races did not run (a script error above? a clone Godot has never opened needs `godot --headless --path game --import` first; tools/race_bench.sh and tools/verify.sh do it)" % [
+				_broken, specs.size()])
 
 	var marks := RaceBench.judge(_results)
 	var matrix := "full" if full else "quick"
@@ -84,6 +102,7 @@ func _run() -> void:
 	var recorded := _recorded(matrix, writing)
 	var passing := PackedStringArray()
 	var known := PackedStringArray()
+	var unsteady := PackedStringArray()
 	print("")
 	for m: Dictionary in marks:
 		var want := String(recorded.get(m["id"], "?"))
@@ -92,8 +111,13 @@ func _run() -> void:
 		if _before_marks.has(m["id"]) and String(_before_marks[m["id"]]["value"]) != String(m["value"]):
 			print("  %-16s %-8s before: %s" % ["", "", _before_marks[m["id"]]["value"]])
 		if m["pass"] == null:
+			# A mark with a record that a whole run of its matrix cannot judge: its races are gone.
+			if recorded.has(m["id"]) and only == "":
+				_problems.append("%s is recorded as %s and this run did not judge it" % [m["title"], want])
 			continue
-		if m["pass"]:
+		if want == "unsteady":
+			unsteady.append("%s (%s this run)" % [m["title"], "passes" if m["pass"] else "fails"])
+		elif m["pass"]:
 			passing.append(m["title"])
 			if want == "fail" and only == "" and not writing:
 				print("racebench: WARN %s now passes: record it in game/data/race_bench.json (tools/race_bench.sh --write)" % m["title"])
@@ -109,9 +133,10 @@ func _run() -> void:
 	if writing:
 		_record(matrix, marks)
 	if _problems.is_empty():
-		print("check_race_bench: OK (%s matrix, %d races in %.0f s · pass: %s · known fails of the rebuild: %s)" % [
+		print("check_race_bench: OK (%s matrix, %d races in %.0f s · pass: %s · known fails of the rebuild: %s%s)" % [
 				matrix, _results.size(), secs, ", ".join(passing) if not passing.is_empty() else "none",
-				", ".join(known) if not known.is_empty() else "none"])
+				", ".join(known) if not known.is_empty() else "none",
+				" · unsteady, not held: %s" % ", ".join(unsteady) if not unsteady.is_empty() else ""])
 		quit(0)
 	else:
 		for p in _problems:
@@ -183,7 +208,8 @@ func _spec(rival: String, tuning: String, start: String, situation: String, play
 
 
 ## Runs one race (first the clear one it is planned from, for a wall or a wreck) and prints it.
-func _race(spec: Dictionary) -> void:
+## False when its code stopped on a script error (printed above): nothing to judge.
+func _race(spec: Dictionary) -> bool:
 	var situation := String(spec["situation"])
 	if situation == "blocked" or situation == "crash":
 		var plan := spec.duplicate()
@@ -193,16 +219,20 @@ func _race(spec: Dictionary) -> void:
 		var ref_id := RaceBench.race_id(plan)
 		if not _by_id.has(ref_id):
 			_race(plan)
+		if not _by_id.has(ref_id):
+			return false
 		var edges := PackedInt32Array(_by_id[ref_id].get("edges", []))
 		if situation == "blocked":
 			spec["wall"] = _bench.plan_wall(spec, edges)
 		else:
 			spec["wreck"] = _bench.plan_wreck(spec, edges)
 	var r := _bench.race(spec)
+	if not r.has("id"):
+		return false
 	_results.append(r)
 	if r.has("error"):
 		print("  %s: %s" % [r["id"], r["error"]])
-		return
+		return true
 	var ratio := ""
 	if not _by_id.has(r["id"]):
 		_by_id[r["id"]] = r
@@ -212,6 +242,8 @@ func _race(spec: Dictionary) -> void:
 	var extras := PackedStringArray()
 	if float(r["hold_s"]) > 0.0:
 		extras.append("waited %.0f s at the line" % r["hold_s"])
+	if float(r["boxed_s"]) >= 1.0:
+		extras.append("boxed in %.0f s behind the player's stopped car, no lane to pass in" % r["boxed_s"])
 	if r.has("player_time"):
 		extras.append("the player home in %.1f s" % r["player_time"])
 	if int(r["overlaps"]) > 0:
@@ -236,10 +268,11 @@ func _race(spec: Dictionary) -> void:
 		var b: Dictionary = _before[r["id"]]
 		extras.append("before: %s%.1f s, crawl %.1f s, behind %.1f s, through %d cars" % [
 				"" if b["finished"] else "DNF ", float(b["time"]), float(b["crawl_longest_s"]), float(b["behind_room_longest_s"]), int(b["overlaps"])])
-	print("  %-46s %s %6.1f s %-6s %3.0f km/h (top %3.0f) · crawl %5.1f s (longest %5.1f) · behind %4.1f s · stood %4.1f s · passed %d · pace x%.2f-%.2f · %s · %.0f cars, %.1f s%s" % [
+	print("  %-46s %s %6.1f s %-6s %3.0f km/h (top %3.0f) · crawl %5.1f s (longest %5.1f) · behind %4.1f s · stood %4.1f s · passed %d · effort x%.2f-%.2f · %s · %.0f cars, %.1f s%s" % [
 			r["id"], "    " if r["finished"] else "DNF ", r["time"], ratio, r["mean_kmh"], r["top_kmh"], r["crawl_s"], r["crawl_longest_s"],
 			r["behind_room_longest_s"], r["stopped_s"], r["passes"], r["pace_lo"], r["pace_hi"], " > ".join(PackedStringArray(r["streets"])),
 			r["cars"], float(r["wall_ms"]) / 1000.0, "\n      " + " · ".join(extras) if not extras.is_empty() else ""])
+	return true
 
 
 ## --against: an earlier run's races and marks (the file --json wrote).
@@ -255,8 +288,8 @@ func _load_before(path: String) -> void:
 		_before_marks[m["id"]] = m
 
 
-## The marks recorded for `matrix` ("quick" or "full"): {mark id: "pass" | "fail"}. None recorded
-## is a problem, unless this run is the one that records them (`writing`).
+## The marks recorded for `matrix` ("quick" or "full"): {mark id: "pass" | "fail" | "unsteady"}.
+## None recorded is a problem, unless this run is the one that records them (`writing`).
 func _recorded(matrix: String, writing: bool) -> Dictionary:
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(BASELINE)) if FileAccess.file_exists(BASELINE) else null
 	if parsed is Dictionary and (parsed as Dictionary).get(matrix) is Dictionary:
@@ -267,7 +300,7 @@ func _recorded(matrix: String, writing: bool) -> Dictionary:
 
 
 ## --write: this run's marks become the ones recorded for its matrix (a mark this run did not
-## judge keeps its record; the other matrix's stay as they are).
+## judge keeps its record, and so does one recorded "unsteady"; the other matrix's stay as they are).
 func _record(matrix: String, marks: Array) -> void:
 	var doc := {}
 	if FileAccess.file_exists(BASELINE):
@@ -276,9 +309,9 @@ func _record(matrix: String, marks: Array) -> void:
 			doc = parsed
 	var gates: Dictionary = doc[matrix] if doc.get(matrix) is Dictionary else {}
 	for m: Dictionary in marks:
-		if m["pass"] != null:
+		if m["pass"] != null and str(gates.get(m["id"], "")) != "unsteady":
 			gates[m["id"]] = "pass" if m["pass"] else "fail"
-	doc["about"] = "The race bench's pass marks as recorded (docs/design/race-ai.md, game/tools/check_race_bench.gd), for the quick matrix (verify and CI) and the full one (tools/race_bench.sh): a mark recorded pass that fails is a problem; one recorded fail that passes is a warning until it is recorded here (tools/race_bench.sh --write)."
+	doc["about"] = "The race bench's pass marks as recorded (docs/design/race-ai.md, game/tools/check_race_bench.gd), for the quick matrix (verify and CI) and the full one (tools/race_bench.sh): a mark recorded pass that fails is a problem; one recorded fail that passes is a warning until it is recorded here (tools/race_bench.sh --write); one recorded unsteady (set by hand: it passes or fails with the draw of the town's cars, and its step is not built) is not held and --write leaves it."
 	doc[matrix] = gates
 	_write_json(BASELINE, doc)
 	print("check_race_bench: recorded the %s matrix's marks in %s" % [matrix, BASELINE])

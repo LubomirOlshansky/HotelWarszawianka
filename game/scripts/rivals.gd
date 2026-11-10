@@ -61,70 +61,39 @@ const FINAL_LINES := {
 ## Loop 3h slice 4 (docs/DEMO.md 6.2, 1:30): the guided first race. After the first delivery Pani
 ## Halina (the ladder's first rung) rolls up behind the player and flashes (`call_first`); flash
 ## back and she races to the Palm (FIRST_FINISH, ~800 m from the Rotunda's side of the centre).
-## Street races (docs/design/street-races.md R2, 2026-11-04; F: "she drives very slowly"): she
-## used to be held FIRST_GAP m BEHIND the player, so she never led. Now she leads and is caught
-## (`first_speed`): she paces off the player's own progress (`_rate`, m/s along the route) to stay
-## FIRST_LEAD m in front for the first half, then lets the gap close to FIRST_TAIL m behind by
-## FIRST_CATCH of the way, and in the last FIRST_EASE m she never passes a player who is close: an
-## ordinary drive wins by a few seconds after chasing her. A player far behind (she is more than
-## FIRST_LOSE m ahead) races her at FIRST_FAR_PACE of her top and can lose; the normal retry is any
-## later race against her. The win counts as her rung beaten (ladder.gd).
+## The racer AI rebuild, step 2 (docs/design/race-ai.md 6, 2026-11-10; F three times, last on
+## 2026-11-09: "she was still going very slow, and like the mob"): she used to pace off the
+## player's own progress so that an ordinary drive won narrowly, and that script was the crawl.
+## Now she drives the gentlest skill in the game (ladder.gd FIRST_RACER, her gentle day) at her
+## own pace from the line to the Palm, whatever the player does. A player who races beats her; one
+## who drives at town pace or stops loses, as to any racer (the guide counts the beat as done
+## either way), and every loss in a row makes the next race against her a little easier (ladder.gd
+## `ease_of`), on the gentle day until she has been beaten once (`gentle`). The win counts as her
+## rung beaten (ladder.gd).
 const FIRST_FINISH := "Rondo de Gaulle'a (the Palm)"
-const FIRST_LEAD := 30.0
-const FIRST_TAIL := 6.0
-const FIRST_CATCH := 0.85
-## Metres of gap error that double her pace over the player's (or halve it, at most -60 %).
-const FIRST_K := 60.0
-## Her slowest (a share of her racing top) and the pace she starts from (m/s) before the player's
-## progress is known (2026-11-09: 0.2 and 0.64 of her new top, the player's car's, keep the old
-## 6 and 19 m/s for a slow player; a fast one gets her far pace up to her whole top).
-const FIRST_FLOOR := 0.2
-const FIRST_RATE0 := 8.0
-const FIRST_FAR_PACE := 0.64
+## The last stretch to the Palm: no stall nudge on it (`first_stall_due`), the finish is in sight.
 const FIRST_EASE := 140.0
-const FIRST_LOSE := 150.0
-## Street races (R2): every other race's rubber band, `band_mult`: a mix, by the rival's band
-## weight (ladder.gd: 0.8 for Halina down to 0.2 for Mike), of her own flat-out pace and the pace
-## that keeps her level with the player (the player's progress, faster by up to +80 % when she is
-## BAND_K m behind, down to -50 % ahead). It never boosts her past her own top while she is on
-## screen (off screen by at most BAND_BOOST × the weight), never slows her under BAND_FLOOR of her
-## top while on screen (still racing; BAND_FLOOR_UNSEEN out of sight), and never takes her over BAND_CAP of the player's top speed.
-const BAND_K := 80.0
-const BAND_BOOST := 0.3
-const BAND_FLOOR := 0.65
-## ... and for the bottom rungs (band weight from BAND_EASE_WEIGHT: Halina, Słoik), so a slow player
-## can still catch them (headless, 2026-11-05: Halina at 0.65 of her new top beat an average driver).
-const BAND_FLOOR_LOW := 0.35
-## Out of sight she may wait more (a far-ahead Halina for an average driver): nobody sees it.
-const BAND_FLOOR_UNSEEN := 0.3
-## The bottom rungs (band weight from BAND_EASE_WEIGHT: Halina, Słoik, Bartek) lift off on the last
-## FIRST_EASE m for a player less than BAND_EASE_GAP × weight m behind (headless runs: an average
-## driver lost to Halina by 38 m, she held half her top on screen to the line).
-const BAND_EASE_WEIGHT := 0.5
-const BAND_EASE_GAP := 160.0
-## ... to this share of the player's own pace (at least BAND_EASE_FLOOR of her top), on the last
-## BAND_EASE_LEFT m (2026-11-05: 140 m and 0.6 let the faster Halina hold off an average driver).
-const BAND_EASE_PACE := 0.5
-const BAND_EASE_FLOOR := 0.15
-const BAND_EASE_LEFT := 250.0
-const BAND_CAP := 1.0
-## The skill read (F 2026-11-09, "Halina is far too slow, I drive much faster"): the player's
-## progress (`_rate`, m/s along the route) as a share of the car's top, from SKILL_SLOW (0: a new
-## or slow player, the bands above as they were) to SKILL_FAST (1: a fast player). Headless runs:
-## an average driver's progress is ~0.4 of the car's top, a skilled one's ~0.75. A fast player gets a real race:
-## the rival aims SKILL_AIM m in front (the first race keeps her FIRST_LEAD ahead all the way),
-## never lifts off on the last stretch, and holds a higher floor while ahead.
-const SKILL_SLOW := 0.45
-const SKILL_FAST := 0.62
-const SKILL_AIM := -20.0
-## ... and the bottom rungs (band weight from BAND_EASE_WEIGHT: Halina, Słoik) keep their old
-## 0.8 of the car's top for a slow player (headless: an average driver then still beats Halina),
-## rising to the whole top for a fast one.
-const BAND_SLOW_TOP := 0.8
-## Human rivals (F 2026-11-05, Pure's opening): for the first OPEN_BURST s of a race (not the guided
-## first one) the band never holds a rival under its own top, so it launches past the player and
-## the race starts as a chase.
-const OPEN_BURST := 12.0
+## Effort (docs/design/race-ai.md 6): the one thing left of "keeping the race close". A rival
+## drives its own skill (ladder.gd: fixed for the race) times an effort that follows the TIME gap
+## to the player and nothing else, never the player's speed: level with the player or just ahead
+## it drives its own pace (1.0); leading by more than EASE_FROM s it starts to manage the lead,
+## down to EFFORT_EASE of its pace from EASE_FULL s on; more than PUSH_FROM s behind it pushes,
+## up to EFFORT_PUSH from PUSH_FULL s on (the corners harder too, traffic.gd, and PUSH_MISTAKES
+## times its mistakes). So its whole time moves by about a tenth at most whatever the player does
+## (the race bench's Independence mark allows 15 %), nobody waits, and nobody lifts off before
+## the finish. The effort moves at most EFFORT_RATE a second (a driver settles into a pace).
+const EFFORT_EASE := 0.9
+const EFFORT_PUSH := 1.04
+const EASE_FROM := 3.0
+const EASE_FULL := 10.0
+const PUSH_FROM := 1.0
+const PUSH_FULL := 5.0
+const EFFORT_RATE := 0.05
+const PUSH_MISTAKES := 1.5
+## The time gap is the metres between the cars over the rival's own usual speed: this share of
+## its straight-line speed on a main road (a town route's bends and junctions; the bench's
+## clear-road races average 0.8), so a rival's seconds are its own and not the player's.
+const GAP_PACE := 0.8
 ## What a rival says when it does something human (traffic.gd counts it), [Polish, English] (each
 ## at most 70 characters), only within HUMAN_NEAR m of the player and HUMAN_QUIET s after its last line.
 const HUMAN_NEAR := 120.0
@@ -362,9 +331,12 @@ var _rng := RandomNumberGenerator.new()
 ## been (s), and whether the prompt has nudged; `first_race` while that race runs, and
 ## `first_result` ("won", "lost", "declined") once it is over (first10.gd reads it).
 var _caller := -1
-## Street races (R2): the race's pace memory (`Pace` below: the player's progress along the route,
-## the route's length at the start, the skill read, the band's range), new with every race.
+## The race's pace memory (`Pace` below: the route's length at the start, the rival's effort and
+## its range), new with every race.
 var _pace := Pace.new()
+## This race's racer stats (`race_stats`) and how much an easier rematch slowed them (0 .. EASE_MAX).
+var _race_stats := {}
+var _race_ease := 0.0
 ## Beta values (2026-11-04, docs/design/beta-values.md): the race shown better (street races R5):
 ## the way to the finish (or the next bridge) on the minimap, the gap in seconds, a lead change said
 ## once, and the finish's margin in seconds on the card.
@@ -957,7 +929,17 @@ func _go() -> void:
 	if _first_hold:
 		d.held = true
 	var rung := Ladder.FINAL if final_on else Ladder.rung_of(RIVALS[rival]["name"])
-	var stats := arm_racer(d, rung, player_top(), _cut_table)
+	# An easier rematch: slower by the races the player has lost to this rival in a row.
+	_race_ease = Ladder.ease_of(ladder.lost_streak(rung)) if ladder != null else 0.0
+	# Pani Halina's gentle day (ladder.gd FIRST_RACER): the guided first race, and every race
+	# against her until the player has beaten her once.
+	var gentle := not final_on and (first_race or (ladder != null and ladder.gentle(rung)))
+	_race_stats = arm_racer(d, rung, player_top(), _cut_table, gentle, _race_ease, _rng.randi())
+	var stats := _race_stats
+	if gentle and not first_race:
+		print("race: %s on a gentle day (not beaten yet)" % RIVALS[rival]["name"])
+	if _race_ease > 0.0:
+		print("race: an easier rematch, %s drives %d %% slower (%d lost in a row)" % [RIVALS[rival]["name"], roundi(_race_ease * 100.0), ladder.lost_streak(rung)])
 	_seen_cuts = 0
 	_seen_mistakes = 0
 	_seen_wrong = 0
@@ -1053,7 +1035,7 @@ func _track(dt: float) -> void:
 		_rank_timer = 0.2
 		_rival_left = traffic.remaining(d)
 		_player_left = _player_remaining()
-		_band(d)
+		_effort(d)
 		_speeds(d)
 		_lead_tick(0.2)
 		_human_tick(d)
@@ -1141,6 +1123,9 @@ func _finish_race(won: bool, why: String) -> void:
 	_say(rival, line[0], line[1], 5.0)
 	var who: String = r["name"]
 	print("race %s: %s to %s in %.1f s" % ["won" if won else "lost", who, _finish["name"], _race_time])
+	# An easier rematch (ladder.gd `ease_of`): a race driven to its end counts, one given up does not.
+	if ladder != null and why == "":
+		ladder.note_result(Ladder.rung_of(who), won)
 	if first_race:
 		# Loop 3h slice 4: the guided first race is over (first10.gd's race beat).
 		first_race = false
@@ -1245,58 +1230,18 @@ func _first_finish() -> Dictionary:
 	return {}
 
 
-## Street races (R2): the first race's speed for Halina (m/s): `her_left` and `player_left` are the
-## metres of route left, `total` the route's length at the start, `rate` the player's progress
-## (m/s along the route), `top` her racing top. She leads by FIRST_LEAD in the first half, the gap
-## closes to FIRST_TAIL behind her by FIRST_CATCH of the way; on the last FIRST_EASE m she lifts
-## off for a close player; with the player more than FIRST_LOSE m behind she races at FIRST_FAR_PACE.
-## `skill` (0..1, `skill_of`): a fast player gets no lift-off and she keeps her lead to the line.
-static func first_speed(her_left: float, player_left: float, total: float, rate: float, top: float, skill := 0.0) -> float:
-	var far := top * lerpf(FIRST_FAR_PACE, 1.0, skill)
-	if her_left == INF or player_left == INF:
-		return far
-	var gap := her_left - player_left  # > 0: she is behind
-	if gap < -FIRST_LOSE:
-		return far
-	var pace := maxf(rate, 4.0)
-	if her_left < FIRST_EASE and gap < 12.0 and skill < 0.5:
-		return clampf(pace * 0.8, 3.0, top)  # the last stretch: she lifts off for a close player
-	var progress := clampf(1.0 - player_left / maxf(total, 1.0), 0.0, 1.0)
-	var target := -FIRST_LEAD
-	if progress > 0.5:
-		target = lerpf(-FIRST_LEAD, FIRST_TAIL, clampf((progress - 0.5) / (FIRST_CATCH - 0.5), 0.0, 1.0))
-	target = lerpf(target, -FIRST_LEAD, skill)
-	var want := pace * (1.0 + clampf((gap - target) / FIRST_K, -0.6, 1.0))
-	return clampf(want, top * FIRST_FLOOR, top)
+## Effort (EFFORT_EASE above): how much of its own pace a rival drives when it leads the player
+## by `lead_s` seconds (< 0: it is behind). 1.0 from PUSH_FROM s behind to EASE_FROM s ahead.
+static func effort_of(lead_s: float) -> float:
+	if lead_s >= 0.0:
+		return lerpf(1.0, EFFORT_EASE, smoothstep(EASE_FROM, EASE_FULL, lead_s))
+	return lerpf(1.0, EFFORT_PUSH, smoothstep(PUSH_FROM, PUSH_FULL, -lead_s))
 
 
-## Street races (R2): every other race's band, a factor on the rival's racing top `top` (m/s):
-## `her_left`, `player_left` metres of route left, `rate` the player's progress (m/s), `weight`
-## the rival's band (see BAND_K above); `seen`: she is on screen (no boost past her top); `aim`:
-## the metres behind the player she aims for (ladder.gd); `skill` (0..1, `skill_of`): how fast the
-## player drives (a fast one: she aims SKILL_AIM in front, no lift-off, a higher floor).
-static func band_mult(her_left: float, player_left: float, weight: float, rate: float, top: float, seen: bool, aim := 0.0, skill := 0.0) -> float:
-	if her_left == INF or player_left == INF:
-		return 1.0
-	var gap := her_left - player_left - lerpf(aim, minf(aim, SKILL_AIM), skill)  # > 0: she is further behind than she aims
-	var follow := maxf(rate, 4.0) * (1.0 + clampf(gap / BAND_K, -0.5, 0.8)) / maxf(top, 1.0)
-	var mult := lerpf(1.0, follow, weight)
-	var ahead := player_left - her_left
-	if weight >= BAND_EASE_WEIGHT and skill < 0.5 and her_left < BAND_EASE_LEFT and ahead > 0.0 and ahead < BAND_EASE_GAP * weight:
-		# The bottom rungs on the last stretch: a close player gets the win (she lifts off).
-		return clampf(maxf(rate, 4.0) * BAND_EASE_PACE / maxf(top, 1.0), BAND_EASE_FLOOR, 1.0)
-	var floor := (BAND_FLOOR_LOW if weight >= BAND_EASE_WEIGHT else BAND_FLOOR) if seen else BAND_FLOOR_UNSEEN
-	floor = lerpf(floor, maxf(floor, BAND_FLOOR), skill)
-	var cap := 1.0 if seen else 1.0 + BAND_BOOST * weight
-	if weight >= BAND_EASE_WEIGHT:
-		cap *= lerpf(BAND_SLOW_TOP, 1.0, skill)
-	return clampf(mult, minf(floor, cap), cap)
-
-
-## The skill read (SKILL_SLOW above): 0 for a slow player's progress `rate` (m/s along the route)
-## against the car's top `top`, 1 for a fast one.
-static func skill_of(rate: float, top: float) -> float:
-	return clampf((rate / maxf(top, 1.0) - SKILL_SLOW) / (SKILL_FAST - SKILL_SLOW), 0.0, 1.0)
+## The rival's own usual speed (m/s) for the time gap (GAP_PACE above), from its car's top speed
+## `top` (m/s) and its skill's share of the road's speed.
+static func own_pace(top: float, share: float) -> float:
+	return maxf(minf(top, Traffic.RACE_CLASS_TOP[0]) * share * GAP_PACE, 5.0)
 
 
 ## The player's car's top speed (m/s, its model and engine; nitro left out), as police.gd's chase_top.
@@ -1309,32 +1254,38 @@ func player_top() -> float:
 ## The race core, static: the race bench (game/tools/race_bench.gd, docs/design/race-ai.md) drives
 ## these same functions on a traffic system without the game, so what it measures is what races.
 
-## One race's pace memory: the player's progress along the route (m/s, smoothed over ~3 s) and the
-## last reading it came from, the route's length at the start, the skill read (SKILL_SLOW: 0 slow
-## ... 1 fast, from the player's average progress), and the band's range for the race log.
+## One race's pace memory: the route's length at the start, the rival's effort now (`effort_of`,
+## settled at EFFORT_RATE), and its range for the race log.
 class Pace:
-	var rate := FIRST_RATE0
-	var last_player_left := INF
 	var route_total := 0.0
-	var skill := 0.0
+	var effort := 1.0
 	var lo := 1.0
 	var hi := 1.0
 
 
-## Racer mode on traffic driver `d` as a race starts: rung `rung`'s pace and racer stats (ladder.gd;
-## Ladder.FINAL: the final's), `top` the player's car's top speed (m/s), `cuts` the shortcuts it
-## knows (race_cuts.gd `links`). Returns the stats.
-static func arm_racer(d, rung: int, top: float, cuts: Dictionary) -> Dictionary:
+## The racer stats of a race on rung `rung` (ladder.gd; Ladder.FINAL: the final's): in the guided
+## first race (`first`) Halina's gentle ones, eased by `ease` (Ladder.ease_of: an easier rematch).
+static func race_stats(rung: int, first := false, ease := 0.0) -> Dictionary:
+	return Ladder.eased(Ladder.FIRST_RACER if first else Ladder.racer(rung), ease)
+
+
+## Racer mode on traffic driver `d` as a race starts: rung `rung`'s pace and its racer stats
+## (`race_stats`: `first`, `ease`), `top` the player's car's top speed (m/s), `cuts` the shortcuts
+## it knows (race_cuts.gd `links`), `dice` the seed of its own dice for this race (its wrong turns
+## and mistakes: traffic.gd `race_rng`). Returns the stats.
+static func arm_racer(d, rung: int, top: float, cuts: Dictionary, first := false, ease := 0.0, dice := 0) -> Dictionary:
 	# Loop 3h slice 3: each rung's own pace (Halina 1.25 ... Mike 1.5; the final 1.45), was 1.45 flat.
 	var pace := Ladder.pace(rung)
 	d.speed_factor = pace.x
 	d.accel_factor = pace.y
-	# Street races (R1): racer mode, from the rung's racer stats and the player's car.
-	var stats := Ladder.racer(rung)
-	d.race_top = top * float(stats["share"])
+	# Racer mode: the player's own car, and the skill that says how much of it this rival uses.
+	var stats := race_stats(rung, first, ease)
+	d.race_top = top
+	d.race_share = float(stats["share"])
 	d.race_accel = float(stats["race_accel"])
+	d.race_brake = float(stats["brake"])
 	d.race_lat = float(stats["lat"])
-	d.race_band = 1.0
+	d.race_effort = 1.0
 	d.race_still = 0.0
 	d.race_passes = 0
 	# Human rivals: shortcuts, mistakes, wrong turns, blocking (ladder.gd's personality).
@@ -1342,6 +1293,8 @@ static func arm_racer(d, rung: int, top: float, cuts: Dictionary) -> Dictionary:
 	d.race_mistake = float(stats.get("mistake", 0.0))
 	d.race_wrong = int(stats.get("wrong", 0))
 	d.race_block = float(stats.get("block", 0.0))
+	d.race_rng = RandomNumberGenerator.new()
+	d.race_rng.seed = dice
 	d.cuts_taken = 0
 	d.mistakes = 0
 	d.wrong_turns = 0
@@ -1349,47 +1302,35 @@ static func arm_racer(d, rung: int, top: float, cuts: Dictionary) -> Dictionary:
 	return stats
 
 
-## Street races (R2): 5 times a second, the rival's rubber band from the gap: sets `d.race_band`
-## (and returns it) from the metres of route the rival and the player have left (INF: unknown),
-## `race_time` s into the race of rung `rung` (`first`: the guided first race's tuning),
-## `top` the player's car's top speed (m/s). `pace` is this race's memory.
-static func pace_tick(pace: Pace, d, rung: int, first: bool, race_time: float, rival_left: float, player_left: float, top: float) -> float:
-	if player_left < INF and pace.last_player_left < INF:
-		var now := maxf(0.0, (pace.last_player_left - player_left) / 0.2)
-		pace.rate = lerpf(pace.rate, minf(now, 40.0), 0.07)  # ~3 s smoothing
-	pace.last_player_left = player_left
+## 5 times a second, the rival's effort from the time gap (`effort_of`): sets `d.race_effort` (and
+## returns it) from the metres of route the rival and the player have left (INF: unknown, as with
+## no player: its own pace). `mistake` is the rival's own chance of a mistake at a corner (its
+## stats'); a rival that pushes makes more. `pace` is this race's memory. Nothing here reads the
+## player's speed, and the effort never takes the car past its own top speed.
+static func pace_tick(pace: Pace, d, mistake: float, rival_left: float, player_left: float) -> float:
 	if pace.route_total <= 0.0 and player_left < INF:
 		pace.route_total = maxf(player_left, rival_left)
-	# The skill read: the player's average progress since the start (the smoothed rate spikes
-	# when the route is found again), from OPEN_BURST s on (the launch says little).
-	if race_time >= OPEN_BURST and pace.route_total > 0.0 and player_left < INF:
-		pace.skill = skill_of(maxf(0.0, pace.route_total - player_left) / race_time, top)
-	var mult := 1.0
-	var own: float = maxf(d.race_top, 1.0)
-	if first:
-		# Her speed against her top on this road (main roads; residential caps lower anyway).
-		mult = first_speed(rival_left, player_left, pace.route_total, pace.rate, own, pace.skill) / own
-	else:
-		var stats := Ladder.racer(rung)
-		mult = band_mult(rival_left, player_left, float(stats["band"]), pace.rate, own, d.visible, float(stats["aim"]), pace.skill)
-		if race_time < OPEN_BURST:
-			mult = maxf(mult, 1.0)  # Pure's opening: launch past the player first
-		mult = minf(mult, BAND_CAP * top / own)
-	d.race_band = mult
-	pace.lo = minf(pace.lo, mult)
-	pace.hi = maxf(pace.hi, mult)
-	return mult
+	var want := 1.0
+	if rival_left < INF and player_left < INF:
+		want = effort_of((player_left - rival_left) / own_pace(d.race_top, d.race_share))
+	pace.effort = move_toward(pace.effort, want, EFFORT_RATE * 0.2)
+	var effort := minf(pace.effort, 1.0 / maxf(d.race_share, 0.01))
+	d.race_effort = effort
+	d.race_mistake = mistake * lerpf(1.0, PUSH_MISTAKES, clampf((pace.effort - 1.0) / (EFFORT_PUSH - 1.0), 0.0, 1.0))
+	pace.lo = minf(pace.lo, effort)
+	pace.hi = maxf(pace.hi, effort)
+	return effort
 
 
-## Street races (R2): 5 times a second, the rival's rubber band from the gap (`pace_tick`).
-func _band(d) -> void:
-	var rung := Ladder.FINAL if final_on else Ladder.rung_of(RIVALS[rival]["name"])
-	var mult := pace_tick(_pace, d, rung, first_race and not final_on, _race_time, _rival_left, _player_left, player_top())
+## 5 times a second in a race: the rival's effort from the time gap (`pace_tick`).
+func _effort(d) -> void:
+	var effort := pace_tick(_pace, d, float(_race_stats.get("mistake", 0.0)), _rival_left, _player_left)
 	if traffic.race_debug and fmod(_race_time, 1.0) < 0.2:
-		# --race-debug: once a second, what the band does to the rival and why (the audit's trace).
-		print("race trace: t %.0f s · rival %.1f m/s, band %.2f, class %d, left %.0f m · player %.1f m/s, rate %.1f, left %.0f m · gap %.0f m · skill %.2f · seen %s" % [
-				_race_time, d.v, mult, graph.e_class[d.edge], _rival_left, Vector2(car.vel.x, car.vel.z).length(), _pace.rate, _player_left,
-				_rival_left - _player_left, _pace.skill, d.visible])
+		# --race-debug: once a second, what the rival does and what its effort follows (the audit's trace).
+		var lead := _player_left - _rival_left
+		print("race trace: t %.0f s · rival %.1f m/s, share %.2f, effort %.2f, class %d, left %.0f m · player %.1f m/s, left %.0f m · rival's lead %.0f m (%.1f s) · seen %s" % [
+				_race_time, d.v, d.race_share, effort, graph.e_class[d.edge], _rival_left, Vector2(car.vel.x, car.vel.z).length(), _player_left,
+				lead, lead / own_pace(d.race_top, d.race_share), d.visible])
 
 
 ## Human rivals, 5 times a second: the phone call (Mike) and a line for what the rival just did
@@ -1431,8 +1372,8 @@ func _human_say(kind: String) -> void:
 
 ## Street races: one line on how the rival raced (for tuning and check_race_ai's runs).
 func _race_log(d, won: bool) -> void:
-	print("race ai: %s %s in %.1f s · route %.0f m · skill %.2f · top %.1f m/s · band %.2f-%.2f · stopped %.1f s · %d passes · %d cuts · %d mistakes · %d wrong · %d blocks · gap %.0f m" % [
-			RIVALS[rival]["name"], "lost to the player" if won else "won", _race_time, _pace.route_total, _pace.skill, d.race_top, _pace.lo, _pace.hi,
+	print("race ai: %s %s in %.1f s · route %.0f m · top %.1f m/s, share %.2f (eased %d %%) · effort %.2f-%.2f · stopped %.1f s · %d passes · %d cuts · %d mistakes · %d wrong · %d blocks · gap %.0f m" % [
+			RIVALS[rival]["name"], "lost to the player" if won else "won", _race_time, _pace.route_total, d.race_top, d.race_share, roundi(_race_ease * 100.0), _pace.lo, _pace.hi,
 			d.race_still, d.race_passes, d.cuts_taken, d.mistakes, d.wrong_turns, d.blocks, _rival_left - _player_left])
 
 
@@ -1443,11 +1384,14 @@ func _cruise(d) -> void:
 	d.accel_factor = 1.3
 	d.race_top = 0.0
 	d.race_accel = 0.0
-	d.race_band = 1.0
+	d.race_brake = 0.0
+	d.race_share = 1.0
+	d.race_effort = 1.0
 	d.cuts = {}
 	d.race_mistake = 0.0
 	d.race_wrong = 0
 	d.race_block = 0.0
+	d.race_rng = null
 
 
 ## Loop 3h slice 4: Halina (rival `name`) rolls up behind the player for the guided first race:
@@ -1825,7 +1769,7 @@ func _track_final(dt: float) -> void:
 		var j := mini(2 * _cp + 1, final_route.legs.size() - 1)
 		var goal: Vector3 = final_target()
 		_player_left = _remaining_by(_final_dists[j], goal) + _after[j]
-		_band(d)
+		_effort(d)
 		_speeds(d)
 		_lead_tick(0.2)
 	_show_status()
@@ -1872,6 +1816,8 @@ func _finish_final(won: bool, why: String) -> void:
 	var line: Array = FINAL_LINES["lose" if won else "win"]
 	_say(_seba, line[0], line[1], 5.0)
 	print("trzy mosty %s: %s in %.1f s, %d/3 bridges" % ["won" if won else "lost", who, _race_time, _cp])
+	if ladder != null and why == "":
+		ladder.note_result(Ladder.FINAL, won)
 	if won:
 		var first := ladder != null and wallet != null and not ladder.final_won()
 		var stake := Ladder.FINAL_ZL

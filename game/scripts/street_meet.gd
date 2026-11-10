@@ -1564,7 +1564,7 @@ func _hand_over(r: Dictionary, then: String, e: int, s: float) -> void:
 	d.race_top = _player_top() * _rng.randf_range(RACE_SHARE.x, RACE_SHARE.y)
 	d.race_accel = _rng.randf_range(RACE_ACCEL.x, RACE_ACCEL.y)
 	d.race_lat = RACE_LAT
-	d.race_band = 1.0
+	d.race_effort = 1.0
 	d.speed_factor = 1.4
 	d.accel_factor = 1.6
 	if state == State.RACE and not _race_dist.is_empty():

@@ -349,5 +349,5 @@ func _racer(on: bool) -> void:
 	driver.race_accel = CHASE_RACE_ACCEL if on else 0.0
 	driver.race_lat = CHASE_LAT
 	driver.race_top = 0.0
-	driver.race_band = 1.0
+	driver.race_effort = 1.0
 	driver.pass_t = 0.0
