@@ -3421,10 +3421,13 @@ func _story_tick() -> void:
 ## The questline friend may walk up (story_quests.gd): as `_boat_free`, but a rescue call that only
 ## rings (the WEZWANIE pill, waiting until pressed) does not stop it (F, 2026-11-08: stopped in the
 ## night meet's ring, nothing came).
+## The first-ten-minutes guide doesn't stop it either (F, 2026-11-10: "I still can't start some
+## quests": a fresh save stopped in a questline's ring and nobody came, because the guide ran).
+## Driving into a badge and stopping is the player's own choice, so the friend comes.
 func _story_free() -> bool:
 	if rave != null and rave.busy():
 		return false
-	return _rave_free(true)
+	return _rave_free(true, true)
 
 
 ## True once the night meet's night was set for the run under way (cleared when the meet ends).
@@ -3752,7 +3755,7 @@ func _shisha_free() -> bool:
 
 ## Nothing else on: no title, bench, Spacer, guide, card, call, ride, job, race; on the ground.
 ## `ringing_ok`: a rescue call still ringing (not answered) does not count (the questline friend).
-func _rave_free(ringing_ok := false) -> bool:
+func _rave_free(ringing_ok := false, guide_ok := false) -> bool:
 	if club != null and club.inside:
 		return false
 	if (lounge != null and lounge.inside) or (shisha != null and shisha.busy()):
@@ -3765,7 +3768,7 @@ func _rave_free(ringing_ok := false) -> bool:
 		return false
 	if title != null or _phone_bench or _bench_ghost != null or (spacer != null and spacer.on):
 		return false
-	if first10 != null and first10.guide_on():
+	if first10 != null and first10.guide_on() and not guide_ok:
 		return false
 	var ringing: bool = ringing_ok and missions.state == Missions.State.RINGING
 	if hud.cards_up() or (missions.state != Missions.State.CLOSED and not ringing) or missions.has_target():
