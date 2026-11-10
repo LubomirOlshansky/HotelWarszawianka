@@ -4776,6 +4776,19 @@ area level) marks the OSM zawrotka's graph edge `cf: 1`. Old median strips that 
 beyond it (`medians kept past free ends`). Continuity 0. On a baked map: road_design.py, then
 `tools/bus_stops.py` (the bus stop's paint follows the new kerb), bake_sectors. street_pass
 marszalkowska-centrum re-recorded: O1 8 → 16 (the lay-by's parked cars by the lane, B8 KEEP), L2 15 → 19 (lane ends at the crossings).
+
+**Marszałkowska Sienkiewicza to Świętokrzyska (F, 2026-11-09).** Road design area `marsz_sienkiewicza`
+(docs/roads/marsz_sienkiewicza.json): m_south s 50-170, from the Świętokrzyska junction's arrows to
+marsz_defilad's north end, to the city's Zielona Marszałkowska traffic plan. Main painted three northbound
+lanes from the crossing on a kerb that slid 2.5 m over 110 m (a lane out of nowhere) and FOOT_PAD had cut the
+kerb 2.5 m short of marsz_defilad's seam (the notch). Now: two lanes out of the crossing, the kerb flaring over
+17 m (where OSM's verge flares) into the bus stop lane, the west carriageway on a green strip with 10 columnar
+elms (trees3d 269,172 → 269,232, crowns 44,862 → 44,872), Fangora's wide mouth keeping its island. road_design.py:
+`keep_islands` (area level), LANE_MIN (no lane line while a kerb lane in a taper is under 1.5 m), PastEnds (kerbs,
+lines, symbols and ribbons past a free end are not clipped by FOOT_PAD), walls cut only by new asphalt. Then
+`tools/bus_stops.py`, bake_street_details, bake_park_details, bake_sectors. retarget_graph: past a free end an
+edge keeps its median lane where it was (a centred, widened edge put the northbound inner lane on the Metro
+Świętokrzyska platform's edge: check_drive found 13 car/bus hits). street_pass records unchanged.
 | Vertices (`count_vertices.gd`) | 18.70 M (meshes 11.50, instances 7.20) | 19.70 M (12.15, 7.55): +1.00 M, the extension's (0.96 M a km²); LoD2 in the box 1,549,362 → 1,548,197 vertices |
 | Probe draw calls (spawn, river, zoomed out, helicopter; 3D main / shadow) | 137, 104, 150, 220 (58/38, 36/25, 66/40, 111/74) | 138, 104, 151, 224 (58/38, 36/25, 66/41, 112/76): the city +0 (the helicopter view with `--no-traffic` 102/68 both); one more car or tram in view |
 | Probe over Rondo Radosława (`--at=-2833,-2292 --heading=60 --heli --size=150`; the car on Jana Pawła II `--at=-2790,-2200 --heading=340`) | (the map's edge) | 203 (100/68), 115 (46/28): inside the helicopter's 224 |
