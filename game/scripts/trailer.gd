@@ -60,6 +60,8 @@ const CARD_KEYS: Array[Dictionary] = [
 ]
 
 var take := ""
+## The 3D image's MSAA for the capture (--trailer-aa=0|2|4|8).
+var aa := Viewport.MSAA_4X
 ## Seconds into the take (the sum of dt).
 var t := 0.0
 var playing := false
@@ -82,9 +84,16 @@ func begin(main: Node) -> void:
 	playing = true
 	seed(SEED)
 	Beacon.hide_all = true
-	# The capture's extras: every mesh at full detail and a bigger sun shadow map.
-	host.get_viewport().mesh_lod_threshold = 0.0
+	# The capture's extras (F 2026-11-10, the graphics research's "High" list, with no phone frame
+	# budget to keep): every mesh at full detail, an 8192 sun shadow map with soft edges, 16x
+	# anisotropic filtering on the slanted roads and facades, and MSAA on the 3D image
+	# (--trailer-aa=0 turns it off if the depth outlines suffer).
+	var sv: SubViewport = host.sv
+	sv.mesh_lod_threshold = 0.0
+	sv.anisotropic_filtering_level = Viewport.ANISOTROPY_16X
+	sv.msaa_3d = aa
 	RenderingServer.directional_shadow_atlas_set_size(8192, true)
+	RenderingServer.directional_soft_shadow_filter_set_quality(RenderingServer.SHADOW_QUALITY_SOFT_HIGH)
 	host.hud.visible = false
 	if take != "palace_drift":
 		host.car.visible = false

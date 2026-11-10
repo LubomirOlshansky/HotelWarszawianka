@@ -5243,6 +5243,9 @@ func _parse_args() -> void:
 			_flag_cinematic = arg.trim_prefix("--cinematic=") if arg.contains("=") else "all"
 		elif arg.begins_with("--trailer="):
 			_trailer_flag(arg.trim_prefix("--trailer="))
+		elif arg.begins_with("--trailer-aa=") and trailer != null:
+			trailer.aa = {"0": Viewport.MSAA_DISABLED, "2": Viewport.MSAA_2X, "8": Viewport.MSAA_8X}.get(
+					arg.trim_prefix("--trailer-aa="), Viewport.MSAA_4X)
 		elif arg == "--heli":
 			start_flying = true
 		elif arg.begins_with("--heli-stick="):
