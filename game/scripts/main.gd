@@ -7772,10 +7772,6 @@ func _show_target() -> void:
 		hud.set_target(on_v, rave.target_label(mv), rave.target_colour(), mv > 12)
 		_put_target(Vector2(vp.x, vp.z), rave.target_colour(), false)
 		_new_target("job", vp)
-		# F 2026-11-10: without this return the rave fell through to the "nothing on" branch below,
-		# which hid the arrow and forgot the target, so every frame was a new target and the camera
-		# looked at the door again and again while the car stood still.
-		return
 	if meet != null and meet.has_target() and not flying:
 		var kp: Vector3 = meet.target_position()
 		var at_k := _vehicle_position()
