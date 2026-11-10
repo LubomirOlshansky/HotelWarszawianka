@@ -28,5 +28,11 @@ scheme=../build/ios/NocnaWarszawa.xcodeproj/xcshareddata/xcschemes/NocnaWarszawa
 if [[ -f $scheme ]] && ! grep -q enableGPUValidationMode $scheme; then
 	perl -0pi -e 's/(<LaunchAction\s+buildConfiguration = "Debug")/$1\n      enableGPUFrameCaptureMode = "3"\n      enableGPUValidationMode = "1"/' $scheme
 fi
+# The home-screen name: Godot writes the project name with its spaces stripped ("AroundWarsaw")
+# into Info.plist, so set the display name ourselves after every export.
+for plist in ../build/ios/NocnaWarszawa/*Info.plist(N); do
+	plutil -replace CFBundleDisplayName -string "Around Warsaw" $plist
+	plutil -replace CFBundleName -string "Around Warsaw" $plist
+done
 echo "Open build/ios/NocnaWarszawa.xcodeproj in Xcode and press Run."
 echo "For frame-rate numbers, start the game from the iPhone's home screen (no debugger attached)."
