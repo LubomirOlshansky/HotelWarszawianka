@@ -90,6 +90,8 @@ var event_tick: Callable
 var event_ground: Callable
 ## -1 plays the take; >= 0 freezes it at that second (stills for checking the path).
 var _event_freeze := -1.0
+## Playback speed of the take (--event-speed=): 1.667 plays the 15 s take in 9 s for the short promo.
+var event_speed := 1.0
 var follow_pcam: Node3D
 var shot_pcam: Node3D
 var mid_pcam: Node3D
@@ -527,7 +529,7 @@ static func _k(k: Dictionary, key: String) -> Vector2:
 
 func _event_frame(dt: float) -> void:
 	if _event_freeze < 0.0:
-		_leg = minf(_leg + dt, EVENT_TIME)
+		_leg = minf(_leg + dt * event_speed, EVENT_TIME)
 	var v := event_view(_leg, event_ground)
 	var cam: Camera3D = host.get_parent()
 	cam.size = v["size"]

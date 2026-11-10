@@ -657,6 +657,8 @@ var event_flag := -1
 var event_smoke := 1
 ## --event-t=SEC: with --cinematic=event, freeze the take at that second (stills for the path check).
 var event_t := -1.0
+## --event-speed=X: play the event take X times faster (1.667 = the 9 s promo cut).
+var event_speed := 1.0
 var event_log := false
 var fans_flag := 1
 var fans_now := false
@@ -1352,6 +1354,7 @@ func _event_take() -> void:
 			last[0] = focus
 			streamer.finish_view(focus, cam)
 	var ground := func(x: float, z: float) -> float: return map.ground_height(x, z)
+	moments.event_speed = event_speed
 	moments.event(ground, tick, PackedStringArray(["11 LISTOPADA", "Around Warsaw · za darmo"]), event_t)
 
 
@@ -5524,6 +5527,8 @@ func _parse_args() -> void:
 			event_smoke = clampi(int(arg.trim_prefix("--event-smoke=")), 0, 1)
 		elif arg == "--event-log":
 			event_log = true
+		elif arg.begins_with("--event-speed="):
+			event_speed = clampf(float(arg.trim_prefix("--event-speed=")), 0.25, 4.0)
 		elif arg.begins_with("--event-t="):
 			event_t = maxf(0.0, float(arg.trim_prefix("--event-t=")))
 		elif arg.begins_with("--fans-phase="):
