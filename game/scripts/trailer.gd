@@ -32,6 +32,8 @@ const SCRUB_STEP := 3.0
 ## sum (keep one as a safety cap).
 const LENGTH := {"palace_time": 14.0, "heli_dive": 10.0, "palace_drift": 10.0, "card": 5.0}
 const TAIL := 0.5
+## The takes' far plane (m): far enough that the view never ends in the clip plane's straight line.
+const FAR := 6000.0
 const CARD_IN := 0.6
 const CARD_FADE := 0.8
 ## The end card's lines (F 2026-11-10: "not Free beta, but just join beta").
@@ -39,22 +41,22 @@ const CARD := ["JOIN THE BETA", "Around Warsaw", "iPhone and Android · aroundwa
 
 ## Keys as camera_shots.gd EVENT_KEYS: t, ground point, height over it, view size, yaw, pitch.
 const PALACE_KEYS: Array[Dictionary] = [
-	{"t": 0.0, "at": PALACE, "up": 100.0, "size": 390.0, "yaw": 120.0, "pitch": -27.0},
-	{"t": 4.0, "at": PALACE, "up": 100.0, "size": 340.0, "yaw": 158.0, "pitch": -26.0},
-	{"t": 8.0, "at": PALACE, "up": 100.0, "size": 295.0, "yaw": 198.0, "pitch": -24.0},
-	{"t": 11.0, "at": PALACE, "up": 95.0, "size": 262.0, "yaw": 230.0, "pitch": -22.0},
-	{"t": 14.0, "at": PALACE, "up": 90.0, "size": 236.0, "yaw": 258.0, "pitch": -20.0},
+	{"t": 0.0, "at": PALACE, "up": 100.0, "size": 390.0, "yaw": 120.0, "pitch": -33.0},
+	{"t": 4.0, "at": PALACE, "up": 100.0, "size": 340.0, "yaw": 158.0, "pitch": -32.0},
+	{"t": 8.0, "at": PALACE, "up": 100.0, "size": 295.0, "yaw": 198.0, "pitch": -31.0},
+	{"t": 11.0, "at": PALACE, "up": 95.0, "size": 262.0, "yaw": 230.0, "pitch": -30.0},
+	{"t": 14.0, "at": PALACE, "up": 90.0, "size": 236.0, "yaw": 258.0, "pitch": -29.0},
 ]
 const HELI_KEYS: Array[Dictionary] = [
 	{"t": 0.0, "at": PALACE, "up": 180.0, "size": 300.0, "yaw": 135.0, "pitch": -30.0},
 	{"t": 2.5, "at": Vector2(-1450.0, 380.0), "up": 60.0, "size": 260.0, "yaw": 160.0, "pitch": -28.0},
-	{"t": 5.0, "at": Vector2(-200.0, 150.0), "up": 60.0, "size": 280.0, "yaw": 250.0, "pitch": -24.0},
-	{"t": 7.0, "at": Vector2(950.0, -260.0), "up": 8.0, "size": 110.0, "yaw": 280.0, "pitch": -18.0},
-	{"t": 10.0, "at": Vector2(1486.0, -611.0), "up": 30.0, "size": 230.0, "yaw": 240.0, "pitch": -22.0},
+	{"t": 5.0, "at": Vector2(-200.0, 150.0), "up": 60.0, "size": 280.0, "yaw": 250.0, "pitch": -26.0},
+	{"t": 7.0, "at": Vector2(950.0, -260.0), "up": 8.0, "size": 110.0, "yaw": 280.0, "pitch": -26.0},
+	{"t": 10.0, "at": Vector2(1486.0, -611.0), "up": 30.0, "size": 230.0, "yaw": 240.0, "pitch": -26.0},
 ]
 const CARD_KEYS: Array[Dictionary] = [
-	{"t": 0.0, "at": PALACE, "up": 110.0, "size": 420.0, "yaw": 100.0, "pitch": -22.0},
-	{"t": 5.0, "at": PALACE, "up": 110.0, "size": 400.0, "yaw": 112.0, "pitch": -21.0},
+	{"t": 0.0, "at": PALACE, "up": 110.0, "size": 420.0, "yaw": 100.0, "pitch": -30.0},
+	{"t": 5.0, "at": PALACE, "up": 110.0, "size": 400.0, "yaw": 112.0, "pitch": -30.0},
 ]
 
 var take := ""
@@ -133,6 +135,9 @@ func _fly(keys: Array) -> Dictionary:
 	var cam: Camera3D = host.cam
 	cam.size = v["size"]
 	cam.global_transform = v["xf"]
+	# F (2026-11-10): the follow camera's far plane cut the city off in a straight line under the
+	# sky; the takes look further, so the ground runs to the top of the frame.
+	cam.far = FAR
 	var focus: Vector3 = v["focus"]
 	host.cam_focus = focus
 	if host.streamer != null and (focus.distance_to(_last_view) > 120.0 or t - _last_fill >= 1.0):
