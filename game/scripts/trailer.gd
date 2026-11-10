@@ -82,6 +82,9 @@ func begin(main: Node) -> void:
 	playing = true
 	seed(SEED)
 	Beacon.hide_all = true
+	# The capture's extras: every mesh at full detail and a bigger sun shadow map.
+	host.get_viewport().mesh_lod_threshold = 0.0
+	RenderingServer.directional_shadow_atlas_set_size(8192, true)
 	host.hud.visible = false
 	if take != "palace_drift":
 		host.car.visible = false

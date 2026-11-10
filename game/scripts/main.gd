@@ -1356,6 +1356,15 @@ func _trailer_flag(take: String) -> void:
 	palace_lights_id = "default"
 	if event_flag < 0:
 		event_flag = 0
+	# F (2026-11-10): rendered on the Mac (M4 Pro, Metal) with Movie Maker, so the best picture the
+	# game can draw: Ultra held (no governor stepping down while a frame takes long to write), the
+	# image at the screen's full resolution, and no see-through hole or ghost round the car in the
+	# flights (the car is not in them). --quality= / --lines= given after --trailer= still win.
+	_flag_quality = Tiers.ULTRA
+	_flag_governor = 0
+	if lines_override <= 0:
+		lines_override = 1080
+	no_ghost = true
 	free_roam = true
 	if take == "palace_drift":
 		start_at = Trailer.DRIFT_AT
