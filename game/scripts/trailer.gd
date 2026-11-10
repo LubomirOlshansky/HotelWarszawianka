@@ -37,6 +37,7 @@ const TAIL := 0.5
 ## lost the car): the car in the middle of a DRIFT_VIEW m view, turning slowly round it, widened
 ## by main.gd raid_view_extra while the patrols close in.
 const DRIFT_VIEW := 70.0
+const DRIFT_MAX := 110.0
 const DRIFT_YAW := 140.0
 const DRIFT_SPIN := 5.0
 const DRIFT_PITCH := -32.0
@@ -243,7 +244,9 @@ func _chase(dt: float) -> void:
 	var cam: Camera3D = host.cam
 	var yaw := DRIFT_YAW + DRIFT_SPIN * t
 	var b := Basis.from_euler(Vector3(deg_to_rad(DRIFT_PITCH), deg_to_rad(yaw), 0.0))
-	var want: float = DRIFT_VIEW + float(host.raid_view_extra(b, DRIFT_VIEW))
+	# Capped at DRIFT_MAX (the first 160 m view lost the car): the nearest patrols come into the
+	# frame first, the car stays readable.
+	var want: float = minf(DRIFT_VIEW + float(host.raid_view_extra(b, DRIFT_VIEW)), DRIFT_MAX)
 	_drift_size = want if dt == 0.0 else lerpf(_drift_size, want, minf(1.0, dt * 1.5))
 	var focus := car.global_position
 	cam.size = _drift_size
