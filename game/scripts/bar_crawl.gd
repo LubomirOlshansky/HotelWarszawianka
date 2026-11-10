@@ -392,8 +392,8 @@ func ring() -> bool:
 	state = State.RING
 	_ring_t = 0.0
 	var n := _group_name()
-	hud.show_call(String(n[0]) + "|" + String(n[1]), "Grupa na wieczór po mieście. Mówią wszyscy naraz.", COLOUR,
-			"A group out on the town tonight. All talking at once.")
+	hud.show_call(String(n[0]) + "|" + String(n[1]), "Grupa na wieczór. Mówią wszyscy naraz.", COLOUR,
+			"A night-out group. All talking at once.")
 	hud.ticker_out()
 	Access.buzz(60, 0.6)
 	_log("call: %s, route %s" % [_group().get("id", ""), routes[route]["id"]])

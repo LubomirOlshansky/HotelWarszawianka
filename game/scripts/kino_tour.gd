@@ -228,8 +228,8 @@ func ring() -> bool:
 		return false
 	state = State.RING
 	_t = 0.0
-	hud.show_call("Wiktor", "Kumpel reżyser. Beret, szalik w upał i jedyna kopia swojego filmu na 35 mm.", COLOUR,
-			"Your director friend. A beret, a scarf in the heat and the only 35 mm copy of his film.")
+	hud.show_call("Wiktor", "Kumpel reżyser. Beret, szalik w upał, film na 35 mm.", COLOUR,
+			"Director friend. Beret, scarf in the heat, a 35 mm film.")
 	hud.ticker_out()
 	Access.buzz(60, 0.6)
 	_log("call ringing")

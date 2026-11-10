@@ -1165,8 +1165,8 @@ func ring() -> bool:
 	state = State.RING
 	_hold_t = 0.0
 	_t = 0.0
-	hud.show_call("Darek „Bawarka”|Darek \"Bawarka\"", "Kumpel od aut. Jeździ Bawarką 3.2 i mówi o niej „ona”.", COLOUR,
-			"Your car mate. Drives a Bawarka 3.2 and calls it \"she\".")
+	hud.show_call("Darek „Bawarka”|Darek \"Bawarka\"", "Kumpel od aut. O swojej Bawarce mówi „ona”.", COLOUR,
+			"Car mate. Calls his Bawarka \"she\".")
 	hud.ticker_out()
 	Access.buzz(60, 0.6)
 	_log("call ringing")

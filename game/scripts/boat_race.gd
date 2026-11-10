@@ -388,8 +388,8 @@ func ring() -> bool:
 		return false
 	state = State.RING
 	_t = 0.0
-	hud.show_call("Szymek", "Kumpel z przystani w Porcie Czerniakowskim. Ma motorówkę, za dużo wolnego czasu i zero cierpliwości.", COLOUR,
-			"Your mate from the marina at Port Czerniakowski. He has a motorboat, too much free time and no patience.")
+	hud.show_call("Szymek", "Kumpel z przystani. Ma motorówkę i zero cierpliwości.", COLOUR,
+			"Your marina mate. Has a motorboat and zero patience.")
 	hud.ticker_out()
 	Access.buzz(60, 0.6)
 	_log("call ringing")

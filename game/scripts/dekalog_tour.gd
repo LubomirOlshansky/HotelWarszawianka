@@ -254,8 +254,8 @@ func ring() -> bool:
 		return false
 	state = State.RING
 	_t = 0.0
-	hud.show_call("+33 · Claire", "Nieznany numer z Francji. W tle zapowiedź pociągu i coś o „Kieślowskim” z francuskim akcentem.", COLOUR,
-			"An unknown French number. A train announcement behind her and something about \"Kieślowski\" in a French accent.")
+	hud.show_call("+33 · Claire", "Nieznany numer z Francji. W tle: „Kieślowski”.", COLOUR,
+			"Unknown French number. In the background: \"Kieślowski\".")
 	hud.ticker_out()
 	Access.buzz(60, 0.6)
 	_log("call ringing")

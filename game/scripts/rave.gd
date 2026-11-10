@@ -939,8 +939,8 @@ func ring(k := "") -> bool:
 		quest_spot = night_spot
 	state = State.RING
 	_ring_t = 0.0
-	hud.show_call("Mati", "Kumpel z osiedla. Zawsze na czarno, zawsze wie, gdzie jest impreza, zanim ktokolwiek o niej usłyszy.", COLOUR,
-			"Your mate from the estate. Always in black, always knows where the party is before anyone's heard of it.")
+	hud.show_call("Mati", "Kumpel z osiedla. Wie o imprezie, zanim powstała.", COLOUR,
+			"Estate mate. Knows the party before it exists.")
 	hud.ticker_out()
 	Access.buzz(60, 0.6)
 	_log("call ringing")

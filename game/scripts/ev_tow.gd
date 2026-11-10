@@ -525,8 +525,8 @@ func ring() -> bool:
 		return false
 	state = State.RING
 	_ring_t = 0.0
-	hud.show_call(CALLER, "Kumpel z liceum. Ten, co pół roku temu przesiadł się na elektryka i od tamtej pory o niczym innym nie mówi.", COLOUR,
-			"Your mate from school. The one who went electric six months ago and hasn't talked about anything else since.")
+	hud.show_call(CALLER, "Kumpel z liceum. Ma elektryka. Mówi tylko o nim.", COLOUR,
+			"School mate. Went electric. Talks of nothing else.")
 	hud.ticker_out()
 	Access.buzz(60, 0.6)
 	_log("call ringing")

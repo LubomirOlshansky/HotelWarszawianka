@@ -353,8 +353,8 @@ func _check_screen(screen: Vector2i) -> int:
 				# F 2026-11-10: an incoming call in the phone view (the longest caller line, a name
 				# without a portrait: the initial's fallback), then the quest offer with the face.
 				"phone call":
-					hud.show_call("Darek „Bawarka”|Darek \"Bawarka\"", "Kumpel z liceum. Ten, co pół roku temu przesiadł się na elektryka i od tamtej pory o niczym innym nie mówi.",
-							Color("#4fd8c4"), "Your mate from school. The one who went electric six months ago and hasn't talked about anything else since.")
+					hud.show_call("Darek „Bawarka”|Darek \"Bawarka\"", "Z pracy. Bluza klubowa przed pierwszym meczem.",
+							Color("#4fd8c4"), "From work. Club hoodie before her first match.")
 					hud.ticker("87,3 KEBAB FM  ·  Palma de Gaulle'a", Color("#ff5fc8"))
 				"quest offer":
 					hud.show_side_card("📞 IVAN", "„Siema! Szisza dziś? Podjedź po mnie pod 19. Dzielnicę, weźmiemy jeszcze Bogdana z kortu. Ma być spokojnie.”",

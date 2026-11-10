@@ -95,8 +95,8 @@ const CAR_ZONE := Vector2(110.0, 84.0)
 const CARD_W := 440.0
 ## F 2026-11-10: the phone view of an incoming call (show_call): its width, the caller's face,
 ## the round answer and decline buttons, and the face on a quest card's head.
-const CALL_W := 300.0
-const CALL_FACE := 48.0
+const CALL_W := 176.0
+const CALL_FACE := 44.0
 const CALL_BUTTON := 44.0
 ## The ringtone (tools/make_ui_sounds.py `ring`), again every RING_EVERY s while it rings.
 const RINGTONE := "res://audio/ui/ring.wav"
@@ -1758,10 +1758,10 @@ func hide_card() -> void:
 ## The incoming call as a little phone held up on the right (F 2026-11-10, a photo of a mini
 ## phone): a black body with rounded corners round a screen in the caller's colour, a clock and
 ## the camera notch at the top, the caller's face with rings going out while it rings, the name
-## and "dzwoni…" beside it, what the caller is to you under them (F: the text inside the phone),
-## and the round red and green buttons with their words (decline on the left, answer on the
-## right, as on a phone). Held sideways, as the game is: short enough for the right-hand column
-## beside the car above the pedals on a landscape phone.
+## and "dzwoni…" beside it, what the caller is to you under them (F: the text inside the phone;
+## so keep a caller's line short, about 55 letters), and the round red and green buttons with
+## their words (decline on the left, answer on the right, as on a phone). Upright and narrow
+## (F 2026-11-11, a sketched rectangle): in the right-hand column beside the car, above the pedals.
 func _build_call_view() -> void:
 	_call_style = StyleBoxFlat.new()
 	_call_style.bg_color = Color(0, 0, 0, 0)
@@ -1801,10 +1801,10 @@ func _build_call_view() -> void:
 	screen.add_child(rows)
 	# The top bar: the clock on the left, the notch in the middle, signal and battery right.
 	var bar := Control.new()
-	bar.custom_minimum_size.y = 12.0 * pt
+	bar.custom_minimum_size.y = 10.0 * pt
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_call_clock = _label(T_LABEL, INK)
-	_call_clock.position = Vector2(4.0 * pt, -2.0 * pt)
+	_call_clock.position = Vector2(4.0 * pt, -3.0 * pt)
 	bar.add_child(_call_clock)
 	bar.draw.connect(func() -> void: _paint_phone_bar(bar))
 	rows.add_child(bar)
@@ -1827,7 +1827,7 @@ func _build_call_view() -> void:
 	who.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	who.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	head.add_child(who)
-	_call_name = _label(T_TITLE, INK)
+	_call_name = _label(T_BODY, INK)
 	who.add_child(_call_name)
 	_call_status = _label(T_LABEL, SUB)
 	who.add_child(_call_status)
