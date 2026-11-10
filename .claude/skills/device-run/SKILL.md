@@ -1,7 +1,6 @@
 ---
 name: device-run
 description: Builds Around Warsaw for the user's connected iPhone, installs and launches it with game flags (usually the bench), and copies the engine log back to the Mac with xcrun devicectl. Use only when the user has allowed device runs for this loop and nobody else is using the phone; for frame rate, Metal, thermal or touch questions that the Mac can't answer.
-disable-model-invocation: true
 argument-hint: "[label] [game flags, e.g. --bench --quality=high]"
 ---
 
