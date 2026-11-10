@@ -253,7 +253,10 @@ func step() -> void:
 			_beacon.place(Vector3(s.x, y, s.y), GREET_R * 0.5)
 		else:
 			_beacon.visible = false
-	if greeting >= 0 or near < 0 or _greeted.has(str(defs[near]["id"])):
+	if greeting >= 0 or near < 0:
+		return
+	if _greeted.has(str(defs[near]["id"])):
+		_note_wait(str(defs[near]["id"]), "greeted already, drive %.0f m away to re-arm" % float(_greeted[str(defs[near]["id"])]), at, defs[near]["at"])
 		return
 	if not greet_ready(at, defs[near]["at"], float(v[1]), flying):
 		return
@@ -266,8 +269,17 @@ func step() -> void:
 		return
 	var idle: Callable = defs[near].get("idle", Callable())
 	if idle.is_valid() and not bool(idle.call()):
+		_note_wait(str(defs[near]["id"]), "the questline's own state is not idle", at, defs[near]["at"])
 		return
 	_greet(near)
+
+
+## --stories-log: the friend waits near their start because of `why` (printed when the reason changes).
+func _note_wait(id: String, why: String, at: Vector2, start: Vector2) -> void:
+	if not log_on or not greet_ready(at, start, 0.0, false) or why == _last_why:
+		return
+	_last_why = why
+	print("stories: %s: the friend waits, blocked by: %s" % [id, why])
 
 
 ## The friend walks up and talks (no phone): the questline's offer, or when to come back.
