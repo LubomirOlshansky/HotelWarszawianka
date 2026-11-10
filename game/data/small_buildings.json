@@ -4397,6 +4397,114 @@
    "src": "aerial + Mapillary",
    "why": "same grey vent-box cluster by road, not clearly seen",
    "osm": null
+  },
+  {
+   "x": -1060.0,
+   "z": -83.9,
+   "u": "none",
+   "conf": "high",
+   "src": "F's photos 2026-11-09 + OSM outline",
+   "why": "OSM outline of a Świętokrzyska metro entrance (olive or grey box); Props._metro_tent draws the entrance, the block stood behind it",
+   "osm": null
+  },
+  {
+   "x": -1061.8,
+   "z": -88.9,
+   "u": "none",
+   "conf": "high",
+   "src": "F's photos 2026-11-09 + OSM outline",
+   "why": "OSM outline of a Świętokrzyska metro entrance (olive or grey box); Props._metro_tent draws the entrance, the block stood behind it",
+   "osm": null
+  },
+  {
+   "x": -1013.4,
+   "z": -127.8,
+   "u": "none",
+   "conf": "high",
+   "src": "F's photos 2026-11-09 + OSM outline",
+   "why": "OSM outline of a Świętokrzyska metro entrance (olive or grey box); Props._metro_tent draws the entrance, the block stood behind it",
+   "osm": null
+  },
+  {
+   "x": -1035.2,
+   "z": -154.4,
+   "u": "none",
+   "conf": "high",
+   "src": "F's photos 2026-11-09 + OSM outline",
+   "why": "OSM outline of a Świętokrzyska metro entrance (olive or grey box); Props._metro_tent draws the entrance, the block stood behind it",
+   "osm": null
+  },
+  {
+   "x": -1005.1,
+   "z": -139.7,
+   "u": "none",
+   "conf": "high",
+   "src": "F's photos 2026-11-09 + OSM outline",
+   "why": "OSM outline of a Świętokrzyska metro entrance (olive or grey box); Props._metro_tent draws the entrance, the block stood behind it",
+   "osm": null
+  },
+  {
+   "x": -1000.0,
+   "z": -141.4,
+   "u": "none",
+   "conf": "high",
+   "src": "F's photos 2026-11-09 + OSM outline",
+   "why": "OSM outline of a Świętokrzyska metro entrance (olive or grey box); Props._metro_tent draws the entrance, the block stood behind it",
+   "osm": null
+  },
+  {
+   "x": -1016.7,
+   "z": -159.9,
+   "u": "none",
+   "conf": "high",
+   "src": "F's photos 2026-11-09 + OSM outline",
+   "why": "OSM outline of a Świętokrzyska metro entrance (olive or grey box); Props._metro_tent draws the entrance, the block stood behind it",
+   "osm": null
+  },
+  {
+   "x": -1011.6,
+   "z": -161.6,
+   "u": "none",
+   "conf": "high",
+   "src": "F's photos 2026-11-09 + OSM outline",
+   "why": "OSM outline of a Świętokrzyska metro entrance (olive or grey box); Props._metro_tent draws the entrance, the block stood behind it",
+   "osm": null
+  },
+  {
+   "x": -1048.9,
+   "z": -170.4,
+   "u": "none",
+   "conf": "high",
+   "src": "F's photos 2026-11-09 + OSM outline",
+   "why": "OSM outline of a Świętokrzyska metro entrance (olive or grey box); Props._metro_tent draws the entrance, the block stood behind it",
+   "osm": null
+  },
+  {
+   "x": -1050.8,
+   "z": -175.6,
+   "u": "none",
+   "conf": "high",
+   "src": "F's photos 2026-11-09 + OSM outline",
+   "why": "OSM outline of a Świętokrzyska metro entrance (olive or grey box); Props._metro_tent draws the entrance, the block stood behind it",
+   "osm": null
+  },
+  {
+   "x": -1111.1,
+   "z": -96.3,
+   "u": "none",
+   "conf": "high",
+   "src": "F's photos 2026-11-09 + OSM outline",
+   "why": "OSM outline of a Świętokrzyska metro entrance (olive or grey box); Props._metro_tent draws the entrance, the block stood behind it",
+   "osm": null
+  },
+  {
+   "x": -1116.7,
+   "z": -94.4,
+   "u": "none",
+   "conf": "high",
+   "src": "F's photos 2026-11-09 + OSM outline",
+   "why": "OSM outline of a Świętokrzyska metro entrance (olive or grey box); Props._metro_tent draws the entrance, the block stood behind it",
+   "osm": null
   }
  ]
 }
