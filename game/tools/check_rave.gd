@@ -14,7 +14,10 @@ extends SceneTree
 ##      anything less sends you home ("Nie tym razem"); the lights' pose has no NaN, the strobe dark with
 ##      `calm`; the club's lights stay inside the room, the dance's beat check is on the beat;
 ##   5. the real lane graph: every spot and Smoła found with a door on a ground road within 160 m,
-##      Mati's pickup found from 30 seeded places, a meeting point 260-820 m from each night spot.
+##      Mati's pickup found from 30 seeded places, a meeting point 260-820 m from each night spot;
+##   6. a Smoła night played through (F 2026-11-10): met pod Rotundą, the drive has its target at
+##      the door and a ring and light column standing there, stopping at the door asks the three
+##      questions, three wrong answers still get you in (DOOR_ANY_ANSWER), the ring goes at the door.
 ## Prints "check_rave: OK (...)" or the problems (exit 1).
 ##   godot --headless --path game --script res://tools/check_rave.gd [-- --verbose]
 
@@ -23,6 +26,28 @@ const Club := preload("res://scripts/club.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Notebook := preload("res://scripts/notebook.gd")
 const BUBBLE := 90
+
+
+## Just enough HUD for a Smoła night: it records the cards and the status.
+class FakeHud extends CanvasLayer:
+	signal card_pressed(i: int)
+	signal abort_pressed
+	var card := ""
+	var status := ""
+	func show_status(title: String, _a = null, _b = null, _c = null, _d = null, _e = null, _f = null, _g = null, _h = null) -> void:
+		status = title
+	func hide_status() -> void:
+		status = ""
+	func show_card(title: String, _a = null, _b = null, _c = null, _d = null, _e = null, _f = null, _g = null) -> void:
+		card = title
+	func show_side_card(title: String, _a = null, _b = null, _c = null, _d = null, _e = null) -> void:
+		card = title
+	func hide_card() -> void:
+		card = ""
+	func toast(_a = null, _b = null) -> void:
+		pass
+	func ticker_out() -> void:
+		pass
 
 
 class FakeMap extends Node3D:
@@ -57,6 +82,7 @@ func _run() -> void:
 	root.add_child(map)
 	var g := LaneGraph.new(data["graph"], map)
 	_check_map(g, map, data.get("origin", [52.234, 21.024]), digest)
+	_check_smola_night(g, map, data.get("origin", [52.234, 21.024]), digest)
 	if problems.is_empty():
 		print("check_rave: OK (%s)" % " · ".join(digest))
 		quit(0)
@@ -299,3 +325,49 @@ func _check_map(g: LaneGraph, map: Node3D, origin: Array, digest: PackedStringAr
 	if found < 27:
 		problems.append("Mati's pickup found from %d of 30 places" % found)
 	digest.append("%d spots + Smoła, doors within %.0f m, pickups %d/30" % [spots.size(), far, found])
+
+
+## 6. A Smoła night played through with a fake HUD and a car moved by hand.
+func _check_smola_night(g: LaneGraph, map: Node3D, origin: Array, digest: PackedStringArray) -> void:
+	var hud := FakeHud.new()
+	root.add_child(hud)
+	var rave := Rave.new()
+	rave.graph = g
+	rave.map = map
+	rave.origin = origin
+	rave.hud = hud
+	rave.auto = false
+	var car := [Vector3.ZERO, 0.0, false]
+	rave.vehicle = func() -> Array: return car
+	root.add_child(rave)
+	rave.setup(map, 3)
+	if rave.smola.is_empty() or rave.smola_home.is_empty():
+		problems.append("smola night: no club or no start")
+		return
+	car[0] = rave.smola_home["at"]
+	if not rave.meet_in_person("smola") or rave.state != Rave.State.DRIVE:
+		problems.append("smola night: meeting Mati pod Rotundą didn't start the drive")
+		return
+	var door: Vector3 = rave.smola["door"]["at"]
+	if not rave.has_target() or rave.target_position().distance_to(door) > 0.1:
+		problems.append("smola night: the arrow's target is not the door")
+	var mark: Node3D = rave._door_mark
+	if not mark.visible or Vector2(mark.position.x, mark.position.z).distance_to(Vector2(door.x, door.z)) > Rave.DOOR_R:
+		problems.append("smola night: no ring at the door while driving there")
+	car[0] = door
+	for k in 10:
+		rave.step(0.1)
+	if rave.state != Rave.State.DOOR or not hud.card.begins_with("SELEKCJA"):
+		problems.append("smola night: stopping at the door didn't ask (state %d, card %s)" % [rave.state, hud.card])
+		return
+	if mark.visible:
+		problems.append("smola night: the door's ring still shows at the door")
+	for k in 3:
+		# A wrong answer each time: the first answer that isn't the right one.
+		var wrong := 1 if int(rave.quiz[rave.quiz_i][2]) == 0 else 0
+		hud.card_pressed.emit(wrong)
+	if String(rave.last_pay.get("result", "")) != ("in" if Rave.DOOR_ANY_ANSWER else "out"):
+		problems.append("smola night: three wrong answers gave %s" % rave.last_pay.get("result", "?"))
+	digest.append("Smoła night: door ring, 3 wrong answers -> %s" % rave.last_pay.get("result", "?"))
+	rave.queue_free()
+	hud.queue_free()

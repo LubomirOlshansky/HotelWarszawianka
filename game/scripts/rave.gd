@@ -92,6 +92,10 @@ const QUESTIONS := [
 ## Right answers that let you in: all three. The first wrong one ends it: "Nie tym razem. Wróć
 ## później." (F, 2026-11-06).
 const DOOR_PASS := 3
+## F 2026-11-10 ("for now with each answer you can go in"): every answer gets you in; the three
+## questions are still asked and the right ones still counted for the card. False brings the
+## strict door back.
+const DOOR_ANY_ANSWER := true
 ## The night's password: one of these, in LEKTI's line and on the door's card.
 const PASSWORDS := ["BETON", "SYRENA", "MGŁA", "TRAMWAJ ZERO", "PRAGA 97", "BAS", "NEON", "PERON"]
 
@@ -241,6 +245,9 @@ var _dancers: MultiMeshInstance3D
 var _booth: MeshInstance3D
 var _pick: Node3D
 var _meet_mark: Node3D
+## The door's marker (F 2026-11-10: no sign where to stop at Smoła): a ring and a light column at
+## the door from the moment the drive there starts, the bouncer standing in it.
+var _door_mark: Node3D
 var _floor: Array[Vector3] = []
 var spent_usec := 0
 var _voice: AudioStreamPlayer
@@ -280,6 +287,11 @@ func setup(world: Node3D, seed_value := -1) -> void:
 	_meet_mark.setup(COLOUR, Color("#26232c"))
 	_meet_mark.waving = false
 	_meet_mark.visible = false
+	_door_mark = Beacon.new()
+	world.add_child(_door_mark)
+	_door_mark.setup(COLOUR, Color("#101014"))
+	_door_mark.waving = false
+	_door_mark.visible = false
 	if hud != null:
 		hud.card_pressed.connect(_on_card)
 		hud.abort_pressed.connect(func() -> void:
@@ -1057,6 +1069,7 @@ func _board() -> void:
 		state = State.DRIVE
 		_talk_t = 2.0
 		_hold_t = 0.0
+		_mark_door()
 		_say("board_smola")
 		_log("boarded; to Smoła")
 		return
@@ -1096,12 +1109,22 @@ func _reveal() -> void:
 	state = State.DRIVE
 	_talk_t = 4.0
 	_hold_t = 0.0
+	_mark_door()
 	_log("revealed: %s" % s["id"])
+
+
+## The door's ring and light column, where the drive ends (DOOR_R, the stop's own radius).
+func _mark_door() -> void:
+	var door: Dictionary = _dest()["door"]
+	var side: Vector3 = door.get("side", door["at"])
+	_door_mark.place(Vector3(side.x, door["at"].y, side.z), DOOR_R, true, true)
+	_door_mark.visible = true
 
 
 ## At the door: the bouncer's three questions, one card each (door_quiz).
 func _door() -> void:
 	state = State.DOOR
+	_door_mark.visible = false
 	hud.hide_status()
 	quiz = door_quiz(password if kind == "rave" else "", _rng)
 	quiz_i = 0
@@ -1127,17 +1150,18 @@ func _ask() -> void:
 func _answer(i: int) -> void:
 	if quiz.is_empty():
 		return
-	if i != int(quiz[quiz_i][2]):
+	var right := i == int(quiz[quiz_i][2])
+	if not right and not DOOR_ANY_ANSWER:
 		hud.hide_card()
 		_enter("out")
 		return
-	quiz_right += 1
+	quiz_right += 1 if right else 0
 	quiz_i += 1
 	if quiz_i < quiz.size():
 		_ask()
 		return
 	hud.hide_card()
-	_enter(door_result(quiz_right))
+	_enter("in" if DOOR_ANY_ANSWER else door_result(quiz_right))
 
 
 ## The verdict: "in" (all three right), "out" (a wrong answer: "Nie tym razem. Wróć później.",
@@ -1197,6 +1221,7 @@ func _give_up() -> void:
 func _finish() -> void:
 	_pick.visible = false
 	_meet_mark.visible = false
+	_door_mark.visible = false
 	hud.hide_status()
 	if missions != null:
 		missions.paused = _calls_were
