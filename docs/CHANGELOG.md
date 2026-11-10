@@ -15,6 +15,7 @@ someone writes its lines.
 - Street race rivals race at their own pace now. Nobody crawls beside a slow player, waits when you stop or lifts off before the finish, so a race you drive at town pace is a race you lose. Each rival is a different driver, from careful Pani Halina to Mordor Mike, and a rival who keeps beating you drives a little slower each time until you win.
 
 ## 2026-11-09
+- The night car meet's start now stands on the kerb by Plac Defilad instead of in the middle of the paving, and a questline friend's "in person" card stays up 45 s (it was 15 s) before they walk off.
 - The car park ramp by the Palace no longer floats in the air: it dives down between pink-tiled walls under a "PARKING PODZIEMNY 24h 7dni" sign, and two of Metro Centrum's entrances by the park are glass barrels on pink walls with an escalator instead of green boxes.
 - The first bank branch on Marszałkowska at Sienkiewicza is a real building now: a dark red-brown stone front with tall glass bays and a glass top floor, plain wings behind it with roofs, instead of a hollow shell with no roof.
 - Marszałkowska between Sienkiewicza and Świętokrzyska is laid out like the city's new plan: two lanes out of the crossing that widen smoothly into a third lane by the bus stop, with no step in the kerb, and a green strip of young elms beside the southbound lanes.

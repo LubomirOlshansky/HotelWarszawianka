@@ -53,8 +53,8 @@ const LAPSED_R := GREET_R
 const BEACON_R := 320.0
 ## The minimap pins a questline's badge to its rim up to this far (the garage's reach).
 const MINI_REACH := 1500.0
-## The in-person card's life (s), then it goes as if NIE TERAZ.
-const CARD_LIFE := 15.0
+## The in-person card's life (s), then it goes as if NIE TERAZ (F 2026-11-09: 15 s was gone before a driver looked up).
+const CARD_LIFE := 45.0
 const TICK := 0.25
 ## The default accent (the full map's WĄTKI tab, quest_lines.gd).
 const COLOUR := Lines.STORY_COLOUR
@@ -64,6 +64,9 @@ var hud: CanvasLayer
 var vehicle: Callable
 ## () -> bool: nothing else on and no card up (main.gd `_boat_free`).
 var free_now: Callable = func() -> bool: return true
+## Why the friend may not walk up now ("" when free): logged with --stories-log, once per reason.
+var why_blocked: Callable
+var _last_why := ""
 ## () -> [hour: float, weekday: int]
 var clock: Callable = func() -> Array: return [12.0, 3]
 ## (x, z) -> float: the ground's height (map.gd ground_height).
@@ -250,14 +253,33 @@ func step() -> void:
 			_beacon.place(Vector3(s.x, y, s.y), GREET_R * 0.5)
 		else:
 			_beacon.visible = false
-	if greeting >= 0 or near < 0 or _greeted.has(str(defs[near]["id"])):
+	if greeting >= 0 or near < 0:
 		return
-	if not greet_ready(at, defs[near]["at"], float(v[1]), flying) or not bool(free_now.call()):
+	if _greeted.has(str(defs[near]["id"])):
+		_note_wait(str(defs[near]["id"]), "greeted already, drive %.0f m away to re-arm" % float(_greeted[str(defs[near]["id"])]), at, defs[near]["at"])
+		return
+	if not greet_ready(at, defs[near]["at"], float(v[1]), flying):
+		return
+	if not bool(free_now.call()):
+		if log_on and why_blocked.is_valid():
+			var why := str(why_blocked.call())
+			if why != _last_why:
+				_last_why = why
+				print("stories: %s: the friend waits, blocked by: %s" % [defs[near]["id"], why])
 		return
 	var idle: Callable = defs[near].get("idle", Callable())
 	if idle.is_valid() and not bool(idle.call()):
+		_note_wait(str(defs[near]["id"]), "the questline's own state is not idle", at, defs[near]["at"])
 		return
 	_greet(near)
+
+
+## --stories-log: the friend waits near their start because of `why` (printed when the reason changes).
+func _note_wait(id: String, why: String, at: Vector2, start: Vector2) -> void:
+	if not log_on or not greet_ready(at, start, 0.0, false) or why == _last_why:
+		return
+	_last_why = why
+	print("stories: %s: the friend waits, blocked by: %s" % [id, why])
 
 
 ## The friend walks up and talks (no phone): the questline's offer, or when to come back.

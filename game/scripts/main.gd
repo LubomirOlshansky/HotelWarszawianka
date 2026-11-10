@@ -3254,6 +3254,8 @@ func _build_stories(world: Node3D) -> void:
 			return [heli.global_position, heli.speed() * 3.6, true]
 		return [car.global_position, car.vel.length() * 3.6, false]
 	stories.free_now = _story_free
+	stories.why_blocked = func() -> String:
+		return "rave busy" if rave != null and rave.busy() else _free_block(true, true)
 	stories.skip_to = _story_skip_to
 	stories.ground = func(x: float, z: float) -> float: return map.ground_height(x, z)
 	stories.clock = func() -> Array:
@@ -3314,7 +3316,9 @@ func _build_stories(world: Node3D) -> void:
 	# The night racing club (street_meet.gd): Darek at Plac Defilad, 21:00-4:00. Null with
 	# --no-traffic or --meet=0.
 	if meet != null and meet.meets.size() > 0:
-		var g: Vector3 = meet.meets[0]["at"]
+		# The start is the road kerb by the plaza (the meet's door), not the plaza's middle: F
+		# (2026-11-09) could not drive up to the old spot in the middle of the paving.
+		var g: Vector3 = (meet.meets[0]["door"] as Dictionary)["at"]
 		stories.add({"id": "meet", "pl": "Nocny spot", "en": "Night meet", "who": [StreetMeet.FRIEND, StreetMeet.FRIEND],
 				"hello": ["„Siema! Dziś spot na Defiladzie. Wbijasz?”", "\"Hey! Meet's on Plac Defilad tonight. You in?\""],
 				"closed": ["„Za dnia tu tylko turyści. Wpadnij po 21.”", "\"By day it's all tourists here. Come after nine.\""],
@@ -3755,35 +3759,42 @@ func _shisha_free() -> bool:
 
 ## Nothing else on: no title, bench, Spacer, guide, card, call, ride, job, race; on the ground.
 ## `ringing_ok`: a rescue call still ringing (not answered) does not count (the questline friend).
-func _rave_free(ringing_ok := false, guide_ok := false) -> bool:
+func _free_block(ringing_ok := false, guide_ok := false) -> String:
 	if club != null and club.inside:
-		return false
+		return "club inside"
 	if (lounge != null and lounge.inside) or (shisha != null and shisha.busy()):
-		return false
+		return "lounge inside or shisha busy"
 	if meet != null and meet.busy():
-		return false
+		return "night meet busy"
 	if crawl != null and crawl.busy():
-		return false
+		return "crawl busy"
 	if ev_tow != null and ev_tow.busy():
-		return false
+		return "EV tow busy"
 	if title != null or _phone_bench or _bench_ghost != null or (spacer != null and spacer.on):
-		return false
+		return "title/bench/Spacer"
 	if first10 != null and first10.guide_on() and not guide_ok:
-		return false
+		return "first-10 guide"
 	var ringing: bool = ringing_ok and missions.state == Missions.State.RINGING
 	if hud.cards_up() or (missions.state != Missions.State.CLOSED and not ringing) or missions.has_target():
-		return false
+		return "a card, mission or rescue target is up"
 	if (rides != null and rides.busy()) or (jobs != null and jobs.busy()) or (trend_job != null and trend_job.busy()):
-		return false
+		return "ride/job/trend job busy"
 	if rivals != null and rivals.busy():
-		return false
+		return "rival race busy"
 	if boat_race != null and boat_race.busy():
-		return false
+		return "boat race busy"
 	if dekalog_tour != null and dekalog_tour.busy():
-		return false
+		return "dekalog busy"
 	if kino_tour != null and kino_tour.busy():
-		return false
-	return not flying and not car.in_water
+		return "kino busy"
+	if flying or car.in_water:
+		return "in the air or in water"
+	return ""
+
+
+## Why nothing may start now ("" when free): the first gate that holds, for --stories-log.
+func _rave_free(ringing_ok := false, guide_ok := false) -> bool:
+	return _free_block(ringing_ok, guide_ok) == ""
 
 
 # --- the night racing club -------------------------------------------------------------------
