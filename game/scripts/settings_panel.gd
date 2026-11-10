@@ -54,7 +54,6 @@ const SOUND_TAB := 3
 const Credits := preload("res://scripts/credits.gd")
 const NotebookPage := preload("res://scripts/notebook_page.gd")
 const Gamepad := preload("res://scripts/gamepad.gd")  # the gamepad loop
-const DRIVE := [["Wskaż", "Point"], ["Klasycznie", "Classic"]]
 ## Loop 2e: the camera choice, explicit (it was the CAM button, easy to switch off unnoticed):
 ## on, it follows the car (Point; Classic's default), off it stays put (Fixed camera; Classic
 ## with the camera fixed).
@@ -223,7 +222,6 @@ func _build() -> void:
 	rescue.add_child(_new_game_button)
 
 	_heading(drive[0], "Sterowanie", "Controls")
-	_segments(drive[0], "drive", DRIVE)
 	_say_pl = _text("", T_SUB, INK)
 	_say_en = _text("", T_SUB, SUB)
 	for l in [_say_pl, _say_en]:
