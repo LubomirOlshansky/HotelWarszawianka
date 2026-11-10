@@ -95,9 +95,13 @@ const CAR_ZONE := Vector2(110.0, 84.0)
 const CARD_W := 440.0
 ## F 2026-11-10: the phone view of an incoming call (show_call): its width, the caller's face,
 ## the round answer and decline buttons, and the face on a quest card's head.
-const CALL_W := 420.0
-const CALL_FACE := 52.0
-const CALL_BUTTON := 48.0
+const CALL_W := 360.0
+const CALL_FACE := 48.0
+const CALL_BUTTON := 44.0
+const PHONE_SCREEN_W := 112.0
+## The ringtone (tools/make_ui_sounds.py `ring`), again every RING_EVERY s while it rings.
+const RINGTONE := "res://audio/ui/ring.wav"
+const RING_EVERY := 2.6
 const CARD_FACE := 40.0
 const STATUS_W := 260.0
 const NOTE_W := 236.0
@@ -233,7 +237,12 @@ var _card_face_accent := ACCENT
 var _card_style: StyleBoxFlat
 var _call_style: StyleBoxFlat
 var _call_mode := false
-var _call_box: VBoxContainer
+var _call_box: HBoxContainer
+var _call_plate: PanelContainer
+var _call_screen: StyleBoxFlat
+var _call_clock: Label
+var _ring: AudioStreamPlayer
+var _ring_wait := 0.0
 var _call_face: Control
 var _call_name: Label
 var _call_status: Label
@@ -1747,51 +1756,121 @@ func hide_card() -> void:
 
 # --- F 2026-11-10: the phone view of an incoming call ------------------------------------------
 
-## The phone view inside the card's panel, as a phone shows a call over an app it is running:
-## "incoming call", the caller's name and what they are to you, then the round red button, the
-## caller's face with rings going out while it rings, and the round green button, each button
-## with its word under it (decline on the left, answer on the right, as on a phone). Short
+## The incoming call as a little phone held up on the right (F 2026-11-10, a photo of a mini
+## phone): a black body with rounded corners round a screen in the caller's colour, a clock and
+## the camera notch at the top, the caller's face with rings going out while it rings, the name,
+## "dzwoni…", and the round red and green buttons with their words (decline on the left, answer
+## on the right, as on a phone). What the caller is to you stands on a plate beside it. Short
 ## enough for the right-hand column beside the car above the pedals on a landscape phone.
 func _build_call_view() -> void:
-	_call_style = _panel_box(24.0, 12.0)
-	_call_style.bg_color = Color(0.05, 0.05, 0.08, 0.96)
-	_call_style.border_color = Color(1, 1, 1, 0.3)
-	_call_style.set_border_width_all(maxi(1, roundi(2.0 * pt)))
-	_call_box = VBoxContainer.new()
+	_call_style = StyleBoxFlat.new()
+	_call_style.bg_color = Color(0, 0, 0, 0)
+	_call_box = HBoxContainer.new()
 	_call_box.name = "call"
-	_call_box.add_theme_constant_override("separation", roundi(2.0 * pt))
+	_call_box.add_theme_constant_override("separation", roundi(8.0 * pt))
 	_call_box.visible = false
 	_card.add_child(_call_box)
-	_call_status = _label(T_LABEL, SUB)
-	_call_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_call_box.add_child(_call_status)
-	_call_name = _label(T_TITLE, INK)
-	_call_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_call_box.add_child(_call_name)
-	_call_about = _label(T_SUB, SUB)
-	_call_about.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_call_box.add_child(_call_about)
-	# Decline, the face, answer: show_call puts the buttons either side of the face.
-	_call_buttons = HBoxContainer.new()
-	_call_buttons.alignment = BoxContainer.ALIGNMENT_CENTER
-	_call_buttons.add_theme_constant_override("separation", roundi(22.0 * pt))
-	_call_box.add_child(_call_buttons)
+	# The plate beside the phone: what the caller is to you.
+	_call_plate = PanelContainer.new()
+	_call_plate.add_theme_stylebox_override("panel", _panel_box(10.0, 9.0))
+	_call_plate.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_call_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_call_box.add_child(_call_plate)
+	_call_about = _label(T_SUB, INK)
+	_call_plate.add_child(_call_about)
+	# The phone: the black body, the screen inside.
+	var body := PanelContainer.new()
+	body.name = "phone"
+	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var body_style := StyleBoxFlat.new()
+	body_style.bg_color = Color("#141419")
+	body_style.border_color = Color("#4a4a56")
+	body_style.set_border_width_all(maxi(1, roundi(2.0 * pt)))
+	body_style.set_corner_radius_all(roundi(20.0 * pt))
+	body_style.set_content_margin_all(4.0 * pt)
+	body_style.shadow_color = Color(0, 0, 0, 0.45)
+	body_style.shadow_size = roundi(6.0 * pt)
+	body.add_theme_stylebox_override("panel", body_style)
+	_call_box.add_child(body)
+	_call_screen = StyleBoxFlat.new()
+	_call_screen.set_corner_radius_all(roundi(15.0 * pt))
+	_call_screen.content_margin_left = 6.0 * pt
+	_call_screen.content_margin_right = 6.0 * pt
+	_call_screen.content_margin_top = 3.0 * pt
+	_call_screen.content_margin_bottom = 5.0 * pt
+	var screen := PanelContainer.new()
+	screen.add_theme_stylebox_override("panel", _call_screen)
+	screen.custom_minimum_size.x = PHONE_SCREEN_W * pt
+	screen.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	body.add_child(screen)
+	var rows := VBoxContainer.new()
+	rows.add_theme_constant_override("separation", roundi(2.0 * pt))
+	rows.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	screen.add_child(rows)
+	# The top bar: the clock on the left, the notch in the middle, signal and battery right.
+	var bar := Control.new()
+	bar.custom_minimum_size.y = 12.0 * pt
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_call_clock = _label(T_LABEL, INK)
+	_call_clock.position = Vector2(4.0 * pt, -2.0 * pt)
+	bar.add_child(_call_clock)
+	bar.draw.connect(func() -> void: _paint_phone_bar(bar))
+	rows.add_child(bar)
 	_call_face = Control.new()
 	_call_face.name = "face"
-	_call_face.custom_minimum_size = Vector2.ONE * CALL_FACE * 1.3 * pt
+	_call_face.custom_minimum_size = Vector2.ONE * CALL_FACE * pt
+	_call_face.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_call_face.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_call_face.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS  # 256 px drawn at ~120-160 px
 	_call_face.draw.connect(func() -> void:
 		_paint_face(_call_face, _card_face_tex, _card_face_letter, _card_face_accent, CALL_FACE * 0.5 * pt, _call_t))
-	_call_buttons.add_child(_call_face)
+	rows.add_child(_call_face)
+	var who := VBoxContainer.new()
+	who.add_theme_constant_override("separation", 0)
+	who.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rows.add_child(who)
+	_call_name = _label(T_BODY, INK)
+	_call_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_wrap(_call_name, PHONE_SCREEN_W - 12.0)
+	who.add_child(_call_name)
+	_call_status = _label(T_LABEL, SUB)
+	_call_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	who.add_child(_call_status)
+	_call_buttons = HBoxContainer.new()
+	_call_buttons.alignment = BoxContainer.ALIGNMENT_CENTER
+	_call_buttons.add_theme_constant_override("separation", roundi(12.0 * pt))
+	rows.add_child(_call_buttons)
+	_ring = AudioStreamPlayer.new()
+	_ring.name = "ringtone"
+	_ring.process_mode = Node.PROCESS_MODE_ALWAYS
+	if AudioServer.get_bus_index(&"SFX") >= 0:
+		_ring.bus = &"SFX"
+	_ring.volume_db = -9.0
+	if ResourceLoader.exists(RINGTONE):
+		_ring.stream = load(RINGTONE)
+	add_child(_ring)
 
 
-## The phone view's width (side_card_width, at most CALL_W) and its words' width to match.
+## The phone's top bar: the camera notch in the middle, three signal bars and a battery right.
+func _paint_phone_bar(bar: Control) -> void:
+	var c := Vector2(bar.size.x * 0.5, bar.size.y * 0.45)
+	var notch := Vector2(30.0, 8.0) * pt
+	bar.draw_rect(Rect2(c - notch * 0.5, notch), Color("#141419"))
+	bar.draw_circle(c + Vector2(notch.x * 0.5 - 4.0 * pt, 0), 1.6 * pt, Color("#2c3550"))
+	var x := bar.size.x - 4.0 * pt
+	var batt := Rect2(x - 13.0 * pt, c.y - 3.5 * pt, 12.0 * pt, 7.0 * pt)
+	bar.draw_rect(batt, INK, false, maxf(1.0, pt))
+	bar.draw_rect(Rect2(batt.position + Vector2.ONE * 1.5 * pt, Vector2(6.0 * pt, batt.size.y - 3.0 * pt)), INK)
+	for k in 3:
+		var h := (2.5 + 2.0 * k) * pt
+		bar.draw_rect(Rect2(x - 26.0 * pt + k * 3.5 * pt, c.y + 3.5 * pt - h, 2.2 * pt, h), INK)
+
+
+## The plate's words get the room the phone leaves (side_card_width, at most CALL_W).
 func _set_call_width() -> void:
 	var w := minf(side_card_width(), CALL_W)
-	_card.custom_minimum_size.x = w * pt
-	_wrap(_call_name, w - 24.0)
-	_wrap(_call_about, w - 24.0)
+	_wrap(_call_about, maxf(w - (PHONE_SCREEN_W + 10.0 + 8.0) - 18.0, 90.0))
+	_card.custom_minimum_size.x = 0.0
 
 
 ## An incoming call in the phone view, in the right-hand column beside the car like the side
@@ -1812,14 +1891,17 @@ func show_call(who: String, about: String, accent: Color, about_en := "", face :
 	_card_bottom = false
 	_set_call_width()
 	_call_t = 0.0
-	_call_status.text = Lang.pick("📞 POŁĄCZENIE PRZYCHODZĄCE", "📞 INCOMING CALL")
+	_ring_wait = 0.0
+	_call_screen.bg_color = accent.darkened(0.78)
+	_call_screen.border_color = Color(accent, 0.35)
+	_call_clock.text = Time.get_time_string_from_system().substr(0, 5)
+	_call_status.text = Lang.pick("dzwoni…", "calling…")
 	_call_name.text = who
 	_call_about.text = about
-	_call_about.visible = about != ""
+	_call_plate.visible = about != ""
 	for b in _call_buttons.get_children():
-		if b != _call_face:
-			_call_buttons.remove_child(b)
-			b.queue_free()
+		_call_buttons.remove_child(b)
+		b.queue_free()
 	# Decline on the left, answer on the right; the node names keep the card's indices.
 	for i: int in [1, 0]:
 		if i >= buttons.size():
@@ -1827,7 +1909,6 @@ func show_call(who: String, about: String, accent: Color, about_en := "", face :
 		var words := buttons[i].split("|")
 		_call_button(i, Lang.pick(words[0], words[1] if words.size() > 1 else ""),
 				Access.tint(Access.GREEN) if i == 0 else Access.tint(Access.RED), i == 0)
-	_call_buttons.move_child(_call_face, 1 if buttons.size() > 1 else 0)
 	_card.reset_size()
 	_show(_card, true)
 	_show(_status, false)
@@ -1843,7 +1924,7 @@ func call_showing() -> bool:
 ## One round button with its word under it; `answer` draws the handset up, else turned down.
 func _call_button(index: int, word: String, colour: Color, answer: bool) -> void:
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", roundi(3.0 * pt))
+	col.add_theme_constant_override("separation", roundi(1.0 * pt))
 	col.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var b := Button.new()
@@ -2024,6 +2105,15 @@ func _frame(dt: float) -> void:
 	if _call_mode and _card.visible:
 		_call_t += dt
 		_call_face.queue_redraw()
+	# The ringtone while the phone view rings (and not a moment after it is answered or gone).
+	if _ring != null and _ring.stream != null:
+		if call_showing():
+			_ring_wait -= dt
+			if _ring_wait <= 0.0:
+				_ring.play()
+				_ring_wait = RING_EVERY
+		elif _ring.playing:
+			_ring.stop()
 	if _toast_left > 0.0:
 		_toast_left -= dt
 		_toast_box.modulate.a = clampf(_toast_left / 0.6, 0.0, 1.0)

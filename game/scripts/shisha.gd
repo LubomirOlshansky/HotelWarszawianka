@@ -356,8 +356,8 @@ func ring() -> bool:
 	state = State.RING
 	_ring_t = 0.0
 	_card = true
-	hud.show_call(FRIEND, "Kumpel z 19. Dzielnicy. Zawsze ma plan i zawsze zmienia go w drodze.", COLOUR,
-			"Your mate from 19. Dzielnica. Always has a plan, always changes it on the way.")
+	hud.show_call(FRIEND, "Kumpel z 19. Dzielnicy. Zawsze coś kombinuje. Zwykle w garniturze.", COLOUR,
+			"Your mate from 19. Dzielnica. Always up to something. Usually in a suit.")
 	hud.ticker_out()
 	Access.buzz(60, 0.6)
 	_log("call ringing")
