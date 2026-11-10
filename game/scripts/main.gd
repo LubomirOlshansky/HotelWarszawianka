@@ -2714,6 +2714,9 @@ func _build_crowds(data: Dictionary, world: Node3D) -> void:
 						func() -> bool: return bool(site.get("guitar_on", false)))
 	# Podwózka at dawn: requests from the club doors.
 	if rides != null:
+		rides.mission_on = func() -> bool:
+			return _quest_running() or (crawl != null and crawl.busy()) or (meet != null and meet.busy()) \
+					or (dekalog_tour != null and dekalog_tour.busy()) or (kino_tour != null and kino_tour.busy())
 		rides.club_doors = func() -> Array:
 			var out: Array = []
 			if crowds.dawn_on:
