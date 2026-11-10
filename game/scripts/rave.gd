@@ -92,6 +92,9 @@ const QUESTIONS := [
 ## Right answers that let you in: all three. The first wrong one ends it: "Nie tym razem. Wróć
 ## później." (F, 2026-11-06).
 const DOOR_PASS := 3
+## A strict door turns the player away at the first wrong answer. Off for now (F, 2026-11-10: "with
+## each answer you can go in"): the three questions stay as the joke, any answer gets you in.
+const DOOR_STRICT := false
 ## The night's password: one of these, in LEKTI's line and on the door's card.
 const PASSWORDS := ["BETON", "SYRENA", "MGŁA", "TRAMWAJ ZERO", "PRAGA 97", "BAS", "NEON", "PERON"]
 
@@ -241,6 +244,8 @@ var _dancers: MultiMeshInstance3D
 var _booth: MeshInstance3D
 var _pick: Node3D
 var _meet_mark: Node3D
+## The door's ring and column (F, 2026-11-10: nothing at Smoła said where to stop).
+var _door_mark: Node3D
 var _floor: Array[Vector3] = []
 var spent_usec := 0
 var _voice: AudioStreamPlayer
@@ -280,6 +285,10 @@ func setup(world: Node3D, seed_value := -1) -> void:
 	_meet_mark.setup(COLOUR, Color("#26232c"))
 	_meet_mark.waving = false
 	_meet_mark.visible = false
+	_door_mark = Beacon.new()
+	world.add_child(_door_mark)
+	_door_mark.setup(COLOUR, Color("#16161a"))
+	_door_mark.visible = false
 	if hud != null:
 		hud.card_pressed.connect(_on_card)
 		hud.abort_pressed.connect(func() -> void:
@@ -371,9 +380,15 @@ static func door_quiz(pw: String, rng: RandomNumberGenerator) -> Array:
 	return picked
 
 
-## How the door ends with `right` answers: "in" with all three, else "out".
-static func door_result(right: int) -> String:
-	return "in" if right >= DOOR_PASS else "out"
+## How the door ends with `right` answers: on a strict door "in" with all three, else "out";
+## otherwise always "in" (DOOR_STRICT).
+static func door_result(right: int, strict := DOOR_STRICT) -> String:
+	return "in" if not strict or right >= DOOR_PASS else "out"
+
+
+## A wrong answer ends the door at once (only on a strict door).
+static func wrong_ends(strict := DOOR_STRICT) -> bool:
+	return strict
 
 
 ## Smoła on this map: its door the nearest ground road within 120 m, or {}.
@@ -673,7 +688,7 @@ func step(dt: float) -> void:
 			_talk(dt, "go" if kind == "rave" else "go_smola")
 			var dest := _dest()
 			var what := "sekretny rave" if kind == "rave" else "selekcja"
-			_status("%s · %s" % [String(dest["name"]).to_upper(), what], "Zatrzymaj się przy bramce", "Stop at the door", at, dest["door"]["at"], COLOUR)
+			_status("%s · %s" % [String(dest["name"]).to_upper(), what], "Zatrzymaj się przy bramce", "Stop at the door", at, dest["door"]["at"], target_colour())
 			if _arrived(dt, at, kmh, dest["door"]["at"], DOOR_R):
 				_door()
 		State.DOOR:
@@ -730,7 +745,9 @@ func target_position() -> Vector3:
 
 
 func target_colour() -> Color:
-	return PICK_COLOUR if state == State.PICKUP else COLOUR
+	if state == State.PICKUP:
+		return PICK_COLOUR
+	return SMOLA_COLOUR if kind == "smola" else COLOUR
 
 
 ## The arrow's label: "???" on the way to the meeting point (Mati knows only that).
@@ -1055,6 +1072,7 @@ func _board() -> void:
 		radio.tune(_mordor)
 	if kind == "smola":
 		state = State.DRIVE
+		_show_door()
 		_talk_t = 2.0
 		_hold_t = 0.0
 		_say("board_smola")
@@ -1094,14 +1112,25 @@ func _reveal() -> void:
 	hud.toast("Lokalizacja: %s" % w[0], "Location: %s" % w[1])
 	_meet_mark.visible = false
 	state = State.DRIVE
+	_show_door()
 	_talk_t = 4.0
 	_hold_t = 0.0
 	_log("revealed: %s" % s["id"])
 
 
+## The door's ring on the footway by the club (the bouncer waits in it), in the night's colour.
+func _show_door() -> void:
+	var door: Dictionary = _dest()["door"]
+	var side: Vector3 = door["side"]
+	_door_mark.recolour(target_colour())
+	_door_mark.place(Vector3(side.x, door["at"].y, side.z), DOOR_R * 0.75, true, true)
+	_door_mark.visible = true
+
+
 ## At the door: the bouncer's three questions, one card each (door_quiz).
 func _door() -> void:
 	state = State.DOOR
+	_door_mark.visible = false
 	hud.hide_status()
 	quiz = door_quiz(password if kind == "rave" else "", _rng)
 	quiz_i = 0
@@ -1128,10 +1157,12 @@ func _answer(i: int) -> void:
 	if quiz.is_empty():
 		return
 	if i != int(quiz[quiz_i][2]):
-		hud.hide_card()
-		_enter("out")
-		return
-	quiz_right += 1
+		if wrong_ends():
+			hud.hide_card()
+			_enter("out")
+			return
+	else:
+		quiz_right += 1
 	quiz_i += 1
 	if quiz_i < quiz.size():
 		_ask()
@@ -1197,6 +1228,7 @@ func _give_up() -> void:
 func _finish() -> void:
 	_pick.visible = false
 	_meet_mark.visible = false
+	_door_mark.visible = false
 	hud.hide_status()
 	if missions != null:
 		missions.paused = _calls_were
