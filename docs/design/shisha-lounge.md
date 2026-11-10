@@ -30,6 +30,10 @@ Tension: Ivan wants light and fruity and cannot smoke strong shisha, Bogdan love
    Podjedź po mnie na 19. Dzielnicę, weźmiemy Bogdana", JADĘ! / NIE DZIŚ. Same ring/answer/decline
    structure as `rave.gd` `ring` -> `_offer` -> `_on_card`. Starts also by `stories.add` (id
    `shisha`): a start beacon at the 19. Dzielnica block, a greeting in person, a WĄTKI list entry.
+   **Now hidden (F 2026-11-08, 2026-11-10):** no pin, no STORIES entry, no call by itself. Ivan
+   rings when the player holds "+" (the zoom-in button, or + / = on a keyboard) for 4 s anywhere in
+   the city, on the ground with no other quest on (`main.gd _shisha_secret`, test flag
+   `--shisha-hold`).
 2. **Pick up Ivan** at 19. Dzielnica (Kolejowa / Przyokopowa, sites `d19` / `noho`): a dashed
    ring at the kerb, he waves, gets in (rave's pickup, `_board`).
 3. **Pick up Bogdan** (F, 2026-11-08: WTS DESKA is too far, pick him up in the area between
