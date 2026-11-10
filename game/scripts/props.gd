@@ -578,24 +578,47 @@ static func add_metro_entrance(st: SurfaceTool, xf: Transform3D, form := "canopy
 			_xbox(st, xf, Vector3(0, 0.45, 2.0), Vector3(2.66, 0.9, 0.22), granite)
 			_xbox(st, xf, Vector3(0, 0.93, 2.0), Vector3(2.76, 0.06, 0.32), steel)
 		"tube":
-			# Metro Centrum's 1990s "tube" (F, 2026-11-02): a half barrel of milky polycarbonate on
-			# blue steel arches over the stairs, from 1.0 m, closed at the deep end (+z), a blue
-			# rim at the mouth. Rondo Dmowskiego's underpass stairs wear the same (landmarks.gd).
+			# Metro Centrum's 1990s "tube" (F, 2026-11-02; redone from the Street View shots of
+			# 2026-11-09): a long half barrel of milky polycarbonate on blue steel ribs over a wide
+			# stair, between low walls of pink wall tile under a pale granite coping, a steel-and-rubber
+			# escalator beside the treads, closed at the deep end (+z) by glass carrying the red
+			# M roundel, a blue rim at the mouth. Rondo Dmowskiego's underpass stairs wear the same
+			# (landmarks.gd). 7 m long, 3.2 m between the walls.
 			var blue := Color("#2457a8")
 			var skin := Color("#d6e4ee")
-			for x in [-1.25, 1.25]:
-				_xbox(st, xf, Vector3(x, 0.5, 0.0), Vector3(0.22, 1.0, 4.2), granite)
+			var tile := Color("#c9a69b")
+			var coping := Color("#d9cfc6")
+			var half_w := 1.6
+			var z0 := -3.4
+			var z1 := 3.6
+			var zc := (z0 + z1) * 0.5
+			var zl := z1 - z0
+			# The wider, longer stair under the base's opening: floor and treads, the left half an escalator.
+			_xbox(st, xf, Vector3(0, 0.025, zc), Vector3(half_w * 2.0, 0.03, zl), Color("#1d1f24"))
+			for i in 16:
+				var k := float(i) / 15.0
+				var zz := z0 + 0.25 + i * 0.44
+				_xbox(st, xf, Vector3(0.7, 0.05, zz), Vector3(1.4, 0.02, 0.22), Color("#8a8d93").lerp(Color("#2a2c31"), k))
+				_xbox(st, xf, Vector3(-0.75, 0.055, zz), Vector3(1.1, 0.02, 0.2), Color("#9ea3a8").lerp(Color("#34373c"), k))
+			for x in [-1.38, -0.1]:
+				_xbox(st, xf, Vector3(x, 0.5, zc), Vector3(0.28, 0.9, zl - 0.6), Color("#3b3e43"))
+				_xbox(st, xf, Vector3(x, 0.97, zc), Vector3(0.12, 0.06, zl - 0.6), Color("#1c1d20"))
+			for x in [-half_w - 0.12, half_w + 0.12]:
+				_xbox(st, xf, Vector3(x, 0.52, zc), Vector3(0.24, 1.04, zl), tile)
+				_xbox(st, xf, Vector3(x, 1.07, zc), Vector3(0.34, 0.06, zl + 0.1), coping)
 			var arc: Array[Vector3] = []
+			for i in 9:
+				var a := PI * float(i) / 8.0
+				arc.append(Vector3((half_w + 0.12) * cos(a), 1.1 + (half_w + 0.12) * sin(a), 0.0))
+			# The closed deep end: three stacked panes, the M roundel on the middle one.
+			for pane: Vector3 in [Vector3(3.4, 1.1, 1.8), Vector3(2.9, 1.8, 2.3), Vector3(1.8, 2.3, 2.7)]:
+				_xbox(st, xf, Vector3(0, (pane.y + pane.z) * 0.5, z1 + 0.05), Vector3(pane.x, pane.z - pane.y, 0.04), skin, LIT_WINDOW)
+			_xbox(st, xf, Vector3(0, 1.75, z1 - 0.02), Vector3(0.6, 0.6, 0.05), Color("#e4a21a"), LIT_SIGN)
+			_xbox(st, xf, Vector3(0, 1.75, z1 - 0.06), Vector3(0.44, 0.44, 0.05), Color("#c8171f"), LIT_SIGN)
 			for i in 8:
-				var a := PI * float(i) / 7.0
-				arc.append(Vector3(1.4 * cos(a), 1.0 + 1.4 * sin(a), 0.0))
-			# The closed deep end: three stacked panes roughly filling the half circle.
-			for pane: Vector3 in [Vector3(2.7, 1.0, 1.6), Vector3(2.3, 1.6, 2.05), Vector3(1.4, 2.05, 2.36)]:
-				_xbox(st, xf, Vector3(0, (pane.y + pane.z) * 0.5, 2.12), Vector3(pane.x, pane.z - pane.y, 0.04), skin, LIT_WINDOW)
-			for i in 7:
-				_xbeam(st, xf, arc[i], arc[i + 1], 4.3, 0.03, skin, LIT_WINDOW)
-				for z in [-2.1, -0.7, 0.7, 2.1]:
-					var w := 0.18 if z < -2.0 else 0.1
+				_xbeam(st, xf, arc[i] + Vector3(0, 0, zc), arc[i + 1] + Vector3(0, 0, zc), zl + 0.1, 0.03, skin, LIT_WINDOW)
+				for z in [z0 + 0.1, z0 + 1.7, z0 + 3.3, z0 + 5.0, z1 - 0.1]:
+					var w := 0.18 if z < z0 + 0.2 else 0.1
 					_xbeam(st, xf, arc[i] * 1.02 + Vector3(0, 0, z), arc[i + 1] * 1.02 + Vector3(0, 0, z), w, 0.1, blue)
 		"footway":
 			# Two retaining walls climbing from the mouth into the ground, handrails along them.
@@ -609,8 +632,9 @@ static func add_metro_entrance(st: SurfaceTool, xf: Transform3D, form := "canopy
 			_metro_crystal(st, xf, form)
 		"box":
 			_metro_box(st, xf)
-		"tent":
-			_metro_tent(st, xf)
+		"tent", "tent_green":
+			_metro_tent(st, xf, form == "tent_green")
+			return  # its roundel is on the post: no red M post, no lift
 		"wings":
 			_metro_wings(st, xf)
 		"pavilion", "stone", "stone_steps":
@@ -731,60 +755,64 @@ static func _metro_ratusz(st: SurfaceTool, xf: Transform3D, form: String) -> voi
 			_metro_roundel(st, xf, Vector3(1.55, 3.5, -2.3), 0.4, [-1.0, 1.0])
 
 
-## Metro Świętokrzyska's M2 entrances (F's photo, Feb 2026): a steel-and-glass triangle "tent"
-## over the stairs, tall at the open mouth (an A-frame gable 5.4 m high) and falling to 2.8 m at
-## the deep end; light grey tube rafters, a ridge, two purlins and cross braces a side, glazed
-## slopes with a fine mesh (lit at night), a white name band across the mouth with the M1 blue
-## and M2 red squares, and the yellow roundel with the red M high on the gable. Local frame as
-## add_metro_entrance's (open front -z). ~300 triangles.
-static func _metro_tent(st: SurfaceTool, xf: Transform3D) -> void:
-	var tube := Color("#d3d7da")
-	var glass := Color("#b9c9cf")
+## Metro Świętokrzyska's glass entrances (F's photos, 2026-11-09): a one-sided steel-truss lean-to
+## over a concrete stair box. A single big panel of perforated glass slopes up from a low edge
+## (0.9 m, -x) to a tall vertical post (4.6 m, +x), so the mouth shows a right-triangle truss
+## with a vertical post carrying the yellow roundel, white tube rafters and purlins over the
+## panel, a gold perforated back gable, a white name band (M1 blue and M2 red squares) hung in
+## the mouth, and concrete walls round the stairs. `green` is the older M1 glass: the same
+## frame in olive-green glass (the aerial's green roofs at the Marszałkowska crossing), the
+## default is the white perforated mesh. Local frame as add_metro_entrance's (open front -z).
+## About 330 triangles.
+static func _metro_tent(st: SurfaceTool, xf: Transform3D, green := false) -> void:
+	var tube := Color("#e4e7e6")
+	var glass := Color("#c9d6cf") if not green else Color("#8fae78")
+	var gold := Color("#d9cd96")
 	var concrete := Color("#a4a19a")
-	var half := 1.75
+	var hx := 1.8
 	var z0 := -2.35
 	var z1 := 2.35
-	var front := Vector3(0, 5.4, z0)
-	var back := Vector3(0, 2.8, z1)
+	var low := 0.9
+	var tall := 4.6
 	var basis := xf.basis.orthonormalized()
-	# The low concrete upstands the slopes stand on.
-	for x in [-half, half]:
-		_xbox(st, xf, Vector3(x, 0.3, 0.0), Vector3(0.3, 0.6, z1 - z0 + 0.2), concrete)
-	_xbox(st, xf, Vector3(0, 0.3, z1), Vector3(2 * half + 0.3, 0.6, 0.3), concrete)
-	# The glazed slopes, both faces (the camera sees in through the mouth), and the back gable.
-	for x: float in [-half, half]:
-		var a := xf * Vector3(x, 0.6, z0)
-		var b := xf * Vector3(x, 0.6, z1)
-		var c := xf * back
-		var d := xf * front
-		var n := basis * Vector3(signf(x) * 0.88, 0.47, 0.0)
-		for s: float in [1.0, -1.0]:
-			tri(st, a, b, c, n * s, glass, LIT_WINDOW)
-			tri(st, a, c, d, n * s, glass, LIT_WINDOW)
+	# The concrete box: a low wall on the low side and at the back, a taller wall under the post.
+	_xbox(st, xf, Vector3(-hx, low * 0.5, 0.0), Vector3(0.3, low, z1 - z0 + 0.3), concrete)
+	_xbox(st, xf, Vector3(0, low * 0.5, z1), Vector3(2 * hx + 0.3, low, 0.3), concrete)
+	_xbox(st, xf, Vector3(hx, 0.75, 0.0), Vector3(0.3, 1.5, z1 - z0 + 0.3), concrete)
+	# The sloped panel, both faces (the camera sees through it), and the gold back gable.
+	var a := xf * Vector3(-hx, low, z0)
+	var b := xf * Vector3(-hx, low, z1)
+	var c := xf * Vector3(hx, tall, z1)
+	var d := xf * Vector3(hx, tall, z0)
+	var n := basis * Vector3(-(tall - low), 2.0 * hx, 0.0).normalized()
 	for s: float in [1.0, -1.0]:
-		tri(st, xf * Vector3(-half, 0.6, z1), xf * Vector3(half, 0.6, z1), xf * back, basis * Vector3(0, 0, s), glass, LIT_WINDOW)
-	# The frame: the mouth's and the back's A, the ridge, the sills, two purlins and an X a side.
+		tri(st, a, b, c, n * s, glass, LIT_WINDOW)
+		tri(st, a, c, d, n * s, glass, LIT_WINDOW)
+		tri(st, xf * Vector3(-hx, low, z1), xf * Vector3(hx, low, z1), xf * Vector3(hx, tall, z1),
+				basis * Vector3(0, 0, s), gold, LIT_WINDOW)
+	# The frame: the front and back trusses (hypotenuse, post, a W of braces), the rafters
+	# up the slope every 1.2 m and the purlins across it.
 	for z: float in [z0, z1]:
-		var top := front if z == z0 else back
-		for x in [-half, half]:
-			_xbeam(st, xf, Vector3(x, 0.6, z), top, 0.16, 0.16, tube)
-	_xbeam(st, xf, front, back, 0.16, 0.16, tube)
-	for x: float in [-half, half]:
-		_xbeam(st, xf, Vector3(x, 0.62, z0), Vector3(x, 0.62, z1), 0.12, 0.12, tube)
-		for k: float in [0.36, 0.68]:
-			var p0 := Vector3(x, 0.6, z0).lerp(front, k)
-			var p1 := Vector3(x, 0.6, z1).lerp(back, k)
-			_xbeam(st, xf, p0, p1, 0.07, 0.07, tube)
-		_xbeam(st, xf, Vector3(x, 0.6, z0), Vector3(x, 0.6, z1).lerp(back, 0.85), 0.06, 0.06, tube)
-		_xbeam(st, xf, Vector3(x, 0.6, z1), Vector3(x, 0.6, z0).lerp(front, 0.85), 0.06, 0.06, tube)
-	# The tie across the mouth and the name band hung from it (white, lit; M1 blue, M2 red).
-	_xbeam(st, xf, Vector3(-half * 0.62, 2.35, z0), Vector3(half * 0.62, 2.35, z0), 0.12, 0.12, tube)
-	_xbox(st, xf, Vector3(0, 2.05, z0 - 0.02), Vector3(2.3, 0.42, 0.08), Color("#f2f6f8"), LIT_SIGN)
-	_xbox(st, xf, Vector3(-0.85, 2.05, z0 - 0.07), Vector3(0.24, 0.24, 0.03), Color("#2a6fc4"), LIT_SIGN)
-	_xbox(st, xf, Vector3(-0.55, 2.05, z0 - 0.07), Vector3(0.24, 0.24, 0.03), Color("#d3202a"), LIT_SIGN)
-	_xbox(st, xf, Vector3(0.35, 2.05, z0 - 0.07), Vector3(1.1, 0.08, 0.03), Color("#2a5ea8"), LIT_SIGN)
-	# The roundel high on the gable: a yellow octagon (0.95 m) with the red M.
-	_metro_roundel(st, xf, Vector3(0, 4.25, z0 - 0.12), 0.48, [-1.0])
+		_xbeam(st, xf, Vector3(-hx, low, z), Vector3(hx, tall, z), 0.14, 0.14, tube)
+		_xbeam(st, xf, Vector3(hx, 1.5, z), Vector3(hx, tall, z), 0.18, 0.18, tube)
+		var m0 := Vector3(-hx, low, z).lerp(Vector3(hx, tall, z), 0.33)
+		var m1 := Vector3(-hx, low, z).lerp(Vector3(hx, tall, z), 0.66)
+		_xbeam(st, xf, Vector3(hx * 0.45, 1.5, z), m1, 0.07, 0.07, tube)
+		_xbeam(st, xf, Vector3(-hx * 0.1, 1.5, z), m0, 0.07, 0.07, tube)
+		_xbeam(st, xf, Vector3(-hx, low, z), Vector3(hx, 1.5, z), 0.08, 0.08, tube)
+	for k in 5:
+		var z := lerpf(z0, z1, float(k) / 4.0)
+		_xbeam(st, xf, Vector3(-hx, low, z), Vector3(hx, tall, z), 0.1, 0.1, tube)
+	for k: float in [0.25, 0.5, 0.75]:
+		var p := Vector3(-hx, low, 0.0).lerp(Vector3(hx, tall, 0.0), k)
+		_xbeam(st, xf, p + Vector3(0, 0, z0), p + Vector3(0, 0, z1), 0.07, 0.07, tube)
+	# The name band hung in the mouth (white, lit; M1 blue and M2 red squares, a blue name rule).
+	_xbox(st, xf, Vector3(0.6, 1.9, z0 - 0.02), Vector3(2.0, 0.4, 0.08), Color("#f2f6f8"), LIT_SIGN)
+	_xbox(st, xf, Vector3(-0.2, 1.9, z0 - 0.07), Vector3(0.24, 0.24, 0.03), Color("#2a6fc4"), LIT_SIGN)
+	_xbox(st, xf, Vector3(0.1, 1.9, z0 - 0.07), Vector3(0.24, 0.24, 0.03), Color("#d3202a"), LIT_SIGN)
+	_xbox(st, xf, Vector3(0.85, 1.9, z0 - 0.07), Vector3(1.0, 0.08, 0.03), Color("#2a5ea8"), LIT_SIGN)
+	# The roundel high on the post: a yellow octagon (0.95 m) with the red M.
+	_metro_roundel(st, xf, Vector3(1.4, 3.85, z0 - 0.14), 0.48, [-1.0])
 
 
 ## The station roundel: a yellow octagon of radius `r` (0.08 m thick) centred at `rc` in the

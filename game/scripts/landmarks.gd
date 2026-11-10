@@ -1230,6 +1230,8 @@ func _find_sites() -> void:
 	_find_zelazna()
 	# Pokorna 2 (F, 2026-11-01): the 57 m residential block by Muranów, a model with balconies.
 	_find_pokorna2()
+	# I Oddział PKO (F's photo, 2026-11-09): the first branch on Marszałkowska, rebuilt as one block.
+	_find_pko_branch()
 	_find_dekalog_estate()
 	_find_inflancka_pools()
 	# Kino Muranów (F's photos, 2026-11-07): the cinema pavilion, its terrace, the arch, the fountain.
@@ -1885,6 +1887,9 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"pokorna2":
 				_id = 0
 				_build_pokorna2(s)
+			"pko_branch":
+				_id = 0
+				_build_pko_branch(s)
 			"dekalog_estate":
 				_build_dekalog_estate(s)
 			"inflancka_pools":
@@ -1900,9 +1905,12 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"rondo":
 				_id = 0
 				_build_rondo(s)
-			"sunken", "underpass":
+			"sunken", "underpass", "defilad_ramp":
 				_id = 0
 				_build_sunken(s)
+			"metro_tubes":
+				_id = 0
+				_build_metro_tubes()
 			"zodiak":
 				_build_zodiak(s)
 			"pijana":
@@ -6841,8 +6849,23 @@ const PATELNIA_BARRELS := [
 const BARREL_SKIN := Color("#a9b9c2")
 const BARREL_RIB := Color("#5c666e")
 const BARREL_WELL := Color("#2a2e33")
+const BARREL_TILE := Color("#c9a69b")
+const BARREL_COPING := Color("#d9cfc6")
 const SUNK_BOX := [Vector2(-955.0, 360.0), Vector2(-805.0, 432.0)]
 const UNDERPASS_BOX := [Vector2(-1315.0, 546.0), Vector2(-1211.0, 625.0)]
+const DEFILAD_BOX := [Vector2(-1010.0, 220.0), Vector2(-986.0, 260.0)]
+## Metro Centrum's barrels beside the Palace (the outlines' corners: the deep end's far corner, the
+## mouth end's near corner, the mouth's far corner, the deep end's near corner).
+const METRO_TUBES := [
+	[Vector2(-937.1, 306.2), Vector2(-927.5, 302.2), Vector2(-925.9, 305.8), Vector2(-935.6, 309.8)],
+	[Vector2(-962.7, 316.7), Vector2(-972.4, 320.7), Vector2(-970.8, 324.4), Vector2(-961.2, 320.3)],
+]
+## The Plac Defilad car park ramp's walls: pink wall tile (Street View, Aug 2025) under a pale
+## granite coping, the ramp's surface a dark ribbed slab.
+const RAMP_TILE := Color("#c9a69b")
+const RAMP_COPING := Color("#d8cdc4")
+const RAMP_ROAD := Color("#43464b")
+const RAMP_RIB := Color("#5f6368")
 ## The underpass's entrances (street photos, Mapillary 2020-2026, refs/epl_*): a granite parapet
 ## round the wells in the lawn and the forecourt, steel canopies over the pavement flights
 ## (Śródmieście's green ones on the south side, a dark one on the north).
@@ -6870,6 +6893,18 @@ func _find_sunken() -> void:
 	for a: Vector2 in UNDERPASS_BOX:
 		under.append(PackedVector2Array([a, a + Vector2(0.2, 0), a + Vector2(0.2, 0.2), a + Vector2(0, 0.2)]))
 	_add_site("underpass", under)
+	# The Plac Defilad car park's ramp (SUNKEN `defilad_ramp`): its own site, tiny squares at the
+	# corners of its box (the mapped walls are map_builder's to leave out).
+	var ramp: Array = []
+	for a: Vector2 in DEFILAD_BOX:
+		ramp.append(PackedVector2Array([a, a + Vector2(0.2, 0), a + Vector2(0.2, 0.2), a + Vector2(0, 0.2)]))
+	_add_site("defilad_ramp", ramp)
+	# Metro Centrum's other two glass barrels (OSM `transportation` outlines 3224 and 3401 by the
+	# Palace's park, refs 10 and 4): the mapped outlines are the plans, the boxes go.
+	var tubes: Array = []
+	for b: Array in METRO_TUBES:
+		tubes.append(PackedVector2Array(b))
+	_add_site("metro_tubes", tubes)
 
 
 var _sunk_done: Array[PackedVector2Array] = []
@@ -6883,7 +6918,9 @@ func _build_sunken(site: Dictionary) -> void:
 		if str(sk.get("site", "sunken")) != key:
 			continue
 		_sunk_edges(sk)
-		if (sk["a"] as Vector2).distance_to(sk["b"]) > 0.1:
+		if str(sk.get("style", "")) == "ramp":
+			_sunk_ramp(sk)
+		elif (sk["a"] as Vector2).distance_to(sk["b"]) > 0.1:
 			_sunk_treads(sk)
 		if not (sk.get("walk", PackedVector2Array()) as PackedVector2Array).is_empty():
 			_sunk_mouth(sk)
@@ -6929,6 +6966,10 @@ func _sunk_edges(sk: Dictionary) -> void:
 		rise = 0.9
 		face_col = PARAPET_FACE
 		top_col = PARAPET_TOP
+	elif style == "ramp":
+		rise = 0.45
+		face_col = RAMP_TILE
+		top_col = RAMP_COPING
 	# A stair's band lies over the square's where they meet: 0.1 m higher (no flicker).
 	var band_lift := 0.0 if (sk["a"] as Vector2).distance_to(sk["b"]) < 0.1 else 0.1
 	for i in ring.size():
@@ -6952,8 +6993,9 @@ func _sunk_edges(sk: Dictionary) -> void:
 			var p1 := a + d * (length * (k + 1) / n)
 			var f0: float = map.sunk_level(sk, p0)
 			var f1: float = map.sunk_level(sk, p1)
-			var u0 := _sunk_upper(p0, out)
-			var u1 := _sunk_upper(p1, out)
+			# `rim`: the street's height where the 10 m grid's pit dips under it (the car park ramp).
+			var u0 := maxf(_sunk_upper(p0, out), float(sk.get("rim", -INF)))
+			var u1 := maxf(_sunk_upper(p1, out), float(sk.get("rim", -INF)))
 			if u0 - f0 < 0.35 and u1 - f1 < 0.35:
 				continue  # a stair's top: level with the street
 			var t0 := u0 + rise
@@ -6991,6 +7033,34 @@ func _sunk_edges(sk: Dictionary) -> void:
 			var over := 1.6 if style == "rail" else 0.6
 			map._wall_faces.append_array([Vector3(p0.x, f0 - 0.5, p0.y), Vector3(p1.x, f1 - 0.5, p1.y), Vector3(p1.x, t1 + over, p1.y),
 					Vector3(p0.x, f0 - 0.5, p0.y), Vector3(p1.x, t1 + over, p1.y), Vector3(p0.x, t0 + over, p0.y)])
+
+
+## The car park ramp's surface between its walls (ring edges 5-0 and 1-2 are the sides): a dark slab
+## with a rib across every 1.4 m (Street View: the herringbone grooves), from the top to the hood,
+## each strip following the floor's slope, 3 cm over it.
+func _sunk_ramp(sk: Dictionary) -> void:
+	var ring: PackedVector2Array = sk["ring"]
+	var w_top: Vector2 = ring[0]
+	var e_top: Vector2 = ring[1]
+	var e_foot: Vector2 = ring[2]
+	var w_foot: Vector2 = ring[5]
+	var n := 22
+	var floor_at := func(v: Vector2) -> float:
+		return map.sunk_level(sk, v) + 0.03
+	_mode = M_STONE
+	for k in n:
+		var t0 := float(k) / n
+		var t1 := float(k + 1) / n
+		var q := PackedVector2Array([w_top.lerp(w_foot, t0), e_top.lerp(e_foot, t0), e_top.lerp(e_foot, t1), w_top.lerp(w_foot, t1)])
+		_sunk_top(q, floor_at, RAMP_ROAD if k % 2 == 0 else RAMP_RIB)
+
+
+## Metro Centrum's two barrels by the Palace's park (METRO_TUBES), as the Patelnia's.
+func _build_metro_tubes() -> void:
+	_no_roof = true
+	for b: Array in METRO_TUBES:
+		_glass_barrel(b)
+	_no_roof = false
 
 
 ## A flat top over plan polygon `poly`, less what this build already covered (neighbouring edges'
@@ -7071,7 +7141,7 @@ func _glass_barrel(q: Array) -> void:
 	var width := q1.distance_to(q2)
 	var r := width * 0.5 - 0.15
 	var g: float = map.terrain_height(c.x, c.y)
-	var y0 := g + 0.45
+	var y0 := g + 1.0
 	var half := length * 0.5
 	var segs := 9
 	var arc: Array[Vector2] = []
@@ -7101,8 +7171,9 @@ func _glass_barrel(q: Array) -> void:
 	_o = c
 	_a = up
 	_b = side
+	# The low walls under the glass: pink wall tile under a pale coping (Street View, Jul 2024).
 	for sx: float in [-1.0, 1.0]:
-		_lbox(0.0, r * sx, half, 0.14, g, y0 + 0.02, SUNK_CONCRETE, M_STONE, SUNK_CONCRETE.lightened(0.05))
+		_lbox(0.0, (r + 0.05) * sx, half, 0.14, g, y0 + 0.02, BARREL_TILE, M_STONE, BARREL_COPING)
 	_mode = M_STONE
 	var w0 := c + up * (half - 0.6) - side * (r - 0.2)
 	var w1 := c + up * (half - 0.6) + side * (r - 0.2)
@@ -7119,6 +7190,29 @@ func _glass_barrel(q: Array) -> void:
 		var e3 := c + up * (s - 0.18) - side * (r - 0.25)
 		_quad(Vector3(e0.x, g + 0.07, e0.y), Vector3(e1.x, g + 0.07, e1.y), Vector3(e2.x, g + 0.07, e2.y), Vector3(e3.x, g + 0.07, e3.y),
 				Vector3.UP, SUNK_TREAD.darkened(0.25 + 0.15 * k))
+	# The escalator beside the stair (the photos: a steel escalator on the left): grey treads in
+	# bands down the left half and a steel balustrade on each side of it, sloping down into the well.
+	var e_in := -(r - 0.25)
+	var e_out := -0.35
+	var e_len := minf(half * 2.0 - 1.4, 5.0)
+	for k in int(e_len / 0.3):
+		var s0 := half - 0.6 - 1.5 - 0.3 * k
+		if s0 - 0.2 < -half + 0.3:
+			break
+		var t0 := c + up * s0
+		var t1 := c + up * (s0 - 0.2)
+		_quad(Vector3(t0.x + side.x * e_in, g + 0.06, t0.y + side.y * e_in), Vector3(t0.x + side.x * e_out, g + 0.06, t0.y + side.y * e_out),
+				Vector3(t1.x + side.x * e_out, g + 0.06, t1.y + side.y * e_out), Vector3(t1.x + side.x * e_in, g + 0.06, t1.y + side.y * e_in),
+				Vector3.UP, Color("#8d9298") if k % 2 == 0 else Color("#5c6168"))
+	for ex: float in [e_in, e_out]:
+		var a0 := c + up * (half - 0.6) + side * ex
+		var a1 := c + up * (half - 0.6 - e_len) + side * ex
+		var nrm := Vector3(side.x, 0.0, side.y)
+		var lo0 := Vector3(a0.x, g + 0.05, a0.y)
+		var lo1 := Vector3(a1.x, g + 0.05, a1.y)
+		var hi0 := Vector3(a0.x, g + 0.95, a0.y)
+		_tri(lo0, lo1, hi0, nrm, Color("#3a3d42"), Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
+		_tri(lo1, lo0, hi0, -nrm, Color("#3a3d42"), Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
 
 
 ## A barrel's steel rib at `s` along it, `w` wide: an annular band 0.1 m proud of the glass.
@@ -12428,6 +12522,143 @@ func _build_pokorna2(site: Dictionary) -> void:
 	var tank := mid + dd * 7.0
 	_prism(_square(tank, 1.6), top, top + 2.4, Color("#9aa3a8"), Color("#7d8388"), M_STONE, M_STONE)
 	_collide(poly)
+	_mode = M_STONE
+
+
+
+# --- I Oddział PKO: the first branch on Marszałkowska at Sienkiewicza --------------------------
+
+## F's photo and the Google aerial (2026-11-09, thread "Rebuild the first PKO branch building";
+## spec docs/landmarks/specs/pko_branch.md). OpenStreetMap maps it as ~26 overlapping building parts
+## (a 38 m ring, a 34 m glass tower part, 24 m wings), LoD2 drew the courtyard as hollow walls with
+## no roof, and the street-block and photo-front passes had both guessed a brick "Rotunda block"
+## front over it. The model replaces all of them (their two entries are gone from
+## data/street_blocks/index.json and data/photo_fronts.json): the dark red-brown granite slab on
+## Marszałkowska (a two-storey base, tall glass bays between granite piers, a glass top floor), the
+## plain side wings round a paved courtyard, the east wing a storey higher. The bank's name is a parody.
+## Frame: u along Marszałkowska towards Sienkiewicza (south), v east, away from the street.
+const PKO_O := Vector2(-984.0, -30.0)
+const PKO_U := Vector2(0.337, 0.941)
+const PKO_V := Vector2(0.941, -0.337)
+const PKO_LEN := 56.0                   # the slab's length along the street
+const PKO_SLAB := 14.0                  # the slab's depth
+const PKO_DEEP := 64.0                  # the wings' reach east
+const PKO_COURT := Rect2(14.0, 14.0, 26.0, 38.0)   # (u0, v0, du, dv): the courtyard
+const PKO_BASE := 8.0                   # two storeys of granite and glass
+const PKO_GLASS_TOP := 31.0             # the piers end under the glass top floor
+const PKO_TOP := 34.5
+const PKO_WING := 25.0
+const PKO_EAST := 28.5
+const PKO_GRANITE := Color("#64362e")   # polished dark red-brown granite (the photo)
+const PKO_PIER := Color("#7a4a3d")
+const PKO_WING_WALL := Color("#a07f6e") # the wings' paler pinkish-brown stone
+const PKO_GLASS := Color("#5f87a3")
+const PKO_ROOF := Color("#77736d")
+const PKO_BLUE := Color("#1f4f8f")      # the bank's fascia
+const PKO_PAVING := Color("#6f6a64")
+
+
+func _pko_p(u: float, v: float) -> Vector2:
+	return PKO_O + PKO_U * u + PKO_V * v
+
+
+func _pko_rect(u0: float, v0: float, u1: float, v1: float) -> PackedVector2Array:
+	var q := PackedVector2Array([_pko_p(u0, v0), _pko_p(u1, v0), _pko_p(u1, v1), _pko_p(u0, v1)])
+	if Geometry2D.is_polygon_clockwise(q):
+		q.reverse()
+	return q
+
+
+func _find_pko_branch() -> void:
+	_add_site("pko_branch", [_pko_rect(-4.0, -3.0, PKO_LEN + 4.0, PKO_DEEP + 3.0)])
+
+
+## A wall between two (u, v) points in the frame, facing `out` (plan vector).
+func _pko_wall(a: Vector2, b: Vector2, y0: float, y1: float, out: Vector2, col: Color, run := 0.0) -> void:
+	_wall(_pko_p(a.x, a.y), _pko_p(b.x, b.y), y0, y1, out, col, run)
+
+
+func _build_pko_branch(site: Dictionary) -> void:
+	var g := _ground_under(site["zone"][0])
+	_g = g
+	var west := -PKO_V
+	var east := PKO_V
+	var north := -PKO_U
+	var south := PKO_U
+	# --- the slab on Marszałkowska: granite ends and back, then the front in bays
+	_mode = M_STONE
+	_pko_wall(Vector2(0, 0), Vector2(0, PKO_SLAB), g - 0.3, g + PKO_TOP, north, PKO_GRANITE)
+	_pko_wall(Vector2(PKO_LEN, PKO_SLAB), Vector2(PKO_LEN, 0), g - 0.3, g + PKO_TOP, south, PKO_GRANITE)
+	_pko_wall(Vector2(0, 0), Vector2(PKO_LEN, 0), g - 0.3, g + PKO_BASE, west, PKO_GRANITE)
+	# the front's spandrel and the tall piers, then the glass inset between them
+	_pko_wall(Vector2(0, 0), Vector2(PKO_LEN, 0), g + PKO_BASE, g + PKO_GLASS_TOP, west, PKO_PIER)
+	var bays := int(PKO_LEN / 2.4)
+	var bw := PKO_LEN / float(bays)
+	_mode = M_GLASS
+	for k in bays:
+		var u0 := k * bw + 0.45
+		var u1 := (k + 1) * bw - 0.45
+		_pko_wall(Vector2(u0, -0.12), Vector2(u1, -0.12), g + PKO_BASE + 1.4, g + PKO_GLASS_TOP - 0.5, west, PKO_GLASS)
+	# the ground floor: glass between granite piers in two bands
+	var gb := int(PKO_LEN / 3.6)
+	var gw := PKO_LEN / float(gb)
+	for k in gb:
+		var u0 := k * gw + 0.5
+		var u1 := (k + 1) * gw - 0.5
+		_pko_wall(Vector2(u0, -0.1), Vector2(u1, -0.1), g + 0.9, g + 4.1, west, PKO_GLASS.darkened(0.15))
+		_pko_wall(Vector2(u0, -0.1), Vector2(u1, -0.1), g + 4.9, g + 7.2, west, PKO_GLASS)
+	# the blue fascia over the doors and its parody name
+	_mode = M_STONE
+	_pko_wall(Vector2(6.0, -0.2), Vector2(24.0, -0.2), g + 4.15, g + 4.85, west, PKO_BLUE)
+	_pko_wall(Vector2(34.0, -0.2), Vector2(50.0, -0.2), g + 4.15, g + 4.85, west, PKO_BLUE)
+	for u: float in [15.0, 42.0]:
+		var at := _pko_p(u, -0.3)
+		signs.append(["BANK POLSKA", Vector3(at.x, g + 4.5, at.y), Vector3(west.x, 0.0, west.y), 0.4, Color(0.95, 0.97, 1.0)])
+	# the top floor: a ledge, then raked glass leaning back from the piers' tops
+	_cap(_pko_rect(0.0, -0.3, PKO_LEN, 0.5), g + PKO_GLASS_TOP, PKO_GRANITE)
+	_pko_wall(Vector2(0, -0.3), Vector2(PKO_LEN, -0.3), g + PKO_GLASS_TOP - 0.6, g + PKO_GLASS_TOP, west, PKO_GRANITE)
+	_mode = M_GLASS
+	var a0 := _pko_p(0.0, 0.5)
+	var a1 := _pko_p(PKO_LEN, 0.5)
+	var b0 := _pko_p(0.0, 2.8)
+	var b1 := _pko_p(PKO_LEN, 2.8)
+	var n_rake := (Vector3(west.x, 0.0, west.y) * 0.8 + Vector3.UP * 0.6).normalized()
+	_quad(Vector3(a0.x, g + PKO_GLASS_TOP, a0.y), Vector3(a1.x, g + PKO_GLASS_TOP, a1.y),
+			Vector3(b1.x, g + PKO_TOP, b1.y), Vector3(b0.x, g + PKO_TOP, b0.y), n_rake, PKO_GLASS.lightened(0.1))
+	_mode = M_STONE
+	# the slab's roof and its back (the courtyard and wing sides)
+	_cap(_pko_rect(0.0, 2.8, PKO_LEN, PKO_SLAB), g + PKO_TOP, PKO_ROOF)
+	var cu0 := PKO_COURT.position.x
+	var cu1 := PKO_COURT.end.x
+	var cv0 := PKO_COURT.position.y
+	var cv1 := PKO_COURT.end.y
+	_mode = M_SKIN + float(S_PUNCHED) / 16.0
+	_pko_wall(Vector2(0, PKO_SLAB), Vector2(cu0, PKO_SLAB), g + PKO_WING, g + PKO_TOP, east, PKO_WING_WALL)
+	_pko_wall(Vector2(cu0, PKO_SLAB), Vector2(cu1, PKO_SLAB), g, g + PKO_TOP, east, PKO_WING_WALL)
+	_pko_wall(Vector2(cu1, PKO_SLAB), Vector2(PKO_LEN, PKO_SLAB), g + PKO_WING, g + PKO_TOP, east, PKO_WING_WALL)
+	# --- the wings: a ring round the courtyard, plain punched stone
+	var outer := _pko_rect(0.0, PKO_SLAB, PKO_LEN, PKO_DEEP)
+	_pko_wall(Vector2(0, PKO_SLAB), Vector2(0, PKO_DEEP), g - 0.3, g + PKO_WING, north, PKO_WING_WALL)
+	_pko_wall(Vector2(PKO_LEN, PKO_DEEP), Vector2(PKO_LEN, PKO_SLAB), g - 0.3, g + PKO_WING, south, PKO_WING_WALL)
+	_pko_wall(Vector2(0, PKO_DEEP), Vector2(PKO_LEN, PKO_DEEP), g - 0.3, g + PKO_EAST, east, PKO_WING_WALL)
+	# the courtyard's three other faces look inwards
+	_pko_wall(Vector2(cu0, cv0), Vector2(cu0, cv1), g, g + PKO_WING, south, PKO_WING_WALL)
+	_pko_wall(Vector2(cu1, cv1), Vector2(cu1, cv0), g, g + PKO_WING, north, PKO_WING_WALL)
+	_pko_wall(Vector2(cu1, cv1), Vector2(cu0, cv1), g, g + PKO_EAST, west, PKO_WING_WALL)
+	_mode = M_STONE
+	_cap_holes(outer, [_pko_rect(cu0, cv0, cu1, cv1)], g + PKO_WING, PKO_ROOF)
+	# the east wing a storey higher: its roof, and the steps where it rises over the others
+	var east_wing := _pko_rect(cu0, cv1, cu1, PKO_DEEP)
+	_cap(east_wing, g + PKO_EAST, PKO_ROOF)
+	_mode = M_SKIN + float(S_PUNCHED) / 16.0
+	_pko_wall(Vector2(cu0, cv1), Vector2(cu0, PKO_DEEP), g + PKO_WING, g + PKO_EAST, north, PKO_WING_WALL)
+	_pko_wall(Vector2(cu1, PKO_DEEP), Vector2(cu1, cv1), g + PKO_WING, g + PKO_EAST, south, PKO_WING_WALL)
+	# the courtyard floor, paved dark
+	_mode = M_STONE
+	_cap(_pko_rect(cu0, cv0, cu1, cv1), g + 0.05, PKO_PAVING)
+	# a blue fascia on the south wing's ground floor, the second branch door (the photo)
+	_pko_wall(Vector2(PKO_LEN, 22.0), Vector2(PKO_LEN, 44.0), g + 3.6, g + 4.3, south, PKO_BLUE)
+	_collide(_pko_rect(0.0, 0.0, PKO_LEN, PKO_DEEP))
 	_mode = M_STONE
 
 

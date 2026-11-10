@@ -21,6 +21,7 @@ extends SceneTree
 const Rave := preload("res://scripts/rave.gd")
 const Club := preload("res://scripts/club.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
+const Notebook := preload("res://scripts/notebook.gd")
 const BUBBLE := 90
 
 
@@ -260,6 +261,17 @@ func _check_map(g: LaneGraph, map: Node3D, origin: Array, digest: PackedStringAr
 	var club := Rave.find_club(g, map, origin)
 	if club.is_empty():
 		problems.append("Smoła has no door on a ground road")
+	# The two questlines' starts in person (F 2026-11-09): Mati's block and pod Rotundą, each on a
+	# ground road, far enough apart to be two badges on the map.
+	var starts: Array[Vector2] = []
+	for ll: Array in [Rave.HOME_LL, Rave.SMOLA_START_LL]:
+		var k := Rave.kerb_near(g, Notebook.project(origin, float(ll[0]), float(ll[1])), 120.0)
+		if k.is_empty():
+			problems.append("no ground road within 120 m of the start %s" % [ll])
+		else:
+			starts.append(Vector2(k["at"].x, k["at"].z))
+	if starts.size() == 2 and starts[0].distance_to(starts[1]) < 300.0:
+		problems.append("the rave's and Smoła's starts are %.0f m apart" % starts[0].distance_to(starts[1]))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 5
 	var far := 0.0

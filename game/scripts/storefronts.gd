@@ -1493,6 +1493,11 @@ func _write_lezaks(key: Vector2i) -> void:
 	mmi.multimesh = _static_mm(_lezak_mesh, xfs)
 
 
+## Metro Centrum's four entrances at the Marszałkowska crossing (OSM refs 6-9) that are open stairs
+## between granite balustrades, with no tube and no lift (F, 2026-11-09).
+const CENTRUM_OPEN_STAIRS: Array[String] = ["6", "7", "8", "9"]
+
+
 ## The metro entrances from the bake's `subway_entrance` pois (content-POIs switch): `yaw` is the
 ## way down (the canopy's open front faces away from it), `st` the station's name; the ones that
 ## open off an underground passage only (`u`) have no street canopy. Metro Centrum's wear its blue
@@ -1510,9 +1515,20 @@ func _load_metros(pois: Array) -> void:
 		# the entrances: no canopy of our own.
 		if MapBuilderStatic.in_sunken(x, z):
 			form = "none"
+		# Metro Centrum's refs 4 and 10 by the Palace's park are the landmark site `metro_tubes`' barrels
+		# (OSM outlines 3401 and 3224), not a prop on top of a box.
+		if str(p.get("st", "")) == "Centrum" and str(p.get("ref", "")) in ["4", "10"]:
+			form = "none"
+		var ref := str(p.get("ref", ""))
+		var open_stairs := str(p.get("st", "")) == "Centrum" and ref in CENTRUM_OPEN_STAIRS
+		if open_stairs:
+			form = "steps"  # F, 2026-11-09: these four are a bare stair, no glass pavilion
+		# Świętokrzyska's entrances on the Marszałkowska side keep the older green M1 glass.
+		if form == "tent" and str(p.get("st", "")) == "Świętokrzyska" and x > -1075.0:
+			form = "tent_green"
 		metros.append({"at": Vector3(x, map.ground_height(x, z), z), "yaw": float(p["yaw"]), "station": str(p.get("st", "")),
 				"ref": str(p.get("ref", "")), "key": key_of(Vector2(x, z)), "form": form,
-				"lift": (int(absf(x * 7.0 + z * 13.0)) % 5) < 3})
+				"lift": not open_stairs and (int(absf(x * 7.0 + z * 13.0)) % 5) < 3})
 
 
 ## The Ratusz-Arsenał station (OSM's name on its entrances).

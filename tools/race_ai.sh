@@ -2,7 +2,7 @@
 # Street races (docs/design/street-races.md, 2026-11-04): the race-AI runs. Each rival races the
 # autopilot (an average player at --ghost-pace 1.8, a skilled one at --ghost-pace=racer) headless from the start
 # spot, and the table shows who won, the time and the rival's racing line ("race ai: ..." from
-# rivals.gd: top speed, band range, seconds stopped, passes, the gap at the end; gap < 0: the
+# rivals.gd: top speed, skill share, effort range, seconds stopped, passes, the gap at the end; gap < 0: the
 # rival finished that many metres ahead of the player).
 #   tools/race_ai.sh [--pace=1.8,racer] [--rivals=1,2,3,4,5,6] [--jobs=2] [--logs=DIR]
 # Each run plays up to 14000 frames (~4 min of play, 3-6 min of wall time in the cloud).

@@ -119,6 +119,8 @@ const BUDGET := {
 	"gaulle": 880,
 	"rondo": 7000,
 	"sunken": 5600,  # 2026-11-05: the Patelnia and the Rotunda's stair: walls, railings, treads, two barrels
+	"metro_tubes": 1500,  # 2026-11-09: Metro Centrum's two barrels by the Palace park: ribs, pink walls, escalators
+	"defilad_ramp": 1500,  # 2026-11-09: the Plac Defilad car park ramp: two pink walls, 22 ribbed strips
 	"underpass": 3000,  # 2026-11-06: the Emilii Plater underpass: five entrances, parapets, treads, two canopies
 	"gbc": 750,
 	"grob": 340,
@@ -174,6 +176,7 @@ const BUDGET := {
 	"slabs": 1100,   # 2026-11-03: balcony bands, a ledge every storey on the long faces (look check)
 	"zelazna": 1030,
 	"pokorna2": 1500,
+	"pko_branch": 220,  # 2026-11-09 photo rebuild (F): 162 tris (granite slab, glass bays, wings, courtyard)
 	"dekalog_estate": 18000,
 	"inflancka_pools": 1000,
 	"spektrum": 990,
@@ -325,6 +328,8 @@ class StubMap:
 			var f := e.duplicate()
 			if not is_nan(float(f["hb"])):
 				f["hb"] = -3.4
+			if f.has("rim"):
+				f["rim"] = 0.0
 			_sunk.append(MapBuilderRef.sunk_entry(f, 0.0, 10.0))
 
 	func _grid_height(_x: float, _z: float) -> float:

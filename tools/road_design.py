@@ -59,6 +59,8 @@ Spec (docs/roads/AREA.json), map metres, +x east, +z south; offsets are to the r
   park_cars (area level): true puts parked cars along every `park` lane (road_design.park_cars).
   open_ends (area level): [{"x", "z", "note"}] path ends checked on the ortho that really stop at
   the kerb with no crossing; the continuity gate passes them.
+  keep_islands (area level): [[x, z], ...] an old traffic island containing one of these points is
+  kept (a side road's island in an opening's mouth); the design does not draw such islands itself.
 
 Continuity (quality gate, F 2026-11-06): footways and cycle tracks stay continuous over the new
 asphalt. Applying the design moves a pavement or cycle track the wider kerb covered out to the new
@@ -91,6 +93,7 @@ MIN_MOUTH = 1.0       # m: an arm's carriageway starts at least this far from th
 ISLAND_MIN = 1.0     # m: carriageways closer than this have no island between them (one carriageway)
 NOSE = 1.2            # m: a median's rounded end stops this far behind a crossing
 HATCH = 3.0           # m between a painted gap's bars
+LANE_MIN = 1.5        # m: a kerb lane narrower than this (in a taper) gets no lane line yet
 CHUNK = 8.0           # m: carriageway polygons in pieces this long (they drape on the terrain)
 # Young street trees a design plants on its green strips (greens "trees"): [top, crown radius,
 # crown base] in metres, as tools/planted_trees.py SPECIES. 'Columella' and fiorente elms are the
@@ -1096,6 +1099,11 @@ class Design:
                             kind = "solid"
                     if self.in_crossing(st, s) or self.past_stop(st, s, d, int(b.get("d", 1))):
                         kind = None
+                    # a kerb-side lane that opens or closes in a taper: its line starts (or ends)
+                    # once the lane is LANE_MIN wide, not as a line hugging the kerb
+                    if kind == "lane" and ((li == 0 and row[0][2] - row[0][1] < LANE_MIN)
+                                           or (li == len(row) - 2 and row[-1][2] - row[-1][1] < LANE_MIN)):
+                        kind = None
                     if any(float(x["s0"]) <= s <= float(x["s1"]) and int(x.get("cw", ci)) == ci
                            for x in st.spec.get("bare", [])):
                         kind = None
@@ -1374,6 +1382,44 @@ class Footprint:
             if self.pad > 0 and near_ring(x, z, p, self.pad):
                 return True
         return False
+
+
+class PastEnds:
+    """A footprint test that leaves alone what lies past a designed street's free ends. FOOT_PAD
+    would clip the old kerbs and lane lines there 2.5 m short of the end, so every seam with main
+    (or with the next designed area) had a notch in its kerb (Marszałkowska by Sienkiewicza,
+    2026-11-09); past the end's cross-section they now carry on, cut square at it."""
+
+    def __init__(self, fp, ends, reach=40.0, inset=0.02):
+        self.fp = fp
+        self.ends = ends          # [(point, outward tangent, half width)]
+        self.reach = reach
+        self.inset = inset        # m inside the end that still counts as past it
+
+    def past(self, x, z):
+        for p, dd, half in self.ends:
+            v = (x - p[0], z - p[1])
+            if dot(v, dd) >= -self.inset and math.hypot(v[0], v[1]) < self.reach and abs(cross(v, dd)) <= half:
+                return True
+        return False
+
+    def has(self, x, z):
+        return self.fp.has(x, z) and not self.past(x, z)
+
+    def split(self, pts):
+        """pts with a vertex added where they cross an end's cross-section."""
+        out = [pts[0]]
+        for a, b in zip(pts, pts[1:]):
+            cuts = []
+            for p, dd, half in self.ends:
+                sa, sb = dot(sub(a, p), dd), dot(sub(b, p), dd)
+                if (sa < 0) != (sb < 0) and abs(sa - sb) > 1e-9:
+                    t = sa / (sa - sb)
+                    q = lerp(a, b, t)
+                    if math.dist(q, p) < self.reach and abs(cross(sub(q, p), dd)) <= half:
+                        cuts.append((t, q))
+            out += [q for _, q in sorted(cuts)] + [b]
+        return out
 
 
 def near_ring(x, z, ring, r):
@@ -1915,12 +1961,25 @@ def apply_design(out, d):
         n = sum(1 for q in p if fp_tight.has(*q))
         return n >= share * len(p)
 
+    # the free ends of the designed streets: what lies past them is the old map's (PastEnds)
+    past_ends = []
+    for st in d.streets.values():
+        if st.spec.get("start") is None:
+            p, dd = st.at(0.0)
+            past_ends.append((p, mul(dd, -1.0), max(abs(st.outer(0.0, -1)), abs(st.outer(0.0, 1))) + 3.0))
+        if st.spec.get("end") is None:
+            p, dd = st.at(st.L)
+            past_ends.append((p, dd, max(abs(st.outer(st.L, -1)), abs(st.outer(st.L, 1))) + 3.0))
+    fp_ends = PastEnds(fp, past_ends)
+    # a ribbon past a free end stays drawn up to a metre under the design's own asphalt (its hide
+    # range is sampled every metre), so no strip of ground shows at the seam
+    fp_tight_ends = PastEnds(fp_tight, past_ends, inset=1.0)
     # roads: hide where they run in the footprint (the graph and everything else keep them)
     hidden = 0
     for r in out["roads"]:
         if r.get("dk") is not None or r.get("bridge"):
             continue
-        h = hide_ranges(r, fp_tight)
+        h = hide_ranges(r, fp_tight_ends)
         if h != r.get("hide", []):
             r["hide"] = h
             hidden += 1
@@ -1956,7 +2015,15 @@ def apply_design(out, d):
         p = pts_of(f["p"])
         c = (sum(q[0] for q in p) / len(p), sum(q[1] for q in p) / len(p))
         return any(math.dist(c, rc) < rr for rc, rr in d.ring_islands)
-    drop("islands", lambda f: f.get("dk") is None and (centre_in(f) or in_ring_island(f)))
+    # keep_islands (area level): an old island the design keeps (a side road's traffic island
+    # standing in an opening's mouth, Fangora's triangle by the Sienkiewicza crossing)
+    keep_isl = [tuple(q) for q in d.spec.get("keep_islands", [])]
+
+    def kept_island(f):
+        p = pts_of(f["p"])
+        return any(inside(q[0], q[1], p) for q in keep_isl)
+    drop("islands", lambda f: f.get("dk") is None and not kept_island(f)
+         and (centre_in(f) or in_ring_island(f)))
     drop("tram_noses", lambda f: centre_in(f))
     drop("tram_xings", lambda f: centre_in(f))
     old_medians = out.get("medians", [])
@@ -1980,7 +2047,7 @@ def apply_design(out, d):
                 out["medians"].append({"k": f.get("k", "paving"), "s": [v for r in beyond for v in r]})
                 mtails += 1
     stats["medians kept past free ends"] = mtails
-    drop("symbols", lambda f: f.get("dk") is None and fp.has(f["x"], f["z"]))
+    drop("symbols", lambda f: f.get("dk") is None and fp_ends.has(f["x"], f["z"]))
     # the old medians' grass and planter walls (the design draws its own medians)
     drop("areas", lambda f: f.get("k") in ("grass", "park") and mostly_in(f, share=0.6))
     drop("paths", lambda f: f["k"] in ("zebra", "cyclecross") and f.get("dk") is None
@@ -2052,21 +2119,25 @@ def apply_design(out, d):
     out.setdefault("road_design_ends", {})[d.area] = cut_ends
     out["paths"] = paths
     stats["paths clipped"] = cut
-    # kerbs and painted lines: clipped to outside the footprint
+    # walls, fences and hedges: cut where the new asphalt runs over them; one on a median or a
+    # platform the design keeps paved stays (the Metro Świętokrzyska tram platform's railing,
+    # Marszałkowska by Sienkiewicza, 2026-11-09)
+    on_asphalt = Footprint([pts_of(c["p"]) for c in d.out["carriage"]], 0.3)
     walls = []
     cut = 0
     for f in out.get("lines", []):
         p = pts_of(f["p"])
-        if f.get("k") not in ("wall", "fence", "hedge") or not any(fp_tight.has(*q) for q in dense(p, 1.0)):
+        if f.get("k") not in ("wall", "fence", "hedge") or not any(on_asphalt.has(*q) for q in dense(p, 1.0)):
             walls.append(f)
             continue
         cut += 1
-        for run in clip_line(p, fp_tight):
+        for run in clip_line(p, on_asphalt):
             g = dict(f)
             g["p"] = flat(run)
             walls.append(g)
     out["lines"] = walls
     stats["walls clipped"] = cut
+    # kerbs and painted lines: clipped to outside the footprint (but not past a free end)
     for layer in ("kerbs", "markings"):
         keep = []
         cut = 0
@@ -2075,11 +2146,11 @@ def apply_design(out, d):
                 keep.append(f)
                 continue
             p = pts_of(f["p"])
-            if not any(fp.has(*q) for q in dense(p, 2.0)):
+            if not any(fp_ends.has(*q) for q in dense(p, 2.0)):
                 keep.append(f)
                 continue
             cut += 1
-            for run in clip_line(p, fp):
+            for run in clip_line(fp_ends.split(p), fp_ends):
                 g = dict(f)
                 g["p"] = flat(run)
                 keep.append(g)
@@ -2169,6 +2240,20 @@ def retarget_graph(out, d):
                 continue
             free0 = st.spec.get("start") is None
             free1 = st.spec.get("end") is None
+            # An edge that runs on past a free end keeps its first lane (the median side's, for
+            # traffic on the right) where it was out there: the new lanes are centred on the line
+            # (o below), so the line first moves by the difference, or that lane slides onto what
+            # the old street put beside it (the Metro Świętokrzyska tram platform's edge on
+            # Marszałkowska north of the area marsz_sienkiewicza, check_drive 2026-11-09).
+            o_old = float(e.get("o", 0.0))
+            beyond = (free0 or free1) and any(x is None for x in proj)
+            shift = (o_old + (mid[1] - 1) / 2.0 * mid[2]) if beyond else 0.0
+            if abs(shift) > 0.01:
+                moved_p = []
+                for k, q in enumerate(p):
+                    a, b = p[max(0, k - 1)], p[min(len(p) - 1, k + 1)]
+                    moved_p.append(add(q, mul(right_of(norm(sub(b, a))), shift)))
+                p = moved_p
             new = []
             for q, x in zip(p, proj):
                 if x is None:

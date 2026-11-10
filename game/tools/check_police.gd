@@ -106,7 +106,7 @@ class FakeDriver extends RefCounted:
 	var race_accel := 0.0
 	var race_lat := 7.0
 	var race_top := 0.0
-	var race_band := 1.0
+	var race_effort := 1.0
 	var pass_t := 0.0
 	var squeeze := 0.0
 	var ghost := false
