@@ -95,10 +95,9 @@ const CAR_ZONE := Vector2(110.0, 84.0)
 const CARD_W := 440.0
 ## F 2026-11-10: the phone view of an incoming call (show_call): its width, the caller's face,
 ## the round answer and decline buttons, and the face on a quest card's head.
-const CALL_W := 360.0
+const CALL_W := 300.0
 const CALL_FACE := 48.0
 const CALL_BUTTON := 44.0
-const PHONE_SCREEN_W := 112.0
 ## The ringtone (tools/make_ui_sounds.py `ring`), again every RING_EVERY s while it rings.
 const RINGTONE := "res://audio/ui/ring.wav"
 const RING_EVERY := 2.6
@@ -238,7 +237,7 @@ var _card_style: StyleBoxFlat
 var _call_style: StyleBoxFlat
 var _call_mode := false
 var _call_box: HBoxContainer
-var _call_plate: PanelContainer
+var _call_screen_box: PanelContainer
 var _call_screen: StyleBoxFlat
 var _call_clock: Label
 var _ring: AudioStreamPlayer
@@ -1758,10 +1757,11 @@ func hide_card() -> void:
 
 ## The incoming call as a little phone held up on the right (F 2026-11-10, a photo of a mini
 ## phone): a black body with rounded corners round a screen in the caller's colour, a clock and
-## the camera notch at the top, the caller's face with rings going out while it rings, the name,
-## "dzwoni…", and the round red and green buttons with their words (decline on the left, answer
-## on the right, as on a phone). What the caller is to you stands on a plate beside it. Short
-## enough for the right-hand column beside the car above the pedals on a landscape phone.
+## the camera notch at the top, the caller's face with rings going out while it rings, the name
+## and "dzwoni…" beside it, what the caller is to you under them (F: the text inside the phone),
+## and the round red and green buttons with their words (decline on the left, answer on the
+## right, as on a phone). Held sideways, as the game is: short enough for the right-hand column
+## beside the car above the pedals on a landscape phone.
 func _build_call_view() -> void:
 	_call_style = StyleBoxFlat.new()
 	_call_style.bg_color = Color(0, 0, 0, 0)
@@ -1770,14 +1770,6 @@ func _build_call_view() -> void:
 	_call_box.add_theme_constant_override("separation", roundi(8.0 * pt))
 	_call_box.visible = false
 	_card.add_child(_call_box)
-	# The plate beside the phone: what the caller is to you.
-	_call_plate = PanelContainer.new()
-	_call_plate.add_theme_stylebox_override("panel", _panel_box(10.0, 9.0))
-	_call_plate.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_call_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_call_box.add_child(_call_plate)
-	_call_about = _label(T_SUB, INK)
-	_call_plate.add_child(_call_about)
 	# The phone: the black body, the screen inside.
 	var body := PanelContainer.new()
 	body.name = "phone"
@@ -1799,8 +1791,8 @@ func _build_call_view() -> void:
 	_call_screen.content_margin_top = 3.0 * pt
 	_call_screen.content_margin_bottom = 5.0 * pt
 	var screen := PanelContainer.new()
+	_call_screen_box = screen
 	screen.add_theme_stylebox_override("panel", _call_screen)
-	screen.custom_minimum_size.x = PHONE_SCREEN_W * pt
 	screen.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_child(screen)
 	var rows := VBoxContainer.new()
@@ -1816,29 +1808,34 @@ func _build_call_view() -> void:
 	bar.add_child(_call_clock)
 	bar.draw.connect(func() -> void: _paint_phone_bar(bar))
 	rows.add_child(bar)
+	# The face, and the name with "dzwoni…" beside it; what the caller is to you under them.
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", roundi(10.0 * pt))
+	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rows.add_child(head)
 	_call_face = Control.new()
 	_call_face.name = "face"
 	_call_face.custom_minimum_size = Vector2.ONE * CALL_FACE * pt
-	_call_face.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_call_face.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_call_face.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS  # 256 px drawn at ~120-160 px
 	_call_face.draw.connect(func() -> void:
 		_paint_face(_call_face, _card_face_tex, _card_face_letter, _card_face_accent, CALL_FACE * 0.5 * pt, _call_t))
-	rows.add_child(_call_face)
+	head.add_child(_call_face)
 	var who := VBoxContainer.new()
 	who.add_theme_constant_override("separation", 0)
+	who.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	who.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	who.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	rows.add_child(who)
-	_call_name = _label(T_BODY, INK)
-	_call_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_wrap(_call_name, PHONE_SCREEN_W - 12.0)
+	head.add_child(who)
+	_call_name = _label(T_TITLE, INK)
 	who.add_child(_call_name)
 	_call_status = _label(T_LABEL, SUB)
-	_call_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	who.add_child(_call_status)
+	_call_about = _label(T_SUB, INK)
+	rows.add_child(_call_about)
 	_call_buttons = HBoxContainer.new()
 	_call_buttons.alignment = BoxContainer.ALIGNMENT_CENTER
-	_call_buttons.add_theme_constant_override("separation", roundi(12.0 * pt))
+	_call_buttons.add_theme_constant_override("separation", roundi(48.0 * pt))
 	rows.add_child(_call_buttons)
 	_ring = AudioStreamPlayer.new()
 	_ring.name = "ringtone"
@@ -1866,10 +1863,14 @@ func _paint_phone_bar(bar: Control) -> void:
 		bar.draw_rect(Rect2(x - 26.0 * pt + k * 3.5 * pt, c.y + 3.5 * pt - h, 2.2 * pt, h), INK)
 
 
-## The plate's words get the room the phone leaves (side_card_width, at most CALL_W).
+## The phone as wide as the column beside the car allows (side_card_width, at most CALL_W),
+## its screen's words to match.
 func _set_call_width() -> void:
 	var w := minf(side_card_width(), CALL_W)
-	_wrap(_call_about, maxf(w - (PHONE_SCREEN_W + 10.0 + 8.0) - 18.0, 90.0))
+	var screen := w - 2.0 * (4.0 + 2.0)  # the body's margin and border
+	_call_screen_box.custom_minimum_size.x = screen * pt
+	_wrap(_call_about, screen - 12.0)
+	_wrap(_call_name, screen - 12.0 - CALL_FACE - 10.0)
 	_card.custom_minimum_size.x = 0.0
 
 
@@ -1898,7 +1899,7 @@ func show_call(who: String, about: String, accent: Color, about_en := "", face :
 	_call_status.text = Lang.pick("dzwoni…", "calling…")
 	_call_name.text = who
 	_call_about.text = about
-	_call_plate.visible = about != ""
+	_call_about.visible = about != ""
 	for b in _call_buttons.get_children():
 		_call_buttons.remove_child(b)
 		b.queue_free()
