@@ -1,7 +1,10 @@
 # Race AI: the audit, the new design and the race bench
 
-**Status (2026-11-09):** step 1 of 8 is built: the race bench, the prototype race and the recorded
-baseline of today's driver. Nothing in the game changed with it. The build order is in
+**Status (2026-11-10):** steps 1 and 2 of 8 are built. Step 1 was the race bench, the prototype
+race and the recorded baseline of the old driver. Step 2 took the rubber band out: every rival
+drives its own skill from the line to the finish, whatever the player does
+([section 6](#6-difficulty-from-skill-and-the-personalities)). The driving under it (the rail car,
+its passes and its corners) is still the old one, for steps 3 to 6b. The build order is in
 [section 8](#8-build-order).
 
 Written from F's note of 2026-11-09 (two phone screenshots of the race against Pani Halina from
@@ -43,6 +46,11 @@ race kinds (R7) and the leaderboard (its section 8) stand.
 ---
 
 ## 1. What is wrong today (measured)
+
+*Sections 1 to 3 are the baseline of 2026-11-09, before step 2: the driver F raced. They stay as
+the record of what was wrong. What step 2 changed is in
+[section 6](#6-difficulty-from-skill-and-the-personalities), and the marks before and after it
+are in [section 7.4](#74-the-marks-today).*
 
 **A rival's speed is a function of the player's.** In a ladder race the rubber band
 (`rivals.gd` `band_mult`) scales the rival's top speed by the gap to the player, down to 0.30 of
@@ -124,7 +132,7 @@ Worst first. "Step" is the build step of section 8 that fixes it.
 
 | # | Weak place | What the player sees | Step |
 | --- | --- | --- | --- |
-| 1 | Speed is tied to the player. The band aims Halina 15 m behind the player (30 m in front in the guided first race) and can cut her to 15 % of her top speed | She crawls when you are slow, waits when you stop, lifts off before the finish | 2 |
+| 1 | Speed is tied to the player. The band aims Halina 15 m behind the player (30 m in front in the guided first race) and can cut her to 15 % of her top speed | She crawls when you are slow, waits when you stop, lifts off before the finish | 2 (done) |
 | 2 | The driver is a rail car. It can only slide between lanes, and it passes only into a free lane or an empty oncoming lane | It queues behind slow cars like traffic. After 1.5 s stuck it drives through the car in front | 4b |
 | 3 | It plans its speed for the next junction only. It does not brake for bends along a street or look past the next corner, and its brakes stop at 10 m/s² | It arrives too fast: 99 km/h through a 48° bend, or stopped dead by the game behind a car | 4a |
 | 4 | Corners follow the middle of the lane. There is no racing line and no cut apex | Slow, square corners | 4a |
@@ -144,7 +152,7 @@ gives them one driver and one race object, so a fix lands everywhere.
 | Race | Opponents today | After the rebuild |
 | --- | --- | --- |
 | Street race ladder: Pani Halina, Słoik z Radomia, Bulwar Bartek, Seba z Pragi, Taksiarz Zbyszek, Mordor Mike, to 11 finishes (`rivals.gd`, `ladder.gd`) | Rail racer plus the band, a share of the 600 shortcuts each | New driver, a skill profile per rival, routes by time |
-| The guided first race with Pani Halina (`rivals.gd` `first_speed`) | A special band: she holds 30 m in front at the player's own pace, then lets the player catch her | Same driver. Whether it stays a guided lesson is parked question 1 |
+| The guided first race with Pani Halina (`rivals.gd` `first_speed`) | A special band: she holds 30 m in front at the player's own pace, then lets the player catch her | Same driver, on her gentle day (section 6); the script is gone since step 2 (parked question 1) |
 | Trzy mosty, the ladder final against Seba | Rail racer with a weak band | New driver, the long route over the three bridges |
 | Night club pack race (`street_meet.gd`) | Several rail racers at full speed with every shortcut, no band | Same driver, one race object for the whole pack |
 | Police chasers (`police.gd`) | Rail racer that never passes the player | The driver with a chase goal, later |
@@ -152,6 +160,10 @@ gives them one driver and one race object, so a fix lands everywhere.
 | Drag race at the night club | A simulated run, no driving | Stays |
 | Courier bike race | Its own rider on the footways | Stays, may share the route planner later |
 | Boat race on the Vistula (`boat_race.gd`) | Its own boat driver | Stays |
+
+Since step 2 the ladder races, the guided first race and Trzy mosty have no band: each rival
+drives its skill profile, with an effort that follows the time gap (section 6). The pack race,
+the police chasers and the crazy drivers never had one. All of them still drive the rail racer.
 
 Normal traffic keeps its rail and car-following model (IDM). That model is right for traffic.
 What changes is that racers treat traffic as moving obstacles with a predicted path.
@@ -211,18 +223,68 @@ conversation.
 ## 6. Difficulty from skill, and the personalities
 
 No racer's speed depends on the player's. A rival is hard because of how that rival drives, and
-the ladder becomes a row of drivers. Four things replace the band:
+the ladder is a row of drivers. Step 2 built every point here but the third, which comes with the
+route planner.
 
-- **Skill per rival, fixed for the race.** Halina brakes early and corners gently. Mike uses
-  nearly all of the car.
-- **Effort.** A racer far in front manages the lead at no less than about 85 % of their own pace.
-  A racer behind pushes and takes more risk, which also brings more mistakes. Effort follows the
-  time gap and never the player's speed, so nobody waits and nobody lifts off before the finish.
-- **Fair out of sight.** Traffic exists only near the camera, so a racer the player cannot see
-  pays the expected traffic delay as lost time.
-- **An easier rematch, not an easier race.** After two losses in a row to the same rival, that
-  rival is a little slower next time. It happens between races, never during one (parked
-  question 2).
+- **Skill per rival, fixed for the race** (`ladder.gd`). Every rival has the player's car. What
+  differs is how much of it the rival uses: the share of a road's racing speed held on the
+  straights (`share`), the pull away from a corner (`race_accel`), how early the braking starts
+  (`brake`) and the grip used in a corner (`lat`), each at or under the car's own. Halina brakes
+  early and corners gently. Mike uses nearly all of the car.
+- **Each rival's own dice** (`traffic.gd` `race_rng`). A wrong turn and a corner taken badly are
+  rolled on the rival's own dice and happen whether the player is near or not, so they are part
+  of its skill and of its time. Before, a mistake was rolled only near the player, on dice shared
+  with the town's cars.
+- **Effort** (`rivals.gd` `effort_of`). The one thing left of "keeping the race close". It
+  follows the time gap to the player and never the player's speed. From 1 s behind to 3 s ahead a
+  rival drives its own pace. Further ahead it manages the lead, down to 0.9 of its pace from a
+  10 s lead on. Further behind it pushes, up to 1.04 from 5 s behind on, the corners harder too
+  and with one and a half times its mistakes. The effort moves at most 0.05 a second. So a
+  rival's whole time moves by about a tenth at most whatever the player does, nobody waits, and
+  nobody lifts off before the finish.
+- **Fair out of sight** (step 3). Traffic exists only near the camera, so a racer the player
+  cannot see will pay the expected traffic delay as lost time.
+- **An easier rematch, not an easier race** (`ladder.gd` `ease_of`). A rival drives 5 % slower
+  for each race lost to it in a row, 15 % at most, and a win puts it back. It happens between
+  races and never during one, it is saved with the game, and a race given up does not count
+  (parked question 2).
+- **Halina's gentle day** (`ladder.gd` `FIRST_RACER`, `gentle`). The guided first race, and every
+  race against her until the player has beaten her once, so a new player who loses the first
+  race never meets a faster Halina. After that win she drives her rung's numbers in a rematch
+  (parked question 1).
+
+The ladder as built, with each rival's time alone on clear roads from Tamka to Plac Trzech Krzyży
+(1752 m). The bench's Skill ladder mark holds the order of the times, not of any one number.
+
+| Rival | Share of the road's speed | Pull (m/s²) | Brakes (m/s²) | Grip (m/s²) | Time alone |
+| --- | --- | --- | --- | --- | --- |
+| Pani Halina on her gentle day | 0.65 | 7.0 | 4.0 | 5.0 | 107.7 s |
+| Pani Halina | 0.70 | 8.0 | 4.5 | 5.5 | 98.9 s |
+| Słoik z Radomia | 0.92 | 8.5 | 5.5 | 6.0 | 92.9 s, his wrong turn included |
+| Bulwar Bartek | 0.80 | 9.5 | 6.0 | 7.5 | 86.2 s |
+| Seba z Pragi | 0.83 | 10.5 | 9.0 | 11.5 | 80.2 s |
+| Taksiarz Zbyszek | 0.92 | 11.0 | 7.0 | 10.0 | 75.5 s |
+| Mordor Mike | 0.97 | 12.5 | 9.0 | 11.0 | 71.1 s |
+| The player's car, for scale | 1.00 | 15 | 30 | 19 | 75.1 s (the fast test player) |
+
+Before step 2 the six drove it in 73.7, 76.2, 73.7, 72.8, 72.3 and 71.7 s with no player, and in
+180 s to 85 s with a player who never moved. The easier rematch on the same race: the gentle day
+takes 107.7, 112.0, 116.8 and 118.0 s after 0, 1, 2 and 3 losses in a row, and Mordor Mike 71.1,
+74.3, 77.8 and 81.9 s. No rival's share goes under 0.58: with the easing of a long lead on top
+that is still over half the road's racing speed, the bench's crawl line.
+
+**What a slow player meets now.** No honest racer can be slower than about the town's own cars
+on a straight: under half the road's racing speed is the crawl F saw, and the bench fails it. So
+a player who drives at town pace loses to every rival, the gentle day included, and a player who
+races wins. In the whole game the replay of the first ten minutes has a cautious autopilot at
+the wheel (about 67 km/h on the straights, the gentle day's own top speed). Its guided first
+race to the Pałac Kultury came out three ways in three runs of the same code: she won by 9.1 s,
+lost by 10.6 s and won by 2.4 s, in 71 to 80 s. Before step 2 that race took 124 s and the
+player won it by 2.2 s, because she waited. So the first race is close for a cautious driver and
+easy for one who uses the car: on the bench's race from Tamka the fast test player beats her
+gentle day by 31 s. If the first race proves too hard for new players on the phone, the honest
+levers are a gentler profile down to the floor, a head start at the line or a shorter race, and
+never a rival who waits.
 
 The friend's three types map onto the six rivals. These are starting profiles, to be tuned on the
 bench and by F's feel on the phone.
@@ -238,7 +300,8 @@ bench and by F's feel on the phone.
 
 Halina stays the first rung and stays beatable. She is slow in the corners and brilliant on the
 map: she takes the courtyard the player did not know about, and a player who learns it beats her
-next time.
+next time. The courtyards come with step 5 and the rest of the table with step 6a; step 2 built
+the "Drives" column's numbers.
 
 A racer should also look as if it is thinking: indicators before a pass or a turn into a
 courtyard, brake lights before a corner, a flash of the headlights behind a slow car, a wobble on
@@ -258,7 +321,9 @@ graph (`game/map/centrum.json`) with the real `traffic.gd` and the game's own ra
 takes 0.2 s to run and a race in Busy traffic 3 to 5 s, and the same race comes out the same every
 time. Each race gets a fresh traffic system with its own seeds and the lights' clock at zero, the
 grid as `rivals.gd` `put_ahead` lays it (the rival 14 m in front of the car; in the first race
-12 m behind it) and the 5.6 s of challenge line and countdown before the start.
+12 m behind it) and the 5.6 s of challenge line and countdown before the start. A rival's own dice
+are seeded from the race's name, so its wrong turn and its mistakes are the same whoever the test
+player is.
 
 The player is a **test player**: a ghost driver on the lanes, as the game's `--autopilot`. The
 view (and so the town's cars, which exist only round it, and what counts as "seen") follows the
@@ -297,6 +362,10 @@ tools/race_bench.sh --against=build/race_bench/before.json   # ... then on the b
 tools/race_bench.sh --write            # record both matrices' marks (when a change moves one on purpose)
 ```
 
+In a clone Godot has never opened, the script imports the project first (the game's scripts do
+not load without it). The check itself fails when a race did not run, so a broken set-up cannot
+print OK.
+
 The quick matrix is Pani Halina from Tamka: a ladder race on clear roads against all six test
 players, in Busy traffic against four, the blocked street and the crash; the guided first race
 against four; the free choice from Leszczyńska and its three forced routes; one race twice. The
@@ -307,13 +376,13 @@ in traffic.
 A race prints one line (its id is `rival/tuning/start/situation/player`), then what went wrong:
 
 ```
-halina/ladder/tamka/heavy/none   137.8 s x1.00   45 km/h (top 104) · crawl 2.9 s (longest 0.9) · behind 5.6 s · stood 8.7 s · passed 14 · pace x1.00-1.00 · Tamka > Solec > ... · 33 cars, 3.3 s
-    THROUGH 8 cars (37.1 s a car on Leona Kruczkowskiego, ...) · 3 slips (3 seen) · touched 2 cars · stopped dead 5 times (15.1 s from 65 km/h on Solec, ...) · sideways 76 m/s²: 99 km/h through 48° in 8 m on Książęca (357, 429) at 88.2 s · passed by 2 town cars
+halina/ladder/tamka/heavy/none   130.8 s x1.00   47 km/h (top  73) · crawl 5.7 s (longest 1.2) · behind 1.1 s · stood 10.5 s · passed 13 · effort x1.00-1.00 · Tamka > Solec > ... · 32 cars, 3.2 s
+    THROUGH 5 cars (38.9 s a car on Leona Kruczkowskiego, ...) · 3 slips (3 seen) · touched 4 cars · stopped dead 5 times (35.5 s from 27 km/h on Leona Kruczkowskiego, ...) · sideways 37 m/s²: 72 km/h through 42° in 8 m on Książęca (359, 433) at 83.5 s
 ```
 
-`x1.00` is the time against the same situation with no player, `pace` the range of the band's
-multiplier, the last two numbers the town's cars round the rival and the seconds the race took to
-run. A fault comes with its place, so it can be looked at in the game (`--at=357,429`). With
+`x1.00` is the time against the same situation with no player, `effort` the range of the rival's
+effort (section 6), the last two numbers the town's cars round the rival and the seconds the race
+took to run. A fault comes with its place, so it can be looked at in the game (`--at=357,429`). With
 Godot's own `--verbose` every car driven through is printed with both cars' states.
 
 ### 7.3 The pass marks
@@ -324,7 +393,7 @@ top of that file; a change that moves one says why in its PR.
 | Mark | Passes when | Step |
 | --- | --- | --- |
 | **Finishes** | every race reaches the finish within 420 s | 4b |
-| **Independence** | with a test player the rival's time (from the moment it is let go) is within 15 % of its time with no player on the same roads, and a race it finishes alone it finishes with any player. In traffic only slower counts: the town's cars are where the view is, so a player left behind means emptier streets round the rival | 2 |
+| **Independence** | with a test player the rival's time (from the moment it is let go) is within 15 % of its time with no player on the same roads, and a race it finishes alone it finishes with any player. In traffic only slower counts: the town's cars are where the view is, so a player left behind means emptier streets round the rival. A race the rival never finishes because the player's own stopped car stood in front of it with no lane to pass in, for more than half of the race, is not judged here: that is a block and not a pace that follows the player's (Finishes counts it, and step 4b's driver has to get round) | 2 |
 | **No crawl** | never more than 3 s in a row under half of the road's racing speed on a free straight road: nobody within 30 m in front, the next 40 m of its own way bending less than 0.3 rad, not held at the line, not knocked, not on a junction's curve | 2 |
 | **Passes traffic** | in Busy traffic never more than 4 s behind the same slower car (under 0.7 of the road's racing speed, within 12 m) while a lane beside it is free: another lane of its road with no slow car from 6 m behind to 30 m ahead, or the oncoming lane with no car for 80 m | 4b |
 | **No ghosting** | never inside another car's box (traffic.gd's own test; the town's cars, parked ones and the player's) for 0.25 s or more. Less is a touch, the bump of a collision | 4b |
@@ -349,23 +418,41 @@ against them:
   the racers worse;
 - a mark recorded **fail** that passes prints `racebench: WARN ...` (a WARN in verify) until it
   is recorded with `tools/race_bench.sh --write` in the same PR;
-- a mark recorded **fail** that fails is the known state of the rebuild, listed in the OK line.
+- a mark recorded **fail** that fails is the known state of the rebuild, listed in the OK line;
+- a mark recorded **unsteady** is shown and not held either way. It is set by hand, for a mark
+  that passes or fails with the draw of the town's cars, and `--write` leaves it alone.
 
 So each step turns marks from fail to pass on purpose, and nothing slips back.
+
+After step 2 (2026-11-10), with the baseline of step 1 in brackets where the number moved:
 
 | Mark | Quick matrix (21 races, Pani Halina) | Full matrix (107 races, all six rivals) |
 | --- | --- | --- |
 | Finishes | **fail**: 19 of 20 (the first race from Tamka with a player who never moves) | **fail**: 104 of 106 (the same race on clear roads and in traffic) |
-| Independence | **fail**: her time moves up to 145 % with the player | **fail**: up to 171 %, and 2 races she finishes alone never finish |
-| No crawl | **fail**: 46.2 s in a row | **fail**: 69.2 s (the first race, a slow player) |
-| Passes traffic | **fail**: 5.6 s behind a slower car with a free lane beside it | **fail**: 10.2 s (Mordor Mike) |
-| No ghosting | **fail**: drove through 22 cars | **fail**: 216 cars (and touched 68) |
+| Independence | pass since step 2: her time moves up to 8 % with the player (145 %) | **fail**: up to 16 % (171 %, and 2 races never finished), in one race: see below |
+| No crawl | pass since step 2: 1.9 s in a row (46.2 s) | pass since step 2: 2.4 s (69.2 s) |
+| Passes traffic | **unsteady**: 2.2 s in one draw of the traffic, 8.3 s in another (5.6 s) | **fail**: 9.2 s (10.2 s) |
+| No ghosting | **fail**: drove through 9 cars (22) | **fail**: 159 cars (216) |
 | Re-routes | **fail**: 0 of 1, drove through the wall | **fail**: 0 of 9 |
-| Recovers | **fail**: moved by the game in view 14 times; the crash itself recovered | **fail**: 103 times; 9 of 9 crashes recovered |
-| Honest car | **fail**: 84 m/s² sideways against the car's 19; stopped dead by the game 18 times | **fail**: the same bend and junction; 187 times |
-| Route sense | pass: her own choice 91.2 s, the best forced route 93.1 s | pass: in traffic too (161.5 s against 160.3 s) |
-| Skill ladder | not judged (one rival) | **fail**: the top rival 3 % faster than the first, Słoik slower than Halina |
+| Recovers | **fail**: moved by the game in view 7 times (14); the crash itself recovered | **fail**: 85 times (103); 9 of 9 crashes recovered |
+| Honest car | **fail**: 49 m/s² sideways against the car's 19 (84); stopped dead by the game 10 times (18) | **fail**: 77.5 m/s² (84), Mordor Mike at 101 km/h through the bend on Książęca; 159 times (187) |
+| Route sense | pass: her own choice 123.9 s, the best forced route 123.9 s | pass: in traffic too |
+| Skill ladder | not judged (one rival) | pass since step 2: 98.9, 92.9, 86.2, 80.2, 75.5 and 71.1 s up the ladder, the top rival 39 % faster than the first (3 %, and Słoik slower than Halina) |
 | Same race twice | pass | pass |
+
+What step 2 left open, by the mark:
+
+- **Finishes.** In the first race from Tamka with a player who never leaves the line, Halina
+  waits her 12 s and then stands behind the player's car: Tamka has one lane one way, and a rail
+  car has no way round. Step 4b's driver goes round where the player's car could, over the kerb.
+  Independence does not judge these two races (its boxed-in rule, 7.3).
+- **Independence on the full matrix.** One race is over the line: the first race from
+  Leszczyńska with the slow test player (16 %). The slow player starts in front, and she follows
+  for 20 s with the oncoming lane free, because the old driver passes only inside one street with
+  40 m of it left. That is step 4b's overtaking fault with the player's car as the slow car, so
+  the mark stays recorded fail there and turns with 4b.
+- **Passes traffic, No ghosting, Recovers, Honest car.** Slower rivals queue, squeeze and overcook
+  bends less often, so the counts fell, and the faults are the same ones: steps 4a and 4b.
 
 The crash's own part passes today: a knock costs a rail car only the stop (it cannot be spun off
 its line), and the wreck stands where there is a lane to go round in. It stays in the matrix for
@@ -387,6 +474,19 @@ the driver that can leave its line.
   three questions for F on the phone: did a racer ever look like traffic, did one do something
   your car cannot, and could you tell why you won or lost.
 
+Two things about the numbers themselves:
+
+- **Busy traffic is a draw.** The same race with the same seeds comes out the same every time
+  (Same race twice). But a race in Busy traffic depends on where the town's cars happen to be:
+  the same Halina took 130.8 s in one draw and 144.8 s in another, and any change to how a racer
+  uses the dice moves the draw. So a traffic number is read across a run's draws and not as one
+  race, and a mark that turns with the draw is recorded unsteady (7.4) until the driver that
+  fixes it is in.
+- **Between machines.** Step 1's driver on the Mac gave the quick matrix identical to the cloud's
+  Linux run, line for line. The full matrix gave the same marks with two traffic numbers apart
+  (7.4 s behind a slower car against 10.2 s, 217 cars driven through against 216, stopped dead 184
+  times against 187), all three from races in Busy traffic.
+
 ## 8. Build order
 
 Eight pull requests, each small enough to review and each with the bench's numbers before and
@@ -395,8 +495,8 @@ after. Step 2 ends the complaint in F's message. The steps after it make racing 
 | Step | Pull request | What the player notices | Marks that turn |
 | --- | --- | --- | --- |
 | 1 (done) | Race bench, prototype race, baseline of today's driver, this plan in the repo | Nothing changes in the game | The baseline is recorded |
-| 2 | Skill profiles replace the band, in the ladder races and in the guided first race | Halina and the others race from start to finish. A slow player loses | Independence, No crawl, Skill ladder |
-| 3 | Route planner by arrival time | Rivals take different streets and go round a blocked one | Re-routes; Route sense in traffic |
+| 2 (done) | Skill profiles replace the band, in the ladder races, the final and the guided first race; an easier rematch after a loss | Halina and the others race from start to finish at their own pace. A slow player loses, and the rematch is a little easier | No crawl, Skill ladder, Independence on the quick matrix (the full matrix's last case turns with 4b) |
+| 3 | Route planner by arrival time; the expected traffic delay out of sight | Rivals take different streets and go round a blocked one | Re-routes; Route sense in traffic |
 | 4a | Driver, part 1: racing line and a speed for every metre | Fast, smooth corners with the braking done before the bend | Honest car (grip), better clear-road times |
 | 4b | Driver, part 2: overtaking, collisions, recovery | Real passes. Nobody drives through a car. A crashed rival reverses and goes on | Passes traffic, No ghosting, Recovers, Finishes, Honest car (brakes) |
 | 5 | Race links: alleys, courtyards, car parks, wrong-way hops | Halina turns into a courtyard and comes out in front | Real-car proof for every link |
@@ -409,12 +509,17 @@ Every pull request waits for green checks and the audit before it merges.
 
 None blocks the work. Each has the default being built (also in docs/QUESTIONS.md).
 
-1. **Should the first race stay a guaranteed win?** Today it is scripted so that a new player
-   wins narrowly, and that script is the crawl F saw. Default: easy but real. Halina drives a
-   gentle, steady pace and no longer copies the player. A player who stops loses and gets the
-   retry she already offers.
-2. **Should a rival get easier after the player loses to them twice in a row?** Default: yes, 5 %
-   slower per loss, 15 % at most, and a win puts it back.
+1. **Should the first race stay a guaranteed win?** It was scripted so that a new player won
+   narrowly, and that script was the crawl F saw. Built in step 2: easy but real. Halina drives
+   her gentle day at her own pace and no longer copies the player, until the player has beaten
+   her once. A player who races wins; a player at town pace or one who stops loses, the guide
+   goes on either way, and each loss in a row makes her 5 % slower. Measured in the whole game's
+   replay, whose autopilot drives cautiously: one win and two losses in three runs, all within
+   11 s. The other honest answers, if F wants a surer first win: a head start at the line, a
+   shorter first race, or the gentlest profile the crawl line allows (a share of 0.58).
+2. **Should a rival get easier after the player loses to them?** Built in step 2: yes, 5 % slower
+   for each loss in a row (from the first loss, not the second), 15 % at most, a win puts it
+   back, and a race given up does not count.
 3. **May aggressive rivals drive the wrong way down a one-way street?** Default: Seba and Mike
    only, for 150 m at most, and only where the player's car can do the same.
 4. **How rough may rivals be?** Default: they defend their line and lean on the player in a pass,

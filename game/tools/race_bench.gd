@@ -84,6 +84,11 @@ const ROUTES := {
 ## The pass marks' limits (docs/design/race-ai.md):
 ## the rival's time may move this share whatever the player does;
 const INDEPENDENCE := 0.15
+## boxed in: a race the rival never finishes because the player's own stopped car stood in front
+## of it with no lane to pass in (a one-lane one-way street) for more than this share of the race
+## is not Independence's to judge: that is a block, not the rival's pace following the player's
+## (Finishes counts the race, and step 4b's driver has to get round);
+const BOXED_SHARE := 0.5
 ## crawling: under CRAWL_SHARE of the road's racing speed for more than CRAWL_MAX s in a row with
 ## nobody within FREE_AHEAD m in front and the next STRAIGHT_AHEAD m of its own way bending under
 ## STRAIGHT_BEND rad;
@@ -180,6 +185,8 @@ class Probe:
 	var overtaken := 0
 	var behind_longest := 0.0
 	var behind_room_longest := 0.0
+	## Seconds stopped behind the player's own stopped car with no lane to pass in (BOXED_SHARE).
+	var boxed := 0.0
 	var edges := PackedInt32Array()
 	var cars := 0
 	var usec := 0
@@ -315,9 +322,12 @@ class Probe:
 				_leader_t = 0.0
 				_leader_room_t = 0.0
 			_leader_t += DT * 2.0
-			_leader_room_t = _leader_room_t + DT * 2.0 if _room(traffic, fwd, here, road_top, player_live) else 0.0
+			var free_lane := _room(traffic, fwd, here, road_top, player_live)
+			_leader_room_t = _leader_room_t + DT * 2.0 if free_lane else 0.0
 			behind_longest = maxf(behind_longest, _leader_t)
 			behind_room_longest = maxf(behind_room_longest, _leader_room_t)
+			if lead.ghost and lead.v < 0.5 and d.v < 0.5 and not free_lane:
+				boxed += DT * 2.0
 		else:
 			_leader = null
 
@@ -640,6 +650,8 @@ func plan_wreck(spec: Dictionary, edges: PackedInt32Array) -> Dictionary:
 ##   player     a PLAYERS entry
 ##   seed       0 (the traffic's own seed) or another traffic draw
 ##   via        ground points the rival is routed through in order (a forced route), via_name
+##   ease       how much an easier rematch slows the rival (ladder.gd `ease_of`; 0 when left out)
+##   skill      for tuning: racer stats to drive in place of the rival's own (ladder.gd's keys)
 ##   trace      print what the rival does once a second
 func race(spec: Dictionary) -> Dictionary:
 	var wall0 := Time.get_ticks_msec()
@@ -734,6 +746,7 @@ func race(spec: Dictionary) -> Dictionary:
 	probe.graph = graph
 	probe.d = d
 	var pace := Rivals.Pace.new()
+	var stats := {}
 	var t := -LEAD_IN
 	var started := false
 	var hold := false
@@ -758,7 +771,15 @@ func race(spec: Dictionary) -> Dictionary:
 		if not started and t >= 0.0:
 			started = true
 			t = 0.0
-			Rivals.arm_racer(d, rung, PLAYER_TOP, table)
+			# Its own dice: the same for this rival and draw whoever the test player is.
+			stats = Rivals.arm_racer(d, rung, PLAYER_TOP, table, first, float(spec.get("ease", 0.0)), hash("%s/%d" % [name, int(out["seed"])]))
+			if spec.has("skill"):
+				# Tuning: racer stats to try in place of the rival's own (share, race_accel, brake, lat).
+				var skill: Dictionary = spec["skill"]
+				d.race_share = float(skill.get("share", d.race_share))
+				d.race_accel = float(skill.get("race_accel", d.race_accel))
+				d.race_brake = float(skill.get("brake", d.race_brake))
+				d.race_lat = float(skill.get("lat", d.race_lat))
 			traffic.race_to(d, legs[0][0], legs[0][1])
 			# PT-11: in the first race she waits at the line until the player moves.
 			hold = first and ghost != null
@@ -779,7 +800,7 @@ func race(spec: Dictionary) -> Dictionary:
 				var back: float = traffic.remaining(ghost) - traffic.remaining(d)
 				var cap: float = minf(ghost.race_top, Traffic.RACE_CLASS_TOP[graph.e_class[ghost.edge]])
 				var want: float = FOLLOW_ROLL if back < 0.0 else d.v + (back - FOLLOW_GAP) * 0.8
-				ghost.race_band = clampf(want / maxf(cap, 1.0), 0.0, 1.3)
+				ghost.race_effort = clampf(want / maxf(cap, 1.0), 0.0, 1.3)
 			tick -= DT
 			if tick <= 0.0:
 				tick = TICK
@@ -790,7 +811,7 @@ func race(spec: Dictionary) -> Dictionary:
 					player_left = Rivals.remaining_from(graph, dist, Vector2(ghost.pos.x, ghost.pos.z), goal)
 				else:
 					player_left = 0.0
-				var mult := Rivals.pace_tick(pace, d, rung, first, t, rival_left, player_left, PLAYER_TOP)
+				var mult := Rivals.pace_tick(pace, d, float(stats.get("mistake", 0.0)), rival_left, player_left)
 				if knock_left > 0.0 and rival_left < knock_left:
 					# The knock: a full hit from the side (traffic.gd on_player_bump's daze and slide).
 					knock_left = -1.0
@@ -801,9 +822,9 @@ func race(spec: Dictionary) -> Dictionary:
 					out["knock_s"] = snappedf(t, 0.1)
 				if spec.get("trace", false) and t >= next_trace:
 					next_trace += 1.0
-					print("  trace %s: t %.0f s · rival %.1f m/s, pace x%.2f, class %d, left %.0f m, %s · player %.1f m/s, left %.0f m · gap %.0f m · seen %s · %d cars" % [
+					print("  trace %s: t %.0f s · rival %.1f m/s, effort x%.2f, class %d, left %.0f m, %s · player %.1f m/s, left %.0f m · the rival's lead %.0f m · seen %s · %d cars" % [
 							out["id"], t, d.v, mult, graph.e_class[d.edge], rival_left, probe._street(d.edge), ghost.v if ghost != null else 0.0,
-							player_left, rival_left - player_left, d.visible, traffic.drivers().size()])
+							player_left, player_left - rival_left, d.visible, traffic.drivers().size()])
 		traffic._process(DT)
 		t += DT
 		if not started:
@@ -831,6 +852,7 @@ func race(spec: Dictionary) -> Dictionary:
 	out["crawl_longest_s"] = snappedf(crawl.y, 0.1)
 	out["behind_longest_s"] = snappedf(probe.behind_longest, 0.1)
 	out["behind_room_longest_s"] = snappedf(probe.behind_room_longest, 0.1)
+	out["boxed_s"] = snappedf(probe.boxed, 0.1)
 	out["passes"] = probe.passes
 	out["overtaken"] = probe.overtaken
 	out["slips"] = probe.slips
@@ -858,7 +880,7 @@ func race(spec: Dictionary) -> Dictionary:
 	out["centre_passes"] = d.race_passes
 	out["pace_lo"] = snappedf(pace.lo, 0.01)
 	out["pace_hi"] = snappedf(pace.hi, 0.01)
-	out["skill"] = snappedf(pace.skill, 0.01)
+	out["share"] = snappedf(d.race_share, 0.001)
 	out["cars"] = snappedf(float(probe.cars) / n, 0.1)
 	out["step_usec"] = roundi(float(probe.usec) / n)
 	out["streets"] = Array(probe.streets())
@@ -970,6 +992,7 @@ static func judge(results: Array) -> Array:
 	var judged := 0
 	var dev := 0.0
 	var lost := 0
+	var boxed := 0
 	worst = ""
 	var worst_lost := ""
 	for key: String in groups:
@@ -979,6 +1002,10 @@ static func judge(results: Array) -> Array:
 			if base.is_empty() or sp.ends_with("/none") or not base["finished"]:
 				continue
 			var r: Dictionary = g[sp]
+			if not r["finished"] and float(r.get("boxed_s", 0.0)) > BOXED_SHARE * _run(r):
+				# Boxed in behind the player's stopped car (BOXED_SHARE): Finishes' race, not this mark's.
+				boxed += 1
+				continue
 			judged += 1
 			if not r["finished"]:
 				lost += 1
@@ -991,8 +1018,9 @@ static func judge(results: Array) -> Array:
 				dev = x
 				worst = r["id"]
 	out.append(_mark("independence", "Independence", (dev <= INDEPENDENCE and lost == 0) if judged > 0 else null,
-			"the rival's time moves up to %d %% with the player (limit %d %%)%s" % [roundi(dev * 100.0), roundi(INDEPENDENCE * 100.0),
-			"; %d of %d races it finishes alone it never finishes with the player" % [lost, judged] if lost > 0 else ""],
+			"the rival's time moves up to %d %% with the player (limit %d %%)%s%s" % [roundi(dev * 100.0), roundi(INDEPENDENCE * 100.0),
+			"; %d of %d races it finishes alone it never finishes with the player" % [lost, judged] if lost > 0 else "",
+			"; %d not judged here: boxed in behind the player's stopped car with no lane to pass in (Finishes counts it)" % boxed if boxed > 0 else ""],
 			worst if dev > INDEPENDENCE or lost == 0 else worst_lost))
 
 	# No crawl.

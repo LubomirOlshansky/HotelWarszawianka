@@ -35,6 +35,12 @@ if ! command -v $GODOT > /dev/null; then
 	print -r -- "'$GODOT' not found (Godot 4.7.2; set GODOT=/path/to/godot)"; exit 1
 fi
 mkdir -p $out || exit 1
+# A clone Godot has never opened: import first (as tools/verify.sh does), or the game's scripts
+# do not load and no race runs.
+if [[ ! -f $ROOT/game/.godot/global_script_class_cache.cfg ]]; then
+	print -r -- "race_bench: importing the project first (no game/.godot yet)"
+	$GODOT --headless --path $ROOT/game --import > /dev/null 2>&1
+fi
 
 # run MATRIX NAME FLAGS...: one run of the check; its lines also go to build/race_bench/NAME.log.
 run() {

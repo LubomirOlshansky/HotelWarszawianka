@@ -4,6 +4,12 @@
 test it with Autopilot". R1, R2 and R4's driving numbers are built ([section 6](#6-built-2026-11-04));
 R3, R5-R7 are open.
 
+**Superseded in part (2026-11-10):** the driver and the rubber band here (R1, R2, R4 and R3's
+routes; the "R2 rubber band" of section 6 and the band's numbers after it) are replaced by
+[race-ai.md](race-ai.md). The band is gone since that plan's step 2: a rival's speed no longer
+reads the player's. R5 (show the race), R6 (the city reacts), R7 (race kinds) and the leaderboard
+stand.
+
 Written 2026-11-04 from F's note: "driving with racers in the city looks strange. When the race
 starts, a racer like Pani Halina drives very slowly, and even where there is a shorter road they
 drive by the rules all the time. It doesn't look competitive or fun." Research and a plan only:

@@ -16,17 +16,19 @@ guided first race copies the player's progress), so on the same empty streets Ha
 alone and 180 s with a slow player; flat out the six rivals are within 6 % of each other. Plan:
 eight PRs (race-ai.md section 8), each measured on the race bench.
 - [x] Step 1 (2026-11-09): the race bench (`game/tools/race_bench.gd`, `check_race_bench.gd`, `tools/race_bench.sh`; verify step `racebench`, in CI), the prototype race with three routes, clear roads, Busy traffic, a blocked street and a crash against six test players, eleven pass marks, today's driver recorded in `game/data/race_bench.json` (2 pass, 9 fail in the full matrix of 107 races); `rivals.gd`'s arming and pacing as a static core the bench calls (no behaviour change: the same race log line for line)
-- [ ] Step 2: skill profiles replace the band in the ladder and the guided first race (marks: Independence, No crawl, Skill ladder)
+- [x] Step 2 (2026-11-10): skill profiles replace the band in the ladder races, the final and the guided first race. Every rival has the player's car and its own share of the road's racing speed, pull, braking and corner grip (`ladder.gd`); what is left of "close" is an effort on the time gap, 0.9 to 1.04 of its own pace (`rivals.gd` `effort_of`); a rival rolls its wrong turn and its mistakes on its own dice, near the player or not (`traffic.gd` `race_rng`); an easier rematch (5 % slower for each race lost in a row, 15 % at most, saved, a win puts it back); Halina's gentle day in the first race and until she has been beaten once. Bench, before and after: Halina's time moves with the player by 8 % on the quick matrix (145 %) and 16 % on the full one (171 %), the longest crawl 2.4 s (69.2 s), the six rivals alone from Tamka to Plac Trzech Krzyży 98.9, 92.9, 86.2, 80.2, 75.5 and 71.1 s (73.7, 76.2, 73.7, 72.8, 72.3, 71.7 s). Marks turned: No crawl and Skill ladder on both matrices, Independence on the quick one (4 pass, 7 fail in the full matrix). Also: the bench check fails when a race did not run (a clone Godot never opened printed OK with 0 races), `tools/race_bench.sh` imports first, a mark that turns with the draw of the traffic is recorded "unsteady"
 - [ ] Step 3: the route planner by arrival time, a new plan at a blocked street (Re-routes; Route sense in traffic)
 - [ ] Step 4a: the racing line and a speed for every metre (Honest car's grip)
 - [ ] Step 4b: overtaking with a committed side, contact as a collision, recovery (Passes traffic, No ghosting, Recovers, Finishes, Honest car's brakes)
 - [ ] Step 5: race links (alleys, courtyards, car parks, wrong-way hops), each proven with the player's car
 - [ ] Step 6a: personalities, visible decisions, the result card with both routes; 6b: one race session for the pack race, Trzy mosty, police chasers and crazy drivers
-- [ ] F's four defaults (QUESTIONS, 2026-11-09): the first race easy but real, an easier rematch after two losses, wrong-way hops for Seba and Mike only, rivals defend but never ram
+- [ ] F's four defaults (QUESTIONS, 2026-11-09): the first race easy but real (built in step 2: the gentle day), an easier rematch (built in step 2: from the first loss, 5 % a loss in a row), wrong-way hops for Seba and Mike only, rivals defend but never ram
 
 Found by the bench in today's driver (each is fixed by a step above; listed so none is lost):
 - [ ] The guided first race never ends when the player does not move on a one-lane street (Tamka): Halina waits 12 s, then stands behind the player's car for good (step 4b)
-- [ ] The guided first race is not a sure win: from Leszczyńska the autopilot's average player loses to Halina (step 2, parked question 1)
+- [ ] The first race is no sure win, by design since step 2: a player who races beats her gentle day, a player at town pace loses to her as to any racer (no honest racer is slower than the town's cars on a straight). The replay's cautious autopilot (about 67 km/h on the straights) won one guided first race of three and lost two, by 2.4 to 10.6 s; before step 2 it won by 2.2 s in a race of 124 s that she waited through. Judge on the phone whether a new player needs a head start, a shorter first race or a gentler profile (parked question 1)
+- [ ] Behind the player's own slow car a rival follows for up to 20 s with the oncoming lane free (the first race from Leszczyńska with the slow test player: her time +16 %, the full matrix's Independence): `_race_pass` passes only inside one street with 40 m of it left (step 4b)
+- [ ] Słoik's wrong turn costs him about 10 s and happens wherever his dice fall; make it a moment the player sees, or a fixed corner per race (step 6a)
 - [ ] A rival drives through the player's car when it is in its lane (first race, Solec, 11 s in) (step 4b)
 - [ ] In Busy traffic a rival drives through 3 to 14 cars a race and is stopped dead by the game 2 to 11 times: its brakes stop at 10 m/s² (`traffic.gd` `_drive`) (steps 4a, 4b)
 - [ ] 99 km/h through the 48° bend on Książęca (`--at=358,429`) and 96 km/h through a junction of Plac Zofii Wóycickiej (`--at=488,-220`): bends inside a street are taken at full speed (step 4a)
@@ -84,8 +86,18 @@ runs also rescue late). Cause: the DESKA padel call (`trend_job.gd` DESKI_FIRST)
 in the middle of the first-10 guide; the replay's autopilot answered it and played the three-point
 match (about 280 s) with the missions paused, so the rescue call, the helicopter hint, the cassette
 and the garage all slid 4-5 minutes. DESKI_FIRST is now 660 s (after the guide's last window).
+Fixed (2026-11-10, with the racer AI rebuild's step 2): "powisle late: 560.5 s (window 300-540 s)". The
+first race is 50 s shorter now (she no longer waits for the player), so the replay's later minutes fell
+differently: a Podwózka request came at 331 s, in the free gap between the tape's beat and the hold for
+Powiśle, and ran to 600 s with the drive to the pin (493 m, then 2685 m to Zamek Królewski). The Powiśle
+line now shows at `POWISLE_LATEST` (520 s) over a ride, as the garage's does at `GARAGE_LATEST`; the
+ride's pin keeps the edge arrow and the guide's arrow follows when the ride is done. Over a race, a
+call, the police or a card it still waits. `check_first10` "a long ride" holds it (without the rule the
+toy's Powiśle comes at 626 s). The replay on the code before step 2 passed (Powiśle met at 330 s).
 Open: `first10-run` is not in CI (it needs the prebuilt city path); run it in the cloud after a change
-to any call, offer or job that can ring before 660 s of play.
+to any call, offer or job that can ring before 660 s of play, and after a change to the first race.
+Open: the same gap is there for the race, the trap, the call and the tape: a ride of four minutes
+taken just over 45 s before one of them still pushes it past its window (not seen in a replay yet).
 
 ## Dworzec Centralny's car park ramp (F, 2026-11-08, Street View photos and a screenshot)
 Fixed: the two one-way lanes off Al. Jana Pawła II north of Chmielna that loop round the hedge island
@@ -1415,13 +1427,13 @@ holds Halina 25 m behind the player (pace 0.4-0.85). F (2026-11-04): "make the r
 police smarter, then test with Autopilot": R1, R2, R4's numbers and the police chasers built
 (street-races.md section 6), measured with `tools/race_ai.sh`.
 - [x] R1 racer driving mode: race top speed from the player's car, 7-10 m/s², corners by radius, through reds, overtake traffic and the player, slip out of junction knots (2026-11-04)
-- [x] R2 fair rubber band: the first race with Halina in front to chase, every race's band by rung, boosts only off screen (2026-11-04)
+- [x] R2 fair rubber band: the first race with Halina in front to chase, every race's band by rung, boosts only off screen (2026-11-04; the band is gone since the racer AI rebuild's step 2, 2026-11-10)
 - [x] R3 part 1: shortcuts across plazas, verges, yards and car parks (`tools/race_cuts.py` -> `game/data/race_cuts.json`, 600 cuts; `race_cuts.gd`; knowledge per rival; routing counts only cuts the racer takes; verify step `racecuts`) (F, 2026-11-05; street-races.md section 9)
 - [ ] R3 part 2: wrong-way hops along one-way streets (needs oncoming-car checks on a cut), routes by time, the rival's shortcut shown after a loss
 - [x] R4 part 1: racing share, pull, corner grip, band and aim per rung (2026-11-04)
 - [x] R4 part 2: rivals lead (aim ahead from Słoik up, Mike at the player's top speed, 12 s opening burst, higher side-street caps, grip in the band), mistakes near the player, Słoik's wrong turn, Mike's phone, blocking (one lateral move) and cutting in, their lines (F, 2026-11-05)
 - [x] Rivals as fast as the player's car (F, 2026-11-09: "Halina is far too slow, I drive much faster"): every ladder rival's racing top is the player's car's (`share` 1.0, Halina was 0.8, Słoik 0.84), Halina corners at 8.5 m/s² (was 6) and pulls 9.5; a skill read (`rivals.gd` `skill_of`: the player's average progress against the car's top) gives a fast player a real race: no lift-off at the end, the rival aims 20 m in front, the first race keeps her lead to the line, while a slow player still gets the old Halina and Słoik (0.8 of the top, the lift-off). `tools/race_ai.sh`, skilled driver vs Halina: lost by 28 m (was a 159 m win for the player); Autopilot (Mac, run 20261109-012549, the guided first race): a quick but stumbling driver won by 17 m, she was never more than 74 m behind
-- [ ] Rivals vs an average headless driver: Halina and Słoik now lead the autopilot ghost to the line by 2-25 m because the ghost can't pass her lift-off crawl in the lane (a human player can); judge on the phone, and the street meet's racers (#597) could use `Rivals.skill_of` too
+- [x] Rivals vs an average headless driver: the lift-off crawl and `Rivals.skill_of` are gone with the racer AI rebuild's step 2 (2026-11-10, "Racer AI rebuild" at the top): a rival's speed no longer reads the player's
 - [ ] Contact nudges from aggressive rivals (Seba) beyond the block; phone feel of the new rivals (Autopilot P17 rerun)
 - [x] Police chasers in racer mode: quicker pull, corners by radius, careful through reds, round traffic; top speed still 0.8 of the player's (2026-11-04)
 - [ ] Phone feel of the races and chases (F's next device run); Autopilot row P17
@@ -1890,7 +1902,7 @@ Run 12 (2026-11-03): PT-14 closed (the helicopter climbs after landing; run 11's
 Runs 13-14 (2026-11-03): Powiśle met at 283 s; PT-17 not seen on one pass. Every Autopilot run on F's Mac is killed (-9) at about 6 minutes of play, so beats after that (the tape pickup, the garage at 570 s, the end card) can't be playtested with it yet: find the cause (memory with the editor, the game and the agent service on one Mac?) before the next long row.
 PT-15, PT-16, PT-17 fixed 2026-11-03 (PLAYTEST.md): no ride request over Halina's call or a rival's prompt (and none of those over a request card); the delivered / order-dropped card goes by itself after 12 s or 25 m (it waited for OK for ever, the likely reason one order looked driven six times and the race waited until 203 s); Jasna's 24 m shallow bay by Plac Dąbrowskiego bridged (bays up to 30 x 2.5 m city-wide). Verify all three on the next P2 run.
 PT-18 fixed 2026-11-03 (P11 run 20261103-152948, Solec under the Trasa): on the ramp up to the Trasa the mapped guard rail comes in pieces 0.9 m apart and the car's corner caught a piece's end (pinned at 1307, 959); under the ramp its pier stood 2 m off Solec's west kerb. Guard-rail gaps under 1.5 m on a deck now get a shallow collider V behind the rail line, so the bus cuts stay clear (map_builder GUARD_JOIN, GUARD_POCKET; 122 in the sectors round Solec) and the bake keeps piers 2 m further from a main road wherever their slide finds room (bake_structures PIER_ROADSIDE; 44 of 359 piers moved 1-2 m in centrum.json, the rest as baked). Six spots in `check_stuck_spots` (five fail on the old map). PLAYTEST.md's PT-18 row (PR #420) should read fixed. Still open from the same row: the car hidden by the deck (GAMEPLAY_PLAN 3.5, x-ray).
-The guide's beats behind jobs, built 2026-11-03 (default, QUESTIONS): while a beat that waits for a free moment (race, trap, rescue, tape, Powiśle, garage) is due or within 45 s (`first10.gd` `due`, HOLD_AHEAD), the guide holds what comes by itself: Podwózka requests (rides.gd `guide_hold`, the next one at least 30 s after the hold lets go) and the "Na czasie" offers (trend_job.gd). A job already under way runs on and the PODWÓZKA button still asks for a ride. `check_first10` "rider": a player who takes every request meets every beat in its window (without the hold the tape and Powiśle came at 546 s). Left: a player who chains kebab orders at the stand still holds the beats (the stand is the player's own choice; not held), and a ride taken just over 45 s before a beat still pushes it back up to ~2.5 min (inside the windows in the toy); the next P2 run should show both.
+The guide's beats behind jobs, built 2026-11-03 (default, QUESTIONS): while a beat that waits for a free moment (race, trap, rescue, tape, Powiśle, garage) is due or within 45 s (`first10.gd` `due`, HOLD_AHEAD), the guide holds what comes by itself: Podwózka requests (rides.gd `guide_hold`, the next one at least 30 s after the hold lets go) and the "Na czasie" offers (trend_job.gd). A job already under way runs on and the PODWÓZKA button still asks for a ride. `check_first10` "rider": a player who takes every request meets every beat in its window (without the hold the tape and Powiśle came at 546 s). Left: a player who chains kebab orders at the stand still holds the beats (the stand is the player's own choice; not held), and a ride taken just over 45 s before a beat still pushes it back up to ~2.5 min (inside the windows in the toy); the next P2 run should show both. Seen in the replay of 2026-11-10 with a ride of 4.5 min across Powiśle's window: the Powiśle line has a latest time over a ride now ("First-10 replay ran late" above).
 
 ## Hotel Warszawa and Cedet (city inventory item 4, 2026-11-02)
 Built from photos gathered on the Mac (`refs/hotel_warszawa/`, `refs/cedet/`) and the LoD2 heights, specs
@@ -5386,9 +5398,12 @@ first rescue, the boulevard tape and its song, the Powiśle arrow, the garage at
 - ~~The first order is 926 m (Aleje Jerozolimskie 33, past the Rotunda, a U-turn away).~~ Done in the
   first-10 polish: Marszałkowska 142, 226 m straight on from the stand; Halina waits until 1:15
   (`RACE_EARLIEST`) so the race stays in 6.2's window.
-- **Feel on the phone**: the rubber band's numbers (pace 1.15, 25 m, 0.4-1.5) come from a 1-D model;
-  F's runs should say whether Halina is close enough to feel like a race and never obviously
-  waiting. The ghost finger's place and gesture likewise (it sits on the stick's side, lower left).
+- **Feel on the phone**: ~~the rubber band's numbers (pace 1.15, 25 m, 0.4-1.5) come from a 1-D
+  model; F's runs should say whether Halina is close enough to feel like a race and never obviously
+  waiting.~~ The first race has no band since the racer AI rebuild's step 2 (2026-11-10): the phone
+  question is now whether her gentle day is the right pace for a new player ("Racer AI rebuild" at
+  the top). The ghost finger's place and gesture are still open (it sits on the stick's side, lower
+  left).
 - ~~**No "6.2" beat for "two jokes, the roosters explained in one line"** of the trap~~: the first
   contact already says it ("Koguty na dachu to my…", police.dialogue); checked in the designer pass.
 - ~~**The cassette is KASETA's then card** on the boulevards (a ground spot, not a roof).~~ Done in the

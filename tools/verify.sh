@@ -196,10 +196,11 @@
 # players, three forced routes, one race twice; the real traffic.gd and rivals.gd's own race code, no
 # city, under a minute) and its pass marks against game/data/race_bench.json: a mark recorded as a
 # pass that fails is a FAIL, one recorded as a fail that passes is a WARN until it is recorded
-# (tools/race_bench.sh --write; the full matrix, ~4 min: tools/race_bench.sh) (CI too). Loop 3h slice 4: `first10`
+# (tools/race_bench.sh --write; the full matrix, ~4 min: tools/race_bench.sh), one recorded as
+# unsteady (it turns with the draw of the traffic) is shown and not held (CI too). Loop 3h slice 4: `first10`
 # runs game/tools/check_first10.gd: the guide's ten beats and windows, who gets the guide, three
 # synthetic players through the director's rules (each beat in its window, the fallbacks, a beat
-# waiting for a job), the first race's rubber band in a 1-D race, the words; `endcard` runs
+# waiting for a job), the first race at her own pace in a 1-D race, the words; `endcard` runs
 # game/tools/check_end_card.gd: the end card's trigger on fixture wallets (final + 9 jobs no, + 10
 # yes, seen no), the card and its button, the save's [intro]; neither needs a map (CI too).
 # `first10-run` (not in --quick, ~12 min) is the headless replay: --first10 --autopilot plays the

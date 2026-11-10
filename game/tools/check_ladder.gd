@@ -10,6 +10,12 @@ extends SceneTree
 ##   only grows; next_rung; the full map's rows (★ / → / ·, the final "w nocy" by day);
 ## - every rival has a refusal line and Seba's final lines are there, Polish and English, at most
 ##   70 characters each;
+## - difficulty from skill (the racer AI rebuild, step 2): every racer's skill is inside the
+##   player's own car and over the floor, no rubber band is left, the gentle day is gentler than
+##   Halina's rung, the slowest racer at its least effort is over the race bench's crawl line; the
+##   easier rematch (`ease_of`, `eased`) and the streak of lost races (`lost_streak`,
+##   `note_result`: per rival, a win ends it, saved in [keep], cleared by a new game, --nosave
+##   writes nothing); Halina's gentle day until she is beaten once (`gentle`);
 ## - the save: the record round-trips through a scratch file; a v2 file without [ladder] (slices
 ##   1-2) and a v1 file load as nothing beaten with their money kept; --nosave writes nothing;
 ##   --ladder=N's preset;
@@ -26,6 +32,7 @@ const TrzyMosty := preload("res://scripts/trzy_mosty.gd")
 const Rivals := preload("res://scripts/rivals.gd")
 const Wallet := preload("res://scripts/wallet.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
+const RaceBench := preload("res://tools/race_bench.gd")
 const SCRATCH := "user://check_ladder_scratch.cfg"
 const MAX_WORDS := 70
 
@@ -61,6 +68,7 @@ func _initialize() -> void:
 	_words()
 	_race_hud()
 	_save()
+	_rematch()
 	await _route()
 	_cleanup()
 	if _problems == 0:
@@ -88,10 +96,7 @@ func _data() -> void:
 		if i > 0:
 			_expect(int(r["stake"]) > int(Ladder.RUNGS[i - 1]["stake"]), "%s's stake does not rise" % r["rival"])
 			_expect(Ladder.pace(i).x > Ladder.pace(i - 1).x, "%s's pace does not rise" % r["rival"])
-			# Street races R4: the racing share never falls up the ladder (every rival reaches the
-			# player's top since 2026-11-09), the rubber band weakens.
-			_expect(float(Ladder.racer(i)["share"]) >= float(Ladder.racer(i - 1)["share"]), "%s's racing share falls" % r["rival"])
-			_expect(float(Ladder.racer(i)["band"]) < float(Ladder.racer(i - 1)["band"]), "%s's band does not weaken" % r["rival"])
+		_skill(str(r["rival"]), Ladder.racer(i))
 		# The same rival and stake as rivals.gd.
 		var found := false
 		for rv: Dictionary in Rivals.RIVALS:
@@ -109,7 +114,44 @@ func _data() -> void:
 	_expect(Ladder.race_gain(Ladder.FINAL, true) == Ladder.FINAL_GAIN, "the final's first win")
 	_expect(Ladder.race_gain(0, false) == Ladder.REMATCH_GAIN and Ladder.race_gain(Ladder.FINAL, false) == Ladder.REMATCH_GAIN, "a rematch's respect")
 	_expect(Ladder.REMATCH_GAIN * 3 < Ladder.WIN_GAIN, "a rematch pays %d respect, near a job's, not a rung's" % Ladder.REMATCH_GAIN)
-	_summary["data"] = "stakes %s, pace %.2f-%.2f, respect +%d first win, +%d rematch" % [stakes, Ladder.pace(0).x, Ladder.pace(5).x, Ladder.WIN_GAIN, Ladder.REMATCH_GAIN]
+	# The racer AI rebuild, step 2 (docs/design/race-ai.md 6): difficulty from skill. The racers off
+	# the rungs too; the gentle day is gentler than Halina's rung in every skill; and no racer can
+	# crawl: the floor of the share times the least effort stays over the race bench's crawl line.
+	_skill("the final's Seba", Ladder.FINAL_RACER)
+	_skill("the default racer", Ladder.DEFAULT_RACER)
+	_skill("Halina's gentle day", Ladder.FIRST_RACER)
+	_expect(Ladder.racer(Ladder.FINAL) == Ladder.FINAL_RACER and Ladder.racer(-1) == Ladder.DEFAULT_RACER, "racer(FINAL) and racer(-1)")
+	for k: String in ["share", "race_accel", "brake", "lat"]:
+		_expect(float(Ladder.FIRST_RACER[k]) < float(Ladder.racer(0)[k]), "the gentle day's %s is not under her rung's" % k)
+	_expect(Ladder.SHARE_MIN * Rivals.EFFORT_EASE >= RaceBench.CRAWL_SHARE,
+			"the slowest racer at its least effort is under the bench's crawl line: %.2f x %.2f < %.2f" % [Ladder.SHARE_MIN, Rivals.EFFORT_EASE, RaceBench.CRAWL_SHARE])
+	# An easier rematch: EASE_STEP a loss in a row, EASE_MAX at most, on the straights and in the corners.
+	_expect(Ladder.ease_of(0) == 0.0 and Ladder.ease_of(-2) == 0.0 and is_equal_approx(Ladder.ease_of(1), Ladder.EASE_STEP)
+			and is_equal_approx(Ladder.ease_of(3), Ladder.EASE_MAX) and is_equal_approx(Ladder.ease_of(40), Ladder.EASE_MAX), "ease_of: %.2f, %.2f, %.2f" % [Ladder.ease_of(1), Ladder.ease_of(3), Ladder.ease_of(40)])
+	var mike := Ladder.racer(5)
+	var soft := Ladder.eased(mike, 0.1)
+	_expect(Ladder.eased(mike, 0.0) == mike, "no ease: the same racer")
+	_expect(is_equal_approx(float(soft["share"]), float(mike["share"]) * 0.9) and is_equal_approx(float(soft["lat"]), float(mike["lat"]) * 0.81)
+			and soft["race_accel"] == mike["race_accel"] and soft["brake"] == mike["brake"] and soft["block"] == mike["block"],
+			"eased 10 %%: share %.3f, lat %.2f" % [soft["share"], soft["lat"]])
+	_expect(is_equal_approx(float(Ladder.racer(5)["share"]), float(mike["share"])) and float(Ladder.RUNGS[5]["share"]) == float(mike["share"]), "easing changed the rung itself")
+	_expect(is_equal_approx(float(Ladder.eased(Ladder.FIRST_RACER, Ladder.EASE_MAX)["share"]), Ladder.SHARE_MIN), "the gentle day eased to the floor: %.3f" % Ladder.eased(Ladder.FIRST_RACER, Ladder.EASE_MAX)["share"])
+	_expect(is_equal_approx(float(Ladder.eased({"share": 0.5, "lat": 5.0}, 0.1)["share"]), 0.5), "a share under the floor is not raised by easing")
+	_summary["data"] = "stakes %s, pace %.2f-%.2f, respect +%d first win, +%d rematch, skill share %.2f-%.2f (the gentle day %.2f, floor %.2f)" % [
+			stakes, Ladder.pace(0).x, Ladder.pace(5).x, Ladder.WIN_GAIN, Ladder.REMATCH_GAIN, Ladder.racer(0)["share"], Ladder.racer(5)["share"], Ladder.FIRST_RACER["share"], Ladder.SHARE_MIN]
+
+
+## A racer's skill is inside the player's own car (the race bench's Honest car limits) and over
+## the floor, and nothing of the rubber band is left in it. The ladder's order is not one number's
+## (Słoik is quicker on the straights than Bartek and slower round the corners): the race bench's
+## Skill ladder mark holds the order of the times.
+func _skill(who: String, s: Dictionary) -> void:
+	_expect(float(s["share"]) >= Ladder.SHARE_MIN and float(s["share"]) <= 1.0, "%s: share %.2f" % [who, s["share"]])
+	_expect(float(s["race_accel"]) > 0.0 and float(s["race_accel"]) <= RaceBench.PLAYER_ACCEL, "%s: pull %.1f m/s²" % [who, s["race_accel"]])
+	_expect(float(s["brake"]) > 0.0 and float(s["brake"]) <= RaceBench.PLAYER_BRAKE, "%s: brake %.1f m/s²" % [who, s["brake"]])
+	_expect(float(s["lat"]) > 0.0 and float(s["lat"]) <= RaceBench.PLAYER_GRIP, "%s: grip %.1f m/s²" % [who, s["lat"]])
+	_expect(not s.has("band") and not s.has("aim"), "%s still has a rubber band" % who)
+	_expect(float(s["mistake"]) >= 0.0 and float(s["mistake"]) * Rivals.PUSH_MISTAKES <= 0.5, "%s: mistakes %.2f a corner" % [who, s["mistake"]])
 
 
 func _gating() -> void:
@@ -258,6 +300,76 @@ func _save() -> void:
 	_expect(not FileAccess.file_exists(SCRATCH), "--nosave wrote a file")
 	n.free()
 	_summary["save"] = "round trip, v2/v1 without [ladder], --nosave"
+
+
+## The racer AI rebuild, step 2: the races lost in a row to a rival (the easier rematch) and
+## Halina's gentle day until she is beaten once.
+func _rematch() -> void:
+	var w := _fresh()
+	var l := Ladder.new()
+	l.wallet = w
+	_expect(l.lost_streak(0) == 0 and l.gentle(0), "a fresh save: no race lost, Halina on her gentle day")
+	_expect(not l.gentle(1) and not l.gentle(5) and not l.gentle(Ladder.FINAL) and not l.gentle(-1), "only Halina has a gentle day")
+	l.note_result(0, false)
+	l.note_result(0, false)
+	_expect(l.lost_streak(0) == 2 and is_equal_approx(Ladder.ease_of(l.lost_streak(0)), 2.0 * Ladder.EASE_STEP), "two lost in a row: %d" % l.lost_streak(0))
+	_expect(l.lost_streak(1) == 0, "another rival's streak is its own")
+	for i in 5:
+		l.note_result(0, false)
+	_expect(l.lost_streak(0) == 7 and is_equal_approx(Ladder.ease_of(l.lost_streak(0)), Ladder.EASE_MAX), "seven lost: the ease stays at EASE_MAX")
+	l.note_result(0, true)
+	_expect(l.lost_streak(0) == 0 and not w.keep.has(Ladder.LOST_KEY + "halina"), "a win ends the streak: %s" % [w.keep])
+	l.note_result(0, true)
+	_expect(l.lost_streak(0) == 0, "a second win in a row")
+	l.note_result(Ladder.FINAL, false)
+	_expect(l.lost_streak(Ladder.FINAL) == 1 and w.keep.has(Ladder.LOST_KEY + Ladder.FINAL_ID), "the final has its streak too")
+	l.note_result(-1, false)
+	l.note_result(Ladder.FINAL + 1, false)
+	_expect(w.keep.size() == 1 and l.lost_streak(-1) == 0 and l.lost_streak(Ladder.FINAL + 1) == 0, "a race outside the ladder keeps no streak: %s" % [w.keep])
+	_expect(l.gentle(0), "not beaten yet (a noted result is not a rung's win): still gentle")
+	l.win(0)
+	_expect(not l.gentle(0), "beaten once: her rung's own numbers from now on")
+	w.free()
+	# No wallet: nothing lost, nothing kept, no crash.
+	var bare := Ladder.new()
+	bare.note_result(0, false)
+	_expect(bare.lost_streak(0) == 0 and bare.gentle(0), "a ladder with no wallet")
+	# The streak is in the save ([keep]), a win takes it out, and a new game clears it.
+	_cleanup()
+	var a := Wallet.new()
+	a.path = SCRATCH
+	var la := Ladder.new()
+	la.wallet = a
+	la.note_result(1, false)
+	la.note_result(1, false)
+	var b := Wallet.new()
+	b.path = SCRATCH
+	b.load_save()
+	var lb := Ladder.new()
+	lb.wallet = b
+	_expect(lb.lost_streak(1) == 2, "the streak is saved: %d" % lb.lost_streak(1))
+	lb.note_result(1, true)
+	var c := Wallet.new()
+	c.path = SCRATCH
+	c.load_save()
+	_expect(not c.keep.has(Ladder.LOST_KEY + "sloik"), "a win takes the streak out of the save: %s" % [c.keep])
+	la.note_result(2, false)
+	a.reset()
+	_expect(la.lost_streak(2) == 0, "a new game clears the streaks")
+	a.free()
+	b.free()
+	c.free()
+	_cleanup()
+	# --nosave: counted for the session, nothing written.
+	var n := Wallet.new()
+	n.path = SCRATCH
+	n.persistent = false
+	var ln := Ladder.new()
+	ln.wallet = n
+	ln.note_result(0, false)
+	_expect(ln.lost_streak(0) == 1 and not FileAccess.file_exists(SCRATCH), "--nosave: the streak counts and nothing is written")
+	n.free()
+	_summary["rematch"] = "easier rematch %d %% a loss in a row, %d %% at most, saved; Halina gentle until beaten" % [roundi(Ladder.EASE_STEP * 100.0), roundi(Ladder.EASE_MAX * 100.0)]
 
 
 func _route() -> void:
