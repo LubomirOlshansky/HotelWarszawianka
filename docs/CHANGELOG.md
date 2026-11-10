@@ -10,6 +10,7 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-10
+- Hotel Metropol on Marszałkowska is rebuilt from your photos: cream balcony fronts, a dark glazed ground floor under a canopy, and its name (the parody METROPOLKA) in green on a white board on the roof, facing the street.
 - Street race rivals race at their own pace now. Nobody crawls beside a slow player, waits when you stop or lifts off before the finish, so a race you drive at town pace is a race you lose. Each rival is a different driver, from careful Pani Halina to Mordor Mike, and a rival who keeps beating you drives a little slower each time until you win.
 
 ## 2026-11-09

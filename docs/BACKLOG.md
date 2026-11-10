@@ -4,6 +4,9 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## Hotel Metropol rebuilt (F, 2026-11-07, docs/landmarks/metropol.md)
+Built from F's four photos (merged 2026-11-10; the first build sat unmerged as a patch). Open: the real hotel's ground floor and the rear courtyard wings have no street photo; the white box's size (20 m) is a guess; Mac night look for the green letters.
+
 ## Racer AI rebuild (F, 2026-11-09; docs/design/race-ai.md)
 
 F (two phone screenshots, the race against Pani Halina from Powiśle to Plac Trzech Krzyży): "she was
@@ -312,7 +315,6 @@ Built (event_day.gd): date gate, hours, crowd + flags, four barrier lines, white
 - Flags now sway in the wind (`actor.gdshader` `sway`, cloth marked UV.y 2). The 15 s video take is built: `--cinematic=event` (camera keys in `camera_shots.gd` `EVENT_KEYS`, light cascade, fog ramp, flares in turns in `event_day.gd` `scene_t`, title card), `--event-t=SEC` freezes it for stills; the 4K capture on the Mac and the sound are not done. Heli-only day missions, the notebook stamp, event sounds and the Settings toggle for smoke are not built yet (plan sections 3.3, 3.5, 6 E5).
 - Stadion Narodowy white-red panels are coded (`_stadium_bands`) but did not show in the cloud shot: unverified, check on the Mac or phone (mast heights, radius).
 - Max look for the promo (F, 2026-11-07, recorded on iPhone 17 Pro or M4 Pro, no performance limit): up to 6,000 people, 520 standing-fog blobs (`event_fog.gdshader`, day and night), 200 flare halos. Heavy on purpose: the quality tier scales it down. Phone bench still open. The lit puff boxes are off (`PUFFS_ON`).
-- The METROPOLKA roof neon (Hotel Metropol, `landmarks.gd` `_build_metropol_sign`) reads mirrored and looks like it floats when seen from the north from the air: not the event's, needs a look.
 - Trailer rig (plan section 7) not started.
 
 ## The Palace of Culture's grounds and venues (F, 2026-11-07, with F's aerial photo)

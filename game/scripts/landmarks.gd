@@ -1215,10 +1215,12 @@ func _find_sites() -> void:
 		_add_site("level26_club", [PackedVector2Array([ae, ae + Vector2(0.2, 0), ae + Vector2(0.2, 0.2), ae + Vector2(0, 0.2)])])
 	var metropol := _landmark("Hotel Metropol")
 	if metropol.size() >= 3:
-		# A 0.2 m zone at the roof's south-east corner: a site's zone drops what stands in it,
-		# and the hotel itself stays the map's.
-		var e := _box_of([metropol]).end
-		_add_site("metropolsign", [PackedVector2Array([e, e + Vector2(0.2, 0), e + Vector2(0.2, 0.2), e + Vector2(0, 0.2)])])
+		# The hotel is rebuilt whole (_build_metropol_sign, F's photos 2026-11-07): the zone is its outline.
+		# The zone is the outline's convex hull: the slab's own centre falls in its courtyard notch.
+		var hull := Geometry2D.convex_hull(metropol)
+		_add_site("metropolsign", [hull])
+		sites[-1]["outline"] = metropol
+		sites[-1]["hull"] = hull
 	# First scene item 1 (2026-10-31): the Museum of Modern Art on Plac Defilad.
 	_find_msn()
 	_find_tr()
@@ -13348,18 +13350,128 @@ func _find_plac2() -> void:
 			return
 
 
-## Hotel Metropol (the Rondo night photos, 2026-10-31): the building stays the map's own; its
-## roof carries a green neon name, a parody (METROPOLKA), on the south and east faces. A site
-## with no card, so it is not on the picking grid.
-func _build_metropol_sign(_site: Dictionary) -> void:
-	var outline := _box_poly(_box_of([_landmark("Hotel Metropol")]))
+## Hotel Metropol, Marszałkowska 99a (F's four photos, 2026-11-07: "rebuild this metropol"). Before: the
+## map's plain extrusion with the parody name METROPOLKA floating on an edge's middle. Now: the mapped
+## parts rebuilt whole. The slab's long faces take the S_SLAB loggia skin in cream (a balustrade and a dark
+## recess on every floor, as in the photos), the ends and the courtyard wings stay plain plaster; the ground
+## floor on the street side is dark glazing under a cream canopy with a lit strip; the roof structures stay
+## the map's; and the name stands on the roof over the east face as a white light box with green letters
+## (the parody METROPOLKA), facing Marszałkowska. A site with no card, so it is not on the picking grid.
+const MP_WALL := Color("#d9cfb9")
+const MP_END := Color("#c9bfa9")
+const MP_ROOF := Color("#7b7a76")
+const MP_PLANT := Color("#a9a8a2")
+const MP_GLASS := Color("#2f3a42")
+const MP_CREAM := Color("#e6dfcf")
+const MP_BOX := Color("#f2f2ee")
+const MP_GREEN := Color(0.18, 1.0, 0.36)
+
+
+func _build_metropol_sign(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
 	var g := _ground_under(outline)
-	var top := 0.0
-	for bld in _parts_in(outline, func(_b: Dictionary) -> bool: return true):
-		top = maxf(top, float(bld["h"]))
-	if top < 20.0:
+	_g = g
+	var hull: PackedVector2Array = site["hull"]
+	var parts := _parts_in(hull, func(_b: Dictionary) -> bool: return true)
+	var skin := M_SKIN + float(S_SLAB) / 16.0
+	var main_top := 0.0
+	var main: PackedVector2Array
+	var main_area := 0.0
+	for bld in parts:
+		var ring := _simplify(_pts(bld["p"]), 0.4)
+		if ring.size() < 3:
+			continue
+		var h := float(bld["h"])
+		var mh := float(bld["mh"])
+		if mh >= 20.0:
+			# A roof structure (lift and plant rooms): plain, from the main roof up.
+			_prism(ring, g + mh, g + h, MP_PLANT, MP_ROOF, M_STONE, M_STONE)
+			continue
+		if h < 12.0:
+			if mh < 0.5 and str(bld.get("c", "")).to_upper() == "#5D6768":
+				# The ground floor the slab stands on (mapped 3.5 m, dark): glazing.
+				_prism(ring, g - 0.4, g + h, MP_GLASS, MP_ROOF, M_GLASS, M_STONE)
+			else:
+				_prism(ring, g - 0.4, g + h, MP_END, MP_ROOF, M_STONE, M_STONE)
+			continue
+		var y0 := g + mh if mh > 0.5 else g - 0.4
+		var area := absf(_area(ring))
+		if area > main_area:
+			main_area = area
+			main = ring
+			main_top = h
+		for i in ring.size():
+			var a := ring[i]
+			var b := ring[(i + 1) % ring.size()]
+			var long_face := a.distance_to(b) >= 7.0
+			_mode = skin if long_face else M_STONE
+			_wall(a, b, y0, g + h, _out(ring, a, b), MP_WALL if long_face else MP_END)
+		_mode = M_STONE
+		_cap(ring, g + h, MP_ROOF)
+	_mode = M_STONE
+	if main.size() < 3:
 		return
-	_crown_signs(outline, g + top + 3.0, "METROPOLKA", Color(0.18, 1.0, 0.36), 0.0, 0.7)
+	var top := g + main_top
+	# The street side: dark glazing and a canopy with a lit strip along the main block's outermost
+	# long faces (the ones on the street line, not the courtyard's), and the name over the middle one.
+	# The street line: the mapped outline's longest edge (Marszałkowska's side).
+	var ref_i := 0
+	var ref_len := 0.0
+	for i in outline.size():
+		var l := outline[i].distance_to(outline[(i + 1) % outline.size()])
+		if l > ref_len:
+			ref_len = l
+			ref_i = i
+	var ref_out := _out(outline, outline[ref_i], outline[(ref_i + 1) % outline.size()])
+	var max_proj := -INF
+	for i in main.size():
+		var a := main[i]
+		var b := main[(i + 1) % main.size()]
+		if _out(main, a, b).dot(ref_out) > 0.9 and a.distance_to(b) >= 8.0:
+			max_proj = maxf(max_proj, ((a + b) * 0.5).dot(ref_out))
+	var faces: Array[int] = []
+	for i in main.size():
+		var a := main[i]
+		var b := main[(i + 1) % main.size()]
+		var o := _out(main, a, b)
+		var el := a.distance_to(b)
+		if el < 8.0 or o.dot(ref_out) < 0.9 or ((a + b) * 0.5).dot(ref_out) < max_proj - 3.0:
+			continue
+		faces.append(i)
+		_mode = M_GLASS
+		_wall(a + o * 0.12, b + o * 0.12, g, g + 4.5, o, MP_GLASS)
+		_mode = M_STONE
+		var d := (b - a) / el
+		var slab := PackedVector2Array([a, b, b + o * 1.8, a + o * 1.8])
+		if Geometry2D.is_polygon_clockwise(slab) != Geometry2D.is_polygon_clockwise(main):
+			slab.reverse()
+		_prism(slab, g + 4.5, g + 4.85, MP_CREAM, MP_CREAM, M_STONE, M_STONE)
+		var strip := PackedVector2Array([a + o * 0.2, b + o * 0.2, b + o * 0.3, a + o * 0.3])
+		if Geometry2D.is_polygon_clockwise(strip) != Geometry2D.is_polygon_clockwise(main):
+			strip.reverse()
+		_prism(strip, g + 4.3, g + 4.5, Color("#fff1d0"), Color("#fff1d0"), M_LAMP, M_LAMP)
+	# The name: a white light box on the roof edge over the middle street face, green letters.
+	if not faces.is_empty():
+		var mi := faces[faces.size() / 2]
+		var e0 := main[mi]
+		var e1 := main[(mi + 1) % main.size()]
+		var out := _out(main, e0, e1)
+		_b = out
+		_a = Vector2(-out.y, out.x)
+		_o = (e0 + e1) * 0.5
+		var width := minf(e0.distance_to(e1) + 4.0, 20.0)
+		var k := (width - 1.5) / Neon.length_of("METROPOLKA")
+		var th := Neon.ROW_H * Neon.PIXEL * k
+		var board_h := th * 1.5
+		# On two posts over the roof structures (up to 2 m above the main roof) and flush with the face.
+		var base := top + 2.4
+		_lbox(0.0, 0.2, width * 0.5, 0.25, base, base + board_h, MP_BOX, M_STONE, MP_BOX.darkened(0.08))
+		for pu: float in [-width * 0.35, width * 0.35]:
+			_lbox(pu, 0.0, 0.2, 0.2, top, base, MP_PLANT, M_STONE, MP_PLANT)
+		var c := _w(0.0, 0.52)
+		signs.append(["METROPOLKA", Vector3(c.x, base + board_h * 0.5, c.y), Vector3(out.x, 0.0, out.y), k, MP_GREEN])
+	_collide(_simplify(outline, 0.3))
+	_mode = M_STONE
 
 
 ## LORETKA's summer terrace (F, 2026-11-01; the real rooftop bar's: a deck, greenery, low
