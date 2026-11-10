@@ -249,7 +249,8 @@ const BUDGET := {
 	"sw_krzyz": 1250,  # 2026-11-06 photo pass: the real flat front, balustrade and statue
 	"sejm": 1400,
 	"staszic": 360,
-	"zamek": 3400,
+	"zamek": 4300,
+	"zamkowy": 1700,
 	"arkady": 2600,
 	"kino_muranow": 6000,
 	"zbawiciela": 1250,

@@ -573,6 +573,9 @@ const INFO := {
 	"rynek": ["Rynek Starego Miasta",
 			"Serce Starówki, odbudowane po wojnie z gruzów. Pod parasolami kawa, lody i turyści.",
 			"The heart of the Old Town, rebuilt from rubble after the war. Coffee, ice cream and tourists under umbrellas."],
+	"zamkowy": ["Plac Zamkowy",
+			"Kolumna, zamek i parasole. Gołębie czekają na okruchy.",
+			"The column, the castle and the umbrellas. Pigeons wait for crumbs."],
 	"syrenka": ["Syrenka",
 			"Z mieczem i tarczą, jak w herbie miasta. Stoi w fontannie pośrodku Rynku i pilnuje Warszawy.",
 			"With her sword and shield, as on the city's coat of arms. She stands in the fountain in the middle of the square and watches over Warsaw."],
@@ -1177,6 +1180,8 @@ func _find_sites() -> void:
 	_find_muzeum()
 	_find_mdm()
 	_find_skins()
+	# Before the column: a later site's tap cells win, and the column's must (check_landmarks).
+	_find_zamkowy()
 	_find_zygmunt()
 	_find_gaulle()
 	_find_rondo()
@@ -1672,6 +1677,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_rynek(s)
 			"syrenka":
 				_build_syrenka(s)
+			"zamkowy":
+				_build_zamkowy(s)
 			"arkadia":
 				_build_arkadia(s)
 			"forest":
@@ -7612,6 +7619,126 @@ func _build_syrenka(_site: Dictionary) -> void:
 	_b = Vector2(-_a.y, _a.x)
 	_syrenka_figure(g + 2.95)
 	_collide(outer)
+
+
+# --- Plac Zamkowy for the trailer (F, 2026-11-10) ----------------------------------------------
+
+## The square round Sigismund's Column, for the Old Town take of the beta trailer (photos F sent:
+## the column's raised granite plaza with its two curved flights of steps, the cafe gardens
+## under cream umbrellas along the houses, the setts crowded with tourists). The column itself is
+## `zygmunt` above. This adds the plaza (a low granite fan round the column from the north-east,
+## round the east and south, to the south-west) with three treads down to the setts all along its
+## curved edge, and two cafe gardens (the north houses' one, and the one at Kamienica Johna's
+## front). The tourists and the pigeons are `plac_zamkowy_life.gd`.
+const ZAMKOWY_ZONE := [Vector2(-738.0, -1530.0), Vector2(-684.0, -1530.0), Vector2(-684.0, -1433.0), Vector2(-738.0, -1433.0)]
+## The plaza: radius to the first tread, the arc's two ends (degrees, 0 east, 90 south), the tread
+## width and the risers' height; the plaza's top is 0.36 over the setts (the column's
+## own steps top out at 0.15, 0.30, 0.45 and 0.60, so no top is coplanar with theirs).
+const ZAMKOWY_R := 10.0
+const ZAMKOWY_FROM := -65.0
+const ZAMKOWY_TO := 150.0
+const ZAMKOWY_TREAD := 0.66
+## Treads down from the plaza: its top is (this + 1) risers over the setts.
+const ZAMKOWY_TREADS := 3
+const ZAMKOWY_RISER := 0.09
+const ZAMKOWY_GRANITE := Color("#b3aea4")
+const ZAMKOWY_GRANITE_DARK := Color("#9c978e")
+## The cafe gardens: [x, z, yaw] of each set. The north garden runs along the footway under
+## the north houses, the south one along Kamienica Johna's north front.
+const ZAMKOWY_SETS := [
+	-735.6, -1508.4, 0.97, -733.4, -1512.0, 0.97, -731.2, -1515.6, 0.97, -729.0, -1519.2, 0.97,
+	-726.8, -1522.8, 0.97, -730.6, -1506.4, 0.97, -728.4, -1510.0, 0.97, -726.2, -1513.6, 0.97,
+	-740.0, -1441.6, 0.0, -736.0, -1441.6, 0.0, -732.0, -1441.6, 0.0, -728.0, -1441.8, 0.0
+]
+
+
+func _find_zamkowy() -> void:
+	_add_site("zamkowy", [PackedVector2Array(ZAMKOWY_ZONE)])
+
+
+## A ring sector round the column between two radii and two angles (degrees), wound for `_cap`.
+func _zamkowy_ring(r0: float, r1: float, d0: float, d1: float) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	var n := maxi(4, ceili((d1 - d0) / 6.0))
+	for k in n + 1:
+		out.append(ZYGMUNT + Vector2.from_angle(deg_to_rad(d0 + (d1 - d0) * k / n)) * r1)
+	if r0 <= 0.01:
+		out.append(ZYGMUNT)
+	else:
+		for k in range(n, -1, -1):
+			out.append(ZYGMUNT + Vector2.from_angle(deg_to_rad(d0 + (d1 - d0) * k / n)) * r0)
+	if Geometry2D.is_polygon_clockwise(out):
+		out.reverse()
+	return out
+
+
+## The lowest and highest ground under the plaza and its treads (x, y of the result), INF, -INF
+## when the terrain is not there.
+static func zamkowy_span(m: Object) -> Vector2:
+	var low := INF
+	var high := -INF
+	for r: float in [4.0, ZAMKOWY_R, ZAMKOWY_R + ZAMKOWY_TREADS * ZAMKOWY_TREAD]:
+		for d in range(int(ZAMKOWY_FROM), int(ZAMKOWY_TO) + 1, 15):
+			var q := ZYGMUNT + Vector2.from_angle(deg_to_rad(float(d))) * r
+			var h: float = m.terrain_height(q.x, q.y)
+			low = minf(low, h)
+			high = maxf(high, h)
+	return Vector2(low, high)
+
+
+## True when p lies on the plaza or its treads (the people and the pigeons use this to stand on them).
+static func zamkowy_on(p: Vector2) -> bool:
+	var d := p - ZYGMUNT
+	if d.length() > ZAMKOWY_R + ZAMKOWY_TREADS * ZAMKOWY_TREAD:
+		return false
+	var a := rad_to_deg(d.angle())
+	return a >= ZAMKOWY_FROM and a <= ZAMKOWY_TO
+
+
+## The floor at p: the plaza's top or tread when p is on it (`high` from `zamkowy_span`), else
+## the ground.
+static func zamkowy_floor(m: Object, p: Vector2, high: float) -> float:
+	var g: float = m.ground_height(p.x, p.y)
+	if not zamkowy_on(p):
+		return g
+	var r := p.distance_to(ZYGMUNT)
+	var k := ZAMKOWY_TREADS + 1
+	if r > ZAMKOWY_R:
+		k = maxi(0, ZAMKOWY_TREADS - int((r - ZAMKOWY_R) / ZAMKOWY_TREAD))
+	return maxf(g, high + k * ZAMKOWY_RISER)
+
+
+func _build_zamkowy(_site: Dictionary) -> void:
+	_mode = M_STONE
+	_no_roof = true
+	# The plaza and its three treads, over the highest ground they cover (their sides sink into
+	# the ground where the setts dip), like the Rynek's slab.
+	var span := zamkowy_span(map)
+	var low: float = span.x
+	var high: float = span.y
+	if low == INF:
+		_no_roof = false
+		return
+	var y := high
+	var plaza := _zamkowy_ring(0.0, ZAMKOWY_R, ZAMKOWY_FROM, ZAMKOWY_TO)
+	_prism(plaza, low - 0.3, y + (ZAMKOWY_TREADS + 1) * ZAMKOWY_RISER, ZAMKOWY_GRANITE_DARK, ZAMKOWY_GRANITE, M_STONE, M_STONE)
+	var r := ZAMKOWY_R
+	for k in ZAMKOWY_TREADS:
+		var ring := _zamkowy_ring(r, r + ZAMKOWY_TREAD, ZAMKOWY_FROM, ZAMKOWY_TO)
+		_prism(ring, low - 0.3, y + (ZAMKOWY_TREADS - k) * ZAMKOWY_RISER, ZAMKOWY_GRANITE_DARK, ZAMKOWY_GRANITE.lightened(0.04 * (k + 1)), M_STONE, M_STONE)
+		r += ZAMKOWY_TREAD
+	# The cars stop at the plaza's edge (as they do at the real steps).
+	_collide(_zamkowy_ring(0.0, r, ZAMKOWY_FROM, ZAMKOWY_TO))
+	# The cafe gardens: cream umbrellas with a red one now and then, four chairs to a table.
+	var u := ZAMKOWY_SETS
+	var canopy: Array[Color] = [Color("#efe8d6"), Color("#f3efe6"), Color("#efe8d6"), Color("#8c2f36"), Color("#f0eadb")]
+	for k in range(0, u.size(), 3):
+		var p := Vector2(u[k], u[k + 1])
+		var gy: float = map.terrain_height(p.x, p.y)
+		_umbrella(p, float(u[k + 2]), gy, canopy[(k / 3) % canopy.size()])
+		for v: float in [-0.8, 0.8]:
+			_lbox(v, 0.0, 0.2, 0.2, gy, gy + 0.45, RYNEK_CHAIR, M_STONE)
+	_no_roof = false
 
 
 ## The mermaid, bronze: the tail coiled on the rock with its fin flicked up, the torso, the
@@ -14514,6 +14641,7 @@ func _build_zamek(site: Dictionary) -> void:
 			_g = minf(map.terrain_height(a.x, a.y), map.terrain_height(b.x, b.y))
 			_wall(a, b, _g - 1.0, _g + 2.2, out, ZAMEK_STONE, p.distance_to(a))
 	_zamek_vistula(ring)
+	_zamek_square_front(ring)
 	_zamek_dome()
 	_zamek_clock_tower()
 	for c: Vector2 in ZAMEK_TURRETS:
@@ -14574,6 +14702,83 @@ func _zamek_vistula(ring: PackedVector2Array) -> void:
 		_wall(p + out * 0.75, q + out * 0.75, top - 0.2, top + 0.7, out, ZAMEK_CREAM, run)
 		_ledge(a, b, p + out * 0.75, q + out * 0.75, top + 0.7, ZAMEK_CREAM)
 		run += p.distance_to(q)
+
+
+## The square front (F, 2026-11-10, the trailer's Old Town take: "from the side of Plac Zamkowy it had
+## no facade"; photos F sent, 14 of the castle): the red plaster wall of the west wing and of the
+## south wing's end, as the castle shows it to the square: a pale stone plinth, the plaster to the eave,
+## two cream string courses and the cornice, and three rows of windows, each a cream surround with a
+## dark pane and a sill (small on the ground floor, tall on the piano nobile, square on the top
+## floor), one to a 3.6 m bay. The Clock Tower and the two corner turrets keep their own bays.
+## It stands 0.3 m proud of LoD2's wall (which still shows above the eave and round the tower).
+const ZAMEK_PLASTER := Color("#d98568")
+const ZAMEK_PLINTH := Color("#c9bea8")
+const ZAMEK_PANE := Color("#2c2f3a")
+const ZAMEK_BAY := 3.6
+## Absolute eave of the square front over the courtyard's ground, and its string courses over a bay's ground.
+const ZAMEK_SQUARE_EAVE := 15.5
+const ZAMEK_COURSES := [5.0, 10.0]
+
+
+func _zamek_square_front(ring: PackedVector2Array) -> void:
+	var yard: float = map.terrain_height(ZAMEK_YARD.x, ZAMEK_YARD.y)
+	var top := yard + ZAMEK_SQUARE_EAVE
+	var n := ring.size()
+	var run := 0.0
+	_mode = M_STONE
+	for i in n:
+		var p := ring[i]
+		var q := ring[(i + 1) % n]
+		var len := p.distance_to(q)
+		if len < 2.0:
+			continue
+		var out := _out(ring, p, q)
+		var west := out.x < -0.55
+		var south := out.y > 0.55 and (p.x + q.x) * 0.5 < -640.0
+		if not (west or south):
+			continue
+		var d := (q - p) / len
+		var bays := maxi(1, roundi(len / ZAMEK_BAY))
+		var bay := len / bays
+		for k in bays:
+			var a := p + d * (bay * k) + out * 0.3
+			var b := p + d * (bay * (k + 1)) + out * 0.3
+			var mid := (a + b) * 0.5
+			var g := minf(map.terrain_height(a.x, a.y), map.terrain_height(b.x, b.y))
+			var h := top - g
+			if h < 6.0:
+				continue
+			# The wall: plinth, plaster, courses, cornice.
+			_wall(a, b, g - 0.6, g + 1.1, out, ZAMEK_PLINTH, run)
+			_wall(a, b, g + 1.1, top, out, ZAMEK_PLASTER, run)
+			var o2 := out * 0.04
+			for c: float in ZAMEK_COURSES:
+				_wall(a + o2, b + o2, g + c, g + c + 0.35, out, ZAMEK_CREAM, run)
+			_wall(a + out * 0.45, b + out * 0.45, top - 0.35, top + 0.5, out, ZAMEK_CREAM, run)
+			_ledge(a, b, a + out * 0.45, b + out * 0.45, top + 0.5, ZAMEK_CREAM)
+			run += bay
+			# The windows, not where the tower or a turret stands.
+			var near_tower := absf(mid.y - ZAMEK_CLOCK.y) < 6.4 and west
+			var near_turret := false
+			for t: Vector2 in ZAMEK_TURRETS:
+				if mid.distance_to(t) < 4.4:
+					near_turret = true
+			if near_tower or near_turret:
+				continue
+			# rows: [floor y0, y1, half width]
+			var rows := [[g + 2.0, g + 3.5, 0.45], [g + 6.0, g + 9.0, 0.6], [g + 11.0, g + 13.2, 0.5]]
+			for r: Array in rows:
+				var y0: float = r[0]
+				var y1: float = r[1]
+				if y1 > top - 0.9:
+					continue
+				var hw: float = r[2]
+				var ca := mid - d * (hw + 0.14)
+				var cb := mid + d * (hw + 0.14)
+				_wall(ca + out * 0.0, cb + out * 0.0, y0 - 0.14, y1 + 0.18, out, ZAMEK_CREAM, run)
+				_wall(mid - d * hw + out * 0.05, mid + d * hw + out * 0.05, y0, y1, out, ZAMEK_PANE, run)
+				_wall(ca + out * 0.18, cb + out * 0.18, y0 - 0.3, y0 - 0.14, out, ZAMEK_CREAM, run)
+				_ledge(ca, cb, ca + out * 0.18, cb + out * 0.18, y0 - 0.14, ZAMEK_CREAM)
 
 
 ## A flat strip between two parallel segments (a cornice's top), through `_cap` so the strips of
@@ -14676,7 +14881,7 @@ func _zamek_clock_tower() -> void:
 	# the dials, one on each face
 	for f: Vector2 in [Vector2(0, 1), Vector2(0, -1), Vector2(1, 0), Vector2(-1, 0)]:
 		var nrm := _a * f.x + _b * f.y
-		_dial(_w(f.x * (h + 0.02), f.y * (h + 0.02)), g + 24.0, nrm, 1.7, ZAMEK_DIAL, ZAMEK_GILT)
+		_zamek_clock(_w(f.x * (h + 0.02), f.y * (h + 0.02)), g + 24.0, nrm)
 	_lbox(0.0, 0.0, h + 0.4, h + 0.4, g + 29.5, g + 30.3, ZAMEK_CREAM, M_STONE, ZAMEK_CREAM)
 	_lbox(0.0, 0.0, h + 0.15, h + 0.15, g + 30.3, g + 30.7, ZAMEK_GILT, M_STONE, ZAMEK_GILT)
 	# the helm
@@ -14700,6 +14905,31 @@ func _zamek_clock_tower() -> void:
 	_wall(c + _a * 1.6, c + _a * 0.15, g + 53.6, g + 54.6, -_b, ZAMEK_COPPER)
 	_o = ZAMEK_CLOCK
 	_collide(_rect(0.0, 0.0, h, h))
+
+
+## One face of the Clock Tower's clock (Zegar Wieży Zygmuntowskiej, the oldest in Warsaw's public
+## spaces): a square cream stone panel on the plaster so it reads from the square, a gilt rim, a
+## cream face with dark numerals, and the hands at ten past ten. `n` points out of the face.
+func _zamek_clock(c: Vector2, y: float, n: Vector2) -> void:
+	var side := Vector2(-n.y, n.x)
+	_mode = M_STONE
+	var pa := c - side * 2.5 + n * 0.06
+	var pb := c + side * 2.5 + n * 0.06
+	_wall(pa, pb, y - 2.5, y + 2.5, n, ZAMEK_CREAM)
+	var pa2 := c - side * 2.1 + n * 0.11
+	var pb2 := c + side * 2.1 + n * 0.11
+	_wall(pa2, pb2, y - 2.1, y + 2.1, n, ZAMEK_GILT.darkened(0.15))
+	_dial(c + n * 0.14, y, n, 1.95, Color("#f4ecd6"), Color("#2a2220"))
+	# the hands: hour towards ten, minute towards two, as thin dark bars from the middle
+	var n3 := Vector3(n.x, 0.0, n.y)
+	var s3 := Vector3(side.x, 0.0, side.y)
+	var mid := Vector3(c.x, y, c.y) + n3 * 0.36
+	for hand: Array in [[0.55, 0.83, 1.0, 0.1], [-0.5, 0.87, 1.55, 0.07]]:
+		var dir := s3 * float(hand[0]) + Vector3.UP * float(hand[1])
+		var wide := dir.cross(n3).normalized() * float(hand[3])
+		var lift := n3 * (0.04 if float(hand[0]) < 0.0 else 0.0)  # the minute hand over the hour hand
+		var tip := mid + lift + dir.normalized() * float(hand[2])
+		_quad(mid + lift - wide, mid + lift + wide, tip + wide * 0.4, tip - wide * 0.4, n3, Color("#2a2220"))
 
 
 ## A corner turret of the west front: a square shaft out of the roof with cream quoins, a
