@@ -54,6 +54,8 @@ class StubMap:
 			var f := e.duplicate()
 			if not is_nan(float(f["hb"])):
 				f["hb"] = -3.4
+			if f.has("rim"):
+				f["rim"] = 0.0
 			_sunk.append(MapBuilderRef.sunk_entry(f, 0.0, 10.0))
 
 	func _grid_height(_x: float, _z: float) -> float:

@@ -362,10 +362,9 @@ var _rng := RandomNumberGenerator.new()
 ## been (s), and whether the prompt has nudged; `first_race` while that race runs, and
 ## `first_result` ("won", "lost", "declined") once it is over (first10.gd reads it).
 var _caller := -1
-## Street races (R2): the player's progress along the route (m/s, smoothed), the last reading
-## and the route's length at the start (the first race's band); the band's range this race.
-var _rate := FIRST_RATE0
-var _last_player_left := INF
+## Street races (R2): the race's pace memory (`Pace` below: the player's progress along the route,
+## the route's length at the start, the skill read, the band's range), new with every race.
+var _pace := Pace.new()
 ## Beta values (2026-11-04, docs/design/beta-values.md): the race shown better (street races R5):
 ## the way to the finish (or the next bridge) on the minimap, the gap in seconds, a lead change said
 ## once, and the finish's margin in seconds on the card.
@@ -385,11 +384,6 @@ const LEAD_GAP := 6.0
 const LEVEL_M := 6.0
 ## The time gap's speed floor (m/s): standing still, the trailing car would never get there.
 const GAP_FLOOR := 8.0
-var _route_total := 0.0
-var _band_lo := 1.0
-var _band_hi := 1.0
-## The skill read (SKILL_SLOW): 0 slow ... 1 fast, from the player's average progress.
-var _skill := 0.0
 var _call_t := 0.0
 var _call_up := false
 var _nudged := false
@@ -541,45 +535,52 @@ func _spot_apart(taken: PackedVector2Array) -> Array:
 	return best
 
 
+## The lane graph node of finish `f` (a FINISHES entry) on `graph`, from the map's `data` (its
+## landmarks and points of interest), or -1 if the map has no such place. Static for the race bench.
+static func finish_node(graph: LaneGraph, data: Dictionary, f: Dictionary) -> int:
+	var target := Vector2.INF
+	var node := -1
+	if f.has("landmark"):
+		var sum := Vector2.ZERO
+		var n := 0
+		for l in data.get("landmarks", []):
+			if l["name"] == f["landmark"]:
+				var flat: Array = l["p"]
+				for k in range(0, flat.size() - 1, 2):
+					sum += Vector2(flat[k], flat[k + 1])
+					n += 1
+		if n > 0:
+			target = sum / n
+	elif f.has("poi"):
+		for p in data.get("pois", []):
+			if p["k"] == f["poi"]:
+				target = Vector2(p["x"], p["z"])
+	else:
+		var key: String = f.get("road", f.get("road_east", ""))
+		var sum := Vector2.ZERO
+		var n := 0
+		var east := -INF
+		for e in graph.e_a.size():
+			if graph.e_name[e] != key:
+				continue
+			for m in [graph.e_a[e], graph.e_b[e]]:
+				if graph.node_scc[m] == 0:
+					continue
+				sum += graph.node_pos[m]
+				n += 1
+				if f.has("road_east") and graph.node_pos[m].x > east:
+					east = graph.node_pos[m].x
+					node = m
+		if n > 0 and not f.has("road_east"):
+			target = sum / n
+	if node < 0 and target != Vector2.INF:
+		node = graph.nearest_node(target)
+	return node
+
+
 func _find_finishes(data: Dictionary) -> void:
 	for f in FINISHES:
-		var target := Vector2.INF
-		var node := -1
-		if f.has("landmark"):
-			var sum := Vector2.ZERO
-			var n := 0
-			for l in data.get("landmarks", []):
-				if l["name"] == f["landmark"]:
-					var flat: Array = l["p"]
-					for k in range(0, flat.size() - 1, 2):
-						sum += Vector2(flat[k], flat[k + 1])
-						n += 1
-			if n > 0:
-				target = sum / n
-		elif f.has("poi"):
-			for p in data.get("pois", []):
-				if p["k"] == f["poi"]:
-					target = Vector2(p["x"], p["z"])
-		else:
-			var key: String = f.get("road", f.get("road_east", ""))
-			var sum := Vector2.ZERO
-			var n := 0
-			var east := -INF
-			for e in graph.e_a.size():
-				if graph.e_name[e] != key:
-					continue
-				for m in [graph.e_a[e], graph.e_b[e]]:
-					if graph.node_scc[m] == 0:
-						continue
-					sum += graph.node_pos[m]
-					n += 1
-					if f.has("road_east") and graph.node_pos[m].x > east:
-						east = graph.node_pos[m].x
-						node = m
-			if n > 0 and not f.has("road_east"):
-				target = sum / n
-		if node < 0 and target != Vector2.INF:
-			node = graph.nearest_node(target)
+		var node := finish_node(graph, data, f)
 		if node < 0:
 			continue
 		var p := graph.node_pos[node]
@@ -955,39 +956,14 @@ func _go() -> void:
 	_nudge_banner_t = 0.0
 	if _first_hold:
 		d.held = true
-	# Loop 3h slice 3: each rung's own pace (Halina 1.25 ... Mike 1.5; the final 1.45), was 1.45 flat.
 	var rung := Ladder.FINAL if final_on else Ladder.rung_of(RIVALS[rival]["name"])
-	var pace := Ladder.pace(rung)
-	d.speed_factor = pace.x
-	d.accel_factor = pace.y
-	# Street races (R1): racer mode, from the rung's racer stats and the player's car.
-	var stats := Ladder.racer(rung)
-	d.race_top = player_top() * float(stats["share"])
-	d.race_accel = float(stats["race_accel"])
-	d.race_lat = float(stats["lat"])
-	d.race_band = 1.0
-	d.race_still = 0.0
-	d.race_passes = 0
-	# Human rivals: shortcuts, mistakes, wrong turns, blocking (ladder.gd's personality).
-	d.cuts = _cut_table
-	d.race_mistake = float(stats.get("mistake", 0.0))
-	d.race_wrong = int(stats.get("wrong", 0))
-	d.race_block = float(stats.get("block", 0.0))
-	d.cuts_taken = 0
-	d.mistakes = 0
-	d.wrong_turns = 0
-	d.blocks = 0
+	var stats := arm_racer(d, rung, player_top(), _cut_table)
 	_seen_cuts = 0
 	_seen_mistakes = 0
 	_seen_wrong = 0
 	_seen_blocks = 0
 	_phone_at = _rng.randf_range(0.3, 0.6) if bool(stats.get("phone", false)) else INF
-	_rate = FIRST_RATE0
-	_last_player_left = INF
-	_route_total = 0.0
-	_band_lo = 1.0
-	_band_hi = 1.0
-	_skill = 0.0
+	_pace = Pace.new()
 	if final_on:
 		_prepare_final()
 		traffic.race_to(d, final_route.legs[_leg], _final_dists[_leg])
@@ -1092,7 +1068,13 @@ func _player_remaining() -> float:
 
 ## The player's driving distance to the node of `dist` (at `goal`): see _player_remaining.
 func _remaining_by(dist: PackedFloat32Array, goal: Vector3) -> float:
-	var p := Vector2(car.global_position.x, car.global_position.z)
+	return remaining_from(graph, dist, Vector2(car.global_position.x, car.global_position.z), goal)
+
+
+## The driving distance from ground point `p` to the node of `dist` (at `goal`): from the nearest
+## lane (either direction of the road), or the straight line if `p` is off the roads. Static for
+## the race bench.
+static func remaining_from(graph: LaneGraph, dist: PackedFloat32Array, p: Vector2, goal: Vector3) -> float:
 	var hit := graph.snap(p, 25.0)
 	if hit.is_empty():
 		return p.distance_to(Vector2(goal.x, goal.z)) * 1.3
@@ -1324,39 +1306,96 @@ func player_top() -> float:
 	return float(car.max_speed) * float(car.top_mult)
 
 
-## Street races (R2): 5 times a second, the rival's rubber band from the gap.
-func _band(d) -> void:
-	if _player_left < INF and _last_player_left < INF:
-		var now := maxf(0.0, (_last_player_left - _player_left) / 0.2)
-		_rate = lerpf(_rate, minf(now, 40.0), 0.07)  # ~3 s smoothing
-	_last_player_left = _player_left
-	if _route_total <= 0.0 and _player_left < INF:
-		_route_total = maxf(_player_left, _rival_left)
-	# The skill read: the player's average progress since the start (the smoothed `_rate` spikes
+## The race core, static: the race bench (game/tools/race_bench.gd, docs/design/race-ai.md) drives
+## these same functions on a traffic system without the game, so what it measures is what races.
+
+## One race's pace memory: the player's progress along the route (m/s, smoothed over ~3 s) and the
+## last reading it came from, the route's length at the start, the skill read (SKILL_SLOW: 0 slow
+## ... 1 fast, from the player's average progress), and the band's range for the race log.
+class Pace:
+	var rate := FIRST_RATE0
+	var last_player_left := INF
+	var route_total := 0.0
+	var skill := 0.0
+	var lo := 1.0
+	var hi := 1.0
+
+
+## Racer mode on traffic driver `d` as a race starts: rung `rung`'s pace and racer stats (ladder.gd;
+## Ladder.FINAL: the final's), `top` the player's car's top speed (m/s), `cuts` the shortcuts it
+## knows (race_cuts.gd `links`). Returns the stats.
+static func arm_racer(d, rung: int, top: float, cuts: Dictionary) -> Dictionary:
+	# Loop 3h slice 3: each rung's own pace (Halina 1.25 ... Mike 1.5; the final 1.45), was 1.45 flat.
+	var pace := Ladder.pace(rung)
+	d.speed_factor = pace.x
+	d.accel_factor = pace.y
+	# Street races (R1): racer mode, from the rung's racer stats and the player's car.
+	var stats := Ladder.racer(rung)
+	d.race_top = top * float(stats["share"])
+	d.race_accel = float(stats["race_accel"])
+	d.race_lat = float(stats["lat"])
+	d.race_band = 1.0
+	d.race_still = 0.0
+	d.race_passes = 0
+	# Human rivals: shortcuts, mistakes, wrong turns, blocking (ladder.gd's personality).
+	d.cuts = cuts
+	d.race_mistake = float(stats.get("mistake", 0.0))
+	d.race_wrong = int(stats.get("wrong", 0))
+	d.race_block = float(stats.get("block", 0.0))
+	d.cuts_taken = 0
+	d.mistakes = 0
+	d.wrong_turns = 0
+	d.blocks = 0
+	return stats
+
+
+## Street races (R2): 5 times a second, the rival's rubber band from the gap: sets `d.race_band`
+## (and returns it) from the metres of route the rival and the player have left (INF: unknown),
+## `race_time` s into the race of rung `rung` (`first`: the guided first race's tuning),
+## `top` the player's car's top speed (m/s). `pace` is this race's memory.
+static func pace_tick(pace: Pace, d, rung: int, first: bool, race_time: float, rival_left: float, player_left: float, top: float) -> float:
+	if player_left < INF and pace.last_player_left < INF:
+		var now := maxf(0.0, (pace.last_player_left - player_left) / 0.2)
+		pace.rate = lerpf(pace.rate, minf(now, 40.0), 0.07)  # ~3 s smoothing
+	pace.last_player_left = player_left
+	if pace.route_total <= 0.0 and player_left < INF:
+		pace.route_total = maxf(player_left, rival_left)
+	# The skill read: the player's average progress since the start (the smoothed rate spikes
 	# when the route is found again), from OPEN_BURST s on (the launch says little).
-	if _race_time >= OPEN_BURST and _route_total > 0.0 and _player_left < INF:
-		_skill = skill_of(maxf(0.0, _route_total - _player_left) / _race_time, player_top())
+	if race_time >= OPEN_BURST and pace.route_total > 0.0 and player_left < INF:
+		pace.skill = skill_of(maxf(0.0, pace.route_total - player_left) / race_time, top)
 	var mult := 1.0
-	var top: float = maxf(d.race_top, 1.0)
-	if first_race and not final_on:
+	var own: float = maxf(d.race_top, 1.0)
+	if first:
 		# Her speed against her top on this road (main roads; residential caps lower anyway).
-		mult = first_speed(_rival_left, _player_left, _route_total, _rate, top, _skill) / top
+		mult = first_speed(rival_left, player_left, pace.route_total, pace.rate, own, pace.skill) / own
 	else:
-		var rung := Ladder.FINAL if final_on else Ladder.rung_of(RIVALS[rival]["name"])
 		var stats := Ladder.racer(rung)
-		mult = band_mult(_rival_left, _player_left, float(stats["band"]), _rate, top, d.visible, float(stats["aim"]), _skill)
-		if _race_time < OPEN_BURST:
+		mult = band_mult(rival_left, player_left, float(stats["band"]), pace.rate, own, d.visible, float(stats["aim"]), pace.skill)
+		if race_time < OPEN_BURST:
 			mult = maxf(mult, 1.0)  # Pure's opening: launch past the player first
-		mult = minf(mult, BAND_CAP * player_top() / top)
+		mult = minf(mult, BAND_CAP * top / own)
 	d.race_band = mult
-	_band_lo = minf(_band_lo, mult)
-	_band_hi = maxf(_band_hi, mult)
+	pace.lo = minf(pace.lo, mult)
+	pace.hi = maxf(pace.hi, mult)
+	return mult
+
+
+## Street races (R2): 5 times a second, the rival's rubber band from the gap (`pace_tick`).
+func _band(d) -> void:
+	var rung := Ladder.FINAL if final_on else Ladder.rung_of(RIVALS[rival]["name"])
+	var mult := pace_tick(_pace, d, rung, first_race and not final_on, _race_time, _rival_left, _player_left, player_top())
+	if traffic.race_debug and fmod(_race_time, 1.0) < 0.2:
+		# --race-debug: once a second, what the band does to the rival and why (the audit's trace).
+		print("race trace: t %.0f s · rival %.1f m/s, band %.2f, class %d, left %.0f m · player %.1f m/s, rate %.1f, left %.0f m · gap %.0f m · skill %.2f · seen %s" % [
+				_race_time, d.v, mult, graph.e_class[d.edge], _rival_left, Vector2(car.vel.x, car.vel.z).length(), _pace.rate, _player_left,
+				_rival_left - _player_left, _pace.skill, d.visible])
 
 
 ## Human rivals, 5 times a second: the phone call (Mike) and a line for what the rival just did
 ## (traffic.gd's counts: a shortcut, a wrong turn, a mistake, a block), if the player is near.
 func _human_tick(d) -> void:
-	if _phone_at < INF and _route_total > 0.0 and _rival_left < INF and 1.0 - _rival_left / _route_total >= _phone_at:
+	if _phone_at < INF and _pace.route_total > 0.0 and _rival_left < INF and 1.0 - _rival_left / _pace.route_total >= _phone_at:
 		_phone_at = INF
 		d.daze = 1.2  # lifts off for the call (coasting, not a stop)
 		_human_say("phone")
@@ -1393,7 +1432,7 @@ func _human_say(kind: String) -> void:
 ## Street races: one line on how the rival raced (for tuning and check_race_ai's runs).
 func _race_log(d, won: bool) -> void:
 	print("race ai: %s %s in %.1f s · route %.0f m · skill %.2f · top %.1f m/s · band %.2f-%.2f · stopped %.1f s · %d passes · %d cuts · %d mistakes · %d wrong · %d blocks · gap %.0f m" % [
-			RIVALS[rival]["name"], "lost to the player" if won else "won", _race_time, _route_total, _skill, d.race_top, _band_lo, _band_hi,
+			RIVALS[rival]["name"], "lost to the player" if won else "won", _race_time, _pace.route_total, _pace.skill, d.race_top, _pace.lo, _pace.hi,
 			d.race_still, d.race_passes, d.cuts_taken, d.mistakes, d.wrong_turns, d.blocks, _rival_left - _player_left])
 
 
@@ -1468,6 +1507,11 @@ func _car_heading() -> Vector2:
 ## A lane point `back` m behind (e, lane, s) along the road (into the edge before when this one
 ## is too short): [edge, lane, s].
 func _behind(e: int, lane: int, s: float, back: float) -> Array:
+	return lane_behind(graph, e, lane, s, back)
+
+
+## `_behind` on `graph`; static for the race bench (the first race's grid).
+static func lane_behind(graph: LaneGraph, e: int, lane: int, s: float, back: float) -> Array:
 	if s - back >= graph.e_s0[e] + 2.0:
 		return [e, lane, s - back]
 	var left := back - (s - graph.e_s0[e])

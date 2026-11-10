@@ -578,24 +578,47 @@ static func add_metro_entrance(st: SurfaceTool, xf: Transform3D, form := "canopy
 			_xbox(st, xf, Vector3(0, 0.45, 2.0), Vector3(2.66, 0.9, 0.22), granite)
 			_xbox(st, xf, Vector3(0, 0.93, 2.0), Vector3(2.76, 0.06, 0.32), steel)
 		"tube":
-			# Metro Centrum's 1990s "tube" (F, 2026-11-02): a half barrel of milky polycarbonate on
-			# blue steel arches over the stairs, from 1.0 m, closed at the deep end (+z), a blue
-			# rim at the mouth. Rondo Dmowskiego's underpass stairs wear the same (landmarks.gd).
+			# Metro Centrum's 1990s "tube" (F, 2026-11-02; redone from the Street View shots of
+			# 2026-11-09): a long half barrel of milky polycarbonate on blue steel ribs over a wide
+			# stair, between low walls of pink wall tile under a pale granite coping, a steel-and-rubber
+			# escalator beside the treads, closed at the deep end (+z) by glass carrying the red
+			# M roundel, a blue rim at the mouth. Rondo Dmowskiego's underpass stairs wear the same
+			# (landmarks.gd). 7 m long, 3.2 m between the walls.
 			var blue := Color("#2457a8")
 			var skin := Color("#d6e4ee")
-			for x in [-1.25, 1.25]:
-				_xbox(st, xf, Vector3(x, 0.5, 0.0), Vector3(0.22, 1.0, 4.2), granite)
+			var tile := Color("#c9a69b")
+			var coping := Color("#d9cfc6")
+			var half_w := 1.6
+			var z0 := -3.4
+			var z1 := 3.6
+			var zc := (z0 + z1) * 0.5
+			var zl := z1 - z0
+			# The wider, longer stair under the base's opening: floor and treads, the left half an escalator.
+			_xbox(st, xf, Vector3(0, 0.025, zc), Vector3(half_w * 2.0, 0.03, zl), Color("#1d1f24"))
+			for i in 16:
+				var k := float(i) / 15.0
+				var zz := z0 + 0.25 + i * 0.44
+				_xbox(st, xf, Vector3(0.7, 0.05, zz), Vector3(1.4, 0.02, 0.22), Color("#8a8d93").lerp(Color("#2a2c31"), k))
+				_xbox(st, xf, Vector3(-0.75, 0.055, zz), Vector3(1.1, 0.02, 0.2), Color("#9ea3a8").lerp(Color("#34373c"), k))
+			for x in [-1.38, -0.1]:
+				_xbox(st, xf, Vector3(x, 0.5, zc), Vector3(0.28, 0.9, zl - 0.6), Color("#3b3e43"))
+				_xbox(st, xf, Vector3(x, 0.97, zc), Vector3(0.12, 0.06, zl - 0.6), Color("#1c1d20"))
+			for x in [-half_w - 0.12, half_w + 0.12]:
+				_xbox(st, xf, Vector3(x, 0.52, zc), Vector3(0.24, 1.04, zl), tile)
+				_xbox(st, xf, Vector3(x, 1.07, zc), Vector3(0.34, 0.06, zl + 0.1), coping)
 			var arc: Array[Vector3] = []
+			for i in 9:
+				var a := PI * float(i) / 8.0
+				arc.append(Vector3((half_w + 0.12) * cos(a), 1.1 + (half_w + 0.12) * sin(a), 0.0))
+			# The closed deep end: three stacked panes, the M roundel on the middle one.
+			for pane: Vector3 in [Vector3(3.4, 1.1, 1.8), Vector3(2.9, 1.8, 2.3), Vector3(1.8, 2.3, 2.7)]:
+				_xbox(st, xf, Vector3(0, (pane.y + pane.z) * 0.5, z1 + 0.05), Vector3(pane.x, pane.z - pane.y, 0.04), skin, LIT_WINDOW)
+			_xbox(st, xf, Vector3(0, 1.75, z1 - 0.02), Vector3(0.6, 0.6, 0.05), Color("#e4a21a"), LIT_SIGN)
+			_xbox(st, xf, Vector3(0, 1.75, z1 - 0.06), Vector3(0.44, 0.44, 0.05), Color("#c8171f"), LIT_SIGN)
 			for i in 8:
-				var a := PI * float(i) / 7.0
-				arc.append(Vector3(1.4 * cos(a), 1.0 + 1.4 * sin(a), 0.0))
-			# The closed deep end: three stacked panes roughly filling the half circle.
-			for pane: Vector3 in [Vector3(2.7, 1.0, 1.6), Vector3(2.3, 1.6, 2.05), Vector3(1.4, 2.05, 2.36)]:
-				_xbox(st, xf, Vector3(0, (pane.y + pane.z) * 0.5, 2.12), Vector3(pane.x, pane.z - pane.y, 0.04), skin, LIT_WINDOW)
-			for i in 7:
-				_xbeam(st, xf, arc[i], arc[i + 1], 4.3, 0.03, skin, LIT_WINDOW)
-				for z in [-2.1, -0.7, 0.7, 2.1]:
-					var w := 0.18 if z < -2.0 else 0.1
+				_xbeam(st, xf, arc[i] + Vector3(0, 0, zc), arc[i + 1] + Vector3(0, 0, zc), zl + 0.1, 0.03, skin, LIT_WINDOW)
+				for z in [z0 + 0.1, z0 + 1.7, z0 + 3.3, z0 + 5.0, z1 - 0.1]:
+					var w := 0.18 if z < z0 + 0.2 else 0.1
 					_xbeam(st, xf, arc[i] * 1.02 + Vector3(0, 0, z), arc[i + 1] * 1.02 + Vector3(0, 0, z), w, 0.1, blue)
 		"footway":
 			# Two retaining walls climbing from the mouth into the ground, handrails along them.

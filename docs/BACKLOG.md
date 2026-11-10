@@ -4,6 +4,35 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## Racer AI rebuild (F, 2026-11-09; docs/design/race-ai.md)
+
+F (two phone screenshots, the race against Pani Halina from Powiśle to Plac Trzech Krzyży): "she was
+still going very slow, and like the mob, not behave like real racer and competitive", with a
+friend's six points (racers' own driving rules, shortcuts in the racers' map, routes by arrival
+time, the route apart from the driving with real recovery, personalities, difficulty from skill)
+and "the first prototype should be one race with three useful routes". Cause, measured: a rival's
+speed is a function of the player's (the ladder's band holds a rival to 0.30-0.77 of its pace, the
+guided first race copies the player's progress), so on the same empty streets Halina takes 74 s
+alone and 180 s with a slow player; flat out the six rivals are within 6 % of each other. Plan:
+eight PRs (race-ai.md section 8), each measured on the race bench.
+- [x] Step 1 (2026-11-09): the race bench (`game/tools/race_bench.gd`, `check_race_bench.gd`, `tools/race_bench.sh`; verify step `racebench`, in CI), the prototype race with three routes, clear roads, Busy traffic, a blocked street and a crash against six test players, eleven pass marks, today's driver recorded in `game/data/race_bench.json` (2 pass, 9 fail in the full matrix of 107 races); `rivals.gd`'s arming and pacing as a static core the bench calls (no behaviour change: the same race log line for line)
+- [ ] Step 2: skill profiles replace the band in the ladder and the guided first race (marks: Independence, No crawl, Skill ladder)
+- [ ] Step 3: the route planner by arrival time, a new plan at a blocked street (Re-routes; Route sense in traffic)
+- [ ] Step 4a: the racing line and a speed for every metre (Honest car's grip)
+- [ ] Step 4b: overtaking with a committed side, contact as a collision, recovery (Passes traffic, No ghosting, Recovers, Finishes, Honest car's brakes)
+- [ ] Step 5: race links (alleys, courtyards, car parks, wrong-way hops), each proven with the player's car
+- [ ] Step 6a: personalities, visible decisions, the result card with both routes; 6b: one race session for the pack race, Trzy mosty, police chasers and crazy drivers
+- [ ] F's four defaults (QUESTIONS, 2026-11-09): the first race easy but real, an easier rematch after two losses, wrong-way hops for Seba and Mike only, rivals defend but never ram
+
+Found by the bench in today's driver (each is fixed by a step above; listed so none is lost):
+- [ ] The guided first race never ends when the player does not move on a one-lane street (Tamka): Halina waits 12 s, then stands behind the player's car for good (step 4b)
+- [ ] The guided first race is not a sure win: from Leszczyńska the autopilot's average player loses to Halina (step 2, parked question 1)
+- [ ] A rival drives through the player's car when it is in its lane (first race, Solec, 11 s in) (step 4b)
+- [ ] In Busy traffic a rival drives through 3 to 14 cars a race and is stopped dead by the game 2 to 11 times: its brakes stop at 10 m/s² (`traffic.gd` `_drive`) (steps 4a, 4b)
+- [ ] 99 km/h through the 48° bend on Książęca (`--at=358,429`) and 96 km/h through a junction of Plac Zofii Wóycickiej (`--at=488,-220`): bends inside a street are taken at full speed (step 4a)
+- [ ] The town's cars pass a racing rival (up to 2 a race in Busy traffic) (step 4b)
+
+
 ## Trybuna honorowa on Plac Centralny (F, 2026-11-08, five photos; spec docs/landmarks/specs/plac_centralny.md)
 Fixed: the old parade tribune in the middle of Plac Centralny was OSM's wall lines and steps drawn
 flat (low grey walls, a green patch and a stair that read as a ramp or a tunnel mouth), and the
@@ -309,13 +338,22 @@ THEATRES, `theatre` curve, dark on Mondays). Left:
   row's extra; a phone look at the colours' strength. The event list is settled (F, 2026-11-08).
 - The floodlight's reach (a circle round the Palace) also tints the TR Warszawa site's crane and the forecourt's
   stone furniture; an old quirk of the gold, louder in the event colours.
-- The underground car park's ramp by Metro Centrum (F, 2026-11-08: "looks like a tunnel entrance"): OSM's
-  parking aisle between two walls down a 3-4 m pit ended at a blank wall. It is the entry ramp of the
-  underground car park Plac Defilad 1 (260 spaces, 2.8 m, from Marszałkowska); built: a concrete hood over
-  the ramp's foot with the dark mouth, hazard band and lit strip, a red-white barrier (solid), P boards and a
-  striped 2,8 m gauge at the top (map_builder.gd GARAGE_MOUTHS). Left: the 10 m grid makes the pit only
-  ~2.5 m deep, so the hood stands ~2 m over the lot behind it; a night/phone look at the lit strip; the
-  other 27 R9 garage doors city-wide could get the same mouth.
+- The underground car park's ramp by Metro Centrum (F, 2026-11-08: "looks like a tunnel entrance"; 2026-11-09:
+  "the parking is flying in the air", with Street View shots): OSM's parking aisle between two walls ended at a
+  blank wall, and the mapped walls plus a flat road fill over the grid's blurred pit drew a grey slab. Built
+  (2026-11-09): the corridor between the walls is a SUNKEN ramp (`defilad_ramp`, map_builder.gd: 3.5 m down
+  from the street to the hood's floor), the site draws pink-tiled retaining walls under a pale coping up to
+  the real street (`rim`), a ribbed ramp surface, the mouth's hood in the same tile with dark opening, hazard
+  band, barrier and P boards (`GARAGE_MOUTHS`), and over the top a dark sign gantry "PARKING PODZIEMNY 24h 7dni"
+  (centralny_ramp.gd). The mapped wall lines inside the ring are skipped. Left: the car park itself is not
+  built (the barrier is solid); a night/phone look; the other 27 R9 garage doors city-wide could get the same
+  mouth; the sign is read from the north only.
+- Metro Centrum's entrances by the Palace (F, 2026-11-09, Street View): two of them (refs 4 and 10) were dark
+  green boxes (OSM `transportation` outlines) with a small tube prop merged into the end. Built: the site
+  `metro_tubes` replaces the boxes with blue-ribbed glass barrels on pink-tiled walls with an escalator beside
+  the stair (the Patelnia's barrels wear the pink walls too); ref 9's and the others' tube prop is now the
+  long form (7 m, pink walls, escalator, M roundel at the deep end). Refs 5-8 (Marszałkowska crossing) are
+  another thread's (open stairs); the box next to ref 5 (outline 3223) and the vent box 3402 stay boxes.
 
 ## Ratusz Arsenał interchange and passengers (F, 2026-11-07, six photos)
 
@@ -612,6 +650,7 @@ strict three-question door, Smoła's cutaway room (option A). Left:
 - [x] Other cards held during the quest (2026-11-07): no Podwózka request or "Na czasie" card while the rave run, the club or Bartek's tow is on (`main.gd`, `rides.away`); the calls were already held
 - [x] Smoła from F's photos (2026-11-08): one palm in the room's right corner and one on the patio, the photos' cyan lines, red bars and truss tower, TAŃCZ on the patio, two synthesised loops (room 132 BPM techno, patio 112 BPM house; `tools/make_club_loops.py`), Smolna 38's facade with the red gate, two black tents, barriers and GUEST LIST (`landmarks.gd` site `smolna38`), three doormen and the queue under the tents (`crowds.gd` SMOLA_GATE); the quest's Smoła door moved to the real Smolna 38 (it was 350 m east); the pay card waits 45 s (PT-44)
 - [ ] Smoła on the phone: the loops' level against KEBAB FM and the door at night (the block to the south hides most of the front from the default camera)
+- [x] Two questlines, two starts (F, 2026-11-09: "I can't start the Smolna quest even from the map"): the secret rave and the Smoła night were one questline with one badge at Mati's block, so Smoła could only come by phone, every other call. Now "Sekretny rave" starts at Mati's block (Osiedle Za Żelazną Bramą) and "Smoła" pod Rotundą, each with its own badge on the map and minimap, its own row in WĄTKI (a tap rings Mati for that night) and its own in-person greeting; both open at any hour, and taking one (the pickup, or Mati getting in) turns the clock to Friday 22:03 unless it is already a rave night (`main.gd _rave_night`); a start with no road near it stays in the list instead of dropping the questline (`check_rave` checks both starts on the real graph)
 - [ ] Smolna 38's tents and barriers reach 0.5-3.5 m from the wall and partly onto the carriageway; pull them in if they get in the car's way
 - [ ] The dawn after: leaving at 05:00-06:00, Mati's last line, the city in the dawn look
 - [ ] Opaski (wristbands) collected per spot, a card in the notebook
@@ -979,6 +1018,13 @@ history at 0cfc1ff). Areas and progress: docs/plan/road-areas.json, `python3 -I 
   the rebuild left 2; the next area if F wants it.
 - The traffic lane graph still follows the OSM ways; make it from the spec's lanes.
 - The GUGiK ortho predates the Marszałkowska crossings at Sienkiewicza and by the metro (taken from OSM).
+- Marszałkowska Sienkiewicza to Świętokrzyska (area `marsz_sienkiewicza`, F 2026-11-09): built to the city's Zielona
+  Marszałkowska plan. Left: the stretch from its north end (s 50) into the Świętokrzyska junction is main's, and
+  retarget_graph moves a whole graph edge, so past the area's free end it keeps the median lane where it was
+  (anchored, not centred) instead of drawing the edge's own lanes.
+- road_design.py free ends (fixed 2026-11-09): FOOT_PAD no longer clips the old kerbs and lines 2.5 m short of a
+  free end (the notch in the kerb at marsz_defilad's north seam), and walls on a kept median stay. krucza and
+  marsz_defilad pick the seam fix up on their next re-apply (a Mac re-bake).
 
 ## Loading bar on the title screen (F, 2026-11-05)
 
@@ -1383,7 +1429,7 @@ police smarter, then test with Autopilot": R1, R2, R4's numbers and the police c
 - [ ] R3 note (beta values R-4): rivals still route with the off-map links (`rivals.gd _distances`); the player can't drive them. Fix with routes by time
 - [ ] R6 the city reacts (honks, police on the rival); R7 race kinds (later)
 - [x] Race-AI runs: `tools/race_ai.sh` (every rival vs an average and a skilled autopilot), `--race-debug` (2026-11-04)
-- [ ] A headless `check_race_ai.gd` in verify (the runs take ~25 min: too long for verify; a short fixed-route version)
+- [x] A headless race check in verify: done as the race bench (2026-11-09, verify step `racebench`, 21 races in 30 s without the city; "Racer AI rebuild" at the top)
 - [ ] Street racer leaderboard "Ranking ulicy" (F, 2026-11-04; design in street-races.md section 8): 20 made-up drivers ranked by street points, win to climb, defence challenges, tier unlocks, an APKA: WYŚCIGI screen and best times per route; local first, online best times only with F's yes (L1-L5)
 
 ## Beta values: deliveries, races and steering (F, 2026-11-04)

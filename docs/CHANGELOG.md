@@ -11,6 +11,8 @@ someone writes its lines.
 
 ## 2026-11-09
 - The first bank branch on Marszałkowska at Sienkiewicza is a real building now: a dark red-brown stone front with tall glass bays and a glass top floor, plain wings behind it with roofs, instead of a hollow shell with no roof.
+- Marszałkowska between Sienkiewicza and Świętokrzyska is laid out like the city's new plan: two lanes out of the crossing that widen smoothly into a third lane by the bus stop, with no step in the kerb, and a green strip of young elms beside the southbound lanes.
+- Mati's two nights out are two quests on the map now: the secret rave starts at his block by Hala Mirowska, the Smoła club night under the Rotunda, and both can be started any time: taking one turns the clock to Friday night.
 - Four of Metro Centrum's entrances at the Marszałkowska crossing are plain open stairs now, no glass tube over them.
 - The iPhone home-screen name now reads "Around Warsaw" with the space.
 - The speckled flower beds behind the Museum of Modern Art no longer flicker: they, and other ground patches like playgrounds and fountains, now sit in a fixed order over the paving.
