@@ -228,8 +228,7 @@ func ring() -> bool:
 		return false
 	state = State.RING
 	_t = 0.0
-	hud.show_side_card("📞 WIKTOR DZWONI", "Kumpel reżyser. Beret, szalik w upał i jedyna kopia swojego filmu na 35 mm.",
-			PackedStringArray(["ODBIERZ|ANSWER", "ODRZUĆ|DECLINE"]), COLOUR, "Wiktor is calling",
+	hud.show_call("Wiktor", "Kumpel reżyser. Beret, szalik w upał i jedyna kopia swojego filmu na 35 mm.", COLOUR,
 			"Your director friend. A beret, a scarf in the heat and the only 35 mm copy of his film.")
 	hud.ticker_out()
 	Access.buzz(60, 0.6)
@@ -243,7 +242,7 @@ func _offer() -> void:
 	hud.show_side_card("WIKTOR: „ZAWIEZIESZ MNIE?”",
 			"„Skończyłem! „%s”: trzy czterdzieści, jedno ujęcie, rondo oczami gołębia. Objedziemy kina, Amondo, Atlantic, Kinotekę, Muranów. Ktoś to musi puścić. Czekam na Zbawiciela.”" % FILM,
 			PackedStringArray(["JADĘ|ON MY WAY", "NIE DZIŚ|NOT TODAY"]), COLOUR, "Wiktor: \"Will you drive me?\"",
-			"\"It's done! '%s': three forty, one take, the roundabout as a pigeon sees it. We do the cinemas, Amondo, Atlantic, Kinoteka, Muranów. Somebody has to screen it. I'm on Plac Zbawiciela.\"" % FILM_EN)
+			"\"It's done! '%s': three forty, one take, the roundabout as a pigeon sees it. We do the cinemas, Amondo, Atlantic, Kinoteka, Muranów. Somebody has to screen it. I'm on Plac Zbawiciela.\"" % FILM_EN, false, "Wiktor")
 
 
 func _on_card(i: int) -> void:

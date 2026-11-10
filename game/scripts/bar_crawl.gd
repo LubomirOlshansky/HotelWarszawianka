@@ -392,8 +392,7 @@ func ring() -> bool:
 	state = State.RING
 	_ring_t = 0.0
 	var n := _group_name()
-	hud.show_side_card("📞 " + String(n[0]), "Grupa na wieczór po mieście. Mówią wszyscy naraz.",
-			PackedStringArray(["ODBIERZ|ANSWER", "ODRZUĆ|DECLINE"]), COLOUR, "📞 " + String(n[1]),
+	hud.show_call(String(n[0]) + "|" + String(n[1]), "Grupa na wieczór po mieście. Mówią wszyscy naraz.", COLOUR,
 			"A group out on the town tonight. All talking at once.")
 	hud.ticker_out()
 	Access.buzz(60, 0.6)
@@ -427,7 +426,7 @@ func _offer() -> void:
 	body_en += " %s. Time: %s." % [" → ".join(bars), t]
 	var n := _group_name()
 	hud.show_side_card(String(n[0]), body_pl, PackedStringArray(["JEDZIEMY!|LET'S GO", "NIE DZIŚ|NOT TONIGHT"]),
-			COLOUR, String(n[1]), body_en)
+			COLOUR, String(n[1]), body_en, false, String(n[1]))
 	_log("offer: pickup at %d,%d, clock %s" % [roundi(pickup["at"].x), roundi(pickup["at"].z), t])
 
 

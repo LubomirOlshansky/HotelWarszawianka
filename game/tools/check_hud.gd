@@ -206,16 +206,17 @@ func _check_screen(screen: Vector2i) -> int:
 		for state in ["car, Point", "car, Classic", "helicopter", "call came in", "call card", "rescued, paid",
 				"rescue, host, egg", "kebab offer", "kebab delivery", "race", "rival ahead", "landmark card", "note card", "tow toast",
 				"police chase", "lizak", "pull-over",
-				"ride offer", "ride", "ride result", "ride result, police"]:
+				"ride offer", "ride", "ride result", "ride result, police", "phone call", "quest offer"]:
 			if perf and not state in ["car, Point", "call card", "rescue, host, egg", "kebab offer", "kebab delivery", "landmark card"]:
 				continue
 			if mode == "no-touch" and not state in ["car, Point", "car, Classic", "helicopter", "kebab offer", "pull-over", "ride offer"]:
 				continue
 			if mode == "left-handed" and not state in ["car, Point", "car, Classic", "helicopter", "rescue, host, egg", "kebab offer",
-					"landmark card", "police chase", "pull-over", "ride offer", "ride"]:
+					"landmark card", "police chase", "pull-over", "ride offer", "ride", "phone call"]:
 				continue
 			if mode == "large-text" and not state in ["car, Point", "call came in", "call card", "rescue, host, egg", "kebab offer",
-					"kebab delivery", "race", "landmark card", "note card", "police chase", "pull-over", "ride offer", "ride", "ride result"]:
+					"kebab delivery", "race", "landmark card", "note card", "police chase", "pull-over", "ride offer", "ride", "ride result",
+					"phone call", "quest offer"]:
 				continue
 			Access.text_scale = Access.LARGE_TEXT if mode == "large-text" else 1.0
 			hud.apply_text_scale()
@@ -349,9 +350,40 @@ func _check_screen(screen: Vector2i) -> int:
 							"Police mid-ride? I'm taking a star, but keeping the anecdote."], "pay": pay4, "rating": 4.83,
 							"why": ["jazda −½, policja −1, za aplikacją +½", "driving −½, police −1, followed the app +½"]})
 					hud.show_side_card(done4[0], done4[1], PackedStringArray(), Color("#4fd8c4"), done4[2], done4[3])
+				# F 2026-11-10: an incoming call in the phone view (the longest caller line, a name
+				# without a portrait: the initial's fallback), then the quest offer with the face.
+				"phone call":
+					hud.show_call("Darek „Bawarka”|Darek \"Bawarka\"", "Kumpel z liceum. Ten, co pół roku temu przesiadł się na elektryka i od tamtej pory o niczym innym nie mówi.",
+							Color("#4fd8c4"), "Your mate from school. The one who went electric six months ago and hasn't talked about anything else since.")
+					hud.ticker("87,3 KEBAB FM  ·  Palma de Gaulle'a", Color("#ff5fc8"))
+				"quest offer":
+					hud.show_side_card("📞 IVAN", "„Siema! Szisza dziś? Podjedź po mnie pod 19. Dzielnicę, weźmiemy jeszcze Bogdana z kortu. Ma być spokojnie.”",
+							PackedStringArray(["JADĘ!|ON MY WAY", "NIE DZIŚ|NOT TONIGHT"]), Color("#7fd4a0"), "Ivan",
+							"\"Hey! Shisha tonight? Pick me up at 19. Dzielnica, we'll grab Bogdan from the court too. Calm, this time.\"", false, "Ivan")
 			await process_frame
 			await process_frame
 			bubbles.layout()
+			if state == "phone call":
+				var w := "%s phone call%s" % [tag, " + " + mode if mode != "" else ""]
+				var rs2: Dictionary = hud.named_rects()
+				if not hud.call_showing():
+					problems.append("%s: the phone view is not up" % w)
+				elif not rs2.has("card") or "card" in hud.waiting():
+					problems.append("%s: the phone view is not placed (it waits for room)" % w)
+				elif (rs2["card"] as Rect2).intersects(hud.car_zone()):
+					problems.append("%s: the phone view %s is over the car's spot" % [w, _pts(rs2["card"], pt)])
+				for i in 2:
+					var b := (hud.get("_call_buttons") as Node).find_child("button%d" % i, true, false) as Control
+					if b == null or not b.is_visible_in_tree():
+						problems.append("%s: no round button %d" % [w, i])
+					elif b.size.x < 44.0 * pt - 0.5 or b.size.y < 44.0 * pt - 0.5:
+						problems.append("%s: round button %d is under 44 pt" % [w, i])
+			if state == "quest offer":
+				var f := hud.get("_card_face") as Control
+				if f == null or not f.is_visible_in_tree():
+					problems.append("%s quest offer: no face on the card's head" % tag)
+				if hud.call_showing():
+					problems.append("%s quest offer: the phone view stayed up" % tag)
 			_check_state(hud, bubbles, "%s %s%s" % [tag, state, " + " + mode if mode != "" else ""])
 			if mode == "left-handed" and state in ["car, Point", "car, Classic", "helicopter"]:
 				# The pressable discs all on the left half; the credit line is gone (credits page in Settings).

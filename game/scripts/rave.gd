@@ -939,8 +939,7 @@ func ring(k := "") -> bool:
 		quest_spot = night_spot
 	state = State.RING
 	_ring_t = 0.0
-	hud.show_side_card("📞 MATI DZWONI", "Kumpel z osiedla. Zawsze na czarno, zawsze wie, gdzie jest impreza, zanim ktokolwiek o niej usłyszy.",
-			PackedStringArray(["ODBIERZ|ANSWER", "ODRZUĆ|DECLINE"]), COLOUR, "Mati is calling",
+	hud.show_call("Mati", "Kumpel z osiedla. Zawsze na czarno, zawsze wie, gdzie jest impreza, zanim ktokolwiek o niej usłyszy.", COLOUR,
 			"Your mate from the estate. Always in black, always knows where the party is before anyone's heard of it.")
 	hud.ticker_out()
 	Access.buzz(60, 0.6)
@@ -1013,7 +1012,7 @@ func _offer() -> void:
 	elif not heard:
 		pl = "„Siema! Lekti robi dziś sekretny rave. Ja wiem, jak tam trafić. Zgarniesz mnie spod bloku na %s? Hasło? Trzeba było słuchać MORDOR FM…”" % street
 		en = "\"Hey! Lekti's throwing a secret rave tonight. I know how to get there. Pick me up from my block on %s? The password? You should've listened to MORDOR FM…\"" % street_en
-	hud.show_side_card("📞 MATI", pl, PackedStringArray(["JADĘ!|ON MY WAY", "NIE DZIŚ|NOT TONIGHT"]), COLOUR, FRIEND, en)
+	hud.show_side_card("📞 MATI", pl, PackedStringArray(["JADĘ!|ON MY WAY", "NIE DZIŚ|NOT TONIGHT"]), COLOUR, FRIEND, en, false, "Mati")
 	_log("offer: Mati on %s at %d,%d" % [street_en, roundi(pickup["at"].x), roundi(pickup["at"].z)])
 
 

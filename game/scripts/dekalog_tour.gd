@@ -254,8 +254,7 @@ func ring() -> bool:
 		return false
 	state = State.RING
 	_t = 0.0
-	hud.show_side_card("📞 +33 · CLAIRE DZWONI", "Nieznany numer z Francji. W tle zapowiedź pociągu i coś o „Kieślowskim” z francuskim akcentem.",
-			PackedStringArray(["ODBIERZ|ANSWER", "ODRZUĆ|DECLINE"]), COLOUR, "+33 · Claire is calling",
+	hud.show_call("+33 · Claire", "Nieznany numer z Francji. W tle zapowiedź pociągu i coś o „Kieślowskim” z francuskim akcentem.", COLOUR,
 			"An unknown French number. A train announcement behind her and something about \"Kieślowski\" in a French accent.")
 	hud.ticker_out()
 	Access.buzz(60, 0.6)
@@ -269,7 +268,7 @@ func _offer() -> void:
 	hud.show_side_card("CLAIRE: „PROWADZI PAN? ŚWIETNIE!”",
 			"„Bonjour! Claire, studentka filmu z Lyonu. Piszę pracę o „Dekalogu” i mam jeden dzień w Warszawie. Chcę zobaczyć miejsca, gdzie kręcił Kieślowski, aż do osiedla na Inflanckiej. Jestem na Centralnej.”",
 			PackedStringArray(["JADĘ|ON MY WAY", "NIE DZIŚ|NOT TODAY"]), COLOUR, "Claire: \"You drive? Perfect!\"",
-			"\"Bonjour! Claire, a film student from Lyon. I'm writing about the Dekalog and I have one day in Warsaw. I want to see where Kieślowski filmed, all the way to the estate on Inflancka. I'm at Centralna.\"")
+			"\"Bonjour! Claire, a film student from Lyon. I'm writing about the Dekalog and I have one day in Warsaw. I want to see where Kieślowski filmed, all the way to the estate on Inflancka. I'm at Centralna.\"", false, "Claire")
 
 
 func _on_card(i: int) -> void:
