@@ -78,6 +78,7 @@ func build() -> void:
 		var p := PORTAL + INTO * BOLLARD_STEP * (k + 1)
 		_bollard(st, Vector3(p.x, FLOOR, p.y))
 	_gates(st)
+	_defilad_sign(st)
 	var mi := MeshInstance3D.new()
 	mi.name = "CentralnyRampProps"
 	mi.mesh = st.commit()
@@ -112,6 +113,45 @@ func _board(st: SurfaceTool) -> void:
 	var w := PixelFont.width("3,3M") * 0.03
 	PixelFont.add_quads(st, "3,3M", sc + b * Vector3(0, 0, -0.06) - right * w * 0.5 + Vector3.UP * 0.15, right,
 			Vector3.DOWN, 0.03, Color("#1b1b1b"), Models.FIXED)
+	count += 1
+
+
+## The APCOA car park on Plac Defilad (F, 2026-11-09, Street View Aug 2025): over the top of its
+## ramp (map_builder.gd SUNKEN `defilad_ramp`) a dark board on two steel posts, a white down arrow,
+## "PARKING PODZIEMNY" and in a white box "24h 7dni", read from the street side (north-west, the way
+## cars come), its foot 2.6 m over the ramp's top. Its back is plain dark steel.
+const DEFILAD_TOP := Vector2(-1004.35, 222.0)
+const DEFILAD_OUT := Vector2(-0.338, -0.941)
+const DEFILAD_BOARD := Vector2(5.6, 1.5)
+const BOARD_DARK := Color("#2a2f35")
+
+
+func _defilad_sign(st: SurfaceTool) -> void:
+	var y: float = map.ground_height(DEFILAD_TOP.x, DEFILAD_TOP.y)
+	# The board's -z face looks along DEFILAD_OUT, away from the ramp.
+	var b := Basis(Vector3.UP, atan2(-DEFILAD_OUT.x, -DEFILAD_OUT.y))
+	var right: Vector3 = b * Vector3(-1, 0, 0)
+	var out: Vector3 = b * Vector3(0, 0, -1)
+	var centre := Vector3(DEFILAD_TOP.x, y + 2.6 + DEFILAD_BOARD.y * 0.5, DEFILAD_TOP.y)
+	for sgn in [-1.0, 1.0]:
+		var p: Vector3 = Vector3(DEFILAD_TOP.x, y, DEFILAD_TOP.y) + right * sgn * (DEFILAD_BOARD.x * 0.5 - 0.4)
+		Props.obox(st, p + Vector3.UP * (2.6 + 0.6), b, Vector3(0.16, 3.8, 0.16), STEEL)
+	Props.obox(st, centre, b, Vector3(DEFILAD_BOARD.x, DEFILAD_BOARD.y, 0.14), BOARD_DARK)
+	Props.obox(st, centre + out * 0.075, b, Vector3(DEFILAD_BOARD.x - 0.16, DEFILAD_BOARD.y - 0.16, 0.02), Color("#3a4048"))
+	var tl: Vector3 = centre + right * (-DEFILAD_BOARD.x * 0.5) + Vector3.UP * (DEFILAD_BOARD.y * 0.5) + out * 0.095
+	# The down arrow on the left: a stem and a head of three bars.
+	var ac: Vector3 = tl + right * 0.75 + Vector3.DOWN * 0.75
+	Props.obox(st, ac + out * 0.01, b, Vector3(0.16, 0.7, 0.02), WHITE, Models.LIT_SIGN)
+	for k in 3:
+		var half := 0.34 - 0.11 * k
+		Props.obox(st, ac + Vector3.DOWN * (0.28 + 0.1 * k) + out * 0.01, b, Vector3(half * 2.0, 0.1, 0.02), WHITE, Models.LIT_SIGN)
+	PixelFont.add_quads(st, "PARKING", tl + right * 1.35 + Vector3.DOWN * 0.18, right, Vector3.DOWN, 0.04, WHITE, Models.LIT_SIGN)
+	PixelFont.add_quads(st, "PODZIEMNY", tl + right * 1.35 + Vector3.DOWN * 0.74, right, Vector3.DOWN, 0.04, WHITE, Models.LIT_SIGN)
+	# "24h 7dni" in a white box at the right end.
+	var bc: Vector3 = tl + right * (DEFILAD_BOARD.x - 0.7) + Vector3.DOWN * 0.75
+	Props.obox(st, bc + out * 0.01, b, Vector3(1.0, 0.95, 0.02), WHITE, Models.LIT_SIGN)
+	PixelFont.add_quads(st, "24H", bc + right * -0.28 + Vector3.UP * 0.34 + out * 0.03, right, Vector3.DOWN, 0.03, BOARD_DARK, Models.FIXED)
+	PixelFont.add_quads(st, "7DNI", bc + right * -0.32 + Vector3.UP * 0.02 + out * 0.03, right, Vector3.DOWN, 0.03, BOARD_DARK, Models.FIXED)
 	count += 1
 
 
