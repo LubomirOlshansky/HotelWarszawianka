@@ -66,10 +66,10 @@ func _initialize() -> void:
 			"OK" if migrated else "WRONG", again.quality])
 	ok = ok and migrated
 
-	# 2026-11-04: Classic became the default; a file saved before (no `classic_default` key) that
-	# says Point loads as Classic once, Fixed stays Fixed, and a Point chosen since stays Point.
+	# 2026-11-10 (F): the Point option is gone. Every saved scheme loads as Classic; a saved Fixed
+	# camera becomes Classic with the camera off.
 	var ctl_ok := true
-	for c in [[0, false, 1], [2, false, 2], [1, false, 1], [0, true, 0]]:
+	for c in [[0, false, 1, true], [2, false, 1, false], [1, false, 1, true], [0, true, 1, true]]:
 		var cfg_c := ConfigFile.new()
 		cfg_c.set_value("controls", "scheme", c[0])
 		if c[1]:
@@ -78,25 +78,15 @@ func _initialize() -> void:
 		var sc := Settings.new()
 		sc.path = SCRATCH_OLD
 		sc.load_file()
-		if sc.controls != c[2]:
+		if sc.controls != c[2] or sc.classic_follow != c[3]:
 			ctl_ok = false
-			print("  controls %d saved %s 2026-11-04 load as %d, wanted %d" % [c[0], "after" if c[1] else "before", sc.controls, c[2]])
-	var pick := Settings.new()
-	pick.path = SCRATCH_OLD
-	pick.load_file()
-	pick.controls = 0
-	pick.save()
-	var pick_back := Settings.new()
-	pick_back.path = SCRATCH_OLD
-	pick_back.load_file()
-	ctl_ok = ctl_ok and pick_back.controls == 0
-	print("controls saved before Classic became the default: %s (Point → Classic once, Point chosen since kept: %d)" % [
-			"OK" if ctl_ok else "WRONG", pick_back.controls])
+			print("  controls %d saved load as %d (follow %s), wanted %d (follow %s)" % [c[0], sc.controls, sc.classic_follow, c[2], c[3]])
+	print("controls saved as Point or Fixed: %s (all load as Classic, Fixed with the camera off)" % ("OK" if ctl_ok else "WRONG"))
 	ok = ok and ctl_ok
 
 	var a := Settings.new()
 	a.path = SCRATCH
-	a.controls = 2
+	a.controls = 1
 	a.classic_follow = false
 	a.traffic = 0
 	a.quality = 1

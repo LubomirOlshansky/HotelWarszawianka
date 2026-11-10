@@ -209,8 +209,8 @@ drives the drag in Grounded too). `lanedrive-grounded` drives the 13 lane routes
 - [ ] F's phone feel on the iPhone 16: Grounded against Cruise; then which one is the default (QUESTIONS)
 - [ ] The look in Cruise and Sport: their body pitches nose-up under braking (`rotation.x` +0.03 lifts the
       front, the nose is at -Z); Grounded's spring dips it. Fix the old ones too if F keeps them
-- [ ] If Grounded wins: tune the Point and Fixed aims for it on the phone (the yaw lag is small, but the
-      point-to-steer gains were set for the arcade car), and the first race's start hold
+- [ ] If Grounded wins: tune the first race's start hold (Point and Fixed left Settings 2026-11-10, so no aims to tune; the
+      yaw lag is small)
 
 ## Kieślowski tour and the Dekalog estate (F, 2026-11-07; docs/design/dekalog-tour.md)
 
