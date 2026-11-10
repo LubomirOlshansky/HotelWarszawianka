@@ -17,3 +17,11 @@ at bar 9 (16 s after the trim) and the final hit is at 32 s.
 ffmpeg -ss 0.48 -i music-take4.mp3 -t 38 -af "afade=t=out:st=36.5:d=1.5" music-38s.wav
 ffmpeg -ss 0.48 -i music-take4.mp3 -filter_complex "[0:a]atrim=0:4,asetpts=PTS-STARTPTS[a];[0:a]atrim=10:36.1,asetpts=PTS-STARTPTS[b];[a][b]acrossfade=d=0.03:c1=tri:c2=tri,atrim=0:30,afade=t=out:st=28.8:d=1.2[o]" -map "[o]" music-30s.wav
 ```
+
+## Quick rounds
+
+`tools/trailer.sh live TAKE` plays a take in a window in real time (no recording);
+`tools/trailer.sh preview TAKE` renders it at 960x540 (about 4x faster);
+`tools/trailer.sh final TAKE` at 1920x1080 with the trailer's best picture;
+`tools/trailer.sh cut preview|final` cuts both trailers from that folder with `cut.sh`.
+A cut alone takes seconds: change shot order and timings in `cut.sh` without re-rendering.
