@@ -32,6 +32,13 @@ const SCRUB_STEP := 3.0
 ## sum (keep one as a safety cap).
 const LENGTH := {"palace_time": 14.0, "heli_dive": 10.0, "palace_drift": 10.0, "card": 5.0}
 const TAIL := 0.5
+## palace_drift's own camera (the first Mac render's follow camera sat wide over the square and
+## lost the car): the car in the middle of a DRIFT_VIEW m view, turning slowly round it, widened
+## by main.gd raid_view_extra while the patrols close in.
+const DRIFT_VIEW := 70.0
+const DRIFT_YAW := 140.0
+const DRIFT_SPIN := 5.0
+const DRIFT_PITCH := -32.0
 ## The takes' far plane (m): far enough that the view never ends in the clip plane's straight line.
 const FAR := 6000.0
 const CARD_IN := 0.6
@@ -48,11 +55,11 @@ const PALACE_KEYS: Array[Dictionary] = [
 	{"t": 14.0, "at": PALACE, "up": 90.0, "size": 236.0, "yaw": 258.0, "pitch": -29.0},
 ]
 const HELI_KEYS: Array[Dictionary] = [
-	{"t": 0.0, "at": PALACE, "up": 180.0, "size": 300.0, "yaw": 135.0, "pitch": -30.0},
-	{"t": 2.5, "at": Vector2(-1450.0, 380.0), "up": 60.0, "size": 260.0, "yaw": 160.0, "pitch": -28.0},
-	{"t": 5.0, "at": Vector2(-200.0, 150.0), "up": 60.0, "size": 280.0, "yaw": 250.0, "pitch": -26.0},
-	{"t": 7.0, "at": Vector2(950.0, -260.0), "up": 8.0, "size": 110.0, "yaw": 280.0, "pitch": -26.0},
-	{"t": 10.0, "at": Vector2(1486.0, -611.0), "up": 30.0, "size": 230.0, "yaw": 240.0, "pitch": -26.0},
+	{"t": 0.0, "at": PALACE, "up": 180.0, "size": 190.0, "yaw": 135.0, "pitch": -30.0},
+	{"t": 2.5, "at": Vector2(-1450.0, 380.0), "up": 60.0, "size": 150.0, "yaw": 160.0, "pitch": -28.0},
+	{"t": 5.0, "at": Vector2(-200.0, 150.0), "up": 60.0, "size": 170.0, "yaw": 250.0, "pitch": -26.0},
+	{"t": 7.0, "at": Vector2(950.0, -260.0), "up": 8.0, "size": 90.0, "yaw": 280.0, "pitch": -26.0},
+	{"t": 10.0, "at": Vector2(1486.0, -611.0), "up": 30.0, "size": 200.0, "yaw": 240.0, "pitch": -26.0},
 ]
 const CARD_KEYS: Array[Dictionary] = [
 	{"t": 0.0, "at": PALACE, "up": 110.0, "size": 420.0, "yaw": 100.0, "pitch": -30.0},
@@ -71,6 +78,7 @@ var _last_fill := -INF
 var _raided := false
 var _heli_yaw := 0.0
 var _card_box: Control
+var _drift_size := DRIFT_VIEW
 
 
 static func valid(name: String) -> bool:
@@ -97,6 +105,8 @@ func begin(main: Node) -> void:
 	host.hud.visible = false
 	if take != "palace_drift":
 		host.car.visible = false
+	else:
+		_place_car()
 	if take == "heli_dive":
 		var heli: Node3D = host.heli
 		heli.visible = true
@@ -115,11 +125,21 @@ func _process(dt: float) -> void:
 		_frame(dt)
 
 
+var _log_next := 0.0
+
 func _frame(dt: float) -> void:
 	t += dt
+	if take == "palace_drift" and t >= _log_next:
+		_log_next += 1.0
+		var c: Vector3 = host.car.global_position
+		print("trailer: t %.0f car (%.0f, %.0f) %.1f m/s view %.0f m" % [t, c.x, c.z, absf(host.car.forward_speed), _drift_size])
 	if t >= float(LENGTH[take]) + TAIL:
 		playing = false
 		print("trailer: %s done at frame %d" % [take, Engine.get_process_frames()])
+		if take == "palace_drift":
+			var p: Vector3 = host.car.global_position
+			print("trailer: the car ends %.0f m from its start, %.1f m/s, view %.0f m" % [
+					Vector2(p.x, p.z).distance_to(Vector2(DRIFT_AT.x, DRIFT_AT.z)), absf(host.car.forward_speed), _drift_size])
 		host.get_tree().quit()
 		return
 	match take:
@@ -134,10 +154,12 @@ func _frame(dt: float) -> void:
 			if _card_box != null:
 				_card_box.modulate.a = clampf((t - CARD_IN) / CARD_FADE, 0.0, 1.0)
 		"palace_drift":
+			control_car(host.car)
 			if not _raided and t >= RAID_AT and host.police != null:
 				_raided = true
 				var n: int = host.police.raid(host.car.global_position, RAID_CARS, 2)
 				print("trailer: raid, %d patrols" % n)
+			_chase(dt)
 
 
 ## The camera along `keys` at the take's second; the sectors under it built at once when it has
@@ -193,6 +215,38 @@ func control_car(car: CharacterBody3D) -> bool:
 	return true
 
 
+## palace_drift: the car set down on the square, nose along DRIFT_HEADING, visible and free to move.
+func _place_car() -> void:
+	var car: CharacterBody3D = host.car
+	var y: float = host.map.ground_height(DRIFT_AT.x, DRIFT_AT.z)
+	car.global_position = Vector3(DRIFT_AT.x, y + 0.3, DRIFT_AT.z)
+	car.rotation = Vector3(0.0, deg_to_rad(DRIFT_HEADING), 0.0)
+	car.vel = Vector3.ZERO
+	car.forward_speed = 0.0
+	car.reset_physics_interpolation()
+	car.visible = true
+	car.parked = false
+
+
+## palace_drift's camera: on the car, turning slowly, wider while the raid's patrols come in.
+func _chase(dt: float) -> void:
+	var car: Node3D = host.car
+	var cam: Camera3D = host.cam
+	var yaw := DRIFT_YAW + DRIFT_SPIN * t
+	var b := Basis.from_euler(Vector3(deg_to_rad(DRIFT_PITCH), deg_to_rad(yaw), 0.0))
+	var want: float = DRIFT_VIEW + float(host.raid_view_extra(b, DRIFT_VIEW))
+	_drift_size = want if dt == 0.0 else lerpf(_drift_size, want, minf(1.0, dt * 1.5))
+	var focus := car.global_position
+	cam.size = _drift_size
+	cam.global_transform = CameraShots._view(focus, _drift_size, yaw, DRIFT_PITCH)
+	cam.far = FAR
+	host.cam_focus = focus
+	car.visible = true
+	if host.streamer != null and t - _last_fill >= 1.0:
+		_last_fill = t
+		host.streamer.finish_view(focus, cam)
+
+
 func _make_card() -> void:
 	var layer := CanvasLayer.new()
 	layer.layer = 5
@@ -201,11 +255,19 @@ func _make_card() -> void:
 	var centre := CenterContainer.new()
 	centre.set_anchors_preset(Control.PRESET_FULL_RECT)
 	layer.add_child(centre)
+	# A dark band behind the text: the Palace's lit spire sits right behind it (first Mac render).
+	var panel := PanelContainer.new()
+	var band := StyleBoxFlat.new()
+	band.bg_color = Color(0.03, 0.03, 0.08, 0.55)
+	band.set_content_margin_all(h * 0.04)
+	band.set_corner_radius_all(int(h * 0.01))
+	panel.add_theme_stylebox_override("panel", band)
+	panel.modulate.a = 0.0
+	centre.add_child(panel)
 	var box := VBoxContainer.new()
 	box.add_theme_constant_override("separation", int(h * 0.014))
-	box.modulate.a = 0.0
-	centre.add_child(box)
-	_card_box = box
+	panel.add_child(box)
+	_card_box = panel
 	var big := FontVariation.new()
 	big.base_font = ThemeDB.fallback_font
 	big.variation_embolden = 1.1
