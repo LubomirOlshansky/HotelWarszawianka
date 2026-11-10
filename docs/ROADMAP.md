@@ -139,6 +139,7 @@ then the Launch gate.
         Świętokrzyska's M2 triangle canopies; green roof strips, TAK MAKS's red portal, PRALKA PLUS on the tower's crown; phone look parked
 
 ### Left: map and roads
+- [x] Stadion Narodowy: fences, hedges and walls around the stadium and forecourts removed for driving (F, 2026-11-10; `STADIUM_CLEAR` in map_builder.gd)
 - [ ] Free-play playtest plan P1-P10 run with Autopilot and every confirmed PT bug fixed
       (F, 2026-11-02; docs/PLAYTEST.md; setup and Autopilot plugin done 2026-11-02)
   - [x] PT-1 dead stop at Centrum's tram stop on Marszałkowska, 2026-11-02 (PR #289)

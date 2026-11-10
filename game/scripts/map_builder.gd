@@ -5797,6 +5797,8 @@ func _build_barriers(st) -> void:
 				if (o as Array).size() > 1 and BARRIER_STYLE.has(str(o[1])):
 					style = BARRIER_STYLE[str(o[1])]
 		var pts := _pts(l["p"])
+		if l["k"] != "platform" and not pts.is_empty() and STADIUM_CLEAR.has_point(_box_of_pts(pts).get_center()):
+			continue
 		if style.size() > 3:
 			var open: Array = style[3]
 			_railing_along(st, pts, float(style[2]), float(open[0]), Color(style[0]), Color(str(open[1])), true)
@@ -5817,6 +5819,13 @@ func _build_barriers(st) -> void:
 			continue
 		_wall_along(st, pts, float(style[1]), float(style[2]), Color(style[0]), l["k"] != "platform")
 	_uv2 = Vector2.ZERO
+
+
+## Stadion Narodowy's surroundings (F, 2026-11-10): the mapped fences, hedges and walls round the
+## stadium and its forecourts were solid and made driving there (the Hyrax meeting spot, the arcade
+## cars) too hard, so none of them is drawn or collides inside this box (x, z in metres). Platforms
+## (kerb height) and the sunk retaining walls (`walls`, _build_walls) stay.
+const STADIUM_CLEAR := Rect2(1130.0, -940.0, 700.0, 690.0)
 
 
 static func _box_of_pts(pts: PackedVector2Array) -> Rect2:
