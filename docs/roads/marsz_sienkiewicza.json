@@ -1,0 +1,39 @@
+{
+  "area": "marsz_sienkiewicza",
+  "version": 1,
+  "close_median_links": true,
+  "keep_islands": [[-1015.6, 15.4]],
+  "open_ends": [{"x": -1001.8, "z": -36.0, "note": "the bus stop's short pavement path by the shelter (m_south s 111): it ends on the pavement 1.4 m behind the new kerb; no crossing there in the plan or on the photo"}],
+  "note": "Marszałkowska from the Świętokrzyska stop line's arrows (palace.json m_south s 50) to the Sienkiewicza-Fangora crossing, where marsz_defilad starts (m_south s 170), as the city's Zielona Marszałkowska traffic plan draws it (um.warszawa.pl, 'organizacja ruchu i zieleń po przebudowie'; F 2026-11-09, IMG_7688 and the screenshot of 22:59). Northbound (east carriageway, left of the axis): two lanes out of the crossing, then the kerb flares out over 17 m (m_south s 145-162, where the OSM verge's own edge flares) into a third lane, the bus stop lane by the shelter at s 122.7 that carries on as the right turn into Świętokrzyska; main had three lanes painted from the crossing on a kerb that slid 2.5 m over 110 m, so a lane appeared from nowhere at the neck. Southbound (west carriageway): two 3.15 m lanes on a green strip with columnar elms (+3.0..+6.0, the OSM grass strip main's carriageway ran over), widening into the hatched refuge at the crossing that marsz_defilad's s 0 continues. The east tram platform (Metro Świętokrzyska, -6.3..-2.8) is kept and the carriageway's inner edge follows it. Axis: the tram midline, the same line as palace.json m_south and marsz_defilad (local s = m_south s - 50); offsets to the right of the axis (it runs south: right = west). Both ends match main's (north) and marsz_defilad's (south) cross-sections to the centimetre.",
+  "streets": [
+    {
+      "id": "m_sienk",
+      "name": "Marszałkowska",
+      "k": "secondary",
+      "axis": [[-1038.42, -87.36], [-996.96, 25.25]],
+      "sections": [
+        {"s": 0, "med": ["tram"], "cw": [
+          {"l": -14.87, "r": -6.25, "lanes": [{"d": -1, "w": 3.59}, {"d": -1, "w": 2.43}, {"d": -1, "w": 2.6}]},
+          {"l": 3.02, "r": 12.04, "lanes": [{"d": 1}, {"d": 1}]}]},
+        {"s": 20, "taper": 20, "med": ["tram"], "cw": [
+          {"l": -15.2, "r": -6.2, "lanes": [{"d": -1}, {"d": -1}, {"d": -1}]},
+          {"l": 6.0, "r": 12.3, "lanes": [{"d": 1}, {"d": 1}]}]},
+        {"s": 68.7, "taper": 45, "med": ["tram"], "cw": [
+          {"l": -15.2, "r": -6.06, "lanes": [{"d": -1}, {"d": -1}, {"d": -1}]},
+          {"l": 6.0, "r": 12.35, "lanes": [{"d": 1}, {"d": 1}]}]},
+        {"s": 112, "taper": 17, "med": ["tram"], "cw": [
+          {"l": -12.55, "r": -5.91, "lanes": [{"d": -1}, {"d": -1}]},
+          {"l": 6.0, "r": 12.4, "lanes": [{"k": "gap", "d": 1, "w": 0.0}, {"d": 1}, {"d": 1}]}]},
+        {"s": 120, "taper": 8, "med": ["tram"], "cw": [
+          {"l": -12.55, "r": -5.91, "lanes": [{"d": -1}, {"d": -1}]},
+          {"l": 3.07, "r": 12.41, "lanes": [{"k": "gap", "d": 1, "w": 2.9}, {"d": 1}, {"d": 1}]}]}
+      ],
+      "openings": [{"s": 104, "side": 1, "w": 19.0, "r": 5.0, "keep": true}],
+      "closed": [{"s0": 88, "s1": 118, "side": 1}],
+      "greens": [
+        {"s0": 21, "s1": 111.5, "l": 3.0, "r": "edge", "trees": {"kind": "elm_column", "every": 9}}
+      ]
+    }
+  ],
+  "junctions": []
+}
