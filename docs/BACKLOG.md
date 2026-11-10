@@ -4,7 +4,12 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
-## Racer AI rebuild (F, 2026-11-09; docs/design/race-ai.md)
+## Experimental graphics level (F, 2026-11-10)
+
+Ultra plus the beta trailer's capture extras, to judge each one on a real phone (tiers.gd EXPERIMENTAL).
+- [ ] Mac shots, Experimental against Ultra at phone size, day and night: does MSAA 4x keep the post shader's depth outlines and the mirror reflections right (the trailer's `--trailer-aa=0` was the escape)?
+- [ ] Phone bench on the iPhone 16 (F's run): Experimental against Ultra, fps and 1 % low, memory with the 8192 shadow map (128 MB), heat after 10 minutes; then pick which extras move into Ultra or a new "High+" (the research's Regular / High plan) and which stay test-only
+- [ ] If one extra is cheap and good on the phone, give it its own switch so the bench can weigh it alone (today Experimental turns all five on together) (F, 2026-11-09; docs/design/race-ai.md)
 
 F (two phone screenshots, the race against Pani Halina from Powiśle to Plac Trzech Krzyży): "she was
 still going very slow, and like the mob, not behave like real racer and competitive", with a

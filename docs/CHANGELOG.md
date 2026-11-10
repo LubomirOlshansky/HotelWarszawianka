@@ -10,6 +10,7 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-10
+- Settings → Picture has an Experimental quality after Ultra: the sharpest picture the game can draw, with soft sun shadows, smooth edges and crisp roads, for testing on newer phones. It lasts for the session only and steps back to Ultra on its own if the phone can't keep up.
 - Street race rivals race at their own pace now. Nobody crawls beside a slow player, waits when you stop or lifts off before the finish, so a race you drive at town pace is a race you lose. Each rival is a different driver, from careful Pani Halina to Mordor Mike, and a rival who keeps beating you drives a little slower each time until you win.
 
 ## 2026-11-09
