@@ -7772,6 +7772,11 @@ func _show_target() -> void:
 		hud.set_target(on_v, rave.target_label(mv), rave.target_colour(), mv > 12)
 		_put_target(Vector2(vp.x, vp.z), rave.target_colour(), false)
 		_new_target("job", vp)
+		# The return went missing with the night meet's branch below (78d05081): the frame fell
+		# through to "nothing on", which hid the arrow and the minimap pin and forgot the target,
+		# so the next frame took it as new and the camera flew to it again and again while the
+		# car stood (F, 2026-11-10: the destination shown for ever, the arrow lost).
+		return
 	if meet != null and meet.has_target() and not flying:
 		var kp: Vector3 = meet.target_position()
 		var at_k := _vehicle_position()
