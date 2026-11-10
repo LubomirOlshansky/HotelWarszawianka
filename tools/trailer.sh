@@ -7,7 +7,7 @@
 #   tools/trailer.sh cut [preview|final]         docs/trailer/cut.sh on that folder -> build/trailer/<mode>/cut/
 #
 # TAKE: palace_time, heli_dive, old_town, card, drift_day (palace_drift by day), drift_night.
-# The prebuilt city is used when game/map/city.scn exists (no 3 min runtime build before each take).
+# The prebuilt city (sectors + index.res from bake_city.gd) is used when game/map/index.res exists.
 # Each take quits by itself; the loading frames before "trailer: TAKE starts at frame N" are cut.
 # Needs ffmpeg for preview, final and cut. Every run passes --nosave.
 
@@ -33,7 +33,7 @@ case $name in
 	palace_time|heli_dive|old_town|card) game+=(--trailer=$name) ;;
 	*) print -r -- "tools/trailer.sh: unknown take $name"; exit 2 ;;
 esac
-[[ -f $ROOT/game/map/city.scn ]] && game+=(--prebuilt)
+[[ -f $ROOT/game/map/index.res ]] && game+=(--prebuilt)
 game+=("$@")
 
 typeset -a engine
