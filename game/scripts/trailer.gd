@@ -12,8 +12,10 @@ extends Node
 ## palace_drift  10 s: donuts on Plac Defilad under the Palace; a police raid sets off at 1.5 s and
 ##               the follow camera widens to show the patrols closing in (main.gd raid_view_extra).
 ## card           5 s: the Palace at night, slowly, and the end card JOIN THE BETA.
+## Every take: the Palace in its everyday gold light and no quest or job markers (F 2026-11-10).
 
 const CameraShots := preload("res://scripts/camera_shots.gd")
+const Beacon := preload("res://scripts/beacon.gd")
 const TAKES := ["palace_time", "heli_dive", "palace_drift", "card"]
 const PALACE := Vector2(-1227.0, 244.0)
 ## The donut spot on Plac Defilad (the first street meet's square), the car's start for palace_drift.
@@ -77,6 +79,7 @@ func begin(main: Node) -> void:
 	t = 0.0
 	playing = true
 	seed(SEED)
+	Beacon.hide_all = true
 	host.hud.visible = false
 	if take != "palace_drift":
 		host.car.visible = false

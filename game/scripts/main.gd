@@ -1351,6 +1351,11 @@ func _trailer_flag(take: String) -> void:
 	add_child(trailer)
 	_flag_cinematic = "trailer"
 	show_title = false
+	# F (2026-11-10): the Palace in its everyday gold light, whatever the date (the calendar's rows,
+	# palace_lights.json, would light it white-red round 11 November), and no event day in the streets.
+	palace_lights_id = "default"
+	if event_flag < 0:
+		event_flag = 0
 	free_roam = true
 	if take == "palace_drift":
 		start_at = Trailer.DRIFT_AT
