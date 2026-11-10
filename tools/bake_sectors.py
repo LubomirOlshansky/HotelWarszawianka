@@ -200,6 +200,8 @@ SITE_AREAS = [
     (-1858.0, 350.0, -1832.0, 395.0),
     # Pokorna 2 (landmarks.gd _find_pokorna2): the 57 m residential block, found by the outline under POKORNA2_AT
     (-2141.0, -2234.0, -2105.0, -2198.0),
+    # I Oddział PKO (landmarks.gd _find_pko_branch, 2026-11-09): the branch's ~26 parts, replaced by one block
+    (-1000.0, -70.0, -890.0, 30.0),
     # The Dekalog estate and the Inflancka pools (landmarks.gd DE_AT, IP_*): the six slabs, the dome and the decks
     (-2720.0, -2370.0, -2200.0, -2110.0),
     (-2390.0, -2450.0, -2200.0, -2340.0),

@@ -382,6 +382,7 @@ Kopernik (pale aqua crystal, `crystal_aqua`), Dworzec Gdański (clear glass in d
 (violet glass box, `box`), Rondo ONZ (the A-frame `tent`, its 14 canopies). Ratusz-Arsenał is another thread's. Left:
 - Politechnika's canopies stay the generic vaulted glass (photos only far away; blue-tinted glass in them); Centrum's 3 canopy
   entrances and 7 stairwells, Świętokrzyska's plain stairwells and every passage mouth (`footway`) have no photo: shoot list for F.
+- The olive and grey boxes behind Świętokrzyska's entrances were OSM's own entrance outlines (12 rows `none` in small_buildings.json, 2026-11-10, centrum.json re-written by building_heights.py); the passage-only ref 4 outline stays. The older-M1 green glass look in F's third photo (two slopes, dark steel, escalator) is still only the olive stand-in.
 - Świętokrzyska's glass entrances rebuilt from F's photos (2026-11-09): one-sided truss lean-to, `tent` white perforated, `tent_green` (older M1 glass) for entrances east of x -1075; which refs really keep green glass is a guess: phone look and photos per entrance open. Rondo ONZ shares the same `tent`.
 - Rondo ONZ's tent is read from one street photo (a gabled glass pavilion with the roundel): close photos would confirm it.
 - The stairs thread (PR #517) lists metro stairwells the 10 m grid flattens (Rondo ONZ at -1805,110 / -1690,101 / -1798,48,

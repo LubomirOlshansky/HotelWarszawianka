@@ -11,12 +11,13 @@ someone writes its lines.
 
 ## 2026-11-09
 - The car park ramp by the Palace no longer floats in the air: it dives down between pink-tiled walls under a "PARKING PODZIEMNY 24h 7dni" sign, and two of Metro Centrum's entrances by the park are glass barrels on pink walls with an escalator instead of green boxes.
+- The first bank branch on Marszałkowska at Sienkiewicza is a real building now: a dark red-brown stone front with tall glass bays and a glass top floor, plain wings behind it with roofs, instead of a hollow shell with no roof.
 - Marszałkowska between Sienkiewicza and Świętokrzyska is laid out like the city's new plan: two lanes out of the crossing that widen smoothly into a third lane by the bus stop, with no step in the kerb, and a green strip of young elms beside the southbound lanes.
 - Mati's two nights out are two quests on the map now: the secret rave starts at his block by Hala Mirowska, the Smoła club night under the Rotunda, and both can be started any time: taking one turns the clock to Friday night.
 - Four of Metro Centrum's entrances at the Marszałkowska crossing are plain open stairs now, no glass tube over them.
 - The iPhone home-screen name now reads "Around Warsaw" with the space.
 - The speckled flower beds behind the Museum of Modern Art no longer flicker: they, and other ground patches like playgrounds and fountains, now sit in a fixed order over the paving.
-- Metro Świętokrzyska's entrances are the real thing now: a big tilted panel of milky perforated glass on a white steel truss over a concrete stair box, the yellow M roundel on the tall post and the white name sign with M1 and M2 (the Marszałkowska side wears the older green glass).
+- Metro Świętokrzyska's entrances are the real thing now: a big tilted panel of milky perforated glass on a white steel truss over a concrete stair box, the yellow M roundel on the tall post and the white name sign with M1 and M2 (the Marszałkowska side wears the older green glass). The big olive box that stood behind every one of them is gone.
 - No more trees growing through the walls of houses: about 180 trees that stood inside building outlines (mostly in courtyards) are gone or stepped just outside.
 - Waryńskiego by Polna no longer has a bare patch of asphalt full of stray lane-line stubs and a step in the kerb where it splits into its two carriageways: the lanes and kerbs run smoothly into each side at all three of its splits there and at five more (Plac Małachowskiego, Polna, Topiel, Francuska, Anielewicza).
 - The turning hall at the bottom of the Dworzec Centralny car park ramp is dressed as the car park's entry: two gates with raised barriers and ticket machines, the blue "P PARKING ZŁOTE TARASY" sign, a green exit door and the 2,1 m limit.
