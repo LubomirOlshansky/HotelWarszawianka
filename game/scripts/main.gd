@@ -304,7 +304,8 @@ var autopilot := false
 ## `ghost_pace`, default 1.8: an average player; 2.4 a quick one; "racer" (99): a skilled player who
 ## uses the whole car on the roads, traffic.gd's racer mode at the car's top), for the race-AI runs.
 var ghost_pace := 0.0
-## --race-debug: traffic.gd prints what holds a racer that stands still (once a second).
+## --race-debug: traffic.gd prints what holds a racer that stands still (once a second), and
+## rivals.gd a `race trace:` line a second of a race (the rival's speed, the band, both gaps).
 var race_debug := false
 var _wash_on := false
 var building_mat: ShaderMaterial
