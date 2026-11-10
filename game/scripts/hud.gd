@@ -208,6 +208,8 @@ var _pill: Button
 var _pill_t := 0.0
 var _pad: Control
 var _gas_index := -1
+## True while the drag's shift button holds the gas down for the player.
+var _auto_gas := false
 var _climb_index := -1
 ## Mission card (calls and results), the status panel while a mission runs.
 var _card: PanelContainer
@@ -747,6 +749,11 @@ func _layout_fixed() -> void:
 	_style_radio_plate()
 	_pill.size = _pill.custom_minimum_size
 	_pill.position = Vector2(_safe.get_center().x - _pill.size.x * 0.5, y)
+	if _pill.visible and pill_owner == "drag_shift":
+		# F 2026-11-10: in the drag the shift button stands where GAZ is (the gas is held for the
+		# run, _frame), a big target for the thumb instead of a chip on the top row.
+		_pill.size = Vector2(maxf(_pill.size.x, 104.0 * pt), maxf(_pill.size.y, 64.0 * pt))
+		_pill.position = _gas_centre() - _pill.size * 0.5
 	var below := (ROW_Y + ROW_H + GAP) * pt
 	if _minimap != null:
 		_minimap.position = Vector2(x0, below)
@@ -1788,6 +1795,13 @@ func _process(dt: float) -> void:
 
 
 func _frame(dt: float) -> void:
+	# The drag's shift button took GAZ's place: the gas stays down while it is up.
+	if _pill.visible and pill_owner == "drag_shift":
+		gas = true
+		_auto_gas = true
+	elif _auto_gas:
+		_auto_gas = false
+		gas = _gas_index >= 0
 	radio_hold_tick(Time.get_ticks_msec())
 	if _toast_left > 0.0:
 		_toast_left -= dt
