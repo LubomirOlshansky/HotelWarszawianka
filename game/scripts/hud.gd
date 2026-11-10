@@ -749,10 +749,10 @@ func _layout_fixed() -> void:
 	_style_radio_plate()
 	_pill.size = _pill.custom_minimum_size
 	_pill.position = Vector2(_safe.get_center().x - _pill.size.x * 0.5, y)
-	if _pill.visible and pill_owner == "drag_shift":
+	if _gas_on_pill():
 		# F 2026-11-10: in the drag the shift button stands where GAZ is (the gas is held for the
 		# run, _frame), a big target for the thumb instead of a chip on the top row.
-		_pill.size = Vector2(maxf(_pill.size.x, 104.0 * pt), maxf(_pill.size.y, 64.0 * pt))
+		_pill.size = Vector2(maxf(_pill.size.x, 88.0 * pt), maxf(_pill.size.y, 64.0 * pt))
 		_pill.position = _gas_centre() - _pill.size * 0.5
 	var below := (ROW_Y + ROW_H + GAP) * pt
 	if _minimap != null:
@@ -979,7 +979,7 @@ func _pedal_rects() -> Array[Rect2]:
 	out.append(disc.call(_horn_centre(), (HORN_R + 4.0) * pt))  # the night-buses loop: the horn
 	if nitro_owned:
 		out.append(disc.call(_nitro_centre(), (NITRO_R + 4.0) * pt))  # G13: the nitro
-	if scheme == CLASSIC:
+	if scheme == CLASSIC and not _gas_on_pill():
 		out.append(disc.call(_gas_centre(), (GAS_R + 4.0) * pt))
 		var o := _strip_hint_centre()
 		out.append(Rect2(o - Vector2(52, 12) * pt, Vector2(104, 24) * pt))
@@ -1076,7 +1076,7 @@ func touch_targets() -> Dictionary:
 			out["horn"] = disc.call(_horn_centre(), HORN_R * pt)
 			if nitro_owned:
 				out["nitro"] = disc.call(_nitro_centre(), NITRO_R * pt)
-		if scheme == CLASSIC:
+		if scheme == CLASSIC and not _gas_on_pill():
 			out["gas"] = disc.call(_gas_centre(), GAS_R * pt)
 	return out
 
@@ -1796,7 +1796,7 @@ func _process(dt: float) -> void:
 
 func _frame(dt: float) -> void:
 	# The drag's shift button took GAZ's place: the gas stays down while it is up.
-	if _pill.visible and pill_owner == "drag_shift":
+	if _gas_on_pill():
 		gas = true
 		_auto_gas = true
 	elif _auto_gas:
@@ -2789,6 +2789,11 @@ func _stick_side(x: float, width: float) -> bool:
 
 
 ## Loop 2a: the GAS pedal (Classic), where BRAKE is in the other schemes.
+## The drag's shift button stands on GAZ's spot (the gas plate is not drawn under it).
+func _gas_on_pill() -> bool:
+	return scheme == CLASSIC and not flying and _pill.visible and pill_owner == "drag_shift"
+
+
 func _gas_centre() -> Vector2:
 	return _side(Vector2(_safe.end.x - 58.0 * pt, _safe.end.y - 52.0 * pt))
 
@@ -3406,8 +3411,9 @@ func _draw_pad() -> void:
 		_draw_nitro(_nitro_centre(), nitro_held)
 	if scheme == CLASSIC:
 		var gc := _gas_centre()
-		_plate(gc, GAS_R * pt, gas)
-		_pad_words(gc, GAS_R * pt, "GAZ", "gas")
+		if not _gas_on_pill():
+			_plate(gc, GAS_R * pt, gas)
+			_pad_words(gc, GAS_R * pt, "GAZ", "gas")
 		if _stick_index == -1:
 			# Where the steering strip lives, on a small plate, until a thumb comes down.
 			var o := _strip_hint_centre()

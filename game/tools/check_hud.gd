@@ -206,7 +206,7 @@ func _check_screen(screen: Vector2i) -> int:
 		for state in ["car, Point", "car, Classic", "helicopter", "call came in", "call card", "rescued, paid",
 				"rescue, host, egg", "kebab offer", "kebab delivery", "race", "rival ahead", "landmark card", "note card", "tow toast",
 				"police chase", "lizak", "pull-over",
-				"ride offer", "ride", "ride result", "ride result, police"]:
+				"ride offer", "ride", "ride result", "ride result, police", "drag shift"]:
 			if perf and not state in ["car, Point", "call card", "rescue, host, egg", "kebab offer", "kebab delivery", "landmark card"]:
 				continue
 			if mode == "no-touch" and not state in ["car, Point", "car, Classic", "helicopter", "kebab offer", "pull-over", "ride offer"]:
@@ -318,6 +318,8 @@ func _check_screen(screen: Vector2i) -> int:
 					hud.ticker("87,3 KEBAB FM  ·  Palma de Gaulle'a", Color("#ff5fc8"))
 				# Loop 2d-1: Podwózka at its longest: the longest note, the MNOŻNIK for night and rain,
 				# the longest destination; the result with every star note and a streak.
+				"drag shift":
+					hud.show_pill("⬆ BIEG", "⬆ SHIFT", "drag_shift")
 				"ride offer":
 					var offer := RideRules.offer_text({"name": "Krzysiek", "away": 588.0, "road": 2496.0, "their": 4.9,
 							"note": ["Uwagi: „jestem tam, gdzie pinezka, tylko po drugiej stronie”.",
