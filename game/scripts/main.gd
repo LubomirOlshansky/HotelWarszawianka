@@ -3232,6 +3232,7 @@ func _kino_free() -> bool:
 const STORY_BLURBS := {
 	"boat": ["Wyścig łodzi po Wiśle, trzy kółka.", "A boat race down the Vistula, three laps."],
 	"rave": ["Sekretny rave: Mati zna drogę.", "A secret rave: Mati knows the way."],
+	"smola": ["Smoła na Smolnej: selekcja jak w Berlinie.", "Smoła on Smolna: a Berlin-strict door."],
 	"dekalog": ["Warszawa Kieślowskiego z Claire.", "Kieślowski's Warsaw, with Claire."],
 	"kawa": ["Kawowy rajd po mieście.", "A coffee run across the city."],
 	"padel": ["Czwarty do padla w WTS Deska.", "A fourth for padel at WTS Deska."],
@@ -3269,15 +3270,28 @@ func _build_stories(world: Node3D) -> void:
 				"closed": ["„Po ciemku nie pływamy, policja wodna nie śpi. Wpadnij za dnia”", "\"No racing in the dark, the river police never sleep. Come by in the daytime\""],
 				"at": BoatRace.CAR_SPOT, "colour": BoatRace.COLOUR, "hours": Vector2(BoatRace.HOURS[0], BoatRace.HOURS[1]),
 				"call": boat_race.ring, "meet": boat_race.meet, "busy": boat_race.busy, "idle": boat_race.idle})
-	if rave != null and not rave.home.is_empty():
-		var h: Vector3 = rave.home["at"]
+	# Mati's two nights are two questlines (F 2026-11-09): the secret rave from his block at Osiedle
+	# Za Żelazną Bramą, Smoła from pod Rotundą. A start the map has no road for stays in the list.
+	# Both are open at any hour (F 2026-11-09): taking one turns the clock to the rave night
+	# (`_rave_night`), as the night meet does.
+	if rave != null and not rave.spots.is_empty():
+		var h: Vector3 = rave.home["at"] if not rave.home.is_empty() else Vector3.INF
 		stories.add({"id": "rave", "pl": "Sekretny rave", "en": "Secret rave", "who": ["Mati", "Mati"],
 				"hello": ["„Siema! Słyszałeś? Lekti robi dziś sekretny rave. Ja wiem, jak tam trafić. Wsiadam?”",
 						"\"Hey! Did you hear? Lekti's throwing a secret rave tonight. I know how to get there. Can I get in?\""],
 				"closed": ["„Rave? Dziś cisza. Lekti gra od czwartku do soboty, wpadnij wieczorem”",
 						"\"A rave? Nothing tonight. Lekti plays Thursday to Saturday, come by in the evening\""],
-				"at": Vector2(h.x, h.z), "colour": Rave.COLOUR, "hours": Rave.TEASE_HOURS, "days": Rave.NIGHT_DAYS,
-				"call": func() -> bool: return rave.ring(), "meet": rave.meet_in_person, "busy": rave.busy, "idle": rave.idle})
+				"at": Vector2(h.x, h.z) if h != Vector3.INF else Vector2.INF, "colour": Rave.COLOUR, "hours": Vector2(-1.0, -1.0), "days": [],
+				"call": func() -> bool: return rave.ring("rave"), "meet": func() -> bool: return rave.meet_in_person("rave"),
+				"busy": func() -> bool: return rave.busy_kind("rave"), "idle": rave.idle})
+	if rave != null and not rave.smola.is_empty():
+		var sh: Vector3 = rave.smola_home["at"] if not rave.smola_home.is_empty() else Vector3.INF
+		stories.add({"id": "smola", "pl": "Smoła", "en": "Smoła", "who": ["Mati", "Mati"],
+				"hello": ["„Siema! Jedziemy na Smołę? Selekcja jak w Berlinie, ale ja mam patent: mów mało, patrz w dal. Wsiadam?”",
+						"\"Hey! Shall we hit Smoła? The door's Berlin-strict, but I've got a system: say little, stare into the distance. Can I get in?\""],
+				"at": Vector2(sh.x, sh.z) if sh != Vector3.INF else Vector2.INF, "colour": Rave.SMOLA_COLOUR, "hours": Vector2(-1.0, -1.0), "days": [],
+				"call": func() -> bool: return rave.ring("smola"), "meet": func() -> bool: return rave.meet_in_person("smola"),
+				"busy": func() -> bool: return rave.busy_kind("smola"), "idle": rave.idle})
 	if dekalog_tour != null:
 		stories.add({"id": "dekalog", "pl": "Dekalog na kółkach", "en": "Dekalog on wheels", "who": ["Claire", "Claire"],
 				"hello": ["„Bonjour! Pan z taksówki? Claire, studentka filmu z Lyonu. Pokaże mi pan Warszawę Kieślowskiego, aż do Inflanckiej?”",
@@ -3382,6 +3396,7 @@ func _story_tick() -> void:
 	stories.focus = focus
 	_shisha_secret(focus)
 	_meet_night()
+	_rave_night()
 	var m: Array = StoryQuests.marks(stories.defs, focus or flying)
 	var names := PackedStringArray()
 	var blurbs := PackedStringArray()
@@ -3426,6 +3441,25 @@ func _meet_night() -> void:
 	_meet_dark = true
 	if not StreetMeet.night_on(float(tod.local_clock()["hour"])):
 		_story_skip_to(StoryQuests.open_hour({"hours": StreetMeet.NIGHT_HOURS}))
+
+
+## True once the rave night was set for Mati's night under way (cleared when it ends).
+var _rave_dark := false
+
+
+## Mati's nights are nights (F, 2026-11-09: "always open, but when you start the quest the time
+## should change to the night"): taken by day or on a weekday (his call, the list, in person), the
+## clock jumps to Friday 22:03 at once (a fixed look is always Friday), so the secret rave's rig is on.
+func _rave_night() -> void:
+	if rave == null or not rave.busy():
+		_rave_dark = false
+		return
+	if _rave_dark:
+		return
+	_rave_dark = true
+	var c: Dictionary = tod.local_clock()
+	if not Rave.night_on(float(c["hour"]), int(c["weekday"])):
+		_story_skip_to(StoryQuests.open_hour({"hours": Rave.NIGHT_HOURS}))
 
 
 ## CZEKAM DO 21:00 (story_quests.gd): the clock jumps to `hour` in the look that fits it (Dawn,
