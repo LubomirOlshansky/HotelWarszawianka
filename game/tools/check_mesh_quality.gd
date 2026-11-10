@@ -176,6 +176,7 @@ const BUDGET := {
 	"slabs": 1100,   # 2026-11-03: balcony bands, a ledge every storey on the long faces (look check)
 	"zelazna": 1030,
 	"pokorna2": 1500,
+	"pko_branch": 220,  # 2026-11-09 photo rebuild (F): 162 tris (granite slab, glass bays, wings, courtyard)
 	"dekalog_estate": 18000,
 	"inflancka_pools": 1000,
 	"spektrum": 990,
