@@ -76,3 +76,12 @@ L2, triangle budget 870 (724 measured, plus about 20 %, in `check_mesh_quality.g
 | turret | drum and cone with a ball | drum to 13.6 m, cone to 21.0 m | castle's north-west corner | M_MONUMENT, M_STONE | 2 massing |
 | porch | two columns, entablature, pediment | columns to 4.7 m | museum, courtyard face | M_STONE, M_GLASS | 3 facade |
 | chimneys | boxes | over the ridges | 2 castle, 1 museum | M_STONE | 4 roof |
+
+## Rebuild from F's photos (2026-11-09)
+
+F's Mac set `powisle/M01-M05, B13`: the castle is white (#ece8dc) with grey stone quoins
+(#c4beb1) at the corners and the middle bays, orange tiled roofs (#b4664a), a statue on each
+pediment, and stands on a red-brick bastion (#a1503a) with a white balustrade towards Tamka (built
+where the ground there is more than 1.2 m lower). There is no turret: removed. The Institute
+next door is a modern block: a 6 m stone base (#d8d4ca) and a blue-green glass tower (#7fb3b0)
+to 26 m. Left: the double stairs from Tamka, the garden terrace's balustrades and lamps.

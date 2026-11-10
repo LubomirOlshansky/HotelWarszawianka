@@ -15,7 +15,7 @@ słoiki, Podwózka rides, rescues), climbs a rival race ladder to "Trzy mosty", 
 cassettes, and listens to parody radio (KEBAB FM, MORDOR FM). Identity: affectionate Warsaw humour and
 a light vaporwave look. On-screen text is Polish with English. Real place names are fine; brands only
 as parodies; never jokes about real private people. On the phone the frame grows with draw calls, so
-every new object, material or light has a cost. Repo: github.com/LubomirOlshansky/AroundWarsaw;
+every new object, material or light has a cost.
 `CLAUDE.md` there is the rulebook and wins over this brief.
 
 ## Your job
@@ -28,7 +28,13 @@ they find, log each problem once with its likely cause, and hand each fix a test
 - **Headless checks** (cloud and Mac): `game/tools/check_*.gd`, run through `tools/verify.sh`. Every
   game run passes `--nosave` and quits.
 - **Autopilot** (Mac only, an open-source Godot plugin driving the game with Claude): runs are killed
-  at about 6 minutes, so each row is under 6 minutes. Ask F before long runs.
+  at about 6 minutes, so each row is under 6 minutes. Ask F before long runs. One session on the
+  Mac at a time (`tools/autopilot.sh on <thread>` takes the lock, `off` frees it). Autopilot finds
+  the place and the symptom; a cloud fix thread proves the cause with headless lines (lane
+  centre, kerb lane, `--no-traffic`), so hand every stop a player could make straight on instead
+  of re-running it on the Mac. Teleport only to a row's start, never next to its goal.
+- Not to be confused with the game's own `--autopilot` flag, the scripted driver in the headless
+  checks.
 - **The phone** (F's iPhone): only with F's yes for that loop. Name exactly what only the phone can
   show (feel, heat, touch comfort at 15, 30 and 60 minutes, the speaker).
 

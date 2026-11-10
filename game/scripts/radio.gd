@@ -109,6 +109,17 @@ var _last_host_s := -1.0
 var _track_t := 0.0
 var _player: AudioStreamPlayer
 var _static: AudioStreamPlayer
+## Station jingles (F, 2026-11-05): a short ElevenLabs clip in the station's voice that plays
+## between two songs, after every JINGLE_EVERY-th natural track end, so about one per 4-6 minutes.
+## The next song waits until the clip is over. A station without jingles, a skip or a tune-in
+## never plays one.
+const JINGLE_EVERY := 2
+const JINGLE_DB := -3.0
+var _jingle: AudioStreamPlayer
+var _since_jingle := 0
+var _last_jingle := -1
+## The jingle is on air now (the next song starts when it ends).
+var jingle_playing := false
 ## Per station: its tracks' indices in the order they play today (a shuffle seeded by the
 ## date and the station, so a day has its own order and every run of it is the same).
 var _orders: Array = []
@@ -128,6 +139,10 @@ func _ready() -> void:
 	_player.bus = &"Music"
 	add_child(_player)
 	_player.finished.connect(_on_finished)
+	_jingle = AudioStreamPlayer.new()
+	_jingle.bus = &"Music"
+	add_child(_jingle)
+	_jingle.finished.connect(_on_jingle_finished)
 	_static = AudioStreamPlayer.new()
 	_static.volume_db = VOLUME_DB - 4.0
 	_static.bus = &"Music"
@@ -141,6 +156,8 @@ func _exit_tree() -> void:
 	# Quitting while a stream plays would leave its playback behind.
 	_player.stop()
 	_player.stream = null
+	_jingle.stop()
+	_jingle.stream = null
 	_static.stop()
 
 
@@ -195,7 +212,18 @@ func _station_from(s: Dictionary) -> Dictionary:
 	# Loop MW-5: "free": the station's first N tracks play from the start, the rest are locked
 	# (-1: none locked).
 	return {"id": String(s.get("id", "")), "name": String(s["name"]), "freq": String(s["freq"]),
-			"colour": Color(String(s.get("colour", "#c9c4d8"))), "tracks": tracks, "free": int(s.get("free", -1))}
+			"colour": Color(String(s.get("colour", "#c9c4d8"))), "tracks": tracks, "free": int(s.get("free", -1)),
+			"jingles": _existing(s.get("jingles", []))}
+
+
+## The files of a list that exist (a missing jingle is skipped, never an error).
+func _existing(files: Variant) -> Array:
+	var out: Array = []
+	if files is Array:
+		for f: Variant in files:
+			if ResourceLoader.exists(String(f)):
+				out.append(String(f))
+	return out
 
 
 ## A Fisher-Yates shuffle of 0..n-1, seeded by today's date and the station's number.
@@ -240,6 +268,7 @@ func current_track() -> Dictionary:
 ## Tunes to a station (-1 = off). `quiet` skips the static and the ticker.
 func tune(index: int, quiet := false) -> void:
 	station = index if index >= 0 and index < stations.size() else -1
+	_stop_jingle()
 	_settle()
 	_play_current(true)
 	from_top = false
@@ -311,12 +340,55 @@ func _advance(natural: bool) -> void:
 		_pos[station] = (_pos[station] + 1) % order.size()
 		if is_unlocked(station, order[_pos[station]]):
 			break
-	_play_current(false)
+	_stop_jingle()
+	if natural and _jingle_due():
+		_player.stop()
+		_play_jingle()
+	else:
+		_play_current(false)
 	var info: Dictionary = stations[station]
 	if log_on:
 		_log("%s %s" % ["next" if natural else "skip", _track_note()])
 	ticker.emit(caption(), info["colour"], caption_sub())
 	track_changed.emit(info, current_track(), natural)
+
+
+## True when this natural track end is a jingle's turn: the station has jingles, a real audio
+## device is there, and JINGLE_EVERY songs have played since the last one.
+func _jingle_due() -> bool:
+	_since_jingle += 1
+	var files: Array = stations[station].get("jingles", [])
+	return not files.is_empty() and not _silent and _since_jingle >= JINGLE_EVERY
+
+
+func _play_jingle() -> void:
+	var files: Array = stations[station]["jingles"]
+	# Not the same clip twice in a row.
+	var k := randi() % files.size()
+	if files.size() > 1 and k == _last_jingle:
+		k = (k + 1) % files.size()
+	_last_jingle = k
+	_since_jingle = 0
+	_jingle.stream = load(files[k])
+	_jingle.volume_db = VOLUME_DB + duck_db + bed_db + JINGLE_DB
+	jingle_playing = true
+	_jingle.play()
+	if log_on:
+		_log("jingle %s" % files[k])
+
+
+func _on_jingle_finished() -> void:
+	if not jingle_playing:
+		return
+	jingle_playing = false
+	if station >= 0:
+		_play_current(false)
+
+
+func _stop_jingle() -> void:
+	jingle_playing = false
+	if _jingle != null:
+		_jingle.stop()
 
 
 ## "87,3 KEBAB FM  ·  Title (Artist)": the tuned station and the track on the air.
@@ -586,6 +658,8 @@ func _apply_level() -> void:
 	if _moment_t > 0.0:
 		db += MOMENT_DB
 	_player.volume_db = db
+	if _jingle != null:
+		_jingle.volume_db = VOLUME_DB + duck_db + bed_db + JINGLE_DB
 
 
 ## The level the player is set to (the checks read it; headless never plays).

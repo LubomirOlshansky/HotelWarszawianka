@@ -141,13 +141,16 @@ const CRAZY_MISTAKE := [0.0, 0.0, 0.0, 0.15]
 const PASAT_PAINT := ["#1d1e21", "#3a3d42", "#2f3d33", "#2a3340", "#8c9096"]
 ## Racer mode (docs/design/street-races.md R1, 2026-11-04): a driver with a race route and a
 ## `race_top` (rivals.gd) or a `race_accel` (police chasers) drives like a racer, not like a town
-## car: top speed `race_top` × its rubber band, capped by road class (RACE_CLASS_TOP: e_class 0
-## main, 1 tertiary, 2 residential, 3 living street), pulling `race_accel` m/s², braking
-## RACE_DECEL, corners at `race_lat` m/s² sideways (v = sqrt(lat × radius) of the junction curve,
-## at least RACE_TURN_MIN), a shorter headway, through every red (a little slower in the box,
-## RACE_RED_SLOW of its speed within RACE_RED_LOOK m of the line), crossing cars only when one is
-## within RACE_CROSS m, and round slower traffic and the player's car: a free lane, or out over
-## the centre line for a pass when the oncoming lane is clear for RACE_PASS_CLEAR m.
+## car: its car's top speed `race_top`, capped by road class (RACE_CLASS_TOP: e_class 0 main,
+## 1 tertiary, 2 residential, 3 living street): the road's racing speed, of which it holds its
+## skill's share `race_share` × its effort `race_effort` on a straight (docs/design/race-ai.md 6:
+## never a function of the player's speed), pulling `race_accel` m/s², braking for a corner at
+## `race_brake` m/s² (0: RACE_DECEL × 0.7), corners at `race_lat` m/s² sideways (v = sqrt(lat ×
+## radius) of the junction curve, at least RACE_TURN_MIN), a shorter headway, through every red
+## (a little slower in the box, RACE_RED_SLOW of its speed within RACE_RED_LOOK m of the line),
+## crossing cars only when one is within RACE_CROSS m, and round slower traffic and the player's
+## car: a free lane, or out over the centre line for a pass when the oncoming lane is clear for
+## RACE_PASS_CLEAR m.
 ## (F 2026-11-05, "they go very slowly": 30/25/19/12 held them to 68 km/h on the centre's side
 ## streets, where the player does 90.)
 const RACE_CLASS_TOP := [33.0, 29.0, 25.0, 16.0]
@@ -169,9 +172,11 @@ const RACE_KNOT := 1.5
 ## the cut and the road on from its far end beat the road route by RaceCuts.GAIN m, at most
 ## CUT_TOP m/s across the plaza (slower when it turns sharply in).
 const CUT_TOP := 16.0
-## Mistakes: a racer that rolls its `race_mistake` at a corner (only within MISTAKE_NEAR m of the
-## player, so it is seen) takes it MISTAKE_FAST too fast and runs wide out of it: a slide of
-## MISTAKE_SLIDE m/s outwards and MISTAKE_DAZE s of lifting off.
+## Mistakes: a racer that rolls its `race_mistake` at a corner takes it MISTAKE_FAST too fast and
+## runs wide out of it: a slide of MISTAKE_SLIDE m/s outwards and MISTAKE_DAZE s of lifting off.
+## A rival in a race rolls its own dice (`race_rng`) at every corner, seen or not: its mistakes
+## are part of its skill and its time is its own. A driver without them (a crazy driver) rolls
+## only within MISTAKE_NEAR m of the player, so it is seen.
 const MISTAKE_NEAR := 110.0
 const MISTAKE_FAST := 1.3
 const MISTAKE_SLIDE := 4.5
@@ -255,13 +260,17 @@ class Driver:
 	var finish := -1
 	var arrived := false
 	var run_red := false
-	## Racer mode (RACE_CLASS_TOP above): top speed (m/s; 0: none, the road's limit × speed_factor),
-	## acceleration (m/s²; 0: the town car's IDM), corner grip (m/s²), the rubber band's factor on
-	## the top speed (rivals.gd), and a pass over the centre line under way (s left, its offset).
+	## Racer mode (RACE_CLASS_TOP above): the car's top speed (m/s; 0: none, the road's limit ×
+	## speed_factor), acceleration (m/s²; 0: the town car's IDM), corner grip (m/s²), the braking it
+	## plans a corner with (m/s²; 0: RACE_DECEL × 0.7), the share of the road's racing speed its
+	## skill holds on a straight and its effort on top of that (rivals.gd `effort_of`: 1 its own
+	## pace; on the corner grip too), and a pass over the centre line under way (s left, its offset).
 	var race_top := 0.0
 	var race_accel := 0.0
 	var race_lat := 7.0
-	var race_band := 1.0
+	var race_brake := 0.0
+	var race_share := 1.0
+	var race_effort := 1.0
 	var pass_t := 0.0
 	var pass_off := 0.0
 	## Racer stats for the race log: seconds stopped (under 1 m/s) and the passes made.
@@ -275,6 +284,11 @@ class Driver:
 	var race_mistake := 0.0
 	var race_wrong := 0
 	var race_block := 0.0
+	## A rival's own dice for its wrong turns and mistakes (rivals.gd `arm_racer`; null: none). The
+	## traffic's dice are shared with every car on the road, so a rival that rolled them made its
+	## human moments where the player's car happened to shift the sequence: on the race bench
+	## Słoik took no wrong turn alone and one with a player, 34 % slower.
+	var race_rng: RandomNumberGenerator
 	var on_cut := false
 	var mistake_side := 0.0
 	var block_t := 0.0
@@ -465,6 +479,9 @@ var _view_mid := Vector2.ZERO
 var _jc_at := PackedVector2Array()
 ## The ground in view, kept by _update_view(): centre, right and ahead axes, half size (m).
 var view_centre := Vector2.ZERO
+## A zone the traffic keeps out of (event_day.gd's cordon): (Vector2 game-plane point) -> bool.
+## Cars inside it are released and none spawn there. Invalid: no zone.
+var keep_out: Callable
 var view_right := Vector2.RIGHT
 var view_ahead := Vector2.UP
 var view_half := Vector2.ONE
@@ -497,6 +514,7 @@ func setup(lane_graph: LaneGraph, map_node: Node3D, camera: Camera3D, data: Dict
 	for i in MAX_CARS + 8:
 		_free.append(Driver.new())
 	for k in POOL.size():
+		await LoadYield.tick("traffic kind %d" % k)  # the loading bar: a frame between the kinds' meshes
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
 		mm.use_custom_data = true
@@ -557,6 +575,7 @@ func setup(lane_graph: LaneGraph, map_node: Node3D, camera: Camera3D, data: Dict
 		add_child(body)
 		_bodies.append(body)
 		_body_driver.append(null)
+	await LoadYield.tick("traffic bodies")
 	_build_lamps(data.get("signals", []))
 
 
@@ -726,6 +745,10 @@ func _manage() -> void:
 		i += 1
 		if d.persistent or d.ghost or d.visible:
 			continue
+		if keep_out.is_valid() and keep_out.call(Vector2(d.pos.x, d.pos.z)):
+			_release(d)
+			i -= 1
+			continue
 		var l := _local(Vector2(d.pos.x, d.pos.z))
 		var gone := absf(l.x) > far.x or absf(l.y) > far.y
 		# Too many (zoomed in, or the frame governor's CPU step lowered the density): thin out the
@@ -803,6 +826,8 @@ func _try_spawn(anywhere: bool) -> bool:
 	if graph.closed_at(e, s + SHUT_ROOM) or graph.closed_at(e, s - SHUT_ROOM):
 		return false
 	var q := graph.point_at(e, s, graph.lane_offset(e, lane))
+	if keep_out.is_valid() and keep_out.call(q):
+		return false
 	var kind := Kind.CAR
 	var r := _rng.randf()
 	if cls == 0 and lane == graph.e_lanes[e] - 1 and r < 0.07:
@@ -902,7 +927,7 @@ func _try_spawn(anywhere: bool) -> bool:
 		d.race_lat = CRAZY_LAT[crazy]
 		d.race_block = CRAZY_BLOCK[crazy]
 		d.race_mistake = CRAZY_MISTAKE[crazy]
-		d.race_band = 1.0
+		d.race_effort = 1.0
 	d.v = graph.e_speed[e] * 0.6
 	return true
 
@@ -930,11 +955,14 @@ func _start(d: Driver, e: int, lane: int, s: float) -> void:
 	if not d.persistent:
 		d.race_top = 0.0
 		d.race_accel = 0.0
-		d.race_band = 1.0
+		d.race_brake = 0.0
+		d.race_share = 1.0
+		d.race_effort = 1.0
 		d.cuts = {}
 		d.race_mistake = 0.0
 		d.race_wrong = 0
 		d.race_block = 0.0
+		d.race_rng = null
 	d.on_cut = false
 	d.mistake_side = 0.0
 	d.block_t = 0.0
@@ -1579,7 +1607,7 @@ func _choose_next(d: Driver) -> void:
 			if not d.cuts.is_empty() and d.cuts.has(graph.e_b[e]) and best_d < INF and _take_cut(d, e, best_d):
 				return
 			if d.race_wrong > 0 and second >= 0 and second != rev and second_d < INF and d.route[graph.e_b[e]] > WRONG_FAR \
-					and _rng.randf() < WRONG_CHANCE:
+					and _race_roll(d) < WRONG_CHANCE:
 				# Słoik's satnav: the second-best way (the route's distances bring him back).
 				best = second
 				d.race_wrong -= 1
@@ -1630,11 +1658,12 @@ func _choose_next(d: Driver) -> void:
 	var turn := absf(here.angle_to(graph.direction(best, graph.e_s0[best])))
 	d.v_turn = 3.5 if best == rev else lerpf(16.0, 5.5, clampf(turn / 1.6, 0.0, 1.0))
 	if d.race_accel > 0.0 and best != rev and not d.route.is_empty():
-		# The rubber band works on grip too: behind, it takes the corners harder (F: "catch up by
-		# driving better, not by a speed boost").
-		d.v_turn = race_turn_speed(d.conn_len, turn, d.race_lat * clampf(d.race_band, 0.85, 1.15))
-		if d.race_mistake > 0.0 and turn > 0.6 and Vector2(player_pos.x - d.pos.x, player_pos.z - d.pos.z).length() < MISTAKE_NEAR \
-				and _rng.randf() < d.race_mistake:
+		# Effort works on grip too: behind, it takes the corners harder (F: "catch up by driving
+		# better, not by a speed boost").
+		d.v_turn = race_turn_speed(d.conn_len, turn, d.race_lat * clampf(d.race_effort, 0.85, 1.15))
+		if d.race_mistake > 0.0 and turn > 0.6 \
+				and (d.race_rng != null or Vector2(player_pos.x - d.pos.x, player_pos.z - d.pos.z).length() < MISTAKE_NEAR) \
+				and _race_roll(d) < d.race_mistake:
 			# Human rivals: too fast into this one; out wide on the far side (_enter_edge).
 			d.v_turn *= MISTAKE_FAST
 			d.mistake_side = _outside(e, best)
@@ -1760,7 +1789,7 @@ func _drive(d: Driver, dt: float) -> void:
 	var racer := racing_mode(d)
 	var v0 := graph.e_speed[e] * d.speed_factor
 	if racer and d.race_top > 0.0:
-		v0 = minf(d.race_top, RACE_CLASS_TOP[graph.e_class[e]]) * d.race_band
+		v0 = minf(d.race_top, RACE_CLASS_TOP[graph.e_class[e]]) * d.race_share * d.race_effort
 		if d.crazy > 0:
 			v0 = minf(v0, graph.e_speed[e] * CRAZY_OVER[d.crazy])
 	if d.v_cap > 0.0:
@@ -1772,7 +1801,7 @@ func _drive(d: Driver, dt: float) -> void:
 	if d.in_conn:
 		v0 = minf(v0, d.v_turn)
 	elif d.next_edge >= 0:
-		var brake := RACE_DECEL * 0.7 if racer else DECEL * 0.6
+		var brake := (d.race_brake if d.race_brake > 0.0 else RACE_DECEL * 0.7) if racer else DECEL * 0.6
 		v0 = minf(v0, sqrt(d.v_turn * d.v_turn + 2.0 * brake * maxf(graph.e_s1[e] - d.s, 0.0)))
 	if racer and not d.in_conn and (d.run_red or d.chase) and _red_gap(d) < RACE_RED_LOOK:
 		v0 = minf(v0, maxf(SIREN_SLOW * 1.4, v0 * RACE_RED_SLOW))  # racer mode: through a red, a little careful
@@ -1996,6 +2025,11 @@ func _overtake(d: Driver, leader_gap: float, dt: float) -> void:
 		if d.still > 6.0 and not d.visible:
 			d.squeeze = 2.5
 			d.still = 0.0
+
+
+## Racer mode: a roll of the racer's own dice (`race_rng`; the traffic's for a driver without).
+func _race_roll(d: Driver) -> float:
+	return d.race_rng.randf() if d.race_rng != null else _rng.randf()
 
 
 ## Racer mode: past slower traffic and the player's car. Start looking RACE_LOOK m back; a free
@@ -2283,19 +2317,22 @@ const N_GLYPH := ["#..#", "##.#", "#.##", "#..#", "#..#"]
 static func night_bus_mesh() -> ArrayMesh:
 	if _bus_night != null:
 		return _bus_night
-	var s := Models.Shape.new()
 	var plate := Models.fin(Color("#16171b"))
 	var lit := Models.fin(Color("#ffb21e"), Models.LIT_SIGN)
-	# A side's "right" as seen from outside it: -z on the +x side, +z on the -x side.
-	for sgn: float in [-1.0, 1.0]:
-		_n_sign(s, Vector3(sgn * 1.262, 2.12, -6.55), Vector3(0, 0, -sgn), Vector3(sgn, 0, 0), Vector2(1.2, 1.0), 0.19, plate, lit)
-	_n_sign(s, Vector3(0.0, 2.44, 8.995), Vector3.RIGHT, Vector3.BACK, Vector2(1.0, 0.8), 0.15, plate, lit)
-	_n_sign(s, Vector3(0.0, 2.56, -8.9), Vector3.LEFT, Vector3.FORWARD, Vector2(0.9, 0.72), 0.13, plate, lit)
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	st.append_from(Models.bus_mesh(), 0, Transform3D.IDENTITY)
-	st.append_from(s.mesh(), 0, Transform3D.IDENTITY)
-	_bus_night = st.commit()
+	# One shape per bus (models.gd bus_mesh: the articulated and the solo bus), the signs placed
+	# by its front (-9 or -6) and back (9 or 6).
+	var shapes: Array = []
+	for solo: bool in [false, true]:
+		var s := Models.bus_shape(solo)
+		var front := -6.0 if solo else -9.0
+		var back := 6.0 if solo else 9.0
+		# A side's "right" as seen from outside it: -z on the +x side, +z on the -x side.
+		for sgn: float in [-1.0, 1.0]:
+			_n_sign(s, Vector3(sgn * 1.262, 2.12, front + 2.45), Vector3(0, 0, -sgn), Vector3(sgn, 0, 0), Vector2(1.2, 1.0), 0.19, plate, lit)
+		_n_sign(s, Vector3(0.0, 2.44, back - 0.005), Vector3.RIGHT, Vector3.BACK, Vector2(1.0, 0.8), 0.15, plate, lit)
+		_n_sign(s, Vector3(0.0, 2.56, front + 0.1), Vector3.LEFT, Vector3.FORWARD, Vector2(0.9, 0.72), 0.13, plate, lit)
+		shapes.append(s)
+	_bus_night = Models.family(shapes)
 	return _bus_night
 
 

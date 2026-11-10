@@ -6,15 +6,17 @@ extends Node3D
 ## car on the track. Track pieces are OpenStreetMap ways drawn in the direction of
 ## travel; a tram that runs off the map slides out under its edge and comes back in
 ## where another track enters.
+## The fleet (2026-11-06, tram_fleet.gd): the eight trams come in four looks (FLEET), today's
+## yellow tram, the newest one with the smiling face and the old boxy pair in its first and
+## rebuilt face; a pair is two longer cars (its third body hidden), so it draws one car fewer.
 
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Models := preload("res://scripts/models.gd")
+const Fleet := preload("res://scripts/tram_fleet.gd")
 
 const COUNT := 8
 const CAR := 10.5
 const JOINT := 0.7
-## Back distance of each car's front from the tram's head.
-const CAR_FRONT := [0.0, CAR + JOINT, 2.0 * (CAR + JOINT)]
 const LENGTH := 3.0 * CAR + 2.0 * JOINT
 const CRUISE := 11.0
 const ACCEL := 1.1
@@ -37,6 +39,11 @@ const SWEEP := 0.5
 ## A car running alongside counts from ON_RAILS m off the tram's side (a lane beside the rails is
 ## not in the way; a car on them, or a junction curve slanting across, is).
 const ON_RAILS := 0.3
+## Each tram's look, by its index (tram 0 is the first scene's tram passing the car: the newest;
+## tram 1 coming down Marszałkowska towards it: the old pair). About the city's mix: the newest
+## and today's yellow ones most, two old pairs.
+const FLEET: Array[int] = [Fleet.Kind.SMILE, Fleet.Kind.PAIR, Fleet.Kind.CLASSIC, Fleet.Kind.SMILE,
+		Fleet.Kind.PAIR_NEW, Fleet.Kind.CLASSIC, Fleet.Kind.SMILE, Fleet.Kind.CLASSIC]
 
 
 class Tram:
@@ -59,6 +66,13 @@ class Tram:
 	var vintage := false
 	var n_cars := 3
 	var cruise := CRUISE
+	## Its look (tram_fleet.gd Kind), its cars' length and the gap between them.
+	var kind := 0
+	var car_len := CAR
+	var joint := JOINT
+	## The head-lamp cones (on the first car) and the red glow behind the last car.
+	var cones: MeshInstance3D
+	var tail: MeshInstance3D
 
 
 ## v0.9: the bell, as a tram leaves a stop or brakes for the player's car on its track.
@@ -120,30 +134,29 @@ func setup(lane_graph: LaneGraph, map_node: Node3D, data: Dictionary) -> void:
 		_halts.append(PackedFloat32Array())
 		_heights.append(PackedFloat32Array())
 	for i in _pts.size():
+		await LoadYield.tick("trams joins")
 		var end := _pts[i][_pts[i].size() - 1]
 		var out := _dir(i, _len[i])
 		for j in _pts.size():
 			if j != i and _pts[j][0].distance_to(end) < 0.6 and absf(out.angle_to(_dir(j, 0.0))) < 1.2:
 				_succ[i].append(j)
 				_pred[j].append(i)
+	await LoadYield.tick("trams joins")
 	_find_halts(data)
-	var cab := Models.tram_mesh(true)
-	var rear_cab := Models.tram_mesh(true, true)
-	var middle := Models.tram_mesh(false)
+	await LoadYield.tick("trams halts")
 	# Night: headlight cones ahead of the first car, a red glow behind the last.
 	var cones := Models.headlight_pools(CAR * 0.5 + 0.2, 0.75, 16.0, false)
 	var taken := PackedVector2Array()
 	for n in COUNT:
+		await LoadYield.tick("tram %d" % n)
 		var tram := Tram.new()
+		tram.kind = FLEET[n % FLEET.size()]
 		for k in 3:
 			var body := AnimatableBody3D.new()
 			body.sync_to_physics = false
 			body.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 			var mi := MeshInstance3D.new()
-			mi.mesh = [cab, middle, rear_cab][k]
 			mi.material_override = Models.material()
-			if k == 2:
-				mi.rotation.y = PI  # the rear car's cab faces back
 			body.add_child(mi)
 			if k != 1:
 				var glow := MeshInstance3D.new()
@@ -153,6 +166,10 @@ func setup(lane_graph: LaneGraph, map_node: Node3D, data: Dictionary) -> void:
 				glow.visible = false
 				glow.add_to_group("night_lights")
 				body.add_child(glow)
+				if k == 0:
+					tram.cones = glow
+				else:
+					tram.tail = glow
 			var shape := CollisionShape3D.new()
 			var box := BoxShape3D.new()
 			box.size = Vector3(2.4, 3.4, CAR)
@@ -161,6 +178,7 @@ func setup(lane_graph: LaneGraph, map_node: Node3D, data: Dictionary) -> void:
 			body.add_child(shape)
 			add_child(body)
 			tram.cars.append(body)
+		_dress(tram, _kind_look(tram.kind))
 		_place_new(tram, taken)
 		trams.append(tram)
 
@@ -223,19 +241,31 @@ func _height(i: int, s: float) -> float:
 	return lerpf(h[int(f)], h[int(f) + 1], f - int(f))
 
 
-## Platforms within a few metres of a track become stops; a car stop line on a road
+## Platforms (and `tram_halts`' shelters) within a few metres of a track become stops; a car stop line on a road
 ## running alongside (same direction, within 14 m) becomes the tram's stop line too.
 func _find_halts(data: Dictionary) -> void:
 	var halt_id := 0
+	var centres: Array[Vector2] = []
+	var reach := PackedFloat32Array()
 	for plat in data.get("platforms", []):
 		var flat: Array = plat["p"]
 		var centre := Vector2.ZERO
 		for k in range(0, flat.size() - 1, 2):
 			centre += Vector2(flat[k], flat[k + 1])
 		centre /= flat.size() / 2.0
+		centres.append(centre)
+		reach.append(7.5)
+	# Tram stops (2026-11-07, tools/tram_stops.py): the stops OpenStreetMap has no island for, at
+	# their shelter beside the track (Muranowska's tracks ran 2 km without a stop).
+	var extra: Array = data.get("tram_halts", [])
+	for k in range(0, extra.size() - 1, 2):
+		centres.append(Vector2(float(extra[k]), float(extra[k + 1])))
+		reach.append(9.0)  # tram_stops.py HALT_SHELTER
+	for c in centres.size():
+		var centre := centres[c]
 		for i in _pts.size():
 			var near := _project(i, centre)
-			if near.y < 7.5 and _len[i] > 20.0:
+			if near.y < reach[c] and _len[i] > 20.0:
 				var at := clampf(near.x + LENGTH * 0.5, minf(LENGTH, _len[i] - 1.0), _len[i] - 1.0)
 				# Platforms on both sides of a stop are one stop (else the tram would
 				# stop at each in turn, forever).
@@ -323,6 +353,10 @@ func _head(tram: Tram) -> int:
 	return tram.trail[tram.trail.size() - 1]
 
 
+## A zone the trams keep out of (event_day.gd): (Vector2) -> bool. Invalid: no zone.
+var keep_out: Callable
+
+
 func _process(dt: float) -> void:
 	if dt <= 0.0 or _pts.is_empty():
 		return
@@ -335,6 +369,11 @@ func _process(dt: float) -> void:
 		tram.rear = _back_point(tram, length)
 	for tram in trams:
 		_move(tram, dt)
+	# A zone the trams keep out of (event_day.gd's cordon): the one that reaches it goes round again.
+	if keep_out.is_valid():
+		for tram in trams:
+			if keep_out.call(_back_point(tram, 0.0)):
+				_reenter(tram)
 	_greet_step(dt)
 	# Only trams that could be seen get their cars placed (moving physics bodies
 	# costs more than the rest); the others just keep track of their head.
@@ -516,8 +555,9 @@ func _pose(tram: Tram) -> void:
 	tram.pos = Vector3.ZERO
 	for k in 3:
 		var body := tram.cars[k]
-		var b0 := maxf(CAR_FRONT[k], lo)
-		var b1 := minf(CAR_FRONT[k] + CAR, hi)
+		var f := k * (tram.car_len + tram.joint)
+		var b0 := maxf(f, lo)
+		var b1 := minf(f + tram.car_len, hi)
 		if b1 - b0 < 0.3 or k >= tram.n_cars:
 			body.visible = false
 			body.collision_layer = 0
@@ -530,7 +570,7 @@ func _pose(tram: Tram) -> void:
 		body.visible = true
 		body.global_transform = Transform3D(Basis(Vector3.UP, atan2(-d.x, -d.y)), Vector3(mid.x, y + 0.1, mid.y))
 		# Shorten the model (not the body: physics bodies don't like scaling).
-		(body.get_child(0) as Node3D).scale.z = (b1 - b0) / CAR
+		(body.get_child(0) as Node3D).scale.z = (b1 - b0) / tram.car_len
 		var near := Vector2(mid.x - player_pos.x, mid.y - player_pos.z).length_squared() < 80.0 * 80.0
 		body.collision_layer = 1 if near and player_on_road else 0
 		if k == 0:
@@ -577,33 +617,59 @@ func _ring(tram: Tram) -> void:
 
 ## A tram's length, head to tail (3 cars, or the old set's 2).
 static func length_of(tram: Tram) -> float:
-	return tram.n_cars * CAR + (tram.n_cars - 1) * JOINT
+	return tram.n_cars * tram.car_len + (tram.n_cars - 1) * tram.joint
 
 
 ## Turns tram `tram` into the old two-car set (`meshes`: [motor car, trailer], cruising at
-## `cruise` m/s) or back (on false). Its car meshes are swapped on its own MeshInstance3Ds (the
-## same material): the old set draws one car fewer than a modern tram, never more.
+## `cruise` m/s) or back to its own look (on false). Its car meshes are swapped on its own
+## MeshInstance3Ds (the same material): the old set draws two cars, never more than its own look.
 func set_vintage(tram: Tram, on: bool, meshes: Array = [], cruise := CRUISE) -> void:
 	if on == tram.vintage:
 		return
 	tram.vintage = on
-	tram.n_cars = meshes.size() if on else 3
+	if on:
+		_dress(tram, {"meshes": meshes, "turn": [false, false, false], "car": CAR, "joint": JOINT})
+	else:
+		_dress(tram, _kind_look(tram.kind))
 	tram.cruise = cruise if on else CRUISE
-	for k in 3:
-		var mi := tram.cars[k].get_child(0) as MeshInstance3D
-		if on and k < meshes.size():
-			mi.set_meta("modern", mi.mesh)
-			mi.mesh = meshes[k]
-			mi.rotation.y = 0.0  # the trailer's back (tail lamps) is at +Z
-		elif not on and mi.has_meta("modern"):
-			mi.mesh = mi.get_meta("modern")
-			mi.remove_meta("modern")
-			mi.rotation.y = PI if k == 2 else 0.0
-		if on and k >= tram.n_cars:
-			tram.cars[k].visible = false
-			tram.cars[k].collision_layer = 0
 	if on and tram.v > tram.cruise:
 		tram.v = tram.cruise
+
+
+## The look of fleet kind `kind` (tram_fleet.gd): its car meshes front first, which of them are
+## turned round (a rear cab), the cars' length and the gap between them.
+static func _kind_look(kind: int) -> Dictionary:
+	var pair := kind == Fleet.Kind.PAIR or kind == Fleet.Kind.PAIR_NEW
+	return {"meshes": Fleet.meshes(kind), "turn": [false, false, not pair],
+			"car": Fleet.PAIR_CAR if pair else CAR, "joint": Fleet.PAIR_JOINT if pair else JOINT}
+
+
+## Puts look `look` (_kind_look) on tram `tram`: the meshes on its cars (those past its last car
+## hidden), the cars' collision boxes to their length, the lamp cones at the first car's nose and
+## the red glow behind its last car.
+func _dress(tram: Tram, look: Dictionary) -> void:
+	var meshes: Array = look["meshes"]
+	tram.n_cars = meshes.size()
+	tram.car_len = look["car"]
+	tram.joint = look["joint"]
+	for k in 3:
+		var body := tram.cars[k]
+		var mi := body.get_child(0) as MeshInstance3D
+		if k < tram.n_cars:
+			mi.mesh = meshes[k]
+			mi.rotation.y = PI if look["turn"][k] else 0.0
+			for c in body.get_children():
+				if c is CollisionShape3D:
+					((c as CollisionShape3D).shape as BoxShape3D).size.z = tram.car_len
+		else:
+			body.visible = false
+			body.collision_layer = 0
+	var last := tram.cars[tram.n_cars - 1]
+	if tram.tail.get_parent() != last:
+		tram.tail.reparent(last, false)
+	var grow := (tram.car_len - CAR) * 0.5
+	tram.tail.position = Vector3(0.0, 0.0, grow)
+	tram.cones.position = Vector3(0.0, 0.0, -grow)
 
 
 ## Whether any of tram `tram` is within the last update's reach of the view (posed: it may be

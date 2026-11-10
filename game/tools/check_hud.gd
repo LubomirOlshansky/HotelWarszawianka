@@ -25,6 +25,7 @@ extends SceneTree
 
 const Access := preload("res://scripts/access.gd")
 const Hud := preload("res://scripts/hud.gd")
+const TrendJob := preload("res://scripts/trend_job.gd")
 const Bubbles := preload("res://scripts/bubbles.gd")
 ## Loop 3g-1: the pull-over card (police.gd lays it out with the HUD's panels).
 const PoliceBalloon := preload("res://scripts/police/police_balloon.gd")
@@ -97,12 +98,54 @@ func _check_quiet_driving() -> void:
 	b.queue_free()
 
 
+## 2026-11-08 (Autopilot, padel at DESKA): a new offer opened over a result card and the OK tap
+## accepted it. While a card is up (a result or win card included), and for TrendJob.CARD_REST s
+## after one closes, no offer opens; it is queued and shows afterwards.
+func _check_offers_wait() -> void:
+	var hud: CanvasLayer = Hud.new()
+	root.add_child(hud)
+	if hud.cards_up():
+		problems.append("offers: cards_up() is true with no card showing")
+	if TrendJob.hold_offers(100.0, 0.0, hud.cards_up()):
+		problems.append("offers: held with no card up")
+	hud.show_card("PADEL · 2:0 · +60 zł", "Wygrane!", PackedStringArray(["OK"]), Color("#40c0c0"))
+	if not hud.cards_up():
+		problems.append("offers: cards_up() is false with a result card showing")
+	if not TrendJob.hold_offers(100.0, 0.0, hud.cards_up()):
+		problems.append("offers: an offer may open over a result card")
+	hud.hide_card()
+	if hud.cards_up():
+		problems.append("offers: cards_up() stays true after the card closed")
+	if not TrendJob.hold_offers(101.0, 100.0 + TrendJob.CARD_REST, hud.cards_up()):
+		problems.append("offers: an offer may open the moment a card closed")
+	if TrendJob.hold_offers(103.0, 100.0 + TrendJob.CARD_REST, hud.cards_up()):
+		problems.append("offers: still held after the rest")
+	# F 2026-11-08: a friend's call (Mrożulo) never rings mid-mission, nor right after one, nor
+	# over a rescue call already ringing; it rings once the rest is over.
+	if not TrendJob.hold_calls(true, 500.0, 0.0, false):
+		problems.append("calls: a friend's call may ring during a mission")
+	if not TrendJob.hold_calls(false, 505.0, 500.0 + TrendJob.CALL_REST, false):
+		problems.append("calls: a friend's call may ring the moment a mission ended")
+	if not TrendJob.hold_calls(false, 900.0, 0.0, true):
+		problems.append("calls: a friend's call may ring over a rescue call")
+	if TrendJob.hold_calls(false, 500.0 + TrendJob.CALL_REST + 1.0, 500.0 + TrendJob.CALL_REST, false):
+		problems.append("calls: still held after the rest")
+	var tj: Node = TrendJob.new()
+	tj.mission_on = true
+	tj.mission_on = false
+	if not TrendJob.hold_calls(tj.mission_on, 1.0, tj._call_rest, false):
+		problems.append("calls: a mission's end does not start the call rest")
+	tj.free()
+	hud.queue_free()
+
+
 func _run() -> void:
 	await process_frame  # the tree is ready for nodes only once the first frame runs
 	var states := 0
 	for screen in SCREENS:
 		states += await _check_screen(screen)
 	_check_quiet_driving()
+	_check_offers_wait()
 	for w in _waits:
 		print("  waits for room: %s" % w)
 	# The x1.25 pass is a gate (2026-11-02): a panel that must show and has no room at the larger
@@ -147,6 +190,7 @@ func _check_screen(screen: Vector2i) -> int:
 	_check_bubble_sweep(hud, bubbles, screen, tag)
 	_check_ticker_slide(hud, tag)
 	_check_target_pointer(hud, bubbles, screen, tag)
+	_check_finger_hint(hud, bubbles, tag)
 	# The longest call the map gives (the longest hospital name), Polish over English as in missions.gd.
 	var call_pl := "Ranny rowerzysta: Aleksandra Krywulta. Wystarczy auto albo helikopter.\nSzpital: Samodzielny Szpital Kliniczny im. prof. Witolda Orłowskiego · czas 3:40"
 	var call_en := "A cyclist is hurt: the car or the helicopter will do. Get them to the hospital in 3:40."
@@ -310,16 +354,15 @@ func _check_screen(screen: Vector2i) -> int:
 			bubbles.layout()
 			_check_state(hud, bubbles, "%s %s%s" % [tag, state, " + " + mode if mode != "" else ""])
 			if mode == "left-handed" and state in ["car, Point", "car, Classic", "helicopter"]:
-				# The pressable discs all on the left half; the credit line on the right.
+				# The pressable discs all on the left half; the credit line is gone (credits page in Settings).
 				var tt: Dictionary = hud.touch_targets()
 				for k in ["brake", "gas", "horn", "climb", "sink"]:
 					if tt.has(k) and (tt[k] as Rect2).get_center().x > screen.x * 0.5:
 						problems.append("%s %s + left-handed: %s is on the right" % [tag, state, k])
 				if not hud.call("_stick_side", screen.x * 0.8, float(screen.x)) or hud.call("_stick_side", screen.x * 0.2, float(screen.x)):
 					problems.append("%s %s + left-handed: the stick's side is not the right" % [tag, state])
-				var nr: Dictionary = hud.named_rects()
-				if nr.has("credit") and (nr["credit"] as Rect2).get_center().x < screen.x * 0.5:
-					problems.append("%s %s + left-handed: the credit line is on the left, under the pedals" % [tag, state])
+				if hud.named_rects().has("credit"):
+					problems.append("%s %s: the credit line is back on the main screen" % [tag, state])
 			# Landmark card fix: with the ticker up and the car parked, a tapped landmark's card
 			# (and a note card) must be on screen at once, not waiting for room, and not over the car.
 			if state in ["landmark card", "note card"]:
@@ -619,6 +662,43 @@ func _check_quest_card(fm: Control, where: String, pt: float, safe: Rect2) -> vo
 	if got.size() != n0 or not fm.visible or fm.centre.distance_to(Vector2(-600, 200)) > 1.0:
 		problems.append("%s: the quest under way's row did not just look at its target" % where)
 	hud_pad(false)
+	# F 2026-11-08: a finger dragged on the list (scrolling) never picks the row it ends on.
+	fm.set_quests(e, L.Line.CAR)
+	await process_frame
+	var n1 := got.size()
+	fm.set("_qdrag_px", 40.0 * pt)
+	fm.call("_row_tapped", 0)  # the ride request: tapped, it would close the map
+	if got.size() != n1 or not fm.visible:
+		problems.append("%s: the end of a drag on the list picked a row" % where)
+	fm.set("_qdrag_px", 0.0)
+	# F 2026-11-08: the quest under way can be quit: a button names it, the first tap asks, the
+	# second closes the map and emits quit_quest.
+	fm.quit_what = ["Sekretny rave", "Secret rave"]
+	fm.set_quests([now], L.Line.CAR)
+	await process_frame
+	var qb := fm.get("_quests").find_child("quit_quest", true, false) as Button
+	var quits: Array = []
+	var on_quit := func() -> void: quits.append(1)
+	fm.quit_quest.connect(on_quit)
+	if qb == null or not qb.text.contains("Secret rave") and not qb.text.contains("Sekretny rave"):
+		problems.append("%s: no quit button naming the quest under way" % where)
+	else:
+		if qb.get_global_rect().size.y < MIN_TOUCH * pt - 0.5:
+			problems.append("%s: the quit button is %.0f pt tall (< %d)" % [where, qb.get_global_rect().size.y / pt, MIN_TOUCH])
+		var rq: Dictionary = fm.rects()
+		if rq.has("quests") and not safe.grow(0.5).encloses(rq["quests"]):
+			problems.append("%s: the card with the quit button %s is outside the safe area" % [where, _pts(rq["quests"], pt)])
+		qb.pressed.emit()
+		await process_frame
+		if not quits.is_empty() or not fm.visible:
+			problems.append("%s: one tap on quit already quit" % where)
+		qb = fm.get("_quests").find_child("quit_quest", true, false) as Button
+		if qb != null:
+			qb.pressed.emit()
+		if quits.size() != 1 or fm.visible:
+			problems.append("%s: the second tap on quit did not quit and close the map" % where)
+	fm.quit_quest.disconnect(on_quit)
+	fm.quit_what = []
 	fm.quest_picked.disconnect(on_pick)
 	fm.set_quests([], L.Line.CAR)
 	var hud: CanvasLayer = fm.hud
@@ -951,9 +1031,11 @@ func _check_target_pointer(hud: CanvasLayer, bubbles: Control, screen: Vector2i,
 	var centre := Vector2(screen) * 0.5
 	var into := 0
 	var under := 0
-	for k in 72:
-		var dir := Vector2.from_angle(TAU * k / 72.0)
-		hud.set_target(centre + dir * float(screen.x) * 2.0, "1888 m", Color("#ff9a3c"), true)
+	# PT-27 (2026-11-07): both schemes (Classic's BRAKE sits left of GAS) and a job's long label.
+	for k in 144:
+		hud.set_scheme(0 if k < 72 else 1)
+		var dir := Vector2.from_angle(TAU * (k % 72) / 72.0)
+		hud.set_target(centre + dir * float(screen.x) * 2.0, "1888 m" if k % 2 == 0 else "KEBAB 1948 m", Color("#ff9a3c"), true)
 		var e: Dictionary = hud.edge_pointer()
 		if e.is_empty():
 			continue
@@ -977,8 +1059,26 @@ func _check_target_pointer(hud: CanvasLayer, bubbles: Control, screen: Vector2i,
 			if (n in ["minimap", "wallet", "zoom_in", "zoom_out"] or n.begins_with("pedal")) and (fixed[n] as Rect2).intersects(edge_box):
 				under += 1
 				if under <= 2:
-					problems.append("%s: the edge arrow %s pointing %d° sits under %s %s" % [tag, _pts(edge_box, pt), k * 5, n, _pts(fixed[n], pt)])
+					problems.append("%s: the edge arrow %s pointing %d° (scheme %d) sits under %s %s" % [tag, _pts(edge_box, pt), (k % 72) * 5, k / 72, n, _pts(fixed[n], pt)])
+	# PT-35 (2026-11-08): with a Classic thumb down the steering strip is on screen, so the edge
+	# arrow's "KEBAB n m" must treat it as a no-go rect (as it does the pedals), wherever the thumb
+	# came down; with the thumb up only the resting hint is.
+	hud.set_scheme(1)  # Classic
+	var strip_at := Vector2(float(screen.x) * 0.3, float(screen.y) - 70.0 * pt)
+	var strip_half: float = (float(hud.STICK_R) + 16.0) * pt
+	var strip := Rect2(strip_at - Vector2(strip_half, 16.0 * pt), Vector2(strip_half * 2.0, 32.0 * pt))
+	var covered_up := false
+	for r: Rect2 in hud.call("_pedal_rects"):
+		covered_up = covered_up or r.encloses(strip)
+	hud.hold_stick(strip_at, Vector2.ZERO)
+	var covered_down := false
+	for r: Rect2 in hud.call("_pedal_rects"):
+		covered_down = covered_down or r.encloses(strip)
+	hud.release_all()
+	if covered_up or not covered_down:
+		problems.append("%s PT-35: the steering strip %s is %s the edge arrow's no-go rects with the thumb %s" % [tag, _pts(strip, pt), "missing from" if not covered_down else "wrongly in", "down" if not covered_down else "up"])
 	# A bubble right where the left edge arrow points: the arrow moves along the edge, clear of it.
+	hud.set_scheme(0)
 	hud.set_target(Vector2(-float(screen.x), centre.y), "297 m", Color("#ff9a3c"), true)
 	var before: Dictionary = hud.edge_pointer()
 	if not before.is_empty():
@@ -991,6 +1091,31 @@ func _check_target_pointer(hud: CanvasLayer, bubbles: Control, screen: Vector2i,
 			if r.intersects(box):
 				problems.append("%s PT-10: the edge arrow %s stays under a bubble %s" % [tag, _pts(box, pt), _pts(r, pt)])
 	hud.set_target(Vector2.ZERO, "", Color.WHITE, false)
+	bubbles.clear()
+	hud.clear_all()
+
+
+## PT-26 (2026-11-07, run 20261106-004005): the roadworks sign's bubble by the start covered the
+## ghost finger's steering hint. With the finger on, a bubble whose speaker stands right under the
+## hint (both schemes) keeps off it, and the hint's room goes when the finger does.
+func _check_finger_hint(hud: CanvasLayer, bubbles: Control, tag: String) -> void:
+	for s in [0, 1]:
+		hud.clear_all()
+		bubbles.clear()
+		hud.set_scheme(s)
+		hud.ghost_finger(true)
+		var hint: Rect2 = hud.finger_hint_rect()
+		if not hud.panel_rects().has(hint):
+			problems.append("%s PT-26: scheme %d: the ghost finger's hint %s takes no room" % [tag, s, _pts(hint, hud.pt)])
+		_say(bubbles, "", hint.get_center() + Vector2(0.0, hint.size.y), "MARSZAŁKOWSKA: REMONT · ETAP 47 Z 312", "MARSZAŁKOWSKA ROADWORKS · PHASE 47 OF 312")
+		bubbles.layout()
+		for r: Rect2 in bubbles.rects:
+			if r.intersects(hint):
+				problems.append("%s PT-26: scheme %d: a bubble %s covers the steering hint %s" % [tag, s, _pts(r, hud.pt), _pts(hint, hud.pt)])
+		hud.ghost_finger(false)
+		if hud.panel_rects().has(hint):
+			problems.append("%s PT-26: the hint's room stays after the finger goes" % tag)
+	hud.set_scheme(0)
 	bubbles.clear()
 	hud.clear_all()
 

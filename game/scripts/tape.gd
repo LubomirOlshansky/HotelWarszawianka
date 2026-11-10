@@ -101,7 +101,7 @@ func setup(places: Dictionary) -> bool:
 			s["at"] = places[str(s["place"])]
 			placed += 1
 	_mat = ShaderMaterial.new()
-	_mat.shader = load("res://shaders/building.gdshader")
+	_mat.shader = GpuQuirks.building_shader()
 	_mat.set_shader_parameter("fade_radius", 0.0)
 	_mat.set_shader_parameter("occlusion_radius", 100000.0)
 	_mat.set_shader_parameter("ghost_keep", 0.0)

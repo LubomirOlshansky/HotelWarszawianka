@@ -179,7 +179,7 @@ details{margin:2px 0}summary{cursor:pointer;font-weight:600;font-size:13px;paddi
 
 <script>
 const D=__DATA__;
-const GH='https://github.com/LubomirOlshansky/AroundWarsaw/blob/main/';
+
 const ST=Object.fromEntries(D.stages.map(s=>[s[0],{label:s[1],color:s[2]}]));
 const ORDER=['planned','dress','researching','done_outline','done_photos'];
 const items=D.items,M=D.map,LY=D.layers;
@@ -250,7 +250,7 @@ function openPlace(n){const i=items.find(x=>x.n===n);if(!i)return;S.sel=n;const 
   '<div class="steps">'+ORDER.map((k,j)=>'<i title="'+ST[k].label+'" style="background:'+(j<=idx?ST[ORDER[idx]].color:'var(--line)')+'"></i>').join('')+'</div><div><span class="dot" style="background:'+ST[i.stage].color+'"></span><b>'+ST[i.stage].label+'</b></div>'+
   '<h2 style="margin-top:18px">Data used</h2><div class="chips">'+(i.ev.length?i.ev.map(e=>'<span class="pill ev">'+esc(e)+'</span>').join(''):'<span class="sub">Nothing recorded yet</span>')+'</div>'+
   '<h2 style="margin-top:18px">What is next</h2><div>'+md(i.next)+'</div>'+
-  (i.links.length?'<h2 style="margin-top:18px">Files</h2><div>'+i.links.map(l=>'<div><a target="_blank" rel="noopener" href="'+GH+l[1]+'">'+esc(l[0])+'</a></div>').join('')+'</div>':'')+
+  (i.links.length?'<h2 style="margin-top:18px">Files</h2><div>'+i.links.map(l=>'<div><span>'+esc(l[0])+'</span></div>').join('')+'</div>':'')+
   (r.length?'<h2 style="margin-top:18px">Renders</h2><div class="thumbs" style="grid-template-columns:1fr 1fr">'+r.slice(0,6).map(u=>'<figure data-lb="'+esc(u)+'"><img loading="lazy" src="'+esc(u)+'" alt=""></figure>').join('')+'</div>':'')+
   (i.x!=null?'<div style="margin-top:20px"><button class="btn pri" id="dmap">Show on the map</button></div>':'<div class="sub" style="margin-top:16px">Not placed on the map yet.</div>');
  $('drawer').classList.add('open');$('veil').style.display=S.tab==='map'?'none':'block';
@@ -366,7 +366,7 @@ function showPlan(){const P=D.plan;$('b-plan').textContent=P?P.days.reduce((a,d)
  $('plboard').innerHTML=P.days.map(d=>{const its=d.items.filter(i=>(S.plarea==='all'||i.area===S.plarea)&&(S.plstat==='all'||i.status===S.plstat)),dn=d.items.filter(i=>i.status==='done').length;
   return '<div class="col"><h3><span>'+esc(d.id)+' · '+esc(d.title)+'</span><span class="sub">'+dn+'/'+d.items.length+'</span></h3><div class="sub" style="padding:0 14px 6px">'+esc(d.date||'')+'</div><div class="cards">'+
   its.map(i=>'<div class="pc" style="cursor:default"><b>'+esc(i.id)+' '+esc(i.title)+'</b><div class="m"><span class="pill" style="background:'+(PLSTAT[i.status]||'#888')+'22;color:'+(PLSTAT[i.status]||'#888')+'"><span class="dot" style="background:'+(PLSTAT[i.status]||'#888')+';margin:0"></span>'+esc(i.status)+'</span><span class="pill">'+esc(i.area)+'</span>'+(i.model?'<span class="pill ev">'+esc(i.model)+'</span>':'')+'</div>'+
-   (i.needs?'<div class="sub" style="margin-top:6px">Needs: '+esc(i.needs)+'</div>':'')+(i.ref?'<div style="margin-top:4px"><a target="_blank" rel="noopener" href="'+GH+esc(i.ref)+'">'+esc(i.ref)+'</a></div>':'')+'</div>').join('')+'</div></div>'}).join('');
+   (i.needs?'<div class="sub" style="margin-top:6px">Needs: '+esc(i.needs)+'</div>':'')+(i.ref?'<div style="margin-top:4px"><span>'+esc(i.ref)+'</span></div>':'')+'</div>').join('')+'</div></div>'}).join('');
  document.querySelectorAll('[data-pa]').forEach(b=>b.onclick=()=>{S.plarea=b.dataset.pa;save();showPlan()});document.querySelectorAll('[data-ps]').forEach(b=>b.onclick=()=>{S.plstat=b.dataset.ps;save();showPlan()})}
 // ---------- streets (Operation Unslop, tools/street_pass.py records)
 const VCOL={KEEP:'#2e9e5b',SOFTEN:'#3a86d8',RETEXTURE:'#7b61c9',REPLACE:'#e0a82e',REMOVE:'#d8504a',CHECK:'#8e8e93','A/B':'#d0679d'};
@@ -392,7 +392,7 @@ function showModels(){const L=D.models||[];$('b-mod').textContent=L.length||'';c
  $('mcat').innerHTML=cats.map(c=>'<button data-mc="'+c+'" class="'+(S.mcat===c?'on':'')+'">'+(c==='all'?'All':c)+' <span class="sub">'+(c==='all'?L.length:L.filter(m=>m.cat===c).length)+'</span></button>').join('');
  $('mq').value=S.mq||'';const q=(S.mq||'').toLowerCase(),rows=L.filter(m=>(S.mcat==='all'||m.cat===S.mcat)&&(!q||(m.id+' '+m.name+' '+m.about).toLowerCase().includes(q)));
  $('mcount').textContent=rows.length+' models';
- $('mtable').innerHTML='<table><tr><th>Model</th><th>Category</th><th class="r">In the map</th><th>Code</th><th>About</th></tr>'+rows.map(m=>'<tr><td><b>'+esc(m.name)+'</b><div class="sub"><code>'+esc(m.id)+'</code></div></td><td>'+(m.cat==='wanted'?'<span class="pill" style="background:#d8504a22;color:#d8504a">wanted</span>':esc(m.cat))+'</td><td class="r">'+(m.count==null?'':(m.cat==='wanted'?m.count+' asked':m.count))+(m.cat==='wanted'&&m.used_by.length?'<div class="sub">'+esc(m.used_by.join(', '))+'</div>':'')+'</td><td class="sub">'+(m.file?'<a target="_blank" rel="noopener" href="'+GH+esc(m.file.split(':')[0])+'#L'+esc(m.file.split(':')[1]||'1')+'">'+esc(m.file)+'</a>':'to model')+'</td><td class="sub">'+esc(m.about||'')+'</td></tr>').join('')+'</table>';
+ $('mtable').innerHTML='<table><tr><th>Model</th><th>Category</th><th class="r">In the map</th><th>Code</th><th>About</th></tr>'+rows.map(m=>'<tr><td><b>'+esc(m.name)+'</b><div class="sub"><code>'+esc(m.id)+'</code></div></td><td>'+(m.cat==='wanted'?'<span class="pill" style="background:#d8504a22;color:#d8504a">wanted</span>':esc(m.cat))+'</td><td class="r">'+(m.count==null?'':(m.cat==='wanted'?m.count+' asked':m.count))+(m.cat==='wanted'&&m.used_by.length?'<div class="sub">'+esc(m.used_by.join(', '))+'</div>':'')+'</td><td class="sub">'+(m.file?'<span>'+esc(m.file)+'</span>':'to model')+'</td><td class="sub">'+esc(m.about||'')+'</td></tr>').join('')+'</table>';
  document.querySelectorAll('[data-mc]').forEach(b=>b.onclick=()=>{S.mcat=b.dataset.mc;save();showModels()})}
 $('mq').oninput=e=>{S.mq=e.target.value;save();showModels()};
 // ---------- content
@@ -400,7 +400,7 @@ function showContent(){const cs=D.content;if(!S.ctab||!cs.find(c=>c.key===S.ctab
  $('clist').innerHTML=cs.map(c=>'<div class="item'+(c.key===S.ctab?' on':'')+'" data-c="'+c.key+'"><span>'+esc(c.label)+'</span><span class="sub">'+c.rows.length+'</span></div>').join('');
  document.querySelectorAll('[data-c]').forEach(e=>e.onclick=()=>{S.ctab=e.dataset.c;save();showContent()});
  const c=cs.find(x=>x.key===S.ctab),q=$('cq').value.toLowerCase(),rows=c.rows.filter(r=>!q||r.cells.join(' ').toLowerCase().includes(q));
- $('ctitle').textContent=c.label;$('cfile').innerHTML='<a target="_blank" rel="noopener" href="'+GH+c.file+'">'+esc(c.file)+'</a> · '+rows.length+' rows';
+ $('ctitle').textContent=c.label;$('cfile').innerHTML='<span>'+esc(c.file)+'</span> · '+rows.length+' rows';
  $('ctable').innerHTML='<table><tr>'+c.head.map(h=>'<th>'+esc(h)+'</th>').join('')+'<th></th></tr>'+rows.map(r=>'<tr>'+r.cells.map(x=>'<td>'+esc(x)+'</td>').join('')+'<td class="r">'+(r.x!=null?'<a href="#" data-go="'+c.rows.indexOf(r)+'">On map</a>':'')+'</td></tr>').join('')+'</table>';
  document.querySelectorAll('#ctable [data-go]').forEach(a=>a.onclick=e=>{e.preventDefault();const r=c.rows[+a.dataset.go];S.layers['c_'+c.key]=true;buildSide();goMap(r.x,r.z)})}
 $('cq').oninput=showContent;

@@ -4754,6 +4754,41 @@ keeps no shade under the new limes until the next full bake.
 check_drive `--no-allow`: 51 lane spots → 26 (jumps 11, unchanged), allowlist 11 → 8 entries; check_roads
 0 not allowed / 304 allowed (unchanged); the bench route is not near these places: 135 draw calls, 3.04 ms.
 `check_drive.gd --who` prints the colliders a lane hit meets (the sector's one body, so only the sector).
+
+**Plac Pięciu Rogów and Krucza (F, 2026-11-06).** `car_free.py` zones can be a polygon (`{"poly": ring, "pad": m}`):
+zone `pieciu_rogow` is the OSM square (opened 5 July 2022). 5 roads out, 4 more hidden inside it (`hide` ranges),
+Chmielna's and Zgoda's 4 graph edges `cf: 1`; the bus/permit route Szpitalna - Bracka/Krucza stays in the graph
+(`KEEP_TRAFFIC`) with no asphalt under it. New surfaces `concrete` (#d8d5cd, over the whole outline and Chmielna's
+granite) and `wet` (the flush 4.6 m "sadzawka" in place of OSM's raised 3 m pond and its bank). +3 field maples
+(`EXTRA_XZ`): trees3d 271,734 → 271,752, crowns 45,289 → 45,292. Furniture: `game/scripts/plac_pieciu_rogow.gd`
+(runtime, both city paths, one mesh): 17 wooden-top cubes + 6 plain, 7 lamps, 11 café sets, the egg, 3 bollard
+rows, and Chmielna's 17 lamps and 26 café sets either side. Krucza Al. Jerozolimskie → Piękna (543 m) is road
+design area `krucza` (docs/roads/krucza.json): 19-20 m one carriageway, 2+2 lanes (3 northbound at
+Jerozolimskie), parking lanes, 8 zebras, side streets as openings; `park_cars: true` (new, area level) puts 58
+parked cars in the parking lanes (6 old ones on the new asphalt out). Continuity 0.
+
+**Marszałkowska by the art museum (F, 2026-11-08).** Road design area `marsz_defilad` (docs/roads/marsz_defilad.json,
+plan docs/plan/marszalkowska-defilad.md): Marszałkowska s 170-328 from the Świętokrzyska junction (the Sienkiewicza
+crossing to past Złota) as rebuilt in 2025-26, cross-section from OSM's 2026 crossing ways. 2+2 lanes, the tram bed
+between kerbed green strips with 26 young columnar elms (greens `trees`, new; trees3d 271,740 → 271,896, crowns
+45,290 → 45,316), the museum's parking lay-by (8 parked cars), no gap in the median: `close_median_links` (new,
+area level) marks the OSM zawrotka's graph edge `cf: 1`. Old median strips that ran past a free end keep their rows
+beyond it (`medians kept past free ends`). Continuity 0. On a baked map: road_design.py, then
+`tools/bus_stops.py` (the bus stop's paint follows the new kerb), bake_sectors. street_pass
+marszalkowska-centrum re-recorded: O1 8 → 16 (the lay-by's parked cars by the lane, B8 KEEP), L2 15 → 19 (lane ends at the crossings).
+
+**Marszałkowska Sienkiewicza to Świętokrzyska (F, 2026-11-09).** Road design area `marsz_sienkiewicza`
+(docs/roads/marsz_sienkiewicza.json): m_south s 50-170, from the Świętokrzyska junction's arrows to
+marsz_defilad's north end, to the city's Zielona Marszałkowska traffic plan. Main painted three northbound
+lanes from the crossing on a kerb that slid 2.5 m over 110 m (a lane out of nowhere) and FOOT_PAD had cut the
+kerb 2.5 m short of marsz_defilad's seam (the notch). Now: two lanes out of the crossing, the kerb flaring over
+17 m (where OSM's verge flares) into the bus stop lane, the west carriageway on a green strip with 10 columnar
+elms (trees3d 269,172 → 269,232, crowns 44,862 → 44,872), Fangora's wide mouth keeping its island. road_design.py:
+`keep_islands` (area level), LANE_MIN (no lane line while a kerb lane in a taper is under 1.5 m), PastEnds (kerbs,
+lines, symbols and ribbons past a free end are not clipped by FOOT_PAD), walls cut only by new asphalt. Then
+`tools/bus_stops.py`, bake_street_details, bake_park_details, bake_sectors. retarget_graph: past a free end an
+edge keeps its median lane where it was (a centred, widened edge put the northbound inner lane on the Metro
+Świętokrzyska platform's edge: check_drive found 13 car/bus hits). street_pass records unchanged.
 | Vertices (`count_vertices.gd`) | 18.70 M (meshes 11.50, instances 7.20) | 19.70 M (12.15, 7.55): +1.00 M, the extension's (0.96 M a km²); LoD2 in the box 1,549,362 → 1,548,197 vertices |
 | Probe draw calls (spawn, river, zoomed out, helicopter; 3D main / shadow) | 137, 104, 150, 220 (58/38, 36/25, 66/40, 111/74) | 138, 104, 151, 224 (58/38, 36/25, 66/41, 112/76): the city +0 (the helicopter view with `--no-traffic` 102/68 both); one more car or tram in view |
 | Probe over Rondo Radosława (`--at=-2833,-2292 --heading=60 --heli --size=150`; the car on Jana Pawła II `--at=-2790,-2200 --heading=340`) | (the map's edge) | 203 (100/68), 115 (46/28): inside the helicopter's 224 |
@@ -4995,7 +5030,9 @@ final's route on the lane graph), the flow in `rivals.gd`.
 - **Pace** (the rival driver's `speed_factor` / `accel_factor`, was a flat 1.45 / 1.7): Halina 1.25 /
   1.5, Słoik 1.3 / 1.55, Bartek 1.35 / 1.6, Seba 1.4 / 1.65, Zbyszek 1.45 / 1.7, Mike 1.5 / 1.75; Seba
   in the final 1.45 / 1.7 (*guess*, for the phone: Halina should be beaten narrowly by an ordinary
-  player). The `--autopilot` ghost is still 1.8 / 2.2.
+  player). The `--autopilot` ghost is still 1.8 / 2.2. In a race these factors do not set a
+  rival's speed (racer mode, 2026-11-04): since the racer AI rebuild's step 2 (2026-11-10) each
+  rung races its skill profile (`share`, `race_accel`, `brake`, `lat`; docs/design/race-ai.md 6).
 - **New rung open**: a toast "Nowy rywal: Słoik z Radomia" / "New rival: … · 90 zł" (and "Finał
   otwarty: Trzy mosty · w nocy") when the open count grows (the wallet's `changed`, or a rung beaten).
 - **The record**: the save's `[ladder]` section (`wallet.ladder`: rung id `halina` … `mike` and
@@ -5067,12 +5104,12 @@ chip, a card button's own two words), `missions.gd` (`held`, `ring_in`), `garage
 | finger | 0:05 | The ghost finger after 4 s with no touch or key (`hud.ghost_finger`: drawn on the pad, a fingertip dragging up and right over the stick's spot, "Połóż palec i wskaż, dokąd jechać / Put a finger down and point the way"; with `--no-touch` the keys' line); gone at the first touch, click or key |
 | stand | 0:15 | The edge arrow "KEBAB n m" to the stand by Marszałkowska × Świętokrzyska (`jobs.FIRST_STAND`, the stand nearest it) and a toast, until an order starts (any stand's). The first-10 polish: a guided run starts at `First10.START` (main.gd `_guide_start`: the northbound carriageway level with the Museum of Modern Art, heading 339.8°), so the stand is ~350 m straight ahead; the map's spawn (facing south, the stand behind) stays for the bench and the other runs |
 | order | 0:30 | That stand's next order is the guided one (`jobs.pin_first` / `first_pick`). The first-10 polish: a door on `FIRST_STREET` (Marszałkowska) nearest `FIRST_ROAD` (300 m) on by road from the stand's lane, 150-600 m, no turning round (any door in that reach if the street has none); on the demo map Marszałkowska 142, 226 m straight on (it was Aleje Jerozolimskie 33, 926 m past the Rotunda with a U-turn) |
-| race | 1:30 | 6 s after the first delivery's card but not before 1:15 (`RACE_EARLIEST`: the short first order is done by ~0:45), or at 3:00 without one, Pani Halina rolls up behind (`rivals.call_first`: put ~45 m back on the player's road, she drives up and stops, or appears 12 m back after 12 s), flashes and says "Synku! Babcia mruga. Do Palmy, kto pierwszy?"; the prompt "PANI HALINA MRUGA · MRUGNIJ" waits 20 s (a nudge at 8 s) or until the player drives 90 m off. Flash back: the race to the Palm (Rondo de Gaulle'a; an ordinary finish if the Palm is over 1.6 km away) with the first race's rubber band (below). Declined: she tries twice more, 60 s apart |
+| race | 1:30 | 6 s after the first delivery's card but not before 1:15 (`RACE_EARLIEST`: the short first order is done by ~0:45), or at 3:00 without one, Pani Halina rolls up behind (`rivals.call_first`: put ~45 m back on the player's road, she drives up and stops, or appears 12 m back after 12 s), flashes and says "Synku! Babcia mruga. Do Palmy, kto pierwszy?"; the prompt "PANI HALINA MRUGA · MRUGNIJ" waits 20 s (a nudge at 8 s) or until the player drives 90 m off. Flash back: the race to the Palm (Rondo de Gaulle'a; an ordinary finish if the Palm is over 1.6 km away) on her gentle day (below). Declined: she tries twice more, 60 s apart |
 | trap | 3:00 | The police's scripted first contact (loop 3g-2: a patrol car parked 150 m ahead after the first race, the lizak, the caution); with no race by 4:30 the director arms it (`police.arm_first_contact`) |
 | rescue | 4:00 | The first call is held (`missions.held`) until 3:45 and the race (or 5:00), then rings 12 s later (`ring_in`; again if a job reset the countdown). Call 1 is a street rescue (the car) |
 | heli | ~5:00 | The HELI chip is hidden and H says "Helikopter? Najpierw jedno wezwanie ratunkowe." until the first rescue is done ("Pogotowie lotnicze pożycza ci starego śmigłowca: HELI"), a helicopter-only call is up, or 7:00 |
 | tape | 6:00 | From 5:30, once the helicopter is out, the arrow "KASETA" to the mixtape on the University Library's roof (cassettes.gd, `CASSETTE_ID` c01_buw) and a toast "Na dachu BUW leży kaseta z muzyką. Leć po nią helikopterem."; taken from the helicopter (within 9 m, under 16 m over the roof) it opens the next PÓŁNOC FM track (the "new song"). Without a placed cassette the old stand-in: KASETA's boulevard then card (`t_bulwary_2018`), whose first play opens the track |
-| powisle | 8:00 | "Odkryto: Powiśle" comes from districts.gd (the boulevards are in Powiśle, so the tape usually brings it); not by 7:30, the arrow "POWIŚLE" to the district's label |
+| powisle | 8:00 | "Odkryto: Powiśle" comes from districts.gd (the boulevards are in Powiśle, so the tape usually brings it); not by 7:30, the arrow "POWIŚLE" to the district's label and its line. Behind a long Podwózka ride it does not wait past its window: at 8:40 (`POWISLE_LATEST`) the line shows over the ride, the ride's pin keeps the edge arrow, and the guide's arrow follows when the ride is done (2026-11-10: a ride of 4.5 min taken at 5:31 had held it to 9:20). Over a race, a call, the police or a card it still waits |
 | garage | 10:00 | Mirek's garage stays hidden (`garage.held`) until 9:30 and the first earnings, then its own toast and an arrow "MIREK" for 90 s |
 
 - **The end of the guide**: at the garage (or 15:00) every hold is let go and `done` is saved.
@@ -5083,13 +5120,18 @@ chip, a card button's own two words), `missions.gd` (`held`, `ring_in`), `garage
   the helicopter is within 9 m and under 16 m over it: the save's `[cassettes]`, +10 respect, the card
   "KASETA Z MUZYKĄ · MIXTAPE" and the next PÓŁNOC FM track. One so far (the BUW roof);
   `check_cassettes.gd` (quick, CI) tests the data, the pickup rule, a pickup and the save.
-- **The first race's rubber band** (`rivals.first_band`, every 0.2 s): Halina's speed factor is
-  1.15 + 0.012 × (the gap − 25 m) between 0.4 and 1.5, the gap being how much more she has left
-  than the player (she aims 25 m behind); in her last 140 m she lifts off (0.32) for a player within
-  12 m; a player more than 150 m behind races her plain 1.15 and can lose. `check_first10`'s 1-D
-  race of 800 m on a 50 km/h street: a player averaging 34 km/h wins by 2.4 s, 50 km/h by 0.9 s,
-  22 km/h by 2.1 s; one who stops for a minute loses; her plain ladder pace (1.25) would have beaten
-  the 34 km/h player by half a minute. The win is her rung beaten (ladder.gd), as any win.
+- **The first race, her gentle day** (the racer AI rebuild's step 2, 2026-11-10,
+  docs/design/race-ai.md 6): Halina drives `ladder.gd` `FIRST_RACER` (0.65 of the road's racing
+  speed, pull 7, brakes 4, corner grip 5 m/s²) at her own pace from the line to the Palm, with
+  every rival's effort on the time gap (`rivals.effort_of`: 0.9 of her pace with a 10 s lead, 1.04
+  when 5 s behind) and nothing of the player's speed in it; she still waits at the line until the
+  player moves (12 s at most, PT-11). `check_first10`'s 1-D race of 800 m: 43.0 s alone and −3 to
+  +9 % with any player; a player at 76 km/h wins by 3.7 s, one at 34 km/h loses by 38 s, a fast one
+  who stops for a minute loses by 19 s. A loss makes her next race 5 % slower (15 % at most), and
+  she stays on the gentle day in every race until she has been beaten once (`ladder.gentle`). The
+  win is her rung beaten (ladder.gd), as any win. Before step 2 a rubber band (`rivals.first_speed`,
+  first `first_band`) paced her off the player's own progress so that an ordinary drive won
+  narrowly; that script was the crawl F reported on 2026-11-09.
 - **The save**: `[intro]` (`wallet.intro`: beat id → the day; `done`; `end_seen`), no version bump
   (a v2 file without it loads as nothing seen; an older build keeps it as an unknown section);
   `--nosave` writes nothing.
@@ -5103,7 +5145,7 @@ chip, a card button's own two words), `missions.gd` (`held`, `ring_in`), `garage
   closes it. `end_seen` is saved when it shows.
 - **Checks**: `tools/verify.sh --only=first10` (`game/tools/check_first10.gd`, CI too: the beats
   and windows, who gets the guide, three synthetic players through `decide`, a beat waiting for a
-  job, `judge`, the rubber band's 1-D races, the words), `--only=endcard`
+  job, a long ride across Powiśle's window, `judge`, the first race's 1-D races, the words), `--only=endcard`
   (`game/tools/check_end_card.gd`, CI too: fixture wallets, an old save, the card and its button,
   `[intro]`), and `--only=first10-run` (not in `--quick`, ~12 min): the replay, `--first10
   --autopilot` on the real city, passes on `first10: OK` (each beat's trigger inside its window).
@@ -5112,6 +5154,24 @@ chip, a card button's own two words), `missions.gd` (`held`, `ring_in`), `garage
   Halina's roll-up a distance a frame while it lasts; the finger is drawn on the pad (no node) and
   only while shown; the arrow is the HUD's own; the end card is the HUD's card. +0 draw calls while
   driving.
+
+## Adreno 6xx shader budget
+
+Found 2026-11-08 on the Nothing Phone 1 (Adreno 642L, Vulkan driver 1.1.128, EV031.35.01.12):
+the driver failed to link 8 pipelines ("Failed to link shaders", VkResult -13), all of
+building.gdshader and ground.gdshader, so the ground, roads and buildings did not draw. A probe app
+(each shader on a box, one at a time, logcat between) bisected it: no single construct is at fault;
+the driver has a ceiling on the fragment stage's control flow, Godot's own lighting code included.
+Each `if`, loop, early `return`, short-circuit `&&` / `||` and function call costs (a call costs its
+callee's whole body again: the driver inlines it); a plain ternary, all() / any(), step() / mix() and
+straight-line maths cost nothing. One extra trivial call or two `if`s turned a passing ground shader
+into a failing one. The fix: hash12, value_noise and srgb_to_linear are macros (common.gdshaderinc,
+same arithmetic), the conditions in building and ground are all()/any(), and on Adreno below 700
+building.gdshader runs as a lite copy with `specular_disabled` (`gpu_quirks.gd`). Measured ceilings
+(our counting, `check_shader_budget.gd`): ground passed at 275, failed at 285; the lite building
+passed at 508, failed at 518 (it stands at 498: little room); led_screen (unshaded) passes at 309.
+The GL Compatibility renderer linked the original shaders on the same phone, but it is not used.
+Room for later: landmarks in their own material (their codes cost ~300 of building's 498).
 
 ## Performance budgets
 
@@ -5256,6 +5316,29 @@ System Trace: the iPhone 11 at ×2 holds 60 at its lowest GPU clock, Loop G1 abo
    landmarks, the ghost, the river or the night lights.
 
 ## Map data
+
+**Trees and fences off the water and the roads (F, 2026-11-08)**: `tools/object_audit.py` rules T1 (a
+scanned tree's trunk in a water area, a sandbar excepted), T2 (on the drawn asphalt at grade, check_streets
+S1's test, not on an island or a median) and L6 (a fence or hedge more than `WET_IN` 0.6 m inside a water
+area; walls are left: quays, breakwaters, fountain rims); `tools/object_fixes.py` VERSION 2 removes T1
+(211), moves T2 up to `TREE_SHIFT` 3 m to a spot `TREE_CLEAR` 0.8 m off the asphalt (1,033) or removes it
+(114; a moved tree beside a deck gets its crown trimmed by `bake_structures.trim_crowns`, check_roads C9), and trims L6's wet parts (6 fences, three of them by Most Łazienkowski at WTS DESKA). trees3d
+271,896 → 269,946, crowns 45,316 → 44,991 (`check_map_data.py` EXPECTED). `verify.sh objects` holds T1, T2
+and L6 at 0. ao.bin, street_details.json and park_details.json re-baked.
+TR-1 (2026-11-09): object_audit rule T3 (a scanned tree inside a building outline 2.5 m or higher) with
+`object_fixes.py` VERSION 3: moved like T2 to a free spot within 3 m (52) else removed (129); trees3d
+269,946 → 269,172, crowns 44,991 → 44,862 (`check_map_data.py` EXPECTED). `verify.sh objects` holds T3 at 0.
+
+**Dworzec Centralny's car park ramp (F, 2026-11-08)**: `tools/centralny_ramp.py` (bake_osm right after
+bake_structures, or as a CLI on a baked map; idempotent, `--check` is verify step `centralnyramp`) makes the
+service tunnel under Al. Jana Pawła II north of Chmielna a drive: tunnel group 10 (one 10.8 m tube on the
+middle line of OSM's 30611690/143461289, floor 8.5 m = the entry ramp's foot, and a 22 × 22 m turning hall
+under Złote Tarasy's forecourt, its west shoulders splayed), one portal and frame, the way out's lower 38 m
+(143461245, which R9's `garage_ramps` cut) back as a road with a ground profile 8.5 → 10.6 m, its garage door
+gone; the site's walls (box x −1690..−1530, z 395..500) placed again by `place_walls`/`place_tunnels`, 7 m of
+fence across the mouth cut, 2 scanned trees on the way out taken out: trees3d 271,752 → 271,740, crowns
+45,292 → 45,290. Signs and bollards: `game/scripts/centralny_ramp.gd` (runtime, both city paths, one mesh).
+check_stuck_spots has 5 lines through it.
 
 **Bike markings (idea #9, 2026-11-02)**: `tools/bike_marks.py` (bake_osm after car_free, or as a
 CLI on a baked map) adds 660 `symbols` of kind `bike` marked `"on": "path"` on the cycle paths;
@@ -5598,11 +5681,13 @@ Command-line options (after `--`):
 
 | Option | Effect |
 | --- | --- |
+| `--palace-lights=ID` | the Palace of Culture's night lighting forced to one row of `data/palace_lights.json` (`independence`, `parade`, `christmas`...; `gold` the nightly gold), whatever the date (2026-11-07) |
 | `--demo` | the car drives by itself; with `--heli` the helicopter flies a slow circle |
 | `--shots=60,240` / `--out=DIR` | save screenshots at those frames (counted from when the city is built), then quit (sweep 2: the sounds are stopped 0.15 s before, so a windowed run no longer ends with leaked audio streams). The window never takes the keyboard focus, as with `--no-input`, and a run that ends before a shot prints `shots: missing [frames]` with the game and engine frame and the pause state (2026-10-30) |
 | `--spots=NAME:X,Z[,HEADING];...` | with `--shots`: shoots every spot in one run (the city is built once; the car and camera jump to the next spot after each spot's last shot frame, the frames shift by the frames spent), files `NAME_FFFF.png`. `--out` is made when missing, and a PNG that can't be written ends the run with exit 1 (it used to exit 0 with no file) (Operation Unslop, 2026-11-05) |
 | `--style=N` / `--lines=N` | visual style 0–3 (loop 2e: wins over the saved style for this run) / override the pixel image's line count |
 | `--size=M` / `--yaw=deg` / `--fixed` | view height in metres (default 80) / camera turn / fixed camera (in Point: the Fixed camera scheme) |
+| `--stops=FILE` | with `--shots=` far ahead: the camera stops at each `[x, z, yaw, pitch, size, name]` of the JSON list and saves `<name>.png` in `--out`, then quits; one run shoots a whole street |
 | `--at=x,z` | start at map coordinates (metres, +x east, +z south), on top of a bridge deck if there is one |
 | `--heading=deg` | the car's heading at the start (0 north, 90 east), for testing: with `--demo` it drives off that way |
 | `--nohud` | hide the controls |
@@ -5624,15 +5709,18 @@ Command-line options (after `--`):
 | `--stream-gate=0` | loop 3d-2b: a prebuilt sector's pieces load with its scene at once (the old one-frame load end), not one a frame |
 | `--solo=KEY` / `--solo-look=lit\|flat\|sil` | landmarks 0.3: build one landmark site alone (key as in `landmarks.gd`: `palace`, `rotunda`, `varso`…), no ground, roads, buildings or traffic, on a plain background, runtime city path only (forces off `--prebuilt`). `flat` (default) = unlit in the site's colours on grey, `sil` = dark silhouette on near-white, `lit` = the normal look. Use `--time=day`; the judge's shots (model-from-photos skill section 5): `tools/shots.sh --set=first` |
 | `--no-ghost` | 2026-10-31, for the landing's screenshots: no occlusion ghost and no see-through hole round the car (the dither and the hole that open buildings between the camera and the car), so a wide framed shot (`--yaw` / `--pitch` / `--size`) centred on a spot behind a building keeps it whole. The landing's Palace shot: `--at=-1180,215 --yaw=225 --pitch=-38 --size=400 --time=live --clock=18:15 --date=20260915 --nohud --no-ghost` at 1920x1080 |
+| `--topdown` | 2026-11-07, F: road photos from height, like GTA: the camera looks straight down, north up, with no occlusion ghost, to check kerbs, asphalt and paint. T toggles the same road view in a running game (keyboard). With `--at=X,Z --size=55 --nohud --no-traffic --shots=30 --out=DIR` it makes a road plan shot of any spot |
 | `--debug-ao` / `--no-ao` | show / switch off the baked ground shadows |
+| `--lite-shaders` | 2026-11-08: the Adreno 6xx shaders on any GPU (`gpu_quirks.gd`: building.gdshader without its specular lobe), to see on the Mac what the Nothing Phone 1 draws |
 | `--heli` | start in the helicopter |
 | `--heli-stick=X,Z` | the L-shaped map loop (2026-10-31): the helicopter's stick held towards that world direction (x east, z south; length up to 1) the whole run, for screenshots of the clamp along the map's outline (with `--heli --at=`) |
 | `--heli-alt=M` | loop 3d-2b: start in the helicopter M metres over the ground, placed there at once (360 = its highest; the memory and far-level probes) |
 | `--mission=N` | start rescue call N at once (N = 1, 5, 9… streets, 2, 6… roofs, 3, 7… river, 4, 8… parks) |
 | `--autopilot` | testing aid: fly (or, ghosting through walls, drive) to each mission target; in a race or a side job, drive the route; with `--rival`, tail the rival |
 | `--ghost-pace=X` | testing aid (street races, 2026-11-04): the autopilot's speed factor in a race (default 1.8, an average player; 2.4 a quick one; `racer`: a skilled player in traffic.gd's racer mode at the car's top), for the race-AI runs (`tools/race_ai.sh`) |
+| `--handling=cruise\|sport\|grounded` | Grounded handling (2026-11-08): drive this run in that profile (car.gd PROFILES), whatever Settings → Jazda says; `check_lane_drive.gd` takes it too |
 | `--lane-assist=on\|off` | beta values (2026-11-04): the lane assist "Asysta pasa" (`lane_assist.gd`, Classic only) for this run, whatever Settings → Jazda says (off by default) |
-| `--race-debug` | testing aid (street races, 2026-11-04): once a second while a racing rival or a chaser stands still, traffic.gd prints what holds it (the car ahead, the player, a crossing car, a red, the lane) |
+| `--race-debug` | testing aid (street races, 2026-11-04): once a second while a racing rival or a chaser stands still, traffic.gd prints what holds it (the car ahead, the player, a crossing car, a red, the lane); and (2026-11-09, docs/design/race-ai.md) once a second of a race rivals.gd prints `race trace:` (the rival's speed, its skill share and effort, the road's class, the metres both have left, the player's speed, the rival's lead in metres and seconds, whether she is seen) |
 | `--no-traffic` | no traffic, trams, pedestrians or rivals |
 | `--lineup` | loop 2c: every vehicle model standing round the car, all facing its way (beside it the taxi, Podwózka, the police and guard cars and the two vans; a row ahead the cars' four shapes; behind, the six rivals, then the bus and a tram cab car), no traffic, and each model's triangles printed (`lineup:` lines). Close-ups: `--at=-1113.2,-263.4 --heading=160 --size=14 --nohud` (Marszałkowska) |
 | `--race=N` | race rival N (1–6) at once: they are put just ahead of you |
@@ -5651,7 +5739,10 @@ Command-line options (after `--`):
 | `--sloik` / `--sloik=K` | start the słoiki run at Dworzec Centralny (K jars already broken); `--sloik-station=1` starts it at Dworzec Gdański (to Muranów) |
 | `--ride=N` | loop 2d-1: Podwózka ride N's request, the car on the road 60 m before its passenger (the same N gives the same ride; with `--ride-quirk=river` or `zone` the passenger is picked near river spot / park N, so the leg fits); with `--autopilot` it is accepted after 2 s and driven |
 | `--ride-quirk=river\|zone\|oldtown\|rechotka\|reroute` | loop 2d-1: force the ride's quirk (`oldtown` becomes `zone` on today's map; `rechotka`, the Frogs turn: in the random pool since loop MW-2) |
+| `--crawl-call` / `--crawl-route=ID` / `--crawl-group=ID` / `--crawl=0` / `--crawl-log` | 2026-11-07: the bar crawl (bar_crawl.gd): the group rings a second in at any hour, that route (`klasyczna`, `nad_woda`, `odwazni`, `praga`) or group (`panienski`, `kawalerski`, `sesja`, `wdrozenie`), none of it, the `crawl:` log lines; with `--autopilot` the call is answered, accepted and driven |
 | `--passenger=normal\|believer\|hurry\|detour` | loop 2d-1: force the passenger type (loop MW-2: `detour` asks for a Frogs stop, +½ star once) |
+| `--ride-story=ID\|none` | 2026-11-07: that story passenger (`data/taxi_stories.json` id) on the rides, or `none` for the old chat |
+| `--ride-answer=0\|1` | 2026-11-07: the autopilot's answer to the story passenger's question (default 0) |
 | `--no-parodies` | loop MW-2: no storefronts (Frogs, venue neon, Leżaks, metro entrances, the new billboards) and no Pędzik couriers |
 | `--rechotka` | loop MW-2: the car on the lane by the nearest placed Frogs' door, stopped (the stamp in 2 s) |
 | `--stamps=K` | loop MW-2: the Frogs card starts at K stamps (9: the next stop is the free hot dog) |
@@ -5692,6 +5783,11 @@ Command-line options (after `--`):
 | `--fullmap` | F's asks (2026-10-30): open the full-screen map at the start (the game paused; screenshots) |
 | `--fullmap=M` | 2026-10-31: the same, M metres across the screen's height (the game map's shots) |
 | `--quest-pick=N` | G12 part 2 (2026-11-02): open the full map at the start and tap row N of the ZADANIA tab shown (the vehicle's); a place's pick closes the map and becomes the quest pin |
+| `--quest-quit=S` | F 2026-11-08: S s into the run, open the full map and tap the quest card's "✕ Quit" button twice; prints `quest quit test:` lines (running before/after) |
+| `--quest-tab=N` | quest map (2026-11-07): the full map's quest card opens on tab N (0 AUTO, 1 HELI, 2 WĄTKI) |
+| `--story=ID` | quest map: questline ID (`boat`, `rave`) starts from the WĄTKI list 1.5 s in (its friend phones) |
+| `--story-meet` | quest map: the friend's WCHODZĘ is pressed by itself a second after they walk up (the in-person start without a tap) |
+| `--stories-log` | quest map (`story_quests.gd`): the questlines, quest focus, the friend walking up |
 | `--map-jump=X,Z` | 2026-10-31: the full map's hold-to-teleport to X,Z at the start (prints the refusal, if any, and where the car went) |
 | `--settings-tab=N` | loop 2e: open the settings panel at tab N (0 Jazda · Driving, 1 Świat · World, 2 Obraz · Picture, 3 Dźwięk · Sound; loop MW-1: 4 Zeszyt · the notebook) |
 | `--notebook` / `--notebook=CHAPTER\|ID` | loop MW-1: open the settings card on MOJA WARSZAWA, the notebook (a chapter by id or number 1-9, or a place's card by its id; screenshots) |
@@ -5708,7 +5804,7 @@ Command-line options (after `--`):
 | `--ladder=N` | loop 3h slice 3: the first N rungs of the rival ladder beaten for this run (0-7; 6: only the final left, 7: the final won too), the respect raised to open the next, in memory (`ladder:` lines). Use with `--nosave` |
 | `--first10` | loop 3h slice 4: the guided first 10 minutes in a test run (first10.gd: the guide as on a fresh save, no title; `first10:` lines per beat). With `--autopilot` the headless replay: the car taken to the first stand at 0:15, the flash back at Halina, the call answered, the boulevard tape played, the result cards closed; it prints `first10: OK (…)` when every beat's trigger fell inside its window (an error line per miss) and quits after the garage (~575 s of play), or judges at 700 s at the latest (missing beats fail; a NaN car fails at once). Use with `--nosave` |
 | `--end-card` | loop 3h slice 4: the end card ("Dzięki za grę! / Thanks for playing!") at once, whatever the save (screenshots) |
-| `--first-race` | loop 3h slice 4: Pani Halina rolls up behind the car a second in, for the guided first race (the prompt, then the race to the Palm with its rubber band; screenshots, the race's feel) |
+| `--first-race` | loop 3h slice 4: Pani Halina rolls up behind the car a second in, for the guided first race (the prompt, then the race to the Palm on her gentle day; screenshots, the race's feel) |
 | `--trzy-mosty[=N]` | loop 3h slice 3: the final race "Trzy mosty" at once (`=N`, 1-3: from the river span of bridge N, the bridges before it counted, Seba 12 m behind in the next lane: screenshots and a quick finish): the run at night, the ladder up to the final (as `--ladder=6` unless `--ladder` says), the car at its start at Rondo Daszyńskiego, Seba ahead, his challenge and the countdown; with `--autopilot` the ghost drives the seven legs (`trzy mosty:` lines: the start, the length, each checkpoint, Seba over each bridge, the result) |
 | `--syrenka=<id\|n>[:m]` | loop 3h slice 2: the car on the street beside that Syrenka (an id or 1 to 20), m metres before it (25 by default; `:0` finds it at once), facing it (a screenshot aid) |
 | `--found-eggs=all\|none\|reachable\|ID,…` | loop MW-6: the egg record for this run, in memory, no rewards (screenshots of the SEKRETY page). Use with `--nosave` |
@@ -5729,7 +5825,8 @@ Command-line options (after `--`):
 | `--life-log` | loop MW-4: print `life:` lines: the index, the minute's summary (riders, runners, Kolka, Hyrax, bells, the Zając), the bell, E28's follow, the Zając |
 | `--zajac` | loop MW-4: Live on Wednesday 2026-10-28 at 19:00 (`--clock=` and a Wednesday `--date=` change them), the car by Kolka's start (free roam, no title); with `--autopilot` the car paces the club 10 m to its side from 19:00 (the Zając: `life: zajac paid +40 respect (E29)`) |
 | `--trend-day=N` | loop MW-4: the Wiralek cycle's day number (0 = slot 1 on day 1, slot 2 on day 3, slot 3 on day 5; 88 = all three on day 1) instead of Live's date or the session's |
-| `--trend-job[=1\|2\|3\|4\|5\|6]` | loop MW-4: start by that Wiralek slot (1 Plac Zbawiciela, 2 Chmielna, 3 Tamka; 4: PISTACJA's "Limitka" drop job, whatever the clock; 5: PADELNIA's "Czwarty"; 6: Mrożulo's van parked by the car near KUKŁA on Nowy Świat with his "Mlask" request, docs/design/gaulle-and-food-hype.md G5) with its request offered; with `--autopilot` accepted and driven (Mlask: the review card closes by itself); implies `--trend-log` |
+| `--trend-job[=1\|2\|3\|4\|5\|6\|7\|8]` | loop MW-4: start by that Wiralek slot (1 Plac Zbawiciela, 2 Chmielna, 3 Tamka; 4: PISTACJA's "Limitka" drop job, whatever the clock; 5: PADELNIA's "Czwarty"; 6: Mrożulo's van parked by the car near KUKŁA on Nowy Świat with his "Mlask" request, docs/design/gaulle-and-food-hype.md G5; 7: the DESKA padel call; 8: Mrożulo's "Dżemini" call, the car by DŻEMINI KEBAB on Świętokrzyska, G5b) with its request offered; with `--autopilot` accepted and driven (Mlask: the review card closes by itself); implies `--trend-log` |
+| `--dzemini` | G5b: Mrożulo's MLASK already on DŻEMINI KEBAB (its queue for good, the sticker on its wall), the car by the shop; implies `--trend-log` (docs/design/gaulle-and-food-hype.md G5b) |
 | `--night-hub` | night-buses loop: a gathering of night buses at Dworzec Centralny now, whatever the time (with `--time=night`, the N signs too); its buses park at their bays at once |
 | `--train=X,Z[,K]` | railway T1 (docs/design/railway.md): a train put on the track nearest that point at the start, rolling on (shots); K picks its kind (trains.gd KINDS: 0 Koleje Mazowe, 1 SKiM, 2 the long-distance one) |
 | `--old-tram` / `--old-tram=follow` | vintage-tram loop: the old two-car set now, on the track nearest the car, whatever the time (it stays); `=follow`: and the car (no collisions) kept 22 m behind its tail, so the view goes with it and E39's 300 m count runs |
@@ -5739,22 +5836,53 @@ Command-line options (after `--`):
 | `--fans=0` | the fans by Stadion Leguminy (fans.gd) off (also off with `--crowd=0`) |
 | `--fans-now` | fans: the three groups out on whatever the clock says (shots, checks); otherwise only on match evenings (Wed 17:00-21:30, Sat 15:00-21:30, Sun 14:00-20:30) |
 | `--fans-log` | fans: print `fans:` lines: out and home, each chant (and the horn's), every line |
+| `--event-day` | 11 listopada (event_day.gd): the Independence Day event on whatever the date and clock say, full strength (the crowd and flags at Rondo Dmowskiego and Al. Jerozolimskie, the four barrier lines, the Palace, Złota 44 and Stadion Narodowy lit white and red, the glow and haze); otherwise it switches itself on only on 11 November (the Warsaw date, live clock) |
+| `--event-day=0` | the event off even on the date |
+| `--event-smoke=0` | the event without the glow pots, the haze and the smoke puffs (the "smoke off" look) |
+| `--event-log` | event: print its build line (people, flags, glow pots, bands) |
 | `--fans-phase=arrive\|match\|leave` | fans: the match day's phase whatever the clock (its busy part: arrive at 0.75, leave at 0.15), so shots show the walkers |
 | `--fans-result=win\|draw` | fans: the result at full time instead of the roll (65 % win) |
 | `--wellness=0` | wellness circles (docs/design/wellness.md): no sound-healing rings, techno-yoga rows, 40+ circles or kung-fu schools (`--crowd=0` drops them too) |
 | `--wellness-now` | wellness: every spot on whatever the clock says (shots) |
 | `--wellness-log` | wellness: print `wellness:` lines: each spot starting and packing up, every line and meeting, the minute's summary |
+| `--tamka-log` | Tamka (tamka.gd): print `tamka:` lines: bollards built, the walk length, KEBONAFIDE's position every 0.5 s and each line he says |
 | `--tram-log` | vintage-tram loop: print `old tram:` lines: each run taken out of sight and turned modern, the follow count every 50 m and its resets, E39 |
 | `--bus-log` | night-buses loop: print `buses:` lines: the hub's bays and stops, each gathering and ring bus, the car at the ring, the race to the Palm, each honk and called bus, the stop lines, a summary every 20 s |
 | `--crash=now` / `--crash=X,Z` / `--crash=on` / `--crash=0` | crash scenes (`crash_scenes.gd`): a scene now 45-130 m ahead of the car (shots; it may be in view), or on the fitting road nearest X,Z; `on`: the 3-5 minute timer in a test run too (it runs in a normal launch only); `0`: none |
 | `--crash-log` | crash scenes: print `crash:` lines: the first scene's wait, each scene (where, street, lane, vehicles, distance, life), the radio line, every bubble line, each clear and the next wait |
+| `--boat-race`, `--boat-race=call` | boat race (`boat_race.gd`): Szymek rings now, whatever the time |
+| `--boat-race=race` | boat race: the car at the start pontoon and straight onto the grid (3-2-1) |
+| `--boat-race=auto` | boat race: as `race`, with the player's boat driven by the rivals' driver (the shots and the full-race probe) |
+| `--dekalog`, `--dekalog=call` | Kieślowski tour (`dekalog_tour.gd`): Claire rings now, whatever the time |
+| `--dekalog=go` / `=auto` / `=0` | Kieślowski tour: the car at Centralna and the tour started (`auto`: the cards answer themselves); `0`: none |
+| `--dekalog-log` | Kieślowski tour: print `dekalog:` lines (pickup, frames, shots, hits, the pay) |
+| `--boat-race=free`, `=free0`..`=free2` | free ride: the car at the start pontoon, out in a fleet boat (0 jet ski Rekin X, 1 electric Srebrna Strzała, the default, 2 offshore Czarna Pantera; no rings, no rivals) |
+| `--boat-race=marina` | the car at the start pontoon with the marina card up (REKIN X / STRZAŁA / PANTERA / WYŚCIG) |
+| `--boat-race=0` | no boat race (no call, no pontoon) |
+| `--boat-log` | boat race: `boat race:` lines (the call, the grid, misses, finishes, solid hits) |
+| `--kino-tour`, `--kino-tour=call` | cinema tour (`kino_tour.gd`): Wiktor rings now, whatever the time |
+| `--kino-tour=go` | cinema tour: the car at the pickup on Plac Zbawiciela and the tour started |
+| `--kino-tour=auto` | cinema tour: as `go`, its cards answered by themselves |
+| `--kino-tour=0` | no cinema tour |
+| `--kino-log` | cinema tour: `kino:` lines (the call, pickup, shots, scratches, pitches, the premiere's pay) |
 | `--rave-call` | secret rave (`rave.gd`): LEKTI's break-in on MORDOR FM now (with his voice) and Ziomek rings a second later, whatever the time |
 | `--rave-smola` | secret rave: Ziomek rings now for the club night at Smoła (the door's three questions, then the room) |
 | `--rave-club` | secret rave: straight into Smoła's cutaway room (option A: the jungle, the DJ, the dancers, the lights, TAŃCZ, PATIO and WYJDŹ) |
+| `--padel-match[=HOUR]` | arcade padel (padel_match.gd): straight onto the DESKA court at HOUR (default 12; 20 is the floodlit night), the match plays itself, the game quits at its end |
+| `--padel-log` | arcade padel: one line per point, the match's in and out |
+| `--shisha-call` | shisha night (shisha.gd): Ivan rings now (ODBIERZ, then JADĘ!) |
+| `--shisha-meet` | shisha night: the car at Ivan's kerb in 19. Dzielnica, Ivan gets in, on to Bogdan at the Żelazna court |
+| `--shisha-lounge` | shisha night: straight into SENATOREK (lounge.gd), the mini-game playing itself (best jars, clean coal and draw), then PALIĆ |
+| `--shisha-terrace` | shisha night: as `--shisha-lounge`, then TARAS (the terrace with the Palace) |
+| `--shisha=0` / `--shisha-log` | no shisha night / its steps in the log (shisha: ..., lounge: ...) |
 | `--rave-patio` | secret rave: straight into Smoła and out to its patio (the courtyard, the mirror ball, PÓŁNOC FM, SALA back in) |
 | `--rave=on` / `--rave=day` / `--rave=0` | secret rave: the night rig on now (the lights in the lit look), the day rave's crowd now, or no raves and no calls |
 | `--rave-spot=ID` | secret rave: tonight's spot (`wiadukt`, `zajezdnia`, `hala`; `plaza` is the day spot) |
 | `--rave-log` | secret rave: print `rave:` lines (tease, the call, pickup, meeting point, door questions and answers, pay, the rig's mode, the room) |
+| `--meet-call` | night racing club (`street_meet.gd`): Darek „Bawarka" rings now, whatever the time |
+| `--meet=on` / `--meet=0` | night racing club: the night rules at any hour / none of it |
+| `--meet-at=meet\|raid\|race\|meet2\|drag\|stage` | night racing club: jump to that beat (the car moved to it; `stage` puts it on the drag's line with the tree running) |
+| `--meet-log` | night racing club: the call, meets, raids, race places and drag times in the log |
 | `--ev-call` / `--ev-tow` / `--ev-tow=carry` / `--ev-stranded` / `--ev=0` | dead electric cars (`ev_tow.gd`): Bartek's call rings a second in; `--ev-tow`: accepted, the helicopter over his car; `=carry`: his car already on the sling, the helicopter climbing to 22 m; `--ev-stranded`: a stranded TESŁO about 30 m ahead now; `0`: none (the call and the stranded cars run on their timers in a normal launch only) |
 | `--ev-log` | dead electric cars: print `ev:` lines: the chargers found, the timers, the call, the car's street and charger, the hook, Bartek's lines, the set-down and pay, each stranded car |
 | `--loud=N` | loud cars (`loud_cars.gd`, city-life satire #1): at most N loud supercars in traffic at once (default 3, up to 16 for shots); `0`: none, and no car meet at Browary nor its crowd |

@@ -17,6 +17,8 @@ const POI_KEBAB := 1
 const POI_STATION := 2
 const POI_DEPOT := 3
 const POI_SCOOTER := 4
+## The free-ride boat at the start pontoon (boat_race.gd, F 2026-11-07).
+const POI_BOAT := 5
 
 const INK := Color("#fff8e8")
 const DARK := Color("#1d1a24")
@@ -186,12 +188,29 @@ static func paint(hud, shape: String, colour: Color, tip: Vector2, r: float) -> 
 	_disc(hud, c, r + maxf(1.5, r * 0.14), DARK)
 	_disc(hud, c, r, colour)
 	_ring(hud, c, r * 0.86, r * 0.92, colour.lightened(0.35))
-	var k := r * 0.62
+	_shape(hud, shape, c, r * 0.62, {"ink": INK, "dark": DARK, "red": RED, "green": GREEN, "badge": colour})
+
+
+## F (2026-11-07): "the landmarks shout; draw them on the map, quieter". A landmark as a small
+## silhouette printed on the map itself, centred at `at` (`r` about the old badge's radius): no
+## pin and no badge, the shape in its category's colour darkened, on a soft cream halo so it reads
+## on the streets. The main star, the questline "!" badges and the jobs stay the loud marks.
+static func paint_quiet(hud, shape: String, colour: Color, at: Vector2, r: float, alpha := 0.9) -> void:
+	var ink := Color(colour.darkened(0.35), alpha)
+	var halo := Color(1.0, 0.97, 0.9, 0.55 * alpha)
+	_disc(hud, at, r * 0.95, Color(halo, halo.a * 0.6))
+	var hole := Color(1.0, 0.97, 0.9, 0.85 * alpha)
+	_shape(hud, shape, at, r * 0.78, {"ink": ink, "dark": ink, "red": Color(RED, alpha), "green": Color(GREEN, alpha), "badge": hole})
+
+
+## A shape's primitives (SHAPES[shape]) round `c` at scale `k` (px per unit), each in `cols`'s
+## colour for its key (ink when left out).
+static func _shape(hud, shape: String, c: Vector2, k: float, cols: Dictionary) -> void:
 	for p: Array in SHAPES.get(shape, []):
 		var key := "ink"
 		if p.size() > 1 and p[p.size() - 1] is String:
 			key = p[p.size() - 1]
-		var col: Color = {"ink": INK, "dark": DARK, "red": RED, "green": GREEN, "badge": colour}.get(key, INK)
+		var col: Color = cols.get(key, cols["ink"])
 		var at := func(i: int) -> Vector2: return c + Vector2(float(p[i]), float(p[i + 1])) * k
 		match String(p[0]):
 			"r":

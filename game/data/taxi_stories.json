@@ -1,0 +1,1428 @@
+{
+ "_about": "Podwózka story rides (F, 2026-11-07: taxi rides with stories). rides.gd gives most rides one of these passengers, in turn (the ones not heard yet first, saved as keep.podwozka_stories). On the way the passenger says `lines` (three bubbles, [Polish, English]), then asks `ask` on a side card with two `answers`: `say` is the button (Polish, English; at most 28 characters), `reply` the passenger's bubble after it, `tip` extra złoty on the result (may be below zero), `star` true for the half star of a good talk (rozmowa +½), `outro` the passenger's last word on the result card. No answer in ASK_LIFE seconds: `silent` (or the shared one in rides.gd). `when`: \"night\" keeps a story to the night. `to` is where they go: a real place (`name` [Polish, English], `at` [x, z] game metres, `r` metres): the ride ends at an address door within `r` of it, 600 m to 6 km by road, else at the lane junction by `drop` (a lane point by the site, for the big sites with no door near); else the story waits for another ride. `who` is the type, shown on the request card under the teaser. Parodies only (warsaw-tone skill): no real people, no brands. tools/check_rides.gd checks the shape, the lengths and the brand list.",
+ "stories": [
+  {
+   "id": "mordor",
+   "name": "Kamil",
+   "who": [
+    "korpo z Mordoru",
+    "an office worker from Mordor"
+   ],
+   "teaser": [
+    "„Zrobimy szybki sync w drodze, okej?”",
+    "\"Quick sync on the way, OK?\""
+   ],
+   "lines": [
+    [
+     "Sorry, jestem na callu. Mute. Dobra, możemy jechać.",
+     "Sorry, I'm on a call. Muted. OK, we can go."
+    ],
+    [
+     "Pracuję w Mordorze. Dziś zdalnie. Z taksówki.",
+     "I work in Mordor. Remote today. From a taxi."
+    ],
+    [
+     "W firmie mamy owocowe czwartki. Dziś środa. Ciężko.",
+     "We get fruit Thursdays at work. It's Wednesday. Rough."
+    ]
+   ],
+   "ask": [
+    "Masz chwilę na szybki feedback o mojej prezentacji?",
+    "Got a sec for quick feedback on my deck?"
+   ],
+   "answers": [
+    {
+     "say": [
+      "Dawaj, slajd po slajdzie",
+      "Go on, slide by slide"
+     ],
+     "reply": [
+      "Slajd jeden: synergia. Slajd dwa: też synergia. Koniec.",
+      "Slide one: synergy. Slide two: also synergy. The end."
+     ],
+     "tip": 12,
+     "star": true,
+     "outro": [
+      "„Lepszy feedback niż od szefa. Napiwek idzie z budżetu na Q4.”",
+      "\"Better feedback than my boss gives. The tip's from the Q4 budget.\""
+     ]
+    },
+    {
+     "say": [
+      "Patrzę na drogę, nie slajdy",
+      "Eyes on the road, not slides"
+     ],
+     "reply": [
+      "Szanuję granice. Wpiszę cię w kalendarz.",
+      "I respect boundaries. I'll put you in my calendar."
+     ],
+     "tip": 0,
+     "star": false,
+     "outro": [
+      "„Wysłałem ci zaproszenie. Temat: sync o drodze.”",
+      "\"Sent you an invite. Subject: sync re the road.\""
+     ]
+    }
+   ],
+   "to": {
+    "name": [
+     "Warsaw Spire",
+     "Warsaw Spire"
+    ],
+    "at": [
+     -2722,
+     203
+    ],
+    "r": 120,
+    "drop": [
+     -2708.0,
+     254.0
+    ]
+   }
+  },
+  {
+   "id": "gwiazda",
+   "name": "Pani w okularach",
+   "who": [
+    "gwiazda filmu, incognito",
+    "a film star, incognito"
+   ],
+   "teaser": [
+    "„Proszę nie patrzeć. Nikt mnie tu nie zna.”",
+    "\"Please don't look. Nobody knows me here.\""
+   ],
+   "lines": [
+    [
+     "Ciemne okulary działają. Nikt mnie jeszcze nie poznał.",
+     "Dark glasses work. Nobody's recognised me yet."
+    ],
+    [
+     "Kręcimy tu film. Pałac Kultury gra Nowy Jork.",
+     "We're shooting here. The Palace of Culture plays New York."
+    ],
+    [
+     "Agent mówi, że Warszawa to nowy Berlin. Berlin się obrazi.",
+     "My agent says Warsaw's the new Berlin. Berlin will sulk."
+    ]
+   ],
+   "ask": [
+    "Gdzie zjem prawdziwe pierogi, tak żeby nikt nie wiedział?",
+    "Where can I get real pierogi without anyone knowing?"
+   ],
+   "answers": [
+    {
+     "say": [
+      "Bar mleczny, taca, kolejka",
+      "Milk bar, a tray, a queue"
+     ],
+     "reply": [
+      "Taca! Jak w filmie o latach siedemdziesiątych. Biorę dwie.",
+      "A tray! Like a film about the seventies. I'll have two."
+     ],
+     "tip": 20,
+     "star": true,
+     "outro": [
+      "„Wrzucę cię na FOTOGRAM. Bez nazwiska. Moje też bez.”",
+      "\"I'll put you on FOTOGRAM. No name. Mine neither.\""
+     ]
+    },
+    {
+     "say": [
+      "Fine dining z gwiazdką",
+      "Fine dining with a star"
+     ],
+     "reply": [
+      "Gwiazdki mam w kontrakcie. Chciałam czegoś prawdziwego.",
+      "I've got stars in my contract. I wanted something real."
+     ],
+     "tip": 5,
+     "star": false,
+     "outro": [
+      "„Płaci ochrona. Napiwek też ochrona. Ochrona jest oszczędna.”",
+      "\"Security pays. Security tips too. Security is thrifty.\""
+     ]
+    }
+   ],
+   "to": {
+    "name": [
+     "Pałac Kultury",
+     "the Palace of Culture"
+    ],
+    "at": [
+     -1214,
+     247
+    ],
+    "r": 160,
+    "drop": [
+     -1360.0,
+     299.0
+    ]
+   }
+  },
+  {
+   "id": "sloik",
+   "name": "Ola",
+   "who": [
+    "słoik jedzie do mamy",
+    "a słoik off to see mum"
+   ],
+   "teaser": [
+    "„Ostrożnie, wiozę słoiki. Na razie puste.”",
+    "\"Careful, I've got jars. Empty, for now.\""
+   ],
+   "lines": [
+    [
+     "Ostrożnie na dziurach. Puste słoiki jadą, pełne wrócą.",
+     "Careful on the potholes. Empty jars out, full ones back."
+    ],
+    [
+     "Mama myśli, że jem tu tylko kebab. Mama ma rację.",
+     "Mum thinks I only eat kebab here. Mum's right."
+    ],
+    [
+     "Pięć lat w Warszawie. W domu mówią, że mam akcent z Mordoru.",
+     "Five years in Warsaw. At home they say I've got a Mordor accent."
+    ]
+   ],
+   "ask": [
+    "Powiedz szczerze: zostać tu na zawsze czy wracać do siebie?",
+    "Be honest: stay here for good, or go back home?"
+   ],
+   "answers": [
+    {
+     "say": [
+      "Zostań, jesteś już stąd",
+      "Stay, you're from here now"
+     ],
+     "reply": [
+      "Stąd! Od 2021! Mama się popłacze. Ze szczęścia, chyba.",
+      "From here! Since 2021! Mum will cry. Happy tears, probably."
+     ],
+     "tip": 10,
+     "star": true,
+     "outro": [
+      "„Zostaję. Pierwszy słoik ogórków jest twój.”",
+      "\"I'm staying. The first jar of pickles is yours.\""
+     ]
+    },
+    {
+     "say": [
+      "Wracaj, tam taniej",
+      "Go back, it's cheaper"
+     ],
+     "reply": [
+      "Taniej, ale nie ma kebaba o trzeciej w nocy. Muszę pomyśleć.",
+      "Cheaper, but no kebab at 3 a.m. I need to think."
+     ],
+     "tip": 5,
+     "star": false,
+     "outro": [
+      "„Przemyślę w pociągu. Ma opóźnienie, zdążę.”",
+      "\"I'll think on the train. It's running late, I'll have time.\""
+     ]
+    }
+   ],
+   "to": {
+    "name": [
+     "Dworzec Centralny",
+     "Central Station"
+    ],
+    "at": [
+     -1421,
+     576
+    ],
+    "r": 140,
+    "drop": [
+     -1400.5,
+     640.0
+    ]
+   }
+  },
+  {
+   "id": "zbawix",
+   "name": "Maciek",
+   "who": [
+    "hipster ze Zbawixa",
+    "a hipster from Zbawix"
+   ],
+   "teaser": [
+    "„Tylko bez mainstreamu w radiu, dobra?”",
+    "\"No mainstream on the radio, OK?\""
+   ],
+   "lines": [
+    [
+     "Jadę ze Zbawixa. Tam nawet gołębie piją owsiane.",
+     "Coming from Zbawix. Even the pigeons drink oat milk there."
+    ],
+    [
+     "Mam ostre koło. Dziś było za ostre, stąd taksówka.",
+     "I ride a fixie. Today it rode me, hence the taxi."
+    ],
+    [
+     "Otwieram concept store. Sprzedaję powietrze z Powiśla.",
+     "I'm opening a concept store. Selling Powiśle air."
+    ]
+   ],
+   "ask": [
+    "Słuchasz winyli? Bo ja tylko winyli. W aucie też.",
+    "Do you listen to vinyl? I only do vinyl. In the car too."
+   ],
+   "answers": [
+    {
+     "say": [
+      "Tylko KEBAB FM, sorry",
+      "Only KEBAB FM, sorry"
+     ],
+     "reply": [
+      "KEBAB FM... tak mainstreamowe, że aż undergroundowe. Szacun.",
+      "KEBAB FM... so mainstream it's underground. Respect."
+     ],
+     "tip": 10,
+     "star": true,
+     "outro": [
+      "„Zrobię o tobie zina. Ksero, dwanaście sztuk, jedna dla ciebie.”",
+      "\"I'm making a zine about you. Photocopied, twelve copies, one's yours.\""
+     ]
+    },
+    {
+     "say": [
+      "Mam gramofon w schowku",
+      "There's a turntable in the glovebox"
+     ],
+     "reply": [
+      "Serio?! Nie, czekaj, żartujesz. Ale gdybyś nie żartował...",
+      "Seriously?! No, wait, you're joking. But if you weren't..."
+     ],
+     "tip": 8,
+     "star": false,
+     "outro": [
+      "„Napiwek miał być w kawie speciality. Wypiłem po drodze.”",
+      "\"The tip was going to be a specialty coffee. I drank it on the way.\""
+     ]
+    }
+   ],
+   "to": {
+    "name": [
+     "Hala Koszyki",
+     "Hala Koszyki"
+    ],
+    "at": [
+     -885,
+     1285
+    ],
+    "r": 100,
+    "drop": [
+     -882.2,
+     1255.6
+    ]
+   }
+  },
+  {
+   "id": "babcia",
+   "name": "Pani Krysia",
+   "who": [
+    "babcia z siatką",
+    "a granny with a shopping net"
+   ],
+   "teaser": [
+    "„Synku, pomożesz z siatką? Nie, sama dam radę.”",
+    "\"Help with the bag, sonny? No, I'll manage.\""
+   ],
+   "lines": [
+    [
+     "Synku, pamiętam, jak Pałac był nowy. Ja też byłam nowa.",
+     "Sonny, I remember when the Palace was new. So was I."
+    ],
+    [
+     "Kiedyś stało się w kolejce po mięso. Teraz po kawę. Postęp.",
+     "We used to queue for meat. Now we queue for coffee. Progress."
+    ],
+    [
+     "Wnuczek mówi, że jestem na Fotogramie. Ja jestem na Woli.",
+     "My grandson says I'm on Fotogram. I'm in Wola."
+    ]
+   ],
+   "ask": [
+    "A kawaler jesteś? Bo mam wnuczkę, studiuje na Politechnice.",
+    "Single, are you? I've a granddaughter at the Polytechnic."
+   ],
+   "answers": [
+    {
+     "say": [
+      "Poproszę numer, pani Krysiu",
+      "Her number, please"
+     ],
+     "reply": [
+      "Numer dam, ale najpierw pierogi u mnie. Niedziela, czternasta.",
+      "You'll get it, but pierogi at mine first. Sunday, two o'clock."
+     ],
+     "tip": 15,
+     "star": true,
+     "outro": [
+      "„Wnuczka już cię lubi. Jeszcze o tym nie wie, ale lubi.”",
+      "\"My granddaughter likes you already. She doesn't know it yet, but she does.\""
+     ]
+    },
+    {
+     "say": [
+      "Jestem żonaty z robotą",
+      "I'm married to the job"
+     ],
+     "reply": [
+      "Z robotą? Ja też takiego miałam. Czterdzieści lat. Dobry był.",
+      "To the job? I had one of those. Forty years. He was a good one."
+     ],
+     "tip": 8,
+     "star": false,
+     "outro": [
+      "„Masz tu na drożdżówkę. I nie jedz na mieście.”",
+      "\"Here's for a sweet bun. And don't eat out.\""
+     ]
+    }
+   ],
+   "to": {
+    "name": [
+     "Hala Mirowska",
+     "Hala Mirowska"
+    ],
+    "at": [
+     -1832,
+     -535
+    ],
+    "r": 120,
+    "drop": [
+     -1839.1,
+     -563.5
+    ]
+   }
+  },
+  {
+   "id": "kawalerski",
+   "name": "Kevin",
+   "who": [
+    "turysta z wieczoru kawalerskiego",
+    "a stag-party tourist"
+   ],
+   "teaser": [
+    "„Dzień dobry! Na zdrowie! Hotel? Hotel.”",
+    "\"Good day! Cheers! Hotel? Hotel.\""
+   ],
+   "lines": [
+    [
+     "Dzień dobry! Na zdrowie! To całe moje polskie.",
+     "Good day! Cheers! That's all my Polish."
+    ],
+    [
+     "Kumple zgubili mnie przy Pałacu. Czekają na Nowym Świecie.",
+     "The lads lost me at the Palace. They're waiting on Nowy Świat."
+    ],
+    [
+     "Tani lot, tanie piwo, drogi powrót do hotelu. Taki plan.",
+     "Cheap flight, cheap beer, pricey ride home. That's the plan."
+    ]
+   ],
+   "ask": [
+    "Kumpel się żeni. Jaką polską radę mam mu dać?",
+    "My mate's getting married. What Polish advice do I give him?"
+   ],
+   "answers": [
+    {
+     "say": [
+      "Teściowa zawsze ma rację",
+      "The mother-in-law is always right"
+     ],
+     "reply": [
+      "Zapisuję! Teś... cio... wa. Zawsze. Rację. Mocne.",
+      "Writing it down! Mother... in... law. Always. Right. Strong."
+     ],
+     "tip": 15,
+     "star": true,
+     "outro": [
+      "„Twoja rada wygrała wieczór. Napiwek w obcej walucie, kantor ogarnie.”",
+      "\"Your advice won the night. Tip's in foreign money, the kantor will sort it.\""
+     ]
+    },
+    {
+     "say": [
+      "Niech ucieka, póki może",
+      "Tell him to run while he can"
+     ],
+     "reply": [
+      "Nie ucieknie. Ma bilet w jedną stronę. Do ołtarza.",
+      "He can't. He's got a one-way ticket. To the altar."
+     ],
+     "tip": 5,
+     "star": false,
+     "outro": [
+      "„Idę szukać kumpli. Albo nowych kumpli.”",
+      "\"Off to find the lads. Or some new lads.\""
+     ]
+    }
+   ],
+   "to": {
+    "name": [
+     "Pawilony, Nowy Świat",
+     "the Pawilony bars, Nowy Świat"
+    ],
+    "at": [
+     -263,
+     134
+    ],
+    "r": 70,
+    "drop": [
+     -236.5,
+     123.8
+    ]
+   }
+  },
+  {
+   "id": "krakus",
+   "name": "Pan Józef",
+   "who": [
+    "Krakus na delegacji",
+    "a Kraków man on a work trip"
+   ],
+   "teaser": [
+    "„U nas to by było bliżej. Ale jedźmy.”",
+    "\"Back home it'd be closer. But let's go.\""
+   ],
+   "lines": [
+    [
+     "W Krakowie mamy smoka, wy macie Syrenkę. No, niech będzie remis.",
+     "In Kraków we've got a dragon, you've got a mermaid. Call it a draw."
+    ],
+    [
+     "U nas wszystko jest blisko. U was blisko to czterdzieści minut.",
+     "Back home everything's close. Here close means forty minutes."
+    ],
+    [
+     "Obwarzanek kosztuje tu tyle, co u nas obiad.",
+     "A bagel here costs what lunch does back home."
+    ]
+   ],
+   "ask": [
+    "Przyznaj szczerze: Kraków jest ładniejszy, prawda?",
+    "Admit it: Kraków is prettier, right?"
+   ],
+   "answers": [
+    {
+     "say": [
+      "Warszawa. Nie dyskutujemy.",
+      "Warsaw. End of discussion."
+     ],
+     "reply": [
+      "No dobrze. Dumy wam nie brakuje. Szanuję, po krakowsku.",
+      "Fine. You're not short on pride. Respect, Kraków-style."
+     ],
+     "tip": 3,
+     "star": true,
+     "outro": [
+      "„Napiwek: trzy złote, wyliczone co do grosza. U nas to majątek.”",
+      "\"Tip: three złoty, counted to the grosz. Back home that's a fortune.\""
+     ]
+    },
+    {
+     "say": [
+      "Kraków ładniejszy, przyznaję",
+      "Kraków's prettier, I admit"
+     ],
+     "reply": [
+      "Wiedziałem! A ty stąd? Zdrajca, ale sympatyczny.",
+      "I knew it! And you're from here? A traitor, but a nice one."
+     ],
+     "tip": 2,
+     "star": false,
+     "outro": [
+      "„Zapraszam do Krakowa. Obwarzanek stawiam. Połówkę.”",
+      "\"Come to Kraków. The bagel's on me. Half of one.\""
+     ]
+    }
+   ],
+   "to": {
+    "name": [
+     "Zamek Królewski",
+     "the Royal Castle"
+    ],
+    "at": [
+     -621,
+     -1530
+    ],
+    "r": 120,
+    "drop": [
+     -617.0,
+     -1426.6
+    ]
+   }
+  },
+  {
+   "id": "live",
+   "name": "Nikola",
+   "who": [
+    "influencerka na live",
+    "an influencer, live"
+   ],
+   "teaser": [
+    "„Jesteśmy na live! Uśmiech do kamery!”",
+    "\"We're live! Smile for the camera!\""
+   ],
+   "lines": [
+    [
+     "Hejka, jesteśmy na live! Pomachaj. Nie, ręce na kierownicę.",
+     "Hi guys, we're live! Wave. No, hands on the wheel."
+    ],
+    [
+     "Mam czterdzieści tysięcy obserwujących. Głównie boty. Wierne.",
+     "I've got forty thousand followers. Mostly bots. Loyal ones."
+    ],
+    [
+     "Czat pyta, czy to prawdziwa Warszawa. Mówię, że filtr.",
+     "Chat asks if this is the real Warsaw. I say it's a filter."
+    ]
+   ],
+   "ask": [
+    "Czat chce drifta! Zrobisz jeden dla widzów?",
+    "Chat wants a drift! Will you do one for the viewers?"
+   ],
+   "answers": [
+    {
+     "say": [
+      "Dla czatu wszystko",
+      "Anything for chat"
+     ],
+     "reply": [
+      "Czat oszalał! Ktoś wysłał serduszko. Ktoś inny wymiotuje.",
+      "Chat's gone wild! Someone sent a heart. Someone else is being sick."
+     ],
+     "tip": 18,
+     "star": false,
+     "outro": [
+      "„Donejty poszły na twój napiwek. Ocena: emotka z rakietą.”",
+      "\"The donations went on your tip. Rating: a rocket emoji.\""
+     ]
+    },
+    {
+     "say": [
+      "Bezpieczeństwo, sorry czacie",
+      "Safety first, sorry chat"
+     ],
+     "reply": [
+      "Czat pisze „nudy”. Mama pisze „wreszcie ktoś normalny”.",
+      "Chat says \"boring\". Mum says \"finally, someone sensible\"."
+     ],
+     "tip": 6,
+     "star": true,
+     "outro": [
+      "„Mama każe cię dobrze ocenić. Mama ma tu najwięcej subów.”",
+      "\"Mum says rate you well. Mum's my biggest subscriber.\""
+     ]
+    }
+   ],
+   "to": {
+    "name": [
+     "Varso Tower",
+     "Varso Tower"
+    ],
+    "at": [
+     -1628,
+     569
+    ],
+    "r": 120,
+    "drop": [
+     -1639.0,
+     540.2
+    ]
+   }
+  },
+  {
+   "id": "konkurencja",
+   "name": "Zbyszek",
+   "who": [
+    "kierowca innej apki, po zmianie",
+    "a rival app's driver, off shift"
+   ],
+   "teaser": [
+    "„Też jeżdżę. Dziś siedzę z tyłu.”",
+    "\"I drive too. Today I'm in the back.\""
+   ],
+   "lines": [
+    [
+     "Też jeżdżę, w innej apce. Dziś jestem po drugiej stronie.",
+     "I drive too, for another app. Today I'm on the other side."
+    ],
+    [
+     "Mam ocenę 4,99. Ta setna to pani, która chciała ciszy.",
+     "I've got a 4.99. The missing hundredth wanted silence."
+    ],
+    [
+     "Za wcześnie hamujesz. Ja bym już był. Ale nie oceniam.",
+     "You brake too early. I'd be there by now. Not judging."
+    ]
+   ],
+   "ask": [
+    "Ile masz gwiazdek? No, ile? Ja mam 4,99.",
+    "How many stars have you got? Go on. I've got 4.99."
+   ],
+   "answers": [
+    {
+     "say": [
+      "Pięć zero. Okrągłe.",
+      "Five point oh. Round."
+     ],
+     "reply": [
+      "Pięć zero?! Pokaż. Nie, nie pokazuj. Wierzę. Nie wierzę.",
+      "Five point oh?! Show me. No, don't. I believe you. I don't."
+     ],
+     "tip": 10,
+     "star": true,
+     "outro": [
+      "„Oceniam z zazdrości. Ale oceniam dobrze.”",
+      "\"I'm rating you out of jealousy. But I'm rating you well.\""
+     ]
+    },
+    {
+     "say": [
+      "Nie liczę gwiazdek",
+      "I don't count stars"
+     ],
+     "reply": [
+      "Nie liczysz?! To jak ty śpisz? Ja nie śpię.",
+      "You don't count?! How do you sleep? I don't."
+     ],
+     "tip": 4,
+     "star": false,
+     "outro": [
+      "„Szacun, mistrzu zen. Ja idę liczyć swoje.”",
+      "\"Respect, zen master. I'm off to count mine.\""
+     ]
+    }
+   ],
+   "to": {
+    "name": [
+     "Złote Tarasy",
+     "Złote Tarasy"
+    ],
+    "at": [
+     -1485,
+     445
+    ],
+    "r": 120,
+    "drop": [
+     -1515.4,
+     360.1
+    ]
+   }
+  },
+  {
+   "id": "mietek",
+   "name": "Pan Mietek",
+   "who": [
+    "taksówkarz z lat 90.",
+    "a cab driver from the 90s"
+   ],
+   "teaser": [
+    "„Ja tu jeździłem, jak ciebie nie było.”",
+    "\"I drove these streets before you were born.\""
+   ],
+   "lines": [
+    [
+     "Jeździłem taryfą trzydzieści lat. Bez GPS-u, z wąsem.",
+     "I drove a cab for thirty years. No GPS, just a moustache."
+    ],
+    [
+     "Klient mówił „na Pragę”, a ja już wiedziałem którędy i za ile.",
+     "A fare said \"Praga\" and I already knew the way and the price."
+    ],
+    [
+     "Aplikacja wie lepiej. Ale nie zna pani Basi z Hożej.",
+     "The app knows best. But it doesn't know Pani Basia on Hoża."
+    ]
+   ],
+   "ask": [
+    "Ty, młody: znasz miasto czy tylko strzałkę?",
+    "You, kid: do you know the city, or just the arrow?"
+   ],
+   "answers": [
+    {
+     "say": [
+      "Znam każdą dziurę",
+      "I know every pothole"
+     ],
+     "reply": [
+      "Każdą? Na Marszałkowskiej co tydzień są nowe. Ale dobra, wierzę.",
+      "Every one? Marszałkowska grows new ones weekly. Fine, I believe you."
+     ],
+     "tip": 12,
+     "star": true,
+     "outro": [
+      "„Masz smykałkę. Wąs dorośnie.”",
+      "\"You've got the knack. The moustache will come.\""
+     ]
+    },
+    {
+     "say": [
+      "Ufam strzałce",
+      "I trust the arrow"
+     ],
+     "reply": [
+      "Za moich czasów strzałka była na mapie. Z papieru.",
+      "In my day the arrow was on a map. A paper one."
+     ],
+     "tip": 6,
+     "star": false,
+     "outro": [
+      "„Masz tu na mapę. Papierową. Na wszelki wypadek.”",
+      "\"Here's for a map. A paper one. Just in case.\""
+     ]
+    }
+   ],
+   "to": {
+    "name": [
+     "Bazar Polna",
+     "Bazar Polna"
+    ],
+    "at": [
+     -697,
+     1725
+    ],
+    "r": 100,
+    "drop": [
+     -717.0,
+     1706.2
+    ]
+   }
+  },
+  {
+   "id": "sesja",
+   "name": "Ania",
+   "who": [
+    "studentka przed sesją",
+    "a student before exams"
+   ],
+   "teaser": [
+    "„Jutro egzamin. Dziś egzystencjalny kryzys.”",
+    "\"Exam tomorrow. Existential crisis today.\""
+   ],
+   "lines": [
+    [
+     "Jutro egzamin z filozofii. Dziś jestem pewna tylko kebaba.",
+     "Philosophy exam tomorrow. Today I'm only sure about kebab."
+    ],
+    [
+     "Na dachu BUW-u jest ogród. Tam się uczę. Głównie leżę.",
+     "There's a garden on the BUW library roof. I study there. Mostly lie down."
+    ],
+    [
+     "Profesor mówi, że wszystko płynie. Jak Wisła. I mój termin.",
+     "The professor says everything flows. Like the Vistula. And my deadline."
+    ]
+   ],
+   "ask": [
+    "Pytanie egzaminacyjne: czy ta taksówka naprawdę istnieje?",
+    "Exam question: does this taxi really exist?"
+   ],
+   "answers": [
+    {
+     "say": [
+      "Istnieje, jeśli płacisz",
+      "It exists if you pay"
+     ],
+     "reply": [
+      "To jest... pragmatyzm! Dostaję piątkę. Ty też.",
+      "That's... pragmatism! I'm getting top marks. So are you."
+     ],
+     "tip": 10,
+     "star": true,
+     "outro": [
+      "„W głowie już zdałam. Jutro zdam naprawdę. Dzięki, filozofie.”",
+      "\"I've passed in my head. Tomorrow for real. Thanks, philosopher.\""
+     ]
+    },
+    {
+     "say": [
+      "Zapytaj w Mordorze",
+      "Ask them in Mordor"
+     ],
+     "reply": [
+      "Mordor jako metafora bytu... Kurczę, to jest dobre.",
+      "Mordor as a metaphor for being... Damn, that's good."
+     ],
+     "tip": 8,
+     "star": false,
+     "outro": [
+      "„Piszę o tobie esej. Jesteś przypisem numer jeden.”",
+      "\"I'm writing an essay on you. You're footnote number one.\""
+     ]
+    }
+   ],
+   "to": {
+    "name": [
+     "BUW",
+     "the BUW library"
+    ],
+    "at": [
+     75,
+     -947
+    ],
+    "r": 120,
+    "drop": [
+     99.6,
+     -899.8
+    ]
+   }
+  },
+  {
+   "id": "jamnik",
+   "name": "Pani Ewa",
+   "who": [
+    "pani z jamnikiem",
+    "a lady with a dachshund"
+   ],
+   "teaser": [
+    "„Pimpuś jedzie ze mną. Pimpuś to VIP.”",
+    "\"Pimpuś rides with me. Pimpuś is a VIP.\""
+   ],
+   "lines": [
+    [
+     "Pimpuś ma swój wózek, ale wózek ma dziś wolne.",
+     "Pimpuś has his own pram, but the pram has the day off."
+    ],
+    [
+     "Pimpuś jest ze Starego Miasta. Bardzo stary ród. Trzy lata.",
+     "Pimpuś is Old Town stock. A very old line. Three years old."
+    ],
+    [
+     "Byliśmy u psiego fryzjera. Ja się nie załapałam.",
+     "We've been to the dog groomer. I didn't get a slot."
+    ]
+   ],
+   "ask": [
+    "Może pan uchylić okno? Pimpuś lubi wiatr w uszach.",
+    "Could you open the window? Pimpuś likes wind in his ears."
+   ],
+   "answers": [
+    {
+     "say": [
+      "Okno w dół, uszy w górę",
+      "Window down, ears up"
+     ],
+     "reply": [
+      "Hau! To znaczy: Pimpuś dziękuje. Ja też, tylko bez hau.",
+      "Woof! That means Pimpuś says thanks. Me too, minus the woof."
+     ],
+     "tip": 14,
+     "star": true,
+     "outro": [
+      "„Pimpuś sam wybrał napiwek. Chciał dorzucić kość, nie pozwoliłam.”",
+      "\"Pimpuś picked the tip himself. He wanted to add a bone; I said no.\""
+     ]
+    },
+    {
+     "say": [
+      "Klimatyzacja jest lepsza",
+      "The air con is better"
+     ],
+     "reply": [
+      "Klimatyzacja? Pimpuś patrzy na pana. Długo.",
+      "Air con? Pimpuś is looking at you. For a long time."
+     ],
+     "tip": 4,
+     "star": false,
+     "outro": [
+      "„Pimpuś pana zapamięta. Ma pamięć do twarzy.”",
+      "\"Pimpuś will remember you. He never forgets a face.\""
+     ]
+    }
+   ],
+   "to": {
+    "name": [
+     "Park Ujazdowski",
+     "Park Ujazdowski"
+    ],
+    "at": [
+     109,
+     1224
+    ],
+    "r": 120,
+    "drop": [
+     183.2,
+     1216.0
+    ]
+   }
+  },
+  {
+   "id": "startup",
+   "name": "Bartek",
+   "who": [
+    "startupowiec przed rundą",
+    "a startup founder before a funding round"
+   ],
+   "teaser": [
+    "„Masz minutę? Mam pitch. Krótki. Na całą drogę.”",
+    "\"Got a minute? I've got a pitch. Short. The whole ride.\""
+   ],
+   "lines": [
+    [
+     "Robię apkę randkową. Dla gołębi. Nisza jest ogromna.",
+     "I'm building a dating app. For pigeons. The niche is huge."
+    ],
+    [
+     "Mamy już dwóch użytkowników. Oba gołębie z Placu Zamkowego.",
+     "We've got two users already. Both pigeons from Castle Square."
+    ],
+    [
+     "Inwestor pyta o model biznesowy. Ja pytam o model gołębia.",
+     "Investors ask about the business model. I ask about the pigeon model."
+    ]
+   ],
+   "ask": [
+    "Wejdziesz za 20 zł? Dostajesz 0,001% firmy.",
+    "In for 20 zł? You get 0.001% of the company."
+   ],
+   "answers": [
+    {
+     "say": [
+      "Wchodzę w gołębie",
+      "I'm in on pigeons"
+     ],
+     "reply": [
+      "Mamy inwestora! Umowa na serwetce, podpiszesz na światłach.",
+      "We've got an investor! Contract on a napkin, sign it at the lights."
+     ],
+     "tip": -20,
+     "star": true,
+     "outro": [
+      "„Twoje udziały: 0,001%. Wycena firmy: jeden gołąb. Na razie.”",
+      "\"Your stake: 0.001%. Company valuation: one pigeon. For now.\""
+     ]
+    },
+    {
+     "say": [
+      "Wolę udziały w kebabie",
+      "I'd rather own a kebab shop"
+     ],
+     "reply": [
+      "Kebab to stary model biznesowy. Ale... rentowny. Kurczę.",
+      "Kebab's an old business model. But... profitable. Damn."
+     ],
+     "tip": 8,
+     "star": false,
+     "outro": [
+      "„Robię pivot: gołębie zamawiają kebab. Dzięki za pomysł.”",
+      "\"Pivoting: pigeons ordering kebab. Thanks for the idea.\""
+     ]
+    }
+   ],
+   "to": {
+    "name": [
+     "Centrum Nauki Kopernik",
+     "the Copernicus Science Centre"
+    ],
+    "at": [
+     324,
+     -879
+    ],
+    "r": 120,
+    "drop": [
+     268.1,
+     -833.1
+    ]
+   }
+  },
+  {
+   "id": "pasatini",
+   "name": "Darek",
+   "who": [
+    "brat kierowcy Pasatini",
+    "the Pasatini driver's brother"
+   ],
+   "teaser": [
+    "„Brat mówi, że jeździsz jak emeryt. Sprawdzę.”",
+    "\"My brother says you drive like a pensioner. Let's see.\""
+   ],
+   "lines": [
+    [
+     "Mój brat jeździ Pasatini 1.9 TDJ. Widziałeś go. Raczej słyszałeś.",
+     "My brother drives the Pasatini 1.9 TDJ. You've seen him. Heard him, more like."
+    ],
+    [
+     "TDJ to Turbo Dizel Janusza. Janusz to nasz tata. Też dizel.",
+     "TDJ: Turbo Diesel Janusz. Janusz is our dad. Also a diesel."
+    ],
+    [
+     "Brat mówi, że kierunkowskaz to opcja. Za dopłatą.",
+     "My brother says the indicator is an optional extra."
+    ]
+   ],
+   "ask": [
+    "Jak go zobaczysz, ścigasz się czy odpuszczasz?",
+    "If you see him, do you race him or let it go?"
+   ],
+   "answers": [
+    {
+     "say": [
+      "Ścigam się",
+      "I race him"
+     ],
+     "reply": [
+      "Powiem mu. Już grzeje silnik. On zawsze grzeje silnik.",
+      "I'll tell him. He's warming the engine. He's always warming it."
+     ],
+     "tip": 10,
+     "star": true,
+     "outro": [
+      "„Brat pozdrawia. Dymem z rury. To znaczy, że cię lubi.”",
+      "\"My brother says hi. With exhaust smoke. That means he likes you.\""
+     ]
+    },
+    {
+     "say": [
+      "Odpuszczam, życie mi miłe",
+      "I let it go, I like living"
+     ],
+     "reply": [
+      "Mądrze. Mama też odpuszcza. Od 1998.",
+      "Wise. Mum lets it go too. Since 1998."
+     ],
+     "tip": 8,
+     "star": false,
+     "outro": [
+      "„Rodzina ceni spokojnych. Rzadko takich widzi.”",
+      "\"The family values calm people. Rarely meets any.\""
+     ]
+    }
+   ],
+   "to": {
+    "name": [
+     "Stadion Narodowy",
+     "the National Stadium"
+    ],
+    "at": [
+     1496,
+     -601
+    ],
+    "r": 250,
+    "drop": [
+     1526.6,
+     -386.9
+    ]
+   }
+  },
+  {
+   "id": "nieznajoma",
+   "name": "Nieznajoma",
+   "who": [
+    "pani w starym kapeluszu",
+    "a lady in an old-fashioned hat"
+   ],
+   "when": "night",
+   "teaser": [
+    "„Dobry wieczór. Czy dorożki jeszcze jeżdżą?”",
+    "\"Good evening. Do the horse cabs still run?\""
+   ],
+   "lines": [
+    [
+     "Proszę jechać ostrożnie. Dorożki tu tak pędzą.",
+     "Do drive carefully. The horse cabs here are so fast."
+    ],
+    [
+     "Ostatnio jechałam tędy, gdy stały tu jeszcze kamienice. Piękne.",
+     "Last time I came this way the tenements still stood. Lovely ones."
+    ],
+    [
+     "Jaki wysoki ten Pałac. Kiedy go postawili? Nikt mi nie mówi.",
+     "Such a tall Palace. When did they build it? Nobody tells me."
+    ]
+   ],
+   "ask": [
+    "Przepraszam... który mamy rok?",
+    "Excuse me... what year is it?"
+   ],
+   "answers": [
+    {
+     "say": [
+      "2026, proszę pani",
+      "2026, madam"
+     ],
+     "reply": [
+      "Aż tyle? To chyba trochę się zasiedziałam.",
+      "That late? Then I've rather overstayed."
+     ],
+     "tip": 10,
+     "star": true,
+     "outro": [
+      "„...” Na siedzeniu nikogo. Tylko stara moneta i zapach fiołków.",
+      "\"...\" Nobody on the seat. Just an old coin and a scent of violets."
+     ]
+    },
+    {
+     "say": [
+      "Dla pani zawsze dziś",
+      "For you, it's always today"
+     ],
+     "reply": [
+      "Jaki pan szarmancki. Tak kiedyś mówili kawalerowie.",
+      "How gallant. That's how young men used to talk."
+     ],
+     "tip": 12,
+     "star": true,
+     "outro": [
+      "„Dziękuję.” Wysiadła i zniknęła za rogiem. Za rogiem nikogo nie ma.",
+      "\"Thank you.\" She got out and turned the corner. There's nobody round it."
+     ]
+    }
+   ],
+   "to": {
+    "name": [
+     "Teatr Wielki",
+     "the Grand Theatre"
+    ],
+    "at": [
+     -918,
+     -1059
+    ],
+    "r": 120,
+    "drop": [
+     -841.4,
+     -1089.2
+    ]
+   }
+  },
+  {
+   "id": "randka",
+   "name": "Kuba",
+   "who": [
+    "pierwsza randka",
+    "a first date"
+   ],
+   "teaser": [
+    "„Pod Gigantami, szybko, ona już tam jest!”",
+    "\"Pod Gigantami, quick, she's already there!\""
+   ],
+   "to": {
+    "name": [
+     "Pod Gigantami",
+     "Pod Gigantami"
+    ],
+    "at": [
+     -10,
+     777
+    ],
+    "r": 90,
+    "drop": [
+     -46.5,
+     782.7
+    ]
+   },
+   "lines": [
+    [
+     "Pierwsza randka. Pod Gigantami. Giganci będą patrzeć.",
+     "First date. Pod Gigantami. The giants will be watching."
+    ],
+    [
+     "Kwiaty z Polnej. Pani mówiła, że wytrzymają. Do ósmej.",
+     "Flowers from Polna. The lady said they'd last. Till eight."
+    ],
+    [
+     "Napisała, że lubi poczucie humoru. Ja mam tylko kwiaty.",
+     "She wrote she likes a sense of humour. I've only got flowers."
+    ]
+   ],
+   "ask": [
+    "Co mam powiedzieć na start? Szybko, zaraz będziemy!",
+    "What do I say first? Quick, we're nearly there!"
+   ],
+   "answers": [
+    {
+     "say": [
+      "„Ładne kwiaty, prawda?”",
+      "\"Nice flowers, right?\""
+     ],
+     "reply": [
+      "O kwiatach. Bezpieczny temat. Kwiaty nie oceniają.",
+      "The flowers. Safe topic. Flowers don't judge."
+     ],
+     "tip": 10,
+     "star": true,
+     "outro": [
+      "„Śmiała się! Ze mnie, ale się śmiała. Liczy się.”",
+      "\"She laughed! At me, but she laughed. It counts.\""
+     ]
+    },
+    {
+     "say": [
+      "Po prostu bądź sobą",
+      "Just be yourself"
+     ],
+     "reply": [
+      "Sobą? Ryzykowne. Ale dobra, innego pomysłu nie mam.",
+      "Myself? Risky. Fine, I've got no other idea."
+     ],
+     "tip": 6,
+     "star": false,
+     "outro": [
+      "„Byłem sobą. Umówiliśmy się znowu. Chyba z litości.”",
+      "\"I was myself. We're meeting again. Out of pity, maybe.\""
+     ]
+    }
+   ]
+  },
+  {
+   "id": "jazz",
+   "name": "Pani Basia",
+   "who": [
+    "saksofonistka spóźniona na koncert",
+    "a saxophonist late for her gig"
+   ],
+   "teaser": [
+    "„Gramy pod UFO za kwadrans. A ja jeszcze tu.”",
+    "\"We play under the UFO in fifteen. And I'm still here.\""
+   ],
+   "to": {
+    "name": [
+     "Powiśle, pod UFO",
+     "Powiśle, under the UFO"
+    ],
+    "at": [
+     171,
+     89
+    ],
+    "r": 100,
+    "drop": [
+     176.2,
+     106.9
+    ]
+   },
+   "lines": [
+    [
+     "Gramy dziś jazz pod UFO na Powiślu. Ja gram. Jak dojadę.",
+     "We play jazz under the UFO in Powiśle tonight. Me too. If I get there."
+    ],
+    [
+     "Saksofon jedzie z tyłu. Proszę nie hamować, on się denerwuje.",
+     "The sax is in the back. Please don't brake, it gets nervous."
+    ],
+    [
+     "Perkusista już gra. Sam. Mówi, że to free jazz.",
+     "The drummer's already playing. Alone. He says it's free jazz."
+    ]
+   ],
+   "ask": [
+    "Zagrać dziś coś starego czy coś nowego?",
+    "Play something old tonight, or something new?"
+   ],
+   "answers": [
+    {
+     "say": [
+      "Coś starego, ze swingiem",
+      "Something old, with swing"
+     ],
+     "reply": [
+      "Swing! Ludzie na leżakach zaczną tupać. Leżaki też.",
+      "Swing! The deck-chair crowd will tap their feet. The chairs too."
+     ],
+     "tip": 12,
+     "star": true,
+     "outro": [
+      "„Wpadnij po koncercie. Zagram ci kawałek o taksówkach.”",
+      "\"Come by after the gig. I'll play you a tune about taxis.\""
+     ]
+    },
+    {
+     "say": [
+      "Coś nowego, eksperyment",
+      "Something new, experimental"
+     ],
+     "reply": [
+      "Eksperyment. Perkusista się ucieszy. Publiczność mniej.",
+      "Experimental. The drummer will be thrilled. The crowd, less so."
+     ],
+     "tip": 8,
+     "star": false,
+     "outro": [
+      "„Zadedykuję ci solo. Trzy minuty ciszy. Bardzo nowoczesne.”",
+      "\"I'll dedicate a solo to you. Three minutes of silence. Very modern.\""
+     ]
+    }
+   ]
+  },
+  {
+   "id": "medal",
+   "name": "Pan Zenon",
+   "who": [
+    "pszczelarz na przyjęcie w Pałacu",
+    "a beekeeper off to a Palace reception"
+   ],
+   "teaser": [
+    "„Na Krakowskie Przedmieście. Mam zaproszenie!”",
+    "\"To Krakowskie Przedmieście. I've got an invitation!\""
+   ],
+   "to": {
+    "name": [
+     "Pałac Prezydencki",
+     "the Presidential Palace"
+    ],
+    "at": [
+     -562,
+     -1004
+    ],
+    "r": 100,
+    "drop": [
+     -507.0,
+     -909.0
+    ]
+   },
+   "lines": [
+    [
+     "Mam ule na dachu w Śródmieściu. Dziś dostaję za nie medal.",
+     "I keep hives on a roof in Śródmieście. Today I get a medal for them."
+    ],
+    [
+     "Przyjęcie w Pałacu Prezydenckim. Muszę mówić „szanowni państwo”.",
+     "A reception at the Presidential Palace. I must say \"ladies and gentlemen\"."
+    ],
+    [
+     "Pszczoły zostały w domu. Jedna chyba jest w marynarce.",
+     "The bees stayed home. One might be in my jacket."
+    ]
+   ],
+   "ask": [
+    "Jak wyglądam? Krawat prosto? Muszka? Pszczoła?",
+    "How do I look? Tie straight? Bow tie? Bee?"
+   ],
+   "answers": [
+    {
+     "say": [
+      "Elegancko, jak z miodem",
+      "Smart, smooth as honey"
+     ],
+     "reply": [
+      "Jak z miodem! Tak powiem przy mikrofonie. Albo nie powiem.",
+      "Smooth as honey! I'll say that at the mic. Or I won't."
+     ],
+     "tip": 15,
+     "star": true,
+     "outro": [
+      "„Słoik miodu z dachu dla pana. Od pszczół, nie ode mnie.”",
+      "\"A jar of rooftop honey for you. From the bees, not me.\""
+     ]
+    },
+    {
+     "say": [
+      "Pszczoła na kołnierzu",
+      "There's a bee on your collar"
+     ],
+     "reply": [
+      "Zosia! Wracaj do kieszeni, to ważny dzień!",
+      "Zosia! Back in the pocket, it's a big day!"
+     ],
+     "tip": 10,
+     "star": false,
+     "outro": [
+      "„Zosia też dostała medal. Mniejszy.”",
+      "\"Zosia got a medal too. A smaller one.\""
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -50,6 +50,54 @@ extends SceneTree
 ## the last spot fail on the old map; a car that leaves Solec 3 m or more onto the verge can still
 ## meet the pier, as at any pier.
 ##
+## PT-44 (2026-11-08, Autopilot hunt 2): on Trasa W-Z by the Stare Miasto tram stop the car went
+## 57 to 0 km/h in 0.2 s at (-589, -1421), nothing seen touching it. On the pavement south of the
+## carriageway a retaining wall turns solid in mid-run (where its step passes 0.6 m) with a square
+## end on its line at (-587.2, -1421.6); a car half over the low ground beside it met that end
+## 0.2 m off its middle, further in than the corner slip's reach. Across the road, the mapped
+## tram shelter's corner (-600, -1404.8), 1.1 m past the kerb, stopped a car 0.7 m over the kerb the
+## same way. Fixed: a fixed thing's end met nose on that a sidestep of at most 1.1 m clears slips the
+## car past (car.gd SLIP_WIDE). The first and third spots fail on the old car; the second (the low
+## strip beside the wall) guards against a fix that walls the strip.
+##
+## PT-45 (2026-11-08, same run): 26 to 1 km/h in 1 s in the W-Z tunnel's west part (-742, -1404),
+## the car hidden in every frame. Not reproduced: 16 lines through the tunnel both ways, 7.5 m/s
+## and the gas held, drive clean (glancing touches of the walls only); the most likely cause is a
+## traffic car met in the tube (G17 lets the car through after 1.5 s, the crawl the log saw).
+## Three lines stay as guards. These spots start on the tunnel's floor (a 9th field), not the
+## street above it.
+##
+## PT-40 (Autopilot, 2026-11-07): at Most Poniatowskiego's west bridgehead the autopilot, with its
+## right wheels over the kerb at 58-60 km/h, stopped dead on the square end of the approach's
+## retaining wall, which runs along the walk between the kerb and the gate tower. Fixed: inside a
+## tower's zone each open end of a solid wall run gets a collider-only lead-in back behind the tower
+## (map_builder.gd `_wall_taper`). Four kerb lines, all failing on the old map (the 4° one on the
+## median rail's end at 945.7, -138.9 after a steeper lead-in turned it across).
+## PT-41 (the same runs): a one-tick 7 m height flicker just before, at 937.5, -135.9: a 15 cm
+## sliver between the road's and the tram's approaches read the boulevard below. Fixed: such a
+## sliver takes the lower approach's level (map_builder.gd FILL_SEAM); SEAMS reads the height there.
+##
+## Port Czerniakowski's footbridge (F, 2026-11-08, screenshots by Miami Wars): the boulevard's cycle
+## path ran down into the mouth's cutting between grey walls and broke off at the water, the car
+## stuck at the gap; north-west of it the fences of a long finished building site stood across the
+## car park. Fixed: one flat railed deck W to E, the paths joined to it, the lot a car park
+## (tools/port_bridge.py). Three lines: over the bridge both ways, and out of the car park.
+## Dworzec Centralny's car park ramp (F, 2026-11-08, a screenshot: the car stuck at the spiral by
+## Aleja Jana Pawła II north of Chmielna). The inner lane dove to a wall where OpenStreetMap's
+## service tunnel under the avenue starts (the bake left service tunnels out) and the outer lane,
+## the way back up, was cut halfway with a garage door across it. Fixed: tools/centralny_ramp.py
+## (the tunnel, both lanes in one tube, to a turning hall under Złote Tarasy's forecourt; the way
+## out's lower part back). The lines drive down into the mouth, along the tube, round the hall and
+## back up the way out; the last three fail on the old map.
+##
+## PT-47 (F, 2026-11-08, a screenshot): an invisible wall on Emilii Plater's paved median by the
+## Palace, the car stopped dead with nothing in sight. OSM's two wavy planter-edge walls (gabion)
+## inside the median islands drew as a 0.2 m granite kerb (ISLAND_EDGE) but kept the 1.9 m wall's
+## collider, 1.7 m of invisible wall braided along the median for ~300 m. Fixed: a barrier drawn
+## under 0.3 m is not solid, like the stop platforms (map_builder.gd BARRIER_SOLID_MIN). The five
+## spots drive along and across the median; all fail on the old map (a sweep of 120 lines along
+## and across it: 47 failed before, none on the median after).
+##
 ## Prints one line per spot and `check_stuck_spots: OK`, or the failures and exit 1. ~10 s on the Mac.
 ##   godot --headless --path game --fixed-fps 60 --script res://tools/check_stuck_spots.gd [-- --prebuilt --verbose]
 
@@ -60,8 +108,14 @@ const INDEX_JSON := "res://map/index.json"
 const INDEX_SCENE := "res://map/index.res"
 
 ## [x, z, compass heading, start speed m/s, seconds, the share of the start speed kept at the end, what,
-## optional: the compass heading the stick points to (point-to-steer, held)].
+## optional: the compass heading the stick points to (point-to-steer, held; null for none),
+## optional: true to start on a tunnel's floor].
 const SPOTS := [
+	[-1659.5, 452.0, 41.0, 8.0, 2.5, 0.6, "Centralny car park ramp, the way in down into the tunnel's mouth", 41.0],
+	[-1625.8, 419.5, 70.0, 8.0, 2.5, 0.6, "Centralny car park tunnel, the way in east under the avenue", null, true],
+	[-1566.0, 427.0, 60.0, 7.0, 5.0, 0.3, "Centralny car park tunnel, turning round in the hall and back into the tube", -100.0, true],
+	[-1631.6, 416.1, -121.0, 7.0, 3.0, 0.6, "Centralny car park tunnel, the way out west to the mouth and up", -128.0, true],
+	[-1649.5, 427.9, -134.0, 7.0, 2.0, 0.6, "Centralny car park ramp, the way out up from the mouth", -145.0],
 	[-1013.0, -45.0, -20.0, 27.0, 4.0, 0.9, "PT-1 Marszałkowska, the left lane along Centrum's tram-stop fence"],
 	[-1013.0, -45.0, -25.0, 27.0, 3.0, 0.85, "PT-1 Marszałkowska, drifting 5° into the tram-stop fence"],
 	[-1001.2, -5.0, -20.0, 27.0, 4.0, 0.8, "PT-1 Marszałkowska, the left side clipping the tram platform's north tip"],
@@ -95,7 +149,31 @@ const SPOTS := [
 	# median at Złota, from the southbound mouth onto the northbound carriageway, the stick to the
 	# north-north-east: no kerb, nose or rail end on the way (the car speeds up all the way).
 	[-962.0, 139.3, 100.0, 6.0, 2.5, 1.0, "Smooth roads 4: the U-turn through Marszałkowska's tram median at Złota", 30.0],
+	[-625.0, -1420.5, 88.0, 16.0, 3.0, 0.8, "PT-44 W-Z east, the pavement by Stare Miasto's stop, half over the low ground into the wall's solid end"],
+	[-625.0, -1419.5, 83.0, 16.0, 3.0, 0.8, "PT-44 W-Z east, onto the low strip beside the wall"],
+	[-545.0, -1411.5, -97.0, 16.0, 3.0, 0.8, "PT-44 W-Z west, drifting over the kerb into the tram shelter's corner"],
+	[-700.0, -1401.5, -86.0, 7.5, 3.0, 0.8, "PT-45 the W-Z tunnel west, the inner lane", null, true],
+	[-700.0, -1404.0, -86.0, 7.5, 3.0, 0.8, "PT-45 the W-Z tunnel west, the outer lane", null, true],
+	[-790.0, -1396.5, 86.0, 7.5, 3.0, 0.8, "PT-45 the W-Z tunnel east", null, true],
+	[913.2, -119.5, 68.0, 16.7, 3.0, 0.8, "PT-40 Most Poniatowskiego east, the kerb lane's wheels on the kerb past the south-west tower"],
+	[913.5, -119.0, 68.0, 16.7, 3.0, 0.5, "PT-40 Most Poniatowskiego east, half over the kerb onto the walk"],
+	[913.2, -119.5, 70.0, 16.7, 3.0, 0.5, "PT-40 Most Poniatowskiego east, the kerb lane drifting 2° towards the tower"],
+	[913.2, -119.5, 72.0, 16.7, 3.0, 0.5, "PT-40 Most Poniatowskiego east, drifting 4°: turned off the lead-in, clear of the median rail's end"],
+	[1322.0, 676.2, 107.0, 8.0, 5.0, 0.6, "Port Czerniakowski footbridge east, the boulevard's cycle path over the mouth to Majami Wawa"],
+	[1394.0, 698.4, 287.0, 8.0, 5.0, 0.5, "Port Czerniakowski footbridge west, from the spit onto the deck"],
+	[1298.0, 674.0, 20.0, 7.0, 2.0, 0.6, "Port Czerniakowski footbridge, north out of the car park over the old site fence onto the cycle path"],
+	[-1373.0, 290.0, 160.0, 10.0, 3.0, 0.8, "PT-47 Emilii Plater's median by the Palace, south along the planting beds"],
+	[-1368.0, 305.0, 170.0, 10.0, 3.0, 0.8, "PT-47 Emilii Plater's median, south, drifting 10° towards the west carriageway"],
+	[-1341.0, 380.0, 160.0, 10.0, 3.0, 0.8, "PT-47 Emilii Plater's median south, by the Palace's west terrace"],
+	[-1331.0, 410.0, -20.0, 10.0, 3.0, 0.8, "PT-47 Emilii Plater's median north from the Złota crossing (F's screenshot)"],
+	[-1362.0, 350.0, 130.0, 8.0, 3.0, 0.8, "PT-47 Emilii Plater, across the median from the west carriageway to the east"],
 ]
+## PT-41: [x, z, the level a car drives at there, what]: drive_height must give it within SEAM_TOL m.
+const SEAMS := [
+	[938.0, -136.05, -4.48, "PT-41 Most Poniatowskiego west, between the road's and the tram's approaches"],
+	[934.0, -134.75, -4.55, "PT-41 Most Poniatowskiego west, the same sliver 4 m back"],
+]
+const SEAM_TOL := 0.5
 ## Sectors within this of a spot are loaded.
 const REACH := 300.0
 const STALL := 3.0
@@ -146,7 +224,13 @@ func _initialize() -> void:
 		map.measure_sectors()
 	IndexPack.pack(map.index_data)
 	print("check_stuck_spots: %d sectors %s in %d ms%s" % [n, "loaded" if prebuilt else "built", Time.get_ticks_msec() - t0,
-			"" if prebuilt else ", %d pocket walls, %d guard rail gaps closed" % [map.pocket_walls, map.guard_joins]])
+			"" if prebuilt else ", %d pocket walls, %d guard rail gaps closed, %d wall lead-ins" % [map.pocket_walls, map.guard_joins, map.wall_tapers]])
+	for s: Array in SEAMS:
+		var h: float = map.drive_height(s[0], s[1], float(s[2]))
+		var bad := absf(h - float(s[2])) > SEAM_TOL
+		print("%s %s: drives at %.2f (want %.2f)  (--at=%.1f,%.2f)" % ["FAIL" if bad else "ok  ", s[3], h, s[2], s[0], s[1]])
+		if bad:
+			_failures += 1
 
 
 func _next() -> bool:
@@ -162,11 +246,13 @@ func _next() -> bool:
 	car.kerb_feel = map.kerb_feel
 	root.add_child(car)
 	car.global_position = Vector3(s[0], map.ground_height(s[0], s[1]), s[1])
+	if s.size() > 8 and s[8]:
+		car.global_position.y = map.tunnel_floor_under(s[0], s[1])
 	car.rotation.y = -deg_to_rad(float(s[2]))
 	car.vel = -car.global_transform.basis.z * float(s[3])
 	car.forward_speed = float(s[3])
 	car.throttle = 1.0
-	if s.size() > 7:
+	if s.size() > 7 and s[7] != null:
 		var aim := deg_to_rad(float(s[7]))
 		car.target_dir = Vector3(sin(aim), 0.0, -cos(aim))
 	_v0 = float(s[3])
@@ -210,6 +296,6 @@ func _physics_process(dt: float) -> bool:
 	if _failures == 0:
 		print("check_stuck_spots: OK")
 	else:
-		print("check_stuck_spots: %d of %d spots fail" % [_failures, SPOTS.size()])
+		print("check_stuck_spots: %d of %d spots fail" % [_failures, SPOTS.size() + SEAMS.size()])
 	quit(1 if _failures > 0 else 0)
 	return false

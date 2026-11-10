@@ -20,6 +20,12 @@ const RIM := Color("#2a1d05")
 
 const Ladder := preload("res://scripts/ladder.gd")
 
+## F (2026-11-08): "for now the main line is only the first task, the kebab". After the first job
+## (or with no guide on this save) the star, the goal card and the nudge stay off, so they never
+## point away from a quest the player took. The chapters below stay written (`step`); `now` gates
+## them. Back on: false here, and `now` returns `step` again.
+const FIRST_JOB_ONLY := true
+
 
 ## The facts `step` reads (main.gd fills them; a check passes its own):
 ## - guide (bool): the first-ten-minutes guide is running; guide_at (Vector2, INF: no arrow) and
@@ -65,6 +71,14 @@ static func step(f: Dictionary) -> Dictionary:
 	var left := maxi(1, int(f.get("end_jobs", 10)) - int(f.get("jobs", 0)))
 	return _out("jobs", 3, "Jeszcze %d %s do końca dema" % [left, jobs_word(left)],
 			"%d more %s to the demo's end" % [left, "job" if left == 1 else "jobs"], Vector2.INF)
+
+
+## The main line as the game shows it: `step` while FIRST_JOB_ONLY lets it through (the guide is
+## on and no job is done yet: f.jobs), else "done" (no star, no goal line, no nudge).
+static func now(f: Dictionary) -> Dictionary:
+	if FIRST_JOB_ONLY and (not bool(f.get("guide", false)) or int(f.get("jobs", 0)) >= 1):
+		return _out("done", 1, "", "", Vector2.INF)
+	return step(f)
 
 
 ## Polish "zlecenie" for `n`: 1 zlecenie, 2-4 zlecenia (not 12-14), else zleceń.

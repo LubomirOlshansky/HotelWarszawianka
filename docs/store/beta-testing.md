@@ -10,6 +10,81 @@ Testers who need help go to `https://aroundwarsaw.app/support/` (`docs/support.m
 Update this file with every build that goes to testers, newest first, and keep the old notes
 below it: they are the record of what each build asked for.
 
+## 0.1 build 4, the closed beta (November 2026)
+
+Fill in `[Telegram]` with the testers' group link before pasting. The radio line assumes the
+radio PR (#454) is in the build; drop it if the build is cut without it. English is about 1,500
+characters, Polish about 1,600: both well under the 4,000 limit.
+
+### TestFlight: What to Test
+
+English:
+
+```
+Thanks for joining the Around Warsaw closed beta! This build is a big step from the first one: steering is now LEFT / RIGHT with GAS and BRAKE (the old point-to-drive is still in Settings → Jazda), and the city has filled up.
+
+New since the last build:
+- KEBAB FM and MORDOR FM on the radio, with a host who talks back.
+- Bartek's dead electric car: carry it under the helicopter to a charger.
+- Crazy taxis and couriers who cut you off (and tell you about it).
+- The railway from Centralna to Ochota, the sunken Patelnia, real underpass stairs, many landmarks rebuilt from photos.
+- Secret night raves. Finding them is up to you.
+- Messages stay up long enough to read; a loading bar on the title.
+
+Please try:
+1. Start a new game and play your first ten minutes without help. Where did you get lost or bored?
+2. Steering: does LEFT / RIGHT + GAS feel right? Too twitchy, too slow?
+3. Deliveries: is the kebab and słoiki pace fun, or too long between orders?
+4. Race Pani Halina: was it clear where to go?
+5. Fly the helicopter over the Vistula; try night and rain.
+6. Close the game and open it again: are your złoty and progress still there?
+
+Tell us: your iPhone model, anything that broke (a screenshot helps), where it got slow or hot, and the one thing you'd change.
+
+Known issues: some buildings are still simple boxes; a few street corners can catch the car (the POMOC DROGOWA button frees it).
+
+Feedback: take a screenshot in TestFlight, write in the testers' Telegram group [Telegram], or use aroundwarsaw.app/support.
+```
+
+Polish:
+
+```
+Dzięki, że dołączasz do zamkniętej bety Around Warsaw! Ta wersja to duży krok od pierwszej: skręcasz teraz LEWO / PRAWO, a jedziesz GAZEM i HAMULCEM (stare „wskaż, dokąd jechać” zostało w Ustawieniach → Jazda), a miasto mocno się zapełniło.
+
+Nowe od ostatniej wersji:
+- KEBAB FM i MORDOR FM w radiu, z prowadzącym, który gada.
+- Rozładowane elektryczne auto Bartka: zanieś je helikopterem do ładowarki.
+- Szaleni taksówkarze i kurierzy, którzy zajeżdżają ci drogę (i jeszcze to komentują).
+- Kolej od Centralnej po Ochotę, zapadnięta Patelnia, prawdziwe zejścia do przejść podziemnych, dużo budynków odtworzonych ze zdjęć.
+- Tajne nocne rave'y. Znajdź je sam(a).
+- Wiadomości wiszą tak długo, żeby dało się je przeczytać; pasek ładowania na starcie.
+
+Spróbuj:
+1. Zacznij nową grę i zagraj pierwsze dziesięć minut bez pomocy. Gdzie się zgubiłeś(-aś) albo nudziłeś(-aś)?
+2. Sterowanie: czy LEWO / PRAWO + GAZ jest w porządku? Za nerwowe, za wolne?
+3. Dostawy: czy tempo kebabów i słoików jest fajne, czy za długo czekasz na zamówienie?
+4. Wyścig z panią Haliną: czy było jasne, dokąd jechać?
+5. Poleć helikopterem nad Wisłą; sprawdź noc i deszcz.
+6. Zamknij grę i otwórz ją ponownie: czy złotówki i postępy zostały?
+
+Napisz nam: model iPhone'a, co się zepsuło (zrzut ekranu pomaga), gdzie tnie albo grzeje, i jedną rzecz, którą byś zmienił(a).
+
+Znane problemy: część budynków to jeszcze proste bryły; na kilku rogach ulic auto potrafi utknąć (przycisk POMOC DROGOWA je uwalnia).
+
+Opinie: zrzut ekranu w TestFlight, grupa testerów na Telegramie [Telegram] albo aroundwarsaw.app/support.
+```
+
+### Google Play: release notes (closed testing)
+
+```
+<en-US>
+Closed beta: LEFT / RIGHT steering with GAS and BRAKE, KEBAB FM and MORDOR FM, Bartek's dead electric car to carry by helicopter, crazy taxis, the railway to Ochota, many landmarks rebuilt. Play your first 10 minutes from a new game and tell us where you got lost: aroundwarsaw.app/support
+</en-US>
+<pl-PL>
+Zamknięta beta: sterowanie LEWO / PRAWO z GAZEM i HAMULCEM, KEBAB FM i MORDOR FM, auto Bartka do zaniesienia helikopterem, szaleni taksówkarze, kolej na Ochotę, nowe budynki. Zagraj pierwsze 10 minut od nowej gry i napisz, gdzie się zgubiłeś: aroundwarsaw.app/support
+</pl-PL>
+```
+
 ## 0.1, the first beta (October 2026)
 
 ### TestFlight: What to Test

@@ -4,10 +4,13 @@
 #   map    the map pack (tools/map_pack.py: lod2.bin, lod2.json, terrain.json, a release asset,
 #          since loop 3d-1 took them out of git), the derived split and prebuilt sectors
 #          (tools/setup_map.sh, with a software Vulkan renderer under Xvfb), then the map, road,
-#          street, drape, drive, landmark and water checks and short game runs on both city paths.
+#          street, drape, ground, drive, landmark and water checks and short game runs on both city paths.
 # Screenshots, the bench, the long autopilot runs and the phone stay on the Mac's tools/verify.sh
 # (docs/WORKFLOW.md).
 name: verify
+
+permissions:
+  contents: read
 
 on:
   push:
@@ -56,12 +59,12 @@ jobs:
       # the steps that need no map; the map, roads, drape, drive, landmarks and the game runs
       # stay on the Mac's tools/verify.sh. Loop MW-1: `places` reads only the committed
       # centrum.json and data/places.json, so it runs here too; loop MW-5: `sounds` too; loop
-      # MW-6: `eggs` and `tape` too; loop MW-3: `crowds` too; loop MW-4: `life` too; loop jobs-2: `jobs2` too; DEMO 6.3: `rescues` too; loop couriers: `couriers` too; beta values: `delivery` and `laneassist` too; the museum and Plac loop: `sites` too; the L-shaped map loop: `edge` too; loop 3h slice 1: `save` and `districts` too; slice 2: `syrenki` too; slice 3: `ladder` too; the first-10 polish: `cassettes` too; the mesh-quality check: `meshq` too; the opening flyover: `opening` too; packs: `packs` too; wellness circles: `wellness` too; the fans by Stadion Leguminy: `fans` too; the gamepad loop: `gamepad` too; the roofs lane: `roofdress,tenementtrim,osmroofs` too; `parkdetails`, `streetdetails` and `stops` (Python on the committed centrum.json; the bake stamps went stale unseen while they sat only in the skipped map job, 2026-11-02) too.
+      # MW-6: `eggs` and `tape` too; loop MW-3: `crowds` too; loop MW-4: `life` too; loop jobs-2: `jobs2` too; DEMO 6.3: `rescues` too; loop couriers: `couriers` too; beta values: `delivery` and `laneassist` too; the museum and Plac loop: `sites` too; the L-shaped map loop: `edge` too; loop 3h slice 1: `save` and `districts` too; slice 2: `syrenki` too; slice 3: `ladder` too; the racer AI rebuild: `racebench` too (the race bench's quick matrix on the committed centrum.json's lane graph); the first-10 polish: `cassettes` too; the mesh-quality check: `meshq` too; the opening flyover: `opening` too; packs: `packs` too; wellness circles: `wellness` too; the fans by Stadion Leguminy: `fans` too; arcade padel: `padel` too; the gamepad loop: `gamepad` too; the roofs lane: `roofdress,tenementtrim,osmroofs` too; `parkdetails`, `streetdetails` and `stops` (Python on the committed centrum.json; the bake stamps went stale unseen while they sat only in the skipped map job, 2026-11-02) too.
       - name: tools/verify.sh, the steps that need no map
         env:
           GODOT: /home/runner/godot/godot
           NW_MAP_PACK: "off"   # the map job fetches and builds the map; this one stays map-free
-        run: zsh tools/verify.sh --only=parkdetails,streetdetails,smooth,streetpass,models,overrides,stops,spec,steering,laneassist,stuckoffer,handling,settings,credits,tiers,governor,heliview,hud,places,edge,eggs,tape,crowds,life,buses,crashes,rave,evtow,loud,crazy,oldtram,packs,wellness,fans,garage,save,districts,syrenki,cassettes,ladder,first10,chatter,endcard,opening,parodies,jobs2,rescues,couriers,delivery,rides,roofdress,tenementtrim,osmroofs,sites,meshq,sfx,juice,gamepad,radio,sounds,police --logs="$RUNNER_TEMP/verify"
+        run: zsh tools/verify.sh --only=parkdetails,streetdetails,ratuszhub,smooth,objects,fixes,centralnyramp,tramstops,streetpass,models,overrides,stops,spec,steering,laneassist,stuckoffer,handling,settings,credits,tiers,governor,shaderbudget,heliview,hud,places,edge,eggs,tape,crowds,life,buses,crashes,rave,padel,meet,boatrace,dekalog,kinotour,evtow,loud,crazy,oldtram,tramfleet,packs,wellness,fans,garage,save,districts,syrenki,cassettes,ladder,racebench,first10,chatter,endcard,opening,parodies,jobs2,rescues,couriers,delivery,rides,roofdress,tenementtrim,osmroofs,sites,palacelights,meshq,sfx,juice,gamepad,radio,sounds,police --logs="$RUNNER_TEMP/verify"
 
       - name: Keep the logs
         if: always()
@@ -71,17 +74,17 @@ jobs:
           path: ${{ runner.temp }}/verify
           retention-days: 14
 
-  # Two halves in parallel (~15 min each on a runner, the setup included; serial they take ~30).
+  # Two halves in parallel. "data and roads" grew to ~45 min on a runner with the prebuilt city (2026-11-07), so 75.
   map:
     name: map (${{ matrix.part }})
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 75
     strategy:
       fail-fast: false
       matrix:
         include:
           - part: data and roads
-            steps: map,roads,streets,outline,pois,streetmesh,lod2,courts,drape,drive,drive-prebuilt,deckxray,stuckspots,stuckspots-prebuilt,lanedrive,finite,questlines,stopassist,language,cost,oldtownroofs,water-prebuilt,prebuilt
+            steps: map,roads,cyclehang,portbridge,streets,outline,pois,streetmesh,lod2,courts,drape,drive,drive-prebuilt,deckxray,stuckspots,stuckspots-prebuilt,lanedrive,finite,questlines,stopassist,language,cost,oldtownroofs,water-prebuilt,prebuilt,ground
           - part: landmarks, water and runs
             steps: landmarks,water,plain,ram,teleport
     steps:
@@ -115,8 +118,12 @@ jobs:
 
       # Exit 3: the pack tools/map_pack.json names is not published yet (a new pack's PR, before
       # its release asset is up): the map checks are skipped with a warning instead of failing.
+      # The repository is private since 2026-11-08: the release asset downloads through the API
+      # with the job's token.
       - name: Fetch the map pack
         id: pack
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set +e
           python3 -I tools/map_pack.py fetch

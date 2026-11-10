@@ -6,7 +6,9 @@ extends SceneTree
 ##   2. the cars: one surface each on the one actor material, at most 400 triangles a car;
 ##   3. 40 simulated minutes at 10 updates a second: trains come in, run and leave (at least 6
 ##      exits), stop at Warszawa Główna (its islands OSM draws as footways), Ochota, Powiśle and Stadion, the long-distance kind never stops, and no
-##      two trains ever hold one track piece at once; a stopping train turns back at a terminus.
+##      two trains ever hold one track piece at once; a stopping train turns back at a terminus;
+##      the wheels are heard (the railway audit's sounds: a rumble at Powiśle, the bridge drone on
+##      the viaduct by Stadion).
 ## Prints "check_trains: OK (...)" or the problems (exit 1).
 ##   godot --headless --path game --script res://tools/check_trains.gd
 
@@ -15,6 +17,8 @@ const Trains := preload("res://scripts/trains.gd")
 ## The stations whose platforms must see a stop (their OSM building's centre).
 const STATIONS := {"Główna": Vector2(-2680.0, 990.0), "Ochota": Vector2(-2313.0, 929.0), "Powiśle": Vector2(290.0, 25.0), "Stadion": Vector2(1391.0, -1328.0)}
 const MINUTES := 40.0
+## Where the ear stands for the sounds' part: Powiśle's platforms, then the viaduct by Stadion.
+const SOUND_EARS := [Vector2(290.0, 25.0), Vector2(1360.0, -1520.0)]
 const DT := 0.1
 
 var problems: Array[String] = []
@@ -73,7 +77,15 @@ func _check_run(t: Trains, data: Dictionary, digest: PackedStringArray) -> void:
 	var steps := int(MINUTES * 60.0 / DT)
 	var moved := 0.0
 	var last := {}
+	# The sounds (railway audit, 2026-11-07): a stand-in sfx that only takes the calls; the ear at
+	# Powiśle's platforms for the first half, then on the line's viaduct by Stadion.
+	var ear := GDScript.new()
+	ear.source_code = "extends Node\nfunc play_at(_n: String, _at: Vector3, _db := 0.0) -> void:\n\tpass\n"
+	ear.reload()
+	t.sfx = ear.new()
 	for n in steps:
+		var at: Vector2 = SOUND_EARS[0] if n < steps / 2 else SOUND_EARS[1]
+		t.player_pos = Vector3(at.x, 0.0, at.y)
 		t.step(DT)
 		for tr in t.trains:
 			if tr.active:
@@ -83,6 +95,12 @@ func _check_run(t: Trains, data: Dictionary, digest: PackedStringArray) -> void:
 				last[tr] = p
 			else:
 				last.erase(tr)
+	for n: String in ["train_rumble", "train_bridge"]:
+		if int(t.heard.get(n, 0)) == 0:
+			problems.append("no %s heard from %s" % [n, SOUND_EARS])
+	digest.append("heard %d rumbles, %d on the bridge" % [int(t.heard.get("train_rumble", 0)), int(t.heard.get("train_bridge", 0))])
+	t.sfx.free()
+	t.sfx = null
 	var exits := 0
 	for tr in t.trains:
 		exits += tr.exits

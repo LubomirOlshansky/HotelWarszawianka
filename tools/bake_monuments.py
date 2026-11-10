@@ -16,7 +16,8 @@ the others) a sandstone plaque on the nearest wall the game draws (game/map/lod2
 and the OSM outlines it keeps, so the map pack is needed) with candles below it. Murals, reliefs, neons,
 installations and pavement plaques are left out (row 143 is its own pass). The places a hand-built
 model already stands (SKIP: Sigismund's Column, the Mermaids, Mickiewicz, Prus, Wyszyński,
-Poniatowski, Copernicus, de Gaulle, the Unknown Soldier, Ali's stone, the Palm) and the two
+Poniatowski, Copernicus, de Gaulle, the Unknown Soldier, Ali's stone, the Palm, and since part 2 Nike,
+Słowacki, Starzyński, Mały Powstaniec, Kiliński, Umschlagplatz and the Eastern memorial) and the two
 monuments other threads own (Pomnik Powstania Warszawskiego, the Ghetto Heroes) are skipped with a
 radius. Ogród Saski's allegories (unmemorial sandstone statues inside the garden) become `allegory`.
 
@@ -77,9 +78,18 @@ SKIP = [
     ("Palma", -214.0, 237.0, 15.0),
     ("", -1233.0, -1700.0, 45.0),                     # Pomnik Powstania Warszawskiego: its own thread
     ("", -2030.0, -1741.0, 35.0),                     # Pomnik Bohaterów Getta: the POLIN thread
+    # The monuments pass, part 2 (2026-11-02): photo builds in landmarks.gd from the Mac's
+    # docs/landmarks/photo-reports/ (sites nike, slowacki, starzynski, maly_powstaniec, kilinski,
+    # umschlagplatz, pomnik_wschod).
+    ("Warszawska Nike", -1010.0, -1317.0, 8.0),
+    ("Juliusz Słowacki", -1480.0, -978.0, 10.0),
+    ("Stefan Starzyński", -1499.0, -1101.0, 8.0),
+    ("Mały Powstaniec", -981.0, -1689.0, 8.0),
+    ("Jan Kiliński", -896.0, -1573.0, 8.0),
+    ("Umschlagplatz", -2382.0, -2020.0, 10.0),
+    ("Poległym i Pomordowanym na Wschodzie", -1718.0, -2183.0, 25.0),
 ]
-# The ten this thread models by hand from photos; until a model lands they stay generic here and
-# move to SKIP with it (docs/CITY_INVENTORY.md rows 65-70).
+# Still generic until their photo builds land and join SKIP: docs/CITY_INVENTORY.md rows 113-116.
 SAXON = (-1125.2, -691.8)   # a point in Ogród Saski (bake_park_details.PARKS)
 
 

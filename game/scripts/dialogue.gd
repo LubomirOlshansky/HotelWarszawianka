@@ -244,10 +244,10 @@ func _speak(group: String) -> void:
 const WARSAW_HIGH := [1, 3, 8, 15, 20, 23, 25, 25, 19, 13, 7, 2]
 
 
-## Beta radio: the host's hello when the game starts: a hello for the hour, the weather with a
-## temperature for the month and the hour, and a sign-off (radio_hello_*, radio_weather_*,
-## radio_bye in dialogue.json). [Polish, English].
-func greeting(hour: float, rain: bool, month: int, day: int) -> Array:
+## The greeting's choices for the hour, the weather and the date: `part` (morning, day, evening,
+## night), `sky` (rain, warm, mild, cold) and the temperature `t`. The text and the voice clips
+## (greeting_clips.gd) both use it, so what she says matches the ticker.
+func greeting_parts(hour: float, rain: bool, month: int, day: int) -> Dictionary:
 	var part := "night"
 	if hour >= 5.0 and hour < 11.0:
 		part = "morning"
@@ -260,6 +260,17 @@ func greeting(hour: float, rain: bool, month: int, day: int) -> Array:
 		t -= 6
 	t += posmod(day * 7 + month * 3, 5) - 2
 	var sky := "rain" if rain else ("warm" if t >= 18 else ("mild" if t >= 8 else "cold"))
+	return {"part": part, "sky": sky, "t": t}
+
+
+## Beta radio: the host's hello when the game starts: a hello for the hour, the weather with a
+## temperature for the month and the hour, and a sign-off (radio_hello_*, radio_weather_*,
+## radio_bye in dialogue.json). [Polish, English].
+func greeting(hour: float, rain: bool, month: int, day: int) -> Array:
+	var p := greeting_parts(hour, rain, month, day)
+	var part: String = p["part"]
+	var sky: String = p["sky"]
+	var t: int = p["t"]
 	var hello := line("radio_hello_" + part)
 	var weather := line("radio_weather_" + sky)
 	var bye := line("radio_bye", part)

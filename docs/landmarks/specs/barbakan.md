@@ -49,3 +49,21 @@ L2, triangle budget 900. Shots: city, from the east (inside the C) and from the 
 | wall | prism | 3.5 m thick, 11 m tall | mapped C outline | M_GOTHIC | curtain |
 | parapet | attic | 1.5 m | on the wall top | M_ATTIC | merlons |
 | tower x4 | octagonal prism and cone | r 2.6 m, 13 m + 6.2 m | wall mid-line | M_GOTHIC | turrets |
+
+## Update
+
+Photo pass 2026-11-06 (refs/barbakan 1-2, ortho): turret roofs are terracotta (`#a9502f`) cones with a deep eave swelling out over twelve-sided brick turrets; stone-capped merlons every 1.6 m along the crest; the colour of the table below for cones is superseded. Not modelled: the gate passage, the long curtain walls.
+
+## Update 2 (F's photos, 2026-11-08)
+
+Five photos from F (the side from the walk, both side views, the bastion's gate, the inner gate):
+- The crown is on the round bastion only: a corbel band, a brick parapet, brick posts every 1.45 m
+  under grey stone pyramids, a little pointed gable between each pair. Loopholes in two rows and
+  small round holes under the crown. The walls are plain brick `#b2604a` (no Gothic lancets).
+- The four towers stand in two pairs on the arms toward the city, at the mapped 13 m outlines
+  (radius 2.2 m), each under a tile cone with a deep eave; slit windows on the outer side.
+- The arms carry tiled ridge roofs; each arm's outer face has the bridge's two pointed arches with
+  iron grilles in brick fans.
+- A pointed gate through the bastion's front and its inner face, and a gate wall with a round arch
+  and merlons across the C's open east end, toward Nowomiejska (`BARB_GATE_WALL`).
+Not modelled: the passage open through the bastion (a dark panel), the moat's depth.

@@ -24,6 +24,16 @@ const MapBuilderRef := preload("res://scripts/map_builder.gd")
 const Landmarks := preload("res://scripts/landmarks.gd")
 ## Triangles a site may hold: measured on 2026-10-31 plus about 20 % (raise on purpose only).
 const BUDGET := {
+	"scena_relax": 600,
+	"smolna38": 2700,
+	"tides": 8000,
+	"ujazdowskie47": 3000,
+	"krasinski_ogrod": 900,
+	"lawrynowicz": 8000,
+	"wedel": 8000,
+	"szpitalna5": 8000,
+	"gigantami": 4000,
+	"filtry": 3000,
 	"level26_club": 860,
 	"church_alberta": 310,
 	"church_antoniego": 990,
@@ -48,7 +58,7 @@ const BUDGET := {
 	"church_zielonoswiatkowy": 320,
 	"church_zwycieska": 950,
 	"aleksander": 1460,
-	"barbakan": 900,
+	"barbakan": 1500,  # 2026-11-06 photo pass: merlon caps and swollen cone roofs
 	"piano_house": 180,
 	"cube_house": 390,
 	"hortus": 590,
@@ -70,6 +80,9 @@ const BUDGET := {
 	"mlotek": 2400,
 	"kozia9": 7000,
 	"karowa18a": 1500,
+	"nowogrodzka31": 3200,
+	"marszalkowska99": 5000,
+	"cparking": 6500,
 	"hotel_kasztel": 330,
 	"hotel_canaletto": 330,
 	"hotel_starowka": 330,
@@ -88,7 +101,9 @@ const BUDGET := {
 	"central": 340,
 	"centralna": 1650,
 	"chalubinskiego8": 1520,
-	"cosmopolitan": 110,
+	"cosmopolitan": 420,  # 2026-11-08 photo rebuild (F)
+	"plac_grzybowski": 1500,  # 2026-11-08 photo build (F): 1429 tris, the cascade field is 48 blocks
+	"prozna": 5100,  # 2026-11-08 photo build (F): 5014 tris, 1,300 of them the 90 bollards
 	"dom_partii_extras": 100,
 	"deski": 2300,
 	"rynek": 3100,
@@ -100,25 +115,29 @@ const BUDGET := {
 	"europejski": 8000,
 	"flaga": 170,
 	"forest": 4900,
-	"gpy": 250,
+	"gpy": 2000,  # RD-3 (2026-11-06): black patches, the wings' decks, trees and tables
 	"gaulle": 880,
 	"rondo": 7000,
 	"sunken": 5600,  # 2026-11-05: the Patelnia and the Rotunda's stair: walls, railings, treads, two barrels
+	"metro_tubes": 1500,  # 2026-11-09: Metro Centrum's two barrels by the Palace park: ribs, pink walls, escalators
+	"defilad_ramp": 1500,  # 2026-11-09: the Plac Defilad car park ramp: two pink walls, 22 ribbed strips
 	"underpass": 3000,  # 2026-11-06: the Emilii Plater underpass: five entrances, parapets, treads, two canopies
 	"gbc": 750,
 	"grob": 340,
 	"grzybowska63": 500,
 	"gwardii": 1450,
-	"hub_b": 100,
-	"hub_c": 90,
-	"ilmet": 180,
+	"hub_b": 260,  # RD-4: parapet, roof plant, podium skylight
+	"hub_c": 220,  # RD-4: parapet, roof plant
+	"ilmet": 400,
 	"jp2_21": 280,
 	"kopernik": 1720,
 	"legia": 700,
-	"lim": 300,
+	"lim": 1700,  # the podium from F's photos (2026-11-06): 1415 measured
 	"loretka": 1120,
-	"lucka": 470,
-	"marszalkowska94": 490,
+	"lucka": 850,  # 2026-11-06: rebuilt from F's photos (white stepped block, INTERBRUK board, masts)
+	"prosta28": 1400,  # 2026-11-06: X-braced base, stepped tree terraces, stone stack, annex
+	"prosta32": 3300,  # 2026-11-06: the diamond lattice, ~480 members of six triangles
+	"marszalkowska94": 590,  # rebuilt from F's photos (2026-11-07): 402 -> 490 tris
 	"mariensztat": 660,
 	"mennica": 650,
 	"mirowska": 2050,
@@ -136,30 +155,42 @@ const BUDGET := {
 	"browary": 3900,   # 2026-11-03: paved main path and clearing edges (look check)
 	"koszyki": 1370,
 	"elektrownia": 1950,
+	"rotunda_dynasy": 1400,
 	"mpw": 3200,
 	"metropolitan": 3100,
-	"muzeum": 1280,
-	"palace": 3900,
+	"muzeum": 3500,  # 2026-11-06 photo pass: a stone pier on every bay boundary, fence, flagpoles
+	"palace": 7600,   # 2026-11-07: 3696 -> 7288, Bar Studio's 34 deck chairs, tables, festoons and frame signs (same mesh, no new draw call)
 	"pawilony": 2100,
 	"plater49": 140,
 	"platinum_a": 80,
 	"platinum_b": 80,
+	"pepeo_tower": 130,  # 2026-11-08 top-50 T37: mapped parts in their skins, the crown sign
 	"poniatowski": 4800,  # 2026-11-03: the towers strengthened (F), 2556 -> 4574 tris over four groups; +0 draw calls
-	"prezydencki": 1050,
-	"q22": 960,
-	"rondo1": 630,
+	"prezydencki": 1300,
+	"q22": 720,  # 2026-11-08 photo rebuild (top-50 T02): 607 tris
+	"rondo1": 900,  # 2026-11-08 photo rebuild (top-50 T03): 769 tris
 	"rotunda": 1380,
 	"skyliner": 400,
 	"skysawa": 170,
+	"powstancow_blue": 100,
 	"slabs": 1100,   # 2026-11-03: balcony bands, a ledge every storey on the long faces (look check)
 	"zelazna": 1030,
 	"pokorna2": 1500,
+	"pko_branch": 220,  # 2026-11-09 photo rebuild (F): 162 tris (granite slab, glass bays, wings, courtyard)
+	"dekalog_estate": 18000,
+	"inflancka_pools": 1000,
 	"spektrum": 990,
-	"spire": 2700,
+	"spire": 6600,  # 2026-11-06 photo rebuild (F), 6151 tris (vase, steel crown ring, drum): steel columns, canopy bow, Spire B/C crowns and eaves, plaza kerbs, channel, 26 trees; +0 draw calls
 	"tr": 500,
 	"tower75": 220,
-	"cepelia": 900,
-	"zodiak": 600,
+	"cepelia": 1100,  # 2026-11-08 photo rebuild (F): 970 tris
+	"pijana": 2200,  # 2026-11-08 PIJANA CZEREŚNIA kiosk (F): 1806 tris (octagon, drum, painted windows, deck rail, string lights)
+	"zodiak": 720,  # 2026-11-08 photo rebuild (F): 620 tris
+	"cmarsz": 2200,
+	"sowa": 1500,  # SOWA CLUB and CITY 25 (F's photos, 2026-11-06): 1298 tris
+	"brama": 100,
+	"equator": 120,
+	"equator2": 120,
 	"wiecha": 1800,
 	"orly": 1600,
 	"hotel_warszawa": 2300,
@@ -172,9 +203,17 @@ const BUDGET := {
 	"pilsudski": 160,
 	"kaczynski": 100,
 	"plac_maszty": 520,
-	"plac_centralny": 1400,
+	"plac_centralny": 700,  # 2026-11-10 the field draped on the ground (no walls)
+	"trybuna": 900,  # 2026-11-08 the tribune from F's photos: 751 tris
 	"plac_centralny_lamps": 700,
 	"getto": 650,
+	"nike": 200,
+	"slowacki": 320,
+	"starzynski": 150,
+	"maly_powstaniec": 520,
+	"kilinski": 200,
+	"umschlagplatz": 250,
+	"pomnik_wschod": 1280,
 	"ochota": 1420,
 	"powisle": 6800,
 	"barka_wieczor": 1820,
@@ -187,6 +226,10 @@ const BUDGET := {
 	"bulwary_pomosty": 1450,
 	"bulwary_basen": 700,
 	"marina": 5200,
+	"port_majami": 4200,
+	"port_wtw": 1400,
+	"port_halls": 900,
+	"monkey_love": 2400,
 	"stadion_pkp": 1900,
 	"wschodnia": 7000,
 	"srodmiescie": 580,
@@ -194,7 +237,7 @@ const BUDGET := {
 	"wkd_ochota": 650,  # the stair has up to 40 steps on the real ground (6 on the flat stub)
 	"stadium": 4750,
 	"swieto": 240,
-	"teatr": 600,
+	"teatr": 820,  # 2026-11-08 photo pass (top-50 T06): ten columns, pediment, quadriga: 705 tris
 	# Plac Bankowy, Filharmonia, Teatr Polski (the Mac photo reports, 2026-11-02): fronts on kept skins.
 	"ratusz": 2500,
 	"gielda": 1050,
@@ -203,22 +246,24 @@ const BUDGET := {
 	"teresy": 280,
 	"florian": 2480,
 	"bazar": 2210,
-	"sw_krzyz": 1100,
+	"sw_krzyz": 1250,  # 2026-11-06 photo pass: the real flat front, balustrade and statue
 	"sejm": 1400,
 	"staszic": 360,
 	"zamek": 3400,
 	"arkady": 2600,
+	"kino_muranow": 6000,
 	"zbawiciela": 1250,
 	"tarasy": 5700,
 	"trojca": 2300,
 	"unit": 1160,
 	"varso": 2500,
 	"varso_place": 1100,
-	"wcf": 190,
-	"wszystkich": 950,
+	"wcf": 1400,  # 2026-11-08 F's 13 photos: the Emilii Plater portico, piers, fins, the low roof's rail (1319)
+	"wszystkich": 1300,
 	"wizytki": 690,
+	"branickich": 1500,
 	"archikatedra": 1100,
-	"sw_anna": 620,
+	"sw_anna": 1050,  # 2026-11-06 photo pass: giant order, niches, attic, tower dome
 	"widok": 450,
 	"pzu": 900,
 	"jm": 900,
@@ -226,12 +271,23 @@ const BUDGET := {
 	"wtt": 1640,
 	"zacheta": 720,
 	"zlota44": 1800,
-	"zygmunt": 280,
+	"zygmunt": 320,
 	# Towarowa 22 built as finished (2026-11-03): seven towers and blocks, the hall's steel frame,
 	# the pavilion, the park, the drone port and the gilded crane.
 	"towarowa22": 5000,
 	# The Warsaw HUB's round-ended hotel tower (the photo report, 2026-11-03).
 	"crowne": 380,
+	# Wola's 19. Dzielnica (F's photos, 2026-11-07): the drug works' building site (four concrete
+	# frames, cores, three cranes, the yard), the Kolejowa estate's 58 mapped parts, Asbud's towers.
+	"noho": 12700,
+	"d19": 9000,
+	"asbud": 3900,
+	# Stacja Muzeum (the Mac's Commons photos, 2026-11-07): the arched hall, its wings, 17 engines
+	# and coaches on the four sidings; Nocny Targ's two platform canopies (F's photos).
+	"stacja_muzeum": 9000,
+	"nocny": 7000,
+	# Kolejowa's old railway warehouses, the pinball museum and the teal club (F's photos).
+	"kolejowa": 2500,
 }
 ## Known defects per site: {"zfight": n, "degenerate": n, "badnormal": n, "float": n}.
 ## Towarowa 22's drone taxi hovers 7 m over its pad by design (the "Warsaw of the future").
@@ -272,6 +328,8 @@ class StubMap:
 			var f := e.duplicate()
 			if not is_nan(float(f["hb"])):
 				f["hb"] = -3.4
+			if f.has("rim"):
+				f["rim"] = 0.0
 			_sunk.append(MapBuilderRef.sunk_entry(f, 0.0, 10.0))
 
 	func _grid_height(_x: float, _z: float) -> float:
@@ -340,7 +398,8 @@ func _initialize() -> void:
 	var marks = Landmarks.new(map, data)
 	var keys: Array[String] = []
 	for s: Dictionary in marks.sites:
-		keys.append(s["key"])
+		if not s.has("block") and not s.has("fronts"):  # city fabric, not landmarks: no budget of their own
+			keys.append(s["key"])
 	keys.sort()
 	var measured := {}
 	for key in keys:
@@ -355,6 +414,12 @@ func _initialize() -> void:
 	for key: String in BUDGET:
 		if not measured.has(key):
 			problems.append("%s: has a budget but builds nothing (site gone?)" % key)
+	# Every sunken ground (map_builder SUNKEN) needs its site's walls, stairs and parapets: without
+	# them the ground is a bare slope (a merge dropped the site once, 2026-11-07, #495).
+	for e: Dictionary in MapBuilderRef.SUNKEN:
+		var site := String(e.get("site", "sunken"))
+		if not measured.has(site) and not problems.has(site + ": SUNKEN ground without its site"):
+			problems.append(site + ": SUNKEN ground without its site")
 	for n in notes:
 		print("  note: " + n)
 	if problems.is_empty():

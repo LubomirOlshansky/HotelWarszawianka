@@ -27,10 +27,15 @@ shader_type spatial;
 // Loop 3b-2: layers 16 (sand), 17 (a natural bank's wet bands, a sandbar's rim), 18 (the
 // foam line on a natural waterline) and 19 (the tram bed's slabs), map_builder.gd L_SAND,
 // L_WET, L_FOAM, L_TRAMBED.
+//
+// Conditions here are all(bvecN(...)) / any(bvecN(...)), not && / ||: a short-circuit is a branch,
+// and Adreno 6xx drivers only link a shader with so many (scripts/gpu_quirks.gd); keep new ones that
+// way. tools/check_shader_budget.gd counts the budget.
 
 #include "res://shaders/common.gdshaderinc"
 #include "res://shaders/night.gdshaderinc"
 #include "res://shaders/ghost.gdshaderinc"
+#include "res://shaders/tunnel_cut.gdshaderinc"
 
 uniform float clouds = 0.18;
 uniform bool debug_ao = false;
@@ -39,6 +44,10 @@ uniform float ao_strength = 1.0;
 // to it (world space), for ghosted footprints (main.gd).
 uniform vec3 ghost_sun = vec3(0.0);
 uniform vec3 ghost_sun_dir = vec3(0.0, 1.0, 0.0);
+// F's ask (2026-11-07): the car's ground height (main.gd _update_ghost; -1e4: off). A bridge or
+// viaduct deck's own surface more than DECK_GHOST_OVER m over it is cut by the occlusion ghost
+// like a building, so the car and the traffic under the Trasa show through it.
+uniform float ghost_car_y = -10000.0;
 global uniform float wetness;
 global uniform float rain;
 varying vec3 world_pos;
@@ -53,6 +62,11 @@ const vec3 GRASS_TINT = vec3(0.86, 1.0, 1.2);
 const float GRASS_CHROMA = 0.88;
 const vec3 BRICK = vec3(0.6, 0.31, 0.28);
 const vec3 DAY_WATER = vec3(0.41, 0.6, 0.6);
+// The deck ghost: a deck's surface this far over the car's ground or more is cut (a car on the
+// deck itself, or on a ramp beside it, keeps its road), keeping building.gdshader's ghost_keep.
+const float DECK_GHOST_OVER = 2.5;
+const float DECK_GHOST_KEEP = 0.19;
+const float BAYER[16] = float[16](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0, 3.0, 11.0, 1.0, 9.0, 15.0, 7.0, 13.0, 5.0);
 
 void vertex() {
 	world_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
@@ -107,7 +121,7 @@ vec4 centralny(vec2 wp, bool walk) {
 	vec2 r = wp - CENTRALNY_O;
 	float s = dot(r, CENTRALNY_S);
 	float t = dot(r, CENTRALNY_T);
-	if (s < CENTRALNY_BOX.x || s > CENTRALNY_BOX.y || t < CENTRALNY_BOX.z || t > CENTRALNY_BOX.w) {
+	if (any(bvec4(s < CENTRALNY_BOX.x, s > CENTRALNY_BOX.y, t < CENTRALNY_BOX.z, t > CENTRALNY_BOX.w))) {
 		return vec4(0.0);
 	}
 	vec2 p = vec2(s, t);
@@ -121,7 +135,7 @@ vec4 centralny(vec2 wp, bool walk) {
 	float kt = fract(t / PLOT_DEEP) * PLOT_DEEP;
 	float edge = min(min(ks, PLOT_WIDE - ks), min(kt, PLOT_DEEP - kt));
 	bool house = kt < HOUSE_DEEP;
-	if (edge < 0.6 || (abs(kt - HOUSE_DEEP) < 0.3)) {
+	if (any(bvec2(edge < 0.6, (abs(kt - HOUSE_DEEP) < 0.3)))) {
 		// The outline: red slabs, every other plot's grey.
 		bool red = mod(floor(s / PLOT_WIDE) + floor(t / PLOT_DEEP), 2.0) < 1.0;
 		vec3 c = red ? vec3(0.66, 0.38, 0.32) : vec3(0.52, 0.52, 0.51);
@@ -174,7 +188,7 @@ const vec2 KP_LINE[15] = vec2[15](
 
 // 1 where wp lies on Krakowskie Przedmieście's carriageway, else 0.
 float kp_setts_at(vec2 wp) {
-	if (wp.x < KP_BOX.x || wp.x > KP_BOX.y || wp.y < KP_BOX.z || wp.y > KP_BOX.w) {
+	if (any(bvec4(wp.x < KP_BOX.x, wp.x > KP_BOX.y, wp.y < KP_BOX.z, wp.y > KP_BOX.w))) {
 		return 0.0;
 	}
 	float best = 1e4;
@@ -185,6 +199,30 @@ float kp_setts_at(vec2 wp) {
 		best = min(best, length(wp - a - ab * t));
 	}
 	return 1.0 - smoothstep(KP_HALF - 0.4, KP_HALF, best);
+}
+
+// Próżna (F's photos, 2026-11-08; docs/landmarks/photo-reports/prozna.md): the one-way street is
+// granite setts kerb to kerb, and its pavements are pale grey granite slabs behind a darker kerb
+// stone. PZ_LINE is the street's centreline from the map (Plac Grzybowski to Marszałkowska); the box
+// test keeps the cost off every other fragment.
+const vec4 PZ_BOX = vec4(-1390.0, -1195.0, -325.0, -222.0);   // x0, x1, z0, z1
+const float PZ_HALF = 3.15;
+const vec2 PZ_LINE[4] = vec2[4](
+	vec2(-1361.0, -243.6), vec2(-1352.0, -247.3), vec2(-1279.1, -277.2), vec2(-1240.0, -293.1));
+
+// Distance from wp to Próżna's centreline (1e4 outside the box).
+float pz_dist(vec2 wp) {
+	if (any(bvec4(wp.x < PZ_BOX.x, wp.x > PZ_BOX.y, wp.y < PZ_BOX.z, wp.y > PZ_BOX.w))) {
+		return 1e4;
+	}
+	float best = 1e4;
+	for (int i = 0; i < 3; i++) {
+		vec2 a = PZ_LINE[i];
+		vec2 ab = PZ_LINE[i + 1] - a;
+		float t = clamp(dot(wp - a, ab) / dot(ab, ab), 0.0, 1.0);
+		best = min(best, length(wp - a - ab * t));
+	}
+	return best;
 }
 
 // Plac Piłsudskiego (photos, 2026-11-02; docs/landmarks/photo-reports/pilsudskiego.md): the paved
@@ -220,10 +258,25 @@ void fragment() {
 	// A bridge deck over this point, and whether this fragment lies under it.
 	float deck_y = surf.a > 0.0 ? surf.a * 255.0 / 4.0 - 32.0 : -1e4;
 	bool under_deck = world_pos.y < deck_y - 1.5;
+	// The deck ghost (F, 2026-11-07): a deck's road, walks and markings between the car under it
+	// and the camera keep only the ghost's thin dither, as a building's walls do; the ground under
+	// the deck (under_deck) and everything near the car's own height stay whole.
+	if (all(bvec3(surf.a > 0.0, !under_deck, world_pos.y > ghost_car_y + DECK_GHOST_OVER))) {
+		float cut = ghost_fade(VERTEX.xy, wp);
+		ivec2 bp = ivec2(FRAGCOORD.xy) % 4;
+		if ((BAYER[bp.y * 4 + bp.x] + 0.5) / 16.0 < cut * (1.0 - DECK_GHOST_KEEP)) {
+			discard;
+		}
+	}
+	// The tunnel cutaway (F, 2026-11-08; tunnel_cut.gdshaderinc): the ground over the tunnel round the
+	// car opens down to the tunnel's walls and road.
+	if (all(bvec2(tunnel_test(world_pos).x < 0.0, world_pos.y > tunnel_cut.w + TUNNEL_CUT_OVER))) {
+		discard;
+	}
 	vec3 emit = vec3(0.0);
 	float puddle = 0.0;
 	float sheen = 0.0;
-	if (id == 4 || id == 2) {
+	if (any(bvec2(id == 4, id == 2))) {
 		// Paving slabs: small along footpaths, large granite on plazas.
 		float size = id == 4 ? 1.2 : 2.4;
 		vec2 cell = floor(street / size);
@@ -235,6 +288,19 @@ void fragment() {
 			vec2 f = abs(fract(q) - 0.5);
 			float joint = step(0.44, f.x) + step(0.4, f.y);
 			shade = 0.95 + 0.07 * hash12(floor(q)) - 0.07 * min(joint, 1.0);
+		}
+		float pzd = id == 4 ? pz_dist(wp) : 1e4;
+		if (pzd < 11.0) {
+			// Próżna's walk: pale grey granite slabs 0.6 x 0.4 m, the kerb stone darker and wider.
+			vec2 q = street / vec2(0.6, 0.4);
+			q.x += 0.5 * mod(floor(q.y), 2.0);
+			vec2 f = abs(fract(q) - 0.5);
+			float joint = step(0.46, f.x) + step(0.45, f.y);
+			base = srgb_to_linear(mix(vec3(0.74, 0.72, 0.69), vec3(0.66, 0.65, 0.63), step(0.8, hash12(floor(q)))));
+			shade = 0.97 + 0.05 * hash12(floor(q) + 3.1) - 0.08 * min(joint, 1.0);
+			if (pzd < PZ_HALF + 0.75) {
+				base = srgb_to_linear(vec3(0.58, 0.57, 0.55));
+			}
 		}
 		vec4 stones = centralny(wp, id == 4);
 		if (stones.a > 0.0) {
@@ -251,7 +317,7 @@ void fragment() {
 		float grain = hash12(floor(wp * 6.0));
 		float patch = smoothstep(0.63, 0.7, value_noise(wp * 0.11 + 3.7));
 		shade = 0.95 + 0.07 * grain - 0.06 * patch + 0.04 * n1;
-		if (kp_setts_at(wp) > 0.5) {
+		if (any(bvec2(kp_setts_at(wp) > 0.5, pz_dist(wp) < PZ_HALF + 0.35))) {
 			// Granite setts, 0.12 x 0.1 m in rows broken like bricks; each stone its own grey
 			// or warm pink; dark joints.
 			vec2 q = wp / vec2(0.12, 0.1);
@@ -278,12 +344,12 @@ void fragment() {
 		shade = 0.94 + 0.08 * hash12(floor(wp * 5.0));
 	} else if (id == 7) {
 		shade = 0.88 + 0.12 * value_noise(wp * 1.3); // worn paint
-	} else if (id == 9 || id == 15) {
+	} else if (any(bvec2(id == 9, id == 15))) {
 		// Ballast gravel; along a track, concrete sleepers across it every 0.65 m.
 		shade = 0.86 + 0.24 * hash12(floor(wp * 7.0));
 		if (id == 9) {
 			float sl = fract(street.x / 0.65);
-			if (sl > 0.18 && sl < 0.62) {
+			if (all(bvec2(sl > 0.18, sl < 0.62))) {
 				// A concrete sleeper (0.28 m wide), each a little different.
 				base = srgb_to_linear(vec3(0.66, 0.64, 0.6));
 				shade = 0.9 + 0.14 * hash12(vec2(floor(street.x / 0.65), 3.0));
@@ -330,7 +396,7 @@ void fragment() {
 		// sleeper (0.24 m wide) across it every 0.6 m, each a little different.
 		shade = 0.9 + 0.18 * hash12(floor(wp * 7.0));
 		float sl = fract(street.x / 0.6);
-		if (sl > 0.3 && sl < 0.7) {
+		if (all(bvec2(sl > 0.3, sl < 0.7))) {
 			base = srgb_to_linear(vec3(0.43, 0.4, 0.37));
 			shade = 0.92 + 0.12 * hash12(vec2(floor(street.x / 0.6), 5.0));
 		}
@@ -338,7 +404,7 @@ void fragment() {
 		// Loop 3b-2: the tram bed: concrete track slabs, a joint across it every 3 m.
 		vec2 slab = floor(street / vec2(3.0, 2.0));
 		shade = 0.95 + 0.06 * hash12(slab) - 0.1 * step(fract(street.x / 3.0), 0.05);
-	} else if (id == 16 || id == 17) {
+	} else if (any(bvec2(id == 16, id == 17))) {
 		// Loop 3b-2: sand (beaches, sandbars) and the wet bands of a natural bank or a
 		// sandbar's rim (their colour, sand or earth, from the vertex): a fine grain, soft
 		// drifts on the dry sand; darker after dark (the beach read as a pale lavender plane).
@@ -414,7 +480,7 @@ void fragment() {
 		emit += srgb_to_linear(sky_colour) * night * (0.05 + 0.16 * broad + 0.1 * crest) * mix(1.0, 0.75, deep);
 		emit += srgb_to_linear(vec3(0.55, 0.32, 0.42)) * night * 0.1 * (1.0 - smoothstep(2.0, 40.0, d));
 	}
-	if (id <= 0 || id == 2 || id == 4) {
+	if (any(bvec3(id <= 0, id == 2, id == 4))) {
 		float plac = plac_at(wp);
 		if (plac > 0.0) {
 			vec2 q = (wp - vec2(PLAC_BOX.x, PLAC_BOX.z)) / 6.0;
@@ -434,17 +500,17 @@ void fragment() {
 		}
 	}
 	// Rain: wet asphalt and paving darken, puddles lie darker still and mirror the sky.
-	if (wetness > 0.001 && (id == 6 || id == 2 || id == 4 || id == 5 || id == 7 || id == 14 || id == 19)) {
+	if (all(bvec2(wetness > 0.001, (any(bvec2(any(bvec4(id == 6, id == 2, id == 4, id == 5)), any(bvec3(id == 7, id == 14, id == 19)))))))) {
 		base *= mix(1.0, id == 6 ? 0.62 : (id == 7 ? 0.82 : 0.74), wetness);
 		// Loop 3i: the markings (7) lie in the same puddles as the asphalt under them, so a
 		// painted line goes dark and mirrors the sky where it crosses one, not over it.
-		if (id == 6 || id == 2 || id == 4 || id == 7) {
+		if (any(bvec4(id == 6, id == 2, id == 4, id == 7))) {
 			float pm = value_noise(wp * 0.16 + 11.3) * 0.6 + value_noise(wp * 0.53 + 2.1) * 0.4;
 			puddle = smoothstep(0.64, 0.69, pm) * smoothstep(0.35, 0.9, wetness);
 		}
 		base *= 1.0 - 0.5 * puddle;
 		sheen = wetness * (id == 6 ? 0.14 : 0.09) + puddle * 0.32;
-		if (puddle > 0.0 && rain > 0.0) {
+		if (all(bvec2(puddle > 0.0, rain > 0.0))) {
 			// Rings where the drops land: one per 0.9 m cell, growing and fading.
 			vec2 cell = floor(wp / 0.9);
 			vec2 c = (cell + 0.2 + 0.6 * vec2(hash12(cell), hash12(cell + 7.1))) * 0.9;
@@ -482,7 +548,7 @@ void fragment() {
 			glow = lamp_reflection(wp, away, 2.6, 1.6) * 0.7 * (under_deck ? 0.3 : 1.0);
 		} else {
 			vec4 pool = lamp_pool(wp, FRAGCOORD.xy);
-			glow = pool_glow(base * shade * mix(1.0, ao, 0.6), pool, id == 1 || id == 5 || id == 11) * (under_deck ? 0.05 : 1.0);
+			glow = pool_glow(base * shade * mix(1.0, ao, 0.6), pool, any(bvec3(id == 1, id == 5, id == 11))) * (under_deck ? 0.05 : 1.0);
 			if (sheen > 0.0) {
 				glow += lamp_reflection(wp, away, 1.4, 0.4) * min(sheen * 2.2, 1.0) * 0.8;
 			}

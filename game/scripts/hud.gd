@@ -7,7 +7,7 @@ extends CanvasLayer
 ## safe area (the Dynamic Island or notch, the rounded corners, the home indicator). The first
 ## screen is thin: the gear (settings) top left with the speed beside it, one context button
 ## in the middle of the top row (a rescue call that came in), RADIO and HELI / AUTO top right;
-## the minimap and the wallet under the gear; the pedals bottom right; the credit line bottom
+## the minimap and the wallet under the gear; the pedals bottom right; no credit line (the credits page in Settings)
 ## centre. Time of day, rain, VHS, the picture style and the camera moved into Settings
 ## (settings_panel.gd); zoom is a pinch, and with the fixed camera a two-finger twist turns the
 ## view. The panels that come and go (the status, the call or job card, FLASH LIGHTS, the race
@@ -191,6 +191,7 @@ var _speed_text := ""
 var _vehicle_button: Button
 var _zoom_out_button: Button
 var _zoom_in_button: Button
+var _zoom_in_down_ms := -1
 var _radio_button: Button
 ## Beta radio (2026-11-02): DALEJ · NEXT under RADIO while the station has more than one song
 ## (the hold on RADIO and Shift+R stay); set_radio_skip shows it.
@@ -205,7 +206,6 @@ var _radio_skipped := false
 ## The context button in the middle of the top row (a rescue call that came in).
 var _pill: Button
 var _pill_t := 0.0
-var _credit: Label
 var _pad: Control
 var _gas_index := -1
 var _climb_index := -1
@@ -290,6 +290,11 @@ var _taps := {}
 ## The status panel's picture row: a kebab's steam or the słoiki run's jars.
 var _status_icons: Control
 var _icons := {}
+## How long the "+" zoom chip has been held down (s; 0 when not): the shisha night's hidden start.
+func zoom_in_held_s() -> float:
+	return 0.0 if _zoom_in_down_ms < 0 else float(Time.get_ticks_msec() - _zoom_in_down_ms) / 1000.0
+
+
 ## Side-job places on the minimap (kebab stands, the station), blinking.
 var _mini_pois := PackedVector2Array()
 ## Loop MW-1: the notebook's places not found yet near the car (map x, z), drawn as "?".
@@ -303,6 +308,16 @@ var _mini_final := Vector2.INF
 var _mini_final_colour := Color.WHITE
 const GARAGE_REACH := 1500.0
 var _mini_poi_colours := PackedColorArray()
+## The questlines' starts (story_quests.gd `marks`): points and colours; empty in quest focus.
+var _mini_story := PackedVector2Array()
+var _mini_story_colours := PackedColorArray()
+var _story_names := PackedStringArray()
+var _story_blurbs := PackedStringArray()
+var _story_small := PackedByteArray()
+const STORY_REACH := 1500.0
+## Quest focus (main.gd `_story_tick`): something runs; the minimap and the full map hide the side
+## places, the garage, the "?" marks and the starts, and the main star dims.
+var quest_focus := false
 ## G11: the shape of each place's mark (MapIcons.POI_*), parallel to _mini_pois; a short or empty array
 ## means squares.
 var _mini_poi_shapes := PackedInt32Array()
@@ -323,6 +338,13 @@ var _target_colour := Color.WHITE
 var _mini_target := Vector2.INF
 var _mini_target_colour := Color.WHITE
 var _mini_dots := PackedVector2Array()
+## A quest's own racers on the minimap (street_meet.gd's club), kept apart from the rivals' dots,
+## which rivals.gd writes every frame.
+var _quest_dots := PackedVector2Array()
+## A focused moment (street_meet.gd's drag, F 2026-11-08: "too many dialogs one over another"):
+## while true the radio's ticker, the info notes (a district discovered) and every toast wait.
+var hush := false
+var _quest_dot_colours := PackedColorArray()
 var _mini_dot_colours := PackedColorArray()
 ## Loop 2d-1: whose the context button is ("call" or "ride").
 var pill_owner := "call"
@@ -537,12 +559,10 @@ func _ready() -> void:
 	_zoom_in_button = _chip(self, "+", "", Color(0, 0, 0, 0))
 	_zoom_in_button.name = "zoom_in"
 	_zoom_in_button.pressed.connect(func(): zoom_pressed.emit(-1))
+	_zoom_in_button.button_down.connect(func(): _zoom_in_down_ms = Time.get_ticks_msec())
+	_zoom_in_button.button_up.connect(func(): _zoom_in_down_ms = -1)
 	for zb: Button in [_zoom_out_button, _zoom_in_button]:
 		_set_chip(zb, zb.get_child(0).get_child(0).text, "", 44.0)
-
-	_credit = _label(T_LABEL, Color(1, 1, 1, 0.88), true)
-	_credit.text = "© OpenStreetMap contributors · 3D buildings, aerial photo, terrain: GUGiK"
-	add_child(_credit)
 
 	_build_ticker()
 	_build_mission_panels()
@@ -708,7 +728,7 @@ func _show(c: Control, on: bool) -> void:
 		_mark()
 
 
-## The fixed controls: the top row, the minimap and the wallet under the gear, the credit line.
+## The fixed controls: the top row, the minimap and the wallet under the gear.
 func _layout_fixed() -> void:
 	var x0 := _safe.position.x + EDGE * pt
 	var y := ROW_Y * pt
@@ -731,7 +751,8 @@ func _layout_fixed() -> void:
 	if _minimap != null:
 		_minimap.position = Vector2(x0, below)
 		_minimap.size = Vector2.ONE * MINI_D * pt
-		_mini_overlay.size = _minimap.size
+		if _mini_overlay != null:  # the loading bar: a relayout can land while setup_minimap waits for a frame
+			_mini_overlay.size = _minimap.size
 		# G3: the zoom buttons stand in a column right of the minimap (the top row has no room
 		# beside a centred context button on a small phone).
 		var zy := _minimap.position.y
@@ -744,18 +765,14 @@ func _layout_fixed() -> void:
 		below = _minimap.position.y + _minimap.size.y + 6.0 * pt
 	_wallet.position = Vector2(x0, below)
 	_wallet.size = Vector2(_wallet_width(), 30.0 * pt)
-	_credit.size = _credit.get_combined_minimum_size()
-	# Bottom left: centred, it ran into Classic's BRAKE. Left-handed: bottom right, the pedals' side
-	# swapped.
-	var credit_x := _safe.end.x - EDGE * pt - _credit.size.x if left_handed else x0
-	_credit.position = Vector2(credit_x, _safe.end.y - 3.0 * pt - _credit.size.y)
 	_top_y = (ROW_Y + ROW_H + GAP) * pt
 	_col_y = _wallet.position.y + _wallet.size.y + GAP * pt
 	_col_right = maxf(_wallet.position.x + _wallet.size.x, below - 6.0 * pt if _minimap == null else _minimap.position.x + _minimap.size.x + (0.0 if flying else 6.0 * pt + _zoom_in_button.size.x)) + GAP * pt
 	# Loop 3g-1: the koguty beside the wallet, on its row.
 	_koguty.position = Vector2(_wallet.position.x + _wallet.size.x + 6.0 * pt, _wallet.position.y)
 	_koguty.size = Vector2(KOGUTY_W * pt, _wallet.size.y)
-	_bottom_y = _credit.position.y - 6.0 * pt
+	# The credit line left the screen (the credits page in Settings has it): the bottom is the safe edge.
+	_bottom_y = _safe.end.y - 9.0 * pt - 14.0 * pt
 	_bounds = Rect2(_safe.position.x + 4.0 * pt, _top_y, _safe.size.x - 8.0 * pt, _safe.end.y - 4.0 * pt - _top_y)
 
 
@@ -775,11 +792,15 @@ func _layout() -> void:
 	_taken.clear()
 	_placed.clear()
 	_unplaced.clear()
-	for c: Control in [_gear, _pill, _radio_button, _skip_button, _vehicle_button, _zoom_out_button, _zoom_in_button, _minimap, _wallet, _credit, _koguty]:
+	for c: Control in [_gear, _pill, _radio_button, _skip_button, _vehicle_button, _zoom_out_button, _zoom_in_button, _minimap, _wallet, _koguty]:
 		if c != null and c.visible:
 			_taken.append(Rect2(c.position, c.size))
 	_taken.append(_speed_rect())
 	_taken.append_array(_pedal_rects())
+	if _finger:
+		# PT-26 (2026-11-07): the ghost finger's two-line hint is room taken too, so a bubble
+		# (the Marszałkowska roadworks sign by the start) keeps off the words that teach steering.
+		_taken.append(finger_hint_rect())
 	var car_zone_added := false
 	for c in _floating:
 		if not car_zone_added and not c in [_status, _police_pill, _card, _challenge] and not _panel_spots.has(c):
@@ -955,6 +976,11 @@ func _pedal_rects() -> Array[Rect2]:
 		out.append(disc.call(_gas_centre(), (GAS_R + 4.0) * pt))
 		var o := _strip_hint_centre()
 		out.append(Rect2(o - Vector2(52, 12) * pt, Vector2(104, 24) * pt))
+		if _stick_index != -1:
+			# PT-35 (2026-11-08): while a thumb steers, the strip itself (wider than its hint, and
+			# wherever the thumb came down) is a hard rect, so a job's "KEBAB n m" never covers its arrow.
+			var half := STICK_R * pt
+			out.append(Rect2(_stick_origin - Vector2(half + 20.0 * pt, 20.0 * pt), Vector2(half * 2.0 + 40.0 * pt, 40.0 * pt)))
 	return out
 
 
@@ -1053,7 +1079,7 @@ func named_rects() -> Dictionary:
 	if _dirty:
 		_layout()
 	var out := {}
-	for c: Control in [_gear, _pill, _radio_button, _skip_button, _vehicle_button, _zoom_out_button, _zoom_in_button, _minimap, _wallet, _credit, _koguty]:
+	for c: Control in [_gear, _pill, _radio_button, _skip_button, _vehicle_button, _zoom_out_button, _zoom_in_button, _minimap, _wallet, _koguty]:
 		if c != null and c.visible:
 			out[c.name] = Rect2(c.position, c.size)
 	out["speed"] = _speed_rect()
@@ -1361,7 +1387,7 @@ func _fit_bench_card() -> void:
 
 # --- the radio ticker ------------------------------------------------------------------------
 
-## The now-playing panel: bottom left, above the credit line, out of the way of the pedals.
+## The now-playing panel: bottom left, above the bottom edge, out of the way of the pedals.
 func _build_ticker() -> void:
 	_ticker_style = _panel_box(8.0, 6.0)
 	_ticker_style.content_margin_left = 12.0 * pt
@@ -1388,6 +1414,8 @@ func _build_ticker() -> void:
 ## Shows a line on the now-playing ticker for a few seconds: the radio's station changes, and
 ## the radio host's lines with an English subtitle (held longer and wrapped to a readable width).
 func ticker(text: String, colour: Color, subtitle := "") -> void:
+	if hush:
+		return
 	text = Lang.pick(text, subtitle)
 	subtitle = ""
 	colour = Access.tint(colour)  # colour-safe (access.gd)
@@ -1453,6 +1481,8 @@ func _build_toast() -> void:
 ## another ambient toast came in the last AMBIENT_TOAST_GAP seconds (G16).
 ## Phase 0.2: also dropped while the car struggles (and a few seconds after: chatter.gd quiet()).
 func ambient_toast(text: String, gloss := "") -> void:
+	if hush:
+		return
 	var now := Time.get_ticks_msec() / 1000.0
 	if _kmh > 10 and now - _ambient_toast_at < AMBIENT_TOAST_GAP:
 		return
@@ -1463,6 +1493,8 @@ func ambient_toast(text: String, gloss := "") -> void:
 
 
 func toast(text: String, gloss := "") -> void:
+	if hush:
+		return  # PT-49: the first-10 guide's hints waited under the drag's rev counter
 	text = Lang.pick(text, gloss)
 	gloss = ""
 	# PT-20 (Autopilot run 20261103-152518): the same toast again while it is still up only
@@ -1731,6 +1763,14 @@ func set_minimap_dots(points: PackedVector2Array, colours: PackedColorArray) -> 
 	_mini_dot_colours = colours
 
 
+## A quest's racers on the minimap (street_meet.gd, F 2026-11-08: "the other racers don't show on
+## the map"): a little bigger than the rivals' dots, pinned to the rim when out of reach so the
+## pack's direction always shows. Empty arrays clear them.
+func set_quest_dots(points: PackedVector2Array, colours: PackedColorArray) -> void:
+	_quest_dots = points
+	_quest_dot_colours = colours
+
+
 # --- every frame -----------------------------------------------------------------------------
 
 ## RADIO held RADIO_HOLD s skips once per press (called every frame with the time; a check can
@@ -1872,7 +1912,9 @@ func setup_minimap(data: Dictionary, outline := PackedVector2Array(), outside: A
 	if _map_outline.size() < 3:
 		_map_outline = PackedVector2Array([_map_bounds.position, Vector2(_map_bounds.end.x, _map_bounds.position.y),
 				_map_bounds.end, Vector2(_map_bounds.position.x, _map_bounds.end.y)])
+	await LoadYield.tick("minimap start")
 	_mini_mesh = _minimap_mesh(data)
+	await LoadYield.tick("minimap mesh")
 	var outline_now := _map_outline
 	var outside_now := _map_outside.duplicate()
 	_map_art_task = WorkerThreadPool.add_task(func() -> void:
@@ -2050,7 +2092,9 @@ func _paint_minimap_overlay() -> void:
 	_tri_begin()
 	# Side-job places: small blinking squares, pinned to the rim up to 700 m away.
 	var blink := 0.55 + 0.45 * sin(Time.get_ticks_msec() * 0.006)
-	for i in _mini_pois.size():
+	# Quest focus (story_quests.gd, F 2026-11-07): while something runs, the side places, the garage
+	# and the "?" marks stay off the minimap; only what the player is doing shows.
+	for i in (0 if quest_focus else _mini_pois.size()):
 		if _mini_pois[i].distance_to(_mini_car) > 700.0:
 			continue
 		var r := ((_mini_pois[i] - _mini_car) * s).rotated(_mini_yaw)
@@ -2059,7 +2103,7 @@ func _paint_minimap_overlay() -> void:
 		var half := (2.0 if far else 3.2) * pt
 		poi_mark(centre + r, half, Color(_mini_poi_colours[i], blink), _mini_poi_shapes[i] if i < _mini_poi_shapes.size() else MapIcons.POI_SQUARE)
 	# The garage loop: the garage's diamond, pinned to the rim up to GARAGE_REACH m away.
-	if _mini_garage != Vector2.INF and _mini_garage.distance_to(_mini_car) <= GARAGE_REACH:
+	if not quest_focus and _mini_garage != Vector2.INF and _mini_garage.distance_to(_mini_car) <= GARAGE_REACH:
 		var g := ((_mini_garage - _mini_car) * s).rotated(_mini_yaw).limit_length(_mini_radius - 6.0 * pt)
 		_tri_diamond(centre + g, 4.6 * pt, _mini_garage_colour)
 	# Loop 3h slice 3's diamond at the final's start is the main line's star now (main_line.gd).
@@ -2069,6 +2113,10 @@ func _paint_minimap_overlay() -> void:
 		if r.length() < _mini_radius - 4.0 * pt:
 			_tri_fan(centre + r, 2.8 * pt, 0.0, TAU, OUTLINE)
 			_tri_fan(centre + r, 2.0 * pt, 0.0, TAU, _mini_dot_colours[i])
+	for i in _quest_dots.size():
+		var r := ((_quest_dots[i] - _mini_car) * s).rotated(_mini_yaw).limit_length(_mini_radius - 5.0 * pt)
+		_tri_fan(centre + r, 3.6 * pt, 0.0, TAU, OUTLINE)
+		_tri_fan(centre + r, 2.7 * pt, 0.0, TAU, _quest_dot_colours[i] if i < _quest_dot_colours.size() else Color.WHITE)
 	# Loop 3g-1: known speed traps (a small hair dryer in police blue) and the chasers (blue and
 	# red in turns, a white outline), within the minimap's reach.
 	for q in _trap_marks:
@@ -2079,10 +2127,17 @@ func _paint_minimap_overlay() -> void:
 			_tri_rect(Rect2(at - Vector2(2.8, 1.8) * pt, Vector2(4.0, 3.6) * pt), POLICE_BLUE)
 			_tri_rect(Rect2(at + Vector2(0.6, -0.4) * pt, Vector2(2.2, 4.0) * pt), POLICE_BLUE)
 	# Loop MW-1: the notebook's undiscovered places, a gold "?" on a dark plate (never a name).
-	for q in _mini_unknown:
+	for q in (PackedVector2Array() if quest_focus else _mini_unknown):
 		var r := ((q - _mini_car) * s).rotated(_mini_yaw)
 		if r.length() < _mini_radius - 6.0 * pt:
 			_tri_question(centre + r)
+	# The questlines' starts (story_quests.gd): a "!" badge in each one's colour, pinned to the rim
+	# up to STORY_REACH m away (the list is empty in quest focus).
+	for i in _mini_story.size():
+		if _mini_story[i].distance_to(_mini_car) > STORY_REACH:
+			continue
+		var r := ((_mini_story[i] - _mini_car) * s).rotated(_mini_yaw).limit_length(_mini_radius - 7.0 * pt)
+		story_badge(centre + r, 0.6 if i < _story_small.size() and _story_small[i] == 1 else 0.85, _mini_story_colours[i])
 	if _scene_mark != Vector2.INF:
 		# A crash scene: an amber dot with a white ring, pulsing slowly (not the chasers' flicker).
 		var r := ((_scene_mark - _mini_car) * s).rotated(_mini_yaw)
@@ -2102,12 +2157,13 @@ func _paint_minimap_overlay() -> void:
 		# A side quest's target, pinned to the rim when it's beyond the map's reach: a dot in the
 		# job's colour inside a white ring (the main line's is the star below).
 		var t := ((_mini_target - _mini_car) * s).rotated(_mini_yaw)
-		t = t.limit_length(_mini_radius - 5.0 * pt)
-		side_pin(centre + t, 1.0, _mini_target_colour)
+		# F 2026-11-08: the quest taken reads much stronger: a breathing glow and ring in its colour.
+		t = t.limit_length(_mini_radius - 7.0 * pt)
+		active_pin(centre + t, 1.15, _mini_target_colour)
 	if _main_at != Vector2.INF:
 		# The main line: a gold star in a pulsing ring, pinned to the rim at any distance.
 		var mr := ((_main_at - _mini_car) * s).rotated(_mini_yaw).limit_length(_mini_radius - 8.0 * pt)
-		main_star(centre + mr, 1.3)
+		main_star(centre + mr, 1.3, quest_focus)
 	var d := _car_dir.normalized()
 	var side := Vector2(-d.y, d.x)
 	var tip := centre + d * 6.0 * pt
@@ -2126,13 +2182,35 @@ func _paint_minimap_overlay() -> void:
 
 ## The main line's marker at `at` (k: its size, 1 on the minimap): a gold five-point star with a
 ## dark rim in a ring that pulses (into the overlay's one triangle batch).
-func main_star(at: Vector2, k: float) -> void:
+## F (2026-11-07): "like in the Witcher, a big glowing blob" for the main quest: a soft gold glow
+## (three fans fading out) breathes under the star, so it is the one mark that shines. `dim` (quest
+## focus: a side quest is on) drops the glow and pulse, the star stays as a quiet reminder.
+func main_star(at: Vector2, k: float, dim := false) -> void:
 	var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.005)
-	var ring := Color(MainLine.COLOUR, 0.25 + 0.45 * pulse)
-	var r0 := (5.6 + 1.2 * pulse) * pt * k
-	_tri_ring(at, r0, r0 + 1.4 * pt * k, 0.0, TAU, ring)
-	_tri_star(at, 5.2 * pt * k, MainLine.RIM)
-	_tri_star(at, 4.0 * pt * k, MainLine.COLOUR)
+	if not dim:
+		for g: Array in [[13.0, 0.10], [10.0, 0.16], [7.6, 0.24]]:
+			_tri_fan(at, (float(g[0]) + 2.0 * pulse) * pt * k, 0.0, TAU, Color(MainLine.COLOUR, float(g[1]) * (0.7 + 0.3 * pulse)))
+		var ring := Color(MainLine.COLOUR, 0.25 + 0.45 * pulse)
+		var r0 := (5.6 + 1.2 * pulse) * pt * k
+		_tri_ring(at, r0, r0 + 1.4 * pt * k, 0.0, TAU, ring)
+	var a := 0.75 if dim else 1.0
+	_tri_star(at, 5.2 * pt * k, Color(MainLine.RIM, a))
+	_tri_star(at, 4.0 * pt * k, Color(MainLine.COLOUR, a))
+
+
+## A questline's start (story_quests.gd) at `at` (k: its size, 1 about 7 pt across): a slow halo
+## in its colour, a dark rim, the colour disc with a white ring and a bold white "!", so it reads
+## apart from the main star (gold, five points) and the street jobs' small icons.
+func story_badge(at: Vector2, k: float, colour: Color) -> void:
+	var c := Access.tint(colour)
+	var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.003)
+	_tri_fan(at, (8.2 + 1.6 * pulse) * pt * k, 0.0, TAU, Color(c, 0.18 + 0.12 * pulse))
+	_tri_fan(at, 6.6 * pt * k, 0.0, TAU, OUTLINE)
+	_tri_fan(at, 5.6 * pt * k, 0.0, TAU, Color(1, 1, 1, 0.97))
+	_tri_fan(at, 4.5 * pt * k, 0.0, TAU, c)
+	var w := 1.5 * pt * k
+	_tri_rect(Rect2(at + Vector2(-w * 0.5, -3.1 * pt * k), Vector2(w, 3.6 * pt * k)), Color.WHITE)
+	_tri_rect(Rect2(at + Vector2(-w * 0.5, 1.4 * pt * k), Vector2(w, w)), Color.WHITE)
 
 
 ## G11: a place's mark at `at` (`half`: about half its width) in `colour`, by shape (MapIcons.POI_*), each
@@ -2163,9 +2241,34 @@ func poi_mark(at: Vector2, half: float, colour: Color, shape: int) -> void:
 		MapIcons.POI_SCOOTER:
 			_tri_fan(at, half * 0.8 + o, 0.0, TAU, Color(OUTLINE, colour.a))
 			_tri_fan(at, half * 0.8, 0.0, TAU, colour)
+		MapIcons.POI_BOAT:
+			# A disc with a white motorboat in profile: the hull (bow right), the windscreen.
+			_tri_fan(at, half * 1.15 + o, 0.0, TAU, Color(OUTLINE, colour.a))
+			_tri_fan(at, half * 1.15, 0.0, TAU, colour)
+			var h := half * 1.15
+			var a0 := at + Vector2(-h * 0.7, h * 0.05)
+			var a1 := at + Vector2(h * 0.78, h * 0.05)
+			var a2 := at + Vector2(h * 0.42, h * 0.42)
+			var a3 := at + Vector2(-h * 0.6, h * 0.42)
+			_tri(a0, a1, a2, white, white, white)
+			_tri(a0, a2, a3, white, white, white)
+			_tri(at + Vector2(-h * 0.2, h * 0.05), at + Vector2(h * 0.3, h * 0.05), at + Vector2(-h * 0.2, -h * 0.26), white, white, white)
 		_:
 			_tri_rect(Rect2(at - Vector2.ONE * (half + o), Vector2.ONE * (half + o) * 2.0), Color(OUTLINE, colour.a))
 			_tri_rect(Rect2(at - Vector2.ONE * half, Vector2.ONE * half * 2.0), colour)
+
+
+## The active quest's target at `at` (k: its size, 1 on the minimap): F (2026-11-08) "mark the
+## quest I took much stronger on the map and the minimap". A soft glow in the quest's colour
+## breathes under it, a ring pulses out, and the pin itself is a size up, so the one thing the
+## player is doing outshines every start badge and street-job icon (into the overlay's batch).
+func active_pin(at: Vector2, k: float, colour: Color) -> void:
+	var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.006)
+	for g: Array in [[12.0, 0.12], [9.0, 0.2], [6.8, 0.3]]:
+		_tri_fan(at, (float(g[0]) + 2.0 * pulse) * pt * k, 0.0, TAU, Color(colour, float(g[1]) * (0.7 + 0.3 * pulse)))
+	var r0 := (5.4 + 3.0 * pulse) * pt * k
+	_tri_ring(at, r0, r0 + 1.3 * pt * k, 0.0, TAU, Color(1, 1, 1, 0.85 * (1.0 - pulse)))
+	side_pin(at, 1.35 * k, colour)
 
 
 ## A side quest's target at `at` (k: its size): a dot in its colour inside a white ring, with the
@@ -2283,6 +2386,20 @@ func set_minimap_final(p: Vector2, colour: Color) -> void:
 	_mini_final_colour = colour
 
 
+## The questlines' starts on the minimap and the full map, and quest focus (main.gd, a few
+## times a second; both only when they change).
+func set_story(points: PackedVector2Array, colours: PackedColorArray, focus: bool, names := PackedStringArray(),
+		blurbs := PackedStringArray(), small := PackedByteArray()) -> void:
+	_story_blurbs = blurbs
+	_story_small = small
+	_mini_story = points
+	_mini_story_colours = colours
+	_story_names = names
+	quest_focus = focus
+	if full_map != null and full_map.is_open():
+		full_map.set_story(points, colours, focus, names, blurbs, small)
+
+
 ## Side-job places on the minimap (map coordinates), drawn as blinking squares.
 func set_minimap_pois(points: PackedVector2Array, colours: PackedColorArray, shapes := PackedInt32Array()) -> void:
 	_mini_pois = points
@@ -2322,6 +2439,15 @@ func _set_card_width(w: float) -> void:
 func ticker_out() -> void:
 	if _ticker_left > 0.4:
 		_ticker_left = 0.4
+
+
+## The focused moment on or off (see `hush`): on, what is up now fades out at once.
+func set_hush(on: bool) -> void:
+	hush = on
+	if on:
+		ticker_out()
+		_note_left = minf(_note_left, 0.4)
+		_toast_left = minf(_toast_left, 0.3)
 
 
 ## The app's route as a polyline in map coordinates (empty: none), drawn as dots on the minimap.
@@ -2496,6 +2622,8 @@ static func _money(amount: int) -> String:
 
 ## A small card under the wallet for a few seconds (an easter egg found).
 func show_note(title: String, body: String, colour: Color) -> void:
+	if hush:
+		return
 	colour = Access.tint(colour)  # colour-safe (access.gd)
 	_set_note_width()  # landmark card fix
 	_note_title.text = title
@@ -2818,6 +2946,7 @@ func open_full_map(car_xz: Vector2, car_yaw: float, found: PackedVector2Array) -
 	full_map.side_spots = _mini_pois
 	full_map.side_colours = _mini_poi_colours
 	full_map.side_shapes = _mini_poi_shapes
+	full_map.set_story(_mini_story, _mini_story_colours, quest_focus, _story_names, _story_blurbs, _story_small)
 	full_map.set_main_line(_main_at, main_goal[0], main_goal[1])
 	full_map.open(car_xz, car_yaw)
 
@@ -3073,11 +3202,57 @@ func ghost_finger(on: bool) -> void:
 		return
 	_finger = on
 	_finger_t = 0.0
+	_dirty = true  # PT-26: the hint's room (panel_rects) comes and goes with it
 	_pad.queue_redraw()
 
 
 func finger_shown() -> bool:
 	return _finger
+
+
+## The ghost finger's two-line hint for the scheme and input now: {"lines", "at" (the first
+## line's baseline), "w"}; both _draw_finger and _draw_finger_classic draw it from here.
+func _finger_hint() -> Dictionary:
+	var font := ThemeDB.fallback_font
+	var fs := _px(T_BODY)
+	var fs2 := _px(T_SUB)
+	var lines: Array
+	if scheme == CLASSIC:
+		lines = ["Przesuń w lewo / prawo i trzymaj GAZ", "Slide left / right to steer, hold GAS to go"]
+		if pad_mode:
+			lines = [Gamepad.fmt("Lewa gałka: skręt · {rt}: gaz · {lt}: hamulec"), Gamepad.fmt("Left stick steers, {rt} gas, {lt} brake")]
+		elif touch_off:
+			lines = ["A / D: skręt · W: gaz · S: hamulec", "A / D steer, W gas, S brake"]
+	else:
+		lines = ["Połóż palec i wskaż, dokąd jechać", "Put a finger down and point the way"]
+		if pad_mode:
+			lines = ["Lewa gałka: wskaż, dokąd jechać", "Left stick: point the way"]
+		elif touch_off:
+			lines = ["W A S D albo strzałki: jazda", "W A S D or the arrow keys to drive"]
+	var w := maxf(font.get_string_size(lines[0], HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x, font.get_string_size(lines[1], HORIZONTAL_ALIGNMENT_LEFT, -1, fs2).x)
+	var at: Vector2
+	if scheme == CLASSIC:
+		# Above the strip's plate (and its thumb), starting at the plate's outer end.
+		var strip := _strip_hint_centre()
+		at = Vector2(strip.x - 52.0 * pt if not left_handed else strip.x + 52.0 * pt - w, strip.y - 30.0 * pt - fs2 - 6.0 * pt)
+	else:
+		# Right of the stick's circle, level with it: above it the wallet and the minimap sit, below
+		# it the credit line (the first shots had the hint under the wallet).
+		at = _finger_origin() + Vector2(STICK_R * pt * 1.25 + 18.0 * pt, -(fs2 + 6.0 * pt) * 0.5)
+	at.x = clampf(at.x, _safe.position.x + EDGE * pt, _safe.end.x - EDGE * pt - w)
+	return {"lines": lines, "at": at, "w": w}
+
+
+## PT-26: the box the ghost finger's hint takes on screen (both lines, a little margin).
+func finger_hint_rect() -> Rect2:
+	var font := ThemeDB.fallback_font
+	var h := _finger_hint()
+	var at: Vector2 = h["at"]
+	var fs := _px(T_BODY)
+	var fs2 := _px(T_SUB)
+	var top := at.y - font.get_ascent(fs)
+	var bottom := at.y + fs2 + 6.0 * pt + font.get_descent(fs2)
+	return Rect2(at.x, top, float(h["w"]), bottom - top).grow(4.0 * pt)
 
 
 ## Where the ghost finger presses: the stick's side of the screen (main.gd's --stick spot).
@@ -3098,12 +3273,9 @@ func _draw_finger() -> void:
 	var o := _finger_origin()
 	var font := ThemeDB.fallback_font
 	var k := fmod(_finger_t, FINGER_LOOP) / FINGER_LOOP
-	var lines := ["Połóż palec i wskaż, dokąd jechać", "Put a finger down and point the way"]
-	if pad_mode:
-		lines = ["Lewa gałka: wskaż, dokąd jechać", "Left stick: point the way"]
-	elif touch_off:
-		lines = ["W A S D albo strzałki: jazda", "W A S D or the arrow keys to drive"]
-	else:
+	var hint := _finger_hint()
+	var lines: Array = hint["lines"]
+	if not (pad_mode or touch_off):
 		var press := clampf(k / 0.15, 0.0, 1.0) * clampf((1.0 - k) / 0.15, 0.0, 1.0)
 		var drag := clampf((k - 0.2) / 0.55, 0.0, 1.0)
 		drag = drag * drag * (3.0 - 2.0 * drag)
@@ -3116,11 +3288,7 @@ func _draw_finger() -> void:
 		_pad.draw_circle(tip, 16.0 * pt, Color(INK, 0.8 * press))
 	var fs := _px(T_BODY)
 	var fs2 := _px(T_SUB)
-	# Right of the stick's circle, level with it: above it the wallet and the minimap sit, below
-	# it the credit line (the first shots had the hint under the wallet).
-	var at := o + Vector2(STICK_R * pt * 1.25 + 18.0 * pt, -(fs2 + 6.0 * pt) * 0.5)
-	var w := maxf(font.get_string_size(lines[0], HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x, font.get_string_size(lines[1], HORIZONTAL_ALIGNMENT_LEFT, -1, fs2).x)
-	at.x = clampf(at.x, _safe.position.x + EDGE * pt, _safe.end.x - EDGE * pt - w)
+	var at: Vector2 = hint["at"]
 	var outline := _px(3.0)
 	_pad.draw_string_outline(font, at, lines[0], HORIZONTAL_ALIGNMENT_LEFT, -1, fs, outline, OUTLINE)
 	_pad.draw_string(font, at, lines[0], HORIZONTAL_ALIGNMENT_LEFT, -1, fs, INK)
@@ -3136,12 +3304,9 @@ func _draw_finger_classic() -> void:
 	var font := ThemeDB.fallback_font
 	var k := fmod(_finger_t, FINGER_LOOP) / FINGER_LOOP
 	var strip := _strip_hint_centre()
-	var lines := ["Przesuń w lewo / prawo i trzymaj GAZ", "Slide left / right to steer, hold GAS to go"]
-	if pad_mode:
-		lines = [Gamepad.fmt("Lewa gałka: skręt · {rt}: gaz · {lt}: hamulec"), Gamepad.fmt("Left stick steers, {rt} gas, {lt} brake")]
-	elif touch_off:
-		lines = ["A / D: skręt · W: gaz · S: hamulec", "A / D steer, W gas, S brake"]
-	else:
+	var hint := _finger_hint()
+	var lines: Array = hint["lines"]
+	if not (pad_mode or touch_off):
 		var press := clampf(k / 0.12, 0.0, 1.0) * clampf((1.0 - k) / 0.12, 0.0, 1.0)
 		# GAZ: held down for the whole loop (a soft ring pulses round it).
 		var gc := _gas_centre()
@@ -3155,10 +3320,7 @@ func _draw_finger_classic() -> void:
 		_pad.draw_circle(tip, 16.0 * pt, Color(INK, 0.8 * press))
 	var fs := _px(T_BODY)
 	var fs2 := _px(T_SUB)
-	var w := maxf(font.get_string_size(lines[0], HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x, font.get_string_size(lines[1], HORIZONTAL_ALIGNMENT_LEFT, -1, fs2).x)
-	# Above the strip's plate (and its thumb), starting at the plate's outer end.
-	var at := Vector2(strip.x - 52.0 * pt if not left_handed else strip.x + 52.0 * pt - w, strip.y - 30.0 * pt - fs2 - 6.0 * pt)
-	at.x = clampf(at.x, _safe.position.x + EDGE * pt, _safe.end.x - EDGE * pt - w)
+	var at: Vector2 = hint["at"]
 	var outline := _px(3.0)
 	_pad.draw_string_outline(font, at, lines[0], HORIZONTAL_ALIGNMENT_LEFT, -1, fs, outline, OUTLINE)
 	_pad.draw_string(font, at, lines[0], HORIZONTAL_ALIGNMENT_LEFT, -1, fs, INK)
@@ -3435,7 +3597,7 @@ func _blocks(banner_only: bool) -> Array[Rect2]:
 	if not banner_only:
 		# The edge arrow keeps off the fixed controls too: pointing up-left it hid under the
 		# minimap and the wallet (the main line's arrow to a rival in the west, 2026-11-03).
-		for c: Control in [_zoom_out_button, _zoom_in_button, _minimap, _wallet, _koguty, _credit]:
+		for c: Control in [_zoom_out_button, _zoom_in_button, _minimap, _wallet, _koguty]:
 			if c != null and c.visible:
 				out.append(Rect2(c.position, c.size))
 		out.append_array(_pedal_rects())
@@ -3451,28 +3613,40 @@ func _edge_box(tip: Vector2, w: float, h: float, a: float) -> Rect2:
 
 ## PT-10: the edge arrow's tip, moved along the edge of `inside` to the nearest spot where the
 ## arrow and its distance are clear of the floating panels (cards, banner, toast, ticker) and the
-## speech bubbles; with no clear spot within reach it stays where it pointed.
+## speech bubbles. PT-27 (2026-11-07): with no clear spot within reach it no longer stays where it
+## pointed (a job's long "KEBAB 1948 m" sat on BRAKE): it takes the spot that covers least, and
+## never one on a pedal or button the thumb needs while another spot keeps off them.
 func _edge_spot(tip: Vector2, inside: Rect2, w: float, h: float, a: float) -> Vector2:
 	var blocks := _blocks(false)
 	if blocks.is_empty():
 		return tip
+	var hard := _pedal_rects()
 	# Along the left and right edges the tip moves up and down; along the top and bottom, sideways.
 	var along := Vector2(0, 1) if absf(tip.x - inside.position.x) < 0.5 or absf(tip.x - inside.end.x) < 0.5 else Vector2(1, 0)
 	var step := 12.0 * pt
+	var best := tip
+	var best_cost := INF
 	for k in 25:
 		for sgn: float in ([1.0] if k == 0 else [1.0, -1.0]):
 			var p := tip + along * step * k * sgn
 			if not inside.grow(0.5).has_point(p):
 				continue
 			var box := _edge_box(p, w, h, a)
-			var clear := true
+			var cost := 0.0
 			for r in blocks:
 				if r.intersects(box):
-					clear = false
-					break
-			if clear:
+					cost += r.intersection(box).get_area() + 1.0
+			if cost == 0.0:
 				return p
-	return tip
+			for r in hard:
+				if r.intersects(box):
+					cost += 1e9
+			# Nearer spots win a tie, so the arrow still points roughly the right way.
+			cost += k * 0.01
+			if cost < best_cost:
+				best_cost = cost
+				best = p
+	return best
 
 
 # --- loop 3g-1: the police -----------------------------------------------------------------------

@@ -80,7 +80,7 @@ SPACING = {"kiosk": 250.0, "stall": 250.0, "column": 150.0, "cart": 400.0}
 SOLID = ("kiosk", "stall", "cart")
 KINDS = ["kiosk", "stall", "cafe", "planter", "column", "bollards", "cart", "post", "ticket", "bench", "heater", "shelter"]
 # A stop kit on a tram island (a platform with no mapped shelter) carries this colour: the prop
-# stands on the slab (street_details.gd lifts it PLATFORM_TOP). Marszałkowska pass, 2026-11-02.
+# stands on the slab (street_details.gd: map_builder.platform_top). Marszałkowska pass, 2026-11-02.
 ON_PLATFORM = "platform"
 # An island lies inside the carriageway polygon is edged by its own kerb and lies beside the tram tracks; everything else still blocks a kit piece.
 PLATFORM_SKIP = ("shelter", "platform", "island", "carriageway", "kerb", "tram track", "ballast")
@@ -320,7 +320,8 @@ def stop_kits(pl, roads):
                 continue
             if pl.solids.blocked(px, pz, RADIUS[kind], skip=("shelter", "platform", "island")) is not None:
                 continue
-            pl.add(kind, px, pz, face)
+            # Tram stops (2026-11-07): a post or a machine by a shelter on a tram island stands on its top.
+            pl.add(kind, px, pz, face, ON_PLATFORM if on_platform(data, px, pz) else "")
             n += 1
     return n
 
@@ -377,6 +378,84 @@ def platform_kits(pl, roads):
                 continue
             pl.add(kind, x, z, face, ON_PLATFORM)
             n += 1
+    return n
+
+
+TRAM_KIT_END = 3.0       # the stop post stands this far in from an island's end (where the crossing comes in)
+TRAM_KIT_TICKET = 4.5    # the ticket machine this far in from the other end
+TRAM_KIT_POSTED = 20.0   # an island with a post this near already has its kit
+LOADER_SECTOR = 100      # street_details.gd MAX_SECTOR
+
+
+def on_platform(data, x, z):
+    return any(P.point_in_poly(x, z, P.pairs(p["p"])) for p in data.get("platforms", [])
+               if abs(p["p"][0] - x) < 150.0 and abs(p["p"][1] - z) < 150.0)
+
+
+def tram_island_kits(pl):
+    """Tram stops (F, 2026-11-07): every tram island on the map (tools/tram_stops.py `tram`), not only
+    the corridors', gets its stop post at one end and a ticket machine at the other, and a bench in
+    the middle when no shelter is mapped there; all on the slab, facing the tracks."""
+    data = pl.data
+    sh = data.get("shelters", [])
+    tracks = []
+    for t in data.get("trams", []):
+        q = P.pairs(t["p"])
+        tracks.extend(zip(q, q[1:]))
+    n = 0
+    for plat in data.get("platforms", []):
+        if not plat.get("tram"):
+            continue
+        poly = P.pairs(plat["p"])
+        cx = sum(q[0] for q in poly) / len(poly)
+        cz = sum(q[1] for q in poly) / len(poly)
+        if pl.excluded(cx, cz):
+            continue
+        if any(abs(o[0] - cx) < 60 and abs(o[1] - cz) < 60 and P.point_in_poly(o[0], o[1], poly)
+               for o in pl.by_kind.get("post", ())):
+            continue
+        edge = max(zip(poly, poly[1:] + poly[:1]), key=lambda e: math.hypot(e[1][0] - e[0][0], e[1][1] - e[0][1]))
+        ln = math.hypot(edge[1][0] - edge[0][0], edge[1][1] - edge[0][1]) or 1.0
+        tx, tz = (edge[1][0] - edge[0][0]) / ln, (edge[1][1] - edge[0][1]) / ln
+        ss = [(q[0] - cx) * tx + (q[1] - cz) * tz for q in poly]
+        s0, s1 = min(ss), max(ss)
+        if s1 - s0 < 15.0:
+            continue
+        # the side the tracks are on: items face away from the nearest track
+        best = min(tracks, key=lambda ab: P.seg_dist(cx, cz, ab[0], ab[1])) if tracks else None
+        if best is None:
+            continue
+        a, b = best
+        sl = math.hypot(b[0] - a[0], b[1] - a[1]) or 1.0
+        u = max(0.0, min(1.0, ((cx - a[0]) * (b[0] - a[0]) + (cz - a[1]) * (b[1] - a[1])) / (sl * sl)))
+        qx, qz = a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u
+        dl = math.hypot(cx - qx, cz - qz) or 1.0
+        face = ((cx - qx) / dl, (cz - qz) / dl)
+        kit = [("post", s0 + TRAM_KIT_END)]
+        if s1 - s0 >= 30.0:
+            kit.append(("ticket", s1 - TRAM_KIT_TICKET))
+        if not any(math.hypot(sh[i] - cx, sh[i + 1] - cz) < KIT_SHELTER_GAP for i in range(0, len(sh) - 2, 3)):
+            kit.append(("bench", (s0 + s1) * 0.5))
+        for kind, along in kit:
+            if len(pl.items) >= MAX_ITEMS:
+                break
+            for lateral in (0.0, 0.6, -0.6, 1.2, -1.2):
+                x = cx + tx * along - tz * lateral
+                z = cz + tz * along + tx * lateral
+                if not P.point_in_poly(x, z, poly):
+                    continue
+                if min(P.seg_dist(x, z, p, q) for p, q in zip(poly, poly[1:] + poly[:1])) < 0.8:
+                    continue
+                key = (int(x // SECTOR), int(z // SECTOR))
+                if pl.sector.get(key, 0) >= LOADER_SECTOR:
+                    break
+                if pl.solids.blocked(x, z, PLATFORM_R, skip=PLATFORM_SKIP) is not None:
+                    continue
+                if any(abs(o[1] - x) < 3.0 and abs(o[2] - z) < 3.0 for o in pl.items):
+                    continue
+                pl.add(kind, x, z, face, ON_PLATFORM)
+                n += 1
+                break
     return n
 
 
@@ -518,7 +597,7 @@ def bake(data):
                     pos += base + h01(round(a[0]), round(a[1]), round(pos), side) * jitter
                 walked[side] = pos
             run += ln
-    stops = stop_kits(pl, roads) + platform_kits(pl, roads)
+    stops = stop_kits(pl, roads) + platform_kits(pl, roads) + tram_island_kits(pl)
     square_terraces(pl)
     zielona_planters(pl)
     items = sorted(pl.items, key=lambda i: (i[1], i[2], i[0]))

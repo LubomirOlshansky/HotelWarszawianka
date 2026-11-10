@@ -56,6 +56,8 @@ var pulled_over := false
 var followed := false
 ## Loop MW-2 (parodies.md 3.3): a `detour` passenger's Frogs stop (+0.5 once).
 var detoured := false
+## A story passenger's question answered the way they liked (taxi_stories.json `star`): +0.5 once.
+var chatted := false
 var early := false
 var _drive_at := -INF
 
@@ -72,6 +74,7 @@ func begin(eta_seconds: float, from := START) -> void:
 	pulled_over = false
 	followed = false
 	detoured = false
+	chatted = false
 	early = false
 	_drive_at = -INF
 
@@ -118,6 +121,15 @@ func detour() -> bool:
 	if detoured:
 		return false
 	detoured = true
+	bonus += BONUS
+	return true
+
+
+## A story passenger liked the answer (rides.gd, taxi_stories.json): half a star, once.
+func chat() -> bool:
+	if chatted:
+		return false
+	chatted = true
 	bonus += BONUS
 	return true
 
@@ -186,12 +198,15 @@ static func next_streak(streak: int, stars_final: float, cancelled := false) -> 
 
 ## What a finished ride pays: {fare, mult, tip, streak (the bonus), total, respect, streak_after}.
 ## `streak` is the 5-star rides in a row before this one (the first pays no streak bonus).
-static func pay(road_m: float, stars_final: float, night: bool, rain: bool, hurry: bool, streak: int) -> Dictionary:
+static func pay(road_m: float, stars_final: float, night: bool, rain: bool, hurry: bool, streak: int, story_tip := 0) -> Dictionary:
 	var mult := multiplier(night, rain)
 	var fare := roundi((BASE + PER_KM * road_m / 1000.0) * mult)
 	var tip := roundi(fare * tip_share(stars_final) * (HURRY_TIP if hurry else 1.0))
 	var bonus_zl := mini(STREAK_STEP * streak, STREAK_CAP) if stars_final >= 5.0 else 0
-	return {"fare": fare, "mult": mult, "tip": tip, "streak": bonus_zl, "total": fare + tip + bonus_zl,
+	# A story passenger's extra (taxi_stories.json `tip`; the startup's "investment" is below zero):
+	# it can take the tip and the streak away, never the fare.
+	var story := maxi(story_tip, -tip - bonus_zl)
+	return {"fare": fare, "mult": mult, "tip": tip, "streak": bonus_zl, "story": story, "total": fare + tip + bonus_zl + story,
 			"respect": respect(stars_final), "streak_after": next_streak(streak, stars_final)}
 
 
@@ -275,6 +290,9 @@ static func result_text(r: Dictionary) -> Array:
 	var mult := float(p["mult"])
 	var money := "%d zł: kurs %d%s + napiwek %d%s" % [p["total"], p["fare"], (" (×%s)" % num(mult)) if mult > 1.0 else "",
 			p["tip"], (" + seria %d" % p["streak"]) if int(p["streak"]) > 0 else ""]
+	var story := int(p.get("story", 0))
+	if story != 0:
+		money += (" + rozmowa %d" % story) if story > 0 else (" − inwestycja %d" % -story)
 	# "Marta: …" (the comments carry their own „quotes”, so none round them).
 	var body := ("%s: %s\n" % [r.get("name", "Pasażer"), comment[0]] if not comment.is_empty() else "") + "%s\nOcena %s%s" % [money,
 			num(r["rating"], 2), (" · " + String(why[0])) if String(why[0]) != "" else ""]

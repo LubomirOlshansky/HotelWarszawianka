@@ -2,7 +2,7 @@ extends SceneTree
 ## Sekretny rave (scripts/rave.gd, F's ask 2026-11-06): its rules headless, from the committed map
 ## data (map/centrum.json: the lane graph and the origin) and data/dialogue.json; seeded:
 ##   1. the meshes: the light cone, the booth and the club's room one surface each (one draw call apiece);
-##   2. the lines: LEKTI's invites name {pw}, the rumours name MORDOR FM, Ziomek's tags (board,
+##   2. the lines: LEKTI's invites name {pw}, the rumours name MORDOR FM, Mati's tags (board,
 ##      board_smola, ride 10+, meet, go, go_smola, door_ok, door_out, abort), the
 ##      meeting point's lines name {where}, the crowd's night and day; Polish and English, bubbles
 ##      under 90 characters (the radio's under 200), no real brand (brand_denylist.json); the club's
@@ -10,17 +10,21 @@ extends SceneTree
 ##   3. the clock: a rave on Friday and Saturday nights (and Thursday's), not on Sunday's, not by
 ##      day; the day rave on weekend afternoons only; LEKTI only on a rave night's evening;
 ##   4. the door: three questions, each with three different answers and the right one among them,
-##      the password among them at a secret rave and never at Smoła; all three right lets you in,
-##      anything less sends you home ("Nie tym razem"); the lights' pose has no NaN, the strobe dark with
+##      the password among them at a secret rave and never at Smoła; on a strict door all three
+##      right lets you in, anything less sends you home ("Nie tym razem"); the door is easy for now
+##      (DOOR_STRICT off, F 2026-11-10: any answer gets you in); the lights' pose has no NaN, the strobe dark with
 ##      `calm`; the club's lights stay inside the room, the dance's beat check is on the beat;
 ##   5. the real lane graph: every spot and Smoła found with a door on a ground road within 160 m,
-##      Ziomek's pickup found from 30 seeded places, a meeting point 260-820 m from each night spot.
+##      Mati's pickup found from 30 seeded places, a meeting point 260-820 m from each night spot;
+##   6. main.gd's arrow: every quest branch of `_show_target` ends in a return, so the next branch's
+##      "nothing on" can't hide the arrow and re-fire the camera's look every frame (F 2026-11-10).
 ## Prints "check_rave: OK (...)" or the problems (exit 1).
 ##   godot --headless --path game --script res://tools/check_rave.gd [-- --verbose]
 
 const Rave := preload("res://scripts/rave.gd")
 const Club := preload("res://scripts/club.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
+const Notebook := preload("res://scripts/notebook.gd")
 const BUBBLE := 90
 
 
@@ -51,6 +55,7 @@ func _run() -> void:
 	_check_lines(digest)
 	_check_clock(digest)
 	_check_door(digest)
+	_check_targets(digest)
 	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://map/centrum.json"))
 	var map := FakeMap.new()
 	root.add_child(map)
@@ -208,8 +213,12 @@ func _check_door(digest: PackedStringArray) -> void:
 			if has_pw != (pw != ""):
 				problems.append("password asked %s with pw '%s'" % [has_pw, pw])
 	for row: Array in [[3, "in"], [2, "out"], [1, "out"], [0, "out"]]:
-		if Rave.door_result(row[0]) != row[1]:
-			problems.append("door_result(%d) = %s (want %s)" % [row[0], Rave.door_result(row[0]), row[1]])
+		if Rave.door_result(row[0], true) != row[1]:
+			problems.append("strict door_result(%d) = %s (want %s)" % [row[0], Rave.door_result(row[0], true), row[1]])
+	# F 2026-11-10: for now every answer gets you in (DOOR_STRICT off).
+	for right: int in [0, 1, 2, 3]:
+		if Rave.door_result(right, false) != "in" or Rave.wrong_ends(false):
+			problems.append("an easy door turns the player away with %d right" % right)
 	for t: float in [0.0, 1.3, 7.7, 100.25]:
 		for calm: bool in [false, true]:
 			var pose := Rave.light_pose(t, calm)
@@ -244,6 +253,11 @@ func _check_door(digest: PackedStringArray) -> void:
 			problems.append("entry note: %s" % l)
 	if Club.beat_offset(60.0 / Club.BPM * 7.0) > 0.001 or Club.beat_offset(60.0 / Club.BPM * 7.5) < 0.2:
 		problems.append("beat_offset off the beat")
+	if Club.beat_offset(60.0 / Club.PATIO_BPM * 5.0, Club.PATIO_BPM) > 0.001 or Club.beat_offset(60.0 / Club.PATIO_BPM * 5.5, Club.PATIO_BPM) < 0.2:
+		problems.append("beat_offset off the patio's beat")
+	for f: String in [Club.MUSIC_SALA, Club.MUSIC_PATIO]:
+		if not ResourceLoader.exists(f):
+			problems.append("no club music " + f)
 	digest.append("door 80 quizzes, room and patio lights inside")
 
 
@@ -255,6 +269,17 @@ func _check_map(g: LaneGraph, map: Node3D, origin: Array, digest: PackedStringAr
 	var club := Rave.find_club(g, map, origin)
 	if club.is_empty():
 		problems.append("Smoła has no door on a ground road")
+	# The two questlines' starts in person (F 2026-11-09): Mati's block and pod Rotundą, each on a
+	# ground road, far enough apart to be two badges on the map.
+	var starts: Array[Vector2] = []
+	for ll: Array in [Rave.HOME_LL, Rave.SMOLA_START_LL]:
+		var k := Rave.kerb_near(g, Notebook.project(origin, float(ll[0]), float(ll[1])), 120.0)
+		if k.is_empty():
+			problems.append("no ground road within 120 m of the start %s" % [ll])
+		else:
+			starts.append(Vector2(k["at"].x, k["at"].z))
+	if starts.size() == 2 and starts[0].distance_to(starts[1]) < 300.0:
+		problems.append("the rave's and Smoła's starts are %.0f m apart" % starts[0].distance_to(starts[1]))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 5
 	var far := 0.0
@@ -280,5 +305,34 @@ func _check_map(g: LaneGraph, map: Node3D, origin: Array, digest: PackedStringAr
 		if not Rave.kerb_ring(g, from, Rave.PICK_FROM, Rave.PICK_TO, Vector2.ZERO, rng).is_empty():
 			found += 1
 	if found < 27:
-		problems.append("Ziomek's pickup found from %d of 30 places" % found)
+		problems.append("Mati's pickup found from %d of 30 places" % found)
 	digest.append("%d spots + Smoła, doors within %.0f m, pickups %d/30" % [spots.size(), far, found])
+
+
+## Every `_new_target(` in main.gd's `_show_target` is followed by a `return` before the next
+## branch: a missing one (the rave's, 78d05081 until 2026-11-10) fell through to "nothing on".
+func _check_targets(digest: PackedStringArray) -> void:
+	var src := FileAccess.get_file_as_string("res://scripts/main.gd")
+	var a := src.find("\nfunc _show_target(")
+	var b := src.find("\nfunc ", a + 10)
+	if a < 0 or b < 0:
+		problems.append("main.gd: _show_target not found")
+		return
+	var lines := src.substr(a, b - a).split("\n")
+	var n := 0
+	for i in lines.size():
+		if not lines[i].strip_edges().begins_with("_new_target("):
+			continue
+		n += 1
+		var ok := true  # the function's last branch ends with it
+		for k in range(i + 1, lines.size()):
+			var l := lines[k].strip_edges()
+			if l == "" or l.begins_with("#"):
+				continue
+			if not lines[k].begins_with("\t"):
+				break  # past the function's end
+			ok = l == "return"
+			break
+		if not ok:
+			problems.append("main.gd _show_target: no return after line %d's _new_target" % i)
+	digest.append("%d target branches return" % n)

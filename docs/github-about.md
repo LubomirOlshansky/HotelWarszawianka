@@ -1,6 +1,6 @@
 # GitHub "About" box
 
-For the repo's About box (the gear beside "About" on github.com/LubomirOlshansky/AroundWarsaw).
+For the repo's About box (the gear beside "About" on the repo).
 Paste each field as it is.
 
 **Description** (257 characters; GitHub allows 350):

@@ -74,7 +74,21 @@ MAP = os.path.join(ROOT, "game", "map")
 # Browary's Central Garden (22 with the scan's 5), +4 by Willa Schielego. Before: 271056 / 45176.
 # Plac Centralny (F's photos, 2026-11-05, tools/plac_centralny.py): 45,289 trees (+97 young locusts, ginkgos,
 # ashes and magnolias on the new square's lawns and axis; 10 beds in surfaces, 6 benches). Before: 271152 / 45192.
-EXPECTED = {"trees3d": 271734, "pois": 4572, "trees3d_crown": 45289}
+# Plac Pięciu Rogów (F's photos + the ortho, 2026-11-06, tools/car_free.py EXTRA_XZ): 45,292 trees (+3
+# field maples the scan lacks: one by Zgoda, two at the Krucza end). Before: 271734 / 45289.
+# Dworzec Centralny's car park ramp (F, 2026-11-08, tools/centralny_ramp.py): 45,290 trees (2 scanned
+# trees whose trunks stood on the way out at the tunnel's mouth taken out). Before: 271752 / 45292.
+# Marszałkowska by the art museum (F, 2026-11-08, road design area marsz_defilad): 45,316 trees (+26
+# young columnar elms on the green strips either side of the tram track). Before: 271740 / 45290.
+# Trees off the water and the roads (F, 2026-11-08, tools/object_fixes.py T1/T2): 44,991 trees (211 scanned
+# trees standing in the river or a pond and 114 with no room off the drawn asphalt out; 1,033 more moved
+# up to 3 m off it). Before: 271896 / 45316.
+# Trees out of the walls (BACKLOG TR-1, 2026-11-09, tools/object_fixes.py T3): 44,862 trees (129 scanned
+# trees standing inside a building outline 2.5 m or higher with no free spot within 3 m taken out; 52
+# more moved out of the walls). Before: 269946 / 44991.
+# Marszałkowska by Sienkiewicza (F, 2026-11-09, road design area marsz_sienkiewicza): 44,872 trees (+10
+# young columnar elms on the west green strip between the tram and the southbound lanes). Before: 269172 / 44862.
+EXPECTED = {"trees3d": 269232, "pois": 4572, "trees3d_crown": 44872}
 # docs/DEMO.md 7 row 7: the lane graph's strongly connected share at least this.
 SCC_SHARE = 0.95
 

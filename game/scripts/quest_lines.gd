@@ -5,8 +5,13 @@ extends RefCounted
 ## A rescue the car can also reach (street, park, shore) is not heli-only: it stays on offer in
 ## both vehicles and keeps its amber pickup; only heli-only calls take the HELI colour.
 
-enum Line { CAR, HELI }
+## STORY (2026-11-07, story_quests.gd): the full map's WĄTKI tab, the big questlines; a beta
+## list where a tap starts one now.
+enum Line { CAR, HELI, STORY }
 
+## The WĄTKI tab's and the questlines' default accent (story_quests.gd): a warm pink that neither
+## the main gold, the car amber nor the heli violet use.
+const STORY_COLOUR := Color("#ff5e8a")
 ## The marker colour of heli-only quests (a violet that neither the amber pickup, the teal ride
 ## nor the blue/green drop-offs use, colour-safe mode included).
 const HELI_COLOUR := Color("#b48cff")
@@ -53,6 +58,8 @@ static func kind_for(kind: int, flying: bool) -> int:
 ## The rows a tab shows at most (44 pt each, the card must fit under the map's buttons on a 375 pt
 ## tall phone).
 const MAX_ROWS := 4
+## The WĄTKI tab lists every questline (about ten later), in a scroll of MAX_ROWS rows' height.
+const STORY_ROWS := 12
 ## Of each group only the nearest are listed (one kebab stand, not all nine), these groups more.
 const GROUP_KEEP := {"cassette": 3}
 ## The quest pin counts as reached within this many metres (ground plane).
@@ -98,6 +105,8 @@ static func far_text(from: Vector2, to: Vector2, polish: bool) -> String:
 static func rows(entries: Array, line: int, from: Vector2, most := MAX_ROWS) -> Array:
 	var asks: Array = []
 	var places: Array = []
+	if line == Line.STORY:
+		return _story_rows(entries, from, most)
 	for e: Dictionary in entries:
 		if int(e["line"]) != line:
 			continue
@@ -127,6 +136,22 @@ static func rows(entries: Array, line: int, from: Vector2, most := MAX_ROWS) -> 
 		taken[g] = n + 1
 		out.append(r)
 	return out.slice(0, most)
+
+
+## The WĄTKI tab's rows: every questline, the open ones first, each set nearest first (one with no
+## start spot last), with its distance; at most `most` (STORY_ROWS when the caller passes MAX_ROWS).
+static func _story_rows(entries: Array, from: Vector2, most: int) -> Array:
+	var out: Array = []
+	for e: Dictionary in entries:
+		if int(e["line"]) != Line.STORY:
+			continue
+		var r := e.duplicate()
+		var has_at: bool = e["at"] != Vector2.INF
+		r["far"] = [far_text(from, e["at"], true), far_text(from, e["at"], false)] if has_at else ["", ""]
+		r["d"] = (from.distance_to(e["at"]) if has_at else 1e9) + (0.0 if bool(e.get("open", true)) else 1e10)
+		out.append(r)
+	out.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return float(a["d"]) < float(b["d"]))
+	return out.slice(0, maxi(most, STORY_ROWS) if most == MAX_ROWS else most)
 
 
 ## True when the vehicle at `at` has reached the quest pin `pin` (an entry; {} never).

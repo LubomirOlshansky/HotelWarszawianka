@@ -43,6 +43,10 @@ const InstanceBuffers := preload("res://scripts/instance_buffers.gd")
 const Notebook := preload("res://scripts/notebook.gd")
 const EggBook := preload("res://scripts/egg_book.gd")
 const Zaglebie := preload("res://scripts/zaglebie.gd")
+const CoffeeRun := preload("res://scripts/coffee_run.gd")
+## The venues that also get a glazed café front under their sign (Props.cafe_front, one MultiMesh
+## per sector like the Frogs: +1 draw call where they stand): the coffee run's four cafés.
+const CAFE_FRONT_IDS := ["kawa_kropka", "glon_dobra", "kawa_storczyk", "kawa_mantra"]
 
 ## The sector size (the city's 512 m tiles: map_builder.gd SECTOR).
 const TILE := 512.0
@@ -85,6 +89,8 @@ const MIESZANE_TUBE := Color(1.0, 0.45, 0.12)
 const DALEJ_TUBE := Color(0.55, 1.0, 0.8)
 ## KRINGULA PIZZA, the hyped pizzeria (a parody; F's ideas #6): a tomato red.
 const KRINGULA_TUBE := Color(1.0, 0.3, 0.22)
+## DŻEMINI KEBAB (F, 2026-11-06): the kebab an AI agent carves, in the agent's blue-violet.
+const DZEMINI_TUBE := Color(0.45, 0.55, 1.0)
 ## The cinemas' marquee tubes: amber, a deep red and a cool white-blue, so a street of them is not one colour.
 const CINEMA_TUBE := Color(1.0, 0.72, 0.25)
 const CINEMA_TUBE_B := Color(1.0, 0.25, 0.3)
@@ -178,16 +184,23 @@ const VENUES := {
 	"dalej_gelato": [["DALEJ DALLA", "GELATO LODY"], DALEJ_TUBE, 2.8],
 	# F's ideas #6 (2026-11-02): the pizzeria everyone queues and cries for; the sign is final, the joke is not.
 	"kringula_pizza": [["KRINGULA", "PIZZA"], KRINGULA_TUBE, 3.0],
+	# F (2026-11-06): the new kebab whose meat an AI agent carves; Mrożulo's MLASK makes it the
+	# city's longest queue (trend_job.gd "Dżemini", crowds.gd DZEMINI_ID).
+	"dzemini_kebab": [["DŻEMINI", "KEBAB 24H"], DZEMINI_TUBE, 2.8],
 	# Warsaw's classic and arthouse cinemas (F, 2026-11-02): the real independent halls under their
 	# own names (place names, not brands; the multiplex chains stay out), amber marquee tubes.
-	"kino_muranow": [["KINO", "MURANÓW"], CINEMA_TUBE, 3.2],
 	"kino_atlantic": [["KINO", "ATLANTIC"], CINEMA_TUBE_B, 3.2],
 	"kino_luna": [["KINO", "LUNA"], CINEMA_TUBE_C, 3.2],
 	"kino_kultura": [["KINO", "KULTURA"], CINEMA_TUBE, 3.2],
 	"kino_elektronik": [["KINO", "ELEKTRONIK"], CINEMA_TUBE_B, 3.2],
-	"kino_kinoteka": [["KINOTEKA"], CINEMA_TUBE, 3.2],
 	# Powiśle's streets (F, 2026-11-02): the small shops of a student and cyclist quarter, original
 	# names, one tube each, low over the door.
+	# The coffee run's cafés (coffee_run.gd STOPS; F 2026-11-08: "no café fronts, just a person
+	# standing"): their names in the tube colours of their real fronts' letters (white on black,
+	# gold, matcha green); each also gets a glazed front (CAFE_FRONT_IDS). Glon's sign is above.
+	"kawa_kropka": [["KROPKA."], Color(1.0, 1.0, 1.0), 2.8],
+	"kawa_storczyk": [["STORCZYK"], Color(1.0, 0.8, 0.35), 2.8],
+	"kawa_mantra": [["MANTRA"], Color(0.55, 1.0, 0.6), 2.8],
 	"pow_flat_bialy": [["FLAT", "BIAŁY"], CAFE_TUBE, 2.8],
 	"pow_rowerownia": [["ROWEROWNIA", "SERWIS"], POWISLE_TUBE_A, 2.8],
 	"pow_winyle": [["WINYLE", "NA SKARPIE"], POWISLE_TUBE_B, 2.8],
@@ -350,19 +363,20 @@ const HYPE := {
 	"dalej_gelato": [52.237885, 21.027375],
 	# KRINGULA PIZZA on Poznańska, the street of the new places (corner approximate; Mac look check parked).
 	"kringula_pizza": [52.22725, 21.01575],
+	# DŻEMINI KEBAB, new on the north side of Świętokrzyska, its front to the camera (an invented shop; the Mac look check parks the door).
+	"dzemini_kebab": [52.23595, 21.0105],
 }
 ## Warsaw's classic and arthouse cinemas (F, 2026-11-02; BACKLOG "Lore: coffee raves and arthouse
-## cinemas"): Kino Muranów (Andersa 1), Atlantic (Chmielna 33), Luna (Marszałkowska 28), Kultura
-## (Krakowskie Przedmieście 21/23), Elektronik (Czerwonego Krzyża 3/5) and the Kinoteka in the Palace
-## (Kino Femina's fascia is zaglebie.gd's `zag_femina`). Like the cafés, not notebook places;
+## cinemas"): (Kino Muranów's letters are its landmark model's since 2026-11-07, landmarks.gd) Atlantic (Chmielna 33), Luna (Marszałkowska 28), Kultura
+## (Krakowskie Przedmieście 21/23) and Elektronik (Czerwonego Krzyża 3/5). The Kinoteka's sign is the
+## Palace's own (landmarks.gd PKIN_SIGNS, 2026-11-07: this table put it 130 m west, across Emilii
+## Plater). (Kino Femina's fascia is zaglebie.gd's `zag_femina`). Like the cafés, not notebook places;
 ## same venue code, the nearest road snaps the sign. Iluzjon (Narbutta, Mokotów) is south of the map.
 const CINEMAS := {
-	"kino_muranow": [52.24620, 21.00030],
-	"kino_atlantic": [52.23180, 21.01400],
+	"kino_atlantic": [52.23158, 21.01253],
 	"kino_luna": [52.22830, 21.01360],
 	"kino_kultura": [52.24060, 21.01680],
 	"kino_elektronik": [52.23480, 21.02900],
-	"kino_kinoteka": [52.23100, 21.00450],
 }
 ## Powiśle's streets (F, 2026-11-02; BACKLOG "Powiśle streets"): a cafe on Tamka, a bike workshop and
 ## a bakery on Dobra, a record shop and a bookshop towards the Library, a bar on Topiel, a stairwell
@@ -571,6 +585,7 @@ var _roots := {}
 var _triple_placed := {}
 var _pending: Array[Vector2i] = []
 var _shop_mesh: ArrayMesh
+var _cafe_mesh: ArrayMesh
 var _lezak_mesh: ArrayMesh
 var _atlas: ImageTexture
 var _rows := 0
@@ -616,11 +631,18 @@ func setup(data: Dictionary, places: Array) -> void:
 			with_cafes.append({"id": id, "at": Notebook.project(data.get("origin", [52.234, 21.024]), float(ll[0]), float(ll[1]))})
 	for id: String in VIADUKT:
 		with_cafes.append({"id": id, "at": VIADUKT[id][1], "road": VIADUKT[id][0], "bld": VIADUKT[id][1]})
+	# The coffee run's cafés at their doors (map x, z; Glon is a notebook place, already in).
+	for st: Dictionary in CoffeeRun.STOPS:
+		if st["door"] != Vector2.INF:
+			with_cafes.append({"id": "kawa_" + str(st["id"]), "at": st["door"]})
+	await LoadYield.tick("storefronts addresses")
 	venues = venue_list(with_cafes, addrs, graph)
+	await LoadYield.tick("storefronts venues")
 	for v in venues:
 		avoid.append(v["road"])
 	var polys := landmark_index(data.get("landmarks", []))
 	shops = pick_shops(addrs, convenience_list(data.get("pois", [])), jpos, triple_at, polys, avoid)
+	await LoadYield.tick("storefronts shops")
 	var nt := 0
 	for s in shops:
 		if s["triple"] != "" and not s["spare"]:
@@ -645,9 +667,13 @@ func setup(data: Dictionary, places: Array) -> void:
 		_by_key[payphone["key"]] = {"shops": [], "venues": [], "scooters": [], "zones": [], "metros": [], "docks": []}
 	_shop_mesh = Props.frogs_shop()
 	_lezak_mesh = Props.lezak()
+	await LoadYield.tick("storefronts meshes")
 	_build_atlas()
+	await LoadYield.tick("storefronts atlas")
 	_kebab_boards(at)
+	await LoadYield.tick("storefronts boards")
 	_billboards(at)
+	await LoadYield.tick("storefronts billboards")
 	_load_stamps()
 	# The eggs where their things are: the first triple corner's junction, the standing Leżak's zone.
 	if egg_book != null:
@@ -1093,6 +1119,7 @@ func _physics_process(_dt: float) -> void:
 			if int(venues[i]["state"]) == 0:
 				_place_venue(i, space)
 		_build_shops(key, root)
+		_build_cafe_fronts(key, root)
 		_venue_neon(key, root)
 		_write_lezaks(key)
 	_index_doors()
@@ -1247,10 +1274,34 @@ func _place_venue(i: int, space: PhysicsDirectSpaceState3D) -> void:
 	v["px"] = px
 	v["off"] = 0.14
 	v["wall"] = Vector2(p.x, p.z)
+	v["p"] = p
+	v["n"] = n
+	v["t"] = t
 	v["state"] = 1
+	if v["id"] in CAFE_FRONT_IDS:
+		v["front"] = Transform3D(Basis(t, Vector3.UP, n), p + n * 0.02)
 	if log_on:
 		print("storefronts: venue %s \"%s\" on the wall at %.1f, %.1f, %.2f m out, letter pixel %.2f m" % [v["id"],
 				" / ".join(lines), p.x, p.z, v["off"], px])
+
+
+## The sector's café fronts (CAFE_FRONT_IDS): one MultiMesh under its root, no sun shadow.
+func _build_cafe_fronts(key: Vector2i, root: Node3D) -> void:
+	var placed: Array[Transform3D] = []
+	for i: int in _by_key[key]["venues"]:
+		if int(venues[i]["state"]) == 1 and venues[i].has("front"):
+			placed.append(venues[i]["front"])
+	if placed.is_empty() or root.get_node_or_null("CafeFronts") != null:
+		return
+	if _cafe_mesh == null:
+		_cafe_mesh = Props.cafe_front()
+	var mmi := MultiMeshInstance3D.new()
+	mmi.name = "CafeFronts"
+	mmi.multimesh = _static_mm(_cafe_mesh, placed)
+	mmi.material_override = Models.material()
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mmi.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	root.add_child(mmi)
 
 
 ## The sector's Frogs: one MultiMesh under its root.
@@ -1442,6 +1493,11 @@ func _write_lezaks(key: Vector2i) -> void:
 	mmi.multimesh = _static_mm(_lezak_mesh, xfs)
 
 
+## Metro Centrum's four entrances at the Marszałkowska crossing (OSM refs 6-9) that are open stairs
+## between granite balustrades, with no tube and no lift (F, 2026-11-09).
+const CENTRUM_OPEN_STAIRS: Array[String] = ["6", "7", "8", "9"]
+
+
 ## The metro entrances from the bake's `subway_entrance` pois (content-POIs switch): `yaw` is the
 ## way down (the canopy's open front faces away from it), `st` the station's name; the ones that
 ## open off an underground passage only (`u`) have no street canopy. Metro Centrum's wear its blue
@@ -1459,19 +1515,57 @@ func _load_metros(pois: Array) -> void:
 		# the entrances: no canopy of our own.
 		if MapBuilderStatic.in_sunken(x, z):
 			form = "none"
+		# Metro Centrum's refs 4 and 10 by the Palace's park are the landmark site `metro_tubes`' barrels
+		# (OSM outlines 3401 and 3224), not a prop on top of a box.
+		if str(p.get("st", "")) == "Centrum" and str(p.get("ref", "")) in ["4", "10"]:
+			form = "none"
+		var ref := str(p.get("ref", ""))
+		var open_stairs := str(p.get("st", "")) == "Centrum" and ref in CENTRUM_OPEN_STAIRS
+		if open_stairs:
+			form = "steps"  # F, 2026-11-09: these four are a bare stair, no glass pavilion
+		# Świętokrzyska's entrances on the Marszałkowska side keep the older green M1 glass.
+		if form == "tent" and str(p.get("st", "")) == "Świętokrzyska" and x > -1075.0:
+			form = "tent_green"
 		metros.append({"at": Vector3(x, map.ground_height(x, z), z), "yaw": float(p["yaw"]), "station": str(p.get("st", "")),
 				"ref": str(p.get("ref", "")), "key": key_of(Vector2(x, z)), "form": form,
-				"lift": (int(absf(x * 7.0 + z * 13.0)) % 5) < 3})
+				"lift": not open_stairs and (int(absf(x * 7.0 + z * 13.0)) % 5) < 3})
+
+
+## The Ratusz-Arsenał station (OSM's name on its entrances).
+const RATUSZ := "Ratusz-Arsenał"
 
 
 ## The entrance's look by station: Centrum's 1990s tubes (F, 2026-11-02); Świętokrzyska's mapped
 ## canopies are M2's steel-and-glass triangle tents (F's photo, Feb 2026), its plain stairs stay
-## stairs; elsewhere the bake's `f`.
+## stairs; Rondo ONZ wears the same tents, Stadion Narodowy, Kopernik and Gdanski their glass
+## crystals, Nowy Swiat-Uniwersytet its violet box; Ratusz-Arsenał's are its own (Props._metro_ratusz);
+## elsewhere the bake's `f`.
 static func metro_form(station: String, f: String) -> String:
 	if station == "Centrum":
 		return "tube"
 	if station == "Świętokrzyska" and f == "canopy":
 		return "tent"
+	if station == "Rondo Daszyńskiego" and f == "canopy":
+		return "wings"  # F's photos (2026-11-06): the red glass butterfly canopies
+	# Street photos (Mapillary, 2026-11-07): M2's other stations, each with its own pavilion.
+	if f == "canopy":
+		match station:
+			"Rondo ONZ":
+				return "tent"  # the same steel-and-glass A-frame with the yellow roundel
+			"Stadion Narodowy":
+				return "crystal"
+			"Centrum Nauki Kopernik":
+				return "crystal_aqua"
+			"Dworzec Gdański":
+				return "crystal_clear"
+			"Nowy Świat-Uniwersytet":
+				return "box"
+	if station == RATUSZ:
+		# F's photos (2026-11-07): the glass escalator pavilion by the tram stop, stone M1 entrances
+		# with a white canopy where OSM maps a canopy, stone stairwells elsewhere.
+		if f == "footway":
+			return "pavilion"
+		return "stone" if f == "canopy" else "stone_steps"
 	return f
 
 
@@ -1917,6 +2011,17 @@ func restore_collected() -> int:
 
 
 ## For the bench's and the check's counters.
+## A placed venue's wall (trend_job.gd's MLASK sticker on DŻEMINI): {p: Vector3 on the wall's foot,
+## n (out of the wall), t (along it), up (the sign's bottom, m)}, or {} until its sector placed it.
+func venue_wall(id: String) -> Dictionary:
+	for v: Dictionary in venues:
+		if str(v["id"]) == id:
+			if int(v["state"]) != 1 or not v.has("n"):
+				return {}
+			return {"p": v["p"], "n": v["n"], "t": v["t"], "up": float(v["up"]), "front": v.has("front")}
+	return {}
+
+
 func summary() -> String:
 	var placed := 0
 	var failed := 0

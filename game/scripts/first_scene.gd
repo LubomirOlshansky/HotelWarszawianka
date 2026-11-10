@@ -95,25 +95,13 @@ const PASAZ_MASTS := [[-15.0, 68.0], [10.0, 68.0], [100.0, 67.5]]
 ## tree row, the east one from the kerb to the stores' arcades. Walkers there are denser while the
 ## view is on the start (pedestrians.gd set_busy).
 const BUSY_BANDS := [[-200.0, 330.0, -30.0, -13.0], [-200.0, 330.0, 22.0, 37.0]]
-## The kinds that stand on a tram island (centrum.json `platforms`: 0.9 m slab + 0.1 m top).
+## The kinds that stand on a tram island (centrum.json `platforms`): on its top
+## (map_builder.platform_top; 0.3 m since the tram-stops pass, 2026-11-07).
 const ON_PLATFORM := ["shelter", "stop", "ticket"]
-const PLATFORM_TOP := 1.0
 ## The middle of the street (the tram tracks), which every item faces.
 const STREET_T := 8.0
-## First-scene item 5 (2026-11-02): the track edges of the two tram platforms in the box
-## (centrum.json `platforms`, 0.9 m slabs: Centrum's south of Widok, the stop north of the museum)
-## get a light edge band and, PLATFORM_LINE m in, a yellow tactile strip, as Warsaw's tram stops
-## have. [polyline of [s, t] along the edge, the side the platform lies on (+1 = east, -1 =
-## west)]. Flat strips in this mesh, just over the platform's top: +0 draw calls.
-const PLATFORM_EDGES := [
-	[[[-231.0, 4.0], [-179.6, 4.4], [-167.4, 4.3], [-162.0, 4.2]], -1.0],
-	[[[246.0, 11.4], [328.0, 11.65]], 1.0],
-]
-const EDGE_BAND := 0.25
-const PLATFORM_LINE := 0.5
-const TACTILE_BAND := 0.4
-const EDGE_COL := Color("#e9e7e0")
-const TACTILE_COL := Color("#b89f58")
+## First-scene item 5's platform edges (the light band and the tactile strip) are drawn by
+## map_builder.gd on every tram island since the tram-stops pass (2026-11-07, `te`).
 ## The kiosk's and the stall's footprints for the car (half sizes).
 const SOLID := {"kiosk": Vector2(1.45, 1.1), "stall": Vector2(1.2, 0.9), "shelter": Vector2(2.15, 0.98),
 		"stone": Vector2(0.6, 0.4)}
@@ -134,7 +122,11 @@ func build() -> void:
 		var face := FRAME_T * signf(float(item[2]) - STREET_T)
 		var yaw := atan2(face.x, face.y)
 		var kind: String = item[0]
-		var y: float = map.ground_height(p.x, p.y) + (PLATFORM_TOP if kind in ON_PLATFORM else 0.0)
+		var y: float = map.ground_height(p.x, p.y)
+		if kind in ON_PLATFORM:
+			var top: float = map.platform_top(p.x, p.y)
+			if not is_nan(top):
+				y = maxf(y, top)
 		var xf := Transform3D(Basis(Vector3.UP, yaw), Vector3(p.x, y, p.y))
 		match kind:
 			"kiosk":
@@ -179,8 +171,6 @@ func build() -> void:
 			shape.transform = Transform3D(xf.basis, xf.origin + Vector3.UP * 1.2)
 			body.add_child(shape)
 		count += 1
-	for edge: Array in PLATFORM_EDGES:
-		_platform_edge(st, edge[0], float(edge[1]))
 	_pasaz_masts(st)
 	var mi := MeshInstance3D.new()
 	mi.name = "FirstSceneProps"
@@ -213,35 +203,3 @@ func _pasaz_masts(st: SurfaceTool) -> void:
 	for p in at:
 		Props.add_y_mast(st, Transform3D(Basis(Vector3.UP, yaw), Vector3(p.x, map.ground_height(p.x, p.y), p.y)))
 		count += 1
-
-
-## A tram platform's edge: the light band at the edge, then the tactile strip, each a flat strip
-## along the polyline `edge` ([s, t] points), laid `side` of it (+1 east) on the platform's top.
-func _platform_edge(st: SurfaceTool, edge: Array, side: float) -> void:
-	# The platform's top is flat, its slab's height over the lowest ground under it (map_builder
-	# _build_platforms), so the strips take the lowest ground along the edge.
-	var y := INF
-	for q: Array in edge:
-		var g := FRAME_O + FRAME_S * float(q[0]) + FRAME_T * float(q[1])
-		y = minf(y, map.ground_height(g.x, g.y))
-	y += PLATFORM_TOP + 0.02
-	for i in edge.size() - 1:
-		var a := FRAME_O + FRAME_S * float(edge[i][0]) + FRAME_T * float(edge[i][1])
-		var b := FRAME_O + FRAME_S * float(edge[i + 1][0]) + FRAME_T * float(edge[i + 1][1])
-		# Into the platform: across the edge, on its `side` (FRAME_T points east).
-		var dir := (b - a).normalized()
-		var into := Vector2(-dir.y, dir.x)
-		if into.dot(FRAME_T) * side < 0.0:
-			into = -into
-		_flat_band(st, a, b, into, 0.0, EDGE_BAND, y, EDGE_COL)
-		_flat_band(st, a, b, into, PLATFORM_LINE, PLATFORM_LINE + TACTILE_BAND, y, TACTILE_COL)
-
-
-## A flat band from a to b at height y, between `d0` and `d1` m along `into`.
-func _flat_band(st: SurfaceTool, a: Vector2, b: Vector2, into: Vector2, d0: float, d1: float, y: float, col: Color) -> void:
-	var p := [a + into * d0, b + into * d0, b + into * d1, a + into * d1]
-	var v: Array[Vector3] = []
-	for q: Vector2 in p:
-		v.append(Vector3(q.x, y, q.y))
-	Props.tri(st, v[0], v[1], v[2], Vector3.UP, col)
-	Props.tri(st, v[0], v[2], v[3], Vector3.UP, col)

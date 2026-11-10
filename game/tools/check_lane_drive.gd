@@ -12,7 +12,11 @@ extends SceneTree
 ## end, steered: a fail here is a road problem, a pass means the run hit the corners' walls.
 ## P16: the Trzy mosty route (trzy_mosty.gd legs), bridge by bridge at full speed.
 ##
-##   godot --headless --path game --fixed-fps 60 --script res://tools/check_lane_drive.gd [-- --prebuilt --verbose --only=NAME]
+## --streets=A,B (with --box=x0,z0,x1,z1, metres): drive those streets instead, only their lanes inside
+## the box, and no Trzy mosty; --route=NAME:x,z>x,z[>...][;NAME2:...] adds a route through the graph
+## nodes nearest those points (into and out of side roads) (a road design check: tools/road_design.py streets driven end to end).
+##
+##   godot --headless --path game --fixed-fps 60 --script res://tools/check_lane_drive.gd [-- --prebuilt --handling=grounded --verbose --only=NAME --streets=A,B --box=...]
 
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const SectorStreamer := preload("res://scripts/sector_streamer.gd")
@@ -38,8 +42,13 @@ const CRUISE_NARROW := 14.0
 const CRUISE_FAST := 30.0
 
 var prebuilt := false
+## --handling=cruise|sport|grounded: drive the routes in that profile (-1: the car's default, Cruise).
+var handling := -1
 var verbose := false
 var only := ""
+var streets: Array = STREETS
+var box := Rect2()
+var extra := ""
 var map: Node3D
 var graph: LaneGraph
 var car: CharacterBody3D
@@ -66,8 +75,17 @@ func _initialize() -> void:
 			prebuilt = true
 		elif a == "--verbose":
 			verbose = true
+		elif a.begins_with("--handling="):
+			handling = Car.parse_handling(a.trim_prefix("--handling="))
 		elif a.begins_with("--only="):
 			only = a.trim_prefix("--only=")
+		elif a.begins_with("--streets="):
+			streets = Array(a.trim_prefix("--streets=").split(","))
+		elif a.begins_with("--route="):
+			extra = a.trim_prefix("--route=")
+		elif a.begins_with("--box="):
+			var b := a.trim_prefix("--box=").split_floats(",")
+			box = Rect2(minf(b[0], b[2]), minf(b[1], b[3]), absf(b[2] - b[0]), absf(b[3] - b[1]))
 	var t0 := Time.get_ticks_msec()
 	# The index first (the lane graph needs only it), then just the sectors within REACH of a route.
 	if prebuilt:
@@ -79,7 +97,7 @@ func _initialize() -> void:
 		map.setup_streamed(JSON.parse_string(FileAccess.get_file_as_string(SectorStreamer.INDEX_JSON)), ShaderMaterial.new(), ShaderMaterial.new())
 	map.data = map.index_data
 	graph = LaneGraph.new(map.data["graph"], map)
-	for street: String in STREETS:
+	for street: String in streets:
 		var ends := _street_ends(street)
 		if ends.is_empty():
 			_fail_build("no lanes named %s" % street)
@@ -88,8 +106,17 @@ func _initialize() -> void:
 			var a: int = ends[way]
 			var b: int = ends[1 - way]
 			_add_route("%s %s" % [street, "→" if way == 0 else "←"], PackedInt32Array([a, b]), CRUISE_NARROW)
+	for spec: String in extra.split(";", false):
+		var parts := spec.split(":")
+		var stops := PackedInt32Array()
+		for xz: String in parts[1].split(">"):
+			var f := xz.split_floats(",")
+			stops.append(graph.nearest_node(Vector2(f[0], f[1])))
+		_add_route(parts[0], stops, CRUISE_NARROW)
 	var tm := TrzyMosty.new()
-	if not tm.build(graph, map.data):
+	if streets != STREETS or extra != "":
+		pass
+	elif not tm.build(graph, map.data):
 		_fail_build("Trzy mosty: %s" % tm.error)
 	else:
 		var start := graph.nearest_node(Vector2(tm.start_pos.x, tm.start_pos.z))
@@ -135,7 +162,7 @@ func _street_ends(street: String) -> Array:
 	for e in graph.e_a.size():
 		if graph.e_name[e] == street:
 			for n: int in [graph.e_a[e], graph.e_b[e]]:
-				if graph.node_scc[n] != 0 and not nodes.has(n):
+				if graph.node_scc[n] != 0 and not nodes.has(n) and (box.size == Vector2.ZERO or box.has_point(graph.node_pos[n])):
 					nodes.append(n)
 	if nodes.size() < 2:
 		return []
@@ -215,6 +242,8 @@ func _next() -> bool:
 	_path = r["pts"]
 	_cruise = float(r["cruise"])
 	car = Car.new()
+	if handling >= 0:
+		car.set_handling(handling)
 	car.ground_height = map.drive_height
 	car.water_at = map.in_water
 	car.kerb_feel = map.kerb_feel
@@ -273,7 +302,8 @@ func _physics_process(dt: float) -> bool:
 	var ahead := mini(_idx + int(ceil(look / STEP)), _path.size() - 1)
 	var aim := _path[ahead] - p
 	aim.y = 0.0
-	var bend := _bend(_idx, BEND_AHEAD + v)
+	# Grounded brakes at ~1.1 g, not 3 g: a careful driver looks a stopping distance further on.
+	var bend := _bend(_idx, BEND_AHEAD + v + (v * v / 18.0 if car.weighty else 0.0))
 	var want := _cruise
 	if bend > deg_to_rad(70.0):
 		want = 6.0
@@ -281,6 +311,12 @@ func _physics_process(dt: float) -> bool:
 		want = 9.0
 	elif bend > deg_to_rad(20.0):
 		want = minf(_cruise, 14.0)
+	if car.weighty:
+		# Grounded turns with ~1.2 g at most: no faster than 80 % of that grip allows on the bend's radius.
+		var reach := BEND_AHEAD + v
+		var curve := _bend(_idx, reach)
+		if curve > 0.02:
+			want = minf(want, maxf(6.0, sqrt(0.8 * car.turn_pull * reach / curve)))
 	car.target_dir = aim.normalized() if aim.length() > 0.5 else Vector3.ZERO
 	car.throttle = clampf(want / car.top_speed(), 0.0, 1.0)
 	car.braking = v > want + 4.0

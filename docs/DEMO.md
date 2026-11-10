@@ -497,9 +497,9 @@ buildings under decks and the tunnels done** (see 4.8); the rim's walls wait for
 
 **Tunnels in a top-down game.**
 
-- **Inside a tunnel the ground above stays drawn.** The car shows as an outlined silhouette
-  through it: the occlusion ghost's region, applied to the ground and roofs over a tunnel
-  corridor. The camera does not dive.
+- **Inside a tunnel the ground above opens round the car** (F, 2026-11-08; until then it stayed
+  drawn with the car as a silhouette through it): a cutaway over the tunnel's corridor, with what
+  stands on it, so the road, the walls and the car show. The camera does not dive.
 - Portals get a frame and retaining walls along the open ramp.
 - Traffic is simulated through the tunnel, but cars are hidden more than 15 m inside.
 - The minimap draws tunnels dashed.
@@ -643,8 +643,8 @@ The builder's side, placed in the bake (`tools/bake_structures.py`, run at the e
   (`lane_graph.gd TUNNELS_DRIVEN = true`, the graph's off-map links and connected part include
   them; `map_builder.drive_height` drives a tunnel's floor when the car is at it); traffic
   simulated through them and hidden more than 15 m from a portal (graph edges' `po`); the car
-  shows through the ground as a silhouette (`tunnel_xray.gd`; the plan's dithered ghost would
-  need `discard` in the ground shader); the Wisłostrada trench at (637, -554) is its portal.
+  shows through the ground as a silhouette (`tunnel_xray.gd`; since 2026-11-08 the ground opens
+  over it instead, `tunnel_cut.gdshaderinc`); the Wisłostrada trench at (637, -554) is its portal.
   Warecka's 7 m `tunnel=yes` is a gate (left out like the building passages). 27 garage doors
   drawn and solid. The minimap's dashed tunnels are a hud.gd change left for the HUD's owner.
 - **`game/tools/check_drive.gd`** (4.5) and the `roads` step FAILing on any rule. What the sweep
@@ -817,7 +817,7 @@ a car joins. A clipboard-scribble sound for the clamp.
 | 0:05 | Driving. A ghost finger only if there is no touch for 4 s | New hint |
 | 0:15 | A dashed ring and a kebab steam icon ahead (the Marszałkowska/Świętokrzyska stand; 2026-10-31, the first-10 polish: a new save starts on the northbound side by the Museum of Modern Art, facing the stand ~350 m up the street) | Exists, plus a guaranteed first order |
 | 0:30 | The first order: ~~a hand-picked 700 m delivery past the Rotunda~~ a short, easy one (2026-10-31, the first-10 polish: ~230 m straight on up Marszałkowska, no turn to find; the first one was 926 m with a U-turn). The customer's punchline, money pops | New "first order" |
-| 1:30 | ~~Seba~~ **Pani Halina** rolls up behind and flashes: FLASH LIGHTS back. An 800 m race to the Palm, which she is tuned to lose narrowly (2026-10-31, loop 3h slice 4: Halina is the ladder's first rung, so the first race counts on the ladder and Seba stays the final's boss, making "Trzy mosty" the payoff) | Exists + a first-race tuning (rivals.gd `first_band`) |
+| 1:30 | ~~Seba~~ **Pani Halina** rolls up behind and flashes: FLASH LIGHTS back. An 800 m race to the Palm at her own gentle pace: a player who races wins it (2026-10-31, loop 3h slice 4: Halina is the ladder's first rung, so the first race counts on the ladder and Seba stays the final's boss, making "Trzy mosty" the payoff; 2026-11-10: no longer tuned to lose narrowly, that script was the crawl, docs/design/race-ai.md 6) | Exists: her gentle day (ladder.gd `FIRST_RACER`) |
 | 3:00 | The first speed trap on the way back: a caution, two jokes, the roosters explained in one line | New (police) |
 | 4:00 | A rescue call (street, car): the hospital, the escort, and the helicopter unlocked | Exists + gating |
 | 6:00 | Helicopter over the river: a cassette on the boulevard roof, a new song (2026-10-31: the first mixtape lies on the University Library's roof by the boulevards, cassettes.gd) | New collectible |
@@ -966,10 +966,10 @@ should list them when the user accepts this plan.
 9. **Moving the HUD loop (2e) ahead of the car models (2c) and jokes (2d)**? *Default: yes.*
 10. **The screenshot's location**: this plan reads it as the east end. Both ends share the
     defects and both get fixed. *Default: no action needed.*
-11. **Open-source licence**: decided by the user on 2026-10-28: **MIT** for the code and the
-    game's own sounds, music and art (`LICENSE`); the map data keeps ODbL (OSM), CC BY 4.0 (the
-    trees) and the GUGiK terms (`CREDITS.md`). The repo is
-    https://github.com/LubomirOlshansky/AroundWarsaw (public).
+11. **Licence**: changed by the user on 2026-11-06 to source-available, non-commercial:
+    PolyForm Noncommercial 1.0.0 for the code (`LICENSE`), CC BY-NC 4.0 for the game's own art,
+    sounds, music and text (`LICENSE-ASSETS.md`); the map data keeps ODbL (OSM), CC BY 4.0 (the
+    trees) and the GUGiK terms (`CREDITS.md`). The repo is not linked from public pages.
 12. **TestFlight**: agents prepare a signed-ready archive and the user uploads it from Xcode or
     Transporter. *Default: yes.*
 

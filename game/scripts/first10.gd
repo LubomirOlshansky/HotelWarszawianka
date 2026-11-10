@@ -17,12 +17,12 @@ extends Node
 ## | finger | 0:05 | the ghost finger (hud.gd) after FINGER_IDLE s with no touch or key; it goes at the first one |
 ## | stand | 0:15 | the edge arrow to the kebab stand by Świętokrzyska (jobs.gd FIRST_STAND), straight ahead of the start (START), until an order starts |
 ## | order | 0:30 | that stand's next order is the guided one (~250 m straight on up Marszałkowska, jobs.gd `pin_first`) |
-## | race | 1:30 | RACE_AFTER s after the first delivery's card, not before RACE_EARLIEST (or at RACE_LATEST without one) Pani Halina rolls up behind and flashes (rivals.gd `call_first`): the ladder's first rung, a race to the Palm she loses narrowly; declined, she tries twice more, RACE_RETRY s apart |
+## | race | 1:30 | RACE_AFTER s after the first delivery's card, not before RACE_EARLIEST (or at RACE_LATEST without one) Pani Halina rolls up behind and flashes (rivals.gd `call_first`): the ladder's first rung, a race to the Palm at her own gentle pace (ladder.gd FIRST_RACER: a player who races wins it, and the beat is done on a win or a loss); declined, she tries twice more, RACE_RETRY s apart |
 ## | trap | 3:00 | the police's scripted first contact (police.gd), armed by the race; without a race the director arms it at TRAP_LATEST |
 ## | rescue | 4:00 | the first call is held (missions.gd `held`) until RESCUE_AT and the race (or RESCUE_LATEST), then rings RESCUE_RING s later |
 ## | heli | ~5:00 | a hint toast for the helicopter (open from the first second since 2026-11-01; HELI and H are never locked) |
 ## | tape | 6:00 | the arrow to the mixtape on the University Library's roof (cassettes.gd, CASSETTE_ID), picked up from the helicopter: it opens the next PÓŁNOC FM track ("a new song"); without it, KASETA on the boulevards (TAPE_ID) as before |
-## | powisle | 8:00 | "Powiśle discovered" comes from districts.gd; not by POWISLE_AT, the arrow to Powiśle |
+## | powisle | 8:00 | "Powiśle discovered" comes from districts.gd; not by POWISLE_AT, the arrow to Powiśle (behind a long Podwózka ride it comes at POWISLE_LATEST, over the ride) |
 ## | garage | 10:00 | Mirek's garage (garage.gd `held`) waits for GARAGE_AT and the first earnings, then its toast and an arrow |
 ##
 ## The guide ends at the garage (or GUIDE_END s): every hold is let go and `done` is saved. Its
@@ -83,6 +83,10 @@ const TAPE_ID := "t_bulwary_2018"
 ## The guide's cassette (cassettes.json): on the BUW roof by the boulevards.
 const CASSETTE_ID := "c01_buw"
 const POWISLE_AT := 450.0
+## The Powiśle beat stops waiting for a Podwózka ride to end here (its window ends at 540 s): a
+## ride taken just before the hold (HOLD_AHEAD) runs up to 4.5 minutes with the drive to the pin
+## (the replay of 2026-11-10: taken at 331 s, done at 600 s, Powiśle 20 s late).
+const POWISLE_LATEST := 520.0
 const GARAGE_AT := 570.0
 ## The garage beat stops waiting for a free moment here (its window ends at 660 s).
 const GARAGE_LATEST := 640.0
@@ -220,8 +224,9 @@ static func met(f: Dictionary) -> Array[String]:
 
 
 ## The beats the director fires now, at second `now`, from the facts `f` (met's, plus: free,
-## delivered_t (-1: no delivery yet), calling (a rival is rolling up), race_next, rescued, earned,
-## heli_call (a helicopter-only call is up), scripted) and the beats already triggered
+## riding (a Podwózka ride is the only thing on), delivered_t (-1: no delivery yet), calling (a
+## rival is rolling up), race_next, rescued, earned, heli_call (a helicopter-only call is up),
+## scripted) and the beats already triggered
 ## (`done`: beat -> second). "done" too, when the guide is over.
 static func decide(now: float, f: Dictionary, done: Dictionary) -> Array[String]:
 	var out: Array[String] = []
@@ -246,7 +251,12 @@ static func decide(now: float, f: Dictionary, done: Dictionary) -> Array[String]
 		out.append("heli")
 	if not is_done.call("tape") and not f.get("tape", false) and is_done.call("heli") and now >= TAPE_AT and free:
 		out.append("tape")
-	if not is_done.call("powisle") and not f.get("powisle", false) and now >= POWISLE_AT and free:
+	# The Powiśle arrow waits for a free moment, but not past its window behind a long Podwózka:
+	# near the window's end its line shows over the ride (the ride's pin keeps the edge arrow, and
+	# the guide's arrow follows when the ride is done). Over a race, a call, the police or a card
+	# it still waits: a note there is in the way (Autopilot 2026-11-09).
+	if not is_done.call("powisle") and not f.get("powisle", false) and now >= POWISLE_AT \
+			and (free or (now >= POWISLE_LATEST and f.get("riding", false))):
 		out.append("powisle")
 	# The garage's toast waits for a free moment, but not past its window: a long ride (Podwózka)
 	# would hold it for minutes, so near the window's end it shows over whatever is running.
@@ -419,19 +429,33 @@ func _hold_offers(on: bool) -> void:
 		print("first10: offers %s at %.1f s" % ["held" if on else "free", t])
 
 
+## Other quests that make the moment not free (main.gd: out on the water in the boat race or a free
+## ride, not on the way to the pontoon; Autopilot 2026-11-09: the
+## guide's kebab-stand note came up mid-race on a fresh save).
+var side_busy: Callable = func() -> bool: return false
+
+
 ## What the director knows now (see `decide`).
 func facts() -> Dictionary:
 	var air: bool = flying.is_valid() and bool(flying.call())
 	# PT-15: a ride request's card up counts (Halina won't roll up over it).
-	var busy: bool = (jobs != null and (jobs.busy() or jobs.ride_offered())) or (rivals != null and (rivals.busy() or rivals.first_waiting())) \
+	# Everything that makes the moment not free, a job of the player's aside.
+	var other: bool = (jobs != null and jobs.ride_offered()) or (rivals != null and (rivals.busy() or rivals.first_waiting())) \
 			or (missions != null and (missions.has_target() or int(missions.state) in [Missions.State.OFFER, Missions.State.RESULT])) \
-			or (police != null and int(police.phase) != 0) or (garage != null and garage.is_open()) or _end_up
+			or (police != null and int(police.phase) != 0) or (garage != null and garage.is_open()) or _end_up \
+			or bool(side_busy.call())
+	var busy: bool = other or (jobs != null and jobs.busy())
+	# A Podwózka ride under way (to the pin, or with the passenger) and nothing else on: the one job
+	# long enough to keep a beat past its window (`decide`, POWISLE_LATEST).
+	var ride: Variant = jobs.get("rides") if jobs != null else null
+	var riding: bool = not other and ride is Node and ride.has_method("has_target") and bool(ride.call("has_target"))
 	var orders: int = jobs.orders_started() if jobs != null else 0
 	if _delivered_t < 0.0 and wallet != null and wallet.jobs_done() > 0 and not busy:
 		_delivered_t = t
 	return {
 		"input": hud != null and int(hud.input_ms) > _input_base,
 		"free": not busy,
+		"riding": riding,
 		"ordered": orders > 0,
 		"delivered_t": _delivered_t,
 		"raced": rivals != null and (str(rivals.first_result) in ["won", "lost"] or rivals.raced()),
@@ -503,9 +527,9 @@ func _fire(id: String) -> void:
 				var words: Array = LINES["tape"] if _cassette() >= 0 else LINES["tape_ground"]
 				hud.toast(words[0], words[1])
 		"powisle":
-			if districts != null and districts.by_id.has("powisle"):
-				var p: Vector2 = districts.by_id["powisle"]["at"]
-				_hint(Vector3(p.x, map.ground_height(p.x, p.y) if map != null else 0.0, p.y), "POWIŚLE", HINT_S)
+			var at := powisle_at()
+			if at != Vector3.INF:
+				_hint(at, "POWIŚLE", HINT_S)
 				hud.toast(LINES["powisle"][0], LINES["powisle"][1])
 		"garage":
 			if garage == null:
@@ -557,6 +581,16 @@ func _hint(at: Vector3, word: String, seconds: float) -> void:
 	hint_at = at
 	hint_word = word
 	hint_until = t + seconds
+
+
+## Where the Powiśle arrow points: the district's label (districts.gd), or INF with no districts.
+## PT-30: `by_id` holds the district's index, not the district; reading "at" off it failed every
+## frame from the beat's time, so the beat never fired and the guide stalled there.
+func powisle_at() -> Vector3:
+	if districts == null or not districts.by_id.has("powisle"):
+		return Vector3.INF
+	var p: Vector2 = districts.districts[int(districts.by_id["powisle"])]["at"]
+	return Vector3(p.x, map.ground_height(p.x, p.y) if map != null else 0.0, p.y)
 
 
 ## The beat the arrow is for has been met.

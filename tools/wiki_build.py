@@ -39,7 +39,6 @@ DATA = GAME / "data"
 SCRIPTS = GAME / "scripts"
 DOCS = ROOT / "docs"
 WIKI = ROOT / "wiki"
-REPO = "https://github.com/LubomirOlshansky/AroundWarsaw"
 
 # ---------------------------------------------------------------------------------------------
 # Small helpers
@@ -57,14 +56,14 @@ def load(rel: str):
 
 
 def gh(rel: str, line: int | None = None) -> str:
-    """A link to the file on GitHub (at a line when given)."""
-    return f"{REPO}/blob/main/{rel}" + (f"#L{line}" if line else "")
+    """The repo path of a file (at a line when given); the repo itself is not linked publicly."""
+    return rel + (f":{line}" if line else "")
 
 
 def edit_link(rel: str, line: int | None = None, label: str | None = None) -> str:
     """The "where to change it" chip: the file and line, opening on GitHub."""
     text = label or (f"{rel}:{line}" if line else rel)
-    return f'<a class="edit" href="{gh(rel, line)}" target="_blank" rel="noopener" title="Open on GitHub">✎ {esc(text)}</a>'
+    return f'<span class="edit" title="Where to change it">✎ {esc(text)}</span>'
 
 
 def line_of(rel: str, pattern: str, start: int = 0) -> int | None:
@@ -129,9 +128,8 @@ def md_inline(text: str, base: str = "docs") -> str:
     def link(m):
         label, url = m.group(1), html.unescape(m.group(2))
         if not re.match(r"[a-z]+:|#", url):
-            # a repo-relative link: open it on GitHub
-            url = gh(str((Path(base) / url).as_posix()).replace("/./", "/"))
-            url = re.sub(r"[^/]+/\.\./", "", url)
+            # a repo-relative link: the repo is not linked publicly, show the label only
+            return label
         return f'<a href="{esc(url)}">{label}</a>'
 
     t = re.sub(r"\[([^\]]+)\]\(([^)\s]+)\)", link, t)

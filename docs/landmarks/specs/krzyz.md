@@ -11,7 +11,7 @@ wait for the Mac's `refs/`.
 Bellotti's baroque church (1679-1696, rebuilt after 1944) on Krakowskie Przedmieście, where
 Chopin's heart rests in a pillar.
 
-1. **Two square towers** at the ends of the front, each with a belfry and a copper onion helm
+1. **Two square towers** at the ends of the front, each with a belfry and a copper lantern helm
    carrying a lantern, a ball and a cross (about 48 m).
 2. **A central block** between them with a portico of four giant columns and a statue over
    each, an upper storey of tall windows and a triangular pediment with an oculus.
@@ -41,14 +41,15 @@ central block u 8.9..22.4. Heights above the ground: plinth 1.6 m, tower shaft 2
 ## 4. Roof
 
 Top cornice, then the pediment (3.2 m rise, copper-green slopes) with a dark oculus (r 0.8 m)
-and a gilt cross. Tower helms in copper: an octagonal drum, the onion swell to r 4.0 m, a
-taper to a white lantern (r 1.1 m, windows), a cap, a gilt ball and cross.
+and a gilt cross. Tower helms in copper (F's front photo T09-02, 2026-11-08: no big onion): an
+octagonal lantern r 3.0 m with arched openings (32.3..36.5 m), a bell roof from r 3.4 m, a small
+bulb to 40.8 m, a slim needle to 45 m, a gilt ball and the cross to 48.6 m.
 
 ## 5. Colour and material
 
 | Part | Colour | Material code |
 | --- | --- | --- |
-| Plaster front, tower shafts | #e6dcc2 | M_STONE, M_MONUMENT (upper storey, belfries) |
+| Plaster front, tower shafts | #eee7d3 (whiter, photo T09-02) | M_STONE, M_MONUMENT (upper storey, belfries) |
 | Trim, columns, cornices, lanterns | #f1ebdc | M_STONE |
 | Plinth, stylobate, steps | #bdb39c | M_STONE |
 | Helms, pediment slopes | #6a9a8a | M_STONE |
@@ -66,8 +67,7 @@ statue with the cross beside the steps, the dome over the crossing *(photo check
 
 ## 7. Detail level and budget
 
-L3 for the front and towers, L1 for the rest, triangle budget 1100 (934 measured, plus about
-18 %, in `check_mesh_quality.gd`). Shots: `--solo=sw_krzyz --solo-look=lit`, then in the city
+L3 for the front and towers, L1 for the rest, triangle budget 1250 (1188 measured after the 2026-11-08 helm pass, in `check_mesh_quality.gd`). Shots: `--solo=sw_krzyz --solo-look=lit`, then in the city
 from Krakowskie Przedmieście.
 
 ## 8. Parts table
@@ -82,5 +82,9 @@ from Krakowskie Przedmieście.
 | statues | 4 blocks | 1 x 1 x 2.4 m | over the columns | M_STONE | 2 portico |
 | pediment | gable | 14 m, rise 3.2 | y 21.9 | M_STONE | 4 pediment |
 | towers | 2 stacks of boxes | 8.6 x 9.2 m | u 4.4 and 26.9 | M_STONE, M_MONUMENT | 1 towers |
-| helms | 2 x 5 frusta, drum, cap | r 3.4..4.0 m | y 32.3..45.6 | M_STONE | 1 towers |
+| helms | 2 x (lantern, 5 frusta, needle, ball) | r 3.0..3.4 m | y 32.3..45.6 | M_STONE | 1 towers |
 | crosses | 3 | 0.4 m bars | tower tips, apex | M_STONE | 1 towers |
+
+## Update
+
+Photo pass 2026-11-06 (refs/sw_krzyz 1-2): the photos show no giant portico. The front between the towers is a flat two-storey wall with paired pilasters, a small portal (two columns, entablature and a pediment) in the middle, pedimented lower windows, capped upper windows and a great round-headed window, a cornice, a curved stepped attic with the cross, a balustrade across the whole front with the steps open in the middle, the black "Sursum corda" plinth with the bronze Christ left of the portal; the towers gain corner pilasters and darker copper (`#5a8a78`). Replaces the four-column portico below.

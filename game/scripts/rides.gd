@@ -28,6 +28,7 @@ const Missions := preload("res://scripts/missions.gd")
 const GpsMoments := preload("res://scripts/gps_moments.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Jobs := preload("res://scripts/jobs.gd")
+const Stories := preload("res://scripts/taxi_stories.gd")
 
 ## Teal: the passengers' job colour (the słoiki run's).
 const COLOUR := Color("#4fd8c4")
@@ -46,6 +47,8 @@ const HURRY_SHARE := 0.10
 ## G3 leftover: in the evening (18:00-01:00) a "timber" passenger, off to a date from the dating
 ## app TIMBER, takes this share of the normal rides (club doors at dawn still win).
 const TIMBER_SHARE := 0.2
+const DATE_SHARE := 0.08  # a date at Pod Gigantami
+const DATE_DOOR := Vector2(-36.0, 778.0)  # its gate, on Aleje Ujazdowskie
 const TIMBER_HOURS := [18.0, 25.0]
 const BOARD := StopAssist.RING
 const BOARD_SPEED := StopAssist.STOP_SPEED
@@ -131,6 +134,20 @@ var ignore_app := false
 var log_on := false
 var force_quirk := ""
 var force_passenger := ""
+## --ride-story=ID: that story passenger on the next rides ("none": no story); --ride-answer=0|1:
+## what the autopilot answers to the question (0 when not given).
+var force_story := ""
+var force_answer := -1
+## Story rides (taxi_stories.gd): the list, the next beat (0-2 lines, 3 the question, 4 done), the
+## seconds since the last one, and the question card while it is up.
+var _stories: Array = []
+var _beat := 0
+var _beat_since := 0.0
+var _asking := false
+var _ask_t := 0.0
+## Story lines said and questions answered (tools/check_rides.gd, the logs).
+var story_lines := 0
+var story_answers := 0
 var start_stars := -1.0
 ## Loop MW-3 (vision.md 4.5, 4.7): at dawn the requests come from the club doors: -> [[club id,
 ## door: Vector2], ...] while the dawn crowd is out (crowds.gd), else []. Unset: none.
@@ -224,6 +241,7 @@ func setup(nodes: Dictionary, data: Dictionary, world: Node3D) -> void:
 	weather = nodes.get("weather")
 	_rng.randomize()
 	_base = _rng.randi() % 100000
+	_stories = Stories.load_all()
 	var t0 := Time.get_ticks_msec()
 	for p in data.get("pois", []):
 		match String(p["k"]):
@@ -446,7 +464,7 @@ func _process(dt: float) -> void:
 				_release()
 	# One card at a time: while a ride's request or result is up (or about to be), the app-taxis'
 	# GPS bubbles and the radio host wait; they come after.
-	var card_up := state == State.OFFER or state == State.RESULT
+	var card_up := state == State.OFFER or state == State.RESULT or _asking
 	if moments != null:
 		moments.held = card_up
 	dialogue.host_hold = card_up
@@ -503,6 +521,8 @@ func _on_bump(_collider: Object, speed: float) -> void:
 func _free() -> bool:
 	if flying or away or car.in_water or missions.has_target() or not _calls_quiet():
 		return false
+	if state == State.IDLE and hud != null and hud.cards_up():
+		return false  # no request over a result or win card (2026-11-08)
 	if jobs != null and jobs.side_busy():
 		return false  # loop MW-4: the "Na czasie" job too
 	# PT-15 (2026-11-03): nor while a rival's prompt is up or Pani Halina rolls up to flash for the
@@ -640,6 +660,9 @@ func _on_card(index: int) -> void:
 				_accept()
 			else:
 				_withdraw()
+		State.RIDE:
+			if _asking:
+				_answer(index)
 		State.RESULT:
 			_release()
 
@@ -736,6 +759,18 @@ func _make_ride(n: int, e: int, s: float, from: Vector2, lo: float, hi: float) -
 		kind = "club"
 	if force_passenger != "":
 		kind = force_passenger
+	# Pod Gigantami (F, 2026-11-06): now and then the passenger is late for a date there.
+	if (kind == "normal" and rng.randf() < DATE_SHARE) or force_passenger == "date":
+		var by_date := func(a: Dictionary) -> bool: return (a["door"] as Vector2).distance_to(DATE_DOOR) < 90.0
+		var date: Dictionary = jobs._pick_address(r["p_e"], r["p_s"], kerb, RIDE_MIN, 6000.0, rng, by_date)
+		if not date.is_empty() and date["reached"]:
+			kind = "date"
+			r["dest"] = "Pod Gigantami"
+			r["ring"] = date["ring"]
+			r["road"] = float(date["road"])
+			r["finish"] = int(date["finish"])
+		elif force_passenger == "date":
+			kind = "normal"
 	r["type"] = kind
 	r["club"] = club
 	# Loop MW-4: on a Hyrax Saturday morning the one in a hurry is a late competitor.
@@ -765,10 +800,69 @@ func _make_ride(n: int, e: int, s: float, from: Vector2, lo: float, hi: float) -
 	r["shirt"] = Color(SHIRTS[rng.randi() % SHIRTS.size()])
 	r["night"] = _night()
 	r["rain"] = _rain()
-	r["eta"] = Rules.eta_for(r["road"], kind == "hurry")
-	var l: Array = dialogue.line("podwozka_request", kind, true) if kind == "club" or kind == "timber" else dialogue.line("podwozka_request")
+	r["eta"] = Rules.eta_for(r["road"], kind == "hurry" or kind == "date")
+	var l: Array = dialogue.line("podwozka_request", kind, true) if kind == "club" or kind == "timber" or kind == "date" else dialogue.line("podwozka_request")
 	r["note"] = [l[0], l[1]] if not l.is_empty() else []
+	# F (2026-11-07): most passengers are story passengers (taxi_stories.json), in turn; a club
+	# night, a date and a late Hyrax competitor keep their own lines.
+	r["story"] = {}
+	var sroll := rng.randf()
+	var can: bool = kind != "club" and kind != "date" and not bool(r.get("hyrax", false))
+	if force_story != "none" and not _stories.is_empty() and ((can and sroll < Stories.SHARE) or force_story != ""):
+		var seen: Array = wallet.keep.get("podwozka_stories", []) if wallet != null else []
+		var skip: Array = []
+		# F (2026-11-07): each story goes to its real place (`to`); one whose place doesn't fit
+		# this pickup (too near, too far, no door) waits for another ride, and the next one is tried.
+		for attempt in 3:
+			var st: Dictionary = Stories.pick(_stories, seen + skip, rng, r["night"], force_story)
+			if st.is_empty() or skip.has(st["id"]):
+				break
+			var go := _story_place(r, st, rng, kerb)
+			if go.is_empty():
+				skip.append(st["id"])
+				_log("story %s: its place %s doesn't fit this ride" % [st["id"], st["to"]["name"][1]])
+				if force_story != "":
+					break
+				continue
+			r["story"] = st
+			r["name"] = String(st["name"])
+			r["note"] = ["%s · %s" % [st["who"][0], st["teaser"][0]], "%s · %s" % [st["who"][1], st["teaser"][1]]]
+			r["dest"] = String(st["to"]["name"][0])
+			r["ring"] = go["ring"]
+			r["road"] = float(go["road"])
+			r["finish"] = int(go["finish"])
+			r["eta"] = Rules.eta_for(r["road"], kind == "hurry")
+			break
 	return r
+
+
+## A story's real place: an address door within its `to.r` of `to.at`, 600 m to 6 km by road from
+## the pickup ({} when none is).
+func _story_place(r: Dictionary, st: Dictionary, rng: RandomNumberGenerator, kerb: Vector2) -> Dictionary:
+	var to: Dictionary = st.get("to", {})
+	if to.is_empty():
+		return {}
+	var at := Vector2(float(to["at"][0]), float(to["at"][1]))
+	var reach := float(to.get("r", 120.0))
+	var near := func(a: Dictionary) -> bool: return (a["door"] as Vector2).distance_to(at) < reach
+	var go: Dictionary = jobs._pick_address(r["p_e"], r["p_s"], kerb, RIDE_MIN, 6000.0, rng, near)
+	if not go.is_empty() and go["reached"]:
+		return go
+	# A big site with no address door near (the Palace of Culture, the Central Station, the
+	# Castle, the Stadium): the lane point `drop` by it (taxi_stories.json), reached from the
+	# junction before it.
+	var drop_at: Array = to.get("drop", [])
+	if drop_at.size() != 2:
+		return {}
+	var hit := graph.snap(Vector2(float(drop_at[0]), float(drop_at[1])), 30.0, Vector2.ZERO, true, true, true)
+	if hit.is_empty():
+		return {}
+	var dist := graph.distances_from(graph.e_b[r["p_e"]])
+	var road: float = graph.trip(dist, r["p_e"], r["p_s"], hit[0], hit[2])
+	if road < RIDE_MIN or road > 6000.0:
+		return {}
+	var p: Vector2 = graph.point_at(hit[0], hit[2])
+	return {"ring": Vector3(p.x, graph.surface(hit[0], p), p.y), "road": road, "finish": graph.e_a[hit[0]]}
 
 
 # --- pickup ---------------------------------------------------------------------------------
@@ -818,6 +912,7 @@ func _claim() -> void:
 
 func _release() -> void:
 	state = State.IDLE
+	_asking = false
 	_t = 0.0
 	_beacon.visible = false
 	_rider.visible = false
@@ -874,6 +969,14 @@ func _board() -> void:
 	_detour_said = false
 	_ride["straight"] = _flat(car.global_position, _ride["ring"])
 	_chat_t = _rng.randf_range(8.0, 14.0)
+	_beat = 0
+	_beat_since = 0.0
+	_asking = false
+	_ride["answer"] = -1
+	var st: Dictionary = _ride.get("story", {})
+	if not st.is_empty():
+		wallet.keep["podwozka_stories"] = Stories.heard(wallet.keep.get("podwozka_stories", []), String(st["id"]))
+		_log("story %s: %s" % [st["id"], st["who"][1]])
 	_have_last = false
 	_beacon.waving = false
 	_beacon.place(_ride["ring"], ARRIVE - 0.5, true, false)
@@ -963,8 +1066,12 @@ func _ride_tick(dt: float) -> void:
 		return
 	_quirk_tick(p)
 	_detour_tick(p, speed, dt)
+	if not (_ride.get("story", {}) as Dictionary).is_empty():
+		_story_tick(dt, d)
+		if _asking:
+			return  # the question card stands where the status panel was
 	_chat_t -= dt
-	if _chat_t <= 0.0 and not bubbles.is_talking(car):
+	if (_ride.get("story", {}) as Dictionary).is_empty() and _chat_t <= 0.0 and not bubbles.is_talking(car):
 		_chat_t = _rng.randf_range(CHAT_GAP.x, CHAT_GAP.y)
 		var kind: String = _ride["type"]
 		if _rng.randf() < 0.5:
@@ -1127,10 +1234,87 @@ func _drive_reset() -> void:
 	_drive_counts.clear()
 
 
+# --- story rides (taxi_stories.gd) ------------------------------------------------------------
+
+## The story passenger's beats: three lines along the way, then the question card; while it is up,
+## its clock (no answer in ASK_LIFE s: the passenger lets it go; the autopilot answers after AUTO s).
+func _story_tick(dt: float, d: float) -> void:
+	var st: Dictionary = _ride["story"]
+	_beat_since += dt
+	if _asking:
+		_ask_t += dt
+		if autopilot and _ask_t >= Stories.AUTO:
+			_answer(maxi(force_answer, 0))
+		elif _ask_t >= Stories.ASK_LIFE:
+			_answer(-1)
+		return
+	if _beat > 3:
+		return
+	var done := clampf(1.0 - d / maxf(float(_ride["straight"]), 1.0), 0.0, 1.0)
+	if not Stories.due(_beat, done, _t, _beat_since) or bubbles.is_talking(car):
+		return
+	if _beat < 3:
+		var l: Array = st["lines"][_beat]
+		if bubbles.say(car, _ride["name"], l[0], l[1], 4.5, COLOUR, 2.4):
+			_beat += 1
+			_beat_since = 0.0
+			story_lines += 1
+			_log("story %s line %d at %d%% of the way, %.0f s in" % [st["id"], _beat, roundi(done * 100.0), _t])
+	elif not flying and not hud.cards_up():
+		_ask(done)
+
+
+func _ask(done: float) -> void:
+	var st: Dictionary = _ride["story"]
+	var a: Array = st["answers"]
+	_asking = true
+	_ask_t = 0.0
+	_beat = 4
+	_beat_since = 0.0
+	hud.hide_status()
+	var name_pl := String(_ride["name"])
+	hud.show_side_card("%s PYTA" % name_pl.to_upper(), String(st["ask"][0]),
+			PackedStringArray(["%s|%s" % [a[0]["say"][0], a[0]["say"][1]], "%s|%s" % [a[1]["say"][0], a[1]["say"][1]]]),
+			COLOUR, "%s asks" % name_pl, String(st["ask"][1]), true)
+	Access.buzz(40, 0.4)
+	_log("story %s asks at %d%% of the way, %.0f s in" % [st["id"], roundi(done * 100.0), _t])
+
+
+## The answer `i` (0 or 1; -1: none in time): the passenger's reply, and a good talk's half star.
+func _answer(i: int) -> void:
+	var st: Dictionary = _ride["story"]
+	_asking = false
+	hud.hide_card()
+	_ride["answer"] = i
+	var l: Array = st.get("silent", Stories.SILENT)
+	if i >= 0:
+		var a: Dictionary = st["answers"][i]
+		l = a["reply"]
+		story_answers += 1
+		if bool(a.get("star", false)) and _rules.chat():
+			_star_note(Rules.BONUS, "good talk", ["rozmowa", "good talk"])
+	bubbles.hush(car)
+	bubbles.say(car, _ride["name"], l[0], l[1], 5.0, COLOUR, 2.4)
+	_log("story %s: answer %d (%s)" % [st["id"], i, "none in time" if i < 0 else String(st["answers"][i]["say"][1])])
+
+
+## The chosen answer of this ride's story ({} for no story or no answer).
+func _story_answer() -> Dictionary:
+	var st: Dictionary = _ride.get("story", {})
+	var i := int(_ride.get("answer", -1))
+	if st.is_empty() or i < 0:
+		return {}
+	return st["answers"][i]
+
+
 # --- the end of a ride ------------------------------------------------------------------------
 
 func _arrive() -> void:
 	state = State.RESULT
+	if _asking:
+		_asking = false
+		hud.hide_card()
+		_log("story: arrived before an answer")
 	hud.hide_status()
 	_remove_ghost()
 	bubbles.hush(car)
@@ -1140,7 +1324,9 @@ func _arrive() -> void:
 	var final := _rules.final()
 	_log("arrived at %s in %.1f s (ETA %.0f s): stars %.1f" % [_ride["dest"], _rules.clock, _rules.eta, final])
 	var streak := int(wallet.keep.get("podwozka_streak", 0))
-	var pay := Rules.pay(_ride["road"], final, _ride["night"], _ride["rain"], _ride["type"] == "hurry", streak)
+	var answer: Dictionary = _story_answer()
+	var pay := Rules.pay(_ride["road"], final, _ride["night"], _ride["rain"], _ride["type"] == "hurry", streak,
+			int(answer.get("tip", 0)))
 	var before := _rating()
 	var history: Array = wallet.keep.get("podwozka_ratings", [])
 	wallet.keep["podwozka_ratings"] = Rules.pushed(history, final)
@@ -1155,6 +1341,9 @@ func _arrive() -> void:
 	dialogue.say(_gps_anchor, "Nawigacja", "podwozka_gps", "arrive", 2.0, COLOUR, 0.0, true)
 	# The passenger's comment is on the card (a bubble too would say it twice).
 	var comment: Array = dialogue.line("podwozka_rating", tag, true)
+	# A story passenger's last word (the answer's outro), unless the ride went badly.
+	if answer.has("outro") and (tag == "5" or tag == "4"):
+		comment = answer["outro"]
 	var text := Rules.result_text({"stars": final, "name": _ride["name"], "place": _ride["dest"], "time": _clock_text(_rules.clock),
 			"comment": comment, "pay": pay, "rating": _rating(), "why": _why()})
 	_result_card = [text, COLOUR if final >= 4.0 else FAIL_COLOUR]
@@ -1162,6 +1351,8 @@ func _arrive() -> void:
 	Access.buzz(120, 0.8)
 	print("podwózka done: %s to %s in %.1f s, %.1f stars, paid %d zł (wallet %d zł)" % [_ride["name"], _ride["dest"],
 			_rules.clock, final, pay["total"], wallet.zl])
+	if int(pay["story"]) != 0:
+		_log("story %s: answer %d, tip %+d zł" % [_ride["story"]["id"], int(_ride["answer"]), int(pay["story"])])
 	_log("pay %d zł (fare %d, tip %d, streak %d) · MNOŻNIK ×%.1f · respect +%d · wallet %d -> %d zł · rating %.2f -> %.2f · streak %d -> %d" % [
 			pay["total"], pay["fare"], pay["tip"], pay["streak"], pay["mult"], pay["respect"], zl_before, wallet.zl, before,
 			_rating(), streak, pay["streak_after"]])
@@ -1186,6 +1377,9 @@ func _why() -> Array:
 	if _rules.followed:
 		pl.append("za aplikacją +½")
 		en.append("followed the app +½")
+	if _rules.chatted:
+		pl.append("rozmowa +½")
+		en.append("good talk +½")
 	return [", ".join(pl), ", ".join(en)]
 
 
@@ -1193,6 +1387,7 @@ func _why() -> Array:
 ## lost, the 5-star streak ends.
 func _cancel(by_passenger: bool) -> void:
 	var riding := state == State.RIDE
+	_asking = false
 	state = State.RESULT
 	_set_start(false)
 	_result_in = 0.0

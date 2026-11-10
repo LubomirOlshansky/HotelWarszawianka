@@ -1,14 +1,14 @@
 # Sekretny rave: the secret techno rave quest line
 
 F's ask (2026-11-06): techno raves with DJ lights by day and by night, a MORDOR FM line where LEKTI
-invites you to a secret rave, and a quest where Ziomek calls and you drive him there. Then: a
+invites you to a secret rave, and a quest where Mati calls and you drive him there. Then: a
 Berlin-style door with three questions at Smoła, and an inside you can enter (option A, the
 cutaway room). The research and the options are in the proposal doc
 (https://claude.ai/artifact/7tokY91ceM47L35qqM1psa). Code: `game/scripts/rave.gd` (rigs, quest,
 door), `game/scripts/club.gd` (the room), lines in `game/data/dialogue.json`, check
 `game/tools/check_rave.gd` (verify step `rave`).
 
-Everything is invented: LEKTI is a fictional pirate host, Ziomek a fictional friend, Smoła and
+Everything is invented: LEKTI is a fictional pirate host, Mati a fictional friend, Smoła and
 Pan Kołek a fictional club and doorman. No real crews, DJs, venues or brands; no drug jokes.
 
 ## The raves
@@ -16,7 +16,7 @@ Pan Kołek a fictional club and doorman. No real crews, DJs, venues or brands; n
 | | When (game clock) | Where | What you see |
 | --- | --- | --- | --- |
 | Night rave | Thu-Sat nights, 22:00-06:00 | one of three spots a weekend: under the Poniatowski viaduct, a depot past the tracks in Praga, a hall by the railway towards Ochota | booth, stacks, truss, 46 dancers on the beat, six beams into the sky, a laser fan, a strobe cone (lit look only) |
-| Day rave | Fri-Sun, 12:00-20:00 | the Praga beach | the booth and a crowd in colour, no lights |
+| Day rave | Fri-Sun, 12:00-20:00 | the Praga beach under Most Poniatowskiego (F, 2026-11-07: the sand under the east arch, by the pier) | the booth and a crowd in colour, no lights |
 
 A techno thump plays by the active spot and the crowd talks (`rave_crowd`, tags night/day). Far
 away nothing is drawn (RIG_FAR 1.4 km).
@@ -28,19 +28,19 @@ away nothing is drawn (RIG_FAR 1.4 km).
    PRAGA 97, BAS, NEON, PERON). He is heard as well as read: each line and each password is a
    voice clip (below), the music dips under it. On other stations the regular host only passes on
    the rumour (`rave_rumour`), so the password is MORDOR FM's.
-2. **ZIOMEK DZWONI.** A minute later Ziomek rings (the call card, ODBIERZ / ODRZUĆ, then JADĘ! /
+2. **MATI DZWONI.** A minute later Mati rings (the call card, ODBIERZ / ODRZUĆ, then JADĘ! /
    NIE DZIŚ). The calls alternate: a secret rave, then a club night at Smoła.
 3. **Pickup.** The dashed ring at his block, 400-900 m away; he tunes the radio to MORDOR FM.
 4. **Meeting point** (secret rave only). The arrow says "???": he knows only that much. A hooded
    man there gives the spot (`rave_meet`).
 5. **The door.** Stop at the door ring: the bouncer asks three questions (SELEKCJA 1/3...). At a
-   secret rave one of them is the password. All three right: Ziomek pays the ride (+150 zł,
+   secret rave one of them is the password. All three right: Mati pays the ride (+150 zł,
    +40 respect) and the ticket is 50 zł, cash only (F, 2026-11-06; the card machine "temporarily
    down since 2019"): PŁACĘ 50 ZŁ goes in, POTEM leaves it. Short of cash: a toast, no entry.
    The first wrong answer: "Nie tym razem. Wróć później." and half the fare.
 6. **Inside** (Smoła, and a secret rave you get into): the cutaway room.
 
-✕ gives up at any step (Ziomek takes the night bus). Other calls are paused while it runs.
+✕ gives up at any step (Mati takes the night bus). Other calls are paused while it runs.
 
 ### The door questions
 
@@ -54,10 +54,10 @@ why so smiley, what kind of night it is. Each has one right answer and two wrong
 A 24 × 16 m room built far off the map (9 km away), seen like F's reference picture: the back and
 left walls cut away, the camera fixed at 45°. The city stays loaded and the car waits. Inside: the
 DJ on a riser with stacks and a truss, the bar with lit bottles, the cloakroom, a sofa, toilet
-doors, the WYJŚCIE door, 44 dancers, Ziomek, the barman, the cloakroom lady, and Pan Kołek, the
+doors, the WYJŚCIE door, 44 dancers, Mati, the barman, the cloakroom lady, and Pan Kołek, the
 long-coated man in sunglasses by the wall (our own parody of a film vampire hunter).
 
-- **Tap a person:** a line about the scene (DJ, bar, crowd, Ziomek, Pan Kołek; `club_*`).
+- **Tap a person:** a line about the scene (DJ, bar, crowd, Mati, Pan Kołek; `club_*`).
 - **TAŃCZ:** tap on the beat (132 BPM); eight in a row pays respect (up to three times a night).
 - **Red light moment:** now and then the lights go red and the DJ says something (`club_red`).
 - **WYJDŹ** (or Esc): back to the car at the door.

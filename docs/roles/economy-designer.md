@@ -15,7 +15,7 @@ słoiki, Podwózka rides, rescues), climbs a rival race ladder to "Trzy mosty", 
 cassettes, and listens to parody radio (KEBAB FM, MORDOR FM). Identity: affectionate Warsaw humour and
 a light vaporwave look. On-screen text is Polish with English. Real place names are fine; brands only
 as parodies; never jokes about real private people. On the phone the frame grows with draw calls, so
-every new object, material or light has a cost. Repo: github.com/LubomirOlshansky/AroundWarsaw;
+every new object, material or light has a cost.
 `CLAUDE.md` there is the rulebook and wins over this brief.
 
 ## Your job

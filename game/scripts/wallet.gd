@@ -46,7 +46,8 @@ var cautions_today := 0
 var cautions_day := 0
 var escapes_total := 0
 ## Loop 2d-1: other things kept by name (rides.gd: "podwozka_ratings", the last 20 rides' stars,
-## and "podwozka_streak", the 5-star rides in a row).
+## and "podwozka_streak", the 5-star rides in a row; ladder.gd: "race_lost_<rung id>", the races
+## lost in a row to a rival, for the easier rematch).
 var keep := {}
 ## Loop MW-1: the MOJA WARSZAWA notebook (notebook.gd): place id -> the day it was first found
 ## (yyyymmdd), and chapter id -> the day it was completed (its reward paid; MW-5's track unlock
