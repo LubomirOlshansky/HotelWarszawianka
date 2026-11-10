@@ -26,6 +26,10 @@ const SEED := 2026
 ## palace_time's light: day until SCRUB_FROM s, then one look further every SCRUB_STEP s.
 const SCRUB_FROM := 3.0
 const SCRUB_STEP := 3.0
+## Each take's length (s). The game quits TAIL s after it ends, so a capture needs no --quit-after
+## sum (keep one as a safety cap).
+const LENGTH := {"palace_time": 14.0, "heli_dive": 10.0, "palace_drift": 10.0, "card": 5.0}
+const TAIL := 0.5
 const CARD_IN := 0.6
 const CARD_FADE := 0.8
 ## The end card's lines (F 2026-11-10: "not Free beta, but just join beta").
@@ -83,7 +87,9 @@ func begin(main: Node) -> void:
 		heli.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	if take == "card":
 		_make_card()
-	print("trailer: %s" % take)
+	# The movie frame the take starts on (Movie Maker writes one frame per process frame), so the
+	# loading frames before it can be cut off the capture.
+	print("trailer: %s starts at frame %d" % [take, Engine.get_process_frames()])
 	_frame(0.0)
 
 
@@ -94,6 +100,11 @@ func _process(dt: float) -> void:
 
 func _frame(dt: float) -> void:
 	t += dt
+	if t >= float(LENGTH[take]) + TAIL:
+		playing = false
+		print("trailer: %s done at frame %d" % [take, Engine.get_process_frames()])
+		host.get_tree().quit()
+		return
 	match take:
 		"palace_time":
 			host.tod.scrub(clampf((t - SCRUB_FROM) / SCRUB_STEP, 0.0, 3.0))
