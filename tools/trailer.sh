@@ -49,6 +49,20 @@ if [[ $mode == live ]]; then
 	exit 0
 fi
 
+# Movie Maker records at the project's window size and ignores --resolution, so a temporary
+# game/override.cfg (gitignored) sets the size for this run and is removed when the script exits.
+size=${engine[(r)*x*]}
+if [[ -e $ROOT/game/override.cfg ]]; then
+	print -r -- "tools/trailer.sh: game/override.cfg already exists; move it away first"
+	exit 1
+fi
+trap 'rm -f -- "$ROOT/game/override.cfg"' EXIT INT TERM
+print -r -- "[display]
+window/size/viewport_width=${size%x*}
+window/size/viewport_height=${size#*x}
+window/size/window_width_override=${size%x*}
+window/size/window_height_override=${size#*x}" > $ROOT/game/override.cfg
+
 out=$ROOT/build/trailer/$mode
 frames=$out/$name.frames
 rm -rf $frames
