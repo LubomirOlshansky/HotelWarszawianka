@@ -29057,32 +29057,51 @@ func _build_plac_centralny(_site: Dictionary) -> void:
 	var g := _g
 	_mode = M_STONE
 	# The striped field: pale granite slabs in rows across the axis, a strip of grass between each
-	# two (the render's stripes; laid flat, the car and the walkers cross it), the pale heart on it.
+	# two (the render's stripes), the pale heart on it. It is part of the ground, not a podium (F,
+	# 2026-11-10): every corner is draped on map.terrain_height, a few centimetres over it, so the
+	# slope of the square runs through it and no wall shows at its edge. Only the trybuna is raised.
 	var f := PCZ_FIELD
-	var cu := f.get_center().x
-	var hu := f.size.x * 0.5
-	_lbox(cu, f.get_center().y, hu, f.size.y * 0.5, g - 0.2, g + 0.04, PCZ_GRASS.darkened(0.15), M_STONE, PCZ_GRASS.darkened(0.08))
 	var rows := 24
 	var dv := f.size.y / rows
+	_pcz_drape(f.position.x, f.end.x, f.position.y, f.end.y, 0.14, PCZ_GRASS.darkened(0.15), 4, rows)
 	for k in rows:
 		var v0 := f.position.y + k * dv + 0.22
-		_lbox(cu, v0 + (dv - 0.44) * 0.5, hu - 0.15, (dv - 0.44) * 0.5, g + 0.02, g + 0.07, PCZ_SLAB, M_STONE,
-				PCZ_SLAB.lightened(0.04 * float(k % 3)))
+		_pcz_drape(f.position.x + 0.15, f.end.x - 0.15, v0, v0 + dv - 0.44, 0.17,
+				PCZ_SLAB.lightened(0.04 * float(k % 3)), 4, 1)
 	var h := PCZ_HEART
-	_lbox(h.get_center().x, h.get_center().y, h.size.x * 0.5, h.size.y * 0.5, g - 0.2, g + 0.09, PCZ_PALE.darkened(0.1), M_STONE, PCZ_PALE)
+	_pcz_drape(h.position.x, h.end.x, h.position.y, h.end.y, 0.20, PCZ_PALE, 2, 8)
 	# WARSZAWA: red letters on two slim steel posts, facing east, at the heart's east end.
 	var sv := h.end.y - 2.0
 	for su: float in [-3.8, 3.8]:
 		var pp := _w(h.get_center().x + su, sv - 0.4)
-		_prism(_circle(pp, 0.08, 5), g, g + 1.3, Color("#8b8f93"), Color("#8b8f93"), M_STONE, M_STONE)
+		var pg: float = map.terrain_height(pp.x, pp.y)
+		_prism(_circle(pp, 0.08, 5), pg, pg + 1.3, Color("#8b8f93"), Color("#8b8f93"), M_STONE, M_STONE)
 	var mid := _w(h.get_center().x, sv)
-	signs.append(["WARSZAWA", Vector3(mid.x, g + 1.0, mid.y), Vector3(_b.x, 0.0, _b.y), 1.3, PCZ_RED])
+	var mg: float = map.terrain_height(mid.x, mid.y)
+	signs.append(["WARSZAWA", Vector3(mid.x, mg + 1.0, mid.y), Vector3(_b.x, 0.0, _b.y), 1.3, PCZ_RED])
 	# Green deckchairs scattered on the heart, facing the tribune.
 	for i in 12:
 		var u := h.get_center().x + (fposmod(sin(i * 12.9898) * 43758.5453, 1.0) - 0.5) * 8.0
 		var v := h.position.y + 3.0 + fposmod(sin(i * 78.233) * 43758.5453, 1.0) * 16.0
-		_lbox(u, v, 0.28, 0.25, g + 0.09, g + 0.36, PCZ_GREEN, M_STONE, PCZ_GREEN.lightened(0.12))
-		_lbox(u, v + 0.22, 0.28, 0.05, g + 0.36, g + 0.8, PCZ_GREEN.darkened(0.1), M_STONE, PCZ_GREEN)
+		var cp := _w(u, v)
+		var cg: float = map.terrain_height(cp.x, cp.y)
+		_lbox(u, v, 0.28, 0.25, cg + 0.09, cg + 0.36, PCZ_GREEN, M_STONE, PCZ_GREEN.lightened(0.12))
+		_lbox(u, v + 0.22, 0.28, 0.05, cg + 0.36, cg + 0.8, PCZ_GREEN.darkened(0.1), M_STONE, PCZ_GREEN)
+
+
+## A flat patch of the square laid ON the ground: the local rectangle u0..u1 x v0..v1 cut into
+## `cols` x `rows` quads whose corners sit `dy` over map.terrain_height, top face only (no walls).
+func _pcz_drape(u0: float, u1: float, v0: float, v1: float, dy: float, col: Color, cols: int, rows: int) -> void:
+	var pts: Array[Vector3] = []
+	for j in rows + 1:
+		for i in cols + 1:
+			var w := _w(lerpf(u0, u1, float(i) / cols), lerpf(v0, v1, float(j) / rows))
+			pts.append(Vector3(w.x, map.terrain_height(w.x, w.y) + dy, w.y))
+	for j in rows:
+		for i in cols:
+			var k := j * (cols + 1) + i
+			_quad(pts[k], pts[k + 1], pts[k + cols + 2], pts[k + cols + 1], Vector3.UP, col,
+					Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
 
 
 ## Trybuna honorowa (F's photos, 2026-11-08: the south face, the planters being planted, the
