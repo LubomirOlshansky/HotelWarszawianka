@@ -62,8 +62,9 @@ if [[ -z $first || -z $last ]]; then
 	print -r -- "tools/trailer.sh: $name did not finish (log: $log)"
 	exit 1
 fi
-pattern=$(ls $frames | head -1 | sed -E 's/[0-9]+\.png$//')
-digits=$(ls $frames | head -1 | sed -E 's/^[^0-9]*([0-9]+)\.png$/\1/' | tr -d '\n' | wc -c | tr -d ' ')
+first_png=$(ls $frames | grep -E '[0-9]+\.png$' | head -1)
+pattern=$(print -r -- $first_png | sed -E 's/[0-9]+\.png$//')
+digits=$(print -r -- $first_png | sed -E 's/^[^0-9]*([0-9]+)\.png$/\1/' | tr -d '\n' | wc -c | tr -d ' ')
 ffmpeg -v error -y -framerate 60 -start_number $first -i "$frames/${pattern}%0${digits}d.png" \
 	-frames:v $((last - first)) -c:v libx264 -crf $([[ $mode == final ]] && echo 16 || echo 23) \
 	-pix_fmt yuv420p $out/$name.mp4
