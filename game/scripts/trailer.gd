@@ -17,7 +17,11 @@ extends Node
 
 const CameraShots := preload("res://scripts/camera_shots.gd")
 const Beacon := preload("res://scripts/beacon.gd")
-const TAKES := ["palace_time", "heli_dive", "palace_drift", "card", "old_town"]
+## `play` is plain gameplay (F 2026-11-10, after the first cut felt slow: "the day-two version was
+## way funnier"): the HUD, the car, the jokes and cards of whatever test flags start the moment
+## (--police=, --kebab=, --drive-into-water=, --meet-at=, --boat-race=, --pullover=, ...), with the
+## capture's picture extras, for --trailer-len= seconds.
+const TAKES := ["palace_time", "heli_dive", "palace_drift", "card", "old_town", "play"]
 const PALACE := Vector2(-1227.0, 244.0)
 ## The donut spot on Plac Defilad (the first street meet's square), the car's start for palace_drift.
 const DRIFT_AT := Vector3(-1030.0, 0.0, 186.0)
@@ -31,7 +35,7 @@ const SCRUB_FROM := 3.0
 const SCRUB_STEP := 3.0
 ## Each take's length (s). The game quits TAIL s after it ends, so a capture needs no --quit-after
 ## sum (keep one as a safety cap).
-const LENGTH := {"palace_time": 14.0, "heli_dive": 10.0, "palace_drift": 10.0, "card": 5.0, "old_town": 6.0}
+const LENGTH := {"palace_time": 14.0, "heli_dive": 10.0, "palace_drift": 10.0, "card": 5.0, "old_town": 6.0, "play": 10.0}
 const TAIL := 0.5
 ## palace_drift's own camera (the first Mac render's follow camera sat wide over the square and
 ## lost the car): the car in the middle of a DRIFT_VIEW m view, turning slowly round it, widened
@@ -45,8 +49,11 @@ const DRIFT_PITCH := -32.0
 const FAR := 6000.0
 const CARD_IN := 0.6
 const CARD_FADE := 0.8
+const SAY_IN := 0.2
+const SAY_FADE := 0.25
 ## The end card's lines (F 2026-11-10: "not Free beta, but just join beta").
-const CARD := ["JOIN THE BETA", "Around Warsaw", "iPhone and Android · aroundwarsaw.app"]
+## The title big in neon pink with a cyan shadow (an 80s sleeve, no palms), then the call.
+const CARD := ["AROUND WARSAW", "JOIN THE BETA", "iPhone · Android · aroundwarsaw.app"]
 
 ## Keys as camera_shots.gd EVENT_KEYS: t, ground point, height over it, view size, yaw, pitch.
 const PALACE_KEYS: Array[Dictionary] = [
@@ -77,6 +84,12 @@ const CARD_KEYS: Array[Dictionary] = [
 var take := ""
 ## The 3D image's MSAA for the capture (--trailer-aa=0|2|4|8).
 var aa := Viewport.MSAA_4X
+## --trailer-len=S: the play take's length in seconds.
+var play_len := 10.0
+## --trailer-say=PL|EN: a caption over the take (the day-two cut's lines, F 2026-11-10), in from
+## SAY_IN s.
+var say := PackedStringArray()
+var _say_box: Control
 ## Seconds into the take (the sum of dt).
 var t := 0.0
 var playing := false
@@ -99,7 +112,9 @@ func begin(main: Node) -> void:
 	t = 0.0
 	playing = true
 	seed(SEED)
-	Beacon.hide_all = true
+	# The quest markers and their light columns off in the scripted takes (F 2026-11-10); a play take
+	# keeps the job's beacon, which its card points at.
+	Beacon.hide_all = take != "play"
 	# The capture's extras (F 2026-11-10, the graphics research's "High" list, with no phone frame
 	# budget to keep): every mesh at full detail, an 8192 sun shadow map with soft edges, 16x
 	# anisotropic filtering on the slanted roads and facades, and MSAA on the 3D image
@@ -110,6 +125,11 @@ func begin(main: Node) -> void:
 	sv.msaa_3d = aa
 	RenderingServer.directional_shadow_atlas_set_size(8192, true)
 	RenderingServer.directional_soft_shadow_filter_set_quality(RenderingServer.SHADOW_QUALITY_SOFT_HIGH)
+	if not say.is_empty():
+		_make_say()
+	if take == "play":
+		print("trailer: %s starts at frame %d" % [take, Engine.get_process_frames()])
+		return
 	host.hud.visible = false
 	if take != "palace_drift":
 		host.car.visible = false
@@ -141,7 +161,7 @@ func _frame(dt: float) -> void:
 		_log_next += 1.0
 		var c: Vector3 = host.car.global_position
 		print("trailer: t %.0f car (%.0f, %.0f) %.1f m/s view %.0f m" % [t, c.x, c.z, absf(host.car.forward_speed), _drift_size])
-	if t >= float(LENGTH[take]) + TAIL:
+	if t >= _length() + TAIL:
 		playing = false
 		print("trailer: %s done at frame %d" % [take, Engine.get_process_frames()])
 		if take == "palace_drift":
@@ -150,7 +170,11 @@ func _frame(dt: float) -> void:
 					Vector2(p.x, p.z).distance_to(Vector2(DRIFT_AT.x, DRIFT_AT.z)), absf(host.car.forward_speed), _drift_size])
 		host.get_tree().quit()
 		return
+	if _say_box != null:
+		_say_box.modulate.a = clampf((t - SAY_IN) / SAY_FADE, 0.0, 1.0)
 	match take:
+		"play":
+			_fill((host.heli if host.flying else host.car).global_position, host.cam)
 		"palace_time":
 			host.tod.scrub(clampf((t - SCRUB_FROM) / SCRUB_STEP, 0.0, 3.0))
 			_fly(PALACE_KEYS)
@@ -162,7 +186,11 @@ func _frame(dt: float) -> void:
 		"card":
 			_fly(CARD_KEYS)
 			if _card_box != null:
-				_card_box.modulate.a = clampf((t - CARD_IN) / CARD_FADE, 0.0, 1.0)
+				var k := clampf((t - CARD_IN) / CARD_FADE, 0.0, 1.0)
+				_card_box.modulate.a = k
+				# A punch in on the final hit: from 115 % down to size as it fades in.
+				_card_box.pivot_offset = _card_box.size * 0.5
+				_card_box.scale = Vector2.ONE * lerpf(1.15, 1.0, ease(k, 0.4))
 		"palace_drift":
 			control_car(host.car)
 			if not _raided and t >= RAID_AT and host.police != null:
@@ -184,11 +212,21 @@ func _fly(keys: Array) -> Dictionary:
 	cam.far = FAR
 	var focus: Vector3 = v["focus"]
 	host.cam_focus = focus
+	_fill(focus, cam)
+	return v
+
+
+## The sectors under the view built at once when it has moved on or once a second (a capture: a
+## stall costs a movie frame, not a hitch).
+func _fill(focus: Vector3, cam: Camera3D) -> void:
 	if host.streamer != null and (focus.distance_to(_last_view) > 120.0 or t - _last_fill >= 1.0):
 		_last_view = focus
 		_last_fill = t
 		host.streamer.finish_view(focus, cam)
-	return v
+
+
+func _length() -> float:
+	return play_len if take == "play" else float(LENGTH[take])
 
 
 ## heli_dive: the helicopter flies the camera's focus, nose along the path, rotors turning.
@@ -285,9 +323,13 @@ func _make_card() -> void:
 	big.variation_embolden = 1.1
 	big.variation_transform = Transform2D(Vector2(1.0, 0.0), Vector2(-0.2, 1.0), Vector2.ZERO)
 	big.spacing_glyph = int(h * 0.012)
-	box.add_child(_label(CARD[0], big, h * 0.12, Color.WHITE))
-	box.add_child(_label(CARD[1], big, h * 0.055, Color("#ffd23f")))
-	box.add_child(_label(CARD[2], ThemeDB.fallback_font, h * 0.04, Color("#ffd2d2")))
+	var title := _label(CARD[0], big, h * 0.13, Color("#ff4fd8"))
+	title.add_theme_color_override("font_shadow_color", Color("#29e7ff"))
+	title.add_theme_constant_override("shadow_offset_x", int(h * 0.008))
+	title.add_theme_constant_override("shadow_offset_y", int(h * 0.008))
+	box.add_child(title)
+	box.add_child(_label(CARD[1], big, h * 0.075, Color("#ffd23f")))
+	box.add_child(_label(CARD[2], ThemeDB.fallback_font, h * 0.035, Color("#ffe6f6")))
 
 
 func _label(text: String, font: Font, px: float, colour: Color) -> Label:
@@ -301,3 +343,36 @@ func _label(text: String, font: Font, px: float, colour: Color) -> Label:
 	l.add_theme_constant_override("shadow_offset_x", int(px * 0.05))
 	l.add_theme_constant_override("shadow_offset_y", int(px * 0.05))
 	return l
+
+
+## The caption: a dark band across the lower third, the Polish line big, the English small under
+## it, like the day-two cut's "PRAWDZIWA WARSZAWA. W WERSJI KIESZONKOWEJ."
+func _make_say() -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 6
+	add_child(layer)
+	var size := get_viewport().get_visible_rect().size
+	var h := size.y
+	var panel := PanelContainer.new()
+	var band := StyleBoxFlat.new()
+	band.bg_color = Color(0.02, 0.02, 0.06, 0.62)
+	band.set_content_margin_all(h * 0.022)
+	panel.add_theme_stylebox_override("panel", band)
+	panel.anchor_left = 0.0
+	panel.anchor_right = 1.0
+	panel.anchor_top = 0.66
+	panel.anchor_bottom = 0.66
+	panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+	panel.modulate.a = 0.0
+	layer.add_child(panel)
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", int(h * 0.006))
+	panel.add_child(box)
+	var big := FontVariation.new()
+	big.base_font = ThemeDB.fallback_font
+	big.variation_embolden = 1.0
+	big.spacing_glyph = int(h * 0.006)
+	box.add_child(_label(say[0].to_upper(), big, h * 0.06, Color.WHITE))
+	if say.size() > 1:
+		box.add_child(_label(say[1], ThemeDB.fallback_font, h * 0.03, Color("#ffd23f")))
+	_say_box = panel

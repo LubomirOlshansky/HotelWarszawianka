@@ -1364,6 +1364,11 @@ func _trailer_flag(take: String) -> void:
 	_flag_governor = 0
 	if lines_override <= 0:
 		lines_override = 1080
+	if take == "play":
+		# Gameplay: the see-through hole round the car stays (it is the game's look), and the
+		# start is whatever the other flags set up.
+		no_touch = true
+		return
 	no_ghost = true
 	free_roam = true
 	if take == "palace_drift":
@@ -5260,6 +5265,10 @@ func _parse_args() -> void:
 		elif arg.begins_with("--trailer-aa=") and trailer != null:
 			trailer.aa = {"0": Viewport.MSAA_DISABLED, "2": Viewport.MSAA_2X, "8": Viewport.MSAA_8X}.get(
 					arg.trim_prefix("--trailer-aa="), Viewport.MSAA_4X)
+		elif arg.begins_with("--trailer-say=") and trailer != null:
+			trailer.say = arg.trim_prefix("--trailer-say=").split("|")
+		elif arg.begins_with("--trailer-len=") and trailer != null:
+			trailer.play_len = maxf(1.0, float(arg.trim_prefix("--trailer-len=")))
 		elif arg == "--heli":
 			start_flying = true
 		elif arg.begins_with("--heli-stick="):

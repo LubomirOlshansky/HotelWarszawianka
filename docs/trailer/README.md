@@ -25,3 +25,8 @@ ffmpeg -ss 0.48 -i music-take4.mp3 -filter_complex "[0:a]atrim=0:4,asetpts=PTS-S
 `tools/trailer.sh final TAKE` at 1920x1080 with the trailer's best picture;
 `tools/trailer.sh cut preview|final` cuts both trailers from that folder with `cut.sh`.
 A cut alone takes seconds: change shot order and timings in `cut.sh` without re-rendering.
+
+Since F's note on the first cut (2026-11-10: slow, only flyovers, the day-two version was funnier)
+the cut is mostly gameplay takes with the HUD and the game's own jokes (kebab job, taxi ride, the
+kebab pullover, the boat race, the Vistula dive, chase, roadblock, racing club, drag, the helicopter
+at the stadium), a shot every 1.5-3 s, two captions, the flyovers sped up 2-4x (`take:start:len:speed`).

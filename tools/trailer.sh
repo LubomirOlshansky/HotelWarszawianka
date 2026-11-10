@@ -6,7 +6,9 @@
 #   tools/trailer.sh final TAKE [game flags]     1920x1080, the trailer's best picture -> build/trailer/final/TAKE.mp4
 #   tools/trailer.sh cut [preview|final]         docs/trailer/cut.sh on that folder -> build/trailer/<mode>/cut/
 #
-# TAKE: palace_time, heli_dive, old_town, card, drift_day (palace_drift by day), drift_night.
+# TAKE: the scripted flyovers palace_time, heli_dive, old_town, card, drift_day, drift_night, and the
+# gameplay takes (HUD on, the game's own jokes; --trailer=play): kebab, ride, pullover, boat,
+# vistula, chase, roadblock, club, drag, heli_stadium.
 # The prebuilt city (sectors + index.res from bake_city.gd) is used when game/map/index.res exists.
 # Each take quits by itself; the loading frames before "trailer: TAKE starts at frame N" are cut.
 # Needs ffmpeg for preview, final and cut. Every run passes --nosave.
@@ -26,11 +28,24 @@ fi
 
 name=${1:?which take}
 shift
-typeset -a game=(--nosave --radio=0 --nohud)
+typeset -a game=(--nosave)
+typeset -a play=(--trailer=play --trailer-len=8)
 case $name in
-	drift_day) game+=(--trailer=palace_drift --time=day) ;;
-	drift_night) game+=(--trailer=palace_drift --time=night) ;;
-	palace_time|heli_dive|old_town|card) game+=(--trailer=$name) ;;
+	drift_day) game+=(--radio=0 --nohud --trailer=palace_drift --time=day) ;;
+	drift_night) game+=(--radio=0 --nohud --trailer=palace_drift --time=night) ;;
+	palace_time|heli_dive|old_town|card) game+=(--radio=0 --nohud --trailer=$name) ;;
+	kebab) game+=($play --kebab=3 --autopilot --time=day
+		"--trailer-say=Prawdziwa Warszawa. W wersji kieszonkowej.|The real Warsaw, pocket-sized.") ;;
+	ride) game+=($play --ride=2 --autopilot --time=day) ;;
+	pullover) game+=($play --pullover=kebab --time=day) ;;
+	boat) game+=($play --boat-race=auto --time=day) ;;
+	vistula) game+=($play --drive-into-water=1015,-85 --time=dusk) ;;
+	chase) game+=($play --police=2 --police-auto=escape --time=night
+		"--trailer-say=Dzień, noc i radiowóz na ogonie.|Day, night and a cop car on your tail.") ;;
+	roadblock) game+=($play --police=3 --police-auto=escape --time=night) ;;
+	club) game+=($play --meet-at=meet --time=night) ;;
+	drag) game+=($play --meet-at=stage --time=night) ;;
+	heli_stadium) game+=($play --heli --demo --at=1486,-611 --time=dusk) ;;
 	*) print -r -- "tools/trailer.sh: unknown take $name"; exit 2 ;;
 esac
 [[ -f $ROOT/game/map/index.res ]] && game+=(--prebuilt)
