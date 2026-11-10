@@ -1211,6 +1211,28 @@ func raid(at: Vector3, n: int, lvl := 2) -> int:
 	return placed.size()
 
 
+## The raid's first RAID_SHOW s (F 2026-11-10: "there should be visible cops approaching"): the
+## follow camera widens to keep the incoming patrol cars on screen (main.gd raid_view_extra).
+const RAID_SHOW := 6.0
+## Only cars this close count for the widened view (a car out at RAID_FAR would zoom too far).
+const RAID_SHOW_REACH := 140.0
+
+
+## Where the raid's patrol cars are while the raid is still arriving (its first RAID_SHOW s), the
+## ones within RAID_SHOW_REACH m of `car`; empty otherwise.
+func raid_arrivals(car: Vector3) -> PackedVector3Array:
+	var out := PackedVector3Array()
+	if not raid_chase or _raid_t < RAID_HOLD - RAID_SHOW:
+		return out
+	for u in _engaged:
+		if u.driver == null:
+			continue
+		var p: Vector3 = u.driver.pos
+		if Vector2(p.x, p.z).distance_to(Vector2(car.x, car.z)) <= RAID_SHOW_REACH:
+			out.append(p)
+	return out
+
+
 # --- blocker and roadblock -------------------------------------------------------------------
 
 ## The first junction on the player's way ahead between `lo` and `hi` metres (straight on at

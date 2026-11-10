@@ -135,6 +135,44 @@ func set_mode(m: int, instant := false) -> void:
 	changed.emit(mode)
 
 
+## The beta trailer (trailer.gd): a held look on the way day -> golden hour -> dusk -> night, `k`
+## 0..3 (0 day, 1 golden, 2 dusk, 3 night), applied at once and kept (no blend runs after it). The
+## mode is left as it was; set_mode() hands the look back to the game.
+func scrub(k: float) -> void:
+	var stops: Array = [_looks[DAY], golden_look(), _looks[DUSK], _looks[NIGHT]]
+	k = clampf(k, 0.0, 3.0)
+	var i := mini(int(k), 2)
+	_from = stops[i]
+	_to = _blend(stops[i], stops[i + 1], smoothstep(0.0, 1.0, k - float(i)))
+	_t = 1.0
+	_apply(_to)
+
+
+## The golden hour for the trailer's time scrub only: the day look with a low, warm sun from the
+## west, a warm sky band and the first lights coming on. Not a mode of its own.
+func golden_look() -> Dictionary:
+	var g: Dictionary = _looks[DAY].duplicate()
+	g["background"] = Color("#e9b98f")
+	g["ambient"] = Color("#d6b49a")
+	g["ambient_energy"] = 0.62
+	g["sun"] = Color("#ffb066")
+	g["sun_energy"] = 1.1
+	g["sun_pitch"] = -14.0
+	g["sun_yaw"] = -70.0
+	g["lights_on"] = 0.25
+	g["daylight"] = 0.75
+	g["sky_colour"] = Vector3(0.86, 0.72, 0.6)
+	g["tone_amount"] = 0.45
+	g["tone_shadow"] = Vector3(0.9, 0.9, 1.12)
+	g["tone_light"] = Vector3(1.12, 0.98, 0.84)
+	g["sky_amount"] = 1.0
+	g["sky_top"] = Color("#6d86b8")
+	g["sky_bottom"] = Color("#ffc58a")
+	g["glow"] = 0.2
+	g["saturation_share"] = 0.5
+	return g
+
+
 func next() -> void:
 	set_mode(mode + 1)
 
