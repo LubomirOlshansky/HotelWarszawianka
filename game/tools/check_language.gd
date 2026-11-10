@@ -307,8 +307,8 @@ func _check_panel(code: String) -> void:
 	panel.set_tab(0)
 	await process_frame
 	rebuilt = _joined(panel)
-	var want := "Wskaż" if other == Lang.PL else "Point"
-	var not_want := "Point" if other == Lang.PL else "Wskaż"
+	var want := "Wł." if other == Lang.PL else "On"
+	var not_want := "On" if other == Lang.PL else "Wł."
 	if not rebuilt.split("\n").has(want) or rebuilt.split("\n").has(not_want):
 		_fail("[%s→%s] the settings panel was not rebuilt in the new language" % [code, other])
 	Lang.set_code(code)
