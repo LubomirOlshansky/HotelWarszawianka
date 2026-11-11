@@ -248,9 +248,13 @@ func _check_screen(screen: Vector2i) -> int:
 				"rescue, host, egg":
 					hud.show_status("DO SZPITALA · Samodzielny Szpital Kliniczny im. prof. Witolda Orłowskiego", "2:31", "640 m",
 							"Pacjent na pokładzie: do zielonego światła", 0.3, Color("#ffc23a"), "", {}, "Patient on board: head for the green beacon")
+					# The message director keeps the radio and an egg's note back during a quest; the worst
+					# case left is a station the player picked and a quest's own note (TYGRAM).
+					hud.radio_touched()
 					hud.ticker("87,3 KEBAB FM:  Jest trzecia w nocy, a Rondo Dmowskiego wciąż stoi. Szacunek.", Color("#ff5fc8"),
 							"It's 3 a.m. and Rondo Dmowskiego is still jammed. Respect.")
-					hud.show_note("SEKRET 2/5 · EASTER EGG", "Gołębie na placu Defilad\nPigeons on Plac Defilad", Color("#ff4fd8"))
+					hud.show_note("SEKRET 2/5 · EASTER EGG", "Gołębie na placu Defilad\nPigeons on Plac Defilad", Color("#ff4fd8"),
+							hud.Messages.QUEST_LINE)
 					_say(bubbles, "Ania", at.call(0.2, 0.86), "Szybciej, proszę!", "Faster, please!")
 				"kebab offer":
 					hud.show_card("ZAMÓWIENIE · KEBAB · 840 m", "Dla: Kasia, Wspólna 47/49. Za rzeką: „w sumie to centrum”. Im cieplejszy dojedzie, tym większy napiwek. Nocą ×1,5.",
@@ -269,6 +273,7 @@ func _check_screen(screen: Vector2i) -> int:
 				"kebab delivery":
 					hud.show_status("KEBAB → Wspólna 47/49", "GORĄCY 92%", "410 m", "Jedź do pomarańczowego światła", 0.0, Color("#ff9a3c"),
 							"", {"heat": 0.9}, "Head for the orange beacon")
+					hud.radio_touched()  # the player's own station: it shows in a quest or a chase
 					hud.ticker("87,3 KEBAB FM  ·  Palma de Gaulle'a", Color("#ff5fc8"))
 					# The case the user saw: the stand's bubble right where the ticker sits.
 					_say(bubbles, "Kebab 24h", at.call(0.1, 0.9), "KEBAB 24H: najlepszy w mieście!", "The best in town!")
@@ -302,6 +307,7 @@ func _check_screen(screen: Vector2i) -> int:
 					hud.police_fx(1.0, PackedVector2Array([at.call(0.5, 1.3)]), Vector2.INF)
 					_say(bubbles, "Policja", at.call(0.5, 0.72), "Proszę się zatrzymać! Albo chociaż zwolnić, będzie miło.",
 							"Please stop! Or at least slow down, that would be nice.")
+					hud.radio_touched()  # the player's own station: it shows in a quest or a chase
 					hud.ticker("87,3 KEBAB FM  ·  Palma de Gaulle'a", Color("#ff5fc8"))
 				"lizak":
 					hud.set_koguty(0, 3)

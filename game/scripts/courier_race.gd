@@ -346,7 +346,7 @@ func step(dt: float) -> void:
 				cancel()
 		State.OFFER:
 			_t += dt
-			hud.show_challenge("ŚCIGAJ · PĘDZIK", COLOUR, "race the courier to the door (L)")
+			hud.show_challenge("WYŚCIG · PĘDZIK", COLOUR, "RACE · PĘDZIK", "Do drzwi klienta. Dotknij albo L", "To the door. Tap or L")
 			if autopilot and _t > 1.0:
 				accept()
 			elif _t > OFFER_S:

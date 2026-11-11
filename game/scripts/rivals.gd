@@ -889,9 +889,11 @@ func _look_for_challenge() -> void:
 			if not rung_open(i):
 				# Loop 3h slice 3: locked on the ladder: the prompt says what is missing.
 				var miss := ladder.missing(Ladder.rung_of(r["name"]))
-				hud.show_challenge("%s · %s" % [r["name"].to_upper(), miss[0]], LOCKED_COLOUR, "locked: %s (L)" % miss[1])
+				hud.show_challenge("%s · ZAMKNIĘTE" % r["name"].to_upper(), LOCKED_COLOUR, "%s · LOCKED" % r["name"].to_upper(),
+						String(miss[0]), String(miss[1]))
 				return
-			hud.show_challenge("MRUGNIJ ŚWIATŁAMI · %s" % r["name"].to_upper(), r["colour"], "flash your lights to race (L)")
+			hud.show_challenge("WYŚCIG · %s" % r["name"].to_upper(), r["colour"], "RACE · %s" % r["name"].to_upper(),
+					"Dotknij albo L: mrugnij światłami", "Tap or L: flash your lights")
 			if _t - _said[i] > 40.0 and not quiet:
 				_say(i, r["approach"][0], r["approach"][1], 3.5)
 			return
@@ -1502,7 +1504,8 @@ func _first_call_tick(dt: float) -> void:
 			_call_t = 0.0
 			state = State.PROMPT
 			var r: Dictionary = RIVALS[_caller]
-			hud.show_challenge("%s MRUGA · MRUGNIJ" % String(r["name"]).to_upper(), r["colour"], "%s flashed you: flash back to race (L)" % r["name"])
+			hud.show_challenge("WYŚCIG · %s" % String(r["name"]).to_upper(), r["colour"], "RACE · %s" % String(r["name"]).to_upper(),
+					"Mruga do ciebie! Dotknij albo L", "Flashing you! Tap or L to race")
 			_say(_caller, FIRST_LINES["call"][0], FIRST_LINES["call"][1], 4.0)
 			print("first race: %s flashed, waiting for the flash back" % r["name"])
 		return

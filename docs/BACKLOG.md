@@ -4,6 +4,18 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## The message director (F, 2026-11-11; docs/design/hud-messages.md)
+F's night-race screenshot had six texts over the road at once (the radio news, the app-taxi's GPS
+joke, the race card, the police pill, the partner, the TYGRAM pin). Built: `messages.gd`, one
+decision for every ticker, toast and note by context (free / quest / chase / focus) and priority,
+a queue for notes, toasts that wait to be glanced at, call spacing for friends' calls; bubbles
+follow the context (no ambient in a quest; no reactions and one voice in a chase); the GPS moments
+are ambient; the compact quest card; the race challenge as a call to action; bubbles off the road
+ahead (`check_messages`, verify step `messages`).
+- [ ] Phone feel: the hint's fold time, the challenge's size and pop, the road-ahead boxes at speed (needs a device run, F's yes)
+- [ ] Rides count as a quest (the radio host keeps quiet on a ride): F to say if rides get their own context
+- [ ] The rest of the ~50 speakers keep their classes as before; eggs' bubbles are still quest lines (could be INFO-like and wait in a chase)
+
 ## Architecture: the planned central systems (F, 2026-11-11; docs/architecture/tech-debt.md)
 F liked the HUD message queue (PR #652) and asked for the game's other central mechanisms and an architecture map agents follow. The map is in `docs/architecture/`; the planned systems are tech-debt rows TD-1 to TD-12, in this order: TD-8 safer saves (temp file + rename, one backup, autosave at activity end); then the directors lane: TD-1 activity director (replaces `_free_block` and 8 private free checks), TD-2 objective channel (arrow, metres, pin, route in one place), TD-3 offer pacer (one offer at a time, quiet after a finish); TD-13 map marker registry (what the minimap and full map show, by context, vehicle and clock; docs/architecture/map-markers.md), built with TD-1/TD-2; TD-5 audio priority mixer; later TD-6/TD-7 population budget, TD-12 difficulty layer after racer AI step 3. Each is one thread, Opus, with its own check script; each lands by moving existing callers onto it and updating `extending.md`.
 

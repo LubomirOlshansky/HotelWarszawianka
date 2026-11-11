@@ -10,7 +10,7 @@ move later, and don't build a third private copy.
 | --- | --- | --- |
 | A line of text on the HUD (toast, ticker, note) | `hud.toast` / `ticker` / `show_note` with a priority from `messages.gd` (PR #652: AMBIENT, RADIO, INFO, QUEST_LINE, ALERT) | own cooldown or own "is the player busy" test |
 | A speech bubble | `bubbles.say` (QUEST), `say_reaction`, `say_ambient`; police use the POLICE class | a timer that decides when a character may talk |
-| An incoming phone call | `hud.call_ok()` before ringing (PR #652), `messages.call_rang()` when the ODBIERZ card shows | ringing from your own timer without asking |
+| An incoming phone call | `hud.call_ok()` before ringing (PR #652), `messages.call_rang()` when it rings (`show_call` and an ODBIERZ card record it themselves) (the rescue line too: missions.gd waits at zero until it may ring) | ringing from your own timer without asking |
 | Dialogue words | `game/data/dialogue.json` (Polish and English pair), read with `dialogue.line(group, tag)`; branching scenes in Dialogue Manager (skill `dialogue-scenes`) | text inside code |
 | A new activity (quest, job, race mode, tour) | a script with `busy()`, `setup(world)`, injected `hud`, `wallet`, `dialogue`, `map`, `car`, `vehicle`, `clock`, `free_now`; a questline joins with one `stories.add({...})` in main.gd | **planned activity director**. Until then: add its `busy()` to `_free_block()` in main.gd, and nowhere else |
 | When the game offers the next thing | **planned offer pacer**. Until then: ask `_free_block()` and `hud.call_ok()`; keep your own timing numbers as named consts at the top of your script | a third unrelated random timer |
