@@ -20,8 +20,8 @@ extends RefCounted
 ## call rings only in FREE, CALL_SETTLE s into a calm spell (never straight after a result or an
 ## escape) and CALL_GAP s after the last call of anyone (no two friends ringing back to back); the
 ## callers keep their own timers and ask `call_ok` before they ring (main.gd `_free_block`,
-## trend_job.gd), and a call that rings tells `call_rang`. A call the player asked for (the
-## WĄTKI list, a test flag) does not ask.
+## trend_job.gd, and the rescue line in missions.gd, which waits at zero), and a call that rings
+## tells `call_rang`. A call the player asked for (the WĄTKI or HELI list, a test flag) does not ask.
 ##
 ## The queue holds deferred notes until the context lets them through (in arrival order within a
 ## priority, the highest first), one every FLUSH_GAP s, each for at most TTL s; past MAX_QUEUED the

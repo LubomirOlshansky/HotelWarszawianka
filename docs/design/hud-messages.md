@@ -76,8 +76,17 @@ the crawl, the EV tow, Mrożulo, DESKA) keeps its own timer, but asks the direct
 `call_ok` is true only in FREE, CALL_SETTLE (8 s) into a calm spell (never straight after a result
 or an escape) and CALL_GAP (60 s) after the last call of anyone, so two friends never ring back to
 back. Wired through main.gd `_free_block` (all questline calls) and trend_job.gd (its calls). A call
-the player asked for (the WĄTKI list, a test flag) does not ask. A rescue call (the main line) keeps
-its own rules.
+the player asked for (the WĄTKI list, a test flag) does not ask. The rescue line (missions.gd: the first
+call 60 s in, the next 90 s after one ends) asks the same gate: when its countdown runs out it waits
+at zero until `call_ok`, and its ring counts as a call, so a friend never rings straight after a
+rescue call and a rescue never rings in a race. A rescue the player asks for (the HELI list) does not
+wait.
+
+What else decides a call in free roam (unchanged): each friend's own timer (shisha, meet, crawl: the
+first 4 to 8 min of play, the next 20 to 40 min later; EV tow 5 to 8 min, then 12 to 18; the boat race
+by day 5 min in, then every 25 min; Kieślowski 10 min in, the cinema tour 8 min in, both every 30 min,
+in their hours; the rave 30 to 75 s after its hint), a call not answered in 25 s becomes a missed
+call, and main.gd `_free_block` (nothing else on: no card, mission, ride, job, race, club, flight).
 
 ## 3. Screen slots (where each thing lives)
 

@@ -23,6 +23,7 @@ const Messages := preload("res://scripts/messages.gd")
 const Chatter := preload("res://scripts/chatter.gd")
 const Hud := preload("res://scripts/hud.gd")
 const Bubbles := preload("res://scripts/bubbles.gd")
+const Missions := preload("res://scripts/missions.gd")
 
 var _problems := 0
 
@@ -190,6 +191,22 @@ func _check_hud() -> void:
 	hud.show_side_card("📞 IVAN DZWONI", "Kumpel.", PackedStringArray(["ODBIERZ|ANSWER", "ODRZUĆ|DECLINE"]), Color("#ffb020"))
 	hud.hide_card()
 	_expect(not hud.call_ok(), "a second call may ring right after one")
+	# The rescue line asks the same gate (F 2026-11-11, "what logic do calls have when I cruise"):
+	# its countdown runs out right after Ivan's call, so it waits CALL_GAP, then rings and counts.
+	var rescue: Node = Missions.new()
+	rescue.hud = hud
+	rescue._hospitals.append({"name": "Szpital", "pos": Vector3.ZERO, "children": false})
+	rescue.ring_in(0.05)
+	for i in 20:
+		rescue.tick(0.1, Vector3.ZERO, 0.0, false)
+	_expect(rescue.state == Missions.State.CLOSED, "a rescue rang 2 s after a friend's call")
+	_tick(hud, b, Messages.CALL_GAP + 1.0)
+	var before: int = hud.messages.calls
+	rescue.tick(0.1, Vector3.ZERO, 0.0, false)
+	_expect(rescue.state == Missions.State.RINGING, "the waiting rescue never rang once calls were allowed")
+	_expect(hud.messages.calls == before + 1 and not hud.call_ok(), "a rescue call didn't count as a call")
+	rescue.free()
+	hud.hide_pill()
 
 	# Two toasts: the second waits until the first was glanced at.
 	hud.clear_all()
