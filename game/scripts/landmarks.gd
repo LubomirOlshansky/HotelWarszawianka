@@ -6381,12 +6381,13 @@ const MDM_CROWNS := [
 	[Vector2(-499.5, 1388.5), 27.4, 7.5, 5.8],   # the south gate, west
 	[Vector2(-462.0, 1374.3), 27.4, 7.5, 5.8],   # the south gate, east
 ]
-## Roof and hotel signs: [word, spot, outward direction, roof height above ground, width m, colour].
+## Roof and hotel signs, all on the Hotel MDM (Plac Konstytucji 1, the south-west block, 27.4 m; the
+## real MDM and BYD neons share its roof, read from the square; the direction is the text's back): [word, spot, outward direction, roof height above ground, width m, colour].
 const MDM_SIGNS := [
-	["MDM", Vector2(-458.6, 1286.5), Vector2(0.349, 0.937), 36.4, 8.0, MDM_RED],
-	["BYDŁO", Vector2(-472.8, 1274.0), Vector2(-0.937, 0.349), 31.0, 12.0, MDM_SILVER],
+	["MDM", Vector2(-512.0, 1388.5), Vector2(0.349, 0.937), 32.2, 8.0, MDM_RED],
+	["BYDŁO", Vector2(-527.0, 1394.5), Vector2(0.349, 0.937), 31.0, 12.0, MDM_SILVER],
 	["XIAOMY", Vector2(-447.0, 1366.0), Vector2(-0.349, -0.937), 27.8, 11.0, MDM_ORANGE],
-	["HOTEL MDM", Vector2(-466.0, 1281.0), Vector2(-0.937, 0.349), 5.9, 5.2, MDM_RED],
+	["HOTEL MDM", Vector2(-509.8, 1382.2), Vector2(0.349, 0.937), 5.9, 5.2, MDM_RED],
 ]
 
 
