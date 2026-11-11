@@ -12,7 +12,10 @@ extends Node3D
 ## teak armchairs with cream cushions, the tower's glass wall behind, a glass balustrade, the
 ## Palace's tower beyond it over a field of city lights, bulb garlands.
 ##
-## The evening, in steps: the waiter's order (Ivan a pale beer, Bogdan green tea), then the
+## The evening, in steps: the arrival (the doorman's dress-code joke at the door, the lift to the
+## 38th floor: F 2026-11-11 wanted the quest inside, not on cards in the street), the waiter's order
+## (Ivan a pale beer, Bogdan green tea), the three choices at the table on the panel (whose flavour,
+## how strong, the pipe's name: Shisha.vote_card; a choice already made is skipped), then the
 ## mini-game "Miks u Mistrza" with Mistrz Dymek: two jars of six on a sweet/cool chart (Ivan's and
 ## Bogdan's pins; the mix is the midpoint, hearts 0-3 each by distance, the car's strength vote
 ## tips them; strong gets the master's two hoses), the coal (tap in the band, narrower when
@@ -81,7 +84,7 @@ const JAR_COLOURS := {"arbuz": Color("#e8506a"), "jablko": Color("#9fd04a"), "gu
 const JAR_SHORT := {"arbuz": ["ARBUZ", "MELON"], "jablko": ["JABŁKO", "APPLE"], "guma": ["GUMA", "GUM"],
 		"ogorek": ["OGÓREK", "CUCUMBER"], "mgla": ["MGŁA", "MIST"], "zupa": ["ZUPA", "SOUP"]}
 
-enum Step { NONE, ORDER, JARS, COAL, DRAW, RESULT, SMOKE }
+enum Step { NONE, ARRIVE, ORDER, CHOOSE, JARS, COAL, DRAW, RESULT, SMOKE }
 
 ## How it ended ("smoke", "terrace", "leave") and the score 0..9.
 signal done(how: String, score: int)
@@ -100,8 +103,10 @@ var view_size := VIEW
 var yaw := YAW
 var area := "sala"
 var step_now := Step.NONE
-## The votes from the car {flavour, strength, name}.
+## The choices {flavour, strength, name}: shisha.gd's own dictionary, filled at the table.
 var votes := {}
+## The choice on the panel now (0 flavour, 1 strength, 2 name).
+var choice := 0
 var strength := 3
 var picked: Array[String] = []
 var hearts_now := Vector2i.ZERO
@@ -153,6 +158,9 @@ var _bar: Control
 var _jar_box: GridContainer
 var _jar_btns: Dictionary = {}
 var _act: Button
+var _choice_box: HBoxContainer
+var _choice_btns: Array[Button] = []
+var _up := false
 var _buttons: HBoxContainer
 var _smoke_btn: Button
 var _terrace_btn: Button
@@ -768,6 +776,14 @@ func _build_ui() -> void:
 		var b := _button(_jar_box, String(short[0]), String(short[1]), JAR_COLOURS.get(id, GOLD), pt, Vector2.ZERO)
 		b.pressed.connect(func() -> void: _on_jar(id))
 		_jar_btns[id] = b
+	# The three answers of a choice (Shisha.vote_card), one row, their words set per question.
+	_choice_box = HBoxContainer.new()
+	_choice_box.add_theme_constant_override("separation", int(6 * pt))
+	g.add_child(_choice_box)
+	for i in 3:
+		var b := _button(_choice_box, "-", "-", [Color("#7aa0ff"), Color("#f2f2ee"), GOLD][i], pt, Vector2(80, 48))
+		b.pressed.connect(func() -> void: _on_choice(i))
+		_choice_btns.append(b)
 	_act = _button(g, "TERAZ!", "NOW!", TEAL, pt, Vector2(250, 52))
 	_act.pressed.connect(_on_act)
 	_act.button_down.connect(func() -> void:
@@ -898,10 +914,15 @@ func enter(world: Node3D, v: Dictionary) -> void:
 	inside = true
 	_clock = 0.0
 	_go("sala")
-	_title.text = Lang.pick("SENATOREK · Emilii Plater 53", "SENATOREK · Emilii Plater 53")
-	_set_step(Step.ORDER)
+	_title.text = Lang.pick("SENATOREK · Emilii Plater 53 · wejście", "SENATOREK · Emilii Plater 53 · the door")
 	_lines.clear()
-	_queue("order")
+	_up = false
+	_set_step(Step.ARRIVE)
+	if auto_play and v.size() >= 3:
+		_queue("lift")  # the shots' shortcut (--shisha-lounge): straight up
+	else:
+		_queue("door")
+		_queue("lift")
 	_log("in: votes %s" % v)
 
 
@@ -952,7 +973,8 @@ func _show(on: bool) -> void:
 func _set_step(s: Step) -> void:
 	step_now = s
 	_step_t = 0.0
-	var game_on := s in [Step.JARS, Step.COAL, Step.DRAW, Step.RESULT]
+	var game_on := s in [Step.CHOOSE, Step.JARS, Step.COAL, Step.DRAW, Step.RESULT]
+	_choice_box.visible = s == Step.CHOOSE
 	_game.visible = game_on
 	_chart.visible = s in [Step.JARS, Step.RESULT]
 	_bar.visible = s in [Step.COAL, Step.DRAW]
@@ -961,6 +983,14 @@ func _set_step(s: Step) -> void:
 	_smoke_btn.visible = s == Step.RESULT
 	_terrace_btn.visible = s == Step.RESULT
 	match s:
+		Step.CHOOSE:
+			var c := Shisha.vote_card(choice)
+			_game_title.text = "%s · %d/3" % [Lang.pick(String(c[0]), String(c[1])), choice + 1]
+			_game_hint.text = Lang.pick(String(c[2]), String(c[3]))
+			var ans: PackedStringArray = c[4]
+			for i in 3:
+				var w := ans[i].split("|")
+				_chip_text(_choice_btns[i], w[0], w[1] if w.size() > 1 else w[0])
 		Step.JARS:
 			_game_title.text = Lang.pick("MIKS U MISTRZA · 1/3 SŁOIKI", "THE MASTER'S MIX · 1/3 JARS")
 			_game_hint.text = Lang.pick("Wybierz dwa słoiki. Miks to środek między nimi. Ivan lubi słodko, Bogdan chłodno.",
@@ -1000,9 +1030,21 @@ func _process(dt: float) -> void:
 	_pose_lights()
 	_pose_people()
 	match step_now:
+		Step.ARRIVE:
+			# The lift's three lines are the last: the title says where we are.
+			if not _up and _lines.size() <= 3:
+				_up = true
+				_title.text = Lang.pick("🛗 WINDA · 38. PIĘTRO", "🛗 LIFT · 38TH FLOOR")
+			if _lines.is_empty() and _line_t <= 0.0:
+				_title.text = Lang.pick("SENATOREK · 38. piętro", "SENATOREK · 38th floor")
+				_set_step(Step.ORDER)
+				_queue("order")
 		Step.ORDER:
 			if _lines.is_empty() and _line_t <= 0.0:
-				_start_jars()
+				_next_choice()
+		Step.CHOOSE:
+			if _lines.is_empty() and ((auto_play and _step_t > AUTO_WAIT) or _step_t > STEP_LIFE * 2.0):
+				_on_choice(Shisha.default_vote(choice))
 		Step.JARS:
 			if auto_play and _step_t > AUTO_WAIT and _lines.is_empty():
 				var best := best_jars(_jars, strength)
@@ -1054,6 +1096,26 @@ func _jar(id: String) -> Dictionary:
 		if String(j["id"]) == id:
 			return j
 	return {"id": id, "sweet": 0.0, "cool": 0.0}
+
+
+## The next choice nobody has made yet at the table, or on to the jars.
+func _next_choice() -> void:
+	for k in 3:
+		if not votes.has(["flavour", "strength", "name"][k]):
+			choice = k
+			_set_step(Step.CHOOSE)
+			return
+	_start_jars()
+
+
+func _on_choice(i: int) -> void:
+	if step_now != Step.CHOOSE:
+		return
+	Shisha.apply_vote(votes, choice, i)
+	strength = int(votes.get("strength", 3))
+	_queue(Shisha.vote_scene(votes, choice))
+	_log("choice %d: %s" % [choice + 1, votes])
+	_next_choice()
 
 
 func _start_jars() -> void:
