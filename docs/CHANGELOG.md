@@ -11,7 +11,7 @@ someone writes its lines.
 
 ## 2026-11-11
 - The night car meet's start is no longer right next to where the game begins: Darek waits for you on Parkingowa, just past Rondo Dmowskiego, out of sight of the first view, and from there sends you up to the meet on Plac Defilad.
-- Mati's Smoła night no longer starts right beside your car when the game begins: he waits on Aleje Jerozolimskie by Rondo Dmowskiego instead.
+- Mati's Smoła night no longer starts right beside your car when the game begins: for now he waits on Aleje Jerozolimskie by Rondo Dmowskiego instead.
 
 ## 2026-11-10
 - The horn button next to the brake is gone; the nitro button now sits right by the brake.
