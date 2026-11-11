@@ -1,11 +1,13 @@
 """Generate the little synth UI sounds (original, synthesised from scratch).
 
-Usage: python3 -I tools/make_ui_sounds.py game/audio/ui
+Usage: python3 -I tools/make_ui_sounds.py game/audio/ui [name ...]   (default: all)
 
 Writes 22 kHz mono 16-bit WAVs:
   blip.wav   a soft two-note square blip for buttons (TIME, VHS, CAM...)
   tune.wav   a radio tuning burst: filtered static sweeping past a whistle
   start.wav  the title's "tap to drive": a rising arpeggio on a detuned saw
+  ring.wav   a friend's call (hud.gd show_call, F 2026-11-10): a cheeky old-phone ringtone,
+             eight bouncy square-and-sine notes, then the phone buzzing twice on the table
 """
 import math
 import os
@@ -99,13 +101,54 @@ def start():
     return tail
 
 
-def main(out_dir):
+def ring():
+    out = []
+    # E5 G5 B5 G5 · A5 E5 D5 G5: bouncy, a little off-kilter, ends up in the air.
+    tune_notes = [659.25, 783.99, 987.77, 783.99, 880.0, 659.25, 587.33, 783.99]
+    for k, f in enumerate(tune_notes):
+        length = 0.12 if k % 4 != 3 else 0.2
+        n = int(RATE * length)
+        ph = 0.0
+        for i in range(n):
+            # a little pitch blip at each note's start: the cheap phone speaker's "boing"
+            bend = 1.0 + 0.04 * max(0.0, 1.0 - i / (RATE * 0.025))
+            ph += f * bend / RATE
+            sq = 1.0 if (ph % 1.0) < 0.5 else -1.0
+            sine = math.sin(math.tau * ph)
+            out.append((0.4 * sq + 0.6 * sine) * env(i, n, 0.004, 0.05))
+        out.extend([0.0] * int(RATE * (0.02 if k % 4 != 3 else 0.08)))
+    y = 0.0
+    for i, s in enumerate(out):
+        y += (s - y) * 0.4
+        out[i] = y
+    # bzz bzz: the phone buzzing on the table (a low rattling square, two bursts)
+    for burst in range(2):
+        n = int(RATE * 0.16)
+        ph = 0.0
+        for i in range(n):
+            ph += 155.0 / RATE
+            rattle = (1.0 if (ph % 1.0) < 0.5 else -1.0) * (0.75 + 0.25 * math.sin(math.tau * 31.0 * i / RATE))
+            out.append(0.45 * rattle * env(i, n, 0.01, 0.03))
+        out.extend([0.0] * int(RATE * 0.08))
+    y = 0.0
+    for i in range(len(out) - int(RATE * 0.48), len(out)):
+        y += (out[i] - y) * 0.3
+        out[i] = y
+    return out
+
+
+SOUNDS = (("blip", blip), ("tune", tune), ("start", start), ("ring", ring))
+
+
+def main(out_dir, only=()):
     os.makedirs(out_dir, exist_ok=True)
-    for name, fn in (("blip", blip), ("tune", tune), ("start", start)):
+    for name, fn in SOUNDS:
+        if only and name not in only:
+            continue
         path = os.path.join(out_dir, name + ".wav")
         write(path, fn())
         print(path, os.path.getsize(path), "bytes")
 
 
 if __name__ == "__main__":
-    main(sys.argv[1])
+    main(sys.argv[1], sys.argv[2:])

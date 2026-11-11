@@ -388,9 +388,8 @@ func ring() -> bool:
 		return false
 	state = State.RING
 	_t = 0.0
-	hud.show_side_card("📞 SZYMEK DZWONI", "Kumpel z przystani w Porcie Czerniakowskim. Ma motorówkę, za dużo wolnego czasu i zero cierpliwości.",
-			PackedStringArray(["ODBIERZ|ANSWER", "ODRZUĆ|DECLINE"]), COLOUR, "Szymek is calling",
-			"Your mate from the marina at Port Czerniakowski. He has a motorboat, too much free time and no patience.")
+	hud.show_call("Szymek", "Kumpel z przystani. Ma motorówkę i zero cierpliwości.", COLOUR,
+			"Your marina mate. Has a motorboat and zero patience.")
 	hud.ticker_out()
 	Access.buzz(60, 0.6)
 	_log("call ringing")
@@ -403,7 +402,7 @@ func _offer() -> void:
 	hud.show_side_card("SZYMEK: „ŚCIGAMY SIĘ?”",
 			"„Słuchaj, %s! Pan Zdzisiek wyciągnął Złotą Rybkę, Kamil swój skuter. Płyniemy z Portu Czerniakowskiego pod Śląsko-Dąbrowski, przez kółka. Trzy pudła i odpadasz. Wchodzisz?”" % NAME,
 			PackedStringArray(["PŁYNĘ!|I'M IN!", "NIE DZIŚ|NOT TODAY"]), COLOUR, "Szymek: \"Race you?\"",
-			"\"Listen, the %s! Pan Zdzisiek got the Złota Rybka out, Kamil his jet ski. We go from Port Czerniakowski down to Śląsko-Dąbrowski, through the rings. Three misses and you're out. You in?\"" % NAME)
+			"\"Listen, the %s! Pan Zdzisiek got the Złota Rybka out, Kamil his jet ski. We go from Port Czerniakowski down to Śląsko-Dąbrowski, through the rings. Three misses and you're out. You in?\"" % NAME, false, "Szymek")
 
 
 func _on_card(i: int) -> void:

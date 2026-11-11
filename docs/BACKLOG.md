@@ -4,6 +4,24 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## The message director (F, 2026-11-11; docs/design/hud-messages.md)
+F's night-race screenshot had six texts over the road at once (the radio news, the app-taxi's GPS
+joke, the race card, the police pill, the partner, the TYGRAM pin). Built: `messages.gd`, one
+decision for every ticker, toast and note by context (free / quest / chase / focus) and priority,
+a queue for notes, toasts that wait to be glanced at, call spacing for friends' calls; bubbles
+follow the context (no ambient in a quest; no reactions and one voice in a chase); the GPS moments
+are ambient; the compact quest card; the race challenge as a call to action; bubbles off the road
+ahead (`check_messages`, verify step `messages`).
+- [ ] Phone feel: the hint's fold time, the challenge's size and pop, the road-ahead boxes at speed (needs a device run, F's yes)
+- [ ] Rides count as a quest (the radio host keeps quiet on a ride): F to say if rides get their own context
+- [ ] The rest of the ~50 speakers keep their classes as before; eggs' bubbles are still quest lines (could be INFO-like and wait in a chase)
+
+## Architecture: the planned central systems (F, 2026-11-11; docs/architecture/tech-debt.md)
+F liked the HUD message queue (PR #652) and asked for the game's other central mechanisms and an architecture map agents follow. The map is in `docs/architecture/`; the planned systems are tech-debt rows TD-1 to TD-12, in this order: TD-8 safer saves (temp file + rename, one backup, autosave at activity end); then the directors lane: TD-1 activity director (replaces `_free_block` and 8 private free checks), TD-2 objective channel (arrow, metres, pin, route in one place), TD-3 offer pacer (one offer at a time, quiet after a finish); TD-13 map marker registry (what the minimap and full map show, by context, vehicle and clock; docs/architecture/map-markers.md), built with TD-1/TD-2; TD-5 audio priority mixer; later TD-6/TD-7 population budget, TD-12 difficulty layer after racer AI step 3. Each is one thread, Opus, with its own check script; each lands by moving existing callers onto it and updating `extending.md`.
+
+## Hotel Metropol rebuilt (F, 2026-11-07, docs/landmarks/metropol.md)
+Built from F's four photos (merged 2026-11-10; the first build sat unmerged as a patch). Open: the real hotel's ground floor and the rear courtyard wings have no street photo; the white box's size (20 m) is a guess; Mac night look for the green letters.
+
 ## Racer AI rebuild (F, 2026-11-09; docs/design/race-ai.md)
 
 F (two phone screenshots, the race against Pani Halina from Powiśle to Plac Trzech Krzyży): "she was
@@ -138,6 +156,14 @@ under it, so on the CAR and STORIES tabs a scroll started a request and closed t
   2026-11-09: the map closed and the quest went on). It gives up in every beat now except Darek's
   call, his offer and the drag's result card (`street_meet.gd` `can_quit`, `check_street_meet`).
 - [ ] Questline starts reported dead on F's phone (2026-11-09: night meet, Smolna/rave, others; no card): not reproducible on the Mac (runtime and prebuilt, all five starts greet and start). `--stories-log` now prints "the friend waits, blocked by: <gate>"; F's next run with it names the gate (speed over 22 km/h, a card or mission up, first-10 guide...). Done meanwhile: night meet start on the kerb, card life 45 s.
+- [x] The night meet's start pin stood on Plac Defilad, 140 m from the spawn, its column and Darek
+  in the game's first view (F 2026-11-11). Darek now waits on Parkingowa by Rondo Dmowskiego, 378 m
+  from the spawn (past the 320 m start beacon), and sends you to the meet on Plac Defilad
+  (`street_meet.gd` START, `check_street_meet` keeps it on the map and out of the first view).
+- [x] Mati's Smoła start meant "pod Rotundą" landed 150 m north of it, on the spawn: the red column
+  next to the car in the first view (F 2026-11-11). Now on Aleje Jerozolimskie by Emilii Plater,
+  about 380 m from the spawn (`rave.gd` SMOLA_START_LL; `check_rave` keeps both of Mati's starts
+  out of the first view).
 - [ ] Autopilot 2026-11-09 suspects for the night meet's drag: no PERFECT LAUNCH! banner after a
   launch in the blue (PT-48); the first-10 guide's note and chatter over the rev counter on a fresh
   save (PT-49, also in the boat race); "SHIFT ↑" shown from green with the needle low (PT-50).
@@ -209,8 +235,8 @@ drives the drag in Grounded too). `lanedrive-grounded` drives the 13 lane routes
 - [ ] F's phone feel on the iPhone 16: Grounded against Cruise; then which one is the default (QUESTIONS)
 - [ ] The look in Cruise and Sport: their body pitches nose-up under braking (`rotation.x` +0.03 lifts the
       front, the nose is at -Z); Grounded's spring dips it. Fix the old ones too if F keeps them
-- [ ] If Grounded wins: tune the Point and Fixed aims for it on the phone (the yaw lag is small, but the
-      point-to-steer gains were set for the arcade car), and the first race's start hold
+- [ ] If Grounded wins: tune the first race's start hold (Point and Fixed left Settings 2026-11-10, so no aims to tune; the
+      yaw lag is small)
 
 ## Kieślowski tour and the Dekalog estate (F, 2026-11-07; docs/design/dekalog-tour.md)
 
@@ -313,7 +339,6 @@ Built (event_day.gd): date gate, hours, crowd + flags, four barrier lines, white
 - Flags now sway in the wind (`actor.gdshader` `sway`, cloth marked UV.y 2). The 15 s video take is built: `--cinematic=event` (camera keys in `camera_shots.gd` `EVENT_KEYS`, light cascade, fog ramp, flares in turns in `event_day.gd` `scene_t`, title card), `--event-t=SEC` freezes it for stills; the 4K capture on the Mac and the sound are not done. Heli-only day missions, the notebook stamp, event sounds and the Settings toggle for smoke are not built yet (plan sections 3.3, 3.5, 6 E5).
 - Stadion Narodowy white-red panels are coded (`_stadium_bands`) but did not show in the cloud shot: unverified, check on the Mac or phone (mast heights, radius).
 - Max look for the promo (F, 2026-11-07, recorded on iPhone 17 Pro or M4 Pro, no performance limit): up to 6,000 people, 520 standing-fog blobs (`event_fog.gdshader`, day and night), 200 flare halos. Heavy on purpose: the quality tier scales it down. Phone bench still open. The lit puff boxes are off (`PUFFS_ON`).
-- The METROPOLKA roof neon (Hotel Metropol, `landmarks.gd` `_build_metropol_sign`) reads mirrored and looks like it floats when seen from the north from the air: not the event's, needs a look.
 - Trailer rig (plan section 7) not started.
 
 ## The Palace of Culture's grounds and venues (F, 2026-11-07, with F's aerial photo)
@@ -677,16 +702,24 @@ strict three-question door, Smoła's cutaway room (option A). Left:
 
 Built: Ivan's call (17:00-02:00, or in person at his block in 19. Dzielnica, WĄTKI id `shisha`),
 Bogdan at the court on Żelazna, the car argument in bubbles (data/shisha.json, every line PL+EN),
-three votes on side cards (flavour, strength, the pipe's name), the WFC portico on Emilii Plater 53
-(canopy with downlights, revolving door, the SENATOREK and EMILII PLATER 53 letters, granite piers,
-steel fins, the glass rail on the low roof), the door and lift cards, the lounge upstairs
+the WFC portico on Emilii Plater 53 (canopy with downlights, revolving door, the SENATOREK and
+EMILII PLATER 53 letters, granite piers, steel fins, the glass rail on the low roof), the entrance
+marked by a teal kerb ring and a gold ring and column at the revolving door (F 2026-11-11: stop in
+either and you walk in, no cards outside), the arrival inside (2026-11-11: WFC's lobby with the
+revolving door, the reception and three lifts, the three walk up to the doorman at his lectern for
+the dress-code gag and into the lift as its doors slide open; the lift's cabin with the floor
+number counting up to 38 over the door while they talk, its doors opening on the lounge's glow),
+then the three choices on large buttons, one under the other (flavour, strength, the pipe's name) at the table
 (`lounge.gd`: rock wall with bars and gold letters, rust-velvet banquettes, grey armchairs, olive
 trees, the travertine bar with jars and coals, the window wall with the Palace, the terrace with
 teak chairs and the Palace's tower), the mini-game "Miks u Mistrza" (two jars on a sweet/cool
 chart, coal timing, the first draw and a smoke ring), PALIĆ / TARAS / WYJDŹ with smoke animations
 (bowls' trickle, exhales, rings, ceiling haze), both drops, the pay. Flags `--shisha-call`,
-`--shisha-meet`, `--shisha-lounge`, `--shisha=0`, `--shisha-log`; `check_shisha.gd` in verify.sh.
+`--shisha-meet`, `--shisha-door`, `--shisha-arrive`, `--shisha-lounge`, `--shisha=0`, `--shisha-log`; `check_shisha.gd`
+in verify.sh.
 Left:
+- [ ] Phone ear-check of the arrival sounds (`door_swish`, `lift_ding`, `lift_hum` are original
+  synthesis in tools/make_sfx.py; levels set by RMS, only the phone says if the hum is too low)
 - [ ] F's call: lounge name SENATOREK LOUNGE ok? Which floor (the lift card says 38, invented)
 - [ ] Portraits of Ivan, Bogdan and the master (PixelLab on the Mac, from F's photos)
 - [ ] Voices (ElevenLabs) and a lounge track on the radio (docs/MUSIC.md "lounge" slot)
@@ -743,7 +776,6 @@ at DESKA (the generic three-a-side line overwrote it). Left:
 - [ ] The city court's side gate frames (the white padded frames by the net in F's photos) and the curved swan-neck floodlights in 3D
 - [ ] PADELNIA's "Czwarty" (the proximity job) could open with a call too; it stays a queue offer for now, since the queue is the joke
 - [ ] A match record in the notebook (won / played) and the hoodie as a cosmetic after 3/3
-- [ ] Portraits for the callers on the ringing card (PixelLab, with the other call cards' portraits)
 
 ## Boat race "Wiślana Szprotka" (F, 2026-11-06; docs/design/boat-race.md)
 
@@ -906,6 +938,13 @@ Built from F's photos (`tarasy_screen.gd`, `led_screen.gdshader`). Open:
   crane, the Palace-side look. The Mac's photos show printed advert panels (older); F's photos show the
   LED screen, which we follow.
 - More scenes for the loop (F's ideas: sea, a car driving out of the screen) and a day/night level pass.
+- Remodelled 2026-11-11 (F's photos: the roof is blue glass, the screen an L on the corner): the screen
+  is on Skylight's south-east corner now (two flat faces), the loop is the cat, the AROUND WARSAW promo
+  and the NOSE. mark; the wave is blue triangular glass; the sunken plaza, its stair, the guitar sign and
+  the HARD BLOK CAFE terrace are built (spec `tarasy.md`, update 2026-11-11). Open: the phone look of the
+  screen and the plaza (only the phone shows the screen's glow and the wave's pane colours under the
+  phone's tone map); whether F likes the parody names ZŁOTE TARASKI and HARD BLOK CAFE (QUESTIONS);
+  the escalators and lift down into the plaza; the Lumen wings' curve is still the mapped outline.
 ## The Emilii Plater underpass entrances (F, 2026-11-06)
 
 F's screenshots: walled boxes with steps on flat ground. Lost on 2026-11-07 (the squash merge of #495
@@ -1605,7 +1644,7 @@ clock, the mood, the stays at the kerb and the pay. Left:
 F asked for two things; both are plan only, nothing is built (Sonnet for the lines, Opus for the quest design; docs/design/ gets the plan first).
 
 - **Vitkac quests.** Quests that start or end at the Vitkac block on Bracka (the photo-built landmark, PR #385; CITY_INVENTORY #80). Ideas to design: a personal-shopper job (carry bags from the door to a car or hotel on time), a "queue for the drop" gag outside the doors, a Podwózka stop with its own result card. Hook into the ZADANIA list (`main.gd` `_quest_entries`, quest-lists) and `StopAssist`. The name on screen: Vitkac is a real place name and fine; any shop or label inside is a parody (warsaw-tone, never a real brand). Add-ons check at build time (NPC talk: Dialogue Manager or not).
-- **Ride stories: what's left** (the stories themselves were built 2026-11-07: `data/taxi_stories.json`, `scripts/taxi_stories.gd`, 15 passengers, 3 lines + a two-answer question each, `--ride-story=ID --ride-answer=0|1`). Each story has its real destination (`to`, 2026-11-07); the big sites with no address door (Pałac Kultury, Dworzec Centralny, the Castle, the Stadium) end at the junction nearest them, not a modelled drop-off bay. Left: drop-off bays at those four; F's example couple from Wilanów to Vitkac (needs a pickup `from` too); a story told by two passengers (the couple bickering); recorded voices for the question line; more stories past 15 so the rotation is longer (the format is in the file's `_about`); the phone look of the question card while driving (stacked buttons beside the car).
+- **Ride stories: what's left** (the stories themselves were built 2026-11-07: `data/taxi_stories.json`, `scripts/taxi_stories.gd`, 26 passengers (18 on 2026-11-07, 8 more 2026-11-11), 3 lines + a two-answer question each, `--ride-story=ID --ride-answer=0|1`). Each story has its real destination (`to`, 2026-11-07); the big sites with no address door (Pałac Kultury, Dworzec Centralny, the Castle, the Stadium) end at the junction nearest them, not a modelled drop-off bay. Left: drop-off bays at those four; F's example couple from Wilanów to Vitkac (needs a pickup `from` too); a story told by two passengers (the couple bickering); recorded voices for the question line; more stories past 26 so the rotation is longer (8 added 2026-11-11: Vipkac, Zachęta, the Philharmonic, Polin, the Sejm, Hotel Bristol, Teatr Polski, the Barbican; the format is in the file's `_about`); the phone look of the question card while driving (stacked buttons beside the car).
 
 ## Loud cars at Browary (F, 2026-11-02)
 
@@ -2225,7 +2264,7 @@ tapped again it goes. Empty while a race, job or rescue is on. `--quest-pick=N` 
 
 **G13 · Upgrade shop: done (2026-11-02).** Warsztat u Mirka's card has a second tab, "Części i auta":
 the Ołdi TT (2,500 zł, faster, a lower coupe model), the nitro "Kebab Boost" (600 zł; a bolt disc left
-of the horn or the N key: 3.5 s of boost, 20 s refill), tyres (grip) and engine (top speed and pull),
+of the brake (where the touch horn stood until 2026-11-10) or the N key: 3.5 s of boost, 20 s refill), tyres (grip) and engine (top speed and pull),
 levels 1-3 at 150-400 zł. Saved in the [garage] section (no version bump). Left, found on the way:
 - **G13a (P2, phone).** Is the pricing right (first part after a few jobs, the nitro after about 15
   minutes, the TT as the goal), does the nitro feel good and is the bolt easy to hit with the thumb,
@@ -2790,7 +2829,7 @@ VHS pulse), colour-safe markers (drop-off beacon blue, patrol lights white/blue)
 (every buzz goes through `Access.buzz`), stop assist on/off. Left:
 - ~~Left-handed control layout~~ Done (2026-11-01): Settings → DOSTĘP → "Dla leworęcznych"
   (`access.gd left_handed`, `hud.gd set_left_handed`, at once, no restart; flag `--left-handed`):
-  BRAKE, GAS, the horn and the helicopter's pads bottom left, the stick's side (the right 60 %)
+  BRAKE, GAS, the nitro and the helicopter's pads bottom left, the stick's side (the right 60 %)
   and Classic's strip on the right, the credit line bottom right; `check_hud` runs a left-handed
   pass (10 states x 6 screens). Left: the feel on the phone; in this layout the bottom card can
   sit lower (nothing on the right pushes it up), so the radio ticker waits for room more often.
@@ -4988,7 +5027,8 @@ twice the dog walkers there, twice the cyclists (cap 16) and 45 % of them fast. 
 - ~~**The player has no horn** (vision's horn reactions, E24): the dogs bark at the AI cars' horns
   (`traffic.gd` signals, connected in `main.gd`). A horn button (the driving lane: a HUD
   control and `car.gd` / `sfx.horn`) then needs one line: `life.horn(car.global_position)`.~~
-  Done in the night-buses loop: the HUD's horn left of the brake and B (`buses.gd` `honk`, no
+  Done in the night-buses loop: B (and L3 on a pad; the HUD's touch horn left of the brake was
+  removed on F's call, 2026-11-10, as it seemed to do nothing) (`buses.gd` `honk`, no
   `car.gd` change).
 - ~~**No Rowerilo docks in the map data**~~ Done (2026-11-01): the 92 `bicycle_rental` pois each get
   a dock (`storefronts.gd` `_load_docks`, `Props.add_bike_dock`, 4-8 bikes from `l`, 6 unmapped) in the
@@ -5239,6 +5279,10 @@ twice the dog walkers there, twice the cyclists (cap 16) and 45 % of them fast. 
   1 m over the kerb line (BAY_PULL), not in real bays. A bay or layover lane on both
   carriageways (or the real Dworzec Centralny stops' platforms) would let them pull off the road.
 - **The horn is B, not H**: H was already the car ↔ helicopter key. Open Question.
+- **No horn on the phone** (F 2026-11-10: the touch horn by BRAKE "does nothing", removed): the
+  horn's bus call (E24), the dogs, the walkers turning and the fans' chant are now keyboard (B) and
+  pad (L3) only. If a phone way back is wanted later, it should be something the player sees
+  working (a bus stopping, a chant), not a bare button.
 - **E24's line**: vision 3.5 says "line 3", eggs.json's `line_ref` says index 2: the same line
   (the third, "Stoję na przystanku na żądanie. Żądam."), the request line; built that way.
 - **A stop's own bubble can say the request line**: `dialogue.gd` picks a `bus_stop` line at

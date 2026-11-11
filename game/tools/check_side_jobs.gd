@@ -89,7 +89,7 @@ class FakeHud extends CanvasLayer:
 	func hide_status() -> void:
 		status = ""
 
-	func show_challenge(_t: String, _c: Color, _g := "") -> void:
+	func show_challenge(_t: String, _c: Color, _g := "", _s := "", _se := "") -> void:
 		challenge = true
 
 	func hide_challenge() -> void:

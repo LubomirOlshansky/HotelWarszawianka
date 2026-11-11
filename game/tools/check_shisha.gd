@@ -13,12 +13,14 @@ extends SceneTree
 ##   4. the meshes: the lounge (room and terrace) one surface, its light pose no NaN;
 ##   5. the real lane graph: Ivan's block, the courts and the lounge's door found on ground roads
 ##      near their places, the door on Emilii Plater, the courts between the two (shorter than
-##      going via WTS DESKA), the hours wrapping past midnight.
+##      going via WTS DESKA), the hours wrapping past midnight; the entrance's door ring in front of
+##      the revolving door on the kerb's side (F 2026-11-11).
 ## Prints "check_shisha: OK (...)" or the problems (exit 1).
 ##   godot --headless --path game --script res://tools/check_shisha.gd [-- --verbose]
 
 const Shisha := preload("res://scripts/shisha.gd")
 const Lounge := preload("res://scripts/lounge.gd")
+const Landmarks := preload("res://scripts/landmarks.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Notebook := preload("res://scripts/notebook.gd")
 const BUBBLE := 90
@@ -27,7 +29,7 @@ const SCENES := ["board_ivan", "leg1", "court", "board_bogdan", "flavour", "flav
 		"order", "jars", "two_hoses", "soup", "coal", "coal_good", "coal_early", "coal_late", "draw_good",
 		"draw_bad", "result_high", "result_mid", "result_low", "smoke", "terrace", "ring", "leave", "after",
 		"drop_bogdan", "drop_ivan", "abort"]
-const TAPPED := ["Kelner", "Barman", "Goście", "Oliwka", "Mistrz", "Ivan", "Bogdan"]
+const TAPPED := ["Kelner", "Barman", "Goście", "Oliwka", "Mistrz", "Ivan", "Bogdan", "Bramkarz", "Recepcja"]
 
 
 class FakeMap extends Node3D:
@@ -58,6 +60,7 @@ func _run() -> void:
 	_check_votes(digest)
 	_check_game(data.get("jars", []), digest)
 	_check_meshes(digest)
+	await _check_arrival(digest)
 	var m: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://map/centrum.json"))
 	var map := FakeMap.new()
 	root.add_child(map)
@@ -214,12 +217,78 @@ func _check_meshes(digest: PackedStringArray) -> void:
 	var tris := (mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX] as PackedVector3Array).size() / 3
 	if tris > 40000:
 		problems.append("lounge mesh: %d triangles (40k max)" % tris)
-	for ter in [false, true]:
-		for row: Array in Lounge.light_pose(ter, 3.0):
+	for where: String in ["sala", "taras", "lobby", "winda"]:
+		var pose := Lounge.light_pose(where, 3.0)
+		if pose.size() != 6:
+			problems.append("light pose %s: %d cones (6)" % [where, pose.size()])
+		for row: Array in pose:
 			var t: Transform3D = row[0]
 			if not t.origin.is_finite() or not t.basis.x.is_finite():
 				problems.append("light pose NaN")
-	digest.append("lounge %d tris" % tris)
+	# The arrival (F 2026-11-11): the lobby and the cabin stand apart from the room, the terrace
+	# and each other (out of each other's view); the walk stays on the lobby's floor until it goes
+	# through our lift's door, which is in the left wall; the cabin's spots inside the cabin.
+	var hx := Lounge.LOB.x * 0.5
+	var hz := Lounge.LOB.y * 0.5
+	var spots := {"room": Vector3.ZERO, "terrace": Lounge.TERRACE, "lobby": Lounge.LOBBY, "cabin": Lounge.CAB}
+	for a: String in spots:
+		for b: String in spots:
+			if a < b and (spots[a] as Vector3).distance_to(spots[b]) < 50.0:
+				problems.append("%s and %s only %.0f m apart (50 min)" % [a, b, (spots[a] as Vector3).distance_to(spots[b])])
+	for p: Vector3 in [Lounge.REV_IN, Lounge.MEET, Lounge.LIFT_FRONT, Lounge.DOORMAN]:
+		if absf(p.x) > hx - 0.5 or absf(p.z) > hz - 0.3:
+			problems.append("lobby point %s off the floor" % p)
+	if not Lounge.LIFT_IN.x < -hx - 0.3 or absf(Lounge.LIFT_IN.z - Lounge.LIFT_Z) > 0.01 or not Lounge.LIFT_Z in Lounge.LIFTS_Z:
+		problems.append("lift %s: not behind our lift's door in the left wall" % Lounge.LIFT_IN)
+	for p: Vector3 in Lounge.CAB_SPOTS:
+		if absf(p.x) > Lounge.CAB_SIZE.x * 0.5 - 0.2 or absf(p.z) > Lounge.CAB_SIZE.y * 0.5 - 0.2:
+			problems.append("cabin spot %s outside the cabin" % p)
+	# Big enough to tap on the phone (F 2026-11-11): the answers a thumb high, full width; the jars.
+	if Lounge.CHOICE_BTN.y < 52.0 or Lounge.CHOICE_BTN.x < 260.0 or Lounge.JAR_BTN.y < 48.0:
+		problems.append("buttons: answers %s, jars %s (52 pt high and 260 wide; jars 48 high)" % [Lounge.CHOICE_BTN, Lounge.JAR_BTN])
+	digest.append("lounge %d tris, lobby and lift" % tris)
+
+
+## The arrival played on a clock (F 2026-11-11): from the kerb into the lobby, the doorman's lines
+## while the three walk up, our lift's doors open and shut, the ride with the floor number up to
+## 38, the cabin's doors open, then the room, the waiter and the first choice at the table.
+func _check_arrival(digest: PackedStringArray) -> void:
+	var world := Node3D.new()
+	root.add_child(world)
+	var l := Lounge.new()
+	root.add_child(l)
+	await process_frame
+	l.set_process(false)
+	l.enter(world, {})
+	var seen: Array = [l.step_now]
+	var door_max := 0.0
+	var cab_max := 0.0
+	var floor_max := 0
+	var lobby_floor_min := 99
+	var t := 0.0
+	while t < 120.0 and l.step_now != Lounge.Step.CHOOSE:
+		l._process(0.1)
+		t += 0.1
+		if seen.back() != l.step_now:
+			seen.append(l.step_now)
+		door_max = maxf(door_max, l._door)
+		cab_max = maxf(cab_max, l._cab_door)
+		if l.step_now == Lounge.Step.LIFT:
+			floor_max = maxi(floor_max, l._floor_now)
+		elif l.step_now == Lounge.Step.LOBBY and l._floor_now >= 0:
+			lobby_floor_min = mini(lobby_floor_min, l._floor_now)
+	var want := [Lounge.Step.LOBBY, Lounge.Step.LIFT, Lounge.Step.ORDER, Lounge.Step.CHOOSE]
+	if seen != want:
+		problems.append("arrival steps %s (want LOBBY, LIFT, ORDER, CHOOSE)" % [seen.map(func(s: int) -> String: return Lounge.Step.keys()[s])])
+	if door_max < 1.0 or cab_max < 1.0:
+		problems.append("arrival: the lift doors opened %.2f (lobby) and %.2f (cabin), not fully" % [door_max, cab_max])
+	if floor_max != Lounge.FLOOR or lobby_floor_min != 0:
+		problems.append("arrival: the floor number went down to %d in the lobby and up to %d in the lift (0 and %d)" % [lobby_floor_min, floor_max, Lounge.FLOOR])
+	if l.area != "sala" or (l._choice_btns[0] as Button).custom_minimum_size.y < Lounge.CHOICE_BTN.y:
+		problems.append("arrival: at the table in %s, answer %s high" % [l.area, (l._choice_btns[0] as Button).custom_minimum_size.y])
+	digest.append("arrival %.0f s to the first choice" % t)
+	l.queue_free()
+	world.queue_free()
 
 
 func _check_map(g: LaneGraph, org: Array, digest: PackedStringArray) -> void:
@@ -242,6 +311,20 @@ func _check_map(g: LaneGraph, org: Array, digest: PackedStringArray) -> void:
 		return
 	if not "Plater" in String(f["door"]["street"]):
 		problems.append("door on %s, not Emilii Plater" % f["door"]["street"])
+	# The entrance (F 2026-11-11): the gold door ring stands in front of the revolving door, on
+	# the kerb's side of the facade, and close enough to the kerb to read as one entrance.
+	var en := Shisha.entry_point(f["door"]["at"])
+	var kd: Vector3 = f["door"]["at"]
+	var a0: Vector2 = Landmarks.WCF_LOW[0]
+	var a1: Vector2 = Landmarks.WCF_LOW[1]
+	var revolving := a0.lerp(a1, Landmarks.WCF_DOOR_T)
+	var e2 := Vector2(en.x, en.z)
+	var k2 := Vector2(kd.x, kd.z)
+	if absf(e2.distance_to(revolving) - Shisha.ENTRY_OUT) > 0.5 or e2.distance_to(k2) >= revolving.distance_to(k2):
+		problems.append("entry %s: not in front of the revolving door %s toward the kerb" % [e2, revolving])
+	if e2.distance_to(k2) > 45.0:
+		problems.append("entry %.0f m from the door kerb (45 max)" % e2.distance_to(k2))
+	digest.append("entry %.0f m from the kerb" % e2.distance_to(k2))
 	var h: Vector3 = f["home"]["at"]
 	var c: Vector3 = f["court"]["at"]
 	var dd: Vector3 = f["door"]["at"]
