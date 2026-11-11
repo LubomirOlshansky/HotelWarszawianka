@@ -529,7 +529,7 @@ var _sunsets := {}
 var life: CityLife
 var trend_job: TrendJob
 ## The night-buses loop (buses.gd): the N sign, the night hub at Centralny, the bus stops' people,
-## the player's horn, E23-E25; flags --night-hub (a gathering now, parked at once), --bus-log,
+## the player's horn (B, L3), E23-E25; flags --night-hub (a gathering now, parked at once), --bus-log,
 ## --honk=F1,F2 (the horn at those frames).
 var buses: Buses
 var night_hub_flag := false
@@ -2801,9 +2801,6 @@ func _build_fans(data: Dictionary, world: Node3D) -> void:
 		fans.on_screen = traffic.on_screen
 	world.add_child(fans)
 	fans.setup(data)
-	hud.horn_pressed.connect(func() -> void:
-		if fans != null and not flying:
-			fans.honk(car.global_position))
 ## 11 listopada (event_day.gd): built idle on both city paths; it switches itself on on the date
 ## (live clock) or with --event-day. None with --event-day=0.
 func _build_event_day(data: Dictionary, world: Node3D) -> void:
@@ -2990,8 +2987,8 @@ func _build_garage(world: Node3D) -> void:
 		garage.preset_upgrades(upgrades_flag)
 	garage.upgraded.connect(func(id: String) -> void:
 		if id == "nitro":
-			hud.toast(Gamepad.fmt("Nitro gotowe: przytrzymaj błyskawicę przy klaksonie (Shift, {lb} / {rb} na padzie)."),
-					Gamepad.fmt("Nitro fitted: hold the bolt by the horn (Shift, {lb} / {rb} on a pad).")))
+			hud.toast(Gamepad.fmt("Nitro gotowe: przytrzymaj błyskawicę przy hamulcu (Shift, {lb} / {rb} na padzie)."),
+					Gamepad.fmt("Nitro fitted: hold the bolt by the brake (Shift, {lb} / {rb} on a pad).")))
 	if garage_flag:
 		_put_at_garage()
 	garage.opened.connect(func() -> void:
@@ -3031,8 +3028,20 @@ func _put_at_garage() -> void:
 
 # --- the night-buses loop ----------------------------------------------------------------------
 
-## The buses (buses.gd) on the traffic's lane graph, after everyday life (the dogs hear the horn);
-## the HUD's horn. None with --no-traffic.
+## The player's horn: the B key, L3 on a pad and --honk=F (F 2026-11-10: the touch horn by BRAKE
+## is gone). The buses' rate limit, the dogs and the walkers (buses.gd `honk`), then the fans'
+## chant (fans.gd `honk`). None in the helicopter.
+func _honk() -> void:
+	if flying:
+		return
+	if buses != null and not buses.honk():
+		return  # too soon after the last honk
+	if fans != null:
+		fans.honk(car.global_position)
+
+
+## The buses (buses.gd) on the traffic's lane graph, after everyday life (the dogs hear the horn).
+## None with --no-traffic.
 func _build_buses(data: Dictionary, world: Node3D) -> void:
 	if traffic == null:
 		return
@@ -3057,7 +3066,6 @@ func _build_buses(data: Dictionary, world: Node3D) -> void:
 	buses.probe = _egg_state
 	world.add_child(buses)
 	buses.setup(data)
-	hud.horn_pressed.connect(func() -> void: buses.honk())
 	if night_hub_flag:
 		buses.force()
 
@@ -7231,8 +7239,8 @@ func _process(dt: float) -> void:
 		_on_tap(tap_at)
 	if frame == 60 and bench_button:
 		_start_phone_bench()
-	if buses != null and frame in honk_frames:
-		buses.honk()  # the night-buses loop: --honk=F
+	if frame in honk_frames:
+		_honk()  # the night-buses loop: --honk=F
 	if frame in shots:
 		_capture(frame)
 	_govern()
@@ -8439,8 +8447,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 				_toggle_vehicle()
 			KEY_B:
 				# The night-buses loop: the horn (H was the helicopter's already).
-				if buses != null and not flying:
-					buses.honk()
+				_honk()
 			KEY_M:
 				_primary()
 			KEY_K:
@@ -8521,8 +8528,7 @@ func _pad_command(what: String) -> void:
 		"follow":
 			_toggle_follow()
 		"horn":
-			if buses != null and not flying:
-				buses.honk()
+			_honk()
 		"zoom_in":
 			_zoom_view(-1)
 		"zoom_out":

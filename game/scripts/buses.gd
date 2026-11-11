@@ -27,7 +27,7 @@ extends Node
 ##   back (new arrivals) BOARDED_BACK s after the bus leaves. Pedestrians.STOPS slots, +0 draw
 ##   calls; a plain timer state machine (arrive, dwell, depart), Beehave not used: a bus has three
 ##   states and there are crowds of them (docs/ADDONS.md).
-## - **The horn** (`honk`: the HUD's horn and the B key): the player's own horn (sfx.gd
+## - **The horn** (`honk`: the B key and L3 on a pad): the player's own horn (sfx.gd
 ##   `horn_player`), the dogs bark (city_life.gd `horn`), walkers coming at the car turn round;
 ##   at most one honk per HORN_GAP s. Stopped at a stop, a honk calls a bus: the nearest one
 ##   within CALL_REACH that can drive there, or one from the pool upstream out of sight; it pulls
@@ -743,7 +743,7 @@ func _race_tick(car: Vector2, flying: bool) -> void:
 
 # --- the horn and E24 -------------------------------------------------------------------------
 
-## The player's horn (the HUD's horn, the B key). False if too soon after the last.
+## The player's horn (the B key, L3 on a pad). False if too soon after the last.
 func honk() -> bool:
 	if not horn_ok(_now, _last_honk):
 		return false

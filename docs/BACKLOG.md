@@ -2239,7 +2239,7 @@ tapped again it goes. Empty while a race, job or rescue is on. `--quest-pick=N` 
 
 **G13 · Upgrade shop: done (2026-11-02).** Warsztat u Mirka's card has a second tab, "Części i auta":
 the Ołdi TT (2,500 zł, faster, a lower coupe model), the nitro "Kebab Boost" (600 zł; a bolt disc left
-of the horn or the N key: 3.5 s of boost, 20 s refill), tyres (grip) and engine (top speed and pull),
+of the brake (where the touch horn stood until 2026-11-10) or the N key: 3.5 s of boost, 20 s refill), tyres (grip) and engine (top speed and pull),
 levels 1-3 at 150-400 zł. Saved in the [garage] section (no version bump). Left, found on the way:
 - **G13a (P2, phone).** Is the pricing right (first part after a few jobs, the nitro after about 15
   minutes, the TT as the goal), does the nitro feel good and is the bolt easy to hit with the thumb,
@@ -2804,7 +2804,7 @@ VHS pulse), colour-safe markers (drop-off beacon blue, patrol lights white/blue)
 (every buzz goes through `Access.buzz`), stop assist on/off. Left:
 - ~~Left-handed control layout~~ Done (2026-11-01): Settings → DOSTĘP → "Dla leworęcznych"
   (`access.gd left_handed`, `hud.gd set_left_handed`, at once, no restart; flag `--left-handed`):
-  BRAKE, GAS, the horn and the helicopter's pads bottom left, the stick's side (the right 60 %)
+  BRAKE, GAS, the nitro and the helicopter's pads bottom left, the stick's side (the right 60 %)
   and Classic's strip on the right, the credit line bottom right; `check_hud` runs a left-handed
   pass (10 states x 6 screens). Left: the feel on the phone; in this layout the bottom card can
   sit lower (nothing on the right pushes it up), so the radio ticker waits for room more often.
@@ -5002,7 +5002,8 @@ twice the dog walkers there, twice the cyclists (cap 16) and 45 % of them fast. 
 - ~~**The player has no horn** (vision's horn reactions, E24): the dogs bark at the AI cars' horns
   (`traffic.gd` signals, connected in `main.gd`). A horn button (the driving lane: a HUD
   control and `car.gd` / `sfx.horn`) then needs one line: `life.horn(car.global_position)`.~~
-  Done in the night-buses loop: the HUD's horn left of the brake and B (`buses.gd` `honk`, no
+  Done in the night-buses loop: B (and L3 on a pad; the HUD's touch horn left of the brake was
+  removed on F's call, 2026-11-10, as it seemed to do nothing) (`buses.gd` `honk`, no
   `car.gd` change).
 - ~~**No Rowerilo docks in the map data**~~ Done (2026-11-01): the 92 `bicycle_rental` pois each get
   a dock (`storefronts.gd` `_load_docks`, `Props.add_bike_dock`, 4-8 bikes from `l`, 6 unmapped) in the
@@ -5253,6 +5254,10 @@ twice the dog walkers there, twice the cyclists (cap 16) and 45 % of them fast. 
   1 m over the kerb line (BAY_PULL), not in real bays. A bay or layover lane on both
   carriageways (or the real Dworzec Centralny stops' platforms) would let them pull off the road.
 - **The horn is B, not H**: H was already the car ↔ helicopter key. Open Question.
+- **No horn on the phone** (F 2026-11-10: the touch horn by BRAKE "does nothing", removed): the
+  horn's bus call (E24), the dogs, the walkers turning and the fans' chant are now keyboard (B) and
+  pad (L3) only. If a phone way back is wanted later, it should be something the player sees
+  working (a bus stopping, a chant), not a bare button.
 - **E24's line**: vision 3.5 says "line 3", eggs.json's `line_ref` says index 2: the same line
   (the third, "Stoję na przystanku na żądanie. Żądam."), the request line; built that way.
 - **A stop's own bubble can say the request line**: `dialogue.gd` picks a `bus_stop` line at

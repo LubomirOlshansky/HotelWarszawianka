@@ -15,6 +15,7 @@ someone writes its lines.
 - People talking while you drive keep their bubbles off the road in front of the car.
 
 ## 2026-11-10
+- The horn button next to the brake is gone; the nitro button now sits right by the brake.
 - Hotel Metropol on Marszałkowska is rebuilt from your photos: cream balcony fronts, a dark glazed ground floor under a canopy, and its name (the parody METROPOLKA) in green on a white board on the roof, facing the street.
 - The hidden shisha night is easier to start: Ivan's secret signal now works anywhere in the city.
 - The "point where to go" steering option is gone from Settings: the car is always driven with left, right, gas and brake (the camera can still be switched off).
