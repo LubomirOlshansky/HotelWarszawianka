@@ -11,7 +11,7 @@ HUD wanted in some shots but curated, the car parked in the club's ring by the d
 police chase, a boat moment by the Bulwary, the time and weather changing on a landmark, music
 take 4. Built: the flights and gameplay flags in trailer.gd, `docs/trailer/cut-v2.sh`,
 `tools/trailer_cloud.sh`, the cut in docs/trailer/README.md "Second iteration".
-- [ ] Police chase: the escape autopilot (`--police-auto=escape`) sits still for about 12 s before the chase starts and the patrols stay out of a 95 m view behind the car, so the cut uses the scripted raid (`palace_drift` at night). A chase take with the patrols on screen wants a start that is already moving and a closer patrol
+- [ ] Police chase: from a start on Marszałkowska (`--trailer-at`) the escape autopilot gets going after about 6 s and runs at 100 km/h, but the test chaser starts 40 m back and stays at the bottom edge or out of the frame, so the chase reads from the banner, the siren chips and the radio line, not from the patrol car. A patrol closer behind (a `--police-behind=M` test flag) would put it on screen. The scripted raid (`palace_drift`) sends its patrols only to the roads round Plac Defilad, out of frame, so it left the cut
 - [ ] Wide views with the normal streamer show sector proxies (the stadium's dark red proxy block east of x 1536): the streamer drops sectors the view still shows when the view is wider than its reach; the trailer uses `--sectors=all`. Worth a look for the helicopter's highest views in the game too
 - [ ] Golden hour (`time_of_day.gd` `golden_look`) reads brown on the glass towers; the skyline flight uses 0.55 of the way to it
 - [ ] Stadion Narodowy at night is a flat blue (no facade light), so the stadium flight stays at dusk

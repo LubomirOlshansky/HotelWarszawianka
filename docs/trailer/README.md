@@ -47,7 +47,7 @@ a landmark; music take 4. The cut is `cut-v2.sh` (38 s, on take 4's bars):
 | 11-14 | Boat race by Kopernik and the Bulwary: the ramp jump, the race card, Szymek's line | `boat2` |
 | 14-18 | The helicopter in from Most Poniatowskiego to Stadion Narodowy, pulling out to the whole bowl (the theme comes in at 16 s) | `heli_stadium` |
 | 18-23 | Time-lapse on the Palace with Złota 44 and Varso: day, golden hour, dusk, night, then rain (DAY. NIGHT. RAIN.) | `time_lapse` |
-| 23-26 | Police raid on Plac Defilad at night (GENTLE POLICE. NEVER GAME OVER.) | `raid` |
+| 23-26 | Police chase down Marszałkowska at night, 100 km/h, the chase banner, sirens and the patrol's radio line (GENTLE POLICE. NEVER GAME OVER.); palace_drift's raid kept its patrols on the roads round the square, out of frame | `chase2` |
 | 26-29 | Night racing club: the player's car parked in the ring, Lena drifting in the middle, her line | `club2` |
 | 29-32 | The Old Town at night in the rain | `castle_night` |
 | 32-38 | End card on the final hit: AROUND WARSAW, JOIN THE BETA | `card` |

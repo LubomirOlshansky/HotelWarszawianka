@@ -9,7 +9,7 @@
 # TAKE: the scripted flyovers palace_time, heli_dive, old_town, card, drift_day, drift_night, and the
 # gameplay takes (HUD on, the game's own jokes; --trailer=play): kebab, ride, pullover, boat,
 # vistula, chase, roadblock, club, drag, heli_play. The second iteration (docs/trailer/cut-v2.sh):
-# old_town_fly, skyline, time_lapse, heli_stadium, castle_night (flights), raid, kebab2, boat2, club2.
+# old_town_fly, skyline, time_lapse, heli_stadium, castle_night (flights), chase2, kebab2, boat2, club2.
 # The prebuilt city (sectors + index.res from bake_city.gd) is used when game/map/index.res exists.
 # Each take quits by itself; the loading frames before "trailer: TAKE starts at frame N" are cut.
 # Needs ffmpeg for preview, final and cut. Every run passes --nosave.
@@ -39,7 +39,11 @@ case $name in
 	# city loaded: a wide view needs more sectors than the streamer keeps), and gameplay shots with a
 	# curated HUD (one speech bubble, no radio, zoom or district cards) and the trailer's own camera.
 	old_town_fly|skyline|time_lapse|heli_stadium|castle_night) game+=(--radio=0 --nohud --sectors=all --trailer=$name) ;;
-	raid) game+=(--radio=0 --nohud --trailer=palace_drift --time=night) ;;
+	# palace_drift's raid sends its patrols only to the roads round the square, out of frame; a chase
+	# down Marszałkowska at night shows the police for real (the escape autopilot, 100 km/h).
+	chase2) game+=(--trailer=play --trailer-len=13 --time=night --trailer-at=-1113,-263,200 --police=2
+		--police-auto=escape --police-now --trailer-cam=60,0,-38,900,-0.3 --trailer-hud=clean,toast
+		--trailer-bubble=polic --trailer-clean) ;;
 	kebab2) game+=(--trailer=play --trailer-len=11 --time=day --kebab=3 --autopilot
 		--trailer-cam=50,0,-36,900,0.6 --trailer-hud=clean,toast --trailer-bubble=kebab) ;;
 	boat2) game+=(--trailer=play --trailer-len=12 --boat-race=auto --trailer-boat=192 --time=day
