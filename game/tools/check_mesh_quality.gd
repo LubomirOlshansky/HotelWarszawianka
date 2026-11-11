@@ -254,7 +254,8 @@ const BUDGET := {
 	"arkady": 2600,
 	"kino_muranow": 6000,
 	"zbawiciela": 1250,
-	"tarasy": 5700,
+	"tarasy": 6500,  # 2026-11-11 F's photos: the triangular glass wave, the guitar sign, the café terrace (5455)
+	"tarasy_plaza": 2750,  # 2026-11-11: the sunken plaza by the station: walls, shopfronts, railings, treads, umbrellas (2290)
 	"trojca": 2300,
 	"unit": 1160,
 	"varso": 2500,
