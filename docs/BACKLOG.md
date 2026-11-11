@@ -4,6 +4,19 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## The message director (F, 2026-11-11; docs/design/hud-messages.md)
+F's night-race screenshot had six texts over the road at once (the radio news, the app-taxi's GPS
+joke, the race card, the police pill, the partner, the TYGRAM pin). Built: `messages.gd`, one
+decision for every ticker, toast and note by context (free / quest / chase / focus) and priority,
+a queue for notes, toasts that wait to be glanced at, call spacing for friends' calls; bubbles
+follow the context (no ambient in a quest; no reactions and one voice in a chase); the GPS moments
+are ambient; the compact quest card; the race challenge as a call to action; bubbles off the road
+ahead (`check_messages`, verify step `messages`).
+- [ ] Phone feel: the hint's fold time, the challenge's size and pop, the road-ahead boxes at speed (needs a device run, F's yes)
+- [ ] PR #650's phone view: `show_call` should call `messages.call_rang()` (the ODBIERZ card does now); add when the two meet
+- [ ] Rides count as a quest (the radio host keeps quiet on a ride): F to say if rides get their own context
+- [ ] The rest of the ~50 speakers keep their classes as before; eggs' bubbles are still quest lines (could be INFO-like and wait in a chase)
+
 ## Hotel Metropol rebuilt (F, 2026-11-07, docs/landmarks/metropol.md)
 Built from F's four photos (merged 2026-11-10; the first build sat unmerged as a patch). Open: the real hotel's ground floor and the rear courtyard wings have no street photo; the white box's size (20 m) is a guess; Mac night look for the green letters.
 

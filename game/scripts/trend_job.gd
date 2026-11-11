@@ -492,7 +492,8 @@ func _look() -> void:
 		_cool[-3] = _session + ML_COOL
 		if offer_mlask():
 			return
-	var calls_ok := not hold_calls(mission_on, _session, _call_rest, missions.state == Missions.State.RINGING)
+	var calls_ok: bool = not hold_calls(mission_on, _session, _call_rest, missions.state == Missions.State.RINGING) \
+			and (hud == null or not hud.has_method("call_ok") or hud.call_ok())  # the message director's call spacing
 	if calls_ok and not dz_done and van_out(hour) and _session >= _dz_at:
 		_dz_at = _session + DZ_COOL
 		if offer_dzemini():

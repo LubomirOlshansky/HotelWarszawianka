@@ -105,16 +105,16 @@ func say(anchor: Variant, speaker: String, line: String, subtitle := "", seconds
 
 
 ## Phase 0.2: a quest or police line jumps the rate cap but not the two on screen: with two up, the
-## oldest ambient or reaction bubble goes (else the oldest of all).
+## oldest ambient or reaction bubble goes (else the oldest of all). In a chase (chatter.gd
+## `max_on_screen`) one voice at a time: the new line takes the old one's place.
 func _make_room() -> void:
-	if _bubbles.size() < Chatter.MAX_ON_SCREEN:
-		return
-	var drop := 0
-	for i in _bubbles.size():
-		if int(_bubbles[i].get("kind", Chatter.QUEST)) >= Chatter.REACTION:
-			drop = i
-			break
-	_bubbles.remove_at(drop)
+	while not _bubbles.is_empty() and _bubbles.size() >= chatter.max_on_screen():
+		var drop := 0
+		for i in _bubbles.size():
+			if int(_bubbles[i].get("kind", Chatter.QUEST)) >= Chatter.REACTION:
+				drop = i
+				break
+		_bubbles.remove_at(drop)
 
 
 ## Ambient chatter (crowds, dog walkers, bus stops...) keeps quiet while the player drives
@@ -242,6 +242,11 @@ func _frame(dt: float) -> void:
 	_sense()
 	if _bubbles.is_empty() and _tags.is_empty():
 		return
+	if chatter.context >= 2:
+		# A chase began (messages.gd): the city's chatter already up goes, one voice stays.
+		for i in range(_bubbles.size() - 1, -1, -1):
+			if int(_bubbles[i].get("kind", Chatter.QUEST)) >= Chatter.REACTION or _bubbles.size() > chatter.max_on_screen():
+				_bubbles.remove_at(i)
 	for i in range(_bubbles.size() - 1, -1, -1):
 		var b := _bubbles[i]
 		if b.get("waiting", false):
@@ -277,6 +282,17 @@ func _hud_rects() -> Array[Rect2]:
 	return out
 
 
+## The road ahead of the player's car on screen (hud.gd `keep_clear_rects`, F 2026-11-11: "the
+## partners' messages should not make it hard to see what's in front"): a bubble keeps off it when
+## it can, and stands there only when nowhere else is free.
+func _hud_keep_clear() -> Array[Rect2]:
+	var hud := get_parent()
+	var out: Array[Rect2] = []
+	if hud != null and hud.has_method("keep_clear_rects"):
+		out.assign(hud.keep_clear_rects())
+	return out
+
+
 ## Where bubbles may go: inside the safe area under the HUD's top row.
 func _area() -> Rect2:
 	var hud := get_parent()
@@ -296,24 +312,36 @@ func layout() -> Array:
 		return out
 	var area := _area()
 	var placed := _hud_rects()
+	var ahead := _hud_keep_clear()
 	for b in _bubbles:
+		var with_road: Array[Rect2] = placed.duplicate()
+		with_road.append_array(ahead)
+		var tries: Array = [with_road, placed] if not ahead.is_empty() else [placed]
 		var p := _where(b["anchor"], b["height"])
 		if p == Vector3.INF:
 			continue
 		var at: Vector2 = project.call(p)
 		var m: Dictionary = b["wide"]
-		var found := _clear(_place(m["size"], at, area), placed, area)
-		# No room as it is: wrapped narrower it may fit beside what's in the way, wider it may
-		# fit a low gap.
-		for alt in [["narrow", NARROW], ["widest", WIDE]]:
+		# The road ahead first (`ahead`), then without it: a bubble may cover the road only when
+		# the HUD leaves it nowhere else.
+		var found := [Rect2(), false]
+		for k in tries.size():
+			var avoid: Array[Rect2] = tries[k]
+			found = _clear(_place(m["size"], at, area), avoid, area)
+			# No room as it is: wrapped narrower it may fit beside what's in the way, wider it may
+			# fit a low gap.
+			for alt in [["narrow", NARROW], ["widest", WIDE]]:
+				if found[1]:
+					break
+				if not b.has(alt[0]):
+					b[alt[0]] = _measure(b, alt[1])
+				var other := _clear(_place(b[alt[0]]["size"], at, area), avoid, area)
+				if other[1]:
+					found = other
+					m = b[alt[0]]
 			if found[1]:
 				break
-			if not b.has(alt[0]):
-				b[alt[0]] = _measure(b, alt[1])
-			var other := _clear(_place(b[alt[0]]["size"], at, area), placed, area)
-			if other[1]:
-				found = other
-				m = b[alt[0]]
+			m = b["wide"]
 		b["waiting"] = not found[1]
 		if not found[1]:
 			overlaps += 1

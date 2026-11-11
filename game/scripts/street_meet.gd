@@ -61,6 +61,7 @@ const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Beacon := preload("res://scripts/beacon.gd")
 const Access := preload("res://scripts/access.gd")
 const Notebook := preload("res://scripts/notebook.gd")
+const Messages := preload("res://scripts/messages.gd")
 const InstanceBuffers := preload("res://scripts/instance_buffers.gd")
 const Rave := preload("res://scripts/rave.gd")
 const Lang := preload("res://scripts/lang.gd")
@@ -1473,11 +1474,12 @@ func _pin() -> void:
 	if meet_i == 0:
 		var m: Dictionary = meets[1]
 		hud.show_note("TYGRAM · WNRC", Lang.pick("📍 %s. Kto pierwszy, ten lepszy. Psy szukają nas tutaj, nie tam." % m["name"][0],
-				"📍 %s. First there wins. The cops are looking for us here, not there." % m["name"][1]), PIN_COLOUR)
+				"📍 %s. First there wins. The cops are looking for us here, not there." % m["name"][1]), PIN_COLOUR,
+				Messages.QUEST_LINE)  # the quest's own message: shows in the chase (messages.gd)
 		_start_race()
 	else:
 		hud.show_note("TYGRAM · WNRC", Lang.pick("📍 Zieleniecka, pod dworcem Stadion. Drag. %s" % MOTTO[0],
-				"📍 Zieleniecka, by Stadion station. Drag. %s" % MOTTO[1]), PIN_COLOUR)
+				"📍 Zieleniecka, by Stadion station. Drag. %s" % MOTTO[1]), PIN_COLOUR, Messages.QUEST_LINE)
 		_release_racers()
 		_show_gate(true)
 		state = State.TO_DRAG

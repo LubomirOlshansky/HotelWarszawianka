@@ -9,6 +9,11 @@ that day here, in plain words a player would understand (no file names, no spoil
 rows in the progress log but no section here is listed automatically from the log's labels until
 someone writes its lines.
 
+## 2026-11-11
+- Fewer texts over the road in missions and chases: the radio host and the news keep quiet while a quest runs, the city's chatter stops in a chase and only one person talks at a time, easter-egg cards wait until the chase is over, two notices no longer flash past each other, and friends' phone calls never ring during a quest or right after one.
+- The quest card is smaller: the hint folds away once read, no empty line, and the race challenge is a big button in the racer's colour with a chequered flag ("RACE · PANI HALINA, tap or L") instead of a line of text at the bottom.
+- People talking while you drive keep their bubbles off the road in front of the car.
+
 ## 2026-11-10
 - Hotel Metropol on Marszałkowska is rebuilt from your photos: cream balcony fronts, a dark glazed ground floor under a canopy, and its name (the parody METROPOLKA) in green on a white board on the roof, facing the street.
 - The hidden shisha night is easier to start: Ivan's secret signal now works anywhere in the city.
