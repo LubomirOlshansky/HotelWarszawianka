@@ -56,7 +56,10 @@ Tension: Ivan wants light and fruity and cannot smoke strong shisha, Bogdan love
    ring on Emilii Plater's kerb (the street runs about 30 m east of the facade) and a gold ring
    with its light column at the revolving door under the canopy with the gold SENATOREK letters.
    Stop in either and the three walk in. No card outside: the "dress code" gag at the door
-   (Bogdan's tennis shorts) and the lift to the 38th floor play inside as the arrival lines.
+   (Bogdan's tennis shorts) and the lift to the 38th floor play inside: first WFC's lobby (the
+   revolving door, the reception, three lifts, the doorman at his lectern by the lounge's lift),
+   then the lift's cabin with the floor number climbing to 38, then the room (lounge.gd `LOBBY`,
+   `CAB`; Step LOBBY, LIFT, ORDER, CHOOSE; the answers are full-width buttons one under the other).
    (Until 2026-11-11 the votes were side cards on the drive and the door and the lift were cards
    at the kerb; F could not see how to enter and read it as dialogs outside the building.)
 6. **The lounge room** (cutaway, like Smoła): rock wall, olive trees, velvet banquettes, the three
