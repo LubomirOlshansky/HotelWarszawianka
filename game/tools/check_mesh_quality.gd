@@ -158,6 +158,7 @@ const BUDGET := {
 	"rotunda_dynasy": 1400,
 	"mpw": 3200,
 	"metropolitan": 3100,
+	"metropolsign": 320,  # 2026-11-10: Hotel Metropol rebuilt whole from F's photos (255 measured)
 	"muzeum": 3500,  # 2026-11-06 photo pass: a stone pier on every bay boundary, fence, flagpoles
 	"palace": 7600,   # 2026-11-07: 3696 -> 7288, Bar Studio's 34 deck chairs, tables, festoons and frame signs (same mesh, no new draw call)
 	"pawilony": 2100,
