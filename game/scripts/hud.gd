@@ -91,6 +91,15 @@ const NITRO_CLEAR := 14.0
 const CAR_ZONE := Vector2(110.0, 84.0)
 ## Panel widths.
 const CARD_W := 440.0
+## F 2026-11-10: the phone view of an incoming call (show_call): its width, the caller's face,
+## the round answer and decline buttons, and the face on a quest card's head.
+const CALL_W := 176.0
+const CALL_FACE := 44.0
+const CALL_BUTTON := 44.0
+## The ringtone (tools/make_ui_sounds.py `ring`), again every RING_EVERY s while it rings.
+const RINGTONE := "res://audio/ui/ring.wav"
+const RING_EVERY := 2.6
+const CARD_FACE := 40.0
 const STATUS_W := 240.0  # the message director: the quest card in its compact cut (was 260)
 const NOTE_W := 236.0
 const TICKER_W := 380.0
@@ -214,6 +223,28 @@ var _card_body: Label
 var _card_title_en: Label
 var _card_body_en: Label
 var _card_buttons: BoxContainer
+## F 2026-11-10: the caller's face on a card's head (a quest offer; Portraits), and the phone view
+## of an incoming call (show_call) inside the same panel: the card's own rows hide meanwhile.
+var _card_rows: VBoxContainer
+var _card_face: Control
+var _card_face_tex: Texture2D
+var _card_face_letter := ""
+var _card_face_accent := ACCENT
+var _card_style: StyleBoxFlat
+var _call_style: StyleBoxFlat
+var _call_mode := false
+var _call_box: HBoxContainer
+var _call_screen_box: PanelContainer
+var _call_screen: StyleBoxFlat
+var _call_clock: Label
+var _ring: AudioStreamPlayer
+var _ring_wait := 0.0
+var _call_face: Control
+var _call_name: Label
+var _call_status: Label
+var _call_about: Label
+var _call_buttons: HBoxContainer
+var _call_t := 0.0
 ## The side jobs' cards sit at the bottom centre, clear of the speech bubbles over the stand
 ## or the door; the others at the top centre under the top row.
 var _card_bottom := false
@@ -1588,6 +1619,20 @@ func _build_mission_panels() -> void:
 	_card_buttons = BoxContainer.new()
 	_card_buttons.add_theme_constant_override("separation", roundi(8.0 * pt))
 	box.add_child(_card_buttons)
+	_card_rows = box
+	_card_style = _card.get_theme_stylebox("panel") as StyleBoxFlat
+	_card_face = Control.new()
+	_card_face.name = "face"
+	_card_face.custom_minimum_size = Vector2.ONE * CARD_FACE * pt
+	_card_face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_card_face.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS  # 256 px drawn at ~120-160 px
+	_card_face.visible = false
+	_card_face.draw.connect(func() -> void:
+		_paint_face(_card_face, _card_face_tex, _card_face_letter, _card_face_accent, CARD_FACE * 0.5 * pt, -1.0))
+	head.add_child(_card_face)
+	head.move_child(_card_face, 0)
+	_card_title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_build_call_view()
 	add_child(_card)
 
 	_status = PanelContainer.new()
@@ -1671,6 +1716,12 @@ func show_card(title: String, body: String, buttons: PackedStringArray, accent: 
 	body = Lang.pick(body, body_en)
 	title_en = ""
 	body_en = ""
+	# F 2026-11-10: back from the phone view, and no face unless show_side_card names one.
+	if _call_mode:
+		_set_call_mode(false)
+		if not _side_call:
+			_card_side = true  # (the width below goes back to CARD_W)
+	_card_face.visible = false
 	# Loop 2d-1: any other card is the centred one again.
 	if _card_side and not _side_call:
 		_card_side = false
@@ -1726,6 +1777,262 @@ func card_button_text(index: int) -> String:
 
 func hide_card() -> void:
 	_show(_card, false)
+
+
+# --- F 2026-11-10: the phone view of an incoming call ------------------------------------------
+
+## The incoming call as a little phone held up on the right (F 2026-11-10, a photo of a mini
+## phone): a black body with rounded corners round a screen in the caller's colour, a clock and
+## the camera notch at the top, the caller's face with rings going out while it rings, the name
+## and "dzwoni…" beside it, what the caller is to you under them (F: the text inside the phone;
+## so keep a caller's line short, about 55 letters), and the round red and green buttons with
+## their words (decline on the left, answer on the right, as on a phone). Upright and narrow
+## (F 2026-11-11, a sketched rectangle): in the right-hand column beside the car, above the pedals.
+func _build_call_view() -> void:
+	_call_style = StyleBoxFlat.new()
+	_call_style.bg_color = Color(0, 0, 0, 0)
+	_call_box = HBoxContainer.new()
+	_call_box.name = "call"
+	_call_box.add_theme_constant_override("separation", roundi(8.0 * pt))
+	_call_box.visible = false
+	_card.add_child(_call_box)
+	# The phone: the black body, the screen inside.
+	var body := PanelContainer.new()
+	body.name = "phone"
+	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var body_style := StyleBoxFlat.new()
+	body_style.bg_color = Color("#141419")
+	body_style.border_color = Color("#4a4a56")
+	body_style.set_border_width_all(maxi(1, roundi(2.0 * pt)))
+	body_style.set_corner_radius_all(roundi(20.0 * pt))
+	body_style.set_content_margin_all(4.0 * pt)
+	body_style.shadow_color = Color(0, 0, 0, 0.45)
+	body_style.shadow_size = roundi(6.0 * pt)
+	body.add_theme_stylebox_override("panel", body_style)
+	_call_box.add_child(body)
+	_call_screen = StyleBoxFlat.new()
+	_call_screen.set_corner_radius_all(roundi(15.0 * pt))
+	_call_screen.content_margin_left = 6.0 * pt
+	_call_screen.content_margin_right = 6.0 * pt
+	_call_screen.content_margin_top = 3.0 * pt
+	_call_screen.content_margin_bottom = 5.0 * pt
+	var screen := PanelContainer.new()
+	_call_screen_box = screen
+	screen.add_theme_stylebox_override("panel", _call_screen)
+	screen.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	body.add_child(screen)
+	var rows := VBoxContainer.new()
+	rows.add_theme_constant_override("separation", roundi(2.0 * pt))
+	rows.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	screen.add_child(rows)
+	# The top bar: the clock on the left, the notch in the middle, signal and battery right.
+	var bar := Control.new()
+	bar.custom_minimum_size.y = 10.0 * pt
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_call_clock = _label(T_LABEL, INK)
+	_call_clock.position = Vector2(4.0 * pt, -3.0 * pt)
+	bar.add_child(_call_clock)
+	bar.draw.connect(func() -> void: _paint_phone_bar(bar))
+	rows.add_child(bar)
+	# The face, and the name with "dzwoni…" beside it; what the caller is to you under them.
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", roundi(10.0 * pt))
+	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rows.add_child(head)
+	_call_face = Control.new()
+	_call_face.name = "face"
+	_call_face.custom_minimum_size = Vector2.ONE * CALL_FACE * pt
+	_call_face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_call_face.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS  # 256 px drawn at ~120-160 px
+	_call_face.draw.connect(func() -> void:
+		_paint_face(_call_face, _card_face_tex, _card_face_letter, _card_face_accent, CALL_FACE * 0.5 * pt, _call_t))
+	head.add_child(_call_face)
+	var who := VBoxContainer.new()
+	who.add_theme_constant_override("separation", 0)
+	who.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	who.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	who.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	head.add_child(who)
+	_call_name = _label(T_BODY, INK)
+	who.add_child(_call_name)
+	_call_status = _label(T_LABEL, SUB)
+	who.add_child(_call_status)
+	_call_about = _label(T_SUB, INK)
+	rows.add_child(_call_about)
+	_call_buttons = HBoxContainer.new()
+	_call_buttons.alignment = BoxContainer.ALIGNMENT_CENTER
+	_call_buttons.add_theme_constant_override("separation", roundi(48.0 * pt))
+	rows.add_child(_call_buttons)
+	_ring = AudioStreamPlayer.new()
+	_ring.name = "ringtone"
+	_ring.process_mode = Node.PROCESS_MODE_ALWAYS
+	if AudioServer.get_bus_index(&"SFX") >= 0:
+		_ring.bus = &"SFX"
+	_ring.volume_db = -9.0
+	if ResourceLoader.exists(RINGTONE):
+		_ring.stream = load(RINGTONE)
+	add_child(_ring)
+
+
+## The phone's top bar: the camera notch in the middle, three signal bars and a battery right.
+func _paint_phone_bar(bar: Control) -> void:
+	var c := Vector2(bar.size.x * 0.5, bar.size.y * 0.45)
+	var notch := Vector2(30.0, 8.0) * pt
+	bar.draw_rect(Rect2(c - notch * 0.5, notch), Color("#141419"))
+	bar.draw_circle(c + Vector2(notch.x * 0.5 - 4.0 * pt, 0), 1.6 * pt, Color("#2c3550"))
+	var x := bar.size.x - 4.0 * pt
+	var batt := Rect2(x - 13.0 * pt, c.y - 3.5 * pt, 12.0 * pt, 7.0 * pt)
+	bar.draw_rect(batt, INK, false, maxf(1.0, pt))
+	bar.draw_rect(Rect2(batt.position + Vector2.ONE * 1.5 * pt, Vector2(6.0 * pt, batt.size.y - 3.0 * pt)), INK)
+	for k in 3:
+		var h := (2.5 + 2.0 * k) * pt
+		bar.draw_rect(Rect2(x - 26.0 * pt + k * 3.5 * pt, c.y + 3.5 * pt - h, 2.2 * pt, h), INK)
+
+
+## The phone as wide as the column beside the car allows (side_card_width, at most CALL_W),
+## its screen's words to match.
+func _set_call_width() -> void:
+	var w := minf(side_card_width(), CALL_W)
+	var screen := w - 2.0 * (4.0 + 2.0)  # the body's margin and border
+	_call_screen_box.custom_minimum_size.x = screen * pt
+	_wrap(_call_about, screen - 12.0)
+	_wrap(_call_name, screen - 12.0 - CALL_FACE - 10.0)
+	_card.custom_minimum_size.x = 0.0
+
+
+## An incoming call in the phone view, in the right-hand column beside the car like the side
+## card: `who` the caller's name ("Ivan", "+33 · Claire"; "POLISH|ENGLISH" when it differs),
+## `about` what they are to you. The
+## buttons are [answer, decline] ("ODBIERZ|ANSWER", "ODRZUĆ|DECLINE" by default) and press as
+## the card's 0 and 1 (card_pressed), so a caller only swaps show_side_card for this. `face`
+## names the portrait (Portraits.face; default: `who`); without art, the initial on a disc.
+func show_call(who: String, about: String, accent: Color, about_en := "", face := "",
+		buttons := PackedStringArray(["ODBIERZ|ANSWER", "ODRZUĆ|DECLINE"])) -> void:
+	accent = Access.tint(accent)  # colour-safe (access.gd)
+	messages.call_rang()  # the message director spaces the next call from this one
+	about = Lang.pick(about, about_en)
+	if "|" in who:
+		who = Lang.pick(who.get_slice("|", 0), who.get_slice("|", 1))
+	_set_face(face if face != "" else who, accent)
+	_set_call_mode(true)
+	_card_side = true
+	_card_bottom = false
+	_set_call_width()
+	_call_t = 0.0
+	_ring_wait = 0.0
+	_call_screen.bg_color = accent.darkened(0.78)
+	_call_screen.border_color = Color(accent, 0.35)
+	_call_clock.text = Time.get_time_string_from_system().substr(0, 5)
+	_call_status.text = Lang.pick("dzwoni…", "calling…")
+	_call_name.text = who
+	_call_about.text = about
+	_call_about.visible = about != ""
+	for b in _call_buttons.get_children():
+		_call_buttons.remove_child(b)
+		b.queue_free()
+	# Decline on the left, answer on the right; the node names keep the card's indices.
+	for i: int in [1, 0]:
+		if i >= buttons.size():
+			continue
+		var words := buttons[i].split("|")
+		_call_button(i, Lang.pick(words[0], words[1] if words.size() > 1 else ""),
+				Access.tint(Access.GREEN) if i == 0 else Access.tint(Access.RED), i == 0)
+	_card.reset_size()
+	_show(_card, true)
+	_show(_status, false)
+	hide_pill()
+	_mark()
+
+
+## True while the phone view is the card showing (the checks and the shots read it).
+func call_showing() -> bool:
+	return _call_mode and bool(_wants.get(_card, false))
+
+
+## One round button with its word under it; `answer` draws the handset up, else turned down.
+func _call_button(index: int, word: String, colour: Color, answer: bool) -> void:
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", roundi(1.0 * pt))
+	col.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var b := Button.new()
+	b.name = "button%d" % index
+	b.focus_mode = Control.FOCUS_NONE
+	b.custom_minimum_size = Vector2.ONE * CALL_BUTTON * pt
+	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	for st in ["normal", "hover", "disabled", "pressed", "hover_pressed"]:
+		var box := StyleBoxFlat.new()
+		box.bg_color = colour.darkened(0.25) if st.contains("pressed") else colour
+		box.set_corner_radius_all(roundi(CALL_BUTTON * 0.5 * pt))
+		b.add_theme_stylebox_override(st, box)
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	b.draw.connect(func() -> void: _paint_handset(b, answer))
+	b.pressed.connect(func(): card_pressed.emit(index))
+	col.add_child(b)
+	var l := _label(T_LABEL, INK)
+	l.text = word.substr(0, 1) + word.substr(1).to_lower()  # "Odbierz", as a phone writes it
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	col.add_child(l)
+	_call_buttons.add_child(col)
+
+
+## A phone handset in white on the round button: a thick arc with the two ends; turned over
+## (hung up) on the decline button.
+func _paint_handset(b: Control, answer: bool) -> void:
+	var c := b.size * 0.5
+	var r := b.size.x * 0.24
+	var turn := -PI * 0.25 if answer else 0.0  # decline: level, as a handset put down
+	var w := 5.0 * pt
+	var a0 := PI * 1.05 + turn
+	var a1 := PI * 1.95 + turn
+	var mid := c + Vector2(0, r * 0.35).rotated(turn)
+	b.draw_arc(mid, r, a0, a1, 16, Color.WHITE, w, true)
+	for a in [a0, a1]:
+		b.draw_circle(mid + Vector2(cos(a), sin(a)) * r, w * 1.15, Color.WHITE, true, -1.0, true)
+
+
+## The caller's face for the next card: the portrait if there is one, else the initial.
+func _set_face(who: String, accent: Color) -> void:
+	_card_face_tex = Portraits.face(who) if who != "" else null
+	_card_face_letter = Portraits.initial(who)
+	_card_face_accent = accent
+	_card_face.visible = who != ""
+	_card_face.queue_redraw()
+	_call_face.queue_redraw()
+
+
+## The phone view or the card's own rows, and the panel's look to match.
+func _set_call_mode(on: bool) -> void:
+	_call_mode = on
+	_call_box.visible = on
+	_card_rows.visible = not on
+	_card.add_theme_stylebox_override("panel", _call_style if on else _card_style)
+
+
+## A round face of radius `r` in `c`'s middle: the portrait cut to a circle, or the initial on a
+## disc in the accent; a ring in the accent round it. `t` >= 0: ringing for t s, two rings go out.
+func _paint_face(c: Control, tex: Texture2D, letter: String, accent: Color, r: float, t: float) -> void:
+	var mid := c.size * 0.5
+	if t >= 0.0:
+		for k in 2:
+			var f := fmod(t * 0.9 + k * 0.5, 1.0)
+			c.draw_arc(mid, r * (1.0 + 0.4 * f), 0.0, TAU, 48, Color(accent, 0.6 * (1.0 - f)), 2.0 * pt, true)
+	if tex != null:
+		var pts := PackedVector2Array()
+		var uvs := PackedVector2Array()
+		for i in 40:
+			var d := Vector2.from_angle(TAU * i / 40.0)
+			pts.append(mid + d * r)
+			uvs.append(Vector2(0.5, 0.5) + d * 0.5)
+		c.draw_colored_polygon(pts, Color.WHITE, uvs, tex)
+	else:
+		c.draw_circle(mid, r, accent.darkened(0.55), true, -1.0, true)
+		var font := ThemeDB.fallback_font
+		var size := roundi(r * 1.05)
+		var w := font.get_string_size(letter, HORIZONTAL_ALIGNMENT_LEFT, -1, size)
+		var y := mid.y + (font.get_ascent(size) - font.get_descent(size)) * 0.5
+		c.draw_string(font, Vector2(mid.x - w.x * 0.5, y), letter, HORIZONTAL_ALIGNMENT_LEFT, -1, size, accent.lightened(0.35))
+	c.draw_arc(mid, r, 0.0, TAU, 48, accent, maxf(1.5, 2.0 * pt), true)
 
 
 ## The running mission or race: where to, the clock, the distance, a hint, how much of the
@@ -1831,6 +2138,18 @@ func _process(dt: float) -> void:
 func _frame(dt: float) -> void:
 	_messages_tick(dt)
 	radio_hold_tick(Time.get_ticks_msec())
+	if _call_mode and _card.visible:
+		_call_t += dt
+		_call_face.queue_redraw()
+	# The ringtone while the phone view rings (and not a moment after it is answered or gone).
+	if _ring != null and _ring.stream != null:
+		if call_showing():
+			_ring_wait -= dt
+			if _ring_wait <= 0.0:
+				_ring.play()
+				_ring_wait = RING_EVERY
+		elif _ring.playing:
+			_ring.stop()
 	if _toast_left > 0.0:
 		_toast_left -= dt
 		_toast_box.modulate.a = clampf(_toast_left / 0.6, 0.0, 1.0)
@@ -2454,14 +2773,22 @@ func set_minimap_pois(points: PackedVector2Array, colours: PackedColorArray, sha
 ## A card in the right-hand column under the top row, as wide as the room right of the car's
 ## spot allows (at most CARD_W points): the car stays in view (Podwózka's request and result).
 ## The same card, recipe and point sizes; the next show_card() puts it back in the middle.
+## F 2026-11-10: `face` names who is talking (a quest offer: "Ivan"), and their portrait, or
+## their initial on a disc, stands before the title (Portraits).
 func show_side_card(title: String, body: String, buttons: PackedStringArray, accent: Color, title_en := "",
-		body_en := "", stacked := false) -> void:
+		body_en := "", stacked := false, face := "") -> void:
 	accent = Access.tint(accent)  # colour-safe (access.gd)
 	_card_side = true
+	if _call_mode:
+		_set_call_mode(false)
 	_set_card_width(side_card_width())
 	_side_call = true
 	show_card(title, body, buttons, accent, false, title_en, body_en, stacked)
 	_side_call = false
+	if face != "":
+		_set_face(face, accent)
+		_card.reset_size()
+		_mark()
 
 
 ## The side card's width in points: from the car's spot (and a margin) to the safe area's edge.

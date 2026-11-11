@@ -525,9 +525,8 @@ func ring() -> bool:
 		return false
 	state = State.RING
 	_ring_t = 0.0
-	hud.show_side_card("📞 %s DZWONI" % CALLER.to_upper(), "Kumpel z liceum. Ten, co pół roku temu przesiadł się na elektryka i od tamtej pory o niczym innym nie mówi.",
-			PackedStringArray(["ODBIERZ|ANSWER", "ODRZUĆ|DECLINE"]), COLOUR, "%s is calling" % CALLER,
-			"Your mate from school. The one who went electric six months ago and hasn't talked about anything else since.")
+	hud.show_call(CALLER, "Kumpel z liceum. Ma elektryka. Mówi tylko o nim.", COLOUR,
+			"School mate. Went electric. Talks of nothing else.")
 	hud.ticker_out()
 	Access.buzz(60, 0.6)
 	_log("call ringing")
@@ -557,7 +556,7 @@ func _offer() -> void:
 	hud.show_side_card("📞 %s" % CALLER.to_upper(),
 			"„Siema! Słuchaj, mam sprawę… Moje %s stanęło na %s. Zero procent. Aplikacja mówiła, że dojadę, ale chyba liczyła latem. Podepniesz go helikopterem na linę i zaniesiesz pod ładowarkę przy %s? Stawiam kawę. Dwie. Ładowanie i tak potrwa.”" % [NAME, street, place],
 			PackedStringArray(["LECĘ!|ON MY WAY", "NIE TERAZ|NOT NOW"]), COLOUR, CALLER,
-			"\"Hey! Listen, I need a favour… My %s died on %s. Zero percent. The app said I'd make it, but I think it was counting in summer. Can you hook it on a rope under the helicopter and fly it to the charger by %s? Coffee's on me. Two. Charging takes ages anyway.\"" % [NAME, street_en, place])
+			"\"Hey! Listen, I need a favour… My %s died on %s. Zero percent. The app said I'd make it, but I think it was counting in summer. Can you hook it on a rope under the helicopter and fly it to the charger by %s? Coffee's on me. Two. Charging takes ages anyway.\"" % [NAME, street_en, place], false, CALLER)
 	_log("offer: car on %s at %d,%d, charger %s %.0f m on" % [street_en, roundi(p[0].x), roundi(p[0].z), chargers[target]["id"],
 			Vector2(p[0].x, p[0].z).distance_to(Vector2(chargers[target]["at"].x, chargers[target]["at"].z))])
 

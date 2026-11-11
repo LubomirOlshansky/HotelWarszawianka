@@ -207,6 +207,12 @@ func _check_hud() -> void:
 	_expect(hud.messages.calls == before + 1 and not hud.call_ok(), "a rescue call didn't count as a call")
 	rescue.free()
 	hud.hide_pill()
+	# The phone view of a call (show_call, PR #650) counts as a call too.
+	_tick(hud, b, Messages.CALL_GAP + 1.0)
+	_expect(hud.call_ok(), "no call allowed a minute after the rescue")
+	hud.show_call("Ivan", "Wpadniesz?", Color("#ffb020"), "Coming by?")
+	_expect(not hud.call_ok(), "the phone view's call didn't count as a call")
+	hud.hide_card()
 
 	# Two toasts: the second waits until the first was glanced at.
 	hud.clear_all()

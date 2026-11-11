@@ -75,7 +75,8 @@ waits for it (the first fades early), at most two waiting. ALERT does not wait.
 the crawl, the EV tow, Mrożulo, DESKA) keeps its own timer, but asks the director before it rings:
 `call_ok` is true only in FREE, CALL_SETTLE (8 s) into a calm spell (never straight after a result
 or an escape) and CALL_GAP (60 s) after the last call of anyone, so two friends never ring back to
-back. Wired through main.gd `_free_block` (all questline calls) and trend_job.gd (its calls). A call
+back. Wired through main.gd `_free_block` (all questline calls) and trend_job.gd (its calls); the phone
+view (`show_call`) and an ODBIERZ card record the ring (`call_rang`). A call
 the player asked for (the WĄTKI list, a test flag) does not ask. The rescue line (missions.gd: the first
 call 60 s in, the next 90 s after one ends) asks the same gate: when its countdown runs out it waits
 at zero until `call_ok`, and its ring counts as a call, so a friend never rings straight after a
@@ -152,5 +153,3 @@ on, Podwózka's GPS jokes (ambient now) keep quiet too.
   radio on a ride, rides move to their own context (radio on, flavour off).
 - The hint folds after a few seconds in every quest. If a quest's hint is a standing instruction F
   wants kept, that quest can pin it.
-- The phone (PR #650's phone view) should tell the director when it rings (`messages.call_rang()`), as
-  the ODBIERZ card does now; done when the two land together.

@@ -1188,9 +1188,8 @@ func ring() -> bool:
 	state = State.RING
 	_hold_t = 0.0
 	_t = 0.0
-	hud.show_side_card("📞 DAREK „BAWARKA” DZWONI", "Kumpel od aut. Jeździ Bawarką 3.2 i mówi o niej „ona”.",
-			PackedStringArray(["ODBIERZ|ANSWER", "ODRZUĆ|DECLINE"]), COLOUR, "Darek \"Bawarka\" is calling",
-			"Your car mate. Drives a Bawarka 3.2 and calls it \"she\".")
+	hud.show_call("Darek „Bawarka”|Darek \"Bawarka\"", "Kumpel od aut. O swojej Bawarce mówi „ona”.", COLOUR,
+			"Car mate. Calls his Bawarka \"she\".")
 	hud.ticker_out()
 	Access.buzz(60, 0.6)
 	_log("call ringing")
@@ -1210,7 +1209,7 @@ func _offer() -> void:
 	_t = 0.0
 	hud.show_side_card("📞 DAREK", "„Siema! Dziś spot %s na Placu Defilad. Lena kręci bączki, Tadek przywiózł Skajlajnera. Wpadasz? Tylko cicho, bo psy też czytają internet.”" % CLUB,
 			PackedStringArray(["JADĘ!|ON MY WAY", "NIE DZIŚ|NOT TONIGHT"]), COLOUR, FRIEND,
-			"\"Hey! The %s meets tonight on Plac Defilad. Lena's doing donuts, Tadek brought the Skajlajner. You in? Keep it quiet, the cops read the internet too.\"" % CLUB)
+			"\"Hey! The %s meets tonight on Plac Defilad. Lena's doing donuts, Tadek brought the Skajlajner. You in? Keep it quiet, the cops read the internet too.\"" % CLUB, false, "Darek")
 
 
 func _on_card(i: int) -> void:

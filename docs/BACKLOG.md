@@ -13,7 +13,6 @@ follow the context (no ambient in a quest; no reactions and one voice in a chase
 are ambient; the compact quest card; the race challenge as a call to action; bubbles off the road
 ahead (`check_messages`, verify step `messages`).
 - [ ] Phone feel: the hint's fold time, the challenge's size and pop, the road-ahead boxes at speed (needs a device run, F's yes)
-- [ ] PR #650's phone view: `show_call` should call `messages.call_rang()` (the ODBIERZ card does now); add when the two meet
 - [ ] Rides count as a quest (the radio host keeps quiet on a ride): F to say if rides get their own context
 - [ ] The rest of the ~50 speakers keep their classes as before; eggs' bubbles are still quest lines (could be INFO-like and wait in a chase)
 
@@ -769,7 +768,6 @@ at DESKA (the generic three-a-side line overwrote it). Left:
 - [ ] The city court's side gate frames (the white padded frames by the net in F's photos) and the curved swan-neck floodlights in 3D
 - [ ] PADELNIA's "Czwarty" (the proximity job) could open with a call too; it stays a queue offer for now, since the queue is the joke
 - [ ] A match record in the notebook (won / played) and the hoodie as a cosmetic after 3/3
-- [ ] Portraits for the callers on the ringing card (PixelLab, with the other call cards' portraits)
 
 ## Boat race "Wiślana Szprotka" (F, 2026-11-06; docs/design/boat-race.md)
 
