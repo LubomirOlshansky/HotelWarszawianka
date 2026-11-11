@@ -3167,7 +3167,7 @@ const TARASY_SAND := Color("#d9c7a0")      # the podium's sandstone walls
 const TARASY_SHOP := Color("#c8b27e")      # the podium's golden shop glass (S_GRID)
 const TARASY_TERRACE := Color("#8a9a72")   # the planted terraces (mapped #6EBE9F)
 const TARASY_DECK := Color("#a49d90")      # the podium's plain roofs
-const TARASY_LUMEN := Color("#9fb0b8")     # Lumen's silver-blue glass between white ribbons
+const TARASY_LUMEN := Color("#7ea3c0")     # Lumen's blue glass between white ribbons (F's photos 2026-11-11)
 const TARASY_LUMEN_ROOF := Color("#8e9497")
 const TARASY_SKY := Color("#a3afb4")       # Skylight's light silver-grey cladding (Mac photos), a dark-teal window dash per floor
 const TARASY_SKY_ROOF := Color("#a7b3b8")
@@ -3177,6 +3177,7 @@ const TARASY_BLOCK := Color("#3b3e4b")     # the screen block over the entrance:
 const TARASY_RED := Color("#c0624c")       # the red entrance boxes on Jana Pawła II (mapped tomato)
 const TARASY_RIM := Color("#8ea6bd")       # the wave's glass walls: the terraces' shopfronts (blue-grey glass)
 const TARASY_WAVE := Color("#4a74a6")      # F 2026-11-11: blue glass (was #d4b066 gold, #8fb6c6 ice before)
+const TARASY_DRUM_GLASS := Color("#7f9fb4")  # the drum's banded glass (F's photos, 2026-11-11)
 ## How far Skylight's crown leans in (fraction of the way to the centre) and how high it is.
 const TARASY_CROWN_IN := 0.18
 const TARASY_CROWN_H := 8.0
@@ -3193,10 +3194,13 @@ func _tarasy_screen_block(b: Dictionary) -> bool:
 
 
 func _build_tarasy(site: Dictionary) -> void:
-	_g = _ground_under(site["zone"][0])
+	# The street's level round the complex (the median under its outline, about 14.5 m), not its
+	# lowest point: that is a dip by the car park ramp 3 m lower, which sank every mapped height
+	# (the podium read 13.6 m, the café's sign hung at knee height; F's photos, 2026-11-11).
+	_g = _median_ground(site["zone"][0])
 	var g := _g
 	var none := Color(0, 0, 0, 0)
-	var shop := M_SKIN + float(S_GRID) / 16.0
+	var podium: Array = []
 	for b: Dictionary in site.get("parts", []):
 		if _tarasy_dome(b):
 			continue
@@ -3215,8 +3219,7 @@ func _build_tarasy(site: Dictionary) -> void:
 			# face. The 3D screen is not on it: it wraps Skylight's south-east corner (tarasy_screen.gd).
 			_prism(poly, y0, y1, SKY_CLAD, TARASY_TERRACE, M_SKIN + float(S_PUNCHED) / 16.0, M_STONE)
 		elif nm == "Lumen":
-			# The office crescent: white ribbons between silver-blue glass, on the podium.
-			_prism(poly, y0, y1, TARASY_LUMEN, TARASY_LUMEN_ROOF, M_SKIN + float(S_RIBBON) / 16.0, M_SKIN)
+			_tarasy_lumen(poly, y0, y1)
 		elif nm == "Skylight":
 			_tarasy_skylight(poly, y0, g)
 		elif col == "#336699":
@@ -3225,20 +3228,220 @@ func _build_tarasy(site: Dictionary) -> void:
 		elif h >= 29.5 and h - mh < 1.0:
 			_prism(poly, y0, y1, TARASY_SAND, TARASY_SAND.darkened(0.08), M_STONE, M_STONE)  # the drum's rim
 		elif h >= 29.5 and mh < 0.5 and poly.size() >= 16:
-			_prism(poly, y0, y1, TARASY_DRUM, TARASY_DECK, M_PAVILION, M_STONE)  # the drum
+			# The drum (F's photos: round blue-grey glass, warm from inside at night).
+			_prism(poly, y0, y1, TARASY_DRUM_GLASS, TARASY_DECK, M_PAVILION, M_STONE)
 		elif col == "tomato":
 			_prism(poly, y0, y1, TARASY_RED, TARASY_RED.darkened(0.15), M_STONE, M_STONE)
 		elif col == "#6ebe9f":
-			_prism(poly, y0, y1, TARASY_SAND, TARASY_TERRACE, shop, M_STONE)
+			_tarasy_podium(poly, y0, y1, g, TARASY_TERRACE, true)
+			podium.append([poly, y0, y1])
 		else:
-			_prism(poly, y0, y1, TARASY_SAND, TARASY_DECK, shop, M_STONE)
+			_tarasy_podium(poly, y0, y1, g, TARASY_DECK, false)
+			podium.append([poly, y0, y1])
 		if mh < 0.5:
 			_collide(poly)
+	_tarasy_ledges(podium, g)
+	_tarasy_shops(g)
 	_tarasy_wave(site)
 	_tarasy_signs(g)
 	_tarasy_guitar(g)
 	_tarasy_cafe(g)
 	_mode = M_STONE
+
+
+## The mall's podium, part by part (F's photos, 2026-11-11: "redesign all the complex"): a glazed
+## shop floor at the street (dark glass, the shops lit warm at night), sandstone above it, and the
+## planted terraces fenced with a glass balustrade. The ledges that make it read as stacked terraces
+## run round the podium's whole outline (_tarasy_ledges), not part by part.
+const TARASY_SHOPFRONT := Color("#5f7178")   # the shop floor's glass
+const TARASY_SHOP_H := 4.6                   # its height (the canopy's line)
+const TARASY_STONE := Color("#dccaa2")       # the sandstone over it
+const TARASY_LEDGE := Color("#ece0c4")       # the ledges' pale top
+const TARASY_CANOPY := Color("#4d4f55")      # the canopy over the shops
+const TARASY_RAIL := Color("#bcd3dd")        # the terraces' glass balustrade
+
+
+## The podium: glass shops at street level, then the stone terraces with their window bands (re-clad
+## cladding skin: pale bands with punched windows, so the mass is lit at night, not a dark block).
+func _tarasy_podium(poly: PackedVector2Array, y0: float, y1: float, g: float, roof: Color, planted: bool) -> void:
+	var none := Color(0, 0, 0, 0)
+	var shop_top := _mean_ground(poly) + TARASY_SHOP_H
+	if y0 < shop_top - 0.5 and y1 > shop_top + 0.5:
+		_prism(poly, y0, shop_top, TARASY_SHOPFRONT, none, M_PAVILION, M_STONE)
+		_prism(poly, shop_top, y1, TARASY_STONE, roof, M_SKIN + float(S_PUNCHED) / 16.0, M_STONE)
+	else:
+		_prism(poly, y0, y1, TARASY_STONE, roof, M_SKIN + float(S_PUNCHED) / 16.0, M_STONE)
+	if planted:
+		_prism(poly, y1, y1 + 1.1, TARASY_RAIL, none, M_PAVILION + 0.5, M_STONE)
+
+
+## The ledges round the podium (F's photos: the terraces stack in pale stone bands, the shops under
+## a dark canopy whose front is a strip of light at night): at each level, the outline of every
+## podium part that spans it, merged, gets a slab pushed out from its walls (top and front, the
+## camera never sees under). TARASY_LEDGES: height over the ground, depth, thickness; the first is
+## the canopy.
+const TARASY_LEDGES := [[TARASY_SHOP_H, 1.5, 0.45], [9.8, 0.6, 0.3], [15.9, 0.7, 0.35]]
+
+
+func _tarasy_ledges(podium: Array, g: float) -> void:
+	for i in TARASY_LEDGES.size():
+		var lv: Array = TARASY_LEDGES[i]
+		# The canopy and the middle ledge stand on the street (the site's ground `g` is its lowest
+		# point, in a dip by the car park ramp); the cornice keeps with the mapped tops (g + h).
+		var y := g + float(lv[0])
+		var outline: Array = []
+		for part: Array in podium:
+			var py := y if i == TARASY_LEDGES.size() - 1 else _mean_ground(part[0]) + float(lv[0])
+			if float(part[1]) < py - 0.3 and float(part[2]) > py + 0.3:
+				outline = _merge_into(outline, part[0])
+		for ring: PackedVector2Array in outline:
+			if i < TARASY_LEDGES.size() - 1:
+				y = _mean_ground(ring) + float(lv[0])
+			if i == 0:
+				_tarasy_ledge(ring, y, float(lv[1]), float(lv[2]), TARASY_CANOPY, Color("#f6e7c2"), M_LAMP)
+			else:
+				_tarasy_ledge(ring, y, float(lv[1]), float(lv[2]), TARASY_LEDGE, TARASY_STONE.darkened(0.1), M_STONE)
+
+
+## The median ground height under a plan outline's corners.
+func _median_ground(poly: PackedVector2Array) -> float:
+	var hs: Array[float] = []
+	for q in poly:
+		hs.append(map.terrain_height(q.x, q.y))
+	if hs.is_empty():
+		return 0.0
+	hs.sort()
+	return hs[hs.size() / 2]
+
+
+## The mean ground height under a plan outline's corners.
+func _mean_ground(poly: PackedVector2Array) -> float:
+	var sum := 0.0
+	for q in poly:
+		sum += map.terrain_height(q.x, q.y)
+	return sum / maxf(poly.size(), 1.0)
+
+
+## A list of plan polygons with one more merged in: outlines only (holes dropped).
+func _merge_into(list: Array, poly: PackedVector2Array) -> Array:
+	var cur := poly
+	var keep: Array = []
+	for q: PackedVector2Array in list:
+		var m := Geometry2D.merge_polygons(cur, q)
+		var outer: Array = []
+		for r: PackedVector2Array in m:
+			if not Geometry2D.is_polygon_clockwise(r):
+				outer.append(r)
+		if outer.size() == 1:
+			cur = outer[0]
+		else:
+			keep.append(q)
+	keep.append(cur)
+	return keep
+
+
+## A slab round a plan outline at height y: `w` out from the walls, `t` thick; its top in `top`,
+## its front in `front` drawn with `front_mode`.
+func _tarasy_ledge(ring_in: PackedVector2Array, y: float, w: float, t: float, top: Color, front: Color, front_mode: float) -> void:
+	# Drop the outline's short steps and straight-through points first: a slab wider than an edge
+	# folds over itself at a mitre.
+	var ring := PackedVector2Array()
+	for q in ring_in:
+		if ring.is_empty() or ring[ring.size() - 1].distance_to(q) >= maxf(2.0, w * 1.6):
+			ring.append(q)
+	while ring.size() > 3 and ring[0].distance_to(ring[ring.size() - 1]) < maxf(2.0, w * 1.6):
+		ring.remove_at(ring.size() - 1)
+	var k0 := 0
+	while k0 < ring.size() and ring.size() > 3:
+		var a0 := ring[(k0 + ring.size() - 1) % ring.size()]
+		var b0 := ring[(k0 + 1) % ring.size()]
+		if absf((ring[k0] - a0).normalized().cross((b0 - ring[k0]).normalized())) < 0.07 \
+				and (ring[k0] - a0).dot(b0 - ring[k0]) > 0.0:
+			ring.remove_at(k0)
+		else:
+			k0 += 1
+	var n := ring.size()
+	if n < 3:
+		return
+	var area := 0.0
+	for k in n:
+		area += ring[k].x * ring[(k + 1) % n].y - ring[(k + 1) % n].x * ring[k].y
+	var sgn := 1.0 if area > 0.0 else -1.0
+	var outs: Array[Vector2] = []
+	for k in n:
+		var dp := (ring[k] - ring[(k + n - 1) % n]).normalized()
+		var dn := (ring[(k + 1) % n] - ring[k]).normalized()
+		var np := Vector2(dp.y, -dp.x) * sgn
+		var nn := Vector2(dn.y, -dn.x) * sgn
+		var m := (np + nn).normalized()
+		outs.append(ring[k] + m * w / maxf(m.dot(nn), 0.5))
+	var keep := _mode
+	for k in n:
+		var a := ring[k]
+		var b := ring[(k + 1) % n]
+		if a.distance_to(b) < 0.3:
+			continue
+		var oa: Vector2 = outs[k]
+		var ob: Vector2 = outs[(k + 1) % n]
+		var d := (b - a).normalized()
+		var nrm := Vector3(d.y, 0.0, -d.x) * sgn
+		_mode = M_STONE
+		_quad(Vector3(a.x, y, a.y), Vector3(b.x, y, b.y), Vector3(ob.x, y, ob.y), Vector3(oa.x, y, oa.y), Vector3.UP, top)
+		_mode = front_mode
+		_quad(Vector3(oa.x, y, oa.y), Vector3(ob.x, y, ob.y), Vector3(ob.x, y - t, ob.y), Vector3(oa.x, y - t, oa.y), nrm, front)
+	_mode = keep
+
+
+## Lumen (F's photos, 2026-11-11): the curved office wings over the podium in blue glass between
+## white ribbons, the top floor set back behind a white parapet, a plant screen on the roof.
+func _tarasy_lumen(poly: PackedVector2Array, y0: float, y1: float) -> void:
+	var none := Color(0, 0, 0, 0)
+	var ribbon := M_SKIN + float(S_RIBBON) / 16.0
+	var top := y1 - 3.6
+	_prism(poly, y0, top, TARASY_LUMEN, TARASY_LUMEN_ROOF, ribbon, M_STONE)
+	_prism(poly, top, top + 1.0, Color("#eef1f2"), none, M_STONE, M_STONE)
+	var inset := _largest(Geometry2D.offset_polygon(poly, -2.2, Geometry2D.JOIN_MITER))
+	if inset.size() >= 3:
+		_prism(inset, top, y1, TARASY_LUMEN.darkened(0.12), TARASY_LUMEN_ROOF, ribbon, M_STONE)
+		var plant := _largest(Geometry2D.offset_polygon(inset, -6.0, Geometry2D.JOIN_MITER))
+		if plant.size() >= 3:
+			_prism(plant, y1, y1 + 2.2, Color("#a9adb0"), Color("#8e9497"), M_STONE, M_STONE)
+
+
+## The shops' parody signs and the lit advert boards on the podium (F's photos, 2026-11-11):
+## the fashion corner on Emilii Plater by the guitar (the plague for the Spanish chain, dotted
+## letters and an extra M for the Swedish one), the cinema's pink name on the station side, and a
+## big red sale board over the entrance on Złota. Words in neon_signs.gd LANDMARK_WORDS. TARASY_BOARDS: centre, facing, width, height
+## (bottom over the ground), colour; lit at night.
+const TARASY_BOARDS := [
+	[Vector2(-1363.6, 444.6), Vector2(0.94, -0.34), 8.0, 3.0, 5.9, Color("#1d1d1f")],
+	[Vector2(-1360.7, 452.4), Vector2(0.94, -0.34), 5.0, 2.4, 5.6, Color("#c8102e")],
+	[Vector2(-1467.0, 521.8), Vector2(0.33, 0.95), 11.0, 2.6, 5.8, Color("#c2185b")],
+	[Vector2(-1449.8, 347.8), Vector2(-0.33, -0.94), 13.0, 2.8, 5.8, Color("#d32f2f")],
+]
+
+
+func _tarasy_shops(g: float) -> void:
+	_mode = M_LAMP
+	for bd: Array in TARASY_BOARDS:
+		var c: Vector2 = bd[0]
+		var n: Vector2 = (bd[1] as Vector2).normalized()
+		var side := Vector2(-n.y, n.x)
+		var w := float(bd[2]) * 0.5
+		var y0: float = map.terrain_height(c.x, c.y) + float(bd[4])
+		var y1: float = y0 + float(bd[3])
+		var o := c + n * 0.25
+		var a := o - side * w
+		var b := o + side * w
+		_quad(Vector3(a.x, y0, a.y), Vector3(b.x, y0, b.y), Vector3(b.x, y1, b.y), Vector3(a.x, y1, a.y), Vector3(n.x, 0, n.y), bd[5])
+	_mode = M_STONE
+	for sg: Array in [["ZARAZA", Vector2(-1363.6, 444.6), Vector2(0.94, -0.34), 6.4, 0.9],
+			["H·M·M", Vector2(-1360.7, 452.4), Vector2(0.94, -0.34), 5.9, 0.75],
+			["MULTIKINKO", Vector2(-1467.0, 521.8), Vector2(0.33, 0.95), 6.1, 0.8],
+			["WYPRZEDAŻ", Vector2(-1449.8, 347.8), Vector2(-0.33, -0.94), 6.1, 0.95]]:
+		var at: Vector2 = sg[1]
+		var nn: Vector2 = sg[2]
+		signs.append([sg[0], Vector3(at.x, map.terrain_height(at.x, at.y) + float(sg[3]), at.y), Vector3(nn.x, 0.0, nn.y), sg[4], Color(1, 1, 1)])
 
 
 ## The mall's name in gold on the grey box over the podium (a parody, as Arkadia's ARKADKA: the
@@ -3248,8 +3451,8 @@ const TARASY_GOLD := Color(1.0, 0.78, 0.35)
 
 func _tarasy_signs(g: float) -> void:
 	var face := Vector3(0.22, 0.0, 0.975)
-	signs.append(["ZŁOTE", Vector3(-1381.0, g + 19.6, 448.6), face, 0.55, TARASY_GOLD])
-	signs.append(["TARASKI", Vector3(-1376.0, g + 23.4, 449.6), face, 0.32, TARASY_GOLD])
+	signs.append(["ZŁOTE", Vector3(-1384.0, g + 19.2, 447.9), face, 1.2, TARASY_GOLD])
+	signs.append(["TARASKI", Vector3(-1381.5, g + 22.6, 448.5), face, 0.7, TARASY_GOLD])
 
 
 ## The guitar sign by the café on the podium's south-east corner (F, 2026-11-11, his photos and the
