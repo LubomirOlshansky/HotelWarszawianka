@@ -40,12 +40,12 @@ cut() {
 cut around-warsaw-beta-38s.mp4 \
 	"atrim=0.48:38.48,asetpts=PTS-STARTPTS,afade=t=out:st=36.5:d=1.5" \
 	old_town:0.5:2:2 kebab:1:3 ride:2:2 pullover:2:2 boat:3.5:2 vistula:1:3 palace_time:3:2:4 \
-	heli_dive:0.5:3:1.5 chase:1:3 club:5.5:2 drag:3:3 heli_stadium:1:2 \
+	heli_dive:0.5:3:1.5 chase:1:3 club:5.5:2 drag:3:3 heli_play:1:2 \
 	drift_night:1:1.5 palace_time:11:1.5 card:0:5.5
 
 # 30 s: the music with bars 3-5 cut out (theme at 10 s, final hit at 26 s).
 cut around-warsaw-beta-30s.mp4 \
 	"atrim=0.48:42,asetpts=PTS-STARTPTS,asplit[m1][m2];[m1]atrim=0:4,asetpts=PTS-STARTPTS[ma];[m2]atrim=10:36.1,asetpts=PTS-STARTPTS[mb];[ma][mb]acrossfade=d=0.03:c1=tri:c2=tri,atrim=0:30,afade=t=out:st=28.8:d=1.2" \
 	old_town:0.5:1.5:2 kebab:1:2.5 pullover:2:2 vistula:1:2 palace_time:3:2:4 \
-	heli_dive:0.5:3:1.5 chase:1:3 club:5.5:2 boat:3.5:2 drag:3:3 heli_stadium:1:1.5 \
+	heli_dive:0.5:3:1.5 chase:1:3 club:5.5:2 boat:3.5:2 drag:3:3 heli_play:1:1.5 \
 	palace_time:11:1.5 card:0.3:4.2

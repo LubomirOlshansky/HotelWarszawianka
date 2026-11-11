@@ -1378,6 +1378,8 @@ func _trailer_flag(take: String) -> void:
 		start_time = TimeOfDay.DUSK
 	elif take == "card":
 		start_time = TimeOfDay.NIGHT
+	elif Trailer.start_light(take) != "":
+		start_time = TimeOfDay.parse(Trailer.start_light(take))
 
 
 ## --cinematic=event: the 15 s take of 11 listopada (camera_shots.gd EVENT_KEYS, event_day.gd's
@@ -5271,6 +5273,29 @@ func _parse_args() -> void:
 					arg.trim_prefix("--trailer-aa="), Viewport.MSAA_4X)
 		elif arg.begins_with("--trailer-say=") and trailer != null:
 			trailer.say = arg.trim_prefix("--trailer-say=").split("|")
+		elif arg.begins_with("--trailer-at=") and trailer != null:
+			var p3 := arg.trim_prefix("--trailer-at=").split(",")
+			trailer.at = Vector3(float(p3[0]), float(p3[2]) if p3.size() > 2 else 0.0, float(p3[1]))
+		elif arg == "--trailer-clean" and trailer != null:
+			trailer.clean = true
+		elif arg.begins_with("--trailer-cam=") and trailer != null:
+			trailer.cam_set = PackedFloat32Array(Array(arg.trim_prefix("--trailer-cam=").split(",")).map(func(x: String) -> float: return float(x)))
+		elif arg.begins_with("--trailer-rain-at=") and trailer != null:
+			trailer.rain_at = float(arg.trim_prefix("--trailer-rain-at="))
+		elif arg.begins_with("--trailer-boat=") and trailer != null:
+			trailer.boat_li = int(arg.trim_prefix("--trailer-boat="))
+		elif arg.begins_with("--trailer-hud=clean") and trailer != null:
+			trailer.hud_clean = true
+			trailer.hud_hide = arg.trim_prefix("--trailer-hud=clean").trim_prefix(",").split(",", false)
+		elif arg.begins_with("--trailer-bubble=") and trailer != null:
+			trailer.bubble_only = arg.trim_prefix("--trailer-bubble=")
+		elif arg.begins_with("--trailer-look=") and trailer != null:
+			var lk := arg.trim_prefix("--trailer-look=").split(",")
+			trailer.look = Vector2(float(lk[0]), float(lk[1]))
+		elif arg == "--trailer-hold" and trailer != null:
+			trailer.hold = true
+		elif arg.begins_with("--trailer-view=") and trailer != null:
+			trailer.view = float(arg.trim_prefix("--trailer-view="))
 		elif arg.begins_with("--trailer-len=") and trailer != null:
 			trailer.play_len = maxf(1.0, float(arg.trim_prefix("--trailer-len=")))
 		elif arg == "--heli":

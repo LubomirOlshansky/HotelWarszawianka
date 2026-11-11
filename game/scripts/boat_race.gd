@@ -729,6 +729,38 @@ func _race_tick(dt: float) -> void:
 		_finish()
 
 
+## The beta trailer (trailer.gd, --trailer-boat=LI): the race moved on to line point `li` at once,
+## the player's boat on the line there at racing speed with the rivals just behind it, every boat's
+## next ring the first one past that point (the Bulwary's ramp is a few seconds on from LI 185).
+func warp(li: int) -> void:
+	li = clampi(li, 1, line.size() - 2)
+	var p := line[li]
+	var d := (line[li + 1] - line[li]).normalized()
+	var side := Vector2(d.y, -d.x)
+	var heading := atan2(d.x, d.y)
+	var next := rings.size() - 1
+	for j in rings.size():
+		if int(rings[j]["i"]) > li:
+			next = j
+			break
+	# The player in front, the rivals staggered behind and to either side.
+	var spots := [Vector2(0.0, 0.0), Vector2(-7.0, -14.0), Vector2(7.0, -22.0), Vector2(-3.0, -32.0)]
+	for k in boats.size():
+		var b: Boat = boats[k]
+		var o: Vector2 = spots[mini(k, spots.size() - 1)]
+		b.place(p + side * o.x + d * o.y, heading)
+		b.vel = d * 16.0
+		b.planing = 1.0
+		b.throttle = 1.0
+		var r: Dictionary = racers[k]
+		r["next"] = next
+		r["prev"] = b.pos
+		r["li"] = float(li)
+	clock_t = maxf(clock_t, 30.0)
+	_update_rings()
+	_log("trailer: warped to line point %d, next ring %d" % [li, next])
+
+
 ## Did boat k go through its next ring this step?
 func _check_rings(k: int) -> void:
 	var r: Dictionary = racers[k]

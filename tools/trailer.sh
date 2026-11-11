@@ -8,7 +8,8 @@
 #
 # TAKE: the scripted flyovers palace_time, heli_dive, old_town, card, drift_day, drift_night, and the
 # gameplay takes (HUD on, the game's own jokes; --trailer=play): kebab, ride, pullover, boat,
-# vistula, chase, roadblock, club, drag, heli_stadium.
+# vistula, chase, roadblock, club, drag, heli_play. The second iteration (docs/trailer/cut-v2.sh):
+# old_town_fly, skyline, time_lapse, heli_stadium, castle_night (flights), raid, kebab2, boat2, club2.
 # The prebuilt city (sectors + index.res from bake_city.gd) is used when game/map/index.res exists.
 # Each take quits by itself; the loading frames before "trailer: TAKE starts at frame N" are cut.
 # Needs ffmpeg for preview, final and cut. Every run passes --nosave.
@@ -34,6 +35,18 @@ case $name in
 	drift_day) game+=(--radio=0 --nohud --trailer=palace_drift --time=day) ;;
 	drift_night) game+=(--radio=0 --nohud --trailer=palace_drift --time=night) ;;
 	palace_time|heli_dive|old_town|card) game+=(--radio=0 --nohud --trailer=$name) ;;
+	# The second iteration (F 2026-11-11, docs/trailer/cut-v2.sh): wide landmark flights (the whole
+	# city loaded: a wide view needs more sectors than the streamer keeps), and gameplay shots with a
+	# curated HUD (one speech bubble, no radio, zoom or district cards) and the trailer's own camera.
+	old_town_fly|skyline|time_lapse|heli_stadium|castle_night) game+=(--radio=0 --nohud --sectors=all --trailer=$name) ;;
+	raid) game+=(--radio=0 --nohud --trailer=palace_drift --time=night) ;;
+	kebab2) game+=(--trailer=play --trailer-len=11 --time=day --kebab=3 --autopilot
+		--trailer-cam=50,0,-36,900,0.6 --trailer-hud=clean,toast --trailer-bubble=kebab) ;;
+	boat2) game+=(--trailer=play --trailer-len=12 --boat-race=auto --trailer-boat=192 --time=day
+		--trailer-cam=44,120,-32,2,0.3,-8,0 --trailer-hud=clean --trailer-clean --trailer-bubble=szymek) ;;
+	club2) game+=(--trailer=play --trailer-len=8 --meet-at=meet --time=night --trailer-hold
+		--trailer-look=-1031,186 --trailer-cam=34,100,-36,6,0 --trailer-hud=clean,toast,banner
+		--trailer-clean --trailer-bubble=lena) ;;
 	kebab) game+=($play --kebab=3 --autopilot --time=day
 		"--trailer-say=Prawdziwa Warszawa. W wersji kieszonkowej.|The real Warsaw, pocket-sized.") ;;
 	ride) game+=($play --ride=2 --autopilot --time=day) ;;
@@ -45,7 +58,7 @@ case $name in
 	roadblock) game+=($play --police=3 --police-auto=escape --time=night) ;;
 	club) game+=($play --meet-at=meet --time=night) ;;
 	drag) game+=($play --meet-at=stage --time=night) ;;
-	heli_stadium) game+=($play --heli --demo --at=1486,-611 --time=dusk) ;;
+	heli_play) game+=($play --heli --demo --at=1486,-611 --time=dusk) ;;
 	*) print -r -- "tools/trailer.sh: unknown take $name"; exit 2 ;;
 esac
 [[ -f $ROOT/game/map/index.res ]] && game+=(--prebuilt)
