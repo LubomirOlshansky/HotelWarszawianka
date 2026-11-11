@@ -3733,6 +3733,7 @@ func _enter_lounge(votes: Dictionary, auto_play := false) -> void:
 		lounge = Lounge.new()
 		lounge.name = "Lounge"
 		lounge.hud = hud
+		lounge.sfx = sfx
 		lounge.cam = cam
 		lounge.log_on = shisha_log
 		add_child(lounge)

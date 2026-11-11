@@ -11,6 +11,7 @@ someone writes its lines.
 
 ## 2026-11-11
 - The shisha night now really goes inside: at Senatorek you walk through the tower's lobby past the doorman, ride the lift up to the 38th floor watching the floor number climb, and the choices at the table are big buttons you can tap easily.
+- Senatorek's arrival now has sound: the revolving door swishes, the lift dings when it comes and when you reach the 38th floor, and the cabin hums on the ride up.
 - Złote Tarasy is remodelled from your photos: a blue glass wave roof with a triangle grid, the big 3D screen now on the tower's corner (a cat, the Around Warsaw promo and the NOSE. agency), the sunken plaza by the station with its stairs, and the red guitar by the café.
 - Ivan and Bogdan's shisha night: the way into the Senatorek lounge is now marked with a ring on the street and a gold light at the revolving door, and the choices (flavour, strength, the pipe's name) are made inside at the table, not on cards in the street.
 - Fewer texts over the road in missions and chases: the radio host and the news keep quiet while a quest runs, the city's chatter stops in a chase and only one person talks at a time, easter-egg cards wait until the chase is over, two notices no longer flash past each other, and friends' phone calls never ring during a quest or right after one.

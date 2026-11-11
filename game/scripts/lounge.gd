@@ -131,6 +131,8 @@ enum Step { NONE, LOBBY, LIFT, ORDER, CHOOSE, JARS, COAL, DRAW, RESULT, SMOKE }
 signal done(how: String, score: int)
 
 var hud: CanvasLayer
+## The sound (sfx.gd; main.gd sets it): the revolving door's swish, the lift's ding and hum. Null in checks.
+var sfx: Node
 var cam: Camera3D
 var log_on := false
 ## Plays itself (the check, --shisha-lounge shots): the best jars, clean timing, PALIĆ.
@@ -1203,6 +1205,7 @@ func _start_lobby() -> void:
 	var n: int = (_data.get("scenes", {}).get("door", []) as Array).size()
 	_eta = maxf(1.0, (n - 1) * _line_s())
 	_queue("door")
+	_sound("door_swish")
 	_log("lobby")
 
 
@@ -1218,6 +1221,8 @@ func _start_lift() -> void:
 	var n: int = (_data.get("scenes", {}).get("lift", []) as Array).size()
 	_eta = maxf(1.0, (n - 1) * _line_s())
 	_queue("lift")
+	if sfx != null:
+		sfx.lift_hum(true)
 	_log("lift")
 
 
@@ -1269,6 +1274,8 @@ func leave() -> void:
 
 
 func _finish(h: String) -> void:
+	if sfx != null:
+		sfx.lift_hum(false)
 	inside = false
 	how = h
 	_show(false)
@@ -1409,6 +1416,7 @@ func _lobby_tick(dt: float) -> void:
 				_phase = 1
 				_walk_t = 0.0
 				_set_floor(0)
+				_sound("lift_ding")
 		1:
 			_door = clampf(_walk_t / DOOR_S, 0.0, 1.0)
 			if _walk_t >= WALK_B + 0.6:
@@ -1436,12 +1444,21 @@ func _lift_tick(dt: float) -> void:
 				_phase = 1
 				_walk_t = 0.0
 				centre = _cab_centre
+				if sfx != null:
+					sfx.lift_hum(false)
+				_sound("lift_ding")
 				_title.text = Lang.pick("SENATOREK · 38. piętro", "SENATOREK · 38th floor")
 		_:
 			_cab_door = clampf(_walk_t / DOOR_S, 0.0, 1.0)
 			if _walk_t >= DOOR_S + 0.9:
 				_arrive()
 	_pose_movers()
+
+
+## One of Senatorek's arrival sounds (sfx.gd lounge_shot); silent in the checks.
+func _sound(n: String) -> void:
+	if sfx != null:
+		sfx.lounge_shot(n)
 
 
 func _set_floor(f: int) -> void:

@@ -39,6 +39,8 @@ const LOOPS := {
 	# files' RMS so they colour it and never cover it.
 	"amb_river": ["Ambience", -15.0], "amb_park": ["Ambience", -14.0], "amb_square": ["Ambience", -10.0],
 	"amb_yard": ["Ambience", -16.0],
+	# Senatorek's lift ride (lounge.gd, tools/make_sfx.py): a hum felt more than heard.
+	"lift_hum": ["SFX", -24.0],
 }
 ## v1.0 juice: the district's own bed (districts.json ids): the river at Powiśle, trees in the
 ## park, a square's talk in the Old Town and on the Royal Route, courtyards and trams in Praga
@@ -72,6 +74,8 @@ const SHOTS := {
 	"horn_player": -12.0,
 	# v1.0 juice: the ting of a payment (money_pop.gd).
 	"coin": -11.0,
+	# Senatorek's arrival (lounge.gd): the revolving door and the lift's ding.
+	"door_swish": -7.0, "lift_ding": -13.0,
 	# G13b: the nitro lighting (car.gd nitro_started).
 	"nitro_whoosh": -8.0,
 	# The vintage-tram loop (old_tram.gd, tools/make_sfx.py): the old set's creak (under the bell)
@@ -123,6 +127,7 @@ var _dip := 0.0
 var _last_v := 0.0
 var _load := 0.0
 var _rotor := 0.0
+var _lift_on := false
 var _hit_wait := 0.0
 var _horn_wait := 0.0
 var _jar_wait := 0.0
@@ -259,6 +264,7 @@ func _process(dt: float) -> void:
 	_drive("city_day", daylight * (1.0 - 0.5 * raining), 1.0, dt, 1.5)
 	_drive("city_night", (1.0 - daylight) * (1.0 - 0.4 * raining), 1.0, dt, 1.5)
 	_drive("rain", raining, 1.0, dt, 1.5)
+	_drive("lift_hum", 1.0 if _lift_on else 0.0, 1.0, dt, 3.0)
 	# The district's bed: fades under rain, at night and in the helicopter (the ground is far).
 	var bed_level := (1.0 - 0.6 * raining) * (0.5 + 0.5 * daylight) * (0.4 if flying else 1.0)
 	var bed := bed_now()
@@ -377,6 +383,16 @@ func set_district(id: String) -> void:
 ## v1.0 juice: the ting of a payment, once per call (money_pop.gd).
 func coin() -> void:
 	_play2("coin", 0.0)
+
+
+## Senatorek (lounge.gd): one of its arrival one-shots ("door_swish", "lift_ding"), not positional.
+func lounge_shot(n: String) -> void:
+	_play2(n, 0.0)
+
+
+## Senatorek's lift ride: the cabin's hum fades in while `on` and out after.
+func lift_hum(on: bool) -> void:
+	_lift_on = on
 
 
 ## Birds now and then by day (not in the rain); at night, rarely, a far siren or a dog.

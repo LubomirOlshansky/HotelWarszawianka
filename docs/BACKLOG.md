@@ -718,8 +718,8 @@ chart, coal timing, the first draw and a smoke ring), PALIĆ / TARAS / WYJDŹ wi
 `--shisha-meet`, `--shisha-door`, `--shisha-arrive`, `--shisha-lounge`, `--shisha=0`, `--shisha-log`; `check_shisha.gd`
 in verify.sh.
 Left:
-- [ ] Sounds for the arrival: the revolving door's swish, the lift's ding and hum (the lobby and
-  the cabin are silent now; the lift's lines carry the ride)
+- [ ] Phone ear-check of the arrival sounds (`door_swish`, `lift_ding`, `lift_hum` are original
+  synthesis in tools/make_sfx.py; levels set by RMS, only the phone says if the hum is too low)
 - [ ] F's call: lounge name SENATOREK LOUNGE ok? Which floor (the lift card says 38, invented)
 - [ ] Portraits of Ivan, Bogdan and the master (PixelLab on the Mac, from F's photos)
 - [ ] Voices (ElevenLabs) and a lounge track on the radio (docs/MUSIC.md "lounge" slot)
