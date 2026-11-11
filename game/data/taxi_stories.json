@@ -1423,6 +1423,638 @@
      ]
     }
    ]
+  },
+  {
+   "id": "vipkac",
+   "name": "Pani Grażyna",
+   "who": [
+    "klientka z listą zakupów",
+    "a shopper with a very long list"
+   ],
+   "teaser": [
+    "„Bracka, i proszę się nie spieszyć. Ja się spieszę.”",
+    "\"Bracka, and don't rush. I'm the one rushing.\""
+   ],
+   "lines": [
+    [
+     "Dziś kupuję tylko jedną rzecz. Torebkę. No, może dwie.",
+     "Today I'm buying just one thing. A bag. Well, maybe two."
+    ],
+    [
+     "Mąż mówi, że mam dość. Mąż nie był w Vipkacu.",
+     "My husband says I have enough. He's never been to Vipkac."
+    ],
+    [
+     "Poproszę, żeby mi to zapakowali jak organ do przeszczepu.",
+     "I'll have it packed like an organ for transplant."
+    ]
+   ],
+   "ask": [
+    "Jak myśli pan, ta czerwona czy ta czarna?",
+    "Which do you think, the red one or the black one?"
+   ],
+   "answers": [
+    {
+     "say": [
+      "Obie, jak pani mąż",
+      "Both, like your husband"
+     ],
+     "reply": [
+      "Wiedziałam, że z pana taki człowiek! Tylko nie mów mężowi.",
+      "I knew you were that kind of man! Just don't tell my husband."
+     ],
+     "tip": 12,
+     "star": true,
+     "outro": [
+      "„Dwie torebki, jedna cisza. Napiwek za dyskrecję.”",
+      "\"Two bags, one silence. A tip for discretion.\""
+     ]
+    },
+    {
+     "say": [
+      "Czarna, pasuje do reszty",
+      "Black, it goes with all"
+     ],
+     "reply": [
+      "Praktycznie. Nudno. Ale praktycznie. Biorę czerwoną.",
+      "Practical. Boring. But practical. I'll take the red one."
+     ],
+     "tip": 0,
+     "star": false,
+     "outro": [
+      "„Czarna do wszystkiego, czerwona do mnie.”",
+      "\"Black for everything, red for me.\""
+     ]
+    }
+   ],
+   "to": {
+    "name": [
+     "Vipkac",
+     "Vipkac"
+    ],
+    "at": [
+     -354,
+     368
+    ],
+    "r": 90,
+    "drop": [
+     -338.7,
+     363.8
+    ]
+   }
+  },
+  {
+   "id": "zacheta",
+   "name": "Pan Rafał",
+   "who": [
+    "artysta, dziś bez natchnienia",
+    "an artist with no inspiration today"
+   ],
+   "teaser": [
+    "„Do Zachęty. Mam wernisaż. Mój. Chyba.”",
+    "\"To Zachęta. I've got an opening. Mine. I think.\""
+   ],
+   "lines": [
+    [
+     "Na wernisażu jest ser, wino i krytyk. Ser się liczy.",
+     "The opening has cheese, wine and a critic. The cheese counts."
+    ],
+    [
+     "Moja instalacja to pusty pokój. Nazwałem ją „Ty”.",
+     "My installation is an empty room. I called it \"You\"."
+    ],
+    [
+     "Wczoraj ktoś ją posprzątał. Sprzątaczka dostała nagrodę.",
+     "Yesterday someone cleaned it. The cleaner got an award."
+    ]
+   ],
+   "ask": [
+    "Czy pusty pokój to sztuka, czy remont?",
+    "Is an empty room art, or a renovation?"
+   ],
+   "answers": [
+    {
+     "say": [
+      "Sztuka, bez dwóch zdań",
+      "Art, no doubt"
+     ],
+     "reply": [
+      "Dziękuję! Wpisuję to do katalogu jako recenzję.",
+      "Thank you! I'm putting that in the catalogue as a review."
+     ],
+     "tip": 12,
+     "star": true,
+     "outro": [
+      "„Zacytuję pana w katalogu. Bez nazwiska, rzecz jasna.”",
+      "\"I'll quote you in the catalogue. No name, of course.\""
+     ]
+    },
+    {
+     "say": [
+      "Remont, brakuje farby",
+      "A renovation, needs paint"
+     ],
+     "reply": [
+      "Ha! Krytyk powie to samo. Tylko mniej uprzejmie.",
+      "Ha! The critic will say the same. Just less politely."
+     ],
+     "tip": 0,
+     "star": false,
+     "outro": [
+      "„Pomaluję na biało i nazwę „Po”.”",
+      "\"I'll paint it white and call it 'After'.\""
+     ]
+    }
+   ],
+   "to": {
+    "name": [
+     "Zachęta",
+     "Zachęta"
+    ],
+    "at": [
+     -842,
+     -592
+    ],
+    "r": 100,
+    "drop": [
+     -837.4,
+     -631.2
+    ]
+   }
+  },
+  {
+   "id": "filharmonia",
+   "name": "Pani Wiolka",
+   "who": [
+    "skrzypaczka spóźniona na próbę",
+    "a violinist late for rehearsal"
+   ],
+   "teaser": [
+    "„Filharmonia! Trzeba było wyjechać pół godziny temu.”",
+    "\"The Philharmonic! I should have left half an hour ago.\""
+   ],
+   "lines": [
+    [
+     "Dyrygent jest cichy. To najgorszy typ dyrygenta.",
+     "The conductor is quiet. The worst kind of conductor."
+    ],
+    [
+     "Jak nie zdążę, kontrabasy zaczną beze mnie i będzie głośniej.",
+     "If I'm late the double basses start without me, and louder."
+    ],
+    [
+     "Pierwszy skrzypek zawsze patrzy na zegarek. Nie na nuty.",
+     "The first violin always looks at his watch. Not at the score."
+    ]
+   ],
+   "ask": [
+    "Pan jedzie tak, jakby miał rytm. Ma pan słuch?",
+    "You drive like you've got rhythm. Have you an ear?"
+   ],
+   "answers": [
+    {
+     "say": [
+      "Tylko do klaksonu",
+      "Only for the horn"
+     ],
+     "reply": [
+      "Najlepszy akord w mieście! Do tego jeszcze kontra.",
+      "The best chord in town! Now add a counter-note."
+     ],
+     "tip": 12,
+     "star": true,
+     "outro": [
+      "„Pierwszy klakson w partyturze to pana. Dziękuję.”",
+      "\"The first horn in the score is yours. Thank you.\""
+     ]
+    },
+    {
+     "say": [
+      "Mam ucho, ale do radia",
+      "An ear, but for the radio"
+     ],
+     "reply": [
+      "Radio to też orkiestra. Taka mniejsza. I bez dyrygenta.",
+      "Radio is an orchestra too. A smaller one. No conductor."
+     ],
+     "tip": 0,
+     "star": false,
+     "outro": [
+      "„Do widzenia. Słuchałam, jak pan słucha.”",
+      "\"Goodbye. I listened to you listening.\""
+     ]
+    }
+   ],
+   "to": {
+    "name": [
+     "Filharmonia Narodowa",
+     "the National Philharmonic"
+    ],
+    "at": [
+     -876,
+     -39
+    ],
+    "r": 100,
+    "drop": [
+     -831.2,
+     -39.1
+    ]
+   }
+  },
+  {
+   "id": "polin",
+   "name": "Dr Bernard",
+   "who": [
+    "przewodnik, który mówi bez przerwy",
+    "a guide who never stops talking"
+   ],
+   "teaser": [
+    "„Do Muzeum Polin. Opowiem po drodze. Wszystko.”",
+    "\"To the Polin Museum. I'll tell you on the way. Everything.\""
+   ],
+   "lines": [
+    [
+     "Tu, gdzie jedziemy, kiedyś była dzielnica z tysiącem historii.",
+     "Where we're going there was once a quarter with a thousand stories."
+    ],
+    [
+     "Oprowadzam grupy od dwudziestu lat. Jedna pani ciągle wraca.",
+     "I've led groups for twenty years. One lady keeps coming back."
+    ],
+    [
+     "Jutro mam wycieczkę o Warszawie w dziesięć minut. Trudna.",
+     "Tomorrow I've a ten-minute tour of Warsaw. A hard one."
+    ]
+   ],
+   "ask": [
+    "Jak opowiedzieć Warszawę w dziesięć minut?",
+    "How do you tell Warsaw in ten minutes?"
+   ],
+   "answers": [
+    {
+     "say": [
+      "Od końca, od kawy",
+      "From the end, from coffee"
+     ],
+     "reply": [
+      "Od kawy! Tak zacznę. Najpierw kawa, potem wszystko.",
+      "From coffee! I'll start there. First coffee, then everything."
+     ],
+     "tip": 12,
+     "star": true,
+     "outro": [
+      "„Pierwsze dziesięć minut to kawa. Reszta po przerwie.”",
+      "\"The first ten minutes are coffee. The rest after the break.\""
+     ]
+    },
+    {
+     "say": [
+      "Zacznij od mostów",
+      "Start with the bridges"
+     ],
+     "reply": [
+      "Mosty. Dobry pomysł. Szkoda, że jest ich siedem.",
+      "Bridges. Good idea. Pity there are seven."
+     ],
+     "tip": 0,
+     "star": false,
+     "outro": [
+      "„Mosty zajmą pięć minut. Zostaje na przystanki.”",
+      "\"Bridges take five minutes. That leaves the stops.\""
+     ]
+    }
+   ],
+   "to": {
+    "name": [
+     "Muzeum Polin",
+     "the Polin Museum"
+    ],
+    "at": [
+     -2104,
+     -1706
+    ],
+    "r": 120,
+    "drop": [
+     -2140.7,
+     -1787.6
+    ]
+   }
+  },
+  {
+   "id": "sejm",
+   "name": "Staś",
+   "who": [
+    "asystent z dwiema teczkami",
+    "an assistant with two folders"
+   ],
+   "teaser": [
+    "„Na Wiejską. Muszę dowieźć poprawkę. Jedną.”",
+    "\"To Wiejska. I must deliver an amendment. Just one.\""
+   ],
+   "lines": [
+    [
+     "Ta poprawka to jedno zdanie. Pisałem ją trzy noce.",
+     "The amendment is one sentence. I wrote it for three nights."
+    ],
+    [
+     "Posłowie wolą długie ustawy. Krótkich nikt nie czyta.",
+     "MPs like long bills. Nobody reads the short ones."
+    ],
+    [
+     "Mam w teczce jeszcze kanapkę. Ona jest ważniejsza niż poprawka.",
+     "There's a sandwich in the folder too. More important than the amendment."
+    ]
+   ],
+   "ask": [
+    "Jedna kanapka czy dwie poprawki, co wygra?",
+    "One sandwich or two amendments, which wins?"
+   ],
+   "answers": [
+    {
+     "say": [
+      "Kanapka, zawsze kanapka",
+      "Sandwich, always the sandwich"
+     ],
+     "reply": [
+      "Wiedziałem! W kuchni sejmowej jest mądrzej niż na sali.",
+      "I knew it! The canteen is wiser than the chamber."
+     ],
+     "tip": 12,
+     "star": true,
+     "outro": [
+      "„Kanapka wejdzie bez kolejki. Poprawka poczeka.”",
+      "\"The sandwich goes in without a queue. The amendment can wait.\""
+     ]
+    },
+    {
+     "say": [
+      "Poprawki, zasady są zasady",
+      "Amendments, rules are rules"
+     ],
+     "reply": [
+      "Szanuję. Ale kanapkę i tak zjem w windzie.",
+      "Respect. But I'll still eat the sandwich in the lift."
+     ],
+     "tip": 0,
+     "star": false,
+     "outro": [
+      "„Poprawka złożona. Kanapka też, ale po cichu.”",
+      "\"Amendment filed. The sandwich too, quietly.\""
+     ]
+    }
+   ],
+   "to": {
+    "name": [
+     "Sejm",
+     "the Sejm"
+    ],
+    "at": [
+     291,
+     951
+    ],
+    "r": 140,
+    "drop": [
+     207.1,
+     996.9
+    ]
+   }
+  },
+  {
+   "id": "bristol",
+   "name": "Lord Hector",
+   "who": [
+    "turysta, który zgubił hotel",
+    "a tourist who lost his hotel"
+   ],
+   "teaser": [
+    "„Hotel Bristol. Albo coś z B. Albo z H.”",
+    "\"Hotel Bristol. Or something with a B. Or an H.\""
+   ],
+   "lines": [
+    [
+     "Mam zdjęcie hotelu. Niestety to zdjęcie z ulotki, nie z życia.",
+     "I have a photo of the hotel. From a flyer, not from life."
+    ],
+    [
+     "Wczoraj spałem w jednym, ale rano był inny. To jest Warszawa?",
+     "I slept in one yesterday, but a different one in the morning. Is that Warsaw?"
+    ],
+    [
+     "Mam klucz, ale nie wiem do czego. Pokój 214, podobno.",
+     "I have a key but don't know to what. Room 214, apparently."
+    ]
+   ],
+   "ask": [
+    "Czy pan wie, czy hotel jest w lewo, czy w prawo?",
+    "Do you know, is the hotel left or right?"
+   ],
+   "answers": [
+    {
+     "say": [
+      "Prosto, potem bar",
+      "Straight, then the bar"
+     ],
+     "reply": [
+      "Ach, bar! Tam zawsze coś znajdę. Zwykle siebie.",
+      "Ah, the bar! I always find something there. Usually myself."
+     ],
+     "tip": 12,
+     "star": true,
+     "outro": [
+      "„Znalazłem recepcję, bar i klucz. Wszystko pasuje.”",
+      "\"Found reception, the bar and the key. All fits.\""
+     ]
+    },
+    {
+     "say": [
+      "W lewo, potem dalej w lewo",
+      "Left, then further left"
+     ],
+     "reply": [
+      "Kolejne kółko? Tak jeżdżę od trzech dni.",
+      "Another circle? I have done that for three days."
+     ],
+     "tip": 0,
+     "star": false,
+     "outro": [
+      "„Dotarłem. Hotel nazywa się inaczej, ale pokój mój.”",
+      "\"Arrived. The hotel has a different name, but the room is mine.\""
+     ]
+    }
+   ],
+   "to": {
+    "name": [
+     "Hotel Bristol",
+     "Hotel Bristol"
+    ],
+    "at": [
+     -543,
+     -917
+    ],
+    "r": 90,
+    "drop": [
+     -540.4,
+     -889.6
+    ]
+   }
+  },
+  {
+   "id": "aktor",
+   "name": "Pan Jerzy",
+   "who": [
+    "aktor z rolą w kieszeni",
+    "an actor with a role in his pocket"
+   ],
+   "teaser": [
+    "„Teatr Polski. Gram dziś drzewo. Muszę dobrze wyglądać.”",
+    "\"Teatr Polski. Tonight I play a tree. I must look right.\""
+   ],
+   "lines": [
+    [
+     "Gram drzewo w trzecim akcie. Cały akt. Bez tekstu.",
+     "I play a tree in act three. The whole act. No lines."
+    ],
+    [
+     "Ale pan reżyser mówi, że drzewo jest metaforą. Z liśćmi.",
+     "But the director says the tree is a metaphor. With leaves."
+    ],
+    [
+     "Ćwiczę nieruchomość od trzech tygodni. Żona się boi.",
+     "I've practised standing still for three weeks. My wife is scared."
+    ]
+   ],
+   "ask": [
+    "Jakie drzewo mam zagrać, żeby publiczność płakała?",
+    "Which tree should I play to make the audience cry?"
+   ],
+   "answers": [
+    {
+     "say": [
+      "Wierzbę, wiadomo, płacze",
+      "A willow, they weep"
+     ],
+     "reply": [
+      "Wierzba! Genialne. Powiem, że to był mój pomysł.",
+      "A willow! Brilliant. I'll say it was my idea."
+     ],
+     "tip": 12,
+     "star": true,
+     "outro": [
+      "„Wierzba będzie płakać. Pan dostanie bilet na parter.”",
+      "\"The willow will weep. You get a stall seat.\""
+     ]
+    },
+    {
+     "say": [
+      "Dąb, bo jest twardy",
+      "An oak, it's tough"
+     ],
+     "reply": [
+      "Dąb… dąb nie płacze. Ale może nie musi.",
+      "An oak… an oak doesn't cry. But perhaps it needn't."
+     ],
+     "tip": 0,
+     "star": false,
+     "outro": [
+      "„Dąb zagra przy ścianie. Nie ruszy się nawet w oklaskach.”",
+      "\"The oak plays by the wall. Won't move even at the applause.\""
+     ]
+    }
+   ],
+   "to": {
+    "name": [
+     "Teatr Polski",
+     "Teatr Polski"
+    ],
+    "at": [
+     -285,
+     -499
+    ],
+    "r": 100,
+    "drop": [
+     -305.9,
+     -471.3
+    ]
+   }
+  },
+  {
+   "id": "barbakan",
+   "name": "Kasia",
+   "who": [
+    "przewodniczka od duchów",
+    "a ghost tour guide"
+   ],
+   "teaser": [
+    "„Barbakan. Tam czekają turyści. I duchy, podobno.”",
+    "\"The Barbican. Tourists are waiting there. And ghosts, supposedly.\""
+   ],
+   "lines": [
+    [
+     "Prowadzę nocne wycieczki z duchami. Prawdziwymi. Prawie.",
+     "I run night tours with ghosts. Real ones. Almost."
+    ],
+    [
+     "Głównego ducha gra mój brat. Ma prześcieradło i długi kaszel.",
+     "The main ghost is my brother. He has a sheet and a long cough."
+    ],
+    [
+     "Ktoś zapytał, o której duchy kończą. O dziesiątej.",
+     "Someone asked when the ghosts clock off. At ten."
+    ]
+   ],
+   "ask": [
+    "Czy duchy w Warszawie mają urlop?",
+    "Do ghosts in Warsaw get holidays?"
+   ],
+   "answers": [
+    {
+     "say": [
+      "Tak, w sierpniu nad morzem",
+      "Yes, in August by the sea"
+     ],
+     "reply": [
+      "Nad morzem! Dobrze, że ktoś o nich myśli. Dodam to do trasy.",
+      "By the sea! Good that someone thinks of them. I'll add it to the route."
+     ],
+     "tip": 12,
+     "star": true,
+     "outro": [
+      "„Duch na urlopie to nowy punkt. Dziękuję za pomysł.”",
+      "\"A ghost on holiday is a new stop. Thanks for the idea.\""
+     ]
+    },
+    {
+     "say": [
+      "Nie, to duchy służbowe",
+      "No, they're on duty"
+     ],
+     "reply": [
+      "Służbowe. Pasuje. Mają nawet legitymacje, z mgły.",
+      "On duty. Fits. They even have ID cards, made of fog."
+     ],
+     "tip": 0,
+     "star": false,
+     "outro": [
+      "„Do widzenia. Jak coś zawyje za panem, to mój brat.”",
+      "\"Goodbye. If something howls behind you, it's my brother.\""
+     ]
+    }
+   ],
+   "to": {
+    "name": [
+     "Barbakan",
+     "the Barbican"
+    ],
+    "at": [
+     -947,
+     -1835
+    ],
+    "r": 100,
+    "drop": [
+     -961.4,
+     -1830.7
+    ]
+   }
   }
  ]
 }
