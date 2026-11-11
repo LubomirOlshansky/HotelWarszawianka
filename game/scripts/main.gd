@@ -1634,6 +1634,12 @@ func _build_world() -> void:
 	bubbles.chatter.level = settings.chatter
 	car.bumped.connect(func(_c: Object, speed: float) -> void: bubbles.chatter.hit(speed * 3.6))
 	hud.chatter = bubbles.chatter
+	# The message director (docs/design/hud-messages.md): a quest with no status card of its own
+	# still counts as one (the radio host and the flavour keep quiet, notes and calls wait).
+	hud.quest_on = func() -> bool:
+		return _quest_running() or (meet != null and meet.busy()) or (crawl != null and crawl.busy()) \
+				or (dekalog_tour != null and dekalog_tour.busy()) or (kino_tour != null and kino_tour.busy()) \
+				or (rides != null and rides.busy()) or (trend_job != null and trend_job.busy())
 	bubbles.project = func(p: Vector3) -> Vector2: return cam.unproject_position(p) * float(view.stretch_shrink)
 	hud.add_speech(bubbles)  # above the target pointer, below the panels (PT-10)
 	bubbles.process_mode = Node.PROCESS_MODE_PAUSABLE
@@ -3815,6 +3821,8 @@ func _free_block(ringing_ok := false, guide_ok := false) -> String:
 		return "title/bench/Spacer"
 	if first10 != null and first10.guide_on() and not guide_ok:
 		return "first-10 guide"
+	if not ringing_ok and not hud.call_ok():
+		return "calls: a call rang lately, or a quest or a chase is on or just ended (messages.gd)"
 	var ringing: bool = ringing_ok and missions.state == Missions.State.RINGING
 	if hud.cards_up() or (missions.state != Missions.State.CLOSED and not ringing) or missions.has_target():
 		return "a card, mission or rescue target is up"
@@ -8471,6 +8479,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 				tod.next()
 			KEY_R:
 				# Shift+R skips to the station's next track (2026-10-30: radio.next_track() had no control).
+				hud.radio_touched()  # the caption that follows is the player's own (messages.gd)
 				if key.shift_pressed:
 					radio.next_track()
 				else:
@@ -8547,6 +8556,7 @@ func _pad_command(what: String) -> void:
 		"zoom_out":
 			_zoom_view(1)
 		"radio":
+			hud.radio_touched()
 			radio.next()
 		"flash":
 			_flash()

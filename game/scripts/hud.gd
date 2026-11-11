@@ -38,6 +38,7 @@ const MapArt := preload("res://scripts/map_art.gd")
 const MainLine := preload("res://scripts/main_line.gd")
 const MapIcons := preload("res://scripts/map_icons.gd")
 const ScreenPoints := preload("res://scripts/screen_points.gd")
+const Messages := preload("res://scripts/messages.gd")  # the message director (docs/design/hud-messages.md)
 ## drive_controls.gd's schemes (POINT, CLASSIC, FIXED).
 const CLASSIC := 1
 
@@ -99,7 +100,7 @@ const CALL_BUTTON := 44.0
 const RINGTONE := "res://audio/ui/ring.wav"
 const RING_EVERY := 2.6
 const CARD_FACE := 40.0
-const STATUS_W := 260.0
+const STATUS_W := 240.0  # the message director: the quest card in its compact cut (was 260)
 const NOTE_W := 236.0
 const TICKER_W := 380.0
 const TOAST_W := 420.0
@@ -597,6 +598,8 @@ func _ready() -> void:
 	for zb: Button in [_zoom_out_button, _zoom_in_button]:
 		_set_chip(zb, zb.get_child(0).get_child(0).text, "", 44.0)
 
+	radio_pressed.connect(radio_touched)
+	radio_skip_pressed.connect(radio_touched)
 	_build_ticker()
 	_build_mission_panels()
 	_build_toast()
@@ -1064,6 +1067,8 @@ func clear_all() -> void:
 	for c in _floating:
 		_show(c, false)
 	_toast_left = 0.0
+	_toast_wait.clear()
+	messages.clear()
 	_ticker_left = 0.0
 	_note_left = 0.0
 	_info_left = 0.0
@@ -1447,6 +1452,11 @@ func _build_ticker() -> void:
 func ticker(text: String, colour: Color, subtitle := "") -> void:
 	if hush:
 		return
+	# The message director: the host's lines, the news and a new track keep quiet while a quest or
+	# a chase runs; a station the player picked just now still shows.
+	var own := Time.get_ticks_msec() - _radio_touch_ms < RADIO_OWN_MS
+	if _decide("ticker", Messages.ALERT if own else Messages.RADIO) != Messages.SHOW:
+		return
 	text = Lang.pick(text, subtitle)
 	subtitle = ""
 	colour = Access.tint(colour)  # colour-safe (access.gd)
@@ -1520,12 +1530,15 @@ func ambient_toast(text: String, gloss := "") -> void:
 	if chatter != null and not chatter.toast_ok():
 		return
 	_ambient_toast_at = now
-	toast(text, gloss)
+	toast(text, gloss, Messages.AMBIENT)
 
 
-func toast(text: String, gloss := "") -> void:
+## `priority` (messages.gd): a quest's toast is INFO; ALERT never waits behind another toast.
+func toast(text: String, gloss := "", priority := Messages.INFO) -> void:
 	if hush:
 		return  # PT-49: the first-10 guide's hints waited under the drag's rev counter
+	if _decide("toast", priority) != Messages.SHOW:
+		return  # a flavour toast during a quest or a chase
 	text = Lang.pick(text, gloss)
 	gloss = ""
 	# PT-20 (Autopilot run 20261103-152518): the same toast again while it is still up only
@@ -1533,6 +1546,22 @@ func toast(text: String, gloss := "") -> void:
 	if _toast_left > 0.0 and _toast.text == text and bool(_wants.get(_toast_box, false)):
 		_toast_left = Chatter.read_time(text)
 		return
+	# The message director: a new toast never wipes one that came up a moment ago (the two used
+	# to flicker past unread); it waits until that one has been glanced at (TOAST_GLANCE s).
+	if priority < Messages.ALERT and _toast_left > 0.0 and _toast_age < TOAST_GLANCE and bool(_wants.get(_toast_box, false)):
+		for w: Array in _toast_wait:
+			if w[0] == text:
+				return
+		_toast_wait.append([text, gloss])
+		if _toast_wait.size() > TOAST_WAIT_MAX:
+			_toast_wait.pop_front()
+		_toast_left = minf(_toast_left, TOAST_GLANCE - _toast_age + 0.6)
+		return
+	_toast_now(text, gloss)
+
+
+func _toast_now(text: String, gloss: String) -> void:
+	_toast_age = 0.0
 	# A long line wraps at TOAST_W points rather than running off a phone's screen.
 	var font := ThemeDB.fallback_font
 	for pair: Array in [[_toast, text, T_TITLE], [_toast_gloss, gloss, T_SUB]]:
@@ -1621,8 +1650,9 @@ func _build_mission_panels() -> void:
 	words.add_theme_constant_override("separation", 0)
 	top.add_child(words)
 	_status_title = _label(T_SUB, ACCENT)
-	# PT-11: a long goal wraps onto a second line instead of ending in "...".
+	# PT-11: a long goal wraps onto a second line instead of ending in "...", never a third.
 	_wrap(_status_title, STATUS_W - 70.0)
+	_status_title.max_lines_visible = 2
 	words.add_child(_status_title)
 	_status_clock = _label(T_CLOCK, Color.WHITE)
 	words.add_child(_status_clock)
@@ -1644,6 +1674,7 @@ func _build_mission_panels() -> void:
 	rows.add_child(_status_hint)
 	_status_hint_en = _label(T_SUB, SUB)
 	_wrap(_status_hint_en, STATUS_W - 20.0)
+	_status_hint_en.visible = false  # one language (lang.gd): it stood empty, a blank line under the hint
 	rows.add_child(_status_hint_en)
 	_status_track = Control.new()
 	_status_track.custom_minimum_size.y = 4.0 * pt
@@ -1658,6 +1689,7 @@ func _build_mission_panels() -> void:
 	_challenge = _chip(self, "MRUGNIJ ŚWIATŁAMI", "flash your lights to race (L)")
 	_challenge.name = "challenge"
 	_challenge.pressed.connect(func(): challenge_pressed.emit())
+	_build_cta()
 
 	_banner = _label(T_BANNER, Color.WHITE, true)
 	_banner.name = "banner"
@@ -1695,6 +1727,8 @@ func show_card(title: String, body: String, buttons: PackedStringArray, accent: 
 		_card_side = false
 		_set_card_width(CARD_W)
 	_card_bottom = bottom
+	if not buttons.is_empty() and buttons[0].begins_with("ODBIERZ"):
+		messages.call_rang()  # an incoming call (ODBIERZ / ODRZUĆ): the next caller waits CALL_GAP
 	_card_title.text = title
 	_card_title.add_theme_color_override("font_color", accent)
 	_card_title_en.text = title_en
@@ -1875,6 +1909,7 @@ func _set_call_width() -> void:
 func show_call(who: String, about: String, accent: Color, about_en := "", face := "",
 		buttons := PackedStringArray(["ODBIERZ|ANSWER", "ODRZUĆ|DECLINE"])) -> void:
 	accent = Access.tint(accent)  # colour-safe (access.gd)
+	messages.call_rang()  # the message director spaces the next call from this one
 	about = Lang.pick(about, about_en)
 	if "|" in who:
 		who = Lang.pick(who.get_slice("|", 0), who.get_slice("|", 1))
@@ -2020,12 +2055,16 @@ func show_status(title: String, clock: String, distance: String, hint: String, p
 	_status_badge.add_theme_color_override("font_color", Access.tint(Access.GREEN) if badge == "1ST" else ACCENT)
 	_status_title.text = title
 	_status_title.add_theme_color_override("font_color", accent)
-	_status_clock.text = clock + "    " + distance
+	_status_clock.text = clock + "   " + distance if clock != "" and distance != "" else clock + distance
 	if _status_hint.text != hint:
 		_status_hint.text = hint
-	if _status_hint_en.text != hint_en:
-		_status_hint_en.text = hint_en
-		_status_hint_en.visible = hint_en != ""
+		# The compact quest card: a new hint shows for its reading time, then folds away; one that
+		# only counts (the metres, the seconds) is the same hint.
+		var shape := _hint_shape(hint)
+		if shape != _hint_key:
+			_hint_key = shape
+			_hint_left = Chatter.read_time(hint) + HINT_HOLD
+	_status_hint.visible = hint != "" and _hint_left > 0.0
 	_status_bar.color = accent
 	_status_bar.size.x = _status_track.size.x * clampf(progress, 0.0, 1.0)
 	_show(_status, true)
@@ -2033,15 +2072,18 @@ func show_status(title: String, clock: String, distance: String, hint: String, p
 
 func hide_status() -> void:
 	_show(_status, false)
+	_hint_key = ""  # the next quest's first hint shows
 
 
-## The button that challenges the rival in front (key L does the same): Polish over English.
-func show_challenge(text: String, accent: Color, gloss := "flash your lights to race (L)") -> void:
+## The button that challenges the rival in front (key L does the same). The message director
+## (F 2026-11-11: "make the start chase button understandable, a call to action, not just text"):
+## a big button in the racer's colour with a chequered flag, the challenge (`text`, `gloss` its
+## English) over what to do (`sub`, `sub_en`), popping in and breathing while it is up.
+func show_challenge(text: String, accent: Color, gloss := "flash your lights to race (L)", sub := "", sub_en := "") -> void:
 	accent = Access.tint(accent)  # colour-safe (access.gd)
-	var top := (_challenge.get_child(0) as Control).get_child(0) as Label
-	if top.text != text:
-		_set_chip(_challenge, text, gloss, 240.0)
-		top.add_theme_color_override("font_color", accent)
+	_set_cta(Lang.pick(text, gloss), Lang.pick(sub, sub_en), accent)
+	if not bool(_wants.get(_challenge, false)):
+		_cta_t = 0.0  # the pop
 	_show(_challenge, true)
 
 
@@ -2094,6 +2136,7 @@ func _process(dt: float) -> void:
 
 
 func _frame(dt: float) -> void:
+	_messages_tick(dt)
 	radio_hold_tick(Time.get_ticks_msec())
 	if _call_mode and _card.visible:
 		_call_t += dt
@@ -2946,10 +2989,20 @@ static func _money(amount: int) -> String:
 	return ("-" if amount < 0 else "") + digits + out + " zł"
 
 
-## A small card under the wallet for a few seconds (an easter egg found).
-func show_note(title: String, body: String, colour: Color) -> void:
-	if hush:
-		return
+## A small card under the wallet for a few seconds (an easter egg found). The message director:
+## during a quest, a chase or a scripted moment a note waits in the queue and shows after it
+## (`priority` messages.gd: INFO by default; a quest's own message, the TYGRAM pin, is QUEST_LINE).
+func show_note(title: String, body: String, colour: Color, priority := Messages.INFO) -> void:
+	match _decide("note", priority):
+		Messages.DEFER:
+			messages.defer("note", priority, [title, body, colour], title + body)
+			return
+		Messages.DROP:
+			return
+	_show_note_now(title, body, colour)
+
+
+func _show_note_now(title: String, body: String, colour: Color) -> void:
 	colour = Access.tint(colour)  # colour-safe (access.gd)
 	_set_note_width()  # landmark card fix
 	_note_title.text = title
@@ -4271,3 +4324,185 @@ func show_panel(c: Control, on: bool) -> void:
 	if on:
 		c.reset_size()
 		_mark()
+
+
+# --- the message director (docs/design/hud-messages.md, F 2026-11-11) ---------------------------
+
+## Every line the HUD puts up goes through one decision (messages.gd): show it now, keep it in the
+## queue for later, or drop it, by its channel, its priority and the context (free roam, a quest,
+## a chase, a scripted moment). The bubbles follow the same context (chatter.gd `context`).
+var messages := Messages.new()
+## True while a quest runs that may show no status card of its own (main.gd: a race, a job, a ride,
+## a rescue, a questline, a tour, the night meet). Asked QUEST_POLL times a second.
+var quest_on: Callable
+const QUEST_POLL := 4.0
+var _quest_now := false
+var _quest_poll := 0.0
+## When the player last pressed RADIO or its next key (ms): the caption that follows is theirs.
+var _radio_touch_ms := -100000
+const RADIO_OWN_MS := 3000
+## Toasts waiting for the one up to be glanced at ([text, gloss] each, oldest first).
+var _toast_wait: Array = []
+var _toast_age := 0.0
+const TOAST_GLANCE := 1.6
+const TOAST_WAIT_MAX := 2
+## The compact quest card: how long the hint stays (s) after its reading time, the shape of the
+## hint now (its words without the numbers) and how long it has left.
+const HINT_HOLD := 3.0
+var _hint_key := ""
+var _hint_left := 0.0
+var _digits := RegEx.create_from_string("[0-9]+([.,:][0-9]+)*")
+## The road ahead stays clear of bubbles from this speed (km/h); the boxes along it (points).
+const KEEP_CLEAR_KMH := 12.0
+const KEEP_CLEAR_HALF := 46.0
+## The isometric view squashes the map's up and down this much on screen.
+const VIEW_SQUASH := 0.62
+## The challenge button (the call to action): its age (the pop and the breath) and colour.
+var _cta_t := 0.0
+var _cta_accent := Color.WHITE
+var _cta_plate: StyleBoxFlat
+const CTA_H := 58.0
+const CTA_MIN_W := 248.0
+const CTA_FLAG := 34.0
+
+
+## A friend's call may ring now (messages.gd `call_ok`): no quest, no chase, settled, spaced.
+func call_ok() -> bool:
+	messages.tick(0.0, context_now())
+	return messages.call_ok()
+
+
+## The player pressed RADIO (or its next key, or R): the caption that comes next shows even in a chase.
+func radio_touched() -> void:
+	_radio_touch_ms = Time.get_ticks_msec()
+
+
+## The context now (messages.gd): a scripted moment (`hush`), a chase (the police after the car or
+## searching, a race's position badge, the countdown banner), a quest (the status card, `quest_on`).
+func context_now() -> int:
+	var status := bool(_wants.get(_status, false))
+	var chase := _koguty_mode == 1 or _koguty_mode == 2 or bool(_wants.get(_banner, false)) \
+			or (status and _status_badge.text != "")
+	return Messages.context_of(status or _quest_now, chase, hush)
+
+
+## The director's word on a line, with the context as it is this moment (a card shown in the same
+## frame counts at once).
+func _decide(channel: String, priority: int) -> int:
+	messages.tick(0.0, context_now())
+	return messages.decide(channel, priority)
+
+
+func _messages_tick(dt: float) -> void:
+	_quest_poll -= dt
+	if _quest_poll <= 0.0:
+		_quest_poll = 1.0 / QUEST_POLL
+		_quest_now = quest_on.is_valid() and bool(quest_on.call())
+	var was := messages.context
+	messages.tick(dt, context_now())
+	if chatter != null:
+		chatter.context = messages.context
+	if was == Messages.FREE and messages.context != Messages.FREE \
+			and Time.get_ticks_msec() - _radio_touch_ms >= RADIO_OWN_MS:
+		ticker_out()  # the host was mid-line when the quest began
+	var item := messages.next_ready()
+	if not item.is_empty() and String(item["channel"]) == "note":
+		var a: Array = item["args"]
+		_show_note_now(a[0], a[1], a[2])
+	if _toast_left > 0.0:
+		_toast_age += dt
+	elif not _toast_wait.is_empty():
+		var w: Array = _toast_wait.pop_front()
+		_toast_now(w[0], w[1])
+	if _hint_left > 0.0 and bool(_wants.get(_status, false)):
+		_hint_left -= dt
+		if _hint_left <= 0.0 and _status_hint.visible:
+			_status_hint.visible = false
+			_mark()
+	if _challenge.visible:
+		_cta_t += dt
+		_challenge.pivot_offset = _challenge.size * 0.5
+		var pop := clampf(1.0 - _cta_t / 0.35, 0.0, 1.0)
+		_challenge.scale = Vector2.ONE * (1.0 + 0.18 * pop * pop + 0.03 * (0.5 + 0.5 * sin(_cta_t * 5.0)))
+
+
+## The hint's words without its numbers ("Seba: 40 m za tobą" and "Seba: 35 m za tobą" are one hint).
+func _hint_shape(hint: String) -> String:
+	return _digits.sub(hint, "#", true)
+
+
+## The road ahead of the car on screen, as three boxes from the car's spot along its heading (the
+## minimap's car arrow, squashed as the view is), reaching further the faster it goes; the speech
+## bubbles keep off them when they can (bubbles.gd). Empty below KEEP_CLEAR_KMH.
+func keep_clear_rects() -> Array[Rect2]:
+	var out: Array[Rect2] = []
+	if _kmh < KEEP_CLEAR_KMH:
+		return out
+	var dir := Vector2(_car_dir.x, _car_dir.y * VIEW_SQUASH)
+	if dir.length() < 0.01:
+		return out
+	dir = dir.normalized()
+	var reach := minf(_screen.x, _screen.y) * clampf(0.25 + _kmh / 240.0, 0.25, 0.45)
+	var half := Vector2.ONE * KEEP_CLEAR_HALF * pt
+	for k in 3:
+		var p := car_zone().get_center() + dir * reach * float(k + 1) / 3.0
+		out.append(Rect2(p - half, half * 2.0))
+	return out
+
+
+## The challenge chip made a call to action: a filled plate, the chequered flag on its left, the
+## words moved right of it.
+func _build_cta() -> void:
+	_cta_plate = _box(CARD_BG, ACCENT, 3.0)
+	_cta_plate.set_corner_radius_all(roundi(14.0 * pt))
+	for st in ["normal", "hover", "disabled"]:
+		_challenge.add_theme_stylebox_override(st, _cta_plate)
+	var words := _challenge.get_child(0) as Control
+	words.offset_left = CTA_FLAG * pt
+	var top := words.get_child(0) as Label
+	var low := words.get_child(1) as Label
+	top.set_meta("base_pt", T_TITLE)
+	top.add_theme_font_size_override("font_size", _px(T_TITLE * Access.text_scale))
+	top.add_theme_color_override("font_outline_color", OUTLINE)
+	top.add_theme_constant_override("outline_size", _px(2.0))
+	low.set_meta("base_pt", T_SUB)
+	low.add_theme_font_size_override("font_size", _px(T_SUB * Access.text_scale))
+	low.add_theme_color_override("font_color", INK)
+	_challenge.draw.connect(_draw_cta_flag)
+
+
+## New words and colour on the call to action; its size follows the words.
+func _set_cta(title: String, sub: String, accent: Color) -> void:
+	var words := _challenge.get_child(0)
+	var top := words.get_child(0) as Label
+	var low := words.get_child(1) as Label
+	if top.text == title and low.text == sub and _cta_accent == accent:
+		return
+	_cta_accent = accent
+	top.text = title
+	top.add_theme_color_override("font_color", Color.WHITE)
+	low.text = sub
+	low.visible = sub != ""
+	_cta_plate.bg_color = Color(accent.darkened(0.62), 0.97)
+	_cta_plate.border_color = accent
+	var font := ThemeDB.fallback_font
+	var w := maxf(font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, _px(T_TITLE * Access.text_scale)).x,
+			font.get_string_size(sub, HORIZONTAL_ALIGNMENT_LEFT, -1, _px(T_SUB * Access.text_scale)).x)
+	_challenge.custom_minimum_size = Vector2(maxf(w + (CTA_FLAG + 18.0) * pt, CTA_MIN_W * pt), CTA_H * pt * maxf(1.0, Access.text_scale * 0.9))
+	_challenge.size = _challenge.custom_minimum_size
+	_challenge.queue_redraw()
+	_mark()
+
+
+## The chequered flag on the call to action's left, on a short pole (drawn, no font glyph).
+func _draw_cta_flag() -> void:
+	var cell := 4.0 * pt
+	var h := _challenge.size.y
+	var x0 := 12.0 * pt
+	var y0 := h * 0.5 - cell * 2.5
+	_challenge.draw_rect(Rect2(x0 - 2.0 * pt, y0, 2.0 * pt, cell * 6.0), INK)
+	for row in 3:
+		for col in 4:
+			var c := INK if (row + col) % 2 == 0 else Color(0.08, 0.07, 0.1)
+			_challenge.draw_rect(Rect2(x0 + col * cell, y0 + row * cell, cell, cell), c)
+	_challenge.draw_rect(Rect2(x0, y0, cell * 4.0, cell * 3.0), _cta_accent, false, maxf(1.0, pt * 0.6))
