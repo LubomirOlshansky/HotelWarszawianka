@@ -11,6 +11,8 @@ someone writes its lines.
 
 ## 2026-11-10
 - Friends now ring on a little phone on the right of the screen, with a ringtone, their face and a red Decline and green Answer button; their face also shows when they pitch the night out.
+- The horn button next to the brake is gone; the nitro button now sits right by the brake.
+- Hotel Metropol on Marszałkowska is rebuilt from your photos: cream balcony fronts, a dark glazed ground floor under a canopy, and its name (the parody METROPOLKA) in green on a white board on the roof, facing the street.
 - The hidden shisha night is easier to start: Ivan's secret signal now works anywhere in the city.
 - The "point where to go" steering option is gone from Settings: the car is always driven with left, right, gas and brake (the camera can still be switched off).
 - On Mati's nights out the arrow now points the way all the way to the club, the camera no longer keeps flying to the destination while you stand, the club door has a ring and a light to stop in, and for now any answers at the door get you in.

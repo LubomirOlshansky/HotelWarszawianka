@@ -1003,7 +1003,7 @@ func _start_chant(g: Dictionary, why: String) -> void:
 		_say(_anchor_of(g, -1), "", "kibice", tag, true)
 
 
-## The player's horn at `at` (hud.horn_pressed): the nearest group within HONK_R sings.
+## The player's horn at `at` (main.gd `_honk`: B, L3 on a pad): the nearest group within HONK_R sings.
 func honk(at: Vector3) -> void:
 	if not near:
 		return

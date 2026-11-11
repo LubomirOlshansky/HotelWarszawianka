@@ -4,6 +4,9 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## Hotel Metropol rebuilt (F, 2026-11-07, docs/landmarks/metropol.md)
+Built from F's four photos (merged 2026-11-10; the first build sat unmerged as a patch). Open: the real hotel's ground floor and the rear courtyard wings have no street photo; the white box's size (20 m) is a guess; Mac night look for the green letters.
+
 ## Racer AI rebuild (F, 2026-11-09; docs/design/race-ai.md)
 
 F (two phone screenshots, the race against Pani Halina from Powiśle to Plac Trzech Krzyży): "she was
@@ -313,7 +316,6 @@ Built (event_day.gd): date gate, hours, crowd + flags, four barrier lines, white
 - Flags now sway in the wind (`actor.gdshader` `sway`, cloth marked UV.y 2). The 15 s video take is built: `--cinematic=event` (camera keys in `camera_shots.gd` `EVENT_KEYS`, light cascade, fog ramp, flares in turns in `event_day.gd` `scene_t`, title card), `--event-t=SEC` freezes it for stills; the 4K capture on the Mac and the sound are not done. Heli-only day missions, the notebook stamp, event sounds and the Settings toggle for smoke are not built yet (plan sections 3.3, 3.5, 6 E5).
 - Stadion Narodowy white-red panels are coded (`_stadium_bands`) but did not show in the cloud shot: unverified, check on the Mac or phone (mast heights, radius).
 - Max look for the promo (F, 2026-11-07, recorded on iPhone 17 Pro or M4 Pro, no performance limit): up to 6,000 people, 520 standing-fog blobs (`event_fog.gdshader`, day and night), 200 flare halos. Heavy on purpose: the quality tier scales it down. Phone bench still open. The lit puff boxes are off (`PUFFS_ON`).
-- The METROPOLKA roof neon (Hotel Metropol, `landmarks.gd` `_build_metropol_sign`) reads mirrored and looks like it floats when seen from the north from the air: not the event's, needs a look.
 - Trailer rig (plan section 7) not started.
 
 ## The Palace of Culture's grounds and venues (F, 2026-11-07, with F's aerial photo)
@@ -2223,7 +2225,7 @@ tapped again it goes. Empty while a race, job or rescue is on. `--quest-pick=N` 
 
 **G13 · Upgrade shop: done (2026-11-02).** Warsztat u Mirka's card has a second tab, "Części i auta":
 the Ołdi TT (2,500 zł, faster, a lower coupe model), the nitro "Kebab Boost" (600 zł; a bolt disc left
-of the horn or the N key: 3.5 s of boost, 20 s refill), tyres (grip) and engine (top speed and pull),
+of the brake (where the touch horn stood until 2026-11-10) or the N key: 3.5 s of boost, 20 s refill), tyres (grip) and engine (top speed and pull),
 levels 1-3 at 150-400 zł. Saved in the [garage] section (no version bump). Left, found on the way:
 - **G13a (P2, phone).** Is the pricing right (first part after a few jobs, the nitro after about 15
   minutes, the TT as the goal), does the nitro feel good and is the bolt easy to hit with the thumb,
@@ -2788,7 +2790,7 @@ VHS pulse), colour-safe markers (drop-off beacon blue, patrol lights white/blue)
 (every buzz goes through `Access.buzz`), stop assist on/off. Left:
 - ~~Left-handed control layout~~ Done (2026-11-01): Settings → DOSTĘP → "Dla leworęcznych"
   (`access.gd left_handed`, `hud.gd set_left_handed`, at once, no restart; flag `--left-handed`):
-  BRAKE, GAS, the horn and the helicopter's pads bottom left, the stick's side (the right 60 %)
+  BRAKE, GAS, the nitro and the helicopter's pads bottom left, the stick's side (the right 60 %)
   and Classic's strip on the right, the credit line bottom right; `check_hud` runs a left-handed
   pass (10 states x 6 screens). Left: the feel on the phone; in this layout the bottom card can
   sit lower (nothing on the right pushes it up), so the radio ticker waits for room more often.
@@ -4986,7 +4988,8 @@ twice the dog walkers there, twice the cyclists (cap 16) and 45 % of them fast. 
 - ~~**The player has no horn** (vision's horn reactions, E24): the dogs bark at the AI cars' horns
   (`traffic.gd` signals, connected in `main.gd`). A horn button (the driving lane: a HUD
   control and `car.gd` / `sfx.horn`) then needs one line: `life.horn(car.global_position)`.~~
-  Done in the night-buses loop: the HUD's horn left of the brake and B (`buses.gd` `honk`, no
+  Done in the night-buses loop: B (and L3 on a pad; the HUD's touch horn left of the brake was
+  removed on F's call, 2026-11-10, as it seemed to do nothing) (`buses.gd` `honk`, no
   `car.gd` change).
 - ~~**No Rowerilo docks in the map data**~~ Done (2026-11-01): the 92 `bicycle_rental` pois each get
   a dock (`storefronts.gd` `_load_docks`, `Props.add_bike_dock`, 4-8 bikes from `l`, 6 unmapped) in the
@@ -5237,6 +5240,10 @@ twice the dog walkers there, twice the cyclists (cap 16) and 45 % of them fast. 
   1 m over the kerb line (BAY_PULL), not in real bays. A bay or layover lane on both
   carriageways (or the real Dworzec Centralny stops' platforms) would let them pull off the road.
 - **The horn is B, not H**: H was already the car ↔ helicopter key. Open Question.
+- **No horn on the phone** (F 2026-11-10: the touch horn by BRAKE "does nothing", removed): the
+  horn's bus call (E24), the dogs, the walkers turning and the fans' chant are now keyboard (B) and
+  pad (L3) only. If a phone way back is wanted later, it should be something the player sees
+  working (a bus stopping, a chant), not a bare button.
 - **E24's line**: vision 3.5 says "line 3", eggs.json's `line_ref` says index 2: the same line
   (the third, "Stoję na przystanku na żądanie. Żądam."), the request line; built that way.
 - **A stop's own bubble can say the request line**: `dialogue.gd` picks a `bus_stop` line at
