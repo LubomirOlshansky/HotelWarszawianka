@@ -9,6 +9,9 @@ that day here, in plain words a player would understand (no file names, no spoil
 rows in the progress log but no section here is listed automatically from the log's labels until
 someone writes its lines.
 
+## 2026-11-11
+- Ivan and Bogdan's shisha night: the way into the Senatorek lounge is now marked with a ring on the street and a gold light at the revolving door, and the choices (flavour, strength, the pipe's name) are made inside at the table, not on cards in the street.
+
 ## 2026-11-10
 - The horn button next to the brake is gone; the nitro button now sits right by the brake.
 - Hotel Metropol on Marszałkowska is rebuilt from your photos: cream balcony fronts, a dark glazed ground floor under a canopy, and its name (the parody METROPOLKA) in green on a white board on the roof, facing the street.

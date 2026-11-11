@@ -613,7 +613,8 @@ var kino_tour: KinoTour
 var kino_flag := ""
 var kino_log := false
 ## The shisha night (shisha.gd): --shisha-call (Ivan rings now), --shisha-meet (Ivan gets in now),
-## --shisha-lounge (straight into the lounge, the mini-game playing itself), --shisha=0 (none),
+## --shisha-door (both in, 60 m from the lounge's entrance), --shisha-arrive (stopped at it, the
+## lounge playing itself from the door), --shisha-lounge (straight into the lounge, the mini-game playing itself), --shisha=0 (none),
 ## --shisha-log.
 var shisha: Shisha
 var lounge: Lounge
@@ -3645,7 +3646,7 @@ func _on_club_left() -> void:
 
 # --- the shisha night ---------------------------------------------------------------------------
 
-## Ivan's call, the two pickups, the votes on the way and the lounge (shisha.gd, lounge.gd). None
+## Ivan's call, the two pickups, the entrance and the lounge with its choices (shisha.gd, lounge.gd). None
 ## with --no-traffic or --shisha=0.
 func _build_shisha(data: Dictionary, world: Node3D) -> void:
 	if traffic == null or graph == null or shisha_flag == "0":
@@ -3667,7 +3668,7 @@ func _build_shisha(data: Dictionary, world: Node3D) -> void:
 		return [car.global_position, car.vel.length() * 3.6, false]
 	shisha.clock = tod.local_clock
 	shisha.free_now = _shisha_free
-	shisha.enter_lounge = _enter_lounge
+	shisha.enter_lounge = _enter_lounge if shisha_flag != "arrive" else func(v: Dictionary) -> void: _enter_lounge(v, true)
 	world.add_child(shisha)
 	shisha.setup(world)
 	match shisha_flag:
@@ -3691,6 +3692,23 @@ func _build_shisha(data: Dictionary, world: Node3D) -> void:
 					hud.zoom_in_key(false)
 					print("shisha hold test: %.1f s, state %s" % [held, Shisha.State.keys()[shisha.state]])
 					await get_tree().create_timer(1.0).timeout)
+		"door", "arrive":
+			# Both friends in, the car 60 m up Emilii Plater from the lounge's kerb, facing it: the
+			# shots of the entrance's two rings (F 2026-11-11: "I don't see how to enter"). "arrive":
+			# the car stopped in the kerb ring, so they walk in and the lounge plays itself (the
+			# door, the lift, the three choices at the table, the mini-game).
+			get_tree().create_timer(1.0).timeout.connect(func() -> void:
+				shisha.meet_in_person()
+				shisha._board_bogdan()
+				var k: Dictionary = shisha.door
+				var yaw: float = k["yaw"]
+				var back := 60.0 if shisha_flag == "door" else 0.0
+				var p: Vector3 = k["at"] - Vector3(sin(yaw), 0.0, cos(yaw)) * back
+				car.global_position = Vector3(p.x, map.ground_height(p.x, p.z), p.z)
+				car.rotation.y = yaw + PI
+				car.vel = Vector3.ZERO
+				car.forward_speed = 0.0
+				car.reset_physics_interpolation())
 		"lounge", "terrace":
 			get_tree().create_timer(1.0).timeout.connect(func() -> void:
 				shisha.meet_in_person()
@@ -3699,7 +3717,8 @@ func _build_shisha(data: Dictionary, world: Node3D) -> void:
 				lounge.auto_how = "terrace" if shisha_flag == "terrace" else "smoke")
 
 
-## Up the lift into Senatorek (lounge.gd): the HUD aside, the car waiting, the camera on the room.
+## Into Senatorek (lounge.gd: the door, the lift, the choices at the table): the HUD aside, the car
+## waiting at the kerb, the camera on the room.
 func _enter_lounge(votes: Dictionary, auto_play := false) -> void:
 	if lounge == null:
 		lounge = Lounge.new()
@@ -5454,7 +5473,7 @@ func _parse_args() -> void:
 			crawl_log = true
 		elif arg == "--rave-log":
 			rave_log = true
-		elif arg in ["--shisha-call", "--shisha-meet", "--shisha-lounge", "--shisha-terrace", "--shisha-hold"]:
+		elif arg in ["--shisha-call", "--shisha-meet", "--shisha-door", "--shisha-arrive", "--shisha-lounge", "--shisha-terrace", "--shisha-hold"]:
 			shisha_flag = arg.trim_prefix("--shisha-")
 		elif arg.begins_with("--shisha="):
 			shisha_flag = arg.trim_prefix("--shisha=")

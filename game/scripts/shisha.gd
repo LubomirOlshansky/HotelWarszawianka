@@ -5,28 +5,33 @@ extends Node
 ## Ivan phones ("📞 IVAN DZWONI", ODBIERZ / ODRZUĆ, then JADĘ! / NIE DZIŚ) any evening 17:00-02:00,
 ## or walks up in person at his block in 19. Dzielnica (story_quests.gd). Pick him up at his block,
 ## then Bogdan at the courts on Żelazna (straight from tennis: a draw, the Wola shisha champion),
-## then drive to the Warsaw Financial Centre, Emilii Plater 53. On the way the two argue and the
-## player casts three votes on side cards: whose flavour (Ivan's watermelon-mint, Bogdan's cucumber
-## ice cream, or the master's pick), how strong (1 tea, 3 a date, 5 a talk about politics: Bogdan
-## likes it strong, Ivan can't take it) and the pipe's name. At the portico the doorman's dress-code
-## joke, the lift card, then the lounge upstairs (lounge.gd: the cutaway room, the flavour mini-game
-## with Mistrz Dymek, then PALIĆ / TARAS / WYJDŹ). After: drop Bogdan at the courts and Ivan at his
-## block; the pay.
+## then drive to the Warsaw Financial Centre, Emilii Plater 53. On the way the two only argue (car
+## bubbles: the flavour, the strength). The entrance is marked (F 2026-11-11: "I don't see how to
+## enter"): a teal stop ring on Emilii Plater's kerb and a gold ring with its column at the revolving
+## door under the SENATOREK canopy. Stop in either and the three walk in: no card outside. Inside
+## (lounge.gd) the doorman and the lift play as the arrival, then the waiter, then at the table the
+## three choices on the lounge's own panel: whose flavour (Ivan's watermelon-mint, Bogdan's cucumber
+## ice cream, or the master's pick), how strong (1 tea, 3 a date, 5 politics: Bogdan likes it
+## strong, Ivan can't take it) and the pipe's name; then the mini-game with Mistrz Dymek and PALIĆ /
+## TARAS / WYJDŹ. After: drop Bogdan at the courts and Ivan at his block; the pay.
 ##
 ## Bubbles in the car come from data/shisha.json "scenes", one line every SCENE_GAP s. Cards use the
 ## hud's call cards; this script answers card_pressed only while its own card is up (`_card`).
 ## ✕ gives up (Ivan catches the night bus). The calls (missions.gd) are paused while it runs.
 ##
-## Cost: idle a 0.25 s timer; during the quest one pickup beacon (as the rave's).
+## Cost: idle a 0.25 s timer; during the quest one pickup beacon (as the rave's), on the way to the
+## lounge a second one at the door.
 ##
 ## Flags (main.gd): --shisha-call (Ivan rings now), --shisha-meet (he gets in now, the rest as
-## after a pickup), --shisha-lounge (straight into the lounge), --shisha=0 (none), --shisha-log.
+## after a pickup), --shisha-door (both in, the car 60 m from the lounge's entrance), --shisha-lounge
+## (straight into the lounge), --shisha=0 (none), --shisha-log.
 
 const Beacon := preload("res://scripts/beacon.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Notebook := preload("res://scripts/notebook.gd")
 const Rave := preload("res://scripts/rave.gd")
 const Access := preload("res://scripts/access.gd")
+const Landmarks := preload("res://scripts/landmarks.gd")
 
 const DATA := "res://data/shisha.json"
 const NAME := ["Dym u Senatorka", "Smoke at Senatorek"]
@@ -45,6 +50,10 @@ const COURT_LL := [52.23065, 20.99282]
 ## The Warsaw Financial Centre's portico on Emilii Plater (Emilii Plater 53).
 const LOUNGE_LL := [52.23348, 21.00250]
 const LOUNGE_STREET := "Plater"
+## The revolving door under the canopy (landmarks.gd `_wcf_street`: WCF_LOW's first edge at
+## WCF_DOOR_T), the canopy's front this far out of the facade.
+const ENTRY_OUT := 7.5
+const ENTRY_R := 6.0
 
 ## The quest's hours (any day): from the evening to the small hours.
 const HOURS := Vector2(17.0, 2.0)
@@ -60,16 +69,12 @@ const HOLD := 0.8
 ## Bubbles: one scene line every SCENE_GAP s.
 const SCENE_GAP := 3.4
 const BUBBLE_S := 3.2
-## A vote card waits this long, then the master's pick (or the middle) is taken.
-const VOTE_LIFE := 22.0
-## The votes come up when this share of the way to the lounge is left.
-const VOTE_AT := [0.8, 0.55, 0.3]
 ## Pay: the friends' fare and respect; leaving early pays half and no respect.
 const PAY := 120
 const RESPECT := 30
 const RESULT_LIFE := 14.0
 
-enum State { IDLE, RING, OFFER, TO_IVAN, TO_BOGDAN, TO_LOUNGE, DOOR, LIFT, INSIDE, DROP_BOGDAN, DROP_IVAN, RESULT }
+enum State { IDLE, RING, OFFER, TO_IVAN, TO_BOGDAN, TO_LOUNGE, INSIDE, DROP_BOGDAN, DROP_IVAN, RESULT }
 
 var hud: CanvasLayer
 var dialogue: Node
@@ -83,7 +88,8 @@ var vehicle: Callable
 var clock: Callable
 ## True when nothing else is on (main.gd).
 var free_now: Callable
-## Into the lounge (main.gd `_enter_lounge`: lounge.gd) with the votes {flavour, strength, name}.
+## Into the lounge (main.gd `_enter_lounge`: lounge.gd) with the votes dictionary, empty: the lounge
+## asks them at the table and fills this same dictionary (the result card reads the pipe's name).
 var enter_lounge: Callable
 var log_on := false
 var auto := true
@@ -94,9 +100,10 @@ var state := State.IDLE
 var home := {}
 var court := {}
 var door := {}
-## The votes: flavour "ivan" / "bogdan" / "master", strength 1..5, the pipe's name.
+## The votes: flavour "ivan" / "bogdan" / "master", strength 1..5, the pipe's name (lounge.gd).
 var votes := {}
-var votes_done := 0
+## The revolving door's point on the pavement (Vector3.INF if no WCF door kerb).
+var entry := Vector3.INF
 ## The lounge's outcome: "smoke", "terrace", "leave"; its score 0..9.
 var outcome := ""
 var score := 0
@@ -109,14 +116,13 @@ var _rng := RandomNumberGenerator.new()
 var _tick := 0.0
 var _hold_t := 0.0
 var _ring_t := 0.0
-var _vote_t := 0.0
 var _result_t := 0.0
 var _card := false
 var _queue: Array = []
 var _scene_t := 0.0
-var _way := 0.0
 var _calls_were := false
 var _pick: Node3D
+var _door: Node3D
 const TICK := 0.25
 
 
@@ -137,6 +143,15 @@ func setup(world: Node3D, seed_value := -1) -> void:
 	_pick.setup(PICK_COLOUR, Color("#16161a"))
 	_pick.pattern = Beacon.Pattern.DASHED
 	_pick.visible = false
+	_door = Beacon.new()
+	world.add_child(_door)
+	_door.setup(GOLD, Color("#16161a"))
+	_door.waving = false
+	_door.visible = false
+	if not door.is_empty():
+		entry = entry_point(door["at"])
+		if map != null and map.has_method("ground_height"):
+			entry.y = map.ground_height(entry.x, entry.z)
 	if hud != null:
 		hud.card_pressed.connect(_on_card)
 		hud.abort_pressed.connect(func() -> void:
@@ -178,6 +193,19 @@ static func kerb_named(g: LaneGraph, q: Vector2, reach: float, name: String) -> 
 			if not kerb.is_empty() and name in String(kerb["street"]):
 				return kerb
 	return Rave.kerb_near(g, q, reach)
+
+
+## The revolving door's pavement point, under the canopy's front, from landmarks.gd's WCF footprint;
+## `toward` (the door kerb) picks the facade's street side.
+static func entry_point(toward: Vector3) -> Vector3:
+	var a0: Vector2 = Landmarks.WCF_LOW[0]
+	var a1: Vector2 = Landmarks.WCF_LOW[1]
+	var d := a0.lerp(a1, Landmarks.WCF_DOOR_T)
+	var n := (a1 - a0).normalized().orthogonal()
+	if n.dot(Vector2(toward.x, toward.z) - d) < 0.0:
+		n = -n
+	var p := d + n * ENTRY_OUT
+	return Vector3(p.x, toward.y, p.y)
 
 
 ## In the quest's hours (they wrap past midnight).
@@ -273,13 +301,10 @@ func step(dt: float) -> void:
 			if _arrived(dt, at, kmh, court["at"], PICK_R):
 				_board_bogdan()
 		State.TO_LOUNGE:
-			# PT-46 (Autopilot 2026-11-08): the status panel takes the side card's spot, so it
-			# steps aside while a vote card is up (as rides.gd's story question does).
-			if not _card:
-				_status("SENATOREK · Emilii Plater 53", "Zatrzymaj się przy wejściu", "Stop at the entrance", at, door["at"], COLOUR)
-			_votes_tick(dt, at)
-			if _arrived(dt, at, kmh, door["at"], DOOR_R):
-				_at_door()
+			_status("SENATOREK · Emilii Plater 53", "Stań w kręgu: wejście pod złotym SENATOREK",
+					"Stop in the ring: the way in is under the gold SENATOREK", at, door["at"], COLOUR)
+			if at_entrance(at, kmh, dt):
+				_go_inside()
 		State.DROP_BOGDAN:
 			_status("BOGDAN · do domu", "Podrzuć Bogdana pod korty", "Drop Bogdan at the courts", at, court["at"], PICK_COLOUR)
 			if _arrived(dt, at, kmh, court["at"], PICK_R):
@@ -305,7 +330,7 @@ func _hour() -> float:
 
 
 func busy() -> bool:
-	return state in [State.TO_IVAN, State.TO_BOGDAN, State.TO_LOUNGE, State.DOOR, State.LIFT, State.INSIDE, State.DROP_BOGDAN, State.DROP_IVAN]
+	return state in [State.TO_IVAN, State.TO_BOGDAN, State.TO_LOUNGE, State.INSIDE, State.DROP_BOGDAN, State.DROP_IVAN]
 
 
 func idle() -> bool:
@@ -334,6 +359,13 @@ func target_colour() -> Color:
 func _status(title: String, hint: String, hint_en: String, at: Vector3, to: Vector3, colour: Color) -> void:
 	var m := roundi(Vector2(at.x, at.z).distance_to(Vector2(to.x, to.z)))
 	hud.show_status(title, "", "%d m" % m, hint, _hold_t / HOLD, colour, "", {}, hint_en)
+
+
+## Stopped in the kerb's ring or at the revolving door itself (a car driven up the forecourt).
+func at_entrance(at: Vector3, kmh: float, dt: float) -> bool:
+	if entry != Vector3.INF and Vector2(at.x, at.z).distance_to(Vector2(entry.x, entry.z)) <= ENTRY_R:
+		return _arrived(dt, at, kmh, entry, ENTRY_R)
+	return _arrived(dt, at, kmh, door["at"], DOOR_R)
 
 
 func _arrived(dt: float, at: Vector3, kmh: float, to: Vector3, r: float) -> bool:
@@ -401,18 +433,6 @@ func _on_card(i: int) -> void:
 			else:
 				hud.toast("Ivan: „Dobra, ale następnym razem ty stawiasz.”", "Ivan: \"Fine, but next time you're paying.\"")
 				_reset()
-		State.TO_LOUNGE:
-			hud.hide_card()
-			_vote(votes_done, i)
-		State.DOOR:
-			hud.hide_card()
-			if i == 0:
-				_lift()
-			else:
-				_leave_early()
-		State.LIFT:
-			hud.hide_card()
-			_go_inside()
 		State.RESULT:
 			hud.hide_card()
 			_finish()
@@ -432,7 +452,6 @@ func _board_ivan() -> void:
 	state = State.TO_BOGDAN
 	_hold_t = 0.0
 	votes = {}
-	votes_done = 0
 	_place_pick(court)
 	_scene("board_ivan")
 	_scene("leg1", 3)
@@ -442,83 +461,51 @@ func _board_ivan() -> void:
 func _board_bogdan() -> void:
 	state = State.TO_LOUNGE
 	_hold_t = 0.0
-	_pick.visible = false
 	_queue.clear()
 	_scene("court")
 	_scene("board_bogdan")
 	_scene("flavour")
-	var v: Array = vehicle.call() if vehicle.is_valid() else [Vector3.ZERO, 0.0, false]
-	_way = maxf(80.0, Vector2(v[0].x, v[0].z).distance_to(Vector2(door["at"].x, door["at"].z)))
-	_log("Bogdan in; to Emilii Plater 53, %.0f m" % _way)
+	_scene("strength", 3)
+	_show_entrance()
+	_log("Bogdan in; to Emilii Plater 53 (kerb %s, door %s)" % [_where(door), "-" if entry == Vector3.INF else "%d,%d" % [roundi(entry.x), roundi(entry.z)]])
 
 
-# --- the votes on the way -----------------------------------------------------------------------
-
-func _votes_tick(dt: float, at: Vector3) -> void:
-	if _card:
-		_vote_t += dt
-		if _vote_t > VOTE_LIFE:
-			_close_card()
-			_vote(votes_done, default_vote(votes_done))
-		return
-	if votes_done >= 3 or not _queue.is_empty() or hud.cards_up():
-		return
-	var left := Vector2(at.x, at.z).distance_to(Vector2(door["at"].x, door["at"].z)) / _way
-	if left <= float(VOTE_AT[votes_done]):
-		var c := vote_card(votes_done)
-		hud.hide_status()
-		_show_side(c[0], c[2], c[4], c[1], c[3])
-		_vote_t = 0.0
-		if votes_done == 1:
-			_scene("strength")
+## The way in: the teal stop ring on the kerb (no waving person: nobody waits there) and the gold
+## ring and column at the revolving door, so the canopy reads as the goal from down the street.
+func _show_entrance() -> void:
+	var side: Vector3 = door["side"]
+	_pick.recolour(COLOUR)
+	_pick.pattern = Beacon.Pattern.SOLID
+	_pick.place(Vector3(side.x, door["at"].y, side.z), PICK_R, true, false)
+	_pick.visible = true
+	if entry != Vector3.INF:
+		_door.place(entry, ENTRY_R * 0.5, true, false)
+		_door.visible = true
 
 
-func _vote(k: int, i: int) -> void:
-	apply_vote(votes, k, i)
-	votes_done = k + 1
-	_scene(vote_scene(votes, k))
-	_log("vote %d: %s" % [k + 1, votes])
+func _hide_entrance() -> void:
+	_door.visible = false
+	_pick.visible = false
+	_pick.recolour(PICK_COLOUR)
+	_pick.pattern = Beacon.Pattern.DASHED
 
 
-func _fill_votes() -> void:
-	while votes_done < 3:
-		apply_vote(votes, votes_done, default_vote(votes_done))
-		votes_done += 1
+# --- the lounge -------------------------------------------------------------------------------
 
-
-# --- the door, the lift, the lounge -----------------------------------------------------------
-
-func _at_door() -> void:
-	_close_card()
-	_fill_votes()
-	state = State.DOOR
-	hud.hide_status()
-	_queue.clear()
-	_scene("door")
-	_show_card("SENATOREK LOUNGE", "Emilii Plater 53. Bramkarz w garniturze patrzy na szorty Bogdana. Ivan: „Mamy rezerwację. Na 'Ivan razy trzy'.”",
-			PackedStringArray(["WCHODZIMY|GO IN", "NIE DZIŚ|NOT TONIGHT"]), "SENATOREK LOUNGE",
-			"Emilii Plater 53. The doorman in a suit looks at Bogdan's shorts. Ivan: \"We have a booking. Under 'Ivan times three'.\"")
-	_log("at the door (votes %s)" % votes)
-
-
-func _lift() -> void:
-	state = State.LIFT
-	var l: Array = scenes.get("lift", [])
-	var pl := PackedStringArray()
-	var en := PackedStringArray()
-	for row: Array in l:
-		pl.append("%s: „%s”" % [row[0], row[1]])
-		en.append("%s: \"%s\"" % [row[0], row[2]])
-	_show_card("🛗 WINDA · 38. PIĘTRO", "\n".join(pl), PackedStringArray(["NA GÓRĘ|UP"]), "🛗 LIFT · 38TH FLOOR", "\n".join(en))
-
-
+## Stopped at the entrance: the three walk in, straight into the lounge (the doorman, the lift and
+## the choices play inside, lounge.gd), the car waiting at the kerb.
 func _go_inside() -> void:
 	state = State.INSIDE
+	_close_card()
+	_hide_entrance()
+	hud.hide_status()
 	_queue.clear()
 	_log("into the lounge")
 	if enter_lounge.is_valid():
-		enter_lounge.call(votes.duplicate())
+		enter_lounge.call(votes)
 	else:
+		for k in 3:
+			apply_vote(votes, k, default_vote(k))
 		lounge_done("smoke", 5)
 
 
@@ -533,15 +520,6 @@ func lounge_done(how: String, mix_score: int) -> void:
 	_place_pick(court)
 	_scene("leave" if how == "leave" else "after")
 	_log("out of the lounge: %s, score %d" % [how, mix_score])
-
-
-func _leave_early() -> void:
-	outcome = "leave"
-	score = 0
-	state = State.DROP_BOGDAN
-	_place_pick(court)
-	_scene("leave")
-	_log("turned back at the door")
 
 
 func _drop_bogdan() -> void:
@@ -584,7 +562,7 @@ func _give_up() -> void:
 
 
 func _finish() -> void:
-	_pick.visible = false
+	_hide_entrance()
 	hud.hide_status()
 	if missions != null:
 		missions.paused = _calls_were
@@ -605,6 +583,7 @@ func _hold_calls() -> void:
 
 
 func _place_pick(k: Dictionary) -> void:
+	_hide_entrance()
 	var side: Vector3 = k["side"]
 	_pick.place(Vector3(side.x, k["at"].y, side.z), PICK_R, true, true)
 	_pick.visible = true
