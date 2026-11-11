@@ -54,16 +54,13 @@ const SOUND_TAB := 3
 const Credits := preload("res://scripts/credits.gd")
 const NotebookPage := preload("res://scripts/notebook_page.gd")
 const Gamepad := preload("res://scripts/gamepad.gd")  # the gamepad loop
-const DRIVE := [["Wskaż", "Point"], ["Klasycznie", "Classic"]]
 ## Loop 2e: the camera choice, explicit (it was the CAM button, easy to switch off unnoticed):
 ## on, it follows the car (Point; Classic's default), off it stays put (Fixed camera; Classic
 ## with the camera fixed).
 const CAMERA := [["Wł.", "On"], ["Wył.", "Off"]]
-## What each scheme (drive_controls.gd POINT, CLASSIC, FIXED) does, in a line.
+## What the one scheme (drive_controls.gd CLASSIC) does, in a line.
 const CONTROLS_SAY := [
-	["Pokaż palcem, dokąd jechać. Kamera jedzie za autem.", "Point where to go. The camera follows the car."],
 	["Kierownica lewo–prawo, gaz i hamulec po prawej.", "Steer left–right; GAS and BRAKE on the right."],
-	["Pokaż palcem, dokąd jechać. Kamera stoi: obróć ją dwoma palcami.", "Point where to go. The camera stays put: twist two fingers to turn it."],
 ]
 ## Loop MW-3: Świt (Dawn) last, the mode's index (time_of_day.gd DAWN after LIVE).
 const TIME := [["Dzień", "Day"], ["Zmierzch", "Dusk"], ["Noc", "Night"], ["Na żywo", "Live"], ["Świt", "Dawn"]]
@@ -223,7 +220,6 @@ func _build() -> void:
 	rescue.add_child(_new_game_button)
 
 	_heading(drive[0], "Sterowanie", "Controls")
-	_segments(drive[0], "drive", DRIVE)
 	_say_pl = _text("", T_SUB, INK)
 	_say_en = _text("", T_SUB, SUB)
 	for l in [_say_pl, _say_en]:
@@ -852,8 +848,8 @@ func _select(key: String, index: int) -> void:
 		(buttons[k] as Button).set_pressed_no_signal(k == index)
 
 
-func _say(scheme: int) -> void:
-	var s: Array = CONTROLS_SAY[clampi(scheme, 0, CONTROLS_SAY.size() - 1)]
+func _say(_scheme: int) -> void:
+	var s: Array = CONTROLS_SAY[0]
 	_say_pl.text = Lang.pick(s[0], s[1])
 	_say_en.text = ""
 	_say_en.visible = false
