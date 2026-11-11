@@ -613,7 +613,7 @@ var kino_tour: KinoTour
 var kino_flag := ""
 var kino_log := false
 ## The shisha night (shisha.gd): --shisha-call (Ivan rings now), --shisha-meet (Ivan gets in now),
-## --shisha-door (both in, 60 m from the lounge's entrance), --shisha-arrive (stopped at it, the
+## --shisha-door (both in, 25 m from the lounge's entrance), --shisha-arrive (stopped at it, the
 ## lounge playing itself from the door), --shisha-lounge (straight into the lounge, the mini-game playing itself), --shisha=0 (none),
 ## --shisha-log.
 var shisha: Shisha
@@ -3693,7 +3693,7 @@ func _build_shisha(data: Dictionary, world: Node3D) -> void:
 					print("shisha hold test: %.1f s, state %s" % [held, Shisha.State.keys()[shisha.state]])
 					await get_tree().create_timer(1.0).timeout)
 		"door", "arrive":
-			# Both friends in, the car 60 m up Emilii Plater from the lounge's kerb, facing it: the
+			# Both friends in, the car 25 m up Emilii Plater from the lounge's kerb, facing it: the
 			# shots of the entrance's two rings (F 2026-11-11: "I don't see how to enter"). "arrive":
 			# the car stopped in the kerb ring, so they walk in and the lounge plays itself (the
 			# door, the lift, the three choices at the table, the mini-game).
@@ -3702,7 +3702,7 @@ func _build_shisha(data: Dictionary, world: Node3D) -> void:
 				shisha._board_bogdan()
 				var k: Dictionary = shisha.door
 				var yaw: float = k["yaw"]
-				var back := 60.0 if shisha_flag == "door" else 0.0
+				var back := 25.0 if shisha_flag == "door" else 0.0
 				var p: Vector3 = k["at"] - Vector3(sin(yaw), 0.0, cos(yaw)) * back
 				car.global_position = Vector3(p.x, map.ground_height(p.x, p.z), p.z)
 				car.rotation.y = yaw + PI

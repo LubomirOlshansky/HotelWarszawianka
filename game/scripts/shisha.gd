@@ -23,7 +23,7 @@ extends Node
 ## lounge a second one at the door.
 ##
 ## Flags (main.gd): --shisha-call (Ivan rings now), --shisha-meet (he gets in now, the rest as
-## after a pickup), --shisha-door (both in, the car 60 m from the lounge's entrance), --shisha-lounge
+## after a pickup), --shisha-door (both in, the car 25 m from the lounge's entrance), --shisha-lounge
 ## (straight into the lounge), --shisha=0 (none), --shisha-log.
 
 const Beacon := preload("res://scripts/beacon.gd")
