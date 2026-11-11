@@ -25,7 +25,7 @@ const CARS: Array[Dictionary] = [
 ]
 const DEFAULT_CAR := "hatch"
 const NITRO := {"id": "nitro", "name": ["Nitro „Kebab Boost”", "Nitro: Kebab Boost"],
-		"blurb": ["Przycisk obok klaksonu: 3,5 s mocy, potem 20 s ładowania.", "A button by the horn: 3.5 s of power, then 20 s to refill."],
+		"blurb": ["Przycisk obok hamulca: 3,5 s mocy, potem 20 s ładowania.", "A button by the brake: 3.5 s of power, then 20 s to refill."],
 		"price": 600}
 ## The part's id, name, what a level adds, and the price of each level.
 const PARTS: Array[Dictionary] = [

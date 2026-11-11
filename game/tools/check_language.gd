@@ -270,7 +270,7 @@ func _check_panel(code: String) -> void:
 	panel.open({"controls": 0, "follow": true, "traffic": 1, "quality": 0, "auto": "High", "master": 1.0, "music": 1.0, "effects": 1.0,
 			"fps": 0, "weather": 0, "time": 0, "lang": Lang.CODES.find(code)})
 	var pairs: Array = []
-	for group in [SettingsPanel.DRIVE, SettingsPanel.CAMERA, SettingsPanel.TIME, SettingsPanel.WEATHER, SettingsPanel.TRAFFIC,
+	for group in [SettingsPanel.CAMERA, SettingsPanel.TIME, SettingsPanel.WEATHER, SettingsPanel.TRAFFIC,
 			SettingsPanel.ON_OFF, SettingsPanel.FPS, SettingsPanel.MODE, SettingsPanel.CONTROLS_SAY, SettingsPanel.TABS]:
 		pairs.append_array(group)
 	for tab in 6:
@@ -307,8 +307,8 @@ func _check_panel(code: String) -> void:
 	panel.set_tab(0)
 	await process_frame
 	rebuilt = _joined(panel)
-	var want := "Wskaż" if other == Lang.PL else "Point"
-	var not_want := "Point" if other == Lang.PL else "Wskaż"
+	var want := "Wł." if other == Lang.PL else "On"
+	var not_want := "On" if other == Lang.PL else "Wł."
 	if not rebuilt.split("\n").has(want) or rebuilt.split("\n").has(not_want):
 		_fail("[%s→%s] the settings panel was not rebuilt in the new language" % [code, other])
 	Lang.set_code(code)

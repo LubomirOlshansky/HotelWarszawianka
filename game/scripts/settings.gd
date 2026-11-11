@@ -32,9 +32,9 @@ const TRAFFIC_KEYS := ["empty", "low", "normal", "busy"]
 ## The default for a fresh save: Low (F, 2026-11-01: the default was too heavy). Saves keep their choice.
 const DEFAULT_TRAFFIC := 1
 
-## drive_controls.gd: POINT, CLASSIC, FIXED. Classic (steer left / right, GAS and BRAKE) is the
-## default since 2026-11-04 (F: "driving with left, right, gas and brake should be the default");
-## Point and Fixed stay in Settings → Jazda.
+## drive_controls.gd: POINT, CLASSIC, FIXED. Classic (steer left / right, GAS and BRAKE) is
+## the only scheme in Settings since 2026-11-10 (F: remove the point-to-go option); Point and
+## Fixed stay in drive_controls.gd for the --controls= test flag only.
 const DEFAULT_CONTROLS := 1
 var controls := DEFAULT_CONTROLS
 ## Classic only: the camera follows the car (CAM toggles it); Point always follows, Fixed never.
@@ -117,12 +117,13 @@ func load_file() -> void:
 	loaded_version = int(cfg.get_value("meta", "version", 1))
 	newer = loaded_version > VERSION
 	controls = clampi(int(cfg.get_value("controls", "scheme", controls)), 0, 2)
-	# 2026-11-04: Point was the default before, so a file saved then (no `classic_default` key)
-	# that says Point loads as Classic, once; the next save marks the file, and a Point chosen
-	# after that stays Point.
-	if controls == 0 and not cfg.has_section_key("controls", "classic_default"):
-		controls = DEFAULT_CONTROLS
+	# 2026-11-10 (F): the Point option is gone from the game, so a saved Point (or Fixed) scheme loads
+	# as Classic; the camera on / off row keeps the follow choice (classic_follow).
+	var saved_scheme := controls
+	controls = DEFAULT_CONTROLS
 	classic_follow = bool(cfg.get_value("controls", "classic_follow", classic_follow))
+	if saved_scheme == 2:  # Fixed camera was Point's still-camera twin: Classic with the camera off
+		classic_follow = false
 	traffic = clampi(int(cfg.get_value("world", "traffic", traffic)), 0, TRAFFIC.size() - 1)
 	quality = clampi(int(cfg.get_value("world", "quality", quality)), AUTO, ULTRA)
 	if quality == HIGH and not cfg.has_section_key("world", "tiers"):

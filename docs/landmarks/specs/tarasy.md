@@ -128,3 +128,30 @@ city at day and night from the station side.
 - **The screen block**: the mapped plate over the entrance (x -1409..-1368, z 437..449) is a graphite
   box 17 to 38 m; the 3D LED screen (`tarasy_screen.gd`) hangs on its south face and curved west
   return, an L in plan, 44 x 20 m.
+
+## Update 2026-11-11 (F: "it's actually blue glass", the screen is an L on the corner)
+
+From F's 19 photos and an aerial view (reference only, never in the repo) and the orthophoto:
+
+- **The wave** (`_tarasy_wave`): blue-grey glass, not gold. Its lattice is now equilateral triangles of
+  about 3.2 m (rows offset half a pane), each pane flat with its own normal and a little colour of its
+  own (a few in sky-pale glass), white steel bars along the pane edges (building.gdshader `glass_roof`'s
+  pane mode, branchless: the budget stays at 502 of 505). The eight domes stand at different heights
+  (21-36 m) so the silhouette is asymmetric, highest over the middle and falling to the south sweep.
+  At night the bars glow pale blue and the panes warm.
+- **The screen** (`tarasy_screen.gd`): moved from the plate's west end, where it curved, to Skylight's
+  south-east corner over the street entrance: an L of two flat faces, the wide one (17 m) facing the
+  station and the crossing, the return (10 m) facing Emilii Plater, 11.5 to 25 m up. The loop
+  (`led_screen.gdshader`) is the tabby cat leaning out (its tail round the corner), the game's own
+  promo (AROUND WARSAW over a striped sunset and a skyline with the Palace on the return) and the
+  NOSE. agency's blue blocky mark popping out of a light box (F asked for it by name). The flowers are
+  gone. The plate under it is a plain grey box again, with the mall's gold name on it as a parody
+  (ZŁOTE big, TARASKI small).
+- **The sunken plaza** on the station side (looked like a hole: the 10 m terrain grid had a pit there):
+  a SUNKEN ring (`map_builder.gd` "tarasy_plaza", style `shops`) 6 m under the street, brick retaining
+  walls with lit shopfronts along their foot, railings round the top, umbrellas on the floor; the grand
+  stair from Emilii Plater down its east side ("tarasy_stair"); the grid nodes round it held up to the
+  street (`GRID_HOLD`) so the terraces and pavements stay level.
+- **The guitar** (`_tarasy_guitar`) at the Emilii Plater corner: a red guitar sign about 11 m tall on a
+  black foot, cream badge "HARD BLOK CAFE" (parody), and the café's own sign over its terrace along the
+  podium's south face with four white umbrellas (`_tarasy_cafe`).

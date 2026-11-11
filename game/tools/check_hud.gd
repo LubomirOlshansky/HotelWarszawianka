@@ -206,16 +206,17 @@ func _check_screen(screen: Vector2i) -> int:
 		for state in ["car, Point", "car, Classic", "helicopter", "call came in", "call card", "rescued, paid",
 				"rescue, host, egg", "kebab offer", "kebab delivery", "race", "rival ahead", "landmark card", "note card", "tow toast",
 				"police chase", "lizak", "pull-over",
-				"ride offer", "ride", "ride result", "ride result, police"]:
+				"ride offer", "ride", "ride result", "ride result, police", "phone call", "quest offer"]:
 			if perf and not state in ["car, Point", "call card", "rescue, host, egg", "kebab offer", "kebab delivery", "landmark card"]:
 				continue
 			if mode == "no-touch" and not state in ["car, Point", "car, Classic", "helicopter", "kebab offer", "pull-over", "ride offer"]:
 				continue
 			if mode == "left-handed" and not state in ["car, Point", "car, Classic", "helicopter", "rescue, host, egg", "kebab offer",
-					"landmark card", "police chase", "pull-over", "ride offer", "ride"]:
+					"landmark card", "police chase", "pull-over", "ride offer", "ride", "phone call"]:
 				continue
 			if mode == "large-text" and not state in ["car, Point", "call came in", "call card", "rescue, host, egg", "kebab offer",
-					"kebab delivery", "race", "landmark card", "note card", "police chase", "pull-over", "ride offer", "ride", "ride result"]:
+					"kebab delivery", "race", "landmark card", "note card", "police chase", "pull-over", "ride offer", "ride", "ride result",
+					"phone call", "quest offer"]:
 				continue
 			Access.text_scale = Access.LARGE_TEXT if mode == "large-text" else 1.0
 			hud.apply_text_scale()
@@ -247,9 +248,13 @@ func _check_screen(screen: Vector2i) -> int:
 				"rescue, host, egg":
 					hud.show_status("DO SZPITALA · Samodzielny Szpital Kliniczny im. prof. Witolda Orłowskiego", "2:31", "640 m",
 							"Pacjent na pokładzie: do zielonego światła", 0.3, Color("#ffc23a"), "", {}, "Patient on board: head for the green beacon")
+					# The message director keeps the radio and an egg's note back during a quest; the worst
+					# case left is a station the player picked and a quest's own note (TYGRAM).
+					hud.radio_touched()
 					hud.ticker("87,3 KEBAB FM:  Jest trzecia w nocy, a Rondo Dmowskiego wciąż stoi. Szacunek.", Color("#ff5fc8"),
 							"It's 3 a.m. and Rondo Dmowskiego is still jammed. Respect.")
-					hud.show_note("SEKRET 2/5 · EASTER EGG", "Gołębie na placu Defilad\nPigeons on Plac Defilad", Color("#ff4fd8"))
+					hud.show_note("SEKRET 2/5 · EASTER EGG", "Gołębie na placu Defilad\nPigeons on Plac Defilad", Color("#ff4fd8"),
+							hud.Messages.QUEST_LINE)
 					_say(bubbles, "Ania", at.call(0.2, 0.86), "Szybciej, proszę!", "Faster, please!")
 				"kebab offer":
 					hud.show_card("ZAMÓWIENIE · KEBAB · 840 m", "Dla: Kasia, Wspólna 47/49. Za rzeką: „w sumie to centrum”. Im cieplejszy dojedzie, tym większy napiwek. Nocą ×1,5.",
@@ -268,6 +273,7 @@ func _check_screen(screen: Vector2i) -> int:
 				"kebab delivery":
 					hud.show_status("KEBAB → Wspólna 47/49", "GORĄCY 92%", "410 m", "Jedź do pomarańczowego światła", 0.0, Color("#ff9a3c"),
 							"", {"heat": 0.9}, "Head for the orange beacon")
+					hud.radio_touched()  # the player's own station: it shows in a quest or a chase
 					hud.ticker("87,3 KEBAB FM  ·  Palma de Gaulle'a", Color("#ff5fc8"))
 					# The case the user saw: the stand's bubble right where the ticker sits.
 					_say(bubbles, "Kebab 24h", at.call(0.1, 0.9), "KEBAB 24H: najlepszy w mieście!", "The best in town!")
@@ -301,6 +307,7 @@ func _check_screen(screen: Vector2i) -> int:
 					hud.police_fx(1.0, PackedVector2Array([at.call(0.5, 1.3)]), Vector2.INF)
 					_say(bubbles, "Policja", at.call(0.5, 0.72), "Proszę się zatrzymać! Albo chociaż zwolnić, będzie miło.",
 							"Please stop! Or at least slow down, that would be nice.")
+					hud.radio_touched()  # the player's own station: it shows in a quest or a chase
 					hud.ticker("87,3 KEBAB FM  ·  Palma de Gaulle'a", Color("#ff5fc8"))
 				"lizak":
 					hud.set_koguty(0, 3)
@@ -349,14 +356,45 @@ func _check_screen(screen: Vector2i) -> int:
 							"Police mid-ride? I'm taking a star, but keeping the anecdote."], "pay": pay4, "rating": 4.83,
 							"why": ["jazda −½, policja −1, za aplikacją +½", "driving −½, police −1, followed the app +½"]})
 					hud.show_side_card(done4[0], done4[1], PackedStringArray(), Color("#4fd8c4"), done4[2], done4[3])
+				# F 2026-11-10: an incoming call in the phone view (the longest caller line, a name
+				# without a portrait: the initial's fallback), then the quest offer with the face.
+				"phone call":
+					hud.show_call("Darek „Bawarka”|Darek \"Bawarka\"", "Z pracy. Bluza klubowa przed pierwszym meczem.",
+							Color("#4fd8c4"), "From work. Club hoodie before her first match.")
+					hud.ticker("87,3 KEBAB FM  ·  Palma de Gaulle'a", Color("#ff5fc8"))
+				"quest offer":
+					hud.show_side_card("📞 IVAN", "„Siema! Szisza dziś? Podjedź po mnie pod 19. Dzielnicę, weźmiemy jeszcze Bogdana z kortu. Ma być spokojnie.”",
+							PackedStringArray(["JADĘ!|ON MY WAY", "NIE DZIŚ|NOT TONIGHT"]), Color("#7fd4a0"), "Ivan",
+							"\"Hey! Shisha tonight? Pick me up at 19. Dzielnica, we'll grab Bogdan from the court too. Calm, this time.\"", false, "Ivan")
 			await process_frame
 			await process_frame
 			bubbles.layout()
+			if state == "phone call":
+				var w := "%s phone call%s" % [tag, " + " + mode if mode != "" else ""]
+				var rs2: Dictionary = hud.named_rects()
+				if not hud.call_showing():
+					problems.append("%s: the phone view is not up" % w)
+				elif not rs2.has("card") or "card" in hud.waiting():
+					problems.append("%s: the phone view is not placed (it waits for room)" % w)
+				elif (rs2["card"] as Rect2).intersects(hud.car_zone()):
+					problems.append("%s: the phone view %s is over the car's spot" % [w, _pts(rs2["card"], pt)])
+				for i in 2:
+					var b := (hud.get("_call_buttons") as Node).find_child("button%d" % i, true, false) as Control
+					if b == null or not b.is_visible_in_tree():
+						problems.append("%s: no round button %d" % [w, i])
+					elif b.size.x < 44.0 * pt - 0.5 or b.size.y < 44.0 * pt - 0.5:
+						problems.append("%s: round button %d is under 44 pt" % [w, i])
+			if state == "quest offer":
+				var f := hud.get("_card_face") as Control
+				if f == null or not f.is_visible_in_tree():
+					problems.append("%s quest offer: no face on the card's head" % tag)
+				if hud.call_showing():
+					problems.append("%s quest offer: the phone view stayed up" % tag)
 			_check_state(hud, bubbles, "%s %s%s" % [tag, state, " + " + mode if mode != "" else ""])
 			if mode == "left-handed" and state in ["car, Point", "car, Classic", "helicopter"]:
 				# The pressable discs all on the left half; the credit line is gone (credits page in Settings).
 				var tt: Dictionary = hud.touch_targets()
-				for k in ["brake", "gas", "horn", "climb", "sink"]:
+				for k in ["brake", "gas", "nitro", "climb", "sink"]:
 					if tt.has(k) and (tt[k] as Rect2).get_center().x > screen.x * 0.5:
 						problems.append("%s %s + left-handed: %s is on the right" % [tag, state, k])
 				if not hud.call("_stick_side", screen.x * 0.8, float(screen.x)) or hud.call("_stick_side", screen.x * 0.2, float(screen.x)):

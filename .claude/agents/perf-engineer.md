@@ -26,6 +26,7 @@ measure, cut the biggest cost, measure again, and report numbers. You don't spaw
 
 ## Read first
 
+0. docs/architecture/graphics.md and tech-debt.md (TD-6, TD-7, TD-9).
 1. The brief, CLAUDE.md, docs/WORKFLOW.md, the godot-mobile-perf skill.
 2. docs/archive/DEVELOPMENT-full.md "Performance budgets", the Quality table, the performance overlay and bench, the
    flags; docs/ROADMAP.md progress log (the loop 2b row); docs/BACKLOG.md.
