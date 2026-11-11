@@ -13,6 +13,7 @@ The repo is meant to be private; the design wiki stays public until F decides.
 | --- | --- |
 | `game/` | Godot project: `scripts/`, `shaders/`, `tools/` (check scripts, `bake_city.gd`), `data/`, `map/` (baked), `audio/` |
 | `tools/` | Python bakes and helpers, `verify.sh`, `shots.sh`, `device_run.sh`, `check_map_data.py`, `export_ios.sh`, `hooks/guard_godot.py` (blocks game runs without `--nosave` or a quit flag) |
+| `docs/architecture/` | **the architecture map**: README (one screen), systems, city-ai, graphics, pipelines, extending (where each change plugs in), tech-debt. Read README and `extending.md` before adding a system |
 | `docs/DEVELOPMENT.md` | short INDEX. The full reference is `docs/archive/DEVELOPMENT-full.md` (~490 KB): never read it whole, grep a section and read that range |
 | `docs/WORKFLOW.md` | the loop, owners, light/full definition of done, milestone gates |
 | `docs/CITY_INVENTORY.md` (every characteristic place, ranked, street by street) · `docs/BACKLOG.md` (issues, decisions) · `docs/QUESTIONS.md` (parked questions, lanes in progress) · `docs/ROADMAP.md` (order of work) · `docs/DEMO.md` · `docs/LANDMARKS.md` · `docs/ADDONS.md` · `docs/PLAYTEST.md` (test plan, PT-n bug log) | read only the section you need |
@@ -87,6 +88,10 @@ tools/export_android.sh [--skip-city|--apk]   # the signed Play AAB
   in `docs/CHANGELOG.md` only for a change the player or visitor can see (it feeds the live
   /progress/ page), and the item's line ticked (or added) in ROADMAP "v1.0 checklist" in the
   same PR, so progress stays checkable in one place. No progress-log row.
+- **Architecture.** A new activity, text, call, map target, sound, saved value or per-frame system plugs into the owner
+  named in `docs/architecture/extending.md`, never a private copy. A needed workaround is marked
+  `# WORKAROUND(arch)` and gets a row in `docs/architecture/tech-debt.md`; a new script gets a row in
+  `systems.md` or `city-ai.md` (`tools/check_architecture.py`, verify step `architecture`). The PR says which owner it used.
 - **Add-ons check.** Whenever you create or change NPC/agent behaviour or a conversation, decide
   on Beehave / Dialogue Manager first (skills `beehave-trees`, `dialogue-scenes`) and write
   "used / not used, because ..." in the PR. Default: not used outside the police and authored
