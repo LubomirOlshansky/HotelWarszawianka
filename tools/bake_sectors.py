@@ -117,7 +117,7 @@ SITE_NAMES = ["Pałac Kultury i Nauki", "Złote Tarasy", "Lumen", "Skylight", "R
               "Centrum Nauki Kopernik",
               # the University Library (2026-10-31): its roof houses and round lights
               "Biblioteka Uniwersytecka",
-              # Hotel Metropol's roof sign (landmarks.gd _build_metropol_sign reads its parts' height)
+              # Hotel Metropol (rebuilt whole from its parts: landmarks.gd _build_metropol_sign)
               "Hotel Metropol",
               # Ujazdowski Castle (2026-11-01): a model on its mapped outline
               "Zamek Ujazdowski",

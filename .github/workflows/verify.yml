@@ -64,7 +64,7 @@ jobs:
         env:
           GODOT: /home/runner/godot/godot
           NW_MAP_PACK: "off"   # the map job fetches and builds the map; this one stays map-free
-        run: zsh tools/verify.sh --only=parkdetails,streetdetails,ratuszhub,smooth,objects,fixes,centralnyramp,tramstops,streetpass,models,overrides,stops,spec,steering,laneassist,stuckoffer,handling,settings,credits,tiers,governor,shaderbudget,heliview,hud,places,edge,eggs,placzamkowy,tape,crowds,life,buses,crashes,rave,padel,meet,boatrace,dekalog,kinotour,evtow,loud,crazy,oldtram,tramfleet,packs,wellness,fans,garage,save,districts,syrenki,cassettes,ladder,racebench,first10,chatter,endcard,opening,parodies,jobs2,rescues,couriers,delivery,rides,roofdress,tenementtrim,osmroofs,sites,palacelights,meshq,sfx,juice,gamepad,radio,sounds,police --logs="$RUNNER_TEMP/verify"
+        run: zsh tools/verify.sh --only=architecture,parkdetails,streetdetails,ratuszhub,smooth,objects,fixes,centralnyramp,tramstops,streetpass,models,overrides,stops,spec,steering,laneassist,stuckoffer,handling,settings,credits,tiers,governor,shaderbudget,heliview,hud,places,edge,eggs,placzamkowy,tape,crowds,life,buses,crashes,rave,padel,meet,boatrace,dekalog,kinotour,evtow,loud,crazy,oldtram,tramfleet,packs,wellness,fans,garage,save,districts,syrenki,cassettes,ladder,racebench,first10,chatter,messages,endcard,opening,parodies,jobs2,rescues,couriers,delivery,rides,roofdress,tenementtrim,osmroofs,sites,palacelights,meshq,sfx,juice,gamepad,radio,sounds,police --logs="$RUNNER_TEMP/verify"
 
       - name: Keep the logs
         if: always()

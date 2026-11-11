@@ -30,6 +30,10 @@ Tension: Ivan wants light and fruity and cannot smoke strong shisha, Bogdan love
    Podjedź po mnie na 19. Dzielnicę, weźmiemy Bogdana", JADĘ! / NIE DZIŚ. Same ring/answer/decline
    structure as `rave.gd` `ring` -> `_offer` -> `_on_card`. Starts also by `stories.add` (id
    `shisha`): a start beacon at the 19. Dzielnica block, a greeting in person, a WĄTKI list entry.
+   **Now hidden (F 2026-11-08, 2026-11-10):** no pin, no STORIES entry, no call by itself. Ivan
+   rings when the player holds "+" (the zoom-in button, or + / = on a keyboard) for 4 s anywhere in
+   the city, on the ground with no other quest on (`main.gd _shisha_secret`, test flag
+   `--shisha-hold`).
 2. **Pick up Ivan** at 19. Dzielnica (Kolejowa / Przyokopowa, sites `d19` / `noho`): a dashed
    ring at the kerb, he waves, gets in (rave's pickup, `_board`).
 3. **Pick up Bogdan** (F, 2026-11-08: WTS DESKA is too far, pick him up in the area between
@@ -46,11 +50,21 @@ Tension: Ivan wants light and fruity and cannot smoke strong shisha, Bogdan love
    with Bogdan). A longer way round (Rondo ONZ, Świętokrzyska) can be offered as a scenic
    detour on the second leg if the banter needs more time. Bogdan's tennis monologue (below). The
    two-stop route is what `trend_job.gd` "Czwarty" already does.
-4. **The car argument** on the way to the lounge: a vote scene with three rounds (flavour,
-   strength, the nickname of the pipe), banter in between (below). Your votes set the mini-game.
-5. **Arrive at SENATOREK LOUNGE** (Emilii Plater 53). Park at the kerb ring under the portico, a
-   "dress code" gag at the door (Bogdan's tennis shorts), the lift card.
-6. **The lounge room** (cutaway, like Smoła): rock wall, olive trees, velvet banquettes, the three of you seated.
+4. **The car argument** on the way to the lounge: banter only (flavour, strength), no cards
+   while driving (F 2026-11-11). The choices are made inside, at the table (step 6).
+5. **Arrive at SENATOREK LOUNGE** (Emilii Plater 53). The entrance is marked twice: a teal stop
+   ring on Emilii Plater's kerb (the street runs about 30 m east of the facade) and a gold ring
+   with its light column at the revolving door under the canopy with the gold SENATOREK letters.
+   Stop in either and the three walk in. No card outside: the "dress code" gag at the door
+   (Bogdan's tennis shorts) and the lift to the 38th floor play inside: first WFC's lobby (the
+   revolving door, the reception, three lifts, the doorman at his lectern by the lounge's lift),
+   then the lift's cabin with the floor number climbing to 38, then the room (lounge.gd `LOBBY`,
+   `CAB`; Step LOBBY, LIFT, ORDER, CHOOSE; the answers are full-width buttons one under the other).
+   (Until 2026-11-11 the votes were side cards on the drive and the door and the lift were cards
+   at the kerb; F could not see how to enter and read it as dialogs outside the building.)
+6. **The lounge room** (cutaway, like Smoła): rock wall, olive trees, velvet banquettes, the three
+   of you seated. After the waiter's order, the three choices on the lounge's panel (three rounds:
+   whose flavour, how strong, the pipe's name; each answer plays its scene). They set the mini-game.
 7. **Mini-game "Miks u Mistrza"** with the master (below): choose the bowl.
 8. **The pipe arrives; smoke or leave** (the Smolna choice): PALIĆ (a short smoking scene) or
    WYJDŹ (back to the car). Either ends the quest; PALIĆ pays more respect and unlocks the
