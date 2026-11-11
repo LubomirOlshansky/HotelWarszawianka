@@ -356,7 +356,7 @@ func _check_screen(screen: Vector2i) -> int:
 			if mode == "left-handed" and state in ["car, Point", "car, Classic", "helicopter"]:
 				# The pressable discs all on the left half; the credit line is gone (credits page in Settings).
 				var tt: Dictionary = hud.touch_targets()
-				for k in ["brake", "gas", "horn", "climb", "sink"]:
+				for k in ["brake", "gas", "nitro", "climb", "sink"]:
 					if tt.has(k) and (tt[k] as Rect2).get_center().x > screen.x * 0.5:
 						problems.append("%s %s + left-handed: %s is on the right" % [tag, state, k])
 				if not hud.call("_stick_side", screen.x * 0.8, float(screen.x)) or hud.call("_stick_side", screen.x * 0.2, float(screen.x)):
