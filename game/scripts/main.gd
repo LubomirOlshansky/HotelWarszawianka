@@ -3282,7 +3282,7 @@ func _build_stories(world: Node3D) -> void:
 				"at": BoatRace.CAR_SPOT, "colour": BoatRace.COLOUR, "hours": Vector2(BoatRace.HOURS[0], BoatRace.HOURS[1]),
 				"call": boat_race.ring, "meet": boat_race.meet, "busy": boat_race.busy, "idle": boat_race.idle})
 	# Mati's two nights are two questlines (F 2026-11-09): the secret rave from his block at Osiedle
-	# Za Żelazną Bramą, Smoła from pod Rotundą. A start the map has no road for stays in the list.
+	# Za Żelazną Bramą, Smoła from Jerozolimskie by Rondo Dmowskiego (out of the first view, F 2026-11-11). A start the map has no road for stays in the list.
 	# Both are open at any hour (F 2026-11-09): taking one turns the clock to the rave night
 	# (`_rave_night`), as the night meet does.
 	if rave != null and not rave.spots.is_empty():
@@ -3324,9 +3324,12 @@ func _build_stories(world: Node3D) -> void:
 	# The night racing club (street_meet.gd): Darek at Plac Defilad, 21:00-4:00. Null with
 	# --no-traffic or --meet=0.
 	if meet != null and meet.meets.size() > 0:
-		# The start is the road kerb by the plaza (the meet's door), not the plaza's middle: F
-		# (2026-11-09) could not drive up to the old spot in the middle of the paving.
-		var g: Vector3 = (meet.meets[0]["door"] as Dictionary)["at"]
+		# The start is Darek on the kerb of Parkingowa by Rondo Dmowskiego (StreetMeet.START, F
+		# 2026-11-11: out of the first view, a short drive from the spawn); the meet stays on Plac
+		# Defilad. Without that road, the plaza's kerb (the meet's door; F 2026-11-09: not the
+		# middle of the paving, he could not drive up to it).
+		var spot: Dictionary = meet.start if not meet.start.is_empty() else meet.meets[0]["door"]
+		var g: Vector3 = spot["at"]
 		stories.add({"id": "meet", "pl": "Nocny spot", "en": "Night meet", "who": [StreetMeet.FRIEND, StreetMeet.FRIEND],
 				"hello": ["„Siema! Dziś spot na Defiladzie. Wbijasz?”", "\"Hey! Meet's on Plac Defilad tonight. You in?\""],
 				"closed": ["„Za dnia tu tylko turyści. Wpadnij po 21.”", "\"By day it's all tourists here. Come after nine.\""],
