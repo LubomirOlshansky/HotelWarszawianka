@@ -255,7 +255,7 @@
 # Monuments (2026-11-02): `monuments` runs tools/check_monuments.py (the OSM monuments and wall plaques against
 # the map: stale file, blocked spots, plaques on walls, hand-built monuments left alone); `monumentmesh` runs
 # game/tools/check_monuments.gd (every kind builds as one surface, a cell's triangle budget with the park pieces); CI too.
-# The Złote Tarasy 3D corner screen (2026-11-05): `tarasyscreen` runs game/tools/check_tarasy_screen.gd (one surface, 40-60 m, on Skylight's wall, over the plate).
+# The Złote Tarasy 3D corner screen (2026-11-05, an L on Skylight's corner since 2026-11-11): `tarasyscreen` runs game/tools/check_tarasy_screen.gd (one surface, two flat faces at a corner, 22-30 m, on the wall, 10-27 m up).
 # The Warsaw Spire (2026-11-06): `spiremotion` runs game/tools/check_spire_motion.gd (the crown's ticker and the plaza jets: one surface each, the ticker on the crown's ring, the jets in the water, the shaders load).
 # Bus stops (G8/G9, 2026-11-01): `stops` runs tools/check_stops.py (every bus-road shelter on the kerb and
 # turned to the road, benches facing the walk, none in a building or the water, cafe sets on a shopfront;
