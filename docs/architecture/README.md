@@ -9,6 +9,7 @@ the file for the area you touch.
 | [for-app-developers.md](for-app-developers.md) | you know app development and want the game words mapped to app words |
 | [systems.md](systems.md) | you need to know which script owns what (every script in `game/scripts/` is listed) |
 | [city-ai.md](city-ai.md) | you touch traffic, rivals, police, trams, trains, pedestrians, crowds or city life |
+| [map-markers.md](map-markers.md) | you add a quest, job or place to the minimap or full map, or change what shows when |
 | [pipelines.md](pipelines.md) | you touch the map bake, loading order, the save, tests or builds |
 | [graphics.md](graphics.md) | you touch shaders, materials, lights, quality levels or anything drawn every frame |
 | [extending.md](extending.md) | **before adding anything**: the one place each kind of change goes |

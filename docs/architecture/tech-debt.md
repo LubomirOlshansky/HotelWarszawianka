@@ -19,6 +19,7 @@ update extending.md.
 | TD-10 | **landmarks.gd is 34,700 lines** | one file for every landmark | split by area into `landmarks/<area>.gd` with one shared helper file, when a landmark thread has time | open |
 | TD-11 | **Test fakes drift** | 7+ checks carry their own `FakeDialogue` / `FakeBubbles`; a new speaker param breaks them all | one `game/tools/fakes.gd` the checks share | open |
 | TD-12 | **Difficulty is per mode** | difficulty code only in `boat_race.gd` and `ladder.gd`; racer AI rebuild in progress | after race AI step 3: one soft skill estimate that race AI, timers and police heat read (no rubber band) | planned (rank 7) |
+| TD-13 | **No map marker registry**: each layer has its own HUD setter that replaces a whole list | about a dozen `set_minimap_*` and `full_map.set_*` setters; `jobs.gd` and `roundup_job.gd` both write `set_minimap_pois`; quest focus uses its own busy test `_quest_running()` (6 activities) beside `_free_block()` (15) | `map_markers.gd`: markers declared once (layer, place, line, hours, gate); one rule table by context, vehicle and clock; minimap, full map, beacon and lists read it. Design in map-markers.md | planned, with TD-1 and TD-2 |
 
 ## How to pick the next one
 
