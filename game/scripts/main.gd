@@ -3333,7 +3333,7 @@ func _build_stories(world: Node3D) -> void:
 				"at": KinoTour.PICKUP["at"], "colour": KinoTour.COLOUR, "hours": Vector2(KinoTour.HOURS[0], KinoTour.HOURS[1]),
 				"call": kino_tour.ring, "meet": kino_tour.meet, "busy": kino_tour.busy, "idle": kino_tour.idle})
 	# The shisha night is a hidden quest (F 2026-11-08): no story, no pin, no phone call. Press and
-	# hold "+" for SHISHA_HOLD_S seconds at Ivan's block in 19. Dzielnica and he rings (`_story_tick`).
+	# hold "+" for SHISHA_HOLD_S seconds anywhere (`_shisha_secret`, F 2026-11-10) and he rings.
 	if shisha != null:
 		shisha.auto = false
 	# Bartek's dead TESŁO (ev_tow.gd, F 2026-11-08): a helicopter story with no fixed start, so it
@@ -3362,20 +3362,21 @@ func _build_stories(world: Node3D) -> void:
 			return "%s %s" % [d["id"], "%.0f,%.0f" % [d["at"].x, d["at"].y] if d["at"] != Vector2.INF else "no start"]))])
 
 
-## Hold "+" this long (s), standing at Ivan's block, and he rings.
-const SHISHA_HOLD_S := 5.0
-const SHISHA_R := 30.0
+## The shisha night's hidden start (F 2026-11-08, 2026-11-10: anywhere in the city, only this, no
+## pin or marker): hold "+" (the zoom-in button, or + / = on a keyboard) SHISHA_HOLD_S seconds with
+## nothing else on, and Ivan rings.
+const SHISHA_HOLD_S := 4.0
 
 
-## The shisha night's hidden start: nothing on, the car near Ivan's block and slow, "+" held 5 s.
+## "+" held SHISHA_HOLD_S seconds (a few times a second, `_story_tick`): on the ground, no other
+## quest, not inside a club or the lounge, the quest idle.
 func _shisha_secret(busy: bool) -> void:
-	if shisha == null or shisha.home.is_empty() or busy or flying or car == null or not shisha.idle():
+	if busy or shisha == null or shisha.home.is_empty() or flying or car == null or not shisha.idle():
 		return
-	var h: Vector3 = shisha.home["at"]
-	var p := car.global_position
-	if Vector2(p.x, p.z).distance_to(Vector2(h.x, h.z)) > SHISHA_R or hud.zoom_in_held_s() < SHISHA_HOLD_S:
+	if (club != null and club.inside) or (lounge != null and lounge.inside) or hud.zoom_in_held_s() < SHISHA_HOLD_S:
 		return
-	shisha.ring()
+	if shisha.ring():
+		print("shisha: + held: Ivan rings")
 
 
 ## Something runs: a race, a job, a ride, a rescue, a questline, a tow (quest focus: the map goes quiet).
@@ -3672,6 +3673,16 @@ func _build_shisha(data: Dictionary, world: Node3D) -> void:
 				car.global_position = Vector3(k.x, map.ground_height(k.x, k.z), k.z)
 				car.reset_physics_interpolation()
 				shisha.meet_in_person())
+		"hold":
+			# The hidden start played by itself, far from Ivan's block (it works anywhere): "+" held
+			# 2 s (must not ring), then 4.5 s (rings), as the zoom button or the + key sends it.
+			get_tree().create_timer(2.0).timeout.connect(func() -> void:
+				for held: float in [2.0, SHISHA_HOLD_S + 0.5]:
+					hud.zoom_in_key(true)
+					await get_tree().create_timer(held).timeout
+					hud.zoom_in_key(false)
+					print("shisha hold test: %.1f s, state %s" % [held, Shisha.State.keys()[shisha.state]])
+					await get_tree().create_timer(1.0).timeout)
 		"lounge", "terrace":
 			get_tree().create_timer(1.0).timeout.connect(func() -> void:
 				shisha.meet_in_person()
@@ -5435,7 +5446,7 @@ func _parse_args() -> void:
 			crawl_log = true
 		elif arg == "--rave-log":
 			rave_log = true
-		elif arg in ["--shisha-call", "--shisha-meet", "--shisha-lounge", "--shisha-terrace"]:
+		elif arg in ["--shisha-call", "--shisha-meet", "--shisha-lounge", "--shisha-terrace", "--shisha-hold"]:
 			shisha_flag = arg.trim_prefix("--shisha-")
 		elif arg.begins_with("--shisha="):
 			shisha_flag = arg.trim_prefix("--shisha=")
@@ -8403,6 +8414,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if not _started or title != null:
 		return
 	var key := event as InputEventKey
+	if key and not key.echo and key.physical_keycode in [KEY_EQUAL, KEY_KP_ADD]:
+		hud.zoom_in_key(key.pressed)  # "+" held on a keyboard counts like the on-screen "+" (the shisha secret)
 	if key and key.pressed and not key.echo:
 		match key.physical_keycode:
 			KEY_Q:

@@ -291,6 +291,14 @@ var _taps := {}
 var _status_icons: Control
 var _icons := {}
 ## How long the "+" zoom chip has been held down (s; 0 when not): the shisha night's hidden start.
+## The + / = key down or up (main.gd): held like the on-screen "+".
+func zoom_in_key(down: bool) -> void:
+	if down and _zoom_in_down_ms < 0:
+		_zoom_in_down_ms = Time.get_ticks_msec()
+	elif not down:
+		_zoom_in_down_ms = -1
+
+
 func zoom_in_held_s() -> float:
 	return 0.0 if _zoom_in_down_ms < 0 else float(Time.get_ticks_msec() - _zoom_in_down_ms) / 1000.0
 
