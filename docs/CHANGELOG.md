@@ -9,6 +9,9 @@ that day here, in plain words a player would understand (no file names, no spoil
 rows in the progress log but no section here is listed automatically from the log's labels until
 someone writes its lines.
 
+## 2026-11-11
+- Złote Tarasy is remodelled from your photos: a blue glass wave roof with a triangle grid, the big 3D screen now on the tower's corner (a cat, the Around Warsaw promo and the NOSE. agency), the sunken plaza by the station with its stairs, and the red guitar by the café.
+
 ## 2026-11-10
 - The horn button next to the brake is gone; the nitro button now sits right by the brake.
 - Hotel Metropol on Marszałkowska is rebuilt from your photos: cream balcony fronts, a dark glazed ground floor under a canopy, and its name (the parody METROPOLKA) in green on a white board on the roof, facing the street.

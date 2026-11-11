@@ -907,6 +907,13 @@ Built from F's photos (`tarasy_screen.gd`, `led_screen.gdshader`). Open:
   crane, the Palace-side look. The Mac's photos show printed advert panels (older); F's photos show the
   LED screen, which we follow.
 - More scenes for the loop (F's ideas: sea, a car driving out of the screen) and a day/night level pass.
+- Remodelled 2026-11-11 (F's photos: the roof is blue glass, the screen an L on the corner): the screen
+  is on Skylight's south-east corner now (two flat faces), the loop is the cat, the AROUND WARSAW promo
+  and the NOSE. mark; the wave is blue triangular glass; the sunken plaza, its stair, the guitar sign and
+  the HARD BLOK CAFE terrace are built (spec `tarasy.md`, update 2026-11-11). Open: the phone look of the
+  screen and the plaza (only the phone shows the screen's glow and the wave's pane colours under the
+  phone's tone map); whether F likes the parody names ZŁOTE TARASKI and HARD BLOK CAFE (QUESTIONS);
+  the escalators and lift down into the plaza; the Lumen wings' curve is still the mapped outline.
 ## The Emilii Plater underpass entrances (F, 2026-11-06)
 
 F's screenshots: walled boxes with steps on flat ground. Lost on 2026-11-07 (the squash merge of #495
