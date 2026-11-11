@@ -3274,7 +3274,7 @@ func _build_stories(world: Node3D) -> void:
 				"at": BoatRace.CAR_SPOT, "colour": BoatRace.COLOUR, "hours": Vector2(BoatRace.HOURS[0], BoatRace.HOURS[1]),
 				"call": boat_race.ring, "meet": boat_race.meet, "busy": boat_race.busy, "idle": boat_race.idle})
 	# Mati's two nights are two questlines (F 2026-11-09): the secret rave from his block at Osiedle
-	# Za Żelazną Bramą, Smoła from pod Rotundą. A start the map has no road for stays in the list.
+	# Za Żelazną Bramą, Smoła from Jerozolimskie by Rondo Dmowskiego (out of the first view, F 2026-11-11). A start the map has no road for stays in the list.
 	# Both are open at any hour (F 2026-11-09): taking one turns the clock to the rave night
 	# (`_rave_night`), as the night meet does.
 	if rave != null and not rave.spots.is_empty():
