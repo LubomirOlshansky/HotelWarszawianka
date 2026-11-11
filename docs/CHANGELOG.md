@@ -11,6 +11,9 @@ someone writes its lines.
 
 ## 2026-11-11
 - Złote Tarasy is remodelled from your photos: a blue glass wave roof with a triangle grid, the big 3D screen now on the tower's corner (a cat, the Around Warsaw promo and the NOSE. agency), the sunken plaza by the station with its stairs, and the red guitar by the café.
+- Fewer texts over the road in missions and chases: the radio host and the news keep quiet while a quest runs, the city's chatter stops in a chase and only one person talks at a time, easter-egg cards wait until the chase is over, two notices no longer flash past each other, and friends' phone calls never ring during a quest or right after one.
+- The quest card is smaller: the hint folds away once read, no empty line, and the race challenge is a big button in the racer's colour with a chequered flag ("RACE · PANI HALINA, tap or L") instead of a line of text at the bottom.
+- People talking while you drive keep their bubbles off the road in front of the car.
 - The night car meet's start is no longer right next to where the game begins: Darek waits for you on Parkingowa, just past Rondo Dmowskiego, out of sight of the first view, and from there sends you up to the meet on Plac Defilad.
 - Mati's Smoła night no longer starts right beside your car when the game begins: for now he waits on Aleje Jerozolimskie by Rondo Dmowskiego instead.
 
