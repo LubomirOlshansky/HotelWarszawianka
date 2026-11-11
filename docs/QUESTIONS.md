@@ -172,7 +172,7 @@ Newest first. One entry per question.
   View shots and Mapillary frames (refs/mdm_ne, refs/mdm_nw), flat ground, no LoD2. Default built
   (`_build_mdm`, spec mdm.md): cream skin, a sand-stone base 11 m high 0.6 m proud on every street
   face, deep arcades only within 80 m of the square's centre, four attic pavilions, roof neons
-  MDM (NE block's south end), BYDŁO (east block's roof), XIAOMY (the SE gate block), HOTEL MDM at
+  MDM and BYDŁO (moved 2026-11-11 to the Hotel MDM roof, SW block, from Wikipedia's coordinates; F to confirm the exact corner), XIAOMY (the SE gate block), HOTEL MDM at
   6 m. For F on the Mac: does the base sit right on the LoD2 walls, which facades truly have
   arcades, where the real signs stand, balcony railings, the pavilions' shape; `--prebuilt` too.
 
