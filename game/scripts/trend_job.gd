@@ -102,12 +102,12 @@ const DESKI_INJURED := ["Marta", "Ola", "Michał od Excela", "Prezes z Mokotowa"
 ## The DESKA call's opening (as Szymek's boat race and Mati's rave): the phone rings first, with
 ## who it is, ODBIERZ / ODRZUĆ, and only an answered call says what it wants. A short bio per caller.
 const DESKI_BIOS := {
-	"Kuba": ["Kumpel z liceum. Od marca „zaczyna padla od poniedziałku”. Ma już trzy rakiety.", "Your mate from school. Since March he has been \"starting padel on Monday\". He has three rackets already."],
-	"Zuzia": ["Koleżanka z pracy. Bluzę klubową kupiła, zanim zagrała pierwszy mecz.", "A friend from work. She bought the club hoodie before her first game."],
-	"Bartek": ["Kumpel z osiedla. Rezerwuje korty o 6:00 rano, bo tylko wtedy są wolne.", "Your mate from the estate. He books courts at 6 a.m., the only free slot."],
-	"Iga": ["Znajoma z kursu salsy. Teraz mówi tylko o vibora i bandeja.", "A friend from salsa class. Now all she talks about is the vibora and the bandeja."],
-	"Olek": ["Kuzyn. Grał w tenisa, więc myśli, że w padla też umie. Nie umie.", "Your cousin. He played tennis, so he thinks he can play padel. He can't."],
-	"Magda": ["Sąsiadka z góry. Prowadzi grupę „Padel Powiśle” na 412 osób.", "The neighbour upstairs. She runs the \"Padel Powiśle\" group, 412 members."],
+	"Kuba": ["Kumpel z liceum. Trzy rakiety, zero meczów.", "School mate. Three rackets, zero matches."],
+	"Zuzia": ["Z pracy. Bluza klubowa przed pierwszym meczem.", "From work. Club hoodie before her first match."],
+	"Bartek": ["Z osiedla. Rezerwuje korty na 6:00 rano.", "From the estate. Books courts for 6 a.m."],
+	"Iga": ["Z salsy. Teraz mówi tylko „bandeja”.", "From salsa class. Now only says \"bandeja\"."],
+	"Olek": ["Kuzyn. Grał w tenisa, więc myśli, że umie.", "Cousin. Played tennis, so he thinks he can."],
+	"Magda": ["Sąsiadka. Prowadzi grupę „Padel Powiśle”.", "Neighbour. Runs the \"Padel Powiśle\" group."],
 }
 ## The match at DESKA (an answered call that arrived on time): DESKI_POINTS points, one card each,
 ## three shots (LOB, ZE ŚCIANY, SMECZ). Each rally: [situation pl, en], the best shot's index, the
@@ -678,13 +678,19 @@ func offer_deski_call(force := false) -> bool:
 	state = State.OFFER
 	_t = 0.0
 	var bio: Array = DESKI_BIOS.get(who, ["Znajomy z padla.", "A friend from padel."])
-	hud.show_side_card("📞 %s DZWONI" % who.to_upper(), bio[0],
-			PackedStringArray(["ODBIERZ|ANSWER", "ODRZUĆ|DECLINE"]), CZ_COLOUR, "%s is calling" % who, bio[1])
+	hud.show_call(who, bio[0], CZ_COLOUR, bio[1], _deski_face(who))
 	hud.ticker_out()
 	Access.buzz(60, 0.6)
 	if log_on:
 		print("trend job: DESKA call ringing from %s, %.0f m away" % [who, dist])
 	return true
+
+
+## A DESKA friend's face: their padel portrait ("bartek_padel") where there is one, so the other
+## Bartek (the TESŁO one, ev_tow.gd) never borrows it.
+static func _deski_face(who: String) -> String:
+	var padel := who.to_lower() + "_padel"
+	return padel if Portraits.face(padel) != null else who
 
 
 ## The answered DESKA call: what the friend wants.
@@ -696,7 +702,7 @@ func _deski_offer() -> void:
 	hud.show_side_card("%s: „BRAKUJE CZWARTEGO!”" % who.to_upper(),
 			"„Halo? Gramy na Desce w padla, a %s ma nogę w gipsie po pole dance i wypadło z gry! Dojedź albo doleć na kort przy Zaruskiego, 8 minut. Kort opłacony do pełnej godziny!”" % hurt,
 			PackedStringArray(["JADĘ!|ON MY WAY", "NIE DZIŚ|NOT TODAY"]), CZ_COLOUR, "%s: \"We need a fourth!\"" % who,
-			"\"Hello? We're playing padel at DESKA, but %s has a leg in plaster after pole dance and dropped out! Drive or fly to the court on Zaruskiego, 8 minutes. The court is paid till the hour!\"" % hurt)
+			"\"Hello? We're playing padel at DESKA, but %s has a leg in plaster after pole dance and dropped out! Drive or fly to the court on Zaruskiego, 8 minutes. The court is paid till the hour!\"" % hurt, false, _deski_face(who))
 	if log_on:
 		print("trend job: DESKA call answered: %s broke a leg" % hurt)
 
@@ -1056,7 +1062,8 @@ func offer_dzemini(force := false) -> bool:
 	hud.show_side_card("📞 MROŻULO DZWONI",
 			"„Siema, tu Mrożulo! Na Świętokrzyskiej otworzyli DŻEMINI KEBAB, mięso kroi agent AI. Kup mi jednego i przywieź do vana, póki ciepły!”",
 			PackedStringArray(["JADĘ", "NIE TERAZ"]), ML_COLOUR, "Mrożulo is calling",
-			"\"Hi, Mrożulo here! DŻEMINI KEBAB just opened on Świętokrzyska, an AI agent carves the meat. Get me one and bring it to my van while it's warm!\"")
+			"\"Hi, Mrożulo here! DŻEMINI KEBAB just opened on Świętokrzyska, an AI agent carves the meat. Get me one and bring it to my van while it's warm!\"",
+			false, "Mrożulo")
 	hud.ticker_out()
 	if log_on:
 		print("trend job: Dżemini call from Mrożulo: the van at %s, %.0f m by road" % [van["spot"], road])
@@ -1584,7 +1591,7 @@ func offer_kawa_call(force := false) -> bool:
 	_t = 0.0
 	var txt := CoffeeRun.call_text()
 	hud.show_side_card(str(txt[0]), str(txt[1]), PackedStringArray(["JADĘ", "NIE TERAZ"]), CoffeeRun.COLOUR,
-			"%s is calling" % CoffeeRun.CALLER, str(txt[2]))
+			"%s is calling" % CoffeeRun.CALLER, str(txt[2]), false, CoffeeRun.CALLER)
 	hud.ticker_out()
 	if log_on:
 		print("trend job: coffee run call from %s, dock %.0f m away" % [CoffeeRun.CALLER,

@@ -761,7 +761,6 @@ at DESKA (the generic three-a-side line overwrote it). Left:
 - [ ] The city court's side gate frames (the white padded frames by the net in F's photos) and the curved swan-neck floodlights in 3D
 - [ ] PADELNIA's "Czwarty" (the proximity job) could open with a call too; it stays a queue offer for now, since the queue is the joke
 - [ ] A match record in the notebook (won / played) and the hoodie as a cosmetic after 3/3
-- [ ] Portraits for the callers on the ringing card (PixelLab, with the other call cards' portraits)
 
 ## Boat race "Wiślana Szprotka" (F, 2026-11-06; docs/design/boat-race.md)
 

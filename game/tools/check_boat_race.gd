@@ -84,8 +84,10 @@ class FakeHud extends CanvasLayer:
 	var pill := ""
 	func show_card(title: String, _b: String, _btn: PackedStringArray, _a: Color, _bottom := false, _te := "", _be := "", _s := false) -> void:
 		card = title
-	func show_side_card(title: String, _b: String, _btn: PackedStringArray, _a: Color, _te := "", _be := "", _s := false) -> void:
+	func show_side_card(title: String, _b: String, _btn: PackedStringArray, _a: Color, _te := "", _be := "", _s := false, _f := "") -> void:
 		card = title
+	func show_call(who: String, _b: String, _a: Color, _be := "", _f := "", btn := PackedStringArray(["ODBIERZ|ANSWER", "ODRZUĆ|DECLINE"])) -> void:
+		card = "📞 %s DZWONI" % who.to_upper()
 	func hide_card() -> void:
 		card = ""
 	func toast(_a: String, _b := "") -> void:

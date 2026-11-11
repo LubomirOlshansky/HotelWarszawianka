@@ -387,9 +387,9 @@ func ring() -> bool:
 		return false
 	state = State.RING
 	_ring_t = 0.0
-	_show_side("📞 IVAN DZWONI", "Kumpel z 19. Dzielnicy. Zawsze ma plan i zawsze zmienia go w drodze.",
-			PackedStringArray(["ODBIERZ|ANSWER", "ODRZUĆ|DECLINE"]), "Ivan is calling",
-			"Your mate from 19. Dzielnica. Always has a plan, always changes it on the way.")
+	_card = true
+	hud.show_call(FRIEND, "Kumpel. Zawsze coś kombinuje. Zwykle w garniturze.", COLOUR,
+			"Your mate. Always up to something. Usually in a suit.")
 	hud.ticker_out()
 	Access.buzz(60, 0.6)
 	_log("call ringing")
@@ -411,7 +411,7 @@ func _offer() -> void:
 	_ring_t = 0.0
 	_show_side("📞 IVAN", "„Siema! Szisza dziś? Podjedź po mnie pod 19. Dzielnicę, weźmiemy jeszcze Bogdana z kortu. Ma być spokojnie.”",
 			PackedStringArray(["JADĘ!|ON MY WAY", "NIE DZIŚ|NOT TONIGHT"]), FRIEND,
-			"\"Hey! Shisha tonight? Pick me up at 19. Dzielnica, we'll grab Bogdan from the court too. Calm, this time.\"")
+			"\"Hey! Shisha tonight? Pick me up at 19. Dzielnica, we'll grab Bogdan from the court too. Calm, this time.\"", false, FRIEND)
 
 
 func _on_card(i: int) -> void:
@@ -591,9 +591,10 @@ func _place_pick(k: Dictionary) -> void:
 
 # --- cards and bubbles ------------------------------------------------------------------------
 
-func _show_side(title: String, body: String, buttons: PackedStringArray, title_en: String, body_en: String, stacked := false) -> void:
+func _show_side(title: String, body: String, buttons: PackedStringArray, title_en: String, body_en: String, stacked := false,
+		face := "") -> void:
 	_card = true
-	hud.show_side_card(title, body, buttons, COLOUR, title_en, body_en, stacked)
+	hud.show_side_card(title, body, buttons, COLOUR, title_en, body_en, stacked, face)
 
 
 func _show_card(title: String, body: String, buttons: PackedStringArray, title_en: String, body_en: String) -> void:
