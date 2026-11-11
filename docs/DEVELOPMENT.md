@@ -8,6 +8,7 @@ Earlier docs and code comments that cite `DEVELOPMENT.md "<section>"` mean that 
 
 ## The few things to know without opening it
 
+- **Architecture:** `docs/architecture/` is the map of the systems and where each kind of change plugs in (`extending.md`); start there before adding a system.
 - **Run the game:** `cd game && godot --path . -- --nosave` plus a quit flag (`--quit-after N`, `--shots=`); flags are in the archive section "Test flags" (search `| \`--demo\``).
 - **Release builds read no flags** (`game/scripts/release.gd`): only the debug export (Xcode Run, `device_run.sh`) and the editor binary take test flags; a TestFlight archive or the Play AAB ignores them (`check_credits`).
 - **Verify:** `tools/verify.sh [--quick|--ios|--only=a,b]`; CI runs the no-map subset (`quick`) and the map steps (`map`, two halves) on the map pack.

@@ -11,6 +11,8 @@ someone writes its lines.
 
 ## 2026-11-11
 - Ivan and Bogdan's shisha night: the way into the Senatorek lounge is now marked with a ring on the street and a gold light at the revolving door, and the choices (flavour, strength, the pipe's name) are made inside at the table, not on cards in the street.
+- The night car meet's start is no longer right next to where the game begins: Darek waits for you on Parkingowa, just past Rondo Dmowskiego, out of sight of the first view, and from there sends you up to the meet on Plac Defilad.
+- Mati's Smoła night no longer starts right beside your car when the game begins: for now he waits on Aleje Jerozolimskie by Rondo Dmowskiego instead.
 
 ## 2026-11-10
 - The horn button next to the brake is gone; the nitro button now sits right by the brake.

@@ -15,6 +15,8 @@ extends SceneTree
 ##      the same two runs in the Grounded handling (car.gd GROUNDED) straddle Tadek too;
 ##   7. the real lane graph: both meets found with a door on a ground road within 160 m, the ring's
 ##      slots clear of the gap, the strip found and long enough, straight on the southbound lane;
+##      the questline's start found on Parkingowa, past the start beacon's reach from the spawn
+##      (out of the first view) and under 700 m from it;
 ##   8. the rings clear (F 2026-11-08, meet 2 stood among fences): no fence, wall, guard rail or
 ##      building within RING_R + 4 m of a meet's middle;
 ##   9. the drag's tacho dial rises with the revs and the gate mesh is one surface; the count reads
@@ -24,6 +26,7 @@ extends SceneTree
 
 const Meet := preload("res://scripts/street_meet.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
+const Story := preload("res://scripts/story_quests.gd")
 const Car := preload("res://scripts/car.gd")
 const BUBBLE := 90
 
@@ -60,7 +63,8 @@ func _run() -> void:
 	var map := FakeMap.new()
 	root.add_child(map)
 	var g := LaneGraph.new(data["graph"], map)
-	_check_map(g, map, data.get("origin", [52.234, 21.024]), digest)
+	var sp: Dictionary = data.get("spawn", {})
+	_check_map(g, map, data.get("origin", [52.234, 21.024]), digest, Vector2(float(sp.get("x", 0.0)), float(sp.get("z", 0.0))))
 	_check_clear(data, digest)
 	_check_drag_hud(digest)
 	if problems.is_empty():
@@ -253,7 +257,7 @@ func _check_real_car(digest: PackedStringArray) -> void:
 	digest.append("Grounded: clean %.2f, lazy %.2f s" % [g_clean[0], g_lazy[0]])
 
 
-func _check_map(g: LaneGraph, map: Node3D, origin: Array, digest: PackedStringArray) -> void:
+func _check_map(g: LaneGraph, map: Node3D, origin: Array, digest: PackedStringArray, spawn: Vector2) -> void:
 	var meets := Meet.find_meets(g, map, origin)
 	if meets.size() != Meet.MEETS.size():
 		problems.append("%d of %d meets found on the map" % [meets.size(), Meet.MEETS.size()])
@@ -279,6 +283,16 @@ func _check_map(g: LaneGraph, map: Node3D, origin: Array, digest: PackedStringAr
 				problems.append("no southbound lane under the strip at %.0f m" % s)
 		digest.append("strip %.0f m, lanes %.1f m apart" % [float(strip["length"]), float(strip["lane_gap"])])
 	digest.append("%d meets" % meets.size())
+	# The start (F 2026-11-11): Darek on Parkingowa by Rondo Dmowskiego, past the start beacon's
+	# reach from the spawn (so nothing of it is in the first view) and a short drive from it.
+	var st := Meet.find_start(g, origin)
+	if st.is_empty():
+		problems.append("the start isn't on the map (no kerb on %s)" % Meet.START["street"])
+	else:
+		var sd := spawn.distance_to(Vector2(st["at"].x, st["at"].z))
+		if sd <= Story.BEACON_R + 20.0 or sd > 700.0:
+			problems.append("the start is %.0f m from the spawn (want %.0f..700 m)" % [sd, Story.BEACON_R + 20.0])
+		digest.append("start on %s %.0f m from the spawn" % [st["street"], sd])
 
 
 static func _seg_dist(p: Vector2, a: Vector2, b: Vector2) -> float:
