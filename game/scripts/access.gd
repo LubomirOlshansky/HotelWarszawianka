@@ -18,7 +18,7 @@ extends RefCounted
 ##                  Input.vibrate_handheld call goes through it, on to haptics.gd (the floor a
 ##                  hand feels, the iOS engine kept warm; car.gd's knock calls haptics.gd directly).
 ##   stop_assist    false: the quest stop assist (stop_assist.gd) leaves the car alone.
-##   left_handed    true: the pedals, the horn and the helicopter's pads bottom left, the stick's
+##   left_handed    true: the pedals, the nitro and the helicopter's pads bottom left, the stick's
 ##                  half of the screen and Classic's steering strip on the right (hud.gd
 ##                  `set_left_handed`, applied by main.gd at once, no restart).
 
