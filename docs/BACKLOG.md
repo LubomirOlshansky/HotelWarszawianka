@@ -17,6 +17,9 @@ ahead (`check_messages`, verify step `messages`).
 - [ ] Rides count as a quest (the radio host keeps quiet on a ride): F to say if rides get their own context
 - [ ] The rest of the ~50 speakers keep their classes as before; eggs' bubbles are still quest lines (could be INFO-like and wait in a chase)
 
+## Architecture: the planned central systems (F, 2026-11-11; docs/architecture/tech-debt.md)
+F liked the HUD message queue (PR #652) and asked for the game's other central mechanisms and an architecture map agents follow. The map is in `docs/architecture/`; the planned systems are tech-debt rows TD-1 to TD-12, in this order: TD-8 safer saves (temp file + rename, one backup, autosave at activity end); then the directors lane: TD-1 activity director (replaces `_free_block` and 8 private free checks), TD-2 objective channel (arrow, metres, pin, route in one place), TD-3 offer pacer (one offer at a time, quiet after a finish); TD-13 map marker registry (what the minimap and full map show, by context, vehicle and clock; docs/architecture/map-markers.md), built with TD-1/TD-2; TD-5 audio priority mixer; later TD-6/TD-7 population budget, TD-12 difficulty layer after racer AI step 3. Each is one thread, Opus, with its own check script; each lands by moving existing callers onto it and updating `extending.md`.
+
 ## Hotel Metropol rebuilt (F, 2026-11-07, docs/landmarks/metropol.md)
 Built from F's four photos (merged 2026-11-10; the first build sat unmerged as a patch). Open: the real hotel's ground floor and the rear courtyard wings have no street photo; the white box's size (20 m) is a guess; Mac night look for the green letters.
 
@@ -154,6 +157,14 @@ under it, so on the CAR and STORIES tabs a scroll started a request and closed t
   2026-11-09: the map closed and the quest went on). It gives up in every beat now except Darek's
   call, his offer and the drag's result card (`street_meet.gd` `can_quit`, `check_street_meet`).
 - [ ] Questline starts reported dead on F's phone (2026-11-09: night meet, Smolna/rave, others; no card): not reproducible on the Mac (runtime and prebuilt, all five starts greet and start). `--stories-log` now prints "the friend waits, blocked by: <gate>"; F's next run with it names the gate (speed over 22 km/h, a card or mission up, first-10 guide...). Done meanwhile: night meet start on the kerb, card life 45 s.
+- [x] The night meet's start pin stood on Plac Defilad, 140 m from the spawn, its column and Darek
+  in the game's first view (F 2026-11-11). Darek now waits on Parkingowa by Rondo Dmowskiego, 378 m
+  from the spawn (past the 320 m start beacon), and sends you to the meet on Plac Defilad
+  (`street_meet.gd` START, `check_street_meet` keeps it on the map and out of the first view).
+- [x] Mati's Smoła start meant "pod Rotundą" landed 150 m north of it, on the spawn: the red column
+  next to the car in the first view (F 2026-11-11). Now on Aleje Jerozolimskie by Emilii Plater,
+  about 380 m from the spawn (`rave.gd` SMOLA_START_LL; `check_rave` keeps both of Mati's starts
+  out of the first view).
 - [ ] Autopilot 2026-11-09 suspects for the night meet's drag: no PERFECT LAUNCH! banner after a
   launch in the blue (PT-48); the first-10 guide's note and chatter over the rev counter on a fresh
   save (PT-49, also in the boat race); "SHIFT ↑" shown from green with the needle low (PT-50).

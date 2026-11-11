@@ -302,8 +302,8 @@ zmodload zsh/datetime
 ROOT=${0:A:h:h}
 GAME=$ROOT/game
 GODOT=${GODOT:-godot}
-STEPS_ALL=(map roads smooth fixes centralnyramp cyclehang portbridge heights objects tramstops stairs streets outline pois streetdetails streetpass design models overrides stops streetmesh ratuszhub parkdetails parkmesh monuments monumentmesh spiremotion tarasyscreen spec lod2 courts drape ground drive drive-prebuilt deckxray tunnelcut stuckspots stuckspots-prebuilt oldtowndrive lanedrive lanedrive-grounded finite steering laneassist stuckoffer handling grounded stopassist questlines stories settings credits language tiers governor shaderbudget heliview hud places edge roadworks roadworks-prebuilt eggs tape crowds life buses zaglebie crashes rave shisha padel meet boatrace dekalog kinotour evtow crawl loud crazy oldtram tramfleet trains railsignals packs wellness tamka fans eventday coffeerun garage save districts syrenki cassettes ladder racecuts racebench first10 mainline chatter messages endcard opening parodies jobs2 rescues couriers delivery rides cost landmarks oldtownroofs roofdress tenementtrim osmroofs sites palacelights meshq sfx juice gamepad radio sounds water water-prebuilt streaming police plain ram teleport firstlife heli race trzy-mosty first10-run kebab coffee ride ride-police splash rain prebuilt classic police-runs police-soak life-soak)
-STEPS_QUICK=(map roads smooth fixes centralnyramp cyclehang portbridge heights objects tramstops stairs streets outline pois streetdetails streetpass design models overrides stops streetmesh ratuszhub parkdetails parkmesh monuments monumentmesh spiremotion tarasyscreen spec drape drive deckxray tunnelcut stuckspots oldtowndrive finite steering laneassist stuckoffer handling grounded stopassist questlines stories settings credits language tiers governor shaderbudget heliview hud places edge roadworks eggs tape crowds life buses zaglebie crashes rave shisha padel meet boatrace dekalog kinotour evtow crawl loud crazy oldtram tramfleet trains railsignals packs wellness tamka fans eventday coffeerun garage save districts syrenki cassettes ladder racecuts racebench first10 mainline chatter messages endcard opening parodies jobs2 rescues couriers delivery rides cost landmarks oldtownroofs roofdress tenementtrim osmroofs sites palacelights meshq sfx juice gamepad radio sounds police plain ram teleport firstlife prebuilt)
+STEPS_ALL=(map architecture roads smooth fixes centralnyramp cyclehang portbridge heights objects tramstops stairs streets outline pois streetdetails streetpass design models overrides stops streetmesh ratuszhub parkdetails parkmesh monuments monumentmesh spiremotion tarasyscreen spec lod2 courts drape ground drive drive-prebuilt deckxray tunnelcut stuckspots stuckspots-prebuilt oldtowndrive lanedrive lanedrive-grounded finite steering laneassist stuckoffer handling grounded stopassist questlines stories settings credits language tiers governor shaderbudget heliview hud places edge roadworks roadworks-prebuilt eggs tape crowds life buses zaglebie crashes rave shisha padel meet boatrace dekalog kinotour evtow crawl loud crazy oldtram tramfleet trains railsignals packs wellness tamka fans eventday coffeerun garage save districts syrenki cassettes ladder racecuts racebench first10 mainline chatter messages endcard opening parodies jobs2 rescues couriers delivery rides cost landmarks oldtownroofs roofdress tenementtrim osmroofs sites palacelights meshq sfx juice gamepad radio sounds water water-prebuilt streaming police plain ram teleport firstlife heli race trzy-mosty first10-run kebab coffee ride ride-police splash rain prebuilt classic police-runs police-soak life-soak)
+STEPS_QUICK=(map architecture roads smooth fixes centralnyramp cyclehang portbridge heights objects tramstops stairs streets outline pois streetdetails streetpass design models overrides stops streetmesh ratuszhub parkdetails parkmesh monuments monumentmesh spiremotion tarasyscreen spec drape drive deckxray tunnelcut stuckspots oldtowndrive finite steering laneassist stuckoffer handling grounded stopassist questlines stories settings credits language tiers governor shaderbudget heliview hud places edge roadworks eggs tape crowds life buses zaglebie crashes rave shisha padel meet boatrace dekalog kinotour evtow crawl loud crazy oldtram tramfleet trains railsignals packs wellness tamka fans eventday coffeerun garage save districts syrenki cassettes ladder racecuts racebench first10 mainline chatter messages endcard opening parodies jobs2 rescues couriers delivery rides cost landmarks oldtownroofs roofdress tenementtrim osmroofs sites palacelights meshq sfx juice gamepad radio sounds police plain ram teleport firstlife prebuilt)
 # Operation Unslop review (2026-11-05): the road loop ran the whole --quick (~100 steps, most start
 # the game) after every tweak. --roads keeps only the steps a road rule can break; steps not in
 # STEPS_ALL on this branch (e.g. `smooth` before the smooth-roads PR) are skipped.
@@ -767,6 +767,19 @@ for s in $want; do
 			case $code in
 				0) row PASS "streets" $secs "check_streets: OK · $counts" ;;
 				*) row FAIL "streets" $secs "$(grep -m1 '^check_streets:' $logs/streets.log) · $counts ($logs/streets.log)" ;;
+			esac ;;
+		# Architecture docs (2026-11-11): every game script is named in docs/architecture/systems.md
+		# or city-ai.md, and the pages' links resolve (tools/check_architecture.py; no map).
+		architecture)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/check_architecture.py > $logs/architecture.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			counts=$(grep -m1 '^check_architecture counts:' $logs/architecture.log)
+			counts=${counts#check_architecture counts: }
+			case $code in
+				0) row PASS "architecture" $secs "check_architecture: OK · $counts" ;;
+				*) row FAIL "architecture" $secs "$(grep '^check_architecture:' $logs/architecture.log | head -1) · $counts ($logs/architecture.log)" ;;
 			esac ;;
 		# Map north (2026-10-31): nothing of the map where the map isn't (its bounds without the
 		# corner left `outside`), every sector on the map (tools/check_outline.py O1-O5; O6, dead

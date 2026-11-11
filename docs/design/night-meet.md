@@ -89,6 +89,9 @@ lines are short bubbles, no branching talk.
 
 F played it and found it weak. Changed in `street_meet.gd`:
 
+- **Start spot** (F 2026-11-11). Darek waits on the kerb of Parkingowa by Rondo Dmowskiego (about
+  380 m south of the spawn, out of the first view), not by the plaza; after WCHODZĘ! the beacon
+  sends you up Marszałkowska to the ring on Plac Defilad.
 - **Night.** Accepting at the start ring jumps the clock to 21:00 (PR #582's WAIT TILL 21:00 card, the
   questline start's own thread).
 - **Meet 2** moved from the plaza south of the stadium (two fences through the ring) to the paved
