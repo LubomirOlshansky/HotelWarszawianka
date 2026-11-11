@@ -158,6 +158,7 @@ const BUDGET := {
 	"rotunda_dynasy": 1400,
 	"mpw": 3200,
 	"metropolitan": 3100,
+	"metropolsign": 320,  # 2026-11-10: Hotel Metropol rebuilt whole from F's photos (255 measured)
 	"muzeum": 3500,  # 2026-11-06 photo pass: a stone pier on every bay boundary, fence, flagpoles
 	"palace": 7600,   # 2026-11-07: 3696 -> 7288, Bar Studio's 34 deck chairs, tables, festoons and frame signs (same mesh, no new draw call)
 	"pawilony": 2100,
@@ -253,7 +254,8 @@ const BUDGET := {
 	"arkady": 2600,
 	"kino_muranow": 6000,
 	"zbawiciela": 1250,
-	"tarasy": 5700,
+	"tarasy": 6500,  # 2026-11-11 F's photos: the triangular glass wave, the guitar sign, the café terrace (5455)
+	"tarasy_plaza": 2750,  # 2026-11-11: the sunken plaza by the station: walls, shopfronts, railings, treads, umbrellas (2290)
 	"trojca": 2300,
 	"unit": 1160,
 	"varso": 2500,

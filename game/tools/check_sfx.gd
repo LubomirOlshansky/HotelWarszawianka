@@ -13,7 +13,7 @@ const Sfx := preload("res://scripts/sfx.gd")
 const LOOPS := ["engine_idle", "engine_mid", "engine_high", "tyre_roll", "tyre_wet", "tyre_squeal", "rotor",
 		"city_day", "city_night", "rain", "police_siren", "club_leak", "busker", "crowd_murmur", "steps_guitar",
 		"queue_chatter", "amb_river", "amb_park", "amb_square", "amb_yard", "fan_chant", "gong_bowls", "techno_thump",
-		"jazz_trio", "bike_roll", "bike_freewheel"]
+		"jazz_trio", "bike_roll", "bike_freewheel", "lift_hum"]
 
 
 func _initialize() -> void:

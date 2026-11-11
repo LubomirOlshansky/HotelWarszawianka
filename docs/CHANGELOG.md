@@ -9,9 +9,27 @@ that day here, in plain words a player would understand (no file names, no spoil
 rows in the progress log but no section here is listed automatically from the log's labels until
 someone writes its lines.
 
+## 2026-11-11
+- Eight new Podwózka passengers with their own stories and places to go: a shopper to Vipkac, an artist to Zachęta, a late violinist to the Philharmonic, a guide to the Polin Museum, an assistant to the Sejm, a lost tourist to Hotel Bristol, an actor playing a tree at Teatr Polski and a ghost-tour guide to the Barbican.
+- The MDM and BYDŁO roof neons now stand where the real ones do, together on the roof of Hotel MDM at the south end of Plac Konstytucji, facing the square, and the small HOTEL MDM sign is on that hotel's front.
+- The shisha night now really goes inside: at Senatorek you walk through the tower's lobby past the doorman, ride the lift up to the 38th floor watching the floor number climb, and the choices at the table are big buttons you can tap easily.
+- Senatorek's arrival now has sound: the revolving door swishes, the lift dings when it comes and when you reach the 38th floor, and the cabin hums on the ride up.
+- Złote Tarasy is remodelled from your photos: a blue glass wave roof with a triangle grid, the big 3D screen now on the tower's corner (a cat, the Around Warsaw promo and the NOSE. agency), the sunken plaza by the station with its stairs, and the red guitar by the café.
+- Ivan and Bogdan's shisha night: the way into the Senatorek lounge is now marked with a ring on the street and a gold light at the revolving door, and the choices (flavour, strength, the pipe's name) are made inside at the table, not on cards in the street.
+- Fewer texts over the road in missions and chases: the radio host and the news keep quiet while a quest runs, the city's chatter stops in a chase and only one person talks at a time, easter-egg cards wait until the chase is over, two notices no longer flash past each other, and friends' phone calls never ring during a quest or right after one.
+- The quest card is smaller: the hint folds away once read, no empty line, and the race challenge is a big button in the racer's colour with a chequered flag ("RACE · PANI HALINA, tap or L") instead of a line of text at the bottom.
+- People talking while you drive keep their bubbles off the road in front of the car.
+- The night car meet's start is no longer right next to where the game begins: Darek waits for you on Parkingowa, just past Rondo Dmowskiego, out of sight of the first view, and from there sends you up to the meet on Plac Defilad.
+- Mati's Smoła night no longer starts right beside your car when the game begins: for now he waits on Aleje Jerozolimskie by Rondo Dmowskiego instead.
+
 ## 2026-11-10
 - The Podwózka button no longer shows up while a mission, race, job, quest or tour is on.
 - In the drag race the shift button now sits where the gas pedal is, big under the thumb, and the gas stays down while you shift.
+- Friends now ring on a little phone on the right of the screen, with a ringtone, their face and a red Decline and green Answer button; their face also shows when they pitch the night out.
+- The horn button next to the brake is gone; the nitro button now sits right by the brake.
+- Hotel Metropol on Marszałkowska is rebuilt from your photos: cream balcony fronts, a dark glazed ground floor under a canopy, and its name (the parody METROPOLKA) in green on a white board on the roof, facing the street.
+- The hidden shisha night is easier to start: Ivan's secret signal now works anywhere in the city.
+- The "point where to go" steering option is gone from Settings: the car is always driven with left, right, gas and brake (the camera can still be switched off).
 - On Mati's nights out the arrow now points the way all the way to the club, the camera no longer keeps flying to the destination while you stand, the club door has a ring and a light to stop in, and for now any answers at the door get you in.
 - Quest friends now walk up to you in their start ring even while the first-steps guide is still running, so every quest on the map can be started from the start.
 - Street race rivals race at their own pace now. Nobody crawls beside a slow player, waits when you stop or lifts off before the finish, so a race you drive at town pace is a race you lose. Each rival is a different driver, from careful Pani Halina to Mordor Mike, and a rival who keeps beating you drives a little slower each time until you win.

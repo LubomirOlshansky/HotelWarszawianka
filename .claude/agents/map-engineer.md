@@ -26,6 +26,7 @@ whole map, verify it, and report. You don't spawn other agents.
 
 ## Read first
 
+0. docs/architecture/pipelines.md (the bake chain, both city paths) and systems.md section 2.
 1. The brief, CLAUDE.md, docs/WORKFLOW.md, and the bake-map skill.
 2. docs/archive/DEVELOPMENT-full.md "Map data", "Real roads (v0.75)", "Layout"; docs/DEMO.md for the demo area and
    its road defect list; docs/BACKLOG.md "From v0.75".

@@ -61,6 +61,7 @@ const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Beacon := preload("res://scripts/beacon.gd")
 const Access := preload("res://scripts/access.gd")
 const Notebook := preload("res://scripts/notebook.gd")
+const Messages := preload("res://scripts/messages.gd")
 const InstanceBuffers := preload("res://scripts/instance_buffers.gd")
 const Rave := preload("res://scripts/rave.gd")
 const Lang := preload("res://scripts/lang.gd")
@@ -84,6 +85,12 @@ const MEETS := [
 	{"id": "defilad", "name": ["Plac Defilad", "Plac Defilad"], "ll": [52.232327, 21.008892]},
 	{"id": "narodowy", "name": ["Parking pod Narodowym", "The car park by the National Stadium"], "ll": [52.241117, 21.043449]},
 ]
+## Where Darek waits in person (the questline's start pin, story_quests.gd): the kerb of Parkingowa
+## by Rondo Dmowskiego (F 2026-11-11: "not so close to the game's start, not so far, it should not be
+## visible from the starting scene"), about 380 m south of the spawn, past story_quests.gd's
+## BEACON_R, so the start's column and Darek are out of the first view. The meet itself stays on
+## Plac Defilad: after WCHODZĘ! the beacon sends you up Marszałkowska to the plaza.
+const START := {"street": "Parkingowa", "ll": [52.2287, 21.0137]}
 ## The drag strip: Aleja Zieleniecka's straight, north end `a` to south end `b`; the line START_AT m
 ## from `a`, the finish QUARTER m on.
 const STRIP := {"id": "zieleniecka", "name": ["Aleja Zieleniecka", "Aleja Zieleniecka"],
@@ -284,6 +291,9 @@ var meets: Array[Dictionary] = []
 ## The strip: {a: Vector2, dir: Vector2, side: Vector2 (right of dir), start: Vector2 (the line,
 ## the player's lane), lane_gap: float (the rival's lane to the left), watch: Vector3, ok: bool}.
 var strip := {}
+## The start's kerb (Rave.kerb_near on START's street), {} without a road there (main.gd then
+## uses Plac Defilad's door).
+var start := {}
 var meet_i := 0
 var place := 0
 var last_pay := []
@@ -381,6 +391,7 @@ func setup(world: Node3D, seed_value := -1) -> void:
 	if graph != null:
 		meets = find_meets(graph, map, origin)
 		strip = find_strip(graph, map, origin)
+		start = find_start(graph, origin)
 	_scene = Node3D.new()
 	_scene.name = "NightMeet"
 	_scene.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
@@ -538,6 +549,18 @@ static func find_meets(g: LaneGraph, m: Node3D, org: Array) -> Array[Dictionary]
 		meet["slots"] = slots
 		out.append(meet)
 	return out
+
+
+## The questline's start on this map: a kerb on START's street near its point (searched in rings,
+## as shisha.gd's kerb_named), {} when the map has no ground road there.
+static func find_start(g: LaneGraph, org: Array) -> Dictionary:
+	var q := Notebook.project(org, float(START["ll"][0]), float(START["ll"][1]))
+	for r: float in [0.0, 15.0, 30.0, 45.0, 60.0]:
+		for k in (1 if r == 0.0 else 12):
+			var kerb := Rave.kerb_near(g, q + Vector2(r, 0).rotated(TAU * k / 12.0), 40.0)
+			if not kerb.is_empty() and String(START["street"]) in String(kerb["street"]):
+				return kerb
+	return {}
 
 
 ## The drag strip on this map: the line START_AT m from the north end on the southbound lane
@@ -1165,9 +1188,8 @@ func ring() -> bool:
 	state = State.RING
 	_hold_t = 0.0
 	_t = 0.0
-	hud.show_side_card("📞 DAREK „BAWARKA” DZWONI", "Kumpel od aut. Jeździ Bawarką 3.2 i mówi o niej „ona”.",
-			PackedStringArray(["ODBIERZ|ANSWER", "ODRZUĆ|DECLINE"]), COLOUR, "Darek \"Bawarka\" is calling",
-			"Your car mate. Drives a Bawarka 3.2 and calls it \"she\".")
+	hud.show_call("Darek „Bawarka”|Darek \"Bawarka\"", "Kumpel od aut. O swojej Bawarce mówi „ona”.", COLOUR,
+			"Car mate. Calls his Bawarka \"she\".")
 	hud.ticker_out()
 	Access.buzz(60, 0.6)
 	_log("call ringing")
@@ -1187,7 +1209,7 @@ func _offer() -> void:
 	_t = 0.0
 	hud.show_side_card("📞 DAREK", "„Siema! Dziś spot %s na Placu Defilad. Lena kręci bączki, Tadek przywiózł Skajlajnera. Wpadasz? Tylko cicho, bo psy też czytają internet.”" % CLUB,
 			PackedStringArray(["JADĘ!|ON MY WAY", "NIE DZIŚ|NOT TONIGHT"]), COLOUR, FRIEND,
-			"\"Hey! The %s meets tonight on Plac Defilad. Lena's doing donuts, Tadek brought the Skajlajner. You in? Keep it quiet, the cops read the internet too.\"" % CLUB)
+			"\"Hey! The %s meets tonight on Plac Defilad. Lena's doing donuts, Tadek brought the Skajlajner. You in? Keep it quiet, the cops read the internet too.\"" % CLUB, false, "Darek")
 
 
 func _on_card(i: int) -> void:
@@ -1473,11 +1495,12 @@ func _pin() -> void:
 	if meet_i == 0:
 		var m: Dictionary = meets[1]
 		hud.show_note("TYGRAM · WNRC", Lang.pick("📍 %s. Kto pierwszy, ten lepszy. Psy szukają nas tutaj, nie tam." % m["name"][0],
-				"📍 %s. First there wins. The cops are looking for us here, not there." % m["name"][1]), PIN_COLOUR)
+				"📍 %s. First there wins. The cops are looking for us here, not there." % m["name"][1]), PIN_COLOUR,
+				Messages.QUEST_LINE)  # the quest's own message: shows in the chase (messages.gd)
 		_start_race()
 	else:
 		hud.show_note("TYGRAM · WNRC", Lang.pick("📍 Zieleniecka, pod dworcem Stadion. Drag. %s" % MOTTO[0],
-				"📍 Zieleniecka, by Stadion station. Drag. %s" % MOTTO[1]), PIN_COLOUR)
+				"📍 Zieleniecka, by Stadion station. Drag. %s" % MOTTO[1]), PIN_COLOUR, Messages.QUEST_LINE)
 		_release_racers()
 		_show_gate(true)
 		state = State.TO_DRAG

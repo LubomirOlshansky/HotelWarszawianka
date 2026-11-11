@@ -328,6 +328,8 @@ func _ring() -> void:
 	if _hospitals.is_empty():
 		return
 	state = State.RINGING
+	if hud.get("messages") != null:
+		hud.messages.call_rang()
 	hud.show_pill("WEZWANIE", "rescue call")
 	if hud.pad_mode:
 		hud.toast(Gamepad.fmt("Wezwanie ratunkowe! {a}: odbierz."), Gamepad.fmt("A rescue call came in: {a} to answer."))
@@ -425,7 +427,13 @@ func tick(dt: float, pos: Vector3, speed: float, flying: bool) -> void:
 			warm_haptics()
 		_call_in -= dt
 		if _call_in < 0.0:
-			_ring()
+			# The message director (hud-messages.md, F 2026-11-11): a rescue rings only when the
+			# HUD's call gate says so (free roam, settled, spaced from any other call); till then
+			# it waits at zero.
+			if hud != null and hud.has_method("call_ok") and not hud.call_ok():
+				_call_in = 0.0
+			else:
+				_ring()
 	if not has_target():
 		return
 	if not calls_off:

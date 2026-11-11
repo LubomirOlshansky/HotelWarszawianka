@@ -81,6 +81,12 @@ levels (if their folder is given) to balance the buses against.
   phone_shutter  a phone's camera shutter: a click and a short noise slide, 0.15 s
   cafe_bell      a café door's bell: three little tings, 0.9 s
   frog_chime     loop MW-2: the Frogs shop's door, a two-note croak "kum-kum" and a ting, 0.8 s
+  door_swish     Senatorek (lounge.gd): WFC's revolving door, 1.8 s: a rubber-seal thump, then
+      wind through the wings swelling and fading, pulsing at the four wings' passing
+  lift_ding      Senatorek (lounge.gd): a lift arriving, 1.6 s: one soft bell at 1,568 Hz, a quiet
+      fifth under it at 1,047 Hz a beat later
+  lift_hum       Senatorek (lounge.gd): the cabin's ride, a 2 s loop: a 50 / 100 / 150 Hz motor
+      hum (whole cycles, so the loop is seamless) and low band-passed rush of the shaft
   scooter_clatter loop MW-2: a Leżak knocked over: a clank, a thud, a rattle, 0.7 s
   fan_chant      the fans by Stadion Leguminy (fans.gd): a belly drum and a wordless crowd tune
       in unison at 120 BPM, a cheer at the phrase's end (an 8 s loop)
@@ -1111,6 +1117,52 @@ def cafe_bell(seed):
     return fade(out, 0.0, 0.08)
 
 
+def door_swish(seed):
+    """Senatorek's revolving door (lounge.gd): a rubber-seal thump, then wind through the four
+    wings, swelling and fading and pulsing as each wing passes, 1.8 s."""
+    rnd = random.Random(seed)
+    n = int(1.8 * RATE)
+    w = noise(n, rnd)
+    body = biquad(w, "bp", 520.0, 0.9)
+    air = biquad(w, "hp", 2200.0, 0.7)
+    out = zeros(n)
+    for i in range(n):
+        t = i / RATE
+        swell = math.sin(math.pi * min(1.0, t / 1.8)) ** 2
+        wing = 0.65 + 0.35 * math.cos(2.0 * math.pi * 3.2 * t)
+        out[i] = swell * wing * (body[i] + 0.22 * air[i])
+    for i in range(int(0.09 * RATE)):
+        t = i / RATE
+        out[i] += 0.9 * math.sin(2.0 * math.pi * 78.0 * t) * math.exp(-t * 45.0)
+    return fade(out, 0.004, 0.25)
+
+
+def lift_ding(seed):
+    """Senatorek's lift arriving (lounge.gd): one soft bell at 1,568 Hz, a quiet fifth under it
+    a beat later, 1.6 s."""
+    rnd = random.Random(seed)
+    n = int(1.6 * RATE)
+    out = zeros(n)
+    for at, f, g in ((0.0, 1568.0, 1.0), (0.32, 1047.0, 0.35)):
+        sig = bell(n - int(at * RATE), [(f, 1.0, 0.55), (f * 2.0, 0.18, 0.3), (f * 3.01, 0.06, 0.15)], 0.1, rnd)
+        place(out, sig, int(at * RATE), g)
+    return fade(out, 0.0, 0.2)
+
+
+def lift_hum(seed):
+    """Senatorek's lift ride (lounge.gd): a loop of 2 s, a motor hum at 50 / 100 / 150 Hz (whole
+    cycles in the loop, so the seam is clean) and the shaft's low band-passed rush."""
+    rnd = random.Random(seed)
+    n = 2 * RATE
+    out = zeros(n)
+    for i in range(n):
+        t = i / RATE
+        out[i] = (math.sin(TAU * 50.0 * t) + 0.55 * math.sin(TAU * 100.0 * t)
+                  + 0.25 * math.sin(TAU * 150.0 * t) + 0.08 * math.sin(TAU * 400.0 * t))
+    rush = biquad(noise(n, rnd), "bp", 220.0, 0.7, True)
+    return biquad(mix((1.0, out), (0.6, rush)), "lp", 900.0, 0.7, True)
+
+
 def frog_chime(seed):
     """Loop MW-2: the Frogs shop's door chime, a two-note croak ("kum-kum"): two low-mid tones
     pulsed at a frog's 28 Hz, the second a fourth under, a soft ting over the first, 0.8 s."""
@@ -1819,7 +1871,7 @@ def station_gong(seed):
 LOOPS = ["engine_idle", "engine_mid", "engine_high", "tyre_roll", "tyre_wet", "tyre_squeal", "rotor",
          "city_day", "city_night", "rain", "police_siren", "club_leak", "busker", "crowd_murmur", "steps_guitar",
          "queue_chatter", "amb_river", "amb_park", "amb_square", "amb_yard", "fan_chant", "gong_bowls", "techno_thump",
-         "jazz_trio", "bike_roll", "bike_freewheel"]
+         "jazz_trio", "bike_roll", "bike_freewheel", "lift_hum"]
 
 
 def loud_rev(seed):
@@ -1928,6 +1980,9 @@ CITY = {"club_leak": lambda: [club_leak(71)], "metro_chime": lambda: [metro_chim
         # The railway audit (trains.gd): the wheels, the wheels on a bridge, the horn, the platform gong.
         "train_rumble": lambda: [train_pass(103, False)], "train_bridge": lambda: [train_pass(104, True)],
         "train_horn": lambda: [train_horn(105)], "station_gong": lambda: [station_gong(106)],
+        # Senatorek's arrival (lounge.gd): the revolving door, the lift's ding, the ride's hum.
+        "door_swish": lambda: [door_swish(109)], "lift_ding": lambda: [lift_ding(110)],
+        "lift_hum": lambda: [lift_hum(111)],
         # The coffee run's bike (sfx.gd mode "bike"): the ride and the coasting hub.
         "bike_roll": lambda: [bike_roll(2.0, 107)], "bike_freewheel": lambda: [bike_freewheel(2.0, 108)]}
 

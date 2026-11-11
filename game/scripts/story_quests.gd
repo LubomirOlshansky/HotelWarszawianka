@@ -296,13 +296,13 @@ func _greet(i: int) -> void:
 	if open_at(d, float(c[0]), int(c[1])) or jump:
 		var hello: Array = d["hello"]
 		hud.show_side_card(title_pl, str(hello[0]), PackedStringArray(["WCHODZĘ!|I'M IN!", "NIE TERAZ|NOT NOW"]),
-				d["colour"], title_en, str(hello[1]))
+				d["colour"], title_en, str(hello[1]), false, str(who[1]))
 		_log("%s: %s walks up (open)" % [d["id"], who[1]])
 	else:
 		var closed: Array = d["closed"]
 		var pl := "%s (%s)" % [closed[0], when_text(d, true)]
 		var en := "%s (%s)" % [closed[1], when_text(d, false)]
-		hud.show_side_card(title_pl, pl, closed_buttons(d, skip_to.is_valid()), d["colour"], title_en, en)
+		hud.show_side_card(title_pl, pl, closed_buttons(d, skip_to.is_valid()), d["colour"], title_en, en, false, str(who[1]))
 		_log("%s: %s walks up (closed now)" % [d["id"], who[1]])
 	if auto_yes:
 		get_tree().create_timer(1.0).timeout.connect(func() -> void:

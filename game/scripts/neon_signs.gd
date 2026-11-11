@@ -73,6 +73,9 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		"VERSO PLACE",
 		# The Skyliner's crown (docs/design/city-life-satire.md #12): a small agency with a large nose.
 		"NOSE AGENCY", "NOSE", "AGENCY",
+		# Złote Tarasy (F, 2026-11-11): the mall's gold name on its grey box as a parody (big and
+		# small word, as the real box), and the guitar café's parody name on the badge and the door.
+		"ZŁOTE", "TARASKI", "HARD BLOK", "CAFE",
 		# Warsaw Unit's crown (the photo report, 2026-11-03): a parody of the insurer's logo.
 		"WARTKA", "MBĄK",
 		# Bracka and Plac Trzech Krzyży (photo builds, 2026-11-03): Vitkac's and the Sheraton's
