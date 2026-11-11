@@ -17,6 +17,9 @@ extends RefCounted
 ##   more; a near miss at most once in NEAR_MISS_GAP s.
 ## - AMBIENT also waits while a card (a job's, a ride's, the full map) is up.
 ## - Toasts (hud.gd ambient_toast): flavour toasts are dropped while quiet.
+## - The context (messages.gd, set by hud.gd each frame, docs/design/hud-messages.md): while a quest
+##   runs no AMBIENT line; in a chase or a scripted moment no REACTION either, and one bubble at a
+##   time (`max_on_screen`): the quest's newest line takes the place of the one before.
 ##
 ## The setting (Settings → ŚWIAT → Gadatliwość miasta, settings.gd `chatter`): Mało / Średnio
 ## (default) / Dużo picks the gap (GAPS). Pure state on its own clock: tools/check_chatter.gd
@@ -49,6 +52,8 @@ const READ_MIN := 3.0
 const READ_MAX := 11.0
 
 var level := DEFAULT_LEVEL
+## messages.gd's context now: 0 free roam, 1 a quest, 2 a chase, 3 a scripted moment (hud.gd sets it).
+var context := 0
 var clock := 0.0
 ## The player's speed now (km/h) and whether a card is up; set by tick().
 var kmh := 0.0
@@ -69,6 +74,11 @@ var _hit_kmh := 0.0
 static func read_time(text: String) -> float:
 	var t := READ_BASE + text.length() * READ_PER_CHAR
 	return clampf(t * Access.text_scale, READ_MIN, READ_MAX * Access.text_scale)
+
+
+## How many bubbles may be up at once: MAX_ON_SCREEN, one in a chase or a scripted moment.
+func max_on_screen() -> int:
+	return 1 if context >= 2 else MAX_ON_SCREEN
 
 
 func gap() -> float:
@@ -109,7 +119,9 @@ func hit(speed_kmh: float) -> void:
 func allows(kind: int, on_screen := 0, key := "") -> bool:
 	if kind == QUEST or kind == POLICE:
 		return true
-	if quiet() or kmh > MUTE_KMH or on_screen >= MAX_ON_SCREEN:
+	if (context >= 1 and kind == AMBIENT) or (context >= 2 and kind == REACTION):
+		return false
+	if quiet() or kmh > MUTE_KMH or on_screen >= max_on_screen():
 		return false
 	if clock - _last_new < gap():
 		return false

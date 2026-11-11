@@ -16,6 +16,7 @@ extends SceneTree
 ##      `calm`; the club's lights stay inside the room, the dance's beat check is on the beat;
 ##   5. the real lane graph: every spot and Smoła found with a door on a ground road within 160 m,
 ##      Mati's pickup found from 30 seeded places, a meeting point 260-820 m from each night spot;
+##      both starts on a ground road, 300 m apart, and past the start beacon's reach from the spawn;
 ##   6. main.gd's arrow: every quest branch of `_show_target` ends in a return, so the next branch's
 ##      "nothing on" can't hide the arrow and re-fire the camera's look every frame (F 2026-11-10).
 ## Prints "check_rave: OK (...)" or the problems (exit 1).
@@ -25,6 +26,7 @@ const Rave := preload("res://scripts/rave.gd")
 const Club := preload("res://scripts/club.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Notebook := preload("res://scripts/notebook.gd")
+const Story := preload("res://scripts/story_quests.gd")
 const BUBBLE := 90
 
 
@@ -60,7 +62,8 @@ func _run() -> void:
 	var map := FakeMap.new()
 	root.add_child(map)
 	var g := LaneGraph.new(data["graph"], map)
-	_check_map(g, map, data.get("origin", [52.234, 21.024]), digest)
+	var sp: Dictionary = data.get("spawn", {})
+	_check_map(g, map, data.get("origin", [52.234, 21.024]), digest, Vector2(float(sp.get("x", 0.0)), float(sp.get("z", 0.0))))
 	if problems.is_empty():
 		print("check_rave: OK (%s)" % " · ".join(digest))
 		quit(0)
@@ -261,7 +264,7 @@ func _check_door(digest: PackedStringArray) -> void:
 	digest.append("door 80 quizzes, room and patio lights inside")
 
 
-func _check_map(g: LaneGraph, map: Node3D, origin: Array, digest: PackedStringArray) -> void:
+func _check_map(g: LaneGraph, map: Node3D, origin: Array, digest: PackedStringArray, spawn: Vector2) -> void:
 	var spots := Rave.find_spots(g, map, origin)
 	if spots.size() != Rave.SPOTS.size():
 		var found := spots.map(func(s: Dictionary) -> String: return s["id"])
@@ -269,7 +272,7 @@ func _check_map(g: LaneGraph, map: Node3D, origin: Array, digest: PackedStringAr
 	var club := Rave.find_club(g, map, origin)
 	if club.is_empty():
 		problems.append("Smoła has no door on a ground road")
-	# The two questlines' starts in person (F 2026-11-09): Mati's block and pod Rotundą, each on a
+	# The two questlines' starts in person (F 2026-11-09): Mati's block and Jerozolimskie, each on a
 	# ground road, far enough apart to be two badges on the map.
 	var starts: Array[Vector2] = []
 	for ll: Array in [Rave.HOME_LL, Rave.SMOLA_START_LL]:
@@ -278,6 +281,10 @@ func _check_map(g: LaneGraph, map: Node3D, origin: Array, digest: PackedStringAr
 			problems.append("no ground road within 120 m of the start %s" % [ll])
 		else:
 			starts.append(Vector2(k["at"].x, k["at"].z))
+	# No start in the game's first view (F 2026-11-11): past the start beacon's reach from the spawn.
+	for s: Vector2 in starts:
+		if s.distance_to(spawn) <= Story.BEACON_R + 20.0:
+			problems.append("a start %.0f m from the spawn (want over %.0f m)" % [s.distance_to(spawn), Story.BEACON_R + 20.0])
 	if starts.size() == 2 and starts[0].distance_to(starts[1]) < 300.0:
 		problems.append("the rave's and Smoła's starts are %.0f m apart" % starts[0].distance_to(starts[1]))
 	var rng := RandomNumberGenerator.new()

@@ -27,6 +27,7 @@ the brief you were given, verify it, and report. You don't spawn other agents.
 
 ## Read first
 
+0. docs/architecture/README.md and extending.md (the owner your change plugs into); systems.md or city-ai.md for your area.
 1. The brief, then CLAUDE.md and docs/WORKFLOW.md.
 2. docs/archive/DEVELOPMENT-full.md: the section for the feature you touch, the flags table, "Performance budgets".
 3. docs/BACKLOG.md for known issues in your area.

@@ -5872,7 +5872,9 @@ Command-line options (after `--`):
 | `--padel-log` | arcade padel: one line per point, the match's in and out |
 | `--shisha-call` | shisha night (shisha.gd): Ivan rings now (ODBIERZ, then JADĘ!) |
 | `--shisha-meet` | shisha night: the car at Ivan's kerb in 19. Dzielnica, Ivan gets in, on to Bogdan at the Żelazna court |
-| `--shisha-lounge` | shisha night: straight into SENATOREK (lounge.gd), the mini-game playing itself (best jars, clean coal and draw), then PALIĆ |
+| `--shisha-door` | shisha night: both friends in, the car 25 m up Emilii Plater from the lounge's kerb, facing the entrance's teal kerb ring and gold door ring |
+| `--shisha-arrive` | shisha night: as `--shisha-door`, the car stopped in the kerb ring: they walk in, the lounge plays itself from the door (the lobby and the doorman, the lift ride to 38, the three choices at the table, the mini-game, PALIĆ) |
+| `--shisha-lounge` | shisha night: straight into SENATOREK (lounge.gd) from the lift ride, the mini-game playing itself (best jars, clean coal and draw), then PALIĆ |
 | `--shisha-terrace` | shisha night: as `--shisha-lounge`, then TARAS (the terrace with the Palace) |
 | `--shisha-hold` | shisha night's hidden start: "+" held 2 s (no call), then 4.5 s (Ivan rings), wherever the car is |
 | `--shisha=0` / `--shisha-log` | no shisha night / its steps in the log (shisha: ..., lounge: ...) |

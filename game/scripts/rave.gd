@@ -24,7 +24,7 @@ extends Node3D
 ## while it runs.
 ##
 ## **Two questlines** (story_quests.gd, F 2026-11-09): "Sekretny rave" starts in person at Mati's
-## block (HOME_LL), "Smoła" pod Rotundą (SMOLA_START_LL); each has its own badge and WĄTKI row
+## block (HOME_LL), "Smoła" on Jerozolimskie by Rondo Dmowskiego (SMOLA_START_LL); each has its own badge and WĄTKI row
 ## (ring("rave") / ring("smola"), meet_in_person(kind), busy_kind(kind)).
 ##
 ## Cost: idle, a 0.25 s timer; while a spot is active and near, four draw calls (the lights'
@@ -64,9 +64,12 @@ const SPOTS := [
 ## Mati's block (story_quests.gd's start spot, F 2026-11-07): Osiedle Za Żelazną Bramą, the
 ## big slab blocks by Hala Mirowska; drive there in the evening and he comes out to talk.
 const HOME_LL := [52.2366, 20.9983]
-## Where Mati waits for a Smoła night (F 2026-11-09: two questlines, two starts on the map): pod
-## Rotundą, Warsaw's oldest meeting point, about 800 m from the club's door on Smolna.
-const SMOLA_START_LL := [52.2317, 21.0110]
+## Where Mati waits for a Smoła night (F 2026-11-09: two questlines, two starts on the map). It
+## was meant pod Rotundą, but 52.2317 put it 150 m north of the Rotunda, on the spawn, its red
+## column in the game's first view (F 2026-11-11: no quest start in the starting scene). Now on
+## the kerb of Aleje Jerozolimskie by Emilii Plater, west of Rondo Dmowskiego, about 380 m from
+## the spawn: past story_quests.gd's 320 m start beacon.
+const SMOLA_START_LL := [52.2289, 21.0067]
 ## Smoła, the club on Smolna (places.json `smola`): Mati's other night out, the Berlin-style door.
 const SMOLA := {"id": "smola", "name": "Smoła", "ll": [52.23261, 21.0218]}
 ## The door's questions (three a night, shuffled; "pw" is the password LEKTI gave, asked only at a
@@ -939,9 +942,8 @@ func ring(k := "") -> bool:
 		quest_spot = night_spot
 	state = State.RING
 	_ring_t = 0.0
-	hud.show_side_card("📞 MATI DZWONI", "Kumpel z osiedla. Zawsze na czarno, zawsze wie, gdzie jest impreza, zanim ktokolwiek o niej usłyszy.",
-			PackedStringArray(["ODBIERZ|ANSWER", "ODRZUĆ|DECLINE"]), COLOUR, "Mati is calling",
-			"Your mate from the estate. Always in black, always knows where the party is before anyone's heard of it.")
+	hud.show_call("Mati", "Kumpel z osiedla. Wie o imprezie, zanim powstała.", COLOUR,
+			"Estate mate. Knows the party before it exists.")
 	hud.ticker_out()
 	Access.buzz(60, 0.6)
 	_log("call ringing")
@@ -955,7 +957,7 @@ func meet_in_person(k := "rave") -> bool:
 		return false
 	var p: Vector3 = vehicle.call()[0]
 	if k == "smola":
-		# Pod Rotundą (SMOLA_START_LL): straight to the club, no password, no meeting point.
+		# At the Smoła start (SMOLA_START_LL): straight to the club, no password, no meeting point.
 		if smola.is_empty():
 			return false
 		kind = "smola"
@@ -965,7 +967,7 @@ func meet_in_person(k := "rave") -> bool:
 		_calls_were = missions.paused if missions != null else false
 		if missions != null:
 			missions.paused = true
-		_log("met Mati in person pod Rotundą; to Smoła")
+		_log("met Mati in person at the Smoła start; to Smoła")
 		_board()
 		return true
 	if spots.is_empty():
@@ -1013,7 +1015,7 @@ func _offer() -> void:
 	elif not heard:
 		pl = "„Siema! Lekti robi dziś sekretny rave. Ja wiem, jak tam trafić. Zgarniesz mnie spod bloku na %s? Hasło? Trzeba było słuchać MORDOR FM…”" % street
 		en = "\"Hey! Lekti's throwing a secret rave tonight. I know how to get there. Pick me up from my block on %s? The password? You should've listened to MORDOR FM…\"" % street_en
-	hud.show_side_card("📞 MATI", pl, PackedStringArray(["JADĘ!|ON MY WAY", "NIE DZIŚ|NOT TONIGHT"]), COLOUR, FRIEND, en)
+	hud.show_side_card("📞 MATI", pl, PackedStringArray(["JADĘ!|ON MY WAY", "NIE DZIŚ|NOT TONIGHT"]), COLOUR, FRIEND, en, false, "Mati")
 	_log("offer: Mati on %s at %d,%d" % [street_en, roundi(pickup["at"].x), roundi(pickup["at"].z)])
 
 
