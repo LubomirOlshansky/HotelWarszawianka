@@ -12,8 +12,12 @@ extends Node3D
 ## teak armchairs with cream cushions, the tower's glass wall behind, a glass balustrade, the
 ## Palace's tower beyond it over a field of city lights, bulb garlands.
 ##
-## The evening, in steps: the arrival (the doorman's dress-code joke at the door, the lift to the
-## 38th floor: F 2026-11-11 wanted the quest inside, not on cards in the street), the waiter's order
+## The evening, in steps: the arrival (F 2026-11-11 wanted the quest inside, not on cards in the
+## street): the LOBBY of Warsaw Financial Centre (LOBBY, in the same mesh, out of the room's view)
+## where the three come out of the revolving door, walk up to the doorman at his lectern by the
+## lounge's lift (his dress-code joke), then into the lift while its doors slide open; the LIFT's
+## cabin (CAB), the floor number over its door counting up to the 38th while they talk, its doors
+## opening on the lounge's glow; then the room and the waiter's order
 ## (Ivan a pale beer, Bogdan green tea), the three choices at the table on the panel (whose flavour,
 ## how strong, the pipe's name: Shisha.vote_card; a choice already made is skipped), then the
 ## mini-game "Miks u Mistrza" with Mistrz Dymek: two jars of six on a sweet/cool chart (Ivan's and
@@ -24,8 +28,9 @@ extends Node3D
 ## haze), TARAS (the same on the terrace) or WYJDŹ. Every guest can be tapped (data/shisha.json
 ## "taps").
 ##
-## Cost: four draw calls (the room and terrace mesh, the people, the smoke, the warm light cones);
-## the city is out of view. Built once, on the first visit.
+## Cost: six draw calls (the room, terrace, lobby and cabin mesh, the people, the smoke, the warm
+## light cones, the moving parts: the lift doors and the revolving door's wings in one MultiMesh,
+## and the floor number, a Label3D); the city is out of view. Built once, on the first visit.
 
 const Models := preload("res://scripts/models.gd")
 const Rave := preload("res://scripts/rave.gd")
@@ -47,6 +52,42 @@ const VIEW := 15.5
 const TER_VIEW := 17.0
 const YAW := 45.0
 ## Our table (room-local) and on the terrace.
+## The lobby on WFC's ground floor (room-local, out of the room's and the terrace's view): the
+## revolving door at the front, the reception at the back, three lifts on the left wall, ours
+## nearest the front with the doorman's lectern beside it.
+const LOBBY := Vector3(-70.0, 0.0, 0.0)
+const LOB := Vector2(16.0, 11.0)
+const LOB_H := 5.6
+const LOB_VIEW := 13.0
+## The lift's cabin (room-local): its door on the left wall, the floor number over it.
+const CAB := Vector3(-70.0, 0.0, -60.0)
+const CAB_SIZE := Vector2(2.6, 2.2)
+const CAB_H := 2.7
+const CAB_VIEW := 6.5
+const FLOOR := 38
+## The walk (LOBBY-local): out of the revolving door (REV), to the doorman (MEET), into our lift.
+const REV := Vector3(4.5, 0.0, 5.5)
+const REV_R := 1.35
+const REV_IN := Vector3(4.5, 0.0, 4.9)
+const MEET := Vector3(-4.1, 0.0, 3.4)
+const DOORMAN := Vector3(-6.0, 0.0, 4.5)
+const LIFT_Z := 2.4
+const LIFTS_Z := [-3.2, -0.4, LIFT_Z]
+const LIFT_FRONT := Vector3(-7.0, 0.0, 2.4)
+const LIFT_IN := Vector3(-8.9, 0.0, 2.4)
+## The three in a loose group (Ivan leads), and where they stand in the cabin (CAB-local).
+const GROUP := [Vector3(0, 0, 0), Vector3(0.75, 0, -0.55), Vector3(0.8, 0, 0.55)]
+const CAB_SPOTS := [Vector3(0.1, 0, -0.5), Vector3(0.65, 0, 0.3), Vector3(-0.35, 0, 0.45)]
+const WALK_A := 4.0
+const WALK_B := 3.0
+const DOOR_S := 1.0
+## The answers at the table, one under the other at a thumb's height, and the jars (F 2026-11-11:
+## big enough to tap on the phone; Apple's minimum is 44 pt).
+const CHOICE_BTN := Vector2(300, 56)
+const JAR_BTN := Vector2(92, 52)
+## The speakers' names in English (one language on screen: Lang.pick).
+const SPEAKER_EN := {"Ty": "You", "Bramkarz": "Doorman", "Recepcja": "Reception", "Winda": "Lift",
+		"Kelner": "Waiter", "Mistrz": "Master Dymek", "Goście": "Guests", "Oliwka": "Olive tree"}
 const OURS := Vector3(-1.2, 0.0, 0.6)
 const OURS_TER := TERRACE + Vector3(-1.0, 0.0, 0.8)
 const TEAL := Color("#2fb8a0")
@@ -84,7 +125,7 @@ const JAR_COLOURS := {"arbuz": Color("#e8506a"), "jablko": Color("#9fd04a"), "gu
 const JAR_SHORT := {"arbuz": ["ARBUZ", "MELON"], "jablko": ["JABŁKO", "APPLE"], "guma": ["GUMA", "GUM"],
 		"ogorek": ["OGÓREK", "CUCUMBER"], "mgla": ["MGŁA", "MIST"], "zupa": ["ZUPA", "SOUP"]}
 
-enum Step { NONE, ARRIVE, ORDER, CHOOSE, JARS, COAL, DRAW, RESULT, SMOKE }
+enum Step { NONE, LOBBY, LIFT, ORDER, CHOOSE, JARS, COAL, DRAW, RESULT, SMOKE }
 
 ## How it ended ("smoke", "terrace", "leave") and the score 0..9.
 signal done(how: String, score: int)
@@ -158,9 +199,22 @@ var _bar: Control
 var _jar_box: GridContainer
 var _jar_btns: Dictionary = {}
 var _act: Button
-var _choice_box: HBoxContainer
+var _choice_box: VBoxContainer
 var _choice_btns: Array[Button] = []
-var _up := false
+## The arrival: the walk's phase and its clock, the lifts' doors (0 shut .. 1 open), the revolving
+## door's turn, the floor on the indicator, the line time the lobby and the ride last.
+var _phase := 0
+var _walk_t := 0.0
+var _door := 0.0
+var _cab_door := 0.0
+var _spin := 0.0
+var _floor_now := -1
+var _eta := 1.0
+var _cab_centre := Vector3.ZERO
+var _movers: MultiMeshInstance3D
+var _floor_lbl: Label3D
+## The doorman's and the receptionist's instances in the people MultiMesh.
+var _lobby_i := 0
 var _buttons: HBoxContainer
 var _smoke_btn: Button
 var _terrace_btn: Button
@@ -313,6 +367,8 @@ static func room_mesh() -> ArrayMesh:
 	Models.box(st, Vector3(hx - 1.3, 1.25, -hz + 0.06), Vector3(1.4, 2.5, 0.06), Color("#ffd89a"), Models.LIT_SIGN)
 	Models.box(st, Vector3(hx - 1.3, 2.62, -hz + 0.09), Vector3(1.0, 0.14, 0.03), TEAL, Models.LIT_SIGN)
 	_terrace(st, rng)
+	_lobby(st, rng)
+	_cabin(st)
 	return warm(st.commit(), INNER_GLOW)
 
 
@@ -551,19 +607,164 @@ static func _terrace(st: SurfaceTool, rng: RandomNumberGenerator) -> void:
 			Models.box(st, a.lerp(b, t) - Vector3(0, sin(t * PI) * 0.6, 0), Vector3(0.1, 0.12, 0.1), Color("#fff1c4") if i % 3 else Color("#ffd27a"), Models.LIT_SIGN)
 
 
+## The lobby (LOBBY, room-local; F 2026-11-11): Warsaw Financial Centre's ground floor at night.
+## Grey granite in big slabs, a charcoal runner from the revolving door to the lifts, the
+## travertine back wall with the centre's name over the reception desk, the left wall in lighter
+## stone with three steel lifts (ours nearest the front, its doors in `_movers`, the lit cabin
+## behind them), the doorman's black lectern and the lounge's brass stand "38 SENATOREK" beside
+## it, a velvet rope before the other two, planters and a bench. The revolving door at the front
+## edge: the glass drum's two curved sides and its roof (the four wings turn in `_movers`).
+static func _lobby(st: SurfaceTool, rng: RandomNumberGenerator) -> void:
+	var o := LOBBY
+	var hx := LOB.x * 0.5
+	var hz := LOB.y * 0.5
+	Models.box(st, o + Vector3(0, -0.1, 0), Vector3(LOB.x, 0.2, LOB.y), Color("#a8a59d"), Models.FIXED)
+	for i in range(1, 11):
+		Models.box(st, o + Vector3(-hx + i * 1.5, 0.005, 0), Vector3(0.02, 0.01, LOB.y), Color("#93908a"), Models.FIXED)
+	for i in range(1, 8):
+		Models.box(st, o + Vector3(0, 0.005, -hz + i * 1.5), Vector3(LOB.x, 0.01, 0.02), Color("#93908a"), Models.FIXED)
+	Models.box(st, o + Vector3(-1.4, 0.012, 3.3), Vector3(11.4, 0.02, 1.8), Color("#2a2624"), Models.FIXED)
+	Models.box(st, o + Vector3(REV.x, 0.012, 4.6), Vector3(1.8, 0.02, 1.4), Color("#2a2624"), Models.FIXED)
+	# The cut-away front and right: a dark sill, the pavement outside the revolving door.
+	Models.box(st, o + Vector3(-1.0, 0.08, hz - 0.05), Vector3(LOB.x - 2.0 - 0.0, 0.16, 0.1), Color("#3a3c40"), Models.FIXED)
+	Models.box(st, o + Vector3(hx - 0.05, 0.08, 0), Vector3(0.1, 0.16, LOB.y), Color("#3a3c40"), Models.FIXED)
+	Models.box(st, o + Vector3(REV.x, -0.12, hz + 1.6), Vector3(4.2, 0.2, 3.2), Color("#5e5e60"), Models.FIXED)
+	# The back wall: travertine panels, the centre's name in steel, the reception desk.
+	var trav := Color("#d8d0c0")
+	Models.box(st, o + Vector3(0, LOB_H * 0.5, -hz - 0.15), Vector3(LOB.x, LOB_H, 0.3), trav, Models.FIXED)
+	for i in range(1, 8):
+		Models.box(st, o + Vector3(-hx + i * 2.0, LOB_H * 0.5, -hz + 0.005), Vector3(0.03, LOB_H, 0.02), Color("#c4bba9"), Models.FIXED)
+	Models.box(st, o + Vector3(0, 0.12, -hz + 0.02), Vector3(LOB.x, 0.24, 0.05), Color("#2a2a2e"), Models.FIXED)
+	var title := "WARSAW FINANCIAL CENTRE"
+	var px := 0.045
+	PixelFont.add_quads(st, title, o + Vector3(2.0 - PixelFont.width(title) * px * 0.5, 4.5, -hz + 0.03), Vector3(1, 0, 0), Vector3(0, -1, 0), px, Color("#55585e"), Models.FIXED)
+	var desk := o + Vector3(2.0, 0, -hz + 1.6)
+	Models.box(st, desk + Vector3(0, 0.52, 0), Vector3(5.0, 1.04, 0.8), Color("#26262a"), Models.FIXED)
+	Models.box(st, desk + Vector3(0, 1.07, 0), Vector3(5.2, 0.06, 0.95), Color("#e2d9c8"), Models.FIXED)
+	Models.box(st, desk + Vector3(0, 0.1, 0.42), Vector3(4.8, 0.04, 0.02), Color("#ffe2a8"), Models.LIT_SIGN)
+	for x: float in [-1.2, 1.0]:
+		Models.box(st, desk + Vector3(x, 1.32, -0.15), Vector3(0.5, 0.32, 0.04), Color("#141416"), Models.FIXED)
+		Models.box(st, desk + Vector3(x, 1.32, -0.12), Vector3(0.44, 0.26, 0.01), Color("#6a8ab0"), Models.LIT_WINDOW)
+	# The left wall: lighter stone, our lift's opening, the lit cabin behind it.
+	var stone := Color("#cfc6b4")
+	var lo := LIFT_Z - 0.6
+	var hi := LIFT_Z + 0.6
+	Models.box(st, o + Vector3(-hx - 0.15, LOB_H * 0.5, (-hz + lo) * 0.5), Vector3(0.3, LOB_H, lo + hz), stone, Models.FIXED)
+	Models.box(st, o + Vector3(-hx - 0.15, LOB_H * 0.5, (hi + hz) * 0.5), Vector3(0.3, LOB_H, hz - hi), stone, Models.FIXED)
+	Models.box(st, o + Vector3(-hx - 0.15, (2.4 + LOB_H) * 0.5, LIFT_Z), Vector3(0.3, LOB_H - 2.4, 1.2), stone, Models.FIXED)
+	Models.box(st, o + Vector3(-hx + 0.02, 0.12, 0), Vector3(0.05, 0.24, LOB.y), Color("#2a2a2e"), Models.FIXED)
+	Models.box(st, o + Vector3(-hx - 1.2, -0.05, LIFT_Z), Vector3(2.0, 0.1, 1.6), Color("#3a302a"), Models.FIXED)
+	Models.box(st, o + Vector3(-hx - 2.2, 1.3, LIFT_Z), Vector3(0.1, 2.6, 1.6), Color("#c9a46a"), Models.FIXED)
+	for s in [-1.0, 1.0]:
+		Models.box(st, o + Vector3(-hx - 1.2, 1.3, LIFT_Z + s * 0.8), Vector3(2.0, 2.6, 0.1), Color("#5a3a26"), Models.FIXED)
+	Models.box(st, o + Vector3(-hx - 1.2, 2.55, LIFT_Z), Vector3(1.6, 0.04, 1.2), Color("#fff1c4"), Models.LIT_SIGN)
+	for z: float in LIFTS_Z:
+		var steel := Color("#9a9ca2")
+		for s in [-1.0, 1.0]:
+			Models.box(st, o + Vector3(-hx + 0.03, 1.27, z + s * 0.68), Vector3(0.06, 2.55, 0.16), steel, Models.FIXED)
+		Models.box(st, o + Vector3(-hx + 0.03, 2.5, z), Vector3(0.06, 0.16, 1.52), steel, Models.FIXED)
+		Models.box(st, o + Vector3(-hx + 0.02, 2.85, z), Vector3(0.04, 0.3, 0.62), Color("#141416"), Models.FIXED)
+		Models.box(st, o + Vector3(-hx + 0.03, 1.15, z + 0.98), Vector3(0.04, 0.24, 0.12), steel, Models.FIXED)
+		Models.box(st, o + Vector3(-hx + 0.06, 1.15, z + 0.98), Vector3(0.02, 0.06, 0.06), Color("#ffd27a"), Models.LIT_SIGN)
+		if z != LIFT_Z:
+			Models.box(st, o + Vector3(-hx + 0.02, 1.2, z), Vector3(0.04, 2.4, 1.2), Color("#8d9096"), Models.FIXED)
+			Models.box(st, o + Vector3(-hx + 0.045, 1.2, z), Vector3(0.01, 2.4, 0.02), Color("#55585e"), Models.FIXED)
+			Models.box(st, o + Vector3(-hx + 0.05, 2.85, z), Vector3(0.01, 0.12, 0.2), Color("#ffb24a"), Models.LIT_SIGN)
+	# The doorman's lectern and the lounge's brass stand by our lift.
+	var lec := o + DOORMAN + Vector3(0.7, 0, 0)
+	Models.box(st, lec + Vector3(0, 0.55, 0), Vector3(0.45, 1.1, 0.6), Color("#141416"), Models.FIXED)
+	Models.box(st, lec + Vector3(0, 1.12, 0), Vector3(0.52, 0.04, 0.66), Color("#b8954a"), Models.FIXED)
+	Models.box(st, lec + Vector3(0.24, 0.8, 0), Vector3(0.02, 0.14, 0.4), Color("#e2bf7a"), Models.LIT_SIGN)
+	var stand := o + Vector3(-7.3, 0, 4.0)
+	Models.box(st, stand + Vector3(0, 0.02, 0), Vector3(0.4, 0.04, 0.4), Color("#b8954a"), Models.FIXED)
+	Models.box(st, stand + Vector3(0, 0.65, 0), Vector3(0.05, 1.3, 0.05), Color("#b8954a"), Models.FIXED)
+	Models.box(st, stand + Vector3(0, 1.55, 0), Vector3(0.04, 0.56, 0.78), Color("#141416"), Models.FIXED)
+	var sp := 0.013
+	PixelFont.add_quads(st, "38", stand + Vector3(0.025, 1.76, PixelFont.width("38") * sp * 1.6 * 0.5), Vector3(0, 0, -1), Vector3(0, -1, 0), sp * 1.6, GOLD, Models.LIT_SIGN)
+	PixelFont.add_quads(st, "SENATOREK", stand + Vector3(0.025, 1.5, PixelFont.width("SENATOREK") * sp * 0.5), Vector3(0, 0, -1), Vector3(0, -1, 0), sp, GOLD, Models.LIT_SIGN)
+	for z: float in [-0.6, 1.3]:
+		Models.box(st, o + Vector3(-6.8, 0.02, z), Vector3(0.3, 0.04, 0.3), Color("#b8954a"), Models.FIXED)
+		Models.box(st, o + Vector3(-6.8, 0.48, z), Vector3(0.06, 0.96, 0.06), Color("#b8954a"), Models.FIXED)
+	for k in 6:
+		var t := (k + 0.5) / 6.0
+		Models.box(st, o + Vector3(-6.8, 0.86 - sin(t * PI) * 0.16, lerpf(-0.6, 1.3, t)), Vector3(0.05, 0.05, 0.34), Color("#7a1e2a"), Models.FIXED)
+	_olive(st, o + Vector3(hx - 1.0, 0, -hz + 1.0), rng)
+	_olive(st, o + Vector3(-6.4, 0, -hz + 0.9), rng)
+	_olive(st, o + Vector3(hx - 1.0, 0, 2.4), rng)
+	Models.box(st, o + Vector3(5.2, 0.22, -0.6), Vector3(0.8, 0.44, 2.6), Color("#2a2a2e"), Models.FIXED)
+	Models.box(st, o + Vector3(5.2, 0.48, -0.6), Vector3(0.75, 0.08, 2.5), Color("#5a4636"), Models.FIXED)
+	# The revolving door: the drum's curved glass sides (open front and back), its roof and floor ring.
+	var c := o + REV
+	var seg := TAU * REV_R / 16.0 + 0.05
+	for i in 16:
+		var a := TAU * i / 16.0
+		var dir := Vector3(cos(a), 0, sin(a))
+		var b := Basis(Vector3.UP, -a - PI * 0.5)
+		Club._leaf(st, c + dir * (REV_R - 0.15) + Vector3(0, 2.5, 0), b, Vector3(seg, 0.22, 0.34), Color("#5a5c62"))
+		Club._leaf(st, c + dir * REV_R + Vector3(0, 0.02, 0), b, Vector3(seg, 0.04, 0.12), Color("#3a3c40"))
+		if absf(sin(a)) < 0.75:
+			Club._leaf(st, c + dir * REV_R + Vector3(0, 1.2, 0), b, Vector3(seg, 2.4, 0.04), Color("#9cc4c8"))
+	Club._leaf(st, c + Vector3(0, 2.62, 0), Basis.IDENTITY, Vector3(REV_R * 2.0, 0.06, REV_R * 1.4), Color("#4a4c52"))
+	Club._leaf(st, c + Vector3(0, 2.62, 0), Basis.IDENTITY, Vector3(REV_R * 1.4, 0.06, REV_R * 2.0), Color("#4a4c52"))
+	Models.box(st, c + Vector3(0, 1.2, 0), Vector3(0.1, 2.4, 0.1), Color("#9a9ca2"), Models.FIXED)
+
+
+## The lift's cabin (CAB, room-local): a dark stone floor, the mirror at the back with a brass
+## rail, walnut on the left round the door (its leaves in `_movers`), the button panel with the
+## 38th lit teal, the floor number's black box over the door. Behind the door the lounge's
+## landing: warm dark wall, the gold SENATOREK letters, seen only when the doors open.
+static func _cabin(st: SurfaceTool) -> void:
+	var o := CAB
+	var hx := CAB_SIZE.x * 0.5
+	var hz := CAB_SIZE.y * 0.5
+	Models.box(st, o + Vector3(0, -0.1, 0), Vector3(CAB_SIZE.x, 0.2, CAB_SIZE.y), Color("#2a2626"), Models.FIXED)
+	Models.box(st, o + Vector3(0, 0.005, 0), Vector3(CAB_SIZE.x - 0.4, 0.01, CAB_SIZE.y - 0.4), Color("#3a3230"), Models.FIXED)
+	Models.box(st, o + Vector3(0, CAB_H * 0.5, -hz - 0.05), Vector3(CAB_SIZE.x, CAB_H, 0.1), Color("#8e9aa4"), Models.FIXED)
+	for x: float in [-0.7, -0.15, 0.6]:
+		Models.box(st, o + Vector3(x, CAB_H * 0.5, -hz + 0.005), Vector3(0.06, CAB_H - 0.3, 0.01), Color("#b7c3cc"), Models.FIXED)
+	Models.box(st, o + Vector3(0, 0.95, -hz + 0.06), Vector3(CAB_SIZE.x - 0.3, 0.05, 0.06), Color("#b8954a"), Models.FIXED)
+	var walnut := Color("#5a3a26")
+	Models.box(st, o + Vector3(-hx - 0.05, CAB_H * 0.5, (-hz - 0.55) * 0.5), Vector3(0.1, CAB_H, hz - 0.55), walnut, Models.FIXED)
+	Models.box(st, o + Vector3(-hx - 0.05, CAB_H * 0.5, (hz + 0.55) * 0.5), Vector3(0.1, CAB_H, hz - 0.55), walnut, Models.FIXED)
+	Models.box(st, o + Vector3(-hx - 0.05, (2.2 + CAB_H) * 0.5, 0), Vector3(0.1, CAB_H - 2.2, 1.1), walnut, Models.FIXED)
+	for s in [-1.0, 1.0]:
+		Models.box(st, o + Vector3(-hx + 0.01, 1.1, s * 0.58), Vector3(0.03, 2.2, 0.06), Color("#b8954a"), Models.FIXED)
+	Models.box(st, o + Vector3(-hx + 0.01, 2.42, 0), Vector3(0.03, 0.3, 0.56), Color("#141416"), Models.FIXED)
+	Models.box(st, o + Vector3(-hx + 0.015, 1.2, 0.82), Vector3(0.03, 0.9, 0.3), Color("#1d1d20"), Models.FIXED)
+	for r in 5:
+		for k in 2:
+			var top := r == 0 and k == 1
+			Models.box(st, o + Vector3(-hx + 0.035, 1.5 - r * 0.14, 0.76 + k * 0.12), Vector3(0.02, 0.06, 0.06), TEAL if top else Color("#e8e2d6"), Models.LIT_SIGN)
+	Models.box(st, o + Vector3(0, CAB_H - 0.02, 0), Vector3(1.6, 0.04, 1.2), Color("#fff1c4"), Models.LIT_SIGN)
+	# The landing behind the door.
+	Models.box(st, o + Vector3(-hx - 1.4, -0.05, 0), Vector3(2.6, 0.1, 2.4), Color("#2b2421"), Models.FIXED)
+	Models.box(st, o + Vector3(-hx - 2.0, 1.4, 0), Vector3(0.1, 2.8, 2.4), Color("#3a2a20"), Models.FIXED)
+	Models.box(st, o + Vector3(-hx - 1.94, 0.3, 0), Vector3(0.02, 0.05, 2.2), Color("#ffcf8a"), Models.LIT_SIGN)
+	var sp := 0.022
+	PixelFont.add_quads(st, "SENATOREK", o + Vector3(-hx - 1.94, 1.9, PixelFont.width("SENATOREK") * sp * 0.5), Vector3(0, 0, -1), Vector3(0, -1, 0), sp, GOLD, Models.LIT_SIGN)
+
+
 ## The warm light cones (local frame): spots down onto the tables in the room, softer bulbs'
-## glow on the terrace.
-static func light_pose(on_terrace: bool, t: float) -> Array:
+## glow on the terrace, downlights in the lobby over the desk, the doorman and the lifts, the
+## cabin's ceiling light.
+static func light_pose(where: String, t: float) -> Array:
 	var out: Array = []
 	var flick := 0.92 + 0.08 * sin(t * 1.7)
-	if on_terrace:
-		for p: Vector3 in [OURS_TER, TERRACE + Vector3(4.2, 0, -2.4), TERRACE + Vector3(4.6, 0, 3.0), TERRACE + Vector3(-4.8, 0, 3.0)]:
-			out.append([Rave._aim(p + Vector3(0, 3.2, 0), Vector3.DOWN, 1.6, 3.1), Color("#ffcf8a") * 0.22 * flick])
-	else:
-		for p: Vector3 in [OURS, Vector3(-5.0, 0, -3.9), Vector3(0.6, 0, -3.9), Vector3(5.4, 0, -3.9)]:
-			out.append([Rave._aim(p + Vector3(0, WALL_H - 0.5, 0), Vector3.DOWN, 1.4, WALL_H - 0.6), Color("#ffcf8a") * 0.26 * flick])
+	match where:
+		"taras":
+			for p: Vector3 in [OURS_TER, TERRACE + Vector3(4.2, 0, -2.4), TERRACE + Vector3(4.6, 0, 3.0), TERRACE + Vector3(-4.8, 0, 3.0)]:
+				out.append([Rave._aim(p + Vector3(0, 3.2, 0), Vector3.DOWN, 1.6, 3.1), Color("#ffcf8a") * 0.22 * flick])
+		"lobby":
+			for p: Vector3 in [Vector3(2.0, 0, -3.9), DOORMAN + Vector3(0.4, 0, 0), LIFT_FRONT, REV_IN, Vector3(-1.0, 0, 3.3)]:
+				out.append([Rave._aim(LOBBY + p + Vector3(0, 4.2, 0), Vector3.DOWN, 1.5, 4.1), Color("#fff0d0") * 0.14])
+		"winda":
+			out.append([Rave._aim(CAB + Vector3(0, CAB_H - 0.05, 0), Vector3.DOWN, 0.9, CAB_H - 0.1), Color("#fff1c4") * 0.2])
+		_:
+			for p: Vector3 in [OURS, Vector3(-5.0, 0, -3.9), Vector3(0.6, 0, -3.9), Vector3(5.4, 0, -3.9)]:
+				out.append([Rave._aim(p + Vector3(0, WALL_H - 0.5, 0), Vector3.DOWN, 1.4, WALL_H - 0.6), Color("#ffcf8a") * 0.26 * flick])
 	while out.size() < 6:
-		out.append([Rave._aim(Vector3(-5.8, WALL_H - 0.5, 3.0), Vector3.DOWN, 1.0, WALL_H - 0.6), Color("#ffcf8a") * (0.0 if on_terrace else 0.2)])
+		var spare := Vector3(-5.8, WALL_H - 0.5, 3.0)
+		out.append([Rave._aim(spare, Vector3.DOWN, 1.0, WALL_H - 0.6), Color("#ffcf8a") * (0.2 if where == "sala" else 0.0)])
 	return out
 
 
@@ -601,6 +802,7 @@ func _build(world: Node3D) -> void:
 	_lights.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_lights.position = PLACE
 	world.add_child(_lights)
+	_build_movers(world)
 	_build_ui()
 	_show(false)
 
@@ -652,6 +854,13 @@ func _build_people(world: Node3D) -> void:
 			_seats.append([Vector3(p.x, -0.38, p.z), atan2(-cos(a), -sin(a)), clothes[k % clothes.size()]])
 			k += 1
 	people.append(["Oliwka", Vector3(-3.6, 0, 3.6)])
+	# The lobby (F 2026-11-11): the doorman at his lectern by our lift, the receptionist.
+	_lobby_i = _seats.size()
+	_seats.append([LOBBY + DOORMAN, PI * 0.5, Color("#141418")])
+	people.append(["Bramkarz", LOBBY + DOORMAN])
+	var desk := LOBBY + Vector3(2.0, 0, -LOB.y * 0.5 + 0.8)
+	_seats.append([desk, 0.0, Color("#3a4a5a")])
+	people.append(["Recepcja", desk])
 	var dm := MultiMesh.new()
 	dm.transform_format = MultiMesh.TRANSFORM_3D
 	dm.use_custom_data = true
@@ -669,6 +878,41 @@ func _build_people(world: Node3D) -> void:
 	_people.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_people.position = PLACE
 	world.add_child(_people)
+
+
+## The moving parts of the arrival (one MultiMesh of unit boxes, unshaded): 0-1 our lift's doors
+## in the lobby, 2-3 the cabin's doors, 4-7 the revolving door's wings; and the floor number
+## over the lift's door (a Label3D, in the lobby counting down as the lift comes, in the cabin up).
+func _build_movers(world: Node3D) -> void:
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.vertex_color_use_as_albedo = true
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	mm.mesh = BoxMesh.new()
+	mm.instance_count = 8
+	for i in 8:
+		mm.set_instance_color(i, [Color("#9a9ca2"), Color("#a8aaae"), Color("#a07c3c"), Color("#b08a46"),
+				Color("#7fa4aa"), Color("#86aab0"), Color("#7fa4aa"), Color("#86aab0")][i])
+	_movers = MultiMeshInstance3D.new()
+	_movers.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	_movers.multimesh = mm
+	_movers.material_override = m
+	_movers.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_movers.position = PLACE
+	world.add_child(_movers)
+	_floor_lbl = Label3D.new()
+	_floor_lbl.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	_floor_lbl.font_size = 96
+	_floor_lbl.pixel_size = 0.0024
+	_floor_lbl.outline_size = 0
+	_floor_lbl.modulate = Color("#ffb24a")
+	_floor_lbl.shaded = false
+	_floor_lbl.double_sided = false
+	_floor_lbl.rotation.y = PI * 0.5
+	world.add_child(_floor_lbl)
+	_pose_movers()
 
 
 ## The smoke: a pool of soft puffs (one MultiMesh, unshaded, see-through, coloured per puff).
@@ -773,15 +1017,17 @@ func _build_ui() -> void:
 	for jar: Dictionary in _jars:
 		var id := String(jar["id"])
 		var short: Array = JAR_SHORT.get(id, [jar["pl"], jar["en"]])
-		var b := _button(_jar_box, String(short[0]), String(short[1]), JAR_COLOURS.get(id, GOLD), pt, Vector2.ZERO)
+		var b := _button(_jar_box, String(short[0]), String(short[1]), JAR_COLOURS.get(id, GOLD), pt, JAR_BTN)
 		b.pressed.connect(func() -> void: _on_jar(id))
 		_jar_btns[id] = b
-	# The three answers of a choice (Shisha.vote_card), one row, their words set per question.
-	_choice_box = HBoxContainer.new()
-	_choice_box.add_theme_constant_override("separation", int(6 * pt))
+	# The three answers of a choice (Shisha.vote_card), one under the other, full width, a thumb
+	# high (F 2026-11-11: the 80 pt chips in a row were too small to tap on the phone).
+	_choice_box = VBoxContainer.new()
+	_choice_box.add_theme_constant_override("separation", int(8 * pt))
 	g.add_child(_choice_box)
 	for i in 3:
-		var b := _button(_choice_box, "-", "-", [Color("#7aa0ff"), Color("#f2f2ee"), GOLD][i], pt, Vector2(80, 48))
+		var b := _button(_choice_box, "-", "-", [Color("#7aa0ff"), Color("#f2f2ee"), GOLD][i], pt, CHOICE_BTN)
+		_big_words(b, 18.0 * pt)
 		b.pressed.connect(func() -> void: _on_choice(i))
 		_choice_btns.append(b)
 	_act = _button(g, "TERAZ!", "NOW!", TEAL, pt, Vector2(250, 52))
@@ -815,12 +1061,28 @@ func _button(parent: Node, pl: String, en: String, accent: Color, pt: float, siz
 		parent.add_child(b)
 	if size != Vector2.ZERO:
 		b.custom_minimum_size = size * pt
+		b.set_meta("min", size * pt)
 	return b
 
 
-## New words on a button (the hud's chip keeps its own labels), its width kept.
+## Larger words on a button (the hud's chip: its top label; a plain button: its own font).
+func _big_words(b: Button, px: float) -> void:
+	var words := b.get_child(0) if b.get_child_count() > 0 else null
+	if words != null and words.get_child_count() > 0 and words.get_child(0) is Label:
+		(words.get_child(0) as Label).add_theme_font_size_override("font_size", int(px))
+	else:
+		b.add_theme_font_size_override("font_size", int(px))
+
+
+## New words on a button (the hud's chip keeps its own labels), its size kept. A button made at
+## a set size gets only its words changed: the hud's chip resizes itself to its words, and putting
+## the size back in the same frame left the 2nd question's answers chip-small on screen.
 func _chip_text(b: Button, pl: String, en: String) -> void:
-	var w := b.custom_minimum_size
+	var w: Vector2 = b.get_meta("min", b.custom_minimum_size)
+	var words := b.get_child(0) if b.get_child_count() > 0 else null
+	if b.has_meta("min") and words != null and words.get_child_count() > 0 and words.get_child(0) is Label:
+		(words.get_child(0) as Label).text = Lang.pick(pl, en)
+		return
 	if hud != null and hud.has_method("_set_chip"):
 		hud._set_chip(b, pl, en)
 	else:
@@ -899,7 +1161,8 @@ func _draw_bar() -> void:
 
 # --- in and out -------------------------------------------------------------------------------
 
-## In from the lift with the car's votes: the room built (once) in `world`, the waiter's order.
+## In from the kerb with the car's votes: the room built (once) in `world`, then the lobby (the
+## doorman, the lift's doors), the ride up, the room and the waiter's order.
 func enter(world: Node3D, v: Dictionary) -> void:
 	if not _built:
 		_build(world)
@@ -913,17 +1176,58 @@ func enter(world: Node3D, v: Dictionary) -> void:
 	how = ""
 	inside = true
 	_clock = 0.0
-	_go("sala")
-	_title.text = Lang.pick("SENATOREK · Emilii Plater 53 · wejście", "SENATOREK · Emilii Plater 53 · the door")
 	_lines.clear()
-	_up = false
-	_set_step(Step.ARRIVE)
+	_line_t = 0.0
 	if auto_play and v.size() >= 3:
-		_queue("lift")  # the shots' shortcut (--shisha-lounge): straight up
+		_start_lift()  # the shots' shortcut (--shisha-lounge): the ride up, then the room
 	else:
-		_queue("door")
-		_queue("lift")
+		_start_lobby()
 	_log("in: votes %s" % v)
+
+
+## Seconds a line stays up (shorter when the lounge plays itself).
+func _line_s() -> float:
+	return LINE_S * (0.6 if auto_play else 1.0)
+
+
+## The lobby: out of the revolving door, the doorman's lines, the lift coming down to 0.
+func _start_lobby() -> void:
+	_go("lobby")
+	_title.text = Lang.pick("WARSAW FINANCIAL CENTRE · Emilii Plater 53", "WARSAW FINANCIAL CENTRE · Emilii Plater 53")
+	_set_step(Step.LOBBY)
+	_phase = 0
+	_walk_t = 0.0
+	_door = 0.0
+	_cab_door = 0.0
+	_floor_now = -1
+	var n: int = (_data.get("scenes", {}).get("door", []) as Array).size()
+	_eta = maxf(1.0, (n - 1) * _line_s())
+	_queue("door")
+	_log("lobby")
+
+
+## The ride: the cabin, the lift's lines, the floor number counting up to the 38th.
+func _start_lift() -> void:
+	_go("winda")
+	_set_step(Step.LIFT)
+	_phase = 0
+	_walk_t = 0.0
+	_door = 0.0
+	_cab_door = 0.0
+	_floor_now = -1
+	var n: int = (_data.get("scenes", {}).get("lift", []) as Array).size()
+	_eta = maxf(1.0, (n - 1) * _line_s())
+	_queue("lift")
+	_log("lift")
+
+
+## Out of the lift into the room: the waiter's order.
+func _arrive() -> void:
+	_go("sala")
+	_title.text = Lang.pick("SENATOREK · 38. piętro", "SENATOREK · 38th floor")
+	_set_step(Step.ORDER)
+	_queue("order")
+	_log("arrived")
 
 
 func _go(where: String) -> void:
@@ -931,6 +1235,17 @@ func _go(where: String) -> void:
 	var ter := where == "taras"
 	centre = PLACE + (OURS_TER if ter else OURS) + Vector3(1.0, 1.2, -1.0)
 	view_size = TER_VIEW if ter else VIEW
+	match where:
+		"lobby":
+			centre = PLACE + LOBBY + Vector3(-1.2, 1.4, 0.4)
+			view_size = LOB_VIEW
+			_floor_lbl.position = PLACE + LOBBY + Vector3(-LOB.x * 0.5 + 0.05, 2.85, LIFT_Z)
+		"winda":
+			centre = PLACE + CAB + Vector3(-0.3, 1.3, 0.0)
+			view_size = CAB_VIEW
+			_floor_lbl.position = PLACE + CAB + Vector3(-CAB_SIZE.x * 0.5 + 0.035, 2.42, 0)
+	_cab_centre = centre
+	_floor_lbl.visible = where in ["lobby", "winda"]
 	_show(true)
 	if ter:
 		for i in 4:
@@ -967,6 +1282,8 @@ func _show(on: bool) -> void:
 	_people.visible = on
 	_smoke.visible = on
 	_lights.visible = on
+	_movers.visible = on
+	_floor_lbl.visible = on and area in ["lobby", "winda"]
 	_ui.visible = on
 
 
@@ -1030,15 +1347,10 @@ func _process(dt: float) -> void:
 	_pose_lights()
 	_pose_people()
 	match step_now:
-		Step.ARRIVE:
-			# The lift's three lines are the last: the title says where we are.
-			if not _up and _lines.size() <= 3:
-				_up = true
-				_title.text = Lang.pick("🛗 WINDA · 38. PIĘTRO", "🛗 LIFT · 38TH FLOOR")
-			if _lines.is_empty() and _line_t <= 0.0:
-				_title.text = Lang.pick("SENATOREK · 38. piętro", "SENATOREK · 38th floor")
-				_set_step(Step.ORDER)
-				_queue("order")
+		Step.LOBBY:
+			_lobby_tick(dt)
+		Step.LIFT:
+			_lift_tick(dt)
 		Step.ORDER:
 			if _lines.is_empty() and _line_t <= 0.0:
 				_next_choice()
@@ -1083,6 +1395,105 @@ func _process(dt: float) -> void:
 		Step.SMOKE:
 			if _step_t > SMOKE_S and _lines.is_empty():
 				_finish(how)
+
+
+## The lobby: walk out of the revolving door to the doorman while he talks and the lift comes
+## down (38 → 0), then its doors open, the three walk in, the doors close: the ride.
+func _lobby_tick(dt: float) -> void:
+	_walk_t += dt
+	_spin += (2.4 if _phase == 0 and _walk_t < 2.2 else 0.3) * dt
+	match _phase:
+		0:
+			_set_floor(clampi(FLOOR - int(FLOOR * _step_t / _eta), 0, FLOOR))
+			if _walk_t >= WALK_A and _lines.is_empty():
+				_phase = 1
+				_walk_t = 0.0
+				_set_floor(0)
+		1:
+			_door = clampf(_walk_t / DOOR_S, 0.0, 1.0)
+			if _walk_t >= WALK_B + 0.6:
+				_phase = 2
+				_walk_t = 0.0
+		_:
+			_door = 1.0 - clampf(_walk_t / DOOR_S, 0.0, 1.0)
+			if _walk_t >= DOOR_S + 0.3:
+				_start_lift()
+	_pose_movers()
+
+
+## The ride: the floor number up to the 38th while they talk (it reaches it on the lift's last
+## line), a slight hum in the view; then the doors open on the lounge's glow and they step out.
+func _lift_tick(dt: float) -> void:
+	_walk_t += dt
+	match _phase:
+		0:
+			var f := clampi(int(FLOOR * _step_t / _eta), 0, FLOOR)
+			if f != _floor_now:
+				_set_floor(f)
+				_title.text = Lang.pick("WINDA · PIĘTRO %d" % f, "LIFT · FLOOR %d" % f)
+			centre = _cab_centre + Vector3(0, 0.012 * sin(_clock * 31.0), 0)
+			if _step_t >= _eta and _lines.is_empty():
+				_phase = 1
+				_walk_t = 0.0
+				centre = _cab_centre
+				_title.text = Lang.pick("SENATOREK · 38. piętro", "SENATOREK · 38th floor")
+		_:
+			_cab_door = clampf(_walk_t / DOOR_S, 0.0, 1.0)
+			if _walk_t >= DOOR_S + 0.9:
+				_arrive()
+	_pose_movers()
+
+
+func _set_floor(f: int) -> void:
+	if f == _floor_now:
+		return
+	_floor_now = f
+	_floor_lbl.text = str(f)
+
+
+## The lift doors (sliding into the wall), the revolving door's wings (turning).
+func _pose_movers() -> void:
+	var mm := _movers.multimesh
+	var hx := LOB.x * 0.5
+	for k in 2:
+		var s := -1.0 if k == 0 else 1.0
+		mm.set_instance_transform(k, Transform3D(Basis.from_scale(Vector3(0.05, 2.4, 0.6)),
+				LOBBY + Vector3(-hx - 0.12, 1.2, LIFT_Z + s * (0.3 + 0.6 * _door))))
+		mm.set_instance_transform(2 + k, Transform3D(Basis.from_scale(Vector3(0.05, 2.2, 0.55)),
+				CAB + Vector3(-CAB_SIZE.x * 0.5 - 0.04, 1.1, s * (0.275 + 0.55 * _cab_door))))
+	for k in 4:
+		var b := Basis(Vector3.UP, _spin + k * PI * 0.5)
+		mm.set_instance_transform(4 + k, Transform3D(b * Basis.from_scale(Vector3(REV_R - 0.08, 2.3, 0.04)),
+				LOBBY + REV + b * Vector3((REV_R - 0.08) * 0.5, 1.2, 0)))
+
+
+## Where one of our three stands during the arrival (room-local position, yaw), or [] once seated.
+func _arrival_pose(i: int) -> Array:
+	var off: Vector3 = GROUP[i]
+	if step_now == Step.LOBBY:
+		var a := LIFT_IN
+		var look := Vector3.RIGHT
+		match _phase:
+			0:
+				var t := smoothstep(0.0, 1.0, _walk_t / WALK_A)
+				a = REV_IN.lerp(MEET, t)
+				look = (MEET - REV_IN) if t < 1.0 else (LOBBY + DOORMAN - (LOBBY + MEET))
+			1:
+				var t := clampf((_walk_t - 0.4) / WALK_B, 0.0, 1.0)
+				if t < 0.55:
+					a = MEET.lerp(LIFT_FRONT, t / 0.55)
+					look = LIFT_FRONT - MEET
+				else:
+					a = LIFT_FRONT.lerp(LIFT_IN, (t - 0.55) / 0.45)
+					look = LIFT_IN - LIFT_FRONT
+				off *= lerpf(1.0, 0.3, t)
+			_:
+				off *= 0.3
+		return [LOBBY + a + off, atan2(look.x, look.z)]
+	if step_now == Step.LIFT:
+		var step_out := 0.7 * clampf((_walk_t - 0.5) / 0.8, 0.0, 1.0) if _phase >= 1 else 0.0
+		return [CAB + (CAB_SPOTS[i] as Vector3) + Vector3(-step_out, 0, 0), -PI * 0.5]
+	return []
 
 
 func _glow() -> float:
@@ -1222,7 +1633,7 @@ func _lines_tick(dt: float) -> void:
 
 func _say(who: String, pl: String, en: String) -> void:
 	_speaker = who
-	_who.text = who if who != "Ty" else Lang.pick("Ty", "You")
+	_who.text = Lang.pick(who, String(SPEAKER_EN.get(who, who)))
 	_line.text = Lang.pick(pl, en)
 	_talk.visible = true
 	_layout()
@@ -1318,17 +1729,35 @@ func _pose_people() -> void:
 		var y: float = _seats[i][1]
 		var talking := i < people.size() and String(people[i][0]) == _speaker and _speaker != ""
 		var bob := 0.03 * absf(sin(_clock * 7.0)) if talking else 0.0
+		if i < 3:
+			var w := _arrival_pose(i)
+			if not w.is_empty():
+				# On foot: a walking bob, no seated sway; a tap finds them where they stand.
+				people[i][1] = w[0]
+				var walking := (step_now == Step.LOBBY and (_phase == 1 or _walk_t < WALK_A)) or (step_now == Step.LIFT and _phase >= 1)
+				bob = maxf(bob, 0.05 * absf(sin(_clock * 9.0 + i)) if walking else 0.0)
+				dm.set_instance_transform(i, Transform3D(Basis(Vector3.UP, w[1]), (w[0] as Vector3) + Vector3(0, bob, 0)))
+				continue
+			people[i][1] = p
 		if i == 4:
 			# The waiter goes between the bar and our table.
 			var t := 0.5 - 0.5 * cos(_clock * 0.25)
 			p = Vector3(-6.2, 0, 1.6).lerp(OURS + Vector3(-1.6, 0, 1.4), t) if area == "sala" else Vector3(-6.2, 0, 1.6)
 			y = atan2(OURS.x - -6.2, OURS.z - 1.6) if sin(_clock * 0.25) > 0.0 else atan2(-6.2 - OURS.x, 1.6 - OURS.z)
 		dm.set_instance_transform(i, Transform3D(Basis(Vector3.UP, y + (sin(_clock * 0.7 + i) * 0.08 if i < 3 else 0.0)), p + Vector3(0, bob, 0)))
+	# The doorman and the receptionist nod when they talk.
+	for k in 2:
+		var j := _lobby_i + k
+		if j >= _seats.size():
+			break
+		var who := "Bramkarz" if k == 0 else "Recepcja"
+		var nod := 0.03 * absf(sin(_clock * 7.0)) if _speaker == who else 0.0
+		dm.set_instance_transform(j, Transform3D(Basis(Vector3.UP, _seats[j][1]), (_seats[j][0] as Vector3) + Vector3(0, nod, 0)))
 
 
 func _pose_lights() -> void:
 	var mm := _lights.multimesh
-	var pose := light_pose(area == "taras", _clock)
+	var pose := light_pose(area, _clock)
 	for i in mini(pose.size(), mm.instance_count):
 		mm.set_instance_transform(i, pose[i][0])
 		mm.set_instance_color(i, pose[i][1])

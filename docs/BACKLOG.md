@@ -705,8 +705,11 @@ Bogdan at the court on Żelazna, the car argument in bubbles (data/shisha.json, 
 the WFC portico on Emilii Plater 53 (canopy with downlights, revolving door, the SENATOREK and
 EMILII PLATER 53 letters, granite piers, steel fins, the glass rail on the low roof), the entrance
 marked by a teal kerb ring and a gold ring and column at the revolving door (F 2026-11-11: stop in
-either and you walk in, no cards outside), the lounge upstairs with the door gag and the lift as
-its arrival and the three choices (flavour, strength, the pipe's name) at the table
+either and you walk in, no cards outside), the arrival inside (2026-11-11: WFC's lobby with the
+revolving door, the reception and three lifts, the three walk up to the doorman at his lectern for
+the dress-code gag and into the lift as its doors slide open; the lift's cabin with the floor
+number counting up to 38 over the door while they talk, its doors opening on the lounge's glow),
+then the three choices on large buttons, one under the other (flavour, strength, the pipe's name) at the table
 (`lounge.gd`: rock wall with bars and gold letters, rust-velvet banquettes, grey armchairs, olive
 trees, the travertine bar with jars and coals, the window wall with the Palace, the terrace with
 teak chairs and the Palace's tower), the mini-game "Miks u Mistrza" (two jars on a sweet/cool
@@ -715,8 +718,8 @@ chart, coal timing, the first draw and a smoke ring), PALIĆ / TARAS / WYJDŹ wi
 `--shisha-meet`, `--shisha-door`, `--shisha-arrive`, `--shisha-lounge`, `--shisha=0`, `--shisha-log`; `check_shisha.gd`
 in verify.sh.
 Left:
-- [ ] The doorman and the lift play as lines over the room; a real lobby or lift shot would make
-  the arrival read better (F 2026-11-11 asked for the quest inside; this first pass reuses the room)
+- [ ] Sounds for the arrival: the revolving door's swish, the lift's ding and hum (the lobby and
+  the cabin are silent now; the lift's lines carry the ride)
 - [ ] F's call: lounge name SENATOREK LOUNGE ok? Which floor (the lift card says 38, invented)
 - [ ] Portraits of Ivan, Bogdan and the master (PixelLab on the Mac, from F's photos)
 - [ ] Voices (ElevenLabs) and a lounge track on the radio (docs/MUSIC.md "lounge" slot)
