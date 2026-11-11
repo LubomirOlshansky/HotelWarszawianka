@@ -4,6 +4,9 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## Architecture: the planned central systems (F, 2026-11-11; docs/architecture/tech-debt.md)
+F liked the HUD message queue (PR #652) and asked for the game's other central mechanisms and an architecture map agents follow. The map is in `docs/architecture/`; the planned systems are tech-debt rows TD-1 to TD-12, in this order: TD-8 safer saves (temp file + rename, one backup, autosave at activity end); then the directors lane: TD-1 activity director (replaces `_free_block` and 8 private free checks), TD-2 objective channel (arrow, metres, pin, route in one place), TD-3 offer pacer (one offer at a time, quiet after a finish); TD-5 audio priority mixer; later TD-6/TD-7 population budget, TD-12 difficulty layer after racer AI step 3. Each is one thread, Opus, with its own check script; each lands by moving existing callers onto it and updating `extending.md`.
+
 ## Hotel Metropol rebuilt (F, 2026-11-07, docs/landmarks/metropol.md)
 Built from F's four photos (merged 2026-11-10; the first build sat unmerged as a patch). Open: the real hotel's ground floor and the rear courtyard wings have no street photo; the white box's size (20 m) is a guess; Mac night look for the green letters.
 
