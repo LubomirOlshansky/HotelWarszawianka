@@ -22,7 +22,9 @@ You know iOS apps. Here is the same idea in Godot terms, and where this game doe
 | Drawing many views cheaply | **MultiMesh**: thousands of copies in one draw call, each with its own colour | graphics.md section 5 |
 | Rendering cost | **Draw calls** (how many separate things the GPU is told to draw) matter most on phones, more than triangle counts | graphics.md section 4 |
 | Notification centre for the user | The HUD message queue: SHOW, DEFER or DROP by context and priority | `messages.gd` |
-| A coordinator or router (who shows what screen) | Today `_free_block`; planned: the activity director | tech-debt TD-1 |
+| A coordinator or router (who shows what screen) | The activity director (`activities.gd`): which activity is on, who may start. `_free_block` in main.gd still answers for the activities not moved to the kit | systems.md section 4, tech-debt TD-1 |
+| A base view controller (the shared life cycle, subclasses fill in the content) | `activity.gd`: the call, the offer, the run, its cards and target, and one clean-up when it ends | systems.md section 4 |
+| A delegate (the tapped button tells one object) | The card's owner: `hud.own_card(self)`, and the press comes to that object alone | tech-debt TD-16 |
 | Backend data | Map data baked offline from OpenStreetMap and GUGiK into JSON and binary files | pipelines.md section 1 |
 
 ## Game-only ideas worth knowing

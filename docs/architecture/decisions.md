@@ -23,6 +23,9 @@ same PR as the change (keep the old row under "Replaced" with one line on why).
 | **No rubber band in races.** Difficulty comes from each rival's skill. | A race the player can't lose or can't win by driving is not a race. | docs/design/race-ai.md |
 | **The police never fine.** Warnings and jokes; every chase ends by itself. | The tone of the game. | docs/design/police.md |
 | **Every script has one row** in systems.md or city-ai.md, and a workaround is marked `# WORKAROUND(arch)`. | The map of the code can't go stale. | PR #654 |
+| **One script per kind of activity, one data file per instance.** The two tours are `tour.gd` with `kino_tour.json` and `dekalog_tour.json`. | They were near copies of 479 and 541 lines. A new tour needs no code, and `check_activity` reads and plays every tour's data. | 2026-11-12 (TD-1) |
+| **The card's owner is named after the card is shown** (`hud.own_card(self)`), not by a new parameter of `show_card`. | `show_card`, `show_side_card` and `show_call` and their callers keep their signatures, and a card nobody owns behaves as before, so the activities move to the kit one PR at a time. | 2026-11-12 (TD-16) |
+| **An activity that moves to the kit is proved against its old script before the old one is deleted**: both driven with the same inputs, frame by frame, comparing what each puts on the HUD, says and pays. | The words and the timings are copied by hand, and a check written for the new script alone would not see a changed word. | 2026-11-12 (TD-1) |
 
 ## Decided against (second review, 2026-11-12; F can overturn any of these)
 
@@ -30,7 +33,7 @@ same PR as the change (keep the old row under "Replaced" with one line on why).
 | --- | --- |
 | A global event bus or a signal autoload | It hides who talks to whom. Passing references in can be traced and tested. |
 | An entity-component system, or a node per car and person | The lane-graph cursor and the shared MultiMesh are already the cheap pattern for a phone. |
-| A state machine add-on for activities | The planned base class (TD-1) is about 150 lines; an add-on brings a dependency and an editor workflow agents can't use. |
+| A state machine add-on for activities | The base class (`activity.gd`, TD-1) is under 400 lines with its cards and target; an add-on brings a dependency and an editor workflow agents can't use. |
 | A full localisation system (CSV, gettext) | Two languages, and the pair pattern works: every toast has its English. Look again if a third language is asked for. |
 | Splitting `hud.gd` before cards have an owner (TD-16) | It would move the tangle into five files. After TD-16 it splits along owners. |
 | The engine's own file logging (`debug/file_logging`) as the crash trail | A release build flushes it only on an error (`core/io/logger.cpp`), so the lines printed before a crash are still in memory and are lost; and nothing in it says a session ended in order. The trap's session file is flushed line by line and stays under 2,000 lines. |

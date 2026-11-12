@@ -118,13 +118,15 @@
 # the door on Emilii Plater found on the real lane graph; centrum.json only (CI too).
 # Kieślowski tour (2026-11-07): `dekalog` runs game/tools/check_dekalog_tour.gd: Claire's pickup and
 # six Dekalog stops stand on drivable roads near their real places, the call, legs, shots, hits, the
-# last question and the pay (docs/design/dekalog-tour.md).
+# last question and the pay (docs/design/dekalog-tour.md); since the activity kit it drives tour.gd
+# with data/dekalog_tour.json.
 # Nocny spot (2026-11-06): `meet` runs game/tools/check_street_meet.gd: the club's five cars and the
 # donut marks (one surface each), every line (no brand, no film names), the night clock, the race's pay
 # and the shift grades, the drag's times (perfect < Tadek < ok, lazy loses, nitro wins), both meets and
 # the Zieleniecka strip on the real lane graph; centrum.json only (CI too).
 # Cinema tour (2026-11-07): `kinotour` runs game/tools/check_kino_tour.gd: the stops on drivable roads by
-# their cinemas, the call, the pickup, the pitches, the shots, the scratches on the reel and the pay.
+# their cinemas, the call, the pickup, the pitches, the shots, the scratches on the reel and the pay;
+# since the activity kit it drives tour.gd with data/kino_tour.json.
 # Arcade padel (2026-11-08): `padel` runs game/tools/check_padel.gd: the shot solver, 24 whole matches
 # with the human on autopilot (they end, no stuck rally, real rallies, both pairs win, smashes and
 # glass), an idle human loses 0:2, a tapping one hits, the net / glass / double-bounce rules, the
@@ -182,6 +184,11 @@
 # a run with flags straight into the game, and the list of scripts the first frame waits for; no
 # map (CI too). `boot-run` is the whole game started that way, on the prebuilt city (the one run
 # with the title up while the map's index loads on threads: TD-22's line, see `problems`).
+# Tech-debt TD-1 (with TD-2 and TD-16): `activity` runs game/tools/check_activity.gd: the activity
+# kit's base class (activity.gd: phases, the call's clock, its own cards, the target, the ✕, the
+# end), the director (activities.gd: one at a time), the real HUD's card owner, and every
+# data/*_tour.json (the keys tour.gd reads, both languages, and the tour played from the call to
+# the pay); no map (CI too).
 # Loop 3h slice 1: `save` runs game/tools/check_save.gd: save v2 (a version-1 fixture built in the
 # check migrates keeping every section, a backup of the old file, the round trip, a newer file never
 # overwritten, --nosave writes nothing, settings.cfg's version; save and resume: the [session] spot,
@@ -1175,6 +1182,7 @@ for s in $want; do
 		save) check save '^check_save:' --script res://tools/check_save.gd ;;
 		errortrap) check errortrap '^check_error_trap:' --script res://tools/check_error_trap.gd ;;
 		boot) check boot '^check_boot:' --script res://tools/check_boot.gd ;;
+		activity) check activity '^check_activity:' --script res://tools/check_activity.gd ;;
 		districts) check districts '^check_districts:' --script res://tools/check_districts.gd ;;
 		syrenki) check syrenki '^syrenki:' --script res://tools/check_syrenki.gd ;;
 		cassettes) check cassettes '^cassettes:' --script res://tools/check_cassettes.gd ;;
@@ -1245,6 +1253,11 @@ for s in $want; do
 		# Loop 3d-1: 30000 frames: on the demo map (east edge 21.056) the river quirk's legs run
 		# 1.7-1.8 km by road and the pay came after 20000 frames (333 s of play).
 		ride) game ride 30000 '^ride: pay' --ride=8 --passenger=believer --ride-quirk=river --autopilot --parody-log ;;
+		# Tech-debt TD-1: an activity of the kit from its start to its pay in the whole game, with
+		# the real HUD (the cards' owner), dialogue, wallet, beacon and arrow: the cinema tour. The
+		# autopilot presses the cards and slides the car to each stop; in the cloud the pay came
+		# 157 s into the tour (about 10,100 frames with its four cards).
+		tour-run) game tour 14000 '^kino: done:' --kino-tour=auto --kino-log --autopilot ;;
 		# Loop 2d-1 x 3g-1: a pull-over 25 s into that ride takes exactly one star (police.gd calls
 		# rides.on_pulled_over() when the conversation ends), on the prebuilt city.
 		ride-police) ride_police ;;

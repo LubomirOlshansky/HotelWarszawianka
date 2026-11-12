@@ -17,6 +17,7 @@
 # A new check: add its line here and its case in tools/verify.sh. `python3 -I tools/ci_tier.py
 # --check` (CI, every pull request) fails when a step has a case and no line, or a line and no case.
 
+activity             quick
 architecture         quick
 boatrace             quick
 boot                 quick
@@ -163,6 +164,7 @@ tarasyscreen         quick
 teleport             runs
 tenementtrim         quick
 tiers                quick
+tour-run             local     slow
 trains               quick
 tramfleet            quick
 tramstops            quick

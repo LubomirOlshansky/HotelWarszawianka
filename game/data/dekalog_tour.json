@@ -1,0 +1,288 @@
+{
+	"id": "dekalog",
+	"pay_kind": "dekalog_tour",
+	"name": [
+		"Dekalog na kółkach",
+		"Decalogue on wheels"
+	],
+	"speaker": "Claire",
+	"lines": "dekalog_claire",
+	"colour": "#3f6fd8",
+	"dark": "#1d2440",
+	"hours": [
+		16.0,
+		23.5
+	],
+	"first_call": 600,
+	"call_cool": 1800,
+	"play_limit": 2700,
+	"banter": [
+		17,
+		26
+	],
+	"pay": {
+		"base": 260,
+		"bump": 15,
+		"shot": 25,
+		"respect": 70,
+		"respect_bump": 6
+	},
+	"bump_max": 6,
+	"shots_of": "shots",
+	"call": {
+		"who": "+33 · Claire",
+		"about": [
+			"Nieznany numer z Francji. W tle: „Kieślowski”.",
+			"Unknown French number. In the background: \"Kieślowski\"."
+		]
+	},
+	"offer": {
+		"title": [
+			"CLAIRE: „PROWADZI PAN? ŚWIETNIE!”",
+			"Claire: \"You drive? Perfect!\""
+		],
+		"body": [
+			"„Bonjour! Claire, studentka filmu z Lyonu. Piszę pracę o „Dekalogu” i mam jeden dzień w Warszawie. Chcę zobaczyć miejsca, gdzie kręcił Kieślowski, aż do osiedla na Inflanckiej. Jestem na Centralnej.”",
+			"\"Bonjour! Claire, a film student from Lyon. I'm writing about the Dekalog and I have one day in Warsaw. I want to see where Kieślowski filmed, all the way to the estate on Inflancka. I'm at Centralna.\""
+		],
+		"face": "Claire"
+	},
+	"pickup": {
+		"at": [
+			-1393.7,
+			637.8
+		],
+		"name": "Warszawa Centralna",
+		"toast": [
+			"Po Claire na Dworzec Centralny",
+			"Pick Claire up at Warszawa Centralna"
+		],
+		"in": [
+			"Claire wsiada z plecakiem i zeszytem pełnym kadrów",
+			"Claire gets in with a rucksack and a notebook full of frames"
+		],
+		"status": [
+			"Claire czeka na peronie: {name}",
+			"Claire waits on the platform: {name}"
+		],
+		"met": "met Claire at Centralna"
+	},
+	"stops": [
+		{
+			"id": "noakowskiego",
+			"at": [
+				-918.2,
+				1426.8
+			],
+			"name": "Noakowskiego 12",
+			"episode": "VIII",
+			"shot": "quiet",
+			"title": [
+				"DEKALOG VIII · NOAKOWSKIEGO 12",
+				"DECALOGUE VIII · 12 NOAKOWSKIEGO"
+			],
+			"body": [
+				"Brama, podwórko i kapliczka z Matką Boską, którą mieszkańcy postawili w czasie wojny. Tu w filmie wraca kobieta, której w 1943 roku nie wpuszczono do mieszkania.\nClaire: „Ta sama kapliczka! On niczego nie budował. On tylko patrzył.”",
+				"A gate, a courtyard and a wayside shrine to the Virgin the tenants put up in the war. In the film a woman comes back here, the girl turned away from a flat in 1943.\nClaire: \"The same shrine! He built nothing. He just looked.\""
+			]
+		},
+		{
+			"id": "trzech_krzyzy",
+			"at": [
+				-135.5,
+				546.1
+			],
+			"name": "Plac Trzech Krzyży",
+			"episode": "III",
+			"shot": "rush",
+			"title": [
+				"DEKALOG III · PLAC TRZECH KRZYŻY",
+				"DECALOGUE III · THREE CROSSES SQUARE"
+			],
+			"body": [
+				"Wigilia, noc, biały fiat i czerwony maluch pod kościołem św. Aleksandra. Kamera patrzy z góry, zza kapitelu kolumny, na trójkąt placu.\nClaire: „Trójkątny plac, trójkąt miłosny. Przypadkowych kadrów tu nie ma.”",
+				"Christmas Eve, night, a white Fiat and a red Maluch outside St Alexander's. The camera looks down from behind a column's capital at the square's triangle.\nClaire: \"A triangular square, a love triangle. No frame here is an accident.\""
+			]
+		},
+		{
+			"id": "uniwersytet",
+			"at": [
+				-487.2,
+				-641.9
+			],
+			"name": "Uniwersytet",
+			"episode": "VIII",
+			"shot": "long",
+			"title": [
+				"DEKALOG VIII · UNIWERSYTET",
+				"DECALOGUE VIII · THE UNIVERSITY"
+			],
+			"body": [
+				"Brama uniwersytetu. W filmie profesorka etyki prowadzi tu zajęcia, a studenci opowiadają jej historie znane z innych odcinków.\nClaire: „Film, w którym ludzie omawiają inny film. Mój promotor zemdlałby z zachwytu.”",
+				"The university gate. In the film an ethics professor teaches here, and her students tell her stories from other episodes.\nClaire: \"A film where people discuss another film. My supervisor would faint with joy.\""
+			]
+		},
+		{
+			"id": "europejski",
+			"at": [
+				-589.0,
+				-894.6
+			],
+			"name": "Postój przy Europejskim",
+			"episode": "V",
+			"shot": "static",
+			"title": [
+				"DEKALOG V · POSTÓJ TAKSÓWEK",
+				"DECALOGUE V · THE TAXI RANK"
+			],
+			"body": [
+				"Postój przy Hotelu Europejskim. Tu chłopak wsiada do taksówki i zaczyna się najcięższy odcinek cyklu, ten, który stał się głosem przeciw karze śmierci.\nClaire długo milczy. „Jedźmy. Tylko nie szybko.”",
+				"The rank by the Hotel Europejski. Here a young man gets into a taxi and the series' hardest episode begins, the one that became a voice against the death penalty.\nClaire is quiet for a long moment. \"Let's go. Just not fast.\""
+			]
+		},
+		{
+			"id": "kawiarnia",
+			"at": [
+				-667.7,
+				-1107.1
+			],
+			"name": "Krakowskie Przedmieście 27",
+			"episode": "VI",
+			"shot": "",
+			"title": [
+				"DEKALOG VI · KAWIARNIA",
+				"DECALOGUE VI · THE CAFÉ"
+			],
+			"body": [
+				"Krakowskie Przedmieście 27. Tu chłopak z poczty wreszcie zaprasza sąsiadkę z bloku naprzeciwko. Lody, dwie filiżanki i za dużo odwagi naraz.\nClaire: „Najbardziej romantyczna randka w historii kina. I najbardziej niezręczna.”",
+				"27 Krakowskie Przedmieście. Here the boy from the post office finally asks out the woman from the block opposite. Ice cream, two cups and too much courage at once.\nClaire: \"The most romantic date in film history. And the most awkward.\""
+			]
+		},
+		{
+			"id": "osiedle",
+			"at": [
+				-2393.2,
+				-2301.6
+			],
+			"name": "Osiedle na Inflanckiej",
+			"episode": "I · IV · VI",
+			"shot": "tunnel",
+			"title": [
+				"DEKALOG · OSIEDLE NA INFLANCKIEJ",
+				"DECALOGUE · THE INFLANCKA ESTATE"
+			],
+			"body": [
+				"Wielka płyta: Dzika 6 i Inflancka 15, okno w okno. W filmie mieszkają tu bohaterowie wszystkich dziesięciu odcinków, a chłopak z poczty patrzy przez lunetę w okno naprzeciwko.\nClaire zadziera głowę: „Które to okno? Wszystkie są takie same. I o to chodziło.”\nClaire: „A ty? Patrzyłbyś przez lunetę czy zapukał?”",
+				"Large-panel blocks: Dzika 6 and Inflancka 15, window facing window. In the film the people of all ten episodes live here, and the boy from the post office watches the window opposite through a telescope.\nClaire looks up: \"Which window? They're all the same. That was the point.\"\nClaire: \"And you? Would you watch through a telescope or knock?\""
+			]
+		}
+	],
+	"shots": {
+		"quiet": {
+			"kind": "quiet",
+			"need": 1,
+			"hint": [
+				"Ujęcie: cisza, ani jednej stłuczki",
+				"Shot: silence, not a single bump"
+			]
+		},
+		"rush": {
+			"kind": "in_time",
+			"need": 150,
+			"hint": [
+				"Ujęcie: wigilijny pośpiech, zdąż w 150 s",
+				"Shot: the Christmas Eve rush, make it in 150 s"
+			]
+		},
+		"long": {
+			"kind": "long",
+			"need": 15,
+			"hint": [
+				"Ujęcie: długie, 15 s przy 5-40 km/h",
+				"Shot: a long take, 15 s at 5-40 km/h"
+			]
+		},
+		"static": {
+			"kind": "static",
+			"need": 5,
+			"hint": [
+				"Ujęcie: statyczne, stój 5 s",
+				"Shot: a static one, stand still 5 s"
+			]
+		},
+		"tunnel": {
+			"kind": "tunnel",
+			"need": 1,
+			"hint": [
+				"Ujęcie: przejedź tunelem Trasy W-Z",
+				"Shot: drive through the W-Z tunnel"
+			]
+		}
+	},
+	"tunnel": {
+		"line": [
+			[
+				-681.5,
+				-1406.1
+			],
+			[
+				-874.9,
+				-1382.9
+			]
+		],
+		"width": 9,
+		"deep": 3
+	},
+	"answers": [
+		{
+			"button": "ZAPUKAŁBYM|I'D KNOCK",
+			"reply": [
+				"Claire: „Odważnie. Ale wtedy nie byłoby filmu, tylko herbata.”",
+				"Claire: \"Brave. But then there'd be no film, just tea.\""
+			]
+		},
+		{
+			"button": "PATRZĘ NA DROGĘ|EYES ON THE ROAD",
+			"reply": [
+				"Claire: „Mądrze. Kierowca, który patrzy w okna, kończy w innym odcinku.”",
+				"Claire: \"Wise. A driver who looks into windows ends up in another episode.\""
+			]
+		}
+	],
+	"words": {
+		"status_leg": [
+			"Dekalog {episode} · {name}",
+			"Decalogue {episode} · {name}"
+		],
+		"status_shot": [
+			"Dekalog {episode} · {name} · {shot}",
+			"Decalogue {episode} · {name} · {shot}"
+		],
+		"status_got": [
+			"Dekalog {episode} · {name} · Ujęcie jest!",
+			"Decalogue {episode} · {name} · Got the shot!"
+		],
+		"got": [
+			"UJĘCIE! Claire notuje (+{pay} zł na końcu)",
+			"SHOT! Claire takes notes (+{pay} zł at the end)"
+		],
+		"bump": [
+			"Stłuczka! Claire zapisuje to jako „scenę niepokoju moralnego” (−{cost} zł)",
+			"A bump! Claire notes it down as \"a scene of moral anxiety\" (−{cost} zł)"
+		],
+		"drive_on": "JEDZIEMY DALEJ|DRIVE ON",
+		"end_button": "MERCI!|MERCI!",
+		"end": [
+			"{reply}\nJutro rano basen na Inflanckiej, po drugiej stronie ulicy, a potem znicz na Powązkach.\n+{pay} zł  +{respect} szacunu · ujęcia {shots}/{of}",
+			"{reply}\nTomorrow morning the Inflancka pool across the street, then a candle at Powązki.\n+{pay} zł  +{respect} respect · shots {shots}/{of}"
+		],
+		"quit": [
+			"Claire wysiada: „Dokończę tramwajem. Tramwaje też grały u Kieślowskiego.”",
+			"Claire gets out: \"I'll finish by tram. Trams were in Kieślowski's films too.\""
+		],
+		"no_fly": [
+			"Claire nie lata: najpierw kadry z Dekalogu (albo ✕)",
+			"Claire doesn't fly: the Dekalog frames first (or ✕)"
+		]
+	}
+}

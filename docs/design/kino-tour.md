@@ -5,10 +5,14 @@ and asks you to drive him round the central cinemas (Muranów, the Kinoteka, Amo
 so he can get it screened; on the way he jokes about niche cinema (Gaspar Noé, Enter the Void,
 Sorrentino). Design the cinemas too, and say which photos are needed.
 
-Built in `game/scripts/kino_tour.gd`; lines `kino_wiktor` in `game/data/dialogue.json`; Kino
+Built as data, `game/data/kino_tour.json` (the stops, the shots, the cards' words, the pay), played
+by `game/scripts/tour.gd`, the activity kit's tour (tech-debt TD-1; until 2026-11-12 a script of its
+own, `kino_tour.gd`); lines `kino_wiktor` in `game/data/dialogue.json`; Kino
 Muranów's model in `landmarks.gd` (spec `docs/landmarks/specs/kino_muranow.md`); checked by
-`game/tools/check_kino_tour.gd` (verify step `kinotour`). Flags: `--kino-tour[=call|go|auto|0]`,
-`--kino-log`.
+`game/tools/check_kino_tour.gd` (verify step `kinotour`) and, with every tour's data,
+`check_activity.gd` (`activity`). Flags: `--kino-tour[=call|go|auto|0]`, `--kino-log`; with
+`--autopilot` the car goes to each stop by itself, so `--kino-tour=auto --autopilot` plays the
+whole tour.
 
 ## Who
 

@@ -2,8 +2,11 @@
 
 F's ask, 2026-11-07: a visitor comes to Warsaw and wants to be driven round the places where
 Krzysztof Kieślowski filmed, ending on the Muranów estate where most of the *Dekalog* and *A Short
-Film About Love* were shot. Script `game/scripts/dekalog_tour.gd`, check `check_dekalog_tour.gd`
-(verify step `dekalog`), lines `dekalog_claire` in `game/data/dialogue.json`.
+Film About Love* were shot. Data `game/data/dekalog_tour.json` (the stops, the shots, the cards'
+words, the pay), played by `game/scripts/tour.gd`, the activity kit's tour (tech-debt TD-1; until
+2026-11-12 a script of its own, `dekalog_tour.gd`); check `check_dekalog_tour.gd` (verify step
+`dekalog`) and, with every tour's data, `check_activity.gd` (`activity`); lines `dekalog_claire` in
+`game/data/dialogue.json`.
 
 ## Sources
 
@@ -51,5 +54,5 @@ courtyard shrine, the café front at Krakowskie Przedmieście 27, and St Alexand
 ## Quest map
 
 After PR #504 (quest map and starts) merges: one `stories.add` block in `main.gd` `_build_stories`
-for "Dekalog na kółkach" (start at Centralna, colour `DekalogTour.COLOUR`), and a `meet()` for an
+for "Dekalog na kółkach" (start at Centralna, the tour's `colour`), and a `meet()` for an
 in-person start.
