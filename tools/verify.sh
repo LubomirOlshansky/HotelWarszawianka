@@ -201,7 +201,21 @@
 # city, under a minute) and its pass marks against game/data/race_bench.json: a mark recorded as a
 # pass that fails is a FAIL, one recorded as a fail that passes is a WARN until it is recorded
 # (tools/race_bench.sh --write; the full matrix, ~4 min: tools/race_bench.sh), one recorded as
-# unsteady (it turns with the draw of the traffic) is shown and not held (CI too). Loop 3h slice 4: `first10`
+# unsteady (it turns with the draw of the traffic) is shown and not held (CI too). Step 3 of the rebuild:
+# `raceplanner` runs game/tools/check_race_planner.gd: the route planner (race_planner.gd) and
+# traffic.gd's part of it on the same lane graph and bench: the traffic's delay by street (none without
+# traffic, in proportion to it, most where there is no way past), a plan by arrival time (Mike's quicker
+# than Halina's, the town's traffic in it by what the racer knows, a shut street once and the way round
+# it, the search in slices the same as at once), Słoik's wrong turns (4 to 15 s, never the way back),
+# hairpins at the U-turn's speed, one finish line for both cars (the roads through a finish's circle,
+# the plan, the metres and the minimap's line ending where such a road enters it, the player's car home
+# there in any lane and not short of it, past it, beside the road or on another level, Trzy mosty's
+# last leg to its circle), and eleven races: the plan's clock against the race as driven, a wall in
+# a one-way street (backs out) and in a two-way street (turns round in it), the player's car stopped in
+# the only lane, out of the town's cars in Busy traffic (the delay owed is paid, with no step in the
+# speed), behind the slow test player on two lanes (a lane held: she moves over and is past), and the
+# first race to the Palace home at its circle; about 8 s (CI too, skipped without centrum.json).
+# Loop 3h slice 4: `first10`
 # runs game/tools/check_first10.gd: the guide's ten beats and windows, who gets the guide, three
 # synthetic players through the director's rules (each beat in its window, the fallbacks, a beat
 # waiting for a job), the first race at her own pace in a 1-D race, the words; `endcard` runs
@@ -306,8 +320,8 @@ zmodload zsh/datetime
 ROOT=${0:A:h:h}
 GAME=$ROOT/game
 GODOT=${GODOT:-godot}
-STEPS_ALL=(map architecture roads smooth fixes centralnyramp cyclehang portbridge heights objects tramstops stairs streets outline pois streetdetails streetpass design models overrides stops streetmesh ratuszhub parkdetails parkmesh monuments monumentmesh spiremotion tarasyscreen spec lod2 courts drape ground drive drive-prebuilt deckxray tunnelcut stuckspots stuckspots-prebuilt oldtowndrive lanedrive lanedrive-grounded finite steering laneassist stuckoffer handling grounded stopassist questlines stories settings credits language tiers governor shaderbudget heliview hud places edge roadworks roadworks-prebuilt eggs placzamkowy tape crowds life buses zaglebie crashes rave shisha padel meet boatrace dekalog kinotour evtow crawl loud crazy oldtram tramfleet trains railsignals packs wellness tamka fans eventday coffeerun garage save errortrap districts syrenki cassettes ladder racecuts racebench first10 mainline chatter messages endcard opening parodies jobs2 rescues couriers delivery rides cost landmarks oldtownroofs roofdress tenementtrim osmroofs sites palacelights meshq sfx mixer juice gamepad radio sounds water water-prebuilt streaming police plain ram teleport firstlife heli race trzy-mosty first10-run kebab coffee ride ride-police splash rain prebuilt classic police-runs police-soak life-soak)
-STEPS_QUICK=(map architecture roads smooth fixes centralnyramp cyclehang portbridge heights objects tramstops stairs streets outline pois streetdetails streetpass design models overrides stops streetmesh ratuszhub parkdetails parkmesh monuments monumentmesh spiremotion tarasyscreen spec drape drive deckxray tunnelcut stuckspots oldtowndrive finite steering laneassist stuckoffer handling grounded stopassist questlines stories settings credits language tiers governor shaderbudget heliview hud places edge roadworks eggs placzamkowy tape crowds life buses zaglebie crashes rave shisha padel meet boatrace dekalog kinotour evtow crawl loud crazy oldtram tramfleet trains railsignals packs wellness tamka fans eventday coffeerun garage save errortrap districts syrenki cassettes ladder racecuts racebench first10 mainline chatter messages endcard opening parodies jobs2 rescues couriers delivery rides cost landmarks oldtownroofs roofdress tenementtrim osmroofs sites palacelights meshq sfx mixer juice gamepad radio sounds police plain ram teleport firstlife prebuilt)
+STEPS_ALL=(map architecture roads smooth fixes centralnyramp cyclehang portbridge heights objects tramstops stairs streets outline pois streetdetails streetpass design models overrides stops streetmesh ratuszhub parkdetails parkmesh monuments monumentmesh spiremotion tarasyscreen spec lod2 courts drape ground drive drive-prebuilt deckxray tunnelcut stuckspots stuckspots-prebuilt oldtowndrive lanedrive lanedrive-grounded finite steering laneassist stuckoffer handling grounded stopassist questlines stories settings credits language tiers governor shaderbudget heliview hud places edge roadworks roadworks-prebuilt eggs placzamkowy tape crowds life buses zaglebie crashes rave shisha padel meet boatrace dekalog kinotour evtow crawl loud crazy oldtram tramfleet trains railsignals packs wellness tamka fans eventday coffeerun garage save errortrap districts syrenki cassettes ladder racecuts racebench raceplanner first10 mainline chatter messages endcard opening parodies jobs2 rescues couriers delivery rides cost landmarks oldtownroofs roofdress tenementtrim osmroofs sites palacelights meshq sfx mixer juice gamepad radio sounds water water-prebuilt streaming police plain ram teleport firstlife heli race trzy-mosty first10-run kebab coffee ride ride-police splash rain prebuilt classic police-runs police-soak life-soak)
+STEPS_QUICK=(map architecture roads smooth fixes centralnyramp cyclehang portbridge heights objects tramstops stairs streets outline pois streetdetails streetpass design models overrides stops streetmesh ratuszhub parkdetails parkmesh monuments monumentmesh spiremotion tarasyscreen spec drape drive deckxray tunnelcut stuckspots oldtowndrive finite steering laneassist stuckoffer handling grounded stopassist questlines stories settings credits language tiers governor shaderbudget heliview hud places edge roadworks eggs placzamkowy tape crowds life buses zaglebie crashes rave shisha padel meet boatrace dekalog kinotour evtow crawl loud crazy oldtram tramfleet trains railsignals packs wellness tamka fans eventday coffeerun garage save errortrap districts syrenki cassettes ladder racecuts racebench raceplanner first10 mainline chatter messages endcard opening parodies jobs2 rescues couriers delivery rides cost landmarks oldtownroofs roofdress tenementtrim osmroofs sites palacelights meshq sfx mixer juice gamepad radio sounds police plain ram teleport firstlife prebuilt)
 # Operation Unslop review (2026-11-05): the road loop ran the whole --quick (~100 steps, most start
 # the game) after every tweak. --roads keeps only the steps a road rule can break; steps not in
 # STEPS_ALL on this branch (e.g. `smooth` before the smooth-roads PR) are skipped.
@@ -1130,6 +1144,7 @@ for s in $want; do
 		ladder) check ladder '^ladder:' --script res://tools/check_ladder.gd ;;
 		racecuts) check racecuts '^race_cuts:' --script res://tools/check_race_cuts.gd ;;
 		racebench) check racebench '^check_race_bench:' --script res://tools/check_race_bench.gd ;;
+		raceplanner) check raceplanner '^check_race_planner:' --script res://tools/check_race_planner.gd ;;
 		first10) check first10 '^first10:' --script res://tools/check_first10.gd ;;
 		mainline) check mainline '^main_line:' --script res://tools/check_main_line.gd ;;
 		chatter) check chatter '^check_chatter:' --script res://tools/check_chatter.gd ;;

@@ -15,8 +15,9 @@ extends SceneTree
 ##     records it as a pass when it passes with room to spare.
 ## The quick matrix (the default: the prototype race Powiśle -> Plac Trzech Krzyży with Pani
 ## Halina, under a minute) is what tools/verify.sh and CI run; `--full` adds the second start, the
-## guided first race under every situation, two more draws of the traffic and all six rivals (a
-## few minutes; tools/race_bench.sh).
+## guided first race under every situation, two more draws of the traffic, all six rivals, and
+## the first race to the Palace, a finish whose circle another road runs through (a few minutes;
+## tools/race_bench.sh).
 ##   godot --headless --path game --script res://tools/check_race_bench.gd [-- OPTIONS]
 ##   --full          the full matrix          --only=TEXT   only races whose id contains TEXT
 ##   --trace         once a second, what the rival does (use with --only)
@@ -148,7 +149,8 @@ func _run() -> void:
 ## The races to run. Quick: the prototype race from Tamka (where F raced) with Pani Halina: a
 ## ladder race on clear roads against every test player, in heavy traffic, with the street
 ## blocked and with a crash; the guided first race; the three forced routes from Leszczyńska;
-## one race twice. Full: both starts and both tunings under everything, and all six rivals.
+## one race twice. Full: both starts and both tunings under everything, all six rivals, and the
+## guided first race to the Palace from Marszałkowska (RaceBench.PALACE: the finish's circle).
 func _matrix(full: bool) -> Array:
 	var out: Array = []
 	for player: String in RaceBench.PLAYERS:
@@ -200,6 +202,13 @@ func _matrix(full: bool) -> Array:
 		for situation: String in ["clear", "heavy"]:
 			for player: String in ["none", "stopped", "average"]:
 				out.append(_spec(rung["rival"], "ladder", "tamka", situation, player))
+	# A finish whose circle another road runs through: the first race to the Palace as the whole
+	# game ran it, on clear roads and in traffic, alone and with a player about.
+	for situation: String in ["clear", "heavy"]:
+		for player: String in ["none", "average"]:
+			var s := _spec(HALINA, "first", RaceBench.PALACE_START, situation, player)
+			s["finish"] = RaceBench.PALACE
+			out.append(s)
 	return out
 
 
@@ -244,6 +253,16 @@ func _race(spec: Dictionary) -> bool:
 		extras.append("waited %.0f s at the line" % r["hold_s"])
 	if float(r["boxed_s"]) >= 1.0:
 		extras.append("boxed in %.0f s behind the player's stopped car, no lane to pass in" % r["boxed_s"])
+	if int(r.get("turned_back", 0)) > 0:
+		var how := PackedStringArray()
+		var back: Array = r.get("back", [])
+		if 5 in back:
+			how.append("a U-turn in the street")
+		if 3 in back or 4 in back:
+			how.append("backed out to the junction behind")
+		extras.append("turned back %d times%s" % [r["turned_back"], " (%s)" % ", ".join(how) if not how.is_empty() else ""])
+	if float(r.get("away_s", 0.0)) >= 1.0:
+		extras.append("out of the town's cars %.0f s, paid %.1f s of the delay it expects there" % [r["away_s"], r["away_paid_s"]])
 	if r.has("player_time"):
 		extras.append("the player home in %.1f s" % r["player_time"])
 	if int(r["overlaps"]) > 0:
@@ -264,6 +283,8 @@ func _race(spec: Dictionary) -> bool:
 		extras.append("wall on %s (its way %d m, the best other way %d m, turning round at the wall %d m)" % [r["wall"]["street"], r["wall"]["base_m"], r["wall"]["alt_m"], r["wall"]["turn_m"]])
 	if r.has("wreck"):
 		extras.append("wreck on %s, knocked at %.0f s" % [r["wreck"]["street"], r.get("knock_s", -1.0)])
+	if float(r.get("plan_s", 0.0)) > 0.0 and r["finished"] and r["situation"] == "clear":
+		extras.append("the plan's clock %.1f s (%+.0f %%)" % [r["plan_s"], (float(r["plan_s"]) / maxf(float(r["time"]) - float(r["hold_s"]), 1.0) - 1.0) * 100.0])
 	if _before.has(r["id"]):
 		var b: Dictionary = _before[r["id"]]
 		extras.append("before: %s%.1f s, crawl %.1f s, behind %.1f s, through %d cars" % [
