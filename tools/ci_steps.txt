@@ -87,6 +87,7 @@ portbridge           roads
 prebuilt             smoke
 questlines           smoke
 racebench            quick
+raceplanner          quick
 radio                quick
 ram                  runs
 ratuszhub            quick

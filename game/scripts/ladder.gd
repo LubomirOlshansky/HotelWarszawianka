@@ -30,6 +30,13 @@ extends RefCounted
 ##   What is left of "closeness" is rivals.gd `effort_of`: a rival far in front eases to
 ##   EFFORT_EASE of its own pace, one behind pushes a little, by the time gap alone. `pace` stays
 ##   as the cruise-time liveliness and the old tests' order.
+## - **Racing: the streets it takes** (docs/design/race-ai.md 5, 2026-11-10; the friend's point 5:
+##   "Pani Halina could be surprisingly competitive because she knows the city extremely well").
+##   A rival plans its way by the seconds each street costs it (race_planner.gd), and two numbers
+##   say what it counts: `knows`, the share of the town's traffic it reckons with (Halina and
+##   Zbyszek the taxi driver all of it; Słoik none, he plans as if the roads were empty), and
+##   `caution`, how much more a one-lane one-way street with no way past a slow car costs it in
+##   traffic (Halina goes round, Seba goes in). On clear roads neither changes anything.
 ## - **Halina's gentle day** (FIRST_RACER, `gentle`): the guided first race, and every race
 ##   against her until the player has beaten her once. The easiest drive in the game, but a real
 ##   one: she holds her own pace whatever the player does (parked question 1 in docs/QUESTIONS.md:
@@ -54,22 +61,22 @@ const Lang := preload("res://scripts/lang.gd")
 ## the locked prompt, the stake (zł, as RIVALS), the respect it needs, and the race pace.
 const RUNGS := [
 	{"id": "halina", "rival": "Pani Halina", "short": "HALINA", "stake": 60, "respect": 0, "pace": 1.25, "accel": 1.5,
-		"share": 0.70, "race_accel": 8.0, "brake": 4.5, "lat": 5.5,
+		"share": 0.70, "race_accel": 8.0, "brake": 4.5, "lat": 5.5, "knows": 1.0, "caution": 0.8,
 		"cuts": 0.3, "mistake": 0.2, "wrong": 0, "block": 0.0, "phone": false},
 	{"id": "sloik", "rival": "Słoik z Radomia", "short": "SŁOIK", "stake": 90, "respect": 100, "pace": 1.3, "accel": 1.55,
-		"share": 0.92, "race_accel": 8.5, "brake": 5.5, "lat": 6.0,
+		"share": 0.92, "race_accel": 8.5, "brake": 5.5, "lat": 6.0, "knows": 0.0, "caution": 0.5,
 		"cuts": 0.0, "mistake": 0.12, "wrong": 1, "block": 0.0, "phone": false},
 	{"id": "bartek", "rival": "Bulwar Bartek", "short": "BARTEK", "stake": 120, "respect": 220, "pace": 1.35, "accel": 1.6,
-		"share": 0.80, "race_accel": 9.5, "brake": 6.0, "lat": 7.5,
+		"share": 0.80, "race_accel": 9.5, "brake": 6.0, "lat": 7.5, "knows": 0.5, "caution": 0.3,
 		"cuts": 0.4, "mistake": 0.2, "wrong": 0, "block": 0.3, "phone": false},
 	{"id": "seba", "rival": "Seba z Pragi", "short": "SEBA", "stake": 150, "respect": 340, "pace": 1.4, "accel": 1.65,
-		"share": 0.83, "race_accel": 10.5, "brake": 9.0, "lat": 11.5,
+		"share": 0.83, "race_accel": 10.5, "brake": 9.0, "lat": 11.5, "knows": 0.7, "caution": 0.0,
 		"cuts": 0.6, "mistake": 0.08, "wrong": 0, "block": 0.9, "phone": false},
 	{"id": "zbyszek", "rival": "Taksiarz Zbyszek", "short": "ZBYSZEK", "stake": 200, "respect": 480, "pace": 1.45, "accel": 1.7,
-		"share": 0.92, "race_accel": 11.0, "brake": 7.0, "lat": 10.0,
+		"share": 0.92, "race_accel": 11.0, "brake": 7.0, "lat": 10.0, "knows": 1.0, "caution": 0.2,
 		"cuts": 1.0, "mistake": 0.03, "wrong": 0, "block": 0.4, "phone": false},
 	{"id": "mike", "rival": "Mordor Mike", "short": "MIKE", "stake": 300, "respect": 640, "pace": 1.5, "accel": 1.75,
-		"share": 0.97, "race_accel": 12.5, "brake": 9.0, "lat": 11.0,
+		"share": 0.97, "race_accel": 12.5, "brake": 9.0, "lat": 11.0, "knows": 0.4, "caution": 0.1,
 		"cuts": 0.5, "mistake": 0.05, "wrong": 0, "block": 0.3, "phone": true},
 ]
 ## The final race: index RUNGS.size() (6) everywhere a rung index is asked for.
@@ -90,14 +97,14 @@ const FINAL_PACE := 1.45
 const FINAL_ACCEL := 1.7
 ## Seba's racing in the final (`racer`): his own late brakes and grip with nearly Mike's
 ## straights, every shortcut, always blocking.
-const FINAL_RACER := {"share": 0.96, "race_accel": 12.0, "brake": 10.0, "lat": 12.0,
+const FINAL_RACER := {"share": 0.96, "race_accel": 12.0, "brake": 10.0, "lat": 12.0, "knows": 1.0, "caution": 0.0,
 		"cuts": 1.0, "mistake": 0.05, "wrong": 0, "block": 1.0, "phone": false}
 ## Racing outside the ladder: a middling driver (between Bartek and Seba).
-const DEFAULT_RACER := {"share": 0.82, "race_accel": 10.0, "brake": 7.0, "lat": 8.5,
+const DEFAULT_RACER := {"share": 0.82, "race_accel": 10.0, "brake": 7.0, "lat": 8.5, "knows": 0.6, "caution": 0.3,
 		"cuts": 0.5, "mistake": 0.1, "wrong": 0, "block": 0.3, "phone": false}
 ## Halina on a gentle day: the guided first race (rivals.gd `call_first`) and every race against
 ## her until she has been beaten once (`gentle`). Gentler than on her rung, and as steady.
-const FIRST_RACER := {"share": 0.65, "race_accel": 7.0, "brake": 4.0, "lat": 5.0,
+const FIRST_RACER := {"share": 0.65, "race_accel": 7.0, "brake": 4.0, "lat": 5.0, "knows": 1.0, "caution": 1.0,
 		"cuts": 0.3, "mistake": 0.2, "wrong": 0, "block": 0.0, "phone": false}
 ## An easier rematch: each race lost in a row to a rival makes it this much slower the next time
 ## (the straights and the corners), up to EASE_MAX; the streak's key in the save's [keep].
@@ -143,7 +150,8 @@ static func id_of(i: int) -> String:
 
 
 ## The racer stats of rung `i` (FINAL: the final's; -1: the default): the skill (share,
-## race_accel, brake, lat) and the personality (2026-11-05): cuts, mistake, wrong, block, phone.
+## race_accel, brake, lat), the streets it takes (knows, caution) and the personality
+## (2026-11-05): cuts, mistake, wrong, block, phone.
 static func racer(i: int) -> Dictionary:
 	if i == FINAL:
 		return FINAL_RACER
