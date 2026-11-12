@@ -911,8 +911,9 @@ vec3 landmark(int mode, float param, vec3 col, vec2 uv, float top, bool wall, ve
 				return srgb_to_linear(vec3(0.76, 0.78, 0.8)) * mix(0.3, 1.0, daylight);
 			}
 			if (lights_on > 0.001) {
-				glow = vec3(1.0, 0.86, 0.62) * (0.8 + 0.3 * hash12(vec2(floor(uv.x / 2.07), floor(uv.y / 5.0))));
-				g *= 0.4;
+				// golden, as the dusk photos (F, 2026-11-11): the bank hall lit warm, nearly every pane
+				glow = vec3(1.0, 0.76, 0.4) * (0.95 + 0.3 * hash12(vec2(floor(uv.x / 2.69), floor(uv.y / 3.5))));
+				g *= 0.35;
 			}
 			return g;
 		}
