@@ -30,6 +30,7 @@ extends Node
 const PadelSim := preload("res://scripts/padel_sim.gd")
 const PixelFont := preload("res://scripts/pixel_font.gd")
 const Lang := preload("res://scripts/lang.gd")
+const Sfx := preload("res://scripts/sfx.gd")
 
 ## The pixel canvas's height; the width follows the screen's aspect (at least MIN_W).
 const H := 216
@@ -151,7 +152,6 @@ var _sfx_i := 0
 var _music: AudioStreamPlayer
 var _amb: AudioStreamPlayer
 var _sounds := {}
-var _radio_duck := 0.0
 ## Touch: index -> "stick" / "hit" / "lob" / "quit"; the stick's base and knob (screen px).
 var _touches := {}
 var _stick_on := false
@@ -195,9 +195,7 @@ func enter(info: Dictionary) -> void:
 	inside = true
 	_layer.visible = true
 	_resize()
-	if radio != null and "duck_db" in radio:
-		_radio_duck = float(radio.duck_db)
-		radio.duck_db = -60.0
+	Sfx.duck("padel")
 	if _music != null:
 		_music.play()
 		_amb.play()
@@ -227,8 +225,7 @@ func _finish(g0: int, g1: int) -> void:
 	inside = false
 	_layer.visible = false
 	set_process(false)
-	if radio != null and "duck_db" in radio:
-		radio.duck_db = _radio_duck
+	Sfx.release("padel")
 	if _music != null:
 		_music.stop()
 		_amb.stop()
