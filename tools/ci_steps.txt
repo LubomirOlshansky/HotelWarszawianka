@@ -1,26 +1,36 @@
-# The verify steps CI runs, one per line: step name, then its group. Keep the lines sorted by name
-# (two PRs that each add a check then touch different lines). tools/ci_tier.py reads this file and
-# picks the groups a pull request runs from the paths it changed; pushes to main run every group.
+# Every step of tools/verify.sh, one per line: the step's name, its CI group, and `slow` when
+# `tools/verify.sh --quick` leaves it out. Keep the lines sorted by name (two pull requests that
+# each add a check then touch different lines). tools/verify.sh reads its step lists from this
+# file and runs the steps in this order; tools/ci_tier.py reads it and picks the groups a pull
+# request runs from the paths it changed; pushes to main run every group but `local`.
 #
-#   quick      no map needed; every code and content change (~6 min together)
+#   quick      no map needed, not even the sector split (game/map/index.json): the quick job has
+#              only what is committed; every code and content change (~8 min together)
 #   smoke      the prebuilt city (the phone's path) and the short map checks (~8 min after the bake)
-#   roads      road rules and the runtime drive (full set only, ~19 min)
+#   roads      road rules, the runtime drive and the runtime water check (full set only)
 #   ground     drape and ground (full set only)
-#   landmarks  the landmark check and the runtime water check (`landmarks` alone joins a landmark change)
-#   runs       the runtime game runs (full set only)
+#   landmarks  the landmark check (joins a landmark change; full set otherwise)
+#   runs       the runtime game runs (full set only; each rebuilds the city, ~7 min in CI)
+#   local      not in CI: the long autopilot runs, the soaks and the streaming walk, for the Mac's
+#              tools/verify.sh. A step moves into a CI group when it is worth its minutes there.
 #
-# A new check: add its line here and its case in tools/verify.sh (STEPS_ALL, STEPS_QUICK).
-# .github/workflows/verify.yml needs no edit.
+# A new check: add its line here and its case in tools/verify.sh. `python3 -I tools/ci_tier.py
+# --check` (CI, every pull request) fails when a step has a case and no line, or a line and no case.
+
 architecture         quick
 boatrace             quick
 buses                quick
 cassettes            quick
 centralnyramp        quick
 chatter              quick
+classic              local     slow
+coffee               local     slow
+coffeerun            quick
 cost                 smoke
 couriers             quick
-courts               roads
+courts               roads     slow
 crashes              quick
+crawl                quick
 crazy                quick
 credits              quick
 crowds               quick
@@ -28,43 +38,58 @@ cyclehang            roads
 deckxray             smoke
 dekalog              quick
 delivery             quick
+design               quick
 districts            quick
 drape                ground
 drive                roads
-drive-prebuilt       smoke
+drive-prebuilt       smoke     slow
 edge                 quick
 eggs                 quick
 endcard              quick
 errortrap            quick
+eventday             quick
 evtow                quick
 fans                 quick
 finite               smoke
 first10              quick
+first10-run          local     slow
+firstlife            runs
 fixes                quick
 gamepad              quick
 garage               quick
 governor             quick
-ground               ground
+ground               ground    slow
+grounded             quick
 handling             quick
+heights              quick
+heli                 local     slow
 heliview             quick
 hud                  quick
 jobs2                quick
 juice                quick
+kebab                local     slow
 kinotour             quick
 ladder               quick
 landmarks            landmarks
 laneassist           quick
-lanedrive            smoke
+lanedrive            smoke     slow
+lanedrive-grounded   local     slow
 language             smoke
 life                 quick
-lod2                 roads
+life-soak            local     slow
+lod2                 roads     slow
 loud                 quick
+mainline             quick
 map                  smoke
 meet                 quick
 meshq                quick
 messages             quick
+mixer                quick
 models               quick
+monumentmesh         quick
+monuments            quick
 objects              quick
+oldtowndrive         smoke
 oldtownroofs         smoke
 oldtram              quick
 opening              quick
@@ -75,50 +100,73 @@ packs                quick
 padel                quick
 palacelights         quick
 parkdetails          quick
+parkmesh             quick
 parodies             quick
 places               quick
 placzamkowy          quick
 plain                runs
 pois                 roads
 police               quick
+police-runs          local     slow
+police-soak          local     slow
 portbridge           roads
 prebuilt             smoke
 questlines           smoke
+race                 local     slow
 racebench            quick
+racecuts             quick
 raceplanner          quick
 radio                quick
+railsignals          smoke
+rain                 local     slow
 ram                  runs
 ratuszhub            quick
 rave                 quick
 rescues              quick
+ride                 local     slow
+ride-police          local     slow
 rides                quick
 roads                roads
+roadworks            quick
+roadworks-prebuilt   smoke     slow
 roofdress            quick
 save                 quick
 settings             quick
 sfx                  quick
 shaderbudget         quick
+shisha               quick
 sites                quick
 smooth               quick
 sounds               quick
 spec                 quick
+spiremotion          quick
+splash               local     slow
+stairs               quick
 steering             quick
 stopassist           smoke
 stops                quick
+stories              quick
+streaming            local     slow
 streetdetails        quick
 streetmesh           roads
 streetpass           quick
 streets              roads
 stuckoffer           quick
 stuckspots           roads
-stuckspots-prebuilt  smoke
+stuckspots-prebuilt  smoke     slow
 syrenki              quick
+tamka                quick
 tape                 quick
+tarasyscreen         quick
 teleport             runs
 tenementtrim         quick
 tiers                quick
+trains               quick
 tramfleet            quick
 tramstops            quick
-water                landmarks
-water-prebuilt       smoke
+trzy-mosty           local     slow
+tunnelcut            smoke
+water                roads     slow
+water-prebuilt       smoke     slow
 wellness             quick
+zaglebie             quick
