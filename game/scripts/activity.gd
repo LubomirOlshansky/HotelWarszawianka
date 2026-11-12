@@ -26,7 +26,10 @@ extends Node
 ## first that is flown (`flown`) and that starts without a call too (a stranger's car: `start`);
 ## rave.gd the first whose cards can run out unanswered (`_card_expired`) and whose arrow has its
 ## own words (`target_label`); street_meet.gd the first with a race in it (the place as the status
-## line's `badge`) and with stages that are not the kit's at all (a raid, a drag on a tree of lights).
+## line's `badge`) and with stages that are not the kit's at all (a raid, a drag on a tree of lights);
+## boat_race.gd the first the player leaves the car for (the rings lead on the water, no arrow:
+## `target_arrow`), with a card in a colour of its own (`show_card`'s `tint`) and with a result
+## card the autopilot leaves by its second button (`_auto_button`).
 
 const Beacon := preload("res://scripts/beacon.gd")
 const Access := preload("res://scripts/access.gd")
@@ -69,8 +72,9 @@ var card_life := 12.0
 var play_limit := 0.0
 ## The target ring's radius (m): the stop assist's ring.
 var arrive := StopAssist.RING
-## The player flies this one (the EV tow): its arrow shows in the air too, and neither the stop
-## assist nor the autopilot's car is sent to its target (main.gd).
+## The player is not in the car for this one (the EV tow is flown; the boat race sets it while the
+## player is on the water): its arrow shows in the air too, and neither the stop assist nor the
+## autopilot's car is sent to its target (main.gd).
 var flown := false
 
 var phase := Phase.IDLE
@@ -85,7 +89,7 @@ var _mark: Node3D
 var _target := Vector3.INF
 ## A card of the run is up and waits for a press.
 var _card_up := false
-## That card as it was shown: [title, body, buttons, stacked] (`_put_card`).
+## That card as it was shown: [title, body, buttons, stacked, tint] (`_put_card`).
 var _card_args: Array = []
 ## That card closes by itself after this long (s) (`_card_expired`); 0: it waits for a press.
 var _card_life := 0.0
@@ -160,6 +164,12 @@ func target_label(metres: int) -> String:
 	return "%d m" % metres
 
 
+## The arrow shows for the target (main.gd `_show_target`). On the water the boat race's rings
+## lead by themselves: the minimap keeps the dot, the arrow stays down.
+func target_arrow() -> bool:
+	return true
+
+
 ## The stop assist's spot (main.gd `_stop_assist`): the ring the car glides into.
 func stop_spot() -> Vector3:
 	return _target
@@ -193,8 +203,8 @@ func _process(dt: float) -> void:
 					if not hud.card_showing():
 						_put_card()
 						_log("card put back")
-				elif autopilot and _t > AUTO_CARD:
-					card_pressed(0)
+				elif autopilot and _t > AUTO_CARD and _auto_button() >= 0:
+					card_pressed(_auto_button())
 				elif _card_life > 0.0 and _t > _card_life:
 					_card_up = false
 					_hide_own_card()
@@ -276,9 +286,10 @@ func start() -> void:
 ## A card of the run, in the middle of the screen: this activity's own, so its buttons come to
 ## `_card_pressed` and to nobody else. The run's clock stands while it is up. With `life` the
 ## card closes by itself after that many seconds (`_card_expired`: as if its first button were
-## pressed, a result card nobody has to tap). `stacked`: its buttons one under the other.
-func show_card(title: Array, body: Array, buttons: PackedStringArray, life := 0.0, stacked := false) -> void:
-	_card_args = [title, body, buttons, stacked]
+## pressed, a result card nobody has to tap). `stacked`: its buttons one under the other. `tint`:
+## the card's colour when it is not the activity's (the boat race's ODPADASZ! is red).
+func show_card(title: Array, body: Array, buttons: PackedStringArray, life := 0.0, stacked := false, tint := Color(0, 0, 0, 0)) -> void:
+	_card_args = [title, body, buttons, stacked, tint]
 	_card_life = life
 	_card_up = true
 	_t = 0.0
@@ -288,7 +299,8 @@ func show_card(title: Array, body: Array, buttons: PackedStringArray, life := 0.
 func _put_card() -> void:
 	var title: Array = _card_args[0]
 	var body: Array = _card_args[1]
-	hud.show_card(str(title[0]), str(body[0]), _card_args[2], colour, false, str(title[1]), str(body[1]), _card_args[3])
+	var tint: Color = _card_args[4]
+	hud.show_card(str(title[0]), str(body[0]), _card_args[2], colour if tint.a == 0.0 else tint, false, str(title[1]), str(body[1]), _card_args[3])
 	_own_card()
 
 
@@ -428,6 +440,13 @@ func _card_pressed(_index: int) -> void:
 ## answered the bouncer, which is no answer at all).
 func _card_expired() -> void:
 	_card_pressed(0)
+
+
+## The button the autopilot taps on a card of the run, AUTO_CARD s after it went up: the first,
+## unless the subclass says otherwise (the boat race's result card: its second, WYJDŹ, or a test
+## run would race for ever). -1: none; the card waits for its life or a press.
+func _auto_button() -> int:
+	return 0
 
 
 ## The ✕ may drop the run now.

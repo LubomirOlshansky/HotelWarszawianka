@@ -3,7 +3,8 @@ extends RefCounted
 ## check_activity.gd, check_kino_tour.gd, check_dekalog_tour.gd, and the check of each activity that
 ## joins the kit): a HUD that remembers the card, the status line and the toasts, and sends a
 ## card's press to its owner as hud.gd does (tech-debt TD-16), with the context button, the
-## banner, the notes, the quest's dots and the quiet screen (the street meet uses them); a
+## banner, the notes, the quest's dots and the quiet screen (the street meet uses them), the card's
+## colour, the small toasts and the minimap's dots (the boat race uses them); a
 ## dialogue that remembers what was said; the bubbles over the car; a wallet; the rescue calls'
 ## switch; a flat map; a car that can be hit. A check that needs one of these takes it from here, so a new parameter on `hud.toast`
 ## is changed in one place.
@@ -18,8 +19,9 @@ class Hud extends CanvasLayer:
 	var card := ""
 	var body := ""
 	var buttons := 0
-	## Whether the card that is up has its buttons one under the other.
+	## Whether the card that is up has its buttons one under the other, and its colour.
 	var stacked := false
+	var accent := Color.WHITE
 	## The status line's hint ("" when it is down), its count ("2/4"), its title, its colour and the
 	## badge beside the title ("" when none); its distance ("140 m"), how far its bar is filled, and
 	## how many status lines were drawn so far (a line drawn again counts again).
@@ -32,9 +34,15 @@ class Hud extends CanvasLayer:
 	var tint := Color.WHITE
 	var badge := ""
 	var toasts: Array[String] = []
-	## The context button: whose it is ("" when down) and its word.
+	## The small toasts that wait their turn (hud.gd `ambient_toast`), and how many dots the minimap
+	## has for the others in a race.
+	var ambient: Array[String] = []
+	var mini_dots := 0
+	## The context button: whose it is ("" when down) and its word; `pill_free`: what
+	## `pill_free_for` answers (nobody else holds the button).
 	var pill := ""
 	var pill_word := ""
+	var pill_free := true
 	## The banner that is up ("" when none) and every banner shown so far.
 	var banner := ""
 	var banners: Array[String] = []
@@ -47,16 +55,19 @@ class Hud extends CanvasLayer:
 	var broadcast := 0
 	var _owner: Object = null
 
-	func show_card(title: String, text: String, btn: PackedStringArray, _a: Color, _bottom := false, _te := "", _be := "", s := false) -> void:
+	func show_card(title: String, text: String, btn: PackedStringArray, a: Color, _bottom := false, _te := "", _be := "", s := false) -> void:
 		_up(title, text, btn.size())
 		stacked = s
+		accent = a
 
-	func show_side_card(title: String, text: String, btn: PackedStringArray, _a: Color, _te := "", _be := "", s := false, _f := "") -> void:
+	func show_side_card(title: String, text: String, btn: PackedStringArray, a: Color, _te := "", _be := "", s := false, _f := "") -> void:
 		_up(title, text, btn.size())
 		stacked = s
+		accent = a
 
-	func show_call(who: String, about: String, _a: Color, _be := "", _f := "", btn := PackedStringArray(["ODBIERZ|ANSWER", "ODRZUĆ|DECLINE"])) -> void:
+	func show_call(who: String, about: String, a: Color, _be := "", _f := "", btn := PackedStringArray(["ODBIERZ|ANSWER", "ODRZUĆ|DECLINE"])) -> void:
 		_up("📞 %s DZWONI" % who.to_upper(), about, btn.size())
+		accent = a
 
 	func _up(title: String, text: String, n: int) -> void:
 		_owner = null
@@ -74,6 +85,12 @@ class Hud extends CanvasLayer:
 
 	func toast(a: String, _b := "") -> void:
 		toasts.append(a)
+
+	func ambient_toast(a: String, _b := "") -> void:
+		ambient.append(a)
+
+	func set_minimap_dots(points: PackedVector2Array, _colours: PackedColorArray) -> void:
+		mini_dots = points.size()
 
 	func show_status(t: String, c: String, d: String, h: String, p: float, a: Color, b := "", _i := {}, _he := "") -> void:
 		status = h
@@ -106,6 +123,9 @@ class Hud extends CanvasLayer:
 
 	func pill_shown(who: String) -> bool:
 		return pill == who
+
+	func pill_free_for(_who: String) -> bool:
+		return pill_free
 
 	func show_banner(text: String, _a: Color) -> void:
 		banner = text

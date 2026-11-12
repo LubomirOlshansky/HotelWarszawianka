@@ -70,6 +70,8 @@ class Probe extends Activity:
 	var expired := 0
 	## Its own words on the arrow ("" for the kit's metres).
 	var label := ""
+	## The button the autopilot taps on a card of the run (the kit's own: the first).
+	var auto_btn := 0
 
 	func _call_card() -> Dictionary:
 		return {"who": "Próba", "about": ["Ktoś od prób.", "Somebody who tests."]}
@@ -101,6 +103,9 @@ class Probe extends Activity:
 
 	func target_label(metres: int) -> String:
 		return label if label != "" else super.target_label(metres)
+
+	func _auto_button() -> int:
+		return auto_btn
 
 	func _can_abort() -> bool:
 		return may_abort
@@ -403,8 +408,37 @@ func _refusals_and_looks() -> void:
 	a.show_card(["BRAMKA", "DOOR"], ["tekst", "text"], PackedStringArray(["TAK|YES", "NIE|NO"]), 60.0)
 	_run(a, Activity.AUTO_CARD + 0.3)
 	_expect(a.pressed == [0] and a.expired == 1, "the autopilot presses the first button of a card with a life (pressed %s)" % [a.pressed])
+	# Or the button the subclass names (the boat race's result card: its second, WYJDŹ).
+	a.auto_btn = 1
+	a.pressed.clear()
+	a.show_card(["BRAMKA", "DOOR"], ["tekst", "text"], PackedStringArray(["TAK|YES", "NIE|NO"]), 60.0)
+	_run(a, Activity.AUTO_CARD + 0.3)
+	_expect(a.pressed == [1] and a.expired == 1 and hud.card == "", "the autopilot presses the button the subclass names (pressed %s)" % [a.pressed])
+	# Or none: the card waits for its life.
+	a.auto_btn = -1
+	a.pressed.clear()
+	a.show_card(["BRAMKA", "DOOR"], ["tekst", "text"], PackedStringArray(["TAK|YES", "NIE|NO"]), Activity.AUTO_CARD + 1.0)
+	_run(a, Activity.AUTO_CARD + 0.5)
+	_expect(a.pressed.is_empty() and a.expired == 1 and hud.card == "BRAMKA", "with no button named the autopilot leaves the card up (pressed %s)" % [a.pressed])
+	_run(a, 1.0)
+	_expect(a.pressed.is_empty() and a.expired == 2 and hud.card == "", "until its life is over (expired %d)" % a.expired)
+	a.auto_btn = 0
 	a.autopilot = false
 	a.own_expiry = false
+	# A card's colour: the activity's, or its own; a card put back keeps it.
+	a.show_card(["BRAMKA", "DOOR"], ["tekst", "text"], PackedStringArray(["TAK|YES", "NIE|NO"]))
+	_expect(hud.accent == a.colour, "a card of the run has the activity's colour")
+	hud.press(0)
+	a.show_card(["BRAMKA", "DOOR"], ["tekst", "text"], PackedStringArray(["TAK|YES", "NIE|NO"]), 0.0, false, Color.RED)
+	_expect(hud.accent == Color.RED, "or the colour it is given")
+	hud.hide_card()
+	hud.accent = Color.WHITE
+	_run(a, 0.1)
+	_expect(hud.card == "BRAMKA" and hud.accent == Color.RED, "and a card put back keeps that colour")
+	hud.press(0)
+	a.pressed.clear()
+	# The arrow shows unless the subclass says otherwise (the boat race's rings lead on the water).
+	_expect(a.target_arrow(), "target_arrow: the arrow shows by default")
 	# The arrow's words: the metres, or the subclass's own.
 	_expect(a.target_label(37) == "37 m", "target_label: the metres (%s)" % a.target_label(37))
 	a.label = "???"
