@@ -7,7 +7,8 @@ extends RefCounted
 ## `add`, and main.gd asks the director:
 ##   - `busy()`, `current()`, `busy_tag()`: is one on, and which;
 ##   - `may_start(a)`: nothing of the kit is on, and `world_free` (main.gd's test for everything
-##     that is not in the kit yet: a race, a job, a card, the air) agrees. It is each joined
+##     that is not in the kit yet: a race, a job, a card, the air) agrees, or the activity's own
+##     test given to `add` (the EV tow's: it may start from the air). It is each joined
 ##     activity's `free_now`;
 ##   - `targeted()`: the one that sends the player somewhere now (the arrow, the stop assist);
 ##   - `grounded()`: why the helicopter is refused.
@@ -21,11 +22,17 @@ const Activity := preload("res://scripts/activity.gd")
 ## main.gd's test for everything outside the kit; true when nothing there holds the player.
 var world_free: Callable = func() -> bool: return true
 var list: Array[Activity] = []
+## An activity's own test in place of `world_free` (`add`'s second argument), by the activity.
+var _own_world := {}
 
 
-## An activity joins: from now on it asks the director whether it may phone.
-func add(a: Activity) -> void:
+## An activity joins: from now on it asks the director whether it may phone. `world`: its own
+## test for everything outside the kit, when `world_free` does not fit it (the EV tow starts from
+## the air, which `world_free` refuses).
+func add(a: Activity, world := Callable()) -> void:
 	list.append(a)
+	if world.is_valid():
+		_own_world[a] = world
 	a.free_now = may_start.bind(a)
 
 
@@ -52,7 +59,8 @@ func may_start(a: Activity) -> bool:
 	var on := current()
 	if on != null and on != a:
 		return false
-	return bool(world_free.call())
+	var world: Callable = _own_world.get(a, world_free)
+	return bool(world.call())
 
 
 ## The activity that sends the player somewhere now, or null.

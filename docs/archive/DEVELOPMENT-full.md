@@ -5792,7 +5792,7 @@ Command-line options (after `--`):
 | `--sloik` / `--sloik=K` | start the słoiki run at Dworzec Centralny (K jars already broken); `--sloik-station=1` starts it at Dworzec Gdański (to Muranów) |
 | `--ride=N` | loop 2d-1: Podwózka ride N's request, the car on the road 60 m before its passenger (the same N gives the same ride; with `--ride-quirk=river` or `zone` the passenger is picked near river spot / park N, so the leg fits); with `--autopilot` it is accepted after 2 s and driven |
 | `--ride-quirk=river\|zone\|oldtown\|rechotka\|reroute` | loop 2d-1: force the ride's quirk (`oldtown` becomes `zone` on today's map; `rechotka`, the Frogs turn: in the random pool since loop MW-2) |
-| `--crawl-call` / `--crawl-route=ID` / `--crawl-group=ID` / `--crawl=0` / `--crawl-log` | 2026-11-07: the bar crawl (bar_crawl.gd): the group rings a second in at any hour, that route (`klasyczna`, `nad_woda`, `odwazni`, `praga`) or group (`panienski`, `kawalerski`, `sesja`, `wdrozenie`), none of it, the `crawl:` log lines; with `--autopilot` the call is answered, accepted and driven |
+| `--crawl-call` / `--crawl-route=ID` / `--crawl-group=ID` / `--crawl=0` / `--crawl-log` | 2026-11-07: the bar crawl (bar_crawl.gd): the group rings a second in at any hour, that route (`klasyczna`, `nad_woda`, `odwazni`, `praga`) or group (`panienski`, `kawalerski`, `sesja`, `wdrozenie`), none of it, the `crawl:` log lines; with `--autopilot` the call is answered, accepted and driven (the whole crawl by itself: verify step `crawl-run`) |
 | `--passenger=normal\|believer\|hurry\|detour` | loop 2d-1: force the passenger type (loop MW-2: `detour` asks for a Frogs stop, +½ star once) |
 | `--ride-story=ID\|none` | 2026-11-07: that story passenger (`data/taxi_stories.json` id) on the rides, or `none` for the old chat |
 | `--ride-answer=0\|1` | 2026-11-07: the autopilot's answer to the story passenger's question (default 0) |
@@ -5927,7 +5927,7 @@ Command-line options (after `--`):
 | `--rave-club` | secret rave: straight into Smoła's cutaway room (option A: the jungle, the DJ, the dancers, the lights, TAŃCZ, PATIO and WYJDŹ) |
 | `--padel-match[=HOUR]` | arcade padel (padel_match.gd): straight onto the DESKA court at HOUR (default 12; 20 is the floodlit night), the match plays itself, the game quits at its end |
 | `--padel-log` | arcade padel: one line per point, the match's in and out |
-| `--shisha-call` | shisha night (shisha.gd): Ivan rings now (ODBIERZ, then JADĘ!) |
+| `--shisha-call` | shisha night (shisha.gd): Ivan rings now (ODBIERZ, then JADĘ!). With `--autopilot` the whole night plays itself: the call and the offer taken, the drive to Ivan, the courts and the lounge, the evening inside, both drop-offs, the result card (`--shisha-log`: `shisha: done: smoke, score N, +N zł +N respect`). Verify step `shisha-run` |
 | `--shisha-meet` | shisha night: the car at Ivan's kerb in 19. Dzielnica, Ivan gets in, on to Bogdan at the Żelazna court |
 | `--shisha-door` | shisha night: both friends in, the car 25 m up Emilii Plater from the lounge's kerb, facing the entrance's teal kerb ring and gold door ring |
 | `--shisha-arrive` | shisha night: as `--shisha-door`, the car stopped in the kerb ring: they walk in, the lounge plays itself from the door (the lobby and the doorman, the lift ride to 38, the three choices at the table, the mini-game, PALIĆ) |

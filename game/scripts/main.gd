@@ -1805,7 +1805,7 @@ func _build_world() -> void:
 	# The message director (docs/design/hud-messages.md): a quest with no status card of its own
 	# still counts as one (the radio host and the flavour keep quiet, notes and calls wait).
 	hud.quest_on = func() -> bool:
-		return _quest_running() or (meet != null and meet.busy()) or (crawl != null and crawl.busy()) \
+		return _quest_running() or (meet != null and meet.busy()) \
 				or activities.busy() \
 				or (rides != null and rides.busy()) or (trend_job != null and trend_job.busy())
 	bubbles.project = func(p: Vector3) -> Vector2: return cam.unproject_position(p) * float(view.stretch_shrink)
@@ -2886,7 +2886,7 @@ func _build_crowds(data: Dictionary, world: Node3D) -> void:
 	# Podwózka at dawn: requests from the club doors.
 	if rides != null:
 		rides.mission_on = func() -> bool:
-			return _quest_running() or (crawl != null and crawl.busy()) or (meet != null and meet.busy()) \
+			return _quest_running() or (meet != null and meet.busy()) \
 					or activities.busy()
 		rides.club_doors = func() -> Array:
 			var out: Array = []
@@ -3493,7 +3493,7 @@ func _build_stories(world: Node3D) -> void:
 				"hello": ["", ""], "closed": ["", ""], "at": Vector2.INF, "colour": EvTow.COLOUR,
 				"hours": Vector2(-1.0, -1.0), "days": [],
 				"call": ev_tow.ring, "meet": func() -> bool: return false, "busy": ev_tow.busy,
-				"idle": func() -> bool: return ev_tow.state == EvTow.State.IDLE})
+				"idle": ev_tow.idle})
 	# One line per questline for the full map's pin (a tap shows it): [pl, en]. A start in person
 	# first puts off a rescue call still ringing (its pill), which no longer stops the friend.
 	for d: Dictionary in stories.defs:
@@ -3787,8 +3787,8 @@ func _on_club_left() -> void:
 
 # --- the shisha night ---------------------------------------------------------------------------
 
-## Ivan's call, the two pickups, the entrance and the lounge with its choices (shisha.gd, lounge.gd). None
-## with --no-traffic or --shisha=0.
+## Ivan's call, the two pickups, the entrance and the lounge with its choices (shisha.gd, an
+## activity of the kit; lounge.gd). None with --no-traffic or --shisha=0.
 func _build_shisha(data: Dictionary, world: Node3D) -> void:
 	if traffic == null or graph == null or shisha_flag == "0":
 		return
@@ -3803,15 +3803,18 @@ func _build_shisha(data: Dictionary, world: Node3D) -> void:
 	shisha.origin = data.get("origin", [52.234, 21.024])
 	shisha.log_on = shisha_log
 	shisha.auto = _shisha_auto
+	shisha.autopilot = autopilot
 	shisha.vehicle = func() -> Array:
 		if flying:
 			return [heli.global_position, heli.speed() * 3.6, true]
 		return [car.global_position, car.vel.length() * 3.6, false]
-	shisha.clock = tod.local_clock
-	shisha.free_now = _shisha_free
-	shisha.enter_lounge = _enter_lounge if shisha_flag != "arrive" else func(v: Dictionary) -> void: _enter_lounge(v, true)
+	shisha.clock = func() -> float: return float(tod.local_clock()["hour"])
+	# The lounge plays itself in a test run that arrives at it by itself.
+	var self_played := shisha_flag == "arrive" or autopilot
+	shisha.enter_lounge = _enter_lounge if not self_played else func(v: Dictionary) -> void: _enter_lounge(v, true)
 	world.add_child(shisha)
 	shisha.setup(world)
+	activities.add(shisha)  # the director says when Ivan may ring (nothing else on: `world_free`)
 	match shisha_flag:
 		"call":
 			get_tree().create_timer(1.0).timeout.connect(func() -> void: shisha.ring())
@@ -3822,7 +3825,7 @@ func _build_shisha(data: Dictionary, world: Node3D) -> void:
 				var k: Vector3 = shisha.home["at"]
 				car.global_position = Vector3(k.x, map.ground_height(k.x, k.z), k.z)
 				car.reset_physics_interpolation()
-				shisha.meet_in_person())
+				shisha.meet())
 		"hold":
 			# The hidden start played by itself, far from Ivan's block (it works anywhere): "+" held
 			# 2 s (must not ring), then 4.5 s (rings), as the zoom button or the + key sends it.
@@ -3831,7 +3834,7 @@ func _build_shisha(data: Dictionary, world: Node3D) -> void:
 					hud.zoom_in_key(true)
 					await get_tree().create_timer(held).timeout
 					hud.zoom_in_key(false)
-					print("shisha hold test: %.1f s, state %s" % [held, Shisha.State.keys()[shisha.state]])
+					print("shisha hold test: %.1f s, state %s" % [held, Shisha.Phase.keys()[shisha.phase]])
 					await get_tree().create_timer(1.0).timeout)
 		"door", "arrive":
 			# Both friends in, the car 25 m up Emilii Plater from the lounge's kerb, facing it: the
@@ -3839,7 +3842,7 @@ func _build_shisha(data: Dictionary, world: Node3D) -> void:
 			# the car stopped in the kerb ring, so they walk in and the lounge plays itself (the
 			# door, the lift, the three choices at the table, the mini-game).
 			get_tree().create_timer(1.0).timeout.connect(func() -> void:
-				shisha.meet_in_person()
+				shisha.meet()
 				shisha._board_bogdan()
 				var k: Dictionary = shisha.door
 				var yaw: float = k["yaw"]
@@ -3852,8 +3855,8 @@ func _build_shisha(data: Dictionary, world: Node3D) -> void:
 				car.reset_physics_interpolation())
 		"lounge", "terrace":
 			get_tree().create_timer(1.0).timeout.connect(func() -> void:
-				shisha.meet_in_person()
-				shisha.state = Shisha.State.INSIDE
+				shisha.meet()
+				shisha.skip_inside()
 				_enter_lounge({"flavour": "master", "strength": 5, "name": ["Forhend", "Forehand"]}, true)
 				lounge.auto_how = "terrace" if shisha_flag == "terrace" else "smoke")
 
@@ -3930,26 +3933,15 @@ func _on_padel_done(g_us: int, g_them: int, stats: Dictionary) -> void:
 		trend_job.arcade_done(g_us, g_them, stats)
 
 
-## Nothing else on, on the ground, no rave or boat race either.
-func _shisha_free() -> bool:
-	if lounge != null and lounge.inside:
-		return false
-	return _boat_free()
-
-
 ## Nothing else on: no title, bench, Spacer, guide, card, call, ride, job, race; on the ground.
 ## `ringing_ok`: a rescue call still ringing (not answered) does not count (the questline friend).
 func _free_block(ringing_ok := false, guide_ok := false) -> String:
 	if club != null and club.inside:
 		return "club inside"
-	if (lounge != null and lounge.inside) or (shisha != null and shisha.busy()):
-		return "lounge inside or shisha busy"
+	if lounge != null and lounge.inside:
+		return "lounge inside"
 	if meet != null and meet.busy():
 		return "night meet busy"
-	if crawl != null and crawl.busy():
-		return "crawl busy"
-	if ev_tow != null and ev_tow.busy():
-		return "EV tow busy"
 	if title != null or _phone_bench or _bench_ghost != null or (spacer != null and spacer.on):
 		return "title/bench/Spacer"
 	if first10 != null and first10.guide_on() and not guide_ok:
@@ -4034,7 +4026,8 @@ func _place_car(at: Vector3, yaw: float) -> void:
 
 # --- the bar crawl ----------------------------------------------------------------------------
 
-## The night groups' calls and their crawls (bar_crawl.gd). None with --no-traffic or --crawl=0.
+## The night groups' calls and their crawls (bar_crawl.gd, an activity of the kit). None with
+## --no-traffic or --crawl=0.
 func _build_crawl(data: Dictionary, world: Node3D) -> void:
 	if traffic == null or graph == null or crawl_flag == "0":
 		return
@@ -4056,10 +4049,10 @@ func _build_crawl(data: Dictionary, world: Node3D) -> void:
 		if flying:
 			return [heli.global_position, heli.speed() * 3.6, true]
 		return [car.global_position, car.vel.length() * 3.6, false]
-	crawl.clock = tod.local_clock
-	crawl.free_now = func() -> bool: return _rave_free() and not (rave != null and rave.busy())
+	crawl.clock = func() -> float: return float(tod.local_clock()["hour"])
 	world.add_child(crawl)
 	crawl.setup(world)
+	activities.add(crawl)  # the director says when it may ring (nothing else on: `world_free`)
 	car.bumped.connect(func(_c: Object, speed: float) -> void: crawl.on_bump(speed))
 	if crawl_flag == "call":
 		get_tree().create_timer(1.0).timeout.connect(func() -> void: crawl.ring())
@@ -4088,19 +4081,20 @@ func _build_ev_tow(world: Node3D) -> void:
 		if flying:
 			return [heli.global_position, heli.speed() * 3.6, true]
 		return [car.global_position, car.vel.length() * 3.6, false]
-	ev_tow.free_now = _ev_free
 	ev_tow.take_off = func() -> void: _take_off(Heli.CRUISE)
 	add_child(ev_tow)
 	ev_tow.setup(world)
+	# The director says when Bartek may ring, with the tow's own test for everything outside the
+	# kit: it may start from the air (`world_free` refuses the helicopter).
+	activities.add(ev_tow, _ev_free)
 	if ev_flag != "":
 		get_tree().create_timer(1.0).timeout.connect(_ev_start)
 
 
-## Nothing else on: no title, bench, Spacer, guide, card, rescue, ride, job, race or tow.
+## Nothing outside the kit is on: no title, bench, Spacer, guide, card, rescue, ride, job or
+## race (the director adds: no other activity of the kit). The air is fine.
 func _ev_free() -> bool:
-	if (rave != null and rave.busy()) or (club != null and club.inside) or (crawl != null and crawl.busy()):
-		return false
-	if shisha != null and shisha.busy():
+	if (rave != null and rave.busy()) or (club != null and club.inside):
 		return false
 	if meet != null and meet.busy():
 		return false
@@ -4116,8 +4110,6 @@ func _ev_free() -> bool:
 		return false
 	if boat_race != null and boat_race.busy():
 		return false
-	if activities.busy():
-		return false
 	return flying or not car.in_water
 
 
@@ -4132,8 +4124,8 @@ func _ev_start() -> void:
 			ev_tow.place_stranded(Vector2(p.x, p.z), Vector2(f.x, f.z).normalized(), true)
 		_:
 			ev_tow.ring()
-			ev_tow._on_card(0)
-			ev_tow._on_card(0)
+			ev_tow.card_pressed(0)  # the call answered
+			ev_tow.card_pressed(0)  # LECĘ!
 			if ev_tow.job.is_empty():
 				return
 			var at: Vector3 = ev_tow.job["at"]
@@ -7947,7 +7939,7 @@ func _show_target() -> void:
 		return
 	# The activity kit (tech-debt TD-2): whichever activity sends the player somewhere now.
 	var act := activities.targeted()
-	if act != null and not flying:
+	if act != null and (not flying or act.flown):
 		var ap: Vector3 = act.target_position()
 		var at_a := _vehicle_position()
 		var ma := roundi(Vector2(ap.x - at_a.x, ap.z - at_a.z).length())
@@ -7955,15 +7947,6 @@ func _show_target() -> void:
 		hud.set_target(on_a, "%d m" % ma, act.target_colour(), ma > 12)
 		_put_target(Vector2(ap.x, ap.z), act.target_colour(), false)
 		_new_target("job", ap)
-		return
-	if shisha != null and shisha.has_target() and not flying:
-		var sp: Vector3 = shisha.target_position()
-		var at_s := _vehicle_position()
-		var ms := roundi(Vector2(sp.x - at_s.x, sp.z - at_s.z).length())
-		var on_s := cam.unproject_position(sp + Vector3(0, 3.5, 0)) * float(view.stretch_shrink)
-		hud.set_target(on_s, "%d m" % ms, shisha.target_colour(), ms > 12)
-		_put_target(Vector2(sp.x, sp.z), shisha.target_colour(), false)
-		_new_target("job", sp)
 		return
 	if rave != null and rave.has_target() and not flying:
 		var vp: Vector3 = rave.target_position()
@@ -7986,24 +7969,6 @@ func _show_target() -> void:
 		hud.set_target(on_k, "%d m" % mk, meet.target_colour(), mk > 12)
 		_put_target(Vector2(kp.x, kp.z), meet.target_colour(), false)
 		_new_target("job", kp)
-		return
-	if crawl != null and crawl.has_target() and not flying:
-		var cp: Vector3 = crawl.target_position()
-		var at_c := _vehicle_position()
-		var mc := roundi(Vector2(cp.x - at_c.x, cp.z - at_c.z).length())
-		var on_c := cam.unproject_position(cp + Vector3(0, 3.5, 0)) * float(view.stretch_shrink)
-		hud.set_target(on_c, "%d m" % mc, crawl.target_colour(), mc > 12)
-		_put_target(Vector2(cp.x, cp.z), crawl.target_colour(), false)
-		_new_target("job", cp)
-		return
-	if ev_tow != null and ev_tow.has_target():
-		var ep: Vector3 = ev_tow.target_position()
-		var at_e := _vehicle_position()
-		var me := roundi(Vector2(ep.x - at_e.x, ep.z - at_e.z).length())
-		var on_e := cam.unproject_position(ep + Vector3(0, 3.5, 0)) * float(view.stretch_shrink)
-		hud.set_target(on_e, "%d m" % me, ev_tow.target_colour(), me > 12)
-		_put_target(Vector2(ep.x, ep.z), ev_tow.target_colour(), false)
-		_new_target("job", ep)
 		return
 	if rivals != null and rivals.has_target():
 		var f: Vector3 = rivals.target_position()
@@ -8312,14 +8277,12 @@ func _autopilot(dt: float) -> void:
 		return
 	if rides != null and rides.drive_player():
 		return  # loop 2d-1
-	if crawl != null and not flying and crawl.drive_player(car, dt):
-		return  # the bar crawl
 	if trend_job != null and trend_job.drive_player():
 		return  # loop MW-4
 	if jobs != null and jobs.drive_player():
 		return
 	var act := activities.targeted()
-	if act != null and not flying:
+	if act != null and not flying and not act.flown:
 		_slide_car(act.target_position(), dt)
 		return
 	if not missions.has_target():

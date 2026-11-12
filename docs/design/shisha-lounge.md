@@ -221,6 +221,37 @@ Like Smoła's end of room. After the mix:
 | Pay | `pay-tables.md` rides; `rave.gd` `pay_for` |
 | Autopilot / test flags | `--rave-call` pattern: `--shisha-call`, `--shisha-lounge`, `--shisha-log` |
 
+## On the activity kit (2026-11-12)
+
+The night plays as before, word for word: the old and the new script were driven side by side for
+29,268 frames (six nights: the call missed, declined and answered, the offer declined and missed,
+both ways in at the entrance, smoke, terrace and leaving early, a meeting in person, the ✕) and
+put the same status lines, toasts, cards, lines over the car and pay on screen. Five things
+changed on purpose, because the kit has one answer where the script had its own:
+
+- **Busy from Ivan's offer card to the close of the result card.** Before, the night counted as on
+  only from JADĘ! to Ivan's drop-off, so another call could come over either card.
+- **No kebab or słoiki delivery during the night.** Every side job stands down while it is on, as
+  during a tour or a crawl. Before, Podwózka and "Na czasie" already did.
+- **The whole night is a quest for the HUD's messages**, the evening inside the lounge and the two
+  cards too: the radio host and the flavour lines keep quiet and notes wait. Before, that held
+  only while the status line was up, so not inside the lounge.
+- **The call card goes away before the offer card comes**, and an unanswered call or offer and the
+  result card close on the frame their time is up (before: on the night's quarter-second step).
+- **The autopilot** (test runs) answers Ivan, takes the offer, drives to each kerb through
+  main.gd's one autopilot and lets the result card go; with it the lounge plays itself. Before,
+  the night had no autopilot.
+
+The kit grew two things for it: a second ring that is not the target (`set_mark`: the gold ring
+at the revolving door, while the arrow leads to the kerb) and stacked buttons on a card.
+
+`check_shisha` plays four nights against the shared stand-ins (`game/tools/fakes.gd`): Ivan's own
+call clock and the lounge's hours, a missed and a declined call, the offer, the pickups, the lines
+over the car, the entrance's two rings and both ways in, inside, the way home, the pay, the result
+card, a night that left early, a meeting in person, the ✕ only on the way there, the rescue calls
+held and given back. Verify step `shisha-run` (full set only) plays a night in the whole game
+with `--autopilot`.
+
 ## Add-ons check
 
 Dialogue Manager: a branching authored scene with three votes would fit it (`dialogue-scenes`

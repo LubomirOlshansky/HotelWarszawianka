@@ -34,6 +34,7 @@ couriers             quick
 courts               roads     slow
 crashes              quick
 crawl                quick
+crawl-run            local     slow
 crazy                quick
 credits              quick
 crowds               quick
@@ -139,6 +140,7 @@ settings             quick
 sfx                  quick
 shaderbudget         quick
 shisha               quick
+shisha-run           local     slow
 sites                quick
 smooth               quick
 sounds               quick

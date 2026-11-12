@@ -4,6 +4,11 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## HIGH PRIORITY: Geobent promo in the app (F, 2026-11-12: "add to backlog with high priority, to add geobent promo to app", link https://geobent.pl/)
+Not built: new work is stopped (STOP NEW WORK, F 2026-11-11); this is queued first for when it is lifted.
+- [ ] Add a Geobent promo to the app. What the site shows (read 2026-11-12): GEOBENT Sp. z o.o., a Rzeszów maker of bentonite clay for foundries, building and drilling, farming, food filtering and cat litter (GB-Litter); site in Polish and English; tagline "Niezawodny partner w innowacyjnych rozwiazaniach bentonitowych" ("reliable partner in innovative bentonite solutions"). It has nothing on Warsaw, games or ads, so the shape of the promo is F's to say (questions in QUESTIONS.md "Waiting").
+- Default to build when it starts: an in-world parody-free sponsor placement that fits the city (a billboard or shop-front poster, a radio ad line on KEBAB FM, and a line in the credits/about screen), the logo and text supplied by Geobent, Polish with English, clearly marked as a partner. It plugs into the existing owners in `docs/architecture/extending.md` (billboard art, radio lines, credits), no private copy. The game is non-commercial: no payment terms in the repo.
+
 ## The Rotunda's chill zone, what is left (F, 2026-11-11; spec docs/landmarks/specs/rotunda.md)
 - [ ] The plaza's planters with grasses (F's photos) are not built yet; the grid, bollards, green stair walls, step LEDs and sitters are.
 - [ ] Only the phone can show whether the step LEDs and the gold glow read at night at phone size.

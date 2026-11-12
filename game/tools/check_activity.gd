@@ -10,11 +10,19 @@ extends SceneTree
 ##   down somebody else's card, and a card of the run that something took down comes back;
 ## - the target: the beacon stands there at the ground's height, and the end clears it;
 ## - the end takes down the status line, the card and the target whatever the subclass left up;
+## - what the second activity (bar_crawl.gd) needed: a call or an offer turned down tells the
+##   subclass how (`_refused`), an activity with nothing to offer after all goes back to idle, a
+##   card with a life closes by itself as its first button would, the status line takes its own
+##   colour, and the target's ring can stand beside the spot with its own radius;
+## - what the third (shisha.gd) needed: a second ring that is not the target (`set_mark`: a door
+##   to see from down the street), gone with the target; and a card with its buttons stacked;
 ## - the ✕ drops a run (not a call, an offer or a run with its card up), with the quit words; the
 ##   play limit drops it without them;
 ## - the autopilot answers the call, takes the offer and presses the run's cards;
-## - the director: at most one activity of the kit on at a time, `world_free` holds all of them,
-##   and it names the one that is on, the one with a target and why the helicopter is refused;
+## - the director: at most one activity of the kit on at a time, `world_free` holds all of them
+##   (but one that joined with its own test for the world, as the EV tow does: that one is asked
+##   instead), and it names the one that is on, the one with a target and why the helicopter is
+##   refused;
 ## - the real HUD (hud.gd): a real button's press goes to the card's owner only, and an unowned
 ##   card's press to every listener, as before the kit;
 ## - every data/*_tour.json: all the keys tour.gd reads, both languages, known shot kinds, only the
@@ -53,12 +61,20 @@ class Probe extends Activity:
 	var pressed: Array[int] = []
 	var ended := 0
 	var may_abort := true
+	## Each refusal: [the phase it came in, by the clock].
+	var refused: Array = []
+	var no_offer := false
 
 	func _call_card() -> Dictionary:
 		return {"who": "Próba", "about": ["Ktoś od prób.", "Somebody who tests."]}
 
 	func _offer_card() -> Dictionary:
+		if no_offer:
+			return {}
 		return {"title": ["PRÓBA: „JEDZIESZ?”", "PROBE: \"COMING?\""], "body": ["Jedź.", "Drive."], "face": "Próba"}
+
+	func _refused(timed_out: bool) -> void:
+		refused.append([int(phase), timed_out])
 
 	func _begin() -> void:
 		begun += 1
@@ -112,6 +128,7 @@ func _go() -> void:
 	_clock()
 	_cards()
 	_target_and_end()
+	_refusals_and_looks()
 	_abort_and_limit()
 	_autopilot()
 	_director()
@@ -303,6 +320,89 @@ func _target_and_end() -> void:
 	a.finish()
 
 
+## What the second activity needed of the kit (bar_crawl.gd).
+func _refusals_and_looks() -> void:
+	var hud := _hud()
+	var a := _probe(hud)
+	# A call or an offer turned down: the subclass hears how, with the phase still set.
+	a.ring()
+	_run(a, a.card_life + 0.3)
+	a.ring()
+	hud.press(1)
+	a.ring()
+	hud.press(0)
+	hud.press(1)
+	a.ring()
+	hud.press(0)
+	_run(a, a.card_life + 0.3)
+	_expect(a.refused == [[Activity.Phase.RING, true], [Activity.Phase.RING, false], [Activity.Phase.OFFER, false], [Activity.Phase.OFFER, true]],
+			"_refused: a call missed, a call declined, an offer declined, an offer missed (%s)" % [a.refused])
+	a.ring()
+	hud.press(0)
+	hud.press(0)
+	_expect(a.refused.size() == 4 and a.busy(), "an offer taken is not a refusal")
+	a.finish()
+	# Nothing to offer after all: back to idle, the whole wait until the next call.
+	a.no_offer = true
+	var ended := a.ended
+	a.ring()
+	hud.press(0)
+	_expect(a.idle() and hud.card == "" and a.ended == ended + 1 and a.begun == 1, "no offer to make: idle again, no card, nothing begun")
+	_expect(is_equal_approx(a._next_call - a._session, a.call_cool), "and the next call the whole wait away")
+	a.no_offer = false
+	# A card with a life closes by itself, as its first button would; one without waits.
+	a.meet()
+	a.pressed.clear()
+	a.show_card(["WYNIK", "RESULT"], ["tekst", "text"], PackedStringArray(["OK|OK", "INNE|OTHER"]), 2.0)
+	_run(a, 1.8)
+	_expect(hud.card == "WYNIK" and a.pressed.is_empty(), "a card with a life is up until its life is over")
+	_run(a, 0.4)
+	_expect(hud.card == "" and a.pressed == [0], "then it closes as its first button would (%s)" % [a.pressed])
+	a.show_card(["PYTANIE", "QUESTION"], ["tekst", "text"], PackedStringArray(["OK|OK"]))
+	_run(a, 30.0)
+	_expect(hud.card == "PYTANIE" and a.pressed == [0], "a card without a life waits for its press")
+	hud.press(0)
+	# The status line: the activity's colour, or its own.
+	a.status("Próba", "1/1", "5 m", ["jedź", "drive"], 0.5)
+	_expect(hud.tint == a.colour, "the status line has the activity's colour")
+	a.status("Próba", "1/1", "5 m", ["jedź", "drive"], 0.5, Color.RED)
+	_expect(hud.tint == Color.RED, "or the colour it is given")
+	# The ring beside the spot, with its own radius.
+	a.set_target(Vector2(10.0, 20.0))
+	_expect(is_equal_approx(a._beacon._ring_radius, a.arrive - 0.5), "the ring's radius is the stop ring's by default")
+	a.set_target(Vector2(10.0, 20.0), false, Vector3(12.0, 5.0, 22.0), 9.0)
+	_expect(a.target_position().is_equal_approx(Vector3(10.0, _map.ground_height(10.0, 20.0), 20.0)), "set_target with a ring of its own: the target is still the spot")
+	_expect(a._beacon.position.is_equal_approx(Vector3(12.0, 5.0, 22.0)) and is_equal_approx(a._beacon._ring_radius, 9.0),
+			"and the ring stands where it is told, as wide as told (%s, %.1f)" % [a._beacon.position, a._beacon._ring_radius])
+	# A mark: a second ring that is not the target (nobody waves there), gone with the target.
+	_expect(a._mark == null, "no mark until one is asked for")
+	a.set_mark(Vector3(40.0, 2.0, 60.0), 3.0, Color.GOLD)
+	_expect(a._mark != null and a._mark.visible and a._mark.position.is_equal_approx(Vector3(40.0, 2.0, 60.0))
+			and is_equal_approx(a._mark._ring_radius, 3.0) and not a._mark.waving, "set_mark: a ring where it is told, as wide as told, nobody waving")
+	_expect(a._mark._colour == Color.GOLD and a._mark != a._beacon, "in its own colour, and not the target's beacon")
+	_expect(a.target_position().is_equal_approx(Vector3(10.0, _map.ground_height(10.0, 20.0), 20.0)) and a._beacon.visible,
+			"the mark moves no target")
+	var first_mark: Node3D = a._mark
+	a.set_mark(Vector3(41.0, 2.0, 61.0), 3.0, Color.RED)
+	_expect(a._mark == first_mark and a._mark._colour == Color.RED and a._mark.position.is_equal_approx(Vector3(41.0, 2.0, 61.0)),
+			"a second mark is the same ring, moved and recoloured")
+	a.clear_target()
+	_expect(not a._mark.visible and not a._beacon.visible, "clear_target takes the mark down too")
+	a.set_mark(Vector3(40.0, 2.0, 60.0), 3.0, Color.GOLD)
+	# A card with its buttons one under the other.
+	a.show_card(["WYNIK", "RESULT"], ["tekst", "text"], PackedStringArray(["OK|OK"]))
+	_expect(hud.card == "WYNIK" and not hud.stacked, "a run's card has its buttons side by side by default")
+	hud.press(0)
+	a.show_card(["WYNIK", "RESULT"], ["tekst", "text"], PackedStringArray(["OK|OK"]), 0.0, true)
+	_expect(hud.card == "WYNIK" and hud.stacked, "or one under the other when asked")
+	hud.hide_card()
+	_run(a, 0.1)
+	_expect(hud.card == "WYNIK" and hud.stacked, "and a stacked card put back is still stacked")
+	hud.press(0)
+	a.finish()
+	_expect(not a._mark.visible, "the end takes the mark down")
+
+
 func _abort_and_limit() -> void:
 	var hud := _hud()
 	var a := _probe(hud)
@@ -387,6 +487,22 @@ func _director() -> void:
 	_expect(not d.may_start(a) and not d.may_start(b), "world_free false: nobody may start")
 	_run(a, 300.0)
 	_expect(a.idle(), "and nobody rings")
+	# An activity that brings its own test for the world (the EV tow may start from the air,
+	# which `world_free` refuses): the director asks that one in place of `world_free`, and the
+	# kit's own rule (one at a time) still holds.
+	var own := [true]
+	var c := _probe(hud, "third")
+	d.add(c, func() -> bool: return own[0])
+	_expect(d.may_start(c) and not d.may_start(a), "an activity joined with its own world test is asked that, not world_free")
+	own[0] = false
+	_expect(not d.may_start(c), "its own test says no: it may not start")
+	own[0] = true
+	d.world_free = func() -> bool: return true
+	a.ring()
+	hud.press(0)
+	_expect(d.current() == a and not d.may_start(c), "another activity of the kit is on: it may not start, whatever its own test says")
+	a.finish()
+	_expect(d.may_start(c) and not c.flown, "free again; an activity is not flown unless it says so")
 
 
 # --- the real HUD (TD-16) --------------------------------------------------------------------------
