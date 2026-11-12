@@ -226,6 +226,9 @@ func _make_race(map: WaterMap, hud: FakeHud) -> Node3D:
 	race.map = map
 	race.autopilot = true
 	race.log_on = OS.get_environment("BOAT_DEBUG") != ""
+	# A fixed seed: the rivals' aims, mistakes and stunts are the same every run (the game randomises).
+	# BOAT_SEED=n tries another; 12 seeds passed on 2026-11-12 (rings 24 m wide).
+	race.rng_seed = int(OS.get_environment("BOAT_SEED")) if OS.get_environment("BOAT_SEED") != "" else 1
 	race.seen = func(_p: Vector3) -> bool: return false
 	root.add_child(race)
 	race.setup(map)
