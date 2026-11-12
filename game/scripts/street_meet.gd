@@ -129,11 +129,9 @@ const HOLD := 0.8
 ## The club talks this long at a meet before the sirens (F 2026-11-08: the first meet's drift ran
 ## too long at 15 s).
 const MEET_TALK := 9.0
-## The raid: patrol cars sent in, the chase's koguty, and how long the quest waits for a chase that
-## never started (then the pin comes anyway).
+## The raid: patrol cars sent in and the chase's koguty.
 const RAID_CARS := 3
 const RAID_LEVEL := 2
-const RAID_WAIT := 6.0
 ## The cordon (F 2026-11-08: "you don't see the cops coming in from every side and boxing you in,
 ## only icons"): CORDON patrol cars drive in across the plaza from CORDON_FROM m out, CORDON_STAGGER
 ## s apart, each over CORDON_T s, and stop CORDON_R m round the player, noses in, lights on (police.gd
@@ -145,9 +143,9 @@ const CORDON_FROM := 34.0
 const CORDON_T := 2.4
 const CORDON_STAGGER := 0.5
 const CORDON_GONE := 90.0
-## The pin comes only once the player is this far from the raided meet (a meet off the road is
-## no hiding place: sitting still there is not an escape).
-const PIN_AWAY := 220.0
+## The pin (the next destination) comes this long after the sirens start, once the cordon has
+## closed in, whether or not the chase is still on.
+const PIN_AFTER := 4.5
 ## The scatter: each car glides off the plaza to the road at GLIDE_V m/s, STAGGER s apart.
 const GLIDE_V := 9.0
 const STAGGER := 0.35
@@ -1365,18 +1363,11 @@ func _t_raid(dt: float) -> void:
 	var chasing: bool = police != null and police.has_method("chasing") and police.chasing()
 	if chasing:
 		_chase_seen = true
-	var v: Array = vehicle.call() if vehicle.is_valid() else [Vector3.ZERO, 0.0, false]
-	var at: Vector3 = v[0]
-	var m: Vector3 = meets[meet_i]["at"]
-	var away := Vector2(at.x, at.z).distance_to(Vector2(m.x, m.z))
-	if chasing:
-		# The police pill says it all while they chase (PT-34: the two together pushed the pill
-		# down over the car).
+		# The police pill says it all while they chase (PT-34).
 		hud.hide_status()
-	elif away < PIN_AWAY:
-		hud.show_status("NALOT! · UCIEKAJ", "", "%d / %d m" % [roundi(away), roundi(PIN_AWAY)], "Odjedź od spotu", away / PIN_AWAY,
-				COLOUR, "", {}, "Get away from the meet")
-	elif (not _chase_seen and _t > RAID_WAIT) or (_chase_seen and _t > 2.0):
+	# F 2026-11-10: the next destination comes as soon as the police are in (the cordon has
+	# closed), not once the player has driven away or the chase has ended.
+	if _t > PIN_AFTER:
 		hud.hide_status()
 		_pin()
 

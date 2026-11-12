@@ -24,6 +24,7 @@ someone writes its lines.
 - Mati's Smoła night no longer starts right beside your car when the game begins: for now he waits on Aleje Jerozolimskie by Rondo Dmowskiego instead.
 
 ## 2026-11-10
+- On the night race, the next destination now appears right after the police close in, instead of waiting until you have driven away from them.
 - The boat race is about twice as fast now (a runabout does about 145 km/h, not 75), and the Powiśle bank has six more big jump ramps with flags, edge stripes and lights, besides the three on the river crossings.
 - The Royal Castle's front towards Plac Zamkowy has its red wall back, with window frames, string courses and a cornice, and the Clock Tower shows a proper white clock face.
 - Plac Zamkowy is alive: tourists gather round Sigismund's Column on its new stepped plaza, cafés put out their umbrellas and chairs, and a flock of pigeons takes off when you drive or fly low over the square.
