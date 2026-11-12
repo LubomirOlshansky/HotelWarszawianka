@@ -124,3 +124,20 @@ L3, triangle budget 1380 (1144 measured on 2026-11-01, `check_mesh_quality.gd` B
 | doors | dark panels and a transom | 3 bays south, 2 north-west, to 3.5 m | on the glass | M_STONE #2e3a39 | 4 entrances |
 | plates | two triangles | 5.2 x 3.8 m | the edge, NE and SW | M_STONE #a9b0b5 | 2 crown |
 | signs | neon word BANK POLSKA x 2 | letters 0.9 m | either side of the south door, y 5.2 | neon atlas | 4 entrances |
+
+## 2026-11-11 enhancement (F's photos: "more details and colour, the chill zone with people")
+
+| Part | What | Where | Material |
+| --- | --- | --- | --- |
+| fins, transoms | white instead of silver (#eef1f3) | the drum | M_STONE |
+| oculus | white kerb and a flat white rim r 4.5..5.4 m; blue glass (#2c5d8a) set 6 cm into the rim | top | M_STONE, M_GLASS_ROOF |
+| night glow | warm gold (1.0, 0.76, 0.4), pane to pane a little uneven | the glass drum | M_PAVILION + 0.75 |
+| plaza grid | dark granite bands (#55585b) 0.45 m wide on a 4.8 m grid turned 65°, clipped to the plaza (`ROT_PLAZA_POLY`, drawn on the orthophoto), off the drum and the stair | ground + 0.06 / 0.09 | M_STONE |
+| bollards | black six-sided posts every 1.8 m, 0.9 m tall, solid | along Marszałkowska (`ROT_BOLLARDS`) | M_STONE #2a2d30 |
+| stair walls | green planted retaining faces (three greens) | `rotunda_stair` | M_STONE |
+| step lights | a warm LED (0.32 x 0.05 m) on every riser by the walking side | `rotunda_stair` | M_LAMP |
+| grass | crossed blades every 1.2 m along the stair's top edge where the drop is over 0.35 m | `rotunda_stair` | M_STONE |
+| sitters | crowds.gd site `rotunda_steps` (kind jazz_cafe): a row on every second tread, east of a free 1.9 m walking strip, facing down to the plaza, on the tread's own height | `Landmarks.rotunda_steps_plan` | crowd MultiMesh |
+
+Triangles: rotunda 1380 → 2248 (budget 2450); no new surfaces or materials, so no new draw calls.
+The bank's name stays the parody BANK POLSKA.

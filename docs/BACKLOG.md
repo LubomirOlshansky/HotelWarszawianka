@@ -4,6 +4,10 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## The Rotunda's chill zone, what is left (F, 2026-11-11; spec docs/landmarks/specs/rotunda.md)
+- [ ] The plaza's planters with grasses (F's photos) are not built yet; the grid, bollards, green stair walls, step LEDs and sitters are.
+- [ ] Only the phone can show whether the step LEDs and the gold glow read at night at phone size.
+
 ## The message director (F, 2026-11-11; docs/design/hud-messages.md)
 F's night-race screenshot had six texts over the road at once (the radio news, the app-taxi's GPS
 joke, the race card, the police pill, the partner, the TYGRAM pin). Built: `messages.gd`, one

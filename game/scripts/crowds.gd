@@ -235,6 +235,7 @@ const JAZZ_BAND := 4
 const JAZZ_SHIRTS := ["#1b1b1e", "#f1efe9", "#c99a2e", "#6e2230"]
 const LORETKA_WEEKNIGHT := 10
 const Landmarks := preload("res://scripts/landmarks.gd")
+const MapBuilderData := preload("res://scripts/map_builder.gd")
 const FirstScene := preload("res://scripts/first_scene.gd")
 const ROOF_ID := "level_26"
 ## F's asks (2026-10-30): Level 26's queue at the tower's ground-floor door (a queue site of its
@@ -380,6 +381,9 @@ const FIRST_SCENE := {
 ## garden) and the evening audiences outside the Palace's stages (Landmarks.pkin_theatre_doors):
 ## id -> most people. Same machinery as CHILL on the `theatre` curve (theatre_level).
 const STUDIO_ID := "bar_studio"
+## F's ask (2026-11-11): people sitting on the Rotunda's sunken stair (Landmarks.rotunda_steps_plan),
+## a jazz_cafe site so they keep its curve (afternoon and evening, fewer off-season, few in rain).
+const ROTUNDA_STEPS_ID := "rotunda_steps"
 const THEATRES := {"theatre_dramatyczny": 16, "theatre_studio": 12, "theatre_kinoteka": 14, "theatre_kongresowa": 22}
 ## The stages' weekday factor *guess*, Monday first: most are dark on Mondays, full at weekends.
 const THEATRE_WEEKDAY := [0.15, 0.7, 0.75, 0.8, 1.0, 1.0, 0.85]
@@ -1085,6 +1089,10 @@ func setup(places: Array, data: Dictionary, seed_value := 1703) -> void:
 				"talk": "sowa_club"})
 	var studio := Landmarks.pkin_studio_plan()
 	_add_site({"id": STUDIO_ID, "kind": "jazz_cafe", "at": studio["centre"], "max": (studio["seats"] as Array).size(), "plan": studio})
+	var rot_steps := Landmarks.rotunda_steps_plan(MapBuilderData.sunk_spec("rotunda_stair"))
+	if not (rot_steps["seats"] as Array).is_empty():
+		_add_site({"id": ROTUNDA_STEPS_ID, "kind": "jazz_cafe", "at": rot_steps["centre"], "max": (rot_steps["seats"] as Array).size(),
+				"plan": rot_steps})
 	var doors := Landmarks.pkin_theatre_doors()
 	for tid: String in THEATRES:
 		_add_site({"id": tid, "kind": "chill", "theatre": true, "sit": false, "at": doors[tid], "max": int(THEATRES[tid]), "radius": 10.0})
@@ -1643,8 +1651,13 @@ func _place_jazz(s: Dictionary) -> void:
 	var slots: Array = []
 	if s["kind"] == "jazz_cafe":
 		var k := 0
+		var stair: Dictionary = _sunk_live(str(plan.get("stair", "")))
 		for st: Array in plan["seats"]:
-			slots.append({"p": st[0], "pose": SIT, "yaw": float(st[1]), "shirt": BRIGHT[(k * 7 + 3) % BRIGHT.size()]})
+			var slot := {"p": st[0], "pose": SIT, "yaw": float(st[1]), "shirt": BRIGHT[(k * 7 + 3) % BRIGHT.size()]}
+			if not stair.is_empty() and st.size() > 2:
+				# On its tread: the top `_sunk_treads` lays there, not the ramp under the steps.
+				slot["y"] = lerpf(float(stair["ha"]), float(stair["hb"]), float(st[2]) / float(plan["n"]))
+			slots.append(slot)
 			k += 1
 		var order := range(slots.size())
 		_shuffle(order, rng)
@@ -1669,6 +1682,16 @@ func _place_jazz(s: Dictionary) -> void:
 	for j: int in order:
 		slots.append(rest[j])
 	s["slots"] = slots
+
+
+## The map's built sunken entry `key` (with its heights ha/hb), or {} without a map or stair.
+func _sunk_live(key: String) -> Dictionary:
+	if key == "" or map == null or not ("_sunk" in map):
+		return {}
+	for sk: Dictionary in map._sunk:
+		if str(sk["key"]) == key:
+			return sk
+	return {}
 
 
 static func _shuffle(a: Array, rng: RandomNumberGenerator) -> void:
