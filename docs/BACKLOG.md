@@ -787,6 +787,7 @@ the bridge fix (OSM fences over the river left out, the boats' water-level hull 
 of bank gates and crossings with jump ramps, the slipstream, Kamil's stunts (design section 9). Left:
 - [x] PT-53 (Mac Autopilot 2026-11-09): the line into each mid-river ring passed beside the ramp pads; the ramps are just past the ring now (12 m, 10 m wide), and the guide's notes wait during the race
 - [ ] Phone feel of the 2026-11-08 course: are 80 m bank gates 17-34 m off the shore readable at the iso scale, do the ramps read as jumpable, is the slipstream's toast enough or does it need a visible wake line; whether Kamil's stunts look like a stunt (now a weave at half throttle; a wheelie pose on the jet ski mesh would sell it)
+- [ ] Boat race at 1.9x speed (F, 2026-11-10; design section 10): phone feel of 145 km/h at the iso scale (camera look-ahead, ring readability, whether bank gates need to be wider), a Mac Autopilot run of the new Powiśle ramps (6 bank ramps, rivals now steer over them), rival drop-outs (Kamil/Szymek still sometimes lose 3 rings in the headless check)
 - [ ] A pier, a barge or a quay in the race's water that the course file doesn't list still stops a boat (the colliders are the city's): an Autopilot pass on the Mac under all four bridges (the cloud run passed Świętokrzyski)
 - [ ] The other fences and walls that reach over open water elsewhere (a 117 m fence by Port Praski, a 31 m wall there, a 134 m wall ring south of Łazienkowski: `tools/` scan in design section 9) are left as they are; look at them from photos
 - [ ] Phone feel (F): the turn and slide on the plane, the jump off the barge's wake, whether 16 m rings are too easy or too hard at the iso scale, the rings' readability at night
@@ -942,8 +943,15 @@ Built from F's photos (`tarasy_screen.gd`, `led_screen.gdshader`). Open:
   and the NOSE. mark; the wave is blue triangular glass; the sunken plaza, its stair, the guitar sign and
   the HARD BLOK CAFE terrace are built (spec `tarasy.md`, update 2026-11-11). Open: the phone look of the
   screen and the plaza (only the phone shows the screen's glow and the wave's pane colours under the
-  phone's tone map); whether F likes the parody names ZŁOTE TARASKI and HARD BLOK CAFE (QUESTIONS);
+  phone's tone map); F said yes to the parody names ZŁOTE TARASKI and HARD BLOK CAFE (2026-11-11);
   the escalators and lift down into the plaza; the Lumen wings' curve is still the mapped outline.
+- The whole complex, 2026-11-11 (F: "redesign all the complex, not only the roof"): the podium has a glass
+  shop floor at street height (lit warm at night) under a lit canopy strip, sand stone with window bands above, pale
+  ledges at each floor and a cornice, a glass rail round the planted terraces; Lumen got its ribbon
+  bands, white parapet and the stepped-back top floor; the drum is blue-grey glass lit warm at night; lit shop boards
+  (ZARAZA, H·M·M, MULTIKINKO, WYPRZEDAŻ, parodies in QUESTIONS); the ZŁOTE TARASKI name is bigger.
+  Open: the phone look (sign readability at phone size), the shop names with F, the curved pink brick
+  end and louvres from the Mac report.
 ## The Emilii Plater underpass entrances (F, 2026-11-06)
 
 F's screenshots: walled boxes with steps on flat ground. Lost on 2026-11-07 (the squash merge of #495

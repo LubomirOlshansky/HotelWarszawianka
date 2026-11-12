@@ -54,6 +54,11 @@ const SPECS := {
 			"plane": 11.0, "mass": 3.2, "r": 3.0, "len": 13.0, "wake": 0.75, "roll": 0.7, "bow": 1.8,
 			"launch": 4.2, "land_keep": 0.97, "bleed": 0.09, "feel": 0.45},
 }
+## F 2026-11-10 ("the boat mission is too slow, 75 km/h is not interesting"): every boat's top
+## speed and pull are scaled by this (about 2x: the runabout 21 -> 40 m/s, 145 km/h), the turn a
+## little (a wider arc at speed), the rudder keeps its bite to a higher speed.
+const SPEED_SCALE := 1.9
+const TURN_SCALE := 1.3
 const DRAG := 0.06           # water drag on top of the thrust curve (1/s)
 const REVERSE := 4.0         # m/s back
 const BRAKE := 9.0           # m/s² while going forward and braking
@@ -76,7 +81,7 @@ const PIN_PUSH := 3.0
 
 ## The kind's spec, and the boost the race grants (rhythm, gold rings): top speed × `boost`.
 var kind := Kind.RUNABOUT
-var spec: Dictionary = SPECS[Kind.RUNABOUT]
+var spec: Dictionary = scaled_spec(Kind.RUNABOUT)
 var boost := 1.0
 
 ## Inputs.
@@ -124,9 +129,19 @@ var _body: Node3D
 var _mesh: MeshInstance3D
 
 
+## SPECS[k] with the 2026-11-10 speed-up applied (top, pull, turn).
+static func scaled_spec(k: int) -> Dictionary:
+	var sp: Dictionary = (SPECS[k] as Dictionary).duplicate()
+	sp["top"] = float(sp["top"]) * SPEED_SCALE
+	sp["pull"] = float(sp["pull"]) * SPEED_SCALE
+	sp["turn"] = float(sp["turn"]) * TURN_SCALE
+	sp["plane"] = float(sp["plane"]) * 1.3
+	return sp
+
+
 func setup(k: int, mesh: ArrayMesh, material: Material) -> void:
 	kind = k
-	spec = SPECS[k]
+	spec = scaled_spec(k)
 	_body = Node3D.new()
 	add_child(_body)
 	_mesh = MeshInstance3D.new()
@@ -227,7 +242,7 @@ func step(dt: float) -> void:
 		vf -= absf(yaw_rate) * absf(vf) * float(spec.get("bleed", 0.06)) * dt
 	rel = f * vf + right * vr
 	# The rudder.
-	var authority := clampf(absf(vf) / 5.0, 0.0, 1.0) * (1.0 - 0.3 * clampf((absf(vf) - 12.0) / 10.0, 0.0, 1.0))
+	var authority := clampf(absf(vf) / 5.0, 0.0, 1.0) * (1.0 - 0.3 * clampf((absf(vf) - 24.0) / 20.0, 0.0, 1.0))
 	_contact = maxf(0.0, _contact - dt)
 	if _contact > 0.0 and throttle > 0.1 and on_water:
 		authority = maxf(authority, CONTACT_BITE)
