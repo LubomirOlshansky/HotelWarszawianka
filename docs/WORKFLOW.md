@@ -198,8 +198,12 @@ kind has run. Runners differ by up to 45 % from run to run.
   running one and covers the merges before it. That run is the net under the tiers.
 - **Green is one check, `gate`**: it passes when every job the tier asked for passed.
 - **Red main stops the line.** One fix thread; revert first when the fix is not obvious.
-- **A new check** gets one sorted line in `tools/ci_steps.txt` (its group decides the tier) and its
-  case in `tools/verify.sh`; `verify.yml` is not edited.
+- **A new check** gets one sorted line in `tools/ci_steps.txt` (its group decides the tier; `slow`
+  keeps it out of `--quick`) and its case in `tools/verify.sh`. That file is the one list:
+  `verify.sh` reads its steps from it, `verify.yml` is not edited, and the `tier` job fails when a
+  step has a case and no line. Group `local` is for what CI never runs (the long autopilot runs,
+  the soaks). Before 2026-11-12 42 steps were in no CI list, 24 of them a few seconds long; 26 run
+  there now.
 - **One change note per PR** (`docs/changes/README.md`) replaces the edits to CHANGELOG, BACKLOG
   and ROADMAP, which were the three most edited files in the repo and conflicted in most PRs.
 - Before 2026-11-12 every pull request ran everything (46-61 min, about 4,000 runner minutes a day).

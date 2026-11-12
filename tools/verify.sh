@@ -325,8 +325,20 @@ zmodload zsh/datetime
 ROOT=${0:A:h:h}
 GAME=$ROOT/game
 GODOT=${GODOT:-godot}
-STEPS_ALL=(map architecture roads smooth fixes centralnyramp cyclehang portbridge heights objects tramstops stairs streets outline pois streetdetails streetpass design models overrides stops streetmesh ratuszhub parkdetails parkmesh monuments monumentmesh spiremotion tarasyscreen spec lod2 courts drape ground drive drive-prebuilt deckxray tunnelcut stuckspots stuckspots-prebuilt oldtowndrive lanedrive lanedrive-grounded finite steering laneassist stuckoffer handling grounded stopassist questlines stories settings credits language tiers governor shaderbudget heliview hud places edge roadworks roadworks-prebuilt eggs placzamkowy tape crowds life buses zaglebie crashes rave shisha padel meet boatrace dekalog kinotour evtow crawl loud crazy oldtram tramfleet trains railsignals packs wellness tamka fans eventday coffeerun garage save errortrap boot districts syrenki cassettes ladder racecuts racebench raceplanner first10 mainline chatter messages endcard opening parodies jobs2 rescues couriers delivery rides cost landmarks oldtownroofs roofdress tenementtrim osmroofs sites palacelights meshq sfx mixer juice gamepad radio sounds water water-prebuilt streaming police plain ram teleport firstlife heli race trzy-mosty first10-run kebab coffee ride ride-police splash rain prebuilt boot-run classic police-runs police-soak life-soak)
-STEPS_QUICK=(map architecture roads smooth fixes centralnyramp cyclehang portbridge heights objects tramstops stairs streets outline pois streetdetails streetpass design models overrides stops streetmesh ratuszhub parkdetails parkmesh monuments monumentmesh spiremotion tarasyscreen spec drape drive deckxray tunnelcut stuckspots oldtowndrive finite steering laneassist stuckoffer handling grounded stopassist questlines stories settings credits language tiers governor shaderbudget heliview hud places edge roadworks eggs placzamkowy tape crowds life buses zaglebie crashes rave shisha padel meet boatrace dekalog kinotour evtow crawl loud crazy oldtram tramfleet trains railsignals packs wellness tamka fans eventday coffeerun garage save errortrap boot districts syrenki cassettes ladder racecuts racebench raceplanner first10 mainline chatter messages endcard opening parodies jobs2 rescues couriers delivery rides cost landmarks oldtownroofs roofdress tenementtrim osmroofs sites palacelights meshq sfx mixer juice gamepad radio sounds police plain ram teleport firstlife prebuilt boot-run)
+# The steps and the --quick set come from tools/ci_steps.txt: one line per step (its name, its CI
+# group, `slow` for a step --quick leaves out), sorted by name, and the steps run in that order.
+# A new check adds its line there and its case below; these lists are no longer edited, so two
+# pull requests that each add a check don't meet on one line (2026-11-12, TD-18).
+STEPS_ALL=()
+STEPS_QUICK=()
+while read -r step_name step_group step_flag; do
+	[[ -z $step_name || $step_name == \#* ]] && continue
+	STEPS_ALL+=($step_name)
+	[[ $step_flag == slow ]] || STEPS_QUICK+=($step_name)
+done < $ROOT/tools/ci_steps.txt
+if (( ${#STEPS_ALL} == 0 )); then
+	print -r -- "FAIL: no steps read from $ROOT/tools/ci_steps.txt"; exit 1
+fi
 # Operation Unslop review (2026-11-05): the road loop ran the whole --quick (~100 steps, most start
 # the game) after every tweak. --roads keeps only the steps a road rule can break; steps not in
 # STEPS_ALL on this branch (e.g. `smooth` before the smooth-roads PR) are skipped.
