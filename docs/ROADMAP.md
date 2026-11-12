@@ -784,6 +784,7 @@ Beta goal: a visitor explores the city with everything open, an easy city drive,
       on the phone still to see)
 - [ ] Store screenshots re-shot after the opening lands; (app icon: new icon now on the site, wiki and store listing); a short trailer
 - [ ] Deploy the support page; first TestFlight upload from the Mac; Play closed test
+- Release builds (numbers stay off main's presets; set them in the build copy): 2026-11-10 from main 30acb055: TestFlight 0.1 build 7 (after 6 on 2026-11-09), Play AAB 0.1 code 10 (`nocnawarszawa-0.1-10.aab`, 236 MB, F uploads it to the Play Console). The next must be iOS 8+ and Android 11+.
 - [ ] Gamepad testing in the beta: an Xbox, PlayStation or MFi pad on the iPhone (beta-testing.md)
 - [ ] Outside players finish the first ten minutes without help (the Demo gate)
 

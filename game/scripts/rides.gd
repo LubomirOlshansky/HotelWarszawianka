@@ -152,6 +152,9 @@ var start_stars := -1.0
 ## Loop MW-3 (vision.md 4.5, 4.7): at dawn the requests come from the club doors: -> [[club id,
 ## door: Vector2], ...] while the dawn crowd is out (crowds.gd), else []. Unset: none.
 var club_doors: Callable
+## F 2026-11-10: true while any mission, race, job, questline or tour is on (main.gd); PODWÓZKA
+## stays off the context button for all of it.
+var mission_on: Callable
 ## Loop MW-4 (vision.md 3.7, 4.7): where a `hurry` passenger goes now, -> Vector2 (Saturday
 ## morning: the Hyrax forecourt by the stadium, a late competitor; city_life.gd hurry_target), INF
 ## for anywhere. Unset: anywhere.
@@ -520,6 +523,8 @@ func _on_bump(_collider: Object, speed: float) -> void:
 ## ride puts the call off, as any job does.
 func _free() -> bool:
 	if flying or away or car.in_water or missions.has_target() or not _calls_quiet():
+		return false
+	if mission_on.is_valid() and bool(mission_on.call()):
 		return false
 	if state == State.IDLE and hud != null and hud.cards_up():
 		return false  # no request over a result or win card (2026-11-08)
