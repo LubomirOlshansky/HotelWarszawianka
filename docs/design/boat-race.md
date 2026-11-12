@@ -192,3 +192,5 @@ F: "the mission with the boat is too slow, 75 km/h is not interesting, make it n
 - Ramp mesh details: masts with red-and-white pennants on the floats, white edge stripes, black nose bumpers, yellow lights up the middle (same mesh, no extra draw calls).
 - Rivals: the corner speed drops to half the top in the sharpest turn (was 0.32), a jet-steered hull keeps the gas on while it brakes (it turns only with thrust), Kamil's show-off is 1.0 s at 35 % (was 1.8 s at 50 %).
 - Open: phone feel at 145 km/h (camera look-ahead, ring readability at the iso scale); a Mac Autopilot run.
+
+Flaky check fix (2026-11-12): at 1.9x speed the autopilot player missed 3 rings in about 5 of 12 seeded races (16 m openings, a sharp turn after the crossing). Rings are 24 m wide now (`RING_W`), the bank ramps sit 30 % along the run (the jump lands well before the next ring), and `check_boat_race.gd` runs a fixed seed (`BoatRace.rng_seed`; `BOAT_SEED=n` for another). 12 seeds: the player 0 misses in all.
