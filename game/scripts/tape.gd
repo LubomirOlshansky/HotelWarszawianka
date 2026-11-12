@@ -18,6 +18,7 @@ extends Node3D
 ## check runs twice a second; per frame only while a ghost fades.
 
 const Lang := preload("res://scripts/lang.gd")
+const Sfx := preload("res://scripts/sfx.gd")
 
 signal played(card_id: String)
 
@@ -63,7 +64,6 @@ var near := -1
 var ghost: MeshInstance3D
 var ghost_boxes_n := 0
 var _mat: ShaderMaterial
-var _rewind: AudioStreamPlayer
 var _t := 0.0
 ## The spot playing (-1), seconds since it started, and the share of the ghost shown now.
 var _playing := -1
@@ -105,11 +105,7 @@ func setup(places: Dictionary) -> bool:
 	_mat.set_shader_parameter("fade_radius", 0.0)
 	_mat.set_shader_parameter("occlusion_radius", 100000.0)
 	_mat.set_shader_parameter("ghost_keep", 0.0)
-	_rewind = AudioStreamPlayer.new()
-	_rewind.stream = rewind_sound()
-	_rewind.bus = &"SFX"
-	_rewind.volume_db = -9.0
-	add_child(_rewind)
+	Sfx.ui_add("rewind", rewind_sound(), -9.0)
 	ready_ok = true
 	print("tape: %d then cards, %d placed" % [spots.size(), placed])
 	return true
@@ -436,8 +432,7 @@ func play(i: int) -> void:
 	ghost.visible = true
 	if vhs.is_valid():
 		vhs.call(VHS_S)
-	if _rewind != null:
-		_rewind.play()
+	Sfx.ui("rewind")
 	var id := str(s["id"])
 	var line: Array = s["line"]
 	var first: bool = wallet != null and not wallet.tapes.has(id)

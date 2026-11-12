@@ -18,6 +18,7 @@ signal new_game
 ## The game's name as the title shows it (the rename to Around Warsaw, 2026-10-30; it was
 ## "NOCNA WARSZAWA"). The one place to change it.
 const Lang := preload("res://scripts/lang.gd")
+const Sfx := preload("res://scripts/sfx.gd")
 const WORDMARK := "AROUND WARSAW"
 ## The tagline under the wordmark, Polish above English (the rename, 2026-10-30). "Jeźdź" is
 ## the standard imperative of "jeździć" (the spoken "jeździj" is the common slip).
@@ -72,7 +73,6 @@ var cap := 0.0
 var _shown := 0.0
 var _bar_plate: Panel
 var _bar_fill: ColorRect
-var _start_sound: AudioStreamPlayer
 ## Safe area in pixels: left, top, right, bottom.
 var _safe := Rect2()
 
@@ -135,11 +135,6 @@ func _ready() -> void:
 		lb.visible = true
 		lb.name = "lang_%s" % code
 		_lang_btns.append(lb)
-	_start_sound = AudioStreamPlayer.new()
-	_start_sound.volume_db = -8.0
-	if ResourceLoader.exists("res://audio/ui/start.wav"):
-		_start_sound.stream = load("res://audio/ui/start.wav")
-	add_child(_start_sound)
 	get_viewport().size_changed.connect(_layout)
 	_layout()
 
@@ -474,8 +469,7 @@ func dismiss() -> void:
 	_gone = true
 	_prompt.modulate.a = 1.0
 	_prompt_pl.modulate.a = 1.0
-	if _start_sound.stream != null:
-		_start_sound.play()
+	Sfx.ui("start")
 	dismissed.emit()
 	var tween := create_tween()
 	tween.tween_property(_root, "modulate:a", 0.0, 0.6).set_trans(Tween.TRANS_SINE)

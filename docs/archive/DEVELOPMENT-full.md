@@ -887,6 +887,12 @@ no samples). Buses: Master, **Music** (the radio, player at -9 dB), **SFX** (-3 
   imports (Forward loops, QOA) and decodes across each loop point; `godot --path game --
   --sound-check` (with an audio device) plays every one-shot and prints each bus's peak;
   the bench prints the buses' peaks while driving.
+- One-shots (step 2, 2026-11-12): `sfx.play(name, gain_db, pitch, bus)` (no place), `sfx.play_at(name, at,
+  gain_db)` (in the world, 6 voices, the nearest win) and `Sfx.ui(name)` / `Sfx.ui_stop(name)` /
+  `Sfx.ui_add(name, stream, db)` (the interface: static, players under the tree's root, they run
+  under the pause and before the city is built). `Sfx.SHOT_RULES`: name → [priority LOW/NORMAL/HIGH,
+  most voices at once, pitch spread]; `Sfx.pick_voice` chooses the 2D voice (6 of them). Takes:
+  `name.wav`, `name_2.wav` … `name_4.wav`. A name outside `SHOTS` / `UI` is a `push_error`.
 - The mixer (TD-5, 2026-11-12): who turns whom down is `Sfx.DUCKS` in `sfx.gd`, name →
   [target ("radio" or a bus), dB, seconds down, seconds up]. A script calls `Sfx.duck(name)` and
   `Sfx.release(name)`, or `Sfx.duck(name, seconds)`; ducks stack and the deepest one held counts.
