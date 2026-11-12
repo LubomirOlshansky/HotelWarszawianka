@@ -18,9 +18,10 @@ extends Node
 ##     was doing, and starts the wait for the next call.
 ## The director (activities.gd) knows which activity is on and who may start.
 ##
-## A subclass gives the words (`_call_card`, `_offer_card`) and the play (`_begin`, `_run_tick`,
-## `_card_pressed`), and uses `set_target`, `show_card`, `status`, `finish` and `drop`.
-## The first one is tour.gd.
+## A subclass gives the words (`_call_card`, `_offer_card`, `_refused`) and the play (`_begin`,
+## `_run_tick`, `_card_pressed`), and uses `set_target`, `show_card`, `status`, `finish` and
+## `drop`. One with its own clock for the call gives `_idle_tick` too. The first one is tour.gd;
+## bar_crawl.gd is the first with a call clock, a ring and a result card of its own.
 
 const Beacon := preload("res://scripts/beacon.gd")
 const Access := preload("res://scripts/access.gd")
@@ -76,6 +77,9 @@ var _target := Vector3.INF
 var _card_up := false
 ## That card as it was shown: [title, body, buttons] (`_put_card`).
 var _card_args: Array = []
+## That card closes by itself after this long (s), as if its first button were pressed; 0: it
+## waits for a press.
+var _card_life := 0.0
 var _status_up := false
 
 
@@ -102,11 +106,12 @@ func idle() -> bool:
 
 ## Where the player is sent now: the beacon stands there, and main.gd reads it (through the
 ## director) for the arrow, the metres, the minimap's dot and the stop assist. `person`: someone
-## waits in the ring.
-func set_target(at: Vector2, person := false) -> void:
+## waits in the ring. `ring_at` and `radius`: the ring's own place and size when it is not on the
+## spot the player is sent to (a group on the pavement beside the kerb the car stops at).
+func set_target(at: Vector2, person := false, ring_at := Vector3.INF, radius := 0.0) -> void:
 	_target = Vector3(at.x, _ground(at), at.y)
 	_beacon.visible = true
-	_beacon.place(_target, arrive - 0.5, true, person)
+	_beacon.place(_target if ring_at == Vector3.INF else ring_at, radius if radius > 0.0 else arrive - 0.5, true, person)
 
 
 func clear_target() -> void:
@@ -147,6 +152,7 @@ func _process(dt: float) -> void:
 		Phase.RING, Phase.OFFER:
 			if _t > card_life:
 				_hide_own_card()
+				_refused(true)
 				_end(call_cool * 0.5)
 			elif autopilot and _t > AUTO_ANSWER:
 				card_pressed(0)
@@ -158,7 +164,7 @@ func _process(dt: float) -> void:
 					if not hud.card_showing():
 						_put_card()
 						_log("card put back")
-				elif autopilot and _t > AUTO_CARD:
+				elif (autopilot and _t > AUTO_CARD) or (_card_life > 0.0 and _t > _card_life):
 					card_pressed(0)
 			else:
 				_run_t += dt
@@ -201,9 +207,12 @@ func ring() -> bool:
 
 
 func _offer() -> void:
+	var c := _offer_card()
+	if c.is_empty():
+		_end(call_cool)  # nothing to offer after all (no place to meet): the next call later
+		return
 	phase = Phase.OFFER
 	_t = 0.0
-	var c := _offer_card()
 	var title: Array = c.get("title", ["", ""])
 	var body: Array = c.get("body", ["", ""])
 	hud.show_side_card(str(title[0]), str(body[0]), PackedStringArray(c.get("buttons", OFFER_BUTTONS)), colour,
@@ -232,9 +241,12 @@ func start() -> void:
 # --- the cards (TD-16) ---------------------------------------------------------------------------
 
 ## A card of the run, in the middle of the screen: this activity's own, so its buttons come to
-## `_card_pressed` and to nobody else. The run's clock stands while it is up.
-func show_card(title: Array, body: Array, buttons: PackedStringArray) -> void:
+## `_card_pressed` and to nobody else. The run's clock stands while it is up. With `life` the
+## card closes by itself after that many seconds, as if its first button were pressed (a result
+## card nobody has to tap).
+func show_card(title: Array, body: Array, buttons: PackedStringArray, life := 0.0) -> void:
 	_card_args = [title, body, buttons]
+	_card_life = life
 	_card_up = true
 	_t = 0.0
 	_put_card()
@@ -265,12 +277,14 @@ func card_pressed(index: int) -> void:
 			if index == 0:
 				_offer()
 			else:
+				_refused(false)
 				_end(call_cool)
 		Phase.OFFER:
 			_hide_own_card()
 			if index == 0:
 				start()
 			else:
+				_refused(false)
 				_end(call_cool)
 		Phase.RUN:
 			if _card_up:
@@ -279,10 +293,10 @@ func card_pressed(index: int) -> void:
 				_card_pressed(index)
 
 
-## The status line at the top while the run is on.
-func status(title: String, count: String, distance: String, hint: Array, progress: float) -> void:
+## The status line at the top while the run is on, in the activity's colour or in `tint`.
+func status(title: String, count: String, distance: String, hint: Array, progress: float, tint := Color(0, 0, 0, 0)) -> void:
 	_status_up = true
-	hud.show_status(title, count, distance, str(hint[0]), progress, colour, "", {}, str(hint[1]))
+	hud.show_status(title, count, distance, str(hint[0]), progress, colour if tint.a == 0.0 else tint, "", {}, str(hint[1]))
 
 
 func hide_status() -> void:
@@ -342,6 +356,12 @@ func _call_card() -> Dictionary:
 ## The offer: {"title": [pl, en], "body": [pl, en], "face": whose portrait, "buttons": optional}.
 func _offer_card() -> Dictionary:
 	return {}
+
+
+## The call or the offer was turned down, by a button or (`timed_out`) by nobody answering;
+## `phase` still says which. A subclass says its own words here; the card is already down.
+func _refused(_timed_out: bool) -> void:
+	pass
 
 
 ## The log's line when the player meets them in person.

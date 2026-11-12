@@ -3,8 +3,9 @@ extends RefCounted
 ## check_activity.gd, check_kino_tour.gd, check_dekalog_tour.gd, and the check of each activity that
 ## joins the kit): a HUD that remembers the card, the status line and the toasts, and sends a
 ## card's press to its owner as hud.gd does (tech-debt TD-16); a dialogue that remembers what was
-## said; a wallet; a flat map; a car that can be hit. A check that needs one of these takes it
-## from here, so a new parameter on `hud.toast` is changed in one place.
+## said; the bubbles over the car; a wallet; the rescue calls' switch; a flat map; a car that can
+## be hit. A check that needs one of these takes it from here, so a new parameter on `hud.toast`
+## is changed in one place.
 
 
 class Hud extends CanvasLayer:
@@ -14,9 +15,11 @@ class Hud extends CanvasLayer:
 	var card := ""
 	var body := ""
 	var buttons := 0
-	## The status line's hint ("" when it is down) and its count ("2/4").
+	## The status line's hint ("" when it is down), its count ("2/4"), its title and its colour.
 	var status := ""
 	var count := ""
+	var status_title := ""
+	var tint := Color.WHITE
 	var toasts: Array[String] = []
 	## Cards and calls shown so far, and presses that went to every listener (no owner).
 	var shown := 0
@@ -48,13 +51,16 @@ class Hud extends CanvasLayer:
 	func toast(a: String, _b := "") -> void:
 		toasts.append(a)
 
-	func show_status(_t: String, c: String, _d: String, h: String, _p: float, _a: Color, _badge := "", _i := {}, _he := "") -> void:
+	func show_status(t: String, c: String, _d: String, h: String, _p: float, a: Color, _badge := "", _i := {}, _he := "") -> void:
 		status = h
 		count = c
+		status_title = t
+		tint = a
 
 	func hide_status() -> void:
 		status = ""
 		count = ""
+		status_title = ""
 
 	func ticker_out() -> void:
 		pass
@@ -85,6 +91,22 @@ class Dialogue extends Node:
 	func say(_anchor: Variant, _who: String, group: String, tag := "", _s := 4.0, _c := Color.WHITE, _h := 2.6, _p := false) -> Array:
 		said.append(group + ":" + tag)
 		return []
+
+
+## bubbles.gd: the lines said over the car (Polish), and whether the chatter budget lets one out.
+class Bubbles extends Control:
+	var said: Array[String] = []
+	var ok := true
+
+	func say(_anchor: Variant, _who: String, pl: String, _en: String, _s := 4.0, _c := Color.WHITE, _h := 2.6) -> bool:
+		if ok:
+			said.append(pl)
+		return ok
+
+
+## missions.gd's switch for the rescue calls.
+class Calls extends Node:
+	var paused := false
 
 
 class Wallet extends Node:
