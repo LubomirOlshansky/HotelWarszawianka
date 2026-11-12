@@ -50,7 +50,7 @@ F picks what is built. Nothing below is started unless its state says so.
 | TD-6 | **Pedestrian slots are agreed by hand** | `pedestrians.gd`: slots 0-2 trap officers, 3 first contact, 4-11 guards, then guests, stops, scenes, each owner writes its own range | a small allocator (`reserve(owner, n)`) with a per-tier total; the start of TD-7 | planned (later) |
 | TD-7 | **No shared population budget** | the governor steps traffic and walkers; crowds, city life, packs, fans, buses, trams and police each keep their own limits | one budget per tier for cars, people and props near the camera, mission actors first | planned (later) |
 | TD-9 | **Building shader at the Adreno budget** | lite building shader 498 of about 508 (`check_shader_budget`) | landmarks in their own material (about 300 of the 498 are theirs) before the next building-shader feature | open |
-| TD-12 | **Difficulty is per mode** | difficulty code only in `boat_race.gd` and `ladder.gd`; racer AI rebuild in progress | after race AI step 3: one soft skill estimate that race AI, timers and police heat read (no rubber band) | planned (later) |
+| TD-12 | **Difficulty is per mode** | difficulty code only in `boat_race.gd` and `ladder.gd`; a rival's difficulty is its rung's skill numbers (the racer AI rebuild's step 2), and the one thing that follows the player is an easier rematch (`Ladder.ease_of`, 5 % a loss in a row) | one soft skill estimate that race AI, timers and police heat read (no rubber band); for the races it feeds `ease` in `Rivals.race_stats` and nothing during a race (the racer AI's step 3 is in, so this no longer waits for it) | planned (later) |
 
 ## What is clean today, and the checks that would keep it so (proposed, not built)
 
