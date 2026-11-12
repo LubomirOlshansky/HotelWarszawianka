@@ -3493,7 +3493,7 @@ func _build_stories(world: Node3D) -> void:
 				"hello": ["", ""], "closed": ["", ""], "at": Vector2.INF, "colour": EvTow.COLOUR,
 				"hours": Vector2(-1.0, -1.0), "days": [],
 				"call": ev_tow.ring, "meet": func() -> bool: return false, "busy": ev_tow.busy,
-				"idle": func() -> bool: return ev_tow.state == EvTow.State.IDLE})
+				"idle": ev_tow.idle})
 	# One line per questline for the full map's pin (a tap shows it): [pl, en]. A start in person
 	# first puts off a rescue call still ringing (its pill), which no longer stops the friend.
 	for d: Dictionary in stories.defs:
@@ -3942,8 +3942,6 @@ func _free_block(ringing_ok := false, guide_ok := false) -> String:
 		return "lounge inside"
 	if meet != null and meet.busy():
 		return "night meet busy"
-	if ev_tow != null and ev_tow.busy():
-		return "EV tow busy"
 	if title != null or _phone_bench or _bench_ghost != null or (spacer != null and spacer.on):
 		return "title/bench/Spacer"
 	if first10 != null and first10.guide_on() and not guide_ok:
@@ -4083,15 +4081,18 @@ func _build_ev_tow(world: Node3D) -> void:
 		if flying:
 			return [heli.global_position, heli.speed() * 3.6, true]
 		return [car.global_position, car.vel.length() * 3.6, false]
-	ev_tow.free_now = _ev_free
 	ev_tow.take_off = func() -> void: _take_off(Heli.CRUISE)
 	add_child(ev_tow)
 	ev_tow.setup(world)
+	# The director says when Bartek may ring, with the tow's own test for everything outside the
+	# kit: it may start from the air (`world_free` refuses the helicopter).
+	activities.add(ev_tow, _ev_free)
 	if ev_flag != "":
 		get_tree().create_timer(1.0).timeout.connect(_ev_start)
 
 
-## Nothing else on: no title, bench, Spacer, guide, card, rescue, ride, job, race or tow.
+## Nothing outside the kit is on: no title, bench, Spacer, guide, card, rescue, ride, job or
+## race (the director adds: no other activity of the kit). The air is fine.
 func _ev_free() -> bool:
 	if (rave != null and rave.busy()) or (club != null and club.inside):
 		return false
@@ -4109,8 +4110,6 @@ func _ev_free() -> bool:
 		return false
 	if boat_race != null and boat_race.busy():
 		return false
-	if activities.busy():
-		return false
 	return flying or not car.in_water
 
 
@@ -4125,8 +4124,8 @@ func _ev_start() -> void:
 			ev_tow.place_stranded(Vector2(p.x, p.z), Vector2(f.x, f.z).normalized(), true)
 		_:
 			ev_tow.ring()
-			ev_tow._on_card(0)
-			ev_tow._on_card(0)
+			ev_tow.card_pressed(0)  # the call answered
+			ev_tow.card_pressed(0)  # LECĘ!
 			if ev_tow.job.is_empty():
 				return
 			var at: Vector3 = ev_tow.job["at"]
@@ -7940,7 +7939,7 @@ func _show_target() -> void:
 		return
 	# The activity kit (tech-debt TD-2): whichever activity sends the player somewhere now.
 	var act := activities.targeted()
-	if act != null and not flying:
+	if act != null and (not flying or act.flown):
 		var ap: Vector3 = act.target_position()
 		var at_a := _vehicle_position()
 		var ma := roundi(Vector2(ap.x - at_a.x, ap.z - at_a.z).length())
@@ -7970,15 +7969,6 @@ func _show_target() -> void:
 		hud.set_target(on_k, "%d m" % mk, meet.target_colour(), mk > 12)
 		_put_target(Vector2(kp.x, kp.z), meet.target_colour(), false)
 		_new_target("job", kp)
-		return
-	if ev_tow != null and ev_tow.has_target():
-		var ep: Vector3 = ev_tow.target_position()
-		var at_e := _vehicle_position()
-		var me := roundi(Vector2(ep.x - at_e.x, ep.z - at_e.z).length())
-		var on_e := cam.unproject_position(ep + Vector3(0, 3.5, 0)) * float(view.stretch_shrink)
-		hud.set_target(on_e, "%d m" % me, ev_tow.target_colour(), me > 12)
-		_put_target(Vector2(ep.x, ep.z), ev_tow.target_colour(), false)
-		_new_target("job", ep)
 		return
 	if rivals != null and rivals.has_target():
 		var f: Vector3 = rivals.target_position()
@@ -8292,7 +8282,7 @@ func _autopilot(dt: float) -> void:
 	if jobs != null and jobs.drive_player():
 		return
 	var act := activities.targeted()
-	if act != null and not flying:
+	if act != null and not flying and not act.flown:
 		_slide_car(act.target_position(), dt)
 		return
 	if not missions.has_target():

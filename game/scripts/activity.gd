@@ -22,7 +22,8 @@ extends Node
 ## `_run_tick`, `_card_pressed`), and uses `set_target`, `show_card`, `status`, `finish` and
 ## `drop`. One with its own clock for the call gives `_idle_tick` too. The first one is tour.gd;
 ## bar_crawl.gd is the first with a call clock, a ring and a result card of its own; shisha.gd the
-## first with a stage somewhere else (the lounge) and a second ring (`set_mark`).
+## first with a stage somewhere else (the lounge) and a second ring (`set_mark`); ev_tow.gd the
+## first that is flown (`flown`) and that starts without a call too (a stranger's car: `start`).
 
 const Beacon := preload("res://scripts/beacon.gd")
 const Access := preload("res://scripts/access.gd")
@@ -65,6 +66,9 @@ var card_life := 12.0
 var play_limit := 0.0
 ## The target ring's radius (m): the stop assist's ring.
 var arrive := StopAssist.RING
+## The player flies this one (the EV tow): its arrow shows in the air too, and neither the stop
+## assist nor the autopilot's car is sent to its target (main.gd).
+var flown := false
 
 var phase := Phase.IDLE
 ## Seconds in this phase, or since the run's last card went up.

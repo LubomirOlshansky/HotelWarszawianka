@@ -99,6 +99,10 @@ class Dialogue extends Node:
 		said.append(group + ":" + tag)
 		return []
 
+	## dialogue.gd's ambient chatter (a bystander's line): remembered the same way.
+	func say_ambient(anchor: Variant, who: String, group: String, tag := "", s := 4.0, c := Color.WHITE, h := 2.6, p := false) -> Array:
+		return say(anchor, who, group, tag, s, c, h, p)
+
 
 ## bubbles.gd: the lines said over the car (Polish), and whether the chatter budget lets one out.
 class Bubbles extends Control:
