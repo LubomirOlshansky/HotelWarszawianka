@@ -13,7 +13,7 @@ The repo is meant to be private; the design wiki stays public until F decides.
 | --- | --- |
 | `game/` | Godot project: `scripts/`, `shaders/`, `tools/` (check scripts, `bake_city.gd`), `data/`, `map/` (baked), `audio/` |
 | `tools/` | Python bakes and helpers, `verify.sh`, `shots.sh`, `device_run.sh`, `check_map_data.py`, `export_ios.sh`, `hooks/guard_godot.py` (blocks game runs without `--nosave` or a quit flag) |
-| `docs/architecture/` | **the architecture map**: README (one screen), systems, city-ai, graphics, pipelines, extending (where each change plugs in), tech-debt. Read README and `extending.md` before adding a system |
+| `docs/architecture/` | **the architecture map**: README (one screen), systems, city-ai, map-markers, graphics, pipelines, extending (where each change plugs in), tech-debt (planned work, in order), decisions (what was chosen against). Read README and `extending.md` before adding a system |
 | `docs/DEVELOPMENT.md` | short INDEX. The full reference is `docs/archive/DEVELOPMENT-full.md` (~490 KB): never read it whole, grep a section and read that range |
 | `docs/WORKFLOW.md` | the loop, owners, light/full definition of done, milestone gates |
 | `docs/CITY_INVENTORY.md` (every characteristic place, ranked, street by street) · `docs/BACKLOG.md` (issues, decisions) · `docs/QUESTIONS.md` (parked questions, lanes in progress) · `docs/ROADMAP.md` (order of work) · `docs/DEMO.md` · `docs/LANDMARKS.md` · `docs/ADDONS.md` · `docs/PLAYTEST.md` (test plan, PT-n bug log) | read only the section you need |

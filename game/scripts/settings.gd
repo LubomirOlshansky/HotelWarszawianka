@@ -16,6 +16,7 @@ extends RefCounted
 
 const FollowCamera := preload("res://scripts/follow_camera.gd")
 const Tiers := preload("res://scripts/tiers.gd")
+const SafeFile := preload("res://scripts/safe_file.gd")
 const PATH := "user://settings.cfg"
 ## Loop 3h slice 1: the settings file's format version (1: before loop 3h, no `[meta]`).
 const VERSION := 2
@@ -200,7 +201,7 @@ func save() -> void:
 		cfg.set_value("game", "lang", lang)
 	for key in auto_image:
 		cfg.set_value("auto_image", key, auto_image[key])
-	cfg.save(path)
+	SafeFile.write(cfg, path)  # TD-8: a temp file, then one rename, never half a file
 
 
 func summary() -> String:

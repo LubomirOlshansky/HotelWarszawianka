@@ -93,7 +93,7 @@ Each runs on its own and answers `busy()`. `main.gd` `_free_block()` decides whe
 | `bubbles.gd`, `chatter.gd` | Speech bubbles over the world; the chatter budget (QUEST, POLICE, REACTION, AMBIENT classes). |
 | `dialogue.gd` | Lines from `data/dialogue.json` by group, without repeats. |
 | `lang.gd` | One language on screen (Polish or English). |
-| `portraits.gd` | The callers' faces (`art/portraits/<name>.png`) for the phone call view (`hud.show_call`) and quest cards; the initial on a disc when there is no art. |
+| `portraits.gd` | The speakers' faces (`art/portraits/<name>.png`) for the phone call view (`hud.show_call`), quest cards, quest and police bubbles (`bubbles.gd`) and the lounge and club talk panels (`badge`); the initial on a disc when there is no art, none for non-people (`NO_FACE`). |
 | `screen_points.gd`, `access.gd` | Points, safe area, tap sizes; accessibility options. |
 | `settings.gd`, `settings_panel.gd` | Settings in `user://settings.cfg`; the panel. |
 | `full_map.gd` | Full-screen map. |
@@ -107,7 +107,8 @@ Each runs on its own and answers `busy()`. `main.gd` `_free_block()` decides whe
 
 | Script | Owns |
 | --- | --- |
-| `wallet.gd` | **The save** (`user://save.cfg`, versioned with `migrate`): złoty, respect, jobs, records, eggs, notes, session spot. Signal `changed(zl, respect, gained)`. |
+| `wallet.gd` | **The save** (`user://save.cfg`, versioned with `migrate`): złoty, respect, jobs, records, eggs, notes, session spot. Signal `changed(zl, respect, gained)`. A damaged file is moved aside and the last launch's copy loaded (`load_note`, `damage`, `keep_copy`). |
+| `safe_file.gd` | The one way a kept file reaches the disk: a temp file, read back, then one rename (`write`, `copy`). Only `wallet.gd` and `settings.gd` call it. |
 | `upgrades.gd`, `garage.gd` | Parts and cars rules; the workshop. |
 | `notebook.gd` | MOJA WARSZAWA, 72 places found. |
 | `eggs.gd`, `egg_book.gd` | Easter eggs; their cards. |

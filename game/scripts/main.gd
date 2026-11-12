@@ -71,6 +71,7 @@ const OpeningAudio := preload("res://scripts/opening_audio.gd")
 const GreetingClips := preload("res://scripts/greeting_clips.gd")
 const Title := preload("res://scripts/title.gd")
 const Wallet := preload("res://scripts/wallet.gd")
+const Messages := preload("res://scripts/messages.gd")  # priorities for the HUD's lines (the save's note)
 const Dialogue := preload("res://scripts/dialogue.gd")
 const Jobs := preload("res://scripts/jobs.gd")
 ## Loop 2d-1: Podwózka, the app-taxi side job.
@@ -749,6 +750,9 @@ var host_in := -1.0
 var barrier_day := 0
 var reset_save := false
 var no_save := false
+## Safer saves (TD-8): `--save-note=restored|lost|blocked` shows the damaged-save note without a
+## damaged file (the shots and a headless run of the note's path; with the title forced on).
+var save_note_flag := ""
 ## --free: free roam (loop 2e: no call card at the start anyway; the first call then comes in
 ## 90 s into play instead of 60).
 var free_roam := false
@@ -1006,6 +1010,8 @@ func _ready() -> void:
 	add_child(wallet)
 	if reset_save:
 		wallet.reset()
+	if save_note_flag != "":
+		wallet.load_note = save_note_flag
 	# Loop MW-5: PÓŁNOC FM's locked tracks read the save; chapters finished before this loop
 	# open their tracks once, quietly. --station= by name; --radio= now reaches every station.
 	radio.wallet = wallet
@@ -1280,6 +1286,37 @@ func _notification(what: int) -> void:
 		Haptics.warm()
 
 
+## Safer saves (tech-debt TD-8): what the player is told when the save was damaged at launch
+## (wallet.gd `load_note`): [title pl, title en, body pl, body en].
+const SAVE_NOTES := {
+	"restored": ["ZAPIS ODZYSKANY", "SAVE RESTORED",
+			"Plik zapisu był uszkodzony. Wczytano kopię z poprzedniego uruchomienia.",
+			"The save file was damaged. The copy from the last launch was loaded."],
+	"lost": ["ZAPIS USZKODZONY", "SAVE DAMAGED",
+			"Pliku zapisu nie dało się odczytać i nie było kopii. Zaczynasz od nowa, a uszkodzony plik został zachowany.",
+			"The save file could not be read and there was no copy. You start fresh. The damaged file was kept."],
+	"blocked": ["ZAPIS NIEDOSTĘPNY", "SAVE UNAVAILABLE",
+			"Pliku zapisu nie dało się odczytać. Postęp z tej sesji nie zostanie zapisany.",
+			"The save file could not be read. This session's progress will not be saved."],
+}
+const SAVE_NOTE_COLOUR := Color(1.0, 0.72, 0.3)
+
+
+## Safer saves (TD-8): a save that was damaged at launch says so once the city shows. An alert, so
+## it shows whatever else is on screen; it waits for the opening flyover (the HUD is hidden then).
+func _save_note() -> void:
+	if not SAVE_NOTES.has(wallet.load_note) or hide_hud:
+		return
+	# Two frames on, as the fallback's toast: the first frame after the build would use up its seconds.
+	await get_tree().process_frame
+	await get_tree().process_frame
+	while _opening_on:
+		await get_tree().process_frame
+	var t: Array = SAVE_NOTES[wallet.load_note]
+	hud.show_note(Lang.pick(t[0], t[1]), Lang.pick(t[2], t[3]), SAVE_NOTE_COLOUR, Messages.ALERT)
+	print("save: the player was told (%s%s)" % [wallet.load_note, "" if wallet.bad_path == "" else ": %s, kept as %s" % [wallet.bad_why, wallet.bad_path]])
+
+
 func _on_new_game() -> void:
 	if not wallet.start_over():
 		return
@@ -1296,6 +1333,7 @@ func _on_title_dismissed() -> void:
 	radio.now_playing()
 	_radio_greeting()
 	_fallback_toast()
+	_save_note()
 	if cinematic_flyin:
 		_fly_in()
 	if first10 != null and not _opening_on:
@@ -5380,6 +5418,8 @@ func _parse_args() -> void:
 			barrier_day = int(arg.trim_prefix("--barriers="))
 		elif arg == "--reset-save":
 			reset_save = true
+		elif arg.begins_with("--save-note="):
+			save_note_flag = arg.trim_prefix("--save-note=")  # safer saves (TD-8): restored|lost|blocked
 		elif arg.begins_with("--title-choice="):
 			title_choice = arg.trim_prefix("--title-choice=")  # save and resume: continue|new
 			force_title = true

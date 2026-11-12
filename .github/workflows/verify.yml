@@ -1,10 +1,15 @@
 # The verification set on every push to main and every pull request, on Linux with the same Godot
-# as the Mac (4.7.2), in two jobs:
+# as the Mac (4.7.2). A pull request runs the checks its files can break (tools/ci_tier.py picks the
+# tier from the changed paths; the steps of each group are in tools/ci_steps.txt); a push to main
+# runs everything. The jobs:
+#   tier   picks the tier and runs the Python checks every change gets (seconds).
 #   quick  the check scripts that need no map (steering, settings, tiers, the HUD, police, ...).
 #   map    the map pack (tools/map_pack.py: lod2.bin, lod2.json, terrain.json, a release asset,
 #          since loop 3d-1 took them out of git), the derived split and prebuilt sectors
-#          (tools/setup_map.sh, with a software Vulkan renderer under Xvfb), then the map, road,
-#          street, drape, ground, drive, landmark and water checks and short game runs on both city paths.
+#          (tools/setup_map.sh, with a software Vulkan renderer under Xvfb), then the tier's map
+#          steps in shards: the prebuilt city alone for a gameplay change, every shard for a map
+#          change and on main.
+#   gate   the one verdict: green when every job the tier asked for passed. "Green" means `gate`.
 # Screenshots, the bench, the long autopilot runs and the phone stay on the Mac's tools/verify.sh
 # (docs/WORKFLOW.md).
 name: verify
@@ -18,18 +23,60 @@ on:
   pull_request:
   workflow_dispatch:
 
-# A newer push to a pull request replaces its older run; every push to main keeps its own run (one
-# group per commit), so no merge is left without a verdict (2026-11-02: several main runs were
-# cancelled by the next merge, and #261's red run went unseen).
+# A newer push to a pull request replaces its older run. Pushes to main share one group without
+# cancelling: one run goes on, the newest waits, and a push between them is dropped, since the
+# waiting run is on a later commit that holds it. So ten merges in an hour cost two full runs,
+# and the latest main always gets a verdict (2026-11-02: #261's red run went unseen when main
+# runs cancelled each other; 2026-11-12: a full run per merge was about 4,000 runner minutes a day).
 concurrency:
-  group: verify-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  group: verify-${{ github.event_name == 'push' && 'main' || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   GODOT_VERSION: 4.7.2
 
 jobs:
+  tier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      tier: ${{ steps.pick.outputs.tier }}
+      quick: ${{ steps.pick.outputs.quick }}
+      quick_steps: ${{ steps.pick.outputs.quick_steps }}
+      map: ${{ steps.pick.outputs.map }}
+      matrix: ${{ steps.pick.outputs.matrix }}
+    steps:
+      # On a pull request this is the merge commit: its first parent is the base, so the diff
+      # between the two is exactly what the pull request changes.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Pick the tier from the changed paths
+        id: pick
+        run: |
+          python3 -I tools/ci_tier.py --selftest
+          python3 -I tools/ci_tier.py --check
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            set -o pipefail
+            git diff --name-only HEAD^1 HEAD | python3 -I tools/ci_tier.py --stdin --github-output | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            set -o pipefail
+            python3 -I tools/ci_tier.py --full --github-output | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+
+      # The checks that read the docs: every tier runs them here, so a docs-only change needs
+      # no Godot and is done in under a minute.
+      - name: Architecture map, landmark specs, change notes
+        run: |
+          python3 -I tools/check_architecture.py
+          python3 -I tools/check_spec.py --selftest
+          python3 -I tools/check_spec.py
+          python3 -I tools/changelog.py --check
+
   quick:
+    needs: tier
+    if: needs.tier.outputs.quick == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -53,18 +100,13 @@ jobs:
           unzip -q godot.zip && rm godot.zip
           mv Godot_v${GODOT_VERSION}-stable_linux.x86_64 godot && chmod +x godot
 
-      # Loop 3d-1: the GUGiK outputs (lod2.bin is 87 MB), the sector split and the prebuilt
-      # sectors are derived and not in git; they need the raw downloads (tools/setup_map.sh
-      # --full) and the prebuilt ones a renderer. So a clone here has no city to build: CI runs
-      # the steps that need no map; the map, roads, drape, drive, landmarks and the game runs
-      # stay on the Mac's tools/verify.sh. Loop MW-1: `places` reads only the committed
-      # centrum.json and data/places.json, so it runs here too; loop MW-5: `sounds` too; loop
-      # MW-6: `eggs` and `tape` too; loop MW-3: `crowds` too; loop MW-4: `life` too; loop jobs-2: `jobs2` too; DEMO 6.3: `rescues` too; loop couriers: `couriers` too; beta values: `delivery` and `laneassist` too; the museum and Plac loop: `sites` too; Plac Zamkowy: `placzamkowy` too; the L-shaped map loop: `edge` too; loop 3h slice 1: `save` and `districts` too; slice 2: `syrenki` too; slice 3: `ladder` too; the racer AI rebuild: `racebench` too (the race bench's quick matrix on the committed centrum.json's lane graph); its step 3: `raceplanner` too (the route planner on the same lane graph and bench); the first-10 polish: `cassettes` too; the mesh-quality check: `meshq` too; the opening flyover: `opening` too; packs: `packs` too; wellness circles: `wellness` too; the fans by Stadion Leguminy: `fans` too; arcade padel: `padel` too; the gamepad loop: `gamepad` too; the roofs lane: `roofdress,tenementtrim,osmroofs` too; `parkdetails`, `streetdetails` and `stops` (Python on the committed centrum.json; the bake stamps went stale unseen while they sat only in the skipped map job, 2026-11-02) too.
+      # The steps that need no map: they read only what is committed (centrum.json, game/data).
+      # The list is the `quick` group in tools/ci_steps.txt, one line per step.
       - name: tools/verify.sh, the steps that need no map
         env:
           GODOT: /home/runner/godot/godot
           NW_MAP_PACK: "off"   # the map job fetches and builds the map; this one stays map-free
-        run: zsh tools/verify.sh --only=architecture,parkdetails,streetdetails,ratuszhub,smooth,objects,fixes,centralnyramp,tramstops,streetpass,models,overrides,stops,spec,steering,laneassist,stuckoffer,handling,settings,credits,tiers,governor,shaderbudget,heliview,hud,places,edge,eggs,placzamkowy,tape,crowds,life,buses,crashes,rave,padel,meet,boatrace,dekalog,kinotour,evtow,loud,crazy,oldtram,tramfleet,packs,wellness,fans,garage,save,districts,syrenki,cassettes,ladder,racebench,raceplanner,first10,chatter,messages,endcard,opening,parodies,jobs2,rescues,couriers,delivery,rides,roofdress,tenementtrim,osmroofs,sites,palacelights,meshq,sfx,juice,gamepad,radio,sounds,police --logs="$RUNNER_TEMP/verify"
+        run: zsh tools/verify.sh --only=${{ needs.tier.outputs.quick_steps }} --logs="$RUNNER_TEMP/verify"
 
       - name: Keep the logs
         if: always()
@@ -74,19 +116,17 @@ jobs:
           path: ${{ runner.temp }}/verify
           retention-days: 14
 
-  # Two halves in parallel. "data and roads" grew to ~45 min on a runner with the prebuilt city (2026-11-07), so 75.
+  # The tier's shards in parallel (tools/ci_tier.py). Two halves took 46-58 min (2026-11-11), most
+  # of it the runtime city: four shards of 21-23 min of checks end in about 35.
   map:
     name: map (${{ matrix.part }})
+    needs: tier
+    if: needs.tier.outputs.map == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 75
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - part: data and roads
-            steps: map,roads,cyclehang,portbridge,streets,outline,pois,streetmesh,lod2,courts,drape,drive,drive-prebuilt,deckxray,stuckspots,stuckspots-prebuilt,lanedrive,finite,questlines,stopassist,language,cost,oldtownroofs,water-prebuilt,prebuilt,ground
-          - part: landmarks, water and runs
-            steps: landmarks,water,plain,ram,teleport
+      matrix: ${{ fromJSON(needs.tier.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
 
@@ -171,3 +211,19 @@ jobs:
           path: ${{ runner.temp }}/verify-map
           retention-days: 14
           if-no-files-found: ignore
+
+  # The one check to wait for (and to require on main): it passes when every job the tier asked
+  # for passed; a job the tier skipped counts as passed, a failed or cancelled one fails it.
+  gate:
+    needs: [tier, quick, map]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every job of the "${{ needs.tier.outputs.tier }}" tier passed
+        run: |
+          echo "tier=${{ needs.tier.result }} quick=${{ needs.quick.result }} map=${{ needs.map.result }}"
+          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || needs.tier.result != 'success' }}" = "true" ]; then
+            echo "::error::a job of the ${{ needs.tier.outputs.tier }} tier did not pass"
+            exit 1
+          fi
