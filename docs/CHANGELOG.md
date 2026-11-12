@@ -4,10 +4,10 @@ The short story of Around Warsaw, one day at a time. The website's progress page
 (https://aroundwarsaw.app/progress/) and the design wiki both show this file. The full detail of every
 update is in docs/ROADMAP.md, under "Progress log", and the known issues are in docs/BACKLOG.md.
 
-How to keep it current: when you add a row to ROADMAP's progress log, also add one short line under
-that day here, in plain words a player would understand (no file names, no spoilers). A day that has
-rows in the progress log but no section here is listed automatically from the log's labels until
-someone writes its lines.
+How to keep it current: a pull request does not edit this file. It adds one change note in
+docs/changes/ (docs/changes/README.md) with one short line in plain words a player would understand
+(no file names, no spoilers). The pages show the notes at once, and a weekly bookkeeping pull request
+moves them here (python3 -I tools/changelog.py --fold).
 
 ## 2026-11-12
 - Quest and police lines now show who is talking: a small round face beside the speaker's name in the speech bubbles and in the Senatorek and Smoła talk panels (the portrait where there is one, else their initial in their colour). The Smoła panel now shows one language, like the rest of the game.

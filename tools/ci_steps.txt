@@ -1,0 +1,122 @@
+# The verify steps CI runs, one per line: step name, then its group. Keep the lines sorted by name
+# (two PRs that each add a check then touch different lines). tools/ci_tier.py reads this file and
+# picks the groups a pull request runs from the paths it changed; pushes to main run every group.
+#
+#   quick      no map needed; every code and content change (~6 min together)
+#   smoke      the prebuilt city (the phone's path) and the short map checks (~8 min after the bake)
+#   roads      road rules and the runtime drive (full set only, ~19 min)
+#   ground     drape and ground (full set only)
+#   landmarks  the landmark check and the runtime water check (`landmarks` alone joins a landmark change)
+#   runs       the runtime game runs (full set only)
+#
+# A new check: add its line here and its case in tools/verify.sh (STEPS_ALL, STEPS_QUICK).
+# .github/workflows/verify.yml needs no edit.
+architecture         quick
+boatrace             quick
+buses                quick
+cassettes            quick
+centralnyramp        quick
+chatter              quick
+cost                 smoke
+couriers             quick
+courts               roads
+crashes              quick
+crazy                quick
+credits              quick
+crowds               quick
+cyclehang            roads
+deckxray             smoke
+dekalog              quick
+delivery             quick
+districts            quick
+drape                ground
+drive                roads
+drive-prebuilt       smoke
+edge                 quick
+eggs                 quick
+endcard              quick
+evtow                quick
+fans                 quick
+finite               smoke
+first10              quick
+fixes                quick
+gamepad              quick
+garage               quick
+governor             quick
+ground               ground
+handling             quick
+heliview             quick
+hud                  quick
+jobs2                quick
+juice                quick
+kinotour             quick
+ladder               quick
+landmarks            landmarks
+laneassist           quick
+lanedrive            smoke
+language             smoke
+life                 quick
+lod2                 roads
+loud                 quick
+map                  smoke
+meet                 quick
+meshq                quick
+messages             quick
+models               quick
+objects              quick
+oldtownroofs         smoke
+oldtram              quick
+opening              quick
+osmroofs             quick
+outline              roads
+overrides            quick
+packs                quick
+padel                quick
+palacelights         quick
+parkdetails          quick
+parodies             quick
+places               quick
+placzamkowy          quick
+plain                runs
+pois                 roads
+police               quick
+portbridge           roads
+prebuilt             smoke
+questlines           smoke
+racebench            quick
+radio                quick
+ram                  runs
+ratuszhub            quick
+rave                 quick
+rescues              quick
+rides                quick
+roads                roads
+roofdress            quick
+save                 quick
+settings             quick
+sfx                  quick
+shaderbudget         quick
+sites                quick
+smooth               quick
+sounds               quick
+spec                 quick
+steering             quick
+stopassist           smoke
+stops                quick
+streetdetails        quick
+streetmesh           roads
+streetpass           quick
+streets              roads
+stuckoffer           quick
+stuckspots           roads
+stuckspots-prebuilt  smoke
+syrenki              quick
+tape                 quick
+teleport             runs
+tenementtrim         quick
+tiers                quick
+tramfleet            quick
+tramstops            quick
+water                landmarks
+water-prebuilt       smoke
+wellness             quick
