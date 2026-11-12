@@ -12,7 +12,7 @@ extends SceneTree
 ## - a release build (testers' builds): no trap at all, no session file, the scene as before;
 ## - the scripts the first frame waits for: boot.gd, what it preloads and what those preload
 ##   are exactly BOOT_SCRIPTS (a preload added to any of them would bring its whole tree in
-##   before the title shows);
+##   before the title shows); the sound engine is not among them, the title loads it when it goes;
 ## - a frame spent waiting for a thread under the title (`Boot.wait_frame`): with no display it
 ##   takes HEADLESS_WAIT_MS, and main.gd's two waits there (the map's big files, the start's
 ##   sectors) call it, so a headless run counts those waits in frames as a screen would (without
@@ -29,6 +29,7 @@ const STUB := "user://check_boot_stub.tscn"
 const SETTINGS := "user://check_boot_settings.cfg"
 const SESSION := "user://check_boot_session.log"
 const SESSION_PREV := "user://check_boot_session.prev.log"
+const SFX := "res://scripts/sfx.gd"
 ## Every script loaded before the first frame (22 ms together in a release build, 2026-11-12).
 ## Adding one here is a decision: it and everything it preloads delay the title.
 const BOOT_SCRIPTS: Array[String] = ["boot.gd", "error_trap.gd", "follow_camera.gd", "lang.gd", "release.gd",
@@ -174,6 +175,12 @@ func _player_launch() -> void:
 	_expect(Boot.load_ms >= 0, "the load's time is kept for the log")
 	_expect(is_instance_valid(title) and title.is_inside_tree(), "the title is still on screen")
 	_expect(title.language_chosen.get_connections().is_empty(), "and no longer tells the boot scene about a language")
+	# The title's own sound (the start sound when it goes) comes from the sound engine, which is
+	# not one of the boot scene's scripts: title.gd loads it when the title goes. A wrong name
+	# or a missing function there is an error line, which fails this step.
+	_expect(not ResourceLoader.has_cached(SFX), "the sound engine is not loaded while the title is up and the game loads")
+	title.dismiss()
+	_expect(ResourceLoader.has_cached(SFX), "the title going loads the sound engine for its start sound")
 	_expect(Boot.take_title() == title and Boot.take_title() == null, "main.gd takes the title once")
 	var trap := Boot.take_trap()
 	_expect(trap != null and Boot.take_trap() == null, "and the trap once")

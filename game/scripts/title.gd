@@ -18,7 +18,11 @@ signal new_game
 ## The game's name as the title shows it (the rename to Around Warsaw, 2026-10-30; it was
 ## "NOCNA WARSZAWA"). The one place to change it.
 const Lang := preload("res://scripts/lang.gd")
-const Sfx := preload("res://scripts/sfx.gd")
+## The sound engine, loaded when the title goes and not preloaded: this script is one of the few
+## the boot scene waits for before the first frame (check_boot's BOOT_SCRIPTS), and sfx.gd there
+## put 23 ms more in front of the title (debug engine, 2026-11-12). The title can only go once
+## the game is ready, and by then main.gd has loaded the same script, so this costs nothing.
+const SFX := "res://scripts/sfx.gd"
 const WORDMARK := "AROUND WARSAW"
 ## The tagline under the wordmark, Polish above English (the rename, 2026-10-30). "Jeźdź" is
 ## the standard imperative of "jeździć" (the spoken "jeździj" is the common slip).
@@ -469,7 +473,8 @@ func dismiss() -> void:
 	_gone = true
 	_prompt.modulate.a = 1.0
 	_prompt_pl.modulate.a = 1.0
-	Sfx.ui("start")
+	var sfx: Variant = load(SFX)
+	sfx.ui("start")
 	dismissed.emit()
 	var tween := create_tween()
 	tween.tween_property(_root, "modulate:a", 0.0, 0.6).set_trans(Tween.TRANS_SINE)
