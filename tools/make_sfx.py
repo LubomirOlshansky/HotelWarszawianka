@@ -106,6 +106,7 @@ levels (if their folder is given) to balance the buses against.
 import array
 import cmath
 import math
+import json
 import os
 import random
 import struct
@@ -2036,7 +2037,16 @@ def main(out_dir, radio_dir=None, only=None):
 
 def _write_all(out_dir, made, radio_dir):
     rows = []
+    # A recorded sound (tools/add_sfx.py lists it in sources.json) is never overwritten by its old synth.
+    recorded = {}
+    src = os.path.join(out_dir, "sources.json")
+    if os.path.exists(src):
+        with open(src, encoding="utf-8") as f:
+            recorded = json.load(f)
     for name, chans in made.items():
+        if name in recorded:
+            print("skipped %s: recorded (%s)" % (name, recorded[name].get("from", "?")))
+            continue
         path = os.path.join(out_dir, name + ".wav")
         # Every file peaks at -3 dBFS: headroom for QOA, and the mix is set by the
         # players and buses in sfx.gd, not by the files.

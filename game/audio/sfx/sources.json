@@ -1,0 +1,37 @@
+{
+	"amb_park": {
+		"added": "2026-11-12",
+		"from": "ElevenLabs Sound Effects v2",
+		"prompt": "City park ambience, leaves rustling in a light wind, small songbirds chirping, very faint traffic far away, no voices, no dogs"
+	},
+	"amb_river": {
+		"added": "2026-11-12",
+		"from": "ElevenLabs Sound Effects v2",
+		"prompt": "Wide river bank ambience, gentle water lapping against a stone embankment, light breeze, distant gulls now and then, no voices, no boats"
+	},
+	"amb_square": {
+		"added": "2026-11-12",
+		"from": "ElevenLabs Sound Effects v2",
+		"prompt": "Open town square ambience, soft indistinct crowd murmur, footsteps on cobblestones, pigeons cooing and wings fluttering, no music, no clear words"
+	},
+	"amb_yard": {
+		"added": "2026-11-12",
+		"from": "ElevenLabs Sound Effects v2",
+		"prompt": "Quiet enclosed tenement courtyard ambience, muffled city hum beyond the walls, a few sparrows, faint clatter of dishes from an open window, no voices, no music"
+	},
+	"city_day": {
+		"added": "2026-11-12",
+		"from": "ElevenLabs Sound Effects v2",
+		"prompt": "Daytime city street ambience, steady distant traffic hum, occasional far car passing, faint tram bell far away, no voices, no music, no horns"
+	},
+	"city_night": {
+		"added": "2026-11-12",
+		"from": "ElevenLabs Sound Effects v2",
+		"prompt": "Quiet city at night ambience, low distant traffic rumble, soft electrical hum of street lamps, a single far car now and then, no voices, no music"
+	},
+	"rain": {
+		"added": "2026-11-12",
+		"from": "ElevenLabs Sound Effects v2 (medium take 2, highs 3 dB down above 5 kHz)",
+		"prompt": "Moderate steady rain on a city street, even continuous patter on pavement, clearly audible but not a downpour, no thunder, no wind, no splashing cars"
+	}
+}
