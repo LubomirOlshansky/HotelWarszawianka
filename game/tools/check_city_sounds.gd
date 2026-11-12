@@ -180,7 +180,7 @@ func _run() -> void:
 	var asked := [0]
 	radio.host_wanted.connect(func() -> void: asked[0] += 1)
 	var moment := radio.host_moment(10.0)
-	if not moment or radio.station != radio.polnoc_index() or absf(radio.level_db() - (Radio.VOLUME_DB + Radio.MOMENT_DB)) > 0.01 or asked[0] != 1:
+	if not moment or radio.station != radio.polnoc_index() or absf(radio.level_db() - (Radio.VOLUME_DB + float(Sfx.DUCKS["host_moment"][1]))) > 0.01 or asked[0] != 1:
 		problems.append("radio.host_moment: %s, station %d (want PÓŁNOC FM %d), level %.1f dB, host asked %d" % [
 				moment, radio.station, radio.polnoc_index(), radio.level_db(), asked[0]])
 	radio.tune(-1, true)

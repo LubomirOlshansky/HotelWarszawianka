@@ -21,6 +21,7 @@ extends Node
 ## FM otherwise. --radio-log prints the tunes, tracks, host lines, unlocks and air changes.
 
 const Lang := preload("res://scripts/lang.gd")
+const Sfx := preload("res://scripts/sfx.gd")
 
 signal station_changed(index: int, station: Dictionary)
 ## A line for the now-playing ticker: a station change, a new track, or a host's line with
@@ -62,8 +63,6 @@ const AIR_LOOKS := ["Night", "Dawn"]
 const AIR_FROM := 22.0
 const AIR_TO := 6.0
 const RERUN_DB := -3.1
-## Loop MW-5: the music under the host's moment (the 02:00 beat), dB.
-const MOMENT_DB := -10.0
 
 ## -1 = off, else an index into `stations`.
 var station := -1
@@ -74,17 +73,10 @@ var stations: Array[Dictionary] = []
 ## `stations` ("lineup" in radio.json: station ids, in order; all of them when it is missing).
 ## The rest stay loaded, so --station= and the tape and cassette unlocks still reach them.
 var lineup: Array[int] = []
-## Loop 3g-1: dB under the station's level while a conversation is on (the pull-over: -6).
-var duck_db := 0.0:
-	set(value):
-		duck_db = value
-		_apply_level()
-## Opening sound (2026-11-03): dB under the station's level while the announcer's line plays over
-## the flyover (opening_audio.gd moves it: down to a quiet bed, then back up to 0).
-var bed_db := 0.0:
-	set(value):
-		bed_db = value
-		_apply_level()
+## What turns the radio down (the pull-over, a venue's own music, the announcer's line, the
+## host's moment) is the mixer's business: Sfx.duck("...") by name (sfx.gd DUCKS), never a
+## level written here. `_mix_db` is the mixer's level the players were last set to.
+var _mix_db := 0.0
 ## Loop MW-5: the save (wallet.gd `tracks`, `track_chapters`, `chapters_done`); null: only the
 ## free tracks play.
 var wallet: Node
@@ -99,7 +91,6 @@ var log_on := false
 var unlock_all := false
 var _air := true
 var _air_t := 0.0
-var _moment_t := 0.0
 ## Loop MW-5: seconds of play (frame deltas, so --fixed-fps runs log game time) and the host's
 ## last line then (the log's gaps).
 var _play_s := 0.0
@@ -370,7 +361,7 @@ func _play_jingle() -> void:
 	_last_jingle = k
 	_since_jingle = 0
 	_jingle.stream = load(files[k])
-	_jingle.volume_db = VOLUME_DB + duck_db + bed_db + JINGLE_DB
+	_jingle.volume_db = VOLUME_DB + Sfx.mix_db("radio") + JINGLE_DB
 	jingle_playing = true
 	_jingle.play()
 	if log_on:
@@ -461,10 +452,9 @@ func _process(dt: float) -> void:
 		var t := current_track()
 		if not t.is_empty() and _track_t >= float(t["seconds"]):
 			_on_finished()
-	if _moment_t > 0.0:
-		_moment_t -= dt
-		if _moment_t <= 0.0:
-			_apply_level()
+	Sfx.mix_frame(dt)
+	if Sfx.mix_db("radio") != _mix_db:
+		_apply_level()
 	if _air_t >= 1.0:
 		_air_t = 0.0
 		check_air()
@@ -620,21 +610,12 @@ func host_moment(seconds := 10.0) -> bool:
 		return false
 	if station != polnoc_index():
 		tune(polnoc_index(), true)
-	_moment_t = seconds
+	Sfx.duck("host_moment", seconds)
 	_apply_level()
 	if log_on:
-		_log("host moment: the music down %.0f dB for %.0f s" % [MOMENT_DB, seconds])
+		_log("host moment: the music down %.0f dB for %.0f s" % [Sfx.DUCKS["host_moment"][1], seconds])
 	host_wanted.emit()
 	return true
-
-
-## A voice on air (LEKTI's break-in, rave.gd): the music drops MOMENT_DB under it for `seconds`,
-## on whatever station is tuned; the host is not asked to speak.
-func voice_moment(seconds: float) -> void:
-	_moment_t = maxf(_moment_t, seconds)
-	_apply_level()
-	if log_on:
-		_log("voice moment: the music down %.0f dB for %.1f s" % [MOMENT_DB, seconds])
 
 
 ## The current position moved onto an unlocked track, if the station has any.
@@ -648,18 +629,18 @@ func _settle() -> void:
 		_pos[station] = (_pos[station] + 1) % order.size()
 
 
-## The player's level: the station's, the pull-over's duck, the reruns' 70 %, the host's moment.
+## The player's level: the station's, the reruns' 70 %, and whatever the mixer holds it down by
+## (sfx.gd DUCKS: the pull-over, a venue, the announcer, the host's moment).
 func _apply_level() -> void:
 	if _player == null:
 		return
-	var db := VOLUME_DB + duck_db + bed_db
+	_mix_db = Sfx.mix_db("radio")
+	var db := VOLUME_DB + _mix_db
 	if is_rerun():
 		db += RERUN_DB
-	if _moment_t > 0.0:
-		db += MOMENT_DB
 	_player.volume_db = db
 	if _jingle != null:
-		_jingle.volume_db = VOLUME_DB + duck_db + bed_db + JINGLE_DB
+		_jingle.volume_db = VOLUME_DB + _mix_db + JINGLE_DB
 
 
 ## The level the player is set to (the checks read it; headless never plays).

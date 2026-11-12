@@ -32,6 +32,7 @@ extends Node3D
 ## once, on the first visit (about 13k triangles together).
 
 const Lang := preload("res://scripts/lang.gd")
+const Sfx := preload("res://scripts/sfx.gd")
 
 ## The music (F, 2026-11-08): two short loops of our own (tools/make_club_loops.py), the room's
 ## techno at BPM and the patio's house at PATIO_BPM; the radio is ducked under them while inside.
@@ -40,8 +41,6 @@ const MUSIC_SALA := "res://audio/club/smola_sala.wav"
 const MUSIC_PATIO := "res://audio/club/smola_patio.wav"
 const MUSIC_DB := -6.0
 const PATIO_MUSIC_DB := -9.0
-## The radio's duck while the club's own music plays.
-const RADIO_DUCK_DB := -60.0
 const Models := preload("res://scripts/models.gd")
 const Rave := preload("res://scripts/rave.gd")
 const InstanceBuffers := preload("res://scripts/instance_buffers.gd")
@@ -90,8 +89,6 @@ var wallet: Node
 var radio: Node
 var _music: AudioStreamPlayer
 var _streams := {}
-## The radio's duck before we went in (put back on the way out).
-var _radio_duck := 0.0
 ## The view's camera (main.gd's), for taps.
 var cam: Camera3D
 var log_on := false
@@ -748,10 +745,10 @@ func leave() -> void:
 ## The club's loop `path` (looped forward, from its start) with the radio ducked under it; ""
 ## stops it and gives the radio back. Silent headless.
 func _music_on(path: String) -> void:
-	if radio != null and "duck_db" in radio:
-		if path != "" and _music == null:
-			_radio_duck = float(radio.duck_db)
-		radio.duck_db = RADIO_DUCK_DB if path != "" else _radio_duck
+	if path != "":
+		Sfx.duck("club")
+	else:
+		Sfx.release("club")
 	if DisplayServer.get_name() == "headless":
 		return
 	if _music == null:

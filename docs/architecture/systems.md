@@ -99,7 +99,7 @@ Each runs on its own and answers `busy()`. `main.gd` `_free_block()` decides whe
 | `full_map.gd` | Full-screen map. |
 | `notebook_page.gd`, `garage_card.gd` | Notebook tab; garage card. |
 | `radio.gd`, `greeting_clips.gd`, `opening_audio.gd` | The radio stations and host; launch greeting; opening line. |
-| `sfx.gd` | Audio buses and every effect (engine, tyres, crashes); ambience ducking. |
+| `sfx.gd` | Audio buses and every effect (engine, tyres, crashes); the mixer: who turns whom down (`DUCKS`, `Sfx.duck` / `Sfx.release`). |
 | `city_sounds.gd` | Positional sounds at places (club bass, bells). |
 | `gps_moments.gd` | App-taxi GPS jokes in traffic. |
 
