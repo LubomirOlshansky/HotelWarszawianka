@@ -11,8 +11,10 @@ someone writes its lines.
 
 ## 2026-11-12
 - Dom Partii (Centrum Bankowo-Finansowe) at Rondo de Gaulle'a is rebuilt from your photos: the two white corner towers a storey over the front, the open colonnade with its glass lobbies and the balcony over it, rows of windows between stone piers, a frieze of small windows under the cornice, the PEPEO ŻUBR board, WISTULA and ROBUR on the roof, and a courtyard you can drive into with the wavy fountain glowing warm at night.
+- Quest and police lines now show who is talking: a small round face beside the speaker's name in the speech bubbles and in the Senatorek and Smoła talk panels (the portrait where there is one, else their initial in their colour). The Smoła panel now shows one language, like the rest of the game.
 
 ## 2026-11-11
+- The whole Złote Tarasy complex got its details, not just the roof: glass shops lit at street level under a glowing canopy, pale stone ledges on each floor, glass railings round the roof terraces, Lumen's striped glass with its stepped-back top, a blue glass drum lit from inside, windows in the stone terraces and bright shop signs (ZARAZA, H·M·M, MULTIKINKO), plus a bigger ZŁOTE TARASKI name.
 - Eight new Podwózka passengers with their own stories and places to go: a shopper to Vipkac, an artist to Zachęta, a late violinist to the Philharmonic, a guide to the Polin Museum, an assistant to the Sejm, a lost tourist to Hotel Bristol, an actor playing a tree at Teatr Polski and a ghost-tour guide to the Barbican.
 - The MDM and BYDŁO roof neons now stand where the real ones do, together on the roof of Hotel MDM at the south end of Plac Konstytucji, facing the square, and the small HOTEL MDM sign is on that hotel's front.
 - The shisha night now really goes inside: at Senatorek you walk through the tower's lobby past the doorman, ride the lift up to the 38th floor watching the floor number climb, and the choices at the table are big buttons you can tap easily.
@@ -26,6 +28,12 @@ someone writes its lines.
 - Mati's Smoła night no longer starts right beside your car when the game begins: for now he waits on Aleje Jerozolimskie by Rondo Dmowskiego instead.
 
 ## 2026-11-10
+- On the night race, the next destination now appears right after the police close in, instead of waiting until you have driven away from them.
+- The boat race is about twice as fast now (a runabout does about 145 km/h, not 75), and the Powiśle bank has six more big jump ramps with flags, edge stripes and lights, besides the three on the river crossings.
+- The Royal Castle's front towards Plac Zamkowy has its red wall back, with window frames, string courses and a cornice, and the Clock Tower shows a proper white clock face.
+- Plac Zamkowy is alive: tourists gather round Sigismund's Column on its new stepped plaza, cafés put out their umbrellas and chairs, and a flock of pigeons takes off when you drive or fly low over the square.
+- The Podwózka button no longer shows up while a mission, race, job, quest or tour is on.
+- In the drag race the shift button now sits where the gas pedal is, big under the thumb, and the gas stays down while you shift.
 - Friends now ring on a little phone on the right of the screen, with a ringtone, their face and a red Decline and green Answer button; their face also shows when they pitch the night out.
 - The horn button next to the brake is gone; the nitro button now sits right by the brake.
 - Hotel Metropol on Marszałkowska is rebuilt from your photos: cream balcony fronts, a dark glazed ground floor under a canopy, and its name (the parody METROPOLKA) in green on a white board on the roof, facing the street.
