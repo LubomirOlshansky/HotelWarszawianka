@@ -13,7 +13,8 @@ the file for the area you touch.
 | [pipelines.md](pipelines.md) | you touch the map bake, loading order, the save, tests or builds |
 | [graphics.md](graphics.md) | you touch shaders, materials, lights, quality levels or anything drawn every frame |
 | [extending.md](extending.md) | **before adding anything**: the one place each kind of change goes |
-| [tech-debt.md](tech-debt.md) | you hit a workaround, or you want to know what to clean up next |
+| [tech-debt.md](tech-debt.md) | you hit a workaround, or you want to know what to clean up next and in what order |
+| [decisions.md](decisions.md) | you are about to propose a new pattern (an event bus, an autoload, a save format): what was decided, and what was decided against |
 
 ## The game in one screen
 
@@ -50,7 +51,9 @@ the file for the area you touch.
 4. **The phone sets the budget.** Draw calls and per-frame script time are the gate, not
    triangles. Most crowds are extra instances in an existing MultiMesh (+0 draw calls).
 5. **Every word is a pair.** On-screen text is written Polish and English together; `lang.gd`
-   shows one. Lines come from `game/data/dialogue.json` and friends, not from code.
+   shows one. Spoken lines (calls, bubbles, the radio host) come from `game/data/dialogue.json`.
+   Short HUD labels and signs are pairs in code today, more than the data file holds (tech-debt
+   TD-19): put a new spoken line in the data file, and never write a label without its English.
 
 ## The golden rule for agents
 

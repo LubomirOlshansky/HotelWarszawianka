@@ -6,7 +6,7 @@ name: site
 on:
   push:
     branches: [main]
-    paths: ["site/**", "docs/privacy.md", "docs/support.md", "docs/CHANGELOG.md", "docs/ROADMAP.md", "tools/site_build.py", "tools/changelog.py", ".github/workflows/site.yml"]
+    paths: ["site/**", "docs/privacy.md", "docs/support.md", "docs/CHANGELOG.md", "docs/changes/**", "docs/ROADMAP.md", "tools/site_build.py", "tools/changelog.py", ".github/workflows/site.yml"]
   workflow_dispatch:
 
 permissions:
@@ -27,7 +27,7 @@ jobs:
         run: |
           python3 -I tools/site_build.py
           git diff --exit-code -- site/public/index.html site/public/pl/index.html site/public/privacy/index.html site/public/support/index.html
-      # /progress/ follows docs/CHANGELOG.md and ROADMAP's progress log, which every update
+      # /progress/ follows docs/changes/, docs/CHANGELOG.md and ROADMAP's progress log, which every update
       # touches, so it is rebuilt here rather than checked (the committed copy may lag a day).
       - name: Rebuild the progress page
         run: python3 -I tools/site_build.py

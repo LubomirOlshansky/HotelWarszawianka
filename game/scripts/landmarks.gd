@@ -3788,6 +3788,8 @@ func _wave(p: Vector2, domes: Array) -> float:
 ## one on the plaza (north-west), and the bank's parody name either side of the south door.
 const ROT_GLASS := Color("#5e7f7a")    # #4d6f6b in shade, #6f8f8a lit
 const ROT_SILVER := Color("#c3c8cc")
+const ROT_WHITE := Color("#eef1f3")   # the mullions, transoms and the oculus kerb (F's photos, 2026-11-11)
+const ROT_OCULUS_GLASS := Color("#2c5d8a")  # the oculus: dark blue glass (the drone views)
 const ROT_FOLD_LIGHT := Color("#d4d8db")
 const ROT_FOLD_DARK := Color("#b0b6bb")
 const ROT_TOOTH := Color("#e8ebed")   # the zigzag edge, white-silver
@@ -3831,7 +3833,7 @@ func _build_rotunda(site: Dictionary) -> void:
 		_tri(Vector3(mid.x, g + ROT_EAVE, mid.y), Vector3(p1.x, g + ROT_EAVE, p1.y), Vector3(p1.x, g + ROT_RIDGE, p1.y), n, ROT_GLASS, nn, nn, nn, -1.0)
 	_mode = M_STONE
 	for p in drum:
-		_rot_fin(c, p, g + 0.3, g + ROT_RIDGE, 0.06, 0.14, ROT_SILVER)
+		_rot_fin(c, p, g + 0.3, g + ROT_RIDGE, 0.06, 0.14, ROT_WHITE)
 	# Two thin silver transoms round the drum (the street photos: the panes in three rows).
 	for y: float in [3.4, 7.1]:
 		for k in ROT_BAYS:
@@ -3839,8 +3841,9 @@ func _build_rotunda(site: Dictionary) -> void:
 			var q1 := c + Vector2.from_angle(a0 + (k + 1) * step) * (r + 0.06)
 			var o := Vector2.from_angle(a0 + (k + 0.5) * step)
 			_quad(Vector3(q0.x, g + y, q0.y), Vector3(q1.x, g + y, q1.y), Vector3(q1.x, g + y + 0.2, q1.y),
-					Vector3(q0.x, g + y + 0.2, q0.y), Vector3(o.x, 0, o.y), ROT_SILVER)
+					Vector3(q0.x, g + y + 0.2, q0.y), Vector3(o.x, 0, o.y), ROT_WHITE)
 	_rot_crown(c, r, g, a0)
+	_rot_plaza(c, r)
 	# The entrances: glazed doors under a flat white canopy, a transom over the doors.
 	_rot_door(c, r, g, ROT_SOUTH, 3, 8.0, 2.0, 3.8)
 	_rot_door(c, r, g, ROT_PLAZA, 2, 5.0, 1.5, 3.6)
@@ -3911,20 +3914,105 @@ func _rot_crown(c: Vector2, r: float, g: float, a0: float) -> void:
 					e0 + Vector3.DOWN * 0.4, Vector3.DOWN, Color("#b9bec2"))
 	# The oculus: a metal kerb 1.1 m over the folds, a glazed top in a 4 x 4 grid.
 	var ring := _circle(c, ROT_OCULUS, 24)
-	_prism(ring, low - 0.1, top + 0.7, ROT_SILVER, Color(0, 0, 0, 0), M_STONE)
+	_prism(ring, low - 0.1, top + 0.7, ROT_WHITE, Color(0, 0, 0, 0), M_STONE)
+	# the kerb's flat white rim round the glass (the drone views: a wide white ring)
+	_rot_ring(c, ROT_OCULUS - 0.9, ROT_OCULUS, top + 0.7, ROT_WHITE.darkened(0.03))
 	var glass_y := top + 0.7
 	_mode = M_GLASS_ROOF
-	_cap(ring, glass_y, Color("#8fb0ad"))
+	_cap(_circle(c, ROT_OCULUS - 0.9, 24), glass_y - 0.06, ROT_OCULUS_GLASS)  # set 6 cm into the rim
 	_mode = M_STONE
+	var oi := ROT_OCULUS - 0.9
 	for i in range(1, 4):
-		var off := -ROT_OCULUS + i * ROT_OCULUS * 0.5
-		var span := sqrt(ROT_OCULUS * ROT_OCULUS - off * off) - 0.2
+		var off := -oi + i * oi * 0.5
+		var span := sqrt(oi * oi - off * off) - 0.1
 		for d: Vector2 in [Vector2(1, 0), Vector2(0, 1)]:
 			var across := Vector2(-d.y, d.x)
 			var m := c + across * off
 			_prism(PackedVector2Array([m - d * span - across * 0.12, m + d * span - across * 0.12,
 					m + d * span + across * 0.12, m - d * span + across * 0.12]),
 					glass_y, glass_y + 0.18 + (0.02 if d.x > 0.5 else 0.0), ROT_SILVER, ROT_SILVER, M_STONE, M_STONE)
+
+
+## A flat ring at y between radii r0 and r1 round c, facing up (the oculus kerb's rim).
+func _rot_ring(c: Vector2, r0: float, r1: float, y: float, col: Color) -> void:
+	var n := 24
+	for k in n:
+		var a0 := TAU * k / n
+		var a1 := TAU * (k + 1) / n
+		var i0 := c + Vector2.from_angle(a0) * r0
+		var i1 := c + Vector2.from_angle(a1) * r0
+		var o0 := c + Vector2.from_angle(a0) * r1
+		var o1 := c + Vector2.from_angle(a1) * r1
+		_quad(Vector3(i0.x, y, i0.y), Vector3(o0.x, y, o0.y), Vector3(o1.x, y, o1.y), Vector3(i1.x, y, i1.y), Vector3.UP, col)
+
+
+## The plaza round the Rotunda (F's drone photos and the GUGiK ortho, 2026-11-11): light granite
+## crossed by a grid of dark stone bands every 4.8 m, square to Widok Towers (the bands run 65
+## degrees off east); the bands stop at the drum, the stair down to the underpass and its planters.
+## A row of black bollards along the plaza's south edge by Aleje Jerozolimskie (the street photos).
+const ROT_PLAZA_POLY := [Vector2(-835.0, 369.0), Vector2(-812.0, 360.0), Vector2(-784.0, 356.0), Vector2(-761.0, 405.0),
+		Vector2(-769.0, 411.0), Vector2(-801.0, 411.5), Vector2(-821.0, 401.0), Vector2(-837.0, 383.0)]
+const ROT_PLAZA_BAND := Color("#55585b")
+const ROT_PLAZA_STEP := 4.8
+const ROT_BOLLARDS := [Vector2(-804.0, 410.6), Vector2(-768.0, 410.2)]
+
+
+func _rot_plaza(c: Vector2, r: float) -> void:
+	var plaza := PackedVector2Array(ROT_PLAZA_POLY)
+	var holes: Array[PackedVector2Array] = [_circle(c, r + 0.9, 40)]
+	for sk: Dictionary in map._sunk:
+		if sk["key"] == "rotunda_stair":
+			var grown := Geometry2D.offset_polygon(sk["ring"], 3.4, Geometry2D.JOIN_MITER)
+			if not grown.is_empty():
+				holes.append(grown[0])
+	var u := Vector2.from_angle(deg_to_rad(65.0))
+	var v := Vector2(-u.y, u.x)
+	_mode = M_STONE
+	for dir: Vector2 in [u, v]:
+		var across := Vector2(-dir.y, dir.x)
+		for k in range(-14, 15):
+			var m := c + across * (k * ROT_PLAZA_STEP + 2.4)
+			var lines := Geometry2D.intersect_polyline_with_polygon(PackedVector2Array([m - dir * 80.0, m + dir * 80.0]), plaza)
+			for hole in holes:
+				var left: Array[PackedVector2Array] = []
+				for ln: PackedVector2Array in lines:
+					left.append_array(Geometry2D.clip_polyline_with_polygon(ln, hole))
+				lines = left
+			var seen := {}
+			for ln: PackedVector2Array in lines:
+				var key := "%.1f,%.1f" % [(ln[0] + ln[ln.size() - 1]).x, (ln[0] + ln[ln.size() - 1]).y]
+				if seen.has(key):
+					continue  # the clip can hand back one piece twice
+				seen[key] = true
+				# The second direction 3 cm over the first: no z-fight where the bands cross.
+				_rot_band(ln[0], ln[ln.size() - 1], 0.45, 0.06 if dir == u else 0.09)
+	# The bollards: black posts every 1.8 m.
+	var a: Vector2 = ROT_BOLLARDS[0]
+	var b: Vector2 = ROT_BOLLARDS[1]
+	var n := int(a.distance_to(b) / 1.8)
+	for i in n + 1:
+		var p := a.lerp(b, float(i) / n)
+		var gy: float = map.terrain_height(p.x, p.y)
+		var post := _circle(p, 0.11, 6)
+		_prism(post, gy - 0.1, gy + 0.9, Color("#2a2d30"), Color("#3a3e42"), M_STONE, M_STONE)
+		_collide(post)
+
+
+## A dark paving band from a to b, `w` wide, laid `lift` m over the ground in pieces up to 2.5 m.
+func _rot_band(a: Vector2, b: Vector2, w: float, lift: float) -> void:
+	var length := a.distance_to(b)
+	if length < 0.3:
+		return
+	var d := (b - a) / length
+	var side := Vector2(-d.y, d.x) * (w * 0.5)
+	var n := maxi(1, ceili(length / 2.5))
+	for k in n:
+		var p0 := a + d * (length * k / n)
+		var p1 := a + d * (length * (k + 1) / n)
+		var h0: float = map.terrain_height(p0.x, p0.y) + lift
+		var h1: float = map.terrain_height(p1.x, p1.y) + lift
+		_quad(Vector3((p0 - side).x, h0, (p0 - side).y), Vector3((p1 - side).x, h1, (p1 - side).y),
+				Vector3((p1 + side).x, h1, (p1 + side).y), Vector3((p0 + side).x, h0, (p0 + side).y), Vector3.UP, ROT_PLAZA_BAND)
 
 
 ## A roof triangle with its normal pointing up (a fold's facet).
@@ -7214,6 +7302,11 @@ const SUNK_COPING := Color("#cdc7bb")
 const SUNK_RAIL := Color("#3b4046")
 const SUNK_TREAD := Color("#c4beb1")
 const SUNK_PLANTER := Color("#5f8a3f")
+## The Rotunda's stair (F's photos, 2026-11-11): its side walls are living green walls, tall grasses
+## in the planters on top, small warm LED lights in the risers along the walking side.
+const ROT_GREEN_WALL := [Color("#4a6b37"), Color("#3d5c30"), Color("#56783d")]
+const ROT_GRASS := [Color("#7a9444"), Color("#5f7d3a"), Color("#8ea256")]
+const ROT_STEP_LED := Color(1.0, 0.86, 0.58)
 ## The barrels (`buildings` outlines, 4.5 m): the long side's ends, then the mouth's far corner.
 const PATELNIA_BARRELS := [
 	[Vector2(-897.4, 378.1), Vector2(-890.6, 392.1), Vector2(-897.8, 395.5), Vector2(-904.6, 381.5)],
@@ -7321,6 +7414,7 @@ func _build_sunken(site: Dictionary) -> void:
 		for sk: Dictionary in map._sunk:
 			if sk["key"] == "rotunda_stair":
 				_sunk_doorway(sk)
+				_rot_stair_dress(sk)
 	_no_roof = false
 
 
@@ -7396,10 +7490,14 @@ func _sunk_edges(sk: Dictionary) -> void:
 			var nout := Vector3(out.x, 0.0, out.y)
 			var q0 := p0 + out * 0.3
 			var q1 := p1 + out * 0.3
-			# The retaining face (the square's side), the coping on top and its street face.
+			# The retaining face (the square's side), the coping on top and its street face; by the
+			# Rotunda a living green wall, patchy in three greens.
 			_mode = M_STONE
+			var fc := face_col
+			if planted:
+				fc = ROT_GREEN_WALL[(i * 3 + k) % ROT_GREEN_WALL.size()]
 			_quad(Vector3(p0.x, f0 - 0.3, p0.y), Vector3(p1.x, f1 - 0.3, p1.y), Vector3(p1.x, t1, p1.y), Vector3(p0.x, t0, p0.y),
-					nin, face_col)
+					nin, fc)
 			# The plaza's shops: a band of glass fronts along the foot of every wall but the one to
 			# the station (south), lit warm bay by bay at night, a little proud of the brick.
 			if style == "shops" and out.y < 0.5 and minf(t0 - f0, t1 - f1) > PLAZA_SHOP_H + 0.5:
@@ -7637,6 +7735,103 @@ func _barrel_rib(at: Callable, s: float, w: float, arc: Array[Vector2], r: float
 		# The face towards the mouth and the outer band (the far face is never seen past the glass).
 		_quad(at.call(s + w * 0.5, pa * k_in), at.call(s + w * 0.5, pb * k_in), bb_o, ba_o, axis, BARREL_RIB)
 		_quad(fa_o, fb_o, bb_o, ba_o, n_out, BARREL_RIB.lightened(0.08))
+
+
+## The Rotunda's stair as a place to sit (F, 2026-11-11, his photos): tall grasses along the
+## planters on its rims, and a warm LED light in every riser by the walking side (the west wall),
+## lit at night. The people sitting on the steps are crowds.gd's (site `rotunda_steps`).
+func _rot_stair_dress(sk: Dictionary) -> void:
+	var ring: PackedVector2Array = sk["ring"]
+	var a: Vector2 = sk["a"]
+	var b: Vector2 = sk["b"]
+	var length := a.distance_to(b)
+	var d := (b - a) / length
+	var side := Vector2(-d.y, d.x)
+	var ha := float(sk["ha"])
+	var hb := float(sk["hb"])
+	var n := maxi(3, roundi((ha - hb) / 0.16))
+	_mode = M_LAMP
+	for k in range(1, n):
+		var s0 := length * k / n
+		var strip := PackedVector2Array([a + d * (s0 - 0.05) - side * 40.0, a + d * (s0 + 0.05) - side * 40.0,
+				a + d * (s0 + 0.05) + side * 40.0, a + d * (s0 - 0.05) + side * 40.0])
+		var lo := INF
+		for poly in Geometry2D.intersect_polygons(strip, ring):
+			for q in poly:
+				lo = minf(lo, (q - a).dot(side))
+		if lo == INF:
+			continue
+		var top := lerpf(ha, hb, float(k) / n)
+		var c0 := a + d * (s0 + 0.012) + side * (lo + 0.3)
+		var c1 := c0 + side * 0.32
+		_quad(Vector3(c0.x, top + 0.03, c0.y), Vector3(c1.x, top + 0.03, c1.y), Vector3(c1.x, top + 0.08, c1.y),
+				Vector3(c0.x, top + 0.08, c0.y), Vector3(d.x, 0.0, d.y), ROT_STEP_LED)
+	# The grasses: a crossed pair of blades every 1.2 m along the planted rims, 0.65 m out.
+	_mode = M_STONE
+	var nn := Vector2(-1, -1)
+	var t := 0
+	for i in ring.size():
+		var p := ring[i]
+		var q := ring[(i + 1) % ring.size()]
+		var l := p.distance_to(q)
+		if l < 0.5:
+			continue
+		var e := (q - p) / l
+		var out := Vector2(e.y, -e.x)
+		if Geometry2D.is_point_in_polygon((p + q) * 0.5 + out * 0.1, ring):
+			out = -out
+		for j in int(l / 1.2):
+			var m := p + e * (0.6 + 1.2 * j) + out * 0.65
+			var f: float = map.sunk_level(sk, m - out * 0.65)
+			var gy: float = _sunk_upper(m, out)
+			if gy - f < 0.35:
+				continue  # the stair's open top
+			var col: Color = ROT_GRASS[t % ROT_GRASS.size()]
+			var h := 0.7 + 0.25 * float((t * 7) % 3)
+			t += 1
+			for w: Vector2 in [e * 0.45, out * 0.45]:
+				var w3 := Vector3(w.x, 0.0, w.y)
+				var base := Vector3(m.x, gy + 0.05, m.y)
+				var nrm := Vector3(-w.y, 0.0, w.x).normalized()
+				_tri(base - w3, base + w3, base + Vector3(0.0, h, 0.0), nrm, col, nn, nn, nn, -1.0)
+				_tri(base + w3, base - w3, base + Vector3(0.0, h, 0.0), -nrm, col.darkened(0.1), nn, nn, nn, -1.0)
+
+
+## The Rotunda's stair for crowds.gd: [[seat point, yaw, tread], ...] on its treads, a row on
+## every second tread across the steps east of the walking side (1.9 m along the west wall stays
+## free), people facing down the stair to the plaza; `n` the tread count `_sunk_treads` lays
+## (tread k's top is lerp(ha, hb, k / n)) and the stair's key, so the sitters take those heights.
+static func rotunda_steps_plan(e: Dictionary) -> Dictionary:
+	if e.is_empty():
+		return {"seats": [], "centre": Vector2.ZERO, "stair": "", "n": 1}
+	var ring := PackedVector2Array(e["ring"])
+	var a: Vector2 = e["a"]
+	var b: Vector2 = e["b"]
+	var length := a.distance_to(b)
+	var d := (b - a) / length
+	var side := Vector2(-d.y, d.x)
+	var yaw := atan2(-d.x, -d.y)
+	var n := maxi(3, roundi(float(e.get("drop", 3.6)) / 0.16))
+	var tread := length / n
+	var seats: Array = []
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1966
+	for k in range(2, n - 1, 2):
+		var s := (k + 0.55) * tread
+		var lo := INF
+		var hi := -INF
+		var strip := PackedVector2Array([a + d * (s - 0.1) - side * 40.0, a + d * (s + 0.1) - side * 40.0,
+				a + d * (s + 0.1) + side * 40.0, a + d * (s - 0.1) + side * 40.0])
+		for poly in Geometry2D.intersect_polygons(strip, ring):
+			for q in poly:
+				lo = minf(lo, (q - a).dot(side))
+				hi = maxf(hi, (q - a).dot(side))
+		var x := lo + 1.9 + rng.randf_range(0.0, 0.4)
+		while x < hi - 0.45:
+			var p := a + d * s + side * (x + rng.randf_range(-0.1, 0.1))
+			seats.append([p, yaw + rng.randf_range(-0.35, 0.35), k])
+			x += rng.randf_range(0.7, 1.1)
+	return {"seats": seats, "centre": (a + b) * 0.5, "stair": str(e["key"]), "n": n}
 
 
 ## The Rotunda's lower floor at the foot of its stair: a glazed doorway across the landing 2.5 m

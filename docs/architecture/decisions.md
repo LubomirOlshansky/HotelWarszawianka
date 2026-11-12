@@ -1,0 +1,39 @@
+# Decisions: what was chosen, and what was chosen against
+
+One row per architecture decision, so nobody argues it again without new facts. Look here before
+you propose a new pattern. To change a decision, bring the new fact to F, then edit the row in the
+same PR as the change (keep the old row under "Replaced" with one line on why).
+
+## In force
+
+| Decision | Why | Since |
+| --- | --- | --- |
+| **One composition root, no autoloads of the game's own.** `main.gd` creates and wires every system. | Every dependency is visible in one place, and a check script can build a system with fakes. | the start |
+| **References are passed in** as properties and Callables; no script finds another by node path. | A system can be tested alone and moved without breaking a path. | the start |
+| **Rules apart from nodes.** Numbers and decisions live in pure scripts with a `check_*.gd` each. | Rules are tested in seconds, without the map. | the start |
+| **Cars are cursors on the lane graph; people are instances in one MultiMesh.** No node per car or person. | The phone's frame grows with draw calls, not triangles. | the start |
+| **Both city paths give the same city** (runtime build and prebuilt sectors). | The Mac tests the first, the phone ships the second. | the start |
+| **The save is one versioned ConfigFile** owned by `wallet.gd`; an older build never overwrites a newer save. | One place to migrate; a tester can move between builds. | save version 2 |
+| **A save that can't be read is never written over or deleted.** It is moved aside and the last launch's copy is loaded; a missing file is a fresh start. | Progress is the one thing a tester can't get back. Deleting the file must still reset the game. | TD-8, 2026-11-12 |
+| **One language on screen; every text is written as a Polish and English pair.** | F, 2026-11-02; English by default since 2026-11-08. | 2026-11-02 |
+| **One decision for HUD text** (`messages.gd`) and one for bubbles (`chatter.gd`). | Messages from several systems used to overlap on screen. | PR #652 |
+| **Add-ons only where they earn it**: Beehave for the police and authored scenes, Dialogue Manager for branching scenes. | Everything else is cheaper and clearer as plain code. | docs/ADDONS.md |
+| **No rubber band in races.** Difficulty comes from each rival's skill. | A race the player can't lose or can't win by driving is not a race. | docs/design/race-ai.md |
+| **The police never fine.** Warnings and jokes; every chase ends by itself. | The tone of the game. | docs/design/police.md |
+| **Every script has one row** in systems.md or city-ai.md, and a workaround is marked `# WORKAROUND(arch)`. | The map of the code can't go stale. | PR #654 |
+
+## Decided against (second review, 2026-11-12; F can overturn any of these)
+
+| Idea | Why not |
+| --- | --- |
+| A global event bus or a signal autoload | It hides who talks to whom. Passing references in can be traced and tested. |
+| An entity-component system, or a node per car and person | The lane-graph cursor and the shared MultiMesh are already the cheap pattern for a phone. |
+| A state machine add-on for activities | The planned base class (TD-1) is about 150 lines; an add-on brings a dependency and an editor workflow agents can't use. |
+| A full localisation system (CSV, gettext) | Two languages, and the pair pattern works: every toast has its English. Look again if a third language is asked for. |
+| Splitting `hud.gd` before cards have an owner (TD-16) | It would move the tangle into five files. After TD-16 it splits along owners. |
+| A new save format (JSON, SQLite) | ConfigFile is fine. The risk is in how the file is written (TD-8). |
+| A "planned" owner with no place in tech-debt's order | A rule agents can't follow yet is noise. Name what is built or what is next. |
+
+## Replaced
+
+None yet.
