@@ -36,9 +36,13 @@ extends SceneTree
 ##   left and past it the way round; a road through the circle that is shut is no finish; the
 ##   metres (RacePlanner.links) and the minimap's line (route_line.gd) end where the road enters;
 ##   a racer on the lane furthest from the finish is home there, outside the circle, and with the
-##   plan to the junction alone or past the circle she is not; and the guided first race from
-##   Marszałkowska as the whole game ran it comes home on that road, by its plan's clock, in Low
-##   traffic with a player about too (101 s by the plan to the junction, 2026-11-12).
+##   plan to the junction alone or past the circle she is not; the player's car has the same line
+##   (Rivals.home_at): home on that road level with the circle in any lane, and not 3 m short of
+##   it, past it, OFF_ROAD beside the road or on another level; Trzy mosty's last leg is planned
+##   to the circle of its finish by the stadium, FINAL_GAIN m less than round to its junction;
+##   and the guided first race from Marszałkowska as the whole game ran it comes home on that
+##   road, by its plan's clock, in Low traffic with a player about too (101 s by the plan to the
+##   junction, 2026-11-12).
 ##   godot --headless --path game --script res://tools/check_race_planner.gd
 ## Prints "check_race_planner: OK (...)" or the problems (exit 1).
 
