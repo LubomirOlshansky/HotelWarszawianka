@@ -31703,11 +31703,14 @@ func _build_block(site: Dictionary) -> void:
 	var ox: float = d["ox"]
 	var oz: float = d["oz"]
 	var top: float = d["top"]
+	var piure: bool = site["block"] == PIURE_BLOCK
+	var piure_wins: Array = []
 	for grp: Dictionary in d["groups"]:
 		var col := Color(grp["color"])
 		var role: String = grp["role"]
 		var tris: int = grp["n"]
 		var panes := at + tris * 18
+		var wins: bool = piure and str(grp["color"]).to_lower() == PIURE_WINDOW
 		for i in tris:
 			var q: Array[Vector3] = []
 			for k in 3:
@@ -31719,6 +31722,8 @@ func _build_block(site: Dictionary) -> void:
 			n = n.normalized()
 			if n.y < -0.3:
 				n = -n
+			if wins and absf(n.y) < 0.3:
+				piure_wins.append([q[0], q[1], q[2], n])
 			if role == "roof":
 				_mode = seed
 				_tri(q[0], q[1], q[2], n, col, Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), 0.0)
@@ -31738,8 +31743,97 @@ func _build_block(site: Dictionary) -> void:
 				_mode = M_PANE + data[panes + i] / 256.0 if role == "glass" else M_STONE
 				_tri(q[0], q[1], q[2], n, col, ua, ub, uc, 0.0, false)
 		at = panes + (tris if role == "glass" else 0)
+	if piure:
+		_piure_strips(piure_wins)
 	_mode = keep
 	_collide_raw(site)
+
+
+## HOTEL PIURE (Widok 9, F's photos 2026-11-11): the street block's white panel fronts carry a
+## beige textured strip beside every window, lit from below at dusk, on the window's right on one
+## floor and its left on the next, so the fronts read as the real staggered weave. Built from the
+## block's own window boxes on its two long fronts (LORETKA's frame, `loretka_plan`): a strip
+## stands on the window's outer face, beside it, unless another window is there.
+const PIURE_BLOCK := "28759008"
+const PIURE_WINDOW := "#55717b"
+const PIURE_STRIP := Color("#e2d3b2")
+const PIURE_STRIP_W := 0.55
+const PIURE_STRIP_GAP := 0.05
+const PIURE_FLOOR := 3.8   # the block's storey (its windows start at 4.68 m and repeat every 3.8 m)
+
+
+func _piure_strips(wins: Array) -> void:
+	var plan := loretka_plan(data)
+	if plan.is_empty() or wins.is_empty():
+		return
+	_o = plan["o"]
+	_a = plan["a"]
+	_b = plan["b"]
+	var mid := (float(plan["v1"]) + 1.3) * 0.5
+	# Each window box's outer face on a long front: [front (-1 the frame's own side, +1 the far
+	# one), u0, u1, y0, y1, v of the face], keyed by its rectangle (a quad's two triangles share it).
+	var rects := {}
+	for w: Array in wins:
+		var n: Vector3 = w[3]
+		var along_b := Vector2(n.x, n.z).dot(_b)
+		if absf(along_b) < 0.9:
+			continue
+		var us := PackedFloat32Array()
+		var vs := 0.0
+		var y0 := INF
+		var y1 := -INF
+		for k in 3:
+			var p: Vector3 = w[k]
+			var d := Vector2(p.x, p.z) - _o
+			us.append(d.dot(_a))
+			vs += d.dot(_b) / 3.0
+			y0 = minf(y0, p.y)
+			y1 = maxf(y1, p.y)
+		var front := -1 if vs < mid else 1
+		if (along_b > 0.0) != (front > 0):
+			continue  # the box's inner face
+		var u0 := minf(us[0], minf(us[1], us[2]))
+		var u1 := maxf(us[0], maxf(us[1], us[2]))
+		if u1 - u0 < 0.8 or y1 - y0 < 1.5 or y1 - y0 > 3.5:
+			continue
+		var key := "%d:%.1f:%.1f:%.1f" % [front, u0, u1, y0]
+		var r: Array = rects.get(key, [front, u0, u1, y0, y1, vs])
+		r[5] = minf(float(r[5]), vs) if front < 0 else maxf(float(r[5]), vs)
+		rects[key] = r
+	var list := rects.values()
+	_mode = M_LAMP
+	for r: Array in list:
+		var front: int = r[0]
+		var u0: float = r[1]
+		var u1: float = r[2]
+		var y0: float = r[3]
+		var y1: float = r[4]
+		var floor_i := roundi((y0 - _g) / PIURE_FLOOR)
+		var right := floor_i % 2 == 0
+		for attempt in 2:
+			var su := u1 + PIURE_STRIP_GAP + PIURE_STRIP_W * 0.5 if right else u0 - PIURE_STRIP_GAP - PIURE_STRIP_W * 0.5
+			if not _piure_free(list, r, su, y0, y1):
+				right = not right
+				continue
+			# 10 cm proud of the window's face (outwards is -_b on the near front, +_b on the far
+			# one), 4 cm into it.
+			var cv := float(r[5]) + 0.03 * front
+			_lbox(su, cv, PIURE_STRIP_W * 0.5, 0.07, y0, y1, PIURE_STRIP, M_LAMP, PIURE_STRIP)
+			break
+	_mode = M_STONE
+
+
+## Whether a strip centred at `su` from y0 to y1 on `own`'s front keeps clear of every other window.
+func _piure_free(list: Array, own: Array, su: float, y0: float, y1: float) -> bool:
+	var h := PIURE_STRIP_W * 0.5 + 0.05
+	for r: Array in list:
+		if r == own or int(r[0]) != int(own[0]):
+			continue
+		if float(r[4]) <= y0 + 0.1 or float(r[3]) >= y1 - 0.1:
+			continue
+		if float(r[2]) > su - h and float(r[1]) < su + h:
+			return false
+	return true
 
 
 # --- Stacja Filtrów (F, 2026-11-06): spec docs/landmarks/specs/filtry.md -----------------------

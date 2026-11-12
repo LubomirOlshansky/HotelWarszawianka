@@ -2902,6 +2902,16 @@ real ones added to `brand_denylist.json`). One PR each:
       `loretka_plan`), couples on its poufs May-September on dry evenings (crowds.gd `terrace`,
       10-16); the board-game bar is PRZEGRYWKI (Zagrywki parody, was PIONEK); WACZEK ×5, the burger
       chain with an upside-down golden W, at the real chain's central restaurants, 2026-11-01.
+- [x] HOTEL PIURE's roof and front (F, 2026-11-11, heli screenshot and three photos): the street
+      block `blk_28759008` kept LoD2's roof (index `roof`), but the 2018 survey shows the lower
+      building that stood there before (roof ~18 m, the hotel is 27.4 m), so the roof hid 10 m down
+      inside the walls and the east half looked open. Now `roof` false and `cap` 27.4 (LORETKA's deck
+      sits on it), and `_piure_strips` puts a beige strip (M_LAMP) beside each window on the two
+      long fronts, alternating sides by floor, from F's photos, 2026-11-12.
+- [ ] Other street blocks may borrow a too-low LoD2 roof the same way (2026-11-12 scan: the block's
+      `top` against the survey roof inside its outline; gaps over 8 m at 118254728, 961448757,
+      947222657, 853013401, 152199063, 238560043, 30302026; many 3-6 m gaps are just parapets).
+      Check each from the helicopter; a real gap gets `roof` false and a `cap` like PIURE.
 - [x] The notebook card "Kolejki" (place `kolejki`, chapter Kolejka po trend, at KUKŁA on Nowy Świat), 2026-11-02.
 - [x] Left from G3-G5, done 2026-11-02: Podwózka `timber` passengers (evenings 18-01, 20 % of
       normal rides, 3 request and 4 ride lines; `rides.gd`), five fans behind Mrożulo's van with
