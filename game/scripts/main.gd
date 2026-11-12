@@ -72,6 +72,7 @@ const GreetingClips := preload("res://scripts/greeting_clips.gd")
 const Title := preload("res://scripts/title.gd")
 const Wallet := preload("res://scripts/wallet.gd")
 const Messages := preload("res://scripts/messages.gd")  # priorities for the HUD's lines (the save's note)
+const ErrorTrap := preload("res://scripts/error_trap.gd")  # the error trap (TD-14)
 const Dialogue := preload("res://scripts/dialogue.gd")
 const Jobs := preload("res://scripts/jobs.gd")
 ## Loop 2d-1: Podwózka, the app-taxi side job.
@@ -753,6 +754,14 @@ var no_save := false
 ## Safer saves (TD-8): `--save-note=restored|lost|blocked` shows the damaged-save note without a
 ## damaged file (the shots and a headless run of the note's path; with the title forced on).
 var save_note_flag := ""
+## The error trap (tech-debt TD-14, error_trap.gd): the engine's errors and printed lines, kept
+## for the Settings' RAPORT button. A static, so NOWA GRA's reload keeps this run's errors.
+## `--report` prints the report when the run ends; `--crash-note` shows the note a phone shows
+## after a session that closed by itself.
+static var _trap: ErrorTrap
+var report_flag := false
+var crash_note_flag := false
+var _trap_t := 0.0
 ## --free: free roam (loop 2e: no call card at the start anyway; the first call then comes in
 ## 90 s into play instead of 60).
 var free_roam := false
@@ -978,6 +987,7 @@ var _cam_turn_max := 0.0
 
 func _ready() -> void:
 	_parse_args()
+	_trap_start()  # the error trap (TD-14): before anything else can fail
 	Gamepad.install()  # the gamepad loop: the pad's stick and trigger actions
 	_parse_stream_args()  # loop 3c (the sectors block at the end of this file)
 	_load_settings()
@@ -1098,6 +1108,7 @@ func _exit_tree() -> void:
 		_stats.unhook()
 	if RenderingServer.frame_pre_draw.is_connected(_stress_wait):
 		RenderingServer.frame_pre_draw.disconnect(_stress_wait)
+	_trap_end()
 
 
 ## The loading fix (2026-10-31): the title screen waits (at most TITLE_WAIT_MS) for the sectors
@@ -1281,6 +1292,8 @@ func _remember_frame(dt: float, now := false) -> void:
 func _notification(what: int) -> void:
 	if what in [NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_WM_CLOSE_REQUEST]:
 		_remember_frame(0.0, true)
+		if _trap != null:
+			_trap.mark()  # so far this session ended in order (error_trap.gd)
 	elif what in [NOTIFICATION_APPLICATION_RESUMED, NOTIFICATION_APPLICATION_FOCUS_IN]:
 		# iOS stops the haptic engine in the background: start it again now, not in a crash's frame.
 		Haptics.warm()
@@ -1317,6 +1330,83 @@ func _save_note() -> void:
 	print("save: the player was told (%s%s)" % [wallet.load_note, "" if wallet.bad_path == "" else ": %s, kept as %s" % [wallet.bad_why, wallet.bad_path]])
 
 
+## The error trap (tech-debt TD-14, error_trap.gd). Started once a run and handed to the engine;
+## a debug build's kept run (not --nosave) also writes the session file, which is how the next
+## launch knows that this one closed by itself.
+func _trap_start() -> void:
+	if _trap != null:
+		_trap.resume()  # NOWA GRA's reload: the same trap, the same file
+		return
+	_trap = ErrorTrap.new()
+	_trap.start(ErrorTrap.session_path(not no_save))
+	OS.add_logger(_trap)
+	if _trap.last_crashed:
+		print("trap: the last session closed by itself (%d of its lines kept)" % _trap.last_lines.size())
+
+
+## The scene leaves the tree: the session file ends in order. A quit also takes the trap back
+## from the engine; NOWA GRA's reload keeps it (`_trap_start`).
+func _trap_end() -> void:
+	if _trap == null:
+		return
+	if report_flag:
+		print(_trap.report(_report_header()))
+	_trap.stop()
+	if not _new_game_pending:
+		OS.remove_logger(_trap)
+		_trap = null
+
+
+## Once a second: what the game is doing, kept with the errors that come next.
+func _trap_frame(dt: float) -> void:
+	_trap_t -= dt
+	if _trap_t > 0.0 or _trap == null:
+		return
+	_trap_t = 1.0
+	var p := _vehicle_position()
+	_trap.set_context("%s · %s · %s at %.0f, %.0f · %s, %s" % [Messages.CONTEXT_NAMES[hud.context_now()],
+			districts.current if districts != null and districts.current != "" else "no district",
+			"helicopter" if flying else "car", p.x, p.z, TimeOfDay.NAMES[tod.mode], Weather.NAMES[weather.state]])
+
+
+## The report's lines on the device and the picture: the bench's, once the game runs.
+func _report_header() -> PackedStringArray:
+	if not _started:
+		return PackedStringArray(["device %s · %s %s" % [OS.get_model_name(), OS.get_name(), OS.get_version()]])
+	var h := _bench_header("report")
+	return PackedStringArray([h[1], h[2]])
+
+
+## Settings → RAPORT: the trap's report onto the clipboard, to paste into a message to the author.
+func _copy_report() -> void:
+	var text := "%s %s" % [Title.WORDMARK, _trap.report(_report_header())]
+	DisplayServer.clipboard_set(text)
+	hud.show_note(Lang.pick("RAPORT SKOPIOWANY", "REPORT COPIED"),
+			Lang.pick("Wklej go w wiadomości do autora gry.", "Paste it into a message to the game's author."),
+			SAVE_NOTE_COLOUR, Messages.ALERT)
+	print("report: copied (%s, %d lines)" % [_trap.summary(), text.count("\n") + 1])
+
+
+## The last session closed by itself (a crash, or the phone ended the app while it was on
+## screen): say so once the city shows, and where the report is. Only a debug build on a phone
+## knows it (the session file is a debug build's; testers' builds show nothing), or --crash-note:
+## on a computer a closed terminal or a stopped run reads the same and is no news.
+func _crash_note() -> void:
+	if hide_hud or not (crash_note_flag or (_trap.last_crashed and OS.has_feature("mobile"))):
+		return
+	await get_tree().process_frame
+	await get_tree().process_frame
+	while _opening_on:
+		await get_tree().process_frame
+	if SAVE_NOTES.has(wallet.load_note):
+		await get_tree().create_timer(6.0).timeout  # after the save's note, not over it
+	hud.show_note(Lang.pick("GRA ZAMKNĘŁA SIĘ SAMA", "THE GAME CLOSED BY ITSELF"),
+			Lang.pick("Tak skończyła się ostatnia sesja. Ustawienia → Dźwięk → RAPORT kopiuje, co się stało.",
+			"That is how the last session ended. Settings → Sound → REPORT copies what happened."),
+			SAVE_NOTE_COLOUR, Messages.ALERT)
+	print("trap: the player was told the last session closed by itself")
+
+
 func _on_new_game() -> void:
 	if not wallet.start_over():
 		return
@@ -1334,6 +1424,7 @@ func _on_title_dismissed() -> void:
 	_radio_greeting()
 	_fallback_toast()
 	_save_note()
+	_crash_note()
 	if cinematic_flyin:
 		_fly_in()
 	if first10 != null and not _opening_on:
@@ -5418,6 +5509,10 @@ func _parse_args() -> void:
 			barrier_day = int(arg.trim_prefix("--barriers="))
 		elif arg == "--reset-save":
 			reset_save = true
+		elif arg == "--report":
+			report_flag = true  # the error trap (TD-14): the report printed when the run ends
+		elif arg == "--crash-note":
+			crash_note_flag = true  # the note after a session that closed by itself
 		elif arg.begins_with("--save-note="):
 			save_note_flag = arg.trim_prefix("--save-note=")  # safer saves (TD-8): restored|lost|blocked
 		elif arg.begins_with("--title-choice="):
@@ -6447,6 +6542,9 @@ func _on_setting(key: String, value: Variant) -> void:
 		"fotka":
 			_open_fotka.call_deferred()
 			return
+		"report":
+			_copy_report()  # the error trap (TD-14): Settings → RAPORT
+			return
 		"unstuck":
 			_unstuck.call_deferred()
 			return
@@ -7182,6 +7280,7 @@ func _process(dt: float) -> void:
 	_stream_frame(dt)  # loop 3c: the sectors round the camera
 	_title_frame()  # the loading fix: the title's prompt once the start is in
 	_remember_frame(dt)  # save and resume: the car's spot for the next launch
+	_trap_frame(dt)  # the error trap (TD-14): what the game is doing, for the next error
 	_look_frame()  # the loading fix: a look at a new target once its sectors are in
 	if cam_log:
 		_cam_log_frame(dt)

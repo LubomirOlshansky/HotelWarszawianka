@@ -15,6 +15,7 @@ same PR as the change (keep the old row under "Replaced" with one line on why).
 | **Both city paths give the same city** (runtime build and prebuilt sectors). | The Mac tests the first, the phone ships the second. | the start |
 | **The save is one versioned ConfigFile** owned by `wallet.gd`; an older build never overwrites a newer save. | One place to migrate; a tester can move between builds. | save version 2 |
 | **A save that can't be read is never written over or deleted.** It is moved aside and the last launch's copy is loaded; a missing file is a fresh start. | Progress is the one thing a tester can't get back. Deleting the file must still reset the game. | TD-8, 2026-11-12 |
+| **Testers' builds are not changed to catch errors.** They stay on the release engine, with no report button, no note and no log file. Script mistakes are found in debug runs (the checks, Autopilot on the Mac, device runs on F's phone), where the error trap keeps them with their lines; errors are kept for a report, never shown as they come. | F, 2026-11-12: speed for testers comes first, and a tester would not send a report. The release engine hides a script's mistakes anyway (TD-21). | TD-14, 2026-11-12 |
 | **One language on screen; every text is written as a Polish and English pair.** | F, 2026-11-02; English by default since 2026-11-08. | 2026-11-02 |
 | **One decision for HUD text** (`messages.gd`) and one for bubbles (`chatter.gd`). | Messages from several systems used to overlap on screen. | PR #652 |
 | **Add-ons only where they earn it**: Beehave for the police and authored scenes, Dialogue Manager for branching scenes. | Everything else is cheaper and clearer as plain code. | docs/ADDONS.md |
@@ -31,6 +32,9 @@ same PR as the change (keep the old row under "Replaced" with one line on why).
 | A state machine add-on for activities | The planned base class (TD-1) is about 150 lines; an add-on brings a dependency and an editor workflow agents can't use. |
 | A full localisation system (CSV, gettext) | Two languages, and the pair pattern works: every toast has its English. Look again if a third language is asked for. |
 | Splitting `hud.gd` before cards have an owner (TD-16) | It would move the tangle into five files. After TD-16 it splits along owners. |
+| The engine's own file logging (`debug/file_logging`) as the crash trail | A release build flushes it only on an error (`core/io/logger.cpp`), so the lines printed before a crash are still in memory and are lost; and nothing in it says a session ended in order. The trap's session file is flushed line by line and stays under 2,000 lines. |
+| An error overlay or a toast per error on test builds | The first plan had the errors on the BENCH card. A button in Settings (debug builds) needs no bench run. |
+| Betas on the debug engine, or tracked call stacks in release | F, 2026-11-12: testers' builds are not slowed (TD-21 has the numbers). |
 | A new save format (JSON, SQLite) | ConfigFile is fine. The risk is in how the file is written (TD-8). |
 | A "planned" owner with no place in tech-debt's order | A rule agents can't follow yet is noise. Name what is built or what is next. |
 
