@@ -9,6 +9,9 @@ that day here, in plain words a player would understand (no file names, no spoil
 rows in the progress log but no section here is listed automatically from the log's labels until
 someone writes its lines.
 
+## 2026-11-12
+- Quest and police lines now show who is talking: a small round face beside the speaker's name in the speech bubbles and in the Senatorek and Smoła talk panels (the portrait where there is one, else their initial in their colour). The Smoła panel now shows one language, like the rest of the game.
+
 ## 2026-11-11
 - Eight new Podwózka passengers with their own stories and places to go: a shopper to Vipkac, an artist to Zachęta, a late violinist to the Philharmonic, a guide to the Polin Museum, an assistant to the Sejm, a lost tourist to Hotel Bristol, an actor playing a tree at Teatr Polski and a ghost-tour guide to the Barbican.
 - The MDM and BYDŁO roof neons now stand where the real ones do, together on the roof of Hotel MDM at the south end of Plac Konstytucji, facing the square, and the small HOTEL MDM sign is on that hotel's front.

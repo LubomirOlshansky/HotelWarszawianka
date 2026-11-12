@@ -27,6 +27,7 @@ const Access := preload("res://scripts/access.gd")
 const Hud := preload("res://scripts/hud.gd")
 const TrendJob := preload("res://scripts/trend_job.gd")
 const Bubbles := preload("res://scripts/bubbles.gd")
+const Chatter := preload("res://scripts/chatter.gd")
 ## Loop 3g-1: the pull-over card (police.gd lays it out with the HUD's panels).
 const PoliceBalloon := preload("res://scripts/police/police_balloon.gd")
 ## Loop MW-1: the notebook (the settings card's fifth tab), with some places found.
@@ -98,6 +99,36 @@ func _check_quiet_driving() -> void:
 	b.queue_free()
 
 
+## F 2026-11-11: a quest or police line from a person carries their face (the portrait, else the
+## initial), a column on the bubble's left; ambient chatter and a non-person ("Nawigacja") don't.
+func _check_faces() -> void:
+	var b: Control = Bubbles.new()
+	b.pt = 2.0
+	b.project = func(p: Vector3) -> Vector2: return Vector2(p.x, p.y)
+	root.add_child(b)
+	var cases := [["Ivan", Chatter.QUEST, true, true], ["Bogdan", Chatter.QUEST, true, false],
+			["Strażnik Henio", Chatter.POLICE, true, false], ["Nawigacja", Chatter.QUEST, false, false],
+			["Kolka", Chatter.AMBIENT, false, false], ["", Chatter.QUEST, false, false]]
+	for c in cases:
+		b.clear()
+		b.chatter.clock += b.chatter.gap() * 2.0
+		if not b.say(Vector3(100, 300, 0), c[0], "Siema.", "Hi.", 4.0, Color.WHITE, 2.6, c[1]):
+			problems.append("faces: %s's line did not show" % c[0])
+			continue
+		var bub: Dictionary = b._bubbles[0]
+		if bool(bub.get("face", false)) != c[2]:
+			problems.append("faces: %s (%d) face %s, wanted %s" % [c[0], c[1], bub.get("face"), c[2]])
+		elif c[2]:
+			if (bub.get("tex") != null) != c[3]:
+				problems.append("faces: %s's portrait %s" % [c[0], "missing" if c[3] else "unexpected"])
+			if float(bub["wide"]["size"].y) < (Bubbles.FACE + Bubbles.PAD * 2.0) * b.pt - 0.5:
+				problems.append("faces: %s's bubble is lower than its face" % c[0])
+	for who in ["Ty", "Winda", "Ktoś z tłumu", ""]:
+		if Portraits.has_face(who):
+			problems.append("faces: '%s' gets a face" % who)
+	b.queue_free()
+
+
 ## 2026-11-08 (Autopilot, padel at DESKA): a new offer opened over a result card and the OK tap
 ## accepted it. While a card is up (a result or win card included), and for TrendJob.CARD_REST s
 ## after one closes, no offer opens; it is queued and shows afterwards.
@@ -146,6 +177,7 @@ func _run() -> void:
 		states += await _check_screen(screen)
 	_check_quiet_driving()
 	_check_offers_wait()
+	_check_faces()
 	for w in _waits:
 		print("  waits for room: %s" % w)
 	# The x1.25 pass is a gate (2026-11-02): a panel that must show and has no room at the larger

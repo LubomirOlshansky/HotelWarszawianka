@@ -721,7 +721,8 @@ Left:
 - [ ] Phone ear-check of the arrival sounds (`door_swish`, `lift_ding`, `lift_hum` are original
   synthesis in tools/make_sfx.py; levels set by RMS, only the phone says if the hum is too low)
 - [ ] F's call: lounge name SENATOREK LOUNGE ok? Which floor (the lift card says 38, invented)
-- [ ] Portraits of Ivan, Bogdan and the master (PixelLab on the Mac, from F's photos)
+- [ ] Portraits of Bogdan and Mistrz Dymek (PixelLab on the Mac, from F's photos; Ivan's is in). Their lines
+  show their initial on a disc beside the name until then (2026-11-12, faces beside quest dialogue)
 - [ ] Voices (ElevenLabs) and a lounge track on the radio (docs/MUSIC.md "lounge" slot)
 - [ ] Bogdan waiting at the court: a net, a bag, a figure in white (now only the pickup ring)
 - [ ] Phone look: the lounge's mini-game panel size, the smoke's overdraw, the portico at night
