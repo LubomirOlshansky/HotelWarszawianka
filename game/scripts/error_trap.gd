@@ -17,8 +17,9 @@ extends Logger
 ## does not: a call on a null typed value or a freed object, or an integer division by zero,
 ## ends the app, and the other mistakes carry on with a wrong value and no line (measured with
 ## the 4.7.2 release template). Testers' builds stay on the release engine, for speed, and
-## testers would not send a report: so a release build keeps the trap in memory and nothing
-## else, with no file, no button and no note.
+## testers would not send a report: so a release build has no trap at all. `make()` gives none
+## there, no logger is handed to the engine, nothing is kept or counted, and there is no file, no
+## button and no note.
 ##
 ## Rules. The engine calls a Logger from any thread: every entry takes the lock. It never prints
 ## and never pushes an error (the engine would hand the line straight back). The session file is
@@ -66,6 +67,12 @@ var _user_dir := ""
 var _home_dir := ""
 ## When the app's own file was made: the nearest thing to a build number the game can read.
 var _app_date := "unknown"
+
+
+## The trap of this run: a new one in a debug build, null in a release build (F, 2026-11-12:
+## testers' builds run none of it). `debug` is the check's way to ask for either.
+static func make(debug := OS.is_debug_build()) -> Logger:
+	return new() if debug else null
 
 
 ## The session file of this run, or "": only a debug build that keeps its files writes one.

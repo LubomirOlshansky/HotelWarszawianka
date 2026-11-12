@@ -1332,12 +1332,15 @@ func _save_note() -> void:
 
 ## The error trap (tech-debt TD-14, error_trap.gd). Started once a run and handed to the engine;
 ## a debug build's kept run (not --nosave) also writes the session file, which is how the next
-## launch knows that this one closed by itself.
+## launch knows that this one closed by itself. A release build has none (`ErrorTrap.make`: F,
+## 2026-11-12, testers' builds run none of it), and `_trap` stays null there.
 func _trap_start() -> void:
 	if _trap != null:
 		_trap.resume()  # NOWA GRA's reload: the same trap, the same file
 		return
-	_trap = ErrorTrap.new()
+	_trap = ErrorTrap.make() as ErrorTrap
+	if _trap == null:
+		return
 	_trap.start(ErrorTrap.session_path(not no_save))
 	OS.add_logger(_trap)
 	if _trap.last_crashed:
@@ -1379,6 +1382,8 @@ func _report_header() -> PackedStringArray:
 
 ## Settings → RAPORT: the trap's report onto the clipboard, to paste into a message to the author.
 func _copy_report() -> void:
+	if _trap == null:
+		return  # a release build: no trap, and no button to come here from
 	var text := "%s %s" % [Title.WORDMARK, _trap.report(_report_header())]
 	DisplayServer.clipboard_set(text)
 	hud.show_note(Lang.pick("RAPORT SKOPIOWANY", "REPORT COPIED"),
@@ -1392,7 +1397,7 @@ func _copy_report() -> void:
 ## knows it (the session file is a debug build's; testers' builds show nothing), or --crash-note:
 ## on a computer a closed terminal or a stopped run reads the same and is no news.
 func _crash_note() -> void:
-	if hide_hud or not (crash_note_flag or (_trap.last_crashed and OS.has_feature("mobile"))):
+	if _trap == null or hide_hud or not (crash_note_flag or (_trap.last_crashed and OS.has_feature("mobile"))):
 		return
 	await get_tree().process_frame
 	await get_tree().process_frame

@@ -17,7 +17,8 @@ extends SceneTree
 ## - the Settings card's sound page has the RAPORT button beside LICENCJE, both inside the card at
 ##   a phone's size; a tap closes the card and asks main.gd for the report (`changed("report", 1)`);
 ##   with `report_on` off (a tester's build) the page has LICENCJE alone;
-## - only a debug build that keeps its files has a session file (`session_path`).
+## - a release build gets no trap at all (`make`), and only a debug build that keeps its files
+##   has a session file (`session_path`).
 ## Deletes its scratch files.
 ##   godot --headless --path game --script res://tools/check_error_trap.gd
 
@@ -101,7 +102,10 @@ func _errors() -> void:
 	_expect(t.errors.size() == ErrorTrap.MAX_ERRORS and t.dropped == 14, "MAX_ERRORS kinds are kept, the rest counted (got %d kept, %d dropped)" % [t.errors.size(), t.dropped])
 	_expect(t.errors[0]["text"].begins_with("Cannot call") and t.total == 7 + ErrorTrap.MAX_ERRORS + 10, "the first kind stays and every error is counted (got %d)" % t.total)
 	_expect(not FileAccess.file_exists(SCRATCH), "with no path no file appears")
-	# This check runs in a debug build: a kept run has the session file, --nosave has none.
+	# A release build (testers' builds) has no trap at all; this check runs in a debug build.
+	_expect(ErrorTrap.make(false) == null, "a release build gets no trap")
+	_expect(ErrorTrap.make(true) is ErrorTrap and ErrorTrap.make() is ErrorTrap, "a debug build gets one")
+	# A kept run has the session file, --nosave has none.
 	_expect(ErrorTrap.session_path(true) == ErrorTrap.PATH and ErrorTrap.session_path(false) == "", "a debug build's kept run has the session file, --nosave has none")
 
 
