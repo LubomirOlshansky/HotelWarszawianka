@@ -6,7 +6,8 @@ every STEP metres the cross-section's two shores are found, the centre point tak
 centreline smoothed (the side harbours, Port Praski above all, would pull it sideways), and the
 half width clamped. Then the rings go along it in SECTIONS (2026-11-08): bank runs, rings every
 80 m swinging 17-34 m off one bank, and crossings to the other bank with a mid-river ring, a
-ramp just past it and a gold ring past the landing; the left-bank run covers the stretch
+ramp just past it and a gold ring past the landing (the Powiśle bank run also gets a bigger ramp
+between every second pair of rings, 2026-11-10); the left-bank run covers the stretch
 where the sand barge comes up the right-bank lane; then the finish arch.
 
 Writes game/data/boat_race.json:
@@ -433,6 +434,40 @@ def place_ramps(ramps, rs, piers, sd):
     return out
 
 
+POWISLE = (80, 188)         # the Powiśle bank run (line points), F 2026-11-10: "more trampolines"
+BANK_RAMP_AT = 0.5          # a bank ramp this share along the run between two bank rings
+BANK_RAMP_W = 12.0
+BANK_RAMP_LEN = 8.0
+
+
+def place_bank_ramps(rs, piers, sd, taken):
+    """F 2026-11-10 ("the boat mission is too slow... more trampolines near the Powiśle bank"):
+    a jump ramp on the straight between every second pair of bank rings along the Powiśle run, a
+    bit bigger than the crossings' (the boats are about twice as fast now), dropped when a pier
+    or the bank is near or another ramp is close."""
+    out = []
+    pairs = [(a, b) for a, b in zip(rs, rs[1:])
+             if POWISLE[0] <= a["i"] and b["i"] <= POWISLE[1] and not a["gold"] and not b["gold"]
+             and not a["finish"] and not b["finish"]]
+    for n, (a, b) in enumerate(pairs):
+        if n % 2:
+            continue
+        pa, pb = (a["x"], a["z"]), (b["x"], b["z"])
+        d = (pb[0] - pa[0], pb[1] - pa[1])
+        ln = math.hypot(*d)
+        if ln < 60.0:
+            continue
+        u = (d[0] / ln, d[1] / ln)
+        c = (pa[0] + u[0] * ln * BANK_RAMP_AT, pa[1] + u[1] * ln * BANK_RAMP_AT)
+        if sd(*c) < SHORE_MIN + 4.0 or seg_clear(c, c, piers, 14.0) < 0.0:
+            continue
+        if any(math.hypot(c[0] - t["x"], c[1] - t["z"]) < 40.0 for t in taken + out):
+            continue
+        out.append({"x": round(c[0], 1), "z": round(c[1], 1), "yaw": round(math.atan2(u[0], u[1]), 4),
+                    "w": BANK_RAMP_W, "len": BANK_RAMP_LEN})
+    return out
+
+
 def main():
     args = dict(a.split("=", 1) for a in sys.argv[1:] if a.startswith("--") and "=" in a)
     water = args.get("--water", os.path.join(ROOT, "game/map/water.bin"))
@@ -473,6 +508,7 @@ def main():
         lu, lv = math.hypot(*u) or 1.0, math.hypot(*v) or 1.0
         r["yaw"] = round(math.atan2(u[0] / lu + v[0] / lv, u[1] / lu + v[1] / lv), 4)
     ramps = place_ramps(ramp_at, rs, piers, sd)
+    ramps += place_bank_ramps(rs, piers, sd, ramps)
     for r in rs:
         if sd(r["x"], r["z"]) < SHORE_MIN:
             print("boat_course: ring at line %d is near the shore (%.1f m)" % (r["i"], sd(r["x"], r["z"])), file=sys.stderr)

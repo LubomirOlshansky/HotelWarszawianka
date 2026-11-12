@@ -24,6 +24,7 @@ pedestrians.gd  walkers on footways in one MultiMesh, plus fixed "slots" other s
      ├─ packs.gd         running clubs and coffee crowds
      ├─ fans.gd          football fans on match evenings
      └─ wellness.gd      sound healing, yoga and other park circles
+plac_zamkowy_life.gd   tourists and a pigeon flock on Plac Zamkowy (own MultiMeshes, sleeps beyond 190 m, same flush rule as eggs.gd)
 ```
 
 ## 2. Traffic (`traffic.gd`, `lane_graph.gd`)
