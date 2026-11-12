@@ -19,8 +19,10 @@ extends SceneTree
 ## - the ✕ drops a run (not a call, an offer or a run with its card up), with the quit words; the
 ##   play limit drops it without them;
 ## - the autopilot answers the call, takes the offer and presses the run's cards;
-## - the director: at most one activity of the kit on at a time, `world_free` holds all of them,
-##   and it names the one that is on, the one with a target and why the helicopter is refused;
+## - the director: at most one activity of the kit on at a time, `world_free` holds all of them
+##   (but one that joined with its own test for the world, as the EV tow does: that one is asked
+##   instead), and it names the one that is on, the one with a target and why the helicopter is
+##   refused;
 ## - the real HUD (hud.gd): a real button's press goes to the card's owner only, and an unowned
 ##   card's press to every listener, as before the kit;
 ## - every data/*_tour.json: all the keys tour.gd reads, both languages, known shot kinds, only the
@@ -485,6 +487,22 @@ func _director() -> void:
 	_expect(not d.may_start(a) and not d.may_start(b), "world_free false: nobody may start")
 	_run(a, 300.0)
 	_expect(a.idle(), "and nobody rings")
+	# An activity that brings its own test for the world (the EV tow may start from the air,
+	# which `world_free` refuses): the director asks that one in place of `world_free`, and the
+	# kit's own rule (one at a time) still holds.
+	var own := [true]
+	var c := _probe(hud, "third")
+	d.add(c, func() -> bool: return own[0])
+	_expect(d.may_start(c) and not d.may_start(a), "an activity joined with its own world test is asked that, not world_free")
+	own[0] = false
+	_expect(not d.may_start(c), "its own test says no: it may not start")
+	own[0] = true
+	d.world_free = func() -> bool: return true
+	a.ring()
+	hud.press(0)
+	_expect(d.current() == a and not d.may_start(c), "another activity of the kit is on: it may not start, whatever its own test says")
+	a.finish()
+	_expect(d.may_start(c) and not c.flown, "free again; an activity is not flown unless it says so")
 
 
 # --- the real HUD (TD-16) --------------------------------------------------------------------------
