@@ -499,15 +499,21 @@ static func _cr3(p0: Vector3, p1: Vector3, p2: Vector3, p3: Vector3, t: float) -
 ## The take's view at second `t`: a Catmull-Rom curve through EVENT_KEYS by their times (the size in
 ## log space), the focus's height from `ground` (a Callable x, z -> m). Static and pure.
 static func event_view(t: float, ground: Callable) -> Dictionary:
-	t = clampf(t, 0.0, EVENT_TIME)
-	var n := EVENT_KEYS.size() - 1
+	return path_view(EVENT_KEYS, t, ground)
+
+
+## The view at second `t` along any keyed path shaped like EVENT_KEYS (the beta trailer's takes,
+## trailer.gd, fly the same curve through their own keys).
+static func path_view(keys: Array, t: float, ground: Callable) -> Dictionary:
+	var n := keys.size() - 1
+	t = clampf(t, 0.0, float(keys[n]["t"]))
 	var seg := 0
-	while seg < n - 1 and t >= float(EVENT_KEYS[seg + 1]["t"]):
+	while seg < n - 1 and t >= float(keys[seg + 1]["t"]):
 		seg += 1
-	var k1: Dictionary = EVENT_KEYS[seg]
-	var k2: Dictionary = EVENT_KEYS[seg + 1]
-	var k0: Dictionary = EVENT_KEYS[maxi(seg - 1, 0)]
-	var k3: Dictionary = EVENT_KEYS[mini(seg + 2, n)]
+	var k1: Dictionary = keys[seg]
+	var k2: Dictionary = keys[seg + 1]
+	var k0: Dictionary = keys[maxi(seg - 1, 0)]
+	var k3: Dictionary = keys[mini(seg + 2, n)]
 	var u := clampf((t - float(k1["t"])) / (float(k2["t"]) - float(k1["t"])), 0.0, 1.0)
 	var ks := [k0, k1, k2, k3]
 	var fx := _cr(_k(ks[0], "at").x, _k(ks[1], "at").x, _k(ks[2], "at").x, _k(ks[3], "at").x, u)

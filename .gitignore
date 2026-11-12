@@ -63,3 +63,4 @@ game/map/terrain.json
 # Wrangler's local state and dev secrets (site/, wiki/)
 .wrangler/
 .dev.vars
+game/override.cfg

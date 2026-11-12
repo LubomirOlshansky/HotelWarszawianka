@@ -23,6 +23,10 @@ const CHEQUER_WHITE := Color("#f4f1ea")
 
 enum Pattern { SOLID, DASHED, CHEQUER }
 
+## The beta trailer (trailer.gd, F 2026-11-10): every marker kept out of the picture, the quest
+## starts' columns of light included.
+static var hide_all := false
+
 var waving := true
 ## The ring's shape under colour-safe (see above); set it before or after `setup`.
 var pattern := Pattern.SOLID:
@@ -114,10 +118,12 @@ func place(at: Vector3, radius: float, column := true, person := true) -> void:
 	_ring.visible = column
 	_column.visible = column
 	_person.visible = person
-	visible = true
+	visible = not hide_all
 
 
 func _process(dt: float) -> void:
+	if hide_all:
+		visible = false
 	if not visible:
 		return
 	if _safe != Access.color_safe:

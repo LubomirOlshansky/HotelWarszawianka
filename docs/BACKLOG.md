@@ -4,6 +4,19 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## Beta trailer, second iteration (F, 2026-11-11)
+
+F on the first cloud cut: all close-ups, no Palace, centre or Old Town, a weak stadium shot, the
+HUD wanted in some shots but curated, the car parked in the club's ring by the drifting car, a
+police chase, a boat moment by the Bulwary, the time and weather changing on a landmark, music
+take 4. Built: the flights and gameplay flags in trailer.gd, `docs/trailer/cut-v2.sh`,
+`tools/trailer_cloud.sh`, the cut in docs/trailer/README.md "Second iteration".
+- [ ] Police chase: from a start on Marszałkowska (`--trailer-at`) the escape autopilot gets going after about 6 s and runs at 100 km/h, but the test chaser starts 40 m back and stays at the bottom edge or out of the frame, so the chase reads from the banner, the siren chips and the radio line, not from the patrol car. A patrol closer behind (a `--police-behind=M` test flag) would put it on screen. The scripted raid (`palace_drift`) sends its patrols only to the roads round Plac Defilad, out of frame, so it left the cut
+- [ ] Wide views with the normal streamer show sector proxies (the stadium's dark red proxy block east of x 1536): the streamer drops sectors the view still shows when the view is wider than its reach; the trailer uses `--sectors=all`. Worth a look for the helicopter's highest views in the game too
+- [ ] Golden hour (`time_of_day.gd` `golden_look`) reads brown on the glass towers; the skyline flight uses 0.55 of the way to it
+- [ ] Stadion Narodowy at night is a flat blue (no facade light), so the stadium flight stays at dusk
+- [ ] Re-render the takes on the Mac (Metal, 60 fps, MSAA) for the final upload: `tools/trailer.sh final` with the take names in `cut-v2.sh`
+
 ## The message director (F, 2026-11-11; docs/design/hud-messages.md)
 F's night-race screenshot had six texts over the road at once (the radio news, the app-taxi's GPS
 joke, the race card, the police pill, the partner, the TYGRAM pin). Built: `messages.gd`, one

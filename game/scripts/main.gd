@@ -661,6 +661,8 @@ var event_flag := -1
 var event_smoke := 1
 ## --event-t=SEC: with --cinematic=event, freeze the take at that second (stills for the path check).
 var event_t := -1.0
+## --trailer=TAKE: one of the beta trailer's scripted takes (trailer.gd), else null.
+var trailer: Trailer
 var event_log := false
 var fans_flag := 1
 var fans_now := false
@@ -1321,6 +1323,9 @@ func _fly_in() -> void:
 	if _flag_cinematic == "event":
 		_event_take()
 		return
+	if trailer != null:
+		trailer.begin(self)
+		return
 	var vehicle: Node3D = heli if flying else car
 	# First scene items 6-7: the start's trams where the first frame wants them when the camera lands.
 	_first_scene_trams(CameraShots.OPEN_TIME if _opening_due() else CameraShots.FLY_TIME)
@@ -1336,6 +1341,49 @@ func _fly_in() -> void:
 		return
 	var ahead := -vehicle.global_transform.basis.z
 	moments.fly_in(vehicle.global_position, ahead, cam_yaw, camera_pitch, _view_size)
+
+
+## --trailer=TAKE (the beta trailer, trailer.gd): no title, the take starts where the fly-in would.
+## palace_drift starts the car on Plac Defilad; heli_dive defaults to dusk, card to night (--time=
+## given after it still wins).
+func _trailer_flag(take: String) -> void:
+	if not Trailer.valid(take):
+		push_error("--trailer=%s: one of %s" % [take, ", ".join(Trailer.TAKES)])
+		return
+	trailer = Trailer.new()
+	trailer.take = take
+	add_child(trailer)
+	_flag_cinematic = "trailer"
+	show_title = false
+	# F (2026-11-10): the Palace in its everyday gold light, whatever the date (the calendar's rows,
+	# palace_lights.json, would light it white-red round 11 November), and no event day in the streets.
+	palace_lights_id = "default"
+	if event_flag < 0:
+		event_flag = 0
+	# F (2026-11-10): rendered on the Mac (M4 Pro, Metal) with Movie Maker, so the best picture the
+	# game can draw: Ultra held (no governor stepping down while a frame takes long to write), the
+	# image at the screen's full resolution, and no see-through hole or ghost round the car in the
+	# flights (the car is not in them). --quality= / --lines= given after --trailer= still win.
+	_flag_quality = Tiers.ULTRA
+	_flag_governor = 0
+	if lines_override <= 0:
+		lines_override = 1080
+	if take == "play":
+		# Gameplay: the see-through hole round the car stays (it is the game's look), and the
+		# start is whatever the other flags set up.
+		no_touch = true
+		return
+	no_ghost = true
+	free_roam = true
+	if take == "palace_drift":
+		start_at = Trailer.DRIFT_AT
+		start_heading = Trailer.DRIFT_HEADING
+	elif take == "heli_dive":
+		start_time = TimeOfDay.DUSK
+	elif take == "card":
+		start_time = TimeOfDay.NIGHT
+	elif Trailer.start_light(take) != "":
+		start_time = TimeOfDay.parse(Trailer.start_light(take))
 
 
 ## --cinematic=event: the 15 s take of 11 listopada (camera_shots.gd EVENT_KEYS, event_day.gd's
@@ -3459,6 +3507,10 @@ func _story_tick() -> void:
 ## quests": a fresh save stopped in a questline's ring and nobody came, because the guide ran).
 ## Driving into a badge and stopping is the player's own choice, so the friend comes.
 func _story_free() -> bool:
+	# The beta trailer's gameplay takes: no friend walking up with an offer card over the shot (the
+	# Mac's check, 2026-11-10: Mati's "Smoła?" stayed on the chase, club and drag takes).
+	if trailer != null:
+		return false
 	if rave != null and rave.busy():
 		return false
 	return _rave_free(true, true)
@@ -3525,6 +3577,29 @@ func _boat_free() -> bool:
 ## The boat race's share of the car's speed zoom (the river is open: the rest of the zoom only
 ## shrank the boats).
 const BOAT_ZOOM := 0.45
+## The raid's widened view (F 2026-11-10): a margin round the incoming patrol cars (m), and the most
+## the view may grow for them (m), so the police are seen coming without losing the car.
+const RAID_VIEW_MARGIN := 14.0
+const RAID_VIEW_MAX := 90.0
+
+
+## How much wider (m) the follow view must be, round the car, to show the raid's patrol cars while
+## they arrive (police.raid_arrivals): 0 outside a raid's first seconds.
+func raid_view_extra(basis: Basis, size: float) -> float:
+	if police == null or flying:
+		return 0.0
+	var cars: PackedVector3Array = police.raid_arrivals(car.global_position)
+	if cars.is_empty():
+		return 0.0
+	var screen := get_viewport().get_visible_rect().size
+	var aspect := screen.x / maxf(screen.y, 1.0)
+	var need := 0.0
+	for p in cars:
+		var off := p - car.global_position
+		var r := absf(off.dot(basis.x)) + RAID_VIEW_MARGIN
+		var u := absf(off.dot(basis.y)) + RAID_VIEW_MARGIN
+		need = maxf(need, maxf(2.0 * u, 2.0 * r / aspect))
+	return clampf(need - size, 0.0, RAID_VIEW_MAX)
 ## A free ride's view (one boat, no rings to read): this share of the base view, so the hull's
 ## lean and pitch read on the phone (Autopilot, 2026-11-07: the boat was a few pixels long).
 const BOAT_FREE_VIEW := 0.7
@@ -5252,6 +5327,38 @@ func _parse_args() -> void:
 			_flag_yaw = true
 		elif arg == "--cinematic" or arg.begins_with("--cinematic="):
 			_flag_cinematic = arg.trim_prefix("--cinematic=") if arg.contains("=") else "all"
+		elif arg.begins_with("--trailer="):
+			_trailer_flag(arg.trim_prefix("--trailer="))
+		elif arg.begins_with("--trailer-aa=") and trailer != null:
+			trailer.aa = {"0": Viewport.MSAA_DISABLED, "2": Viewport.MSAA_2X, "8": Viewport.MSAA_8X}.get(
+					arg.trim_prefix("--trailer-aa="), Viewport.MSAA_4X)
+		elif arg.begins_with("--trailer-say=") and trailer != null:
+			trailer.say = arg.trim_prefix("--trailer-say=").split("|")
+		elif arg.begins_with("--trailer-at=") and trailer != null:
+			var p3 := arg.trim_prefix("--trailer-at=").split(",")
+			trailer.at = Vector3(float(p3[0]), float(p3[2]) if p3.size() > 2 else 0.0, float(p3[1]))
+		elif arg == "--trailer-clean" and trailer != null:
+			trailer.clean = true
+		elif arg.begins_with("--trailer-cam=") and trailer != null:
+			trailer.cam_set = PackedFloat32Array(Array(arg.trim_prefix("--trailer-cam=").split(",")).map(func(x: String) -> float: return float(x)))
+		elif arg.begins_with("--trailer-rain-at=") and trailer != null:
+			trailer.rain_at = float(arg.trim_prefix("--trailer-rain-at="))
+		elif arg.begins_with("--trailer-boat=") and trailer != null:
+			trailer.boat_li = int(arg.trim_prefix("--trailer-boat="))
+		elif arg.begins_with("--trailer-hud=clean") and trailer != null:
+			trailer.hud_clean = true
+			trailer.hud_hide = arg.trim_prefix("--trailer-hud=clean").trim_prefix(",").split(",", false)
+		elif arg.begins_with("--trailer-bubble=") and trailer != null:
+			trailer.bubble_only = arg.trim_prefix("--trailer-bubble=")
+		elif arg.begins_with("--trailer-look=") and trailer != null:
+			var lk := arg.trim_prefix("--trailer-look=").split(",")
+			trailer.look = Vector2(float(lk[0]), float(lk[1]))
+		elif arg == "--trailer-hold" and trailer != null:
+			trailer.hold = true
+		elif arg.begins_with("--trailer-view=") and trailer != null:
+			trailer.view = float(arg.trim_prefix("--trailer-view="))
+		elif arg.begins_with("--trailer-len=") and trailer != null:
+			trailer.play_len = maxf(1.0, float(arg.trim_prefix("--trailer-len=")))
 		elif arg == "--heli":
 			start_flying = true
 		elif arg.begins_with("--heli-stick="):
@@ -5777,7 +5884,7 @@ func _parse_args() -> void:
 			live_clock = "16:40"
 		if start_time == TimeOfDay.DAY:
 			start_time = TimeOfDay.DUSK
-	cinematic_flyin = normal or _flag_cinematic in ["all", "flyin", "opening", "event"]
+	cinematic_flyin = normal or _flag_cinematic in ["all", "flyin", "opening", "event", "trailer"]
 	cinematic_look = normal or _flag_cinematic in ["all", "look"]
 	# Loop G1: the governor runs in a normal launch; test runs hold it so they repeat.
 	var test_run := DisplayServer.get_name() == "headless" or not shots.is_empty() or bench or probe or autopilot \
@@ -8117,6 +8224,9 @@ func _read_input(dt: float) -> void:
 	# pad. Not N: N switches the time of day, so holding it for the nitro also turned day to dusk.
 	car.nitro_hold = car.nitro_owned and (hud.nitro_held or Input.is_physical_key_pressed(KEY_SHIFT) or Gamepad.nitro())
 	hud.set_nitro(car.nitro_owned, car.nitro_charge)
+	# The beta trailer's palace_drift take (trailer.gd) drives the car, ahead of the police's drivers.
+	if trailer != null and trailer.control_car(car):
+		return
 	# Loop 3g-1: a pull-over holds the car; the police's test drivers (--police-auto, --trap with
 	# --pedal=gas, the soak's roaming autopilot) drive it.
 	if police != null and police.control_car(car, dt):
@@ -8662,6 +8772,7 @@ func _update_camera(dt: float) -> void:
 			if boat_race.state == BoatRace.State.FREE:
 				view *= BOAT_FREE_VIEW
 				zoom *= BOAT_FREE_VIEW
+		zoom += raid_view_extra(basis, view + zoom)
 		size = view + zoom
 		_view_size = fcam.zoom_step(_view_size, view, zoom, dt)
 	# The look-ahead along the way it goes, and the dead zone's window (follow_camera.gd).
