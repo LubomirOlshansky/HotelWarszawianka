@@ -644,13 +644,16 @@ func light(c: int, group: int) -> int:
 ## drive them (the edge roadworks close every road out), so the player's own routes skip them.
 ## Street races R3 (2026-11-05): `extra_in` adds links into a node, {node: [from, cost, from, cost...]}
 ## (a racer's shortcuts, race_cuts.gd), searched like the portals.
-func distances_to(target: int, max_cost := INF, portals := true, extra_in := {}) -> PackedFloat32Array:
+## The racer AI rebuild, step 3 (2026-11-10): `shut` ({edge: anything}) leaves those edges out: the
+## streets a racer found blocked (race_planner.gd Plan.shut), for the metres it has left.
+func distances_to(target: int, max_cost := INF, portals := true, extra_in := {}, shut := {}) -> PackedFloat32Array:
 	var dist := PackedFloat32Array()
 	dist.resize(node_pos.size())
 	dist.fill(INF)
 	dist[target] = 0.0
 	var heap_d := PackedFloat32Array([0.0])
 	var heap_n := PackedInt32Array([target])
+	var closed := not shut.is_empty()
 	while not heap_n.is_empty():
 		var d := heap_d[0]
 		var n := heap_n[0]
@@ -660,6 +663,8 @@ func distances_to(target: int, max_cost := INF, portals := true, extra_in := {})
 		if d > max_cost:
 			break
 		for e in node_in[n]:
+			if closed and shut.has(e):
+				continue
 			var m := e_a[e]
 			var nd := d + e_len[e]
 			if nd < dist[m]:

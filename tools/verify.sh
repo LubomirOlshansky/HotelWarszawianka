@@ -201,7 +201,21 @@
 # city, under a minute) and its pass marks against game/data/race_bench.json: a mark recorded as a
 # pass that fails is a FAIL, one recorded as a fail that passes is a WARN until it is recorded
 # (tools/race_bench.sh --write; the full matrix, ~4 min: tools/race_bench.sh), one recorded as
-# unsteady (it turns with the draw of the traffic) is shown and not held (CI too). Loop 3h slice 4: `first10`
+# unsteady (it turns with the draw of the traffic) is shown and not held (CI too). Step 3 of the rebuild:
+# `raceplanner` runs game/tools/check_race_planner.gd: the route planner (race_planner.gd) and
+# traffic.gd's part of it on the same lane graph and bench: the traffic's delay by street (none without
+# traffic, in proportion to it, most where there is no way past), a plan by arrival time (Mike's quicker
+# than Halina's, the town's traffic in it by what the racer knows, a shut street once and the way round
+# it, the search in slices the same as at once), Słoik's wrong turns (4 to 15 s, never the way back),
+# hairpins at the U-turn's speed, one finish line for both cars (the roads through a finish's circle,
+# the plan, the metres and the minimap's line ending where such a road enters it, the player's car home
+# there in any lane and not short of it, past it, beside the road or on another level, Trzy mosty's
+# last leg to its circle), and eleven races: the plan's clock against the race as driven, a wall in
+# a one-way street (backs out) and in a two-way street (turns round in it), the player's car stopped in
+# the only lane, out of the town's cars in Busy traffic (the delay owed is paid, with no step in the
+# speed), behind the slow test player on two lanes (a lane held: she moves over and is past), and the
+# first race to the Palace home at its circle; about 8 s (CI too, skipped without centrum.json).
+# Loop 3h slice 4: `first10`
 # runs game/tools/check_first10.gd: the guide's ten beats and windows, who gets the guide, three
 # synthetic players through the director's rules (each beat in its window, the fallbacks, a beat
 # waiting for a job), the first race at her own pace in a 1-D race, the words; `endcard` runs
@@ -1142,6 +1156,7 @@ for s in $want; do
 		ladder) check ladder '^ladder:' --script res://tools/check_ladder.gd ;;
 		racecuts) check racecuts '^race_cuts:' --script res://tools/check_race_cuts.gd ;;
 		racebench) check racebench '^check_race_bench:' --script res://tools/check_race_bench.gd ;;
+		raceplanner) check raceplanner '^check_race_planner:' --script res://tools/check_race_planner.gd ;;
 		first10) check first10 '^first10:' --script res://tools/check_first10.gd ;;
 		mainline) check mainline '^main_line:' --script res://tools/check_main_line.gd ;;
 		chatter) check chatter '^check_chatter:' --script res://tools/check_chatter.gd ;;
