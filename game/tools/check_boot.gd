@@ -12,7 +12,11 @@ extends SceneTree
 ## - a release build (testers' builds): no trap at all, no session file, the scene as before;
 ## - the scripts the first frame waits for: boot.gd, what it preloads and what those preload
 ##   are exactly BOOT_SCRIPTS (a preload added to any of them would bring its whole tree in
-##   before the title shows).
+##   before the title shows);
+## - a frame spent waiting for a thread under the title (`Boot.wait_frame`): with no display it
+##   takes HEADLESS_WAIT_MS, and main.gd's two waits there (the map's big files, the start's
+##   sectors) call it, so a headless run counts those waits in frames as a screen would (without
+##   it `boot-run` spent its 8000 frames before the map's files were in).
 ## Not here: a scene that fails to load (the engine's own error lines would fail this step).
 ## Deletes its scratch files.
 ##   godot --headless --path game --script res://tools/check_boot.gd
@@ -40,6 +44,7 @@ func _initialize() -> void:
 	_make_stub()
 	_which_launch()
 	_first_frame_scripts()
+	_waits()
 	await _player_launch()
 	await _run_with_flags()
 	await _release_build()
@@ -99,6 +104,24 @@ func _first_frame_scripts() -> void:
 		_expect(f in BOOT_SCRIPTS, "%s is now loaded before the first frame (boot.gd's preloads reach it): load it later, or add it to BOOT_SCRIPTS on purpose" % f)
 	for f in BOOT_SCRIPTS:
 		_expect(f in found, "%s is in BOOT_SCRIPTS but boot.gd no longer reaches it: take it off the list" % f)
+
+
+## The paced wait: this check has no display, so each call takes HEADLESS_WAIT_MS; and the two
+## waits under the title in main.gd use it (read from the source: they need the whole game to run).
+func _waits() -> void:
+	var t0 := Time.get_ticks_usec()
+	for i in 5:
+		Boot.wait_frame()
+	var ms := (Time.get_ticks_usec() - t0) / 1000.0
+	if DisplayServer.get_name() == "headless":
+		_expect(ms >= 5.0 * Boot.HEADLESS_WAIT_MS, "5 waited frames with no display took %.1f ms, under 5 x %d ms: a headless run under the title would spend thousands of frames on one load" % [ms, Boot.HEADLESS_WAIT_MS])
+	else:
+		_expect(ms < Boot.HEADLESS_WAIT_MS, "5 waited frames on a display took %.1f ms: the display paces them, the game must not wait as well" % ms)
+	var main := FileAccess.get_file_as_string("res://scripts/main.gd")
+	for fn in ["_wait_preloads", "_title_frame"]:
+		var from := main.find("\nfunc %s(" % fn)
+		var body := main.substr(from, main.find("\nfunc ", from + 1) - from) if from >= 0 else ""
+		_expect(body.contains("Boot.wait_frame()"), "main.gd's %s no longer calls Boot.wait_frame(): with no display its wait for the threads is not paced" % fn)
 
 
 func _boot(args: Array, debug := true) -> Boot:

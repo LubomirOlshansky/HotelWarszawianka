@@ -1176,6 +1176,7 @@ func _wait_preloads() -> void:
 		if not busy:
 			break
 		frames += 1
+		Boot.wait_frame()  # with no display nothing else paces this loop (boot.gd)
 		await get_tree().process_frame
 	if not _preload_paths.is_empty():
 		print("loading bar: %s on threads in %d ms (%d frames)" % [", ".join(_preload_paths), Time.get_ticks_msec() - t0, frames])
@@ -1236,6 +1237,8 @@ func _title_frame() -> void:
 					title.choose("new")
 				_:
 					title.choose("continue")
+	else:
+		Boot.wait_frame()  # the sectors load on threads: with no display nothing else paces this wait
 
 
 ## Save and resume (2026-10-31): the car goes back to where the last session left it on a normal

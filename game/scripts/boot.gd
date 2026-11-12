@@ -22,8 +22,8 @@ const ErrorTrap := preload("res://scripts/error_trap.gd")
 
 const GAME := "res://main.tscn"
 ## With no display (a headless run with --boot) nothing paces the frames, and thousands would go
-## by while the scripts load: the run's --quit-after would end it before the game began. So this
-## scene waits this long each frame there (about 120 frames a second).
+## by while a thread loads: the run's --quit-after would end it before the game began. So a frame
+## spent waiting for a thread waits this long there (about 120 frames a second): `wait_frame`.
 const HEADLESS_WAIT_MS := 8
 ## The share of the title's loading bar the scripts' load may fill (main.gd's shares come after).
 const BAR_SHARE := 0.04
@@ -90,8 +90,7 @@ func _process(_dt: float) -> void:
 	if _failed:
 		return
 	if ResourceLoader.load_threaded_get_status(game) == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
-		if DisplayServer.get_name() == "headless":
-			OS.delay_msec(HEADLESS_WAIT_MS)
+		wait_frame()
 		return
 	var scene := ResourceLoader.load_threaded_get(game) as PackedScene
 	if scene == null:
@@ -105,6 +104,14 @@ func _process(_dt: float) -> void:
 	load_ms = Time.get_ticks_msec() - _t0
 	print("boot: the title up %d ms after the engine started, the game's scene loaded in %d ms on a thread (%d frames drawn meanwhile)" % [title_ms, load_ms, _frames])
 	_enter_game(scene)
+
+
+## A frame spent waiting for a thread under the title: the scripts' load here, and in main.gd the
+## map's big files and the start's sectors. On a screen the display paces it; with no display it
+## waits HEADLESS_WAIT_MS, so a headless run counts the wait in frames as a screen would.
+static func wait_frame() -> void:
+	if DisplayServer.get_name() == "headless":
+		OS.delay_msec(HEADLESS_WAIT_MS)
 
 
 ## A language picked while the scripts load: kept as main.gd keeps it later.

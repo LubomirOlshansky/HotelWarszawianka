@@ -180,7 +180,8 @@
 # Tech-debt TD-15: `boot` runs game/tools/check_boot.gd: the boot scene (boot.gd) with a stand-in
 # for the game's scene: which launch is a player's, the title up within two frames and taken over,
 # a run with flags straight into the game, and the list of scripts the first frame waits for; no
-# map (CI too). `boot-run` is the whole game started that way, on the prebuilt city.
+# map (CI too). `boot-run` is the whole game started that way, on the prebuilt city (the one run
+# with the title up while the map's index loads on threads: TD-22's line, see `problems`).
 # Loop 3h slice 1: `save` runs game/tools/check_save.gd: save v2 (a version-1 fixture built in the
 # check migrates keeping every section, a backup of the old file, the round trip, a newer file never
 # overwritten, --nosave writes nothing, settings.cfg's version; save and resume: the [session] spot,
@@ -392,8 +393,25 @@ limited() {
 
 # problems LOG: the ERROR / WARNING lines Godot printed (push_error, push_warning, script
 # errors, engine errors), one per line.
+# WORKAROUND(arch): one line of the engine's own is let through, in the one step that asks for
+# it, see tech-debt TD-22.
+# A threaded load (`ResourceLoader.load_threaded_request`) of a file with dependencies leaves the
+# engine's load tokens behind, and at exit it prints "WARNING: N ObjectDB instances were leaked at
+# exit". The title on the prebuilt city loads the map's index that way (main.gd `_start_preloads`),
+# so a step that plays that title sets ENGINE_TOKENS=N, the count measured for the index's files:
+# there that line with a count up to N is not a problem. A bigger count (something else was left
+# behind) and every other line still fail the step. Everywhere else ENGINE_TOKENS is 0.
+ENGINE_TOKENS=0
+TOKENS_LINE='^WARNING: [0-9]+ ObjectDB instances were leaked at exit'
 problems() {
-	grep -E '^(ERROR|WARNING|SCRIPT ERROR|SCRIPT WARNING|USER ERROR|USER WARNING|Parse Error)' $1
+	grep -E '^(ERROR|WARNING|SCRIPT ERROR|SCRIPT WARNING|USER ERROR|USER WARNING|Parse Error)' $1 \
+		| awk -v max=$ENGINE_TOKENS -v line="$TOKENS_LINE" '$0 ~ line && $2 + 0 <= max { next } { print }'
+}
+
+# tokens LOG: the count in the engine's exit line when `problems` let it through, else nothing.
+tokens() {
+	(( ENGINE_TOKENS > 0 )) || return 0
+	grep -E -m1 "$TOKENS_LINE" $1 | awk -v max=$ENGINE_TOKENS '$2 + 0 <= max { print $2 + 0 }'
 }
 
 # check NAME OKLINE GODOTARGS...: a SceneTree check script that prints an OK line.
@@ -455,6 +473,8 @@ game() {
 	local np=$(problems $logf | wc -l | tr -d ' ')
 	local built=$(grep -m1 '^city built in' $logf)
 	local label="run: $name"
+	local known=$(tokens $logf)
+	[[ -n $known ]] && known=" (the engine's $known load tokens at exit: TD-22)"
 	if (( code == 142 )); then
 		row FAIL "$label" $secs "stopped after ${STEP_LIMIT}s ($logf)"
 	elif (( code != 0 || np > 0 )); then
@@ -465,12 +485,12 @@ game() {
 	elif [[ -n $outcome ]]; then
 		local fin=$(grep -E -m1 "$outcome" $logf)
 		if [[ -n $fin ]]; then
-			row PASS "$label" $secs "0 errors · ${fin[1,110]}"
+			row PASS "$label" $secs "0 errors$known · ${fin[1,110]}"
 		else
-			row WARN "$label" $secs "0 errors, but no '$outcome' line in $frames frames ($(( frames / 60 )) s of play)"
+			row WARN "$label" $secs "0 errors$known, but no '$outcome' line in $frames frames ($(( frames / 60 )) s of play)"
 		fi
 	else
-		row PASS "$label" $secs "0 errors · ${built[1,110]}"
+		row PASS "$label" $secs "0 errors$known · ${built[1,110]}"
 	fi
 }
 
@@ -1215,10 +1235,13 @@ for s in $want; do
 		# Tech-debt TD-15: the game started as a player starts it (boot.gd: the title up, the game's
 		# scene loaded on a thread behind it, the same title taken over), on the prebuilt city as on
 		# the phone. Every other run has flags and so loads the game at once. The line it waits for
-		# is main.gd's when that title goes. 8000 frames: the load takes about 850 of them in the
-		# cloud (the boot scene waits 8 ms a frame with no display), the title's wait for the
-		# start's sectors up to 8 s more.
-		boot-run) skip_prebuilt "run: boot" || game boot 8000 "^boot: the boot scene's title stayed up" --boot --prebuilt --title-choice=continue ;;
+		# is main.gd's when that title goes. 8000 frames: with no display every frame spent waiting
+		# for a thread under the title waits 8 ms (boot.gd `wait_frame`), so the scripts' load takes
+		# about 850 frames in the cloud, the map's two big files about 35 and the start's sectors up
+		# to 8 s more; without that wait the run spent all its frames before the files were in.
+		# ENGINE_TOKENS: the engine's exit line for the index's threaded load (see `problems`); 19 is
+		# its count for the index's 10 files, a count to change only with them.
+		boot-run) skip_prebuilt "run: boot" || ENGINE_TOKENS=19 game boot 8000 "^boot: the boot scene's title stayed up" --boot --prebuilt --title-choice=continue ;;
 		classic) game classic 600 "" --controls=classic ;;
 		ios) run_ios ;;
 	esac
