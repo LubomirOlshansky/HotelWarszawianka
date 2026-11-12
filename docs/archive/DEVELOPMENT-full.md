@@ -5747,7 +5747,7 @@ Command-line options (after `--`):
 | `--heli-stick=X,Z` | the L-shaped map loop (2026-10-31): the helicopter's stick held towards that world direction (x east, z south; length up to 1) the whole run, for screenshots of the clamp along the map's outline (with `--heli --at=`) |
 | `--heli-alt=M` | loop 3d-2b: start in the helicopter M metres over the ground, placed there at once (360 = its highest; the memory and far-level probes) |
 | `--mission=N` | start rescue call N at once (N = 1, 5, 9… streets, 2, 6… roofs, 3, 7… river, 4, 8… parks) |
-| `--autopilot` | testing aid: fly (or, ghosting through walls, drive) to each mission target; in a race or a side job, drive the route; with `--rival`, tail the rival |
+| `--autopilot` | testing aid: fly (or, ghosting through walls, drive) to each mission target, or to the target of the activity of the kit that is on (a tour's pickup and stops); in a race or a side job, drive the route; with `--rival`, tail the rival |
 | `--ghost-pace=X` | testing aid (street races, 2026-11-04): the autopilot's speed factor in a race (default 1.8, an average player; 2.4 a quick one; `racer`: a skilled player in traffic.gd's racer mode at the car's top), for the race-AI runs (`tools/race_ai.sh`) |
 | `--handling=cruise\|sport\|grounded` | Grounded handling (2026-11-08): drive this run in that profile (car.gd PROFILES), whatever Settings → Jazda says; `check_lane_drive.gd` takes it too |
 | `--lane-assist=on\|off` | beta values (2026-11-04): the lane assist "Asysta pasa" (`lane_assist.gd`, Classic only) for this run, whatever Settings → Jazda says (off by default) |
@@ -5888,18 +5888,18 @@ Command-line options (after `--`):
 | `--boat-race`, `--boat-race=call` | boat race (`boat_race.gd`): Szymek rings now, whatever the time |
 | `--boat-race=race` | boat race: the car at the start pontoon and straight onto the grid (3-2-1) |
 | `--boat-race=auto` | boat race: as `race`, with the player's boat driven by the rivals' driver (the shots and the full-race probe) |
-| `--dekalog`, `--dekalog=call` | Kieślowski tour (`dekalog_tour.gd`): Claire rings now, whatever the time |
-| `--dekalog=go` / `=auto` / `=0` | Kieślowski tour: the car at Centralna and the tour started (`auto`: the cards answer themselves); `0`: none |
-| `--dekalog-log` | Kieślowski tour: print `dekalog:` lines (pickup, frames, shots, hits, the pay) |
+| `--dekalog`, `--dekalog=call` | Kieślowski tour (`tour.gd` with `data/dekalog_tour.json`): Claire rings now, whatever the time |
+| `--dekalog=go` / `=auto` / `=0` | Kieślowski tour: the car at Centralna and the tour started (`auto`: the cards answer themselves; with `--autopilot` the car goes to each stop too, the whole tour by itself); `0`: none |
+| `--dekalog-log` | Kieślowski tour: print `dekalog:` lines (pickup, `stop at`, shots, hits, `done:` with the pay) |
 | `--boat-race=free`, `=free0`..`=free2` | free ride: the car at the start pontoon, out in a fleet boat (0 jet ski Rekin X, 1 electric Srebrna Strzała, the default, 2 offshore Czarna Pantera; no rings, no rivals) |
 | `--boat-race=marina` | the car at the start pontoon with the marina card up (REKIN X / STRZAŁA / PANTERA / WYŚCIG) |
 | `--boat-race=0` | no boat race (no call, no pontoon) |
 | `--boat-log` | boat race: `boat race:` lines (the call, the grid, misses, finishes, solid hits) |
-| `--kino-tour`, `--kino-tour=call` | cinema tour (`kino_tour.gd`): Wiktor rings now, whatever the time |
+| `--kino-tour`, `--kino-tour=call` | cinema tour (`tour.gd` with `data/kino_tour.json`): Wiktor rings now, whatever the time |
 | `--kino-tour=go` | cinema tour: the car at the pickup on Plac Zbawiciela and the tour started |
-| `--kino-tour=auto` | cinema tour: as `go`, its cards answered by themselves |
+| `--kino-tour=auto` | cinema tour: as `go`, its cards answered by themselves (with `--autopilot` the car goes to each stop too, the whole tour by itself: verify step `tour-run`) |
 | `--kino-tour=0` | no cinema tour |
-| `--kino-log` | cinema tour: `kino:` lines (the call, pickup, shots, scratches, pitches, the premiere's pay) |
+| `--kino-log` | cinema tour: `kino:` lines (the call, pickup, shots, hits, `stop at`, `done:` with the pay) |
 | `--rave-call` | secret rave (`rave.gd`): LEKTI's break-in on MORDOR FM now (with his voice) and Ziomek rings a second later, whatever the time |
 | `--rave-smola` | secret rave: Ziomek rings now for the club night at Smoła (the door's three questions, then the room) |
 | `--rave-club` | secret rave: straight into Smoła's cutaway room (option A: the jungle, the DJ, the dancers, the lights, TAŃCZ, PATIO and WYJDŹ) |

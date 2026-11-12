@@ -12,11 +12,11 @@ move later, and don't build a third private copy.
 | A speech bubble | `bubbles.say` (QUEST), `say_reaction`, `say_ambient`; police use the POLICE class | a timer that decides when a character may talk |
 | An incoming phone call | `hud.call_ok()` before ringing (PR #652), `messages.call_rang()` when it rings (`show_call` and an ODBIERZ card record it themselves) (the rescue line too: missions.gd waits at zero until it may ring) | ringing from your own timer without asking |
 | Dialogue words | `game/data/dialogue.json` (Polish and English pair), read with `dialogue.line(group, tag)`; branching scenes in Dialogue Manager (skill `dialogue-scenes`) | text inside code |
-| A new activity (quest, job, race mode, tour) | a script with `busy()`, `setup(world)`, injected `hud`, `wallet`, `dialogue`, `map`, `car`, `vehicle`, `clock`, `free_now`; a questline joins with one `stories.add({...})` in main.gd | **planned Activity kit** (TD-1: the base class `activity.gd` and the director). Until then: keep the states and method names of a small existing activity (`kino_tour.gd`: `setup`, `busy`, `ring`, `start`, `_quit`, `_reset`) so it ports in one step, and add its `busy()` to `_free_block()` in main.gd, and nowhere else |
+| A new activity (quest, job, race mode, tour) | **the Activity kit** (TD-1): a script that `extends "res://scripts/activity.gd"`, gives the words (`_call_card`, `_offer_card`) and the play (`_begin`, `_run_tick`, `_card_pressed`), and uses `set_target`, `show_card`, `status`, `finish` and `drop`. main.gd builds it and calls `activities.add(it)`; a questline also joins with one `stories.add({...})`. Its check takes its stand-ins from `game/tools/fakes.gd`. A new **tour** is no code: a data file `game/data/<id>_tour.json` and one line in `_build_tours` (`check_activity` reads every tour's data and plays it to the pay) | your own `enum State`, call clock, beacon, `hud.card_pressed` listener or free test; a `busy()` added to `_free_block()` (the director answers for the kit). The 13 activities not moved yet keep theirs until their own PR |
 | When the game offers the next thing | **planned offer pacer** (TD-3). Until then: ask `_free_block()` and `hud.call_ok()`; keep your own timing numbers as named consts at the top of your script | a third unrelated random timer; a new writer of `missions.paused` that doesn't put the old value back |
-| A card with buttons | `hud.show_card` and the `card_pressed` signal, which every listener hears: act only when your own state says the card is yours | **planned card owner** (TD-16). Reacting to `card_pressed` without checking your state |
+| A card with buttons | In an activity of the kit: `show_card` (the press comes to `_card_pressed`, and the run's clock stands while it is up). Elsewhere: `hud.show_card` (or `show_side_card`, `show_call`), then `hud.own_card(self)` and a `card_pressed(index)` method: the press comes to you alone (TD-16). A card nobody owns still goes to every listener of the `card_pressed` signal, as the activities not moved yet expect | a new listener of the `card_pressed` signal; `hud.hide_card()` when the card may be somebody else's (ask `hud.card_is(self)`) |
 | A questline, a job's places, or anything on the minimap or full map | map-markers.md section 3 (`stories.add` for a questline). **Planned marker registry** (TD-13) | a new `set_minimap_*` setter, or writing a list another script owns |
-| A target on the map (arrow, metres, pin, beacon) | `beacon.gd` for the world marker, `route_line.gd` + `hud.set_minimap_route` for the road route, `hud.show_status` for the card | **planned target in the Activity kit** (TD-2). Until then: clear everything you set in the same function that ends the activity (the #637 bug was a missed `return`) |
+| A target on the map (arrow, metres, pin, beacon) | In an activity of the kit: `set_target(point, person)` and `clear_target()` (TD-2). main.gd reads `activities.targeted()` for the arrow, the metres, the minimap's dot and the stop assist, and the end of the activity clears it. Outside the kit, until that activity moves: `beacon.gd` for the world marker, `route_line.gd` + `hud.set_minimap_route` for the road route, `hud.show_status` for the card, all cleared in the function that ends it (the #637 bug was a missed `return`) | a beacon or an arrow of your own in an activity of the kit; a new `if x.has_target()` block in main.gd `_show_target` or `_stop_assist` |
 | Money, respect, records, anything kept | `wallet.gd`: a key in an existing section, or a new section added to `SECTIONS`; bump `VERSION` and extend `migrate` only when old data changes meaning; add the case to `check_save.gd`; call `wallet.save()` when an event ends (it is a safe write through `safe_file.gd`, about 0.3 ms) | a second save file, your own `ConfigFile`, or `cfg.save()` straight to a path |
 | A setting | `settings.gd` (the file) + `settings_panel.gd` (the control) + `access.gd` if it is comfort or accessibility | reading `user://settings.cfg` yourself |
 | A sound | a one-shot: a row in `Sfx.SHOTS` (and `SHOT_RULES` for its priority, voice limit and pitch spread), then `sfx.play("name")` or `sfx.play_at("name", at)`; an interface sound: a row in `Sfx.UI`, then `Sfx.ui("name")`; extra takes are `name_2.wav` to `name_4.wav` beside the file. A recorded or generated file (ElevenLabs) goes in with `tools/add_sfx.py` (loop, loudness, `sources.json`); a synth one with `tools/make_sfx.py`. A venue's own music keeps its player on a bus from `Sfx.setup_buses` (Music, SFX, Ambience, Voice) | a private `AudioStreamPlayer` for an effect or interface sound, loading a file under `audio/sfx` or `audio/ui` yourself (`check_sfx` fails on it), a new `AudioServer` bus |
@@ -41,7 +41,7 @@ move later, and don't build a third private copy.
 ## What it is and why, the ask and date, the design doc.
 extends Node3D
 
-const KinoTour := preload("res://scripts/kino_tour.gd")   # in main.gd
+const Rides := preload("res://scripts/rides.gd")   # in main.gd
 
 ## Set by main.gd before setup(); never looked up by path.
 var hud: Node
@@ -54,7 +54,9 @@ func _process(dt: float) -> void: ...    # thin; decisions at 5-10 Hz
 ```
 
 In main.gd: a `const` preload, a `var`, a `_build_x` that sets the references and calls `setup`,
-a `LoadYield.tick`, a test flag if needed, and the `busy()` in `_free_block`.
+a `LoadYield.tick`, and a test flag if needed. An activity takes its shape from the kit instead
+(`activity.gd`, the first row for it above): it joins the director, and nothing is added to
+`_free_block`.
 
 ## When the owner can't do it
 

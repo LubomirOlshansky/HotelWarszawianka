@@ -151,11 +151,13 @@ const Rave := preload("res://scripts/rave.gd")
 const StreetMeet := preload("res://scripts/street_meet.gd")
 ## "Wiślana Szprotka", the boat race down the Vistula (boat_race.gd, F's ask 2026-11-06).
 const BoatRace := preload("res://scripts/boat_race.gd")
-## "Dekalog na kółkach", Claire's drive round Kieślowski's Warsaw (dekalog_tour.gd, F's ask 2026-11-07).
-const DekalogTour := preload("res://scripts/dekalog_tour.gd")
+## The activity kit (tech-debt TD-1): the director that knows which activity is on (activities.gd)
+## and the kit's first activity, the guided tour (tour.gd). Its two tours are data files: "Dekalog
+## na kółkach", Claire's drive round Kieślowski's Warsaw, and "Kino objazdowe", the director
+## friend's cinema tour (F's asks 2026-11-07).
+const Activities := preload("res://scripts/activities.gd")
+const Tour := preload("res://scripts/tour.gd")
 
-## "Kino objazdowe", the director friend's cinema tour (kino_tour.gd, F's ask 2026-11-07).
-const KinoTour := preload("res://scripts/kino_tour.gd")
 ## "Dym u Senatorka", Ivan's shisha night (shisha.gd, F's ask 2026-11-08), and the lounge upstairs
 ## at Emilii Plater 53 (lounge.gd).
 const Shisha := preload("res://scripts/shisha.gd")
@@ -593,9 +595,12 @@ var _rave_auto := false
 ## 1 the electric (default), 2 the offshore), =marina (the car there, the
 ## marina card up), =0 (none); --boat-log.
 var boat_race: BoatRace
-## The Kieślowski tour (dekalog_tour.gd): --dekalog=call (Claire phones now), =go (the tour starts
+## The activity kit's director (activities.gd): which activity of the kit is on, who may start,
+## where it sends the player. The tours below are the first to join it.
+var activities := Activities.new()
+## The Kieślowski tour (tour.gd with data/dekalog_tour.json): --dekalog=call (Claire phones now), =go (the tour starts
 ## with the car at the pickup), =auto (that, the cards answered by themselves), =0 (none); --dekalog-log.
-var dekalog_tour: DekalogTour
+var dekalog_tour: Tour
 var dekalog_flag := ""
 var dekalog_log := false
 
@@ -614,9 +619,9 @@ var boat_flag := ""
 var boat_log := false
 var _boat_mask := Vector2i.ZERO
 var _boat_paused := false
-## The cinema tour (kino_tour.gd): --kino-tour=call (Wiktor phones now), =go (the tour starts with
+## The cinema tour (tour.gd with data/kino_tour.json): --kino-tour=call (Wiktor phones now), =go (the tour starts with
 ## the car at the pickup), =auto (that, the cards answered by themselves), =0 (none); --kino-log.
-var kino_tour: KinoTour
+var kino_tour: Tour
 var kino_flag := ""
 var kino_log := false
 ## The shisha night (shisha.gd): --shisha-call (Ivan rings now), --shisha-meet (Ivan gets in now),
@@ -1386,7 +1391,10 @@ func _trap_frame(dt: float) -> void:
 		return
 	_trap_t = 1.0
 	var p := _vehicle_position()
-	_trap.set_context("%s · %s · %s at %.0f, %.0f · %s, %s" % [Messages.CONTEXT_NAMES[hud.context_now()],
+	var doing: String = Messages.CONTEXT_NAMES[hud.context_now()]
+	if activities.busy():
+		doing += " (%s)" % activities.busy_tag()
+	_trap.set_context("%s · %s · %s at %.0f, %.0f · %s, %s" % [doing,
 			districts.current if districts != null and districts.current != "" else "no district",
 			"helicopter" if flying else "car", p.x, p.z, TimeOfDay.NAMES[tod.mode], Weather.NAMES[weather.state]])
 
@@ -1798,7 +1806,7 @@ func _build_world() -> void:
 	# still counts as one (the radio host and the flavour keep quiet, notes and calls wait).
 	hud.quest_on = func() -> bool:
 		return _quest_running() or (meet != null and meet.busy()) or (crawl != null and crawl.busy()) \
-				or (dekalog_tour != null and dekalog_tour.busy()) or (kino_tour != null and kino_tour.busy()) \
+				or activities.busy() \
 				or (rides != null and rides.busy()) or (trend_job != null and trend_job.busy())
 	bubbles.project = func(p: Vector3) -> Vector2: return cam.unproject_position(p) * float(view.stretch_shrink)
 	hud.add_speech(bubbles)  # above the target pointer, below the panels (PT-10)
@@ -1938,10 +1946,8 @@ func _build_world() -> void:
 	await LoadYield.tick("_build_meet")
 	_build_boat_race(world)
 	await LoadYield.tick("_build_boat_race")
-	_build_dekalog_tour(world)
-	await LoadYield.tick("_build_dekalog_tour")
-	_build_kino_tour(world)
-	await LoadYield.tick("_build_kino_tour")
+	_build_tours(world)
+	await LoadYield.tick("_build_tours")
 	_build_shisha(data, world)
 	await LoadYield.tick("_build_shisha")
 	_build_ev_tow(world)
@@ -2881,7 +2887,7 @@ func _build_crowds(data: Dictionary, world: Node3D) -> void:
 	if rides != null:
 		rides.mission_on = func() -> bool:
 			return _quest_running() or (crawl != null and crawl.busy()) or (meet != null and meet.busy()) \
-					or (dekalog_tour != null and dekalog_tour.busy()) or (kino_tour != null and kino_tour.busy())
+					or activities.busy()
 		rides.club_doors = func() -> Array:
 			var out: Array = []
 			if crowds.dawn_on:
@@ -3317,90 +3323,55 @@ func _build_boat_race(world: Node3D) -> void:
 		get_tree().create_timer(1.0).timeout.connect(func() -> void: boat_race.ring())
 
 
-# --- the Kieślowski tour ---------------------------------------------------------------------------
+# --- the activity kit: the tours ---------------------------------------------------------------
 
-## Claire's call and the drive round the Dekalog's places (dekalog_tour.gd). None with --dekalog=0.
-func _build_dekalog_tour(world: Node3D) -> void:
-	if dekalog_flag == "0":
-		return
-	dekalog_tour = DekalogTour.new()
-	dekalog_tour.name = "DekalogTour"
-	dekalog_tour.hud = hud
-	dekalog_tour.dialogue = dialogue
-	dekalog_tour.wallet = wallet
-	dekalog_tour.map = map
-	dekalog_tour.car = car
-	dekalog_tour.log_on = dekalog_log
-	dekalog_tour.autopilot = autopilot or dekalog_flag == "auto"
-	dekalog_tour.force_hours = dekalog_flag != ""
-	dekalog_tour.vehicle = func() -> Array:
+## The two guided tours (tour.gd, the activity kit's first activity): Claire's drive round the
+## Dekalog's places and Wiktor's round the cinemas. None with --dekalog=0 / --kino-tour=0.
+func _build_tours(world: Node3D) -> void:
+	# Everything that is not in the kit yet answers through the old test (no rave, boat race,
+	# job, ride, card or call; on the ground). The director adds: no other activity of the kit.
+	activities.world_free = _boat_free
+	dekalog_tour = _build_tour(world, "dekalog", dekalog_flag, dekalog_log)
+	kino_tour = _build_tour(world, "kino", kino_flag, kino_log)
+
+
+## One tour from its data file (data/<id>_tour.json), joined to the director. `flag`: "0" none,
+## "call" the guest phones a second into the drive, "go" the tour starts with the car at the
+## pickup, "auto" that with the cards answered by themselves.
+func _build_tour(world: Node3D, id: String, flag: String, log_on: bool) -> Tour:
+	if flag == "0":
+		return null
+	var data := Tour.load_data(id)
+	if data.is_empty():
+		return null
+	var t := Tour.new()
+	t.name = "%sTour" % id.capitalize()
+	t.configure(data)
+	t.hud = hud
+	t.dialogue = dialogue
+	t.wallet = wallet
+	t.map = map
+	t.car = car
+	t.log_on = log_on
+	t.autopilot = autopilot or flag == "auto"
+	t.force_hours = flag != ""
+	t.vehicle = func() -> Array:
 		if flying:
 			return [heli.global_position, heli.speed() * 3.6, true, 0.0]
 		return [car.global_position, car.vel.length() * 3.6, false, float(car.forward_speed)]
-	dekalog_tour.clock = func() -> float: return life.hour_now() if life != null else 12.0
-	dekalog_tour.free_now = _dekalog_free
-	world.add_child(dekalog_tour)
-	dekalog_tour.setup(world)
-	if dekalog_flag in ["go", "auto"]:
+	t.clock = func() -> float: return life.hour_now() if life != null else 12.0
+	world.add_child(t)
+	t.setup(world)
+	activities.add(t)
+	if flag in ["go", "auto"]:
 		get_tree().create_timer(1.0).timeout.connect(func() -> void:
-			var at: Vector2 = DekalogTour.PICKUP["at"]
+			var at := t.pickup_at()
 			car.global_position = Vector3(at.x, map.ground_height(at.x, at.y), at.y)
 			car.reset_physics_interpolation()
-			dekalog_tour.start())
-	elif dekalog_flag == "call":
-		get_tree().create_timer(1.0).timeout.connect(func() -> void: dekalog_tour.ring())
-
-
-## Nothing else on, on the ground (the boat race's test, and no boat race either).
-func _dekalog_free() -> bool:
-	if boat_race != null and boat_race.busy():
-		return false
-	if kino_tour != null and kino_tour.busy():
-		return false
-	return _boat_free()
-
-
-# --- the cinema tour ---------------------------------------------------------------------------
-
-## Wiktor's call and the drive round the cinemas (kino_tour.gd). None with --kino-tour=0.
-func _build_kino_tour(world: Node3D) -> void:
-	if kino_flag == "0":
-		return
-	kino_tour = KinoTour.new()
-	kino_tour.name = "KinoTour"
-	kino_tour.hud = hud
-	kino_tour.dialogue = dialogue
-	kino_tour.wallet = wallet
-	kino_tour.map = map
-	kino_tour.car = car
-	kino_tour.log_on = kino_log
-	kino_tour.autopilot = autopilot or kino_flag == "auto"
-	kino_tour.force_hours = kino_flag != ""
-	kino_tour.vehicle = func() -> Array:
-		if flying:
-			return [heli.global_position, heli.speed() * 3.6, true, 0.0]
-		return [car.global_position, car.vel.length() * 3.6, false, float(car.forward_speed)]
-	kino_tour.clock = func() -> float: return life.hour_now() if life != null else 12.0
-	kino_tour.free_now = _kino_free
-	world.add_child(kino_tour)
-	kino_tour.setup(world)
-	if kino_flag in ["go", "auto"]:
-		get_tree().create_timer(1.0).timeout.connect(func() -> void:
-			var at: Vector2 = KinoTour.PICKUP["at"]
-			car.global_position = Vector3(at.x, map.ground_height(at.x, at.y), at.y)
-			car.reset_physics_interpolation()
-			kino_tour.start())
-	elif kino_flag == "call":
-		get_tree().create_timer(1.0).timeout.connect(func() -> void: kino_tour.ring())
-
-
-## Nothing else on, on the ground (the rave's test, no rave and no boat race either).
-func _kino_free() -> bool:
-	if boat_race != null and boat_race.busy():
-		return false
-	if dekalog_tour != null and dekalog_tour.busy():
-		return false
-	return _boat_free()
+			t.start())
+	elif flag == "call":
+		get_tree().create_timer(1.0).timeout.connect(func() -> void: t.ring())
+	return t
 
 
 ## The questlines (story_quests.gd): each big quest joins with one `stories.add` here. A new quest
@@ -3477,7 +3448,7 @@ func _build_stories(world: Node3D) -> void:
 						"\"Bonjour! Are you the driver? Claire, a film student from Lyon. Will you show me Kieślowski's Warsaw, all the way to Inflancka?\""],
 				"closed": ["„Kręcimy po południu i wieczorem, wtedy światło jest jak w Dekalogu. Wróć po szesnastej”",
 						"\"We shoot in the afternoon and evening, that's when the light looks like the Dekalog. Come back after four\""],
-				"at": DekalogTour.PICKUP["at"], "colour": DekalogTour.COLOUR, "hours": Vector2(DekalogTour.HOURS[0], DekalogTour.HOURS[1]),
+				"at": dekalog_tour.pickup_at(), "colour": dekalog_tour.colour, "hours": dekalog_tour.hours,
 				"call": dekalog_tour.ring, "meet": dekalog_tour.meet, "busy": dekalog_tour.busy, "idle": dekalog_tour.idle})
 	if trend_job != null:
 		stories.add({"id": "kawa", "pl": "Kawowy rajd", "en": "Coffee run", "who": [CoffeeRun.CALLER, CoffeeRun.CALLER],
@@ -3504,12 +3475,12 @@ func _build_stories(world: Node3D) -> void:
 				"at": Vector2(g.x, g.z), "colour": StreetMeet.COLOUR, "hours": StreetMeet.NIGHT_HOURS, "days": [], "jump": true,
 				"call": meet.ring, "meet": meet.meet_in_person, "busy": meet.busy, "idle": meet.idle})
 	if kino_tour != null:
-		stories.add({"id": "kino", "pl": KinoTour.NAME, "en": "Cinema tour", "who": ["Wiktor", "Wiktor"],
+		stories.add({"id": "kino", "pl": str(kino_tour.title()[0]), "en": "Cinema tour", "who": ["Wiktor", "Wiktor"],
 				"hello": ["„Jesteś! Mam film, jedną kopię na 35 mm i cztery kina do objechania. Amondo, Atlantic, Kinoteka, Muranów. Wsiadam?”",
 						"\"You're here! I've got the film, one 35 mm print and four cinemas to see. Amondo, Atlantic, Kinoteka, Muranów. Can I get in?\""],
 				"closed": ["„Kina już śpią. Dystrybutorzy też. Wpadnij po czternastej, zaczniemy od Amondo”",
 						"\"The cinemas are asleep. So are the distributors. Come by after two in the afternoon, we'll start with Amondo\""],
-				"at": KinoTour.PICKUP["at"], "colour": KinoTour.COLOUR, "hours": Vector2(KinoTour.HOURS[0], KinoTour.HOURS[1]),
+				"at": kino_tour.pickup_at(), "colour": kino_tour.colour, "hours": kino_tour.hours,
 				"call": kino_tour.ring, "meet": kino_tour.meet, "busy": kino_tour.busy, "idle": kino_tour.idle})
 	# The shisha night is a hidden quest (F 2026-11-08): no story, no pin, no phone call. Press and
 	# hold "+" for SHISHA_HOLD_S seconds anywhere (`_shisha_secret`, F 2026-11-10) and he rings.
@@ -3994,10 +3965,8 @@ func _free_block(ringing_ok := false, guide_ok := false) -> String:
 		return "rival race busy"
 	if boat_race != null and boat_race.busy():
 		return "boat race busy"
-	if dekalog_tour != null and dekalog_tour.busy():
-		return "dekalog busy"
-	if kino_tour != null and kino_tour.busy():
-		return "kino busy"
+	if activities.busy():
+		return activities.busy_tag() + " busy"
 	if flying or car.in_water:
 		return "in the air or in water"
 	return ""
@@ -4147,9 +4116,7 @@ func _ev_free() -> bool:
 		return false
 	if boat_race != null and boat_race.busy():
 		return false
-	if dekalog_tour != null and dekalog_tour.busy():
-		return false
-	if kino_tour != null and kino_tour.busy():
+	if activities.busy():
 		return false
 	return flying or not car.in_water
 
@@ -7343,9 +7310,9 @@ func _process(dt: float) -> void:
 			print("zone: scooter %s (12 km/h for scooters)" % sz)
 	_feed_life(pos)
 	var boating := boat_race != null and boat_race.busy()
-	# The Kieślowski tour: no side job is offered while Claire rides along (the jobs read it as flying).
-	# The cinema tour: no side job is offered while Wiktor rides along (the jobs read it as flying).
-	var touring := (dekalog_tour != null and dekalog_tour.busy()) or (kino_tour != null and kino_tour.busy())
+	# An activity of the kit is on (a tour, its guest rides along): no side job is offered
+	# meanwhile (the jobs read it as flying).
+	var touring := activities.busy()
 	if police != null:
 		police.flying = flying or boating  # loop 3g-1: the police ignore the helicopter (and the boat race)
 		police.zone = zone  # loop 3g-2: the city guards' zone pill and whistle
@@ -7877,10 +7844,8 @@ func _stop_assist() -> void:
 	var at := Vector3.INF
 	if flying or (rivals != null and rivals.has_target()):
 		pass
-	elif dekalog_tour != null and dekalog_tour.has_target():
-		at = dekalog_tour.stop_spot()
-	elif kino_tour != null and kino_tour.has_target():
-		at = kino_tour.stop_spot()
+	elif activities.targeted() != null:
+		at = activities.targeted().stop_spot()
 	elif trend_job != null and trend_job.has_target():
 		at = trend_job.stop_spot()
 	elif rides != null and rides.has_target():
@@ -7980,23 +7945,16 @@ func _show_target() -> void:
 		_put_target(Vector2(bp.x, bp.z), boat_race.target_colour(), false)
 		_new_target("job", bp)
 		return
-	if dekalog_tour != null and dekalog_tour.has_target() and not flying:
-		var dp: Vector3 = dekalog_tour.target_position()
-		var at_d := _vehicle_position()
-		var md := roundi(Vector2(dp.x - at_d.x, dp.z - at_d.z).length())
-		var on_d := cam.unproject_position(dp + Vector3(0, 3.5, 0)) * float(view.stretch_shrink)
-		hud.set_target(on_d, "%d m" % md, dekalog_tour.target_colour(), md > 12)
-		_put_target(Vector2(dp.x, dp.z), dekalog_tour.target_colour(), false)
-		_new_target("job", dp)
-		return
-	if kino_tour != null and kino_tour.has_target() and not flying:
-		var kp: Vector3 = kino_tour.target_position()
-		var at_k := _vehicle_position()
-		var mk := roundi(Vector2(kp.x - at_k.x, kp.z - at_k.z).length())
-		var on_k := cam.unproject_position(kp + Vector3(0, 3.5, 0)) * float(view.stretch_shrink)
-		hud.set_target(on_k, "%d m" % mk, kino_tour.target_colour(), mk > 12)
-		_put_target(Vector2(kp.x, kp.z), kino_tour.target_colour(), false)
-		_new_target("job", kp)
+	# The activity kit (tech-debt TD-2): whichever activity sends the player somewhere now.
+	var act := activities.targeted()
+	if act != null and not flying:
+		var ap: Vector3 = act.target_position()
+		var at_a := _vehicle_position()
+		var ma := roundi(Vector2(ap.x - at_a.x, ap.z - at_a.z).length())
+		var on_a := cam.unproject_position(ap + Vector3(0, 3.5, 0)) * float(view.stretch_shrink)
+		hud.set_target(on_a, "%d m" % ma, act.target_colour(), ma > 12)
+		_put_target(Vector2(ap.x, ap.z), act.target_colour(), false)
+		_new_target("job", ap)
 		return
 	if shisha != null and shisha.has_target() and not flying:
 		var sp: Vector3 = shisha.target_position()
@@ -8343,9 +8301,9 @@ func _read_heli_input(left: bool, right: bool, up: bool, down: bool, dt: float) 
 		heli.climb = 0.0
 
 
-## Testing aid (--autopilot): heads for the mission target. The helicopter climbs
-## over whatever blocks it and comes straight down onto the target; the car slides
-## there in a straight line, ignoring walls.
+## Testing aid (--autopilot): heads for the mission target, or the target of the activity of the
+## kit that is on (a tour's pickup and stops). The helicopter climbs over whatever blocks it and
+## comes straight down onto the target; the car slides there in a straight line, ignoring walls.
 func _autopilot(dt: float) -> void:
 	if _bench_ghost != null:
 		_follow(_bench_ghost)
@@ -8359,6 +8317,10 @@ func _autopilot(dt: float) -> void:
 	if trend_job != null and trend_job.drive_player():
 		return  # loop MW-4
 	if jobs != null and jobs.drive_player():
+		return
+	var act := activities.targeted()
+	if act != null and not flying:
+		_slide_car(act.target_position(), dt)
 		return
 	if not missions.has_target():
 		if flying:
@@ -8381,6 +8343,13 @@ func _autopilot(dt: float) -> void:
 		else:
 			heli.climb = 0.0
 		return
+	_slide_car(t, dt)
+
+
+## The autopilot's car: straight to `t` at 22 m/s, through walls, and it stands there.
+func _slide_car(t: Vector3, dt: float) -> void:
+	var to := Vector3(t.x - car.global_position.x, 0.0, t.z - car.global_position.z)
+	var d := to.length()
 	car.collision_mask = 0
 	car.vel = Vector3.ZERO
 	car.throttle = 0.0
@@ -8415,11 +8384,9 @@ func _toggle_vehicle() -> void:
 	if boat_race != null and boat_race.busy():
 		hud.toast("Najpierw dokończ wyścig łodzi (albo ✕)", "Finish the boat race first (or ✕)")
 		return
-	if dekalog_tour != null and dekalog_tour.busy():
-		hud.toast("Claire nie lata: najpierw kadry z Dekalogu (albo ✕)", "Claire doesn't fly: the Dekalog frames first (or ✕)")
-		return
-	if kino_tour != null and kino_tour.busy():
-		hud.toast("Wiktor nie lata: najpierw kina (albo ✕)", "Wiktor doesn't fly: the cinemas first (or ✕)")
+	var grounded := activities.grounded()  # the activity that is on keeps the player on the ground
+	if not grounded.is_empty():
+		hud.toast(str(grounded[0]), str(grounded[1]))
 		return
 	if jobs != null and jobs.busy() and not flying:
 		hud.toast("Najpierw dokończ kurs: zamówienie jedzie autem", "Finish the job first: it rides in the car")

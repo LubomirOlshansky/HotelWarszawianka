@@ -389,6 +389,8 @@ var _mini_dot_colours := PackedColorArray()
 var pill_owner := "call"
 ## Loop 2d-1: the card stands in the right-hand column beside the car (show_side_card).
 var _card_side := false
+## Whose card is up (tech-debt TD-16, `own_card`); null: nobody's, the press goes to every listener.
+var _card_owner: Object = null
 var _side_call := false
 ## Loop 2d-1: the Podwózka app's route on the minimap (map coordinates), drawn dotted.
 var _mini_route := PackedVector2Array()
@@ -1720,6 +1722,7 @@ func _build_mission_panels() -> void:
 func show_card(title: String, body: String, buttons: PackedStringArray, accent: Color, bottom := false,
 		title_en := "", body_en := "", stacked := false) -> void:
 	accent = Access.tint(accent)  # colour-safe (access.gd)
+	_card_owner = null  # a new card is nobody's until its maker calls own_card
 	title = Lang.pick(title, title_en)
 	body = Lang.pick(body, body_en)
 	title_en = ""
@@ -1761,7 +1764,7 @@ func show_card(title: String, body: String, buttons: PackedStringArray, accent: 
 		var b := _chip(_card_buttons, pl, "" if pl == en else gloss)
 		b.name = "button%d" % i
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.pressed.connect(func(): card_pressed.emit(i))
+		b.pressed.connect(func(): _press_card(i))
 	_card.reset_size()
 	_show(_card, true)
 	_show(_status, false)
@@ -1784,7 +1787,36 @@ func card_button_text(index: int) -> String:
 
 
 func hide_card() -> void:
+	_card_owner = null
 	_show(_card, false)
+
+
+# --- tech-debt TD-16: the card's owner ---------------------------------------------------------
+
+## The card (or the call) showing now is `owner`'s: its buttons go to `owner.card_pressed(index)`
+## and to nobody else. An activity of the kit (activity.gd) calls this right after it shows a
+## card. A card nobody owns still emits `card_pressed` to every listener, as all cards did before
+## the kit; the next card shown and `hide_card` clear the owner.
+func own_card(owner: Object) -> void:
+	_card_owner = owner
+
+
+## True while the card showing is `owner`'s (nothing took it down or showed another in its place).
+func card_is(owner: Object) -> bool:
+	return _card_owner == owner and bool(_wants.get(_card, false))
+
+
+## True while a card or a call is up, whoever's.
+func card_showing() -> bool:
+	return bool(_wants.get(_card, false))
+
+
+## A button of the card was pressed: to the card's owner, or to every listener when it has none.
+func _press_card(index: int) -> void:
+	if _card_owner != null and is_instance_valid(_card_owner):
+		_card_owner.card_pressed(index)
+	else:
+		card_pressed.emit(index)
 
 
 # --- F 2026-11-10: the phone view of an incoming call ------------------------------------------
@@ -1908,6 +1940,7 @@ func _set_call_width() -> void:
 func show_call(who: String, about: String, accent: Color, about_en := "", face := "",
 		buttons := PackedStringArray(["ODBIERZ|ANSWER", "ODRZUĆ|DECLINE"])) -> void:
 	accent = Access.tint(accent)  # colour-safe (access.gd)
+	_card_owner = null  # as show_card: a new call is nobody's until own_card
 	messages.call_rang()  # the message director spaces the next call from this one
 	about = Lang.pick(about, about_en)
 	if "|" in who:
@@ -1966,7 +1999,7 @@ func _call_button(index: int, word: String, colour: Color, answer: bool) -> void
 		b.add_theme_stylebox_override(st, box)
 	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	b.draw.connect(func() -> void: _paint_handset(b, answer))
-	b.pressed.connect(func(): card_pressed.emit(index))
+	b.pressed.connect(func(): _press_card(index))
 	col.add_child(b)
 	var l := _label(T_LABEL, INK)
 	l.text = word.substr(0, 1) + word.substr(1).to_lower()  # "Odbierz", as a phone writes it

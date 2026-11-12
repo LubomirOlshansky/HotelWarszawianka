@@ -63,11 +63,15 @@ fails if a script is in neither page, so add a row when you add a file.
 
 ## 4. Activities: things the player does
 
-Each runs on its own and answers `busy()`. `main.gd` `_free_block()` decides whether one may start
-(tech-debt TD-1).
+An activity of **the kit** extends `activity.gd` and joins the director, which knows which one is
+on. The others have not moved yet (one per PR, tech-debt TD-1): each runs on its own and answers
+`busy()`, and `main.gd` `_free_block()` decides whether one may start.
 
 | Script | Owns |
 | --- | --- |
+| `activity.gd` | **The activity kit's base class** (TD-1, with TD-2 and TD-16): the phases (idle, the phone rings, the offer, the run), the call's clock, the cards (a card it shows is its own; the press comes to it alone), the target (its beacon; the arrow, the metres, the minimap's dot and the stop assist read it through the director), the ✕, the autopilot's taps, the log, and one end that takes down everything it put up. A subclass gives the words and the play. |
+| `activities.gd` | **The activity director**: an activity of the kit joins with `add`. `current()`, `busy()`, `busy_tag()`; `may_start(a)` (one of the kit at a time, and `world_free`, main.gd's test for everything not in the kit yet); `targeted()`; `grounded()` (why the helicopter is refused). Not built yet: who may interrupt whom, and the context for `messages.gd`. |
+| `tour.gd` | A guided tour, the kit's first activity: a guest phones, the pickup, a list of stops with a card at each, one shot asked for on each leg, hits against the pay, a question at the end. The tours are data files: `game/data/kino_tour.json` ("Kino objazdowe") and `game/data/dekalog_tour.json` ("Dekalog na kółkach"). |
 | `missions.gd`, `beacon.gd`, `route_line.gd` | Rescue missions (call, pickup, hospital); the ground ring and light column marker; the road route as a polyline for the minimap. |
 | `jobs.gd`, `zaglebie.gd` | Kebab and słoiki deliveries; the kebab cluster's data. |
 | `rides.gd`, `ride_rules.gd`, `taxi_stories.gd` | Podwózka app-taxi job; its numbers; story passengers. |
@@ -76,11 +80,11 @@ Each runs on its own and answers `busy()`. `main.gd` `_free_block()` decides whe
 | `ladder.gd`, `trzy_mosty.gd`, `race_cuts.gd` | The rival ladder order; the final race route; racers' shortcuts. (Races themselves: `rivals.gd`, city-ai.md.) |
 | `boat_race.gd` | The Vistula boat race. |
 | `street_meet.gd` | The night racing club (calls, meets, drag). |
-| `dekalog_tour.gd`, `kino_tour.gd`, `coffee_run.gd`, `bar_crawl.gd`, `ev_tow.gd` | Story tours and call-in jobs. |
+| `coffee_run.gd`, `bar_crawl.gd`, `ev_tow.gd` | The coffee run, the bar crawl and the EV tow. |
 | `shisha.gd`, `lounge.gd`, `rave.gd`, `club.gd` | Hidden and night quests; cutaway interiors. |
 | `padel_match.gd`, `padel_sim.gd` | Padel match view; its pure rules. |
 | `event_day.gd` | 11 November day event. |
-| `story_quests.gd` | The questline registry (`stories.add({...})`): start spots, hours, call, meet, busy, idle. The closest thing to an activity director today. |
+| `story_quests.gd` | The questline registry (`stories.add({...})`): start spots, hours, call, meet, busy, idle. It lists the questlines; which activity is on is the director's (`activities.gd`). |
 | `quest_lines.gd` | Car and helicopter quest lines, marker colours. |
 | `main_line.gd`, `main_nudge.gd` | The main story thread and its on-screen nudge. |
 | `first10.gd` | The fresh-save guide and the end card. |

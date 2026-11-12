@@ -1,0 +1,390 @@
+extends Node
+## The activity kit's base class (tech-debt TD-1; TD-2 the target and TD-16 the card's owner are
+## parts of it).
+##
+## An activity is one thing the player does from a call (or a meeting) to a result card: a tour,
+## a job, a race. Before the kit each of the 15 had its own copy of the same parts; here they are
+## once:
+##   - the phases: IDLE, RING (the phone rings; the player is still free), OFFER (the offer card
+##     is up), RUN (under way: the subclass's own stages);
+##   - the call's clock (the first call, the wait between calls, the hours) and the card's life;
+##   - the cards: a card this activity shows is its own, and the HUD sends its buttons here only
+##     (`hud.own_card`), so nothing asks "was that my card?"; it takes down only its own card, and
+##     puts a card of the run back if something else took it down;
+##   - the target: `set_target` places the beacon, and the arrow, the metres, the minimap and the
+##     stop assist read it through the director; ending clears it;
+##   - the ✕, the autopilot's taps and the log;
+##   - the end: `_end` takes down the status line, the card and the target, whatever the subclass
+##     was doing, and starts the wait for the next call.
+## The director (activities.gd) knows which activity is on and who may start.
+##
+## A subclass gives the words (`_call_card`, `_offer_card`) and the play (`_begin`, `_run_tick`,
+## `_card_pressed`), and uses `set_target`, `show_card`, `status`, `finish` and `drop`.
+## The first one is tour.gd.
+
+const Beacon := preload("res://scripts/beacon.gd")
+const Access := preload("res://scripts/access.gd")
+const StopAssist := preload("res://scripts/stop_assist.gd")
+
+enum Phase { IDLE, RING, OFFER, RUN }
+
+## The autopilot's taps: s after a call or an offer shows, and after a card of the run.
+const AUTO_ANSWER := 1.5
+const AUTO_CARD := 2.5
+const OFFER_BUTTONS := ["JADĘ|ON MY WAY", "NIE DZIŚ|NOT TODAY"]
+
+## Handed in by main.gd, as to every activity before the kit.
+var hud: CanvasLayer
+var dialogue: Node
+var wallet: Node
+var map: Node3D
+var car: Node3D
+var log_on := false
+var autopilot := false
+## [position, speed km/h, flying, forward speed m/s].
+var vehicle: Callable
+var clock: Callable = func() -> float: return 12.0
+## Nothing else is on (the director sets this when the activity joins it).
+var free_now: Callable = func() -> bool: return true
+## Testing aid: calls at any hour.
+var force_hours := false
+
+## What the subclass sets before `setup`: its name in the log, its colours, the call's clock.
+var tag := "activity"
+var colour := Color.WHITE
+var dark := Color.BLACK
+## The call rings between these hours, after `first_call` s of play, then every `call_cool` s.
+var hours := Vector2(0.0, 24.0)
+var first_call := 600.0
+var call_cool := 1800.0
+## A call or an offer nobody answers goes after this long (s).
+var card_life := 12.0
+## The run gives up after this long (s) without finishing; 0 for no limit.
+var play_limit := 0.0
+## The target ring's radius (m): the stop assist's ring.
+var arrive := StopAssist.RING
+
+var phase := Phase.IDLE
+## Seconds in this phase, or since the run's last card went up.
+var _t := 0.0
+var _session := 0.0
+var _run_t := 0.0
+var _next_call := 0.0
+var _beacon: Node3D
+var _target := Vector3.INF
+## A card of the run is up and waits for a press.
+var _card_up := false
+## That card as it was shown: [title, body, buttons] (`_put_card`).
+var _card_args: Array = []
+var _status_up := false
+
+
+func setup(world: Node3D) -> void:
+	_next_call = first_call
+	_beacon = Beacon.new()
+	world.add_child(_beacon)
+	_beacon.setup(colour, dark)
+	_beacon.visible = false
+	hud.abort_pressed.connect(abort)
+
+
+## The player has taken it on (the offer card or anything after it); a ringing phone is not busy.
+func busy() -> bool:
+	return phase != Phase.IDLE and phase != Phase.RING
+
+
+## Not ringing, not on (a questline may start it now: story_quests.gd).
+func idle() -> bool:
+	return phase == Phase.IDLE
+
+
+# --- the target (TD-2) -------------------------------------------------------------------------
+
+## Where the player is sent now: the beacon stands there, and main.gd reads it (through the
+## director) for the arrow, the metres, the minimap's dot and the stop assist. `person`: someone
+## waits in the ring.
+func set_target(at: Vector2, person := false) -> void:
+	_target = Vector3(at.x, _ground(at), at.y)
+	_beacon.visible = true
+	_beacon.place(_target, arrive - 0.5, true, person)
+
+
+func clear_target() -> void:
+	_target = Vector3.INF
+	_beacon.visible = false
+
+
+func has_target() -> bool:
+	return _target != Vector3.INF
+
+
+func target_position() -> Vector3:
+	return _target
+
+
+func target_colour() -> Color:
+	return colour
+
+
+## The stop assist's spot (main.gd `_stop_assist`): the ring the car glides into.
+func stop_spot() -> Vector3:
+	return _target
+
+
+func _ground(at: Vector2) -> float:
+	return map.ground_height(at.x, at.y) if map != null else 0.0
+
+
+# --- the frame ---------------------------------------------------------------------------------
+
+func _process(dt: float) -> void:
+	_t += dt
+	_session += dt
+	_tick(dt)
+	match phase:
+		Phase.IDLE:
+			_idle_tick(dt)
+		Phase.RING, Phase.OFFER:
+			if _t > card_life:
+				_hide_own_card()
+				_end(call_cool * 0.5)
+			elif autopilot and _t > AUTO_ANSWER:
+				card_pressed(0)
+		Phase.RUN:
+			if _card_up:
+				if not hud.card_is(self):
+					# Something else took the card down or put its own up. Ours goes back once
+					# the card is free: the run waits for a press, and nobody else gets it.
+					if not hud.card_showing():
+						_put_card()
+						_log("card put back")
+				elif autopilot and _t > AUTO_CARD:
+					card_pressed(0)
+			else:
+				_run_t += dt
+				if play_limit > 0.0 and _run_t > play_limit:
+					drop(false)
+				else:
+					_run_tick(dt)
+
+
+## Twice a second while idle: is it time to phone?
+func _idle_tick(dt: float) -> void:
+	if _session < _next_call or int(_session * 2.0) == int((_session - dt) * 2.0):
+		return
+	if vehicle.is_valid() and bool(vehicle.call()[2]):
+		return
+	var h: float = clock.call()
+	if not force_hours and (h < hours.x or h >= hours.y):
+		return
+	if not free_now.call():
+		return
+	ring()
+
+
+# --- the call, the offer, the start --------------------------------------------------------------
+
+## The phone rings. False unless idle.
+func ring() -> bool:
+	if phase != Phase.IDLE:
+		return false
+	phase = Phase.RING
+	_t = 0.0
+	var c := _call_card()
+	var about: Array = c.get("about", ["", ""])
+	hud.show_call(str(c.get("who", "")), str(about[0]), colour, str(about[1]))
+	_own_card()
+	hud.ticker_out()
+	Access.buzz(60, 0.6)
+	_log("call ringing")
+	return true
+
+
+func _offer() -> void:
+	phase = Phase.OFFER
+	_t = 0.0
+	var c := _offer_card()
+	var title: Array = c.get("title", ["", ""])
+	var body: Array = c.get("body", ["", ""])
+	hud.show_side_card(str(title[0]), str(body[0]), PackedStringArray(c.get("buttons", OFFER_BUTTONS)), colour,
+			str(title[1]), str(body[1]), false, str(c.get("face", "")))
+	_own_card()
+
+
+## Met in person (the quest map's start, story_quests.gd): no call, it starts. False unless idle.
+func meet() -> bool:
+	if phase != Phase.IDLE:
+		return false
+	_log(_met_words())
+	start()
+	return true
+
+
+## It starts (the offer taken, a meeting, a test flag).
+func start() -> void:
+	phase = Phase.RUN
+	_t = 0.0
+	_run_t = 0.0
+	_card_up = false
+	_begin()
+
+
+# --- the cards (TD-16) ---------------------------------------------------------------------------
+
+## A card of the run, in the middle of the screen: this activity's own, so its buttons come to
+## `_card_pressed` and to nobody else. The run's clock stands while it is up.
+func show_card(title: Array, body: Array, buttons: PackedStringArray) -> void:
+	_card_args = [title, body, buttons]
+	_card_up = true
+	_t = 0.0
+	_put_card()
+
+
+func _put_card() -> void:
+	var title: Array = _card_args[0]
+	var body: Array = _card_args[1]
+	hud.show_card(str(title[0]), str(body[0]), _card_args[2], colour, false, str(title[1]), str(body[1]))
+	_own_card()
+
+
+func _own_card() -> void:
+	hud.own_card(self)
+
+
+## Takes the card down if it is still this activity's (never somebody else's).
+func _hide_own_card() -> void:
+	if hud.card_is(self):
+		hud.hide_card()
+
+
+## A button on a card this activity showed (the HUD calls this on the card's owner only).
+func card_pressed(index: int) -> void:
+	match phase:
+		Phase.RING:
+			_hide_own_card()
+			if index == 0:
+				_offer()
+			else:
+				_end(call_cool)
+		Phase.OFFER:
+			_hide_own_card()
+			if index == 0:
+				start()
+			else:
+				_end(call_cool)
+		Phase.RUN:
+			if _card_up:
+				_card_up = false
+				_hide_own_card()
+				_card_pressed(index)
+
+
+## The status line at the top while the run is on.
+func status(title: String, count: String, distance: String, hint: Array, progress: float) -> void:
+	_status_up = true
+	hud.show_status(title, count, distance, str(hint[0]), progress, colour, "", {}, str(hint[1]))
+
+
+func hide_status() -> void:
+	if _status_up:
+		_status_up = false
+		hud.hide_status()
+
+
+# --- the end -------------------------------------------------------------------------------------
+
+## The ✕ on the status line. Only a run that is under way, with no card of its own up, drops.
+func abort() -> void:
+	if phase == Phase.RUN and not _card_up and _can_abort():
+		drop(true)
+
+
+## The run is given up: by the player (the ✕) or by the clock.
+func drop(by_player: bool) -> void:
+	_end(call_cool)
+	if by_player:
+		var w := _quit_words()
+		if not w.is_empty():
+			hud.toast(str(w[0]), str(w[1]))
+	_log("quit")
+
+
+## The run is over and its last card closed.
+func finish() -> void:
+	_end(call_cool)
+
+
+## Back to idle, the next call `cool` s away. Everything this activity put up comes down here,
+## so a subclass can't leave a status line, a card or a beacon behind.
+func _end(cool: float) -> void:
+	hide_status()
+	_card_up = false
+	_hide_own_card()
+	clear_target()
+	phase = Phase.IDLE
+	_t = 0.0
+	_next_call = _session + cool
+	_ended()
+
+
+func _log(msg: String) -> void:
+	if log_on:
+		print("%s: %s" % [tag, msg])
+
+
+# --- what a subclass gives -----------------------------------------------------------------------
+
+## The call: {"who": the caller's name, "about": [Polish, English] what they are to the player}.
+func _call_card() -> Dictionary:
+	return {}
+
+
+## The offer: {"title": [pl, en], "body": [pl, en], "face": whose portrait, "buttons": optional}.
+func _offer_card() -> Dictionary:
+	return {}
+
+
+## The log's line when the player meets them in person.
+func _met_words() -> String:
+	return "met in person"
+
+
+## The run begins: the first stage, the first target.
+func _begin() -> void:
+	pass
+
+
+## Every frame of the run while no card of its own is up.
+func _run_tick(_dt: float) -> void:
+	pass
+
+
+## Every frame, whatever the phase (a subclass's own small clocks).
+func _tick(_dt: float) -> void:
+	pass
+
+
+## A button on a card of the run (`show_card`); the card is already down.
+func _card_pressed(_index: int) -> void:
+	pass
+
+
+## The ✕ may drop the run now.
+func _can_abort() -> bool:
+	return true
+
+
+## What the player reads when they drop it with the ✕: [Polish, English], or [] for nothing.
+func _quit_words() -> Array:
+	return []
+
+
+## Why the player may not take the helicopter while this is on: [Polish, English], or [] when
+## they may.
+func grounded() -> Array:
+	return []
+
+
+## Back to idle: a subclass clears its own run here.
+func _ended() -> void:
+	pass
