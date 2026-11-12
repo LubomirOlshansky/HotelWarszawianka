@@ -31,6 +31,9 @@ extends Node3D
 ## (its mesh, its crowd, the same lights moved there); the city is out of view. Both are built
 ## once, on the first visit (about 13k triangles together).
 
+const Lang := preload("res://scripts/lang.gd")
+const Sfx := preload("res://scripts/sfx.gd")
+
 ## The music (F, 2026-11-08): two short loops of our own (tools/make_club_loops.py), the room's
 ## techno at BPM and the patio's house at PATIO_BPM; the radio is ducked under them while inside.
 ## TAŃCZ counts the beat from the loop's playback position, so the beat ring is on the music.
@@ -38,8 +41,6 @@ const MUSIC_SALA := "res://audio/club/smola_sala.wav"
 const MUSIC_PATIO := "res://audio/club/smola_patio.wav"
 const MUSIC_DB := -6.0
 const PATIO_MUSIC_DB := -9.0
-## The radio's duck while the club's own music plays.
-const RADIO_DUCK_DB := -60.0
 const Models := preload("res://scripts/models.gd")
 const Rave := preload("res://scripts/rave.gd")
 const InstanceBuffers := preload("res://scripts/instance_buffers.gd")
@@ -88,8 +89,6 @@ var wallet: Node
 var radio: Node
 var _music: AudioStreamPlayer
 var _streams := {}
-## The radio's duck before we went in (put back on the way out).
-var _radio_duck := 0.0
 ## The view's camera (main.gd's), for taps.
 var cam: Camera3D
 var log_on := false
@@ -121,6 +120,8 @@ var _dance_t := 0.0
 var _ui: CanvasLayer
 var _title: Label
 var _who: Label
+## F 2026-11-11: the speaker's small face beside their line (Portraits.badge); none for the crowd.
+var _face: Control
 var _line: Label
 var _line_en: Label
 var _talk: PanelContainer
@@ -603,8 +604,13 @@ func _build_ui() -> void:
 	_talk.custom_minimum_size = Vector2(360, 0) * pt
 	_talk.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	_ui.add_child(_talk)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", int(8 * pt))
+	_talk.add_child(row)
+	_face = Portraits.badge(40 * pt)
+	row.add_child(_face)
 	var v := VBoxContainer.new()
-	_talk.add_child(v)
+	row.add_child(v)
 	_who = Label.new()
 	_who.add_theme_font_size_override("font_size", int(13 * pt))
 	_who.add_theme_color_override("font_color", VIOLET)
@@ -739,10 +745,10 @@ func leave() -> void:
 ## The club's loop `path` (looped forward, from its start) with the radio ducked under it; ""
 ## stops it and gives the radio back. Silent headless.
 func _music_on(path: String) -> void:
-	if radio != null and "duck_db" in radio:
-		if path != "" and _music == null:
-			_radio_duck = float(radio.duck_db)
-		radio.duck_db = RADIO_DUCK_DB if path != "" else _radio_duck
+	if path != "":
+		Sfx.duck("club")
+	else:
+		Sfx.release("club")
 	if DisplayServer.get_name() == "headless":
 		return
 	if _music == null:
@@ -936,9 +942,11 @@ func _say(person: Array) -> void:
 	var l: Array = dialogue.line(String(person[1]))
 	if l.is_empty():
 		return
-	_who.text = String(person[0]) if String(person[0]) != "" else "Ktoś z tłumu / someone in the crowd"
-	_line.text = String(l[0])
-	_line_en.text = String(l[1])
+	_who.text = String(person[0]) if String(person[0]) != "" else Lang.pick("Ktoś z tłumu", "Someone in the crowd")
+	_line.text = Lang.pick(String(l[0]), String(l[1]))  # one language on screen (lang.gd)
+	_line_en.text = ""
+	_line_en.visible = false
+	Portraits.set_badge(_face, String(person[0]), VIOLET)
 	_talk.visible = true
 	_talk.reset_size()
 	var vp := get_viewport().get_visible_rect().size

@@ -1966,6 +1966,14 @@ func _load_sunken() -> void:
 		_sunk_box = sk["box"] if not _sunk_box.has_area() else _sunk_box.merge(sk["box"])
 
 
+## SUNKEN's plan entry `key` (ring, a, b, drop; no heights), or {}: for crowds.gd's seat plans.
+static func sunk_spec(key: String) -> Dictionary:
+	for e: Dictionary in SUNKEN:
+		if str(e["key"]) == key:
+			return e
+	return {}
+
+
 ## One SUNKEN entry as built, its stair's top at height `ha` less its `top` (a flat floor: `hb`, or
 ## the top less its `drop`); `step` the terrain grid's cell. The landmark checks' stub maps build theirs with this.
 static func sunk_entry(e: Dictionary, ha: float, step: float) -> Dictionary:

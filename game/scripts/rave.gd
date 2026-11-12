@@ -39,6 +39,7 @@ const Models := preload("res://scripts/models.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Beacon := preload("res://scripts/beacon.gd")
 const Access := preload("res://scripts/access.gd")
+const Sfx := preload("res://scripts/sfx.gd")
 const Notebook := preload("res://scripts/notebook.gd")
 const InstanceBuffers := preload("res://scripts/instance_buffers.gd")
 
@@ -906,11 +907,11 @@ func _speak(files: PackedStringArray) -> void:
 		total += st.get_length() + VOICE_GAP
 	if _voice == null:
 		_voice = AudioStreamPlayer.new()
-		_voice.bus = &"SFX"
+		_voice.bus = &"Voice"
 		_voice.volume_db = VOICE_DB
 		add_child(_voice)
-	if radio != null and radio.has_method("voice_moment"):
-		radio.voice_moment(total + 0.6)
+	# The music drops under LEKTI's voice on whatever station is tuned (sfx.gd DUCKS).
+	Sfx.duck("rave_voice", total + 0.6)
 	_voice_queue = streams
 	_next_voice()
 

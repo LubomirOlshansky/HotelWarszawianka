@@ -10,6 +10,7 @@ lane_graph.gd   the road network baked from OSM: directed edges, lanes, junction
      │
 traffic.gd      every AI car: one Driver per car on the graph, drawn as one MultiMesh per kind
      ├─ rivals.gd        named racers: wander as traffic, race with race_to / stop_racing
+     │    └─ race_planner.gd  a racer's plan: seconds to the finish from every street, by its own skill
      ├─ police.gd        patrol cars (POLICE kind) + perception + the chase state machine
      │    └─ police/     beehave trees that only move a unit's car (5 Hz, ticked by hand)
      ├─ buses.gd         buses on traffic's BUS pool, sent to stops (send_to_stop / let_go)
@@ -42,9 +43,11 @@ plac_zamkowy_life.gd   tourists and a pigeon flock on Plac Zamkowy (own MultiMes
 - **Kinds**: CAR, TAXI, VAN, BUS, POLICE, NODE (a car drawn by its own node, like a rival). Each
   kind's MultiMesh draws a family of shapes picked in the instance's custom data.
 - **The API other systems use** (never move a Driver's fields by hand): `add_node_driver`,
-  `add_ghost`, `remove`, `teleport`, `race_to(d, finish, dist)`, `stop_racing`, `turn_next`,
-  `remaining`, `add_police`, `park` / `unpark`, `add_parked_car`, `lane_free`, `set_lights`,
-  `add_bus`, `send_to_stop`, `let_go`.
+  `add_ghost`, `remove`, `teleport`, `race_to(d, finish, dist, plan)`, `stop_racing`, `reroute`,
+  `turn_next`, `remaining`, `add_police`, `park` / `unpark`, `add_parked_car`, `lane_free`,
+  `set_lights`, `add_bus`, `send_to_stop`, `let_go`; for a race also `race_density()` (the
+  town's traffic as it is now), `race_delay` (what it costs a racer on a street) and the signal
+  `turned_back` (a racer found its street blocked).
 - **Routes** come from the lane graph: `distances_to(node)` once per target gives the cost from
   every node, then every car just takes the cheapest next edge. `snap(p, reach, heading,
   ground_only=...)` puts a point on a lane; pass `ground_only` for anything on the street level
@@ -52,13 +55,39 @@ plac_zamkowy_life.gd   tourists and a pigeon flock on Plac Zamkowy (own MultiMes
 
 ## 3. Racers (`rivals.gd`, design in docs/design/race-ai.md)
 
-Rivals are traffic Drivers with a personality. A race sets `race_to` with the distances to the
-finish; the rival takes the shortest way and chances some red lights with its own dice. The race
-AI rebuild (PR #630, #635, step 3 open) adds four layers: RaceNav (where a car can go, with race
-links), RacePlanner (seconds to the finish per racer), RacePath (racing line and speed per metre),
-RaceDriver (overtakes, collisions, recovery), plus RacerProfile and RaceSession. **No rubber band**:
-difficulty comes from each rival's skill, not from the player's speed. A new race mode should use
-RaceSession once it exists instead of its own ranking.
+Rivals are traffic Drivers with a personality. The race AI rebuild is four layers plus a profile
+and a race object: RaceNav (where a car can go, with race links), RacePlanner (seconds to the
+finish per racer), RacePath (racing line and speed per metre), RaceDriver (overtakes, collisions,
+recovery), RacerProfile and RaceSession. **No rubber band**: difficulty comes from each rival's
+skill, not from the player's speed. Built so far (steps 1 to 3 of 8):
+
+- **The profile** is a rung's racer stats in `ladder.gd` (how much of the car it uses, its
+  mistakes, what it knows of the town's traffic and how it weighs a street with no way past);
+  `Rivals.arm_racer` puts them on the Driver, and the rival rolls its own dice (`race_rng`).
+- **The plan** (`race_planner.gd`, one `RacePlanner` for the map, one `Plan` a race or a leg): a
+  search back from the finish gives this racer's seconds to go from every street, with the
+  shortcuts it knows and the delay it expects from the town's traffic (`Traffic.race_delay`,
+  fitted on the bench by `tools/race_traffic.sh`). `race_to` takes the plan; at every junction
+  the Driver asks it (`choose`), so it takes the quickest way and not the shortest. `rivals.gd`
+  searches the plan a slice a frame from the challenge on (`_plan_tick`), never in one frame.
+- **A blocked street**: the Driver shuts it in its plan (`block`), turns round in a two-way
+  street or backs out of a one-way one, and `turned_back` tells `rivals.gd` to count the metres
+  left without it (`reroute`).
+- **The finish** is one line for both cars. A street race's finish is a circle
+  (`FINISH_RADIUS`), and where another road runs through it (`RacePlanner.ends`: 8 of the 11
+  finishes, and Trzy mosty's) the line runs across that road where it enters the circle, in
+  whichever lane. The plan, the metres left (`Plan.metres`, `RacePlanner.links`), the rival's
+  `arrived`, the player's `Rivals.home_at` and the minimap's route (`route_line.gd`) all end
+  there. A new finish needs nothing: its roads are found from the map.
+- **Out of the town's cars** (traffic exists only round the view) a racer pays the delay its
+  streets would have cost, as ground not covered (`AWAY_*`), so a race out of sight is not a race
+  on empty streets.
+- The pack race, the autopilot's ghost and Halina's roll-up behind the car before the first race
+  (`call_first`) still go by metres (no plan).
+
+Still to come: RacePath, RaceDriver, RaceNav's links, RaceSession; a new race mode should use
+RaceSession once it exists instead of its own ranking. Every race change reports
+`tools/race_bench.sh` before and after (`check_race_bench`, `check_race_planner`).
 
 ## 4. Police (`police.gd`, `police/`)
 
@@ -103,4 +132,5 @@ railway tracks and come in and out at the map edge.
    `--bench` before and after.
 5. Words: `data/dialogue.json` group and `bubbles.say_*` with the right chatter class.
 6. Add a check in `game/tools/check_*.gd` (the existing ones: `check_police`, `check_crowds`,
-   `check_city_life`, `check_buses`, `check_trains`, `check_crash_scenes`, `check_race_bench`).
+   `check_city_life`, `check_buses`, `check_trains`, `check_crash_scenes`, `check_race_bench`,
+   `check_race_planner`).

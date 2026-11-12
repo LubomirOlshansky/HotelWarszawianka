@@ -44,8 +44,22 @@ system must be built after it.
   files in memory; unknown sections are kept as they were, so an older build doesn't destroy a
   newer save. `[session]` keeps the car's last spot for KONTYNUUJ.
 - `user://settings.cfg`, owned by `settings.gd`, separate so a new game keeps the settings.
-- `main.gd` `_notification` remembers the spot when the app goes to the background.
+- `main.gd` `_notification` remembers the spot when the app goes to the background, and
+  `_remember_frame` about every 5 s of driving; each of these rewrites the whole file.
+- **Every write is safe** (`safe_file.gd`, TD-8): a temp file, read back, then one rename over the
+  old file, for the save and the settings. A file the game writes starts with `[save] sealed=true`
+  and ends with `[end] ok=true`.
+- **A damaged file is never written over.** Half a ConfigFile loads without an error, so
+  `wallet.gd` `damage` decides: empty, not text, not a save, `[save]` without `[wallet]`, or sealed
+  without its end. The file is moved aside as `save.bad-<unix time>.cfg` (the last 3 are kept),
+  the last launch's copy `save.bak.cfg` is loaded and written back, and main.gd tells the player
+  (`_save_note`). No good copy: a fresh start. A missing `save.cfg` is a fresh start too, copy or
+  no copy, so deleting it still resets the game.
 - Tests: `check_save.gd`. Runs pass `--nosave` so a test never writes your save.
+- `user://session.log` and `session.prev.log` beside them are the error trap's (section 4), not
+  the save's, and only a debug build writes them. They are the one kept file written in place: a
+  log that grows line by line, starts again after 2,000 lines, and is never written by a release
+  build, a test run or `--nosave`.
 
 ## 4. Testing
 
@@ -54,10 +68,12 @@ system must be built after it.
 | Map data | invariants and counts | `python3 -I tools/check_map_data.py`, `check_roads.py`, `check_streets.py` ... |
 | Rules | pure scripts, no map | `game/tools/check_*.gd` (about 200), each prints `<name>: OK` |
 | Headless runs | the game for N seconds with flags | `tools/verify.sh` steps `plain`, `prebuilt`, `police-runs` ... |
-| All of it | one PASS / WARN / FAIL table | `tools/verify.sh [--quick]`; CI runs quick + map jobs |
+| All of it | one PASS / WARN / FAIL table | `tools/verify.sh [--quick]`; the steps and their sets are one list, `tools/ci_steps.txt`; CI picks its jobs from the changed paths (`tools/ci_tier.py`) and sums them up in one `gate` check; main runs every group |
 | Looks | phone-size screenshots | `tools/shots.sh`, skill `screenshot-review` |
 | Cost | frame, draw calls, scripts | `--bench`, `--probe`; the phone's BENCH card |
 | Play | Autopilot (AI player) on the Mac | skill `autopilot-playtest`, bug log PT-n in docs/PLAYTEST.md |
+| A debug run with no log to read (the phone, not plugged in) | the errors with counts, the last printed lines, whether the last session closed by itself | Settings → DŹWIĘK → RAPORT copies it (`error_trap.gd`, debug builds); `--report` prints it when a run ends |
+| Testers' builds (release) | nothing: the release engine does not report a script's mistakes (tech-debt TD-21), so a quiet TestFlight proves nothing about the scripts | find them in the rows above |
 
 Test flags (`--at=`, `--time=`, `--shots=`, `--kino-tour=go` ...) are parsed only in `main.gd` and
 listed in the archive's flags table. Every run passes `--nosave` and quits.

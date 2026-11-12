@@ -30,8 +30,9 @@ then checked before it is accepted.
   on a broken road is not done, however good it looks.
 - **Prove the cause first.** A brief's suspected cause is checked with a measurement
   (a replay test, a debug render, a bench split) before anything is changed.
-- **One writer at a time.** The folder is shared and benches disturb each other; read-only
-  reviews (art direction, design proposals) can run beside a writer.
+- **One writer at a time on the Mac.** The folder there is shared and benches disturb each
+  other; read-only reviews (art direction, design proposals) can run beside a writer. Cloud
+  threads each have their own clone and branch, one per lane (Backlog mode below).
 - **The user's phone is the playtest.** Each report ends with what to try on the iPhone and
   what to tell back; those notes become the next loop or BACKLOG lines. From the demo on, add
   outside players: watch them play, don't explain, write down where they hesitate.
@@ -55,8 +56,10 @@ backlog-loop skill (`.claude/skills/backlog-loop/SKILL.md`).
 - **Lanes.** Several sessions can run (the Mac orchestrator, cloud threads); each holds one
   lane (driving, map, visuals, content, performance, landing, store release), claims it in
   `docs/QUESTIONS.md` "In progress", and checks open PRs and recent main commits first.
-- **Merging.** A cloud session merges its own PR once every check is green (the user's yes,
-  2026-10-30); never on red, with open review comments, or with a force-push.
+- **Merging.** A cloud session merges its own PR once the `gate` check is green on the PR's
+  head commit (the user's yes, 2026-10-30; `gate` since 2026-11-12); never on red, on a run for
+  an older commit, with open review comments, or with a force-push. Green on an older base is
+  fine: merge main into a branch only on a real conflict.
 - **Still the user's yes**: anything that can't be undone (store submissions, releases, the
   live site, purchases), paid tools or services, device runs not allowed for this loop. Free
   dev tools, data downloads and Godot add-ons are pre-approved (the user, 2026-10-30): install
@@ -139,8 +142,10 @@ helper asks for one in its report.
 | --- | --- | --- |
 | `docs/DEVELOPMENT.md` | a short index; the full reference (controls, flags, map data, bench, **Performance budgets**) is `docs/archive/DEVELOPMENT-full.md`: read a section, never the whole file | a note in the matching section when a flag or behaviour changes |
 | `README.md`, `CONTRIBUTING.md` | the public front page (pitch, run, credits) and the contributor rules | when what a visitor needs changes |
-| `docs/ROADMAP.md` | the **v1.0 checklist** (done and left), the order of work and the history up to 2026-10-31 | every PR that lands or finds a v1.0 item ticks or adds its checklist line; no progress-log rows |
-| `docs/BACKLOG.md` | issues found along the way and decisions taken by default | each item: fixed removed, found added (plus one CHANGELOG.md line for player-visible changes: it feeds /progress/) |
+| `docs/changes/` | one change note per PR: the player's line, what it fixed and found, the checklist line it ticks (`docs/changes/README.md`) | every PR adds its own file and edits none of the three below |
+| `docs/ROADMAP.md` | the **v1.0 checklist** (done and left), the order of work and the history up to 2026-10-31 | the weekly bookkeeping PR, from the change notes' Roadmap sections; no progress-log rows |
+| `docs/BACKLOG.md` | issues found along the way and decisions taken by default | the weekly bookkeeping PR, from the change notes' Backlog sections |
+| `docs/CHANGELOG.md` | the player's lines by day (feeds /progress/ together with the change notes) | the weekly bookkeeping PR (`tools/changelog.py --fold`) |
 | `docs/QUESTIONS.md` | parked questions for the user (with the default built) and the lanes in progress | when a question is parked or answered, a lane claimed or freed |
 | `docs/DEMO.md` | the demo plan: area, quality bar, road defects, police, milestones | when the plan changes |
 | `docs/WORKFLOW.md` | this page | when the way of working changes |
@@ -154,23 +159,54 @@ Two sizes, picked by the kind of change.
 **Light** (content, text, landing/site, docs, object polish, tooling, small fixes that touch no
 driving, map geometry or per-frame code):
 
-1. CI **verify** is green (and `tools/verify.sh --only=` for the checks the change touches).
+1. CI's **gate** is green (and `tools/verify.sh --only=` for the checks the change touches).
 2. A visible change was seen in one phone-size shot (2532x1170).
-3. BACKLOG updated (and a CHANGELOG line if player-visible); CREDITS for anything new from outside.
+3. A change note in `docs/changes/` (the player's line if visible, what was fixed and found); CREDITS for anything new from outside.
 
 **Full** (gameplay, driving feel, police/AI, map geometry, roads, streaming, anything that runs
 per frame or adds geometry, materials or lights, anything for the phone):
 
-1. **It works**: `tools/verify.sh` RESULT: PASS; the item's own checks pass, with numbers. CI
-   runs `tools/verify.sh --quick` on Linux for every push to main and pull request
-   (`.github/workflows/verify.yml`): a red **verify** on main is fixed before new work.
+1. **It works**: `tools/verify.sh` RESULT: PASS; the item's own checks pass, with numbers. CI's
+   **gate** is green on the PR's head (`.github/workflows/verify.yml`): a red **gate** on main
+   stops the line and is fixed or reverted before anything else merges.
 2. **It was seen**: phone-size screenshots (2868x1320 for HUD work), before and after, on both
    city paths when the map builder changed; art bible for anything visible.
 3. **It fits the phone**: bench before/after within the "Performance budgets"; vertices reported.
 4. **It ships**: `tools/verify.sh --ios` BUILD SUCCEEDED at the loop's end.
-5. **It is written down**: BACKLOG; a note in the archive section for a new flag; CREDITS for anything new from outside.
+5. **It is written down**: a change note in `docs/changes/`; a note in the archive section for a new flag; CREDITS for anything new from outside.
 6. **It is honest**: what only the phone can tell (feel, heat, sound, touch) is named, with what
    the user should try; Open Questions list every default taken.
+
+## CI by change kind
+
+CI follows the two sizes above (F, 2026-11-12). `tools/ci_tier.py` reads the paths a pull request
+changes and picks the highest tier any of them asks for; a path no rule knows is `full`.
+
+| Tier | Paths | CI runs | About |
+| --- | --- | --- | --- |
+| docs | `docs/` text, `site/`, `wiki/`, `console/`, `.claude/`, root `*.md` | the Python checks in the `tier` job (architecture map, landmark specs, change notes) | 1 min |
+| content | dialogue, audio, art and the `game/data` files the city build doesn't read | `quick` | 7 min |
+| code | gameplay and check scripts | `quick` + the prebuilt city (`smoke`) | 15-20 min |
+| landmarks | landmark, model, sign and prop code and their data | code + `landmarks` | 20-25 min |
+| full | `game/map/`, `tools/`, the map builder, streaming, shaders, `.github/`, anything unknown | every group, in four shards | about 40 min |
+
+The full set took 42 min on its first run (2026-11-12; 46-61 min before), `quick` 6 min and the
+`tier` job 11 s. The other rows are estimates from the step times until a pull request of each
+kind has run. Runners differ by up to 45 % from run to run.
+
+- **Main runs the full set** after merges, one run at a time: the newest merge waits for the
+  running one and covers the merges before it. That run is the net under the tiers.
+- **Green is one check, `gate`**: it passes when every job the tier asked for passed.
+- **Red main stops the line.** One fix thread; revert first when the fix is not obvious.
+- **A new check** gets one sorted line in `tools/ci_steps.txt` (its group decides the tier; `slow`
+  keeps it out of `--quick`) and its case in `tools/verify.sh`. That file is the one list:
+  `verify.sh` reads its steps from it, `verify.yml` is not edited, and the `tier` job fails when a
+  step has a case and no line. Group `local` is for what CI never runs (the long autopilot runs,
+  the soaks). Before 2026-11-12 42 steps were in no CI list, 24 of them a few seconds long; 26 run
+  there now.
+- **One change note per PR** (`docs/changes/README.md`) replaces the edits to CHANGELOG, BACKLOG
+  and ROADMAP, which were the three most edited files in the repo and conflicted in most PRs.
+- Before 2026-11-12 every pull request ran everything (46-61 min, about 4,000 runner minutes a day).
 
 ## Milestone gates
 

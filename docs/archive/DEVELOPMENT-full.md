@@ -887,6 +887,20 @@ no samples). Buses: Master, **Music** (the radio, player at -9 dB), **SFX** (-3 
   imports (Forward loops, QOA) and decodes across each loop point; `godot --path game --
   --sound-check` (with an audio device) plays every one-shot and prints each bus's peak;
   the bench prints the buses' peaks while driving.
+- One-shots (step 2, 2026-11-12): `sfx.play(name, gain_db, pitch, bus)` (no place), `sfx.play_at(name, at,
+  gain_db)` (in the world, 6 voices, the nearest win) and `Sfx.ui(name)` / `Sfx.ui_stop(name)` /
+  `Sfx.ui_add(name, stream, db)` (the interface: static, players under the tree's root, they run
+  under the pause and before the city is built). `Sfx.SHOT_RULES`: name → [priority LOW/NORMAL/HIGH,
+  most voices at once, pitch spread]; `Sfx.pick_voice` chooses the 2D voice (6 of them). Takes:
+  `name.wav`, `name_2.wav` … `name_4.wav`. A name outside `SHOTS` / `UI` is a `push_error`.
+- The mixer (TD-5, 2026-11-12): who turns whom down is `Sfx.DUCKS` in `sfx.gd`, name →
+  [target ("radio" or a bus), dB, seconds down, seconds up]. A script calls `Sfx.duck(name)` and
+  `Sfx.release(name)`, or `Sfx.duck(name, seconds)`; ducks stack and the deepest one held counts.
+  The radio steps the mixer every frame (it runs under the pause and the title) and sets its
+  players from `Sfx.mix_db("radio")`; `sfx.gd` sets the Ambience bus from `Sfx.mix_db("Ambience")`.
+  Buses: Master (an `AudioEffectHardLimiter` at -0.5 dB), Music, SFX, Ambience, Voice (spoken
+  clips; follows the effects slider). `godot --headless --path game --script
+  res://tools/check_mixer.gd` (verify step `mixer`).
 
 **Rain** (`weather.gd`, RAIN / O / `--weather=rain`): Clear or Rain, separate from the time of
 day. `amount` (how hard it rains) drives the streaks, the rain bed and an overcast light
@@ -5081,6 +5095,23 @@ final's route on the lane graph), the flow in `rivals.gd`.
 - **Cost**: the start look and the checkpoint test at 5 Hz (a few distance tests); the ladder's
   `open_count` (~20 µs) only when the wallet changes. +0 draw calls while driving: the start marker
   is the race's own Beacon, the diamond joins the minimap's batch, the card is labels on the paused map.
+- **A rival's streets** (the racer AI rebuild's step 3, 2026-11-12; docs/design/race-ai.md 5.1):
+  in a ladder race, the guided first race and each leg of Trzy mosty the rival drives a plan
+  (`scripts/race_planner.gd`: its own seconds to the finish from every street, the town's traffic
+  counted by the rung's `knows` and `caution`), asked at every junction; the distances above stay
+  for the HUD's metres and for the pack race, the autopilot's ghost and Halina's roll-up behind
+  the car before the first race (`call_first`), which have no plan. The search runs in slices of `Traffic.PLAN_SLICE` (150) ways a frame from the challenge
+  on (0.6 ms a frame on a desktop; a plan in 28 frames on average, 52 at most), a leg's plan while
+  the leg before is driven. With `--race=N` the log has `race: <rival> plans N s to the finish
+  (traffic xD, K junction ways searched)`. A blocked street: the rival turns back (`traffic.gd`
+  `BACK_*`, the signal `turned_back`, `traffic.reroute` for the metres left). A finish is one
+  line for both cars: the circle of `FINISH_RADIUS`, and on a road that runs through it
+  (`RacePlanner.ends`: 8 of the 11 street finishes and the final's by the stadium) the line
+  across that road where it enters the circle, in whichever lane (`Rivals.home_at` for the
+  player's car, the Driver's `arrived` for the rival); the plan, the metres on the HUD and the
+  minimap's route end there. Checks: verify steps
+  `raceplanner` (`game/tools/check_race_planner.gd`, CI too) and `racebench`; the traffic delay's
+  numbers come from `tools/race_traffic.sh` (not a check).
 
 ## The first 10 minutes and the end card (loop 3h slice 4, 2026-10-31)
 
@@ -5765,6 +5796,9 @@ Command-line options (after `--`):
 | `--tap=X,Y` | tap that screen pixel at frame 60 (a landmark's info card) |
 | `--reset-save` / `--nosave` | wipe the wallet and record / neither read nor write `user://save.cfg` (nor, since loop 2a, `user://settings.cfg`) |
 | `--title-choice=continue\|new\|ask` | save and resume (2026-10-31): the title screen (forced on) picks KONTYNUUJ, NOWA GRA (wipes the save, a copy in `user://save.prev.cfg`, and starts the scene again), or shows NOWA GRA's question, once the start is in |
+| `--save-note=restored\|lost\|blocked` | safer saves (tech-debt TD-8, 2026-11-12): shows the note a damaged save gets (the copy was loaded / a fresh start / nothing will be written) without a damaged file; with `--title-choice=continue`, since the note comes when the title goes. A run prints `save: the player was told (...)` |
+| `--report` | the error trap (tech-debt TD-14, 2026-11-12): prints the trap's report when the run ends: the errors with their counts, places and contexts and the last 40 printed lines, which is what Settings → DŹWIĘK → RAPORT copies in a debug build |
+| `--crash-note` | the error trap: shows the note a debug build shows on a phone at the launch after a session that closed by itself, without one; with `--title-choice=continue`, since the note comes when the title goes. A run prints `trap: the player was told the last session closed by itself` |
 | `--resume=x,z[,heading]` | save and resume: a kept spot in memory (the title forced on; with `--nosave` the resume path without a real save) |
 | `--time=live` | v0.9: the real sun for the device's clock (TIME's fourth mode) |
 | `--clock=HH:MM` / `--date=YYYYMMDD` | start Live's clock at that Warsaw time (and date; default today); loop MW-3: with a fixed look (`--time=night --clock=01:00`) the game clock starts there, the look stays |

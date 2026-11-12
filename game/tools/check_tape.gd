@@ -16,6 +16,7 @@ extends SceneTree
 ## Prints `check_tape: OK (...)` (exit 0) or the problems (exit 1).
 ##   godot --headless --path game --script res://tools/check_tape.gd [-- --verbose]
 
+const Sfx := preload("res://scripts/sfx.gd")
 const Tape := preload("res://scripts/tape.gd")
 const Notebook := preload("res://scripts/notebook.gd")
 const Wallet := preload("res://scripts/wallet.gd")
@@ -88,12 +89,10 @@ func _run() -> void:
 		print("check_tape: no data/then_cards.json")
 		quit(1)
 		return
-	# No sound in the check: with a real audio driver (the Mac) the rewind's playbacks outlive
-	# the player and leaked a WAV and two playbacks at exit. tape.play() skips a null player.
-	var rewind: AudioStreamPlayer = tape.get("_rewind")
-	tape.set("_rewind", null)
-	rewind.stream = null
-	rewind.free()
+	# No sound in the check: with a real audio driver (the Mac) the rewind's playbacks outlived
+	# the player and leaked a WAV and two playbacks at exit. The rewind is an interface sound of
+	# the one-shot door now (Sfx.ui), which never plays a name without a stream.
+	Sfx.ui_add("rewind", null, -80.0)
 	_check_cards(tape, book)
 	var most := _check_ghosts(tape)
 	var built := _check_reach(tape, data)

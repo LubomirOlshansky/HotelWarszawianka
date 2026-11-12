@@ -30,6 +30,7 @@ var spent_usec := 0
 
 const Chatter := preload("res://scripts/chatter.gd")
 const Access := preload("res://scripts/access.gd")
+const Sfx := preload("res://scripts/sfx.gd")
 const Lang := preload("res://scripts/lang.gd")  # one language at a time: every pl/en pair below shows one
 const SettingsPanel := preload("res://scripts/settings_panel.gd")
 const Gamepad := preload("res://scripts/gamepad.gd")  # the pad's A on the context button (2026-11-03)
@@ -97,7 +98,6 @@ const CALL_W := 176.0
 const CALL_FACE := 44.0
 const CALL_BUTTON := 44.0
 ## The ringtone (tools/make_ui_sounds.py `ring`), again every RING_EVERY s while it rings.
-const RINGTONE := "res://audio/ui/ring.wav"
 const RING_EVERY := 2.6
 const CARD_FACE := 40.0
 const STATUS_W := 240.0  # the message director: the quest card in its compact cut (was 260)
@@ -239,7 +239,8 @@ var _call_box: HBoxContainer
 var _call_screen_box: PanelContainer
 var _call_screen: StyleBoxFlat
 var _call_clock: Label
-var _ring: AudioStreamPlayer
+## The ringtone is sounding (sfx.gd UI "ring"), so it is stopped once when the call view goes.
+var _ringing := false
 var _ring_wait := 0.0
 var _call_face: Control
 var _call_name: Label
@@ -1870,15 +1871,6 @@ func _build_call_view() -> void:
 	_call_buttons.alignment = BoxContainer.ALIGNMENT_CENTER
 	_call_buttons.add_theme_constant_override("separation", roundi(48.0 * pt))
 	rows.add_child(_call_buttons)
-	_ring = AudioStreamPlayer.new()
-	_ring.name = "ringtone"
-	_ring.process_mode = Node.PROCESS_MODE_ALWAYS
-	if AudioServer.get_bus_index(&"SFX") >= 0:
-		_ring.bus = &"SFX"
-	_ring.volume_db = -9.0
-	if ResourceLoader.exists(RINGTONE):
-		_ring.stream = load(RINGTONE)
-	add_child(_ring)
 
 
 ## The phone's top bar: the camera notch in the middle, three signal bars and a battery right.
@@ -2024,22 +2016,7 @@ func _paint_face(c: Control, tex: Texture2D, letter: String, accent: Color, r: f
 		for k in 2:
 			var f := fmod(t * 0.9 + k * 0.5, 1.0)
 			c.draw_arc(mid, r * (1.0 + 0.4 * f), 0.0, TAU, 48, Color(accent, 0.6 * (1.0 - f)), 2.0 * pt, true)
-	if tex != null:
-		var pts := PackedVector2Array()
-		var uvs := PackedVector2Array()
-		for i in 40:
-			var d := Vector2.from_angle(TAU * i / 40.0)
-			pts.append(mid + d * r)
-			uvs.append(Vector2(0.5, 0.5) + d * 0.5)
-		c.draw_colored_polygon(pts, Color.WHITE, uvs, tex)
-	else:
-		c.draw_circle(mid, r, accent.darkened(0.55), true, -1.0, true)
-		var font := ThemeDB.fallback_font
-		var size := roundi(r * 1.05)
-		var w := font.get_string_size(letter, HORIZONTAL_ALIGNMENT_LEFT, -1, size)
-		var y := mid.y + (font.get_ascent(size) - font.get_descent(size)) * 0.5
-		c.draw_string(font, Vector2(mid.x - w.x * 0.5, y), letter, HORIZONTAL_ALIGNMENT_LEFT, -1, size, accent.lightened(0.35))
-	c.draw_arc(mid, r, 0.0, TAU, 48, accent, maxf(1.5, 2.0 * pt), true)
+	Portraits.paint(c, mid, r, tex, letter, accent, maxf(1.5, 2.0 * pt))
 
 
 ## The running mission or race: where to, the clock, the distance, a hint, how much of the
@@ -2156,14 +2133,15 @@ func _frame(dt: float) -> void:
 		_call_t += dt
 		_call_face.queue_redraw()
 	# The ringtone while the phone view rings (and not a moment after it is answered or gone).
-	if _ring != null and _ring.stream != null:
-		if call_showing():
-			_ring_wait -= dt
-			if _ring_wait <= 0.0:
-				_ring.play()
-				_ring_wait = RING_EVERY
-		elif _ring.playing:
-			_ring.stop()
+	if call_showing():
+		_ringing = true
+		_ring_wait -= dt
+		if _ring_wait <= 0.0:
+			Sfx.ui("ring")
+			_ring_wait = RING_EVERY
+	elif _ringing:
+		_ringing = false
+		Sfx.ui_stop("ring")
 	if _toast_left > 0.0:
 		_toast_left -= dt
 		_toast_box.modulate.a = clampf(_toast_left / 0.6, 0.0, 1.0)

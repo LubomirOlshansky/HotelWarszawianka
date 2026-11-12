@@ -104,7 +104,7 @@ const BUDGET := {
 	"cosmopolitan": 420,  # 2026-11-08 photo rebuild (F)
 	"plac_grzybowski": 1500,  # 2026-11-08 photo build (F): 1429 tris, the cascade field is 48 blocks
 	"prozna": 5100,  # 2026-11-08 photo build (F): 5014 tris, 1,300 of them the 90 bollards
-	"dom_partii_extras": 100,
+	"dom_partii": 6200,  # 2026-11-12 rebuilt whole from F's photos (towers, colonnade, frieze, courtyard fountain): 5202 tris, +0 draw calls
 	"deski": 2300,
 	"rynek": 3100,
 	"syrenka": 480,
@@ -170,7 +170,7 @@ const BUDGET := {
 	"prezydencki": 1300,
 	"q22": 720,  # 2026-11-08 photo rebuild (top-50 T02): 607 tris
 	"rondo1": 900,  # 2026-11-08 photo rebuild (top-50 T03): 769 tris
-	"rotunda": 1380,
+	"rotunda": 2450,  # 2026-11-11: + the plaza's dark stone grid and its bollards
 	"skyliner": 400,
 	"skysawa": 170,
 	"powstancow_blue": 100,

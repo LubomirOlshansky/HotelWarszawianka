@@ -12,6 +12,7 @@ fails if a script is in neither page, so add a row when you add a file.
 | --- | --- |
 | `main.gd` | The composition root. Parses flags, loads settings and save, shows the title, builds the city and every system (`_build_*`), runs the frame (`_process`), routes input, decides what may start (`_free_block`). |
 | `release.gd` | Release builds read no command-line flags. |
+| `error_trap.gd` | **The error trap**: a `Logger` that keeps the kinds of error with counts, places and what the game was doing, the last printed lines, and the session file whose end mark shows whether the last session closed by itself. `report()` is what Settings → RAPORT copies. The file, the button and the after-crash note are a debug build's (our own test runs); a release build has no trap at all (`ErrorTrap.make` gives none: testers' builds run none of it). `main.gd` starts it (`_trap_start`), marks it when the app goes to the background and refreshes its context once a second (`_trap_frame`). |
 | `load_yield.gd` | `LoadYield.tick(step)`: lets one frame through during the long build so the loading bar moves. Every new `_build_*` step calls it. |
 | `title.gd` | The title screen, language pick, loading bar. |
 | `credits.gd` | Credits and licences screen. |
@@ -93,13 +94,13 @@ Each runs on its own and answers `busy()`. `main.gd` `_free_block()` decides whe
 | `bubbles.gd`, `chatter.gd` | Speech bubbles over the world; the chatter budget (QUEST, POLICE, REACTION, AMBIENT classes). |
 | `dialogue.gd` | Lines from `data/dialogue.json` by group, without repeats. |
 | `lang.gd` | One language on screen (Polish or English). |
-| `portraits.gd` | The callers' faces (`art/portraits/<name>.png`) for the phone call view (`hud.show_call`) and quest cards; the initial on a disc when there is no art. |
+| `portraits.gd` | The speakers' faces (`art/portraits/<name>.png`) for the phone call view (`hud.show_call`), quest cards, quest and police bubbles (`bubbles.gd`) and the lounge and club talk panels (`badge`); the initial on a disc when there is no art, none for non-people (`NO_FACE`). |
 | `screen_points.gd`, `access.gd` | Points, safe area, tap sizes; accessibility options. |
 | `settings.gd`, `settings_panel.gd` | Settings in `user://settings.cfg`; the panel. |
 | `full_map.gd` | Full-screen map. |
 | `notebook_page.gd`, `garage_card.gd` | Notebook tab; garage card. |
 | `radio.gd`, `greeting_clips.gd`, `opening_audio.gd` | The radio stations and host; launch greeting; opening line. |
-| `sfx.gd` | Audio buses and every effect (engine, tyres, crashes); ambience ducking. |
+| `sfx.gd` | Audio buses and every effect (engine, tyres, crashes); the mixer: who turns whom down (`DUCKS`, `Sfx.duck` / `Sfx.release`). |
 | `city_sounds.gd` | Positional sounds at places (club bass, bells). |
 | `gps_moments.gd` | App-taxi GPS jokes in traffic. |
 
@@ -107,7 +108,8 @@ Each runs on its own and answers `busy()`. `main.gd` `_free_block()` decides whe
 
 | Script | Owns |
 | --- | --- |
-| `wallet.gd` | **The save** (`user://save.cfg`, versioned with `migrate`): złoty, respect, jobs, records, eggs, notes, session spot. Signal `changed(zl, respect, gained)`. |
+| `wallet.gd` | **The save** (`user://save.cfg`, versioned with `migrate`): złoty, respect, jobs, records, eggs, notes, session spot. Signal `changed(zl, respect, gained)`. A damaged file is moved aside and the last launch's copy loaded (`load_note`, `damage`, `keep_copy`). |
+| `safe_file.gd` | The one way a kept file reaches the disk: a temp file, read back, then one rename (`write`, `copy`). Only `wallet.gd` and `settings.gd` call it. |
 | `upgrades.gd`, `garage.gd` | Parts and cars rules; the workshop. |
 | `notebook.gd` | MOJA WARSZAWA, 72 places found. |
 | `eggs.gd`, `egg_book.gd` | Easter eggs; their cards. |
