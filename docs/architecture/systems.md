@@ -72,6 +72,7 @@ on. The others have not moved yet (one per PR, tech-debt TD-1): each runs on its
 | `activity.gd` | **The activity kit's base class** (TD-1, with TD-2 and TD-16): the phases (idle, the phone rings, the offer, the run), the call's clock, the cards (a card it shows is its own; the press comes to it alone), the target (its beacon; the arrow, the metres, the minimap's dot and the stop assist read it through the director), the ✕, the autopilot's taps, the log, and one end that takes down everything it put up. A subclass gives the words and the play. |
 | `activities.gd` | **The activity director**: an activity of the kit joins with `add`. `current()`, `busy()`, `busy_tag()`; `may_start(a)` (one of the kit at a time, and `world_free`, main.gd's test for everything not in the kit yet); `targeted()`; `grounded()` (why the helicopter is refused). Not built yet: who may interrupt whom, and the context for `messages.gd`. |
 | `tour.gd` | A guided tour, the kit's first activity: a guest phones, the pickup, a list of stops with a card at each, one shot asked for on each leg, hits against the pay, a question at the end. The tours are data files: `game/data/kino_tour.json` ("Kino objazdowe") and `game/data/dekalog_tour.json` ("Dekalog na kółkach"). |
+| `bar_crawl.gd` | The bar crawl ("Rajd po barach"), an activity of the kit: a night group phones, the pickup at a kerb, three bars against a clock with a stay at the first two, the group's mood (knocks and hard stops), pay by bars, mood and time. The kit holds its call, cards, target and end; the script keeps the groups, the routes, the clock and the mood. Groups' lines: `game/data/bar_crawl.json`. |
 | `missions.gd`, `beacon.gd`, `route_line.gd` | Rescue missions (call, pickup, hospital); the ground ring and light column marker; the road route as a polyline for the minimap. |
 | `jobs.gd`, `zaglebie.gd` | Kebab and słoiki deliveries; the kebab cluster's data. |
 | `rides.gd`, `ride_rules.gd`, `taxi_stories.gd` | Podwózka app-taxi job; its numbers; story passengers. |
@@ -80,7 +81,7 @@ on. The others have not moved yet (one per PR, tech-debt TD-1): each runs on its
 | `ladder.gd`, `trzy_mosty.gd`, `race_cuts.gd` | The rival ladder order; the final race route; racers' shortcuts. (Races themselves: `rivals.gd`, city-ai.md.) |
 | `boat_race.gd` | The Vistula boat race. |
 | `street_meet.gd` | The night racing club (calls, meets, drag). |
-| `coffee_run.gd`, `bar_crawl.gd`, `ev_tow.gd` | The coffee run, the bar crawl and the EV tow. |
+| `coffee_run.gd`, `ev_tow.gd` | The coffee run and the EV tow. |
 | `shisha.gd`, `lounge.gd`, `rave.gd`, `club.gd` | Hidden and night quests; cutaway interiors. |
 | `padel_match.gd`, `padel_sim.gd` | Padel match view; its pure rules. |
 | `event_day.gd` | 11 November day event. |

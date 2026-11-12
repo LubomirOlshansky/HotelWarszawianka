@@ -2,7 +2,10 @@
 
 F, 2026-11-04: "quests about a bar crawl: you drive a company through famous bars in Warsaw for a
 limited amount of time." First version built 2026-11-07 (`game/scripts/bar_crawl.gd`,
-`game/data/bar_crawl.json`, check `game/tools/check_bar_crawl.gd`, verify step `crawl`).
+`game/data/bar_crawl.json`, check `game/tools/check_bar_crawl.gd`, verify step `crawl`). Since
+2026-11-12 it is an activity of the kit (`activity.gd`, docs/architecture/systems.md): the kit
+holds the call, the cards, the target and the end; this script keeps the groups, the routes, the
+clock and the mood.
 
 ## What the player gets
 
@@ -58,6 +61,30 @@ A route whose stop has no ground road within 120 m is left out on that map.
 - **Not yet:** the "Barowa karta" stamp collection (all four routes), the tip feeding the post-beta
   economy, Fri/Sat-only weighting, street-triggered lines, a phone feel test of the waiting at the
   kerb. These are in BACKLOG "Bar-crawl taxi quests, next steps".
+
+## On the activity kit (2026-11-12)
+
+The crawl plays as before, word for word: the old and the new script were driven side by side for
+38,636 frames (every route, accept, refuse, no answer, out of time, the ✕, knocks and hard stops)
+and put the same status lines, toasts, cards, spoken lines and pay on screen. Four things changed
+on purpose, because the kit has one answer where the script had its own:
+
+- **Busy from the offer card to the close of the result card.** Before, the crawl counted as on
+  only between the two, so another call could come while its last card was still up.
+- **No kebab or słoiki delivery during a crawl.** Every side job stands down while a crawl is on,
+  as during a tour. Before, Podwózka and "Na czasie" already did, but a delivery could be started
+  with the group in the car.
+- **The call card goes away before the offer card comes**, and an unanswered call or offer and the
+  result card close on the frame their time is up (before: on the crawl's quarter-second step).
+- **The autopilot** taps a card after 1.5 s like every kit activity (before: 2 s), and drives to
+  the crawl's target through main.gd's one autopilot (`_slide_car`); the crawl's own
+  `drive_player` is gone.
+
+`check_bar_crawl` plays a whole crawl against the shared stand-ins (`game/tools/fakes.gd`): the
+call's clock, a missed and a refused call, the offer, no kerb to meet at, the ring, boarding, the
+mood, the lines, the stays, the late line once, the result and the pay, out of time, the ✕, the
+rescue calls held and given back. Verify step `crawl-run` (full set only) plays the Klasyczna in
+the whole game with `--autopilot`.
 
 ## Add-ons check
 

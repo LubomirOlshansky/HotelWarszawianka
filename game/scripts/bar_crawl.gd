@@ -1,11 +1,13 @@
-extends Node3D
+extends "res://scripts/activity.gd"
 ## Bar crawl (F's ask 2026-11-04, docs/design/bar-crawl.md): drive a company through three bars
-## before they close.
+## before they close. An activity of the kit (activity.gd): the call, the offer, the cards, the
+## target, the ✕ and the end are the kit's; the crawl itself is here.
 ##
 ## **The call.** At night (20:00-04:00 on the game clock), with nothing else on, a group rings
 ## (GROUPS in data/bar_crawl.json: a hen party, a stag night, students after exams, a team after
 ## launch day): ODBIERZ / ODRZUĆ, then the route and its clock, JEDZIEMY! / NIE DZIŚ. The group
-## waits at a kerb 250-600 m away (the dashed amber ring).
+## waits at a kerb 250-600 m away (the dashed amber ring). The call has its own clock: so many
+## seconds of free play at night (`call_in`), not of the session.
 ##
 ## **The crawl.** Once they are in, the clock runs: the sum of each leg's allowance (`leg_time`) and
 ## the stays. Three bars in a row (ROUTES: the existing parody fascias on Nowogrodzka, Mazowiecka,
@@ -18,15 +20,15 @@ extends Node3D
 ## pay for the bars they got to. ✕ gives up (they walk).
 ##
 ## **Pay** (`pay_for`): per bar reached, plus a tip by mood and an on-time bonus when all three
-## were made. The calls (missions.gd) are paused while it runs; no ride card meanwhile (main.gd).
+## were made. The calls (missions.gd) are paused while it runs; nothing else starts from the
+## offer card to the result card's close (the director, activities.gd).
 ##
-## Cost: a 0.25 s timer, two beacons; no per-frame work, no new meshes but the beacons.
+## Cost: the crawl steps four times a second (TICK; the hard-stop rule is written for that step);
+## one beacon; no new meshes.
 ##
 ## Flags (main.gd): --crawl-call (the group rings a second in, any hour), --crawl-route=ID,
 ## --crawl-group=ID, --crawl=0 (none of it), --crawl-log.
 
-const Beacon := preload("res://scripts/beacon.gd")
-const Access := preload("res://scripts/access.gd")
 const Notebook := preload("res://scripts/notebook.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Rave := preload("res://scripts/rave.gd")
@@ -104,31 +106,23 @@ const RESPECT_HAPPY := 20
 const RESULT_LIFE := 14.0
 const TICK := 0.25
 
-enum State { IDLE, RING, OFFER, PICKUP, DRIVE, WAIT, RESULT }
+## The run's stages (the kit's phases come before them: idle, the call, the offer).
+enum Stage { PICKUP, DRIVE, WAIT, RESULT }
 
-var hud: CanvasLayer
 var bubbles: Control
-var wallet: Node
 var missions: Node
-var map: Node3D
 var graph: LaneGraph
-## [position, km/h, flying] of the player's vehicle.
-var vehicle: Callable
-## {hour, weekday} (time_of_day.gd local_clock).
-var clock: Callable
-## True when nothing else is on (main.gd).
-var free_now: Callable
 var origin := [52.234, 21.024]
-var log_on := false
 ## The call's timer runs (off in test runs but for the flags).
 var auto := true
-## --autopilot: the car slides to the targets (main.gd `_autopilot`).
-var autopilot := false
 ## --crawl-route / --crawl-group: the next crawl's.
 var force_route := ""
 var force_group := ""
+## A check's seed for the groups, routes and kerbs it draws; -1: a new one every run.
+var rng_seed := -1
 
-var state := State.IDLE
+var stage := Stage.PICKUP
+## Seconds of free play at night until the group rings.
 var call_in := 0.0
 ## The routes found on this map: ROUTES' entries with stops: [{name, at: kerb}] (all three found).
 var routes: Array[Dictionary] = []
@@ -143,11 +137,14 @@ var time_left := 0.0
 var stay_left := 0.0
 var crawls := 0
 var last_pay := {}
-var spent_usec := 0
 
 var _rng := RandomNumberGenerator.new()
-var _tick := 0.0
-var _ring_t := 0.0
+## The step's clock, and the step that is due this frame (s; 0: none).
+var _step_t := 0.0
+var _due := 0.0
+## The vehicle at the step that is due: position, km/h.
+var _at := Vector3.ZERO
+var _kmh := 0.0
 var _hold_t := 0.0
 var _talk_t := 0.0
 var _said_leg := -1
@@ -155,36 +152,29 @@ var _said_late := false
 var _bump_t := 0.0
 var _calm_t := 0.0
 var _last_kmh := 0.0
-var _result_t := 0.0
+## The rescue calls are held by this crawl, and what they were before.
+var _holds_calls := false
 var _calls_were := false
-var _pick: Node3D
-var _mark: Node3D
 
 
-func setup(world: Node3D, seed_value := -1) -> void:
-	if seed_value >= 0:
-		_rng.seed = seed_value
+func _init() -> void:
+	tag = "crawl"
+	colour = COLOUR
+	dark = Color("#2a2320")
+	card_life = RING_LIFE
+	clock = func() -> float: return 22.0
+
+
+func setup(world: Node3D) -> void:
+	super.setup(world)
+	if rng_seed >= 0:
+		_rng.seed = rng_seed
 	else:
 		_rng.randomize()
 	call_in = _rng.randf_range(FIRST_CALL.x, FIRST_CALL.y)
 	groups = load_groups()
 	if graph != null:
 		routes = find_routes(graph, map, origin)
-	_pick = Beacon.new()
-	world.add_child(_pick)
-	_pick.setup(PICK_COLOUR, Color("#2a2320"))
-	_pick.pattern = Beacon.Pattern.DASHED
-	_pick.visible = false
-	_mark = Beacon.new()
-	world.add_child(_mark)
-	_mark.setup(COLOUR, Color("#2a2320"))
-	_mark.waving = false
-	_mark.visible = false
-	if hud != null:
-		hud.card_pressed.connect(_on_card)
-		hud.abort_pressed.connect(func() -> void:
-			if busy():
-				_give_up())
 	var names := PackedStringArray()
 	for r in routes:
 		names.append(String(r["id"]))
@@ -289,97 +279,44 @@ static func clock_text(s: float) -> String:
 	return "%d:%02d" % [t / 60, t % 60]
 
 
-# --- the quest --------------------------------------------------------------------------------
+# --- the call -----------------------------------------------------------------------------------
 
-func _process(dt: float) -> void:
-	if dt <= 0.0:
+## Every frame: the crawl's step comes due four times a second, and while idle the call's own
+## clock runs on it (the seconds of free play at night).
+func _tick(dt: float) -> void:
+	_due = 0.0
+	_step_t += dt
+	if _step_t < TICK:
 		return
-	var t0 := Time.get_ticks_usec()
-	_tick += dt
-	if _tick >= TICK:
-		step(_tick)
-		_tick = 0.0
-	spent_usec += Time.get_ticks_usec() - t0
-
-
-func step(dt: float) -> void:
+	_due = _step_t
+	_step_t = 0.0
+	_last_kmh = _kmh
 	var v: Array = vehicle.call() if vehicle.is_valid() else [Vector3.ZERO, 0.0, false]
-	var at: Vector3 = v[0]
-	var kmh: float = v[1]
-	_bump_t = maxf(_bump_t - dt, 0.0)
-	match state:
-		State.IDLE:
-			if auto and _free() and _hours_now():
-				call_in -= dt
-				if call_in <= 0.0 and not ring():
-					call_in = 20.0
-		State.RING, State.OFFER:
-			_ring_t += dt
-			if autopilot and _ring_t > 2.0:
-				_on_card(0)  # --autopilot answers and accepts (the test run)
-			elif _ring_t > RING_LIFE:
-				hud.hide_card()
-				hud.toast("Nieodebrane połączenie: %s" % _group_name()[0], "Missed call: %s" % _group_name()[1])
-				_reset()
-		State.PICKUP:
-			var p: Vector3 = pickup["at"]
-			_status_to(at, p, "Zatrzymaj się przy grupie", "Stop by the group", PICK_COLOUR, false)
-			if _arrived(dt, at, kmh, p, PICK_R):
-				_board()
-		State.DRIVE, State.WAIT:
-			time_left -= dt
-			_drive_mood(dt, kmh)
-			if time_left <= 0.0:
-				_end(false)
-				return
-			if time_left < LATE_AT and not _said_late:
-				_said_late = true
-				_say(_group().get("late", []))
-			if state == State.DRIVE:
-				_drive(dt, at, kmh)
-			else:
-				_wait(dt, at)
-		State.RESULT:
-			_result_t += dt
-			if _result_t > RESULT_LIFE:
-				hud.hide_card()
-				_finish()
-	_last_kmh = kmh
+	_at = v[0]
+	_kmh = v[1]
+	_bump_t = maxf(_bump_t - _due, 0.0)
+	if phase == Phase.IDLE and auto and _may_call() and _hours_now():
+		call_in -= _due
+		if call_in <= 0.0 and not ring():
+			call_in = 20.0
 
 
-func _free() -> bool:
-	return free_now.is_valid() and bool(free_now.call()) and not routes.is_empty() and not groups.is_empty()
+## The kit's session clock is not the crawl's: see `_tick`.
+func _idle_tick(_dt: float) -> void:
+	pass
+
+
+func _may_call() -> bool:
+	return bool(free_now.call()) and not routes.is_empty() and not groups.is_empty()
 
 
 func _hours_now() -> bool:
-	var c: Dictionary = clock.call() if clock.is_valid() else {"hour": 22.0}
-	return call_hours(float(c["hour"]))
+	return call_hours(float(clock.call()))
 
 
-func busy() -> bool:
-	return state in [State.PICKUP, State.DRIVE, State.WAIT]
-
-
-func has_target() -> bool:
-	return state in [State.PICKUP, State.DRIVE, State.WAIT]
-
-
-func target_position() -> Vector3:
-	match state:
-		State.PICKUP:
-			return pickup["at"]
-		State.DRIVE, State.WAIT:
-			return _stop()["at"]["at"]
-	return Vector3.ZERO
-
-
-func target_colour() -> Color:
-	return PICK_COLOUR if state == State.PICKUP else COLOUR
-
-
-## The group rings (--crawl-call too). False with no routes or groups, or while busy.
+## The group rings (--crawl-call too). False with no routes or groups, or unless idle.
 func ring() -> bool:
-	if routes.is_empty() or groups.is_empty() or state != State.IDLE:
+	if routes.is_empty() or groups.is_empty() or phase != Phase.IDLE:
 		return false
 	group = _rng.randi() % groups.size()
 	route = _rng.randi() % routes.size()
@@ -389,30 +326,20 @@ func ring() -> bool:
 	for i in routes.size():
 		if String(routes[i]["id"]) == force_route:
 			route = i
-	state = State.RING
-	_ring_t = 0.0
-	var n := _group_name()
-	hud.show_call(String(n[0]) + "|" + String(n[1]), "Grupa na wieczór. Mówią wszyscy naraz.", COLOUR,
-			"A night-out group. All talking at once.")
-	hud.ticker_out()
-	Access.buzz(60, 0.6)
 	_log("call: %s, route %s" % [_group().get("id", ""), routes[route]["id"]])
-	return true
+	return super.ring()
 
 
-## The offer: the route, its bars and the clock; the pickup kerb.
-func _offer() -> void:
-	var v: Array = vehicle.call() if vehicle.is_valid() else [Vector3.ZERO, 0.0, false]
-	var from := Vector2((v[0] as Vector3).x, (v[0] as Vector3).z)
-	pickup = Rave.kerb_ring(graph, from, PICK_FROM, PICK_TO, Vector2.ZERO, _rng)
-	if pickup.is_empty():
-		pickup = Rave.kerb_ring(graph, from, 120.0, PICK_TO * 1.5, Vector2.ZERO, _rng)
-	if pickup.is_empty():
-		hud.hide_card()
-		_reset()
-		return
-	state = State.OFFER
-	_ring_t = 0.0
+func _call_card() -> Dictionary:
+	var n := _group_name()
+	return {"who": String(n[0]) + "|" + String(n[1]),
+			"about": ["Grupa na wieczór. Mówią wszyscy naraz.", "A night-out group. All talking at once."]}
+
+
+## The offer: the route, its bars and the clock; the pickup kerb. {} when no kerb is found.
+func _offer_card() -> Dictionary:
+	if not _find_pickup():
+		return {}
 	var r: Dictionary = routes[route]
 	var stops: Array = r["stops"]
 	var bars := PackedStringArray()
@@ -425,51 +352,96 @@ func _offer() -> void:
 	body_pl += " %s. Czas: %s." % [" → ".join(bars), t]
 	body_en += " %s. Time: %s." % [" → ".join(bars), t]
 	var n := _group_name()
-	hud.show_side_card(String(n[0]), body_pl, PackedStringArray(["JEDZIEMY!|LET'S GO", "NIE DZIŚ|NOT TONIGHT"]),
-			COLOUR, String(n[1]), body_en, false, String(n[1]))
 	_log("offer: pickup at %d,%d, clock %s" % [roundi(pickup["at"].x), roundi(pickup["at"].z), t])
+	return {"title": [String(n[0]), String(n[1])], "body": [body_pl, body_en], "face": String(n[1]),
+			"buttons": ["JEDZIEMY!|LET'S GO", "NIE DZIŚ|NOT TONIGHT"]}
 
 
-func _on_card(i: int) -> void:
-	match state:
-		State.RING:
-			if i == 0:
-				_offer()
-			else:
-				hud.hide_card()
-				hud.toast("Odrzucono. Pojadą tramwajem. Głośno.", "Declined. They'll take the tram. Loudly.")
-				_reset()
-		State.OFFER:
-			hud.hide_card()
-			if i == 0:
-				accept()
-			else:
-				hud.toast("„Trudno! Zamówimy kogoś z aplikacji. On na pewno nie zna barów.”", "\"Fine! We'll get someone off the app. He won't know the bars.\"")
-				_reset()
-		State.RESULT:
-			hud.hide_card()
-			_finish()
+## A kerb for the group to wait at, PICK_FROM..PICK_TO m from the player (wider if none).
+func _find_pickup() -> bool:
+	var v: Array = vehicle.call() if vehicle.is_valid() else [Vector3.ZERO, 0.0, false]
+	var from := Vector2((v[0] as Vector3).x, (v[0] as Vector3).z)
+	pickup = Rave.kerb_ring(graph, from, PICK_FROM, PICK_TO, Vector2.ZERO, _rng)
+	if pickup.is_empty():
+		pickup = Rave.kerb_ring(graph, from, 120.0, PICK_TO * 1.5, Vector2.ZERO, _rng)
+	return not pickup.is_empty()
 
+
+func _refused(timed_out: bool) -> void:
+	if timed_out:
+		hud.toast("Nieodebrane połączenie: %s" % _group_name()[0], "Missed call: %s" % _group_name()[1])
+	elif phase == Phase.RING:
+		hud.toast("Odrzucono. Pojadą tramwajem. Głośno.", "Declined. They'll take the tram. Loudly.")
+	else:
+		hud.toast("„Trudno! Zamówimy kogoś z aplikacji. On na pewno nie zna barów.”", "\"Fine! We'll get someone off the app. He won't know the bars.\"")
+
+
+# --- the crawl ----------------------------------------------------------------------------------
 
 ## JEDZIEMY!: the group waiting at the kerb (the dashed ring).
-func accept() -> void:
-	if pickup.is_empty():
+func _begin() -> void:
+	if pickup.is_empty() and (route < 0 or group < 0 or not _find_pickup()):
+		drop(false)  # started with no call before it and no kerb to be found
 		return
 	_calls_were = missions.paused if missions != null else false
+	_holds_calls = true
 	if missions != null:
 		missions.paused = true
-	var side: Vector3 = pickup["side"]
-	_pick.place(Vector3(side.x, pickup["at"].y, side.z), PICK_R, true, true)
-	_pick.visible = true
-	state = State.PICKUP
+	stage = Stage.PICKUP
 	_hold_t = 0.0
+	var side: Vector3 = pickup["side"]
+	_beacon.recolour(PICK_COLOUR)
+	_beacon.pattern = Beacon.Pattern.DASHED
+	_beacon.waving = true
+	set_target(Vector2(pickup["at"].x, pickup["at"].z), true, Vector3(side.x, pickup["at"].y, side.z), PICK_R)
 	hud.toast("Jedź po grupę", "Go and pick up the group")
 	_log("accepted")
 
 
+## Four times a second while the crawl is on (no card of its own up).
+func _run_tick(_dt: float) -> void:
+	if _due <= 0.0:
+		return
+	var dt := _due
+	match stage:
+		Stage.PICKUP:
+			var p: Vector3 = pickup["at"]
+			_status_to(_at, p, "Zatrzymaj się przy grupie", "Stop by the group", PICK_COLOUR, false)
+			if _arrived(dt, _at, _kmh, p, PICK_R):
+				_board()
+		Stage.DRIVE, Stage.WAIT:
+			time_left -= dt
+			_drive_mood(dt, _kmh)
+			if time_left <= 0.0:
+				_result(false)
+				return
+			if time_left < LATE_AT and not _said_late:
+				_said_late = true
+				_say(_group().get("late", []))
+			if stage == Stage.DRIVE:
+				_drive(dt, _at, _kmh)
+			else:
+				_wait(dt, _at)
+
+
+## The kerb the car stops at (the ring stands on the pavement beside it), at the road's height.
+func target_position() -> Vector3:
+	if not has_target():
+		return Vector3.INF
+	return pickup["at"] if stage == Stage.PICKUP else _stop()["at"]["at"]
+
+
+func target_colour() -> Color:
+	return PICK_COLOUR if phase == Phase.RUN and stage == Stage.PICKUP else COLOUR
+
+
+## No stop assist at the crawl's kerbs (as before the kit: the stop is the player's to make).
+func stop_spot() -> Vector3:
+	return Vector3.INF
+
+
 ## In the car: the clock starts.
 func _board() -> void:
-	_pick.visible = false
 	bar = 0
 	mood = MOOD_START
 	time_left = budget(_points())
@@ -486,9 +458,11 @@ func _board() -> void:
 func _to_bar() -> void:
 	var k: Dictionary = _stop()["at"]
 	var side: Vector3 = k["side"]
-	_mark.place(Vector3(side.x, k["at"].y, side.z), BAR_R, true, false)
-	_mark.visible = true
-	state = State.DRIVE
+	_beacon.recolour(COLOUR)
+	_beacon.pattern = Beacon.Pattern.SOLID
+	_beacon.waving = false
+	set_target(Vector2(k["at"].x, k["at"].z), false, Vector3(side.x, k["at"].y, side.z), BAR_R)
+	stage = Stage.DRIVE
 	_hold_t = 0.0
 
 
@@ -500,9 +474,9 @@ func _drive(dt: float, at: Vector3, kmh: float) -> void:
 	if _arrived(dt, at, kmh, to, BAR_R):
 		_log("bar %d (%s) at %s left, mood %.0f" % [bar + 1, _stop()["name"], clock_text(time_left), mood])
 		if bar >= (routes[route]["stops"] as Array).size() - 1:
-			_end(true)
+			_result(true)
 			return
-		state = State.WAIT
+		stage = Stage.WAIT
 		stay_left = STAY
 		_say_pick("in")
 
@@ -518,8 +492,7 @@ func _wait(dt: float, at: Vector3) -> void:
 		mood = maxf(mood - AWAY_MOOD * dt, 0.0)
 	var hint := ["Czekaj przy krawężniku: są w %s" % _stop()["name"], "Wait at the kerb: they're in %s" % _stop()["name"]] if near \
 			else ["Wracaj pod bar! Zaraz wyjdą", "Back to the bar! They're coming out"]
-	hud.show_status(_title(), clock_text(time_left), clock_text(stay_left),
-			hint[0], 1.0 - stay_left / STAY, COLOUR, "", {}, hint[1])
+	status(_title(), clock_text(time_left), clock_text(stay_left), hint, 1.0 - stay_left / STAY)
 	if stay_left <= 0.0:
 		bar += 1
 		_say_pick("out")
@@ -538,56 +511,51 @@ func _drive_mood(dt: float, kmh: float) -> void:
 			mood = minf(mood + CALM, 100.0)
 
 
-## The car hit something (car.gd `bumped`, main.gd wires it).
+## The car hit something (car.gd `bumped`, main.gd wires it): only with the group in the car.
 func on_bump(speed: float) -> void:
-	if not busy() or state == State.PICKUP or speed < BUMP_SPEED or _bump_t > 0.0:
+	if phase != Phase.RUN or not stage in [Stage.DRIVE, Stage.WAIT] or speed < BUMP_SPEED or _bump_t > 0.0:
 		return
 	_bump_t = BUMP_GAP
 	mood = maxf(mood - BUMP_MOOD, 0.0)
 	_say_pick("bump")
 
 
-## The crawl ends: `made` true at the last bar, false when the clock ran out.
-func _end(made: bool) -> void:
+## The crawl ends: `made` true at the last bar, false when the clock ran out. The result card
+## closes by itself (RESULT_LIFE) or with OK.
+func _result(made: bool) -> void:
 	var total := (routes[route]["stops"] as Array).size()
 	var done := total if made else bar
 	var p := pay_for(done, total, mood, made)
 	last_pay = {"zl": p[0], "respect": p[1], "done": done, "total": total, "mood": roundi(mood), "on_time": made}
 	if wallet != null and p[0] > 0:
 		wallet.pay(p[0], p[1], "crawl")
-	_mark.visible = false
-	hud.hide_status()
-	state = State.RESULT
-	_result_t = 0.0
+	clear_target()
+	hide_status()
+	stage = Stage.RESULT
 	crawls += 1
 	var q: Array = _group().get("end_good" if made else "end_late", ["", ""])
 	var mw := mood_word(mood)
 	var pl := "%s %d z %d barów, nastrój: %s. Za kurs %d zł, +%d szacunku." % [q[0], done, total, mw[0], p[0], p[1]]
 	var en := "%s %d of %d bars, mood: %s. %d zł for the ride, +%d respect." % [q[1], done, total, mw[1], p[0], p[1]]
 	var title := ["RAJD PO BARACH", "BAR CRAWL"] if made else ["OSTATNIE ZAMÓWIENIA", "LAST ORDERS"]
-	hud.show_card(title[0], pl, PackedStringArray(["OK"]), COLOUR, false, title[1], en)
+	show_card(title, [pl, en], PackedStringArray(["OK"]), RESULT_LIFE)
 	_log("end: %s, %d/%d bars, mood %.0f, +%d zł +%d respect" % ["made it" if made else "out of time", done, total, mood, p[0], p[1]])
 
 
-func _give_up() -> void:
-	hud.hide_status()
-	hud.toast("Grupa idzie dalej pieszo. Śpiewając.", "The group walks on. Singing.")
-	_log("gave up")
-	_finish()
+## OK on the result card (or its life ran out).
+func _card_pressed(_index: int) -> void:
+	finish()
+
+
+func _quit_words() -> Array:
+	return ["Grupa idzie dalej pieszo. Śpiewając.", "The group walks on. Singing."]
 
 
 ## Back to free play: the calls back on, the next call later.
-func _finish() -> void:
-	_pick.visible = false
-	_mark.visible = false
-	hud.hide_status()
-	if missions != null and state != State.IDLE:
+func _ended() -> void:
+	if _holds_calls and missions != null:
 		missions.paused = _calls_were
-	_reset()
-
-
-func _reset() -> void:
-	state = State.IDLE
+	_holds_calls = false
 	pickup = {}
 	route = -1
 	group = -1
@@ -595,23 +563,6 @@ func _reset() -> void:
 	_hold_t = 0.0
 	call_in = _rng.randf_range(NEXT_CALL.x, NEXT_CALL.y)
 	_log("next call in %.0f s" % call_in)
-
-
-## Testing aid (--autopilot): the car slides to the target like the mission autopilot. True
-## while it drives.
-func drive_player(car: CharacterBody3D, dt: float) -> bool:
-	if not autopilot or not has_target():
-		return false
-	var t := target_position()
-	var to := Vector3(t.x - car.global_position.x, 0.0, t.z - car.global_position.z)
-	var d := to.length()
-	car.collision_mask = 0
-	car.vel = Vector3.ZERO
-	car.throttle = 0.0
-	if d > 0.5:
-		car.global_position += to / d * minf(d, 22.0 * dt)
-		car.rotation.y = atan2(-to.x, -to.z)
-	return true
 
 
 # --- helpers ----------------------------------------------------------------------------------
@@ -641,7 +592,7 @@ func _title() -> String:
 	return "%s · %d/%d" % [String(r["name"][0]).to_upper(), bar + 1, (r["stops"] as Array).size()]
 
 
-func _status_to(at: Vector3, to: Vector3, hint: String, hint_en: String, colour: Color, crawl: bool) -> void:
+func _status_to(at: Vector3, to: Vector3, hint: String, hint_en: String, tint: Color, crawl: bool) -> void:
 	var m := roundi(Vector2(at.x, at.z).distance_to(Vector2(to.x, to.z)))
 	var title := _title() if crawl else String(_group_name()[0])
 	var mw := mood_word(mood)
@@ -650,7 +601,7 @@ func _status_to(at: Vector3, to: Vector3, hint: String, hint_en: String, colour:
 	if crawl:
 		h = "%s · nastrój: %s" % [hint, mw[0]]
 		h_en = "%s · mood: %s" % [hint_en, mw[1]]
-	hud.show_status(title, clock_text(time_left) if crawl else "", "%d m" % m, h, _hold_t / HOLD, colour, "", {}, h_en)
+	status(title, clock_text(time_left) if crawl else "", "%d m" % m, [h, h_en], _hold_t / HOLD, tint)
 
 
 func _arrived(dt: float, at: Vector3, kmh: float, to: Vector3, r: float) -> bool:
@@ -679,8 +630,8 @@ func _talk(dt: float) -> void:
 			_said_leg = leg
 
 
-func _say_pick(tag: String) -> void:
-	var lines: Array = _group().get(tag, [])
+func _say_pick(lines_tag: String) -> void:
+	var lines: Array = _group().get(lines_tag, [])
 	if not lines.is_empty():
 		_say(lines[_rng.randi() % lines.size()])
 
@@ -696,8 +647,3 @@ func _say(l: Array) -> bool:
 	if ok:
 		_log("says: %s" % l[1])
 	return ok
-
-
-func _log(text: String) -> void:
-	if log_on:
-		print("crawl: " + text)

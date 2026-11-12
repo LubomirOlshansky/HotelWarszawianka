@@ -1805,7 +1805,7 @@ func _build_world() -> void:
 	# The message director (docs/design/hud-messages.md): a quest with no status card of its own
 	# still counts as one (the radio host and the flavour keep quiet, notes and calls wait).
 	hud.quest_on = func() -> bool:
-		return _quest_running() or (meet != null and meet.busy()) or (crawl != null and crawl.busy()) \
+		return _quest_running() or (meet != null and meet.busy()) \
 				or activities.busy() \
 				or (rides != null and rides.busy()) or (trend_job != null and trend_job.busy())
 	bubbles.project = func(p: Vector3) -> Vector2: return cam.unproject_position(p) * float(view.stretch_shrink)
@@ -2886,7 +2886,7 @@ func _build_crowds(data: Dictionary, world: Node3D) -> void:
 	# Podwózka at dawn: requests from the club doors.
 	if rides != null:
 		rides.mission_on = func() -> bool:
-			return _quest_running() or (crawl != null and crawl.busy()) or (meet != null and meet.busy()) \
+			return _quest_running() or (meet != null and meet.busy()) \
 					or activities.busy()
 		rides.club_doors = func() -> Array:
 			var out: Array = []
@@ -3946,8 +3946,6 @@ func _free_block(ringing_ok := false, guide_ok := false) -> String:
 		return "lounge inside or shisha busy"
 	if meet != null and meet.busy():
 		return "night meet busy"
-	if crawl != null and crawl.busy():
-		return "crawl busy"
 	if ev_tow != null and ev_tow.busy():
 		return "EV tow busy"
 	if title != null or _phone_bench or _bench_ghost != null or (spacer != null and spacer.on):
@@ -4034,7 +4032,8 @@ func _place_car(at: Vector3, yaw: float) -> void:
 
 # --- the bar crawl ----------------------------------------------------------------------------
 
-## The night groups' calls and their crawls (bar_crawl.gd). None with --no-traffic or --crawl=0.
+## The night groups' calls and their crawls (bar_crawl.gd, an activity of the kit). None with
+## --no-traffic or --crawl=0.
 func _build_crawl(data: Dictionary, world: Node3D) -> void:
 	if traffic == null or graph == null or crawl_flag == "0":
 		return
@@ -4056,10 +4055,10 @@ func _build_crawl(data: Dictionary, world: Node3D) -> void:
 		if flying:
 			return [heli.global_position, heli.speed() * 3.6, true]
 		return [car.global_position, car.vel.length() * 3.6, false]
-	crawl.clock = tod.local_clock
-	crawl.free_now = func() -> bool: return _rave_free() and not (rave != null and rave.busy())
+	crawl.clock = func() -> float: return float(tod.local_clock()["hour"])
 	world.add_child(crawl)
 	crawl.setup(world)
+	activities.add(crawl)  # the director says when it may ring (nothing else on: `world_free`)
 	car.bumped.connect(func(_c: Object, speed: float) -> void: crawl.on_bump(speed))
 	if crawl_flag == "call":
 		get_tree().create_timer(1.0).timeout.connect(func() -> void: crawl.ring())
@@ -4098,7 +4097,7 @@ func _build_ev_tow(world: Node3D) -> void:
 
 ## Nothing else on: no title, bench, Spacer, guide, card, rescue, ride, job, race or tow.
 func _ev_free() -> bool:
-	if (rave != null and rave.busy()) or (club != null and club.inside) or (crawl != null and crawl.busy()):
+	if (rave != null and rave.busy()) or (club != null and club.inside):
 		return false
 	if shisha != null and shisha.busy():
 		return false
@@ -7987,15 +7986,6 @@ func _show_target() -> void:
 		_put_target(Vector2(kp.x, kp.z), meet.target_colour(), false)
 		_new_target("job", kp)
 		return
-	if crawl != null and crawl.has_target() and not flying:
-		var cp: Vector3 = crawl.target_position()
-		var at_c := _vehicle_position()
-		var mc := roundi(Vector2(cp.x - at_c.x, cp.z - at_c.z).length())
-		var on_c := cam.unproject_position(cp + Vector3(0, 3.5, 0)) * float(view.stretch_shrink)
-		hud.set_target(on_c, "%d m" % mc, crawl.target_colour(), mc > 12)
-		_put_target(Vector2(cp.x, cp.z), crawl.target_colour(), false)
-		_new_target("job", cp)
-		return
 	if ev_tow != null and ev_tow.has_target():
 		var ep: Vector3 = ev_tow.target_position()
 		var at_e := _vehicle_position()
@@ -8312,8 +8302,6 @@ func _autopilot(dt: float) -> void:
 		return
 	if rides != null and rides.drive_player():
 		return  # loop 2d-1
-	if crawl != null and not flying and crawl.drive_player(car, dt):
-		return  # the bar crawl
 	if trend_job != null and trend_job.drive_player():
 		return  # loop MW-4
 	if jobs != null and jobs.drive_player():
