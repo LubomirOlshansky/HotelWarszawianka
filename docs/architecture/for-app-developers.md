@@ -6,6 +6,7 @@ You know iOS apps. Here is the same idea in Godot terms, and where this game doe
 | --- | --- | --- |
 | `UIApplication` run loop, events drive work | **The game loop**: the engine calls `_process(dt)` on every node about 60 times a second, events or not. Work there costs every frame | `main.gd` `_process` |
 | View hierarchy | **Scene tree** of nodes (`Node3D` for the world, `Control` / `CanvasLayer` for the HUD) | `main.tscn` has one node; `main.gd` builds the rest |
+| Launch screen, then the first view controller | **The boot scene**: `boot.tscn` shows the title while the game's scripts load on a thread, then the game's scene (`main.tscn`) takes its place | `boot.gd`, pipelines.md section 2 |
 | App delegate / composition root | `main.gd`: creates every system and injects its dependencies | systems.md section 1 |
 | Delegate, closure, Combine publisher | **Signal** (`signal changed(...)`, `.connect(fn)`) or an injected `Callable` | `wallet.changed`, `car.bumped`, `hud.card_pressed` |
 | Singleton (`.shared`) | **Autoload**. This game avoids them: one only (the camera add-on) | project.godot `[autoload]` |

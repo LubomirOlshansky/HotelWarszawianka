@@ -19,7 +19,7 @@ the file for the area you touch.
 ## The game in one screen
 
 ```
-                         title.gd ─ first10.gd (fresh save guide)
+        boot.gd (the first scene) ─ title.gd ─ first10.gd (fresh save guide)
                                 │
    tools/*.py bakes ──► game/map/ (centrum.json, index, sectors, prebuilt .scn)
                                 │
@@ -40,7 +40,8 @@ the file for the area you touch.
    `X.new()`, hands it the references it needs as plain properties (`hud`, `wallet`, `map`, `car`,
    `dialogue`) and callables (`vehicle`, `clock`, `free_now`), adds it to the tree and calls its
    `setup()`. There are no autoload singletons except the camera add-on's manager. A system never
-   looks another one up by path.
+   looks another one up by path. (The boot scene before it, `boot.gd`, only shows the title while
+   the game's scripts load.)
 2. **Rules apart from nodes.** Numbers and decisions live in small static or pure scripts
    (`ride_rules.gd`, `upgrades.gd`, `tiers.gd`, `ladder.gd`, `chatter.gd`, `messages.gd`,
    `padel_sim.gd`, `taxi_stories.gd`), so a `game/tools/check_*.gd` script can test them without

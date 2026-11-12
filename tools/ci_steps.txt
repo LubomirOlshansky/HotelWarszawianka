@@ -19,6 +19,8 @@
 
 architecture         quick
 boatrace             quick
+boot                 quick
+boot-run             smoke
 buses                quick
 cassettes            quick
 centralnyramp        quick

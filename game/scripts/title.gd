@@ -18,7 +18,11 @@ signal new_game
 ## The game's name as the title shows it (the rename to Around Warsaw, 2026-10-30; it was
 ## "NOCNA WARSZAWA"). The one place to change it.
 const Lang := preload("res://scripts/lang.gd")
-const Sfx := preload("res://scripts/sfx.gd")
+## The sound engine, loaded when the title goes and not preloaded: this script is one of the few
+## the boot scene waits for before the first frame (check_boot's BOOT_SCRIPTS), and sfx.gd there
+## put 23 ms more in front of the title (debug engine, 2026-11-12). The title can only go once
+## the game is ready, and by then main.gd has loaded the same script, so this costs nothing.
+const SFX := "res://scripts/sfx.gd"
 const WORDMARK := "AROUND WARSAW"
 ## The tagline under the wordmark, Polish above English (the rename, 2026-10-30). "Jeźdź" is
 ## the standard imperative of "jeździć" (the spoken "jeździj" is the common slip).
@@ -50,6 +54,8 @@ var resume_line := ""
 ## Save and resume: after "NOWA GRA" the city starts again with the title up; it goes by itself
 ## once the start is in (no second tap).
 var auto_go := false
+## The boot scene (boot.gd): the game could not be loaded; this line stands in the prompt's place.
+var problem := ""
 enum {CHOICE, CONFIRM}
 var screen := CHOICE
 var _new_btn: Label
@@ -285,7 +291,9 @@ func _set_prompt() -> void:
 		_lang_btns[k].add_theme_color_override("font_color", Color("#ffd23f") if on else Color("#7ff6ff"))
 		_lang_btns[k].modulate.a = 1.0 if on else 0.7
 	_prompt_pl.text = ""  # one language at a time (lang.gd): the small second line is gone
-	if choosing and screen == CONFIRM:
+	if problem != "":
+		_prompt.text = problem
+	elif choosing and screen == CONFIRM:
 		_prompt.text = Lang.pick("ZACZĄĆ OD NOWA? Pieniądze, zlecenia i znaleziska znikną", "START OVER? The money, jobs and finds are wiped")
 	elif choosing:
 		_prompt.text = Lang.pick("KONTYNUUJ", "CONTINUE")
@@ -304,6 +312,12 @@ func _set_bar() -> void:
 	var inner := _bar_plate.size - Vector2(4.0, 4.0)
 	_bar_fill.position = Vector2(2.0, 2.0)
 	_bar_fill.size = Vector2(maxf(inner.x * clampf(_shown, 0.0, 1.0), 0.0), maxf(inner.y, 0.0))
+
+
+## Lays the title out again with its words as they are now (main.gd, when it takes over the
+## boot scene's title and a flag has changed the language).
+func refresh() -> void:
+	_layout()
 
 
 ## The city is built: the prompt changes and a tap or a key starts the game.
@@ -459,7 +473,8 @@ func dismiss() -> void:
 	_gone = true
 	_prompt.modulate.a = 1.0
 	_prompt_pl.modulate.a = 1.0
-	Sfx.ui("start")
+	var sfx: Variant = load(SFX)
+	sfx.ui("start")
 	dismissed.emit()
 	var tween := create_tween()
 	tween.tween_property(_root, "modulate:a", 0.0, 0.6).set_trans(Tween.TRANS_SINE)

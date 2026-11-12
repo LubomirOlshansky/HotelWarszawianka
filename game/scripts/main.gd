@@ -73,6 +73,7 @@ const Title := preload("res://scripts/title.gd")
 const Wallet := preload("res://scripts/wallet.gd")
 const Messages := preload("res://scripts/messages.gd")  # priorities for the HUD's lines (the save's note)
 const ErrorTrap := preload("res://scripts/error_trap.gd")  # the error trap (TD-14)
+const Boot := preload("res://scripts/boot.gd")  # the boot scene (TD-15): its title and trap are taken over
 const Dialogue := preload("res://scripts/dialogue.gd")
 const Jobs := preload("res://scripts/jobs.gd")
 ## Loop 2d-1: Podwózka, the app-taxi side job.
@@ -420,6 +421,8 @@ var _started := false
 var tod: TimeOfDay
 var radio: Radio
 var title: Title
+## True while the title on screen is the one the boot scene put up (boot.gd, TD-15).
+var _title_from_boot := false
 var start_time := 0
 var start_station := 0
 var vhs := false
@@ -997,17 +1000,27 @@ func _ready() -> void:
 	# or two the city takes to build; the radio already plays.
 	var loading: CanvasLayer = null
 	if show_title:
-		title = Title.new()
+		# The boot scene's title is already on screen in a player's launch (boot.gd, TD-15: it
+		# stays under the root); a run with flags makes its own, as before.
+		title = Boot.take_title()
+		var fresh := title == null
+		_title_from_boot = not fresh
+		if fresh:
+			title = Title.new()
+			# The loading bar: the title runs while the tree is paused for the build (_load_step).
+			title.process_mode = Node.PROCESS_MODE_ALWAYS
 		title.touch_off = no_touch  # desktop: --no-touch
 		title.language_chosen.connect(_on_language_chosen)
-		# The loading bar: the title runs while the tree is paused for the build (_load_step).
-		title.process_mode = Node.PROCESS_MODE_ALWAYS
-		add_child(title)
-		# The first frame (F, 2026-11-08: ~8 s of a plain blue screen on a Nothing Phone): the
-		# title is drawn before the settings, radio, wallet and save below, not after them.
-		await get_tree().process_frame
-		await get_tree().process_frame
+		if fresh:
+			add_child(title)
+			# The first frame (F, 2026-11-08: ~8 s of a plain blue screen on a Nothing Phone): the
+			# title is drawn before the settings, radio, wallet and save below, not after them.
+			await get_tree().process_frame
+			await get_tree().process_frame
+		else:
+			title.refresh()  # a --lang= flag may have changed its words
 	else:
+		Boot.drop_title()  # --boot with a flag that turns the title off
 		loading = _loading_card()
 	radio = Radio.new()
 	# Loop 2a: the radio keeps playing under the settings panel (the game is paused).
@@ -1162,6 +1175,7 @@ func _wait_preloads() -> void:
 		if not busy:
 			break
 		frames += 1
+		Boot.wait_frame()  # with no display nothing else paces this loop (boot.gd)
 		await get_tree().process_frame
 	if not _preload_paths.is_empty():
 		print("loading bar: %s on threads in %d ms (%d frames)" % [", ".join(_preload_paths), Time.get_ticks_msec() - t0, frames])
@@ -1222,6 +1236,8 @@ func _title_frame() -> void:
 					title.choose("new")
 				_:
 					title.choose("continue")
+	else:
+		Boot.wait_frame()  # the sectors load on threads: with no display nothing else paces this wait
 
 
 ## Save and resume (2026-10-31): the car goes back to where the last session left it on a normal
@@ -1337,11 +1353,15 @@ func _trap_start() -> void:
 	if _trap != null:
 		_trap.resume()  # NOWA GRA's reload: the same trap, the same file
 		return
-	_trap = ErrorTrap.make() as ErrorTrap
+	_trap = Boot.take_trap()  # started by the boot scene, before the game's scripts were loaded
 	if _trap == null:
-		return
-	_trap.start(ErrorTrap.session_path(not no_save))
-	OS.add_logger(_trap)
+		# No boot scene (a check that loads the game's scene alone), or a release build, which
+		# has no trap at all.
+		_trap = ErrorTrap.make() as ErrorTrap
+		if _trap == null:
+			return
+		_trap.start(ErrorTrap.session_path(not no_save))
+		OS.add_logger(_trap)
 	if _trap.last_crashed:
 		print("trap: the last session closed by itself (%d of its lines kept)" % _trap.last_lines.size())
 
@@ -1421,6 +1441,10 @@ func _on_new_game() -> void:
 
 
 func _on_title_dismissed() -> void:
+	if _title_from_boot:
+		# The verify step `boot-run` waits for this line: the boot scene's title lasted to here.
+		print("boot: the boot scene's title stayed up until the game began")
+		_title_from_boot = false
 	hud.visible = not hide_hud
 	dialogue.host_on = true
 	title = null
@@ -5506,6 +5530,8 @@ func _parse_args() -> void:
 			barrier_day = int(arg.trim_prefix("--barriers="))
 		elif arg == "--reset-save":
 			reset_save = true
+		elif arg == "--boot":
+			pass  # the boot scene (boot.gd, TD-15): this run starts as a player's launch does
 		elif arg == "--report":
 			report_flag = true  # the error trap (TD-14): the report printed when the run ends
 		elif arg == "--crash-note":
@@ -5932,7 +5958,12 @@ func _parse_args() -> void:
 func _load_settings() -> void:
 	settings.persistent = not no_save
 	settings.load_file()
-	Lang.set_code(_flag_lang if _flag_lang in Lang.CODES else Lang.resolve(settings.lang))
+	if _flag_lang in Lang.CODES:
+		Lang.set_code(_flag_lang)
+	elif Boot.title == null:
+		Lang.set_code(Lang.resolve(settings.lang))
+	# else: the boot scene's title is up; it read the same settings, and the player may have
+	# picked a language on it since (boot.gd).
 	Access.apply(settings)
 	if _flag_left_handed:
 		Access.left_handed = true
