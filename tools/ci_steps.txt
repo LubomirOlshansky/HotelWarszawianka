@@ -35,6 +35,7 @@ drive-prebuilt       smoke
 edge                 quick
 eggs                 quick
 endcard              quick
+errortrap            quick
 evtow                quick
 fans                 quick
 finite               smoke

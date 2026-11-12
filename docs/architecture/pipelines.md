@@ -56,6 +56,10 @@ system must be built after it.
   (`_save_note`). No good copy: a fresh start. A missing `save.cfg` is a fresh start too, copy or
   no copy, so deleting it still resets the game.
 - Tests: `check_save.gd`. Runs pass `--nosave` so a test never writes your save.
+- `user://session.log` and `session.prev.log` beside them are the error trap's (section 4), not
+  the save's, and only a debug build writes them. They are the one kept file written in place: a
+  log that grows line by line, starts again after 2,000 lines, and is never written by a release
+  build, a test run or `--nosave`.
 
 ## 4. Testing
 
@@ -68,6 +72,8 @@ system must be built after it.
 | Looks | phone-size screenshots | `tools/shots.sh`, skill `screenshot-review` |
 | Cost | frame, draw calls, scripts | `--bench`, `--probe`; the phone's BENCH card |
 | Play | Autopilot (AI player) on the Mac | skill `autopilot-playtest`, bug log PT-n in docs/PLAYTEST.md |
+| A debug run with no log to read (the phone, not plugged in) | the errors with counts, the last printed lines, whether the last session closed by itself | Settings → DŹWIĘK → RAPORT copies it (`error_trap.gd`, debug builds); `--report` prints it when a run ends |
+| Testers' builds (release) | nothing: the release engine does not report a script's mistakes (tech-debt TD-21), so a quiet TestFlight proves nothing about the scripts | find them in the rows above |
 
 Test flags (`--at=`, `--time=`, `--shots=`, `--kino-tour=go` ...) are parsed only in `main.gd` and
 listed in the archive's flags table. Every run passes `--nosave` and quits.
