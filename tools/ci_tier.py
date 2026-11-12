@@ -5,7 +5,7 @@ Usage:
     python3 -I tools/ci_tier.py PATH...          print the tier and its steps for these paths
     git diff --name-only A B | python3 -I tools/ci_tier.py --stdin [--github-output]
     python3 -I tools/ci_tier.py --full [--github-output]   the full set (pushes to main)
-    python3 -I tools/ci_tier.py --check          tools/ci_steps.txt is sorted and names real steps
+    python3 -I tools/ci_tier.py --check          tools/ci_steps.txt is sorted and lists every verify.sh step
     python3 -I tools/ci_tier.py --selftest       the path rules on known examples
 
 Why: every pull request used to run the whole set (46-61 min), so eight new ride stories waited
@@ -81,12 +81,15 @@ CODE = [
 ]
 
 # The shards of the full set: (name, groups from tools/ci_steps.txt). Each pays the map setup
-# (6-12 min). Measured on the first run (2026-11-12, #665): smoke 11 min, roads 19, ground 26,
-# landmarks 12, runs 22; a slow runner adds up to 45 %. Smoke with roads was the long shard
-# (42 min with its setup), so smoke goes with landmarks, the shortest group.
+# (6-12 min on a cache miss, seconds on a hit). Measured on the first run (2026-11-12, #665):
+# smoke 11 min, roads 19, ground 26, landmarks 12, runs 22; a slow runner adds up to 45 %. Smoke
+# with roads was the long shard (42 min with its setup), so smoke went with landmarks and water.
+# Later that day (main, cache hit) that shard was the long one at 34 min beside roads at 15, so
+# `water` (12 min) moved to the roads group; `firstlife` joined runs, `tunnelcut` and
+# `roadworks-prebuilt` (seconds each) joined smoke.
 FULL_SHARDS = [
-    ("smoke, landmarks and water", ["smoke", "landmarks"]),
-    ("roads and drive", ["roads"]),
+    ("smoke and landmarks", ["smoke", "landmarks"]),
+    ("roads, drive and water", ["roads"]),
     ("drape and ground", ["ground"]),
     ("runs", ["runs"]),
 ]
@@ -127,15 +130,37 @@ def tier_for(paths: list[str]) -> str:
     return max((tier_of(p) for p in paths), key=TIERS.index)
 
 
-def steps() -> dict[str, list[str]]:
-    """tools/ci_steps.txt: group -> its steps, in the file's order."""
-    groups: dict[str, list[str]] = {}
+# A step CI never runs (the Mac's tools/verify.sh does): the long autopilot runs and the soaks.
+LOCAL = "local"
+
+
+def step_lines() -> list[tuple[str, str, str]]:
+    """tools/ci_steps.txt as (step, group, flag) in the file's order; flag is "" or "slow"."""
+    out = []
     for line in (ROOT / "tools" / "ci_steps.txt").read_text(encoding="utf-8").splitlines():
         if not line.strip() or line.startswith("#"):
             continue
-        name, group = line.split()
-        groups.setdefault(group, []).append(name)
+        parts = line.split()
+        if len(parts) not in (2, 3) or (len(parts) == 3 and parts[2] != "slow"):
+            raise ValueError("not 'step group' or 'step group slow': %r" % line)
+        out.append((parts[0], parts[1], parts[2] if len(parts) == 3 else ""))
+    return out
+
+
+def steps() -> dict[str, list[str]]:
+    """The steps CI runs: group -> its steps, in the file's order (the `local` group left out)."""
+    groups: dict[str, list[str]] = {}
+    for name, group, _flag in step_lines():
+        if group != LOCAL:
+            groups.setdefault(group, []).append(name)
     return groups
+
+
+def verify_cases() -> list[str]:
+    """The steps tools/verify.sh has a case for (its `case $s in` block), without `ios`."""
+    text = (ROOT / "tools" / "verify.sh").read_text(encoding="utf-8")
+    block = text[text.index("\tcase $s in\n"):]
+    return [n for n in re.findall(r"^\t\t([a-z0-9][a-z0-9-]*)\)", block, re.M) if n != "ios"]
 
 
 def plan(tier: str) -> dict:
@@ -160,17 +185,15 @@ def plan(tier: str) -> dict:
 
 
 def check() -> int:
-    """ci_steps.txt is sorted, has no step twice, and every step is one tools/verify.sh knows."""
-    names = []
-    for line in (ROOT / "tools" / "ci_steps.txt").read_text(encoding="utf-8").splitlines():
-        if line.strip() and not line.startswith("#"):
-            parts = line.split()
-            if len(parts) != 2:
-                print("ci_tier: FAIL: not 'step group': %r" % line)
-                return 1
-            names.append(parts[0])
-    known_groups = {"quick"} | {g for _, gs in FULL_SHARDS for g in gs}
-    bad = sorted(set(steps()) - known_groups)
+    """ci_steps.txt is sorted, has no step twice, and lists exactly the steps tools/verify.sh has."""
+    try:
+        lines = step_lines()
+    except ValueError as e:
+        print("ci_tier: FAIL: %s" % e)
+        return 1
+    names = [n for n, _g, _f in lines]
+    known_groups = {"quick", LOCAL} | {g for _, gs in FULL_SHARDS for g in gs}
+    bad = sorted({g for _n, g, _f in lines} - known_groups)
     if bad:
         print("ci_tier: FAIL: unknown group(s) %s (known: %s)" % (", ".join(bad), ", ".join(sorted(known_groups))))
         return 1
@@ -181,13 +204,19 @@ def check() -> int:
     if twice:
         print("ci_tier: FAIL: listed twice: " + ", ".join(twice))
         return 1
-    m = re.search(r"^STEPS_ALL=\(([^)]*)\)", (ROOT / "tools" / "verify.sh").read_text(encoding="utf-8"), re.M)
-    known = set(m.group(1).split()) if m else set()
-    unknown = [n for n in names if n not in known]
-    if unknown:
-        print("ci_tier: FAIL: not in tools/verify.sh STEPS_ALL: " + ", ".join(unknown))
+    cases = verify_cases()
+    no_case = [n for n in names if n not in cases]
+    if no_case:
+        print("ci_tier: FAIL: no case in tools/verify.sh for: " + ", ".join(no_case))
         return 1
-    print("ci_tier: OK (%d steps in %d groups)" % (len(names), len(steps())))
+    # 2026-11-12: 42 steps had a case and no CI line, so CI never ran them (24 of them short).
+    no_line = [n for n in cases if n not in names]
+    if no_line:
+        print("ci_tier: FAIL: tools/verify.sh has a case and tools/ci_steps.txt no line for: %s "
+              "(add 'name group'; group `local` keeps a step out of CI)" % ", ".join(no_line))
+        return 1
+    in_ci = sum(len(v) for v in steps().values())
+    print("ci_tier: OK (%d steps, %d in CI in %d groups, %d local)" % (len(names), in_ci, len(steps()), len(names) - in_ci))
     return 0
 
 

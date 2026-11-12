@@ -68,7 +68,7 @@ system must be built after it.
 | Map data | invariants and counts | `python3 -I tools/check_map_data.py`, `check_roads.py`, `check_streets.py` ... |
 | Rules | pure scripts, no map | `game/tools/check_*.gd` (about 200), each prints `<name>: OK` |
 | Headless runs | the game for N seconds with flags | `tools/verify.sh` steps `plain`, `prebuilt`, `police-runs` ... |
-| All of it | one PASS / WARN / FAIL table | `tools/verify.sh [--quick]`; CI picks its jobs from the changed paths (`tools/ci_tier.py`, steps in `tools/ci_steps.txt`) and sums them up in one `gate` check; main runs every group |
+| All of it | one PASS / WARN / FAIL table | `tools/verify.sh [--quick]`; the steps and their sets are one list, `tools/ci_steps.txt`; CI picks its jobs from the changed paths (`tools/ci_tier.py`) and sums them up in one `gate` check; main runs every group |
 | Looks | phone-size screenshots | `tools/shots.sh`, skill `screenshot-review` |
 | Cost | frame, draw calls, scripts | `--bench`, `--probe`; the phone's BENCH card |
 | Play | Autopilot (AI player) on the Mac | skill `autopilot-playtest`, bug log PT-n in docs/PLAYTEST.md |
