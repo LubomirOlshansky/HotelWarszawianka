@@ -4,7 +4,7 @@
 #
 #   quick      no map needed; every code and content change (~6 min together)
 #   smoke      the prebuilt city (the phone's path) and the short map checks (~8 min after the bake)
-#   roads      road rules and the runtime drive (full set only)
+#   roads      road rules and the runtime drive (full set only, ~19 min)
 #   ground     drape and ground (full set only)
 #   landmarks  the landmark check and the runtime water check (`landmarks` alone joins a landmark change)
 #   runs       the runtime game runs (full set only)

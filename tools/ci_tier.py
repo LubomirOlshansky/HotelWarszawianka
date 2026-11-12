@@ -81,11 +81,13 @@ CODE = [
 ]
 
 # The shards of the full set: (name, groups from tools/ci_steps.txt). Each pays the map setup
-# (8-12 min), so four shards of about 21-23 min of checks end in about 35 min, not 58.
+# (6-12 min). Measured on the first run (2026-11-12, #665): smoke 11 min, roads 19, ground 26,
+# landmarks 12, runs 22; a slow runner adds up to 45 %. Smoke with roads was the long shard
+# (42 min with its setup), so smoke goes with landmarks, the shortest group.
 FULL_SHARDS = [
-    ("smoke, roads and drive", ["smoke", "roads"]),
+    ("smoke, landmarks and water", ["smoke", "landmarks"]),
+    ("roads and drive", ["roads"]),
     ("drape and ground", ["ground"]),
-    ("landmarks and water", ["landmarks"]),
     ("runs", ["runs"]),
 ]
 
