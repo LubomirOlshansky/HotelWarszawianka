@@ -63,6 +63,7 @@ map                  smoke
 meet                 quick
 meshq                quick
 messages             quick
+mixer                quick
 models               quick
 objects              quick
 oldtownroofs         smoke
