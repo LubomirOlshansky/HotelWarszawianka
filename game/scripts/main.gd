@@ -1805,7 +1805,7 @@ func _build_world() -> void:
 	# The message director (docs/design/hud-messages.md): a quest with no status card of its own
 	# still counts as one (the radio host and the flavour keep quiet, notes and calls wait).
 	hud.quest_on = func() -> bool:
-		return _quest_running() or (meet != null and meet.busy()) \
+		return _quest_running() \
 				or activities.busy() \
 				or (rides != null and rides.busy()) or (trend_job != null and trend_job.busy())
 	bubbles.project = func(p: Vector3) -> Vector2: return cam.unproject_position(p) * float(view.stretch_shrink)
@@ -2886,7 +2886,7 @@ func _build_crowds(data: Dictionary, world: Node3D) -> void:
 	# Podwózka at dawn: requests from the club doors.
 	if rides != null:
 		rides.mission_on = func() -> bool:
-			return _quest_running() or (meet != null and meet.busy()) \
+			return _quest_running() \
 					or activities.busy()
 		rides.club_doors = func() -> Array:
 			var out: Array = []
@@ -3467,7 +3467,7 @@ func _build_stories(world: Node3D) -> void:
 		# 2026-11-11: out of the first view, a short drive from the spawn); the meet stays on Plac
 		# Defilad. Without that road, the plaza's kerb (the meet's door; F 2026-11-09: not the
 		# middle of the paving, he could not drive up to it).
-		var spot: Dictionary = meet.start if not meet.start.is_empty() else meet.meets[0]["door"]
+		var spot: Dictionary = meet.start_kerb if not meet.start_kerb.is_empty() else meet.meets[0]["door"]
 		var g: Vector3 = spot["at"]
 		stories.add({"id": "meet", "pl": "Nocny spot", "en": "Night meet", "who": [StreetMeet.FRIEND, StreetMeet.FRIEND],
 				"hello": ["„Siema! Dziś spot na Defiladzie. Wbijasz?”", "\"Hey! Meet's on Plac Defilad tonight. You in?\""],
@@ -3590,7 +3590,7 @@ var _meet_dark := false
 ## The night meet is a night (F, 2026-11-08): taken by day (Darek's call, the list, in person), the
 ## clock jumps to 21:05 at once, so the meet, the raid and the drag all run in the dark.
 func _meet_night() -> void:
-	if meet == null or not meet.busy():
+	if meet == null or not meet.under_way():
 		_meet_dark = false
 		return
 	if _meet_dark:
@@ -3938,8 +3938,6 @@ func _free_block(ringing_ok := false, guide_ok := false) -> String:
 		return "club inside"
 	if lounge != null and lounge.inside:
 		return "lounge inside"
-	if meet != null and meet.busy():
-		return "night meet busy"
 	if title != null or _phone_bench or _bench_ghost != null or (spacer != null and spacer.on):
 		return "title/bench/Spacer"
 	if first10 != null and first10.guide_on() and not guide_ok:
@@ -3993,22 +3991,18 @@ func _build_meet(data: Dictionary, world: Node3D) -> void:
 		if flying:
 			return [heli.global_position, heli.speed() * 3.6, true]
 		return [car.global_position, car.vel.length() * 3.6, false]
-	meet.clock = tod.local_clock
-	meet.free_now = _meet_free
+	meet.calendar = tod.local_clock
 	meet.place_car = _place_car
 	world.add_child(meet)
 	meet.setup(world)
+	# `meet.autopilot` stays off: a test run does not answer Darek or the result card (it never did).
+	activities.add(meet)  # the director says when Darek may ring (nothing else on: world_free)
 	if rivals != null:
 		rivals.meet = meet
 	if meet_flag == "call":
 		get_tree().create_timer(1.0).timeout.connect(func() -> void: meet.ring())
 	if meet_at != "":
 		get_tree().create_timer(1.0).timeout.connect(func() -> void: meet.jump(meet_at))
-
-
-## Nothing else on, a night of Mati's included (an activity of the kit: `_free_block` names it).
-func _meet_free() -> bool:
-	return _rave_free()
 
 
 ## Puts the car at `at` heading `yaw` at once (the meet's START DRAG), the camera cut with it.
@@ -4093,8 +4087,6 @@ func _build_ev_tow(world: Node3D) -> void:
 ## race (the director adds: no other activity of the kit). The air is fine.
 func _ev_free() -> bool:
 	if club != null and club.inside:
-		return false
-	if meet != null and meet.busy():
 		return false
 	if title != null or _phone_bench or _bench_ghost != null or (spacer != null and spacer.on):
 		return false
@@ -7945,15 +7937,6 @@ func _show_target() -> void:
 		hud.set_target(on_a, act.target_label(ma), act.target_colour(), ma > 12)
 		_put_target(Vector2(ap.x, ap.z), act.target_colour(), false)
 		_new_target("job", ap)
-		return
-	if meet != null and meet.has_target() and not flying:
-		var kp: Vector3 = meet.target_position()
-		var at_k := _vehicle_position()
-		var mk := roundi(Vector2(kp.x - at_k.x, kp.z - at_k.z).length())
-		var on_k := cam.unproject_position(kp + Vector3(0, 3.5, 0)) * float(view.stretch_shrink)
-		hud.set_target(on_k, "%d m" % mk, meet.target_colour(), mk > 12)
-		_put_target(Vector2(kp.x, kp.z), meet.target_colour(), false)
-		_new_target("job", kp)
 		return
 	if rivals != null and rivals.has_target():
 		var f: Vector3 = rivals.target_position()
