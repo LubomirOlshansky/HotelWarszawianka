@@ -192,6 +192,11 @@ var _ui: CanvasLayer
 var _title: Label
 var _talk: PanelContainer
 var _who: Label
+## F 2026-11-11: the speaker's small face beside their line (Portraits.badge), none for "Ty".
+var _face: Control
+## The face's size and the gap to the text, in points.
+const FACE_PT := 40.0
+const FACE_GAP_PT := 8.0
 var _line: Label
 var _game: PanelContainer
 var _game_title: Label
@@ -975,8 +980,14 @@ func _build_ui() -> void:
 	_talk.add_theme_stylebox_override("panel", Club._box(Color(0.04, 0.035, 0.03, 0.9), TEAL))
 	_talk.custom_minimum_size = Vector2(360, 0) * pt
 	_ui.add_child(_talk)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", int(FACE_GAP_PT * pt))
+	_talk.add_child(row)
+	_face = Portraits.badge(FACE_PT * pt)
+	row.add_child(_face)
 	var v := VBoxContainer.new()
-	_talk.add_child(v)
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(v)
 	_who = Label.new()
 	_who.add_theme_font_size_override("font_size", int(13 * pt))
 	_who.add_theme_color_override("font_color", TEAL)
@@ -1098,7 +1109,7 @@ func _layout() -> void:
 	_buttons.reset_size()
 	var room := clampf(vp.x - _buttons.size.x - 48 * pt, 220 * pt, 360 * pt)
 	_talk.custom_minimum_size.x = room
-	_line.custom_minimum_size.x = room - 20 * pt
+	_line.custom_minimum_size.x = room - 20 * pt - ((FACE_PT + FACE_GAP_PT) * pt if _face.visible else 0.0)
 	_talk.size.x = room
 	_talk.reset_size()
 	_talk.position = Vector2(16 * pt, vp.y - _talk.size.y - 16 * pt)
@@ -1652,6 +1663,7 @@ func _say(who: String, pl: String, en: String) -> void:
 	_speaker = who
 	_who.text = Lang.pick(who, String(SPEAKER_EN.get(who, who)))
 	_line.text = Lang.pick(pl, en)
+	Portraits.set_badge(_face, who, GOLD if who == "Bramkarz" else TEAL)
 	_talk.visible = true
 	_layout()
 	if who in ["Ivan", "Bogdan", "Ty"] and step_now == Step.SMOKE:
