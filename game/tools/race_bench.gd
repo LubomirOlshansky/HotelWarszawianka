@@ -101,9 +101,12 @@ const INDEPENDENCE := 0.15
 const BOXED_SHARE := 0.5
 ## crawling: under CRAWL_SHARE of the road's racing speed for more than CRAWL_MAX s in a row with
 ## nobody within FREE_AHEAD m in front and the next STRAIGHT_AHEAD m of its own way bending under
-## STRAIGHT_BEND rad;
+## STRAIGHT_BEND rad. Pulling away after the game stopped it dead is not a crawl (Honest car
+## counts every dead stop): from the stop until its speed is back at CRAWL_SHARE of the road's,
+## DEAD_AWAY s at most, so a racer that stays slow after one is still caught;
 const CRAWL_SHARE := 0.5
 const CRAWL_MAX := 3.0
+const DEAD_AWAY := 4.0
 const FREE_AHEAD := 30.0
 const STRAIGHT_AHEAD := 40.0
 const STRAIGHT_BEND := 0.3
@@ -134,10 +137,16 @@ const LADDER_ORDER := 1.01
 const LADDER_SPREAD := 0.1
 
 ## A frame's flags (Probe.flag): nobody in the rival's way for FREE_AHEAD m; held at the line or
-## knocked; on a junction's curve.
+## knocked; on a junction's curve; stopped dead by the game in this frame; pulling away after
+## that (DEAD_AWAY above).
 const FREE := 1
 const HELD := 2
 const CONN := 4
+const DEAD := 8
+const AWAY := 16
+## A traffic step that takes longer than this (microseconds) counts as a slow one (`steps_slow`:
+## how often a race hitches, beside `step_most_usec`, how badly).
+const SLOW_STEP := 1000
 
 
 ## The map traffic.gd asks for heights: flat ground, no decks, tunnels or roofs (the pattern of
@@ -187,6 +196,8 @@ class Probe:
 	var frames := 0
 	var overlap_s := 0.0
 	var overlaps := 0
+	## Of them, the cars that came the other way (a pass over the centre line that met one).
+	var head_ons := 0
 	var touches := 0
 	var overlap_log: Array = []
 	var slips := 0
@@ -210,7 +221,12 @@ class Probe:
 	var edges := PackedInt32Array()
 	var edge_t := PackedFloat32Array()
 	var cars := 0
+	## The traffic's step: its microseconds in all, the most in one frame (a hitch: a racing line
+	## built, a plan searched) with the race time of that frame, and the frames over SLOW_STEP.
 	var usec := 0
+	var usec_most := 0
+	var usec_most_t := 0.0
+	var slow_steps := 0
 	var _pv := 0.0
 	var _ppos := Vector3.ZERO
 	var _pseen := false
@@ -218,6 +234,8 @@ class Probe:
 	var _free := true
 	var _over := {}
 	var _squeezing := false
+	## When the game last stopped it dead (race time), while it is still pulling away; else -1.
+	var _dead_t := -1.0
 	var _ahead := {}
 	var _behind := {}
 	var _leader = null
@@ -229,6 +247,7 @@ class Probe:
 	## player's driver (null: none; `player_live`: still in the race).
 	func sample(t: float, traffic: Node3D, ghost, held: bool, player_live: bool) -> void:
 		frames += 1
+		var dead := false
 		var p: Vector3 = d.pos
 		# Its speed over the ground: out of the town's cars a racer covers less of it than its
 		# speedometer says (traffic.gd `away_pace`), and a spectator sees the ground.
@@ -254,6 +273,7 @@ class Probe:
 				brake_max = maxf(brake_max, -a)
 				if a < -PLAYER_BRAKE - 2.0:
 					# Stopped by the game, not by its brakes (traffic.gd: no room left to the car ahead).
+					dead = true
 					hard_stops += 1
 					if hard_log.size() < 6:
 						hard_log.append("%.1f s from %.0f km/h on %s" % [t, _pv * 3.6, _street(d.edge)])
@@ -290,15 +310,26 @@ class Probe:
 			_scan(t, traffic, ghost, player_live)
 		cars += traffic.drivers().size() - (1 if ghost == null else 2)
 		usec += traffic.last_usec
+		if traffic.last_usec > usec_most:
+			usec_most = traffic.last_usec
+			usec_most_t = t
+		if traffic.last_usec > SLOW_STEP:
+			slow_steps += 1
+		var road_top: float = minf(PLAYER_TOP, Traffic.RACE_CLASS_TOP[graph.e_class[d.edge]])
+		if dead:
+			_dead_t = t
+		elif _dead_t >= 0.0 and (t - _dead_t > DEAD_AWAY or gv >= CRAWL_SHARE * road_top):
+			_dead_t = -1.0
 		v.append(gv)
 		yaw.append(d.yaw)
-		top.append(minf(PLAYER_TOP, Traffic.RACE_CLASS_TOP[graph.e_class[d.edge]]))
+		top.append(road_top)
 		cum.append(driven)
 		edge_at.append(d.edge)
 		px.append(p.x)
 		pz.append(p.z)
 		# (Out of the town's cars it is in the traffic it does not see: no free road to crawl on.)
-		flag.append((FREE if _free and pace >= 0.999 else 0) | (HELD if held or d.held or d.daze > 0.0 or d.stun > 0.0 else 0) | (CONN if d.in_conn else 0))
+		flag.append((FREE if _free and pace >= 0.999 else 0) | (HELD if held or d.held or d.daze > 0.0 or d.stun > 0.0 else 0) | (CONN if d.in_conn else 0)
+				| (DEAD if dead else 0) | (AWAY if _dead_t >= 0.0 else 0))
 
 	## The cars round the rival (every other frame): a car in its box, the car it sits behind,
 	## whether the road ahead is free, who it passed and who passed it.
@@ -328,11 +359,18 @@ class Probe:
 					inside = true
 					if was < GHOST_MIN:
 						overlaps += 1
+						if not o.parked and fwd.dot(Vector2(-sin(o.yaw), -cos(o.yaw))) < -0.5:
+							head_ons += 1
 						if overlap_log.size() < 6:
 							overlap_log.append("%.1f s %s on %s" % [t, "the player" if o.ghost else ("a parked car" if o.parked else "a car"), _street(d.edge)])
 						if OS.is_stdout_verbose():
 							print("    through a car at %.1f s on %s (%.0f, %.0f): rival v %.1f conn %s off %.1f pass %.1f squeeze %.1f lane %d edge %d · other kind %d v %.1f conn %s parked %s edge %d lane %d · along %.1f side %.1f" % [
 									t, _street(d.edge), here.x, here.y, d.v, d.in_conn, d.off, d.pass_t, d.squeeze, d.lane, d.edge, o.kind, o.v, o.in_conn, o.parked, o.edge, o.lane, along, side])
+							# (Its racing line, traffic.gd LINE_*: how far the line has it from its lane's own.)
+							var rail: Vector2 = traffic._rail_at(d)
+							print("      its line: %s, beside it %.2f m, stepping over %.2f m, %.2f m from its lane's line; the other car %.2f m from its own" % [
+									"on" if d.line != null else "none", d.line_dyn, d.line_carry.length(), here.distance_to(rail),
+									Vector2(o.pos.x, o.pos.z).distance_to(traffic._rail_at(o))])
 			if along > 0.0 and along - room < FREE_AHEAD and side < 2.2:
 				_free = false
 			if along > 0.0 and side < 1.8 and along - room < lead_gap:
@@ -444,7 +482,8 @@ class Probe:
 
 	## The sideways pull (m/s²) the car's way asks for, v² / radius over every GRIP_WINDOW m of it
 	## (a rail car's heading steps at each point of the lane's line; a body feels the bend), not
-	## counting a stretch where it was knocked or held: {p95, max, and where the most was: at (s of
+	## counting a stretch where it was knocked or held, or stopped dead by the game (counted by
+	## itself, `hard_stops`: its heading swings as it stands): {p95, max, and where the most was: at (s of
 	## the race), where (the ground point), street, junction (on a junction's curve), speed (m/s),
 	## turn (rad over the window)}.
 	func sideways() -> Dictionary:
@@ -454,7 +493,7 @@ class Probe:
 		var held := PackedInt32Array()
 		held.resize(n + 1)
 		for i in n:
-			held[i + 1] = held[i] + (1 if flag[i] & HELD else 0)
+			held[i + 1] = held[i] + (1 if flag[i] & (HELD | DEAD) else 0)
 		var j := 0
 		for i in n:
 			j = maxi(j, i)
@@ -897,6 +936,7 @@ func race(spec: Dictionary) -> Dictionary:
 				var cap: float = minf(ghost.race_top, Traffic.RACE_CLASS_TOP[graph.e_class[ghost.edge]])
 				var want: float = FOLLOW_ROLL if back < 0.0 else d.v + (back - FOLLOW_GAP) * 0.8
 				ghost.race_effort = clampf(want / maxf(cap, 1.0), 0.0, 1.3)
+				ghost.race_corner = ghost.race_effort
 			tick -= DT
 			if tick <= 0.0:
 				tick = TICK
@@ -957,6 +997,7 @@ func race(spec: Dictionary) -> Dictionary:
 	out["slips"] = probe.slips
 	out["slips_seen"] = probe.slips_seen
 	out["overlaps"] = probe.overlaps
+	out["head_ons"] = probe.head_ons
 	out["overlap_s"] = snappedf(probe.overlap_s, 0.1)
 	out["overlap_log"] = probe.overlap_log
 	out["touches"] = probe.touches
@@ -985,6 +1026,9 @@ func race(spec: Dictionary) -> Dictionary:
 	out["back"] = Array(probe.backs)
 	out["cars"] = snappedf(float(probe.cars) / n, 0.1)
 	out["step_usec"] = roundi(float(probe.usec) / n)
+	out["step_most_usec"] = probe.usec_most
+	out["step_most_at"] = snappedf(probe.usec_most_t, 0.1)
+	out["steps_slow"] = probe.slow_steps
 	out["streets"] = Array(probe.streets())
 	out["edges"] = Array(probe.edges)
 	# The seconds on each of them (the last: to the finish, or to where the race was stopped).

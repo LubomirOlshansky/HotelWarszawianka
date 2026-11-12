@@ -118,6 +118,7 @@ questlines           smoke
 race                 local     slow
 racebench            quick
 racecuts             quick
+raceline             quick
 raceplanner          quick
 radio                quick
 railsignals          smoke

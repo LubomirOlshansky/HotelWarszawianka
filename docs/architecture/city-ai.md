@@ -10,7 +10,8 @@ lane_graph.gd   the road network baked from OSM: directed edges, lanes, junction
      │
 traffic.gd      every AI car: one Driver per car on the graph, drawn as one MultiMesh per kind
      ├─ rivals.gd        named racers: wander as traffic, race with race_to / stop_racing
-     │    └─ race_planner.gd  a racer's plan: seconds to the finish from every street, by its own skill
+     │    ├─ race_planner.gd  a racer's plan: seconds to the finish from every street, by its own skill
+     │    └─ race_line.gd     a racer's line: its place on the ground and a speed for every metre of its way
      ├─ police.gd        patrol cars (POLICE kind) + perception + the chase state machine
      │    └─ police/     beehave trees that only move a unit's car (5 Hz, ticked by hand)
      ├─ buses.gd         buses on traffic's BUS pool, sent to stops (send_to_stop / let_go)
@@ -59,7 +60,7 @@ Rivals are traffic Drivers with a personality. The race AI rebuild is four layer
 and a race object: RaceNav (where a car can go, with race links), RacePlanner (seconds to the
 finish per racer), RacePath (racing line and speed per metre), RaceDriver (overtakes, collisions,
 recovery), RacerProfile and RaceSession. **No rubber band**: difficulty comes from each rival's
-skill, not from the player's speed. Built so far (steps 1 to 3 of 8):
+skill, not from the player's speed. Built so far (steps 1 to 4a of 8):
 
 - **The profile** is a rung's racer stats in `ladder.gd` (how much of the car it uses, its
   mistakes, what it knows of the town's traffic and how it weighs a street with no way past);
@@ -70,6 +71,15 @@ skill, not from the player's speed. Built so far (steps 1 to 3 of 8):
   fitted on the bench by `tools/race_traffic.sh`). `race_to` takes the plan; at every junction
   the Driver asks it (`choose`), so it takes the quickest way and not the shortest. `rivals.gd`
   searches the plan a slice a frame from the challenge on (`_plan_tick`), never in one frame.
+- **The line** (`race_line.gd`, one `RaceLine` in `traffic.gd` for the map): a racer with a plan
+  drives its way as one line inside its lane and its junctions' room, with a speed for every
+  metre from its grip and its brakes, so it brakes before a bend and holds it like the player's
+  car. A stretch of line between two long streets is built once and shared by every racer. The
+  Driver's rail stays (`s`, `cu`, lanes, gaps, lights): only its place on the ground (`_place`,
+  `_line_at`) and its top speed for the frame (`_line_ahead`) are read from the line, and it asks
+  its plan for its streets 100 m ahead (`way`). A racer beside its line (a pass, a lane change)
+  is `line_dyn` m off it, and `_line_busy` says where no sideways move may start (in a corner).
+  `check_race_line` builds every stretch of the map and holds the line to its room.
 - **A blocked street**: the Driver shuts it in its plan (`block`), turns round in a two-way
   street or backs out of a one-way one, and `turned_back` tells `rivals.gd` to count the metres
   left without it (`reroute`).
@@ -85,9 +95,11 @@ skill, not from the player's speed. Built so far (steps 1 to 3 of 8):
 - The pack race, the autopilot's ghost and Halina's roll-up behind the car before the first race
   (`call_first`) still go by metres (no plan).
 
-Still to come: RacePath, RaceDriver, RaceNav's links, RaceSession; a new race mode should use
-RaceSession once it exists instead of its own ranking. Every race change reports
-`tools/race_bench.sh` before and after (`check_race_bench`, `check_race_planner`).
+Still to come: RaceDriver (passing, contact and recovery are the old rail car's; its pass over
+the centre line, `_race_pass`, minds only the oncoming lanes it uses and how fast the two cars
+close, and is a timer until step 4b), RaceNav's links, RaceSession; a new race mode should use
+RaceSession once it exists instead of its own ranking. Every race change reports `tools/race_bench.sh` before and after (`check_race_bench`,
+`check_race_planner`, `check_race_line`).
 
 ## 4. Police (`police.gd`, `police/`)
 
@@ -133,4 +145,4 @@ railway tracks and come in and out at the map edge.
 5. Words: `data/dialogue.json` group and `bubbles.say_*` with the right chatter class.
 6. Add a check in `game/tools/check_*.gd` (the existing ones: `check_police`, `check_crowds`,
    `check_city_life`, `check_buses`, `check_trains`, `check_crash_scenes`, `check_race_bench`,
-   `check_race_planner`).
+   `check_race_planner`, `check_race_line`).

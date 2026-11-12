@@ -439,6 +439,7 @@ class ToyRacer:
 	var race_brake := 0.0
 	var race_lat := 0.0
 	var race_effort := 1.0
+	var race_corner := 1.0
 	var race_still := 0.0
 	var race_passes := 0
 	var cuts := {}
@@ -572,7 +573,16 @@ func _effort() -> void:
 	var pace := Rivals.Pace.new()
 	for i in 200:
 		Rivals.pace_tick(pace, toy, 0.1, 2000.0, 1000.0)
-	_expect(toy.race_effort * toy.race_share <= 1.0001 and toy.race_effort > 1.0, "far behind, Mike pushes but never past the car's top: %.3f of it" % (toy.race_effort * toy.race_share))
+	# (Mike drives the road's full speed since step 4a: his push is all in the corners.)
+	_expect(toy.race_effort * toy.race_share <= 1.0001 and is_equal_approx(toy.race_corner, Rivals.EFFORT_PUSH),
+			"far behind, Mike pushes through the corners but never past the car's top: %.3f of it, %.2f of his grip" % [toy.race_effort * toy.race_share, toy.race_corner])
+	var room := ToyRacer.new()
+	Rivals.arm_racer(room, 4, 30.0, {}, false, 0.0, 1)
+	var room_pace := Rivals.Pace.new()
+	for i in 200:
+		Rivals.pace_tick(room_pace, room, 0.1, 2000.0, 1000.0)
+	_expect(is_equal_approx(room.race_effort, Rivals.EFFORT_PUSH) and room.race_effort * room.race_share <= 1.0001 and is_equal_approx(room.race_corner, Rivals.EFFORT_PUSH),
+			"far behind, a rival with room under the car's top pushes on the straights too: %.3f of the car's top" % (room.race_effort * room.race_share))
 	_expect(is_equal_approx(toy.race_mistake, 0.1 * Rivals.PUSH_MISTAKES), "pushing: PUSH_MISTAKES times the mistakes: %.3f" % toy.race_mistake)
 	pace = Rivals.Pace.new()
 	for i in 200:

@@ -5112,6 +5112,28 @@ final's route on the lane graph), the flow in `rivals.gd`.
   minimap's route end there. Checks: verify steps
   `raceplanner` (`game/tools/check_race_planner.gd`, CI too) and `racebench`; the traffic delay's
   numbers come from `tools/race_traffic.sh` (not a check).
+- **A rival's line** (the racer AI rebuild's step 4a, 2026-11-12; docs/design/race-ai.md 5.2): a
+  rival with a plan drives a racing line (`scripts/race_line.gd`, one `RaceLine` in `traffic.gd`):
+  inside its own lane and its junctions' room, the bends rounded by the widest arc that fits,
+  with a speed for every metre from its grip (`lat`, now a real sideways pull: the turn of
+  every 8 m of the line) and its brakes. The Driver's rail stays; its place on the ground and
+  its top speed for the frame are read from the line (`traffic.gd` `LINE_*`: the streets decided
+  100 m ahead, a car beside its line, the move over to a new line across 12 m, no sideways move
+  where the line corners). The ladder's skill numbers were set again with it and keep each
+  rival's time. The pass over the centre line is still the old driver's, with its rule put
+  right: it minds only the oncoming lanes within 2.5 m of the line it drives (`RACE_PASS_BESIDE`)
+  and needs them clear for as far as the two cars close while it lasts and 0.7 s more
+  (`RACE_PASS_BACK`); the pass itself is rebuilt in step 4b. Cost: a stretch of line is built
+  once and shared (0.7 ms on a desktop, 20 ms the slowest of the map's 13,273), a line is
+  brought up to date twice a second at most, and a frame reads one point of it. On the race
+  bench (the cloud's CPU) the traffic step went from 30 to 47 µs a frame with the rival alone
+  (the rival's own update from 15 to 30 µs) and from 382 to 426 µs in Busy traffic; a line is
+  put together about 25 times in a race in Busy traffic, in 0.4 ms from stretches already built
+  and 1.5 ms in the middle, 2.3 ms at the most, with one to build (the bench's `steps_slow`
+  and `step_most_usec` count them; whether that is a hitch on the phone only the phone can
+  show). The frame bench did not move (106 draw calls, traffic 0.8 ms). Check: verify step
+  `raceline` (`game/tools/check_race_line.gd`, CI too: every stretch of the map stays in its
+  room, the speeds are inside the grip and braked for in time).
 
 ## The first 10 minutes and the end card (loop 3h slice 4, 2026-10-31)
 
