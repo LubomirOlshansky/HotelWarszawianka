@@ -85,8 +85,9 @@ CODE = [
 # smoke 11 min, roads 19, ground 26, landmarks 12, runs 22; a slow runner adds up to 45 %. Smoke
 # with roads was the long shard (42 min with its setup), so smoke went with landmarks and water.
 # Later that day (main, cache hit) that shard was the long one at 34 min beside roads at 15, so
-# `water` (12 min) moved to the roads group; `firstlife` joined runs, `tunnelcut` and
-# `roadworks-prebuilt` (seconds each) joined smoke.
+# `water` (12 min) moved to the roads group; `firstlife` joined runs; `tunnelcut`,
+# `roadworks-prebuilt`, `oldtowndrive` and `railsignals` (under a minute together) joined smoke:
+# they read the sector split or the terrain, which the quick job doesn't have.
 FULL_SHARDS = [
     ("smoke and landmarks", ["smoke", "landmarks"]),
     ("roads, drive and water", ["roads"]),

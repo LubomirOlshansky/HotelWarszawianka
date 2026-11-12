@@ -4,7 +4,8 @@
 # file and runs the steps in this order; tools/ci_tier.py reads it and picks the groups a pull
 # request runs from the paths it changed; pushes to main run every group but `local`.
 #
-#   quick      no map needed; every code and content change (~8 min together)
+#   quick      no map needed, not even the sector split (game/map/index.json): the quick job has
+#              only what is committed; every code and content change (~8 min together)
 #   smoke      the prebuilt city (the phone's path) and the short map checks (~8 min after the bake)
 #   roads      road rules, the runtime drive and the runtime water check (full set only)
 #   ground     drape and ground (full set only)
@@ -88,7 +89,7 @@ models               quick
 monumentmesh         quick
 monuments            quick
 objects              quick
-oldtowndrive         quick
+oldtowndrive         smoke
 oldtownroofs         smoke
 oldtram              quick
 opening              quick
@@ -115,7 +116,7 @@ race                 local     slow
 racebench            quick
 racecuts             quick
 radio                quick
-railsignals          quick
+railsignals          smoke
 rain                 local     slow
 ram                  runs
 ratuszhub            quick
