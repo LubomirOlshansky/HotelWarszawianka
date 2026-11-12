@@ -5081,6 +5081,23 @@ final's route on the lane graph), the flow in `rivals.gd`.
 - **Cost**: the start look and the checkpoint test at 5 Hz (a few distance tests); the ladder's
   `open_count` (~20 µs) only when the wallet changes. +0 draw calls while driving: the start marker
   is the race's own Beacon, the diamond joins the minimap's batch, the card is labels on the paused map.
+- **A rival's streets** (the racer AI rebuild's step 3, 2026-11-12; docs/design/race-ai.md 5.1):
+  in a ladder race, the guided first race and each leg of Trzy mosty the rival drives a plan
+  (`scripts/race_planner.gd`: its own seconds to the finish from every street, the town's traffic
+  counted by the rung's `knows` and `caution`), asked at every junction; the distances above stay
+  for the HUD's metres and for the pack race, the autopilot's ghost and Halina's roll-up behind
+  the car before the first race (`call_first`), which have no plan. The search runs in slices of `Traffic.PLAN_SLICE` (150) ways a frame from the challenge
+  on (0.6 ms a frame on a desktop; a plan in 28 frames on average, 52 at most), a leg's plan while
+  the leg before is driven. With `--race=N` the log has `race: <rival> plans N s to the finish
+  (traffic xD, K junction ways searched)`. A blocked street: the rival turns back (`traffic.gd`
+  `BACK_*`, the signal `turned_back`, `traffic.reroute` for the metres left). A finish is one
+  line for both cars: the circle of `FINISH_RADIUS`, and on a road that runs through it
+  (`RacePlanner.ends`: 8 of the 11 street finishes and the final's by the stadium) the line
+  across that road where it enters the circle, in whichever lane (`Rivals.home_at` for the
+  player's car, the Driver's `arrived` for the rival); the plan, the metres on the HUD and the
+  minimap's route end there. Checks: verify steps
+  `raceplanner` (`game/tools/check_race_planner.gd`, CI too) and `racebench`; the traffic delay's
+  numbers come from `tools/race_traffic.sh` (not a check).
 
 ## The first 10 minutes and the end card (loop 3h slice 4, 2026-10-31)
 

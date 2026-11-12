@@ -18,12 +18,12 @@ update extending.md.
 | TD-9 | **Building shader at the Adreno budget** | lite building shader 498 of about 508 (`check_shader_budget`) | landmarks in their own material (about 300 of the 498 are theirs) before the next building-shader feature | open |
 | TD-10 | **landmarks.gd is 34,700 lines** | one file for every landmark | split by area into `landmarks/<area>.gd` with one shared helper file, when a landmark thread has time | open |
 | TD-11 | **Test fakes drift** | 7+ checks carry their own `FakeDialogue` / `FakeBubbles`; a new speaker param breaks them all | one `game/tools/fakes.gd` the checks share | open |
-| TD-12 | **Difficulty is per mode** | difficulty code only in `boat_race.gd` and `ladder.gd`; racer AI rebuild in progress | after race AI step 3: one soft skill estimate that race AI, timers and police heat read (no rubber band) | planned (rank 7) |
+| TD-12 | **Difficulty is per mode** | difficulty code only in `boat_race.gd` and `ladder.gd`; a rival's difficulty is its rung's skill numbers (PR #635), and the one thing that follows the player is an easier rematch (`Ladder.ease_of`, 5 % a loss in a row) | one soft skill estimate that race AI, timers and police heat read (no rubber band); for the races it feeds `ease` in `Rivals.race_stats` and nothing during a race | planned (rank 7) |
 | TD-13 | **No map marker registry**: each layer has its own HUD setter that replaces a whole list | about a dozen `set_minimap_*` and `full_map.set_*` setters; `jobs.gd` and `roundup_job.gd` both write `set_minimap_pois`; quest focus uses its own busy test `_quest_running()` (6 activities) beside `_free_block()` (15) | `map_markers.gd`: markers declared once (layer, place, line, hours, gate); one rule table by context, vehicle and clock; minimap, full map, beacon and lists read it. Design in map-markers.md | planned, with TD-1 and TD-2 |
 
 ## How to pick the next one
 
 TD-8 first (small, protects testers' progress). Then TD-1, TD-2 and TD-3 as one "directors" lane,
 because the pacer and the objective channel both need to know the current activity. TD-5 is a day
-on its own. TD-6, TD-7 and TD-12 wait for a phone run and the racer AI step 3. The ranks match the
+on its own. TD-6, TD-7 and TD-12 wait for a phone run (the racer AI's step 3 is in). The ranks match the
 recommendation doc of 2026-11-11 (thread "Recommend gameplay systems to improve next").

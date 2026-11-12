@@ -9,6 +9,9 @@ that day here, in plain words a player would understand (no file names, no spoil
 rows in the progress log but no section here is listed automatically from the log's labels until
 someone writes its lines.
 
+## 2026-11-12
+- Rivals now choose their own streets by how long each way really takes them, traffic included, so in busy traffic they no longer all go the same way. A rival who finds a street blocked turns round or backs out and takes another way instead of driving through, gets past you on a two-lane road when you drive slowly, and no longer has empty streets the moment you lose sight of them. A race now ends at the same line for both cars: at the Palace, by the stadium and at six more finishes a rival no longer drives past the finish and round the block, and you no longer miss it from the outer lane.
+
 ## 2026-11-11
 - The whole Złote Tarasy complex got its details, not just the roof: glass shops lit at street level under a glowing canopy, pale stone ledges on each floor, glass railings round the roof terraces, Lumen's striped glass with its stepped-back top, a blue glass drum lit from inside, windows in the stone terraces and bright shop signs (ZARAZA, H·M·M, MULTIKINKO), plus a bigger ZŁOTE TARASKI name.
 - Eight new Podwózka passengers with their own stories and places to go: a shopper to Vipkac, an artist to Zachęta, a late violinist to the Philharmonic, a guide to the Polin Museum, an assistant to the Sejm, a lost tourist to Hotel Bristol, an actor playing a tree at Teatr Polski and a ghost-tour guide to the Barbican.
