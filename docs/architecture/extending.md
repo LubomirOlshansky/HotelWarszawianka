@@ -28,7 +28,8 @@ move later, and don't build a third private copy.
 | A quality-dependent extra | a field in `tiers.gd` and, if it costs CPU, a step in `governor.gd` | `if OS.get_model_name() ...` in a feature |
 | A setup step at load | a `_build_x(world)` in main.gd followed by `await LoadYield.tick("_build_x")` | long work in one frame |
 | A pause | only main.gd sets `get_tree().paused`; a system asks through a callable or signal main.gd gives it (TD-20) | pausing the tree from a system |
-| Something that can fail (a missing file, a bad value) | `push_error` or `push_warning` naming the script, then a safe default; the checks fail on these lines in the log (**planned error trap**, TD-14) | failing silently, or an `assert` that only a debug build runs |
+| Something that can fail (a missing file, a bad value) | `push_error` or `push_warning` naming the script, then a safe default. The error trap (`error_trap.gd`) keeps the line for a debug run's report, and the checks fail on it in the log | failing silently; an `assert` (only a debug build runs it); leaving it to the engine to report a null or a missing key (a release build does not, TD-21) |
+| What the game was doing when an error came | one more field in the context line `main.gd` `_trap_frame` gives the trap once a second | a log file of your own |
 | A test flag | parsed in `main.gd` `_parse_args`, noted in the archive's flags table; release builds ignore it (`release.gd`) | a flag read anywhere else |
 | Rules or numbers worth testing | a pure static script (like `ride_rules.gd`, `upgrades.gd`) and a `game/tools/check_*.gd` that prints `<name>: OK`, joined to `tools/verify.sh` | logic only reachable from a running scene |
 | A new script file | a row in systems.md or city-ai.md (`check_architecture` fails otherwise) | |

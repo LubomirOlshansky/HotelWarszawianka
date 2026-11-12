@@ -191,6 +191,7 @@ var _next_call := FIRST_CALL
 var _count := 0.0
 var _finish_order: Array = []
 var _rng := RandomNumberGenerator.new()
+var rng_seed := -1
 var _beacon: Node3D
 var _ring_nodes: Array[MeshInstance3D] = []
 var _mats := {}
@@ -226,7 +227,11 @@ var walk_up_pill := true
 
 
 func setup(world: Node3D) -> void:
-	_rng.randomize()
+	# rng_seed >= 0 (check_boat_race.gd) makes the race repeatable; the game leaves it at -1.
+	if rng_seed >= 0:
+		_rng.seed = rng_seed
+	else:
+		_rng.randomize()
 	_load_course()
 	water_y = map.terrain_height(line[0].x, line[0].y) if map != null and map.has_method("terrain_height") else 0.0
 	_build_materials()

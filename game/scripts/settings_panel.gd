@@ -84,6 +84,9 @@ const LEVELS := [["master", "Głośność", "Volume"], ["music", "Radio", "Radio
 ## Loop 2e: pixels per point and the safe area in pixels (from the HUD, screen_points.gd).
 var pt := 1.0
 var safe := Rect2()
+## The RAPORT button on the sound page (the error trap, TD-14): our own debug builds have it,
+## testers' builds do not (F, 2026-11-12).
+var report_on := OS.is_debug_build()
 ## The smallest touch target in pixels (44 pt).
 var touch := 132.0
 var _card: PanelContainer
@@ -307,10 +310,22 @@ func _build() -> void:
 	_segments(sound[1], "lang", [["Polski", "Polski"], ["English", "English"]])
 	# DEMO 3j: the credits and licences (credits.gd), a page of their own opened from here.
 	_heading(sound[1], "O grze", "About")
+	var about_row := HBoxContainer.new()
+	about_row.add_theme_constant_override("separation", _px(6))
+	sound[1].add_child(about_row)
 	var about := _word_button("LICENCJE", "CREDITS")
 	about.name = "credits"
 	about.pressed.connect(show_credits)
-	sound[1].add_child(about)
+	about_row.add_child(about)
+	# The error trap (tech-debt TD-14): this run's errors and last lines onto the clipboard
+	# (main.gd). Only in our own debug builds (`report_on`).
+	if report_on:
+		var report := _word_button("RAPORT", "REPORT")
+		report.name = "report"
+		report.pressed.connect(func():
+			close()
+			changed.emit("report", 1))
+		about_row.add_child(report)
 
 	# DOSTĘP · Access (access.gd): built here so the card is sized for it, moved after the
 	# notebook's page below (the notebook keeps tab 4).
