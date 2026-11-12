@@ -10,6 +10,7 @@ rows in the progress log but no section here is listed automatically from the lo
 someone writes its lines.
 
 ## 2026-11-12
+- The boat race rings are wider now (24 m instead of 16) to suit the faster boats, and the jump ramps along the Powiśle bank sit closer to the ring before them, so you land well short of the next ring.
 - Quest and police lines now show who is talking: a small round face beside the speaker's name in the speech bubbles and in the Senatorek and Smoła talk panels (the portrait where there is one, else their initial in their colour). The Smoła panel now shows one language, like the rest of the game.
 
 ## 2026-11-11
