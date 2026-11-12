@@ -44,7 +44,11 @@ system must be built after it.
   files in memory; unknown sections are kept as they were, so an older build doesn't destroy a
   newer save. `[session]` keeps the car's last spot for KONTYNUUJ.
 - `user://settings.cfg`, owned by `settings.gd`, separate so a new game keeps the settings.
-- `main.gd` `_notification` remembers the spot when the app goes to the background.
+- `main.gd` `_notification` remembers the spot when the app goes to the background, and
+  `_remember_frame` about every 5 s of driving; each of these rewrites the whole file.
+- **Known risk (tech-debt TD-8, first in the order):** a file that fails to load is treated as no
+  save and the next write replaces it; the write goes straight over the old file. Until TD-8
+  lands, don't add save calls on a timer or per frame.
 - Tests: `check_save.gd`. Runs pass `--nosave` so a test never writes your save.
 
 ## 4. Testing
