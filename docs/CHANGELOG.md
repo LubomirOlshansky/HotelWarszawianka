@@ -23,6 +23,8 @@ someone writes its lines.
 - Mati's Smoła night no longer starts right beside your car when the game begins: for now he waits on Aleje Jerozolimskie by Rondo Dmowskiego instead.
 
 ## 2026-11-10
+- The Podwózka button no longer shows up while a mission, race, job, quest or tour is on.
+- In the drag race the shift button now sits where the gas pedal is, big under the thumb, and the gas stays down while you shift.
 - Friends now ring on a little phone on the right of the screen, with a ringtone, their face and a red Decline and green Answer button; their face also shows when they pitch the night out.
 - The horn button next to the brake is gone; the nitro button now sits right by the brake.
 - Hotel Metropol on Marszałkowska is rebuilt from your photos: cream balcony fronts, a dark glazed ground floor under a canopy, and its name (the parody METROPOLKA) in green on a white board on the roof, facing the street.
