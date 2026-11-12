@@ -77,6 +77,7 @@ const Jobs := preload("res://scripts/jobs.gd")
 const Rides := preload("res://scripts/rides.gd")
 const Lines := preload("res://scripts/quest_lines.gd")
 const Eggs := preload("res://scripts/eggs.gd")
+const PlacZamkowyLife := preload("res://scripts/plac_zamkowy_life.gd")
 ## Loop MW-1: MOJA WARSZAWA, the city notebook.
 const Notebook := preload("res://scripts/notebook.gd")
 ## Loop MW-6: the eggs as notebook cards, KASETA, Spacer and Fotka.
@@ -431,6 +432,8 @@ var wallet: Wallet
 var dialogue: Dialogue
 var jobs: Jobs
 var eggs: Eggs
+## 2026-11-10: Plac Zamkowy's tourists and pigeons (plac_zamkowy_life.gd), asleep unless the player is near.
+var zamkowy_life: PlacZamkowyLife
 ## Loop MW-1: the notebook and its flags: --notebook[=chapter|place id] (open it; "" none),
 ## --found=, --place=<id> (the car at the place), --notes-log.
 var notes: Notebook
@@ -2121,6 +2124,8 @@ func _build_sound(data: Dictionary, world: Node3D) -> void:
 		traffic.bumped_driver.connect(func(d): sfx.horn(d.pos))
 	if eggs != null:
 		eggs.flushed.connect(sfx.pigeons)
+	if zamkowy_life != null:
+		zamkowy_life.flushed.connect(sfx.pigeons)
 	if jobs != null:
 		jobs.jars.connect(sfx.jars)
 	# Loop MW-5: the city's sounds at the notebook's places (the clubs, the metro, the bells, the
@@ -2571,6 +2576,9 @@ func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
 	eggs.force_street = barrier_force
 	world.add_child(eggs)
 	eggs.setup(nodes, data)
+	zamkowy_life = PlacZamkowyLife.new()
+	world.add_child(zamkowy_life)
+	zamkowy_life.setup(map)
 
 
 # --- loop MW-1: MOJA WARSZAWA, the notebook --------------------------------------------------
@@ -2721,6 +2729,9 @@ func _build_crowds(data: Dictionary, world: Node3D) -> void:
 						func() -> bool: return bool(site.get("guitar_on", false)))
 	# Podwózka at dawn: requests from the club doors.
 	if rides != null:
+		rides.mission_on = func() -> bool:
+			return _quest_running() or (crawl != null and crawl.busy()) or (meet != null and meet.busy()) \
+					or (dekalog_tour != null and dekalog_tour.busy()) or (kino_tour != null and kino_tour.busy())
 		rides.club_doors = func() -> Array:
 			var out: Array = []
 			if crowds.dawn_on:
@@ -7192,6 +7203,7 @@ func _process(dt: float) -> void:
 		eggs.player = pos
 		eggs.player_vel = heli.vel if flying else car.vel
 		eggs.flying = flying
+		zamkowy_life.tick(pos, heli.vel if flying else car.vel, flying)
 	car.lights = tod.lights_on
 	heli.lights = tod.lights_on
 	car.wet = weather.wet

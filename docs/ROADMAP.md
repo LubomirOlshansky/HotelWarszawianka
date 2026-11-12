@@ -437,6 +437,15 @@ then the Launch gate.
       balustrade on the crown (116 m), a bar, a DJ booth under a lighting truss with an LED wall
       and speakers, lounge sofas, planters, festoon lamps, the name in violet neon; the people,
       violet band, door queue, bass and hours were already there. Mac look check parked
+- [x] Plac Zamkowy for the trailer (F, 2026-11-10; `plac_zamkowy_life.gd`, landmarks.gd `_build_zamkowy`): the column's
+      raised granite plaza with three treads down to the setts, two café gardens (cream umbrellas, four chairs to a table),
+      72 tourists in groups plus 16 strollers, and a flock of 24 pigeons that bursts up when a car or a low helicopter
+      comes close (the Plac Defilad flock's logic, its own state); asleep beyond 190 m. Left: the wide curved stair in front
+      of the south-west houses, Z6's granite paving, sitters on the steps (BACKLOG "Plac Zamkowy")
+- [x] Royal Castle's square front and clock (F, 2026-11-10, same PR; `_zamek_square_front`, `_zamek_clock`): the west wing and the
+      south wing's end now have a plinth, red plaster, two string courses, a cornice and three rows of windows with cream
+      surrounds, sills and dark panes (3.6 m bays, the tower and turrets keep theirs); the Clock Tower's four faces are
+      cream dials with dark numerals, a gilt rim, a cream stone panel behind and hands at ten past ten
 - [ ] Old Town Market Square leftovers (painted palette done 2026-11-09, still to check against photos; sgraffito waits for shader budget): the
       four corner streets' mouths, a card for the Museum of Warsaw house (BACKLOG "Old Town square")
 - [x] Norblin, Browary Warszawskie, Hala Koszyki, Elektrownia Powiśle as models, people chilling
@@ -785,6 +794,7 @@ Beta goal: a visitor explores the city with everything open, an easy city drive,
       on the phone still to see)
 - [ ] Store screenshots re-shot after the opening lands; (app icon: new icon now on the site, wiki and store listing); a short trailer
 - [ ] Deploy the support page; first TestFlight upload from the Mac; Play closed test
+- Release builds (numbers stay off main's presets; set them in the build copy): 2026-11-10 from main 30acb055: TestFlight 0.1 build 7 (after 6 on 2026-11-09), Play AAB 0.1 code 10 (`nocnawarszawa-0.1-10.aab`, 236 MB, F uploads it to the Play Console). The next must be iOS 8+ and Android 11+.
 - [ ] Gamepad testing in the beta: an Xbox, PlayStation or MFi pad on the iPhone (beta-testing.md)
 - [ ] Outside players finish the first ten minutes without help (the Demo gate)
 

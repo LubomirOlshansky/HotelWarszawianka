@@ -2585,6 +2585,8 @@ carpet (`map_builder.LAWN_CARPETS`) and the gardens' low basin rings (`GARDEN_RI
   corner, x -581..-568, z -1522..-1492; the Lower Garden's L-shaped bosket and hedge fan.
 - Z5 Pałac pod Blachą as a model (copper-green hipped roof, cream walls, attic statues).
 - Z6 Plac Zamkowy's granite slab paving round the Column.
+- Zamek square front (F, 2026-11-10): done, windows/courses/cornice/clock. Still open: the stone portals and arms over the gate, dormers on the west roof, the vertical stone quoin strips on the wings.
+- Plac Zamkowy (F, 2026-11-10, trailer): built the plaza + treads, two café gardens, tourists and pigeons. Still open: the wide curved stair in front of the south-west houses (photo: concentric flights under the tenement with the green awning), sitters on the plaza's treads, the north-east café garden's exact spots against a photo check, migrating Plac Defilad's flock (eggs.gd) onto the same flock code.
 
 ## Mariensztat and Krakowskie Przedmieście: review (F, 2026-11-01)
 
