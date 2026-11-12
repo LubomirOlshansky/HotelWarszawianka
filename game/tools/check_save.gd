@@ -19,6 +19,15 @@ extends SceneTree
 ##   has_progress, start_over (a copy of the old file as save.prev.cfg, then wiped; never for a
 ##   newer file; nothing written under --nosave), and the title's choice: KONTYNUUJ, NOWA GRA's
 ##   question, NIE back, TAK emitting new_game, and the keys.
+## - safer saves (tech-debt TD-8, 2026-11-12): a file this build writes is sealed (`[save]
+##   sealed=true` first, `[end] ok=true` last) and no temp file is left; a file that loaded whole
+##   becomes the next launch's copy (save.bak.cfg); a damaged file (empty, cut short at a line or
+##   inside the first section, plain text, bytes that are not text) is moved aside byte for byte as
+##   save.bad-<time>.cfg, never written over, and the copy is loaded and written back; with no
+##   copy, or a damaged one, the game starts fresh and the next write makes a whole file; a write
+##   that fails leaves the old file as it was; a missing file is a fresh start even with a copy;
+##   an unsealed file (every save before TD-8) loads and the next write seals it; only the last
+##   BAD_KEPT damaged files are kept; settings.cfg is written the same way.
 ## Never touches the real user://save.cfg or settings.cfg; deletes its scratch files.
 ##   godot --headless --path game --script res://tools/check_save.gd
 
@@ -29,6 +38,7 @@ const SCRATCH := "user://check_save.cfg"
 const SCRATCH_NEW := "user://check_save_newer.cfg"
 const SCRATCH_OFF := "user://check_save_nosave.cfg"
 const SCRATCH_SET := "user://check_save_settings.cfg"
+const SCRATCH_BAD := "user://check_save_bad.cfg"
 
 var _problems := 0
 
@@ -40,6 +50,7 @@ func _initialize() -> void:
 	_newer()
 	_nosave()
 	_missing()
+	_damaged()
 	_settings()
 	_resume()
 	await process_frame  # the title's _ready runs inside the tree's first frame
@@ -343,7 +354,167 @@ func _title() -> void:
 	f.free()
 
 
+## TD-8: a wallet on the scratch file, loaded as a launch does (the copy kept too).
+func _launch() -> Node:
+	var w := Wallet.new()
+	w.path = SCRATCH_BAD
+	w.load_save()
+	w.keep_copy()
+	return w
+
+
+func _put(path: String, bytes: PackedByteArray) -> void:
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	f.store_buffer(bytes)
+	f.close()
+
+
+func _bytes(path: String) -> PackedByteArray:
+	return FileAccess.get_file_as_bytes(path) if FileAccess.file_exists(path) else PackedByteArray()
+
+
+func _drop(path: String) -> void:
+	if FileAccess.file_exists(path):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(path))
+
+
+## Removes the scratch save, its copy, its temp files and every damaged file kept beside it.
+func _clean_bad() -> void:
+	for f in DirAccess.get_files_at("user://"):
+		if f.begins_with("check_save_bad."):
+			_drop("user://" + f)
+	if DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(SCRATCH_BAD + ".tmp")):
+		DirAccess.remove_absolute(ProjectSettings.globalize_path(SCRATCH_BAD + ".tmp"))
+
+
+## TD-8 (safer saves): the file's seal, the launch copy, every kind of damage, a failed write.
+func _damaged() -> void:
+	_clean_bad()
+	var copy := "user://check_save_bad.bak.cfg"
+	# A record worth losing, written by this build.
+	var w := Wallet.new()
+	w.path = SCRATCH_BAD
+	w.notes = {"patelnia": 20261101, "bulwary": 20261102}
+	w.keep = {"podwozka_ratings": [5, 4, 5]}
+	w.ladder = {"halina": 20261103}
+	w.pay(900, 30, "kebab")
+	w.free()
+	var good := _bytes(SCRATCH_BAD)
+	var text := good.get_string_from_utf8()
+	_expect(text.begins_with("[save]\n\nsealed=true\n") and text.ends_with("[end]\n\nok=true\n"),
+			"a written file is not sealed first and ended last: %s ... %s" % [text.left(24).c_escape(), text.right(18).c_escape()])
+	_expect(not FileAccess.file_exists(SCRATCH_BAD + ".tmp"), "a write left its temp file")
+	var whole := ConfigFile.new()
+	_expect(Wallet.read_whole(SCRATCH_BAD, whole) == "" and Wallet.damage(whole) == "", "a written file reads as damaged: %s" % Wallet.read_whole(SCRATCH_BAD, whole))
+	# A launch: the file loads whole and becomes the copy.
+	w = _launch()
+	_expect(w.zl == 900 and w.respect == 30 and w.load_note == "" and w.bad_path == "" and not w.blocked and w._extra.is_empty(),
+			"a whole file: %s, note '%s', extra %s" % [w.summary(), w.load_note, w._extra])
+	_expect(_bytes(copy) == good, "a launch did not keep the copy %s" % copy)
+	w.free()
+	# Every kind of damage, with a good copy beside it: the copy is loaded and written back, the
+	# damaged file is kept byte for byte.
+	var line := text.rfind("\n", int(text.length() * 0.6)) + 1
+	var kinds := {
+		"empty": [PackedByteArray(), "empty"],
+		"cut at a line": [good.slice(0, text.left(line).to_utf8_buffer().size()), "cut short"],
+		"cut inside the first section": [good.slice(0, 10), "empty"],
+		"cut after the seal": ["[save]\n\nsealed=true\nversion=2\n".to_utf8_buffer(), "cut short"],
+		"plain text": ["this is not a save\nzl=5\n".to_utf8_buffer(), "not a save"],
+		"not text": [PackedByteArray([91, 115, 0, 255, 13, 7, 200, 1, 2, 3]), "not text"],
+	}
+	for kind: String in kinds:
+		var broken: PackedByteArray = kinds[kind][0]
+		_put(SCRATCH_BAD, broken)
+		w = _launch()
+		_expect(w.load_note == "restored" and w.bad_why == str(kinds[kind][1]), "%s: note '%s', why '%s'" % [kind, w.load_note, w.bad_why])
+		_expect(w.zl == 900 and w.respect == 30 and w.notes.size() == 2 and w.ladder.has("halina") and w.keep.get("podwozka_ratings") == [5, 4, 5],
+				"%s: the copy's record was not loaded: %s" % [kind, w.summary()])
+		_expect(w.bad_path != "" and _bytes(w.bad_path) == broken, "%s: the damaged file was not kept as it was (%s)" % [kind, w.bad_path])
+		_expect(_bytes(SCRATCH_BAD) == good and _bytes(copy) == good, "%s: the copy was not written back, or was changed" % kind)
+		w.pay(10, 0)
+		var after := ConfigFile.new()
+		_expect(Wallet.read_whole(SCRATCH_BAD, after) == "" and int(after.get_value("wallet", "zl", 0)) == 910, "%s: the next write: %s" % [kind, after.get_value("wallet", "zl", "-")])
+		_drop(w.bad_path)
+		w.free()
+		_put(SCRATCH_BAD, good)
+	# No copy: a fresh start, the damaged file kept, and the next write makes a whole file.
+	_drop(copy)
+	var cut: PackedByteArray = kinds["cut at a line"][0]
+	_put(SCRATCH_BAD, cut)
+	w = _launch()
+	_expect(w.load_note == "lost" and w.zl == 0 and w.loaded_version == 0 and w.notes.is_empty(), "no copy: note '%s', %s" % [w.load_note, w.summary()])
+	_expect(_bytes(w.bad_path) == cut and not FileAccess.file_exists(SCRATCH_BAD) and not FileAccess.file_exists(copy),
+			"no copy: the damaged file not kept, or a file written at load")
+	w.pay(5, 0)
+	var fresh := ConfigFile.new()
+	_expect(Wallet.read_whole(SCRATCH_BAD, fresh) == "" and int(fresh.get_value("wallet", "zl", 0)) == 5, "no copy: the first write after a fresh start")
+	_drop(w.bad_path)
+	w.free()
+	# A damaged copy too: a fresh start, and the damaged copy is left where it is.
+	_put(SCRATCH_BAD, cut)
+	_put(copy, cut)
+	w = _launch()
+	_expect(w.load_note == "lost" and w.zl == 0 and _bytes(copy) == cut, "a damaged copy: note '%s', %d zł" % [w.load_note, w.zl])
+	_drop(w.bad_path)
+	w.free()
+	# A missing file is a fresh start even with a copy beside it (deleting the save resets).
+	_drop(SCRATCH_BAD)
+	_put(copy, good)
+	w = _launch()
+	_expect(w.zl == 0 and w.load_note == "" and w.loaded_version == 0 and _bytes(copy) == good and not FileAccess.file_exists(SCRATCH_BAD),
+			"a missing file with a copy: %d zł, note '%s'" % [w.zl, w.load_note])
+	w.free()
+	# A write that fails (the temp file's name is taken by a folder) leaves the old file as it was.
+	_put(SCRATCH_BAD, good)
+	w = _launch()
+	DirAccess.make_dir_absolute(ProjectSettings.globalize_path(SCRATCH_BAD + ".tmp"))
+	w.pay(1, 0)
+	_expect(w.save_failures == 1 and w.save_error != OK and _bytes(SCRATCH_BAD) == good, "a failed write: failures %d, error %d, file changed %s" % [
+			w.save_failures, w.save_error, _bytes(SCRATCH_BAD) != good])
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(SCRATCH_BAD + ".tmp"))
+	w.save()
+	var later := ConfigFile.new()
+	_expect(w.save_error == OK and w.save_failures == 1 and Wallet.read_whole(SCRATCH_BAD, later) == "" and int(later.get_value("wallet", "zl", 0)) == 901,
+			"the write after a failed one: error %d, %s zł" % [w.save_error, later.get_value("wallet", "zl", "-")])
+	w.free()
+	# An unsealed file (every save before TD-8, and what an older build writes back): loads whole,
+	# and the next write seals it. One cut before [wallet] is caught without the seal.
+	var old := ConfigFile.new()
+	old.set_value("save", "version", 2)
+	old.set_value("wallet", "zl", 321)
+	old.set_value("end", "ok", true)  # as an older build writes a newer file back: no seal, the end kept
+	old.save(SCRATCH_BAD)
+	w = _launch()
+	_expect(w.zl == 321 and w.load_note == "" and not w._extra.has("end"), "an unsealed file: %d zł, note '%s', extra %s" % [w.zl, w.load_note, w._extra])
+	w.save()
+	_expect(_bytes(SCRATCH_BAD).get_string_from_utf8().begins_with("[save]\n\nsealed=true\n"), "an unsealed file was not sealed by the next write")
+	w.free()
+	_drop(copy)
+	_put(SCRATCH_BAD, "[save]\n\nversion=2\n".to_utf8_buffer())
+	w = _launch()
+	_expect(w.load_note == "lost" and w.bad_why == "cut short", "an unsealed file cut before [wallet]: note '%s', why '%s'" % [w.load_note, w.bad_why])
+	_drop(w.bad_path)
+	w.free()
+	# Only the last BAD_KEPT damaged files are kept.
+	for i in Wallet.BAD_KEPT + 2:
+		_put(SCRATCH_BAD, ("plain %d\n" % i).to_utf8_buffer())
+		w = _launch()
+		w.free()
+	var probe := Wallet.new()
+	probe.path = SCRATCH_BAD
+	var kept := probe.bad_files()
+	var last := ""
+	for f in kept:
+		last += _bytes(f).get_string_from_utf8().strip_edges() + ", "
+	_expect(kept.size() == Wallet.BAD_KEPT and last == "plain 2, plain 3, plain 4, ", "damaged files kept: %d (%s)" % [kept.size(), last])
+	probe.free()
+	_clean_bad()
+
+
 func _clean() -> void:
+	_clean_bad()
+	_drop(SCRATCH_SET + ".tmp")
 	for p in [SCRATCH, SCRATCH_NEW, SCRATCH_OFF, SCRATCH_SET, "user://check_save.v1.cfg", "user://check_save_nosave.v1.cfg",
 			"user://check_save_newer.v3.cfg", "user://check_save_settings_off.cfg", "user://check_save_missing.cfg",
 			"user://check_save.prev.cfg", "user://check_save_newer.prev.cfg", "user://check_save_nosave.prev.cfg"]:

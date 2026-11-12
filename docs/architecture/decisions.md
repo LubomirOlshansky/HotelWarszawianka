@@ -14,6 +14,7 @@ same PR as the change (keep the old row under "Replaced" with one line on why).
 | **Cars are cursors on the lane graph; people are instances in one MultiMesh.** No node per car or person. | The phone's frame grows with draw calls, not triangles. | the start |
 | **Both city paths give the same city** (runtime build and prebuilt sectors). | The Mac tests the first, the phone ships the second. | the start |
 | **The save is one versioned ConfigFile** owned by `wallet.gd`; an older build never overwrites a newer save. | One place to migrate; a tester can move between builds. | save version 2 |
+| **A save that can't be read is never written over or deleted.** It is moved aside and the last launch's copy is loaded; a missing file is a fresh start. | Progress is the one thing a tester can't get back. Deleting the file must still reset the game. | TD-8, 2026-11-12 |
 | **One language on screen; every text is written as a Polish and English pair.** | F, 2026-11-02; English by default since 2026-11-08. | 2026-11-02 |
 | **One decision for HUD text** (`messages.gd`) and one for bubbles (`chatter.gd`). | Messages from several systems used to overlap on screen. | PR #652 |
 | **Add-ons only where they earn it**: Beehave for the police and authored scenes, Dialogue Manager for branching scenes. | Everything else is cheaper and clearer as plain code. | docs/ADDONS.md |

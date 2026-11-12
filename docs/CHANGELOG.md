@@ -9,6 +9,9 @@ that day here, in plain words a player would understand (no file names, no spoil
 rows in the progress log but no section here is listed automatically from the log's labels until
 someone writes its lines.
 
+## 2026-11-12
+- Your progress is safer: if the save file ever gets damaged, the game now keeps it, loads the copy from your last session and tells you, instead of quietly starting from zero.
+
 ## 2026-11-11
 - The whole Złote Tarasy complex got its details, not just the roof: glass shops lit at street level under a glowing canopy, pale stone ledges on each floor, glass railings round the roof terraces, Lumen's striped glass with its stepped-back top, a blue glass drum lit from inside, windows in the stone terraces and bright shop signs (ZARAZA, H·M·M, MULTIKINKO), plus a bigger ZŁOTE TARASKI name.
 - Eight new Podwózka passengers with their own stories and places to go: a shopper to Vipkac, an artist to Zachęta, a late violinist to the Philharmonic, a guide to the Polin Museum, an assistant to the Sejm, a lost tourist to Hotel Bristol, an actor playing a tree at Teatr Polski and a ghost-tour guide to the Barbican.
