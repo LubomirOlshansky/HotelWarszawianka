@@ -1940,6 +1940,11 @@ func _build_world() -> void:
 	await LoadYield.tick("_build_old_tram")
 	_build_crash_scenes()
 	await LoadYield.tick("_build_crash_scenes")
+	# The activity kit's director: everything that is not in the kit yet answers through this test
+	# (no job, ride, card or call; on the ground), and the director adds: no other activity of the
+	# kit. Set before the first activity joins, so none asks an empty test while the rest loads
+	# (the boat race's pill by the pontoon asks every frame).
+	activities.world_free = _world_free
 	_build_rave(data, world)
 	await LoadYield.tick("_build_rave")
 	_build_meet(data, world)
@@ -3295,9 +3300,9 @@ func _build_boat_race(world: Node3D) -> void:
 		return [car.global_position, car.vel.length() * 3.6, false]
 	boat_race.seen = func(p: Vector3) -> bool: return cam.is_position_in_frustum(p)
 	boat_race.clock = func() -> float: return life.hour_now() if life != null else 12.0
-	boat_race.free_now = _boat_free
 	world.add_child(boat_race)
 	boat_race.setup(world)
+	activities.add(boat_race)  # the director says when Szymek may ring (nothing else on: world_free)
 	boat_race.boarded.connect(_on_boat_boarded)
 	boat_race.left_boat.connect(_on_boat_left)
 	if jobs != null:
@@ -3309,7 +3314,7 @@ func _build_boat_race(world: Node3D) -> void:
 			var at := BoatRace.CAR_SPOT
 			car.global_position = Vector3(at.x, map.ground_height(at.x, at.y), at.y)
 			car.reset_physics_interpolation()
-			boat_race._board())
+			boat_race.board())
 	elif boat_flag.begins_with("free") or boat_flag == "marina":
 		get_tree().create_timer(1.0).timeout.connect(func() -> void:
 			var at := BoatRace.CAR_SPOT
@@ -3328,9 +3333,6 @@ func _build_boat_race(world: Node3D) -> void:
 ## The two guided tours (tour.gd, the activity kit's first activity): Claire's drive round the
 ## Dekalog's places and Wiktor's round the cinemas. None with --dekalog=0 / --kino-tour=0.
 func _build_tours(world: Node3D) -> void:
-	# Everything that is not in the kit yet answers through the old test (no boat race,
-	# job, ride, card or call; on the ground). The director adds: no other activity of the kit.
-	activities.world_free = _boat_free
 	dekalog_tour = _build_tour(world, "dekalog", dekalog_flag, dekalog_log)
 	kino_tour = _build_tour(world, "kino", kino_flag, kino_log)
 
@@ -3573,14 +3575,14 @@ func _story_tick() -> void:
 		print("stories: focus %s, %d starts on the map" % ["on" if focus else "off", (m[0] as PackedVector2Array).size()])
 
 
-## The questline friend may walk up (story_quests.gd): as `_boat_free`, but a rescue call that only
+## The questline friend may walk up (story_quests.gd): as `_world_free`, but a rescue call that only
 ## rings (the WEZWANIE pill, waiting until pressed) does not stop it (F, 2026-11-08: stopped in the
 ## night meet's ring, nothing came).
 ## The first-ten-minutes guide doesn't stop it either (F, 2026-11-10: "I still can't start some
 ## quests": a fresh save stopped in a questline's ring and nobody came, because the guide ran).
 ## Driving into a badge and stopping is the player's own choice, so the friend comes.
 func _story_free() -> bool:
-	return _rave_free(true, true)
+	return _free_block(true, true) == ""
 
 
 ## True once the night meet's night was set for the run under way (cleared when the meet ends).
@@ -3634,10 +3636,10 @@ func _story_skip_to(hour: float) -> bool:
 	return true
 
 
-## Nothing else on, on the ground (the director's `world_free`; a night of Mati's is an activity of
-## the kit, so `_free_block` already names it).
-func _boat_free() -> bool:
-	return _rave_free()
+## Nothing else on, on the ground: the director's `world_free`, the test for everything that is
+## not an activity of the kit yet (the kit's own are named by `_free_block` through the director).
+func _world_free() -> bool:
+	return _free_block() == ""
 
 
 ## The boat race's share of the car's speed zoom (the river is open: the rest of the zoom only
@@ -3931,6 +3933,7 @@ func _on_padel_done(g_us: int, g_them: int, stats: Dictionary) -> void:
 		trend_job.arcade_done(g_us, g_them, stats)
 
 
+## Why nothing may start now ("" when free): the first gate that holds, for --stories-log.
 ## Nothing else on: no title, bench, Spacer, guide, card, call, ride, job, race; on the ground.
 ## `ringing_ok`: a rescue call still ringing (not answered) does not count (the questline friend).
 func _free_block(ringing_ok := false, guide_ok := false) -> String:
@@ -3951,18 +3954,11 @@ func _free_block(ringing_ok := false, guide_ok := false) -> String:
 		return "ride/job/trend job busy"
 	if rivals != null and rivals.busy():
 		return "rival race busy"
-	if boat_race != null and boat_race.busy():
-		return "boat race busy"
 	if activities.busy():
 		return activities.busy_tag() + " busy"
 	if flying or car.in_water:
 		return "in the air or in water"
 	return ""
-
-
-## Why nothing may start now ("" when free): the first gate that holds, for --stories-log.
-func _rave_free(ringing_ok := false, guide_ok := false) -> bool:
-	return _free_block(ringing_ok, guide_ok) == ""
 
 
 # --- the night racing club -------------------------------------------------------------------
@@ -4097,8 +4093,6 @@ func _ev_free() -> bool:
 	if (rides != null and rides.busy()) or (jobs != null and jobs.busy()) or (trend_job != null and trend_job.busy()):
 		return false
 	if rivals != null and rivals.busy():
-		return false
-	if boat_race != null and boat_race.busy():
 		return false
 	return flying or not car.in_water
 
@@ -7916,17 +7910,6 @@ func _main_line_tick(dt: float) -> void:
 ## The arrow and minimap dot for the mission target.
 func _show_target() -> void:
 	_free_now = false
-	if boat_race != null and boat_race.has_target():
-		var bp: Vector3 = boat_race.target_position()
-		var at_b := _vehicle_position()
-		var mb := roundi(Vector2(bp.x - at_b.x, bp.z - at_b.z).length())
-		var on_b := cam.unproject_position(bp + Vector3(0, 3.5, 0)) * float(view.stretch_shrink)
-		# The next ring stands bright in view: the arrow only when it is off screen.
-		# On the water the rings themselves lead (the next three stand in view): no arrow over the boat.
-		hud.set_target(on_b, "%d m" % mb, boat_race.target_colour(), mb > 12 and not boat_race.boating())
-		_put_target(Vector2(bp.x, bp.z), boat_race.target_colour(), false)
-		_new_target("job", bp)
-		return
 	# The activity kit (tech-debt TD-2): whichever activity sends the player somewhere now.
 	var act := activities.targeted()
 	if act != null and (not flying or act.flown):
@@ -7934,7 +7917,7 @@ func _show_target() -> void:
 		var at_a := _vehicle_position()
 		var ma := roundi(Vector2(ap.x - at_a.x, ap.z - at_a.z).length())
 		var on_a := cam.unproject_position(ap + Vector3(0, 3.5, 0)) * float(view.stretch_shrink)
-		hud.set_target(on_a, act.target_label(ma), act.target_colour(), ma > 12)
+		hud.set_target(on_a, act.target_label(ma), act.target_colour(), ma > 12 and act.target_arrow())
 		_put_target(Vector2(ap.x, ap.z), act.target_colour(), false)
 		_new_target("job", ap)
 		return
@@ -8311,9 +8294,6 @@ func _toggle_vehicle() -> void:
 		return
 	if rivals != null and rivals.racing():
 		hud.toast("Najpierw dokończ wyścig", "Finish the race first")
-		return
-	if boat_race != null and boat_race.busy():
-		hud.toast("Najpierw dokończ wyścig łodzi (albo ✕)", "Finish the boat race first (or ✕)")
 		return
 	var grounded := activities.grounded()  # the activity that is on keeps the player on the ground
 	if not grounded.is_empty():
@@ -8724,7 +8704,7 @@ func _update_camera(dt: float) -> void:
 		var zoom := view * FollowCamera.SPEED_ZOOM * clampf(speed / (car.top_speed() if bike else car.max_speed * car.top_mult), 0.0, 1.0)
 		if boat_race != null and boat_race.boating():
 			zoom *= BOAT_ZOOM  # the boat race: the rings and the rivals stay big enough to read
-			if boat_race.state == BoatRace.State.FREE:
+			if boat_race.stage == BoatRace.Stage.FREE:
 				view *= BOAT_FREE_VIEW
 				zoom *= BOAT_FREE_VIEW
 		size = view + zoom

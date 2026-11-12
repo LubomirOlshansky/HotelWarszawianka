@@ -62,7 +62,7 @@ const COLOUR := Lines.STORY_COLOUR
 var hud: CanvasLayer
 ## () -> [position: Vector3, km/h, flying: bool]
 var vehicle: Callable
-## () -> bool: nothing else on and no card up (main.gd `_boat_free`).
+## () -> bool: nothing else on and no card up (main.gd `_story_free`).
 var free_now: Callable = func() -> bool: return true
 ## Why the friend may not walk up now ("" when free): logged with --stories-log, once per reason.
 var why_blocked: Callable
