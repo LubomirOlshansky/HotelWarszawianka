@@ -11,6 +11,7 @@ someone writes its lines.
 
 ## 2026-11-12
 - Your progress is safer: if the save file ever gets damaged, the game now keeps it, loads the copy from your last session and tells you, instead of quietly starting from zero.
+- Quest and police lines now show who is talking: a small round face beside the speaker's name in the speech bubbles and in the Senatorek and Smoła talk panels (the portrait where there is one, else their initial in their colour). The Smoła panel now shows one language, like the rest of the game.
 
 ## 2026-11-11
 - The whole Złote Tarasy complex got its details, not just the roof: glass shops lit at street level under a glowing canopy, pale stone ledges on each floor, glass railings round the roof terraces, Lumen's striped glass with its stepped-back top, a blue glass drum lit from inside, windows in the stone terraces and bright shop signs (ZARAZA, H·M·M, MULTIKINKO), plus a bigger ZŁOTE TARASKI name.

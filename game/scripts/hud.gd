@@ -2024,22 +2024,7 @@ func _paint_face(c: Control, tex: Texture2D, letter: String, accent: Color, r: f
 		for k in 2:
 			var f := fmod(t * 0.9 + k * 0.5, 1.0)
 			c.draw_arc(mid, r * (1.0 + 0.4 * f), 0.0, TAU, 48, Color(accent, 0.6 * (1.0 - f)), 2.0 * pt, true)
-	if tex != null:
-		var pts := PackedVector2Array()
-		var uvs := PackedVector2Array()
-		for i in 40:
-			var d := Vector2.from_angle(TAU * i / 40.0)
-			pts.append(mid + d * r)
-			uvs.append(Vector2(0.5, 0.5) + d * 0.5)
-		c.draw_colored_polygon(pts, Color.WHITE, uvs, tex)
-	else:
-		c.draw_circle(mid, r, accent.darkened(0.55), true, -1.0, true)
-		var font := ThemeDB.fallback_font
-		var size := roundi(r * 1.05)
-		var w := font.get_string_size(letter, HORIZONTAL_ALIGNMENT_LEFT, -1, size)
-		var y := mid.y + (font.get_ascent(size) - font.get_descent(size)) * 0.5
-		c.draw_string(font, Vector2(mid.x - w.x * 0.5, y), letter, HORIZONTAL_ALIGNMENT_LEFT, -1, size, accent.lightened(0.35))
-	c.draw_arc(mid, r, 0.0, TAU, 48, accent, maxf(1.5, 2.0 * pt), true)
+	Portraits.paint(c, mid, r, tex, letter, accent, maxf(1.5, 2.0 * pt))
 
 
 ## The running mission or race: where to, the clock, the distance, a hint, how much of the
