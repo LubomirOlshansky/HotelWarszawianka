@@ -3328,7 +3328,7 @@ func _build_boat_race(world: Node3D) -> void:
 ## The two guided tours (tour.gd, the activity kit's first activity): Claire's drive round the
 ## Dekalog's places and Wiktor's round the cinemas. None with --dekalog=0 / --kino-tour=0.
 func _build_tours(world: Node3D) -> void:
-	# Everything that is not in the kit yet answers through the old test (no rave, boat race,
+	# Everything that is not in the kit yet answers through the old test (no boat race,
 	# job, ride, card or call; on the ground). The director adds: no other activity of the kit.
 	activities.world_free = _boat_free
 	dekalog_tour = _build_tour(world, "dekalog", dekalog_flag, dekalog_log)
@@ -3402,7 +3402,7 @@ func _build_stories(world: Node3D) -> void:
 		return [car.global_position, car.vel.length() * 3.6, false]
 	stories.free_now = _story_free
 	stories.why_blocked = func() -> String:
-		return "rave busy" if rave != null and rave.busy() else _free_block(true, true)
+		return _free_block(true, true)
 	stories.skip_to = _story_skip_to
 	stories.ground = func(x: float, z: float) -> float: return map.ground_height(x, z)
 	stories.clock = func() -> Array:
@@ -3580,8 +3580,6 @@ func _story_tick() -> void:
 ## quests": a fresh save stopped in a questline's ring and nobody came, because the guide ran).
 ## Driving into a badge and stopping is the player's own choice, so the friend comes.
 func _story_free() -> bool:
-	if rave != null and rave.busy():
-		return false
 	return _rave_free(true, true)
 
 
@@ -3610,7 +3608,7 @@ var _rave_dark := false
 ## should change to the night"): taken by day or on a weekday (his call, the list, in person), the
 ## clock jumps to Friday 22:03 at once (a fixed look is always Friday), so the secret rave's rig is on.
 func _rave_night() -> void:
-	if rave == null or not rave.busy():
+	if rave == null or not rave.under_way():
 		_rave_dark = false
 		return
 	if _rave_dark:
@@ -3636,10 +3634,9 @@ func _story_skip_to(hour: float) -> bool:
 	return true
 
 
-## Nothing else on, on the ground (the rave's test, and no rave either).
+## Nothing else on, on the ground (the director's `world_free`; a night of Mati's is an activity of
+## the kit, so `_free_block` already names it).
 func _boat_free() -> bool:
-	if rave != null and rave.busy():
-		return false
 	return _rave_free()
 
 
@@ -3728,6 +3725,7 @@ func _build_rave(data: Dictionary, world: Node3D) -> void:
 	rave.city_sounds = city_sounds
 	rave.origin = data.get("origin", [52.234, 21.024])
 	rave.log_on = rave_log
+	# `rave.autopilot` stays off: a test run does not answer Mati or the bouncer (it never did).
 	rave.auto = _rave_auto
 	rave.force = rave_flag if rave_flag in ["on", "day"] else ""
 	rave.vehicle = func() -> Array:
@@ -3735,11 +3733,11 @@ func _build_rave(data: Dictionary, world: Node3D) -> void:
 			return [heli.global_position, heli.speed() * 3.6, true]
 		return [car.global_position, car.vel.length() * 3.6, false]
 	rave.focus = func() -> Vector3: return cam_focus
-	rave.clock = tod.local_clock
-	rave.free_now = _rave_free
+	rave.calendar = tod.local_clock
 	rave.enter_club = _enter_club
 	world.add_child(rave)
 	rave.setup(world)
+	activities.add(rave)  # the director says when Mati may ring (nothing else on: world_free)
 	if rave_spot != "":
 		for i in rave.spots.size():
 			if String(rave.spots[i]["id"]) == rave_spot:
@@ -4008,9 +4006,9 @@ func _build_meet(data: Dictionary, world: Node3D) -> void:
 		get_tree().create_timer(1.0).timeout.connect(func() -> void: meet.jump(meet_at))
 
 
-## Nothing else on (as the rave's), and no rave night under way.
+## Nothing else on, a night of Mati's included (an activity of the kit: `_free_block` names it).
 func _meet_free() -> bool:
-	return _rave_free() and not (rave != null and rave.busy())
+	return _rave_free()
 
 
 ## Puts the car at `at` heading `yaw` at once (the meet's START DRAG), the camera cut with it.
@@ -4094,7 +4092,7 @@ func _build_ev_tow(world: Node3D) -> void:
 ## Nothing outside the kit is on: no title, bench, Spacer, guide, card, rescue, ride, job or
 ## race (the director adds: no other activity of the kit). The air is fine.
 func _ev_free() -> bool:
-	if (rave != null and rave.busy()) or (club != null and club.inside):
+	if club != null and club.inside:
 		return false
 	if meet != null and meet.busy():
 		return false
@@ -7947,19 +7945,6 @@ func _show_target() -> void:
 		hud.set_target(on_a, act.target_label(ma), act.target_colour(), ma > 12)
 		_put_target(Vector2(ap.x, ap.z), act.target_colour(), false)
 		_new_target("job", ap)
-		return
-	if rave != null and rave.has_target() and not flying:
-		var vp: Vector3 = rave.target_position()
-		var at_v := _vehicle_position()
-		var mv := roundi(Vector2(vp.x - at_v.x, vp.z - at_v.z).length())
-		var on_v := cam.unproject_position(vp + Vector3(0, 3.5, 0)) * float(view.stretch_shrink)
-		hud.set_target(on_v, rave.target_label(mv), rave.target_colour(), mv > 12)
-		_put_target(Vector2(vp.x, vp.z), rave.target_colour(), false)
-		_new_target("job", vp)
-		# The return went missing with the night meet's branch below (78d05081): the frame fell
-		# through to "nothing on", which hid the arrow and the minimap pin and forgot the target,
-		# so the next frame took it as new and the camera flew to it again and again while the
-		# car stood (F, 2026-11-10: the destination shown for ever, the arrow lost).
 		return
 	if meet != null and meet.has_target() and not flying:
 		var kp: Vector3 = meet.target_position()
