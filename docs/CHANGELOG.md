@@ -25,6 +25,8 @@ someone writes its lines.
 ## 2026-11-10
 - The Royal Castle's front towards Plac Zamkowy has its red wall back, with window frames, string courses and a cornice, and the Clock Tower shows a proper white clock face.
 - Plac Zamkowy is alive: tourists gather round Sigismund's Column on its new stepped plaza, cafés put out their umbrellas and chairs, and a flock of pigeons takes off when you drive or fly low over the square.
+- The Podwózka button no longer shows up while a mission, race, job, quest or tour is on.
+- In the drag race the shift button now sits where the gas pedal is, big under the thumb, and the gas stays down while you shift.
 - Friends now ring on a little phone on the right of the screen, with a ringtone, their face and a red Decline and green Answer button; their face also shows when they pitch the night out.
 - The horn button next to the brake is gone; the nitro button now sits right by the brake.
 - Hotel Metropol on Marszałkowska is rebuilt from your photos: cream balcony fronts, a dark glazed ground floor under a canopy, and its name (the parody METROPOLKA) in green on a white board on the roof, facing the street.
