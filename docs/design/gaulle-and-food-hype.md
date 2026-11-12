@@ -66,6 +66,8 @@ At about (-171, 273), the lawn's curved cut-out north-west of the Party House's 
   Jeszcze nie doszedł." / "The General is walking to Nowy Świat. Since 2005. Not there yet."
 
 ### G2 · Dom Partii (landmark skin and extras, Opus) — sites `dom_partii`, `dom_partii_extras`
+- **2026-11-12**: replaced by a whole model from F's photos (site `dom_partii` only; spec
+  `docs/landmarks/specs/dom_partii.md`). The lines below are the first pass.
 - The mapped massing stays (OSM parts on the cloud, GUGiK LoD2 on the Mac: the wings, the pillars
   under the north and south wings) as a **skin** (M_MONUMENT, white stone #e9e6dd, roof #8e9091),
   the way the Teatr Wielki and the Sejm are drawn: tall windows between piers.

@@ -15,6 +15,7 @@ item. Updated 2026-11-01 from the audit. v1.0 = the Demo and TestFlight gates in
 then the Launch gate.
 
 ### Done (built and checked headless)
+- [x] Dom Partii's real fronts and courtyard (F, 2026-11-11, photos: "I thought its fronts and inside were redone"): the block rebuilt whole (site `dom_partii`, spec `docs/landmarks/specs/dom_partii.md`): two side wings to 30 m whose ends read as corner towers with a ledge every storey, the front and back bodies a storey lower on a five-bay colonnade with two glass lobbies, the balcony, a pilaster grid, French windows and a frieze of small windows, roof boards PEPEO ŻUBR, WISTULA and ROBUR (parodies), and a paved courtyard the car can drive into with the wavy fountain, its warm-lit rim and five jets (5,202 tris, +0 draw calls; phone look open)
 - [x] Faces beside quest dialogue (F, 2026-11-11: "with the name only it's not clear who is speaking"): a quest or police speech bubble from a person carries a 30 pt round face on its left, and the Senatorek (`lounge.gd`) and Smoła (`club.gd`) talk panels a 40 pt one; the portrait from `game/art/portraits` where there is one (Ivan, Mati, Wiktor, Claire…), else the initial on a disc in the speaker's colour (Bogdan, Mistrz Dymek, guards, passengers). No face for non-people (Nawigacja, Ty, the lift, the crowd: `Portraits.NO_FACE`) nor for ambient chatter and shouts. One painter for the call view, cards and bubbles (`Portraits.paint`, `Portraits.badge`); the Smoła panel shows one language now. `check_hud` checks who gets a face. Shots `/mnt/project-files/quest-portraits/`. Open: PixelLab portraits for Bogdan and Mistrz Dymek (F's OK first), phone look
 - [x] More Podwózka ride stories (BACKLOG "Vitkac quests and ride stories", 2026-11-11): 8 new passengers (26 in all) with a real place each: Vipkac, Zachęta, Filharmonia Narodowa, Polin, the Sejm, Hotel Bristol, Teatr Polski, the Barbican (`data/taxi_stories.json`, `check_rides`); the Vitkac quests themselves stay open
 - [x] MDM and BYDŁO signs on the right building (F, 2026-11-10: "in the wrong place"): both roof neons and the HOTEL MDM sign moved from the north-east block to Hotel MDM (Plac Konstytucji 1, the 27.4 m south-west block, OSM 28823140, Wikipedia coordinates), facing the square (`MDM_SIGNS` in `landmarks.gd`); the real sign heights are a Mac photo check (2026-11-11)
@@ -616,7 +617,7 @@ then the Launch gate.
 - [ ] Rondo de Gaulle'a and the food hype (F, 2026-11-01; spec docs/design/gaulle-and-food-hype.md):
   - [x] Design and the parody names, 2026-11-01
   - [x] G1 the de Gaulle statue, 2026-11-01
-  - [x] G2 Dom Partii: white stone, ROBUR, the courtyard fountain, 2026-11-01
+  - [x] G2 Dom Partii: white stone, ROBUR, the courtyard fountain, 2026-11-01 (rebuilt whole from F's photos 2026-11-12, site `dom_partii`)
   - [x] G2 part 2: Dom Partii's bars as neons, 2026-11-01
   - [x] G3 HOTEL PIURE, the LORETKA date bar and TIMBER jokes, 2026-11-01
   - [x] G4 KOSZTA COFFEE, GREEN CAFFE NERWO, KUKŁA and the queues, 2026-11-01
