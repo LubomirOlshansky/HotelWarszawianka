@@ -44,7 +44,17 @@ system must be built after it.
   files in memory; unknown sections are kept as they were, so an older build doesn't destroy a
   newer save. `[session]` keeps the car's last spot for KONTYNUUJ.
 - `user://settings.cfg`, owned by `settings.gd`, separate so a new game keeps the settings.
-- `main.gd` `_notification` remembers the spot when the app goes to the background.
+- `main.gd` `_notification` remembers the spot when the app goes to the background, and
+  `_remember_frame` about every 5 s of driving; each of these rewrites the whole file.
+- **Every write is safe** (`safe_file.gd`, TD-8): a temp file, read back, then one rename over the
+  old file, for the save and the settings. A file the game writes starts with `[save] sealed=true`
+  and ends with `[end] ok=true`.
+- **A damaged file is never written over.** Half a ConfigFile loads without an error, so
+  `wallet.gd` `damage` decides: empty, not text, not a save, `[save]` without `[wallet]`, or sealed
+  without its end. The file is moved aside as `save.bad-<unix time>.cfg` (the last 3 are kept),
+  the last launch's copy `save.bak.cfg` is loaded and written back, and main.gd tells the player
+  (`_save_note`). No good copy: a fresh start. A missing `save.cfg` is a fresh start too, copy or
+  no copy, so deleting it still resets the game.
 - Tests: `check_save.gd`. Runs pass `--nosave` so a test never writes your save.
 
 ## 4. Testing
