@@ -30,6 +30,7 @@ var spent_usec := 0
 
 const Chatter := preload("res://scripts/chatter.gd")
 const Access := preload("res://scripts/access.gd")
+const Sfx := preload("res://scripts/sfx.gd")
 const Lang := preload("res://scripts/lang.gd")  # one language at a time: every pl/en pair below shows one
 const SettingsPanel := preload("res://scripts/settings_panel.gd")
 const Gamepad := preload("res://scripts/gamepad.gd")  # the pad's A on the context button (2026-11-03)
@@ -97,7 +98,6 @@ const CALL_W := 176.0
 const CALL_FACE := 44.0
 const CALL_BUTTON := 44.0
 ## The ringtone (tools/make_ui_sounds.py `ring`), again every RING_EVERY s while it rings.
-const RINGTONE := "res://audio/ui/ring.wav"
 const RING_EVERY := 2.6
 const CARD_FACE := 40.0
 const STATUS_W := 240.0  # the message director: the quest card in its compact cut (was 260)
@@ -239,7 +239,8 @@ var _call_box: HBoxContainer
 var _call_screen_box: PanelContainer
 var _call_screen: StyleBoxFlat
 var _call_clock: Label
-var _ring: AudioStreamPlayer
+## The ringtone is sounding (sfx.gd UI "ring"), so it is stopped once when the call view goes.
+var _ringing := false
 var _ring_wait := 0.0
 var _call_face: Control
 var _call_name: Label
@@ -1870,15 +1871,6 @@ func _build_call_view() -> void:
 	_call_buttons.alignment = BoxContainer.ALIGNMENT_CENTER
 	_call_buttons.add_theme_constant_override("separation", roundi(48.0 * pt))
 	rows.add_child(_call_buttons)
-	_ring = AudioStreamPlayer.new()
-	_ring.name = "ringtone"
-	_ring.process_mode = Node.PROCESS_MODE_ALWAYS
-	if AudioServer.get_bus_index(&"SFX") >= 0:
-		_ring.bus = &"SFX"
-	_ring.volume_db = -9.0
-	if ResourceLoader.exists(RINGTONE):
-		_ring.stream = load(RINGTONE)
-	add_child(_ring)
 
 
 ## The phone's top bar: the camera notch in the middle, three signal bars and a battery right.
@@ -2141,14 +2133,15 @@ func _frame(dt: float) -> void:
 		_call_t += dt
 		_call_face.queue_redraw()
 	# The ringtone while the phone view rings (and not a moment after it is answered or gone).
-	if _ring != null and _ring.stream != null:
-		if call_showing():
-			_ring_wait -= dt
-			if _ring_wait <= 0.0:
-				_ring.play()
-				_ring_wait = RING_EVERY
-		elif _ring.playing:
-			_ring.stop()
+	if call_showing():
+		_ringing = true
+		_ring_wait -= dt
+		if _ring_wait <= 0.0:
+			Sfx.ui("ring")
+			_ring_wait = RING_EVERY
+	elif _ringing:
+		_ringing = false
+		Sfx.ui_stop("ring")
 	if _toast_left > 0.0:
 		_toast_left -= dt
 		_toast_box.modulate.a = clampf(_toast_left / 0.6, 0.0, 1.0)
