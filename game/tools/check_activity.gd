@@ -14,6 +14,8 @@ extends SceneTree
 ##   subclass how (`_refused`), an activity with nothing to offer after all goes back to idle, a
 ##   card with a life closes by itself as its first button would, the status line takes its own
 ##   colour, and the target's ring can stand beside the spot with its own radius;
+## - what the third (shisha.gd) needed: a second ring that is not the target (`set_mark`: a door
+##   to see from down the street), gone with the target; and a card with its buttons stacked;
 ## - the ✕ drops a run (not a call, an offer or a run with its card up), with the quit words; the
 ##   play limit drops it without them;
 ## - the autopilot answers the call, takes the offer and presses the run's cards;
@@ -370,7 +372,33 @@ func _refusals_and_looks() -> void:
 	_expect(a.target_position().is_equal_approx(Vector3(10.0, _map.ground_height(10.0, 20.0), 20.0)), "set_target with a ring of its own: the target is still the spot")
 	_expect(a._beacon.position.is_equal_approx(Vector3(12.0, 5.0, 22.0)) and is_equal_approx(a._beacon._ring_radius, 9.0),
 			"and the ring stands where it is told, as wide as told (%s, %.1f)" % [a._beacon.position, a._beacon._ring_radius])
+	# A mark: a second ring that is not the target (nobody waves there), gone with the target.
+	_expect(a._mark == null, "no mark until one is asked for")
+	a.set_mark(Vector3(40.0, 2.0, 60.0), 3.0, Color.GOLD)
+	_expect(a._mark != null and a._mark.visible and a._mark.position.is_equal_approx(Vector3(40.0, 2.0, 60.0))
+			and is_equal_approx(a._mark._ring_radius, 3.0) and not a._mark.waving, "set_mark: a ring where it is told, as wide as told, nobody waving")
+	_expect(a._mark._colour == Color.GOLD and a._mark != a._beacon, "in its own colour, and not the target's beacon")
+	_expect(a.target_position().is_equal_approx(Vector3(10.0, _map.ground_height(10.0, 20.0), 20.0)) and a._beacon.visible,
+			"the mark moves no target")
+	var first_mark: Node3D = a._mark
+	a.set_mark(Vector3(41.0, 2.0, 61.0), 3.0, Color.RED)
+	_expect(a._mark == first_mark and a._mark._colour == Color.RED and a._mark.position.is_equal_approx(Vector3(41.0, 2.0, 61.0)),
+			"a second mark is the same ring, moved and recoloured")
+	a.clear_target()
+	_expect(not a._mark.visible and not a._beacon.visible, "clear_target takes the mark down too")
+	a.set_mark(Vector3(40.0, 2.0, 60.0), 3.0, Color.GOLD)
+	# A card with its buttons one under the other.
+	a.show_card(["WYNIK", "RESULT"], ["tekst", "text"], PackedStringArray(["OK|OK"]))
+	_expect(hud.card == "WYNIK" and not hud.stacked, "a run's card has its buttons side by side by default")
+	hud.press(0)
+	a.show_card(["WYNIK", "RESULT"], ["tekst", "text"], PackedStringArray(["OK|OK"]), 0.0, true)
+	_expect(hud.card == "WYNIK" and hud.stacked, "or one under the other when asked")
+	hud.hide_card()
+	_run(a, 0.1)
+	_expect(hud.card == "WYNIK" and hud.stacked, "and a stacked card put back is still stacked")
+	hud.press(0)
 	a.finish()
+	_expect(not a._mark.visible, "the end takes the mark down")
 
 
 func _abort_and_limit() -> void:

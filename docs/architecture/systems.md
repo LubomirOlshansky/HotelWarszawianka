@@ -82,7 +82,8 @@ on. The others have not moved yet (one per PR, tech-debt TD-1): each runs on its
 | `boat_race.gd` | The Vistula boat race. |
 | `street_meet.gd` | The night racing club (calls, meets, drag). |
 | `coffee_run.gd`, `ev_tow.gd` | The coffee run and the EV tow. |
-| `shisha.gd`, `lounge.gd`, `rave.gd`, `club.gd` | Hidden and night quests; cutaway interiors. |
+| `shisha.gd` | The shisha night ("Dym u Senatorka"), an activity of the kit: Ivan phones ("+" held), the two pickups at a kerb, the lounge's entrance (the kerb's ring and the door's gold one), the evening inside (`lounge.gd`), the two drop-offs, the pay. The kit holds its call, cards, target and end; the script keeps the places, the lines over the car, the votes and the pay. Lines: `game/data/shisha.json`. |
+| `lounge.gd`, `rave.gd`, `club.gd` | Hidden and night quests; cutaway interiors. |
 | `padel_match.gd`, `padel_sim.gd` | Padel match view; its pure rules. |
 | `event_day.gd` | 11 November day event. |
 | `story_quests.gd` | The questline registry (`stories.add({...})`): start spots, hours, call, meet, busy, idle. It lists the questlines; which activity is on is the director's (`activities.gd`). |

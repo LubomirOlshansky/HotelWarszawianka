@@ -21,7 +21,8 @@ extends Node
 ## A subclass gives the words (`_call_card`, `_offer_card`, `_refused`) and the play (`_begin`,
 ## `_run_tick`, `_card_pressed`), and uses `set_target`, `show_card`, `status`, `finish` and
 ## `drop`. One with its own clock for the call gives `_idle_tick` too. The first one is tour.gd;
-## bar_crawl.gd is the first with a call clock, a ring and a result card of its own.
+## bar_crawl.gd is the first with a call clock, a ring and a result card of its own; shisha.gd the
+## first with a stage somewhere else (the lounge) and a second ring (`set_mark`).
 
 const Beacon := preload("res://scripts/beacon.gd")
 const Access := preload("res://scripts/access.gd")
@@ -72,10 +73,12 @@ var _session := 0.0
 var _run_t := 0.0
 var _next_call := 0.0
 var _beacon: Node3D
+## A second ring beside the target (`set_mark`), made the first time one is asked for.
+var _mark: Node3D
 var _target := Vector3.INF
 ## A card of the run is up and waits for a press.
 var _card_up := false
-## That card as it was shown: [title, body, buttons] (`_put_card`).
+## That card as it was shown: [title, body, buttons, stacked] (`_put_card`).
 var _card_args: Array = []
 ## That card closes by itself after this long (s), as if its first button were pressed; 0: it
 ## waits for a press.
@@ -114,9 +117,23 @@ func set_target(at: Vector2, person := false, ring_at := Vector3.INF, radius := 
 	_beacon.place(_target if ring_at == Vector3.INF else ring_at, radius if radius > 0.0 else arrive - 0.5, true, person)
 
 
+## A second ring beside the target, in its own colour and with nobody in it: the door to walk to
+## while the car stops at the kerb's ring. It goes when the target goes.
+func set_mark(at: Vector3, radius: float, tint: Color) -> void:
+	if _mark == null:
+		_mark = Beacon.new()
+		_beacon.get_parent().add_child(_mark)
+		_mark.setup(tint, dark)
+		_mark.waving = false
+	_mark.recolour(tint)
+	_mark.place(at, radius, true, false)
+
+
 func clear_target() -> void:
 	_target = Vector3.INF
 	_beacon.visible = false
+	if _mark != null:
+		_mark.visible = false
 
 
 func has_target() -> bool:
@@ -243,9 +260,9 @@ func start() -> void:
 ## A card of the run, in the middle of the screen: this activity's own, so its buttons come to
 ## `_card_pressed` and to nobody else. The run's clock stands while it is up. With `life` the
 ## card closes by itself after that many seconds, as if its first button were pressed (a result
-## card nobody has to tap).
-func show_card(title: Array, body: Array, buttons: PackedStringArray, life := 0.0) -> void:
-	_card_args = [title, body, buttons]
+## card nobody has to tap). `stacked`: its buttons one under the other.
+func show_card(title: Array, body: Array, buttons: PackedStringArray, life := 0.0, stacked := false) -> void:
+	_card_args = [title, body, buttons, stacked]
 	_card_life = life
 	_card_up = true
 	_t = 0.0
@@ -255,7 +272,7 @@ func show_card(title: Array, body: Array, buttons: PackedStringArray, life := 0.
 func _put_card() -> void:
 	var title: Array = _card_args[0]
 	var body: Array = _card_args[1]
-	hud.show_card(str(title[0]), str(body[0]), _card_args[2], colour, false, str(title[1]), str(body[1]))
+	hud.show_card(str(title[0]), str(body[0]), _card_args[2], colour, false, str(title[1]), str(body[1]), _card_args[3])
 	_own_card()
 
 

@@ -139,6 +139,7 @@ settings             quick
 sfx                  quick
 shaderbudget         quick
 shisha               quick
+shisha-run           local     slow
 sites                quick
 smooth               quick
 sounds               quick

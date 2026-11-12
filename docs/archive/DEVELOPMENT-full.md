@@ -5905,7 +5905,7 @@ Command-line options (after `--`):
 | `--rave-club` | secret rave: straight into Smoła's cutaway room (option A: the jungle, the DJ, the dancers, the lights, TAŃCZ, PATIO and WYJDŹ) |
 | `--padel-match[=HOUR]` | arcade padel (padel_match.gd): straight onto the DESKA court at HOUR (default 12; 20 is the floodlit night), the match plays itself, the game quits at its end |
 | `--padel-log` | arcade padel: one line per point, the match's in and out |
-| `--shisha-call` | shisha night (shisha.gd): Ivan rings now (ODBIERZ, then JADĘ!) |
+| `--shisha-call` | shisha night (shisha.gd): Ivan rings now (ODBIERZ, then JADĘ!). With `--autopilot` the whole night plays itself: the call and the offer taken, the drive to Ivan, the courts and the lounge, the evening inside, both drop-offs, the result card (`--shisha-log`: `shisha: done: smoke, score N, +N zł +N respect`). Verify step `shisha-run` |
 | `--shisha-meet` | shisha night: the car at Ivan's kerb in 19. Dzielnica, Ivan gets in, on to Bogdan at the Żelazna court |
 | `--shisha-door` | shisha night: both friends in, the car 25 m up Emilii Plater from the lounge's kerb, facing the entrance's teal kerb ring and gold door ring |
 | `--shisha-arrive` | shisha night: as `--shisha-door`, the car stopped in the kerb ring: they walk in, the lounge plays itself from the door (the lobby and the doorman, the lift ride to 38, the three choices at the table, the mini-game, PALIĆ) |

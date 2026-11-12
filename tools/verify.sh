@@ -117,7 +117,10 @@
 # Dym u Senatorka (2026-11-08): `shisha` runs game/tools/check_shisha.gd: data/shisha.json's scenes,
 # taps and jars (both languages, under 90 characters, no brand), the votes and the pay, the
 # mini-game's hearts, coal and draw, the lounge's one-surface mesh, Ivan's block, the courts and
-# the door on Emilii Plater found on the real lane graph; centrum.json only (CI too).
+# the door on Emilii Plater found on the real lane graph, and (since it is an activity of the kit,
+# 2026-11-12) four nights played against the shared stand-ins; centrum.json only (CI too).
+# `shisha-run` (full set only) plays a night in the whole game with the autopilot: Ivan's call,
+# both pickups, the lounge playing itself, both drop-offs, the pay.
 # Kieślowski tour (2026-11-07): `dekalog` runs game/tools/check_dekalog_tour.gd: Claire's pickup and
 # six Dekalog stops stand on drivable roads near their real places, the call, legs, shots, hits, the
 # last question and the pay (docs/design/dekalog-tour.md); since the activity kit it drives tour.gd
@@ -1264,6 +1267,7 @@ for s in $want; do
 		# the Klasyczna's three bars with their stays, the pay. In the cloud the group was at the
 		# last bar 2 min 38 s after boarding (about 12,000 frames with the call and the pickup).
 		crawl-run) game crawl 20000 '^crawl: end: made it, 3/3 bars' --crawl-call --crawl-log --crawl-route=klasyczna --autopilot ;;
+		shisha-run) game shisha 30000 '^shisha: done: smoke' --shisha-call --shisha-log --autopilot ;;
 		# Loop 2d-1 x 3g-1: a pull-over 25 s into that ride takes exactly one star (police.gd calls
 		# rides.on_pulled_over() when the conversation ends), on the prebuilt city.
 		ride-police) ride_police ;;

@@ -15,6 +15,8 @@ class Hud extends CanvasLayer:
 	var card := ""
 	var body := ""
 	var buttons := 0
+	## Whether the card that is up has its buttons one under the other.
+	var stacked := false
 	## The status line's hint ("" when it is down), its count ("2/4"), its title and its colour.
 	var status := ""
 	var count := ""
@@ -26,11 +28,13 @@ class Hud extends CanvasLayer:
 	var broadcast := 0
 	var _owner: Object = null
 
-	func show_card(title: String, text: String, btn: PackedStringArray, _a: Color, _bottom := false, _te := "", _be := "", _s := false) -> void:
+	func show_card(title: String, text: String, btn: PackedStringArray, _a: Color, _bottom := false, _te := "", _be := "", s := false) -> void:
 		_up(title, text, btn.size())
+		stacked = s
 
-	func show_side_card(title: String, text: String, btn: PackedStringArray, _a: Color, _te := "", _be := "", _s := false, _f := "") -> void:
+	func show_side_card(title: String, text: String, btn: PackedStringArray, _a: Color, _te := "", _be := "", s := false, _f := "") -> void:
 		_up(title, text, btn.size())
+		stacked = s
 
 	func show_call(who: String, about: String, _a: Color, _be := "", _f := "", btn := PackedStringArray(["ODBIERZ|ANSWER", "ODRZUĆ|DECLINE"])) -> void:
 		_up("📞 %s DZWONI" % who.to_upper(), about, btn.size())
@@ -40,6 +44,7 @@ class Hud extends CanvasLayer:
 		card = title
 		body = text
 		buttons = n
+		stacked = false
 		shown += 1
 
 	func hide_card() -> void:
@@ -87,6 +92,8 @@ class Hud extends CanvasLayer:
 class Dialogue extends Node:
 	## "group:tag" of every line asked for.
 	var said: Array[String] = []
+	## dialogue.gd's bubbles (a script that speaks its own lines over the car uses them).
+	var bubbles: Control
 
 	func say(_anchor: Variant, _who: String, group: String, tag := "", _s := 4.0, _c := Color.WHITE, _h := 2.6, _p := false) -> Array:
 		said.append(group + ":" + tag)
