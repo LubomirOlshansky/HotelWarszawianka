@@ -4,10 +4,10 @@ The short story of Around Warsaw, one day at a time. The website's progress page
 (https://aroundwarsaw.app/progress/) and the design wiki both show this file. The full detail of every
 update is in docs/ROADMAP.md, under "Progress log", and the known issues are in docs/BACKLOG.md.
 
-How to keep it current: when you add a row to ROADMAP's progress log, also add one short line under
-that day here, in plain words a player would understand (no file names, no spoilers). A day that has
-rows in the progress log but no section here is listed automatically from the log's labels until
-someone writes its lines.
+How to keep it current: a pull request does not edit this file. It adds one change note in
+docs/changes/ (docs/changes/README.md) with one short line in plain words a player would understand
+(no file names, no spoilers). The pages show the notes at once, and a weekly bookkeeping pull request
+moves them here (python3 -I tools/changelog.py --fold).
 
 ## 2026-11-11
 - The whole Złote Tarasy complex got its details, not just the roof: glass shops lit at street level under a glowing canopy, pale stone ledges on each floor, glass railings round the roof terraces, Lumen's striped glass with its stepped-back top, a blue glass drum lit from inside, windows in the stone terraces and bright shop signs (ZARAZA, H·M·M, MULTIKINKO), plus a bigger ZŁOTE TARASKI name.
