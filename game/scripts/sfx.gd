@@ -8,8 +8,10 @@ extends Node3D
 ## bells, the AI cars' horns, the pigeons. Birds now and then by day; a far siren or a
 ## dog, rarely, at night.
 ##
-## Buses (setup_buses, before the radio is made): Master, Music (the radio), SFX and
-## Ambience; the ambience dips while the radio plays, so the radio keeps priority.
+## Buses (setup_buses, before the radio is made): Master (with a limiter), Music (the radio),
+## SFX, Ambience and Voice (the announcer's and LEKTI's spoken clips). Who turns whom down is
+## one table, DUCKS (the mixer, TD-5): a script asks by name, `Sfx.duck("police_talk")`, and
+## gives it back with `Sfx.release("police_talk")`; nobody writes a level directly.
 ## Positional sounds go through a pool of AudioStreamPlayer3D (a hard cap on voices)
 ## heard by a listener that follows the camera's focus a few metres up, with a short
 ## reach so the map isn't a wall of noise. Per frame this only sets a few volumes and
@@ -24,8 +26,31 @@ const RPM_IDLE := 850.0
 const RPM_SHIFTED := 1900.0
 const RPM_TOP := 4600.0
 ## Bus levels (dB). The radio player sits at -9 dB on Music (radio.gd).
-const BUSES := {"Music": 0.0, "SFX": -3.0, "Ambience": -9.0}
-const AMBIENCE_DUCK := -4.0
+## Voice sits where the spoken clips sat when they were on SFX, so they sound as before.
+const BUSES := {"Music": 0.0, "SFX": -3.0, "Ambience": -9.0, "Voice": -3.0}
+## The Master bus's limiter: the loudest the sum may get (dBFS), so the engine, a crash and the
+## radio together never clip. It does nothing below that.
+const LIMIT_DB := -0.5
+## The mixer (TD-5): every duck in the game, name -> [what it turns down, dB, seconds to fade
+## down, seconds to come back] (0 s: at once). What it turns down is "radio" (the station's
+## player and jingle, radio.gd) or a bus name. Ducks stack: while several hold the same target
+## the deepest one counts, and releasing one never undoes another. A new duck is a new row here.
+const DUCKS := {
+	# The city's beds dip while a station plays, so the radio keeps priority.
+	"radio_on": ["Ambience", -4.0, 0.67, 0.67],
+	# The pull-over and the guard's talk (police.gd).
+	"police_talk": ["radio", -6.0, 0.0, 0.0],
+	# Smolna's own loops (club.gd) and the padel court's music (padel_match.gd): the radio is off.
+	"club": ["radio", -60.0, 0.0, 0.0],
+	"padel": ["radio", -60.0, 0.0, 0.0],
+	# The host's greeting on a launch (greeting_clips.gd) and the opening line over the flyover
+	# (opening_audio.gd): the radio is a quiet bed under the voice, then swells back.
+	"greeting": ["radio", -16.0, 0.5, 2.5],
+	"opening": ["radio", -20.0, 0.6, 3.0],
+	# The 02:00 beat's host (radio.gd host_moment) and LEKTI's break-in (rave.gd).
+	"host_moment": ["radio", -10.0, 0.0, 0.0],
+	"rave_voice": ["radio", -10.0, 0.0, 0.0],
+}
 ## Loops: name, bus, level (dB) at full.
 const LOOPS := {
 	"engine_idle": ["SFX", -10.0], "engine_mid": ["SFX", -10.0], "engine_high": ["SFX", -10.0],
@@ -135,7 +160,6 @@ var _event_wait := 12.0
 ## The district bed now (a LOOPS name, "" for none): set_district.
 var _bed := ""
 var _t := 0.0
-var _duck := 0.0
 var _rng := RandomNumberGenerator.new()
 ## Loop 10a: the splash's wash of water (the rain bed's noise, faded out over WASH s).
 const WASH := 0.9
@@ -155,11 +179,110 @@ const ENGINE_SOFT := 0.45
 
 
 ## Loop 2a: the player's volumes (Settings → Sound) as dB on top of the bus levels.
-static var user_db := {"Master": 0.0, "Music": 0.0, "SFX": 0.0, "Ambience": 0.0}
+static var user_db := {"Master": 0.0, "Music": 0.0, "SFX": 0.0, "Ambience": 0.0, "Voice": 0.0}
+## The mixer's state: the ducks held now (name -> seconds left, INF: until released), each
+## target's level now (dB, eased) and how fast it is moving (dB per second).
+static var _held := {}
+static var _mix := {}
+static var _fade := {}
+static var _mix_frame := -1
 
 
-## Master, Music, SFX and Ambience; safe to call more than once.
+## Turns down what `name` (a DUCKS row) says, until release(name) or for `seconds`. Asking again
+## while it is held only makes a timed one last longer. An unknown name is an error, not silence.
+static func duck(name: String, seconds := INF) -> void:
+	if not DUCKS.has(name):
+		push_error("sfx: no duck named \"%s\" (add a row to Sfx.DUCKS)" % name)
+		return
+	if _held.has(name):
+		_held[name] = maxf(float(_held[name]), seconds)
+		return
+	var row: Array = DUCKS[name]
+	var target: String = row[0]
+	var was := mix_target(target)
+	_held[name] = seconds
+	if mix_target(target) < was:
+		_fade_to(target, absf(float(row[1])), float(row[2]))
+
+
+## Gives back what duck(name) took. Whatever else still holds the target keeps it down.
+static func release(name: String) -> void:
+	if not _held.has(name):
+		return
+	var row: Array = DUCKS[name]
+	var target: String = row[0]
+	var was := mix_target(target)
+	_held.erase(name)
+	if mix_target(target) > was:
+		_fade_to(target, absf(float(row[1])), float(row[3]))
+
+
+static func _fade_to(target: String, span_db: float, seconds: float) -> void:
+	if seconds <= 0.0:
+		_fade[target] = INF
+		_mix[target] = mix_target(target)
+	else:
+		_fade[target] = span_db / seconds
+
+
+## Is duck `name` held now?
+static func ducked(name: String) -> bool:
+	return _held.has(name)
+
+
+## Where `target` ("radio" or a bus) is heading: the deepest duck held on it, 0 dB with none.
+static func mix_target(target: String) -> float:
+	var db := 0.0
+	for name: String in _held:
+		if DUCKS[name][0] == target:
+			db = minf(db, float(DUCKS[name][1]))
+	return db
+
+
+## `target`'s level now (dB under its normal level), eased by mix_step.
+static func mix_db(target: String) -> float:
+	return float(_mix.get(target, 0.0))
+
+
+## Moves every target towards its duck and ends the timed ducks; `dt` seconds have passed.
+static func mix_step(dt: float) -> void:
+	for name: String in _held.keys():
+		if float(_held[name]) != INF:
+			_held[name] = float(_held[name]) - dt
+			if float(_held[name]) <= 0.0:
+				release(name)
+	for target: String in _fade:
+		var want := mix_target(target)
+		var rate: float = _fade[target]
+		_mix[target] = want if rate == INF else move_toward(mix_db(target), want, rate * dt)
+
+
+## mix_step once per frame, whoever asks first (the radio, which also runs under the pause and
+## the title, and this node): two callers never move the levels twice as fast.
+static func mix_frame(dt: float) -> void:
+	var f := Engine.get_process_frames()
+	if f == _mix_frame:
+		return
+	_mix_frame = f
+	mix_step(dt)
+
+
+## Forgets every duck (a new game reloads the scene; the checks start clean).
+static func mix_reset() -> void:
+	_held.clear()
+	_mix.clear()
+	_fade.clear()
+	_mix_frame = -1
+
+
+## Master (its limiter), Music, SFX, Ambience and Voice, and a clean mixer. Call it once, before
+## the radio is made (main.gd); calling it again is safe but drops the ducks held.
 static func setup_buses() -> void:
+	mix_reset()
+	if AudioServer.get_bus_effect_count(0) == 0:
+		var limiter := AudioEffectHardLimiter.new()
+		limiter.ceiling_db = LIMIT_DB
+		AudioServer.add_bus_effect(0, limiter)
 	for bus in BUSES:
 		var i := AudioServer.get_bus_index(bus)
 		if i < 0:
@@ -171,9 +294,9 @@ static func setup_buses() -> void:
 
 
 ## Loop 2a: the player's volumes, 0..1 each: everything, the radio, the effects (engine,
-## tyres, knocks, the city's beds). Zero mutes the bus.
+## tyres, knocks, the city's beds, the spoken clips). Zero mutes the bus.
 static func set_levels(master: float, music: float, effects: float) -> void:
-	var levels := {"Master": master, "Music": music, "SFX": effects, "Ambience": effects}
+	var levels := {"Master": master, "Music": music, "SFX": effects, "Ambience": effects, "Voice": effects}
 	for bus in levels:
 		var v: float = levels[bus]
 		user_db[bus] = linear_to_db(maxf(v, 0.001))
@@ -270,10 +393,13 @@ func _process(dt: float) -> void:
 	var bed := bed_now()
 	for b in DISTRICT_BEDS.values():
 		_drive(b, bed_level if b == bed else 0.0, 1.0, dt, BED_RATE)
-	var duck := AMBIENCE_DUCK if radio != null and radio.station >= 0 else 0.0
-	_duck = move_toward(_duck, duck, dt * 6.0)
+	if radio != null and radio.station >= 0:
+		duck("radio_on")
+	else:
+		release("radio_on")
+	mix_frame(dt)
 	if not _silent:
-		AudioServer.set_bus_volume_db(AudioServer.get_bus_index(&"Ambience"), BUSES["Ambience"] + _duck + user_db["Ambience"])
+		AudioServer.set_bus_volume_db(AudioServer.get_bus_index(&"Ambience"), BUSES["Ambience"] + mix_db("Ambience") + user_db["Ambience"])
 	_events(dt, daylight, raining)
 	if _wash_t > 0.0:
 		_wash_t -= dt
@@ -549,7 +675,7 @@ func _play3(n: String, at: Vector3, gain_db: float) -> void:
 ## --sound-check). Needs an audio device: headless runs read -200.
 static func bus_peaks() -> Dictionary:
 	var out := {}
-	for bus in ["Master", "Music", "SFX", "Ambience"]:
+	for bus in ["Master", "Music", "SFX", "Ambience", "Voice"]:
 		var i := AudioServer.get_bus_index(bus)
 		out[bus] = maxf(AudioServer.get_bus_peak_volume_left_db(i, 0), AudioServer.get_bus_peak_volume_right_db(i, 0))
 	return out

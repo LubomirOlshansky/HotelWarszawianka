@@ -5,31 +5,27 @@ extends Node
 ## cuts the line short and brings the radio up at once. Without the file nothing plays and the
 ## radio is left alone.
 ##
-## Levels: the line at LINE_DB on the SFX bus; the radio BED_DB under its normal level (-20 dB is
-## about a tenth of the loudness: heard, not listened to), back to 0 over SWELL_S s.
+## Levels: the line at LINE_DB on the Voice bus; the radio 20 dB under its normal level (about a
+## tenth of the loudness: heard, not listened to) and back over 3 s: the mixer's "opening" row
+## (sfx.gd DUCKS).
 
 const CameraShots := preload("res://scripts/camera_shots.gd")
+const Sfx := preload("res://scripts/sfx.gd")
 const LINE_FILE := "res://audio/opening/opening_line.ogg"
 const LINE_DB := 0.0
-const BED_DB := -20.0
-const DIP_S := 0.6
-const SWELL_S := 3.0
 
 var _t0 := 0.0
-var _radio: Node
 var _voice: AudioStreamPlayer
-var _tween: Tween
 var _flight_over := false
 var _line_over := true
 
 
-## Starts the line and the dip. `radio` is the radio.gd node (its `bed_db` is what moves).
-func start(radio: Node) -> void:
-	_radio = radio
+## Starts the line and the dip.
+func start(_radio: Node) -> void:
 	_t0 = Time.get_ticks_msec() * 0.001
 	_flight_over = false
 	_line_over = true
-	_dip()
+	Sfx.duck("opening")
 	var silent := DisplayServer.get_name() == "headless"
 	if silent or not ResourceLoader.exists(LINE_FILE):
 		_line_over = true
@@ -37,7 +33,7 @@ func start(radio: Node) -> void:
 	_voice = AudioStreamPlayer.new()
 	_voice.stream = load(LINE_FILE)
 	_voice.volume_db = LINE_DB
-	_voice.bus = &"SFX"
+	_voice.bus = &"Voice"
 	add_child(_voice)
 	_voice.finished.connect(_on_line_finished, CONNECT_ONE_SHOT)
 	_line_over = false
@@ -63,23 +59,11 @@ func _on_line_finished() -> void:
 	_maybe_swell()
 
 
-func _dip() -> void:
-	if _radio == null:
-		return
-	_kill_tween()
-	_tween = create_tween()
-	_tween.tween_property(_radio, "bed_db", BED_DB, DIP_S)
-
-
 func _maybe_swell() -> void:
-	if not (_flight_over and _line_over) or _radio == null:
-		return
-	_kill_tween()
-	_tween = create_tween()
-	_tween.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
-	_tween.tween_property(_radio, "bed_db", 0.0, SWELL_S)
+	if _flight_over and _line_over:
+		Sfx.release("opening")
 
 
-func _kill_tween() -> void:
-	if _tween != null and _tween.is_valid():
-		_tween.kill()
+## Freed mid-line (a new game, the quit): the radio is not left turned down.
+func _exit_tree() -> void:
+	Sfx.release("opening")
