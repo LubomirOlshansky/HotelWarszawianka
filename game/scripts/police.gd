@@ -41,6 +41,7 @@ var spent_usec := 0
 var trap_flashes := 0
 
 const Access := preload("res://scripts/access.gd")
+const Sfx := preload("res://scripts/sfx.gd")
 const Chatter := preload("res://scripts/chatter.gd")
 const Unit := preload("res://scripts/police/police_unit.gd")
 const Talk := preload("res://scripts/police/police_talk.gd")
@@ -1558,8 +1559,7 @@ func _pull_over(tag: String, u) -> void:
 		traffic.set_lights(u.driver, true)
 	if sfx != null:
 		sfx.police_siren(Vector3.INF)
-	if radio != null:
-		radio.duck_db = -6.0
+	Sfx.duck("police_talk")
 	# The car is held: its pedals give the card their room.
 	hud.set_pedals_hidden(true)
 	_freeze_heat(true)
@@ -1719,8 +1719,7 @@ func _talk_done() -> void:
 	_untangle()
 	hud.show_panel(_balloon, false)
 	hud.set_pedals_hidden(false)
-	if radio != null:
-		radio.duck_db = 0.0
+	Sfx.release("police_talk")
 	if _caution_n > 0:
 		hud.toast("POUCZENIE · W ZESZYCIE: %d DZIŚ" % _caution_n, "CAUTION · IN THE NOTEBOOK: %d TODAY" % _caution_n)
 	elif _routine:
@@ -2182,8 +2181,7 @@ func guard_talk(g) -> void:
 	_talk_unit = null
 	_talk_tag = "guard"
 	_log("guard talk (post %s, tag \"%s\")" % [g.post, g.tag])
-	if radio != null:
-		radio.duck_db = -6.0
+	Sfx.duck("police_talk")
 	hud.set_pedals_hidden(true)
 	_freeze_heat(true)
 	_start_talk("guard")

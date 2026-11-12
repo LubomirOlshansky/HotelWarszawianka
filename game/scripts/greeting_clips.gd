@@ -6,16 +6,12 @@ extends Node
 ## Only KEBAB FM (her voice) says it; a missing file ends the greeting early and never errors.
 ## Files: res://audio/voice/radio/{hello_<part>,weather_<sky>,bye_<part>}.ogg
 
+const Sfx := preload("res://scripts/sfx.gd")
 const DIR := "res://audio/voice/radio/"
 const CLIP_DB := -2.0
-const BED_DB := -16.0
-const DIP_S := 0.5
-const SWELL_S := 2.5
 
-var _radio: Node
 var _player: AudioStreamPlayer
 var _queue: Array[String] = []
-var _tween: Tween
 
 
 ## The clip files for a greeting (`parts` is Dialogue.greeting_parts), existing ones only.
@@ -28,21 +24,20 @@ static func clips_for(parts: Dictionary) -> Array[String]:
 	return out
 
 
-## Starts the greeting; false when there is nothing to play (headless, no files).
-func start(radio: Node, parts: Dictionary) -> bool:
+## Starts the greeting; false when there is nothing to play (headless, no files). The radio turns
+## down under it and swells back after (the mixer's "greeting" row, sfx.gd DUCKS).
+func start(_radio: Node, parts: Dictionary) -> bool:
 	if DisplayServer.get_name() == "headless":
 		return false
 	_queue = clips_for(parts)
 	if _queue.is_empty():
 		return false
-	_radio = radio
 	_player = AudioStreamPlayer.new()
 	_player.volume_db = CLIP_DB
-	_player.bus = &"SFX"
+	_player.bus = &"Voice"
 	add_child(_player)
 	_player.finished.connect(_next)
-	_tween = create_tween()
-	_tween.tween_property(_radio, "bed_db", BED_DB, DIP_S)
+	Sfx.duck("greeting")
 	_next()
 	return true
 
@@ -56,11 +51,10 @@ func _next() -> void:
 
 
 func _end() -> void:
-	if _radio == null or not is_instance_valid(_radio):
-		return
-	if _tween != null and _tween.is_valid():
-		_tween.kill()
-	_tween = create_tween()
-	_tween.set_ease(Tween.EASE_IN_OUT).set_trans(Tween.TRANS_SINE)
-	_tween.tween_property(_radio, "bed_db", 0.0, SWELL_S)
-	_tween.tween_callback(queue_free)
+	Sfx.release("greeting")
+	queue_free()
+
+
+## Freed mid-greeting (a new game, the quit): the radio is not left turned down.
+func _exit_tree() -> void:
+	Sfx.release("greeting")

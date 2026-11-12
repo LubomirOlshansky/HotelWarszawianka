@@ -887,6 +887,14 @@ no samples). Buses: Master, **Music** (the radio, player at -9 dB), **SFX** (-3 
   imports (Forward loops, QOA) and decodes across each loop point; `godot --path game --
   --sound-check` (with an audio device) plays every one-shot and prints each bus's peak;
   the bench prints the buses' peaks while driving.
+- The mixer (TD-5, 2026-11-12): who turns whom down is `Sfx.DUCKS` in `sfx.gd`, name →
+  [target ("radio" or a bus), dB, seconds down, seconds up]. A script calls `Sfx.duck(name)` and
+  `Sfx.release(name)`, or `Sfx.duck(name, seconds)`; ducks stack and the deepest one held counts.
+  The radio steps the mixer every frame (it runs under the pause and the title) and sets its
+  players from `Sfx.mix_db("radio")`; `sfx.gd` sets the Ambience bus from `Sfx.mix_db("Ambience")`.
+  Buses: Master (an `AudioEffectHardLimiter` at -0.5 dB), Music, SFX, Ambience, Voice (spoken
+  clips; follows the effects slider). `godot --headless --path game --script
+  res://tools/check_mixer.gd` (verify step `mixer`).
 
 **Rain** (`weather.gd`, RAIN / O / `--weather=rain`): Clear or Rain, separate from the time of
 day. `amount` (how hard it rains) drives the streaks, the rain bed and an overcast light
