@@ -62,10 +62,12 @@ const LOOPS := {
 	# The coffee run's bike (PT 2026-11-08: the car's engine kept on after the swap): the ride's
 	# tyres and chain, and the hub's ratchet while coasting (tools/make_sfx.py).
 	"bike_roll": ["SFX", -16.0], "bike_freewheel": ["SFX", -11.0],
-	"city_day": ["Ambience", -7.0], "city_night": ["Ambience", -14.0], "rain": ["Ambience", -7.0],
+	# Recorded beds (ElevenLabs, tools/add_sfx.py, audio/sfx/sources.json): 24 to 29 s loops at the
+	# loudness of the synth beds they replaced; the night and the river peak early, so they sit higher here.
+	"city_day": ["Ambience", -7.0], "city_night": ["Ambience", -12.4], "rain": ["Ambience", -7.0],
 	# v1.0 juice: one bed per kind of district (DISTRICT_BEDS), set ~13 dB under the city bed by the
 	# files' RMS so they colour it and never cover it.
-	"amb_river": ["Ambience", -15.0], "amb_park": ["Ambience", -14.0], "amb_square": ["Ambience", -10.0],
+	"amb_river": ["Ambience", -9.6], "amb_park": ["Ambience", -14.0], "amb_square": ["Ambience", -10.0],
 	"amb_yard": ["Ambience", -16.0],
 	# Senatorek's lift ride (lounge.gd, tools/make_sfx.py): a hum felt more than heard.
 	"lift_hum": ["SFX", -24.0],
