@@ -5766,6 +5766,8 @@ Command-line options (after `--`):
 | `--reset-save` / `--nosave` | wipe the wallet and record / neither read nor write `user://save.cfg` (nor, since loop 2a, `user://settings.cfg`) |
 | `--title-choice=continue\|new\|ask` | save and resume (2026-10-31): the title screen (forced on) picks KONTYNUUJ, NOWA GRA (wipes the save, a copy in `user://save.prev.cfg`, and starts the scene again), or shows NOWA GRA's question, once the start is in |
 | `--save-note=restored\|lost\|blocked` | safer saves (tech-debt TD-8, 2026-11-12): shows the note a damaged save gets (the copy was loaded / a fresh start / nothing will be written) without a damaged file; with `--title-choice=continue`, since the note comes when the title goes. A run prints `save: the player was told (...)` |
+| `--report` | the error trap (tech-debt TD-14, 2026-11-12): prints the trap's report when the run ends: the errors with their counts, places and contexts and the last 40 printed lines, which is what Settings → DŹWIĘK → RAPORT copies in a debug build |
+| `--crash-note` | the error trap: shows the note a debug build shows on a phone at the launch after a session that closed by itself, without one; with `--title-choice=continue`, since the note comes when the title goes. A run prints `trap: the player was told the last session closed by itself` |
 | `--resume=x,z[,heading]` | save and resume: a kept spot in memory (the title forced on; with `--nosave` the resume path without a real save) |
 | `--time=live` | v0.9: the real sun for the device's clock (TIME's fourth mode) |
 | `--clock=HH:MM` / `--date=YYYYMMDD` | start Live's clock at that Warsaw time (and date; default today); loop MW-3: with a fixed look (`--time=night --clock=01:00`) the game clock starts there, the look stays |
