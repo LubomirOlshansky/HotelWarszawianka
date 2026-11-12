@@ -13,7 +13,8 @@ extends SceneTree
 ## - what the second activity (bar_crawl.gd) needed: a call or an offer turned down tells the
 ##   subclass how (`_refused`), an activity with nothing to offer after all goes back to idle, a
 ##   card with a life closes by itself as its first button would, the status line takes its own
-##   colour, and the target's ring can stand beside the spot with its own radius;
+##   colour (and, since street_meet.gd, a badge beside its title: a race's place), and the
+##   target's ring can stand beside the spot with its own radius;
 ## - what the third (shisha.gd) needed: a second ring that is not the target (`set_mark`: a door
 ##   to see from down the street), gone with the target; and a card with its buttons stacked;
 ## - the ✕ drops a run (not a call, an offer or a run with its card up), with the quit words; the
@@ -414,6 +415,12 @@ func _refusals_and_looks() -> void:
 	_expect(hud.tint == a.colour, "the status line has the activity's colour")
 	a.status("Próba", "1/1", "5 m", ["jedź", "drive"], 0.5, Color.RED)
 	_expect(hud.tint == Color.RED, "or the colour it is given")
+	# The badge beside the title (a race's place): none unless asked for.
+	_expect(hud.badge == "", "the status line has no badge unless it is given one")
+	a.status("Próba", "1/1", "5 m", ["jedź", "drive"], 0.5, Color(0, 0, 0, 0), "2/9")
+	_expect(hud.badge == "2/9" and hud.tint == a.colour, "the status line's badge reaches the HUD, in the activity's colour still")
+	a.status("Próba", "1/1", "5 m", ["jedź", "drive"], 0.5)
+	_expect(hud.badge == "", "and the next line without one has none")
 	# The ring beside the spot, with its own radius.
 	a.set_target(Vector2(10.0, 20.0))
 	_expect(is_equal_approx(a._beacon._ring_radius, a.arrive - 0.5), "the ring's radius is the stop ring's by default")

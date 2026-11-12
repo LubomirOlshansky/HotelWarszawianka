@@ -25,7 +25,8 @@ extends Node
 ## first with a stage somewhere else (the lounge) and a second ring (`set_mark`); ev_tow.gd the
 ## first that is flown (`flown`) and that starts without a call too (a stranger's car: `start`);
 ## rave.gd the first whose cards can run out unanswered (`_card_expired`) and whose arrow has its
-## own words (`target_label`).
+## own words (`target_label`); street_meet.gd the first with a race in it (the place as the status
+## line's `badge`) and with stages that are not the kit's at all (a raid, a drag on a tree of lights).
 
 const Beacon := preload("res://scripts/beacon.gd")
 const Access := preload("res://scripts/access.gd")
@@ -325,10 +326,11 @@ func card_pressed(index: int) -> void:
 				_card_pressed(index)
 
 
-## The status line at the top while the run is on, in the activity's colour or in `tint`.
-func status(title: String, count: String, distance: String, hint: Array, progress: float, tint := Color(0, 0, 0, 0)) -> void:
+## The status line at the top while the run is on, in the activity's colour or in `tint`. `badge`:
+## a short word beside the title (a race's place: "2/9", "1ST").
+func status(title: String, count: String, distance: String, hint: Array, progress: float, tint := Color(0, 0, 0, 0), badge := "") -> void:
 	_status_up = true
-	hud.show_status(title, count, distance, str(hint[0]), progress, colour if tint.a == 0.0 else tint, "", {}, str(hint[1]))
+	hud.show_status(title, count, distance, str(hint[0]), progress, colour if tint.a == 0.0 else tint, badge, {}, str(hint[1]))
 
 
 func hide_status() -> void:
