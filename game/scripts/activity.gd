@@ -23,7 +23,9 @@ extends Node
 ## `drop`. One with its own clock for the call gives `_idle_tick` too. The first one is tour.gd;
 ## bar_crawl.gd is the first with a call clock, a ring and a result card of its own; shisha.gd the
 ## first with a stage somewhere else (the lounge) and a second ring (`set_mark`); ev_tow.gd the
-## first that is flown (`flown`) and that starts without a call too (a stranger's car: `start`).
+## first that is flown (`flown`) and that starts without a call too (a stranger's car: `start`);
+## rave.gd the first whose cards can run out unanswered (`_card_expired`) and whose arrow has its
+## own words (`target_label`).
 
 const Beacon := preload("res://scripts/beacon.gd")
 const Access := preload("res://scripts/access.gd")
@@ -84,8 +86,7 @@ var _target := Vector3.INF
 var _card_up := false
 ## That card as it was shown: [title, body, buttons, stacked] (`_put_card`).
 var _card_args: Array = []
-## That card closes by itself after this long (s), as if its first button were pressed; 0: it
-## waits for a press.
+## That card closes by itself after this long (s) (`_card_expired`); 0: it waits for a press.
 var _card_life := 0.0
 var _status_up := false
 
@@ -152,6 +153,12 @@ func target_colour() -> Color:
 	return colour
 
 
+## The words on the arrow for a target `metres` away (main.gd `_show_target`). The rave's meeting
+## point says "???": Mati knows only that much.
+func target_label(metres: int) -> String:
+	return "%d m" % metres
+
+
 ## The stop assist's spot (main.gd `_stop_assist`): the ring the car glides into.
 func stop_spot() -> Vector3:
 	return _target
@@ -185,8 +192,12 @@ func _process(dt: float) -> void:
 					if not hud.card_showing():
 						_put_card()
 						_log("card put back")
-				elif (autopilot and _t > AUTO_CARD) or (_card_life > 0.0 and _t > _card_life):
+				elif autopilot and _t > AUTO_CARD:
 					card_pressed(0)
+				elif _card_life > 0.0 and _t > _card_life:
+					_card_up = false
+					_hide_own_card()
+					_card_expired()
 			else:
 				_run_t += dt
 				if play_limit > 0.0 and _run_t > play_limit:
@@ -263,8 +274,8 @@ func start() -> void:
 
 ## A card of the run, in the middle of the screen: this activity's own, so its buttons come to
 ## `_card_pressed` and to nobody else. The run's clock stands while it is up. With `life` the
-## card closes by itself after that many seconds, as if its first button were pressed (a result
-## card nobody has to tap). `stacked`: its buttons one under the other.
+## card closes by itself after that many seconds (`_card_expired`: as if its first button were
+## pressed, a result card nobody has to tap). `stacked`: its buttons one under the other.
 func show_card(title: Array, body: Array, buttons: PackedStringArray, life := 0.0, stacked := false) -> void:
 	_card_args = [title, body, buttons, stacked]
 	_card_life = life
@@ -408,6 +419,13 @@ func _tick(_dt: float) -> void:
 ## A button on a card of the run (`show_card`); the card is already down.
 func _card_pressed(_index: int) -> void:
 	pass
+
+
+## A card of the run closed by itself (`show_card`'s `life` ran out); the card is already down.
+## As a press of its first button, unless the subclass says otherwise (the rave's door: nobody
+## answered the bouncer, which is no answer at all).
+func _card_expired() -> void:
+	_card_pressed(0)
 
 
 ## The ✕ may drop the run now.

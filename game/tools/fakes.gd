@@ -130,6 +130,13 @@ class Wallet extends Node:
 		respect += gain
 		kinds.append(kind)
 
+	## wallet.gd's `spend`: false (and nothing taken) when there is not enough.
+	func spend(amount: int) -> bool:
+		if amount < 0 or amount > money:
+			return false
+		money -= amount
+		return true
+
 
 class FlatMap extends Node3D:
 	func ground_height(_x: float, _z: float) -> float:
