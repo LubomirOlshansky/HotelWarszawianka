@@ -428,7 +428,6 @@ var show_title := true
 var force_title := false
 var env: Environment
 var sun: DirectionalLight3D
-var _blip: AudioStreamPlayer
 ## v0.65: the wallet (and save), everybody's lines, the side jobs, the easter eggs.
 var wallet: Wallet
 var dialogue: Dialogue
@@ -1965,13 +1964,6 @@ func _build_world() -> void:
 	weather.set_state(start_weather, true)
 	_set_vhs(vhs)
 	_set_perf(show_perf)
-	_blip = AudioStreamPlayer.new()
-	_blip.process_mode = Node.PROCESS_MODE_ALWAYS
-	_blip.bus = &"SFX"
-	_blip.volume_db = -11.0
-	if ResourceLoader.exists("res://audio/ui/blip.wav"):
-		_blip.stream = load("res://audio/ui/blip.wav")
-	add_child(_blip)
 	# Camera loop: a following camera starts behind the vehicle (it used to start on the 45°
 	# diagonal and, in Classic, swung ~155° round at up to 182°/s as soon as the car moved).
 	# Screenshots, the bench and the probe keep the 45° start: their views are the reference
@@ -6047,9 +6039,9 @@ func _set_vhs(on: bool) -> void:
 		view.material = null
 
 
+## The menus' blip (sfx.gd UI).
 func _blip_sound() -> void:
-	if _blip != null and _blip.stream != null:
-		_blip.play()
+	Sfx.ui("blip")
 
 
 func _rotate_camera(direction: int) -> void:
