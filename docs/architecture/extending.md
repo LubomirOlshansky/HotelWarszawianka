@@ -26,6 +26,7 @@ move later, and don't build a third private copy.
 | Something drawn every frame, a light, a material, a shader | graphics.md, then report bench before and after | a new shader without `check_shader_budget` |
 | A quality-dependent extra | a field in `tiers.gd` and, if it costs CPU, a step in `governor.gd` | `if OS.get_model_name() ...` in a feature |
 | A setup step at load | a `_build_x(world)` in main.gd followed by `await LoadYield.tick("_build_x")` | long work in one frame |
+| Something the title shows or the first frame needs | `title.gd` (or `boot.gd`), using only the scripts on `check_boot.gd`'s `BOOT_SCRIPTS` list | a `preload` of a game script from `boot.gd`, `title.gd`, `settings.gd`, `lang.gd` or `error_trap.gd`: it is loaded before the title can show, and with it everything it preloads (`check_boot` fails) |
 | A pause | only main.gd sets `get_tree().paused`; a system asks through a callable or signal main.gd gives it (TD-20) | pausing the tree from a system |
 | Something that can fail (a missing file, a bad value) | `push_error` or `push_warning` naming the script, then a safe default. The error trap (`error_trap.gd`) keeps the line for a debug run's report, and the checks fail on it in the log | failing silently; an `assert` (only a debug build runs it); leaving it to the engine to report a null or a missing key (a release build does not, TD-21) |
 | What the game was doing when an error came | one more field in the context line `main.gd` `_trap_frame` gives the trap once a second | a log file of your own |

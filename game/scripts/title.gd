@@ -49,6 +49,8 @@ var resume_line := ""
 ## Save and resume: after "NOWA GRA" the city starts again with the title up; it goes by itself
 ## once the start is in (no second tap).
 var auto_go := false
+## The boot scene (boot.gd): the game could not be loaded; this line stands in the prompt's place.
+var problem := ""
 enum {CHOICE, CONFIRM}
 var screen := CHOICE
 var _new_btn: Label
@@ -290,7 +292,9 @@ func _set_prompt() -> void:
 		_lang_btns[k].add_theme_color_override("font_color", Color("#ffd23f") if on else Color("#7ff6ff"))
 		_lang_btns[k].modulate.a = 1.0 if on else 0.7
 	_prompt_pl.text = ""  # one language at a time (lang.gd): the small second line is gone
-	if choosing and screen == CONFIRM:
+	if problem != "":
+		_prompt.text = problem
+	elif choosing and screen == CONFIRM:
 		_prompt.text = Lang.pick("ZACZĄĆ OD NOWA? Pieniądze, zlecenia i znaleziska znikną", "START OVER? The money, jobs and finds are wiped")
 	elif choosing:
 		_prompt.text = Lang.pick("KONTYNUUJ", "CONTINUE")
@@ -309,6 +313,12 @@ func _set_bar() -> void:
 	var inner := _bar_plate.size - Vector2(4.0, 4.0)
 	_bar_fill.position = Vector2(2.0, 2.0)
 	_bar_fill.size = Vector2(maxf(inner.x * clampf(_shown, 0.0, 1.0), 0.0), maxf(inner.y, 0.0))
+
+
+## Lays the title out again with its words as they are now (main.gd, when it takes over the
+## boot scene's title and a flag has changed the language).
+func refresh() -> void:
+	_layout()
 
 
 ## The city is built: the prompt changes and a tap or a key starts the game.

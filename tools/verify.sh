@@ -177,6 +177,10 @@
 # fed by hand: an error seen again only counts, the trail of printed lines, the report, the session
 # file and its mark (a file without it is a session that closed by itself), the Settings' RAPORT
 # button; no map (CI too).
+# Tech-debt TD-15: `boot` runs game/tools/check_boot.gd: the boot scene (boot.gd) with a stand-in
+# for the game's scene: which launch is a player's, the title up within two frames and taken over,
+# a run with flags straight into the game, and the list of scripts the first frame waits for; no
+# map (CI too). `boot-run` is the whole game started that way, on the prebuilt city.
 # Loop 3h slice 1: `save` runs game/tools/check_save.gd: save v2 (a version-1 fixture built in the
 # check migrates keeping every section, a backup of the old file, the round trip, a newer file never
 # overwritten, --nosave writes nothing, settings.cfg's version; save and resume: the [session] spot,
@@ -306,8 +310,8 @@ zmodload zsh/datetime
 ROOT=${0:A:h:h}
 GAME=$ROOT/game
 GODOT=${GODOT:-godot}
-STEPS_ALL=(map architecture roads smooth fixes centralnyramp cyclehang portbridge heights objects tramstops stairs streets outline pois streetdetails streetpass design models overrides stops streetmesh ratuszhub parkdetails parkmesh monuments monumentmesh spiremotion tarasyscreen spec lod2 courts drape ground drive drive-prebuilt deckxray tunnelcut stuckspots stuckspots-prebuilt oldtowndrive lanedrive lanedrive-grounded finite steering laneassist stuckoffer handling grounded stopassist questlines stories settings credits language tiers governor shaderbudget heliview hud places edge roadworks roadworks-prebuilt eggs placzamkowy tape crowds life buses zaglebie crashes rave shisha padel meet boatrace dekalog kinotour evtow crawl loud crazy oldtram tramfleet trains railsignals packs wellness tamka fans eventday coffeerun garage save errortrap districts syrenki cassettes ladder racecuts racebench first10 mainline chatter messages endcard opening parodies jobs2 rescues couriers delivery rides cost landmarks oldtownroofs roofdress tenementtrim osmroofs sites palacelights meshq sfx juice gamepad radio sounds water water-prebuilt streaming police plain ram teleport firstlife heli race trzy-mosty first10-run kebab coffee ride ride-police splash rain prebuilt classic police-runs police-soak life-soak)
-STEPS_QUICK=(map architecture roads smooth fixes centralnyramp cyclehang portbridge heights objects tramstops stairs streets outline pois streetdetails streetpass design models overrides stops streetmesh ratuszhub parkdetails parkmesh monuments monumentmesh spiremotion tarasyscreen spec drape drive deckxray tunnelcut stuckspots oldtowndrive finite steering laneassist stuckoffer handling grounded stopassist questlines stories settings credits language tiers governor shaderbudget heliview hud places edge roadworks eggs placzamkowy tape crowds life buses zaglebie crashes rave shisha padel meet boatrace dekalog kinotour evtow crawl loud crazy oldtram tramfleet trains railsignals packs wellness tamka fans eventday coffeerun garage save errortrap districts syrenki cassettes ladder racecuts racebench first10 mainline chatter messages endcard opening parodies jobs2 rescues couriers delivery rides cost landmarks oldtownroofs roofdress tenementtrim osmroofs sites palacelights meshq sfx juice gamepad radio sounds police plain ram teleport firstlife prebuilt)
+STEPS_ALL=(map architecture roads smooth fixes centralnyramp cyclehang portbridge heights objects tramstops stairs streets outline pois streetdetails streetpass design models overrides stops streetmesh ratuszhub parkdetails parkmesh monuments monumentmesh spiremotion tarasyscreen spec lod2 courts drape ground drive drive-prebuilt deckxray tunnelcut stuckspots stuckspots-prebuilt oldtowndrive lanedrive lanedrive-grounded finite steering laneassist stuckoffer handling grounded stopassist questlines stories settings credits language tiers governor shaderbudget heliview hud places edge roadworks roadworks-prebuilt eggs placzamkowy tape crowds life buses zaglebie crashes rave shisha padel meet boatrace dekalog kinotour evtow crawl loud crazy oldtram tramfleet trains railsignals packs wellness tamka fans eventday coffeerun garage save errortrap boot districts syrenki cassettes ladder racecuts racebench first10 mainline chatter messages endcard opening parodies jobs2 rescues couriers delivery rides cost landmarks oldtownroofs roofdress tenementtrim osmroofs sites palacelights meshq sfx juice gamepad radio sounds water water-prebuilt streaming police plain ram teleport firstlife heli race trzy-mosty first10-run kebab coffee ride ride-police splash rain prebuilt boot-run classic police-runs police-soak life-soak)
+STEPS_QUICK=(map architecture roads smooth fixes centralnyramp cyclehang portbridge heights objects tramstops stairs streets outline pois streetdetails streetpass design models overrides stops streetmesh ratuszhub parkdetails parkmesh monuments monumentmesh spiremotion tarasyscreen spec drape drive deckxray tunnelcut stuckspots oldtowndrive finite steering laneassist stuckoffer handling grounded stopassist questlines stories settings credits language tiers governor shaderbudget heliview hud places edge roadworks eggs placzamkowy tape crowds life buses zaglebie crashes rave shisha padel meet boatrace dekalog kinotour evtow crawl loud crazy oldtram tramfleet trains railsignals packs wellness tamka fans eventday coffeerun garage save errortrap boot districts syrenki cassettes ladder racecuts racebench first10 mainline chatter messages endcard opening parodies jobs2 rescues couriers delivery rides cost landmarks oldtownroofs roofdress tenementtrim osmroofs sites palacelights meshq sfx juice gamepad radio sounds police plain ram teleport firstlife prebuilt boot-run)
 # Operation Unslop review (2026-11-05): the road loop ran the whole --quick (~100 steps, most start
 # the game) after every tweak. --roads keeps only the steps a road rule can break; steps not in
 # STEPS_ALL on this branch (e.g. `smooth` before the smooth-roads PR) are skipped.
@@ -1124,6 +1128,7 @@ for s in $want; do
 		garage) check garage '^check_garage:' --script res://tools/check_garage.gd ;;
 		save) check save '^check_save:' --script res://tools/check_save.gd ;;
 		errortrap) check errortrap '^check_error_trap:' --script res://tools/check_error_trap.gd ;;
+		boot) check boot '^check_boot:' --script res://tools/check_boot.gd ;;
 		districts) check districts '^check_districts:' --script res://tools/check_districts.gd ;;
 		syrenki) check syrenki '^syrenki:' --script res://tools/check_syrenki.gd ;;
 		cassettes) check cassettes '^cassettes:' --script res://tools/check_cassettes.gd ;;
@@ -1207,6 +1212,13 @@ for s in $want; do
 		firstlife) game firstlife 1200 '^first life: OK' --first-life --at=-961.6,95 --heading=339.8 ;;
 		rain) game rain-night 600 "" --weather=rain --time=night ;;
 		prebuilt) skip_prebuilt "run: prebuilt-night" || game prebuilt-night 600 "" --prebuilt --time=night ;;
+		# Tech-debt TD-15: the game started as a player starts it (boot.gd: the title up, the game's
+		# scene loaded on a thread behind it, the same title taken over), on the prebuilt city as on
+		# the phone. Every other run has flags and so loads the game at once. The line it waits for
+		# is main.gd's when that title goes. 8000 frames: the load takes about 850 of them in the
+		# cloud (the boot scene waits 8 ms a frame with no display), the title's wait for the
+		# start's sectors up to 8 s more.
+		boot-run) skip_prebuilt "run: boot" || game boot 8000 "^boot: the boot scene's title stayed up" --boot --prebuilt --title-choice=continue ;;
 		classic) game classic 600 "" --controls=classic ;;
 		ios) run_ios ;;
 	esac

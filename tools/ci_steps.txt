@@ -13,6 +13,8 @@
 # .github/workflows/verify.yml needs no edit.
 architecture         quick
 boatrace             quick
+boot                 quick
+boot-run             smoke
 buses                quick
 cassettes            quick
 centralnyramp        quick

@@ -25,10 +25,20 @@ sectors/s_<i>_<j>.scn, proxies.scn, index.res, shared/*.res   (the prebuilt city
   purpose, recorded in that script and the archive's "Map data" together.
 - Skill `bake-map` before editing any bake. Roads have their own system (skill `road-design`).
 
-## 2. Loading (main.gd `_ready`)
+## 2. Loading (boot.gd, then main.gd `_ready`)
 
+0. The boot scene (`boot.tscn`, the project's main scene; TD-15): `boot.gd` and the 8 scripts it
+   needs load in about 22 ms. It starts the error trap (a debug
+   build's; a release build has none). A player's launch (no flags: every
+   release build) puts the title up in the first frames and loads `main.tscn`, which pulls in
+   every other script (about 3.5 s in a release build on a cloud core), on a thread behind it.
+   A run with flags (the checks, shots and bench) loads the game's scene at once, so its
+   `--quit-after` and `--shots` frames mean what they did; `--boot` asks for the player's way.
+   Then the game's scene takes the boot scene's place and `main.gd` takes over the title and
+   the trap.
 1. Flags (`_parse_args`), gamepad, settings, audio buses.
-2. Title screen first, so the first frame isn't blank; the radio starts.
+2. Title screen first (the boot scene's, or a new one in a run with flags), so the first frame
+   isn't blank; the radio starts.
 3. Wallet (the save), then the city: runtime build or prebuilt sectors (`sector_streamer.gd`).
 4. Every system in a fixed order of `_build_*` calls, each followed by `LoadYield.tick` so the
    loading bar moves; then `traffic.setup`, `trams.setup`, `trains.setup`, walkers, rivals,
@@ -36,7 +46,8 @@ sectors/s_<i>_<j>.scn, proxies.scn, index.res, shared/*.res   (the prebuilt city
 5. Title dismissed: the camera fly-in, the HUD, the guide (`first10.gd`) on a fresh save.
 
 A new system adds its `_build_x` at the right place in this list. Anything that reads another
-system must be built after it.
+system must be built after it. Nothing new goes into step 0: every script `boot.gd` or `title.gd`
+preloads is loaded before the title can show (`check_boot` holds the list).
 
 ## 3. The save
 
@@ -67,7 +78,7 @@ system must be built after it.
 | --- | --- | --- |
 | Map data | invariants and counts | `python3 -I tools/check_map_data.py`, `check_roads.py`, `check_streets.py` ... |
 | Rules | pure scripts, no map | `game/tools/check_*.gd` (about 200), each prints `<name>: OK` |
-| Headless runs | the game for N seconds with flags | `tools/verify.sh` steps `plain`, `prebuilt`, `police-runs` ... |
+| Headless runs | the game for N seconds with flags; `boot-run` starts it as a player's launch does (the title first, the game loaded behind it) | `tools/verify.sh` steps `plain`, `prebuilt`, `boot-run`, `police-runs` ... |
 | All of it | one PASS / WARN / FAIL table | `tools/verify.sh [--quick]`; CI picks its jobs from the changed paths (`tools/ci_tier.py`, steps in `tools/ci_steps.txt`) and sums them up in one `gate` check; main runs every group |
 | Looks | phone-size screenshots | `tools/shots.sh`, skill `screenshot-review` |
 | Cost | frame, draw calls, scripts | `--bench`, `--probe`; the phone's BENCH card |
