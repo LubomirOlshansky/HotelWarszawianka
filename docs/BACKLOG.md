@@ -2876,6 +2876,11 @@ real ones added to `brand_denylist.json`). One PR each:
       granite cone, the dark plinth, the marching bronze general, a card), 2026-11-01.
 - [x] G2 part 1: Dom Partii as a white stone skin with a card, ROBUR over the north-west corner,
       the courtyard's paving with its key border and the long fountain with five jets, 2026-11-01.
+- [x] G2 part 3 (F's photos, 2026-11-11): Dom Partii rebuilt whole instead of the skin (site
+      `dom_partii`, spec `docs/landmarks/specs/dom_partii.md`): towers, colonnade with lobbies and
+      balcony, pilasters, frieze, PEPEO ŻUBR / WISTULA / ROBUR, the courtyard with the wavy lit
+      fountain, drivable through the colonnade, 2026-11-12. Left: phone look check (boards' and
+      letters' size, the fountain's night glow), Mac ortho check of the piers.
 - [x] G2 part 2: the bars NEWTWICE, ZAMĘT and PRZEGRYWKI as neons (`Storefronts.HYPE`), 2026-11-01.
 - [x] G3 HOTEL PIURE's door neon, LORETKA in pink on its roof (landmarks site `loretka`), the
       evening line for the lift up to the date bar (crowds.gd, 10-16 people 18:00-01:00, tag
@@ -2902,8 +2907,8 @@ real ones added to `brand_denylist.json`). One PR each:
 - [ ] Still left: Mac look check of the lettering's size and the fans' spot behind the van
       (the side of the kerb), the egg's wording; phone checks of every sign's size, the queues and
       the job's legs.
-- [ ] Mac checks: the statue's spot and facing against the orthophoto; Dom Partii's height and the
-      skin on the LoD2 model; KUKŁA/KOSZTA/NERWO spots on the real streets.
+- [ ] Mac checks: the statue's spot and facing against the orthophoto; KUKŁA/KOSZTA/NERWO spots
+      on the real streets (Dom Partii's height and skin: replaced by the model, 2026-11-12).
 - [x] `Tinder` in a run-club line replaced by TIMBER (it would fail the new denylist entry).
 
 ## Zagłębie Kebabowe and Kino Femina (F, 2026-11-02)

@@ -38,7 +38,7 @@ Counts: barrier 8, detail 12, instanced 10, landmark 125, monument 10, park 14, 
 | `landmark:cube_house` | cube_house | 1 | game/scripts/landmarks.gd:10673 |  |
 | `landmark:czapski` | czapski | 1 | game/scripts/landmarks.gd:16762 | Pałac Czapskich (Krasiński-Czapski palace, the Academy of Fine Arts), photos 18-19: built whole |
 | `landmark:deski` | deski | 1 | game/scripts/landmarks.gd:17586 |  |
-| `landmark:dom_partii_extras` | dom_partii_extras | 1 | game/scripts/landmarks.gd:4738 |  |
+| `landmark:dom_partii` | dom_partii | 1 | game/scripts/landmarks.gd:7692 | Dom Partii (Centrum Bankowo-Finansowe) built whole from F's photos: towers, colonnade, frieze, courtyard fountain |
 | `landmark:dtc` | dtc | 1 | game/scripts/landmarks.gd:8029 |  |
 | `landmark:dworzec_wodny` | dworzec_wodny | 1 | game/scripts/landmarks.gd:5094 | Dworzec Wodny: the Vistula's water station, a low glass-and-timber pavilion on its landing |
 | `landmark:elektrownia` | elektrownia | 1 | game/scripts/landmarks.gd:15799 |  |

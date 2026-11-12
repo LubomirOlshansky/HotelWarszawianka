@@ -9,6 +9,9 @@ that day here, in plain words a player would understand (no file names, no spoil
 rows in the progress log but no section here is listed automatically from the log's labels until
 someone writes its lines.
 
+## 2026-11-12
+- Dom Partii (Centrum Bankowo-Finansowe) at Rondo de Gaulle'a is rebuilt from your photos: the two white corner towers a storey over the front, the open colonnade with its glass lobbies and the balcony over it, rows of windows between stone piers, a frieze of small windows under the cornice, the PEPEO ŻUBR board, WISTULA and ROBUR on the roof, and a courtyard you can drive into with the wavy fountain glowing warm at night.
+
 ## 2026-11-11
 - Eight new Podwózka passengers with their own stories and places to go: a shopper to Vipkac, an artist to Zachęta, a late violinist to the Philharmonic, a guide to the Polin Museum, an assistant to the Sejm, a lost tourist to Hotel Bristol, an actor playing a tree at Teatr Polski and a ghost-tour guide to the Barbican.
 - The MDM and BYDŁO roof neons now stand where the real ones do, together on the roof of Hotel MDM at the south end of Plac Konstytucji, facing the square, and the small HOTEL MDM sign is on that hotel's front.

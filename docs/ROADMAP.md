@@ -15,6 +15,7 @@ item. Updated 2026-11-01 from the audit. v1.0 = the Demo and TestFlight gates in
 then the Launch gate.
 
 ### Done (built and checked headless)
+- [x] Dom Partii's real fronts and courtyard (F, 2026-11-11, photos: "I thought its fronts and inside were redone"): the block rebuilt whole (site `dom_partii`, spec `docs/landmarks/specs/dom_partii.md`): two side wings to 30 m whose ends read as corner towers with a ledge every storey, the front and back bodies a storey lower on a five-bay colonnade with two glass lobbies, the balcony, a pilaster grid, French windows and a frieze of small windows, roof boards PEPEO ŻUBR, WISTULA and ROBUR (parodies), and a paved courtyard the car can drive into with the wavy fountain, its warm-lit rim and five jets (5,202 tris, +0 draw calls; phone look open)
 - [x] More Podwózka ride stories (BACKLOG "Vitkac quests and ride stories", 2026-11-11): 8 new passengers (26 in all) with a real place each: Vipkac, Zachęta, Filharmonia Narodowa, Polin, the Sejm, Hotel Bristol, Teatr Polski, the Barbican (`data/taxi_stories.json`, `check_rides`); the Vitkac quests themselves stay open
 - [x] MDM and BYDŁO signs on the right building (F, 2026-11-10: "in the wrong place"): both roof neons and the HOTEL MDM sign moved from the north-east block to Hotel MDM (Plac Konstytucji 1, the 27.4 m south-west block, OSM 28823140, Wikipedia coordinates), facing the square (`MDM_SIGNS` in `landmarks.gd`); the real sign heights are a Mac photo check (2026-11-11)
 - [x] Senatorek's lobby and lift (F, 2026-11-11, "after approaching Senatorek the quest should be inside"): stop at the door and the evening starts in Warsaw Financial Centre's lobby (revolving door, reception, three lifts, the doorman at his lectern by the lounge's lift and its brass "38 SENATOREK" stand): the three walk in, the dress-code gag plays at the doorman, the lift's doors slide open and they ride up in a mirrored cabin with the floor number counting to 38 over the door, which opens on the lounge's glow; then the table, where the three answers are big buttons one under the other (300×56 pt) and the jars 92×52 pt; speakers' names follow the chosen language (`lounge.gd`, `data/shisha.json`, `check_shisha`). Arrival sounds done (door swish, lift ding, cabin hum); phone look open
@@ -601,7 +602,7 @@ then the Launch gate.
 - [ ] Rondo de Gaulle'a and the food hype (F, 2026-11-01; spec docs/design/gaulle-and-food-hype.md):
   - [x] Design and the parody names, 2026-11-01
   - [x] G1 the de Gaulle statue, 2026-11-01
-  - [x] G2 Dom Partii: white stone, ROBUR, the courtyard fountain, 2026-11-01
+  - [x] G2 Dom Partii: white stone, ROBUR, the courtyard fountain, 2026-11-01 (rebuilt whole from F's photos 2026-11-12, site `dom_partii`)
   - [x] G2 part 2: Dom Partii's bars as neons, 2026-11-01
   - [x] G3 HOTEL PIURE, the LORETKA date bar and TIMBER jokes, 2026-11-01
   - [x] G4 KOSZTA COFFEE, GREEN CAFFE NERWO, KUKŁA and the queues, 2026-11-01
