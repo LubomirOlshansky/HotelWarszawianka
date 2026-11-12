@@ -39,8 +39,11 @@ class FakeHud extends CanvasLayer:
 	func show_card(title: String, _b: String, btn: PackedStringArray, _a: Color, _bottom := false, _te := "", _be := "", _s := false) -> void:
 		card = title
 		buttons = btn.size()
-	func show_side_card(title: String, _b: String, btn: PackedStringArray, _a: Color, _te := "", _be := "", _s := false) -> void:
+	func show_side_card(title: String, _b: String, btn: PackedStringArray, _a: Color, _te := "", _be := "", _s := false, _f := "") -> void:
 		card = title
+		buttons = btn.size()
+	func show_call(who: String, _b: String, _a: Color, _be := "", _f := "", btn := PackedStringArray(["ODBIERZ|ANSWER", "ODRZUĆ|DECLINE"])) -> void:
+		card = "📞 %s DZWONI" % who.to_upper()
 		buttons = btn.size()
 	func hide_card() -> void:
 		card = ""

@@ -38,6 +38,7 @@ const MapArt := preload("res://scripts/map_art.gd")
 const MainLine := preload("res://scripts/main_line.gd")
 const MapIcons := preload("res://scripts/map_icons.gd")
 const ScreenPoints := preload("res://scripts/screen_points.gd")
+const Messages := preload("res://scripts/messages.gd")  # the message director (docs/design/hud-messages.md)
 ## drive_controls.gd's schemes (POINT, CLASSIC, FIXED).
 const CLASSIC := 1
 
@@ -77,23 +78,29 @@ const CLASSIC_BRAKE_R := 31.0
 const CLASSIC_BRAKE_REACH := 38.0
 const PAD_R := 34.0
 const PAD_REACH := 40.0
-## The night-buses loop: the horn's disc (44 pt across) and its touch radius, left of BRAKE
-## (inward, its lower edge level with the brake's), clear of it by HORN_CLEAR pt, so the right
-## column above the pedals stays free for the side cards.
-const HORN_R := 22.0
-const HORN_REACH := 27.0
-const HORN_CLEAR := 14.0
-## G13 (the upgrade shop): the nitro's disc (52 pt across, bigger than the horn: it is the one a
-## thumb reaches for), left of the horn, shown once the nitro is bought; its ring is the tank.
+## G13 (the upgrade shop): the nitro's disc (52 pt across), left of BRAKE (inward, its lower edge
+## level with the brake's), clear of it by NITRO_CLEAR pt so the right column above the pedals
+## stays free for the side cards; shown once the nitro is bought; its ring is the tank. (F
+## 2026-11-10: the touch horn that stood here is gone; the horn is the B key and L3 on a pad.)
 const NITRO_R := 26.0
 const NITRO_REACH := 31.0
+const NITRO_CLEAR := 14.0
 ## Loop 2e: the player's car sits about the middle of the screen (the view leads it a little);
 ## the passing panels (toasts, the ticker, notes, the overlay, the banner) keep out of a box
 ## this big round the middle. The cards and the status come first and may cover it.
 const CAR_ZONE := Vector2(110.0, 84.0)
 ## Panel widths.
 const CARD_W := 440.0
-const STATUS_W := 260.0
+## F 2026-11-10: the phone view of an incoming call (show_call): its width, the caller's face,
+## the round answer and decline buttons, and the face on a quest card's head.
+const CALL_W := 176.0
+const CALL_FACE := 44.0
+const CALL_BUTTON := 44.0
+## The ringtone (tools/make_ui_sounds.py `ring`), again every RING_EVERY s while it rings.
+const RINGTONE := "res://audio/ui/ring.wav"
+const RING_EVERY := 2.6
+const CARD_FACE := 40.0
+const STATUS_W := 240.0  # the message director: the quest card in its compact cut (was 260)
 const NOTE_W := 236.0
 const TICKER_W := 380.0
 const TOAST_W := 420.0
@@ -147,7 +154,6 @@ signal perf_gesture                   # three fingers down at once: the performa
 signal settings_pressed               # loop 2a: the gear
 signal map_pressed                    # F's asks (2026-10-30): a tap on the minimap (the full-screen map)
 signal nitro_pressed                  # G13: the nitro's disc went down (nitro_held while the finger stays)
-signal horn_pressed                   # the night-buses loop: the horn (a disc over BRAKE / GAS)
 
 var stick := Vector2.ZERO   # -1..1 in screen space, x right, y down
 var brake := false
@@ -208,6 +214,8 @@ var _pill: Button
 var _pill_t := 0.0
 var _pad: Control
 var _gas_index := -1
+## True while the drag's shift button holds the gas down for the player.
+var _auto_gas := false
 var _climb_index := -1
 ## Mission card (calls and results), the status panel while a mission runs.
 var _card: PanelContainer
@@ -217,6 +225,28 @@ var _card_body: Label
 var _card_title_en: Label
 var _card_body_en: Label
 var _card_buttons: BoxContainer
+## F 2026-11-10: the caller's face on a card's head (a quest offer; Portraits), and the phone view
+## of an incoming call (show_call) inside the same panel: the card's own rows hide meanwhile.
+var _card_rows: VBoxContainer
+var _card_face: Control
+var _card_face_tex: Texture2D
+var _card_face_letter := ""
+var _card_face_accent := ACCENT
+var _card_style: StyleBoxFlat
+var _call_style: StyleBoxFlat
+var _call_mode := false
+var _call_box: HBoxContainer
+var _call_screen_box: PanelContainer
+var _call_screen: StyleBoxFlat
+var _call_clock: Label
+var _ring: AudioStreamPlayer
+var _ring_wait := 0.0
+var _call_face: Control
+var _call_name: Label
+var _call_status: Label
+var _call_about: Label
+var _call_buttons: HBoxContainer
+var _call_t := 0.0
 ## The side jobs' cards sit at the bottom centre, clear of the speech bubbles over the stand
 ## or the door; the others at the top centre under the top row.
 var _card_bottom := false
@@ -291,6 +321,14 @@ var _taps := {}
 var _status_icons: Control
 var _icons := {}
 ## How long the "+" zoom chip has been held down (s; 0 when not): the shisha night's hidden start.
+## The + / = key down or up (main.gd): held like the on-screen "+".
+func zoom_in_key(down: bool) -> void:
+	if down and _zoom_in_down_ms < 0:
+		_zoom_in_down_ms = Time.get_ticks_msec()
+	elif not down:
+		_zoom_in_down_ms = -1
+
+
 func zoom_in_held_s() -> float:
 	return 0.0 if _zoom_in_down_ms < 0 else float(Time.get_ticks_msec() - _zoom_in_down_ms) / 1000.0
 
@@ -361,8 +399,6 @@ var _stick_index := -1
 var _stick_origin := Vector2.ZERO
 var _stick_point := Vector2.ZERO
 var _brake_index := -1
-## The night-buses loop: the finger on the horn (-1: none).
-var _horn_index := -1
 ## G13: the nitro bought (the disc shows), the tank 0..1 (the ring), and the finger on it (-1: none).
 var nitro_owned := false
 var nitro_charge := 1.0
@@ -564,6 +600,8 @@ func _ready() -> void:
 	for zb: Button in [_zoom_out_button, _zoom_in_button]:
 		_set_chip(zb, zb.get_child(0).get_child(0).text, "", 44.0)
 
+	radio_pressed.connect(radio_touched)
+	radio_skip_pressed.connect(radio_touched)
 	_build_ticker()
 	_build_mission_panels()
 	_build_toast()
@@ -747,6 +785,11 @@ func _layout_fixed() -> void:
 	_style_radio_plate()
 	_pill.size = _pill.custom_minimum_size
 	_pill.position = Vector2(_safe.get_center().x - _pill.size.x * 0.5, y)
+	if _gas_on_pill():
+		# F 2026-11-10: in the drag the shift button stands where GAZ is (the gas is held for the
+		# run, _frame), a big target for the thumb instead of a chip on the top row.
+		_pill.size = Vector2(maxf(_pill.size.x, 88.0 * pt), maxf(_pill.size.y, 64.0 * pt))
+		_pill.position = _gas_centre() - _pill.size * 0.5
 	var below := (ROW_Y + ROW_H + GAP) * pt
 	if _minimap != null:
 		_minimap.position = Vector2(x0, below)
@@ -969,10 +1012,9 @@ func _pedal_rects() -> Array[Rect2]:
 		out.append(disc.call(_climb_centre(-1), (PAD_R + 4.0) * pt))
 		return out
 	out.append(disc.call(_brake_centre(), ((CLASSIC_BRAKE_R if scheme == CLASSIC else BRAKE_R) + 4.0) * pt))
-	out.append(disc.call(_horn_centre(), (HORN_R + 4.0) * pt))  # the night-buses loop: the horn
 	if nitro_owned:
 		out.append(disc.call(_nitro_centre(), (NITRO_R + 4.0) * pt))  # G13: the nitro
-	if scheme == CLASSIC:
+	if scheme == CLASSIC and not _gas_on_pill():
 		out.append(disc.call(_gas_centre(), (GAS_R + 4.0) * pt))
 		var o := _strip_hint_centre()
 		out.append(Rect2(o - Vector2(52, 12) * pt, Vector2(104, 24) * pt))
@@ -1032,6 +1074,8 @@ func clear_all() -> void:
 	for c in _floating:
 		_show(c, false)
 	_toast_left = 0.0
+	_toast_wait.clear()
+	messages.clear()
 	_ticker_left = 0.0
 	_note_left = 0.0
 	_info_left = 0.0
@@ -1066,10 +1110,9 @@ func touch_targets() -> Dictionary:
 	else:
 		out["brake"] = disc.call(_brake_centre(), (CLASSIC_BRAKE_R if scheme == CLASSIC else BRAKE_R) * pt)
 		if not _pedals_hidden:
-			out["horn"] = disc.call(_horn_centre(), HORN_R * pt)
 			if nitro_owned:
 				out["nitro"] = disc.call(_nitro_centre(), NITRO_R * pt)
-		if scheme == CLASSIC:
+		if scheme == CLASSIC and not _gas_on_pill():
 			out["gas"] = disc.call(_gas_centre(), GAS_R * pt)
 	return out
 
@@ -1416,6 +1459,11 @@ func _build_ticker() -> void:
 func ticker(text: String, colour: Color, subtitle := "") -> void:
 	if hush:
 		return
+	# The message director: the host's lines, the news and a new track keep quiet while a quest or
+	# a chase runs; a station the player picked just now still shows.
+	var own := Time.get_ticks_msec() - _radio_touch_ms < RADIO_OWN_MS
+	if _decide("ticker", Messages.ALERT if own else Messages.RADIO) != Messages.SHOW:
+		return
 	text = Lang.pick(text, subtitle)
 	subtitle = ""
 	colour = Access.tint(colour)  # colour-safe (access.gd)
@@ -1489,12 +1537,15 @@ func ambient_toast(text: String, gloss := "") -> void:
 	if chatter != null and not chatter.toast_ok():
 		return
 	_ambient_toast_at = now
-	toast(text, gloss)
+	toast(text, gloss, Messages.AMBIENT)
 
 
-func toast(text: String, gloss := "") -> void:
+## `priority` (messages.gd): a quest's toast is INFO; ALERT never waits behind another toast.
+func toast(text: String, gloss := "", priority := Messages.INFO) -> void:
 	if hush:
 		return  # PT-49: the first-10 guide's hints waited under the drag's rev counter
+	if _decide("toast", priority) != Messages.SHOW:
+		return  # a flavour toast during a quest or a chase
 	text = Lang.pick(text, gloss)
 	gloss = ""
 	# PT-20 (Autopilot run 20261103-152518): the same toast again while it is still up only
@@ -1502,6 +1553,22 @@ func toast(text: String, gloss := "") -> void:
 	if _toast_left > 0.0 and _toast.text == text and bool(_wants.get(_toast_box, false)):
 		_toast_left = Chatter.read_time(text)
 		return
+	# The message director: a new toast never wipes one that came up a moment ago (the two used
+	# to flicker past unread); it waits until that one has been glanced at (TOAST_GLANCE s).
+	if priority < Messages.ALERT and _toast_left > 0.0 and _toast_age < TOAST_GLANCE and bool(_wants.get(_toast_box, false)):
+		for w: Array in _toast_wait:
+			if w[0] == text:
+				return
+		_toast_wait.append([text, gloss])
+		if _toast_wait.size() > TOAST_WAIT_MAX:
+			_toast_wait.pop_front()
+		_toast_left = minf(_toast_left, TOAST_GLANCE - _toast_age + 0.6)
+		return
+	_toast_now(text, gloss)
+
+
+func _toast_now(text: String, gloss: String) -> void:
+	_toast_age = 0.0
 	# A long line wraps at TOAST_W points rather than running off a phone's screen.
 	var font := ThemeDB.fallback_font
 	for pair: Array in [[_toast, text, T_TITLE], [_toast_gloss, gloss, T_SUB]]:
@@ -1559,6 +1626,20 @@ func _build_mission_panels() -> void:
 	_card_buttons = BoxContainer.new()
 	_card_buttons.add_theme_constant_override("separation", roundi(8.0 * pt))
 	box.add_child(_card_buttons)
+	_card_rows = box
+	_card_style = _card.get_theme_stylebox("panel") as StyleBoxFlat
+	_card_face = Control.new()
+	_card_face.name = "face"
+	_card_face.custom_minimum_size = Vector2.ONE * CARD_FACE * pt
+	_card_face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_card_face.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS  # 256 px drawn at ~120-160 px
+	_card_face.visible = false
+	_card_face.draw.connect(func() -> void:
+		_paint_face(_card_face, _card_face_tex, _card_face_letter, _card_face_accent, CARD_FACE * 0.5 * pt, -1.0))
+	head.add_child(_card_face)
+	head.move_child(_card_face, 0)
+	_card_title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_build_call_view()
 	add_child(_card)
 
 	_status = PanelContainer.new()
@@ -1576,8 +1657,9 @@ func _build_mission_panels() -> void:
 	words.add_theme_constant_override("separation", 0)
 	top.add_child(words)
 	_status_title = _label(T_SUB, ACCENT)
-	# PT-11: a long goal wraps onto a second line instead of ending in "...".
+	# PT-11: a long goal wraps onto a second line instead of ending in "...", never a third.
 	_wrap(_status_title, STATUS_W - 70.0)
+	_status_title.max_lines_visible = 2
 	words.add_child(_status_title)
 	_status_clock = _label(T_CLOCK, Color.WHITE)
 	words.add_child(_status_clock)
@@ -1599,6 +1681,7 @@ func _build_mission_panels() -> void:
 	rows.add_child(_status_hint)
 	_status_hint_en = _label(T_SUB, SUB)
 	_wrap(_status_hint_en, STATUS_W - 20.0)
+	_status_hint_en.visible = false  # one language (lang.gd): it stood empty, a blank line under the hint
 	rows.add_child(_status_hint_en)
 	_status_track = Control.new()
 	_status_track.custom_minimum_size.y = 4.0 * pt
@@ -1613,6 +1696,7 @@ func _build_mission_panels() -> void:
 	_challenge = _chip(self, "MRUGNIJ ŚWIATŁAMI", "flash your lights to race (L)")
 	_challenge.name = "challenge"
 	_challenge.pressed.connect(func(): challenge_pressed.emit())
+	_build_cta()
 
 	_banner = _label(T_BANNER, Color.WHITE, true)
 	_banner.name = "banner"
@@ -1639,11 +1723,19 @@ func show_card(title: String, body: String, buttons: PackedStringArray, accent: 
 	body = Lang.pick(body, body_en)
 	title_en = ""
 	body_en = ""
+	# F 2026-11-10: back from the phone view, and no face unless show_side_card names one.
+	if _call_mode:
+		_set_call_mode(false)
+		if not _side_call:
+			_card_side = true  # (the width below goes back to CARD_W)
+	_card_face.visible = false
 	# Loop 2d-1: any other card is the centred one again.
 	if _card_side and not _side_call:
 		_card_side = false
 		_set_card_width(CARD_W)
 	_card_bottom = bottom
+	if not buttons.is_empty() and buttons[0].begins_with("ODBIERZ"):
+		messages.call_rang()  # an incoming call (ODBIERZ / ODRZUĆ): the next caller waits CALL_GAP
 	_card_title.text = title
 	_card_title.add_theme_color_override("font_color", accent)
 	_card_title_en.text = title_en
@@ -1694,6 +1786,262 @@ func hide_card() -> void:
 	_show(_card, false)
 
 
+# --- F 2026-11-10: the phone view of an incoming call ------------------------------------------
+
+## The incoming call as a little phone held up on the right (F 2026-11-10, a photo of a mini
+## phone): a black body with rounded corners round a screen in the caller's colour, a clock and
+## the camera notch at the top, the caller's face with rings going out while it rings, the name
+## and "dzwoni…" beside it, what the caller is to you under them (F: the text inside the phone;
+## so keep a caller's line short, about 55 letters), and the round red and green buttons with
+## their words (decline on the left, answer on the right, as on a phone). Upright and narrow
+## (F 2026-11-11, a sketched rectangle): in the right-hand column beside the car, above the pedals.
+func _build_call_view() -> void:
+	_call_style = StyleBoxFlat.new()
+	_call_style.bg_color = Color(0, 0, 0, 0)
+	_call_box = HBoxContainer.new()
+	_call_box.name = "call"
+	_call_box.add_theme_constant_override("separation", roundi(8.0 * pt))
+	_call_box.visible = false
+	_card.add_child(_call_box)
+	# The phone: the black body, the screen inside.
+	var body := PanelContainer.new()
+	body.name = "phone"
+	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var body_style := StyleBoxFlat.new()
+	body_style.bg_color = Color("#141419")
+	body_style.border_color = Color("#4a4a56")
+	body_style.set_border_width_all(maxi(1, roundi(2.0 * pt)))
+	body_style.set_corner_radius_all(roundi(20.0 * pt))
+	body_style.set_content_margin_all(4.0 * pt)
+	body_style.shadow_color = Color(0, 0, 0, 0.45)
+	body_style.shadow_size = roundi(6.0 * pt)
+	body.add_theme_stylebox_override("panel", body_style)
+	_call_box.add_child(body)
+	_call_screen = StyleBoxFlat.new()
+	_call_screen.set_corner_radius_all(roundi(15.0 * pt))
+	_call_screen.content_margin_left = 6.0 * pt
+	_call_screen.content_margin_right = 6.0 * pt
+	_call_screen.content_margin_top = 3.0 * pt
+	_call_screen.content_margin_bottom = 5.0 * pt
+	var screen := PanelContainer.new()
+	_call_screen_box = screen
+	screen.add_theme_stylebox_override("panel", _call_screen)
+	screen.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	body.add_child(screen)
+	var rows := VBoxContainer.new()
+	rows.add_theme_constant_override("separation", roundi(2.0 * pt))
+	rows.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	screen.add_child(rows)
+	# The top bar: the clock on the left, the notch in the middle, signal and battery right.
+	var bar := Control.new()
+	bar.custom_minimum_size.y = 10.0 * pt
+	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_call_clock = _label(T_LABEL, INK)
+	_call_clock.position = Vector2(4.0 * pt, -3.0 * pt)
+	bar.add_child(_call_clock)
+	bar.draw.connect(func() -> void: _paint_phone_bar(bar))
+	rows.add_child(bar)
+	# The face, and the name with "dzwoni…" beside it; what the caller is to you under them.
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", roundi(10.0 * pt))
+	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rows.add_child(head)
+	_call_face = Control.new()
+	_call_face.name = "face"
+	_call_face.custom_minimum_size = Vector2.ONE * CALL_FACE * pt
+	_call_face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_call_face.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS  # 256 px drawn at ~120-160 px
+	_call_face.draw.connect(func() -> void:
+		_paint_face(_call_face, _card_face_tex, _card_face_letter, _card_face_accent, CALL_FACE * 0.5 * pt, _call_t))
+	head.add_child(_call_face)
+	var who := VBoxContainer.new()
+	who.add_theme_constant_override("separation", 0)
+	who.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	who.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	who.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	head.add_child(who)
+	_call_name = _label(T_BODY, INK)
+	who.add_child(_call_name)
+	_call_status = _label(T_LABEL, SUB)
+	who.add_child(_call_status)
+	_call_about = _label(T_SUB, INK)
+	rows.add_child(_call_about)
+	_call_buttons = HBoxContainer.new()
+	_call_buttons.alignment = BoxContainer.ALIGNMENT_CENTER
+	_call_buttons.add_theme_constant_override("separation", roundi(48.0 * pt))
+	rows.add_child(_call_buttons)
+	_ring = AudioStreamPlayer.new()
+	_ring.name = "ringtone"
+	_ring.process_mode = Node.PROCESS_MODE_ALWAYS
+	if AudioServer.get_bus_index(&"SFX") >= 0:
+		_ring.bus = &"SFX"
+	_ring.volume_db = -9.0
+	if ResourceLoader.exists(RINGTONE):
+		_ring.stream = load(RINGTONE)
+	add_child(_ring)
+
+
+## The phone's top bar: the camera notch in the middle, three signal bars and a battery right.
+func _paint_phone_bar(bar: Control) -> void:
+	var c := Vector2(bar.size.x * 0.5, bar.size.y * 0.45)
+	var notch := Vector2(30.0, 8.0) * pt
+	bar.draw_rect(Rect2(c - notch * 0.5, notch), Color("#141419"))
+	bar.draw_circle(c + Vector2(notch.x * 0.5 - 4.0 * pt, 0), 1.6 * pt, Color("#2c3550"))
+	var x := bar.size.x - 4.0 * pt
+	var batt := Rect2(x - 13.0 * pt, c.y - 3.5 * pt, 12.0 * pt, 7.0 * pt)
+	bar.draw_rect(batt, INK, false, maxf(1.0, pt))
+	bar.draw_rect(Rect2(batt.position + Vector2.ONE * 1.5 * pt, Vector2(6.0 * pt, batt.size.y - 3.0 * pt)), INK)
+	for k in 3:
+		var h := (2.5 + 2.0 * k) * pt
+		bar.draw_rect(Rect2(x - 26.0 * pt + k * 3.5 * pt, c.y + 3.5 * pt - h, 2.2 * pt, h), INK)
+
+
+## The phone as wide as the column beside the car allows (side_card_width, at most CALL_W),
+## its screen's words to match.
+func _set_call_width() -> void:
+	var w := minf(side_card_width(), CALL_W)
+	var screen := w - 2.0 * (4.0 + 2.0)  # the body's margin and border
+	_call_screen_box.custom_minimum_size.x = screen * pt
+	_wrap(_call_about, screen - 12.0)
+	_wrap(_call_name, screen - 12.0 - CALL_FACE - 10.0)
+	_card.custom_minimum_size.x = 0.0
+
+
+## An incoming call in the phone view, in the right-hand column beside the car like the side
+## card: `who` the caller's name ("Ivan", "+33 · Claire"; "POLISH|ENGLISH" when it differs),
+## `about` what they are to you. The
+## buttons are [answer, decline] ("ODBIERZ|ANSWER", "ODRZUĆ|DECLINE" by default) and press as
+## the card's 0 and 1 (card_pressed), so a caller only swaps show_side_card for this. `face`
+## names the portrait (Portraits.face; default: `who`); without art, the initial on a disc.
+func show_call(who: String, about: String, accent: Color, about_en := "", face := "",
+		buttons := PackedStringArray(["ODBIERZ|ANSWER", "ODRZUĆ|DECLINE"])) -> void:
+	accent = Access.tint(accent)  # colour-safe (access.gd)
+	messages.call_rang()  # the message director spaces the next call from this one
+	about = Lang.pick(about, about_en)
+	if "|" in who:
+		who = Lang.pick(who.get_slice("|", 0), who.get_slice("|", 1))
+	_set_face(face if face != "" else who, accent)
+	_set_call_mode(true)
+	_card_side = true
+	_card_bottom = false
+	_set_call_width()
+	_call_t = 0.0
+	_ring_wait = 0.0
+	_call_screen.bg_color = accent.darkened(0.78)
+	_call_screen.border_color = Color(accent, 0.35)
+	_call_clock.text = Time.get_time_string_from_system().substr(0, 5)
+	_call_status.text = Lang.pick("dzwoni…", "calling…")
+	_call_name.text = who
+	_call_about.text = about
+	_call_about.visible = about != ""
+	for b in _call_buttons.get_children():
+		_call_buttons.remove_child(b)
+		b.queue_free()
+	# Decline on the left, answer on the right; the node names keep the card's indices.
+	for i: int in [1, 0]:
+		if i >= buttons.size():
+			continue
+		var words := buttons[i].split("|")
+		_call_button(i, Lang.pick(words[0], words[1] if words.size() > 1 else ""),
+				Access.tint(Access.GREEN) if i == 0 else Access.tint(Access.RED), i == 0)
+	_card.reset_size()
+	_show(_card, true)
+	_show(_status, false)
+	hide_pill()
+	_mark()
+
+
+## True while the phone view is the card showing (the checks and the shots read it).
+func call_showing() -> bool:
+	return _call_mode and bool(_wants.get(_card, false))
+
+
+## One round button with its word under it; `answer` draws the handset up, else turned down.
+func _call_button(index: int, word: String, colour: Color, answer: bool) -> void:
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", roundi(1.0 * pt))
+	col.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var b := Button.new()
+	b.name = "button%d" % index
+	b.focus_mode = Control.FOCUS_NONE
+	b.custom_minimum_size = Vector2.ONE * CALL_BUTTON * pt
+	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	for st in ["normal", "hover", "disabled", "pressed", "hover_pressed"]:
+		var box := StyleBoxFlat.new()
+		box.bg_color = colour.darkened(0.25) if st.contains("pressed") else colour
+		box.set_corner_radius_all(roundi(CALL_BUTTON * 0.5 * pt))
+		b.add_theme_stylebox_override(st, box)
+	b.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
+	b.draw.connect(func() -> void: _paint_handset(b, answer))
+	b.pressed.connect(func(): card_pressed.emit(index))
+	col.add_child(b)
+	var l := _label(T_LABEL, INK)
+	l.text = word.substr(0, 1) + word.substr(1).to_lower()  # "Odbierz", as a phone writes it
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	col.add_child(l)
+	_call_buttons.add_child(col)
+
+
+## A phone handset in white on the round button: a thick arc with the two ends; turned over
+## (hung up) on the decline button.
+func _paint_handset(b: Control, answer: bool) -> void:
+	var c := b.size * 0.5
+	var r := b.size.x * 0.24
+	var turn := -PI * 0.25 if answer else 0.0  # decline: level, as a handset put down
+	var w := 5.0 * pt
+	var a0 := PI * 1.05 + turn
+	var a1 := PI * 1.95 + turn
+	var mid := c + Vector2(0, r * 0.35).rotated(turn)
+	b.draw_arc(mid, r, a0, a1, 16, Color.WHITE, w, true)
+	for a in [a0, a1]:
+		b.draw_circle(mid + Vector2(cos(a), sin(a)) * r, w * 1.15, Color.WHITE, true, -1.0, true)
+
+
+## The caller's face for the next card: the portrait if there is one, else the initial.
+func _set_face(who: String, accent: Color) -> void:
+	_card_face_tex = Portraits.face(who) if who != "" else null
+	_card_face_letter = Portraits.initial(who)
+	_card_face_accent = accent
+	_card_face.visible = who != ""
+	_card_face.queue_redraw()
+	_call_face.queue_redraw()
+
+
+## The phone view or the card's own rows, and the panel's look to match.
+func _set_call_mode(on: bool) -> void:
+	_call_mode = on
+	_call_box.visible = on
+	_card_rows.visible = not on
+	_card.add_theme_stylebox_override("panel", _call_style if on else _card_style)
+
+
+## A round face of radius `r` in `c`'s middle: the portrait cut to a circle, or the initial on a
+## disc in the accent; a ring in the accent round it. `t` >= 0: ringing for t s, two rings go out.
+func _paint_face(c: Control, tex: Texture2D, letter: String, accent: Color, r: float, t: float) -> void:
+	var mid := c.size * 0.5
+	if t >= 0.0:
+		for k in 2:
+			var f := fmod(t * 0.9 + k * 0.5, 1.0)
+			c.draw_arc(mid, r * (1.0 + 0.4 * f), 0.0, TAU, 48, Color(accent, 0.6 * (1.0 - f)), 2.0 * pt, true)
+	if tex != null:
+		var pts := PackedVector2Array()
+		var uvs := PackedVector2Array()
+		for i in 40:
+			var d := Vector2.from_angle(TAU * i / 40.0)
+			pts.append(mid + d * r)
+			uvs.append(Vector2(0.5, 0.5) + d * 0.5)
+		c.draw_colored_polygon(pts, Color.WHITE, uvs, tex)
+	else:
+		c.draw_circle(mid, r, accent.darkened(0.55), true, -1.0, true)
+		var font := ThemeDB.fallback_font
+		var size := roundi(r * 1.05)
+		var w := font.get_string_size(letter, HORIZONTAL_ALIGNMENT_LEFT, -1, size)
+		var y := mid.y + (font.get_ascent(size) - font.get_descent(size)) * 0.5
+		c.draw_string(font, Vector2(mid.x - w.x * 0.5, y), letter, HORIZONTAL_ALIGNMENT_LEFT, -1, size, accent.lightened(0.35))
+	c.draw_arc(mid, r, 0.0, TAU, 48, accent, maxf(1.5, 2.0 * pt), true)
+
+
 ## The running mission or race: where to, the clock, the distance, a hint, how much of the
 ## hold-still is done (0..1), and an optional badge (race position). Loop 2e: the hint in
 ## Polish, `hint_en` under it in English.
@@ -1714,12 +2062,16 @@ func show_status(title: String, clock: String, distance: String, hint: String, p
 	_status_badge.add_theme_color_override("font_color", Access.tint(Access.GREEN) if badge == "1ST" else ACCENT)
 	_status_title.text = title
 	_status_title.add_theme_color_override("font_color", accent)
-	_status_clock.text = clock + "    " + distance
+	_status_clock.text = clock + "   " + distance if clock != "" and distance != "" else clock + distance
 	if _status_hint.text != hint:
 		_status_hint.text = hint
-	if _status_hint_en.text != hint_en:
-		_status_hint_en.text = hint_en
-		_status_hint_en.visible = hint_en != ""
+		# The compact quest card: a new hint shows for its reading time, then folds away; one that
+		# only counts (the metres, the seconds) is the same hint.
+		var shape := _hint_shape(hint)
+		if shape != _hint_key:
+			_hint_key = shape
+			_hint_left = Chatter.read_time(hint) + HINT_HOLD
+	_status_hint.visible = hint != "" and _hint_left > 0.0
 	_status_bar.color = accent
 	_status_bar.size.x = _status_track.size.x * clampf(progress, 0.0, 1.0)
 	_show(_status, true)
@@ -1727,15 +2079,18 @@ func show_status(title: String, clock: String, distance: String, hint: String, p
 
 func hide_status() -> void:
 	_show(_status, false)
+	_hint_key = ""  # the next quest's first hint shows
 
 
-## The button that challenges the rival in front (key L does the same): Polish over English.
-func show_challenge(text: String, accent: Color, gloss := "flash your lights to race (L)") -> void:
+## The button that challenges the rival in front (key L does the same). The message director
+## (F 2026-11-11: "make the start chase button understandable, a call to action, not just text"):
+## a big button in the racer's colour with a chequered flag, the challenge (`text`, `gloss` its
+## English) over what to do (`sub`, `sub_en`), popping in and breathing while it is up.
+func show_challenge(text: String, accent: Color, gloss := "flash your lights to race (L)", sub := "", sub_en := "") -> void:
 	accent = Access.tint(accent)  # colour-safe (access.gd)
-	var top := (_challenge.get_child(0) as Control).get_child(0) as Label
-	if top.text != text:
-		_set_chip(_challenge, text, gloss, 240.0)
-		top.add_theme_color_override("font_color", accent)
+	_set_cta(Lang.pick(text, gloss), Lang.pick(sub, sub_en), accent)
+	if not bool(_wants.get(_challenge, false)):
+		_cta_t = 0.0  # the pop
 	_show(_challenge, true)
 
 
@@ -1788,7 +2143,27 @@ func _process(dt: float) -> void:
 
 
 func _frame(dt: float) -> void:
+	_messages_tick(dt)
+	# The drag's shift button took GAZ's place: the gas stays down while it is up.
+	if _gas_on_pill():
+		gas = true
+		_auto_gas = true
+	elif _auto_gas:
+		_auto_gas = false
+		gas = _gas_index >= 0
 	radio_hold_tick(Time.get_ticks_msec())
+	if _call_mode and _card.visible:
+		_call_t += dt
+		_call_face.queue_redraw()
+	# The ringtone while the phone view rings (and not a moment after it is answered or gone).
+	if _ring != null and _ring.stream != null:
+		if call_showing():
+			_ring_wait -= dt
+			if _ring_wait <= 0.0:
+				_ring.play()
+				_ring_wait = RING_EVERY
+		elif _ring.playing:
+			_ring.stop()
 	if _toast_left > 0.0:
 		_toast_left -= dt
 		_toast_box.modulate.a = clampf(_toast_left / 0.6, 0.0, 1.0)
@@ -2412,14 +2787,22 @@ func set_minimap_pois(points: PackedVector2Array, colours: PackedColorArray, sha
 ## A card in the right-hand column under the top row, as wide as the room right of the car's
 ## spot allows (at most CARD_W points): the car stays in view (Podwózka's request and result).
 ## The same card, recipe and point sizes; the next show_card() puts it back in the middle.
+## F 2026-11-10: `face` names who is talking (a quest offer: "Ivan"), and their portrait, or
+## their initial on a disc, stands before the title (Portraits).
 func show_side_card(title: String, body: String, buttons: PackedStringArray, accent: Color, title_en := "",
-		body_en := "", stacked := false) -> void:
+		body_en := "", stacked := false, face := "") -> void:
 	accent = Access.tint(accent)  # colour-safe (access.gd)
 	_card_side = true
+	if _call_mode:
+		_set_call_mode(false)
 	_set_card_width(side_card_width())
 	_side_call = true
 	show_card(title, body, buttons, accent, false, title_en, body_en, stacked)
 	_side_call = false
+	if face != "":
+		_set_face(face, accent)
+		_card.reset_size()
+		_mark()
 
 
 ## The side card's width in points: from the car's spot (and a margin) to the safe area's edge.
@@ -2620,10 +3003,20 @@ static func _money(amount: int) -> String:
 	return ("-" if amount < 0 else "") + digits + out + " zł"
 
 
-## A small card under the wallet for a few seconds (an easter egg found).
-func show_note(title: String, body: String, colour: Color) -> void:
-	if hush:
-		return
+## A small card under the wallet for a few seconds (an easter egg found). The message director:
+## during a quest, a chase or a scripted moment a note waits in the queue and shows after it
+## (`priority` messages.gd: INFO by default; a quest's own message, the TYGRAM pin, is QUEST_LINE).
+func show_note(title: String, body: String, colour: Color, priority := Messages.INFO) -> void:
+	match _decide("note", priority):
+		Messages.DEFER:
+			messages.defer("note", priority, [title, body, colour], title + body)
+			return
+		Messages.DROP:
+			return
+	_show_note_now(title, body, colour)
+
+
+func _show_note_now(title: String, body: String, colour: Color) -> void:
 	colour = Access.tint(colour)  # colour-safe (access.gd)
 	_set_note_width()  # landmark card fix
 	_note_title.text = title
@@ -2752,7 +3145,7 @@ func _brake_right() -> Vector2:
 
 
 ## Accessibility (2026-11-01): the left-handed layout mirrors a point of the right-handed one
-## across the safe area's middle (the pedals, the horn, the helicopter's pads, Classic's strip
+## across the safe area's middle (the pedals, the nitro, the helicopter's pads, Classic's strip
 ## and the ghost finger); right-handed, the point as it is.
 func _side(p: Vector2) -> Vector2:
 	return Vector2(_safe.position.x + _safe.end.x - p.x, p.y) if left_handed else p
@@ -2775,6 +3168,11 @@ func _stick_side(x: float, width: float) -> bool:
 
 
 ## Loop 2a: the GAS pedal (Classic), where BRAKE is in the other schemes.
+## The drag's shift button stands on GAZ's spot (the gas plate is not drawn under it).
+func _gas_on_pill() -> bool:
+	return scheme == CLASSIC and not flying and _pill.visible and pill_owner == "drag_shift"
+
+
 func _gas_centre() -> Vector2:
 	return _side(Vector2(_safe.end.x - 58.0 * pt, _safe.end.y - 52.0 * pt))
 
@@ -2794,20 +3192,14 @@ func _on_pedals(p: Vector2) -> bool:
 	if flying or _pedals_hidden or touch_off:
 		return false
 	return p.distance_to(_brake_centre()) < _brake_reach() or (scheme == CLASSIC and p.distance_to(_gas_centre()) < GAS_REACH * pt) \
-			or _on_horn(p) or _on_nitro(p)
+			or _on_nitro(p)
 
 
-## The night-buses loop: the horn's centre, left of BRAKE (none in the helicopter).
-func _horn_centre() -> Vector2:
-	var r := CLASSIC_BRAKE_R if scheme == CLASSIC else BRAKE_R
-	return _side(_brake_right() + Vector2(-(r + HORN_CLEAR + HORN_R), r - HORN_R) * pt)
-
-
-## G13: the nitro's centre, left of the horn (right of it in the left-handed layout, which
-## mirrors the horn already).
+## G13: the nitro's centre, left of BRAKE (right of it in the left-handed layout; none in the
+## helicopter).
 func _nitro_centre() -> Vector2:
-	var step := (HORN_R + NITRO_R + 10.0) * pt
-	return _horn_centre() + Vector2(step if left_handed else -step, 0.0)
+	var r := CLASSIC_BRAKE_R if scheme == CLASSIC else BRAKE_R
+	return _side(_brake_right() + Vector2(-(r + NITRO_CLEAR + NITRO_R), r - NITRO_R) * pt)
 
 
 ## G13c leftover (2026-11-03): the pad is in use and the nitro bought: its disc stays as the
@@ -2834,11 +3226,6 @@ func set_nitro(owned: bool, charge: float) -> void:
 	nitro_charge = q
 	if _pad != null:
 		_pad.queue_redraw()
-
-
-## The night-buses loop: a touch at `p` presses the horn.
-func _on_horn(p: Vector2) -> bool:
-	return not touch_off and not flying and not _pedals_hidden and p.distance_to(_horn_centre()) < HORN_REACH * pt
 
 
 ## Loop 2a: the on-screen controls for a control scheme (drive_controls.gd).
@@ -2888,7 +3275,6 @@ func release_all() -> void:
 	stick = Vector2.ZERO
 	_brake_index = -1
 	brake = false
-	_horn_index = -1
 	_nitro_index = -1
 	nitro_held = false
 	_gas_index = -1
@@ -3017,9 +3403,6 @@ func _input(event: InputEvent) -> void:
 					or touch.position.distance_to(_climb_centre(-1)) < PAD_REACH * pt):
 				_climb_index = touch.index
 				climb = 1.0 if touch.position.distance_to(_climb_centre(1)) < touch.position.distance_to(_climb_centre(-1)) else -1.0
-			elif _on_horn(touch.position):
-				_horn_index = touch.index
-				horn_pressed.emit()
 			elif _on_nitro(touch.position):
 				_nitro_index = touch.index
 				nitro_held = true
@@ -3055,8 +3438,6 @@ func _input(event: InputEvent) -> void:
 			if touch.index == _brake_index:
 				_brake_index = -1
 				brake = false
-			if touch.index == _horn_index:
-				_horn_index = -1
 			if touch.index == _nitro_index:
 				_nitro_index = -1
 				nitro_held = false
@@ -3387,13 +3768,13 @@ func _draw_pad() -> void:
 	var br := (CLASSIC_BRAKE_R if scheme == CLASSIC else BRAKE_R) * pt
 	_plate(bc, br, brake)
 	_pad_words(bc, br, "HAMULEC", "brake")
-	_draw_horn(_horn_centre(), _horn_index != -1)
 	if nitro_owned:
 		_draw_nitro(_nitro_centre(), nitro_held)
 	if scheme == CLASSIC:
 		var gc := _gas_centre()
-		_plate(gc, GAS_R * pt, gas)
-		_pad_words(gc, GAS_R * pt, "GAZ", "gas")
+		if not _gas_on_pill():
+			_plate(gc, GAS_R * pt, gas)
+			_pad_words(gc, GAS_R * pt, "GAZ", "gas")
 		if _stick_index == -1:
 			# Where the steering strip lives, on a small plate, until a thumb comes down.
 			var o := _strip_hint_centre()
@@ -3405,32 +3786,8 @@ func _draw_pad() -> void:
 				_pad.draw_colored_polygon(PackedVector2Array([tip, tip + Vector2(-side * 7.5, -6) * pt, tip + Vector2(-side * 7.5, 6) * pt]), INK)
 
 
-## The night-buses loop: the horn on its plate: a little horn's bell and two sound arcs.
-func _draw_horn(c: Vector2, held: bool) -> void:
-	# One triangle array for the plate, its rim and the icon: one 2D draw call (six separate
-	# primitives cost six).
-	var pts := PackedVector2Array()
-	var cols := PackedColorArray()
-	var idx := PackedInt32Array()
-	var r := HORN_R * pt
-	_horn_disc(pts, cols, idx, c, r, CARD_BG)
-	if held:
-		_horn_disc(pts, cols, idx, c, r, Color(1, 0.82, 0.25, 0.32))
-	_horn_ring(pts, cols, idx, c, r - 1.25 * pt, r, 0.0, TAU, 40, ACCENT if held else Color(1, 1, 1, 0.3))
-	var ink := ACCENT if held else INK
-	var o := c + Vector2(-3.0, 0.0) * pt
-	_horn_fan(pts, cols, idx, [o + Vector2(-7.0, -2.2) * pt, o + Vector2(-2.0, -2.2) * pt, o + Vector2(-2.0, 2.2) * pt,
-			o + Vector2(-7.0, 2.2) * pt], ink)
-	_horn_fan(pts, cols, idx, [o + Vector2(-2.5, -2.2) * pt, o + Vector2(5.0, -7.0) * pt, o + Vector2(5.0, 7.0) * pt,
-			o + Vector2(-2.5, 2.2) * pt], ink)
-	for k in 2:
-		var rr := (4.5 + 4.0 * k) * pt
-		_horn_ring(pts, cols, idx, o + Vector2(6.0, 0.0) * pt, rr - 0.7 * pt, rr + 0.7 * pt, -0.7, 0.7, 8, ink)
-	RenderingServer.canvas_item_add_triangle_array(_pad.get_canvas_item(), idx, pts, cols)
-
-
 ## G13: the nitro on its plate: a lightning bolt, in a ring that is the tank (orange while it can
-## burn, grey while it refills, bright while held), one triangle array like the horn's.
+## burn, grey while it refills, bright while held), one triangle array (one 2D draw call).
 func _draw_nitro(c: Vector2, held: bool) -> void:
 	var pts := PackedVector2Array()
 	var cols := PackedColorArray()
@@ -3438,20 +3795,20 @@ func _draw_nitro(c: Vector2, held: bool) -> void:
 	var r := NITRO_R * pt
 	var ready := nitro_charge >= 0.25
 	var hot := Color(1.0, 0.55, 0.12) if ready else Color(0.6, 0.6, 0.62)
-	_horn_disc(pts, cols, idx, c, r, CARD_BG)
+	_arr_disc(pts, cols, idx, c, r, CARD_BG)
 	if held and nitro_charge > 0.0:
-		_horn_disc(pts, cols, idx, c, r, Color(1.0, 0.55, 0.12, 0.32))
-	_horn_ring(pts, cols, idx, c, r - 3.0 * pt, r, 0.0, TAU, 40, Color(1, 1, 1, 0.14))
+		_arr_disc(pts, cols, idx, c, r, Color(1.0, 0.55, 0.12, 0.32))
+	_arr_ring(pts, cols, idx, c, r - 3.0 * pt, r, 0.0, TAU, 40, Color(1, 1, 1, 0.14))
 	if nitro_charge > 0.01:
-		_horn_ring(pts, cols, idx, c, r - 3.0 * pt, r, -PI * 0.5, -PI * 0.5 + TAU * nitro_charge, maxi(3, roundi(40.0 * nitro_charge)), hot)
+		_arr_ring(pts, cols, idx, c, r - 3.0 * pt, r, -PI * 0.5, -PI * 0.5 + TAU * nitro_charge, maxi(3, roundi(40.0 * nitro_charge)), hot)
 	var ink := ACCENT if held and nitro_charge > 0.0 else (INK if ready else SUB)
-	_horn_fan(pts, cols, idx, [c + Vector2(3, -10) * pt, c + Vector2(-5, 2) * pt, c + Vector2(1, 2) * pt], ink)
-	_horn_fan(pts, cols, idx, [c + Vector2(-3, 10) * pt, c + Vector2(5, -2) * pt, c + Vector2(-1, -2) * pt], ink)
+	_arr_fan(pts, cols, idx, [c + Vector2(3, -10) * pt, c + Vector2(-5, 2) * pt, c + Vector2(1, 2) * pt], ink)
+	_arr_fan(pts, cols, idx, [c + Vector2(-3, 10) * pt, c + Vector2(5, -2) * pt, c + Vector2(-1, -2) * pt], ink)
 	RenderingServer.canvas_item_add_triangle_array(_pad.get_canvas_item(), idx, pts, cols)
 
 
 ## The night-buses loop: a convex polygon `poly` as a fan into a triangle array.
-static func _horn_fan(pts: PackedVector2Array, cols: PackedColorArray, idx: PackedInt32Array, poly: Array, col: Color) -> void:
+static func _arr_fan(pts: PackedVector2Array, cols: PackedColorArray, idx: PackedInt32Array, poly: Array, col: Color) -> void:
 	var b := pts.size()
 	for p: Vector2 in poly:
 		pts.append(p)
@@ -3461,15 +3818,15 @@ static func _horn_fan(pts: PackedVector2Array, cols: PackedColorArray, idx: Pack
 
 
 ## The night-buses loop: a disc into a triangle array.
-static func _horn_disc(pts: PackedVector2Array, cols: PackedColorArray, idx: PackedInt32Array, c: Vector2, r: float, col: Color) -> void:
+static func _arr_disc(pts: PackedVector2Array, cols: PackedColorArray, idx: PackedInt32Array, c: Vector2, r: float, col: Color) -> void:
 	var poly := []
 	for k in 32:
 		poly.append(c + Vector2.from_angle(TAU * k / 32.0) * r)
-	_horn_fan(pts, cols, idx, poly, col)
+	_arr_fan(pts, cols, idx, poly, col)
 
 
 ## The night-buses loop: a ring's arc (radii r0-r1, angles a0-a1, `n` pieces) into a triangle array.
-static func _horn_ring(pts: PackedVector2Array, cols: PackedColorArray, idx: PackedInt32Array, c: Vector2, r0: float, r1: float,
+static func _arr_ring(pts: PackedVector2Array, cols: PackedColorArray, idx: PackedInt32Array, c: Vector2, r0: float, r1: float,
 		a0: float, a1: float, n: int, col: Color) -> void:
 	var b := pts.size()
 	for k in n + 1:
@@ -3987,3 +4344,185 @@ func show_panel(c: Control, on: bool) -> void:
 	if on:
 		c.reset_size()
 		_mark()
+
+
+# --- the message director (docs/design/hud-messages.md, F 2026-11-11) ---------------------------
+
+## Every line the HUD puts up goes through one decision (messages.gd): show it now, keep it in the
+## queue for later, or drop it, by its channel, its priority and the context (free roam, a quest,
+## a chase, a scripted moment). The bubbles follow the same context (chatter.gd `context`).
+var messages := Messages.new()
+## True while a quest runs that may show no status card of its own (main.gd: a race, a job, a ride,
+## a rescue, a questline, a tour, the night meet). Asked QUEST_POLL times a second.
+var quest_on: Callable
+const QUEST_POLL := 4.0
+var _quest_now := false
+var _quest_poll := 0.0
+## When the player last pressed RADIO or its next key (ms): the caption that follows is theirs.
+var _radio_touch_ms := -100000
+const RADIO_OWN_MS := 3000
+## Toasts waiting for the one up to be glanced at ([text, gloss] each, oldest first).
+var _toast_wait: Array = []
+var _toast_age := 0.0
+const TOAST_GLANCE := 1.6
+const TOAST_WAIT_MAX := 2
+## The compact quest card: how long the hint stays (s) after its reading time, the shape of the
+## hint now (its words without the numbers) and how long it has left.
+const HINT_HOLD := 3.0
+var _hint_key := ""
+var _hint_left := 0.0
+var _digits := RegEx.create_from_string("[0-9]+([.,:][0-9]+)*")
+## The road ahead stays clear of bubbles from this speed (km/h); the boxes along it (points).
+const KEEP_CLEAR_KMH := 12.0
+const KEEP_CLEAR_HALF := 46.0
+## The isometric view squashes the map's up and down this much on screen.
+const VIEW_SQUASH := 0.62
+## The challenge button (the call to action): its age (the pop and the breath) and colour.
+var _cta_t := 0.0
+var _cta_accent := Color.WHITE
+var _cta_plate: StyleBoxFlat
+const CTA_H := 58.0
+const CTA_MIN_W := 248.0
+const CTA_FLAG := 34.0
+
+
+## A friend's call may ring now (messages.gd `call_ok`): no quest, no chase, settled, spaced.
+func call_ok() -> bool:
+	messages.tick(0.0, context_now())
+	return messages.call_ok()
+
+
+## The player pressed RADIO (or its next key, or R): the caption that comes next shows even in a chase.
+func radio_touched() -> void:
+	_radio_touch_ms = Time.get_ticks_msec()
+
+
+## The context now (messages.gd): a scripted moment (`hush`), a chase (the police after the car or
+## searching, a race's position badge, the countdown banner), a quest (the status card, `quest_on`).
+func context_now() -> int:
+	var status := bool(_wants.get(_status, false))
+	var chase := _koguty_mode == 1 or _koguty_mode == 2 or bool(_wants.get(_banner, false)) \
+			or (status and _status_badge.text != "")
+	return Messages.context_of(status or _quest_now, chase, hush)
+
+
+## The director's word on a line, with the context as it is this moment (a card shown in the same
+## frame counts at once).
+func _decide(channel: String, priority: int) -> int:
+	messages.tick(0.0, context_now())
+	return messages.decide(channel, priority)
+
+
+func _messages_tick(dt: float) -> void:
+	_quest_poll -= dt
+	if _quest_poll <= 0.0:
+		_quest_poll = 1.0 / QUEST_POLL
+		_quest_now = quest_on.is_valid() and bool(quest_on.call())
+	var was := messages.context
+	messages.tick(dt, context_now())
+	if chatter != null:
+		chatter.context = messages.context
+	if was == Messages.FREE and messages.context != Messages.FREE \
+			and Time.get_ticks_msec() - _radio_touch_ms >= RADIO_OWN_MS:
+		ticker_out()  # the host was mid-line when the quest began
+	var item := messages.next_ready()
+	if not item.is_empty() and String(item["channel"]) == "note":
+		var a: Array = item["args"]
+		_show_note_now(a[0], a[1], a[2])
+	if _toast_left > 0.0:
+		_toast_age += dt
+	elif not _toast_wait.is_empty():
+		var w: Array = _toast_wait.pop_front()
+		_toast_now(w[0], w[1])
+	if _hint_left > 0.0 and bool(_wants.get(_status, false)):
+		_hint_left -= dt
+		if _hint_left <= 0.0 and _status_hint.visible:
+			_status_hint.visible = false
+			_mark()
+	if _challenge.visible:
+		_cta_t += dt
+		_challenge.pivot_offset = _challenge.size * 0.5
+		var pop := clampf(1.0 - _cta_t / 0.35, 0.0, 1.0)
+		_challenge.scale = Vector2.ONE * (1.0 + 0.18 * pop * pop + 0.03 * (0.5 + 0.5 * sin(_cta_t * 5.0)))
+
+
+## The hint's words without its numbers ("Seba: 40 m za tobą" and "Seba: 35 m za tobą" are one hint).
+func _hint_shape(hint: String) -> String:
+	return _digits.sub(hint, "#", true)
+
+
+## The road ahead of the car on screen, as three boxes from the car's spot along its heading (the
+## minimap's car arrow, squashed as the view is), reaching further the faster it goes; the speech
+## bubbles keep off them when they can (bubbles.gd). Empty below KEEP_CLEAR_KMH.
+func keep_clear_rects() -> Array[Rect2]:
+	var out: Array[Rect2] = []
+	if _kmh < KEEP_CLEAR_KMH:
+		return out
+	var dir := Vector2(_car_dir.x, _car_dir.y * VIEW_SQUASH)
+	if dir.length() < 0.01:
+		return out
+	dir = dir.normalized()
+	var reach := minf(_screen.x, _screen.y) * clampf(0.25 + _kmh / 240.0, 0.25, 0.45)
+	var half := Vector2.ONE * KEEP_CLEAR_HALF * pt
+	for k in 3:
+		var p := car_zone().get_center() + dir * reach * float(k + 1) / 3.0
+		out.append(Rect2(p - half, half * 2.0))
+	return out
+
+
+## The challenge chip made a call to action: a filled plate, the chequered flag on its left, the
+## words moved right of it.
+func _build_cta() -> void:
+	_cta_plate = _box(CARD_BG, ACCENT, 3.0)
+	_cta_plate.set_corner_radius_all(roundi(14.0 * pt))
+	for st in ["normal", "hover", "disabled"]:
+		_challenge.add_theme_stylebox_override(st, _cta_plate)
+	var words := _challenge.get_child(0) as Control
+	words.offset_left = CTA_FLAG * pt
+	var top := words.get_child(0) as Label
+	var low := words.get_child(1) as Label
+	top.set_meta("base_pt", T_TITLE)
+	top.add_theme_font_size_override("font_size", _px(T_TITLE * Access.text_scale))
+	top.add_theme_color_override("font_outline_color", OUTLINE)
+	top.add_theme_constant_override("outline_size", _px(2.0))
+	low.set_meta("base_pt", T_SUB)
+	low.add_theme_font_size_override("font_size", _px(T_SUB * Access.text_scale))
+	low.add_theme_color_override("font_color", INK)
+	_challenge.draw.connect(_draw_cta_flag)
+
+
+## New words and colour on the call to action; its size follows the words.
+func _set_cta(title: String, sub: String, accent: Color) -> void:
+	var words := _challenge.get_child(0)
+	var top := words.get_child(0) as Label
+	var low := words.get_child(1) as Label
+	if top.text == title and low.text == sub and _cta_accent == accent:
+		return
+	_cta_accent = accent
+	top.text = title
+	top.add_theme_color_override("font_color", Color.WHITE)
+	low.text = sub
+	low.visible = sub != ""
+	_cta_plate.bg_color = Color(accent.darkened(0.62), 0.97)
+	_cta_plate.border_color = accent
+	var font := ThemeDB.fallback_font
+	var w := maxf(font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, _px(T_TITLE * Access.text_scale)).x,
+			font.get_string_size(sub, HORIZONTAL_ALIGNMENT_LEFT, -1, _px(T_SUB * Access.text_scale)).x)
+	_challenge.custom_minimum_size = Vector2(maxf(w + (CTA_FLAG + 18.0) * pt, CTA_MIN_W * pt), CTA_H * pt * maxf(1.0, Access.text_scale * 0.9))
+	_challenge.size = _challenge.custom_minimum_size
+	_challenge.queue_redraw()
+	_mark()
+
+
+## The chequered flag on the call to action's left, on a short pole (drawn, no font glyph).
+func _draw_cta_flag() -> void:
+	var cell := 4.0 * pt
+	var h := _challenge.size.y
+	var x0 := 12.0 * pt
+	var y0 := h * 0.5 - cell * 2.5
+	_challenge.draw_rect(Rect2(x0 - 2.0 * pt, y0, 2.0 * pt, cell * 6.0), INK)
+	for row in 3:
+		for col in 4:
+			var c := INK if (row + col) % 2 == 0 else Color(0.08, 0.07, 0.1)
+			_challenge.draw_rect(Rect2(x0 + col * cell, y0 + row * cell, cell, cell), c)
+	_challenge.draw_rect(Rect2(x0, y0, cell * 4.0, cell * 3.0), _cta_accent, false, maxf(1.0, pt * 0.6))

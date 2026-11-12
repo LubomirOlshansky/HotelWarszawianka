@@ -77,6 +77,7 @@ const Jobs := preload("res://scripts/jobs.gd")
 const Rides := preload("res://scripts/rides.gd")
 const Lines := preload("res://scripts/quest_lines.gd")
 const Eggs := preload("res://scripts/eggs.gd")
+const PlacZamkowyLife := preload("res://scripts/plac_zamkowy_life.gd")
 ## Loop MW-1: MOJA WARSZAWA, the city notebook.
 const Notebook := preload("res://scripts/notebook.gd")
 ## Loop MW-6: the eggs as notebook cards, KASETA, Spacer and Fotka.
@@ -431,6 +432,8 @@ var wallet: Wallet
 var dialogue: Dialogue
 var jobs: Jobs
 var eggs: Eggs
+## 2026-11-10: Plac Zamkowy's tourists and pigeons (plac_zamkowy_life.gd), asleep unless the player is near.
+var zamkowy_life: PlacZamkowyLife
 ## Loop MW-1: the notebook and its flags: --notebook[=chapter|place id] (open it; "" none),
 ## --found=, --place=<id> (the car at the place), --notes-log.
 var notes: Notebook
@@ -529,7 +532,7 @@ var _sunsets := {}
 var life: CityLife
 var trend_job: TrendJob
 ## The night-buses loop (buses.gd): the N sign, the night hub at Centralny, the bus stops' people,
-## the player's horn, E23-E25; flags --night-hub (a gathering now, parked at once), --bus-log,
+## the player's horn (B, L3), E23-E25; flags --night-hub (a gathering now, parked at once), --bus-log,
 ## --honk=F1,F2 (the horn at those frames).
 var buses: Buses
 var night_hub_flag := false
@@ -613,7 +616,8 @@ var kino_tour: KinoTour
 var kino_flag := ""
 var kino_log := false
 ## The shisha night (shisha.gd): --shisha-call (Ivan rings now), --shisha-meet (Ivan gets in now),
-## --shisha-lounge (straight into the lounge, the mini-game playing itself), --shisha=0 (none),
+## --shisha-door (both in, 25 m from the lounge's entrance), --shisha-arrive (stopped at it, the
+## lounge playing itself from the door), --shisha-lounge (straight into the lounge, the mini-game playing itself), --shisha=0 (none),
 ## --shisha-log.
 var shisha: Shisha
 var lounge: Lounge
@@ -1681,6 +1685,12 @@ func _build_world() -> void:
 	bubbles.chatter.level = settings.chatter
 	car.bumped.connect(func(_c: Object, speed: float) -> void: bubbles.chatter.hit(speed * 3.6))
 	hud.chatter = bubbles.chatter
+	# The message director (docs/design/hud-messages.md): a quest with no status card of its own
+	# still counts as one (the radio host and the flavour keep quiet, notes and calls wait).
+	hud.quest_on = func() -> bool:
+		return _quest_running() or (meet != null and meet.busy()) or (crawl != null and crawl.busy()) \
+				or (dekalog_tour != null and dekalog_tour.busy()) or (kino_tour != null and kino_tour.busy()) \
+				or (rides != null and rides.busy()) or (trend_job != null and trend_job.busy())
 	bubbles.project = func(p: Vector3) -> Vector2: return cam.unproject_position(p) * float(view.stretch_shrink)
 	hud.add_speech(bubbles)  # above the target pointer, below the panels (PT-10)
 	bubbles.process_mode = Node.PROCESS_MODE_PAUSABLE
@@ -2162,6 +2172,8 @@ func _build_sound(data: Dictionary, world: Node3D) -> void:
 		traffic.bumped_driver.connect(func(d): sfx.horn(d.pos))
 	if eggs != null:
 		eggs.flushed.connect(sfx.pigeons)
+	if zamkowy_life != null:
+		zamkowy_life.flushed.connect(sfx.pigeons)
 	if jobs != null:
 		jobs.jars.connect(sfx.jars)
 	# Loop MW-5: the city's sounds at the notebook's places (the clubs, the metro, the bells, the
@@ -2612,6 +2624,9 @@ func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
 	eggs.force_street = barrier_force
 	world.add_child(eggs)
 	eggs.setup(nodes, data)
+	zamkowy_life = PlacZamkowyLife.new()
+	world.add_child(zamkowy_life)
+	zamkowy_life.setup(map)
 
 
 # --- loop MW-1: MOJA WARSZAWA, the notebook --------------------------------------------------
@@ -2762,6 +2777,9 @@ func _build_crowds(data: Dictionary, world: Node3D) -> void:
 						func() -> bool: return bool(site.get("guitar_on", false)))
 	# Podwózka at dawn: requests from the club doors.
 	if rides != null:
+		rides.mission_on = func() -> bool:
+			return _quest_running() or (crawl != null and crawl.busy()) or (meet != null and meet.busy()) \
+					or (dekalog_tour != null and dekalog_tour.busy()) or (kino_tour != null and kino_tour.busy())
 		rides.club_doors = func() -> Array:
 			var out: Array = []
 			if crowds.dawn_on:
@@ -2843,9 +2861,6 @@ func _build_fans(data: Dictionary, world: Node3D) -> void:
 		fans.on_screen = traffic.on_screen
 	world.add_child(fans)
 	fans.setup(data)
-	hud.horn_pressed.connect(func() -> void:
-		if fans != null and not flying:
-			fans.honk(car.global_position))
 ## 11 listopada (event_day.gd): built idle on both city paths; it switches itself on on the date
 ## (live clock) or with --event-day. None with --event-day=0.
 func _build_event_day(data: Dictionary, world: Node3D) -> void:
@@ -3032,8 +3047,8 @@ func _build_garage(world: Node3D) -> void:
 		garage.preset_upgrades(upgrades_flag)
 	garage.upgraded.connect(func(id: String) -> void:
 		if id == "nitro":
-			hud.toast(Gamepad.fmt("Nitro gotowe: przytrzymaj błyskawicę przy klaksonie (Shift, {lb} / {rb} na padzie)."),
-					Gamepad.fmt("Nitro fitted: hold the bolt by the horn (Shift, {lb} / {rb} on a pad).")))
+			hud.toast(Gamepad.fmt("Nitro gotowe: przytrzymaj błyskawicę przy hamulcu (Shift, {lb} / {rb} na padzie)."),
+					Gamepad.fmt("Nitro fitted: hold the bolt by the brake (Shift, {lb} / {rb} on a pad).")))
 	if garage_flag:
 		_put_at_garage()
 	garage.opened.connect(func() -> void:
@@ -3073,8 +3088,20 @@ func _put_at_garage() -> void:
 
 # --- the night-buses loop ----------------------------------------------------------------------
 
-## The buses (buses.gd) on the traffic's lane graph, after everyday life (the dogs hear the horn);
-## the HUD's horn. None with --no-traffic.
+## The player's horn: the B key, L3 on a pad and --honk=F (F 2026-11-10: the touch horn by BRAKE
+## is gone). The buses' rate limit, the dogs and the walkers (buses.gd `honk`), then the fans'
+## chant (fans.gd `honk`). None in the helicopter.
+func _honk() -> void:
+	if flying:
+		return
+	if buses != null and not buses.honk():
+		return  # too soon after the last honk
+	if fans != null:
+		fans.honk(car.global_position)
+
+
+## The buses (buses.gd) on the traffic's lane graph, after everyday life (the dogs hear the horn).
+## None with --no-traffic.
 func _build_buses(data: Dictionary, world: Node3D) -> void:
 	if traffic == null:
 		return
@@ -3099,7 +3126,6 @@ func _build_buses(data: Dictionary, world: Node3D) -> void:
 	buses.probe = _egg_state
 	world.add_child(buses)
 	buses.setup(data)
-	hud.horn_pressed.connect(func() -> void: buses.honk())
 	if night_hub_flag:
 		buses.force()
 
@@ -3322,7 +3348,7 @@ func _build_stories(world: Node3D) -> void:
 				"at": BoatRace.CAR_SPOT, "colour": BoatRace.COLOUR, "hours": Vector2(BoatRace.HOURS[0], BoatRace.HOURS[1]),
 				"call": boat_race.ring, "meet": boat_race.meet, "busy": boat_race.busy, "idle": boat_race.idle})
 	# Mati's two nights are two questlines (F 2026-11-09): the secret rave from his block at Osiedle
-	# Za Żelazną Bramą, Smoła from pod Rotundą. A start the map has no road for stays in the list.
+	# Za Żelazną Bramą, Smoła from Jerozolimskie by Rondo Dmowskiego (out of the first view, F 2026-11-11). A start the map has no road for stays in the list.
 	# Both are open at any hour (F 2026-11-09): taking one turns the clock to the rave night
 	# (`_rave_night`), as the night meet does.
 	if rave != null and not rave.spots.is_empty():
@@ -3364,9 +3390,12 @@ func _build_stories(world: Node3D) -> void:
 	# The night racing club (street_meet.gd): Darek at Plac Defilad, 21:00-4:00. Null with
 	# --no-traffic or --meet=0.
 	if meet != null and meet.meets.size() > 0:
-		# The start is the road kerb by the plaza (the meet's door), not the plaza's middle: F
-		# (2026-11-09) could not drive up to the old spot in the middle of the paving.
-		var g: Vector3 = (meet.meets[0]["door"] as Dictionary)["at"]
+		# The start is Darek on the kerb of Parkingowa by Rondo Dmowskiego (StreetMeet.START, F
+		# 2026-11-11: out of the first view, a short drive from the spawn); the meet stays on Plac
+		# Defilad. Without that road, the plaza's kerb (the meet's door; F 2026-11-09: not the
+		# middle of the paving, he could not drive up to it).
+		var spot: Dictionary = meet.start if not meet.start.is_empty() else meet.meets[0]["door"]
+		var g: Vector3 = spot["at"]
 		stories.add({"id": "meet", "pl": "Nocny spot", "en": "Night meet", "who": [StreetMeet.FRIEND, StreetMeet.FRIEND],
 				"hello": ["„Siema! Dziś spot na Defiladzie. Wbijasz?”", "\"Hey! Meet's on Plac Defilad tonight. You in?\""],
 				"closed": ["„Za dnia tu tylko turyści. Wpadnij po 21.”", "\"By day it's all tourists here. Come after nine.\""],
@@ -3381,7 +3410,7 @@ func _build_stories(world: Node3D) -> void:
 				"at": KinoTour.PICKUP["at"], "colour": KinoTour.COLOUR, "hours": Vector2(KinoTour.HOURS[0], KinoTour.HOURS[1]),
 				"call": kino_tour.ring, "meet": kino_tour.meet, "busy": kino_tour.busy, "idle": kino_tour.idle})
 	# The shisha night is a hidden quest (F 2026-11-08): no story, no pin, no phone call. Press and
-	# hold "+" for SHISHA_HOLD_S seconds at Ivan's block in 19. Dzielnica and he rings (`_story_tick`).
+	# hold "+" for SHISHA_HOLD_S seconds anywhere (`_shisha_secret`, F 2026-11-10) and he rings.
 	if shisha != null:
 		shisha.auto = false
 	# Bartek's dead TESŁO (ev_tow.gd, F 2026-11-08): a helicopter story with no fixed start, so it
@@ -3410,20 +3439,21 @@ func _build_stories(world: Node3D) -> void:
 			return "%s %s" % [d["id"], "%.0f,%.0f" % [d["at"].x, d["at"].y] if d["at"] != Vector2.INF else "no start"]))])
 
 
-## Hold "+" this long (s), standing at Ivan's block, and he rings.
-const SHISHA_HOLD_S := 5.0
-const SHISHA_R := 30.0
+## The shisha night's hidden start (F 2026-11-08, 2026-11-10: anywhere in the city, only this, no
+## pin or marker): hold "+" (the zoom-in button, or + / = on a keyboard) SHISHA_HOLD_S seconds with
+## nothing else on, and Ivan rings.
+const SHISHA_HOLD_S := 4.0
 
 
-## The shisha night's hidden start: nothing on, the car near Ivan's block and slow, "+" held 5 s.
+## "+" held SHISHA_HOLD_S seconds (a few times a second, `_story_tick`): on the ground, no other
+## quest, not inside a club or the lounge, the quest idle.
 func _shisha_secret(busy: bool) -> void:
-	if shisha == null or shisha.home.is_empty() or busy or flying or car == null or not shisha.idle():
+	if busy or shisha == null or shisha.home.is_empty() or flying or car == null or not shisha.idle():
 		return
-	var h: Vector3 = shisha.home["at"]
-	var p := car.global_position
-	if Vector2(p.x, p.z).distance_to(Vector2(h.x, h.z)) > SHISHA_R or hud.zoom_in_held_s() < SHISHA_HOLD_S:
+	if (club != null and club.inside) or (lounge != null and lounge.inside) or hud.zoom_in_held_s() < SHISHA_HOLD_S:
 		return
-	shisha.ring()
+	if shisha.ring():
+		print("shisha: + held: Ivan rings")
 
 
 ## Something runs: a race, a job, a ride, a rescue, a questline, a tow (quest focus: the map goes quiet).
@@ -3711,7 +3741,7 @@ func _on_club_left() -> void:
 
 # --- the shisha night ---------------------------------------------------------------------------
 
-## Ivan's call, the two pickups, the votes on the way and the lounge (shisha.gd, lounge.gd). None
+## Ivan's call, the two pickups, the entrance and the lounge with its choices (shisha.gd, lounge.gd). None
 ## with --no-traffic or --shisha=0.
 func _build_shisha(data: Dictionary, world: Node3D) -> void:
 	if traffic == null or graph == null or shisha_flag == "0":
@@ -3733,7 +3763,7 @@ func _build_shisha(data: Dictionary, world: Node3D) -> void:
 		return [car.global_position, car.vel.length() * 3.6, false]
 	shisha.clock = tod.local_clock
 	shisha.free_now = _shisha_free
-	shisha.enter_lounge = _enter_lounge
+	shisha.enter_lounge = _enter_lounge if shisha_flag != "arrive" else func(v: Dictionary) -> void: _enter_lounge(v, true)
 	world.add_child(shisha)
 	shisha.setup(world)
 	match shisha_flag:
@@ -3747,6 +3777,33 @@ func _build_shisha(data: Dictionary, world: Node3D) -> void:
 				car.global_position = Vector3(k.x, map.ground_height(k.x, k.z), k.z)
 				car.reset_physics_interpolation()
 				shisha.meet_in_person())
+		"hold":
+			# The hidden start played by itself, far from Ivan's block (it works anywhere): "+" held
+			# 2 s (must not ring), then 4.5 s (rings), as the zoom button or the + key sends it.
+			get_tree().create_timer(2.0).timeout.connect(func() -> void:
+				for held: float in [2.0, SHISHA_HOLD_S + 0.5]:
+					hud.zoom_in_key(true)
+					await get_tree().create_timer(held).timeout
+					hud.zoom_in_key(false)
+					print("shisha hold test: %.1f s, state %s" % [held, Shisha.State.keys()[shisha.state]])
+					await get_tree().create_timer(1.0).timeout)
+		"door", "arrive":
+			# Both friends in, the car 25 m up Emilii Plater from the lounge's kerb, facing it: the
+			# shots of the entrance's two rings (F 2026-11-11: "I don't see how to enter"). "arrive":
+			# the car stopped in the kerb ring, so they walk in and the lounge plays itself (the
+			# door, the lift, the three choices at the table, the mini-game).
+			get_tree().create_timer(1.0).timeout.connect(func() -> void:
+				shisha.meet_in_person()
+				shisha._board_bogdan()
+				var k: Dictionary = shisha.door
+				var yaw: float = k["yaw"]
+				var back := 25.0 if shisha_flag == "door" else 0.0
+				var p: Vector3 = k["at"] - Vector3(sin(yaw), 0.0, cos(yaw)) * back
+				car.global_position = Vector3(p.x, map.ground_height(p.x, p.z), p.z)
+				car.rotation.y = yaw + PI
+				car.vel = Vector3.ZERO
+				car.forward_speed = 0.0
+				car.reset_physics_interpolation())
 		"lounge", "terrace":
 			get_tree().create_timer(1.0).timeout.connect(func() -> void:
 				shisha.meet_in_person()
@@ -3755,12 +3812,14 @@ func _build_shisha(data: Dictionary, world: Node3D) -> void:
 				lounge.auto_how = "terrace" if shisha_flag == "terrace" else "smoke")
 
 
-## Up the lift into Senatorek (lounge.gd): the HUD aside, the car waiting, the camera on the room.
+## Into Senatorek (lounge.gd: the door, the lift, the choices at the table): the HUD aside, the car
+## waiting at the kerb, the camera on the room.
 func _enter_lounge(votes: Dictionary, auto_play := false) -> void:
 	if lounge == null:
 		lounge = Lounge.new()
 		lounge.name = "Lounge"
 		lounge.hud = hud
+		lounge.sfx = sfx
 		lounge.cam = cam
 		lounge.log_on = shisha_log
 		add_child(lounge)
@@ -3849,6 +3908,8 @@ func _free_block(ringing_ok := false, guide_ok := false) -> String:
 		return "title/bench/Spacer"
 	if first10 != null and first10.guide_on() and not guide_ok:
 		return "first-10 guide"
+	if not ringing_ok and not hud.call_ok():
+		return "calls: a call rang lately, or a quest or a chase is on or just ended (messages.gd)"
 	var ringing: bool = ringing_ok and missions.state == Missions.State.RINGING
 	if hud.cards_up() or (missions.state != Missions.State.CLOSED and not ringing) or missions.has_target():
 		return "a card, mission or rescue target is up"
@@ -5542,7 +5603,7 @@ func _parse_args() -> void:
 			crawl_log = true
 		elif arg == "--rave-log":
 			rave_log = true
-		elif arg in ["--shisha-call", "--shisha-meet", "--shisha-lounge", "--shisha-terrace"]:
+		elif arg in ["--shisha-call", "--shisha-meet", "--shisha-door", "--shisha-arrive", "--shisha-lounge", "--shisha-terrace", "--shisha-hold"]:
 			shisha_flag = arg.trim_prefix("--shisha-")
 		elif arg.begins_with("--shisha="):
 			shisha_flag = arg.trim_prefix("--shisha=")
@@ -7249,6 +7310,7 @@ func _process(dt: float) -> void:
 		eggs.player = pos
 		eggs.player_vel = heli.vel if flying else car.vel
 		eggs.flying = flying
+		zamkowy_life.tick(pos, heli.vel if flying else car.vel, flying)
 	car.lights = tod.lights_on
 	heli.lights = tod.lights_on
 	car.wet = weather.wet
@@ -7319,8 +7381,8 @@ func _process(dt: float) -> void:
 		_on_tap(tap_at)
 	if frame == 60 and bench_button:
 		_start_phone_bench()
-	if buses != null and frame in honk_frames:
-		buses.honk()  # the night-buses loop: --honk=F
+	if frame in honk_frames:
+		_honk()  # the night-buses loop: --honk=F
 	if frame in shots:
 		_capture(frame)
 	_govern()
@@ -8513,6 +8575,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if not _started or title != null:
 		return
 	var key := event as InputEventKey
+	if key and not key.echo and key.physical_keycode in [KEY_EQUAL, KEY_KP_ADD]:
+		hud.zoom_in_key(key.pressed)  # "+" held on a keyboard counts like the on-screen "+" (the shisha secret)
 	if key and key.pressed and not key.echo:
 		match key.physical_keycode:
 			KEY_Q:
@@ -8528,8 +8592,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 				_toggle_vehicle()
 			KEY_B:
 				# The night-buses loop: the horn (H was the helicopter's already).
-				if buses != null and not flying:
-					buses.honk()
+				_honk()
 			KEY_M:
 				_primary()
 			KEY_K:
@@ -8539,6 +8602,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 				tod.next()
 			KEY_R:
 				# Shift+R skips to the station's next track (2026-10-30: radio.next_track() had no control).
+				hud.radio_touched()  # the caption that follows is the player's own (messages.gd)
 				if key.shift_pressed:
 					radio.next_track()
 				else:
@@ -8609,13 +8673,13 @@ func _pad_command(what: String) -> void:
 		"follow":
 			_toggle_follow()
 		"horn":
-			if buses != null and not flying:
-				buses.honk()
+			_honk()
 		"zoom_in":
 			_zoom_view(-1)
 		"zoom_out":
 			_zoom_view(1)
 		"radio":
+			hud.radio_touched()
 			radio.next()
 		"flash":
 			_flash()

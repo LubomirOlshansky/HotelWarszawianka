@@ -73,9 +73,11 @@
       ["Bramkarz", "…Proszę. Winda po lewej.", "...Please. The lift is on the left."]
     ],
     "lift": [
-      ["Winda", "Piętro trzydzieste ósme. Salon. Proszę wysiadać spokojnie.", "Thirty-eighth floor. The lounge. Please exit calmly."],
       ["Bogdan", "Ludzie, ja się boję wysokości.", "Guys, I'm afraid of heights."],
-      ["Ivan", "Ty? Na korcie skaczesz po siatce.", "You? On the court you jump the net."]
+      ["Ivan", "Ty? Na korcie skaczesz po siatce.", "You? On the court you jump the net."],
+      ["Bogdan", "Siatka ma metr. To ma sto metrów.", "The net is one metre. This is a hundred."],
+      ["Winda", "Mijamy biura. O tej porze nikt tu nie wysiada.", "Passing the offices. Nobody gets off here at this hour."],
+      ["Winda", "Piętro trzydzieste ósme. Salon. Proszę wysiadać spokojnie.", "Thirty-eighth floor. The lounge. Please exit calmly."]
     ],
     "order": [
       ["Kelner", "Dobry wieczór. Co do picia, zanim przyjdzie pan Dymek?", "Good evening. Something to drink before Mr Dymek comes?"],
@@ -178,6 +180,15 @@
     ]
   },
   "taps": {
+    "Bramkarz": [
+      ["Szorty to nie strój. To deklaracja.", "Shorts aren't clothes. They're a statement."],
+      ["Trzydzieste ósme piętro. Windą, nie po schodach.", "Thirty-eighth floor. By lift, not the stairs."],
+      ["Lista jest krótka. Wy jesteście na niej. Na razie.", "The list is short. You're on it. For now."]
+    ],
+    "Recepcja": [
+      ["Biura zamknięte, salon otwarty. Takie miasto.", "The offices are closed, the lounge is open. That's the city."],
+      ["Do Senatorka? Pan w czerni wszystko załatwi.", "Senatorek? The man in black sorts it all out."]
+    ],
     "Kelner": [
       ["Z okna widać Pałac. Z Pałacu widać, jak palimy.", "From the window you see the Palace. From the Palace, they see us smoking."],
       ["Woda z miętą dla kierowcy. U nas kierowca to VIP.", "Mint water for the driver. Here the driver is a VIP."],
