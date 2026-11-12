@@ -1,4 +1,4 @@
-extends Node3D
+extends "res://scripts/activity.gd"
 ## "Wiślana Szprotka": the boat race down the Vistula (docs/design/boat-race.md; F's ask 2026-11-06:
 ## a friend phones and asks for a boat race through rings; miss three and you lose, then go again
 ## or quit; fun rivals and physics).
@@ -33,12 +33,14 @@ extends Node3D
 ## Cost: nothing per frame while idle but a timer. During the race: 4 boats + the barge (5 draw
 ## calls), the next 3 rings and the finish (up to 4), one foam mesh (1): about +10 draw calls; four
 ## sphere tests a frame against the world; the wave sum ~1k cheap terms a frame.
+##
+## The activity kit (activity.gd, TD-1; the eighth moved): the call, the offer, the phases, the
+## cards' owner, the pontoon's beacon and its arrow, the ✕, the autopilot's taps and the log are the
+## kit's now. What stays here is the boats, the course, the rules, the rivals, the water, the
+## marina's card and the free ride (the run's own `Stage`s), and the result cards' words.
 
 const Boat := preload("res://scripts/boat.gd")
 const Models := preload("res://scripts/models.gd")
-const Beacon := preload("res://scripts/beacon.gd")
-const Access := preload("res://scripts/access.gd")
-const StopAssist := preload("res://scripts/stop_assist.gd")
 
 const COURSE := "res://data/boat_race.json"
 const COLOUR := Color("#2fb8e0")      # the Vistula's blue: the race's accent
@@ -137,29 +139,27 @@ const RAMP_PULL := 6.0
 const JUMP_BOOST := 1.12
 const JUMP_TIME := 1.8
 
-enum State { IDLE, RING, OFFER, TO_PIER, COUNTDOWN, RACE, OUT, DONE, MENU, FREE }
+## The run's own stages (the kit's `phase` is RUN for all of them; the marina's card and a free
+## ride are stages of a run too).
+enum Stage { NONE, MENU, FREE, TO_PIER, COUNTDOWN, RACE, OUT, DONE }
 
 ## Set by the game.
-var hud: CanvasLayer
-var dialogue: Node
-var wallet: Node
-var map: Node3D
-var car: Node3D
-var log_on := false
-var autopilot := false
-## () -> bool: nothing else on (no card, job, race, rescue...).
-var free_now: Callable = func() -> bool: return true
-## () -> [position: Vector3, speed km/h, flying: bool]
-var vehicle: Callable
 ## (Vector3) -> bool: the point is on screen (the rubber band only works off it).
 var seen: Callable = func(_p: Vector3) -> bool: return true
-## () -> float, the hour of day.
-var clock: Callable = func() -> float: return 12.0
 ## A stop at the pontoon hands the race the controls; leaving hands them back (main.gd).
 signal boarded
 signal left_boat
 
-var state := State.IDLE
+var stage := Stage.NONE
+## Seconds in this stage of the run (the kit's `_t` is the card's).
+var _stage_t := 0.0
+## How the next run begins (`_begin`): the way to the pontoon unless the pill or a test flag
+## named another stage first; `_pick`: the marina's boat then.
+var _first := Stage.TO_PIER
+var _pick := 1
+## Szymek's next call as it stood when the run began: the marina is not his call, so a run that
+## ends on its card or in a free ride puts it back.
+var _call_was := 0.0
 var line: PackedVector2Array = PackedVector2Array()
 var half_w: PackedFloat32Array = PackedFloat32Array()
 var rings: Array = []
@@ -173,7 +173,7 @@ var flow_dir := Vector2(-0.36, -0.93)
 var water_y := 0.0
 
 var player: Boat
-## The free-ride fleet (FLEET order; moored, or one of them the player's while State.FREE), each
+## The free-ride fleet (FLEET order; moored, or one of them the player's while Stage.FREE), each
 ## with its two looks [parked, ridden], and the one out now (-1: none).
 var fleet: Array[Boat] = []
 var _fleet_meshes: Array = []
@@ -185,14 +185,10 @@ var racers: Array = []         # per boat: {name, next, misses, rhythm, gold_t, 
 var clock_t := 0.0
 ## The water's own clock (runs on after the finish, so the wakes keep moving).
 var wave_t := 0.0
-var _t := 0.0
-var _session := 0.0
-var _next_call := FIRST_CALL
 var _count := 0.0
 var _finish_order: Array = []
 var _rng := RandomNumberGenerator.new()
 var rng_seed := -1
-var _beacon: Node3D
 var _ring_nodes: Array[MeshInstance3D] = []
 var _mats := {}
 var _barge: MeshInstance3D
@@ -220,13 +216,20 @@ var _last_line_t := 0.0
 var _solid_log := -10.0
 var _piers := {}
 const PIER_CELL := 40.0
-## Testing aids.
-var force_hours := false
 ## The WYŚCIG ŁODZI pill by the pontoon; off when story_quests.gd's in-person start owns the spot.
 var walk_up_pill := true
 
 
 func setup(world: Node3D) -> void:
+	tag = "boat race"
+	colour = COLOUR
+	dark = Color("#1f3a5f")
+	hours = Vector2(HOURS[0], HOURS[1])
+	first_call = FIRST_CALL
+	call_cool = CALL_COOL
+	card_life = CARD_LIFE
+	arrive = ARRIVE
+	super.setup(world)
 	# rng_seed >= 0 (check_boat_race.gd) makes the race repeatable; the game leaves it at -1.
 	if rng_seed >= 0:
 		_rng.seed = rng_seed
@@ -236,10 +239,6 @@ func setup(world: Node3D) -> void:
 	water_y = map.terrain_height(line[0].x, line[0].y) if map != null and map.has_method("terrain_height") else 0.0
 	_build_materials()
 	_build_pontoon(world)
-	_beacon = Beacon.new()
-	world.add_child(_beacon)
-	_beacon.setup(COLOUR, Color("#1f3a5f"))
-	_beacon.visible = false
 	_hull = CylinderShape3D.new()
 	_hull.height = HULL_BAND.y - HULL_BAND.x
 	_query = PhysicsShapeQueryParameters3D.new()
@@ -256,14 +255,8 @@ func setup(world: Node3D) -> void:
 	_foam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(_foam)
 	_show_race(false)
-	hud.card_pressed.connect(_on_card)
-	hud.abort_pressed.connect(func() -> void:
-		if state in [State.TO_PIER, State.COUNTDOWN, State.RACE]:
-			_quit()
-		elif state == State.FREE:
-			end_free_ride())
-	hud.context_pressed.connect(func(owner: String) -> void:
-		if owner == "boat" and state == State.IDLE:
+	hud.context_pressed.connect(func(who: String) -> void:
+		if who == "boat" and phase == Phase.IDLE:
 			hud.hide_pill()
 			_marina_card())
 
@@ -287,28 +280,40 @@ func _load_course() -> void:
 		_piers[key].append(Vector3(float(c[0]), float(c[1]), float(c[2])))
 
 
-func busy() -> bool:
-	return state != State.IDLE and state != State.RING
-
-
 ## The player is in the boat (the game drives it and shadows the car on it).
 func boating() -> bool:
-	return state in [State.COUNTDOWN, State.RACE, State.OUT, State.DONE, State.FREE]
+	return phase == Phase.RUN and stage in [Stage.COUNTDOWN, Stage.RACE, Stage.OUT, Stage.DONE, Stage.FREE]
 
 
+## In the race the next ring is the target (the minimap's dot; no arrow, see `target_arrow`).
 func has_target() -> bool:
-	return state == State.TO_PIER or state == State.RACE
+	return super.has_target() or (phase == Phase.RUN and stage == Stage.RACE)
 
 
 func target_position() -> Vector3:
-	if state == State.TO_PIER:
-		return _car_spot_3d()
-	var r: Dictionary = rings[mini(int(racers[0]["next"]), rings.size() - 1)] if not racers.is_empty() else rings[0]
-	return Vector3(float(r["x"]), water_y, float(r["z"]))
+	if phase == Phase.RUN and stage == Stage.RACE:
+		var r: Dictionary = rings[mini(int(racers[0]["next"]), rings.size() - 1)] if not racers.is_empty() else rings[0]
+		return Vector3(float(r["x"]), water_y, float(r["z"]))
+	return super.target_position()
 
 
 func target_colour() -> Color:
-	return COLOUR if state == State.TO_PIER else RING_NEXT
+	return RING_NEXT if phase == Phase.RUN and stage == Stage.RACE else colour
+
+
+## On the water the rings themselves lead (the next three stand in view): no arrow over the boat.
+func target_arrow() -> bool:
+	return not boating()
+
+
+## No stop assist at the pontoon's ring (there was none before the kit).
+func stop_spot() -> Vector3:
+	return Vector3.INF
+
+
+## No helicopter while the race, the marina's card or a free ride is on.
+func grounded() -> Array:
+	return ["Najpierw dokończ wyścig łodzi (albo ✕)", "Finish the boat race first (or ✕)"]
 
 
 func _car_spot_3d() -> Vector3:
@@ -318,38 +323,25 @@ func _car_spot_3d() -> Vector3:
 # --- the call and the pontoon ----------------------------------------------------------------------
 
 func _process(dt: float) -> void:
-	_t += dt
-	_session += dt
-	match state:
-		State.IDLE:
-			_idle_tick()
-		State.MENU:
-			var mv: Array = vehicle.call() if vehicle.is_valid() else []
-			var away := not mv.is_empty() and Vector2(mv[0].x, mv[0].z).distance_to(CAR_SPOT) > PILL_R
-			if _t > CARD_LIFE or away:
-				hud.hide_card()
-				state = State.IDLE  # the call's timer runs on untouched
-		State.FREE:
-			_free_tick(dt)
-		State.RING, State.OFFER:
-			if _t > CARD_LIFE:
-				hud.hide_card()
-				_reset(CALL_COOL * 0.5)
-			elif autopilot and _t > 1.5:
-				_on_card(0)
-		State.TO_PIER:
-			_pier_tick()
-		State.COUNTDOWN:
-			_countdown_tick(dt)
-		State.RACE:
-			_race_tick(dt)
-		State.OUT, State.DONE:
-			_idle_boats(dt)
-			if autopilot and _t > 3.0:
-				_on_card(1)
+	super._process(dt)
+	# The marina's card goes when the car drives off (the kit knows only a card's life). After
+	# the kit's frame, so nothing else of this frame runs once it is down.
+	if phase == Phase.RUN and stage == Stage.MENU:
+		var mv: Array = vehicle.call() if vehicle.is_valid() else []
+		if not mv.is_empty() and Vector2(mv[0].x, mv[0].z).distance_to(CAR_SPOT) > PILL_R:
+			finish()
 
 
-func _idle_tick() -> void:
+## Every frame, whatever the phase: the stage's clock. Behind a result card (the kit does not
+## call `_run_tick` while a card of the run is up) the boats still out there run on.
+func _tick(dt: float) -> void:
+	_stage_t += dt
+	if phase == Phase.RUN and (stage == Stage.OUT or stage == Stage.DONE):
+		_idle_boats(dt)
+
+
+## Every frame while idle: the PRZYSTAŃ pill by the pontoon, then the kit's call clock.
+func _idle_tick(dt: float) -> void:
 	if not vehicle.is_valid():
 		return
 	var v: Array = vehicle.call()
@@ -360,83 +352,145 @@ func _idle_tick() -> void:
 			hud.show_pill("PRZYSTAŃ", "MARINA", "boat")
 	elif hud.pill_shown("boat"):
 		hud.hide_pill()
-	if _session < _next_call or int(_session * 2.0) == int((_session - get_process_delta_time()) * 2.0):
-		return
-	var h: float = clock.call()
-	if not force_hours and (h < HOURS[0] or h >= HOURS[1]):
-		return
-	if bool(v[2]) or not free_now.call():
-		return
-	ring()
+	super._idle_tick(dt)
+
+
+func _run_tick(dt: float) -> void:
+	match stage:
+		Stage.TO_PIER:
+			_pier_tick()
+		Stage.COUNTDOWN:
+			_countdown_tick(dt)
+		Stage.RACE:
+			_race_tick(dt)
+		Stage.FREE:
+			_free_tick(dt)
+
+
+## Szymek's call: who rings and what he is to the player.
+func _call_card() -> Dictionary:
+	return {"who": "Szymek", "about": ["Kumpel z przystani. Ma motorówkę i zero cierpliwości.",
+			"Your marina mate. Has a motorboat and zero patience."]}
+
+
+func _offer_card() -> Dictionary:
+	return {"title": ["SZYMEK: „ŚCIGAMY SIĘ?”", "Szymek: \"Race you?\""],
+			"body": ["„Słuchaj, %s! Pan Zdzisiek wyciągnął Złotą Rybkę, Kamil swój skuter. Płyniemy z Portu Czerniakowskiego pod Śląsko-Dąbrowski, przez kółka. Trzy pudła i odpadasz. Wchodzisz?”" % NAME,
+			"\"Listen, the %s! Pan Zdzisiek got the Złota Rybka out, Kamil his jet ski. We go from Port Czerniakowski down to Śląsko-Dąbrowski, through the rings. Three misses and you're out. You in?\"" % NAME], "face": "Szymek",
+			"buttons": ["PŁYNĘ!|I'M IN!", "NIE DZIŚ|NOT TODAY"]}
 
 
 ## Szymek met in person at the pontoon (story_quests.gd: he walks up, the player said WCHODZĘ):
 ## no call, straight to the start. False unless idle.
 func meet() -> bool:
-	if state != State.IDLE:
-		return false
-	if hud.pill_shown("boat"):
+	if phase == Phase.IDLE and hud.pill_shown("boat"):
 		hud.hide_pill()
-	_log("met Szymek at the pontoon")
-	_go_to_pier()
-	return true
+	return super.meet()
 
 
-## Idle: not ringing, not racing (a questline may start now).
-func idle() -> bool:
-	return state == State.IDLE
+func _met_words() -> String:
+	return "met Szymek at the pontoon"
 
 
-## Szymek phones.
-func ring() -> bool:
-	if state != State.IDLE:
-		return false
-	state = State.RING
-	_t = 0.0
-	hud.show_call("Szymek", "Kumpel z przystani. Ma motorówkę i zero cierpliwości.", COLOUR,
-			"Your marina mate. Has a motorboat and zero patience.")
-	hud.ticker_out()
-	Access.buzz(60, 0.6)
-	_log("call ringing")
-	return true
+## The run begins: the way to the pontoon (the offer taken, Szymek met), or the stage the pill
+## or a test flag named first (the marina's card, a free ride, the grid at once).
+func _begin() -> void:
+	_call_was = _next_call
+	var first := _first
+	_first = Stage.TO_PIER
+	match first:
+		Stage.MENU:
+			_show_marina()
+		Stage.FREE:
+			_free_start(_pick)
+		Stage.COUNTDOWN:
+			_board()
+		_:
+			_go_to_pier()
 
 
-func _offer() -> void:
-	state = State.OFFER
-	_t = 0.0
-	hud.show_side_card("SZYMEK: „ŚCIGAMY SIĘ?”",
-			"„Słuchaj, %s! Pan Zdzisiek wyciągnął Złotą Rybkę, Kamil swój skuter. Płyniemy z Portu Czerniakowskiego pod Śląsko-Dąbrowski, przez kółka. Trzy pudła i odpadasz. Wchodzisz?”" % NAME,
-			PackedStringArray(["PŁYNĘ!|I'M IN!", "NIE DZIŚ|NOT TODAY"]), COLOUR, "Szymek: \"Race you?\"",
-			"\"Listen, the %s! Pan Zdzisiek got the Złota Rybka out, Kamil his jet ski. We go from Port Czerniakowski down to Śląsko-Dąbrowski, through the rings. Three misses and you're out. You in?\"" % NAME, false, "Szymek")
+## The pill PRZYSTAŃ (and --boat-race=marina): the marina's card. Only when idle.
+func _marina_card() -> void:
+	if phase != Phase.IDLE:
+		return
+	_first = Stage.MENU
+	start()
 
 
-func _on_card(i: int) -> void:
-	match state:
-		State.RING:
-			if i == 0:
-				_offer()
-			else:
-				hud.hide_card()
-				_reset(CALL_COOL)
-		State.OFFER:
-			hud.hide_card()
-			if i == 0:
-				_go_to_pier()
-			else:
-				_reset(CALL_COOL)
-		State.OUT, State.DONE:
-			hud.hide_card()
-			if i == 0:
+## --boat-race=race: straight onto the grid (the car is at the pontoon). Only when idle.
+func board() -> void:
+	if phase != Phase.IDLE:
+		return
+	_first = Stage.COUNTDOWN
+	start()
+
+
+## Out on the river in FLEET[i] (--boat-race=free): no rings, no rivals, no clock; ✕ ends it.
+## Only when idle (the marina card's pick goes straight to `_free_start`).
+func free_ride(i := 1) -> void:
+	if phase != Phase.IDLE:
+		return
+	_first = Stage.FREE
+	_pick = i
+	start()
+
+
+## A button on a card of the run: the result (JESZCZE RAZ / REWANŻ: the grid again; WYJDŹ: back
+## to the car) or the marina's (a boat, or WYŚCIG).
+func _card_pressed(index: int) -> void:
+	match stage:
+		Stage.OUT, Stage.DONE:
+			if index == 0:
 				_start_grid()
 			else:
-				_quit()
-		State.MENU:
-			hud.hide_card()
-			state = State.IDLE
-			if i < FLEET.size():
-				free_ride(i)
-			elif i == FLEET.size():
+				finish()
+		Stage.MENU:
+			if index < FLEET.size():
+				_free_start(index)
+			elif index == FLEET.size():
 				_board()
+			else:
+				finish()
+
+
+## The marina's card nobody answered goes by itself (the only card of the run with a life).
+func _card_expired() -> void:
+	finish()
+
+
+## The autopilot leaves a result card by WYJDŹ (a test run would race for ever), and does not
+## pick a boat on the marina's card.
+func _auto_button() -> int:
+	return -1 if stage == Stage.MENU else 1
+
+
+## Back to free play (the kit calls this at every end: a call or an offer turned down or not
+## answered, the ✕, WYJDŹ, the marina's card closed). The boats go, the car is the player's again.
+func _ended() -> void:
+	var was := stage
+	stage = Stage.NONE
+	_stage_t = 0.0
+	flown = false
+	match was:
+		Stage.NONE:
+			pass
+		Stage.MENU:
+			_next_call = _call_was
+		Stage.FREE:
+			_next_call = _call_was
+			_barge.visible = false
+			_foam_mesh.clear_surfaces()
+			player = boats[0]
+			_park(riding)
+			riding = -1
+			left_boat.emit()
+			_log("free ride over")
+		_:
+			hud.hide_banner()
+			_show_race(false)
+			if was != Stage.TO_PIER:
+				left_boat.emit()
+			_log("back to the car")
 
 
 func _go_to_pier() -> void:
@@ -445,10 +499,9 @@ func _go_to_pier() -> void:
 	if Vector2(p.x, p.z).distance_to(CAR_SPOT) < ARRIVE * 2.0 and not bool(v[2]):
 		_board()
 		return
-	state = State.TO_PIER
-	_t = 0.0
-	_beacon.visible = true
-	_beacon.place(_car_spot_3d(), ARRIVE - 0.5)
+	stage = Stage.TO_PIER
+	_stage_t = 0.0
+	set_target(CAR_SPOT, true)
 	hud.toast("Na przystań: start przy ujściu Portu Czerniakowskiego", "To the pontoon: the start at the mouth of Port Czerniakowski")
 	_log("to the pontoon")
 
@@ -459,21 +512,22 @@ func _pier_tick() -> void:
 	var d := Vector2(p.x, p.z).distance_to(CAR_SPOT)
 	if not bool(v[2]) and d < ARRIVE and float(v[1]) < 12.0:
 		_board()
-	elif _t > PLAY_LIMIT:
-		_reset(CALL_COOL)
+	elif _stage_t > PLAY_LIMIT:
+		drop(false)
 
 
 ## The car stays on the bank; the boats go on the grid.
 func _board() -> void:
-	_beacon.visible = false
+	clear_target()
 	_car_spot = car.global_position if car != null else _car_spot_3d()
 	_car_yaw = car.rotation.y if car != null else 0.0
+	flown = true
 	boarded.emit()
 	_start_grid()
 
 
 func _start_grid() -> void:
-	hud.hide_card()
+	_hide_own_card()
 	hud.hide_pill()
 	var f := flow_dir
 	var heading := atan2(f.x, f.y)
@@ -498,10 +552,10 @@ func _start_grid() -> void:
 		_wake_t[k] = 0.0
 	_show_race(true)
 	_update_rings()
-	state = State.COUNTDOWN
+	stage = Stage.COUNTDOWN
 	_count = COUNT + 0.6
 	clock_t = 0.0
-	_t = 0.0
+	_stage_t = 0.0
 	_log("grid: 4 boats, %d rings, water at %.2f m" % [rings.size(), water_y])
 
 
@@ -514,8 +568,8 @@ func _countdown_tick(dt: float) -> void:
 		hud.show_banner(str(n), COLOUR)
 	else:
 		hud.show_banner("START!", Access.GREEN)
-		state = State.RACE
-		_t = 0.0
+		stage = Stage.RACE
+		_stage_t = 0.0
 		_say(1, "start")
 		Access.buzz(80, 0.8)
 		_log("start")
@@ -536,7 +590,7 @@ func _hold_boats(dt: float) -> void:
 
 
 func _idle_boats(dt: float) -> void:
-	if state == State.DONE:
+	if stage == Stage.DONE:
 		clock_t += dt  # the rivals still out there get their times
 	_tick_wakes(dt)
 	_barge_tick(dt)
@@ -560,9 +614,9 @@ func _idle_boats(dt: float) -> void:
 # --- free ride ---------------------------------------------------------------------------------------
 
 ## The pill PRZYSTAŃ: the marina's card (one of the three boats, or the race).
-func _marina_card() -> void:
-	state = State.MENU
-	_t = 0.0
+func _show_marina() -> void:
+	stage = Stage.MENU
+	_stage_t = 0.0
 	# Short names in one row (a name reads the same in both languages: one line a button), so the
 	# card fits a phone beside the other panels; no NIE TERAZ: the card goes by itself
 	# (CARD_LIFE) or when the car drives off.
@@ -570,8 +624,8 @@ func _marina_card() -> void:
 	for f: Dictionary in FLEET:
 		buttons.append(String(f["short"]))
 	buttons.append("WYŚCIG")
-	hud.show_card("PRZYSTAŃ · wybierz łódź", "Rekin X: skuter. Srebrna Strzała: elektryczna. Czarna Pantera: offshore, najszybsza, ponad 70 km/h.",
-			buttons, FREE_COLOUR, false, "MARINA · pick a boat", "Rekin X: jet ski. Srebrna Strzała: electric. Czarna Pantera: offshore, the fastest, over 70 km/h.")
+	show_card(["PRZYSTAŃ · wybierz łódź", "MARINA · pick a boat"], ["Rekin X: skuter. Srebrna Strzała: elektryczna. Czarna Pantera: offshore, najszybsza, ponad 70 km/h.",
+			"Rekin X: jet ski. Srebrna Strzała: electric. Czarna Pantera: offshore, the fastest, over 70 km/h."], buttons, CARD_LIFE, false, FREE_COLOUR)
 	_log("marina card")
 
 
@@ -586,14 +640,14 @@ static func fleet_spot(i: int) -> Vector2:
 
 
 ## Out on the river in FLEET[i]: no rings, no rivals, no clock; ✕ ends it.
-func free_ride(i := 1) -> void:
+func _free_start(i: int) -> void:
 	i = clampi(i, 0, FLEET.size() - 1)
-	_beacon.visible = false
+	clear_target()
 	hud.hide_pill()
 	_car_spot = car.global_position if car != null else _car_spot_3d()
 	_car_yaw = car.rotation.y if car != null else 0.0
-	state = State.FREE
-	_t = 0.0
+	stage = Stage.FREE
+	_stage_t = 0.0
 	_free_status_t = 0.0
 	riding = i
 	free_boat = fleet[i]
@@ -603,6 +657,7 @@ func free_ride(i := 1) -> void:
 	for w: Array in _wakes:
 		w.clear()
 	_place_barge()
+	flown = true
 	boarded.emit()
 	var name: String = FLEET[i]["name"]
 	hud.toast("%s jest twoja. ✕ na panelu: z powrotem do auta" % name, "The %s is yours. ✕ on the panel: back to the car" % name)
@@ -633,24 +688,8 @@ func _free_status() -> void:
 	_free_status_t = 0.25
 	var kmh := roundi(free_boat.forward_speed() * 3.6)
 	var home := roundi(free_boat.pos.distance_to(fleet_spot(riding)))
-	hud.show_status("Rejs · %s" % FLEET[riding]["name"], _clock_text(_t), "%d km/h" % maxi(kmh, 0),
-			"Przystań %d m · ✕ do auta" % home, 0.0, FREE_COLOUR, "", {}, "Marina %d m · ✕ to the car" % home)
-
-
-## Back to the car on the bank; the boat goes back to its mooring.
-func end_free_ride() -> void:
-	if state != State.FREE:
-		return
-	hud.hide_status()
-	_barge.visible = false
-	_foam_mesh.clear_surfaces()
-	player = boats[0]
-	_park(riding)
-	riding = -1
-	state = State.IDLE
-	_t = 0.0
-	left_boat.emit()
-	_log("free ride over")
+	status("Rejs · %s" % FLEET[riding]["name"], _clock_text(_stage_t), "%d km/h" % maxi(kmh, 0),
+			["Przystań %d m · ✕ do auta" % home, "Marina %d m · ✕ to the car" % home], 0.0, FREE_COLOUR)
 
 
 func _park(i: int) -> void:
@@ -694,7 +733,7 @@ func _build_free_boat() -> void:
 
 func _race_tick(dt: float) -> void:
 	clock_t += dt
-	if _t > 1.0:
+	if _stage_t > 1.0:
 		hud.hide_banner()
 	_tick_wakes(dt)
 	_barge_tick(dt)
@@ -729,7 +768,7 @@ func _race_tick(dt: float) -> void:
 	_draw_foam()
 	_status()
 	_chatter(dt)
-	if bool(racers[0]["finished"]) and state == State.RACE:
+	if bool(racers[0]["finished"]) and stage == Stage.RACE:
 		_finish()
 
 
@@ -820,54 +859,35 @@ func _miss(k: int, i: int) -> void:
 ## The player's third miss.
 func _out() -> void:
 	racers[0]["out"] = true
-	state = State.OUT
-	_t = 0.0
-	hud.hide_status()
+	stage = Stage.OUT
+	_stage_t = 0.0
+	hide_status()
 	hud.show_banner("ODPADASZ!", FAIL)
-	hud.show_card("ODPADASZ! Trzy pudła.", "Szymek: „No to klasyk. Kółka, nie bojki do omijania! Jeszcze raz?”",
-			PackedStringArray(["JESZCZE RAZ|AGAIN", "WYJDŹ|QUIT"]), FAIL, false, "YOU'RE OUT! Three misses.",
-			"Szymek: \"A classic. Rings, not buoys to dodge! Once more?\"")
+	show_card(["ODPADASZ! Trzy pudła.", "YOU'RE OUT! Three misses."],
+			["Szymek: „No to klasyk. Kółka, nie bojki do omijania! Jeszcze raz?”", "Szymek: \"A classic. Rings, not buoys to dodge! Once more?\""],
+			PackedStringArray(["JESZCZE RAZ|AGAIN", "WYJDŹ|QUIT"]), 0.0, false, FAIL)
 	_log("player out after %.1f s" % clock_t)
 
 
 func _finish() -> void:
-	state = State.DONE
-	_t = 0.0
+	stage = Stage.DONE
+	_stage_t = 0.0
 	var place := _finish_order.find(0) + 1
 	var pay: Array = PAY[clampi(place - 1, 0, PAY.size() - 1)]
 	if wallet != null and int(pay[0]) > 0:
 		wallet.pay(int(pay[0]), int(pay[1]), "boat_race")
-	hud.hide_status()
+	hide_status()
 	hud.hide_banner()
 	var t := _clock_text(float(racers[0]["time"]))
 	var words := ["Pierwszy! Szymek stawia lody na bulwarach.", "Drugi. Szymek: „Rewanż, ale już!”", "Trzeci. Pan Zdzisiek kiwa głową z uznaniem.", "Ostatni. Kamil już nagrywa relację."]
 	var words_en := ["First! Szymek buys the ice cream on the boulevards.", "Second. Szymek: \"Rematch, right now!\"", "Third. Pan Zdzisiek nods his approval.", "Last. Kamil is already filming his story."]
 	var w := clampi(place - 1, 0, 3)
-	hud.show_card("META! %d. miejsce · %s" % [place, t], "%s%s" % [words[w], "  +%d zł  +%d szacunu" % pay if int(pay[0]) > 0 else ""],
-			PackedStringArray(["REWANŻ|REMATCH", "WYJDŹ|QUIT"]), COLOUR, false, "FINISH! Place %d · %s" % [place, t],
-			"%s%s" % [words_en[w], "  +%d zł  +%d respect" % pay if int(pay[0]) > 0 else ""])
+	show_card(["META! %d. miejsce · %s" % [place, t], "FINISH! Place %d · %s" % [place, t]],
+			["%s%s" % [words[w], "  +%d zł  +%d szacunu" % pay if int(pay[0]) > 0 else ""],
+			"%s%s" % [words_en[w], "  +%d zł  +%d respect" % pay if int(pay[0]) > 0 else ""]],
+			PackedStringArray(["REWANŻ|REMATCH", "WYJDŹ|QUIT"]))
 	_result = {"place": place, "time": float(racers[0]["time"]), "misses": int(racers[0]["misses"])}
 	_log("player finishes %d. in %.1f s, %d misses" % [place, float(racers[0]["time"]), int(racers[0]["misses"])])
-
-
-## Back to the car on the bank.
-func _quit() -> void:
-	hud.hide_card()
-	hud.hide_status()
-	hud.hide_banner()
-	_beacon.visible = false
-	var was := boating()
-	_show_race(false)
-	_reset(CALL_COOL)
-	if was:
-		left_boat.emit()
-	_log("back to the car")
-
-
-func _reset(cool: float) -> void:
-	state = State.IDLE
-	_t = 0.0
-	_next_call = _session + cool
 
 
 func last_result() -> Dictionary:
@@ -1144,9 +1164,9 @@ func _status() -> void:
 			if k < next:
 				done += 1
 	var rh := mini(int(r["rhythm"]), RHYTHM_MAX)
-	hud.show_status(NAME, _clock_text(clock_t), "%d/%d" % [done, total],
-			"Pudła %s · Rytm ×%d" % [marks, rh], float(r["li"]) / float(line.size() - 1), COLOUR,
-			["1ST", "2ND", "3RD", "4TH"][place - 1], {}, "Misses %s · Rhythm ×%d" % [marks, rh])
+	status(NAME, _clock_text(clock_t), "%d/%d" % [done, total],
+			["Pudła %s · Rytm ×%d" % [marks, rh], "Misses %s · Rhythm ×%d" % [marks, rh]],
+			float(r["li"]) / float(line.size() - 1), Color(0, 0, 0, 0), ["1ST", "2ND", "3RD", "4TH"][place - 1])
 	var dots := PackedVector2Array()
 	var cols := PackedColorArray()
 	for k in range(1, boats.size()):
@@ -1171,8 +1191,8 @@ func _say(k: int, what: String) -> void:
 			return
 	if k == 0:
 		return
-	var tag := "%s_%s" % [RIVALS[k - 1]["tag"], what]
-	dialogue.say(boats[k], String(RIVALS[k - 1]["name"]), "boat_race", tag, 3.0, COLOUR, 2.4, true)
+	var key := "%s_%s" % [RIVALS[k - 1]["tag"], what]
+	dialogue.say(boats[k], String(RIVALS[k - 1]["name"]), "boat_race", key, 3.0, COLOUR, 2.4, true)
 	racers[k]["said"] = clock_t
 
 
@@ -1331,7 +1351,7 @@ func solid_at(centre: Vector3, r: float) -> Vector2:
 					out += q / l * (reach - l)
 	if not is_inside_tree():
 		return out
-	var space := get_world_3d().direct_space_state
+	var space := _foam.get_world_3d().direct_space_state
 	_hull.radius = r
 	_query.transform = Transform3D(Basis.IDENTITY, Vector3(centre.x, water_y + (HULL_BAND.x + HULL_BAND.y) * 0.5, centre.z))
 	if car != null and car is CollisionObject3D:
@@ -1373,7 +1393,7 @@ func _build_materials() -> void:
 
 ## A ring: an upright half torus standing in the water (the boats go through under its arch),
 ## orange with white bands and a float at each foot. Width w, tube 0.45 m.
-static func ring_mesh(w: float, colour: Color, band: Color) -> ArrayMesh:
+static func ring_mesh(w: float, paint: Color, band: Color) -> ArrayMesh:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var big := w * 0.5
@@ -1383,7 +1403,7 @@ static func ring_mesh(w: float, colour: Color, band: Color) -> ArrayMesh:
 	for i in segs:
 		var a0 := PI * float(i) / segs
 		var a1 := PI * float(i + 1) / segs
-		var c := band if i % 3 == 1 else colour
+		var c := band if i % 3 == 1 else paint
 		for j in sides:
 			var b0 := TAU * float(j) / sides
 			var b1 := TAU * float(j + 1) / sides
@@ -1395,7 +1415,7 @@ static func ring_mesh(w: float, colour: Color, band: Color) -> ArrayMesh:
 				st.set_uv(Vector2(Models.FIXED, 0.0))
 				st.add_vertex(v)
 	for s: float in [-1.0, 1.0]:
-		Models.box(st, Vector3(s * big, 0.2, 0.0), Vector3(1.6, 0.7, 1.6), colour)
+		Models.box(st, Vector3(s * big, 0.2, 0.0), Vector3(1.6, 0.7, 1.6), paint)
 	return st.commit()
 
 
@@ -1508,7 +1528,7 @@ func _update_rings() -> void:
 		var on: bool = i >= nxt and (shown < 3 or bool(g["finish"]) and boats[0].pos.distance_to(Vector2(float(g["x"]), float(g["z"]))) < 500.0)
 		if on and i >= nxt and not bool(g["finish"]):
 			shown += 1
-		mi.visible = on and state in [State.COUNTDOWN, State.RACE]
+		mi.visible = on and stage in [Stage.COUNTDOWN, Stage.RACE]
 		var m := mi.material_override as StandardMaterial3D
 		var tint := Color(1, 1, 1) if i == nxt else Color(0.72, 0.72, 0.72)
 		if not m.albedo_color.is_equal_approx(tint):
@@ -1686,8 +1706,3 @@ func _show_race(on: bool) -> void:
 		_foam_mesh.clear_surfaces()
 		if hud != null:
 			hud.set_minimap_dots(PackedVector2Array(), PackedColorArray())
-
-
-func _log(s: String) -> void:
-	if log_on:
-		print("boat race: ", s)
