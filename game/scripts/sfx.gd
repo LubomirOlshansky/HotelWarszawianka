@@ -64,8 +64,9 @@ const LOOPS := {
 	"bike_roll": ["SFX", -16.0], "bike_freewheel": ["SFX", -11.0],
 	# Recorded beds (ElevenLabs, tools/add_sfx.py, audio/sfx/sources.json): 24 to 29 s loops at the
 	# loudness of the synth beds they replaced; the night and the river peak early, so they sit higher here;
-	# the rain is 2 dB lower than the synth one was (F, 2026-11-12: a little lighter than the take).
-	"city_day": ["Ambience", -7.0], "city_night": ["Ambience", -12.4], "rain": ["Ambience", -9.0],
+	# the rain file is 5.3 dB under the synth one, so -3.7 here is 2 dB lower than it was (F, 2026-11-12: a
+	# little lighter than the take).
+	"city_day": ["Ambience", -7.0], "city_night": ["Ambience", -12.4], "rain": ["Ambience", -3.7],
 	# v1.0 juice: one bed per kind of district (DISTRICT_BEDS), set ~13 dB under the city bed by the
 	# files' RMS so they colour it and never cover it.
 	"amb_river": ["Ambience", -9.6], "amb_park": ["Ambience", -14.0], "amb_square": ["Ambience", -10.0],
