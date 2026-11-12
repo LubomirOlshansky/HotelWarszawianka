@@ -110,9 +110,9 @@ const RIVALS := [
 	{"name": "Pan Zdzisiek", "kind": Boat.Kind.TUB, "line": 0.0, "miss": 0.0, "block": 0.0, "pace": 1.0,
 		"delay": 0.8, "tag": "zdzisiek"},
 	{"name": "Kamil", "kind": Boat.Kind.JETSKI, "line": 0.35, "miss": 0.035, "block": 0.8, "pace": 0.96,
-		"delay": 0.15, "tag": "kamil", "stunt": 0.5},
+		"delay": 0.15, "tag": "kamil", "stunt": 0.35},
 ]
-const STUNT_TIME := 1.8
+const STUNT_TIME := 1.0   # was 1.8; the boats are 1.9x faster (2026-11-10), a long show-off runs him out of the course
 const STUNT_MAX := 3
 const PLAYER_PAINT := Color("#ff8a1a")
 const RUBBER := 0.08
@@ -927,12 +927,13 @@ func _drive_rival(k: int, dt: float) -> void:
 		if a1.length() > 1.0 and a2.length() > 1.0:
 			turn = absf(a1.angle_to(a2))
 	var top: float = b.top() * float(cfg["pace"])
-	var corner := top * (1.0 - 0.32 * clampf((turn - 0.5) / 1.0, 0.0, 1.0))
+	var corner := top * (1.0 - 0.5 * clampf((turn - 0.5) / 1.0, 0.0, 1.0))
 	var vf: float = b.forward_speed()
 	var brake_d := maxf(0.0, (vf * vf - corner * corner) / (2.0 * Boat.BRAKE * 0.6)) + 8.0
 	var go := 1.0
 	if d < brake_d and vf > corner + 0.5:
-		go = 0.0
+		# A jet-steered hull (Kamil's ski) turns only with thrust: it brakes with the gas still on.
+		go = 0.35 if bool(b.spec.get("jet", false)) else 0.0
 	# The barge's wake ahead: Pan Zdzisiek takes it slow.
 	if b.kind == Boat.Kind.TUB and _barge.visible and b.pos.distance_to(_barge_pos) < 70.0:
 		go = minf(go, 0.6)
@@ -940,7 +941,7 @@ func _drive_rival(k: int, dt: float) -> void:
 	b.target_dir = Vector3.ZERO
 	b.steer = clampf(err * 2.4, -1.0, 1.0)
 	b.throttle = go
-	b.braking = go == 0.0 and vf > corner + 3.0
+	b.braking = go < 0.4 and vf > corner + 3.0
 	if absf(err) > 1.4 and vf > 8.0:
 		b.throttle = 0.3
 	if float(r.get("stunt_t", 0.0)) > 0.0:
@@ -1476,6 +1477,17 @@ static func ramp_mesh(w: float, l: float) -> ArrayMesh:
 	Models.box(st, Vector3(0.0, h + 0.12, l * 0.5 - 0.15), Vector3(w + 0.2, 0.18, 0.3), Color("#c8202c"))
 	for s: float in [-1.0, 1.0]:
 		Models.box(st, Vector3(s * (hw + 0.45), 0.2, 0.0), Vector3(0.9, 0.6, l + 0.6), Color("#ff7a1a"))
+		# Details (F 2026-11-10: "a lot of details"): a mast with a red-and-white pennant at the lip
+		# of each float so the ramp reads from far at the new speed, a white strip along each edge,
+		# a black "tyre" bumper at the nose and a stripe of lights (small boxes) up the middle.
+		Models.box(st, Vector3(s * (hw + 0.45), 1.9, l * 0.5 - 0.3), Vector3(0.12, 3.0, 0.12), Color("#d8d4c8"))
+		Models.box(st, Vector3(s * (hw + 0.45), 3.15, l * 0.5 - 0.3), Vector3(0.9, 0.5, 0.06), Color("#c8202c"))
+		Models.box(st, Vector3(s * (hw + 0.45), 3.15, l * 0.5 - 0.3), Vector3(0.45, 0.5, 0.08), Color("#f4f2ea"))
+		Models.box(st, Vector3(s * (hw - 0.2), h * 0.5 + 0.12, 0.0), Vector3(0.2, 0.06, l * 0.96), Color("#f4f2ea"))
+		Models.box(st, Vector3(s * (hw + 0.45), 0.0, -l * 0.5 - 0.2), Vector3(0.9, 0.5, 0.4), Color("#26282b"))
+	for i in 5:
+		var z := -l * 0.5 + l * (float(i) + 0.5) / 5.0
+		Models.box(st, Vector3(0.0, h * (float(i) + 0.5) / 5.0 + 0.12, z), Vector3(0.35, 0.05, 0.35), Color("#ffd23a"))
 	return st.commit()
 
 
