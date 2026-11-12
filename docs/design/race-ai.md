@@ -296,10 +296,16 @@ lane:
 The Palace races now: 60 to 72 s on clear roads and in Low and Normal traffic, 71 to 89 s in
 Busy traffic, all 14 home at the line after the route's 970 to 1,000 m. Trzy mosty's finish by
 the stadium is such a circle too: the avenue's other carriageway runs through it 132 m after
-the last bridge, where the finish's own junction is 682 m round. Seba's last leg is planned to
-the circle (5 s from the bridge against 30 s), so he no longer drives past the finish that the
-player wins at: in the whole game, started at the last bridge, he is home in 26.7 s where he
-took 51.1 s. The final's checkpoints keep junction plans, because a checkpoint is driven
+the last bridge, where the finish's own junction is 682 m round. On main Seba's way to that
+junction left the avenue by the slip road and came back up by the stadium's service road,
+never nearer than 27 m to the finish before its last street, and the minimap's line led the
+player the same way; but a player who drove straight on in the avenue's left lane (14 m from
+the finish; its other two lanes pass at 17.5 and 20.7 m) was home 550 m sooner. Seba's last
+leg is now planned to the circle (5 s from the bridge against 30 s), and the line and the
+metres end there: in the whole game, started at the last bridge, he is home in 26.7 s where
+he took 51.1 s. `trzy_mosty.gd` picks that finish for a last dash of at least 400 m by road
+(`FINISH_MIN`), counted to the junction, so the dash is now 132 m for both cars (BACKLOG).
+The final's checkpoints keep junction plans, because a checkpoint is driven
 through. At the three finishes with no other road through the circle (the Palm, Plac Trzech
 Krzyży, Kopernik) the plan is the junction's plan state for state, and the bench's other 107
 races came out the same in every number. In the whole game's first ten minutes Halina plans
@@ -761,7 +767,9 @@ None blocks the work. Each has the default being built (also in docs/QUESTIONS.m
 4. **How rough may rivals be?** Default: they defend their line and lean on the player in a pass,
    and they never ram the player off the road on purpose.
 5. **Is Trzy mosty too hard now that Seba finishes where the player does?** Built in step 3: one
-   finish line for both cars (5.1). Seba used to drive 550 m past the stadium finish to its
-   junction at the end of every final, about 24 s, while the player was home at the circle. If the
-   final is too hard without that gift, his pace in the final comes down (`ladder.gd`
-   `FINAL_RACER`), not the finish.
+   finish line for both cars (5.1). At the end of every final Seba, and the minimap's line,
+   used to go 682 m round to the stadium finish's junction, while a player who drove straight
+   on in the avenue's left lane was home after 132 m, about 24 s sooner. Now both are home
+   there. If the final is too hard without that gift, his pace in the final comes down
+   (`ladder.gd` `FINAL_RACER`); if its last dash is too short, the finish moves further on
+   (`trzy_mosty.gd` `FINISH_MIN`, counted to the circle).
