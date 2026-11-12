@@ -14,7 +14,7 @@
 	},
 	"full": {
 		"finishes": "fail",
-		"independence": "pass",
+		"independence": "unsteady",
 		"no_crawl": "pass",
 		"passes_traffic": "fail",
 		"no_ghosting": "fail",

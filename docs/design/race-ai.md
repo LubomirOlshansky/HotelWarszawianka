@@ -805,6 +805,11 @@ against them:
 - a mark recorded **unsteady** is shown and not held either way. It is set by hand, for a mark
   that passes or fails with the draw of the town's cars, and `--write` leaves it alone.
 
+`--write` records what one run on one machine saw. A mark that counts races in traffic is
+recorded pass only when it also passes on the other machine (the Mac's run of a race in traffic
+is another draw of the town's cars than the cloud's, 7.5) and in other draws (a race's `seed`);
+until then it is set to unsteady by hand. Step 4a learned this with Independence, below.
+
 So each step turns marks from fail to pass on purpose, and nothing slips back.
 
 After step 4a (2026-11-12), with step 3's number in brackets where it moved:
@@ -812,7 +817,7 @@ After step 4a (2026-11-12), with step 3's number in brackets where it moved:
 | Mark | Quick matrix (21 races, Pani Halina) | Full matrix (111 races, all six rivals) |
 | --- | --- | --- |
 | Finishes | pass since step 3: 20 of 20 | **fail**: 109 of 110, the first race from Tamka with a player who never moves, in Busy traffic: see below |
-| Independence | pass since step 2: her time moves up to 11 % with the player | pass since step 4a: up to 13 % (16 %): see below |
+| Independence | pass since step 2: her time moves up to 11 % with the player, on the Mac too | **unsteady**: 13 % in the cloud's run (16 %), 22 % in the Mac's (17 %), and 25 to 170 % in three other draws of the town's cars (18 to 166 %): see below |
 | No crawl | pass since step 2: 1.7 s in a row | pass since step 2: 2.3 s (2.7 s) |
 | Passes traffic | **unsteady**: 1.5 s in this draw of the traffic (8.2 s) | **fail**: 6.2 s (8.2 s); more than 4 s in 2 of the 48 races in Busy traffic (11) |
 | No ghosting | **fail**: drove through 17 cars (5) | **fail**: 150 cars, 80 s inside one in all (152, 114 s) |
@@ -829,15 +834,30 @@ has each fault traced):
 - **Honest car's grip.** No race is over the sideways limit of the player's car: the line's
   speeds are the mark's own measure. The mark stays recorded fail for the dead stops (a car
   across a junction), and the one place near the limit is a pass's sideways slide: step 4b.
-- **Independence on the full matrix** passes at 13 %, and is recorded pass as the bench asks.
-  Read it with care: the race that was over the line (the first race from Leszczyńska in Busy
-  traffic with a player who never moves) still makes its U-turn behind the player's car and
-  goes round by Dobra, in 204 s as before. It is inside the line because her time alone is
-  187 s where it was 177 s: alone she now goes by Dobra too (the plan's choice in Busy traffic,
-  5.2), so the way round is no longer the longer way. What did improve is the whole: in Busy
-  traffic a rival's time is 5.3 % from its time alone on average (6.9 %). The mark is close to
-  the draw's spread (two other tries at the pass rule gave 16 and 20 %), so step 4b, which
-  rebuilds the pass and the way round the player's car, may have to record it again.
+- **Independence on the full matrix is recorded unsteady**, by hand, and is not held until
+  step 4b makes it steady. The cloud's run reads 13 % and passes, and `--write` recorded that
+  at first. The Mac's run of the same matrix reads 22 % and fails (16 and 17 % at step 3). On
+  clear roads the two machines run the same races (the ladder's six times agree to the tenth
+  of a second, and Independence there is 12.5 % on both, 13.2 % at step 3: the first race from
+  Leszczyńska with the slow test player). With the town's cars they do not, so the Mac's run
+  of a race in traffic is another draw than the cloud's (the likely cause, not traced: the two
+  processors round a sum differently in its last digit, one car chooses otherwise and the rest
+  follows). The mark is the worst of 32 such races, each run once. Three more draws in the
+  cloud (a race's `seed`) say what that is worth: 35, 170 and 25 % with this step, 166, 18 and
+  23 % at step 3, while a race's time with a player is 5 to 12 % from its time alone on
+  average in every one of them, with this step and at step 3 alike. So the mark fails in four
+  of the five draws measured with this step and in all five at step 3: the pass was the draw.
+  The large numbers are one fault, which step 3 built and step 4b has to mend: a rival that
+  stands 3 s behind the player's stopped car with no lane to pass in takes the street for
+  blocked (`BOX_WAIT`), also when the player has only stopped for a moment in the traffic. In
+  one draw the average test player stands still for five seconds on Książęca, 171 m before the
+  finish; Pani Halina, 6 m behind it, makes a U-turn after three of them and goes 3 km round
+  by Rozbrat and Aleje Ujazdowskie, home in 373 s where the player is home in 155 s (138 s
+  alone). The matrix's own draw shows the mild case of
+  it: the first race from Leszczyńska in Busy traffic with a player who never moves still
+  makes its U-turn and goes round by Dobra, in 204 s as before, and her time alone there is
+  187 s where it was 177 s, because alone she now goes by Dobra too (the plan's choice in Busy
+  traffic, 5.2).
 - **Passes traffic** is better and not yet a pass: with the oncoming lane a pass uses read
   right, a wait of more than 4 s is rare. The mark turns with the real overtake.
 - **No ghosting, Recovers.** Level on the full matrix, with a third less time spent inside
@@ -921,7 +941,13 @@ Two things about the numbers themselves:
 - **Between machines.** Step 1's driver on the Mac gave the quick matrix identical to the cloud's
   Linux run, line for line. The full matrix gave the same marks with two traffic numbers apart
   (7.4 s behind a slower car against 10.2 s, 217 cars driven through against 216, stopped dead 184
-  times against 187), all three from races in Busy traffic.
+  times against 187), all three from races in Busy traffic. With step 4a's driver the quick
+  matrix gives the same marks on both machines (Independence 11 % on both), and the full one
+  does not: Independence reads 22 % on the Mac and 13 % in the cloud (17 and 16 % at step 3),
+  156 cars are driven through against 150 (134 against 152), and the game stops a rival dead
+  136 times against 130 (140 on both). The races on clear roads are the same on both. So the
+  Mac's run of a race in traffic counts as one more draw of the town's cars, and no more than
+  that.
 
 ## 8. Build order
 
@@ -933,8 +959,8 @@ after. Step 2 ends the complaint in F's message. The steps after it make racing 
 | 1 (done) | Race bench, prototype race, baseline of today's driver, this plan in the repo | Nothing changes in the game | The baseline is recorded |
 | 2 (done) | Skill profiles replace the band, in the ladder races, the final and the guided first race; an easier rematch after a loss | Halina and the others race from start to finish at their own pace. A slow player loses, and the rematch is a little easier | No crawl, Skill ladder, Independence on the quick matrix (the full matrix's last case turns with 4b) |
 | 3 (done) | Route planner by arrival time; turning back at a blocked street; the expected traffic delay out of sight; a lane held for 2 s; one finish line for both cars | Rivals take different streets in traffic, go round a blocked street, get past a slow player on a two-lane road, get no empty streets out of sight, and finish where the player does | Re-routes; Finishes on the quick matrix; Independence in traffic both ways (the full matrix's last case turns with 4b) |
-| 4a (done) | Driver, part 1: a racing line inside the racer's lane and a speed for every metre of it; the rivals' skill numbers set again for a real sideways pull; the centre-line pass by the oncoming lane it uses, clear for as long as the pass lasts | Smooth corners with the braking done before the bend, and no bend taken faster than the player's own car could. A rival rarely sits behind a slow car with the way past free | Honest car's grip (109 of the 110 races were over the car's limit, none is); Independence on the full matrix (13 %, close to the draw's spread). The times were kept, not bettered: the line stays in its lane until 4b |
-| 4b | Driver, part 2: overtaking (a pass whose length comes from both cars' speeds and the racer's pull and that can be given up, nobody beside it on the way out, a smooth sideways move that ends before the corner, a side held while there is more to pass), collisions (a car across a junction is seen, no car put down in a racer's way), recovery | Real passes. Nobody drives through a car. A crashed rival reverses and goes on | Passes traffic, No ghosting, Recovers, Finishes, Honest car (the dead stops, the slide of a pass) |
+| 4a (done) | Driver, part 1: a racing line inside the racer's lane and a speed for every metre of it; the rivals' skill numbers set again for a real sideways pull; the centre-line pass by the oncoming lane it uses, clear for as long as the pass lasts | Smooth corners with the braking done before the bend, and no bend taken faster than the player's own car could. A rival rarely sits behind a slow car with the way past free | Honest car's grip (109 of the 110 races were over the car's limit, none is). The times were kept, not bettered: the line stays in its lane until 4b. Independence on the full matrix passes or fails with the draw of the town's cars and is recorded unsteady |
+| 4b | Driver, part 2: overtaking (a pass whose length comes from both cars' speeds and the racer's pull and that can be given up, nobody beside it on the way out, a smooth sideways move that ends before the corner, a side held while there is more to pass), collisions (a car across a junction is seen, no car put down in a racer's way), recovery | Real passes. Nobody drives through a car. A crashed rival reverses and goes on | Passes traffic, No ghosting, Recovers, Finishes, Honest car (the dead stops, the slide of a pass); Independence on the full matrix, once it is judged over several draws (no turning back behind a player's car that only waits) |
 | 5 | Race links: alleys, courtyards, car parks, wrong-way hops | Halina turns into a courtyard and comes out in front | Real-car proof for every link |
 | 6a | Personalities, visible decisions, result card with both routes, tuning | You can tell Seba from Zbyszek by how they drive | The ladder's curve of times |
 | 6b | One race object for the pack race, Trzy mosty, police chasers and crazy drivers | Every race in the game uses the new driver | All marks on every race mode |
