@@ -43,6 +43,9 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		"AWIWA", "NIELZEN",
 		# Dom Partii's roof sign (docs/design/gaulle-and-food-hype.md G2): the oak in Latin again.
 		"ROBUR",
+		# Its front's roof letters from F's photos (2026-11-11): the menswear maker's name spelt the
+		# Polish way (the bank's board is PEPEO ŻUBR, already in the list).
+		"WISTULA",
 		# HOTEL PIURE's rooftop date bar (G3).
 		"LORETKA",
 		# Arkadka from F's photos (2026-11-03): Westfield as "west field" in Polish, the

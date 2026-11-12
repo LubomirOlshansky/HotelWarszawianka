@@ -111,7 +111,7 @@ often, known to every visitor; **B** characteristic, known to locals, gives a st
 | 45 | Kościół Świętej Trójcy | Plac Małachowskiego | church | ★ | oculi count |
 | 46 | Metropolitan | Plac Piłsudskiego | offices | ◐ | photo pass 2026-11-07 (`warsaw-needed-photos`): the seventh storey and plant rooms in silver metal; still to do: the recessed glazed ground floor on round piers, the curved silver roof canopy, a parody sign for the bank on the corner |
 | 47 | Muzeum Narodowe and Muzeum Wojska Polskiego's yard | Aleje Jerozolimskie | museum | ◐ | **photo build**: the 1930s front, the tanks and planes in the yard |
-| 48 | Dom Partii (OSM: Centrum Bankowo-Finansowe) and Rondo de Gaulle'a's palm | Nowy Świat / Aleje Jerozolimskie | offices, monument | ◐ | photo check |
+| 48 | Dom Partii (OSM: Centrum Bankowo-Finansowe) and Rondo de Gaulle'a's palm | Nowy Świat / Aleje Jerozolimskie | offices, monument | ◐ | built from F's photos 2026-11-12 (`dom_partii`); phone look check |
 | 49 | Pawilony za Nowym Światem | Nowy Świat | bar pavilions | ◐ | photo check (neon, string lights) |
 | 50 | Plac Konstytucji and MDM | Marszałkowska | socialist-realist square | ◐ | photo re-pass: arcades, reliefs, the candelabras |
 | 51 | Kościół Najświętszego Zbawiciela and Plac Zbawiciela | Marszałkowska | church, square | ◐ | photo check: towers, the square's arcades |

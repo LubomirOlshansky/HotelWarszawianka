@@ -269,11 +269,11 @@
 ]
 },
 {
-"id": "landmark:dom_partii_extras",
+"id": "landmark:dom_partii",
 "cat": "landmark",
-"name": "dom_partii_extras",
-"about": "",
-"file": "game/scripts/landmarks.gd:4738",
+"name": "dom_partii",
+"about": "Dom Partii (Centrum Bankowo-Finansowe) built whole from F's photos: towers, colonnade, frieze, courtyard fountain",
+"file": "game/scripts/landmarks.gd:7692",
 "count": 1,
 "used_by": [
 "landmarks.gd sites"

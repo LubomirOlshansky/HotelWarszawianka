@@ -69,7 +69,7 @@ RUN_SHORE = 11.0            # the straight run between two rings keeps this far 
 RAMP_AFTER = 12.0           # a ramp this far past the mid-river ring, on the run to the gold one
 RAMP_W = 10.0
 RAMP_LEN = 6.0
-RING_W = 16.0
+RING_W = 24.0   # was 16: the boats are 1.9x faster (2026-11-10), a 16 m opening is a needle at 145 km/h
 GOLD_W = 9.0
 BARGE_FROM = 175
 BARGE_TO = 20
@@ -435,7 +435,7 @@ def place_ramps(ramps, rs, piers, sd):
 
 
 POWISLE = (80, 188)         # the Powiśle bank run (line points), F 2026-11-10: "more trampolines"
-BANK_RAMP_AT = 0.5          # a bank ramp this share along the run between two bank rings
+BANK_RAMP_AT = 0.3          # a bank ramp this share along the run between two bank rings (the jump lands well before the next ring)
 BANK_RAMP_W = 12.0
 BANK_RAMP_LEN = 8.0
 
