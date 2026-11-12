@@ -1441,6 +1441,7 @@ static func arm_racer(d, rung: int, top: float, cuts: Dictionary, first := false
 	d.race_brake = float(stats["brake"])
 	d.race_lat = float(stats["lat"])
 	d.race_effort = 1.0
+	d.race_corner = 1.0
 	d.race_still = 0.0
 	d.race_passes = 0
 	# Human rivals: shortcuts, mistakes, wrong turns, blocking (ladder.gd's personality).
@@ -1461,7 +1462,9 @@ static func arm_racer(d, rung: int, top: float, cuts: Dictionary, first := false
 ## returns it) from the metres of route the rival and the player have left (INF: unknown, as with
 ## no player: its own pace). `mistake` is the rival's own chance of a mistake at a corner (its
 ## stats'); a rival that pushes makes more. `pace` is this race's memory. Nothing here reads the
-## player's speed, and the effort never takes the car past its own top speed.
+## player's speed, and the effort never takes the car past its own top speed: on a straight it
+## is cut to 1 / share (`d.race_effort`), in a corner it is whole (`d.race_corner`: grip is the
+## car's to use at any speed, so a rival at the road's full speed still pushes through the bends).
 static func pace_tick(pace: Pace, d, mistake: float, rival_left: float, player_left: float) -> float:
 	if pace.route_total <= 0.0 and player_left < INF:
 		pace.route_total = maxf(player_left, rival_left)
@@ -1471,6 +1474,7 @@ static func pace_tick(pace: Pace, d, mistake: float, rival_left: float, player_l
 	pace.effort = move_toward(pace.effort, want, EFFORT_RATE * 0.2)
 	var effort := minf(pace.effort, 1.0 / maxf(d.race_share, 0.01))
 	d.race_effort = effort
+	d.race_corner = pace.effort
 	d.race_mistake = mistake * lerpf(1.0, PUSH_MISTAKES, clampf((pace.effort - 1.0) / (EFFORT_PUSH - 1.0), 0.0, 1.0))
 	pace.lo = minf(pace.lo, effort)
 	pace.hi = maxf(pace.hi, effort)
@@ -1542,6 +1546,7 @@ func _cruise(d) -> void:
 	d.race_brake = 0.0
 	d.race_share = 1.0
 	d.race_effort = 1.0
+	d.race_corner = 1.0
 	d.cuts = {}
 	d.race_mistake = 0.0
 	d.race_wrong = 0

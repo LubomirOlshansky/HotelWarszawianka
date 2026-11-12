@@ -1,14 +1,17 @@
 # Race AI: the audit, the new design and the race bench
 
-**Status (2026-11-12):** steps 1 to 3 of 8 are built. Step 1 was the race bench, the prototype
+**Status (2026-11-12):** steps 1 to 4a of 8 are built. Step 1 was the race bench, the prototype
 race and the recorded baseline of the old driver. Step 2 took the rubber band out: every rival
 drives its own skill from the line to the finish, whatever the player does
 ([section 6](#6-difficulty-from-skill-and-the-personalities)). Step 3 gave every rival a plan:
 its streets by its own seconds to the finish with the town's traffic counted, another way round
 a blocked street, no empty streets once the player is out of sight, and one finish line for both
-cars ([section 5.1](#51-step-3-as-built-the-plan-the-way-round-the-towns-traffic)). The driving
-under it (the rail car, its passes and its corners) is still the old one, for steps 4a to 6b.
-The build order is in [section 8](#8-build-order).
+cars ([section 5.1](#51-step-3-as-built-the-plan-the-way-round-the-towns-traffic)). Step 4a gave
+it a racing line and a speed for every metre of it: a rival brakes before a bend and takes it
+inside the grip of the player's own car
+([section 5.2](#52-step-4a-as-built-the-racing-line-and-a-speed-for-every-metre)). Passing,
+contact and recovery are still the old rail car's, for step 4b. The build order is in
+[section 8](#8-build-order).
 
 Written from F's note of 2026-11-09 (two phone screenshots of the race against Pani Halina from
 Powiśle to Plac Trzech Krzyży): "she was still going very slow, and like the mob, not behave like
@@ -137,8 +140,8 @@ Worst first. "Step" is the build step of section 8 that fixes it.
 | --- | --- | --- | --- |
 | 1 | Speed is tied to the player. The band aims Halina 15 m behind the player (30 m in front in the guided first race) and can cut her to 15 % of her top speed | She crawls when you are slow, waits when you stop, lifts off before the finish | 2 (done) |
 | 2 | The driver is a rail car. It can only slide between lanes, and it passes only into a free lane or an empty oncoming lane | It queues behind slow cars like traffic. After 1.5 s stuck it drives through the car in front | 4b |
-| 3 | It plans its speed for the next junction only. It does not brake for bends along a street or look past the next corner, and its brakes stop at 10 m/s² | It arrives too fast: 99 km/h through a 48° bend, or stopped dead by the game behind a car | 4a |
-| 4 | Corners follow the middle of the lane. There is no racing line and no cut apex | Slow, square corners | 4a |
+| 3 | It plans its speed for the next junction only. It does not brake for bends along a street or look past the next corner, and its brakes stop at 10 m/s² | It arrives too fast: 99 km/h through a 48° bend, or stopped dead by the game behind a car | 4a (done; the dead stops: 4b) |
+| 4 | Corners follow the middle of the lane. There is no racing line and no cut apex | Slow, square corners | 4a (done, inside its own lane; the whole road: 4b) |
 | 5 | The route is the shortest in metres on legal streets, fixed at the start. Time, turns, lights and traffic play no part, and there are no alternatives | Every rival takes the same streets. Nobody reacts to a blocked road | 3 |
 | 6 | Shortcuts are 600 straight hops between two junctions, 160 m at most. Courtyards, car parks and alleys with a real shape are missing | On F's race the shortcuts change almost nothing | 5 |
 | 7 | There is no recovery. A blocked racer waits, then passes through the obstacle | It never reverses, turns round or re-routes | 4b |
@@ -352,8 +355,12 @@ racer, who has more to lose behind a town car. The model gives a race's time in 
 streets with an oncoming road, 46 % streets with lanes, 14 % street ends and 17 % lights. The
 constants were fitted before the lane was held (below); run again with it, the fit moved to 0.73,
 0.26, 0.40, 0.24 and 1.53, no nearer a race's time than the constants as they stand (6.7 %
-both), so they stay. These are the old driver's numbers: when step 4b changes how a racer
-passes, the tool is run again and the constants move.
+both), so they stay. Run once more after step 4a (the line, and the pass over the centre line
+by the lanes it uses), a kilometre costs Halina 6.9, 12.0 and 27.5 s, Bartek 6.7, 12.1 and
+29.5 s, Mike 8.9, 15.1 and 32.9 s; the fit moved to 0.70, 0.22, 0.30, 0.39 and 1.61 and gives a
+race's time to 7.5 %, the constants as they stand to 7.6 % (3 % long in Busy traffic), with the
+draw alone at 5 to 6 %: they stay again. These are the old driver's numbers: when step 4b
+changes how a racer passes, the tool is run again and the constants move.
 
 Two numbers of the racer's profile read it (`ladder.gd`):
 
@@ -395,6 +402,149 @@ level). A race's finish is still picked by the metres to its junction (`_pick_fi
 And the old driver does not move to the lane by the beacon: it is home at the line in the lane
 it is in.
 
+### 5.2 Step 4a as built: the racing line and a speed for every metre
+
+Step 4a (2026-11-12) built the RacePath of the plan above and put it under the old driver. The
+rail stays: a racer's place along its way is still the lane graph's metres (the street's
+stations, the junction curve's length), with its lanes, gaps and lights. Only where the car is on
+the ground, and how fast it may be there, is now read from a line. Passing, contact and recovery
+are still the old driver's, for step 4b.
+
+**The line** (`race_line.gd`). The town's cars keep to the middle of their lane and to the
+junction's curve, whatever their speed: a lane that steps sideways across a junction, a kink in
+the street's line and a tight curve are all driven as drawn. A racer's line stays in its own
+lane and inside the junction, and makes the best of that room: what is left of the lane beside
+the car (up to 1 m a side) and, in a junction, 0.3 m further in than the lane graph's curve.
+
+- A sideways step between two lanes straight across a junction is spread over both streets, down
+  a ramp of 5 cm a metre where the street is long enough (8 cm at most).
+- Every bend that is left is rounded by the widest arc that stays in the room of each point it
+  passes. Bends of one hand close together (the two halves of a turn, the short pieces a big
+  junction is cut into, a street's bend drawn as short pieces) become one arc where that is
+  wider.
+- A U-turn, a hairpin and a shortcut are driven as before.
+
+The line is built a stretch at a time, from the middle of one long street through the junction
+(or the run of short pieces a big junction is cut into) to the middle of the next. A stretch
+depends on nothing outside it, so it is built once, kept and shared by every racer, and building
+the way further ahead never moves the line under the car. Over the whole map that is 13,273
+stretches (every lane of every such run), 0.7 ms each to build and 20 ms the slowest
+(`check_race_line.gd` builds them all: none leaves its lane's room or its junction's).
+
+**A speed for every metre** (`race_line.gd` `speeds`). The most a racer may do at a place is
+the speed at which the turn of the next 8 m of its line asks for its grip: v = √(grip × 8 m /
+turn). That is the bench's own measure of an honest car (7.3), so a line driven at its speeds
+passes it by construction. A pass backwards over the line then lowers every speed until the
+racer's own brakes reach each bend's speed in time: it brakes for the second corner while still
+in the first, and for a bend in the middle of a street, which the old driver never saw (it knew
+one speed, for the next junction's curve).
+
+**In the driver** (`traffic.gd` `LINE_*`). A racer with a plan (the ladder's races, the guided
+first race and the final) drives a line; the town's cars, the police and the races that have no
+plan yet (the pack race, the night meet's race: step 6b) drive as before.
+
+- **The way ahead.** A line needs the streets beyond the next junction, so the racer asks its
+  plan for them at least 100 m ahead and holds each choice when it gets there. Słoik's wrong
+  turn is rolled when the street is decided, a junction or two early.
+- **Beside the line.** A pass or a lane change moves the car sideways off its line. It then
+  drives the line's own shape that far over: inside a bend its way is shorter and tighter, so it
+  covers fewer metres for each metre of the line and gets a lower speed; outside it is longer.
+- **A new line.** When the line under the car changes (a lane changed, the plan changed its
+  mind) the car moves over from the old one to the new one across 12 m, so its heading has no
+  step.
+- **No sideways move in a corner.** A racer starts a lane change or a pass over the centre line
+  only where its line asks for less than half of its grip. A sideways move on top of a corner
+  adds up to more than the car holds.
+- **A mistake** (a corner taken badly) is a speed too high for the bend from 15 m before the
+  junction's curve to 15 m past it, never more than the player's own car holds (19 m/s²).
+- **The pass over the centre line** is still the old driver's (out for up to 4 s, then back
+  in), with two things put right that the line brought out. It minds the oncoming lanes within
+  2.5 m of the line it drives, which is the lane it is driven in: on a street with two lanes
+  each way the far oncoming lane is a lane's width clear of it, and counted too it held Pani
+  Halina 15 s behind a row of cars on Książęca. And that lane must be clear for as far as the
+  two cars close while the pass lasts and for 0.7 s more to come back in: the 70 m it asked
+  for are 2.3 s away when a racer at 70 km/h meets a town car at 40.
+- **Backing up.** A racer that backs away from a block drives the lane graph's way: a line knows
+  only the way on. (Found on the way: a rival that backed out of a junction's curve and then
+  made room for the car behind stood still on screen while the game moved it 12 m.)
+
+**Skill, set again.** With a real limit on the sideways pull the old `lat` numbers were too low
+to keep the rivals' times. The old driver's corner speed came from the lane graph's own curve
+through a junction and was worth about twice the number as a real pull, and nothing held a bend
+inside a street: Mordor Mike went through the 48° bend on Książęca at 101 km/h, 77.6 m/s²
+sideways where the player's car holds 19. So each rival's four numbers were set again on the
+bench until its time alone on clear roads came back (the table in section 6): within 1 % for
+all six and the gentle day, with every corner now inside the car's limit (9.4 to 16.5 m/s² at
+the worst place of each of the 44 clear-road races, where the old driver's were 24 to 78). The
+fast rivals brake later than before (13 against 9 m/s² for Mike): with honest corners the
+braking zone is where a good driver gains. Mike's share of the road's speed went to 1.0, which
+left his effort no room on a straight; the same cut number was used for his grip, so his push
+did nothing at all (`check_first10.gd` found it). The cut is now for the straight only, and a
+corner gets the effort itself. The bench's races came out the same with it, all 110: in none of
+them does Mike fall far enough behind a player to push (7.5).
+
+**The plan's clock** still counts a corner by the old rule (the junction curve's radius and the
+racer's `lat`), now with the new numbers. Against the race as driven on its line it runs 2.4 to
+4.1 % early (`check_race_planner.gd` allows 6 %). On clear roads the routes it picks did not
+change. In Busy traffic from Leszczyńska Pani Halina's plan now goes by Dobra where it went by
+Topiel: the two are a second apart on her clock (173.8 and 174.5 s), and forced through each
+she is quicker by Dobra (173.6 s against 176.8 s; with step 3's driver 181.8 s against
+185.2 s). A clock that counts the line itself goes with step 5, where the plan's streets get
+their race links (BACKLOG, "Racer AI rebuild").
+
+**What the bench says** (the full matrix's 110 races against step 3; the marks are in 7.4):
+
+- **Corners.** Over the car's sideways limit of 19 m/s² somewhere: 109 of the 110 races before,
+  none now. The worst place went from 77.6 to 18.4 m/s², and the middle race's worst place
+  from 39.8 to 14.2.
+- **Times.** They held: each rival alone on clear roads from Tamka is within 0.6 s of its old
+  time, every one of the 44 clear-road races within 2 % (together 4,684 s against 4,692 s), and
+  the 47 races in Busy traffic that finish both times are 3 % quicker together (6,735 s against
+  6,940 s).
+- **Behind a slower car.** The longest wait with a free lane beside it went from 8.2 to 6.2 s,
+  and a wait of more than 4 s is in 2 of the 48 races in Busy traffic where it was in 11.
+  Passes: 496 (476), of them 104 over the centre line (79).
+- **The player's place.** A rival's time moves 13 % with the player at most (16 %), which is
+  inside the mark's 15 % for the first time on the full matrix, and 5.3 % on average in Busy
+  traffic (6.9 %). The 13 % is close to the spread of the town's draw (below).
+- **Contact.** Cars driven through: 150 (152), for 80 s in all inside one (114 s); 37 of them
+  came the other way (38). Moved by the game in view: 60 times (79), and never put somewhere
+  else (5 times before). Stopped dead by the game: 130 times (140).
+- **The quick matrix** is four races in Busy traffic, one draw of the town's cars, and there
+  the contact went the other way: 17 cars driven through (5), 6 moves by the game (1), 16 dead
+  stops (5), while the longest wait fell from 8.2 to 1.5 s. Traced car by car, they are the
+  faults below; the full matrix's 48 races in traffic are the measure.
+
+**What step 4a leaves**, each traced on the bench and each a part of step 4b's driver:
+
+- **A sideways move is still a slide at 4 m/s** that starts and ends in one frame. One swing of
+  it costs the car v/2 m/s² in the bench's measure, and the worst place of the whole matrix is
+  now such a slide (18.4 m/s²: Słoik pulling out at 80 km/h on Solec). It is under the car's
+  limit in this draw and not by construction: two other tries at the pass rule put a slide at
+  21 and 22 m/s². Step 4b's sideways move is a smooth S within the grip that ends before the
+  corner.
+- **The pass is a timer.** It is measured at the speed the racer has behind the slower car,
+  though it is driven at up to twice that, and it is held out 0.3 s at a time while a car is
+  beside it. So a pass can end at the queue of the next junction (Pani Halina at the end of
+  Książęca: from 73 km/h to a dead stop), and from the right lane it goes through a car beside
+  it in the left one. Two guards against these were tried on the full matrix and taken out
+  again. No pass across a car alongside: 4 cars fewer driven through, and Halina 11 s slower
+  alone in Busy traffic, with a wait of more than 4 s in 6 races (Independence at 16 %). The
+  pass measured at the speed it gets up to, with its 4 s: the fast rivals had room to pass on
+  hardly any street (Mordor Mike alone 135.6 s for 115.2 s, Independence at 20 %). A pass
+  needs its length from both cars' speeds and the racer's pull, and a way to give it up.
+- **The town puts cars down in the gap.** Its cars appear in a band just outside the view
+  (`_try_spawn`), in the oncoming lane too, 60 to 110 m in front of a racer who is out in it
+  with the lane judged clear: most of the 37 cars met head-on. They are also put down as near
+  as 12 m and a car's length in front of any car, a racer at speed included. Step 4b: no car
+  is put down in a racer's way.
+- **A car standing across a junction** from another street is not in the rival's lane, so it
+  drives into it and is stopped dead by the game (130 times in the 110 races). The bench no
+  longer counts the pull-away after such a stop as a crawl (7.3): it is one fault, counted once.
+- **The longest wait** (6.2 s) is Pani Halina in the first race behind two cars moving off side
+  by side from the lights at the end of Wybrzeże Kościuszkowskie, 20 m before the junction,
+  where no pass starts.
+
 ## 6. Difficulty from skill, and the personalities
 
 No racer's speed depends on the player's. A rival is hard because of how that rival drives, and
@@ -405,7 +555,9 @@ came with step 3's route planner.
   differs is how much of it the rival uses: the share of a road's racing speed held on the
   straights (`share`), the pull away from a corner (`race_accel`), how early the braking starts
   (`brake`) and the grip used in a corner (`lat`), each at or under the car's own. Halina brakes
-  early and corners gently. Mike uses nearly all of the car.
+  early and corners gently. Mike uses nearly all of the car. Since step 4a `lat` is the real
+  sideways pull on the racer's own line
+  ([5.2](#52-step-4a-as-built-the-racing-line-and-a-speed-for-every-metre)).
 - **Each rival's own dice** (`traffic.gd` `race_rng`). A wrong turn and a corner taken badly are
   rolled on the rival's own dice and happen whether the player is near or not, so they are part
   of its skill and of its time. Before, a mistake was rolled only near the player, on dice shared
@@ -414,9 +566,11 @@ came with step 3's route planner.
   follows the time gap to the player and never the player's speed. From 1 s behind to 3 s ahead a
   rival drives its own pace. Further ahead it manages the lead, down to 0.9 of its pace from a
   10 s lead on. Further behind it pushes, up to 1.04 from 5 s behind on, the corners harder too
-  and with one and a half times its mistakes. The effort moves at most 0.05 a second. So a
-  rival's whole time moves by about a tenth at most whatever the player does, nobody waits, and
-  nobody lifts off before the finish.
+  and with one and a half times its mistakes. On a straight the push stops at the road's full
+  racing speed, which is the car's own: Mordor Mike drives it already since step 4a, so his
+  push is all in the corners, where the car still has grip to give (`race_corner`). The effort
+  moves at most 0.05 a second. So a rival's whole time moves by about a tenth at most whatever
+  the player does, nobody waits, and nobody lifts off before the finish.
 - **Fair out of sight** (step 3, `traffic.gd` `AWAY_*`). The town's cars exist only round the
   view, so a racer beyond them pays the delay its streets would have cost, as ground not covered
   ([5.1](#51-step-3-as-built-the-plan-the-way-round-the-towns-traffic)). A rival the player
@@ -435,26 +589,33 @@ came with step 3's route planner.
   (parked question 1).
 
 The ladder as built, with each rival's time alone on clear roads from Tamka to Plac Trzech Krzyży
-(1752 m), after step 3. The bench's Skill ladder mark holds the order of the times, not of any
-one number.
+(1752 m), after step 4a, and the numbers and the time of steps 2 and 3 in brackets. The bench's
+Skill ladder mark holds the order of the times, not of any one number.
 
 | Rival | Share of the road's speed | Pull (m/s²) | Brakes (m/s²) | Grip (m/s²) | Time alone |
 | --- | --- | --- | --- | --- | --- |
-| Pani Halina on her gentle day | 0.65 | 7.0 | 4.0 | 5.0 | 108.0 s |
-| Pani Halina | 0.70 | 8.0 | 4.5 | 5.5 | 99.2 s |
-| Słoik z Radomia | 0.92 | 8.5 | 5.5 | 6.0 | 88.0 s, his wrong turn included |
-| Bulwar Bartek | 0.80 | 9.5 | 6.0 | 7.5 | 86.7 s |
-| Seba z Pragi | 0.83 | 10.5 | 9.0 | 11.5 | 80.3 s |
-| Taksiarz Zbyszek | 0.92 | 11.0 | 7.0 | 10.0 | 75.6 s |
-| Mordor Mike | 0.97 | 12.5 | 9.0 | 11.0 | 71.2 s |
+| Pani Halina on her gentle day | 0.65 | 7.0 | 4.0 | 9.5 (5.0) | 108.2 s (108.0) |
+| Pani Halina | 0.70 | 8.0 | 4.5 | 10.0 (5.5) | 99.6 s (99.2) |
+| Słoik z Radomia | 0.92 | 9.5 (8.5) | 8.0 (5.5) | 11.0 (6.0) | 88.6 s (88.0), his wrong turn included |
+| Bulwar Bartek | 0.80 | 10.5 (9.5) | 9.0 (6.0) | 12.0 (7.5) | 87.0 s (86.7) |
+| Seba z Pragi | 0.86 (0.83) | 12.0 (10.5) | 13.0 (9.0) | 15.0 (11.5) | 80.2 s (80.3) |
+| Taksiarz Zbyszek | 0.93 (0.92) | 12.5 (11.0) | 12.0 (7.0) | 15.5 (10.0) | 75.7 s (75.6) |
+| Mordor Mike | 1.00 (0.97) | 13.5 (12.5) | 13.0 (9.0) | 16.5 (11.0) | 71.6 s (71.2) |
 | The player's car, for scale | 1.00 | 15 | 30 | 19 | 75.3 s (the fast test player) |
+
+The grip is a real sideways pull since step 4a, on the racer's own line; before, the same
+number was worth about twice as much through a junction and nothing held a bend inside a
+street. The numbers were set again so that each rival keeps its time
+([5.2](#52-step-4a-as-built-the-racing-line-and-a-speed-for-every-metre)). A rival that pushes
+(5 s behind the player or more) takes its corners with 4 % more grip, 17.2 m/s² for Mike, and
+`check_race_line.gd` holds every racer's hardest grip at or under the car's 19.
 
 Before step 2 the six drove it in 73.7, 76.2, 73.7, 72.8, 72.3 and 71.7 s with no player, and in
 180 s to 85 s with a player who never moved. Step 3 moved the times by half a second at most,
 but for Słoik (92.9 s before): his wrong turn is another road now
 ([5.1](#51-step-3-as-built-the-plan-the-way-round-the-towns-traffic)). The easier rematch on the
-same race: the gentle day takes 108.0, 112.4, 117.2 and 118.4 s after 0, 1, 2 and 3 losses in a
-row, and Mordor Mike 71.2, 74.5, 78.0 and 82.2 s. No rival's share goes under 0.58: with the
+same race: the gentle day takes 108.2, 113.2, 118.6 and 120.3 s after 0, 1, 2 and 3 losses in a
+row, and Mordor Mike 71.6, 74.7, 78.2 and 82.4 s. No rival's share goes under 0.58: with the
 easing of a long lead on top that is still over half the road's racing speed, the bench's crawl
 line.
 
@@ -601,6 +762,12 @@ took to run. A fault comes with its place, so it can be looked at in the game (`
 Godot's own `--verbose` every car driven through is printed with both cars' states, and every
 wait of more than 4 s behind a slower car with a free lane beside it.
 
+The json keeps every number of every race. Since step 4a also `head_ons` (of the cars driven
+through, those that came the other way) and what the traffic's step cost: `step_usec` (its
+mean), `step_most_usec` and `step_most_at` (its slowest frame and when), `steps_slow` (the
+frames over 1 ms: on clear roads they are the stretches of line built; in Busy traffic the
+count moves with the machine's own load).
+
 ### 7.3 The pass marks
 
 `race_bench.gd` `judge` turns a set of races into eleven marks. The limits are constants at the
@@ -610,12 +777,12 @@ top of that file; a change that moves one says why in its PR.
 | --- | --- | --- |
 | **Finishes** | every race reaches the finish within 420 s | 4b |
 | **Independence** | with a test player the rival's time (from the moment it is let go) is within 15 % of its time with no player on the same roads, faster or slower, and a race it finishes alone it finishes with any player. In traffic too since step 3: the town's cars are where the view is, and a rival beyond them pays the delay they would have cost it (before, only slower counted there, because a player left behind meant empty streets round the rival). A race the rival never finishes because the player's own stopped car stood in front of it with no lane to pass in, for more than half of the race, is not judged here: that is a block and not a pace that follows the player's (Finishes counts it, and step 4b's driver has to get round) | 2 |
-| **No crawl** | never more than 3 s in a row under half of the road's racing speed on a free straight road: nobody within 30 m in front, the next 40 m of its own way bending less than 0.3 rad, not held at the line, not knocked, not on a junction's curve | 2 |
+| **No crawl** | never more than 3 s in a row under half of the road's racing speed on a free straight road: nobody within 30 m in front, the next 40 m of its own way bending less than 0.3 rad, not held at the line, not knocked, not on a junction's curve. Pulling away after the game stopped the car dead is not a crawl (until it is back at half of the road's speed, 4 s at most): Honest car counts every dead stop, and since step 4a the two are not one fault counted twice | 2 |
 | **Passes traffic** | in Busy traffic never more than 4 s behind the same slower car (under 0.7 of the road's racing speed, within 12 m) while a lane beside it is free: another lane of its road with no slow car from 6 m behind to 30 m ahead, or the oncoming lane with no car for 80 m | 4b |
 | **No ghosting** | never inside another car's box (traffic.gd's own test; the town's cars, parked ones and the player's) for 0.25 s or more. Less is a touch, the bump of a collision | 4b |
 | **Re-routes** | with its street walled off it finishes, drives through no car, and takes no longer than its clear time stretched to the way of a driver who finds out at the wall (to the wall, back to the junction behind, round from there), times 1.2, plus 8 s | 3 |
 | **Recovers** | never moved by the game in view (pushed through a car, or put somewhere else), and with the wreck and the knock it finishes, drives through no car and loses at most 12 s against the same race without them | 4b |
-| **Honest car** | never over the player's car's top speed (108 km/h), pull (15 m/s²), sideways grip (19 m/s², measured as v² x turn / 8 m over every 8 m of its way) or brakes (30 m/s²: a harder stop is the game stopping the car, not the car) | 4a, 4b |
+| **Honest car** | never over the player's car's top speed (108 km/h), pull (15 m/s²), sideways grip (19 m/s², measured as v² x turn / 8 m over every 8 m of its way, but for the 8 m in which the game stopped it dead: its heading swings as it stands) or brakes (30 m/s²: a harder stop is the game stopping the car, not the car) | 4a, 4b |
 | **Route sense** | its own choice of route is at most 5 % slower than the best of the forced routes (on clear roads; in the full matrix in traffic too) | 3 |
 | **Skill ladder** | flat out on clear roads with no player, each rival up the ladder is as fast as the one below (1 % slack) and the top rival at least 10 % faster than the first. Full matrix only | 2 |
 | **Same race twice** | a repeated race gives the same time, streets and metres | 1 |
@@ -638,23 +805,65 @@ against them:
 - a mark recorded **unsteady** is shown and not held either way. It is set by hand, for a mark
   that passes or fails with the draw of the town's cars, and `--write` leaves it alone.
 
+`--write` records what one run on one machine saw. A mark that counts races in traffic is
+recorded pass only when it also passes on the other machine (the Mac's run of a race in traffic
+is another draw of the town's cars than the cloud's, 7.5) and in other draws (a race's `seed`);
+until then it is set to unsteady by hand. Step 4a learned this with Independence, below.
+
 So each step turns marks from fail to pass on purpose, and nothing slips back.
 
-After step 3 (2026-11-12), with step 2's number in brackets where it moved:
+After step 4a (2026-11-12), with step 3's number in brackets where it moved:
 
-| Mark | Quick matrix (21 races, Pani Halina) | Full matrix (111 races, all six rivals; step 2's numbers are of its 107) |
+| Mark | Quick matrix (21 races, Pani Halina) | Full matrix (111 races, all six rivals) |
 | --- | --- | --- |
-| Finishes | pass since step 3: 20 of 20 (19) | **fail**: 109 of 110 (104 of 106), the first race from Tamka with a player who never moves, in Busy traffic: see below |
-| Independence | pass since step 2: her time moves up to 11 % with the player (8 %, with one race not judged) | **fail**: up to 16 % (16 %), in one race: see below. Judged both ways in traffic now; by that rule step 2's driver was at 38 % |
-| No crawl | pass since step 2: 1.7 s in a row (1.9 s) | pass since step 2: 2.7 s (2.4 s) |
-| Passes traffic | **unsteady**: 8.2 s in this draw of the traffic (2.2 s) | **fail**: 8.2 s (9.2 s) |
-| No ghosting | **fail**: drove through 5 cars (9) | **fail**: 152 cars (159) |
-| Re-routes | pass since step 3: 1 of 1 (0 of 1, drove through the wall) | pass since step 3: 9 of 9 (0 of 9) |
-| Recovers | **fail**: moved by the game in view once (7 times); the crash itself recovered | **fail**: 79 times (85); 9 of 9 crashes recovered |
-| Honest car | **fail**: 49 m/s² sideways against the car's 19; stopped dead by the game 5 times (10) | **fail**: 77.6 m/s², Mordor Mike at 101 km/h through the bend on Książęca; 140 times (159) |
-| Route sense | pass: her own choice 123.9 s, the best forced route 123.9 s | pass: in traffic too |
-| Skill ladder | not judged (one rival) | pass since step 2: 99.2, 88.0, 86.7, 80.3, 75.6 and 71.2 s up the ladder, the top rival 39 % faster than the first |
+| Finishes | pass since step 3: 20 of 20 | **fail**: 109 of 110, the first race from Tamka with a player who never moves, in Busy traffic: see below |
+| Independence | pass since step 2: her time moves up to 11 % with the player, on the Mac too | **unsteady**: 13 % in the cloud's run (16 %), 22 % in the Mac's (17 %), and 25 to 170 % in three other draws of the town's cars (18 to 166 %): see below |
+| No crawl | pass since step 2: 1.7 s in a row | pass since step 2: 2.3 s (2.7 s) |
+| Passes traffic | **unsteady**: 1.5 s in this draw of the traffic (8.2 s) | **fail**: 6.2 s (8.2 s); more than 4 s in 2 of the 48 races in Busy traffic (11) |
+| No ghosting | **fail**: drove through 17 cars (5) | **fail**: 150 cars, 80 s inside one in all (152, 114 s) |
+| Re-routes | pass since step 3: 1 of 1 | pass since step 3: 9 of 9 |
+| Recovers | **fail**: moved by the game in view 6 times (once); the crash itself recovered | **fail**: 60 times (79); 9 of 9 crashes recovered |
+| Honest car | **fail**: stopped dead by the game 16 times (5). Sideways 18.2 m/s² against the car's 19 (49) | **fail**: stopped dead 130 times (140). Sideways 18.4 m/s² (77.6): no race is over the car's 19 (109 of the 110 were) |
+| Route sense | pass: her own choice 123.7 s, the best forced route 124.1 s | pass: in traffic too |
+| Skill ladder | not judged (one rival) | pass since step 2: 99.6, 88.6, 87.0, 80.2, 75.7 and 71.6 s up the ladder, the top rival 39 % faster than the first |
 | Same race twice | pass | pass |
+
+What step 4a turned, and what it left open ([5.2](#52-step-4a-as-built-the-racing-line-and-a-speed-for-every-metre)
+has each fault traced):
+
+- **Honest car's grip.** No race is over the sideways limit of the player's car: the line's
+  speeds are the mark's own measure. The mark stays recorded fail for the dead stops (a car
+  across a junction), and the one place near the limit is a pass's sideways slide: step 4b.
+- **Independence on the full matrix is recorded unsteady**, by hand, and is not held until
+  step 4b makes it steady. The cloud's run reads 13 % and passes, and `--write` recorded that
+  at first. The Mac's run of the same matrix reads 22 % and fails (16 and 17 % at step 3). On
+  clear roads the two machines run the same races (the ladder's six times agree to the tenth
+  of a second, and Independence there is 12.5 % on both, 13.2 % at step 3: the first race from
+  Leszczyńska with the slow test player). With the town's cars they do not, so the Mac's run
+  of a race in traffic is another draw than the cloud's (the likely cause, not traced: the two
+  processors round a sum differently in its last digit, one car chooses otherwise and the rest
+  follows). The mark is the worst of 32 such races, each run once. Three more draws in the
+  cloud (a race's `seed`) say what that is worth: 35, 170 and 25 % with this step, 166, 18 and
+  23 % at step 3, while a race's time with a player is 5 to 12 % from its time alone on
+  average in every one of them, with this step and at step 3 alike. So the mark fails in four
+  of the five draws measured with this step and in all five at step 3: the pass was the draw.
+  The large numbers are one fault, which step 3 built and step 4b has to mend: a rival that
+  stands 3 s behind the player's stopped car with no lane to pass in takes the street for
+  blocked (`BOX_WAIT`), also when the player has only stopped for a moment in the traffic. In
+  one draw the average test player stands still for five seconds on Książęca, 171 m before the
+  finish; Pani Halina, 6 m behind it, makes a U-turn after three of them and goes 3 km round
+  by Rozbrat and Aleje Ujazdowskie, home in 373 s where the player is home in 155 s (138 s
+  alone). The matrix's own draw shows the mild case of
+  it: the first race from Leszczyńska in Busy traffic with a player who never moves still
+  makes its U-turn and goes round by Dobra, in 204 s as before, and her time alone there is
+  187 s where it was 177 s, because alone she now goes by Dobra too (the plan's choice in Busy
+  traffic, 5.2).
+- **Passes traffic** is better and not yet a pass: with the oncoming lane a pass uses read
+  right, a wait of more than 4 s is rare. The mark turns with the real overtake.
+- **No ghosting, Recovers.** Level on the full matrix, with a third less time spent inside
+  another car; up on the quick matrix's four races, a draw. Both are the old driver's: step 4b.
+
+Step 3's own account, with its numbers:
 
 The full matrix has four races more than step 2's: the first race to the Palace (below). On
 step 2's 107 races alone step 3 gives 105 of 106 finished, 148 cars driven through, 78 moves by
@@ -710,6 +919,12 @@ the driver that can leave its line.
   player's car). That is one more reason the marks are judged on the bench.
 - **The planner's cost on the phone.** The search is measured on a desktop (0.6 ms a frame in
   slices, a plan in under a second of the countdown). The phone's figure needs a phone run.
+  The same for a stretch of line built during a race (step 4a: 1.5 ms in the middle, 2.3 ms at
+  the most on the cloud's CPU).
+- **A top rival that is behind.** The fast test player is 3.7 s slower than Mordor Mike on clear
+  roads, so no race of the matrix has him far enough behind the player to push (a second and
+  more), and his push through the corners (section 6) is held by `check_first10.gd` alone. A test player that
+  drives all of the car belongs with step 4b's driver.
 - **Feel.** After each step that changes the game: an Autopilot race on the Mac from main, and
   three questions for F on the phone: did a racer ever look like traffic, did one do something
   your car cannot, and could you tell why you won or lost. For step 3 also: how a rival backing
@@ -726,7 +941,13 @@ Two things about the numbers themselves:
 - **Between machines.** Step 1's driver on the Mac gave the quick matrix identical to the cloud's
   Linux run, line for line. The full matrix gave the same marks with two traffic numbers apart
   (7.4 s behind a slower car against 10.2 s, 217 cars driven through against 216, stopped dead 184
-  times against 187), all three from races in Busy traffic.
+  times against 187), all three from races in Busy traffic. With step 4a's driver the quick
+  matrix gives the same marks on both machines (Independence 11 % on both), and the full one
+  does not: Independence reads 22 % on the Mac and 13 % in the cloud (17 and 16 % at step 3),
+  156 cars are driven through against 150 (134 against 152), and the game stops a rival dead
+  136 times against 130 (140 on both). The races on clear roads are the same on both. So the
+  Mac's run of a race in traffic counts as one more draw of the town's cars, and no more than
+  that.
 
 ## 8. Build order
 
@@ -738,8 +959,8 @@ after. Step 2 ends the complaint in F's message. The steps after it make racing 
 | 1 (done) | Race bench, prototype race, baseline of today's driver, this plan in the repo | Nothing changes in the game | The baseline is recorded |
 | 2 (done) | Skill profiles replace the band, in the ladder races, the final and the guided first race; an easier rematch after a loss | Halina and the others race from start to finish at their own pace. A slow player loses, and the rematch is a little easier | No crawl, Skill ladder, Independence on the quick matrix (the full matrix's last case turns with 4b) |
 | 3 (done) | Route planner by arrival time; turning back at a blocked street; the expected traffic delay out of sight; a lane held for 2 s; one finish line for both cars | Rivals take different streets in traffic, go round a blocked street, get past a slow player on a two-lane road, get no empty streets out of sight, and finish where the player does | Re-routes; Finishes on the quick matrix; Independence in traffic both ways (the full matrix's last case turns with 4b) |
-| 4a | Driver, part 1: racing line and a speed for every metre | Fast, smooth corners with the braking done before the bend | Honest car (grip), better clear-road times |
-| 4b | Driver, part 2: overtaking, collisions, recovery | Real passes. Nobody drives through a car. A crashed rival reverses and goes on | Passes traffic, No ghosting, Recovers, Finishes, Honest car (brakes) |
+| 4a (done) | Driver, part 1: a racing line inside the racer's lane and a speed for every metre of it; the rivals' skill numbers set again for a real sideways pull; the centre-line pass by the oncoming lane it uses, clear for as long as the pass lasts | Smooth corners with the braking done before the bend, and no bend taken faster than the player's own car could. A rival rarely sits behind a slow car with the way past free | Honest car's grip (109 of the 110 races were over the car's limit, none is). The times were kept, not bettered: the line stays in its lane until 4b. Independence on the full matrix passes or fails with the draw of the town's cars and is recorded unsteady |
+| 4b | Driver, part 2: overtaking (a pass whose length comes from both cars' speeds and the racer's pull and that can be given up, nobody beside it on the way out, a smooth sideways move that ends before the corner, a side held while there is more to pass), collisions (a car across a junction is seen, no car put down in a racer's way), recovery | Real passes. Nobody drives through a car. A crashed rival reverses and goes on | Passes traffic, No ghosting, Recovers, Finishes, Honest car (the dead stops, the slide of a pass); Independence on the full matrix, once it is judged over several draws (no turning back behind a player's car that only waits) |
 | 5 | Race links: alleys, courtyards, car parks, wrong-way hops | Halina turns into a courtyard and comes out in front | Real-car proof for every link |
 | 6a | Personalities, visible decisions, result card with both routes, tuning | You can tell Seba from Zbyszek by how they drive | The ladder's curve of times |
 | 6b | One race object for the pack race, Trzy mosty, police chasers and crazy drivers | Every race in the game uses the new driver | All marks on every race mode |

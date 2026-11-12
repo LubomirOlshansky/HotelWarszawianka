@@ -232,6 +232,14 @@
 # the only lane, out of the town's cars in Busy traffic (the delay owed is paid, with no step in the
 # speed), behind the slow test player on two lanes (a lane held: she moves over and is past), and the
 # first race to the Palace home at its circle; about 8 s (CI too, skipped without centrum.json).
+# Step 4a of the rebuild: `raceline` runs game/tools/check_race_line.gd: the racing line
+# (race_line.gd) over the whole committed lane graph without a race: its constants repeat
+# traffic.gd's, every stretch between two long streets in every lane stays in its lane and in its
+# junction's room with its metres rising (the steps back and tight arcs the map's own curves give
+# are counted on purpose), a way of several stretches joins without a step or a kink, a car beside
+# its line moves without a step, and the speeds never pass a point faster than its turn allows,
+# are braked for in time, in the order of the racers' grip, a mistake within the car's own grip;
+# about 15 s (CI too, skipped without centrum.json).
 # Loop 3h slice 4: `first10`
 # runs game/tools/check_first10.gd: the guide's ten beats and windows, who gets the guide, three
 # synthetic players through the director's rules (each beat in its window, the fallbacks, a beat
@@ -1193,6 +1201,7 @@ for s in $want; do
 		cassettes) check cassettes '^cassettes:' --script res://tools/check_cassettes.gd ;;
 		ladder) check ladder '^ladder:' --script res://tools/check_ladder.gd ;;
 		racecuts) check racecuts '^race_cuts:' --script res://tools/check_race_cuts.gd ;;
+		raceline) check raceline '^race_line:' --script res://tools/check_race_line.gd ;;
 		racebench) check racebench '^check_race_bench:' --script res://tools/check_race_bench.gd ;;
 		raceplanner) check raceplanner '^check_race_planner:' --script res://tools/check_race_planner.gd ;;
 		first10) check first10 '^first10:' --script res://tools/check_first10.gd ;;
