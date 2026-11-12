@@ -5127,13 +5127,16 @@ final's route on the lane graph), the flow in `rivals.gd`.
   once and shared (0.7 ms on a desktop, 20 ms the slowest of the map's 13,273), a line is
   brought up to date twice a second at most, and a frame reads one point of it. On the race
   bench (the cloud's CPU) the traffic step went from 30 to 47 µs a frame with the rival alone
-  (the rival's own update from 15 to 30 µs) and from 382 to 426 µs in Busy traffic; a line is
+  (the rival's own update from 15 to 30 µs) and from 382 to about 430 µs in Busy traffic; a line is
   put together about 25 times in a race in Busy traffic, in 0.4 ms from stretches already built
   and 1.5 ms in the middle, 2.3 ms at the most, with one to build (the bench's `steps_slow`
   and `step_most_usec` count them; whether that is a hitch on the phone only the phone can
   show). The frame bench did not move (106 draw calls, traffic 0.8 ms). Check: verify step
   `raceline` (`game/tools/check_race_line.gd`, CI too: every stretch of the map stays in its
-  room, the speeds are inside the grip and braked for in time).
+  room, the speeds are inside the grip and braked for in time). A rival's effort (`rivals.gd`
+  `pace_tick`) is cut to the road's racing speed for the straight only (`race_effort`); the
+  corner's grip reads the effort itself (`race_corner`), so a rival at the car's top still
+  pushes through the bends (`check_first10.gd`).
 
 ## The first 10 minutes and the end card (loop 3h slice 4, 2026-10-31)
 

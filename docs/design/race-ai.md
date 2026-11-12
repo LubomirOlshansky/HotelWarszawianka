@@ -355,8 +355,12 @@ racer, who has more to lose behind a town car. The model gives a race's time in 
 streets with an oncoming road, 46 % streets with lanes, 14 % street ends and 17 % lights. The
 constants were fitted before the lane was held (below); run again with it, the fit moved to 0.73,
 0.26, 0.40, 0.24 and 1.53, no nearer a race's time than the constants as they stand (6.7 %
-both), so they stay. These are the old driver's numbers: when step 4b changes how a racer
-passes, the tool is run again and the constants move.
+both), so they stay. Run once more after step 4a (the line, and the pass over the centre line
+by the lanes it uses), a kilometre costs Halina 6.9, 12.0 and 27.5 s, Bartek 6.7, 12.1 and
+29.5 s, Mike 8.9, 15.1 and 32.9 s; the fit moved to 0.70, 0.22, 0.30, 0.39 and 1.61 and gives a
+race's time to 7.5 %, the constants as they stand to 7.6 % (3 % long in Busy traffic), with the
+draw alone at 5 to 6 %: they stay again. These are the old driver's numbers: when step 4b
+changes how a racer passes, the tool is run again and the constants move.
 
 Two numbers of the racer's profile read it (`ladder.gd`):
 
@@ -476,7 +480,8 @@ fast rivals brake later than before (13 against 9 m/s² for Mike): with honest c
 braking zone is where a good driver gains. Mike's share of the road's speed went to 1.0, which
 left his effort no room on a straight; the same cut number was used for his grip, so his push
 did nothing at all (`check_first10.gd` found it). The cut is now for the straight only, and a
-corner gets the effort itself.
+corner gets the effort itself. The bench's races came out the same with it, all 110: in none of
+them does Mike fall far enough behind a player to push (7.5).
 
 **The plan's clock** still counts a corner by the old rule (the junction curve's radius and the
 racer's `lat`), now with the new numbers. Against the race as driven on its line it runs 2.4 to
@@ -894,6 +899,12 @@ the driver that can leave its line.
   player's car). That is one more reason the marks are judged on the bench.
 - **The planner's cost on the phone.** The search is measured on a desktop (0.6 ms a frame in
   slices, a plan in under a second of the countdown). The phone's figure needs a phone run.
+  The same for a stretch of line built during a race (step 4a: 1.5 ms in the middle, 2.3 ms at
+  the most on the cloud's CPU).
+- **A top rival that is behind.** The fast test player is 3.7 s slower than Mordor Mike on clear
+  roads, so no race of the matrix has him far enough behind the player to push (a second and
+  more), and his push through the corners (section 6) is held by `check_first10.gd` alone. A test player that
+  drives all of the car belongs with step 4b's driver.
 - **Feel.** After each step that changes the game: an Autopilot race on the Mac from main, and
   three questions for F on the phone: did a racer ever look like traffic, did one do something
   your car cannot, and could you tell why you won or lost. For step 3 also: how a rival backing
