@@ -64,6 +64,11 @@ class Probe extends Activity:
 	## Each refusal: [the phase it came in, by the clock].
 	var refused: Array = []
 	var no_offer := false
+	## A card whose life runs out is counted here and not pressed (`_card_expired` of its own).
+	var own_expiry := false
+	var expired := 0
+	## Its own words on the arrow ("" for the kit's metres).
+	var label := ""
 
 	func _call_card() -> Dictionary:
 		return {"who": "Próba", "about": ["Ktoś od prób.", "Somebody who tests."]}
@@ -86,6 +91,15 @@ class Probe extends Activity:
 
 	func _card_pressed(index: int) -> void:
 		pressed.append(index)
+
+	func _card_expired() -> void:
+		if own_expiry:
+			expired += 1
+		else:
+			super._card_expired()
+
+	func target_label(metres: int) -> String:
+		return label if label != "" else super.target_label(metres)
 
 	func _can_abort() -> bool:
 		return may_abort
@@ -362,6 +376,39 @@ func _refusals_and_looks() -> void:
 	_run(a, 30.0)
 	_expect(hud.card == "PYTANIE" and a.pressed == [0], "a card without a life waits for its press")
 	hud.press(0)
+	# A subclass with its own `_card_expired` (the rave's door): the card goes down, no button is
+	# pressed, the subclass hears it once, and the run goes on.
+	a.own_expiry = true
+	a.pressed.clear()
+	a.show_card(["BRAMKA", "DOOR"], ["tekst", "text"], PackedStringArray(["TAK|YES", "NIE|NO"]), 2.0)
+	_run(a, 1.8)
+	_expect(hud.card == "BRAMKA" and a.expired == 0, "a card with a life and its own expiry is up until its life is over")
+	var ticks := a.ticks
+	_run(a, 0.4)
+	_expect(hud.card == "" and a.pressed.is_empty() and a.expired == 1 and not a._card_up,
+			"then it goes down with no press, and the subclass hears it once (pressed %s, expired %d)" % [a.pressed, a.expired])
+	_expect(a.busy() and a.ticks > ticks, "and the run goes on")
+	_run(a, 5.0)
+	_expect(a.expired == 1, "once only")
+	# A press before the life is over is a press, not an expiry.
+	a.show_card(["BRAMKA", "DOOR"], ["tekst", "text"], PackedStringArray(["TAK|YES", "NIE|NO"]), 2.0)
+	_run(a, 1.0)
+	hud.press(1)
+	_run(a, 3.0)
+	_expect(a.pressed == [1] and a.expired == 1, "a press before the life is over is a press (pressed %s, expired %d)" % [a.pressed, a.expired])
+	# The autopilot's tap comes first: it presses the first button, whatever the expiry would do.
+	a.autopilot = true
+	a.pressed.clear()
+	a.show_card(["BRAMKA", "DOOR"], ["tekst", "text"], PackedStringArray(["TAK|YES", "NIE|NO"]), 60.0)
+	_run(a, Activity.AUTO_CARD + 0.3)
+	_expect(a.pressed == [0] and a.expired == 1, "the autopilot presses the first button of a card with a life (pressed %s)" % [a.pressed])
+	a.autopilot = false
+	a.own_expiry = false
+	# The arrow's words: the metres, or the subclass's own.
+	_expect(a.target_label(37) == "37 m", "target_label: the metres (%s)" % a.target_label(37))
+	a.label = "???"
+	_expect(a.target_label(37) == "???", "target_label: the subclass's own words")
+	a.label = ""
 	# The status line: the activity's colour, or its own.
 	a.status("Próba", "1/1", "5 m", ["jedź", "drive"], 0.5)
 	_expect(hud.tint == a.colour, "the status line has the activity's colour")

@@ -7944,7 +7944,7 @@ func _show_target() -> void:
 		var at_a := _vehicle_position()
 		var ma := roundi(Vector2(ap.x - at_a.x, ap.z - at_a.z).length())
 		var on_a := cam.unproject_position(ap + Vector3(0, 3.5, 0)) * float(view.stretch_shrink)
-		hud.set_target(on_a, "%d m" % ma, act.target_colour(), ma > 12)
+		hud.set_target(on_a, act.target_label(ma), act.target_colour(), ma > 12)
 		_put_target(Vector2(ap.x, ap.z), act.target_colour(), false)
 		_new_target("job", ap)
 		return
