@@ -34,7 +34,11 @@ extends Node
 ## screen (`cards_low`) and a target that is not the kit's ring (the nearest Leżak); trend_job.gd
 ## the first with several kinds of order in one script: a request card that leaves the player
 ## free (`offer_busy`), a caller with a face of their own (`_call_card`'s "face") and cards of the
-## run beside the road (`show_side_card`).
+## run beside the road (`show_side_card`); rides.gd the first whose cards the drive goes on under
+## (`cards_hold` off: a passenger's question on the way, a result card that goes once the car
+## drives off; the ✕ still drops the run under them), with a card taken down without a press
+## (`close_card`: the door reached before the answer) and with the autopilot's car driven by the
+## activity itself (`drive_player`: the app's route on a ghost driver).
 
 const Beacon := preload("res://scripts/beacon.gd")
 const Access := preload("res://scripts/access.gd")
@@ -92,6 +96,10 @@ var cards_low := false
 ## request card (ACCEPT / SKIP as the player drives past) leaves them free: such a job is on only
 ## once it runs, so everything that asks "is a job on?" answers as before the card was taken.
 var offer_busy := true
+## A card of the run stops the run until it is pressed (or its life runs out). False for a job
+## whose cards sit beside the road while the drive goes on: `_run_tick` keeps running under them
+## and the ✕ still drops the run (a passenger's question, a result that goes once the car is off).
+var cards_hold := true
 
 var phase := Phase.IDLE
 ## Seconds in this phase, or since the run's last card went up.
@@ -213,6 +221,8 @@ func _process(dt: float) -> void:
 			elif autopilot and _t > AUTO_ANSWER:
 				card_pressed(0)
 		Phase.RUN:
+			# A card that holds stops the run for this frame, pressed in it or not.
+			var held := _card_up and cards_hold
 			if _card_up:
 				if not hud.card_is(self):
 					# Something else took the card down or put its own up. Ours goes back once
@@ -226,7 +236,7 @@ func _process(dt: float) -> void:
 					_card_up = false
 					_hide_own_card()
 					_card_expired()
-			else:
+			if not held and phase == Phase.RUN:
 				_run_t += dt
 				if play_limit > 0.0 and _run_t > play_limit:
 					drop(false)
@@ -300,11 +310,12 @@ func start() -> void:
 
 # --- the cards (TD-16) ---------------------------------------------------------------------------
 
-## A card of the run, in the middle of the screen (at its bottom with `cards_low`): this activity's own, so its buttons come to
-## `_card_pressed` and to nobody else. The run's clock stands while it is up. With `life` the
-## card closes by itself after that many seconds (`_card_expired`: as if its first button were
-## pressed, a result card nobody has to tap). `stacked`: its buttons one under the other. `tint`:
-## the card's colour when it is not the activity's (the boat race's ODPADASZ! is red).
+## A card of the run, in the middle of the screen (at its bottom with `cards_low`): this
+## activity's own, so its buttons come to `_card_pressed` and to nobody else. The run's clock
+## stands while it is up (unless `cards_hold` is off). With `life` the card closes by itself after
+## that many seconds (`_card_expired`: as if its first button were pressed, a result card nobody
+## has to tap). `stacked`: its buttons one under the other. `tint`: the card's colour when it is
+## not the activity's (the boat race's ODPADASZ! is red).
 func show_card(title: Array, body: Array, buttons: PackedStringArray, life := 0.0, stacked := false, tint := Color(0, 0, 0, 0)) -> void:
 	_card_args = [title, body, buttons, stacked, tint, false]
 	_card_life = life
@@ -315,8 +326,8 @@ func show_card(title: Array, body: Array, buttons: PackedStringArray, life := 0.
 
 ## A card of the run beside the road, where an offer sits (hud.gd `show_side_card`): what a job
 ## says when it is done, with the street still in view. Otherwise as `show_card`.
-func show_side_card(title: Array, body: Array, buttons: PackedStringArray, life := 0.0, tint := Color(0, 0, 0, 0)) -> void:
-	_card_args = [title, body, buttons, false, tint, true]
+func show_side_card(title: Array, body: Array, buttons: PackedStringArray, life := 0.0, tint := Color(0, 0, 0, 0), stacked := false) -> void:
+	_card_args = [title, body, buttons, stacked, tint, true]
 	_card_life = life
 	_card_up = true
 	_t = 0.0
@@ -343,6 +354,14 @@ func _own_card() -> void:
 func _hide_own_card() -> void:
 	if hud.card_is(self):
 		hud.hide_card()
+
+
+## A card of the run comes down without a press: the run went on under it (`cards_hold` off) and
+## got past what the card asked (the door reached before the passenger's question was answered).
+func close_card() -> void:
+	if _card_up:
+		_card_up = false
+		_hide_own_card()
 
 
 ## A button on a card this activity showed (the HUD calls this on the card's owner only).
@@ -384,9 +403,10 @@ func hide_status() -> void:
 
 # --- the end -------------------------------------------------------------------------------------
 
-## The ✕ on the status line. Only a run that is under way, with no card of its own up, drops.
+## The ✕ on the status line. Only a run that is under way drops, and not under a card of its own
+## that holds it (`cards_hold`).
 func abort() -> void:
-	if phase == Phase.RUN and not _card_up and _can_abort():
+	if phase == Phase.RUN and not (_card_up and cards_hold) and _can_abort():
 		drop(true)
 
 
@@ -452,7 +472,7 @@ func _begin() -> void:
 	pass
 
 
-## Every frame of the run while no card of its own is up.
+## Every frame of the run while no card of its own is up (under one too, with `cards_hold` off).
 func _run_tick(_dt: float) -> void:
 	pass
 
@@ -495,6 +515,13 @@ func _quit_words() -> Array:
 ## they may.
 func grounded() -> Array:
 	return []
+
+
+## The activity drives the autopilot's car itself this frame (main.gd `_autopilot`, a test run):
+## a ride follows the app's route on a ghost driver in traffic. False: main.gd slides the car
+## straight to the target.
+func drive_player() -> bool:
+	return false
 
 
 ## Back to idle: a subclass clears its own run here.

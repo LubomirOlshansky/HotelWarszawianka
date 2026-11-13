@@ -2928,6 +2928,17 @@ name or logo). The joke is the app and its GPS, never the driver or the passenge
   believer waiting 34 m from the pin, the river quirk) with the autopilot and `--parody-log`.
   `check_hud.gd` lays out the request card, the ride's status and two result cards at their
   longest, and fails a ride card that covers the car's spot.
+  Since 2026-11-13 (tech-debt TD-1) `rides.gd` is an activity of the kit (`activity.gd`): the kit
+  keeps its request, its cards, its status line, its ring, the ✕ and the end; the arrow, the
+  metres, the minimap's dot and the stop assist read its target through the director (main.gd's
+  own block for it is gone), and on a test run the ride drives the autopilot's car itself
+  (`drive_player`, which main.gd asks of the activity whose target is up). With `--autopilot` a
+  request is taken after 1.5 s (2.0 s before) and a story passenger's question answered after
+  2.5 s (2.0 s before). When a ride ends the kit takes down only a card of its own (the old
+  script took down whichever card was up). The play has its own check: `check_ride_play.gd`
+  (verify step `rideplay`, run at `--fixed-fps 60`): the request and what holds it back, the
+  pickup, the ride and its stars, the quirks and their plans, the Frogs stop, the story
+  passengers, the pay, the ends, and rides on the autopilot.
 - **Cost** (probe, Metal, 2868×1320, Classic, traffic Normal, day; before = 613ff38 from a copy
   in the same session, measured before the 3c streaming merge): the spawn view 134 draw calls (main 52, shadow 35, 2D 46) before and
   after, side jobs + eggs 0.039 → 0.044 ms. During a ride (ride 19 on the autopilot, Powiśle):
@@ -5777,6 +5788,7 @@ Command-line options (after `--`):
 | `--stream-slow=MS` | loop 3d-2b: every worker load takes MS ms longer (the phone's slower loads on the Mac: `--stream-slow=400` with the look-ahead off misses 337 frames in the helicopter pass, with it 0) |
 | `--stream-gate=0` | loop 3d-2b: a prebuilt sector's pieces load with its scene at once (the old one-frame load end), not one a frame |
 | `--solo=KEY` / `--solo-look=lit\|flat\|sil` | landmarks 0.3: build one landmark site alone (key as in `landmarks.gd`: `palace`, `rotunda`, `varso`…), no ground, roads, buildings or traffic, on a plain background, runtime city path only (forces off `--prebuilt`). `flat` (default) = unlit in the site's colours on grey, `sil` = dark silhouette on near-white, `lit` = the normal look. Use `--time=day`; the judge's shots (model-from-photos skill section 5): `tools/shots.sh --set=first` |
+| `--palace=code\|blender\|blender1` | the Blender trial (2026-11-13): which Palace to build. `code` (default) is `landmarks.gd` `_build_palace`; `blender` the LOD 0 glb from `tools/blender/pkin.py`, `blender1` its LOD 1. The sector bake reads `AW_PALACE` instead (`AW_PALACE=blender godot --path game --resolution 320x180 --script res://tools/bake_city.gd`) |
 | `--no-ghost` | 2026-10-31, for the landing's screenshots: no occlusion ghost and no see-through hole round the car (the dither and the hole that open buildings between the camera and the car), so a wide framed shot (`--yaw` / `--pitch` / `--size`) centred on a spot behind a building keeps it whole. The landing's Palace shot: `--at=-1180,215 --yaw=225 --pitch=-38 --size=400 --time=live --clock=18:15 --date=20260915 --nohud --no-ghost` at 1920x1080 |
 | `--topdown` | 2026-11-07, F: road photos from height, like GTA: the camera looks straight down, north up, with no occlusion ghost, to check kerbs, asphalt and paint. T toggles the same road view in a running game (keyboard). With `--at=X,Z --size=55 --nohud --no-traffic --shots=30 --out=DIR` it makes a road plan shot of any spot |
 | `--debug-ao` / `--no-ao` | show / switch off the baked ground shadows |

@@ -422,7 +422,7 @@ func _free() -> bool:
 		return false
 	if jobs != null and jobs.own_busy():
 		return false
-	if rides != null and rides.state != 0:
+	if rides != null and not rides.idle():
 		return false
 	return (rivals == null or not rivals.busy()) and bool(free_now.call())
 

@@ -2742,10 +2742,27 @@ func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
 	rides.force_answer = ride_answer
 	rides.start_stars = ride_stars
 	rides.gps_first = gps_in
+	rides.hud = hud
+	rides.bubbles = bubbles
+	rides.dialogue = dialogue
+	rides.wallet = wallet
+	rides.missions = missions
+	rides.rivals = rivals
+	rides.jobs = jobs
+	rides.graph = graph
+	rides.traffic = traffic
+	rides.map = map
+	rides.car = car
+	rides.tod = tod
+	rides.weather = weather
+	rides.map_data = data
 	add_child(rides)
 	nodes["jobs"] = jobs
 	nodes["weather"] = weather
-	rides.setup(nodes, data, world)
+	rides.setup(world)
+	# The director counts it among the activities (one of the kit at a time); the ride's own
+	# `_free` holds every rule for what is outside the kit, so its test here is "yes".
+	activities.add(rides, func() -> bool: return true)
 	jobs.rides = rides
 	# --- end loop 2d-1 ---
 	eggs = Eggs.new()
@@ -5338,6 +5355,9 @@ func _parse_args() -> void:
 			sun_pitch = float(arg.trim_prefix("--sun="))
 		elif arg == "--debug-ao":
 			debug_ao = true
+		elif arg.begins_with("--palace="):
+			# The Blender trial (2026-11-13): code, blender (LOD 0) or blender1 (LOD 1).
+			preload("res://scripts/landmarks.gd").palace_flag = arg.trim_prefix("--palace=")
 		elif arg.begins_with("--solo="):
 			solo_site = arg.trim_prefix("--solo=")
 			MapBuilder.solo_site = solo_site
@@ -7858,8 +7878,6 @@ func _stop_assist() -> void:
 		pass
 	elif activities.targeted() != null:
 		at = activities.targeted().stop_spot()
-	elif rides != null and rides.has_target():
-		at = rides.stop_spot()
 	elif jobs != null and jobs.has_target():
 		at = jobs.stop_spot()
 	elif missions.has_target():
@@ -7964,16 +7982,6 @@ func _show_target() -> void:
 		hud.set_target(on, "%d m" % m, rivals.target_colour(), m > 12)
 		_put_target(Vector2(f.x, f.z), rivals.target_colour(), _guide_on() or rivals.main_race())
 		_new_target("race", f)
-		return
-	# Loop 2d-1: a Podwózka ride's pin, passenger or door.
-	if rides != null and rides.has_target() and Lines.shows(Lines.Line.CAR, flying):
-		var rp: Vector3 = rides.target_position()
-		var at_r := _vehicle_position()
-		var mr := roundi(Vector2(rp.x - at_r.x, rp.z - at_r.z).length())
-		var on_r := cam.unproject_position(rp + Vector3(0, 3.5, 0)) * float(view.stretch_shrink)
-		hud.set_target(on_r, "%d m" % mr, rides.target_colour(), mr > 12)
-		_put_target(Vector2(rp.x, rp.z), rides.target_colour(), _guide_on())
-		_new_target("job", rp)
 		return
 	if jobs != null and jobs.has_target() and Lines.shows(Lines.Line.CAR, flying):
 		var j: Vector3 = jobs.target_position()
@@ -8251,11 +8259,11 @@ func _autopilot(dt: float) -> void:
 		return
 	if rivals != null and rivals.drive_player():
 		return
-	if rides != null and rides.drive_player():
-		return  # loop 2d-1
 	if jobs != null and jobs.drive_player():
 		return
 	var act := activities.targeted()
+	if act != null and act.drive_player():
+		return  # it drives the car itself (a ride on the app's route: rides.gd)
 	if act != null and not flying and not act.flown:
 		_slide_car(act.target_position(), dt)
 		return
