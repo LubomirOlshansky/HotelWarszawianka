@@ -29,6 +29,10 @@ class Hud extends CanvasLayer:
 	var stacked := false
 	var accent := Color.WHITE
 	var low := false
+	## Whether the card that is up sits beside the road (hud.gd `show_side_card`; a call does too),
+	## and the face named for it or for the call ("" when none was).
+	var side := false
+	var face := ""
 	## The English of the card that is up (hud.gd shows one language; a check reads both).
 	var card_en := ""
 	var body_en := ""
@@ -87,14 +91,21 @@ class Hud extends CanvasLayer:
 		card_en = te
 		body_en = be
 
-	func show_side_card(title: String, text: String, btn: PackedStringArray, a: Color, _te := "", _be := "", s := false, _f := "") -> void:
+	func show_side_card(title: String, text: String, btn: PackedStringArray, a: Color, te := "", be := "", s := false, f := "") -> void:
 		_up(title, text, btn)
 		stacked = s
 		accent = a
+		side = true
+		face = f
+		card_en = te
+		body_en = be
 
-	func show_call(who: String, about: String, a: Color, _be := "", _f := "", btn := PackedStringArray(["ODBIERZ|ANSWER", "ODRZUĆ|DECLINE"])) -> void:
+	func show_call(who: String, about: String, a: Color, be := "", f := "", btn := PackedStringArray(["ODBIERZ|ANSWER", "ODRZUĆ|DECLINE"])) -> void:
 		_up("📞 %s DZWONI" % who.to_upper(), about, btn)
 		accent = a
+		side = true
+		face = f
+		body_en = be
 
 	func _up(title: String, text: String, btn: PackedStringArray) -> void:
 		_owner = null
@@ -104,6 +115,8 @@ class Hud extends CanvasLayer:
 		button_words = btn
 		stacked = false
 		low = false
+		side = false
+		face = ""
 		card_en = ""
 		body_en = ""
 		shown += 1
