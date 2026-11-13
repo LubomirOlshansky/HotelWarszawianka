@@ -1691,6 +1691,28 @@ same work, re-ranked; its detail in road-objects.md still holds).
 - [ ] 10 Ratchets (R9): hard metres within 1 m of a lane by class in `check_map_data.py`; contacts per km and dead stops per street in the drive check
 - [ ] 11 Street sweeps for what the class rules leave (exceptions, landmark rings, look)
 
+## Walls, fences and rails that look real (F, 2026-11-13; docs/design/walls-true-to-life.md)
+
+F: "there are the walls now, but they should represent the real type of object and texture, and how
+to handle it if it is ruined". Research and the phased plan: `docs/design/walls-true-to-life.md`.
+Found: 155.5 of 188 km of fence and 56.8 of 70 km of wall have no OSM detail and are drawn as one
+grey band or one beige slab; the type must come from what the barrier stands next to (a prototype
+names a setting for 60 % of the fence metres from the map's own data; the rest needs land-use
+outlines the bake drops). One image pixel is 10 to 17 cm at the default zoom, so a type is its
+colour, height, outline, post rhythm and openness, not a brick pattern. Proposed: heavy (Hard)
+types as shaped geometry in the city mesh, light (Smash) types as instanced 2 m panels with their
+own small shader (the building shader, 502 of 505, is not touched); a broken panel lies down until
+`soft_things` repairs it (the memory is docs/design/drivable-city-build.md section 5).
+- [x] Research: the types, the classification, how each is drawn and broken, cost, fallbacks, the phases (2026-11-13, docs only)
+- [ ] W0 Type sheet: 6 to 10 reference photos per type (never committed), a card per type, a 20-sample check of each context rule
+- [ ] W1 Types in the bake: `tools/barrier_types.py` (full OSM tags, context outlines, `ty` and `tc` per line), counts in `check_map_data.py`, the type plot; Mac re-bake
+- [ ] W2 Heavy kit: `game/data/barrier_kit.json`, walls with foot, cap, piers, panels and end pieces; noise screens, precast, brick, stone, jersey, parapets; heights by setting; bench
+- [ ] W3 Panel trial on one stretch behind `--barriers=panels`: `panel.gdshader`, a `MultiMesh` per sector, the bar rule at three zooms, draw calls, the Adreno count; F's look check
+- [ ] W4 Panels city-wide, both city paths, the old fence geometry behind the switch
+- [ ] W5 Broken looks per type from the `soft_things` events (after the build plan's item 3)
+- [ ] W6 Content: hoarding posters with parody developers, graffiti patches, gates, bollard rows
+- [ ] W7 Types in the street sweeps; the share of barriers with a default type only goes down
+
 ## After the beta: driving extras and the city economy (F, 2026-11-03, plan only)
 
 F asked for research on arcade driving games and on business and economy games, for a layer after the
