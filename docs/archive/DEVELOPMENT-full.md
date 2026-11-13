@@ -5863,6 +5863,7 @@ Command-line options (after `--`):
 | `--sound-check` | play every sound once and print the bus meters, then quit (needs an audio device) |
 | `--ghost-debug=1\|2` | loop 1: paint the occlusion ghost (1: ghosted magenta, other buildings green) or cut it fully (2), and print its ellipse in screen pixels with each screenshot |
 | `--controls=point\|classic\|fixed` | loop 2a: the control scheme for this run (not saved) |
+| `--pads=arrows\|slider` | F 2026-11-13: Classic's touch controls for this run, the fixed arrows + pedals (default) or the sliding strip (not saved) |
 | `--traffic=empty\|low\|normal\|busy` (or 0-3) | loop 2a: the traffic level for this run (not saved) |
 | `--settings` | loop 2a: open the settings panel at the start (screenshots) |
 | `--fullmap` | F's asks (2026-10-30): open the full-screen map at the start (the game paused; screenshots) |
