@@ -132,6 +132,7 @@ rain                 local     slow
 ram                  runs
 ratuszhub            quick
 rave                 quick
+refs-store           quick
 rescues              quick
 ride                 local     slow
 ride-police          local     slow

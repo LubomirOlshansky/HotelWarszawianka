@@ -152,6 +152,7 @@ def main():
     with open(os.path.join(out_dir, "SOURCES.md"), "a", encoding="utf-8") as f:
         f.write(f"\n## Street-level photos of ({x:.1f}, {z:.1f}), r {r:.0f} m (tools/street_photos.py)\n" + "\n".join(lines) + "\n")
     print(f"street_photos: saved {len(lines)} to refs/{slug}/street/")
+    print(f"push to the shared store: python3 -I tools/refs_store.py push {slug}")
 
 
 if __name__ == "__main__":
