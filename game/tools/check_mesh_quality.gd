@@ -97,7 +97,7 @@ const BUDGET := {
 	"blekitny": 910,
 	"bridge": 700,
 	"grzybowska77": 2000,
-	"buw": 2900,
+	"buw": 9000,  # 2026-11-13 pass 4 from F's photos (copper frieze and letters, ribbed vault, ivy fronts, pink lattice, drums, dome, Collegium Iuridicum IV, lower garden): 8672 tris, +0 draw calls
 	"central": 340,
 	"centralna": 1650,
 	"chalubinskiego8": 1520,

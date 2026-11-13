@@ -48,11 +48,49 @@ Spec: [specs/buw.md](specs/buw.md). Site key `buw` (`landmarks.gd` `_find_buw`, 
 - `check_mesh_quality` 0 defects, 2431 tris, budget 2900. The cassette (PR #115's code)
   lands at (99, -958) on the hill by the pyramid, 18 m.
 
+## 2026-11-13: pass 4, F's photos (cloud thread "Build the University Library and rooftop garden")
+
+- F sent twenty photos (Dobra's copper front and the pink tower, the ivy fronts and drums from
+  Street View, the vaults, the roof garden's walkways, the dome, the lower garden with its pond
+  and steel trees, the drone view, no. 47's villa). Reference only, not in the repo.
+- Dobra: a frieze along the whole copper front (10.8 m to 17.6 m), BIBLIOTEKA UNIWERSYTECKA in
+  raised pixel letters across its top, lines of text under them, patina streaks; twelve pages
+  under it (6.4 m apart, 4.4 m wide), a pair of round copper columns in each gap; the
+  philosophers kept.
+- The edge band is now a curved green glass vault (a quarter ellipse in four facets) with dark
+  green ribs every 2.6 m, solid colour (the glass roof shader's white grid is Złote Tarasy's).
+- The fronts: glass only behind the copper (dark green) and in the tall hall past it (blue);
+  the rest off-white concrete, three storeys of teal-framed windows every 4.4 m, ivy between the
+  bays and over some of them (a few red), the trellis posts kept. Collegium Iuridicum II's walls
+  the same.
+- The pink tower: OSM's 15 pink parts (#C34DC0) by Lipowa are dropped and drawn as an open
+  magenta lattice, 11.6 m, posts and a ring of beams with cross beams every 2.9 m.
+- The drums: all eight mapped round parts (four on the north-east front, four just outside the
+  north front, which were the city's plain drums) are concrete drums to 3 m over the deck with
+  a dark slit top and pale ribs; the one by the round east corner is a lookout with a railing
+  and up to six people (crowds.gd `buw_lookout`, 8-20).
+- The roof: the oculus is a ribbed silver-green glass dome (0.72 of its radius high), the
+  walkways over the glass field have pale green mesh railings, benches along the south path,
+  the formal beds in five flower colours.
+- People: the 40 mapped footways wholly on the deck (away from the vault and the glass field)
+  are walked 15 m up (map_builder `footway_lift` asks `Landmarks.garden_lift`), so the city's
+  walkers stroll the roof garden.
+- Collegium Iuridicum IV (Wybrzeże Kościuszkowskie 47): grey render, white plinth, string
+  courses, corners and window surrounds, three storeys of windows, a cornice, a grey metal
+  hipped roof with two glass pyramids, the square tower on the river side with a glass lantern
+  and the tall glass spire to about 26 m.
+- The lower garden: a four-step concrete cascade from the north tip into the stream's end, a
+  pool with a concrete rim, three steel trees with square panels, three flower beds.
+
 ## Still differs / photo check on the Mac
 
 - Which front the philosophers stand at (built on Dobra, before the copper pages; the
   orthophoto can't tell; the Mac check kept them).
 - The south beds' plants are a hash of shrub, heather and lawn, not the real planting.
-- The four mapped vents at the north corner stand outside the outline: the city's plain drums.
 - The plates' count, width and how far they rise over the roof.
 - The other fronts: how much is glass, how much trellis and greenery.
+- The slope (F's photos): the lower garden's sloping lawn with its glass strip and stairs up to
+  the roof is not built; the north wing stays flat at 15 m (no height data for it in the cloud).
+- The tower's spire of no. 47: its height and which corner it stands at (from one Street View
+  photo); the drums' radius (OSM says 1.4 m, built 1.5 m).
+- The atrium's own curved glass roof over the hall (the vault runs over it as over the rest).
