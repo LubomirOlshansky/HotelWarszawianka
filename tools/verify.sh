@@ -1260,6 +1260,10 @@ for s in $want; do
 		save) check save '^check_save:' --script res://tools/check_save.gd ;;
 		errortrap) check errortrap '^check_error_trap:' --script res://tools/check_error_trap.gd ;;
 		boot) check boot '^check_boot:' --script res://tools/check_boot.gd ;;
+		# TD-11: the checks' shared stand-ins (game/tools/fakes.gd): each function takes what the game's own
+		# does, no script under game/tools writes a private stand-in for the HUD, the dialogue or the
+		# bubbles, and the stand-ins remember what they are given (no map; CI too).
+		fakes) check fakes '^check_fakes:' --script res://tools/check_fakes.gd ;;
 		# TD-20: the pause's one owner (pause_reasons.gd): the reasons on a real tree, and no other
 		# script writes the tree's pause (no map; CI too).
 		pause) check pause '^check_pause:' --script res://tools/check_pause.gd ;;

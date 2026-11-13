@@ -18,6 +18,20 @@ extends RefCounted
 ## car; a wallet; the rescue calls' switch and how often the line was closed; a flat map; a car
 ## that can be hit and has a speed. A check that needs one of these takes it from here, so a new parameter on `hud.toast`
 ## is changed in one place.
+##
+## The rules (check_fakes.gd holds both, step `fakes`): a function here that the game's own script has too takes the
+## same arguments as the game's (so a new parameter on `hud.toast` fails one step with the function's name, not the
+## checks that reach it); and no check writes its own stand-in for the HUD, the dialogue or the bubbles: it takes
+## the one here, and extends it for what only that check needs.
+##
+## With the checks that carried private copies (2026-11-13): every note's title and text (`note_titles`,
+## `note_texts`), every card's title (`cards`), the English of the small toasts (`ambient_en`), how often the
+## notebook's mark was asked for (`notebook_changes`); the dialogue's `say` as dialogue.gd has it (the line's
+## class and key: `kinds`, `keys`; `say_reaction`), what `say` answers (`say_words`), each line's group and tag
+## (`groups`, `tags`), `count` and `forget`; the bubbles' `say` as bubbles.gd has it, with `say_ambient`, `say_reaction`,
+## `allows` and `muted`.
+
+const Chatter := preload("res://scripts/chatter.gd")
 
 
 class Hud extends CanvasLayer:
@@ -88,10 +102,15 @@ class Hud extends CanvasLayer:
 	var banners: Array[String] = []
 	## Every note shown ("title: text"), how many quest dots the minimap has, the quiet screen.
 	var notes: Array[String] = []
+	## Each note's title and its text apart, in step with `notes`.
+	var note_titles: Array[String] = []
+	var note_texts: Array[String] = []
 	var dots := 0
 	var hush := false
 	## Cards and calls shown so far, and presses that went to every listener (no owner).
 	var shown := 0
+	## The title of every card and call shown so far, in order (`shown` of them).
+	var cards: Array[String] = []
 	var broadcast := 0
 	var _owner: Object = null
 
@@ -137,6 +156,7 @@ class Hud extends CanvasLayer:
 		card_en = ""
 		body_en = ""
 		shown += 1
+		cards.append(title)
 
 	func hide_card() -> void:
 		_owner = null
@@ -145,12 +165,16 @@ class Hud extends CanvasLayer:
 		buttons = 0
 		button_words = PackedStringArray()
 
-	func toast(a: String, b := "") -> void:
+	func toast(a: String, b := "", _priority := 0) -> void:
 		toasts.append(a)
 		toasts_en.append(b)
 
-	func ambient_toast(a: String, _b := "") -> void:
+	## The English of each small toast, in step with `ambient`.
+	var ambient_en: Array[String] = []
+
+	func ambient_toast(a: String, b := "") -> void:
 		ambient.append(a)
+		ambient_en.append(b)
 
 	func set_minimap_dots(points: PackedVector2Array, _colours: PackedColorArray) -> void:
 		mini_dots = points.size()
@@ -272,6 +296,14 @@ class Hud extends CanvasLayer:
 
 	func show_note(title: String, text: String, _a: Color, _priority := 0) -> void:
 		notes.append(title + ": " + text)
+		note_titles.append(title)
+		note_texts.append(text)
+
+	## hud.gd's `notebook_changed` (the notebook's button gets its mark): how often it was asked for.
+	var notebook_changes := 0
+
+	func notebook_changed() -> void:
+		notebook_changes += 1
 
 	func set_quest_dots(points: PackedVector2Array, _colours: PackedColorArray) -> void:
 		dots = points.size()
@@ -317,6 +349,14 @@ class Dialogue extends Node:
 	var speakers: Array[String] = []
 	## How each was said, in step with `said`: [seconds, colour, height, prefer].
 	var hows: Array = []
+	## Each line's group and its tag apart, its class in the chatter budget (chatter.gd: QUEST, POLICE,
+	## REACTION, AMBIENT) and its key ("bump", "near_miss"; "" for most), in step with `said`.
+	var groups: Array[String] = []
+	var tags: Array[String] = []
+	var kinds: Array[int] = []
+	var keys: Array[String] = []
+	## What `say` answers (dialogue.gd: the line, or [] when the group has none or the budget dropped it).
+	var say_words: Array = []
 	## dialogue.gd's bubbles (a script that speaks its own lines over the car uses them).
 	var bubbles: Control
 	## dialogue.gd's `line`: "group:tag" of every line taken as words (for a card), and what it
@@ -330,12 +370,35 @@ class Dialogue extends Node:
 	## "group:tag" to a Dictionary `line` appends to the words it answers (dialogue.gd's note on a line).
 	var line_notes := {}
 
-	func say(anchor: Variant, who: String, group: String, tag := "", s := 4.0, c := Color.WHITE, h := 2.6, p := false) -> Array:
+	func say(anchor: Variant, who: String, group: String, tag := "", s := 4.0, c := Color.WHITE, h := 2.6, p := false, k := Chatter.QUEST, key := "") -> Array:
 		said.append(group + ":" + tag)
+		groups.append(group)
+		tags.append(tag)
+		kinds.append(k)
+		keys.append(key)
 		anchors.append(anchor)
 		speakers.append(who)
 		hows.append([s, c, h, p])
-		return []
+		return say_words
+
+	## Forgets every line said and asked for so far (a check that starts a new part with a clean record); the
+	## words `say` and `line` answer stay as they are.
+	func forget() -> void:
+		said.clear()
+		groups.clear()
+		tags.clear()
+		kinds.clear()
+		keys.clear()
+		anchors.clear()
+		speakers.clear()
+		hows.clear()
+		line_asks.clear()
+		line_prefers.clear()
+
+	## How often the line of `group` with `tag` was said or taken as words (`say` and its kin, and `line`).
+	func count(group: String, tag: String) -> int:
+		var key := group + ":" + tag
+		return said.count(key) + line_asks.count(key)
 
 	func line(group: String, tag := "", prefer := false) -> Array:
 		line_asks.append(group + ":" + tag)
@@ -351,9 +414,13 @@ class Dialogue extends Node:
 	func notes(l: Array) -> Dictionary:
 		return l[2] if l.size() > 2 and l[2] is Dictionary else {}
 
-	## dialogue.gd's ambient chatter (a bystander's line): remembered the same way.
+	## dialogue.gd's ambient chatter (a bystander's line): remembered the same way, as an AMBIENT line.
 	func say_ambient(anchor: Variant, who: String, group: String, tag := "", s := 4.0, c := Color.WHITE, h := 2.6, p := false) -> Array:
-		return say(anchor, who, group, tag, s, c, h, p)
+		return say(anchor, who, group, tag, s, c, h, p, Chatter.AMBIENT)
+
+	## dialogue.gd's line of someone reacting to the player (a shout, a near miss): a REACTION line with its key.
+	func say_reaction(anchor: Variant, who: String, group: String, tag := "", s := 4.0, c := Color.WHITE, h := 2.6, p := false, key := "") -> Array:
+		return say(anchor, who, group, tag, s, c, h, p, Chatter.REACTION, key)
 
 
 ## bubbles.gd: the lines said over the car (Polish), and whether the chatter budget lets one out.
@@ -372,12 +439,35 @@ class Bubbles extends Control:
 	func is_talking(_anchor: Variant) -> bool:
 		return talking
 
-	func say(_anchor: Variant, _who: String, pl: String, _en: String, s := 4.0, c := Color.WHITE, _h := 2.6) -> bool:
+	func say(_anchor: Variant, _who: String, pl: String, _en := "", s := 4.0, c := Color.WHITE, _h := 2.6, k := Chatter.QUEST, key := "") -> bool:
 		if ok:
 			said.append(pl)
 			durations.append(s)
 			colours.append(c)
+			kinds.append(k)
+			keys.append(key)
 		return ok
+
+	## Each bubble's class in the chatter budget and its key, in step with `said`.
+	var kinds: Array[int] = []
+	var keys: Array[String] = []
+
+	## bubbles.gd's `say_ambient` and `say_reaction`: the same bubble, as an AMBIENT or a REACTION line.
+	func say_ambient(anchor: Variant, who: String, pl: String, en := "", s := 4.0, c := Color.WHITE, h := 2.6) -> bool:
+		return say(anchor, who, pl, en, s, c, h, Chatter.AMBIENT)
+
+	func say_reaction(anchor: Variant, who: String, pl: String, en := "", s := 4.0, c := Color.WHITE, h := 2.6, key := "") -> bool:
+		return say(anchor, who, pl, en, s, c, h, Chatter.REACTION, key)
+
+	## bubbles.gd's `allows` (would a line of this class show now: `ok`) and `muted` (the player drives too
+	## fast for ambient chatter: `mute`).
+	var mute := false
+
+	func allows(_kind: int, _key := "") -> bool:
+		return ok
+
+	func muted() -> bool:
+		return mute
 
 	## The colour of each of those bubbles, in step with `said`.
 	var colours: Array[Color] = []

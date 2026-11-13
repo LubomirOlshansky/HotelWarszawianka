@@ -54,6 +54,7 @@ errortrap            quick
 eventday             quick
 evtow                quick
 facadekit            quick
+fakes                quick
 fans                 quick
 finite               smoke
 first10              quick

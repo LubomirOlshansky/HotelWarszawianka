@@ -34,6 +34,7 @@ move later, and don't build a third private copy.
 | What the game was doing when an error came | one more field in the context line `main.gd` `_trap_frame` gives the trap once a second | a log file of your own |
 | A test flag | parsed in `main.gd` `_parse_args`, noted in the archive's flags table; release builds ignore it (`release.gd`) | a flag read anywhere else |
 | Rules or numbers worth testing | a pure static script (like `ride_rules.gd`, `upgrades.gd`) and a `game/tools/check_*.gd` that prints `<name>: OK`, joined to `tools/verify.sh` | logic only reachable from a running scene |
+| A check's stand-in for the HUD, the dialogue, the bubbles (and the wallet, the rescue calls, a flat map, a car) | `game/tools/fakes.gd` (TD-11): `Fakes.Hud.new()`, `Fakes.Dialogue.new()`, `Fakes.Bubbles.new()`; they remember what they are given (toasts, notes, cards, lines, in both languages) and answer what the check sets (`say_words`, `line_words`, `ok`). What only one check needs goes into a small class in that check that `extends Fakes.Hud` (or the others). When the game's function gets a new argument, the stand-in gets it in the same change | a class of the check's own with `toast`, `show_card`, `say` and the like (step `fakes` fails); a stand-in's function that takes other arguments than the game's (the same step) |
 | A new script file | a row in systems.md or city-ai.md (`check_architecture` fails otherwise) | |
 
 ## The shape of a new system

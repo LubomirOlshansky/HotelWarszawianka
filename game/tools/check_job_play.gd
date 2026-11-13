@@ -58,12 +58,10 @@ const GATES := ["flying", "a questline", "a rescue", "a ride", "the trend job", 
 
 # --- the stand-ins that are this check's own ----------------------------------------------------------
 
-## dialogue.gd's `say` answers with the bubble's words (`[]`: no line in the bag).
+## dialogue.gd's `say` answers with the bubble's words (`say_words`; `[]`: no line in the bag).
 class PlayDialogue extends Fakes.Dialogue:
-	var say_words: Array = ["Słowo", "A word"]
-	func say(anchor: Variant, who: String, group: String, tag := "", s := 4.0, c := Color.WHITE, h := 2.6, p := false) -> Array:
-		super.say(anchor, who, group, tag, s, c, h, p)
-		return say_words
+	func _init() -> void:
+		say_words = ["Słowo", "A word"]
 
 
 ## missions.gd's side: whether a rescue has a target.
