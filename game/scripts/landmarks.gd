@@ -514,8 +514,8 @@ const INFO := {
 			"Okrągły dom na miejscu dawnej panoramy na Dynasach: ceglany parter, białe ramy, szkło.",
 			"A round house where the old panorama stood on Dynasy: a brick base, white frames, glass."],
 	"elektrownia": ["Elektrownia Powiśle",
-			"Dawna elektrownia na Dobrej, dziś sklepy i jedzenie pod kominami.",
-			"The old power station on Dobra, shops and food under its chimneys."],
+			"Dawna elektrownia na Dobrej: ceglane hale, sklepy, hala z jedzeniem, ogródki w pasażach i cztery kominy, nocą na niebiesko.",
+			"The old power station on Dobra: brick halls, shops, a food hall, beer gardens in the passages and four stacks, blue at night."],
 	"mpw": ["Muzeum Powstania Warszawskiego",
 			"Dawna elektrownia tramwajowa z 1908 roku. Wieża z Kotwicą, a w Parku Wolności Mur Pamięci z nazwiskami poległych.",
 			"The tram power station of 1908. The tower with the Kotwica, and in Freedom Park the Wall of Remembrance with the names of the fallen."],
@@ -23489,7 +23489,8 @@ func _find_works() -> void:
 			sites[-1]["ring"] = rdyn
 	var elek := _landmark("Elektrownia Powiśle")
 	if elek.size() >= 3:
-		_add_site("elektrownia", [elek])
+		# The whole complex (2026-11-13): the T, the passage block, the office and the old wing.
+		_add_site("elektrownia", [elek, _pts(ELEK_ATRIUM), _pts(ELEK_OFFICE), _pts(ELEK_WING)])
 		if sites[-1]["key"] == "elektrownia":
 			sites[-1]["ring"] = elek
 
@@ -23906,83 +23907,621 @@ func _build_koszyki(site: Dictionary) -> void:
 	_collide(ring)
 
 
-## Elektrownia Powiśle from F's photo set (2026-11-09, Mac folder powisle/A01-A13; spec
-## docs/landmarks/specs/elektrownia.md): the turbine hall, a wide gabled brick hall under a dark
-## zinc roof with a glazed ridge, its front gable crossed by black steel braces round two big dark
-## windows, and before it the glass lift tower with the blue corrugated box on top and a blue box
-## bay half way up; four aluminium stacks with flared tops (the rebuilt chimneys) by the roof; the
-## rest of the outline in the same orange brick, 13 m, arched windows in dark steel frames.
-## The hall stands on the largest rectangle the outline holds (frame: u along it, the front at -u,
-## facing the Dobra corner).
+## Elektrownia Powiśle, the whole complex (2026-11-13, F: "like in real life, with the fronts", and
+## "alive: people, summer bars, small squares"; spec docs/landmarks/specs/elektrownia.md, photos:
+## 34 Mapillary frames round the block, refs/elektrownia-*/, never shipped). Every part is placed
+## in the turbine hall's frame (u along the hall from the Dobra gable, -40.8, to the cross wing at
+## 22.3; v across it, + towards Zajęcza):
+## - the turbine hall over the stem: orange brick, zinc gable roof with a glazed ridge, its Dobra
+##   gable a glass-and-steel front (big steel-grid windows, the shop glass, an X-braced frieze),
+##   festoon bulbs along the gable and the south eave, the glass lift tower with the blue box;
+## - the brick halls round the T (the mapped outline): tall round-arched windows in cream
+##   surrounds in two rows between brick pilasters, a cream string course and cornice; the arches
+##   on the yards and passages are shop windows, lit warm at night; the cross wing under a zinc
+##   gable with a long glass lantern;
+## - the four aluminium stacks, lit blue at night (the real ones are);
+## - the glass-roofed passage south of the hall (the mapped block between the hall and the new
+##   office), its plaza front with steel-grid windows and an X-braced frieze;
+## - the new office on Zajęcza 2B: a dark glass block on a black-columned arcade of lit shops,
+##   brick fins up its plaza face;
+## - the low old wing on Wybrzeże Kościuszkowskie 43C: brick, arched windows in pale render
+##   surrounds, a taller pavilion at its Leszczyńska end;
+## - the life (elektrownia_garden_plan, the same for crowds.gd's sitters): the beer tables under
+##   festoons in the passage between the cross wing and the old wing, the summer bar with its
+##   umbrellas and deck chairs on the yard by Leszczyńska, café tables on the setts plaza by
+##   Dobra, the painted sphere on the lawn; shop and bar names are parodies (warsaw-tone).
 const ELEK_C := Vector2(245.0, -740.0)
 const ELEK_AXIS := Vector2(0.7885, -0.615)
-const ELEK_HU := 39.2
+const ELEK_U0 := -40.8   ## the Dobra gable
+const ELEK_U1 := 22.3    ## the hall's east end, where the cross wing starts
 const ELEK_HV := 15.4
 const ELEK_EAVE := 16.0
 const ELEK_RISE := 9.0
+const ELEK_WALL := 13.0  ## the brick halls round the T
+const ELEK_PITCH := 5.5
 const ELEK_BRICK := Color("#a35e42")
+const ELEK_TRIM := Color("#d9d0bd")
 const ELEK_STEEL := Color("#26292c")
 const ELEK_ZINC := Color("#737a7f")
 const ELEK_ALU := Color("#c3c7ca")
 const ELEK_BLUE := Color("#2f8fd4")
 const ELEK_LIFT := Color("#86aebd")
+const ELEK_SHOP := Color("#e9b77a")      ## shop glass: warm, lit at night (M_PAVILION)
+const ELEK_DARK_GLASS := Color("#2f3a44")
+const ELEK_ROOF_GLASS := Color("#9ab9c6")
+const ELEK_OFFICE_GLASS := Color("#3e4d5a")
+const ELEK_FIN := Color("#9c5238")
+const ELEK_RENDER := Color("#d6d3ca")    ## the old wing's pale window surrounds
+const ELEK_SETT := [Color("#9b8f88"), Color("#b39a92"), Color("#c9c4bc"), Color("#7f7a77"), Color("#a7807a")]
 ## The stacks: [u, v] in the hall's frame (two by the front gable, two further back).
 const ELEK_STACKS := [Vector2(-27.0, -12.0), Vector2(-27.0, 12.0), Vector2(6.0, -11.0), Vector2(14.0, 11.0)]
 const ELEK_STACK_TOP := 33.0
+## The mapped blocks the site takes over besides its own outline (OpenStreetMap, game metres):
+## the glass-roofed passage between the hall and the office, the office (Zajęcza 2B) and the old
+## wing on the embankment (Wybrzeże Kościuszkowskie 43C).
+const ELEK_ATRIUM := [292.1, -706.5, 286.9, -713.0, 281.2, -720.1, 275.9, -726.8, 269.4, -721.7, 257.0, -712.1,
+		252.9, -718.0, 251.8, -719.6, 250.2, -721.7, 252.1, -723.2, 260.8, -730.0, 264.6, -733.0, 269.5, -736.8,
+		271.1, -738.0, 273.4, -739.8, 276.4, -736.0, 277.0, -735.3, 279.4, -732.3, 283.0, -727.6, 286.3, -723.4,
+		290.0, -718.8, 293.7, -714.3, 299.5, -706.8, 302.8, -703.5, 301.7, -702.4, 302.5, -701.2, 301.4, -700.3,
+		300.2, -699.3, 299.2, -700.5, 297.7, -699.4]
+const ELEK_OFFICE := [249.2, -705.7, 257.0, -712.1, 269.4, -721.7, 275.9, -726.8, 281.2, -720.1, 286.9, -713.0,
+		292.1, -706.5, 297.7, -699.4, 314.7, -678.5, 312.9, -675.9, 306.2, -665.8]
+const ELEK_WING := [283.4, -796.2, 310.4, -762.0, 304.7, -757.2, 276.5, -792.0, 282.7, -797.0]
+const ELEK_OFFICE_TOP := 18.9
+const ELEK_ATRIUM_TOP := 11.5
+## The beer tables in the passage (u, v of the table's middle; the table runs along v), the
+## yard's umbrella tables and deck chairs (u, v), the plaza's café tables (u, v).
+const ELEK_BEER := [Vector2(54.6, -17.0), Vector2(54.6, -10.5), Vector2(54.6, -4.0), Vector2(54.6, 3.0),
+		Vector2(54.6, 10.0), Vector2(54.6, 17.0)]
+const ELEK_YARD_UMB := [Vector2(-12.0, -25.5), Vector2(-4.5, -25.0), Vector2(3.0, -25.0), Vector2(10.5, -25.5),
+		Vector2(-14.0, -33.0), Vector2(11.0, -33.0)]
+const ELEK_LEZAK := [Vector2(-34.0, -40.5), Vector2(-31.6, -40.5), Vector2(-29.2, -40.5), Vector2(-26.8, -40.5),
+		Vector2(-24.4, -40.5), Vector2(-22.0, -40.5)]
+const ELEK_PLAZA_UMB := [Vector2(-35.5, 22.0), Vector2(-29.0, 22.0), Vector2(-22.5, 22.0), Vector2(-16.0, 22.0)]
+const ELEK_BAR := Vector2(-1.5, -33.5)
+const ELEK_SPHERE := Vector2(53.0, -31.0)
+
+
+## The plan of the complex's tables and chairs (the model draws them, crowds.gd sits people on
+## the seats): seats [p, sitter's yaw], two a side at each beer table, two at each umbrella, one
+## in each deck chair; "centre" the passage's middle.
+static func elektrownia_garden_plan() -> Dictionary:
+	var a := ELEK_AXIS
+	var b := Vector2(-a.y, a.x)
+	var at := func(u: float, v: float) -> Vector2: return ELEK_C + a * u + b * v
+	var seats: Array = []
+	for t: Vector2 in ELEK_BEER:
+		for side: float in [-1.0, 1.0]:
+			for dv: float in [-0.55, 0.55]:
+				var d := a * side
+				seats.append([at.call(t.x + side * 0.78, t.y + dv), atan2(d.x, d.y)])
+	for t: Vector2 in ELEK_YARD_UMB + ELEK_PLAZA_UMB:
+		for side: float in [-1.0, 1.0]:
+			var d := b * side
+			seats.append([(at.call(t.x, t.y) as Vector2) + d * 0.8, atan2(d.x, d.y)])
+	for c: Vector2 in ELEK_LEZAK:
+		seats.append([at.call(c.x, c.y), atan2(-b.x, -b.y)])
+	return {"seats": seats, "centre": at.call(40.0, -10.0)}
 
 
 func _build_elektrownia(site: Dictionary) -> void:
 	var ring: PackedVector2Array = site["ring"]
 	_g = _ground_under(ring)
 	var g := _g
-	var none := Color(0, 0, 0, 0)
-	_works_walls(ring, 13.0, ELEK_BRICK, [[1.4, 6.0, 1.6], [8.6, 11.0, 1.3]], 5.5, ELEK_STEEL)
-	_parapet(ring, g + 13.0, 0.6, ELEK_STEEL)
-	# The turbine hall over it.
+	_elek_frame()
+	var others: Array[PackedVector2Array] = [_pts(ELEK_ATRIUM), _pts(ELEK_OFFICE), _pts(ELEK_WING)]
+	# The turbine hall and the lift first: their faces own the planes the brick ring shares.
+	_elek_hall(g)
+	_elek_lift(g)
+	_elek_walls(ring, g, others)
+	_elek_cross_roof(g)
+	_elek_stacks(g)
+	_elek_atrium(others[0], g)
+	_elek_office(others[1], g)
+	_elek_wing(others[2], g)
+	_elek_signs(g)
+	_elek_life(g)
+	_elek_frame()
+	_collide(ring)
+	for q: PackedVector2Array in others:
+		_collide(q)
+
+
+func _elek_frame() -> void:
 	_o = ELEK_C
 	_a = ELEK_AXIS
 	_b = Vector2(-_a.y, _a.x)
-	var hu := ELEK_HU
+
+
+## The turbine hall: the brick body to the eaves, the zinc gable roof with its glazed ridge, the
+## Dobra gable's glass-and-steel front (F's corner photo at night) and the festoons.
+func _elek_hall(g: float) -> void:
+	var none := Color(0, 0, 0, 0)
+	var hc := (ELEK_U0 + ELEK_U1) * 0.5
+	var hu := (ELEK_U1 - ELEK_U0) * 0.5
 	var hv := ELEK_HV
-	_prism(_rect(0.0, 0.0, hu, hv), g - 0.6, g + ELEK_EAVE, ELEK_BRICK, none, M_STONE, M_STONE)
-	_gable(-hu, hu, 0.0, hv, g + ELEK_EAVE, ELEK_RISE, ELEK_BRICK, ELEK_ZINC)
+	var eave := g + ELEK_EAVE
+	# The front's glass and steel before the brick (the brick's wall in that plane is cut round it).
+	var out := -_a
+	var front := ELEK_U0 - 0.06
+	for side: float in [-1.0, 1.0]:
+		# the shop glass on the ground (lit), the big steel-grid windows over it
+		_elek_pane(front, side * 8.6, 4.6, 0.4, 4.4, ELEK_SHOP, M_PAVILION)
+		_elek_pane(front, side * 8.6, 4.6, 6.2, 13.4, ELEK_DARK_GLASS, M_GLASS)
+		_elek_grid(front, side * 8.6, 4.6, 6.2, 13.4, 1.15, 1.2)
+	_prism(_rect(hc, 0.0, hu, hv), g - 0.6, eave, ELEK_BRICK, none, M_STONE, M_STONE)
+	_gable(ELEK_U0, ELEK_U1, 0.0, hv, eave, ELEK_RISE, ELEK_BRICK, ELEK_ZINC)
 	# the gable's stepped shoulders and the glazed ridge
 	for side: float in [-1.0, 1.0]:
-		_prism(_rect(-hu + 0.4, side * (hv - 2.0), 0.5, 2.0), g + ELEK_EAVE, g + ELEK_EAVE + 1.6, ELEK_BRICK, ELEK_STEEL, M_STONE, M_STONE)
-	_mode = M_GLASS
-	_prism(_rect(2.0, 0.0, hu - 8.0, 1.5), g + ELEK_EAVE + ELEK_RISE - 1.0, g + ELEK_EAVE + ELEK_RISE + 0.9, ELEK_LIFT, ELEK_STEEL, M_GLASS, M_STONE)
+		_prism(_rect(ELEK_U0 + 0.4, side * (hv - 2.0), 0.5, 2.0), eave, eave + 1.6, ELEK_BRICK, ELEK_STEEL, M_STONE, M_STONE)
+	_mode = M_PAVILION + 0.5
+	_prism(_rect(hc + 2.0, 0.0, hu - 6.0, 1.5), eave + ELEK_RISE - 1.0, eave + ELEK_RISE + 0.9, ELEK_ROOF_GLASS, ELEK_ROOF_GLASS.lightened(0.15),
+			M_PAVILION + 0.5, M_PAVILION + 0.5)
 	_mode = M_STONE
-	# the front: two big windows either side of the lift, black braces in a diamond over the brick
-	var out := -_a
-	for v: float in [-8.5, 8.5]:
-		_arch_win(_w(-hu, v), _b, out, 3.4, g + 2.0, g + 12.0, ELEK_STEEL)
-	var lift := 2.2
-	var f := func(v: float, y: float) -> Vector3:
-		var q := _w(-hu - 0.12, v)
+	# the front's frieze: black steel braces in X under the eaves, a steel band over the shops
+	# (each brace and band at its own depth: crossing faces in one plane would flicker)
+	var f := func(v: float, y: float, d: float) -> Vector3:
+		var q := _w(front - d, v)
 		return Vector3(q.x, g + y, q.y)
-	for k: Array in [[-hv + 0.6, 1.4, -lift - 0.2, 8.6], [-lift - 0.2, 9.4, -hv + 0.6, 15.6],
-			[hv - 0.6, 1.4, lift + 0.2, 8.6], [lift + 0.2, 9.4, hv - 0.6, 15.6],
-			[-hv + 3.4, 16.6, -lift - 0.2, 22.6], [hv - 3.4, 16.6, lift + 0.2, 22.6]]:
-		_beam(f.call(float(k[0]), float(k[1])), f.call(float(k[2]), float(k[3])), 0.3, ELEK_STEEL)
-	# The lift tower: glass in black posts, the blue box bay and the blue head.
-	var lc := -hu - lift - 0.3
+	var x := -hv + 0.6
+	while x < hv - 3.0:
+		_beam(f.call(x, 13.9, 0.1), f.call(x + 3.6, 15.7, 0.1), 0.22, ELEK_STEEL)
+		_beam(f.call(x, 15.7, 0.18), f.call(x + 3.6, 13.9, 0.18), 0.22, ELEK_STEEL)
+		x += 3.6
+	_beam(f.call(-hv + 0.3, 13.8, 0.3), f.call(hv - 0.3, 13.8, 0.3), 0.3, ELEK_STEEL)
+	_beam(f.call(-hv + 0.3, 4.9, 0.3), f.call(hv - 0.3, 4.9, 0.3), 0.45, ELEK_STEEL)
+	# the glass canopy over the doors right of the lift
+	_lbox(ELEK_U0 - 1.6, 6.0, 1.6, 3.4, g + 4.4, g + 4.65, ELEK_ROOF_GLASS, M_GLASS, ELEK_ROOF_GLASS.lightened(0.2))
+	# Festoons (the night photo): up both slopes of the gable and along the south eave.
+	var at := func(u: float, v: float, y: float) -> Vector3:
+		var q := _w(u, v)
+		return Vector3(q.x, y, q.y)
+	_elek_festoon(at.call(ELEK_U0 - 0.25, -hv, eave + 0.1), at.call(ELEK_U0 - 0.25, 0.0, eave + ELEK_RISE + 0.1), 0.05, 9)
+	_elek_festoon(at.call(ELEK_U0 - 0.25, 0.0, eave + ELEK_RISE + 0.1), at.call(ELEK_U0 - 0.25, hv, eave + 0.1), 0.05, 9)
+	_elek_festoon(at.call(ELEK_U0, hv + 0.25, eave + 0.05), at.call(ELEK_U1 - 1.0, hv + 0.25, eave + 0.05), 0.05, 26)
+
+
+## A flat pane on the hall's Dobra front (u, facing -u) at v, half-width hw, between y0 and y1.
+func _elek_pane(u: float, v: float, hw: float, y0: float, y1: float, col: Color, mode: float) -> void:
+	var keep := _mode
+	_mode = mode
+	var p0 := _w(u, v - hw)
+	var p1 := _w(u, v + hw)
+	_quad(Vector3(p1.x, _g + y0, p1.y), Vector3(p0.x, _g + y0, p0.y), Vector3(p0.x, _g + y1, p0.y), Vector3(p1.x, _g + y1, p1.y),
+			Vector3(-_a.x, 0.0, -_a.y), col, Vector2(0, y0), Vector2(hw * 2.0, y0), Vector2(hw * 2.0, y1), Vector2(0, y1), y1)
+	_mode = keep
+
+
+## The steel grid of a big window on the Dobra front: bars every `du` across and `dy` up.
+func _elek_grid(u: float, v: float, hw: float, y0: float, y1: float, dv: float, dy: float) -> void:
+	var n := Vector3(-_a.x, 0.0, -_a.y)
+	var uu := u - 0.05
+	var s := -hw
+	while s <= hw + 0.01:
+		var p0 := _w(uu, v + s - 0.06)
+		var p1 := _w(uu, v + s + 0.06)
+		_quad(Vector3(p1.x, _g + y0, p1.y), Vector3(p0.x, _g + y0, p0.y), Vector3(p0.x, _g + y1, p0.y), Vector3(p1.x, _g + y1, p1.y), n, ELEK_STEEL)
+		s += dv
+	var y := y0
+	while y <= y1 + 0.01:
+		# 4 cm proud of the uprights: crossing bars in one plane would flicker
+		var p0 := _w(uu - 0.04, v - hw)
+		var p1 := _w(uu - 0.04, v + hw)
+		_quad(Vector3(p1.x, _g + y - 0.06, p1.y), Vector3(p0.x, _g + y - 0.06, p0.y), Vector3(p0.x, _g + y + 0.06, p0.y),
+				Vector3(p1.x, _g + y + 0.06, p1.y), n, ELEK_STEEL)
+		y += dy
+
+
+## The glass lift tower in the gable's porch, the blue corrugated box on top and the blue bay.
+func _elek_lift(g: float) -> void:
+	var none := Color(0, 0, 0, 0)
+	# a hair wider than the mapped porch, so its glass stands in front of the porch's brick
+	var lc := -42.45
+	var lv := 0.3
 	_mode = M_GLASS
-	_prism(_rect(lc, 0.0, lift, lift), g, g + 27.0, ELEK_LIFT, none, M_GLASS, M_STONE)
+	_prism(_rect(lc, lv, 1.65, 1.5), g - 0.6, g + 27.0, ELEK_LIFT, none, M_GLASS, M_STONE)
 	_mode = M_STONE
-	for cu: float in [lc - lift, lc + lift]:
-		for cv: float in [-lift, lift]:
+	for cu: float in [lc - 1.6, lc + 1.6]:
+		for cv: float in [lv - 1.4, lv + 1.4]:
 			var q := _w(cu, cv)
 			_beam(Vector3(q.x, g, q.y), Vector3(q.x, g + 27.0, q.y), 0.22, ELEK_STEEL)
-	_prism(_rect(lc - 0.4, -lift - 2.4, 2.2, 2.6), g + 6.0, g + 9.2, ELEK_BLUE, ELEK_BLUE.darkened(0.15), M_STONE, M_STONE)
-	_prism(_rect(lc, 0.0, lift + 0.5, lift + 0.5), g + 27.0, g + 31.0, ELEK_BLUE, ELEK_BLUE.darkened(0.2), M_STONE, M_STONE)
-	_collide(_rect(lc, 0.0, lift, lift))
-	# The stacks: aluminium tubes from the roof, flared at the top.
+	_prism(_rect(lc - 0.4, lv - 3.3, 1.8, 2.0), g + 6.0, g + 9.2, ELEK_BLUE, ELEK_BLUE.darkened(0.15), M_STONE, M_STONE)
+	_prism(_rect(lc, lv, 2.1, 1.9), g + 27.0, g + 31.0, ELEK_BLUE, ELEK_BLUE.darkened(0.2), M_STONE, M_STONE)
+	_collide(_rect(lc, lv, 1.6, 1.4))
+
+
+## The brick halls round the T: on every face two rows of round-arched windows between
+## pilasters, the ground row lit as shop windows where the face looks onto a yard, a passage or
+## the plaza (not where it backs onto the passage block or the office), a cream string course and
+## cornice, a flat zinc roof.
+func _elek_walls(ring: PackedVector2Array, g: float, others: Array[PackedVector2Array]) -> void:
+	var h := ELEK_WALL
+	var none := Color(0, 0, 0, 0)
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var length := a.distance_to(b)
+		var n := floori((length - 1.0) / ELEK_PITCH)
+		if n < 1:
+			continue
+		var e := (b - a) / length
+		var out := _out(ring, a, b)
+		var mid := (a + b) * 0.5 + out * 2.5
+		var hidden := false
+		for q: PackedVector2Array in others:
+			if Geometry2D.is_point_in_polygon(mid, q):
+				hidden = true
+		if hidden or _elek_in_hall(mid - out * 3.0):
+			continue
+		var t0 := (length - n * ELEK_PITCH) * 0.5 + ELEK_PITCH * 0.5
+		for k in n:
+			var at := a + e * (t0 + k * ELEK_PITCH)
+			_arch_panel(at, e, out, 1.95, g + 0.25, g + 3.6, ELEK_TRIM, 0.04, M_STONE)
+			_arch_panel(at, e, out, 1.65, g + 0.4, g + 3.6, ELEK_SHOP, 0.08, M_PAVILION)
+			_arch_panel(at, e, out, 1.7, g + 6.2, g + 9.6, ELEK_TRIM, 0.04, M_STONE)
+			_arch_panel(at, e, out, 1.4, g + 6.4, g + 9.6, ELEK_DARK_GLASS, 0.08, M_GLASS)
+		for k in n + 1:
+			var p := a + e * (t0 + (k - 0.5) * ELEK_PITCH)
+			var pil := PackedVector2Array([p - e * 0.35, p + e * 0.35, p + e * 0.35 + out * 0.22, p - e * 0.35 + out * 0.22])
+			_prism(pil, g + 0.6, g + h - 0.9, ELEK_BRICK.darkened(0.06), none, M_STONE, M_STONE)
+	var base := _grown(ring, 0.2)
+	if base.size() >= 3:
+		_prism(base, g - 0.6, g + 0.6, WORKS_PLINTH, none, M_STONE, M_STONE)
+	_prism(ring, g - 0.6, g + h, ELEK_BRICK, none, M_STONE, M_STONE)
+	var course := _grown(ring, 0.12)
+	if course.size() >= 3:
+		_prism(course, g + 5.0, g + 5.45, ELEK_TRIM, none, M_STONE, M_STONE)
+	var top := _grown(ring, 0.3)
+	if top.size() >= 3:
+		_prism(top, g + h - 0.9, g + h, ELEK_TRIM, ELEK_ZINC.darkened(0.1), M_STONE, M_STONE)
+	else:
+		_prism(ring, g + h - 0.1, g + h, ELEK_TRIM, ELEK_ZINC.darkened(0.1), M_STONE, M_STONE)
+
+
+func _elek_in_hall(p: Vector2) -> bool:
+	var l := _local(p)
+	return l.x > ELEK_U0 + 0.5 and l.x < ELEK_U1 - 0.5 and absf(l.y) < ELEK_HV - 0.5
+
+
+## The cross wing's roof: a zinc gable along it over the flat brick top, a glass lantern on its ridge.
+func _elek_cross_roof(g: float) -> void:
+	var keep_o := _o
+	var keep_a := _a
+	var keep_b := _b
+	_o = keep_o + keep_a * 33.0 + keep_b * 13.5
+	_a = keep_b
+	_b = -keep_a
+	var y := g + ELEK_WALL
+	_gable(-51.0, 51.0, 0.0, 10.4, y, 4.6, ELEK_BRICK, ELEK_ZINC)
+	_mode = M_PAVILION + 0.5
+	_prism(_rect(0.0, 0.0, 47.0, 1.5), y + 3.6, y + 5.3, ELEK_ROOF_GLASS, ELEK_ROOF_GLASS.lightened(0.15), M_PAVILION + 0.5, M_PAVILION + 0.5)
+	_mode = M_STONE
+	_o = keep_o
+	_a = keep_a
+	_b = keep_b
+
+
+## The four stacks: aluminium tubes out of the hall roof with flared tops, lit blue at night (the
+## tube's M_LAMP + 0.5: its own colour by day, blue neon at night).
+func _elek_stacks(g: float) -> void:
+	var none := Color(0, 0, 0, 0)
 	for st: Vector2 in ELEK_STACKS:
 		var c := _w(st.x, st.y)
-		_prism(_circle(c, 1.3, 12), g + 12.0, g + ELEK_STACK_TOP - 3.0, ELEK_ALU, none, M_STONE, M_STONE)
+		_prism(_circle(c, 1.3, 12), g + 12.0, g + ELEK_STACK_TOP - 3.0, ELEK_ALU, none, M_LAMP + 0.5, M_STONE)
+		_mode = M_LAMP + 0.5
 		_frustum(_circle(c, 1.3, 12), g + ELEK_STACK_TOP - 3.0, _circle(c, 2.0, 12), g + ELEK_STACK_TOP, ELEK_ALU.lightened(0.08), ELEK_STEEL)
+		_mode = M_STONE
 		_prism(_circle(c, 1.42, 12), g + ELEK_STACK_TOP - 6.0, g + ELEK_STACK_TOP - 5.4, ELEK_ALU.darkened(0.2), none, M_STONE, M_STONE)
-	_collide(_rect(0.0, 0.0, hu, hv))
+
+
+## The passage block between the hall and the office: brick to 11.5 m under a glass roof on steel
+## ribs (lit from inside at night); its plaza front with the shop glass, a big steel-grid window and
+## an X-braced frieze; glass doors at its Zajęcza end.
+func _elek_atrium(q: PackedVector2Array, g: float) -> void:
+	var none := Color(0, 0, 0, 0)
+	var top := g + ELEK_ATRIUM_TOP
+	# The plaza front (u = -7.3, facing -u): before the brick.
+	for side: float in [-1.0, 1.0]:
+		_elek_pane(-7.5, 23.5 + side * 2.9, 2.5, 0.4, 4.2, ELEK_SHOP, M_PAVILION)
+	_elek_pane(-7.5, 23.5, 5.4, 5.4, 9.6, ELEK_DARK_GLASS, M_GLASS)
+	_elek_grid(-7.5, 23.5, 5.4, 5.4, 9.6, 1.35, 1.4)
+	var f := func(v: float, y: float) -> Vector3:
+		var p := _w(-7.62, v)
+		return Vector3(p.x, g + y, p.y)
+	var v := 18.2
+	while v < 28.6:
+		_beam(f.call(v, 9.9), f.call(v + 2.6, 11.2), 0.18, ELEK_STEEL)
+		_beam(f.call(v, 11.2) - Vector3(_a.x, 0.0, _a.y) * 0.08, f.call(v + 2.6, 9.9) - Vector3(_a.x, 0.0, _a.y) * 0.08, 0.18, ELEK_STEEL)
+		v += 2.6
+	_lbox(-8.6, 23.5, 1.1, 5.6, g + 4.3, g + 4.6, ELEK_STEEL, M_STONE, ELEK_STEEL.lightened(0.1))
+	# the Zajęcza end's glass doors
+	var d0 := _w(16.8, 66.05)
+	var d1 := _w(21.4, 66.05)
+	_mode = M_PAVILION
+	_quad(Vector3(d0.x, g + 0.2, d0.y), Vector3(d1.x, g + 0.2, d1.y), Vector3(d1.x, g + 4.0, d1.y), Vector3(d0.x, g + 4.0, d0.y),
+			Vector3(_b.x, 0.0, _b.y), ELEK_SHOP)
+	_mode = M_STONE
+	_prism(q, g - 0.6, top, ELEK_BRICK, none, M_STONE, M_STONE)
+	_parapet(q, top, 0.7, ELEK_TRIM)
+	var glass := _grown(q, -0.6)
+	if glass.size() >= 3:
+		_mode = M_PAVILION + 0.5
+		_cap(glass, top + 0.35, ELEK_ROOF_GLASS)
+		_mode = M_STONE
+	# steel ribs across both arms, every 3 m
+	for arm: Array in [[-6.6, 21.8, 18.2, 29.0, true], [16.9, 22.1, 30.0, 65.5, false]]:
+		var across_u: bool = arm[4]
+		var s: float = arm[0] if across_u else arm[2]
+		var e_: float = arm[1] if across_u else arm[3]
+		while s <= e_:
+			var p0 := _w(s, arm[2]) if across_u else _w(arm[0], s)
+			var p1 := _w(s, arm[3]) if across_u else _w(arm[1], s)
+			_beam(Vector3(p0.x, top + 0.45, p0.y), Vector3(p1.x, top + 0.45, p1.y), 0.16, ELEK_STEEL)
+			s += 3.0
+
+
+## The new office on Zajęcza 2B: a black-columned arcade of lit shops under four storeys of dark
+## glass, brick fins up the plaza face and the Zajęcza end (the night photo), a flat roof.
+func _elek_office(q: PackedVector2Array, g: float) -> void:
+	var none := Color(0, 0, 0, 0)
+	var low := g + 4.6
+	var top := g + ELEK_OFFICE_TOP
+	var inner := _grown(q, -1.4)
+	if inner.size() >= 3:
+		_prism(inner, g - 0.6, low, ELEK_SHOP, none, M_PAVILION, M_STONE)
+	# the arcade's soffit (seen from the plaza) and the columns along the open faces
+	for i in q.size():
+		var a := q[i]
+		var b := q[(i + 1) % q.size()]
+		var length := a.distance_to(b)
+		if length < 5.0 or _elek_backed(a, b, q):
+			continue
+		var e := (b - a) / length
+		var out := _out(q, a, b)
+		var n := maxi(1, roundi(length / 6.0))
+		for k in range(0, n + 1):
+			var p := a + e * (length * k / n) - out * 0.45
+			_prism(_square(p, 0.38), g - 0.3, low, ELEK_STEEL, none, M_STONE, M_STONE)
+		if length > 9.0:
+			var m := maxi(2, roundi(length / 2.8))
+			for k in range(1, m):
+				var p := a + e * (length * k / m) + out * 0.25
+				var fin := PackedVector2Array([p - e * 0.18, p + e * 0.18, p + e * 0.18 + out * 0.55, p - e * 0.18 + out * 0.55])
+				_prism(fin, low + 0.3, top - 0.5, ELEK_FIN, ELEK_FIN.darkened(0.1), M_STONE, M_STONE)
+	_mode = M_GLASS
+	_prism(q, low, top, ELEK_OFFICE_GLASS, none, M_GLASS, M_STONE)
+	_mode = M_STONE
+	_prism(q, low - 0.4, low, ELEK_STEEL, none, M_STONE, M_STONE)
+	_parapet(q, top, 0.8, ELEK_STEEL)
+	_cap(q, top, Color("#6a6d70"))
+	var c := _centre(q)
+	_prism(_square(c + _b * 6.0, 2.2), top, top + 1.8, Color("#8b8e91"), Color("#9a9da0"), M_STONE, M_STONE)
+
+
+## Whether the edge a→b of `q` stands against a neighbour (the passage block or the halls).
+func _elek_backed(a: Vector2, b: Vector2, q: PackedVector2Array) -> bool:
+	var mid := (a + b) * 0.5 + _out(q, a, b) * 1.5
+	var l := _local(mid)
+	if Geometry2D.is_point_in_polygon(mid, _pts(ELEK_ATRIUM)):
+		return true
+	return l.x > 16.0 and l.x < 45.0 and l.y > 17.0 and l.y < 66.0
+
+
+## The low old wing on the embankment: brick under a pale cornice, arched windows in pale render
+## surrounds on both long faces, a taller pavilion at the Leszczyńska end.
+func _elek_wing(q: PackedVector2Array, g: float) -> void:
+	var none := Color(0, 0, 0, 0)
+	var h := 6.8
+	for i in q.size():
+		var a := q[i]
+		var b := q[(i + 1) % q.size()]
+		var length := a.distance_to(b)
+		if length < 20.0:
+			continue
+		var e := (b - a) / length
+		var out := _out(q, a, b)
+		var n := floori((length - 10.0) / 3.6)
+		for k in n:
+			var at := a + e * (9.5 + (k + 0.5) * 3.6)
+			_arch_panel(at, e, out, 1.2, g + 1.0, g + 4.1, ELEK_RENDER, 0.05, M_STONE)
+			_arch_panel(at, e, out, 0.85, g + 1.3, g + 4.1, ELEK_DARK_GLASS, 0.09, M_GLASS)
+	_prism(q, g - 0.6, g + h, ELEK_BRICK, none, M_STONE, M_STONE)
+	var top := _grown(q, 0.25)
+	if top.size() >= 3:
+		_prism(top, g + h - 0.7, g + h, ELEK_RENDER, ELEK_ZINC, M_STONE, M_STONE)
+	# the pavilion: the wing's north end, two storeys, arched windows on its three free faces
+	var pav := _lpoly([[56.9, -21.7], [65.0, -21.7], [65.0, -12.5], [57.1, -12.5]])
+	_prism(pav, g + h - 0.1, g + 9.8, ELEK_BRICK, none, M_STONE, M_STONE)
+	var pt := _grown(pav, 0.3)
+	if pt.size() >= 3:
+		_prism(pt, g + 9.1, g + 9.8, ELEK_RENDER, ELEK_ZINC.darkened(0.1), M_STONE, M_STONE)
+	for fc: Array in [[61.0, -21.85, _a, -_b], [56.75, -17.1, _b, -_a], [65.15, -17.1, _b, _a]]:
+		var c: Vector2 = _w(fc[0], fc[1])
+		for s: float in [-1.6, 1.6]:
+			_arch_panel(c + (fc[2] as Vector2) * s, fc[2], fc[3], 0.8, g + 7.0, g + 8.4, ELEK_RENDER, 0.05, M_STONE)
+			_arch_panel(c + (fc[2] as Vector2) * s, fc[2], fc[3], 0.55, g + 7.2, g + 8.4, ELEK_DARK_GLASS, 0.09, M_GLASS)
+
+
+## The names (parodies, warsaw-tone): ELEKTROWNIA on the Dobra gable, the food hall and the
+## brewery on the yard, the shops on the plaza, the bars on the passage, the office's shops.
+func _elek_signs(g: float) -> void:
+	var white := Color(1.0, 0.97, 0.9)
+	_usign("ELEKTROWNIA", ELEK_U0 - 0.3, 0.0, g + 16.6, -_a, 14.0, 2.0, white)
+	# on the yard (north face of the hall wall, v = -17.1)
+	_usign("HALA TURBIN", -26.0, -17.4, g + 4.3, -_b, 10.0, 0.9, Color(1.0, 0.8, 0.35))
+	_usign("BROWAR KOMIN", 8.5, -17.4, g + 4.3, -_b, 10.0, 0.9, Color(0.95, 0.65, 0.3))
+	# on the plaza (south face, v = 17.6)
+	var plaza := [["ROSOMAK", -35.0, Color(0.95, 0.25, 0.3)], ["KAWA 220V", -27.0, white], ["AMPERIK", -19.0, Color(1.0, 0.55, 0.2)],
+			["FAZA", -11.0, Color(1.0, 0.85, 0.5)]]
+	for s: Array in plaza:
+		_usign(str(s[0]), float(s[1]), 17.95, g + 4.3, _b, 6.0, 0.8, s[2])
+	# on the passage (the cross wing's east face, u = 50)
+	_usign("BEZPIECZNIK", 50.35, 2.0, g + 4.3, _a, 9.0, 0.8, Color(0.35, 0.8, 1.0))
+	_usign("PIEROGARNIA", 50.35, 13.0, g + 4.3, _a, 9.0, 0.8, Color(1.0, 0.75, 0.3))
+	_usign("ZARAZA", 44.15, -11.0, g + 4.3, _a, 6.0, 0.8, white)
+	# the office's shops on its plaza face and the passage's café
+	var oo := _elek_office_out()
+	_usign("SPOŻYWCZAK", -12.6, 49.9, g + 4.75, oo, 9.0, 1.0, Color(0.4, 0.95, 0.5))
+	_usign("WATOWNIA", -6.5, 69.8, g + ELEK_OFFICE_TOP - 2.4, oo, 12.0, 1.6, Color(1.0, 0.3, 0.25))
+
+
+## The office's plaza face (its long side to Dobra) outwards, in the plan.
+func _elek_office_out() -> Vector2:
+	return (_a * -0.955 + _b * 0.293).normalized()
+
+
+## A festoon of warm bulbs from p to q, sagging `sag` (relative to its length) in the middle: a
+## thin wire seen from above and a small lit bulb (two crossed cards, M_LAMP) at every joint. The
+## same look as the barges' festoons for a third of their triangles.
+func _elek_festoon(p: Vector3, q: Vector3, sag: float, n: int) -> void:
+	var keep := _mode
+	var drop := sag * p.distance_to(q)
+	var prev := p
+	var side := Vector3.UP.cross(q - p).normalized() * 0.025
+	for k in range(1, n + 1):
+		var t := float(k) / n
+		var at := p.lerp(q, t) - Vector3.UP * drop * 4.0 * t * (1.0 - t)
+		_mode = M_STONE
+		_quad(prev - side, at - side, at + side, prev + side, Vector3.UP, BARGE_POST)
+		if k < n:
+			_mode = M_LAMP
+			var col := BARGE_BULB if k % 2 == 0 else BARGE_BULB_2
+			var s := side.normalized() * 0.15
+			var f := (q - p).normalized() * 0.15
+			for d: Vector3 in [s, f]:
+				var nn := d.cross(Vector3.UP).normalized()
+				_quad(at - d + Vector3.DOWN * 0.32, at + d + Vector3.DOWN * 0.32, at + d, at - d, nn, col)
+				_quad(at + d + Vector3.DOWN * 0.32, at - d + Vector3.DOWN * 0.32, at - d, at + d, -nn, col)
+		prev = at
+	_mode = keep
+
+
+func _elek_xyz(u: float, v: float, h: float) -> Vector3:
+	var q := _w(u, v)
+	return Vector3(q.x, float(map.terrain_height(q.x, q.y)) + h, q.y)
+
+
+## The face of the cross wing towards the passage at v (u of its east wall).
+static func _elek_cross_face(v: float) -> float:
+	return 50.0 if v > -3.3 and v < 18.7 else 43.9
+
+
+## The life of the complex: the passage's granite with beer tables under zigzag festoons, the
+## yard's summer bar (ZWARCIE) with umbrellas, deck chairs and festoons to posts, the setts plaza
+## by Dobra with café umbrellas and benches, the painted sphere on the lawn (the photos).
+func _elek_life(g: float) -> void:
+	_elek_frame()
+	_no_roof = true
+	_mode = M_STONE
+	var none := Color(0, 0, 0, 0)
+	# The passage's pale granite and the plaza's setts.
+	var passage := _lpoly([[44.2, -22.0], [56.6, -21.6], [56.9, 23.0], [50.3, 23.0], [50.3, -3.3], [44.2, -3.3]])
+	_cap(passage, g + 0.06, Color("#c4c1ba"))
+	var plaza := _lpoly([[-40.5, 18.3], [-8.0, 18.3], [-8.0, 29.2], [-18.4, 29.8], [-16.2, 36.0], [-40.5, 36.0]])
+	_cap(plaza, g + 0.06, Color("#8f8580"))
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 1904
+	var u := -40.0
+	while u < -8.6:
+		var v := 18.9
+		while v < 35.4:
+			if rng.randf() < 0.42 and Geometry2D.is_point_in_polygon(_w(u + 0.45, v + 0.45), plaza):
+				var col: Color = ELEK_SETT[rng.randi() % ELEK_SETT.size()]
+				var sq := _rect(u + 0.45, v + 0.45, 0.42, 0.42)
+				_quad(Vector3(sq[0].x, g + 0.09, sq[0].y), Vector3(sq[3].x, g + 0.09, sq[3].y), Vector3(sq[2].x, g + 0.09, sq[2].y),
+						Vector3(sq[1].x, g + 0.09, sq[1].y), Vector3.UP, col)
+			v += 1.0
+		u += 1.0
+	# The passage: beer tables (along v) and festoons zigzagging from wall to wall.
+	for t: Vector2 in ELEK_BEER:
+		var y := g + 0.06
+		_lbox(t.x, t.y, 0.38, 1.15, y + 0.68, y + 0.76, Color("#b98a5a"), M_STONE, Color("#c99a68"))
+		_lbox(t.x, t.y, 0.06, 0.85, y, y + 0.68, Color("#3b3d40"))
+		for side: float in [-1.0, 1.0]:
+			_lbox(t.x + side * 0.78, t.y, 0.16, 1.15, y + 0.4, y + 0.46, Color("#a87c50"), M_STONE, Color("#b98a5a"))
+			_lbox(t.x + side * 0.78, t.y, 0.05, 0.8, y, y + 0.4, Color("#3b3d40"))
+	var v := -20.0
+	var flip := false
+	while v < 21.0:
+		var cu := _elek_cross_face(v) + 0.15
+		var a := _elek_xyz(cu, v, 6.6)
+		var b := _elek_xyz(56.7, v + 2.7, 6.2)
+		if flip:
+			a = _elek_xyz(cu, v + 2.7, 6.6)
+			b = _elek_xyz(56.7, v, 6.2)
+		_elek_festoon(a, b, 0.06, 7)
+		flip = not flip
+		v += 5.4
+	# The yard by Leszczyńska: the summer bar, umbrella tables, deck chairs, festoons to posts.
+	var bc := ELEK_BAR
+	var by: float = map.terrain_height(_w(bc.x, bc.y).x, _w(bc.x, bc.y).y)
+	_lbox(bc.x, bc.y, 3.0, 1.2, by - 0.2, by + 2.6, Color("#b8412f"), M_STONE, Color("#8f3324"))
+	_lbox(bc.x, bc.y + 1.55, 2.6, 0.3, by, by + 1.1, Color("#6b4a2e"), M_STONE, Color("#c99a68"))
+	var fa := _elek_xyz(bc.x - 3.0, bc.y + 1.2, 2.55)
+	var fb := _elek_xyz(bc.x + 3.0, bc.y + 1.2, 2.55)
+	var fc := _elek_xyz(bc.x + 3.0, bc.y + 2.7, 2.15)
+	var fd := _elek_xyz(bc.x - 3.0, bc.y + 2.7, 2.15)
+	_two_sided(fa, fb, fc, fd, Color("#e8dcc0"))
+	_lbox(bc.x, bc.y, 2.6, 0.06, by + 2.6, by + 3.6, Color("#2b2c2f"), M_STONE, Color("#2b2c2f"))
+	_usign("ZWARCIE", bc.x, bc.y + 0.1, by + 2.75, _b, 4.6, 0.8, Color(1.0, 0.85, 0.3))
+	_usign("ZWARCIE", bc.x, bc.y - 0.1, by + 2.75, -_b, 4.6, 0.8, Color(1.0, 0.85, 0.3))
+	var umb := [Color("#efe7d6"), Color("#c8553d"), Color("#efe7d6"), Color("#2f6f5e")]
+	var i := 0
+	for t: Vector2 in ELEK_YARD_UMB + ELEK_PLAZA_UMB:
+		var p := _w(t.x, t.y)
+		_barge_umbrella(t.x, t.y, map.terrain_height(p.x, p.y), 1.5, umb[i % umb.size()])
+		for side: float in [-1.0, 1.0]:
+			var s := _w(t.x, t.y + side * 0.8)
+			_lbox(t.x, t.y + side * 0.8, 0.2, 0.2, map.terrain_height(s.x, s.y), map.terrain_height(s.x, s.y) + 0.45,
+					Color("#3b3d40"), M_STONE, Color("#55585c"))
+		i += 1
+	var stripes := [Color("#2f8fd4"), Color("#e9e4d8"), Color("#d9542f")]
+	i = 0
+	for c: Vector2 in ELEK_LEZAK:
+		var p := _w(c.x, c.y)
+		_bulwar_lezak(c.x, c.y, map.terrain_height(p.x, p.y), stripes[i % stripes.size()], -1.0)
+		i += 1
+	var posts: Array[Vector3] = []
+	for pu: float in [-30.0, -19.0, -8.0, 3.0, 14.0]:
+		var foot := _elek_xyz(pu, -38.5, 0.0)
+		var top := foot + Vector3.UP * 4.3
+		_beam(foot + Vector3.DOWN * 0.3, top, 0.12, BARGE_POST)
+		posts.append(top)
+		_elek_festoon(_elek_xyz(pu, -17.5, 7.4), top, 0.05, 8)
+	for k in posts.size() - 1:
+		_elek_festoon(posts[k], posts[k + 1], 0.04, 6)
+	# The plaza: two festoons from the hall to posts, two long benches.
+	for pu: float in [-32.0, -21.0]:
+		var foot := _elek_xyz(pu, 31.5, 0.0)
+		var top := foot + Vector3.UP * 4.3
+		_beam(foot + Vector3.DOWN * 0.3, top, 0.12, BARGE_POST)
+		_elek_festoon(_elek_xyz(pu, 17.9, 7.4), top, 0.05, 7)
+	for bu: float in [-36.0, -26.0]:
+		var p := _w(bu, 33.5)
+		var y: float = map.terrain_height(p.x, p.y)
+		_lbox(bu, 33.5, 2.4, 0.35, y - 0.1, y + 0.42, Color("#9c9a95"), M_STONE, Color("#a87c50"))
+	# The painted sphere on the lawn by the yard (a white ball with red and blue bands).
+	var sp := _w(ELEK_SPHERE.x, ELEK_SPHERE.y)
+	var sy: float = map.terrain_height(sp.x, sp.y)
+	_prism(_circle(sp, 0.5, 8), sy - 0.1, sy + 0.55, Color("#8e8c88"), Color("#9b9994"), M_STONE, M_STONE)
+	var r := 1.3
+	var cy: float = sy + 0.55 + r
+	var prev := _circle(sp, 0.25, 10)
+	var prev_y: float = sy + 0.55 + 0.03
+	for k in range(1, 7):
+		var ang := -PI * 0.5 + PI * k / 6.0
+		var ring := _circle(sp, maxf(cos(ang) * r, 0.05), 10)
+		var y: float = cy + sin(ang) * r
+		var col := Color("#f0ede6")
+		if k == 3:
+			col = Color("#c8323a")
+		elif k == 4:
+			col = Color("#2f6fb4")
+		_frustum(prev, prev_y, ring, y, col, Color("#f0ede6") if k == 6 else none)
+		prev = ring
+		prev_y = y
+	_no_roof = false
+	_mode = M_STONE
 
 
 ## Rotunda Dynasy (F's photo set 2026-11-09, Mac powisle/X-Dynasy): the round block of flats on

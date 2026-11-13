@@ -261,7 +261,7 @@ const CHILL := {
 	"chill_norblin": [Vector2(-2236.0, 204.0), 30, 34.0],  # the court's mouth on the glass street (photo report)
 	"chill_browary": [Vector2(-2503.0, -100.0), 36, 36.0],
 	"chill_koszyki": [Vector2(-884.0, 1266.0), 30, 30.0],
-	"chill_elektrownia": [Vector2(285.0, -738.0), 34, 36.0],
+	"chill_elektrownia": [Vector2(241.0, -704.0), 34, 32.0],  # 2026-11-13: the setts plaza by Dobra (the model's rebuild)
 }
 ## F's ask (2026-11-01): the Vistula boulevards (Bulwary Wiślane, Karowa to Most Świętokrzyski and on
 ## past Kopernik) full of people chilling: groups on the granite steps and benches along the river
@@ -381,6 +381,7 @@ const FIRST_SCENE := {
 ## garden) and the evening audiences outside the Palace's stages (Landmarks.pkin_theatre_doors):
 ## id -> most people. Same machinery as CHILL on the `theatre` curve (theatre_level).
 const STUDIO_ID := "bar_studio"
+const ELEK_GARDEN_ID := "elektrownia_garden"
 ## F's ask (2026-11-11): people sitting on the Rotunda's sunken stair (Landmarks.rotunda_steps_plan),
 ## a jazz_cafe site so they keep its curve (afternoon and evening, fewer off-season, few in rain).
 const ROTUNDA_STEPS_ID := "rotunda_steps"
@@ -1087,6 +1088,10 @@ func setup(places: Array, data: Dictionary, seed_value := 1703) -> void:
 		var ss: Array = SOWA[sid]
 		_add_site({"id": sid, "kind": "chill", "club": true, "sit": false, "at": ss[0], "max": int(ss[1]), "radius": float(ss[2]),
 				"talk": "sowa_club"})
+	# Elektrownia Powiśle's beer tables, umbrellas and deck chairs (landmarks.gd elektrownia_garden_plan,
+	# F 2026-11-13: "alive, people, summer bars"): sitters on the café curve.
+	var elek := Landmarks.elektrownia_garden_plan()
+	_add_site({"id": ELEK_GARDEN_ID, "kind": "jazz_cafe", "at": elek["centre"], "max": (elek["seats"] as Array).size(), "plan": elek})
 	var studio := Landmarks.pkin_studio_plan()
 	_add_site({"id": STUDIO_ID, "kind": "jazz_cafe", "at": studio["centre"], "max": (studio["seats"] as Array).size(), "plan": studio})
 	var rot_steps := Landmarks.rotunda_steps_plan(MapBuilderData.sunk_spec("rotunda_stair"))
