@@ -122,6 +122,20 @@ func _data() -> void:
 	_skill("the default racer", Ladder.DEFAULT_RACER)
 	_skill("Halina's gentle day", Ladder.FIRST_RACER)
 	_expect(Ladder.racer(Ladder.FINAL) == Ladder.FINAL_RACER and Ladder.racer(-1) == Ladder.DEFAULT_RACER, "racer(FINAL) and racer(-1)")
+	# Racer AI step 6b part 1b: the night club's eight (street_meet.gd's pack race), every key of a
+	# racer, locals with no wrong-way hop, and nobody over the player's car.
+	_expect(Ladder.CLUB.size() == 8, "the club has %d racers (want 8: the ring's six, Darek, Lena)" % Ladder.CLUB.size())
+	for i in Ladder.CLUB.size():
+		var row: Dictionary = Ladder.CLUB[i]
+		for k: String in Ladder.DEFAULT_RACER:
+			_expect(row.has(k), "the club's racer %d has no %s" % [i, k])
+		var c := Ladder.club(i)
+		_skill("the club's racer %d" % i, c)
+		_expect(float(c["hops"]) == 0.0 and int(c["wrong"]) == 0 and not bool(c["phone"]) and float(c["cuts"]) == 1.0 and float(c["yards"]) == 1.0,
+				"the club's racer %d: a local with no hop, wrong turn or phone" % i)
+		_expect(float(c["share"]) <= 1.0 and float(c["lat"]) <= 16.5 and float(c["race_accel"]) <= 13.5 and float(c["brake"]) <= 13.0,
+				"the club's racer %d over the ladder's best (share %.2f, lat %.1f, pull %.1f, brake %.1f)" % [i, c["share"], c["lat"], c["race_accel"], c["brake"]])
+		_expect(float(c["block"]) >= 0.2 and float(c["block"]) <= 0.4, "the club's racer %d: block %.2f (they defend, never ram)" % [i, c["block"]])
 	for k: String in ["share", "race_accel", "brake", "lat"]:
 		_expect(float(Ladder.FIRST_RACER[k]) < float(Ladder.racer(0)[k]), "the gentle day's %s is not under her rung's" % k)
 	_expect(Ladder.SHARE_MIN * RaceSession.EFFORT_EASE >= RaceBench.CRAWL_SHARE,

@@ -15,6 +15,11 @@ extends RefCounted
 ## Step 6b part 1a moved the statics here from rivals.gd (`Pace`, `arm_racer`, `race_stats`,
 ## `pace_tick`, `effort_of`, `own_pace`, `home_at`, `remaining_from` and their constants): the
 ## race bench and the checks drive the same functions without the game.
+##
+## Step 6b part 1b: the night club's pack (street_meet.gd, the race bench's `pack`), eight racers
+## on one course: `round_robin` (their plans one racer a frame), `home_within` (home that near the
+## finish as well), the distances shared by racers who know the same shortcuts, and `signals`'
+## `seen_only`. A one-racer race is the same as before.
 
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Traffic := preload("res://scripts/traffic.gd")
@@ -84,6 +89,10 @@ class Racer:
 	## Whether it knows shortcuts at all (opts "cuts") and drives by a plan (opts "plan").
 	var knows_cuts := true
 	var planned := true
+	## The street it will set off from (opts "from"; -1: its Driver's): its plan is searched
+	## towards that one before the start, also while it has no Driver yet (step 6b part 1b: Darek
+	## and Lena get theirs at the road, and their whole search fell on the start's frame).
+	var from_e := -1
 	## Its shortcuts (RaceCuts.links: [table, links into nodes]).
 	var table := {}
 	var cut_in := {}
@@ -106,7 +115,8 @@ class Racer:
 
 
 var graph: LaneGraph
-var traffic: Traffic
+## The race's traffic (traffic.gd; untyped: check_street_meet.gd races on a stand-in).
+var traffic
 var planner: RacePlanner
 var cuts: RaceCuts
 ## The course: the junctions in order (the last is the finish), the finish's ground point and
@@ -121,6 +131,14 @@ var home_circle := true
 ## The metres left summed leg by leg at full precision (the race bench's way) instead of the
 ## driver's metres plus the leg's `after` (rivals.gd's, kept in 32 bits). One leg: the same.
 var exact_left := false
+## Step 6b part 1b, the pack: the racers' plans are searched one racer a frame (`plan_tick`: a
+## slice of one plan, so eight racers cost a frame what one does), and a racer on the last leg
+## with less than `home_within` m left is home too (0: off; street_meet.gd's 12 m, as before).
+var round_robin := false
+var home_within := 0.0
+var _turn := 0
+## The shortcut tables made for a cuts profile that every name knows alike (`_learn_cuts`).
+var _links := {}
 var racers: Array[Racer] = []
 ## Node -> the roads' own distances to it (the owner's cache, kept across races).
 var _roads := {}
@@ -128,7 +146,7 @@ var _roads := {}
 
 ## The map's lane graph, the race's traffic, the map's planner and shortcuts, and the owner's
 ## cache of the roads' distances (`roads`: {node: PackedFloat32Array}, shared, may be empty).
-func setup(lane_graph: LaneGraph, traffic_node: Traffic, race_planner: RacePlanner, race_cuts: RaceCuts, roads := {}) -> void:
+func setup(lane_graph: LaneGraph, traffic_node, race_planner: RacePlanner, race_cuts: RaceCuts, roads := {}) -> void:
 	graph = lane_graph
 	traffic = traffic_node
 	planner = race_planner
@@ -164,6 +182,7 @@ func add(d, name: String, profile: Dictionary, pace: Vector2, opts := {}) -> Rac
 	r.dice = int(opts.get("dice", 0))
 	r.knows_cuts = bool(opts.get("cuts", true))
 	r.planned = bool(opts.get("plan", true))
+	r.from_e = int(opts.get("from", -1))
 	if r.knows_cuts:
 		_learn_cuts(r)
 	r.dists.resize(legs.size())
@@ -176,9 +195,21 @@ func add(d, name: String, profile: Dictionary, pace: Vector2, opts := {}) -> Rac
 ## onto the roads of `shut` (both {edge: true}; a plan's, after a refusal or a blocked street).
 func _learn_cuts(r: Racer, no_hop := {}, shut := {}) -> void:
 	var p := r.cuts_of
+	# Step 6b part 1b: a profile that knows every cut and yard and dares no hop has the same
+	# tables whatever its name (RaceCuts.knows ignores the dice at 1.0 and 0.0): made once for the
+	# pack's eight (2 to 4 ms each) and shared; the tables are only read.
+	var key := ""
+	if no_hop.is_empty() and shut.is_empty() and float(p["cuts"]) >= 1.0 and float(p.get("yards", 0.0)) >= 1.0 and float(p.get("hops", 0.0)) <= 0.0:
+		key = "%s/%s" % [p.get("narrow", 99.0), p.get("home", [])]
+		if _links.has(key):
+			r.table = _links[key][0]
+			r.cut_in = _links[key][1]
+			return
 	var both := cuts.links(float(p["cuts"]), hash(r.name), float(p.get("yards", 0.0)), float(p.get("narrow", 99.0)), float(p.get("hops", 0.0)), no_hop, p.get("home", []), shut)
 	r.table = both[0]
 	r.cut_in = both[1]
+	if key != "":
+		_links[key] = both
 
 
 ## The roads' own distances to `node` (cached in the owner's `roads`).
@@ -190,9 +221,14 @@ func roads_to(node: int) -> PackedFloat32Array:
 
 ## Racer `r`'s distances to the junction of leg `leg`: with its shortcuts, and on the last leg of
 ## a finish with a circle the metres to where each road through it enters (RacePlanner.links);
-## the roads' own when neither adds a way. Made once and kept for the race.
+## the roads' own when neither adds a way. Made once and kept for the race; another racer's when
+## it knows the same shortcuts (the pack's locals: one search for all eight).
 func distances(r: Racer, leg: int) -> PackedFloat32Array:
 	if typeof(r.dists[leg]) == TYPE_NIL:
+		for o in racers:
+			if o != r and typeof(o.dists[leg]) != TYPE_NIL and o.cut_in == r.cut_in:
+				r.dists[leg] = o.dists[leg]
+				return r.dists[leg]
 		var node := legs[leg]
 		var extra := planner.links(node, ends if leg == legs.size() - 1 else {}, r.cut_in)
 		r.dists[leg] = roads_to(node) if extra.is_empty() else graph.distances_to(node, INF, true, extra)
@@ -266,6 +302,9 @@ func _sum_legs(r: Racer) -> void:
 func plan_tick(may_remake: bool) -> void:
 	if not ready():
 		return
+	if round_robin:
+		_plan_round()
+		return
 	for r in racers:
 		if not r.planned:
 			continue
@@ -275,9 +314,31 @@ func plan_tick(may_remake: bool) -> void:
 			plan(r, r.leg + 1).work(Traffic.PLAN_SLICE)
 
 
+## `round_robin`: one slice of one racer's plan, the next racer's from the last one's on whose
+## plan does not know the ways on from its street yet (before the start the street it sets off
+## from, `from_e`, if given; a racer with neither, or home, waits). The search of a plan the racer
+## drives already goes on through the race the same way.
+func _plan_round() -> void:
+	var n := racers.size()
+	for i in n:
+		var k := (_turn + i) % n
+		var r := racers[k]
+		if not r.planned or r.home:
+			continue
+		var e: int = r.from_e if not r.started and r.from_e >= 0 else (r.d.edge if r.d != null else -1)
+		if e < 0:
+			continue
+		var p := plan(r, r.leg)
+		if p.step(e, 0):
+			continue
+		p.step(e, Traffic.PLAN_SLICE)
+		_turn = k + 1
+		return
+
+
 ## Plan `p` was made for another traffic than the town has now (PLAN_STALE).
 func _stale(p: RacePlanner.Plan) -> bool:
-	var now := traffic.race_density()
+	var now: float = traffic.race_density()
 	return absf(p.density - now) > PLAN_STALE * maxf(p.density, now)
 
 
@@ -298,6 +359,8 @@ func next_leg(r: Racer) -> void:
 ## `home_circle` it is inside the finish's circle.
 func arrived(r: Racer) -> bool:
 	if r.d.arrived:
+		return true
+	if home_within > 0.0 and r.leg == legs.size() - 1 and traffic.remaining(r.d) < home_within:
 		return true
 	return home_circle and r.leg == legs.size() - 1 and radius > 0.0 \
 			and Vector2(r.d.pos.x, r.d.pos.z).distance_to(at) < radius
@@ -390,17 +453,19 @@ func _reroute(r: Racer) -> void:
 	traffic.reroute(d, graph.distances_to(d.finish, INF, true, planner.links(d.finish, d.plan.ends, r.cut_in, d.plan.shut), d.plan.shut))
 
 
-## Every frame: the lights of each racer that races (race_signals.gd; the owner shows them).
-func signals(dt: float) -> void:
+## Every frame: the lights of each racer that races (race_signals.gd; the owner shows them); with
+## `seen_only` only of those in view (the pack: a light nobody sees is not worked out).
+func signals(dt: float, seen_only := false) -> void:
 	for r in racers:
-		if r.started and not r.home:
+		if r.started and not r.home and (not seen_only or r.d.visible):
 			RaceSignals.tick(r.sig, r.d, graph, r.stats, dt)
 
 
 ## The race is over: every racer out of racer mode on the traffic, its plans dropped.
 func end() -> void:
 	for r in racers:
-		traffic.stop_racing(r.d)
+		if r.d != null:
+			traffic.stop_racing(r.d)
 		r.plans.fill(null)
 
 

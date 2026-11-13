@@ -12,7 +12,8 @@
 		"route_sense": "pass",
 		"same_twice": "pass",
 		"wrong_way": "pass",
-		"told_apart": "pass"
+		"told_apart": "pass",
+		"pack_order": "fail"
 	},
 	"full": {
 		"finishes": "once:Linux",
@@ -30,6 +31,8 @@
 		"wrong_way": "pass",
 		"wrong_way_traffic": "once:Linux",
 		"ladder_curve": "pass",
-		"told_apart": "pass"
+		"told_apart": "pass",
+		"pack_order": "fail",
+		"pack_traffic": "fail"
 	}
 }

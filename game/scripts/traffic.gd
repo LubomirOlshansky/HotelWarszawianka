@@ -3225,11 +3225,26 @@ func _race_cross_look(d: Driver) -> bool:
 	for q in junction_cars:
 		if q == d or absf(q.pos.y - d.pos.y) > 2.5:
 			continue
+		# Racer AI step 6b part 1b, the night club's pack (several racers with plans in one race;
+		# never the test player's car, so a race of one is as before): another of them behind it
+		# is not a car in its way, nor one still on the street it is turning out of, nor one less
+		# far along the same junction's curve (each of those waits for it: who is first goes); one
+		# ahead on a shortcut's curve is in its way, also from its own lane (the lane's metres do
+		# not reach along a long curve). Before, two of the club onto one shortcut each stood for
+		# the other, 0.3 m apart, until the knot rule let them through each other, and the next
+		# drove into the one on the curve: 8 to 20 cars driven through at the start of the bench's
+		# pack race.
+		var mate: bool = d.plan != null and q.plan != null and not q.ghost
+		if mate and ((q.pos.x - d.pos.x) * -sin(d.yaw) + (q.pos.z - d.pos.z) * -cos(d.yaw) < 0.0
+				or (d.in_conn and not q.in_conn and q.edge == d.edge)
+				or (d.in_conn and q.in_conn and d.cu / maxf(d.conn_len, 0.1) > q.cu / maxf(q.conn_len, 0.1))):
+			continue
+		var curve_ahead: bool = mate and q.on_cut and q.in_conn
 		# The cars of its own lanes it follows by the lane (and those beside it on its street it
 		# sees by their place); two curves into one lane are side by side until they meet.
-		if q.reg == d.reg and not (d.in_conn and q.in_conn and d.lane != q.lane):
+		if q.reg == d.reg and not (d.in_conn and q.in_conn and d.lane != q.lane) and not curve_ahead:
 			continue
-		if not d.in_conn and ((q.reg == d.next_reg and not (q.in_conn and q.edge != e)) or (q.edge == e and not q.in_conn)):
+		if not d.in_conn and ((q.reg == d.next_reg and not (q.in_conn and q.edge != e)) or (q.edge == e and not q.in_conn)) and not curve_ahead:
 			continue
 		var far := reach + q.v * CROSS_TIME + 8.0
 		if Vector2(q.pos.x, q.pos.z).distance_squared_to(here) < far * far:
