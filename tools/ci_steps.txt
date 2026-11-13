@@ -191,3 +191,4 @@ water                roads     slow
 water-prebuilt       smoke     slow
 wellness             quick
 zaglebie             quick
+zamekramps           quick
