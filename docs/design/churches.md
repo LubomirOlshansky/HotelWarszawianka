@@ -5,6 +5,8 @@ church model follows and the list of every church the map has, with its status. 
 `landmarks.gd` `CHURCHES` / `_build_church` (spec `docs/landmarks/specs/churches.md`); the older
 hand-built churches keep their own builders (listed below).
 
+Current state, tiers and photo counts (2026-11-13): docs/LANDMARKS.md "Churches review". The table below is the 2026-11-01 kit inventory.
+
 ## The rules (what "designed properly" means here)
 
 1. **Orientation.** The entrance faces the street, the apse the other way. The front end of the

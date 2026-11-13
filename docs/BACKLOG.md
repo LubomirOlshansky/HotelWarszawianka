@@ -4,6 +4,17 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## Churches still to model from photos (F, 2026-11-13; review in docs/LANDMARKS.md "Churches review")
+
+Review only, nothing built. Each item is one thread, photo-first (model-from-photos skill; Mapillary and
+Panoramax via `tools/street_photos.py`, Commons on the Mac). The Tamka church (`teresy`) is in its own thread.
+- [ ] Najświętszego Zbawiciela and św. Aleksandra photo rebuilds (tier A, 41 and 77 street photos near them).
+- [ ] Old Town set: Jezuici model (skin only today), Archikatedra's tower and apse, Katedra polowa, Kapucyni, św. Jacka with the Dominicans, św. Marcina, św. Ducha.
+- [ ] Krakowskie Przedmieście: Wizytki with her convent, Niepokalanego Poczęcia (kit box 9 x 4 m, check size and name), Trójca (Lutheran) photo check, Misjonarze's house by Holy Cross.
+- [ ] Synagoga Nożyków photo model with the Próżna pass.
+- [ ] Kit churches (22) get a photo check of front, tower and cap, tier B first (Dzieciątka Jezus, Miłosierdzia Bożego, Zielonoświątkowy, Karola Boromeusza, Jerozolimska).
+- [ ] Plain monasteries and chapels (tier C) only when a street pass reaches them.
+
 ## HIGH PRIORITY: Geobent promo in the app (F, 2026-11-12: "add to backlog with high priority, to add geobent promo to app", link https://geobent.pl/)
 Not built: new work is stopped (STOP NEW WORK, F 2026-11-11); this is queued first for when it is lifted.
 - [ ] Add a Geobent promo to the app. What the site shows (read 2026-11-12): GEOBENT Sp. z o.o., a Rzeszów maker of bentonite clay for foundries, building and drilling, farming, food filtering and cat litter (GB-Litter); site in Polish and English; tagline "Niezawodny partner w innowacyjnych rozwiazaniach bentonitowych" ("reliable partner in innovative bentonite solutions"). It has nothing on Warsaw, games or ads, so the shape of the promo is F's to say (questions in QUESTIONS.md "Waiting").

@@ -1,6 +1,5 @@
 - The two small fountains by the Palace of Culture's main entrance stand in front of the portico's ends now, where they really are, instead of squeezed into the corners against the wall.
 - PAŁAC KULTURY I NAUKI in red neon over the Palace's main columns, lit at night.
-- The Palace's night floodlight looks like the real projectors: a calm cream light rising from each terrace and fading upwards, the low wings dimmer than the tower, instead of an even orange glow.
 
 ## Backlog
 - found: Blender for the hero landmarks: F's call on the Palace trial (QUESTIONS "Waiting"): switch the Palace to the Blender model (`--palace=blender`, tools/blender/pkin.py), keep the code model, or take Blender for the next heroes too (Tarasy, Rotunda, the stadium) while blocks stay procedural

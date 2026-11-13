@@ -1,0 +1,1 @@
+- The Palace's night floodlight looks like the real projectors: a calm cream light rising from each terrace and fading upwards, the low wings dimmer than the tower, instead of an even orange glow.
