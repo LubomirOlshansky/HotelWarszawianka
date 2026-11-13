@@ -93,7 +93,9 @@
 # autopilot's frames): the real Rides on the stand-ins of tools/fakes.gd, played headless: the settings, the
 # button and what holds a request back, the request card, the way to the passenger, the ride and its stars,
 # the pay, the cancels, the quirks, every kind of passenger, the story passengers, the autopilot, the bare
-# rig (no traffic), a save that has driven before and the director (CI too).
+# rig (no traffic), a save that has driven before and the director; the rides that are made (counted over
+# seeded draws), two rides in a row, and the plans (the river, the park, the Frogs turn, the story's place,
+# the scan) asked straight on a bigger test city (CI too).
 # Beta values (2026-11-04): `laneassist` runs game/tools/check_lane_assist.gd: the lane assist on
 # the real car (a 6° start, a 300 m curve, a deliberate turn, when it must not pull) and the lane's
 # direction on the committed map (~10 s).

@@ -50,6 +50,17 @@ const EAST := -PI / 2.0
 const TEAL := Color("#4fd8c4")
 const RED := Color("#e2574c")
 const FROG_DOORS := [Vector2(810.0, 410.0), Vector2(1610.0, 1210.0), Vector2(410.0, 1610.0)]
+## The second, bigger city (parts N on; a rig asks for it by `opts["big"]`): the outline without the
+## corner CUT out of it, two more waters (a small pond by Pozioma 3, a puddle under a park's point), a
+## third, long roof by the bank, one direction of Pionowa 6 in a tunnel, and a long spur street out of
+## the south-west corner and back.
+const BIG_BOUNDS := Rect2(-100.0, -100.0, 2700.0, 2600.0)
+const CUT := Rect2(2420.0, -100.0, 180.0, 510.0)
+const POND2 := Vector2(600.0, 1240.0)
+const PUDDLE := Vector2(350.0, 1650.0)
+const ROOF3 := Rect2(2405.0, 2000.0, 8.0, 400.0)
+const SPUR_MID := Vector2(400.0, 4900.0)
+const SPUR_END := Vector2(0.0, 7400.0)
 const GATES := ["flying", "away", "mission", "water", "rescue target", "rescue offer", "a side job", "a race", "a rival calling", "a card",
 		"the other activity"]
 
@@ -90,12 +101,23 @@ class PlayRivals extends Node:
 ## The map as the rides ask it: its outline, the water (the river east of SHORE, a pond), roofs,
 ## and three heights that never agree (one taken from the wrong place shows).
 class WorldMap extends Node3D:
-	var bounds := BOUNDS
+	## Whether it is the bigger city's map (a rig sets it).
+	var big := false
+	## An island some scene lays in the river by the map's east edge (empty: none).
+	var isle := Rect2()
+	var bounds: Rect2:
+		get:
+			return BIG_BOUNDS if big else BOUNDS
 	func in_map(p: Vector2, margin := 0.0) -> bool:
-		return bounds.grow(margin).has_point(p)
+		return bounds.grow(margin).has_point(p) and not (big and CUT.grow(-margin).has_point(p))
 	func shore_distance(x: float, z: float) -> float:
 		# The bank bends (0 to 6 m east of SHORE), so the scan's 8 m samples fit some rows and not others.
-		return maxf(x - (SHORE + 3.0 + 3.0 * sin(z / 90.0)), 12.0 - Vector2(x, z).distance_to(POND))
+		var d := maxf(x - (SHORE + 3.0 + 3.0 * sin(z / 90.0)), 12.0 - Vector2(x, z).distance_to(POND))
+		if big:
+			d = maxf(d, maxf(6.0 - Vector2(x, z).distance_to(POND2), 0.9 - Vector2(x, z).distance_to(PUDDLE)))
+		if isle.has_point(Vector2(x, z)):
+			d = -5.0
+		return d
 	func terrain_height(x: float, z: float) -> float:
 		return 5.0 + 0.0007 * x - 0.0003 * z
 	func ground_height(x: float, z: float) -> float:
@@ -104,6 +126,8 @@ class WorldMap extends Node3D:
 		for r: Rect2 in ROOFS:
 			if r.has_point(Vector2(x, z)):
 				return terrain_height(x, z) + 12.0
+		if big and ROOF3.has_point(Vector2(x, z)):
+			return terrain_height(x, z) + 12.0
 		return terrain_height(x, z)
 
 
@@ -111,6 +135,8 @@ class WorldMap extends Node3D:
 class RoadMap extends Node3D:
 	func terrain_height(x: float, z: float) -> float:
 		return 1.0 + 0.0011 * x - 0.0007 * z
+	func tunnel_height(_t: int, x: float, z: float) -> float:
+		return -4.0 + 0.0011 * x - 0.0007 * z
 
 
 class PlayCar extends CharacterBody3D:
@@ -139,9 +165,10 @@ class PlayWeather extends Node:
 class PlayFrogs extends Node:
 	const STAMP_REACH := 14.0
 	var shops: Array = [{"triple": ""}, {"triple": "x3"}, {"triple": ""}]
+	var doors: Array = FROG_DOORS.duplicate()
 	func shop_near(p: Vector2, reach: float) -> int:
-		for i in FROG_DOORS.size():
-			if (FROG_DOORS[i] as Vector2).distance_to(p) < reach:
+		for i in doors.size():
+			if (doors[i] as Vector2).distance_to(p) < reach:
 				return i
 		return -1
 	func frogs_at_junction(p: Vector2, r: float) -> int:
@@ -157,7 +184,12 @@ class Ghost:
 	var speed_factor := 1.0
 	var accel_factor := 1.0
 	var finish := -1
-	var squeeze := 0.0
+	## How often the job told it to squeeze by (every assignment counts).
+	var squeezes := 0
+	var squeeze := 0.0:
+		set(x):
+			squeeze = x
+			squeezes += 1
 
 
 ## traffic.gd's side: a ghost goes straight for its junction (14 m/s times its factor), or stands
@@ -172,6 +204,8 @@ class PlayTraffic extends Node3D:
 	var removed := 0
 	var raced: Array = []
 	var jam := false
+	## A ghost let go from a jam gains speed slowly (0.2 m/s a frame), not at once.
+	var gentle := false
 	func drivers() -> Array:
 		return []
 	func add_ghost(e: int, lane: int, s: float) -> Ghost:
@@ -198,6 +232,8 @@ class PlayTraffic extends Node3D:
 			var to := Vector2(t.x - g.pos.x, t.y - g.pos.z)
 			var d := to.length()
 			var sp := 14.0 * g.speed_factor
+			if jam and gentle:
+				sp = minf(g.v + 0.2, sp)
 			if d < 2.0:
 				g.arrived = true
 				g.v = 0.0
@@ -214,6 +250,12 @@ class PlayJobs extends Node:
 	var side := false
 	var no_address := false
 	var no_kerb := false
+	## No kerb anywhere but by an address door (a passenger away from the pin finds no place).
+	var no_kerb_away := false
+	## An address asked for with this reach or more is handed back as one no road reaches.
+	var unreached_hi := INF
+	## The lane the last pickup was looked for from (the car's own).
+	var from_e := -1
 	var graph: LaneGraph
 	var map: Node3D
 	var kerbs: Array = []
@@ -225,6 +267,12 @@ class PlayJobs extends Node:
 		kerbs.append(door)
 		if no_kerb:
 			return {}
+		if no_kerb_away:
+			var by_door := false
+			for a in _addresses:
+				by_door = by_door or a["door"] == door
+			if not by_door:
+				return {}
 		var hit := graph.snap(door, 30.0, Vector2.ZERO, true, true)
 		if hit.is_empty():
 			return {}
@@ -246,6 +294,8 @@ class PlayJobs extends Node:
 		return {}
 	func _pick_address(e: int, s: float, from: Vector2, lo: float, hi: float, rng: RandomNumberGenerator, test: Callable, _aim := 0.0) -> Dictionary:
 		picks.append([lo, hi, rng.seed])
+		if hi == 600.0:
+			from_e = e
 		if no_address:
 			return {}
 		var dist := graph.distances_from(graph.e_b[e], false)
@@ -276,7 +326,7 @@ class PlayJobs extends Node:
 			out["road"] = road
 			out["edge"] = hit[0]
 			out["s"] = hit[2]
-			out["reached"] = reached
+			out["reached"] = reached and hi < unreached_hi
 			out["finish"] = finish
 			return out
 		return {}
@@ -288,10 +338,12 @@ var problems: Array[String] = []
 var _n := 0
 var _sec_name := ""
 var _marks: Array[String] = []
-const PARTS := ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M"]
+const PARTS := ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S"]
 var _map: WorldMap
 var _road: RoadMap
 var _graph: LaneGraph
+var _graph_small: LaneGraph
+var _graph_big: LaneGraph
 var _stories: Array = []
 ## The parts of the world, a fresh set whenever a scenario wants a clean start.
 var world: Node3D
@@ -334,13 +386,7 @@ func _initialize() -> void:
 
 
 func _go() -> void:
-	var t0 := Time.get_ticks_msec()
-	_map = WorldMap.new()
-	root.add_child(_map)
-	_road = RoadMap.new()
-	root.add_child(_road)
-	_graph = LaneGraph.new(_graph_data(), _road)
-	_stories = _own_stories()
+	_world()
 	_run_part("A", "A. settings", _a_settings)
 	_run_part("B", "B. idle", _b_idle)
 	_run_part("C", "C. the request", _c_request)
@@ -356,17 +402,36 @@ func _go() -> void:
 	_run_part("K", "K. a save that has driven before", _k_kept)
 	_run_part("L", "L. the director", _l_director)
 	_run_part("M", "M. the breaks", _m_breaks)
+	_run_part("N", "N. making rides", _n_requests)
+	_run_part("O", "O. the autopilot's legs", _o_auto)
+	_run_part("P", "P. the pickup", _p_pickup)
+	_run_part("Q", "Q. two rides in a row", _q_pairs)
+	_run_part("R", "R. plans on the way", _r_plans)
+	_run_part("S", "S. the plans asked straight", _s_plans)
 	for part: String in PARTS:
 		if not _marks.has(part):
 			problems.append("part %s did not run to its end (a script error?)" % part)
 	if problems.is_empty():
-		print("check_ride_play: OK (%d checks; A-M, %d frames by hand, %.1f s)" % [_n, _frames, (Time.get_ticks_msec() - t0) / 1000.0])
+		# No time in the line (verify.sh's table has it), so every run prints the same one.
+		print("check_ride_play: OK (%d checks; A-S, %d frames by hand)" % [_n, _frames])
 		quit(0)
 	else:
 		print("check_ride_play: PROBLEMS")
 		for p in problems:
 			print("  problem: " + p)
 		quit(1)
+
+
+## The maps and the two lane graphs, made once and shared by every rig.
+func _world() -> void:
+	_map = WorldMap.new()
+	root.add_child(_map)
+	_road = RoadMap.new()
+	root.add_child(_road)
+	_graph_small = LaneGraph.new(_graph_data(), _road)
+	_graph_big = LaneGraph.new(_graph_data(true), _road)
+	_graph = _graph_small
+	_stories = _own_stories()
 
 
 func _run_part(mark: String, name: String, f: Callable) -> void:
@@ -395,7 +460,7 @@ func _edge(a: int, b: int, name: String) -> Dictionary:
 			"v": 13.9, "k": "residential", "name": name}
 
 
-func _graph_data() -> Dictionary:
+func _graph_data(big := false) -> Dictionary:
 	var nodes: Array = []
 	var scc: Array = []
 	for j in N:
@@ -412,6 +477,23 @@ func _graph_data() -> Dictionary:
 			if j + 1 < N:
 				edges.append(_edge(_node(i, j), _node(i, j + 1), "Pionowa %d" % i))
 				edges.append(_edge(_node(i, j + 1), _node(i, j), "Pionowa %d" % i))
+				if big and i == N - 1 and j == 3:
+					# Pionowa 6's southbound side runs in a tunnel between Pozioma 3 and 4 (a portal at each end).
+					edges[-2]["tn"] = 0
+					edges[-2]["po"] = 3
+	if big:
+		# The spur (node 49 at its far end), out of the corner (0, 6) and back, with a bend half way.
+		nodes.append(SPUR_END.x)
+		nodes.append(SPUR_END.y)
+		scc.append(1)
+		var corner := Vector2(0.0, (N - 1) * STEP)
+		var run := corner.distance_to(SPUR_MID) + SPUR_MID.distance_to(SPUR_END)
+		for back: bool in [false, true]:
+			var a := SPUR_END if back else corner
+			var b := corner if back else SPUR_END
+			edges.append({"a": N * N if back else _node(0, N - 1), "b": _node(0, N - 1) if back else N * N,
+					"p": [a.x, a.y, SPUR_MID.x, SPUR_MID.y, b.x, b.y], "s0": 6.0, "s1": run - 6.0, "n": 1, "o": 1.75, "lw": 3.5,
+					"v": 13.9, "k": "residential", "name": "Ostroga"})
 	return {"nodes": nodes, "scc": scc, "edges": edges, "ctrl": []}
 
 
@@ -422,7 +504,7 @@ func _addr(name: String, door: Vector2, out: Vector2, d: String) -> Dictionary:
 
 ## The index as main.gd reads it: address doors along every street (the north-east corner's are
 ## Praga's), parks (one in the pond, one under a roof), the spawn, the bank spots.
-func _data(bank: bool, spawn := Vector2(1200.0, 1200.0)) -> Dictionary:
+func _data(bank: bool, spawn := Vector2(1200.0, 1200.0), big := false) -> Dictionary:
 	var pois: Array = []
 	for j in N:
 		for i in N - 1:
@@ -438,12 +520,14 @@ func _data(bank: bool, spawn := Vector2(1200.0, 1200.0)) -> Dictionary:
 	for p: Array in [["Park Rogu", 450.0, 450.0], ["Park Środka", 1250.0, 850.0], ["Park Wschodu", 2050.0, 1650.0],
 			["Park w Stawie", POND.x, POND.y + 4.0], ["Park pod Dachem", 1000.0, 1000.0], ["Park Zachodu", 350.0, 1250.0]]:
 		pois.append({"k": "park", "name": p[0], "x": p[1], "z": p[2]})
+	if big:
+		pois.append({"k": "park", "name": "Park w Kałuży", "x": PUDDLE.x, "z": PUDDLE.y})
 	pois.append({"k": "kebab", "name": "nie nasze", "x": 0.0, "z": 0.0})
 	var out := {"pois": pois, "spawn": {"x": spawn.x, "z": spawn.y}}
 	if bank:
 		var spots: Array = []
 		for z: float in [200.0, 600.0, 1000.0, 1400.0, 1800.0, 2200.0]:
-			spots.append([SHORE - 5.0, z, 2400.0, z])
+			spots.append([SHORE - 5.0, z, 2398.25 if big and z == 1400.0 else 2400.0, z])
 		spots.append([SHORE - 5.0, 3000.0, 2400.0, 3000.0])  # outside the map
 		spots.append([SHORE - 5.0, 1100.0, 2300.0, 1100.0])  # no lane by it
 		out["drivable_bank"] = spots
@@ -469,7 +553,7 @@ func _own_stories() -> Array:
 ## A fresh world: the job as main.gd makes it (the members, `map_data`, the kit's `setup`), the
 ## director with a second, empty activity, the car at HOME by day, 200 s of play behind it. `full`:
 ## everything main.gd hands in; false: the least (no traffic, rivals, clock, weather, callables, no
-## bank spots). `opts`: "fresh" (no play behind it), "spawn" (the index's spawn), "gps_first",
+## bank spots). `opts`: "big" (the second city), "bank" (false: no bank list, the scan), "fresh" (no play behind it), "spawn" (the index's spawn), "gps_first",
 ## "log_on" (handed in before `setup`).
 func _rig(full := true, kept := {}, opts := {}) -> void:
 	if world != null:
@@ -491,7 +575,10 @@ func _rig(full := true, kept := {}, opts := {}) -> void:
 	weather = PlayWeather.new()
 	frogs = PlayFrogs.new()
 	traffic = PlayTraffic.new()
-	data = _data(full, opts.get("spawn", Vector2(1200.0, 1200.0)))
+	var big := opts.has("big")
+	_map.big = big
+	_graph = _graph_big if big else _graph_small
+	data = _data(bool(opts.get("bank", full)), opts.get("spawn", Vector2(1200.0, 1200.0)), big)
 	jobs.graph = _graph
 	jobs.map = _map
 	for p: Dictionary in data["pois"]:
@@ -501,7 +588,7 @@ func _rig(full := true, kept := {}, opts := {}) -> void:
 	traffic.graph = _graph
 	rivals._finishes = [{"name": "Plac Testowy (meta)", "node": _node(1, 1)}, {"name": "Most Testowy (meta)", "node": _node(5, 5)},
 			{"name": "Rondo Dalekie", "node": _node(6, 6)}, {"name": "Skwer Bliski", "node": _node(3, 3)},
-			{"name": "Za Mapą", "node": _node(0, 0)}]
+			{"name": "Za Mapą", "node": _node(6, 0) if big else _node(0, 0)}]
 	for nd: Node in [hud, bubbles, dialogue, wallet, missions, rivals, jobs, car, tod, weather, frogs, traffic]:
 		world.add_child(nd)
 	_car = Vector3(HOME.x, 0.0, HOME.y)
@@ -2689,6 +2776,10 @@ var _added_seen := 0
 var _born := 0
 var _squeeze_after := -1
 var _squeeze_value := 0.0
+## What the last autopilot ride asked of the traffic (the junctions its ghosts were raced to, in order) and
+## the app's line as it stood two frames after boarding.
+var _auto_raced: Array = []
+var _auto_route := PackedVector2Array()
 
 
 ## A frame on the engine's own clock, as main.gd runs the autopilot: the traffic, the job's drive of the
@@ -2750,7 +2841,7 @@ func _auto_ride(what: String, cfg: Dictionary) -> Dictionary:
 	q.force_quirk = str(cfg.get("quirk", ""))
 	traffic.jam = bool(cfg.get("jam", false))
 	var fits: Callable = cfg.get("fits", func(x: Dictionary) -> bool: return float(x["road"]) < 1500.0 and (str(cfg.get("quirk", "")) != "" or cfg.has("story") or _plain(x)))
-	var n := _find(1, fits)
+	var n := _find(int(cfg.get("from", 1)), fits)
 	if n < 0:
 		return {}
 	var r: Dictionary = q._ride.duplicate(true)
@@ -2798,6 +2889,7 @@ func _auto_ride(what: String, cfg: Dictionary) -> Dictionary:
 	if q._ride.has("q"):
 		_watch = (q._ride["q"] as Dictionary).get("w", Vector2.INF)
 	await _afr_n(2)
+	_auto_route = hud.route.duplicate()
 	_ok(_last_dp or bare, "%s: no drive on the ride" % what)
 	if cfg.has("story"):
 		var asked := await _afr_until(func() -> bool: return q._asking, 9000)
@@ -2833,12 +2925,27 @@ func _auto_ride(what: String, cfg: Dictionary) -> Dictionary:
 	_ok(idle >= 0 and not _last_dp, "%s: not idle after the card" % what)
 	var secs := float(_frames - start_f) * DT
 	_ok(secs <= 400.0, "%s: from the request to idle took %.0f s" % [what, secs])
+	_auto_raced = []
+	for e: Dictionary in traffic.raced:
+		_auto_raced.append(e["finish"])
 	var hist: Array = wallet.keep.get("podwozka_ratings", [])
 	var stars := float(hist.back()) if not hist.is_empty() else 0.0
 	_ok(wallet.money > money and stars >= 4.0, "%s: paid %d zł, %.1f stars" % [what, wallet.money - money, stars])
 	_ok(traffic.ghosts.is_empty() and traffic.added == traffic.removed, "%s: the ghost was left on the road (%d, added %d, removed %d)" % [what, traffic.ghosts.size(), traffic.added, traffic.removed])
 	_ok(not q._asking and hud.card == "" and dialogue.said.size() >= said0, "%s: a card left up" % what)
 	return r
+
+
+## Whether a polyline is the flat list of x, z pairs `xs` (within a centimetre).
+func _line_is(line: PackedVector2Array, xs: Array) -> bool:
+	if line.size() * 2 != xs.size():
+		return false
+	for i in line.size():
+		if absf(line[i].x - float(xs[2 * i])) > 0.01 or absf(line[i].y - float(xs[2 * i + 1])) > 0.01:
+			return false
+	return true
+
+
 
 
 func _i_autopilot() -> void:
@@ -2855,20 +2962,1546 @@ func _i_autopilot() -> void:
 	_ok(_in_stage(Rides.Stage.PICKUP) and not q.drive_player(), "no drive on the way with the autopilot off")
 	q.autopilot = true
 	_ok(q.drive_player(), "a drive on the way with it on")
+	var short := func(x: Dictionary) -> bool: return float(x["road"]) < 1500.0
 	var plain := await _auto_ride("autopilot, a plain ride", {})
+	_ok(_auto_raced == [16, 24] and _line_is(_auto_route, [800, 550, 800, 600, 800, 800, 1000, 800, 1200, 800, 1200, 1000, 1200, 1200, 1200, 1200]),
+			"the plain ride: the ghosts raced to junctions %s, the app's line %s" % [_auto_raced, _auto_route])
 	var money_plain := wallet.money
-	await _auto_ride("autopilot, a ride in a jam", {"jam": true})
+	var rr1 := await _auto_ride("autopilot, a ride in a jam", {"jam": true})
+	_ok(_auto_raced == [16, 24], "the ride in a jam: the ghosts raced to junctions %s" % [_auto_raced])
 	_ok(_squeeze_after >= 238 and _squeeze_after <= 246 and _squeeze_value == 3.0, "the ghost stood %d frames in the jam before it was told to squeeze by (%.1f)" % [_squeeze_after, _squeeze_value])
-	await _auto_ride("autopilot, a story's question", {"story": str(_stories[0]["id"]), "answer": 1})
-	var app := await _auto_ride("autopilot, the river the app's way", {"quirk": "river", "who": "believer", "fits": func(x: Dictionary) -> bool: return float(x["road"]) < 1500.0})
+	var rr2 := await _auto_ride("autopilot, a story's question", {"story": str(_stories[0]["id"]), "answer": 1})
+	_ok(_auto_raced == [0] and _line_is(_auto_route, [0, 792, 0, 600, 0, 400, 0, 200, 0, 0, 120, -11]), "the story ride: the pickup is a straight leg, one ghost to junction %s, the line %s" % [_auto_raced, _auto_route])
+	var app := await _auto_ride("autopilot, the river the app's way", {"quirk": "river", "who": "believer", "fits": short})
+	_ok(_auto_raced == [27, 27, 19] and _line_is(_auto_route, [2400, 950, 2400, 1000, 2435, 1000, 2400, 1000, 2400, 1000, 2400, 1200, 2400, 1000, 2400, 800, 2200, 800, 2000, 800, 2011, 1050]),
+			"the river the app's way: the ghosts raced to junctions %s, the line %s" % [_auto_raced, _auto_route])
 	_ok(_dmin <= 15.0, "the app's way passes %.1f m from the river waypoint" % _dmin)
 	_ok(hud.toasts.count("+½ ★ · za aplikacją") == 1 and _count_said("podwozka_gps:river") == 1, "the believer's half star came %d times" % hud.toasts.count("+½ ★ · za aplikacją"))
 	_ok(_count_said("podwozka_passenger:believer") == 0, "the believer grumbled though the app's way was driven")
-	await _auto_ride("autopilot, the river the shortest way", {"quirk": "river", "who": "believer", "ignore": true, "fits": func(x: Dictionary) -> bool: return float(x["road"]) < 1500.0})
+	var rr3 := await _auto_ride("autopilot, the river the shortest way", {"quirk": "river", "who": "believer", "ignore": true, "fits": short})
+	_ok(_auto_raced == [27, 19] and _line_is(_auto_route, [2400, 950, 2400, 1000, 2435, 1000, 2400, 1000, 2400, 1000, 2400, 1200, 2400, 1000, 2400, 800, 2200, 800, 2000, 800, 2011, 1050]),
+			"the river the shortest way: the ghosts raced to junctions %s (the app's line is still shown: %s)" % [_auto_raced, _auto_route])
 	_ok(_dmin > 15.0, "the shortest way passes %.1f m from the river waypoint" % _dmin)
 	_ok(hud.toasts.count("+½ ★ · za aplikacją") == 0 and _count_said("podwozka_passenger:believer") == 1, "the believer grumbled %d times on the shortest way" % _count_said("podwozka_passenger:believer"))
-	await _auto_ride("autopilot, a recalculation", {"quirk": "reroute", "who": "normal"})
+	var rr4 := await _auto_ride("autopilot, a recalculation", {"quirk": "reroute", "who": "normal"})
+	_ok(_auto_raced == [16, 24, 16, 24], "the recalculation the app's way: the ghosts raced to junctions %s (back to 16, on to 24)" % [_auto_raced])
 	_ok(_count_said("podwozka_gps:reroute") == 1, "the app recalculated %d times" % _count_said("podwozka_gps:reroute"))
-	await _auto_ride("autopilot, the bare rig", {"bare": true})
+	var rr6 := await _auto_ride("autopilot, a recalculation on the shortest way", {"quirk": "reroute", "who": "normal", "ignore": true})
+	_ok(_auto_raced == [16, 24], "the recalculation on the shortest way: the ghosts raced to junctions %s" % [_auto_raced])
+	var rr7 := await _auto_ride("autopilot, the river from a street before it", {"quirk": "river", "who": "believer", "fits": func(x: Dictionary) -> bool: return float(x["road"]) < 1500.0 and int(x["p_e"]) != 76})
+	_ok(_auto_raced == [47, 34, 41, 40] and _line_is(_auto_route, [2120, 2400, 2000, 2400, 2000, 2200, 2000, 2000, 2000, 1800, 2000, 1600, 2200, 1600, 2400, 1600, 2400, 1800, 2435, 1800, 2400, 1800, 2400, 1800, 2400, 2000, 2200, 2000, 2000, 2000, 1880, 2011]),
+			"the river from a street before it: the ghosts raced to junctions %s (the waypoint street's start 34 first), the line %s" % [_auto_raced, _auto_route])
+	var rr8 := await _auto_ride("autopilot, a park", {"quirk": "zone", "who": "believer", "fits": short})
+	_ok(_auto_raced == [25, 33, 34, 32] and _line_is(_auto_route, [1600, 950, 1600, 1000, 1600, 1200, 1800, 1200, 2000, 1200, 2000, 1400, 2000, 1600, 2031.073, 1600, 2050, 1650,
+			2000, 1664.51, 2000, 1664.51, 2000, 1600, 1800, 1600, 1600, 1600, 1611, 1850]), "the park the app's way: the ghosts raced to junctions %s, the line %s" % [_auto_raced, _auto_route])
+	var rr9 := await _auto_ride("autopilot, a park behind the car", {"quirk": "zone", "who": "believer", "from": 6, "fits": short})
+	_ok(_auto_raced == [34, 33, 34, 40] and _line_is(_auto_route, [2280, 1600, 2400, 1600, 2200, 1600, 2000, 1600, 2084.201, 1600, 2050, 1650, 2000, 1684.277, 2000, 1684.277, 2000, 1600, 2000, 1800, 2000, 2000, 2120, 1989]),
+			"the park behind the car: the ghosts raced to junctions %s, the line %s" % [_auto_raced, _auto_route])
+	var rr5 := await _auto_ride("autopilot, the bare rig", {"bare": true})
 	_ok(_step_seen > 100 and _step_max <= 12.0 * DT + 0.001 and _step_max > 12.0 * DT - 0.01, "the bare rig's legs are straight lines at 12 m/s (a frame's step %.3f m, %d frames)" % [_step_max, _step_seen])
 	_ok(plain.size() > 0 and money_plain > 100, "the plain autopilot ride ran")
+
+
+# --- N. making rides: the census of seeded requests ------------------------------------------------------------
+
+## Which side of the street `e` the point `p` is on (+1 left of its way, -1 right of it).
+func _side_of(e: int, p: Vector2) -> int:
+	var s: float = _graph.project(e, p)
+	var c: Vector2 = _graph.point_at(e, s)
+	var dir: Vector2 = _graph.direction(e, s)
+	return 1 if dir.cross(p - c) > 0.0 else -1
+
+
+## What a run of seeded requests (ride numbers `from` to `to`) holds: counts of kinds, quirks, the kinds of
+## place and the extremes of the roads, the rides skipped when no ride fits.
+func _census(from: int, to: int) -> Dictionary:
+	var out := {"rides": 0, "offset": 0, "across": 0, "along_back": 0, "kinds": {}, "quirks": {}, "detour": 0, "story": 0, "named": 0, "hyrax": 0,
+			"club": 0, "named_min": INF, "named_max": 0.0, "shirts": {}, "bad_board": 0, "bad_spot": 0, "bad_kerb": 0, "night_story": 0, "club_detour": 0, "hyrax_other": 0, "off_min": INF, "off_max": 0.0}
+	for n in range(from, to):
+		if not _request(n):
+			continue
+		var r: Dictionary = q._ride
+		out["rides"] += 1
+		var kinds: Dictionary = out["kinds"]
+		kinds[str(r["type"])] = int(kinds.get(str(r["type"]), 0)) + 1
+		var quirks: Dictionary = out["quirks"]
+		quirks[str(r["quirk"])] = int(quirks.get(str(r["quirk"]), 0)) + 1
+		(out["shirts"] as Dictionary)[(r["shirt"] as Color).to_html(false)] = true
+		if bool(r["offset"]):
+			out["offset"] += 1
+			out["off_min"] = minf(out["off_min"], float(r["off_m"]))
+			out["off_max"] = maxf(out["off_max"], float(r["off_m"]))
+			var c: Vector2 = _graph.point_at(r["p_e"], r["p_s"])
+			if _side_of(r["p_e"], Vector2(r["pin"].x, r["pin"].z)) != _side_of(r["p_e"], Vector2(r["spot"].x, r["spot"].z)):
+				out["across"] += 1
+			if _graph.project(r["p_e"], Vector2(r["spot"].x, r["spot"].z)) < _graph.project(r["p_e"], Vector2(r["pin"].x, r["pin"].z)):
+				out["along_back"] += 1
+		if bool(r["detour"]):
+			out["detour"] += 1
+		if not (r["story"] as Dictionary).is_empty():
+			out["story"] += 1
+		if _addr_flag(str(r["dest"])) == "?" and str(r["dest"]) != "Pod Gigantami" and (r["story"] as Dictionary).is_empty() and not str(r["dest"]).begins_with("Hyrax"):
+			out["named"] += 1
+			out["named_min"] = minf(out["named_min"], float(r["road"]))
+			out["named_max"] = maxf(out["named_max"], float(r["road"]))
+		if r.has("hyrax"):
+			out["hyrax"] += 1
+			if str(r["type"]) != "hurry":
+				out["hyrax_other"] += 1
+		if str(r["club"]) != "":
+			out["club"] += 1
+			if bool(r["detour"]):
+				out["club_detour"] += 1
+		if (r["story"] as Dictionary).has("when") and str(r["story"]["when"]) == "night":
+			out["night_story"] += 1
+		var cc: Vector2 = _graph.point_at(r["p_e"], r["p_s"])
+		if absf(_flat(r["board"], Vector3(cc.x, 0.0, cc.y)) - 2.0) > 0.01:
+			out["bad_kerb"] += 1
+		if absf(r["board"].y - (1.0 + 0.0011 * r["board"].x - 0.0007 * r["board"].z)) > 0.01:
+			out["bad_board"] += 1
+		if absf(r["spot"].y - (5.0 + 0.0007 * r["spot"].x - 0.0003 * r["spot"].z)) > 0.01:
+			out["bad_spot"] += 1
+		hud.press(1)
+	return out
+
+
+## The seeded census in each light the game has (the dice are fixed, so the counts are literals).
+func _n_requests() -> void:
+	_rig()
+	q.force_story = "none"
+	var c := _census(100, 400)
+	_ok(c["rides"] == 300 and c["offset"] == 141 and c["across"] == 59 and c["along_back"] == 70,
+			"300 seeded requests: %d rides, %d with the passenger away from the pin, %d across the street, %d behind the pin" % [c["rides"], c["offset"], c["across"], c["along_back"]])
+	_ok(c["kinds"] == {"believer": 96, "normal": 160, "hurry": 24, "date": 20}, "the kinds of passenger: %s" % [c["kinds"]])
+	_ok(c["quirks"] == {"river": 42, "": 190, "reroute": 35, "zone": 33}, "the quirks by the dice (no Frogs): %s" % [c["quirks"]])
+	_ok((c["shirts"] as Dictionary).size() == 6 and (c["shirts"] as Dictionary).has("3b8f5a") and (c["shirts"] as Dictionary).has("5d6f8a"),
+			"the shirts: %s" % [(c["shirts"] as Dictionary).keys()])
+	_ok(c["named"] == 82 and c["named_min"] == 650.0 and c["named_max"] == 2250.0, "the named places: %d, %.0f to %.0f m by road" % [c["named"], c["named_min"], c["named_max"]])
+	_ok(c["bad_kerb"] == 0 and c["bad_board"] == 0 and c["bad_spot"] == 0 and c["detour"] == 0,
+			"the boarding point is 2 m from the lane's middle on the road's surface (%d wrong, %d off the road's height), the passenger on the terrain (%d wrong), %d Frogs stops with no Frogs" % [
+			c["bad_kerb"], c["bad_board"], c["bad_spot"], c["detour"]])
+	_ok(c["off_min"] > 30.0 and c["off_min"] < 31.0 and c["off_max"] > 61.0 and c["off_max"] < 62.0,
+			"the passenger waits %.1f to %.1f m from the pin (30 to 60 m along the street, a little across)" % [c["off_min"], c["off_max"]])
+	# The Frogs placed: the Frogs turn is offered, and a stop at a Frogs is asked for.
+	_rig()
+	q.force_story = "none"
+	q.frogs = frogs
+	c = _census(100, 400)
+	_ok(c["quirks"] == {"rechotka": 27, "": 190, "river": 29, "reroute": 32, "zone": 22} and c["detour"] == 42,
+			"with the Frogs placed: the quirks %s, %d Frogs stops asked for" % [c["quirks"], c["detour"]])
+	# The stories, by day and by night.
+	_rig()
+	q.force_story = ""
+	c = _census(100, 400)
+	_ok(c["story"] == 222 and c["night_story"] == 0 and c["named"] == 21, "by day: %d story rides, %d of the night-only stories, %d named places" % [c["story"], c["night_story"], c["named"]])
+	_rig()
+	q.force_story = ""
+	tod.mode = 2
+	c = _census(100, 400)
+	_ok(c["story"] == 222 and c["night_story"] == 6, "by night: %d story rides, %d of the night-only stories" % [c["story"], c["night_story"]])
+	# The TIMBER evening: a fifth of the ordinary passengers.
+	_rig()
+	q.force_story = "none"
+	tod.hour = 20.0
+	c = _census(100, 400)
+	_ok(c["kinds"] == {"believer": 96, "normal": 120, "timber": 44, "hurry": 24, "date": 16}, "at 20:00 the kinds of passenger: %s" % [c["kinds"]])
+	# The first small talk 8 to 14 s in, then 25 to 40 s between.
+	_rig()
+	q.force_story = "none"
+	_request(5)
+	var rc: Dictionary = q._ride.duplicate(true)
+	_take()
+	_board(rc)
+	_at(Vector2(-80.0, 2480.0), 12.0)
+	var gap_min := 1000.0
+	var gap_max := 0.0
+	var chats := dialogue.said.size()
+	for i in 40:
+		q._chat_t = 0.01
+		_secs(5.0 / 60.0)
+		gap_min = minf(gap_min, q._chat_t)
+		gap_max = maxf(gap_max, q._chat_t)
+	_ok(gap_min >= 25.0 and gap_max <= 40.0 and dialogue.said.size() - chats >= 39, "the gap before the next small talk: %.1f to %.1f s, %d lines in 40 tries" % [gap_min, gap_max, dialogue.said.size() - chats])
+	_abort()
+	# Dawn: most requests at the clubs' doors; a club passenger asks for no Frogs.
+	_rig()
+	q.force_story = "none"
+	q.frogs = frogs
+	clubs = [["klub_testowy", Vector2(1320.0, 1200.0)]]
+	c = _census(100, 400)
+	_ok(c["club"] == 218 and c["club_detour"] == 0 and c["detour"] == 11 and c["kinds"]["club"] == 218, "at dawn: %d club passengers, %d of them asking for a Frogs, %d Frogs stops in all" % [c["club"], c["club_detour"], c["detour"]])
+	# The Hyrax Saturday: only the one in a hurry goes to the forecourt, and has no story.
+	_rig()
+	q.force_story = ""
+	hurry = Vector2(2000.0, 400.0)
+	c = _census(100, 400)
+	_ok(c["hyrax"] == 24 and c["hyrax_other"] == 0 and c["story"] == 204, "with a Hyrax forecourt: %d go to it, %d of them not in a hurry, %d story rides" % [c["hyrax"], c["hyrax_other"], c["story"]])
+	_n_golden()
+
+
+## Single rides read whole: the distance to the pin, where the passenger waits, what was asked of the
+## jobs, the places by name.
+func _n_golden() -> void:
+	_rig()
+	q.force_story = "none"
+	jobs.kerbs.clear()
+	_request(101)
+	var r: Dictionary = q._ride
+	_ok(r["pin_name"] == "Pionowa 5 m. 12" and r["offset"] and absf(r["away"] - 17.4) < 0.05 and absf(r["off_m"] - 45.52) < 0.05,
+			"ride 101: the pin %s is %.1f m by road away, the passenger %.2f m off it" % [r["pin_name"], r["away"], r["off_m"]])
+	_ok(jobs.kerbs.size() == 1 and jobs.kerbs[0].distance_to(Vector2(2006.0, 2204.893)) < 0.01 and absf(r["spot_yaw"] - 1.571) < 0.001 and absf(r["spot"].x - 2004.9) < 0.01,
+			"ride 101: the kerb asked for at %s, the passenger faces %.3f at %s" % [jobs.kerbs, r["spot_yaw"], r["spot"]])
+	_ok(hud.body.contains("17 m"), "ride 101: the card says how far away: %s" % hud.body)
+	hud.press(1)
+	jobs.kerbs.clear()
+	_request(108)
+	r = q._ride
+	_ok(not r["offset"] and absf(r["off_m"] - 6.1) < 0.05 and jobs.kerbs.size() == 1 and jobs.kerbs[0].distance_to(Vector2(791.0, 150.0)) < 0.01 and absf(r["away"] - 60.67) < 0.05,
+			"ride 108: the passenger at the pin: %.2f m off, the kerb asked for at %s, %.2f m away" % [r["off_m"], jobs.kerbs, r["away"]])
+	hud.press(1)
+	_request(104)
+	r = q._ride
+	_ok(r["dest"] == "Skwer Bliski" and r["ring"] == Vector3(1200.0, 3.8, 1200.0) and r["finish"] == _node(3, 3),
+			"ride 104: a named place, the ring on the map's ground: %s" % [r["ring"]])
+	hud.press(1)
+	_request(111)
+	r = q._ride
+	_ok(r["type"] == "hurry" and absf(r["eta"] - 97.1) < 0.05, "ride 111: one in a hurry has 0.8 of the time: %.1f s" % r["eta"])
+	hud.press(1)
+	# A request by the clock: how far away is how far the road is, not the air.
+	_rig()
+	q.force_story = "none"
+	_offer_now()
+	_ok(q._ride["pin_name"] == "Pozioma 3 m. 8" and q._ride["away"] == 480.0 and hud.body.contains("480 m"), "the clock's request: %s is %.0f m away: %s" % [q._ride["pin_name"], q._ride["away"], hud.body])
+	hud.press(1)
+	# A date: to the gate of Pod Gigantami by the first door asked for, and the last junction of that road.
+	_rig()
+	q.force_story = "none"
+	q.force_passenger = "date"
+	_request(8)
+	r = q._ride
+	_ok(r["type"] == "date" and r["dest"] == "Pod Gigantami" and absf(r["road"] - 4595.89) < 0.05 and r["finish"] == 14 and r["ring"] == Vector3(-11.0, 0.4349, 790.0),
+			"ride 8, a date: to %s, %.2f m, ending at junction %d, ring %s" % [r["dest"], r["road"], r["finish"], r["ring"]])
+	hud.press(1)
+	# One in a hurry with a story: the story's place, a hurry's 0.8 of the time.
+	_rig()
+	q.force_passenger = "hurry"
+	q.force_story = str(_stories[0]["id"])
+	_request(9)
+	r = q._ride
+	_ok(r["dest"] == "Warsaw Spire" and absf(r["road"] - 4089.5) < 0.05 and absf(r["eta"] - 379.5) < 0.05 and r["ring"] == Vector3(120.0, 1.1397, -11.0) and r["finish"] == 0,
+			"a story passenger in a hurry: %s, %.1f m, ETA %.1f s, ring %s, junction %d" % [r["dest"], r["road"], r["eta"], r["ring"], r["finish"]])
+	hud.press(1)
+	# A story whose place is a lane point: the ring on the road's surface, ending at the junction before it.
+	_rig()
+	q.force_story = str(_stories[2]["id"])
+	_request(9)
+	r = q._ride
+	_ok(r["dest"] == "Dworzec Centralny" and r["ring"] == Vector3(1000.0, 2.1, 0.0) and r["finish"] == 2 and absf(r["road"] - 3609.5) < 0.05,
+			"a story with a lane point for its place: %s, ring %s, junction %d, %.1f m" % [r["dest"], r["ring"], r["finish"], r["road"]])
+	hud.press(1)
+	_n_places()
+
+
+## Where the rides go and come from when the city holds back: one name for every door, no kerb away
+## from a door, doors no road reaches.
+func _n_places() -> void:
+	_rig()
+	q.force_story = "none"
+	var named: Array = ["Pod Gigantami"]
+	for f: Dictionary in rivals._finishes:
+		named.append(str(f["name"]).get_slice(" (", 0))
+	for a: Dictionary in jobs._addresses:
+		a["name"] = "Wszędzie 1"
+	var none := 0
+	var bad := 0
+	for n in range(201, 216):
+		if not _request(n):
+			none += 1
+			continue
+		if not named.has(str(q._ride["dest"])):
+			bad += 1
+		hud.press(1)
+	_ok(bad == 0 and none >= 5 and none < 15, "every door under one name: %d rides to a door of the pickup's own name, %d of 15 found nowhere to go" % [bad, none])
+	_rig()
+	q.force_story = "none"
+	jobs.no_kerb_away = true
+	var got := 0
+	var away := 0
+	for n in range(221, 233):
+		if not _request(n):
+			continue
+		got += 1
+		if bool(q._ride["offset"]):
+			away += 1
+		hud.press(1)
+	_ok(got >= 8 and away == 0, "no kerb away from a door: %d of 12 rides, %d with the passenger away from the pin" % [got, away])
+	_rig()
+	q.force_story = "none"
+	jobs.unreached_hi = 2500.0
+	none = 0
+	bad = 0
+	for n in range(241, 256):
+		if not _request(n):
+			none += 1
+			continue
+		if not named.has(str(q._ride["dest"])) or q._ride["dest"] == "Pod Gigantami":
+			bad += 1
+		hud.press(1)
+	_ok(bad == 0 and none >= 5 and none < 15, "doors no road reaches: %d rides to one, %d of 15 found none to go to" % [bad, none])
+	_rig()
+	q.force_story = "none"
+	q.force_passenger = "date"
+	var nd := _find(7, func(x: Dictionary) -> bool: return str(x["type"]) == "date")
+	hud.press(1)
+	jobs.unreached_hi = 6000.0
+	_ok(_request(nd) and q._ride["type"] == "normal" and q._ride["dest"] != "Pod Gigantami", "a date at a door no road reaches: a %s passenger to %s" % [q._ride["type"], q._ride["dest"]])
+	hud.press(1)
+	_rig()
+	q.force_story = str(_stories[0]["id"])
+	_ok(_request(9) and str((q._ride["story"] as Dictionary).get("id", "")) == str(_stories[0]["id"]), "no ride 9 with the first story")
+	hud.press(1)
+	jobs.unreached_hi = 6000.0
+	_ok(_request(9) and (q._ride["story"] as Dictionary).is_empty(), "a story went to a door no road reaches")
+	hud.press(1)
+
+
+# --- O. the autopilot's legs and what a ride leaves behind ------------------------------------------------------
+
+## A frame on the autopilot with no await: the traffic, the job's drive of the car, the job's two frames.
+func _autoframe() -> void:
+	if q.traffic != null:
+		traffic.step(DT)
+	_last_dp = q.drive_player()
+	car.velocity = car.vel
+	q.flying = false
+	q.away = false
+	q._physics_process(DT)
+	q._process(DT)
+	_frames += 1
+
+
+## Autopilot frames until the job is idle again (at most `seconds` of them).
+func _auto_until_idle(seconds: float) -> bool:
+	for i in roundi(seconds * 60.0):
+		_autoframe()
+		if _is_idle() and _stage() == Rides.Stage.NONE:
+			return true
+	return false
+
+
+## A rig on the autopilot with the first plain, short ride taken and the car on the way to the passenger.
+func _auto_rig() -> Dictionary:
+	_rig()
+	q.autopilot = true
+	q.force_story = "none"
+	q.force_passenger = "normal"
+	_find(1, func(x: Dictionary) -> bool: return float(x["road"]) < 1500.0 and _plain(x))
+	var r: Dictionary = q._ride.duplicate(true)
+	_take()
+	return r
+
+
+func _o_auto() -> void:
+	# No lane by the car: the job drives the car straight at the junction.
+	var r := _auto_rig()
+	var node: Vector2 = _graph.node_pos[16]
+	car.global_position = Vector3(-80.0, 0.0, 2480.0)
+	car.rotation.y = 1.0
+	car.throttle = 1.0
+	_autoframe()
+	_ok(_last_dp and traffic.ghosts.is_empty(), "no lane by the car: the job did not take the frame (%s)" % _last_dp)
+	var before := _v2(car.global_position).distance_to(node)
+	_autoframe()
+	var want_yaw := atan2(-(node.x + 80.0), -(node.y - 2480.0))
+	_ok(_last_dp and traffic.ghosts.is_empty() and absf(_v2(car.global_position).distance_to(node) - (before - 0.2)) < 0.01,
+			"no lane by the car: the job drove %s, a ghost %d, the way to the junction shortened by %.2f m" % [_last_dp, traffic.ghosts.size(), before - _v2(car.global_position).distance_to(node)])
+	_ok(absf(angle_difference(car.rotation.y, want_yaw)) < 0.001 and car.throttle == 0.0 and car.vel == Vector3.ZERO,
+			"the straight leg turns the car to %.3f (it is at %.3f), takes its throttle off (%.1f) and its speed (%s)" % [want_yaw, car.rotation.y, car.throttle, car.vel])
+	# The road leg: the ghost carries the car, with its heading, its speed and no throttle.
+	r = _auto_rig()
+	car.rotation.y = 1.0
+	car.throttle = 1.0
+	for i in 30:
+		_autoframe()
+	var g: Ghost = traffic.ghosts[0]
+	_ok(_v2(car.global_position).distance_to(Vector2(g.pos.x, g.pos.z)) < 0.01 and absf(angle_difference(car.rotation.y, g.yaw)) < 0.001 and car.rotation.y != 1.0,
+			"on the road the car is at the ghost's place with its heading (%.3f, the ghost %.3f)" % [car.rotation.y, g.yaw])
+	_ok(absf(car.vel.length() - 18.2) < 0.01 and car.vel.normalized().distance_to(Vector3(-sin(g.yaw), 0.0, -cos(g.yaw))) < 0.001 and car.throttle == 0.0,
+			"on the road the car has the ghost's speed (%.2f m/s of 18.2) and heading, and no throttle (%.1f)" % [car.vel.length(), car.throttle])
+	# A leg ends 12 m from its junction; a moving ghost is not told to squeeze by.
+	g.pos = Vector3(node.x + 20.0, 0.0, node.y)
+	_autoframe()
+	_ok(traffic.ghosts.size() == 1 and traffic.removed == 0, "the road leg ended 20 m from its junction")
+	g.pos = Vector3(node.x + 10.0, 0.0, node.y)
+	_autoframe()
+	_ok(traffic.ghosts.is_empty() and traffic.removed == 1, "the road leg did not end 10 m from its junction (ghosts %d, taken off %d)" % [traffic.ghosts.size(), traffic.removed])
+	_autoframe()
+	_ok(traffic.ghosts.is_empty() and _last_dp, "the straight leg after it did not go on without a ghost")
+	# The straight leg stops at 0.6 m from its point.
+	var kerb: Vector2 = r["kerb"]
+	car.global_position = Vector3(kerb.x + 3.0, 0.0, kerb.y)
+	for i in 25:
+		_autoframe()
+	_ok(_v2(car.global_position).distance_to(kerb) < 0.7, "the straight leg stopped %.2f m from the kerb" % _v2(car.global_position).distance_to(kerb))
+	# Near the passenger's kerb the road leg is over though the junction is far.
+	r = _auto_rig()
+	_autoframe()
+	g = traffic.ghosts[0]
+	_ok(_flat(Vector3(kerb.x, 0.0, kerb.y), Vector3(node.x, 0.0, node.y)) > 30.0, "the kerb is not near the junction")
+	g.pos = Vector3(kerb.x + 8.0, 0.0, kerb.y)
+	_autoframe()
+	_ok(traffic.ghosts.is_empty() and traffic.removed == 1, "the road leg did not end 8 m from the passenger's kerb (ghosts %d)" % traffic.ghosts.size())
+	# A moving ghost is never told to squeeze by; one let go from a jam is told once.
+	r = _auto_rig()
+	_autoframe()
+	g = traffic.ghosts[0]
+	for i in 360:
+		g.pos = Vector3(node.x + 3000.0, 0.0, node.y)
+		_autoframe()
+	_ok(g.squeezes == 0 and g.v > 18.0, "a moving ghost was told to squeeze by %d times" % g.squeezes)
+	r = _auto_rig()
+	traffic.jam = true
+	traffic.gentle = true
+	for i in 420:
+		_autoframe()
+	g = traffic.ghosts[0]
+	_ok(g.squeezes == 1 and g.squeeze == 3.0 and g.v > 1.0, "the ghost in the jam was told to squeeze by %d times (%.1f), it goes at %.1f m/s" % [g.squeezes, g.squeeze, g.v])
+	# START KURS and the ✕ while the ghost drives take it off the road.
+	r = _auto_rig()
+	for i in 20:
+		_autoframe()
+	_ok(traffic.ghosts.size() == 1 and _in_stage(Rides.Stage.PICKUP), "no ghost on the way to the passenger")
+	_tap("ride_start")
+	_ok(_in_stage(Rides.Stage.RIDE) and traffic.ghosts.is_empty() and traffic.removed == 1, "START KURS left the pickup's ghost on the road (%d)" % traffic.ghosts.size())
+	for i in 20:
+		_autoframe()
+	_ok(traffic.ghosts.size() == 1 and traffic.raced.back()["finish"] == 24, "no ghost on the ride, or not to junction 24: %s" % [traffic.raced])
+	_abort()
+	_ok(_in_stage(Rides.Stage.RESULT) and traffic.ghosts.is_empty() and traffic.removed == 2, "the ✕ left the ghost on the road (%d)" % traffic.ghosts.size())
+	# With the autopilot switched off on the ride, the door by hand takes the ghost off the road.
+	r = _auto_rig()
+	for i in 20:
+		_autoframe()
+	_tap("ride_start")
+	for i in 30:
+		_autoframe()
+	_ok(traffic.ghosts.size() == 1, "no ghost on the ride")
+	q.autopilot = false
+	_car_from_q()
+	_ok(not q.drive_player(), "the autopilot drove the ride with the autopilot off")
+	_arrive(r)
+	_ok(traffic.ghosts.is_empty() and _in_stage(Rides.Stage.RESULT), "the ghost stayed after the door (%d)" % traffic.ghosts.size())
+
+
+# --- P. the pickup: where the car starts, what the hints say, what a ride leaves behind ----------------------------
+
+## How many lines the dialogue was asked for whose "group:tag" starts with `prefix`.
+func _count_prefix(prefix: String) -> int:
+	var c := 0
+	for s in dialogue.said:
+		if s.begins_with(prefix):
+			c += 1
+	return c
+
+
+func _p_pickup() -> void:
+	# The flag's ride: the car 60 m before the passenger on their street, still, on the road's surface.
+	_rig()
+	q.force_story = "none"
+	car.vel = Vector3(5.0, 0.0, 0.0)
+	car.forward_speed = 12.0
+	_request(101)
+	var p := car.global_position
+	_ok(p.distance_to(Vector3(2002.0, 1.616775, 2264.893)) < 0.01 and absf(car.rotation.y) < 0.001 and car.vel == Vector3.ZERO and car.forward_speed == 0.0,
+			"ride 101 by the flag: the car at %s heading %.3f, going %s at %.1f" % [p, car.rotation.y, car.vel, car.forward_speed])
+	_ok(absf(q._ride["away"] - 17.4) < 0.05, "ride 101 by the flag: the pin is %.1f m from the car" % q._ride["away"])
+	hud.press(1)
+	_request(108)
+	p = car.global_position
+	_ok(p.distance_to(Vector3(798.0, 1.8148, 90.0)) < 0.01 and absf(absf(car.rotation.y) - PI) < 0.001 and absf(q._ride["away"] - 60.67) < 0.05,
+			"ride 108 by the flag: the car at %s heading %.3f, the pin %.2f m away" % [p, car.rotation.y, q._ride["away"]])
+	hud.press(1)
+	# The hello: 80 m from the passenger, with the offset words when they wait away from the pin.
+	_rig()
+	q.force_story = "none"
+	_request(101)
+	_take()
+	_secs(3.0 / 60.0)
+	_ok(_count_prefix("podwozka_pickup") == 1 and dialogue.said.back() == "podwozka_pickup:offset" and dialogue.hows.back()[3] == true,
+			"ride 101: the passenger away from the pin calls out with the offset words (%s)" % [dialogue.said.back()])
+	_abort()
+	_rig()
+	q.force_story = "none"
+	_request(108)
+	_take()
+	_secs(3.0 / 60.0)
+	_ok(_count_prefix("podwozka_pickup") == 1 and dialogue.said.back() == "podwozka_pickup:" and dialogue.hows.back()[3] == false,
+			"ride 108: the passenger at the pin calls out with the plain words (%s)" % [dialogue.said.back()])
+	_abort()
+	_p_hints()
+	_p_after()
+
+
+## The hints, the metres and the target on the way to a passenger who waits away from the pin, and at it.
+func _p_hints() -> void:
+	var pin_hint := "Pinezka swoje, pasażer swoje: szukaj „!”"
+	var go_hint := "Jedź do pinezki (turkusowe światło)"
+	var pull_hint := "Stań przy pasażerze"
+	_rig()
+	q.force_story = "none"
+	_request(101)
+	var r: Dictionary = q._ride.duplicate(true)
+	_take()
+	var pin := _v2(r["pin"])
+	var board := _v2(r["board"])
+	var u := (board - pin).normalized()
+	_at(pin - u * 35.0, 9.0)
+	_secs(3.0 / 60.0)
+	_ok(board.distance_to(_v2(_car3())) > 71.0 and pin.distance_to(_v2(_car3())) < 39.0, "the scene: near the pin, far from the passenger")
+	_ok(hud.status == pin_hint and q.target_position() == r["pin"] and hud.distance == "35 m", "35 m before the pin, 80 m from the passenger: %s, the target the pin, %s" % [hud.status, hud.distance])
+	_at(board + Vector2(-u.y, u.x) * 50.0, 9.0)
+	_secs(3.0 / 60.0)
+	var d_pin := _v2(_car3()).distance_to(pin)
+	_ok(hud.status == pin_hint and q.target_position() == r["board"] and hud.distance == "50 m" and d_pin > 60.0,
+			"50 m from the passenger, %.0f m from the pin: %s, the target the passenger, %s" % [d_pin, hud.status, hud.distance])
+	_at(board + u * 20.0, 9.0)
+	_secs(3.0 / 60.0)
+	_ok(hud.status == pull_hint and hud.distance == "20 m", "20 m from the passenger: %s, %s" % [hud.status, hud.distance])
+	_at(board + u * 60.0, 9.0)
+	_secs(3.0 / 60.0)
+	_ok(hud.status == pin_hint, "60 m from the passenger who waits away from the pin: %s" % hud.status)
+	_at(board + u * 100.0, 9.0)
+	_secs(3.0 / 60.0)
+	_ok(hud.status == go_hint and q.target_position() == r["pin"], "100 m away: %s" % hud.status)
+	_abort()
+	# A passenger at the pin: the pin hint is never theirs, and "pull up" starts at 25 m.
+	_rig()
+	q.force_story = "none"
+	_request(108)
+	r = q._ride.duplicate(true)
+	_take()
+	board = _v2(r["board"])
+	pin = _v2(r["pin"])
+	u = (board - pin).normalized()
+	_at(board - u * 35.0, 9.0)
+	_secs(3.0 / 60.0)
+	_ok(hud.status == go_hint, "35 m from a passenger at the pin: %s" % hud.status)
+	_at(board - u * 30.0, 9.0)
+	_secs(3.0 / 60.0)
+	_ok(hud.status == go_hint and hud.distance == "30 m", "30 m from a passenger at the pin: %s, %s" % [hud.status, hud.distance])
+	_at(board - u * 24.0, 9.0)
+	_secs(3.0 / 60.0)
+	_ok(hud.status == pull_hint, "24 m from the passenger: %s" % hud.status)
+	_abort()
+
+
+func _car3() -> Vector3:
+	return car.global_position
+
+
+## What the end of a ride leaves behind, and what the start of the next one must not find.
+func _p_after() -> void:
+	# The passenger gives up at 3 times the ETA of 60 m, not of the pin's own 17 m.
+	_rig()
+	q.force_story = "none"
+	_request(101)
+	_take()
+	_secs(79.0)
+	_ok(_in_stage(Rides.Stage.PICKUP), "the passenger gave up before 79 s")
+	_secs(1.5)
+	_ok(_in_stage(Rides.Stage.RESULT) and hud.card == "PASAŻER ANULOWAŁ", "the passenger did not give up by 80.5 s: %s" % hud.card)
+	# The frame they board: the status line is the ride's, not the pickup's.
+	_rig()
+	q.force_story = "none"
+	_request(108)
+	var r: Dictionary = q._ride.duplicate(true)
+	_take()
+	var b: Vector3 = r["board"]
+	_at(Vector2(b.x, b.z))
+	var drawn := 0
+	for i in 120:
+		drawn = hud.lines
+		_frame()
+		if _in_stage(Rides.Stage.RIDE):
+			break
+	_ok(_in_stage(Rides.Stage.RIDE) and hud.lines == drawn, "the frame they boarded a pickup status line was drawn (%d lines, %d before)" % [hud.lines, drawn])
+	# The hold for boarding starts again with each ride.
+	_arrive(r)
+	q.finish()
+	_request(108)
+	r = q._ride.duplicate(true)
+	_at(_v2(r["board"]))
+	_take()
+	_secs(0.5)
+	_ok(_in_stage(Rides.Stage.PICKUP), "the second passenger boarded in 0.5 s: the hold of the first was kept")
+	_secs(0.6)
+	_ok(_in_stage(Rides.Stage.RIDE), "the second passenger did not board after 1.1 s")
+	_abort()
+	# The ✕ takes down START KURS, rings the ticker, puts the bubbles out, and the result card of the last ride
+	# does not come over the cancelled one.
+	_rig()
+	q.force_story = "none"
+	_request(108)
+	r = q._ride.duplicate(true)
+	_take()
+	_board(r)
+	_arrive(r)
+	q.finish()
+	_request(108)
+	r = q._ride.duplicate(true)
+	_at(_v2(r["board"]) + Vector2(10.0, 0.0), 9.0)
+	_take()
+	_secs(0.2)
+	_ok(hud.pill == "ride_start", "no START KURS 10 m from the passenger")
+	var tickers := hud.tickers
+	_abort()
+	_ok(hud.pill == "" and hud.tickers == tickers + 1 and bubbles.hushed.back() == car, "the ✕: the pill %s, the ticker %d -> %d, the bubbles hushed for %s" % [hud.pill, tickers, hud.tickers, bubbles.hushed.back()])
+	_secs(3.5)
+	_ok(hud.card == "KURS ANULOWANY", "the cancelled card was taken over after 3.5 s: %s" % hud.card)
+	_p_first_chat()
+
+
+## The first small talk comes 8 to 14 s after boarding.
+func _p_first_chat() -> void:
+	_rig()
+	q.force_story = "none"
+	var lo := 1000.0
+	var hi := 0.0
+	for k in 24:
+		_find(300 + 7 * k, _plain)
+		var r: Dictionary = q._ride.duplicate(true)
+		_take()
+		_board(r)
+		_at(Vector2(-80.0, 2480.0), 12.0)
+		var said := dialogue.said.size()
+		var t0 := _frames
+		_until(func() -> bool: return dialogue.said.size() > said, 25.0)
+		var t := float(_frames - t0) * DT
+		lo = minf(lo, t)
+		hi = maxf(hi, t)
+		_abort()
+		q.finish()
+	_ok(lo >= 8.0 and hi <= 14.1, "the first small talk came %.1f to %.1f s after boarding (24 rides)" % [lo, hi])
+
+
+# --- Q. two rides in a row: what the first must not leave to the second ------------------------------------------
+
+func _q_pairs() -> void:
+	var short := func(x: Dictionary) -> bool: return float(x["road"]) < 1500.0
+	# The end of a ride: the app's line is taken off the map and the next request's clock is thrown again.
+	_rig()
+	q.force_story = "none"
+	_through(5)
+	_ok(hud.route.size() == 0, "the app's line stayed on the minimap after the ride (%d points)" % hud.route.size())
+	var t0 := _frames
+	var got := _until(_on_offer, 200.0)
+	var waited := float(_frames - t0) * DT
+	_ok(got >= 0 and waited > 97.0 and waited < 97.6, "the next request came %.1f s after the ride (the clock is thrown again at its end)" % waited)
+	# The same river ride twice on the autopilot: the hello, Nawigacja and the half star each time.
+	_rig()
+	q.autopilot = true
+	q.force_story = "none"
+	q.force_passenger = "believer"
+	q.force_quirk = "river"
+	for k in 2:
+		_find(1, short)
+		_take()
+		_ok(_auto_until_idle(400.0), "river ride %d of 2 did not end" % (k + 1))
+	_ok(_count_prefix("podwozka_pickup") == 2 and _count_said("podwozka_gps:river") == 2 and hud.toasts.count("+½ ★ · za aplikacją") == 2 and traffic.raced.size() == 6,
+			"two river rides: %d hellos, Nawigacja %d times, %d half stars, %d ghosts raced" % [_count_prefix("podwozka_pickup"), _count_said("podwozka_gps:river"),
+			hud.toasts.count("+½ ★ · za aplikacją"), traffic.raced.size()])
+	# A passenger who asks for a Frogs asks on the second ride too.
+	_rig()
+	q.autopilot = true
+	q.frogs = frogs
+	q.force_story = "none"
+	q.force_passenger = "detour"
+	for k in 2:
+		_find(1, short)
+		_take()
+		_ok(_auto_until_idle(400.0), "stop ride %d of 2 did not end" % (k + 1))
+	_ok(_count_said("podwozka_passenger:detour") == 2, "the passenger asked for a Frogs %d times in two rides" % _count_said("podwozka_passenger:detour"))
+	# A story passenger tells all three lines and asks on the second ride too.
+	_rig()
+	q.autopilot = true
+	q.force_story = str(_stories[0]["id"])
+	q.force_answer = 0
+	for k in 2:
+		_request(9)
+		_take()
+		_ok(_auto_until_idle(400.0), "story ride %d of 2 did not end" % (k + 1))
+	_ok(q.story_lines == 6 and q.story_answers == 2, "two story rides: %d lines, %d answers" % [q.story_lines, q.story_answers])
+	_q_story_times()
+
+
+## The lines of a story come at 3 s, then each 7.5 s after the last, with the car well on its way; the
+## question after the third.
+func _q_story_times() -> void:
+	_rig()
+	q.force_story = str(_stories[0]["id"])
+	_request(9)
+	var r: Dictionary = q._ride.duplicate(true)
+	_take()
+	_board(r)
+	var ring := _v2(r["ring"])
+	var start := _v2(r["board"])
+	_at(ring + (start - ring) * 0.5, 9.0)
+	var times: Array = []
+	var seen := 0
+	var asked := -1.0
+	for i in 40 * 60:
+		_frame()
+		if q.story_lines > seen:
+			seen = q.story_lines
+			times.append(snappedf(_ride_s(), 0.1))
+		if q._asking and asked < 0.0:
+			asked = _ride_s()
+			break
+	_ok(times.size() == 3 and absf(times[0] - 3.0) < 0.2 and absf(times[1] - 10.5) < 0.2 and absf(times[2] - 18.0) < 0.2 and absf(asked - 25.5) < 0.2,
+			"the story's lines came at %s s, the question at %.1f s (3, 10.5, 18, 25.5)" % [times, asked])
+	_ok(bubbles.durations.slice(bubbles.durations.size() - 3) == [4.5, 4.5, 4.5], "the story's lines stay %s s" % [bubbles.durations])
+	# Far from the door, the lines wait for the clock: 3, 13 and 23 s, the question at 32.
+	_rig()
+	q.force_story = str(_stories[0]["id"])
+	_request(9)
+	r = q._ride.duplicate(true)
+	_take()
+	_board(r)
+	_at(start, 9.0)
+	times = []
+	seen = 0
+	asked = -1.0
+	for i in 40 * 60:
+		_frame()
+		if q.story_lines > seen:
+			seen = q.story_lines
+			times.append(snappedf(_ride_s(), 0.1))
+		if q._asking and asked < 0.0:
+			asked = _ride_s()
+			break
+	_ok(times.size() == 3 and absf(times[0] - 3.0) < 0.2 and absf(times[1] - 13.0) < 0.2 and absf(times[2] - 23.0) < 0.2 and absf(asked - 32.0) < 0.2,
+			"at the start of the way the lines came at %s s, the question at %.1f s (3, 13, 23, 32)" % [times, asked])
+	# The reply stays 5 s and takes the line bubbles down.
+	var hushed := bubbles.hushed.size()
+	hud.press(0)
+	_ok(bubbles.hushed.size() == hushed + 1 and bubbles.hushed.back() == car and bubbles.durations.back() == 5.0, "the reply: the bubbles hushed %d times, it stays %.1f s" % [bubbles.hushed.size() - hushed, bubbles.durations.back()])
+	_abort()
+
+
+# --- R. plans met on the way: the pin's ring, the waypoint's road, a turn that is not there ------------------------
+
+func _r_plans() -> void:
+	# The pin's ring: lit and waving for the car, with nobody standing in it.
+	_rig()
+	q.force_story = "none"
+	_request(108)
+	var r: Dictionary = q._ride.duplicate(true)
+	_take()
+	_ok(_ring_look(q._beacon) == [true, r["pin"], 12.5, TEAL, true, true, false], "the pin's ring: %s" % [_ring_look(q._beacon)])
+	var started := _frames
+	var b: Vector3 = r["board"]
+	_at(Vector2(b.x, b.z))
+	_secs(1.2)
+	_ok(_in_stage(Rides.Stage.RIDE) and absf(float(q._ride.get("picked_after", -1.0)) - float(_frames - started) * DT) < 0.1 + 0.1, "how long the pickup took is kept: %.1f s" % float(q._ride.get("picked_after", -1.0)))
+	# The app's road leg is over near the waypoint's road, however far the next junction is.
+	_rig()
+	q.autopilot = true
+	q.force_story = "none"
+	q.force_passenger = "believer"
+	q.force_quirk = "river"
+	_find(1, func(x: Dictionary) -> bool: return float(x["road"]) < 1500.0)
+	r = q._ride.duplicate(true)
+	_take()
+	_tap("ride_start")
+	_ok(_in_stage(Rides.Stage.RIDE), "the river ride did not start")
+	_autoframe()
+	_autoframe()
+	_ok(traffic.ghosts.size() == 1, "no ghost on the river ride")
+	var road := Vector2(2400.0, 1000.0)
+	var removed := traffic.removed
+	traffic.ghosts[0].pos = Vector3(road.x, 0.0, road.y - 8.0)
+	_autoframe()
+	_ok(traffic.removed == removed + 1 and traffic.ghosts.is_empty(), "the road leg did not end 8 m from the waypoint's road (%d ghosts)" % traffic.ghosts.size())
+	_abort()
+	# The Frogs turn by the dice with no Frogs on the way is no quirk at all.
+	_rig()
+	q.force_story = "none"
+	q.frogs = frogs
+	frogs.doors = [Vector2(-5000.0, -5000.0)]
+	var n := _find(1, func(x: Dictionary) -> bool: return str(x["quirk"]) == "rechotka")
+	_ok(n > 0, "no Frogs turn by the dice")
+	_take()
+	_board(q._ride)
+	_ok(_in_stage(Rides.Stage.RIDE) and str(q._ride["quirk"]) == "" and (q._ride["q"] as Dictionary).is_empty(), "a Frogs turn with no Frogs on the way stayed a quirk: \"%s\"" % q._ride["quirk"])
+	_secs(5.0)
+	_abort()
+
+
+# --- S. the plans asked straight, in the bigger city -----------------------------------------------------------
+
+func _edge_of(a: int, b: int) -> int:
+	for e in _graph.e_a.size():
+		if _graph.e_a[e] == a and _graph.e_b[e] == b:
+			return e
+	return -1
+
+
+## The app's road from lane point (e, s) to the junction `to`.
+func _route_to(e: int, s: float, to: int) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	q._road_path(e, s, to, _graph.distances_to(to), out)
+	return out
+
+
+## The road's points where it turns by more than `sharp` rad, `from` m or more in.
+func _turns(path: PackedVector2Array, from := 250.0, sharp := 0.8) -> Array:
+	var out: Array = []
+	var run := 0.0
+	for i in range(1, path.size() - 1):
+		run += path[i].distance_to(path[i - 1])
+		if run > from and absf((path[i] - path[i - 1]).angle_to(path[i + 1] - path[i])) > sharp:
+			out.append(path[i])
+	return out
+
+
+func _s_plans() -> void:
+	_rig(true, {}, {"big": true})
+	q.force_story = "none"
+	# Straight lines over dry, open ground.
+	for l: Array in [[Vector2(600.0, 1200.0), Vector2(600.0, 1260.0), false, "over the small pond"],
+			[Vector2(120.0, 1200.0), Vector2(120.0, 1160.0), false, "through the small roof"],
+			[Vector2(120.0, 1150.0), Vector2(120.0, 1230.0), false, "80 m long with the small roof's 8 m on it"],
+			[Vector2(1000.0, 1200.0), Vector2(1000.0, 1250.0), true, "over open ground"]]:
+		_ok(q._clear(l[0], l[1]) == l[2], "the line %s is %s" % [l[3], "clear" if q._clear(l[0], l[1]) else "not clear"])
+	_ok(q._wet(PUDDLE, 2.0), "a point in a puddle is dry")
+	_ok(not q._wet(PUDDLE + Vector2(0.0, 10.0), 2.0), "a point 10 m from a puddle is wet")
+	_ok(not q._wet(PUDDLE + Vector2(0.0, 1.9), 0.5) and q._wet(PUDDLE + Vector2(0.0, 1.9), 1.5), "water 1.9 m from a point is %s within 0.5 m, %s within 1.5 m" % [
+			q._wet(PUDDLE + Vector2(0.0, 1.9), 0.5), q._wet(PUDDLE + Vector2(0.0, 1.9), 1.5)])
+	_s_zone()
+	_s_river()
+	_s_turn()
+	_s_story_places()
+	_s_edges()
+	_s_scans()
+	_s_steps()
+	_t_statics()
+	_t_quirk_rules()
+	_t_detour()
+	_t_misc()
+	_t_lanes()
+
+
+func _zone(what: String, parks: Array, a_e: int, a_s: float, ring: Vector2) -> Dictionary:
+	var list: Array[Dictionary] = []
+	for p: Array in parks:
+		list.append({"name": p[0], "w": p[1]})
+	q._parks = list
+	q._ride = {"road": 1500.0, "ring": Vector3(ring.x, 0.0, ring.y)}
+	return q._zone_plan(a_e, a_s, _graph.distances_from(_graph.e_b[a_e]), _graph.distances_to(_node(3, 3)))
+
+
+## A park's paths asked straight: in on the road toward A, out on the road toward B.
+func _s_zone() -> void:
+	var north := _edge_of(_node(1, 2), _node(2, 2))
+	var plan := _zone("a park 15 m from the road", [["Park Próbny", Vector2(600.0, 1215.0)]], north, 200.0, Vector2(1000.0, 1215.0))
+	_ok(plan.is_empty(), "a park 15 m from the road has a plan: %s" % [plan])
+	plan = _zone("the small roof on the way in", [["Park Próbny", Vector2(120.0, 1160.0)]], _edge_of(_node(0, 4), _node(1, 4)), 120.0, Vector2(700.0, 1160.0))
+	_ok(plan.is_empty(), "the way in through the small roof has a plan: %s" % [plan])
+	plan = _zone("the small roof on the way out", [["Park Próbny", Vector2(120.0, 1160.0)]], _edge_of(_node(2, 2), _node(2, 3)), 360.0, Vector2(120.0, 1600.0))
+	_ok(plan.is_empty(), "the way out through the small roof has a plan: %s" % [plan])
+	plan = _zone("the small pond on the way in", [["Park Próbny", Vector2(600.0, 1252.0)]], north, 200.0, Vector2(995.5, 1192.0))
+	_ok(plan.is_empty(), "the way in over the small pond has a plan: %s" % [plan])
+	plan = _zone("open ground", [["Park Próbny", Vector2(1000.0, 1240.0)]], _edge_of(_node(2, 2), _node(3, 2)), 200.0, Vector2(1400.0, 1240.0))
+	_ok(str(plan.get("name", "")) == "Park Próbny" and plan["w"] == Vector2(1000.0, 1240.0) and plan["r"] == Vector2(1000.0, 1200.0) and plan["r2"] == Vector2(1035.0, 1200.0),
+			"a park over open ground: %s" % [plan])
+	_ok(absf(float(plan["detour"]) + 41.85) < 0.05 and plan["gap"] == 40.0 and plan["e"] == _edge_of(_node(2, 3), _node(3, 3)) and plan["e2"] == plan["e"],
+			"a park over open ground: the detour %.2f m (the paths in and out counted), %.0f m from the road" % [plan["detour"], plan["gap"]])
+	plan = _zone("a park beside the way", [["Park Próbny", Vector2(1000.0, 1240.0)]], _edge_of(_node(2, 2), _node(3, 2)), 200.0, Vector2(1000.0, 900.0))
+	_ok(plan.is_empty(), "a park beside the way, not between the car and the door, has a plan: %s" % [plan])
+	plan = _zone("two parks", [["Park Pierwszy", Vector2(1000.0, 1240.0)], ["Park Drugi", Vector2(1100.0, 1240.0)]], _edge_of(_node(2, 2), _node(3, 2)), 200.0, Vector2(1400.0, 1240.0))
+	_ok(str(plan.get("name", "")) == "Park Drugi" and absf(float(plan["detour"]) + 48.86) < 0.05, "of two parks the one that adds least was not taken: %s %.2f" % [plan.get("name"), plan.get("detour", 0.0)])
+
+
+## The river plan for a car on the lane of `a` -> `b` (100 m along it) bound for junction `to`.
+func _river(a: int, b: int, to: int, forced: bool) -> Dictionary:
+	var e := _edge_of(a, b)
+	var dist_b := _graph.distances_to(to)
+	var path := PackedVector2Array()
+	q._road_path(e, 100.0, to, dist_b, path)
+	var road := 0.0
+	for i in range(1, path.size()):
+		road += path[i].distance_to(path[i - 1])
+	q._ride = {"road": road}
+	q.force_quirk = "river" if forced else ""
+	return q._river_plan(e, 100.0, _graph.distances_from(_graph.e_b[e]), dist_b)
+
+
+## The nearest river spot: what it adds is the road there, the walk to the water and back, the road on.
+func _s_river() -> void:
+	_rig(true, {}, {"big": true})
+	q.force_story = "none"
+	var plan := _river(_node(4, 1), _node(5, 1), _node(6, 3), false)
+	_ok(plan.get("e") == 50 and plan.get("w") == Vector2(2435.0, 600.0) and plan.get("detour") == 70.0 and plan.get("gap") == 35.0,
+			"the river spot beside the way adds the walk to the water and back: %s" % [plan])
+	plan = _river(_node(4, 3), _node(5, 3), _node(6, 3), false)
+	_ok(plan.get("e") == 76 and plan.get("w") == Vector2(2435.0, 1000.0) and plan.get("detour") == 870.0, "a river spot 870 m out of the way by the dice: %s" % [plan])
+	plan = _river(_node(0, 0), _node(1, 0), _node(0, 2), false)
+	_ok(plan.is_empty(), "a river ride by the dice over 1500 m out of the way: %s" % [plan])
+	plan = _river(_node(0, 0), _node(1, 0), _node(0, 2), true)
+	_ok(plan.get("e") == 50 and plan.get("detour") == 4070.0, "a forced river ride takes the nearest spot however far: %s" % [plan])
+	# A river ride planned before the scan is done finishes it.
+	_rig(false)
+	q.force_story = "none"
+	q.force_quirk = "river"
+	q._offer_in = 0.02
+	_until(_on_offer, 0.3)
+	_ok(_on_offer() and not q._river_ready, "the scan was done in the first frames")
+	_take()
+	_tap("ride_start")
+	_ok(_in_stage(Rides.Stage.RIDE) and q._river_ready and str(q._ride["quirk"]) == "river", "boarding did not finish the scan for the river's plan: ready %s, the quirk \"%s\"" % [q._river_ready, q._ride["quirk"]])
+	_abort()
+
+
+## The Frogs turn asked straight: which corner on the way, and where the Frogs stand.
+func _turn_plan(e: int, s: float, to: int, forced: bool) -> Dictionary:
+	q.force_quirk = "rechotka" if forced else ""
+	q._ride = {"finish": to}
+	return q._rechotka_plan(e, s, _graph.distances_to(to))
+
+
+func _s_turn() -> void:
+	_rig(true, {}, {"big": true})
+	q.force_story = "none"
+	var west := _edge_of(_node(0, 0), _node(1, 0))
+	var fin := -1
+	var turns: Array = []
+	for cand in N * N:
+		turns = _turns(_route_to(west, 10.0, cand))
+		if turns.size() >= 2 and (turns[0] as Vector2).distance_to(turns[1]) > 150.0:
+			fin = cand
+			break
+	_ok(fin >= 0, "no road with two turns from the corner")
+	if fin < 0:
+		return
+	var by := Vector2(8.0, 8.0)
+	q.frogs = null
+	var plan := _turn_plan(west, 10.0, fin, false)
+	_ok(plan == {"w": turns[0]}, "with no Frogs in the city the first turn is the place: %s" % [plan])
+	q.frogs = frogs
+	frogs.doors = [Vector2(-5000.0, -5000.0)]
+	frogs.shops = [{"triple": ""}]
+	plan = _turn_plan(west, 10.0, fin, true)
+	_ok(plan == {"w": turns[0]}, "forced with no Frogs on the way the first turn is the place: %s" % [plan])
+	plan = _turn_plan(west, 10.0, fin, false)
+	_ok(plan == {}, "by the dice with no Frogs on the way there is no plan: %s" % [plan])
+	frogs.doors = [turns[0] + by, turns[1] + by]
+	frogs.shops = [{"triple": ""}, {"triple": ""}]
+	plan = _turn_plan(west, 10.0, fin, false)
+	_ok(plan == {"w": turns[0], "triple": false, "shop": 0}, "a Frogs on both corners, the first is taken: %s" % [plan])
+	frogs.shops = [{"triple": ""}, {"triple": "x3"}]
+	plan = _turn_plan(west, 10.0, fin, false)
+	_ok(plan == {"w": turns[1], "triple": true, "shop": 1}, "a triple corner after a plain one wins: %s" % [plan])
+	frogs.doors = [turns[0] + Vector2(60.0, 0.0)]
+	frogs.shops = [{"triple": ""}]
+	plan = _turn_plan(west, 10.0, fin, false)
+	_ok(plan == {}, "a Frogs 60 m from the corner is on the way: %s" % [plan])
+	frogs.doors = [Vector2(200.0, 0.0)]
+	var early := _route_to(west, 200.0, _node(1, 2))
+	_ok(_turns(early).is_empty() and _turns(early, 100.0).size() == 1, "the road with its one turn 200 m in: %s" % [early])
+	frogs.doors = [(_turns(early, 100.0)[0] as Vector2) + by]
+	plan = _turn_plan(west, 200.0, _node(1, 2), false)
+	_ok(plan == {}, "a turn 200 m in is a turn too near for the Frogs: %s" % [plan])
+	var spur := _edge_of(N * N, _node(0, N - 1))
+	var bent := _route_to(spur, 10.0, _node(0, 3))
+	_ok(_turns(bent).is_empty() and _turns(bent, 250.0, 0.1).size() >= 1, "the spur's bend: %s" % [bent])
+	frogs.doors = [(_turns(bent, 250.0, 0.1)[0] as Vector2) + by]
+	plan = _turn_plan(spur, 10.0, _node(0, 3), false)
+	_ok(plan == {}, "a bend of 0.3 rad is not a turn: %s" % [plan])
+	frogs.doors = FROG_DOORS.duplicate()
+	frogs.shops = [{"triple": ""}, {"triple": "x3"}, {"triple": ""}]
+	q.force_quirk = ""
+
+
+func _place(pe: int, ps: float, drop: Array) -> Dictionary:
+	var st := {"id": "g", "to": {"name": ["Plac", "Square"], "at": [-5000.0, -5000.0], "r": 10, "drop": drop}}
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	return q._story_place({"p_e": pe, "p_s": ps}, st, rng, Vector2(1300.0, 1203.0))
+
+
+## A story's place by its lane point.
+func _s_story_places() -> void:
+	_rig(true, {}, {"big": true})
+	q.force_story = "none"
+	var e := _edge_of(_node(3, 3), _node(4, 3))
+	var spur := _edge_of(N * N, _node(0, N - 1))
+	var near := _place(e, 100.0, [1700.0, 1201.75])
+	_ok(near.is_empty(), "a lane point 400 m by road is a story's place: %s" % [near])
+	var right := _place(e, 100.0, [2100.0, 1201.75])
+	_ok(not right.is_empty() and absf(float(right["road"]) - 800.0) < 1.0 and int(right["finish"]) == _node(5, 3), "a lane point 800 m by road: %s" % [right])
+	var off := _place(e, 100.0, [2100.0, 1235.0])
+	_ok(off.is_empty(), "a point 33 m from any lane is a story's place: %s" % [off])
+	var far := _place(spur, 10.0, [2300.0, 1.75])
+	_ok(far.is_empty(), "a lane point over 6 km by road is a story's place: %s" % [far])
+
+
+func _s_edges() -> void:
+	pass
+
+
+
+## A spot tried straight at a water's-edge sample: the rows it would add (empty: refused).
+func _spot_try(edge: Vector2, into: Vector2) -> Array:
+	q._river_raw.clear()
+	q._try_spot(edge, into)
+	var out: Array = []
+	for sp: Dictionary in q._river_raw:
+		out.append([sp["e"], snappedf(sp["s"], 0.01), sp["w"], snappedf(sp["gap"], 0.01)])
+	q._river_raw.clear()
+	return out
+
+
+func _todo_strings() -> Array:
+	var out: Array = []
+	for it: Array in q._river_todo:
+		out.append("%d,%d,%d,%d" % [it[0].x, it[0].y, it[1].x, it[1].y])
+	out.sort()
+	return out
+
+
+## The river scan in the big city with no bank list: the frames it takes, the spots it finds, the GPS moments' edges.
+func _s_scans() -> void:
+	_rig(true, {}, {"big": true})
+	var bank: Array = []
+	for sp: Dictionary in q.river_spots:
+		bank.append([sp["e"], snappedf(sp["s"], 0.01), sp["w"], snappedf(sp["gap"], 0.01)])
+	_ok(bank == [[50, 200.0, Vector2(2435.0, 600.0), 35.0], [76, 200.0, Vector2(2435.0, 1000.0), 35.0], [128, 200.0, Vector2(2435.0, 1800.0), 35.0],
+			[154, 200.0, Vector2(2435.0, 2200.0), 35.0]], "the bake's river spots: %s" % [bank])
+	_rig(true, {}, {"big": true, "bank": false})
+	var f := 0
+	while q.moments.river_edges.is_empty() and f < 2000:
+		_frame()
+		f += 1
+	_ok(f == 122, "the scan was done in %d frames" % f)
+	var spots: Array = []
+	for sp: Dictionary in q.river_spots:
+		spots.append([sp["e"], snappedf(sp["s"], 0.01), sp["w"], snappedf(sp["gap"], 0.01)])
+	_ok(spots == [[128, 388.0, Vector2(2439.0, 1988.0), 39.0], [129, 12.0, Vector2(2439.0, 1988.0), 39.0], [103, 156.0, Vector2(2439.0, 1444.0), 39.0],
+			[76, 356.0, Vector2(2439.0, 1156.0), 39.0], [77, 44.0, Vector2(2439.0, 1156.0), 39.0], [50, 196.0, Vector2(2439.0, 596.0), 39.0],
+			[51, 204.0, Vector2(2439.0, 596.0), 39.0]], "the river spots the scan found: %s" % [spots])
+	_ok(q.moments.river_edges == {128: [388.0, 44.0], 129: [12.0, 44.0], 103: [156.0, 44.0], 102: [244.0, 44.0], 76: [356.0, 44.0], 77: [44.0, 44.0],
+			50: [196.0, 44.0], 51: [204.0, 44.0]}, "the GPS moments were told the edges %s" % [q.moments.river_edges])
+	_ok(_spot_try(Vector2(2444.0, 1156.0), Vector2(1.0, 0.0)) == [[76, 356.0, Vector2(2439.0, 1156.0), 39.0], [77, 44.0, Vector2(2439.0, 1156.0), 39.0]],
+			"a spot at an open bank on both ways of the street: %s" % [_spot_try(Vector2(2444.0, 1156.0), Vector2(1.0, 0.0))])
+	_ok(_spot_try(Vector2(2444.0, 516.0), Vector2(1.0, 0.0)).is_empty(), "a waypoint 2.5 m from the water was taken")
+	_ok(_spot_try(Vector2(2444.0, 12.0), Vector2(1.0, 0.0)).is_empty(), "a spot in the corner the outline leaves out was taken")
+	_ok(_spot_try(Vector2(594.5, 1240.0), Vector2(1.0, 0.0)).is_empty(), "a pond was taken for the river")
+	# One spot per street: the nearest the water; the other way's edge and the walk in told to the moments.
+	var keep: Array[Dictionary] = []
+	for sp: Dictionary in q.river_spots:
+		keep.append(sp.duplicate())
+	var far := (keep[5] as Dictionary).duplicate()
+	far["gap"] = 45.0
+	far["s"] = 100.0
+	q.moments.river_edges.clear()
+	q._river_raw.assign([far] + keep)
+	q._keep_river_spots()
+	var again: Array = []
+	for sp: Dictionary in q.river_spots:
+		again.append([sp["e"], snappedf(sp["s"], 0.01), snappedf(sp["gap"], 0.01)])
+	_ok(again.size() == 7 and [50, 196.0, 39.0] in again and not [50, 100.0, 45.0] in again, "of two spots on a street the nearer was not kept: %s" % [again])
+	_ok(q.moments.river_edges.get(50) == [196.0, 44.0] and q.moments.river_edges.get(51) == [204.0, 44.0], "the GPS moments' edges: %s" % [q.moments.river_edges])
+	q._keep_river_spots()
+	_ok(q.river_spots.is_empty(), "the samples of the last scan were kept for the next: %d spots" % q.river_spots.size())
+	# The scan's samples: the grid over the map's box less a sample's margin, the water's edge at the wet sample.
+	_map.isle = Rect2(2570.0, 1000.0, 100.0, 200.0)
+	q._river_todo.clear()
+	q._queue_river()
+	for r in q._scan_rows:
+		q._scan_line(r)
+	var todo := _todo_strings()
+	_map.isle = Rect2()
+	_ok(todo.size() == 380 and "\n".join(todo).hash() == 1577425040, "the scan's water-edge samples: %d, hash %d" % [todo.size(), "\n".join(todo).hash()])
+	_ok("2452,2492,1,0" in todo and "2588,996,0,-1" in todo and "2588,1204,0,1" in todo and "596,1236,1,0" in todo and "604,1236,-1,0" in todo,
+			"the scan lacks the last row's, the last column's or a pond's edge samples")
+
+
+## The first RIDE frames after a harsh stop and then a pause in the air ("fly") or the ✕ and the
+## next ride ("next"): [the driving penalty after each frame, ...]. The smoothed braking of the stop
+## carries over (a found defect, see `_s_steps`).
+func _after_stop(pause: String) -> Array:
+	_rig()
+	q.force_story = "none"
+	var n := _find(1, _plain)
+	_take()
+	_board(q._ride)
+	_by(q._ride["ring"], 400.0, 12.0)
+	_fwd = 20.0
+	_secs(0.5)
+	for i in 30:
+		_fwd = 20.0 - 20.0 * float(i + 1) / 30.0
+		_frame()
+	var out: Array = []
+	if pause == "fly":
+		_fly = true
+		_secs(2.6)
+		_fly = false
+		for i in 4:
+			_frame()
+			out.append(q._rules.drive)
+		return out
+	_abort()
+	_frame()
+	_request(n + 1)
+	var r: Dictionary = q._ride.duplicate(true)
+	_take()
+	var b: Vector3 = r["board"]
+	_at(_v2(b))
+	var k := 0
+	while k < 120 and int(q.stage) != Rides.Stage.RIDE:
+		_frame()
+		k += 1
+	for i in 4:
+		out.append(q._rules.drive)
+		_frame()
+	return out
+
+
+func _s_steps() -> void:
+	_rig()
+	q.force_story = "none"
+	var n := _find(1, _plain)
+	_ride_ready(n)
+	_fwd = 0.0
+	_secs(0.5)
+	for i in 30:
+		_fwd = 20.0 * float(i + 1) / 30.0
+		_frame()
+	_secs(3.2)
+	_ok(q.drive_toasts == 0 and hud.count == "★★★★★ 5,0", "speeding up cost braking: %s" % hud.count)
+	_ride_ready(n)
+	_fwd = 20.0
+	_secs(0.5)
+	for i in 12:
+		_fwd = 20.0 - 0.5 * float(i + 1)
+		_frame()
+	_secs(3.2)
+	_ok(q.drive_toasts == 1 and _last_toast() == "−½ ★ · hamowanie", "a 0.2 s stop at 30 m/s² did not cost: %s" % _last_toast())
+	_ride_ready(n)
+	_fwd = 20.0
+	_secs(0.5)
+	_fwd = 1.0
+	_secs(3.2)
+	_ok(q.drive_toasts == 0 and hud.count == "★★★★★ 5,0", "a speed lost in a frame (a teleport) was measured: %s" % hud.count)
+	_ride_ready(n)
+	_fwd = 12.0
+	_secs(0.5)
+	for i in 102:
+		_yaw += 1.0
+		_frame()
+	_secs(3.2)
+	_ok(q.drive_toasts == 1 and _last_toast() == "−½ ★ · zakręt" and hud.count == "★★★★½ 4,5", "a long spin cost %s: %s" % [hud.count, _last_toast()])
+	_ride_ready(n)
+	for k in 2:
+		_fwd = 20.0
+		_secs(0.5)
+		for i in 30:
+			_fwd = 20.0 - 20.0 * float(i + 1) / 30.0
+			_frame()
+		_secs(1.0)
+	_secs(3.3)
+	_ok(q.drive_toasts == 1 and _last_toast() == "−1 ★ · hamowania" and _last_toast_en() == "−1 star · harsh braking", "two harsh brakings: %s / %s" % [_last_toast(), _last_toast_en()])
+	_ride_ready(n)
+	for k in 2:
+		_fwd = 12.0
+		_secs(0.5)
+		for i in 30:
+			_yaw += 1.0 / 30.0
+			_frame()
+		_secs(1.0)
+	_secs(3.3)
+	_ok(q.drive_toasts == 1 and _last_toast() == "−1 ★ · zakręty" and _last_toast_en() == "−1 star · fast corners", "two fast corners: %s / %s" % [_last_toast(), _last_toast_en()])
+	# On the way to the passenger the driving is not measured at all.
+	_rig()
+	q.force_story = "none"
+	n = _find(1, _plain)
+	var r: Dictionary = q._ride.duplicate(true)
+	_take()
+	_by(r["board"], 100.0, 12.0)
+	_fwd = 20.0
+	_secs(0.5)
+	for i in 30:
+		_fwd = 20.0 - 20.0 * float(i + 1) / 30.0
+		_frame()
+	_at(_v2(r["board"]))
+	_board(r)
+	_secs(3.2)
+	_ok(q.drive_toasts == 0 and hud.count == "★★★★★ 5,0", "a harsh stop on the way to the passenger marked the ride: %s" % hud.count)
+	# As the script is today, and a found defect (BACKLOG, 2026-11-13; the old script the same): the
+	# smoothed braking of a harsh stop is never set back, so it marks the ride again a frame after a
+	# pause and marks the next ride in its third frame. These two facts pin the frames (they are what
+	# shows that the first sample after a pause or a boarding is not measured); a fix that sets
+	# `_brake_s` and `_lat_s` back changes them on purpose.
+	var seq := _after_stop("fly")
+	_ok(seq == [0.5, 1.0, 1.0, 1.0], "after the pause in the air the penalty came %s" % [seq])
+	seq = _after_stop("next")
+	_ok(seq == [0.0, 0.0, 0.5, 0.5], "on the next ride the penalty came %s" % [seq])
+
+
+func _t_statics() -> void:
+	for h: Array in [[0.0, "0"], [0.24, "0"], [0.26, "½"], [0.5, "½"], [0.76, "1"], [1.0, "1"], [1.5, "1½"], [1.74, "1½"], [2.0, "2"], [2.6, "2½"]]:
+		_ok(Rides._halves(float(h[0])) == h[1], "%s stars are written \"%s\"" % [h[0], Rides._halves(float(h[0]))])
+	for c: Array in [[-5.0, "0:00"], [0.0, "0:00"], [61.0, "1:01"], [75.9, "1:15"], [600.0, "10:00"]]:
+		_ok(Rides._clock_text(float(c[0])) == c[1], "%s s are written \"%s\"" % [c[0], Rides._clock_text(float(c[0]))])
+	_ok(Rides._flat(Vector3(0.0, 50.0, 0.0), Vector3(30.0, 0.0, 40.0)) == 50.0, "the flat distance counts the height")
+	_rig()
+	q._rules.drive = 0.5
+	q._rules.late = 1.0
+	q._rules.police = 1.0
+	q._rules.early = true
+	q._rules.followed = true
+	q._rules.chatted = true
+	_ok(q._why() == ["jazda −½, spóźnienie −1, policja −1, przed czasem +½, za aplikacją +½, rozmowa +½",
+			"driving −½, late −1, police −1, early +½, followed the app +½, good talk +½"], "the reasons for the card: %s" % [q._why()])
+
+
+## A river ride boarded, for the rules about the app's waypoint.
+func _river_believer() -> Dictionary:
+	_rig()
+	q.force_quirk = "river"
+	q.force_passenger = "believer"
+	_find(3, func(_r: Dictionary) -> bool: return true)
+	_take()
+	_board(q._ride)
+	return q._ride.duplicate(true)
+
+
+func _grumbles() -> int:
+	return _count_said("podwozka_passenger:believer")
+
+
+func _t_quirk_rules() -> void:
+	# Not before Nawigacja spoke or 20 s are up.
+	var r := _river_believer()
+	_ok(str(q._ride["quirk"]) == "river", "no river quirk on the ride")
+	var door := _v2(r["ring"])
+	q._ride["q"]["w"] = door + Vector2(600.0, 0.0)
+	_at(door + Vector2(240.0, 0.0), 9.0)
+	_secs(0.3)
+	_ok(_grumbles() == 0 and _count_said("podwozka_gps:river") == 0, "the waypoint was passed by in the ride's first second")
+	q._rules.clock = 19.8
+	_secs(0.1)
+	_ok(_grumbles() == 0, "the waypoint was passed by before the ride's 20 s")
+	_secs(0.3)
+	_ok(_grumbles() == 1, "the waypoint passed by was not given up after 20 s: %d" % _grumbles())
+	_arrive(r)
+	# Past it at 0.45 of the way to the door, not at 0.55.
+	r = _river_believer()
+	door = _v2(r["ring"])
+	q._ride["q"]["w"] = door + Vector2(600.0, 0.0)
+	q._rules.clock = 25.0
+	_at(door + Vector2(330.0, 0.0), 9.0)
+	_secs(0.3)
+	_ok(_grumbles() == 0, "the waypoint was given up at 0.55 of its way to the door")
+	_at(door + Vector2(270.0, 0.0), 9.0)
+	_secs(0.3)
+	_ok(_grumbles() == 1, "the waypoint was not given up at 0.45 of its way to the door")
+	_arrive(r)
+	# Right beside it: Nawigacja speaks (from the car), the waypoint is not passed by.
+	r = _river_believer()
+	door = _v2(r["ring"])
+	q._ride["q"]["w"] = door + Vector2(40.0, 0.0)
+	_at(door + Vector2(18.0, 0.0), 9.0)
+	_secs(0.3)
+	var gi := dialogue.said.rfind("podwozka_gps:river")
+	_ok(gi >= 0 and _grumbles() == 0, "a waypoint 22 m away counted as passed by")
+	_ok(gi >= 0 and dialogue.anchors[gi] is Callable and ((dialogue.anchors[gi] as Callable).call() as Vector3).is_equal_approx(_car + Vector3(0.0, 3.4, 0.0)),
+			"Nawigacja did not speak from 3.4 m over the car: %s" % [dialogue.anchors[gi] if gi >= 0 else null])
+	_arrive(r)
+	# The Frogs turn is never given a star for (a believer, driven to the corner).
+	_rig()
+	q.frogs = frogs
+	q.force_quirk = "rechotka"
+	q.force_passenger = "believer"
+	var found := false
+	for n in range(1, 160):
+		if not _request(n):
+			continue
+		r = q._ride.duplicate(true)
+		_take()
+		_board(r)
+		if _in_stage(Rides.Stage.RIDE) and q._ride.has("q") and (q._ride["q"] as Dictionary).has("w") and _near_frog(q._ride["q"]["w"]):
+			found = true
+			break
+		_abort()
+		hud.press(0)
+	_ok(found, "no Frogs turn ride")
+	if found:
+		var toasts := _toast_n()
+		var w: Vector2 = q._ride["q"]["w"]
+		_at(w + Vector2(0.0, 10.0), 9.0)
+		_secs(0.3)
+		_ok(_toast_n() == toasts and _count_said("podwozka_passenger:followed") == 0, "the Frogs turn was a waypoint to follow: %s" % _last_toast())
+		_at(Vector2(-80.0, 2480.0), 12.0)
+		_secs(3.0 / 60.0)
+		_ok(hud.status == "Jedź do turkusowego światła", "the dots hint went on after the Frogs turn: %s" % hud.status)
+		_arrive(r)
+	# The dots hint ends with the app's waypoint, driven or passed by.
+	r = _river_believer()
+	door = _v2(r["ring"])
+	var w2: Vector2 = q._ride["q"]["w"]
+	_at(w2 + Vector2(0.0, 10.0), 9.0)
+	_secs(0.3)
+	_at(Vector2(-80.0, 2480.0), 12.0)
+	_secs(3.0 / 60.0)
+	_ok(hud.status == "Jedź do turkusowego światła", "the dots hint went on after the waypoint was driven: %s" % hud.status)
+	_arrive(r)
+	r = _river_believer()
+	door = _v2(r["ring"])
+	q._ride["q"]["w"] = door + Vector2(600.0, 0.0)
+	q._rules.clock = 25.0
+	_at(door + Vector2(270.0, 0.0), 9.0)
+	_secs(0.3)
+	_at(Vector2(-80.0, 2480.0), 12.0)
+	_secs(3.0 / 60.0)
+	_ok(hud.status == "Jedź do turkusowego światła", "the dots hint went on after the waypoint was passed by: %s" % hud.status)
+	_arrive(r)
+
+
+func _t_detour() -> void:
+	var frog: Vector2 = FROG_DOORS[1]
+	# The wait at the door starts again after a car that drove past it or stood away from it.
+	_rig()
+	q.frogs = frogs
+	q.force_passenger = "detour"
+	_request(7)
+	var r: Dictionary = q._ride.duplicate(true)
+	_take()
+	_board(r)
+	var toasts := _toast_n()
+	q._rules.clock = 8.5
+	_at(frog + Vector2(10.0, 0.0), 9.0)
+	_secs(0.1)
+	_ok(_count_said("podwozka_passenger:detour") == 1, "the passenger did not ask for a Frogs")
+	_at(frog + Vector2(10.0, 0.0))
+	_secs(1.5)
+	_at(frog + Vector2(10.0, 0.0), 2.5)
+	_frame()
+	_at(frog + Vector2(10.0, 0.0))
+	_secs(1.0)
+	_ok(_toast_n() == toasts, "the stop counted 2.5 s in all after a car drove through")
+	_secs(1.1)
+	_ok(_toast_n() == toasts + 1 and _last_toast() == "+½ ★ · postój przy Frogsie", "the stop did not count in the end: %s" % _last_toast())
+	_arrive(r)
+	_rig()
+	q.frogs = frogs
+	q.force_passenger = "detour"
+	_request(7)
+	r = q._ride.duplicate(true)
+	_take()
+	_board(r)
+	toasts = _toast_n()
+	q._rules.clock = 8.5
+	_at(frog + Vector2(10.0, 0.0), 9.0)
+	_secs(0.1)
+	_at(frog + Vector2(10.0, 0.0))
+	_secs(1.0)
+	_at(frog + Vector2(15.0, 0.0))
+	_frame()
+	_at(frog + Vector2(10.0, 0.0))
+	_secs(1.5)
+	_ok(_toast_n() == toasts, "the stop counted 2.5 s in all after the car left the door")
+	_secs(0.6)
+	_ok(_toast_n() == toasts + 1, "the stop did not count in the end")
+	_arrive(r)
+	# Only a passenger who asked.
+	_rig()
+	q.frogs = frogs
+	q.force_passenger = "normal"
+	_find(7, func(x: Dictionary) -> bool: return not bool(x["detour"]))
+	r = q._ride.duplicate(true)
+	_take()
+	_board(r)
+	toasts = _toast_n()
+	q._rules.clock = 9.0
+	_at(frog + Vector2(10.0, 0.0))
+	_secs(4.0)
+	_ok(_count_said("podwozka_passenger:detour") == 0 and _toast_n() == toasts, "a passenger who did not ask for a Frogs: %s" % _last_toast())
+	_arrive(r)
+
+
+func _t_misc() -> void:
+	# The buttons: the words, a button that outranks, a tap that is not ours or not for now.
+	_rig()
+	q.force_story = "none"
+	_at(HOME)
+	_secs(0.2)
+	_ok(hud.pill == "ride" and hud.pill_word == "PODWÓZKA" and hud.pill_en == "ride app", "the idle button: %s / %s" % [hud.pill_word, hud.pill_en])
+	hud.pill = "tape"
+	hud.pill_free = false
+	_fly = true
+	_secs(0.2)
+	_fly = false
+	_ok(hud.pill == "tape", "PODWÓZKA took down a button that is not its own: %s" % hud.pill)
+	hud.pill = ""
+	hud.pill_free = true
+	var toasts := _toast_n()
+	_tap("tape")
+	_secs(0.1)
+	_ok(_toast_n() == toasts and _is_idle(), "somebody else's button asked for a ride")
+	var t0 := hud.tickers
+	_request(5)
+	_ok(hud.tickers_at_card == t0 and hud.tickers == t0 + 1, "the ticker went out %d before the card and %d after it" % [hud.tickers_at_card - t0, hud.tickers - t0])
+	var r: Dictionary = q._ride.duplicate(true)
+	_take()
+	_by(r["board"], 24.0, 9.0)
+	hud.pill_free = false
+	hud.pill = "tape"
+	_secs(0.1)
+	_ok(hud.pill == "tape", "START KURS was put up over a button that outranks it: %s" % hud.pill)
+	hud.pill_free = true
+	hud.pill = ""
+	_secs(0.1)
+	_ok(hud.pill == "ride_start" and hud.pill_word == "START KURS" and hud.pill_en == "start the ride", "START KURS: %s / %s" % [hud.pill_word, hud.pill_en])
+	_board(r)
+	toasts = _toast_n()
+	_tap("ride")
+	_secs(0.1)
+	_ok(_toast_n() == toasts, "the ride button during a ride asked for another")
+	# Bumps on the way to the passenger cost nothing.
+	_abort()
+	q.finish()
+	_request(5)
+	r = q._ride.duplicate(true)
+	_take()
+	_bump(8.0)
+	_secs(3.5)
+	_ok(q.drive_toasts == 0, "a bump on the way to the passenger counted")
+	_board(r)
+	_secs(0.2)
+	_ok(hud.count == "★★★★★ 5,0", "the ride began with %s after a bump on the way to the passenger" % hud.count)
+	# 'In the ring' from 40 m, not from 80.
+	_by(r["ring"], 60.0, 9.0)
+	_secs(3.0 / 60.0)
+	_ok(hud.status == "Jedź do turkusowego światła", "the hint at 60 m: %s" % hud.status)
+	# The director ending the ride takes the app's route down.
+	q.finish()
+	_ok(hud.route.is_empty(), "the route stayed on the minimap after the ride was ended")
+	_rig()
+	q.force_story = "none"
+	_request(5)
+	r = q._ride.duplicate(true)
+	_take()
+	q.finish()
+	_ok(hud.route.is_empty(), "the route stayed on the minimap after the pickup was ended")
+	# The passenger who gets out: the bubbles are put out.
+	var n := _find(1, _plain)
+	r = _ride_ready(n)
+	var hushed := bubbles.hushed.size()
+	q._rules.clock = 3.0 * _eta(r)
+	_secs(0.1)
+	_ok(bubbles.hushed.size() > hushed and bubbles.hushed.back() == car, "the bubbles stayed up after the passenger got out")
+	_abort()
+	# What a drive toast carries from one to the next.
+	r = _ride_ready(n)
+	_bump(5.0)
+	_secs(3.2)
+	_ok(q.drive_toasts == 1 and _last_toast() == "−½ ★ · stłuczka", "the first bump: %s" % _last_toast())
+	_bump(5.0)
+	_secs(3.2)
+	_ok(q.drive_toasts == 2 and _last_toast() == "−½ ★ · stłuczka" and _last_toast_en() == "−½ star · bump", "the second bump's toast: %s / %s" % [_last_toast(), _last_toast_en()])
+	r = _ride_ready(n)
+	_bump(5.0)
+	_secs(2.1)
+	_bump(5.0)
+	_secs(2.8)
+	_ok(q.drive_toasts == 0, "the toast of two bumps came less than 3 s after the second")
+	_secs(0.3)
+	_ok(q.drive_toasts == 1, "the toast of two bumps did not come")
+	r = _ride_ready(n)
+	_bump(5.0)
+	_secs(0.5)
+	_arrive(r)
+	_secs(4.0)
+	q.finish()
+	var dt0: int = q.drive_toasts
+	_request(n + 1)
+	r = q._ride.duplicate(true)
+	_take()
+	_board(r)
+	_secs(4.0)
+	_ok(q.drive_toasts == dt0 and hud.count == "★★★★★ 5,0", "the last ride's bump came back on the next: %s" % hud.count)
+	# The passenger hops 0.12 m.
+	_rig()
+	q.force_story = "none"
+	_request(5)
+	_take()
+	var hi := 0.0
+	for i in 120:
+		_frame()
+		hi = maxf(hi, q._rider_mesh.position.y)
+	_ok(hi > 0.115 and hi <= 0.1201, "the passenger hops %.3f m" % hi)
+	# A hurry passenger pays as the others do; a four-star ride has the story passenger's last word.
+	_pay_case(n, 5.0, {"name": "5 stars, a hurry passenger", "passenger": "hurry"})
+	var st: Dictionary = _stories[0]
+	var outro: Array = st["answers"][0]["outro"]
+	var rs := _story_ride(str(st["id"]), {"start_stars": 3.5})
+	_until_ride(func() -> bool: return q._asking, 40.0)
+	hud.press(0)
+	_arrive(rs)
+	_secs(2.7)
+	var final: float = (wallet.keep["podwozka_ratings"] as Array)[-1]
+	_ok(final >= 4.0 and final < 5.0, "the ride ended with %s stars" % final)
+	_ok(hud.body.begins_with("%s: %s\n" % [rs["name"], outro[0]]), "a four-star ride had no last word: %s" % hud.body)
+
+
+func _lane_offer(yaw: float, at: Vector2) -> int:
+	_rig()
+	q.force_story = "none"
+	_at(at, 0.0, yaw)
+	q._offers = 0
+	q._offer_in = 0.02
+	_until(_on_offer, 0.3)
+	var pe := int(q._ride.get("p_e", -1)) if _on_offer() else -1
+	hud.press(1)
+	return pe
+
+
+func _route_text(route: PackedVector2Array) -> String:
+	var out := PackedStringArray()
+	for v in route:
+		out.append("%d,%d" % [roundi(v.x), roundi(v.y)])
+	return " ".join(out)
+
+
+## The app's recalculated line for a car on the street at `at` facing `yaw`.
+func _reroute_line(n: int, at: Vector2, yaw: float) -> String:
+	_rig()
+	q.force_story = "none"
+	q.force_quirk = "reroute"
+	_request(n)
+	var r: Dictionary = q._ride.duplicate(true)
+	_take()
+	_board(r)
+	_at(at, 9.0, yaw)
+	q._rules.clock = 0.5 * float(q._rules.eta)
+	_secs(0.1)
+	return _route_text(hud.route)
+
+
+func _t_lanes() -> void:
+	_ok(_lane_offer(EAST, Vector2(1000.0, 1195.0)) == 90 and _lane_offer(-EAST, Vector2(1000.0, 1195.0)) == 83,
+			"a request from a car facing east/west 5 m north of the road: the pin lanes %d / %d" % [_lane_offer(EAST, Vector2(1000.0, 1195.0)), _lane_offer(-EAST, Vector2(1000.0, 1195.0))])
+	var lines := {
+		[1, -EAST]: "1000,1200 800,1200 1000,1200 1200,1200 1200,1200 1200,1000 1200,800 1200,1000 1200,1200 1200,1200",
+		[1, EAST]: "1000,1200 1200,1200 1000,1200 800,1200 800,1200 1000,1200 1200,1200 1200,1200",
+		[3, -EAST]: "1000,1200 800,1200 1000,1200 1200,1200 1200,1200 1200,1400 1200,1600 1200,1800 1200,2000 1320,1989",
+		[3, EAST]: "1000,1200 1200,1200 1000,1200 800,1200 800,1200 1000,1200 1200,1200 1200,1400 1200,1600 1200,1800 1200,2000 1320,1989",
+		[4, -EAST]: "1000,1200 800,1200 1000,1200 1200,1200 1200,1200 1200,1000 1200,800 1189,550",
+		[4, EAST]: "1000,1200 1200,1200 1000,1200 800,1200 800,1200 800,1000 800,800 1000,800 1200,800 1189,550",
+		[6, -EAST]: "1000,1200 800,1200 1000,1200 1200,1200 1200,1200 1400,1200 1600,1200 1600,1400 1600,1600 1600,1800 1600,2000 1600,2200 1600,2400 1720,2389",
+		[6, EAST]: "1000,1200 1200,1200 1000,1200 800,1200 800,1200 1000,1200 1200,1200 1400,1200 1600,1200 1600,1400 1600,1600 1600,1800 1600,2000 1600,2200 1600,2400 1720,2389"}
+	for k: Array in lines:
+		var got := _reroute_line(int(k[0]), Vector2(1000.0, 1195.0), float(k[1]))
+		_ok(got == lines[k], "ride %d recalculated facing %s: %s" % [k[0], "east" if float(k[1]) == EAST else "west", got])

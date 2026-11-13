@@ -2928,6 +2928,17 @@ name or logo). The joke is the app and its GPS, never the driver or the passenge
   believer waiting 34 m from the pin, the river quirk) with the autopilot and `--parody-log`.
   `check_hud.gd` lays out the request card, the ride's status and two result cards at their
   longest, and fails a ride card that covers the car's spot.
+  Since 2026-11-13 (tech-debt TD-1) `rides.gd` is an activity of the kit (`activity.gd`): the kit
+  keeps its request, its cards, its status line, its ring, the ✕ and the end; the arrow, the
+  metres, the minimap's dot and the stop assist read its target through the director (main.gd's
+  own block for it is gone), and on a test run the ride drives the autopilot's car itself
+  (`drive_player`, which main.gd asks of the activity whose target is up). With `--autopilot` a
+  request is taken after 1.5 s (2.0 s before) and a story passenger's question answered after
+  2.5 s (2.0 s before). When a ride ends the kit takes down only a card of its own (the old
+  script took down whichever card was up). The play has its own check: `check_ride_play.gd`
+  (verify step `rideplay`, run at `--fixed-fps 60`): the request and what holds it back, the
+  pickup, the ride and its stars, the quirks and their plans, the Frogs stop, the story
+  passengers, the pay, the ends, and rides on the autopilot.
 - **Cost** (probe, Metal, 2868×1320, Classic, traffic Normal, day; before = 613ff38 from a copy
   in the same session, measured before the 3c streaming merge): the spawn view 134 draw calls (main 52, shadow 35, 2D 46) before and
   after, side jobs + eggs 0.039 → 0.044 ms. During a ride (ride 19 on the autopilot, Powiśle):

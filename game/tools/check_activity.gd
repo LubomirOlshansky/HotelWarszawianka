@@ -81,6 +81,8 @@ class Probe extends Activity:
 	var call_face := ""
 	## It drives the autopilot's car itself (the kit's own: main.gd slides it).
 	var drives := false
+	## A press of a card of the run ends the run (a result card that goes by itself).
+	var ends_on_press := false
 
 	func _call_card() -> Dictionary:
 		var c := {"who": "Próba", "about": ["Ktoś od prób.", "Somebody who tests."]}
@@ -106,6 +108,8 @@ class Probe extends Activity:
 
 	func _card_pressed(index: int) -> void:
 		pressed.append(index)
+		if ends_on_press:
+			finish()
 
 	func _card_expired() -> void:
 		if own_expiry:
@@ -715,6 +719,20 @@ func _ride_cards() -> void:
 	frames.call(2)
 	_expect(hud.card == "", "and the closed card does not come back once theirs is gone")
 	a.finish()
+	# A card whose press ends the run (the ride's result card, which goes by itself): the run does
+	# not tick once more after its own end.
+	a.meet()
+	a.pressed.clear()
+	a.ends_on_press = true
+	a.show_side_card(["KONIEC", "THE END"], ["tekst", "text"], PackedStringArray(), 0.25)
+	ticks = a.ticks
+	var ends := a.ended
+	frames.call(3)
+	_expect(a.idle() and a.ended == ends + 1 and a.pressed == [0] and hud.card == "", "cards_hold off: a card whose life ends the run ends it (%s)" % [a.pressed])
+	_expect(a.ticks == ticks + 2, "and the run does not tick in the frame of its own end (%d of 2)" % (a.ticks - ticks))
+	frames.call(2)
+	_expect(a.ticks == ticks + 2, "nor in the frames after it")
+	a.ends_on_press = false
 	# A holding activity is as before: the ✕ does nothing under its card (`_abort_and_limit`).
 	# The autopilot's car.
 	_expect(not a.drive_player(), "drive_player: false by default (main.gd slides the autopilot's car to the target)")

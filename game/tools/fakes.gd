@@ -6,7 +6,7 @@ extends RefCounted
 ## banner, the notes, the quest's dots and the quiet screen (the street meet uses them), the card's
 ## colour, the small toasts and the minimap's dots (the boat race uses them), whether the card
 ## sits at the bottom of the screen, the words on its buttons, both languages of a card, a toast
-## and a hint, the minimap's job pins and the challenge taken down (the round-up uses them), whether
+## and a hint, how long each bubble stays, the minimap's job pins and the challenge taken down (the round-up uses them), whether
 ## a card is up (`cards_up`, as `card_showing`) and the message director's word on a call (`calls_ok`,
 ## `call_ok()`; the trend job's check uses them), how often the news ticker went out (`tickers`); a
 ## dialogue that remembers what was said, where and how, and the lines asked for (and whether each
@@ -73,6 +73,10 @@ class Hud extends CanvasLayer:
 	## `pill_free_for` answers (nobody else holds the button).
 	var pill := ""
 	var pill_word := ""
+	## The button's word in English.
+	var pill_en := ""
+	## How often the ticker had gone out when the last side card was put up (the order of the two).
+	var tickers_at_card := 0
 	var pill_free := true
 	## The banner that is up ("" when none) and every banner shown so far.
 	var banner := ""
@@ -96,6 +100,7 @@ class Hud extends CanvasLayer:
 
 	func show_side_card(title: String, text: String, btn: PackedStringArray, a: Color, te := "", be := "", s := false, f := "") -> void:
 		_up(title, text, btn)
+		tickers_at_card = tickers
 		stacked = s
 		accent = a
 		side = true
@@ -187,9 +192,10 @@ class Hud extends CanvasLayer:
 	func hide_challenge() -> void:
 		challenges_hidden += 1
 
-	func show_pill(pl: String, _en := "", who := "call") -> void:
+	func show_pill(pl: String, en := "", who := "call") -> void:
 		pill = who
 		pill_word = pl
+		pill_en = en
 
 	func hide_pill() -> void:
 		pill = ""
@@ -300,10 +306,14 @@ class Bubbles extends Control:
 	func is_talking(_anchor: Variant) -> bool:
 		return talking
 
-	func say(_anchor: Variant, _who: String, pl: String, _en: String, _s := 4.0, _c := Color.WHITE, _h := 2.6) -> bool:
+	func say(_anchor: Variant, _who: String, pl: String, _en: String, s := 4.0, _c := Color.WHITE, _h := 2.6) -> bool:
 		if ok:
 			said.append(pl)
+			durations.append(s)
 		return ok
+
+	## How long each of those bubbles stays (seconds), in step with `said`.
+	var durations: Array[float] = []
 
 	## bubbles.gd's `hush`: the anchors whose bubble was taken down, in order.
 	var hushed: Array = []
