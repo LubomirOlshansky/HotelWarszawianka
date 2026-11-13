@@ -44,12 +44,16 @@ const TOWER_R := 2.1
 const FENCE_R := 3.5
 const RAIL_CLEAR := 2.3
 ## Canopy: the arches' spacing (m), the longest canopy (m), its share of the platform's length,
-## its deepest reach from the back edge (m), and the inset from the platform's edges (m).
+## its deepest reach from the back edge (m), and the inset from the platform's back edge (m).
 const RIB := 2.4
 const CANOPY_MAX := 48.0
 const CANOPY_SHARE := 0.72
 const DEPTH_MAX := 5.6
 const INSET := 0.35
+## The arches' front ends stop this far short of the platform's track edge (m), and an arch whose
+## platform is too narrow for DEPTH_MIN m of canopy is left out.
+const FRONT_INSET := 0.15
+const DEPTH_MIN := 2.4
 ## The arch's side profile as (share of the depth from the back edge, height over the platform).
 const PROFILE := [Vector2(0.0, 0.0), Vector2(0.015, 1.4), Vector2(0.06, 2.6), Vector2(0.16, 3.55),
 		Vector2(0.32, 4.2), Vector2(0.52, 4.42), Vector2(0.76, 4.28), Vector2(1.0, 3.9)]
@@ -155,13 +159,73 @@ static func _track_segments(data: Dictionary, at: Vector2, reach: float) -> Arra
 	return out
 
 
-## The canopy's plan for a hub platform: [u start, u end, depth, the back edge's v].
+## The canopy's plan for a hub platform: [first rib's u, last rib's u, the shallowest rib's depth,
+## the first rib's back edge v] (canopy_ribs gives every rib).
 static func canopy_span(p: Dictionary) -> Array:
+	var ribs := canopy_ribs(p)
+	if ribs.is_empty():
+		return [0.0, 0.0, 0.0, 0.0]
+	var shallow := INF
+	for r: Vector3 in ribs:
+		shallow = minf(shallow, r.z)
+	return [ribs[0].x, ribs[ribs.size() - 1].x, shallow, ribs[0].y]
+
+
+## The canopy's arches for a hub platform, as Vector3(u along, v of the back edge, depth): one every
+## ~RIB m over the middle CANOPY_SHARE of the platform. Each arch springs INSET m in from the
+## platform's own back edge AT ITS u and reaches no further than FRONT_INSET m short of its front
+## edge there: the platforms taper and run a few degrees off their long axis, so a straight frame
+## on the axis had put the south canopy's back up to 4 m out over Solidarności's carriageway
+## (F's screenshot, 2026-11-13). The longest run of arches at least DEPTH_MIN m deep is kept.
+static func canopy_ribs(p: Dictionary) -> Array:
 	var length: float = float(p["u1"]) - float(p["u0"])
 	var span := minf(length * CANOPY_SHARE, CANOPY_MAX)
 	var mid: float = (float(p["u0"]) + float(p["u1"])) * 0.5
-	var depth := minf(float(p["v1"]) - float(p["v0"]) - 2.0 * INSET, DEPTH_MAX)
-	return [mid - span * 0.5, mid + span * 0.5, depth, float(p["v0"]) + INSET]
+	var count := int(floorf(span / RIB)) + 1
+	if count < 2:
+		return []
+	var step := span / float(count - 1)
+	var run: Array = []
+	var best: Array = []
+	for i in count:
+		var u := mid - span * 0.5 + step * i
+		var cut := _cross(p, u)
+		var ok := cut.y > cut.x
+		var vb := cut.x + INSET
+		var depth := minf(cut.y - FRONT_INSET - vb, DEPTH_MAX)
+		if ok and depth >= DEPTH_MIN:
+			run.append(Vector3(u, vb, depth))
+		else:
+			run = []
+		if run.size() > best.size():
+			best = run.duplicate()
+	return best
+
+
+## Where the platform's cross line at `u` enters and leaves its outline, as Vector2(back v, front v)
+## in the platform's frame (v grows towards the tracks); x > y when the line misses it.
+static func _cross(p: Dictionary, u: float) -> Vector2:
+	var c: Vector2 = p["c"]
+	var a: Vector2 = p["a"]
+	var n: Vector2 = p["n"]
+	var o := c + a * u
+	var poly: PackedVector2Array = p["poly"]
+	var lo := INF
+	var hi := -INF
+	for i in poly.size():
+		var e0 := poly[i]
+		var e1 := poly[(i + 1) % poly.size()]
+		var d := e1 - e0
+		var den := n.cross(d)
+		if absf(den) < 1e-6:
+			continue
+		var w := e0 - o
+		var t := w.cross(d) / den
+		var s := w.cross(n) / den
+		if s >= 0.0 and s <= 1.0:
+			lo = minf(lo, t)
+			hi = maxf(hi, t)
+	return Vector2(lo, hi)
 
 
 ## The platform's walking top: map_builder's own when it has one, else its slab's formula (the
@@ -213,72 +277,71 @@ func build(data: Dictionary) -> void:
 	add_child(body)
 
 
-## One platform's canopy, benches and boards; `top` the platform's walking surface.
+## One platform's canopy, benches and boards; `top` the platform's walking surface. Every arch
+## stands on its own cross line of the platform (canopy_ribs), and the tubes, glass and shade run
+## bay by bay between them, so the whole canopy stays on the platform.
 func _canopy(st: SurfaceTool, p: Dictionary, top: float) -> void:
-	var span := canopy_span(p)
-	var u0: float = span[0]
-	var u1: float = span[1]
-	var depth: float = span[2]
-	var vb: float = span[3]
-	if depth < 2.0 or u1 - u0 < RIB * 2.0:
+	var ribs := canopy_ribs(p)
+	if ribs.size() < 3:
 		return
 	canopies += 1
 	var c: Vector2 = p["c"]
 	var a: Vector2 = p["a"]
 	var n: Vector2 = p["n"]
-	var at := func(u: float, k: int) -> Vector3:
+	var at := func(i: int, k: int) -> Vector3:
+		var r: Vector3 = ribs[i]
 		var pr: Vector2 = PROFILE[k]
-		var q := c + a * u + n * (vb + pr.x * depth)
+		var q := c + a * r.x + n * (r.y + pr.x * r.z)
 		return Vector3(q.x, top + pr.y, q.y)
-	var ribs := int(floorf((u1 - u0) / RIB)) + 1
-	var step := (u1 - u0) / float(ribs - 1)
 	var up := Vector3.UP
 	var along := Vector3(a.x, 0.0, a.y)
-	# The pale band of the canopy's shade on the platform under the glazed half.
-	var s0: Vector3 = at.call(u0, 0)
-	var s1: Vector3 = at.call(u1, 0)
-	var f0: Vector3 = at.call(u0, 5)
-	var f1: Vector3 = at.call(u1, 5)
-	Props.tri(st, s0 + up * 0.012, s1 + up * 0.012, Vector3(f1.x, top + 0.012, f1.z), up, SHADE)
-	Props.tri(st, s0 + up * 0.012, Vector3(f1.x, top + 0.012, f1.z), Vector3(f0.x, top + 0.012, f0.z), up, SHADE)
-	for i in ribs:
-		var u := u0 + step * i
+	var back := Vector3(-n.x, 0.0, -n.y)
+	for i in ribs.size():
 		# The arch: one tube per profile segment, a foot plate at the back.
 		for k in PROFILE.size() - 1:
-			Props.beam(st, at.call(u, k), at.call(u, k + 1), 0.17, 0.17, WHITE, along, LIT_SIGN)
-		var foot: Vector3 = at.call(u, 0)
+			Props.beam(st, at.call(i, k), at.call(i, k + 1), 0.17, 0.17, WHITE, along, LIT_SIGN)
+		var foot: Vector3 = at.call(i, 0)
 		Props.obox(st, foot + up * 0.04, _basis(a, n), Vector3(0.5, 0.08, 0.5), TUBE)
 		arches += 1
-	# The longitudinal tubes along the profile's points and the back's glass wall.
-	for k in range(1, PROFILE.size()):
-		Props.beam(st, at.call(u0, k), at.call(u1, k), 0.08, 0.08, TUBE, at.call(u0, k) - at.call(u0, k - 1))
-	var g0: Vector3 = at.call(u0, 0)
-	var g1: Vector3 = at.call(u1, 0)
-	var back := Vector3(-n.x, 0.0, -n.y)
-	_quad2(st, g0 + up * 0.25, g1 + up * 0.25, g1 + up * 2.2, g0 + up * 2.2, back, GLASS)
-	Props.beam(st, g0 + up * 0.2, g1 + up * 0.2, 0.1, 0.1, TUBE, up)
-	# The glass over the back of the curve.
-	for k: int in GLAZED:
-		var a0: Vector3 = at.call(u0, k)
-		var a1: Vector3 = at.call(u1, k)
-		var b1: Vector3 = at.call(u1, k + 1)
-		var b0: Vector3 = at.call(u0, k + 1)
-		var e := (b0 - a0)
-		var nn := along.cross(e).normalized()
-		if nn.y < 0.0:
-			nn = -nn
-		_quad2(st, a0 + nn * 0.1, a1 + nn * 0.1, b1 + nn * 0.1, b0 + nn * 0.1, nn, GLASS)
+	for i in ribs.size() - 1:
+		var j := i + 1
+		# The pale band of the canopy's shade on the platform under the glazed half.
+		var s0: Vector3 = at.call(i, 0)
+		var s1: Vector3 = at.call(j, 0)
+		var f0: Vector3 = at.call(i, 5)
+		var f1: Vector3 = at.call(j, 5)
+		Props.tri(st, s0 + up * 0.012, s1 + up * 0.012, Vector3(f1.x, top + 0.012, f1.z), up, SHADE)
+		Props.tri(st, s0 + up * 0.012, Vector3(f1.x, top + 0.012, f1.z), Vector3(f0.x, top + 0.012, f0.z), up, SHADE)
+		# The longitudinal tubes along the profile's points.
+		for k in range(1, PROFILE.size()):
+			Props.beam(st, at.call(i, k), at.call(j, k), 0.08, 0.08, TUBE, at.call(i, k) - at.call(i, k - 1))
+		# The back's glass wall and its sill tube.
+		_quad2(st, s0 + up * 0.25, s1 + up * 0.25, s1 + up * 2.2, s0 + up * 2.2, back, GLASS)
+		Props.beam(st, s0 + up * 0.2, s1 + up * 0.2, 0.1, 0.1, TUBE, up)
+		# The glass over the back of the curve.
+		for k: int in GLAZED:
+			var a0: Vector3 = at.call(i, k)
+			var a1: Vector3 = at.call(j, k)
+			var b1: Vector3 = at.call(j, k + 1)
+			var b0: Vector3 = at.call(i, k + 1)
+			var nn := along.cross(b0 - a0).normalized()
+			if nn.y < 0.0:
+				nn = -nn
+			_quad2(st, a0 + nn * 0.1, a1 + nn * 0.1, b1 + nn * 0.1, b0 + nn * 0.1, nn, GLASS)
 	# Benches along the back glass (facing the tracks), one every third bay.
 	var face := atan2(n.x, n.y)  # the bench's back (+z) away from the tracks
 	var i := 1
-	while i < ribs - 1:
-		var q := c + a * (u0 + step * (i + 0.5)) + n * (vb + 0.75)
+	while i < ribs.size() - 1:
+		var r0: Vector3 = ribs[i]
+		var r1: Vector3 = ribs[i + 1]
+		var q := c + a * (r0.x + r1.x) * 0.5 + n * ((r0.y + r1.y) * 0.5 + 0.75)
 		Props.add_stop_bench(st, Transform3D(Basis(Vector3.UP, face + PI), Vector3(q.x, top, q.y)))
 		benches += 1
 		i += 3
 	# Two passenger information boards, a third of the way in from each end, under the curve's top.
 	for k: float in [0.3, 0.7]:
-		var q := c + a * lerpf(u0, u1, k) + n * (vb + depth * 0.62)
+		var r: Vector3 = ribs[roundi(k * (ribs.size() - 1))]
+		var q := c + a * r.x + n * (r.y + r.z * 0.62)
 		_board(st, Vector3(q.x, top, q.y), a)
 		boards += 1
 
