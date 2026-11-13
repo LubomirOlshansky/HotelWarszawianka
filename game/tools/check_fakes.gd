@@ -14,7 +14,8 @@ extends SceneTree
 ##     roof, a tunnel, the shore, the map's edge), unless the class extends one of fakes.gd's. A class that does
 ##     extend one may add a function the game's script has and the stand-in has not (a shore, the map's edge:
 ##     the game asks a map for those only when it has them, so the shared flat map must not): that function
-##     must take the game's arguments too, read from its line. The private ones still left are named in LEFT
+##     must take the game's arguments too, read from its line (an argument written `name := value` has the type of
+##     its value, as the engine gives it). The private ones still left are named in LEFT
 ##     with the reason; a name there that is no longer a private stand-in gives a `fakes: WARN` line (the
 ##     step's row warns until the name is taken off the list: the change that moved the class is not held up
 ##     by this list);
@@ -313,12 +314,16 @@ func _line_differs(line: String, other: Dictionary) -> String:
 		if eq >= 0:
 			defaults += 1
 		var colon := args[i].find(":")
-		if colon < 0 or (eq >= 0 and colon == eq - 1):
-			continue  # no type written, or one the engine works out (`:=`)
-		var type := args[i].substr(colon + 1, (eq if eq >= 0 else args[i].length()) - colon - 1).strip_edges()
+		if colon < 0:
+			continue  # no type written: the engine takes anything
+		var type := ""
+		if eq >= 0 and colon == eq - 1:
+			type = _literal_type(args[i].substr(eq + 1).strip_edges())  # `:=`: the type the engine works out
+		else:
+			type = args[i].substr(colon + 1, (eq if eq >= 0 else args[i].length()) - colon - 1).strip_edges()
 		var theirs := type_string(int(b[i]["type"]))
 		if type in PLAIN_TYPES and theirs in PLAIN_TYPES and type != theirs:
-			return "argument %d (%s) is %s, the game's (%s) %s" % [i + 1, args[i].substr(0, colon), type, b[i]["name"], theirs]
+			return "argument %d (%s) is %s, the game's (%s) %s" % [i + 1, args[i].substr(0, colon).strip_edges(), type, b[i]["name"], theirs]
 	if defaults != (other["default_args"] as Array).size():
 		return "%d arguments with a default, the game's %d" % [defaults, (other["default_args"] as Array).size()]
 	var arrow := line.find("->", close)
@@ -327,6 +332,30 @@ func _line_differs(line: String, other: Dictionary) -> String:
 		var theirs := type_string(int(other["return"]["type"]))
 		if answers in PLAIN_TYPES and theirs in PLAIN_TYPES and answers != theirs:
 			return "answers %s, the game's %s" % [answers, theirs]
+	return ""
+
+
+## The type the engine gives an argument written `name := value`, read from the value ("" when it is not a
+## plain literal: then the argument is not compared).
+func _literal_type(value: String) -> String:
+	if value in ["true", "false"]:
+		return "bool"
+	if value.begins_with("\"") or value.begins_with("'"):
+		return "String"
+	if value.trim_prefix("-") in ["INF", "NAN"]:
+		return "float"
+	if value.trim_prefix("-").is_valid_int():
+		return "int"
+	if value.trim_prefix("-").is_valid_float():
+		return "float"
+	for type in ["Vector2", "Vector3", "Rect2", "Color", "Callable", "PackedFloat32Array", "PackedVector2Array",
+			"PackedVector3Array"]:
+		if value.begins_with(type + "("):
+			return type
+	if value.begins_with("{"):
+		return "Dictionary"
+	if value.begins_with("["):
+		return "Array"
 	return ""
 
 
