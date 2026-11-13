@@ -1072,7 +1072,8 @@ level is not: a first measurement of the baked map found 378 lane count changes 
 from dead ends, 77 kinks over 20° on main roads and 4 of 14 roundabout rings whose lane count
 changes inside the ring (upper bounds, not yet checked against photos). In order:
 
-- [ ] RT-1 `tools/road_truth.py` (rules R1-R10, verify step `roadtruth`, findings on the console map)
+- [x] RT-1 `tools/road_truth.py` (2026-11-13): rules R1-R10 on the baked map as a ratchet (verify step `roadtruth`: R1 379, R2 71, R3 403, R5 144, R6 83, R7 262, R8 56, R9 21, R10 266), and with `--osm=` on the Mac 264 turn restrictions the lane graph ignores (of 556) and 353 approaches whose lanes take exits their `turn:lanes` forbid; 12 of 14 sampled places differ from the aerial photo
+- [ ] RT-1b the checker's findings as a layer on the dev console's map (`--json=`); the graph edges of a roundabout flagged by the bake so R9 need not guess by shape
 - [ ] RT-2 lane links through junctions from OSM `turn:lanes` instead of `next_lane`'s guess; arrows from the same data
 - [ ] RT-3 keep OSM `restriction` relations (`prepare_demo.py` drops them), drop forbidden links, U-turns only at dead ends and mapped median gaps
 - [ ] RT-4 lane adds and drops as paint (blips joined or made turn pockets; a dashed line starts, hatching, the kerb stays)
