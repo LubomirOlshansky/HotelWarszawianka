@@ -97,6 +97,10 @@ func _arguments() -> Array:
 		var theirs := {}
 		for m: Dictionary in real.get_script_method_list():
 			theirs[String(m["name"])] = m
+		# A script that does not compile loads with no functions: one line for it, not one for each function.
+		_ok(not theirs.is_empty(), "A %s loaded with no functions (it does not compile?): nothing of Fakes.%s was compared" % [path.get_file(), who])
+		if theirs.is_empty():
+			continue
 		var own: Array = OWN.get(who, [])
 		var seen_own := {}
 		for m: Dictionary in fake.get_script_method_list():
