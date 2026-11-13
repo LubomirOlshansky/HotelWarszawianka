@@ -975,6 +975,7 @@ func _p_settings() -> void:
 		var d: Dictionary = _ru.depots[k]
 		_ok(int(d["zone"]) == zs[k] and d["at"] == _ps.zones[zs[k]]["at"], "depot %d is zone %d at its place" % [k, zs[k]])
 		_ok(not d["cool"] and not (d["marker"] as Node3D).visible and (d["marker"] as Node3D).get_parent() == _world, "depot %d: not cool, marker hidden under the world" % k)
+		_ok((d["marker"] as Node3D).global_position == d["at"], "depot %d's ring stands on its zone" % k)
 		pts.append(Vector2(d["at"].x, d["at"].z))
 	_ok(_pj.markers.size() == 4 and _pj.markers.all(func(m: Array) -> bool: return m[0] == RoundupJob.COLOUR and m[1] == RoundupJob.DEPOT_R - 1.0),
 			"four markers in COLOUR at DEPOT_R - 1")
@@ -998,6 +999,9 @@ func _p_look() -> void:
 	var a0 := _pj.asks
 	_frames(3.0)
 	_ok(_pj.asks - a0 >= 5 and _pj.asks - a0 <= 7, "3 s of night: %d looks (want 5-7, every LOOK_EVERY)" % (_pj.asks - a0))
+	a0 = _pj.asks
+	_frames(10.0)
+	_ok(_pj.asks - a0 >= 19 and _pj.asks - a0 <= 21, "10 s of night: %d looks (want 20: twice a second)" % (_pj.asks - a0))
 	for how in 3:
 		match how:
 			0:
@@ -1047,11 +1051,13 @@ func _p_offer() -> void:
 	_ok(_hud.body == "Bagażnik mieści 5. 8 zł za sztukę, +40 zł za komplet w 6 min.", "offer body")
 	_ok(_hud.body_en == "The boot holds 5. 8 zł each, +40 zł for all of them within 6 min.", "offer body, English")
 	_ok(_hud.buttons == 2 and _hud.accent == RoundupJob.COLOUR and _hud.low and _hud.card_is(_ru), "two buttons, colour, low, its own")
+	_ok(_hud.button_words == PackedStringArray(["GO!", "NOT NOW"]), "the offer's buttons in order: %s" % [_hud.button_words])
 	_ok(not _pj.shown.back(), "the rings hide at the offer")
 	_ok(_calls.paused and _calls.closed == 1, "rescue calls paused and closed once")
 	_ok(_hud.pills_hidden == pills + 1 and _hud.challenges_hidden == challenges + 1, "pill and challenge taken down once")
 	_ok(_dlg.said.back() == "lezak:start" and _dlg.speakers.back() == "Leżak", "the lezak start line by Leżak")
 	_ok((_dlg.anchors.back() as Callable).call() == A, "the line's anchor is depot 0")
+	_ok(_dlg.hows.back() == [4.5, RoundupJob.PIN_COLOUR, 1.6, true], "the line: 4.5 s, in Leżak's violet, 1.6 m up, preferred (%s)" % [_dlg.hows.back()])
 	var near := _ps.lying_near(Vector2(A.x, A.z), RoundupJob.REACH, RoundupJob.WANT)
 	_ok(_ru.targets == near and near.size() == 10 and not near.any(func(i: int) -> bool: return i >= 14 and i <= 17), "the ten nearest lying Leżaks")
 	_ok(_ru.depot == 0 and _ru.boot == 0 and _ru.unloaded == 0, "depot 0, nothing in the boot")
@@ -1157,10 +1163,21 @@ func _p_round() -> void:
 	_ok(_hud.distance == "%d m" % roundi(_dist(_car.global_position, _lez(nearest))), "status distance %s" % _hud.distance)
 	_ok(_hud.status == "Podjedź powoli do fioletowej pinezki" and _hud.hint_en == "Drive up slowly to a violet pin", "status hint")
 	_ok(_hud.tint == RoundupJob.COLOUR and _hud.progress == _ru.secs / RoundupJob.LIMIT and not _ru._beacon.visible, "tint, progress, ring hidden")
+	_frames(0.5)
+	_ok(_ru.unloaded == 0 and _hud.toasts.back() == "Zbieraj Leżaki: podjedź powoli", "standing in the depot with an empty boot unloads nothing (%s)" % _hud.toasts.back())
 	# Picking up.
 	_put(_lez(5) + Vector3(3, 0, 0), 5.0)
 	_frames(0.5)
 	_ok(_ru.boot == 0 and _hud.status == "Wolniej! Poniżej 15 km/h" and _hud.hint_en == "Slower! Under 15 km/h", "3 m at 5 m/s: not picked, 'Wolniej!'")
+	_put(_lez(5) + Vector3(RoundupJob.PICK_R + 5.5, 0, 0), 5.0)
+	_frames(DT)
+	_ok(_hud.status == "Wolniej! Poniżej 15 km/h", "9.5 m at 5 m/s: 'Wolniej!' already")
+	_put(_lez(5) + Vector3(RoundupJob.PICK_R + 6.5, 0, 0), 5.0)
+	_frames(DT)
+	_ok(_hud.status == "Podjedź powoli do fioletowej pinezki", "10.5 m at 5 m/s: not yet 'Wolniej!'")
+	_put(_lez(5) + Vector3(6, 0, 0), 2.0)
+	_frames(DT)
+	_ok(_ru.boot == 0 and _hud.status == "Podjedź powoli do fioletowej pinezki", "6 m at 2 m/s: slow enough, no 'Wolniej!'")
 	_put(_lez(5) + Vector3(3, 0, 0), 15.1 / 3.6)
 	_frames(0.5)
 	_ok(_ru.boot == 0, "at 15.1 km/h: not picked")
@@ -1171,6 +1188,7 @@ func _p_round() -> void:
 	_ok(_hud.toasts.back() == "+1 LEŻAK · BAGAŻNIK 1/5" and _hud.toasts_en.back() == "+1 Leżak in the boot (1 of 5)", "the pick-up toast")
 	_ok(_hud.pois_set == set0 + 1 and _hud.pois == 10, "the pins set again (%d)" % _hud.pois)
 	_ok(_hud.status_title == "LEŻAKI 0/10 · BAGAŻNIK 1/5", "status after the pick-up: %s" % _hud.status_title)
+	_ok(_ru.stop_spot() == Vector3.INF and not _ru._beacon.visible, "one in the boot: no stop spot (a Leżak is a drive-by), no ring")
 	_put(_lez(6) + Vector3(4.05, 0, 0))
 	_frames(0.5)
 	_ok(_ru.boot == 1, "4.05 m: not picked")
@@ -1188,6 +1206,8 @@ func _p_round() -> void:
 	_put(_lez(0))
 	_frames(DT)
 	_ok(_ru.boot == 4 and _ps.collected.back() == later, "two on one spot: the later one in targets first")
+	_ok(not _ru._beacon.visible and _hud.status == "Podjedź powoli do fioletowej pinezki" and _ru.stop_spot() == Vector3.INF,
+			"four in the boot, a place free: no ring, on to the next pin (%s)" % _hud.status)
 	_frames(DT)
 	_ok(_ru.boot == 5 and _hud.toasts.back().ends_with("BAGAŻNIK 5/5"), "the other one a frame later: boot 5/5")
 	var n_col := _ps.collected.size()
@@ -1212,6 +1232,9 @@ func _p_round() -> void:
 	_frames(0.5)
 	_ok(_ru.unloaded == 0, "from the air at the centre: nothing unloaded")
 	_pj.flying = false
+	_near(0, RoundupJob.DEPOT_R + 1.0, 10.0)
+	_frames(DT)
+	_ok(_ru.unloaded == 0 and _hud.status == "Bagażnik pełny: wracaj do strefy", "8 m at 10 m/s: not yet 'Stań w strefie' (%s)" % _hud.status)
 	_put(A + Vector3(3, 0, 0), 10.0)
 	_frames(0.5)
 	_ok(_ru.unloaded == 0 and _hud.status == "Stań w strefie" and _hud.hint_en == "Stop in the zone", "3 m at 10 m/s: nothing, 'Stań w strefie'")
@@ -1228,8 +1251,8 @@ func _p_round() -> void:
 	_drive(func() -> bool: return _ru.stage == RoundupJob.Stage.RESULT, 200.0, "the other five didn't come back")
 	_ok(_is(RoundupJob.Stage.RESULT), "stage RESULT")
 	_ok(_wallet.money == 120 and _wallet.respect == 40 and _wallet.kinds.size() == 1 and _wallet.kinds[0] == "roundup", "paid 120 zł, 40 respect, once")
-	_ok(_ru.done == 1 and int(_ru.last_pay["zl"]) == 120 and int(_ru.last_pay["bonus"]) == 40 and int(_ru.last_pay["respect"]) == 40 and bool(_ru.last_pay["all"]),
-			"done 1, last_pay")
+	_ok(_ru.done == 1 and int(_ru.last_pay.get("zl", -1)) == 120 and int(_ru.last_pay.get("bonus", -1)) == 40
+			and int(_ru.last_pay.get("respect", -1)) == 40 and bool(_ru.last_pay.get("all", false)), "done 1, last_pay: %s" % [_ru.last_pay])
 	var mm := _mmss(_ru.secs)
 	_ok(_hud.card == "ZEBRANE · 10 LEŻAKÓW · +120 zł" and _hud.card_en == "Rounded up · 10 Leżaks · +120 zł", "result title")
 	_ok(_hud.body == "„…”\n10 × 8 zł + 40 zł premii, +40 szacunku · czas %s" % mm, "result body: %s" % _hud.body)
@@ -1257,6 +1280,9 @@ func _p_round() -> void:
 	_ok(_reenter(0), "the second offer at depot 0")
 	_ok(_hud.card == "ZBIERZ 4 LEŻAKÓW", "the second round: %s" % _hud.card)
 	_hud.press(0)
+	_ok(_ru.secs == 0.0, "the second round's clock starts at nought (%.1f s)" % _ru.secs)
+	_frames(DT)
+	_ok(_hud.count == "5:59", "the second round's status clock: %s" % _hud.count)
 	_drive(func() -> bool: return _ru.boot == 4, 120.0, "the four weren't picked")
 	_ok(_hud.status == "Wracaj do strefy i wyładuj" and _hud.hint_en == "Back to the zone to unload" and _ru.stop_spot() == A, "four in the boot: back to unload")
 	_drive(func() -> bool: return _ru.stage == RoundupJob.Stage.RESULT, 120.0, "the second round didn't finish")
@@ -1292,7 +1318,7 @@ func _p_late() -> void:
 	_frames(DT)
 	_ok(_hud.tint == RoundupJob.FAIL_COLOUR and _hud.count == "+0:40" and _hud.progress == 1.0, "late: red, +0:40, bar full (%s)" % _hud.count)
 	_drive(func() -> bool: return _ru.stage == RoundupJob.Stage.RESULT, 200.0, "the late round didn't finish")
-	_ok(_wallet.money == 48 and _wallet.respect == 40 and int(_ru.last_pay["bonus"]) == 0, "late: 48 zł, no bonus, 40 respect")
+	_ok(_wallet.money == 48 and _wallet.respect == 40 and int(_ru.last_pay.get("bonus", -1)) == 0, "late: 48 zł, no bonus, 40 respect")
 	_ok(not _hud.body.contains("premii") and not _hud.body_en.contains("bonus"), "late: the card has no bonus")
 
 

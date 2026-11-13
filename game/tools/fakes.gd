@@ -5,9 +5,9 @@ extends RefCounted
 ## card's press to its owner as hud.gd does (tech-debt TD-16), with the context button, the
 ## banner, the notes, the quest's dots and the quiet screen (the street meet uses them), the card's
 ## colour, the small toasts and the minimap's dots (the boat race uses them), whether the card
-## sits at the bottom of the screen, both languages of a card, a toast and a hint, the minimap's
-## job pins and the challenge taken down (the round-up uses them); a
-## dialogue that remembers what was said and where, and the lines asked for; the bubbles over the
+## sits at the bottom of the screen, the words on its buttons, both languages of a card, a toast
+## and a hint, the minimap's job pins and the challenge taken down (the round-up uses them); a
+## dialogue that remembers what was said, where and how, and the lines asked for; the bubbles over the
 ## car; a wallet; the rescue calls' switch and how often the line was closed; a flat map; a car
 ## that can be hit and has a speed. A check that needs one of these takes it from here, so a new parameter on `hud.toast`
 ## is changed in one place.
@@ -18,10 +18,12 @@ class Hud extends CanvasLayer:
 	signal abort_pressed
 	## The context button's tap, with whose button it was (a check emits it).
 	signal context_pressed(who: String)
-	## The card that is up: its title ("" when none), its text, how many buttons.
+	## The card that is up: its title ("" when none), its text, how many buttons, and the words on
+	## them in order.
 	var card := ""
 	var body := ""
 	var buttons := 0
+	var button_words := PackedStringArray()
 	## Whether the card that is up has its buttons one under the other, its colour, and whether it
 	## sits at the bottom of the screen (hud.gd `show_card`'s `bottom`).
 	var stacked := false
@@ -78,7 +80,7 @@ class Hud extends CanvasLayer:
 	var _owner: Object = null
 
 	func show_card(title: String, text: String, btn: PackedStringArray, a: Color, bottom := false, te := "", be := "", s := false) -> void:
-		_up(title, text, btn.size())
+		_up(title, text, btn)
 		stacked = s
 		accent = a
 		low = bottom
@@ -86,19 +88,20 @@ class Hud extends CanvasLayer:
 		body_en = be
 
 	func show_side_card(title: String, text: String, btn: PackedStringArray, a: Color, _te := "", _be := "", s := false, _f := "") -> void:
-		_up(title, text, btn.size())
+		_up(title, text, btn)
 		stacked = s
 		accent = a
 
 	func show_call(who: String, about: String, a: Color, _be := "", _f := "", btn := PackedStringArray(["ODBIERZ|ANSWER", "ODRZUĆ|DECLINE"])) -> void:
-		_up("📞 %s DZWONI" % who.to_upper(), about, btn.size())
+		_up("📞 %s DZWONI" % who.to_upper(), about, btn)
 		accent = a
 
-	func _up(title: String, text: String, n: int) -> void:
+	func _up(title: String, text: String, btn: PackedStringArray) -> void:
 		_owner = null
 		card = title
 		body = text
-		buttons = n
+		buttons = btn.size()
+		button_words = btn
 		stacked = false
 		low = false
 		card_en = ""
@@ -110,6 +113,7 @@ class Hud extends CanvasLayer:
 		card = ""
 		body = ""
 		buttons = 0
+		button_words = PackedStringArray()
 
 	func toast(a: String, b := "") -> void:
 		toasts.append(a)
@@ -211,6 +215,8 @@ class Dialogue extends Node:
 	## a Callable that names the place), and the speaker's name.
 	var anchors: Array = []
 	var speakers: Array[String] = []
+	## How each was said, in step with `said`: [seconds, colour, height, prefer].
+	var hows: Array = []
 	## dialogue.gd's bubbles (a script that speaks its own lines over the car uses them).
 	var bubbles: Control
 	## dialogue.gd's `line`: "group:tag" of every line taken as words (for a card), and what it
@@ -218,10 +224,11 @@ class Dialogue extends Node:
 	var line_asks: Array[String] = []
 	var line_words: Array = ["…", "…"]
 
-	func say(anchor: Variant, who: String, group: String, tag := "", _s := 4.0, _c := Color.WHITE, _h := 2.6, _p := false) -> Array:
+	func say(anchor: Variant, who: String, group: String, tag := "", s := 4.0, c := Color.WHITE, h := 2.6, p := false) -> Array:
 		said.append(group + ":" + tag)
 		anchors.append(anchor)
 		speakers.append(who)
+		hows.append([s, c, h, p])
 		return []
 
 	func line(group: String, tag := "", _prefer := false) -> Array:
