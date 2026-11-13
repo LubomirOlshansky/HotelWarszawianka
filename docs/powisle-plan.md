@@ -6,6 +6,27 @@ to do, ordered by what the player sees most, so one thread can take one item at 
 a BACKLOG line "Powiśle P1..P12" and a ROADMAP v1.0 line). Written in the cloud from `centrum.json`
 and the specs; no photo was looked at yet (see "Photos").
 
+## Status, 2026-11-13 (review for F; the life half is `docs/powisle-life.md`)
+
+| Item | State | What is left |
+| --- | --- | --- |
+| P1 Elektrownia | built from photos (turbine hall, lift, 4 stacks) 2026-11-09 | new blocks round it, yard, night look: thread "Elektrownia Powiśle with life" running |
+| P2 houses on all streets / P13 up to 300 | 19 photo houses (#590) + Tamka pass 1; 27 of H001-H300 matched | ~270 houses; Tamka 36 and murals, Smolna 32 |
+| P3 missing buildings | not started (Barceló, Carpathia, RPZ, Klub Bankowca, Arkada, Nordic Park, UW Dobra, Pawilon Tańca) | all; Tamka 2 + church thread running |
+| P4 setts, kerbs, crossings | not started | all |
+| P5 furniture 1.5× | not started (lamps 220/km², city 223) | all, after the gardens |
+| P6 shops, cafés, bars | 8 signs + 5 viaduct bars; none on Zajęcza, boulevard, Solec | L1 in powisle-life.md |
+| P7 parks | Park Odkrywców, Kahl stone, Rotunda Dynasy done | benches, picnic, BUW garden, corten stairs, moorings |
+| P8 life | jazz, `chill_*`, dog walkers, KEBONAFIDE | queues, students, terraces, schedule (L3) |
+| P9 night | not started | L4 |
+| P10 roofs | not started (RF4b) | all |
+| P11 water edge | Poniatowski towers and falls fixed (thread running), W. Kościuszkowskie 41 + ASP running | stairs, moorings, abutments |
+| P12 look pass | not started | after each item, F's yes for the phone |
+
+Also done since the plan: the viaduct, Powiśle station's hypar roof and jazz nights, street plates, bollards on
+17 streets, Ateneum's portico, Ostrogski/Chopin museum. Next, in order: L1 bars and signs, L2 terrace helper,
+L3 people, then P4/P5/P3 in parallel with the running building threads.
+
 ## What the map has there now (measured 2026-11-08)
 
 Box x -100..800, z -1000..120 (Aleje Jerozolimskie to Dobra, Nowy Świat's escarpment to the river), 0.99 km².

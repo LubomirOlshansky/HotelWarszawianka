@@ -59,6 +59,7 @@ first10              quick
 first10-run          local     slow
 firstlife            runs
 fixes                quick
+freecam              quick
 gamepad              quick
 garage               quick
 governor             quick
@@ -135,6 +136,7 @@ ride-police          local     slow
 rideplay             quick
 rides                quick
 roads                roads
+roadtruth            quick
 roadworks            quick
 roadworks-prebuilt   smoke     slow
 roofdress            quick

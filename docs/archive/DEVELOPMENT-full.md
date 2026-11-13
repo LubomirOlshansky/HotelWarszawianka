@@ -5863,6 +5863,7 @@ Command-line options (after `--`):
 | `--sound-check` | play every sound once and print the bus meters, then quit (needs an audio device) |
 | `--ghost-debug=1\|2` | loop 1: paint the occlusion ghost (1: ghosted magenta, other buildings green) or cut it fully (2), and print its ellipse in screen pixels with each screenshot |
 | `--controls=point\|classic\|fixed` | loop 2a: the control scheme for this run (not saved) |
+| `--pads=arrows\|slider` | F 2026-11-13: Classic's touch controls for this run, the fixed arrows + pedals (default) or the sliding strip (not saved) |
 | `--traffic=empty\|low\|normal\|busy` (or 0-3) | loop 2a: the traffic level for this run (not saved) |
 | `--settings` | loop 2a: open the settings panel at the start (screenshots) |
 | `--fullmap` | F's asks (2026-10-30): open the full-screen map at the start (the game paused; screenshots) |
@@ -5991,6 +5992,7 @@ Command-line options (after `--`):
 | `--stick=X,Y` / `--pedal=gas\|brake` | loop 2a: hold the stick at that deflection (-1..1, y down; Classic uses X) / a pedal, as if a finger were on it (screenshots, replays in the real city) |
 | `--clicks=X:Y:F,...` / `--drag=X:Y:F:DX:DY:F2` | loop 2a testing aids: a click at screen pixel X,Y on frame F; a finger down at X,Y on frame F, moved by DX,DY over ten frames, lifted on frame F2 (through the real input path) |
 | `--lift=M` | loop 1: aim the camera M metres above the vehicle (close-ups of tall landmarks: `--at=-1206,244 --lift=156 --yaw=110 --size=24 --lines=1080` looks at the Palace clock's east dial) |
+| `--cam=X,Z` or `--cam=X,Y,Z` | free camera (2026-11-13, F: before/after shots without the car): the view looks at that world point (Y left out: the ground there), fixed, whatever the car does; turned by `--yaw=`, `--pitch=`, `--size=` tall, `--lift=` raises it; the car stands under it (or at `--at=`, keep that within ~150 m so the city streams) and is hidden, `--cam-car` keeps it, no occlusion ghost. Same on the runtime and `--prebuilt` city. Several in one run (a run costs ~40 s): `--cams="NAME:X,Y,Z,YAW,PITCH,SIZE+NAME2:..."` (Y empty = ground; YAW, PITCH, SIZE optional), one shot each as NAME_FFFF.png. `--solo=` runs hide the car too. Not in the Settings, never for players: `tools/shots.sh --set=NAME -- --cam=X,Z --yaw=135 --size=60` |
 | `--probe` | loop 2b: stand where `--at` / `--heading` put the car (free roam), let 240 frames (or 8 s) pass, measure the next `--bench-frames` (default 600, or `--bench-seconds`, default 30) and print the bench's lines plus what is in view (nodes, instances, shadow casters, materials, shaders, kinds); quits |
 | `--no-map-edge` | railway lane (2026-11-01): the city without the land past the map's edge (`map_edge.gd`: the ring of ground, tree line, far blocks and the rails and roads running on), for a before/after `--probe` at the edge |
 | `--no-edge-roadworks` | edge roadworks (2026-11-02): the city without the roadworks closing the roads at the map's edge (`edge_roadworks.gd`: meshes, halos and their colliders; the edge wall stays and the traffic still stops at the lines), for a before/after `--probe` at an edge |

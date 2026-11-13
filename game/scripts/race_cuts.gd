@@ -23,6 +23,12 @@ extends RefCounted
 ## check_lane_drive.gd --links --write): a racer goes only where the player can. A link is driven
 ## as one curve like a cut's (`curve`): a chain of cubic pieces through its points (LaneGraph
 ## `bezier` takes a chain), at LINK_TOP at most and the speed its bends allow (`speeds`).
+##
+## Racer AI step 5b (5.5): the wrong-way hops, links of kind "wrong": one block of a small one-way
+## street from the junction at its end back to the one at its start. Handed only to a racer that
+## dares (ladder.gd `hops`: Seba and Mike), never from the hopped street itself (`hop`: the street
+## a way between two junctions drives against), and taken only when that street is empty
+## (traffic.gd `_hop_clear`).
 
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 
@@ -53,7 +59,8 @@ var length := PackedFloat32Array()
 var exits_ab: Array[PackedInt32Array] = []
 var exits_ba: Array[PackedInt32Array] = []
 ## Per cut, its points between the two junctions for a race link (empty: a straight cut), its
-## narrowest width (m; 99 for a straight cut) and its kind ("cut", "yard", "park").
+## narrowest width (m; 99 for a straight cut) and its kind ("cut", "yard", "park", and "wrong": a
+## wrong-way hop along a one-way street).
 var shape: Array[PackedVector2Array] = []
 var width := PackedFloat32Array()
 var kind := PackedStringArray()
@@ -75,6 +82,9 @@ var with_unproven := false
 ## for every RaceCuts loaded from the committed map (there is one), so a racer's table of plain
 ## numbers (`links`) finds a link's shape from the junctions alone (`curve`).
 static var _shapes := {}
+## The wrong-way hops by the junctions they join, {Vector2i(a, b): the one-way street (edge) from
+## b to a that the hop drives against}.
+static var _against := {}
 var _graph
 
 
@@ -150,6 +160,7 @@ func _load_links(graph, path: String) -> Array:
 	links_unproven = 0
 	links_missed = 0
 	_shapes.clear()
+	_against.clear()
 	var pending := []
 	if path == "" or not FileAccess.file_exists(path):
 		return pending
@@ -179,11 +190,22 @@ func _load_links(graph, path: String) -> Array:
 		if pts.size() < 2:
 			links_missed += 1
 			continue
+		var link_kind := String(l.get("kind", "yard"))
+		if link_kind == "wrong":
+			# A wrong-way hop: the one-way street from b to a it drives against must be there.
+			var against := -1
+			for h: int in graph.node_out[nb]:
+				if graph.e_b[h] == na and graph.e_reverse[h] < 0:
+					against = h
+			if against < 0:
+				links_missed += 1
+				continue
+			_against[Vector2i(na, nb)] = against
 		var metres: float = graph.node_pos[na].distance_to(pts[0]) + graph.node_pos[nb].distance_to(pts[pts.size() - 1])
 		for k in range(1, pts.size()):
 			metres += pts[k].distance_to(pts[k - 1])
 		_shapes[Vector2i(na, nb)] = pts
-		pending.append([na, nb, pts, metres, float(l.get("w", 3.5)), String(l.get("kind", "yard")), String(l.get("id", ""))])
+		pending.append([na, nb, pts, metres, float(l.get("w", 3.5)), link_kind, String(l.get("id", ""))])
 	return pending
 
 
@@ -224,13 +246,18 @@ static func knows(i: int, share: float, seed: int) -> bool:
 
 ## The racer's cuts {node: PackedFloat32Array [edge on, metres, ...]} and the routing's links into
 ## each node {node: PackedFloat32Array [from, cost, ...]}, as [table, extra_in]: the straight cuts
-## of `share`, and the race links of `yards` the racer dares (`narrow`: the narrowest it takes, m).
-func links(share: float, seed: int, yards := 0.0, narrow := 99.0) -> Array:
+## of `share`, the race links of `yards` the racer dares (`narrow`: the narrowest it takes, m), and
+## the wrong-way hops of `hops` (0: it never drives against a one-way street) but those along the
+## streets of `no_hop` ({edge: true}: the hops it has refused this race, RacePlanner.Plan).
+func links(share: float, seed: int, yards := 0.0, narrow := 99.0, hops := 0.0, no_hop := {}) -> Array:
 	var table := {}
 	var extra := {}
 	for i in a.size():
 		if shape[i].is_empty():
 			if not knows(i, share, seed):
+				continue
+		elif kind[i] == "wrong":
+			if not knows(i - first_link + LINK_SEED, hops, seed) or no_hop.has(hop(a[i], b[i])):
 				continue
 		elif width[i] < narrow or not knows(i - first_link + LINK_SEED, yards, seed):
 			continue
@@ -277,6 +304,12 @@ static func curve(graph, e: int, lane: int, g: int) -> PackedVector2Array:
 	pts.append_array(_shapes[key])
 	pts.append(p3)
 	return chain(pts, d0, d3)
+
+
+## The one-way street (edge) that the way from junction `na` to junction `nb` drives against: a
+## wrong-way hop's (racer AI step 5b); -1 for any other link, a cut, or no shortcut at all.
+static func hop(na: int, nb: int) -> int:
+	return _against.get(Vector2i(na, nb), -1)
 
 
 ## Whether a curve is a race link's chain (more than one cubic piece).

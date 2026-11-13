@@ -217,6 +217,12 @@ func _matrix(full: bool) -> Array:
 		out.append(s)
 	# The same race twice (heavy traffic: the most there is to differ).
 	out.append(_spec(HALINA, "ladder", "tamka", "heavy", "average"))
+	# Racer AI step 5b: the wrong-way hop (one block of one-way Żelazna): Seba dares it on clear
+	# roads and refuses it with a car parked on the street, Zbyszek does not dare it.
+	for pair: Array in [[SEBA, "clear"], [SEBA, "parked"], ["Taksiarz Zbyszek", "clear"]]:
+		var hop := _spec(pair[0], "ladder", RaceBench.HOP_START, pair[1], "none")
+		hop["finish"] = RaceBench.HOP_FINISH
+		out.append(hop)
 	if not full:
 		return out
 	# Route sense in traffic: the free choice from Leszczyńska is in the loop below.
@@ -241,6 +247,8 @@ func _matrix(full: bool) -> Array:
 					continue
 				if situation in ["blocked", "crash"] and not player in ["none", "average"]:
 					continue
+				if situation == "parked":
+					continue  # the hop course's own situation (step 5b, below)
 				out.append(_spec(HALINA, tuning, "leszczynska", situation, player))
 	for rung: Dictionary in RaceBench.Ladder.RUNGS:
 		if rung["rival"] == HALINA:
@@ -291,6 +299,16 @@ func _matrix(full: bool) -> Array:
 		for situation: String in ["clear", "low"]:
 			var s := _spec(who, "ladder", RaceBench.YARD_START, situation, "none")
 			s["finish"] = RaceBench.YARD_FINISH
+			out.append(s)
+	# Racer AI step 5b: the rest of the hop course (Seba and Zbyszek on clear roads and Seba with
+	# a car parked on the street are in the quick matrix): Mike dares it too, Halina does not;
+	# and all four in Low traffic.
+	for who: String in [SEBA, "Mordor Mike", "Taksiarz Zbyszek", HALINA]:
+		for situation: String in ["clear", "parked", "low"]:
+			if situation != "low" and (who == SEBA or (who == "Taksiarz Zbyszek" and situation == "clear")):
+				continue
+			var s := _spec(who, "ladder", RaceBench.HOP_START, situation, "none")
+			s["finish"] = RaceBench.HOP_FINISH
 			out.append(s)
 	# Other draws of the town's cars: every race in traffic above again with each of DRAWS, so a
 	# mark that counts them is read over three draws and not one (Independence: a pair's time

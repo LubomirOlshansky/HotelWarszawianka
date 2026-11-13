@@ -29,7 +29,9 @@ sectors/s_<i>_<j>.scn, proxies.scn, index.res, shared/*.res   (the prebuilt city
 
 `tools/blender/pkin.py` builds the Palace in Blender from the same plan as `_build_palace` and
 exports `game/models/pkin/pkin_lod0.glb` (and `_lod1`). Materials are named `M<code>_<rrggbb>`
-after landmarks.gd's M_* codes; UV holds the wall coordinates, UV2.y the wall's top.
+after landmarks.gd's M_* codes; UV holds the wall coordinates, UV2.y the wall's top and UV2.x the
+height of the terrace whose projectors light the face (`lamp_level`; it goes into the vertex alpha as
+0.75 + metres / 1024 and building.gdshader's floodlight() fades the night light up from it).
 `landmarks.gd` `_palace_glb` pours its triangles into the same city mesh as the code models, so
 it costs no draw call and no shader. It is used only with `--palace=blender` (or `AW_PALACE=blender`
 for `bake_city.gd`); the default stays the code model until F decides. Re-export after editing the
@@ -87,7 +89,7 @@ preloads is loaded before the title can show (`check_boot` holds the list).
 
 | Layer | What | Command |
 | --- | --- | --- |
-| Map data | invariants and counts | `python3 -I tools/check_map_data.py`, `check_roads.py`, `check_streets.py` ... |
+| Map data | invariants and counts | `python3 -I tools/check_map_data.py`, `check_roads.py`, `check_streets.py`, `road_truth.py` (lanes, turns, roundabouts) ... |
 | Rules | pure scripts, no map | `game/tools/check_*.gd` (about 200), each prints `<name>: OK` |
 | Headless runs | the game for N seconds with flags; `boot-run` starts it as a player's launch does (the title first, the game loaded behind it) | `tools/verify.sh` steps `plain`, `prebuilt`, `boot-run`, `police-runs` ... |
 | All of it | one PASS / WARN / FAIL table | `tools/verify.sh [--quick]`; the steps and their sets are one list, `tools/ci_steps.txt`; CI picks its jobs from the changed paths (`tools/ci_tier.py`) and sums them up in one `gate` check; main runs every group |

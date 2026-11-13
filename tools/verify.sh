@@ -948,6 +948,15 @@ for s in $want; do
 				0) row PASS "fixes" $secs "$(grep '^road_fixes: ' $logs/fixes.log | tail -1)" ;;
 				*) row FAIL "fixes" $secs "$(grep '^road_fixes: ' $logs/fixes.log | tail -1) ($logs/fixes.log)" ;;
 			esac ;;
+		roadtruth)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/road_truth.py --check > $logs/roadtruth.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			case $code in
+				0) row PASS "roadtruth" $secs "$(grep '^road_truth counts: ' $logs/roadtruth.log | tail -1)" ;;
+				*) row FAIL "roadtruth" $secs "$(grep '^road_truth: ' $logs/roadtruth.log | tail -1) ($logs/roadtruth.log)" ;;
+			esac ;;
 		smooth)
 			t0=$EPOCHREALTIME
 			python3 -I $ROOT/tools/road_smooth.py --check > $logs/smooth.log 2>&1
@@ -1184,6 +1193,8 @@ for s in $want; do
 		# Nocny spot: the club's cars, lines, clock, pay, the drag's times, the meets and the strip on the real graph.
 		meet) check meet '^check_street_meet:' --fixed-fps 60 --script res://tools/check_street_meet.gd ;;
 		# Boat race: the course in open water, the boat, a whole race, the three-miss rule, the lines.
+		# Free camera (--cam=X,Y,Z): the flag's text and the view it gives.
+		freecam) check freecam '^check_free_cam:' --script res://tools/check_free_cam.gd ;;
 		boatrace) check boatrace '^check_boat_race:' --script res://tools/check_boat_race.gd ;;
 		dekalog) check dekalog '^check_dekalog_tour:' --script res://tools/check_dekalog_tour.gd ;;
 		kinotour) check kinotour '^check_kino_tour:' --script res://tools/check_kino_tour.gd ;;

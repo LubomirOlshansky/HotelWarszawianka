@@ -4,6 +4,13 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## Rooftop run: drive a photographer between the roof clubs (F, 2026-11-13: "add some quest to backlog to transport photographer between the rooftop clubs like pevel27, the view and the roof")
+
+Not built: new work is stopped (STOP NEW WORK, F 2026-11-11); queued for when it is lifted. A side job in the Podwózka family: a photographer (a passenger with a face, like the ride stories) has to shoot the city's rooftop clubs in one evening and the player drives them from roof to roof.
+- [ ] Stops, in the order F named them (parody names only): **PEVEL 27** (F's spelling of Level 27; the real club is on Al. Jerozolimskie, the game's only rooftop club today is Level 26 on the Atlas Tower, site `level26_club`, so the 27 needs its own parody name and place, QUESTIONS), **THE WJU** (the parody of The View, the club on Spektrum Tower, Twarda 18, built in PR #703; F kept this name on 2026-11-13), and **"the roof"** (which roof F means is open, QUESTIONS; default LORETKA, the pink date bar on HOTEL PIURE's roof, the one rooftop venue already in the game).
+- Default to build when it starts: a job on the Activity kit (`extends "res://scripts/activity.gd"`, `is_job` set, registered with `activities.add`; recipe in `docs/architecture/extending.md`, the way Podwózka's rides and the courier job are ported): the photographer calls, the player picks them up, three stops each ending at the club's door or its lift (the Senatorek lobby's way in is the model for "up to the roof"), a few seconds of flash and a line at each stop, then a fare and a tip, +½ star on a smooth drive like a ride. Words in Polish with English (warsaw-tone skill), the caller's face from `Portraits` (initial on a disc until a portrait exists). Check: `check_job_play`-style play of the whole job in a new `check_*` that joins `tools/ci_steps.txt`.
+- Extras once it plays: the stop order by night (clubs lit, queues up), a shot that needs the car stopped in a ring for 2 s, the photographer's photos as Fotka cards.
+
 ## Churches still to model from photos (F, 2026-11-13; review in docs/LANDMARKS.md "Churches review")
 
 Review only, nothing built. Each item is one thread, photo-first (model-from-photos skill; Mapillary and
@@ -120,6 +127,7 @@ F: too little detail in Powiśle; wants real houses, street details and the powe
 - [x] P13b Powiśle houses pass 2 (2026-11-09): 19 photographed houses off Tamka in `powisle_houses.gd` (plaster, balconies, base, street fronts from the map). Left: Tamka 36 and other firewall murals, Smolna 32 (no usable photo), Pawilon Tańca (inside only), the brick ornament on Klub Bankowca, the stone grid on Carpathia
 - [x] P1 Elektrownia Powiśle from photos and P2-ish Chopin museum rebuild (2026-11-09, specs elektrownia.md, ostrogski.md). Left: the new blocks round the Elektrownia, its yard and night look, the castle stairs from Tamka
 - [x] P7/P8 from F's photos (2026-11-09): Rotunda Dynasy (`rotunda_dynasy`), Park Odkrywców's listening pipes and dishes, the Kahl stone (tamka.gd PARK_*). Left from the photo set: Teatr Ateneum's portico (which face is the door), Buffo, the BUW roof garden and canopy, the corten river stairs, the moorings and the port, the Zajęcza mural. Street plates and Teatr Ateneum's portico done in follow-ups (2026-11-09). Still left: Buffo and the Zajęcza mural (parked in QUESTIONS, 2026-11-09: wall and outline not identifiable), the Bulwary's corten stair landing and terraced riverfront steps by the science centre (photos F02/*, needs the quay's heights from the terrain), the moorings and piers; the BUW roof garden is already detailed in `buw.md`
+- [ ] P6/P8 Powiśle alive (F, 2026-11-13; plan `docs/powisle-life.md`): L1 ~25 real bars and shops as parody signs on their real streets (Zajęcza 4, the boulevard 9, Solec, Aleja 3 Maja, Browarna, Smolna, Ludna; Sonnet, light) · L2 terrace/garden helper, one MultiMesh per cell, summer and winter, empty in rain (Opus, full DoD, bench) · L3 day schedule of people and Thu-Sat queues on Zajęcza (crowds.gd; Sonnet, Opus review of caps) · L4 bar music through doors and night glow (Opus, lights budget) · L5 furniture to 1.5× (P5) and the park pass (P7) · L6 Mac then phone look. Waits for the "Elektrownia Powiśle with life" thread for the Elektrownia's own spots
 - [ ] P13 Up to 300 more real houses, quest loop and Tamka first, Museum of Fryderyk Chopin (list H001-H300 in docs/powisle-photos-needed.txt)
 
 ## Trees and fences in the water and on the roads (F, 2026-11-08)
@@ -1064,6 +1072,25 @@ Left:
   approaches among them); a Mac look at those places' drawn ground is open.
 - Podwózka story ride played by Autopilot (accept, the "!" pickup, boarding, story lines, the question card, +½ star): no bug; the door and the result card still unplayed (the 2 km ride outlasts one Mac run).
 
+## Roads true to life: lane-level faults (F, 2026-11-13; docs/design/roads-true-to-life.md)
+
+Research only so far. The paint and kerbs at way joins are checked (`smooth`, `fixes`), the lane
+level is not: a first measurement of the baked map found 378 lane count changes with no side road,
+84 short lane blips, 373 straight-on lane links landing over 2.5 m aside, 155 turn-back links away
+from dead ends, 77 kinks over 20° on main roads and 4 of 14 roundabout rings whose lane count
+changes inside the ring (upper bounds, not yet checked against photos). In order:
+
+- [x] RT-1 `tools/road_truth.py` (2026-11-13): rules R1-R10 on the baked map as a ratchet (verify step `roadtruth`: R1 379, R2 71, R3 403, R5 144, R6 83, R7 262, R8 56, R9 21, R10 266), and with `--osm=` on the Mac 264 turn restrictions the lane graph ignores (of 556) and 353 approaches whose lanes take exits their `turn:lanes` forbid; 12 of 14 sampled places differ from the aerial photo
+- [ ] RT-1b the checker's findings as a layer on the dev console's map (`--json=`); the graph edges of a roundabout flagged by the bake so R9 need not guess by shape
+- [ ] RT-2 lane links through junctions from OSM `turn:lanes` instead of `next_lane`'s guess; arrows from the same data
+- [ ] RT-3 keep OSM `restriction` relations (`prepare_demo.py` drops them), drop forbidden links, U-turns only at dead ends and mapped median gaps
+- [ ] RT-4 lane adds and drops as paint (blips joined or made turn pockets; a dashed line starts, hatching, the kerb stays)
+- [ ] RT-5 roundabouts in groups: one lane count round the ring, even radius, give-way lines, ring lines (Dmowskiego, ONZ, de Gaulle'a first)
+- [ ] RT-6 kinks on main roads into arcs; junction nodes under 8 m apart merged (262 edges with under 3 m to drive)
+- [ ] RT-7 the 25 split leftovers of `road_fixes` fix 6, by kind (see "Road design system: round 2")
+- [ ] RT-8 detectors against OSM's tags (an extract in the map pack) and the orthophoto's paint and kerbs (Mac)
+- [ ] RT-9 drive log per street (steering spikes, standing cars, lane changes in junctions), then every street's score, worst first
+
 ## Road design rollout: every street on the map (F, 2026-11-06; docs/design/road-design-rollout.md)
 
 **Decision (F, 2026-11-07): main as base, small fixes.** F compared the area 3-7 redesigns with main
@@ -1647,6 +1674,55 @@ is gone, so a head-on hit stops the car dead again (road-objects.md 1.1).
 - [ ] Census: apply `_by_road` to platforms (over-counted now); 48 lanes through buildings (gateways) to look at
 - [x] Street-level photos in the cloud (2026-11-04): F allowed the hosts and made a Mapillary app (`MAPILLARY_TOKEN`); `tools/street_photos.py` finds the photos facing a point; added to the model-from-photos skill, object-modeler and road-auditor
 - [x] `panoramax.openstreetmap.fr` allowed too (F, 2026-11-04)
+
+## A city built for driving: solidity classes (F, 2026-11-13)
+
+F: "now there are a lot of walls and objects that make driving hard; what overall decision; which
+should not be collidable, which to remove, which make the game unreasonably harder". Research and
+the ranked plan: `docs/design/drivable-city.md`. Found: the census of 2026-11-04 has not moved
+(23,980 m of barrier lines within 3 m of a lane then 24,131; 11 object verdicts in nine days, all
+a new look with the same collider). Decided to propose: nothing stops the car unless it is a
+building, a structure edge, water or a heavy vehicle; five classes (Hard, Smash, Push, Ride,
+Ghost) set by object type and context in bulk, the override file for exceptions only. Fences
+(12.1 km) and parked cars (3.3 km) are 80 % of the hard metres within 1 m of a lane on
+ground-level streets. This order replaces steps 1-7 of "Road objects and collisions" above (the
+same work, re-ranked; its detail in road-objects.md still holds).
+- [x] Research: every object type with its purpose and verdict, what makes the game unreasonably harder, design rules R1-R9, the plan (2026-11-13, docs only)
+- [x] The build plan (2026-11-13, docs only): `docs/design/drivable-city-build.md`, a brief per item for Opus threads (design, steps, acceptance, traps), the order and what depends on what, broken things' memory and recovery (session memory, repaired out of sight), the seam with the walls-look thread. New numbers: only 4.7 of 209 km of fence and hedge have a hazard behind; 60.8 of 68 km of barrier walls carry no height; 209 km of service ways are outside the census
+- [ ] 0 Solid classes in the collider (`_wall_faces` by class, one body per class per sector, `solidity.gd`, `check_solids`): no change in behaviour; it comes before item 1
+- [ ] 1 Contact log (`check_lane_drive --contacts`: collider class and census id, speed before and after), the sloppy driver, a dead-stop line in dev and Autopilot runs; baseline per street
+- [ ] 2 Collision rework v2 (road-objects.md 4.2-4.3): answer by angle, head-on kick, corner pivot, traffic shove; after or inside the controls thread (both edit `car.gd`); F's phone A/B
+- [ ] 3 Smash class: the solidity table as data; fences and hedges off the hard collider onto a soft layer (drag, sound, debris); a fence with a drop over 1.5 m, a railway cutting or water behind it becomes a guard rail; bench, both city paths
+- [ ] 4 Parked cars: Push (slide and settle), every other one out where the free width is under 3.6 m or within 15 m of a junction; bench
+- [ ] 5 Rule R2 as a check (no collider without a drawing, none more than 0.5 m bigger in plan), a `--colliders` view for shots, the audit of the ~22,600 pocket walls
+- [ ] 6 Narrow streets and yards: collider set back 0.3-0.5 m from fronts on streets under 8 m, dead-end yards gated, no kerb jolt there
+- [ ] 7 Tapers on every hard end within 3 m of a lane (1:4), convex building corners near lanes chamfered
+- [ ] 8 Barrier walls by drawn height (under 0.6 m Ride, 0.6-1.2 m Smash, over 1.2 m Hard; fragments under 4 m removed); tram islands and stop platforms Ride on every side; canopies on posts
+- [ ] 9 Small things: stalls Smash, carts Push, busts, stones and steles under 1 m Ghost, monuments within 1 m of a lane moved back
+- [ ] 10 Ratchets (R9): hard metres within 1 m of a lane by class in `check_map_data.py`; contacts per km and dead stops per street in the drive check
+- [ ] 11 Street sweeps for what the class rules leave (exceptions, landmark rings, look)
+
+## Walls, fences and rails that look real (F, 2026-11-13; docs/design/walls-true-to-life.md)
+
+F: "there are the walls now, but they should represent the real type of object and texture, and how
+to handle it if it is ruined". Research and the phased plan: `docs/design/walls-true-to-life.md`.
+Found: 155.5 of 188 km of fence and 56.8 of 70 km of wall have no OSM detail and are drawn as one
+grey band or one beige slab; the type must come from what the barrier stands next to (a prototype
+names a setting for 60 % of the fence metres from the map's own data; the rest needs land-use
+outlines the bake drops). One image pixel is 10 to 17 cm at the default zoom, so a type is its
+colour, height, outline, post rhythm and openness, not a brick pattern. Proposed: heavy (Hard)
+types as shaped geometry in the city mesh, light (Smash) types as instanced 2 m panels with their
+own small shader (the building shader, 502 of 505, is not touched); a broken panel lies down until
+`soft_things` repairs it (the memory is docs/design/drivable-city-build.md section 5).
+- [x] Research: the types, the classification, how each is drawn and broken, cost, fallbacks, the phases (2026-11-13, docs only)
+- [ ] W0 Type sheet: 6 to 10 reference photos per type (never committed), a card per type, a 20-sample check of each context rule
+- [ ] W1 Types in the bake: `tools/barrier_types.py` (full OSM tags, context outlines, `ty` and `tc` per line), counts in `check_map_data.py`, the type plot; Mac re-bake
+- [ ] W2 Heavy kit: `game/data/barrier_kit.json`, walls with foot, cap, piers, panels and end pieces; noise screens, precast, brick, stone, jersey, parapets; heights by setting; bench
+- [ ] W3 Panel trial on one stretch behind `--barriers=panels`: `panel.gdshader`, a `MultiMesh` per sector, the bar rule at three zooms, draw calls, the Adreno count; F's look check
+- [ ] W4 Panels city-wide, both city paths, the old fence geometry behind the switch
+- [ ] W5 Broken looks per type from the `soft_things` events (after the build plan's item 3)
+- [ ] W6 Content: hoarding posters with parody developers, graffiti patches, gates, bollard rows
+- [ ] W7 Types in the street sweeps; the share of barriers with a default type only goes down
 
 ## After the beta: driving extras and the city economy (F, 2026-11-03, plan only)
 
