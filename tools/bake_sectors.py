@@ -214,6 +214,7 @@ SITE_AREAS = [
     # Kino Muranów (landmarks.gd _find_kino_muranow): the cinema pavilion's outline under KM_AT
     (-1700.0, -1240.0, -1640.0, -1170.0),
     (-450.0, 1580.0, -385.0, 1670.0),       # Kościół Zbawiciela's nave and towers (landmarks.gd ZB_*; MDM's box ends at z 1620)
+    (-490.0, 1525.0, -350.0, 1615.0),       # Plac Zbawiciela's colonnades (landmarks.gd _find_zbawiciela_plac: the 7.6 m roof parts)
     # the church kit (landmarks.gd CHURCHES): the outline under each church's `at` point
     (-853, -1629, -749, -1525),   # church_sw_marcin
     (-1019, -1461, -938, -1380),   # church_kapucyni

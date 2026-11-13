@@ -65,7 +65,7 @@ transept ends. Open *(photo check)*: whether the real church is floodlit and in 
 
 ## 7. Detail level and budget
 
-L3 for the porch and towers, L2 for the body; 1543 triangles measured (2026-11-13 photo rebuild, arched windows and caps), budget 1600
+L3 for the porch and towers, L2 for the body; see section 9; budget in `check_mesh_quality.gd`
 (`check_mesh_quality.gd`). Shot: `--at=-417,1590 --heading=340 --time=day --size=45 --nohud`.
 
 ## 8. Parts table
@@ -85,12 +85,43 @@ L3 for the porch and towers, L2 for the body; 1543 triangles measured (2026-11-1
 | spires | 2 frustums | r 3.5 to 0.5 m, 51..69 m | on the belfries | M_STONE | 4 roof |
 | dome | drum, 5 frustums, lantern | r 6.9 m, to 46.3 m | u -0.5, v -29 | M_MONUMENT, M_STONE | 4 roof |
 
-## 9. Photo rebuild (2026-11-13, Mapillary panoramas of 2026-06, refs/zbawiciela, never committed)
+## 9. Photo rebuild (2026-11-13)
 
-Changed from the first model: cream plaster (#e4dccb), grey plinth, nave and transept roofs grey
-sheet (#6d7276), verdigris towers and dome (#5f9c88); the three portals became ONE tall door in the
-middle bay under a relief arch and the pediment (paired pilasters either side), the side bays got a
-statue niche and a round window (stained at night); the towers are 58 m (OSM's 76 m is not what
-the photos show): a square shaft with slit windows, a square belfry with round-headed louvres and
-corner pilasters, a cornice, a bulbous cap, a lantern, a ball and a cross. Still unseen (scaffolding
-in most photos): the dome's drum, the nave's side walls, the porch's depth. No new material.
+Pass 1 (Mapillary panoramas of 2026-06) was replaced the same day by pass 2 from F's ten photos
+(front, both obliques, the side with the chapel dome, two aerials; refs never committed):
+
+- **Colours**: white plaster #efebe2, trim #f8f5ee, grey plinth #a9a7a1, grey stone portal
+  columns #8f959c, pale verdigris roofs #7fb59b (the aerials), dark green caps and spires #3e5f52.
+- **Front block** (u +-8.3, v 0 to -5.6, before the towers): plinth; ground storey to 15.5 m with
+  a portal of four grey columns under an entablature and pediment (to 13.4 m) round a dark
+  round-headed door, a statue niche and a round window in each side bay, paired pilasters;
+  entablature 15.5-17 m; upper storey to 29.5 m with the tall round-headed window (5.4 m wide,
+  18.4-27.9 m) with two mullions and a transom; cornice 29.5-30.6 m; a stepped attic (to 38.2 m)
+  with a niche, a small pediment and a gilt cross to 43 m; statues and urns at the corners.
+- **Towers** at the mapped centres (u +-9, v -9.4), 8 m square: shaft to 29.5 m with arched
+  windows, cornice and balustrade with corner urns, a square stage with paired arched openings on
+  every face (31-41 m), a cornice with urns, an octagonal belfry (42-48.5 m), a dark green bell cap,
+  lantern, bulb and needle spire to the ball at 66 m and the cross at 69.6 m. The real height is in
+  no source we reached (OSM said 76 m); the front photo puts the cornice near 30 m and the crosses
+  a little over twice that.
+- **Body**: the mapped outline as plain plaster to 23 m (no windowed storeys), tall arched windows
+  between pilasters on the nave, the transept arms and the choir, a cornice; gabled roofs: nave
+  ridge 33.5 m, transept 32 m, the transept ends with a tall arched window, a small one in the
+  gable and a cross.
+- **Crossing**: the mapped 35 m square as a white lantern with four windows under a verdigris cap.
+- **Chapel**: the low domed chapel behind the east transept arm (the side photo, both aerials):
+  10.6 m box, drum, verdigris dome, lantern, cross to 21 m. Outside the mapped outline (its own
+  collision box).
+- Night: the stained windows (M_LAMP), the round windows, lanterns at the portal, the floodlamps.
+
+No new material or shader (M_STONE, M_LAMP, M_GLASS). Unseen in any photo: the north transept
+arm's back and the apse's details.
+
+## 10. Plac Zbawiciela's colonnades (site `zbawiciela_plac`)
+
+OpenStreetMap maps the MDM colonnades round the roundabout as 7.6 m `roof` parts; the map drew
+them as solid blocks. `_find_zbawiciela_plac` takes every such part within 75 m of the roundabout
+and `_build_zbawiciela_plac` builds cream columns every ~3 m along the side whose nearest road
+lies ahead of it, the slab (6.7-7.6 m), a green balustrade on the terrace (F's rainy photo) and a
+lantern under every other pair. The frontage is MDM's site already (its stone skin). Card:
+"Plac Zbawiciela".

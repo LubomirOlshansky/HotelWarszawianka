@@ -493,8 +493,11 @@ const INFO := {
 			"Osiedle odbudowane w 1949 roku; bohater filmu „Przygoda na Mariensztacie” z 1954 roku.",
 			"The estate rebuilt in 1949, and the star of the 1954 film \"Przygoda na Mariensztacie\"."],
 	"zbawiciela": ["Kościół Najświętszego Zbawiciela",
-			"Neorenesansowa bazylika z 1911 roku, z dwiema wieżami i kopułą, na placu, który od niej wziął nazwę.",
-			"The neo-Renaissance basilica of 1911 with two towers and a dome, on the square that took its name from it."],
+			"Bazylika z 1911 roku w duchu polskiego renesansu i baroku, z dwiema smukłymi wieżami; od niej wziął nazwę plac.",
+			"The 1911 basilica in the Polish Renaissance and Baroque manner, with two slender towers; the square is named after it."],
+	"zbawiciela_plac": ["Plac Zbawiciela",
+			"Okrągły plac MDM z lat 50.: kolumnady wokół ronda, a pod nimi kawiarnie do późnej nocy.",
+			"MDM's round square of the 1950s: colonnades round the roundabout and cafés under them till late."],
 	"aleksander": ["Kościół Świętego Aleksandra",
 			"Rotunda na placu Trzech Krzyży.",
 			"The rotunda on Plac Trzech Krzyży."],
@@ -1324,6 +1327,8 @@ func _find_sites() -> void:
 	_find_cparking()
 	# Plac Zbawiciela (Marszałkowska street by street, 2026-11-01): the basilica, a model.
 	_find_zbawiciela()
+	# Plac Zbawiciela's colonnades and its MDM frontage (F's photos, 2026-11-13).
+	_find_zbawiciela_plac()
 	# F's ask (2026-11-01): every church designed by the same rules (the church kit).
 	_find_churches()
 	# The University Library (2026-10-31): a model instead of a skin.
@@ -1769,6 +1774,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_sad_najwyzszy(s)
 			"zbawiciela":
 				_build_zbawiciela(s)
+			"zbawiciela_plac":
+				_build_zbawiciela_plac(s)
 			"buw":
 				_build_buw(s)
 			"kopernik":
@@ -17591,28 +17598,37 @@ func _build_aleksander(_site: Dictionary) -> void:
 
 ## The Church of the Holiest Saviour (Kościół Najświętszego Zbawiciela; Józef Dziekoński and
 ## Józef Piotrowski, 1901-1911) on the south side of Plac Zbawiciela, its front to the north,
-## to the square. Marszałkowska street by street (2026-11-01): the mapped masses were two
-## round 76 m posts and one 34 m box. Built from the outline: the nave, transept and apse in
-## pale plaster with a plinth, a windowed storey and a cornice under copper hipped roofs, a
-## porch across the front with three dark portals under a pediment and a gilt cross, two
-## square towers behind it rising through an octagonal belfry to copper spires (76 m, as
-## mapped), and a dome over the crossing with a windowed drum and a lantern. Heights below the
-## towers and every shape are estimates (no photo, no LoD2): the Mac photo check is parked.
+## to the square. Rebuilt 2026-11-13 from F's ten photos (front, both obliques, the side with the
+## chapel dome, two aerials) and Mapillary panoramas (refs/zbawiciela, never shipped). White
+## plaster, grey stone portal columns, pale verdigris roofs, dark green spires:
+## - the front block (16.6 m wide, projecting before the towers): a portal of four grey columns
+##   under a pediment, statue niches and round windows either side, paired pilasters; over the
+##   entablature the tall round-headed window with mullions, then a stepped attic with a niche,
+##   a small pediment and a cross;
+## - two towers (the mapped centres): a square shaft to the front's cornice, a balustrade with
+##   urns, a square stage with paired arched openings, a cornice with urns, an octagonal belfry,
+##   a dark green bell cap, a lantern, a bulb and a needle spire to the cross (about 70 m;
+##   the photos put the front's cornice near 30 m and the towers a little over twice that);
+## - gabled nave and transept roofs, the transept ends with a tall arched window and a gable,
+##   a square lantern over the crossing (the mapped 35 m part) and the low domed chapel behind the
+##   east transept arm (the side photo and both aerials).
 ## Frame: origin at the front's middle, u east along the front, +v out of it to the north.
 const ZB_O := Vector2(-417.6, 1612.3)
 const ZB_NAVE_AT := Vector2(-417.6, 1625.0)
 const ZB_TOWER_AT := [Vector2(-427.4, 1621.7), Vector2(-408.9, 1621.7)]
-const ZB_TOWER_U := 9.25
+const ZB_TOWER_U := 9.0
 const ZB_TOWER_V := -9.4
-const ZB_DOME_C := Vector2(-0.5, -29.0)
-const ZB_WALL := Color("#e4dccb")   ## pale cream plaster (street photos, 2026-06)
-const ZB_TRIM := Color("#f0ebdf")
-const ZB_BASE := Color("#9d9a92")
-const ZB_COPPER := Color("#5f9c88")  ## the towers' and the dome's verdigris
-const ZB_ROOF := Color("#6d7276")    ## the nave's and transept's grey sheet
+const ZB_CROSSING := Vector2(0.0, -29.7)   ## the mapped 35 m square over the crossing
+const ZB_CHAPEL := Vector2(11.6, -41.6)    ## the domed chapel behind the east transept arm
+const ZB_WALL := Color("#efebe2")    ## white plaster
+const ZB_TRIM := Color("#f8f5ee")
+const ZB_BASE := Color("#a9a7a1")
+const ZB_COLUMN := Color("#8f959c")  ## the portal's grey stone columns
+const ZB_ROOF := Color("#7fb59b")    ## the roofs' pale verdigris (the aerials)
+const ZB_SPIRE := Color("#3e5f52")   ## the towers' dark green caps and spires
 const ZB_DARK := Color("#3a3d40")
-const ZB_GOLD := Color("#c9a24a")
-## Night lighting (F's street-by-street, 2026-11-02): lit gilt, floodlamps and a stained rose.
+const ZB_NICHE := Color("#c9c6bf")
+## Night lighting (F's street-by-street, 2026-11-02): lit gilt, floodlamps, stained glass.
 const ZB_LIT_GOLD := Color("#e8c05a")
 const ZB_LAMP := Color("#ffe9bd")
 const ZB_STAINED := Color("#7a5226")
@@ -17620,8 +17636,9 @@ const ZB_STAINED := Color("#7a5226")
 ## fronts and outer faces, the transept's ends.
 const ZB_FLOODS := [[-3.5, 3.4], [3.5, 3.4], [-8.6, 2.4], [8.6, 2.4], [-11.0, -3.9], [11.0, -3.9],
 		[-14.4, -9.4], [14.4, -9.4], [-20.2, -29.0], [20.2, -29.0], [-6.0, -52.0], [6.0, -52.0]]
-## The dome's profile above the drum: [radius, height above ground].
-const ZB_DOME := [[6.9, 38.0], [6.5, 40.4], [5.7, 42.6], [4.5, 44.4], [3.0, 45.7], [1.7, 46.3]]
+## A tower's bell cap and its spire above the belfry: [radius, height above ground].
+const ZB_CAP := [[2.8, 49.3], [2.75, 50.6], [2.2, 52.0], [1.3, 53.2], [0.75, 53.8]]
+const ZB_BULB := [[0.9, 56.8], [1.05, 57.6], [0.7, 58.6], [0.3, 59.2]]
 
 
 func _find_zbawiciela() -> void:
@@ -17638,6 +17655,35 @@ func _find_zbawiciela() -> void:
 		sites[-1]["outline"] = nave
 
 
+## A round-headed opening in the church's white frame: a trim surround and the pane (dark glass,
+## or stained glass that glows at night with `mode` M_LAMP).
+func _zb_arch(at: Vector2, along: Vector2, out: Vector2, hw: float, y0: float, spring: float, glass: Color,
+		mode := M_GLASS) -> void:
+	_arch_panel(at, along, out, hw + 0.28, y0 - 0.25, spring, ZB_TRIM, 0.04, M_STONE)
+	_arch_panel(at, along, out, hw, y0, spring, glass, 0.08, mode)
+
+
+## A pediment on the front's plane: its triangle at v = vf facing +v, slopes back to vb, centred
+## on u = cu, half width hu (`_gable` in the swapped frame).
+func _zb_pediment(vf: float, vb: float, cu: float, hu: float, y: float, h: float, face: Color, roof: Color) -> void:
+	var ka := _a
+	var kb := _b
+	_a = kb
+	_b = ka
+	_gable(vf, vb, cu, hu, y, h, face, roof, false)
+	_a = ka
+	_b = kb
+
+
+## A stack of octagonal rings [radius, height] from y = g: a bell cap, a bulb, a dome.
+func _zb_rings(c: Vector2, rings: Array, col: Color) -> void:
+	var g := _g
+	for k in rings.size() - 1:
+		var ra: Array = rings[k]
+		var rb: Array = rings[k + 1]
+		_frustum(_circle(c, ra[0], 8), g + float(ra[1]), _circle(c, rb[0], 8), g + float(rb[1]), col, col)
+
+
 func _build_zbawiciela(site: Dictionary) -> void:
 	_o = ZB_O
 	_a = Vector2.RIGHT
@@ -17646,101 +17692,292 @@ func _build_zbawiciela(site: Dictionary) -> void:
 	_g = _ground_under(outline)
 	var g := _g
 	var none := Color(0, 0, 0, 0)
+	var cos8 := cos(PI / 8.0)  # an octagon's face distance over its vertex radius
 	_mode = M_STONE
-	# the body from the mapped outline: plinth, a windowed storey, a cornice
+	# --- the body from the mapped outline: plinth, a windowed storey to the eaves, a cornice that
+	# closes the top under the gabled roofs
 	var plinth := _largest(Geometry2D.offset_polygon(outline, 0.3, Geometry2D.JOIN_MITER))
 	_prism(plinth, g - 0.6, g + 1.5, ZB_BASE, ZB_BASE.lightened(0.05), M_STONE, M_STONE)
-	_prism(outline, g + 1.5, g + 21.0, ZB_WALL, none, M_MONUMENT)
+	_prism(outline, g + 1.5, g + 23.0, ZB_WALL, none, M_STONE)
 	var cornice := _largest(Geometry2D.offset_polygon(outline, 0.5, Geometry2D.JOIN_MITER))
-	_prism(cornice, g + 21.0, g + 22.0, ZB_TRIM, ZB_WALL.darkened(0.1), M_STONE, M_STONE)
-	# copper roofs: the nave's long hip, the transept's cross hip
-	_hip(0.0, -28.5, 7.9, 22.4, g + 22.0, 7.5, ZB_ROOF)
-	_hip(-0.5, -29.0, 18.8, 7.2, g + 22.0, 5.5, ZB_ROOF)
-	# the porch across the front: stone ground floor, three dark portals, pilasters, a pediment
-	_lbox(0.0, -3.1, 7.9, 3.1, g - 0.6, g + 18.0, ZB_WALL, M_MONUMENT, ZB_WALL)
-	_lbox(0.0, -0.1, 8.3, 0.7, g - 0.6, g + 1.5, ZB_BASE, M_STONE, ZB_BASE.lightened(0.05))
-	# the front as the photos show it: ONE tall dark door in the middle bay under a relief arch and
-	# the pediment, the side bays with a statue niche (Peter, Paul) and a round window over it
-	_mode = M_GLASS
-	_wall(_w(-1.4, 0.07), _w(1.4, 0.07), g + 1.5, g + 8.2, _b, ZB_DARK)
-	_mode = M_STONE
-	_lbox(0.0, 0.3, 1.8, 0.3, g + 8.2, g + 8.8, ZB_TRIM, M_STONE, ZB_TRIM)
-	_arch_win(_w(0.0, 0.1), _a, _b, 1.3, g + 9.8, g + 11.6, ZB_STAINED.darkened(0.2))
-	for sd: float in [-1.0, 1.0]:
-		_arch_win(_w(sd * 5.4, 0.1), _a, _b, 0.65, g + 3.6, g + 7.0, ZB_BASE.lightened(0.35))
-		_disc(Vector3(_w(sd * 5.4, 0.12).x, g + 12.2, _w(sd * 5.4, 0.12).y), Vector3(_b.x, 0.0, _b.y), 0.9, 8, ZB_DARK)
-	for k in 3:  # steps up to the door
-		_lbox(0.0, 1.0 + 0.5 * k, 3.0 - 0.4 * k, 0.5 + 0.5 * (2 - k), g - 0.6, g + 0.1 + 0.4 * (2 - k), ZB_BASE, M_STONE,
-				ZB_BASE.lightened(0.04))
-	for u: float in [-7.2, -3.6, -2.7, 2.7, 3.6, 7.2]:  # paired pilasters flank the door
-		_lbox(u, 0.15, 0.4, 0.3, g + 1.5, g + 16.6, ZB_TRIM, M_STONE, ZB_TRIM)
-	_lbox(0.0, 0.1, 8.3, 0.7, g + 16.6, g + 17.6, ZB_TRIM, M_STONE, ZB_TRIM)
+	_prism(cornice, g + 23.0, g + 24.0, ZB_TRIM, ZB_WALL.darkened(0.08), M_STONE, M_STONE)
+	# the nave's gable (its ridge along v, behind the front block to the apse) and the transept's
 	var ka := _a
 	var kb := _b
 	_a = kb
 	_b = ka
-	_gable(0.05, -6.2, 0.0, 7.9, g + 17.6, 4.4, ZB_WALL, ZB_ROOF, false)
+	_gable(-5.0, -47.5, 0.0, 8.0, g + 24.0, 9.5, ZB_WALL, ZB_ROOF, true)
 	_a = ka
 	_b = kb
-	_lbox(0.0, -1.5, 0.15, 0.15, g + 22.0, g + 25.4, ZB_LIT_GOLD, M_LAMP, ZB_LIT_GOLD)
-	_lbox(0.0, -1.5, 0.15, 0.6, g + 23.6, g + 23.9, ZB_LIT_GOLD, M_LAMP, ZB_LIT_GOLD)
-	# the two towers (photos: a square shaft with slit windows, a square belfry with round-headed
-	# louvres, a cornice, a bulbous verdigris cap with a lantern, a ball and a cross; ~58 m, the
-	# OSM 76 m was a mapping artefact)
+	_gable(18.3, -19.2, -29.2, 6.7, g + 24.0, 8.0, ZB_WALL, ZB_ROOF, true)
+	# the transept ends: a tall arched window, a small one in the gable, a cross on the apex
+	for e: Array in [[18.35, 1.0], [-19.25, -1.0]]:
+		var eu: float = e[0]
+		var sd: float = e[1]
+		_zb_arch(_w(eu, -29.2), _b, _a * sd, 2.1, g + 8.5, g + 17.5, ZB_STAINED.darkened(0.45), M_LAMP)
+		_zb_arch(_w(eu, -29.2), _b, _a * sd, 0.75, g + 26.0, g + 28.6, ZB_DARK)
+		for pv: float in [-31.9, -26.5]:
+			_lbox(eu + sd * 0.15, pv, 0.2, 0.35, g + 1.5, g + 23.0, ZB_TRIM, M_STONE, ZB_TRIM)
+		_lbox(eu - sd * 0.3, -29.2, 0.12, 0.12, g + 32.0, g + 34.4, ZB_LIT_GOLD, M_LAMP, ZB_LIT_GOLD)
+		_lbox(eu - sd * 0.3, -29.2, 0.12, 0.6, g + 33.4, g + 33.7, ZB_LIT_GOLD, M_LAMP, ZB_LIT_GOLD)
+	# the side walls' tall round-headed windows between pilasters: the nave between the towers and
+	# the transept, the transept arms' fronts and backs, the choir's free west side
+	var glass := ZB_STAINED.darkened(0.45)
+	for sd: float in [-1.0, 1.0]:
+		for v: float in [-16.0, -19.6]:
+			_zb_arch(_w(sd * 7.95, v), _b, _a * sd, 1.0, g + 7.5, g + 16.5, glass, M_LAMP)
+		for u: float in [11.0, 15.2]:
+			_zb_arch(_w(sd * u, -22.35 if sd > 0.0 else -21.85), _a, _b, 1.0, g + 7.5, g + 16.5, glass, M_LAMP)
+			if sd < 0.0:
+				_zb_arch(_w(sd * u, -36.15), _a, -_b, 1.0, g + 7.5, g + 16.5, glass, M_LAMP)
+		for pv: float in [-14.2, -17.8, -21.4]:
+			_lbox(sd * 7.95, pv, 0.12, 0.3, g + 1.5, g + 23.0, ZB_TRIM, M_STONE, ZB_TRIM)
+	for v: float in [-40.0, -44.2]:
+		_zb_arch(_w(-7.15, v), _b, -_a, 0.9, g + 7.5, g + 15.5, glass, M_LAMP)
+	_zb_arch(_w(-1.0, -51.0), _a, -_b, 0.9, g + 7.5, g + 15.5, glass, M_LAMP)
+	# --- the front block, before the towers: plinth, two storeys, a cornice
+	_lbox(0.0, -2.65, 8.5, 3.15, g - 0.6, g + 1.5, ZB_BASE, M_STONE, ZB_BASE.lightened(0.05))
+	_lbox(0.0, -2.65, 8.3, 2.95, g + 1.5, g + 29.5, ZB_WALL, M_STONE, ZB_WALL)
+	_lbox(0.0, -2.65, 8.55, 3.2, g + 15.5, g + 17.0, ZB_TRIM, M_STONE, ZB_TRIM)
+	_lbox(0.0, -2.65, 8.7, 3.35, g + 29.5, g + 30.6, ZB_TRIM, M_STONE, ZB_WALL.darkened(0.06))
+	# the portal: a podium, four grey columns, an entablature and a pediment over the door
+	_lbox(0.0, 0.9, 4.4, 0.6, g - 0.6, g + 1.5, ZB_BASE, M_STONE, ZB_BASE.lightened(0.05))
+	for k in 3:  # steps up to the podium
+		_lbox(0.0, 1.75 + 0.5 * k, 3.6, 0.25, g - 0.6, g + 1.5 - 0.5 * (k + 1), ZB_BASE, M_STONE,
+				ZB_BASE.lightened(0.04))
+	_zb_arch(_w(0.0, 0.3), _a, _b, 1.5, g + 1.5, g + 7.6, ZB_DARK)
+	for u: float in [-3.6, -2.6, 2.6, 3.6]:
+		_column(u, 0.9, 0.36, g + 1.5, g + 10.2, ZB_COLUMN)
+	_lbox(0.0, 0.85, 4.3, 0.55, g + 10.2, g + 11.1, ZB_TRIM, M_STONE, ZB_TRIM)
+	_zb_pediment(1.4, 0.3, 0.0, 4.3, g + 11.1, 2.3, ZB_TRIM, ZB_WALL.darkened(0.1))
+	# the side bays: a statue niche (Peter, Paul), a round window over it
+	for sd: float in [-1.0, 1.0]:
+		_zb_arch(_w(sd * 6.1, 0.3), _a, _b, 0.75, g + 2.8, g + 7.4, ZB_NICHE, M_STONE)
+		_lbox(sd * 6.1, 0.55, 0.32, 0.25, g + 2.9, g + 7.2, ZB_TRIM, M_STONE, ZB_TRIM)
+		_mode = M_STONE
+		var oc := _w(sd * 6.1, 0.36)
+		_disc(Vector3(oc.x, g + 12.4, oc.y), Vector3(_b.x, 0.0, _b.y), 1.05, 10, ZB_TRIM)
+		var oi := _w(sd * 6.1, 0.42)
+		_disc(Vector3(oi.x, g + 12.4, oi.y), Vector3(_b.x, 0.0, _b.y), 0.8, 10, ZB_DARK)
+	# pilasters: the ground storey's pairs and corners, the upper storey's pairs round the window
+	for u: float in [-7.9, -5.0, -4.3, 4.3, 5.0, 7.9]:
+		_lbox(u, 0.42, 0.28, 0.12, g + 1.5, g + 15.5, ZB_TRIM, M_STONE, ZB_TRIM)
+		_lbox(u, 0.42, 0.28, 0.12, g + 17.0, g + 29.5, ZB_TRIM, M_STONE, ZB_TRIM)
+	# the tall round-headed window with its mullions and transom (stained glass at night)
+	_zb_arch(_w(0.0, 0.3), _a, _b, 2.7, g + 18.4, g + 25.2, ZB_STAINED.darkened(0.45), M_LAMP)
+	for u: float in [-0.9, 0.9]:
+		_lbox(u, 0.45, 0.09, 0.08, g + 18.4, g + 27.6, ZB_TRIM, M_STONE, ZB_TRIM)
+	_lbox(0.0, 0.45, 2.7, 0.08, g + 22.6, g + 22.8, ZB_TRIM, M_STONE, ZB_TRIM)
+	# the stepped attic: a wide step, a narrow one with a niche, a small pediment and the cross;
+	# statues at the cornice's corners, urns on the steps
+	_lbox(0.0, -2.2, 5.4, 2.0, g + 30.6, g + 34.4, ZB_WALL, M_STONE, ZB_WALL.darkened(0.06))
+	_lbox(0.0, -2.2, 5.7, 2.2, g + 34.4, g + 34.9, ZB_TRIM, M_STONE, ZB_TRIM)
+	_lbox(0.0, -2.2, 3.2, 1.8, g + 34.9, g + 38.2, ZB_WALL, M_STONE, ZB_WALL.darkened(0.06))
+	_zb_arch(_w(0.0, -0.4), _a, _b, 0.8, g + 35.4, g + 37.0, ZB_NICHE, M_STONE)
+	_zb_pediment(-0.35, -4.0, 0.0, 3.4, g + 38.2, 1.7, ZB_TRIM, ZB_ROOF)
+	_lbox(0.0, -1.6, 0.13, 0.13, g + 39.6, g + 43.2, ZB_LIT_GOLD, M_LAMP, ZB_LIT_GOLD)
+	_lbox(0.0, -1.6, 0.75, 0.13, g + 42.0, g + 42.35, ZB_LIT_GOLD, M_LAMP, ZB_LIT_GOLD)
+	for sd: float in [-1.0, 1.0]:
+		_lbox(sd * 7.6, -0.2, 0.42, 0.42, g + 30.6, g + 31.2, ZB_TRIM, M_STONE, ZB_TRIM)
+		_lbox(sd * 7.6, -0.2, 0.26, 0.24, g + 31.2, g + 33.4, ZB_NICHE, M_STONE, ZB_NICHE)
+		_pinnacle(sd * 4.6, -0.6, 0.6, g + 34.9, 1.6, ZB_TRIM)
+	# --- the two towers
 	for sd: float in [-1.0, 1.0]:
 		var tu := sd * ZB_TOWER_U
-		var c := _w(tu, ZB_TOWER_V)
-		_lbox(tu, ZB_TOWER_V, 4.1, 4.1, g - 0.6, g + 1.5, ZB_BASE, M_STONE, ZB_BASE.lightened(0.05))
-		_lbox(tu, ZB_TOWER_V, 3.9, 3.9, g + 1.5, g + 24.0, ZB_WALL, M_MONUMENT, ZB_WALL)
-		_lbox(tu, ZB_TOWER_V, 4.3, 4.3, g + 24.0, g + 25.0, ZB_TRIM, M_STONE, ZB_TRIM)
-		_arch_win(_w(tu, ZB_TOWER_V + 3.95), _a, _b, 0.55, g + 13.0, g + 16.5, ZB_DARK)
-		_arch_win(_w(tu + sd * 3.95, ZB_TOWER_V), _b, _a * sd, 0.55, g + 13.0, g + 16.5, ZB_DARK)
-		_lbox(tu, ZB_TOWER_V, 3.3, 3.3, g + 25.0, g + 38.0, ZB_WALL, M_MONUMENT, ZB_WALL)
+		var tv := ZB_TOWER_V
+		var c := _w(tu, tv)
+		_lbox(tu, tv, 4.2, 4.2, g - 0.6, g + 1.5, ZB_BASE, M_STONE, ZB_BASE.lightened(0.05))
+		_lbox(tu, tv, 4.0, 4.0, g + 1.5, g + 29.5, ZB_WALL, M_STONE, ZB_WALL)
 		for cu: float in [-1.0, 1.0]:
 			for cv: float in [-1.0, 1.0]:
-				_lbox(tu + cu * 3.25, ZB_TOWER_V + cv * 3.25, 0.4, 0.4, g + 25.0, g + 38.0, ZB_TRIM, M_STONE, ZB_TRIM)
-		_arch_win(_w(tu, ZB_TOWER_V + 3.35), _a, _b, 0.95, g + 29.0, g + 34.0, ZB_DARK)
-		_arch_win(_w(tu + sd * 3.35, ZB_TOWER_V), _b, _a * sd, 0.95, g + 29.0, g + 34.0, ZB_DARK)
-		_lbox(tu, ZB_TOWER_V, 3.9, 3.9, g + 38.0, g + 39.0, ZB_TRIM, M_STONE, ZB_TRIM)
-		var cap := [[3.4, 39.0], [3.7, 40.4], [3.4, 42.2], [2.5, 44.0], [1.3, 45.6], [0.7, 46.6]]
-		for k in cap.size() - 1:
-			var ca: Array = cap[k]
-			var cb: Array = cap[k + 1]
-			_frustum(_circle(c, ca[0], 8), g + float(ca[1]), _circle(c, cb[0], 8), g + float(cb[1]), ZB_COPPER, ZB_COPPER)
-		_prism(_circle(c, 0.9, 6), g + 46.6, g + 50.0, ZB_TRIM, ZB_TRIM, M_STONE, M_STONE)
-		_frustum(_circle(c, 1.2, 6), g + 50.0, _circle(c, 0.2, 6), g + 52.0, ZB_COPPER, ZB_COPPER)
-		_prism(_circle(c, 0.5, 6), g + 52.0, g + 53.0, ZB_LIT_GOLD, ZB_LIT_GOLD, M_LAMP, M_LAMP)
-		_lbox(tu, ZB_TOWER_V, 0.12, 0.12, g + 53.0, g + 58.0, ZB_LIT_GOLD, M_LAMP, ZB_LIT_GOLD)
-		_lbox(tu, ZB_TOWER_V, 0.12, 0.7, g + 55.5, g + 55.8, ZB_LIT_GOLD, M_LAMP, ZB_LIT_GOLD)
-	# the dome over the crossing: a windowed drum, a cornice, the copper dome, a lantern, a cross
-	var dc := _w(ZB_DOME_C.x, ZB_DOME_C.y)
-	_prism(_circle(dc, 6.9, 16), g + 22.0, g + 36.0, ZB_WALL, none, M_MONUMENT)
-	_prism(_circle(dc, 7.5, 16), g + 36.0, g + 38.0, ZB_TRIM, ZB_TRIM, M_STONE, M_STONE)
-	for k in ZB_DOME.size() - 1:
-		var da: Array = ZB_DOME[k]
-		var db: Array = ZB_DOME[k + 1]
-		var col := ZB_COPPER.lerp(ZB_COPPER.lightened(0.12), float(k) / ZB_DOME.size())
-		_frustum(_circle(dc, da[0], 16), g + float(da[1]), _circle(dc, db[0], 16), g + float(db[1]), col)
-	_prism(_circle(dc, 1.9, 8), g + 46.3, g + 50.5, ZB_TRIM, none, M_MONUMENT)
-	_prism(_circle(dc, 2.4, 8), g + 50.5, g + 51.2, ZB_TRIM, ZB_TRIM, M_STONE, M_STONE)
-	_frustum(_circle(dc, 2.1, 8), g + 51.2, _circle(dc, 0.3, 8), g + 54.0, ZB_COPPER, ZB_COPPER)
-	_lbox(ZB_DOME_C.x, ZB_DOME_C.y, 0.12, 0.12, g + 54.0, g + 58.5, ZB_LIT_GOLD, M_LAMP, ZB_LIT_GOLD)
-	_lbox(ZB_DOME_C.x, ZB_DOME_C.y, 0.6, 0.12, g + 56.2, g + 56.5, ZB_LIT_GOLD, M_LAMP, ZB_LIT_GOLD)
-	# night: the rose window's stained glass (dark amber by day), lanterns at the pilasters and
-	# floodlamps in the paving that throw the light up the facade
+				_lbox(tu + cu * 3.85, tv + cv * 3.85, 0.4, 0.4, g + 1.5, g + 29.5, ZB_TRIM, M_STONE, ZB_TRIM)
+		# windows on the shaft's visible front (outside the front block) and outer side
+		for y: Array in [[g + 9.0, g + 13.0], [g + 19.5, g + 24.5]]:
+			_zb_arch(_w(tu + sd * 1.9, tv + 4.0), _a, _b, 0.65, y[0], y[1], ZB_DARK)
+			_zb_arch(_w(tu + sd * 4.0, tv), _b, _a * sd, 0.65, y[0], y[1], ZB_DARK)
+			_zb_arch(_w(tu, tv - 4.0), _a, -_b, 0.65, y[0], y[1], ZB_DARK)
+		_lbox(tu, tv, 4.45, 4.45, g + 29.5, g + 30.7, ZB_TRIM, M_STONE, ZB_TRIM)
+		_lbox(tu, tv, 4.15, 4.15, g + 30.7, g + 31.5, ZB_TRIM, M_STONE, ZB_TRIM)
+		for cu: float in [-1.0, 1.0]:
+			for cv: float in [-1.0, 1.0]:
+				_pinnacle(tu + cu * 3.8, tv + cv * 3.8, 0.7, g + 31.5, 2.2, ZB_TRIM)
+		# the square stage: paired arched openings on every face, corner pilasters
+		_lbox(tu, tv, 3.3, 3.3, g + 31.0, g + 41.0, ZB_WALL, M_STONE, ZB_WALL)
+		for cu: float in [-1.0, 1.0]:
+			for cv: float in [-1.0, 1.0]:
+				_lbox(tu + cu * 3.2, tv + cv * 3.2, 0.38, 0.38, g + 31.5, g + 41.0, ZB_TRIM, M_STONE, ZB_TRIM)
+		for o: float in [-1.05, 1.05]:
+			_zb_arch(_w(tu + o, tv + 3.3), _a, _b, 0.55, g + 33.0, g + 38.4, ZB_DARK)
+			_zb_arch(_w(tu + o, tv - 3.3), _a, -_b, 0.55, g + 33.0, g + 38.4, ZB_DARK)
+			_zb_arch(_w(tu + 3.3, tv + o), _b, _a, 0.55, g + 33.0, g + 38.4, ZB_DARK)
+			_zb_arch(_w(tu - 3.3, tv + o), _b, -_a, 0.55, g + 33.0, g + 38.4, ZB_DARK)
+		_lbox(tu, tv, 3.8, 3.8, g + 41.0, g + 42.0, ZB_TRIM, M_STONE, ZB_TRIM)
+		for cu: float in [-1.0, 1.0]:
+			for cv: float in [-1.0, 1.0]:
+				_pinnacle(tu + cu * 3.3, tv + cv * 3.3, 0.55, g + 42.0, 1.8, ZB_TRIM)
+		# the octagonal belfry with an arched opening on four faces
+		_prism(_circle(c, 2.7, 8), g + 42.0, g + 48.5, ZB_WALL, none, M_STONE)
+		var fd := 2.7 * cos8
+		_zb_arch(_w(tu, tv + fd), _a, _b, 0.45, g + 43.6, g + 46.8, ZB_DARK)
+		_zb_arch(_w(tu, tv - fd), _a, -_b, 0.45, g + 43.6, g + 46.8, ZB_DARK)
+		_zb_arch(_w(tu + fd, tv), _b, _a, 0.45, g + 43.6, g + 46.8, ZB_DARK)
+		_zb_arch(_w(tu - fd, tv), _b, -_a, 0.45, g + 43.6, g + 46.8, ZB_DARK)
+		_prism(_circle(c, 3.05, 8), g + 48.5, g + 49.3, ZB_TRIM, ZB_TRIM, M_STONE, M_STONE)
+		# the dark green bell cap, the lantern, the bulb and the needle spire to the cross
+		_zb_rings(c, ZB_CAP, ZB_SPIRE)
+		_prism(_circle(c, 0.75, 8), g + 53.8, g + 56.4, ZB_SPIRE.lightened(0.08), none, M_STONE)
+		_prism(_circle(c, 0.95, 8), g + 56.4, g + 56.8, ZB_SPIRE, ZB_SPIRE, M_STONE, M_STONE)
+		_zb_rings(c, ZB_BULB, ZB_SPIRE)
+		_frustum(_circle(c, 0.32, 6), g + 59.2, _circle(c, 0.05, 6), g + 66.2, ZB_SPIRE, ZB_SPIRE)
+		_prism(_circle(c, 0.3, 6), g + 66.0, g + 66.7, ZB_LIT_GOLD, ZB_LIT_GOLD, M_LAMP, M_LAMP)
+		_lbox(tu, tv, 0.1, 0.1, g + 66.7, g + 69.6, ZB_LIT_GOLD, M_LAMP, ZB_LIT_GOLD)
+		_lbox(tu, tv, 0.1, 0.6, g + 68.4, g + 68.7, ZB_LIT_GOLD, M_LAMP, ZB_LIT_GOLD)
+	# --- the square lantern over the crossing: windows on four faces, a verdigris cap, a cross
+	var xu := ZB_CROSSING.x
+	var xv := ZB_CROSSING.y
+	_lbox(xu, xv, 2.8, 2.8, g + 30.0, g + 36.5, ZB_WALL, M_STONE, ZB_WALL)
+	_zb_arch(_w(xu, xv + 2.8), _a, _b, 0.6, g + 32.4, g + 34.8, ZB_DARK)
+	_zb_arch(_w(xu, xv - 2.8), _a, -_b, 0.6, g + 32.4, g + 34.8, ZB_DARK)
+	_zb_arch(_w(xu + 2.8, xv), _b, _a, 0.6, g + 32.4, g + 34.8, ZB_DARK)
+	_zb_arch(_w(xu - 2.8, xv), _b, -_a, 0.6, g + 32.4, g + 34.8, ZB_DARK)
+	_lbox(xu, xv, 3.1, 3.1, g + 36.5, g + 37.1, ZB_TRIM, M_STONE, ZB_TRIM)
+	var xc := _w(xu, xv)
+	_zb_rings(xc, [[3.2, 37.1], [2.9, 38.4], [1.8, 39.8], [0.6, 40.6]], ZB_ROOF)
+	_prism(_circle(xc, 0.5, 8), g + 40.6, g + 42.0, ZB_WALL, none, M_STONE)
+	_frustum(_circle(xc, 0.7, 8), g + 42.0, _circle(xc, 0.1, 8), g + 43.2, ZB_ROOF, ZB_ROOF)
+	_lbox(xu, xv, 0.1, 0.1, g + 43.2, g + 45.6, ZB_LIT_GOLD, M_LAMP, ZB_LIT_GOLD)
+	_lbox(xu, xv, 0.5, 0.1, g + 44.6, g + 44.9, ZB_LIT_GOLD, M_LAMP, ZB_LIT_GOLD)
+	# --- the low chapel behind the east transept arm with its dome, drum and lantern
+	var cu0 := ZB_CHAPEL.x
+	var cv0 := ZB_CHAPEL.y
+	_lbox(cu0, cv0, 4.4, 5.0, g - 0.6, g + 1.5, ZB_BASE, M_STONE, ZB_BASE.lightened(0.05))
+	_lbox(cu0, cv0, 4.2, 4.8, g + 1.5, g + 10.6, ZB_WALL, M_STONE, ZB_WALL)
+	_zb_arch(_w(cu0 + 4.2, cv0), _b, _a, 0.8, g + 4.0, g + 8.4, ZB_STAINED.darkened(0.45), M_LAMP)
+	_zb_arch(_w(cu0, cv0 - 4.8), _a, -_b, 0.8, g + 4.0, g + 8.4, ZB_STAINED.darkened(0.45), M_LAMP)
+	_lbox(cu0, cv0, 4.5, 5.1, g + 10.6, g + 11.3, ZB_TRIM, M_STONE, ZB_WALL.darkened(0.06))
+	var cc := _w(cu0, cv0)
+	_prism(_circle(cc, 3.1, 8), g + 11.3, g + 13.3, ZB_WALL, none, M_STONE)
+	_zb_rings(cc, [[3.4, 13.3], [3.2, 14.7], [2.6, 15.9], [1.6, 16.9], [0.6, 17.3]], ZB_ROOF)
+	_prism(_circle(cc, 0.6, 8), g + 17.3, g + 18.6, ZB_WALL, none, M_STONE)
+	_frustum(_circle(cc, 0.8, 8), g + 18.6, _circle(cc, 0.1, 8), g + 19.6, ZB_ROOF, ZB_ROOF)
+	_lbox(cu0, cv0, 0.08, 0.08, g + 19.6, g + 21.2, ZB_LIT_GOLD, M_LAMP, ZB_LIT_GOLD)
+	# --- night: lanterns at the portal's pilasters, stained round windows, floodlamps
 	_mode = M_LAMP
 	for sd: float in [-1.0, 1.0]:
-		var lw := _w(sd * 5.4, 0.2)
-		_disc(Vector3(lw.x, g + 12.2, lw.y), Vector3(_b.x, 0.0, _b.y), 0.75, 8, ZB_STAINED)
-	for u: float in [-7.2, -3.4, 3.4, 7.2]:
-		_lbox(u, 0.55, 0.12, 0.12, g + 5.6, g + 6.3, ZB_LAMP, M_LAMP, ZB_LAMP)
+		var lw := _w(sd * 6.1, 0.48)
+		_disc(Vector3(lw.x, g + 12.4, lw.y), Vector3(_b.x, 0.0, _b.y), 0.62, 8, ZB_STAINED)
+	for u: float in [-7.9, -4.65, 4.65, 7.9]:
+		_lbox(u, 0.7, 0.12, 0.12, g + 5.6, g + 6.3, ZB_LAMP, M_LAMP, ZB_LAMP)
 	for f: Array in ZB_FLOODS:
 		_lbox(f[0], f[1], 0.3, 0.3, g - 0.1, g + 0.3, ZB_LAMP, M_LAMP, ZB_LAMP)
+	_mode = M_STONE
 	# the car meets the walls
 	_collide(outline)
+	_collide(_rect(0.0, -2.65, 8.5, 3.15))
 	for sd: float in [-1.0, 1.0]:
-		_collide(_rect(sd * ZB_TOWER_U, ZB_TOWER_V, 4.1, 4.1))
-	_collide(_rect(0.0, 1.5, 3.0, 1.0))
+		_collide(_rect(sd * ZB_TOWER_U, ZB_TOWER_V, 4.2, 4.2))
+	_collide(_rect(0.0, 1.6, 4.4, 1.6))
+	_collide(_rect(cu0, cv0, 4.4, 5.0))
+
+
+## Plac Zbawiciela's colonnades (MDM, 1950s; F's photos 2026-11-13: the curved arcades round the
+## roundabout with the cafés under them): OpenStreetMap maps each as a 7.6 m "roof" part, which the
+## map drew as a solid block. Built instead: cream Tuscan columns about every 3 m along the side that
+## faces the street (the side whose nearest road lies ahead of it), the roof slab over them and the
+## green balustrade of the terrace on top; lanterns under the slab at night. The frontage round the
+## square is MDM's already (`_find_mdm`'s skin).
+const ZBP_CENTRE := Vector2(-411.2, 1566.0)  ## the roundabout's middle
+const ZBP_REACH := 75.0                     ## colonnade parts within this of the middle
+const ZBP_COLUMN := Color("#ece4d0")
+const ZBP_TERRACE := Color("#cfc8b8")
+const ZBP_RAIL := Color("#4f7a5f")          ## the terrace's green balustrade (F's rainy photo)
+const ZBP_SLAB := 6.7                        ## the slab's underside; its top is the part's height
+const ZBP_PITCH := 3.0
+
+
+func _find_zbawiciela_plac() -> void:
+	var parts: Array[PackedVector2Array] = []
+	var zone: Array = []
+	for bld in data["buildings"]:
+		if str(bld.get("kind", "")) != "roof" or float(bld["h"]) > 10.0:
+			continue
+		var q := _pts(bld["p"])
+		if q.size() < 4 or _centre(q).distance_to(ZBP_CENTRE) > ZBP_REACH:
+			continue
+		parts.append(q)
+		zone.append(q)
+		zone.append(Geometry2D.convex_hull(q))  # a curved strip's centre lies outside it
+	if parts.is_empty():
+		return
+	_add_site("zbawiciela_plac", zone)
+	if not sites.is_empty() and sites[-1]["key"] == "zbawiciela_plac":
+		sites[-1]["parts"] = parts
+		sites[-1]["h"] = 7.6
+
+
+## The nearest point of a mapped road to p within `reach` (p itself when none).
+func _zbp_road_near(p: Vector2, reach: float) -> Vector2:
+	var best := p
+	var best_d := reach
+	for r in data.get("roads", []):
+		var q := _pts(r["p"])
+		for i in q.size() - 1:
+			var a := q[i]
+			var b := q[i + 1]
+			if minf(a.x, b.x) > p.x + reach or maxf(a.x, b.x) < p.x - reach \
+					or minf(a.y, b.y) > p.y + reach or maxf(a.y, b.y) < p.y - reach:
+				continue
+			var c := Geometry2D.get_closest_point_to_segment(p, a, b)
+			var d := c.distance_to(p)
+			if d < best_d:
+				best_d = d
+				best = c
+	return best
+
+
+func _build_zbawiciela_plac(site: Dictionary) -> void:
+	var lamp := 0
+	for q: PackedVector2Array in site["parts"]:
+		var ring := _simplify(q, 0.25)
+		if ring.size() < 3:
+			continue
+		_g = _ground_under(ring)
+		var g := _g
+		var top := g + float(site["h"])
+		var ccw := _area(ring) > 0.0
+		# the slab and the terrace's floor
+		_prism(ring, g + ZBP_SLAB, top, ZBP_COLUMN, ZBP_TERRACE, M_STONE, M_STONE)
+		_mode = M_STONE
+		for i in ring.size():
+			var a := ring[i]
+			var b := ring[(i + 1) % ring.size()]
+			var length := a.distance_to(b)
+			if length < 1.2:
+				continue
+			var along := (b - a) / length
+			var n := Vector2(along.y, -along.x) if ccw else Vector2(-along.y, along.x)  # outward
+			var mid := (a + b) * 0.5
+			# the open side faces the street: its nearest road lies ahead of the edge
+			var road := _zbp_road_near(mid, 30.0)
+			if road == mid:
+				road = ZBP_CENTRE
+			if n.dot((road - mid).normalized()) < 0.35:
+				continue
+			# the terrace's balustrade along the edge, just inside it
+			var strip := PackedVector2Array([a, b, b - n * 0.2, a - n * 0.2])
+			_prism(strip, top, top + 0.95, ZBP_RAIL, ZBP_RAIL.lightened(0.12), M_STONE, M_STONE)
+			# columns at even steps, set in from the slab's edge
+			var count := maxi(roundi(length / ZBP_PITCH), 1)
+			for k in count:
+				var p := a.lerp(b, (k + 0.5) / count) - n * 0.75
+				_lbox_at(p, 0.62, g - 0.3, g + 0.45, ZBP_COLUMN.darkened(0.06))
+				_prism(_circle(p, 0.4, 8), g + 0.45, g + ZBP_SLAB - 0.4, ZBP_COLUMN, Color(0, 0, 0, 0), M_STONE)
+				_lbox_at(p, 0.62, g + ZBP_SLAB - 0.4, g + ZBP_SLAB, ZBP_COLUMN.lightened(0.04))
+				_collide(_circle(p, 0.5, 4))
+				lamp += 1
+				if lamp % 2 == 0:  # a lantern under the slab between every other pair
+					var l := p - n * 1.6
+					_prism(_circle(l, 0.16, 4), g + ZBP_SLAB - 0.75, g + ZBP_SLAB, ZB_LAMP, ZB_LAMP, M_LAMP, M_LAMP)
 
 
 ## The Presidential Palace (Pałac Prezydencki; Aigner's classical rebuilding, 1818-1819) on
