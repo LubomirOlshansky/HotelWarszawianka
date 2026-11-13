@@ -719,7 +719,7 @@ func _pick_finish(d) -> Dictionary:
 ## Human rivals: the shortcuts rival i knows on rung `rung` (its `cuts` share) for this race.
 func _use_cuts(rung: int, i: int) -> void:
 	_stats = Ladder.racer(rung)
-	var both := _cuts.links(float(_stats["cuts"]), hash(String(RIVALS[i]["name"])))
+	var both := _cuts.links(float(_stats["cuts"]), hash(String(RIVALS[i]["name"])), float(_stats.get("yards", 0.0)), float(_stats.get("narrow", 99.0)))
 	_cut_table = both[0]
 	_cut_in = both[1]
 	_cut_dist = {}
@@ -1452,6 +1452,7 @@ static func arm_racer(d, rung: int, top: float, cuts: Dictionary, first := false
 	d.race_rng = RandomNumberGenerator.new()
 	d.race_rng.seed = dice
 	d.cuts_taken = 0
+	d.links_taken = 0
 	d.mistakes = 0
 	d.wrong_turns = 0
 	d.blocks = 0

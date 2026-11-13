@@ -89,6 +89,13 @@
 # request and the run of every kind of order (Na czasie, Limitka, Czwarty, the DESKA call and its
 # match, Mlask, Dżemini, the coffee run), the pay's conditions one at a time, which order comes
 # first, one order over another, the autopilot to every end, the dice draw for draw (CI too).
+# Podwózka on the kit (2026-11-13): `rideplay` runs game/tools/check_ride_play.gd (with --fixed-fps 60 for the
+# autopilot's frames): the real Rides on the stand-ins of tools/fakes.gd, played headless: the settings, the
+# button and what holds a request back, the request card, the way to the passenger, the ride and its stars,
+# the pay, the cancels, the quirks, every kind of passenger, the story passengers, the autopilot, the bare
+# rig (no traffic), a save that has driven before and the director; the rides that are made (counted over
+# seeded draws), two rides in a row, and the plans (the river, the park, the Frogs turn, the story's place,
+# the scan) asked straight on a bigger test city (CI too).
 # Beta values (2026-11-04): `laneassist` runs game/tools/check_lane_assist.gd: the lane assist on
 # the real car (a 6° start, a 300 m curve, a deliberate turn, when it must not pull) and the lane's
 # direction on the committed map (~10 s).
@@ -215,7 +222,13 @@
 # `racecuts` runs game/tools/check_race_cuts.gd: the racers' shortcuts (game/data/race_cuts.json from
 # tools/race_cuts.py) snap to the lane graph, knowledge per rival, the routing with them never longer,
 # 60 races driven with traffic.gd's own cut choice all arrive and some take a cut, the rivals' human
-# lines (CI too, map part skipped without centrum.json). The racer AI rebuild (2026-11-09,
+# lines (CI too, map part skipped without centrum.json). Racer AI step 5 (2026-11-13): `racelinks`
+# runs game/tools/check_race_links.gd: the race links through yards and car parks
+# (game/data/race_links.json from tools/race_links.sh) all proven or refused by the player's car, the
+# proven ones loaded, each one's curve on its points, knowledge by `yards` and `narrow`, each worth
+# taking and the routing never longer (no city; CI too); `racelinks-drive` drives the player's car
+# over every proven link in the prebuilt city (check_lane_drive.gd --links --prebuilt): a wall, a
+# fence or a post since put in a link's way fails it (about a minute). The racer AI rebuild (2026-11-09,
 # docs/design/race-ai.md): `racebench` runs game/tools/check_race_bench.gd: the race bench's quick
 # matrix (the prototype race Powiśle to Plac Trzech Krzyży with Pani Halina on the committed
 # centrum.json's lane graph: clear roads, Busy traffic, a blocked street and a crash against the test
@@ -1208,6 +1221,8 @@ for s in $want; do
 		cassettes) check cassettes '^cassettes:' --script res://tools/check_cassettes.gd ;;
 		ladder) check ladder '^ladder:' --script res://tools/check_ladder.gd ;;
 		racecuts) check racecuts '^race_cuts:' --script res://tools/check_race_cuts.gd ;;
+		racelinks) check racelinks '^race_links:' --script res://tools/check_race_links.gd ;;
+		racelinks-drive) skip_prebuilt racelinks-drive || check racelinks-drive '^check_lane_drive:' --fixed-fps 60 --script res://tools/check_lane_drive.gd -- --links --prebuilt ;;
 		raceline) check raceline '^race_line:' --script res://tools/check_race_line.gd ;;
 		racebench) check racebench '^check_race_bench:' --script res://tools/check_race_bench.gd ;;
 		raceplanner) check raceplanner '^check_race_planner:' --script res://tools/check_race_planner.gd ;;
@@ -1220,6 +1235,8 @@ for s in $want; do
 		life-soak) life_soak ;;
 		# Loop 2d-1: Podwózka's star and pay tables, the streak and the cancel rules, its lines.
 		rides) check rides '^check_rides:' --script res://tools/check_rides.gd ;;
+		# Podwózka played on the activity kit (fake HUD, small city, the autopilot over the engine's own frames).
+		rideplay) check rideplay '^check_ride_play:' --fixed-fps 60 --script res://tools/check_ride_play.gd ;;
 		cost) check cost '^check_cost_cuts:' --script res://tools/check_cost_cuts.gd ;;
 		# The Old Town's dormers and chimneys (scripts/old_town_roofs.gd): on the slope, outward, small.
 		oldtownroofs) check oldtownroofs '^check_old_town_roofs:' --script res://tools/check_old_town_roofs.gd ;;

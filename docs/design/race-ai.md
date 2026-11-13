@@ -632,6 +632,64 @@ through).
 - the way round the player's car has no body: it does not look at walls, posts or the kerb's
   height.
 
+### 5.4 Step 5 as built: race links through yards, car parks and alleys
+
+The lane graph has no service roads, so a rival could only ever take the streets and the 600
+straight cuts across plazas (`race_cuts.gd`). Step 5 adds ways with a real shape.
+
+**Where they come from** (`tools/race_links.py` → `game/data/race_links.json`). The map's service
+ways (OpenStreetMap `highway=service`: yards, car park aisles, alleys, driveways) are walked from
+a mouth on one street to a mouth on another. A link runs from junction A along the street out of
+it to the first mouth (45 m at most), through the yard, out of the second mouth and along that
+street to junction B, where it joins B's roads like a cut. It is kept when it is shorter than the
+best road route as a racer counts it (a metre of link is `COST` 1.15 m of road and it must save
+`GAIN` 12 m on top, by 15 m more at least), when a 2.6 m corridor along its yard part is free of
+buildings, walls, fences, hedges, steps, rails, trees, lamps, parked cars and the props of
+game/data, and when the ground along it stays within 0.7 m of the straight between its ends'
+heights (a rival drives it at that height). The centre's yards are mostly dead ends in the map
+data, so the whole map gives 52 links.
+
+**The proof** (`tools/race_links.sh`). The player's own car (car.gd, the physics car) drives
+every link in the prebuilt city, along the very curve a rival takes over it, with a careful
+driver at 43 km/h at most (`check_lane_drive.gd --links`). A link passes when the car stays within
+2.5 m of the curve and touches nothing fixed (a wall, a fence, a post) for more than 3 frames;
+it then gets its `proof` (the hash of its points). One the car could not drive keeps why
+(`refused`). A rival is handed only a proven link, so a racer goes only where the player can. Of
+the 52, 37 passed and 15 were refused (the car strayed from the curve in a tight yard corner in
+10, touched a wall in 1, and in 4 the drive found no street into the link or no way on). Verify step
+`racelinks-drive` drives every proven link again in the prebuilt city (14 s), so a wall or post
+put in a link's way later fails CI; `racelinks` checks the file without the city.
+
+**How a rival drives one.** A link is one curve like a cut's (`RaceCuts.curve`): a chain of cubic
+pieces through its points, spaced again 3 m apart so the curve's parameter runs with its metres
+(`LaneGraph.bezier` and `bezier_length` take a chain; a cut's single piece is computed as
+before). The racing line takes it as a rigid stretch (no line of its own inside a yard), at
+`LINK_TOP` 12 m/s (43 km/h) at most and the speed its bends allow at the racer's grip. The
+planner counts it by its bends' speeds metre by metre (`RaceCuts.drive_time`). A racer looking
+for the player's car ahead on a link looks along its next 30 m, as on a road.
+
+**Who knows which** (`ladder.gd` `yards`, `narrow`). A share of the links, drawn per rival like
+the cuts, and the narrowest link (m, its narrowest service way's width) the rival dares:
+
+| Rival | Yards known | Narrowest link |
+| --- | --- | --- |
+| Pani Halina (and her gentle day) | all | 3.5 m: the wide ones only |
+| Słoik z Radomia | none | (his satnav) |
+| Bulwar Bartek | 0.3 | 3.0 m |
+| Seba z Pragi | 0.6 | 2.8 m |
+| Taksiarz Zbyszek | all | 3.0 m |
+| Mordor Mike | 0.5 | 2.8 m |
+| Seba in Trzy mosty | all | 2.8 m |
+
+The night club's pack race (`street_meet.gd`) has no links yet: it is step 6b's.
+
+**What the bench says**: on the old courses nothing moves: all 271 races of the full matrix come out the same to the second and the street as on main (central Powiśle has no yard a race can go through; the driver's step costs the same, 685 µs against 686 µs a race step on the cloud's CPU), so every mark stands as recorded. The new yard course (Wola, Grzybowska to Rondo ONZ, 12 races) shows the link at work: on clear roads Pani Halina takes the yard and is home in 81.7 s, Taksiarz Zbyszek takes it in 66.2 s, and Słoik z Radomia, who knows no yard, goes round by Krochmalna in 108.7 s; in Low traffic the same (Halina 88.9 to 95.4 s over three draws, Słoik 125.1 to 134.3 s). The new mark "Yard links" holds that (who knows every yard takes a link, who knows none takes none), and the yard course stays out of "Skill ladder", since it measures knowledge, not pace. The bench counts links per race (`links`).
+
+**Not built here.** The wrong-way hops on one-way streets (question 3 in section 9 is still F's)
+are step 5b: a racer on one meets the town's cars head on, and the driver has to see them on the
+street it drives the wrong way. A link is proven from one street into it and one way on; the
+other ways in and on differ only in the junction's curve.
+
 ## 6. Difficulty from skill, and the personalities
 
 No racer's speed depends on the player's. A rival is hard because of how that rival drives, and
@@ -1128,7 +1186,8 @@ after. Step 2 ends the complaint in F's message. The steps after it make racing 
 | 3 (done) | Route planner by arrival time; turning back at a blocked street; the expected traffic delay out of sight; a lane held for 2 s; one finish line for both cars | Rivals take different streets in traffic, go round a blocked street, get past a slow player on a two-lane road, get no empty streets out of sight, and finish where the player does | Re-routes; Finishes on the quick matrix; Independence in traffic both ways (the full matrix's last case turns with 4b) |
 | 4a (done) | Driver, part 1: a racing line inside the racer's lane and a speed for every metre of it; the rivals' skill numbers set again for a real sideways pull; the centre-line pass by the oncoming lane it uses, clear for as long as the pass lasts | Smooth corners with the braking done before the bend, and no bend taken faster than the player's own car could. A rival rarely sits behind a slow car with the way past free | Honest car's grip (109 of the 110 races were over the car's limit, none is). The times were kept, not bettered: the line stays in its lane until 4b. Independence on the full matrix passes or fails with the draw of the town's cars and is recorded unsteady |
 | 4b (done) | Driver, part 2: overtaking (a pass whose length comes from both cars' speeds and the racer's pull and that can be given up, nobody beside it on the way out, a smooth sideways move that ends before the corner, a side held while there is more to pass), collisions (a car across a junction is seen, no car put down in a racer's way), recovery | Real passes. Nobody drives through a car. A crashed rival reverses and goes on | Passes traffic, No ghosting, Recovers, Finishes, Honest car (the dead stops, the slide of a pass); Independence on the full matrix, once it is judged over several draws (no turning back behind a player's car that only waits) |
-| 5 | Race links: alleys, courtyards, car parks, wrong-way hops | Halina turns into a courtyard and comes out in front | Real-car proof for every link |
+| 5 (done) | Race links: alleys, courtyards, car parks (5.4) | Halina turns into a courtyard and comes out in front | Real-car proof for every link (37 links proven, 15 refused) |
+| 5b | Wrong-way hops on one-way streets, for Seba and Mike (question 3) | A rival darts the wrong way down a short one-way street when it is empty | No ghosting with the hops |
 | 6a | Personalities, visible decisions, result card with both routes, tuning | You can tell Seba from Zbyszek by how they drive | The ladder's curve of times |
 | 6b | One race object for the pack race, Trzy mosty, police chasers and crazy drivers | Every race in the game uses the new driver | All marks on every race mode |
 
