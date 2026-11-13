@@ -124,7 +124,8 @@ helper asks for one in its report.
 ## Review sheet, status page and resumable bakes (from the Isometric Istanbul docs, 2026-11-04)
 
 - **Review sheet.** A look change (roofs, façades, night, signs, a landmark) takes the same fixed
-  cameras before and after: `tools/shots.sh --set=... --tag=before` (on main), then `--tag=after`,
+  cameras before and after (a place of your own: `--cam=X,Z --yaw= --size=`, the free camera that
+  needs no car, see the screenshot-review skill): `tools/shots.sh --set=... --tag=before` (on main), then `--tag=after`,
   then `python3 -I tools/shot_sheet.py BEFORE_DIR AFTER_DIR`. The PR shows one sheet, and F picks
   from it instead of asking for single shots. Compare different looks the same way: identical
   input, one sheet.

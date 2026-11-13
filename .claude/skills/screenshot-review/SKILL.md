@@ -23,6 +23,14 @@ evidence for a report (`shots/loop3_*.png`). For a spot not in the list:
 --heading=DEG --shots=240 --out=$PWD/../shots/NAME` (DEVELOPMENT.md lists every flag: `--size=`
 view height in metres, `--yaw=`, `--lift=`, `--nohud`, `--tap=X,Y`, `--settings`, ...).
 
+**Before/after of a place: use the free camera, not the car.** `--cam=X,Z` (or `--cam=X,Y,Z` for a
+height) puts the view on that world point, fixed, with the car hidden under it; `--yaw=`, `--pitch=`,
+`--size=` orbit and zoom it, `--lift=` raises it, `--cam-car` keeps the car in the shot. Same flags on
+the runtime and the `--prebuilt` city, so a before and an after differ only in what changed:
+`tools/shots.sh --set=spawn_day -- --cam=-1290,170 --yaw=135 --size=60`. Many views in one run (a run is
+~40 s): `--cams="palace:-1290,,170,135,-30,120+arcade:-1113,,-263,45,-30,60"` (NAME:X,Y,Z,YAW,PITCH,SIZE,
+Y empty = ground, the last three optional) writes palace_0030.png, arcade_0030.png with `--shots=30 --out=DIR`.
+
 - Before/after: same spot, same flags, same size; render the "before" from a copy of the old
   code if the change is already in (`cp -cR game game_before` on APFS; `game_*/` is gitignored;
   delete it afterwards).
