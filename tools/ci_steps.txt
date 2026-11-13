@@ -108,6 +108,7 @@ parkdetails          quick
 parkmesh             quick
 parodies             quick
 places               quick
+placescripts         quick
 placzamkowy          quick
 plain                runs
 pois                 roads

@@ -60,7 +60,7 @@ LANDMARK_SCRIPTS = [
     "landmarks", "models", "props", "storefronts", "neon_signs", "monuments", "small_buildings",
     "powisle_houses", "roof_dress", "tenement_trim", "osm_roofs", "old_town_roofs", "tarasy_screen",
     "spire_motion", "skwer_zlota", "plac_pieciu_rogow", "ratusz_hub", "rail_yard", "park_props_life",
-    "park_props_play", "park_props_water", "patelnia",
+    "park_props_play", "park_props_water", "patelnia", "places", "place", "first_scene", "tamka",
 ]
 LANDMARKS = ["game/scripts/%s.gd" % name for name in LANDMARK_SCRIPTS] + [
     "game/data/courts.json", "game/data/eastern_wall_shops.json", "game/data/monuments.json",

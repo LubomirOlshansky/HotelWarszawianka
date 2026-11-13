@@ -59,6 +59,8 @@
 # Loop MW-1: `places` runs game/tools/check_places.gd: MOJA WARSZAWA's 78 places (Polish +
 # English, the 70 characters, the demo box, the brand denylist, reachability as a WARN) and the
 # notebook's finding and reward rules on synthetic inputs; it reads only centrum.json (CI too).
+# Pipeline review item 7: `placescripts` runs game/tools/check_place_scripts.gd: Places.TABLE's budgets, the merge into one
+# mesh per sector and the mesh defects of every place script on the flat stub map (committed centrum.json only, CI too).
 # The L-shaped map loop: `edge` runs game/tools/check_edge.gd: the helicopter's clamp along the
 # map's outline (random moves, four flights past the inner corner), the rescue spots inside the
 # outline, the minimap's mesh over the corner left outside; centrum.json only (CI too).
@@ -1150,6 +1152,9 @@ for s in $want; do
 		# Loop 2e: the HUD at phone size: 44 pt controls, 11 / 13 pt text, the safe area, no overlaps.
 		hud) check hud '^check_hud:' --script res://tools/check_hud.gd ;;
 		places) check places '^check_places:' --script res://tools/check_places.gd ;;
+		# Pipeline review item 7 (2026-11-13): the place scripts and their owner (places.gd): budgets, own parts,
+		# one mesh per sector, every place script in the table, no hand hook in main.gd, mesh defects (ratchet).
+		placescripts) check placescripts '^check_place_scripts:' --script res://tools/check_place_scripts.gd ;;
 		edge) check edge '^check_edge:' --script res://tools/check_edge.gd ;;
 		# The edge roadworks (2026-11-02): every road leaving the map closed, traffic stopped there, solid.
 		roadworks) check roadworks '^check_edge_roadworks:' --script res://tools/check_edge_roadworks.gd ;;

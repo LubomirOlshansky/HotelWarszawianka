@@ -1,4 +1,4 @@
-extends Node3D
+extends "res://scripts/place.gd"
 ## The Ratusz Arsenał interchange (F's six photos, 2026-11-07): the tram stops at the junction of
 ## Al. Solidarności and Andersa beside Metro Ratusz-Arsenał, as the real place has them:
 ##  - **the arched canopies** over the three tram platforms at the junction (Solidarności's two east
@@ -74,7 +74,6 @@ const GOLD := Color("#d6a83e")
 const DOOR := Color("#4a3f35")
 const RAILING := Color("#232427")
 
-var map: Node3D
 ## What was built (the check reads these).
 var canopies := 0
 var arches := 0
@@ -181,13 +180,13 @@ static func canopy_ribs(p: Dictionary) -> Array:
 	var length: float = float(p["u1"]) - float(p["u0"])
 	var span := minf(length * CANOPY_SHARE, CANOPY_MAX)
 	var mid: float = (float(p["u0"]) + float(p["u1"])) * 0.5
-	var count := int(floorf(span / RIB)) + 1
-	if count < 2:
+	var n_ribs := int(floorf(span / RIB)) + 1
+	if n_ribs < 2:
 		return []
-	var step := span / float(count - 1)
+	var step := span / float(n_ribs - 1)
 	var run: Array = []
 	var best: Array = []
-	for i in count:
+	for i in n_ribs:
 		var u := mid - span * 0.5 + step * i
 		var cut := _cross(p, u)
 		var ok := cut.y > cut.x
@@ -243,7 +242,8 @@ func _top(p: Dictionary) -> float:
 
 
 ## Builds the mesh and the tower's collider from `data` (centrum.json).
-func build(data: Dictionary) -> void:
+func build() -> void:
+	var data: Dictionary = ctx.get("data", {})
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for p: Dictionary in hub_platforms(data):
@@ -259,12 +259,7 @@ func build(data: Dictionary) -> void:
 	if mesh.get_surface_count() == 0:
 		return
 	triangles = mesh.surface_get_array_len(0) / 3
-	var mi := MeshInstance3D.new()
-	mi.name = "RatuszHubMesh"
-	mi.mesh = mesh
-	mi.material_override = Models.material()
-	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(mi)
+	pour(mesh, false, "RatuszHubMesh")
 	var body := StaticBody3D.new()
 	body.name = "RatuszTowerSolid"
 	var shape := CollisionShape3D.new()
@@ -274,7 +269,7 @@ func build(data: Dictionary) -> void:
 	shape.shape = cyl
 	shape.position = Vector3(TOWER.x, g + 3.5, TOWER.y)
 	body.add_child(shape)
-	add_child(body)
+	part(body)
 
 
 ## One platform's canopy, benches and boards; `top` the platform's walking surface. Every arch

@@ -58,7 +58,7 @@ compression and auto-LODs off, so the codes in UV2 survive). No .blend is commit
    crowds, city life, police.
 5. Title dismissed: the camera fly-in, the HUD, the guide (`first10.gd`) on a fresh save.
 
-A new system adds its `_build_x` at the right place in this list. Anything that reads another
+The place scripts (first scene, the Patelnia, Tamka ...) are one step, `_build_places`, which builds the rows of `Places.TABLE` in order with a tick after each and then merges their dressing per sector; a new place is a table row, not a step. A new system adds its `_build_x` at the right place in this list. Anything that reads another
 system must be built after it. Nothing new goes into step 0: every script `boot.gd` or `title.gd`
 preloads is loaded before the title can show (`check_boot` holds the list).
 

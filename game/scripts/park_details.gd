@@ -1,4 +1,4 @@
-extends Node3D
+extends "res://scripts/place.gd"
 ## Park details (BACKLOG "Parks", 2026-11-01): the pieces that make Ogród Saski, Ogród Krasińskich,
 ## Park Ujazdowski and the Łazienki end of the map read as parks: statues, fountains, a carousel,
 ## a playground, gazebos, a sundial, footbridges, ducks and swans, peacocks and squirrels, people on
@@ -35,8 +35,6 @@ const LIFE_KINDS := ["seated", "picnic", "peacock", "squirrel", "statue", "yoga"
 const MAX_ITEMS := 700
 const MAX_SECTOR := 400
 
-var map: Node3D
-var count := 0
 var meshes := 0
 ## How many of `count` are monuments and plaques (monuments.gd).
 var monuments := 0
@@ -118,11 +116,6 @@ func build() -> void:
 				shape.transform = Transform3D(xf.basis, xf.origin + Vector3.UP * 1.2)
 				body.add_child(shape)
 			count += 1
-		var mi := MeshInstance3D.new()
-		mi.name = "ParkDetails_%d_%d" % [key.x, key.y]
-		mi.mesh = st.commit()
-		mi.material_override = Models.material()
-		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		add_child(mi)
+		pour(st.commit(), false, "ParkDetails_%d_%d" % [key.x, key.y])
 		meshes += 1
-	add_child(body)
+	part(body)

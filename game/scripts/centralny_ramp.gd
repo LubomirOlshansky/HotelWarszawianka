@@ -1,4 +1,4 @@
-extends Node3D
+extends "res://scripts/place.gd"
 ## The car park ramp by Dworzec Centralny (F, 2026-11-08, Street View, August 2024): what the map
 ## data doesn't draw at the tunnel under Aleja Jana Pawła II (tools/centralny_ramp.py makes the
 ## drive: the tube, the turning hall, the way out). Over the portal the white direction board with
@@ -63,8 +63,6 @@ const YELLOW := Color("#e2b21c")
 const GREEN := Color("#1e8a4c")
 const BOLLARD_STEP := 2.2
 
-var map: Node3D
-var count := 0
 
 
 ## Builds the mesh; `map` gives the ground (map_builder.ground_height, tunnel_floor_under).
@@ -79,11 +77,7 @@ func build() -> void:
 		_bollard(st, Vector3(p.x, FLOOR, p.y))
 	_gates(st)
 	_defilad_sign(st)
-	var mi := MeshInstance3D.new()
-	mi.name = "CentralnyRampProps"
-	mi.mesh = st.commit()
-	mi.material_override = Models.material()
-	add_child(mi)
+	pour(st.commit(), true, "CentralnyRampProps")
 
 
 ## The direction board over the mouth (its -z face looks out of the tunnel) and the height sign.
