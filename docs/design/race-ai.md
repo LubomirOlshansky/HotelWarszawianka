@@ -1,5 +1,9 @@
 # Race AI: the audit, the new design and the race bench
 
+**To tune or change the racers, start with [race-ai-tuning.md](race-ai-tuning.md):** every knob,
+where it lives, how to test a change and the known traps. This document is the why and the
+history.
+
 **Status (2026-11-12):** steps 1 to 4a of 8 are built. Step 1 was the race bench, the prototype
 race and the recorded baseline of the old driver. Step 2 took the rubber band out: every rival
 drives its own skill from the line to the finish, whatever the player does
