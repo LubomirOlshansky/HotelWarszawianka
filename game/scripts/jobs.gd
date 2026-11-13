@@ -273,6 +273,13 @@ func _name_zaglebie() -> void:
 			name_stand(i, String(shop["board"]), String(shop["tag"]))
 
 
+## Takes every kebab stand out of the picture: for `--solo` shots (main.gd), where nothing but the
+## landmark may be drawn (the turntable, tools/turntable.sh). Never called in a normal run.
+func clear_stands() -> void:
+	_stands.clear()
+	_build_stand_tiles()
+
+
 ## The generic stands' kiosks: one MultiMesh per 512 m tile (made again when a stand is named).
 func _build_stand_tiles() -> void:
 	for t in _stand_tiles:

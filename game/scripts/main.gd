@@ -2107,6 +2107,8 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	world.add_child(walkers)
 	await walkers.setup(map, cam, traffic, data)
 	await LoadYield.tick("walkers.setup")
+	if solo_site != "":
+		walkers.visible = false  # a landmark alone (--solo): no people either
 	# First scene item 6: busier pavements on Marszałkowska by the start.
 	var busy := walkers.set_busy(FirstScene.FRAME_O, FirstScene.FRAME_S, FirstScene.FRAME_T, FirstScene.BUSY_BANDS, FIRST_SCENE)
 	print("first scene: %d busy pavement points" % busy)
@@ -2743,6 +2745,8 @@ func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
 		jobs.start_heat = start_heat
 	add_child(jobs)
 	jobs.setup(nodes, data, world)
+	if solo_site != "":
+		jobs.clear_stands()  # a landmark alone (--solo): no kebab stand beside it
 	if rivals != null:
 		rivals.jobs = jobs
 	# --- loop 2d-1: Podwózka, the app-taxi side job (and the GPS moments of the app-taxis) ---
@@ -2784,6 +2788,8 @@ func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
 	eggs.force_street = barrier_force
 	world.add_child(eggs)
 	eggs.setup(nodes, data)
+	if solo_site != "":
+		eggs.visible = false  # a landmark alone (--solo): no easter-egg markers
 	zamkowy_life = PlacZamkowyLife.new()
 	world.add_child(zamkowy_life)
 	zamkowy_life.setup(map)
@@ -5380,6 +5386,9 @@ func _parse_args() -> void:
 			solo_site = arg.trim_prefix("--solo=")
 			MapBuilder.solo_site = solo_site
 			no_traffic = true
+			crowd_flag = 0  # nothing but the site in the picture (the turntable): no crowds, packs, fans, circles
+			life_flag = 0
+			no_parodies = true  # no Leżak scooters, frogs or venue neon beside the model
 		elif arg.begins_with("--solo-look="):
 			solo_look = arg.trim_prefix("--solo-look=")
 		elif arg == "--tunnel":

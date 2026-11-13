@@ -134,6 +134,11 @@ kind repeated across the whole map gets one MultiMesh. No new node, material or 
 - **Shots for the judge**: besides the lit matched shots, one unlit (flat colour) shot and one
   silhouette on a plain background per main angle, with the landmark alone when the flag
   exists: shape errors hide in lighting and street clutter.
+- **The turntable is the first look at any model**: `tools/turntable.sh KEY` (about a minute) gives
+  every side of the site on one sheet (lit from 8 sides at two heights, flat, silhouette, top
+  view), so a builder and F check the whole model before any single matched shot is taken. The
+  sheet is `shots/turntable_KEY/KEY_turntable.png`; open it and look, then take matched shots for
+  the sides that need a closer look.
 - **Side by side, photo first**: the reviewer opens the photos and shots and scores them
   *before* reading the spec (a judge favours what it wrote or read; the spec comes after, to
   name what is missing). Scores 1-5 on silhouette, proportions, colour, identity features

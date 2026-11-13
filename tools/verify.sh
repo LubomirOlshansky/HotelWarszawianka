@@ -1194,6 +1194,8 @@ for s in $want; do
 		meet) check meet '^check_street_meet:' --fixed-fps 60 --script res://tools/check_street_meet.gd ;;
 		# Boat race: the course in open water, the boat, a whole race, the three-miss rule, the lines.
 		# Free camera (--cam=X,Y,Z): the flag's text and the view it gives.
+		# Site turntable (tools/turntable.sh): the cameras' maths for a site and the sheet's tiling; no renderer.
+		turntable) check turntable '^check_turntable:' --script res://tools/check_turntable.gd ;;
 		freecam) check freecam '^check_free_cam:' --script res://tools/check_free_cam.gd ;;
 		boatrace) check boatrace '^check_boat_race:' --script res://tools/check_boat_race.gd ;;
 		dekalog) check dekalog '^check_dekalog_tour:' --script res://tools/check_dekalog_tour.gd ;;
