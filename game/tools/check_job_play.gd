@@ -21,8 +21,11 @@ extends SceneTree
 ##   and the test flags;  H. the courier's race beside an order, where the two scripts meet (the
 ##   challenge, L and the button, the win and the loss, what ends it, the night's roll; the race's
 ##   own rules are check_side_jobs' and check_couriers');  K. the autopilot, frame by frame;
-##   L. the least the game hands in;  M. what deliberate breaks of the script showed.
-## Prints "check_job_play: OK (N checks; ...)" or one "  problem: ..." line per failed fact under
+##   L. the least the game hands in;  M. what deliberate breaks of the script showed;  N. what 138 more
+##   breaks showed: the kerb asked straight, the orders made straight, the first order's reach, the jars'
+##   thresholds, the passenger's chat, the minimap's places and route, an order over the river, the
+##   autopilot's ends.
+## Prints "check_job_play: OK (N checks in F frames; notes)" or one "  problem: ..." line per failed fact under
 ## "check_job_play: PROBLEMS" (exit 1).
 ##   godot --headless --fixed-fps 60 --path game --script res://tools/check_job_play.gd
 
@@ -274,7 +277,6 @@ func _go() -> void:
 		print("check_job_play: PROBLEMS\n  problem: the engine's frame is %.5f s, run with --fixed-fps 60" % dt)
 		quit(1)
 		return
-	var t0 := Time.get_ticks_msec()
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://map/centrum.json"))
 	if not parsed is Dictionary:
 		print("check_job_play: PROBLEMS\n  problem: no map/centrum.json")
@@ -310,8 +312,7 @@ func _go() -> void:
 
 	if r != null:
 		_settle()
-	print("check_job_play: %s" % ("OK (%d checks in %d frames, %d ms; %s)" % [_checks, _frames, Time.get_ticks_msec() - t0,
-			"; ".join(_notes)] if _problems.is_empty() else "PROBLEMS"))
+	print("check_job_play: %s" % ("OK (%d checks in %d frames; %s)" % [_checks, _frames, "; ".join(_notes)] if _problems.is_empty() else "PROBLEMS"))
 	for p in _problems:
 		print("  problem: " + p)
 	quit(0 if _problems.is_empty() else 1)
@@ -2701,6 +2702,14 @@ func _h_night() -> void:
 		return
 	_ok(not c._rider.visible and not c._waiter.is_empty() and r.hud.challenge != "", "H9: by night with couriers waiting: the challenge, the rider's node hidden")
 	_ok(q.flash() and c._rider.visible and r.life.taken == [i] and (r.life.waiting[i] as Array).size() == 1, "H9: L: the rider shows, one courier taken from the stand")
+	# the same order by day, with the couriers waiting there
+	_rig()
+	r.q.courier.force = false
+	r.life.waiting = {i: [[at + Vector3(4, 0, 1), 0.4], [at + Vector3(2, 0, 1.5), 1.1]]}
+	r.q.start_kebab(found)
+	_sync()
+	_f(2)
+	_ok(int(r.q.courier.state) == 0 and r.hud.challenge == "", "H9: by day a rolled order is not challenged though couriers wait")
 	# the same order with nobody waiting
 	_rig()
 	r.q.courier.force = false
@@ -2879,6 +2888,18 @@ func _s_n_orders() -> void:
 	_ok(r.hud.button_words[0] == "JEDZIEMY! · 9" and r.hud.button_words_en[0] == "GO! · 9", "N: the second order counts down from 9 in its first frame")
 	_f(160)
 	_ok(r.bubbles.said.size() == said0 + 1 and r.bubbles.colours.back() == ORANGE, "N: the second order's line is said, 2.6 s after its card, in the stand's orange")
+	_rig()
+	q = r.q
+	q.start_kebab(2)
+	_sync()
+	_f(165)
+	var said1: int = r.bubbles.said.size()
+	_ok(said1 > 0, "N: the first order says its line 2.6 s after its card")
+	_turn_down()
+	q.start_kebab(3)
+	_sync()
+	_f(165)
+	_ok(r.bubbles.said.size() == said1 + 1, "N: so does the second order after it")
 	# a stand's order numbers
 	_rig()
 	q = r.q
@@ -3072,12 +3093,17 @@ func _s_n_first() -> void:
 	_ok(not q.start_first(fs) and r.hud.toasts.back() == "Brak zamówień" and r.hud.toasts_en.back() == "No orders right now", "N: start_first with no address: false, the toast")
 	_ok(not q.start_kebab(3) and _stage() == 0, "N: start_kebab with no address: false")
 	_ok(not q.start_sloik(0, 0) and _stage() == 0, "N: start_sloik with no address: false")
-	# the pinned order goes to the door first_pick named
+	# the pinned order goes to the door first_pick named; the next orders there are ordinary ones (some beyond 600 m or off its street)
 	_rig()
 	q = r.q
 	fs = q.first_stand()
 	var want: Dictionary = q.first_pick(fs)
 	_ok(q.start_first(fs) and q._order["door"] == want["door"] and int(q.pinned) == -1, "N: start_first: the order is the guided one")
+	var ordinary := 0
+	for k in 20:
+		var ou: Dictionary = q._make_kebab_order(fs, fs + q._stands.size() * (k + 1))
+		ordinary += 1 if not ou.is_empty() and (float(ou["road"]) > 600.0 or not str(ou["name"]).begins_with("Marszałkowska")) else 0
+	_ok(ordinary > 10, "N: the orders after the guided one are ordinary: most are beyond 600 m or off its street (%d of 20)" % ordinary)
 	# a place the car is put into: standing
 	_rig()
 	q = r.q
@@ -3311,6 +3337,15 @@ func _s_n_jars() -> void:
 	q._heat = 0.75
 	_arrive_now()
 	_ok(r.hud.card == "DOWIEZIONE · WCIĄŻ GORĄCY" and r.hud.card_en == "Delivered · still hot", "N: at the door with heat 0.75: still hot (%s)" % r.hud.card)
+	# the customer waves at the door on the second delivery too
+	_rig()
+	q = r.q
+	_find(0, _plain_day(), "a plain order")
+	_deliver()
+	_close_result()
+	_find(0, _plain_day(), "a plain order")
+	_press(0)
+	_ok(q._beacon.waving, "N: the customer at the door waves on the second kebab's drive")
 	# a run dropped with stress left: the next run's bar starts at 0
 	q = _sloik_drive()
 	_fr(15.0, 0.0)
@@ -4173,7 +4208,16 @@ func _s_n_auto() -> void:
 		r.car.global_position = Vector3(FAR.x, 0.0, FAR.y)
 		await _af(2)
 	# a run on a road after it: a ghost again, the car where the ghost is, in its yaw and at its speed
-	_find_auto_plain()
+	# (an order whose door is 30 m or more before its lane's end and near the ghost's straight way there: it is taken off 22 m out)
+	var near_way := func(o: Dictionary) -> bool:
+		if not (_plain_day().call(o) and bool(o["reached"])):
+			return false
+		var st2 := _stand(int(o["stand"]))
+		var start: Vector2 = _graph.point_at(int(st2["edge"]), float(st2["s"]))
+		var node: Vector2 = _graph.node_pos[int(o["finish"])]
+		var ringp := Vector2(o["ring"].x, o["ring"].z)
+		return node.distance_to(ringp) >= 30.0 and Geometry2D.get_closest_point_to_segment(ringp, start, node).distance_to(ringp) < 6.0 and start.distance_to(ringp) > 150.0
+	_find(0, near_way, "a plain order whose door is on the way to the end of its lane")
 	ring = _ring_of(_ordr())
 	var guard2 := 0
 	var followed := true
