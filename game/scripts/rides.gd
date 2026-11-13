@@ -178,8 +178,6 @@ var _rules := Rules.new()
 ## Seconds of play: the first two minutes count on it. It stands while the player is away (the
 ## title screen, the bench, a club), which the kit's own session clock does not.
 var _played := 0.0
-## A request was taken back this frame (`_tick`): no idle tick in the same frame.
-var _withdrawn := false
 var _offer_in := -1.0
 var _pill_at := -1.0
 var _rides := 0
@@ -445,7 +443,8 @@ func _process(dt: float) -> void:
 
 ## Every frame, before the phase's own part: the play clock, the merged drive toast, the river's
 ## scan, and a request taken away (the old OFFER state's first tests; its 10 s are the kit's
-## `card_life`, and the kit's autopilot takes it).
+## `card_life`, and the kit's autopilot takes it). The idle tick that follows in the same frame
+## offers nothing: whatever took the request away holds `_free` too.
 func _tick(dt: float) -> void:
 	if not away:
 		_played += dt
@@ -456,7 +455,6 @@ func _tick(dt: float) -> void:
 		return
 	# A rescue call opened over the request, or anything else starting, takes it away.
 	if not _calls_quiet() or (jobs != null and jobs.side_busy()) or (rivals != null and rivals.busy()):
-		_withdrawn = true
 		_end(0.0)  # their card is up now, not ours
 	elif rivals != null and rivals.calling():
 		_withdraw()  # PT-15: her prompt is a strip, not a card: ours must go, not hide behind it
@@ -537,9 +535,6 @@ func _calls_quiet() -> bool:
 
 
 func _idle_tick(dt: float) -> void:
-	if _withdrawn:
-		_withdrawn = false
-		return
 	var free := _free() and _played >= FIRST_OFFER
 	if not free:
 		_set_pill(false)
@@ -643,7 +638,6 @@ func _refused(_timed_out: bool) -> void:
 
 ## The request is taken back (a rival's prompt, the air, the title screen).
 func _withdraw() -> void:
-	_withdrawn = true
 	_end(0.0)
 	_log("offer %d gone" % _ride.get("n", -1))
 
