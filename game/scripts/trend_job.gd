@@ -37,8 +37,8 @@ extends "res://scripts/activity.gd"
 ## It is an activity of the kit (activity.gd) and a side job (`is_job`): the kit has its call, its
 ## request card, the cards of the run, the ✕, the ring's end and "busy"; a request card leaves the
 ## player free (`offer_busy` off), so the job is on only once it runs; the director (activities.gd)
-## counts it among the activities; `order["stage"]` names the step inside the kit's RUN; jobs.gd
-## still answers `busy()` for it by name until jobs.gd moves too (tech-debt TD-1).
+## counts it among the activities and the side jobs (`job_on`, which jobs.gd answered by name
+## before it joined the kit); `order["stage"]` names the step inside the kit's RUN.
 
 const Models := preload("res://scripts/models.gd")
 const Missions := preload("res://scripts/missions.gd")

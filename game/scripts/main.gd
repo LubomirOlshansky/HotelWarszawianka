@@ -2107,6 +2107,8 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	world.add_child(walkers)
 	await walkers.setup(map, cam, traffic, data)
 	await LoadYield.tick("walkers.setup")
+	if solo_site != "":
+		walkers.visible = false  # a landmark alone (--solo): no people either
 	# First scene item 6: busier pavements on Marszałkowska by the start.
 	var busy := walkers.set_busy(FirstScene.FRAME_O, FirstScene.FRAME_S, FirstScene.FRAME_T, FirstScene.BUSY_BANDS, FIRST_SCENE)
 	print("first scene: %d busy pavement points" % busy)
@@ -2633,7 +2635,7 @@ func _start_phone_bench() -> void:
 		busy = "Najpierw wyląduj · Land first"
 	elif rivals != null and rivals.racing():
 		busy = "Najpierw skończ wyścig · Finish the race first"
-	elif jobs != null and jobs.busy():
+	elif jobs != null and activities.job_on():
 		busy = "Najpierw skończ zlecenie · Finish the job first"
 	elif missions.has_target():
 		busy = "Najpierw skończ akcję · Finish the rescue first"
@@ -2732,6 +2734,21 @@ func _end_phone_bench(done: bool) -> void:
 	hud.show_bench_card(text)
 
 
+## What rivals.gd asks the side jobs by name, answered as jobs.gd did before it joined the kit
+## (`_build_side_jobs`). It goes when the rivals move to the kit.
+class JobsForRivals extends Node:
+	## () -> bool: one of the side jobs is on (the director's `job_on`).
+	var job_on: Callable
+	## () -> bool: a Podwózka request card is up (rides.gd `offering`).
+	var offered: Callable
+
+	func busy() -> bool:
+		return bool(job_on.call())
+
+	func ride_offered() -> bool:
+		return bool(offered.call())
+
+
 ## The side jobs (kebab stands, the słoiki run) and the easter eggs.
 func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
 	var nodes := {"hud": hud, "bubbles": bubbles, "dialogue": dialogue, "wallet": wallet, "missions": missions,
@@ -2741,10 +2758,31 @@ func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
 	jobs.craft_plain = craft_plain
 	if start_heat >= 0.0:
 		jobs.start_heat = start_heat
+	jobs.hud = hud
+	jobs.bubbles = bubbles
+	jobs.dialogue = dialogue
+	jobs.wallet = wallet
+	jobs.missions = missions
+	jobs.rivals = rivals
+	jobs.graph = graph
+	jobs.traffic = traffic
+	jobs.map = map
+	jobs.car = car
+	jobs.tod = tod
+	jobs.map_data = data
 	add_child(jobs)
-	jobs.setup(nodes, data, world)
+	jobs.setup(world)
+	if solo_site != "":
+		jobs.clear_stands()  # a landmark alone (--solo): no kebab stand beside it
 	if rivals != null:
-		rivals.jobs = jobs
+		# WORKAROUND(arch): rivals.gd asks the side jobs by name ("is a job on?", "is a ride's
+		# request up?") and cannot change while the racer-AI rebuild has it, see tech-debt TD-1.
+		var seen := JobsForRivals.new()
+		seen.name = "JobsForRivals"
+		seen.job_on = activities.job_on
+		seen.offered = func() -> bool: return rides != null and rides.offering()
+		add_child(seen)
+		rivals.jobs = seen
 	# --- loop 2d-1: Podwózka, the app-taxi side job (and the GPS moments of the app-taxis) ---
 	rides = Rides.new()
 	rides.autopilot = autopilot
@@ -2777,6 +2815,9 @@ func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
 	# The director counts it among the activities (one of the kit at a time); the ride's own
 	# `_free` holds every rule for what is outside the kit, so its test here is "yes".
 	activities.add(rides, func() -> bool: return true)
+	# The deliveries are of the kit too (jobs.gd): the director counts them (`job_on`, the M and K
+	# keys, the door as the target). Their own `_free` holds every rule for when one may start.
+	activities.add(jobs, func() -> bool: return true)
 	jobs.rides = rides
 	# --- end loop 2d-1 ---
 	eggs = Eggs.new()
@@ -2784,6 +2825,8 @@ func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
 	eggs.force_street = barrier_force
 	world.add_child(eggs)
 	eggs.setup(nodes, data)
+	if solo_site != "":
+		eggs.visible = false  # a landmark alone (--solo): no easter-egg markers
 	zamkowy_life = PlacZamkowyLife.new()
 	world.add_child(zamkowy_life)
 	zamkowy_life.setup(map)
@@ -3161,6 +3204,7 @@ func _build_first10() -> void:
 	first10.map = map
 	first10.car = car
 	first10.jobs = jobs
+	first10.job_on = activities.job_on
 	first10.rivals = rivals
 	first10.missions = missions
 	first10.police = police
@@ -3202,7 +3246,7 @@ func _build_garage(world: Node3D) -> void:
 	garage.busy = func() -> bool:
 		return flying or title != null or _phone_bench or hud.settings_open() or hud.full_map_open() \
 				or (fotka != null and fotka.is_open()) or missions.has_target() \
-				or (jobs != null and jobs.busy()) or (rivals != null and rivals.busy()) \
+				or (jobs != null and activities.job_on()) or (rivals != null and rivals.busy()) \
 				or (police != null and not police.calm())
 	world.add_child(garage)
 	if paint_flag != "":
@@ -3588,7 +3632,7 @@ func _shisha_secret(busy: bool) -> void:
 
 ## Something runs: a race, a job, a ride, a rescue, a questline, a tow (quest focus: the map goes quiet).
 func _quest_running() -> bool:
-	if (rivals != null and rivals.busy()) or (jobs != null and jobs.busy()) or (missions != null and missions.has_target()):
+	if (rivals != null and rivals.busy()) or (jobs != null and activities.job_on()) or (missions != null and missions.has_target()):
 		return true
 	if (boat_race != null and boat_race.busy()) or (rave != null and rave.busy()) or (ev_tow != null and ev_tow.busy()):
 		return true
@@ -4005,7 +4049,7 @@ func _free_block(ringing_ok := false, guide_ok := false) -> String:
 	var ringing: bool = ringing_ok and missions.state == Missions.State.RINGING
 	if hud.cards_up() or (missions.state != Missions.State.CLOSED and not ringing) or missions.has_target():
 		return "a card, mission or rescue target is up"
-	if (rides != null and rides.busy()) or (jobs != null and jobs.busy()) or (trend_job != null and trend_job.busy()):
+	if (rides != null and rides.busy()) or (jobs != null and activities.job_on()) or (trend_job != null and trend_job.busy()):
 		return "ride/job/trend job busy"
 	if rivals != null and rivals.busy():
 		return "rival race busy"
@@ -4145,7 +4189,7 @@ func _ev_free() -> bool:
 		return false
 	if hud.cards_up() or missions.state != Missions.State.CLOSED or missions.has_target():
 		return false
-	if (rides != null and rides.busy()) or (jobs != null and jobs.busy()) or (trend_job != null and trend_job.busy()):
+	if (rides != null and rides.busy()) or (jobs != null and activities.job_on()) or (trend_job != null and trend_job.busy()):
 		return false
 	if rivals != null and rivals.busy():
 		return false
@@ -5380,6 +5424,9 @@ func _parse_args() -> void:
 			solo_site = arg.trim_prefix("--solo=")
 			MapBuilder.solo_site = solo_site
 			no_traffic = true
+			crowd_flag = 0  # nothing but the site in the picture (the turntable): no crowds, packs, fans, circles
+			life_flag = 0
+			no_parodies = true  # no Leżak scooters, frogs or venue neon beside the model
 		elif arg.begins_with("--solo-look="):
 			solo_look = arg.trim_prefix("--solo-look=")
 		elif arg == "--tunnel":
@@ -6249,12 +6296,12 @@ func _quest_entries() -> Array:
 	if (rivals != null and rivals.busy()) or (missions != null and missions.has_target()):
 		return out
 	var places: Array = jobs.offer_places() if jobs != null else []
-	if trend_job != null and (jobs == null or not jobs.busy()) and (rides == null or not rides.busy()):
+	if trend_job != null and (jobs == null or not activities.job_on()) and (rides == null or not rides.busy()):
 		places.append_array(trend_job.offer_places())
 	for p: Dictionary in places:
 		out.append(Lines.entry("%s_%.0f_%.0f" % [p["group"], p["at"].x, p["at"].y], str(p["group"]), Lines.Line.CAR,
 				str(p["name"][0]), str(p["name"][1]), p["at"], p["colour"]))
-	if jobs != null and jobs.busy():
+	if jobs != null and activities.job_on():
 		return out
 	if rivals != null and rivals.ladder != null and wallet != null:
 		var nxt: int = rivals.ladder.next_rung()
@@ -6315,7 +6362,12 @@ func _quest_now() -> Dictionary:
 		what = ["Teraz · Podwózka", "Now · Podwózka ride"]
 		at = rides.target_position()
 		colour = rides.target_colour()
-	elif jobs != null and jobs.has_target():
+	elif jobs != null and jobs.round_busy() and jobs.roundup.has_target():
+		# The Leżak round-up's next Leżak or depot (jobs.gd answered for it before it joined the kit).
+		what = ["Teraz · zlecenie", "Now · job"]
+		at = jobs.roundup.target_position()
+		colour = jobs.roundup.target_colour()
+	elif jobs != null and (jobs.has_target() or jobs.pointing()):
 		what = ["Teraz · zlecenie", "Now · job"]
 		at = jobs.target_position()
 		colour = jobs.target_colour()
@@ -6423,7 +6475,7 @@ func _on_quest_picked(e: Dictionary) -> void:
 func _teleport_refusal() -> Array:
 	if rivals != null and rivals.racing():
 		return ["Nie teraz: trwa wyścig", "Not now: you're racing"]
-	if (jobs != null and jobs.busy()) or (jobs != null and jobs.courier != null and jobs.courier.racing()):
+	if (jobs != null and activities.job_on()) or (jobs != null and jobs.courier != null and jobs.courier.racing()):
 		return ["Nie teraz: masz zlecenie", "Not now: you're on a job"]
 	if missions != null and missions.has_target():
 		return ["Nie teraz: trwa akcja ratunkowa", "Not now: a rescue is on"]
@@ -6915,7 +6967,7 @@ func _water_kind(p: Vector3) -> String:
 
 ## Loop 10a: what is running, for the water test's lines.
 func _activity() -> String:
-	return "job %s, rescue %s, race %s, wallet %d zł" % ["on" if jobs != null and jobs.busy() else "none",
+	return "job %s, rescue %s, race %s, wallet %d zł" % ["on" if jobs != null and activities.job_on() else "none",
 			"on" if missions.has_target() else "none", "on" if rivals != null and rivals.racing() else "none", wallet.zl]
 
 
@@ -7931,7 +7983,7 @@ func _stop_assist() -> void:
 		pass
 	elif activities.targeted() != null:
 		at = activities.targeted().stop_spot()
-	elif jobs != null and jobs.has_target():
+	elif jobs != null and jobs.pointing():
 		at = jobs.stop_spot()
 	elif missions.has_target():
 		at = missions.stop_spot()
@@ -8036,7 +8088,9 @@ func _show_target() -> void:
 		_put_target(Vector2(f.x, f.z), rivals.target_colour(), _guide_on() or rivals.main_race())
 		_new_target("race", f)
 		return
-	if jobs != null and jobs.has_target() and Lines.shows(Lines.Line.CAR, flying):
+	# The pointer to the next kebab stand (the delivered card's NASTĘPNE): no activity is on then.
+	# (A delivery's door is the kit's target, above.)
+	if jobs != null and jobs.pointing() and Lines.shows(Lines.Line.CAR, flying):
 		var j: Vector3 = jobs.target_position()
 		var at_j := _vehicle_position()
 		var mj := roundi(Vector2(j.x - at_j.x, j.z - at_j.z).length())
@@ -8314,8 +8368,6 @@ func _autopilot(dt: float) -> void:
 		return
 	if rivals != null and rivals.drive_player():
 		return
-	if jobs != null and jobs.drive_player():
-		return
 	var act := activities.targeted()
 	if act != null and act.drive_player():
 		return  # it drives the car itself (a ride on the app's route: rides.gd)
@@ -8385,7 +8437,7 @@ func _toggle_vehicle() -> void:
 	if not grounded.is_empty():
 		hud.toast(str(grounded[0]), str(grounded[1]))
 		return
-	if jobs != null and jobs.busy() and not flying:
+	if jobs != null and activities.job_on() and not flying:
 		hud.toast("Najpierw dokończ kurs: zamówienie jedzie autem", "Finish the job first: it rides in the car")
 		return
 	if not flying and car.in_water:
@@ -8657,10 +8709,10 @@ func _unhandled_key_input(event: InputEvent) -> void:
 ## M / the pad's A: the mission card's first button (loop 2d-1: a Podwózka request or result first).
 ## The context button comes after the cards (a card on screen is what A answers first) and before
 ## the rescue line's own A (which offers the next call): the pad had no way to press KASETA, START
-## KURS or POMOC DROGOWA (2026-11-03).
+## KURS or POMOC DROGOWA (2026-11-03). The director asks each activity in turn (a ride, a
+## delivery, the round-up, a trend job).
 func _primary() -> void:
-	if (rides != null and rides.primary()) or (jobs != null and jobs.primary()) \
-			or (trend_job != null and trend_job.primary()):
+	if activities.primary():
 		return
 	if missions.state == missions.State.OFFER or missions.state == missions.State.RESULT:
 		missions.primary()
@@ -8670,8 +8722,7 @@ func _primary() -> void:
 
 ## K / the pad's X: the mission card's second button.
 func _secondary() -> void:
-	if (rides == null or not rides.secondary()) and (jobs == null or not jobs.secondary()) \
-			and (trend_job == null or not trend_job.secondary()):
+	if not activities.secondary():
 		missions.secondary()
 
 

@@ -24,6 +24,8 @@ Rotunda, the Eastern Wall stores, MSN, Złota 44, Warsaw Spire, Dom pod Orłami)
 from F's own photos or checked side by side with photos on the Mac. **Rule from now on:** a model
 of a tier S or A place starts from photos (F's, or `refs/` on the Mac); a cloud thread without
 photos asks the coordinator for them or for Mac folder access first, and does not build blind.
+Since 2026-11-13 the photos also live in the shared store `/mnt/project-files/refs/` (index ranked like this list,
+`tools/refs_store.py`): look in its INDEX.md before asking.
 
 ## The new approach (the MSN recipe)
 

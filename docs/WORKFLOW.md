@@ -113,7 +113,7 @@ already decided, **Haiku** looks things up and counts. A loop is often split tha
 | Performance | `perf-engineer` measures, ranks and cuts the costs | | `scout` turns bench and device logs into a before/after table |
 | Roads | `map-engineer` finds the defect classes, fixes the bake and writes the exact fix list | `gameplay-dev` applies that list across many files (each change spelled out) | `scout` re-counts the findings over the whole map |
 | Police | `game-designer` designs the police; then `gameplay-dev` builds their AI and the feel | `game-designer` or `gameplay-dev` adds the strings and translations from the approved text | `scout` checks `dialogue.json` parses and counts the new lines |
-| Landmarks and objects | the lane writes the spec with every value from the reference photos in `refs/` (the model-from-photos skill: detail level L2/L3, identity features, triangle budget; missing photos are downloaded from any web source, any licence, reference only and never shipped, F 2026-11-08); `art-director` scores the matched shots against the photos and accepts | `object-modeler` builds it and renders before/after; escalates what the spec leaves open | `scout` / `Explore` find the functions and OSM ids |
+| Landmarks and objects | the lane writes the spec with every value from the reference photos in `refs/` (home: the shared store, `tools/refs_store.py pull`; the model-from-photos skill: detail level L2/L3, identity features, triangle budget; missing photos are downloaded from any web source, any licence, reference only and never shipped, F 2026-11-08); `art-director` scores the matched shots against the photos and accepts | `object-modeler` builds it and renders before/after; escalates what the spec leaves open | `scout` / `Explore` find the functions and OSM ids |
 | Any loop's end | the main session verifies; `art-director` judges the shots | `qa-tester` runs `tools/verify.sh` and the shot set | |
 
 A cheaper run that returns Open Questions, fails a gate, overshoots its files or can't be
@@ -177,6 +177,11 @@ per frame or adds geometry, materials or lights, anything for the phone):
 5. **It is written down**: a change note in `docs/changes/`; a note in the archive section for a new flag; CREDITS for anything new from outside.
 6. **It is honest**: what only the phone can tell (feel, heat, sound, touch) is named, with what
    the user should try; Open Questions list every default taken.
+
+**Landmark code** (`landmarks.gd`, `facade_kit.gd`) adds two things to either size: a facade
+element comes from the kit or is added to it (`docs/architecture/extending.md`, "Extending the
+facade kit"; verify step `facadekit`), and a change that means to leave other sites alone says
+so with `tools/site_parity.py` on two `site_dump.gd` folders, in the PR.
 
 ## CI by change kind
 

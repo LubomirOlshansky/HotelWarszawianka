@@ -422,7 +422,7 @@ func _context(hud: CanvasLayer) -> void:
 	# main.gd: A answers a card first, then the context button, then the rescue line's own A.
 	var main_text := FileAccess.get_file_as_string("res://scripts/main.gd")
 	var body := main_text.substr(main_text.find("func _primary("), 700)
-	var cards := body.find("trend_job.primary()")
+	var cards := body.find("activities.primary()")
 	var pill_at := body.find("hud.press_pill()")
 	if cards < 0 or pill_at < cards:
 		fails.append("P15 main.gd _primary doesn't press the context button after the cards")

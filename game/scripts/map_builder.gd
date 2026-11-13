@@ -2079,7 +2079,23 @@ var _yard = RailYard.new()
 ## A footway's lift over the ground (an island platform OSM maps as a footway: RailYard.HEIGHT),
 ## by its ends (RailYard.key); pedestrians.gd asks.
 func footway_lift(line: PackedVector2Array) -> float:
-	return float(_yard.lifts.get(RailYard.key(line), 0.0)) if line.size() >= 2 else 0.0
+	if line.size() < 2:
+		return 0.0
+	var lift := float(_yard.lifts.get(RailYard.key(line), 0.0))
+	if lift != 0.0:
+		return lift
+	# F (2026-11-13): people on the University Library's roof garden (landmarks.gd garden_lift)
+	if not _buw_looked:
+		_buw_looked = true
+		for l: Dictionary in data.get("landmarks", []):
+			if l.get("name", "") == "Biblioteka Uniwersytecka":
+				_library_ring = _pts(l["p"])
+	return Landmarks.garden_lift(line, _library_ring) if _library_ring.size() >= 3 else 0.0
+
+
+## The University Library's outline for footway_lift, looked up once.
+var _library_ring := PackedVector2Array()
+var _buw_looked := false
 
 
 func _load_cut() -> void:
