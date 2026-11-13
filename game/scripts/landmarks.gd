@@ -8037,7 +8037,8 @@ const EON_BRONZE_LIGHT := Color("#8a8b78")
 const EON_RED := Color(0.86, 0.09, 0.14)
 ## Medallions on the curve: [u along the arc 0..1, height over the ground, radius].
 const EON_MEDALLIONS := [[0.41, 19.8, 1.2], [0.83, 17.6, 1.0], [0.5, 15.8, 0.65], [0.12, 14.2, 1.0],
-		[0.8, 13.4, 1.3], [0.38, 11.4, 0.7], [0.72, 9.4, 1.1], [0.15, 7.8, 1.0]]
+		[0.8, 13.4, 1.3], [0.38, 11.4, 0.7], [0.72, 9.4, 1.1], [0.15, 7.8, 1.0],
+		[0.62, 5.6, 0.9], [0.3, 4.6, 0.8], [0.88, 6.4, 0.7], [0.2, 17.2, 0.8]]
 
 ## The Academy of Fine Arts (Wybrzeże Kościuszkowskie 37; spec docs/landmarks/specs/asp37.md): the
 ## 1911-14 school (Alfons Gravier) in pale plaster with its post-war storey and the new storey
@@ -8045,13 +8046,14 @@ const EON_MEDALLIONS := [[0.41, 19.8, 1.2], [0.83, 17.6, 1.0], [0.5, 15.8, 0.65]
 ## to the street and the side, a glass front to the courtyard.
 const ASP_OLD_AT := Vector2(520.0, -485.0)
 const ASP_NEW_AT := Vector2(480.0, -515.0)
-const ASP_OLD_EAVE := 19.2
-const ASP_OLD_TOP := 22.6
+const ASP_OLD_EAVE := 12.4
+const ASP_OLD_TOP := 15.4
 const ASP_NEW_H := 16.2
-const ASP_PLASTER := Color("#d8d0bd")
+const ASP_PLASTER := Color("#e2cbae")
+const ASP_CREAM := Color("#e6d8be")
 const ASP_ZINC := Color("#596066")
 const ASP_SAND := Color("#cdbc9a")
-const ASP_GLASS := Color("#3f525c")
+const ASP_GLASS := Color("#4d6670")
 
 
 func _find_eon41() -> void:
@@ -8189,26 +8191,6 @@ func _build_eon41(_site: Dictionary) -> void:
 	signs.append(["ELEKTRON", Vector3(s2.x, top, s2.y), Vector3(out_w.x, 0.0, out_w.y), k_sign, EON_RED])
 
 
-## Walls round `ring` from y0 to y1 with `street` (a Callable on the outward normal) choosing the
-## glass; the rest in `wall`.
-func _asp_walls(ring: PackedVector2Array, y0: float, y1: float, wall: Color, wall_mode: float, glass: Color,
-		is_glass: Callable) -> void:
-	var keep := _mode
-	var run := 0.0
-	for i in ring.size():
-		var a := ring[i]
-		var b := ring[(i + 1) % ring.size()]
-		var o := _out(ring, a, b)
-		if is_glass.call(o):
-			_mode = M_GLASS
-			_wall(a, b, y0, y1, o, glass, run)
-		else:
-			_mode = wall_mode
-			_wall(a, b, y0, y1, o, wall, run)
-		run += a.distance_to(b)
-	_mode = keep
-
-
 func _build_asp37(site: Dictionary) -> void:
 	var old_ring: PackedVector2Array = site["old"]
 	var new_ring: PackedVector2Array = site["new"]
@@ -8216,25 +8198,26 @@ func _build_asp37(site: Dictionary) -> void:
 	var g := _g
 	var none := Color(0, 0, 0, 0)
 	var skin := M_SKIN + float(S_PUNCHED) / 16.0
-	# The old school: plaster, its cornice, the new storey in dark zinc one metre back.
+	# The old school (photos): three storeys of cream-peach render with white cornices over a low
+	# plinth, under a dark zinc roof that steps in twice.
 	_prism(old_ring, g - 0.6, g + ASP_OLD_EAVE, ASP_PLASTER, none, skin, M_STONE)
-	_band(old_ring, 0.1, g - 0.6, g + 1.2, EON_BASE)
-	_band(old_ring, 0.3, g + ASP_OLD_EAVE - 0.6, g + ASP_OLD_EAVE, ASP_PLASTER.lightened(0.12))
-	var top_ring := _largest(Geometry2D.offset_polygon(old_ring, -1.0, Geometry2D.JOIN_MITER))
-	if top_ring.size() >= 3:
-		_prism(top_ring, g + ASP_OLD_EAVE - 0.1, g + ASP_OLD_TOP, ASP_ZINC, ASP_ZINC.lightened(0.08), skin, M_STONE)
-	else:
-		_cap(old_ring, g + ASP_OLD_EAVE, EON_ROOF)
+	_band(old_ring, 0.1, g - 0.6, g + 1.0, EON_BASE)
+	_band(old_ring, 0.3, g + ASP_OLD_EAVE - 0.6, g + ASP_OLD_EAVE, ASP_CREAM.lightened(0.15))
+	for step: Array in [[-1.0, 0.0, 1.5], [-3.2, 1.5, 3.0]]:
+		var top_ring := _largest(Geometry2D.offset_polygon(old_ring, float(step[0]), Geometry2D.JOIN_MITER))
+		if top_ring.size() >= 3:
+			var y0 := g + ASP_OLD_EAVE - 0.1 + float(step[1])
+			_prism(top_ring, y0, g + ASP_OLD_EAVE + float(step[2]), ASP_ZINC, ASP_ZINC.lightened(0.08), M_STONE, M_STONE)
 	_collide(old_ring)
 	pocket_rings.append(old_ring)
-	# JEMS's wing: sand concrete with punched windows to the street, glass to the courtyard (the
-	# faces turned south-west).
-	var court := Vector2(-0.7824, 0.6234)
-	_asp_walls(new_ring, g - 0.6, g + ASP_NEW_H, ASP_SAND, skin, ASP_GLASS, func(o: Vector2) -> bool: return o.dot(court) > 0.5)
-	_cap(new_ring, g + ASP_NEW_H, EON_ROOF)
-	_band(new_ring, 0.1, g - 0.6, g + 1.0, EON_BASE)
-	_band(new_ring, 0.3, g + ASP_NEW_H - 0.6, g + ASP_NEW_H, ASP_SAND.lightened(0.1))
-	_parapet(new_ring, g + ASP_NEW_H, 0.5, ASP_SAND)
+	# JEMS's wing (photos): tall reflective glass strips between cream render bands at the floor
+	# lines, the top floor and the roof in the same grey zinc as the old roof.
+	var h := ASP_NEW_H
+	_prism(new_ring, g - 0.6, g + h - 3.8, ASP_GLASS, none, M_GLASS, M_STONE)
+	for y: float in [3.3, 7.4, 11.5]:
+		_band(new_ring, 0.15, g + y, g + y + 0.9, ASP_CREAM)
+	_band(new_ring, 0.15, g - 0.6, g + 1.0, EON_BASE)
+	_prism(new_ring, g + h - 3.8, g + h, ASP_ZINC, ASP_ZINC.lightened(0.08), M_STONE, M_STONE)
 	_collide(new_ring)
 	pocket_rings.append(new_ring)
 
