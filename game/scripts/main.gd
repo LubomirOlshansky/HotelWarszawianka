@@ -4262,9 +4262,24 @@ func _build_city_life(data: Dictionary, world: Node3D) -> void:
 		trend_job.name = "TrendJob"
 		trend_job.autopilot = autopilot
 		trend_job.log_on = trend_log
+		trend_job.hud = hud
+		trend_job.dialogue = dialogue
+		trend_job.wallet = wallet
+		trend_job.missions = missions
+		trend_job.rivals = rivals
+		trend_job.jobs = jobs
+		trend_job.rides = rides
+		trend_job.graph = graph
+		trend_job.map = map
+		trend_job.car = car
+		trend_job.life = life
+		trend_job.crowds = crowds
+		trend_job.places = at
 		add_child(trend_job)
-		trend_job.setup({"hud": hud, "dialogue": dialogue, "wallet": wallet, "missions": missions, "rivals": rivals, "jobs": jobs,
-				"rides": rides, "graph": graph, "map": map, "car": car, "life": life, "crowds": crowds}, at, world)
+		trend_job.setup(world)
+		# The director counts it among the activities (one of the kit at a time); the job's own
+		# `_free` holds every rule for what is outside the kit, so its test here is "yes".
+		activities.add(trend_job, func() -> bool: return true)
 		jobs.trend = trend_job
 		trend_job.enter_padel = _enter_padel
 		trend_job.hour_now = func() -> float: return float(tod.local_clock()["hour"])
@@ -7827,8 +7842,6 @@ func _stop_assist() -> void:
 		pass
 	elif activities.targeted() != null:
 		at = activities.targeted().stop_spot()
-	elif trend_job != null and trend_job.has_target():
-		at = trend_job.stop_spot()
 	elif rides != null and rides.has_target():
 		at = rides.stop_spot()
 	elif jobs != null and jobs.has_target():
@@ -7935,16 +7948,6 @@ func _show_target() -> void:
 		hud.set_target(on, "%d m" % m, rivals.target_colour(), m > 12)
 		_put_target(Vector2(f.x, f.z), rivals.target_colour(), _guide_on() or rivals.main_race())
 		_new_target("race", f)
-		return
-	# Loop MW-4: the "Na czasie" job's queue, then its door.
-	if trend_job != null and trend_job.has_target() and Lines.shows(Lines.Line.CAR, flying):
-		var tp: Vector3 = trend_job.target_position()
-		var at_t := _vehicle_position()
-		var mt := roundi(Vector2(tp.x - at_t.x, tp.z - at_t.z).length())
-		var on_t := cam.unproject_position(tp + Vector3(0, 3.5, 0)) * float(view.stretch_shrink)
-		hud.set_target(on_t, "%d m" % mt, trend_job.target_colour(), mt > 12)
-		_put_target(Vector2(tp.x, tp.z), trend_job.target_colour(), _guide_on())
-		_new_target("job", tp)
 		return
 	# Loop 2d-1: a Podwózka ride's pin, passenger or door.
 	if rides != null and rides.has_target() and Lines.shows(Lines.Line.CAR, flying):
@@ -8234,8 +8237,6 @@ func _autopilot(dt: float) -> void:
 		return
 	if rides != null and rides.drive_player():
 		return  # loop 2d-1
-	if trend_job != null and trend_job.drive_player():
-		return  # loop MW-4
 	if jobs != null and jobs.drive_player():
 		return
 	var act := activities.targeted()

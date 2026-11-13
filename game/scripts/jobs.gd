@@ -549,7 +549,7 @@ func own_busy() -> bool:
 ## Loop MW-4: this script's own job or the "Na czasie" one (its card included) is on: rides.gd
 ## offers nothing then.
 func side_busy() -> bool:
-	return own_busy() or (trend != null and trend.state != 0)
+	return own_busy() or (trend != null and not trend.idle())
 
 
 func has_target() -> bool:

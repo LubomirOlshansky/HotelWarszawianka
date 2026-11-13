@@ -47,7 +47,7 @@ func _words() -> void:
 	var src := FileAccess.get_file_as_string("res://scripts/coffee_run.gd")
 	var tj := FileAccess.get_file_as_string("res://scripts/trend_job.gd")
 	var a := tj.find("# --- \"Kawowy rajd\"")
-	var b := tj.find("## --autopilot: the car slides")
+	var b := tj.find("static func _flat(")
 	if a < 0 or b < a:
 		problems.append("trend_job.gd has no coffee-run section")
 	else:
