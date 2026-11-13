@@ -19,8 +19,9 @@ extends SceneTree
 ##   the dropped order;  F. the craft kebab, the Zagłębie's shops and the trail;  G. the słoiki run
 ##   and its jars;  I. the director and the other jobs, a card of somebody else's;  J. the names
 ##   and the test flags;  H. the courier's race beside an order, where the two scripts meet (the
-##   challenge, L and the button, the win and the loss, what ends it, the night's roll; the race's
-##   own rules are check_side_jobs' and check_couriers');  K. the autopilot, frame by frame;
+##   challenge, L and the button, the win and the loss, what ends it, the night's roll, the
+##   autopilot taking it after its second; the race's own rules are check_side_jobs' and
+##   check_couriers');  K. the autopilot, frame by frame;
 ##   L. the least the game hands in;  M. what deliberate breaks of the script showed;  N. what 138 more
 ##   breaks showed: the kerb asked straight, the orders made straight, the first order's reach, the jars'
 ##   thresholds, the passenger's chat, the minimap's places and route, an order over the river, the
@@ -4235,8 +4236,10 @@ func _s_n_auto() -> void:
 			seen_ghost = true
 			var gh2: Ghost = r.traffic.ghosts[0]
 			if guard2 % 20 == 0:
-				followed = followed and r.car.global_position.distance_to(gh2.pos) < 0.01 and absf(angle_difference(r.car.rotation.y, gh2.yaw)) < 0.001 \
-						and absf(r.car.vel.length() - gh2.v) < 0.01 and r.car.vel.length() > 0.0 or gh2.v < 0.5
+				# The car is where the ghost is, turned as it and at its speed; it moves unless the ghost all but stands.
+				var as_ghost: bool = r.car.global_position.distance_to(gh2.pos) < 0.01 and absf(angle_difference(r.car.rotation.y, gh2.yaw)) < 0.001 \
+						and absf(r.car.vel.length() - gh2.v) < 0.01
+				followed = followed and as_ghost and (r.car.vel.length() > 0.0 or gh2.v < 0.5)
 		elif d_gone < 0.0 and seen_ghost:
 			d_gone = last_d
 	_ok(seen_ghost and followed, "N: after a run off the roads a run on a road has a ghost again, and the car is the ghost's (position, yaw, speed)")
@@ -4399,6 +4402,16 @@ func _s_k_auto() -> void:
 		await _af(10)
 		guard += 10
 	_ok(_stage() == 3 and int(q._jars) == 6, "K: the słoiki run arrives with six jars")
+	# H12: the courier's challenge on the autopilot: his own autopilot takes it after 1 s, before the order's 4 s.
+	_rig(true, {}, {"autopilot": true})
+	q = r.q
+	q.courier.force = true
+	if _h_up(700) >= 0:
+		_ok(_stage() == 1 and int(q.courier.state) == 2 and r.hud.challenge == "WYŚCIG · PĘDZIK", "H12: on the autopilot the challenge is up on the order's card")
+		await _af(52)
+		_ok(_stage() == 1 and int(q.courier.state) == 2, "H12: still the order and the challenge at 0.9 s")
+		await _af(24)
+		_ok(_stage() == 2 and int(q.courier.state) == 3 and r.hud.challenge == "", "H12: by 1.3 s the race is on and the order has gone, before its own 4 s")
 	_auto = false
 	_rig()
 	q = r.q
