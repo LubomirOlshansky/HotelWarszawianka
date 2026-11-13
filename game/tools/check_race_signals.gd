@@ -14,7 +14,8 @@ extends SceneTree
 ## - the headlights flash twice once it has been held up for its `flash` seconds, not again for
 ##   FLASH_AGAIN s, and never for a rival that never flashes;
 ## - a mistake swings the body and the swing dies out; a phone call's weave is smaller;
-## - the lamps: four hidden meshes, each on its own end and side of the car and near its body;
+## - the lamps: four hidden meshes, each on its own end and side of the car and near its body,
+##   each one draw with its glow on the road at least 2 m across;
 ## - every racer profile has the four numbers inside their ranges, Seba dares most and never
 ##   indicates, Halina wants the widest gap and indicates earliest, every home district exists.
 ##   godot --headless --path game --script res://tools/check_race_signals.gd
@@ -331,8 +332,13 @@ func _lamps() -> void:
 			names.append(c.name)
 			_expect(not (c as MeshInstance3D).visible, "the %s lamp is lit from the start" % c.name)
 			var box: AABB = (c as MeshInstance3D).mesh.get_aabb()
-			_expect(box.position.x >= -size.x * 0.5 - 0.3 and box.end.x <= size.x * 0.5 + 0.3 and box.position.z >= -size.z * 0.5 - 0.3 and box.end.z <= size.z * 0.5 + 0.3
-					and box.position.y >= 0.2 and box.end.y <= size.y, "the %s lamp is off a car of %s: %s" % [c.name, size, box])
+			# Its glow on the road reaches past the car by the largest pool, and lies on the road.
+			var reach := RaceSignals.FLASH_POOL * 1.6 + 0.3
+			_expect(box.position.x >= -size.x * 0.5 - reach and box.end.x <= size.x * 0.5 + reach and box.position.z >= -size.z * 0.5 - reach and box.end.z <= size.z * 0.5 + reach
+					and box.position.y >= 0.0 and box.position.y <= RaceSignals.POOL_Y + 0.01 and box.end.y <= size.y, "the %s lamp is off a car of %s: %s" % [c.name, size, box])
+			_expect((c as MeshInstance3D).mesh.get_surface_count() == 1, "the %s lamp is %d draws, not one" % [c.name, (c as MeshInstance3D).mesh.get_surface_count()])
+			# Big enough to read from the game's height: its glow at least 2 m across.
+			_expect(minf(box.size.x, box.size.z) >= 2.0, "the %s lamp's glow is %.1f m across" % [c.name, minf(box.size.x, box.size.z)])
 			match String(c.name):
 				"brake":
 					_expect(box.position.z > 0.0, "the brake lights are not at the rear")

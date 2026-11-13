@@ -921,7 +921,11 @@ changes the driving:
 - a wobble of the body on a mistake in a corner, and a slow weave while Mike is on the phone.
 
 The lamps are four small meshes on the rival's car with one shared unshaded material, each drawn
-only while it is lit: at most two draw calls more for one car.
+only while it is lit: at most two draw calls more for one car. After the Mac's look (2026-11-13: at the normal camera
+a rival is about 10 px long and its lamps were 1 to 2 px) the lamps are 1.3 times bigger and each
+has a soft glow of its colour on the road round it (1.5 m behind for the brake lights, 1.1 m at
+the corner for an indicator, 1.6 m ahead for the flash), in the lamp's own mesh and material (now
+alpha-blended), so a lit lamp is still one draw.
 
 **The result card** (`race_report.gd`, `rivals.gd` `_report_close`, `_report_art`, `hud.gd`
 `set_card_art`). While a street race runs the report keeps both cars' ways. At the end it splits
