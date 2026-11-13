@@ -36,7 +36,8 @@ extends Node
 ## opens the settings panel at tab N.
 ## Camera loop: --cam-log prints the camera every 0.25 s (`cam:` lines), --cam-test=classic_turn|
 ## point_release|brake drives one camera moment in the real city (frame strips).
-## Loop G1: --quality=auto|low|medium|high|ultra (Auto: the level for this device, tiers.gd),
+## Loop G1: --quality=auto|low|medium|high|ultra|experimental (Auto: the level for this device, tiers.gd;
+## Experimental, F 2026-11-10: Ultra plus the trailer's extras, opt-in and never saved),
 ## --model=ID picks as if on that device (iPhone12,1), --governor=on|off, --stress=cpu:N|wait:N
 ## with --stress-from=S --stress-to=S (load that makes the governor step down and back up).
 ## Loop G1b: --last-session=struggled|calm starts Auto as if the last session at the sharp image
@@ -158,6 +159,7 @@ const BoatRace := preload("res://scripts/boat_race.gd")
 ## na kółkach", Claire's drive round Kieślowski's Warsaw, and "Kino objazdowe", the director
 ## friend's cinema tour (F's asks 2026-11-07).
 const Activities := preload("res://scripts/activities.gd")
+const PauseReasons := preload("res://scripts/pause_reasons.gd")
 const Tour := preload("res://scripts/tour.gd")
 
 ## "Dym u Senatorka", Ivan's shisha night (shisha.gd, F's ask 2026-11-08), and the lounge upstairs
@@ -611,6 +613,10 @@ var boat_race: BoatRace
 ## The activity kit's director (activities.gd): which activity of the kit is on, who may start,
 ## where it sends the player. The tours below are the first to join it.
 var activities := Activities.new()
+## The game's pause (pause_reasons.gd, TD-20): the loading bar, the settings card, the full map and
+## the garage card each hold their own reason, and the game runs when none is held. Nothing here
+## or in a system writes `get_tree().paused` itself.
+var _pause: PauseReasons
 ## The Kieślowski tour (tour.gd with data/dekalog_tour.json): --dekalog=call (Claire phones now), =go (the tour starts
 ## with the car at the pickup), =auto (that, the cards answered by themselves), =0 (none); --dekalog-log.
 var dekalog_tour: Tour
@@ -821,6 +827,8 @@ const QUALITY := Tiers.QUALITY
 ## or a level), the level Auto picks for this device and the model id it read (--model= for tests).
 var quality := Tiers.HIGH
 var quality_choice := Tiers.AUTO
+## The 3D SubViewport's own anisotropic filtering (Experimental raises it to 16x).
+var _sv_aniso := Viewport.ANISOTROPY_4X
 var auto_quality := Tiers.HIGH
 var model_name := ""
 var _flag_model := ""
@@ -1008,6 +1016,7 @@ var _cam_turn_max := 0.0
 
 
 func _ready() -> void:
+	_pause = PauseReasons.new(get_tree())
 	_parse_args()
 	_trap_start()  # the error trap (TD-14): before anything else can fail
 	Gamepad.install()  # the gamepad loop: the pad's stick and trigger actions
@@ -1093,13 +1102,13 @@ func _ready() -> void:
 		get_tree().quit(1)
 		return
 	if title != null:
-		get_tree().paused = true  # the loading bar: nothing half-built moves between the build's steps
+		_pause.hold(PauseReasons.LOAD)  # the loading bar: nothing half-built moves between the build's steps
 		title.cap = lerpf(LOAD_FILES, LOAD_BUILT, LOAD_MARKS[0])
 		LoadYield.begin()  # the long setups let a frame through now and then (load_yield.gd)
 	await _build_world()
 	LoadYield.finish()
 	if title != null:
-		get_tree().paused = false
+		_pause.release(PauseReasons.LOAD)
 	view.visible = true
 	_preloaded.clear()
 	_put_at_resume()
@@ -1459,7 +1468,7 @@ func _on_new_game() -> void:
 		return
 	_remember_on = false
 	_new_game_pending = true
-	get_tree().paused = false
+	_pause.release_all()  # the scene reloads: nothing of this one keeps the next paused
 	get_tree().call_deferred("reload_current_scene")
 
 
@@ -1624,6 +1633,8 @@ func _build_world() -> void:
 	add_child(view)
 	sv = SubViewport.new()
 	sv.msaa_3d = Viewport.MSAA_DISABLED
+	# Experimental's extras restore this on the other levels (_apply_experimental).
+	_sv_aniso = sv.anisotropic_filtering_level
 	sv.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
 	sv.physics_object_picking = false
 	# The sound's listener (sfx.gd) lives in this viewport's 3D world.
@@ -2107,6 +2118,8 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	world.add_child(walkers)
 	await walkers.setup(map, cam, traffic, data)
 	await LoadYield.tick("walkers.setup")
+	if solo_site != "":
+		walkers.visible = false  # a landmark alone (--solo): no people either
 	# First scene item 6: busier pavements on Marszałkowska by the start.
 	var busy := walkers.set_busy(FirstScene.FRAME_O, FirstScene.FRAME_S, FirstScene.FRAME_T, FirstScene.BUSY_BANDS, FIRST_SCENE)
 	print("first scene: %d busy pavement points" % busy)
@@ -2337,11 +2350,13 @@ func _build_sound(data: Dictionary, world: Node3D) -> void:
 
 
 ## Quality (U, Settings, --quality=): loop G1: Auto (Tiers.AUTO: the level Auto picked for this
-## device) or Low, Medium, High, Ultra. The governor starts again from the top.
+## device) or Low, Medium, High, Ultra, Experimental. The governor starts again from the top.
+## Experimental is never saved (the saved choice stays what it was): a phone that can't hold it,
+## or crashes on its 8192 shadow map, starts the next launch at the player's last real level.
 func _set_quality(choice: int) -> void:
-	quality_choice = clampi(choice, Tiers.AUTO, Tiers.ULTRA)
+	quality_choice = clampi(choice, Tiers.AUTO, Tiers.EXPERIMENTAL)
 	quality = auto_quality if quality_choice == Tiers.AUTO else quality_choice
-	if settings.quality != quality_choice and _started:
+	if settings.quality != quality_choice and _started and quality_choice != Tiers.EXPERIMENTAL:
 		settings.quality = quality_choice
 		settings.save()
 	var qs: Dictionary = QUALITY[quality]
@@ -2361,6 +2376,7 @@ func _set_quality(choice: int) -> void:
 	if life != null:
 		life.amount = float(life_flag) * (0.5 if quality == Tiers.LOW else 1.0)
 	RenderingServer.directional_shadow_atlas_set_size(qs["shadow_size"], true)
+	_apply_experimental()
 	tod.refresh()
 	weather.density = qs["rain"]
 	weather.refresh()
@@ -2368,6 +2384,32 @@ func _set_quality(choice: int) -> void:
 	_apply_extras()
 	if hud != null:
 		_apply_style()
+
+
+## Experimental's extras (tiers.gd, F 2026-11-10: the beta trailer's capture settings), on the 3D
+## image and the sun's shadows; every other level gets the engine's defaults back. The image's
+## full resolution is tiers.gd own_scale's (_apply_style).
+func _apply_experimental() -> void:
+	var on := quality == Tiers.EXPERIMENTAL
+	sv.msaa_3d = Tiers.extra(quality, "msaa")
+	sv.anisotropic_filtering_level = Tiers.extra(quality, "aniso") if on else _sv_aniso
+	sv.mesh_lod_threshold = Tiers.extra(quality, "lod")
+	RenderingServer.directional_soft_shadow_filter_set_quality(Tiers.extra(quality, "soft"))
+	if on:
+		print("quality: Experimental's extras on · full-resolution image, %d sun shadow map with soft edges, MSAA 4x, 16x anisotropic, every mesh at full detail" % int(QUALITY[quality]["shadow_size"]))
+
+
+## Experimental: the governor's first GPU drop there (frames late with the GPU the cause) steps
+## the session back to Ultra (not saved: the saved choice never was Experimental), with a toast so
+## the tester knows the phone couldn't hold it. A CPU drop stays the governor's own business.
+func _experimental_drop(line: String) -> bool:
+	if quality != Tiers.EXPERIMENTAL or governor.gpu >= Governor.TOP:
+		return false
+	print("quality: Experimental too heavy here (%s) · back to Ultra for this session" % line.trim_prefix("governor: "))
+	_set_quality(Tiers.ULTRA)
+	if hud != null:
+		hud.toast("Eksperymentalna za ciężka: wracam do Ultra", "Experimental was too heavy: back to Ultra · Settings → Obraz")
+	return true
 
 
 ## Loop G1: the quality's extras as they are now: the level's own, less what the governor took
@@ -2418,7 +2460,8 @@ func _govern() -> void:
 	var line := governor.tick(now, _wide)
 	if line != "":
 		print("%s · at %.1f s" % [line, now - _stress_t0 / 1000.0])
-		_apply_extras()
+		if not _experimental_drop(line):
+			_apply_extras()
 	# Loop G1b: the session's verdict on Auto's image (cheap until one is due); with
 	# --governor=log the tally's minutes too.
 	if governor.track and _image_verdict != "struggled" and (governor.struggled()
@@ -2633,7 +2676,7 @@ func _start_phone_bench() -> void:
 		busy = "Najpierw wyląduj · Land first"
 	elif rivals != null and rivals.racing():
 		busy = "Najpierw skończ wyścig · Finish the race first"
-	elif jobs != null and jobs.busy():
+	elif jobs != null and activities.job_on():
 		busy = "Najpierw skończ zlecenie · Finish the job first"
 	elif missions.has_target():
 		busy = "Najpierw skończ akcję · Finish the rescue first"
@@ -2732,6 +2775,21 @@ func _end_phone_bench(done: bool) -> void:
 	hud.show_bench_card(text)
 
 
+## What rivals.gd asks the side jobs by name, answered as jobs.gd did before it joined the kit
+## (`_build_side_jobs`). It goes when the rivals move to the kit.
+class JobsForRivals extends Node:
+	## () -> bool: one of the side jobs is on (the director's `job_on`).
+	var job_on: Callable
+	## () -> bool: a Podwózka request card is up (rides.gd `offering`).
+	var offered: Callable
+
+	func busy() -> bool:
+		return bool(job_on.call())
+
+	func ride_offered() -> bool:
+		return bool(offered.call())
+
+
 ## The side jobs (kebab stands, the słoiki run) and the easter eggs.
 func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
 	var nodes := {"hud": hud, "bubbles": bubbles, "dialogue": dialogue, "wallet": wallet, "missions": missions,
@@ -2741,10 +2799,31 @@ func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
 	jobs.craft_plain = craft_plain
 	if start_heat >= 0.0:
 		jobs.start_heat = start_heat
+	jobs.hud = hud
+	jobs.bubbles = bubbles
+	jobs.dialogue = dialogue
+	jobs.wallet = wallet
+	jobs.missions = missions
+	jobs.rivals = rivals
+	jobs.graph = graph
+	jobs.traffic = traffic
+	jobs.map = map
+	jobs.car = car
+	jobs.tod = tod
+	jobs.map_data = data
 	add_child(jobs)
-	jobs.setup(nodes, data, world)
+	jobs.setup(world)
+	if solo_site != "":
+		jobs.clear_stands()  # a landmark alone (--solo): no kebab stand beside it
 	if rivals != null:
-		rivals.jobs = jobs
+		# WORKAROUND(arch): rivals.gd asks the side jobs by name ("is a job on?", "is a ride's
+		# request up?") and cannot change while the racer-AI rebuild has it, see tech-debt TD-1.
+		var seen := JobsForRivals.new()
+		seen.name = "JobsForRivals"
+		seen.job_on = activities.job_on
+		seen.offered = func() -> bool: return rides != null and rides.offering()
+		add_child(seen)
+		rivals.jobs = seen
 	# --- loop 2d-1: Podwózka, the app-taxi side job (and the GPS moments of the app-taxis) ---
 	rides = Rides.new()
 	rides.autopilot = autopilot
@@ -2777,6 +2856,9 @@ func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
 	# The director counts it among the activities (one of the kit at a time); the ride's own
 	# `_free` holds every rule for what is outside the kit, so its test here is "yes".
 	activities.add(rides, func() -> bool: return true)
+	# The deliveries are of the kit too (jobs.gd): the director counts them (`job_on`, the M and K
+	# keys, the door as the target). Their own `_free` holds every rule for when one may start.
+	activities.add(jobs, func() -> bool: return true)
 	jobs.rides = rides
 	# --- end loop 2d-1 ---
 	eggs = Eggs.new()
@@ -2784,6 +2866,8 @@ func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
 	eggs.force_street = barrier_force
 	world.add_child(eggs)
 	eggs.setup(nodes, data)
+	if solo_site != "":
+		eggs.visible = false  # a landmark alone (--solo): no easter-egg markers
 	zamkowy_life = PlacZamkowyLife.new()
 	world.add_child(zamkowy_life)
 	zamkowy_life.setup(map)
@@ -3161,6 +3245,7 @@ func _build_first10() -> void:
 	first10.map = map
 	first10.car = car
 	first10.jobs = jobs
+	first10.job_on = activities.job_on
 	first10.rivals = rivals
 	first10.missions = missions
 	first10.police = police
@@ -3202,7 +3287,7 @@ func _build_garage(world: Node3D) -> void:
 	garage.busy = func() -> bool:
 		return flying or title != null or _phone_bench or hud.settings_open() or hud.full_map_open() \
 				or (fotka != null and fotka.is_open()) or missions.has_target() \
-				or (jobs != null and jobs.busy()) or (rivals != null and rivals.busy()) \
+				or (jobs != null and activities.job_on()) or (rivals != null and rivals.busy()) \
 				or (police != null and not police.calm())
 	world.add_child(garage)
 	if paint_flag != "":
@@ -3222,10 +3307,10 @@ func _build_garage(world: Node3D) -> void:
 	garage.opened.connect(func() -> void:
 		car.vel = Vector3.ZERO
 		car.forward_speed = 0.0
-		get_tree().paused = true
+		_pause.hold(PauseReasons.GARAGE)
 		_blip_sound())
 	garage.closed.connect(func() -> void:
-		get_tree().paused = false
+		_pause.release(PauseReasons.GARAGE)
 		_blip_sound())
 
 
@@ -3588,7 +3673,7 @@ func _shisha_secret(busy: bool) -> void:
 
 ## Something runs: a race, a job, a ride, a rescue, a questline, a tow (quest focus: the map goes quiet).
 func _quest_running() -> bool:
-	if (rivals != null and rivals.busy()) or (jobs != null and jobs.busy()) or (missions != null and missions.has_target()):
+	if (rivals != null and rivals.busy()) or (jobs != null and activities.job_on()) or (missions != null and missions.has_target()):
 		return true
 	if (boat_race != null and boat_race.busy()) or (rave != null and rave.busy()) or (ev_tow != null and ev_tow.busy()):
 		return true
@@ -4005,7 +4090,7 @@ func _free_block(ringing_ok := false, guide_ok := false) -> String:
 	var ringing: bool = ringing_ok and missions.state == Missions.State.RINGING
 	if hud.cards_up() or (missions.state != Missions.State.CLOSED and not ringing) or missions.has_target():
 		return "a card, mission or rescue target is up"
-	if (rides != null and rides.busy()) or (jobs != null and jobs.busy()) or (trend_job != null and trend_job.busy()):
+	if (rides != null and rides.busy()) or (jobs != null and activities.job_on()) or (trend_job != null and trend_job.busy()):
 		return "ride/job/trend job busy"
 	if rivals != null and rivals.busy():
 		return "rival race busy"
@@ -4145,7 +4230,7 @@ func _ev_free() -> bool:
 		return false
 	if hud.cards_up() or missions.state != Missions.State.CLOSED or missions.has_target():
 		return false
-	if (rides != null and rides.busy()) or (jobs != null and jobs.busy()) or (trend_job != null and trend_job.busy()):
+	if (rides != null and rides.busy()) or (jobs != null and activities.job_on()) or (trend_job != null and trend_job.busy()):
 		return false
 	if rivals != null and rivals.busy():
 		return false
@@ -5380,6 +5465,9 @@ func _parse_args() -> void:
 			solo_site = arg.trim_prefix("--solo=")
 			MapBuilder.solo_site = solo_site
 			no_traffic = true
+			crowd_flag = 0  # nothing but the site in the picture (the turntable): no crowds, packs, fans, circles
+			life_flag = 0
+			no_parodies = true  # no Leżak scooters, frogs or venue neon beside the model
 		elif arg.begins_with("--solo-look="):
 			solo_look = arg.trim_prefix("--solo-look=")
 		elif arg == "--tunnel":
@@ -6164,7 +6252,7 @@ func _open_settings() -> void:
 		_end_phone_bench(false)
 	print("settings panel: open (paused)")
 	_blip_sound()
-	get_tree().paused = true
+	_pause.hold(PauseReasons.SETTINGS)
 	hud.open_settings(_settings_state())
 
 
@@ -6190,7 +6278,7 @@ func _open_full_map() -> void:
 	_story_tick()  # the questlines' starts and quest focus as they are now (the same)
 	print("full map: open (paused), %d places found on it" % found.size())
 	_blip_sound()
-	get_tree().paused = true
+	_pause.hold(PauseReasons.MAP)
 	if hud.full_map != null:
 		hud.full_map.hospitals = missions != null and missions.has_target()  # only a rescue needs them
 	hud.open_full_map(Vector2(pos.x, pos.z), yaw, found)
@@ -6249,12 +6337,12 @@ func _quest_entries() -> Array:
 	if (rivals != null and rivals.busy()) or (missions != null and missions.has_target()):
 		return out
 	var places: Array = jobs.offer_places() if jobs != null else []
-	if trend_job != null and (jobs == null or not jobs.busy()) and (rides == null or not rides.busy()):
+	if trend_job != null and (jobs == null or not activities.job_on()) and (rides == null or not rides.busy()):
 		places.append_array(trend_job.offer_places())
 	for p: Dictionary in places:
 		out.append(Lines.entry("%s_%.0f_%.0f" % [p["group"], p["at"].x, p["at"].y], str(p["group"]), Lines.Line.CAR,
 				str(p["name"][0]), str(p["name"][1]), p["at"], p["colour"]))
-	if jobs != null and jobs.busy():
+	if jobs != null and activities.job_on():
 		return out
 	if rivals != null and rivals.ladder != null and wallet != null:
 		var nxt: int = rivals.ladder.next_rung()
@@ -6315,7 +6403,12 @@ func _quest_now() -> Dictionary:
 		what = ["Teraz · Podwózka", "Now · Podwózka ride"]
 		at = rides.target_position()
 		colour = rides.target_colour()
-	elif jobs != null and jobs.has_target():
+	elif jobs != null and jobs.round_busy() and jobs.roundup.has_target():
+		# The Leżak round-up's next Leżak or depot (jobs.gd answered for it before it joined the kit).
+		what = ["Teraz · zlecenie", "Now · job"]
+		at = jobs.roundup.target_position()
+		colour = jobs.roundup.target_colour()
+	elif jobs != null and (jobs.has_target() or jobs.pointing()):
 		what = ["Teraz · zlecenie", "Now · job"]
 		at = jobs.target_position()
 		colour = jobs.target_colour()
@@ -6423,7 +6516,7 @@ func _on_quest_picked(e: Dictionary) -> void:
 func _teleport_refusal() -> Array:
 	if rivals != null and rivals.racing():
 		return ["Nie teraz: trwa wyścig", "Not now: you're racing"]
-	if (jobs != null and jobs.busy()) or (jobs != null and jobs.courier != null and jobs.courier.racing()):
+	if (jobs != null and activities.job_on()) or (jobs != null and jobs.courier != null and jobs.courier.racing()):
 		return ["Nie teraz: masz zlecenie", "Not now: you're on a job"]
 	if missions != null and missions.has_target():
 		return ["Nie teraz: trwa akcja ratunkowa", "Not now: a rescue is on"]
@@ -6505,14 +6598,14 @@ func _teleport_test() -> void:
 
 
 func _close_full_map() -> void:
-	print("full map: closed")
-	get_tree().paused = false
+	_pause.release(PauseReasons.MAP)
+	print("full map: closed%s" % _pause.still())
 	_blip_sound()
 
 
 ## What the settings panel shows (loop 2e: also the camera, time of day, weather, style, VHS).
 func _settings_state() -> Dictionary:
-	# Loop G1: the panel's quality row is Auto, then Low..Ultra (the choice + 1).
+	# Loop G1: the panel's quality row is Auto, then Low..Ultra, Experimental (the choice + 1).
 	# Loop G1b: what Auto draws here: "High ostry" (the sharp image), "High ×2" (the fallback)
 	# where its budget binds, else the level.
 	var auto_name: String = Tiers.NAMES[auto_quality]
@@ -6560,8 +6653,8 @@ func _set_language(code: String) -> void:
 
 
 func _close_settings() -> void:
-	print("settings panel: closed")
-	get_tree().paused = false
+	_pause.release(PauseReasons.SETTINGS)
+	print("settings panel: closed%s" % _pause.still())
 	_blip_sound()
 	# Loop MW-6 (Open Question 7): Spacer offered once, after the first pause.
 	if not settings.wander_offered and spacer != null and not spacer.on:
@@ -6915,7 +7008,7 @@ func _water_kind(p: Vector3) -> String:
 
 ## Loop 10a: what is running, for the water test's lines.
 func _activity() -> String:
-	return "job %s, rescue %s, race %s, wallet %d zł" % ["on" if jobs != null and jobs.busy() else "none",
+	return "job %s, rescue %s, race %s, wallet %d zł" % ["on" if jobs != null and activities.job_on() else "none",
 			"on" if missions.has_target() else "none", "on" if rivals != null and rivals.racing() else "none", wallet.zl]
 
 
@@ -7931,7 +8024,7 @@ func _stop_assist() -> void:
 		pass
 	elif activities.targeted() != null:
 		at = activities.targeted().stop_spot()
-	elif jobs != null and jobs.has_target():
+	elif jobs != null and jobs.pointing():
 		at = jobs.stop_spot()
 	elif missions.has_target():
 		at = missions.stop_spot()
@@ -8036,7 +8129,9 @@ func _show_target() -> void:
 		_put_target(Vector2(f.x, f.z), rivals.target_colour(), _guide_on() or rivals.main_race())
 		_new_target("race", f)
 		return
-	if jobs != null and jobs.has_target() and Lines.shows(Lines.Line.CAR, flying):
+	# The pointer to the next kebab stand (the delivered card's NASTĘPNE): no activity is on then.
+	# (A delivery's door is the kit's target, above.)
+	if jobs != null and jobs.pointing() and Lines.shows(Lines.Line.CAR, flying):
 		var j: Vector3 = jobs.target_position()
 		var at_j := _vehicle_position()
 		var mj := roundi(Vector2(j.x - at_j.x, j.z - at_j.z).length())
@@ -8314,8 +8409,6 @@ func _autopilot(dt: float) -> void:
 		return
 	if rivals != null and rivals.drive_player():
 		return
-	if jobs != null and jobs.drive_player():
-		return
 	var act := activities.targeted()
 	if act != null and act.drive_player():
 		return  # it drives the car itself (a ride on the app's route: rides.gd)
@@ -8385,7 +8478,7 @@ func _toggle_vehicle() -> void:
 	if not grounded.is_empty():
 		hud.toast(str(grounded[0]), str(grounded[1]))
 		return
-	if jobs != null and jobs.busy() and not flying:
+	if jobs != null and activities.job_on() and not flying:
 		hud.toast("Najpierw dokończ kurs: zamówienie jedzie autem", "Finish the job first: it rides in the car")
 		return
 	if not flying and car.in_water:
@@ -8643,9 +8736,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			KEY_ESCAPE:
 				_open_settings()
 			KEY_U:
-				# Loop G1: Auto → Low → Medium → High → Ultra → Auto.
+				# Loop G1: Auto → Low → Medium → High → Ultra → Experimental → Auto.
 				_blip_sound()
-				_set_quality(Tiers.AUTO if quality_choice >= Tiers.ULTRA else quality_choice + 1)
+				_set_quality(Tiers.AUTO if quality_choice >= Tiers.EXPERIMENTAL else quality_choice + 1)
 			KEY_L:
 				_flash()
 			KEY_MINUS:
@@ -8657,10 +8750,10 @@ func _unhandled_key_input(event: InputEvent) -> void:
 ## M / the pad's A: the mission card's first button (loop 2d-1: a Podwózka request or result first).
 ## The context button comes after the cards (a card on screen is what A answers first) and before
 ## the rescue line's own A (which offers the next call): the pad had no way to press KASETA, START
-## KURS or POMOC DROGOWA (2026-11-03).
+## KURS or POMOC DROGOWA (2026-11-03). The director asks each activity in turn (a ride, a
+## delivery, the round-up, a trend job).
 func _primary() -> void:
-	if (rides != null and rides.primary()) or (jobs != null and jobs.primary()) \
-			or (trend_job != null and trend_job.primary()):
+	if activities.primary():
 		return
 	if missions.state == missions.State.OFFER or missions.state == missions.State.RESULT:
 		missions.primary()
@@ -8670,8 +8763,7 @@ func _primary() -> void:
 
 ## K / the pad's X: the mission card's second button.
 func _secondary() -> void:
-	if (rides == null or not rides.secondary()) and (jobs == null or not jobs.secondary()) \
-			and (trend_job == null or not trend_job.secondary()):
+	if not activities.secondary():
 		missions.secondary()
 
 

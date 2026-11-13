@@ -421,6 +421,21 @@ at the hospital. Out of time: TRY AGAIN, NEXT CALL or FREE ROAM.
 - **One activity at a time**: a job starts only with no rescue or race under way and not from
   the helicopter; while it runs, rescue calls and race challenges wait, and the helicopter
   stays parked (the order rides in the car).
+  Since 2026-11-13 (tech-debt TD-1) `jobs.gd` is an activity of the kit (`activity.gd`) and its
+  fourth side job: a pull-in starts it with no call, and the order card, the drive and the result
+  card are the stages of the kit's run (`stage`). The kit keeps its cards, its status line, the
+  ✕, the door's ring and the end; the arrow, the metres, the minimap's dot, the stop assist and
+  the autopilot's car read the door through the director, and main.gd's own lines keep only the
+  pointer to the next stand after NASTĘPNE, which is no run and is asked apart
+  (`jobs.pointing()`). "Is a side job on?" is the director's answer (`activities.job_on()`), and
+  the M and K keys reach a card through the director (`activities.primary()`, `secondary()`).
+  When a delivery ends the kit takes down only a card of its own, a press reaches the job only
+  on its own card, and its card comes back when another card that covered it goes (the old
+  script took down whichever card was up and heard every press). The play has its own check:
+  `check_job_play.gd` (verify step `jobplay`, run at `--fixed-fps 60`): the real `jobs.gd` on
+  the committed map, what `setup` builds, the pull-in, the order and its count-down, the drive,
+  the heat, the jars, the door, the result cards, the craft kebab and the Zagłębie, the pointer,
+  the courier beside an order, other cards and other jobs, the test flags and the autopilot.
 - **Dialogue** (`dialogue.gd`): loads `data/dialogue.json` (95 original Polish lines with
   English subtitles; a line can be tagged for a situation, e.g. roof-rescue or across-the-river
   lines) and picks lines per group from a shuffled bag, never the same twice in a row. An AI
@@ -972,7 +987,7 @@ the frame did.) Loop 2e cut it to four lines; loop G1 made the last one the qual
 scale and the governor (`High ×2 · gov GPU 2/2 · CPU 2/2 · wide`); objects and the shadow pass's
 triangles are on the BENCH card.
 
-**Quality** (QUALITY, U, Settings, `--quality=auto|low|medium|high|ultra`; saved since loop 2a;
+**Quality** (QUALITY, U, Settings, `--quality=auto|low|medium|high|ultra|experimental`; saved since loop 2a;
 loop 2b made Medium and Low real steps; loop G1 added **Auto**, the default, and **Ultra**,
 `tiers.gd`):
 
@@ -4233,7 +4248,8 @@ Since 2026-11-13 (tech-debt TD-1) `roundup_job.gd` is an activity of the kit (`a
 main.gd's child, in the frame just before `jobs.gd`: `jobs.gd` no longer steps it nor slides the
 autopilot's car for it (main.gd's `_slide_car` does, as for every activity of the kit), and the
 bench's "side jobs + eggs" line no longer holds its step (about 1 µs a frame while idle).
-`jobs.gd` still answers `busy`, the target and the card keys for it.
+`jobs.gd` answered `busy`, the target and the card keys for it until it joined the kit itself
+(the same day): the director does now, and `courier_race.gd` stays the deliveries' child.
 Data: `eggs.json` E34 (`event`) and E40 (`stop`, 8 m, 2 s): no words changed.
 
 - **The courier race** (parodies.md 4.3): at night, a kebab order rolls (`CourierRace.roll`, by the
@@ -4498,7 +4514,9 @@ ring), `garage_card.gd` (new: the paint card), `wallet.gd` (`spend`, `paint`, `p
   "Warsztat u Mirka otwarty: Brzeska, Praga. Lakier za złotówki." The ring is always open then.
 - **The card**: drive into the ring and stop (under 1.5 m/s) with nothing else on (no job, ride,
   race, rescue, police, helicopter, map or settings open): the game pauses under the card like the
-  settings card. Title and wallet, Mirek's line (Polish over English), the eight paints as
+  settings card. (TD-20, 2026-11-13: each card holds its own reason in `pause_reasons.gd`; the
+  full map that a tap on the minimap opens over this card no longer starts the game when it
+  closes.) Title and wallet, Mirek's line (Polish over English), the eight paints as
   swatches (the colour with its stripe, the Polish name, the price, "na aucie · on", "masz · yours"
   or "k/5 sekretów"), the action for the swatch picked (KUP ZA 300 ZŁ · Buy, LAKIERUJ · Paint it
   free, BRAKUJE 120 ZŁ, ZA 5 SEKRETÓW; greyed when it can't be done) and WYJAZD · Drive off (Esc
@@ -5862,7 +5880,7 @@ Command-line options (after `--`):
 | `--clock=HH:MM` / `--date=YYYYMMDD` | start Live's clock at that Warsaw time (and date; default today); loop MW-3: with a fixed look (`--time=night --clock=01:00`) the game clock starts there, the look stays |
 | `--weather=clear\|rain` | start dry or in the rain (default clear) |
 | `--perf` | show the performance overlay (loop 2e: four lines: fps, frame time, worst, cap · CPU process + physics + draw, GPU, memory · draw calls by pass · objects, triangles) |
-| `--quality=auto\|low\|medium\|high\|ultra` | the quality for this run (not saved; loop G1: default Auto, the level `tiers.gd` picks for the device; 0–3 are Low–Ultra) |
+| `--quality=auto\|low\|medium\|high\|ultra\|experimental` | the quality for this run (not saved; loop G1: default Auto, the level `tiers.gd` picks for the device; 0–3 are Low–Ultra; `experimental`/`exp` by name only, F 2026-11-10: Ultra plus the trailer's extras, never saved even from Settings) |
 | `--model=ID` | loop G1: pick Auto's level as if on that device (`--model=iPhone12,1` is the iPhone 11: High; since loop G1b Auto draws it sharp, 1792×828 ×1, and 896×414 ×2 in the fallback; `iPhone17,2` the Pro Max: Ultra) |
 | `--last-session=struggled\|calm` | loop G1b: start Auto as if the last session at the sharp image struggled (this launch is the ×2 fallback) or was calm (the sharp image), whatever the settings file says; nothing of it is written. The `quality:` lines say what Auto picked and why (`quality: Auto→High ×1 sharp (iPhone12,1) · image 1792x828`, `quality: Auto→High ×2 fallback (last session: GPU extras down 74 s of 410) · …`) |
 | `--governor=on\|off\|log` | loop G1: the frame governor on or off for this run (default: on in a normal launch, held in test runs, the bench, the probe and the BENCH minute; `on` lets it act in those too); `log` is on plus a `governor status:` line every 5 s (loop G1b: with the session's tally where Auto's sharp rule applies) and a `governor minute N:` line per counted minute (fps, missed refreshes, GPU-bound ones, GPU extras down) |
@@ -6000,6 +6018,7 @@ Command-line options (after `--`):
 | `--clicks=X:Y:F,...` / `--drag=X:Y:F:DX:DY:F2` | loop 2a testing aids: a click at screen pixel X,Y on frame F; a finger down at X,Y on frame F, moved by DX,DY over ten frames, lifted on frame F2 (through the real input path) |
 | `--lift=M` | loop 1: aim the camera M metres above the vehicle (close-ups of tall landmarks: `--at=-1206,244 --lift=156 --yaw=110 --size=24 --lines=1080` looks at the Palace clock's east dial) |
 | `--cam=X,Z` or `--cam=X,Y,Z` | free camera (2026-11-13, F: before/after shots without the car): the view looks at that world point (Y left out: the ground there), fixed, whatever the car does; turned by `--yaw=`, `--pitch=`, `--size=` tall, `--lift=` raises it; the car stands under it (or at `--at=`, keep that within ~150 m so the city streams) and is hidden, `--cam-car` keeps it, no occlusion ghost. Same on the runtime and `--prebuilt` city. Several in one run (a run costs ~40 s): `--cams="NAME:X,Y,Z,YAW,PITCH,SIZE+NAME2:..."` (Y empty = ground; YAW, PITCH, SIZE optional), one shot each as NAME_FFFF.png. `--solo=` runs hide the car too. Not in the Settings, never for players: `tools/shots.sh --set=NAME -- --cam=X,Z --yaw=135 --size=60` |
+| `tools/turntable.sh KEY [--looks=lit,flat,sil] [--out=DIR] [--tile=480x360] [-- game flags]` (2026-11-13, tool) | every side of one landmark on one sheet in about 50 s: `game/tools/site_cams.gd` builds the site alone (the mesh check's stub map) and works out `--cams` and `--lift` from its triangles' box (8 yaws at pitch -25 `lo_*`, 8 at -50 `hi_*`, `top`, the view sized to fit with 15 % margin); one game run per look in parallel (`--solo=KEY --solo-look=lit\|flat\|sil`, `--nohud --no-traffic --quality=low --time=day`); `game/tools/shot_sheet.gd` pastes the tiles. Sheet `shots/turntable_KEY/KEY_turntable.png`: rows lit lo, lit hi, flat lo, sil lo, tops; 8 columns, yaw 0 to 315. Check: verify step `turntable`. A `--solo` run now also has no crowds, life, parodies (Leżak scooters), people, easter-egg markers or kebab stands |
 | `--probe` | loop 2b: stand where `--at` / `--heading` put the car (free roam), let 240 frames (or 8 s) pass, measure the next `--bench-frames` (default 600, or `--bench-seconds`, default 30) and print the bench's lines plus what is in view (nodes, instances, shadow casters, materials, shaders, kinds); quits |
 | `--no-map-edge` | railway lane (2026-11-01): the city without the land past the map's edge (`map_edge.gd`: the ring of ground, tree line, far blocks and the rails and roads running on), for a before/after `--probe` at the edge |
 | `--no-edge-roadworks` | edge roadworks (2026-11-02): the city without the roadworks closing the roads at the map's edge (`edge_roadworks.gd`: meshes, halos and their colliders; the edge wall stays and the traffic still stops at the lines), for a before/after `--probe` at an edge |

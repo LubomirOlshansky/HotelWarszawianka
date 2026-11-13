@@ -57,7 +57,7 @@ const BUDGET := {
 	"church_trojca_praga": 410,
 	"church_zielonoswiatkowy": 320,
 	"church_zwycieska": 950,
-	"aleksander": 1460,
+	"aleksander": 2600,  # 2026-11-13 photo rebuild: podium, upper drum windows, Corinthian porticoes
 	"barbakan": 1500,  # 2026-11-06 photo pass: merlon caps and swollen cone roofs
 	"piano_house": 180,
 	"cube_house": 390,
@@ -97,7 +97,7 @@ const BUDGET := {
 	"blekitny": 910,
 	"bridge": 700,
 	"grzybowska77": 2000,
-	"buw": 2900,
+	"buw": 9000,  # 2026-11-13 pass 4 from F's photos (copper frieze and letters, ribbed vault, ivy fronts, pink lattice, drums, dome, Collegium Iuridicum IV, lower garden): 8672 tris, +0 draw calls
 	"central": 340,
 	"centralna": 1650,
 	"chalubinskiego8": 1520,
@@ -296,6 +296,8 @@ const BUDGET := {
 	"nocny": 7000,
 	# Kolejowa's old railway warehouses, the pinball museum and the teal club (F's photos).
 	"kolejowa": 2500,
+	# The facade kit's test building (facade_kit.gd kit_sampler): every part and style once.
+	"kit_sampler": 3600,  # 2985 measured: the facade kit's test building
 }
 ## Known defects per site: {"zfight": n, "degenerate": n, "badnormal": n, "float": n}.
 ## Towarowa 22's drone taxi hovers 7 m over its pad by design (the "Warsaw of the future").
@@ -423,6 +425,14 @@ func _initialize() -> void:
 		var found := _examine(key, rec)
 		measured[key] = found
 		_judge(key, found)
+	# The facade kit's sampler (facade_kit.gd `kit_sampler`, docs/design/facade-kit.md section 6):
+	# not a site, built and judged like one, so a kit part that flickers, floats or lights wrongly fails here.
+	var kit_rec := Recorder.new()
+	marks.build(kit_rec, Rect2(), "kit_sampler")
+	if kit_rec.pos.size() > 0:
+		var kit_found := _examine("kit_sampler", kit_rec)
+		measured["kit_sampler"] = kit_found
+		_judge("kit_sampler", kit_found)
 	for key: String in BUDGET:
 		if not measured.has(key):
 			problems.append("%s: has a budget but builds nothing (site gone?)" % key)

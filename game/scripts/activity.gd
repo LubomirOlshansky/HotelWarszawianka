@@ -38,7 +38,10 @@ extends Node
 ## (`cards_hold` off: a passenger's question on the way, a result card that goes once the car
 ## drives off; the ✕ still drops the run under them), with a card taken down without a press
 ## (`close_card`: the door reached before the answer) and with the autopilot's car driven by the
-## activity itself (`drive_player`: the app's route on a ghost driver).
+## activity itself (`drive_player`: the app's route on a ghost driver); jobs.gd (the kebab and the
+## słoiki) the first with small pictures on its status line (`status`'s `icons`: the kebab's heat,
+## the jars) and the one the M and K keys' path was built for (`primary`, `secondary`: the director
+## asks each activity in turn).
 
 const Beacon := preload("res://scripts/beacon.gd")
 const Access := preload("res://scripts/access.gd")
@@ -389,10 +392,12 @@ func card_pressed(index: int) -> void:
 
 
 ## The status line at the top while the run is on, in the activity's colour or in `tint`. `badge`:
-## a short word beside the title (a race's place: "2/9", "1ST").
-func status(title: String, count: String, distance: String, hint: Array, progress: float, tint := Color(0, 0, 0, 0), badge := "") -> void:
+## a short word beside the title (a race's place: "2/9", "1ST"). `icons`: the line's small pictures
+## (hud.gd `show_status`: {"heat": 0..1} the kebab's steam, {"jars": [whole, all], "shake": 0..1}).
+func status(title: String, count: String, distance: String, hint: Array, progress: float, tint := Color(0, 0, 0, 0), badge := "",
+		icons := {}) -> void:
 	_status_up = true
-	hud.show_status(title, count, distance, str(hint[0]), progress, colour if tint.a == 0.0 else tint, badge, {}, str(hint[1]))
+	hud.show_status(title, count, distance, str(hint[0]), progress, colour if tint.a == 0.0 else tint, badge, icons, str(hint[1]))
 
 
 func hide_status() -> void:
@@ -515,6 +520,18 @@ func _quit_words() -> Array:
 ## they may.
 func grounded() -> Array:
 	return []
+
+
+## The M key (the pad's A): this activity takes it now (a card of its own is up: its first
+## button, or what the subclass says the key does). False: not this one's, and the director asks
+## the next (activities.gd `primary`; after the last, the rescue line's own card).
+func primary() -> bool:
+	return false
+
+
+## The K key (the pad's X): the second button of a card of its own, as `primary`.
+func secondary() -> bool:
+	return false
 
 
 ## The activity drives the autopilot's car itself this frame (main.gd `_autopilot`, a test run):

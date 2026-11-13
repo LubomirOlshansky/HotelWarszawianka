@@ -53,6 +53,7 @@ endcard              quick
 errortrap            quick
 eventday             quick
 evtow                quick
+facadekit            quick
 fans                 quick
 finite               smoke
 first10              quick
@@ -70,6 +71,7 @@ heights              quick
 heli                 local     slow
 heliview             quick
 hud                  quick
+jobplay              quick
 jobs2                quick
 juice                quick
 kebab                local     slow
@@ -107,6 +109,8 @@ palacelights         quick
 parkdetails          quick
 parkmesh             quick
 parodies             quick
+pause                quick
+pause-run            smoke
 places               quick
 placzamkowy          quick
 plain                runs
@@ -132,6 +136,7 @@ rain                 local     slow
 ram                  runs
 ratuszhub            quick
 rave                 quick
+refs-store           quick
 rescues              quick
 ride                 local     slow
 ride-police          local     slow
@@ -182,6 +187,7 @@ tramstops            quick
 trendjob             quick
 trzy-mosty           local     slow
 tunnelcut            smoke
+turntable           quick
 water                roads     slow
 water-prebuilt       smoke     slow
 wellness             quick

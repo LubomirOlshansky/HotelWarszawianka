@@ -21,10 +21,10 @@ extends RefCounted
 ##   governor's GPU extras down a minute, governor.gd `struggle`), coming back after calm
 ##   sessions with a doubling wait (SHARP_*). Manual levels keep G1's rule.
 
-enum { LOW, MEDIUM, HIGH, ULTRA }
+enum { LOW, MEDIUM, HIGH, ULTRA, EXPERIMENTAL }
 ## The player's choice that follows the device (settings.gd quality).
 const AUTO := -1
-const NAMES := ["Low", "Medium", "High", "Ultra"]
+const NAMES := ["Low", "Medium", "High", "Ultra", "Experimental"]
 
 ## Low, Medium, High, Ultra. step: whole screen pixels coarser than the style's own scale
 ## (loop 2b); budget: the most megapixels the pixel image may have (G1); the sun's shadow map
@@ -44,7 +44,33 @@ const QUALITY := [
 		"reflect": 10, "traffic": 1.0, "people": 60, "small_shadows": true},
 	{"name": "Ultra", "step": 0, "budget": 1.6, "shadows": true, "shadow_size": 4096, "glow": true, "rain": 1.0,
 		"reflect": 16, "traffic": 1.0, "people": 60, "small_shadows": true},
+	{"name": "Experimental", "step": 0, "budget": 99.0, "shadows": true, "shadow_size": 8192, "glow": true, "rain": 1.0,
+		"reflect": 16, "traffic": 1.0, "people": 60, "small_shadows": true,
+		"full": true, "msaa": Viewport.MSAA_4X, "aniso": Viewport.ANISOTROPY_16X, "lod": 0.0,
+		"soft": RenderingServer.SHADOW_QUALITY_SOFT_HIGH},
 ]
+## Experimental (F 2026-11-10, "after the ultra the experimental setting of graphic to test all
+## this enhancements on the phone"): Ultra plus the beta trailer's capture extras
+## (trailer.gd begin; the graphics research's "High" list), to judge each on a real phone:
+## - `full`: the 3D image at the screen's own pixels (scale 1, no budget), the sharpest picture;
+## - an 8192 sun shadow map (16-bit, 128 MB) with soft edges (`soft`, SHADOW_QUALITY_SOFT_HIGH);
+## - `msaa`: 4x MSAA on the 3D image (smooth edges); `aniso`: 16x anisotropic filtering (roads
+##   and facades seen at a slant stay sharp); `lod`: 0, every mesh at full detail.
+## No shader source changes (the building shader is at the Adreno budget): all are engine
+## settings on the 3D SubViewport and the RenderingServer. Opt-in only: Auto never picks it
+## (for_model), the saved settings never keep it (main.gd _set_quality: a launch that can't hold
+## it can't lock the player out), and the governor's first GPU drop there steps the session back
+## to Ultra with a toast (main.gd _govern). Every other level leaves the extras at the engine's
+## defaults (EXTRA_DEFAULTS).
+const EXTRA_DEFAULTS := {"full": false, "msaa": Viewport.MSAA_DISABLED, "lod": 1.0,
+		"soft": RenderingServer.SHADOW_QUALITY_HARD}
+
+
+## A level's value for one of Experimental's extras (EXTRA_DEFAULTS on the others; "aniso" has
+## no default here: main.gd keeps the SubViewport's own).
+static func extra(quality: int, key: String) -> Variant:
+	var q: Dictionary = QUALITY[clampi(quality, 0, QUALITY.size() - 1)]
+	return q.get(key, EXTRA_DEFAULTS.get(key))
 
 
 ## The level Auto picks for a model id (graphics.md 4.1): iPhone 8 / X (`iPhone10,x`, A11) Low,
@@ -88,6 +114,8 @@ static func image_scale(size: Vector2, lines: float, quality: int) -> int:
 ## that keep the style's lines (at least 1), the level's step coarser.
 static func own_scale(size: Vector2, lines: float, quality: int) -> int:
 	var q: Dictionary = QUALITY[clampi(quality, 0, QUALITY.size() - 1)]
+	if bool(q.get("full", false)):
+		return 1
 	return maxi(1, floori(size.y / lines)) + int(q["step"])
 
 
@@ -184,7 +212,9 @@ static func sharp_clean(state: Dictionary) -> Dictionary:
 ## A choice (AUTO or a level) by name or number for --quality= (-2: not one).
 static func parse(text: String) -> int:
 	var t := text.to_lower()
-	var named := {"auto": AUTO, "low": LOW, "medium": MEDIUM, "med": MEDIUM, "high": HIGH, "ultra": ULTRA}
+	# Experimental by name only: a number still stops at Ultra.
+	var named := {"auto": AUTO, "low": LOW, "medium": MEDIUM, "med": MEDIUM, "high": HIGH, "ultra": ULTRA,
+			"experimental": EXPERIMENTAL, "exp": EXPERIMENTAL}
 	if named.has(t):
 		return named[t]
 	if t.is_valid_int():
@@ -200,4 +230,4 @@ static func describe(choice: int, level: int, model: String, scale := 0, mode :=
 	var tail := (" ×%d" % scale if scale > 0 else "") + (" " + mode if mode != "" else "")
 	if choice == AUTO:
 		return "Auto→%s%s (%s)" % [NAMES[level], tail, model]
-	return NAMES[clampi(choice, LOW, ULTRA)] + tail
+	return NAMES[clampi(choice, LOW, EXPERIMENTAL)] + tail
