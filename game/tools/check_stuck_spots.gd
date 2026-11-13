@@ -77,6 +77,12 @@ extends SceneTree
 ## sliver between the road's and the tram's approaches read the boulevard below. Fixed: such a
 ## sliver takes the lower approach's level (map_builder.gd FILL_SEAM); SEAMS reads the height there.
 ##
+## Grodzka's ramp by the Royal Castle (F, 2026-11-13, screenshots: "these ramps are broken"): the
+## one-lane slip road past Pałac pod Blachą up to the W-Z tunnel climbed over two humps and two flat
+## pit fills walled at their edges; a car going up the bend stopped dead on the first hump's wall at
+## (-524, -1441). Fixed: one smooth ~5 % climb (tools/zamek_ramps.py). The first spot fails on the
+## old map; the other three guard the climb both ways.
+##
 ## Port Czerniakowski's footbridge (F, 2026-11-08, screenshots by Miami Wars): the boulevard's cycle
 ## path ran down into the mouth's cutting between grey walls and broke off at the water, the car
 ## stuck at the gap; north-west of it the fences of a long finished building site stood across the
@@ -167,6 +173,10 @@ const SPOTS := [
 	[-1341.0, 380.0, 160.0, 10.0, 3.0, 0.8, "PT-47 Emilii Plater's median south, by the Palace's west terrace"],
 	[-1331.0, 410.0, -20.0, 10.0, 3.0, 0.8, "PT-47 Emilii Plater's median north from the Złota crossing (F's screenshot)"],
 	[-1362.0, 350.0, 130.0, 8.0, 3.0, 0.8, "PT-47 Emilii Plater, across the median from the west carriageway to the east"],
+	[-511.0, -1451.0, 235.0, 9.0, 1.5, 0.6, "Grodzka's ramp by the Royal Castle, west up the bend past Pałac pod Blachą", 235.0],
+	[-525.0, -1443.0, 250.0, 9.0, 1.5, 0.6, "Grodzka's ramp by the Royal Castle, west up the climb", 250.0],
+	[-560.0, -1432.0, 259.0, 9.0, 1.5, 0.6, "Grodzka's ramp by the Royal Castle, west on to the W-Z tunnel", 259.0],
+	[-560.0, -1432.0, 76.0, 9.0, 1.5, 0.6, "Grodzka's ramp by the Royal Castle, down east to the bend", 76.0],
 ]
 ## PT-41: [x, z, the level a car drives at there, what]: drive_height must give it within SEAM_TOL m.
 const SEAMS := [

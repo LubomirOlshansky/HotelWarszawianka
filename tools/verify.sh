@@ -289,6 +289,9 @@
 # Dworzec Centralny's car park ramp (F, 2026-11-08): `centralnyramp` runs tools/centralny_ramp.py
 # --check (the service tunnel under Aleja Jana Pawła II is a drive: its tunnel, portal and frame, the
 # way out from the portal, no garage door across it; no map beyond centrum.json, CI too).
+# Grodzka's ramp by the Royal Castle (F, 2026-11-13): `zamekramps` runs tools/zamek_ramps.py --check
+# (the slip road past Pałac pod Blachą up to the W-Z tunnel is one smooth climb: no pit fills or their
+# walls on it, one ground profile; no map beyond centrum.json, CI too).
 # Bridge cycle paths (2026-11-08): `cyclehang` runs tools/cycle_hang.py --check (Most Łazienkowski's
 # cycle bridges hang 4 m under the road deck, as on F's photos, and come down to their ramps; needs
 # terrain.json from the map pack).
@@ -380,7 +383,7 @@ fi
 # Operation Unslop review (2026-11-05): the road loop ran the whole --quick (~100 steps, most start
 # the game) after every tweak. --roads keeps only the steps a road rule can break; steps not in
 # STEPS_ALL on this branch (e.g. `smooth` before the smooth-roads PR) are skipped.
-STEPS_ROADS=(map roads streets streetdetails streetpass design models overrides smooth fixes centralnyramp cyclehang portbridge objects tramstops drive stuckspots)
+STEPS_ROADS=(map roads streets streetdetails streetpass design models overrides smooth fixes centralnyramp zamekramps cyclehang portbridge objects tramstops drive stuckspots)
 # Loop 3g-1: minutes of play in the police soak (P13; the full one is 10).
 SOAK_MINUTES=${NW_SOAK_MINUTES:-3}
 # Longest a single step may take, in seconds, before it is stopped (macOS has no `timeout`).
@@ -938,6 +941,15 @@ for s in $want; do
 			case $code in
 				0) row PASS "centralnyramp" $secs "$(grep '^centralny_ramp: ' $logs/centralnyramp.log | tail -1)" ;;
 				*) row FAIL "centralnyramp" $secs "$(grep '^centralny_ramp: ' $logs/centralnyramp.log | tail -1) ($logs/centralnyramp.log)" ;;
+			esac ;;
+		zamekramps)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/zamek_ramps.py --check > $logs/zamekramps.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			case $code in
+				0) row PASS "zamekramps" $secs "$(grep '^zamek_ramps: ' $logs/zamekramps.log | tail -1)" ;;
+				*) row FAIL "zamekramps" $secs "$(grep '^zamek_ramps: ' $logs/zamekramps.log | tail -1) ($logs/zamekramps.log)" ;;
 			esac ;;
 		fixes)
 			t0=$EPOCHREALTIME
