@@ -134,3 +134,28 @@ night and the landing's golden hour.
 | crown | square frustum | 12 m to 4.8 m, 188 to 203 m | the tower's centre | M_STONE #9fbcae | 1 stepped tower |
 | spire_foot | box | 3.6 m, 200.5 to 208 m | the tower's centre | M_STONE #5a4630 | 1 stepped tower |
 | spire | 2 frustums, 2 rings | 3.2 m to a point, 208 to 237 m | the tower's centre | M_GOLD #d4a640 | 1 stepped tower |
+
+## 9. The Blender trial (2026-11-13)
+
+A second build of the Palace, in Blender (`tools/blender/pkin.py`, glb in `game/models/pkin/`),
+behind `--palace=blender`; the code model above stays the default. Same plan and heights, from
+about 130 Commons photos (`refs/pkin_blender/`, never committed), with what code made awkward:
+three-step profiled cornices on every roof edge, pinnacles with a pedestal, an octagonal
+obelisk, a ring and a finial, the corner towers' crests and stepped crowns, more pinnacles along
+the shaft top and the tier tops, round 12-sided portico columns with bases and capitals, the
+Congress Hall's two-step 24-sided drum, real open arches with reveals, a bronze orb and three
+rings on the spire. At street level (F: "make the elements near the ground well"): a portico of
+four columns with its dark loggia, entablature and attic on each pavilion's outer end and a porch on
+each of the eight shallow projections of the pavilions' long sides, the Congress Hall's colonnade of
+18 columns under an entablature ring round its half-round end, and three steps before the main
+portico. Also from F's close-up from the 30th floor: dark round-headed loggia openings in the
+shaft's top storeys.
+
+Photo fix in it: the tier over the shaft is panelled stone to 157 m and then an **arcade of five
+round-headed openings per face** to 168 m; the **clocks sit above the arcade** on the 12.6 m
+tier (dials at 178 m), under a low flared patina cap. The code model has the clocks under the
+arches (sections 2 and 3 above); it keeps that until the trial is decided.
+
+LOD 0 23,084 triangles (code: about 3,600, plus the venues), LOD 1 9,320. Probe at the Palace
+(Mac, `--probe --at=-1290,170 --heading=135 --time=day --no-traffic`): 69 main-pass draws both
+ways, main pass 0.46 → 0.48 M triangles, shadow 0.31 → 0.33 M; no new material or shader.
