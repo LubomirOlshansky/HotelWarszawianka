@@ -4,6 +4,8 @@
 # from the committed map, into game/data/race_links.json), then game/tools/check_lane_drive.gd
 # --links in the prebuilt city (the car drives every link along the very curve a rival takes) and
 # gives each link that passed its proof. A rival is handed only a proven link (race_cuts.gd).
+# Step 5b (race-ai.md 5.5): the same for the wrong-way hops (kind "wrong": one block of a small
+# one-way street, driven against its direction).
 #   tools/race_links.sh             find and prove (the prebuilt city must be there:
 #                                   tools/setup_map.sh; about a minute a link on the cloud's CPU)
 #   tools/race_links.sh --runtime   prove in the runtime city instead (the sectors built from their files)
