@@ -10,7 +10,8 @@
 		"recovers": "once:Linux",
 		"honest_car": "fail",
 		"route_sense": "pass",
-		"same_twice": "pass"
+		"same_twice": "pass",
+		"wrong_way": "pass"
 	},
 	"full": {
 		"finishes": "once:Linux",
@@ -24,6 +25,8 @@
 		"route_sense": "fail",
 		"skill_ladder": "pass",
 		"same_twice": "pass",
-		"yard_links": "pass"
+		"yard_links": "pass",
+		"wrong_way": "pass",
+		"wrong_way_traffic": "once:Linux"
 	}
 }

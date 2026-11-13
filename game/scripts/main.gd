@@ -860,6 +860,8 @@ var traffic_level := Settings.DEFAULT_TRAFFIC
 ## -2: no --quality= (Tiers.AUTO is -1).
 var _flag_quality := -2
 var _flag_controls := -1
+## F 2026-11-13: --pads=arrows|slider: Classic's touch controls for the run (settings.gd `pads`).
+var _flag_pads := -1
 ## --handling=cruise|sport|grounded (or 0..2): the run drives that profile whatever the settings say.
 var _flag_handling := -1
 ## Beta values: --lane-assist=on|off overrides Settings → Jazda → Asysta pasa for the run; the
@@ -1753,6 +1755,7 @@ func _build_world() -> void:
 	add_child(hud)
 	await LoadYield.tick("hud")
 	hud.set_scheme(controls.scheme)
+	hud.set_arrows_layout((_flag_pads if _flag_pads >= 0 else settings.pads) == Settings.PADS_ARROWS)  # F 2026-11-13
 	hud.set_left_handed(Access.left_handed)  # accessibility (2026-11-01)
 	hud.set_touch_off(no_touch)  # desktop: --no-touch
 	hud.settings_pressed.connect(_open_settings)
@@ -5589,6 +5592,8 @@ func _parse_args() -> void:
 			_stress_to = maxf(0.0, float(arg.trim_prefix("--stress-to=")))
 		elif arg.begins_with("--controls="):
 			_flag_controls = Controls.parse(arg.trim_prefix("--controls="))
+		elif arg.begins_with("--pads="):
+			_flag_pads = 1 if arg.trim_prefix("--pads=") in ["slider", "strip", "1"] else 0
 		elif arg.begins_with("--handling="):
 			_flag_handling = Car.parse_handling(arg.trim_prefix("--handling="))
 		elif arg.begins_with("--lane-assist="):
@@ -6482,6 +6487,7 @@ func _settings_state() -> Dictionary:
 			"text_large": int(settings.text_large), "calm": int(settings.calm), "color_safe": int(settings.color_safe),
 			"vibration": int(settings.vibration), "stop_assist": int(settings.stop_assist),
 			"lane_assist": int(car.lane_assist if car != null else settings.lane_assist),
+			"pads": 0 if hud == null or hud.arrows_layout else 1,
 			"left_handed": int(settings.left_handed), "lang": maxi(0, Lang.CODES.find(Lang.code))}
 
 
@@ -6587,6 +6593,12 @@ func _on_setting(key: String, value: Variant) -> void:
 		"handling":
 			settings.handling = clampi(int(value), 0, 2)
 			car.set_handling(settings.handling)
+		"pads":
+			# F 2026-11-13: fixed arrows + pedals (0, the default) or the sliding strip (1).
+			settings.pads = clampi(int(value), 0, 1)
+			hud.set_arrows_layout(settings.pads == Settings.PADS_ARROWS)
+			settings.save()
+			hud.settings_panel.sync(_settings_state())
 		"lane_assist":
 			settings.lane_assist = int(value) == 1
 			car.lane_assist = settings.lane_assist
@@ -8083,7 +8095,7 @@ func _new_target(source: String, t: Vector3) -> void:
 		return
 	var p := _vehicle_position()
 	var speed: float = heli.speed() if flying else absf(car.forward_speed)
-	var busy: bool = hud.stick_active() or controls.held or hud.gas or hud.brake or _heli_held
+	var busy: bool = hud.stick_active() or hud.arrows() != 0 or controls.held or hud.gas or hud.brake or _heli_held
 	if speed > LOOK_SPEED or busy or Vector2(t.x - p.x, t.z - p.z).length() < CameraShots.NEAR:
 		return
 	var ground := Vector3(p.x, map.ground_height(p.x, p.z), p.z) if flying else p
@@ -8156,6 +8168,7 @@ func _read_input(dt: float) -> void:
 			if not bon and Gamepad.stick() != Vector2.ZERO:
 				bstick = Gamepad.stick()
 				bon = true
+			controls.arrows = hud.arrows()
 			controls.drive(boat_race.player, bstick, bon, bkeys, hud.gas or Gamepad.gas(), hud.brake or Gamepad.brake(), cam_yaw, dt)
 		return
 	if flying:
@@ -8182,6 +8195,7 @@ func _read_input(dt: float) -> void:
 	if not stick_on and pad_stick != Vector2.ZERO:
 		stick = pad_stick
 		stick_on = true
+	controls.arrows = hud.arrows()  # F 2026-11-13: the fixed arrow buttons (ramped in drive_controls.gd)
 	controls.drive(car, stick, stick_on, keys, hud.gas or Gamepad.gas(), hud.brake or Gamepad.brake(), cam_yaw, dt)
 	# The drag (street_meet.gd): the car holds the strip and any gas is full gas.
 	if meet != null:
