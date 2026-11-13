@@ -123,7 +123,8 @@ After a map change run both and `check_race_links`, `check_race_cuts`.
 `race_signals.gd`: `BRAKE_FROM` −2 m/s², `TURN_MIN` 0.45 rad, `TURN_LEAST` 10 m, `BLINK` 0.7 s,
 `FLASH_AGAIN` 3.5 s, `WOBBLE_*`, the colours. `race_report.gd`: `NAMED` 1 s (a cause must be
 worth this to be named), `WALK` 1 m/s (under it a car stands). `rivals.gd` `REPORT_ART` (the
-picture's size on the card).
+picture's size on the card) and `REPORT_LINES` (off since F, 2026-11-13: the card shows the
+picture only, the report's lines go to the log).
 
 ## 4. How to test a change
 

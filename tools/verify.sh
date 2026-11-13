@@ -1084,6 +1084,20 @@ for s in $want; do
 			esac ;;
 		streetmesh) check streetmesh '^street_details:' --script res://tools/check_street_details.gd ;;
 		ratuszhub) check ratuszhub '^ratusz_hub:' --script res://tools/check_ratusz_hub.gd ;;
+		# The facade kit's ratchet (2026-11-13): no new private window, balcony, ledge, cornice,
+		# pediment or column helper in landmarks.gd, and the kit's parts and palette match
+		# docs/design/facade-kit.md (tools/check_facade_kit.py; no map, ~0.1 s).
+		facadekit)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/check_facade_kit.py > $logs/facadekit.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			counts=$(grep -m1 '^check_facade_kit counts:' $logs/facadekit.log)
+			counts=${counts#check_facade_kit counts: }
+			case $code in
+				0) row PASS "facadekit" $secs "check_facade_kit: OK · $counts" ;;
+				*) row FAIL "facadekit" $secs "$(grep '^check_facade_kit: ' $logs/facadekit.log | tail -1) · $counts ($logs/facadekit.log)" ;;
+			esac ;;
 		# Landmark specs (LANDMARKS 0.4): every docs/landmarks/specs/*.md has all eight sections, a
 		# detail level, a triangle budget and a filled parts table (tools/check_spec.py; ~0.1 s).
 		spec)
@@ -1212,6 +1226,8 @@ for s in $want; do
 		meet) check meet '^check_street_meet:' --fixed-fps 60 --script res://tools/check_street_meet.gd ;;
 		# Boat race: the course in open water, the boat, a whole race, the three-miss rule, the lines.
 		# Free camera (--cam=X,Y,Z): the flag's text and the view it gives.
+		# Site turntable (tools/turntable.sh): the cameras' maths for a site and the sheet's tiling; no renderer.
+		turntable) check turntable '^check_turntable:' --script res://tools/check_turntable.gd ;;
 		freecam) check freecam '^check_free_cam:' --script res://tools/check_free_cam.gd ;;
 		boatrace) check boatrace '^check_boat_race:' --script res://tools/check_boat_race.gd ;;
 		dekalog) check dekalog '^check_dekalog_tour:' --script res://tools/check_dekalog_tour.gd ;;
@@ -1244,6 +1260,9 @@ for s in $want; do
 		save) check save '^check_save:' --script res://tools/check_save.gd ;;
 		errortrap) check errortrap '^check_error_trap:' --script res://tools/check_error_trap.gd ;;
 		boot) check boot '^check_boot:' --script res://tools/check_boot.gd ;;
+		# TD-20: the pause's one owner (pause_reasons.gd): the reasons on a real tree, and no other
+		# script writes the tree's pause (no map; CI too).
+		pause) check pause '^check_pause:' --script res://tools/check_pause.gd ;;
 		activity) check activity '^check_activity:' --script res://tools/check_activity.gd ;;
 		districts) check districts '^check_districts:' --script res://tools/check_districts.gd ;;
 		syrenki) check syrenki '^syrenki:' --script res://tools/check_syrenki.gd ;;
@@ -1359,6 +1378,9 @@ for s in $want; do
 		# ENGINE_TOKENS: the engine's exit line for the index's threaded load (see `problems`); 19 is
 		# its count for the index's 10 files, a count to change only with them.
 		boot-run) skip_prebuilt "run: boot" || ENGINE_TOKENS=19 game boot 8000 "^boot: the boot scene's title stayed up" --boot --prebuilt --title-choice=continue ;;
+		# TD-20: the real game on the prebuilt city, through the real input: the garage card with the
+		# full map over it stays paused when the map closes; each card alone pauses and lets go.
+		pause-run) skip_prebuilt pause-run || check pause-run '^check_pause:' --fixed-fps 60 --script res://tools/check_pause.gd -- --nosave --notitle --prebuilt --garage ;;
 		classic) game classic 600 "" --controls=classic ;;
 		ios) run_ios ;;
 	esac

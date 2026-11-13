@@ -53,6 +53,7 @@ endcard              quick
 errortrap            quick
 eventday             quick
 evtow                quick
+facadekit            quick
 fans                 quick
 finite               smoke
 first10              quick
@@ -108,6 +109,8 @@ palacelights         quick
 parkdetails          quick
 parkmesh             quick
 parodies             quick
+pause                quick
+pause-run            smoke
 places               quick
 placzamkowy          quick
 plain                runs
@@ -183,6 +186,7 @@ tramstops            quick
 trendjob             quick
 trzy-mosty           local     slow
 tunnelcut            smoke
+turntable           quick
 water                roads     slow
 water-prebuilt       smoke     slow
 wellness             quick

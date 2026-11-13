@@ -1,4 +1,4 @@
-extends RefCounted
+extends "res://scripts/facade_kit.gd"
 ## v0.8 "Landmarks": the buildings that make it Warsaw at a glance, built in code
 ## from the real footprints and heights in centrum.json (OpenStreetMap outlines and
 ## building parts, which carry `height` / `min_height`) instead of their GUGiK LoD2 or
@@ -17,47 +17,10 @@ extends RefCounted
 ## grid (map_builder._roof_triangle) and the grid the game picks a tapped landmark
 ## from; the walls at street level stop the car.
 
-const CLOCKWISE_FRONT := true
-
-## Material codes for building.gdshader (UV2.x); the fraction is a parameter.
-const M_MONUMENT := 2.0   # stone, tall windows between piers, pilasters (the Palace)
-const M_STONE := 3.0      # plain stone: pinnacles, plinths, columns
-const M_GOLD := 4.0       # the Palace's spire
-const M_DIAL := 5.0       # clock dials: lit at night
-const M_WEAVE := 6.0      # Stadion Narodowy's red-and-white skin
-const M_GLASS_ROOF := 7.0 # Złote Tarasy's wave
 const TarasyScreen := preload("res://scripts/tarasy_screen.gd")  # the screen block over the entrance
 const Neon := preload("res://scripts/neon_signs.gd")  # the dusk loop: sign sizes
 const PixelFont := preload("res://scripts/pixel_font.gd")  # the Powiśle letters' strokes
-const M_PAVILION := 8.0   # glass lit from inside: + 0 warm (the Rotunda), + 0.5 cool (Varso's crown)
-const M_ATTIC := 9.0      # a parapet cut into merlons; fraction = its height / 10 m
-const M_LAMP := 10.0      # glows at night
 const VIOLET_SIGN := Color(0.62, 0.25, 1.0)  # Level 26's neon, as neon_signs.gd VIOLET
-const M_MEMBRANE := 11.0  # the stadium's roof membrane
-const M_GLASS := 12.0     # curtain wall with mullions (Varso)
-const M_SKIN := 13.0      # a tower's own skin; fraction = style / 16 (S_*, building.gdshader skin())
-const M_GOTHIC := 14.0    # brick Gothic: buttresses and pointed lancets (the Cathedral, the Barbican)
-const M_PANE := 15.0      # one real pane of a modelled block: fraction = its number; lit by chance at night
-
-## The skins (building.gdshader S_*): Złota 44's white banded cladding, Warsaw Spire's diamonds,
-## silver floor bands, vertical fins, a white grid, balcony slabs, dark glass, gold glass,
-## and an open frame (its panes cut away).
-const S_SAIL := 0
-const S_DIAMOND := 1
-const S_BANDS := 2
-const S_FINS := 3
-const S_GRID := 4
-const S_RIBBON := 5
-const S_DARK := 6
-const S_GOLD := 7
-const S_FRAME := 8
-const S_TILE := 9   # Novotel's white tiled shaft (the Rondo photos, 2026-10-31)
-const S_EASTWALL := 10  # the Eastern Wall stores: pale glass in a light silver grid, 3 m by 2.7 m
-const S_PUNCHED := 11   # a re-clad point block: light horizontal cladding, punched windows in bands
-const S_MIRROR := 13    # the Blue Skyscraper's blue reflective float glass
-const S_SLAB := 12      # a 1960s slab's long face: plaster and loggia bands
-const S_ESTATE := 14    # Osiedle Za Żelazną Bramą: large-panel bays, ribbon windows, coloured loggia stacks
-const S_KEYS := 15      # Piano House: white plaster, dark window strips in a keyboard's 2-and-3 rhythm
 
 ## The landmarks loop (2026-10-30): the skyline's towers, so each reads as itself and not as one
 ## more blue box. Each is built from its mapped building parts (the outline `osm` names; what
@@ -501,8 +464,8 @@ const INFO := {
 			"Okrągły plac MDM z lat 50.: kolumnady wokół ronda, a pod nimi kawiarnie do późnej nocy.",
 			"MDM's round square of the 1950s: colonnades round the roundabout and cafés under them till late."],
 	"aleksander": ["Kościół Świętego Aleksandra",
-			"Rotunda na placu Trzech Krzyży.",
-			"The rotunda on Plac Trzech Krzyży."],
+			"Rotunda Aignera z lat 1818-1825 z dwoma portykami; po wojnie odbudowana bez dawnych wież.",
+			"Aigner's rotunda of 1818-1825 with two porticoes; rebuilt after the war without its later towers."],
 	"zelazna": ["Osiedle Za Żelazną Bramą",
 			"Jedenaście bloków z wielkiej płyty, zaprojektowanych przez Skolimowskiego.",
 			"Eleven large-panel blocks of the 1960s-70s, designed by Jerzy Skolimowski."],
@@ -839,9 +802,7 @@ const INFO := {
 	"church_nozykow": ["Synagoga Nożyków", "Synagoga przy Twardej.", "The synagogue on Twarda."],
 }
 
-var map  # map_builder.gd: terrain, roof grid, wall faces
 var data: Dictionary
-var st  # the city's building surface (chunked_surface.gd)
 ## Replaced zones: {"key", "zone": Array[PackedVector2Array] (drop what stands inside),
 ## "keep": Array[PackedVector2Array] (but not inside these), "box": Rect2}.
 var sites: Array[Dictionary] = []
@@ -854,14 +815,9 @@ const COURTS_PATH := "res://data/courts.json"
 const COURT_GLASS := Color("#3b4650")
 const COURT_STEP := 3.6    # m between the court walls' window bays
 const COURT_FLOOR := 3.6   # m per storey
-## The current site's courts while it builds (`_cap` leaves them open).
-var _holes: Array[PackedVector2Array] = []
 ## What the game shows when a landmark is tapped: [{key, name, pl, en, centre}], in id order.
 var info: Array[Dictionary] = []
 
-# Emitter state.
-var _mode := M_STONE
-var _no_roof := false  # true: triangles go into the mesh but not the roof grid (glass the cassette must not pick)
 ## The landmarks loop: big signs on the landmarks for map_builder's _build_landmark_signs:
 ## [word (neon_signs.gd LANDMARK_WORDS), bottom middle, outward normal, scale, tube colour].
 var signs: Array = []
@@ -881,18 +837,6 @@ var lod2_tops: Array = []
 ## (`_find_embankment`). map_builder's _build_areas lays them as grass under every mapped area,
 ## so the plazas, lawns, steps, paths and roads on the bank stay on top.
 var embankment: Array[PackedVector2Array] = []
-var _g := 0.0          # the landmark's ground height
-var _id := 0           # landmark id for the picking grid (0: none)
-var _pick := PackedByteArray()  # 16-bit landmark ids, two bytes a cell (257 sites by 2026-11-08)
-## Walls already drawn by the current site, to cut a later coplanar wall back to what shows
-## (z-fighting fix, 2026-10-31): [ax, az, bx, bz, y0, y1, nx, nz] per wall.
-var _walls: Array[PackedFloat32Array] = []
-## Flat tops already drawn by the current site: [height, outline] (same fix, see _cap).
-var _caps: Array = []
-# A landmark's own plan axes (its local u, v in world metres).
-var _o := Vector2.ZERO
-var _a := Vector2.RIGHT
-var _b := Vector2.DOWN
 
 
 func _init(builder, map_data: Dictionary) -> void:
@@ -1048,13 +992,6 @@ func _pts(flat: Array) -> PackedVector2Array:
 	for i in range(0, flat.size() - 1, 2):
 		out.append(Vector2(flat[i], flat[i + 1]))
 	return out
-
-
-func _centre(poly: PackedVector2Array) -> Vector2:
-	var c := Vector2.ZERO
-	for q in poly:
-		c += q
-	return c / maxf(poly.size(), 1)
 
 
 ## The landmarks loop: the outline of the tallest building (or part) standing on `at`, for a
@@ -1654,6 +1591,13 @@ func build(surface, near := Rect2(), only := "") -> void:
 	pocket_rings.clear()
 	_pick.resize(map._roof_nx * map._roof_nz * 2)
 	_pick.fill(0)
+	if only == "kit_sampler":  # the facade kit's test building (facade_kit.gd), not a site: `--solo=kit_sampler`
+		_id = 0
+		_walls.clear()
+		_caps.clear()
+		_holes = [] as Array[PackedVector2Array]
+		kit_sampler()
+		return
 	var t0 := Time.get_ticks_msec()
 	var built := 0
 	for k in sites.size():
@@ -2144,221 +2088,6 @@ func pick_grid() -> PackedByteArray:
 
 # --- emitting ----------------------------------------------------------------------------
 
-## One triangle into the city mesh, the roof grid and the picking grid. `top` is the
-## wall top above the ground (UV2.y), uv the shader's wall coordinates (x < 0 on tops).
-func _tri(a: Vector3, b: Vector3, c: Vector3, n: Vector3, col: Color, ua: Vector2, ub: Vector2, uc: Vector2,
-		top: float, roof := true) -> void:
-	if ((b - a).cross(c - a).dot(n) > 0.0) == CLOCKWISE_FRONT:
-		var t := b
-		b = c
-		c = t
-		var tu := ub
-		ub = uc
-		uc = tu
-	var uv2 := Vector2(_mode, top)
-	st.set_color(col)
-	st.set_normal(n)
-	st.set_uv(ua)
-	st.set_uv2(uv2)
-	st.add_vertex(a)
-	st.set_uv(ub)
-	st.add_vertex(b)
-	st.set_uv(uc)
-	st.add_vertex(c)
-	if roof and not _no_roof:
-		map._roof_triangle(a, b, c, absf(n.y) >= 0.3)
-	if _id > 0:
-		_mark_pick(a, b, c)
-
-
-func _mark_pick(a: Vector3, b: Vector3, c: Vector3) -> void:
-	var cell: float = map.ROOF_CELL
-	var i0 := floori((minf(a.x, minf(b.x, c.x)) - map._roof_x0) / cell)
-	var i1 := floori((maxf(a.x, maxf(b.x, c.x)) - map._roof_x0) / cell)
-	var j0 := floori((minf(a.z, minf(b.z, c.z)) - map._roof_z0) / cell)
-	var j1 := floori((maxf(a.z, maxf(b.z, c.z)) - map._roof_z0) / cell)
-	if (i1 - i0 + 1) * (j1 - j0 + 1) > 400:
-		return  # a long thin piece (a cable): not worth the cells
-	for j in range(maxi(j0, 0), mini(j1, map._roof_nz - 1) + 1):
-		for i in range(maxi(i0, 0), mini(i1, map._roof_nx - 1) + 1):
-			_pick.encode_u16((j * map._roof_nx + i) * 2, _id)
-
-
-## A quad a-b-c-d (in order round its edge).
-func _quad(a: Vector3, b: Vector3, c: Vector3, d: Vector3, n: Vector3, col: Color,
-		ua := Vector2(-1, -1), ub := Vector2(-1, -1), uc := Vector2(-1, -1), ud := Vector2(-1, -1), top := -1.0) -> void:
-	_tri(a, b, c, n, col, ua, ub, uc, top)
-	_tri(a, c, d, n, col, ua, uc, ud, top)
-
-
-## A vertical wall along a→b (plan) from y0 to y1 (absolute), facing `out`. `run` is the
-## distance along the facade already covered (keeps the window rhythm continuous).
-func _wall(a: Vector2, b: Vector2, y0: float, y1: float, out: Vector2, col: Color, run := 0.0) -> void:
-	var length := a.distance_to(b)
-	if length < 0.02 or y1 <= y0:
-		return
-	var n := Vector3(out.x, 0.0, out.y).normalized()
-	# Cut away what an earlier wall of this site already covers in the same plane, facing the
-	# same way: two coplanar faces z-fight (flicker) on the phone. Pieces are (t0, t1, y0, y1)
-	# in metres along a→b and absolute height.
-	var d := (b - a) / length
-	var pieces: Array[Vector4] = [Vector4(0.0, length, y0, y1)]
-	for w in _walls:
-		if w[6] * n.x + w[7] * n.z < 0.9995:
-			continue
-		var wa := Vector2(w[0], w[1])
-		var wb := Vector2(w[2], w[3])
-		if absf((wa - a).dot(Vector2(-d.y, d.x))) > 0.03 or absf((wb - a).dot(Vector2(-d.y, d.x))) > 0.03:
-			continue
-		var e0 := (wa - a).dot(d)
-		var e1 := (wb - a).dot(d)
-		var t_lo := minf(e0, e1)
-		var t_hi := maxf(e0, e1)
-		var next: Array[Vector4] = []
-		for pc in pieces:
-			if t_hi <= pc.x + 0.01 or t_lo >= pc.y - 0.01 or w[5] <= pc.z + 0.01 or w[4] >= pc.w - 0.01:
-				next.append(pc)
-				continue
-			if t_lo > pc.x + 0.01:
-				next.append(Vector4(pc.x, t_lo, pc.z, pc.w))
-			if t_hi < pc.y - 0.01:
-				next.append(Vector4(t_hi, pc.y, pc.z, pc.w))
-			var m0 := maxf(pc.x, t_lo)
-			var m1 := minf(pc.y, t_hi)
-			if w[4] > pc.z + 0.01:
-				next.append(Vector4(m0, m1, pc.z, w[4]))
-			if w[5] < pc.w - 0.01:
-				next.append(Vector4(m0, m1, w[5], pc.w))
-		pieces = next
-	_walls.append(PackedFloat32Array([a.x, a.y, b.x, b.y, y0, y1, n.x, n.z]))
-	for pc in pieces:
-		var pa := a + d * pc.x
-		var pb := a + d * pc.y
-		var h0 := pc.z - _g
-		var h1 := pc.w - _g
-		var r0 := run + pc.x
-		var r1 := run + pc.y
-		_quad(Vector3(pa.x, pc.z, pa.y), Vector3(pb.x, pc.z, pb.y), Vector3(pb.x, pc.w, pb.y), Vector3(pa.x, pc.w, pa.y), n, col,
-				Vector2(r0, h0), Vector2(r1, h0), Vector2(r1, h1), Vector2(r0, h1), h1)
-
-
-## The outward normal of edge a→b of a polygon (plan).
-func _out(poly: PackedVector2Array, a: Vector2, b: Vector2) -> Vector2:
-	var e := (b - a).normalized()
-	var n := Vector2(e.y, -e.x)
-	return -n if Geometry2D.is_polygon_clockwise(poly) else n
-
-
-## Walls round a polygon from y0 to y1, then (if roof_col.a > 0) its flat top.
-func _prism(poly: PackedVector2Array, y0: float, y1: float, wall: Color, roof: Color, wall_mode := -1.0, roof_mode := -1.0) -> void:
-	if poly.size() < 3:
-		return
-	var keep := _mode
-	if wall_mode >= 0.0:
-		_mode = wall_mode
-	var run := 0.0
-	for i in poly.size():
-		var a := poly[i]
-		var b := poly[(i + 1) % poly.size()]
-		_wall(a, b, y0, y1, _out(poly, a, b), wall, run)
-		run += a.distance_to(b)
-	_mode = roof_mode if roof_mode >= 0.0 else keep
-	if roof.a > 0.0:
-		_cap(poly, y1, roof)
-	_mode = keep
-
-
-## A flat top over a polygon.
-func _cap(poly: PackedVector2Array, y: float, col: Color) -> void:
-	# Two flat tops at the same height that overlap z-fight: the later one keeps only what the
-	# earlier ones leave bare.
-	var pieces: Array[PackedVector2Array] = [poly]
-	for c in _caps:
-		if absf(float(c[0]) - y) > 0.03:
-			continue
-		var next: Array[PackedVector2Array] = []
-		for pc in pieces:
-			var cut := Geometry2D.clip_polygons(pc, c[1])
-			for q in cut:
-				if q.size() >= 3 and not Geometry2D.is_polygon_clockwise(q):
-					next.append(q)
-		pieces = next
-	_caps.append([y, poly])
-	if not _holes.is_empty():
-		var open: Array[PackedVector2Array] = []
-		for pc in pieces:
-			open.append_array(_minus_holes(pc))
-		pieces = open
-	for pc in pieces:
-		# Mapped outlines that double back on themselves triangulate into overlapping
-		# triangles; Clipper's union untangles them (a hole comes back clockwise: skipped).
-		for q in Geometry2D.merge_polygons(pc, PackedVector2Array()):
-			if q.size() >= 3 and not Geometry2D.is_polygon_clockwise(q):
-				_cap_piece(q, y, col)
-
-
-func _cap_piece(poly: PackedVector2Array, y: float, col: Color) -> void:
-	var idx := Geometry2D.triangulate_polygon(poly)
-	if idx.is_empty():
-		idx = Geometry2D.triangulate_delaunay(poly)
-	for i in range(0, idx.size(), 3):
-		var a := poly[idx[i]]
-		var b := poly[idx[i + 1]]
-		var c := poly[idx[i + 2]]
-		if absf((b - a).cross(c - a)) < 0.001:
-			continue  # a sliver with a repeated corner: no area, nothing to draw
-		_tri(Vector3(a.x, y, a.y), Vector3(b.x, y, b.y), Vector3(c.x, y, c.y), Vector3.UP, col,
-				Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
-
-
-## Courtyards (F, 2026-11-03): `poly` less the current site's courts (`_holes`), in pieces
-## that hold no hole (a piece left round a whole court is cut in two by a north-south line
-## through a point inside that court, then each half again). Counter-clockwise pieces only.
-func _minus_holes(poly: PackedVector2Array, depth := 0) -> Array[PackedVector2Array]:
-	var parts: Array[PackedVector2Array] = [poly]
-	for h in _holes:
-		var next: Array[PackedVector2Array] = []
-		for p in parts:
-			for q in Geometry2D.clip_polygons(p, h):
-				next.append(q)
-		parts = next
-	var out: Array[PackedVector2Array] = []
-	var enclosed := -1
-	for q in parts:
-		if q.size() < 3:
-			continue
-		if Geometry2D.is_polygon_clockwise(q):
-			enclosed = 0  # a court left whole inside a piece
-		else:
-			out.append(q)
-	if enclosed < 0 or depth > 6:
-		return out
-	# Split the piece at a point inside a court it holds whole, and take the courts from each half.
-	var lo := poly[0]
-	var hi := poly[0]
-	for q in poly:
-		lo = lo.min(q)
-		hi = hi.max(q)
-	var cut := INF
-	for h in _holes:
-		var idx := Geometry2D.triangulate_polygon(h)
-		if idx.size() < 3:
-			continue
-		var inner := (h[idx[0]] + h[idx[1]] + h[idx[2]]) / 3.0
-		if inner.x > lo.x and inner.x < hi.x and Geometry2D.is_point_in_polygon(inner, poly):
-			cut = inner.x
-			break
-	if cut == INF:
-		return out
-	var result: Array[PackedVector2Array] = []
-	for half in [PackedVector2Array([Vector2(lo.x - 1.0, lo.y - 1.0), Vector2(cut, lo.y - 1.0), Vector2(cut, hi.y + 1.0), Vector2(lo.x - 1.0, hi.y + 1.0)]),
-			PackedVector2Array([Vector2(cut, lo.y - 1.0), Vector2(hi.x + 1.0, lo.y - 1.0), Vector2(hi.x + 1.0, hi.y + 1.0), Vector2(cut, hi.y + 1.0)])]:
-		for piece in Geometry2D.intersect_polygons(poly, half):
-			if piece.size() >= 3 and not Geometry2D.is_polygon_clockwise(piece):
-				result.append_array(_minus_holes(piece, depth + 1))
-	return result
-
-
 ## Courtyards (F, 2026-11-03): the walls round the current site's courts, facing in, from the
 ## ground to the roof that rims each side (the highest flat top of the site 1 m behind it; a
 ## side with none takes the court's highest), with a window bay every COURT_STEP m on every
@@ -2403,122 +2132,6 @@ func _court_walls(wall: Color) -> void:
 					_wall(p - e * 0.7, p + e * 0.7, y, y + 2.4, inward, COURT_GLASS, floorf((t0 + k * COURT_STEP) / 1.5) * 1.5 + 0.05)
 				y += COURT_FLOOR
 	_mode = keep
-
-
-## A flat top over a polygon with holes: cut into vertical slabs through every hole,
-## so no piece holds a hole, then each piece is filled on its own.
-func _cap_holes(outer: PackedVector2Array, holes: Array, y: float, col: Color) -> void:
-	if holes.is_empty():
-		_cap(outer, y, col)
-		return
-	var lo := outer[0]
-	var hi := outer[0]
-	for q in outer:
-		lo = lo.min(q)
-		hi = hi.max(q)
-	var cuts: Array[float] = [lo.x - 1.0]
-	for h: PackedVector2Array in holes:
-		cuts.append(_centre(h).x)
-	cuts.append(hi.x + 1.0)
-	cuts.sort()
-	for k in cuts.size() - 1:
-		var slab := PackedVector2Array([Vector2(cuts[k], lo.y - 1.0), Vector2(cuts[k + 1], lo.y - 1.0),
-				Vector2(cuts[k + 1], hi.y + 1.0), Vector2(cuts[k], hi.y + 1.0)])
-		for piece in Geometry2D.intersect_polygons(outer, slab):
-			var parts: Array = [piece]
-			for h: PackedVector2Array in holes:
-				var next: Array = []
-				for p: PackedVector2Array in parts:
-					next.append_array(Geometry2D.clip_polygons(p, h))
-				parts = next
-			for p: PackedVector2Array in parts:
-				if p.size() >= 3:
-					_cap(p, y, col)
-
-
-## Sides from ring0 (at y0) to ring1 (at y1), same number of corners, then a top.
-func _frustum(ring0: PackedVector2Array, y0: float, ring1: PackedVector2Array, y1: float, col: Color, top_col := Color(0, 0, 0, 0)) -> void:
-	var n := ring0.size()
-	var c0 := _centre(ring0)
-	for i in n:
-		var a0 := ring0[i]
-		var b0 := ring0[(i + 1) % n]
-		var a1 := ring1[i]
-		var b1 := ring1[(i + 1) % n]
-		var p0 := Vector3(a0.x, y0, a0.y)
-		var p1 := Vector3(b0.x, y0, b0.y)
-		var p2 := Vector3(b1.x, y1, b1.y)
-		var p3 := Vector3(a1.x, y1, a1.y)
-		var nrm := (p1 - p0).cross(p3 - p0).normalized()
-		var mid := (a0 + b0) * 0.5 - c0
-		if Vector2(nrm.x, nrm.z).dot(mid) < 0.0:
-			nrm = -nrm
-		var h0 := y0 - _g
-		var h1 := y1 - _g
-		var l := a0.distance_to(b0)
-		_quad(p0, p1, p2, p3, nrm, col, Vector2(0, h0), Vector2(l, h0), Vector2(l, h1), Vector2(0, h1), h1)
-	if top_col.a > 0.0:
-		_cap(ring1, y1, top_col)
-
-
-## A pyramid over a ring, to an apex above its centre.
-func _pyramid(ring: PackedVector2Array, y0: float, apex_y: float, col: Color) -> void:
-	var c := _centre(ring)
-	var apex := Vector3(c.x, apex_y, c.y)
-	for i in ring.size():
-		var a := ring[i]
-		var b := ring[(i + 1) % ring.size()]
-		var pa := Vector3(a.x, y0, a.y)
-		var pb := Vector3(b.x, y0, b.y)
-		var nrm := (pb - pa).cross(apex - pa).normalized()
-		if Vector2(nrm.x, nrm.z).dot((a + b) * 0.5 - c) < 0.0:
-			nrm = -nrm
-		_tri(pa, pb, apex, nrm, col, Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
-
-
-## A crenellated parapet (zero thickness, seen from both sides) round a ring.
-func _attic(ring: PackedVector2Array, y: float, height: float, col: Color, closed := true) -> void:
-	var keep := _mode
-	_mode = M_ATTIC + clampf(height / 10.0, 0.0, 0.99)
-	var run := 0.0
-	var n := ring.size()
-	for i in (n if closed else n - 1):
-		var a := ring[i]
-		var b := ring[(i + 1) % n]
-		_wall(a, b, y, y + height, _out(ring, a, b), col, run)
-		run += a.distance_to(b)
-	_mode = keep
-
-
-## A rectangle in a landmark's local plan (centre, half sizes, turned by `turn`).
-func _rect(cu: float, cv: float, hu: float, hv: float) -> PackedVector2Array:
-	return PackedVector2Array([_w(cu - hu, cv - hv), _w(cu + hu, cv - hv), _w(cu + hu, cv + hv), _w(cu - hu, cv + hv)])
-
-
-func _w(u: float, v: float) -> Vector2:
-	return _o + _a * u + _b * v
-
-
-func _wl(p: Vector2) -> Vector2:
-	return _o + _a * p.x + _b * p.y
-
-
-func _local(p: Vector2) -> Vector2:
-	var d := p - _o
-	return Vector2(d.dot(_a), d.dot(_b))
-
-
-## A box in the local plan: walls and a top.
-func _lbox(cu: float, cv: float, hu: float, hv: float, y0: float, y1: float, col: Color, mode := M_STONE, top_col := Color(0, 0, 0, 0)) -> void:
-	_prism(_rect(cu, cv, hu, hv), y0, y1, col, top_col if top_col.a > 0.0 else col.darkened(0.1), mode, M_STONE)
-
-
-## A pinnacle: a square shaft with a pointed cap, on a local spot.
-func _pinnacle(cu: float, cv: float, w: float, y: float, h: float, col: Color) -> void:
-	var r := w * 0.5
-	_prism(_rect(cu, cv, r, r), y, y + h * 0.62, col, Color(0, 0, 0, 0), M_STONE)
-	_mode = M_STONE
-	_pyramid(_rect(cu, cv, r * 1.15, r * 1.15), y + h * 0.62, y + h, col.lightened(0.08))
 
 
 ## Car collision along a ring at street level (like map_builder's buildings).
@@ -2666,13 +2279,6 @@ func _on_ring(p: Vector2, ring: PackedVector2Array) -> bool:
 		if q.distance_to(p) < 0.4:
 			return true
 	return false
-
-
-func _lpoly(pts: Array) -> PackedVector2Array:
-	var out := PackedVector2Array()
-	for q in pts:
-		out.append(_w(q[0], q[1]))
-	return out
 
 
 func _build_palace(site: Dictionary) -> void:
@@ -2968,44 +2574,6 @@ func _palace_glb(outer: PackedVector2Array, g: float) -> bool:
 	_palace_name(54.05, g)
 	_palace_venues(g)
 	return true
-
-
-## `_tri` with a normal per corner (the glb's smooth parts); `fn` the face normal for winding.
-func _tri_smooth(p: Array[Vector3], n: Array[Vector3], fn: Vector3, col: Color, u: Array[Vector2], top: float) -> void:
-	var a := p[0]
-	var b := p[1]
-	var c := p[2]
-	var na := n[0]
-	var nb := n[1]
-	var nc := n[2]
-	var ua := u[0]
-	var ub := u[1]
-	var uc := u[2]
-	if ((b - a).cross(c - a).dot(fn) > 0.0) == CLOCKWISE_FRONT:
-		var t := b
-		b = c
-		c = t
-		var tn := nb
-		nb = nc
-		nc = tn
-		var tu := ub
-		ub = uc
-		uc = tu
-	st.set_color(col)
-	st.set_uv2(Vector2(_mode, top))
-	st.set_normal(na)
-	st.set_uv(ua)
-	st.add_vertex(a)
-	st.set_normal(nb)
-	st.set_uv(ub)
-	st.add_vertex(b)
-	st.set_normal(nc)
-	st.set_uv(uc)
-	st.add_vertex(c)
-	if not _no_roof:
-		map._roof_triangle(a, b, c, absf(fn.y) >= 0.3)
-	if _id > 0:
-		_mark_pick(a, b, c)
 
 
 ## A gate in the Palace's base on the west-facing wall at plane u (the wall faces -u): a dark
@@ -6252,11 +5820,6 @@ func _lim_screen(c: Vector2, d: Vector2, n: Vector2, w: float, h: float, foot: f
 	signs.append([word, Vector3(p.x, y0 + 0.5 * h - 0.5 * rh, p.y), Vector3(n.x, 0.0, n.y), k, ink])
 
 
-## An axis-aligned square round `c`, half-width `r`.
-func _square(c: Vector2, r: float) -> PackedVector2Array:
-	return PackedVector2Array([c + Vector2(-r, -r), c + Vector2(r, -r), c + Vector2(r, r), c + Vector2(-r, r)])
-
-
 ## The dusk loop: a lit name on the two faces of `poly` that face the camera most, south and
 ## east, centred `drop` m under `top_y`, the word spanning `share` of the face's width. Only
 ## the long faces count (at least half the longest edge), so a corner chamfer never carries one.
@@ -6640,7 +6203,6 @@ const SPIRE_SOIL := Color("#56703a")
 const SPIRE_LOCUST := Color("#8daa48")     # honey locusts, light yellow-green (IMG_7330)
 const SPIRE_CYPRESS := Color("#5f7f36")    # the slim conical swamp cypresses (IMG_7330, 7332)
 const SPIRE_TRUNK := Color("#4a3f35")
-const M_STEEL := M_GOLD + 0.5
 
 
 func _spire(outline: PackedVector2Array, g: float, glass: Color, roof: Color, skin: float, masts: Array) -> void:
@@ -7366,14 +6928,6 @@ const ZYGMUNT_CAPITAL := Color("#4a443a")
 const ZYGMUNT_BRONZE := Color("#4f4a40")
 func _find_zygmunt() -> void:
 	_add_site("zygmunt", [_circle(ZYGMUNT, 4.0, 16)])
-
-
-## A ring of `n` points round `c`.
-func _circle(c: Vector2, r: float, n: int) -> PackedVector2Array:
-	var out := PackedVector2Array()
-	for k in n:
-		out.append(c + Vector2.from_angle(TAU * (k + 0.5) / n) * r)
-	return out
 
 
 func _build_zygmunt(_site: Dictionary) -> void:
@@ -11764,30 +11318,6 @@ func _build_stadium(site: Dictionary) -> void:
 	_id = keep_id
 
 
-## A square beam from a to b, `w` wide (masts, cables). Cables stay out of the roof grid.
-func _beam(a: Vector3, b: Vector3, w: float, col: Color, solid := true, mode := M_STONE) -> void:
-	var z := (b - a).normalized()
-	var x := Vector3.UP.cross(z)
-	if x.length_squared() < 0.001:
-		x = Vector3.RIGHT
-	x = x.normalized() * w * 0.5
-	var y := z.cross(x).normalized() * w * 0.5
-	var keep := _mode
-	_mode = mode
-	var corners := [x + y, -x + y, -x - y, x - y]
-	for k in 4:
-		var c0: Vector3 = corners[k]
-		var c1: Vector3 = corners[(k + 1) % 4]
-		var nrm := (c0 + c1).normalized()
-		var p0 := a + c0
-		var p1 := a + c1
-		var p2 := b + c1
-		var p3 := b + c0
-		_tri(p0, p1, p2, nrm, col, Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0, solid)
-		_tri(p0, p2, p3, nrm, col, Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0, solid)
-	_mode = keep
-
-
 # --- Warszawa Centralna -----------------------------------------------------------------------
 
 ## Colours (spec centralna.md section 5).
@@ -12508,59 +12038,6 @@ func _dp(pts: PackedVector2Array, tol: float) -> PackedVector2Array:
 	out.resize(out.size() - 1)
 	out.append_array(_dp(pts.slice(at), tol))
 	return out
-
-
-func _area(poly: PackedVector2Array) -> float:
-	var a := 0.0
-	for i in poly.size():
-		var p := poly[i]
-		var q := poly[(i + 1) % poly.size()]
-		a += p.x * q.y - q.x * p.y
-	return a * 0.5
-
-
-## Tall window bays along a ring's walls: a pane `w` wide every `step` metres (the walls'
-## piers between them), from h0 to h1 over the ground, 0.07 m proud of the wall, in the
-## curtain-wall glass (M_GLASS: a transom every 4 m, some lit at night); none where a bay's
-## foot falls in `skip` (a block standing in front of that wall).
-func _bays(ring: PackedVector2Array, h0: float, h1: float, step: float, w: float, col: Color,
-		skip := PackedVector2Array()) -> void:
-	var keep := _mode
-	_mode = M_GLASS
-	var along := 0.0
-	for i in ring.size():
-		var a := ring[i]
-		var b := ring[(i + 1) % ring.size()]
-		var length := a.distance_to(b)
-		along += length
-		var n := floori((length - 1.5) / step)
-		if n < 1:
-			continue
-		var e := (b - a) / length
-		var out := _out(ring, a, b)
-		var t0 := (length - n * step) * 0.5 + step * 0.5
-		for k in n:
-			var p := a + e * (t0 + k * step) + out * 0.07
-			if skip.size() >= 3 and Geometry2D.is_point_in_polygon(p, skip):
-				continue
-			# UV.x centred on a pane of the shader's 1.5 m grid (so its mullions frame the bay), at
-			# the bay's distance round the ring (so each bay draws its own lit rooms at night).
-			var pane := floorf((along + t0 + k * step) / 1.5) * 1.5
-			_wall(p - e * w * 0.5, p + e * w * 0.5, _g + h0, _g + h1, out, col, pane + 0.75 - w * 0.5)
-	_mode = keep
-
-
-## A thin parapet (zero thickness, both sides drawn) round a ring, from y up `height`.
-func _parapet(ring: PackedVector2Array, y: float, height: float, col: Color) -> void:
-	var keep := _mode
-	_mode = M_STONE
-	var run := 0.0
-	for i in ring.size():
-		var a := ring[i]
-		var b := ring[(i + 1) % ring.size()]
-		_wall(a, b, y, y + height, _out(ring, a, b), col, run)
-		run += a.distance_to(b)
-	_mode = keep
 
 
 ## Muzeum Narodowe: Tadeusz Tołwiński's stripped-classical block in pale stone. The mapped
@@ -13671,18 +13148,6 @@ func _dtc_sign(outline: PackedVector2Array, word: String, y: float) -> void:
 	_prism(PackedVector2Array([r0 - o * 0.1, r1 - o * 0.1, r1 + o * 0.1, r0 + o * 0.1]), y + 0.2, y + 0.5,
 			DTC_ALU.darkened(0.3), DTC_ALU.darkened(0.3), M_STONE, M_STONE)
 	signs.append([word, Vector3(mid.x, y + 0.5, mid.y), Vector3(o.x, 0.0, o.y), k, DTC_SIGN])
-
-
-## The underside of a box at y over its whole outline, facing down (an overhang's soffit; the part
-## over the inner floor is its ceiling, never seen).
-func _soffit(outer: PackedVector2Array, y: float, col: Color) -> void:
-	var idx := Geometry2D.triangulate_polygon(outer)
-	for i in range(0, idx.size() - 2, 3):
-		var p0 := outer[idx[i]]
-		var p1 := outer[idx[i + 1]]
-		var p2 := outer[idx[i + 2]]
-		_tri(Vector3(p0.x, y, p0.y), Vector3(p1.x, y, p1.y), Vector3(p2.x, y, p2.y), Vector3.DOWN, col,
-				Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0, false)
 
 
 # --- The Bridge and Grzybowska 77 (F's photos, 2026-11-06) -----------------------------------
@@ -15839,17 +15304,6 @@ func _exit_point(ring: PackedVector2Array, c: Vector2, d: Vector2, reach: float)
 	return best
 
 
-## The biggest of some polygons (an offset ring can break into pieces).
-func _largest(polys: Array) -> PackedVector2Array:
-	var best := PackedVector2Array()
-	var size := 0.0
-	for p: PackedVector2Array in polys:
-		if absf(_area(p)) > size:
-			size = absf(_area(p))
-			best = p
-	return best
-
-
 ## Vertical fins standing `depth` out from a ring's walls, one every `step` metres along it,
 ## `w` thick, from y0 to y1, with a top; none within `gap` of a point in `skip` (a doorway).
 func _fins(ring: PackedVector2Array, y0: float, y1: float, step: float, w: float, depth: float, col: Color,
@@ -16027,68 +15481,6 @@ func _build_trojca(_site: Dictionary) -> void:
 	_collide(ring)
 
 
-## A column on a local spot: a square plinth, an octagonal shaft and a square capital (Tuscan).
-func _column(cu: float, cv: float, r: float, y0: float, y1: float, col: Color) -> void:
-	var none := Color(0, 0, 0, 0)
-	var base := minf(0.45, (y1 - y0) * 0.05)
-	_prism(_rect(cu, cv, r * 1.35, r * 1.35), y0, y0 + base, col.darkened(0.04), col.darkened(0.08), M_STONE, M_STONE)
-	_prism(_circle(_w(cu, cv), r, 8), y0 + base, y1 - base, col, none, M_STONE)
-	_prism(_rect(cu, cv, r * 1.4, r * 1.4), y1 - base, y1, col.lightened(0.05), none, M_STONE)
-
-
-## A gable in the local frame: the pediment's triangle on the plane u = uf (facing away from
-## ub), from v = cv - hv to cv + hv, base y, apex y + h, and its two roof slopes back to u = ub,
-## closed there by a second triangle when `back` (none when it ends inside a wall).
-func _gable(uf: float, ub: float, cv: float, hv: float, y: float, h: float, face: Color, roof: Color, back := true) -> void:
-	var keep := _mode
-	_mode = M_STONE
-	var s := signf(uf - ub)
-	var at := func(u: float, v: float, yy: float) -> Vector3:
-		var p := _w(u, v)
-		return Vector3(p.x, yy, p.y)
-	var front := Vector3(_a.x * s, 0.0, _a.y * s)
-	var top := y + h - _g
-	var y0 := y - _g
-	var l: Vector3 = at.call(uf, cv - hv, y)
-	var rr: Vector3 = at.call(uf, cv + hv, y)
-	var apex: Vector3 = at.call(uf, cv, y + h)
-	var lb: Vector3 = at.call(ub, cv - hv, y)
-	var rb: Vector3 = at.call(ub, cv + hv, y)
-	var apex_b: Vector3 = at.call(ub, cv, y + h)
-	_tri(l, rr, apex, front, face, Vector2(0, y0), Vector2(hv * 2.0, y0), Vector2(hv, top), top)
-	if back:
-		_tri(lb, rb, apex_b, -front, face, Vector2(0, y0), Vector2(hv * 2.0, y0), Vector2(hv, top), top)
-	for side: float in [-1.0, 1.0]:
-		var e: Vector3 = l if side < 0.0 else rr
-		var eb: Vector3 = lb if side < 0.0 else rb
-		var n := (Vector3(_b.x, 0.0, _b.y) * side * h + Vector3.UP * hv).normalized()
-		_quad(e, eb, apex_b, apex, n, roof)
-	_mode = keep
-
-
-## A flat round (n-sided) disc at c facing n: an oculus, a clock face.
-func _disc(c: Vector3, n: Vector3, r: float, sides: int, col: Color) -> void:
-	var side := Vector3.UP.cross(n).normalized()
-	var top := c.y + r - _g
-	for k in sides:
-		var a0 := TAU * k / sides
-		var a1 := TAU * (k + 1) / sides
-		var p0 := c + (side * cos(a0) + Vector3.UP * sin(a0)) * r
-		var p1 := c + (side * cos(a1) + Vector3.UP * sin(a1)) * r
-		_tri(c, p0, p1, n, col, Vector2(r, c.y - _g), Vector2(r + cos(a0) * r, p0.y - _g),
-				Vector2(r + cos(a1) * r, p1.y - _g), top)
-
-
-## A hipped roof over a local rectangle: from the eaves at y up `rise` to a ridge along the
-## longer side.
-func _hip(cu: float, cv: float, hu: float, hv: float, y: float, rise: float, col: Color) -> void:
-	var keep := _mode
-	_mode = M_STONE
-	var short := minf(hu, hv) - 0.15
-	_frustum(_rect(cu, cv, hu, hv), y, _rect(cu, cv, hu - short, hv - short), y + rise, col, col.darkened(0.06))
-	_mode = keep
-
-
 ## Zachęta (Stefan Szyller, 1898-1900): the white gallery on Plac Małachowskiego, its front to the
 ## east. A rusticated ground floor over a basement band, the upper floor of tall windows, a cornice
 ## and a balustrade; the end pavilions stand forward under acroteria; in the middle two pylons
@@ -16246,31 +15638,6 @@ func _find_mirowska() -> void:
 		_add_site("mirowska", [outline])
 		if not sites.is_empty() and sites[-1]["key"] == "mirowska":
 			sites[-1]["ring"] = outline
-
-
-## A round-headed panel on a wall: a rectangle up to the spring line and a four-segment half
-## disc above it. `at` is the foot centre in plan, `along` the wall's direction, `out` its
-## outward normal, `proud` how far it stands off the wall (against z-fighting).
-func _arch_panel(at: Vector2, along: Vector2, out: Vector2, hw: float, y0: float, spring: float, col: Color,
-		proud: float, mode: float) -> void:
-	var keep := _mode
-	_mode = mode
-	var p := at + out * proud
-	_wall(p - along * hw, p + along * hw, y0, spring, out, col)
-	var n := Vector3(out.x, 0.0, out.y)
-	var t := Vector3(along.x, 0.0, along.y)
-	var c := Vector3(p.x, spring, p.y)
-	var top := spring + hw - _g
-	var prev := c + t * hw
-	for k in range(1, 5):
-		var ang := PI * k / 4.0
-		var q := c + (t * cos(ang) + Vector3.UP * sin(ang)) * hw
-		var a0 := PI * (k - 1) / 4.0
-		_tri(c, prev, q, n, col, Vector2(hw, spring - _g),
-				Vector2(hw + cos(a0) * hw, spring - _g + sin(a0) * hw),
-				Vector2(hw + cos(ang) * hw, spring - _g + sin(ang) * hw), top)
-		prev = q
-	_mode = keep
 
 
 ## A round-headed window: a cream surround behind a dark glass pane.
@@ -18679,26 +18046,44 @@ func _build_sejm(_site: Dictionary) -> void:
 	_collide(ring)
 
 
-## St Alexander's church (Kościół Świętego Aleksandra; Kubicki's Pantheon-like rotunda of
-## 1818-1826 on Plac Trzech Krzyży): a model instead of a skin. A drum 11.3 m in radius under a
-## copper dome with a small lantern and a cross, a pedimented portico of six columns on each end of
-## the long axis (the mapped outline is mirrored: 12.8 m wide, 18.0 m out to the north end, 17.4 m
-## to the south). Spec docs/landmarks/specs/aleksander.md. Centre and radius are a circle fitted
-## to the outline's arcs; heights are estimates (no LoD2 in the cloud).
+## St Alexander's church (Kościół Świętego Aleksandra; Chrystian Piotr Aigner's rotunda of
+## 1818-1825 in the middle of Plac Trzech Krzyży, given towers in the 1890s, burnt in 1944 and
+## rebuilt in Aigner's form without them). Rebuilt 2026-11-13 from Mapillary photos (refs/aleksander,
+## never shipped), F's photos (top-50 T23) and the GUGiK LoD2 heights (eaves 13.8 m, upper drum 18.9 m, dome 25.7 m).
+## Spec docs/landmarks/specs/aleksander.md. White plaster, copper-flashed cornices, a green copper dome:
+## - a stepped stone podium round the whole church;
+## - a tall blank lower drum (no windows) with a string course and a dentilled cornice in line
+##   with the porticoes' entablature, then a plain set-back band;
+## - a lower, set-back upper drum where round-headed windows alternate with blind arched niches,
+##   its own cornice, a plain attic ring and the low dome with a small cross on top (no lantern);
+## - a portico of six Corinthian columns on each end of the long axis (one more column on each
+##   side behind the corner ones), a pediment with a cross, a cella front with a big door and two
+##   side doors, small windows in the cella block's sides, and steps down to the square.
 ## Frame: origin at the rotunda's centre, u along the long axis to the north (Nowy Świat), +v east.
 const ALEKS := Vector2(-110.8, 541.7)
 const ALEKS_AXIS := Vector2(-0.232, -0.973)
-const ALEKS_R := 11.3
-const ALEKS_HALF := 6.4         # the porticoes' half width
+const ALEKS_R := 11.3            ## the lower drum (a circle fitted to the outline's arcs)
+const ALEKS_UP_R := 10.2         ## the upper drum
+const ALEKS_HALF := 6.4          ## the porticoes' half width (the outline)
 const ALEKS_ENDS := [18.0, -17.4]
-const ALEKS_WALL := Color("#ebe4d2")
-const ALEKS_TRIM := Color("#f3eee0")
-const ALEKS_BASE := Color("#b5ab97")
-const ALEKS_COPPER := Color("#7f8f88")
-const ALEKS_DARK := Color("#3a3f42")
-const ALEKS_GOLD := Color("#c9a24a")
-## The dome's profile over the attic: [radius, height above ground].
-const ALEKS_DOME := [[10.4, 17.0], [9.9, 19.0], [8.8, 21.0], [7.3, 22.8], [5.6, 24.2], [3.8, 25.2], [2.8, 25.6]]
+const ALEKS_PODIUM := 0.8        ## the podium's top above the street
+const ALEKS_FLOOR := 1.4         ## the porticoes' floor
+const ALEKS_WALL := Color("#f1f0eb")    ## white plaster (F's photos: white, not cream)
+const ALEKS_TRIM := Color("#faf9f5")    ## cornices, columns, surrounds
+const ALEKS_NICHE := Color("#dedcd4")   ## the blind niches' shade
+const ALEKS_BASE := PAL_PALE_CONCRETE    ## the plinth band
+const ALEKS_LEDGE := Color("#7aa892")   ## the copper flashing on the cornices' tops (the aerial)
+const ALEKS_STEP := PAL_GREY_STONE    ## granite steps and podium
+const ALEKS_COPPER := PAL_PATINA_COPPER  ## the dome's green copper
+const ALEKS_ROOF := Color("#5f8a76")    ## the porticoes' copper roofs
+const ALEKS_DARK := PAL_GLASS_DARK
+const ALEKS_DOOR := PAL_OAK
+const ALEKS_IRON := PAL_IRON    ## the crosses (they read dark against the sky)
+## The dome over the attic: [radius, height above the street] (LoD2: apex 25.7 m).
+const ALEKS_DOME := [[9.6, 20.0], [9.1, 20.9], [8.0, 21.9], [6.4, 22.9], [4.5, 23.8], [2.4, 24.6], [0.7, 25.0]]
+## A portico's column spots across it (v) and the return columns' setback from the front.
+const ALEKS_COLS := [-5.75, -3.45, -1.15, 1.15, 3.45, 5.75]
+const ALEKS_RETURN := 2.3
 
 
 func _find_aleksander() -> void:
@@ -18709,65 +18094,142 @@ func _find_aleksander() -> void:
 			sites[-1]["ring"] = outline
 
 
+## A ring of n points round the rotunda, turned with the long axis: face k's middle sits at the
+## local angle k * TAU / n from u (so faces line up with the porticoes and the windows).
+func _aleks_ring(r: float, n: int) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for k in n:
+		var ang := TAU * (k + 0.5) / n
+		out.append(ALEKS + (_a * cos(ang) + _b * sin(ang)) * r)
+	return out
+
+
 func _build_aleksander(_site: Dictionary) -> void:
 	_o = ALEKS
 	_a = ALEKS_AXIS.normalized()
 	_b = Vector2(-_a.y, _a.x)
 	var c := ALEKS
 	var r := ALEKS_R
+	var ru := ALEKS_UP_R
 	_g = _ground_under(_circle(c, r, 8))
 	var g := _g
 	var none := Color(0, 0, 0, 0)
-	var light := ALEKS_TRIM
-	# plinth, drum, cornice, attic
-	_prism(_circle(c, r + 0.3, 24), g - 0.5, g + 1.0, ALEKS_BASE, ALEKS_BASE, M_STONE, M_STONE)
-	_prism(_circle(c, r, 24), g + 1.0, g + 13.5, ALEKS_WALL, none, M_MONUMENT)
-	_prism(_circle(c, r + 0.45, 24), g + 13.5, g + 14.4, light, light, M_STONE, M_STONE)
-	_prism(_circle(c, r - 0.5, 24), g + 14.4, g + 17.0, ALEKS_WALL, ALEKS_WALL.darkened(0.08), M_STONE, M_STONE)
-	# tall windows round the drum, between the two porticoes (not on the ends' axis)
-	_mode = M_GLASS
-	for k in 12:
-		var ang := deg_to_rad(15.0 + 30.0 * k)
-		var out := _a * cos(ang) + _b * sin(ang)
-		var tan := Vector2(out.y, -out.x)
-		var p := c + out * (r * cos(PI / 24.0) + 0.07)
-		_wall(p - tan * 0.6, p + tan * 0.6, g + 5.0, g + 10.2, out, ALEKS_DARK)
+	var p := g + ALEKS_PODIUM
+	var fl := g + ALEKS_FLOOR
+	var face_c := cos(PI / 24.0)  # a 24-gon's face distance over its vertex radius
 	_mode = M_STONE
-	# dome
+	# the podium: a step all round, then the platform the church stands on
+	_prism(_aleks_ring(r + 2.3, 24), g - 0.5, g + 0.4, ALEKS_STEP, ALEKS_STEP.lightened(0.04), M_STONE, M_STONE)
+	_prism(_aleks_ring(r + 1.4, 24), g + 0.4, p, ALEKS_STEP, ALEKS_STEP.lightened(0.07), M_STONE, M_STONE)
+	# the lower drum: a plinth band, the blank wall, a string course, the dentilled cornice in two
+	# tiers, then the plain set-back band and its cap
+	_prism(_aleks_ring(r + 0.15, 24), p - 0.1, p + 0.9, ALEKS_BASE, none, M_STONE)
+	_prism(_aleks_ring(r, 24), p + 0.9, g + 11.0, ALEKS_WALL, none, M_STONE)
+	# small square vents in the plinth band, two to a face, clear of the porticoes
+	_mode = M_GLASS
+	for k in 24:
+		if k % 12 <= 2 or k % 12 >= 10:
+			continue
+		var va := TAU * k / 24.0
+		var vo := _a * cos(va) + _b * sin(va)
+		var vt := Vector2(vo.y, -vo.x)
+		var vp := c + vo * ((r + 0.15) * face_c + 0.03)
+		for dt: float in [-0.6, 0.6]:
+			_wall(vp + vt * (dt - 0.18), vp + vt * (dt + 0.18), p + 0.3, p + 0.66, vo, ALEKS_DARK)
+	_mode = M_STONE
+	_prism(_aleks_ring(r + 0.08, 24), g + 9.7, g + 9.95, ALEKS_TRIM, none, M_STONE)
+	_prism(_aleks_ring(r + 0.25, 24), g + 11.0, g + 11.4, ALEKS_TRIM, none, M_STONE)
+	_prism(_aleks_ring(r + 0.55, 24), g + 11.4, g + 11.9, ALEKS_TRIM, ALEKS_LEDGE, M_STONE, M_STONE)
+	_prism(_aleks_ring(r - 0.3, 24), g + 11.9, g + 13.6, ALEKS_WALL, none, M_STONE)
+	_prism(_aleks_ring(r - 0.15, 24), g + 13.6, g + 13.8, ALEKS_TRIM, ALEKS_LEDGE, M_STONE, M_STONE)
+	# the upper drum, its cornice and the plain attic ring
+	_prism(_aleks_ring(ru, 24), g + 13.8, g + 18.0, ALEKS_WALL, none, M_STONE)
+	_prism(_aleks_ring(ru + 0.45, 24), g + 18.0, g + 18.9, ALEKS_TRIM, ALEKS_LEDGE, M_STONE, M_STONE)
+	_prism(_aleks_ring(ru - 0.6, 24), g + 18.9, g + 20.0, ALEKS_WALL, none, M_STONE)
+	# round-headed windows on the even faces, blind niches on the odd ones; none on the axis,
+	# where the pediments stand in front of the upper drum
+	for k in 24:
+		if k % 12 == 0:
+			continue
+		var ang := TAU * k / 24.0
+		var out := _a * cos(ang) + _b * sin(ang)
+		var along := Vector2(out.y, -out.x)
+		var at := c + out * (ru * face_c)
+		if k % 2 == 0:
+			_arch_panel(at, along, out, 1.0, g + 14.4, g + 16.3, ALEKS_TRIM, 0.04, M_STONE)
+			_arch_panel(at, along, out, 0.72, g + 14.6, g + 16.3, ALEKS_DARK, 0.08, M_GLASS)
+		else:
+			_arch_panel(at, along, out, 0.8, g + 14.5, g + 16.3, ALEKS_NICHE, 0.04, M_STONE)
+	# the dome, lighter toward the top, then the cross on a small pedestal
+	_mode = M_STONE
 	for k in ALEKS_DOME.size() - 1:
 		var da: Array = ALEKS_DOME[k]
 		var db: Array = ALEKS_DOME[k + 1]
-		var col := ALEKS_COPPER.lerp(ALEKS_COPPER.lightened(0.12), float(k) / ALEKS_DOME.size())
-		_frustum(_circle(c, da[0], 24), g + float(da[1]), _circle(c, db[0], 24), g + float(db[1]), col)
-	# lantern: a base, the windowed drum, a cornice, the cap, a ball and the cross
-	_prism(_circle(c, 2.9, 12), g + 25.4, g + 26.3, ALEKS_BASE, ALEKS_BASE, M_STONE, M_STONE)
-	_prism(_circle(c, 2.3, 12), g + 26.3, g + 30.0, ALEKS_TRIM, none, M_MONUMENT)
-	_prism(_circle(c, 2.8, 12), g + 30.0, g + 30.6, light, light, M_STONE, M_STONE)
-	_frustum(_circle(c, 2.6, 12), g + 30.6, _circle(c, 0.3, 12), g + 33.0, ALEKS_COPPER.lightened(0.06), ALEKS_COPPER)
-	_prism(_circle(c, 0.4, 6), g + 33.0, g + 33.7, ALEKS_GOLD, ALEKS_GOLD, M_STONE, M_STONE)
-	_lbox(0.0, 0.0, 0.1, 0.1, g + 33.7, g + 37.0, ALEKS_GOLD, M_STONE, ALEKS_GOLD)
-	_lbox(0.0, 0.0, 0.1, 0.65, g + 35.6, g + 35.84, ALEKS_GOLD, M_STONE, ALEKS_GOLD)
-	# the two porticoes: a cella, a stylobate, six columns, an entablature, a pediment, a door
-	var ring := _circle(c, r + 0.3, 24)
+		var col := ALEKS_COPPER.lerp(ALEKS_COPPER.lightened(0.15), float(k) / ALEKS_DOME.size())
+		var top := ALEKS_COPPER.lightened(0.15) if k == ALEKS_DOME.size() - 2 else none
+		_frustum(_aleks_ring(da[0], 24), g + float(da[1]), _aleks_ring(db[0], 24), g + float(db[1]), col, top)
+	_prism(_circle(c, 0.35, 6), g + 24.9, g + 25.6, ALEKS_IRON, ALEKS_IRON, M_STONE, M_STONE)
+	_lbox(0.0, 0.0, 0.09, 0.09, g + 25.6, g + 28.2, ALEKS_IRON, M_STONE, ALEKS_IRON)
+	_lbox(0.0, 0.0, 0.09, 0.6, g + 27.2, g + 27.42, ALEKS_IRON, M_STONE, ALEKS_IRON)
+	# the two porticoes
+	var ring := _aleks_ring(r + 2.3, 24)
 	for end: float in ALEKS_ENDS:
 		var sgn := signf(end)
 		var face := absf(end)
-		var back := face - 4.4
-		var mid := sgn * (r - 2.0 + back) * 0.5
-		var half := (back - r + 2.0) * 0.5
+		var back := face - 4.8           # the cella front
+		var root := r - 1.5              # where the cella block meets the drum
 		var hv := ALEKS_HALF
-		# the door first, so the cella wall stays whole (7 cm proud of it)
-		_mode = M_GLASS
-		var du := sgn * (back + 0.07)
-		_wall(_w(du, sgn * 1.1), _w(du, -sgn * 1.1), g + 0.9, g + 5.6, _a * sgn, ALEKS_DARK)
+		# the cella front's doors first, so its wall stays whole behind them
+		var du := sgn * (back + 0.08)
 		_mode = M_STONE
-		_lbox(mid, 0.0, half, hv - 0.4, g - 0.5, g + 11.0, ALEKS_WALL, M_MONUMENT, ALEKS_WALL.darkened(0.08))
-		_lbox(sgn * (back + 2.2), 0.0, 2.2, hv, g - 0.5, g + 0.8, ALEKS_BASE, M_STONE, ALEKS_BASE.lightened(0.08))
-		for v: float in [-5.8, -3.6, -1.2, 1.2, 3.6, 5.8]:
-			_column(sgn * (face - 1.0), v, 0.42, g + 0.8, g + 9.4, ALEKS_TRIM)
-		_lbox(sgn * (back + 2.25), 0.0, 2.25, hv, g + 9.4, g + 10.9, light, M_STONE, ALEKS_WALL.darkened(0.08))
-		_gable(sgn * (face + 0.05), sgn * (r - 2.0), 0.0, hv + 0.1, g + 10.9, 2.3, ALEKS_WALL, ALEKS_COPPER, false)
-		var arm := _rect(sgn * (r - 2.0 + face) * 0.5, 0.0, (face - r + 2.0) * 0.5, hv)
+		_wall(_w(du, sgn * 1.75), _w(du, -sgn * 1.75), fl, fl + 6.6, _a * sgn, ALEKS_TRIM)
+		_mode = M_GLASS
+		_wall(_w(du + sgn * 0.04, sgn * 1.3), _w(du + sgn * 0.04, -sgn * 1.3), fl, fl + 5.9, _a * sgn, ALEKS_DOOR)
+		for dv: float in [-4.6, 4.6]:
+			_wall(_w(du, dv + sgn * 0.6), _w(du, dv - sgn * 0.6), fl, fl + 3.2, _a * sgn, ALEKS_DOOR)
+		# small windows, two up, in the cella block's side walls
+		for side: float in [-1.0, 1.0]:
+			var sv := side * (hv - 0.3 + 0.06)
+			var su := sgn * (back - 1.4)
+			for wy: float in [3.6, 7.0]:
+				_wall(_w(su - 0.35, sv), _w(su + 0.35, sv), g + wy, g + wy + 1.1, _b * side, ALEKS_DARK)
+		_mode = M_STONE
+		# the cella block, the floor and the steps down to the square
+		_lbox(sgn * (root + back) * 0.5, 0.0, (back - root) * 0.5, hv - 0.3, p - 0.2, g + 9.9, ALEKS_WALL, M_STONE)
+		# the south portico has a broad flight in front; the north one (the ground falls toward
+		# Nowy Świat) stands on a white base wall with a flight down each side (F's photos)
+		var front := sgn < 0.0
+		var reach := 1.8 if front else 0.3
+		_lbox(sgn * (back + face + 0.3) * 0.5, 0.0, (face + 0.3 - back) * 0.5, hv + 0.3, g - 0.5, fl,
+				ALEKS_STEP if front else ALEKS_WALL, M_STONE, ALEKS_STEP.lightened(0.08))
+		var flight := [[0.3, 0.8, 1.0], [0.8, 1.3, 0.6], [1.3, 1.8, 0.25]]
+		for st: Array in flight:
+			var s0 := float(st[0])
+			var s1 := float(st[1])
+			if front:
+				_lbox(sgn * (face + (s0 + s1) * 0.5), 0.0, (s1 - s0) * 0.5, hv + 0.3, g - 0.5, g + float(st[2]), ALEKS_STEP, M_STONE, ALEKS_STEP.lightened(0.05))
+			else:
+				for side: float in [-1.0, 1.0]:
+					_lbox(sgn * (face - 1.6), side * (hv + 0.3 + (s0 + s1) * 0.5 - 0.3), 1.9, (s1 - s0) * 0.5,
+							g - 0.5, g + float(st[2]), ALEKS_STEP, M_STONE, ALEKS_STEP.lightened(0.05))
+		# the antae at the cella front's corners, then the columns: six across, one more each side
+		for side: float in [-1.0, 1.0]:
+			_lbox(sgn * (back + 0.2), side * 5.75, 0.2, 0.45, fl, g + 9.9, ALEKS_TRIM, M_STONE)
+		for v: float in ALEKS_COLS:
+			kit_column(sgn * (face - 0.75), v, fl, g + 9.9, ALEKS_TRIM, 0.46, Order.CORINTHIAN)
+		for v: float in [ALEKS_COLS[0], ALEKS_COLS[-1]]:
+			kit_column(sgn * (face - 0.75 - ALEKS_RETURN), v, fl, g + 9.9, ALEKS_TRIM, 0.46, Order.CORINTHIAN)
+		# the entablature (architrave and frieze, then the cornice), the pediment and its cross
+		var e0 := root
+		var e1 := face + 0.05
+		_lbox(sgn * (e0 + e1) * 0.5, 0.0, (e1 - e0) * 0.5, hv + 0.05, g + 9.9, g + 11.2, ALEKS_TRIM, M_STONE)
+		_lbox(sgn * (e0 + e1 + 0.25) * 0.5, 0.0, (e1 + 0.25 - e0) * 0.5, hv + 0.3, g + 11.2, g + 11.9, ALEKS_TRIM, M_STONE, ALEKS_TRIM.darkened(0.1))
+		# the pediment roof stops against a plain block over the cella's back, as high as the band
+		_gable(sgn * (face + 0.2), sgn * (root + 1.6), 0.0, hv + 0.3, g + 11.9, 3.3, ALEKS_WALL, ALEKS_ROOF, true)
+		_lbox(sgn * (root + 0.8), 0.0, 0.8, hv - 1.2, g + 11.9, g + 13.8, ALEKS_WALL, M_STONE, ALEKS_LEDGE)
+		_lbox(sgn * (face + 0.05), 0.0, 0.08, 0.08, g + 15.2, g + 16.9, ALEKS_IRON, M_STONE, ALEKS_IRON)
+		_lbox(sgn * (face + 0.05), 0.0, 0.08, 0.45, g + 16.2, g + 16.38, ALEKS_IRON, M_STONE, ALEKS_IRON)
+		var arm := _rect(sgn * (root + face + reach) * 0.5, 0.0, (face + reach - root) * 0.5, hv + (0.3 if front else 1.8))
 		var merged := Geometry2D.merge_polygons(ring, arm)
 		if not merged.is_empty():
 			ring = _largest(merged)
@@ -21648,26 +21110,6 @@ func _find_modern_pavilions() -> void:
 		_add_site(spec[0], [_largest(Geometry2D.offset_polygon(q, 1.0, Geometry2D.JOIN_MITER))])
 		if not sites.is_empty() and sites[-1]["key"] == spec[0]:
 			sites[-1]["outline"] = _simplify(q, 0.4)
-
-
-## Vertical mullions every `step` m round `poly` between y0 and y1, `proud` m out from it.
-func _mullions(poly: PackedVector2Array, y0: float, y1: float, step: float, proud: float, col: Color) -> void:
-	_mode = M_STONE
-	for i in poly.size():
-		var a := poly[i]
-		var b := poly[(i + 1) % poly.size()]
-		var len := a.distance_to(b)
-		if len < 1.0:
-			continue
-		var o := _out(poly, a, b)
-		var d := (b - a) / len
-		var n := maxi(1, roundi(len / step))
-		for k in range(1, n):
-			var c := a + d * len * k / n + o * proud
-			var p0 := c - d * 0.07
-			var p1 := c + d * 0.07
-			_quad(Vector3(p0.x, y0, p0.y), Vector3(p1.x, y0, p1.y), Vector3(p1.x, y1, p1.y), Vector3(p0.x, y1, p0.y),
-					Vector3(o.x, 0.0, o.y), col)
 
 
 ## Puts the local frame on a pavilion: _o the outline's centre, _a along `along`, _b turned to
@@ -28023,24 +27465,6 @@ func _find_teresy() -> void:
 			sites[-1]["ring"] = outline
 
 
-## A pane's lit-by-chance material from a place on the wall (a pane is lit whole at night).
-func _pane_at(a: float, b: float) -> float:
-	return M_PANE + 0.01 + 0.98 * fposmod(sin(a * 12.9898 + b * 78.233 + _o.x) * 437.585, 1.0)
-
-
-## The upper half of a round (n-sided) disc at c facing n: an arch's head over a flat opening.
-func _arch_cap(c: Vector3, n: Vector3, r: float, sides: int, col: Color) -> void:
-	var side := Vector3.UP.cross(n).normalized()
-	var top := c.y + r - _g
-	for k in sides:
-		var a0 := PI * k / sides
-		var a1 := PI * (k + 1) / sides
-		var p0 := c + (side * cos(a0) + Vector3.UP * sin(a0)) * r
-		var p1 := c + (side * cos(a1) + Vector3.UP * sin(a1)) * r
-		_tri(c, p0, p1, n, col, Vector2(r, c.y - _g), Vector2(r + cos(a0) * r, p0.y - _g),
-				Vector2(r + cos(a1) * r, p1.y - _g), top)
-
-
 ## A round-headed window on the nave's side wall at `face` (v), standing out of it towards
 ## `sgn` (+1: the +v wall): a trim frame, dark lattice glass, a plain panel under the sill.
 func _teresy_window(face: float, sgn: float, u: float, y0: float, w: float, h: float) -> void:
@@ -30677,11 +30101,6 @@ func _find_hotel_warszawa() -> void:
 		sites[-1]["ring"] = _simplify(q, 0.3)
 
 
-## A local rectangle (u0, v0, width, depth) as a world ring.
-func _lrect(r: Rect2, grow := 0.0) -> PackedVector2Array:
-	return _rect(r.position.x + r.size.x * 0.5, r.position.y + r.size.y * 0.5, r.size.x * 0.5 + grow, r.size.y * 0.5 + grow)
-
-
 ## Punched windows on one local face: the face runs along u (dir 1) at v = `v` facing +v (or −v
 ## with out = −1), or along v at u = `v` facing ±u when `side`; `cols` centres, `rows` sill
 ## heights over the ground, each pane w × h, 7 cm proud.
@@ -30701,14 +30120,6 @@ func _hw_panes(side: bool, at: float, out: float, cols: Array, rows: Array, w: f
 				p1 = _w(c + w * 0.5, at + out * 0.07)
 			_wall(p0, p1, _g + y0, _g + y0 + h, n, col, c * 3.0)
 	_mode = keep
-
-
-## Evenly spaced centres between a and b, n of them (bay middles).
-func _spread(a: float, b: float, n: int) -> Array:
-	var out := []
-	for k in n:
-		out.append(a + (b - a) * (k + 0.5) / n)
-	return out
 
 
 func _build_hotel_warszawa(site: Dictionary) -> void:
@@ -31061,15 +30472,6 @@ func _miter(ring: PackedVector2Array, d: float) -> PackedVector2Array:
 		var k := maxf(m.dot(n1), 0.35)
 		out.append(c + m * d / k)
 	return out
-
-
-## A flat strip between two matched rings at y, facing up (or down).
-func _strip(inner: PackedVector2Array, outer: PackedVector2Array, y: float, col: Color, down := false) -> void:
-	var n := Vector3.DOWN if down else Vector3.UP
-	for i in inner.size():
-		var j := (i + 1) % inner.size()
-		_quad(Vector3(inner[i].x, y, inner[i].y), Vector3(inner[j].x, y, inner[j].y), Vector3(outer[j].x, y, outer[j].y),
-				Vector3(outer[i].x, y, outer[i].y), n, col)
 
 
 func _build_cedet(site: Dictionary) -> void:
@@ -32601,13 +32003,6 @@ func _collide_raw(site: Dictionary) -> void:
 	var raw: PackedVector2Array = site.get("raw", site["ring"])
 	_collide(raw)
 	pocket_rings.append(raw)
-
-
-## A thin band round a ring, `proud` metres out of it, from y0 to y1 (walls only).
-func _band(ring: PackedVector2Array, proud: float, y0: float, y1: float, col: Color, mode := M_STONE) -> void:
-	var r := _largest(Geometry2D.offset_polygon(ring, proud, Geometry2D.JOIN_MITER))
-	if r.size() >= 3:
-		_prism(r, y0, y1, col, Color(0, 0, 0, 0), mode)
 
 
 func _build_vitkac(site: Dictionary) -> void:
@@ -35115,20 +34510,6 @@ const GG_BAY := 3.42
 const GG_FLOORS := [5.4, 9.6, 13.4, 17.0]  # sills of the four upper storeys
 
 
-## A pane's material: its own number from where it stands, so night lights each window whole.
-func _lit(u: float, y: float) -> float:
-	return M_PANE + 0.01 + 0.98 * fposmod(sin(u * 12.9898 + y * 78.233 + _o.x) * 437.585, 1.0)
-
-
-## One window at bay centre u: dark pane, pale frame and sill, a cornice over it when `head`.
-func _gg_window(u: float, y: float, h: float, head: bool) -> void:
-	_lbox(u, 0.36, 0.72, 0.03, y, y + h, GG_GLASS, _lit(u, y))
-	_lbox(u - 0.8, 0.36, 0.1, 0.1, y - 0.1, y + h + 0.1, GG_PALE)
-	_lbox(u + 0.8, 0.36, 0.1, 0.1, y - 0.1, y + h + 0.1, GG_PALE)
-	_lbox(u, 0.4, 1.0, 0.16, y - 0.24, y - 0.06, GG_PALE)
-	_lbox(u, 0.42, 1.0 if head else 0.9, 0.18 if head else 0.1, y + h + 0.06, y + h + (0.3 if head else 0.2), GG_PALE)
-
-
 ## A giant, a block figure of about 4 m: legs on the pier, a bowed torso and head, one arm up to the
 ## balcony. `side` is -1 or 1 from the gate: the arm reaching up stands on the gate's side.
 func _gg_giant(u: float, side: float, g: float) -> void:
@@ -35149,6 +34530,7 @@ func _build_gigantami(site: Dictionary) -> void:
 	_o = GG_N
 	_a = (GG_S - GG_N).normalized()
 	_b = Vector2(-_a.y, _a.x)  # out of the front
+	kit_face(0.34)
 	var width := GG_N.distance_to(GG_S)
 	var mid := width * 0.5
 	var ring := _pts(GG_OUTLINE)
@@ -35165,7 +34547,7 @@ func _build_gigantami(site: Dictionary) -> void:
 			_lbox(u, 0.36, 0.95, 0.03, g + 1.0, g + 3.8, GG_GLASS)
 			_lbox(u, 0.4, 1.05, 0.1, g + 3.8, g + 4.0, GG_PALE)
 		for i in GG_FLOORS.size():
-			_gg_window(u, g + GG_FLOORS[i], 2.5 if i < 2 else 2.2, i == 1)
+			kit_window(u, g + GG_FLOORS[i], 2.5 if i < 2 else 2.2, Win.HOODED if i == 1 else Win.FRAMED, GG_PALE, GG_GLASS, 0.72)
 	for k: float in [-2.5, -1.5, -0.5, 0.5, 1.5, 2.5]:  # the pilasters round the middle
 		_lbox(mid + k * GG_BAY, 0.42, 0.26, 0.12, g + 9.3, g + 19.6, GG_PALE)
 	# The long balcony, seven bays, on brackets, and the two small ones above it.
@@ -35218,32 +34600,13 @@ const SZ_FLOORS := [5.3, 9.3, 13.2, 17.1, 20.8]  # sills of the five upper store
 const SZ_TOP := 24.6
 
 
-## One window: dark pane, white sill and head; on the first floor a small pediment over it.
-func _sz_window(u: float, y: float, h: float, pediment: bool) -> void:
-	_lbox(u, 0.36, 0.68, 0.03, y, y + h, SZ_GLASS, _lit(u, y))
-	_lbox(u, 0.42, 0.95, 0.15, y - 0.22, y - 0.06, SZ_WHITE)
-	_lbox(u, 0.4, 0.88, 0.12, y + h + 0.06, y + h + 0.2, SZ_WHITE)
-	if pediment:
-		_lbox(u, 0.42, 0.8, 0.12, y + h + 0.2, y + h + 0.32, SZ_WHITE)
-		_lbox(u, 0.42, 0.45, 0.12, y + h + 0.32, y + h + 0.48, SZ_WHITE)
-
-
-## A wrought-iron balcony at bay centre u on the storey with sill y.
-func _sz_balcony(u: float, y: float) -> void:
-	_lbox(u, 0.85, 1.25, 0.5, y - 0.26, y - 0.06, SZ_WHITE)
-	_lbox(u, 1.3, 1.25, 0.03, y + 0.85, y + 0.92, SZ_IRON)
-	for j in 7:
-		_lbox(u - 1.25 + j * 2.5 / 6.0, 1.3, 0.03, 0.03, y - 0.06, y + 0.85, SZ_IRON)
-	_lbox(u - 1.25, 0.85, 0.025, 0.48, y + 0.85, y + 0.92, SZ_IRON)
-	_lbox(u + 1.25, 0.85, 0.025, 0.48, y + 0.85, y + 0.92, SZ_IRON)
-
-
 ## One street front from `from` to `to`, seen with the street on its left-hand normal: `bays` bays;
 ## storeys above the first carry balconies at `balconies`; `arch` is the bay with the blind arch.
 func _sz_front(from: Vector2, to: Vector2, bays: int, balconies: Array, arch: int) -> void:
 	_o = from
 	_a = (to - from).normalized()
 	_b = Vector2(-_a.y, _a.x)
+	kit_face(0.34)
 	var width := from.distance_to(to)
 	var bay := width / bays
 	var mid := width * 0.5
@@ -35262,9 +34625,9 @@ func _sz_front(from: Vector2, to: Vector2, bays: int, balconies: Array, arch: in
 		for i in SZ_FLOORS.size():
 			if k == arch and i >= 3:
 				continue
-			_sz_window(u, g + SZ_FLOORS[i], 2.35 if i < 3 else 2.0, i == 0)
+			kit_window(u, g + SZ_FLOORS[i], 2.35 if i < 3 else 2.0, Win.PEDIMENT if i == 0 else Win.SILL_HEAD, SZ_WHITE, SZ_GLASS, 0.68)
 			if i > 0 and k in balconies:
-				_sz_balcony(u, g + SZ_FLOORS[i])
+				kit_balcony(u, g + SZ_FLOORS[i], 1.25, Balcony.IRON, SZ_IRON, SZ_WHITE)
 	if arch >= 0:  # the blind arch over the top two storeys: white frame, peach panel
 		var u := (arch + 0.5) * bay
 		_lbox(u - 1.2, 0.36, 0.14, 0.1, g + 17.0, g + 22.6, SZ_WHITE)
@@ -35306,16 +34669,6 @@ const WD_IRON := Color("#23262a")
 const WD_EAVE := 19.6
 
 
-## One window: pane, sill and head; `arched` adds a stepped head for the top storey.
-func _wd_window(u: float, y: float, h: float, arched: bool) -> void:
-	_lbox(u, 0.36, 0.72, 0.03, y, y + h, WD_GLASS, _lit(u, y))
-	_lbox(u, 0.42, 1.0, 0.15, y - 0.22, y - 0.06, WD_WHITE)
-	_lbox(u, 0.4, 0.92, 0.12, y + h + 0.04, y + h + 0.24, WD_WHITE)
-	if arched:
-		_lbox(u, 0.36, 0.48, 0.03, y + h, y + h + 0.3, WD_GLASS)
-		_lbox(u, 0.42, 0.62, 0.12, y + h + 0.24, y + h + 0.5, WD_WHITE)
-
-
 ## A dormer standing on the mansard at bay centre u: a window in a white frame under a zinc cap.
 func _wd_dormer(u: float, g: float) -> void:
 	_lbox(u, -0.6, 0.82, 0.7, g + WD_EAVE - 0.1, g + WD_EAVE + 2.6, WD_WHITE)
@@ -35330,6 +34683,7 @@ func _wd_front(from: Vector2, to: Vector2, bays: int) -> void:
 	_o = from
 	_a = (to - from).normalized()
 	_b = Vector2(-_a.y, _a.x)
+	kit_face(0.34)
 	var width := from.distance_to(to)
 	var bay := width / bays
 	var mid := width * 0.5
@@ -35346,9 +34700,9 @@ func _wd_front(from: Vector2, to: Vector2, bays: int) -> void:
 		_prism(awning, g + 3.5, g + 4.7, WD_AWNING, WD_AWNING, M_STONE, M_STONE)
 		for y: float in [0.5, 1.3, 2.1, 2.9]:  # the banded pier beside the shop
 			_lbox(k * bay, 0.4, 0.42, 0.1, g + y, g + y + 0.4, WD_BAND)
-		_wd_window(u, g + 6.3, 2.5, false)
-		_wd_window(u, g + 10.3, 2.4, false)
-		_wd_window(u, g + 14.5, 2.2, true)
+		kit_window(u, g + 6.3, 2.5, Win.SILL_HEAD, WD_WHITE, WD_GLASS, 0.72)
+		kit_window(u, g + 10.3, 2.4, Win.SILL_HEAD, WD_WHITE, WD_GLASS, 0.72)
+		kit_window(u, g + 14.5, 2.2, Win.ARCHED, WD_WHITE, WD_GLASS, 0.72)
 		if k % 2 == 1:
 			_wd_dormer(u, g)
 	_lbox(mid, 0.45, mid, 0.18, g + WD_EAVE - 1.4, g + WD_EAVE - 0.7, WD_SHADE)

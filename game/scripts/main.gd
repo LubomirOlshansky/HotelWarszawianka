@@ -36,7 +36,8 @@ extends Node
 ## opens the settings panel at tab N.
 ## Camera loop: --cam-log prints the camera every 0.25 s (`cam:` lines), --cam-test=classic_turn|
 ## point_release|brake drives one camera moment in the real city (frame strips).
-## Loop G1: --quality=auto|low|medium|high|ultra (Auto: the level for this device, tiers.gd),
+## Loop G1: --quality=auto|low|medium|high|ultra|experimental (Auto: the level for this device, tiers.gd;
+## Experimental, F 2026-11-10: Ultra plus the trailer's extras, opt-in and never saved),
 ## --model=ID picks as if on that device (iPhone12,1), --governor=on|off, --stress=cpu:N|wait:N
 ## with --stress-from=S --stress-to=S (load that makes the governor step down and back up).
 ## Loop G1b: --last-session=struggled|calm starts Auto as if the last session at the sharp image
@@ -158,6 +159,7 @@ const BoatRace := preload("res://scripts/boat_race.gd")
 ## na kółkach", Claire's drive round Kieślowski's Warsaw, and "Kino objazdowe", the director
 ## friend's cinema tour (F's asks 2026-11-07).
 const Activities := preload("res://scripts/activities.gd")
+const PauseReasons := preload("res://scripts/pause_reasons.gd")
 const Tour := preload("res://scripts/tour.gd")
 
 ## "Dym u Senatorka", Ivan's shisha night (shisha.gd, F's ask 2026-11-08), and the lounge upstairs
@@ -611,6 +613,10 @@ var boat_race: BoatRace
 ## The activity kit's director (activities.gd): which activity of the kit is on, who may start,
 ## where it sends the player. The tours below are the first to join it.
 var activities := Activities.new()
+## The game's pause (pause_reasons.gd, TD-20): the loading bar, the settings card, the full map and
+## the garage card each hold their own reason, and the game runs when none is held. Nothing here
+## or in a system writes `get_tree().paused` itself.
+var _pause: PauseReasons
 ## The Kieślowski tour (tour.gd with data/dekalog_tour.json): --dekalog=call (Claire phones now), =go (the tour starts
 ## with the car at the pickup), =auto (that, the cards answered by themselves), =0 (none); --dekalog-log.
 var dekalog_tour: Tour
@@ -821,6 +827,8 @@ const QUALITY := Tiers.QUALITY
 ## or a level), the level Auto picks for this device and the model id it read (--model= for tests).
 var quality := Tiers.HIGH
 var quality_choice := Tiers.AUTO
+## The 3D SubViewport's own anisotropic filtering (Experimental raises it to 16x).
+var _sv_aniso := Viewport.ANISOTROPY_4X
 var auto_quality := Tiers.HIGH
 var model_name := ""
 var _flag_model := ""
@@ -1008,6 +1016,7 @@ var _cam_turn_max := 0.0
 
 
 func _ready() -> void:
+	_pause = PauseReasons.new(get_tree())
 	_parse_args()
 	_trap_start()  # the error trap (TD-14): before anything else can fail
 	Gamepad.install()  # the gamepad loop: the pad's stick and trigger actions
@@ -1093,13 +1102,13 @@ func _ready() -> void:
 		get_tree().quit(1)
 		return
 	if title != null:
-		get_tree().paused = true  # the loading bar: nothing half-built moves between the build's steps
+		_pause.hold(PauseReasons.LOAD)  # the loading bar: nothing half-built moves between the build's steps
 		title.cap = lerpf(LOAD_FILES, LOAD_BUILT, LOAD_MARKS[0])
 		LoadYield.begin()  # the long setups let a frame through now and then (load_yield.gd)
 	await _build_world()
 	LoadYield.finish()
 	if title != null:
-		get_tree().paused = false
+		_pause.release(PauseReasons.LOAD)
 	view.visible = true
 	_preloaded.clear()
 	_put_at_resume()
@@ -1459,7 +1468,7 @@ func _on_new_game() -> void:
 		return
 	_remember_on = false
 	_new_game_pending = true
-	get_tree().paused = false
+	_pause.release_all()  # the scene reloads: nothing of this one keeps the next paused
 	get_tree().call_deferred("reload_current_scene")
 
 
@@ -1624,6 +1633,8 @@ func _build_world() -> void:
 	add_child(view)
 	sv = SubViewport.new()
 	sv.msaa_3d = Viewport.MSAA_DISABLED
+	# Experimental's extras restore this on the other levels (_apply_experimental).
+	_sv_aniso = sv.anisotropic_filtering_level
 	sv.screen_space_aa = Viewport.SCREEN_SPACE_AA_DISABLED
 	sv.physics_object_picking = false
 	# The sound's listener (sfx.gd) lives in this viewport's 3D world.
@@ -2107,6 +2118,8 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	world.add_child(walkers)
 	await walkers.setup(map, cam, traffic, data)
 	await LoadYield.tick("walkers.setup")
+	if solo_site != "":
+		walkers.visible = false  # a landmark alone (--solo): no people either
 	# First scene item 6: busier pavements on Marszałkowska by the start.
 	var busy := walkers.set_busy(FirstScene.FRAME_O, FirstScene.FRAME_S, FirstScene.FRAME_T, FirstScene.BUSY_BANDS, FIRST_SCENE)
 	print("first scene: %d busy pavement points" % busy)
@@ -2337,11 +2350,13 @@ func _build_sound(data: Dictionary, world: Node3D) -> void:
 
 
 ## Quality (U, Settings, --quality=): loop G1: Auto (Tiers.AUTO: the level Auto picked for this
-## device) or Low, Medium, High, Ultra. The governor starts again from the top.
+## device) or Low, Medium, High, Ultra, Experimental. The governor starts again from the top.
+## Experimental is never saved (the saved choice stays what it was): a phone that can't hold it,
+## or crashes on its 8192 shadow map, starts the next launch at the player's last real level.
 func _set_quality(choice: int) -> void:
-	quality_choice = clampi(choice, Tiers.AUTO, Tiers.ULTRA)
+	quality_choice = clampi(choice, Tiers.AUTO, Tiers.EXPERIMENTAL)
 	quality = auto_quality if quality_choice == Tiers.AUTO else quality_choice
-	if settings.quality != quality_choice and _started:
+	if settings.quality != quality_choice and _started and quality_choice != Tiers.EXPERIMENTAL:
 		settings.quality = quality_choice
 		settings.save()
 	var qs: Dictionary = QUALITY[quality]
@@ -2361,6 +2376,7 @@ func _set_quality(choice: int) -> void:
 	if life != null:
 		life.amount = float(life_flag) * (0.5 if quality == Tiers.LOW else 1.0)
 	RenderingServer.directional_shadow_atlas_set_size(qs["shadow_size"], true)
+	_apply_experimental()
 	tod.refresh()
 	weather.density = qs["rain"]
 	weather.refresh()
@@ -2368,6 +2384,32 @@ func _set_quality(choice: int) -> void:
 	_apply_extras()
 	if hud != null:
 		_apply_style()
+
+
+## Experimental's extras (tiers.gd, F 2026-11-10: the beta trailer's capture settings), on the 3D
+## image and the sun's shadows; every other level gets the engine's defaults back. The image's
+## full resolution is tiers.gd own_scale's (_apply_style).
+func _apply_experimental() -> void:
+	var on := quality == Tiers.EXPERIMENTAL
+	sv.msaa_3d = Tiers.extra(quality, "msaa")
+	sv.anisotropic_filtering_level = Tiers.extra(quality, "aniso") if on else _sv_aniso
+	sv.mesh_lod_threshold = Tiers.extra(quality, "lod")
+	RenderingServer.directional_soft_shadow_filter_set_quality(Tiers.extra(quality, "soft"))
+	if on:
+		print("quality: Experimental's extras on · full-resolution image, %d sun shadow map with soft edges, MSAA 4x, 16x anisotropic, every mesh at full detail" % int(QUALITY[quality]["shadow_size"]))
+
+
+## Experimental: the governor's first GPU drop there (frames late with the GPU the cause) steps
+## the session back to Ultra (not saved: the saved choice never was Experimental), with a toast so
+## the tester knows the phone couldn't hold it. A CPU drop stays the governor's own business.
+func _experimental_drop(line: String) -> bool:
+	if quality != Tiers.EXPERIMENTAL or governor.gpu >= Governor.TOP:
+		return false
+	print("quality: Experimental too heavy here (%s) · back to Ultra for this session" % line.trim_prefix("governor: "))
+	_set_quality(Tiers.ULTRA)
+	if hud != null:
+		hud.toast("Eksperymentalna za ciężka: wracam do Ultra", "Experimental was too heavy: back to Ultra · Settings → Obraz")
+	return true
 
 
 ## Loop G1: the quality's extras as they are now: the level's own, less what the governor took
@@ -2418,7 +2460,8 @@ func _govern() -> void:
 	var line := governor.tick(now, _wide)
 	if line != "":
 		print("%s · at %.1f s" % [line, now - _stress_t0 / 1000.0])
-		_apply_extras()
+		if not _experimental_drop(line):
+			_apply_extras()
 	# Loop G1b: the session's verdict on Auto's image (cheap until one is due); with
 	# --governor=log the tally's minutes too.
 	if governor.track and _image_verdict != "struggled" and (governor.struggled()
@@ -2770,6 +2813,8 @@ func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
 	jobs.map_data = data
 	add_child(jobs)
 	jobs.setup(world)
+	if solo_site != "":
+		jobs.clear_stands()  # a landmark alone (--solo): no kebab stand beside it
 	if rivals != null:
 		# WORKAROUND(arch): rivals.gd asks the side jobs by name ("is a job on?", "is a ride's
 		# request up?") and cannot change while the racer-AI rebuild has it, see tech-debt TD-1.
@@ -2821,6 +2866,8 @@ func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
 	eggs.force_street = barrier_force
 	world.add_child(eggs)
 	eggs.setup(nodes, data)
+	if solo_site != "":
+		eggs.visible = false  # a landmark alone (--solo): no easter-egg markers
 	zamkowy_life = PlacZamkowyLife.new()
 	world.add_child(zamkowy_life)
 	zamkowy_life.setup(map)
@@ -3260,10 +3307,10 @@ func _build_garage(world: Node3D) -> void:
 	garage.opened.connect(func() -> void:
 		car.vel = Vector3.ZERO
 		car.forward_speed = 0.0
-		get_tree().paused = true
+		_pause.hold(PauseReasons.GARAGE)
 		_blip_sound())
 	garage.closed.connect(func() -> void:
-		get_tree().paused = false
+		_pause.release(PauseReasons.GARAGE)
 		_blip_sound())
 
 
@@ -5418,6 +5465,9 @@ func _parse_args() -> void:
 			solo_site = arg.trim_prefix("--solo=")
 			MapBuilder.solo_site = solo_site
 			no_traffic = true
+			crowd_flag = 0  # nothing but the site in the picture (the turntable): no crowds, packs, fans, circles
+			life_flag = 0
+			no_parodies = true  # no Leżak scooters, frogs or venue neon beside the model
 		elif arg.begins_with("--solo-look="):
 			solo_look = arg.trim_prefix("--solo-look=")
 		elif arg == "--tunnel":
@@ -6202,7 +6252,7 @@ func _open_settings() -> void:
 		_end_phone_bench(false)
 	print("settings panel: open (paused)")
 	_blip_sound()
-	get_tree().paused = true
+	_pause.hold(PauseReasons.SETTINGS)
 	hud.open_settings(_settings_state())
 
 
@@ -6228,7 +6278,7 @@ func _open_full_map() -> void:
 	_story_tick()  # the questlines' starts and quest focus as they are now (the same)
 	print("full map: open (paused), %d places found on it" % found.size())
 	_blip_sound()
-	get_tree().paused = true
+	_pause.hold(PauseReasons.MAP)
 	if hud.full_map != null:
 		hud.full_map.hospitals = missions != null and missions.has_target()  # only a rescue needs them
 	hud.open_full_map(Vector2(pos.x, pos.z), yaw, found)
@@ -6548,14 +6598,14 @@ func _teleport_test() -> void:
 
 
 func _close_full_map() -> void:
-	print("full map: closed")
-	get_tree().paused = false
+	_pause.release(PauseReasons.MAP)
+	print("full map: closed%s" % _pause.still())
 	_blip_sound()
 
 
 ## What the settings panel shows (loop 2e: also the camera, time of day, weather, style, VHS).
 func _settings_state() -> Dictionary:
-	# Loop G1: the panel's quality row is Auto, then Low..Ultra (the choice + 1).
+	# Loop G1: the panel's quality row is Auto, then Low..Ultra, Experimental (the choice + 1).
 	# Loop G1b: what Auto draws here: "High ostry" (the sharp image), "High ×2" (the fallback)
 	# where its budget binds, else the level.
 	var auto_name: String = Tiers.NAMES[auto_quality]
@@ -6603,8 +6653,8 @@ func _set_language(code: String) -> void:
 
 
 func _close_settings() -> void:
-	print("settings panel: closed")
-	get_tree().paused = false
+	_pause.release(PauseReasons.SETTINGS)
+	print("settings panel: closed%s" % _pause.still())
 	_blip_sound()
 	# Loop MW-6 (Open Question 7): Spacer offered once, after the first pause.
 	if not settings.wander_offered and spacer != null and not spacer.on:
@@ -8686,9 +8736,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			KEY_ESCAPE:
 				_open_settings()
 			KEY_U:
-				# Loop G1: Auto → Low → Medium → High → Ultra → Auto.
+				# Loop G1: Auto → Low → Medium → High → Ultra → Experimental → Auto.
 				_blip_sound()
-				_set_quality(Tiers.AUTO if quality_choice >= Tiers.ULTRA else quality_choice + 1)
+				_set_quality(Tiers.AUTO if quality_choice >= Tiers.EXPERIMENTAL else quality_choice + 1)
 			KEY_L:
 				_flash()
 			KEY_MINUS:

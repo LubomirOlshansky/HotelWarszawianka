@@ -293,6 +293,8 @@ var _sig_on := false
 ## Step 6a: this race's report (race_report.gd: both cars' ways and what decided the race), for
 ## the result card; and the size of the card's picture of the two ways (points).
 var _report := RaceReport.new()
+## Whether the result card carries the report's lines too (off: F, 2026-11-13; the picture stays).
+const REPORT_LINES := false
 const REPORT_ART := Vector2(150.0, 104.0)
 var _cooldown := PackedFloat32Array()
 var _said := PackedFloat32Array()
@@ -1169,7 +1171,7 @@ func _finish_race(won: bool, why: String) -> void:
 	var d = _drivers[rival]
 	_race_log(d, won)
 	var margin := _finish_margin(won) if why == "" else 0.0
-	var told: Array = _report_close(d, rival, won, margin) if why == "" else ["", ""]
+	var told: Array = _report_told(d, rival, won, margin) if why == "" else ["", ""]
 	_session.end()
 	_cruise(d)
 	_cooldown[rival] = 25.0
@@ -1227,11 +1229,11 @@ func _finish_race(won: bool, why: String) -> void:
 		var total := (" · wallet %s · respect %d" % [_money(wallet.zl), wallet.respect]) if wallet != null else ""
 		var total_pl := (" · w portfelu %s · szacunek %d" % [_money(wallet.zl), wallet.respect]) if wallet != null else ""
 		var record_pl := record.replace("new best!", "nowy rekord!").replace("best", "rekord")
-		hud.show_card("WYGRANA · 1. MIEJSCE", "Meta: %s, czas %s%s. %s za tobą%s.\n„%s”\n+%d zł (stawka%s) · szacunek +%d%s\n%s" % [
-				_finish["name"], _clock(_race_time), record_pl, who, by_pl, line[0], stake, bonus_pl, gain, total_pl, told[0]],
+		hud.show_card("WYGRANA · 1. MIEJSCE", ("Meta: %s, czas %s%s. %s za tobą%s.\n„%s”\n+%d zł (stawka%s) · szacunek +%d%s\n%s" % [
+				_finish["name"], _clock(_race_time), record_pl, who, by_pl, line[0], stake, bonus_pl, gain, total_pl, told[0]]).strip_edges(),
 				PackedStringArray(["OK"]), WIN_COLOUR, false, "Win · 1st",
-				"You beat %s to %s in %s%s%s. %s +%d zł (the stake%s) · respect +%d%s\n%s" % [
-				who, _finish["name"], _clock(_race_time), by_en, record, line[1], stake, bonus_en, gain, total, told[1]])
+				("You beat %s to %s in %s%s%s. %s +%d zł (the stake%s) · respect +%d%s\n%s" % [
+				who, _finish["name"], _clock(_race_time), by_en, record, line[1], stake, bonus_en, gain, total, told[1]]).strip_edges())
 		_report_art(rival, _finish["pos"])
 		Access.buzz(150, 0.9)
 	else:
@@ -1339,6 +1341,15 @@ func _report_close(d, i: int, won: bool, margin: float) -> Array:
 			["even", "route", "standing", "pace"][_report.cause], _report.route_s, _report.still_s, _report.pace_s, _report.player_way, _report.rival_way,
 			_sig.brakes, _sig.indications, _sig.flashes, _sig.hazards])
 	return _report.texts(RIVALS[i]["name"])
+
+
+## The report's words for the result card. F, 2026-11-13: "detailed info about lose or win is not
+## needed", so the card keeps its own short lines and the picture of both routes, and the
+## report's lines (what decided it, the kilometres, the rival's moments) go to the log only
+## (REPORT_LINES false). The report is still closed here: the picture and the log read it.
+func _report_told(d: Traffic.Driver, i: int, won: bool, margin: float) -> Array:
+	var told := _report_close(d, i, won, margin)
+	return told if REPORT_LINES else ["", ""]
 
 
 ## ... and its picture on the card just shown: both ways over the streets, to `goal`.
@@ -1849,7 +1860,7 @@ func _finish_final(won: bool, why: String) -> void:
 	_beacon.recolour(RACE_COLOUR)
 	var d = _drivers[_seba]
 	_race_log(d, won)
-	var told: Array = _report_close(d, _seba, won, margin) if why == "" else ["", ""]
+	var told: Array = _report_told(d, _seba, won, margin) if why == "" else ["", ""]
 	var goal: Vector3 = final_route.finish["pos"]
 	_session.end()
 	_cruise(d)
@@ -1885,10 +1896,10 @@ func _finish_final(won: bool, why: String) -> void:
 		var crown_pl := "KORONA NOCNEJ WARSZAWY TWOJA!\n" if first else ""
 		var crown_en := "The crown of Warsaw by night is yours! " if first else ""
 		hud.show_card("TRZY MOSTY · WYGRANA", "%sTrzy razy przez Wisłę i pierwsze miejsce pod Narodowym, czas %s%s, o %s s przed Sebą.\n„%s”\n+%d zł · szacunek +%d%s" % [
-				crown_pl, _clock(_race_time), record_pl, ("%.1f" % margin).replace(".", ","), line[0], stake, gain, total_pl] + "\n" + told[0],
+				crown_pl, _clock(_race_time), record_pl, ("%.1f" % margin).replace(".", ","), line[0], stake, gain, total_pl] + ("\n" + told[0] if told[0] != "" else ""),
 				PackedStringArray(["OK"]), FINAL_COLOUR, false, "Three bridges · Win",
 				"%sThree times over the Vistula and first to the Stadium in %s%s, %.1f s ahead of Seba. %s +%d zł · respect +%d%s" % [
-				crown_en, _clock(_race_time), record, margin, line[1], stake, gain, total] + "\n" + told[1])
+				crown_en, _clock(_race_time), record, margin, line[1], stake, gain, total] + ("\n" + told[1] if told[1] != "" else ""))
 		_report_art(_seba, goal)
 		Access.buzz(200, 1.0)
 	else:

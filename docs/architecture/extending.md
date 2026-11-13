@@ -24,11 +24,12 @@ move later, and don't build a third private copy.
 | A vibration | `Access.buzz` (goes through `haptics.gd`) | `Input.vibrate_handheld` directly |
 | An AI car or group of people | city-ai.md section 7 | a node per car, a new person material |
 | A building, landmark or prop | `landmarks.gd`, `models.gd`, `props.gd` and the skill `model-from-photos`; the map bake for data (skill `bake-map`) | geometry added to only one city path |
+| A window, balcony, ledge, cornice, column, pediment or wall colour on a landmark | the facade kit: a `kit_*` part and a `PAL_*` colour of `facade_kit.gd` (docs/design/facade-kit.md); a new style goes into the kit | a private `_xx_window` helper or a one-off hex colour (`tools/check_facade_kit.py` fails the first) |
 | Something drawn every frame, a light, a material, a shader | graphics.md, then report bench before and after | a new shader without `check_shader_budget` |
 | A quality-dependent extra | a field in `tiers.gd` and, if it costs CPU, a step in `governor.gd` | `if OS.get_model_name() ...` in a feature |
 | A setup step at load | a `_build_x(world)` in main.gd followed by `await LoadYield.tick("_build_x")` | long work in one frame |
 | Something the title shows or the first frame needs | `title.gd` (or `boot.gd`), using only the scripts on `check_boot.gd`'s `BOOT_SCRIPTS` list; a script it needs only later is loaded at that moment (the title's start sound: `load(SFX)` when the title goes, then `ui("start")`) | a `preload` of a game script from `boot.gd`, `title.gd`, `settings.gd`, `lang.gd` or `error_trap.gd`: it is loaded before the title can show, and with it everything it preloads (`check_boot` fails) |
-| A pause | only main.gd sets `get_tree().paused`; a system asks through a callable or signal main.gd gives it (TD-20) | pausing the tree from a system |
+| A pause | main.gd's `_pause` (`pause_reasons.gd`, TD-20): a new reason gets a name there, main.gd calls `_pause.hold(reason)` when the thing goes up and `_pause.release(reason)` when it goes; a system asks through a callable or signal main.gd gives it (the garage's `opened` / `closed`) | writing `get_tree().paused` anywhere (step `pause` fails); letting go of someone else's reason |
 | Something that can fail (a missing file, a bad value) | `push_error` or `push_warning` naming the script, then a safe default. The error trap (`error_trap.gd`) keeps the line for a debug run's report, and the checks fail on it in the log | failing silently; an `assert` (only a debug build runs it); leaving it to the engine to report a null or a missing key (a release build does not, TD-21) |
 | What the game was doing when an error came | one more field in the context line `main.gd` `_trap_frame` gives the trap once a second | a log file of your own |
 | A test flag | parsed in `main.gd` `_parse_args`, noted in the archive's flags table; release builds ignore it (`release.gd`) | a flag read anywhere else |
@@ -57,6 +58,31 @@ In main.gd: a `const` preload, a `var`, a `_build_x` that sets the references an
 a `LoadYield.tick`, and a test flag if needed. An activity takes its shape from the kit instead
 (`activity.gd`, the first row for it above): it joins the director, and nothing is added to
 `_free_block`.
+
+## Extending the facade kit
+
+The kit (`facade_kit.gd`, docs/design/facade-kit.md) is meant to grow. When a landmark needs a
+facade element the kit lacks:
+
+1. **A new part or style goes into the kit, in the landmark's own PR**: a `kit_*` function, or a
+   value in `Win`, `Balcony`, `Attic` or `Order`. Its arguments are where, how big and which
+   colours; its proportions are fixed inside it. Never a private helper in `landmarks.gd`
+   (verify step `facadekit` fails it).
+2. **Add it to `kit_sampler()`** so `check_mesh_quality` examines it (z-fighting, floating
+   parts, normals), raise the sampler's budget on purpose, and **describe it in
+   docs/design/facade-kit.md** (the check fails when the kit and the doc disagree).
+3. **Prove nothing else moved**: `site_dump.gd` before and after, `tools/site_parity.py`; every
+   site but the landmark's own must be `same`.
+4. **A colour**: a building's own measured colour is a named constant of that building. A colour
+   a second building needs joins the palette (`PAL_*`, the kit and the doc's table together).
+
+These are decisions, not routine edits, so they go to the Opus or Fable session and to F's look:
+changing a proportion of an existing part or a palette value (it moves every landmark that uses
+it: before and after shots of each), and any look that would need the building shader (it has no
+budget; decisions.md).
+
+A Sonnet `object-modeler` uses the kit and escalates when a part is missing; the session that
+wrote the spec adds the style.
 
 ## When the owner can't do it
 

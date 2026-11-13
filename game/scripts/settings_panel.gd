@@ -12,7 +12,7 @@ extends Control
 ##     state in view; Point with the camera off is the Fixed camera scheme);
 ##   Świat · World: Time of day (the old TIME button), Weather (RAIN), Traffic;
 ##   Obraz · Picture: Retro and the camera angle (F, 2026-11-07: 30°, 40°, 50°), Quality (loop G1: Auto, the default, then Low, Medium,
-##     High, Ultra; Auto's English line names the level it picked here), VHS tape (VHS), Frame
+##     High, Ultra, Experimental; Auto's English line names the level it picked here), VHS tape (VHS), Frame
 ##     rate, the performance overlay and the TEST bench;
 ##   Dźwięk · Sound: volume, radio, effects (− and + in tenths, or drag along the bar).
 ## Loop MW-1: a fifth tab, ZESZYT · notebook: MOJA WARSZAWA, the city notebook
@@ -70,7 +70,10 @@ const TIME := [["Dzień", "Day"], ["Zmierzch", "Dusk"], ["Noc", "Night"], ["Na �
 const WEATHER := [["Pogodnie", "Clear"], ["Deszcz", "Rain"]]
 const TRAFFIC := [["Pustawo", "Almost empty"], ["Mało", "Low"], ["Normalnie", "Normal"], ["Tłoczno", "Busy"]]
 ## Loop G1: index 0 is Auto (settings.gd AUTO), then the levels (tiers.gd LOW..ULTRA) one up.
-const QUALITY := [["Auto", "auto"], ["Niska", "Low"], ["Średnia", "Medium"], ["Wysoka", "High"], ["Ultra", "Ultra"]]
+## F 2026-11-10: Experimental after Ultra (tiers.gd: Ultra plus the trailer's extras, to test on the
+## phone; this session only, never saved).
+const QUALITY := [["Auto", "auto"], ["Niska", "Low"], ["Średnia", "Medium"], ["Wysoka", "High"], ["Ultra", "Ultra"],
+		["Eksperyment", "Experimental"]]
 const ON_OFF := [["Wył.", "Off"], ["Wł.", "On"]]
 ## F (2026-11-07): the camera's angle over the ground, follow_camera.gd PITCHES (30° the default).
 const ANGLE := [["30°", "30°"], ["40°", "40°"], ["50°", "50°"]]

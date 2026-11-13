@@ -178,6 +178,11 @@ per frame or adds geometry, materials or lights, anything for the phone):
 6. **It is honest**: what only the phone can tell (feel, heat, sound, touch) is named, with what
    the user should try; Open Questions list every default taken.
 
+**Landmark code** (`landmarks.gd`, `facade_kit.gd`) adds two things to either size: a facade
+element comes from the kit or is added to it (`docs/architecture/extending.md`, "Extending the
+facade kit"; verify step `facadekit`), and a change that means to leave other sites alone says
+so with `tools/site_parity.py` on two `site_dump.gd` folders, in the PR.
+
 ## CI by change kind
 
 CI follows the two sizes above (F, 2026-11-12). `tools/ci_tier.py` reads the paths a pull request

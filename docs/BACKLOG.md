@@ -5,10 +5,10 @@ Small problems that agents reported or that showed up in screenshots. They are f
 
 ## Fill the shared photo store (2026-11-13, building-pipeline-review item 3)
 
-`tools/refs_store.py` and the store `/mnt/project-files/refs/` exist; the photos are not all in yet.
-- [ ] A thread with access to the Mac copies the Mac's `refs/` and F's photo folders (`warsaw-needed-photos`, `top-50`, `pkin-surroundings`, ...) into the store, one folder per slug (or lists them in `ALIASES.tsv`), then runs `index`.
+`tools/refs_store.py` and the store `/mnt/project-files/refs/` exist. The Mac's `refs/` and F's three photo folders were copied in on 2026-11-13 (3,103 files; F's folders sit under `_f/` and are tied to slugs in `ALIASES.tsv`).
+- [ ] New photos gathered on the Mac after 2026-11-13 still need a cloud thread with Mac access to copy them in (the store is not mounted on the Mac).
 - [ ] A Mac gather run works down `python3 -I tools/refs_store.py gaps` (Commons and the orthophoto), then `push`.
-- [ ] 59 inventory rows still have no slug in `tools/refs_slugs.tsv` (the index shows `-`): add a line when a place gets a spec or a site key.
+- [ ] 33 inventory rows still have no slug in `tools/refs_slugs.tsv` (the index shows `-`): add a line when a place gets a spec or a site key.
 
 
 ## Rooftop run: drive a photographer between the roof clubs (F, 2026-11-13: "add some quest to backlog to transport photographer between the rooftop clubs like pevel27, the view and the roof")
