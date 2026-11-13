@@ -40,6 +40,13 @@ const PORTAL_R := 40.0
 ## (`trim_rails`); the mouth stands where the cutting ends (PORTALS[0]).
 const TUNNEL_ZAWISZY := [Vector2(-2018.0, 850.0), Vector2(-1992.0, 834.0), Vector2(-1966.0, 825.0),
 		Vector2(-1962.0, 806.0), Vector2(-1962.0, 760.0), Vector2(-1890.0, 760.0), Vector2(-1890.0, 860.0)]
+## The cross-city tunnel's east mouth under Warszawa Powiśle's upper pavilion (F, 2026-11-13: the
+## tracks ran into the pavilion's glass wall, two of them stopped in the open beside it). OSM ends the
+## four tracks at the pavilion's east face and 6 m behind it; this polygon (everything west of a line
+## 1.5 m out from that face, across the tracks) cuts them all on one line, so the mouth's headwall
+## (map_builder `_build_rail_portals`) stands in front of the pavilion with every track going in.
+const TUNNEL_POWISLE := [Vector2(186.7, 100.5), Vector2(170.3, 53.3), Vector2(113.6, 73.0), Vector2(130.0, 120.2)]
+const TUNNELS := [TUNNEL_ZAWISZY, TUNNEL_POWISLE]
 ## A platform within this distance of a track (its centre from the track's line) is a stop.
 const PLATFORM_NEAR := 9.0
 ## A train this close to the end of its piece holds the next one.
@@ -125,7 +132,7 @@ var _bounds := Rect2()
 var _rng := RandomNumberGenerator.new()
 
 
-## The rails with the stretch under Plac Zawiszy (TUNNEL_ZAWISZY) cut away: each polyline that
+## The rails with the stretches inside the tunnels (TUNNELS: under Plac Zawiszy and Powiśle) cut away: each polyline that
 ## touches it comes back as its pieces outside. Others are returned as they are.
 ## Stacja Muzeum (the railway museum at Warszawa Główna, 2026-11-07): its four sidings (found by
 ## their ends at the museum's hall and its platform) hold the locomotives on show, so east of
@@ -164,7 +171,14 @@ static func service_rails(rails: Array) -> Array:
 
 
 static func trim_rails(rails: Array) -> Array:
-	var poly := PackedVector2Array(TUNNEL_ZAWISZY)
+	var out: Array = rails
+	for t: Array in TUNNELS:
+		out = _trim_by(out, PackedVector2Array(t))
+	return out
+
+
+## trim_rails for one tunnel polygon.
+static func _trim_by(rails: Array, poly: PackedVector2Array) -> Array:
 	var box := Rect2(poly[0], Vector2.ZERO)
 	for q in poly:
 		box = box.expand(q)

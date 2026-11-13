@@ -73,6 +73,10 @@ extends SceneTree
 ## tower's zone each open end of a solid wall run gets a collider-only lead-in back behind the tower
 ## (map_builder.gd `_wall_taper`). Four kerb lines, all failing on the old map (the 4° one on the
 ## median rail's end at 945.7, -138.9 after a steeper lead-in turned it across).
+## Strips (F, 2026-11-13, a screenshot at Most Poniatowskiego's west end): crossing from the road
+## onto the tram tracks the car fell under the bridge through the open strips the bake leaves between
+## a bridge's road, tram and footway pieces (map_builder.gd STRIP). Three more SEAMS, all failing on
+## the old map.
 ## PT-41 (the same runs): a one-tick 7 m height flicker just before, at 937.5, -135.9: a 15 cm
 ## sliver between the road's and the tram's approaches read the boulevard below. Fixed: such a
 ## sliver takes the lower approach's level (map_builder.gd FILL_SEAM); SEAMS reads the height there.
@@ -172,6 +176,9 @@ const SPOTS := [
 const SEAMS := [
 	[938.0, -136.05, -4.48, "PT-41 Most Poniatowskiego west, between the road's and the tram's approaches"],
 	[934.0, -134.75, -4.55, "PT-41 Most Poniatowskiego west, the same sliver 4 m back"],
+	[300.5, 69.5, 1.54, "Powiśle viaduct: the open strip between the road's and the tram's decks"],
+	[850.5, -107.0, -4.73, "Most Poniatowskiego west end (F's screenshot): the strip where the deck hands over to the approach"],
+	[843.0, -112.5, -4.69, "Most Poniatowskiego west end: between the tram's and the south road's decks"],
 ]
 const SEAM_TOL := 0.5
 ## Sectors within this of a spot are loaded.

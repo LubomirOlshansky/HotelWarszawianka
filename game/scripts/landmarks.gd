@@ -246,6 +246,9 @@ const INFO := {
 	"poniatowski": ["Most Poniatowskiego",
 			"Most otwarty w 1914 roku. Wieże strzegą wjazdów.",
 			"The bridge opened in 1914. Its towers guard the way on."],
+	"powisle_towers": ["Wieże wiaduktu przy Powiślu",
+			"Druga para bram mostu Poniatowskiego, nad torami linii średnicowej. W jednej z wież od lat działa klub.",
+			"The bridge's second pair of gates, over the cross-city line. One of the towers has held a club for years."],
 	"zlota44": ["Złota 44",
 			"192 m. Apartamentowiec Daniela Libeskinda, zwany Żaglem: biała wieża, której narożnik wygina się jak skrzydło orła aż po ostry szczyt.",
 			"192 m. Daniel Libeskind's apartment tower, called the Sail: a white tower whose corner sweeps out like an eagle's wing to a sharp tip."],
@@ -751,8 +754,8 @@ const INFO := {
 			"Dworzec z 1963 roku: szklana kasa na moście nad wykopem pod betonowym siodłem paraboloidy.",
 			"A 1963 station: a glass ticket hall on a bridge over the cutting, under a concrete saddle roof."],
 	"powisle": ["Warszawa Powiśle",
-			"Stacja z 1963 roku: pawilon-latawiec nad wylotem tunelu i okrągłe „UFO”, dziś bar z leżakami i wieczorami jazzu.",
-			"A 1963 station: a kite pavilion over the tunnel's mouth and a round \"UFO\", now a bar with deck chairs and jazz nights."],
+			"Stacja z 1963 roku: szklany pawilon pod skręconym dachem nad wylotem tunelu i okrągłe „UFO”, dziś bar z leżakami i wieczorami jazzu.",
+			"A 1963 station: a glass pavilion under a twisted roof over the tunnel's mouth and a round \"UFO\", now a bar with deck chairs and jazz nights."],
 	"srodmiescie": ["Warszawa Śródmieście",
 			"Dwa szklane pawilony z 1963 roku nad schodami do podziemnej stacji linii średnicowej.",
 			"Two 1963 glass pavilions over the stairs down to the cross-city line's underground station."],
@@ -1167,6 +1170,8 @@ func _find_sites() -> void:
 	_find_legia()
 	_find_centralna()
 	_find_towers()
+	# Most Poniatowskiego's towers over the railway at Warszawa Powiśle (F, 2026-11-13).
+	_find_powisle_towers()
 	# The landmarks loop: the skyline's towers, then Muzeum Narodowe.
 	for t: Dictionary in TOWERS:
 		var outline := _landmark(t["osm"]) if t.has("osm") else _tallest_at(t["at"])
@@ -1669,6 +1674,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_centralna(s)
 			"poniatowski":
 				_build_towers(s)
+			"powisle_towers":
+				_build_powisle_towers(s)
 			"zygmunt":
 				_build_zygmunt(s)
 			"gaulle":
@@ -11459,6 +11466,220 @@ func _pt_ramp(hv: float, g: float, d: float) -> void:
 			(PT_RAMP_BOX.y - PT_RAMP_BOX.x) * 0.5, (PT_RAMP_BOX.z - hv) * 0.5), g - 1.0, d + 1.2)
 
 
+# --- Most Poniatowskiego's towers over the railway at Warszawa Powiśle -------------------------
+
+## The viaduct's second set of gate towers (1904-1914, the same neo-Renaissance hand as the
+## river towers), where Al. Jerozolimskie starts over the cross-city line's cutting by
+## Warszawa Powiśle. Built from street-level photos (Mapillary 2025-2026, refs/powisle_towers,
+## refs/powisle_stw, refs/powisle_kiosk; F's Google views 2026-11-13) and GUGiK LoD2 for the
+## places and heights (the footprints and tops of LoD2 2454, 2995-2997, 3318; the models drew
+## them as plain blocks with flat windows). North of the deck: a slender tower by the station's
+## glass pavilion and, on the square west of it, the little toilet kiosk with a Baroque scroll
+## gable. South: a tower with a crenellated arcade pavilion along the walk to its west and a
+## crenellated stone wing running south down the escarpment. Over the walk: the arcade's
+## merlons 6.4 m, the towers' crown 16.6 m (LoD2: 19.6-19.9 m over a walk at ~3.1 m).
+const PWT_AXIS := Vector2(0.947, -0.321)   # along the deck, east (towards the river)
+## A tower: centre, +1 south of the deck (-1 north), half width. The north one sits 0.6 m off its
+## LoD2 footprint, away from the Aleje: there the footprint reached into the kerb lane (check_drive).
+const PWT_TOWERS := [[Vector2(182.1, 97.3), -1.0, 2.6], [Vector2(190.4, 124.4), 1.0, 2.8]]
+const PWT_RISE := 16.6       # the crown's top over the walk
+const PWT_ARCADE := Vector2(181.25, 127.3)   # centre
+const PWT_ARCADE_HALF := Vector2(6.3, 2.3)    # half length (along the walk), half depth
+const PWT_ARCADE_H := 5.2    # its walls over the walk (the merlons on top to PWT_ARCADE_H + 1.2)
+const PWT_WING := Vector2(194.3, 136.4)      # centre
+const PWT_WING_HALF := Vector2(9.4, 2.3)     # half length (south), half width
+const PWT_WING_H := 6.2      # the wing's parapet over the walk (LoD2 10.1-10.8 m)
+const PWT_KIOSK := Vector2(142.4, 77.7)
+const PWT_KIOSK_R := 1.75    # its half width; walls to 3.6 m, the scroll gable to 5.4 m
+const PWT_NEON := Color(1.0, 0.3, 0.75)   # the club's sign on the south tower ("WIEŻYCZKA", a parody)
+
+
+func _find_powisle_towers() -> void:
+	var zone: Array = []
+	_o = Vector2.ZERO
+	_a = PWT_AXIS
+	_b = Vector2(-_a.y, _a.x)
+	for t: Array in PWT_TOWERS:
+		_o = t[0]
+		zone.append(_rect(0.0, 0.0, float(t[2]) + 0.6, float(t[2]) + 0.6))
+	_o = PWT_ARCADE
+	zone.append(_rect(0.0, 0.0, PWT_ARCADE_HALF.x + 0.6, PWT_ARCADE_HALF.y + 0.6))
+	_o = PWT_WING
+	zone.append(_rect(0.0, 0.0, PWT_WING_HALF.y + 0.6, PWT_WING_HALF.x + 0.6))
+	zone.append(_circle(PWT_KIOSK, PWT_KIOSK_R + 1.2, 8))
+	_add_site("powisle_towers", zone)
+
+
+## The walk's height by a tower or pavilion: the highest ground or deck a few metres from it
+## towards the road (side = +1 when the road lies north of it).
+func _pwt_walk(c: Vector2, side: float, reach: float) -> float:
+	var across := Vector2(-PWT_AXIS.y, PWT_AXIS.x)   # south
+	var d := -INF
+	for k: float in [-1.0, 0.0, 1.0]:
+		var p := c - across * side * (reach + 1.5) + PWT_AXIS * k * 2.0
+		d = maxf(d, map.ground_height(p.x, p.y))
+	return d
+
+
+func _build_powisle_towers(_site: Dictionary) -> void:
+	var south_d := 0.0
+	for t: Array in PWT_TOWERS:
+		var c: Vector2 = t[0]
+		var side: float = t[1]
+		var r: float = t[2]
+		_o = c
+		_a = PWT_AXIS
+		# +v away from the deck.
+		_b = Vector2(-_a.y, _a.x) * side
+		_g = map.terrain_height(c.x, c.y)
+		var d := _pwt_walk(c, side, r)
+		if side > 0.0:
+			south_d = d
+		_pwt_tower(r, _g, d, side > 0.0)
+	# The south arcade pavilion, west of the tower along the walk.
+	_o = PWT_ARCADE
+	_a = PWT_AXIS
+	_b = Vector2(-_a.y, _a.x)
+	_g = _ground_under(_rect(0.0, 0.0, PWT_ARCADE_HALF.x, PWT_ARCADE_HALF.y))
+	_pwt_arcade(PWT_ARCADE_HALF.x, PWT_ARCADE_HALF.y, _g, south_d)
+	# The wing down the escarpment: its own frame, +u south, +v west.
+	_o = PWT_WING
+	_a = Vector2(-PWT_AXIS.y, PWT_AXIS.x)
+	_b = Vector2(-_a.y, _a.x)
+	_g = _ground_under(_rect(0.0, 0.0, PWT_WING_HALF.x, PWT_WING_HALF.y))
+	_pwt_wing(PWT_WING_HALF.x, PWT_WING_HALF.y, _g, south_d)
+	_pwt_kiosk()
+
+
+## One gate tower in the frame set by the caller (+v away from the deck): a stone base from the
+## ground to the walk, the cream shaft with corner piers, an arched lattice portal on the walk,
+## a small window, two string courses, a corbelled cornice, the belfry with three slit arches a
+## face and the crown of merlons between four corner pinnacles (the photos).
+func _pwt_tower(r: float, g: float, d: float, club: bool) -> void:
+	var top := d + PWT_RISE
+	var cor := top - 3.6      # the cornice's underside
+	_lbox(0.0, 0.0, r + 0.25, r + 0.25, g - 0.5, d + 0.5, PT_BASE, M_STONE)
+	_lbox(0.0, 0.0, r, r, d + 0.5, cor, PT_CREAM, M_STONE)
+	for cu: float in [-1.0, 1.0]:
+		for cv: float in [-1.0, 1.0]:
+			_lbox(cu * (r - 0.25), cv * (r - 0.25), 0.45, 0.45, d + 0.5, cor, PT_SHADE, M_STONE)
+	for y: float in [d + 5.2, d + 9.0]:
+		_lbox(0.0, 0.0, r + 0.22, r + 0.22, y, y + 0.3, PT_SHADE, M_STONE)
+	# The cornice on a corbel table, the belfry stage set in, its merlon crown and pinnacles.
+	_lbox(0.0, 0.0, r + 0.4, r + 0.4, cor, cor + 0.55, PT_SHADE, M_STONE, PT_ROOF)
+	_lbox(0.0, 0.0, r - 0.3, r - 0.3, cor + 0.55, top - 1.0, PT_CREAM, M_STONE, PT_ROOF)
+	_attic(_rect(0.0, 0.0, r - 0.3, r - 0.3), top - 1.0, 1.0, PT_CREAM)
+	for cu: float in [-1.0, 1.0]:
+		for cv: float in [-1.0, 1.0]:
+			_pinnacle(cu * (r - 0.3), cv * (r - 0.3), 0.55, top - 1.0, 1.6, PT_CREAM)
+	for f in 4:
+		var nu: float = [1.0, -1.0, 0.0, 0.0][f]
+		var nv: float = [0.0, 0.0, 1.0, -1.0][f]
+		var out := _a * nu + _b * nv
+		var along := Vector2(-out.y, out.x)
+		var face := _w(nu * r, nv * r)
+		var belfry := _w(nu * (r - 0.3), nv * (r - 0.3))
+		for k in 3:
+			_arch_panel(belfry + along * (k - 1) * 1.15, along, out, 0.26, cor + 1.0, cor + 2.1, PT_DARK, 0.04, M_STONE)
+		# The corbels under the cornice.
+		for k in 4:
+			var a := -r + 0.9 + k * (2.0 * r - 1.8) / 3.0
+			_lbox(nu * (r + 0.15) + absf(nv) * a, nv * (r + 0.15) + absf(nu) * a, 0.18, 0.18, cor - 0.45, cor, PT_SHADE, M_STONE)
+		# A small window over the portal stage and an arched one under the cornice.
+		_lbox(nu * (r + 0.02), nv * (r + 0.02), 0.3 if nu == 0.0 else 0.04, 0.04 if nu == 0.0 else 0.3,
+				d + 6.4, d + 7.6, PT_DARK, M_STONE)
+		_arch_panel(face, along, out, 0.35, d + 10.4, d + 11.6, PT_DARK, 0.04, M_STONE)
+		if nv < 0.0 or nu != 0.0:
+			# The arched portals with their iron lattice, on the walk and through the tower.
+			_arch_panel(face, along, out, minf(1.0, r - 0.9), d, d + 3.3, PT_DARK, 0.04, M_STONE)
+			_arch_panel(face, along, out, minf(1.0, r - 0.9) - 0.12, d, d + 3.3, Color("#55525a"), 0.06, M_STONE)
+	# Two iron bracket lanterns on the walk-side corners.
+	for cu: float in [-1.0, 1.0]:
+		var lamp := _w(cu * (r + 0.5), -r - 0.3)
+		_prism(_circle(lamp, 0.2, 4), d + 4.3, d + 4.9, Color("#ffd27a"), Color("#1e1e22"), M_LAMP, M_STONE)
+	if club:
+		# The club in the tower: its pink sign over the walk's portal.
+		var at := _w(0.0, -r - 0.12)
+		signs.append(["WIEŻYCZKA", Vector3(at.x, d + 4.2, at.y), Vector3(-_b.x, 0.0, -_b.y), 0.22, PWT_NEON])
+	_collide_span(_rect(0.0, 0.0, r + 0.3, r + 0.3), g - 1.0, d + 6.0)
+
+
+## The south arcade pavilion (+u along the walk, +v away from it): a stone base down to the
+## ground, five round arches with dark lattice between square piers on the walk side, blind
+## arches behind, an impost band, a cornice and the crenellation on top.
+func _pwt_arcade(hu: float, hv: float, g: float, d: float) -> void:
+	var h := d + PWT_ARCADE_H
+	_lbox(0.0, 0.0, hu + 0.2, hv + 0.2, g - 0.5, d + 0.4, PT_BASE, M_STONE)
+	_lbox(0.0, 0.0, hu, hv, d + 0.4, h, PT_CREAM, M_STONE, PT_ROOF)
+	_lbox(0.0, 0.0, hu + 0.18, hv + 0.18, h - 0.55, h - 0.15, PT_SHADE, M_STONE)
+	_attic(_rect(0.0, 0.0, hu + 0.1, hv + 0.1), h, 1.2, PT_CREAM)
+	var bays := 5
+	var bay := 2.0 * hu / bays
+	for k in bays:
+		var u := -hu + (k + 0.5) * bay
+		_arch_panel(_w(u, -hv), _a, -_b, bay * 0.33, d + 0.6, d + 3.6 - bay * 0.33, PT_DARK, 0.04, M_STONE)
+		_arch_panel(_w(u, hv), _a, _b, bay * 0.3, d + 1.0, d + 3.4 - bay * 0.3, PT_GLASS, 0.04, M_PAVILION)
+	for k in bays + 1:
+		var u := -hu + k * bay
+		for side: float in [-1.0, 1.0]:
+			_lbox(u, side * (hv + 0.14), 0.28, 0.14, d + 0.4, h - 0.55, PT_SHADE, M_STONE)
+	_lbox(0.0, 0.0, hu + 0.08, hv + 0.08, d + 2.85, d + 3.05, PT_SHADE, M_STONE)
+	_collide_span(_rect(0.0, 0.0, hu + 0.4, hv + 0.4), g - 1.0, d + 6.0)
+
+
+## The wing down the escarpment along the station's cutting (+u south, away from the deck): a
+## cream stone block from the ground to PWT_WING_H over the walk, arched windows in two rows
+## on its long faces, string courses and the crenellation.
+func _pwt_wing(hu: float, hv: float, g: float, d: float) -> void:
+	var h := d + PWT_WING_H
+	_lbox(0.0, 0.0, hu, hv, g - 0.5, h, PT_CREAM, M_STONE, PT_ROOF)
+	_lbox(0.0, 0.0, hu + 0.15, hv + 0.15, g - 0.5, g + 1.2, PT_BASE, M_STONE)
+	_lbox(0.0, 0.0, hu + 0.15, hv + 0.15, h - 0.5, h - 0.15, PT_SHADE, M_STONE)
+	_attic(_rect(0.0, 0.0, hu + 0.05, hv + 0.05), h, 1.0, PT_CREAM)
+	var n := maxi(3, roundi(2.0 * hu / 3.2))
+	var bay := 2.0 * hu / n
+	for k in n:
+		var u := -hu + (k + 0.5) * bay
+		for side: float in [-1.0, 1.0]:
+			var out := _b * side
+			_arch_panel(_w(u, side * hv), _a, out, 0.55, d + 0.8, d + 3.0, PT_DARK, 0.04, M_STONE)
+			if d - g > 5.0:
+				_arch_panel(_w(u, side * hv), _a, out, 0.45, g + 2.2, g + 3.8, PT_DARK, 0.04, M_STONE)
+	_collide_span(_rect(0.0, 0.0, hu + 0.3, hv + 0.3), g - 1.0, d + 6.0)
+
+
+## The toilet kiosk on the square west of the station (Mapillary 2025): a cream cube with an
+## arched doorway, a cornice and a Baroque scroll gable on its two street faces with a
+## cartouche on top.
+func _pwt_kiosk() -> void:
+	_o = PWT_KIOSK
+	_a = PWT_AXIS
+	_b = Vector2(-_a.y, _a.x)
+	var r := PWT_KIOSK_R
+	_g = _ground_under(_circle(PWT_KIOSK, r, 8))
+	var g := _g
+	_lbox(0.0, 0.0, r + 0.1, r + 0.1, g - 0.3, g + 0.4, PT_BASE, M_STONE)
+	_lbox(0.0, 0.0, r, r, g + 0.4, g + 3.4, PT_CREAM, M_STONE, PT_ROOF)
+	_lbox(0.0, 0.0, r + 0.22, r + 0.22, g + 3.4, g + 3.75, PT_SHADE, M_STONE, PT_ROOF)
+	for cu: float in [-1.0, 1.0]:
+		for cv: float in [-1.0, 1.0]:
+			_lbox(cu * (r - 0.15), cv * (r - 0.15), 0.25, 0.25, g + 0.4, g + 3.4, PT_SHADE, M_STONE)
+	# The scroll gables: a stepped curve of three slabs, the cartouche and a ball on top.
+	for f in 2:
+		var nv: float = -1.0 if f == 0 else 1.0
+		for s in 3:
+			var hw := r * (0.95 - s * 0.27)
+			var y0 := g + 3.75 + s * 0.45
+			_lbox(0.0, nv * (r - 0.15), hw, 0.15, y0, y0 + 0.45, PT_CREAM, M_STONE)
+		_lbox(0.0, nv * (r - 0.05), 0.42, 0.06, g + 3.9, g + 4.6, PT_SHADE, M_STONE)
+		var out := _b * nv
+		_arch_panel(_w(0.0, nv * r), _a, out, 0.55, g + 0.4, g + 2.4, PT_DARK, 0.04, M_STONE)
+	_lbox(0.0, 0.0, r - 0.3, r - 0.3, g + 3.75, g + 4.1, PT_ROOF, M_STONE)
+	var ball := _w(0.0, 0.0)
+	_prism(_circle(ball, 0.2, 4), g + 5.1, g + 5.4, PT_CREAM, PT_CREAM, M_STONE, M_STONE)
+	_collide(_rect(0.0, 0.0, r + 0.1, r + 0.1))
+
+
 # --- Muzeum Narodowe and Plac Piłsudskiego (the museum and Plac loop, 2026-10-31) ----------------
 
 ## The museum's raised entrance block stands at the back of its forecourt (Dziedziniec im.
@@ -20455,9 +20676,14 @@ func _och_stairs(g: float, hu: float, hv: float, low: float) -> void:
 ## docs/landmarks/specs/powisle.md; the Mac photo check sets the arches, the saucer and the
 ## canopies' length.
 const POW_OSM := "Dworzec PKP Powiśle"
-const POW_ARCH := 7.2          # the kite's two ends over the hall's floor (they turn up)
-const POW_SPRING := 4.4        # the roof's lowest line, across its middle
-const POW_SAG := 0.6           # how far its long sides dip under that line (the saddle)
+# F (2026-11-13, a Street View still and Mapillary 2025-2026): the upper pavilion's roof is a
+# hyperbolic paraboloid with straight edges, two opposite corners up and two down, so along the
+# Aleje its long front rises in a straight line from low by the gate tower (east) to high at the
+# far (west) end. It was a kite with both ends turned up. LoD2 2454 has its top 6.0-7.4 m.
+const POW_MID := 5.2           # the roof over the hall's floor at its middle
+const POW_TWIST := 1.8         # how far its corners rise over and dip under that (3.4 m to 7.0 m)
+const POW_FASCIA := Color("#6e3a2c")   # the edge band's red-brown (F's still)
+var _pow_twist := 1.0          # +1 or -1: which pair of the roof's corners stands up (_pow_upper)
 const POW_INSET := 1.6         # the glass hall's set-back under the roof's edges
 const POW_GRID := 10
 const POW_LOW_C := Vector2(400.8, -6.3)   # the round pavilion's centre (its OSM roof outline)
@@ -20543,12 +20769,12 @@ func _find_powisle() -> void:
 	sites[-1]["platforms"] = plats
 
 
-## The roof's height over the floor at local (u, v): the kite sags, its two ends (u = +-hu)
-## turned up, its long sides dipping a little under the middle line (the Mac photo check).
+## The roof's height over the floor at local (u, v): a hyperbolic paraboloid, its edges straight,
+## the corner that stands south-east low (_pow_twist sets which way the frame runs).
 func _pow_roof(u: float, v: float, hu: float, hv: float) -> float:
 	var s := clampf(u / hu, -1.0, 1.0)
 	var t := clampf(v / hv, -1.0, 1.0)
-	return POW_SPRING + (POW_ARCH - POW_SPRING) * s * s - POW_SAG * t * t
+	return POW_MID + POW_TWIST * _pow_twist * s * t
 
 
 func _build_powisle(site: Dictionary) -> void:
@@ -20564,6 +20790,15 @@ func _pow_upper(f: Array) -> void:
 	_b = f[2]
 	var hu: float = f[3]
 	var hv: float = f[4]
+	# The south-east corner (largest x + z) stands low: the front by the gate tower.
+	var se := Vector2.ZERO
+	var most := -INF
+	for c: Vector2 in [Vector2(hu, hv), Vector2(-hu, hv), Vector2(hu, -hv), Vector2(-hu, -hv)]:
+		var w := _w(c.x, c.y)
+		if w.x + w.y > most:
+			most = w.x + w.y
+			se = c
+	_pow_twist = -signf(se.x * se.y)
 	# The floor: the Aleje level (the highest ground under the outline).
 	var g := -INF
 	for k in range(-2, 3):
@@ -20637,7 +20872,7 @@ func _pow_upper(f: Array) -> void:
 			var u := -hu + 2.0 * hu * k / 12.0
 			var w := _w(u, v)
 			line.append(Vector3(w.x, g + _pow_roof(u, v, hu, hv) - 0.1, w.y))
-		_pow_rib(line, Vector3(_b.x, 0.0, _b.y), 0.2, POW_DARK)
+		_pow_rib(line, Vector3(_b.x, 0.0, _b.y), 0.2, POW_FASCIA)
 	# The blue WARSZAWA POWIŚLE letters over the doors, on the glass side the game's camera sees.
 	var best := -2.0
 	var face := Vector2.ZERO
