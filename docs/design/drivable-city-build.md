@@ -263,8 +263,10 @@ literals). The car asks a small spatial index each frame.
   - `H` if a hazard is behind it: the terrain drops more than 1.5 m within 3 m on either side
     (the bake has the terrain), a railway line within 6 m, open water within 5 m, a retaining
     wall over 1.5 m within 3 m, or the line runs along a deck or guard rail. Such a line also
-    gets `st: guard` so it is drawn as a crash barrier (rule R2: hard looks hard). Expect about
-    4-5 km.
+    gets its reason, `hz: drop | railway | water | deck`, and no fixed style: the walls-look
+    thread's type table picks the heavy look from the reason (a steel beam along a road, a stout
+    railing on a granite kerb on the boulevards, a precast wall at a railway, a parapet at a
+    drop beside a walk). Rule R2: hard looks hard. Expect about 4-5 km.
   - `S` otherwise.
   Lines already styled as railings (`tram_railing`, stair balustrades) keep H: they guard a
   track bed edge or a stair hole. (Whether tram railings in medians should break is an A/B for
@@ -287,7 +289,9 @@ literals). The car asks a small spatial index each frame.
     leaves; one draw call while it plays), `Access.buzz` light, and now and then
     `bubbles.say_reaction("smash")` (inside the chatter budget; 6-8 lines in `dialogue.json`,
     Polish and English, warsaw-tone).
-  - memory: the panel is marked broken (section 5).
+  - memory: the panel is marked broken (section 5). A panel's index is
+    `floor(distance along the line / 2 m)`, the same in the bake's panel list and in the look
+    thread's instanced panels.
 - **Other cars**: traffic, racers and police follow lanes and never needed fences; nothing
   changes for them. Pedestrians do not use the collider.
 
@@ -435,10 +439,13 @@ polyline end) empty on set A; PT-40's spot in `check_stuck_spots`.
 - **Walls with no height** (60.8 km): a context rule in the bake, in this order: around a stair
   or a drop → Hard, 1.0 m balustrade; a closed ring under 6 m across → Ride (a basin, a bed);
   inside a park, a green or a square → 0.5 m, Ride; along a churchyard, a cemetery, an embassy,
-  a school, a barracks or an industrial plot (the area's tags) → Hard, 2 m, drawn as that
-  wall; a fragment under 4 m with nothing within 5 m → removed; the rest → Hard at 1.9 m as now,
-  listed per street for the sweeps. The heights chosen here are the walls-look thread's to
-  correct: it owns what each wall is.
+  a school, a barracks or an industrial plot (the area's tags) → Hard, drawn as that
+  wall; a fragment under 4 m with nothing within 5 m → removed; the rest → Hard, listed per
+  street for the sweeps. Heights, from the walls-look thread (it owns what each wall is): park
+  or square 0.5 m, planter or basin ring 0.45, housing yard 1.2, church, school or institution
+  2.0, works, depot or railway 2.4, cemetery or barracks 2.6, noise screen 4 (6 at a railway),
+  unknown 1.6 instead of today's 1.9. A housing-yard wall at 1.2 m sits on the boundary of
+  Smash and Hard: it is Hard (masonry on a footing); only walls from 0.6 to under 1.2 m break.
 - **Canopies**: `roof` parts with a low base become posts (hard, 0.3 m) and an open underside.
 
 ### Item 9. Small things
@@ -521,9 +528,13 @@ a line ("Płoty: 214"), and are what a later invoice, an achievement or a police
 That thread decides what a fence, a wall or a rail is and how it looks, whole and broken. This
 plan gives it three things and asks for one.
 
-- It gets: the class of every barrier (`sc` on each line, from item 3's bake rule); the event
-  `soft_things.broke(id, panel, kind, at, direction, speed)`; the query
+- It gets: the class of every barrier (`sc` on each line, and `hz`, the reason, on the hard
+  ones, from item 3's bake rule); the events
+  `soft_things.broke(id, panel, kind, at, direction, speed)` and
+  `soft_things.repaired(id, panel)` (a repair happens 150 m away, but a sector is 512 m, so the
+  panel can still be loaded and must stand up again); the query
   `soft_things.is_broken(id, panel)` for when a sector is built again while the entry lives.
+  The panel index is `floor(distance along the line / 2 m)` on both sides.
 - It decides the broken look, from three ways that cost differently:
 
 | Way | What it is | Draw calls | Needs |
@@ -534,6 +545,11 @@ plan gives it three things and asks for one.
 
   Way 3 fits best with "the real type of object" (a panel model per type), way 2 is free at
   runtime, way 1 is what ships first. The choice is that thread's, with the bench as the gate.
+  **Chosen (walls-look thread, 2026-11-13, `docs/design/walls-true-to-life.md` section 7)**:
+  way 1 with item 3, then way 3: smash things become instanced 2 m panels, one MultiMesh a
+  sector with its own small shader, so the building shader is not touched. Way 2 is not used.
+  Its steps W1 (types in the bake) and W2 (the heavy kit) do not depend on this plan; W3 to W5
+  (panels, broken looks) come after item 3, because both edit `_build_barriers`.
 - It is asked for: a drawn difference between Hard and Smash things that a player reads at
   40 km/h (rule R2): heavy and continuous for hard (concrete, stone, steel beam), light and
   see-through for smash (bars, mesh, boards, leaves).
@@ -587,5 +603,8 @@ For F (in docs/QUESTIONS.md):
    fences? Default: hard, decided after the baseline shows how often they are hit.
 4. **Go**: items 0 and 1 change nothing a player can feel and can start at once on Opus.
 
-For the walls-look thread: the broken look (5.5), the heights and types of the 60.8 km of
-untagged walls (item 8), the drawn ends for item 7's long lead-ins.
+For the walls-look thread: answered 2026-11-13 (the broken look in 5.5, the heights in item
+8); still open: the drawn ends for item 7's long lead-ins. It parked one question for F: old
+pier-and-iron fences (the university, ministries, churches) break like other fences by default,
+the piers stay standing. For this plan a pier is then a Hard post of its own between Smash
+panels, which item 3's bake must emit.
