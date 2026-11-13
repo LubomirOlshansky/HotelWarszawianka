@@ -1064,6 +1064,24 @@ Left:
   approaches among them); a Mac look at those places' drawn ground is open.
 - Podwózka story ride played by Autopilot (accept, the "!" pickup, boarding, story lines, the question card, +½ star): no bug; the door and the result card still unplayed (the 2 km ride outlasts one Mac run).
 
+## Roads true to life: lane-level faults (F, 2026-11-13; docs/design/roads-true-to-life.md)
+
+Research only so far. The paint and kerbs at way joins are checked (`smooth`, `fixes`), the lane
+level is not: a first measurement of the baked map found 378 lane count changes with no side road,
+84 short lane blips, 373 straight-on lane links landing over 2.5 m aside, 155 turn-back links away
+from dead ends, 77 kinks over 20° on main roads and 4 of 14 roundabout rings whose lane count
+changes inside the ring (upper bounds, not yet checked against photos). In order:
+
+- [ ] RT-1 `tools/road_truth.py` (rules R1-R10, verify step `roadtruth`, findings on the console map)
+- [ ] RT-2 lane links through junctions from OSM `turn:lanes` instead of `next_lane`'s guess; arrows from the same data
+- [ ] RT-3 keep OSM `restriction` relations (`prepare_demo.py` drops them), drop forbidden links, U-turns only at dead ends and mapped median gaps
+- [ ] RT-4 lane adds and drops as paint (blips joined or made turn pockets; a dashed line starts, hatching, the kerb stays)
+- [ ] RT-5 roundabouts in groups: one lane count round the ring, even radius, give-way lines, ring lines (Dmowskiego, ONZ, de Gaulle'a first)
+- [ ] RT-6 kinks on main roads into arcs; junction nodes under 8 m apart merged (262 edges with under 3 m to drive)
+- [ ] RT-7 the 25 split leftovers of `road_fixes` fix 6, by kind (see "Road design system: round 2")
+- [ ] RT-8 detectors against OSM's tags (an extract in the map pack) and the orthophoto's paint and kerbs (Mac)
+- [ ] RT-9 drive log per street (steering spikes, standing cars, lane changes in junctions), then every street's score, worst first
+
 ## Road design rollout: every street on the map (F, 2026-11-06; docs/design/road-design-rollout.md)
 
 **Decision (F, 2026-11-07): main as base, small fixes.** F compared the area 3-7 redesigns with main
