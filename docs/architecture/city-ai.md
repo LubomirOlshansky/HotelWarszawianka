@@ -56,7 +56,7 @@ plac_zamkowy_life.gd   tourists and a pigeon flock on Plac Zamkowy (own MultiMes
   ground_only=...)` puts a point on a lane; pass `ground_only` for anything on the street level
   (tunnels and decks share x/z with the street).
 
-## 3. Racers (`rivals.gd`, design in docs/design/race-ai.md)
+## 3. Racers (`rivals.gd`, design in docs/design/race-ai.md, tuning in docs/design/race-ai-tuning.md)
 
 Rivals are traffic Drivers with a personality. The race AI rebuild is four layers plus a profile
 and a race object: RaceNav (where a car can go, with race links), RacePlanner (seconds to the
