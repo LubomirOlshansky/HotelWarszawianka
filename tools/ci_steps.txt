@@ -71,6 +71,7 @@ heights              quick
 heli                 local     slow
 heliview             quick
 hud                  quick
+jobplay              quick
 jobs2                quick
 juice                quick
 kebab                local     slow
@@ -133,6 +134,7 @@ rain                 local     slow
 ram                  runs
 ratuszhub            quick
 rave                 quick
+refs-store           quick
 rescues              quick
 ride                 local     slow
 ride-police          local     slow

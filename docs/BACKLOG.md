@@ -3,6 +3,13 @@
 Small problems that agents reported or that showed up in screenshots. They are fixed in the
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
+## Fill the shared photo store (2026-11-13, building-pipeline-review item 3)
+
+`tools/refs_store.py` and the store `/mnt/project-files/refs/` exist; the photos are not all in yet.
+- [ ] A thread with access to the Mac copies the Mac's `refs/` and F's photo folders (`warsaw-needed-photos`, `top-50`, `pkin-surroundings`, ...) into the store, one folder per slug (or lists them in `ALIASES.tsv`), then runs `index`.
+- [ ] A Mac gather run works down `python3 -I tools/refs_store.py gaps` (Commons and the orthophoto), then `push`.
+- [ ] 59 inventory rows still have no slug in `tools/refs_slugs.tsv` (the index shows `-`): add a line when a place gets a spec or a site key.
+
 
 ## Rooftop run: drive a photographer between the roof clubs (F, 2026-11-13: "add some quest to backlog to transport photographer between the rooftop clubs like pevel27, the view and the roof")
 
@@ -1073,6 +1080,9 @@ Left:
 - Podwózka story ride played by Autopilot (accept, the "!" pickup, boarding, story lines, the question card, +½ star): no bug; the door and the result card still unplayed (the 2 km ride outlasts one Mac run).
 
 ## Roads true to life: lane-level faults (F, 2026-11-13; docs/design/roads-true-to-life.md)
+
+**Parked by F on 2026-11-13** after the checker (RT-1): the rest waits as tech debt TD-23
+(docs/architecture/tech-debt.md). The `roadtruth` ratchet keeps the counts from growing meanwhile.
 
 Research only so far. The paint and kerbs at way joins are checked (`smooth`, `fixes`), the lane
 level is not: a first measurement of the baked map found 378 lane count changes with no side road,
