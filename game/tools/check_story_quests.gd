@@ -10,6 +10,7 @@ extends SceneTree
 
 const Story := preload("res://scripts/story_quests.gd")
 const Lines := preload("res://scripts/quest_lines.gd")
+const Fakes := preload("res://tools/fakes.gd")
 
 var _problems := 0
 
@@ -18,18 +19,6 @@ func _expect(what: String, ok: bool) -> void:
 	if not ok:
 		_problems += 1
 		print("check_story_quests: %s" % what)
-
-
-## A stand-in HUD: the card the friend shows, and its buttons.
-class FakeHud extends CanvasLayer:
-	signal card_pressed(index: int)
-	var card := ""
-	var buttons := PackedStringArray()
-	func show_side_card(title: String, _body: String, b: PackedStringArray, _accent: Color, _t_en := "", _b_en := "", _s := false, _f := "") -> void:
-		card = title
-		buttons = b
-	func hide_card() -> void:
-		card = ""
 
 
 func _initialize() -> void:
@@ -75,7 +64,7 @@ func _initialize() -> void:
 		twelve.append(Lines.entry("s%d" % i, "story", Lines.Line.STORY, "x", "x", Vector2(i, 0), Color.WHITE, "story"))
 	_expect("the tab lists up to STORY_ROWS", Lines.rows(twelve, Lines.Line.STORY, Vector2.ZERO).size() == Lines.STORY_ROWS)
 	# The friend in person.
-	var hud := FakeHud.new()
+	var hud := Fakes.Hud.new()
 	root.add_child(hud)
 	var s := Story.new()
 	s.hud = hud
@@ -107,7 +96,7 @@ func _initialize() -> void:
 	_expect("no greeting at speed", not s.talking())
 	car[1] = 10.0
 	s.step()
-	_expect("the friend walks up, in person (no phone): %s" % hud.card, s.talking() and hud.card.begins_with("👋") and hud.buttons.size() == 2)
+	_expect("the friend walks up, in person (no phone): %s" % hud.card, s.talking() and hud.card.begins_with("👋") and hud.button_words.size() == 2)
 	hud.card_pressed.emit(1)
 	_expect("NIE TERAZ starts nothing", met[0] == 0 and not s.talking())
 	s.step()
@@ -124,7 +113,7 @@ func _initialize() -> void:
 	hour[0] = 23.0
 	car[0] = Vector3(12, 0, 0)
 	s.step()
-	_expect("closed: says when, one OK button (no clock to jump)", s.talking() and hud.buttons.size() == 1)
+	_expect("closed: says when, one OK button (no clock to jump)", s.talking() and hud.button_words.size() == 1)
 	hud.card_pressed.emit(0)
 	_expect("closed: OK starts nothing", met[0] == 1)
 	# F, 2026-11-08: stopped in the night meet's ring by day, nothing could start it. A closed
@@ -138,7 +127,7 @@ func _initialize() -> void:
 	s.step()
 	car[0] = Vector3(12, 0, 0)
 	s.step()
-	_expect("closed: CZEKAM DO 7:00 / NIE TERAZ: %s" % [hud.buttons], s.talking() and hud.buttons.size() == 2 and hud.buttons[0].begins_with("CZEKAM DO 7:00"))
+	_expect("closed: CZEKAM DO 7:00 / NIE TERAZ: %s" % [hud.button_words], s.talking() and hud.button_words.size() == 2 and hud.button_words[0].begins_with("CZEKAM DO 7:00"))
 	hud.card_pressed.emit(1)
 	_expect("closed: NIE TERAZ neither waits nor starts", met[0] == 1 and jumped[0] < 0.0)
 	car[0] = Vector3(300, 0, 0)
@@ -162,7 +151,7 @@ func _initialize() -> void:
 	jumped[0] = -1.0
 	car[0] = Vector3(12, 0, 0)
 	s.step()
-	_expect("jump: closed, still WCHODZĘ: %s" % [hud.buttons], s.talking() and hud.buttons.size() == 2 and hud.buttons[0].begins_with("WCHODZĘ"))
+	_expect("jump: closed, still WCHODZĘ: %s" % [hud.button_words], s.talking() and hud.button_words.size() == 2 and hud.button_words[0].begins_with("WCHODZĘ"))
 	hud.card_pressed.emit(0)
 	_expect("jump: WCHODZĘ jumps the clock and starts it", met[0] == 3 and absf(jumped[0] - 7.05) < 0.001)
 	s.defs[0]["jump"] = false

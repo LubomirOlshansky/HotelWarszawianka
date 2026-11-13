@@ -19,27 +19,13 @@ extends SceneTree
 const Wellness := preload("res://scripts/wellness.gd")
 const Crowds := preload("res://scripts/crowds.gd")
 const TimeOfDay := preload("res://scripts/time_of_day.gd")
+const Fakes := preload("res://tools/fakes.gd")
 
 
 ## A stand-in for the map: flat ground.
 class FakeMap extends Node3D:
 	func deck_height(_dk: int, _x: float, _z: float) -> float:
 		return 0.0
-
-
-## Records the lines asked for.
-class FakeDialogue extends Node:
-	var said: Array = []
-
-	func say(_anchor: Variant, speaker: String, group: String, tag := "", _s := 4.0, _a := Color.WHITE, _h := 2.6, _p := false, _k := 0, _key := "") -> Array:
-		said.append([speaker, group, tag])
-		return ["x", "x"]
-
-	func say_ambient(_anchor: Variant, speaker: String, group: String, tag := "", _s := 4.0, _a := Color.WHITE, _h := 2.6, _p := false) -> Array:
-		return say(_anchor, speaker, group, tag, _s, _a, _h, _p)
-
-	func say_reaction(_anchor: Variant, speaker: String, group: String, tag := "", _s := 4.0, _a := Color.WHITE, _h := 2.6, _p := false, _key := "") -> Array:
-		return say(_anchor, speaker, group, tag, _s, _a, _h, _p)
 
 
 var problems: Array[String] = []
@@ -282,7 +268,8 @@ func _check_lines(digest: PackedStringArray) -> void:
 func _check_node(digest: PackedStringArray) -> void:
 	var map := FakeMap.new()
 	root.add_child(map)
-	var dlg := FakeDialogue.new()
+	var dlg := Fakes.Dialogue.new()
+	dlg.say_words = ["x", "x"]
 	root.add_child(dlg)
 	var w := Wellness.new()
 	w.map = map
@@ -329,8 +316,8 @@ func _check_node(digest: PackedStringArray) -> void:
 		w.tick(0.5)
 	_expect(dlg.said.size() > before, "a spot at the view said nothing in a minute")
 	var tags := {}
-	for rec: Array in dlg.said:
-		tags[str(rec[2])] = true
+	for i in dlg.said.size():
+		tags[str(dlg.tags[i])] = true
 	# A slow car at a spot: the `car` lines.
 	var car_at: Vector3 = (w.spots[0]["at"] as Vector3) + Vector3(4, 0, 0)
 	w.vehicle = func() -> Array: return [car_at, 5.0, false]
@@ -340,7 +327,7 @@ func _check_node(digest: PackedStringArray) -> void:
 		w.t += 0.5
 		w.tick(0.5)
 	for k in range(before, dlg.said.size()):
-		if str(dlg.said[k][2]) == "car":
+		if str(dlg.tags[k]) == "car":
 			car_lines += 1
 	_expect(car_lines > 0, "a slow car at a spot hears no `car` line in 100 s")
 	_expect(w.meets >= 1, "the car at a spot meets nobody")

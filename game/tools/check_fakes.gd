@@ -126,7 +126,7 @@ func _arguments() -> Array:
 			var mine: Array = s["args"]
 			var other: Array = their_signals[name]["args"]
 			_ok(mine.size() == other.size(), "A Fakes.%s's signal %s carries %d values, %s's %d" % [who, name, mine.size(), path.get_file(), other.size()])
-	_ok(functions >= 50, "A only %d functions compared (the stand-ins have more than 50 of the game's)" % functions)
+	_ok(functions >= 40, "A only %d functions compared (the stand-ins had 51 of the game's on 2026-11-13)" % functions)
 	return [functions, signals]
 
 

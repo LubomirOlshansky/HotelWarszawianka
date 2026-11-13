@@ -22,27 +22,13 @@ const CityLife := preload("res://scripts/city_life.gd")
 const Storefronts := preload("res://scripts/storefronts.gd")
 const TimeOfDay := preload("res://scripts/time_of_day.gd")
 const Dialogue := preload("res://scripts/dialogue.gd")
+const Fakes := preload("res://tools/fakes.gd")
 
 
 ## A stand-in for the map: flat ground.
 class FakeMap extends Node3D:
 	func deck_height(_dk: int, _x: float, _z: float) -> float:
 		return 0.0
-
-
-## Records the lines asked for.
-class FakeDialogue extends Node:
-	var said: Array = []
-
-	func say(_anchor: Variant, speaker: String, group: String, tag := "", _s := 4.0, _a := Color.WHITE, _h := 2.6, _p := false, _k := 0, _key := "") -> Array:
-		said.append([speaker, group, tag])
-		return ["x", "x"]
-
-	func say_ambient(_anchor: Variant, speaker: String, group: String, tag := "", _s := 4.0, _a := Color.WHITE, _h := 2.6, _p := false) -> Array:
-		return say(_anchor, speaker, group, tag, _s, _a, _h, _p)
-
-	func say_reaction(_anchor: Variant, speaker: String, group: String, tag := "", _s := 4.0, _a := Color.WHITE, _h := 2.6, _p := false, _key := "") -> Array:
-		return say(_anchor, speaker, group, tag, _s, _a, _h, _p)
 
 
 var problems: Array[String] = []
@@ -273,7 +259,8 @@ func _check_lines(digest: PackedStringArray) -> void:
 func _check_node(data: Dictionary, digest: PackedStringArray) -> void:
 	var map := FakeMap.new()
 	root.add_child(map)
-	var dlg := FakeDialogue.new()
+	var dlg := Fakes.Dialogue.new()
+	dlg.say_words = ["x", "x"]
 	root.add_child(dlg)
 	var p := Packs.new()
 	p.map = map
