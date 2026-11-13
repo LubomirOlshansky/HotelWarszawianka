@@ -15,6 +15,7 @@ fails if a script is in neither page, so add a row when you add a file.
 | `release.gd` | Release builds read no command-line flags. |
 | `error_trap.gd` | **The error trap**: a `Logger` that keeps the kinds of error with counts, places and what the game was doing, the last printed lines, and the session file whose end mark shows whether the last session closed by itself. `report()` is what Settings → RAPORT copies. The file, the button and the after-crash note are a debug build's (our own test runs); a release build has no trap at all (`ErrorTrap.make` gives none: testers' builds run none of it). `boot.gd` starts it and `main.gd` takes it over (`_trap_start`), marks it when the app goes to the background and refreshes its context once a second (`_trap_frame`). |
 | `load_yield.gd` | `LoadYield.tick(step)`: lets one frame through during the long build so the loading bar moves. Every new `_build_*` step calls it. |
+| `pause_reasons.gd` | **The game's pause** (TD-20): the reasons that hold the game paused (the loading bar, the settings card, the full map, the garage card). `hold(reason)`, `release(reason)`, `release_all()`; the tree is paused while any reason is held, so a card that closes does not start the game under one still up. `main.gd` owns the one instance (`_pause`); no other script writes the tree's pause (`check_pause`). |
 | `title.gd` | The title screen, language pick, loading bar. The boot scene puts it up under the root and `main.gd` takes it over (a run with flags makes its own). It loads before the game does, so what it preloads is on `check_boot`'s list. |
 | `credits.gd` | Credits and licences screen. |
 | `bench.gd` | Frame cost sampling for `--bench`, `--probe` and the phone's BENCH card. |
@@ -30,6 +31,7 @@ fails if a script is in neither page, so add a row when you add a file.
 | `city_maps.gd` | AO, lamp-light and surface maps per sector, fed to shaders. |
 | `chunked_surface.gd` | SurfaceTool that files triangles into tiles so off-screen tiles are culled. |
 | `index_pack.gd` | Packs the map index smaller in memory once the city is open. |
+| `facade_kit.gd` | What every landmark is built from: the emitting core (material codes, triangle, wall, prism), the local frame, the shared facade parts (`kit_*`) and the palette (`PAL_*`). `landmarks.gd` extends it. docs/design/facade-kit.md. |
 | `instance_buffers.gd` | Writes MultiMesh buffers the same on every renderer. |
 | `lane_graph.gd` | The road network (lanes, junction curves, lights, distances). See city-ai.md. |
 | `landmarks.gd` | Landmark buildings built in code from real footprints (the largest file, ~35k lines). |
