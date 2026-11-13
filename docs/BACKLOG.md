@@ -4,6 +4,13 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## Rooftop run: drive a photographer between the roof clubs (F, 2026-11-13: "add some quest to backlog to transport photographer between the rooftop clubs like pevel27, the view and the roof")
+
+Not built: new work is stopped (STOP NEW WORK, F 2026-11-11); queued for when it is lifted. A side job in the Podwózka family: a photographer (a passenger with a face, like the ride stories) has to shoot the city's rooftop clubs in one evening and the player drives them from roof to roof.
+- [ ] Stops, in the order F named them (parody names only): **PEVEL 27** (F's spelling of Level 27; the real club is on Al. Jerozolimskie, the game's only rooftop club today is Level 26 on the Atlas Tower, site `level26_club`, so the 27 needs its own parody name and place, QUESTIONS), **THE WJU** (the parody of The View, the club on Spektrum Tower, Twarda 18, built in PR #703; F kept this name on 2026-11-13), and **"the roof"** (which roof F means is open, QUESTIONS; default LORETKA, the pink date bar on HOTEL PIURE's roof, the one rooftop venue already in the game).
+- Default to build when it starts: a job on the Activity kit (`extends "res://scripts/activity.gd"`, `is_job` set, registered with `activities.add`; recipe in `docs/architecture/extending.md`, the way Podwózka's rides and the courier job are ported): the photographer calls, the player picks them up, three stops each ending at the club's door or its lift (the Senatorek lobby's way in is the model for "up to the roof"), a few seconds of flash and a line at each stop, then a fare and a tip, +½ star on a smooth drive like a ride. Words in Polish with English (warsaw-tone skill), the caller's face from `Portraits` (initial on a disc until a portrait exists). Check: `check_job_play`-style play of the whole job in a new `check_*` that joins `tools/ci_steps.txt`.
+- Extras once it plays: the stop order by night (clubs lit, queues up), a shot that needs the car stopped in a ring for 2 s, the photographer's photos as Fotka cards.
+
 ## Churches still to model from photos (F, 2026-11-13; review in docs/LANDMARKS.md "Churches review")
 
 Review only, nothing built. Each item is one thread, photo-first (model-from-photos skill; Mapillary and
@@ -1072,7 +1079,8 @@ level is not: a first measurement of the baked map found 378 lane count changes 
 from dead ends, 77 kinks over 20° on main roads and 4 of 14 roundabout rings whose lane count
 changes inside the ring (upper bounds, not yet checked against photos). In order:
 
-- [ ] RT-1 `tools/road_truth.py` (rules R1-R10, verify step `roadtruth`, findings on the console map)
+- [x] RT-1 `tools/road_truth.py` (2026-11-13): rules R1-R10 on the baked map as a ratchet (verify step `roadtruth`: R1 379, R2 71, R3 403, R5 144, R6 83, R7 262, R8 56, R9 21, R10 266), and with `--osm=` on the Mac 264 turn restrictions the lane graph ignores (of 556) and 353 approaches whose lanes take exits their `turn:lanes` forbid; 12 of 14 sampled places differ from the aerial photo
+- [ ] RT-1b the checker's findings as a layer on the dev console's map (`--json=`); the graph edges of a roundabout flagged by the bake so R9 need not guess by shape
 - [ ] RT-2 lane links through junctions from OSM `turn:lanes` instead of `next_lane`'s guess; arrows from the same data
 - [ ] RT-3 keep OSM `restriction` relations (`prepare_demo.py` drops them), drop forbidden links, U-turns only at dead ends and mapped median gaps
 - [ ] RT-4 lane adds and drops as paint (blips joined or made turn pockets; a dashed line starts, hatching, the kerb stays)
@@ -1692,6 +1700,28 @@ same work, re-ranked; its detail in road-objects.md still holds).
 - [ ] 9 Small things: stalls Smash, carts Push, busts, stones and steles under 1 m Ghost, monuments within 1 m of a lane moved back
 - [ ] 10 Ratchets (R9): hard metres within 1 m of a lane by class in `check_map_data.py`; contacts per km and dead stops per street in the drive check
 - [ ] 11 Street sweeps for what the class rules leave (exceptions, landmark rings, look)
+
+## Walls, fences and rails that look real (F, 2026-11-13; docs/design/walls-true-to-life.md)
+
+F: "there are the walls now, but they should represent the real type of object and texture, and how
+to handle it if it is ruined". Research and the phased plan: `docs/design/walls-true-to-life.md`.
+Found: 155.5 of 188 km of fence and 56.8 of 70 km of wall have no OSM detail and are drawn as one
+grey band or one beige slab; the type must come from what the barrier stands next to (a prototype
+names a setting for 60 % of the fence metres from the map's own data; the rest needs land-use
+outlines the bake drops). One image pixel is 10 to 17 cm at the default zoom, so a type is its
+colour, height, outline, post rhythm and openness, not a brick pattern. Proposed: heavy (Hard)
+types as shaped geometry in the city mesh, light (Smash) types as instanced 2 m panels with their
+own small shader (the building shader, 502 of 505, is not touched); a broken panel lies down until
+`soft_things` repairs it (the memory is docs/design/drivable-city-build.md section 5).
+- [x] Research: the types, the classification, how each is drawn and broken, cost, fallbacks, the phases (2026-11-13, docs only)
+- [ ] W0 Type sheet: 6 to 10 reference photos per type (never committed), a card per type, a 20-sample check of each context rule
+- [ ] W1 Types in the bake: `tools/barrier_types.py` (full OSM tags, context outlines, `ty` and `tc` per line), counts in `check_map_data.py`, the type plot; Mac re-bake
+- [ ] W2 Heavy kit: `game/data/barrier_kit.json`, walls with foot, cap, piers, panels and end pieces; noise screens, precast, brick, stone, jersey, parapets; heights by setting; bench
+- [ ] W3 Panel trial on one stretch behind `--barriers=panels`: `panel.gdshader`, a `MultiMesh` per sector, the bar rule at three zooms, draw calls, the Adreno count; F's look check
+- [ ] W4 Panels city-wide, both city paths, the old fence geometry behind the switch
+- [ ] W5 Broken looks per type from the `soft_things` events (after the build plan's item 3)
+- [ ] W6 Content: hoarding posters with parody developers, graffiti patches, gates, bollard rows
+- [ ] W7 Types in the street sweeps; the share of barriers with a default type only goes down
 
 ## After the beta: driving extras and the city economy (F, 2026-11-03, plan only)
 

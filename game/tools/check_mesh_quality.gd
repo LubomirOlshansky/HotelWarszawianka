@@ -105,6 +105,8 @@ const BUDGET := {
 	"plac_grzybowski": 1500,  # 2026-11-08 photo build (F): 1429 tris, the cascade field is 48 blocks
 	"prozna": 5100,  # 2026-11-08 photo build (F): 5014 tris, 1,300 of them the 90 bollards
 	"dom_partii": 6200,  # 2026-11-12 rebuilt whole from F's photos (towers, colonnade, frieze, courtyard fountain): 5202 tris, +0 draw calls
+	"eon41": 1300,  # 2026-11-13 photo rebuild (F): the power company's L-block, curve, medallions, glass tower, lantern
+	"asp37": 1600,  # 2026-11-13 the Academy of Fine Arts: the 1914 school and JEMS's wing
 	"deski": 2300,
 	"rynek": 3100,
 	"syrenka": 480,
@@ -180,7 +182,7 @@ const BUDGET := {
 	"pko_branch": 220,  # 2026-11-09 photo rebuild (F): 162 tris (granite slab, glass bays, wings, courtyard)
 	"dekalog_estate": 18000,
 	"inflancka_pools": 1000,
-	"spektrum": 990,
+	"spektrum": 3900,  # 2026-11-13 rebuild from F's photos (3567 tris): fin, podium, crown screens, the rooftop club THE WJU and its lounge; +0 draw calls
 	"spire": 6600,  # 2026-11-06 photo rebuild (F), 6151 tris (vase, steel crown ring, drum): steel columns, canopy bow, Spire B/C crowns and eaves, plaza kerbs, channel, 26 trees; +0 draw calls
 	"tr": 500,
 	"tower75": 220,

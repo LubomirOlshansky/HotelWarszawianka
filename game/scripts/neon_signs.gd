@@ -48,6 +48,8 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		# Its front's roof letters from F's photos (2026-11-11): the menswear maker's name spelt the
 		# Polish way (the bank's board is PEPEO ŻUBR, already in the list).
 		"WISTULA",
+		# The power company's red roof sign on Wybrzeże Kościuszkowskie 41 (F's photos, 2026-11-13).
+		"ELEKTRON",
 		# HOTEL PIURE's rooftop date bar (G3).
 		"LORETKA",
 		# Arkadka from F's photos (2026-11-03): Westfield as "west field" in Polish, the
@@ -68,6 +70,8 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		"ŚRÓDMIEŚCIE",
 		# The Mac photo check (2026-11-01): Ochota's letters by the entrance.
 		"OCHOTA",
+		# Spektrum Tower from F's photos (2026-11-13): the tower's name and its rooftop club, as parodies.
+		"SPEKTRAL", "THE WJU",
 		# The Old Town hotels' names (parodies of Castle Inn and Hotel Bellotto, an aparthotel).
 		"KASZTEL INN", "CANALETTO", "STARÓWKA",
 		# Level 26, the rooftop club on the Atlas Tower.
