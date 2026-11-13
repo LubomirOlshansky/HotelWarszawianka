@@ -158,6 +158,8 @@ const PASAT_PAINT := ["#1d1e21", "#3a3d42", "#2f3d33", "#2a3340", "#8c9096"]
 const RACE_CLASS_TOP := [33.0, 29.0, 25.0, 16.0]
 ## Racer mode: once a second while a racer stands still, what holds it (main.gd --race-debug).
 var race_debug := false
+## `_merge_gap`'s other answer: the speed of the car it found (m/s).
+var _merge_v := 0.0
 const RACE_DECEL := 8.0
 const RACE_HEADWAY := 0.6
 const RACE_TURN_MIN := RaceLine.SPEED_LEAST
@@ -2709,6 +2711,13 @@ func _drive(d: Driver, dt: float) -> void:
 		if cross:
 			gap = d.cross_gap
 			lead_v = d.cross_v
+		if racer and d.plan != null and d.on_cut and not d.in_conn and d.next_edge >= 0:
+			# Step 6b part 1b: two of a pack side by side into one shortcut: the one behind
+			# lets the other in (`_merge_gap`).
+			var merge := _merge_gap(d)
+			if merge < gap:
+				gap = merge
+				lead_v = _merge_v
 		if not d.in_conn:
 			var stop := _red_ahead(d)
 			if hop_stop or (d.next_edge >= 0 and not _hop_held.is_empty() and _hop_held.get(d.next_edge) != null and _hop_held[d.next_edge] != d):
@@ -3194,6 +3203,32 @@ func _way_gap(d: Driver, r: Driver, r_fwd: Vector2) -> float:
 		if _sat(dir, d.length + CROSS_STEP, d.size.x + 0.6, r_fwd, r.length, r.size.x, at - mid):
 			return maxf(k * CROSS_STEP - 1.0, 0.0)
 	return INF
+
+
+## Racer AI step 6b part 1b, the night club's pack: the metres racer d, about to leave its street
+## by a shortcut, has to the tail of another racer with a plan that is ahead of it in another
+## lane of the street and takes the same shortcut (INF: none), with `_merge_v` that car's speed.
+## A shortcut is one car wide and is entered from any lane, and a racer does not see the cars of
+## the lanes beside it as in its way (`_race_cross_look`): two of the club level in two lanes
+## turned into the cut together and drove through each other, 8 to 10 times at the start of the
+## bench's pack race on clear roads. Now the one behind (level: the higher slot) follows the
+## other in. One racer with a plan alone meets none, so a race of one is as before.
+func _merge_gap(d: Driver) -> float:
+	var e := d.edge
+	var best := INF
+	for l in graph.e_lanes[e]:
+		if l == d.lane:
+			continue
+		for q: Driver in _lane_cars[graph.e_lane0[e] + l]:
+			if q.plan == null or q.in_conn or not q.on_cut or q.next_edge != d.next_edge or q.edge != e:
+				continue
+			if q.s < d.s or (q.s == d.s and q.slot > d.slot):
+				continue
+			var g := q.s - d.s - (q.length + d.length) * 0.5
+			if g < best:
+				best = g
+				_merge_v = q.v
+	return maxf(best, 0.3)
 
 
 ## Step 4b: racer d looks for a car that will be in its way at a junction (CROSS_* above): true
