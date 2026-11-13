@@ -84,6 +84,11 @@
 # 1.6 × detour rule, the rider's way and speed, a win's +30 zł +30 respect once), the Leżak round-up
 # (the pay, the boot of 5, the depots, ten Leżaks on the real map, late, ✕, back by morning), the
 # payphone by Plac Konstytucji and E40 once; centrum.json only (CI too).
+# Trend job (2026-11-13): `trendjob` runs game/tools/check_trend_job.gd: the trend courier's job on the
+# activity kit played headless on stand-ins (no map, no await): the look and what holds it back, the
+# request and the run of every kind of order (Na czasie, Limitka, Czwarty, the DESKA call and its
+# match, Mlask, Dżemini, the coffee run), the pay's conditions one at a time, which order comes
+# first, one order over another, the autopilot to every end, the dice draw for draw (CI too).
 # Beta values (2026-11-04): `laneassist` runs game/tools/check_lane_assist.gd: the lane assist on
 # the real car (a 6° start, a 300 m curve, a deliberate turn, when it must not pull) and the lane's
 # direction on the committed map (~10 s).
@@ -1140,6 +1145,8 @@ for s in $want; do
 		parodies) check parodies '^check_parodies:' --script res://tools/check_parodies.gd ;;
 		# Loop jobs-2: the courier race, the Leżak round-up, the payphone and E40.
 		jobs2) check jobs2 '^check_side_jobs:' --script res://tools/check_side_jobs.gd ;;
+		# Trend job (2026-11-13): the trend courier's job on the activity kit, played.
+		trendjob) check trendjob '^check_trend_job:' --script res://tools/check_trend_job.gd ;;
 		# DEMO 6.3: the second słoiki station (Dworzec Gdański) and the Łazienki peacock rescue.
 		rescues) check rescues '^check_rescues:' --script res://tools/check_rescues.gd ;;
 		# Loop couriers: the waiting couriers, the kerb riders, the dodge, the near miss's line.

@@ -72,9 +72,14 @@ class Probe extends Activity:
 	var label := ""
 	## The button the autopilot taps on a card of the run (the kit's own: the first).
 	var auto_btn := 0
+	## The caller's portrait when it is not under their name ("" for the kit's own: the name).
+	var call_face := ""
 
 	func _call_card() -> Dictionary:
-		return {"who": "Próba", "about": ["Ktoś od prób.", "Somebody who tests."]}
+		var c := {"who": "Próba", "about": ["Ktoś od prób.", "Somebody who tests."]}
+		if call_face != "":
+			c["face"] = call_face
+		return c
 
 	func _offer_card() -> Dictionary:
 		if no_offer:
@@ -151,6 +156,7 @@ func _go() -> void:
 	_refusals_and_looks()
 	_abort_and_limit()
 	_autopilot()
+	_job_cards()
 	_director()
 	_real_hud()
 	_tour_data()
@@ -553,6 +559,74 @@ func _autopilot() -> void:
 	a.finish()
 
 
+## What a job with several kinds of order needed of the kit (trend_job.gd): a request card that
+## leaves the player free, a caller with a face of their own, cards of the run beside the road.
+func _job_cards() -> void:
+	var hud := _hud()
+	var a := _probe(hud)
+	# The caller's face.
+	a.ring()
+	_expect(hud.side and hud.face == "" and hud.body_en == "Somebody who tests.", "a call names no face by default (the HUD takes the caller's name): \"%s\"" % hud.face)
+	hud.press(1)
+	a.call_face = "Zenek"
+	a.ring()
+	_expect(hud.face == "Zenek" and hud.card.contains("PRÓBA"), "_call_card's \"face\": the call shows that portrait, under the caller's name still (%s, %s)" % [hud.face, hud.card])
+	a.call_face = ""
+	# The offer: busy by default; with `offer_busy` off only the run is.
+	hud.press(0)
+	_expect(a.phase == Activity.Phase.OFFER and a.busy() and a.offer_busy, "an offer holds the player by default")
+	_expect(hud.side and hud.face == "Próba" and hud.card_en == "PROBE: \"COMING?\"" and hud.body_en == "Drive.", "the offer sits beside the road, with its face and both languages (%s)" % hud.face)
+	hud.press(1)
+	a.offer_busy = false
+	a.ring()
+	_expect(not a.busy() and not a.idle(), "offer_busy off: a ringing phone is as before, not busy and not idle")
+	hud.press(0)
+	_expect(a.phase == Activity.Phase.OFFER and not a.busy() and not a.idle(), "offer_busy off: the offer card is up and the player is still free")
+	hud.abort_pressed.emit()
+	_expect(a.phase == Activity.Phase.OFFER, "the ✕ still does nothing to it")
+	_run(a, a.card_life + 0.3)
+	_expect(a.idle() and hud.card == "" and a.refused.back() == [int(Activity.Phase.OFFER), true], "and it still goes when nobody takes it (%s)" % [a.refused])
+	a.ring()
+	hud.press(0)
+	hud.press(0)
+	_expect(a.phase == Activity.Phase.RUN and a.busy(), "taken: the run is busy, as always")
+	# A card of the run beside the road.
+	a.show_side_card(["BOK", "SIDE"], ["tekst", "text"], PackedStringArray(["OK|OK", "NIE|NO"]))
+	_expect(hud.card == "BOK" and hud.side and hud.card_is(a) and hud.accent == a.colour and not hud.low and not hud.stacked and hud.face == "",
+			"show_side_card: the run's card beside the road, its own, in the activity's colour, no face")
+	_expect(hud.card_en == "SIDE" and hud.body == "tekst" and hud.body_en == "text" and hud.buttons == 2, "with both languages and its buttons")
+	var ticks := a.ticks
+	_run(a, 1.0)
+	_expect(a.ticks == ticks, "the run stands while it is up")
+	hud.hide_card()
+	_run(a, 0.1)
+	_expect(hud.card == "BOK" and hud.side and hud.card_is(a), "a side card that something took down comes back beside the road")
+	a.pressed.clear()
+	hud.press(1)
+	_expect(a.pressed == [1] and hud.card == "", "its press comes to the activity")
+	a.show_side_card(["BOK 2", "SIDE 2"], ["tekst", "text"], PackedStringArray(["OK|OK"]), 3.0, Color.CRIMSON)
+	_expect(hud.side and hud.accent == Color.CRIMSON, "with a tint: in that colour")
+	_run(a, 2.5)
+	_expect(hud.card == "BOK 2" and a.pressed == [1], "with a life: up until it runs out")
+	_run(a, 1.0)
+	_expect(hud.card == "" and a.pressed == [1, 0], "then closed as its first button (%s)" % [a.pressed])
+	a.autopilot = true
+	a.show_side_card(["BOK 3", "SIDE 3"], ["tekst", "text"], PackedStringArray(["OK|OK"]))
+	_run(a, Activity.AUTO_CARD + 0.2)
+	_expect(hud.card == "" and a.pressed == [1, 0, 0], "the autopilot taps a side card as any card of the run")
+	a.autopilot = false
+	a.show_card(["ŚRODEK", "MIDDLE"], ["tekst", "text"], PackedStringArray(["OK|OK"]))
+	_expect(hud.card == "ŚRODEK" and not hud.side, "the next show_card is in the middle again")
+	hud.hide_card()
+	_run(a, 0.1)
+	_expect(hud.card == "ŚRODEK" and not hud.side, "and comes back in the middle")
+	a.finish()
+	_expect(a.idle() and hud.card == "", "the end takes a card down wherever it sat")
+	a.show_side_card(["BOK 4", "SIDE 4"], ["tekst", "text"], PackedStringArray(["OK|OK"]))
+	a.finish()
+	_expect(hud.card == "", "a side card too")
+
+
 # --- the director ----------------------------------------------------------------------------------
 
 func _director() -> void:
@@ -604,6 +678,18 @@ func _director() -> void:
 	_expect(d.current() == a and not d.may_start(c), "another activity of the kit is on: it may not start, whatever its own test says")
 	a.finish()
 	_expect(d.may_start(c) and not c.flown, "free again; an activity is not flown unless it says so")
+	# A job whose request card leaves the player free (`offer_busy` off): the director counts it
+	# as on only once it runs, so its card holds nobody by itself.
+	a.offer_busy = false
+	a.ring()
+	hud.press(0)
+	_expect(a.phase == Activity.Phase.OFFER and not d.busy() and d.current() == null and d.busy_tag() == "" and d.grounded().is_empty(),
+			"offer_busy off: with the offer card up the director has nobody on, and the helicopter is free")
+	_expect(d.may_start(c), "and another activity may start")
+	hud.press(0)
+	_expect(d.current() == a and d.busy_tag() == "first" and not d.may_start(c), "taken: now it is the current one")
+	a.finish()
+	a.offer_busy = true
 
 
 # --- the real HUD (TD-16) --------------------------------------------------------------------------
@@ -647,8 +733,22 @@ func _real_hud() -> void:
 	_run(a, 0.2)
 	_expect(hud.card_is(a), "hud.gd: the activity's card is back when theirs is gone")
 	_expect(_tap(hud, 0) and a.pressed == [1, 0], "hud.gd: and takes its press")
+	# A card of the run beside the road, and a call with a face that is not the caller's name.
+	a.show_side_card(["BOK", "SIDE"], ["tekst", "text"], PackedStringArray(["TAK|YES", "NIE|NO"]))
+	_expect(hud.card_is(a) and hud._card_side and not hud.call_showing(), "hud.gd: show_side_card puts the run's card beside the road, its own")
+	_expect(_tap(hud, 1) and a.pressed == [1, 0, 1] and not hud.card_showing(), "hud.gd: and its press comes to the activity (%s)" % [a.pressed])
+	a.show_card(["ŚRODEK", "MIDDLE"], ["tekst", "text"], PackedStringArray(["OK|OK"]))
+	_expect(hud.card_is(a) and not hud._card_side, "hud.gd: the next show_card is in the middle again")
 	a.finish()
 	_expect(not hud.card_showing(), "hud.gd: nothing left up")
+	a.ring()
+	_expect(hud.call_showing() and hud._card_face_letter == "P", "hud.gd: a call's face is the caller's by default (%s)" % hud._card_face_letter)
+	_tap(hud, 1)
+	a.call_face = "Zenek"
+	a.ring()
+	_expect(hud.call_showing() and hud.card_is(a) and hud._card_face_letter == "Z", "hud.gd: _call_card's \"face\" is the portrait the call shows (%s)" % hud._card_face_letter)
+	_tap(hud, 1)
+	_expect(a.idle() and not hud.card_showing(), "hud.gd: declined, nothing left up")
 
 
 # --- the tours' data -------------------------------------------------------------------------------

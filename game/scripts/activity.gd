@@ -31,7 +31,10 @@ extends Node
 ## `target_arrow`), with a card in a colour of its own (`show_card`'s `tint`) and with a result
 ## card the autopilot leaves by its second button (`_auto_button`); roundup_job.gd the first side
 ## job (`is_job`), with no call at all (a pull-in starts it), its cards at the bottom of the
-## screen (`cards_low`) and a target that is not the kit's ring (the nearest Leżak).
+## screen (`cards_low`) and a target that is not the kit's ring (the nearest Leżak); trend_job.gd
+## the first with several kinds of order in one script: a request card that leaves the player
+## free (`offer_busy`), a caller with a face of their own (`_call_card`'s "face") and cards of the
+## run beside the road (`show_side_card`).
 
 const Beacon := preload("res://scripts/beacon.gd")
 const Access := preload("res://scripts/access.gd")
@@ -85,6 +88,10 @@ var is_job := false
 ## The cards of the run sit at the bottom of the screen (hud.gd `show_card`'s `bottom`), as a
 ## job's cards do: the road ahead stays in view.
 var cards_low := false
+## The offer card holds the player, as a call's does once it is answered. False for a job whose
+## request card (ACCEPT / SKIP as the player drives past) leaves them free: such a job is on only
+## once it runs, so everything that asks "is a job on?" answers as before the card was taken.
+var offer_busy := true
 
 var phase := Phase.IDLE
 ## Seconds in this phase, or since the run's last card went up.
@@ -98,7 +105,7 @@ var _mark: Node3D
 var _target := Vector3.INF
 ## A card of the run is up and waits for a press.
 var _card_up := false
-## That card as it was shown: [title, body, buttons, stacked, tint] (`_put_card`).
+## That card as it was shown: [title, body, buttons, stacked, tint, beside the road] (`_put_card`).
 var _card_args: Array = []
 ## That card closes by itself after this long (s) (`_card_expired`); 0: it waits for a press.
 var _card_life := 0.0
@@ -114,9 +121,10 @@ func setup(world: Node3D) -> void:
 	hud.abort_pressed.connect(abort)
 
 
-## The player has taken it on (the offer card or anything after it); a ringing phone is not busy.
+## The player has taken it on (the offer card or anything after it; with `offer_busy` off only
+## the run); a ringing phone is not busy.
 func busy() -> bool:
-	return phase != Phase.IDLE and phase != Phase.RING
+	return phase == Phase.RUN or (phase == Phase.OFFER and offer_busy)
 
 
 ## Not ringing, not on (a questline may start it now: story_quests.gd).
@@ -250,7 +258,7 @@ func ring() -> bool:
 	_t = 0.0
 	var c := _call_card()
 	var about: Array = c.get("about", ["", ""])
-	hud.show_call(str(c.get("who", "")), str(about[0]), colour, str(about[1]))
+	hud.show_call(str(c.get("who", "")), str(about[0]), colour, str(about[1]), str(c.get("face", "")))
 	_own_card()
 	hud.ticker_out()
 	Access.buzz(60, 0.6)
@@ -298,7 +306,17 @@ func start() -> void:
 ## pressed, a result card nobody has to tap). `stacked`: its buttons one under the other. `tint`:
 ## the card's colour when it is not the activity's (the boat race's ODPADASZ! is red).
 func show_card(title: Array, body: Array, buttons: PackedStringArray, life := 0.0, stacked := false, tint := Color(0, 0, 0, 0)) -> void:
-	_card_args = [title, body, buttons, stacked, tint]
+	_card_args = [title, body, buttons, stacked, tint, false]
+	_card_life = life
+	_card_up = true
+	_t = 0.0
+	_put_card()
+
+
+## A card of the run beside the road, where an offer sits (hud.gd `show_side_card`): what a job
+## says when it is done, with the street still in view. Otherwise as `show_card`.
+func show_side_card(title: Array, body: Array, buttons: PackedStringArray, life := 0.0, tint := Color(0, 0, 0, 0)) -> void:
+	_card_args = [title, body, buttons, false, tint, true]
 	_card_life = life
 	_card_up = true
 	_t = 0.0
@@ -309,7 +327,11 @@ func _put_card() -> void:
 	var title: Array = _card_args[0]
 	var body: Array = _card_args[1]
 	var tint: Color = _card_args[4]
-	hud.show_card(str(title[0]), str(body[0]), _card_args[2], colour if tint.a == 0.0 else tint, cards_low, str(title[1]), str(body[1]), _card_args[3])
+	var accent := colour if tint.a == 0.0 else tint
+	if bool(_card_args[5]):
+		hud.show_side_card(str(title[0]), str(body[0]), _card_args[2], accent, str(title[1]), str(body[1]), _card_args[3])
+	else:
+		hud.show_card(str(title[0]), str(body[0]), _card_args[2], accent, cards_low, str(title[1]), str(body[1]), _card_args[3])
 	_own_card()
 
 
@@ -403,7 +425,8 @@ func _log(msg: String) -> void:
 
 # --- what a subclass gives -----------------------------------------------------------------------
 
-## The call: {"who": the caller's name, "about": [Polish, English] what they are to the player}.
+## The call: {"who": the caller's name, "about": [Polish, English] what they are to the player,
+## "face": whose portrait when it is not under the caller's name}.
 func _call_card() -> Dictionary:
 	return {}
 

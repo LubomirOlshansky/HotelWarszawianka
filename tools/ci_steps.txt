@@ -171,6 +171,7 @@ tour-run             local     slow
 trains               quick
 tramfleet            quick
 tramstops            quick
+trendjob             quick
 trzy-mosty           local     slow
 tunnelcut            smoke
 water                roads     slow

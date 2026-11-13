@@ -4037,6 +4037,14 @@ unchanged.
   będzie, sorry.") and no tip; late: half the pay, no tip, no respect *guess*. One activity at
   a time (`jobs.busy()` and Podwózka's offers see it). `--trend-job[=1|2|3] --autopilot` drives
   it.
+  Since 2026-11-13 (tech-debt TD-1) `trend_job.gd` is an activity of the kit (`activity.gd`): the
+  kit keeps its call, its request, its cards, its status line, its ring, the ✕ and the end; the
+  arrow, the metres, the minimap's dot and the stop assist read its target through the director
+  (main.gd's own block for it is gone), and the autopilot's car is slid by main.gd's `_slide_car`,
+  as for every activity of the kit. With `--autopilot` a call or a request is answered after 1.5 s
+  (2.0 s before) and a point of the match or the review's button after 2.5 s (2.0 s before). An
+  `offer_…` function asked during a run answers false (the old script would have started over the
+  run; nothing in the game asked then). Its check: `check_trend_job.gd` (verify step `trendjob`).
 - **Not built**: one queuer in five holding a phone up (no pose without the shaders' lane), the
   pigeon on days 6-7, the influencer at the window, MERDAK pet shops (no `shop=pet` anchors in
   the places), the armchair man (E34 still waits), the PixelLab pictograms on the fascias
