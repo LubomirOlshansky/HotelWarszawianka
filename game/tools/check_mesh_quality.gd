@@ -57,7 +57,7 @@ const BUDGET := {
 	"church_trojca_praga": 410,
 	"church_zielonoswiatkowy": 320,
 	"church_zwycieska": 950,
-	"jezuici": 2900,  # 2026-11-13: the whole Jesuit church on the kit (front, wing, side wall, tower, turret)
+	"jezuici": 3800,  # 2026-11-13: the whole Jesuit church replaces LoD2 (nave, roofs, front, aisle, tower, turret)
 	"aleksander": 2600,  # 2026-11-13 photo rebuild: podium, upper drum windows, Corinthian porticoes
 	"barbakan": 1500,  # 2026-11-06 photo pass: merlon caps and swollen cone roofs
 	"piano_house": 180,

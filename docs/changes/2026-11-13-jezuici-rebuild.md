@@ -1,8 +1,8 @@
-- The Jesuit church on Świętojańska, next to the Cathedral, is rebuilt from your photos: dusty pink plaster with cream pilasters, the stepped four-tier front with scroll buttresses, gold-ball pinnacles and a gold cross, the low wing with its statue niche, the pilastered side wall, and the tall tower with its green copper helm, lantern and onion cap, plus the small green turret on the roof.
+- The Jesuit church on Świętojańska, next to the Cathedral, is a whole new building from your photos (no more old block showing through): dusty pink plaster with cream pilasters, the stepped four-tier front with scroll buttresses, gold-ball pinnacles and a gold cross, the low wing with its statue niche, the pilastered side wall, and the tall tower with its green copper helm, lantern and onion cap, plus the small green turret on the roof.
 
 ## Backlog
 - fixed: Old Town set, the Jesuit church (Jezuici) model (church review order 3, first of the set)
-- found: the scroll buttresses are stepped boxes and the portal pediment a triangle; the tower's bell stage has ten identical openings where the photos show pairs; the nave beyond 24 m and the apse stay the LoD2 mass
+- found: the scroll buttresses are stepped boxes and the portal pediment a triangle; the tower's bell stage has ten identical openings where the photos show pairs; the back of the church (apse, sacristy) is plain
 - found: the Jesuit church's front is floodlit warm at night in F's photo; no floodlights built
 
 ## Roadmap

@@ -1,7 +1,7 @@
 # Kościół Jezuitów (Sanktuarium Matki Bożej Łaskawej): spec
 
-Site key `jezuici` in `game/scripts/landmarks.gd` (`_build_jezuici`; the mass is the skin
-`jezuici`, the model is what the eye reads on it). Written 2026-11-13 (churches review, Old Town
+Site key `jezuici` in `game/scripts/landmarks.gd` (`_build_jezuici`): the whole church is a model that
+replaces the LoD2 mass (its SKINS entry has `model`, so it keeps its place in the site order). Written 2026-11-13 (churches review, Old Town
 set), rebuilt the same day from F's four photos (the stepped front by day and by night from the
 side, the front looking up, the tower's helm), two Mapillary street photos (`refs/jezuici`, never
 committed or shipped) and the GUGiK LoD2 heights in the map pack.
@@ -21,11 +21,18 @@ south-west, to the street. What makes it read as itself:
 ## 2. Massing
 
 Frame: origin (-764.2, -1648.3) (the wing's NW corner), u along the street to the south-east
-(axis (0.685, 0.729)), +v out to the street. LoD2 heights above the ground: the wing's eaves
-14.0 m (u 0.4 to 7.7, v 0); the main front at v -4.5, u 7.9 to 20.8, wall to 22.8 m, gable apex
-33.6 m (u 14.35); the tower a decagon r 3.2 at u 6.3, v -32 (walls from 20 m, ring 45 m, tip
-56 m); the roof turret at u 13.2, v -32.1 (base 29 m, tip 38 m); the side wall at u 19.9 with
-0.5 m pilaster bumps every 6 m.
+(axis (0.685, 0.729)), +v out to the street. From the outline and the LoD2 heights:
+
+| Block | Plan (u, v) | Height |
+| --- | --- | --- |
+| nave | u 7.9 to 20.45, v -4.9 to -37 | eaves 22.8 m, gable ridge 34 m (to v -29) |
+| presbytery roof | v -29 to -37 | ridge 31 m |
+| sacristy | u 10.15 to 20.45, v -37 to -41.5 | 15 m, hipped to 17 m |
+| aisle (front = the wing at v 0) | u 0 to 7.9, v 0 to -37.2 | 14 m, hipped to 16.6 m |
+| west strip | u -4 to 0, v -18.8 to -37.2 | 13 m, hipped |
+| front tiers | v -4.47, u 14.18 +- 6.3 / 4.1 / 2.6 / 1.6 | 14 / 22.4 / 28.4 / 33.2 m |
+| tower | decagon r 3.2 at u 6.3, v -32 | walls to 45 m, helm to 56 m, cross 59 m |
+| turret | on the presbytery ridge, u 14.18, v -32.6 | to 38.6 m, cross 41.4 m |
 
 ## 3. Facade
 
@@ -38,15 +45,14 @@ cornice; tier 4 (3.2 m, to 33.2 m): a small window and a pediment with a cross. 
 buttresses (three steps each side of tier 2, two of tier 3, one of tier 4), pinnacles with gold
 balls on the cornices.
 Wing: plinth, two pilasters, a door, a framed window, a statue niche over it, an arched window, a cornice.
-Side wall (20 m toward the Cathedral): four pilasters on the outline's bumps, three tall framed windows, a cornice at 15 m.
-Tower: a pink shaft inside the LoD2 walls (so it stands in the flat check), ten cream corner
-pilasters, a string course at 33 m, ten arched openings (35.8 to 40.6 m), a double cornice at 44 m.
+Side wall toward the Cathedral (the whole nave): six pilasters every 6 m, five bays of a framed window below and a tall arched window above, a string course at 8.4 m. Clerestory over the aisle: four arched windows.
+Tower: a pink decagon from the ground, ten cream corner pilasters over the aisle roof, rings at 22.5 and 33 m, five small arched openings (25.5 m) and ten bell openings (35.8 to 40.6 m), a double cornice at 44 m.
 
 ## 4. Roof
 
 The green copper helm: a flared lip, a waist, a cream lantern with four dark openings, an onion
 cap, a gold ball and cross (to 59 m); the turret in the same green with a cream lantern and a
-cross. The nave roof stays LoD2's (skin roof dark grey-brown, as in the photos).
+cross. The roofs: the nave's steep gable, the presbytery's lower one, hips on the aisle, strip and sacristy, all dark grey-brown (the photos), a cream eaves band.
 
 ## 5. Colour and material
 
@@ -65,13 +71,13 @@ No new material, shader instruction or draw call.
 
 ## 6. Ground and night
 
-The model stands on the LoD2 mass's own collision; it adds none. Card kept: "Kościół Jezuitów".
+The car is stopped by the outline (`_collide`). Card kept: "Kościół Jezuitów".
 Windows are the kit's `M_PANE`, lit by chance at night (F's night photo shows the front floodlit
 warm and the arched windows glowing: floodlights are not built).
 
 ## 7. Detail level and budget
 
-L3, triangle budget 2900 (measured 2585; `check_mesh_quality.gd`). Shots: the turntable
+L3, triangle budget 3800 (measured 3390; `check_mesh_quality.gd`). Shots: the turntable
 (`tools/turntable.sh jezuici`), then in the city `--at=-758,-1640 --yaw=313 --pitch=-35 --size=45
 --no-ghost`, on both city paths.
 Open photo checks: the volute shapes are stepped boxes, not curves; the portal's pediment is a
@@ -89,7 +95,9 @@ the tower's bell stage has ten identical openings (the photos show pairs between
 | scrolls and pinnacles | 11 stepped boxes, 6 pinnacles | to 2.2 m | between tiers | M_STONE | 1 front |
 | pediment and cross | kit_pediment, 2 boxes | 3.6 m, 3 m | 33.2 m | M_STONE | 1 front |
 | wing | wall, plinth, 2 pilasters, cornice, door, window, niche, statue | 7.3 x 13.6 m | v 0.03 | M_STONE | 2 wing |
-| side wall | wall, plinth, 4 pilasters, 3 windows, cornice | 20 x 15 m | u 19.93 | M_STONE | 1 front |
-| tower | shaft, 10 pilasters, 3 rings, 10 arched openings | r 3.2, 45 m | u 6.3, v -32 | M_STONE | 3 tower |
+| masses | 5 prisms, 2 gable roofs, 3 hips, eaves band | see Massing | outline | M_STONE | 1 front |
+| side wall | plinth, 6 pilasters, 10 windows, string course | 32 x 22.8 m | u 20.45 | M_STONE | 1 front |
+| clerestory | 4 arched windows, ledge | 24 m | u 7.9 | M_STONE | 1 front |
+| tower | decagon, 10 pilasters, 4 rings, 15 arched openings | r 3.2, 45 m | u 6.3, v -32 | M_STONE | 3 tower |
 | helm | 3 frustums, lantern, cap, ball, cross | r 3.55 to 0.3 | 45 to 59 m | M_STONE | 3 tower |
-| turret | shaft, 2 frustums, lantern, cap, ball, cross | r 3.3 to 0.3 | u 13.2 | M_STONE | 3 tower |
+| turret | 2 frustums, lantern, cap, ball, cross | r 3.3 to 0.3 | u 13.2 | M_STONE | 3 tower |
