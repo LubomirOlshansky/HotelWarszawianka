@@ -13,6 +13,10 @@ extends SceneTree
 ## - knowledge (ladder.gd `yards`, `narrow`): Słoik knows none, Halina only the wide ones (none
 ##   under her `narrow`), Zbyszek every one he dares, and a link is never in a racer's table under
 ##   its width;
+## - the wrong-way hops (step 5b, kind "wrong"; ladder.gd `hops`): each drives against a one-way
+##   street between its own two junctions (`RaceCuts.hop`) and no other link does; only Seba and
+##   Mike (and Seba in the final) have them, every one; a plan never enters a hop from the street
+##   it drives against, and a hop refused (`Plan.refuse`) is not chosen again;
 ## - the routing with every link never makes a junction further from a finish, and for every link
 ##   it is shorter than the road between its two junctions as a racer counts it (RaceCuts.cost).
 ##   godot --headless --path game --script res://tools/check_race_links.gd
@@ -21,10 +25,17 @@ const LaneGraph := preload("res://scripts/lane_graph.gd")
 const RaceCuts := preload("res://scripts/race_cuts.gd")
 const Traffic := preload("res://scripts/traffic.gd")
 const Ladder := preload("res://scripts/ladder.gd")
+const RacePlanner := preload("res://scripts/race_planner.gd")
 
 const MIN_LINKS := 20
 const ON_LINE := 1.5
 const LONGER := 0.08
+## Step 5b: proven wrong-way hops at least, a hop's metres at most (junction to junction: the
+## street's 150 m, tools/race_links.py HOP_MAX, and the two junctions' boxes), and the hops whose
+## plans are tried.
+const MIN_HOPS := 30
+const HOP_MOST := 175.0
+const HOP_PLANS := 12
 
 
 class FakeMap extends Node3D:
@@ -102,6 +113,11 @@ func _knowledge() -> void:
 	_expect(float(by["zbyszek"]["yards"]) == 1.0, "Zbyszek doesn't know every yard")
 	_expect(float(by["seba"]["narrow"]) < float(by["halina"]["narrow"]), "Seba dares no narrower links than Halina")
 	_expect(float(Ladder.FIRST_RACER["yards"]) == float(by["halina"]["yards"]), "Halina's gentle day knows other yards than Halina")
+	# Step 5b: the wrong way down a one-way street only for the two who dare (parked question 3).
+	for id: String in by:
+		_expect((float(by[id]["hops"]) == 1.0) == (id == "seba" or id == "mike"), "%s's wrong-way hops are %.1f (Seba and Mike only)" % [id, float(by[id]["hops"])])
+	_expect(float(Ladder.FINAL_RACER["hops"]) == 1.0, "Seba in the final takes no wrong-way hop")
+	_expect(float(Ladder.FIRST_RACER["hops"]) == 0.0 and float(Ladder.DEFAULT_RACER["hops"]) == 0.0, "Halina's gentle day or a race off the ladder takes wrong-way hops")
 	_summary["knowledge"] = "Halina %.0f %% over %.1f m, Seba %.0f %% over %.1f m" % [
 			float(by["halina"]["yards"]) * 100.0, float(by["halina"]["narrow"]), float(by["seba"]["yards"]) * 100.0, float(by["seba"]["narrow"])]
 
@@ -145,7 +161,7 @@ func _map() -> void:
 		var best := -2.0
 		for e: int in g.node_in[cuts.a[i]]:
 			var dot := g.direction(e, g.e_s1[e]).dot((pts[1] - pts[0]).normalized())
-			if dot > best:
+			if dot > best and RaceCuts.hop(cuts.a[i], cuts.b[i]) != e:
 				best = dot
 				e_in = e
 		if e_in < 0 or cuts.exits_ab[i].is_empty():
@@ -171,10 +187,23 @@ func _map() -> void:
 		var long := LaneGraph.bezier_length(c) / maxf(along + c[0].distance_to(pts[0]) + pts[pts.size() - 1].distance_to(c[c.size() - 1]), 1.0) - 1.0
 		worst_long = maxf(worst_long, long)
 		_expect(long <= LONGER, "link %d: its curve is %.0f %% longer than its points" % [i, long * 100.0])
-	# Who knows which: a racer never has a link under its `narrow`.
+	# Step 5b: a wrong-way hop drives against a one-way street between its own two junctions; no
+	# other link does.
+	var hops := 0
+	for i in range(cuts.first_link, cuts.a.size()):
+		var h := RaceCuts.hop(cuts.a[i], cuts.b[i])
+		if cuts.kind[i] != "wrong":
+			_expect(h < 0, "link %d (%s) counts as a wrong-way hop" % [i, cuts.kind[i]])
+			continue
+		hops += 1
+		_expect(h >= 0 and g.e_a[h] == cuts.b[i] and g.e_b[h] == cuts.a[i] and g.e_reverse[h] < 0,
+				"hop %d does not drive against a one-way street between its junctions" % i)
+		_expect(cuts.length[i] <= HOP_MOST, "hop %d is %.0f m long (at most %.0f)" % [i, cuts.length[i], HOP_MOST])
+	_expect(hops >= MIN_HOPS, "only %d proven wrong-way hops (at least %d)" % [hops, MIN_HOPS])
+	# Who knows which: a racer never has a link under its `narrow` (a hop is a street: by `hops`).
 	for rung in Ladder.RUNGS.size():
 		var stats := Ladder.racer(rung)
-		var both := cuts.links(float(stats["cuts"]), hash(String(Ladder.RUNGS[rung]["rival"])), float(stats["yards"]), float(stats["narrow"]))
+		var both := cuts.links(float(stats["cuts"]), hash(String(Ladder.RUNGS[rung]["rival"])), float(stats["yards"]), float(stats["narrow"]), float(stats.get("hops", 0.0)))
 		var table: Dictionary = both[0]
 		var known := 0
 		for i in range(cuts.first_link, cuts.a.size()):
@@ -184,14 +213,41 @@ func _map() -> void:
 				for k in range(0, list.size(), 2):
 					if int(list[k]) in cuts.exits_ab[i] and is_equal_approx(list[k + 1], cuts.length[i]):
 						has = true
-			if has:
+			if cuts.kind[i] == "wrong":
+				_expect(has == (float(stats["hops"]) >= 1.0), "%s %s hop %d" % [Ladder.RUNGS[rung]["id"], "has" if has else "lacks", i])
+			elif has:
 				known += 1
 				_expect(cuts.width[i] >= float(stats["narrow"]), "%s knows link %d of %.1f m, under its %.1f m" % [Ladder.RUNGS[rung]["id"], i, cuts.width[i], float(stats["narrow"])])
 		if float(stats["yards"]) == 0.0:
 			_expect(known == 0, "%s knows %d links" % [Ladder.RUNGS[rung]["id"], known])
 	# Every link is worth taking: from its near junction to its far one, a racer that knows it counts
 	# it (RaceCuts.cost) shorter than the best road, and it makes no junction further from a finish.
-	var all := cuts.links(0.0, 0, 1.0, 0.0)
+	var all := cuts.links(0.0, 0, 1.0, 0.0, 1.0)
+	# Step 5b: a plan with every hop never enters one from the street it drives against, takes it
+	# from another street into the junction, and does not choose a hop it has refused.
+	var planner := RacePlanner.new(g)
+	var hop_plans := 0
+	for i in range(cuts.first_link, cuts.a.size()):
+		if cuts.kind[i] != "wrong" or hop_plans >= HOP_PLANS:
+			continue
+		var h := RaceCuts.hop(cuts.a[i], cuts.b[i])
+		var exit: int = cuts.exits_ab[i][0]
+		var plan: RacePlanner.Plan = planner.plan(g.e_b[exit], Ladder.racer(Ladder.rung_of("Seba z Pragi")), 30.0, all[0])
+		_expect(plan._cut_state(h, exit) < 0, "hop %d can be entered from the street it drives against" % i)
+		for e: int in g.node_in[cuts.a[i]]:
+			if e == h or g.e_tn[e] >= 0 or g.e_reverse[e] == exit:
+				continue
+			var way: int = plan.choose(e, g.e_s0[e], 10.0)
+			if not (plan.chosen_cut and way == exit):
+				continue
+			hop_plans += 1
+			plan.refuse(e, exit)
+			_expect(plan.searches == 2, "hop %d refused: the plan was not searched again" % i)
+			var other: int = plan.choose(e, g.e_s0[e], 10.0, exit, true)
+			_expect(not (plan.chosen_cut and other == exit), "hop %d is chosen again after it was refused" % i)
+			_expect(other >= 0, "hop %d refused: the plan knows no other way from that street" % i)
+			break
+	_expect(hop_plans >= 3, "only %d hops were a plan's way to the junction just beyond them" % hop_plans)
 	var taken := 0
 	for i in range(cuts.first_link, cuts.a.size()):
 		var pts: PackedVector2Array = cuts.shape[i]

@@ -685,10 +685,71 @@ The night club's pack race (`street_meet.gd`) has no links yet: it is step 6b's.
 
 **What the bench says**: on the old courses nothing moves: all 271 races of the full matrix come out the same to the second and the street as on main (central Powiśle has no yard a race can go through; the driver's step costs the same, 685 µs against 686 µs a race step on the cloud's CPU), so every mark stands as recorded. The new yard course (Wola, Grzybowska to Rondo ONZ, 12 races) shows the link at work: on clear roads Pani Halina takes the yard and is home in 81.7 s, Taksiarz Zbyszek takes it in 66.2 s, and Słoik z Radomia, who knows no yard, goes round by Krochmalna in 108.7 s; in Low traffic the same (Halina 88.9 to 95.4 s over three draws, Słoik 125.1 to 134.3 s). The new mark "Yard links" holds that (who knows every yard takes a link, who knows none takes none), and the yard course stays out of "Skill ladder", since it measures knowledge, not pace. The bench counts links per race (`links`).
 
-**Not built here.** The wrong-way hops on one-way streets (question 3 in section 9 is still F's)
-are step 5b: a racer on one meets the town's cars head on, and the driver has to see them on the
-street it drives the wrong way. A link is proven from one street into it and one way on; the
-other ways in and on differ only in the junction's curve.
+**Not built here.** A link is proven from one street into it and one way on; the other ways in
+and on differ only in the junction's curve. The wrong-way hops are 5.5.
+
+### 5.5 Step 5b as built: wrong-way hops on one-way streets
+
+F chose it on 2026-11-13 (question 3 in section 9): Seba and Mike may dart the wrong way down a
+short one-way street, when it is empty.
+
+**What a hop is.** A race link of kind `wrong` (`tools/race_links.py`, the same file and the
+same proof as the yards): one block of a small one-way street, from the junction at its far end
+back to the junction at its start, along its own lane. The finder takes a block when it is one-way
+with no lane back, 45 to 150 m long, a `residential`, `living_street`, `unclassified` or
+one-lane `tertiary` street (never a main road), nearly straight, with no tram rails, and not
+one carriageway of a street with two (a same-named street running the other way within 45 m);
+when a street leads into its far end and another leads on from its start; and when going down
+it saves a racer metres over the best way round by road, counted like a yard. The whole map
+gives 52 such blocks. Many more one-way streets are several blocks long: a hop is one block,
+and chains of blocks are not built.
+
+**The proof.** The player's car drives each hop in the prebuilt city along the curve a rival
+takes (`tools/race_links.sh`), coming from another street and going on into another: 48 proven,
+4 refused (3 with no street into them or no way on in the drive, 1 touched something fixed on
+Berka Joselewicza). A rival is handed only a proven one. The drive now never enters a link from
+the street the link runs down (it had counted a U-turn out of the one-way street as a way in).
+
+**Who dares** (`ladder.gd` `hops`): Seba z Pragi, Mordor Mike and Seba in Trzy mosty know every
+hop; nobody else knows any (Pani Halina "never the wrong way"). A hop is not held to a rival's
+`narrow`: it is a street, as wide as its lane.
+
+**Looking first** (`traffic.gd` `_hop_look`, `_hop_clear`). The planner counts a hop like any
+link, so a racer who dares plans through it when it is the quicker way. On the way to the
+junction where the hop starts, at its braking distance plus 12 m, the racer looks down the
+street. It goes only when the street is empty: no car of the town's on it, none parked on it,
+none about to turn into it (within its own braking distance of the junction), and not the
+player's car on the curve into it. Then the street is the racer's until it is out: the town's
+cars that would turn into it wait at their stop line and none is put down on it (`_hop_held`).
+When the street is not empty the racer refuses the hop: the plan drops it for the rest of the
+race and searches again (`RacePlanner.Plan.refuse`), the racer takes the best other way from
+where it is, and the owner counts its metres to go again (`hop_refused`, `rivals.gd`). A racer
+never waits for a hop, and never meets a car head on in one. The player's car can still turn
+into the street while a racer is in it; the racer then sees it ahead like any car in its way.
+
+**What the bench says.** On the old courses nothing moves: all 284 races of the full matrix
+come out the same as on main, field by field (no race there has a hop on its way; a race step
+costs 286 µs against 287 µs on the cloud's CPU). The new hop course (Wola, Żelazna to Rondo ONZ,
+one 112 m block of one-way Żelazna): on clear roads Seba takes the hop and is home in 82.6 s
+(the planner's own count: 81 s with the hop, 96 s without), Mordor Mike in 73.7 s; Taksiarz
+Zbyszek (88.7 s) and Pani Halina (116.0 s) go round. With a car parked on the block
+(the bench's new situation `parked`) Seba looks, refuses and is home in 102.6 s by road, Mike in
+91.0 s. In Low traffic over three draws Seba and Mike took the hop twice and refused it four
+times; no car of the town's was on the street while a racer hopped it, and none was driven
+through there. Two new marks hold this: **Wrong-way hops** (without the town's cars: who dares
+takes it on clear roads and refuses it with a car parked there, the others never; in the quick
+matrix, so CI holds it) and **Wrong-way hops in traffic** (no town car met or driven through on
+a hopped street, nobody hops who does not dare; it counts the town's cars, so it is recorded as
+passed on one machine). The hop course stays out of "Skill ladder". The course's finish at
+Rondo ONZ shows the faults already recorded there in traffic (a car driven through on the
+roundabout, dead stops on Aleja Jana Pawła II): they are not on the hop and stay with No
+ghosting and Honest car.
+
+**Not built here.** Chains of blocks (a one-way street hopped over several junctions). The
+planner does not price the chance that a hop is refused: a refused hop costs Seba about 7 s
+over the way he would have taken by road from the start, since he finds out at the corner. The
+pack race has no links at all (6b). A hop is driven at the height of the straight between its
+ends, like a yard, and `LINK_TOP` 43 km/h at most.
 
 ## 6. Difficulty from skill, and the personalities
 
@@ -937,7 +998,7 @@ are only good from a run with nothing beside it.
 
 ### 7.3 The pass marks
 
-`race_bench.gd` `judge` turns a set of races into eleven marks. The limits are constants at the
+`race_bench.gd` `judge` turns a set of races into fourteen marks. The limits are constants at the
 top of that file; a change that moves one says why in its PR.
 
 | Mark | Passes when | Step |
@@ -952,6 +1013,9 @@ top of that file; a change that moves one says why in its PR.
 | **Honest car** | never over the player's car's top speed (108 km/h), pull (15 m/s²), sideways grip (19 m/s², measured as v² x turn / 8 m over every 8 m of its way, but for the 8 m in which the game stopped it dead: its heading swings as it stands) or brakes (30 m/s²: a harder stop is the game stopping the car, not the car) | 4a, 4b |
 | **Route sense** | its own choice of route is at most 5 % slower than the best of the forced routes (on clear roads; in the full matrix in traffic too) | 3 |
 | **Skill ladder** | flat out on clear roads with no player, each rival up the ladder is as fast as the one below (1 % slack) and the top rival at least 10 % faster than the first. Full matrix only | 2 |
+| **Yard links** | on the yard course on clear roads, a rival who knows every yard takes a race link and one who knows none takes none. Full matrix only | 5 |
+| **Wrong-way hops** | on the hop course without the town's cars: a rival who dares takes the hop on clear roads, refuses it with a car parked on the street and still finishes; one who does not dare never takes one | 5b |
+| **Wrong-way hops in traffic** | in every race in traffic: no car of the town's on a street while a racer hops it (or turning into it), none driven through there, and no hop by a rival who does not dare. Full matrix only | 5b |
 | **Same race twice** | a repeated race gives the same time, streets and metres | 1 |
 
 The probe that measures a race (`race_bench.gd` `Probe`) reads what a spectator could see: where
@@ -1187,7 +1251,7 @@ after. Step 2 ends the complaint in F's message. The steps after it make racing 
 | 4a (done) | Driver, part 1: a racing line inside the racer's lane and a speed for every metre of it; the rivals' skill numbers set again for a real sideways pull; the centre-line pass by the oncoming lane it uses, clear for as long as the pass lasts | Smooth corners with the braking done before the bend, and no bend taken faster than the player's own car could. A rival rarely sits behind a slow car with the way past free | Honest car's grip (109 of the 110 races were over the car's limit, none is). The times were kept, not bettered: the line stays in its lane until 4b. Independence on the full matrix passes or fails with the draw of the town's cars and is recorded unsteady |
 | 4b (done) | Driver, part 2: overtaking (a pass whose length comes from both cars' speeds and the racer's pull and that can be given up, nobody beside it on the way out, a smooth sideways move that ends before the corner, a side held while there is more to pass), collisions (a car across a junction is seen, no car put down in a racer's way), recovery | Real passes. Nobody drives through a car. A crashed rival reverses and goes on | Passes traffic, No ghosting, Recovers, Finishes, Honest car (the dead stops, the slide of a pass); Independence on the full matrix, once it is judged over several draws (no turning back behind a player's car that only waits) |
 | 5 (done) | Race links: alleys, courtyards, car parks (5.4) | Halina turns into a courtyard and comes out in front | Real-car proof for every link (37 links proven, 15 refused) |
-| 5b | Wrong-way hops on one-way streets, for Seba and Mike (question 3) | A rival darts the wrong way down a short one-way street when it is empty | No ghosting with the hops |
+| 5b (done) | Wrong-way hops on one-way streets, for Seba and Mike (5.5; F's yes to question 3) | Seba and Mike dart the wrong way down a short one-way street when it is empty | Wrong-way hops, and in traffic (48 hops proven, 4 refused) |
 | 6a | Personalities, visible decisions, result card with both routes, tuning | You can tell Seba from Zbyszek by how they drive | The ladder's curve of times |
 | 6b | One race object for the pack race, Trzy mosty, police chasers and crazy drivers | Every race in the game uses the new driver | All marks on every race mode |
 
@@ -1209,8 +1273,9 @@ None blocks the work. Each has the default being built (also in docs/QUESTIONS.m
 2. **Should a rival get easier after the player loses to them?** Built in step 2: yes, 5 % slower
    for each loss in a row (from the first loss, not the second), 15 % at most, a win puts it
    back, and a race given up does not count.
-3. **May aggressive rivals drive the wrong way down a one-way street?** Default: Seba and Mike
-   only, for 150 m at most, and only where the player's car can do the same.
+3. **May aggressive rivals drive the wrong way down a one-way street?** Answered by F on
+   2026-11-13: yes, as planned. Built in step 5b (5.5): Seba and Mike only, one block of 150 m
+   at most, only where the player's car has driven the same, and only when the street is empty.
 4. **How rough may rivals be?** Default: they defend their line and lean on the player in a pass,
    and they never ram the player off the road on purpose.
 5. **Is Trzy mosty too hard now that Seba finishes where the player does?** Built in step 3: one

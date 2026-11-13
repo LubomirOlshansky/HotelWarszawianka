@@ -42,6 +42,7 @@ then the Launch gate.
 - [x] Top-50 buildings from photos, batches 1 and 2 (F, 2026-11-08; specs `q22.md`, `rondo1.md`, `teatr.md`): Q22 in dark green glass under its graphite crown with the DELOJT name, the wing's sloping glass roof and the red-and-white mast; Rondo 1 in silver-blue bands with its rounded front, the open screen over the roof, the dark EJ slab, the steps and the 192 m antenna. Batch 2: the Warsaw Trade Tower's stone slab, dark glass drum and silver crown with UNIKWA, and Teatr Wielki's ten columns, pediment and Apollo quadriga.
 - [x] Top-50 buildings from photos, batch 3 (F, 2026-11-08; specs `prezydencki.md`, `krzyz.md`): Spektrum's blue banded drum, dark grid slabs and green glass crown ring; the Presidential Palace's arcaded centre with engaged columns and a statue balustrade, slate wing roofs; Holy Cross's copper lantern helms.
 - [x] Top-50 buildings from photos, batch 4 (F, 2026-11-08): Platinum Towers' cream stone corners and glass balcony bands; the PEPEO ŻUBR tower on Grzybowska (site `pepeo_tower`) in the tower table, beige stone over green glass with PEPEO ŻUBR on the crown. Batches for the rest of T01-T50 to follow
+- [x] Churches review (F, 2026-11-13): every church on the map sorted into photo-built, own model, kit, generic, with tiers and photo counts (docs/LANDMARKS.md "Churches review"); the unmodelled ones are in BACKLOG.
 - [x] Pijana Czereśnia kiosk (F's photos, 2026-11-08; site `pijana`): the park pavilion by Emilii Plater as the parody cherry-liqueur bar: a dark octagonal glass pavilion lit warm at night, the barrel-like drum with two bands and the red cherry cartouche (PIJANA / CZEREŚNIA), painted windows (the man in a flat cap with his dog, the woman with cherries, bottle shelves), a timber deck with a dark X-braced rail, planters and string lights. Mesh check clean (1916 tris, no z-fight); the look check is on the Mac.
 - [x] No offer pops over a result or win card (Autopilot, padel at DESKA, 2026-11-08): a Mrożulo "fetch" offer opened over the padel result card and the OK tap accepted it. Now no job, ride, Wiralek/Mrożulo, Czwarty/DESKA or rival offer opens while any card is up, nor for 2.5 s after one closes; it waits and comes afterwards (`trend_job.gd` `offers_held`, `jobs.gd`, `rides.gd`, `rivals.gd`; `check_hud` `_check_offers_wait`; PR pending; Autopilot re-run on the Mac open)
 - [x] Thin towers researched and rebuilt (F, 2026-11-07; `docs/design/small-buildings.md`): 469 small untagged OSM buildings identified from tags, map points, the aerial and Mapillary, and drawn as what they are: glass metro lifts (the Ratusz-Arsenał pair), louvred metro vents, kiosks, pavilions, bin shelters, substations, toilets, booths, canopies, houseboats, sheds and garages (`small_buildings.gd`, verify step `heights`; low-confidence courtyard ones open)
@@ -722,6 +723,20 @@ Beta goal: a visitor explores the city with everything open, an easy city drive,
 - [ ] Collision rework v2: walls redirect by angle, never stop; Classic gets the wall follow; traffic shoved, not a stop (F's phone A/B)
 - [ ] Street sweeps with verdicts per object, first Marszałkowska, Świętokrzyska, Jerozolimskie; stairwells and canopies; soft fences; narrow streets
 
+### Left: a city built for driving (F, 2026-11-13; plan docs/design/drivable-city.md, re-ranks the block above)
+- [x] Research: every object type with purpose and verdict, five solidity classes (Hard, Smash, Push, Ride, Ghost), design rules, ranked plan (2026-11-13, docs only)
+- [x] The build plan: a brief per item for Opus threads, order and dependencies, broken things' memory and recovery (docs/design/drivable-city-build.md, 2026-11-13, docs only)
+- [ ] Solid classes in the collider (no change in behaviour), then the contact log and the sloppy driver; baseline of contacts and dead stops per street
+- [ ] Collision answer v2 behind presets (with the controls thread)
+- [ ] Fences and hedges break when driven through (Smash class, in bulk); parked cars can be pushed, thinned in pinches
+- [ ] No invisible or oversized colliders (check and collider view); narrow streets and yards; tapers and chamfers; the ratchets
+
+### Left: walls, fences and rails that look real (F, 2026-11-13; plan docs/design/walls-true-to-life.md)
+- [x] Research: the real types, how a line gets its type from tags and its setting, how each is drawn whole and broken, cost and fallbacks, the phases (2026-11-13, docs only)
+- [ ] Types in the bake and the heavy kit (walls with foot, cap and piers, noise screens, parapets), W0 to W2
+- [ ] Fences and hedges as see-through instanced panels that fall when broken, W3 to W5 (after "fences break" above)
+- [ ] Hoardings, graffiti, gates; types in the street sweeps, W6 and W7
+
 ### Left: smoother roads, road objects, then buildings (F, 2026-11-04; plan docs/design/roads-and-objects-plan.md, items in docs/plan/city-plan.json)
 - [x] Research and the day-by-day plan; `tools/street_features.py` (Mapillary detections against the game's props), 2026-11-04 (docs/tools only)
 - [ ] Junction shapes with kerb returns and smoothed bends (RS1, RS2), both city paths
@@ -732,6 +747,8 @@ Beta goal: a visitor explores the city with everything open, an easy city drive,
 - [x] Round 4 at Marszałkowska × Złota: the U-turn's median opening as one flush paved footprint with rounded, kerbed noses and continuous rails (drive test in check_stuck_spots), arrows from each lane's real moves (U-turn arrow before a median opening), stop lines before both crossings, small hatched islands stretched into tapers along the edge (`tools/road_smooth.py` shape_openings, crossing_kit, paint_islands), 2026-11-05
 - [x] Road design system POC (F, 2026-11-06): streets as one axis + cross-sections, junctions built from their arms (`tools/road_design.py`, spec `docs/roads/palace.json`, plots `tools/road_design_plot.py`, skill `road-design`, verify `design`); Marszałkowska × Świętokrzyska, Marszałkowska to Złota, Emilii Plater mid-block designed and shot before/after (docs/design/road-design-palace-results.md); not applied to the shipped map yet
 - [ ] Road design rollout (F, 2026-11-06): every street on the map, area by area (docs/design/road-design-rollout.md, areas in docs/plan/road-areas.json, progress `tools/road_progress.py`); areas 1-2 designed; F 2026-11-07: main as base for the rest, fixing only real bugs (areas 3-7 redesigns dropped)
+- [x] Research: roads true to life (F, 2026-11-13): what the road checks miss at lane level, ten detector rules, a first measurement and the fix order RT-1 to RT-9 (docs/design/roads-true-to-life.md)
+- [ ] Roads true to life: RT-1 the `road_truth` detector, then lane links from `turn:lanes`, turn restrictions, lane changes as paint, roundabouts (BACKLOG "Roads true to life")
 - [x] Road design round 2: the Emilii Plater ends (× Świętokrzyska, × Jerozolimskie), Jerozolimskie, tram U-turns, so the area closes on junctions with no seams; then the lane graph from the spec and the phone bench, and F decides whether it replaces the OSM ribbons
 - [ ] Width that varies along streets from the ortho (RS3 part 2) and the asphalt's history in the shader (RS7, bench)
 - [x] Street-objects log and the object budget (log everything, add only what earns its place), 2026-11-04

@@ -223,6 +223,7 @@ func _check_screen(screen: Vector2i) -> int:
 	_check_ticker_slide(hud, tag)
 	_check_target_pointer(hud, bubbles, screen, tag)
 	_check_finger_hint(hud, bubbles, tag)
+	_check_arrows(hud, tag)
 	# The longest call the map gives (the longest hospital name), Polish over English as in missions.gd.
 	var call_pl := "Ranny rowerzysta: Aleksandra Krywulta. Wystarczy auto albo helikopter.\nSzpital: Samodzielny Szpital Kliniczny im. prof. Witolda Orłowskiego · czas 3:40"
 	var call_en := "A cyclist is hurt: the car or the helicopter will do. Get them to the hospital in 3:40."
@@ -235,7 +236,7 @@ func _check_screen(screen: Vector2i) -> int:
 	# Larger HUD text (2026-11-02): a fifth pass at Access.LARGE_TEXT (x1.25), the setting the phone's own text size will drive.
 	for mode in ["", "perf", "no-touch", "left-handed", "large-text"]:
 		var perf: bool = mode == "perf"
-		for state in ["car, Point", "car, Classic", "helicopter", "call came in", "call card", "rescued, paid",
+		for state in ["car, Point", "car, Classic", "car, Classic slider", "helicopter", "call came in", "call card", "rescued, paid",
 				"rescue, host, egg", "kebab offer", "kebab delivery", "race", "rival ahead", "landmark card", "note card", "tow toast",
 				"police chase", "lizak", "pull-over",
 				"ride offer", "ride", "ride result", "ride result, police", "phone call", "quest offer", "drag shift"]:
@@ -243,7 +244,7 @@ func _check_screen(screen: Vector2i) -> int:
 				continue
 			if mode == "no-touch" and not state in ["car, Point", "car, Classic", "helicopter", "kebab offer", "pull-over", "ride offer"]:
 				continue
-			if mode == "left-handed" and not state in ["car, Point", "car, Classic", "helicopter", "rescue, host, egg", "kebab offer",
+			if mode == "left-handed" and not state in ["car, Point", "car, Classic", "car, Classic slider", "helicopter", "rescue, host, egg", "kebab offer",
 					"landmark card", "police chase", "pull-over", "ride offer", "ride", "phone call"]:
 				continue
 			if mode == "large-text" and not state in ["car, Point", "call came in", "call card", "rescue, host, egg", "kebab offer",
@@ -256,7 +257,8 @@ func _check_screen(screen: Vector2i) -> int:
 			hud.clear_all()
 			bubbles.clear()
 			hud.set_touch_off(mode == "no-touch")
-			hud.set_scheme(1 if state == "car, Classic" else 0)
+			hud.set_scheme(1 if state.begins_with("car, Classic") else 0)
+			hud.set_arrows_layout(state != "car, Classic slider")  # F 2026-11-13: arrows, the default
 			hud.set_flying(state == "helicopter")
 			if state == "helicopter":
 				hud.set_speed(88, 45)
@@ -1135,7 +1137,8 @@ func _check_target_pointer(hud: CanvasLayer, bubbles: Control, screen: Vector2i,
 	# PT-35 (2026-11-08): with a Classic thumb down the steering strip is on screen, so the edge
 	# arrow's "KEBAB n m" must treat it as a no-go rect (as it does the pedals), wherever the thumb
 	# came down; with the thumb up only the resting hint is.
-	hud.set_scheme(1)  # Classic
+	hud.set_scheme(1)  # Classic, the slider layout (the arrows layout has no strip)
+	hud.set_arrows_layout(false)
 	var strip_at := Vector2(float(screen.x) * 0.3, float(screen.y) - 70.0 * pt)
 	var strip_half: float = (float(hud.STICK_R) + 16.0) * pt
 	var strip := Rect2(strip_at - Vector2(strip_half, 16.0 * pt), Vector2(strip_half * 2.0, 32.0 * pt))
@@ -1147,6 +1150,7 @@ func _check_target_pointer(hud: CanvasLayer, bubbles: Control, screen: Vector2i,
 	for r: Rect2 in hud.call("_pedal_rects"):
 		covered_down = covered_down or r.encloses(strip)
 	hud.release_all()
+	hud.set_arrows_layout(true)
 	if covered_up or not covered_down:
 		problems.append("%s PT-35: the steering strip %s is %s the edge arrow's no-go rects with the thumb %s" % [tag, _pts(strip, pt), "missing from" if not covered_down else "wrongly in", "down" if not covered_down else "up"])
 	# A bubble right where the left edge arrow points: the arrow moves along the edge, clear of it.
@@ -1171,10 +1175,11 @@ func _check_target_pointer(hud: CanvasLayer, bubbles: Control, screen: Vector2i,
 ## ghost finger's steering hint. With the finger on, a bubble whose speaker stands right under the
 ## hint (both schemes) keeps off it, and the hint's room goes when the finger does.
 func _check_finger_hint(hud: CanvasLayer, bubbles: Control, tag: String) -> void:
-	for s in [0, 1]:
+	for s in [0, 1, 2]:  # Point, Classic with the arrows, Classic with the slider
 		hud.clear_all()
 		bubbles.clear()
-		hud.set_scheme(s)
+		hud.set_scheme(mini(s, 1))
+		hud.set_arrows_layout(s != 2)
 		hud.ghost_finger(true)
 		var hint: Rect2 = hud.finger_hint_rect()
 		if not hud.panel_rects().has(hint):
@@ -1188,8 +1193,91 @@ func _check_finger_hint(hud: CanvasLayer, bubbles: Control, tag: String) -> void
 		if hud.panel_rects().has(hint):
 			problems.append("%s PT-26: the hint's room stays after the finger goes" % tag)
 	hud.set_scheme(0)
+	hud.set_arrows_layout(true)
 	bubbles.clear()
 	hud.clear_all()
+
+
+## F 2026-11-13: the arrows layout (Classic's default). In both hands' layouts: the two arrows, GAZ
+## and HAMULEC are touch targets of 44 pt or more, inside the safe area, apart from each other and
+## in the HUD's no-go rects, the left arrow left of the right one; a finger down on an arrow steers
+## that way, rolling onto the other switches, lifting lets go; and drive_controls.gd ramps a held
+## arrow from ARROW_START to full lock in ARROW_RAMP s.
+func _check_arrows(hud: CanvasLayer, tag: String) -> void:
+	var pt: float = hud.pt
+	var safe: Rect2 = hud.get("_safe")
+	for lefty in [false, true]:
+		hud.clear_all()
+		hud.set_left_handed(lefty)
+		hud.set_scheme(1)
+		hud.set_arrows_layout(true)
+		var side := "left-handed" if lefty else "right-handed"
+		var tt: Dictionary = hud.touch_targets()
+		var names := ["steer_left", "steer_right", "gas", "brake"]
+		for n in names:
+			if not tt.has(n):
+				problems.append("%s arrows (%s): no %s" % [tag, side, n])
+				continue
+			var r: Rect2 = tt[n]
+			if minf(r.size.x, r.size.y) < 44.0 * pt - 0.5:
+				problems.append("%s arrows (%s): %s %s is under 44 pt" % [tag, side, n, _pts(r, pt)])
+			if not safe.encloses(r):
+				problems.append("%s arrows (%s): %s %s leaves the safe area" % [tag, side, n, _pts(r, pt)])
+		if names.all(func(n): return tt.has(n)):
+			for i in names.size():
+				for j in range(i + 1, names.size()):
+					if (tt[names[i]] as Rect2).intersects(tt[names[j]]):
+						problems.append("%s arrows (%s): %s overlaps %s" % [tag, side, names[i], names[j]])
+			if (tt["steer_left"] as Rect2).get_center().x >= (tt["steer_right"] as Rect2).get_center().x:
+				problems.append("%s arrows (%s): the left arrow is not left of the right one" % [tag, side])
+			var rects: Array = hud.call("_pedal_rects")
+			for n in ["steer_left", "steer_right"]:
+				if not rects.any(func(r: Rect2): return r.encloses(tt[n])):
+					problems.append("%s arrows (%s): %s is not in the no-go rects" % [tag, side, n])
+			var lc: Vector2 = (tt["steer_left"] as Rect2).get_center()
+			var rc: Vector2 = (tt["steer_right"] as Rect2).get_center()
+			hud.call("_input", _touch(5, lc, true))
+			var a: int = hud.arrows()
+			var drag := InputEventScreenDrag.new()
+			drag.index = 5
+			drag.position = rc
+			hud.call("_input", drag)
+			var b: int = hud.arrows()
+			hud.call("_input", _touch(5, rc, false))
+			var c: int = hud.arrows()
+			if a != 1 or b != -1 or c != 0:
+				problems.append("%s arrows (%s): left down, roll right, lift gave %d, %d, %d (want 1, -1, 0)" % [tag, side, a, b, c])
+	hud.set_left_handed(false)
+	hud.set_scheme(0)
+	hud.clear_all()
+	# The ramp.
+	var controls = load("res://scripts/drive_controls.gd").new()
+	var car = load("res://scripts/car.gd").new()
+	controls.scheme = 1
+	controls.arrows = 1
+	controls.drive(car, Vector2.ZERO, false, {}, true, false, 0.0, 1.0 / 60.0)
+	var first: float = car.steer
+	for i in 30:
+		controls.drive(car, Vector2.ZERO, false, {}, true, false, 0.0, 1.0 / 60.0)
+	var full: float = car.steer
+	controls.arrows = -1
+	controls.drive(car, Vector2.ZERO, false, {}, true, false, 0.0, 1.0 / 60.0)
+	var flip: float = car.steer
+	controls.arrows = 0
+	controls.drive(car, Vector2.ZERO, false, {}, true, false, 0.0, 1.0 / 60.0)
+	var none: float = car.steer
+	car.free()
+	if absf(first - controls.ARROW_START) > 0.02 or not is_equal_approx(full, 1.0) or absf(flip + controls.ARROW_START) > 0.02 or none != 0.0:
+		problems.append("%s arrows: the ramp gave %.2f at once, %.2f after 0.5 s, %.2f on the other arrow, %.2f let go (want %.2f, 1, -%.2f, 0)"
+				% [tag, first, full, flip, none, controls.ARROW_START, controls.ARROW_START])
+
+
+static func _touch(index: int, at: Vector2, down: bool) -> InputEventScreenTouch:
+	var t := InputEventScreenTouch.new()
+	t.index = index
+	t.position = at
+	t.pressed = down
+	return t
 
 
 ## A speech bubble from a speaker standing at screen point `p`.

@@ -232,7 +232,8 @@ func _add_links() -> void:
 		var best := -2.0
 		for e: int in graph.node_in[cuts.a[i]]:
 			var dot := graph.direction(e, graph.e_s1[e]).dot(first)
-			if graph.e_tn[e] < 0 and dot > best:
+			# (Not the one-way street a wrong-way hop drives against: no racer turns round into it.)
+			if graph.e_tn[e] < 0 and dot > best and RaceCuts.hop(cuts.a[i], cuts.b[i]) != e:
 				best = dot
 				e_in = e
 		var exits: PackedInt32Array = cuts.exits_ab[i]

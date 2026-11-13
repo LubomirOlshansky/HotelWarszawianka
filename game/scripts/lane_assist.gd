@@ -7,7 +7,7 @@ extends RefCounted
 ## another street, a lane change at a big angle).
 ##
 ## Classic only (the strip and the pedals; Point already aims where the finger points), behind
-## Settings → Jazda → Asysta pasa (settings.gd `lane_assist`, off by default until F has felt it).
+## Settings → Jazda → Asysta pasa (settings.gd `lane_assist`, on by default since 2026-11-13).
 ## main.gd finds the lane's direction (`lane_heading`, 10 times a second) and car.gd adds the pull
 ## (`yaw_pull`) to the steering. tools/check_lane_assist.gd measures it.
 

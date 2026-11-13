@@ -1191,6 +1191,8 @@ for s in $want; do
 		# Nocny spot: the club's cars, lines, clock, pay, the drag's times, the meets and the strip on the real graph.
 		meet) check meet '^check_street_meet:' --fixed-fps 60 --script res://tools/check_street_meet.gd ;;
 		# Boat race: the course in open water, the boat, a whole race, the three-miss rule, the lines.
+		# Free camera (--cam=X,Y,Z): the flag's text and the view it gives.
+		freecam) check freecam '^check_free_cam:' --script res://tools/check_free_cam.gd ;;
 		boatrace) check boatrace '^check_boat_race:' --script res://tools/check_boat_race.gd ;;
 		dekalog) check dekalog '^check_dekalog_tour:' --script res://tools/check_dekalog_tour.gd ;;
 		kinotour) check kinotour '^check_kino_tour:' --script res://tools/check_kino_tour.gd ;;
