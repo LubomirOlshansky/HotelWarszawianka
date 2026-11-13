@@ -873,6 +873,17 @@ for s in $want; do
 				0) row PASS "architecture" $secs "check_architecture: OK · $counts" ;;
 				*) row FAIL "architecture" $secs "$(grep '^check_architecture:' $logs/architecture.log | head -1) · $counts ($logs/architecture.log)" ;;
 			esac ;;
+		# Reference-photo store (2026-11-13): tools/refs_store.py builds a fake store, inventory and repo
+		# in a temp dir and exercises index, gaps, pull, push, aliases and conflicts (no map, no photos).
+		refs-store)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/refs_store.py --selftest > $logs/refs-store.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			case $code in
+				0) row PASS "refs-store" $secs "refs_store: OK" ;;
+				*) row FAIL "refs-store" $secs "$(grep -m1 '^refs_store:' $logs/refs-store.log) ($logs/refs-store.log)" ;;
+			esac ;;
 		# Map north (2026-10-31): nothing of the map where the map isn't (its bounds without the
 		# corner left `outside`), every sector on the map (tools/check_outline.py O1-O5; O6, dead
 		# ends on the extension's edge, reported).
