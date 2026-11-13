@@ -20,7 +20,7 @@ Podium: glazed hall to 5.4 m (S_GRID, pale blue glass), grey ribbon storeys (S_R
 
 ## 4. Roof
 
-Screens 0.2 m outside the drum from 3.2 m under its roof to 2.4 m over it (M_GLASS, both faces), steel posts every second panel, a rail on top (M_LAMP 0.5: blue at night). Inside: the lower deck dark grey. The club: a grey metal drum 72 % of the drum's radius, 3.4 m high, the top 0.55 m a warm lit band (M_LAMP), a pale deck, a 1.1 m glass railing with a steel top rail. On the deck: the round bar (white counter ring, dark floor), eight lounge groups round it (four armchairs round a lit cube table, and curved five-piece sofas round a lit cube and two poufs, by turns), six palms in tall white pots by the railing, three white parasols.
+Screens 0.2 m outside the drum from 3.2 m under its roof to 2.4 m over it (M_GLASS, both faces), steel posts every second panel, a rail on top (M_LAMP 0.5: blue at night). Inside: the lower deck dark grey. The club: a grey metal drum 72 % of the drum's radius, 3.4 m high, the top 0.55 m a warm lit band (M_LAMP), a pale deck, a 1.1 m glass railing with a steel top rail. On the deck: the round bar (white counter ring, dark floor), six lounge groups round it (four armchairs round a lit cube table, and curved five-piece sofas round a lit cube and two poufs, by turns), the DJ's booth to the north (black desk with a lit pink front, two speaker stacks, a lit truss bar), six palms in tall white pots by the railing, three white parasols.
 
 ## 5. Colour and material
 
@@ -39,6 +39,9 @@ Screens 0.2 m outside the drum from 3.2 m under its roof to 2.4 m over it (M_GLA
 No new material, shader branch or draw call: everything goes into the site's building mesh, the two names into the landmark signs.
 
 ## 6. Ground and night
+
+People (crowds.gd `spektrum_view`, `spektrum_dj`, from `Landmarks.spektrum_plan`, the model's own layout): loungers in the seats from 12:00 to 02:00, the DJ and up to 14 dancers facing the booth from 19:00; fuller on Friday and Saturday and in season, thinner in rain. The DJ's music: city_sounds kind `rooftop` (techno_thump) at the deck while the DJ plays.
+
 
 The podium and the tower carry the car walls. At night the glass lights by the skin's rule, the club's edge burns warm white, the screens' rail blue, the cube tables glow, the fin's edge is a pale line; SPEKTRAL in pale white on the south and north screens, THE WJU in pink on the east and west.
 

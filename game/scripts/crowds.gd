@@ -228,6 +228,16 @@ const LORETKA_ID := "loretka_terrace"
 ## audience standing in front, 18:30-23:30 every evening, fuller on Friday and Saturday and in
 ## the summer, thinner in rain; and the café's tables round the terrace from noon.
 const JAZZ_ID := "powisle_jazz"
+## F (2026-11-13): THE WJU, the club on Spektrum Tower's roof (landmarks.gd spektrum_plan, the
+## same seats the model builds): its loungers in the white armchairs and sofas from noon to 02:00,
+## and from 19:00 the DJ at the booth with dancers in front, fuller on Friday and Saturday and in
+## the summer, thinner in rain (it is all open to the sky).
+const VIEW_ID := "spektrum_view"
+const VIEW_DJ_ID := "spektrum_dj"
+const VIEW_HOURS := Vector2(12.0, 2.0)
+const VIEW_DJ_HOURS := Vector2(19.0, 2.0)
+## The DJ's clothes: black, and the dancers' party colours.
+const VIEW_DJ_SHIRT := "#141416"
 const JAZZ_CAFE_ID := "powisle_cafe"
 const JAZZ_HOURS := Vector2(18.5, 23.5)
 const JAZZ_BAND := 4
@@ -672,6 +682,24 @@ static func jazz_level(hour: float, weekday: int, month: int, rain: bool) -> flo
 	return lvl * clampf(0.35 + (h - JAZZ_HOURS.x) * 0.65, 0.35, 1.0)
 
 
+## THE WJU (0..1 of the seats, `dj`: of the dancers): the lounge from noon to 02:00, half
+## full in the afternoon, full in the evening; the dance floor from 19:00 filling over two hours;
+## Friday and Saturday fuller, out of season and in rain thinner. 0 outside the hours.
+static func view_level(hour: float, weekday: int, month: int, rain: bool, dj: bool) -> float:
+	var h := fmod(hour + 24.0, 24.0)
+	var hours := VIEW_DJ_HOURS if dj else VIEW_HOURS
+	if not (h >= hours.x or h < hours.y):
+		return 0.0
+	var lvl := 1.0 if weekday == 5 or weekday == 6 else 0.6
+	if not dj and h >= 12.0 and h < 17.0:
+		lvl *= 0.45
+	if dj and h >= hours.x:
+		lvl *= clampf(0.3 + (h - hours.x) * 0.35, 0.3, 1.0)
+	if month < 5 or month > 9:
+		lvl *= 0.6
+	return lvl * (0.3 if rain else 1.0)
+
+
 ## The café's tables (0..1 of the seats): from noon, busiest in the evening, empty after 01:00
 ## and in the morning; summer fuller, rain nearly empty (the tables stand in the open).
 static func jazz_cafe_level(hour: float, month: int, rain: bool) -> float:
@@ -1045,6 +1073,12 @@ func setup(places: Array, data: Dictionary, seed_value := 1703) -> void:
 			mid += q
 		_add_site({"id": LORETKA_ID, "kind": "terrace", "at": mid / float(lo.size()), "max": (lor["seats"] as Array).size(),
 				"plan": lor})
+	var view := Landmarks.spektrum_plan(data)
+	if not view.is_empty():
+		var vl: Dictionary = view["layout"]
+		_add_site({"id": VIEW_ID, "kind": "view", "at": view["centre"], "max": (vl["seats"] as Array).size(), "plan": view})
+		_add_site({"id": VIEW_DJ_ID, "kind": "view_dj", "at": view["centre"], "max": 1 + (vl["dancers"] as Array).size(),
+				"plan": view})
 	var jazz := Landmarks.powisle_jazz_plan()
 	_add_site({"id": JAZZ_ID, "kind": "jazz", "at": jazz["centre"], "max": JAZZ_BAND + (jazz["chairs"] as Array).size()
 			+ (jazz["standing"] as Array).size(), "plan": jazz})
@@ -1406,6 +1440,8 @@ func _place_site(s: Dictionary) -> void:
 			_place_terrace(s)
 		"jazz", "jazz_cafe":
 			_place_jazz(s)
+		"view", "view_dj":
+			_place_view(s)
 		"deck":
 			_place_deck(s)
 		"meet":
@@ -1636,6 +1672,41 @@ func _place_terrace(s: Dictionary) -> void:
 	for st: Array in plan["seats"]:
 		slots.append({"p": st[0], "y": y, "pose": SIT, "yaw": float(st[1]), "shirt": BRIGHT[(k * 3 + 1) % BRIGHT.size()]})
 		k += 1
+	s["slots"] = slots
+
+
+## THE WJU (landmarks.gd spektrum_plan): on the deck, its height over the lowest ground under the
+## tower's outline as the model's. The loungers in every seat in a seeded order (a thin afternoon
+## spread round the deck); the DJ first at the booth, then the dancers facing the booth.
+func _place_view(s: Dictionary) -> void:
+	var plan: Dictionary = s["plan"]
+	var lay: Dictionary = plan["layout"]
+	s["door"] = s["at"]
+	var g := INF
+	for q: Vector2 in plan["outline"]:
+		g = minf(g, map.terrain_height(q.x, q.y) if map != null else 0.0)
+	var y := g + float(plan["deck_h"])
+	s["deck_y"] = y
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 2003
+	var slots: Array = []
+	if s["kind"] == "view":
+		for st: Array in lay["seats"]:
+			var d: Vector2 = st[1]
+			slots.append({"p": st[0], "y": y, "pose": SIT, "yaw": atan2(-d.x, -d.y), "shirt": BRIGHT[rng.randi() % BRIGHT.size()]})
+		var order := range(slots.size())
+		_shuffle(order, rng)
+		var mixed: Array = []
+		for i: int in order:
+			mixed.append(slots[i])
+		s["slots"] = mixed
+		return
+	var face: Vector2 = lay["dj_face"]
+	slots.append({"p": lay["dj"], "y": y, "pose": STAND, "yaw": atan2(-face.x, -face.y), "shirt": VIEW_DJ_SHIRT})
+	for st: Array in lay["dancers"]:
+		var d: Vector2 = st[1]
+		slots.append({"p": st[0], "y": y, "pose": STAND, "yaw": atan2(-d.x, -d.y) + rng.randf_range(-0.4, 0.4),
+				"shirt": BRIGHT[rng.randi() % BRIGHT.size()] if rng.randf() < 0.7 else DARK[rng.randi() % DARK.size()]})
 	s["slots"] = slots
 
 
@@ -1986,7 +2057,7 @@ func _figures(s: Dictionary) -> Array:
 			if bool(s.get("guitar_on", false)):
 				var face: Vector2 = s["face"]
 				out.append([_ground(s["guitar"]), atan2(-face.x, -face.y), SIT, GUITAR_SHIRT, 0.0])
-		"plan_c", "roof", "terrace", "chill", "deck", "stop", "office", "meet", "jazz", "jazz_cafe":
+		"plan_c", "roof", "terrace", "chill", "deck", "stop", "office", "meet", "jazz", "jazz_cafe", "view", "view_dj":
 			var slots: Array = s["slots"]
 			for k in mini(n, slots.size()):
 				var sl: Dictionary = slots[k]
@@ -2127,6 +2198,11 @@ func tick(step: float) -> void:
 					want = mini(JAZZ_BAND + roundi((int(s["max"]) - JAZZ_BAND) * k * jazz_level(hour, weekday, month, rain)), int(s["max"]))
 			"jazz_cafe":
 				want = mini(roundi(int(s["max"]) * k * jazz_cafe_level(hour, month, rain)), int(s["max"]))
+			"view":
+				want = mini(roundi(int(s["max"]) * k * view_level(hour, weekday, month, rain, false)), int(s["max"]))
+			"view_dj":
+				var lvl := view_level(hour, weekday, month, rain, true)
+				want = 0 if lvl <= 0.0 else mini(1 + roundi((int(s["max"]) - 1) * k * lvl), int(s["max"]))
 			"trend":
 				var q: Array = [0, ""]
 				if s["id"] == PISTACJA_ID:
