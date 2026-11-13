@@ -29,7 +29,9 @@ sectors/s_<i>_<j>.scn, proxies.scn, index.res, shared/*.res   (the prebuilt city
 
 `tools/blender/pkin.py` builds the Palace in Blender from the same plan as `_build_palace` and
 exports `game/models/pkin/pkin_lod0.glb` (and `_lod1`). Materials are named `M<code>_<rrggbb>`
-after landmarks.gd's M_* codes; UV holds the wall coordinates, UV2.y the wall's top.
+after landmarks.gd's M_* codes; UV holds the wall coordinates, UV2.y the wall's top and UV2.x the
+height of the terrace whose projectors light the face (`lamp_level`; it goes into the vertex alpha as
+0.75 + metres / 1024 and building.gdshader's floodlight() fades the night light up from it).
 `landmarks.gd` `_palace_glb` pours its triangles into the same city mesh as the code models, so
 it costs no draw call and no shader. It is used only with `--palace=blender` (or `AW_PALACE=blender`
 for `bake_city.gd`); the default stays the code model until F decides. Re-export after editing the
