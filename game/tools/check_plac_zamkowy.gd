@@ -9,25 +9,14 @@ extends SceneTree
 ##   godot --headless --path game --script res://tools/check_plac_zamkowy.gd
 
 const Life := preload("res://scripts/plac_zamkowy_life.gd")
+const Fakes := preload("res://tools/fakes.gd")
 
 var problems: Array[String] = []
 var _flushes := 0
 
 
-## Flat open ground: nothing solid anywhere.
-class StubMap extends Node3D:
-	func ground_height(_x: float, _z: float) -> float:
-		return 0.0
-
-	func terrain_height(_x: float, _z: float) -> float:
-		return 0.0
-
-	func top_height(_x: float, _z: float, _r := 0.0) -> float:
-		return 0.0
-
-
 func _initialize() -> void:
-	var map := StubMap.new()
+	var map := Fakes.FlatMap.new()
 	root.add_child(map)
 	var life: Node3D = Life.new()
 	root.add_child(life)

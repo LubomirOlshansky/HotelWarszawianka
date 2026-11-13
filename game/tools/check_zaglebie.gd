@@ -20,22 +20,10 @@ const Zaglebie := preload("res://scripts/zaglebie.gd")
 const Storefronts := preload("res://scripts/storefronts.gd")
 const PixelFont := preload("res://scripts/pixel_font.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
+const Fakes := preload("res://tools/fakes.gd")
 const BUBBLE := 70
 
 var problems: Array[String] = []
-
-
-class FakeMap extends Node3D:
-	func ground_height(_x: float, _z: float) -> float:
-		return 0.0
-	func terrain_height(_x: float, _z: float) -> float:
-		return 0.0
-	func deck_height(_g: int, _x: float, _z: float) -> float:
-		return 0.0
-	func tunnel_height(_t: int, _x: float, _z: float) -> float:
-		return 0.0
-	func roof_height(_x: float, _z: float) -> float:
-		return -1000.0
 
 
 func _initialize() -> void:
@@ -56,7 +44,7 @@ func _run() -> void:
 	_check_words(dlg, deny, digest)
 	_check_rules(digest)
 	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://map/centrum.json"))
-	var map := FakeMap.new()
+	var map := Fakes.FlatMap.new()
 	root.add_child(map)
 	_check_places(data, LaneGraph.new(data["graph"], map), digest)
 	if problems.is_empty():

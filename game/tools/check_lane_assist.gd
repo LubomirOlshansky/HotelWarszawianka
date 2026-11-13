@@ -18,23 +18,13 @@ extends SceneTree
 const Car := preload("res://scripts/car.gd")
 const LaneAssist := preload("res://scripts/lane_assist.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
+const Fakes := preload("res://tools/fakes.gd")
 
 const DT := 1.0 / 60.0
 const SPEED := 50.0 / 3.6
 
 var problems: Array[String] = []
 var summary: Array[String] = []
-
-
-class FakeMap extends Node3D:
-	func ground_height(_x: float, _z: float) -> float:
-		return 0.0
-	func terrain_height(_x: float, _z: float) -> float:
-		return 0.0
-	func deck_height(_g: int, _x: float, _z: float) -> float:
-		return 0.0
-	func tunnel_height(_t: int, _x: float, _z: float) -> float:
-		return 0.0
 
 
 func _initialize() -> void:
@@ -191,7 +181,7 @@ func _on_map() -> void:
 	if not data is Dictionary:
 		problems.append("no map/centrum.json")
 		return
-	var map := FakeMap.new()
+	var map := Fakes.FlatMap.new()
 	root.add_child(map)
 	var graph := LaneGraph.new(data["graph"], map)
 	var along := 0

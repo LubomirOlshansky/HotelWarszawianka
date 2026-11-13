@@ -30,12 +30,6 @@ const Fans := preload("res://scripts/fans.gd")
 const Fakes := preload("res://tools/fakes.gd")
 
 
-## A stand-in for the map: flat ground.
-class FakeMap extends Node3D:
-	func deck_height(_dk: int, _x: float, _z: float) -> float:
-		return 0.0
-
-
 var problems: Array[String] = []
 var verbose := false
 var now := {"hour": 18.0, "weekday": 6}
@@ -224,7 +218,7 @@ func _check_lines(digest: PackedStringArray) -> void:
 # 6. -------------------------------------------------------------------------------------------
 
 func _check_node(data: Dictionary, digest: PackedStringArray) -> void:
-	var map := FakeMap.new()
+	var map := Fakes.FlatMap.new()
 	root.add_child(map)
 	var dlg := Fakes.Dialogue.new()
 	dlg.say_words = ["x", "x"]
@@ -366,7 +360,7 @@ func _check_match_day(data: Dictionary, digest: PackedStringArray) -> void:
 			print("  %s: %s" % [id, " -> ".join(marks)])
 	digest.append("routes " + ", ".join(lens))
 	# A node: walking in, then home after a win and after a draw.
-	var map := FakeMap.new()
+	var map := Fakes.FlatMap.new()
 	root.add_child(map)
 	var dlg := Fakes.Dialogue.new()
 	dlg.say_words = ["x", "x"]
@@ -533,7 +527,7 @@ func _check_dodge(data: Dictionary, digest: PackedStringArray) -> void:
 			and Fans.group_share("match", 0.999) > 0.9, "the match's share: %.2f, %.2f, %.2f" % [Fans.group_share("match", 0.0),
 			Fans.group_share("match", 0.5), Fans.group_share("match", 0.999)])
 	# A node before kick-off: a car comes at a walker head on at 12 m/s.
-	var map := FakeMap.new()
+	var map := Fakes.FlatMap.new()
 	root.add_child(map)
 	var dlg := Fakes.Dialogue.new()
 	dlg.say_words = ["x", "x"]

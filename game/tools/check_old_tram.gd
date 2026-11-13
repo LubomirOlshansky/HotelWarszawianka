@@ -23,12 +23,7 @@ const LaneGraph := preload("res://scripts/lane_graph.gd")
 const TimeOfDay := preload("res://scripts/time_of_day.gd")
 const EggBook := preload("res://scripts/egg_book.gd")
 const Wallet := preload("res://scripts/wallet.gd")
-
-
-## A stand-in for the map: flat ground (the rails' height only).
-class FakeMap extends Node3D:
-	func deck_height(_dk: int, _x: float, _z: float) -> float:
-		return 0.0
+const Fakes := preload("res://tools/fakes.gd")
 
 
 var problems: Array[String] = []
@@ -49,7 +44,7 @@ func _run() -> void:
 	_check_follow(digest)
 	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://map/centrum.json"))
 	var g := LaneGraph.new(data["graph"], null)
-	var map := FakeMap.new()
+	var map := Fakes.FlatMap.new()
 	root.add_child(map)
 	var trams: Trams = Trams.new()
 	root.add_child(trams)

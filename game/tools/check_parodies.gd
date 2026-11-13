@@ -43,19 +43,7 @@ const GROUPS := ["rechotka", "easter_rechotka", "pedzik", "lezak", "easter_lezak
 
 
 ## Flat ground; a roof over the synthetic facade's box (z < -5 round x 0) for the wall test.
-class FakeMap extends Node3D:
-	func ground_height(_x: float, _z: float) -> float:
-		return 0.0
-	func terrain_height(_x: float, _z: float) -> float:
-		return 0.0
-	func deck_height(_g: int, _x: float, _z: float) -> float:
-		return 0.0
-	func tunnel_height(_t: int, _x: float, _z: float) -> float:
-		return 0.0
-	func roof_height(_x: float, _z: float) -> float:
-		return -1000.0
-	func in_tunnel(_x: float, _z: float, _y: float) -> bool:
-		return false
+class FakeMap extends Fakes.FlatMap:
 	func top_height(x: float, z: float, _r := 0.0) -> float:
 		return 12.0 if z < -5.0 and z > -15.0 and absf(x - 5000.0) < 10.0 else 0.0
 
