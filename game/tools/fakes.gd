@@ -6,7 +6,8 @@ extends RefCounted
 ## banner, the notes, the quest's dots and the quiet screen (the street meet uses them), the card's
 ## colour, the small toasts and the minimap's dots (the boat race uses them), whether the card
 ## sits at the bottom of the screen, the words on its buttons, both languages of a card, a toast
-## and a hint, how long each bubble stays, the minimap's job pins and the challenge taken down (the round-up uses them), whether
+## and a hint, how long each bubble stays, the minimap's job pins and the challenge taken down (the round-up uses them), the
+## status line's small pictures (`icons`: the deliveries use them), whether
 ## a card is up (`cards_up`, as `card_showing`) and the message director's word on a call (`calls_ok`,
 ## `call_ok()`; the trend job's check uses them), how often the news ticker went out (`tickers`); a
 ## dialogue that remembers what was said, where and how, and the lines asked for (and whether each
@@ -146,7 +147,12 @@ class Hud extends CanvasLayer:
 	func set_minimap_dots(points: PackedVector2Array, _colours: PackedColorArray) -> void:
 		mini_dots = points.size()
 
-	func show_status(t: String, c: String, d: String, h: String, p: float, a: Color, b := "", _i := {}, he := "") -> void:
+	## The status line's small pictures as they were last given (hud.gd `show_status`'s `icons`:
+	## the kebab's heat, the jars); {} when the line has none.
+	var icons := {}
+
+	func show_status(t: String, c: String, d: String, h: String, p: float, a: Color, b := "", i := {}, he := "") -> void:
+		icons = i
 		status = h
 		hint_en = he
 		count = c
@@ -158,6 +164,7 @@ class Hud extends CanvasLayer:
 		badge = b
 
 	func hide_status() -> void:
+		icons = {}
 		status = ""
 		count = ""
 		distance = ""
