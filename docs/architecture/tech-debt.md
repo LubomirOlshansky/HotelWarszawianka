@@ -18,7 +18,8 @@ does.
 4. **Background, any time, one PR each**: TD-4 (a) test harness out of main.gd, TD-17 save store,
    TD-11 shared fakes, TD-10 landmarks split, ~~TD-18 check registry~~ (done), TD-19 text, TD-20 pause count,
    TD-22 the engine's load tokens (with a device run: it changes the launch).
-5. **Later**: ~~TD-5 audio mixer~~ (done), TD-6 and TD-7 population, TD-12 difficulty, TD-9 shader budget.
+5. **Later**: ~~TD-5 audio mixer~~ (done), TD-6 and TD-7 population, TD-12 difficulty, TD-9 shader budget,
+   TD-23 the lane graph's lanes and turns (the checker is built; F parked the fixes, 2026-11-13).
 
 The first order (2026-11-11) ranked by what would feel best to play and put the save fifth. The
 second review counted what the code repeats and where a mistake costs the most: a save that fails
@@ -55,6 +56,7 @@ F picks what is built. Nothing below is started unless its state says so.
 | TD-7 | **No shared population budget** | the governor steps traffic and walkers; crowds, city life, packs, fans, buses, trams and police each keep their own limits | one budget per tier for cars, people and props near the camera, mission actors first | planned (later) |
 | TD-9 | **Building shader at the Adreno budget** | lite building shader 498 of about 508 (`check_shader_budget`) | landmarks in their own material (about 300 of the 498 are theirs) before the next building-shader feature | open |
 | TD-12 | **Difficulty is per mode** | difficulty code only in `boat_race.gd` and `ladder.gd`; a rival's difficulty is its rung's skill numbers (the racer AI rebuild's step 2), and the one thing that follows the player is an easier rematch (`Ladder.ease_of`, 5 % a loss in a row) | one soft skill estimate that race AI, timers and police heat read (no rubber band); for the races it feeds `ease` in `Rivals.race_stats` and nothing during a race (the racer AI's step 3 is in, so this no longer waits for it) | planned (later) |
+| TD-23 | **The lane graph guesses its lanes and turns** (parked by F, 2026-11-13) | `tools/road_truth.py` on main: 403 lanes going straight on land in another lane's place (`lane_graph.gd` `next_lane` guesses; OSM `turn:lanes` only paints the arrows), 379 lane count changes with no side road and 71 short blips (each OSM way has its own count), 144 turn-back links away from dead ends, 266 pivot turns, 83 kinks, 21 faults on 22 roundabout rings; with the Mac's raw export 264 of 556 OSM turn restrictions are ignored (`tools/prepare_demo.py` keeps only multipolygon relations) and 353 approaches break their `turn:lanes`; 12 of 14 sampled places differ from the aerial photo | in order, one PR each (docs/design/roads-true-to-life.md, BACKLOG "Roads true to life"): RT-2 lane links from `turn:lanes`, RT-3 turn restrictions and honest U-turns, RT-4 lane changes as paint with straight kerbs, RT-5 roundabouts, RT-6 kinks and short edges; main's roads stay the base, nothing removed | the checker is built (RT-1, verify step `roadtruth`, a ratchet so it cannot get worse); the fixes are planned (later), RT-2 and RT-3 touch the racer AI's graph |
 
 ## What is clean today, and the checks that would keep it so (proposed, not built)
 
