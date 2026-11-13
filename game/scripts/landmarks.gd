@@ -6936,7 +6936,7 @@ func _gaulle_figure(y: float, h: float) -> void:
 ##  - the underpass stairs: Metro Centrum's 1990s blue "tubes" over every stairwell, a half
 ##    barrel of milky polycarbonate on blue steel arches, closed at the deep end, a red M post at
 ##    the mouth (still standing in 2026: ZTM's replacement is only on paper);
-##  - the colourful mural on the Patelnia's south wall (our own pattern, not the real artwork).
+##  - (the Patelnia's murals are patelnia.gd's since 2026-11-13).
 ## The PRASA kiosk, the ice-cream cart and the east tram stop's shelter are street details
 ## (tools/bake_street_details.py RONDO). The zone is two 0.2 m squares at the corners of it all
 ## (RONDO_BOX), so nothing mapped is dropped and every sector the pieces reach builds them.
@@ -6963,15 +6963,6 @@ const RONDO_WELLS := [
 	[-810.9, 499.4, 0.110, 0.994, 8.6, 4.0], [-884.4, 405.2, -0.204, -0.979, 8.7, 5.4],
 	[-881.5, 429.3, -0.083, 0.997, 9.6, 5.8], [-864.4, 503.9, -0.996, -0.091, 8.9, 5.7],
 ]
-## The Patelnia's south wall (centrum.json `lines` k wall, 1.9 m): the mural faces the sunken
-## square (north) along its first 50 m.
-const RONDO_MURAL := [Vector2(-886.2, 424.1), Vector2(-889.3, 424.2), Vector2(-892.2, 424.4), Vector2(-894.9, 424.9),
-	Vector2(-901.4, 426.3), Vector2(-904.0, 426.6), Vector2(-906.2, 426.8), Vector2(-908.4, 426.7), Vector2(-910.7, 426.4),
-	Vector2(-913.2, 425.9), Vector2(-915.9, 425.0), Vector2(-919.0, 424.0), Vector2(-923.6, 422.8), Vector2(-926.2, 422.4),
-	Vector2(-928.8, 422.3), Vector2(-931.4, 422.3), Vector2(-933.7, 422.5), Vector2(-935.7, 422.9)]
-const MURAL_COLOURS := [Color("#f2c12e"), Color("#e8562a"), Color("#d6338a"), Color("#2fb3c9"), Color("#5bbf4a"),
-	Color("#7a4fc2"), Color("#f08fb8"), Color("#2a62d1"), Color("#ffffff"), Color("#1d1d24")]
-const MURAL_H := 1.9
 
 
 ## The zone's two 0.2 m squares: the north-west and south-east corners of everything the site
@@ -6990,7 +6981,6 @@ func _build_rondo(_site: Dictionary) -> void:
 	_rondo_island()
 	for w: Array in RONDO_WELLS:
 		_rondo_tube(Vector2(float(w[0]), float(w[1])), Vector2(float(w[2]), float(w[3])), float(w[4]), float(w[5]))
-	_rondo_mural()
 	_no_roof = false
 
 
@@ -7214,75 +7204,6 @@ func _rondo_m(c: Vector2, along: Vector2, n: Vector2, y: float) -> void:
 		_quad(pa - off, pb - off, pb + off, pa + off, nrm, white)
 
 
-## The mural on the Patelnia's wall, facing the square (north): bold blocks of colour, circles,
-## zigzag bands and black outlines in the 2010s Warsaw street-art palette, our own pattern (the real
-## mural is someone's artwork). Panels 0.8-2.4 m wide, each split in two or three shapes.
-func _rondo_mural() -> void:
-	var rnd := 7
-	for i in RONDO_MURAL.size() - 1:
-		var a: Vector2 = RONDO_MURAL[i]
-		var b: Vector2 = RONDO_MURAL[i + 1]
-		var length := a.distance_to(b)
-		var d := (b - a) / length
-		var out := Vector2(d.y, -d.x)
-		if out.y > 0.0:
-			out = -out  # north (towards the sunken square, -z)
-		var face := out * 0.19
-		var t := 0.0
-		while t < length - 0.05:
-			rnd = (rnd * 1103515245 + 12345) % 2147483647
-			var w := minf(0.8 + float(rnd % 16) * 0.1, length - t)
-			var p0 := a + d * t + face
-			var p1 := a + d * (t + w) + face
-			var g0: float = map.terrain_height(p0.x, p0.y)
-			var g1: float = map.terrain_height(p1.x, p1.y)
-			var base: Color = MURAL_COLOURS[rnd % 8]
-			var nrm := Vector3(out.x, 0.0, out.y)
-			_mode = M_STONE
-			_quad(Vector3(p0.x, g0 + 0.15, p0.y), Vector3(p1.x, g1 + 0.15, p1.y), Vector3(p1.x, g1 + MURAL_H - 0.08, p1.y),
-					Vector3(p0.x, g0 + MURAL_H - 0.08, p0.y), nrm, base)
-			# A shape on it: a disc, a diamond or a zigzag band, outlined in black.
-			var fg: Color = MURAL_COLOURS[((rnd >> 3) + 3) % 10]
-			if fg == base:
-				fg = MURAL_COLOURS[9]
-			var m := (p0 + p1) * 0.5 + out * 0.03
-			var gm := (g0 + g1) * 0.5
-			var kind := (rnd >> 7) % 3
-			var rad := minf(w * 0.42, 0.75)
-			var yc := gm + 0.25 + rad + float((rnd >> 9) % 3) * 0.12
-			if kind == 0:
-				_rondo_disc(m, d, nrm, yc, rad + 0.06, MURAL_COLOURS[9], 10)
-				_rondo_disc(m + out * 0.03, d, nrm, yc, rad, fg, 10)
-			elif kind == 1:
-				_rondo_disc(m, d, nrm, yc, rad + 0.06, MURAL_COLOURS[9], 4)
-				_rondo_disc(m + out * 0.03, d, nrm, yc, rad, fg, 4)
-			else:
-				var hz := gm + 0.4 + float(rnd % 5) * 0.2
-				var zz := 3 + rnd % 3
-				for k in zz:
-					var u0 := -w * 0.5 + w * float(k) / float(zz)
-					var u1 := -w * 0.5 + w * float(k + 1) / float(zz)
-					var ya := hz + (0.25 if k % 2 == 0 else -0.25)
-					var yb := hz + (-0.25 if k % 2 == 0 else 0.25)
-					var qa := m + d * u0
-					var qb := m + d * u1
-					_quad(Vector3(qa.x, ya - 0.12, qa.y), Vector3(qb.x, yb - 0.12, qb.y), Vector3(qb.x, yb + 0.12, qb.y),
-							Vector3(qa.x, ya + 0.12, qa.y), nrm, fg)
-			t += w
-
-
-## A flat disc (n sides) standing on a wall: centre `m` (plan) at height `y`, `along` the wall.
-func _rondo_disc(m: Vector2, along: Vector2, nrm: Vector3, y: float, r: float, col: Color, n: int) -> void:
-	var hub := Vector3(m.x, y, m.y)
-	for k in n:
-		var a0 := TAU * float(k) / float(n) + (PI * 0.25 if n == 4 else 0.0)
-		var a1 := TAU * float(k + 1) / float(n) + (PI * 0.25 if n == 4 else 0.0)
-		var q0 := m + along * cos(a0) * r
-		var q1 := m + along * cos(a1) * r
-		_tri(hub, Vector3(q0.x, y + sin(a0) * r, q0.y), Vector3(q1.x, y + sin(a1) * r, q1.y), nrm, col,
-				Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
-
-
 # --- Sunken places: the Patelnia and the Rotunda's stair (F's aerial, 2026-11-05) -------------
 
 ## map_builder.gd SUNKEN lowers the ground of each ring (terrain_height and the drawn ground); this
@@ -7312,7 +7233,7 @@ const PATELNIA_BARRELS := [
 	[Vector2(-926.5, 392.0), Vector2(-919.9, 406.0), Vector2(-927.1, 409.4), Vector2(-933.8, 395.4)],
 ]
 const BARREL_SKIN := Color("#a9b9c2")
-const BARREL_RIB := Color("#5c666e")
+const BARREL_RIB := Color("#2d5aa0")   # blue steel (F's photos, 2026-11-13)
 const BARREL_WELL := Color("#2a2e33")
 const BARREL_TILE := Color("#c9a69b")
 const BARREL_COPING := Color("#d9cfc6")

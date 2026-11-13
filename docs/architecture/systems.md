@@ -35,7 +35,7 @@ fails if a script is in neither page, so add a row when you add a file.
 | `landmarks.gd` | Landmark buildings built in code from real footprints (the largest file, ~35k lines). |
 | `models.gd` | Meshes of everything that moves (cars, buses, trams, people) and shared materials. |
 | `props.gd`, `park_props_life.gd`, `park_props_play.gd`, `park_props_water.gd` | Box-built props in the actors' material, one surface. |
-| `park_details.gd`, `street_details.gd`, `first_scene.gd`, `skwer_zlota.gd`, `plac_pieciu_rogow.gd`, `ratusz_hub.gd`, `tamka.gd`, `centralny_ramp.gd` | Hand-placed dressing for named places the map data lacks. |
+| `park_details.gd`, `street_details.gd`, `first_scene.gd`, `skwer_zlota.gd`, `plac_pieciu_rogow.gd`, `ratusz_hub.gd`, `tamka.gd`, `centralny_ramp.gd`, `patelnia.gd` | Hand-placed dressing for named places the map data lacks. |
 | `storefronts.gd`, `neon_signs.gd`, `pixel_font.gd` | Shop fronts and parody signs, night neon, the 5x7 world font. |
 | `roof_dress.gd`, `osm_roofs.gd`, `old_town_roofs.gd`, `tenement_trim.gd`, `powisle_houses.gd`, `small_buildings.gd` | Building detail on top of LoD2 and OSM shapes. |
 | `monuments.gd` | Statues, plaques and benches from OSM. |
