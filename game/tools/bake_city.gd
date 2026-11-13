@@ -32,7 +32,7 @@ const BUILDER_ONLY := ["site_parts", "kerbs", "medians", "islands", "shore", "fi
 const CITY_INPUTS := ["map/lod2.bin", "map/terrain.json", "map/ao.bin", "map/lights.bin", "map/water.bin",
 		"scripts/map_builder.gd", "scripts/chunked_surface.gd", "scripts/neon_signs.gd", "scripts/landmarks.gd",
 		"scripts/sector_proxies.gd", "scripts/models.gd", "scripts/pixel_font.gd", "scripts/index_pack.gd",
-		"scripts/city_maps.gd", "tools/bake_city.gd", "data/courts.json"]
+		"scripts/city_maps.gd", "tools/bake_city.gd", "data/courts.json", "scripts/solidity.gd", "data/object_palette.json"]
 
 
 ## Set at the end of _bake: a script error (a builder that doesn't compile) ends _bake early
@@ -88,6 +88,15 @@ func _bake() -> Error:
 		var t := Time.get_ticks_msec()
 		var root: Node3D = map.build_sector(key)
 		_own(root, root)
+		# The city objects plan, step 1: the colliders go into the scene one body per solid class,
+		# `Solid_<class>` with its "solid" meta, saved with the scene (game/tools/check_solids.gd
+		# compares them with the runtime build).
+		for body in root.find_children("*", "StaticBody3D", true, false):
+			if not body.has_meta(&"solid"):
+				push_error("bake_city: %s: collider body %s has no solid class" % [MapBuilder.sector_name(key), body.name])
+				root.free()
+				map.free()
+				return FAILED
 		var pieces := _save_pieces(root, key)
 		if pieces < 0:
 			root.free()

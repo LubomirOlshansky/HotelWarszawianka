@@ -81,6 +81,7 @@ func build() -> void:
 		(cells[key] as Array).append(item)
 	var body := StaticBody3D.new()
 	body.name = "StreetDetailSolids"
+	body.set_meta(&"solid", &"prop")  # the city objects plan's solid class (solidity.gd)
 	for key: Vector2i in cells:
 		var st := SurfaceTool.new()
 		st.begin(Mesh.PRIMITIVE_TRIANGLES)

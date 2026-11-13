@@ -101,7 +101,7 @@ CITY_INPUTS = ["map/lod2.bin", "map/terrain.json", "map/ao.bin", "map/lights.bin
                "scripts/map_builder.gd", "scripts/chunked_surface.gd", "scripts/neon_signs.gd",
                "scripts/landmarks.gd", "scripts/sector_proxies.gd", "scripts/models.gd",
                "scripts/pixel_font.gd", "scripts/index_pack.gd", "scripts/city_maps.gd",
-               "tools/bake_city.gd", "data/courts.json"]
+               "tools/bake_city.gd", "data/courts.json", "scripts/solidity.gd", "data/object_palette.json"]
 SETUP = "run tools/setup_map.sh"
 # Loop 3d-1 (the user's decision): from GUGiK's data alone, derived like the split: tools/setup_map.sh
 # --full rebuilds them from data/raw (tools/fetch_demo.py's downloads and the LoD2 package).

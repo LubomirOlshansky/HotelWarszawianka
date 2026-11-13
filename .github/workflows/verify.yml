@@ -186,7 +186,7 @@ jobs:
             game/map/proxies.scn
             game/map/sectors
             game/map/shared
-          key: map-derived-${{ hashFiles('tools/map_pack.json', 'game/map/*.json', 'game/map/*.bin', 'tools/bake_sectors.py', 'game/tools/bake_city.gd', 'game/scripts/**', 'game/shaders/**', 'game/data/courts.json') }}
+          key: map-derived-${{ hashFiles('tools/map_pack.json', 'game/map/*.json', 'game/map/*.bin', 'tools/bake_sectors.py', 'game/tools/bake_city.gd', 'game/scripts/**', 'game/shaders/**', 'game/data/courts.json', 'game/data/object_palette.json') }}
           restore-keys: map-derived-
 
       - name: The split and the prebuilt sectors (tools/setup_map.sh)

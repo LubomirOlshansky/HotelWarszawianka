@@ -81,6 +81,7 @@ func build() -> void:
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var body := StaticBody3D.new()
 	body.name = "SkwerZlotaSolids"
+	body.set_meta(&"solid", &"prop")  # the city objects plan's solid class (solidity.gd)
 	for item: Array in ITEMS:
 		var kind: String = item[0]
 		if kind == "arc":
