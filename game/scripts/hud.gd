@@ -77,6 +77,19 @@ const GAS_R := 40.0
 const GAS_REACH := 48.0
 const CLASSIC_BRAKE_R := 31.0
 const CLASSIC_BRAKE_REACH := 38.0
+## F 2026-11-13 (the arrows layout, the default; settings.gd `pads`): Classic's steering as two fixed,
+## half-transparent arrow buttons bottom left and the pedals bottom right, like the phone racers F
+## sent. Each arrow is ARROW_R pt (drawn) and takes a touch within ARROW_REACH; their centres are
+## ARROW_STEP apart, so the two reaches meet without overlapping and a thumb can roll across.
+const ARROW_R := 38.0
+const ARROW_REACH := 48.0
+const ARROW_STEP := 96.0
+## The arrows layout's BRAKE, bigger than the strip layout's (the old one was easy to miss).
+const ARROWS_BRAKE_R := 36.0
+const ARROWS_BRAKE_REACH := 44.0
+## The see-through plate of the arrows layout (the city shows through, as in the racers).
+const GLASS := Color(0.07, 0.06, 0.1, 0.34)
+const GLASS_EDGE := Color(1, 1, 1, 0.42)
 const PAD_R := 34.0
 const PAD_REACH := 40.0
 ## G13 (the upgrade shop): the nitro's disc (52 pt across), left of BRAKE (inward, its lower edge
@@ -162,6 +175,15 @@ var gas := false
 var scheme := 0
 ## Accessibility (2026-11-01): the pedals on the left, the stick on the right (set_left_handed).
 var left_handed := false
+## F 2026-11-13: Classic's controls as fixed arrows + pedals (true, the default) or the old sliding
+## strip with round GAS / BRAKE (false); settings.gd `pads`. The arrows held now, and their fingers.
+var arrows_layout := true
+var steer_left := false
+var steer_right := false
+var _left_index := -1
+var _right_index := -1
+## The arrows layout's pedal plate (made on first draw).
+var _glass_box: StyleBoxFlat
 var settings_panel: Control
 ## F's asks (2026-10-30): the full-screen map (full_map.gd), made on its first open.
 var full_map: Control
@@ -1020,10 +1042,15 @@ func _pedal_rects() -> Array[Rect2]:
 		out.append(disc.call(_climb_centre(1), (PAD_R + 4.0) * pt))
 		out.append(disc.call(_climb_centre(-1), (PAD_R + 4.0) * pt))
 		return out
-	out.append(disc.call(_brake_centre(), ((CLASSIC_BRAKE_R if scheme == CLASSIC else BRAKE_R) + 4.0) * pt))
+	out.append(disc.call(_brake_centre(), (_brake_r() + 4.0) * pt))
 	if nitro_owned:
 		out.append(disc.call(_nitro_centre(), (NITRO_R + 4.0) * pt))  # G13: the nitro
-	if scheme == CLASSIC and not _gas_on_pill():
+	if _arrows_on():
+		for side in [-1, 1]:
+			out.append(disc.call(_arrow_centre(side), (ARROW_R + 4.0) * pt))
+		if not _gas_on_pill():
+			out.append(disc.call(_gas_centre(), (GAS_R + 4.0) * pt))
+	elif scheme == CLASSIC and not _gas_on_pill():
 		out.append(disc.call(_gas_centre(), (GAS_R + 4.0) * pt))
 		var o := _strip_hint_centre()
 		out.append(Rect2(o - Vector2(52, 12) * pt, Vector2(104, 24) * pt))
@@ -1117,10 +1144,13 @@ func touch_targets() -> Dictionary:
 		out["climb"] = disc.call(_climb_centre(1), PAD_R * pt)
 		out["sink"] = disc.call(_climb_centre(-1), PAD_R * pt)
 	else:
-		out["brake"] = disc.call(_brake_centre(), (CLASSIC_BRAKE_R if scheme == CLASSIC else BRAKE_R) * pt)
+		out["brake"] = disc.call(_brake_centre(), _brake_r() * pt)
 		if not _pedals_hidden:
 			if nitro_owned:
 				out["nitro"] = disc.call(_nitro_centre(), NITRO_R * pt)
+			if _arrows_on():
+				out["steer_left"] = disc.call(_arrow_centre(-1), ARROW_R * pt)
+				out["steer_right"] = disc.call(_arrow_centre(1), ARROW_R * pt)
 		if scheme == CLASSIC and not _gas_on_pill():
 			out["gas"] = disc.call(_gas_centre(), GAS_R * pt)
 	return out
@@ -2281,6 +2311,7 @@ func _frame(dt: float) -> void:
 ## the car back.
 func set_flying(on: bool) -> void:
 	flying = on
+	_drop_arrows()
 	_mark()
 	_set_chip(_vehicle_button, "AUTO" if on else "HELI", "CAR" if on else "HELI")
 	brake = false
@@ -3241,7 +3272,58 @@ func _gas_centre() -> Vector2:
 
 ## The brake's touch radius (a little larger than drawn).
 func _brake_reach() -> float:
+	if _arrows_on():
+		return ARROWS_BRAKE_REACH * pt
 	return (CLASSIC_BRAKE_REACH if scheme == CLASSIC else BRAKE_REACH) * pt
+
+
+## The brake's drawn radius (pt) for the scheme and layout now.
+func _brake_r() -> float:
+	if _arrows_on():
+		return ARROWS_BRAKE_R
+	return CLASSIC_BRAKE_R if scheme == CLASSIC else BRAKE_R
+
+
+## F 2026-11-13: the arrows layout is up (Classic, on the ground, touch, arrows chosen in Settings).
+func _arrows_on() -> bool:
+	return arrows_layout and scheme == CLASSIC and not flying and not touch_off
+
+
+## The arrows' centres: -1 the left arrow, +1 the right one. Bottom left in the right-handed layout;
+## the left-handed one puts them bottom right, still the left arrow on the left.
+func _arrow_centre(side: int) -> Vector2:
+	var y := _safe.end.y - 50.0 * pt
+	if left_handed:
+		var x1 := _safe.end.x - (52.0 + ARROW_STEP) * pt
+		return Vector2(x1 if side < 0 else x1 + ARROW_STEP * pt, y)
+	var x0 := _safe.position.x + 52.0 * pt
+	return Vector2(x0 if side < 0 else x0 + ARROW_STEP * pt, y)
+
+
+## Which arrow a point is on (-1 left, +1 right, 0 neither), nearest first.
+func _on_arrow(p: Vector2) -> int:
+	if not _arrows_on() or _pedals_hidden:
+		return 0
+	var dl := p.distance_to(_arrow_centre(-1))
+	var dr := p.distance_to(_arrow_centre(1))
+	if minf(dl, dr) >= ARROW_REACH * pt:
+		return 0
+	return -1 if dl < dr else 1
+
+
+## The steering the arrows ask for: +1 left held, -1 right held, 0 none or both (drive_controls.gd
+## ramps it).
+func arrows() -> int:
+	return int(steer_left) - int(steer_right)
+
+
+## Settings → Jazda → Sterowanie: the arrows layout (true) or the sliding strip (false).
+func set_arrows_layout(on: bool) -> void:
+	if on == arrows_layout:
+		return
+	arrows_layout = on
+	release_all()
+	_mark()
 
 
 ## Where Classic's steering strip is hinted until a thumb comes down.
@@ -3254,13 +3336,13 @@ func _on_pedals(p: Vector2) -> bool:
 	if flying or _pedals_hidden or touch_off:
 		return false
 	return p.distance_to(_brake_centre()) < _brake_reach() or (scheme == CLASSIC and p.distance_to(_gas_centre()) < GAS_REACH * pt) \
-			or _on_nitro(p)
+			or _on_nitro(p) or _on_arrow(p) != 0
 
 
 ## G13: the nitro's centre, left of BRAKE (right of it in the left-handed layout; none in the
 ## helicopter).
 func _nitro_centre() -> Vector2:
-	var r := CLASSIC_BRAKE_R if scheme == CLASSIC else BRAKE_R
+	var r := _brake_r()
 	return _side(_brake_right() + Vector2(-(r + NITRO_CLEAR + NITRO_R), r - NITRO_R) * pt)
 
 
@@ -3290,9 +3372,18 @@ func set_nitro(owned: bool, charge: float) -> void:
 		_pad.queue_redraw()
 
 
+## Lets go of both arrows.
+func _drop_arrows() -> void:
+	steer_left = false
+	steer_right = false
+	_left_index = -1
+	_right_index = -1
+
+
 ## Loop 2a: the on-screen controls for a control scheme (drive_controls.gd).
 func set_scheme(s: int) -> void:
 	scheme = s
+	_drop_arrows()
 	gas = false
 	_gas_index = -1
 	brake = false
@@ -3324,6 +3415,13 @@ func hold_pedal(which: String) -> void:
 	elif which == "brake":
 		_brake_index = 97
 		brake = true
+	elif which == "left" or which == "right":  # F 2026-11-13: an arrow held, for shots of the arrows layout
+		_left_index = 96 if which == "left" else -1
+		_right_index = 96 if which == "right" else -1
+		steer_left = which == "left"
+		steer_right = which == "right"
+		_gas_index = 98
+		gas = true
 	elif which == "nitro":  # G13b: gas and the nitro disc, for shots of the flame
 		_gas_index = 98
 		gas = true
@@ -3333,6 +3431,7 @@ func hold_pedal(which: String) -> void:
 
 ## Lets go of everything held (the settings panel opened over the game).
 func release_all() -> void:
+	_drop_arrows()
 	_stick_index = -1
 	stick = Vector2.ZERO
 	_brake_index = -1
@@ -3470,13 +3569,21 @@ func _input(event: InputEvent) -> void:
 				nitro_held = true
 				nitro_pressed.emit()
 				_pad.queue_redraw()
+			elif _on_arrow(touch.position) != 0:
+				# F 2026-11-13: an arrow (a second finger on the other arrow holds both: straight on).
+				if _on_arrow(touch.position) < 0:
+					_left_index = touch.index
+					steer_left = true
+				else:
+					_right_index = touch.index
+					steer_right = true
 			elif not touch_off and not flying and scheme == CLASSIC and touch.position.distance_to(_gas_centre()) < GAS_REACH * pt:
 				_gas_index = touch.index
 				gas = true
 			elif not touch_off and not flying and touch.position.distance_to(_brake_centre()) < _brake_reach():
 				_brake_index = touch.index
 				brake = true
-			elif _stick_side(touch.position.x, size.x) and touch.position.y > _row_bottom() and _stick_index == -1:
+			elif not _arrows_on() and _stick_side(touch.position.x, size.x) and touch.position.y > _row_bottom() and _stick_index == -1:
 				_stick_index = touch.index
 				_stick_origin = touch.position
 				_stick_point = touch.position
@@ -3500,6 +3607,12 @@ func _input(event: InputEvent) -> void:
 			if touch.index == _brake_index:
 				_brake_index = -1
 				brake = false
+			if touch.index == _left_index:
+				_left_index = -1
+				steer_left = false
+			if touch.index == _right_index:
+				_right_index = -1
+				steer_right = false
 			if touch.index == _nitro_index:
 				_nitro_index = -1
 				nitro_held = false
@@ -3550,6 +3663,22 @@ func _input(event: InputEvent) -> void:
 				_stick_point = drag.position
 				stick = (_stick_point - _stick_origin) / radius
 			_pad.queue_redraw()
+		elif (drag.index == _left_index or drag.index == _right_index) and _arrows_on():
+			# A thumb rolling from one arrow to the other switches arrows without lifting; off both,
+			# the arrow it came down on stays held (a thumb drifts, the turn shouldn't drop).
+			var on := _on_arrow(drag.position)
+			if on < 0 and drag.index == _right_index and _left_index == -1:
+				_right_index = -1
+				steer_right = false
+				_left_index = drag.index
+				steer_left = true
+				_pad.queue_redraw()
+			elif on > 0 and drag.index == _left_index and _right_index == -1:
+				_left_index = -1
+				steer_left = false
+				_right_index = drag.index
+				steer_right = true
+				_pad.queue_redraw()
 		elif scheme == CLASSIC and not flying and (drag.index == _gas_index or drag.index == _brake_index):
 			# A thumb sliding from one pedal to the other switches pedals without lifting.
 			var to_gas := drag.position.distance_to(_gas_centre())
@@ -3662,6 +3791,8 @@ func _finger_hint() -> Dictionary:
 	var lines: Array
 	if scheme == CLASSIC:
 		lines = ["Przesuń w lewo / prawo i trzymaj GAZ", "Slide left / right to steer, hold GAS to go"]
+		if _arrows_on():
+			lines = ["Strzałki: skręt · trzymaj GAZ", "Arrows steer, hold GAS to go"]
 		if pad_mode:
 			lines = [Gamepad.fmt("Lewa gałka: skręt · {rt}: gaz · {lt}: hamulec"), Gamepad.fmt("Left stick steers, {rt} gas, {lt} brake")]
 		elif touch_off:
@@ -3674,7 +3805,11 @@ func _finger_hint() -> Dictionary:
 			lines = ["W A S D albo strzałki: jazda", "W A S D or the arrow keys to drive"]
 	var w := maxf(font.get_string_size(lines[0], HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x, font.get_string_size(lines[1], HORIZONTAL_ALIGNMENT_LEFT, -1, fs2).x)
 	var at: Vector2
-	if scheme == CLASSIC:
+	if _arrows_on():
+		# Above the arrows, starting over the outer one.
+		var a := _arrow_centre(1 if left_handed else -1)
+		at = Vector2(a.x - ARROW_R * pt if not left_handed else a.x + ARROW_R * pt - w, a.y - ARROW_R * pt - fs2 - 14.0 * pt)
+	elif scheme == CLASSIC:
 		# Above the strip's plate (and its thumb), starting at the plate's outer end.
 		var strip := _strip_hint_centre()
 		at = Vector2(strip.x - 52.0 * pt if not left_handed else strip.x + 52.0 * pt - w, strip.y - 30.0 * pt - fs2 - 6.0 * pt)
@@ -3756,9 +3891,13 @@ func _draw_finger_classic() -> void:
 		_pad.draw_arc(gc, (GAS_R + 6.0 + 4.0 * sin(k * TAU)) * pt, 0, TAU, 40, Color(ACCENT, 0.6 * press), 2.0 * pt)
 		_pad.draw_circle(gc, 19.0 * pt, Color(OUTLINE, 0.35 * press))
 		_pad.draw_circle(gc, 16.0 * pt, Color(INK, 0.8 * press))
-		# The strip: the thumb slides right, back through the middle, left and home.
+		# The strip: the thumb slides right, back through the middle, left and home. The arrows
+		# layout: the thumb taps the right arrow, then the left one.
 		var tip := strip + Vector2(sin(k * TAU) * 32.0 * pt, 0)
-		_pad.draw_line(strip, tip, Color(INK, 0.45 * press), 5.0 * pt)
+		if _arrows_on():
+			tip = _arrow_centre(1 if k < 0.5 else -1)
+		else:
+			_pad.draw_line(strip, tip, Color(INK, 0.45 * press), 5.0 * pt)
 		_pad.draw_circle(tip, 19.0 * pt, Color(OUTLINE, 0.35 * press))
 		_pad.draw_circle(tip, 16.0 * pt, Color(INK, 0.8 * press))
 	var fs := _px(T_BODY)
@@ -3826,8 +3965,11 @@ func _draw_pad() -> void:
 		return
 	if _pedals_hidden:
 		return  # loop 3g-1: the pull-over holds the car
+	if _arrows_on():
+		_draw_arrows_layout()
+		return
 	var bc := _brake_centre()
-	var br := (CLASSIC_BRAKE_R if scheme == CLASSIC else BRAKE_R) * pt
+	var br := _brake_r() * pt
 	_plate(bc, br, brake)
 	_pad_words(bc, br, "HAMULEC", "brake")
 	if nitro_owned:
@@ -3846,6 +3988,59 @@ func _draw_pad() -> void:
 			for side in [-1.0, 1.0]:
 				var tip := o + Vector2(side * 44, 0) * pt
 				_pad.draw_colored_polygon(PackedVector2Array([tip, tip + Vector2(-side * 7.5, -6) * pt, tip + Vector2(-side * 7.5, 6) * pt]), INK)
+
+
+## F 2026-11-13: the arrows layout: two see-through round arrows bottom left, GAZ (a tall pedal)
+## and HAMULEC (a wide one) bottom right, all in fixed places; held, a control lights in the accent.
+func _draw_arrows_layout() -> void:
+	for side in [-1, 1]:
+		var c := _arrow_centre(side)
+		var held := steer_left if side < 0 else steer_right
+		var r := ARROW_R * pt
+		_pad.draw_circle(c, r, GLASS)
+		if held:
+			_pad.draw_circle(c, r, Color(ACCENT, 0.35))
+		_pad.draw_arc(c, r - 0.8 * pt, 0, TAU, 48, ACCENT if held else GLASS_EDGE, 1.6 * pt)
+		# A chevron pointing out (a concave hexagon), a dark rim under it so it reads over snow too.
+		var k := float(side)
+		var chev: Array[Vector2] = [Vector2(9, 0), Vector2(-5, -16), Vector2(-13, -16), Vector2(1, 0), Vector2(-13, 16), Vector2(-5, 16)]
+		var under := PackedVector2Array()
+		var ink := PackedVector2Array()
+		for q in chev:
+			under.append(c + Vector2(q.x * k + 2.0 * k, q.y) * pt * 1.0 + Vector2(0, 1.5) * pt)
+			ink.append(c + Vector2(q.x * k + 2.0 * k, q.y) * pt)
+		_pad.draw_colored_polygon(under, Color(OUTLINE, 0.45))
+		_pad.draw_colored_polygon(ink, ACCENT if held else Color(INK, 0.92))
+	var bc := _brake_centre()
+	var br := ARROWS_BRAKE_R * pt
+	_pedal_plate(Rect2(bc - Vector2(br, br * 0.8), Vector2(br * 2.0, br * 1.6)), brake, 3)
+	_pad_words(bc + Vector2(0, 2.0 * pt), br, "HAMULEC", "brake")
+	if nitro_owned:
+		_draw_nitro(_nitro_centre(), nitro_held)
+	if not _gas_on_pill():
+		var gc := _gas_centre()
+		var gr := GAS_R * pt
+		_pedal_plate(Rect2(gc - Vector2(gr * 0.72, gr), Vector2(gr * 1.44, gr * 2.0)), gas, 5)
+		_pad_words(gc + Vector2(0, 2.0 * pt), gr * 0.72, "GAZ", "gas")
+
+
+## A see-through pedal: a rounded plate with `grooves` short ridges across it, lit when held.
+func _pedal_plate(rect: Rect2, held: bool, grooves: int) -> void:
+	if _glass_box == null:
+		_glass_box = StyleBoxFlat.new()
+		_glass_box.anti_aliasing = true
+	_glass_box.set_corner_radius_all(roundi(12.0 * pt))
+	_glass_box.bg_color = Color(ACCENT, 0.4) if held else GLASS
+	_glass_box.border_color = ACCENT if held else GLASS_EDGE
+	_glass_box.set_border_width_all(maxi(1, roundi(1.6 * pt)))
+	_pad.draw_style_box(_glass_box, rect)
+	var ridge := Color(1, 1, 1, 0.16)
+	var step := rect.size.y / float(grooves + 1)
+	for i in grooves:
+		var y := rect.position.y + step * (i + 1)
+		if absf(y - rect.get_center().y) < 9.0 * pt:
+			continue  # the label's band
+		_pad.draw_line(Vector2(rect.position.x + 10.0 * pt, y), Vector2(rect.end.x - 10.0 * pt, y), ridge, 2.0 * pt)
 
 
 ## G13: the nitro on its plate: a lightning bolt, in a ring that is the tank (orange while it can
@@ -4365,6 +4560,7 @@ func add_panel(c: Control, spot: String) -> void:
 func set_pedals_hidden(on: bool) -> void:
 	if on != _pedals_hidden:
 		_pedals_hidden = on
+		_drop_arrows()
 		brake = false
 		_brake_index = -1
 		gas = false
@@ -4378,6 +4574,8 @@ func set_pedals_hidden(on: bool) -> void:
 ## free (see `touch_off`); main.gd calls it once after building the HUD.
 func set_touch_off(on: bool) -> void:
 	touch_off = on
+	if on:
+		_drop_arrows()
 	_pad.queue_redraw()
 	_mark()
 

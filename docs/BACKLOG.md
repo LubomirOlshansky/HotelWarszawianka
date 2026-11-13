@@ -1064,6 +1064,24 @@ Left:
   approaches among them); a Mac look at those places' drawn ground is open.
 - Podwózka story ride played by Autopilot (accept, the "!" pickup, boarding, story lines, the question card, +½ star): no bug; the door and the result card still unplayed (the 2 km ride outlasts one Mac run).
 
+## Roads true to life: lane-level faults (F, 2026-11-13; docs/design/roads-true-to-life.md)
+
+Research only so far. The paint and kerbs at way joins are checked (`smooth`, `fixes`), the lane
+level is not: a first measurement of the baked map found 378 lane count changes with no side road,
+84 short lane blips, 373 straight-on lane links landing over 2.5 m aside, 155 turn-back links away
+from dead ends, 77 kinks over 20° on main roads and 4 of 14 roundabout rings whose lane count
+changes inside the ring (upper bounds, not yet checked against photos). In order:
+
+- [ ] RT-1 `tools/road_truth.py` (rules R1-R10, verify step `roadtruth`, findings on the console map)
+- [ ] RT-2 lane links through junctions from OSM `turn:lanes` instead of `next_lane`'s guess; arrows from the same data
+- [ ] RT-3 keep OSM `restriction` relations (`prepare_demo.py` drops them), drop forbidden links, U-turns only at dead ends and mapped median gaps
+- [ ] RT-4 lane adds and drops as paint (blips joined or made turn pockets; a dashed line starts, hatching, the kerb stays)
+- [ ] RT-5 roundabouts in groups: one lane count round the ring, even radius, give-way lines, ring lines (Dmowskiego, ONZ, de Gaulle'a first)
+- [ ] RT-6 kinks on main roads into arcs; junction nodes under 8 m apart merged (262 edges with under 3 m to drive)
+- [ ] RT-7 the 25 split leftovers of `road_fixes` fix 6, by kind (see "Road design system: round 2")
+- [ ] RT-8 detectors against OSM's tags (an extract in the map pack) and the orthophoto's paint and kerbs (Mac)
+- [ ] RT-9 drive log per street (steering spikes, standing cars, lane changes in junctions), then every street's score, worst first
+
 ## Road design rollout: every street on the map (F, 2026-11-06; docs/design/road-design-rollout.md)
 
 **Decision (F, 2026-11-07): main as base, small fixes.** F compared the area 3-7 redesigns with main
@@ -1647,6 +1665,31 @@ is gone, so a head-on hit stops the car dead again (road-objects.md 1.1).
 - [ ] Census: apply `_by_road` to platforms (over-counted now); 48 lanes through buildings (gateways) to look at
 - [x] Street-level photos in the cloud (2026-11-04): F allowed the hosts and made a Mapillary app (`MAPILLARY_TOKEN`); `tools/street_photos.py` finds the photos facing a point; added to the model-from-photos skill, object-modeler and road-auditor
 - [x] `panoramax.openstreetmap.fr` allowed too (F, 2026-11-04)
+
+## A city built for driving: solidity classes (F, 2026-11-13)
+
+F: "now there are a lot of walls and objects that make driving hard; what overall decision; which
+should not be collidable, which to remove, which make the game unreasonably harder". Research and
+the ranked plan: `docs/design/drivable-city.md`. Found: the census of 2026-11-04 has not moved
+(23,980 m of barrier lines within 3 m of a lane then 24,131; 11 object verdicts in nine days, all
+a new look with the same collider). Decided to propose: nothing stops the car unless it is a
+building, a structure edge, water or a heavy vehicle; five classes (Hard, Smash, Push, Ride,
+Ghost) set by object type and context in bulk, the override file for exceptions only. Fences
+(12.1 km) and parked cars (3.3 km) are 80 % of the hard metres within 1 m of a lane on
+ground-level streets. This order replaces steps 1-7 of "Road objects and collisions" above (the
+same work, re-ranked; its detail in road-objects.md still holds).
+- [x] Research: every object type with its purpose and verdict, what makes the game unreasonably harder, design rules R1-R9, the plan (2026-11-13, docs only)
+- [ ] 1 Contact log (`check_lane_drive --contacts`: collider class and census id, speed before and after), the sloppy driver, a dead-stop line in dev and Autopilot runs; baseline per street
+- [ ] 2 Collision rework v2 (road-objects.md 4.2-4.3): answer by angle, head-on kick, corner pivot, traffic shove; after or inside the controls thread (both edit `car.gd`); F's phone A/B
+- [ ] 3 Smash class: the solidity table as data; fences and hedges off the hard collider onto a soft layer (drag, sound, debris); a fence with a drop over 1.5 m, a railway cutting or water behind it becomes a guard rail; bench, both city paths
+- [ ] 4 Parked cars: Push (slide and settle), every other one out where the free width is under 3.6 m or within 15 m of a junction; bench
+- [ ] 5 Rule R2 as a check (no collider without a drawing, none more than 0.5 m bigger in plan), a `--colliders` view for shots, the audit of the ~22,600 pocket walls
+- [ ] 6 Narrow streets and yards: collider set back 0.3-0.5 m from fronts on streets under 8 m, dead-end yards gated, no kerb jolt there
+- [ ] 7 Tapers on every hard end within 3 m of a lane (1:4), convex building corners near lanes chamfered
+- [ ] 8 Barrier walls by drawn height (under 0.6 m Ride, 0.6-1.2 m Smash, over 1.2 m Hard; fragments under 4 m removed); tram islands and stop platforms Ride on every side; canopies on posts
+- [ ] 9 Small things: stalls Smash, carts Push, busts, stones and steles under 1 m Ghost, monuments within 1 m of a lane moved back
+- [ ] 10 Ratchets (R9): hard metres within 1 m of a lane by class in `check_map_data.py`; contacts per km and dead stops per street in the drive check
+- [ ] 11 Street sweeps for what the class rules leave (exceptions, landmark rings, look)
 
 ## After the beta: driving extras and the city economy (F, 2026-11-03, plan only)
 
