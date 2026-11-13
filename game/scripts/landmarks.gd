@@ -15398,6 +15398,7 @@ const LOR_HOUSING := Color("#e6e1d6")
 const LOR_POLE := Color("#202022")
 const LOR_BULB := Color("#ffd08a")
 const LOR_NAME := "Puro Warszawa Centrum"
+const LOR_HEIGHT := 27.4  # OSM's height of the hotel, its street block's `cap`
 
 
 ## LORETKA's terrace plan, read by this model and by crowds.gd's couples (one source, so they
@@ -15443,6 +15444,11 @@ static func loretka_plan(data: Dictionary) -> Dictionary:
 		m /= float(flat.size() / 2)
 		if m.distance_to(c) < longest and Geometry2D.is_point_in_polygon(m, outline):
 			h = maxf(h, float(bld["h"]))
+	if h <= 0.0 and not data.has("buildings") and not data.has("site_parts"):
+		# The prebuilt city's index (map/index.res) carries neither: the hotel's mapped height, which
+		# is also its street block's roof (street_blocks/index.json `cap`), so the terrace and its
+		# couples are there on both city paths.
+		h = LOR_HEIGHT
 	if h < 15.0:
 		return {}
 	# The deck on the front's first half, as deep as the slab is where it is thinnest there.
