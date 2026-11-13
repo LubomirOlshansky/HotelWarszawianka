@@ -158,11 +158,10 @@ const TOWERS := [
 	{"key": "chalubinskiego8", "osm": "Chałubińskiego 8", "style": S_FINS, "glass": "#2f6f8f", "roof": "#c9cfd2", "mapped": true,
 			"sign": "CZERY"},
 	# Spektrum from the top-50 photo set (T35, 2026-11-08): the parts by their mapped colours, the
-	# drum in blue glass between white aluminium bands, the dark slabs in a square dark-glass grid, the
-	# pale green glass ring round the crown and the grey plant ring on top.
-	{"key": "spektrum", "osm": "Spektrum Tower", "style": S_BANDS, "glass": "#2f5563", "roof": "#7c878c", "mapped": true,
-			"skins": {"#637780": [S_BANDS, "#5f86a3"], "#274754": [S_GRID, "#26384a"], "#a2b5af": [S_RIBBON, "#a8cbcb"],
-					"": [S_BANDS, "#9aa4a9"]}},
+	# drum in blue glass between white aluminium bands, the dark slabs in a square dark-glass grid.
+	# Rebuilt from F's photos (2026-11-13, _build_spektrum): the glass fin, the podium, the crown's
+	# screens and the rooftop club THE WJU, colours in its SPEKTRUM_* constants.
+	{"key": "spektrum", "osm": "Spektrum Tower", "style": S_BANDS, "glass": "#4a6d86", "roof": "#7c878c", "mapped": true},
 	# The Bridge is its own site now (_build_bridge, F's photos 2026-11-06).
 	# The second pass: the rest of the skyline over 80 m (the hotels by their addresses).
 	{"key": "grzybowska63", "osm": "Hilton Warsaw City", "style": S_BANDS, "glass": "#4d7590", "roof": "#9aa5ad", "sign": "CHILTON"},
@@ -304,8 +303,8 @@ const INFO := {
 			"140 m. Białe żebra na niebieskim szkle.",
 			"140 m. White ribs on blue glass."],
 	"spektrum": ["Spektrum Tower",
-			"Niebieski walec w białych pasach i szklany pierścień na szczycie, przy Twardej.",
-			"A blue drum in white bands with a glass ring on top, on Twarda."],
+			"128 m przy Twardej. Niebieski walec w białych pasach, ukośna szklana płetwa, a na dachu klub THE WJU: białe kanapy, palmy, wieczorem DJ i pierścień światła nad miastem.",
+			"128 m on Twarda. A blue drum in white bands, a slanted glass fin, and on the roof the club THE WJU: white sofas, palms, a DJ in the evening and a ring of light over the city."],
 	"bridge": ["The Bridge",
 			"174 m szkła przy Placu Europejskim. Fasada złamana ukośnymi szwami jak kartka papieru, na szczycie ciemna korona, a na dachu bank ERZATZ.",
 			"174 m of glass on Plac Europejski. Its faces fold along diagonal seams like a sheet of paper, a dark crown on top, and the ERZATZ bank on the roof."],
@@ -4496,6 +4495,9 @@ func _build_tower(site: Dictionary) -> void:
 	if spec["key"] == "rondo1":
 		_build_rondo1(zone, spec)
 		return
+	if spec["key"] == "spektrum":
+		_build_spektrum(zone, spec)
+		return
 	_g = _ground_under(zone)
 	var g := _g
 	var glass := Color(spec["glass"])
@@ -4839,6 +4841,401 @@ func _build_wcf(zone: PackedVector2Array, _spec: Dictionary) -> void:
 	_aviation(high, roof_hi)
 	var roof_lo := func(_q: Vector2) -> float: return g + WCF_LOW_ROOF
 	_aviation(low, roof_lo)
+
+
+# --- Spektrum Tower and the rooftop club (F's photos, 2026-11-13) ------------------------------
+
+## Spektrum Tower (Twarda 18, 2003, 128 m), rebuilt from F's eleven photos (spec
+## docs/landmarks/specs/spektrum.md). The mapped parts give the shape: the round drum (122 m)
+## between the dark square-grid slabs (106 and 118 m), the podium round its foot (12 to 36 m).
+## On top of that, from the photos: the drum ends in a ring of tall glass screens with a blue
+## LED rail, and inside the ring stands the rooftop club (here THE WJU, the parody of the real
+## one): a lower grey deck, then a round raised deck behind a glass railing, its edge a lit
+## ring at night, full of white lounge chairs, poufs and cube tables round a white bar, with
+## palms in white pots and white parasols. Up the drum's south face, in the notch between the
+## grid slab and the banded volume, the slanted glass fin: wide over the podium, it leans in
+## and meets the drum near the top. The podium: a glazed ground floor, grey ribbon storeys and
+## a white roof edge. Every piece is in the city's one building surface (no new draw call).
+const SPEKTRUM_DRUM_COL := Color("#5f86a3")
+const SPEKTRUM_SLAB_COL := Color("#26384a")
+const SPEKTRUM_ROOF := Color("#7c878c")
+const SPEKTRUM_SCREEN := Color("#a8cbcb")      ## the crown's glass screens (the mapped #A2B5AF ring)
+const SPEKTRUM_DECK := Color("#5c6469")        ## the lower deck round the club, dark grey
+const SPEKTRUM_CLUB_WALL := Color("#a3a9ad")   ## the club drum's grey metal wall
+const SPEKTRUM_CLUB_DECK := Color("#cfd1cd")
+const SPEKTRUM_RAIL := Color("#c3dad9")        ## glass railing, read as pale glass
+const SPEKTRUM_WHITE := Color("#f1eee6")       ## the lounge furniture's white leather
+const SPEKTRUM_CUBE := Color("#fff3dc")        ## the cube tables, white by day and lit from inside at night
+const SPEKTRUM_FIN := Color("#9cc6c2")
+const SPEKTRUM_PODIUM := Color("#8a959b")
+const SPEKTRUM_HALL := Color("#9cb8c4")
+const SPEKTRUM_EDGE := Color("#e9ecec")
+const SPEKTRUM_SCREEN_TOP := 2.4     ## the screens stand this far over the drum's roof (the club peeks over them)
+const SPEKTRUM_CLUB_UP := 3.4        ## the raised deck over the drum's roof
+const SPEKTRUM_FIN_FOOT := Vector2(-1672.9, -55.5)  ## the fin's outer foot, on the podium roof
+const SPEKTRUM_FIN_LOW := 32.0       ## the podium roof under it
+const SPEKTRUM_FIN_TOP := 117.0      ## where it meets the drum
+const SPEKTRUM_FIN_HALF := 1.25       ## half its thickness
+const SPEKTRUM_SIGN := "SPEKTRAL"    ## the tower's name on the crown, as a parody
+const SPEKTRUM_CLUB := "THE WJU"     ## the club's name, the parody of the real one (F OK'd, 2026-11-13)
+
+
+func _build_spektrum(zone: PackedVector2Array, spec: Dictionary) -> void:
+	_g = _ground_under(zone)
+	var g := _g
+	var bands := M_SKIN + float(S_BANDS) / 16.0
+	var grid := M_SKIN + float(S_GRID) / 16.0
+	var ribbon := M_SKIN + float(S_RIBBON) / 16.0
+	var parts := _parts_in(zone, func(b: Dictionary) -> bool: return float(b["h"]) > float(b["mh"]) + 0.5)
+	if parts.size() > 1:
+		parts = parts.filter(func(b: Dictionary) -> bool: return str(b.get("name", "")) != spec.get("osm", ""))
+	var drum := PackedVector2Array()
+	var drum_h := 0.0
+	for b in parts:
+		var poly := _pts(b["p"])
+		var h := float(b["h"])
+		var mh := float(b["mh"])
+		var col := str(b.get("c", "")).to_lower()
+		if mh > 100.0:
+			continue  # the mapped crown ring and roof box: the screens and the club stand there now
+		var y0 := g + mh if mh > 0.5 else g - 0.4
+		if h > 40.0:
+			if col == "#274754":
+				_prism(poly, y0, g + h, SPEKTRUM_SLAB_COL, SPEKTRUM_ROOF, grid, M_STONE)
+			else:
+				_prism(poly, y0, g + h, SPEKTRUM_DRUM_COL, SPEKTRUM_ROOF, bands, M_STONE)
+				if h > drum_h:
+					drum_h = h
+					drum = poly
+		else:
+			_spektrum_podium(poly, y0, g + h, mh < 0.5, ribbon, grid)
+		if mh < 0.5:
+			_collide(poly)
+	if drum.size() < 3:
+		push_warning("landmarks: Spektrum's mapped drum is missing")
+		return
+	var c := _centre(drum)
+	var r := 0.0
+	for q in drum:
+		r += q.distance_to(c)
+	r /= float(drum.size())
+	var top := g + drum_h
+	_spektrum_fin(c, r, g)
+	_spektrum_crown(c, r, top)
+	_spektrum_club(c, r * 0.72, top + SPEKTRUM_CLUB_UP)
+	_spektrum_signs(c, r, top)
+
+
+## A podium part: a glazed ground floor, grey ribbon storeys over it and a white roof edge.
+func _spektrum_podium(poly: PackedVector2Array, y0: float, y1: float, ground: bool, ribbon: float, grid: float) -> void:
+	var none := Color(0, 0, 0, 0)
+	var hall := y0 + 5.4 if ground else y0
+	if ground and y1 - y0 <= 7.0:
+		_prism(poly, y0, y1, SPEKTRUM_HALL, SPEKTRUM_ROOF, grid, M_STONE)
+		return
+	if hall > y0:
+		_prism(poly, y0, hall, SPEKTRUM_HALL, none, grid)
+	_prism(poly, hall, y1 - 1.1, SPEKTRUM_PODIUM, none, ribbon)
+	_prism(poly, y1 - 1.1, y1, SPEKTRUM_EDGE, SPEKTRUM_ROOF.lightened(0.08), M_STONE, M_STONE)
+
+
+## The slanted glass fin: a wedge in the notch on the drum's south face, from the podium roof at
+## its outer foot up and in to the drum at SPEKTRUM_FIN_TOP; a pale lit edge up its slope.
+func _spektrum_fin(c: Vector2, r: float, g: float) -> void:
+	var foot := SPEKTRUM_FIN_FOOT
+	var u := Vector2(0.0, signf(foot.y - c.y))
+	var v := Vector2(-u.y, u.x)
+	# Where the fin's plane meets the drum, 0.6 m inside it.
+	var dx := foot.x - c.x
+	var inner_t := sqrt(maxf(r * r - dx * dx, 0.0)) - 0.6
+	var inner := Vector2(foot.x, c.y + u.y * inner_t)
+	var y_lo := g + SPEKTRUM_FIN_LOW
+	var y_hi := g + SPEKTRUM_FIN_TOP
+	var keep := _mode
+	_mode = M_GLASS
+	for s: float in [-1.0, 1.0]:
+		var o := v * SPEKTRUM_FIN_HALF * s
+		var a := Vector3(inner.x + o.x, y_lo, inner.y + o.y)
+		var b := Vector3(foot.x + o.x, y_lo, foot.y + o.y)
+		var t := Vector3(inner.x + o.x, y_hi, inner.y + o.y)
+		var l := inner.distance_to(foot)
+		_tri(a, b, t, Vector3(v.x * s, 0.0, v.y * s), SPEKTRUM_FIN, Vector2(0.0, SPEKTRUM_FIN_LOW), Vector2(l, SPEKTRUM_FIN_LOW),
+				Vector2(0.0, SPEKTRUM_FIN_TOP), SPEKTRUM_FIN_TOP)
+	# The sloping outer face.
+	var slope := Vector3(inner.x - foot.x, y_hi - y_lo, inner.y - foot.y)
+	var side := Vector3(v.x, 0.0, v.y)
+	var n := slope.cross(side).normalized()
+	if n.dot(Vector3(u.x, 0.0, u.y)) < 0.0:
+		n = -n
+	var w := SPEKTRUM_FIN_HALF
+	var len3 := slope.length()
+	_quad(Vector3(foot.x - v.x * w, y_lo, foot.y - v.y * w), Vector3(foot.x + v.x * w, y_lo, foot.y + v.y * w),
+			Vector3(inner.x + v.x * w, y_hi, inner.y + v.y * w), Vector3(inner.x - v.x * w, y_hi, inner.y - v.y * w), n,
+			SPEKTRUM_FIN.lightened(0.08), Vector2(0.0, 0.0), Vector2(w * 2.0, 0.0), Vector2(w * 2.0, len3), Vector2(0.0, len3), SPEKTRUM_FIN_TOP)
+	_mode = keep
+	# The lit edge: a thin pale tube up the slope (glows at night).
+	var lift := n * 0.12
+	_beam(Vector3(foot.x, y_lo, foot.y) + lift, Vector3(inner.x, y_hi, inner.y) + lift, 0.22, Color("#d6f1ff"), false, M_LAMP)
+
+
+## The crown: the grey deck on the drum's roof, then the ring of tall glass screens round its
+## edge (both faces, as the camera looks down into the ring), a steel post every few metres,
+## the top rail lit blue at night and the red aviation lamps on it.
+func _spektrum_crown(c: Vector2, r: float, top: float) -> void:
+	var n := 32
+	var rs := r + 0.2
+	var outer := _circle(c, rs, n)
+	var inner := _circle(c, rs - 0.15, n)
+	var y0 := top - 3.2
+	var y1 := top + SPEKTRUM_SCREEN_TOP
+	var keep := _mode
+	_mode = M_GLASS
+	var run := 0.0
+	for k in n:
+		var k1 := (k + 1) % n
+		var mid := (outer[k] + outer[k1]) * 0.5
+		_wall(outer[k], outer[k1], y0, y1, mid - c, SPEKTRUM_SCREEN, run)
+		_wall(inner[k1], inner[k], top, y1, c - mid, SPEKTRUM_SCREEN.darkened(0.18), run)
+		run += outer[k].distance_to(outer[k1])
+	_mode = M_STONE
+	# The screen's ring top, the deck inside it.
+	_cap_holes(outer, [inner], y1, Color("#c9ced2"))
+	_cap(_circle(c, rs - 0.16, n), top + 0.05, SPEKTRUM_DECK)
+	# Posts every second panel, proud of the glass, and the lit rail on top.
+	for k in range(0, n, 2):
+		var p := c + Vector2.from_angle(TAU * float(k) / float(n)) * (rs + 0.12)
+		_beam(Vector3(p.x, y0, p.y), Vector3(p.x, y1 + 0.1, p.y), 0.16, Color("#b9bfc4"), false)
+	var rail_o := _circle(c, rs + 0.06, n)
+	var rail_i := _circle(c, rs - 0.21, n)
+	_mode = M_LAMP + 0.5
+	for k in n:
+		var k1 := (k + 1) % n
+		var mid := (rail_o[k] + rail_o[k1]) * 0.5
+		_wall(rail_o[k], rail_o[k1], y1 + 0.1, y1 + 0.35, mid - c, Color("#c7d4de"))
+	_cap_holes(rail_o, [rail_i], y1 + 0.35, Color("#c7d4de"))
+	_mode = keep
+	# Three red aviation lamps on the rail (south-west, south-east, north-east, as _aviation).
+	for d: Vector2 in [Vector2(-1, 1), Vector2(1, 1), Vector2(1, -1)]:
+		var p := c + d.normalized() * (rs - 0.08)
+		_prism(_square(p, 0.3), y1 + 0.35, y1 + 0.95, DUSK_RED, DUSK_RED, M_LAMP, M_LAMP)
+
+
+## The club: a round grey drum on the deck, its top edge a lit band (the ring F sees at night),
+## a pale deck behind a glass railing, and the white lounge on it.
+func _spektrum_club(c: Vector2, rc: float, deck: float) -> void:
+	var n := 28
+	var base := deck - SPEKTRUM_CLUB_UP + 0.05
+	var ring := _circle(c, rc, n)
+	_prism(ring, base, deck - 0.55, SPEKTRUM_CLUB_WALL, Color(0, 0, 0, 0), M_STONE)
+	_prism(ring, deck - 0.55, deck, Color("#ffe6b0"), SPEKTRUM_CLUB_DECK, M_LAMP, M_STONE)
+	# The glass railing (both faces) and its steel top rail.
+	var ro := _circle(c, rc - 0.15, n)
+	var keep := _mode
+	_mode = M_STONE
+	for k in n:
+		var k1 := (k + 1) % n
+		var mid := (ro[k] + ro[k1]) * 0.5
+		_wall(ro[k], ro[k1], deck, deck + 1.1, mid - c, SPEKTRUM_RAIL)
+		_wall(ro[k1], ro[k], deck, deck + 1.1, c - mid, SPEKTRUM_RAIL.darkened(0.1))
+	_cap_holes(_circle(c, rc - 0.1, n), [_circle(c, rc - 0.2, n)], deck + 1.15, Color("#b5bbc0"))
+	# The round bar in the middle: a white counter ring round the barmen's dark floor.
+	var bar_o := _circle(c, 2.2, 12)
+	var bar_i := _circle(c, 1.5, 12)
+	_prism(bar_o, deck, deck + 1.1, SPEKTRUM_WHITE, Color(0, 0, 0, 0), M_STONE)
+	_mode = M_STONE
+	for k in bar_i.size():
+		var k1 := (k + 1) % bar_i.size()
+		_wall(bar_i[k1], bar_i[k], deck, deck + 1.1, c - (bar_i[k] + bar_i[k1]) * 0.5, SPEKTRUM_WHITE.darkened(0.1))
+	_cap_holes(bar_o, [bar_i], deck + 1.1, Color("#3a3f43"))
+	_mode = keep
+	# The lounge (spektrum_layout, shared with the crowd that sits in it): armchairs round a cube
+	# table and curved sofas by turns, the DJ's booth to the north, palms, parasols.
+	var lay := spektrum_layout(c, rc)
+	for gr: Array in lay["groups"]:
+		if int(gr[2]) == 0:
+			_spektrum_chairs(gr[0], float(gr[1]), deck)
+		else:
+			_spektrum_sofa(gr[0], float(gr[1]), deck, c)
+	_spektrum_dj(lay["dj"], lay["dj_face"], deck)
+	var k := 0
+	for pp: Vector2 in lay["palms"]:
+		_spektrum_palm(pp, deck, k)
+		k += 1
+	for p: Vector2 in lay["parasols"]:
+		_prism(_circle(p, 0.06, 4), deck, deck + 2.3, Color("#c9ced2"), Color(0, 0, 0, 0), M_STONE)
+		_mode = M_STONE
+		_pyramid(_circle(p, 1.5, 8), deck + 1.95, deck + 2.55, SPEKTRUM_WHITE.lightened(0.04))
+		_mode = keep
+
+
+## The club's plan on its deck round `c` (radius `rc`), for the model and the crowd (crowds.gd
+## sites `spektrum_view` and `spektrum_dj`): six lounge groups [middle, turn, 0 armchairs / 1
+## sofa] (the two by the DJ left out), the DJ's spot and the way they face (south, to the bar
+## and the camera), the seats [spot, facing] of every armchair and sofa piece, the dancers'
+## spots in a crescent before the booth facing it, the palms and the parasols.
+static func spektrum_layout(c: Vector2, rc: float) -> Dictionary:
+	var north := Vector2(0.0, -1.0)
+	var groups: Array = []
+	var seats: Array = []
+	for k in 8:
+		var t := TAU * (float(k) + 0.5) / 8.0
+		var dir := Vector2.from_angle(t)
+		if dir.dot(north) > 0.7:
+			continue  # the DJ's side
+		var p := c + dir * (rc * 0.6)
+		var sofa := k % 2
+		groups.append([p, t, sofa])
+		if sofa == 0:
+			for s in 4:
+				var d := Vector2.from_angle(t + TAU * float(s) / 4.0)
+				seats.append([p + d * 0.95, -d])
+		else:
+			var face := (c - p).normalized()
+			for s in 5:
+				var ang := face.angle() + PI + (float(s) - 2.0) * 0.45
+				var d := Vector2.from_angle(ang)
+				seats.append([p + d * 1.25, -d])
+	var dj := c + north * (rc * 0.45)
+	var dancers: Array = []
+	for i in 14:
+		var ang := -PI * 0.5 + (float(i) - 6.5) * 0.19
+		var at := c + Vector2.from_angle(ang) * (2.9 + 0.55 * float(i % 2))
+		dancers.append([at, (dj - at).normalized()])
+	var palms: Array = []
+	for k in 6:
+		palms.append(c + Vector2.from_angle(TAU * float(k) / 6.0 + 0.3) * (rc - 1.4))
+	var parasols: Array = []
+	for t: float in [0.9, 3.0]:
+		parasols.append(c + Vector2.from_angle(t) * (rc * 0.38))
+	return {"groups": groups, "seats": seats, "dj": dj, "dj_face": -north, "dancers": dancers,
+			"palms": palms, "parasols": parasols}
+
+
+## The club for the crowd (crowds.gd): the deck's middle, its height over the ground under the
+## outline (as the model's), the layout. {} without the tower in `data` (the streamed index has
+## the parts as `site_parts`: bake_sectors.py SITE_NAMES has Spektrum Tower).
+static func spektrum_plan(data: Dictionary) -> Dictionary:
+	var outline := PackedVector2Array()
+	for l: Dictionary in data.get("landmarks", []):
+		if str(l.get("name", "")) == "Spektrum Tower":
+			var flat: Array = l["p"]
+			for i in range(0, flat.size() - 1, 2):
+				outline.append(Vector2(float(flat[i]), float(flat[i + 1])))
+	if outline.size() < 3:
+		return {}
+	var drum := PackedVector2Array()
+	var drum_h := 0.0
+	for bld: Dictionary in data.get("buildings", data.get("site_parts", [])):
+		var flat: Array = bld["p"]
+		if flat.size() < 6 or str(bld.get("c", "")).to_lower() != "#637780" or float(bld.get("mh", 0.0)) > 0.5:
+			continue
+		var q := PackedVector2Array()
+		var mid := Vector2.ZERO
+		for i in range(0, flat.size() - 1, 2):
+			q.append(Vector2(float(flat[i]), float(flat[i + 1])))
+			mid += q[q.size() - 1]
+		mid /= float(q.size())
+		var h := float(bld.get("h", 0.0))
+		if h > drum_h and Geometry2D.is_point_in_polygon(mid, outline):
+			drum_h = h
+			drum = q
+	if drum.size() < 3 or drum_h < 40.0:
+		return {}
+	var c := Vector2.ZERO
+	for q in drum:
+		c += q
+	c /= float(drum.size())
+	var r := 0.0
+	for q in drum:
+		r += q.distance_to(c)
+	r /= float(drum.size())
+	var rc := r * 0.72
+	return {"outline": outline, "centre": c, "rc": rc, "deck_h": drum_h + SPEKTRUM_CLUB_UP,
+			"layout": spektrum_layout(c, rc)}
+
+
+## The DJ's booth: a black desk with a lit front panel towards the dance floor, a speaker stack
+## at each end and a lit truss bar over it on two posts.
+func _spektrum_dj(p: Vector2, face: Vector2, deck: float) -> void:
+	_o = p + face * 0.75
+	_a = face
+	_b = Vector2(-face.y, face.x)
+	_lbox(0.0, 0.0, 0.35, 1.0, deck, deck + 1.0, Color("#1c1d20"), M_STONE, Color("#2a2c30"))
+	_lbox(0.37, 0.0, 0.02, 0.95, deck + 0.15, deck + 0.9, Color("#ff3fb4"), M_LAMP)
+	for v: float in [-1.45, 1.45]:
+		_lbox(0.0, v, 0.32, 0.32, deck, deck + 1.7, Color("#161719"), M_STONE)
+	for v: float in [-1.45, 1.45]:
+		_lbox(-0.6, v, 0.06, 0.06, deck, deck + 2.8, Color("#9aa0a5"), M_STONE)
+	_lbox(-0.6, 0.0, 0.08, 1.55, deck + 2.8, deck + 2.95, Color("#9fe8ff"), M_LAMP)
+
+
+## Four white armchairs round a white cube table that glows at night (the photos' lounge
+## corners), turned by `t`.
+func _spektrum_chairs(p: Vector2, t: float, deck: float) -> void:
+	_o = p
+	_a = Vector2.from_angle(t)
+	_b = Vector2(-_a.y, _a.x)
+	_prism(_rect(0.0, 0.0, 0.32, 0.32), deck, deck + 0.5, SPEKTRUM_CUBE, SPEKTRUM_CUBE, M_LAMP, M_LAMP)
+	for s in 4:
+		var d := Vector2.from_angle(t + TAU * float(s) / 4.0)
+		_o = p + d * 0.95
+		_a = d
+		_b = Vector2(-d.y, d.x)
+		_lbox(0.0, 0.0, 0.36, 0.36, deck, deck + 0.42, SPEKTRUM_WHITE, M_STONE)
+		_lbox(0.3, 0.0, 0.1, 0.36, deck + 0.42, deck + 0.82, SPEKTRUM_WHITE.darkened(0.04), M_STONE)
+
+
+## A curved white sofa: five segments on an arc round a cube table and two poufs, its open side
+## towards the bar.
+func _spektrum_sofa(p: Vector2, t: float, deck: float, c: Vector2) -> void:
+	var face := (c - p).normalized()
+	var keep := _mode
+	for s in 5:
+		var ang := face.angle() + PI + (float(s) - 2.0) * 0.45
+		var at := p + Vector2.from_angle(ang) * 1.25
+		_o = at
+		_a = Vector2.from_angle(ang)
+		_b = Vector2(-_a.y, _a.x)
+		_lbox(0.0, 0.0, 0.32, 0.26, deck, deck + 0.42, SPEKTRUM_WHITE, M_STONE)
+		_lbox(0.27, 0.0, 0.1, 0.26, deck + 0.42, deck + 0.8, SPEKTRUM_WHITE.darkened(0.04), M_STONE)
+	_prism(_circle(p, 0.3, 4), deck, deck + 0.48, SPEKTRUM_CUBE, SPEKTRUM_CUBE, M_LAMP, M_LAMP)
+	for s: float in [-1.0, 1.0]:
+		var q := p + face * 0.7 + Vector2(-face.y, face.x) * 0.55 * s
+		_prism(_circle(q, 0.25, 6), deck, deck + 0.4, SPEKTRUM_WHITE, SPEKTRUM_WHITE, M_STONE, M_STONE)
+	_mode = keep
+
+
+## A palm in a tall white pot (the photos' terrace palms): a slim trunk and seven fronds.
+func _spektrum_palm(p: Vector2, deck: float, k: int) -> void:
+	var keep := _mode
+	_mode = M_STONE
+	_frustum(_circle(p, 0.42, 8), deck, _circle(p, 0.55, 8), deck + 0.95, Color("#efede6"), Color("#4a3a2c"))
+	var h := 3.0 + 0.4 * float(k % 3)
+	var lean := Vector2.from_angle(float(k) * 1.7) * 0.25
+	var crown := Vector3(p.x + lean.x, deck + h, p.y + lean.y)
+	_beam(Vector3(p.x, deck + 0.9, p.y), crown, 0.24, Color("#6b5a44"))
+	for f in 7:  # odd: two opposite fronds would share a side plane and flicker
+		var a := TAU * float(f) / 7.0 + float(k) * 0.5
+		var tip := crown + Vector3(cos(a) * 1.5, -0.6 - 0.15 * float(f % 2), sin(a) * 1.5)
+		_beam(crown, tip, 0.38, Color("#4f7a3a").lightened(0.05 * float(f % 3)))
+	_mode = keep
+
+
+## The names: the tower's (parody) on the crown's screens to the south and north, the club's on
+## the screens to the east and west, the neon lit at night.
+func _spektrum_signs(c: Vector2, r: float, top: float) -> void:
+	var rs := r + 0.45
+	var mid_y := top + SPEKTRUM_SCREEN_TOP * 0.5 - 0.2
+	for d: Vector2 in [Vector2(0, 1), Vector2(0, -1)]:
+		var k := 10.0 / Neon.length_of(SPEKTRUM_SIGN)
+		var y := mid_y - Neon.ROW_H * Neon.PIXEL * k * 0.5
+		var at := c + d * rs
+		signs.append([SPEKTRUM_SIGN, Vector3(at.x, y, at.y), Vector3(d.x, 0.0, d.y), k, Color(0.88, 0.97, 1.0)])
+	for d: Vector2 in [Vector2(1, 0), Vector2(-1, 0)]:
+		var k := 7.0 / Neon.length_of(SPEKTRUM_CLUB)
+		var y := mid_y - Neon.ROW_H * Neon.PIXEL * k * 0.5
+		var at := c + d * rs
+		signs.append([SPEKTRUM_CLUB, Vector3(at.x, y, at.y), Vector3(d.x, 0.0, d.y), k, Color(1.0, 0.35, 0.8)])
 
 
 # --- Q22 and Rondo 1 (the top-50 photo pass, 2026-11-08) ---------------------------------------

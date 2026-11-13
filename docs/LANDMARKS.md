@@ -300,7 +300,7 @@ Checks: `check_landmarks.gd` runs on the full map for EVERY site that has a card
 | Warszawskie Centrum Finansowe | S_PUNCHED + S_RIBBON | REBUILT 2026-11-08 from F's photos (L2, spec `wcf.md`, `_build_wcf`): the white punched-window slab (144 m) wrapping the ribbon-glazed teal slab (130 m) on its curve, the granite-and-green-glass podium, the plant and the red-and-white mast | the curved crown parapet's louvres; night look on the phone |
 | Centrum LIM (Marriott; "PREZYDENT" sign, SAMSONG on mid band) | S_GRID | `_marriott`: dark bands, lattice mast, red lamp; crown name | lit cells too cold/many |
 | Chałubińskiego 8 | S_FINS | mapped colours kept | antenna / dark-glass refit unlit |
-| Spektrum Tower | S_BANDS, S_GRID, S_RIBBON by part (`skins`, top-50 T35, 2026-11-08) | #5f86a3 drum, #26384a slabs, #a8cbcb crown ring | - |
+| Spektrum Tower | REBUILT 2026-11-13 from F's eleven photos (spec `spektrum.md`, `_build_spektrum`): S_BANDS drum, S_GRID slabs, glazed podium | #5f86a3 drum, #26384a slabs; the slanted glass fin (M_GLASS, lit edge); the crown's glass screens with a blue LED rail; the rooftop club THE WJU (lit ring, white lounge, palms, parasols, round bar); signs SPEKTRAL and THE WJU | people on the terrace; phone look at night |
 | The Bridge | S_FINS | - | - |
 | Chilton (Hilton Warsaw City, Grzybowska 63) | S_BANDS | parody sign CHILTON | - |
 | Westynka (The Westin, Jana Pawła II 21) | S_GRID | mapped, sign WESTYNKA | - |
