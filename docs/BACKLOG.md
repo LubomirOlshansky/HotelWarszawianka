@@ -1648,6 +1648,31 @@ is gone, so a head-on hit stops the car dead again (road-objects.md 1.1).
 - [x] Street-level photos in the cloud (2026-11-04): F allowed the hosts and made a Mapillary app (`MAPILLARY_TOKEN`); `tools/street_photos.py` finds the photos facing a point; added to the model-from-photos skill, object-modeler and road-auditor
 - [x] `panoramax.openstreetmap.fr` allowed too (F, 2026-11-04)
 
+## A city built for driving: solidity classes (F, 2026-11-13)
+
+F: "now there are a lot of walls and objects that make driving hard; what overall decision; which
+should not be collidable, which to remove, which make the game unreasonably harder". Research and
+the ranked plan: `docs/design/drivable-city.md`. Found: the census of 2026-11-04 has not moved
+(23,980 m of barrier lines within 3 m of a lane then 24,131; 11 object verdicts in nine days, all
+a new look with the same collider). Decided to propose: nothing stops the car unless it is a
+building, a structure edge, water or a heavy vehicle; five classes (Hard, Smash, Push, Ride,
+Ghost) set by object type and context in bulk, the override file for exceptions only. Fences
+(12.1 km) and parked cars (3.3 km) are 80 % of the hard metres within 1 m of a lane on
+ground-level streets. This order replaces steps 1-7 of "Road objects and collisions" above (the
+same work, re-ranked; its detail in road-objects.md still holds).
+- [x] Research: every object type with its purpose and verdict, what makes the game unreasonably harder, design rules R1-R9, the plan (2026-11-13, docs only)
+- [ ] 1 Contact log (`check_lane_drive --contacts`: collider class and census id, speed before and after), the sloppy driver, a dead-stop line in dev and Autopilot runs; baseline per street
+- [ ] 2 Collision rework v2 (road-objects.md 4.2-4.3): answer by angle, head-on kick, corner pivot, traffic shove; after or inside the controls thread (both edit `car.gd`); F's phone A/B
+- [ ] 3 Smash class: the solidity table as data; fences and hedges off the hard collider onto a soft layer (drag, sound, debris); a fence with a drop over 1.5 m, a railway cutting or water behind it becomes a guard rail; bench, both city paths
+- [ ] 4 Parked cars: Push (slide and settle), every other one out where the free width is under 3.6 m or within 15 m of a junction; bench
+- [ ] 5 Rule R2 as a check (no collider without a drawing, none more than 0.5 m bigger in plan), a `--colliders` view for shots, the audit of the ~22,600 pocket walls
+- [ ] 6 Narrow streets and yards: collider set back 0.3-0.5 m from fronts on streets under 8 m, dead-end yards gated, no kerb jolt there
+- [ ] 7 Tapers on every hard end within 3 m of a lane (1:4), convex building corners near lanes chamfered
+- [ ] 8 Barrier walls by drawn height (under 0.6 m Ride, 0.6-1.2 m Smash, over 1.2 m Hard; fragments under 4 m removed); tram islands and stop platforms Ride on every side; canopies on posts
+- [ ] 9 Small things: stalls Smash, carts Push, busts, stones and steles under 1 m Ghost, monuments within 1 m of a lane moved back
+- [ ] 10 Ratchets (R9): hard metres within 1 m of a lane by class in `check_map_data.py`; contacts per km and dead stops per street in the drive check
+- [ ] 11 Street sweeps for what the class rules leave (exceptions, landmark rings, look)
+
 ## After the beta: driving extras and the city economy (F, 2026-11-03, plan only)
 
 F asked for research on arcade driving games and on business and economy games, for a layer after the
