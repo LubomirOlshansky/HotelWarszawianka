@@ -421,6 +421,21 @@ at the hospital. Out of time: TRY AGAIN, NEXT CALL or FREE ROAM.
 - **One activity at a time**: a job starts only with no rescue or race under way and not from
   the helicopter; while it runs, rescue calls and race challenges wait, and the helicopter
   stays parked (the order rides in the car).
+  Since 2026-11-13 (tech-debt TD-1) `jobs.gd` is an activity of the kit (`activity.gd`) and its
+  fourth side job: a pull-in starts it with no call, and the order card, the drive and the result
+  card are the stages of the kit's run (`stage`). The kit keeps its cards, its status line, the
+  ✕, the door's ring and the end; the arrow, the metres, the minimap's dot, the stop assist and
+  the autopilot's car read the door through the director, and main.gd's own lines keep only the
+  pointer to the next stand after NASTĘPNE, which is no run and is asked apart
+  (`jobs.pointing()`). "Is a side job on?" is the director's answer (`activities.job_on()`), and
+  the M and K keys reach a card through the director (`activities.primary()`, `secondary()`).
+  When a delivery ends the kit takes down only a card of its own, a press reaches the job only
+  on its own card, and its card comes back when another card that covered it goes (the old
+  script took down whichever card was up and heard every press). The play has its own check:
+  `check_job_play.gd` (verify step `jobplay`, run at `--fixed-fps 60`): the real `jobs.gd` on
+  the committed map, what `setup` builds, the pull-in, the order and its count-down, the drive,
+  the heat, the jars, the door, the result cards, the craft kebab and the Zagłębie, the pointer,
+  the courier beside an order, other cards and other jobs, the test flags and the autopilot.
 - **Dialogue** (`dialogue.gd`): loads `data/dialogue.json` (95 original Polish lines with
   English subtitles; a line can be tagged for a situation, e.g. roof-rescue or across-the-river
   lines) and picks lines per group from a shuffled bag, never the same twice in a row. An AI
@@ -4226,7 +4241,8 @@ Since 2026-11-13 (tech-debt TD-1) `roundup_job.gd` is an activity of the kit (`a
 main.gd's child, in the frame just before `jobs.gd`: `jobs.gd` no longer steps it nor slides the
 autopilot's car for it (main.gd's `_slide_car` does, as for every activity of the kit), and the
 bench's "side jobs + eggs" line no longer holds its step (about 1 µs a frame while idle).
-`jobs.gd` still answers `busy`, the target and the card keys for it.
+`jobs.gd` answered `busy`, the target and the card keys for it until it joined the kit itself
+(the same day): the director does now, and `courier_race.gd` stays the deliveries' child.
 Data: `eggs.json` E34 (`event`) and E40 (`stop`, 8 m, 2 s): no words changed.
 
 - **The courier race** (parodies.md 4.3): at night, a kebab order rolls (`CourierRace.roll`, by the

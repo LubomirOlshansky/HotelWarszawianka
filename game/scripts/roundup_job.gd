@@ -11,9 +11,9 @@ extends "res://scripts/activity.gd"
 ## morning (storefronts.gd `restore_collected`, by day). One activity at a time, as every job.
 ##
 ## It is an activity of the kit (activity.gd): the kit has its cards, the ✕, the ring and "busy",
-## and the director (activities.gd) says when it may offer itself. jobs.gd still answers `busy()`,
-## the target and the card keys for it by name (police.gd, rivals.gd, first10.gd and main.gd ask
-## jobs.gd), until jobs.gd moves too (tech-debt TD-1). Cost: idle,
+## and the director (activities.gd) says when it may offer itself and answers for it (`job_on`,
+## the target, the M and K keys) since jobs.gd joined the kit too; jobs.gd keeps `round_busy()`
+## for its own minimap squares and its pointer to the next stand. Cost: idle,
 ## a 2 Hz look at the depots (a handful of distances); while it runs, ≤ 10 distances a frame and
 ## the HUD's status. Nothing new is drawn but the depots' dashed rings (one mesh each, shown at
 ## night only while no job runs) and the shared beacon: +0-1 draw calls near a depot.
