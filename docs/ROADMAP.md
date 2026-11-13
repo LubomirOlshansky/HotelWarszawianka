@@ -723,6 +723,12 @@ Beta goal: a visitor explores the city with everything open, an easy city drive,
 - [ ] Collision rework v2: walls redirect by angle, never stop; Classic gets the wall follow; traffic shoved, not a stop (F's phone A/B)
 - [ ] Street sweeps with verdicts per object, first Marszałkowska, Świętokrzyska, Jerozolimskie; stairwells and canopies; soft fences; narrow streets
 
+### Left: a city built for driving (F, 2026-11-13; plan docs/design/drivable-city.md, re-ranks the block above)
+- [x] Research: every object type with purpose and verdict, five solidity classes (Hard, Smash, Push, Ride, Ghost), design rules, ranked plan (2026-11-13, docs only)
+- [ ] Contact log and the sloppy driver; baseline of contacts and dead stops per street
+- [ ] Fences and hedges break when driven through (Smash class, in bulk); parked cars can be pushed, thinned in pinches
+- [ ] No invisible or oversized colliders (check and collider view); narrow streets and yards; tapers and chamfers; the ratchets
+
 ### Left: smoother roads, road objects, then buildings (F, 2026-11-04; plan docs/design/roads-and-objects-plan.md, items in docs/plan/city-plan.json)
 - [x] Research and the day-by-day plan; `tools/street_features.py` (Mapillary detections against the game's props), 2026-11-04 (docs/tools only)
 - [ ] Junction shapes with kerb returns and smoothed bends (RS1, RS2), both city paths
