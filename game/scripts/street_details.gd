@@ -1,4 +1,4 @@
-extends Node3D
+extends "res://scripts/place.gd"
 ## Street details along the main line (docs/design/street-details.md, BACKLOG audit item 5): kiosks,
 ## flower stalls, café tables, planters, ad columns, bollards, an ice-cream cart and tram/bus stop
 ## kits on the pavements of the streets the main line sends the player down, from
@@ -27,8 +27,6 @@ const MAX_SECTOR := 100
 ## (map_builder.platform_top), not on the paving.
 const ON_PLATFORM := "platform"
 
-var map: Node3D
-var count := 0
 var meshes := 0
 
 
@@ -106,11 +104,6 @@ func build() -> void:
 				shape.transform = Transform3D(xf.basis, xf.origin + Vector3.UP * 1.2)
 				body.add_child(shape)
 			count += 1
-		var mi := MeshInstance3D.new()
-		mi.name = "StreetDetails_%d_%d" % [key.x, key.y]
-		mi.mesh = st.commit()
-		mi.material_override = Models.material()
-		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		add_child(mi)
+		pour(st.commit(), false, "StreetDetails_%d_%d" % [key.x, key.y])
 		meshes += 1
-	add_child(body)
+	part(body)

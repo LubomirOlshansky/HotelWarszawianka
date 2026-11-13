@@ -1,4 +1,4 @@
-extends Node3D
+extends "res://scripts/place.gd"
 ## First scene (docs/design/first-scene.md items 4 and 5, 2026-11-01): the street furniture the
 ## map data doesn't have, on Marszałkowska's east pavement in the first frame of play (by the
 ## Eastern Wall's stores, from Junior to the pavilions under the towers): a newspaper kiosk, a
@@ -106,8 +106,6 @@ const STREET_T := 8.0
 const SOLID := {"kiosk": Vector2(1.45, 1.1), "stall": Vector2(1.2, 0.9), "shelter": Vector2(2.15, 0.98),
 		"stone": Vector2(0.6, 0.4)}
 
-var map: Node3D
-var count := 0
 
 
 ## Builds the mesh and the colliders; `map` gives the ground (map_builder.ground_height).
@@ -172,12 +170,8 @@ func build() -> void:
 			body.add_child(shape)
 		count += 1
 	_pasaz_masts(st)
-	var mi := MeshInstance3D.new()
-	mi.name = "FirstSceneProps"
-	mi.mesh = st.commit()
-	mi.material_override = Models.material()
-	add_child(mi)
-	add_child(body)
+	pour(st.commit(), true, "FirstSceneProps")
+	part(body)
 
 
 ## Whether a point (plan x, z) lies on Pasaż Wiecha (PASAZ). map_builder.gd asks it for each lamp.

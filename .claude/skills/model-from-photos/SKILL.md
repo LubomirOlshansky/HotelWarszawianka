@@ -185,6 +185,14 @@ pass, what was fixed, what still differs from the photos. The next thread reads 
 | Score against the photos, accept or return a fix list | `art-director` | Opus |
 | Final pick | the user | |
 
+## 6b. A place that is not a landmark site
+
+Furniture, signs, standing people or a small structure at one spot (a bar's terrace, a kiosk row)
+is a **place script**, not a site in `landmarks.gd` and not a `_build_x` hook in `main.gd`: a script
+that `extends "res://scripts/place.gd"`, static meshes through `pour(...)`, plus one row in
+`Places.TABLE` (`game/scripts/places.gd`) with its triangle budget. `check_place_scripts.gd` holds it
+(docs/architecture/extending.md).
+
 ## 7. Evals (planned, not run yet)
 
 To learn whether this skill beats a plain brief: build the **Palace**, the **Rotunda** and the

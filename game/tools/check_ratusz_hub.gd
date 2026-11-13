@@ -72,7 +72,8 @@ func _init() -> void:
 		_expect(off == 0, "platform at %s: %d arch ends off the platform (of %d arches)" % [c, off, ribs.size()])
 	# The hub with no map (flat ground).
 	var hub := RatuszHub.new()
-	hub.build(data)
+	hub.ctx = {"data": data}  # what main.gd hands every place (place.gd)
+	hub.build()
 	_expect(hub.canopies == plats.size(), "%d canopies built" % hub.canopies)
 	_expect(hub.arches >= 40, "only %d arches" % hub.arches)
 	_expect(hub.boards == 2 * hub.canopies, "%d boards" % hub.boards)

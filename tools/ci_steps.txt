@@ -112,6 +112,7 @@ parodies             quick
 pause                quick
 pause-run            smoke
 places               quick
+placescripts         quick
 placzamkowy          quick
 plain                runs
 pois                 roads
