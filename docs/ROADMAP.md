@@ -576,7 +576,7 @@ then the Launch gate.
   - [ ] RF4b Powiśle roof terraces, L-shaped hips; the phone bench and a Mac look
 
 ### Left: content and feel
-- [ ] **Rooftop run** (F, 2026-11-13; BACKLOG "Rooftop run"): a side job on the Activity kit that drives a photographer between the rooftop clubs PEVEL 27, THE WJU (Spektrum Tower, PR #703) and "the roof" (which roof is open in QUESTIONS); queued, new work is stopped
+- [ ] **Rooftop run** (F, 2026-11-13; BACKLOG "Rooftop run"): a side job on the Activity kit that drives a photographer between the rooftop clubs PEVEL 27, THE VIEW (Spektrum Tower, PR #703) and "the roof" (which roof is open in QUESTIONS); queued, new work is stopped
 - [ ] **"Betonowy album", collect every modernist building** (F, 2026-11-03; docs/design/modernism-collection.md section 2): Pani Wanda's lost slides as Fotka Kadr shots, five story slides, the Emilia then card, the "Betonowa" paint for the whole album. Designed, not built; ships with the nine ★ buildings and grows as M1-M17 land
 - [x] **Bar-crawl taxi quests** (F, 2026-11-04): drive a company of 3-5 through three famous bars (the parody fascias on Nowogrodzka, Mazowiecka, Wilcza, the Powiśle viaduct, the boulevard, the Party House, Praga) against the clock. Done 2026-11-07: `bar_crawl.gd`, four groups and four routes, the stays at the kerb, the mood and the pay, a night call (20:00-04:00); `check_bar_crawl` in verify. Stamps, the phone feel test and more routes in BACKLOG "Bar-crawl taxi quests, next steps"
 - [ ] **Vitkac quests** (F, 2026-11-03; backlog "Vitkac quests and ride stories"): the black-stone luxury block on Bracka as a quest place, with the quests built around it. Not started; the landmark is the 2026-11-03 photo build (PR #385)
