@@ -953,6 +953,15 @@ for s in $want; do
 				0) row PASS "fixes" $secs "$(grep '^road_fixes: ' $logs/fixes.log | tail -1)" ;;
 				*) row FAIL "fixes" $secs "$(grep '^road_fixes: ' $logs/fixes.log | tail -1) ($logs/fixes.log)" ;;
 			esac ;;
+		roadtruth)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/road_truth.py --check > $logs/roadtruth.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			case $code in
+				0) row PASS "roadtruth" $secs "$(grep '^road_truth counts: ' $logs/roadtruth.log | tail -1)" ;;
+				*) row FAIL "roadtruth" $secs "$(grep '^road_truth: ' $logs/roadtruth.log | tail -1) ($logs/roadtruth.log)" ;;
+			esac ;;
 		smooth)
 			t0=$EPOCHREALTIME
 			python3 -I $ROOT/tools/road_smooth.py --check > $logs/smooth.log 2>&1

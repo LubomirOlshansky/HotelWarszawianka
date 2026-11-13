@@ -137,6 +137,7 @@ ride-police          local     slow
 rideplay             quick
 rides                quick
 roads                roads
+roadtruth            quick
 roadworks            quick
 roadworks-prebuilt   smoke     slow
 roofdress            quick

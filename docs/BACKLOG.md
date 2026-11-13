@@ -4,6 +4,13 @@ Small problems that agents reported or that showed up in screenshots. They are f
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
 
+## Rooftop run: drive a photographer between the roof clubs (F, 2026-11-13: "add some quest to backlog to transport photographer between the rooftop clubs like pevel27, the view and the roof")
+
+Not built: new work is stopped (STOP NEW WORK, F 2026-11-11); queued for when it is lifted. A side job in the Podwózka family: a photographer (a passenger with a face, like the ride stories) has to shoot the city's rooftop clubs in one evening and the player drives them from roof to roof.
+- [ ] Stops, in the order F named them (parody names only): **PEVEL 27** (F's spelling of Level 27; the real club is on Al. Jerozolimskie, the game's only rooftop club today is Level 26 on the Atlas Tower, site `level26_club`, so the 27 needs its own parody name and place, QUESTIONS), **THE WJU** (the parody of The View, the club on Spektrum Tower, Twarda 18, built in PR #703; F kept this name on 2026-11-13), and **"the roof"** (which roof F means is open, QUESTIONS; default LORETKA, the pink date bar on HOTEL PIURE's roof, the one rooftop venue already in the game).
+- Default to build when it starts: a job on the Activity kit (`extends "res://scripts/activity.gd"`, `is_job` set, registered with `activities.add`; recipe in `docs/architecture/extending.md`, the way Podwózka's rides and the courier job are ported): the photographer calls, the player picks them up, three stops each ending at the club's door or its lift (the Senatorek lobby's way in is the model for "up to the roof"), a few seconds of flash and a line at each stop, then a fare and a tip, +½ star on a smooth drive like a ride. Words in Polish with English (warsaw-tone skill), the caller's face from `Portraits` (initial on a disc until a portrait exists). Check: `check_job_play`-style play of the whole job in a new `check_*` that joins `tools/ci_steps.txt`.
+- Extras once it plays: the stop order by night (clubs lit, queues up), a shot that needs the car stopped in a ring for 2 s, the photographer's photos as Fotka cards.
+
 ## Churches still to model from photos (F, 2026-11-13; review in docs/LANDMARKS.md "Churches review")
 
 Review only, nothing built. Each item is one thread, photo-first (model-from-photos skill; Mapillary and
@@ -120,6 +127,7 @@ F: too little detail in Powiśle; wants real houses, street details and the powe
 - [x] P13b Powiśle houses pass 2 (2026-11-09): 19 photographed houses off Tamka in `powisle_houses.gd` (plaster, balconies, base, street fronts from the map). Left: Tamka 36 and other firewall murals, Smolna 32 (no usable photo), Pawilon Tańca (inside only), the brick ornament on Klub Bankowca, the stone grid on Carpathia
 - [x] P1 Elektrownia Powiśle from photos and P2-ish Chopin museum rebuild (2026-11-09, specs elektrownia.md, ostrogski.md). Left: the new blocks round the Elektrownia, its yard and night look, the castle stairs from Tamka
 - [x] P7/P8 from F's photos (2026-11-09): Rotunda Dynasy (`rotunda_dynasy`), Park Odkrywców's listening pipes and dishes, the Kahl stone (tamka.gd PARK_*). Left from the photo set: Teatr Ateneum's portico (which face is the door), Buffo, the BUW roof garden and canopy, the corten river stairs, the moorings and the port, the Zajęcza mural. Street plates and Teatr Ateneum's portico done in follow-ups (2026-11-09). Still left: Buffo and the Zajęcza mural (parked in QUESTIONS, 2026-11-09: wall and outline not identifiable), the Bulwary's corten stair landing and terraced riverfront steps by the science centre (photos F02/*, needs the quay's heights from the terrain), the moorings and piers; the BUW roof garden is already detailed in `buw.md`
+- [ ] P6/P8 Powiśle alive (F, 2026-11-13; plan `docs/powisle-life.md`): L1 ~25 real bars and shops as parody signs on their real streets (Zajęcza 4, the boulevard 9, Solec, Aleja 3 Maja, Browarna, Smolna, Ludna; Sonnet, light) · L2 terrace/garden helper, one MultiMesh per cell, summer and winter, empty in rain (Opus, full DoD, bench) · L3 day schedule of people and Thu-Sat queues on Zajęcza (crowds.gd; Sonnet, Opus review of caps) · L4 bar music through doors and night glow (Opus, lights budget) · L5 furniture to 1.5× (P5) and the park pass (P7) · L6 Mac then phone look. Waits for the "Elektrownia Powiśle with life" thread for the Elektrownia's own spots
 - [ ] P13 Up to 300 more real houses, quest loop and Tamka first, Museum of Fryderyk Chopin (list H001-H300 in docs/powisle-photos-needed.txt)
 
 ## Trees and fences in the water and on the roads (F, 2026-11-08)
@@ -1072,7 +1080,8 @@ level is not: a first measurement of the baked map found 378 lane count changes 
 from dead ends, 77 kinks over 20° on main roads and 4 of 14 roundabout rings whose lane count
 changes inside the ring (upper bounds, not yet checked against photos). In order:
 
-- [ ] RT-1 `tools/road_truth.py` (rules R1-R10, verify step `roadtruth`, findings on the console map)
+- [x] RT-1 `tools/road_truth.py` (2026-11-13): rules R1-R10 on the baked map as a ratchet (verify step `roadtruth`: R1 379, R2 71, R3 403, R5 144, R6 83, R7 262, R8 56, R9 21, R10 266), and with `--osm=` on the Mac 264 turn restrictions the lane graph ignores (of 556) and 353 approaches whose lanes take exits their `turn:lanes` forbid; 12 of 14 sampled places differ from the aerial photo
+- [ ] RT-1b the checker's findings as a layer on the dev console's map (`--json=`); the graph edges of a roundabout flagged by the bake so R9 need not guess by shape
 - [ ] RT-2 lane links through junctions from OSM `turn:lanes` instead of `next_lane`'s guess; arrows from the same data
 - [ ] RT-3 keep OSM `restriction` relations (`prepare_demo.py` drops them), drop forbidden links, U-turns only at dead ends and mapped median gaps
 - [ ] RT-4 lane adds and drops as paint (blips joined or made turn pockets; a dashed line starts, hatching, the kerb stays)

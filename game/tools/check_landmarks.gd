@@ -100,7 +100,8 @@ func _check() -> int:
 		# deck passes beside it, so Most Świętokrzyski needs fewer stopped rays.
 		# A moored barge (barka_*, and the floating Dworzec Wodny) lies in the river: only the rays from the bank side meet a car's
 		# way, the others start over the water (2026-11-02, the first CI map run: 7-8 of 12).
-		var need := 6 if info["key"] == "swieto" else 10
+		# The Powiśle gate towers (powisle_towers) flank the Aleje: rays from along the road pass between them.
+		var need := 6 if info["key"] == "swieto" else (8 if info["key"] == "powisle_towers" else 10)
 		if str(info["key"]).begins_with("barka_") or info["key"] == "dworzec_wodny":
 			need = 5  # Dworzec Wodny floats at the boulevard's edge like the barges
 		if tap != k or hits < need:

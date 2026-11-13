@@ -16,7 +16,8 @@ extends Node3D
 ## Loop MW-3: the crowds (crowds.gd `add_crowd`) add **murmur** (a queue's or the steps' talk,
 ## `crowd_murmur`) and the steps' **guitar** (`steps_guitar`, within 20 m), each sounding while
 ## its crowd says so (`when`). The dog barks wait for MW-4. F (2026-11-06): the Powiśle saucer's
-## jazz band (**jazz**, `jazz_trio`) from its stage while the band is on it.
+## jazz band (**jazz**, `jazz_trio`) from its stage while the band is on it; THE WJU's DJ on
+## Spektrum's roof (**rooftop**, `techno_thump`) while the DJ is at the booth.
 ## At most MAX_LIVE players sound at once: the nearest emitters that are sounding, each only
 ## within its kind's reach. Everything is decided twice a second (TICK) from the camera's focus
 ## and the game clock (time_of_day.gd local_clock); nothing runs per frame but a timer. Headless
@@ -46,8 +47,11 @@ const KINDS := {
 	# F (2026-11-06): the jazz band under the Powiśle saucer (crowds.gd's `jazz` site), heard across
 	# the square and from Kruczkowskiego while the concert is on.
 	"jazz": {"file": "jazz_trio", "db": -9.0, "unit": 12.0, "reach": 95.0, "up": 2.0},
+	# F (2026-11-13): THE WJU's DJ on Spektrum Tower's roof (crowds.gd's `view_dj` site), 125 m up:
+	# a wide unit so the beat carries down to Twarda faintly and fills the helicopter by the roof.
+	"rooftop": {"file": "techno_thump", "db": -8.0, "unit": 35.0, "reach": 150.0, "up": 1.5},
 }
-const LOOPING := ["club", "busker", "murmur", "guitar", "queue", "chant", "gong", "thump", "jazz"]
+const LOOPING := ["club", "busker", "murmur", "guitar", "queue", "chant", "gong", "thump", "jazz", "rooftop"]
 ## A train below a metro entrance every 3-4 minutes (vision.md 3.5).
 const METRO_GAP := Vector2(180.0, 240.0)
 ## The Patelnia's busker from 19:00 to 22:00 (vision.md 3.10: "at 19:00").
