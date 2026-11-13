@@ -1045,8 +1045,10 @@ Finishes no longer counts the pack's races in traffic (they have their own mark)
 pull now divides a speed change by the time since the car was last driven (a pool car out of
 sight is driven every other frame).
 
-**Frame cost** (the cloud, software renderer, 120 s): traffic 1.03 to 0.99 ms, rivals 0.10 to
-0.10, meet 0.01 to 0.01, draw calls unchanged (final numbers TBD-6b1).
+**Frame cost** (the cloud, software renderer, 120 s, no race on): traffic 1.03 to 1.09 ms (the
+trams, which this step does not touch, moved 0.85 to 0.90 in the same pair of runs), rivals 0.10
+to 0.11, meet 0.01 to 0.01, scripts 6.03 to 6.04 ms in all, 61 draws in the main pass before and
+after. The session's own work in a race is 0.1 ms a frame or less after the start.
 
 **Known and left** (BACKLOG). In Busy traffic a club racer far from the player still pays a
 large out-of-sight delay (`AWAY_*`, fitted on narrower streets: the wide-street case of step
