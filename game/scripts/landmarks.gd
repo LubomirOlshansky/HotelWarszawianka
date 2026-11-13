@@ -990,6 +990,10 @@ static func tower_colour(key: String, fallback: Color) -> Color:
 		return VITKAC_WALL
 	if key == "dom_partii":
 		return DOM_STONE
+	if key == "eon41":
+		return EON_STONE
+	if key == "asp37":
+		return ASP_PLASTER
 	if key == "jablkowscy":
 		return JAB_WALL
 	if key == "sheraton":
@@ -1190,6 +1194,8 @@ func _find_sites() -> void:
 	_find_sunken()
 	_find_deski()
 	_find_dom_partii()
+	_find_eon41()
+	_find_asp37()
 	_find_rynek()
 	_find_arkadia()
 	_find_forest()
@@ -1677,6 +1683,10 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_deski(s)
 			"dom_partii":
 				_build_dom_partii(s)
+			"eon41":
+				_build_eon41(s)
+			"asp37":
+				_build_asp37(s)
 			"rynek":
 				_build_rynek(s)
 			"syrenka":
@@ -7998,6 +8008,222 @@ func _sunk_canopy(sk: Dictionary) -> void:
 			_quad(Vector3(p1.x, g + 0.9, p1.y), Vector3(p0.x, g + 0.9, p0.y), Vector3(p0.x, g + 2.6, p0.y), Vector3(p1.x, g + 2.6, p1.y),
 					-nn, CANOPY_GLASS)
 			c += 1
+
+
+# --- Wybrzeże Kościuszkowskie 41 and the Academy of Fine Arts (F's photos, 2026-11-13) -----------
+
+## The power company's building (1937-39, Jabłoński and Korszyński, Wybrzeże Kościuszkowskie 41 at
+## the corner of Tamka; spec docs/landmarks/specs/eon41.md): an L of two wings in sandstone round
+## a courtyard, their right-angled corner turned into a quarter-round with eight metal medallions on
+## it, a glass-block stair tower beside the curve that rises over the roof into a round lantern (a
+## white band, an open steel lattice drum and a rim), the red company sign on the roof (the parody
+## ELEKTRON). The mapped outline's corner is a zigzag chamfer: here it is the true arc. Frame:
+## EON_T along the Tamka face towards the river, EON_W along the Wybrzeże face away from the
+## corner; EON_C is the sharp corner the two faces would meet in.
+const EON_C := Vector2(449.1, -592.5)
+const EON_T := Vector2(0.7628, -0.6460)
+const EON_W := Vector2(0.6234, 0.7824)
+const EON_R := 9.0                  # the corner's radius
+const EON_ARC := 8                  # its segments
+const EON_LOW := 21.5               # the wings' eave (six storeys)
+const EON_TALL := 25.5              # the corner block's eave (a storey over)
+const EON_TOWER := Vector2(9.0, 14.5)  # the stair tower along the Wybrzeże face (b from the corner)
+const EON_TOWER_TOP := 30.0
+const EON_STONE := Color("#b3a78f")
+const EON_LIGHT := Color("#c4b9a2")
+const EON_BASE := Color("#625d55")
+const EON_ROOF := Color("#6d6f70")
+const EON_GLASS := Color("#56646c")
+const EON_STEEL := Color("#3b4044")
+const EON_WHITE := Color("#e9e6de")
+const EON_BRONZE := Color("#5f5f52")
+const EON_BRONZE_LIGHT := Color("#8a8b78")
+const EON_RED := Color(0.86, 0.09, 0.14)
+## Medallions on the curve: [u along the arc 0..1, height over the ground, radius].
+const EON_MEDALLIONS := [[0.41, 19.8, 1.2], [0.83, 17.6, 1.0], [0.5, 15.8, 0.65], [0.12, 14.2, 1.0],
+		[0.8, 13.4, 1.3], [0.38, 11.4, 0.7], [0.72, 9.4, 1.1], [0.15, 7.8, 1.0],
+		[0.62, 5.6, 0.9], [0.3, 4.6, 0.8], [0.88, 6.4, 0.7], [0.2, 17.2, 0.8]]
+
+## The Academy of Fine Arts (Wybrzeże Kościuszkowskie 37; spec docs/landmarks/specs/asp37.md): the
+## 1911-14 school (Alfons Gravier) in pale plaster with its post-war storey and the new storey
+## under a dark zinc roof, and JEMS's 2013 wing on the street: four storeys, sand-coloured concrete
+## to the street and the side, a glass front to the courtyard.
+const ASP_OLD_AT := Vector2(520.0, -485.0)
+const ASP_NEW_AT := Vector2(480.0, -515.0)
+const ASP_OLD_EAVE := 12.4
+const ASP_OLD_TOP := 15.4
+const ASP_NEW_H := 16.2
+const ASP_PLASTER := Color("#e2cbae")
+const ASP_CREAM := Color("#e6d8be")
+const ASP_ZINC := Color("#596066")
+const ASP_SAND := Color("#cdbc9a")
+const ASP_GLASS := Color("#4d6670")
+
+
+func _find_eon41() -> void:
+	var ring := _tallest_at(Vector2(425.0, -560.0))
+	if ring.size() < 3:
+		return
+	_add_site("eon41", [ring])
+	if not sites.is_empty() and sites[-1]["key"] == "eon41":
+		sites[-1]["ring"] = ring
+
+
+func _find_asp37() -> void:
+	var old_ring := _tallest_at(ASP_OLD_AT)
+	var new_ring := _tallest_at(ASP_NEW_AT)
+	if old_ring.size() < 3 or new_ring.size() < 3:
+		return
+	_add_site("asp37", [old_ring, new_ring])
+	if not sites.is_empty() and sites[-1]["key"] == "asp37":
+		sites[-1]["old"] = old_ring
+		sites[-1]["new"] = new_ring
+
+
+## A point of the power company's frame: a along the Tamka face, b along the Wybrzeże face.
+func _eon_p(a: float, b: float) -> Vector2:
+	return EON_C + EON_T.normalized() * a + EON_W.normalized() * b
+
+
+## The footprint: the mapped wings with the corner's zigzag replaced by the true arc.
+func _eon_ring() -> PackedVector2Array:
+	var t := EON_T.normalized()
+	var w := EON_W.normalized()
+	var ctr := _eon_p(-EON_R, EON_R)
+	var ring := PackedVector2Array([Vector2(400.8, -551.6)])
+	for k in EON_ARC + 1:
+		var th := PI * 0.5 * k / EON_ARC
+		ring.append(ctr + (-w * cos(th) + t * sin(th)) * EON_R)
+	ring.append_array(PackedVector2Array([Vector2(460.0, -578.8), Vector2(489.8, -541.4), Vector2(485.4, -537.8),
+			Vector2(478.7, -532.2), Vector2(465.7, -548.8), Vector2(464.1, -547.6), Vector2(461.7, -550.7),
+			Vector2(463.2, -551.9), Vector2(462.8, -552.4), Vector2(452.4, -565.6), Vector2(447.2, -571.9),
+			Vector2(428.9, -556.6), Vector2(415.9, -545.7), Vector2(417.3, -544.1), Vector2(414.3, -541.5),
+			Vector2(412.9, -542.9), Vector2(410.3, -540.4)]))
+	return ring
+
+
+## A thin sign/plaque quad on a wall: from (a0, b0) to (a1, b1) in the frame, y0..y1 over the
+## ground, `out` the wall's outward normal, `proud` out of it.
+func _eon_plate(p0: Vector2, p1: Vector2, y0: float, y1: float, out: Vector2, proud: float, col: Color) -> void:
+	var keep := _mode
+	_mode = M_STONE
+	_wall(p0 + out * proud, p1 + out * proud, _g + y0, _g + y1, out, col)
+	_mode = keep
+
+
+func _build_eon41(_site: Dictionary) -> void:
+	var ring := _eon_ring()
+	_g = _ground_under(ring)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	var t := EON_T.normalized()
+	var w := EON_W.normalized()
+	var skin := M_SKIN + float(S_PUNCHED) / 16.0
+	# The wings, the plinth, the cornice and the parapet.
+	_prism(ring, g - 0.6, g + EON_LOW, EON_STONE, EON_ROOF, skin, M_STONE)
+	_band(ring, 0.1, g - 0.6, g + 1.3, EON_BASE)
+	# The corner block a storey higher: the Tamka end and the Wybrzeże wing's first 40 m.
+	var clip_a := PackedVector2Array([_eon_p(-18.0, -1.0), _eon_p(1.0, -1.0), _eon_p(1.0, 16.0), _eon_p(-18.0, 16.0)])
+	var clip_b := PackedVector2Array([_eon_p(-16.0, -1.0), _eon_p(1.0, -1.0), _eon_p(1.0, 42.0), _eon_p(-16.0, 42.0)])
+	var clip: PackedVector2Array = _largest(Geometry2D.merge_polygons(clip_a, clip_b))
+	var tall: Array[PackedVector2Array] = []
+	for q: PackedVector2Array in Geometry2D.intersect_polygons(ring, clip):
+		if q.size() >= 3 and not Geometry2D.is_polygon_clockwise(q):
+			tall.append(q)
+	for q in tall:
+		_prism(q, g + EON_LOW - 0.1, g + EON_TALL, EON_STONE, EON_ROOF, skin, M_STONE)
+		_band(q, 0.35, g + EON_TALL - 0.7, g + EON_TALL, EON_LIGHT)
+		_parapet(q, g + EON_TALL, 0.6, EON_STONE)
+		_collide(q)
+	_band(ring, 0.35, g + EON_LOW - 0.7, g + EON_LOW, EON_LIGHT)
+	_parapet(ring, g + EON_LOW, 0.6, EON_STONE)
+	_collide(ring)
+	pocket_rings.append(ring)
+	# The curved wall's eight bronze medallions: a dark rim, a paler star, a dark boss.
+	var ctr := _eon_p(-EON_R, EON_R)
+	var keep := _mode
+	_mode = M_STONE
+	for m: Array in EON_MEDALLIONS:
+		var th := PI * 0.5 * float(m[0])
+		var nrm := -w * cos(th) + t * sin(th)
+		var at := ctr + nrm * (EON_R + 0.04)
+		var c := Vector3(at.x, g + float(m[1]), at.y)
+		var n3 := Vector3(nrm.x, 0.0, nrm.y)
+		var r: float = float(m[2])
+		_disc(c, n3, r, 12, EON_BRONZE)
+		_disc(c + n3 * 0.03, n3, r * 0.72, 8, EON_BRONZE_LIGHT)
+		_disc(c + n3 * 0.06, n3, r * 0.32, 8, EON_BRONZE)
+	_mode = keep
+	# The glass-block stair tower beside the curve: a rounded glass front, a stone ledge at every
+	# storey, over the roof into the lantern.
+	var b0 := EON_TOWER.x
+	var b1 := EON_TOWER.y
+	var tower := PackedVector2Array([_eon_p(-1.2, b0), _eon_p(0.45, b0), _eon_p(1.0, (b0 + b1) * 0.5), _eon_p(0.45, b1), _eon_p(-1.2, b1)])
+	_prism(tower, g - 0.3, g + EON_TOWER_TOP, EON_GLASS, EON_ROOF, M_GLASS, M_STONE)
+	var y := 3.6
+	while y < EON_TOWER_TOP:
+		_band(tower, 0.12, g + y - 0.2, g + y + 0.2, EON_LIGHT)
+		y += 3.6
+	_band(tower, 0.25, g + EON_TOWER_TOP - 0.5, g + EON_TOWER_TOP, EON_LIGHT)
+	_collide(tower)
+	var lc := _eon_p(-1.0, (b0 + b1) * 0.5)
+	var drum := _circle(lc, 3.6, 16)
+	_prism(drum, g + EON_TOWER_TOP, g + EON_TOWER_TOP + 1.3, EON_WHITE, EON_ROOF, M_STONE, M_STONE)
+	for k in 12:
+		var a0 := TAU * k / 12.0
+		var a1 := TAU * (k + 1) / 12.0
+		var p0 := lc + Vector2.from_angle(a0) * 3.4
+		var p1 := lc + Vector2.from_angle(a1) * 3.4
+		var yb := g + EON_TOWER_TOP + 1.3
+		_beam(Vector3(p0.x, yb, p0.y), Vector3(p0.x, yb + 2.9, p0.y), 0.16, EON_STEEL, true, M_STEEL)
+		_beam(Vector3(p0.x, yb, p0.y), Vector3(p1.x, yb + 2.9, p1.y), 0.1, EON_STEEL, true, M_STEEL)
+	_prism(drum, g + EON_TOWER_TOP + 4.2, g + EON_TOWER_TOP + 5.0, EON_WHITE, EON_ROOF, M_STONE, M_STONE)
+	# Doors on the Tamka face, the dark plaque by the tower, the eagle's pale plate.
+	var out_t := -w   # Tamka face outward
+	var out_w := t    # Wybrzeże face outward
+	for a: float in [-12.0, -34.0]:
+		_eon_plate(_eon_p(a - 1.9, 0.0), _eon_p(a + 1.9, 0.0), 0.0, 3.6, out_t, 0.08, EON_BASE.darkened(0.3))
+		_eon_plate(_eon_p(a - 2.3, 0.0), _eon_p(a + 2.3, 0.0), 3.6, 4.0, out_t, 0.14, EON_LIGHT)
+	_eon_plate(_eon_p(0.0, 17.2), _eon_p(0.0, 19.4), 1.1, 5.6, out_w, 0.06, Color("#6a5443"))
+	# The roof signs (the company's red letters, a parody): one to Tamka on the corner block, one to
+	# the Wybrzeże on its wing.
+	var k_sign := 2.2 / (Neon.ROW_H * Neon.PIXEL)
+	var top := g + EON_TALL + 0.6
+	var s1 := _eon_p(-9.0, 1.2)
+	signs.append(["ELEKTRON", Vector3(s1.x, top, s1.y), Vector3(out_t.x, 0.0, out_t.y), k_sign, EON_RED])
+	var s2 := _eon_p(-1.2, 20.0)
+	signs.append(["ELEKTRON", Vector3(s2.x, top, s2.y), Vector3(out_w.x, 0.0, out_w.y), k_sign, EON_RED])
+
+
+func _build_asp37(site: Dictionary) -> void:
+	var old_ring: PackedVector2Array = site["old"]
+	var new_ring: PackedVector2Array = site["new"]
+	_g = minf(_ground_under(old_ring), _ground_under(new_ring))
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	var skin := M_SKIN + float(S_PUNCHED) / 16.0
+	# The old school (photos): three storeys of cream-peach render with white cornices over a low
+	# plinth, under a dark zinc roof that steps in twice.
+	_prism(old_ring, g - 0.6, g + ASP_OLD_EAVE, ASP_PLASTER, none, skin, M_STONE)
+	_band(old_ring, 0.1, g - 0.6, g + 1.0, EON_BASE)
+	_band(old_ring, 0.3, g + ASP_OLD_EAVE - 0.6, g + ASP_OLD_EAVE, ASP_CREAM.lightened(0.15))
+	for step: Array in [[-1.0, 0.0, 1.5], [-3.2, 1.5, 3.0]]:
+		var top_ring := _largest(Geometry2D.offset_polygon(old_ring, float(step[0]), Geometry2D.JOIN_MITER))
+		if top_ring.size() >= 3:
+			var y0 := g + ASP_OLD_EAVE - 0.1 + float(step[1])
+			_prism(top_ring, y0, g + ASP_OLD_EAVE + float(step[2]), ASP_ZINC, ASP_ZINC.lightened(0.08), M_STONE, M_STONE)
+	_collide(old_ring)
+	pocket_rings.append(old_ring)
+	# JEMS's wing (photos): tall reflective glass strips between cream render bands at the floor
+	# lines, the top floor and the roof in the same grey zinc as the old roof.
+	var h := ASP_NEW_H
+	_prism(new_ring, g - 0.6, g + h - 3.8, ASP_GLASS, none, M_GLASS, M_STONE)
+	for y: float in [3.3, 7.4, 11.5]:
+		_band(new_ring, 0.15, g + y, g + y + 0.9, ASP_CREAM)
+	_band(new_ring, 0.15, g - 0.6, g + 1.0, EON_BASE)
+	_prism(new_ring, g + h - 3.8, g + h, ASP_ZINC, ASP_ZINC.lightened(0.08), M_STONE, M_STONE)
+	_collide(new_ring)
+	pocket_rings.append(new_ring)
 
 
 # --- Dom Partii, today Centrum Bankowo-Finansowe (F's photos, 2026-11-01 and 2026-11-11) ---------
