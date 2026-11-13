@@ -128,3 +128,50 @@ city at day and night from the station side.
 - **The screen block**: the mapped plate over the entrance (x -1409..-1368, z 437..449) is a graphite
   box 17 to 38 m; the 3D LED screen (`tarasy_screen.gd`) hangs on its south face and curved west
   return, an L in plan, 44 x 20 m.
+
+## Update 2026-11-11 (F: "it's actually blue glass", the screen is an L on the corner)
+
+From F's 19 photos and an aerial view (reference only, never in the repo) and the orthophoto:
+
+- **The wave** (`_tarasy_wave`): blue-grey glass, not gold. Its lattice is now equilateral triangles of
+  about 3.2 m (rows offset half a pane), each pane flat with its own normal and a little colour of its
+  own (a few in sky-pale glass), white steel bars along the pane edges (building.gdshader `glass_roof`'s
+  pane mode, branchless: the budget stays at 502 of 505). The eight domes stand at different heights
+  (21-36 m) so the silhouette is asymmetric, highest over the middle and falling to the south sweep.
+  At night the bars glow pale blue and the panes warm.
+- **The screen** (`tarasy_screen.gd`): moved from the plate's west end, where it curved, to Skylight's
+  south-east corner over the street entrance: an L of two flat faces, the wide one (17 m) facing the
+  station and the crossing, the return (10 m) facing Emilii Plater, 11.5 to 25 m up. The loop
+  (`led_screen.gdshader`) is the tabby cat leaning out (its tail round the corner), the game's own
+  promo (AROUND WARSAW over a striped sunset and a skyline with the Palace on the return) and the
+  NOSE. agency's blue blocky mark popping out of a light box (F asked for it by name). The flowers are
+  gone. The plate under it is a plain grey box again, with the mall's gold name on it as a parody
+  (ZŁOTE big, TARASKI small).
+- **The sunken plaza** on the station side (looked like a hole: the 10 m terrain grid had a pit there):
+  a SUNKEN ring (`map_builder.gd` "tarasy_plaza", style `shops`) 6 m under the street, brick retaining
+  walls with lit shopfronts along their foot, railings round the top, umbrellas on the floor; the grand
+  stair from Emilii Plater down its east side ("tarasy_stair"); the grid nodes round it held up to the
+  street (`GRID_HOLD`) so the terraces and pavements stay level.
+- **The guitar** (`_tarasy_guitar`) at the Emilii Plater corner: a red guitar sign about 11 m tall on a
+  black foot, cream badge "HARD BLOK CAFE" (parody), and the café's own sign over its terrace along the
+  podium's south face with four white umbrellas (`_tarasy_cafe`).
+
+## Update 2026-11-11 (2): the whole complex (F: "not only the roof")
+
+- **Ground level.** The site's height is the median ground of its zone (`_median_ground`), not the lowest
+  point: the car park ramp dips the zone to about 11 m while the streets are 14-16 m, and the shop floor sat
+  under the pavement.
+- **The podium** (`_tarasy_podium`): a 4.6 m glass shop floor over each part's mean ground (pavilion glass,
+  lit warm at night), then sand stone (#dccaa2) to the terrace in the re-clad skin (S_PUNCHED: pale bands
+  with punched windows, so the mass is not a blank block by day and has lit windows at night). Planted terraces get a 1.1 m glass rail.
+- **Ledges** (`_tarasy_ledges`, `_tarasy_ledge`): the podium parts that span a level are merged into one ring,
+  simplified (short and near-straight edges dropped, so no slivers fight) and drawn as a top and a front
+  only: a 1.5 m canopy over the shops whose front is a warm lit strip (#f6e7c2) under a dark top, a pale
+  ledge at 9.8 m and a cornice at 15.9 m.
+- **Lumen** (`_tarasy_lumen`): ribbon glass (#7ea3c0) to 3.6 m under the top, a 1 m white parapet, the top
+  floor stepped back 2.2 m, a plant box stepped back 6 m.
+- **The drum**: blue-grey pavilion glass (#7f9fb4), warm from inside at night, with the deck roof.
+- **Shop boards** (`_tarasy_shops`, `TARASY_BOARDS`): lit boards over the canopy with parody names: ZARAZA
+  (black) and H·M·M (red) by the Emilii Plater entrance, MULTIKINKO (pink) on the Złota side, a red
+  WYPRZEDAŻ banner on the station side. The mall's name is bigger (ZŁOTE at 1.2, TARASKI at 0.7).
+- Budget: 9400 triangles for the site (7781 measured on the flat stub map).

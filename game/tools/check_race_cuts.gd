@@ -111,9 +111,9 @@ func _map() -> void:
 	var g := LaneGraph.new(data["graph"], map)
 	var cuts := RaceCuts.new()
 	cuts.load_cuts(g)
-	_expect(cuts.a.size() >= MIN_CUTS, "only %d shortcuts snap to the graph (at least %d)" % [cuts.a.size(), MIN_CUTS])
+	_expect(cuts.first_link >= MIN_CUTS, "only %d shortcuts snap to the graph (at least %d)" % [cuts.first_link, MIN_CUTS])
 	_expect(cuts.missed <= int(cuts.total * MAX_MISSED), "%d of %d shortcuts find no junction: re-run tools/race_cuts.py" % [cuts.missed, cuts.total])
-	for i in cuts.a.size():
+	for i in cuts.first_link:  # (the race links after them: check_race_links.gd)
 		_expect(cuts.a[i] != cuts.b[i], "cut %d joins a junction to itself" % i)
 		_expect(cuts.length[i] >= MIN_LEN and cuts.length[i] <= MAX_LEN, "cut %d is %.0f m" % [i, cuts.length[i]])
 	var both := cuts.links(1.0, 0)
@@ -168,7 +168,7 @@ func _map() -> void:
 	_expect(arrived == routes, "%d of %d racers never reached the finish" % [routes - arrived, routes])
 	_expect(with_cut >= int(routes * MIN_SHARE), "a racer knowing every cut takes one on only %d of %d routes (at least %d %%)" % [with_cut, routes, int(MIN_SHARE * 100)])
 	_summary["map"] = "%d shortcuts (%d unmatched), %d races: %d with a shortcut, %d taken, %.0f m saved on average" % [
-			cuts.a.size(), cuts.missed, routes, with_cut, taken, saved / maxf(routes, 1)]
+			cuts.first_link, cuts.missed, routes, with_cut, taken, saved / maxf(routes, 1)]
 	map.free()
 
 

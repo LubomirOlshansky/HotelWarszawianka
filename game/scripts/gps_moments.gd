@@ -24,6 +24,7 @@ const RIVER_HOLD := 3.0
 const TURN_MIN := 15.0
 const TURN_MAX := 140.0
 const SPEAKER := "Podwózka"
+const Chatter := preload("res://scripts/chatter.gd")
 const COLOUR := Color("#e8f4ff")
 
 var traffic: Node3D
@@ -218,7 +219,9 @@ func _say(tag: String) -> void:
 		return d.pos + Vector3(0, d.size.y + 0.6, 0)
 	_anchor = anchor
 	if not held:
-		dialogue.say(anchor, SPEAKER, "podwozka_driver", tag, 3.2, COLOUR, 2.6, true)
+		# Flavour (F 2026-11-11: it talked over a race): ambient in the chatter budget, so it keeps
+		# quiet during a quest, a chase, fast driving and while a card is up.
+		dialogue.say(anchor, SPEAKER, "podwozka_driver", tag, 3.2, COLOUR, 2.6, true, Chatter.AMBIENT)
 
 
 ## The nearest car behind d in its lane, within 25 m (or null).

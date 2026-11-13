@@ -16,6 +16,7 @@ extends RefCounted
 
 const FollowCamera := preload("res://scripts/follow_camera.gd")
 const Tiers := preload("res://scripts/tiers.gd")
+const SafeFile := preload("res://scripts/safe_file.gd")
 const PATH := "user://settings.cfg"
 ## Loop 3h slice 1: the settings file's format version (1: before loop 3h, no `[meta]`).
 const VERSION := 2
@@ -32,11 +33,18 @@ const TRAFFIC_KEYS := ["empty", "low", "normal", "busy"]
 ## The default for a fresh save: Low (F, 2026-11-01: the default was too heavy). Saves keep their choice.
 const DEFAULT_TRAFFIC := 1
 
-## drive_controls.gd: POINT, CLASSIC, FIXED. Classic (steer left / right, GAS and BRAKE) is the
-## default since 2026-11-04 (F: "driving with left, right, gas and brake should be the default");
-## Point and Fixed stay in Settings → Jazda.
+## drive_controls.gd: POINT, CLASSIC, FIXED. Classic (steer left / right, GAS and BRAKE) is
+## the only scheme in Settings since 2026-11-10 (F: remove the point-to-go option); Point and
+## Fixed stay in drive_controls.gd for the --controls= test flag only.
 const DEFAULT_CONTROLS := 1
 var controls := DEFAULT_CONTROLS
+## F 2026-11-13: Classic's touch controls: PADS_ARROWS (0, the default: fixed see-through arrows bottom
+## left, GAZ / HAMULEC pedals bottom right, like the phone racers) or PADS_SLIDER (1: the sliding
+## steering strip with round GAS / BRAKE, the layout before). Settings → Jazda → Sterowanie, key "pads".
+## Every save starts on the arrows (no older save has the key).
+const PADS_ARROWS := 0
+const PADS_SLIDER := 1
+var pads := PADS_ARROWS
 ## Classic only: the camera follows the car (CAM toggles it); Point always follows, Fixed never.
 var classic_follow := true
 var traffic := DEFAULT_TRAFFIC
@@ -80,8 +88,10 @@ var handling := 0
 ## Steering sensitivity 0..1 (0.5 = the profile as is; car.gd set_sensitivity). Settings → Jazda, key "sensitivity".
 var sensitivity := 0.5
 ## Beta values (2026-11-04): the lane assist (lane_assist.gd), Classic only. Settings → Jazda, key
-## "lane_assist"; off by default until F has felt it on the phone (QUESTIONS, A/B 10).
-var lane_assist := false
+## "lane_assist". On by default since 2026-11-13 (F: "A + lane assist", with the fixed arrows: an
+## arrow is all or nothing, so between taps the lane holds the car straight); a save from before
+## (no `lane_assist_default` key) starts on once, then keeps the player's choice.
+var lane_assist := true
 ## Phase 0.2 (docs/GAMEPLAY_PLAN.md): the city's chattiness, chatter.gd GAPS: 0 Mało, 1 Średnio (the
 ## default), 2 Dużo. Settings → ŚWIAT, key "chatter".
 var chatter := 1
@@ -117,12 +127,14 @@ func load_file() -> void:
 	loaded_version = int(cfg.get_value("meta", "version", 1))
 	newer = loaded_version > VERSION
 	controls = clampi(int(cfg.get_value("controls", "scheme", controls)), 0, 2)
-	# 2026-11-04: Point was the default before, so a file saved then (no `classic_default` key)
-	# that says Point loads as Classic, once; the next save marks the file, and a Point chosen
-	# after that stays Point.
-	if controls == 0 and not cfg.has_section_key("controls", "classic_default"):
-		controls = DEFAULT_CONTROLS
+	# 2026-11-10 (F): the Point option is gone from the game, so a saved Point (or Fixed) scheme loads
+	# as Classic; the camera on / off row keeps the follow choice (classic_follow).
+	var saved_scheme := controls
+	controls = DEFAULT_CONTROLS
 	classic_follow = bool(cfg.get_value("controls", "classic_follow", classic_follow))
+	pads = clampi(int(cfg.get_value("controls", "pads", pads)), PADS_ARROWS, PADS_SLIDER)
+	if saved_scheme == 2:  # Fixed camera was Point's still-camera twin: Classic with the camera off
+		classic_follow = false
 	traffic = clampi(int(cfg.get_value("world", "traffic", traffic)), 0, TRAFFIC.size() - 1)
 	quality = clampi(int(cfg.get_value("world", "quality", quality)), AUTO, ULTRA)
 	if quality == HIGH and not cfg.has_section_key("world", "tiers"):
@@ -146,6 +158,8 @@ func load_file() -> void:
 	handling = clampi(int(cfg.get_value("game", "handling", handling)), 0, 2)
 	sensitivity = clampf(float(cfg.get_value("game", "sensitivity", sensitivity)), 0.0, 1.0)
 	lane_assist = bool(cfg.get_value("game", "lane_assist", lane_assist))
+	if not cfg.has_section_key("game", "lane_assist_default"):
+		lane_assist = true
 	chatter = clampi(int(cfg.get_value("world", "chatter", chatter)), 0, 2)
 	text_large = bool(cfg.get_value("access", "text_large", text_large))
 	calm = bool(cfg.get_value("access", "calm", calm))
@@ -169,6 +183,7 @@ func save() -> void:
 	cfg.set_value("meta", "version", VERSION)
 	cfg.set_value("controls", "scheme", controls)
 	cfg.set_value("controls", "classic_follow", classic_follow)
+	cfg.set_value("controls", "pads", pads)
 	cfg.set_value("controls", "classic_default", 1)
 	cfg.set_value("world", "traffic", traffic)
 	cfg.set_value("world", "quality", quality)
@@ -188,6 +203,7 @@ func save() -> void:
 	cfg.set_value("game", "handling", handling)
 	cfg.set_value("game", "sensitivity", snappedf(sensitivity, 0.05))
 	cfg.set_value("game", "lane_assist", lane_assist)
+	cfg.set_value("game", "lane_assist_default", 1)
 	cfg.set_value("world", "chatter", chatter)
 	cfg.set_value("access", "text_large", text_large)
 	cfg.set_value("access", "calm", calm)
@@ -199,12 +215,12 @@ func save() -> void:
 		cfg.set_value("game", "lang", lang)
 	for key in auto_image:
 		cfg.set_value("auto_image", key, auto_image[key])
-	cfg.save(path)
+	SafeFile.write(cfg, path)  # TD-8: a temp file, then one rename, never half a file
 
 
 func summary() -> String:
-	return "controls %d, classic camera %s, traffic %s, quality %s, volume %.0f/%.0f/%.0f %%, perf %s, %d fps, style %d, vhs %s, zone cap %s, handling %d sens %.2f lane %s chatter %d, access large %s calm %s colour-safe %s vibration %s assist %s left-handed %s, auto image %s" % [
-			controls, "follow" if classic_follow else "fixed", TRAFFIC_NAMES[traffic], "auto" if quality == AUTO else str(quality),
+	return "controls %d pads %d, classic camera %s, traffic %s, quality %s, volume %.0f/%.0f/%.0f %%, perf %s, %d fps, style %d, vhs %s, zone cap %s, handling %d sens %.2f lane %s chatter %d, access large %s calm %s colour-safe %s vibration %s assist %s left-handed %s, auto image %s" % [
+			controls, pads, "follow" if classic_follow else "fixed", TRAFFIC_NAMES[traffic], "auto" if quality == AUTO else str(quality),
 			master * 100.0, music * 100.0, effects * 100.0, perf, fps, style, vhs, zone_cap, handling, sensitivity, lane_assist, chatter, text_large, calm, color_safe, vibration, stop_assist, left_handed, image_summary()]
 
 

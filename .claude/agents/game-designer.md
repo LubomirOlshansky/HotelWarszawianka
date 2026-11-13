@@ -26,6 +26,7 @@ don't spawn other agents.
 
 ## Read first
 
+0. docs/architecture/extending.md (what a design can plug into today, what is planned).
 1. The brief, CLAUDE.md, docs/WORKFLOW.md, the warsaw-tone skill.
 2. docs/DEMO.md (the demo plan and its quality bar), docs/ROADMAP.md (identity, versions),
    docs/BACKLOG.md (untuned values, known gaps), docs/archive/DEVELOPMENT-full.md (what exists: missions, side jobs,

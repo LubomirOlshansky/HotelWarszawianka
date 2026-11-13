@@ -411,11 +411,44 @@ def _trim_moved_crowns(out):
     return bake_structures.trim_crowns(cr.Map.from_data(map_dir, out, terrain))[0]
 
 
+## Mapped surfaces moved to where the GUGiK orthophoto shows them (kind, the OSM outline's vertex
+## mean, the new vertex mean; game metres). The Palace's two fountain basins by the main entrance
+## (F, 2026-11-13, a screenshot: "fountains that run into the building"): OSM draws them in the
+## corners against the base's wall, the orthophoto in front of the portico's two ends.
+SURFACE_MOVES = [
+    ("fountain", (-1187.5, 209.7), (-1170.9, 205.4)),
+    ("fountain", (-1169.8, 258.0), (-1154.5, 250.7)),
+]
+
+
+def _centre(flat):
+    xs, zs = flat[0::2], flat[1::2]
+    return sum(xs) / len(xs), sum(zs) / len(zs)
+
+
+def move_surfaces(d):
+    """Moves each SURFACE_MOVES outline (idempotent: one already moved is not found again)."""
+    n = 0
+    for kind, old, new in SURFACE_MOVES:
+        for a in d.get("surfaces", []):
+            if a.get("k") != kind:
+                continue
+            c = _centre(a["p"])
+            if math.hypot(c[0] - old[0], c[1] - old[1]) < 1.0:
+                dx, dz = new[0] - c[0], new[1] - c[1]
+                a["p"] = [round(v + (dx if i % 2 == 0 else dz), 1) for i, v in enumerate(a["p"])]
+                n += 1
+    return n
+
+
 def check(path):
     with open(path, encoding="utf-8") as f:
         d = json.load(f)
     if int(d.get("object_fixes", 0)) < VERSION:
         print("object_fixes: FAIL the map is not fixed: run python3 -I tools/object_fixes.py")
+        return 1
+    if move_surfaces(json.loads(json.dumps(d))):
+        print("object_fixes: FAIL a SURFACE_MOVES outline is not moved: run python3 -I tools/object_fixes.py")
         return 1
     found = oa.audit(d, [])
     keep_ids = overridden()
@@ -444,6 +477,9 @@ def main(argv):
         d = json.load(f)
     dry = "--dry" in argv
     print("object_fixes: " + apply(d, dry))
+    moved = 0 if dry else move_surfaces(d)
+    if moved:
+        print(f"object_fixes: {moved} surfaces moved (SURFACE_MOVES)")
     if not dry and d.get("object_fixes"):
         with open(path, "w", encoding="utf-8") as f:
             json.dump(d, f, ensure_ascii=False, separators=(",", ":"))

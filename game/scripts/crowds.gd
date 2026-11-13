@@ -109,6 +109,11 @@ const DECKS := {
 	# The Forest's roof terrace (F, 2026-11-01) on its 27.4 m wing, landmarks.gd `_forest_terrace`;
 	# open 11-23 (*guess*), people inside the glass balustrade and the planters.
 	"forest_terrace": {"at": Vector2(-2947.0, -2407.0), "max": 14, "open": 11.0, "close": 23.0, "in": 2.6, "top": 27.4},
+	# The University Library's lookout (F's photos, 2026-11-13): people at the railing on the top
+	# of the drum by the round east corner, landmarks.gd `_buw_drums` (18 m: the 15 m deck and the
+	# drum's 3 m over it); the roof garden's hours, 8-20 (*guess*).
+	"buw_lookout": {"at": Vector2(153.34, -955.89), "max": 6, "open": 8.0, "close": 20.0,
+			"half": 0.85, "axis": Vector2(0.745, -0.667), "up": 18.05, "gap": 0.85},
 }
 const ROOF_MAX := 16
 ## F's ask (2026-11-02): the office crowd round Rondo Daszyńskiego (the Spire, the HUB and Plac
@@ -228,6 +233,16 @@ const LORETKA_ID := "loretka_terrace"
 ## audience standing in front, 18:30-23:30 every evening, fuller on Friday and Saturday and in
 ## the summer, thinner in rain; and the café's tables round the terrace from noon.
 const JAZZ_ID := "powisle_jazz"
+## F (2026-11-13): THE WJU, the club on Spektrum Tower's roof (landmarks.gd spektrum_plan, the
+## same seats the model builds): its loungers in the white armchairs and sofas from noon to 02:00,
+## and from 19:00 the DJ at the booth with dancers in front, fuller on Friday and Saturday and in
+## the summer, thinner in rain (it is all open to the sky).
+const VIEW_ID := "spektrum_view"
+const VIEW_DJ_ID := "spektrum_dj"
+const VIEW_HOURS := Vector2(12.0, 2.0)
+const VIEW_DJ_HOURS := Vector2(19.0, 2.0)
+## The DJ's clothes: black, and the dancers' party colours.
+const VIEW_DJ_SHIRT := "#141416"
 const JAZZ_CAFE_ID := "powisle_cafe"
 const JAZZ_HOURS := Vector2(18.5, 23.5)
 const JAZZ_BAND := 4
@@ -235,6 +250,7 @@ const JAZZ_BAND := 4
 const JAZZ_SHIRTS := ["#1b1b1e", "#f1efe9", "#c99a2e", "#6e2230"]
 const LORETKA_WEEKNIGHT := 10
 const Landmarks := preload("res://scripts/landmarks.gd")
+const MapBuilderData := preload("res://scripts/map_builder.gd")
 const FirstScene := preload("res://scripts/first_scene.gd")
 const ROOF_ID := "level_26"
 ## F's asks (2026-10-30): Level 26's queue at the tower's ground-floor door (a queue site of its
@@ -260,7 +276,7 @@ const CHILL := {
 	"chill_norblin": [Vector2(-2236.0, 204.0), 30, 34.0],  # the court's mouth on the glass street (photo report)
 	"chill_browary": [Vector2(-2503.0, -100.0), 36, 36.0],
 	"chill_koszyki": [Vector2(-884.0, 1266.0), 30, 30.0],
-	"chill_elektrownia": [Vector2(285.0, -738.0), 34, 36.0],
+	"chill_elektrownia": [Vector2(241.0, -704.0), 34, 32.0],  # 2026-11-13: the setts plaza by Dobra (the model's rebuild)
 }
 ## F's ask (2026-11-01): the Vistula boulevards (Bulwary Wiślane, Karowa to Most Świętokrzyski and on
 ## past Kopernik) full of people chilling: groups on the granite steps and benches along the river
@@ -380,6 +396,10 @@ const FIRST_SCENE := {
 ## garden) and the evening audiences outside the Palace's stages (Landmarks.pkin_theatre_doors):
 ## id -> most people. Same machinery as CHILL on the `theatre` curve (theatre_level).
 const STUDIO_ID := "bar_studio"
+const ELEK_GARDEN_ID := "elektrownia_garden"
+## F's ask (2026-11-11): people sitting on the Rotunda's sunken stair (Landmarks.rotunda_steps_plan),
+## a jazz_cafe site so they keep its curve (afternoon and evening, fewer off-season, few in rain).
+const ROTUNDA_STEPS_ID := "rotunda_steps"
 const THEATRES := {"theatre_dramatyczny": 16, "theatre_studio": 12, "theatre_kinoteka": 14, "theatre_kongresowa": 22}
 ## The stages' weekday factor *guess*, Monday first: most are dark on Mondays, full at weekends.
 const THEATRE_WEEKDAY := [0.15, 0.7, 0.75, 0.8, 1.0, 1.0, 0.85]
@@ -666,6 +686,24 @@ static func jazz_level(hour: float, weekday: int, month: int, rain: bool) -> flo
 	if rain:
 		lvl *= 0.65
 	return lvl * clampf(0.35 + (h - JAZZ_HOURS.x) * 0.65, 0.35, 1.0)
+
+
+## THE WJU (0..1 of the seats, `dj`: of the dancers): the lounge from noon to 02:00, half
+## full in the afternoon, full in the evening; the dance floor from 19:00 filling over two hours;
+## Friday and Saturday fuller, out of season and in rain thinner. 0 outside the hours.
+static func view_level(hour: float, weekday: int, month: int, rain: bool, dj: bool) -> float:
+	var h := fmod(hour + 24.0, 24.0)
+	var hours := VIEW_DJ_HOURS if dj else VIEW_HOURS
+	if not (h >= hours.x or h < hours.y):
+		return 0.0
+	var lvl := 1.0 if weekday == 5 or weekday == 6 else 0.6
+	if not dj and h >= 12.0 and h < 17.0:
+		lvl *= 0.45
+	if dj and h >= hours.x:
+		lvl *= clampf(0.3 + (h - hours.x) * 0.35, 0.3, 1.0)
+	if month < 5 or month > 9:
+		lvl *= 0.6
+	return lvl * (0.3 if rain else 1.0)
 
 
 ## The café's tables (0..1 of the seats): from noon, busiest in the evening, empty after 01:00
@@ -1041,6 +1079,12 @@ func setup(places: Array, data: Dictionary, seed_value := 1703) -> void:
 			mid += q
 		_add_site({"id": LORETKA_ID, "kind": "terrace", "at": mid / float(lo.size()), "max": (lor["seats"] as Array).size(),
 				"plan": lor})
+	var view := Landmarks.spektrum_plan(data)
+	if not view.is_empty():
+		var vl: Dictionary = view["layout"]
+		_add_site({"id": VIEW_ID, "kind": "view", "at": view["centre"], "max": (vl["seats"] as Array).size(), "plan": view})
+		_add_site({"id": VIEW_DJ_ID, "kind": "view_dj", "at": view["centre"], "max": 1 + (vl["dancers"] as Array).size(),
+				"plan": view})
 	var jazz := Landmarks.powisle_jazz_plan()
 	_add_site({"id": JAZZ_ID, "kind": "jazz", "at": jazz["centre"], "max": JAZZ_BAND + (jazz["chairs"] as Array).size()
 			+ (jazz["standing"] as Array).size(), "plan": jazz})
@@ -1083,8 +1127,16 @@ func setup(places: Array, data: Dictionary, seed_value := 1703) -> void:
 		var ss: Array = SOWA[sid]
 		_add_site({"id": sid, "kind": "chill", "club": true, "sit": false, "at": ss[0], "max": int(ss[1]), "radius": float(ss[2]),
 				"talk": "sowa_club"})
+	# Elektrownia Powiśle's beer tables, umbrellas and deck chairs (landmarks.gd elektrownia_garden_plan,
+	# F 2026-11-13: "alive, people, summer bars"): sitters on the café curve.
+	var elek := Landmarks.elektrownia_garden_plan()
+	_add_site({"id": ELEK_GARDEN_ID, "kind": "jazz_cafe", "at": elek["centre"], "max": (elek["seats"] as Array).size(), "plan": elek})
 	var studio := Landmarks.pkin_studio_plan()
 	_add_site({"id": STUDIO_ID, "kind": "jazz_cafe", "at": studio["centre"], "max": (studio["seats"] as Array).size(), "plan": studio})
+	var rot_steps := Landmarks.rotunda_steps_plan(MapBuilderData.sunk_spec("rotunda_stair"))
+	if not (rot_steps["seats"] as Array).is_empty():
+		_add_site({"id": ROTUNDA_STEPS_ID, "kind": "jazz_cafe", "at": rot_steps["centre"], "max": (rot_steps["seats"] as Array).size(),
+				"plan": rot_steps})
 	var doors := Landmarks.pkin_theatre_doors()
 	for tid: String in THEATRES:
 		_add_site({"id": tid, "kind": "chill", "theatre": true, "sit": false, "at": doors[tid], "max": int(THEATRES[tid]), "radius": 10.0})
@@ -1398,6 +1450,8 @@ func _place_site(s: Dictionary) -> void:
 			_place_terrace(s)
 		"jazz", "jazz_cafe":
 			_place_jazz(s)
+		"view", "view_dj":
+			_place_view(s)
 		"deck":
 			_place_deck(s)
 		"meet":
@@ -1631,6 +1685,41 @@ func _place_terrace(s: Dictionary) -> void:
 	s["slots"] = slots
 
 
+## THE WJU (landmarks.gd spektrum_plan): on the deck, its height over the lowest ground under the
+## tower's outline as the model's. The loungers in every seat in a seeded order (a thin afternoon
+## spread round the deck); the DJ first at the booth, then the dancers facing the booth.
+func _place_view(s: Dictionary) -> void:
+	var plan: Dictionary = s["plan"]
+	var lay: Dictionary = plan["layout"]
+	s["door"] = s["at"]
+	var g := INF
+	for q: Vector2 in plan["outline"]:
+		g = minf(g, map.terrain_height(q.x, q.y) if map != null else 0.0)
+	var y := g + float(plan["deck_h"])
+	s["deck_y"] = y
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 2003
+	var slots: Array = []
+	if s["kind"] == "view":
+		for st: Array in lay["seats"]:
+			var d: Vector2 = st[1]
+			slots.append({"p": st[0], "y": y, "pose": SIT, "yaw": atan2(-d.x, -d.y), "shirt": BRIGHT[rng.randi() % BRIGHT.size()]})
+		var order := range(slots.size())
+		_shuffle(order, rng)
+		var mixed: Array = []
+		for i: int in order:
+			mixed.append(slots[i])
+		s["slots"] = mixed
+		return
+	var face: Vector2 = lay["dj_face"]
+	slots.append({"p": lay["dj"], "y": y, "pose": STAND, "yaw": atan2(-face.x, -face.y), "shirt": VIEW_DJ_SHIRT})
+	for st: Array in lay["dancers"]:
+		var d: Vector2 = st[1]
+		slots.append({"p": st[0], "y": y, "pose": STAND, "yaw": atan2(-d.x, -d.y) + rng.randf_range(-0.4, 0.4),
+				"shirt": BRIGHT[rng.randi() % BRIGHT.size()] if rng.randf() < 0.7 else DARK[rng.randi() % DARK.size()]})
+	s["slots"] = slots
+
+
 ## The jazz evenings (landmarks.gd powisle_jazz_plan): the band first (on the stage, the pianist
 ## and the drummer sitting), then the deck chairs' sitters and the standing audience mixed in a
 ## seeded order (so a thin evening is spread out, not only the front row); the café's sitters at
@@ -1643,8 +1732,13 @@ func _place_jazz(s: Dictionary) -> void:
 	var slots: Array = []
 	if s["kind"] == "jazz_cafe":
 		var k := 0
+		var stair: Dictionary = _sunk_live(str(plan.get("stair", "")))
 		for st: Array in plan["seats"]:
-			slots.append({"p": st[0], "pose": SIT, "yaw": float(st[1]), "shirt": BRIGHT[(k * 7 + 3) % BRIGHT.size()]})
+			var slot := {"p": st[0], "pose": SIT, "yaw": float(st[1]), "shirt": BRIGHT[(k * 7 + 3) % BRIGHT.size()]}
+			if not stair.is_empty() and st.size() > 2:
+				# On its tread: the top `_sunk_treads` lays there, not the ramp under the steps.
+				slot["y"] = lerpf(float(stair["ha"]), float(stair["hb"]), float(st[2]) / float(plan["n"]))
+			slots.append(slot)
 			k += 1
 		var order := range(slots.size())
 		_shuffle(order, rng)
@@ -1669,6 +1763,16 @@ func _place_jazz(s: Dictionary) -> void:
 	for j: int in order:
 		slots.append(rest[j])
 	s["slots"] = slots
+
+
+## The map's built sunken entry `key` (with its heights ha/hb), or {} without a map or stair.
+func _sunk_live(key: String) -> Dictionary:
+	if key == "" or map == null or not ("_sunk" in map):
+		return {}
+	for sk: Dictionary in map._sunk:
+		if str(sk["key"]) == key:
+			return sk
+	return {}
 
 
 static func _shuffle(a: Array, rng: RandomNumberGenerator) -> void:
@@ -1963,7 +2067,7 @@ func _figures(s: Dictionary) -> Array:
 			if bool(s.get("guitar_on", false)):
 				var face: Vector2 = s["face"]
 				out.append([_ground(s["guitar"]), atan2(-face.x, -face.y), SIT, GUITAR_SHIRT, 0.0])
-		"plan_c", "roof", "terrace", "chill", "deck", "stop", "office", "meet", "jazz", "jazz_cafe":
+		"plan_c", "roof", "terrace", "chill", "deck", "stop", "office", "meet", "jazz", "jazz_cafe", "view", "view_dj":
 			var slots: Array = s["slots"]
 			for k in mini(n, slots.size()):
 				var sl: Dictionary = slots[k]
@@ -2104,6 +2208,11 @@ func tick(step: float) -> void:
 					want = mini(JAZZ_BAND + roundi((int(s["max"]) - JAZZ_BAND) * k * jazz_level(hour, weekday, month, rain)), int(s["max"]))
 			"jazz_cafe":
 				want = mini(roundi(int(s["max"]) * k * jazz_cafe_level(hour, month, rain)), int(s["max"]))
+			"view":
+				want = mini(roundi(int(s["max"]) * k * view_level(hour, weekday, month, rain, false)), int(s["max"]))
+			"view_dj":
+				var lvl := view_level(hour, weekday, month, rain, true)
+				want = 0 if lvl <= 0.0 else mini(1 + roundi((int(s["max"]) - 1) * k * lvl), int(s["max"]))
 			"trend":
 				var q: Array = [0, ""]
 				if s["id"] == PISTACJA_ID:

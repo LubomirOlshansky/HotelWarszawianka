@@ -17,7 +17,7 @@ extends SceneTree
 ## port_wtw, port_halls, port_basin (2026-11-07): Port Czerniakowski's boathouse and halls stand 3.6-5 m to the eaves, the moored boats under 2 m (masts are lines).
 ## Towarowa 22 is a quarter: its box's middle is the printing hall's open frame and the 28 m tanks
 ## block, under the heli's 45 m; its towers stand at the box's west edge and stop it there.
-const FLY_OVER := ["monkey_love", "port_wtw", "port_halls", "port_basin", "bulwary_basen", "bazar", "towarowa22", "noho", "stacja_muzeum", "nocny", "kolejowa", "plac_centralny", "plac_centralny_lamps", "sunken", "underpass"]
+const FLY_OVER := ["monkey_love", "port_wtw", "port_halls", "port_basin", "bulwary_basen", "bazar", "towarowa22", "noho", "stacja_muzeum", "nocny", "kolejowa", "plac_centralny", "plac_centralny_lamps", "sunken", "underpass", "tarasy_plaza"]
 ## Monuments lower than the heli's 6 m floor (the monuments pass, part 2): it flies at this height
 ## instead, so their bronze and stone have to stop it.
 const LOW_MONUMENTS := {"maly_powstaniec": 1.5, "starzynski": 2.5, "umschlagplatz": 2.5, "pomnik_wschod": 3.0}
@@ -100,7 +100,8 @@ func _check() -> int:
 		# deck passes beside it, so Most Świętokrzyski needs fewer stopped rays.
 		# A moored barge (barka_*, and the floating Dworzec Wodny) lies in the river: only the rays from the bank side meet a car's
 		# way, the others start over the water (2026-11-02, the first CI map run: 7-8 of 12).
-		var need := 6 if info["key"] == "swieto" else 10
+		# The Powiśle gate towers (powisle_towers) flank the Aleje: rays from along the road pass between them.
+		var need := 6 if info["key"] == "swieto" else (8 if info["key"] == "powisle_towers" else 10)
 		if str(info["key"]).begins_with("barka_") or info["key"] == "dworzec_wodny":
 			need = 5  # Dworzec Wodny floats at the boulevard's edge like the barges
 		if tap != k or hits < need:

@@ -27,6 +27,7 @@ extends SceneTree
 ## Prints "check_crowds: OK (...)" or the problems (exit 1).
 ##   godot --headless --path game --script res://tools/check_crowds.gd [-- --verbose]
 
+const Landmarks := preload("res://scripts/landmarks.gd")
 const Crowds := preload("res://scripts/crowds.gd")
 const Notebook := preload("res://scripts/notebook.gd")
 const EggBook := preload("res://scripts/egg_book.gd")
@@ -96,6 +97,10 @@ func _run() -> void:
 	_check_first_scene(c)
 	_check_decks(c, data)
 	_check_level26(c, book, data)
+	# The prebuilt city's index (map/index.res) has neither buildings nor site_parts: LORETKA's
+	# terrace (its plan from the hotel's outline alone) must stay a crowd site there too.
+	var bare := {"landmarks": (data as Dictionary).get("landmarks", [])}
+	_expect(not Crowds.Landmarks.loretka_plan(bare).is_empty(), "LORETKA's terrace has no plan without the building parts (the prebuilt index)")
 	_check_door(c, dlg)
 	var cost := _check_dawn(c, data)
 	_check_office(c, data, dlg)
@@ -375,6 +380,10 @@ func _check_sites(c: Crowds) -> void:
 			and Crowds.jazz_level(21.0, 5, 7, true) < 1.0 and Crowds.jazz_level(14.0, 5, 7, false) == 0.0
 			and Crowds.jazz_cafe_level(9.0, 7, false) == 0.0 and Crowds.jazz_cafe_level(20.0, 7, false) > 0.5,
 			"Powiśle jazz: the concert's and the café's hours")
+	# F (2026-11-13): Elektrownia Powiśle alive: sitters at its beer tables, umbrellas and deck chairs.
+	var elek := Landmarks.elektrownia_garden_plan()
+	_expect(c.by_id.has(Crowds.ELEK_GARDEN_ID) and (elek["seats"] as Array).size() >= 40,
+			"Elektrownia's garden: a site with %d seats" % (elek["seats"] as Array).size())
 	for jid: String in [Crowds.JAZZ_ID, Crowds.JAZZ_CAFE_ID]:
 		_expect(c.by_id.has(jid), "no crowd at %s" % jid)
 	if c.by_id.has(Crowds.JAZZ_ID):

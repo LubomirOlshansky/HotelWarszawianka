@@ -583,7 +583,18 @@ func connector(e: int, k: int, f: int, j: int) -> PackedVector2Array:
 	return PackedVector2Array([p0, p0 + d0 * reach, p3 - d3 * reach, p3])
 
 
+## The point at t (0-1) of a cubic Bezier [p0, p1, p2, p3], or of a chain of them [p0, c1, c2,
+## p1, c1, c2, p2, ...] (a race link, race_cuts.gd `chain`: pieces of one length, t shared out
+## evenly between them).
 static func bezier(c: PackedVector2Array, t: float) -> Vector2:
+	if c.size() > 4:
+		var n := (c.size() - 1) / 3
+		var x := clampf(t, 0.0, 1.0) * n
+		var i := mini(int(x), n - 1)
+		var b := i * 3
+		var w := x - i
+		var v := 1.0 - w
+		return c[b] * (v * v * v) + c[b + 1] * (3.0 * v * v * w) + c[b + 2] * (3.0 * v * w * w) + c[b + 3] * (w * w * w)
 	var u := 1.0 - t
 	return c[0] * (u * u * u) + c[1] * (3.0 * u * u * t) + c[2] * (3.0 * u * t * t) + c[3] * (t * t * t)
 
@@ -591,8 +602,9 @@ static func bezier(c: PackedVector2Array, t: float) -> Vector2:
 static func bezier_length(c: PackedVector2Array) -> float:
 	var length := 0.0
 	var prev := c[0]
-	for k in range(1, 9):
-		var q := bezier(c, k / 8.0)
+	var m := 8 * maxi((c.size() - 1) / 3, 1)
+	for k in range(1, m + 1):
+		var q := bezier(c, float(k) / m)
 		length += prev.distance_to(q)
 		prev = q
 	return maxf(length, 0.5)
@@ -644,13 +656,16 @@ func light(c: int, group: int) -> int:
 ## drive them (the edge roadworks close every road out), so the player's own routes skip them.
 ## Street races R3 (2026-11-05): `extra_in` adds links into a node, {node: [from, cost, from, cost...]}
 ## (a racer's shortcuts, race_cuts.gd), searched like the portals.
-func distances_to(target: int, max_cost := INF, portals := true, extra_in := {}) -> PackedFloat32Array:
+## The racer AI rebuild, step 3 (2026-11-10): `shut` ({edge: anything}) leaves those edges out: the
+## streets a racer found blocked (race_planner.gd Plan.shut), for the metres it has left.
+func distances_to(target: int, max_cost := INF, portals := true, extra_in := {}, shut := {}) -> PackedFloat32Array:
 	var dist := PackedFloat32Array()
 	dist.resize(node_pos.size())
 	dist.fill(INF)
 	dist[target] = 0.0
 	var heap_d := PackedFloat32Array([0.0])
 	var heap_n := PackedInt32Array([target])
+	var closed := not shut.is_empty()
 	while not heap_n.is_empty():
 		var d := heap_d[0]
 		var n := heap_n[0]
@@ -660,6 +675,8 @@ func distances_to(target: int, max_cost := INF, portals := true, extra_in := {})
 		if d > max_cost:
 			break
 		for e in node_in[n]:
+			if closed and shut.has(e):
+				continue
 			var m := e_a[e]
 			var nd := d + e_len[e]
 			if nd < dist[m]:

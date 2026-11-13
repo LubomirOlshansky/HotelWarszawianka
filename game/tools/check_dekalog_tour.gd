@@ -1,17 +1,19 @@
 extends SceneTree
-## The Kieślowski tour "Dekalog na kółkach" (dekalog_tour.gd, docs/design/dekalog-tour.md). Checks that:
+## The Kieślowski tour "Dekalog na kółkach" (tour.gd with data/dekalog_tour.json,
+## docs/design/dekalog-tour.md). Checks that:
 ## - the pickup and every stop stand on a drivable road of game/map/centrum.json (ON_ROAD m), each
 ##   stop within PLACE_MAX m of its real filming place (OpenStreetMap points, mapadekalogu.pl);
 ## - the call (ODBIERZ, JADĘ) starts the tour, stopping at Centralna takes Claire in, each stop gives
 ##   its KADR card and DRIVE ON leads to the next, the estate asks her question, either answer ends it
 ##   with the pay;
 ## - each leg's shot (quiet, rush, long take, static, the W-Z tunnel) counts only when driven its way;
-## - a hit counts once inside BUMP_WAIT, never past HITS_MAX, a soft touch not at all;
-## - the pay is PAY_BASE - PAY_HIT a hit + PAY_SHOT a shot, the ✕ drops the tour;
+## - a hit counts once inside BUMP_WAIT, never past the data's `bump_max`, a soft touch not at all;
+## - the pay is the data's base - a hit's price + a shot's bonus, the ✕ drops the tour;
 ## - every line group the tour speaks (`dekalog_claire` and its tags) has Polish and English lines.
 ##   godot --headless --path game --script res://tools/check_dekalog_tour.gd
 
-const DekalogTour := preload("res://scripts/dekalog_tour.gd")
+const Tour := preload("res://scripts/tour.gd")
+const Fakes := preload("res://tools/fakes.gd")
 
 const ON_ROAD := 4.0
 const PLACE_MAX := 90.0
@@ -30,53 +32,13 @@ const TAGS := ["hello", "bump", "shot_quiet", "shot_rush", "shot_long", "shot_st
 const STEP := 0.1
 
 
-class FakeHud extends CanvasLayer:
-	signal card_pressed(index: int)
-	signal abort_pressed
-	var card := ""
-	var buttons := 0
-	var status := ""
-	func show_card(title: String, _b: String, btn: PackedStringArray, _a: Color, _bottom := false, _te := "", _be := "", _s := false) -> void:
-		card = title
-		buttons = btn.size()
-	func show_side_card(title: String, _b: String, btn: PackedStringArray, _a: Color, _te := "", _be := "", _s := false) -> void:
-		card = title
-		buttons = btn.size()
-	func hide_card() -> void:
-		card = ""
-	func toast(_a: String, _b := "") -> void:
-		pass
-	func show_status(_t: String, _c: String, _d: String, h: String, _p: float, _a: Color, _badge := "", _i := {}, _he := "") -> void:
-		status = h
-	func hide_status() -> void:
-		status = ""
-	func ticker_out() -> void:
-		pass
-
-
-class FakeDialogue extends Node:
-	var said: Array[String] = []
-	func say(_anchor: Variant, _who: String, group: String, tag := "", _s := 4.0, _c := Color.WHITE, _h := 2.6, _p := false) -> Array:
-		said.append(group + ":" + tag)
-		return []
-
-
-class FakeWallet extends Node:
-	var money := 0
-	var respect := 0
-	func pay(amount: int, gain := 0, _kind := "") -> void:
-		money += amount
-		respect += gain
-
-
-class FlatMap extends Node3D:
-	func ground_height(_x: float, _z: float) -> float:
-		return 0.0
-
-
 var _fails: Array[String] = []
 var _pos := Vector3.ZERO
 var _kmh := 0.0
+## The tour's data file, its stops and the tunnel's two portals.
+var _data: Dictionary = {}
+var _stops: Array = []
+var _portals: Array[Vector2] = []
 
 
 func _initialize() -> void:
@@ -85,6 +47,14 @@ func _initialize() -> void:
 
 ## After the first frame, so the tour's beacon is in the tree.
 func _go() -> void:
+	_data = Tour.load_data("dekalog")
+	if _data.is_empty():
+		print("check_dekalog_tour: FAIL data/dekalog_tour.json does not load")
+		quit(1)
+		return
+	_stops = _data["stops"]
+	for v: Array in _data["tunnel"]["line"]:
+		_portals.append(Tour.spot(v))
 	_roads()
 	_lines()
 	_tour()
@@ -104,16 +74,16 @@ func _expect(ok: bool, what: String) -> void:
 
 
 func _roads() -> void:
-	var spots: Array = [["pickup", DekalogTour.PICKUP["at"]]]
-	for s: Dictionary in DekalogTour.STOPS:
-		spots.append([s["id"], s["at"]])
-		_expect(s["shot"] == "" or DekalogTour.SHOTS.has(s["shot"]), "%s: an unknown shot %s" % [s["id"], s["shot"]])
+	var spots: Array = [["pickup", Tour.spot(_data["pickup"]["at"])]]
+	for s: Dictionary in _stops:
+		spots.append([s["id"], Tour.spot(s["at"])])
+		_expect(s["shot"] == "" or _data["shots"].has(s["shot"]), "%s: an unknown shot %s" % [s["id"], s["shot"]])
 	for sp: Array in spots:
 		_expect(PLACES.has(sp[0]), "%s: no filming place to check against" % sp[0])
 		if PLACES.has(sp[0]):
 			var dd: float = (sp[1] as Vector2).distance_to(PLACES[sp[0]])
 			_expect(dd <= PLACE_MAX, "%s: the stop is %.0f m from its place" % [sp[0], dd])
-	var last: Vector2 = DekalogTour.STOPS[-1]["at"]
+	var last := Tour.spot(_stops[-1]["at"])
 	_expect(last.distance_to(POOLS) < 120.0, "the estate stop: %.0f m from the Inflancka pools" % last.distance_to(POOLS))
 	var text := FileAccess.get_file_as_string("res://map/centrum.json")
 	if text == "":
@@ -136,7 +106,7 @@ func _roads() -> void:
 	var portals: Array = data.get("tunnels", {}).get("portals", [])
 	var found := 0
 	for pt: Array in portals:
-		for t: Vector2 in DekalogTour.TUNNEL:
+		for t: Vector2 in _portals:
 			if Vector2(float(pt[0]), float(pt[1])).distance_to(t) < 1.0:
 				found += 1
 	_expect(found == 2, "the W-Z tunnel: %d of 2 portals match centrum.json" % found)
@@ -144,30 +114,32 @@ func _roads() -> void:
 
 func _lines() -> void:
 	var d: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/dialogue.json"))
-	var lines: Array = d.get(DekalogTour.GROUP, [])
+	var group := str(_data["lines"])
+	var lines: Array = d.get(group, [])
 	var general := 0
 	var tags := {}
 	for l: Array in lines:
-		_expect(l.size() >= 2 and String(l[0]) != "" and String(l[1]) != "", "a %s line without Polish or English" % DekalogTour.GROUP)
+		_expect(l.size() >= 2 and String(l[0]) != "" and String(l[1]) != "", "a %s line without Polish or English" % group)
 		if l.size() > 2 and l[2] is Dictionary:
 			tags[String(l[2].get("only", ""))] = true
 		else:
 			general += 1
-	_expect(general >= 12, "%s: %d general lines (want 12+)" % [DekalogTour.GROUP, general])
+	_expect(general >= 12, "%s: %d general lines (want 12+)" % [group, general])
 	for t: String in TAGS:
-		_expect(tags.has(t), "%s: no line for %s" % [DekalogTour.GROUP, t])
+		_expect(tags.has(t), "%s: no line for %s" % [group, t])
 
 
 func _new() -> Array:
-	var hud := FakeHud.new()
-	var dlg := FakeDialogue.new()
-	var wal := FakeWallet.new()
-	var map := FlatMap.new()
+	var hud := Fakes.Hud.new()
+	var dlg := Fakes.Dialogue.new()
+	var wal := Fakes.Wallet.new()
+	var map := Fakes.FlatMap.new()
 	root.add_child(hud)
 	root.add_child(dlg)
 	root.add_child(wal)
 	root.add_child(map)
-	var k := DekalogTour.new()
+	var k := Tour.new()
+	k.configure(_data)
 	k.hud = hud
 	k.dialogue = dlg
 	k.wallet = wal
@@ -186,37 +158,49 @@ func _run(k: Node, seconds: float) -> void:
 		t += STEP
 
 
+## The tour is at this point of its way: "IDLE", "RING", "OFFER", or a stage of the run.
+func _is(k: Tour, what: String) -> bool:
+	match what:
+		"IDLE":
+			return k.phase == Tour.Phase.IDLE
+		"RING":
+			return k.phase == Tour.Phase.RING
+		"OFFER":
+			return k.phase == Tour.Phase.OFFER
+	return k.phase == Tour.Phase.RUN and k.stage == Tour.Stage[what]
+
+
 func _at(p: Vector2, kmh := 0.0, y := 0.0) -> void:
 	_pos = Vector3(p.x, y, p.y)
 	_kmh = kmh
 
 
-func _arrive(k: DekalogTour, hud: FakeHud, i: int) -> void:
-	var s: Dictionary = DekalogTour.STOPS[i]
-	_at(s["at"], 2.0)
+func _arrive(k: Tour, hud: Fakes.Hud, i: int) -> void:
+	var s: Dictionary = _stops[i]
+	_at(Tour.spot(s["at"]), 2.0)
 	_run(k, 1.5)
-	if i < DekalogTour.STOPS.size() - 1:
-		_expect(k.state == DekalogTour.State.FRAME and hud.card.begins_with("DEKALOG"), "%s: the KADR card (%s)" % [s["id"], hud.card])
-		hud.card_pressed.emit(0)
-		_expect(k.state == DekalogTour.State.LEG and k.stop == i + 1, "%s: DRIVE ON to the next" % s["id"])
+	if i < _stops.size() - 1:
+		_expect(_is(k, "STOP") and hud.card.begins_with("DEKALOG"), "%s: the KADR card (%s)" % [s["id"], hud.card])
+		hud.press(0)
+		_expect(_is(k, "LEG") and k.stop == i + 1, "%s: DRIVE ON to the next" % s["id"])
 
 
 func _tour() -> void:
 	var parts := _new()
-	var k: DekalogTour = parts[0]
-	var hud: FakeHud = parts[1]
-	var wal: FakeWallet = parts[3]
+	var k: Tour = parts[0]
+	var hud: Fakes.Hud = parts[1]
+	var wal: Fakes.Wallet = parts[3]
 	_at(Vector2(0, 0), 30.0)
-	_expect(k.ring() and k.state == DekalogTour.State.RING and hud.card.contains("CLAIRE"), "the call rings")
-	hud.card_pressed.emit(0)
-	_expect(k.state == DekalogTour.State.OFFER, "ODBIERZ: the offer")
-	hud.card_pressed.emit(0)
-	_expect(k.state == DekalogTour.State.TO_PICKUP and k.has_target() and k.busy(), "JADĘ: to the pickup")
+	_expect(k.ring() and _is(k, "RING") and hud.card.contains("CLAIRE"), "the call rings")
+	hud.press(0)
+	_expect(_is(k, "OFFER"), "ODBIERZ: the offer")
+	hud.press(0)
+	_expect(_is(k, "TO_PICKUP") and k.has_target() and k.busy(), "JADĘ: to the pickup")
 	_run(k, 1.0)
-	_expect(k.state == DekalogTour.State.TO_PICKUP, "far from the pickup: still going there")
-	_at(DekalogTour.PICKUP["at"], 3.0)
+	_expect(_is(k, "TO_PICKUP"), "far from the pickup: still going there")
+	_at(k.pickup_at(), 3.0)
 	_run(k, 1.5)
-	_expect(k.state == DekalogTour.State.LEG and k.stop == 0, "stopped at Centralna: Claire gets in (state %d)" % k.state)
+	_expect(_is(k, "LEG") and k.stop == 0, "stopped at Centralna: Claire gets in (stage %d)" % k.stage)
 	# Leg 0, quiet: no hit on the way, the shot on arrival.
 	_at(Vector2(-1200, 1000), 30.0)
 	_run(k, 20.0)
@@ -224,9 +208,10 @@ func _tour() -> void:
 	_expect(k.shots_done.has("quiet"), "quiet: a leg with no hit")
 	# Leg 1, the rush: too slow (RUSH + 5 s) gives no shot.
 	_at(Vector2(-500, 1000), 30.0)
-	_run(k, DekalogTour.RUSH + 5.0)
+	var rush := float(_data["shots"]["rush"]["need"])
+	_run(k, rush + 5.0)
 	_arrive(k, hud, 1)
-	_expect(not k.shots_done.has("rush"), "the rush: not after %.0f s" % (DekalogTour.RUSH + 5.0))
+	_expect(not k.shots_done.has("rush"), "the rush: not after %.0f s" % (rush + 5.0))
 	# Leg 2, the long take: 10 s fast does nothing, 16 s at 20 km/h does it; then two hits.
 	_at(Vector2(-300, 0), 70.0)
 	_run(k, 10.0)
@@ -236,12 +221,12 @@ func _tour() -> void:
 	_expect(k.shots_done.has("long"), "the long take: 16 s at 20 km/h")
 	k.on_bump(null, 6.0)
 	k.on_bump(null, 6.0)
-	_expect(k.hits == 1, "one hit counted once (%d)" % k.hits)
-	_run(k, DekalogTour.BUMP_WAIT + 0.2)
+	_expect(k.bumps == 1, "one hit counted once (%d)" % k.bumps)
+	_run(k, Tour.BUMP_WAIT + 0.2)
 	k.on_bump(null, 1.0)
-	_expect(k.hits == 1, "a soft touch: not counted")
+	_expect(k.bumps == 1, "a soft touch: not counted")
 	k.on_bump(null, 6.0)
-	_expect(k.hits == 2, "a second hit later: counted (%d)" % k.hits)
+	_expect(k.bumps == 2, "a second hit later: counted (%d)" % k.bumps)
 	_arrive(k, hud, 2)
 	# Leg 3, static: 5.5 s standing.
 	_at(Vector2(-560, -800), 0.0)
@@ -250,43 +235,43 @@ func _tour() -> void:
 	_arrive(k, hud, 3)
 	# Leg 4, no shot; leg 5, the tunnel: over it on the street (y 0) nothing, under it the shot.
 	_arrive(k, hud, 4)
-	var mid: Vector2 = (DekalogTour.TUNNEL[0] as Vector2).lerp(DekalogTour.TUNNEL[1], 0.5)
+	var mid := _portals[0].lerp(_portals[1], 0.5)
 	_at(mid, 40.0, 0.0)
 	_run(k, 1.0)
 	_expect(not k.shots_done.has("tunnel"), "the tunnel: not on the street above it")
 	_at(mid, 40.0, -6.0)
 	_run(k, 0.5)
 	_expect(k.shots_done.has("tunnel"), "the tunnel: under Plac Zamkowy")
-	_at(DekalogTour.STOPS[-1]["at"], 2.0)
+	_at(Tour.spot(_stops[-1]["at"]), 2.0)
 	_run(k, 1.5)
-	_expect(k.state == DekalogTour.State.ASK and hud.buttons == 2, "the estate: her question with two answers")
-	hud.card_pressed.emit(1)
-	_expect(k.state == DekalogTour.State.DONE and k.answer == 1, "an answer: the end card")
-	var want := DekalogTour.PAY_BASE - 2 * DekalogTour.PAY_HIT + 4 * DekalogTour.PAY_SHOT
+	_expect(_is(k, "ASK") and hud.buttons == 2, "the estate: her question with two answers")
+	hud.press(1)
+	_expect(_is(k, "DONE") and k.answer == 1, "an answer: the end card")
+	var want := int(k.pay["base"]) - 2 * int(k.pay["bump"]) + 4 * int(k.pay["shot"])
 	_expect(wal.money == want, "the pay: %d zł (want %d: two hits, four shots)" % [wal.money, want])
-	_expect(wal.respect == DekalogTour.RESPECT - 2 * DekalogTour.RESPECT_HIT, "the respect: %d" % wal.respect)
-	hud.card_pressed.emit(0)
-	_expect(k.state == DekalogTour.State.IDLE and not k.busy(), "MERCI: back to idle")
+	_expect(wal.respect == int(k.pay["respect"]) - 2 * int(k.pay["respect_bump"]), "the respect: %d" % wal.respect)
+	hud.press(0)
+	_expect(_is(k, "IDLE") and not k.busy(), "MERCI: back to idle")
 	# Hits never pass HITS_MAX; a hit spoils the quiet leg.
 	k.start()
-	_at(DekalogTour.PICKUP["at"], 0.0)
+	_at(k.pickup_at(), 0.0)
 	_run(k, 1.5)
 	for n in 10:
 		k.on_bump(null, 8.0)
-		_run(k, DekalogTour.BUMP_WAIT + 0.1)
-	_expect(k.hits == DekalogTour.HITS_MAX, "ten hits: capped at %d (%d)" % [DekalogTour.HITS_MAX, k.hits])
+		_run(k, Tour.BUMP_WAIT + 0.1)
+	_expect(k.bumps == k.bump_max, "ten hits: capped at %d (%d)" % [k.bump_max, k.bumps])
 	_arrive(k, hud, 0)
 	_expect(not k.shots_done.has("quiet"), "quiet: not after a hit")
 	# The ✕ drops the tour.
 	hud.abort_pressed.emit()
-	_expect(k.state == DekalogTour.State.IDLE and not k.has_target(), "✕: the tour dropped")
+	_expect(_is(k, "IDLE") and not k.has_target(), "✕: the tour dropped")
 
 
 ## The tunnel test against the map's own heights: the street over the tunnel is higher than the road in it.
 func _tunnel() -> void:
 	var parts := _new()
-	var k: DekalogTour = parts[0]
-	var mid: Vector2 = (DekalogTour.TUNNEL[0] as Vector2).lerp(DekalogTour.TUNNEL[1], 0.5)
-	_expect(not k.in_tunnel(Vector3(DekalogTour.TUNNEL[0].x, -6.0, DekalogTour.TUNNEL[0].y)), "the tunnel: not at the portal's ramp")
+	var k: Tour = parts[0]
+	var mid := _portals[0].lerp(_portals[1], 0.5)
+	_expect(not k.in_tunnel(Vector3(_portals[0].x, -6.0, _portals[0].y)), "the tunnel: not at the portal's ramp")
 	_expect(not k.in_tunnel(Vector3(mid.x + 30.0, -6.0, mid.y + 30.0)), "the tunnel: not beside it")
 	_expect(k.in_tunnel(Vector3(mid.x, -6.0, mid.y)), "the tunnel: in its middle")

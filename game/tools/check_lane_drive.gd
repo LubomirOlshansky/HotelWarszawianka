@@ -16,7 +16,19 @@ extends SceneTree
 ## the box, and no Trzy mosty; --route=NAME:x,z>x,z[>...][;NAME2:...] adds a route through the graph
 ## nodes nearest those points (into and out of side roads) (a road design check: tools/road_design.py streets driven end to end).
 ##
-##   godot --headless --path game --fixed-fps 60 --script res://tools/check_lane_drive.gd [-- --prebuilt --handling=grounded --verbose --only=NAME --streets=A,B --box=...]
+##
+## Racer AI step 5 (docs/design/race-ai.md 5.4): --links drives the proven race links of
+## game/data/race_links.json instead (every link with --write; tools/race_links.py; no streets, no
+## Trzy mosty): the very
+## curve a rival drives over it (race_cuts.gd `curve`, from the straightest street into its first
+## junction to the straightest way on from its last), with LINK_IN m of that street before it and
+## LINK_OUT m of the way on after, at the rivals' LINK_TOP at most. A link passes only if the car
+## stays within LINK_OFF m of the curve and never touches anything fixed (a wall, a fence, a post:
+## LINK_TOUCH frames at most); --write=FILE lists the ids that passed and why the others failed, for
+## `python3 -I tools/race_links.py --proofs=FILE` (tools/race_links.sh does both). A rival is
+## handed only a link with a proof, so a racer goes only where the player's car can.
+##
+##   godot --headless --path game --fixed-fps 60 --script res://tools/check_lane_drive.gd [-- --prebuilt --handling=grounded --verbose --only=NAME --streets=A,B --box=... --links --write=FILE]
 
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const SectorStreamer := preload("res://scripts/sector_streamer.gd")
@@ -26,6 +38,13 @@ const IndexPack := preload("res://scripts/index_pack.gd")
 ## Sectors within this of a route point are built.
 const REACH := 60.0
 const TrzyMosty := preload("res://scripts/trzy_mosty.gd")
+const RaceCuts := preload("res://scripts/race_cuts.gd")
+## --links: the metres of street before a link and of the way on after it, the most a link's
+## drive may stray from its curve (m), and the frames it may touch something fixed.
+const LINK_IN := 25.0
+const LINK_OUT := 15.0
+const LINK_OFF := 2.5
+const LINK_TOUCH := 3
 
 ## The narrow streets of P14 (lanes under 2.5 m in the GAMEPLAY_PLAN audit): each driven from one
 ## end of its named edges to the other, both ways.
@@ -67,6 +86,12 @@ var _failures := 0
 var _frames := 0
 var _cruise := CRUISE_NARROW
 var _over := false
+## --links: drive the race links; --write=FILE: where the ids that passed go.
+var links := false
+var write_to := ""
+var _touch := 0
+var _passed: Array[String] = []
+var _failed := {}
 
 
 func _initialize() -> void:
@@ -83,6 +108,10 @@ func _initialize() -> void:
 			streets = Array(a.trim_prefix("--streets=").split(","))
 		elif a.begins_with("--route="):
 			extra = a.trim_prefix("--route=")
+		elif a == "--links":
+			links = true
+		elif a.begins_with("--write="):
+			write_to = a.trim_prefix("--write=")
 		elif a.begins_with("--box="):
 			var b := a.trim_prefix("--box=").split_floats(",")
 			box = Rect2(minf(b[0], b[2]), minf(b[1], b[3]), absf(b[2] - b[0]), absf(b[3] - b[1]))
@@ -97,6 +126,9 @@ func _initialize() -> void:
 		map.setup_streamed(JSON.parse_string(FileAccess.get_file_as_string(SectorStreamer.INDEX_JSON)), ShaderMaterial.new(), ShaderMaterial.new())
 	map.data = map.index_data
 	graph = LaneGraph.new(map.data["graph"], map)
+	if links:
+		streets = []
+		_add_links()
 	for street: String in streets:
 		var ends := _street_ends(street)
 		if ends.is_empty():
@@ -114,7 +146,7 @@ func _initialize() -> void:
 			stops.append(graph.nearest_node(Vector2(f[0], f[1])))
 		_add_route(parts[0], stops, CRUISE_NARROW)
 	var tm := TrzyMosty.new()
-	if streets != STREETS or extra != "":
+	if streets != STREETS or extra != "" or links:
 		pass
 	elif not tm.build(graph, map.data):
 		_fail_build("Trzy mosty: %s" % tm.error)
@@ -175,6 +207,73 @@ func _street_ends(street: String) -> Array:
 				best_d = d
 				best = [nodes[i], nodes[j]]
 	return best
+
+
+## --links: one route a race link, every link of the file (proven or not): LINK_IN m of the street
+## into its first junction that meets the link straightest, the curve a rival drives
+## (RaceCuts.curve), and LINK_OUT m of the straightest way on.
+func _add_links() -> void:
+	var cuts := RaceCuts.new()
+	# The proof (--write) drives every link; the check, the proven ones (the others never race).
+	cuts.with_unproven = write_to != ""
+	cuts.load_cuts(graph)
+	if cuts.links_missed > 0:
+		_fail_build("race links: %d of %d did not snap to the lane graph" % [cuts.links_missed, cuts.links_total])
+	if cuts.a.size() == cuts.first_link:
+		_fail_build("race links: none to drive")
+	for i in range(cuts.first_link, cuts.a.size()):
+		var lid := cuts.link_id[i - cuts.first_link]
+		var name := "link %s %s %.0f m" % [lid, cuts.kind[i], cuts.length[i]]
+		if only != "" and not name.contains(only):
+			continue
+		var pts: PackedVector2Array = cuts.shape[i]
+		var first := (pts[1] - pts[0]).normalized()
+		var e_in := -1
+		var best := -2.0
+		for e: int in graph.node_in[cuts.a[i]]:
+			var dot := graph.direction(e, graph.e_s1[e]).dot(first)
+			# (Not the one-way street a wrong-way hop drives against: no racer turns round into it.)
+			if graph.e_tn[e] < 0 and dot > best and RaceCuts.hop(cuts.a[i], cuts.b[i]) != e:
+				best = dot
+				e_in = e
+		var exits: PackedInt32Array = cuts.exits_ab[i]
+		if e_in < 0 or exits.is_empty():
+			_fail_build("%s: no street into it or no way on (--at=%.0f,%.0f)" % [name, pts[0].x, pts[0].y])
+			_failed[lid] = "no street into it or no way on"
+			continue
+		var last := (pts[pts.size() - 1] - pts[pts.size() - 2]).normalized()
+		var g := exits[0]
+		best = -2.0
+		for f: int in exits:
+			var dot := graph.direction(f, graph.e_s0[f]).dot(last)
+			if dot > best:
+				best = dot
+				g = f
+		var route := PackedVector3Array()
+		var off := graph.lane_offset(e_in, 0)
+		var s := maxf(graph.e_s1[e_in] - LINK_IN, graph.e_s0[e_in])
+		while s < graph.e_s1[e_in]:
+			var q := graph.point_at(e_in, s, off)
+			route.append(Vector3(q.x, graph.height(e_in, s), q.y))
+			s += STEP
+		var c := RaceCuts.curve(graph, e_in, 0, g)
+		var y0 := graph.height(e_in, graph.e_s1[e_in])
+		var y1 := graph.height(g, graph.e_s0[g])
+		var cn := maxi(2, int(LaneGraph.bezier_length(c) / STEP))
+		for k in range(0, cn + 1):
+			var q := LaneGraph.bezier(c, float(k) / cn)
+			var x := Vector2(q.x, q.y)
+			route.append(Vector3(q.x, map.drive_height(x.x, x.y, lerpf(y0, y1, float(k) / cn)), q.y))
+		s = graph.e_s0[g] + STEP
+		off = graph.lane_offset(g, 0)
+		while s < minf(graph.e_s0[g] + LINK_OUT, graph.e_s1[g]):
+			var q := graph.point_at(g, s, off)
+			route.append(Vector3(q.x, graph.height(g, s), q.y))
+			s += STEP
+		var length := 0.0
+		for k in range(1, route.size()):
+			length += route[k].distance_to(route[k - 1])
+		routes.append({"name": name, "pts": route, "cruise": RaceCuts.LINK_TOP, "len": length, "link": lid})
 
 
 ## The shortest lane path through `stops` (graph nodes), as points on lane 0 every STEP m.
@@ -259,6 +358,7 @@ func _next() -> bool:
 	_sink = 0.0
 	_off = 0.0
 	_min_v = INF
+	_touch = 0
 	return true
 
 
@@ -325,10 +425,25 @@ func _physics_process(dt: float) -> bool:
 	if _stalled > _worst:
 		_worst = _stalled
 		_worst_at = p
+	if links:
+		# Off the curve itself, not off its nearest point (they lie STEP m apart).
+		for j in [best - 1, best]:
+			if j >= 0 and j + 1 < _path.size():
+				var a2 := Vector2(_path[j].x, _path[j].z)
+				var b2 := Vector2(_path[j + 1].x, _path[j + 1].z)
+				best_d = minf(best_d, Geometry2D.get_closest_point_to_segment(Vector2(p.x, p.z), a2, b2).distance_to(Vector2(p.x, p.z)))
 	_off = maxf(_off, best_d)
 	_min_v = minf(_min_v, v) if _t > 3.0 else _min_v
 	var h: float = map.drive_height(p.x, p.z, p.y)
 	_sink = maxf(_sink, h - p.y)
+	if links:
+		for k in car.get_slide_collision_count():
+			var who := car.get_slide_collision(k).get_collider()
+			if who is StaticBody3D and not who is AnimatableBody3D:
+				_touch += 1
+				if verbose:
+					print("   touch t=%.2f at %.1f, %.1f  %s" % [_t, p.x, p.z, (who as Node).get_path()])
+				break
 	if verbose and car.get_slide_collision_count() > 0:
 		var c := car.get_slide_collision(0)
 		var who: Object = c.get_collider()
@@ -345,8 +460,10 @@ func _physics_process(dt: float) -> bool:
 		why.append("stalled %.1f s at %.0f, %.0f" % [_worst, _worst_at.x, _worst_at.z])
 	if int(car.unsticks) > 0:
 		why.append("unstuck %d×" % int(car.unsticks))
-	if _off > OFF_ROUTE:
-		why.append("%.0f m off the route at %.0f, %.0f" % [_off, p.x, p.z])
+	if _off > (LINK_OFF if links else OFF_ROUTE):
+		why.append("%.1f m off the route at %.0f, %.0f" % [_off, p.x, p.z])
+	if links and _touch > LINK_TOUCH:
+		why.append("touched something fixed %d frames (first at %.0f, %.0f)" % [_touch, p.x, p.z])
 	if _sink > 1.0:
 		why.append("%.1f m under drive_height" % _sink)
 	if not why.is_empty() or done or _t > limit:
@@ -358,6 +475,10 @@ func _physics_process(dt: float) -> bool:
 				"" if why.is_empty() else " · " + ", ".join(why), _path[0].x, _path[0].z])
 		if not why.is_empty():
 			_failures += 1
+			if r.has("link"):
+				_failed[String(r["link"])] = ", ".join(why)
+		elif r.has("link"):
+			_passed.append(String(r["link"]))
 		if not _next():
 			_finish()
 	return false
@@ -367,6 +488,11 @@ func _finish() -> void:
 	if _over:
 		return
 	_over = true
+	if write_to != "":
+		var f := FileAccess.open(write_to, FileAccess.WRITE)
+		f.store_string(JSON.stringify({"passed": _passed, "failed": _failed}) + "\n")
+		f.close()
+		print("check_lane_drive: %d links passed -> %s" % [_passed.size(), write_to])
 	if _failures == 0:
 		print("check_lane_drive: OK")
 	else:

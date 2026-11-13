@@ -1,4 +1,4 @@
-extends Node
+extends "res://scripts/activity.gd"
 ## Dead electric cars (F's ask, 2026-11-06): range anxiety, Warsaw edition.
 ##
 ## **The call.** Now and then, with nothing else on, the phone rings: BARTEK DZWONI. Answer it and
@@ -25,6 +25,11 @@ extends Node
 ## car is one mesh (one draw call, the models' material) plus its hazards (one more, blinking),
 ## the rope a thin box (one), the charger a totem (one); only while a car is out. Idle: a timer.
 ##
+## An activity of the kit (activity.gd, tech-debt TD-1): the call's two cards and their buttons,
+## the target the arrow leads to, the ✕ and the end are the kit's. This script keeps what is the
+## tow's own: Bartek's call clock (it stands while something else is on), the stranded cars, the
+## sling, the carry and the pay. It is the kit's first activity that is flown (`flown`).
+##
 ## Flags (main.gd): --ev-call (the call rings at once), --ev-tow (accepted at once, the
 ## helicopter over the car), --ev-tow=carry (the car already on the rope), --ev-stranded (a
 ## stranded car about 30 m ahead now), --ev=0 (none of it), --ev-log.
@@ -32,8 +37,6 @@ extends Node
 const Models := preload("res://scripts/models.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const CrashScenes := preload("res://scripts/crash_scenes.gd")
-const Beacon := preload("res://scripts/beacon.gd")
-const Access := preload("res://scripts/access.gd")
 
 const NAME := "TESŁO"
 const MODEL := "Model Ś"
@@ -105,29 +108,22 @@ const PLATE := Color("#3fa34d")   ## Polish EV plates are green
 const TAIL := Color("#c8202a")
 const AMBER := Color("#ffae1a")
 
-enum State { IDLE, RING, OFFER, FLY, CARRY, RESULT }
+## The run's own stages (the kit has the call and the offer): flying to the car, the car on the
+## rope, the car on the bay with the result card.
+enum Stage { NONE, FLY, CARRY, RESULT }
 
-var hud: CanvasLayer
-var dialogue: Node
-var wallet: Node
 var missions: Node
-var map: Node3D
 var graph: LaneGraph
 var traffic: Node3D
 var radio: Node
 var heli: Node3D
-## [position, km/h, flying] of the player's vehicle.
-var vehicle: Callable
-## True when nothing else is on (main.gd): no job, race, rescue, card, guide or title.
-var free_now: Callable
 ## Takes the player up in the helicopter (main.gd `_take_off`).
 var take_off: Callable
-var log_on := false
 var enabled := true
 ## The call (and the stranded cars) on their timers (off in test runs but for the flags).
 var auto := true
 
-var state := State.IDLE
+var stage := Stage.NONE
 var call_in := 0.0
 var strand_in := 0.0
 ## The car on the job: {at: Vector3, yaw, e, lane, s, driver, street, stranger: bool}; {} none.
@@ -152,12 +148,14 @@ var _carry_clock := 0.0
 var _talk_t := 0.0
 var _swing_t := 0.0
 var _result_t := 0.0
-var _ring_t := 0.0
-var _tick := 0.0
+## The quarter-second step's own time, and the session's clock for the log.
+var _acc := 0.0
 var _clock := 0.0
 var _blink := 0.0
 var _said_low := false
 var _calls_were := false
+## A tow is on (from LECĘ! or the hook on a stranger's car to the end): `_ended` clears it.
+var _towing := false
 var _rng := RandomNumberGenerator.new()
 var _heli_anchor := func() -> Vector3: return heli.global_position
 
@@ -166,15 +164,22 @@ var _hazards: MeshInstance3D
 var _body: StaticBody3D
 var _rope: MeshInstance3D
 var _totem: MeshInstance3D
-var _pick: Node3D
-var _drop: Node3D
 var _strand_car: MeshInstance3D
 var _strand_hazards: MeshInstance3D
 var _strand_body: StaticBody3D
 var spent_usec := 0
 
 
+func _init() -> void:
+	tag = "ev"
+	colour = COLOUR
+	dark = Color("#2f6fb5")  # Bartek's shirt, in the pickup ring
+	card_life = RING_LIFE
+	flown = true
+
+
 func setup(world: Node3D, seed_value := -1) -> void:
+	super.setup(world)
 	if seed_value >= 0:
 		_rng.seed = seed_value
 	else:
@@ -191,22 +196,8 @@ func setup(world: Node3D, seed_value := -1) -> void:
 	_strand_body = _collider(_strand_car)
 	_rope = _node(world, rope_mesh())
 	_totem = _node(world, charger_mesh())
-	_pick = Beacon.new()
-	world.add_child(_pick)
-	_pick.setup(PICK_COLOUR, Color("#2f6fb5"))
-	_pick.pattern = Beacon.Pattern.DASHED
-	_pick.visible = false
-	_drop = Beacon.new()
-	world.add_child(_drop)
-	_drop.setup(COLOUR, Color("#f2efe8"))
-	_drop.waving = false
-	_drop.visible = false
 	if graph != null:
 		chargers = find_chargers(graph, map)
-	hud.card_pressed.connect(_on_card)
-	hud.abort_pressed.connect(func() -> void:
-		if state == State.FLY or state == State.CARRY:
-			_give_up())
 	var names := PackedStringArray()
 	for c in chargers:
 		names.append("%s %d,%d" % [c["id"], roundi(c["at"].x), roundi(c["at"].z)])
@@ -445,106 +436,107 @@ func _process(dt: float) -> void:
 	if not enabled or dt <= 0.0:
 		return
 	var t0 := Time.get_ticks_usec()
-	_clock += dt
-	_blink += dt
-	var on := fmod(_blink, 0.9) < 0.45
-	if _hazards.visible != on and _car.visible and state != State.RESULT:
-		_hazards.visible = on
-	if _strand_car.visible and _strand_hazards.visible != on:
-		_strand_hazards.visible = on
-	if state == State.CARRY:
-		_carry(dt)
-	_tick += dt
-	if _tick >= TICK:
-		step(_tick)
-		_tick = 0.0
+	super._process(dt)
 	spent_usec += Time.get_ticks_usec() - t0
 
 
-## The slow part, every TICK s.
+## Every frame, whatever the phase: the hazards' blink, the pendulum, and the quarter-second step.
+func _tick(dt: float) -> void:
+	_clock += dt
+	_blink += dt
+	var on := fmod(_blink, 0.9) < 0.45
+	if _hazards.visible != on and _car.visible and stage != Stage.RESULT:
+		_hazards.visible = on
+	if _strand_car.visible and _strand_hazards.visible != on:
+		_strand_hazards.visible = on
+	if stage == Stage.CARRY:
+		_carry(dt)
+	_acc += dt
+	if _acc >= TICK:
+		step(_acc)
+		_acc = 0.0
+
+
+## The slow part, every TICK s: the stranded cars, Bartek's own call clock, the run's stages.
 func step(dt: float) -> void:
 	var v: Array = vehicle.call() if vehicle.is_valid() else [Vector3.ZERO, 0.0, false]
 	var at: Vector3 = v[0]
 	var flying: bool = v[2]
 	_strand_tick(dt, at, flying)
-	match state:
-		State.IDLE:
-			if auto and _free():
-				call_in -= dt
-				if call_in <= 0.0 and not ring():
-					call_in = 20.0
-			_stranger_hook(dt, at, flying)
-		State.RING, State.OFFER:
-			_ring_t += dt
-			if _ring_t > RING_LIFE:
-				hud.hide_card()
-				hud.toast("Nieodebrane połączenie: %s" % CALLER, "Missed call: %s" % CALLER)
-				_reset_call()
-		State.FLY:
+	if phase == Phase.IDLE:
+		if auto and _free():
+			call_in -= dt
+			if call_in <= 0.0 and not ring():
+				call_in = 20.0
+		_stranger_hook(dt, at, flying)
+		return
+	match stage:
+		Stage.FLY:
 			_fly(dt, at, flying)
-		State.CARRY:
+		Stage.CARRY:
 			_carry_status()
-		State.RESULT:
+		Stage.RESULT:
+			# The car stays on the bay for a moment, the card up or already closed, then it goes.
 			_result_t += dt
 			if _result_t > RESULT_LIFE or Vector2(at.x, at.z).distance_to(Vector2(job["at"].x, job["at"].z)) > 220.0:
-				_finish()
+				finish()
+
+
+## The kit's call clock is not used: Bartek's own (`call_in`, in `step`) stands while something
+## else is on, and the stranded cars share the step.
+func _idle_tick(_dt: float) -> void:
+	pass
 
 
 func _free() -> bool:
 	return free_now.is_valid() and bool(free_now.call()) and chargers.size() > 0
 
 
-func busy() -> bool:
-	return state == State.FLY or state == State.CARRY
-
-
 ## The car hangs on the rope: the vehicle button can't land (main.gd).
 func carrying() -> bool:
-	return state == State.CARRY
+	return stage == Stage.CARRY
 
 
-func has_target() -> bool:
-	return state == State.FLY or state == State.CARRY
-
-
+## The arrow's point: the car to pick up, then the charger's bay, at their own height (a car on
+## a bridge deck stands above the ground the kit's target is put on).
 func target_position() -> Vector3:
-	if state == State.CARRY and target >= 0:
+	if stage == Stage.CARRY and target >= 0:
 		return chargers[target]["at"]
 	return job.get("at", Vector3.ZERO)
 
 
 func target_colour() -> Color:
-	return COLOUR if state == State.CARRY else PICK_COLOUR
+	return COLOUR if stage == Stage.CARRY else PICK_COLOUR
+
+
+## No stop assist: the rings are for the helicopter.
+func stop_spot() -> Vector3:
+	return Vector3.INF
 
 
 # --- the call -------------------------------------------------------------------------------
 
 ## The phone rings (--ev-call too): the first card, ANSWER / DECLINE. False with no chargers.
 func ring() -> bool:
-	if chargers.is_empty() or graph == null or state != State.IDLE:
+	if chargers.is_empty() or graph == null:
 		return false
-	state = State.RING
-	_ring_t = 0.0
-	hud.show_side_card("📞 %s DZWONI" % CALLER.to_upper(), "Kumpel z liceum. Ten, co pół roku temu przesiadł się na elektryka i od tamtej pory o niczym innym nie mówi.",
-			PackedStringArray(["ODBIERZ|ANSWER", "ODRZUĆ|DECLINE"]), COLOUR, "%s is calling" % CALLER,
-			"Your mate from school. The one who went electric six months ago and hasn't talked about anything else since.")
-	hud.ticker_out()
-	Access.buzz(60, 0.6)
-	_log("call ringing")
-	return true
+	return super.ring()
 
 
-## He talks: where the car is and where it must go; LECĘ! / NIE TERAZ.
-func _offer() -> void:
+func _call_card() -> Dictionary:
+	return {"who": CALLER, "about": ["Kumpel z liceum. Ma elektryka. Mówi tylko o nim.", "School mate. Went electric. Talks of nothing else."]}
+
+
+## He talks: where the car is and where it must go; LECĘ! / NIE TERAZ. Nothing ({}: no offer)
+## when no road has room for his car.
+func _offer_card() -> Dictionary:
 	var v: Array = vehicle.call() if vehicle.is_valid() else [Vector3.ZERO, 0.0, false]
 	var from := Vector2((v[0] as Vector3).x, (v[0] as Vector3).z)
 	var spot := pick_car_spot(graph, from, CAR_FROM, CAR_TO, _rng)
 	if spot.is_empty():
 		spot = pick_car_spot(graph, from, 150.0, CAR_TO * 1.6, _rng)
 	if spot.is_empty():
-		hud.hide_card()
-		_reset_call()
-		return
+		return {}
 	var p := pose(graph, spot)
 	job = {"at": p[0], "yaw": p[1], "e": spot["e"], "lane": spot["lane"], "s": spot["s"], "street": graph.e_name[spot["e"]],
 			"stranger": false, "driver": null}
@@ -552,50 +544,42 @@ func _offer() -> void:
 	var street: String = job["street"] if job["street"] != "" else "jakiejś bocznej"
 	var street_en: String = job["street"] if job["street"] != "" else "some side street"
 	var place: String = chargers[target]["place"]
-	state = State.OFFER
-	_ring_t = 0.0
-	hud.show_side_card("📞 %s" % CALLER.to_upper(),
-			"„Siema! Słuchaj, mam sprawę… Moje %s stanęło na %s. Zero procent. Aplikacja mówiła, że dojadę, ale chyba liczyła latem. Podepniesz go helikopterem na linę i zaniesiesz pod ładowarkę przy %s? Stawiam kawę. Dwie. Ładowanie i tak potrwa.”" % [NAME, street, place],
-			PackedStringArray(["LECĘ!|ON MY WAY", "NIE TERAZ|NOT NOW"]), COLOUR, CALLER,
-			"\"Hey! Listen, I need a favour… My %s died on %s. Zero percent. The app said I'd make it, but I think it was counting in summer. Can you hook it on a rope under the helicopter and fly it to the charger by %s? Coffee's on me. Two. Charging takes ages anyway.\"" % [NAME, street_en, place])
 	_log("offer: car on %s at %d,%d, charger %s %.0f m on" % [street_en, roundi(p[0].x), roundi(p[0].z), chargers[target]["id"],
 			Vector2(p[0].x, p[0].z).distance_to(Vector2(chargers[target]["at"].x, chargers[target]["at"].z))])
+	return {"title": ["📞 %s" % CALLER.to_upper(), CALLER], "face": CALLER, "buttons": ["LECĘ!|ON MY WAY", "NIE TERAZ|NOT NOW"],
+			"body": ["„Siema! Słuchaj, mam sprawę… Moje %s stanęło na %s. Zero procent. Aplikacja mówiła, że dojadę, ale chyba liczyła latem. Podepniesz go helikopterem na linę i zaniesiesz pod ładowarkę przy %s? Stawiam kawę. Dwie. Ładowanie i tak potrwa.”" % [NAME, street, place],
+			"\"Hey! Listen, I need a favour… My %s died on %s. Zero percent. The app said I'd make it, but I think it was counting in summer. Can you hook it on a rope under the helicopter and fly it to the charger by %s? Coffee's on me. Two. Charging takes ages anyway.\"" % [NAME, street_en, place]]}
 
 
-func _on_card(i: int) -> void:
-	match state:
-		State.RING:
-			if i == 0:
-				_offer()
-			else:
-				hud.hide_card()
-				hud.toast("Odrzucono. %s napisze SMS-a. Długiego." % CALLER, "Declined. %s will text. A long one." % CALLER)
-				_reset_call()
-		State.OFFER:
-			hud.hide_card()
-			if i == 0:
-				accept()
-			else:
-				hud.toast("„Spoko, poczekam. Mam 0 %%, czasu mam dużo.”", "\"No worries, I'll wait. I've got 0 %%, I've got time.\"")
-				job = {}
-				_reset_call()
-		State.RESULT:
-			hud.hide_card()
+## Bartek's words when the call or the offer is turned down, or nobody answers.
+func _refused(timed_out: bool) -> void:
+	if timed_out:
+		hud.toast("Nieodebrane połączenie: %s" % CALLER, "Missed call: %s" % CALLER)
+	elif phase == Phase.RING:
+		hud.toast("Odrzucono. %s napisze SMS-a. Długiego." % CALLER, "Declined. %s will text. A long one." % CALLER)
+	else:
+		hud.toast("„Spoko, poczekam. Mam 0 %%, czasu mam dużo.”", "\"No worries, I'll wait. I've got 0 %%, I've got time.\"")
 
 
-## LECĘ! (--ev-tow too): his car on the road, the helicopter up, the pickup ring with Bartek.
-func accept() -> void:
-	if job.is_empty():
-		return
-	calls += 1
+## The run begins: LECĘ! (--ev-tow too), his car on the road, the helicopter up, the pickup ring
+## with Bartek; or a stranger's car already hooked on (`_stranger_hook`), straight to the carry.
+func _begin() -> void:
+	_towing = true
 	_calls_were = missions.paused if missions != null else false
 	if missions != null:
 		missions.paused = true
+	if bool(job.get("stranger", false)):
+		_hook()
+		return
+	calls += 1
 	_show_car(_car, _hazards, _body, job)
 	job["driver"] = _hold_lane(job)
-	_pick.place(job["at"] + Vector3(-1.6, 0, 1.2).rotated(Vector3.UP, float(job["yaw"])), HOOK_R, true, true)
-	_pick.visible = true
-	state = State.FLY
+	var car_at: Vector3 = job["at"]
+	_beacon.pattern = Beacon.Pattern.DASHED
+	_beacon.waving = true
+	_beacon.recolour(PICK_COLOUR)
+	set_target(Vector2(car_at.x, car_at.z), true, car_at + Vector3(-1.6, 0, 1.2).rotated(Vector3.UP, float(job["yaw"])), HOOK_R)
+	stage = Stage.FLY
 	_hook_t = 0.0
 	_said_low = false
 	var v: Array = vehicle.call() if vehicle.is_valid() else [Vector3.ZERO, 0.0, false]
@@ -605,19 +589,12 @@ func accept() -> void:
 	_log("accepted: flying to the car")
 
 
-func _reset_call() -> void:
-	state = State.IDLE
-	job = {}
-	call_in = _rng.randf_range(NEXT_CALL.x, NEXT_CALL.y)
-	_log("next call in %.0f s" % call_in)
-
-
 # --- flying to the car and hooking ------------------------------------------------------------
 
 func _fly(dt: float, at: Vector3, flying: bool) -> void:
-	var car: Vector3 = job["at"]
-	var flat := Vector2(at.x, at.z).distance_to(Vector2(car.x, car.z))
-	var above := at.y - (car.y + SIZE.y)
+	var car_at: Vector3 = job["at"]
+	var flat := Vector2(at.x, at.z).distance_to(Vector2(car_at.x, car_at.z))
+	var above := at.y - (car_at.y + SIZE.y)
 	var hint := "Zniż się nad %s (▼), aż lina zaczepi" % NAME
 	var hint_en := "Come down over the %s (▼) until the sling hooks on" % NAME
 	if not flying:
@@ -634,7 +611,7 @@ func _fly(dt: float, at: Vector3, flying: bool) -> void:
 		if flat < 40.0 and not _said_low:
 			_said_low = true
 			_say("hello")
-	hud.show_status("%s %s · 0%%" % [NAME, MODEL], "", "%d m" % roundi(flat), hint, _hook_t / HOOK_HOLD, PICK_COLOUR, "", {}, hint_en)
+	status("%s %s · 0%%" % [NAME, MODEL], "", "%d m" % roundi(flat), [hint, hint_en], _hook_t / HOOK_HOLD, PICK_COLOUR)
 
 
 ## The sling hooks on: the helicopter within HOOK_R m of the car, its hook no more than the rope
@@ -644,14 +621,13 @@ static func can_hook(flat: float, above: float, speed: float) -> bool:
 
 
 func _hook() -> void:
-	_pick.visible = false
 	_release_lane(job)
 	_set_body(_body, false)
 	hang = job["at"] + Vector3(0, SIZE.y, 0)
 	hang_v = Vector3.ZERO
 	_rope.visible = true
 	heli.sling = 1.0
-	state = State.CARRY
+	stage = Stage.CARRY
 	_carry_clock = 0.0
 	_talk_t = 5.0
 	_swing_t = 5.0  # the first yank is expected
@@ -659,8 +635,11 @@ func _hook() -> void:
 	var c: Dictionary = chargers[target]
 	_totem.global_transform = Transform3D(Basis(Vector3.UP, float(c["face"])), c["side"])
 	_totem.visible = true
-	_drop.place(c["at"], DROP_R, true, false)
-	_drop.visible = true
+	var bay: Vector3 = c["at"]
+	_beacon.pattern = Beacon.Pattern.SOLID
+	_beacon.waving = false
+	_beacon.recolour(COLOUR)
+	set_target(Vector2(bay.x, bay.z), false, bay, DROP_R)
 	_say("elektrownia" if c["id"] == "elektrownia" and not bool(job["stranger"]) else "hook", true)
 	Access.buzz(30, 0.4)
 	_log("hooked (%s) -> %s" % ["a stranger's car" if job["stranger"] else "Bartek's car", c["id"]])
@@ -731,8 +710,8 @@ func _anchor() -> Vector3:
 
 func _carry_status() -> void:
 	var c: Dictionary = chargers[target]
-	var car: Vector3 = job["at"]
-	var flat := Vector2(car.x, car.z).distance_to(Vector2(c["at"].x, c["at"].z))
+	var car_at: Vector3 = job["at"]
+	var flat := Vector2(car_at.x, car_at.z).distance_to(Vector2(c["at"].x, c["at"].z))
 	var resting := bool(job.get("resting", false))
 	if flat <= DROP_R and resting:
 		_drop_t += TICK
@@ -747,8 +726,8 @@ func _carry_status() -> void:
 	if flat < 60.0:
 		hint = "Opuść %s na stanowisko (▼)" % NAME
 		hint_en = "Lower the %s onto the bay (▼)" % NAME
-	hud.show_status("%s %s · 0%%" % [NAME, MODEL], "%d:%02d" % [int(_carry_clock) / 60, int(_carry_clock) % 60], dist, hint,
-			_drop_t / DROP_HOLD, COLOUR, "", {}, hint_en)
+	status("%s %s · 0%%" % [NAME, MODEL], "%d:%02d" % [int(_carry_clock) / 60, int(_carry_clock) % 60], dist, [hint, hint_en],
+			_drop_t / DROP_HOLD)
 	# Bartek talks; a wild swing gets its own line.
 	_swing_t -= TICK
 	if swing_angle(hang, _anchor()) > SWING_WILD and _swing_t <= 0.0:
@@ -765,9 +744,9 @@ func _carry_status() -> void:
 func _set_down() -> void:
 	var c: Dictionary = chargers[target]
 	_rope.visible = false
-	_drop.visible = false
+	clear_target()
 	heli.sling = 0.0
-	hud.hide_status()
+	hide_status()
 	job["at"] = c["at"]
 	job["yaw"] = c["yaw"]
 	job["e"] = c["e"]
@@ -786,32 +765,44 @@ func _set_down() -> void:
 	var title := "NAŁADOWANE: 3 %"
 	var bonus_pl := " (+%d zł za szybki lot)" % p[2] if p[2] > 0 else ""
 	var bonus_en := " (+%d zł for a quick flight)" % p[2] if p[2] > 0 else ""
-	if bool(job["stranger"]):
-		hud.show_card(title, "Kierowca obcego %s płaci %d zł%s. „Pan z nieba! Napiszę na grupie, że diesle nie mają takiego serwisu.”" % [NAME, p[0], bonus_pl],
-				PackedStringArray(["OK"]), COLOUR, false, "CHARGED: 3 %",
-				"The stranger pays %d zł%s. \"A man from the sky! I'm posting in the group that diesels get no service like this.\"" % [p[0], bonus_en])
-	else:
-		hud.show_card(title, "%s płaci %d zł%s i +%d szacunku. „40 minut i jestem jak nowy. Kawa i rogal na mnie. A szwagrowi z Pasatini ani słowa!”" % [CALLER, p[0], bonus_pl, p[1]],
-				PackedStringArray(["OK"]), COLOUR, false, "CHARGED: 3 %",
-				"%s pays %d zł%s and +%d respect. \"40 minutes and I'm good as new. Coffee and a croissant on me. And not a word to my brother-in-law with the Pasatini!\"" % [CALLER, p[0], bonus_en, p[1]])
-	state = State.RESULT
+	stage = Stage.RESULT
 	_result_t = 0.0
+	if bool(job["stranger"]):
+		show_card([title, "CHARGED: 3 %"], ["Kierowca obcego %s płaci %d zł%s. „Pan z nieba! Napiszę na grupie, że diesle nie mają takiego serwisu.”" % [NAME, p[0], bonus_pl],
+				"The stranger pays %d zł%s. \"A man from the sky! I'm posting in the group that diesels get no service like this.\"" % [p[0], bonus_en]],
+				PackedStringArray(["OK"]))
+	else:
+		show_card([title, "CHARGED: 3 %"], ["%s płaci %d zł%s i +%d szacunku. „40 minut i jestem jak nowy. Kawa i rogal na mnie. A szwagrowi z Pasatini ani słowa!”" % [CALLER, p[0], bonus_pl, p[1]],
+				"%s pays %d zł%s and +%d respect. \"40 minutes and I'm good as new. Coffee and a croissant on me. And not a word to my brother-in-law with the Pasatini!\"" % [CALLER, p[0], bonus_en, p[1]]],
+				PackedStringArray(["OK"]))
 	_log("set down at %s after %.0f s: +%d zł" % [c["id"], _carry_clock, p[0]])
 
 
+## The ✕ only while flying to the car or carrying it (not over the result card).
+func _can_abort() -> bool:
+	return stage == Stage.FLY or stage == Stage.CARRY
+
+
 ## ✕: the car is set down where it is (on the ground under it), no pay; Bartek sighs.
-func _give_up() -> void:
-	_pick.visible = false
-	_drop.visible = false
-	_rope.visible = false
-	hud.hide_status()
-	if state == State.CARRY:
+func drop(_by_player: bool) -> void:
+	if stage == Stage.CARRY:
 		_say("drop", true)
 	_log("given up")
-	_finish()
+	_end(call_cool)
 
 
-func _finish() -> void:
+## Back to idle (the kit's `_end` has taken down the status line, the card and the ring): after
+## a tow the car, the rope and the charger's totem go and the rescue calls come back; after a
+## call or an offer nobody took, only the next call's time is drawn.
+func _ended() -> void:
+	var was_stranger := bool(job.get("stranger", false))
+	stage = Stage.NONE
+	if not _towing:
+		job = {}
+		call_in = _rng.randf_range(NEXT_CALL.x, NEXT_CALL.y)
+		_log("next call in %.0f s" % call_in)
+		return
+	_towing = false
 	_release_lane(job)
 	heli.sling = 0.0
 	_car.visible = false
@@ -819,14 +810,10 @@ func _finish() -> void:
 	_set_body(_body, false)
 	_totem.visible = false
 	_rope.visible = false
-	_pick.visible = false
-	_drop.visible = false
 	if missions != null:
 		missions.paused = _calls_were
-	var was_stranger := bool(job.get("stranger", false))
 	job = {}
 	target = -1
-	state = State.IDLE
 	if not was_stranger:
 		call_in = _rng.randf_range(NEXT_CALL.x, NEXT_CALL.y)
 
@@ -937,10 +924,7 @@ func _stranger_hook(dt: float, at: Vector3, flying: bool) -> void:
 			_set_body(_strand_body, false)
 			_show_car(_car, _hazards, _body, job)
 			target = pick_charger(chargers, Vector2(m.x, m.z), 0.0, true)
-			_calls_were = missions.paused if missions != null else false
-			if missions != null:
-				missions.paused = true
-			_hook()
+			start()  # the kit's run, with no call: `_begin` hooks the car on
 			strand_in = _rng.randf_range(GAP_STRAND.x, GAP_STRAND.y)
 	else:
 		_hook_t = 0.0
@@ -974,18 +958,18 @@ func _release_lane(c: Dictionary) -> void:
 
 
 ## Bartek's line (dialogue.json `ev_tow`, tag), over the helicopter (he's in it) or by his car.
-func _say(tag: String, prefer := true) -> void:
+func _say(kind: String, prefer := true) -> void:
 	if dialogue == null:
 		return
 	# One anchor per place he talks from, so his next line replaces the last (bubbles.gd).
-	if state == State.FLY:
+	if stage == Stage.FLY:
 		var at: Vector3 = job["at"]
 		if not job.has("anchor"):
 			job["anchor"] = func() -> Vector3: return at
-	var anchor: Callable = job["anchor"] if state == State.FLY else _heli_anchor
+	var anchor: Callable = job["anchor"] if stage == Stage.FLY else _heli_anchor
 	var who := "Kierowca" if bool(job.get("stranger", false)) else CALLER
-	var t := tag
-	if bool(job.get("stranger", false)) and tag in ["hook", "carry"]:
+	var t := kind
+	if bool(job.get("stranger", false)) and kind in ["hook", "carry"]:
 		t = "stranger"
 	var l: Array = dialogue.say(anchor, who, "ev_tow", t, 4.6, BUBBLE, 3.0, prefer)
 	if not l.is_empty():

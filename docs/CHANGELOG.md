@@ -4,16 +4,55 @@ The short story of Around Warsaw, one day at a time. The website's progress page
 (https://aroundwarsaw.app/progress/) and the design wiki both show this file. The full detail of every
 update is in docs/ROADMAP.md, under "Progress log", and the known issues are in docs/BACKLOG.md.
 
-How to keep it current: when you add a row to ROADMAP's progress log, also add one short line under
-that day here, in plain words a player would understand (no file names, no spoilers). A day that has
-rows in the progress log but no section here is listed automatically from the log's labels until
-someone writes its lines.
+How to keep it current: a pull request does not edit this file. It adds one change note in
+docs/changes/ (docs/changes/README.md) with one short line in plain words a player would understand
+(no file names, no spoilers). The pages show the notes at once, and a weekly bookkeeping pull request
+moves them here (python3 -I tools/changelog.py --fold).
+
+## 2026-11-12
+- Dom Partii (Centrum Bankowo-Finansowe) at Rondo de Gaulle'a is rebuilt from your photos: the two white corner towers a storey over the front, the open colonnade with its glass lobbies and the balcony over it, rows of windows between stone piers, a frieze of small windows under the cornice, the PEPEO ŻUBR board, WISTULA and ROBUR on the roof, and a courtyard you can drive into with the wavy fountain glowing warm at night.
+- The boat race rings are wider now (24 m instead of 16) to suit the faster boats, and the jump ramps along the Powiśle bank sit closer to the ring before them, so you land well short of the next ring.
+- Your progress is safer: if the save file ever gets damaged, the game now keeps it, loads the copy from your last session and tells you, instead of quietly starting from zero.
+- Quest and police lines now show who is talking: a small round face beside the speaker's name in the speech bubbles and in the Senatorek and Smoła talk panels (the portrait where there is one, else their initial in their colour). The Smoła panel now shows one language, like the rest of the game.
+- Rivals now choose their own streets by how long each way really takes them, traffic included, so in busy traffic they no longer all go the same way. A rival who finds a street blocked turns round or backs out and takes another way instead of driving through, gets past you on a two-lane road when you drive slowly, and no longer has empty streets the moment you lose sight of them. A race now ends at the same line for both cars: at the Palace, by the stadium and at six more finishes a rival no longer has further to go than you (it used to drive past the Palace and round the block), and you no longer miss the finish from the outer lane.
+
+## 2026-11-12
+- Hotel PIURE, the hotel with the LORETKA rooftop bar by Nowy Świat, no longer has a missing roof when seen from the helicopter, and its white front now has the real hotel's beige strips beside the windows, swapping sides floor by floor and glowing at night.
+
+## 2026-11-11
+- The Rotunda by the Palace is brighter and more like the real one: white window frames, a blue glass eye in the roof, a warm golden glow inside at night, a plaza paved in a dark stone grid with black bollards, and its sunken stair is now a place to chill, with green walls, warm lights in the steps, grass at the edges and people sitting on the steps in the afternoon and evening.
+- The whole Złote Tarasy complex got its details, not just the roof: glass shops lit at street level under a glowing canopy, pale stone ledges on each floor, glass railings round the roof terraces, Lumen's striped glass with its stepped-back top, a blue glass drum lit from inside, windows in the stone terraces and bright shop signs (ZARAZA, H·M·M, MULTIKINKO), plus a bigger ZŁOTE TARASKI name.
+- Eight new Podwózka passengers with their own stories and places to go: a shopper to Vipkac, an artist to Zachęta, a late violinist to the Philharmonic, a guide to the Polin Museum, an assistant to the Sejm, a lost tourist to Hotel Bristol, an actor playing a tree at Teatr Polski and a ghost-tour guide to the Barbican.
+- The MDM and BYDŁO roof neons now stand where the real ones do, together on the roof of Hotel MDM at the south end of Plac Konstytucji, facing the square, and the small HOTEL MDM sign is on that hotel's front.
+- The shisha night now really goes inside: at Senatorek you walk through the tower's lobby past the doorman, ride the lift up to the 38th floor watching the floor number climb, and the choices at the table are big buttons you can tap easily.
+- Senatorek's arrival now has sound: the revolving door swishes, the lift dings when it comes and when you reach the 38th floor, and the cabin hums on the ride up.
+- Złote Tarasy is remodelled from your photos: a blue glass wave roof with a triangle grid, the big 3D screen now on the tower's corner (a cat, the Around Warsaw promo and the NOSE. agency), the sunken plaza by the station with its stairs, and the red guitar by the café.
+- Ivan and Bogdan's shisha night: the way into the Senatorek lounge is now marked with a ring on the street and a gold light at the revolving door, and the choices (flavour, strength, the pipe's name) are made inside at the table, not on cards in the street.
+- Fewer texts over the road in missions and chases: the radio host and the news keep quiet while a quest runs, the city's chatter stops in a chase and only one person talks at a time, easter-egg cards wait until the chase is over, two notices no longer flash past each other, and friends' phone calls never ring during a quest or right after one.
+- The quest card is smaller: the hint folds away once read, no empty line, and the race challenge is a big button in the racer's colour with a chequered flag ("RACE · PANI HALINA, tap or L") instead of a line of text at the bottom.
+- People talking while you drive keep their bubbles off the road in front of the car.
+- The night car meet's start is no longer right next to where the game begins: Darek waits for you on Parkingowa, just past Rondo Dmowskiego, out of sight of the first view, and from there sends you up to the meet on Plac Defilad.
+- Mati's Smoła night no longer starts right beside your car when the game begins: for now he waits on Aleje Jerozolimskie by Rondo Dmowskiego instead.
 
 ## 2026-11-10
-- Settings → Picture has an Experimental quality after Ultra: the sharpest picture the game can draw, with soft sun shadows, smooth edges and crisp roads, for testing on newer phones. It lasts for the session only and steps back to Ultra on its own if the phone can't keep up.
+- On the night race, the next destination now appears right after the police close in, instead of waiting until you have driven away from them.
+- The boat race is about twice as fast now (a runabout does about 145 km/h, not 75), and the Powiśle bank has six more big jump ramps with flags, edge stripes and lights, besides the three on the river crossings.
+- The Royal Castle's front towards Plac Zamkowy has its red wall back, with window frames, string courses and a cornice, and the Clock Tower shows a proper white clock face.
+- Plac Zamkowy is alive: tourists gather round Sigismund's Column on its new stepped plaza, cafés put out their umbrellas and chairs, and a flock of pigeons takes off when you drive or fly low over the square.
+- The Podwózka button no longer shows up while a mission, race, job, quest or tour is on.
+- In the drag race the shift button now sits where the gas pedal is, big under the thumb, and the gas stays down while you shift.
+- Friends now ring on a little phone on the right of the screen, with a ringtone, their face and a red Decline and green Answer button; their face also shows when they pitch the night out.
+- The horn button next to the brake is gone; the nitro button now sits right by the brake.
+- Hotel Metropol on Marszałkowska is rebuilt from your photos: cream balcony fronts, a dark glazed ground floor under a canopy, and its name (the parody METROPOLKA) in green on a white board on the roof, facing the street.
+- The hidden shisha night is easier to start: Ivan's secret signal now works anywhere in the city.
+- The "point where to go" steering option is gone from Settings: the car is always driven with left, right, gas and brake (the camera can still be switched off).
+- On Mati's nights out the arrow now points the way all the way to the club, the camera no longer keeps flying to the destination while you stand, the club door has a ring and a light to stop in, and for now any answers at the door get you in.
+- Quest friends now walk up to you in their start ring even while the first-steps guide is still running, so every quest on the map can be started from the start.
 - Street race rivals race at their own pace now. Nobody crawls beside a slow player, waits when you stop or lifts off before the finish, so a race you drive at town pace is a race you lose. Each rival is a different driver, from careful Pani Halina to Mordor Mike, and a rival who keeps beating you drives a little slower each time until you win.
+- The striped field in front of the Palace now lies flush with the ground, like the real square; only the tribune stands raised.
 
 ## 2026-11-09
+- The night car meet's start now stands on the kerb by Plac Defilad instead of in the middle of the paving, and a questline friend's "in person" card stays up 45 s (it was 15 s) before they walk off.
 - The car park ramp by the Palace no longer floats in the air: it dives down between pink-tiled walls under a "PARKING PODZIEMNY 24h 7dni" sign, and two of Metro Centrum's entrances by the park are glass barrels on pink walls with an escalator instead of green boxes.
 - The first bank branch on Marszałkowska at Sienkiewicza is a real building now: a dark red-brown stone front with tall glass bays and a glass top floor, plain wings behind it with roofs, instead of a hollow shell with no roof.
 - Marszałkowska between Sienkiewicza and Świętokrzyska is laid out like the city's new plan: two lanes out of the crossing that widen smoothly into a third lane by the bus stop, with no step in the kerb, and a green strip of young elms beside the southbound lanes.

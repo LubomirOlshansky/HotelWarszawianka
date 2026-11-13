@@ -54,16 +54,16 @@ const SOUND_TAB := 3
 const Credits := preload("res://scripts/credits.gd")
 const NotebookPage := preload("res://scripts/notebook_page.gd")
 const Gamepad := preload("res://scripts/gamepad.gd")  # the gamepad loop
-const DRIVE := [["Wskaż", "Point"], ["Klasycznie", "Classic"]]
 ## Loop 2e: the camera choice, explicit (it was the CAM button, easy to switch off unnoticed):
 ## on, it follows the car (Point; Classic's default), off it stays put (Fixed camera; Classic
 ## with the camera fixed).
 const CAMERA := [["Wł.", "On"], ["Wył.", "Off"]]
-## What each scheme (drive_controls.gd POINT, CLASSIC, FIXED) does, in a line.
+## F 2026-11-13: Classic's touch controls (settings.gd `pads`): fixed arrows + pedals, or the strip.
+const PADS := [["Strzałki", "Arrows"], ["Suwak", "Slider"]]
+## What each (PADS) does, in a line.
 const CONTROLS_SAY := [
-	["Pokaż palcem, dokąd jechać. Kamera jedzie za autem.", "Point where to go. The camera follows the car."],
-	["Kierownica lewo–prawo, gaz i hamulec po prawej.", "Steer left–right; GAS and BRAKE on the right."],
-	["Pokaż palcem, dokąd jechać. Kamera stoi: obróć ją dwoma palcami.", "Point where to go. The camera stays put: twist two fingers to turn it."],
+	["Strzałki w lewym rogu, gaz i hamulec w prawym.", "Arrows bottom left; GAS and BRAKE bottom right."],
+	["Przesuń kciukiem w lewo–prawo, gaz i hamulec po prawej.", "Slide your thumb left–right; GAS and BRAKE on the right."],
 ]
 ## Loop MW-3: Świt (Dawn) last, the mode's index (time_of_day.gd DAWN after LIVE).
 const TIME := [["Dzień", "Day"], ["Zmierzch", "Dusk"], ["Noc", "Night"], ["Na żywo", "Live"], ["Świt", "Dawn"]]
@@ -90,6 +90,9 @@ const LEVELS := [["master", "Głośność", "Volume"], ["music", "Radio", "Radio
 ## Loop 2e: pixels per point and the safe area in pixels (from the HUD, screen_points.gd).
 var pt := 1.0
 var safe := Rect2()
+## The RAPORT button on the sound page (the error trap, TD-14): our own debug builds have it,
+## testers' builds do not (F, 2026-11-12).
+var report_on := OS.is_debug_build()
 ## The smallest touch target in pixels (44 pt).
 var touch := 132.0
 var _card: PanelContainer
@@ -226,7 +229,7 @@ func _build() -> void:
 	rescue.add_child(_new_game_button)
 
 	_heading(drive[0], "Sterowanie", "Controls")
-	_segments(drive[0], "drive", DRIVE)
+	_segments(drive[0], "pads", PADS)
 	_say_pl = _text("", T_SUB, INK)
 	_say_en = _text("", T_SUB, SUB)
 	for l in [_say_pl, _say_en]:
@@ -238,7 +241,7 @@ func _build() -> void:
 	_segments(drive[1], "camera", CAMERA)
 	_heading(drive[1], "Prowadzenie", "Handling")
 	_segments(drive[1], "handling", HANDLING)
-	# Beta values (2026-11-04): the lane assist (lane_assist.gd), Classic only, off by default,
+	# Beta values (2026-11-04): the lane assist (lane_assist.gd), Classic only, on by default since 2026-11-13,
 	# side by side with the pedestrian zones (a fourth row made the panel too tall for the phone).
 	var pair := HBoxContainer.new()
 	pair.add_theme_constant_override("separation", _px(8))
@@ -314,10 +317,22 @@ func _build() -> void:
 	_segments(sound[1], "lang", [["Polski", "Polski"], ["English", "English"]])
 	# DEMO 3j: the credits and licences (credits.gd), a page of their own opened from here.
 	_heading(sound[1], "O grze", "About")
+	var about_row := HBoxContainer.new()
+	about_row.add_theme_constant_override("separation", _px(6))
+	sound[1].add_child(about_row)
 	var about := _word_button("LICENCJE", "CREDITS")
 	about.name = "credits"
 	about.pressed.connect(show_credits)
-	sound[1].add_child(about)
+	about_row.add_child(about)
+	# The error trap (tech-debt TD-14): this run's errors and last lines onto the clipboard
+	# (main.gd). Only in our own debug builds (`report_on`).
+	if report_on:
+		var report := _word_button("RAPORT", "REPORT")
+		report.name = "report"
+		report.pressed.connect(func():
+			close()
+			changed.emit("report", 1))
+		about_row.add_child(report)
 
 	# DOSTĘP · Access (access.gd): built here so the card is sized for it, moved after the
 	# notebook's page below (the notebook keeps tab 4).
@@ -567,7 +582,7 @@ func sync(state: Dictionary) -> void:
 	for key in _bars:
 		_values[key] = float(state.get(key, 1.0))
 		(_bars[key] as Control).queue_redraw()
-	_say(scheme)
+	_say(int(state.get("pads", 0)))
 
 
 func close() -> void:
@@ -855,8 +870,8 @@ func _select(key: String, index: int) -> void:
 		(buttons[k] as Button).set_pressed_no_signal(k == index)
 
 
-func _say(scheme: int) -> void:
-	var s: Array = CONTROLS_SAY[clampi(scheme, 0, CONTROLS_SAY.size() - 1)]
+func _say(pads: int) -> void:
+	var s: Array = CONTROLS_SAY[clampi(pads, 0, CONTROLS_SAY.size() - 1)]
 	_say_pl.text = Lang.pick(s[0], s[1])
 	_say_en.text = ""
 	_say_en.visible = false

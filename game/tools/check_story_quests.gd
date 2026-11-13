@@ -25,7 +25,7 @@ class FakeHud extends CanvasLayer:
 	signal card_pressed(index: int)
 	var card := ""
 	var buttons := PackedStringArray()
-	func show_side_card(title: String, _body: String, b: PackedStringArray, _accent: Color, _t_en := "", _b_en := "") -> void:
+	func show_side_card(title: String, _body: String, b: PackedStringArray, _accent: Color, _t_en := "", _b_en := "", _s := false, _f := "") -> void:
 		card = title
 		buttons = b
 	func hide_card() -> void:

@@ -1,16 +1,19 @@
 extends SceneTree
-## The cinema tour "Kino objazdowe" (kino_tour.gd, docs/design/kino-tour.md). Checks that:
+## The cinema tour "Kino objazdowe" (tour.gd with data/kino_tour.json, docs/design/kino-tour.md).
+## Checks that:
 ## - the pickup and every cinema stop stand on a drivable road of game/map/centrum.json (ON_ROAD m),
 ##   each cinema stop within DOOR_MAX m of its cinema's door (the OSM point), in order south to north;
 ## - the call (ODBIERZ, JADĘ) starts the tour, stopping at the pickup takes Wiktor in, each cinema
 ##   gives its pitch card and DRIVE ON leads to the next, Muranów ends it with the pay;
 ## - each leg's shot (long take, static, reverse, rush) fills only when driven its way;
-## - a hit scratches one frame, a second hit inside BUMP_WAIT does not, the reel never goes below 0;
-## - the pay is PAY_BASE - PAY_FRAME a lost frame + PAY_SHOT a shot, the ✕ drops the tour;
+## - a hit scratches one frame, a second hit inside BUMP_WAIT does not, the reel never goes below 0
+##   and the last frame has its own line;
+## - the pay is the data's base - a lost frame's price + a shot's bonus, the ✕ drops the tour;
 ## - every line group the tour speaks (`kino_wiktor` and its tags) has Polish and English lines.
 ##   godot --headless --path game --script res://tools/check_kino_tour.gd
 
-const KinoTour := preload("res://scripts/kino_tour.gd")
+const Tour := preload("res://scripts/tour.gd")
+const Fakes := preload("res://tools/fakes.gd")
 
 const ON_ROAD := 4.0
 const DOOR_MAX := 80.0
@@ -23,51 +26,13 @@ const TAGS := ["hello", "bump", "ruined", "shot_long", "shot_static", "shot_reve
 const STEP := 0.1
 
 
-class FakeHud extends CanvasLayer:
-	signal card_pressed(index: int)
-	signal abort_pressed
-	var card := ""
-	var status := ""
-	func show_card(title: String, _b: String, _btn: PackedStringArray, _a: Color, _bottom := false, _te := "", _be := "", _s := false) -> void:
-		card = title
-	func show_side_card(title: String, _b: String, _btn: PackedStringArray, _a: Color, _te := "", _be := "", _s := false) -> void:
-		card = title
-	func hide_card() -> void:
-		card = ""
-	func toast(_a: String, _b := "") -> void:
-		pass
-	func show_status(_t: String, _c: String, _d: String, h: String, _p: float, _a: Color, _badge := "", _i := {}, _he := "") -> void:
-		status = h
-	func hide_status() -> void:
-		status = ""
-	func ticker_out() -> void:
-		pass
-
-
-class FakeDialogue extends Node:
-	var said: Array[String] = []
-	func say(_anchor: Variant, _who: String, group: String, tag := "", _s := 4.0, _c := Color.WHITE, _h := 2.6, _p := false) -> Array:
-		said.append(group + ":" + tag)
-		return []
-
-
-class FakeWallet extends Node:
-	var money := 0
-	var respect := 0
-	func pay(amount: int, gain := 0, _kind := "") -> void:
-		money += amount
-		respect += gain
-
-
-class FlatMap extends Node3D:
-	func ground_height(_x: float, _z: float) -> float:
-		return 0.0
-
-
 var _fails: Array[String] = []
 var _pos := Vector3.ZERO
 var _kmh := 0.0
 var _fwd := 0.0
+## The tour's data file and its stops.
+var _data: Dictionary = {}
+var _stops: Array = []
 
 
 func _initialize() -> void:
@@ -76,6 +41,12 @@ func _initialize() -> void:
 
 ## After the first frame, so the tour's beacon is in the tree.
 func _go() -> void:
+	_data = Tour.load_data("kino")
+	if _data.is_empty():
+		print("check_kino_tour: FAIL data/kino_tour.json does not load")
+		quit(1)
+		return
+	_stops = _data["stops"]
 	_roads()
 	_lines()
 	_tour()
@@ -99,9 +70,9 @@ func _roads() -> void:
 		print("check_kino_tour: (no centrum.json, the road test skipped)")
 		return
 	var data: Dictionary = JSON.parse_string(text)
-	var spots: Array = [["pickup", KinoTour.PICKUP["at"]]]
-	for s: Dictionary in KinoTour.STOPS:
-		spots.append([s["id"], s["at"]])
+	var spots: Array = [["pickup", Tour.spot(_data["pickup"]["at"])]]
+	for s: Dictionary in _stops:
+		spots.append([s["id"], Tour.spot(s["at"])])
 	for sp: Array in spots:
 		var at: Vector2 = sp[1]
 		var best := INF
@@ -118,8 +89,8 @@ func _roads() -> void:
 			var dd: float = at.distance_to(DOORS[sp[0]])
 			_expect(dd <= DOOR_MAX, "%s: the stop is %.0f m from the door" % [sp[0], dd])
 	var z := INF
-	for s: Dictionary in KinoTour.STOPS:
-		var sz: float = (s["at"] as Vector2).y
+	for s: Dictionary in _stops:
+		var sz: float = Tour.spot(s["at"]).y
 		_expect(sz < z, "%s: not north of the stop before" % s["id"])
 		z = sz
 
@@ -141,15 +112,16 @@ func _lines() -> void:
 
 
 func _new() -> Array:
-	var hud := FakeHud.new()
-	var dlg := FakeDialogue.new()
-	var wal := FakeWallet.new()
-	var map := FlatMap.new()
+	var hud := Fakes.Hud.new()
+	var dlg := Fakes.Dialogue.new()
+	var wal := Fakes.Wallet.new()
+	var map := Fakes.FlatMap.new()
 	root.add_child(hud)
 	root.add_child(dlg)
 	root.add_child(wal)
 	root.add_child(map)
-	var k := KinoTour.new()
+	var k := Tour.new()
+	k.configure(_data)
 	k.hud = hud
 	k.dialogue = dlg
 	k.wallet = wal
@@ -168,6 +140,23 @@ func _run(k: Node, seconds: float) -> void:
 		t += STEP
 
 
+## The tour is at this point of its way: "IDLE", "RING", "OFFER", or a stage of the run.
+func _is(k: Tour, what: String) -> bool:
+	match what:
+		"IDLE":
+			return k.phase == Tour.Phase.IDLE
+		"RING":
+			return k.phase == Tour.Phase.RING
+		"OFFER":
+			return k.phase == Tour.Phase.OFFER
+	return k.phase == Tour.Phase.RUN and k.stage == Tour.Stage[what]
+
+
+## Frames of the reel left.
+func _frames(k: Tour) -> int:
+	return k.bump_max - k.bumps
+
+
 func _at(p: Vector2, kmh := 0.0, fwd := 0.0) -> void:
 	_pos = Vector3(p.x, 0.0, p.y)
 	_kmh = kmh
@@ -176,20 +165,21 @@ func _at(p: Vector2, kmh := 0.0, fwd := 0.0) -> void:
 
 func _tour() -> void:
 	var parts := _new()
-	var k: KinoTour = parts[0]
-	var hud: FakeHud = parts[1]
-	var wal: FakeWallet = parts[3]
+	var k: Tour = parts[0]
+	var hud: Fakes.Hud = parts[1]
+	var dlg: Fakes.Dialogue = parts[2]
+	var wal: Fakes.Wallet = parts[3]
 	_at(Vector2(0, 0), 30.0)
-	_expect(k.ring() and k.state == KinoTour.State.RING and hud.card.contains("WIKTOR"), "the call rings")
-	hud.card_pressed.emit(0)
-	_expect(k.state == KinoTour.State.OFFER, "ODBIERZ: the offer")
-	hud.card_pressed.emit(0)
-	_expect(k.state == KinoTour.State.TO_PICKUP and k.has_target() and k.busy(), "JADĘ: to the pickup")
+	_expect(k.ring() and _is(k, "RING") and hud.card.contains("WIKTOR"), "the call rings")
+	hud.press(0)
+	_expect(_is(k, "OFFER"), "ODBIERZ: the offer")
+	hud.press(0)
+	_expect(_is(k, "TO_PICKUP") and k.has_target() and k.busy(), "JADĘ: to the pickup")
 	_run(k, 1.0)
-	_expect(k.state == KinoTour.State.TO_PICKUP, "far from the pickup: still going there")
-	_at(KinoTour.PICKUP["at"], 3.0)
+	_expect(_is(k, "TO_PICKUP"), "far from the pickup: still going there")
+	_at(k.pickup_at(), 3.0)
 	_run(k, 1.5)
-	_expect(k.state == KinoTour.State.LEG and k.stop == 0, "stopped at the pickup: Wiktor gets in (state %d)" % k.state)
+	_expect(_is(k, "LEG") and k.stop == 0, "stopped at the pickup: Wiktor gets in (stage %d)" % k.stage)
 	# Leg 0, the long take: 10 s fast does nothing, 16 s at 20 km/h does it.
 	_at(Vector2(-500, 1200), 70.0)
 	_run(k, 10.0)
@@ -200,16 +190,16 @@ func _tour() -> void:
 	# Hits: one scratch, none more inside BUMP_WAIT, then another.
 	k.on_bump(null, 6.0)
 	k.on_bump(null, 6.0)
-	_expect(k.frames == KinoTour.FRAMES - 1, "one hit, one scratch (%d frames)" % k.frames)
+	_expect(_frames(k) == k.bump_max - 1, "one hit, one scratch (%d frames)" % _frames(k))
 	k.on_bump(null, 1.0)
-	_run(k, KinoTour.BUMP_WAIT + 0.2)
+	_run(k, Tour.BUMP_WAIT + 0.2)
 	k.on_bump(null, 1.0)
-	_expect(k.frames == KinoTour.FRAMES - 1, "a soft touch: no scratch")
+	_expect(_frames(k) == k.bump_max - 1, "a soft touch: no scratch")
 	k.on_bump(null, 6.0)
-	_expect(k.frames == KinoTour.FRAMES - 2, "a second hit later: a second scratch (%d)" % k.frames)
+	_expect(_frames(k) == k.bump_max - 2, "a second hit later: a second scratch (%d)" % _frames(k))
 	# Each cinema: arrive, the pitch card, DRIVE ON.
-	for i in KinoTour.STOPS.size():
-		var s: Dictionary = KinoTour.STOPS[i]
+	for i in _stops.size():
+		var s: Dictionary = _stops[i]
 		match String(s["shot"]):
 			"static":
 				_at(Vector2(-700, 450), 0.0)
@@ -226,26 +216,27 @@ func _tour() -> void:
 				_at(Vector2(-1400, -400), 50.0)
 				_run(k, 5.0)
 				_expect(not k.shots_done.has("rush"), "the rush: not at 50 km/h")
-		_at(s["at"], 2.0)
+		_at(Tour.spot(s["at"]), 2.0)
 		_run(k, 1.5)
-		if i < KinoTour.STOPS.size() - 1:
-			_expect(k.state == KinoTour.State.PITCH and hud.card != "", "%s: the pitch card" % s["id"])
-			hud.card_pressed.emit(0)
-			_expect(k.state == KinoTour.State.LEG and k.stop == i + 1, "%s: DRIVE ON to the next" % s["id"])
-	_expect(k.state == KinoTour.State.DONE and hud.card.contains("MURANÓW"), "Muranów: the premiere card")
-	var want := KinoTour.PAY_BASE - 2 * KinoTour.PAY_FRAME + 3 * KinoTour.PAY_SHOT
+		if i < _stops.size() - 1:
+			_expect(_is(k, "STOP") and hud.card != "", "%s: the pitch card" % s["id"])
+			hud.press(0)
+			_expect(_is(k, "LEG") and k.stop == i + 1, "%s: DRIVE ON to the next" % s["id"])
+	_expect(_is(k, "DONE") and hud.card.contains("MURANÓW"), "Muranów: the premiere card")
+	var want := int(k.pay["base"]) - 2 * int(k.pay["bump"]) + 3 * int(k.pay["shot"])
 	_expect(wal.money == want, "the pay: %d zł (want %d: two frames lost, three shots)" % [wal.money, want])
-	_expect(wal.respect == KinoTour.RESPECT - 2 * KinoTour.RESPECT_FRAME, "the respect: %d" % wal.respect)
-	hud.card_pressed.emit(0)
-	_expect(k.state == KinoTour.State.IDLE and not k.busy(), "BRAVO: back to idle")
+	_expect(wal.respect == int(k.pay["respect"]) - 2 * int(k.pay["respect_bump"]), "the respect: %d" % wal.respect)
+	hud.press(0)
+	_expect(_is(k, "IDLE") and not k.busy(), "BRAVO: back to idle")
 	# The reel never goes below nothing.
 	k.start()
-	_at(KinoTour.PICKUP["at"], 0.0)
+	_at(k.pickup_at(), 0.0)
 	_run(k, 1.5)
 	for n in 8:
 		k.on_bump(null, 8.0)
-		_run(k, KinoTour.BUMP_WAIT + 0.1)
-	_expect(k.frames == 0, "eight hits: the reel at 0 (%d)" % k.frames)
+		_run(k, Tour.BUMP_WAIT + 0.1)
+	_expect(_frames(k) == 0, "eight hits: the reel at 0 (%d)" % _frames(k))
+	_expect(dlg.said.count("kino_wiktor:ruined") == 1, "the last frame: Wiktor's own line, once (%d)" % dlg.said.count("kino_wiktor:ruined"))
 	# The ✕ drops the tour.
 	hud.abort_pressed.emit()
-	_expect(k.state == KinoTour.State.IDLE and not k.has_target(), "✕: the tour dropped")
+	_expect(_is(k, "IDLE") and not k.has_target(), "✕: the tour dropped")

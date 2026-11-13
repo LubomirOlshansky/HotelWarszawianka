@@ -8,6 +8,11 @@ extends SceneTree
 ##   - a mark recorded "fail" that passes prints "racebench: WARN ..." (verify.sh shows WARN):
 ##     record the win with tools/race_bench.sh --write in the same change;
 ##   - a mark recorded "fail" that fails is the known state of the rebuild, listed in the OK line;
+##   - a mark recorded "once:<machine>" passed on that machine only and is not held yet. A mark
+##     that counts races among the town's cars is recorded "pass" only when it has passed on two
+##     machines (Linux and macOS: a race in traffic is another draw of the town's cars on each,
+##     docs/design/race-ai.md 7.5): `--write` on the first records "once:Linux", `--write` on the
+##     other turns that into "pass", and a fail on either puts it back to "fail";
 ##   - a mark recorded "unsteady" is not held either way: it passes with one draw of the town's
 ##     cars and fails with the next, and the step that fixes it has not been built (the quick
 ##     matrix's Passes traffic: 8.3 s or 2.2 s behind a slower car with the same driver). It is set
@@ -15,8 +20,9 @@ extends SceneTree
 ##     records it as a pass when it passes with room to spare.
 ## The quick matrix (the default: the prototype race Powiśle -> Plac Trzech Krzyży with Pani
 ## Halina, under a minute) is what tools/verify.sh and CI run; `--full` adds the second start, the
-## guided first race under every situation, two more draws of the traffic and all six rivals (a
-## few minutes; tools/race_bench.sh).
+## guided first race under every situation, two more draws of the traffic, all six rivals, and
+## the first race to the Palace, a finish whose circle another road runs through (a few minutes;
+## tools/race_bench.sh).
 ##   godot --headless --path game --script res://tools/check_race_bench.gd [-- OPTIONS]
 ##   --full          the full matrix          --only=TEXT   only races whose id contains TEXT
 ##   --trace         once a second, what the rival does (use with --only)
@@ -24,12 +30,19 @@ extends SceneTree
 ##   --against=PATH  show an earlier run's numbers (its --json file) beside this run's
 ##   --write         record this run's marks (its matrix's) in data/race_bench.json
 ##   --list          print the races' ids and quit
+##   --part=K/N      run only every Nth race of the matrix, from the Kth (0 to N-1): its races go to
+##                   --json and no mark is judged (tools/race_bench.sh --jobs=N runs the N parts
+##                   side by side)
+##   --merge=A,B,..  run no race: judge the races of these --part files together, as one run
 ## With Godot's own --verbose (before the --) every car driven through is printed where it happens.
 ## Prints "check_race_bench: OK (...)" or the problems (exit 1).
 
 const RaceBench := preload("res://tools/race_bench.gd")
 const BASELINE := "res://data/race_bench.json"
 const HALINA := "Pani Halina"
+const SEBA := "Seba z Pragi"
+## The full matrix's other draws of the town's cars (a spec's `seed`), beside each race's own.
+const DRAWS := [3, 4]
 
 var _bench: RaceBench
 var _results: Array = []
@@ -40,6 +53,8 @@ var _broken := 0
 ## --against: the earlier run's races and marks by id.
 var _before := {}
 var _before_marks := {}
+## --merge: the seconds the parts' races took, added up.
+var _merged_secs := 0.0
 
 
 func _initialize() -> void:
@@ -52,11 +67,19 @@ func _run() -> void:
 	var full := "--full" in args
 	var only := ""
 	var json_path := ""
+	var part := -1
+	var parts := 1
+	var merge := PackedStringArray()
 	for a in args:
 		if a.begins_with("--only="):
 			only = a.trim_prefix("--only=")
 		elif a.begins_with("--json="):
 			json_path = a.trim_prefix("--json=")
+		elif a.begins_with("--part="):
+			part = int(a.trim_prefix("--part=").get_slice("/", 0))
+			parts = maxi(int(a.trim_prefix("--part=").get_slice("/", 1)), 1)
+		elif a.begins_with("--merge="):
+			merge = a.trim_prefix("--merge=").split(",", false)
 		elif a.begins_with("--against="):
 			_load_before(a.trim_prefix("--against="))
 	_bench = RaceBench.new()
@@ -65,8 +88,12 @@ func _run() -> void:
 		quit(1)
 		return
 	var specs := _matrix(full)
+	for k in specs.size():
+		specs[k]["n"] = k
 	if only != "":
 		specs = specs.filter(func(s: Dictionary) -> bool: return RaceBench.race_id(s).contains(only))
+	if part >= 0:
+		specs = specs.filter(func(s: Dictionary) -> bool: return int(s["n"]) % parts == part)
 	if "--list" in args:
 		for s: Dictionary in specs:
 			print(RaceBench.race_id(s))
@@ -79,12 +106,25 @@ func _run() -> void:
 		quit(1)
 		return
 	var t0 := Time.get_ticks_msec()
-	for s: Dictionary in specs:
-		s["trace"] = "--trace" in args
-		if not _race(s):
-			_broken += 1
+	if merge.is_empty():
+		for s: Dictionary in specs:
+			s["trace"] = "--trace" in args
+			if not _race(s):
+				_broken += 1
 	var secs := (Time.get_ticks_msec() - t0) / 1000.0
+	if not merge.is_empty():
+		# (The parts' own seconds, added up: what the races took, not the wait for them.)
+		secs = 0.0
+		_broken = specs.size() - _merge(merge)
+		secs = _merged_secs
 	_bench.close()
+	if part >= 0:
+		# A part of a run: its races only (the marks are judged over all the parts, --merge).
+		if json_path != "":
+			_write_json(json_path, {"part": part, "seconds": secs, "races": _results})
+		print("check_race_bench: part %d of %d, %d races in %.0f s%s" % [part, parts, _results.size(), secs, ", %d did not run" % _broken if _broken > 0 else ""])
+		quit(1 if _broken > 0 else 0)
+		return
 	for c in root.get_children():
 		c.queue_free()
 	await process_frame
@@ -103,11 +143,12 @@ func _run() -> void:
 	var passing := PackedStringArray()
 	var known := PackedStringArray()
 	var unsteady := PackedStringArray()
+	var once := PackedStringArray()
 	print("")
 	for m: Dictionary in marks:
 		var want := String(recorded.get(m["id"], "?"))
 		var now := "not run" if m["pass"] == null else ("pass" if m["pass"] else "FAIL")
-		print("  %-16s %-8s recorded %-5s %s%s" % [m["title"], now, want, m["value"], "  [%s]" % m["worst"] if m["worst"] != "" else ""])
+		print("  %-16s %-8s recorded %-10s %s%s" % [m["title"], now, want, m["value"], "  [%s]" % m["worst"] if m["worst"] != "" else ""])
 		if _before_marks.has(m["id"]) and String(_before_marks[m["id"]]["value"]) != String(m["value"]):
 			print("  %-16s %-8s before: %s" % ["", "", _before_marks[m["id"]]["value"]])
 		if m["pass"] == null:
@@ -117,6 +158,11 @@ func _run() -> void:
 			continue
 		if want == "unsteady":
 			unsteady.append("%s (%s this run)" % [m["title"], "passes" if m["pass"] else "fails"])
+		elif want.begins_with("once:"):
+			once.append("%s (%s here; passed on %s)" % [m["title"], "passes" if m["pass"] else "fails", want.trim_prefix("once:")])
+			if only == "" and not writing and (not m["pass"] or want != "once:" + OS.get_name()):
+				print("racebench: WARN %s %s on %s and is recorded as passing on %s only: record it (tools/race_bench.sh --write)" % [
+						m["title"], "passes" if m["pass"] else "fails", OS.get_name(), want.trim_prefix("once:")])
 		elif m["pass"]:
 			passing.append(m["title"])
 			if want == "fail" and only == "" and not writing:
@@ -133,10 +179,11 @@ func _run() -> void:
 	if writing:
 		_record(matrix, marks)
 	if _problems.is_empty():
-		print("check_race_bench: OK (%s matrix, %d races in %.0f s · pass: %s · known fails of the rebuild: %s%s)" % [
+		print("check_race_bench: OK (%s matrix, %d races in %.0f s · pass: %s · known fails of the rebuild: %s%s%s)" % [
 				matrix, _results.size(), secs, ", ".join(passing) if not passing.is_empty() else "none",
 				", ".join(known) if not known.is_empty() else "none",
-				" · unsteady, not held: %s" % ", ".join(unsteady) if not unsteady.is_empty() else ""])
+				" · unsteady, not held: %s" % ", ".join(unsteady) if not unsteady.is_empty() else "",
+				" · passed on one machine, not held: %s" % ", ".join(once) if not once.is_empty() else ""])
 		quit(0)
 	else:
 		for p in _problems:
@@ -148,7 +195,8 @@ func _run() -> void:
 ## The races to run. Quick: the prototype race from Tamka (where F raced) with Pani Halina: a
 ## ladder race on clear roads against every test player, in heavy traffic, with the street
 ## blocked and with a crash; the guided first race; the three forced routes from Leszczyńska;
-## one race twice. Full: both starts and both tunings under everything, and all six rivals.
+## one race twice. Full: both starts and both tunings under everything, all six rivals, and the
+## guided first race to the Palace from Marszałkowska (RaceBench.PALACE: the finish's circle).
 func _matrix(full: bool) -> Array:
 	var out: Array = []
 	for player: String in RaceBench.PLAYERS:
@@ -169,6 +217,12 @@ func _matrix(full: bool) -> Array:
 		out.append(s)
 	# The same race twice (heavy traffic: the most there is to differ).
 	out.append(_spec(HALINA, "ladder", "tamka", "heavy", "average"))
+	# Racer AI step 5b: the wrong-way hop (one block of one-way Żelazna): Seba dares it on clear
+	# roads and refuses it with a car parked on the street, Zbyszek does not dare it.
+	for pair: Array in [[SEBA, "clear"], [SEBA, "parked"], ["Taksiarz Zbyszek", "clear"]]:
+		var hop := _spec(pair[0], "ladder", RaceBench.HOP_START, pair[1], "none")
+		hop["finish"] = RaceBench.HOP_FINISH
+		out.append(hop)
 	if not full:
 		return out
 	# Route sense in traffic: the free choice from Leszczyńska is in the loop below.
@@ -193,6 +247,8 @@ func _matrix(full: bool) -> Array:
 					continue
 				if situation in ["blocked", "crash"] and not player in ["none", "average"]:
 					continue
+				if situation == "parked":
+					continue  # the hop course's own situation (step 5b, below)
 				out.append(_spec(HALINA, tuning, "leszczynska", situation, player))
 	for rung: Dictionary in RaceBench.Ladder.RUNGS:
 		if rung["rival"] == HALINA:
@@ -200,6 +256,75 @@ func _matrix(full: bool) -> Array:
 		for situation: String in ["clear", "heavy"]:
 			for player: String in ["none", "stopped", "average"]:
 				out.append(_spec(rung["rival"], "ladder", "tamka", situation, player))
+	# A finish whose circle another road runs through: the first race to the Palace as the whole
+	# game ran it, on clear roads and in traffic, alone and with a player about.
+	for situation: String in ["clear", "heavy"]:
+		for player: String in ["none", "average"]:
+			var s := _spec(HALINA, "first", RaceBench.PALACE_START, situation, player)
+			s["finish"] = RaceBench.PALACE
+			out.append(s)
+	# Step 4b's courses (docs/design/race-ai.md 7.1; each had only been measured with a scratch
+	# spec). Every rung alone on clear roads on the two other courses: the ladder holds on a
+	# course with a choice of routes and on a wide, short one.
+	for rung: Dictionary in RaceBench.Ladder.RUNGS:
+		if rung["rival"] != HALINA:
+			out.append(_spec(rung["rival"], "ladder", "leszczynska", "clear", "none"))
+		var s := _spec(rung["rival"], "ladder", RaceBench.PALACE_START, "clear", "none")
+		s["finish"] = RaceBench.PALACE
+		out.append(s)
+	# A wide street (Marszałkowska to the Palace, two and three lanes each way) in Busy traffic
+	# with a player who never leaves the line: the rival is out of the town's cars all the way
+	# and pays the delay it expects there, which was fitted on narrower streets.
+	for player: String in ["none", "stopped", "average"]:
+		var s := _spec(SEBA, "ladder", RaceBench.PALACE_START, "heavy", player)
+		s["finish"] = RaceBench.PALACE
+		out.append(s)
+	# The whole game's `--race=0`: Seba from the map's spawn to the Palace, on clear roads and in
+	# the game's own Low traffic.
+	for situation: String in ["clear", "low"]:
+		for player: String in (["none", "average"] if situation == "low" else ["none"]):
+			var s := _spec(SEBA, "ladder", RaceBench.SPAWN_START, situation, player)
+			s["finish"] = RaceBench.PALACE
+			out.append(s)
+	# Low traffic on the prototype race, alone and with the average player.
+	for player: String in ["none", "average"]:
+		out.append(_spec(HALINA, "ladder", "tamka", "low", player))
+		out.append(_spec(HALINA, "first", "tamka", "low", player))
+	# The final's last stretch: from the middle of Most Poniatowskiego to Trzy mosty's finish.
+	for situation: String in ["clear", "low"]:
+		out.append(_spec(RaceBench.FINAL_RIVAL, "final", RaceBench.FINAL_START, situation, "none"))
+	# Racer AI step 5: the race through a yard (race links), on clear roads and in Low traffic: Halina
+	# and Zbyszek know the yard, Słoik knows none.
+	for who: String in [HALINA, "Słoik z Radomia", "Taksiarz Zbyszek"]:
+		for situation: String in ["clear", "low"]:
+			var s := _spec(who, "ladder", RaceBench.YARD_START, situation, "none")
+			s["finish"] = RaceBench.YARD_FINISH
+			out.append(s)
+	# Racer AI step 5b: the rest of the hop course (Seba and Zbyszek on clear roads and Seba with
+	# a car parked on the street are in the quick matrix): Mike dares it too, Halina does not;
+	# and all four in Low traffic.
+	for who: String in [SEBA, "Mordor Mike", "Taksiarz Zbyszek", HALINA]:
+		for situation: String in ["clear", "parked", "low"]:
+			if situation != "low" and (who == SEBA or (who == "Taksiarz Zbyszek" and situation == "clear")):
+				continue
+			var s := _spec(who, "ladder", RaceBench.HOP_START, situation, "none")
+			s["finish"] = RaceBench.HOP_FINISH
+			out.append(s)
+	# Other draws of the town's cars: every race in traffic above again with each of DRAWS, so a
+	# mark that counts them is read over three draws and not one (Independence: a pair's time
+	# over its draws; the contact counts: draw by draw). Draws 3 and 4 are the ones in which
+	# step 3's and step 4a's rival turned back behind a player's car that only waited.
+	# (The race run twice is in the list twice: each draw of it once.)
+	var seen := {}
+	for s: Dictionary in out.duplicate():
+		if RaceBench._in_traffic(s) and not s.has("seed") and not s.has("via"):
+			for draw: int in DRAWS:
+				var again: Dictionary = s.duplicate()
+				again["seed"] = draw
+				var id := RaceBench.race_id(again)
+				if not seen.has(id):
+					seen[id] = true
+					out.append(again)
 	return out
 
 
@@ -218,6 +343,9 @@ func _race(spec: Dictionary) -> bool:
 		plan.erase("trace")
 		var ref_id := RaceBench.race_id(plan)
 		if not _by_id.has(ref_id):
+			# (A reference race of its own, not one of the matrix's: n -1, so a run in parts
+			# does not count it twice.)
+			plan["n"] = -1
 			_race(plan)
 		if not _by_id.has(ref_id):
 			return false
@@ -229,6 +357,7 @@ func _race(spec: Dictionary) -> bool:
 	var r := _bench.race(spec)
 	if not r.has("id"):
 		return false
+	r["n"] = int(spec.get("n", -1))
 	_results.append(r)
 	if r.has("error"):
 		print("  %s: %s" % [r["id"], r["error"]])
@@ -244,6 +373,16 @@ func _race(spec: Dictionary) -> bool:
 		extras.append("waited %.0f s at the line" % r["hold_s"])
 	if float(r["boxed_s"]) >= 1.0:
 		extras.append("boxed in %.0f s behind the player's stopped car, no lane to pass in" % r["boxed_s"])
+	if int(r.get("turned_back", 0)) > 0:
+		var how := PackedStringArray()
+		var back: Array = r.get("back", [])
+		if 5 in back:
+			how.append("a U-turn in the street")
+		if 3 in back or 4 in back:
+			how.append("backed out to the junction behind")
+		extras.append("turned back %d times%s" % [r["turned_back"], " (%s)" % ", ".join(how) if not how.is_empty() else ""])
+	if float(r.get("away_s", 0.0)) >= 1.0:
+		extras.append("out of the town's cars %.0f s, paid %.1f s of the delay it expects there" % [r["away_s"], r["away_paid_s"]])
 	if r.has("player_time"):
 		extras.append("the player home in %.1f s" % r["player_time"])
 	if int(r["overlaps"]) > 0:
@@ -264,6 +403,8 @@ func _race(spec: Dictionary) -> bool:
 		extras.append("wall on %s (its way %d m, the best other way %d m, turning round at the wall %d m)" % [r["wall"]["street"], r["wall"]["base_m"], r["wall"]["alt_m"], r["wall"]["turn_m"]])
 	if r.has("wreck"):
 		extras.append("wreck on %s, knocked at %.0f s" % [r["wreck"]["street"], r.get("knock_s", -1.0)])
+	if float(r.get("plan_s", 0.0)) > 0.0 and r["finished"] and r["situation"] == "clear":
+		extras.append("the plan's clock %.1f s (%+.0f %%)" % [r["plan_s"], (float(r["plan_s"]) / maxf(float(r["time"]) - float(r["hold_s"]), 1.0) - 1.0) * 100.0])
 	if _before.has(r["id"]):
 		var b: Dictionary = _before[r["id"]]
 		extras.append("before: %s%.1f s, crawl %.1f s, behind %.1f s, through %d cars" % [
@@ -273,6 +414,24 @@ func _race(spec: Dictionary) -> bool:
 			r["behind_room_longest_s"], r["stopped_s"], r["passes"], r["pace_lo"], r["pace_hi"], " > ".join(PackedStringArray(r["streets"])),
 			r["cars"], float(r["wall_ms"]) / 1000.0, "\n      " + " · ".join(extras) if not extras.is_empty() else ""])
 	return true
+
+
+## --merge: the races of a run made in parts (`--part` files), in the matrix's order. A reference
+## race a part ran for itself (n -1) is not one of the matrix's and is left out. Returns the
+## matrix's races found.
+func _merge(paths: PackedStringArray) -> int:
+	var all: Array = []
+	for path in paths:
+		var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(path)) if FileAccess.file_exists(path) else null
+		if not parsed is Dictionary:
+			_problems.append("cannot read %s" % path)
+			continue
+		all.append_array(parsed.get("races", []))
+		_merged_secs += float(parsed.get("seconds", 0.0))
+	all = all.filter(func(r: Dictionary) -> bool: return int(r.get("n", -1)) >= 0)
+	all.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["n"]) < int(b["n"]))
+	_results = all
+	return all.size()
 
 
 ## --against: an earlier run's races and marks (the file --json wrote).
@@ -309,9 +468,19 @@ func _record(matrix: String, marks: Array) -> void:
 			doc = parsed
 	var gates: Dictionary = doc[matrix] if doc.get(matrix) is Dictionary else {}
 	for m: Dictionary in marks:
-		if m["pass"] != null and str(gates.get(m["id"], "")) != "unsteady":
-			gates[m["id"]] = "pass" if m["pass"] else "fail"
-	doc["about"] = "The race bench's pass marks as recorded (docs/design/race-ai.md, game/tools/check_race_bench.gd), for the quick matrix (verify and CI) and the full one (tools/race_bench.sh): a mark recorded pass that fails is a problem; one recorded fail that passes is a warning until it is recorded here (tools/race_bench.sh --write); one recorded unsteady (set by hand: it passes or fails with the draw of the town's cars, and its step is not built) is not held and --write leaves it."
+		var was := str(gates.get(m["id"], ""))
+		if m["pass"] == null or was == "unsteady":
+			continue
+		if not m["pass"]:
+			gates[m["id"]] = "fail"
+		elif was == "pass" or not m.get("traffic", false) or (was.begins_with("once:") and was != "once:" + OS.get_name()):
+			gates[m["id"]] = "pass"
+		else:
+			# A mark that counts races in traffic, passing here for the first time: one machine's
+			# draw of the town's cars. The other machine's --write makes it a pass.
+			gates[m["id"]] = "once:" + OS.get_name()
+			print("check_race_bench: %s passes on %s; it is recorded as a pass when it also passes on the other machine (tools/race_bench.sh --write there)" % [m["title"], OS.get_name()])
+	doc["about"] = "The race bench's pass marks as recorded (docs/design/race-ai.md, game/tools/check_race_bench.gd), for the quick matrix (verify and CI) and the full one (tools/race_bench.sh): a mark recorded pass that fails is a problem; one recorded fail that passes is a warning until it is recorded here (tools/race_bench.sh --write); one recorded once:<machine> counts races in traffic and has passed on that machine only (--write on the other machine makes it a pass; not held until then); one recorded unsteady (set by hand: it passes or fails with the draw of the town's cars, and its step is not built) is not held and --write leaves it."
 	doc[matrix] = gates
 	_write_json(BASELINE, doc)
 	print("check_race_bench: recorded the %s matrix's marks in %s" % [matrix, BASELINE])

@@ -219,8 +219,8 @@ func _check_next(jobs: Jobs, graph: LaneGraph, stands: Array) -> String:
 		best = minf(best, graph.trip(dist, int(hit[0]), float(hit[2]), int(s["edge"]), float(s["s"])))
 	var mine: float = graph.trip(dist, int(hit[0]), float(hit[2]), int(stands[i]["edge"]), float(stands[i]["s"]))
 	_expect(mine <= best + 0.5, "NASTĘPNE picked stand %d at %.0f m, the nearest is %.0f m" % [i, mine, best])
-	_expect(jobs.has_target() and jobs.target_position() == stands[i]["ring"] and jobs.stop_spot() == stands[i]["ring"],
-			"the pointer: has_target %s, target %s, stand ring %s" % [jobs.has_target(), jobs.target_position(), stands[i]["ring"]])
+	_expect(jobs.pointing() and jobs.target_position() == stands[i]["ring"] and jobs.stop_spot() == stands[i]["ring"],
+			"the pointer: pointing %s, target %s, stand ring %s" % [jobs.pointing(), jobs.target_position(), stands[i]["ring"]])
 	_expect(hud.route.size() >= 2 and hud.owner_now == "jobs", "NASTĘPNE drew no route (%d points, owner '%s')" % [hud.route.size(), hud.owner_now])
 	var ring: Vector3 = stands[i]["ring"]
 	_expect(hud.route.size() >= 2 and hud.route[hud.route.size() - 1].distance_to(Vector2(ring.x, ring.z)) < 0.5, "the route doesn't end at the stand's ring")

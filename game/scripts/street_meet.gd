@@ -1,4 +1,4 @@
-extends Node3D
+extends "res://scripts/activity.gd"
 ## Nocny spot (F's ask 2026-11-06, docs/design/night-meet.md): the WARSAW NIGHT RACING CLUB.
 ##
 ## **The call.** At night (NIGHT_HOURS, the game clock) with nothing else on, Darek „Bawarka"
@@ -49,6 +49,15 @@ extends Node3D
 ## before the yellow "early", long on the limiter "late". During the drag the radio ticker,
 ## info notes and flavour toasts wait (hud.set_hush) and the bubbles are cleared.
 ##
+## **On the activity kit** (activity.gd, tech-debt TD-1): the kit holds the ringing phone, the offer
+## card and its life, the result card (with its life), the status line, the arrow's target (one
+## `_beacon`, moved from ring to ring), the ✕, "am I busy" and the end. This script keeps the
+## meets, the raids, the race, the drag, Darek's own call clock (`call_in`, counted in `_tick`; the
+## kit's phase is IDLE meanwhile) and the run's stages (Stage: TO_MEET, MEET, RAID, RACE, MEET2,
+## RAID2, TO_DRAG, WATCH, LINE, DRAG, RESULT; `phase` is the kit's, RUN for all of them). The first
+## activity with a race in it (the place as the status line's `badge`) and with stages that are not
+## the kit's at all.
+##
 ## Nothing here per frame when idle (a TICK s look). During the quest: the meet's few draw calls
 ## (marks, smoke, glow, the crowd, three own cars and their lights, the start gate at the drag), the
 ## parked racers and the cordon are the traffic's pool cars (no new draw calls).
@@ -58,9 +67,8 @@ extends Node3D
 
 const Models := preload("res://scripts/models.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
-const Beacon := preload("res://scripts/beacon.gd")
-const Access := preload("res://scripts/access.gd")
 const Notebook := preload("res://scripts/notebook.gd")
+const Messages := preload("res://scripts/messages.gd")
 const InstanceBuffers := preload("res://scripts/instance_buffers.gd")
 const Rave := preload("res://scripts/rave.gd")
 const Lang := preload("res://scripts/lang.gd")
@@ -84,6 +92,12 @@ const MEETS := [
 	{"id": "defilad", "name": ["Plac Defilad", "Plac Defilad"], "ll": [52.232327, 21.008892]},
 	{"id": "narodowy", "name": ["Parking pod Narodowym", "The car park by the National Stadium"], "ll": [52.241117, 21.043449]},
 ]
+## Where Darek waits in person (the questline's start pin, story_quests.gd): the kerb of Parkingowa
+## by Rondo Dmowskiego (F 2026-11-11: "not so close to the game's start, not so far, it should not be
+## visible from the starting scene"), about 380 m south of the spawn, past story_quests.gd's
+## BEACON_R, so the start's column and Darek are out of the first view. The meet itself stays on
+## Plac Defilad: after WCHODZĘ! the beacon sends you up Marszałkowska to the plaza.
+const START := {"street": "Parkingowa", "ll": [52.2287, 21.0137]}
 ## The drag strip: Aleja Zieleniecka's straight, north end `a` to south end `b`; the line START_AT m
 ## from `a`, the finish QUARTER m on.
 const STRIP := {"id": "zieleniecka", "name": ["Aleja Zieleniecka", "Aleja Zieleniecka"],
@@ -122,11 +136,9 @@ const HOLD := 0.8
 ## The club talks this long at a meet before the sirens (F 2026-11-08: the first meet's drift ran
 ## too long at 15 s).
 const MEET_TALK := 9.0
-## The raid: patrol cars sent in, the chase's koguty, and how long the quest waits for a chase that
-## never started (then the pin comes anyway).
+## The raid: patrol cars sent in and the chase's koguty.
 const RAID_CARS := 3
 const RAID_LEVEL := 2
-const RAID_WAIT := 6.0
 ## The cordon (F 2026-11-08: "you don't see the cops coming in from every side and boxing you in,
 ## only icons"): CORDON patrol cars drive in across the plaza from CORDON_FROM m out, CORDON_STAGGER
 ## s apart, each over CORDON_T s, and stop CORDON_R m round the player, noses in, lights on (police.gd
@@ -138,9 +150,9 @@ const CORDON_FROM := 34.0
 const CORDON_T := 2.4
 const CORDON_STAGGER := 0.5
 const CORDON_GONE := 90.0
-## The pin comes only once the player is this far from the raided meet (a meet off the road is
-## no hiding place: sitting still there is not an escape).
-const PIN_AWAY := 220.0
+## The pin (the next destination) comes this long after the sirens start, once the cordon has
+## closed in, whether or not the chase is still on.
+const PIN_AFTER := 4.5
 ## The scatter: each car glides off the plaza to the road at GLIDE_V m/s, STAGGER s apart.
 const GLIDE_V := 9.0
 const STAGGER := 0.35
@@ -248,35 +260,26 @@ const RING_PAINTS := [Color("#ff4fd8"), Color("#3ad8ff"), Color("#7cff3a"), Colo
 const GLOWS := [Color("#ff4fd8"), Color("#38f6ff"), Color("#7cff3a"), Color("#ffb03a"), Color("#b44cff"), Color("#38f6ff"),
 		Color("#38f6ff"), Color("#ff3d6e")]
 
-enum State { IDLE, RING, OFFER, TO_MEET, MEET, RAID, RACE, MEET2, RAID2, TO_DRAG, WATCH, STAGE, RUN, RESULT }
-const STATES := ["idle", "ring", "offer", "to_meet", "meet", "raid", "race", "meet2", "raid2", "to_drag", "watch",
-		"stage", "run", "result"]
+## The run's own stages (the kit's `phase` is RUN for all of them): LINE is on the line under the
+## tree, DRAG the quarter mile.
+enum Stage { NONE, TO_MEET, MEET, RAID, RACE, MEET2, RAID2, TO_DRAG, WATCH, LINE, DRAG, RESULT }
+const STAGES := ["none", "to_meet", "meet", "raid", "race", "meet2", "raid2", "to_drag", "watch", "line", "drag", "result"]
 
-var hud: CanvasLayer
-var dialogue: Node
-var wallet: Node
 var missions: Node
-var map: Node3D
 var graph: LaneGraph
 var traffic: Node3D
 var police: Node
-var car: CharacterBody3D
 var flat_mat: Material
-## [position, km/h, flying] of the player's vehicle.
-var vehicle: Callable
-## {hour, weekday} (time_of_day.gd local_clock).
-var clock: Callable
-## True when nothing else is on (main.gd).
-var free_now: Callable
+## {hour, weekday} (time_of_day.gd local_clock). The kit's `clock` is a float hour, not this.
+var calendar: Callable
 ## Puts the car at (position, yaw) at once (main.gd `_place_car`: the camera cut too).
 var place_car: Callable
-var log_on := false
 var auto := true
 ## --meet=on: night rules at any hour.
 var force := false
 var origin := [52.234, 21.024]
 
-var state := State.IDLE
+var stage := Stage.NONE
 var call_in := 0.0
 ## The meets found: MEETS' keys plus at: Vector3 (the middle), door: kerb (Rave.kerb_near), gap:
 ## Vector3 (the player's place in the ring, towards the door), slots: Array[Vector3] (the ring).
@@ -284,6 +287,9 @@ var meets: Array[Dictionary] = []
 ## The strip: {a: Vector2, dir: Vector2, side: Vector2 (right of dir), start: Vector2 (the line,
 ## the player's lane), lane_gap: float (the rival's lane to the left), watch: Vector3, ok: bool}.
 var strip := {}
+## The start's kerb (Rave.kerb_near on START's street), {} without a road there (main.gd then
+## uses Plac Defilad's door).
+var start_kerb := {}
 var meet_i := 0
 var place := 0
 var last_pay := []
@@ -292,8 +298,14 @@ var drag_won := false
 var nights := 0
 
 var _rng := RandomNumberGenerator.new()
-var _tick := 0.0
-var _t := 0.0
+## The quarter-second step (`_tick`): the time gathered, the time it covered when it ran this
+## frame (0 otherwise), and the car read on it.
+var _step_t := 0.0
+var _due := 0.0
+var _at := Vector3.ZERO
+var _kmh := 0.0
+## Seconds in the raid and in the race (the kit's `_t` is not this one).
+var _stage_t := 0.0
 var _hold_t := 0.0
 var _talk_i := 0
 var _talk_t := 0.0
@@ -316,7 +328,6 @@ var _bawarka: Node3D
 var _porsze: Node3D
 var _skajlajner: Node3D
 var _show_cars: Array[Node3D] = []
-var _beacon: Node3D
 var _crowd_at: Array[Vector3] = []
 var _crowd_run := 0.0
 var _smoke_t: Array[float] = []
@@ -350,7 +361,8 @@ var _tacho: DragTacho
 var _gate: MeshInstance3D
 var _tree_t := 0.0
 var _green_at := 0.0
-var _run_t := 0.0
+## The drag's clock from green (the kit's `_run_t` is not this one).
+var _drag_t := 0.0
 var _react := -1.0
 var _gear := 0
 var _shift_w := -1.0
@@ -372,6 +384,13 @@ var _clear_t := 0.0
 var spent_usec := 0
 
 
+func _init() -> void:
+	tag = "meet"
+	colour = COLOUR
+	dark = Color("#1a1a1e")
+	card_life = RING_LIFE
+
+
 func setup(world: Node3D, seed_value := -1) -> void:
 	if seed_value >= 0:
 		_rng.seed = seed_value
@@ -381,23 +400,16 @@ func setup(world: Node3D, seed_value := -1) -> void:
 	if graph != null:
 		meets = find_meets(graph, map, origin)
 		strip = find_strip(graph, map, origin)
+		start_kerb = find_start(graph, origin)
 	_scene = Node3D.new()
 	_scene.name = "NightMeet"
 	_scene.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
 	_scene.visible = false
 	world.add_child(_scene)
 	_build_scene()
-	_beacon = Beacon.new()
-	world.add_child(_beacon)
-	_beacon.setup(COLOUR, Color("#1a1a1e"))
+	super.setup(world)
 	_beacon.waving = false
-	_beacon.visible = false
-	if hud != null:
-		hud.card_pressed.connect(_on_card)
-		hud.context_pressed.connect(_on_context)
-		hud.abort_pressed.connect(func() -> void:
-			if can_quit(state):
-				_give_up())
+	hud.context_pressed.connect(_on_context)
 	if police != null and police.has_signal("chase_ended"):
 		police.chase_ended.connect(_on_chase_ended)
 	var names := PackedStringArray()
@@ -414,7 +426,7 @@ func setup(world: Node3D, seed_value := -1) -> void:
 ## raid closed the map and left the quest running). Not while Darek's call or offer is up, nor on
 ## the drag's result card (its own buttons end it).
 static func can_quit(s: int) -> bool:
-	return s != State.IDLE and s != State.RING and s != State.OFFER and s != State.RESULT
+	return s != Stage.NONE and s != Stage.RESULT
 
 
 ## Within hours [from, to) that may wrap past midnight.
@@ -524,20 +536,32 @@ static func find_meets(g: LaneGraph, m: Node3D, org: Array) -> Array[Dictionary]
 		var y: float = m.terrain_height(at.x, at.y) if m != null and m.has_method("terrain_height") else 0.0
 		var d3: Vector3 = door["at"]
 		var to_door := (Vector2(d3.x, d3.z) - at).normalized()
-		var meet := row.duplicate(true)
-		meet["at"] = Vector3(at.x, y, at.y)
-		meet["door"] = door
+		var found := row.duplicate(true)
+		found["at"] = Vector3(at.x, y, at.y)
+		found["door"] = door
 		var gp := at + to_door * RING_R
-		meet["gap"] = Vector3(gp.x, y, gp.y)
+		found["gap"] = Vector3(gp.x, y, gp.y)
 		var slots: Array[Vector3] = []
 		var a0 := atan2(to_door.y, to_door.x)
 		for k in RING_CARS + 2:
 			var a := a0 + TAU * float(k + 1) / float(RING_CARS + 3)
 			var p := at + Vector2(cos(a), sin(a)) * RING_R
 			slots.append(Vector3(p.x, y, p.y))
-		meet["slots"] = slots
-		out.append(meet)
+		found["slots"] = slots
+		out.append(found)
 	return out
+
+
+## The questline's start on this map: a kerb on START's street near its point (searched in rings,
+## as shisha.gd's kerb_named), {} when the map has no ground road there.
+static func find_start(g: LaneGraph, org: Array) -> Dictionary:
+	var q := Notebook.project(org, float(START["ll"][0]), float(START["ll"][1]))
+	for r: float in [0.0, 15.0, 30.0, 45.0, 60.0]:
+		for k in (1 if r == 0.0 else 12):
+			var kerb := Rave.kerb_near(g, q + Vector2(r, 0).rotated(TAU * k / 12.0), 40.0)
+			if not kerb.is_empty() and String(START["street"]) in String(kerb["street"]):
+				return kerb
+	return {}
 
 
 ## The drag strip on this map: the line START_AT m from the north end on the southbound lane
@@ -555,14 +579,14 @@ static func find_strip(g: LaneGraph, m: Node3D, org: Array) -> Dictionary:
 	var lanes: int = g.e_lanes[e]
 	var kerb := g.lane_offset(e, lanes - 1)
 	var inner := g.lane_offset(e, lanes - 2) if lanes >= 2 else kerb - 3.4
-	var start := g.point_at(e, s, kerb)
+	var line := g.point_at(e, s, kerb)
 	var right := Vector2(-dir.y, dir.x)
-	if (g.point_at(e, s, kerb + 1.0) - start).dot(right) < 0.0:
+	if (g.point_at(e, s, kerb + 1.0) - line).dot(right) < 0.0:
 		right = -right
 	var gap := absf(kerb - inner)
-	var w := start - dir * WATCH_BACK
+	var w := line - dir * WATCH_BACK
 	var y: float = m.terrain_height(w.x, w.y) if m != null and m.has_method("terrain_height") else 0.0
-	return {"ok": (b - a).length() >= START_AT + QUARTER + 60.0, "a": a, "dir": dir, "right": right, "start": start,
+	return {"ok": (b - a).length() >= START_AT + QUARTER + 60.0, "a": a, "dir": dir, "right": right, "start": line,
 			"lane_gap": gap, "watch": Vector3(w.x, y, w.y), "e": e, "length": (b - a).length()}
 
 
@@ -573,7 +597,7 @@ static func graph_dir_ok(g: LaneGraph, hit: Array, dir: Vector2) -> bool:
 ## A point on the strip: `s` m past the line, `lat` m to the right of the player's lane.
 func strip_at(s: float, lat := 0.0) -> Vector3:
 	var p: Vector2 = strip["start"] + strip["dir"] * s + strip["right"] * lat
-	return Vector3(p.x, _ground(p.x, p.y), p.y)
+	return Vector3(p.x, _terrain(p.x, p.y), p.y)
 
 
 func strip_yaw() -> float:
@@ -805,7 +829,7 @@ func _build_scene() -> void:
 	_tacho.name = "DragTacho"
 	_tacho.visible = false
 	_tacho.shift.connect(func() -> void:
-		if state == State.RUN:
+		if stage == Stage.DRAG:
 			_shift_pressed())
 	if hud != null:
 		hud.add_child(_tree)
@@ -1013,74 +1037,85 @@ func _process(dt: float) -> void:
 		_cordon_frame(dt)
 	if not _shows.is_empty():
 		_shows_frame(dt)
-	if state == State.STAGE or state == State.RUN:
+	if stage == Stage.LINE or stage == Stage.DRAG:
 		_drag_frame(dt)
-	_tick += dt
-	if _tick >= TICK:
-		step(_tick)
-		_tick = 0.0
+	super._process(dt)
 	spent_usec += Time.get_ticks_usec() - t0
 
 
-## The slow part, every TICK s.
-func step(dt: float) -> void:
+## Every frame, in every phase: the quarter-second step. On it the car is read, the cordon is
+## let go once the player is away, and while idle Darek's own call clock counts (the kit's call
+## clock is not his).
+func _tick(dt: float) -> void:
+	_due = 0.0
+	_step_t += dt
+	if _step_t < TICK:
+		return
+	_due = _step_t
+	_step_t = 0.0
 	var v: Array = vehicle.call() if vehicle.is_valid() else [Vector3.ZERO, 0.0, false]
-	var at: Vector3 = v[0]
-	var kmh: float = v[1]
+	_at = v[0]
+	_kmh = v[1]
 	if not _cordon.is_empty():
 		var c0: Vector3 = (_cordon[0]["to"] as Vector3)
-		if _cordon_leaving or Vector2(at.x, at.z).distance_to(Vector2(c0.x, c0.z)) > CORDON_GONE or not (state == State.RAID or state == State.RAID2):
+		if _cordon_leaving or Vector2(_at.x, _at.z).distance_to(Vector2(c0.x, c0.z)) > CORDON_GONE or not (stage == Stage.RAID or stage == Stage.RAID2):
 			_cordon_leaving = true
 			_cordon_leave()
-	match state:
-		State.IDLE:
-			if auto and _free() and (force or night_on(_hour())):
-				call_in -= dt
-				if call_in <= 0.0 and not ring():
-					call_in = 20.0
-		State.RING, State.OFFER:
-			_t_ring(dt)
-		State.TO_MEET:
+	if phase == Phase.IDLE and auto and _free() and (force or night_on(_hour())):
+		call_in -= _due
+		if call_in <= 0.0 and not ring():
+			call_in = 20.0
+
+
+## The kit's session clock is not Darek's: see `_tick`.
+func _idle_tick(_dt: float) -> void:
+	pass
+
+
+## The run's slow part, every TICK s while no card of its own is up.
+func _run_tick(_dt: float) -> void:
+	if _due <= 0.0:
+		return
+	match stage:
+		Stage.TO_MEET:
 			var m: Dictionary = meets[0]
 			_status("%s · SPOT" % String(m["name"][0]).to_upper(), "Stań w luce między autami", "Park in the gap between the cars",
-					at, m["gap"], COLOUR)
-			if _arrived(dt, at, kmh, m["gap"], MEET_R):
+					_at, m["gap"], COLOUR)
+			if _arrived(_due, _at, _kmh, m["gap"], MEET_R):
 				_start_meet(0)
-		State.MEET, State.MEET2:
-			_talk_t -= dt
-			var lines: Array = MEET_LINES if state == State.MEET else MEET2_LINES
+		Stage.MEET, Stage.MEET2:
+			_talk_t -= _due
+			var lines: Array = MEET_LINES if stage == Stage.MEET else MEET2_LINES
 			if _talk_t <= 0.0 and _talk_i < lines.size():
 				_line(lines[_talk_i])
 				_talk_i += 1
 				_talk_t = MEET_TALK / float(lines.size())
 			elif _talk_t <= 0.0:
 				_raid()
-		State.RAID, State.RAID2:
-			_t_raid(dt)
-		State.RACE:
-			_t_race(dt, at)
-		State.TO_DRAG:
-			_status("ZIELENIECKA · DRAG", "Zatrzymaj się przy starcie", "Stop by the start line", at, strip["watch"], COLOUR)
-			if _arrived(dt, at, kmh, strip["watch"], MEET_R * 1.6):
+		Stage.RAID, Stage.RAID2:
+			_t_raid(_due)
+		Stage.RACE:
+			_t_race(_due, _at)
+		Stage.TO_DRAG:
+			_status("ZIELENIECKA · DRAG", "Zatrzymaj się przy starcie", "Stop by the start line", _at, strip["watch"], COLOUR)
+			if _arrived(_due, _at, _kmh, strip["watch"], MEET_R * 1.6):
 				_watch()
-		State.WATCH:
+		Stage.WATCH:
 			if _shows.is_empty():
 				if not hud.pill_shown("drag"):
 					hud.show_pill("START DRAG", "START DRAG", "drag")
-					_beacon.place(strip_at(0.0), LINE_R * 0.6, true, false)
-					_beacon.visible = true
-				_status("ZIELENIECKA · DRAG", "Stań na linii pod bramą", "Stop on the line under the gate", at, strip_at(0.0), COLOUR)
-				if _arrived(dt, at, kmh, strip_at(0.0), LINE_R):
+					var line_at := strip_at(0.0)
+					set_target(Vector2(line_at.x, line_at.z), false, line_at, LINE_R * 0.6)
+				_status("ZIELENIECKA · DRAG", "Stań na linii pod bramą", "Stop on the line under the gate", _at, strip_at(0.0), COLOUR)
+				if _arrived(_due, _at, _kmh, strip_at(0.0), LINE_R):
 					hud.hide_pill()
 					_stage()
-		State.RUN:
+		Stage.DRAG:
 			_clear_strip()
-		State.RESULT:
-			_t_result(dt)
 
 
 func _hour() -> float:
-	var c: Dictionary = clock.call() if clock.is_valid() else {"hour": 23.0}
+	var c: Dictionary = calendar.call() if calendar.is_valid() else {"hour": 23.0}
 	return float(c.get("hour", 23.0))
 
 
@@ -1088,34 +1123,43 @@ func _free() -> bool:
 	return free_now.is_valid() and bool(free_now.call()) and meets.size() >= 2 and bool(strip.get("ok", false))
 
 
-func busy() -> bool:
-	return state != State.IDLE and state != State.RING and state != State.OFFER
+## The club's night is under way: JADĘ! said or met in person, until its last card closes.
+func under_way() -> bool:
+	return phase == Phase.RUN
 
 
+## The arrow to the line shows the moment the last exhibition pair is gone; its ring and START
+## DRAG come on the next step.
 func has_target() -> bool:
-	return state in [State.TO_MEET, State.RACE, State.TO_DRAG] or (state == State.WATCH and _shows.is_empty())
+	return super.has_target() or (phase == Phase.RUN and stage == Stage.WATCH and _shows.is_empty())
 
 
+## The arrow leads to the spot itself (its own height).
 func target_position() -> Vector3:
-	match state:
-		State.TO_MEET:
+	match stage:
+		Stage.TO_MEET:
 			return meets[0]["gap"]
-		State.RACE:
+		Stage.RACE:
 			return meets[1]["at"]
-		State.TO_DRAG:
+		Stage.TO_DRAG:
 			return strip["watch"]
-		State.WATCH:
+		Stage.WATCH:
 			return strip_at(0.0)
-	return Vector3.ZERO
+	return _target
 
 
 func target_colour() -> Color:
-	return PIN_COLOUR if state == State.RACE else COLOUR
+	return PIN_COLOUR if stage == Stage.RACE else COLOUR
 
 
-func _status(title: String, hint: String, hint_en: String, at: Vector3, to: Vector3, colour: Color, badge := "") -> void:
+## No stop assist at the club's rings (there was none before the kit).
+func stop_spot() -> Vector3:
+	return Vector3.INF
+
+
+func _status(title: String, hint: String, hint_en: String, at: Vector3, to: Vector3, tint: Color, badge := "") -> void:
 	var m := roundi(Vector2(at.x, at.z).distance_to(Vector2(to.x, to.z)))
-	hud.show_status(title, "", "%d m" % m, hint, _hold_t / HOLD, colour, badge, {}, hint_en)
+	status(title, "", "%d m" % m, [hint, hint_en], _hold_t / HOLD, tint, badge)
 
 
 func _arrived(dt: float, at: Vector3, kmh: float, to: Vector3, r: float) -> bool:
@@ -1129,13 +1173,8 @@ func _arrived(dt: float, at: Vector3, kmh: float, to: Vector3, r: float) -> bool
 	return false
 
 
-func _ground(x: float, z: float) -> float:
+func _terrain(x: float, z: float) -> float:
 	return map.terrain_height(x, z) if map != null and map.has_method("terrain_height") else 0.0
-
-
-func _log(text: String) -> void:
-	if log_on:
-		print("meet: " + text)
 
 
 func _line(l: Array, seconds := 4.5) -> void:
@@ -1158,94 +1197,61 @@ func _line(l: Array, seconds := 4.5) -> void:
 
 # --- the call ---------------------------------------------------------------------------------
 
-## The phone rings (--meet-call too). False with no meets or while busy.
+## The phone rings (--meet-call too). False with no meets or unless idle.
 func ring() -> bool:
-	if meets.size() < 2 or not bool(strip.get("ok", false)) or state != State.IDLE:
+	if meets.size() < 2 or not bool(strip.get("ok", false)) or phase != Phase.IDLE:
 		return false
-	state = State.RING
 	_hold_t = 0.0
-	_t = 0.0
-	hud.show_side_card("📞 DAREK „BAWARKA” DZWONI", "Kumpel od aut. Jeździ Bawarką 3.2 i mówi o niej „ona”.",
-			PackedStringArray(["ODBIERZ|ANSWER", "ODRZUĆ|DECLINE"]), COLOUR, "Darek \"Bawarka\" is calling",
-			"Your car mate. Drives a Bawarka 3.2 and calls it \"she\".")
-	hud.ticker_out()
-	Access.buzz(60, 0.6)
-	_log("call ringing")
-	return true
+	return super.ring()
 
 
-func _t_ring(dt: float) -> void:
-	_t += dt
-	if _t > RING_LIFE:
-		hud.hide_card()
+func _call_card() -> Dictionary:
+	return {"who": "Darek „Bawarka”|Darek \"Bawarka\"",
+			"about": ["Kumpel od aut. O swojej Bawarce mówi „ona”.", "Car mate. Calls his Bawarka \"she\"."]}
+
+
+func _offer_card() -> Dictionary:
+	return {"title": ["📞 DAREK", FRIEND], "face": "Darek",
+			"body": ["„Siema! Dziś spot %s na Placu Defilad. Lena kręci bączki, Tadek przywiózł Skajlajnera. Wpadasz? Tylko cicho, bo psy też czytają internet.”" % CLUB,
+					"\"Hey! The %s meets tonight on Plac Defilad. Lena's doing donuts, Tadek brought the Skajlajner. You in? Keep it quiet, the cops read the internet too.\"" % CLUB],
+			"buttons": ["JADĘ!|ON MY WAY", "NIE DZIŚ|NOT TONIGHT"]}
+
+
+func _refused(timed_out: bool) -> void:
+	if timed_out:
 		hud.toast("Nieodebrane połączenie: %s" % FRIEND, "Missed call: %s" % FRIEND)
-		_reset()
-
-
-func _offer() -> void:
-	state = State.OFFER
-	_t = 0.0
-	hud.show_side_card("📞 DAREK", "„Siema! Dziś spot %s na Placu Defilad. Lena kręci bączki, Tadek przywiózł Skajlajnera. Wpadasz? Tylko cicho, bo psy też czytają internet.”" % CLUB,
-			PackedStringArray(["JADĘ!|ON MY WAY", "NIE DZIŚ|NOT TONIGHT"]), COLOUR, FRIEND,
-			"\"Hey! The %s meets tonight on Plac Defilad. Lena's doing donuts, Tadek brought the Skajlajner. You in? Keep it quiet, the cops read the internet too.\"" % CLUB)
-
-
-func _on_card(i: int) -> void:
-	match state:
-		State.RING:
-			if i == 0:
-				_offer()
-			else:
-				hud.hide_card()
-				hud.toast("Odrzucono. Darek pojedzie sam. Bokiem.", "Declined. Darek goes alone. Sideways.")
-				_reset()
-		State.OFFER:
-			hud.hide_card()
-			if i == 0:
-				accept()
-			else:
-				hud.toast("„Dobra. Ale jak Lena zrobi sto kółek, to nie płacz, że nie widziałeś.”", "\"Fine. But when Lena does a hundred laps, don't cry you missed it.\"")
-				_reset()
-		State.RESULT:
-			hud.hide_card()
-			if i == 0 and not drag_won:
-				_stage()
-			else:
-				_finish()
+	elif phase == Phase.RING:
+		hud.toast("Odrzucono. Darek pojedzie sam. Bokiem.", "Declined. Darek goes alone. Sideways.")
+	else:
+		hud.toast("„Dobra. Ale jak Lena zrobi sto kółek, to nie płacz, że nie widziałeś.”", "\"Fine. But when Lena does a hundred laps, don't cry you missed it.\"")
 
 
 func _on_context(owner: String) -> void:
-	if owner == "drag" and state == State.WATCH:
+	if owner == "drag" and stage == Stage.WATCH:
 		hud.hide_pill()
 		_stage()
-	elif owner == "drag_shift" and state == State.RUN:
+	elif owner == "drag_shift" and stage == Stage.DRAG:
 		_shift_pressed()
 
 
 ## Darek in person at the start spot (story_quests.gd's WCHODZĘ!): the same as JADĘ! on the call.
 func meet_in_person() -> bool:
-	if meets.size() < 2 or not bool(strip.get("ok", false)) or state != State.IDLE:
+	if meets.size() < 2 or not bool(strip.get("ok", false)) or phase != Phase.IDLE:
 		return false
-	accept()
+	start()
 	return true
 
 
-## True when the night may start (not ringing, not running): story_quests.gd skips the greeting otherwise.
-func idle() -> bool:
-	return state == State.IDLE
-
-
 ## JADĘ!: the meet goes up on Plac Defilad, the beacon in the ring's gap.
-func accept() -> void:
+func _begin() -> void:
 	_calls_were = missions.paused if missions != null else false
 	if missions != null:
 		missions.paused = true
 	nights += 1
 	_show_meet(0)
 	var g: Vector3 = meets[0]["gap"]
-	_beacon.place(g, MEET_R * 0.7, true, false)
-	_beacon.visible = true
-	state = State.TO_MEET
+	set_target(Vector2(g.x, g.z), false, g, MEET_R * 0.7)
+	stage = Stage.TO_MEET
 	_hold_t = 0.0
 	hud.toast("Jedź na spot: %s" % meets[0]["name"][0], "Drive to the meet: %s" % meets[0]["name"][1])
 	_log("accepted: to %s" % meets[0]["id"])
@@ -1307,9 +1313,9 @@ func _put_node(n: Node3D, at: Vector3, yaw: float) -> void:
 
 ## Stopped in the ring: the club talks.
 func _start_meet(i: int) -> void:
-	hud.hide_status()
-	_beacon.visible = false
-	state = State.MEET if i == 0 else State.MEET2
+	hide_status()
+	clear_target()
+	stage = Stage.MEET if i == 0 else Stage.MEET2
 	_talk_i = 0
 	_talk_t = 0.5
 	_log("at meet %s" % meets[i]["id"])
@@ -1318,8 +1324,8 @@ func _start_meet(i: int) -> void:
 ## The sirens: police.gd's raid on the meet, the crowd runs, every racer scatters.
 func _raid() -> void:
 	var m: Dictionary = meets[meet_i]
-	state = State.RAID if meet_i == 0 else State.RAID2
-	_t = 0.0
+	stage = Stage.RAID if meet_i == 0 else Stage.RAID2
+	_stage_t = 0.0
 	_chase_seen = false
 	_line(RAID_LINES[0], 3.0)
 	get_tree().create_timer(1.2).timeout.connect(func() -> void: _line(RAID_LINES[1 + (meet_i % 2)], 3.5))
@@ -1339,28 +1345,21 @@ func _raid() -> void:
 
 
 func _t_raid(dt: float) -> void:
-	_t += dt
+	_stage_t += dt
 	var chasing: bool = police != null and police.has_method("chasing") and police.chasing()
 	if chasing:
 		_chase_seen = true
-	var v: Array = vehicle.call() if vehicle.is_valid() else [Vector3.ZERO, 0.0, false]
-	var at: Vector3 = v[0]
-	var m: Vector3 = meets[meet_i]["at"]
-	var away := Vector2(at.x, at.z).distance_to(Vector2(m.x, m.z))
-	if chasing:
-		# The police pill says it all while they chase (PT-34: the two together pushed the pill
-		# down over the car).
-		hud.hide_status()
-	elif away < PIN_AWAY:
-		hud.show_status("NALOT! · UCIEKAJ", "", "%d / %d m" % [roundi(away), roundi(PIN_AWAY)], "Odjedź od spotu", away / PIN_AWAY,
-				COLOUR, "", {}, "Get away from the meet")
-	elif (not _chase_seen and _t > RAID_WAIT) or (_chase_seen and _t > 2.0):
-		hud.hide_status()
+		# The police pill says it all while they chase (PT-34).
+		hide_status()
+	# F 2026-11-10: the next destination comes as soon as the police are in (the cordon has
+	# closed), not once the player has driven away or the chase has ended.
+	if _stage_t > PIN_AFTER:
+		hide_status()
 		_pin()
 
 
 func _on_chase_ended(how: String) -> void:
-	if state == State.RAID or state == State.RAID2:
+	if stage == Stage.RAID or stage == Stage.RAID2:
 		_log("chase ended: %s" % how)
 		_chase_seen = true
 
@@ -1390,8 +1389,8 @@ func _cordon_in() -> int:
 		var out := Vector3(cos(a), 0.0, sin(a))
 		var from := c + out * CORDON_FROM
 		var to := c + out * CORDON_R
-		from.y = _ground(from.x, from.z)
-		to.y = _ground(to.x, to.z)
+		from.y = _terrain(from.x, from.z)
+		to.y = _terrain(to.x, to.z)
 		# Nose in, a little across (they swerve in to block, not park in a neat star).
 		var yaw := atan2(out.x, out.z) + (0.35 if k % 2 == 0 else -0.35)
 		var d = police.scene_car(e, lane, s, from, yaw, 0)
@@ -1428,7 +1427,7 @@ func _cordon_frame(dt: float) -> void:
 		var k := clampf(t / float(cd["dur"]), 0.0, 1.0)
 		k = 1.0 - pow(1.0 - k, 3.0)
 		var p: Vector3 = (cd["from"] as Vector3).lerp(cd["to"], k)
-		p.y = _ground(p.x, p.z)
+		p.y = _terrain(p.x, p.z)
 		traffic.park(d, int(cd["e"]), float(cd["s"]), p, float(cd["yaw"]), -1)
 
 
@@ -1457,7 +1456,7 @@ func _racer_dots() -> void:
 		return
 	var pts := PackedVector2Array()
 	var cols := PackedColorArray()
-	if state in [State.RAID, State.RAID2, State.RACE]:
+	if stage in [Stage.RAID, Stage.RAID2, Stage.RACE]:
 		for r in _racers:
 			if r["d"] == null and r["node"] == null:
 				continue
@@ -1473,16 +1472,17 @@ func _pin() -> void:
 	if meet_i == 0:
 		var m: Dictionary = meets[1]
 		hud.show_note("TYGRAM · WNRC", Lang.pick("📍 %s. Kto pierwszy, ten lepszy. Psy szukają nas tutaj, nie tam." % m["name"][0],
-				"📍 %s. First there wins. The cops are looking for us here, not there." % m["name"][1]), PIN_COLOUR)
+				"📍 %s. First there wins. The cops are looking for us here, not there." % m["name"][1]), PIN_COLOUR,
+				Messages.QUEST_LINE)  # the quest's own message: shows in the chase (messages.gd)
 		_start_race()
 	else:
 		hud.show_note("TYGRAM · WNRC", Lang.pick("📍 Zieleniecka, pod dworcem Stadion. Drag. %s" % MOTTO[0],
-				"📍 Zieleniecka, by Stadion station. Drag. %s" % MOTTO[1]), PIN_COLOUR)
+				"📍 Zieleniecka, by Stadion station. Drag. %s" % MOTTO[1]), PIN_COLOUR, Messages.QUEST_LINE)
 		_release_racers()
 		_show_gate(true)
-		state = State.TO_DRAG
-		_beacon.place(strip["watch"], MEET_R, true, false)
-		_beacon.visible = true
+		stage = Stage.TO_DRAG
+		var watch_at: Vector3 = strip["watch"]
+		set_target(Vector2(watch_at.x, watch_at.z), false, watch_at, MEET_R)
 		_hold_t = 0.0
 	Access.buzz(40, 0.4)
 	_log("pin: %s" % ("race to %s" % meets[1]["id"] if meet_i == 0 else "the drag"))
@@ -1567,7 +1567,7 @@ func _hand_over(r: Dictionary, then: String, e: int, s: float) -> void:
 	d.race_effort = 1.0
 	d.speed_factor = 1.4
 	d.accel_factor = 1.6
-	if state == State.RACE and not _race_dist.is_empty():
+	if stage == Stage.RACE and not _race_dist.is_empty():
 		_race_off(d)
 
 
@@ -1603,13 +1603,12 @@ func _start_race() -> void:
 		var d = r["d"]
 		if d != null and r["glide"].is_empty() and not d.parked:
 			_race_off(d)
-	state = State.RACE
-	_t = 0.0
+	stage = Stage.RACE
+	_stage_t = 0.0
 	_line(RACE_LINES[_rng.randi() % RACE_LINES.size()], 3.5)
-	if _beacon.has_method("recolour"):
-		_beacon.recolour(PIN_COLOUR)
-	_beacon.place(m["at"], ARRIVE_R * 0.6, true, false)
-	_beacon.visible = true
+	_beacon.recolour(PIN_COLOUR)
+	var race_at: Vector3 = m["at"]
+	set_target(Vector2(race_at.x, race_at.z), false, race_at, ARRIVE_R * 0.6)
 	_log("race to %s: %d m by road from the meet" % [m["id"], roundi(graph.remaining(_race_dist, int(meets[0]["door"]["e"]), float(meets[0]["door"]["s"])))])
 
 
@@ -1642,7 +1641,7 @@ func _place_now() -> int:
 
 
 func _t_race(dt: float, at: Vector3) -> void:
-	_t += dt
+	_stage_t += dt
 	var goal: Vector3 = meets[1]["at"]
 	for i in _racers.size():
 		var d = _racers[i]["d"]
@@ -1669,8 +1668,8 @@ func _race_done(p: int) -> void:
 	var title := "PIERWSZY!" if p == 1 else "%d. MIEJSCE" % p
 	var title_en := "FIRST!" if p == 1 else "PLACE %d" % p
 	hud.toast("%s  +%d zł  +%d" % [title, last_pay[0], last_pay[1]], "%s  +%d zł  +%d RESPECT" % [title_en, last_pay[0], last_pay[1]])
-	hud.hide_status()
-	_beacon.visible = false
+	hide_status()
+	clear_target()
 	_log("race done: place %d of %d, +%d zł +%d" % [p, _racers.size() + 1, last_pay[0], last_pay[1]])
 	_show_meet(1)
 	var slots: Array = meets[1]["slots"]
@@ -1698,7 +1697,7 @@ func _race_done(p: int) -> void:
 		if r["node"] != null:
 			_put_node(r["node"], slot, yaw)
 	_glow_frame()
-	state = State.MEET2
+	stage = Stage.MEET2
 	_talk_i = 0
 	_talk_t = 1.5
 	_skajlajner.visible = true
@@ -1801,9 +1800,9 @@ func _glow_frame() -> void:
 
 ## At the start: two exhibition pairs launch down the strip, then START DRAG comes up.
 func _watch() -> void:
-	state = State.WATCH
-	hud.hide_status()
-	_beacon.visible = false
+	stage = Stage.WATCH
+	hide_status()
+	clear_target()
 	_line(DRAG_LINES["watch"], 4.0)
 	var prof: Array = sim_run(float(car.accel) * float(car.accel_mult), _player_top() * DRAG_TOP, 0.3, 0.5, false)
 	_shows.clear()
@@ -1814,7 +1813,7 @@ func _watch() -> void:
 			_put_node(cars[j], strip_at(0.0, -float(strip["lane_gap"]) * j), strip_yaw())
 	_put_node(_skajlajner, strip_at(-12.0, -float(strip["lane_gap"])), strip_yaw())
 	get_tree().create_timer(5.0).timeout.connect(func() -> void:
-		if state == State.WATCH:
+		if stage == Stage.WATCH:
 			_line(DRAG_LINES["boss"], 4.0))
 	_log("watch: two pairs, then START DRAG")
 
@@ -1844,9 +1843,9 @@ func _stage() -> void:
 		for c: Node3D in sh["cars"]:
 			c.visible = false
 	_shows.clear()
-	state = State.STAGE
-	hud.hide_status()
-	_beacon.visible = false
+	stage = Stage.LINE
+	hide_status()
+	clear_target()
 	_show_gate(true)
 	_tree_t = 0.0
 	_green_at = TREE_PRE + 3.0 * TREE_STEP + _rng.randf_range(0.0, TREE_JITTER)
@@ -1891,7 +1890,7 @@ func _stage() -> void:
 	_tacho.launch = LAUNCH
 	_tacho.staging = true
 	_quiet(true)
-	hud.hide_status()
+	hide_status()
 	if dialogue != null and dialogue.bubbles != null:
 		dialogue.bubbles.clear()
 	_tacho.show_at = SHIFT_SHOW
@@ -1909,10 +1908,10 @@ func _stage() -> void:
 ## points down the strip (back to its line if it drifted) and any gas is full gas. On the line the
 ## gas still moves it (a false start stays possible).
 func hold_car(c: Node) -> void:
-	if c == null or not (state == State.STAGE or state == State.RUN) or not bool(strip.get("ok", false)):
+	if c == null or not (stage == Stage.LINE or stage == Stage.DRAG) or not bool(strip.get("ok", false)):
 		return
 	hold_inputs(c, strip)
-	if state == State.STAGE:
+	if stage == Stage.LINE:
 		# The launch: the gas revs the engine, the car stays on the line (no false start by gas).
 		_rev_gas = float(c.throttle) > 0.05 or bool(c.nitro_on)
 		c.throttle = 0.0
@@ -1937,7 +1936,7 @@ func _drag_frame(dt: float) -> void:
 	var rel: Vector2 = p - (strip["start"] as Vector2)
 	_player_s = rel.dot(strip["dir"])
 	var lat := rel.dot(strip["right"])
-	if state == State.STAGE:
+	if stage == Stage.LINE:
 		_tree_t += dt
 		var a := clampi(int((_tree_t - TREE_PRE) / TREE_STEP) + 1, 0, 3) if _tree_t >= TREE_PRE else 0
 		if a != _tree.ambers:
@@ -1957,21 +1956,21 @@ func _drag_frame(dt: float) -> void:
 		if _tree_t >= _green_at:
 			_tree.green = true
 			_tree.queue_redraw()
-			state = State.RUN
-			_run_t = 0.0
+			stage = Stage.DRAG
+			_drag_t = 0.0
 			_tacho.staging = false
 			_launch(launch_grade(_revs))
 			Access.buzz(80, 0.8)
 		return
-	_run_t += dt
+	_drag_t += dt
 	if _react < 0.0 and _player_s > 0.5:
-		_react = _run_t
+		_react = _drag_t
 	# Tadek.
-	var rt := maxf(0.0, _run_t - RIVAL_REACT)
-	_rival_s = 0.0 if _run_t < RIVAL_REACT else profile_at(_rival_profile, rt * _rival_k + RIVAL_REACT)
+	var rt := maxf(0.0, _drag_t - RIVAL_REACT)
+	_rival_s = 0.0 if _drag_t < RIVAL_REACT else profile_at(_rival_profile, rt * _rival_k + RIVAL_REACT)
 	_skajlajner.global_transform = Transform3D(Basis(Vector3.UP, strip_yaw()), strip_at(_rival_s, -float(strip["lane_gap"])))
 	if _rival_done < 0.0 and _rival_s >= QUARTER:
-		_rival_done = _run_t
+		_rival_done = _drag_t
 	# The gears: yours to shift (the tacho, or the context button); the box only saves a run
 	# left on the limiter AUTO_SHIFT s.
 	_boost_t = maxf(0.0, _boost_t - dt)
@@ -2000,7 +1999,7 @@ func _drag_frame(dt: float) -> void:
 	_tacho.kmh = v * 3.6
 	_tacho.limiter = _shift_w > PERFECT
 	_tree.since_green += dt
-	if _tree.visible and _run_t > 1.5:
+	if _tree.visible and _drag_t > 1.5:
 		_tree.visible = false
 	elif _tree.visible:
 		_tree.queue_redraw()
@@ -2008,9 +2007,9 @@ func _drag_frame(dt: float) -> void:
 		_drag_end(false, "off")
 		return
 	if _player_s >= QUARTER:
-		drag_time = _run_t
-		_drag_end(_rival_done < 0.0 or _run_t < _rival_done, "line")
-	elif _rival_done > 0.0 and _run_t > _rival_done + 6.0:
+		drag_time = _drag_t
+		_drag_end(_rival_done < 0.0 or _drag_t < _rival_done, "line")
+	elif _rival_done > 0.0 and _drag_t > _rival_done + 6.0:
 		_drag_end(false, "slow")
 
 
@@ -2071,15 +2070,14 @@ func _shift(how: String) -> void:
 		_:
 			hud.show_banner("BIEG %d" % (_gear + 1), Color("#f2f2f2"))
 	get_tree().create_timer(0.7).timeout.connect(func() -> void:
-		if hud != null and state == State.RUN:
+		if hud != null and stage == Stage.DRAG:
 			hud.hide_banner())
 	_log("shift to %d: %s" % [_gear + 1, how])
 
 
 ## The run is over: the card. `how`: "line" (crossed it), "false", "off", "slow".
 func _drag_end(won: bool, how: String) -> void:
-	state = State.RESULT
-	_t = 0.0
+	stage = Stage.RESULT
 	drag_won = won
 	_restore_car()
 	hud.hide_pill()
@@ -2124,16 +2122,9 @@ func _drag_end(won: bool, how: String) -> void:
 	body += "  +%d zł  +%d" % [pay[0], pay[1]]
 	body_en += "  +%d zł  +%d respect" % [pay[0], pay[1]]
 	var buttons := PackedStringArray(["OK|OK"]) if won else PackedStringArray(["REWANŻ|REMATCH", "KONIEC|DONE"])
-	hud.show_card(title, body, buttons, COLOUR, false, title_en, body_en)
+	show_card([title, title_en], [body, body_en], buttons, RESULT_LIFE)
 	_line(DRAG_LINES["win" if won else ("false" if how == "false" else "lose")], 4.0)
 	_log("drag %s (%s): you %.2f s, reaction %s, Tadek %s" % ["won" if won else "lost", how, drag_time, react, tad])
-
-
-func _t_result(dt: float) -> void:
-	_t += dt
-	if _t > RESULT_LIFE:
-		hud.hide_card()
-		_finish()
 
 
 func _restore_car() -> void:
@@ -2166,53 +2157,76 @@ func _clear_strip(all := false) -> void:
 
 # --- the end ----------------------------------------------------------------------------------
 
-func _give_up() -> void:
-	# The meet's crowd and parked cars go too (only the pin hid them before).
+## The result card's buttons: REWANŻ (after a loss) puts the car back on the line; OK and
+## KONIEC end the night.
+func _card_pressed(i: int) -> void:
+	if i == 0 and not drag_won:
+		_stage()
+	else:
+		finish()
+
+
+## Nobody pressed the result card for RESULT_LIFE s: the night ends (no rematch by itself).
+func _card_expired() -> void:
+	finish()
+
+
+## The full map's "✕ Quit" and the status ✕ (the kit's `abort`) give up in every beat under way.
+func _can_abort() -> bool:
+	return can_quit(stage)
+
+
+## The ✕: the meet's crowd and parked cars go too (only the pin hid them before), and the
+## raid's chase is called off.
+func drop(by_player: bool) -> void:
 	_scene.visible = false
 	_crowd_run = 0.0
 	_drifting = false
 	_tandem = false
 	if police != null and police.has_method("stand_down"):
 		police.stand_down()
-	hud.hide_status()
-	hud.toast("„Spoko, następnym razem.” Darek odjeżdża bokiem.", "\"No worries, next time.\" Darek leaves sideways.")
-	_log("gave up in %s" % STATES[state])
-	_finish()
+	_log("gave up in %s" % STAGES[stage])
+	super.drop(by_player)
 
 
-func _finish() -> void:
-	if state == State.STAGE or state == State.RUN:
-		_restore_car()
-	hud.hide_status()
-	hud.hide_pill()
-	_release_racers()
-	_beacon.visible = false
-	_tree.visible = false
-	_tacho.visible = false
-	_quiet(false)
-	_show_gate(false)
-	for n: Node3D in [_bawarka, _porsze, _skajlajner] + _show_cars:
-		n.visible = false
-	_shows.clear()
-	_cordon_leave(true)
-	if missions != null:
-		missions.paused = _calls_were
-	_reset()
-	call_in = _rng.randf_range(NEXT_CALL.x, NEXT_CALL.y)
+func _quit_words() -> Array:
+	return ["„Spoko, następnym razem.” Darek odjeżdża bokiem.", "\"No worries, next time.\" Darek leaves sideways."]
 
 
-func _reset() -> void:
-	state = State.IDLE
+## Back to free play (the kit calls this at every end: a call or an offer turned down or not
+## answered, the ✕, the result card closed). After a night: the car's own tune back, the racers
+## back to traffic, everything of the drag down, the rescue calls as they were.
+func _ended() -> void:
+	var was_on := stage != Stage.NONE
+	if was_on:
+		if stage == Stage.LINE or stage == Stage.DRAG:
+			_restore_car()
+		hud.hide_pill()
+		_release_racers()
+		_tree.visible = false
+		_tacho.visible = false
+		_quiet(false)
+		_show_gate(false)
+		for n: Node3D in [_bawarka, _porsze, _skajlajner] + _show_cars:
+			n.visible = false
+		_shows.clear()
+		_cordon_leave(true)
+		if missions != null:
+			missions.paused = _calls_were
+	stage = Stage.NONE
 	_hold_t = 0.0
-	_t = 0.0
+	# The dice as they always rolled: once when the call came by the clock (`call_in` ran out),
+	# and once more after a night.
 	if call_in <= 0.0:
+		call_in = _rng.randf_range(NEXT_CALL.x, NEXT_CALL.y)
+	if was_on:
 		call_in = _rng.randf_range(NEXT_CALL.x, NEXT_CALL.y)
 
 
 ## --meet-at=raid|race|meet2|drag|stage: jump to that beat (tests and screenshots).
 func jump(beat: String) -> void:
-	if state == State.IDLE:
-		accept()
+	if phase == Phase.IDLE:
+		start()
 	match beat:
 		"meet":
 			if place_car.is_valid():
@@ -2237,7 +2251,7 @@ func jump(beat: String) -> void:
 			_release_racers()
 			_scene.visible = false
 			meet_i = 1
-			_beacon.visible = false
+			clear_target()
 			if place_car.is_valid():
 				place_car.call(strip["watch"], strip_yaw())
 			_show_gate(true)

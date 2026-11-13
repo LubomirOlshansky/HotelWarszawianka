@@ -788,24 +788,27 @@ vec3 weave(float u, float h, float top, out vec3 glow) {
 	return c;
 }
 
-// The glass wave (Złote Tarasy): a lattice of diamonds over the roof, the sky in it by
-// day, the mall glowing through it at night.
-vec3 glass_roof(vec3 col, vec2 xz, out vec3 glow) {
-	glow = vec3(0.0);
+// Glass roofs: param 0, a lattice of diamonds in plan over the glass, the sky in it by day, the
+// rooms glowing through it at night. Param 0.5, Złote Tarasy's wave (F, 2026-11-11): every
+// triangle is one real pane and carries its corners' barycentric coordinates as UV (-2 - b,
+// so the tops stay "not a wall"), the steel frame drawn along its edges; blue glass with more
+// sky in it by day, at night the frame lit blue over the mall's warm light. Straight-line maths
+// only (no branch: the Adreno budget, check_shader_budget.gd).
+vec3 glass_roof(vec3 col, vec2 xz, vec2 uv, float param, out vec3 glow) {
 	vec2 d = vec2(xz.x + xz.y, xz.x - xz.y) / 3.4;
 	vec2 f = abs(fract(d) - 0.5);
-	bool bar = any(bvec2(f.x > 0.43, f.y > 0.43));
+	vec2 b = -2.0 - uv;
+	float edge = min(min(b.x, b.y), 1.0 - b.x - b.y);
+	float panes = step(0.25, param);
+	float bar = mix(step(0.43, max(f.x, f.y)), step(edge, 0.035), panes);
 	vec3 sky = srgb_to_linear(sky_colour);
 	float n = value_noise(xz * 0.035);
-	// The landmarks loop: a golden tint with only a little sky in it (it read as ice before).
-	vec3 c = mix(col * mix(0.4, 0.95, daylight), sky, 0.12 + 0.2 * n);
-	if (bar) {
-		c = mix(c, srgb_to_linear(vec3(0.93, 0.93, 0.9)), 0.7 * daylight + 0.1);
-	} else if (lights_on > 0.001) {
-		glow = mix(WARM_PALE, vec3(1.0, 0.85, 0.55), n) * (0.55 + 0.35 * hash12(floor(d))) ;
-		c *= 0.5;
-	}
-	return c;
+	vec3 c = mix(col * mix(0.4, 0.95, daylight), sky, mix(0.12 + 0.2 * n, 0.18 + 0.32 * n, panes));
+	c = mix(c, mix(c, srgb_to_linear(vec3(0.93, 0.93, 0.9)), mix(0.7, 0.45, panes) * daylight + 0.1), bar);
+	float lit = step(0.001, lights_on);
+	vec3 warm = mix(WARM_PALE, vec3(1.0, 0.85, 0.55), n) * (0.55 + 0.35 * hash12(floor(d)));
+	glow = lit * mix(warm * (1.0 - bar), mix(warm * 0.16 + vec3(0.05, 0.12, 0.35), vec3(0.3, 0.55, 1.0) * 1.5, bar), panes);
+	return c * mix(1.0, mix(0.5, 0.45, panes), lit * (1.0 - bar));
 }
 
 // A clock hand at angle `a` (clockwise from twelve), `len` long and `w` wide (dial radii),
@@ -892,7 +895,7 @@ vec3 landmark(int mode, float param, vec3 col, vec2 uv, float top, bool wall, ve
 	} else if (mode == M_WEAVE) {
 		return wall ? weave(uv.x, uv.y, top, glow) : col;
 	} else if (mode == M_GLASS_ROOF) {
-		return glass_roof(col, wp.xz, glow);
+		return glass_roof(col, wp.xz, uv, param, glow);
 	} else if (mode == M_PAVILION) {
 		// A glass drum lit from inside: busy at night, nearly every bay.
 		if (!wall) {
@@ -908,8 +911,9 @@ vec3 landmark(int mode, float param, vec3 col, vec2 uv, float top, bool wall, ve
 				return srgb_to_linear(vec3(0.76, 0.78, 0.8)) * mix(0.3, 1.0, daylight);
 			}
 			if (lights_on > 0.001) {
-				glow = vec3(1.0, 0.86, 0.62) * (0.8 + 0.3 * hash12(vec2(floor(uv.x / 2.07), floor(uv.y / 5.0))));
-				g *= 0.4;
+				// golden, as the dusk photos (F, 2026-11-11): the bank hall lit warm, nearly every pane
+				glow = vec3(1.0, 0.76, 0.4) * (0.95 + 0.3 * hash12(vec2(floor(uv.x / 2.69), floor(uv.y / 3.5))));
+				g *= 0.35;
 			}
 			return g;
 		}
@@ -950,15 +954,23 @@ vec3 landmark(int mode, float param, vec3 col, vec2 uv, float top, bool wall, ve
 	return col;
 }
 
-// Floodlights on the landmark: the dusk loop (2026-10-31, the user's photos) lights it gold
-// all the way up (was violet up the tower), a little brighter on the high terraces, with a
-// bright edge at the top of every wall, where the next terrace's lamps stand.
-vec3 floodlight(vec3 col, float h, float top) {
-	vec3 gold = vec3(1.0, 0.7, 0.3);
-	float shape = 0.62 + 0.5 * exp(-h / 18.0) + 0.3 * smoothstep(30.0, 140.0, h);
-	float edge = smoothstep(top - 9.0, top - 0.5, h) * 0.5;
+// Floodlights on the landmark, like the real projectors (F, 2026-11-13, night photos; about
+// 124 LED fixtures on the terrace roofs): a cream warm-white, not orange, pooling low on each
+// wall and fading towards its cornice (`pool`, from the wall's top), the low wings under half
+// the tower's light (`tier`), and only a faint line at the top. Half as bright as before.
+// The Blender Palace (tools/blender/pkin.py) bakes each face's projector terrace into the vertex
+// alpha (`lamp_a` = 0.75 + metres / 1024; 1.0 elsewhere): its light fades up from that terrace,
+// the walls lit from the ground (the wings) at about half.
+vec3 floodlight(vec3 col, float h, float top, float lamp_a) {
+	vec3 gold = vec3(1.0, 0.82, 0.56);
+	float pool = smoothstep(0.0, 34.0, top - h);
+	float tier = mix(0.45, 1.0, smoothstep(22.0, 70.0, top));
+	float lamp = (lamp_a - 0.75) * 1024.0;
+	float proj = (0.22 + 0.58 * exp(-max(h - lamp, 0.0) / 30.0)) * mix(0.55, 1.0, step(10.0, lamp));
+	float shape = mix((0.30 + 0.45 * pool) * tier, proj, step(lamp_a, 0.995));
+	float edge = smoothstep(top - 5.0, top - 0.5, h) * 0.12;
 	if (flood_mode == 0) {
-		return col * (gold * shape + vec3(1.0, 0.88, 0.62) * edge) * 1.3;
+		return col * (gold * shape + vec3(1.0, 0.9, 0.7) * edge);
 	}
 	// Event colours (F's photos): LED washes read as the light's own colour on the pale stone,
 	// so the sandstone's warmth is mostly taken out before tinting.
@@ -974,7 +986,7 @@ vec3 floodlight(vec3 col, float h, float top) {
 	}
 	float l = dot(col, vec3(0.3, 0.59, 0.11));
 	vec3 stone = mix(col, vec3(l), 0.75);
-	return stone * tint * (shape * 1.25 + edge) * 1.45;
+	return stone * tint * (shape * 1.25 + edge) * 2.4;
 }
 
 // The roofs lane (docs/design/roofs.md, RF1): a thin line every `period` metres along x,
@@ -1113,7 +1125,7 @@ void fragment() {
 		vec3 c = COLOR.rgb / max(COLOR.r, 0.001);
 		bool stone = any(bvec4(mode == M_MONUMENT, mode == M_STONE, mode == M_ATTIC, (all(bvec4(mode == 0, COLOR.r > 0.6, abs(c.g - 0.905) < 0.05, abs(c.b - 0.72) < 0.07)))));
 		if (all(bvec4(floodlit.z > 0.0, stone, walls, distance(world_pos.xz, floodlit.xy) < floodlit.z))) {
-			glow += floodlight(col, UV.y, style.y);
+			glow += floodlight(col, UV.y, style.y, COLOR.a);
 		}
 		EMISSION = glow * lights_on;
 	}

@@ -182,3 +182,15 @@ note came up mid-race on a fresh save; `first10.gd` `side_busy`).
 
 **Cost.** The ramps: three meshes shown only while racing (one on screen at a time). The
 slipstream: a loop over four boats a frame. No change idle.
+
+## 10. Twice as fast, more ramps (F, 2026-11-10)
+
+F: "the mission with the boat is too slow, 75 km/h is not interesting, make it nearly twice as fast, more trampolines near the Powiśle bank, with a lot of details".
+- `boat.gd` `SPEED_SCALE` 1.9 on every kind's top speed and pull (runabout 21 → 40 m/s = 145 km/h; offshore ~51 m/s), `TURN_SCALE` 1.3 on the turn, planing speed ×1.3, the rudder loses its bite from 24 m/s (was 12).
+- The race takes ~88 s with the autopilot (was ~156 s); `check_boat_race` PLAYER_TIME 60-150 s.
+- `tools/boat_course.py` `place_bank_ramps`: a 12 x 8 m ramp between every second pair of bank rings on the Powiśle run (line points 80-188), six more (nine in all); the rivals' line steers over any ramp near it (RAMP_PULL).
+- Ramp mesh details: masts with red-and-white pennants on the floats, white edge stripes, black nose bumpers, yellow lights up the middle (same mesh, no extra draw calls).
+- Rivals: the corner speed drops to half the top in the sharpest turn (was 0.32), a jet-steered hull keeps the gas on while it brakes (it turns only with thrust), Kamil's show-off is 1.0 s at 35 % (was 1.8 s at 50 %).
+- Open: phone feel at 145 km/h (camera look-ahead, ring readability at the iso scale); a Mac Autopilot run.
+
+Flaky check fix (2026-11-12): at 1.9x speed the autopilot player missed 3 rings in about 5 of 12 seeded races (16 m openings, a sharp turn after the crossing). Rings are 24 m wide now (`RING_W`), the bank ramps sit 30 % along the run (the jump lands well before the next ring), and `check_boat_race.gd` runs a fixed seed (`BoatRace.rng_seed`; `BOAT_SEED=n` for another). 12 seeds: the player 0 misses in all.

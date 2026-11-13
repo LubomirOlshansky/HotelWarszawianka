@@ -722,6 +722,7 @@ func _setup(d: Dictionary, building_mat: ShaderMaterial, flat_mat: ShaderMateria
 	if FileAccess.file_exists("res://map/terrain.json"):
 		_terrain = JSON.parse_string(FileAccess.get_file_as_string("res://map/terrain.json"))
 		_t_h = PackedFloat32Array(_terrain["h"])
+		_hold_grid()
 
 	_load_fills()
 	_load_sunken()
@@ -1158,7 +1159,48 @@ func ground_height(x: float, z: float) -> float:
 ## Where a vehicle at height `near_y` drives: of the terrain and the decks over the
 ## point, the highest one it can step onto (a ramp rises gently; a deck 5 m over the
 ## road stays overhead). The car and the skid marks use it.
+## F (2026-11-13, a screenshot at Most Poniatowskiego's west end): the bake lays a bridge's road,
+## tram and footway as separate pieces (decks, and fills on the approaches) with open strips
+## between them, up to ~2.5 m on the Poniatowski and Powiśle viaducts where the drawn deck runs
+## whole across, and end to end where the deck hands over to its approach; a car crossing from the
+## road onto the tracks read the ground 5-10 m down through a strip and fell under the bridge
+## (probe 2026-11-13: 1,848 such points at 0.5 m along the viaducts). Where the level drops more
+## than STRIP_DROP under the car and, along one line, a level within STRIP_STEP of the car's lies on
+## both sides at most STRIP apart in all, the car drives the level between them.
+const STRIP := 4.5          # the widest strip bridged (the west end's widest measured ~3.7 m)
+const STRIP_STEP_OUT := 0.5 # the search's step out from the point, each way
+const STRIP_DROP := 2.0
+const STRIP_STEP := 1.2
+const STRIP_DIRS := [Vector2(1.0, 0.0), Vector2(0.0, 1.0), Vector2(0.7071, 0.7071), Vector2(0.7071, -0.7071)]
+
+
 func drive_height(x: float, z: float, near_y: float) -> float:
+	var best := _drive_level(x, z, near_y)
+	if best < near_y - STRIP_DROP:
+		for d: Vector2 in STRIP_DIRS:
+			var a := _strip_side(x, z, -d, near_y)
+			if a.x < 0.0:
+				continue
+			var b := _strip_side(x, z, d, near_y)
+			if b.x >= 0.0 and a.x + b.x <= STRIP:
+				return lerpf(a.y, b.y, a.x / maxf(a.x + b.x, 0.001))
+	return best
+
+
+## STRIP: the first point out along `dir` (STRIP_STEP_OUT apart, at most STRIP) whose level lies
+## within STRIP_STEP of near_y: (how far, its level), or (-1, 0) when there is none.
+func _strip_side(x: float, z: float, dir: Vector2, near_y: float) -> Vector2:
+	var t := STRIP_STEP_OUT
+	while t <= STRIP:
+		var h := _drive_level(x + dir.x * t, z + dir.y * t, near_y)
+		if absf(h - near_y) <= STRIP_STEP:
+			return Vector2(t, h)
+		t += STRIP_STEP_OUT
+	return Vector2(-1.0, 0.0)
+
+
+## drive_height without the strip test (STRIP).
+func _drive_level(x: float, z: float, near_y: float) -> float:
 	var best := terrain_height(x, z)
 	var on_ground := true
 	var feet := []
@@ -1888,7 +1930,62 @@ const SUNKEN := [
 		"a": Vector2(-1004.35, 222.0), "b": Vector2(-993.7, 252.35),
 		"ring": [Vector2(-1007.8, 222.0), Vector2(-1000.9, 222.0), Vector2(-990.7, 251.3), Vector2(-989.3, 255.3),
 			Vector2(-995.3, 257.4), Vector2(-996.7, 253.4)]},
+	# Złote Tarasy's sunken plaza (F, 2026-11-11: "the place on the level below now looks like a
+	# hole"; GUGiK orthophoto refs/tarasy, F's photos): the square one floor under the street on the
+	# station side, ringed by the railing OpenStreetMap maps (lines fence 29 round its top, the
+	# fountain's fence 15 on its south side), shops in the curved wall under the upper terrace, and
+	# the great stair west from Emilii Plater's pavement down to it between the terrace's railing
+	# and the station forecourt's wall (lines wall 18). Its floor is the 10 m grid's pit (8.5-8.6 m);
+	# GRID_HOLD lifts the grid's nodes round it to the street, so only the rings sink. Site
+	# `tarasy_plaza` (landmarks.gd): the walls, the shopfronts, the treads, the café umbrellas.
+	{"key": "tarasy_plaza", "site": "tarasy_plaza", "style": "shops", "sub": 20, "hb": 8.6,
+		"a": Vector2(-1408.0, 478.0), "b": Vector2(-1408.0, 478.0),
+		"ring": [Vector2(-1383.2, 465.4), Vector2(-1387.6, 463.4), Vector2(-1391.8, 462.0), Vector2(-1395.9, 460.7),
+			Vector2(-1400.5, 459.7), Vector2(-1402.3, 459.9), Vector2(-1403.8, 460.2), Vector2(-1407.6, 461.8),
+			Vector2(-1411.5, 464.3), Vector2(-1413.8, 466.7), Vector2(-1416.9, 470.0), Vector2(-1419.4, 472.5),
+			Vector2(-1422.1, 474.6), Vector2(-1426.4, 476.8), Vector2(-1429.0, 477.8), Vector2(-1431.0, 478.5),
+			Vector2(-1431.9, 479.5), Vector2(-1432.2, 480.8), Vector2(-1432.2, 482.6), Vector2(-1431.4, 484.1),
+			Vector2(-1430.3, 485.6), Vector2(-1426.7, 488.5), Vector2(-1422.1, 491.5), Vector2(-1416.7, 493.4),
+			Vector2(-1414.1, 494.8), Vector2(-1409.4, 495.1), Vector2(-1406.4, 495.0), Vector2(-1403.0, 494.5),
+			Vector2(-1400.4, 493.7), Vector2(-1396.5, 492.2), Vector2(-1394.3, 491.0), Vector2(-1392.1, 489.6),
+			Vector2(-1390.2, 488.1), Vector2(-1388.5, 486.4), Vector2(-1386.7, 484.5), Vector2(-1385.4, 482.7),
+			Vector2(-1384.1, 480.7), Vector2(-1383.0, 478.8)]},
+	{"key": "tarasy_stair", "site": "tarasy_plaza", "style": "rail", "sub": 20, "hb": 8.6,
+		"a": Vector2(-1356.0, 472.8), "b": Vector2(-1383.1, 472.0),
+		"ring": [Vector2(-1383.2, 465.4), Vector2(-1377.3, 466.7), Vector2(-1370.2, 467.5), Vector2(-1362.8, 467.9),
+			Vector2(-1355.4, 469.1), Vector2(-1356.2, 476.3), Vector2(-1359.4, 477.3), Vector2(-1363.1, 478.6),
+			Vector2(-1367.1, 480.1), Vector2(-1370.6, 481.5), Vector2(-1374.2, 483.1), Vector2(-1377.8, 484.9),
+			Vector2(-1381.3, 486.7), Vector2(-1386.7, 484.5), Vector2(-1385.4, 482.7), Vector2(-1384.1, 480.7),
+			Vector2(-1383.0, 478.8)]},
 ]
+## Grid nodes held up to the street (the 10 m grid's pit at Złote Tarasy's plaza pulled the upper
+## terrace, the stair's sides and the station forecourt down into a crater): [node, at least m].
+## Inside a SUNKEN ring its floor still wins (sunk_floor is lower); round it the street stays level.
+const GRID_HOLD := [
+	[Vector2(-1406.1, 460.4), 14.6], [Vector2(-1396.1, 460.4), 14.6],
+	[Vector2(-1416.1, 470.4), 14.6], [Vector2(-1406.1, 470.4), 14.6], [Vector2(-1396.1, 470.4), 14.6],
+	[Vector2(-1386.1, 470.4), 14.6], [Vector2(-1376.1, 470.4), 14.6], [Vector2(-1366.1, 470.4), 14.7],
+	[Vector2(-1426.1, 480.4), 14.6], [Vector2(-1416.1, 480.4), 14.6], [Vector2(-1406.1, 480.4), 14.6],
+	[Vector2(-1396.1, 480.4), 14.6], [Vector2(-1386.1, 480.4), 14.8], [Vector2(-1376.1, 480.4), 15.2],
+	[Vector2(-1366.1, 480.4), 15.6], [Vector2(-1416.1, 490.4), 15.0], [Vector2(-1406.1, 490.4), 15.5],
+	[Vector2(-1396.1, 490.4), 15.8], [Vector2(-1386.1, 490.4), 15.9], [Vector2(-1416.1, 500.4), 15.5],
+]
+
+
+## Lifts the GRID_HOLD nodes (the nearest grid node to each) to their level, never lowering one.
+func _hold_grid() -> void:
+	var step := float(_terrain["step"])
+	var nx := int(_terrain["nx"])
+	var nz := int(_terrain["nz"])
+	for e: Array in GRID_HOLD:
+		var at: Vector2 = e[0]
+		var i := roundi((at.x - float(_terrain["x0"])) / step)
+		var j := roundi((at.y - float(_terrain["z0"])) / step)
+		if i < 0 or j < 0 or i >= nx or j >= nz:
+			continue
+		_t_h[j * nx + i] = maxf(_t_h[j * nx + i], float(e[1]))
+
+
 ## How far past a ring's grown outline the drawn ground's cells go fine (a sub-cell touching it).
 const SINK_MARGIN := 0.5
 ## A wall line's segment with both ends this close to a sunken ring's edge is the site's.
@@ -1908,6 +2005,14 @@ func _load_sunken() -> void:
 		var sk := sunk_entry(e, _grid_height(at.x, at.y), float(_terrain["step"]))
 		_sunk.append(sk)
 		_sunk_box = sk["box"] if not _sunk_box.has_area() else _sunk_box.merge(sk["box"])
+
+
+## SUNKEN's plan entry `key` (ring, a, b, drop; no heights), or {}: for crowds.gd's seat plans.
+static func sunk_spec(key: String) -> Dictionary:
+	for e: Dictionary in SUNKEN:
+		if str(e["key"]) == key:
+			return e
+	return {}
 
 
 ## One SUNKEN entry as built, its stair's top at height `ha` less its `top` (a flat floor: `hb`, or
@@ -1974,7 +2079,23 @@ var _yard = RailYard.new()
 ## A footway's lift over the ground (an island platform OSM maps as a footway: RailYard.HEIGHT),
 ## by its ends (RailYard.key); pedestrians.gd asks.
 func footway_lift(line: PackedVector2Array) -> float:
-	return float(_yard.lifts.get(RailYard.key(line), 0.0)) if line.size() >= 2 else 0.0
+	if line.size() < 2:
+		return 0.0
+	var lift := float(_yard.lifts.get(RailYard.key(line), 0.0))
+	if lift != 0.0:
+		return lift
+	# F (2026-11-13): people on the University Library's roof garden (landmarks.gd garden_lift)
+	if not _buw_looked:
+		_buw_looked = true
+		for l: Dictionary in data.get("landmarks", []):
+			if l.get("name", "") == "Biblioteka Uniwersytecka":
+				_library_ring = _pts(l["p"])
+	return Landmarks.garden_lift(line, _library_ring) if _library_ring.size() >= 3 else 0.0
+
+
+## The University Library's outline for footway_lift, looked up once.
+var _library_ring := PackedVector2Array()
+var _buw_looked := false
 
 
 func _load_cut() -> void:

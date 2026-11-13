@@ -1,4 +1,4 @@
-extends Node3D
+extends "res://scripts/activity.gd"
 ## Sekretny rave (F's ask 2026-11-06, docs/design/secret-rave.md): Warsaw's secret techno raves.
 ##
 ## **The rig.** On rave nights (Thursday to Saturday, 22:00-06:00, the game clock) one of three
@@ -24,8 +24,17 @@ extends Node3D
 ## while it runs.
 ##
 ## **Two questlines** (story_quests.gd, F 2026-11-09): "Sekretny rave" starts in person at Mati's
-## block (HOME_LL), "Smoła" pod Rotundą (SMOLA_START_LL); each has its own badge and WĄTKI row
+## block (HOME_LL), "Smoła" on Jerozolimskie by Rondo Dmowskiego (SMOLA_START_LL); each has its own badge and WĄTKI row
 ## (ring("rave") / ring("smola"), meet_in_person(kind), busy_kind(kind)).
+##
+## **On the activity kit** (activity.gd, tech-debt TD-1): the kit holds the ringing phone, the offer
+## card, the card's buttons and their life, the arrow's target (one `_beacon`, restyled per stage),
+## the ✕, "am I busy" and the end. This script keeps the rig, LEKTI's tease and Mati's own call
+## clock (`waiting`: LEKTI spoke, Mati rings in `call_in` s; the kit's phase is IDLE meanwhile),
+## the run's stages (Stage: PICKUP, MEET, DRIVE, DOOR, RESULT), the door's questions, the pay and
+## the club's hand-over. The first activity whose cards can run out unanswered (`_card_expired`:
+## the door's question, the result card) and whose arrow says "???" (`target_label`). The hooded
+## man at the meeting point is a figure of his own (`_hood`, a Beacon without ring or column).
 ##
 ## Cost: idle, a 0.25 s timer; while a spot is active and near, four draw calls (the lights'
 ## MultiMesh, the dancers' MultiMesh, the booth, the DJ's strip is in the booth), the lights
@@ -37,8 +46,7 @@ extends Node3D
 
 const Models := preload("res://scripts/models.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
-const Beacon := preload("res://scripts/beacon.gd")
-const Access := preload("res://scripts/access.gd")
+const Sfx := preload("res://scripts/sfx.gd")
 const Notebook := preload("res://scripts/notebook.gd")
 const InstanceBuffers := preload("res://scripts/instance_buffers.gd")
 
@@ -64,9 +72,12 @@ const SPOTS := [
 ## Mati's block (story_quests.gd's start spot, F 2026-11-07): Osiedle Za Żelazną Bramą, the
 ## big slab blocks by Hala Mirowska; drive there in the evening and he comes out to talk.
 const HOME_LL := [52.2366, 20.9983]
-## Where Mati waits for a Smoła night (F 2026-11-09: two questlines, two starts on the map): pod
-## Rotundą, Warsaw's oldest meeting point, about 800 m from the club's door on Smolna.
-const SMOLA_START_LL := [52.2317, 21.0110]
+## Where Mati waits for a Smoła night (F 2026-11-09: two questlines, two starts on the map). It
+## was meant pod Rotundą, but 52.2317 put it 150 m north of the Rotunda, on the spawn, its red
+## column in the game's first view (F 2026-11-11: no quest start in the starting scene). Now on
+## the kerb of Aleje Jerozolimskie by Emilii Plater, west of Rondo Dmowskiego, about 380 m from
+## the spawn: past story_quests.gd's 320 m start beacon.
+const SMOLA_START_LL := [52.2289, 21.0067]
 ## Smoła, the club on Smolna (places.json `smola`): Mati's other night out, the Berlin-style door.
 const SMOLA := {"id": "smola", "name": "Smoła", "ll": [52.23261, 21.0218]}
 ## The door's questions (three a night, shuffled; "pw" is the password LEKTI gave, asked only at a
@@ -92,6 +103,9 @@ const QUESTIONS := [
 ## Right answers that let you in: all three. The first wrong one ends it: "Nie tym razem. Wróć
 ## później." (F, 2026-11-06).
 const DOOR_PASS := 3
+## A strict door turns the player away at the first wrong answer. Off for now (F, 2026-11-10: "with
+## each answer you can go in"): the three questions stay as the joke, any answer gets you in.
+const DOOR_STRICT := false
 ## The night's password: one of these, in LEKTI's line and on the door's card.
 const PASSWORDS := ["BETON", "SYRENA", "MGŁA", "TRAMWAJ ZERO", "PRAGA 97", "BAS", "NEON", "PERON"]
 
@@ -158,34 +172,29 @@ const LASER_LEN := 34.0
 const FLOOR_R := 9.0
 const TICK := 0.25
 
-enum State { IDLE, WAIT_CALL, RING, OFFER, PICKUP, MEET, DRIVE, DOOR, RESULT }
+## The run's own stages (the kit's phases come first: idle, the call, the offer, the run).
+enum Stage { NONE, PICKUP, MEET, DRIVE, DOOR, RESULT }
 
-var hud: CanvasLayer
-var dialogue: Node
-var wallet: Node
 var missions: Node
-var map: Node3D
 var graph: LaneGraph
 var radio: Node
 var city_sounds: Node
-## [position, km/h, flying] of the player's vehicle.
-var vehicle: Callable
 ## The view's focus (the rig is drawn near it).
 var focus: Callable
-## {hour, weekday} (time_of_day.gd local_clock).
-var clock: Callable
-## True when nothing else is on (main.gd).
-var free_now: Callable
+## {hour, weekday} (time_of_day.gd local_clock). Not the kit's `clock` (a float hour).
+var calendar: Callable
 ## Into the club's room (main.gd `_enter_club`: club.gd), with its title [pl, en].
 var enter_club: Callable
-var log_on := false
 ## The quest's timers run (off in test runs but for the flags).
 var auto := true
 ## --rave=on / --rave=day: that rave on at any hour.
 var force := ""
 var origin := [52.234, 21.024]
 
-var state := State.IDLE
+## The run's stage while the kit's phase is RUN (NONE otherwise).
+var stage := Stage.NONE
+## LEKTI has spoken and Mati rings in `call_in` s (the old WAIT_CALL; the kit's phase is IDLE).
+var waiting := false
 var tease_in := 0.0
 var call_in := 0.0
 ## The spots found on the map: SPOTS' keys plus at: Vector3 (the floor), door: {at: Vector3 (on
@@ -202,7 +211,8 @@ var password := ""
 var heard := false
 var quest_spot := -1
 var pickup := {}
-var meet := {}
+## The meeting point's kerb (the kit has a method `meet`).
+var meeting := {}
 ## "rave" (after LEKTI, the secret spot) or "smola" (the club); the next call's kind.
 var kind := ""
 var next_kind := "smola"
@@ -222,29 +232,41 @@ var raves := 0
 var last_pay := {}
 
 var _rng := RandomNumberGenerator.new()
-var _tick := 0.0
+## The 0.25 s step: the time gathered, and the step's length on the frame it falls due (else 0),
+## the car read on that frame (as shisha.gd).
+var _step_t := 0.0
+var _due := 0.0
+var _at := Vector3.ZERO
+var _kmh := 0.0
 var _clock := 0.0
 var _hold_t := 0.0
-var _ring_t := 0.0
 var _talk_t := 0.0
-var _result_t := 0.0
-var _door_t := 0.0
 var _crowd_t := 0.0
 var _dance_t := 0.0
 var _noticed := false
 var _calls_were := false
+var _holds_calls := false
+## Met in person: Mati gets in at once (`meet_in_person`).
+var _met := false
 var _mordor := -1
 
 var _rig: Node3D
 var _lights: MultiMeshInstance3D
 var _dancers: MultiMeshInstance3D
 var _booth: MeshInstance3D
-var _pick: Node3D
-var _meet_mark: Node3D
+## The hooded man at the meeting point: a Beacon used only for his figure (no ring, no column).
+var _hood: Node3D
 var _floor: Array[Vector3] = []
 var spent_usec := 0
 var _voice: AudioStreamPlayer
 var _voice_queue: Array[AudioStream] = []
+
+
+func _init() -> void:
+	tag = "rave"
+	colour = COLOUR
+	dark = Color("#16161a")
+	card_life = RING_LIFE
 
 
 func setup(world: Node3D, seed_value := -1) -> void:
@@ -270,21 +292,12 @@ func setup(world: Node3D, seed_value := -1) -> void:
 	if radio != null and radio.has_method("station_index"):
 		_mordor = radio.station_index("mordor_fm")
 	_build_rig(world)
-	_pick = Beacon.new()
-	world.add_child(_pick)
-	_pick.setup(PICK_COLOUR, Color("#16161a"))
-	_pick.pattern = Beacon.Pattern.DASHED
-	_pick.visible = false
-	_meet_mark = Beacon.new()
-	world.add_child(_meet_mark)
-	_meet_mark.setup(COLOUR, Color("#26232c"))
-	_meet_mark.waving = false
-	_meet_mark.visible = false
-	if hud != null:
-		hud.card_pressed.connect(_on_card)
-		hud.abort_pressed.connect(func() -> void:
-			if state in [State.PICKUP, State.MEET, State.DRIVE]:
-				_give_up())
+	super.setup(world)
+	_hood = Beacon.new()
+	world.add_child(_hood)
+	_hood.setup(COLOUR, Color("#26232c"))
+	_hood.waving = false
+	_hood.visible = false
 	if city_sounds != null:
 		for i in spots.size():
 			var k := i
@@ -371,9 +384,15 @@ static func door_quiz(pw: String, rng: RandomNumberGenerator) -> Array:
 	return picked
 
 
-## How the door ends with `right` answers: "in" with all three, else "out".
-static func door_result(right: int) -> String:
-	return "in" if right >= DOOR_PASS else "out"
+## How the door ends with `right` answers: on a strict door "in" with all three, else "out";
+## otherwise always "in" (DOOR_STRICT).
+static func door_result(right: int, strict := DOOR_STRICT) -> String:
+	return "in" if not strict or right >= DOOR_PASS else "out"
+
+
+## A wrong answer ends the door at once (only on a strict door).
+static func wrong_ends(strict := DOOR_STRICT) -> bool:
+	return strict
 
 
 ## Smoła on this map: its door the nearest ground road within 120 m, or {}.
@@ -615,10 +634,7 @@ func _process(dt: float) -> void:
 	_clock += dt
 	if _rig.visible and _lights.visible:
 		_pose_lights()
-	_tick += dt
-	if _tick >= TICK:
-		step(_tick)
-		_tick = 0.0
+	super._process(dt)
 	spent_usec += Time.get_ticks_usec() - t0
 
 
@@ -630,65 +646,65 @@ func _pose_lights() -> void:
 		mm.set_instance_color(i, pose[i][1])
 
 
-## The slow part, every TICK s.
-func step(dt: float) -> void:
+## Every frame, in every phase: the quarter-second step. On it the car is read, the rig is ticked,
+## and while idle LEKTI's timer or Mati's own call clock counts (the kit's call clock is not his).
+func _tick(dt: float) -> void:
+	_due = 0.0
+	_step_t += dt
+	if _step_t < TICK:
+		return
+	_due = _step_t
+	_step_t = 0.0
 	var v: Array = vehicle.call() if vehicle.is_valid() else [Vector3.ZERO, 0.0, false]
-	var at: Vector3 = v[0]
-	var kmh: float = v[1]
-	_rig_tick(dt)
-	match state:
-		State.IDLE:
-			if auto and _free() and _tease_window():
-				tease_in -= dt
-				if tease_in <= 0.0:
-					# Mati's nights take turns: Smoła (he rings straight away), then a secret rave
-					# (LEKTI first).
-					if next_kind == "smola" and not smola.is_empty():
-						if not ring("smola"):
-							tease_in = 15.0
-					else:
-						tease()
-		State.WAIT_CALL:
-			if _free():
-				call_in -= dt
-				if call_in <= 0.0 and not ring():
-					call_in = 15.0
-		State.RING, State.OFFER:
-			_ring_t += dt
-			if _ring_t > RING_LIFE:
-				hud.hide_card()
-				hud.toast("Nieodebrane połączenie: %s" % FRIEND, "Missed call: %s" % FRIEND)
-				_reset()
-		State.PICKUP:
+	_at = v[0]
+	_kmh = v[1]
+	_rig_tick(_due)
+	if phase != Phase.IDLE:
+		return
+	if not waiting:
+		if auto and _free() and _tease_window():
+			tease_in -= _due
+			if tease_in <= 0.0:
+				# Mati's nights take turns: Smoła (he rings straight away), then a secret rave
+				# (LEKTI first).
+				if next_kind == "smola" and not smola.is_empty():
+					if not ring("smola"):
+						tease_in = 15.0
+				else:
+					tease()
+	elif _free():
+		call_in -= _due
+		if call_in <= 0.0 and not ring():
+			call_in = 15.0
+
+
+## The kit's session clock is not Mati's: see `_tick`.
+func _idle_tick(_dt: float) -> void:
+	pass
+
+
+## The run's slow part, every TICK s while no card of its own is up.
+func _run_tick(_dt: float) -> void:
+	if _due <= 0.0:
+		return
+	match stage:
+		Stage.PICKUP:
 			var p: Vector3 = pickup["at"]
-			_status("MATI · pod blokiem", "Zatrzymaj się przy Matim", "Stop by Mati", at, p, PICK_COLOUR)
-			if _arrived(dt, at, kmh, p, PICK_R):
+			_status("MATI · pod blokiem", "Zatrzymaj się przy Matim", "Stop by Mati", _at, p, PICK_COLOUR)
+			if _arrived(_due, _at, _kmh, p, PICK_R):
 				_board()
-		State.MEET:
-			_talk(dt, "ride")
-			_status("??? · punkt zborny", "Mati prowadzi. Jedź za strzałką", "Mati leads. Follow the arrow", at, meet["at"], COLOUR, "???")
-			if _arrived(dt, at, kmh, meet["at"], MEET_R):
+		Stage.MEET:
+			_talk(_due, "ride")
+			_status("??? · punkt zborny", "Mati prowadzi. Jedź za strzałką", "Mati leads. Follow the arrow", _at, meeting["at"], COLOUR, "???")
+			if _arrived(_due, _at, _kmh, meeting["at"], MEET_R):
 				_reveal()
-		State.DRIVE:
-			_talk(dt, "go" if kind == "rave" else "go_smola")
+		Stage.DRIVE:
+			_talk(_due, "go" if kind == "rave" else "go_smola")
 			var dest := _dest()
 			var what := "sekretny rave" if kind == "rave" else "selekcja"
-			_status("%s · %s" % [String(dest["name"]).to_upper(), what], "Zatrzymaj się przy bramce", "Stop at the door", at, dest["door"]["at"], COLOUR)
-			if _arrived(dt, at, kmh, dest["door"]["at"], DOOR_R):
+			_status("%s · %s" % [String(dest["name"]).to_upper(), what], "Zatrzymaj się przy bramce", "Stop at the door", _at, dest["door"]["at"], target_colour())
+			if _arrived(_due, _at, _kmh, dest["door"]["at"], DOOR_R):
 				_door()
-		State.DOOR:
-			# No answer for DOOR_LIFE s (or a card that never got a place): the bouncer gives up on you.
-			_door_t += dt
-			if _door_t > DOOR_LIFE:
-				hud.hide_card()
-				_log("door: no answer in %.0f s" % DOOR_LIFE)
-				_enter("out")
-		State.RESULT:
-			_result_t += dt
-			var pay := String(last_pay.get("result", "")) != "out" and enter_club.is_valid()
-			if _result_t > (PAY_LIFE if pay else RESULT_LIFE):
-				hud.hide_card()
-				_finish()
 
 
 func _free() -> bool:
@@ -696,16 +712,12 @@ func _free() -> bool:
 
 
 func _now() -> Dictionary:
-	return clock.call() if clock.is_valid() else {"hour": 1.5, "weekday": 6}
+	return calendar.call() if calendar.is_valid() else {"hour": 1.5, "weekday": 6}
 
 
 func _tease_window() -> bool:
 	var c := _now()
 	return tease_on(float(c["hour"]), int(c["weekday"]))
-
-
-func busy() -> bool:
-	return state in [State.PICKUP, State.MEET, State.DRIVE, State.DOOR]
 
 
 ## Busy with this night: "smola" the club, anything else the secret rave (the two questlines of
@@ -714,33 +726,46 @@ func busy_kind(k: String) -> bool:
 	return busy() and (kind == "smola") == (k == "smola")
 
 
-func has_target() -> bool:
-	return state in [State.PICKUP, State.MEET, State.DRIVE]
+## Mati's night is under way: JADĘ! said or met in person, until its last card closes.
+func under_way() -> bool:
+	return phase == Phase.RUN
 
 
+## The arrow leads to the kerb itself (its own height); the ring stands beside it on the pavement.
 func target_position() -> Vector3:
-	match state:
-		State.PICKUP:
+	if not has_target():
+		return Vector3.INF
+	match stage:
+		Stage.PICKUP:
 			return pickup["at"]
-		State.MEET:
-			return meet["at"]
-		State.DRIVE:
+		Stage.MEET:
+			return meeting["at"]
+		Stage.DRIVE:
 			return _dest()["door"]["at"]
-	return Vector3.ZERO
+	return _target
 
 
 func target_colour() -> Color:
-	return PICK_COLOUR if state == State.PICKUP else COLOUR
+	if phase == Phase.RUN and stage == Stage.PICKUP:
+		return PICK_COLOUR
+	return SMOLA_COLOUR if kind == "smola" else COLOUR
 
 
 ## The arrow's label: "???" on the way to the meeting point (Mati knows only that).
 func target_label(metres: int) -> String:
-	return "???" if state == State.MEET else "%d m" % metres
+	if phase == Phase.RUN and stage == Stage.MEET:
+		return "???"
+	return super.target_label(metres)
 
 
-func _status(title: String, hint: String, hint_en: String, at: Vector3, to: Vector3, colour: Color, dist := "") -> void:
+## No stop assist at Mati's kerbs or the door (there was none before the kit).
+func stop_spot() -> Vector3:
+	return Vector3.INF
+
+
+func _status(title: String, hint: String, hint_en: String, at: Vector3, to: Vector3, tint: Color, dist := "") -> void:
 	var m := roundi(Vector2(at.x, at.z).distance_to(Vector2(to.x, to.z)))
-	hud.show_status(title, "", dist if dist != "" else "%d m" % m, hint, _hold_t / HOLD, colour, "", {}, hint_en)
+	status(title, "", dist if dist != "" else "%d m" % m, [hint, hint_en], _hold_t / HOLD, tint)
 
 
 func _arrived(dt: float, at: Vector3, kmh: float, to: Vector3, r: float) -> bool:
@@ -764,7 +789,7 @@ func _rig_tick(dt: float) -> void:
 	var wd := int(c["weekday"])
 	var want := -1
 	var mode := ""
-	if state in [State.DRIVE, State.DOOR, State.RESULT] and kind == "rave" and quest_spot >= 0:
+	if phase == Phase.RUN and stage in [Stage.DRIVE, Stage.DOOR, Stage.RESULT] and kind == "rave" and quest_spot >= 0:
 		want = quest_spot
 		mode = "night"
 	elif force == "on" or (force == "" and night_on(hour, wd)):
@@ -808,7 +833,7 @@ func _rig_tick(dt: float) -> void:
 			var p := spots[active]["at"] as Vector3
 			var spot := p + Basis(Vector3.UP, float(spots[active]["face"])) * _floor[_rng.randi() % _floor.size()] * Vector3(1, 0, 1)
 			dialogue.say_ambient(spot, "", "rave_crowd", active_mode, 3.6, BUBBLE, 2.3)
-	if not _noticed and active_mode == "night" and state == State.IDLE and near < NOTICE_R and hud != null:
+	if not _noticed and active_mode == "night" and phase == Phase.IDLE and not waiting and near < NOTICE_R and hud != null:
 		_noticed = true
 		hud.toast("Ktoś tu robi imprezę… Słuchaj MORDOR FM", "Someone's throwing a party here… Listen to MORDOR FM")
 
@@ -837,14 +862,14 @@ func _dance(dt: float, now: bool) -> void:
 ## LEKTI on MORDOR FM: the invite and the password (heard), or the regular host's rumour on
 ## another station. True if something went on air.
 func tease() -> bool:
-	if spots.is_empty() or state != State.IDLE:
+	if spots.is_empty() or phase != Phase.IDLE or waiting:
 		return false
 	password = PASSWORDS[_rng.randi() % PASSWORDS.size()]
 	quest_spot = night_spot
 	kind = "rave"
 	next_kind = "smola"
 	heard = false
-	state = State.WAIT_CALL
+	waiting = true
 	call_in = _rng.randf_range(CALL_AFTER.x, CALL_AFTER.y)
 	var on := false
 	if radio != null and dialogue != null and int(radio.station) >= 0:
@@ -886,11 +911,11 @@ func _speak(files: PackedStringArray) -> void:
 		total += st.get_length() + VOICE_GAP
 	if _voice == null:
 		_voice = AudioStreamPlayer.new()
-		_voice.bus = &"SFX"
+		_voice.bus = &"Voice"
 		_voice.volume_db = VOICE_DB
 		add_child(_voice)
-	if radio != null and radio.has_method("voice_moment"):
-		radio.voice_moment(total + 0.6)
+	# The music drops under LEKTI's voice on whatever station is tuned (sfx.gd DUCKS).
+	Sfx.duck("rave_voice", total + 0.6)
 	_voice_queue = streams
 	_next_voice()
 
@@ -907,7 +932,7 @@ func _next_voice() -> void:
 ## The phone rings (--rave-call too): `k` "smola" for the club night, else the secret rave
 ## (after LEKTI's line, or straight away with --rave-call). False with no spots or while busy.
 func ring(k := "") -> bool:
-	if graph == null or state not in [State.IDLE, State.WAIT_CALL]:
+	if graph == null or phase != Phase.IDLE:
 		return false
 	if (k == "smola" and smola.is_empty()) or (k != "smola" and spots.is_empty()):
 		return false
@@ -920,72 +945,56 @@ func ring(k := "") -> bool:
 		next_kind = "smola"
 		password = PASSWORDS[_rng.randi() % PASSWORDS.size()]
 		quest_spot = night_spot
-	state = State.RING
-	_ring_t = 0.0
-	hud.show_side_card("📞 MATI DZWONI", "Kumpel z osiedla. Zawsze na czarno, zawsze wie, gdzie jest impreza, zanim ktokolwiek o niej usłyszy.",
-			PackedStringArray(["ODBIERZ|ANSWER", "ODRZUĆ|DECLINE"]), COLOUR, "Mati is calling",
-			"Your mate from the estate. Always in black, always knows where the party is before anyone's heard of it.")
-	hud.ticker_out()
-	Access.buzz(60, 0.6)
-	_log("call ringing")
-	return true
+	waiting = false
+	return super.ring()
+
+
+func _call_card() -> Dictionary:
+	return {"who": FRIEND, "about": ["Kumpel z osiedla. Wie o imprezie, zanim powstała.",
+			"Estate mate. Knows the party before it exists."]}
 
 
 ## Met in person at his block (story_quests.gd: he came out, the player said WCHODZĘ): no call, no
 ## pickup; he gets in and the night goes on as after a pickup (the meeting point, the door).
 func meet_in_person(k := "rave") -> bool:
-	if graph == null or state not in [State.IDLE, State.WAIT_CALL] or not vehicle.is_valid():
+	if graph == null or phase != Phase.IDLE or not vehicle.is_valid():
 		return false
 	var p: Vector3 = vehicle.call()[0]
 	if k == "smola":
-		# Pod Rotundą (SMOLA_START_LL): straight to the club, no password, no meeting point.
+		# At the Smoła start (SMOLA_START_LL): straight to the club, no password, no meeting point.
 		if smola.is_empty():
 			return false
 		kind = "smola"
 		next_kind = "rave"
 		password = ""
 		pickup = {"at": p, "side": p, "street": smola_home.get("street", "")}
-		_calls_were = missions.paused if missions != null else false
-		if missions != null:
-			missions.paused = true
-		_log("met Mati in person pod Rotundą; to Smoła")
-		_board()
-		return true
-	if spots.is_empty():
-		return false
-	if state == State.IDLE or kind != "rave":
-		password = PASSWORDS[_rng.randi() % PASSWORDS.size()]
-		heard = false
-	kind = "rave"
-	next_kind = "smola"
-	quest_spot = night_spot
-	pickup = {"at": p, "side": p, "street": home.get("street", "")}
-	_calls_were = missions.paused if missions != null else false
-	if missions != null:
-		missions.paused = true
-	_log("met Mati in person at his block")
-	_board()
+		_log("met Mati in person at the Smoła start; to Smoła")
+	else:
+		if spots.is_empty():
+			return false
+		if not waiting or kind != "rave":
+			password = PASSWORDS[_rng.randi() % PASSWORDS.size()]
+			heard = false
+		kind = "rave"
+		next_kind = "smola"
+		quest_spot = night_spot
+		pickup = {"at": p, "side": p, "street": home.get("street", "")}
+		_log("met Mati in person at his block")
+	waiting = false
+	_met = true
+	start()
 	return true
 
 
-## Idle: no call ringing, no night under way (a questline may start now).
-func idle() -> bool:
-	return state in [State.IDLE, State.WAIT_CALL]
-
-
-## He asks: the pickup at his block; JADĘ! / NIE DZIŚ.
-func _offer() -> void:
+## He asks: the pickup at his block; JADĘ! / NIE DZIŚ. Nothing to offer without a kerb to meet at.
+func _offer_card() -> Dictionary:
 	var v: Array = vehicle.call() if vehicle.is_valid() else [Vector3.ZERO, 0.0, false]
 	var from := Vector2((v[0] as Vector3).x, (v[0] as Vector3).z)
 	pickup = kerb_ring(graph, from, PICK_FROM, PICK_TO, Vector2.ZERO, _rng)
 	if pickup.is_empty():
 		pickup = kerb_ring(graph, from, 150.0, PICK_TO * 1.5, Vector2.ZERO, _rng)
 	if pickup.is_empty():
-		hud.hide_card()
-		_reset()
-		return
-	state = State.OFFER
-	_ring_t = 0.0
+		return {}
 	var street: String = pickup["street"] if String(pickup["street"]) != "" else "osiedlu"
 	var street_en: String = pickup["street"] if String(pickup["street"]) != "" else "the estate"
 	var pl := "„Słyszałeś Lektiego na Mordorze? Sekretny rave, dziś w nocy! Ja wiem, jak tam trafić. Zgarniesz mnie spod bloku na %s? Tylko nikomu ani słowa.”" % street
@@ -996,65 +1005,75 @@ func _offer() -> void:
 	elif not heard:
 		pl = "„Siema! Lekti robi dziś sekretny rave. Ja wiem, jak tam trafić. Zgarniesz mnie spod bloku na %s? Hasło? Trzeba było słuchać MORDOR FM…”" % street
 		en = "\"Hey! Lekti's throwing a secret rave tonight. I know how to get there. Pick me up from my block on %s? The password? You should've listened to MORDOR FM…\"" % street_en
-	hud.show_side_card("📞 MATI", pl, PackedStringArray(["JADĘ!|ON MY WAY", "NIE DZIŚ|NOT TONIGHT"]), COLOUR, FRIEND, en)
 	_log("offer: Mati on %s at %d,%d" % [street_en, roundi(pickup["at"].x), roundi(pickup["at"].z)])
+	return {"title": ["📞 MATI", FRIEND], "face": FRIEND, "body": [pl, en], "buttons": ["JADĘ!|ON MY WAY", "NIE DZIŚ|NOT TONIGHT"]}
 
 
-func _on_card(i: int) -> void:
-	match state:
-		State.RING:
-			if i == 0:
-				_offer()
-			else:
-				hud.hide_card()
-				hud.toast("Odrzucono. Mati pójdzie sam. Na czarno.", "Declined. Mati will go alone. In black.")
-				_reset()
-		State.OFFER:
-			hud.hide_card()
-			if i == 0:
-				accept()
-			else:
-				hud.toast("„Dobra. Ale jak będą o tym mówić w poniedziałek, to nie płacz.”", "\"Fine. But when they're talking about it on Monday, don't cry.\"")
-				_reset()
-		State.DOOR:
-			_answer(i)
-		State.RESULT:
-			hud.hide_card()
-			var go_in := i == 0 and String(last_pay.get("result", "")) != "out" and enter_club.is_valid()
-			var t := ["SMOŁA", "SMOŁA"] if kind == "smola" else ["SEKRETNY RAVE", "SECRET RAVE"]
-			_finish()
-			if go_in and wallet != null and not wallet.spend(ENTRY):
-				go_in = false
-				hud.toast("Za mało gotówki. Bramkarz wskazuje bankomat… trzy ulice dalej.", "Not enough cash. The bouncer points to a cash machine… three streets away.")
-				_log("door: no cash for the %d zł ticket" % ENTRY)
-			if go_in:
-				_log("door: paid %d zł cash" % ENTRY)
-				enter_club.call(t[0], t[1])
+func _refused(timed_out: bool) -> void:
+	if timed_out:
+		hud.toast("Nieodebrane połączenie: %s" % FRIEND, "Missed call: %s" % FRIEND)
+	elif phase == Phase.RING:
+		hud.toast("Odrzucono. Mati pójdzie sam. Na czarno.", "Declined. Mati will go alone. In black.")
+	else:
+		hud.toast("„Dobra. Ale jak będą o tym mówić w poniedziałek, to nie płacz.”", "\"Fine. But when they're talking about it on Monday, don't cry.\"")
 
 
-## JADĘ!: Mati waiting at his block (the dashed ring, waving).
-func accept() -> void:
-	if pickup.is_empty():
-		return
+## JADĘ! (Mati waiting at his block: the dashed ring, waving) or met in person (already in the car).
+func _begin() -> void:
 	_calls_were = missions.paused if missions != null else false
 	if missions != null:
 		missions.paused = true
-	var side: Vector3 = pickup["side"]
-	_pick.place(Vector3(side.x, pickup["at"].y, side.z), PICK_R, true, true)
-	_pick.visible = true
-	state = State.PICKUP
+	_holds_calls = true
 	_hold_t = 0.0
+	if _met:
+		_met = false
+		_board()
+		return
+	stage = Stage.PICKUP
+	_pickup_ring()
 	hud.toast("Jedź po Matiego", "Go and pick up Mati")
 	_log("accepted: to the pickup")
 
 
+## Mati's block: the kit's beacon as a friend's ring, amber and dashed, Mati waving in it.
+func _pickup_ring() -> void:
+	clear_target()
+	_beacon.recolour(PICK_COLOUR)
+	_beacon.pattern = Beacon.Pattern.DASHED
+	var at: Vector3 = pickup["at"]
+	var side: Vector3 = pickup["side"]
+	set_target(Vector2(at.x, at.z), true, Vector3(side.x, at.y, side.z), PICK_R)
+
+
+## The meeting point: the night's ring with nobody in it, and the hooded man standing beside it.
+func _meeting_ring() -> void:
+	clear_target()
+	_beacon.recolour(COLOUR)
+	_beacon.pattern = Beacon.Pattern.SOLID
+	var at: Vector3 = meeting["at"]
+	var side: Vector3 = meeting["side"]
+	set_target(Vector2(at.x, at.z), false, Vector3(side.x, at.y, side.z), MEET_R)
+	_hood.place(Vector3(side.x, at.y, side.z), MEET_R, false, true)
+
+
+## The door's ring on the footway by the club (the bouncer waits in it), in the night's colour.
+func _show_door() -> void:
+	var door: Dictionary = _dest()["door"]
+	var at: Vector3 = door["at"]
+	var side: Vector3 = door["side"]
+	stage = Stage.DRIVE
+	clear_target()
+	_beacon.recolour(target_colour())
+	_beacon.pattern = Beacon.Pattern.SOLID
+	set_target(Vector2(at.x, at.z), true, Vector3(side.x, at.y, side.z), DOOR_R * 0.75)
+
+
 ## Mati in: the radio to MORDOR FM, the meeting point between here and the rave.
 func _board() -> void:
-	_pick.visible = false
 	if radio != null and _mordor >= 0 and int(radio.station) != _mordor:
 		radio.tune(_mordor)
 	if kind == "smola":
-		state = State.DRIVE
+		_show_door()
 		_talk_t = 2.0
 		_hold_t = 0.0
 		_say("board_smola")
@@ -1064,36 +1083,34 @@ func _board() -> void:
 	var at: Vector3 = pickup["at"]
 	var rave := Vector2(s["at"].x, s["at"].z)
 	var toward := (Vector2(at.x, at.z) - rave).normalized()
-	meet = kerb_ring(graph, rave, MEET_FROM, MEET_TO, toward, _rng)
-	if meet.is_empty():
-		meet = kerb_ring(graph, rave, 200.0, MEET_TO * 1.6, Vector2.ZERO, _rng)
-	if meet.is_empty():
+	meeting = kerb_ring(graph, rave, MEET_FROM, MEET_TO, toward, _rng)
+	if meeting.is_empty():
+		meeting = kerb_ring(graph, rave, 200.0, MEET_TO * 1.6, Vector2.ZERO, _rng)
+	if meeting.is_empty():
 		_reveal()
 		return
-	var side: Vector3 = meet["side"]
-	_meet_mark.place(Vector3(side.x, meet["at"].y, side.z), MEET_R, true, true)
-	_meet_mark.visible = true
-	state = State.MEET
+	stage = Stage.MEET
+	_meeting_ring()
 	_talk_t = 2.0
 	_say("board")
-	_log("boarded; meeting point at %d,%d, %.0f m from the rave" % [roundi(meet["at"].x), roundi(meet["at"].z),
-			Vector2(meet["at"].x, meet["at"].z).distance_to(rave)])
+	_log("boarded; meeting point at %d,%d, %.0f m from the rave" % [roundi(meeting["at"].x), roundi(meeting["at"].z),
+			Vector2(meeting["at"].x, meeting["at"].z).distance_to(rave)])
 
 
 ## The hooded man at the meeting point gives the spot.
 func _reveal() -> void:
 	var s: Dictionary = spots[quest_spot]
 	var w: Array = s["where"]
-	if dialogue != null and not meet.is_empty():
+	if dialogue != null and not meeting.is_empty():
 		var l: Array = dialogue.line("rave_meet")
 		if not l.is_empty():
-			var side: Vector3 = meet["side"]
+			var side: Vector3 = meeting["side"]
 			if dialogue.bubbles != null:
 				dialogue.bubbles.say(side, "Kaptur", String(l[0]).replace("{where}", w[0]), String(l[1]).replace("{where}", w[1]),
 						5.0, COLOUR, 2.4)
 	hud.toast("Lokalizacja: %s" % w[0], "Location: %s" % w[1])
-	_meet_mark.visible = false
-	state = State.DRIVE
+	_hood.visible = false
+	_show_door()
 	_talk_t = 4.0
 	_hold_t = 0.0
 	_log("revealed: %s" % s["id"])
@@ -1101,8 +1118,9 @@ func _reveal() -> void:
 
 ## At the door: the bouncer's three questions, one card each (door_quiz).
 func _door() -> void:
-	state = State.DOOR
-	hud.hide_status()
+	stage = Stage.DOOR
+	clear_target()
+	hide_status()
 	quiz = door_quiz(password if kind == "rave" else "", _rng)
 	quiz_i = 0
 	quiz_right = 0
@@ -1117,9 +1135,8 @@ func _ask() -> void:
 	# The answers stacked (Autopilot 2026-11-06: three answers in one row made the card too wide
 	# to place on a 16:9 screen, and the door waited for ever).
 	# Only the question on the card: short enough for a 16:9 screen too.
-	hud.show_card("SELEKCJA %d/%d" % [quiz_i + 1, quiz.size()], "„%s”" % q[0][0], buttons, COLOUR, false,
-			"THE DOOR %d/%d" % [quiz_i + 1, quiz.size()], "\"%s\"" % q[0][1], true)
-	_door_t = 0.0
+	show_card(["SELEKCJA %d/%d" % [quiz_i + 1, quiz.size()], "THE DOOR %d/%d" % [quiz_i + 1, quiz.size()]],
+			["„%s”" % q[0][0], "\"%s\"" % q[0][1]], buttons, DOOR_LIFE, true)
 	_log("door %d: %s" % [quiz_i + 1, q[0][1]])
 
 
@@ -1128,15 +1145,15 @@ func _answer(i: int) -> void:
 	if quiz.is_empty():
 		return
 	if i != int(quiz[quiz_i][2]):
-		hud.hide_card()
-		_enter("out")
-		return
-	quiz_right += 1
+		if wrong_ends():
+			_enter("out")
+			return
+	else:
+		quiz_right += 1
 	quiz_i += 1
 	if quiz_i < quiz.size():
 		_ask()
 		return
-	hud.hide_card()
 	_enter(door_result(quiz_right))
 
 
@@ -1160,15 +1177,15 @@ func _enter(result: String) -> void:
 			rejected += 1
 			pl = "Bramkarz patrzy na ciebie trzy długie sekundy. „Nie tym razem. Wróć później.” Mati wzdycha: „Kebab i do domu. Plan C.” Płaci za kurs %d zł." % p[0]
 			en = "The bouncer looks at you for three long seconds. \"Not this time. Come back later.\" Mati sighs: \"A kebab and home. Plan C.\" He pays %d zł for the ride." % p[0]
-	state = State.RESULT
-	_result_t = 0.0
+	stage = Stage.RESULT
 	var title := ("SMOŁA" if kind == "smola" else "SEKRETNY RAVE") if result != "out" else "NIE DZIŚ"
 	var title_en := ("SMOŁA" if kind == "smola" else "SECRET RAVE") if result != "out" else "NOT TONIGHT"
 	if result != "out" and enter_club.is_valid():
 		pl += " " + entry_note()[0]
 		en += " " + entry_note()[1]
-	var buttons := PackedStringArray(["OK"]) if result == "out" or not enter_club.is_valid() else PackedStringArray(["PŁACĘ %d ZŁ|PAY %d ZŁ CASH" % [ENTRY, ENTRY], "POTEM|LATER"])
-	hud.show_card(title, pl, buttons, COLOUR, false, title_en, en)
+	var pay_card: bool = result != "out" and enter_club.is_valid()
+	var buttons := PackedStringArray(["PŁACĘ %d ZŁ|PAY %d ZŁ CASH" % [ENTRY, ENTRY], "POTEM|LATER"]) if pay_card else PackedStringArray(["OK"])
+	show_card([title, title_en], [pl, en], buttons, PAY_LIFE if pay_card else RESULT_LIFE)
 	_log("%s: %s, %d/3 right, +%d zł +%d respect" % [place, result, quiz_right, p[0], p[1]])
 
 
@@ -1185,32 +1202,68 @@ func _dest() -> Dictionary:
 	return spots[quest_spot]
 
 
-func _give_up() -> void:
-	hud.hide_status()
+## A button on the door's question, or on the result card (PŁACĘ / POTEM / OK).
+func _card_pressed(i: int) -> void:
+	match stage:
+		Stage.DOOR:
+			_answer(i)
+		Stage.RESULT:
+			var go_in := i == 0 and String(last_pay.get("result", "")) != "out" and enter_club.is_valid()
+			var t := ["SMOŁA", "SMOŁA"] if kind == "smola" else ["SEKRETNY RAVE", "SECRET RAVE"]
+			finish()
+			if go_in and wallet != null and not wallet.spend(ENTRY):
+				go_in = false
+				hud.toast("Za mało gotówki. Bramkarz wskazuje bankomat… trzy ulice dalej.", "Not enough cash. The bouncer points to a cash machine… three streets away.")
+				_log("door: no cash for the %d zł ticket" % ENTRY)
+			if go_in:
+				_log("door: paid %d zł cash" % ENTRY)
+				enter_club.call(t[0], t[1])
+
+
+## A card ran out unanswered (the card is already down): the door gives up on you, the result closes
+## with no club and no cash taken.
+func _card_expired() -> void:
+	match stage:
+		Stage.DOOR:
+			# No answer for DOOR_LIFE s (or a card that never got a place): the bouncer gives up on you.
+			_log("door: no answer in %.0f s" % DOOR_LIFE)
+			_enter("out")
+		Stage.RESULT:
+			finish()
+
+
+# --- the end ------------------------------------------------------------------------------------
+
+## The ✕ gives up only on the way: at the door and on the result card the night plays out.
+func _can_abort() -> bool:
+	return stage in [Stage.PICKUP, Stage.MEET, Stage.DRIVE]
+
+
+func drop(by_player: bool) -> void:
 	_say("abort")
-	hud.toast("Mati łapie nocny autobus", "Mati catches the night bus")
-	_log("gave up")
-	_finish()
+	super.drop(by_player)
+
+
+func _quit_words() -> Array:
+	return ["Mati łapie nocny autobus", "Mati catches the night bus"]
 
 
 ## Back to free play: the calls back on, next weekend's spot, LEKTI later.
-func _finish() -> void:
-	_pick.visible = false
-	_meet_mark.visible = false
-	hud.hide_status()
-	if missions != null:
-		missions.paused = _calls_were
-	if state == State.RESULT and kind == "rave":
+func _ended() -> void:
+	if _holds_calls:
+		_holds_calls = false
+		if missions != null:
+			missions.paused = _calls_were
+	_hood.visible = false
+	if stage == Stage.RESULT and kind == "rave":
 		var nights := night_spots()
 		if not nights.is_empty():
 			night_spot = nights[(nights.find(night_spot) + 1) % nights.size()]
-	_reset()
-
-
-func _reset() -> void:
-	state = State.IDLE
+	stage = Stage.NONE
+	_met = false
+	waiting = false
 	pickup = {}
-	meet = {}
+	meeting = {}
 	password = ""
 	quest_spot = -1
 	kind = ""
@@ -1229,23 +1282,19 @@ func night_spots() -> Array[int]:
 	return out
 
 
-func _talk(dt: float, tag: String) -> void:
+func _talk(dt: float, kind_tag: String) -> void:
 	_talk_t -= dt
 	if _talk_t <= 0.0:
 		_talk_t = _rng.randf_range(TALK_GAP.x, TALK_GAP.y)
-		_say(tag)
+		_say(kind_tag)
 
 
 ## Mati's line (dialogue.json `rave_ziomek`, tag) over the car (he's in it).
-func _say(tag: String) -> void:
+func _say(kind_tag: String) -> void:
 	if dialogue == null:
 		return
 	var anchor := func() -> Vector3:
 		var v: Array = vehicle.call() if vehicle.is_valid() else [Vector3.ZERO, 0.0, false]
 		return v[0]
-	dialogue.say(anchor, FRIEND, "rave_ziomek", tag, 4.2, BUBBLE, 2.2)
+	dialogue.say(anchor, FRIEND, "rave_ziomek", kind_tag, 4.2, BUBBLE, 2.2)
 
-
-func _log(text: String) -> void:
-	if log_on:
-		print("rave: " + text)

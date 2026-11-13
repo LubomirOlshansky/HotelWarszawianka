@@ -27,6 +27,10 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		# MDM's roofs (F's Street View shots, 2026-11-05): the red MDM, a parody of the phone maker
 		# and of the car maker, and the hotel's own sign on the corner block.
 		"MDM", "XIAOMY", "BYDŁO", "HOTEL MDM",
+		# Flisac's shops on Tamka (F's photos, 2026-11-13): parodies of a coffee chain, a grocer and a wine shop.
+		"KAWOBIURKO", "KAROLEK", "WINOSTORY",
+		# The Palace's own name over its main portico (F's photos, 2026-11-13).
+		"PAŁAC", "KULTURY", "NAUKI",
 		# The Pawilony (2026-10-31): the bars' little words and the gate's name.
 		"PIWO", "BAR", "SHOTY", "DISCO", "KARAOKE", "OTWARTE", "PAWILONY",
 		# The start area as real Warsaw (R1, docs/design/start-area-real.md, 2026-11-01): the
@@ -43,6 +47,11 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		"AWIWA", "NIELZEN",
 		# Dom Partii's roof sign (docs/design/gaulle-and-food-hype.md G2): the oak in Latin again.
 		"ROBUR",
+		# Its front's roof letters from F's photos (2026-11-11): the menswear maker's name spelt the
+		# Polish way (the bank's board is PEPEO ŻUBR, already in the list).
+		"WISTULA",
+		# The power company's red roof sign on Wybrzeże Kościuszkowskie 41 (F's photos, 2026-11-13).
+		"ELEKTRON",
 		# HOTEL PIURE's rooftop date bar (G3).
 		"LORETKA",
 		# Arkadka from F's photos (2026-11-03): Westfield as "west field" in Polish, the
@@ -63,6 +72,8 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		"ŚRÓDMIEŚCIE",
 		# The Mac photo check (2026-11-01): Ochota's letters by the entrance.
 		"OCHOTA",
+		# Spektrum Tower from F's photos (2026-11-13): the tower's name and its rooftop club, as parodies.
+		"SPEKTRAL", "THE WJU",
 		# The Old Town hotels' names (parodies of Castle Inn and Hotel Bellotto, an aparthotel).
 		"KASZTEL INN", "CANALETTO", "STARÓWKA",
 		# Level 26, the rooftop club on the Atlas Tower.
@@ -73,6 +84,11 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		"VERSO PLACE",
 		# The Skyliner's crown (docs/design/city-life-satire.md #12): a small agency with a large nose.
 		"NOSE AGENCY", "NOSE", "AGENCY",
+		# Złote Tarasy (F, 2026-11-11): the mall's gold name on its grey box as a parody (big and
+		# small word, as the real box), and the guitar café's parody name on the badge and the door.
+		"ZŁOTE", "TARASKI", "HARD BLOK", "CAFE",
+		# The mall's shops as parodies (F, 2026-11-11: the whole complex): the fashion corner and the cinema.
+		"ZARAZA", "H·M·M", "MULTIKINKO",
 		# Warsaw Unit's crown (the photo report, 2026-11-03): a parody of the insurer's logo.
 		"WARTKA", "MBĄK",
 		# Bracka and Plac Trzech Krzyży (photo builds, 2026-11-03): Vitkac's and the Sheraton's
@@ -119,7 +135,11 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		# cat-food advert on the end wall and the rooftop billboard (a parody, MRAU).
 		"BIURA", "RESTAURACJA", "BUM BAR", "SZTUKA", "UKŁADANIA", "MISKI", "MRAU", "DLA KOTÓW",
 		# The car park behind the Novotel (F's photos, 2026-11-07): the corner bar's parody names.
-		"KLUBOLEJNIA", "LEJALNIA", "DRINK BAR"]
+		"KLUBOLEJNIA", "LEJALNIA", "DRINK BAR",
+		# Elektrownia Powiśle, the whole complex (F, 2026-11-13): its own name on the Dobra gable,
+		# the food hall, the brewery, the shops and bars (parodies with a power-station pun).
+		"ELEKTROWNIA", "HALA TURBIN", "BROWAR KOMIN", "ROSOMAK", "KAWA 220V", "AMPERIK", "FAZA",
+		"BEZPIECZNIK", "PIEROGARNIA", "SPOŻYWCZAK", "WATOWNIA", "ZWARCIE"]
 ## Tube colours (linear, bright): pink, cyan, violet, and a few words' usual colours.
 const PINK := Color(1.0, 0.1, 0.55)
 const CYAN := Color(0.1, 0.9, 1.0)

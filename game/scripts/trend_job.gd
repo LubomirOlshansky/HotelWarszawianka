@@ -1,4 +1,4 @@
-extends Node
+extends "res://scripts/activity.gd"
 ## Loop MW-4 (docs/design/vision.md 3.4): "Na czasie" · On trend, the trend courier's side job.
 ## Passing an open Wiralek slot (within 60 m, its shop open, the trend on days 1-7) with nothing
 ## else on brings a request card like Podwózka's: an office worker at Rondo Daszyńskiego wants
@@ -33,16 +33,19 @@ extends Node
 ## and the city's longest line at its door (crowds.gd `dzemini_mlask`, the `viral` "dzemini" jokes),
 ## kept in the save (`keep` DZ_KEEP). Skipped, he rings again DZ_COOL s later. 60 zł + 10 zł a km,
 ## +25 respect, a 20 zł tip *guess*; cold: half, no tip, no respect, the sticker all the same.
+##
+## It is an activity of the kit (activity.gd) and a side job (`is_job`): the kit has its call, its
+## request card, the cards of the run, the ✕, the ring's end and "busy"; a request card leaves the
+## player free (`offer_busy` off), so the job is on only once it runs; the director (activities.gd)
+## counts it among the activities and the side jobs (`job_on`, which jobs.gd answered by name
+## before it joined the kit); `order["stage"]` names the step inside the kit's RUN.
 
-const Beacon := preload("res://scripts/beacon.gd")
 const Models := preload("res://scripts/models.gd")
-const StopAssist := preload("res://scripts/stop_assist.gd")
 const Missions := preload("res://scripts/missions.gd")
 const CityLife := preload("res://scripts/city_life.gd")
 const Crowds := preload("res://scripts/crowds.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const CoffeeRun := preload("res://scripts/coffee_run.gd")
-const Access := preload("res://scripts/access.gd")
 
 ## Wiralek's pink (not the kebab's orange, not the passengers' teal).
 const COLOUR := Color("#ff7ac8")
@@ -102,12 +105,12 @@ const DESKI_INJURED := ["Marta", "Ola", "Michał od Excela", "Prezes z Mokotowa"
 ## The DESKA call's opening (as Szymek's boat race and Mati's rave): the phone rings first, with
 ## who it is, ODBIERZ / ODRZUĆ, and only an answered call says what it wants. A short bio per caller.
 const DESKI_BIOS := {
-	"Kuba": ["Kumpel z liceum. Od marca „zaczyna padla od poniedziałku”. Ma już trzy rakiety.", "Your mate from school. Since March he has been \"starting padel on Monday\". He has three rackets already."],
-	"Zuzia": ["Koleżanka z pracy. Bluzę klubową kupiła, zanim zagrała pierwszy mecz.", "A friend from work. She bought the club hoodie before her first game."],
-	"Bartek": ["Kumpel z osiedla. Rezerwuje korty o 6:00 rano, bo tylko wtedy są wolne.", "Your mate from the estate. He books courts at 6 a.m., the only free slot."],
-	"Iga": ["Znajoma z kursu salsy. Teraz mówi tylko o vibora i bandeja.", "A friend from salsa class. Now all she talks about is the vibora and the bandeja."],
-	"Olek": ["Kuzyn. Grał w tenisa, więc myśli, że w padla też umie. Nie umie.", "Your cousin. He played tennis, so he thinks he can play padel. He can't."],
-	"Magda": ["Sąsiadka z góry. Prowadzi grupę „Padel Powiśle” na 412 osób.", "The neighbour upstairs. She runs the \"Padel Powiśle\" group, 412 members."],
+	"Kuba": ["Kumpel z liceum. Trzy rakiety, zero meczów.", "School mate. Three rackets, zero matches."],
+	"Zuzia": ["Z pracy. Bluza klubowa przed pierwszym meczem.", "From work. Club hoodie before her first match."],
+	"Bartek": ["Z osiedla. Rezerwuje korty na 6:00 rano.", "From the estate. Books courts for 6 a.m."],
+	"Iga": ["Z salsy. Teraz mówi tylko „bandeja”.", "From salsa class. Now only says \"bandeja\"."],
+	"Olek": ["Kuzyn. Grał w tenisa, więc myśli, że umie.", "Cousin. Played tennis, so he thinks he can."],
+	"Magda": ["Sąsiadka. Prowadzi grupę „Padel Powiśle”.", "Neighbour. Runs the \"Padel Powiśle\" group."],
 }
 ## The match at DESKA (an answered call that arrived on time): DESKI_POINTS points, one card each,
 ## three shots (LOB, ZE ŚCIANY, SMECZ). Each rally: [situation pl, en], the best shot's index, the
@@ -195,23 +198,21 @@ const CARD_REST := 2.5
 const CALL_REST := 20.0
 const CUSTOMERS := ["Ania z HR", "Tomek z IT", "Kasia z marketingu", "Paweł z finansów", "Ola z działu prawnego", "Michał ze sprzedaży"]
 
-enum State { IDLE, OFFER, PICKUP, DELIVER, RESULT }
+## The run's stage (the kit's `phase` is RUN then); `order["stage"]` still names the step inside it.
+enum Stage { NONE, PICKUP, DELIVER, RESULT }
 
-var hud: CanvasLayer
-var dialogue: Node
-var wallet: Node
 var missions: Node
 var rivals: Node
 var jobs: Node
 var rides: Node
 var graph: LaneGraph
-var map: Node3D
-var car: CharacterBody3D
 ## city_life.gd: the slots' state and doors.
 var life: Node3D
 ## crowds.gd (the PISTACJA site and its drop); may be null.
 var crowds: Node
-var state := State.IDLE
+var stage := Stage.NONE
+## The places' points (main.gd hands them in before `setup`).
+var places := {}
 ## Set by the game each frame (no offers from the helicopter, the title screen or the bench).
 var flying := false
 var away := false
@@ -224,9 +225,8 @@ var guide_hold := false
 var mission_on := false:
 	set(v):
 		if mission_on and not v:
-			_call_rest = _session + CALL_REST
+			_call_rest = _played + CALL_REST
 		mission_on = v
-var autopilot := false
 ## Onto the arcade court (main.gd `_enter_padel`, padel_match.gd) with {partner, rivals, hour, flew,
 ## seed}; its end comes back through `arcade_done`. Unset (the checks): the card match.
 var enter_padel: Callable
@@ -234,8 +234,6 @@ var enter_padel: Callable
 var hour_now: Callable
 ## --trend-job=4: the drop never ends (the test run).
 var force_drop := false
-## --trend-log: `trend job:` lines.
-var log_on := false
 var last_usec := 0
 ## The order: {slot, word, day, kerb, ring (pickup), door ring, road, customer, name}.
 var order := {}
@@ -248,16 +246,28 @@ var _cool := {}
 var _card_rest := 0.0
 ## Session time before which no phone call rings (set when a mission ends: CALL_REST).
 var _call_rest := 0.0
-var _t := 0.0
 var _clock := 0.0
 var _hold := 0.0
-var _beacon: Node3D
 var _rng := RandomNumberGenerator.new()
-var _session := 0.0
+## Seconds of play: the clock of every cool-down and rest here. It stands while the player is away
+## in a ride (`away`), which the kit's own session clock does not.
+var _played := 0.0
+## The request's card as `_offer_card` gives it ({title, body, buttons, face}), written by the
+## offer that made the order.
+var _asked := {}
+## The call's card as `_call_card` gives it ({who, about, face}).
+var _caller := {}
+## The order was taken (the run began): `_ended` then does what the old `_release` did. An offer
+## nobody took ends without it (the old `_withdraw`), and `order` stays as it was.
+var _ran := false
+## `padel_meet`: the run starts at the match (no drive).
+var _met := false
+## An offer was withdrawn this frame: no look in the same frame.
+var _withdrawn := false
 var _world: Node3D
 ## Set by the game each frame: where the player is (the car, or the helicopter in the air).
 var player_pos := Vector3.ZERO
-## When the DESKA call may ring next (_session seconds).
+## When the DESKA call may ring next (_played seconds).
 var _deski_at := DESKI_FIRST
 ## The coffee run (coffee_run.gd, order kind "kawa"): when Zuzia calls next (s of play), the car
 ## left at the ROWERILO dock while the player rides, the world it stands in, the joke's clock.
@@ -279,8 +289,7 @@ var _kawa_glow_i := -1
 var _kawa_glow_t := 0.0
 ## The call comes only within this many metres of the dock (a coffee run, not a road trip).
 const KAWA_CALL_R := 1800.0
-## "Mlask": the places' points (setup), the van {spot, at: Vector3, ring: Vector3, yaw} or {}, its node.
-var _places := {}
+## "Mlask": the van {spot, at: Vector3, ring: Vector3, yaw} or {}, its node.
 var van := {}
 var _van_node: MeshInstance3D
 var _van_day := -1
@@ -291,7 +300,7 @@ var _fan_t := 8.0
 var _egg_t := 0.0
 var egg: Callable
 ## "Dżemini": storefronts.gd (the shop's wall, for the sticker; may be null), whether the job is done
-## (the save), when the call may ring next (_session s), the sticker's node once placed.
+## (the save), when the call may ring next (_played s), the sticker's node once placed.
 var storefronts: Node
 var dz_done := false
 var _dz_at := DZ_FIRST
@@ -327,31 +336,20 @@ static func offers(st: Dictionary, hour: float) -> bool:
 	return int(st.get("day", 8)) < CityLife.CYCLE and hour >= float(CityLife.SHOP_HOURS[0]) and hour < float(CityLife.SHOP_HOURS[1])
 
 
-func setup(nodes: Dictionary, places: Dictionary, world: Node3D) -> void:
-	hud = nodes["hud"]
-	dialogue = nodes["dialogue"]
-	wallet = nodes["wallet"]
-	missions = nodes["missions"]
-	rivals = nodes.get("rivals")
-	jobs = nodes["jobs"]
-	rides = nodes.get("rides")
-	graph = nodes["graph"]
-	map = nodes["map"]
-	car = nodes["car"]
-	life = nodes["life"]
-	crowds = nodes.get("crowds")
-	storefronts = nodes.get("storefronts")
+func setup(world: Node3D) -> void:
+	tag = "trend job"
+	colour = COLOUR
+	dark = Color("#2f6fb5")
+	is_job = true
+	offer_busy = false
+	card_life = OFFER_LIFE
+	super.setup(world)
 	dz_done = wallet != null and bool(wallet.keep.get(DZ_KEEP, false))
 	if dz_done and crowds != null and crowds.has_method("dzemini_mlask"):
 		crowds.dzemini_mlask()
 	_world = world
 	_rng.randomize()
 	_dest = places.get(DEST_ID, Vector2.INF)
-	_places = places
-	_world = world
-	_beacon = Beacon.new()
-	world.add_child(_beacon)
-	_beacon.setup(COLOUR, Color("#2f6fb5"))
 	_van_node = MeshInstance3D.new()
 	_van_node.mesh = van_mesh()
 	_van_node.material_override = Models.material()
@@ -363,19 +361,11 @@ func setup(nodes: Dictionary, places: Dictionary, world: Node3D) -> void:
 	_fans.material_override = Models.material()
 	_fans.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_van_node.add_child(_fans)
-	hud.card_pressed.connect(_on_card)
-	hud.abort_pressed.connect(func() -> void:
-		if state == State.PICKUP or state == State.DELIVER:
-			_fail(["Anulowane", "Cancelled"]))
-
-
-func busy() -> bool:
-	return state != State.IDLE and state != State.OFFER
 
 
 ## A card is up, or one closed a moment ago: new offers wait (see `_free`).
 func offers_held() -> bool:
-	return hold_offers(_session, _card_rest, hud != null and hud.cards_up())
+	return hold_offers(_played, _card_rest, hud != null and hud.cards_up())
 
 
 ## The rule itself: a card is up, or one closed less than CARD_REST s ago.
@@ -390,11 +380,11 @@ static func hold_calls(on_mission: bool, session: float, rest_until: float, resc
 
 
 func has_target() -> bool:
-	return state == State.PICKUP or state == State.DELIVER
+	return phase == Phase.RUN and (stage == Stage.PICKUP or stage == Stage.DELIVER)
 
 
 func target_position() -> Vector3:
-	return order["ring"] if state == State.PICKUP else order["door_ring"]
+	return order["ring"] if stage == Stage.PICKUP else order["door_ring"]
 
 
 ## Where the car should stop now (stop_assist.gd): the queue, then the door.
@@ -407,15 +397,15 @@ func target_colour() -> Color:
 
 
 func primary() -> bool:
-	if state == State.OFFER or state == State.RESULT:
-		_on_card(0)
+	if phase == Phase.RING or phase == Phase.OFFER or (phase == Phase.RUN and stage == Stage.RESULT):
+		card_pressed(0)
 		return true
 	return false
 
 
 func secondary() -> bool:
-	if state == State.OFFER:
-		_on_card(1)
+	if phase == Phase.RING or phase == Phase.OFFER:
+		card_pressed(1)
 		return true
 	return false
 
@@ -432,52 +422,47 @@ func _free() -> bool:
 		return false
 	if jobs != null and jobs.own_busy():
 		return false
-	if rides != null and rides.state != 0:
+	if rides != null and not rides.idle():
 		return false
-	return rivals == null or not rivals.busy()
+	return (rivals == null or not rivals.busy()) and bool(free_now.call())
 
 
 func _process(dt: float) -> void:
 	if life == null or graph == null:
 		return
 	var t0 := Time.get_ticks_usec()
-	_t += dt
+	super._process(dt)
+	last_usec = Time.get_ticks_usec() - t0
+
+
+## Every frame, before the phase's own part: the play clock, the sticker's beat, and a call or a
+## request withdrawn (the old OFFER state's first test).
+func _tick(dt: float) -> void:
 	if not away:
-		_session += dt
+		_played += dt
 	if dz_done and _sticker == null and int(_t * 2.0) != int((_t - dt) * 2.0):
 		_place_sticker()
-	match state:
-		State.IDLE:
-			if int(_session * 2.0) != int((_session - dt) * 2.0):
-				_look()
-		State.OFFER:
-			if flying or away or mission_on or (jobs != null and jobs.own_busy()) or (rides != null and rides.busy()):
-				_withdraw()
-			elif autopilot and _t > 2.0:
-				_on_card(0)
-			elif _t > OFFER_LIFE:
-				_withdraw()
-		State.PICKUP:
+	if (phase == Phase.RING or phase == Phase.OFFER) and (flying or away or mission_on or (jobs != null and jobs.own_busy())
+			or (rides != null and rides.busy())):
+		_withdrawn = true
+		_end(0.0)
+
+
+## Twice a second of play while idle (the kit's call clock is not used).
+func _idle_tick(dt: float) -> void:
+	if _withdrawn:
+		_withdrawn = false
+		return
+	if int(_played * 2.0) != int((_played - dt) * 2.0):
+		_look()
+
+
+func _run_tick(dt: float) -> void:
+	match stage:
+		Stage.PICKUP:
 			_pickup_tick(dt)
-		State.DELIVER:
+		Stage.DELIVER:
 			_deliver_tick(dt)
-		State.RESULT:
-			if str(order.get("stage", "")) == "arcade":
-				pass
-			elif str(order.get("stage", "")) == "match":
-				if autopilot and _t > 2.0:
-					_match_answer(int(RALLIES[int(order["rallies"][int(order["point"])])][1]))
-				elif _t > POINT_LIFE:
-					_match_answer(-1)
-			elif _is_ml() and str(order.get("stage", "")) == "review":
-				if autopilot and _t > 2.0:
-					_start_sticker()
-			elif _is_dz() and str(order.get("stage", "")) == "review":
-				if (autopilot and _t > 2.0) or _t > RESULT_LIFE:
-					_dz_tygram()
-			elif _t > RESULT_LIFE:
-				_release()
-	last_usec = Time.get_ticks_usec() - t0
 
 
 ## Twice a second: an open slot within 60 m offers the job.
@@ -488,42 +473,43 @@ func _look() -> void:
 	var hour: float = life.hour_now()
 	_van_tick(hour, life.weekday_now())
 	if not van.is_empty() and _van_node.visible and p.distance_to(Vector2(van["ring"].x, van["ring"].z)) <= ML_OFFER_R \
-			and _session >= float(_cool.get(-3, 0.0)):
-		_cool[-3] = _session + ML_COOL
+			and _played >= float(_cool.get(-3, 0.0)):
+		_cool[-3] = _played + ML_COOL
 		if offer_mlask():
 			return
-	var calls_ok := not hold_calls(mission_on, _session, _call_rest, missions.state == Missions.State.RINGING)
-	if calls_ok and not dz_done and van_out(hour) and _session >= _dz_at:
-		_dz_at = _session + DZ_COOL
+	var calls_ok: bool = not hold_calls(mission_on, _played, _call_rest, missions.state == Missions.State.RINGING) \
+			and (hud == null or not hud.has_method("call_ok") or hud.call_ok())  # the message director's call spacing
+	if calls_ok and not dz_done and van_out(hour) and _played >= _dz_at:
+		_dz_at = _played + DZ_COOL
 		if offer_dzemini():
 			return
 	if crowds != null and Crowds.pistacja_drop(hour, life.weekday_now()) and crowds.by_id.has(Crowds.PISTACJA_ID):
 		var site: Dictionary = crowds.sites[crowds.by_id[Crowds.PISTACJA_ID]]
-		if p.distance_to(site["door"]) <= OFFER_R and _session >= float(_cool.get(-1, 0.0)):
-			_cool[-1] = _session + SLOT_COOL
+		if p.distance_to(site["door"]) <= OFFER_R and _played >= float(_cool.get(-1, 0.0)):
+			_cool[-1] = _played + SLOT_COOL
 			if offer_drop():
 				return
-	if calls_ok and hour >= CoffeeRun.HOURS[0] and hour < CoffeeRun.HOURS[1] and _session >= _kawa_at \
+	if calls_ok and hour >= CoffeeRun.HOURS[0] and hour < CoffeeRun.HOURS[1] and _played >= _kawa_at \
 			and p.distance_to(CoffeeRun.DOCK) <= KAWA_CALL_R:
-		_kawa_at = _session + CoffeeRun.COOL
+		_kawa_at = _played + CoffeeRun.COOL
 		if offer_kawa_call():
 			return
-	if calls_ok and hour >= DESKI_HOURS[0] and hour < DESKI_HOURS[1] and _session >= _deski_at:
-		_deski_at = _session + DESKI_COOL
+	if calls_ok and hour >= DESKI_HOURS[0] and hour < DESKI_HOURS[1] and _played >= _deski_at:
+		_deski_at = _played + DESKI_COOL
 		if offer_deski_call():
 			return
 	if crowds != null and crowds.by_id.has(Crowds.PADEL_ID) and int(Crowds.padel_queue(hour, life.weekday_now())[0]) >= CZ_MIN_QUEUE:
 		var psite: Dictionary = crowds.sites[crowds.by_id[Crowds.PADEL_ID]]
-		if p.distance_to(psite["door"]) <= OFFER_R and _session >= float(_cool.get(-2, 0.0)):
-			_cool[-2] = _session + SLOT_COOL
+		if p.distance_to(psite["door"]) <= OFFER_R and _played >= float(_cool.get(-2, 0.0)):
+			_cool[-2] = _played + SLOT_COOL
 			if offer_czwarty():
 				return
 	for i in life.slot_doors.size():
 		var door: Vector2 = life.slot_doors[i]
-		if door == Vector2.INF or p.distance_to(door) > OFFER_R or _session < float(_cool.get(i, 0.0)):
+		if door == Vector2.INF or p.distance_to(door) > OFFER_R or _played < float(_cool.get(i, 0.0)):
 			continue
 		if offers(life.slots_now[i], hour):
-			_cool[i] = _session + SLOT_COOL
+			_cool[i] = _played + SLOT_COOL
 			offer(i)
 			return
 
@@ -534,30 +520,34 @@ func _look() -> void:
 ## {group, at (map x, z), colour, name [pl, en]}, as jobs.gd `offer_places`.
 func offer_places() -> Array:
 	var out: Array = []
-	if state != State.IDLE or life == null or _dest == Vector2.INF:
+	if not idle() or life == null or _dest == Vector2.INF:
 		return out
 	var hour: float = life.hour_now()
 	for i in life.slot_doors.size():
 		var door: Vector2 = life.slot_doors[i]
-		if door == Vector2.INF or i >= life.slots_now.size() or _session < float(_cool.get(i, 0.0)):
+		if door == Vector2.INF or i >= life.slots_now.size() or _played < float(_cool.get(i, 0.0)):
 			continue
 		var st: Dictionary = life.slots_now[i]
 		if offers(st, hour):
 			out.append({"group": "trend", "at": door, "colour": COLOUR,
 					"name": ["Na czasie · %s" % st["word"], "On trend · %s" % st["word"]]})
-	if not van.is_empty() and van_out(hour) and _session >= float(_cool.get(-3, 0.0)):
+	if not van.is_empty() and van_out(hour) and _played >= float(_cool.get(-3, 0.0)):
 		out.append({"group": "mlask", "at": Vector2(van["ring"].x, van["ring"].z), "colour": ML_COLOUR,
 				"name": ["Mlask · van Mrożula", "Smack · Mrożulo's van"]})
 	if crowds != null and Crowds.pistacja_drop(hour, life.weekday_now()) and crowds.by_id.has(Crowds.PISTACJA_ID) \
-			and _session >= float(_cool.get(-1, 0.0)):
+			and _played >= float(_cool.get(-1, 0.0)):
 		var site: Dictionary = crowds.sites[crowds.by_id[Crowds.PISTACJA_ID]]
 		out.append({"group": "drop", "at": site["door"], "colour": DROP_COLOUR,
 				"name": ["Limitka · PISTACJA DO KOŃCA", "Limited drop · PISTACJA DO KOŃCA"]})
 	return out
 
 
-## The request at slot `i` (--trend-job too). False if no door fits.
+## The request at slot `i` (--trend-job too). False if no door fits. As every `offer_…` here: never
+## during a run; one called while a call or a request of this job is still up takes its place, as
+## before the kit (a test flag asks 1.5 s into the game, when the job may have asked by itself).
 func offer(i: int) -> bool:
+	if phase == Phase.RUN:
+		return false
 	var door: Vector2 = life.slot_doors[i]
 	var st: Dictionary = life.slots_now[i]
 	var k: Dictionary = jobs._kerb(door, door - life.slot_out[i] * 4.0, 3.5, [1.4, 2.2, 3.0])
@@ -576,11 +566,12 @@ func offer(i: int) -> bool:
 	order = {"slot": i, "word": str(st["word"]), "day": int(st["day"]), "ring": Vector3(kerb.x, graph.surface(k["edge"], kerb), kerb.y),
 			"door_ring": to["ring"], "road": float(to["road"]), "name": str(to["name"]),
 			"customer": CUSTOMERS[rng.randi() % CUSTOMERS.size()]}
-	state = State.OFFER
-	_t = 0.0
-	hud.show_side_card("NA CZASIE · %s" % order["word"], "Biuro z Ronda Daszyńskiego chce trend, zanim minie. Dowóz w 6 min.",
-			PackedStringArray(["ACCEPT", "SKIP"]), COLOUR, "On trend · %s" % st["word"],
-			"Rondo Daszyńskiego wants it before it's over. 6 min to deliver.")
+	colour = COLOUR
+	_asked = {"title": ["NA CZASIE · %s" % order["word"], "On trend · %s" % st["word"]],
+			"body": ["Biuro z Ronda Daszyńskiego chce trend, zanim minie. Dowóz w 6 min.",
+			"Rondo Daszyńskiego wants it before it's over. 6 min to deliver."],
+			"buttons": PackedStringArray(["ACCEPT", "SKIP"])}
+	_offer()
 	hud.ticker_out()
 	if log_on:
 		print("trend job: offer at slot %d (day %d, %s) for %s, %s, %.0f m by road" % [i + 1, order["day"], order["word"],
@@ -590,6 +581,8 @@ func offer(i: int) -> bool:
 
 ## The limited drop's request at PISTACJA (--trend-job=4 too). False if no kerb or door fits.
 func offer_drop() -> bool:
+	if phase == Phase.RUN:
+		return false
 	if crowds == null or not crowds.by_id.has(Crowds.PISTACJA_ID):
 		return false
 	var site: Dictionary = crowds.sites[crowds.by_id[Crowds.PISTACJA_ID]]
@@ -609,11 +602,12 @@ func offer_drop() -> bool:
 	order = {"kind": "drop", "slot": -1, "word": "PISTACJA", "day": 0, "ring": Vector3(kerb.x, graph.surface(k["edge"], kerb), kerb.y),
 			"door_ring": to["ring"], "road": float(to["road"]), "name": str(to["name"]),
 			"customer": DROP_FRIENDS[rng.randi() % DROP_FRIENDS.size()]}
-	state = State.OFFER
-	_t = 0.0
-	hud.show_side_card("LIMITKA · PISTACJA", "Dropu jest tylko do 18:30. Znajomy chce pudełko, zanim się roztopi. Dowóz w 5 min.",
-			PackedStringArray(["ACCEPT", "SKIP"]), DROP_COLOUR, "Limited drop · PISTACJA",
-			"A friend wants a box before it melts. The drop ends at 18:30. 5 min to deliver.")
+	colour = DROP_COLOUR
+	_asked = {"title": ["LIMITKA · PISTACJA", "Limited drop · PISTACJA"],
+			"body": ["Dropu jest tylko do 18:30. Znajomy chce pudełko, zanim się roztopi. Dowóz w 5 min.",
+			"A friend wants a box before it melts. The drop ends at 18:30. 5 min to deliver."],
+			"buttons": PackedStringArray(["ACCEPT", "SKIP"])}
+	_offer()
 	hud.ticker_out()
 	if log_on:
 		print("trend job: drop offer at PISTACJA for %s, %s, %.0f m by road" % [order["customer"], order["name"], order["road"]])
@@ -623,6 +617,8 @@ func offer_drop() -> bool:
 ## The "Czwarty" request at PADELNIA (--trend-job=5 too): the pickup is the player's door, the
 ## delivery the court's kerb. False if no kerb or door fits.
 func offer_czwarty() -> bool:
+	if phase == Phase.RUN:
+		return false
 	if crowds == null or not crowds.by_id.has(Crowds.PADEL_ID):
 		return false
 	var site: Dictionary = crowds.sites[crowds.by_id[Crowds.PADEL_ID]]
@@ -643,11 +639,12 @@ func offer_czwarty() -> bool:
 	order = {"kind": "czwarty", "slot": -1, "word": "PADEL", "day": 0, "ring": from["ring"],
 			"door_ring": Vector3(kerb.x, graph.surface(k["edge"], kerb), kerb.y),
 			"road": float(from["road"]), "name": venue, "customer": CZ_PLAYERS[rng.randi() % CZ_PLAYERS.size()], "from": str(from["name"])}
-	state = State.OFFER
-	_t = 0.0
-	hud.show_side_card("CZWARTY · " + venue.to_upper(), "Grają we trzech. Zabierz %s spod %s i dowieź na kort w 7 min." % [order["customer"], order["from"]],
-			PackedStringArray(["ACCEPT", "SKIP"]), CZ_COLOUR, "Fourth player · " + venue,
-			"Three players are waiting. Fetch %s from %s and bring them to the court in 7 min." % [order["customer"], order["from"]])
+	colour = CZ_COLOUR
+	_asked = {"title": ["CZWARTY · " + venue.to_upper(), "Fourth player · " + venue],
+			"body": ["Grają we trzech. Zabierz %s spod %s i dowieź na kort w 7 min." % [order["customer"], order["from"]],
+			"Three players are waiting. Fetch %s from %s and bring them to the court in 7 min." % [order["customer"], order["from"]]],
+			"buttons": PackedStringArray(["ACCEPT", "SKIP"])}
+	_offer()
 	hud.ticker_out()
 	if log_on:
 		print("trend job: czwarty offer at %s: %s from %s, %.0f m by road" % [venue, order["customer"], order["from"], order["road"]])
@@ -659,10 +656,12 @@ func offer_czwarty() -> bool:
 ## answered call says what it wants (_deski_offer). Accepting sets the gate as the target at once
 ## (no pickup). False in the air or with a job on.
 func offer_deski_call(force := false) -> bool:
+	if phase == Phase.RUN:
+		return false
 	if not force and not _free():
 		return false
 	var rng := RandomNumberGenerator.new()
-	rng.seed = done * 7001 + 53 + roundi(_session)
+	rng.seed = done * 7001 + 53 + roundi(_played)
 	var who: String = DESKI_CALLERS[rng.randi() % DESKI_CALLERS.size()]
 	var hurt: String = DESKI_INJURED[rng.randi() % DESKI_INJURED.size()]
 	var gy: float = map.terrain_height(DESKI_GATE.x, DESKI_GATE.y)
@@ -671,34 +670,52 @@ func offer_deski_call(force := false) -> bool:
 	# 2026-11-07); the next call waits the full DESKI_COOL either way (the flag's call too).
 	if not force and dist < DESKI_NEAR:
 		return false
-	_deski_at = maxf(_deski_at, _session + DESKI_COOL)
+	_deski_at = maxf(_deski_at, _played + DESKI_COOL)
 	order = {"kind": "czwarty", "call": true, "stage": "ring", "slot": -1, "word": "PADEL", "day": 0, "ring": Vector3(DESKI_GATE.x, gy, DESKI_GATE.y),
 			"door_ring": Vector3(DESKI_GATE.x, gy, DESKI_GATE.y), "road": dist * 1.3,
 			"name": "WTS DESKA", "customer": who, "from": "", "hurt": hurt, "seed": rng.randi()}
-	state = State.OFFER
-	_t = 0.0
+	colour = CZ_COLOUR
 	var bio: Array = DESKI_BIOS.get(who, ["Znajomy z padla.", "A friend from padel."])
-	hud.show_side_card("📞 %s DZWONI" % who.to_upper(), bio[0],
-			PackedStringArray(["ODBIERZ|ANSWER", "ODRZUĆ|DECLINE"]), CZ_COLOUR, "%s is calling" % who, bio[1])
-	hud.ticker_out()
-	Access.buzz(60, 0.6)
+	_caller = {"who": who, "about": bio, "face": _deski_face(who)}
+	if phase != Phase.IDLE:
+		# Over a request of this job that nobody answered yet: the call takes its place (the kit rings
+		# from idle only).
+		_end(0.0)
+	ring()
 	if log_on:
 		print("trend job: DESKA call ringing from %s, %.0f m away" % [who, dist])
 	return true
 
 
-## The answered DESKA call: what the friend wants.
-func _deski_offer() -> void:
+## A DESKA friend's face: their padel portrait ("bartek_padel") where there is one, so the other
+## Bartek (the TESŁO one, ev_tow.gd) never borrows it.
+static func _deski_face(who: String) -> String:
+	var padel := who.to_lower() + "_padel"
+	return padel if Portraits.face(padel) != null else who
+
+
+func _call_card() -> Dictionary:
+	return _caller
+
+
+## The request's card; for an answered DESKA call, what the friend wants (the old `_deski_offer`).
+func _offer_card() -> Dictionary:
+	if str(order.get("stage", "")) == "ring":
+		return _deski_offer()
+	return _asked
+
+
+## The answered DESKA call: what the friend wants, as the offer's card.
+func _deski_offer() -> Dictionary:
 	order["stage"] = "offer"
-	_t = 0.0
 	var who: String = order["customer"]
 	var hurt: String = order["hurt"]
-	hud.show_side_card("%s: „BRAKUJE CZWARTEGO!”" % who.to_upper(),
-			"„Halo? Gramy na Desce w padla, a %s ma nogę w gipsie po pole dance i wypadło z gry! Dojedź albo doleć na kort przy Zaruskiego, 8 minut. Kort opłacony do pełnej godziny!”" % hurt,
-			PackedStringArray(["JADĘ!|ON MY WAY", "NIE DZIŚ|NOT TODAY"]), CZ_COLOUR, "%s: \"We need a fourth!\"" % who,
-			"\"Hello? We're playing padel at DESKA, but %s has a leg in plaster after pole dance and dropped out! Drive or fly to the court on Zaruskiego, 8 minutes. The court is paid till the hour!\"" % hurt)
 	if log_on:
 		print("trend job: DESKA call answered: %s broke a leg" % hurt)
+	return {"title": ["%s: „BRAKUJE CZWARTEGO!”" % who.to_upper(), "%s: \"We need a fourth!\"" % who],
+			"body": ["„Halo? Gramy na Desce w padla, a %s ma nogę w gipsie po pole dance i wypadło z gry! Dojedź albo doleć na kort przy Zaruskiego, 8 minut. Kort opłacony do pełnej godziny!”" % hurt,
+			"\"Hello? We're playing padel at DESKA, but %s has a leg in plaster after pole dance and dropped out! Drive or fly to the court on Zaruskiego, 8 minutes. The court is paid till the hour!\"" % hurt],
+			"buttons": PackedStringArray(["JADĘ!|ON MY WAY", "NIE DZIŚ|NOT TODAY"]), "face": _deski_face(who)}
 
 
 # --- "Mlask": Mrożulo's review (G5) ----------------------------------------------------------
@@ -739,7 +756,7 @@ static func _van_lettering(text: String, zc: float, yc: float) -> ArrayMesh:
 	for sgn: float in [-1.0, 1.0]:
 		# Seen from +x the text runs towards -z, from -x towards +z.
 		var x := sgn * 1.03
-		var start := zc + sgn * wide * 0.5
+		var first := zc + sgn * wide * 0.5
 		var top := yc + 3.5 * px + PixelFont.BODY * px
 		for row: int in runs:
 			var cols: Array = runs[row]
@@ -749,8 +766,8 @@ static func _van_lettering(text: String, zc: float, yc: float) -> ArrayMesh:
 				var j := i
 				while j + 1 < cols.size() and int(cols[j + 1]) == int(cols[j]) + 1:
 					j += 1
-				var za := start - sgn * int(cols[i]) * px
-				var zb := start - sgn * (int(cols[j]) + 1) * px
+				var za := first - sgn * int(cols[i]) * px
+				var zb := first - sgn * (int(cols[j]) + 1) * px
 				var yt := top - row * px
 				s.side_rect(x, sgn, yt - px, yt, minf(za, zb), maxf(za, zb), f)
 				i = j + 1
@@ -843,7 +860,7 @@ func _fans_tick(_hour: float) -> void:
 
 ## The van by the kerb nearest the place `spot` (or at the point `near`): {spot, at, ring, yaw}.
 func _park_van(spot: String, near := Vector2.INF) -> Dictionary:
-	var p: Vector2 = near if near != Vector2.INF else _places.get(spot, Vector2.INF)
+	var p: Vector2 = near if near != Vector2.INF else places.get(spot, Vector2.INF)
 	if p == Vector2.INF:
 		if log_on:
 			print("trend job: Mrożulo's van: no place %s" % spot)
@@ -914,6 +931,8 @@ func _new_place(from: Vector2, hour: float) -> Dictionary:
 
 ## Mrożulo's request by his van (--trend-job=6 too, which first parks the van by the car).
 func offer_mlask(force_here := false) -> bool:
+	if phase == Phase.RUN:
+		return false
 	if force_here:
 		var p := Vector2(car.global_position.x, car.global_position.z)
 		van = _park_van("here", p + Vector2(0.0, -12.0))
@@ -932,11 +951,12 @@ func offer_mlask(force_here := false) -> bool:
 	order = {"kind": "mlask", "stage": "fetch", "slot": int(place["slot"]), "word": str(place["name"]), "day": 0,
 			"ring": place["ring"], "door_ring": vr, "road": road, "name": "Mrożulo", "customer": "Mrożulo",
 			"site": str(place["site"]), "place_ring": place["ring"], "warm": true}
-	state = State.OFFER
-	_t = 0.0
-	hud.show_side_card("MLASK · MROŻULO", "Siema, tu Mrożulo! %s, nowe miejsce. Weź mi coś, tylko ma być ciepłe." % order["word"],
-			PackedStringArray(["ACCEPT", "SKIP"]), ML_COLOUR, "Smack · Mrożulo",
-			"Hi, Mrożulo here! %s, a new place. Grab me something, and keep it warm." % order["word"])
+	colour = ML_COLOUR
+	_asked = {"title": ["MLASK · MROŻULO", "Smack · Mrożulo"],
+			"body": ["Siema, tu Mrożulo! %s, nowe miejsce. Weź mi coś, tylko ma być ciepłe." % order["word"],
+			"Hi, Mrożulo here! %s, a new place. Grab me something, and keep it warm." % order["word"]],
+			"buttons": PackedStringArray(["ACCEPT", "SKIP"])}
+	_offer()
 	hud.ticker_out()
 	if log_on:
 		print("trend job: Mrożulo's offer: %s, %.0f m" % [order["word"], road])
@@ -958,12 +978,13 @@ func _arrive_ml_review() -> void:
 	var l: Array = dialogue.line("mrozulo_review", "warm" if warm else "cold", true) if dialogue != null else []
 	var line := [str(l[0]), str(l[1])] if not l.is_empty() else ["Je się. Mlaska się.", "One eats. One smacks."]
 	order["stage"] = "review"
-	state = State.RESULT
+	stage = Stage.RESULT
 	_t = 0.0
-	hud.hide_status()
+	hide_status()
 	_beacon.waving = false
-	hud.show_side_card("RECENZJA · %s" % gw[0], "„%s”\nZawieź naklejkę do %s w 4 min." % [line[0], order["word"]],
-			PackedStringArray(["NAKLEJKA"]), ML_COLOUR, "Review · %s" % gw[1], "\"%s\"\nTake the sticker to %s in 4 min." % [line[1], order["word"]])
+	show_side_card(["RECENZJA · %s" % gw[0], "Review · %s" % gw[1]],
+			["„%s”\nZawieź naklejkę do %s w 4 min." % [line[0], order["word"]], "\"%s\"\nTake the sticker to %s in 4 min." % [line[1], order["word"]]],
+			PackedStringArray(["NAKLEJKA"]))
 	print("trend job: Mrożulo reviewed %s after %.0f s (%s): %s" % [order["word"], _clock, "warm" if warm else "cold", gw[0]])
 
 
@@ -971,10 +992,9 @@ func _arrive_ml_review() -> void:
 func _start_sticker() -> void:
 	order["stage"] = "sticker"
 	order["door_ring"] = order["place_ring"]
-	state = State.DELIVER
+	stage = Stage.DELIVER
 	_clock = 0.0
 	_t = 0.0
-	hud.hide_card()
 	_beacon.waving = true
 	_beacon.place(order["door_ring"], ARRIVE - 0.5)
 	hud.toast("Naklejka MLASK: do %s" % order["word"], "The MLASK sticker: to %s" % order["word"])
@@ -994,12 +1014,12 @@ func _arrive_ml_sticker() -> void:
 	var body := "„%s” · %s\n%s · +%d zł (napiwek %d zł), +%d szacunku" % [line[0], order["word"], gw[0], int(r["zl"]), int(r["tip"]), int(r["respect"])]
 	var body_en := "\"%s\"\n%s · +%d zł (tip %d zł), +%d respect" % [line[1], gw[1], int(r["zl"]), int(r["tip"]), int(r["respect"])]
 	order["stage"] = "done"
-	state = State.RESULT
+	stage = Stage.RESULT
 	_t = 0.0
-	hud.hide_status()
+	hide_status()
 	_beacon.waving = false
 	_beacon.place(order["door_ring"], ARRIVE - 0.5, false, true)
-	hud.show_side_card(head, body, PackedStringArray(["OK"]), ML_COLOUR, "Smack · +%d zł" % int(r["zl"]), body_en)
+	show_side_card([head, "Smack · +%d zł" % int(r["zl"])], [body, body_en], PackedStringArray(["OK"]), RESULT_LIFE)
 	print("trend job: the MLASK sticker at %s in %.0f s (%s, %s): +%d zł (base %d, tip %d), +%d respect, the queue grows" % [
 			order["word"], _clock, "warm" if bool(order["warm"]) else "cold", "on time" if on_time else "late", int(r["zl"]),
 			int(r["base"]), int(r["tip"]), int(r["respect"])])
@@ -1021,6 +1041,8 @@ static func dz_pay(road_m: float, warm: bool) -> Dictionary:
 ## Mrożulo's call (--trend-job=8 too, with `force`): pickup by DŻEMINI's queue, delivery to his van
 ## at today's spot. False with a job on (unless forced), or no shop, kerb or van spot.
 func offer_dzemini(force := false) -> bool:
+	if phase == Phase.RUN:
+		return false
 	if not force and not _free():
 		return false
 	if crowds == null or not crowds.by_id.has(DZ_SITE):
@@ -1051,12 +1073,12 @@ func offer_dzemini(force := false) -> bool:
 	order = {"kind": "dzemini", "stage": "fetch", "slot": -1, "word": "DŻEMINI", "day": 0,
 			"ring": Vector3(kerb.x, graph.surface(k["edge"], kerb), kerb.y), "door_ring": vr, "road": road,
 			"name": "Mrożulo", "customer": "Mrożulo", "site": DZ_SITE}
-	state = State.OFFER
-	_t = 0.0
-	hud.show_side_card("📞 MROŻULO DZWONI",
-			"„Siema, tu Mrożulo! Na Świętokrzyskiej otworzyli DŻEMINI KEBAB, mięso kroi agent AI. Kup mi jednego i przywieź do vana, póki ciepły!”",
-			PackedStringArray(["JADĘ", "NIE TERAZ"]), ML_COLOUR, "Mrożulo is calling",
-			"\"Hi, Mrożulo here! DŻEMINI KEBAB just opened on Świętokrzyska, an AI agent carves the meat. Get me one and bring it to my van while it's warm!\"")
+	colour = ML_COLOUR
+	_asked = {"title": ["📞 MROŻULO DZWONI", "Mrożulo is calling"],
+			"body": ["„Siema, tu Mrożulo! Na Świętokrzyskiej otworzyli DŻEMINI KEBAB, mięso kroi agent AI. Kup mi jednego i przywieź do vana, póki ciepły!”",
+			"\"Hi, Mrożulo here! DŻEMINI KEBAB just opened on Świętokrzyska, an AI agent carves the meat. Get me one and bring it to my van while it's warm!\""],
+			"buttons": PackedStringArray(["JADĘ", "NIE TERAZ"]), "face": "Mrożulo"}
+	_offer()
 	hud.ticker_out()
 	if log_on:
 		print("trend job: Dżemini call from Mrożulo: the van at %s, %.0f m by road" % [van["spot"], road])
@@ -1079,15 +1101,15 @@ func _arrive_dz() -> void:
 			else ["Letni, ale… *mlask* … wjeżdżam w to.", "Lukewarm, but… *smack* … I'm going in."]
 	order["stage"] = "review"
 	order["warm"] = warm
-	state = State.RESULT
+	stage = Stage.RESULT
 	_t = 0.0
-	hud.hide_status()
+	hide_status()
 	_beacon.waving = false
 	_beacon.place(order["door_ring"], ARRIVE - 0.5, false, true)
-	hud.show_side_card("MROŻULO · +%d zł" % int(r["zl"]),
-			"„%s”\n+%d zł (napiwek %d zł), +%d szacunku" % [line[0], int(r["zl"]), int(r["tip"]), int(r["respect"])],
-			PackedStringArray(["OK"]), ML_COLOUR, "Mrożulo · +%d zł" % int(r["zl"]),
-			"\"%s\"\n+%d zł (tip %d zł), +%d respect" % [line[1], int(r["zl"]), int(r["tip"]), int(r["respect"])])
+	show_side_card(["MROŻULO · +%d zł" % int(r["zl"]), "Mrożulo · +%d zł" % int(r["zl"])],
+			["„%s”\n+%d zł (napiwek %d zł), +%d szacunku" % [line[0], int(r["zl"]), int(r["tip"]), int(r["respect"])],
+			"\"%s\"\n+%d zł (tip %d zł), +%d respect" % [line[1], int(r["zl"]), int(r["tip"]), int(r["respect"])]],
+			PackedStringArray(["OK"]), RESULT_LIFE)
 	print("trend job: Dżemini kebab to Mrożulo in %.0f s (%s): +%d zł (base %d, tip %d), +%d respect, MLASK on DŻEMINI for good" % [
 			_clock, "warm" if warm else "cold", int(r["zl"]), int(r["base"]), int(r["tip"]), int(r["respect"])])
 
@@ -1096,10 +1118,10 @@ func _arrive_dz() -> void:
 func _dz_tygram() -> void:
 	order["stage"] = "tygram"
 	_t = 0.0
-	hud.show_side_card("TYGRAM · MROŻULO",
-			"„DŻEMINI: MLASK! Naklejka już wisi na szybie. Jutro kolejka do Marszałkowskiej. Dzięki, kierowco!”",
-			PackedStringArray(["OK"]), TYGRAM_COLOUR, "TYGRAM · Mrożulo",
-			"\"DŻEMINI: SMACK! The sticker's on the window. Tomorrow the queue reaches Marszałkowska. Thanks, driver!\"")
+	show_side_card(["TYGRAM · MROŻULO", "TYGRAM · Mrożulo"],
+			["„DŻEMINI: MLASK! Naklejka już wisi na szybie. Jutro kolejka do Marszałkowskiej. Dzięki, kierowco!”",
+			"\"DŻEMINI: SMACK! The sticker's on the window. Tomorrow the queue reaches Marszałkowska. Thanks, driver!\""],
+			PackedStringArray(["OK"]), RESULT_LIFE, TYGRAM_COLOUR)
 	print("trend job: TYGRAM from Mrożulo: DŻEMINI gets the MLASK")
 
 
@@ -1147,47 +1169,68 @@ func _is_drop() -> bool:
 	return str(order.get("kind", "")) == "drop"
 
 
-func _withdraw() -> void:
-	hud.hide_card()
-	state = State.IDLE
-	_t = 0.0
+## A call or a request turned down (the old `_on_card`'s `else` branch): the kit takes the card down
+## and ends; only the log line is kept here.
+func _refused(timed_out: bool) -> void:
+	if not timed_out and log_on and bool(order.get("call", false)):
+		print("trend job: DESKA call declined (%s)" % order.get("stage", ""))
 
 
-func _on_card(index: int) -> void:
-	match state:
-		State.OFFER:
-			if index == 0 and str(order.get("stage", "")) == "ring":
-				_deski_offer()
-			elif index == 0:
-				_accept()
-			else:
-				if log_on and bool(order.get("call", false)):
-					print("trend job: DESKA call declined (%s)" % order.get("stage", ""))
-				_withdraw()
-		State.RESULT:
-			if str(order.get("stage", "")) == "arcade":
-				return
-			if str(order.get("stage", "")) == "match":
-				_match_answer(index)
-			elif _is_ml() and str(order.get("stage", "")) == "review":
-				_start_sticker()
-			elif _is_dz() and str(order.get("stage", "")) == "review":
-				_dz_tygram()
-			else:
-				_release()
+## A button on a card of the run (the old `_on_card` in RESULT).
+func _card_pressed(index: int) -> void:
+	var sub := str(order.get("stage", ""))
+	if sub == "match":
+		_match_answer(index)
+	elif _is_ml() and sub == "review":
+		_start_sticker()
+	elif _is_dz() and sub == "review":
+		_dz_tygram()
+	else:
+		finish()
 
 
-func _accept() -> void:
+## A card nobody pressed: a padel point is lost, anything else as its first button.
+func _card_expired() -> void:
+	if str(order.get("stage", "")) == "match":
+		_match_answer(-1)
+	else:
+		_card_pressed(0)
+
+
+## The autopilot's tap: the best shot on a padel point, the button of a review; a plain result and
+## the TYGRAM wait out their life, as before the kit.
+func _auto_button() -> int:
+	var sub := str(order.get("stage", ""))
+	if sub == "match":
+		return int(RALLIES[int(order["rallies"][int(order["point"])])][1])
+	if sub == "review":
+		return 0
+	return -1
+
+
+## The request was taken (the old `_accept`); the kit has already set `_t` and taken the card down.
+func _begin() -> void:
+	_ran = true
+	if _met:
+		_met = false
+		# Met in person at the gate (`padel_meet`): no drive, straight to the match.
+		missions.close()
+		missions.paused = true
+		_clock = 0.0
+		order["stage"] = "offer"
+		order["flew"] = flying
+		if log_on:
+			print("trend job: DESKA met in person at the gate")
+		_start_match()
+		return
 	if _is_kawa():
 		_accept_kawa()
 		return
 	if bool(order.get("call", false)):
 		_accept_call()
 		return
-	state = State.PICKUP
-	_t = 0.0
+	stage = Stage.PICKUP
 	_hold = 0.0
-	hud.hide_card()
 	missions.close()
 	missions.paused = true
 	hud.hide_pill()
@@ -1210,10 +1253,9 @@ func _accept() -> void:
 
 
 func _accept_call() -> void:
-	state = State.DELIVER
+	stage = Stage.DELIVER
 	_clock = 0.0
 	_t = 0.0
-	hud.hide_card()
 	missions.close()
 	missions.paused = true
 	hud.hide_pill()
@@ -1228,15 +1270,15 @@ func _accept_call() -> void:
 
 func _pickup_tick(dt: float) -> void:
 	var d := _flat(car.global_position, order["ring"])
-	var drop := _is_drop()
-	if drop and not force_drop and crowds != null and life != null and not Crowds.pistacja_drop(life.hour_now(), life.weekday_now()):
+	var is_drop := _is_drop()
+	if is_drop and not force_drop and crowds != null and life != null and not Crowds.pistacja_drop(life.hour_now(), life.weekday_now()):
 		_fail(["Wyprzedane! Drop się skończył.", "Sold out! The drop is over."])
 		return
-	var hold_for := DROP_HOLD if drop else PICKUP_HOLD
+	var hold_for := DROP_HOLD if is_drop else PICKUP_HOLD
 	if d < PICKUP and car.vel.length() < PICKUP_SPEED and not flying:
 		_hold += dt
 		if _hold >= hold_for:
-			state = State.DELIVER
+			stage = Stage.DELIVER
 			_clock = 0.0
 			_t = 0.0
 			_beacon.waving = true
@@ -1247,7 +1289,7 @@ func _pickup_tick(dt: float) -> void:
 				hud.toast("Agent: „Na pewno kebab? Mogę też napisać o nim wiersz.”", "The agent: \"Sure about the kebab? I can also write a poem about it.\"")
 			elif _is_cz():
 				hud.toast("Jest! Na kort, grają bez ciebie", "Got them! To the court, they're starting without you")
-			elif drop:
+			elif is_drop:
 				hud.toast("Ostatnie pudełko! Zanim się roztopi", "The last box! Before it melts")
 			else:
 				hud.toast("Odbiór na aplikację: kolejka przepuszcza kuriera", "App pickup: the queue lets the courier through")
@@ -1256,24 +1298,19 @@ func _pickup_tick(dt: float) -> void:
 			return
 	else:
 		_hold = 0.0
-	if drop:
-		hud.show_status("LIMITKA · KOLEJKA", "", "%d m" % roundi(d), "Stań w kolejce", _hold / hold_for, DROP_COLOUR, "", {},
-				"Wait in the queue")
+	if is_drop:
+		status("LIMITKA · KOLEJKA", "", "%d m" % roundi(d), ["Stań w kolejce", "Wait in the queue"], _hold / hold_for, DROP_COLOUR)
 		return
 	if _is_dz():
-		hud.show_status("DŻEMINI · ODBIÓR", "", "%d m" % roundi(d), "Stań przy kolejce", _hold / PICKUP_HOLD, ML_COLOUR, "", {},
-				"Stop by the queue")
+		status("DŻEMINI · ODBIÓR", "", "%d m" % roundi(d), ["Stań przy kolejce", "Stop by the queue"], _hold / PICKUP_HOLD, ML_COLOUR)
 		return
 	if _is_ml():
-		hud.show_status("MLASK · %s" % order["word"], "", "%d m" % roundi(d), "Stań przy kolejce", _hold / PICKUP_HOLD, ML_COLOUR, "", {},
-				"Stop by the queue")
+		status("MLASK · %s" % order["word"], "", "%d m" % roundi(d), ["Stań przy kolejce", "Stop by the queue"], _hold / PICKUP_HOLD, ML_COLOUR)
 		return
 	if _is_cz():
-		hud.show_status("CZWARTY · ODBIÓR", "", "%d m" % roundi(d), "Stań pod drzwiami gracza", _hold / PICKUP_HOLD, CZ_COLOUR, "", {},
-				"Stop at the player's door")
+		status("CZWARTY · ODBIÓR", "", "%d m" % roundi(d), ["Stań pod drzwiami gracza", "Stop at the player's door"], _hold / PICKUP_HOLD, CZ_COLOUR)
 		return
-	hud.show_status("NA CZASIE · ODBIÓR", "", "%d m" % roundi(d), "Stań przy kolejce", _hold / PICKUP_HOLD, COLOUR, "", {},
-			"Stop by the queue")
+	status("NA CZASIE · ODBIÓR", "", "%d m" % roundi(d), ["Stań przy kolejce", "Stop by the queue"], _hold / PICKUP_HOLD, COLOUR)
 
 
 func _deliver_tick(dt: float) -> void:
@@ -1292,29 +1329,29 @@ func _deliver_tick(dt: float) -> void:
 	if _is_ml() or _is_dz():
 		_ml_status(d)
 		return
-	var drop := _is_drop()
+	var is_drop := _is_drop()
 	var cz := _is_cz()
-	var limit := DROP_LIMIT if drop else ((DESKI_LIMIT if is_call else CZ_LIMIT) if cz else LIMIT)
-	var tint := DROP_COLOUR if drop else (CZ_COLOUR if cz else COLOUR)
+	var limit := DROP_LIMIT if is_drop else ((DESKI_LIMIT if is_call else CZ_LIMIT) if cz else LIMIT)
+	var tint := DROP_COLOUR if is_drop else (CZ_COLOUR if cz else COLOUR)
 	var left := limit - _clock
-	var clock := ("%d:%02d" % [int(left) / 60, int(left) % 60]) if left > 0.0 else "+%d:%02d" % [int(-left) / 60, int(-left) % 60]
-	var hint := (["Jedź lub leć do turkusowego światła", "Drive or fly to the teal beacon"] if is_call else ["Jedź do turkusowego światła", "Head for the teal beacon"] if cz else ["Jedź do zielonego światła", "Head for the green beacon"] if drop else ["Jedź do różowego światła", "Head for the pink beacon"]) if d > 40.0 else ["Stań pod drzwiami", "Stop at the door"]
+	var clk := ("%d:%02d" % [int(left) / 60, int(left) % 60]) if left > 0.0 else "+%d:%02d" % [int(-left) / 60, int(-left) % 60]
+	var hint := (["Jedź lub leć do turkusowego światła", "Drive or fly to the teal beacon"] if is_call else ["Jedź do turkusowego światła", "Head for the teal beacon"] if cz else ["Jedź do zielonego światła", "Head for the green beacon"] if is_drop else ["Jedź do różowego światła", "Head for the pink beacon"]) if d > 40.0 else ["Stań pod drzwiami", "Stop at the door"]
 	if left <= 0.0:
 		hint = ["Spóźnione, ale dowieź", "Late, but deliver it"]
-	hud.show_status(("CZWARTY → %s" if cz else "LIMITKA → %s" if drop else "NA CZASIE → %s") % order["name"], clock, "%d m" % roundi(d), hint[0],
-			clampf(_clock / limit, 0.0, 1.0), tint if left > 0.0 else FAIL_COLOUR, "", {}, hint[1])
+	status(("CZWARTY → %s" if cz else "LIMITKA → %s" if is_drop else "NA CZASIE → %s") % order["name"], clk, "%d m" % roundi(d), hint,
+			clampf(_clock / limit, 0.0, 1.0), tint if left > 0.0 else FAIL_COLOUR)
 
 
 func _ml_status(d: float) -> void:
 	var sticker := str(order.get("stage", "")) == "sticker"
 	var limit := ML_STICKER if sticker else ML_WARM
 	var left := limit - _clock
-	var clock := ("%d:%02d" % [int(left) / 60, int(left) % 60]) if left > 0.0 else "+%d:%02d" % [int(-left) / 60, int(-left) % 60]
+	var clk := ("%d:%02d" % [int(left) / 60, int(left) % 60]) if left > 0.0 else "+%d:%02d" % [int(-left) / 60, int(-left) % 60]
 	var hint := ["Stań przy drzwiach", "Stop at the door"] if sticker else ["Do vana Mrożula, póki ciepłe", "To Mrożulo's van while it's warm"]
 	if left <= 0.0:
 		hint = ["Spóźnione, ale dowieź", "Late, but deliver it"] if sticker else ["Stygnie… jedź dalej", "It's going cold… keep going"]
-	hud.show_status(("MLASK → %s" % order["word"]) if sticker else ("DŻEMINI → MROŻULO" if _is_dz() else "MLASK → MROŻULO"), clock, "%d m" % roundi(d), hint[0],
-			clampf(_clock / limit, 0.0, 1.0), ML_COLOUR if left > 0.0 else FAIL_COLOUR, "", {}, hint[1])
+	status(("MLASK → %s" % order["word"]) if sticker else ("DŻEMINI → MROŻULO" if _is_dz() else "MLASK → MROŻULO"), clk, "%d m" % roundi(d), hint,
+			clampf(_clock / limit, 0.0, 1.0), ML_COLOUR if left > 0.0 else FAIL_COLOUR)
 
 
 func _arrive() -> void:
@@ -1327,9 +1364,9 @@ func _arrive() -> void:
 		else:
 			_arrive_ml_review()
 		return
-	state = State.RESULT
+	stage = Stage.RESULT
 	_t = 0.0
-	hud.hide_status()
+	hide_status()
 	_beacon.waving = false
 	_beacon.place(order["door_ring"], ARRIVE - 0.5, false, true)
 	if _is_drop():
@@ -1354,7 +1391,7 @@ func _arrive() -> void:
 	var head := "NA CZASIE · +%d zł" % int(r["zl"])
 	var body := "„%s” · %s\n+%d zł (napiwek %d zł), +%d szacunku" % [line[0], order["customer"], int(r["zl"]), int(r["tip"]), int(r["respect"])]
 	var body_en := "\"%s\"\n+%d zł (tip %d zł), +%d respect" % [line[1], int(r["zl"]), int(r["tip"]), int(r["respect"])]
-	hud.show_side_card(head, body, PackedStringArray(["OK"]), COLOUR, "On trend · +%d zł" % int(r["zl"]), body_en)
+	show_side_card([head, "On trend · +%d zł" % int(r["zl"])], [body, body_en], PackedStringArray(["OK"]), RESULT_LIFE)
 	print("trend job: delivered %s to %s in %.0f s (%s, trend day %d): +%d zł (base %d, tip %d), +%d respect%s" % [order["word"],
 			order["name"], _clock, "on time" if on_time else "late", int(order["day"]), int(r["zl"]), int(r["base"]), int(r["tip"]),
 			int(r["respect"]), ", \"to już niemodne\"" if bool(r["out"]) else ""])
@@ -1379,9 +1416,9 @@ func _arrive_cz() -> void:
 	var head := "CZWARTY · +%d zł" % int(r["zl"])
 	var body := "„%s” · %s\n+%d zł (napiwek %d zł), +%d szacunku" % [line[0], order["customer"], int(r["zl"]), int(r["tip"]), int(r["respect"])]
 	var body_en := "\"%s\"\n+%d zł (tip %d zł), +%d respect" % [line[1], int(r["zl"]), int(r["tip"]), int(r["respect"])]
-	state = State.RESULT
+	stage = Stage.RESULT
 	_t = 0.0
-	hud.show_side_card(head, body, PackedStringArray(["OK"]), CZ_COLOUR, "Fourth player · +%d zł" % int(r["zl"]), body_en)
+	show_side_card([head, "Fourth player · +%d zł" % int(r["zl"])], [body, body_en], PackedStringArray(["OK"]), RESULT_LIFE)
 	print("trend job: delivered %s (Czwarty) to %s in %.0f s (%s): +%d zł (base %d, tip %d), +%d respect" % [order["customer"], order["name"], _clock,
 			"on time" if on_time else "late", int(r["zl"]), int(r["base"]), int(r["tip"]), int(r["respect"])])
 
@@ -1408,12 +1445,12 @@ static func match_pay(won: int, flew: bool) -> Dictionary:
 ## row were wider than the room there, stacked they were taller than the screen (Mac Autopilot,
 ## 2026-11-07).
 func _start_match() -> void:
-	state = State.RESULT
+	stage = Stage.RESULT
 	if enter_padel.is_valid():
 		# The arcade match (F 2026-11-08): the court, two games, the crowd; `arcade_done` pays.
 		order["stage"] = "arcade"
 		_t = 0.0
-		hud.hide_card()
+		_hide_own_card()
 		enter_padel.call({"partner": str(order["customer"]), "rivals": ARCADE_RIVALS, "flew": bool(order.get("flew", false)),
 				"seed": int(order.get("seed", done)), "hour": float(hour_now.call()) if hour_now.is_valid() else 12.0})
 		if log_on:
@@ -1438,7 +1475,7 @@ static func arcade_tier(g_us: int, g_them: int) -> int:
 
 
 func arcade_done(g_us: int, g_them: int, stats: Dictionary) -> void:
-	if state != State.RESULT or str(order.get("stage", "")) != "arcade":
+	if phase != Phase.RUN or stage != Stage.RESULT or str(order.get("stage", "")) != "arcade":
 		return
 	var tier := arcade_tier(g_us, g_them)
 	order["won"] = tier
@@ -1471,9 +1508,9 @@ func _ask_point() -> void:
 	elif said != "":
 		lead = said + " "
 		lead_en = said_en + " "
-	hud.show_card("PADEL · PUNKT %d/%d · %d:%d" % [i + 1, DESKI_POINTS, int(order["won"]), i - int(order["won"])],
-			lead + str(rally[0][0]), buttons, CZ_COLOUR, false, "Padel · point %d/%d · %d-%d" % [i + 1, DESKI_POINTS, int(order["won"]), i - int(order["won"])],
-			lead_en + str(rally[0][1]))
+	show_card(["PADEL · PUNKT %d/%d · %d:%d" % [i + 1, DESKI_POINTS, int(order["won"]), i - int(order["won"])],
+			"Padel · point %d/%d · %d-%d" % [i + 1, DESKI_POINTS, int(order["won"]), i - int(order["won"])]],
+			[lead + str(rally[0][0]), lead_en + str(rally[0][1])], buttons, POINT_LIFE)
 
 
 func _match_answer(index: int) -> void:
@@ -1512,10 +1549,10 @@ func _end_match() -> void:
 			["Wygrane w tie-breaku! %s stuka gipsem w ławkę." % order["hurt"], "Won in the tie-break! %s bangs the cast on the bench." % order["hurt"]],
 			["Wygrane! Bluza klubowa twoja. Od poniedziałku grasz z nami na stałe.", "We won! The club hoodie is yours. From Monday you're our regular fourth."]][won]
 	_t = 0.0
-	hud.show_card("PADEL · %s · +%d zł" % [score[0], zl],
-			"%s\n„%s” · %s\n+%d zł (napiwek %d zł, punkty %d zł), +%d szacunku" % [order["said"], line[0], order["customer"], zl, int(r["tip"]), int(m["zl"]), respect],
-			PackedStringArray(["OK"]), CZ_COLOUR, false, "Padel · %s · +%d zł" % [score[1], zl],
-			"%s\n\"%s\"\n+%d zł (tip %d zł, points %d zł), +%d respect" % [order["said_en"], line[1], zl, int(r["tip"]), int(m["zl"]), respect])
+	show_card(["PADEL · %s · +%d zł" % [score[0], zl], "Padel · %s · +%d zł" % [score[1], zl]],
+			["%s\n„%s” · %s\n+%d zł (napiwek %d zł, punkty %d zł), +%d szacunku" % [order["said"], line[0], order["customer"], zl, int(r["tip"]), int(m["zl"]), respect],
+			"%s\n\"%s\"\n+%d zł (tip %d zł, points %d zł), +%d respect" % [order["said_en"], line[1], zl, int(r["tip"]), int(m["zl"]), respect]],
+			PackedStringArray(["OK"]), RESULT_LIFE)
 	print("trend job: DESKA match %d/%d (%s), %s: +%d zł (base %d, tip %d, points %d), +%d respect" % [won, DESKI_POINTS, score[1],
 			"landed by helicopter" if flew else "by car", zl, int(r["base"]), int(r["tip"]), int(m["zl"]), respect])
 
@@ -1531,31 +1568,43 @@ func _arrive_drop() -> void:
 	var head := "LIMITKA · +%d zł" % int(r["zl"])
 	var body := "„%s” · %s\n+%d zł (napiwek %d zł), +%d szacunku" % [line[0], order["customer"], int(r["zl"]), int(r["tip"]), int(r["respect"])]
 	var body_en := "\"%s\"\n+%d zł (tip %d zł), +%d respect" % [line[1], int(r["zl"]), int(r["tip"]), int(r["respect"])]
-	state = State.RESULT
+	stage = Stage.RESULT
 	_t = 0.0
-	hud.hide_status()
+	hide_status()
 	_beacon.waving = false
 	_beacon.place(order["door_ring"], ARRIVE - 0.5, false, true)
-	hud.show_side_card(head, body, PackedStringArray(["OK"]), DROP_COLOUR, "Limited drop · +%d zł" % int(r["zl"]), body_en)
+	show_side_card([head, "Limited drop · +%d zł" % int(r["zl"])], [body, body_en], PackedStringArray(["OK"]), RESULT_LIFE)
 	print("trend job: delivered the PISTACJA drop to %s in %.0f s (%s): +%d zł (base %d, tip %d), +%d respect" % [order["name"], _clock,
 			"on time" if on_time else "late", int(r["zl"]), int(r["base"]), int(r["tip"]), int(r["respect"])])
 
 
+## The ✕ drops a run on its way (not a card).
+func _can_abort() -> bool:
+	return stage == Stage.PICKUP or stage == Stage.DELIVER
+
+
+func _quit_words() -> Array:
+	return ["Anulowane", "Cancelled"]
+
+
+## The run fails by itself (the drop sold out, the bike in the air): the words, then the end.
 func _fail(words: Array) -> void:
 	hud.toast(str(words[0]), str(words[1]))
 	if log_on:
 		print("trend job: %s" % words[1])
-	_release()
+	finish()
 
 
-func _release() -> void:
+## Back to idle. After a run: the old `_release`. After a call or a request nobody took: nothing
+## more (the old `_withdraw`), and `order` stays as it was.
+func _ended() -> void:
+	stage = Stage.NONE
+	_met = false
+	if not _ran:
+		return
+	_ran = false
 	_kawa_car_back()
-	state = State.IDLE
-	_t = 0.0
-	_card_rest = _session + CARD_REST
-	_beacon.visible = false
-	hud.hide_card()
-	hud.hide_status()
+	_card_rest = _played + CARD_REST
 	missions.paused = false
 	missions.close()
 	order = {}
@@ -1569,10 +1618,12 @@ func _is_kawa() -> bool:
 
 ## Zuzia calls: the coffee run's card (stage "dock": first to the ROWERILO dock by car).
 func offer_kawa_call(force := false) -> bool:
+	if phase == Phase.RUN:
+		return false
 	if not force and not _free():
 		return false
 	for i in CoffeeRun.STOPS.size():
-		if CoffeeRun.stop_at(i, _places) == Vector2.INF:
+		if CoffeeRun.stop_at(i, places) == Vector2.INF:
 			if log_on:
 				print("trend job: coffee run: stop %d has no position" % i)
 			return false
@@ -1580,11 +1631,11 @@ func offer_kawa_call(force := false) -> bool:
 	order = {"kind": "kawa", "call": true, "slot": -1, "word": "KAWA", "day": 0, "stage": "dock", "i": 0,
 			"ring": dock, "door_ring": dock, "name": "ROWERILO", "customer": CoffeeRun.CALLER, "paid": 0, "road": 0.0,
 			"prev": "hatch"}
-	state = State.OFFER
-	_t = 0.0
+	colour = CoffeeRun.COLOUR
 	var txt := CoffeeRun.call_text()
-	hud.show_side_card(str(txt[0]), str(txt[1]), PackedStringArray(["JADĘ", "NIE TERAZ"]), CoffeeRun.COLOUR,
-			"%s is calling" % CoffeeRun.CALLER, str(txt[2]))
+	_asked = {"title": [str(txt[0]), "%s is calling" % CoffeeRun.CALLER], "body": [str(txt[1]), str(txt[2])],
+			"buttons": PackedStringArray(["JADĘ", "NIE TERAZ"]), "face": CoffeeRun.CALLER}
+	_offer()
 	hud.ticker_out()
 	if log_on:
 		print("trend job: coffee run call from %s, dock %.0f m away" % [CoffeeRun.CALLER,
@@ -1595,15 +1646,15 @@ func offer_kawa_call(force := false) -> bool:
 ## The quest map's hooks (main.gd `_build_stories`, story_quests.gd). Zuzia phones from the list:
 ## never over another job.
 func kawa_ring() -> bool:
-	return state == State.IDLE and offer_kawa_call(true)
+	return idle() and offer_kawa_call(true)
 
 
 ## Zuzia met in person at the ROWERILO dock (she walks up, the player said WCHODZĘ): no call card,
 ## straight to the run (the car is already at the dock, so the bike comes next). False unless idle.
 func kawa_meet() -> bool:
-	if state != State.IDLE or not offer_kawa_call(true):
+	if not idle() or not offer_kawa_call(true):
 		return false
-	_accept_kawa()
+	card_pressed(0)
 	return true
 
 
@@ -1614,7 +1665,7 @@ func kawa_busy() -> bool:
 
 ## Idle: no job, no call, and not just after a run (the coffee run may start now).
 func kawa_idle() -> bool:
-	return state == State.IDLE and _session >= _kawa_rest
+	return idle() and _played >= _kawa_rest
 
 
 # --- Padel at DESKA on the quest map (story_quests.gd, docs/design/quest-map.md) ---------------
@@ -1632,23 +1683,17 @@ const PADEL_CLOSED := ["„Korty już zamknięte. Pani Basia z recepcji poszła 
 
 ## The quest map's call (the list's start): the DESKA call rings now. False unless idle.
 func padel_ring() -> bool:
-	return state == State.IDLE and offer_deski_call(true)
+	return idle() and offer_deski_call(true)
 
 
 ## Met in person at the gate (the friend walks up, the player said yes): no call, no drive,
 ## straight to the match. False unless idle.
 func padel_meet() -> bool:
-	if state != State.IDLE or not offer_deski_call(true):
+	if not idle() or not offer_deski_call(true):
 		return false
-	hud.hide_card()
-	missions.close()
-	missions.paused = true
-	_clock = 0.0
-	order["stage"] = "offer"
-	order["flew"] = flying
-	if log_on:
-		print("trend job: DESKA met in person at the gate")
-	_start_match()
+	_hide_own_card()
+	_met = true
+	start()
 	return true
 
 
@@ -1659,7 +1704,7 @@ func padel_busy() -> bool:
 
 ## Idle: no job and no call (the padel questline may start now).
 func padel_idle() -> bool:
-	return state == State.IDLE
+	return idle()
 
 
 func _ring_at(at: Vector2) -> Vector3:
@@ -1667,11 +1712,10 @@ func _ring_at(at: Vector2) -> Vector3:
 
 
 func _accept_kawa() -> void:
-	state = State.DELIVER
+	stage = Stage.DELIVER
 	_clock = 0.0
 	_t = 0.0
 	_hold = 0.0
-	hud.hide_card()
 	missions.close()
 	missions.paused = true
 	hud.hide_pill()
@@ -1686,13 +1730,13 @@ func _accept_kawa() -> void:
 
 ## The run: the dock (by car, no clock), the four cafés (on the bike, the clock on), the dock again.
 func _kawa_tick(dt: float) -> void:
-	var stage := str(order.get("stage", ""))
-	var biking := stage == "stop" or stage == "return"
+	var sub := str(order.get("stage", ""))
+	var biking := sub == "stop" or sub == "return"
 	if biking and flying:
 		_fail(["Rower nie lata. Rajd przerwany.", "Bikes don't fly. The run is off."])
 		return
 	_kawa_glow_tick(dt)
-	if stage == "stop":
+	if sub == "stop":
 		_clock += dt
 		_line_t += dt
 	_kawa_joke_t = maxf(0.0, _kawa_joke_t - dt)
@@ -1702,10 +1746,10 @@ func _kawa_tick(dt: float) -> void:
 		_hold += dt
 	else:
 		_hold = 0.0
-	var need := CoffeeRun.STAMP_HOLD if stage == "stop" else 0.5
+	var need := CoffeeRun.STAMP_HOLD if sub == "stop" else 0.5
 	if still and _hold >= need:
 		_hold = 0.0
-		match stage:
+		match sub:
 			"dock":
 				_kawa_take_bike()
 			"stop":
@@ -1717,20 +1761,20 @@ func _kawa_tick(dt: float) -> void:
 
 
 func _kawa_status(d: float) -> void:
-	var stage := str(order.get("stage", ""))
-	if stage == "dock":
+	var sub := str(order.get("stage", ""))
+	if sub == "dock":
 		var hint := ["Jedź do brązowego światła: stacja ROWERILO", "Head for the brown beacon: the ROWERILO dock"] if d > 40.0 \
 				else ["Stań przy stacji, weź rower", "Stop by the dock, take a bike"]
-		hud.show_status("KAWOWY RAJD → ROWERILO", "", "%d m" % roundi(d), hint[0], 0.0, CoffeeRun.COLOUR, "", {}, hint[1])
+		status("KAWOWY RAJD → ROWERILO", "", "%d m" % roundi(d), [hint[0], hint[1]], 0.0, CoffeeRun.COLOUR)
 		return
-	if stage == "return":
+	if sub == "return":
 		var back: Array = _kawa_joke if _kawa_joke_t > 0.0 and not _kawa_joke.is_empty() \
 				else ["Odstaw rower, auto czeka", "Return the bike, the car's waiting"]
-		hud.show_status("KAWOWY RAJD → ROWERILO", "", "%d m" % roundi(d), str(back[0]), 0.0, CoffeeRun.COLOUR, "", {}, str(back[1]))
+		status("KAWOWY RAJD → ROWERILO", "", "%d m" % roundi(d), [str(back[0]), str(back[1])], 0.0, CoffeeRun.COLOUR)
 		return
 	var i := int(order["i"])
 	var left := CoffeeRun.COFFEE_LIMIT - _clock
-	var clock := ("%d:%02d" % [int(left) / 60, int(left) % 60]) if left > 0.0 else "+%d:%02d" % [int(-left) / 60, int(-left) % 60]
+	var clk := ("%d:%02d" % [int(left) / 60, int(left) % 60]) if left > 0.0 else "+%d:%02d" % [int(-left) / 60, int(-left) % 60]
 	var line: Array = CoffeeRun.RIDE_LINES[int(_line_t / CoffeeRun.LINE_EVERY) % CoffeeRun.RIDE_LINES.size()]
 	if _kawa_joke_t > 0.0 and not _kawa_joke.is_empty():
 		line = _kawa_joke
@@ -1738,8 +1782,8 @@ func _kawa_status(d: float) -> void:
 		line = ["Stań przy drzwiach po pieczątkę", "Stop at the door for the stamp"]
 	elif left <= 0.0:
 		line = ["Zuzia: „Moja kawa stygnie!”", "Zuzia: \"My coffee's going cold!\""]
-	hud.show_status("KAWA %s → %s" % [CoffeeRun.stamps(i), CoffeeRun.STOPS[i]["name"]], clock, "%d m" % roundi(d), str(line[0]),
-			clampf(_clock / CoffeeRun.COFFEE_LIMIT, 0.0, 1.0), CoffeeRun.COLOUR if left > 0.0 else FAIL_COLOUR, "", {}, str(line[1]))
+	status("KAWA %s → %s" % [CoffeeRun.stamps(i), CoffeeRun.STOPS[i]["name"]], clk, "%d m" % roundi(d), [str(line[0]), str(line[1])],
+			clampf(_clock / CoffeeRun.COFFEE_LIMIT, 0.0, 1.0), CoffeeRun.COLOUR if left > 0.0 else FAIL_COLOUR)
 
 
 ## At the dock: the car stays (a still copy), the player rides on (car.gd model "bike").
@@ -1765,7 +1809,7 @@ func _kawa_next(i: int) -> void:
 	order["stage"] = "stop"
 	order["i"] = i
 	order["name"] = CoffeeRun.STOPS[i]["name"]
-	order["door_ring"] = _ring_at(CoffeeRun.stop_at(i, _places))
+	order["door_ring"] = _ring_at(CoffeeRun.stop_at(i, places))
 	_beacon.waving = true
 	_beacon.place(order["door_ring"], ARRIVE - 0.5)
 
@@ -1808,9 +1852,9 @@ func _kawa_finish() -> void:
 	var r := CoffeeRun.pay(int(order["paid"]), on_time)
 	wallet.pay(int(r["zl"]), int(r["respect"]), "trend")
 	done += 1
-	state = State.RESULT
+	stage = Stage.RESULT
 	_t = 0.0
-	hud.hide_status()
+	hide_status()
 	_beacon.waving = false
 	_beacon.place(order["door_ring"], ARRIVE - 0.5, false, true)
 	var line := ["Pełny paszport! Dziesiąta kawa gratis… w dni robocze 6:00-6:05.", "Full passport! Tenth coffee free… weekdays 6:00-6:05."]
@@ -1821,7 +1865,7 @@ func _kawa_finish() -> void:
 			CoffeeRun.stamps(CoffeeRun.STOPS.size()), int(order["time"]) / 60, int(order["time"]) % 60, int(r["zl"]), int(r["back"]), int(r["respect"])]
 	var body_en := "\"%s\"\nCOFFEE PASSPORT in %d:%02d\n+%d zł by BLIK (%d zł back), +%d respect" % [line[1], int(order["time"]) / 60,
 			int(order["time"]) % 60, int(r["zl"]), int(r["back"]), int(r["respect"])]
-	hud.show_side_card(head, body, PackedStringArray(["OK"]), CoffeeRun.COLOUR, "Coffee run · +%d zł" % int(r["zl"]), body_en)
+	show_side_card([head, "Coffee run · +%d zł" % int(r["zl"])], [body, body_en], PackedStringArray(["OK"]), RESULT_LIFE)
 	print("trend job: coffee run done in %.0f s (%s): paid %d zł for coffee, +%d zł back, +%d respect" % [float(order["time"]),
 			"on time" if on_time else "late", int(order["paid"]), int(r["zl"]), int(r["respect"])])
 
@@ -1829,7 +1873,7 @@ func _kawa_finish() -> void:
 ## Off the bike and into the car (the run ended, failed or was cancelled); the still copy goes.
 func _kawa_car_back() -> void:
 	if _is_kawa():
-		_kawa_rest = _session + CoffeeRun.REST
+		_kawa_rest = _played + CoffeeRun.REST
 	if car != null and car.model == "bike":
 		car.set_model(str(order.get("prev", "hatch")))
 	if _parked != null:
@@ -1850,8 +1894,8 @@ static func kawa_venue(i: int) -> String:
 ## The café the player rides to glows: a warm additive panel over its glazing, pulsing, once its
 ## sector has put the front on the wall (+1 draw call while the run is on). None on the way back.
 func _kawa_glow_tick(dt: float) -> void:
-	var stage := str(order.get("stage", ""))
-	var i := int(order.get("i", -1)) if stage == "stop" else -1
+	var sub := str(order.get("stage", ""))
+	var i := int(order.get("i", -1)) if sub == "stop" else -1
 	if i != _kawa_glow_i:
 		if _kawa_glow != null:
 			_kawa_glow.queue_free()
@@ -1888,24 +1932,7 @@ func _kawa_glow_tick(dt: float) -> void:
 		m.albedo_color.a = 0.35 + 0.3 * (0.5 + 0.5 * sin(_kawa_glow_t * 4.0))
 
 
-## --autopilot: the car slides straight to the pickup, then the door (as the missions' autopilot).
-func drive_player() -> bool:
-	if not autopilot or not has_target():
-		return false
-	var to3: Vector3 = target_position() - car.global_position
-	var to := Vector3(to3.x, 0.0, to3.z)
-	var d := to.length()
-	car.collision_mask = 0
-	car.vel = Vector3.ZERO
-	car.throttle = 0.0
-	var dt := get_process_delta_time()
-	if d > 1.0:
-		var step := minf(d - 0.5, 22.0 * dt)
-		car.global_position += to / d * step
-		car.global_position.y = map.ground_height(car.global_position.x, car.global_position.z) + 0.05
-		car.rotation.y = atan2(-to.x, -to.z)
-	return true
-
+# --- helpers ----------------------------------------------------------------------------------
 
 static func _flat(a: Vector3, b: Vector3) -> float:
 	return Vector2(a.x - b.x, a.z - b.z).length()

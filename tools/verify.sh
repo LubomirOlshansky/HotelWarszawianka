@@ -84,6 +84,23 @@
 # 1.6 × detour rule, the rider's way and speed, a win's +30 zł +30 respect once), the Leżak round-up
 # (the pay, the boot of 5, the depots, ten Leżaks on the real map, late, ✕, back by morning), the
 # payphone by Plac Konstytucji and E40 once; centrum.json only (CI too).
+# Trend job (2026-11-13): `trendjob` runs game/tools/check_trend_job.gd: the trend courier's job on the
+# activity kit played headless on stand-ins (no map, no await): the look and what holds it back, the
+# request and the run of every kind of order (Na czasie, Limitka, Czwarty, the DESKA call and its
+# match, Mlask, Dżemini, the coffee run), the pay's conditions one at a time, which order comes
+# first, one order over another, the autopilot to every end, the dice draw for draw (CI too).
+# Podwózka on the kit (2026-11-13): `rideplay` runs game/tools/check_ride_play.gd (with --fixed-fps 60 for the
+# autopilot's frames): the real Rides on the stand-ins of tools/fakes.gd, played headless: the settings, the
+# button and what holds a request back, the request card, the way to the passenger, the ride and its stars,
+# the pay, the cancels, the quirks, every kind of passenger, the story passengers, the autopilot, the bare
+# rig (no traffic), a save that has driven before and the director; the rides that are made (counted over
+# seeded draws), two rides in a row, and the plans (the river, the park, the Frogs turn, the story's place,
+# the scan) asked straight on a bigger test city (CI too).
+# The deliveries on the kit (2026-11-13): `jobplay` runs game/tools/check_job_play.gd (with --fixed-fps 60 for the
+# autopilot's frames): the real jobs.gd on the committed map and the stand-ins of tools/fakes.gd, played headless:
+# what setup builds from the map, the places and the pull-in, the order card and its count-down, the drive, the
+# heat, the door, the result cards, the craft kebab and the Zagłębie, the słoiki run and its jars, the pointer to
+# the next stand, other cards and other jobs, the test flags and the autopilot (CI too).
 # Beta values (2026-11-04): `laneassist` runs game/tools/check_lane_assist.gd: the lane assist on
 # the real car (a 6° start, a 300 m curve, a deliberate turn, when it must not pull) and the lane's
 # direction on the committed map (~10 s).
@@ -108,23 +125,30 @@
 # lane graph (main roads, 2+ lanes, no overlaps), the real traffic queueing and going round a scene,
 # the timer (first, life, gap); centrum.json only (CI too).
 # Bar crawl (2026-11-07): `crawl` runs game/tools/check_bar_crawl.gd: the groups' lines, the routes,
-# the call's hours, the clock and the pay.
+# the call's hours, the clock and the pay, and (since it is an activity of the kit, 2026-11-12) a
+# whole crawl played against the shared stand-ins. `crawl-run` (full set only) plays the Klasyczna
+# in the whole game with the autopilot: the pickup, three bars, the pay.
 # Sekretny rave (2026-11-06): `rave` runs game/tools/check_rave.gd: the cone, booth and club-room meshes,
 # LEKTI's, Mati's, the door's and the club's lines (no brand), the rave clock, the door's three
 # questions, the lights' poses, the spots and Smoła on the real lane graph; centrum.json only (CI too).
 # Dym u Senatorka (2026-11-08): `shisha` runs game/tools/check_shisha.gd: data/shisha.json's scenes,
 # taps and jars (both languages, under 90 characters, no brand), the votes and the pay, the
 # mini-game's hearts, coal and draw, the lounge's one-surface mesh, Ivan's block, the courts and
-# the door on Emilii Plater found on the real lane graph; centrum.json only (CI too).
+# the door on Emilii Plater found on the real lane graph, and (since it is an activity of the kit,
+# 2026-11-12) four nights played against the shared stand-ins; centrum.json only (CI too).
+# `shisha-run` (full set only) plays a night in the whole game with the autopilot: Ivan's call,
+# both pickups, the lounge playing itself, both drop-offs, the pay.
 # Kieślowski tour (2026-11-07): `dekalog` runs game/tools/check_dekalog_tour.gd: Claire's pickup and
 # six Dekalog stops stand on drivable roads near their real places, the call, legs, shots, hits, the
-# last question and the pay (docs/design/dekalog-tour.md).
+# last question and the pay (docs/design/dekalog-tour.md); since the activity kit it drives tour.gd
+# with data/dekalog_tour.json.
 # Nocny spot (2026-11-06): `meet` runs game/tools/check_street_meet.gd: the club's five cars and the
 # donut marks (one surface each), every line (no brand, no film names), the night clock, the race's pay
 # and the shift grades, the drag's times (perfect < Tadek < ok, lazy loses, nitro wins), both meets and
 # the Zieleniecka strip on the real lane graph; centrum.json only (CI too).
 # Cinema tour (2026-11-07): `kinotour` runs game/tools/check_kino_tour.gd: the stops on drivable roads by
-# their cinemas, the call, the pickup, the pitches, the shots, the scratches on the reel and the pay.
+# their cinemas, the call, the pickup, the pitches, the shots, the scratches on the reel and the pay;
+# since the activity kit it drives tour.gd with data/kino_tour.json.
 # Arcade padel (2026-11-08): `padel` runs game/tools/check_padel.gd: the shot solver, 24 whole matches
 # with the human on autopilot (they end, no stuck rally, real rallies, both pairs win, smashes and
 # glass), an idle human loses 0:2, a tapping one hits, the net / glass / double-bounce rules, the
@@ -173,6 +197,20 @@
 # The garage loop: `garage` runs game/tools/check_garage.gd: Warsztat u Mirka's paints and rules,
 # buying and switching (10 seeded walks), the save, the car's paint, Mirek's lines, E01 and E21
 # once; no map at all (CI too).
+# Tech-debt TD-14: `errortrap` runs game/tools/check_error_trap.gd: the error trap (error_trap.gd)
+# fed by hand: an error seen again only counts, the trail of printed lines, the report, the session
+# file and its mark (a file without it is a session that closed by itself), the Settings' RAPORT
+# button; no map (CI too).
+# Tech-debt TD-15: `boot` runs game/tools/check_boot.gd: the boot scene (boot.gd) with a stand-in
+# for the game's scene: which launch is a player's, the title up within two frames and taken over,
+# a run with flags straight into the game, and the list of scripts the first frame waits for; no
+# map (CI too). `boot-run` is the whole game started that way, on the prebuilt city (the one run
+# with the title up while the map's index loads on threads: TD-22's line, see `problems`).
+# Tech-debt TD-1 (with TD-2 and TD-16): `activity` runs game/tools/check_activity.gd: the activity
+# kit's base class (activity.gd: phases, the call's clock, its own cards, the target, the ✕, the
+# end), the director (activities.gd: one at a time), the real HUD's card owner, and every
+# data/*_tour.json (the keys tour.gd reads, both languages, and the tour played from the call to
+# the pay); no map (CI too).
 # Loop 3h slice 1: `save` runs game/tools/check_save.gd: save v2 (a version-1 fixture built in the
 # check migrates keeping every section, a backup of the old file, the round trip, a newer file never
 # overwritten, --nosave writes nothing, settings.cfg's version; save and resume: the [session] spot,
@@ -189,7 +227,13 @@
 # `racecuts` runs game/tools/check_race_cuts.gd: the racers' shortcuts (game/data/race_cuts.json from
 # tools/race_cuts.py) snap to the lane graph, knowledge per rival, the routing with them never longer,
 # 60 races driven with traffic.gd's own cut choice all arrive and some take a cut, the rivals' human
-# lines (CI too, map part skipped without centrum.json). The racer AI rebuild (2026-11-09,
+# lines (CI too, map part skipped without centrum.json). Racer AI step 5 (2026-11-13): `racelinks`
+# runs game/tools/check_race_links.gd: the race links through yards and car parks
+# (game/data/race_links.json from tools/race_links.sh) all proven or refused by the player's car, the
+# proven ones loaded, each one's curve on its points, knowledge by `yards` and `narrow`, each worth
+# taking and the routing never longer (no city; CI too); `racelinks-drive` drives the player's car
+# over every proven link in the prebuilt city (check_lane_drive.gd --links --prebuilt): a wall, a
+# fence or a post since put in a link's way fails it (about a minute). The racer AI rebuild (2026-11-09,
 # docs/design/race-ai.md): `racebench` runs game/tools/check_race_bench.gd: the race bench's quick
 # matrix (the prototype race Powiśle to Plac Trzech Krzyży with Pani Halina on the committed
 # centrum.json's lane graph: clear roads, Busy traffic, a blocked street and a crash against the test
@@ -197,7 +241,29 @@
 # city, under a minute) and its pass marks against game/data/race_bench.json: a mark recorded as a
 # pass that fails is a FAIL, one recorded as a fail that passes is a WARN until it is recorded
 # (tools/race_bench.sh --write; the full matrix, ~4 min: tools/race_bench.sh), one recorded as
-# unsteady (it turns with the draw of the traffic) is shown and not held (CI too). Loop 3h slice 4: `first10`
+# unsteady (it turns with the draw of the traffic) is shown and not held (CI too). Step 3 of the rebuild:
+# `raceplanner` runs game/tools/check_race_planner.gd: the route planner (race_planner.gd) and
+# traffic.gd's part of it on the same lane graph and bench: the traffic's delay by street (none without
+# traffic, in proportion to it, most where there is no way past), a plan by arrival time (Mike's quicker
+# than Halina's, the town's traffic in it by what the racer knows, a shut street once and the way round
+# it, the search in slices the same as at once), Słoik's wrong turns (4 to 15 s, never the way back),
+# hairpins at the U-turn's speed, one finish line for both cars (the roads through a finish's circle,
+# the plan, the metres and the minimap's line ending where such a road enters it, the player's car home
+# there in any lane and not short of it, past it, beside the road or on another level, Trzy mosty's
+# last leg to its circle), and eleven races: the plan's clock against the race as driven, a wall in
+# a one-way street (backs out) and in a two-way street (turns round in it), the player's car stopped in
+# the only lane, out of the town's cars in Busy traffic (the delay owed is paid, with no step in the
+# speed), behind the slow test player on two lanes (a lane held: she moves over and is past), and the
+# first race to the Palace home at its circle; about 8 s (CI too, skipped without centrum.json).
+# Step 4a of the rebuild: `raceline` runs game/tools/check_race_line.gd: the racing line
+# (race_line.gd) over the whole committed lane graph without a race: its constants repeat
+# traffic.gd's, every stretch between two long streets in every lane stays in its lane and in its
+# junction's room with its metres rising (the steps back and tight arcs the map's own curves give
+# are counted on purpose), a way of several stretches joins without a step or a kink, a car beside
+# its line moves without a step, and the speeds never pass a point faster than its turn allows,
+# are braked for in time, in the order of the racers' grip, a mistake within the car's own grip;
+# about 15 s (CI too, skipped without centrum.json).
+# Loop 3h slice 4: `first10`
 # runs game/tools/check_first10.gd: the guide's ten beats and windows, who gets the guide, three
 # synthetic players through the director's rules (each beat in its window, the fallbacks, a beat
 # waiting for a job), the first race at her own pace in a 1-D race, the words; `endcard` runs
@@ -255,7 +321,7 @@
 # Monuments (2026-11-02): `monuments` runs tools/check_monuments.py (the OSM monuments and wall plaques against
 # the map: stale file, blocked spots, plaques on walls, hand-built monuments left alone); `monumentmesh` runs
 # game/tools/check_monuments.gd (every kind builds as one surface, a cell's triangle budget with the park pieces); CI too.
-# The Złote Tarasy 3D corner screen (2026-11-05): `tarasyscreen` runs game/tools/check_tarasy_screen.gd (one surface, 40-60 m, on Skylight's wall, over the plate).
+# The Złote Tarasy 3D corner screen (2026-11-05, an L on Skylight's corner since 2026-11-11): `tarasyscreen` runs game/tools/check_tarasy_screen.gd (one surface, two flat faces at a corner, 22-30 m, on the wall, 10-27 m up).
 # The Warsaw Spire (2026-11-06): `spiremotion` runs game/tools/check_spire_motion.gd (the crown's ticker and the plaza jets: one surface each, the ticker on the crown's ring, the jets in the water, the shaders load).
 # Bus stops (G8/G9, 2026-11-01): `stops` runs tools/check_stops.py (every bus-road shelter on the kerb and
 # turned to the road, benches facing the walk, none in a building or the water, cafe sets on a shopfront;
@@ -266,7 +332,9 @@
 # The chatter budget (docs/GAMEPLAY_PLAN.md 0.2, 2026-11-03): `chatter` runs game/tools/check_chatter.gd:
 # 60 s pinned with traffic and people near gives no city line (quest lines still show), at most 2
 # bubbles and a gap between new ones, one reaction in 20 s, the setting's gaps, the ride's merged
-# star toast; no map (CI too).
+# star toast; no map (CI too). The message director (docs/design/hud-messages.md, 2026-11-11): `messages`
+# runs game/tools/check_messages.gd: the rules by context, the queue, the call spacing, F's night race
+# replayed, the toast wait, the compact quest card, the challenge button, the road ahead; no map (CI too).
 # `streaming` runs game/tools/check_streaming.gd
 # (loop 3c) WITH a renderer (a window opens for a minute or two): every sector built from its
 # file is the whole city, vertex for vertex; 10 spots rendered with --monolithic and with the
@@ -300,8 +368,20 @@ zmodload zsh/datetime
 ROOT=${0:A:h:h}
 GAME=$ROOT/game
 GODOT=${GODOT:-godot}
-STEPS_ALL=(map roads smooth fixes centralnyramp cyclehang portbridge heights objects tramstops stairs streets outline pois streetdetails streetpass design models overrides stops streetmesh ratuszhub parkdetails parkmesh monuments monumentmesh spiremotion tarasyscreen spec lod2 courts drape ground drive drive-prebuilt deckxray tunnelcut stuckspots stuckspots-prebuilt oldtowndrive lanedrive lanedrive-grounded finite steering laneassist stuckoffer handling grounded stopassist questlines stories settings credits language tiers governor shaderbudget heliview hud places edge roadworks roadworks-prebuilt eggs tape crowds life buses zaglebie crashes rave shisha padel meet boatrace dekalog kinotour evtow crawl loud crazy oldtram tramfleet trains railsignals packs wellness tamka fans eventday coffeerun garage save districts syrenki cassettes ladder racecuts racebench first10 mainline chatter endcard opening parodies jobs2 rescues couriers delivery rides cost landmarks oldtownroofs roofdress tenementtrim osmroofs sites palacelights meshq sfx juice gamepad radio sounds water water-prebuilt streaming police plain ram teleport firstlife heli race trzy-mosty first10-run kebab coffee ride ride-police splash rain prebuilt classic police-runs police-soak life-soak)
-STEPS_QUICK=(map roads smooth fixes centralnyramp cyclehang portbridge heights objects tramstops stairs streets outline pois streetdetails streetpass design models overrides stops streetmesh ratuszhub parkdetails parkmesh monuments monumentmesh spiremotion tarasyscreen spec drape drive deckxray tunnelcut stuckspots oldtowndrive finite steering laneassist stuckoffer handling grounded stopassist questlines stories settings credits language tiers governor shaderbudget heliview hud places edge roadworks eggs tape crowds life buses zaglebie crashes rave shisha padel meet boatrace dekalog kinotour evtow crawl loud crazy oldtram tramfleet trains railsignals packs wellness tamka fans eventday coffeerun garage save districts syrenki cassettes ladder racecuts racebench first10 mainline chatter endcard opening parodies jobs2 rescues couriers delivery rides cost landmarks oldtownroofs roofdress tenementtrim osmroofs sites palacelights meshq sfx juice gamepad radio sounds police plain ram teleport firstlife prebuilt)
+# The steps and the --quick set come from tools/ci_steps.txt: one line per step (its name, its CI
+# group, `slow` for a step --quick leaves out), sorted by name, and the steps run in that order.
+# A new check adds its line there and its case below; these lists are no longer edited, so two
+# pull requests that each add a check don't meet on one line (2026-11-12, TD-18).
+STEPS_ALL=()
+STEPS_QUICK=()
+while read -r step_name step_group step_flag; do
+	[[ -z $step_name || $step_name == \#* ]] && continue
+	STEPS_ALL+=($step_name)
+	[[ $step_flag == slow ]] || STEPS_QUICK+=($step_name)
+done < $ROOT/tools/ci_steps.txt
+if (( ${#STEPS_ALL} == 0 )); then
+	print -r -- "FAIL: no steps read from $ROOT/tools/ci_steps.txt"; exit 1
+fi
 # Operation Unslop review (2026-11-05): the road loop ran the whole --quick (~100 steps, most start
 # the game) after every tweak. --roads keeps only the steps a road rule can break; steps not in
 # STEPS_ALL on this branch (e.g. `smooth` before the smooth-roads PR) are skipped.
@@ -382,8 +462,25 @@ limited() {
 
 # problems LOG: the ERROR / WARNING lines Godot printed (push_error, push_warning, script
 # errors, engine errors), one per line.
+# WORKAROUND(arch): one line of the engine's own is let through, in the one step that asks for
+# it, see tech-debt TD-22.
+# A threaded load (`ResourceLoader.load_threaded_request`) of a file with dependencies leaves the
+# engine's load tokens behind, and at exit it prints "WARNING: N ObjectDB instances were leaked at
+# exit". The title on the prebuilt city loads the map's index that way (main.gd `_start_preloads`),
+# so a step that plays that title sets ENGINE_TOKENS=N, the count measured for the index's files:
+# there that line with a count up to N is not a problem. A bigger count (something else was left
+# behind) and every other line still fail the step. Everywhere else ENGINE_TOKENS is 0.
+ENGINE_TOKENS=0
+TOKENS_LINE='^WARNING: [0-9]+ ObjectDB instances were leaked at exit'
 problems() {
-	grep -E '^(ERROR|WARNING|SCRIPT ERROR|SCRIPT WARNING|USER ERROR|USER WARNING|Parse Error)' $1
+	grep -E '^(ERROR|WARNING|SCRIPT ERROR|SCRIPT WARNING|USER ERROR|USER WARNING|Parse Error)' $1 \
+		| awk -v max=$ENGINE_TOKENS -v line="$TOKENS_LINE" '$0 ~ line && $2 + 0 <= max { next } { print }'
+}
+
+# tokens LOG: the count in the engine's exit line when `problems` let it through, else nothing.
+tokens() {
+	(( ENGINE_TOKENS > 0 )) || return 0
+	grep -E -m1 "$TOKENS_LINE" $1 | awk -v max=$ENGINE_TOKENS '$2 + 0 <= max { print $2 + 0 }'
 }
 
 # check NAME OKLINE GODOTARGS...: a SceneTree check script that prints an OK line.
@@ -445,6 +542,8 @@ game() {
 	local np=$(problems $logf | wc -l | tr -d ' ')
 	local built=$(grep -m1 '^city built in' $logf)
 	local label="run: $name"
+	local known=$(tokens $logf)
+	[[ -n $known ]] && known=" (the engine's $known load tokens at exit: TD-22)"
 	if (( code == 142 )); then
 		row FAIL "$label" $secs "stopped after ${STEP_LIMIT}s ($logf)"
 	elif (( code != 0 || np > 0 )); then
@@ -455,12 +554,12 @@ game() {
 	elif [[ -n $outcome ]]; then
 		local fin=$(grep -E -m1 "$outcome" $logf)
 		if [[ -n $fin ]]; then
-			row PASS "$label" $secs "0 errors · ${fin[1,110]}"
+			row PASS "$label" $secs "0 errors$known · ${fin[1,110]}"
 		else
-			row WARN "$label" $secs "0 errors, but no '$outcome' line in $frames frames ($(( frames / 60 )) s of play)"
+			row WARN "$label" $secs "0 errors$known, but no '$outcome' line in $frames frames ($(( frames / 60 )) s of play)"
 		fi
 	else
-		row PASS "$label" $secs "0 errors · ${built[1,110]}"
+		row PASS "$label" $secs "0 errors$known · ${built[1,110]}"
 	fi
 }
 
@@ -766,6 +865,30 @@ for s in $want; do
 				0) row PASS "streets" $secs "check_streets: OK · $counts" ;;
 				*) row FAIL "streets" $secs "$(grep -m1 '^check_streets:' $logs/streets.log) · $counts ($logs/streets.log)" ;;
 			esac ;;
+		# Architecture docs (2026-11-11): every game script is named in docs/architecture/systems.md
+		# or city-ai.md, and the pages' links resolve (tools/check_architecture.py; no map).
+		architecture)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/check_architecture.py > $logs/architecture.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			counts=$(grep -m1 '^check_architecture counts:' $logs/architecture.log)
+			counts=${counts#check_architecture counts: }
+			case $code in
+				0) row PASS "architecture" $secs "check_architecture: OK · $counts" ;;
+				*) row FAIL "architecture" $secs "$(grep '^check_architecture:' $logs/architecture.log | head -1) · $counts ($logs/architecture.log)" ;;
+			esac ;;
+		# Reference-photo store (2026-11-13): tools/refs_store.py builds a fake store, inventory and repo
+		# in a temp dir and exercises index, gaps, pull, push, aliases and conflicts (no map, no photos).
+		refs-store)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/refs_store.py --selftest > $logs/refs-store.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			case $code in
+				0) row PASS "refs-store" $secs "refs_store: OK" ;;
+				*) row FAIL "refs-store" $secs "$(grep -m1 '^refs_store:' $logs/refs-store.log) ($logs/refs-store.log)" ;;
+			esac ;;
 		# Map north (2026-10-31): nothing of the map where the map isn't (its bounds without the
 		# corner left `outside`), every sector on the map (tools/check_outline.py O1-O5; O6, dead
 		# ends on the extension's edge, reported).
@@ -840,6 +963,15 @@ for s in $want; do
 			case $code in
 				0) row PASS "fixes" $secs "$(grep '^road_fixes: ' $logs/fixes.log | tail -1)" ;;
 				*) row FAIL "fixes" $secs "$(grep '^road_fixes: ' $logs/fixes.log | tail -1) ($logs/fixes.log)" ;;
+			esac ;;
+		roadtruth)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/road_truth.py --check > $logs/roadtruth.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			case $code in
+				0) row PASS "roadtruth" $secs "$(grep '^road_truth counts: ' $logs/roadtruth.log | tail -1)" ;;
+				*) row FAIL "roadtruth" $secs "$(grep '^road_truth: ' $logs/roadtruth.log | tail -1) ($logs/roadtruth.log)" ;;
 			esac ;;
 		smooth)
 			t0=$EPOCHREALTIME
@@ -1040,6 +1172,8 @@ for s in $want; do
 		roadworks-prebuilt) skip_prebuilt roadworks-prebuilt || check roadworks-prebuilt '^check_edge_prebuilt:' --fixed-fps 60 --script res://tools/check_edge_prebuilt.gd ;;
 		# Loop MW-6: the egg cards and their triggers; KASETA's then cards and ghosts.
 		eggs) check eggs '^check_eggs:' --script res://tools/check_eggs.gd ;;
+		# 2026-11-10: Plac Zamkowy's tourists and pigeons (plac_zamkowy_life.gd) on a stub map: builds, sleeps far away, flushes and lands (no map files; CI too).
+		placzamkowy) check placzamkowy '^check_plac_zamkowy:' --script res://tools/check_plac_zamkowy.gd ;;
 		tape) check tape '^check_tape:' --script res://tools/check_tape.gd ;;
 		# Loop MW-3: the night and the river's crowds, their rules on synthetic clocks, the crowd eggs.
 		crowds) check crowds '^check_crowds:' --script res://tools/check_crowds.gd ;;
@@ -1049,12 +1183,16 @@ for s in $want; do
 		parodies) check parodies '^check_parodies:' --script res://tools/check_parodies.gd ;;
 		# Loop jobs-2: the courier race, the Leżak round-up, the payphone and E40.
 		jobs2) check jobs2 '^check_side_jobs:' --script res://tools/check_side_jobs.gd ;;
+		# Trend job (2026-11-13): the trend courier's job on the activity kit, played.
+		trendjob) check trendjob '^check_trend_job:' --script res://tools/check_trend_job.gd ;;
 		# DEMO 6.3: the second słoiki station (Dworzec Gdański) and the Łazienki peacock rescue.
 		rescues) check rescues '^check_rescues:' --script res://tools/check_rescues.gd ;;
 		# Loop couriers: the waiting couriers, the kerb riders, the dodge, the near miss's line.
 		couriers) check couriers '^check_couriers:' --script res://tools/check_couriers.gd ;;
 		# Beta values: the deliveries' route, the heat's words, NASTĘPNE.
 		delivery) check delivery '^check_delivery:' --script res://tools/check_delivery.gd ;;
+		# The deliveries played on the activity kit (the committed map, fake HUD, the autopilot over the engine's frames).
+		jobplay) check jobplay '^check_job_play:' --fixed-fps 60 --script res://tools/check_job_play.gd ;;
 		# Loop MW-4: everyday life and trends: dogs, riders, runners, Kolka, the Wiralek cycle, the
 		# "Na czasie" pay, the Zając, Fat Thursday, the life eggs (E16 E18-E20 E27-E30).
 		life) check life '^check_city_life:' --script res://tools/check_city_life.gd ;;
@@ -1073,6 +1211,8 @@ for s in $want; do
 		# Nocny spot: the club's cars, lines, clock, pay, the drag's times, the meets and the strip on the real graph.
 		meet) check meet '^check_street_meet:' --fixed-fps 60 --script res://tools/check_street_meet.gd ;;
 		# Boat race: the course in open water, the boat, a whole race, the three-miss rule, the lines.
+		# Free camera (--cam=X,Y,Z): the flag's text and the view it gives.
+		freecam) check freecam '^check_free_cam:' --script res://tools/check_free_cam.gd ;;
 		boatrace) check boatrace '^check_boat_race:' --script res://tools/check_boat_race.gd ;;
 		dekalog) check dekalog '^check_dekalog_tour:' --script res://tools/check_dekalog_tour.gd ;;
 		kinotour) check kinotour '^check_kino_tour:' --script res://tools/check_kino_tour.gd ;;
@@ -1102,20 +1242,33 @@ for s in $want; do
 		tamka) check tamka '^check_tamka:' --script res://tools/check_tamka.gd ;;
 		garage) check garage '^check_garage:' --script res://tools/check_garage.gd ;;
 		save) check save '^check_save:' --script res://tools/check_save.gd ;;
+		errortrap) check errortrap '^check_error_trap:' --script res://tools/check_error_trap.gd ;;
+		boot) check boot '^check_boot:' --script res://tools/check_boot.gd ;;
+		activity) check activity '^check_activity:' --script res://tools/check_activity.gd ;;
 		districts) check districts '^check_districts:' --script res://tools/check_districts.gd ;;
 		syrenki) check syrenki '^syrenki:' --script res://tools/check_syrenki.gd ;;
 		cassettes) check cassettes '^cassettes:' --script res://tools/check_cassettes.gd ;;
 		ladder) check ladder '^ladder:' --script res://tools/check_ladder.gd ;;
 		racecuts) check racecuts '^race_cuts:' --script res://tools/check_race_cuts.gd ;;
+		racelinks) check racelinks '^race_links:' --script res://tools/check_race_links.gd ;;
+		racelinks-drive) skip_prebuilt racelinks-drive || check racelinks-drive '^check_lane_drive:' --fixed-fps 60 --script res://tools/check_lane_drive.gd -- --links --prebuilt ;;
+		raceline) check raceline '^race_line:' --script res://tools/check_race_line.gd ;;
 		racebench) check racebench '^check_race_bench:' --script res://tools/check_race_bench.gd ;;
+		raceplanner) check raceplanner '^check_race_planner:' --script res://tools/check_race_planner.gd ;;
+		# Racer AI step 6a: a rival's lights and its own numbers; the result card's report and picture.
+		racesignals) check racesignals '^race_signals:' --script res://tools/check_race_signals.gd ;;
+		racereport) check racereport '^race_report:' --script res://tools/check_race_report.gd ;;
 		first10) check first10 '^first10:' --script res://tools/check_first10.gd ;;
 		mainline) check mainline '^main_line:' --script res://tools/check_main_line.gd ;;
 		chatter) check chatter '^check_chatter:' --script res://tools/check_chatter.gd ;;
+		messages) check messages '^check_messages:' --script res://tools/check_messages.gd ;;
 		endcard) check endcard '^end_card:' --script res://tools/check_end_card.gd ;;
 		opening) check opening '^opening:' --script res://tools/check_opening.gd ;;
 		life-soak) life_soak ;;
 		# Loop 2d-1: Podwózka's star and pay tables, the streak and the cancel rules, its lines.
 		rides) check rides '^check_rides:' --script res://tools/check_rides.gd ;;
+		# Podwózka played on the activity kit (fake HUD, small city, the autopilot over the engine's own frames).
+		rideplay) check rideplay '^check_ride_play:' --fixed-fps 60 --script res://tools/check_ride_play.gd ;;
 		cost) check cost '^check_cost_cuts:' --script res://tools/check_cost_cuts.gd ;;
 		# The Old Town's dormers and chimneys (scripts/old_town_roofs.gd): on the slope, outward, small.
 		oldtownroofs) check oldtownroofs '^check_old_town_roofs:' --script res://tools/check_old_town_roofs.gd ;;
@@ -1132,6 +1285,8 @@ for s in $want; do
 		palacelights) check palacelights '^check_palace_lights:' --script res://tools/check_palace_lights.gd ;;
 		meshq) check meshq '^check_mesh_quality:' --script res://tools/check_mesh_quality.gd ;;
 		sfx) check sfx '^sfx:' --script res://tools/check_sfx.gd ;;
+		# TD-5: the sound mixer (sfx.gd DUCKS): ducks stack, fade, end on time; nobody else sets a level.
+		mixer) check mixer '^mixer:' --script res://tools/check_mixer.gd ;;
 		# v1.0 juice: crash sparks and dust (crash_fx.gd), the buzzes' floor and switch (haptics.gd).
 		juice) check juice '^check_juice:' --script res://tools/check_juice.gd ;;
 		# The gamepad loop: Xbox / PlayStation / MFi pads (gamepad.gd) on synthetic joypad events.
@@ -1168,6 +1323,16 @@ for s in $want; do
 		# Loop 3d-1: 30000 frames: on the demo map (east edge 21.056) the river quirk's legs run
 		# 1.7-1.8 km by road and the pay came after 20000 frames (333 s of play).
 		ride) game ride 30000 '^ride: pay' --ride=8 --passenger=believer --ride-quirk=river --autopilot --parody-log ;;
+		# Tech-debt TD-1: an activity of the kit from its start to its pay in the whole game, with
+		# the real HUD (the cards' owner), dialogue, wallet, beacon and arrow: the cinema tour. The
+		# autopilot presses the cards and slides the car to each stop; in the cloud the pay came
+		# 157 s into the tour (about 10,100 frames with its four cards).
+		tour-run) game tour 14000 '^kino: done:' --kino-tour=auto --kino-log --autopilot ;;
+		# The bar crawl, the kit's third activity, the same way: the call, the pickup at the kerb,
+		# the Klasyczna's three bars with their stays, the pay. In the cloud the group was at the
+		# last bar 2 min 38 s after boarding (about 12,000 frames with the call and the pickup).
+		crawl-run) game crawl 20000 '^crawl: end: made it, 3/3 bars' --crawl-call --crawl-log --crawl-route=klasyczna --autopilot ;;
+		shisha-run) game shisha 30000 '^shisha: done: smoke' --shisha-call --shisha-log --autopilot ;;
 		# Loop 2d-1 x 3g-1: a pull-over 25 s into that ride takes exactly one star (police.gd calls
 		# rides.on_pulled_over() when the conversation ends), on the prebuilt city.
 		ride-police) ride_police ;;
@@ -1184,6 +1349,16 @@ for s in $want; do
 		firstlife) game firstlife 1200 '^first life: OK' --first-life --at=-961.6,95 --heading=339.8 ;;
 		rain) game rain-night 600 "" --weather=rain --time=night ;;
 		prebuilt) skip_prebuilt "run: prebuilt-night" || game prebuilt-night 600 "" --prebuilt --time=night ;;
+		# Tech-debt TD-15: the game started as a player starts it (boot.gd: the title up, the game's
+		# scene loaded on a thread behind it, the same title taken over), on the prebuilt city as on
+		# the phone. Every other run has flags and so loads the game at once. The line it waits for
+		# is main.gd's when that title goes. 8000 frames: with no display every frame spent waiting
+		# for a thread under the title waits 8 ms (boot.gd `wait_frame`), so the scripts' load takes
+		# about 850 frames in the cloud, the map's two big files about 35 and the start's sectors up
+		# to 8 s more; without that wait the run spent all its frames before the files were in.
+		# ENGINE_TOKENS: the engine's exit line for the index's threaded load (see `problems`); 19 is
+		# its count for the index's 10 files, a count to change only with them.
+		boot-run) skip_prebuilt "run: boot" || ENGINE_TOKENS=19 game boot 8000 "^boot: the boot scene's title stayed up" --boot --prebuilt --title-choice=continue ;;
 		classic) game classic 600 "" --controls=classic ;;
 		ios) run_ios ;;
 	esac

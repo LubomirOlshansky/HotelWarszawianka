@@ -15,17 +15,27 @@ extends SceneTree
 ##   rivals or the rings, ✕ ends the ride and it is back at its mooring; and they feel different:
 ##   the offshore fastest, the jet ski quickest off the line and steering only on the gas, the turn
 ##   rates jet ski > electric > offshore;
-## - the race's dialogue lines exist in Polish and English for every rival's situations.
+## - the race's dialogue lines exist in Polish and English for every rival's situations;
+## - the play (the activity kit, TD-1): a fresh race on a rig of its own, played through the kit's
+##   frame: Szymek's clock and the call, the way to the pontoon, the grid, the race, out and the
+##   finish, the pill and the marina's card, the free rides, the meeting, the straight ways in and
+##   the script's dice (a mirror RNG), each fact one `_ok`; the dice again frame by frame through a
+##   whole race on the race's own driver (`_p_race_dice`), and what the deliberate breaks of the
+##   move found unwatched (`_p_breaks`: the cards' words in both languages, the shirt, the stage's
+##   clock, the car's spot kept, the wake, a rival pushed off something solid).
 ##   godot --headless --path game --script res://tools/check_boat_race.gd
 
 const BoatRace := preload("res://scripts/boat_race.gd")
 const Boat := preload("res://scripts/boat.gd")
+const Fakes := preload("res://tools/fakes.gd")
+const Activity := preload("res://scripts/activity.gd")
+const Activities := preload("res://scripts/activities.gd")
 
 const MIN_LEN := 2800.0
 const SHORE_MIN := 14.0
 const PULL_S := 6.0
 const RACE_MAX := 320.0
-const PLAYER_TIME := Vector2(130.0, 230.0)
+const PLAYER_TIME := Vector2(60.0, 150.0)  # 2026-11-10: boats ~1.9x faster (was 130-230)
 const CAREFUL_MISSES := 1
 const SITUATIONS := ["start", "pass", "passed", "miss", "out", "bump", "finish"]
 const STEP := 1.0 / 60.0
@@ -74,44 +84,14 @@ class WaterMap extends Node3D:
 		return 0.0
 
 
-## The HUD's calls the race makes, recorded.
-class FakeHud extends CanvasLayer:
-	signal card_pressed(index: int)
-	signal abort_pressed
-	signal context_pressed(owner: String)
-	var card := ""
-	var banner := ""
-	var pill := ""
-	func show_card(title: String, _b: String, _btn: PackedStringArray, _a: Color, _bottom := false, _te := "", _be := "", _s := false) -> void:
-		card = title
-	func show_side_card(title: String, _b: String, _btn: PackedStringArray, _a: Color, _te := "", _be := "", _s := false) -> void:
-		card = title
-	func hide_card() -> void:
-		card = ""
-	func toast(_a: String, _b := "") -> void:
-		pass
-	func ambient_toast(_a: String, _b := "") -> void:
-		pass
-	func show_status(_t: String, _c: String, _d: String, _h: String, _p: float, _a: Color, _badge := "", _i := {}, _he := "") -> void:
-		pass
-	func hide_status() -> void:
-		pass
-	func show_banner(t: String, _c: Color) -> void:
-		banner = t
-	func hide_banner() -> void:
-		banner = ""
-	func set_minimap_dots(_p: PackedVector2Array, _c: PackedColorArray) -> void:
-		pass
-	func show_pill(pl: String, _en := "", _o := "") -> void:
-		pill = pl
-	func hide_pill() -> void:
-		pill = ""
-	func pill_shown(_o: String) -> bool:
-		return pill != ""
-	func pill_free_for(_o: String) -> bool:
-		return true
-	func ticker_out() -> void:
-		pass
+## The play's own map: the water and the bank at different heights (the race's target stands at
+## the water's, the pontoon's ring on the bank's).
+class PlayMap extends WaterMap:
+	func terrain_height(_x: float, _z: float) -> float:
+		return -2.0
+
+	func ground_height(_x: float, _z: float) -> float:
+		return 1.5
 
 
 var _fails: Array[String] = []
@@ -126,14 +106,15 @@ func _initialize() -> void:
 		return
 	_course(map)
 	_boat(map)
-	var hud := FakeHud.new()
+	var hud := Fakes.Hud.new()
 	root.add_child(hud)
 	var race := _race(map, hud)
 	_fail_path(race, hud)
 	_free(race, map)
 	_lines()
+	await _play(map)
 	if _fails.is_empty():
-		print("check_boat_race: OK")
+		print("check_boat_race: OK (the play: %d checks)" % _plays)
 		quit(0)
 	else:
 		for f in _fails:
@@ -218,25 +199,28 @@ func _boat(map: WaterMap) -> void:
 	b.queue_free()
 
 
-func _make_race(map: WaterMap, hud: FakeHud) -> Node3D:
+func _make_race(map: WaterMap, hud: Fakes.Hud) -> Node:
 	var race := BoatRace.new()
 	race.hud = hud
 	race.map = map
 	race.autopilot = true
 	race.log_on = OS.get_environment("BOAT_DEBUG") != ""
+	# A fixed seed: the rivals' aims, mistakes and stunts are the same every run (the game randomises).
+	# BOAT_SEED=n tries another; 12 seeds passed on 2026-11-12 (rings 24 m wide).
+	race.rng_seed = int(OS.get_environment("BOAT_SEED")) if OS.get_environment("BOAT_SEED") != "" else 1
 	race.seen = func(_p: Vector3) -> bool: return false
 	root.add_child(race)
 	race.setup(map)
 	return race
 
 
-func _race(map: WaterMap, hud: FakeHud) -> Node3D:
+func _race(map: WaterMap, hud: Fakes.Hud) -> Node:
 	var race := _make_race(map, hud)
-	race._start_grid()
+	race.board()
 	var t := 0.0
 	var stuck_t := 0.0
 	var last_li := 0.0
-	while t < RACE_MAX and race.state in [BoatRace.State.COUNTDOWN, BoatRace.State.RACE]:
+	while t < RACE_MAX and race.stage in [BoatRace.Stage.COUNTDOWN, BoatRace.Stage.RACE]:
 		race._process(STEP)
 		t += STEP
 		var li: float = race.racers[0]["li"]
@@ -247,7 +231,7 @@ func _race(map: WaterMap, hud: FakeHud) -> Node3D:
 			break
 	# Let the rest come in.
 	var extra := 0.0
-	while extra < 120.0 and race.state == BoatRace.State.DONE:
+	while extra < 120.0 and race.stage == BoatRace.Stage.DONE:
 		var all := true
 		for r: Dictionary in race.racers:
 			all = all and (bool(r["finished"]) or bool(r["out"]))
@@ -261,7 +245,7 @@ func _race(map: WaterMap, hud: FakeHud) -> Node3D:
 			print("dbg %.0f pos %s yaw %.2f v %.1f next %d steer %.2f thr %.1f" % [extra, zb.pos, zb.yaw, zb.forward_speed(), race.racers[2]["next"], zb.steer, zb.throttle])
 	var res: Dictionary = race.last_result()
 	if res.is_empty():
-		_fail("the race did not finish in %.0f s (state %d, line %.1f)" % [RACE_MAX, race.state, race.racers[0]["li"]])
+		_fail("the race did not finish in %.0f s (stage %d, line %.1f)" % [RACE_MAX, race.stage, race.racers[0]["li"]])
 		return race
 	var times: Array[String] = []
 	var spread := []
@@ -291,32 +275,32 @@ func _race(map: WaterMap, hud: FakeHud) -> Node3D:
 	return race
 
 
-func _fail_path(race: Node3D, hud: FakeHud) -> void:
+func _fail_path(race: Node, hud: Fakes.Hud) -> void:
 	race.autopilot = false
-	race._start_grid()
+	hud.press(0)
 	# The player's boat goes flat out straight down the middle, never aiming for a ring.
 	var t := 0.0
-	while t < 120.0 and race.state in [BoatRace.State.COUNTDOWN, BoatRace.State.RACE]:
+	while t < 120.0 and race.stage in [BoatRace.Stage.COUNTDOWN, BoatRace.Stage.RACE]:
 		var b: Node3D = race.boats[0]
 		var li := clampi(int(race.racers[0]["li"]) + 6, 0, race.line.size() - 1)
 		var to: Vector2 = race.line[li] - b.pos
 		b.target_dir = Vector3(to.x, 0.0, to.y).normalized()
 		race._process(STEP)
 		t += STEP
-	if race.state != BoatRace.State.OUT:
-		_fail("three misses did not put the player out (state %d, misses %d)" % [race.state, int(race.racers[0]["misses"])])
+	if race.stage != BoatRace.Stage.OUT:
+		_fail("three misses did not put the player out (stage %d, misses %d)" % [race.stage, int(race.racers[0]["misses"])])
 		return
 	if not hud.card.begins_with("ODPADASZ"):
 		_fail("no ODPADASZ card (card: %s)" % hud.card)
-	race._on_card(0)
-	if race.state != BoatRace.State.COUNTDOWN:
+	hud.press(0)
+	if race.stage != BoatRace.Stage.COUNTDOWN:
 		_fail("JESZCZE RAZ did not start the grid again")
-	race._quit()
-	if race.state != BoatRace.State.IDLE or race.boating():
+	hud.abort_pressed.emit()
+	if race.phase != Activity.Phase.IDLE or race.boating():
 		_fail("WYJDŹ did not end the race")
 
 
-func _free(race: Node3D, map: WaterMap) -> void:
+func _free(race: Node, map: WaterMap) -> void:
 	var n: int = BoatRace.FLEET.size()
 	if n != 3 or race.fleet.size() != n:
 		_fail("the marina has %d boats, not 3" % race.fleet.size())
@@ -331,12 +315,12 @@ func _free(race: Node3D, map: WaterMap) -> void:
 	var stats := []
 	for i in n:
 		race._marina_card()
-		if race.state != BoatRace.State.MENU:
+		if race.stage != BoatRace.Stage.MENU:
 			_fail("the pill did not open the marina card")
-		race._on_card(i)
+		race.hud.press(i)
 		var name: String = BoatRace.FLEET[i]["name"]
-		if race.state != BoatRace.State.FREE or not race.boating() or race.player != race.fleet[i]:
-			_fail("picking %s did not start its free ride (state %d)" % [name, race.state])
+		if race.stage != BoatRace.Stage.FREE or not race.boating() or race.player != race.fleet[i]:
+			_fail("picking %s did not start its free ride (stage %d)" % [name, race.stage])
 			return
 		var b: Node3D = race.fleet[i]
 		var m: Vector2 = BoatRace.fleet_spot(i)
@@ -382,7 +366,7 @@ func _free(race: Node3D, map: WaterMap) -> void:
 		if i == FLEET_PIN:
 			_pin(race, b, m)
 		race.hud.abort_pressed.emit()
-		if race.state != BoatRace.State.IDLE or race.boating() or race.player == race.fleet[i]:
+		if race.phase != Activity.Phase.IDLE or race.boating() or race.player == race.fleet[i]:
 			_fail("✕ did not end the free ride in %s" % name)
 		if race.fleet[i].pos.distance_to(m) > 0.5 or not race.fleet[i].visible:
 			_fail("%s is not back at its mooring" % name)
@@ -438,3 +422,731 @@ func _lines() -> void:
 						_fail("a %s line lacks Polish or English" % tag)
 			if n == 0:
 				_fail("no boat_race line for %s" % tag)
+
+
+# --- the play -----------------------------------------------------------------------------------
+# A fresh race on a rig of its own (the kit's director, a second activity to ask it about, the
+# stand-in HUD, wallet and dialogue from fakes.gd), played one frame at a time through
+# `_process`, the player pressing what a player presses: a card's button (`hud.press`), the ✕
+# (`hud.abort_pressed`), the pill (`hud.context_pressed`).
+
+var _plays := 0
+var _pm: PlayMap
+var _pw: Node3D
+var _r: Node
+var _h: Fakes.Hud
+var _car: Node3D
+var _wallet: Fakes.Wallet
+var _dlg: Fakes.Dialogue
+var _dir: Activities
+var _other: Node
+var _kmh := 0.0
+var _flying := false
+var _hour := 12.0
+var _world_free := true
+var _nb := 0
+var _nl := 0
+
+
+func _ok(cond: bool, what: String) -> void:
+	_plays += 1
+	if not cond:
+		_fail("the play: " + what)
+
+
+## A fresh race, its hud, wallet, dialogue, car and director; the car far away, idle, noon.
+func _rig(seed_value := 5) -> void:
+	if _pw != null:
+		_pw.free()
+	_pw = Node3D.new()
+	root.add_child(_pw)
+	_h = Fakes.Hud.new()
+	_wallet = Fakes.Wallet.new()
+	_dlg = Fakes.Dialogue.new()
+	_car = Node3D.new()
+	for n: Node in [_h, _wallet, _dlg, _car]:
+		_pw.add_child(n)
+	_kmh = 0.0
+	_flying = false
+	_hour = 12.0
+	_world_free = true
+	_nb = 0
+	_nl = 0
+	_far()
+	_r = BoatRace.new()
+	_r.hud = _h
+	_r.dialogue = _dlg
+	_r.wallet = _wallet
+	_r.map = _pm
+	_r.car = _car
+	_r.log_on = OS.get_environment("BOAT_DEBUG") != ""
+	_r.rng_seed = seed_value
+	_r.vehicle = func() -> Array: return [_car.global_position, _kmh, _flying]
+	_r.clock = func() -> float: return _hour
+	_r.seen = func(_p: Vector3) -> bool: return false
+	_pw.add_child(_r)
+	_r.setup(_pw)
+	_r.boarded.connect(func() -> void: _nb += 1)
+	_r.left_boat.connect(func() -> void: _nl += 1)
+	_dir = Activities.new()
+	_dir.world_free = func() -> bool: return _world_free
+	_dir.add(_r)
+	_other = Activity.new()
+	_other.hud = _h
+	_other.map = _pm
+	_other.vehicle = _r.vehicle
+	_pw.add_child(_other)
+	_other.setup(_pw)
+	_dir.add(_other)
+
+
+func _far() -> void:
+	_car.global_position = Vector3(600.0, 1.5, 600.0)
+	_kmh = 0.0
+	_flying = false
+
+
+## The car at the pontoon's car spot plus `off` metres.
+func _at(off: Vector2, kmh := 0.0, flying := false) -> void:
+	_car.global_position = Vector3(BoatRace.CAR_SPOT.x + off.x, 1.5, BoatRace.CAR_SPOT.y + off.y)
+	_kmh = kmh
+	_flying = flying
+
+
+func _fr(seconds: float, steer := false) -> void:
+	for i in roundi(seconds / STEP):
+		if steer:
+			_steer()
+		_r._process(STEP)
+
+
+## The player's boat flat out down the middle, never aiming for a ring (as `_fail_path`).
+func _steer() -> void:
+	var b: Node3D = _r.boats[0]
+	var li := clampi(int(_r.racers[0]["li"]) + 6, 0, _r.line.size() - 1) if not _r.racers.is_empty() else 0
+	var to: Vector2 = _r.line[li] - b.pos
+	b.target_dir = Vector3(to.x, 0.0, to.y).normalized()
+
+
+func _afloat() -> bool:
+	return _r.phase == Activity.Phase.RUN and _r.stage in [BoatRace.Stage.COUNTDOWN, BoatRace.Stage.RACE]
+
+
+## Three misses from the grid (the stage becomes OUT); false if it did not come.
+func _to_out() -> bool:
+	var t := 0.0
+	while t < 120.0 and _afloat():
+		_steer()
+		_r._process(STEP)
+		t += STEP
+	return _r.stage == BoatRace.Stage.OUT
+
+
+## The race's own driver takes the player's boat to the line (the stage becomes DONE).
+func _to_done() -> bool:
+	_r.autopilot = true
+	var t := 0.0
+	while t < RACE_MAX and _afloat():
+		_r._process(STEP)
+		t += STEP
+	_r.autopilot = false
+	return _r.stage == BoatRace.Stage.DONE
+
+
+func _toast(text: String) -> bool:
+	for t in _h.toasts:
+		if text in t:
+			return true
+	return false
+
+
+func _gap() -> float:
+	return float(_r._next_call) - float(_r._session)
+
+
+func _idle() -> bool:
+	return _r.phase == Activity.Phase.IDLE and _r.stage == BoatRace.Stage.NONE
+
+
+## The call taken and the offer taken, far from the pontoon: the way.
+func _start_way() -> void:
+	_r.ring()
+	_h.press(0)
+	_h.press(0)
+
+
+func _visible_boats() -> int:
+	var n := 0
+	for b: Node3D in _r.boats:
+		if b.visible:
+			n += 1
+	return n
+
+
+func _nothing_up(what: String) -> void:
+	_ok(_h.card == "" and _h.status == "" and _h.banner == "", "%s: no card, status line or banner up" % what)
+	_ok(_visible_boats() == 0 and not _r._barge.visible and _h.mini_dots == 0, "%s: boats and barge away, no minimap dots" % what)
+	var rings_up := 0
+	for mi: MeshInstance3D in _r._ring_nodes:
+		if mi.visible:
+			rings_up += 1
+	_ok(rings_up == 0, "%s: no ring left standing" % what)
+	_ok(not _r.flown and not _r._beacon.visible and not _r.has_target() and not _r.boating(), "%s: not flown, no ring, no target" % what)
+
+
+func _play(_water: WaterMap) -> void:
+	# One engine frame first: the root is in the tree only then (the car's global_position needs it).
+	await process_frame
+	var t0 := Time.get_ticks_msec()
+	_pm = PlayMap.new()
+	root.add_child(_pm)
+	_pm.load_water()
+	_p_clock()
+	_p_call()
+	_p_chain()
+	_p_way_out()
+	_p_pill()
+	_p_marina()
+	_p_free()
+	_p_meet()
+	_p_straight()
+	_p_dice()
+	_p_race_dice()
+	await _p_breaks()
+	if OS.get_environment("BOAT_DEBUG") != "":
+		print("check_boat_race: the play took %.1f s" % (float(Time.get_ticks_msec() - t0) / 1000.0))
+
+
+# 1. Szymek's clock.
+func _p_clock() -> void:
+	_rig()
+	_fr(BoatRace.FIRST_CALL - 5.0)
+	_ok(_idle() and _h.card == "", "no call before FIRST_CALL")
+	_hour = 23.0
+	_fr(10.0)
+	_ok(_idle(), "no call at 23:00")
+	_hour = 6.5
+	_fr(2.0)
+	_ok(_idle(), "no call at 6:30")
+	_hour = 12.0
+	_flying = true
+	_fr(2.0)
+	_ok(_idle(), "no call in the air")
+	_flying = false
+	_world_free = false
+	_fr(2.0)
+	_ok(_idle(), "no call while the director's world_free says no")
+	_world_free = true
+	_fr(0.52)
+	_ok(_r.phase == Activity.Phase.RING, "with everything right he rings within half a second")
+	_ok(not _r.ring() and not _r.meet(), "ring() and meet() answer false while the phone rings")
+	_rig()
+	_r._session = _r._next_call
+	_hour = 23.0
+	_fr(1.0)
+	_ok(_idle(), "at night he does not ring")
+	_r.force_hours = true
+	_fr(0.52)
+	_ok(_r.phase == Activity.Phase.RING, "force_hours lets him ring at night")
+
+
+# 2. The call and the offer.
+func _p_call() -> void:
+	_rig()
+	_ok(_r.ring(), "ring() starts the call when idle")
+	_ok(_h.card == "📞 SZYMEK DZWONI" and _h.accent == BoatRace.COLOUR and _h.buttons == 2, "the call card: Szymek, in COLOUR, 2 buttons")
+	_ok(not _r.busy() and not _r.idle(), "ringing is neither busy nor idle")
+	_h.abort_pressed.emit()
+	_ok(_r.phase == Activity.Phase.RING and _h.card != "", "the ✕ does nothing while it rings")
+	_fr(BoatRace.CARD_LIFE + 0.1)
+	_ok(_idle() and _h.card == "", "a call nobody answers goes after CARD_LIFE")
+	_ok(absf(_gap() - BoatRace.CALL_COOL * 0.5) < 0.2, "the next call after a missed one is CALL_COOL * 0.5 away")
+	_r.ring()
+	_h.press(1)
+	_ok(_idle() and _h.card == "" and absf(_gap() - BoatRace.CALL_COOL) < 0.01, "ODRZUĆ: idle, the next call CALL_COOL away")
+	_r.ring()
+	_h.press(0)
+	_ok(_h.card == "SZYMEK: „ŚCIGAMY SIĘ?”" and _h.buttons == 2 and _h.accent == BoatRace.COLOUR, "ODBIERZ: the offer, 2 buttons, in COLOUR")
+	_ok(_r.busy() and not _r.idle(), "the offer is busy")
+	_h.abort_pressed.emit()
+	_ok(_r.phase == Activity.Phase.OFFER and _h.card != "", "the ✕ does nothing on the offer")
+	_fr(BoatRace.CARD_LIFE + 0.1)
+	_ok(_idle() and _h.card == "", "an offer nobody answers goes after CARD_LIFE")
+	_r.ring()
+	_h.press(0)
+	_h.press(1)
+	_ok(_idle() and _h.card == "" and absf(_gap() - BoatRace.CALL_COOL) < 0.01, "NIE DZIŚ: idle, the next call CALL_COOL away")
+
+
+# 3 to 7. The way, the arrival, the grid, the race, out, the finish: one rig.
+func _p_chain() -> void:
+	_rig()
+	_start_way()
+	_ok(_r.stage == BoatRace.Stage.TO_PIER and _r.phase == Activity.Phase.RUN, "PŁYNĘ! far away: the way to the pontoon")
+	_ok(_toast("Na przystań"), "the toast 'Na przystań…'")
+	var bc: Node3D = _r._beacon
+	_ok(bc.visible and is_equal_approx(bc._ring_radius, BoatRace.ARRIVE - 0.5) and bc._person.visible, "the kit's ring stands at the pontoon, ARRIVE - 0.5 wide, with the figure")
+	_ok(_r.has_target(), "the way has a target")
+	_ok(_r.target_position().is_equal_approx(Vector3(BoatRace.CAR_SPOT.x, 1.5, BoatRace.CAR_SPOT.y)), "the target is CAR_SPOT at the bank's 1.5 m")
+	_ok(_r.target_colour() == BoatRace.COLOUR and _r.target_arrow() and _r.stop_spot() == Vector3.INF, "target colour COLOUR, an arrow, no stop assist")
+	_ok(not _r.flown and not _r.boating(), "on the way: not flown, not boating")
+	_ok(_r.grounded() == ["Najpierw dokończ wyścig łodzi (albo ✕)", "Finish the boat race first (or ✕)"], "grounded() says the two sentences")
+	_ok(_dir.targeted() == _r and _dir.busy() and _dir.busy_tag() == "boat race" and not _dir.may_start(_other), "the director: targeted, busy, 'boat race', nobody else may start")
+	_ok(_r._auto_button() == 1, "TO_PIER: the autopilot's button is 1")
+	# 4. Arriving.
+	_at(Vector2.ZERO, 0.0, true)
+	_fr(5 * STEP)
+	_ok(_r.stage == BoatRace.Stage.TO_PIER and _nb == 0, "not boarded in the air over the ring")
+	_at(Vector2.ZERO, 40.0)
+	_fr(5 * STEP)
+	_ok(_r.stage == BoatRace.Stage.TO_PIER and _nb == 0, "not boarded through the ring at 40 km/h")
+	_at(Vector2(BoatRace.ARRIVE + 1.0, 0.0), 5.0)
+	_fr(5 * STEP)
+	_ok(_r.stage == BoatRace.Stage.TO_PIER and _nb == 0, "not boarded 1 m outside ARRIVE")
+	_h.show_pill("PRZYSTAŃ", "MARINA", "boat")
+	_at(Vector2(3.0, 0.0), 5.0)
+	_fr(2 * STEP)
+	_ok(_nb == 1 and _r.stage == BoatRace.Stage.COUNTDOWN, "boarded within two frames of standing inside at 5 km/h: boarded once, the grid")
+	_ok(not _r._beacon.visible and not _r.has_target(), "boarded: the ring gone, no target")
+	_ok(_r.boating() and _r.flown and not _r.target_arrow(), "boarded: boating, flown, no arrow")
+	_ok(_visible_boats() == 4 and _h.pill == "", "boarded: four boats, the pill down")
+	_ok(_r._auto_button() == 1, "COUNTDOWN: the autopilot's button is 1")
+	# 5. The grid and the race.
+	var t_cd := 2 * STEP
+	while _r.stage == BoatRace.Stage.COUNTDOWN and t_cd < 6.0:
+		_fr(STEP)
+		t_cd += STEP
+	_ok(_r.stage == BoatRace.Stage.RACE and t_cd >= BoatRace.COUNT - 0.2 and t_cd <= BoatRace.COUNT + 0.6, "the countdown ends in the race within COUNT + 0.6 s")
+	var seq: Array[String] = []
+	for bn: String in _h.banners:
+		if seq.is_empty() or seq[-1] != bn:
+			seq.append(bn)
+	_ok(seq == ["3", "2", "1", "START!"], "the banners 3, 2, 1, START! in order (got %s)" % [seq])
+	_fr(0.5)
+	_ok(_h.banner == "START!", "START! is up half a second into the race")
+	_fr(0.6)
+	_ok(_h.banner == "", "START! is down a second into the race")
+	# The brief expected rings on the grid already; the script (old and new alike) shows them from
+	# the first frame of the race (`_update_rings` runs before the stage is set and not in the
+	# countdown), so that is what is pinned.
+	var rings_up := 0
+	for mi: MeshInstance3D in _r._ring_nodes:
+		if mi.visible:
+			rings_up += 1
+	_ok(rings_up > 0 and rings_up <= 4, "the next rings stand in the race (%d up)" % rings_up)
+	_ok(_r.has_target() and _r._auto_button() == 1, "in the race: a target (the minimap's dot)")
+	var nr: Dictionary = _r.rings[mini(int(_r.racers[0]["next"]), _r.rings.size() - 1)]
+	_ok(_r.target_position().is_equal_approx(Vector3(float(nr["x"]), -2.0, float(nr["z"]))), "the target is the next ring at the water's -2.0 m")
+	_ok(_r.target_colour() == BoatRace.RING_NEXT and not _r.target_arrow(), "the race target is RING_NEXT, no arrow")
+	_ok(_h.status_title == BoatRace.NAME and _h.tint == BoatRace.COLOUR, "the status line: NAME in COLOUR")
+	_ok(_h.badge == ["1ST", "2ND", "3RD", "4TH"][_r.place_now() - 1], "the badge is the place_now() (%s)" % _h.badge)
+	_ok(_h.mini_dots == 3, "three rivals on the minimap")
+	# 6. Out.
+	var ok_out := _to_out()
+	_ok(ok_out and _r._auto_button() == 1, "three misses: OUT")
+	_ok(_h.card == "ODPADASZ! Trzy pudła." and _h.accent == BoatRace.FAIL and _h.buttons == 2, "the ODPADASZ card in FAIL, 2 buttons")
+	_ok(_h.banner == "ODPADASZ!", "the banner ODPADASZ!")
+	var w0: float = _r.wave_t
+	_fr(BoatRace.CARD_LIFE + 2.0)
+	_ok(_r.stage == BoatRace.Stage.OUT and _h.card == "ODPADASZ! Trzy pudła.", "the result card has no life: still up CARD_LIFE + 2 s later")
+	_h.abort_pressed.emit()
+	_ok(_r.stage == BoatRace.Stage.OUT and _h.card != "", "the ✕ does nothing behind the card")
+	_ok(_r.wave_t > w0 + 10.0, "the boats run on behind the card")
+	_h.press(0)
+	_ok(_r.stage == BoatRace.Stage.COUNTDOWN and int(_r.racers[0]["misses"]) == 0, "JESZCZE RAZ: the grid again, no misses")
+	var nl0 := _nl
+	_h.abort_pressed.emit()
+	_ok(_idle() and _nl == nl0 + 1, "the ✕ on the grid: idle, left_boat once more")
+	_nothing_up("after the ✕ on the grid")
+	_ok(absf(_gap() - BoatRace.CALL_COOL) < 0.01, "the next call is CALL_COOL away")
+	_ok(_dir.may_start(_other) and not _dir.busy(), "the director is free again")
+	# 7. The finish.
+	_r.board()
+	var done := _to_done()
+	_ok(done, "the race's own driver finishes (stage DONE)")
+	if not done:
+		return
+	_ok(_h.card.begins_with("META! ") and _h.accent == BoatRace.COLOUR and _h.buttons == 2, "the META card in COLOUR, 2 buttons")
+	_ok(_h.status == "", "the status line is down behind the card")
+	var res: Dictionary = _r.last_result()
+	var place := int(res.get("place", 0))
+	_ok(place >= 1 and place <= 4, "last_result() has the place")
+	var pay: Array = BoatRace.PAY[clampi(place - 1, 0, 3)]
+	_ok(_wallet.money == int(pay[0]) and _wallet.respect == int(pay[1]), "the pay is PAY[place - 1] (place %d: %d zł, %d)" % [place, _wallet.money, _wallet.respect])
+	_ok(_wallet.kinds == (["boat_race"] if int(pay[0]) > 0 else []), "the pay's kind is boat_race")
+	_ok(_r._auto_button() == 1, "DONE: the autopilot's button is 1")
+	var c0: float = _r.clock_t
+	_fr(2.0)
+	_ok(_r.clock_t > c0 + 1.5 and _r.stage == BoatRace.Stage.DONE, "clock_t runs on behind the card")
+	_h.press(0)
+	_ok(_r.stage == BoatRace.Stage.COUNTDOWN, "REWANŻ: the grid again")
+	_fr(BoatRace.COUNT + 1.0)
+	_ok(_r.stage == BoatRace.Stage.RACE, "the rematch's race")
+	nl0 = _nl
+	_h.abort_pressed.emit()
+	_ok(_idle() and _nl == nl0 + 1, "the ✕ in the race itself: idle, left_boat")
+	_nothing_up("after the ✕ in the race")
+	# The autopilot at a result card.
+	_r.board()
+	_r.autopilot = false
+	_to_out()
+	_r.autopilot = true
+	_r._t = 0.0
+	nl0 = _nl
+	_fr(2.4)
+	_ok(_r.stage == BoatRace.Stage.OUT and _h.card != "", "autopilot: the result card is still up 2.4 s after it went up")
+	_fr(0.2)
+	_ok(_idle() and _nl == nl0 + 1, "autopilot: WYJDŹ at 2.6 s (AUTO_CARD)")
+	_r.autopilot = false
+
+
+# 8. The ✕ and the clock on the way.
+func _p_way_out() -> void:
+	_rig()
+	_start_way()
+	_h.abort_pressed.emit()
+	_ok(_idle() and not _r._beacon.visible and not _r.has_target() and _nl == 0, "the ✕ on the way: idle, the ring gone, no left_boat")
+	_start_way()
+	_r._stage_t = BoatRace.PLAY_LIMIT - 0.1
+	_fr(0.3)
+	_ok(_idle() and not _r._beacon.visible and not _r.has_target() and _nl == 0, "30 minutes on the way: idle, the ring gone, no left_boat")
+	_ok(absf(_gap() - BoatRace.CALL_COOL) < 0.5, "30 minutes on the way: the next call CALL_COOL away")
+
+
+# 9. The pill.
+func _p_pill() -> void:
+	_rig()
+	_at(Vector2(BoatRace.PILL_R + 3.0, 0.0))
+	_fr(2 * STEP)
+	_ok(_h.pill == "", "no pill 3 m outside PILL_R")
+	_at(Vector2(BoatRace.PILL_R - 1.0, 0.0), 0.0, true)
+	_fr(2 * STEP)
+	_ok(_h.pill == "", "no pill in the air")
+	_flying = false
+	_world_free = false
+	_fr(2 * STEP)
+	_ok(_h.pill == "", "no pill while world_free says no")
+	_world_free = true
+	_h.pill_free = false
+	_fr(2 * STEP)
+	_ok(_h.pill == "", "no pill while somebody else holds the button")
+	_h.pill_free = true
+	_r.walk_up_pill = false
+	_fr(2 * STEP)
+	_ok(_h.pill == "", "no pill with walk_up_pill off")
+	_r.walk_up_pill = true
+	_fr(2 * STEP)
+	_ok(_h.pill == "boat" and _h.pill_word == "PRZYSTAŃ", "inside PILL_R, free: PRZYSTAŃ, whose 'boat'")
+	_far()
+	_fr(2 * STEP)
+	_ok(_h.pill == "", "the pill goes when the car leaves")
+	_at(Vector2(30.0, 0.0))
+	_fr(2 * STEP)
+	_h.context_pressed.emit("call")
+	_ok(_idle() and _h.card == "" and _h.pill == "boat", "somebody else's button opens nothing")
+	_r.ring()
+	_fr(0.3)
+	_ok(_h.pill == "boat", "the pill stays up through the call")
+	_h.press(0)
+	_fr(0.3)
+	_ok(_h.pill == "boat", "the pill stays up through the offer")
+	_h.press(0)
+	_fr(0.3)
+	_ok(_r.stage == BoatRace.Stage.TO_PIER and _h.pill == "boat", "the pill stays up on the way")
+	var shown0: int = _h.shown
+	_h.context_pressed.emit("boat")
+	_ok(_r.stage == BoatRace.Stage.TO_PIER and _h.shown == shown0 and _h.card == "" and _h.pill == "boat", "a press of it on the way opens nothing and leaves it up")
+	_at(Vector2(3.0, 0.0), 5.0)
+	_fr(2 * STEP)
+	_ok(_r.stage == BoatRace.Stage.COUNTDOWN and _h.pill == "", "the grid takes the pill down")
+	_rig()
+	_at(Vector2(30.0, 0.0))
+	_fr(2 * STEP)
+	_ok(_h.pill == "boat", "the pill is up before the meeting")
+	_ok(_r.meet(), "meet() starts it")
+	_ok(_h.pill == "", "meet() takes the pill down at once")
+
+
+# 10. The marina's card.
+func _p_marina() -> void:
+	_rig()
+	_at(Vector2(20.0, 0.0))
+	_fr(2 * STEP)
+	var nc0: float = _r._next_call
+	_h.context_pressed.emit("boat")
+	_ok(_r.stage == BoatRace.Stage.MENU and _r.phase == Activity.Phase.RUN, "the pill opens the marina's card")
+	_ok(_h.card == "PRZYSTAŃ · wybierz łódź" and _h.buttons == BoatRace.FLEET.size() + 1 and _h.accent == BoatRace.FREE_COLOUR, "the marina's card: its title, a button a boat and WYŚCIG, in FREE_COLOUR")
+	_ok(_h.pill == "" and _r.busy() and not _r.boating(), "the pill is down, busy, not boating")
+	_ok(_r._auto_button() == -1, "MENU: the autopilot's button is -1")
+	_r.autopilot = true
+	_fr(5.0)
+	_ok(_r.stage == BoatRace.Stage.MENU and _h.card != "", "with autopilot on nothing is pressed on the marina's card for 5 s")
+	_r.autopilot = false
+	_h.abort_pressed.emit()
+	_ok(_r.stage == BoatRace.Stage.MENU and _h.card != "", "the ✕ does nothing on the marina's card")
+	_fr(BoatRace.CARD_LIFE)
+	_ok(_idle() and _h.card == "", "the marina's card goes after CARD_LIFE")
+	_ok(_r._next_call == nc0, "its _next_call is what it was (CARD_LIFE)")
+	_r._marina_card()
+	_at(Vector2(BoatRace.PILL_R + 5.0, 0.0))
+	_fr(2 * STEP)
+	_ok(_idle() and _h.card == "", "the card goes within two frames of the car driving off")
+	_ok(_r._next_call == nc0, "its _next_call is what it was (driving off)")
+	_at(Vector2(20.0, 0.0))
+	_r._marina_card()
+	_h.press(BoatRace.FLEET.size())
+	_ok(_r.stage == BoatRace.Stage.COUNTDOWN and _r.boating(), "WYŚCIG: the grid")
+
+
+# 11. A free ride on each boat.
+func _p_free() -> void:
+	_rig()
+	_at(Vector2(20.0, 0.0))
+	for i in BoatRace.FLEET.size():
+		var name: String = BoatRace.FLEET[i]["name"]
+		var nc0: float = _r._next_call
+		var nb0 := _nb
+		var nl0 := _nl
+		_r._marina_card()
+		_fr(3.0)
+		_h.press(i)
+		_ok(_r.stage == BoatRace.Stage.FREE and _nb == nb0 + 1, "%s: the free ride, boarded" % name)
+		_ok(_r.player == _r.fleet[i] and _r.flown and _r.boating(), "%s: the player's boat, flown" % name)
+		_ok(_toast("jest twoja"), "%s: the toast 'jest twoja'" % name)
+		_ok(_h.status_title == "Rejs · " + name and _h.tint == BoatRace.FREE_COLOUR, "%s: the status line 'Rejs · name' in FREE_COLOUR" % name)
+		_ok(_h.count == "0:00.0", "%s: the clock starts at 0:00.0 (got %s)" % [name, _h.count])
+		_ok(_r._auto_button() == 1, "FREE: the autopilot's button is 1")
+		_fr(2.0)
+		var secs := float(_h.count.substr(2))
+		_ok(secs >= 1.6 and secs <= 2.05, "%s: the clock reads the stage's 2 s, not the card's (got %s)" % [name, _h.count])
+		_h.abort_pressed.emit()
+		_ok(_idle() and _nl == nl0 + 1, "%s: the ✕ ends it, left_boat" % name)
+		var fb: Node3D = _r.fleet[i]
+		_ok(fb.visible and fb.pos.distance_to(BoatRace.fleet_spot(i)) < 0.5, "%s: back at its mooring" % name)
+		_ok(_r.player == _r.boats[0] and not _r._barge.visible, "%s: the player is the race's boat again, the barge hidden" % name)
+		_ok(_r._next_call == nc0, "%s: _next_call is what it was" % name)
+
+
+# 12 and 13. The meeting and the straight ways in.
+func _p_meet() -> void:
+	_rig()
+	var shown0: int = _h.shown
+	_ok(_r.meet() and _r.stage == BoatRace.Stage.TO_PIER, "meet() far away starts the way")
+	_ok(_h.shown == shown0, "meet(): no card shown")
+	_rig()
+	_at(Vector2(2.0, 0.0))
+	_ok(_r.meet() and _r.stage == BoatRace.Stage.COUNTDOWN and _nb == 1, "meet() beside the pontoon boards at once")
+	# Every phase but idle: meet() is false and the straight ways change nothing.
+	_rig()
+	_r.ring()
+	_probe("while the phone rings")
+	_h.press(0)
+	_probe("on the offer")
+	_h.press(0)
+	_probe("on the way")
+	_at(Vector2(3.0, 0.0), 5.0)
+	_fr(2 * STEP)
+	_probe("on the grid")
+	_h.abort_pressed.emit()
+	_r.free_ride(2)
+	_probe("in a free ride")
+	_h.abort_pressed.emit()
+	_r.board()
+	_to_out()
+	_probe("behind a result card")
+	_h.press(1)
+	_ok(_idle(), "WYJDŹ ends it")
+	_r._marina_card()
+	_probe("on the marina's card")
+
+
+## `meet()` and the three straight ways, asked in a phase that is not idle: false, nothing changes.
+func _probe(where: String) -> void:
+	var s0 := _snap()
+	_ok(not _r.meet(), "meet() is false %s" % where)
+	_r.board()
+	_r.free_ride(2)
+	_r._marina_card()
+	_ok(_snap() == s0, "board(), free_ride(2) and the marina's card change nothing %s" % where)
+
+
+func _snap() -> Array:
+	return [_r.phase, _r.stage, _h.card, _r.player, _nb, _nl, _h.shown, _r._first, _r.riding, _r._pick]
+
+
+func _p_straight() -> void:
+	_rig()
+	_r.board()
+	_ok(_r.stage == BoatRace.Stage.COUNTDOWN and _nb == 1, "board() when idle: the grid")
+	_h.abort_pressed.emit()
+	_ok(_idle(), "the ✕ on the grid")
+	_ok(_r.meet() and _r.stage == BoatRace.Stage.TO_PIER, "after board() and a ✕ the next meet() far away goes to the pontoon")
+	_rig()
+	_r.free_ride(2)
+	_ok(_r.stage == BoatRace.Stage.FREE and _r.player == _r.fleet[2] and _r.riding == 2, "free_ride(2) when idle: the third boat")
+	_rig()
+	_r._marina_card()
+	_ok(_r.stage == BoatRace.Stage.MENU and _h.card == "PRZYSTAŃ · wybierz łódź", "the marina's card when idle")
+	_rig()
+	_r.free_ride(7)
+	_ok(_r.stage == BoatRace.Stage.FREE and _r.player == _r.fleet[BoatRace.FLEET.size() - 1], "free_ride(7) takes the last boat")
+
+
+# 14. The script's dice.
+func _p_dice() -> void:
+	var mir := RandomNumberGenerator.new()
+	mir.seed = 5
+	_rig(5)
+	_ok(_r._rng.state == mir.state, "a fresh race's dice are the mirror's")
+	_r.ring()
+	_fr(BoatRace.CARD_LIFE + 0.1)
+	_r.ring()
+	_h.press(1)
+	_r.ring()
+	_h.press(0)
+	_h.press(1)
+	_ok(_r._rng.state == mir.state, "calls missed and declined draw nothing")
+	_start_way()
+	_h.abort_pressed.emit()
+	_ok(_r._rng.state == mir.state, "the way and a ✕ draw nothing")
+	_r._marina_card()
+	_fr(BoatRace.CARD_LIFE + 0.2)
+	_r.free_ride(1)
+	_fr(1.0)
+	_h.abort_pressed.emit()
+	_ok(_idle() and _r._rng.state == mir.state, "the marina's card and a free ride draw nothing")
+	_r.board()
+	var aims: Array[float] = []
+	for k in 4:
+		aims.append(mir.randf_range(-1.0, 1.0))
+	var same: bool = _r.racers.size() == 4
+	for k in mini(4, _r.racers.size()):
+		same = same and is_equal_approx(float(_r.racers[k]["aim"]), aims[k])
+	_ok(same, "the first grid's aims are the mirror's four draws, in order")
+	_ok(_r._rng.state == mir.state, "the first grid draws exactly four randf_range(-1, 1)")
+
+
+# The dice in the race: every draw is the next of the one stream (the mirror follows it frame by
+# frame): one for every ring a boat first aims at (the key "m<ring>" in its racer), the rest the
+# rivals' stunts over the ramps.
+func _p_race_dice() -> void:
+	var mir := RandomNumberGenerator.new()
+	mir.seed = 5
+	_rig(5)
+	_r.board()
+	for k in 4:
+		mir.randf_range(-1.0, 1.0)
+	_r.autopilot = true
+	var draws := 0
+	var lost := false
+	var t := 0.0
+	while t < RACE_MAX and _afloat() and not lost:
+		_r._process(STEP)
+		t += STEP
+		var n := 0
+		while _r._rng.state != mir.state and n < 16:
+			mir.randf()
+			n += 1
+		lost = _r._rng.state != mir.state
+		draws += n
+	_r.autopilot = false
+	var aims := 0
+	var stunts := 0
+	for r: Dictionary in _r.racers:
+		stunts += int(r["stunts"])
+		for key: Variant in r.keys():
+			if str(key).begins_with("m") and str(key).substr(1).is_valid_int():
+				aims += 1
+	_ok(not lost and _r.stage == BoatRace.Stage.DONE, "the race's dice stay on the one stream to the finish")
+	_ok(aims >= 4 * 20, "every boat drew for the rings it aimed at (%d draws for rings)" % aims)
+	_ok(draws >= aims + maxi(stunts, 1), "the race drew once a ring aimed at and at least once for a stunt (%d draws, %d rings aimed at, %d stunts)" % [draws, aims, stunts])
+	if OS.get_environment("BOAT_DEBUG") != "":
+		print("check_boat_race: the race's dice: %d draws, %d rings aimed at, %d stunts" % [draws, aims, stunts])
+
+
+# What the deliberate breaks found missing above: 119 changes made on purpose to boat_race.gd
+# were run against this play, and each one it let through got its check here.
+func _p_breaks() -> void:
+	_rig()
+	# The words: who calls and what he is to the player; the offer in both languages, its buttons
+	# in order, Szymek's face.
+	var call: Dictionary = _r._call_card()
+	_ok(call["who"] == "Szymek" and call["about"] == ["Kumpel z przystani. Ma motorówkę i zero cierpliwości.", "Your marina mate. Has a motorboat and zero patience."], "the call: Szymek and what he is to the player, in both languages")
+	var offer: Dictionary = _r._offer_card()
+	_ok(offer["title"] == ["SZYMEK: „ŚCIGAMY SIĘ?”", "Szymek: \"Race you?\""], "the offer's title in both languages")
+	var body: Array = offer["body"]
+	_ok(body.size() == 2 and BoatRace.NAME in str(body[0]) and BoatRace.NAME in str(body[1]), "the offer names the race in both languages")
+	_ok("Trzy pudła i odpadasz" in str(body[0]) and "Three misses and you're out" in str(body[1]), "the offer says the rule (three misses) in both languages")
+	_ok(Array(offer["buttons"]) == ["PŁYNĘ!|I'M IN!", "NIE DZIŚ|NOT TODAY"] and offer["face"] == "Szymek", "the offer's buttons in order, with Szymek's face")
+	# The person in the pontoon's ring wears the marina's navy (beacon.gd: the third box of the person).
+	_start_way()
+	var shirt: Color = ((_r._beacon._person.get_child(2) as MeshInstance3D).mesh as BoxMesh).material.albedo_color
+	_ok(shirt.is_equal_approx(Color("#1f3a5f")), "the person in the pontoon's ring wears the marina's navy")
+	# The stage's clock starts again on the grid; the car's place on the bank is kept for the way back.
+	_fr(2.0)
+	_car.rotation.y = 0.7
+	_at(Vector2(3.0, 1.0), 5.0)
+	_fr(2 * STEP)
+	_ok(_r.stage == BoatRace.Stage.COUNTDOWN and _r._stage_t < 0.05, "the stage's clock starts again on the grid")
+	_ok(_r._car_spot.is_equal_approx(_car.global_position) and is_equal_approx(_r._car_yaw, 0.7), "the car's place and heading on the bank are kept at boarding")
+	# Behind a result card the player is still on the water, and the finish's card waits too.
+	_ok(_to_out() and _r.boating() and _r.flown, "behind the ODPADASZ card: still on the water")
+	_h.press(0)
+	var done := _to_done()
+	_ok(done and _r.boating() and _r.flown, "behind the finish's card: still on the water")
+	_fr(BoatRace.CARD_LIFE + 2.0)
+	_ok(_r.stage == BoatRace.Stage.DONE and _h.card.begins_with("META! "), "the finish's card has no life: still up CARD_LIFE + 2 s later")
+	_h.press(1)
+	_ok(_idle(), "WYJDŹ on the finish's card ends it")
+	# PŁYNĘ! taken beside the pontoon, and in the air over it.
+	_rig()
+	_at(Vector2(-10.0, 8.0))
+	_start_way()
+	_ok(_r.stage == BoatRace.Stage.COUNTDOWN and _nb == 1, "PŁYNĘ! 12.8 m from the pontoon boards at once")
+	_rig()
+	_at(Vector2(3.0, -2.0), 0.0, true)
+	_start_way()
+	_ok(_r.stage == BoatRace.Stage.TO_PIER and _nb == 0, "PŁYNĘ! in the air over the pontoon does not board")
+	# The marina's card: its life to the fifth of a second.
+	_rig()
+	_at(Vector2(20.0, 0.0))
+	_r._marina_card()
+	_fr(BoatRace.CARD_LIFE - 0.2)
+	_ok(_r.stage == BoatRace.Stage.MENU and _h.card != "", "the marina's card is still up 0.2 s before CARD_LIFE")
+	_fr(0.4)
+	_ok(_idle() and _h.card == "", "the marina's card is gone 0.2 s after CARD_LIFE")
+	# The pill: a meeting that is refused leaves it up; a free ride straight from the bank takes it down.
+	_fr(2 * STEP)
+	_start_way()
+	_ok(_r.stage == BoatRace.Stage.TO_PIER and _h.pill == "boat", "the way taken 20 m from the pontoon, the pill still up")
+	_ok(not _r.meet() and _h.pill == "boat", "a meeting refused on the way leaves the pill up")
+	_h.abort_pressed.emit()
+	_fr(2 * STEP)
+	_ok(_idle() and _h.pill == "boat", "the pill is up by the pontoon when idle")
+	_r.free_ride(1)
+	_ok(_r.stage == BoatRace.Stage.FREE and _h.pill == "", "a free ride takes the pill down")
+	# The wake: on the water at speed, and off it when the ride ends.
+	_r.player.throttle = 1.0
+	_fr(6.0)
+	_ok(_r._foam_mesh.get_surface_count() > 0, "a free ride at speed leaves a wake on the water")
+	_h.abort_pressed.emit()
+	_ok(_idle() and _r._foam_mesh.get_surface_count() == 0, "the ✕ takes the wake off the water")
+	# A thing standing in the water pushes a hull (the hull's test against the world's bodies):
+	# a pile in the course's open water, 45 m down from the grid.
+	var g1: Array = _r.grid[1]
+	var at := Vector3(float(g1[0]) + _r.flow_dir.x * 45.0, _r.water_y, float(g1[1]) + _r.flow_dir.y * 45.0)
+	var beside := at + Vector3(1.0, 0.0, 0.0)
+	_ok(_r.solid_at(beside, 1.5) == Vector2.ZERO, "open water pushes nothing")
+	var pile := StaticBody3D.new()
+	var shape := CollisionShape3D.new()
+	var cyl := CylinderShape3D.new()
+	cyl.radius = 2.5
+	cyl.height = 8.0
+	shape.shape = cyl
+	pile.add_child(shape)
+	root.add_child(pile)
+	pile.global_position = at
+	await physics_frame
+	await physics_frame
+	_ok(_r.solid_at(beside, 1.5).length() > 0.01, "a thing standing in the water pushes a hull")
+	pile.queue_free()

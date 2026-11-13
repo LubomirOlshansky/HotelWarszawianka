@@ -17,6 +17,9 @@ extends Control
 ## the wallet, the pedals, the radio ticker, cards, toasts, the status) inside the safe area
 ## under the top row; a bubble that finds no free spot above or below where it wanted to be
 ## keeps that spot (`overlaps` counts them, for tools/check_hud.gd).
+## F 2026-11-11: a quest or police line (chatter.gd QUEST, POLICE) from a person carries their small
+## face on the left (Portraits: the portrait, or their initial on a disc in their colour), so the
+## player sees who is talking, not only a name; ambient chatter and shouts stay name-only.
 
 const Lang := preload("res://scripts/lang.gd")
 const Access := preload("res://scripts/access.gd")
@@ -36,6 +39,9 @@ const FADE := 0.35
 const LINE_SIZE := 15.0
 const SUB_SIZE := 13.0
 const NAME_SIZE := 11.0
+## F 2026-11-11: the speaker's face beside a quest line, in points, and the gap to the text.
+const FACE := 30.0
+const FACE_GAP := 6.0
 const WIDTH := 220.0
 ## A bubble that finds no room at WIDTH tries again this narrow (more lines, less wide), then
 ## this wide (fewer lines, to fit a low gap); with no room at all it waits (its clock stopped)
@@ -72,6 +78,7 @@ func _ready() -> void:
 	_tag_box = StyleBoxFlat.new()
 	_tag_box.bg_color = CARD_BG
 	_tag_box.set_corner_radius_all(roundi(4.0 * pt))
+	texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS  # the 256 px portraits drawn at ~30 pt
 
 
 func _px(points: float) -> int:
@@ -97,7 +104,11 @@ func say(anchor: Variant, speaker: String, line: String, subtitle := "", seconds
 	_make_room()
 	var typing := line.length() / TYPE_RATE
 	var b := {"anchor": anchor, "speaker": speaker, "line": line, "sub": subtitle, "age": 0.0,
-			"life": typing + maxf(seconds, Chatter.read_time(line + subtitle)), "typing": typing, "accent": accent, "height": height, "kind": kind}
+			"life": typing + maxf(seconds, Chatter.read_time(line + subtitle)), "typing": typing, "accent": accent, "height": height, "kind": kind,
+			"face": kind in [Chatter.QUEST, Chatter.POLICE] and Portraits.has_face(speaker)}
+	if b["face"]:
+		b["tex"] = Portraits.face(speaker)
+		b["letter"] = Portraits.initial(speaker)
 	b["wide"] = _measure(b, WIDTH)
 	_bubbles.append(b)
 	queue_redraw()
@@ -105,16 +116,16 @@ func say(anchor: Variant, speaker: String, line: String, subtitle := "", seconds
 
 
 ## Phase 0.2: a quest or police line jumps the rate cap but not the two on screen: with two up, the
-## oldest ambient or reaction bubble goes (else the oldest of all).
+## oldest ambient or reaction bubble goes (else the oldest of all). In a chase (chatter.gd
+## `max_on_screen`) one voice at a time: the new line takes the old one's place.
 func _make_room() -> void:
-	if _bubbles.size() < Chatter.MAX_ON_SCREEN:
-		return
-	var drop := 0
-	for i in _bubbles.size():
-		if int(_bubbles[i].get("kind", Chatter.QUEST)) >= Chatter.REACTION:
-			drop = i
-			break
-	_bubbles.remove_at(drop)
+	while not _bubbles.is_empty() and _bubbles.size() >= chatter.max_on_screen():
+		var drop := 0
+		for i in _bubbles.size():
+			if int(_bubbles[i].get("kind", Chatter.QUEST)) >= Chatter.REACTION:
+				drop = i
+				break
+		_bubbles.remove_at(drop)
 
 
 ## Ambient chatter (crowds, dog walkers, bus stops...) keeps quiet while the player drives
@@ -169,7 +180,8 @@ func say_reaction(anchor: Variant, speaker: String, line: String, subtitle := ""
 	return say(anchor, speaker, line, subtitle, seconds, accent, height, Chatter.REACTION, key)
 
 
-## A bubble's size with its text wrapped `width` points wide: {size, name_h, line_h}.
+## A bubble's size with its text wrapped `width` points wide (a face adds its column on the left and
+## keeps the bubble at least its height): {size, name_h, line_h}.
 func _measure(b: Dictionary, width: float) -> Dictionary:
 	var font := ThemeDB.fallback_font
 	var w := width * pt
@@ -181,6 +193,9 @@ func _measure(b: Dictionary, width: float) -> Dictionary:
 	var name_w := font.get_string_size(String(b["speaker"]).to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, _px(NAME_SIZE)).x
 	var size := Vector2(maxf(line_size.x, maxf(sub_size.x, name_w)),
 			name_h + line_size.y + (sub_size.y + 2.0 * pt if b["sub"] != "" else 0.0)) + Vector2.ONE * PAD * pt * 2.0
+	if b.get("face", false):
+		size.x += (FACE + FACE_GAP) * pt
+		size.y = maxf(size.y, (FACE + PAD * 2.0) * pt)
 	return {"size": size, "name_h": name_h, "line_h": line_size.y}
 
 
@@ -242,6 +257,11 @@ func _frame(dt: float) -> void:
 	_sense()
 	if _bubbles.is_empty() and _tags.is_empty():
 		return
+	if chatter.context >= 2:
+		# A chase began (messages.gd): the city's chatter already up goes, one voice stays.
+		for i in range(_bubbles.size() - 1, -1, -1):
+			if int(_bubbles[i].get("kind", Chatter.QUEST)) >= Chatter.REACTION or _bubbles.size() > chatter.max_on_screen():
+				_bubbles.remove_at(i)
 	for i in range(_bubbles.size() - 1, -1, -1):
 		var b := _bubbles[i]
 		if b.get("waiting", false):
@@ -277,6 +297,17 @@ func _hud_rects() -> Array[Rect2]:
 	return out
 
 
+## The road ahead of the player's car on screen (hud.gd `keep_clear_rects`, F 2026-11-11: "the
+## partners' messages should not make it hard to see what's in front"): a bubble keeps off it when
+## it can, and stands there only when nowhere else is free.
+func _hud_keep_clear() -> Array[Rect2]:
+	var hud := get_parent()
+	var out: Array[Rect2] = []
+	if hud != null and hud.has_method("keep_clear_rects"):
+		out.assign(hud.keep_clear_rects())
+	return out
+
+
 ## Where bubbles may go: inside the safe area under the HUD's top row.
 func _area() -> Rect2:
 	var hud := get_parent()
@@ -296,24 +327,36 @@ func layout() -> Array:
 		return out
 	var area := _area()
 	var placed := _hud_rects()
+	var ahead := _hud_keep_clear()
 	for b in _bubbles:
+		var with_road: Array[Rect2] = placed.duplicate()
+		with_road.append_array(ahead)
+		var tries: Array = [with_road, placed] if not ahead.is_empty() else [placed]
 		var p := _where(b["anchor"], b["height"])
 		if p == Vector3.INF:
 			continue
 		var at: Vector2 = project.call(p)
 		var m: Dictionary = b["wide"]
-		var found := _clear(_place(m["size"], at, area), placed, area)
-		# No room as it is: wrapped narrower it may fit beside what's in the way, wider it may
-		# fit a low gap.
-		for alt in [["narrow", NARROW], ["widest", WIDE]]:
+		# The road ahead first (`ahead`), then without it: a bubble may cover the road only when
+		# the HUD leaves it nowhere else.
+		var found := [Rect2(), false]
+		for k in tries.size():
+			var avoid: Array[Rect2] = tries[k]
+			found = _clear(_place(m["size"], at, area), avoid, area)
+			# No room as it is: wrapped narrower it may fit beside what's in the way, wider it may
+			# fit a low gap.
+			for alt in [["narrow", NARROW], ["widest", WIDE]]:
+				if found[1]:
+					break
+				if not b.has(alt[0]):
+					b[alt[0]] = _measure(b, alt[1])
+				var other := _clear(_place(b[alt[0]]["size"], at, area), avoid, area)
+				if other[1]:
+					found = other
+					m = b[alt[0]]
 			if found[1]:
 				break
-			if not b.has(alt[0]):
-				b[alt[0]] = _measure(b, alt[1])
-			var other := _clear(_place(b[alt[0]]["size"], at, area), placed, area)
-			if other[1]:
-				found = other
-				m = b[alt[0]]
+			m = b["wide"]
 		b["waiting"] = not found[1]
 		if not found[1]:
 			overlaps += 1
@@ -453,6 +496,11 @@ func _draw_bubble(b: Dictionary, font: Font, at: Vector2, rect: Rect2, m: Dictio
 	var x := rect.position.x + pad
 	var w := size.x - pad * 2.0
 	var accent: Color = b["accent"]
+	if b.get("face", false):
+		var r := FACE * 0.5 * pt
+		Portraits.paint(self, Vector2(x + r, y + r), r, b["tex"], b["letter"], accent, maxf(1.5, 1.5 * pt), alpha)
+		x += (FACE + FACE_GAP) * pt
+		w -= (FACE + FACE_GAP) * pt
 	if b["speaker"] != "":
 		var fs := _px(NAME_SIZE)
 		draw_string(font, Vector2(x, y + font.get_ascent(fs)), b["speaker"].to_upper(), HORIZONTAL_ALIGNMENT_LEFT, -1, fs,

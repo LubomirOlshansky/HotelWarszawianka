@@ -101,3 +101,21 @@ barrels (~700 each).
 | sills | two boxes | 15.6 x 0.28 m, 0.47 m tall | along each barrel side | M_STONE #bfb9ad | 2 barrels |
 | well | dark quad and three steps | 7.3 x 14.8 m | inside each barrel | M_STONE #2a2e33 | 2 barrels |
 | door | glass quad, lintel, three mullions | the landing's width x 2.4 m | 2.5 m past the Rotunda stair's foot | M_GLASS_ROOF / M_STONE | Rotunda stair |
+
+## 9. The entrance's dressing (F, 2026-11-13, twelve photos)
+
+`game/scripts/patelnia.gd`, built at runtime on both city paths like `centralny_ramp.gd`: one mesh in
+the actors' material (`models.gd`), one draw call, no building-shader cost; signs, windows and the
+globes glow by the material's own night parts (LIT_SIGN, LIT_WINDOW), no lights. Nothing in it is
+solid. ~12,800 triangles (murals ~1,050 quads, text merged into runs).
+
+| Part | What | From |
+| --- | --- | --- |
+| Barrels' mouths | blue steel arch on two posts, blue band at 2.4-3.0 m with a small roundel and CENTRUM, the big yellow roundel with the red M over it, yellow door frames folded back, a red ticket machine outside; the barrels' ribs now blue (`BARREL_RIB`) | photos 1, 3, 6, 9, 10 |
+| Pasaż Handlowy box (OSM 5588) | lit glass front, blue mullions and fascia (APTEKA 24H, WEJŚCIE), the white sign box PASAŻ HANDLOWY with six tenant tiles, a poster (BAR MLECZNY POD PATELNIĄ), the green cross on a bracket, two ticket machines and a BANKOMAT | photos 1, 5, 6, 9, 10 |
+| Courts beside it | three lit shopfronts across the back under blue fascias with name boards, a blue gateway with a PASAŻ HANDLOWY board, a PRASA kiosk / a flower stall | aerials 2, 12 |
+| Roof billboards (on OSM 8058, 8059) | 9 x 3.2 m at 7.7 m, facing the square: KEBAB FM 87,3 and OPTYK SOKOLE OKO (parody ads) | photos 1, 6, 9 |
+| Murals (ring points of SUNKEN "patelnia") | 24-29 skyline in a blue wave with DO ZOBACZENIA, 29-0 yellow pop faces and PATELNIA, 0-4 three readers with bubbles (POEZJA!, CZYTAJ, DOBROĆ), 4-7 orange ribbon on white, 13-22 teal drips on pink; 0.1 m pixels, 3.2 m tall, cut under the wall's top; our own pictures in the themes the real walls carried | photos 2, 4, 6, 7, 8, 11 |
+| The slope over the south wall | shrubs leaning over the coping (30 % in pink blossom), globe lamps every 7.5 m 4.6 m out; six more globes by the Kokota stair | photos 2, 3, 4 |
+| Stairs | a steel handrail down the middle of the Kokota and north-east stairs | photos 3, 4 |
+| The square's life | a busker with an amp and open case and six listeners, a breakdancer in a handstand on cardboard with a boombox and ten watchers, a painter on a ladder at the skyline mural with spray cans, an easel painter and two watching, a gold living statue on a box, a four-colour market umbrella, a green tent, two advertising columns | photos 2, 9, 12 |

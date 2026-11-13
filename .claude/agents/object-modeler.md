@@ -27,10 +27,11 @@ it, and hand it back for acceptance. You don't decide looks and you don't spawn 
 
 ## Read first
 
+0. docs/architecture/graphics.md section 5 (the cheap ways to add things).
 1. The brief: the spec (values), the objects, the shots it wants, the budget.
 2. CLAUDE.md "Hard rules" and "Code conventions"; `.claude/skills/screenshot-review/art-bible.md`;
    the model-from-photos skill (detail levels, triangle budgets, the matched shots).
-   If `refs/<slug>/` exists, open its photos, the orthophoto `ortho.jpg` (the roof and the
+   If `refs/<slug>/` is missing, try `python3 -I tools/refs_store.py pull <slug>` (the shared store). If `refs/<slug>/` exists, open its photos, the orthophoto `ortho.jpg` (the roof and the
    footprint from above), the street-level photos in `street/` (Mapillary/Panoramax: the ground
    floor and the faces the player drives past) and SOURCES.md: build what they show at the
    brief's detail level (L2 or L3), every identity feature the spec names.

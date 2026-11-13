@@ -1,0 +1,227 @@
+{
+	"id": "kino",
+	"pay_kind": "kino_tour",
+	"name": [
+		"Kino objazdowe",
+		"The travelling cinema"
+	],
+	"speaker": "Wiktor",
+	"lines": "kino_wiktor",
+	"colour": "#e0453a",
+	"dark": "#3a1f2a",
+	"hours": [
+		14.0,
+		23.0
+	],
+	"first_call": 480,
+	"call_cool": 1800,
+	"play_limit": 2400,
+	"banter": [
+		16,
+		24
+	],
+	"pay": {
+		"base": 220,
+		"bump": 20,
+		"shot": 25,
+		"respect": 60,
+		"respect_bump": 8
+	},
+	"bump_max": 5,
+	"shots_of": "stops",
+	"call": {
+		"who": "Wiktor",
+		"about": [
+			"Kumpel reżyser. Beret, szalik w upał, film na 35 mm.",
+			"Director friend. Beret, scarf in the heat, a 35 mm film."
+		]
+	},
+	"offer": {
+		"title": [
+			"WIKTOR: „ZAWIEZIESZ MNIE?”",
+			"Wiktor: \"Will you drive me?\""
+		],
+		"body": [
+			"„Skończyłem! „Warszawa. Wjazd w pustkę”: trzy czterdzieści, jedno ujęcie, rondo oczami gołębia. Objedziemy kina, Amondo, Atlantic, Kinotekę, Muranów. Ktoś to musi puścić. Czekam na Zbawiciela.”",
+			"\"It's done! 'Warsaw. Enter the Roundabout': three forty, one take, the roundabout as a pigeon sees it. We do the cinemas, Amondo, Atlantic, Kinoteka, Muranów. Somebody has to screen it. I'm on Plac Zbawiciela.\""
+		],
+		"face": "Wiktor"
+	},
+	"pickup": {
+		"at": [
+			-416.4,
+			1594.7
+		],
+		"name": "Plac Zbawiciela",
+		"toast": [
+			"Po Wiktora na plac Zbawiciela",
+			"Pick Wiktor up on Plac Zbawiciela"
+		],
+		"in": [
+			"Wiktor wsiada z puszką filmu. Taśma na tylnym siedzeniu: jedź gładko",
+			"Wiktor gets in with the film can. The reel's on the back seat: drive smooth"
+		],
+		"status": [
+			"Wiktor czeka z filmem: {name}",
+			"Wiktor waits with the film: {name}"
+		],
+		"met": "met Wiktor on Plac Zbawiciela"
+	},
+	"stops": [
+		{
+			"id": "amondo",
+			"at": [
+				-550.7,
+				605.2
+			],
+			"name": "Kino Amondo",
+			"street": "Żurawia",
+			"shot": "long",
+			"title": [
+				"AMONDO: „40 MIEJSC I JEDNA KANAPA”",
+				"AMONDO: \"40 SEATS AND ONE SOFA\""
+			],
+			"body": [
+				"Kierowniczka: „Kochany, mamy czterdzieści miejsc i jedną kanapę. Trzy godziny czterdzieści? Ludzie tu przychodzą na wino.”\nWiktor: „Wino też trwa. Tylko szybciej się kończy.” Odmowa.",
+				"The manager: \"Darling, we have forty seats and one sofa. Three hours forty? People come here for the wine.\"\nWiktor: \"Wine lasts too. It just ends sooner.\" A no."
+			]
+		},
+		{
+			"id": "atlantic",
+			"at": [
+				-758.6,
+				334.2
+			],
+			"name": "Kino Atlantic",
+			"street": "Chmielna",
+			"shot": "static",
+			"title": [
+				"ATLANTIC: „U NAS JEST FABUŁA”",
+				"ATLANTIC: \"WE SHOW STORIES\""
+			],
+			"body": [
+				"Pan z kasy: „Puszczamy filmy, w których coś się dzieje. Gdzie tu jest fabuła?”\nWiktor: „Fabuła to przemoc wobec obrazu.” Pan z kasy proponuje mu popcorn na pocieszenie. Odmowa.",
+				"The box office man: \"We show films where something happens. Where's the story?\"\nWiktor: \"Story is violence against the image.\" He's offered popcorn as comfort. A no."
+			]
+		},
+		{
+			"id": "kinoteka",
+			"at": [
+				-1183.0,
+				331.0
+			],
+			"name": "Kinoteka",
+			"street": "Pałac Kultury",
+			"shot": "reverse",
+			"title": [
+				"KINOTEKA: „ŚRODA, 3:00 W NOCY”",
+				"KINOTEKA: \"WEDNESDAY, 3 A.M.\""
+			],
+			"body": [
+				"Programista: „Mamy festiwal. Możemy cię wcisnąć w środę o trzeciej w nocy, sala 7, ta bez klimy.”\nWiktor: „Trzecia w nocy to jedyna uczciwa godzina dla kina.” Prawie tak. Jedziemy dalej.",
+				"The programmer: \"Festival week. We can squeeze you in on Wednesday at 3 a.m., screen 7, the one with no air con.\"\nWiktor: \"3 a.m. is the only honest hour for cinema.\" Almost a yes. Drive on."
+			]
+		},
+		{
+			"id": "muranow",
+			"at": [
+				-1614.0,
+				-1237.0
+			],
+			"name": "Kino Muranów",
+			"street": "Andersa",
+			"shot": "rush",
+			"title": [
+				"MURANÓW: „PUSZCZAMY DZIŚ!”",
+				"MURANÓW: \"WE SCREEN IT TONIGHT!\""
+			],
+			"body": [
+				"Kierowniczka pod fontanną: „Trzy czterdzieści, jeden ujęcie, gołąb? Biorę. Dziś o 21:00, po pokazie rozmowa z twórcą.”\nWiktor płacze w szalik. Pod girlandami już stoi kolejka w beretach.",
+				"The manager by the fountain: \"Three forty, one take, a pigeon? I'm in. Tonight at 9 p.m., a Q&A after.\"\nWiktor cries into his scarf. Under the festoons a queue in berets is already forming."
+			]
+		}
+	],
+	"shots": {
+		"long": {
+			"kind": "long",
+			"need": 15,
+			"hint": [
+				"Ujęcie: długie, 15 s przy 5-40 km/h",
+				"Shot: a long take, 15 s at 5-40 km/h"
+			]
+		},
+		"static": {
+			"kind": "static",
+			"need": 5,
+			"hint": [
+				"Ujęcie: statyczne, stój 5 s",
+				"Shot: a static one, stand still 5 s"
+			]
+		},
+		"reverse": {
+			"kind": "reverse",
+			"need": 20,
+			"hint": [
+				"Ujęcie: na wstecznym 20 m",
+				"Shot: 20 m in reverse"
+			]
+		},
+		"rush": {
+			"kind": "fast",
+			"need": 4,
+			"hint": [
+				"Ujęcie: pęd, 4 s ponad 60 km/h",
+				"Shot: the rush, 4 s over 60 km/h"
+			]
+		}
+	},
+	"words": {
+		"status_leg": [
+			"{name}",
+			"{name}"
+		],
+		"status_shot": [
+			"{name} · {shot} · Taśma {tape}",
+			"{name} · {shot} · Reel {tape}"
+		],
+		"status_got": [
+			"{name} · Ujęcie jest! Taśma {tape}",
+			"{name} · Got the shot! Reel {tape}"
+		],
+		"got": [
+			"CIĘCIE! Mamy to ujęcie (+{pay} zł na końcu)",
+			"CUT! That's the shot (+{pay} zł at the end)"
+		],
+		"bump": [
+			"Rysa na taśmie! Zostało {left} z {max} klatek",
+			"A scratch on the reel! {left} of {max} frames left"
+		],
+		"bump_last": [
+			"Taśma: ostatnia klatka porysowana. „Teraz to kino eksperymentalne”",
+			"The reel: the last frame scratched. \"Now it's experimental cinema\""
+		],
+		"bump_last_tag": "ruined",
+		"drive_on": "JEDZIEMY DALEJ|DRIVE ON",
+		"end_button": "BRAWO!|BRAVO!",
+		"end": [
+			"{body}\n{mark}  +{pay} zł  +{respect} szacunu · ujęcia {shots}/{of}",
+			"{body}\n{mark}  +{pay} zł  +{respect} respect · shots {shots}/{of}"
+		],
+		"mark_clean": [
+			"Taśma czysta jak sumienie debiutanta.",
+			"The reel is as clean as a debut's conscience."
+		],
+		"mark_bumped": [
+			"Rysy na taśmie? „Zamierzone.”",
+			"Scratches on the reel? \"Intended.\""
+		],
+		"quit": [
+			"Wiktor wysiada: „Kino nie lubi pośpiechu.”",
+			"Wiktor gets out: \"Cinema doesn't like a rush.\""
+		],
+		"no_fly": [
+			"Wiktor nie lata: najpierw kina (albo ✕)",
+			"Wiktor doesn't fly: the cinemas first (or ✕)"
+		]
+	}
+}

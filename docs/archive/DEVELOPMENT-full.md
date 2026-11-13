@@ -421,6 +421,21 @@ at the hospital. Out of time: TRY AGAIN, NEXT CALL or FREE ROAM.
 - **One activity at a time**: a job starts only with no rescue or race under way and not from
   the helicopter; while it runs, rescue calls and race challenges wait, and the helicopter
   stays parked (the order rides in the car).
+  Since 2026-11-13 (tech-debt TD-1) `jobs.gd` is an activity of the kit (`activity.gd`) and its
+  fourth side job: a pull-in starts it with no call, and the order card, the drive and the result
+  card are the stages of the kit's run (`stage`). The kit keeps its cards, its status line, the
+  ✕, the door's ring and the end; the arrow, the metres, the minimap's dot, the stop assist and
+  the autopilot's car read the door through the director, and main.gd's own lines keep only the
+  pointer to the next stand after NASTĘPNE, which is no run and is asked apart
+  (`jobs.pointing()`). "Is a side job on?" is the director's answer (`activities.job_on()`), and
+  the M and K keys reach a card through the director (`activities.primary()`, `secondary()`).
+  When a delivery ends the kit takes down only a card of its own, a press reaches the job only
+  on its own card, and its card comes back when another card that covered it goes (the old
+  script took down whichever card was up and heard every press). The play has its own check:
+  `check_job_play.gd` (verify step `jobplay`, run at `--fixed-fps 60`): the real `jobs.gd` on
+  the committed map, what `setup` builds, the pull-in, the order and its count-down, the drive,
+  the heat, the jars, the door, the result cards, the craft kebab and the Zagłębie, the pointer,
+  the courier beside an order, other cards and other jobs, the test flags and the autopilot.
 - **Dialogue** (`dialogue.gd`): loads `data/dialogue.json` (95 original Polish lines with
   English subtitles; a line can be tagged for a situation, e.g. roof-rescue or across-the-river
   lines) and picks lines per group from a shuffled bag, never the same twice in a row. An AI
@@ -887,6 +902,20 @@ no samples). Buses: Master, **Music** (the radio, player at -9 dB), **SFX** (-3 
   imports (Forward loops, QOA) and decodes across each loop point; `godot --path game --
   --sound-check` (with an audio device) plays every one-shot and prints each bus's peak;
   the bench prints the buses' peaks while driving.
+- One-shots (step 2, 2026-11-12): `sfx.play(name, gain_db, pitch, bus)` (no place), `sfx.play_at(name, at,
+  gain_db)` (in the world, 6 voices, the nearest win) and `Sfx.ui(name)` / `Sfx.ui_stop(name)` /
+  `Sfx.ui_add(name, stream, db)` (the interface: static, players under the tree's root, they run
+  under the pause and before the city is built). `Sfx.SHOT_RULES`: name → [priority LOW/NORMAL/HIGH,
+  most voices at once, pitch spread]; `Sfx.pick_voice` chooses the 2D voice (6 of them). Takes:
+  `name.wav`, `name_2.wav` … `name_4.wav`. A name outside `SHOTS` / `UI` is a `push_error`.
+- The mixer (TD-5, 2026-11-12): who turns whom down is `Sfx.DUCKS` in `sfx.gd`, name →
+  [target ("radio" or a bus), dB, seconds down, seconds up]. A script calls `Sfx.duck(name)` and
+  `Sfx.release(name)`, or `Sfx.duck(name, seconds)`; ducks stack and the deepest one held counts.
+  The radio steps the mixer every frame (it runs under the pause and the title) and sets its
+  players from `Sfx.mix_db("radio")`; `sfx.gd` sets the Ambience bus from `Sfx.mix_db("Ambience")`.
+  Buses: Master (an `AudioEffectHardLimiter` at -0.5 dB), Music, SFX, Ambience, Voice (spoken
+  clips; follows the effects slider). `godot --headless --path game --script
+  res://tools/check_mixer.gd` (verify step `mixer`).
 
 **Rain** (`weather.gd`, RAIN / O / `--weather=rain`): Clear or Rain, separate from the time of
 day. `amount` (how hard it rains) drives the streaks, the rain bed and an overcast light
@@ -2914,6 +2943,17 @@ name or logo). The joke is the app and its GPS, never the driver or the passenge
   believer waiting 34 m from the pin, the river quirk) with the autopilot and `--parody-log`.
   `check_hud.gd` lays out the request card, the ride's status and two result cards at their
   longest, and fails a ride card that covers the car's spot.
+  Since 2026-11-13 (tech-debt TD-1) `rides.gd` is an activity of the kit (`activity.gd`): the kit
+  keeps its request, its cards, its status line, its ring, the ✕ and the end; the arrow, the
+  metres, the minimap's dot and the stop assist read its target through the director (main.gd's
+  own block for it is gone), and on a test run the ride drives the autopilot's car itself
+  (`drive_player`, which main.gd asks of the activity whose target is up). With `--autopilot` a
+  request is taken after 1.5 s (2.0 s before) and a story passenger's question answered after
+  2.5 s (2.0 s before). When a ride ends the kit takes down only a card of its own (the old
+  script took down whichever card was up). The play has its own check: `check_ride_play.gd`
+  (verify step `rideplay`, run at `--fixed-fps 60`): the request and what holds it back, the
+  pickup, the ride and its stars, the quirks and their plans, the Frogs stop, the story
+  passengers, the pay, the ends, and rides on the autopilot.
 - **Cost** (probe, Metal, 2868×1320, Classic, traffic Normal, day; before = 613ff38 from a copy
   in the same session, measured before the 3c streaming merge): the spawn view 134 draw calls (main 52, shadow 35, 2D 46) before and
   after, side jobs + eggs 0.039 → 0.044 ms. During a ride (ride 19 on the autopilot, Powiśle):
@@ -4023,6 +4063,14 @@ unchanged.
   będzie, sorry.") and no tip; late: half the pay, no tip, no respect *guess*. One activity at
   a time (`jobs.busy()` and Podwózka's offers see it). `--trend-job[=1|2|3] --autopilot` drives
   it.
+  Since 2026-11-13 (tech-debt TD-1) `trend_job.gd` is an activity of the kit (`activity.gd`): the
+  kit keeps its call, its request, its cards, its status line, its ring, the ✕ and the end; the
+  arrow, the metres, the minimap's dot and the stop assist read its target through the director
+  (main.gd's own block for it is gone), and the autopilot's car is slid by main.gd's `_slide_car`,
+  as for every activity of the kit. With `--autopilot` a call or a request is answered after 1.5 s
+  (2.0 s before) and a point of the match or the review's button after 2.5 s (2.0 s before). An
+  `offer_…` function asked during a run answers false (the old script would have started over the
+  run; nothing in the game asked then). Its check: `check_trend_job.gd` (verify step `trendjob`).
 - **Not built**: one queuer in five holding a phone up (no pose without the shaders' lane), the
   pigeon on days 6-7, the influencer at the window, MERDAK pet shops (no `shop=pet` anchors in
   the places), the armchair man (E34 still waits), the PixelLab pictograms on the fascias
@@ -4189,6 +4237,12 @@ the bench's "jobs+eggs" line holds them, and answers `busy` / the target / the c
 autopilot for them: one activity at a time, as every job), `storefronts.gd` (`lying_near`,
 `collect`, `restore_collected`, the payphone), `props.gd` (`add_payphone`, `carried_armchair`),
 `city_life.gd` (the armchair man), `main.gd` (flags, the round-up's construction, key L).
+Since 2026-11-13 (tech-debt TD-1) `roundup_job.gd` is an activity of the kit (`activity.gd`) and
+main.gd's child, in the frame just before `jobs.gd`: `jobs.gd` no longer steps it nor slides the
+autopilot's car for it (main.gd's `_slide_car` does, as for every activity of the kit), and the
+bench's "side jobs + eggs" line no longer holds its step (about 1 µs a frame while idle).
+`jobs.gd` answered `busy`, the target and the card keys for it until it joined the kit itself
+(the same day): the director does now, and `courier_race.gd` stays the deliveries' child.
 Data: `eggs.json` E34 (`event`) and E40 (`stop`, 8 m, 2 s): no words changed.
 
 - **The courier race** (parodies.md 4.3): at night, a kebab order rolls (`CourierRace.roll`, by the
@@ -5081,6 +5135,48 @@ final's route on the lane graph), the flow in `rivals.gd`.
 - **Cost**: the start look and the checkpoint test at 5 Hz (a few distance tests); the ladder's
   `open_count` (~20 µs) only when the wallet changes. +0 draw calls while driving: the start marker
   is the race's own Beacon, the diamond joins the minimap's batch, the card is labels on the paused map.
+- **A rival's streets** (the racer AI rebuild's step 3, 2026-11-12; docs/design/race-ai.md 5.1):
+  in a ladder race, the guided first race and each leg of Trzy mosty the rival drives a plan
+  (`scripts/race_planner.gd`: its own seconds to the finish from every street, the town's traffic
+  counted by the rung's `knows` and `caution`), asked at every junction; the distances above stay
+  for the HUD's metres and for the pack race, the autopilot's ghost and Halina's roll-up behind
+  the car before the first race (`call_first`), which have no plan. The search runs in slices of `Traffic.PLAN_SLICE` (150) ways a frame from the challenge
+  on (0.6 ms a frame on a desktop; a plan in 28 frames on average, 52 at most), a leg's plan while
+  the leg before is driven. With `--race=N` the log has `race: <rival> plans N s to the finish
+  (traffic xD, K junction ways searched)`. A blocked street: the rival turns back (`traffic.gd`
+  `BACK_*`, the signal `turned_back`, `traffic.reroute` for the metres left). A finish is one
+  line for both cars: the circle of `FINISH_RADIUS`, and on a road that runs through it
+  (`RacePlanner.ends`: 8 of the 11 street finishes and the final's by the stadium) the line
+  across that road where it enters the circle, in whichever lane (`Rivals.home_at` for the
+  player's car, the Driver's `arrived` for the rival); the plan, the metres on the HUD and the
+  minimap's route end there. Checks: verify steps
+  `raceplanner` (`game/tools/check_race_planner.gd`, CI too) and `racebench`; the traffic delay's
+  numbers come from `tools/race_traffic.sh` (not a check).
+- **A rival's line** (the racer AI rebuild's step 4a, 2026-11-12; docs/design/race-ai.md 5.2): a
+  rival with a plan drives a racing line (`scripts/race_line.gd`, one `RaceLine` in `traffic.gd`):
+  inside its own lane and its junctions' room, the bends rounded by the widest arc that fits,
+  with a speed for every metre from its grip (`lat`, now a real sideways pull: the turn of
+  every 8 m of the line) and its brakes. The Driver's rail stays; its place on the ground and
+  its top speed for the frame are read from the line (`traffic.gd` `LINE_*`: the streets decided
+  100 m ahead, a car beside its line, the move over to a new line across 12 m, no sideways move
+  where the line corners). The ladder's skill numbers were set again with it and keep each
+  rival's time. The pass over the centre line is still the old driver's, with its rule put
+  right: it minds only the oncoming lanes within 2.5 m of the line it drives (`RACE_PASS_BESIDE`)
+  and needs them clear for as far as the two cars close while it lasts and 0.7 s more
+  (`RACE_PASS_BACK`); the pass itself is rebuilt in step 4b. Cost: a stretch of line is built
+  once and shared (0.7 ms on a desktop, 20 ms the slowest of the map's 13,273), a line is
+  brought up to date twice a second at most, and a frame reads one point of it. On the race
+  bench (the cloud's CPU) the traffic step went from 30 to 47 µs a frame with the rival alone
+  (the rival's own update from 15 to 30 µs) and from 382 to about 430 µs in Busy traffic; a line is
+  put together about 25 times in a race in Busy traffic, in 0.4 ms from stretches already built
+  and 1.5 ms in the middle, 2.3 ms at the most, with one to build (the bench's `steps_slow`
+  and `step_most_usec` count them; whether that is a hitch on the phone only the phone can
+  show). The frame bench did not move (106 draw calls, traffic 0.8 ms). Check: verify step
+  `raceline` (`game/tools/check_race_line.gd`, CI too: every stretch of the map stays in its
+  room, the speeds are inside the grip and braked for in time). A rival's effort (`rivals.gd`
+  `pace_tick`) is cut to the road's racing speed for the straight only (`race_effort`); the
+  corner's grip reads the effort itself (`race_corner`), so a rival at the car's top still
+  pushes through the bends (`check_first10.gd`).
 
 ## The first 10 minutes and the end card (loop 3h slice 4, 2026-10-31)
 
@@ -5708,6 +5804,7 @@ Command-line options (after `--`):
 | `--stream-slow=MS` | loop 3d-2b: every worker load takes MS ms longer (the phone's slower loads on the Mac: `--stream-slow=400` with the look-ahead off misses 337 frames in the helicopter pass, with it 0) |
 | `--stream-gate=0` | loop 3d-2b: a prebuilt sector's pieces load with its scene at once (the old one-frame load end), not one a frame |
 | `--solo=KEY` / `--solo-look=lit\|flat\|sil` | landmarks 0.3: build one landmark site alone (key as in `landmarks.gd`: `palace`, `rotunda`, `varso`…), no ground, roads, buildings or traffic, on a plain background, runtime city path only (forces off `--prebuilt`). `flat` (default) = unlit in the site's colours on grey, `sil` = dark silhouette on near-white, `lit` = the normal look. Use `--time=day`; the judge's shots (model-from-photos skill section 5): `tools/shots.sh --set=first` |
+| `--palace=code\|blender\|blender1` | the Blender trial (2026-11-13): which Palace to build. `code` (default) is `landmarks.gd` `_build_palace`; `blender` the LOD 0 glb from `tools/blender/pkin.py`, `blender1` its LOD 1. The sector bake reads `AW_PALACE` instead (`AW_PALACE=blender godot --path game --resolution 320x180 --script res://tools/bake_city.gd`) |
 | `--no-ghost` | 2026-10-31, for the landing's screenshots: no occlusion ghost and no see-through hole round the car (the dither and the hole that open buildings between the camera and the car), so a wide framed shot (`--yaw` / `--pitch` / `--size`) centred on a spot behind a building keeps it whole. The landing's Palace shot: `--at=-1180,215 --yaw=225 --pitch=-38 --size=400 --time=live --clock=18:15 --date=20260915 --nohud --no-ghost` at 1920x1080 |
 | `--topdown` | 2026-11-07, F: road photos from height, like GTA: the camera looks straight down, north up, with no occlusion ghost, to check kerbs, asphalt and paint. T toggles the same road view in a running game (keyboard). With `--at=X,Z --size=55 --nohud --no-traffic --shots=30 --out=DIR` it makes a road plan shot of any spot |
 | `--debug-ao` / `--no-ao` | show / switch off the baked ground shadows |
@@ -5716,7 +5813,7 @@ Command-line options (after `--`):
 | `--heli-stick=X,Z` | the L-shaped map loop (2026-10-31): the helicopter's stick held towards that world direction (x east, z south; length up to 1) the whole run, for screenshots of the clamp along the map's outline (with `--heli --at=`) |
 | `--heli-alt=M` | loop 3d-2b: start in the helicopter M metres over the ground, placed there at once (360 = its highest; the memory and far-level probes) |
 | `--mission=N` | start rescue call N at once (N = 1, 5, 9… streets, 2, 6… roofs, 3, 7… river, 4, 8… parks) |
-| `--autopilot` | testing aid: fly (or, ghosting through walls, drive) to each mission target; in a race or a side job, drive the route; with `--rival`, tail the rival |
+| `--autopilot` | testing aid: fly (or, ghosting through walls, drive) to each mission target, or to the target of the activity of the kit that is on (a tour's pickup and stops); in a race or a side job, drive the route; with `--rival`, tail the rival |
 | `--ghost-pace=X` | testing aid (street races, 2026-11-04): the autopilot's speed factor in a race (default 1.8, an average player; 2.4 a quick one; `racer`: a skilled player in traffic.gd's racer mode at the car's top), for the race-AI runs (`tools/race_ai.sh`) |
 | `--handling=cruise\|sport\|grounded` | Grounded handling (2026-11-08): drive this run in that profile (car.gd PROFILES), whatever Settings → Jazda says; `check_lane_drive.gd` takes it too |
 | `--lane-assist=on\|off` | beta values (2026-11-04): the lane assist "Asysta pasa" (`lane_assist.gd`, Classic only) for this run, whatever Settings → Jazda says (off by default) |
@@ -5739,7 +5836,7 @@ Command-line options (after `--`):
 | `--sloik` / `--sloik=K` | start the słoiki run at Dworzec Centralny (K jars already broken); `--sloik-station=1` starts it at Dworzec Gdański (to Muranów) |
 | `--ride=N` | loop 2d-1: Podwózka ride N's request, the car on the road 60 m before its passenger (the same N gives the same ride; with `--ride-quirk=river` or `zone` the passenger is picked near river spot / park N, so the leg fits); with `--autopilot` it is accepted after 2 s and driven |
 | `--ride-quirk=river\|zone\|oldtown\|rechotka\|reroute` | loop 2d-1: force the ride's quirk (`oldtown` becomes `zone` on today's map; `rechotka`, the Frogs turn: in the random pool since loop MW-2) |
-| `--crawl-call` / `--crawl-route=ID` / `--crawl-group=ID` / `--crawl=0` / `--crawl-log` | 2026-11-07: the bar crawl (bar_crawl.gd): the group rings a second in at any hour, that route (`klasyczna`, `nad_woda`, `odwazni`, `praga`) or group (`panienski`, `kawalerski`, `sesja`, `wdrozenie`), none of it, the `crawl:` log lines; with `--autopilot` the call is answered, accepted and driven |
+| `--crawl-call` / `--crawl-route=ID` / `--crawl-group=ID` / `--crawl=0` / `--crawl-log` | 2026-11-07: the bar crawl (bar_crawl.gd): the group rings a second in at any hour, that route (`klasyczna`, `nad_woda`, `odwazni`, `praga`) or group (`panienski`, `kawalerski`, `sesja`, `wdrozenie`), none of it, the `crawl:` log lines; with `--autopilot` the call is answered, accepted and driven (the whole crawl by itself: verify step `crawl-run`) |
 | `--passenger=normal\|believer\|hurry\|detour` | loop 2d-1: force the passenger type (loop MW-2: `detour` asks for a Frogs stop, +½ star once) |
 | `--ride-story=ID\|none` | 2026-11-07: that story passenger (`data/taxi_stories.json` id) on the rides, or `none` for the old chat |
 | `--ride-answer=0\|1` | 2026-11-07: the autopilot's answer to the story passenger's question (default 0) |
@@ -5765,6 +5862,10 @@ Command-line options (after `--`):
 | `--tap=X,Y` | tap that screen pixel at frame 60 (a landmark's info card) |
 | `--reset-save` / `--nosave` | wipe the wallet and record / neither read nor write `user://save.cfg` (nor, since loop 2a, `user://settings.cfg`) |
 | `--title-choice=continue\|new\|ask` | save and resume (2026-10-31): the title screen (forced on) picks KONTYNUUJ, NOWA GRA (wipes the save, a copy in `user://save.prev.cfg`, and starts the scene again), or shows NOWA GRA's question, once the start is in |
+| `--save-note=restored\|lost\|blocked` | safer saves (tech-debt TD-8, 2026-11-12): shows the note a damaged save gets (the copy was loaded / a fresh start / nothing will be written) without a damaged file; with `--title-choice=continue`, since the note comes when the title goes. A run prints `save: the player was told (...)` |
+| `--report` | the error trap (tech-debt TD-14, 2026-11-12): prints the trap's report when the run ends: the errors with their counts, places and contexts and the last 40 printed lines, which is what Settings → DŹWIĘK → RAPORT copies in a debug build |
+| `--crash-note` | the error trap: shows the note a debug build shows on a phone at the launch after a session that closed by itself, without one; with `--title-choice=continue`, since the note comes when the title goes. A run prints `trap: the player was told the last session closed by itself` |
+| `--boot` | the boot scene (tech-debt TD-15, 2026-11-12): starts a run with flags as a player's launch starts: the title up first and the game's scene loaded on a thread behind it (without it a run with flags loads the game's scene at once, as before the boot scene). Prints `boot: the title up N ms after the engine started, the game's scene loaded in N ms on a thread (N frames drawn meanwhile)`, and `boot: the boot scene's title stayed up until the game began` when that title goes. With `--title-choice=continue` so the title goes; a headless run waits 8 ms in every frame spent waiting for a thread under the title (the scripts, then on the prebuilt city the map's two big files and the start's sectors: `Boot.wait_frame`), so `--quit-after` needs about 1,000 frames more, not tens of thousands. On the prebuilt city the engine prints `WARNING: 19 ObjectDB instances were leaked at exit` when such a run ends (its own load tokens, tech-debt TD-22). Verify step `boot-run` |
 | `--resume=x,z[,heading]` | save and resume: a kept spot in memory (the title forced on; with `--nosave` the resume path without a real save) |
 | `--time=live` | v0.9: the real sun for the device's clock (TIME's fourth mode) |
 | `--clock=HH:MM` / `--date=YYYYMMDD` | start Live's clock at that Warsaw time (and date; default today); loop MW-3: with a fixed look (`--time=night --clock=01:00`) the game clock starts there, the look stays |
@@ -5778,6 +5879,7 @@ Command-line options (after `--`):
 | `--sound-check` | play every sound once and print the bus meters, then quit (needs an audio device) |
 | `--ghost-debug=1\|2` | loop 1: paint the occlusion ghost (1: ghosted magenta, other buildings green) or cut it fully (2), and print its ellipse in screen pixels with each screenshot |
 | `--controls=point\|classic\|fixed` | loop 2a: the control scheme for this run (not saved) |
+| `--pads=arrows\|slider` | F 2026-11-13: Classic's touch controls for this run, the fixed arrows + pedals (default) or the sliding strip (not saved) |
 | `--traffic=empty\|low\|normal\|busy` (or 0-3) | loop 2a: the traffic level for this run (not saved) |
 | `--settings` | loop 2a: open the settings panel at the start (screenshots) |
 | `--fullmap` | F's asks (2026-10-30): open the full-screen map at the start (the game paused; screenshots) |
@@ -5853,27 +5955,30 @@ Command-line options (after `--`):
 | `--boat-race`, `--boat-race=call` | boat race (`boat_race.gd`): Szymek rings now, whatever the time |
 | `--boat-race=race` | boat race: the car at the start pontoon and straight onto the grid (3-2-1) |
 | `--boat-race=auto` | boat race: as `race`, with the player's boat driven by the rivals' driver (the shots and the full-race probe) |
-| `--dekalog`, `--dekalog=call` | Kieślowski tour (`dekalog_tour.gd`): Claire rings now, whatever the time |
-| `--dekalog=go` / `=auto` / `=0` | Kieślowski tour: the car at Centralna and the tour started (`auto`: the cards answer themselves); `0`: none |
-| `--dekalog-log` | Kieślowski tour: print `dekalog:` lines (pickup, frames, shots, hits, the pay) |
+| `--dekalog`, `--dekalog=call` | Kieślowski tour (`tour.gd` with `data/dekalog_tour.json`): Claire rings now, whatever the time |
+| `--dekalog=go` / `=auto` / `=0` | Kieślowski tour: the car at Centralna and the tour started (`auto`: the cards answer themselves; with `--autopilot` the car goes to each stop too, the whole tour by itself); `0`: none |
+| `--dekalog-log` | Kieślowski tour: print `dekalog:` lines (pickup, `stop at`, shots, hits, `done:` with the pay) |
 | `--boat-race=free`, `=free0`..`=free2` | free ride: the car at the start pontoon, out in a fleet boat (0 jet ski Rekin X, 1 electric Srebrna Strzała, the default, 2 offshore Czarna Pantera; no rings, no rivals) |
 | `--boat-race=marina` | the car at the start pontoon with the marina card up (REKIN X / STRZAŁA / PANTERA / WYŚCIG) |
 | `--boat-race=0` | no boat race (no call, no pontoon) |
 | `--boat-log` | boat race: `boat race:` lines (the call, the grid, misses, finishes, solid hits) |
-| `--kino-tour`, `--kino-tour=call` | cinema tour (`kino_tour.gd`): Wiktor rings now, whatever the time |
+| `--kino-tour`, `--kino-tour=call` | cinema tour (`tour.gd` with `data/kino_tour.json`): Wiktor rings now, whatever the time |
 | `--kino-tour=go` | cinema tour: the car at the pickup on Plac Zbawiciela and the tour started |
-| `--kino-tour=auto` | cinema tour: as `go`, its cards answered by themselves |
+| `--kino-tour=auto` | cinema tour: as `go`, its cards answered by themselves (with `--autopilot` the car goes to each stop too, the whole tour by itself: verify step `tour-run`) |
 | `--kino-tour=0` | no cinema tour |
-| `--kino-log` | cinema tour: `kino:` lines (the call, pickup, shots, scratches, pitches, the premiere's pay) |
+| `--kino-log` | cinema tour: `kino:` lines (the call, pickup, shots, hits, `stop at`, `done:` with the pay) |
 | `--rave-call` | secret rave (`rave.gd`): LEKTI's break-in on MORDOR FM now (with his voice) and Ziomek rings a second later, whatever the time |
 | `--rave-smola` | secret rave: Ziomek rings now for the club night at Smoła (the door's three questions, then the room) |
 | `--rave-club` | secret rave: straight into Smoła's cutaway room (option A: the jungle, the DJ, the dancers, the lights, TAŃCZ, PATIO and WYJDŹ) |
 | `--padel-match[=HOUR]` | arcade padel (padel_match.gd): straight onto the DESKA court at HOUR (default 12; 20 is the floodlit night), the match plays itself, the game quits at its end |
 | `--padel-log` | arcade padel: one line per point, the match's in and out |
-| `--shisha-call` | shisha night (shisha.gd): Ivan rings now (ODBIERZ, then JADĘ!) |
+| `--shisha-call` | shisha night (shisha.gd): Ivan rings now (ODBIERZ, then JADĘ!). With `--autopilot` the whole night plays itself: the call and the offer taken, the drive to Ivan, the courts and the lounge, the evening inside, both drop-offs, the result card (`--shisha-log`: `shisha: done: smoke, score N, +N zł +N respect`). Verify step `shisha-run` |
 | `--shisha-meet` | shisha night: the car at Ivan's kerb in 19. Dzielnica, Ivan gets in, on to Bogdan at the Żelazna court |
-| `--shisha-lounge` | shisha night: straight into SENATOREK (lounge.gd), the mini-game playing itself (best jars, clean coal and draw), then PALIĆ |
+| `--shisha-door` | shisha night: both friends in, the car 25 m up Emilii Plater from the lounge's kerb, facing the entrance's teal kerb ring and gold door ring |
+| `--shisha-arrive` | shisha night: as `--shisha-door`, the car stopped in the kerb ring: they walk in, the lounge plays itself from the door (the lobby and the doorman, the lift ride to 38, the three choices at the table, the mini-game, PALIĆ) |
+| `--shisha-lounge` | shisha night: straight into SENATOREK (lounge.gd) from the lift ride, the mini-game playing itself (best jars, clean coal and draw), then PALIĆ |
 | `--shisha-terrace` | shisha night: as `--shisha-lounge`, then TARAS (the terrace with the Palace) |
+| `--shisha-hold` | shisha night's hidden start: "+" held 2 s (no call), then 4.5 s (Ivan rings), wherever the car is |
 | `--shisha=0` / `--shisha-log` | no shisha night / its steps in the log (shisha: ..., lounge: ...) |
 | `--rave-patio` | secret rave: straight into Smoła and out to its patio (the courtyard, the mirror ball, PÓŁNOC FM, SALA back in) |
 | `--rave=on` / `--rave=day` / `--rave=0` | secret rave: the night rig on now (the lights in the lit look), the day rave's crowd now, or no raves and no calls |
@@ -5903,6 +6008,7 @@ Command-line options (after `--`):
 | `--stick=X,Y` / `--pedal=gas\|brake` | loop 2a: hold the stick at that deflection (-1..1, y down; Classic uses X) / a pedal, as if a finger were on it (screenshots, replays in the real city) |
 | `--clicks=X:Y:F,...` / `--drag=X:Y:F:DX:DY:F2` | loop 2a testing aids: a click at screen pixel X,Y on frame F; a finger down at X,Y on frame F, moved by DX,DY over ten frames, lifted on frame F2 (through the real input path) |
 | `--lift=M` | loop 1: aim the camera M metres above the vehicle (close-ups of tall landmarks: `--at=-1206,244 --lift=156 --yaw=110 --size=24 --lines=1080` looks at the Palace clock's east dial) |
+| `--cam=X,Z` or `--cam=X,Y,Z` | free camera (2026-11-13, F: before/after shots without the car): the view looks at that world point (Y left out: the ground there), fixed, whatever the car does; turned by `--yaw=`, `--pitch=`, `--size=` tall, `--lift=` raises it; the car stands under it (or at `--at=`, keep that within ~150 m so the city streams) and is hidden, `--cam-car` keeps it, no occlusion ghost. Same on the runtime and `--prebuilt` city. Several in one run (a run costs ~40 s): `--cams="NAME:X,Y,Z,YAW,PITCH,SIZE+NAME2:..."` (Y empty = ground; YAW, PITCH, SIZE optional), one shot each as NAME_FFFF.png. `--solo=` runs hide the car too. Not in the Settings, never for players: `tools/shots.sh --set=NAME -- --cam=X,Z --yaw=135 --size=60` |
 | `--probe` | loop 2b: stand where `--at` / `--heading` put the car (free roam), let 240 frames (or 8 s) pass, measure the next `--bench-frames` (default 600, or `--bench-seconds`, default 30) and print the bench's lines plus what is in view (nodes, instances, shadow casters, materials, shaders, kinds); quits |
 | `--no-map-edge` | railway lane (2026-11-01): the city without the land past the map's edge (`map_edge.gd`: the ring of ground, tree line, far blocks and the rails and roads running on), for a before/after `--probe` at the edge |
 | `--no-edge-roadworks` | edge roadworks (2026-11-02): the city without the roadworks closing the roads at the map's edge (`edge_roadworks.gd`: meshes, halos and their colliders; the edge wall stays and the traffic still stops at the lines), for a before/after `--probe` at an edge |
