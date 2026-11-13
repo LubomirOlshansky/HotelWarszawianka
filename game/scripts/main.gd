@@ -99,6 +99,8 @@ const FirstScene := preload("res://scripts/first_scene.gd")
 const SkwerZlota := preload("res://scripts/skwer_zlota.gd")
 ## The car park ramp by Dworzec Centralny (F, 2026-11-08): its signs and bollards (centralny_ramp.gd).
 const CentralnyRamp := preload("res://scripts/centralny_ramp.gd")
+## The Patelnia by Metro Centrum dressed as a lively entrance (F, 2026-11-13): patelnia.gd.
+const Patelnia := preload("res://scripts/patelnia.gd")
 ## Plac Pięciu Rogów (2026-11-06): the square's cubes, lamps, cafés and egg (plac_pieciu_rogow.gd).
 const PlacPieciuRogow := preload("res://scripts/plac_pieciu_rogow.gd")
 ## The 3D corner screen on Skylight at Złote Tarasy (2026-11-05, tarasy_screen.gd).
@@ -1857,6 +1859,8 @@ func _build_world() -> void:
 	await LoadYield.tick("_build_skwer_zlota")
 	_build_centralny_ramp(world)
 	await LoadYield.tick("_build_centralny_ramp")
+	_build_patelnia(world)
+	await LoadYield.tick("_build_patelnia")
 	_build_plac_pieciu_rogow(world)
 	await LoadYield.tick("_build_plac_pieciu_rogow")
 	_build_tarasy_screen(world)
@@ -2151,6 +2155,18 @@ func _build_centralny_ramp(world: Node3D) -> void:
 	cr.map = map
 	world.add_child(cr)
 	cr.build()
+
+
+## The Patelnia by Metro Centrum (patelnia.gd): the barrels' M mouths, the Pasaż Handlowy front,
+## billboards, murals, the slope's shrubs and globe lamps, the performers and stalls; both city paths.
+func _build_patelnia(world: Node3D) -> void:
+	if solo_site != "":
+		return
+	var pt := Patelnia.new()
+	pt.name = "Patelnia"
+	pt.map = map
+	world.add_child(pt)
+	pt.build()
 
 
 ## Plac Pięciu Rogów (plac_pieciu_rogow.gd): the square's furniture, on both city paths.
