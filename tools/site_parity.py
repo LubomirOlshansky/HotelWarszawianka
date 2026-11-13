@@ -12,7 +12,8 @@ exit 1 otherwise. A site in only one folder is always a failure.
 triangle needs a twin of its own in the other folder with the same colour, normal and material
 code (within 0.004) and its three corners within --eps (in any rotation). When every triangle on
 both sides has one, the site is `twin` and passes without --allow: the change redrew the same
-things in another order, moved by less than --eps. Triangles without a twin are printed (the
+things in another order, moved by less than --eps (`near` passes too: it is the stricter case,
+the same order). Triangles without a twin are printed (the
 first few) and the site is `DIFF`.
 """
 import os
@@ -164,7 +165,7 @@ def main():
                             (name2,) + t[0] + t[2][3:6] + (t[2][7],)))
         counts[verdict] += 1
         print("%-5s %-24s %s" % (verdict, key, detail))
-        if key not in allow and verdict != "twin":
+        if key not in allow and verdict != "twin" and not (unordered and verdict == "near"):
             bad.append("%s: %s (%s)" % (key, verdict, detail))
     for extra in ("_signs.txt",):
         pa, pb = os.path.join(before, extra), os.path.join(after, extra)

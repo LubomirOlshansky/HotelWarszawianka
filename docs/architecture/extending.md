@@ -24,6 +24,7 @@ move later, and don't build a third private copy.
 | A vibration | `Access.buzz` (goes through `haptics.gd`) | `Input.vibrate_handheld` directly |
 | An AI car or group of people | city-ai.md section 7 | a node per car, a new person material |
 | A building, landmark or prop | `landmarks.gd`, `models.gd`, `props.gd` and the skill `model-from-photos`; the map bake for data (skill `bake-map`) | geometry added to only one city path |
+| A window, balcony, ledge, cornice, column, pediment or wall colour on a landmark | the facade kit: a `kit_*` part and a `PAL_*` colour of `facade_kit.gd` (docs/design/facade-kit.md); a new style goes into the kit | a private `_xx_window` helper or a one-off hex colour (`tools/check_facade_kit.py` fails the first) |
 | Something drawn every frame, a light, a material, a shader | graphics.md, then report bench before and after | a new shader without `check_shader_budget` |
 | A quality-dependent extra | a field in `tiers.gd` and, if it costs CPU, a step in `governor.gd` | `if OS.get_model_name() ...` in a feature |
 | A setup step at load | a `_build_x(world)` in main.gd followed by `await LoadYield.tick("_build_x")` | long work in one frame |

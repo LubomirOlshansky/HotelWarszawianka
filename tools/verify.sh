@@ -1068,6 +1068,20 @@ for s in $want; do
 			esac ;;
 		streetmesh) check streetmesh '^street_details:' --script res://tools/check_street_details.gd ;;
 		ratuszhub) check ratuszhub '^ratusz_hub:' --script res://tools/check_ratusz_hub.gd ;;
+		# The facade kit's ratchet (2026-11-13): no new private window, balcony, ledge, cornice,
+		# pediment or column helper in landmarks.gd, and the kit's parts and palette match
+		# docs/design/facade-kit.md (tools/check_facade_kit.py; no map, ~0.1 s).
+		facadekit)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/check_facade_kit.py > $logs/facadekit.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			counts=$(grep -m1 '^check_facade_kit counts:' $logs/facadekit.log)
+			counts=${counts#check_facade_kit counts: }
+			case $code in
+				0) row PASS "facadekit" $secs "check_facade_kit: OK · $counts" ;;
+				*) row FAIL "facadekit" $secs "$(grep '^check_facade_kit: ' $logs/facadekit.log | tail -1) · $counts ($logs/facadekit.log)" ;;
+			esac ;;
 		# Landmark specs (LANDMARKS 0.4): every docs/landmarks/specs/*.md has all eight sections, a
 		# detail level, a triangle budget and a filled parts table (tools/check_spec.py; ~0.1 s).
 		spec)

@@ -35,6 +35,10 @@ it, and hand it back for acceptance. You don't decide looks and you don't spawn 
    footprint from above), the street-level photos in `street/` (Mapillary/Panoramax: the ground
    floor and the faces the player drives past) and SOURCES.md: build what they show at the
    brief's detail level (L2 or L3), every identity feature the spec names.
+   Facade elements come from the facade kit (`docs/design/facade-kit.md`: `kit_window`,
+   `kit_balcony`, `kit_cornice` ... and the `PAL_*` colours in `game/scripts/facade_kit.gd`).
+   Never write a private window, balcony, ledge, cornice, column or pediment helper: if the
+   kit has no part or style for what the spec asks, escalate.
 3. The code: grep for the object's function first and read only that range. `map_builder.gd`
    and `main.gd` are thousands of lines; never read them whole.
 

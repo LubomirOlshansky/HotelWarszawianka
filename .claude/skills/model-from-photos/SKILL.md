@@ -78,7 +78,12 @@ photos say goes into the spec as values. Sections, every value filled:
 7. **Detail level and budget** (below), and the shots to take.
 8. **Parts table**: one row per part (id, shape, size, position, material code, which identity
    feature it serves). The builder names its functions after the part ids, and a failed check
-   or a reviewer's fix points at a row, not at prose.
+   or a reviewer's fix points at a row, not at prose. Windows, balconies, ledges, cornices,
+   pilasters, columns, pediments, porticos and lanterns are **facade kit parts**
+   (`docs/design/facade-kit.md`): the shape cell names the part and its style
+   (`kit_window SILL_HEAD`, `kit_balcony IRON`), and the material cell a palette name
+   (`PAL_SANDSTONE`) unless the photo gives the building a colour of its own. A part the kit
+   lacks is written as a new kit style, not as a helper of the landmark.
 
 The spec lives at `docs/landmarks/specs/<slug>.md`, and `tools/check_spec.py` (a `verify.sh` step,
 `spec`) FAILs one that lacks a section, a level, a budget number or a filled parts-table cell
