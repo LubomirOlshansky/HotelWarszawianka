@@ -35,6 +35,8 @@ const Districts := preload("res://scripts/districts.gd")
 const RouteLine := preload("res://scripts/route_line.gd")
 const RaceCuts := preload("res://scripts/race_cuts.gd")
 const RacePlanner := preload("res://scripts/race_planner.gd")
+const RaceSignals := preload("res://scripts/race_signals.gd")
+const RaceReport := preload("res://scripts/race_report.gd")
 
 const CHALLENGE_RANGE := 15.0
 const FINISH_RADIUS := 16.0
@@ -308,6 +310,17 @@ var _open_seen := -1
 
 var _drivers: Array = []
 var _nodes: Array[Node3D] = []
+## Racer AI step 6a (race_signals.gd): each rival's body (the car's meshes: it swings on a
+## mistake while the driver's own place and heading stay the traffic's) and its lamps; the racing
+## rival's lights this race, and whether any lamp may be lit (so they are put out once).
+var _bodies: Array[Node3D] = []
+var _signals: Array[Node3D] = []
+var _sig := RaceSignals.State.new()
+var _sig_on := false
+## Step 6a: this race's report (race_report.gd: both cars' ways and what decided the race), for
+## the result card; and the size of the card's picture of the two ways (points).
+var _report := RaceReport.new()
+const REPORT_ART := Vector2(150.0, 104.0)
 var _cooldown := PackedFloat32Array()
 var _said := PackedFloat32Array()
 var _finishes: Array[Dictionary] = []
@@ -442,10 +455,13 @@ func setup(lane_graph: LaneGraph, traffic_node: Traffic, hud_layer: CanvasLayer,
 	for i in RIVALS.size():
 		var r: Dictionary = RIVALS[i]
 		var node := Node3D.new()
+		var body := Node3D.new()
+		body.name = "body"
+		node.add_child(body)
 		var mi := MeshInstance3D.new()
 		mi.mesh = Models.rival_mesh(r["style"])
 		mi.material_override = Models.material()
-		node.add_child(mi)
+		body.add_child(mi)
 		if r["style"] == 0:
 			# Seba's neon underglow.
 			var glow := MeshInstance3D.new()
@@ -458,7 +474,7 @@ func setup(lane_graph: LaneGraph, traffic_node: Traffic, hud_layer: CanvasLayer,
 			glow.material_override = neon
 			glow.position.y = 0.09
 			glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-			node.add_child(glow)
+			body.add_child(glow)
 			# At night it spills onto the road.
 			var spill := MeshInstance3D.new()
 			spill.mesh = _underglow_pool()
@@ -466,7 +482,7 @@ func setup(lane_graph: LaneGraph, traffic_node: Traffic, hud_layer: CanvasLayer,
 			spill.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			spill.visible = false
 			spill.add_to_group("night_lights")
-			node.add_child(spill)
+			body.add_child(spill)
 		# Headlights and tail lights on the road at night.
 		var beams := MeshInstance3D.new()
 		beams.mesh = Models.headlight_pools((r["size"] as Vector3).z * 0.5)
@@ -474,7 +490,12 @@ func setup(lane_graph: LaneGraph, traffic_node: Traffic, hud_layer: CanvasLayer,
 		beams.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		beams.visible = false
 		beams.add_to_group("night_lights")
-		node.add_child(beams)
+		body.add_child(beams)
+		# Step 6a: its brake lights, indicators and headlight flash (hidden until one is lit).
+		var lamps := RaceSignals.build(r["size"])
+		body.add_child(lamps)
+		_bodies.append(body)
+		_signals.append(lamps)
 		world.add_child(node)
 		_nodes.append(node)
 		# The first rival cruises near the start so the race is easy to find.
@@ -722,11 +743,11 @@ func _pick_finish(d) -> Dictionary:
 
 
 ## Human rivals: the shortcuts rival i knows on rung `rung` (its `cuts` share) for this race.
-func _use_cuts(rung: int, i: int, no_hop := {}) -> void:
+func _use_cuts(rung: int, i: int, no_hop := {}, shut := {}) -> void:
 	_stats = Ladder.racer(rung)
 	_cut_rung = rung
 	_cut_rival = i
-	var both := _cuts.links(float(_stats["cuts"]), hash(String(RIVALS[i]["name"])), float(_stats.get("yards", 0.0)), float(_stats.get("narrow", 99.0)), float(_stats.get("hops", 0.0)), no_hop)
+	var both := _cuts.links(float(_stats["cuts"]), hash(String(RIVALS[i]["name"])), float(_stats.get("yards", 0.0)), float(_stats.get("narrow", 99.0)), float(_stats.get("hops", 0.0)), no_hop, _stats.get("home", []), shut)
 	_cut_table = both[0]
 	_cut_in = both[1]
 	_cut_dist = {}
@@ -825,7 +846,7 @@ func _stale(p: RacePlanner.Plan) -> bool:
 func _on_hop_refused(d) -> void:
 	if state != State.RACE or rival < 0 or d != _drivers[rival] or d.plan == null or _cut_rival < 0:
 		return
-	_use_cuts(_cut_rung, _cut_rival, d.plan.no_hop)
+	_use_cuts(_cut_rung, _cut_rival, d.plan.no_hop, d.plan.shut)
 	traffic.reroute(d, graph.distances_to(d.finish, INF, true, _planner.links(d.finish, d.plan.ends, _cut_in, d.plan.shut), d.plan.shut))
 	var street := graph.e_name[d.edge]
 	print("race: %s does not hop the wrong way from %s at %.1f s (the street was not empty)" % [RIVALS[rival]["name"], street if street != "" else "a street", _race_time])
@@ -837,6 +858,8 @@ func _on_hop_refused(d) -> void:
 func _on_turned_back(d) -> void:
 	if state != State.RACE or rival < 0 or d != _drivers[rival] or d.plan == null:
 		return
+	if _cut_rival >= 0:
+		_use_cuts(_cut_rung, _cut_rival, d.plan.no_hop, d.plan.shut)  # no shortcut onto the blocked street
 	traffic.reroute(d, graph.distances_to(d.finish, INF, true, _planner.links(d.finish, d.plan.ends, _cut_in, d.plan.shut), d.plan.shut))
 	var street := graph.e_name[d.edge]
 	print("race: %s turns back on %s at %.1f s (%d streets shut to it)" % [RIVALS[rival]["name"], street if street != "" else "a street", _race_time, d.plan.shut.size()])
@@ -961,6 +984,10 @@ func _frame(dt: float) -> void:
 	for i in _cooldown.size():
 		_cooldown[i] = maxf(0.0, _cooldown[i] - dt)
 	_update_tags()
+	if state == State.RACE:
+		_signal_tick(dt)
+	elif _sig_on:
+		_signals_off()
 	if _caller >= 0 and (state == State.CRUISE or state == State.PROMPT):
 		_first_call_tick(dt)  # loop 3h slice 4: Halina rolling up for the first race
 		return
@@ -1085,6 +1112,8 @@ func _go() -> void:
 	_seen_wrong = 0
 	_seen_blocks = 0
 	_phone_at = _rng.randf_range(0.3, 0.6) if bool(stats.get("phone", false)) else INF
+	_sig = RaceSignals.State.new()
+	_report = RaceReport.new()
 	_pace = Pace.new()
 	if final_on:
 		_prepare_final()
@@ -1279,6 +1308,8 @@ func _finish_race(won: bool, why: String) -> void:
 	_beacon.visible = false
 	var d = _drivers[rival]
 	_race_log(d, won)
+	var margin := _finish_margin(won) if why == "" else 0.0
+	var told: Array = _report_close(d, rival, won, margin) if why == "" else ["", ""]
 	traffic.stop_racing(d)
 	_plan = null
 	_cruise(d)
@@ -1288,7 +1319,6 @@ func _finish_race(won: bool, why: String) -> void:
 		_ghost = null
 	var r: Dictionary = RIVALS[rival]
 	# Beta values (R5): a close finish shows as close: "o 0,8 s".
-	var margin := _finish_margin(won) if why == "" else 0.0
 	var by_pl := " (o %s s)" % ("%.1f" % margin).replace(".", ",")
 	var by_en := " (by %.1f s)" % margin
 	print("race: finish margin %.1f s" % margin)
@@ -1338,19 +1368,21 @@ func _finish_race(won: bool, why: String) -> void:
 		var total := (" · wallet %s · respect %d" % [_money(wallet.zl), wallet.respect]) if wallet != null else ""
 		var total_pl := (" · w portfelu %s · szacunek %d" % [_money(wallet.zl), wallet.respect]) if wallet != null else ""
 		var record_pl := record.replace("new best!", "nowy rekord!").replace("best", "rekord")
-		hud.show_card("WYGRANA · 1. MIEJSCE", "Meta: %s, czas %s%s. %s za tobą%s.\n„%s”\n+%d zł (stawka%s) · szacunek +%d%s" % [
-				_finish["name"], _clock(_race_time), record_pl, who, by_pl, line[0], stake, bonus_pl, gain, total_pl],
+		hud.show_card("WYGRANA · 1. MIEJSCE", "Meta: %s, czas %s%s. %s za tobą%s.\n„%s”\n+%d zł (stawka%s) · szacunek +%d%s\n%s" % [
+				_finish["name"], _clock(_race_time), record_pl, who, by_pl, line[0], stake, bonus_pl, gain, total_pl, told[0]],
 				PackedStringArray(["OK"]), WIN_COLOUR, false, "Win · 1st",
-				"You beat %s to %s in %s%s%s. %s +%d zł (the stake%s) · respect +%d%s" % [
-				who, _finish["name"], _clock(_race_time), by_en, record, line[1], stake, bonus_en, gain, total])
+				"You beat %s to %s in %s%s%s. %s +%d zł (the stake%s) · respect +%d%s\n%s" % [
+				who, _finish["name"], _clock(_race_time), by_en, record, line[1], stake, bonus_en, gain, total, told[1]])
+		_report_art(rival, _finish["pos"])
 		Access.buzz(150, 0.9)
 	else:
 		var short := roundi(_player_remaining())
 		var reason := why if why != "" else "%s got to %s first. You were %d m short%s after %s." % [who, _finish["name"], short, by_en, _clock(_race_time)]
 		var reason_pl := "Wyścig poddany." if why != "" else "%s pierwszy na mecie: %s. Zabrakło ci %d m%s, czas %s." % [
 				who, _finish["name"], short, by_pl, _clock(_race_time)]
-		hud.show_card("PRZEGRANA · 2. MIEJSCE", "%s\n„%s”" % [reason_pl, line[0]],
-				PackedStringArray(["OK"]), LOSE_COLOUR, false, "Lose · 2nd", "%s %s" % [reason, line[1]])
+		hud.show_card("PRZEGRANA · 2. MIEJSCE", ("%s\n„%s”\n%s" % [reason_pl, line[0], told[0]]).strip_edges(),
+				PackedStringArray(["OK"]), LOSE_COLOUR, false, "Lose · 2nd", ("%s %s\n%s" % [reason, line[1], told[1]]).strip_edges())
+		_report_art(rival, _finish["pos"])
 
 
 func _on_card(_index: int) -> void:
@@ -1468,6 +1500,7 @@ static func arm_racer(d, rung: int, top: float, cuts: Dictionary, first := false
 	d.race_mistake = float(stats.get("mistake", 0.0))
 	d.race_wrong = int(stats.get("wrong", 0))
 	d.race_block = float(stats.get("block", 0.0))
+	d.race_dare = float(stats.get("dare", 1.0))
 	d.race_rng = RandomNumberGenerator.new()
 	d.race_rng.seed = dice
 	d.cuts_taken = 0
@@ -1512,12 +1545,68 @@ func _effort(d) -> void:
 				lead, lead / own_pace(d.race_top, d.race_share), d.visible])
 
 
+## Step 6a, every frame of a race: the racing rival's lights and its body's swing (race_signals.gd).
+func _signal_tick(dt: float) -> void:
+	var i := _seba if final_on else rival
+	if i < 0:
+		return
+	RaceSignals.tick(_sig, _drivers[i], graph, _race_stats, dt)
+	RaceSignals.show(_signals[i], _sig)
+	_bodies[i].rotation.y = _sig.yaw
+	_sig_on = true
+	# ... and both cars' ways, for the result card.
+	var d = _drivers[i]
+	_report.tick(dt, Vector2(car.global_position.x, car.global_position.z), Vector2(car.vel.x, car.vel.z).length(), Vector2(d.pos.x, d.pos.z), d.v)
+
+
+## Step 6a: the race driven to its end: its report closed (race_report.gd `close`) with what rival
+## `d` did, before the driver's counts go. Returns the result card's extra lines [Polish, English].
+func _report_close(d, i: int, won: bool, margin: float) -> Array:
+	var yards: int = d.links_taken - d.hops_taken
+	_report.close(won, margin, _rival_left if won else _player_left, {
+			"cuts": d.cuts_taken - d.links_taken, "yards": yards, "hops": d.hops_taken, "wrong": d.wrong_turns,
+			"mistakes": d.mistakes, "passes": d.race_passes, "blocks": d.blocks})
+	print("race report: %s · route %+.1f s, standing %+.1f s, pace %+.1f s · you %.0f m, rival %.0f m · lights: %d brakes, %d indications, %d flashes, %d hazards" % [
+			["even", "route", "standing", "pace"][_report.cause], _report.route_s, _report.still_s, _report.pace_s, _report.player_way, _report.rival_way,
+			_sig.brakes, _sig.indications, _sig.flashes, _sig.hazards])
+	return _report.texts(RIVALS[i]["name"])
+
+
+## ... and its picture on the card just shown: both ways over the streets, to `goal`.
+func _report_art(i: int, goal: Vector3) -> void:
+	if not _report.closed:
+		return
+	var art := RaceReport.Sketch.new()
+	art.report = _report
+	art.graph = graph
+	art.finish = Vector2(goal.x, goal.z)
+	art.rival_colour = Access.tint(RIVALS[i]["colour"])
+	art.you = Lang.pick("TY", "YOU")
+	# The ladder's short name (SEBA, not the "Z" of "Seba z Pragi"); a rival off the ladder: its
+	# first word.
+	var rung := Ladder.rung_of(RIVALS[i]["name"])
+	art.them = String(Ladder.RUNGS[rung]["short"]) if rung >= 0 else String(RIVALS[i]["name"]).get_slice(" ", 0).to_upper()
+	art.points = hud.pt
+	art.custom_minimum_size = REPORT_ART * hud.pt
+	hud.set_card_art(art)
+
+
+## Every rival's lamps out and its body straight (the race is over, however it ended).
+func _signals_off() -> void:
+	_sig_on = false
+	_sig.clear()
+	for i in _signals.size():
+		RaceSignals.show(_signals[i], null)
+		_bodies[i].rotation.y = 0.0
+
+
 ## Human rivals, 5 times a second: the phone call (Mike) and a line for what the rival just did
 ## (traffic.gd's counts: a shortcut, a wrong turn, a mistake, a block), if the player is near.
 func _human_tick(d) -> void:
 	if _phone_at < INF and _pace.route_total > 0.0 and _rival_left < INF and 1.0 - _rival_left / _pace.route_total >= _phone_at:
 		_phone_at = INF
 		d.daze = 1.2  # lifts off for the call (coasting, not a stop)
+		_sig.weave(1.2)  # step 6a: and wanders in his lane meanwhile
 		_human_say("phone")
 	var kind := ""
 	if d.cuts_taken > _seen_cuts:
@@ -2007,6 +2096,8 @@ func _finish_final(won: bool, why: String) -> void:
 	_beacon.recolour(RACE_COLOUR)
 	var d = _drivers[_seba]
 	_race_log(d, won)
+	var told: Array = _report_close(d, _seba, won, margin) if why == "" else ["", ""]
+	var goal: Vector3 = final_route.finish["pos"]
 	traffic.stop_racing(d)
 	_final_plans.clear()
 	_cruise(d)
@@ -2042,18 +2133,20 @@ func _finish_final(won: bool, why: String) -> void:
 		var crown_pl := "KORONA NOCNEJ WARSZAWY TWOJA!\n" if first else ""
 		var crown_en := "The crown of Warsaw by night is yours! " if first else ""
 		hud.show_card("TRZY MOSTY · WYGRANA", "%sTrzy razy przez Wisłę i pierwsze miejsce pod Narodowym, czas %s%s, o %s s przed Sebą.\n„%s”\n+%d zł · szacunek +%d%s" % [
-				crown_pl, _clock(_race_time), record_pl, ("%.1f" % margin).replace(".", ","), line[0], stake, gain, total_pl],
+				crown_pl, _clock(_race_time), record_pl, ("%.1f" % margin).replace(".", ","), line[0], stake, gain, total_pl] + "\n" + told[0],
 				PackedStringArray(["OK"]), FINAL_COLOUR, false, "Three bridges · Win",
 				"%sThree times over the Vistula and first to the Stadium in %s%s, %.1f s ahead of Seba. %s +%d zł · respect +%d%s" % [
-				crown_en, _clock(_race_time), record, margin, line[1], stake, gain, total])
+				crown_en, _clock(_race_time), record, margin, line[1], stake, gain, total] + "\n" + told[1])
+		_report_art(_seba, goal)
 		Access.buzz(200, 1.0)
 	else:
 		var gave_up := why != ""
-		hud.show_card("TRZY MOSTY · PRZEGRANA", "%s\n„%s”\nRewanż: Rondo Daszyńskiego, w nocy." % [
-				"Finał poddany." if gave_up else "%s pierwszy pod Narodowym (mosty: %d/3, czas %s, zabrakło %s s)." % [who, _cp, _clock(_race_time), ("%.1f" % margin).replace(".", ",")], line[0]],
+		hud.show_card("TRZY MOSTY · PRZEGRANA", ("%s\n„%s”\nRewanż: Rondo Daszyńskiego, w nocy.\n%s" % [
+				"Finał poddany." if gave_up else "%s pierwszy pod Narodowym (mosty: %d/3, czas %s, zabrakło %s s)." % [who, _cp, _clock(_race_time), ("%.1f" % margin).replace(".", ",")], line[0], told[0]]).strip_edges(),
 				PackedStringArray(["OK"]), LOSE_COLOUR, false, "Three bridges · Lose",
-				"%s %s Rematch: Rondo Daszyńskiego, at night." % [
-				"You gave up the final." if gave_up else "%s got to the Stadium first (bridges %d/3, %s, %.1f s short)." % [who, _cp, _clock(_race_time), margin], line[1]])
+				("%s %s Rematch: Rondo Daszyńskiego, at night.\n%s" % [
+				"You gave up the final." if gave_up else "%s got to the Stadium first (bridges %d/3, %s, %.1f s short)." % [who, _cp, _clock(_race_time), margin], line[1], told[1]]).strip_edges())
+		_report_art(_seba, goal)
 
 
 ## --ladder=N: the first N rungs beaten for this run (in memory; use with --nosave).

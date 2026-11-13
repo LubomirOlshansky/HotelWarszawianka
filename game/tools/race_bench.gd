@@ -27,6 +27,7 @@ const Rivals := preload("res://scripts/rivals.gd")
 const Ladder := preload("res://scripts/ladder.gd")
 const RaceCuts := preload("res://scripts/race_cuts.gd")
 const RacePlanner := preload("res://scripts/race_planner.gd")
+const RaceSignals := preload("res://scripts/race_signals.gd")
 const TrzyMosty := preload("res://scripts/trzy_mosty.gd")
 const Settings := preload("res://scripts/settings.gd")
 const FollowCamera := preload("res://scripts/follow_camera.gd")
@@ -181,6 +182,11 @@ const ROUTE_SENSE := 1.05
 ## LADDER_ORDER) and the top one at least LADDER_SPREAD faster than the first.
 const LADDER_ORDER := 1.01
 const LADDER_SPREAD := 0.1
+## Step 6a, the ladder's curve of times: over the courses every rung has driven alone on clear
+## roads (the mean of each rung's times, as a ratio), each rung is CURVE_LEAST to CURVE_MOST
+## quicker than the one below it: no rung is a copy of the last and none is a wall.
+const CURVE_LEAST := 0.03
+const CURVE_MOST := 0.12
 
 ## A frame's flags (Probe.flag): nobody in the rival's way for FREE_AHEAD m; held at the line or
 ## knocked; on a junction's curve; stopped dead by the game in this frame; pulling away after
@@ -696,10 +702,13 @@ func roads_to(node: int) -> PackedFloat32Array:
 
 
 ## The shortcuts rival `name` knows (rivals.gd `_use_cuts`): [its table, the routing's links].
-func links_of(name: String) -> Array:
+## Without the hops along `no_hop` and the cuts onto the roads of `shut` (both {edge: true}).
+func links_of(name: String, no_hop := {}, shut := {}) -> Array:
+	var stats := Ladder.racer(Ladder.rung_of(name))
+	if not no_hop.is_empty() or not shut.is_empty():
+		return cuts.links(float(stats["cuts"]), hash(name), float(stats.get("yards", 0.0)), float(stats.get("narrow", 99.0)), float(stats.get("hops", 0.0)), no_hop, stats.get("home", []), shut)
 	if not _links.has(name):
-		var stats := Ladder.racer(Ladder.rung_of(name))
-		_links[name] = cuts.links(float(stats["cuts"]), hash(name), float(stats.get("yards", 0.0)), float(stats.get("narrow", 99.0)), float(stats.get("hops", 0.0)))
+		_links[name] = cuts.links(float(stats["cuts"]), hash(name), float(stats.get("yards", 0.0)), float(stats.get("narrow", 99.0)), float(stats.get("hops", 0.0)), {}, stats.get("home", []))
 	return _links[name]
 
 
@@ -722,7 +731,7 @@ func racer_avoiding(name: String, node: int, shut: PackedInt32Array, ends := {})
 	var closed := {}
 	for e in shut:
 		closed[e] = true
-	return graph.distances_to(node, INF, true, planner.links(node, ends, links_of(name)[1], closed), closed)
+	return graph.distances_to(node, INF, true, planner.links(node, ends, links_of(name, {}, closed)[1], closed), closed)
 
 
 ## The grid of a race from ground point `p`: the car on the nearest lane (rivals.gd `put_ahead`),
@@ -940,18 +949,23 @@ func race(spec: Dictionary) -> Dictionary:
 	# (rivals.gd `_on_turned_back`).
 	traffic.turned_back.connect(func(who) -> void:
 		if who == d and d.plan != null:
-			traffic.reroute(d, graph.distances_to(d.finish, INF, true, planner.links(d.finish, d.plan.ends, links_of(name)[1], d.plan.shut), d.plan.shut)))
+			traffic.reroute(d, graph.distances_to(d.finish, INF, true, planner.links(d.finish, d.plan.ends, links_of(name, d.plan.no_hop, d.plan.shut)[1], d.plan.shut), d.plan.shut)))
 	# A wrong-way hop it refused (step 5b, rivals.gd `_on_hop_refused`): the metres without that hop.
 	traffic.hop_refused.connect(func(who) -> void:
 		if who == d and d.plan != null:
-			var st := Ladder.racer(rung)
-			var less: Array = cuts.links(float(st["cuts"]), hash(name), float(st.get("yards", 0.0)), float(st.get("narrow", 99.0)), float(st.get("hops", 0.0)), d.plan.no_hop)
+			var less: Array = links_of(name, d.plan.no_hop, d.plan.shut)
 			traffic.reroute(d, graph.distances_to(d.finish, INF, true, planner.links(d.finish, d.plan.ends, less[1], d.plan.shut), d.plan.shut)))
 	var probe := Probe.new()
 	probe.graph = graph
 	probe.d = d
 	var pace := Rivals.Pace.new()
 	var stats := {}
+	# Step 6a: the rival's lights (race_signals.gd), and of the turns it made how many it had
+	# indicated as it went into the junction.
+	var sig := RaceSignals.State.new()
+	var sig_conn := false
+	var turns := 0
+	var turns_lit := 0
 	var t := -LEAD_IN
 	var started := false
 	var hold := false
@@ -1064,6 +1078,12 @@ func race(spec: Dictionary) -> Dictionary:
 		if not started:
 			continue
 		probe.sample(t, traffic, ghost, hold, player_live)
+		RaceSignals.tick(sig, d, graph, stats, DT)
+		if d.in_conn and not sig_conn and RaceSignals.turn_side(d, graph) != 0:
+			turns += 1
+			if sig.indicating():
+				turns_lit += 1
+		sig_conn = d.in_conn
 		if player_live and kind != "stopped" and (ghost.arrived or Rivals.home_at(graph, ghost.pos, goal, fin["ends"])):
 			# The player is home first (the game's own test: the circle, or level with it on a road
 			# through it): the game's race ends here; the bench lets the rival drive on to the line
@@ -1123,6 +1143,7 @@ func race(spec: Dictionary) -> Dictionary:
 	out["wrong_turns"] = d.wrong_turns
 	out["blocks"] = d.blocks
 	out["centre_passes"] = d.race_passes
+	out["lights"] = {"brakes": sig.brakes, "indications": sig.indications, "flashes": sig.flashes, "hazards": sig.hazards, "turns": turns, "turns_lit": turns_lit}
 	out["pace_lo"] = snappedf(pace.lo, 0.01)
 	out["pace_hi"] = snappedf(pace.hi, 0.01)
 	out["share"] = snappedf(d.race_share, 0.001)
@@ -1509,6 +1530,89 @@ static func judge(results: Array) -> Array:
 			ladder_ok = false
 			worst = ladder[start][rungs[0]]["id"]
 	out.append(_mark("skill_ladder", "Skill ladder", ladder_ok if ladder_n > 0 else null, "flat out on clear roads: " + note, worst))
+
+	# The ladder's curve (racer AI step 6a): over the courses all six rungs drove, rung by rung.
+	var curve_n := 0
+	var curve_log := PackedFloat32Array()
+	curve_log.resize(Ladder.RUNGS.size())
+	for start: String in ladder:
+		if ladder[start].size() < Ladder.RUNGS.size():
+			continue
+		curve_n += 1
+		for k in Ladder.RUNGS.size():
+			curve_log[k] += log(maxf(_run(ladder[start][k]), 1.0))
+	var curve_ok := true
+	var steps := PackedStringArray()
+	worst = ""
+	for k in range(1, Ladder.RUNGS.size()):
+		if curve_n == 0:
+			break
+		var quicker := 1.0 - exp((curve_log[k] - curve_log[k - 1]) / curve_n)
+		steps.append("%s %.1f %%" % [Ladder.RUNGS[k]["short"], quicker * 100.0])
+		if quicker < CURVE_LEAST or quicker > CURVE_MOST:
+			curve_ok = false
+			if worst == "":
+				worst = "%s/ladder" % Ladder.RUNGS[k]["id"]
+	out.append(_mark("ladder_curve", "Ladder curve", curve_ok if curve_n > 0 else null,
+			"each rung quicker than the one below, over %d courses on clear roads (%d to %d %%): %s" % [curve_n, roundi(CURVE_LEAST * 100.0), roundi(CURVE_MOST * 100.0), ", ".join(steps)], worst))
+
+	# Told apart (step 6a): a rival's lights are its own. One that indicates (ladder.gd
+	# `indicate`) has its indicator on into every turn it makes, one that never does (Seba) never
+	# has; one that never flashes its headlights (`flash` 0) never does, behind however slow a
+	# car; and every wrong turn is followed by the hazard lights.
+	var told_n := 0
+	var told_ok := true
+	var turns_all := 0
+	var turns_lit := 0
+	var never_n := 0
+	var never_lit := 0
+	var wrong_n := 0
+	var wrong_shown := 0
+	var flashes := {}
+	var over := {}
+	var over_n := {}
+	worst = ""
+	for r: Dictionary in by_id.values():
+		if not r.has("lights") or not r["finished"]:
+			continue
+		var traits: Dictionary = Ladder.FINAL_RACER if r["tuning"] == "final" else Ladder.racer(Ladder.rung_of(String(r["rival"])))
+		var l: Dictionary = r["lights"]
+		told_n += 1
+		var bad := false
+		if float(traits["indicate"]) > 0.0:
+			turns_all += int(l["turns"])
+			turns_lit += int(l["turns_lit"])
+			bad = int(l["turns_lit"]) < int(l["turns"])
+		else:
+			never_n += 1
+			never_lit += int(l["indications"])
+			bad = int(l["indications"]) > 0
+		flashes[r["rival"]] = int(flashes.get(r["rival"], 0)) + int(l["flashes"])
+		over[r["rival"]] = int(over.get(r["rival"], 0)) + int(r.get("centre_passes", 0))
+		over_n[r["rival"]] = int(over_n.get(r["rival"], 0)) + 1
+		if float(traits["flash"]) <= 0.0 and int(l["flashes"]) > 0:
+			bad = true
+		wrong_n += int(r["wrong_turns"])
+		wrong_shown += mini(int(l["hazards"]), int(r["wrong_turns"]))
+		if int(l["hazards"]) < int(r["wrong_turns"]):
+			bad = true
+		if bad:
+			told_ok = false
+			if worst == "":
+				worst = r["id"]
+	var flash_names := PackedStringArray()
+	for who: String in flashes:
+		flash_names.append("%s %d" % [who, flashes[who]])
+	flash_names.sort()
+	# Read, not judged: how often each went out over the centre line depends on the traffic it
+	# met (the careful ones, `dare` over 1, should go least).
+	var over_names := PackedStringArray()
+	for who: String in over:
+		over_names.append("%s %d in %d races" % [who, over[who], over_n[who]])
+	over_names.sort()
+	out.append(_mark("told_apart", "Told apart", told_ok if told_n > 0 else null,
+			"%d of %d turns indicated by the rivals who indicate; %d indications in %d races of the one who never does; headlight flashes: %s; %d of %d wrong turns followed by the hazard lights; passes over the centre line: %s" % [
+			turns_lit, turns_all, never_lit, never_n, ", ".join(flash_names), wrong_shown, wrong_n, ", ".join(over_names)], worst))
 
 	# The yard (racer AI step 5): on the course through a Wola yard, on clear roads, a rival who
 	# knows every yard takes a race link and one who knows none goes round by the streets.

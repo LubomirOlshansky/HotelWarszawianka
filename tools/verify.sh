@@ -1237,6 +1237,9 @@ for s in $want; do
 		raceline) check raceline '^race_line:' --script res://tools/check_race_line.gd ;;
 		racebench) check racebench '^check_race_bench:' --script res://tools/check_race_bench.gd ;;
 		raceplanner) check raceplanner '^check_race_planner:' --script res://tools/check_race_planner.gd ;;
+		# Racer AI step 6a: a rival's lights and its own numbers; the result card's report and picture.
+		racesignals) check racesignals '^race_signals:' --script res://tools/check_race_signals.gd ;;
+		racereport) check racereport '^race_report:' --script res://tools/check_race_report.gd ;;
 		first10) check first10 '^first10:' --script res://tools/check_first10.gd ;;
 		mainline) check mainline '^main_line:' --script res://tools/check_main_line.gd ;;
 		chatter) check chatter '^check_chatter:' --script res://tools/check_chatter.gd ;;
