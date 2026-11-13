@@ -37,12 +37,9 @@ const RaceCuts := preload("res://scripts/race_cuts.gd")
 const RacePlanner := preload("res://scripts/race_planner.gd")
 const RaceSignals := preload("res://scripts/race_signals.gd")
 const RaceReport := preload("res://scripts/race_report.gd")
+const RaceSession := preload("res://scripts/race_session.gd")
 
 const CHALLENGE_RANGE := 15.0
-const FINISH_RADIUS := 16.0
-## On a road through the finish's circle a car is home level with the circle in whichever lane
-## (`home_at`): this near one of that road's lanes (m), so on the road and not beside it.
-const HOME_SNAP := 5.0
 ## The finish margin's metres are at most the straight line to the finish times this.
 const MARGIN_DETOUR := 1.4
 const RACE_COLOUR := Color("#ff4fd8")
@@ -79,32 +76,11 @@ const FINAL_LINES := {
 const FIRST_FINISH := "Rondo de Gaulle'a (the Palm)"
 ## The last stretch to the Palm: no stall nudge on it (`first_stall_due`), the finish is in sight.
 const FIRST_EASE := 140.0
-## Effort (docs/design/race-ai.md 6): the one thing left of "keeping the race close". A rival
-## drives its own skill (ladder.gd: fixed for the race) times an effort that follows the TIME gap
-## to the player and nothing else, never the player's speed: level with the player or just ahead
-## it drives its own pace (1.0); leading by more than EASE_FROM s it starts to manage the lead,
-## down to EFFORT_EASE of its pace from EASE_FULL s on; more than PUSH_FROM s behind it pushes,
-## up to EFFORT_PUSH from PUSH_FULL s on (the corners harder too, traffic.gd, and PUSH_MISTAKES
-## times its mistakes). So its whole time moves by about a tenth at most whatever the player does
-## (the race bench's Independence mark allows 15 %), nobody waits, and nobody lifts off before
-## the finish. The effort moves at most EFFORT_RATE a second (a driver settles into a pace).
-const EFFORT_EASE := 0.9
-const EFFORT_PUSH := 1.04
-const EASE_FROM := 3.0
-const EASE_FULL := 10.0
-const PUSH_FROM := 1.0
-const PUSH_FULL := 5.0
-const EFFORT_RATE := 0.05
-const PUSH_MISTAKES := 1.5
-## The time gap is the metres between the cars over the rival's own usual speed: this share of
-## its straight-line speed on a main road (a town route's bends and junctions; the bench's
-## clear-road races average 0.8), so a rival's seconds are its own and not the player's.
-const GAP_PACE := 0.8
-## A plan made for another traffic than the town has now is made again before the start, once
-## the two are further apart than this share of the larger one (`_stale`), and no later than
-## this many seconds into the countdown (a plan is up to 52 slices: a second at 60 frames a
-## second, and the countdown is three).
-const PLAN_STALE := 0.2
+## Effort, the finish's circle and the race's mechanics are the race session's (race_session.gd,
+## racer AI step 6b): one `_session` a race, its one racer the rival (`_racer`).
+## A plan made for another traffic than the town has now is made again before the start
+## (RaceSession.PLAN_STALE, `_plan_tick`), no later than this many seconds into the countdown (a
+## plan is up to 52 slices: a second at 60 frames a second, and the countdown is three).
 const PLAN_STALE_UNTIL := 1.0
 ## What a rival says when it does something human (traffic.gd counts it), [Polish, English] (each
 ## at most 70 characters), only within HUMAN_NEAR m of the player and HUMAN_QUIET s after its last line.
@@ -284,14 +260,11 @@ var final_route: TrzyMosty
 ## The race on now is the final "Trzy mosty".
 var final_on := false
 
-## Loop 3h slice 3: the final's state: checkpoints the player has passed (0-3), Seba's and the
-## ghost's leg (index into final_route.legs), the legs' distances (computed one a frame during the
-## challenge and the countdown, kept for a rematch) and the metres left after each leg.
+## Loop 3h slice 3: the final's state: checkpoints the player has passed (0-3) and the ghost's leg
+## (index into final_route.legs). Seba's leg, the legs' distances (computed one a frame during the
+## challenge and the countdown) and the metres left after each leg are the session's racer's.
 var _cp := 0
-var _leg := 0
 var _ghost_leg := 0
-var _final_dists: Array[PackedFloat32Array] = []
-var _after := PackedFloat32Array()
 ## Seba's index in RIVALS; he waits at the start (held there); the start marker (beacon and
 ## diamond) is shown; the 5 Hz clock.
 var _seba := -1
@@ -325,27 +298,19 @@ var _cooldown := PackedFloat32Array()
 var _said := PackedFloat32Array()
 var _finishes: Array[Dictionary] = []
 var _finish: Dictionary = {}
+## A street race's distances to its finish (the session's racer's, for the player's metres).
 var _dist := PackedFloat32Array()
-## Finish node -> driving distances to it from every node (computed once each).
+## Finish node -> driving distances to it from every node (computed once each; the sessions share it).
 var _dist_to := {}
-## Human rivals: the city's shortcuts (race_cuts.gd), the race's links for the rival's known ones
-## (empty: none) and the distances with them, per finish node.
+## The city's shortcuts (race_cuts.gd) and the route planner (race_planner.gd, docs/design/race-ai.md
+## 5), one each for the map.
 var _cuts: RaceCuts
-var _cut_in := {}
-var _cut_table := {}
-var _cut_dist := {}
-var _stats := {}
-## The rung and the rival `_use_cuts` was last called for (-1: none yet): a hop refused in the
-## race takes the shortcuts again without it (`_on_hop_refused`).
-var _cut_rung := -1
-var _cut_rival := -1
-## The route planner (race_planner.gd, docs/design/race-ai.md 5: one for the map) and this race's
-## plan: the rival's own table of seconds to the finish, by which it picks its streets (null: no
-## race on). It is searched a slice a frame from the challenge on, so the start costs no frame.
-## In the final each leg has its own (`_final_plans`, made as its turn comes; null: not yet).
 var _planner: RacePlanner
-var _plan: RacePlanner.Plan
-var _final_plans: Array = []
+## Racer AI step 6b: this race's session (race_session.gd: the course, the rival's shortcuts,
+## distances, plans, effort and lights; its plans searched a slice a frame from the challenge on, so
+## the start costs no frame) and its one racer, the rival (null: no race yet).
+var _session: RaceSession
+var _racer: RaceSession.Racer
 ## The roads through this race's finish circle (RacePlanner.ends; in the final its last leg's,
 ## the finish by the stadium: a checkpoint has its own rule): the rival's plan ends on them, the
 ## metres left and the route on the minimap go to where each one enters the circle, and a car on
@@ -370,11 +335,8 @@ var _rng := RandomNumberGenerator.new()
 ## been (s), and whether the prompt has nudged; `first_race` while that race runs, and
 ## `first_result` ("won", "lost", "declined") once it is over (first10.gd reads it).
 var _caller := -1
-## The race's pace memory (`Pace` below: the route's length at the start, the rival's effort and
-## its range), new with every race.
-var _pace := Pace.new()
-## This race's racer stats (`race_stats`) and how much an easier rematch slowed them (0 .. EASE_MAX).
-var _race_stats := {}
+## How much an easier rematch slowed this race's rival (0 .. EASE_MAX; its stats and effort are
+## the session's racer's).
 var _race_ease := 0.0
 ## Beta values (2026-11-04, docs/design/beta-values.md): the race shown better (street races R5):
 ## the way to the finish (or the next bridge) on the minimap, the gap in seconds, a lead change said
@@ -699,11 +661,10 @@ func start_race(i: int) -> void:
 		_finish = {}  # the player is far from the Palm (another stand's order): a nearer finish, the same tuning
 	if _finish.is_empty():
 		_finish = _pick_finish(d)
-	_use_cuts(Ladder.rung_of(RIVALS[i]["name"]), i)
-	_ends = _planner.ends(_finish["node"], _finish_at(), FINISH_RADIUS)
-	_dist = _race_distances(_finish["node"]) if _ends.is_empty() \
-			else graph.distances_to(_finish["node"], INF, true, _planner.links(_finish["node"], _ends, _cut_in))
-	_plan = _race_plan()
+	# A course of one leg to the finish's circle; the plan made now, for the town's traffic as it is.
+	_new_session(PackedInt32Array([_finish["node"]]))
+	_dist = _session.distances(_racer, 0)
+	_session.plan(_racer, 0)
 	print("race: %s to %s, %d m by road (picked in %.1f ms)" % [RIVALS[i]["name"], _finish["name"],
 			roundi(graph.remaining(_dist, d.edge, d.s)), (Time.get_ticks_usec() - t0) / 1000.0])
 	_races += 1
@@ -742,26 +703,7 @@ func _pick_finish(d) -> Dictionary:
 	return fits[(_races * 7 + rival * 3) % fits.size()]
 
 
-## Human rivals: the shortcuts rival i knows on rung `rung` (its `cuts` share) for this race.
-func _use_cuts(rung: int, i: int, no_hop := {}, shut := {}) -> void:
-	_stats = Ladder.racer(rung)
-	_cut_rung = rung
-	_cut_rival = i
-	var both := _cuts.links(float(_stats["cuts"]), hash(String(RIVALS[i]["name"])), float(_stats.get("yards", 0.0)), float(_stats.get("narrow", 99.0)), float(_stats.get("hops", 0.0)), no_hop, _stats.get("home", []), shut)
-	_cut_table = both[0]
-	_cut_in = both[1]
-	_cut_dist = {}
-
-
-## The race's distances to `node`: with the rival's shortcuts (cached per race), else the roads'.
-func _race_distances(node: int) -> PackedFloat32Array:
-	if _cut_in.is_empty():
-		return _distances(node)
-	if not _cut_dist.has(node):
-		_cut_dist[node] = graph.distances_to(node, INF, true, _cut_in)
-	return _cut_dist[node]
-
-
+## The roads' own distances to `node` (cached; the race sessions share the cache).
 func _distances(node: int) -> PackedFloat32Array:
 	if not _dist_to.has(node):
 		_dist_to[node] = graph.distances_to(node)
@@ -779,75 +721,42 @@ func _tuning() -> Array:
 	return [rung, gentle, ease]
 
 
-## A plan to graph node `node` for this race's rival: its own numbers (`_go` arms it with the
-## same), the shortcuts it knows and the town's traffic as it is now. With `at` the finish is the
-## circle of FINISH_RADIUS m round that ground point (a street race's finish: `_track` ends the
-## race for whoever is inside it), without it the junction alone (a checkpoint of the final).
-func _new_plan(node: int, at := Vector2.INF) -> RacePlanner.Plan:
+## A new race session (race_session.gd) on the junctions `legs`, the last the finish with its
+## circle of RaceSession.FINISH_RADIUS m round `_finish_at()`, and rival `rival` its one racer:
+## this race's rung (`_tuning`: Halina's gentle day drives ladder.gd FIRST_RACER, an easier rematch
+## is eased), the player's car's top speed, the shortcuts its rung knows.
+func _new_session(legs: PackedInt32Array) -> void:
 	var tuning := _tuning()
-	return _planner.plan(node, race_stats(tuning[0], tuning[1], tuning[2]), player_top(), _cut_table, traffic.race_density(),
-			PackedInt32Array(), at, FINISH_RADIUS if at != Vector2.INF else 0.0)
+	var rung: int = tuning[0]
+	_session = RaceSession.new()
+	_session.setup(graph, traffic, _planner, _cuts, _dist_to)
+	_session.course(legs, _finish_at(), RaceSession.FINISH_RADIUS)
+	_racer = _session.add(_drivers[rival], String(RIVALS[rival]["name"]), Ladder.FIRST_RACER if tuning[1] else Ladder.racer(rung),
+			Ladder.pace(rung), {"top": player_top(), "ease": tuning[2], "cuts_of": Ladder.racer(rung)})
+	_ends = _session.ends
 
 
-## The ground point of this race's finish (the final's: its last leg's), and the rival's plan to
-## its circle.
+## The ground point of this race's finish (the final's: its last leg's), the centre of its circle.
 func _finish_at() -> Vector2:
 	var at: Vector3 = final_route.finish["pos"] if final_on else _finish["pos"]
 	return Vector2(at.x, at.z)
 
 
-func _race_plan() -> RacePlanner.Plan:
-	return _new_plan(_finish["node"], _finish_at())
-
-
-## The plan of the final's leg `j` (made the first time it is asked for).
-func _final_plan(j: int) -> RacePlanner.Plan:
-	if _final_plans.size() != final_route.legs.size():
-		_final_plans.resize(final_route.legs.size())
-	if _final_plans[j] == null:
-		# A checkpoint is a junction to drive through; the last leg ends at the finish's circle.
-		_final_plans[j] = _new_plan(final_route.legs[j], _finish_at() if j == final_route.legs.size() - 1 else Vector2.INF)
-	return _final_plans[j]
-
-
-## A slice of the race's plan a frame (Traffic.PLAN_SLICE states, 0.6 ms on a desktop),
-## from the challenge on: the ways on from where the rival stands; in the final the leg it is on
-## and then the next one, whose start it has not reached (the whole search at the start, or at a
-## checkpoint, would be one frame of 12 to 55 ms).
+## A slice of the race's plan a frame (RaceSession.plan_tick), from the challenge on; a plan made
+## for another traffic than the town has now is made again only through the challenge and the
+## countdown's first PLAN_STALE_UNTIL s (the traffic setting, the quality's share or the governor
+## moved it, or the race was called before they were applied: `--race=`). From then on, and all
+## through the race, a rival keeps the plan it has.
 func _plan_tick() -> void:
-	var d = _drivers[rival]
-	if not final_on:
-		if _plan != null:
-			if _stale(_plan):
-				_plan = _race_plan()
-			_plan.step(d.edge, Traffic.PLAN_SLICE)
-	elif _final_dists.size() == final_route.legs.size():
-		if _leg < _final_plans.size() and _final_plans[_leg] != null and _stale(_final_plans[_leg]):
-			_final_plans.clear()
-		if _final_plan(_leg).step(d.edge, Traffic.PLAN_SLICE) and _leg + 1 < final_route.legs.size():
-			_final_plan(_leg + 1).work(Traffic.PLAN_SLICE)
-
-
-## True when plan `p` should be made again: the town's traffic is no longer what it was made for
-## (the traffic setting, the quality's share or the governor moved it, or the race was called
-## before they were applied: `--race=`). Only while there is time left to search the new one in
-## slices: through the challenge and the countdown's first PLAN_STALE_UNTIL s. From then on, and
-## all through the race, a rival keeps the plan it has.
-func _stale(p: RacePlanner.Plan) -> bool:
-	if state != State.CHALLENGE and not (state == State.COUNTDOWN and _t < PLAN_STALE_UNTIL):
-		return false
-	var now := traffic.race_density()
-	return absf(p.density - now) > PLAN_STALE * maxf(p.density, now)
+	_session.plan_tick(state == State.CHALLENGE or (state == State.COUNTDOWN and _t < PLAN_STALE_UNTIL))
 
 
 ## Racer AI step 5b: a racing rival found the one-way street of a wrong-way hop not empty and
 ## takes another way (traffic.gd `hop_refused`: its plan has dropped the hop): the metres it has
 ## left, which the gap on the HUD reads, are counted without that hop from here on.
 func _on_hop_refused(d) -> void:
-	if state != State.RACE or rival < 0 or d != _drivers[rival] or d.plan == null or _cut_rival < 0:
+	if state != State.RACE or _session == null or _session.hop_refused(d) == null:
 		return
-	_use_cuts(_cut_rung, _cut_rival, d.plan.no_hop, d.plan.shut)
-	traffic.reroute(d, graph.distances_to(d.finish, INF, true, _planner.links(d.finish, d.plan.ends, _cut_in, d.plan.shut), d.plan.shut))
 	var street := graph.e_name[d.edge]
 	print("race: %s does not hop the wrong way from %s at %.1f s (the street was not empty)" % [RIVALS[rival]["name"], street if street != "" else "a street", _race_time])
 
@@ -856,11 +765,8 @@ func _on_hop_refused(d) -> void:
 ## shut the street and looks for another way): the metres it has left, which the gap on the HUD
 ## reads, are counted without that street from here on.
 func _on_turned_back(d) -> void:
-	if state != State.RACE or rival < 0 or d != _drivers[rival] or d.plan == null:
+	if state != State.RACE or _session == null or _session.turned_back(d) == null:
 		return
-	if _cut_rival >= 0:
-		_use_cuts(_cut_rung, _cut_rival, d.plan.no_hop, d.plan.shut)  # no shortcut onto the blocked street
-	traffic.reroute(d, graph.distances_to(d.finish, INF, true, _planner.links(d.finish, d.plan.ends, _cut_in, d.plan.shut), d.plan.shut))
 	var street := graph.e_name[d.edge]
 	print("race: %s turns back on %s at %.1f s (%d streets shut to it)" % [RIVALS[rival]["name"], street if street != "" else "a street", _race_time, d.plan.shut.size()])
 
@@ -881,13 +787,13 @@ func _route_tick(dt: float) -> void:
 	if _route == null:
 		_route = RouteLine.new(graph)
 	if final_on:
-		if _final_dists.size() < final_route.legs.size():
+		if not _session.ready():
 			return
 		if _route_cp != _cp:
 			_route_cp = _cp
 			var j := mini(2 * _cp + 1, final_route.legs.size() - 1)
 			var goal: Vector3 = final_target()
-			_route.to_node(final_route.legs[j], Vector2(goal.x, goal.z), _final_dists[j], _final_ends(j))
+			_route.to_node(final_route.legs[j], Vector2(goal.x, goal.z), _session.distances(_racer, j), _final_ends(j))
 	elif not _route.active():
 		if _ends.is_empty():
 			_route.to_node(int(_finish["node"]), _finish_at())
@@ -1014,7 +920,7 @@ func _frame(dt: float) -> void:
 				if final_on:
 					_beacon.place(final_target(), TrzyMosty.CHECK_RADIUS - 6.0)
 				else:
-					_beacon.place(_finish["pos"], FINISH_RADIUS - 4.0)
+					_beacon.place(_finish["pos"], RaceSession.FINISH_RADIUS - 4.0)
 				if autopilot:
 					_start_ghost()
 		State.COUNTDOWN:
@@ -1101,8 +1007,13 @@ func _go() -> void:
 	var rung: int = tuning[0]
 	var gentle: bool = tuning[1]
 	_race_ease = tuning[2]
-	_race_stats = arm_racer(d, rung, player_top(), _cut_table, gentle, _race_ease, _rng.randi())
-	var stats := _race_stats
+	# The session arms it (RaceSession.arm_racer: its stats as added, `_new_session`) and sends it off,
+	# every leg's distances made first in the final; its dice are drawn here, as before the phone's.
+	if final_on:
+		_prepare_final()
+	_racer.dice = _rng.randi()
+	_session.start(_racer)
+	var stats := _racer.stats
 	if gentle and not first_race:
 		print("race: %s on a gentle day (not beaten yet)" % RIVALS[rival]["name"])
 	if _race_ease > 0.0:
@@ -1112,16 +1023,8 @@ func _go() -> void:
 	_seen_wrong = 0
 	_seen_blocks = 0
 	_phone_at = _rng.randf_range(0.3, 0.6) if bool(stats.get("phone", false)) else INF
-	_sig = RaceSignals.State.new()
+	_sig = _racer.sig
 	_report = RaceReport.new()
-	_pace = Pace.new()
-	if final_on:
-		_prepare_final()
-		traffic.race_to(d, final_route.legs[_leg], _final_dists[_leg], _final_plan(_leg))
-	else:
-		if _plan == null:
-			_plan = _race_plan()
-		traffic.race_to(d, _finish["node"], _dist, _plan)
 	if d.plan != null:
 		print("race: %s plans %.0f s to the finish (traffic x%.2f, %d junction ways searched)" % [RIVALS[rival]["name"], d.plan.left(d.edge, d.s, d.v), d.plan.density, d.plan.settled])
 	if _ghost != null:
@@ -1196,18 +1099,20 @@ func _track(dt: float) -> void:
 	# One finish for both cars (`home_at`): the circle (PT-22: a finish node across a dual
 	# carriageway routed the rival round a 500 m loop from 30 m away), and on a road that runs
 	# through it the line across that road, in whichever lane (the rival's `arrived`: its plan's
-	# `ends`, traffic.gd `race_to`).
-	if not flying and home_at(graph, car.global_position, _finish["pos"], _ends):
+	# `ends`, traffic.gd `race_to`; inside the circle: the session's `arrived`).
+	if not flying and RaceSession.home_at(graph, car.global_position, _finish["pos"], _ends):
 		_finish_race(true, "")
 		return
-	if d.arrived or Vector2(d.pos.x, d.pos.z).distance_to(Vector2(_finish["pos"].x, _finish["pos"].z)) < FINISH_RADIUS:
+	_session.advance(_race_time)
+	if _racer.home:
 		_finish_race(false, "")
 		return
 	_rank_timer -= dt
 	if _rank_timer <= 0.0:
 		_rank_timer = 0.2
-		_rival_left = traffic.remaining(d)
 		_player_left = _player_remaining()
+		_session.rank(_player_left)
+		_rival_left = _racer.left
 		_effort(d)
 		_speeds(d)
 		_lead_tick(0.2)
@@ -1218,57 +1123,12 @@ func _track(dt: float) -> void:
 ## The player's driving distance to the finish: from the nearest lane (either
 ## direction of the road), or the straight line if the car is off the roads.
 func _player_remaining() -> float:
-	return remaining_from(graph, _dist, Vector2(car.global_position.x, car.global_position.z), _finish["pos"], _ends)
+	return RaceSession.remaining_from(graph, _dist, Vector2(car.global_position.x, car.global_position.z), _finish["pos"], _ends)
 
 
 ## The player's driving distance to the node of `dist` (at `goal`): see _player_remaining.
 func _remaining_by(dist: PackedFloat32Array, goal: Vector3, ends := {}) -> float:
-	return remaining_from(graph, dist, Vector2(car.global_position.x, car.global_position.z), goal, ends)
-
-
-## Whether a car at `p` has reached the finish at `goal`: inside its circle (FINISH_RADIUS m on the
-## ground), or on a road that runs through the circle (`ends`, RacePlanner.ends), level with it in
-## whichever lane. The finish line runs across the carriageway, for the player as for a rival
-## (traffic.gd `race_to`): the outer lanes of a wide street pass the circle a lane or two out (at
-## the Palace two of Emilii Plater's three), and a car in them has passed the finish all the same.
-## On that road only: within HOME_SNAP m of one of its lanes and at its height, so not from the
-## pavement beside it and not from the street under a bridge. Static for the race bench.
-static func home_at(graph: LaneGraph, p: Vector3, goal: Vector3, ends: Dictionary) -> bool:
-	var gap := Vector2(p.x - goal.x, p.z - goal.z).length()
-	if gap < FINISH_RADIUS:
-		return true
-	if ends.is_empty() or gap > FINISH_RADIUS + RacePlanner.END_REACH:
-		return false
-	var hit := graph.snap(Vector2(p.x, p.z), HOME_SNAP)
-	if hit.is_empty() or not ends.has(hit[0]):
-		return false
-	var e: int = hit[0]
-	var s: float = hit[2]
-	return s >= ends[e].x and s <= ends[e].y and absf(p.y - graph.height(e, s)) < RacePlanner.END_LEVEL
-
-
-## The driving distance from ground point `p` to the node of `dist` (at `goal`): from the nearest
-## lane (either direction of the road), or the straight line if `p` is off the roads. With `ends`
-## (RacePlanner.ends: the roads through the finish's circle, `dist` made with their links) a road
-## through the circle counts to where it enters. Static for the race bench.
-static func remaining_from(graph: LaneGraph, dist: PackedFloat32Array, p: Vector2, goal: Vector3, ends := {}) -> float:
-	var hit := graph.snap(p, 25.0)
-	if hit.is_empty():
-		return p.distance_to(Vector2(goal.x, goal.z)) * 1.3
-	var e: int = hit[0]
-	var s: float = hit[2]
-	var best := _metres_on(graph, dist, e, s, ends)
-	var rev := graph.e_reverse[e]
-	if rev >= 0:
-		best = minf(best, _metres_on(graph, dist, rev, graph.e_len[e] - s, ends) + 25.0)
-	return best
-
-
-## The metres from s on edge e to the finish of `dist`, or to where e enters the finish's circle.
-static func _metres_on(graph: LaneGraph, dist: PackedFloat32Array, e: int, s: float, ends: Dictionary) -> float:
-	if ends.has(e) and s <= ends[e].y:
-		return maxf(ends[e].x - s, 0.0)
-	return graph.remaining(dist, e, s)
+	return RaceSession.remaining_from(graph, dist, Vector2(car.global_position.x, car.global_position.z), goal, ends)
 
 
 func _show_status() -> void:
@@ -1310,8 +1170,7 @@ func _finish_race(won: bool, why: String) -> void:
 	_race_log(d, won)
 	var margin := _finish_margin(won) if why == "" else 0.0
 	var told: Array = _report_close(d, rival, won, margin) if why == "" else ["", ""]
-	traffic.stop_racing(d)
-	_plan = null
+	_session.end()
 	_cruise(d)
 	_cooldown[rival] = 25.0
 	if _ghost != null:
@@ -1436,20 +1295,6 @@ func _first_finish() -> Dictionary:
 	return {}
 
 
-## Effort (EFFORT_EASE above): how much of its own pace a rival drives when it leads the player
-## by `lead_s` seconds (< 0: it is behind). 1.0 from PUSH_FROM s behind to EASE_FROM s ahead.
-static func effort_of(lead_s: float) -> float:
-	if lead_s >= 0.0:
-		return lerpf(1.0, EFFORT_EASE, smoothstep(EASE_FROM, EASE_FULL, lead_s))
-	return lerpf(1.0, EFFORT_PUSH, smoothstep(PUSH_FROM, PUSH_FULL, -lead_s))
-
-
-## The rival's own usual speed (m/s) for the time gap (GAP_PACE above), from its car's top speed
-## `top` (m/s) and its skill's share of the road's speed.
-static func own_pace(top: float, share: float) -> float:
-	return maxf(minf(top, Traffic.RACE_CLASS_TOP[0]) * share * GAP_PACE, 5.0)
-
-
 ## The player's car's top speed (m/s, its model and engine; nitro left out), as police.gd's chase_top.
 func player_top() -> float:
 	if car == null or not ("top_mult" in car and "max_speed" in car):
@@ -1457,92 +1302,16 @@ func player_top() -> float:
 	return float(car.max_speed) * float(car.top_mult)
 
 
-## The race core, static: the race bench (game/tools/race_bench.gd, docs/design/race-ai.md) drives
-## these same functions on a traffic system without the game, so what it measures is what races.
-
-## One race's pace memory: the route's length at the start, the rival's effort now (`effort_of`,
-## settled at EFFORT_RATE), and its range for the race log.
-class Pace:
-	var route_total := 0.0
-	var effort := 1.0
-	var lo := 1.0
-	var hi := 1.0
-
-
-## The racer stats of a race on rung `rung` (ladder.gd; Ladder.FINAL: the final's): in the guided
-## first race (`first`) Halina's gentle ones, eased by `ease` (Ladder.ease_of: an easier rematch).
-static func race_stats(rung: int, first := false, ease := 0.0) -> Dictionary:
-	return Ladder.eased(Ladder.FIRST_RACER if first else Ladder.racer(rung), ease)
-
-
-## Racer mode on traffic driver `d` as a race starts: rung `rung`'s pace and its racer stats
-## (`race_stats`: `first`, `ease`), `top` the player's car's top speed (m/s), `cuts` the shortcuts
-## it knows (race_cuts.gd `links`), `dice` the seed of its own dice for this race (its wrong turns
-## and mistakes: traffic.gd `race_rng`). Returns the stats.
-static func arm_racer(d, rung: int, top: float, cuts: Dictionary, first := false, ease := 0.0, dice := 0) -> Dictionary:
-	# Loop 3h slice 3: each rung's own pace (Halina 1.25 ... Mike 1.5; the final 1.45), was 1.45 flat.
-	var pace := Ladder.pace(rung)
-	d.speed_factor = pace.x
-	d.accel_factor = pace.y
-	# Racer mode: the player's own car, and the skill that says how much of it this rival uses.
-	var stats := race_stats(rung, first, ease)
-	d.race_top = top
-	d.race_share = float(stats["share"])
-	d.race_accel = float(stats["race_accel"])
-	d.race_brake = float(stats["brake"])
-	d.race_lat = float(stats["lat"])
-	d.race_effort = 1.0
-	d.race_corner = 1.0
-	d.race_still = 0.0
-	d.race_passes = 0
-	# Human rivals: shortcuts, mistakes, wrong turns, blocking (ladder.gd's personality).
-	d.cuts = cuts
-	d.race_mistake = float(stats.get("mistake", 0.0))
-	d.race_wrong = int(stats.get("wrong", 0))
-	d.race_block = float(stats.get("block", 0.0))
-	d.race_dare = float(stats.get("dare", 1.0))
-	d.race_rng = RandomNumberGenerator.new()
-	d.race_rng.seed = dice
-	d.cuts_taken = 0
-	d.links_taken = 0
-	d.mistakes = 0
-	d.wrong_turns = 0
-	d.blocks = 0
-	return stats
-
-
-## 5 times a second, the rival's effort from the time gap (`effort_of`): sets `d.race_effort` (and
-## returns it) from the metres of route the rival and the player have left (INF: unknown, as with
-## no player: its own pace). `mistake` is the rival's own chance of a mistake at a corner (its
-## stats'); a rival that pushes makes more. `pace` is this race's memory. Nothing here reads the
-## player's speed, and the effort never takes the car past its own top speed: on a straight it
-## is cut to 1 / share (`d.race_effort`), in a corner it is whole (`d.race_corner`: grip is the
-## car's to use at any speed, so a rival at the road's full speed still pushes through the bends).
-static func pace_tick(pace: Pace, d, mistake: float, rival_left: float, player_left: float) -> float:
-	if pace.route_total <= 0.0 and player_left < INF:
-		pace.route_total = maxf(player_left, rival_left)
-	var want := 1.0
-	if rival_left < INF and player_left < INF:
-		want = effort_of((player_left - rival_left) / own_pace(d.race_top, d.race_share))
-	pace.effort = move_toward(pace.effort, want, EFFORT_RATE * 0.2)
-	var effort := minf(pace.effort, 1.0 / maxf(d.race_share, 0.01))
-	d.race_effort = effort
-	d.race_corner = pace.effort
-	d.race_mistake = mistake * lerpf(1.0, PUSH_MISTAKES, clampf((pace.effort - 1.0) / (EFFORT_PUSH - 1.0), 0.0, 1.0))
-	pace.lo = minf(pace.lo, effort)
-	pace.hi = maxf(pace.hi, effort)
-	return effort
-
-
-## 5 times a second in a race: the rival's effort from the time gap (`pace_tick`).
+## 5 times a second in a race, after the session's `rank` set the rival's effort from the time gap
+## (RaceSession.pace_tick): with --race-debug its trace.
 func _effort(d) -> void:
-	var effort := pace_tick(_pace, d, float(_race_stats.get("mistake", 0.0)), _rival_left, _player_left)
+	var effort: float = d.race_effort
 	if traffic.race_debug and fmod(_race_time, 1.0) < 0.2:
 		# --race-debug: once a second, what the rival does and what its effort follows (the audit's trace).
 		var lead := _player_left - _rival_left
 		print("race trace: t %.0f s · rival %.1f m/s, share %.2f, effort %.2f, class %d, left %.0f m · player %.1f m/s, left %.0f m · rival's lead %.0f m (%.1f s) · seen %s" % [
 				_race_time, d.v, d.race_share, effort, graph.e_class[d.edge], _rival_left, Vector2(car.vel.x, car.vel.z).length(), _player_left,
-				lead, lead / own_pace(d.race_top, d.race_share), d.visible])
+				lead, lead / RaceSession.own_pace(d.race_top, d.race_share), d.visible])
 
 
 ## Step 6a, every frame of a race: the racing rival's lights and its body's swing (race_signals.gd).
@@ -1550,7 +1319,7 @@ func _signal_tick(dt: float) -> void:
 	var i := _seba if final_on else rival
 	if i < 0:
 		return
-	RaceSignals.tick(_sig, _drivers[i], graph, _race_stats, dt)
+	_session.signals(dt)
 	RaceSignals.show(_signals[i], _sig)
 	_bodies[i].rotation.y = _sig.yaw
 	_sig_on = true
@@ -1603,7 +1372,7 @@ func _signals_off() -> void:
 ## Human rivals, 5 times a second: the phone call (Mike) and a line for what the rival just did
 ## (traffic.gd's counts: a shortcut, a wrong turn, a mistake, a block), if the player is near.
 func _human_tick(d) -> void:
-	if _phone_at < INF and _pace.route_total > 0.0 and _rival_left < INF and 1.0 - _rival_left / _pace.route_total >= _phone_at:
+	if _phone_at < INF and _racer.effort.route_total > 0.0 and _rival_left < INF and 1.0 - _rival_left / _racer.effort.route_total >= _phone_at:
 		_phone_at = INF
 		d.daze = 1.2  # lifts off for the call (coasting, not a stop)
 		_sig.weave(1.2)  # step 6a: and wanders in his lane meanwhile
@@ -1641,7 +1410,7 @@ func _human_say(kind: String) -> void:
 ## Street races: one line on how the rival raced (for tuning and check_race_ai's runs).
 func _race_log(d, won: bool) -> void:
 	print("race ai: %s %s in %.1f s · route %.0f m · top %.1f m/s, share %.2f (eased %d %%) · effort %.2f-%.2f · stopped %.1f s · %d passes · %d cuts · %d mistakes · %d wrong · %d blocks · gap %.0f m" % [
-			RIVALS[rival]["name"], "lost to the player" if won else "won", _race_time, _pace.route_total, d.race_top, d.race_share, roundi(_race_ease * 100.0), _pace.lo, _pace.hi,
+			RIVALS[rival]["name"], "lost to the player" if won else "won", _race_time, _racer.effort.route_total, d.race_top, d.race_share, roundi(_race_ease * 100.0), _racer.effort.lo, _racer.effort.hi,
 			d.race_still, d.race_passes, d.cuts_taken, d.mistakes, d.wrong_turns, d.blocks, _rival_left - _player_left])
 
 
@@ -1949,14 +1718,14 @@ func start_final() -> void:
 	_seba_waiting = false
 	final_on = true
 	rival = _seba
-	_use_cuts(Ladder.FINAL, _seba)
-	_final_plans.clear()
-	# The finish by the stadium is a circle too: the avenue's other carriageway runs through it,
-	# 130 m from the last bridge where the finish's own junction is 680 m round. Seba's last leg
-	# ends where the player's does.
-	_ends = _planner.ends(final_route.finish["node"], _finish_at(), FINISH_RADIUS)
+	# The course is the route's legs (a checkpoint is a junction to drive through). The finish by
+	# the stadium is a circle too: the avenue's other carriageway runs through it, 130 m from the
+	# last bridge where the finish's own junction is 680 m round. Seba's last leg ends where the
+	# player's does; he is home on arriving (no circle of his own round the junction).
+	_new_session(final_route.legs)
+	_session.home_circle = false
+	_racer.leg = _start_leg
 	_cp = _start_leg >> 1
-	_leg = _start_leg
 	_ghost_leg = _start_leg
 	_beacon.recolour(FINAL_COLOUR)
 	var d = _drivers[_seba]
@@ -1981,58 +1750,41 @@ func _final_ends(j: int) -> Dictionary:
 	return _ends if j == final_route.legs.size() - 1 else {}
 
 
-## The final's distances to its leg `j`: Seba's own roads and shortcuts, and for the last leg the
-## roads through the finish's circle as ways home (RacePlanner.links).
-func _final_distances(j: int) -> PackedFloat32Array:
-	var node := final_route.legs[j]
-	var ends := _final_ends(j)
-	if ends.is_empty():
-		return _race_distances(node)
-	return graph.distances_to(node, INF, true, _planner.links(node, ends, _cut_in))
-
-
-## One leg's distances a frame (about 8 ms each on the Linux container) during the challenge.
+## One leg's distances a frame (about 8 ms each on the Linux container) during the challenge
+## (RaceSession.prepare_step).
 func _prepare_final_step() -> void:
-	if _final_dists.size() < final_route.legs.size():
-		_final_dists.append(_final_distances(_final_dists.size()))
-		if _final_dists.size() == final_route.legs.size():
-			_sum_legs()
+	if _session.prepare_step() and _session.ready():
+		_legs_log()
 
 
 ## Every leg's distances now (the start of the race, or the ghost).
 func _prepare_final() -> void:
-	while _final_dists.size() < final_route.legs.size():
-		_final_dists.append(_final_distances(_final_dists.size()))
-	if _after.size() != final_route.legs.size():
-		_sum_legs()
+	var was := _session.ready()
+	_session.prepare()
+	if not was:
+		_legs_log()
 
 
-## The metres of route left after each leg (leg j runs from legs[j - 1] to legs[j]).
-func _sum_legs() -> void:
+## The final's course in the log: its legs and the metres by road from the leg it starts on.
+func _legs_log() -> void:
 	var n := final_route.legs.size()
-	_after.resize(n)
-	_after[n - 1] = 0.0
-	for j in range(n - 2, -1, -1):
-		_after[j] = _after[j + 1] + _final_dists[j + 1][final_route.legs[j]]
 	var first := 0.0
 	var d = _drivers[_seba]
 	if d.active:
-		first = graph.remaining(_final_dists[_start_leg], d.edge, d.s)
-	print("trzy mosty: %d legs, %.0f m by road from leg %d" % [n, first + _after[_start_leg], _start_leg])
+		first = graph.remaining(_session.distances(_racer, _start_leg), d.edge, d.s)
+	print("trzy mosty: %d legs, %.0f m by road from leg %d" % [n, first + _racer.after[_start_leg], _start_leg])
 
 
 func _track_final(dt: float) -> void:
 	var d = _drivers[_seba]
-	# Seba and the ghost move on to their next leg on reaching each target.
-	if d.arrived:
-		if _leg < final_route.legs.size() - 1:
-			_leg += 1
-			traffic.race_to(d, final_route.legs[_leg], _final_dists[_leg], _final_plan(_leg))
-			if _leg % 2 == 0:
-				print("trzy mosty: %s over %s at %.1f s" % [RIVALS[_seba]["name"], final_route.checkpoints[_leg / 2 - 1]["pl"], _race_time])
-		else:
-			_finish_race(false, "")
-			return
+	# Seba (the session) and the ghost move on to their next leg on reaching each target.
+	var was := _racer.leg
+	_session.advance(_race_time)
+	if _racer.home:
+		_finish_race(false, "")
+		return
+	if _racer.leg != was and _racer.leg % 2 == 0:
+		print("trzy mosty: %s over %s at %.1f s" % [RIVALS[_seba]["name"], final_route.checkpoints[_racer.leg / 2 - 1]["pl"], _race_time])
 	if _ghost != null and _ghost.arrived and _ghost_leg < final_route.legs.size() - 1:
 		_ghost_leg += 1
 		traffic.race_to(_ghost, final_route.legs[_ghost_leg], _distances(final_route.legs[_ghost_leg]))
@@ -2050,15 +1802,16 @@ func _track_final(dt: float) -> void:
 				if _cp < final_route.checkpoints.size():
 					_beacon.place(final_target(), TrzyMosty.CHECK_RADIUS - 6.0)
 				else:
-					_beacon.place(final_target(), FINISH_RADIUS - 4.0)
+					_beacon.place(final_target(), RaceSession.FINISH_RADIUS - 4.0)
 		else:
-			if not flying and home_at(graph, at, final_route.finish["pos"], _ends):
+			if not flying and RaceSession.home_at(graph, at, final_route.finish["pos"], _ends):
 				_finish_race(true, "")
 				return
-		_rival_left = traffic.remaining(d) + _after[_leg]
 		var j := mini(2 * _cp + 1, final_route.legs.size() - 1)
 		var goal: Vector3 = final_target()
-		_player_left = _remaining_by(_final_dists[j], goal, _final_ends(j)) + _after[j]
+		_player_left = _remaining_by(_session.distances(_racer, j), goal, _final_ends(j)) + _racer.after[j]
+		_session.rank(_player_left)
+		_rival_left = _racer.left
 		_effort(d)
 		_speeds(d)
 		_lead_tick(0.2)
@@ -2098,8 +1851,7 @@ func _finish_final(won: bool, why: String) -> void:
 	_race_log(d, won)
 	var told: Array = _report_close(d, _seba, won, margin) if why == "" else ["", ""]
 	var goal: Vector3 = final_route.finish["pos"]
-	traffic.stop_racing(d)
-	_final_plans.clear()
+	_session.end()
 	_cruise(d)
 	_cooldown[_seba] = 25.0
 	if _ghost != null:

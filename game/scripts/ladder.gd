@@ -33,7 +33,7 @@ extends RefCounted
 ##   order of the times, not of any one number). Nothing here reads the player's speed or place:
 ##   the rubber band that did (`band`, `aim`: a rival's speed as a mix of its own and the
 ##   player's) made Halina crawl at 0.3 of her pace in front of a waiting player, and is gone.
-##   What is left of "closeness" is rivals.gd `effort_of`: a rival far in front eases to
+##   What is left of "closeness" is race_session.gd `effort_of`: a rival far in front eases to
 ##   EFFORT_EASE of its own pace, one behind pushes a little, by the time gap alone. `pace` stays
 ##   as the cruise-time liveliness and the old tests' order.
 ## - **Racing: the streets it takes** (docs/design/race-ai.md 5, 2026-11-10; the friend's point 5:
@@ -140,7 +140,7 @@ const EASE_STEP := 0.05
 const EASE_MAX := 0.15
 const LOST_KEY := "race_lost_"
 ## No racer, eased or not, holds less than this share of the road's racing speed on a straight:
-## times the least effort (rivals.gd EFFORT_EASE) it stays over half the road's speed, the race
+## times the least effort (race_session.gd EFFORT_EASE) it stays over half the road's speed, the race
 ## bench's crawl line (race_bench.gd CRAWL_SHARE; check_ladder.gd holds the three together).
 const SHARE_MIN := 0.58
 ## The pace of a race outside the ladder (no wallet, an unknown rival): the old flat one.

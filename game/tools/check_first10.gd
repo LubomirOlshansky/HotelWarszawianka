@@ -31,6 +31,7 @@ extends SceneTree
 
 const First10 := preload("res://scripts/first10.gd")
 const Rivals := preload("res://scripts/rivals.gd")
+const RaceSession := preload("res://scripts/race_session.gd")
 const Ladder := preload("res://scripts/ladder.gd")
 const Wallet := preload("res://scripts/wallet.gd")
 const Districts := preload("res://scripts/districts.gd")
@@ -429,7 +430,7 @@ func _judge() -> void:
 	_expect(First10.judge(done, ways).size() == 2, "a tape met early is fine")
 
 
-## A stand-in for a traffic driver: the fields rivals.gd `arm_racer` and `pace_tick` set.
+## A stand-in for a traffic driver: the fields race_session.gd `arm_racer` and `pace_tick` set.
 class ToyRacer:
 	var speed_factor := 1.0
 	var accel_factor := 1.0
@@ -460,7 +461,7 @@ class ToyRacer:
 
 ## A 1-D race of `road` m, the guided first race in small: the player at `speed` m/s (0: no
 ## player at all; stopping `stop` s at half way; starting `late` s after START!), Halina from 12 m
-## behind on ladder.gd's gentle day (eased by `ease`) at rivals.gd's effort (`arm_racer`, then
+## behind on ladder.gd's gentle day (eased by `ease`) at the race session's effort (`arm_racer`, then
 ## `pace_tick` 5 times a second, as the game), pulling her race_accel towards her share of a main
 ## road's racing speed times her effort; `hold`: she waits at the line for the player to move
 ## (`first_start_step`, PT-11). Returns {lead: the player's lead at the finish in s (< 0: she
@@ -468,9 +469,9 @@ class ToyRacer:
 ## hi: her lowest and highest speed once up to it, as a share of her own straight-line pace}.
 func _race(speed: float, stop := 0.0, road := 800.0, late := 0.0, hold := false, ease := 0.0) -> Dictionary:
 	var toy := ToyRacer.new()
-	var stats := Rivals.arm_racer(toy, 0, 30.0, {}, true, ease, 1)
+	var stats := RaceSession.arm_racer(toy, RaceSession.race_stats(0, true, ease), Ladder.pace(0), 30.0, {}, 1)
 	var own: float = minf(toy.race_top, Traffic.RACE_CLASS_TOP[0]) * toy.race_share
-	var pace := Rivals.Pace.new()
+	var pace := RaceSession.Pace.new()
 	var held := hold
 	var me := road
 	var her := road + 12.0
@@ -488,7 +489,7 @@ func _race(speed: float, stop := 0.0, road := 800.0, late := 0.0, hold := false,
 		k += dt
 		if k >= 0.2:
 			k = 0.0
-			Rivals.pace_tick(pace, toy, float(stats["mistake"]), maxf(her, 0.0), maxf(me, 0.0) if speed > 0.0 else INF)
+			RaceSession.pace_tick(pace, toy, float(stats["mistake"]), maxf(her, 0.0), maxf(me, 0.0) if speed > 0.0 else INF)
 		var mine := speed if t >= late else 0.0
 		if held:
 			if Rivals.first_start_step(t, mine) == "release":
@@ -497,7 +498,7 @@ func _race(speed: float, stop := 0.0, road := 800.0, late := 0.0, hold := false,
 		if her > 0.0:
 			v = move_toward(v, 0.0 if held else own * toy.race_effort, toy.race_accel * dt)
 			her -= v * dt
-			if not held and v >= own * Rivals.EFFORT_EASE - 0.01:
+			if not held and v >= own * RaceSession.EFFORT_EASE - 0.01:
 				up = true
 			if up:
 				lo = minf(lo, v / own)
@@ -527,9 +528,9 @@ func _race(speed: float, stop := 0.0, road := 800.0, late := 0.0, hold := false,
 ## finish): the player at `speed`, stopping `stop` s at half way.
 func _her_time(speed: float, stop := 0.0) -> float:
 	var toy := ToyRacer.new()
-	var stats := Rivals.arm_racer(toy, 0, 30.0, {}, true, 0.0, 1)
+	var stats := RaceSession.arm_racer(toy, RaceSession.race_stats(0, true, 0.0), Ladder.pace(0), 30.0, {}, 1)
 	var own: float = minf(toy.race_top, Traffic.RACE_CLASS_TOP[0]) * toy.race_share
-	var pace := Rivals.Pace.new()
+	var pace := RaceSession.Pace.new()
 	var me := 800.0
 	var her := 812.0
 	var v := 0.0
@@ -541,7 +542,7 @@ func _her_time(speed: float, stop := 0.0) -> float:
 		k += dt
 		if k >= 0.2:
 			k = 0.0
-			Rivals.pace_tick(pace, toy, float(stats["mistake"]), her, maxf(me, 0.0) if speed > 0.0 else INF)
+			RaceSession.pace_tick(pace, toy, float(stats["mistake"]), her, maxf(me, 0.0) if speed > 0.0 else INF)
 		v = move_toward(v, own * toy.race_effort, toy.race_accel * dt)
 		her -= v * dt
 		if stop > 0.0 and me < 400.0 and stopped < stop:
@@ -556,48 +557,48 @@ func _her_time(speed: float, stop := 0.0) -> float:
 ## gentle day at rivals.gd's effort, and nothing in it is the player's speed.
 func _effort() -> void:
 	# The effort: the time gap alone, bounded both ways.
-	_expect(Rivals.effort_of(0.0) == 1.0 and Rivals.effort_of(Rivals.EASE_FROM) == 1.0 and Rivals.effort_of(-Rivals.PUSH_FROM) == 1.0,
+	_expect(RaceSession.effort_of(0.0) == 1.0 and RaceSession.effort_of(RaceSession.EASE_FROM) == 1.0 and RaceSession.effort_of(-RaceSession.PUSH_FROM) == 1.0,
 			"level, just ahead or just behind: her own pace")
-	_expect(is_equal_approx(Rivals.effort_of(Rivals.EASE_FULL), Rivals.EFFORT_EASE) and is_equal_approx(Rivals.effort_of(900.0), Rivals.EFFORT_EASE),
-			"far ahead she eases to EFFORT_EASE and no further: %.2f" % Rivals.effort_of(900.0))
-	_expect(is_equal_approx(Rivals.effort_of(-Rivals.PUSH_FULL), Rivals.EFFORT_PUSH) and is_equal_approx(Rivals.effort_of(-900.0), Rivals.EFFORT_PUSH),
-			"far behind she pushes to EFFORT_PUSH and no further: %.2f" % Rivals.effort_of(-900.0))
+	_expect(is_equal_approx(RaceSession.effort_of(RaceSession.EASE_FULL), RaceSession.EFFORT_EASE) and is_equal_approx(RaceSession.effort_of(900.0), RaceSession.EFFORT_EASE),
+			"far ahead she eases to EFFORT_EASE and no further: %.2f" % RaceSession.effort_of(900.0))
+	_expect(is_equal_approx(RaceSession.effort_of(-RaceSession.PUSH_FULL), RaceSession.EFFORT_PUSH) and is_equal_approx(RaceSession.effort_of(-900.0), RaceSession.EFFORT_PUSH),
+			"far behind she pushes to EFFORT_PUSH and no further: %.2f" % RaceSession.effort_of(-900.0))
 	var falls := true
 	for i in range(-40, 40):
-		falls = falls and Rivals.effort_of(i * 0.5 + 0.5) <= Rivals.effort_of(i * 0.5) + 0.0001
+		falls = falls and RaceSession.effort_of(i * 0.5 + 0.5) <= RaceSession.effort_of(i * 0.5) + 0.0001
 	_expect(falls, "the further ahead, the less effort (never the other way)")
-	_expect(Rivals.EFFORT_EASE >= 0.85 and Rivals.EFFORT_PUSH <= 1.1, "the effort stays within a tenth or so: %.2f-%.2f" % [Rivals.EFFORT_EASE, Rivals.EFFORT_PUSH])
-	_expect(is_equal_approx(Rivals.own_pace(30.0, 0.65), 30.0 * 0.65 * Rivals.GAP_PACE) and Rivals.own_pace(0.0, 0.65) == 5.0, "her seconds come from her own usual speed")
+	_expect(RaceSession.EFFORT_EASE >= 0.85 and RaceSession.EFFORT_PUSH <= 1.1, "the effort stays within a tenth or so: %.2f-%.2f" % [RaceSession.EFFORT_EASE, RaceSession.EFFORT_PUSH])
+	_expect(is_equal_approx(RaceSession.own_pace(30.0, 0.65), 30.0 * 0.65 * RaceSession.GAP_PACE) and RaceSession.own_pace(0.0, 0.65) == 5.0, "her seconds come from her own usual speed")
 	# The gentle day and the easier rematch (ladder.gd).
-	_expect(Rivals.race_stats(0, true) == Ladder.FIRST_RACER and Rivals.race_stats(0) == Ladder.racer(0), "the first race drives FIRST_RACER, her rung its own numbers")
-	_expect(float(Rivals.race_stats(0, true, 0.1)["share"]) < float(Ladder.FIRST_RACER["share"]), "an easier rematch is slower")
+	_expect(RaceSession.race_stats(0, true) == Ladder.FIRST_RACER and RaceSession.race_stats(0) == Ladder.racer(0), "the first race drives FIRST_RACER, her rung its own numbers")
+	_expect(float(RaceSession.race_stats(0, true, 0.1)["share"]) < float(Ladder.FIRST_RACER["share"]), "an easier rematch is slower")
 	# pace_tick: a pushing rival makes more mistakes, and the effort never takes a car past its top.
 	var toy := ToyRacer.new()
-	Rivals.arm_racer(toy, 5, 30.0, {}, false, 0.0, 1)
+	RaceSession.arm_racer(toy, RaceSession.race_stats(5, false, 0.0), Ladder.pace(5), 30.0, {}, 1)
 	_expect(toy.race_rng != null and toy.race_top == 30.0 and is_equal_approx(toy.race_share, float(Ladder.racer(5)["share"])), "arm_racer: the player's top, the rung's share, its own dice")
-	var pace := Rivals.Pace.new()
+	var pace := RaceSession.Pace.new()
 	for i in 200:
-		Rivals.pace_tick(pace, toy, 0.1, 2000.0, 1000.0)
+		RaceSession.pace_tick(pace, toy, 0.1, 2000.0, 1000.0)
 	# (Mike drives the road's full speed since step 4a: his push is all in the corners.)
-	_expect(toy.race_effort * toy.race_share <= 1.0001 and is_equal_approx(toy.race_corner, Rivals.EFFORT_PUSH),
+	_expect(toy.race_effort * toy.race_share <= 1.0001 and is_equal_approx(toy.race_corner, RaceSession.EFFORT_PUSH),
 			"far behind, Mike pushes through the corners but never past the car's top: %.3f of it, %.2f of his grip" % [toy.race_effort * toy.race_share, toy.race_corner])
 	var room := ToyRacer.new()
-	Rivals.arm_racer(room, 4, 30.0, {}, false, 0.0, 1)
-	var room_pace := Rivals.Pace.new()
+	RaceSession.arm_racer(room, RaceSession.race_stats(4, false, 0.0), Ladder.pace(4), 30.0, {}, 1)
+	var room_pace := RaceSession.Pace.new()
 	for i in 200:
-		Rivals.pace_tick(room_pace, room, 0.1, 2000.0, 1000.0)
-	_expect(is_equal_approx(room.race_effort, Rivals.EFFORT_PUSH) and room.race_effort * room.race_share <= 1.0001 and is_equal_approx(room.race_corner, Rivals.EFFORT_PUSH),
+		RaceSession.pace_tick(room_pace, room, 0.1, 2000.0, 1000.0)
+	_expect(is_equal_approx(room.race_effort, RaceSession.EFFORT_PUSH) and room.race_effort * room.race_share <= 1.0001 and is_equal_approx(room.race_corner, RaceSession.EFFORT_PUSH),
 			"far behind, a rival with room under the car's top pushes on the straights too: %.3f of the car's top" % (room.race_effort * room.race_share))
-	_expect(is_equal_approx(toy.race_mistake, 0.1 * Rivals.PUSH_MISTAKES), "pushing: PUSH_MISTAKES times the mistakes: %.3f" % toy.race_mistake)
-	pace = Rivals.Pace.new()
+	_expect(is_equal_approx(toy.race_mistake, 0.1 * RaceSession.PUSH_MISTAKES), "pushing: PUSH_MISTAKES times the mistakes: %.3f" % toy.race_mistake)
+	pace = RaceSession.Pace.new()
 	for i in 200:
-		Rivals.pace_tick(pace, toy, 0.1, 1000.0, 2000.0)
-	_expect(is_equal_approx(toy.race_effort, Rivals.EFFORT_EASE) and is_equal_approx(toy.race_mistake, 0.1), "far ahead: EFFORT_EASE, her usual mistakes")
-	pace = Rivals.Pace.new()
-	Rivals.pace_tick(pace, toy, 0.1, 1000.0, 2000.0)
-	_expect(toy.race_effort >= 1.0 - Rivals.EFFORT_RATE * 0.2 - 0.0001, "the effort moves slowly (EFFORT_RATE a second), no step")
-	pace = Rivals.Pace.new()
-	Rivals.pace_tick(pace, toy, 0.1, 1000.0, INF)
+		RaceSession.pace_tick(pace, toy, 0.1, 1000.0, 2000.0)
+	_expect(is_equal_approx(toy.race_effort, RaceSession.EFFORT_EASE) and is_equal_approx(toy.race_mistake, 0.1), "far ahead: EFFORT_EASE, her usual mistakes")
+	pace = RaceSession.Pace.new()
+	RaceSession.pace_tick(pace, toy, 0.1, 1000.0, 2000.0)
+	_expect(toy.race_effort >= 1.0 - RaceSession.EFFORT_RATE * 0.2 - 0.0001, "the effort moves slowly (EFFORT_RATE a second), no step")
+	pace = RaceSession.Pace.new()
+	RaceSession.pace_tick(pace, toy, 0.1, 1000.0, INF)
 	_expect(toy.race_effort == 1.0, "no player: her own pace")
 	# Her time is her own: 800 m against nobody, a slow, an ordinary and a fast player, one who
 	# stops for a minute and one who never moves.
@@ -619,8 +620,8 @@ func _effort() -> void:
 	_expect(float(ordinary["lead"]) < -10.0 and float(slow["lead"]) < float(ordinary["lead"]), "a player at town pace loses, a slower one by more (she does not wait): %.1f s, %.1f s" % [ordinary["lead"], slow["lead"]])
 	_expect(float(stops["lead"]) < 0.0, "a fast player who stops for a minute loses: %.1f s" % stops["lead"])
 	for r: Dictionary in [ordinary, fast, slow, stops]:
-		_expect(float(r["lo"]) >= Rivals.EFFORT_EASE - 0.011 and float(r["hi"]) <= Rivals.EFFORT_PUSH + 0.001,
-				"once up to speed she holds %.2f to %.2f of her own pace to the line (no crawl, no lift-off): %.2f-%.2f" % [Rivals.EFFORT_EASE, Rivals.EFFORT_PUSH, r["lo"], r["hi"]])
+		_expect(float(r["lo"]) >= RaceSession.EFFORT_EASE - 0.011 and float(r["hi"]) <= RaceSession.EFFORT_PUSH + 0.001,
+				"once up to speed she holds %.2f to %.2f of her own pace to the line (no crawl, no lift-off): %.2f-%.2f" % [RaceSession.EFFORT_EASE, RaceSession.EFFORT_PUSH, r["lo"], r["hi"]])
 	var eased := _race(0.0, 0.0, 800.0, 0.0, false, Ladder.EASE_MAX)
 	_expect(float(eased["time"]) > alone * 1.05, "after three losses in a row she is slower: %.1f s against %.1f s" % [eased["time"], alone])
 	# PT-11: a new player who sits still after START! (the agent in run 20261102-175913 lost so).

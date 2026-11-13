@@ -10,6 +10,7 @@ lane_graph.gd   the road network baked from OSM: directed edges, lanes, junction
      │
 traffic.gd      every AI car: one Driver per car on the graph, drawn as one MultiMesh per kind
      ├─ rivals.gd        named racers: wander as traffic, race with race_to / stop_racing
+     │    ├─ race_session.gd  one race's mechanics: the course, the racers, their plans, effort and order
      │    ├─ race_planner.gd  a racer's plan: seconds to the finish from every street, by its own skill
      │    ├─ race_line.gd     a racer's line: its place on the ground and a speed for every metre of its way
      │    ├─ race_signals.gd  a racing rival's lights: brake lights, indicators, hazards, headlight flash, wobble
@@ -66,7 +67,14 @@ skill, not from the player's speed. Built so far (steps 1 to 4a of 8):
 
 - **The profile** is a rung's racer stats in `ladder.gd` (how much of the car it uses, its
   mistakes, what it knows of the town's traffic and how it weighs a street with no way past);
-  `Rivals.arm_racer` puts them on the Driver, and the rival rolls its own dice (`race_rng`).
+  `RaceSession.arm_racer` puts them on the Driver, and the rival rolls its own dice (`race_rng`).
+- **The race session** (`race_session.gd`, step 6b part 1a: a `RefCounted` a race, no HUD, no
+  words, no pay): the course (the junctions in order, the last the finish and its circle), its
+  racers (a Driver each, the profile, the shortcuts, per leg the distances and the plan), the
+  start (`arm_racer`, `race_to`), the legs, the effort (`pace_tick`, 5 Hz `rank`), the order, the
+  reroutes after `turned_back` / `hop_refused`, the lights' tick and the end. `rivals.gd` (the
+  ladder, the guided first race, Trzy mosty) and the race bench (`race_bench.gd` `race`) both race
+  on it; the words, cards, ghost, the player's checkpoints and the pay stay theirs.
 - **The plan** (`race_planner.gd`, one `RacePlanner` for the map, one `Plan` a race or a leg): a
   search back from the finish gives this racer's seconds to go from every street, with the
   shortcuts it knows and the delay it expects from the town's traffic (`Traffic.race_delay`,

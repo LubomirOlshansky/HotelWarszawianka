@@ -30,6 +30,7 @@ const Ladder := preload("res://scripts/ladder.gd")
 const Lang := preload("res://scripts/lang.gd")
 const TrzyMosty := preload("res://scripts/trzy_mosty.gd")
 const Rivals := preload("res://scripts/rivals.gd")
+const RaceSession := preload("res://scripts/race_session.gd")
 const Wallet := preload("res://scripts/wallet.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const RaceBench := preload("res://tools/race_bench.gd")
@@ -123,8 +124,8 @@ func _data() -> void:
 	_expect(Ladder.racer(Ladder.FINAL) == Ladder.FINAL_RACER and Ladder.racer(-1) == Ladder.DEFAULT_RACER, "racer(FINAL) and racer(-1)")
 	for k: String in ["share", "race_accel", "brake", "lat"]:
 		_expect(float(Ladder.FIRST_RACER[k]) < float(Ladder.racer(0)[k]), "the gentle day's %s is not under her rung's" % k)
-	_expect(Ladder.SHARE_MIN * Rivals.EFFORT_EASE >= RaceBench.CRAWL_SHARE,
-			"the slowest racer at its least effort is under the bench's crawl line: %.2f x %.2f < %.2f" % [Ladder.SHARE_MIN, Rivals.EFFORT_EASE, RaceBench.CRAWL_SHARE])
+	_expect(Ladder.SHARE_MIN * RaceSession.EFFORT_EASE >= RaceBench.CRAWL_SHARE,
+			"the slowest racer at its least effort is under the bench's crawl line: %.2f x %.2f < %.2f" % [Ladder.SHARE_MIN, RaceSession.EFFORT_EASE, RaceBench.CRAWL_SHARE])
 	# An easier rematch: EASE_STEP a loss in a row, EASE_MAX at most, on the straights and in the corners.
 	_expect(Ladder.ease_of(0) == 0.0 and Ladder.ease_of(-2) == 0.0 and is_equal_approx(Ladder.ease_of(1), Ladder.EASE_STEP)
 			and is_equal_approx(Ladder.ease_of(3), Ladder.EASE_MAX) and is_equal_approx(Ladder.ease_of(40), Ladder.EASE_MAX), "ease_of: %.2f, %.2f, %.2f" % [Ladder.ease_of(1), Ladder.ease_of(3), Ladder.ease_of(40)])
@@ -151,7 +152,7 @@ func _skill(who: String, s: Dictionary) -> void:
 	_expect(float(s["brake"]) > 0.0 and float(s["brake"]) <= RaceBench.PLAYER_BRAKE, "%s: brake %.1f m/s²" % [who, s["brake"]])
 	_expect(float(s["lat"]) > 0.0 and float(s["lat"]) <= RaceBench.PLAYER_GRIP, "%s: grip %.1f m/s²" % [who, s["lat"]])
 	_expect(not s.has("band") and not s.has("aim"), "%s still has a rubber band" % who)
-	_expect(float(s["mistake"]) >= 0.0 and float(s["mistake"]) * Rivals.PUSH_MISTAKES <= 0.5, "%s: mistakes %.2f a corner" % [who, s["mistake"]])
+	_expect(float(s["mistake"]) >= 0.0 and float(s["mistake"]) * RaceSession.PUSH_MISTAKES <= 0.5, "%s: mistakes %.2f a corner" % [who, s["mistake"]])
 
 
 func _gating() -> void:

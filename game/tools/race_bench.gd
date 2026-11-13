@@ -1,8 +1,9 @@
 extends RefCounted
 ## The race bench (docs/design/race-ai.md, "How we test it"): one rival's race, start to finish, on
 ## the committed map's lane graph (map/centrum.json) with the real traffic (traffic.gd) and the
-## game's own race code (rivals.gd's static core: `arm_racer`, `pace_tick`, `first_start_step`,
-## `remaining_from`, `finish_node`, `lane_behind`), but without the city, the car, the HUD or a
+## game's own race code (the race session, race_session.gd, that rivals.gd races on: the course,
+## the rival's shortcuts, distances, plans, effort and lights; and rivals.gd's `first_start_step`,
+## `finish_node`, `lane_behind`), but without the city, the car, the HUD or a
 ## renderer, so a race takes a second or two and the same race runs the same way every time.
 ##
 ## A race is a `spec` (see `race`): the rival, the tuning (a ladder race or the guided first
@@ -28,6 +29,7 @@ const Ladder := preload("res://scripts/ladder.gd")
 const RaceCuts := preload("res://scripts/race_cuts.gd")
 const RacePlanner := preload("res://scripts/race_planner.gd")
 const RaceSignals := preload("res://scripts/race_signals.gd")
+const RaceSession := preload("res://scripts/race_session.gd")
 const TrzyMosty := preload("res://scripts/trzy_mosty.gd")
 const Settings := preload("res://scripts/settings.gd")
 const FollowCamera := preload("res://scripts/follow_camera.gd")
@@ -678,7 +680,7 @@ func finish(name: String) -> Dictionary:
 		if f["name"] == name:
 			var node := Rivals.finish_node(graph, _data, f)
 			if node >= 0:
-				return {"name": name, "node": node, "at": graph.node_pos[node], "ends": planner.ends(node, graph.node_pos[node], Rivals.FINISH_RADIUS)}
+				return {"name": name, "node": node, "at": graph.node_pos[node], "ends": planner.ends(node, graph.node_pos[node], RaceSession.FINISH_RADIUS)}
 	return {}
 
 
@@ -691,7 +693,7 @@ func final_finish() -> Dictionary:
 		return {}
 	var at := Vector2(route.finish["pos"].x, route.finish["pos"].z)
 	var node: int = route.finish["node"]
-	return {"node": node, "at": at, "ends": planner.ends(node, at, Rivals.FINISH_RADIUS), "from": route.legs[route.legs.size() - 2]}
+	return {"node": node, "at": at, "ends": planner.ends(node, at, RaceSession.FINISH_RADIUS), "from": route.legs[route.legs.size() - 2]}
 
 
 ## The roads' distances to `node` (rivals.gd `_distances`).
@@ -878,12 +880,11 @@ func race(spec: Dictionary) -> Dictionary:
 	var goal := Vector3(fin["at"].x, 0.0, fin["at"].y)
 	out["route_m"] = graph.remaining(dist, e0, s0)
 	out["road_m"] = graph.remaining(plain, e0, s0)
-	# The forced route's legs: each point's node and the distances to it, the finish last.
-	var legs: Array = []
+	# The course: the forced route's points' nodes, the finish last (its circle on the last leg).
+	var legs := PackedInt32Array()
 	for p: Vector2 in spec.get("via", []):
-		var n := graph.nearest_node(p)
-		legs.append([n, racer_to(name, n)])
-	legs.append([fin["node"], dist])
+		legs.append(graph.nearest_node(p))
+	legs.append(fin["node"])
 
 	# This race's world: a fresh traffic system (its own seeds) and the lights' clock at zero.
 	graph.clock = 0.0
@@ -945,31 +946,36 @@ func race(spec: Dictionary) -> Dictionary:
 		cam.free()
 		return out
 
-	# A street the rival finds blocked: the metres it has left are counted without it from then on
-	# (rivals.gd `_on_turned_back`).
-	traffic.turned_back.connect(func(who) -> void:
-		if who == d and d.plan != null:
-			traffic.reroute(d, graph.distances_to(d.finish, INF, true, planner.links(d.finish, d.plan.ends, links_of(name, d.plan.no_hop, d.plan.shut)[1], d.plan.shut), d.plan.shut)))
-	# A wrong-way hop it refused (step 5b, rivals.gd `_on_hop_refused`): the metres without that hop.
-	traffic.hop_refused.connect(func(who) -> void:
-		if who == d and d.plan != null:
-			var less: Array = links_of(name, d.plan.no_hop, d.plan.shut)
-			traffic.reroute(d, graph.distances_to(d.finish, INF, true, planner.links(d.finish, d.plan.ends, less[1], d.plan.shut), d.plan.shut)))
+	# The race session (race_session.gd), as rivals.gd races: the rival its one racer, with its
+	# rung's pace and racer stats (the final's in the final, Halina's gentle day in the first race),
+	# the shortcuts of its rung (the bench's own rule: the rival's rung's, also in the final), its own
+	# dice (the same for this rival and draw whoever the test player is). The metres left are summed
+	# leg by leg (`exact_left`), as the bench always did; every leg's distances now.
+	var session := RaceSession.new()
+	session.setup(graph, traffic, planner, cuts, _roads)
+	session.course(legs, fin["at"], RaceSession.FINISH_RADIUS)
+	session.exact_left = true
+	var r := session.add(d, name, Ladder.FIRST_RACER if first else Ladder.racer(rung), Ladder.pace(rung), {
+			"top": PLAYER_TOP, "ease": float(spec.get("ease", 0.0)), "dice": hash("%s/%d" % [name, int(out["seed"])]),
+			"cuts_of": Ladder.racer(Ladder.rung_of(name)), "plan": not spec.get("no_plan", false)})
+	session.prepare()
+	# A street the rival finds blocked, a wrong-way hop it refused (step 5b): the metres it has left
+	# are counted without it from then on (rivals.gd `_on_turned_back`, `_on_hop_refused`).
+	traffic.turned_back.connect(func(who) -> void: session.turned_back(who))
+	traffic.hop_refused.connect(func(who) -> void: session.hop_refused(who))
 	var probe := Probe.new()
 	probe.graph = graph
 	probe.d = d
-	var pace := Rivals.Pace.new()
 	var stats := {}
-	# Step 6a: the rival's lights (race_signals.gd), and of the turns it made how many it had
-	# indicated as it went into the junction.
-	var sig := RaceSignals.State.new()
+	# Step 6a: the rival's lights (race_signals.gd, the session's `signals`), and of the turns it
+	# made how many it had indicated as it went into the junction.
+	var sig := r.sig
 	var sig_conn := false
 	var turns := 0
 	var turns_lit := 0
 	var t := -LEAD_IN
 	var started := false
 	var hold := false
-	var leg := 0
 	var tick := 0.0
 	var player_live := ghost != null
 	var rival_left := INF
@@ -995,28 +1001,18 @@ func race(spec: Dictionary) -> Dictionary:
 		if not started and t >= 0.0:
 			started = true
 			t = 0.0
-			# Its own dice: the same for this rival and draw whoever the test player is.
-			stats = Rivals.arm_racer(d, rung, PLAYER_TOP, table, first, float(spec.get("ease", 0.0)), hash("%s/%d" % [name, int(out["seed"])]))
 			if spec.has("skill"):
-				# Tuning: racer stats to try in place of the rival's own (share, race_accel, brake, lat).
-				var skill: Dictionary = spec["skill"]
-				stats = stats.duplicate()
-				stats.merge(skill, true)
-				d.race_share = float(skill.get("share", d.race_share))
-				d.race_accel = float(skill.get("race_accel", d.race_accel))
-				d.race_brake = float(skill.get("brake", d.race_brake))
-				d.race_lat = float(skill.get("lat", d.race_lat))
+				# Tuning: racer stats to try in place of the rival's own (share, race_accel, brake, lat),
+				# armed and planned with.
+				r.stats = r.stats.duplicate()
+				r.stats.merge(spec["skill"], true)
+			stats = r.stats
 			# The rival's plan (rivals.gd `_go`): a table of times to the finish (its circle) for its
-			# own driving, and one to each point of a forced route (a junction).
+			# own driving, and one to each point of a forced route (a junction), all made now for
+			# the town's traffic as it is; then it is armed and sets off (`start`).
 			for k in legs.size():
-				var l: Array = legs[k]
-				if spec.get("no_plan", false):
-					l.append(null)
-				elif k < legs.size() - 1:
-					l.append(planner.plan(int(l[0]), stats, PLAYER_TOP, table, traffic.race_density()))
-				else:
-					l.append(planner.plan(int(l[0]), stats, PLAYER_TOP, table, traffic.race_density(), PackedInt32Array(), fin["at"], Rivals.FINISH_RADIUS))
-			traffic.race_to(d, legs[0][0], legs[0][1], legs[0][2])
+				session.plan(r, k)
+			session.start(r)
 			plan_s = _plan_time(d)
 			# PT-11: in the first race she waits at the line until the player moves.
 			hold = first and ghost != null
@@ -1028,18 +1024,17 @@ func race(spec: Dictionary) -> Dictionary:
 				# way back, and then slipped through her and the wall).
 				var own = null
 				if not spec.get("no_plan", false) and (kind == "follower" or sit.has("wall")):
-					own = planner.plan(fin["node"], stats, PLAYER_TOP, table if kind == "follower" else {}, 0.0, PackedInt32Array(), fin["at"], Rivals.FINISH_RADIUS)
+					own = planner.plan(fin["node"], stats, PLAYER_TOP, table if kind == "follower" else {}, 0.0, PackedInt32Array(), fin["at"], RaceSession.FINISH_RADIUS)
 				_arm_player(traffic, ghost, kind, fin["node"], plain, dist, table, own)
 		if started:
 			if hold and Rivals.first_start_step(t, ghost.v) == "release":
 				hold = false
 				d.held = false
 				out["hold_s"] = snappedf(t, 0.01)
-			if leg < legs.size() - 1 and not d.in_conn and graph.e_b[d.edge] == legs[leg][0]:
-				leg += 1
+			if r.leg < legs.size() - 1 and not d.in_conn and graph.e_b[d.edge] == legs[r.leg]:
 				# The clock: what the last leg's plan still held for this street is in the next one's.
 				plan_s -= _plan_time(d)
-				traffic.race_to(d, legs[leg][0], legs[leg][1], legs[leg][2])
+				session.next_leg(r)
 				plan_s += _plan_time(d)
 			if kind == "follower" and player_live:
 				# The follower: as fast as it takes to sit FOLLOW_GAP m behind the rival; while it is
@@ -1052,14 +1047,16 @@ func race(spec: Dictionary) -> Dictionary:
 			tick -= DT
 			if tick <= 0.0:
 				tick = TICK
-				rival_left = _left(traffic, d, legs, leg)
 				if ghost == null:
 					player_left = INF
 				elif player_live:
-					player_left = Rivals.remaining_from(graph, dist, Vector2(ghost.pos.x, ghost.pos.z), goal, fin["ends"])
+					player_left = RaceSession.remaining_from(graph, dist, Vector2(ghost.pos.x, ghost.pos.z), goal, fin["ends"])
 				else:
 					player_left = 0.0
-				var mult := Rivals.pace_tick(pace, d, float(stats.get("mistake", 0.0)), rival_left, player_left)
+				# The metres left and the effort (RaceSession.pace_tick) for each racer.
+				session.rank(player_left)
+				rival_left = r.left
+				var mult: float = d.race_effort
 				if knock_left > 0.0 and rival_left < knock_left:
 					# The knock: a full hit from the side (traffic.gd on_player_bump's daze and slide).
 					knock_left = -1.0
@@ -1078,19 +1075,19 @@ func race(spec: Dictionary) -> Dictionary:
 		if not started:
 			continue
 		probe.sample(t, traffic, ghost, hold, player_live)
-		RaceSignals.tick(sig, d, graph, stats, DT)
+		session.signals(DT)
 		if d.in_conn and not sig_conn and RaceSignals.turn_side(d, graph) != 0:
 			turns += 1
 			if sig.indicating():
 				turns_lit += 1
 		sig_conn = d.in_conn
-		if player_live and kind != "stopped" and (ghost.arrived or Rivals.home_at(graph, ghost.pos, goal, fin["ends"])):
+		if player_live and kind != "stopped" and (ghost.arrived or RaceSession.home_at(graph, ghost.pos, goal, fin["ends"])):
 			# The player is home first (the game's own test: the circle, or level with it on a road
 			# through it): the game's race ends here; the bench lets the rival drive on to the line
 			# (its time is what is measured) with the player's car out of the way.
 			player_live = false
 			out["player_time"] = snappedf(t, 0.01)
-		if leg == legs.size() - 1 and (d.arrived or Vector2(d.pos.x, d.pos.z).distance_to(fin["at"]) < Rivals.FINISH_RADIUS):
+		if r.leg == legs.size() - 1 and session.arrived(r):
 			out["finished"] = true
 			out["time"] = snappedf(t, 0.01)
 			break
@@ -1100,7 +1097,7 @@ func race(spec: Dictionary) -> Dictionary:
 		print("    longest crawl %.1f s ended at %.1f s on %s (%.0f, %.0f) at %.1f m/s" % [crawl.y, probe.crawl_end * DT, probe._street(probe.edge_at[probe.crawl_end]), probe.px[probe.crawl_end], probe.pz[probe.crawl_end], probe.v[probe.crawl_end]])
 	var n := maxi(probe.frames, 1)
 	out["winner"] = "player" if out.has("player_time") else ("rival" if out["finished"] else "nobody")
-	out["left_m"] = snappedf(_left(traffic, d, legs, leg), 1.0) if not out["finished"] else 0.0
+	out["left_m"] = snappedf(session.metres_left(r), 1.0) if not out["finished"] else 0.0
 	out["driven_m"] = snappedf(probe.driven, 1.0)
 	out["mean_kmh"] = snappedf(probe.driven / maxf(float(out["time"]) - float(out["hold_s"]), 1.0) * 3.6, 0.1)
 	out["top_kmh"] = snappedf(probe.top_v * 3.6, 0.1)
@@ -1144,8 +1141,8 @@ func race(spec: Dictionary) -> Dictionary:
 	out["blocks"] = d.blocks
 	out["centre_passes"] = d.race_passes
 	out["lights"] = {"brakes": sig.brakes, "indications": sig.indications, "flashes": sig.flashes, "hazards": sig.hazards, "turns": turns, "turns_lit": turns_lit}
-	out["pace_lo"] = snappedf(pace.lo, 0.01)
-	out["pace_hi"] = snappedf(pace.hi, 0.01)
+	out["pace_lo"] = snappedf(r.effort.lo, 0.01)
+	out["pace_hi"] = snappedf(r.effort.hi, 0.01)
 	out["share"] = snappedf(d.race_share, 0.001)
 	out["plan_s"] = snappedf(plan_s, 0.1)
 	out["turned_back"] = d.turns_back
@@ -1174,15 +1171,6 @@ func _plan_time(d) -> float:
 		return 0.0
 	var t: float = d.plan.left(d.edge, d.s, d.v)
 	return t if t < INF else 0.0
-
-
-## The metres the rival has left: to the finish, through the forced route's legs still to come.
-func _left(traffic: Node3D, d, legs: Array, leg: int) -> float:
-	var left: float = traffic.remaining(d)
-	for k in range(leg, legs.size() - 1):
-		var onward: PackedFloat32Array = legs[k + 1][1]
-		left += onward[legs[k][0]]
-	return left
 
 
 ## The view: the game's camera on `focus` (yaw VIEW_YAW, FollowCamera's pitch and size).
