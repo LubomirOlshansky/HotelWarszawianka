@@ -341,10 +341,10 @@ func _initialize() -> void:
 		_judge(key, found)
 	# The facade kit's sampler (facade_kit.gd `kit_sampler`, docs/design/facade-kit.md section 6):
 	# not a site, built and judged like one, so a kit part that flickers, floats or lights wrongly fails here.
-	var kit_rec := Recorder.new()
+	var kit_rec := MeshProbe.Recorder.new()
 	marks.build(kit_rec, Rect2(), "kit_sampler")
 	if kit_rec.pos.size() > 0:
-		var kit_found := _examine("kit_sampler", kit_rec)
+		var kit_found := _probe.examine("kit_sampler", kit_rec)
 		measured["kit_sampler"] = kit_found
 		_judge("kit_sampler", kit_found)
 	for key: String in BUDGET:
