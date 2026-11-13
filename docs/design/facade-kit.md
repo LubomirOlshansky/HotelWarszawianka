@@ -193,7 +193,16 @@ a triangle budget), so a kit part that flickers or hangs in the air fails CI. To
 godot --path game -- --nosave --solo=kit_sampler --solo-look=lit --at=... --shots=30 --out=DIR
 ```
 
-## 7. What comes next
+## 7. How the kit grows
+
+The steps are in `docs/architecture/extending.md` ("Extending the facade kit") and the decision
+in `docs/architecture/decisions.md`. In short: a missing part or style is added to the kit in the
+landmark's own PR, with fixed proportions, a place in the sampler and a row in this file, and the
+parity tools show that no other site moved. Changing an existing proportion or a palette value
+moves every landmark that uses it, so it is a decision with before and after shots and F's look.
+The shader gets no new look.
+
+## 8. What comes next
 
 - Landmarks move to the kit one by one, each when it is next reworked; the allowlist in
   `tools/check_facade_kit.py` is the worklist.
