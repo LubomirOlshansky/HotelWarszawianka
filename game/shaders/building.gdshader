@@ -954,15 +954,18 @@ vec3 landmark(int mode, float param, vec3 col, vec2 uv, float top, bool wall, ve
 	return col;
 }
 
-// Floodlights on the landmark: the dusk loop (2026-10-31, the user's photos) lights it gold
-// all the way up (was violet up the tower), a little brighter on the high terraces, with a
-// bright edge at the top of every wall, where the next terrace's lamps stand.
+// Floodlights on the landmark, like the real projectors (F, 2026-11-13, night photos; about
+// 124 LED fixtures on the terrace roofs): a cream warm-white, not orange, pooling low on each
+// wall and fading towards its cornice (`pool`, from the wall's top), the low wings under half
+// the tower's light (`tier`), and only a faint line at the top. Half as bright as before.
 vec3 floodlight(vec3 col, float h, float top) {
-	vec3 gold = vec3(1.0, 0.7, 0.3);
-	float shape = 0.62 + 0.5 * exp(-h / 18.0) + 0.3 * smoothstep(30.0, 140.0, h);
-	float edge = smoothstep(top - 9.0, top - 0.5, h) * 0.5;
+	vec3 gold = vec3(1.0, 0.82, 0.56);
+	float pool = smoothstep(0.0, 34.0, top - h);
+	float tier = mix(0.45, 1.0, smoothstep(22.0, 70.0, top));
+	float shape = (0.30 + 0.45 * pool) * tier;
+	float edge = smoothstep(top - 5.0, top - 0.5, h) * 0.12;
 	if (flood_mode == 0) {
-		return col * (gold * shape + vec3(1.0, 0.88, 0.62) * edge) * 1.3;
+		return col * (gold * shape + vec3(1.0, 0.9, 0.7) * edge);
 	}
 	// Event colours (F's photos): LED washes read as the light's own colour on the pale stone,
 	// so the sandstone's warmth is mostly taken out before tinting.
@@ -978,7 +981,7 @@ vec3 floodlight(vec3 col, float h, float top) {
 	}
 	float l = dot(col, vec3(0.3, 0.59, 0.11));
 	vec3 stone = mix(col, vec3(l), 0.75);
-	return stone * tint * (shape * 1.25 + edge) * 1.45;
+	return stone * tint * (shape * 1.25 + edge) * 2.4;
 }
 
 // The roofs lane (docs/design/roofs.md, RF1): a thin line every `period` metres along x,
