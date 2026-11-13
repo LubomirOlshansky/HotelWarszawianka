@@ -1260,6 +1260,9 @@ for s in $want; do
 		save) check save '^check_save:' --script res://tools/check_save.gd ;;
 		errortrap) check errortrap '^check_error_trap:' --script res://tools/check_error_trap.gd ;;
 		boot) check boot '^check_boot:' --script res://tools/check_boot.gd ;;
+		# TD-20: the pause's one owner (pause_reasons.gd): the reasons on a real tree, and no other
+		# script writes the tree's pause (no map; CI too).
+		pause) check pause '^check_pause:' --script res://tools/check_pause.gd ;;
 		activity) check activity '^check_activity:' --script res://tools/check_activity.gd ;;
 		districts) check districts '^check_districts:' --script res://tools/check_districts.gd ;;
 		syrenki) check syrenki '^syrenki:' --script res://tools/check_syrenki.gd ;;
@@ -1375,6 +1378,9 @@ for s in $want; do
 		# ENGINE_TOKENS: the engine's exit line for the index's threaded load (see `problems`); 19 is
 		# its count for the index's 10 files, a count to change only with them.
 		boot-run) skip_prebuilt "run: boot" || ENGINE_TOKENS=19 game boot 8000 "^boot: the boot scene's title stayed up" --boot --prebuilt --title-choice=continue ;;
+		# TD-20: the real game on the prebuilt city, through the real input: the garage card with the
+		# full map over it stays paused when the map closes; each card alone pauses and lets go.
+		pause-run) skip_prebuilt pause-run || check pause-run '^check_pause:' --fixed-fps 60 --script res://tools/check_pause.gd -- --nosave --notitle --prebuilt --garage ;;
 		classic) game classic 600 "" --controls=classic ;;
 		ios) run_ios ;;
 	esac
