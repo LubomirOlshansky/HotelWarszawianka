@@ -69,6 +69,9 @@ const SITUATIONS := {
 	"heavy": {"traffic": 3},
 	"blocked": {"traffic": -1, "wall": true},
 	"crash": {"traffic": -1, "wreck": true},
+	# Step 5b: clear roads and one car parked on the hop course's one-way block of Żelazna
+	# (HOP_BLOCK), which a wrong-way hop runs down: the street is not empty.
+	"parked": {"traffic": -1, "hop_car": true},
 }
 const PLAYERS := ["none", "stopped", "slow", "average", "fast", "follower"]
 ## The prototype race (F 2026-11-09: Powiśle to Plac Trzech Krzyży) from two starts: where F
@@ -82,12 +85,20 @@ const STARTS := {
 	"spawn": Vector2(-911.6, 278.6),
 	"poniatowski": Vector2(1000.0, -153.0),
 	"yard": Vector2(-2314.0, -60.0),
+	"hop": Vector2(-2611.7, -895.8),
 }
 ## Racer AI step 5: a start in Wola from which the way to Rondo ONZ is 670 m shorter through a
 ## yard (the race link from the junction at (-2461, -21), 3.5 m wide: Halina dares it, Słoik knows
 ## none; by road 1726 m).
 const YARD_START := "yard"
 const YARD_FINISH := "Rondo ONZ"
+## Racer AI step 5b: a start on Żelazna in Wola from which the way to Rondo ONZ is quicker the
+## wrong way down one block of one-way Żelazna (a wrong-way hop of 112 m: Seba and Mike dare it,
+## nobody else does).
+const HOP_START := "hop"
+const HOP_FINISH := "Rondo ONZ"
+## The middle of that block (the "parked" situation's car stands on the hop nearest to it).
+const HOP_BLOCK := Vector2(-2614.0, -831.0)
 ## A finish whose circle another road runs through (race_planner.gd `ends`): the Palace, whose
 ## junction is on one carriageway of Emilii Plater while the other passes 14 m from it, 600 m
 ## short of it by road. The guided first race went there from Marszałkowska in the whole game
@@ -233,6 +244,11 @@ class Probe:
 	var overlaps := 0
 	## Of them, the cars that came the other way (a pass over the centre line that met one).
 	var head_ons := 0
+	## Step 5b, while it drives a wrong-way hop: the town's cars on the street it hops or on a
+	## curve into it (each once: the street is held for it, so none), and the cars it went through.
+	var hop_met := 0
+	var hop_overlaps := 0
+	var _hop_seen := {}
 	var touches := 0
 	var overlap_log: Array = []
 	var slips := 0
@@ -374,6 +390,9 @@ class Probe:
 		var here := Vector2(d.pos.x, d.pos.z)
 		var road_top: float = minf(PLAYER_TOP, Traffic.RACE_CLASS_TOP[graph.e_class[d.edge]])
 		_free = true
+		var hop := -1
+		if d.hop_go and d.in_conn:
+			hop = RaceCuts.hop(graph.e_b[d.edge], graph.e_a[d.next_edge])
 		var road: Vector2 = fwd if d.in_conn else graph.direction(d.edge, clampf(d.s, 0.0, graph.e_len[d.edge]))
 		var lead = null
 		var lead_gap := INF
@@ -382,6 +401,9 @@ class Probe:
 		for o in traffic.drivers():
 			if o == d or (o.ghost and not player_live) or o.clip < 1.0:
 				continue
+			if hop >= 0 and not o.ghost and not _hop_seen.has(o) and ((o.edge == hop and not o.in_conn) or (o.in_conn and o.next_edge == hop)):
+				_hop_seen[o] = true
+				hop_met += 1
 			var rel := Vector2(o.pos.x - here.x, o.pos.z - here.y)
 			var d2 := rel.length_squared()
 			if d2 > 3600.0 or absf(o.pos.y - d.pos.y) > 2.5:
@@ -399,6 +421,8 @@ class Probe:
 					inside = true
 					if was < GHOST_MIN:
 						overlaps += 1
+						if hop >= 0:
+							hop_overlaps += 1
 						if not o.parked and fwd.dot(Vector2(-sin(o.yaw), -cos(o.yaw))) < -0.5:
 							head_ons += 1
 						if overlap_log.size() < 6:
@@ -675,7 +699,7 @@ func roads_to(node: int) -> PackedFloat32Array:
 func links_of(name: String) -> Array:
 	if not _links.has(name):
 		var stats := Ladder.racer(Ladder.rung_of(name))
-		_links[name] = cuts.links(float(stats["cuts"]), hash(name), float(stats.get("yards", 0.0)), float(stats.get("narrow", 99.0)))
+		_links[name] = cuts.links(float(stats["cuts"]), hash(name), float(stats.get("yards", 0.0)), float(stats.get("narrow", 99.0)), float(stats.get("hops", 0.0)))
 	return _links[name]
 
 
@@ -885,6 +909,18 @@ func race(spec: Dictionary) -> Dictionary:
 			_park_wall(traffic, int(wall["edge"]), float(wall["s"]))
 			out["wall"] = {"street": wall["street"], "base_m": snappedf(float(wall["base_m"]), 1.0), "alt_m": snappedf(float(wall["alt_m"]), 1.0),
 					"turn_m": snappedf(float(wall["turn_m"]), 1.0)}
+	if sit.has("hop_car"):
+		var hop := -1
+		var best := 60.0
+		for h: int in RaceCuts._against.values():
+			var gap := graph.point_at(h, graph.e_len[h] * 0.5, 0.0).distance_to(HOP_BLOCK)
+			if gap < best:
+				best = gap
+				hop = h
+		if hop < 0:
+			error = "%s: no wrong-way hop at HOP_BLOCK" % out["id"]
+		else:
+			_park(traffic, hop, graph.e_len[hop] * 0.5, 0, 0.0)
 	var knock_left := -1.0
 	if sit.has("wreck"):
 		var wreck: Dictionary = spec.get("wreck", {})
@@ -905,6 +941,12 @@ func race(spec: Dictionary) -> Dictionary:
 	traffic.turned_back.connect(func(who) -> void:
 		if who == d and d.plan != null:
 			traffic.reroute(d, graph.distances_to(d.finish, INF, true, planner.links(d.finish, d.plan.ends, links_of(name)[1], d.plan.shut), d.plan.shut)))
+	# A wrong-way hop it refused (step 5b, rivals.gd `_on_hop_refused`): the metres without that hop.
+	traffic.hop_refused.connect(func(who) -> void:
+		if who == d and d.plan != null:
+			var st := Ladder.racer(rung)
+			var less: Array = cuts.links(float(st["cuts"]), hash(name), float(st.get("yards", 0.0)), float(st.get("narrow", 99.0)), float(st.get("hops", 0.0)), d.plan.no_hop)
+			traffic.reroute(d, graph.distances_to(d.finish, INF, true, planner.links(d.finish, d.plan.ends, less[1], d.plan.shut), d.plan.shut)))
 	var probe := Probe.new()
 	probe.graph = graph
 	probe.d = d
@@ -1073,6 +1115,10 @@ func race(spec: Dictionary) -> Dictionary:
 	out["seen_share"] = snappedf(float(probe.seen) / n, 0.01)
 	out["cuts"] = d.cuts_taken
 	out["links"] = d.links_taken
+	out["hops"] = d.hops_taken
+	out["hops_refused"] = d.hops_refused
+	out["hop_met"] = probe.hop_met
+	out["hop_overlaps"] = probe.hop_overlaps
 	out["mistakes"] = d.mistakes
 	out["wrong_turns"] = d.wrong_turns
 	out["blocks"] = d.blocks
@@ -1434,8 +1480,9 @@ static func judge(results: Array) -> Array:
 	var ladder := {}
 	for r: Dictionary in by_id.values():
 		if r["tuning"] == "ladder" and r["situation"] == "clear" and r["player"] == "none" and not r.has("via") and r["finished"] and int(r["seed"]) == 0 \
-				and r["start"] != YARD_START:
-			# (The yard course tests who knows the yard, not pace: its own mark below.)
+				and r["start"] != YARD_START and r["start"] != HOP_START:
+			# (The yard course tests who knows the yard, not pace, and the hop course who dares
+			# the wrong way: their own marks below.)
 			if not ladder.has(r["start"]):
 				ladder[r["start"]] = {}
 			ladder[r["start"]][Ladder.rung_of(String(r["rival"]))] = r
@@ -1485,6 +1532,58 @@ static func judge(results: Array) -> Array:
 	yard_names.sort()
 	out.append(_mark("yard_links", "Yard links", yard_ok if yard_n > 0 else null,
 			"race links taken on the yard course, clear roads (all yards known: at least one; none known: none): " + ", ".join(yard_names), worst))
+
+	# The wrong-way hops (racer AI step 5b). On the hop course without the town's cars: on clear
+	# roads a rival who dares takes a hop and one who does not takes none, and with a car parked
+	# on the street the one who dares looks, refuses and still finishes. And in the races in
+	# traffic (its own mark: it counts the town's cars) no car of the town's is on a street
+	# while a racer hops it, or driven through there, and nobody hops who does not dare.
+	var hop_n := 0
+	var hop_ok := true
+	var hop_names := PackedStringArray()
+	var hop_races := 0
+	var hop_safe := true
+	var hop_taken := 0
+	var hop_refused := 0
+	var hop_met := 0
+	var hop_hit := 0
+	var hop_worst := ""
+	worst = ""
+	for r: Dictionary in by_id.values():
+		var dares: bool = float(Ladder.racer(Ladder.rung_of(String(r["rival"]))).get("hops", 0.0)) >= 1.0 or r["tuning"] == "final"
+		if _in_traffic(r):
+			hop_races += 1
+			hop_taken += int(r.get("hops", 0))
+			hop_refused += int(r.get("hops_refused", 0))
+			hop_met += int(r.get("hop_met", 0))
+			hop_hit += int(r.get("hop_overlaps", 0))
+			if int(r.get("hop_met", 0)) + int(r.get("hop_overlaps", 0)) > 0 or (int(r.get("hops", 0)) > 0 and not dares):
+				hop_safe = false
+				if hop_worst == "":
+					hop_worst = r["id"]
+			continue
+		if r["start"] != HOP_START or r["player"] != "none" or r.has("via"):
+			continue
+		if r["situation"] == "parked":
+			hop_n += 1
+			hop_names.append("%s with a car parked there %d, refused %d (%.1f s)" % [r["rival"], int(r.get("hops", 0)), int(r.get("hops_refused", 0)), _run(r)])
+			if not r["finished"] or int(r.get("hops", 0)) > 0 or (int(r.get("hops_refused", 0)) > 0) != dares:
+				hop_ok = false
+				if worst == "":
+					worst = r["id"]
+		elif r["situation"] == "clear":
+			hop_n += 1
+			hop_names.append("%s %d (%.1f s)" % [r["rival"], int(r.get("hops", 0)), _run(r)])
+			if not r["finished"] or (int(r.get("hops", 0)) > 0) != dares or int(r.get("hops_refused", 0)) > 0:
+				hop_ok = false
+				if worst == "":
+					worst = r["id"]
+	hop_names.sort()
+	out.append(_mark("wrong_way", "Wrong-way hops", hop_ok if hop_n > 0 else null,
+			"hops taken on the hop course without the town's cars (who dares: at least one on clear roads, none and a refusal with a car parked on the street; the others: none): " + ", ".join(hop_names), worst))
+	out.append(_mark("wrong_way_traffic", "Wrong-way hops in traffic", hop_safe if hop_races > 0 and hop_taken + hop_refused > 0 else null,
+			"in %d races in traffic %d hops taken and %d refused (the street was not empty), %d of the town's cars met on a hopped street, %d driven through there" % [
+			hop_races, hop_taken, hop_refused, hop_met, hop_hit], hop_worst, true))
 
 	# The same race twice.
 	var same := 0
