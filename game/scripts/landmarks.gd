@@ -11723,10 +11723,10 @@ func _pwt_tower(r: float, g: float, d: float, club: bool) -> void:
 		if nv < 0.0 or nu != 0.0:
 			# The arched portals with their iron lattice, on the walk and through the tower.
 			_arch_panel(face, along, out, minf(1.0, r - 0.9), d, d + 3.3, PT_DARK, 0.04, M_STONE)
-			_arch_panel(face, along, out, minf(1.0, r - 0.9) - 0.12, d, d + 3.3, Color("#55525a"), 0.06, M_STONE)
-	# Two iron bracket lanterns on the walk-side corners.
+			_arch_panel(face + out * 0.01, along, out, minf(1.0, r - 0.9) - 0.12, d + 0.03, d + 3.25, Color("#55525a"), 0.06, M_STONE)
+	# Two iron lanterns on the walk face, either side of the portal, set against the wall.
 	for cu: float in [-1.0, 1.0]:
-		var lamp := _w(cu * (r + 0.5), -r - 0.3)
+		var lamp := _w(cu * (r - 0.5), -r - 0.15)
 		_prism(_circle(lamp, 0.2, 4), d + 4.3, d + 4.9, Color("#ffd27a"), Color("#1e1e22"), M_LAMP, M_STONE)
 	if club:
 		# The club in the tower: its pink sign over the walk's portal.
@@ -11809,6 +11809,7 @@ func _pwt_kiosk() -> void:
 		_arch_panel(_w(0.0, nv * r), _a, out, 0.55, g + 0.4, g + 2.4, PT_DARK, 0.04, M_STONE)
 	_lbox(0.0, 0.0, r - 0.3, r - 0.3, g + 3.75, g + 4.1, PT_ROOF, M_STONE)
 	var ball := _w(0.0, 0.0)
+	_lbox(0.0, 0.0, 0.1, 0.1, g + 4.1, g + 5.1, PT_SHADE, M_STONE)   # the ball's stem
 	_prism(_circle(ball, 0.2, 4), g + 5.1, g + 5.4, PT_CREAM, PT_CREAM, M_STONE, M_STONE)
 	_collide(_rect(0.0, 0.0, r + 0.1, r + 0.1))
 
@@ -20956,8 +20957,8 @@ func _pow_portal() -> void:
 	_lbox(mid, 0.65, half + 0.05, 0.65, band - 0.35, band, POW_GREY, M_STONE)
 	# The blue station boards under the block, one over each mouth.
 	for u: float in [(lo + POW_MOUTH_PIER.x) * 0.5, (POW_MOUTH_PIER.y + hi) * 0.5]:
-		_lbox(u, 1.3, 1.4, 0.05, band - 1.1, band - 0.45, POW_SIGN, M_STONE)
-		_lbox(u, 1.36, 1.2, 0.02, band - 0.9, band - 0.65, POW_WHITE, M_STONE)
+		_lbox(u, 1.25, 1.4, 0.05, band - 0.7, band, POW_SIGN, M_STONE)
+		_lbox(u, 1.31, 1.2, 0.02, band - 0.55, band - 0.2, POW_WHITE, M_STONE)
 	# The pier between the mouths, its doorway at the stair's head.
 	var pm := (POW_MOUTH_PIER.x + POW_MOUTH_PIER.y) * 0.5
 	var ph := (POW_MOUTH_PIER.y - POW_MOUTH_PIER.x) * 0.5

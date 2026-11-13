@@ -217,6 +217,7 @@ const BUDGET := {
 	"pomnik_wschod": 1280,
 	"ochota": 1420,
 	"powisle": 6800,
+	"powisle_towers": 1900,   # the viaduct's Powiśle gate towers, arcade, wing and kiosk (2026-11-13, 1608)
 	"barka_wieczor": 1820,
 	"barka_biala": 1400,
 	"barka_marina": 2240,
