@@ -134,6 +134,9 @@ var hud: CanvasLayer
 var map: Node3D
 var car: CharacterBody3D
 var jobs: Node
+## () -> bool: one of the side jobs is on (main.gd: the director's `job_on`: a kebab, the słoiki,
+## a ride, the round-up, a trend job). jobs.gd answered for all of them before it joined the kit.
+var job_on: Callable = func() -> bool: return false
 var rivals: Node
 var missions: Node
 var police: Node
@@ -444,7 +447,7 @@ func facts() -> Dictionary:
 			or (missions != null and (missions.has_target() or int(missions.state) in [Missions.State.OFFER, Missions.State.RESULT])) \
 			or (police != null and int(police.phase) != 0) or (garage != null and garage.is_open()) or _end_up \
 			or bool(side_busy.call())
-	var busy: bool = other or (jobs != null and jobs.busy())
+	var busy: bool = other or (jobs != null and bool(job_on.call()))
 	# A Podwózka ride under way (to the pin, or with the passenger) and nothing else on: the one job
 	# long enough to keep a beat past its window (`decide`, POWISLE_LATEST).
 	var ride: Variant = jobs.get("rides") if jobs != null else null
@@ -693,7 +696,7 @@ func _script(f: Dictionary) -> void:
 		push_error("first10: the car's position is not a number at %.1f s (last seen at %s; missions %d, police chasing %s, rivals %d, jobs %d, beats %s)"
 				% [t, _last_pos, int(missions.state) if missions != null else -1,
 				police.chasing() if police != null else false, int(rivals.state) if rivals != null else -1,
-				int(jobs.state) if jobs != null else -1, fired.keys()])
+				int(jobs.stage) if jobs != null else -1, fired.keys()])
 		get_tree().quit(1)
 		return
 	if car != null:
@@ -701,12 +704,16 @@ func _script(f: Dictionary) -> void:
 	if hud != null and hud.finger_shown() and t > FINGER_IDLE + 3.0 \
 			and not (rivals != null and rivals.has_method("first_nudging") and rivals.first_nudging()):
 		hud.ghost_finger(false)
-	var card := (jobs != null and int(jobs.state) == 3) or (rivals != null and int(rivals.state) == 5) \
+	var card := (jobs != null and int(jobs.stage) == 3) or (rivals != null and int(rivals.state) == 5) \
 			or (missions != null and int(missions.state) == Missions.State.RESULT)
 	_card_t = _card_t + TICK if card else 0.0
 	if _card_t > 3.0:
 		_card_t = 0.0
 		hud.card_pressed.emit(1)  # OK / FREE ROAM (a rescue's index 1 is FREE ROAM)
+		# A job's result card is its own (the activity kit): its second button (NASTĘPNE) where it
+		# has one, else its first, as index 1 did when jobs.gd listened to every card.
+		if jobs != null and int(jobs.stage) == 3 and not jobs.secondary():
+			jobs.primary()
 	if rivals != null and rivals.first_waiting() and int(rivals.state) == 1:
 		rivals.flash()
 	if missions != null and int(missions.state) == Missions.State.RINGING and not f["rescued"]:

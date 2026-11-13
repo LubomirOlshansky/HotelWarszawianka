@@ -1,0 +1,105 @@
+# slug<TAB>place cell exactly as in docs/CITY_INVENTORY.md Part 1, in inventory order.
+# Names only (no photos), so it is committed. Slug = site key in game/scripts/landmarks.gd = spec file name in
+# docs/landmarks/specs/. A row with several places gets the slug of the first one; rows left out show `-` in the
+# store's INDEX.md. Add a line when a place gets a slug. tools/refs_store.py warns about lines that match no row.
+palace	Pałac Kultury i Nauki
+rotunda	Rotunda (OSM: Rotunda PKO)
+dtc	Domy Towarowe Centrum: Junior, Sawa, Wars
+msn	Muzeum Sztuki Nowoczesnej
+zlota44	Złota 44
+spire	Warsaw Spire (with Spire B, Spire C and the fountain plaza)
+varso	Varso Tower (with Varso I, Varso II)
+tarasy	Złote Tarasy (with Lumen, Skylight)
+centralna	Warszawa Centralna
+zamek	Zamek Królewski (OSM: Wieża Zegarowa)
+zygmunt	Kolumna Zygmunta
+rynek	Rynek Starego Miasta and its Syrenka
+stadium	Stadion Narodowy
+poniatowski	Most Poniatowskiego (towers and deck)
+kopernik	Centrum Nauki Kopernik and Planetarium (OSM: Planetarium Niebo Kopernika)
+buw	Biblioteka Uniwersytecka (BUW) and its roof garden
+teatr	Teatr Wielki and Teatr Narodowy
+plac_pilsudskiego	Grób Nieznanego Żołnierza and Plac Piłsudskiego
+polin	Muzeum Historii Żydów Polskich Polin and Pomnik Bohaterów Getta
+mpw	Muzeum Powstania Warszawskiego (OSM: Elektrownia Tramwajów Miejskich)
+pomnik_powstania	Pomnik Powstania Warszawskiego
+barbakan	Barbakan and the city walls (OSM: Baszta Prochowa)
+archikatedra	Archikatedra św. Jana
+anna	Kościół św. Anny
+europejski	Hotel Bristol and Hotel Europejski
+prezydencki	Pałac Prezydencki
+hotel_warszawa	Hotel Warszawa (the 1934 Prudential)
+cedet	Cedet (Dom Towarowy CDT)
+syrenka_powisle	Pomnik Syreny nad Wisłą (OSM: Syrenka na Powiślu)
+staszic	Pomnik Mikołaja Kopernika and Pałac Staszica
+mickiewicz	Pomnik Adama Mickiewicza
+krzyz	Kościół Świętego Krzyża
+brama_uw	Brama Uniwersytetu Warszawskiego and Pałac Kazimierzowski
+wizytki	Kościół Wizytek, Kościół Karmelitów (OSM: Kościół Wniebowzięcia Najświętszej Maryi)
+potocki	Pałac Potockich, Kordegarda (OSM: Galeria Kordegarda), Pałac Czapskich
+aleksander	Kościół Świętego Aleksandra and Plac Trzech Krzyży
+sejm	Sejm and Senat (OSM: Sala posiedzeń Sejmu RP, Senat RP)
+ujazdowski	Zamek Ujazdowski
+zacheta	Zachęta
+trojca	Kościół Świętej Trójcy
+muzeum	Muzeum Narodowe and Muzeum Wojska Polskiego's yard
+dom_partii	Dom Partii (OSM: Centrum Bankowo-Finansowe) and Rondo de Gaulle'a's palm
+pawilony	Pawilony za Nowym Światem
+mdm	Plac Konstytucji and MDM
+zbawiciela	Kościół Najświętszego Zbawiciela and Plac Zbawiciela
+patelnia	Rondo Dmowskiego and Patelnia (Metro Centrum)
+mirowska	Hala Mirowska and Hala Gwardii
+koszyki	Hala Koszyki
+elektrownia	Elektrownia Powiśle
+norblin	Fabryka Norblina (OSM: Plater, Galwan)
+browary	Browary Warszawskie (OSM: Warzelnia, Laboratorium, Willa Schielego)
+arkadia	Westfield Arkadia (Arkadka)
+forest	Forest
+lim-podium	Centrum LIM (Marriott) and Novotel
+bankowy	Plac Bankowy's palaces: Ratusz (OSM: Urząd Miasta Stołecznego Warszawy), Mazowiecki Urząd Wojewódzki, Gmach Giełdy i Banku Polskiego, Arsenał
+slowacki	Pomnik Juliusza Słowackiego and Pomnik Stefana Starzyńskiego (OSM: Juliusz Słowacki, Stefan Starzyński)
+nike	Pomnik Bohaterów Warszawy (Nike) (OSM: Warszawska Nike)
+kilinski	Pomnik Małego Powstańca and Pomnik Jana Kilińskiego (OSM: Mały Powstaniec, Jan Kiliński)
+pilsudskiego	Pomnik Józefa Piłsudskiego, the Smolensk monuments, Pomnik Lecha Kaczyńskiego
+pomnik_wschod	Pomnik Poległym i Pomordowanym na Wschodzie (OSM: Poległym i Pomordowanym na Wschodzie)
+umschlagplatz	Umschlagplatz memorial
+srodmiescie	Warszawa Śródmieście, Ochota, Powiśle, Stadion stations
+wschodnia	Warszawa Wschodnia
+poczta	Poczta Główna
+filharmonia	Filharmonia Narodowa
+pasta	PAST-a
+krasinski	Pałac Krasińskich and Ogród Krasińskich
+vitkac	Vitkac
+jablkowscy	Dom Towarowy Braci Jabłkowskich
+sheraton	Sheraton Grand Warsaw
+teatr_polski	Teatr Polski and Teatr Powszechny
+florian	Bazylika Katedralna Świętego Michała Archanioła i Świętego Floriana Męczennika
+bazar	Bazar Różyckiego
+polonia	Hotel Polonia Palace, Radisson Blu Sobieski (Radysław Blu)
+pavilions	Plac Defilad's pavilions: Cepelia, Zodiak, Scena Relax (OSM: Pawilon Cepelii)
+barki	The river barges and the marina (Wieczorek, Biała Barka, Marinka, Kaskadka)
+bulwary	Bulwary Wiślane: Schodki, the pavilions, the containers
+miodowa	Pałac Paca, Pałac Branickich (Miodowa), Pałac Prymasowski, Pałac Blanka, Pałac Jabłonowskich
+orly	Dom pod Orłami and Skwer Linearny na Złotej
+mf	Ministerstwo Finansów
+saski	Saski Crescent, Saski Park, Senator
+ostrogski	Zamek Ostrogskich and the Chopin Institute
+piano_house	Piano House, Cube House, Hortus, Moderna, Dobra and Tamka tenements
+gigantami	Kamienica Pod Gigantami, Pałac Pod Karczochem, Kamienica Ławrynowicza and Aleje Ujazdowskie's villas (OSM: Pałacyk Rembielińskiego)
+wedel	Kamienica Wedla
+zelazna	Osiedle Za Żelazną Bramą
+kaskada	Aleja Jana Pawła II's blocks and Kaskada
+legia	Stadion Leguminy
+gbc	Gdański Business Center
+wkd_srodmiescie	Warszawa Śródmieście WKD and Warszawa Ochota WKD (the WKD commuter line's stops)
+bgk	Gmach Banku Gospodarstwa Krajowego
+mlotek	Młotek (Smolna 8, 1976, Bogusławski and Gniewiewski, 20 storeys, 66 m)
+kozia9	Kozia 9 (1974-76, Kuźmienko and Sembrat)
+karowa18a	Karowa 18a (1978, Dąbrowski, Kuźmienko, Nowak, Sembrat)
+zelazna	Osiedle Za Żelazną Bramą (1965-72, Czyż, Furman, Skopiński, Józefowicz)
+towarowa22	Towarowa 22 (superkwartał on the Dom Słowa Polskiego site)
+prosta32	Prosta 32, Prosta 28 and Łucka City (Łucka 15)
+dzielnica19	19. Dzielnica (the Kolejowa estate)
+noho	NOHO ONE building site (the old Polfa drug works)
+stacja_muzeum	Stacja Muzeum (old Warszawa Główna)
+nocny	Nocny Targ (Nocny Market)

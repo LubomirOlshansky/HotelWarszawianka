@@ -3,6 +3,13 @@
 Small problems that agents reported or that showed up in screenshots. They are fixed in the
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
+## Fill the shared photo store (2026-11-13, building-pipeline-review item 3)
+
+`tools/refs_store.py` and the store `/mnt/project-files/refs/` exist; the photos are not all in yet.
+- [ ] A thread with access to the Mac copies the Mac's `refs/` and F's photo folders (`warsaw-needed-photos`, `top-50`, `pkin-surroundings`, ...) into the store, one folder per slug (or lists them in `ALIASES.tsv`), then runs `index`.
+- [ ] A Mac gather run works down `python3 -I tools/refs_store.py gaps` (Commons and the orthophoto), then `push`.
+- [ ] 59 inventory rows still have no slug in `tools/refs_slugs.tsv` (the index shows `-`): add a line when a place gets a spec or a site key.
+
 
 ## Rooftop run: drive a photographer between the roof clubs (F, 2026-11-13: "add some quest to backlog to transport photographer between the rooftop clubs like pevel27, the view and the roof")
 
@@ -1073,6 +1080,9 @@ Left:
 - Podwózka story ride played by Autopilot (accept, the "!" pickup, boarding, story lines, the question card, +½ star): no bug; the door and the result card still unplayed (the 2 km ride outlasts one Mac run).
 
 ## Roads true to life: lane-level faults (F, 2026-11-13; docs/design/roads-true-to-life.md)
+
+**Parked by F on 2026-11-13** after the checker (RT-1): the rest waits as tech debt TD-23
+(docs/architecture/tech-debt.md). The `roadtruth` ratchet keeps the counts from growing meanwhile.
 
 Research only so far. The paint and kerbs at way joins are checked (`smooth`, `fixes`), the lane
 level is not: a first measurement of the baked map found 378 lane count changes with no side road,
@@ -3025,6 +3035,10 @@ real ones added to `brand_denylist.json`). One PR each:
       inside the walls and the east half looked open. Now `roof` false and `cap` 27.4 (LORETKA's deck
       sits on it), and `_piure_strips` puts a beige strip (M_LAMP) beside each window on the two
       long fronts, alternating sides by floor, from F's photos, 2026-11-12.
+- [x] LORETKA's terrace crowd on the prebuilt city (audit, 2026-11-13: 260 crowd sites runtime, 259
+      prebuilt): `loretka_plan` took the hotel's height from the building parts, which the prebuilt
+      index (map/index.res) does not carry, so the plan came back empty. It now falls back to
+      `LOR_HEIGHT` 27.4 (the block's `cap`); `check_crowds` checks the plan without the parts.
 - [ ] Other street blocks may borrow a too-low LoD2 roof the same way (2026-11-12 scan: the block's
       `top` against the survey roof inside its outline; gaps over 8 m at 118254728, 961448757,
       947222657, 853013401, 152199063, 238560043, 30302026; many 3-6 m gaps are just parapets).

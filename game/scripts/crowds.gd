@@ -109,6 +109,11 @@ const DECKS := {
 	# The Forest's roof terrace (F, 2026-11-01) on its 27.4 m wing, landmarks.gd `_forest_terrace`;
 	# open 11-23 (*guess*), people inside the glass balustrade and the planters.
 	"forest_terrace": {"at": Vector2(-2947.0, -2407.0), "max": 14, "open": 11.0, "close": 23.0, "in": 2.6, "top": 27.4},
+	# The University Library's lookout (F's photos, 2026-11-13): people at the railing on the top
+	# of the drum by the round east corner, landmarks.gd `_buw_drums` (18 m: the 15 m deck and the
+	# drum's 3 m over it); the roof garden's hours, 8-20 (*guess*).
+	"buw_lookout": {"at": Vector2(153.34, -955.89), "max": 6, "open": 8.0, "close": 20.0,
+			"half": 0.85, "axis": Vector2(0.745, -0.667), "up": 18.05, "gap": 0.85},
 }
 const ROOF_MAX := 16
 ## F's ask (2026-11-02): the office crowd round Rondo Daszyńskiego (the Spire, the HUB and Plac

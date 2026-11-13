@@ -13,10 +13,14 @@ GUGiK LoD2 heights and what the model remembered; nobody put a photo beside the 
 ## 1. Reference photos (before any spec)
 
 - **Any photo from the internet (F, 2026-11-08)**: when a building lacks photos, download them yourself from anywhere (Commons, Mapillary, Panoramax, news, blogs, company or architect sites, any search result) without checking the licence: they are modelling references only, kept in the gitignored `refs/`, never shipped in the repo or the game. Don't wait for the user for photos.
-- **Where**: `refs/<slug>/` at the repo root, gitignored (other people's photos, whatever their licence,
-  never go into the repo). `refs/<slug>/SOURCES.md` lists each file: Commons page URL,
-  author, licence, and one line on what it shows (angle, which face). `refs/INDEX.md` lists
-  the buildings. The slug is the site key in `landmarks.gd` when there is one.
+- **Where**: the shared store `/mnt/project-files/refs/<slug>/` is the home (a network mount all cloud
+  threads see; the Mac does not mount it). `refs/<slug>/` at the repo root, gitignored, is the working
+  copy (other people's photos, whatever their licence, never go into the repo). Before writing a spec
+  `python3 -I tools/refs_store.py pull <slug>`; right after gathering `push <slug>` (it re-runs the index).
+  A cloud thread reads the store's `INDEX.md` first (ranked like the inventory; `gaps` lists what is
+  missing, `where TEXT` finds a slug) and asks for the Mac only for what the store lacks. `SOURCES.md` lists each file: Commons
+  page URL, author, licence, and one line on what it shows (angle, which face). The slug is the site key in
+  `landmarks.gd` when there is one; `tools/refs_slugs.tsv` ties slugs to inventory rows.
 - **What**: 3-4 photos a building: one street-level front, one elevated or aerial view that
   shows the whole silhouette and roof (the game is seen from above), one detail (base,
   entrance, crown). Daylight; a night photo only for what lights up.
