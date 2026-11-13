@@ -70,6 +70,7 @@ heights              quick
 heli                 local     slow
 heliview             quick
 hud                  quick
+jobplay              quick
 jobs2                quick
 juice                quick
 kebab                local     slow

@@ -11,7 +11,11 @@ extends RefCounted
 ##     test given to `add` (the EV tow's: it may start from the air). It is each joined
 ##     activity's `free_now`;
 ##   - `targeted()`: the one that sends the player somewhere now (the arrow, the stop assist);
-##   - `grounded()`: why the helicopter is refused.
+##   - `grounded()`: why the helicopter is refused;
+##   - `job_on()`: one of the side jobs is on (`is_job`: a kebab, the słoiki, a ride, the round-up,
+##     a trend job), which the rest of the game asked jobs.gd by name before it joined;
+##   - `primary()`, `secondary()`: the M and K keys (the pad's A and X) go to the activity whose
+##     card takes them.
 ## At most one activity of the kit is on at a time.
 ##
 ## Not here yet (they come as more activities join, see tech-debt TD-1): a priority table for
@@ -75,3 +79,29 @@ func targeted() -> Activity:
 func grounded() -> Array:
 	var a := current()
 	return [] if a == null else a.grounded()
+
+
+## One of the side jobs is on (an activity with `is_job`: from its order or request taken to the
+## close of its result card). A job's request card that leaves the player free is not "on".
+func job_on() -> bool:
+	for a in list:
+		if a.is_job and a.busy():
+			return true
+	return false
+
+
+## The M key (the pad's A): the first activity, in the order they joined, that takes it (a card
+## of its own is up). False when none does (main.gd goes on to the rescue line's card).
+func primary() -> bool:
+	for a in list:
+		if a.primary():
+			return true
+	return false
+
+
+## The K key (the pad's X), as `primary`.
+func secondary() -> bool:
+	for a in list:
+		if a.secondary():
+			return true
+	return false

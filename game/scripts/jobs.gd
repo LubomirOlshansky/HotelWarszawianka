@@ -1,4 +1,4 @@
-extends Node
+extends "res://scripts/activity.gd"
 ## Side jobs (v0.65): kebab delivery and the słoiki run.
 ##
 ## Kebab: stands at real places (the mapped kebab places and a few busy corners,
@@ -16,14 +16,21 @@ extends Node
 ##
 ## One activity at a time: a job starts only when no rescue or race runs (and not
 ## from the helicopter); while it runs, rescue calls and race challenges wait.
+##
+## An activity of the kit (activity.gd, tech-debt TD-1): a pull-in starts it, with no call; the
+## order card, the drive to the door and the result card are the stages of the kit's RUN. Its
+## cards sit at the bottom of the screen (`cards_low`) with the drive going on under them
+## (`cards_hold` off): the order goes by itself when the car drives off. The door is the kit's
+## target only while delivering; the pointer to the next stand (`pointing`) is no run, and main.gd
+## shows it apart. The courier race (courier_race.gd) is its child and rides along a kebab order.
+## The director (activities.gd) counts it among the side jobs (`is_job`); the stands, the stations
+## and the address book stay here, and the other jobs, the police and the first minutes' guide
+## still ask for them by name.
 
 ## Loop 2b: time spent in this script's per-frame work since the bench last read it (µs).
 var spent_usec := 0
 
-const Access := preload("res://scripts/access.gd")
 const MapIcons := preload("res://scripts/map_icons.gd")
-const Beacon := preload("res://scripts/beacon.gd")
-const StopAssist := preload("res://scripts/stop_assist.gd")
 const Models := preload("res://scripts/models.gd")
 const Props := preload("res://scripts/props.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
@@ -85,27 +92,25 @@ const CENTRALNY_DEST := {"dest": "powisle", "dest_pl": "Powiśle", "dest_en": "P
 		"tag": "centralny"}
 
 enum Job { NONE, KEBAB, SLOIK }
-enum State { IDLE, ORDER, DELIVER, RESULT }
+## The run's stage (the kit's `phase` is RUN then; NONE outside a run). The numbers are the old
+## `State`'s: first10.gd's replay reads RESULT as 3.
+enum Stage { NONE, ORDER, DELIVER, RESULT }
 
-var hud: CanvasLayer
 var bubbles: Control
-var dialogue: Node
-var wallet: Node
 var missions: Node
 var rivals: Node
 var graph: LaneGraph
 var traffic: Node3D
-var map: Node3D
-var car: CharacterBody3D
 var tod: Node
-var state := State.IDLE
+## What main.gd's bake gives (`setup` reads it once): the kebab places, the stations and the
+## address doors ("pois"), the map's origin, the footways the courier rides ("paths").
+var map_data := {}
+var stage := Stage.NONE
 var job := Job.NONE
 ## How long the last update took, for --bench.
 var last_usec := 0
 ## Set by the game each frame.
 var flying := false
-## Testing (--autopilot): drive the job's route on a ghost driver.
-var autopilot := false
 ## Testing: the kebab's starting heat (--heat=), jars already broken (--sloik=K).
 var start_heat := 1.0
 var start_broken := 0
@@ -121,9 +126,9 @@ var heat_frozen := false
 ## Loop jobs-2 (parodies.md 4.3): the courier race (courier_race.gd, a child: it rides along a
 ## kebab order; it steps in this script's _process, so the bench's "jobs+eggs" line holds it).
 var courier: CourierRace
-## The Leżak round-up (roundup_job.gd): an activity of the kit (activity.gd; main.gd makes it and
-## the director runs it) that jobs.gd still answers for: busy, the target, the keys, the depots'
-## squares.
+## The Leżak round-up (roundup_job.gd): an activity of the kit that answers for its own target and
+## keys; jobs.gd still holds it off by name (`round_busy`, `_free`) and draws its depots' squares
+## with the stands' (`_show_places`).
 var roundup: Node
 
 ## Stands: {ring: Vector3, at: Vector3, yaw, heading, node, marker, cool, across; loop MW-2: xf (the
@@ -142,7 +147,6 @@ var _station: Dictionary = {}
 var _addresses: Array[Dictionary] = []
 var _order: Dictionary = {}
 var _orders := 0
-var _t := 0.0
 ## PT-13: the seconds the order card's GO last showed (-1: not counted yet).
 var _go_left := -1
 var _clock := 0.0
@@ -158,7 +162,6 @@ var _bump_wait := 0.0
 var _warn_wait := 0.0
 var _chat_t := 0.0
 var _said_order := false
-var _beacon: Node3D
 var _ghost = null
 var _slide := false
 var _stall := 0.0
@@ -192,27 +195,24 @@ var next_stand := -1
 var _delivered := false
 
 
-func setup(nodes: Dictionary, data: Dictionary, world: Node3D) -> void:
-	hud = nodes["hud"]
-	bubbles = nodes["bubbles"]
-	dialogue = nodes["dialogue"]
-	wallet = nodes["wallet"]
-	missions = nodes["missions"]
-	rivals = nodes["rivals"]
-	graph = nodes["graph"]
-	traffic = nodes["traffic"]
-	map = nodes["map"]
-	car = nodes["car"]
-	tod = nodes["tod"]
+## main.gd hands in the nodes (hud, bubbles, dialogue, wallet, missions, rivals, graph, traffic,
+## map, car, tod) and `map_data` before this.
+func setup(world: Node3D) -> void:
+	tag = "jobs"
+	colour = KEBAB_COLOUR
+	dark = Color("#2f6fb5")
+	is_job = true
+	cards_low = true
+	cards_hold = false
 	_rng.randomize()
 	_route = RouteLine.new(graph)
 	var t0 := Time.get_ticks_msec()
 	var stand_mesh := Props.kebab_stand()
 	_stand_halo = Props.halo(7.5, Color(1.0, 0.5, 0.25, 0.5))
 	_halo_mat = Props.glow_material(true)
-	var pois: Array = data.get("pois", []).duplicate()
+	var pois: Array = map_data.get("pois", []).duplicate()
 	# Zagłębie Kebabowe (docs/design/zaglebie-kebabowe.md): five shops on Al. Solidarności by Kino Femina.
-	pois.append_array(Zaglebie.extra_pois(data.get("origin", [52.234, 21.024])))
+	pois.append_array(Zaglebie.extra_pois(map_data.get("origin", [52.234, 21.024])))
 	for p in pois:
 		match String(p["k"]):
 			"kebab":
@@ -227,14 +227,13 @@ func setup(nodes: Dictionary, data: Dictionary, world: Node3D) -> void:
 		_add_station(GDANSKI, world)
 	_world = world
 	_stand_mesh = stand_mesh
-	_femina = Zaglebie.femina_at(data.get("origin", [52.234, 21.024]))
+	_femina = Zaglebie.femina_at(map_data.get("origin", [52.234, 21.024]))
 	_build_stand_tiles()
 	_name_zaglebie()
 	for s in _stands:
 		s["across"] = _district_near(Vector2(s["ring"].x, s["ring"].z)) == "praga"
-	_beacon = Beacon.new()
-	world.add_child(_beacon)
-	_beacon.setup(KEBAB_COLOUR, Color("#2f6fb5"))
+	# The kit's ring (the door's, in the kebab's colour until `_go` recolours it) and the ✕.
+	super.setup(world)
 	# Loop jobs-2: the courier race rides along the kebab orders.
 	courier = CourierRace.new()
 	courier.name = "CourierRace"
@@ -245,15 +244,11 @@ func setup(nodes: Dictionary, data: Dictionary, world: Node3D) -> void:
 	courier.map = map
 	courier.car = car
 	courier.graph = graph
-	courier.paths = data.get("paths", [])
+	courier.paths = map_data.get("paths", [])
 	courier.autopilot = autopilot
 	courier.set_process(false)
 	add_child(courier)
 	courier.setup(world)
-	hud.card_pressed.connect(_on_card)
-	hud.abort_pressed.connect(func():
-		if state == State.ORDER or state == State.DELIVER:
-			_abandon())
 	car.bumped.connect(_on_bump)
 	var where := PackedStringArray()
 	for st in _stands:
@@ -261,6 +256,7 @@ func setup(nodes: Dictionary, data: Dictionary, world: Node3D) -> void:
 	print("jobs: %d kebab stands (%s), %d addresses, stations %s in %d ms" % [_stands.size(), " ".join(where), _addresses.size(),
 			" ".join(_stations.map(func(st: Dictionary) -> String: return "%s %d,%d" % [st["name"], roundi(st["ring"].x), roundi(st["ring"].z)])) \
 			if not _stations.is_empty() else "none", Time.get_ticks_msec() - t0])
+	map_data = {}
 
 
 # --- loop MW-2: the stands' drawing, names and tags (storefronts.gd) ---------------------------
@@ -329,11 +325,11 @@ func stand_frames() -> Array:
 
 
 ## Stand i gets a name board under KEBAB (props.gd named_kebab_stand) and its vendor's tag.
-func name_stand(i: int, words: String, tag: String) -> void:
+func name_stand(i: int, words: String, line_tag: String) -> void:
 	if i < 0 or i >= _stands.size() or _stands[i]["name"] != "":
 		return
 	_stands[i]["name"] = words
-	_stands[i]["tag"] = tag
+	_stands[i]["tag"] = line_tag
 	var mi := MeshInstance3D.new()
 	mi.name = "NamedStand"
 	mi.mesh = Props.named_kebab_stand(words)
@@ -347,9 +343,9 @@ func stand_tag(i: int) -> String:
 	return String(_stands[i]["tag"]) if i >= 0 and i < _stands.size() else ""
 
 
-func tag_stand(i: int, tag: String) -> void:
+func tag_stand(i: int, line_tag: String) -> void:
 	if i >= 0 and i < _stands.size():
-		_stands[i]["tag"] = tag
+		_stands[i]["tag"] = line_tag
 
 
 # --- places ---------------------------------------------------------------------------
@@ -396,7 +392,7 @@ func _add_stand(p: Dictionary, _mesh: ArrayMesh, world: Node3D) -> void:
 	var spot: Vector2 = k["spot"]
 	var side: Vector2 = k["side"]
 	var ring2: Vector2 = k["centre"] + side * maxf(half - 2.0, 0.0)
-	var ring := Vector3(ring2.x, _road_y(ring2, k["edge"]), ring2.y)
+	var ring3 := Vector3(ring2.x, _road_y(ring2, k["edge"]), ring2.y)
 	var at := Vector3(spot.x, map.terrain_height(spot.x, spot.y), spot.y)
 	var yaw := atan2(side.x, side.y)  # the counter faces the road
 	var node := Node3D.new()
@@ -425,8 +421,8 @@ func _add_stand(p: Dictionary, _mesh: ArrayMesh, world: Node3D) -> void:
 	node.rotation.y = yaw
 	var marker := _marker(KEBAB_COLOUR, PULL_IN - 1.0)
 	world.add_child(marker)
-	marker.global_position = ring
-	_stands.append({"ring": ring, "at": at, "heading": k["heading"], "node": node, "marker": marker, "cool": false,
+	marker.global_position = ring3
+	_stands.append({"ring": ring3, "at": at, "heading": k["heading"], "node": node, "marker": marker, "cool": false,
 			"edge": k["edge"], "s": k["s"], "xf": Transform3D(Basis(Vector3.UP, yaw), at), "name": "", "tag": "",
 			"zag": String(p.get("zag", ""))})
 
@@ -440,7 +436,7 @@ func _add_station(p: Dictionary, world: Node3D) -> void:
 	var spot: Vector2 = k["spot"]
 	var side: Vector2 = k["side"]
 	var ring2: Vector2 = k["centre"] + side * maxf(half - 2.0, 0.0)
-	var ring := Vector3(ring2.x, _road_y(ring2, k["edge"]), ring2.y)
+	var ring3 := Vector3(ring2.x, _road_y(ring2, k["edge"]), ring2.y)
 	var person := MeshInstance3D.new()
 	person.mesh = Props.person(Color("#3b8f5a"), Color("#2d3442"), true)
 	person.material_override = Models.material()
@@ -450,9 +446,9 @@ func _add_station(p: Dictionary, world: Node3D) -> void:
 	person.rotation.y = atan2(side.x, side.y)
 	var marker := _marker(SLOIK_COLOUR, PULL_IN - 1.0)
 	world.add_child(marker)
-	marker.global_position = ring
+	marker.global_position = ring3
 	var dest: Dictionary = p if p.has("dest") else CENTRALNY_DEST
-	_stations.append({"ring": ring, "at": person.global_position, "heading": k["heading"], "person": person,
+	_stations.append({"ring": ring3, "at": person.global_position, "heading": k["heading"], "person": person,
 			"marker": marker, "cool": false, "edge": k["edge"], "s": k["s"], "name": String(p["name"]),
 			"dest": dest.get("dest", "powisle"), "dest_pl": dest.get("dest_pl", "Powiśle"),
 			"dest_en": dest.get("dest_en", "Powiśle"), "box": dest.get("box", []), "lo": dest.get("lo", 1000.0),
@@ -470,13 +466,13 @@ func _station_near(at: Vector2) -> bool:
 
 ## A ring on the road: "pull in here" (the stand's own sign and the minimap mark
 ## the place from afar).
-func _marker(colour: Color, radius: float) -> Node3D:
+func _marker(tint: Color, radius: float) -> Node3D:
 	var root := Node3D.new()
-	if not _ring_mats.has(colour):
+	if not _ring_mats.has(tint):
 		var m := StandardMaterial3D.new()
 		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-		m.albedo_color = colour
-		_ring_mats[colour] = m
+		m.albedo_color = tint
+		_ring_mats[tint] = m
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var n := 28
@@ -491,11 +487,11 @@ func _marker(colour: Color, radius: float) -> Node3D:
 			continue
 		for v in [o0 * radius, o1 * radius, o0 * (radius - 0.5), o1 * radius, o1 * (radius - 0.5), o0 * (radius - 0.5)]:
 			st.add_vertex(v + y)
-	var ring := MeshInstance3D.new()
-	ring.mesh = st.commit()
-	ring.material_override = _ring_mats[colour]
-	ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	root.add_child(ring)
+	var dashes := MeshInstance3D.new()
+	dashes.mesh = st.commit()
+	dashes.material_override = _ring_mats[tint]
+	dashes.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(dashes)
 	return root
 
 
@@ -524,11 +520,6 @@ func heat() -> float:
 	return _heat
 
 
-func busy() -> bool:
-	# Loop 2d-1: a Podwózka ride counts as a job for everything that waits on one.
-	return state != State.IDLE or (rides != null and rides.busy()) or (trend != null and trend.busy()) or round_busy()
-
-
 ## PT-15 (2026-11-03): a Podwózka request card is up (rides.gd OFFER, not "busy"): a rival's
 ## prompt and Halina's first-race call wait for it, so two offers never share the screen.
 func ride_offered() -> bool:
@@ -543,7 +534,7 @@ func round_busy() -> bool:
 ## Loop 2d-1: a kebab or słoiki job of this script's own is on (rides.gd asks this); loop jobs-2:
 ## or the Leżak round-up.
 func own_busy() -> bool:
-	return state != State.IDLE or round_busy()
+	return busy() or round_busy()
 
 
 ## Loop MW-4: this script's own job or the "Na czasie" one (its card included) is on: rides.gd
@@ -552,38 +543,36 @@ func side_busy() -> bool:
 	return own_busy() or (trend != null and not trend.idle())
 
 
+## The kit's target: the door, while delivering (the arrow, the metres, the minimap's dot, the
+## stop assist and the autopilot's car read it through the director).
 func has_target() -> bool:
-	if round_busy():
-		return roundup.has_target()  # loop jobs-2
-	return state == State.DELIVER or _pointing()
+	return stage == Stage.DELIVER
 
 
-## Beta values: the delivered card's NASTĘPNE points at a stand while nothing else is on.
+## Beta values: the delivered card's NASTĘPNE points at a stand while nothing else is on. The
+## pointer is no run: main.gd shows it after every activity's target, and not under the round-up.
+func pointing() -> bool:
+	return not round_busy() and _pointing()
+
+
 func _pointing() -> bool:
-	return state == State.IDLE and next_stand >= 0 and next_stand < _stands.size()
+	return idle() and next_stand >= 0 and next_stand < _stands.size()
 
 
 func target_position() -> Vector3:
-	if round_busy():
-		return roundup.target_position()
 	if _pointing():
 		return _stands[next_stand]["ring"]
 	return _order["ring"]
 
 
-## Where the car should stop now (stop_assist.gd): the door, the next stand, or the round-up's
-## depot to unload.
+## Where the car should stop now (stop_assist.gd): the door, or the next stand.
 func stop_spot() -> Vector3:
-	if round_busy():
-		return roundup.stop_spot()
-	if _pointing():
+	if pointing():
 		return _stands[next_stand]["ring"]
-	return _order["ring"] if state == State.DELIVER else Vector3.INF
+	return _order["ring"] if stage == Stage.DELIVER else Vector3.INF
 
 
 func target_colour() -> Color:
-	if round_busy():
-		return roundup.target_colour()
 	return KEBAB_COLOUR if job == Job.KEBAB or _pointing() else SLOIK_COLOUR
 
 
@@ -591,11 +580,11 @@ func target_colour() -> Color:
 func _free() -> bool:
 	if flying or missions.has_target():
 		return false
-	if others_busy.is_valid() and state == State.IDLE and bool(others_busy.call()):
+	if others_busy.is_valid() and idle() and bool(others_busy.call()):
 		return false  # story_quests.gd: a questline (boat race, rave...) is on
 	if rides != null and rides.busy():
 		return false  # loop 2d-1: one activity at a time
-	if state == State.IDLE and hud != null and hud.cards_up():
+	if idle() and hud != null and hud.cards_up():
 		return false  # no offer over a result or win card (2026-11-08)
 	if trend != null and trend.busy():
 		return false  # loop MW-4
@@ -608,25 +597,34 @@ func _process(dt: float) -> void:
 	if graph == null:
 		return
 	var t0 := Time.get_ticks_usec()
-	_t += dt
-	# Loop jobs-2: the courier race steps here (idle: a match on its state).
-	# (The round-up is an activity of the kit now: it steps itself.)
+	super._process(dt)
+	last_usec = Time.get_ticks_usec() - t0
+
+
+## Loop jobs-2: the courier race steps here, whatever the phase (idle: a match on its state).
+## (The round-up is an activity of the kit: it steps itself.)
+func _tick(dt: float) -> void:
 	if courier.state != CourierRace.State.IDLE:
 		courier.step(dt)
-	match state:
-		State.IDLE:
-			_look_for_work()
-			_route_tick(dt)
-		State.ORDER:
+
+
+## No call: a pull-in at a stand or a station starts a job (`_look_for_work`).
+func _idle_tick(dt: float) -> void:
+	_look_for_work()
+	_route_tick(dt)
+
+
+func _run_tick(dt: float) -> void:
+	match stage:
+		Stage.ORDER:
 			_order_tick()
-		State.DELIVER:
+		Stage.DELIVER:
 			_deliver_tick(dt)
 			_route_tick(dt)
-		State.RESULT:
+		Stage.RESULT:
 			if _t > RESULT_LIFE or _flat(car.global_position, _result_at) > RESULT_OFF:
 				print("jobs: the result card went by itself (%s)" % ("%.0f s" % _t if _t > RESULT_LIFE else "drove off"))
-				_release()
-	last_usec = Time.get_ticks_usec() - t0
+				finish()
 
 
 func _look_for_work() -> void:
@@ -666,7 +664,7 @@ func _look_for_work() -> void:
 ## helicopter too: the list is for planning), the Leżak depots while they are out (night).
 func offer_places() -> Array:
 	var out: Array = []
-	if state != State.IDLE or missions.has_target() or (rides != null and rides.busy()) \
+	if not idle() or missions.has_target() or (rides != null and rides.busy()) \
 			or (trend != null and trend.busy()) or round_busy() or (rivals != null and rivals.busy()):
 		return out
 	for s in _stands:
@@ -739,12 +737,11 @@ func _claim() -> void:
 	hud.hide_challenge()
 
 
-func _release() -> void:
-	state = State.IDLE
+## Back to idle (the kit took down the status line, the card and the ring): the calls ring again,
+## the newcomers stand at their stations, the test run's ghost and the route go.
+func _ended() -> void:
+	stage = Stage.NONE
 	job = Job.NONE
-	_beacon.visible = false
-	hud.hide_card()
-	hud.hide_status()
 	missions.paused = false
 	missions.close()
 	for st in _stations:
@@ -766,18 +763,18 @@ func _route_tick(dt: float) -> void:
 		_route_on = true
 
 
-## The route to `ring` on lane point (e, s), or (not `reached`, over the river) to node `finish`.
-func _route_to(e: int, s: float, ring: Vector3, reached := true, finish := -1) -> void:
-	var tail := Vector2(ring.x, ring.z)
+## The route to `ring3` on lane point (e, s), or (not `reached`, over the river) to node `last`.
+func _route_to(e: int, s: float, ring3: Vector3, reached := true, last := -1) -> void:
+	var tail := Vector2(ring3.x, ring3.z)
 	if reached and e >= 0:
 		_route.to_lane(e, s, tail)
-	elif finish >= 0:
-		_route.to_node(finish, tail)
+	elif last >= 0:
+		_route.to_node(last, tail)
 	else:
 		_route.clear()
 		return
 	_route_tick(RouteLine.REFRESH)
-	print("jobs: route on the minimap to %d,%d, %d points" % [roundi(ring.x), roundi(ring.z), _route.points.size()])
+	print("jobs: route on the minimap to %d,%d, %d points" % [roundi(ring3.x), roundi(ring3.z), _route.points.size()])
 
 
 ## The route goes; `hud_too`: off the minimap as well (unless another activity drew one since).
@@ -846,9 +843,9 @@ func _make_kebab_order(i: int, n: int, first := false) -> Dictionary:
 	if pick.is_empty():
 		return {}
 	var across: bool = (pick["d"] == "praga") != bool(s["across"])
-	var tag := "praga" if pick["d"] == "praga" else ("office" if pick["office"] else String(pick["d"]))
+	var kind := "praga" if pick["d"] == "praga" else ("office" if pick["office"] else String(pick["d"]))
 	# Across the river the customer's line says so; elsewhere any line that fits.
-	var l: Array = dialogue.line("kebab_order", tag, across)
+	var l: Array = dialogue.line("kebab_order", kind, across)
 	var customer: String = dialogue.notes(l).get("customer", CUSTOMERS[rng.randi() % CUSTOMERS.size()])
 	pick["customer"] = customer
 	pick["line"] = l
@@ -891,14 +888,14 @@ func _pick_address(e: int, s: float, from: Vector2, lo: float, hi: float, rng: R
 			continue
 		var road := graph.trip(dist, e, s, hit[0], hit[2])
 		var reached := road < INF
-		var finish: int = graph.e_b[hit[0]]
+		var last: int = graph.e_b[hit[0]]
 		if not reached:
 			# The little streets over the river join the network outside the map: drive
 			# to the connected junction nearest the door, then the last stretch.
-			finish = graph.nearest_node(a["door"])
-			if finish < 0 or dist[finish] >= INF:
+			last = graph.nearest_node(a["door"])
+			if last < 0 or dist[last] >= INF:
 				continue
-			road = (graph.e_len[e] - s) + dist[finish] + graph.node_pos[finish].distance_to(a["door"]) * 1.3
+			road = (graph.e_len[e] - s) + dist[last] + graph.node_pos[last].distance_to(a["door"]) * 1.3
 		if road < lo or road > hi:
 			continue
 		var out: Dictionary = a.duplicate()
@@ -910,7 +907,7 @@ func _pick_address(e: int, s: float, from: Vector2, lo: float, hi: float, rng: R
 		out["edge"] = hit[0]
 		out["s"] = hit[2]
 		out["reached"] = reached
-		out["finish"] = finish
+		out["finish"] = last
 		if aim <= 0.0:
 			return out
 		if best.is_empty() or absf(road - aim) < absf(float(best["road"]) - aim):
@@ -930,8 +927,8 @@ func _begin_kebab(i: int, n: int) -> void:
 	next_stand = -1
 	_route_off(true)
 	job = Job.KEBAB
-	state = State.ORDER
-	_t = 0.0
+	stage = Stage.ORDER
+	start()
 	_order = o
 	_go_left = -1
 	_said_order = false
@@ -951,28 +948,28 @@ func _begin_kebab(i: int, n: int) -> void:
 	if bool(zag.get("craft", false)):
 		# Zagłębie Kebabowe's craft kebab: the card's two buttons are the choice (not GO / NOT NOW).
 		o["craft"] = true
-		hud.show_card("ZAMÓWIENIE · ROŻEN · %d m" % roundi(o["road"]),
-				"Dla: %s.%s Rzemieślnik kroi ręcznie, z zakwasu: poczekaj %d s, a kebab pójdzie ×%s i wolniej stygnie. Albo weź zwykły.%s" % [
+		show_card(["ZAMÓWIENIE · ROŻEN · %d m" % roundi(o["road"]), "Craft kebab · %d m" % roundi(o["road"])],
+				["Dla: %s.%s Rzemieślnik kroi ręcznie, z zakwasu: poczekaj %d s, a kebab pójdzie ×%s i wolniej stygnie. Albo weź zwykły.%s" % [
 				where, extra_pl, roundi(Zaglebie.CRAFT_WAIT), ("%.1f" % Zaglebie.CRAFT_PAY).replace(".", ","), night_pl],
-				PackedStringArray(["POCZEKAM", "ZWYKŁY"]), KEBAB_COLOUR, true, "Craft kebab · %d m" % roundi(o["road"]),
 				"Hand-carved, on sourdough: wait %d s and it pays ×%.1f and cools slower. Or take a plain one.%s%s" % [
-				roundi(Zaglebie.CRAFT_WAIT), Zaglebie.CRAFT_PAY, extra, night])
+				roundi(Zaglebie.CRAFT_WAIT), Zaglebie.CRAFT_PAY, extra, night]],
+				PackedStringArray(["POCZEKAM", "ZWYKŁY"]))
 	else:
-		hud.show_card("ZAMÓWIENIE · KEBAB · %d m" % roundi(o["road"]),
-				"Dla: %s.%s Im cieplejszy dojedzie, tym większy napiwek.%s%s" % [where, extra_pl, night_pl,
+		show_card(["ZAMÓWIENIE · KEBAB · %d m" % roundi(o["road"]), "Kebab order · %d m" % roundi(o["road"])],
+				["Dla: %s.%s Im cieplejszy dojedzie, tym większy napiwek.%s%s" % [where, extra_pl, night_pl,
 				(" " + String(zag["set"]) + ": ×%s.") % ("%.2f" % Zaglebie.pay(String(zag["tag"]), false, false)).replace(".", ",")
 				if not zag.is_empty() and float(zag["pay"]) > 1.0 else ""],
-				PackedStringArray(["GO!", "NOT NOW"]), KEBAB_COLOUR, true, "Kebab order · %d m" % roundi(o["road"]),
-				"It cools on the way: the hotter, the bigger the tip.%s%s" % [extra, night])
+				"It cools on the way: the hotter, the bigger the tip.%s%s" % [extra, night]],
+				PackedStringArray(["GO!", "NOT NOW"]))
 	print("kebab order %d: stand %d -> %s (%s), %d m by road%s" % [n, i, o["name"], o["customer"], roundi(o["road"]),
 			", across the river" if o["across"] else ""])
 	# The autopilot answers the craft kebab's card: it waits for the hand-carved one (--craft=plain: no).
 	if autopilot and bool(o.get("craft", false)):
-		_on_card(1 if craft_plain else 0)
+		card_pressed(1 if craft_plain else 0)
 	# Loop jobs-2 (parodies.md 4.3): a courier waiting here may challenge (at night, 1 in 4).
 	courier.set_road(float(o["road"]))
 	courier.on_order(_stands[i]["at"], o["ring"], n, _night(), int(o["edge"]) if bool(o["reached"]) else -1, float(o["s"]), func() -> void:
-		if state == State.ORDER and job == Job.KEBAB:
+		if stage == Stage.ORDER and job == Job.KEBAB:
 			_go(), i)
 
 
@@ -1015,16 +1012,15 @@ func _count_down(left: int, craft: bool) -> void:
 
 func _go() -> void:
 	_craft_t = 0.0
-	state = State.DELIVER
-	_t = 0.0
+	stage = Stage.DELIVER
 	_clock = 0.0
-	hud.hide_card()
-	var ring: Vector3 = _order["ring"]
+	close_card()
+	var ring3: Vector3 = _order["ring"]
 	_beacon.waving = true
 	_beacon.recolour(KEBAB_COLOUR if job == Job.KEBAB else SLOIK_COLOUR)
-	_beacon.place(ring, ARRIVE - 0.5)
+	_beacon.place(ring3, ARRIVE - 0.5)
 	# Beta values: the way there on the minimap (the edge arrow alone points through the blocks).
-	_route_to(int(_order["edge"]), float(_order["s"]), ring, bool(_order["reached"]), int(_order["finish"]))
+	_route_to(int(_order["edge"]), float(_order["s"]), ring3, bool(_order["reached"]), int(_order["finish"]))
 	if job == Job.KEBAB:
 		_heat = start_heat
 		_beacon.recolour(KEBAB_COLOUR)
@@ -1038,7 +1034,7 @@ func _go() -> void:
 		(_station["person"] as Node3D).visible = false
 		_beacon.recolour(SLOIK_COLOUR)
 		# Nobody waits at the flat: the passenger rides with you.
-		_beacon.place(ring, ARRIVE - 0.5, true, false)
+		_beacon.place(ring3, ARRIVE - 0.5, true, false)
 		hud.toast("Jedź płynnie, bo słoiki się tłuką", "Drive smoothly: hard bumps, braking and fast corners break jars")
 	_slide = false
 
@@ -1073,8 +1069,8 @@ func _deliver_tick(dt: float) -> void:
 		var race: Array = courier.hint()
 		if not race.is_empty() and not flying and d > ARRIVE:
 			hint = race
-		hud.show_status("KEBAB → %s" % _order["name"], "%s %d%%" % [word, roundi(_heat * 100.0)], "%d m" % roundi(d),
-				hint[0], 0.0, KEBAB_COLOUR, courier.badge(), {"heat": _heat}, hint[1])
+		status("KEBAB → %s" % _order["name"], "%s %d%%" % [word, roundi(_heat * 100.0)], "%d m" % roundi(d),
+				hint, 0.0, KEBAB_COLOUR, courier.badge(), {"heat": _heat})
 	else:
 		_chat_t -= dt
 		if _chat_t <= 0.0 and not bubbles.is_talking(car):
@@ -1082,8 +1078,8 @@ func _deliver_tick(dt: float) -> void:
 			dialogue.say(car, _order["customer"], "passenger", "", 4.5, SLOIK_COLOUR, 2.4)
 		if _stress > 0.55 and d > ARRIVE:
 			hint = ["Spokojnie! Słoiki dzwonią", "Easy! The jars are rattling"]
-		hud.show_status("SŁOIKI → %s" % _order["name"], _clock_text(_clock), "%d m" % roundi(d),
-				hint[0], _stress, SLOIK_COLOUR, "", {"jars": [_jars, JARS], "shake": clampf(_stress, 0.0, 1.0)}, hint[1])
+		status("SŁOIKI → %s" % _order["name"], _clock_text(_clock), "%d m" % roundi(d),
+				hint, _stress, SLOIK_COLOUR, "", {"jars": [_jars, JARS], "shake": clampf(_stress, 0.0, 1.0)})
 
 
 ## Beta values (2026-11-04): the kebab's clock in words [pl, en]: how long it stays hot (the tip's
@@ -1101,17 +1097,17 @@ func heat_hint() -> Array:
 
 
 func _arrive() -> void:
-	state = State.RESULT
+	stage = Stage.RESULT
 	_delivered = true
 	_result_shown()
-	hud.hide_status()
+	hide_status()
 	_remove_ghost()
 	# The passenger's chatter stops: the last word is at the door.
 	bubbles.hush(car)
-	var ring: Vector3 = _order["ring"]
+	var ring3: Vector3 = _order["ring"]
 	# The customer (or the passenger, home at last) stands at the door.
 	_beacon.waving = false
-	_beacon.place(ring, ARRIVE - 0.5, false, true)
+	_beacon.place(ring3, ARRIVE - 0.5, false, true)
 	if job == Job.KEBAB:
 		_kebab_result()
 	else:
@@ -1119,9 +1115,9 @@ func _arrive() -> void:
 	Access.buzz(120, 0.8)
 
 
-## PT-16: the result card's clock and spot (it goes by itself, see RESULT_LIFE).
+## PT-16: where the result card came up (it goes by itself, see RESULT_LIFE; its clock is the
+## kit's `_t`, which starts again with the card).
 func _result_shown() -> void:
-	_t = 0.0
 	_result_at = car.global_position
 
 
@@ -1161,11 +1157,11 @@ func _kebab_result() -> void:
 			" · new best!" if record and best > 0.0 else (" · best %s" % _clock_text(best) if best > 0.0 else "")]
 	var times_pl := "%s, ciepło %d%%%s" % [_clock_text(_clock), roundi(_heat * 100.0),
 			" · nowy rekord!" if record and best > 0.0 else (" · rekord %s" % _clock_text(best) if best > 0.0 else "")]
-	hud.show_card("DOWIEZIONE · " + ("WCIĄŻ GORĄCY" if _heat >= 0.7 else ("CIEPŁY" if hot else "ZIMNY")),
-			"%s%s, %s: %s\n%s%s" % [quote, _order["customer"], _order["name"], times_pl, money_pl, race_pl],
-			PackedStringArray(["OK", "NASTĘPNE"]), KEBAB_COLOUR if hot else Color("#7fb8de"), true,
-			"Delivered · " + ("still hot" if _heat >= 0.7 else ("warm" if hot else "cold")),
-			"%s%s · %s%s" % [quote_en, times, money, race_en])
+	show_card(["DOWIEZIONE · " + ("WCIĄŻ GORĄCY" if _heat >= 0.7 else ("CIEPŁY" if hot else "ZIMNY")),
+			"Delivered · " + ("still hot" if _heat >= 0.7 else ("warm" if hot else "cold"))],
+			["%s%s, %s: %s\n%s%s" % [quote, _order["customer"], _order["name"], times_pl, money_pl, race_pl],
+			"%s%s · %s%s" % [quote_en, times, money, race_en]],
+			PackedStringArray(["OK", "NASTĘPNE"]), 0.0, false, KEBAB_COLOUR if hot else Color("#7fb8de"))
 	print("kebab delivered: %s in %.1f s, heat %d%%, %s, paid %d zł (wallet %d zł)" % [_order["name"], _clock,
 			roundi(_heat * 100.0), "hot" if hot else "cold", total, wallet.zl])
 
@@ -1220,19 +1216,19 @@ func _begin_sloik(n: int) -> void:
 	next_stand = -1
 	_route_off(true)
 	job = Job.SLOIK
-	state = State.ORDER
-	_t = 0.0
+	stage = Stage.ORDER
+	start()
 	_order = pick
 	_go_left = -1
 	_order["customer"] = NEWCOMERS[rng.randi() % NEWCOMERS.size()]
 	_claim()
 	var person: Node3D = _station["person"]
 	dialogue.say(person, _order["customer"], "sloik_start", _station["tag"], 4.0, SLOIK_COLOUR, 2.9)
-	hud.show_card("SŁOIKI · NIEDZIELNY WIECZÓR",
-			"%s wraca od mamy z %d słoikami. Cel: %s, %s (%d m). Dziury, hamowanie i szybkie zakręty tłuką słoiki." % [
+	show_card(["SŁOIKI · NIEDZIELNY WIECZÓR", "The słoiki run · Sunday evening"],
+			["%s wraca od mamy z %d słoikami. Cel: %s, %s (%d m). Dziury, hamowanie i szybkie zakręty tłuką słoiki." % [
 			_order["customer"], JARS, _order["name"], _station["dest_pl"], roundi(_order["road"])],
-			PackedStringArray(["GO!", "NOT NOW"]), SLOIK_COLOUR, true, "The słoiki run · Sunday evening",
-			"Back from home with %d of mum's jars, to a rented flat in %s. Bumps, braking and fast corners break jars." % [JARS, _station["dest_en"]])
+			"Back from home with %d of mum's jars, to a rented flat in %s. Bumps, braking and fast corners break jars." % [JARS, _station["dest_en"]]],
+			PackedStringArray(["GO!", "NOT NOW"]), 0.0, false, SLOIK_COLOUR)
 	print("słoiki run %d: %s to %s, %d m by road" % [n, _order["customer"], _order["name"], roundi(_order["road"])])
 
 
@@ -1245,7 +1241,7 @@ func _physics_process(dt: float) -> void:
 func _step(dt: float) -> void:
 	_bump_wait = maxf(0.0, _bump_wait - dt)
 	_warn_wait = maxf(0.0, _warn_wait - dt)
-	if job != Job.SLOIK or state != State.DELIVER or dt <= 0.0:
+	if job != Job.SLOIK or stage != Stage.DELIVER or dt <= 0.0:
 		_have_last = false
 		return
 	var v: float = car.forward_speed
@@ -1274,9 +1270,9 @@ signal jars(kind: int)
 
 
 func _on_bump(_collider: Object, speed: float) -> void:
-	if job == Job.SLOIK and state == State.DELIVER and _bump_wait <= 0.0 and _jars > 0:
+	if job == Job.SLOIK and stage == Stage.DELIVER and _bump_wait <= 0.0 and _jars > 0:
 		jars.emit(0)
-	if job != Job.SLOIK or state != State.DELIVER or _bump_wait > 0.0 or speed < BUMP_FREE:
+	if job != Job.SLOIK or stage != Stage.DELIVER or _bump_wait > 0.0 or speed < BUMP_FREE:
 		return
 	_bump_wait = 0.4
 	_stress += (speed - BUMP_FREE) / 5.0
@@ -1325,25 +1321,26 @@ func _sloik_result() -> void:
 	elif best > 0.0:
 		times += " · best with every jar %s" % _clock_text(best)
 		times_pl += " · rekord z kompletem %s" % _clock_text(best)
-	hud.show_card("DOWIEZIONE · %d/%d SŁOIKÓW" % [intact, JARS],
-			"%s%s, %s: %s\nKurs %d zł + %d × %d zł za słoiki = %d zł · w portfelu %s" % [quote, _order["customer"], _order["name"],
+	show_card(["DOWIEZIONE · %d/%d SŁOIKÓW" % [intact, JARS], "Delivered · %d/%d jars" % [intact, JARS]],
+			["%s%s, %s: %s\nKurs %d zł + %d × %d zł za słoiki = %d zł · w portfelu %s" % [quote, _order["customer"], _order["name"],
 			times_pl, SLOIK_BASE, intact, SLOIK_PER_JAR, pay, _money(wallet.zl)],
-			PackedStringArray(["OK"]), SLOIK_COLOUR if intact >= 3 else FAIL_COLOUR, true, "Delivered · %d/%d jars" % [intact, JARS],
-			"%s%s · fare %d zł + %d jars × %d zł = %d zł" % [quote_en, times, SLOIK_BASE, intact, SLOIK_PER_JAR, pay])
+			"%s%s · fare %d zł + %d jars × %d zł = %d zł" % [quote_en, times, SLOIK_BASE, intact, SLOIK_PER_JAR, pay]],
+			PackedStringArray(["OK"]), 0.0, false, SLOIK_COLOUR if intact >= 3 else FAIL_COLOUR)
 	print("słoiki delivered: %s in %.1f s, %d/%d jars, paid %d zł (wallet %d zł)" % [_order["name"], _clock, intact, JARS,
 			pay, wallet.zl])
 
 
 # --- cards, giving up ------------------------------------------------------------------------
 
-func _on_card(index: int) -> void:
-	match state:
-		State.ORDER:
+## A button on a card of the job (the kit took the card down first): the order's GO and NOT NOW,
+## the craft kebab's choice, the result card's OK and NASTĘPNE.
+func _card_pressed(index: int) -> void:
+	match stage:
+		Stage.ORDER:
 			if bool(_order.get("craft", false)):
 				# Craft kebab: POCZEKAM (0) waits for the hand-carved one, ZWYKŁY (1) goes at once.
 				if index == 0 and _craft_t <= 0.0:
 					_craft_t = _t + Zaglebie.CRAFT_WAIT
-					hud.hide_card()
 					hud.toast("Rzemieślnik kroi… %d s" % roundi(Zaglebie.CRAFT_WAIT), "Carving by hand… %d s" % roundi(Zaglebie.CRAFT_WAIT))
 				elif index == 1:
 					_craft_t = 0.0
@@ -1358,11 +1355,11 @@ func _on_card(index: int) -> void:
 					_station["cool"] = true
 				bubbles.hush(_stands[_order["stand"]]["node"] if job == Job.KEBAB else _station["person"])
 				courier.cancel()
-				_release()
-		State.RESULT:
+				finish()
+		Stage.RESULT:
 			# Beta values: the delivered kebab card's NASTĘPNE points at the nearest stand.
 			var next := index == 1 and job == Job.KEBAB and _delivered
-			_release()
+			finish()
 			if next:
 				point_next_stand()
 
@@ -1372,42 +1369,65 @@ func flash() -> bool:
 	return courier != null and courier.accept()
 
 
-## Keyboard: M answers a job card's first button (GO, OK), K its second (NOT NOW).
-## Returns false when no job card is up.
+## Keyboard: M answers a job card's first button (GO, OK), K its second (NOT NOW, NASTĘPNE).
+## Returns false when no job card is up (the director asks the next activity).
 func primary() -> bool:
-	if round_busy():
-		return roundup.primary()  # loop jobs-2
-	if state == State.ORDER or state == State.RESULT:
-		_on_card(0)
+	if stage == Stage.ORDER or stage == Stage.RESULT:
+		_key(0)
 		return true
 	return false
 
 
 func secondary() -> bool:
-	if round_busy():
-		return roundup.secondary()
-	if state == State.ORDER or (state == State.RESULT and _delivered and job == Job.KEBAB):
-		_on_card(1)
+	if stage == Stage.ORDER or (stage == Stage.RESULT and _delivered and job == Job.KEBAB):
+		_key(1)
 		return true
 	return false
 
 
+## A key answers as the card's button does. With the card down (the craft kebab's wait: K still
+## takes the plain one) the answer goes straight to the stage.
+func _key(index: int) -> void:
+	if _card_up:
+		card_pressed(index)
+	else:
+		_card_pressed(index)
+
+
 func _abandon() -> void:
-	state = State.RESULT
+	stage = Stage.RESULT
 	_delivered = false
 	_result_shown()
 	courier.cancel()
-	hud.hide_status()
+	hide_status()
 	_beacon.visible = false
 	_remove_ghost()
 	if job == Job.KEBAB:
-		hud.show_card("ZAMÓWIENIE PRZEPADŁO", "%s (%s) się nie dowie. Gołębie z placu Defilad miały ucztę." % [
-				_order["customer"], _order["name"]], PackedStringArray(["OK"]), FAIL_COLOUR, true, "Order dropped",
-				"%s at %s will never know. The pigeons on Plac Defilad had a feast." % [_order["customer"], _order["name"]])
+		show_card(["ZAMÓWIENIE PRZEPADŁO", "Order dropped"],
+				["%s (%s) się nie dowie. Gołębie z placu Defilad miały ucztę." % [_order["customer"], _order["name"]],
+				"%s at %s will never know. The pigeons on Plac Defilad had a feast." % [_order["customer"], _order["name"]]],
+				PackedStringArray(["OK"]), 0.0, false, FAIL_COLOUR)
 	else:
-		hud.show_card("KURS PRZERWANY", "%s: taksówka. Ze słoikami. Mama już wie." % _order["customer"],
-				PackedStringArray(["OK"]), FAIL_COLOUR, true, "Run abandoned",
-				"%s took a taxi. With the jars. Mum has been told." % _order["customer"])
+		show_card(["KURS PRZERWANY", "Run abandoned"],
+				["%s: taksówka. Ze słoikami. Mama już wie." % _order["customer"],
+				"%s took a taxi. With the jars. Mum has been told." % _order["customer"]],
+				PackedStringArray(["OK"]), 0.0, false, FAIL_COLOUR)
+
+
+## The ✕ drops an order that is offered or on its way, not a result card.
+func _can_abort() -> bool:
+	return stage == Stage.ORDER or stage == Stage.DELIVER
+
+
+## The ✕: the order is dropped, and its own card says so (the kit's limit on a run is not used).
+func drop(_by_player: bool) -> void:
+	_abandon()
+
+
+## The autopilot presses no card: an order goes by its count-down (4 s on a test run) and a
+## result card by itself, as before the kit.
+func _auto_button() -> int:
+	return -1
 
 
 # --- testing aids --------------------------------------------------------------------------
@@ -1455,12 +1475,12 @@ func pin_first(i: int) -> void:
 
 ## --first10: the car at stand `i` and its guided first order at once. False if none came.
 func start_first(i: int) -> bool:
-	if i < 0 or i >= _stands.size() or state != State.IDLE:
+	if i < 0 or i >= _stands.size() or not idle():
 		return false
 	pin_first(i)
 	_put_car(_stands[i])
 	_begin_kebab(i, _orders)
-	return state == State.ORDER
+	return stage == Stage.ORDER
 
 
 ## Kebab orders made since the start (the guide's "order" beat).
@@ -1479,7 +1499,7 @@ func start_kebab(n: int) -> bool:
 	var i := posmod(n, _stands.size())
 	_put_car(_stands[i])
 	_begin_kebab(i, n)
-	return state == State.ORDER
+	return stage == Stage.ORDER
 
 
 ## --sloik: puts the car at station `station` (0 Centralny, 1 Gdański) and starts the run (`broken` jars already gone).
@@ -1490,13 +1510,13 @@ func start_sloik(broken := 0, station := 0) -> bool:
 	start_broken = broken
 	_put_car(_station)
 	_begin_sloik(0)
-	return state == State.ORDER
+	return stage == Stage.ORDER
 
 
 func _put_car(place: Dictionary) -> void:
-	var ring: Vector3 = place["ring"]
+	var ring3: Vector3 = place["ring"]
 	var heading: Vector2 = place["heading"]
-	car.global_position = ring
+	car.global_position = ring3
 	car.rotation.y = atan2(-heading.x, -heading.y)
 	car.vel = Vector3.ZERO
 	car.forward_speed = 0.0
@@ -1506,7 +1526,7 @@ func _put_car(place: Dictionary) -> void:
 ## The autopilot drives the job's route (returns true while it does): on a ghost
 ## driver along the lane graph, then straight to the door's ring.
 func drive_player() -> bool:
-	if not autopilot or state != State.DELIVER:
+	if not autopilot or stage != Stage.DELIVER:
 		return false
 	var target: Vector3 = _order["ring"]
 	if _ghost == null and not _slide:
@@ -1548,12 +1568,12 @@ func _start_ghost() -> void:
 	if hit.is_empty():
 		return
 	# The door's road, or (over the river) the connected junction nearest to it.
-	var finish: int = _order["finish"]
+	var last: int = _order["finish"]
 	_ghost = traffic.add_ghost(hit[0], hit[1], hit[2])
 	# Kebabs go fast; mum's jars go gently.
 	_ghost.speed_factor = 1.3 if job == Job.KEBAB else 0.95
 	_ghost.accel_factor = 1.5 if job == Job.KEBAB else 0.9
-	traffic.race_to(_ghost, finish, graph.distances_to(finish, INF, false))
+	traffic.race_to(_ghost, last, graph.distances_to(last, INF, false))
 
 
 func _remove_ghost() -> void:
