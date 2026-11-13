@@ -73,6 +73,7 @@ Irreversible things, paid tools, device runs and store submissions wait for the 
 ```zsh
 tools/verify.sh [--quick|--ios|--only=a,b]   # the verification set, one PASS/FAIL table
 tools/shots.sh [--set=core|quick|names] [--size=2532x1170]   # phone-size screenshots
+tools/turntable.sh KEY [--looks=lit,flat,sil]   # one site alone from every side, one sheet (~50 s)
 cd game && godot --path . --disable-vsync -- --bench --nosave  # bench
 tools/export_ios.sh   # splits the map, prebuilds sectors, exports build/ios
 tools/export_android.sh [--skip-city|--apk]   # the signed Play AAB
@@ -100,6 +101,10 @@ tools/export_android.sh [--skip-city|--apk]   # the signed Play AAB
 - **Definition of done** is light or full by change kind (docs/WORKFLOW.md): light for content,
   text, site, docs, polish; full (verify, shots, bench, `--ios`) for gameplay, geometry and
   anything per-frame. Name what only the phone can show.
+- **Landmark and building models.** Before the pull request, run `tools/turntable.sh KEY` for
+  every site built or changed, look at the sheet (`shots/turntable_KEY/KEY_turntable.png`: all
+  sides, lit, flat and silhouette, the top) and say in the PR what it showed. City shots come
+  after it, not instead of it (F, 2026-11-13).
 
 ## Git
 
