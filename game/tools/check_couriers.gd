@@ -26,27 +26,7 @@ const Notebook := preload("res://scripts/notebook.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Jobs := preload("res://scripts/jobs.gd")
 const Props := preload("res://scripts/props.gd")
-
-
-## A stand-in for dialogue.gd: records each line asked for.
-class FakeDialogue extends Node:
-	var said: Array = []
-
-	func say(_anchor: Variant, speaker: String, group: String, tag := "", _s := 4.0, _a := Color.WHITE, _h := 2.6, _p := false, _k := 0, _key := "") -> Array:
-		said.append([speaker, group, tag])
-		return ["…", "…"]
-
-	func say_ambient(_anchor: Variant, speaker: String, group: String, tag := "", _s := 4.0, _a := Color.WHITE, _h := 2.6, _p := false) -> Array:
-		return say(_anchor, speaker, group, tag, _s, _a, _h, _p)
-
-	func say_reaction(_anchor: Variant, speaker: String, group: String, tag := "", _s := 4.0, _a := Color.WHITE, _h := 2.6, _p := false, _key := "") -> Array:
-		return say(_anchor, speaker, group, tag, _s, _a, _h, _p)
-
-	func count(group: String, tag: String) -> int:
-		var n := 0
-		for l: Array in said:
-			n += int(l[1] == group and l[2] == tag)
-		return n
+const Fakes := preload("res://tools/fakes.gd")
 
 
 ## The map's heights flat at 0 and no roofs (the stands' kerb test and the lane graph's heights).
@@ -183,7 +163,8 @@ func _check_city(nb: Notebook, data: Dictionary) -> void:
 			jobs.call("_add_stand", p, null, world)
 	var stands: Array = jobs.stand_frames()
 	_expect(stands.size() >= 40, "%d kebab stands placed (want 42)" % stands.size())
-	var dlg := FakeDialogue.new()
+	var dlg := Fakes.Dialogue.new()
+	dlg.say_words = ["…", "…"]
 	root.add_child(dlg)
 	var life: Node3D = CityLife.new()
 	life.dialogue = dlg
@@ -332,7 +313,7 @@ func _kerb_miss(graph: LaneGraph, m: Variant) -> float:
 	return graph.point_at(e, s, off).distance_to(p - (m.shove as Vector2))
 
 
-func _drive_at(life: Node3D, dlg: FakeDialogue, graph: LaneGraph) -> void:
+func _drive_at(life: Node3D, dlg: Fakes.Dialogue, graph: LaneGraph) -> void:
 	now = {"hour": 1.5, "weekday": 6}
 	veh = [Vector3.INF, 0.0, false, 0.0, 0.0]
 	for k in 4:

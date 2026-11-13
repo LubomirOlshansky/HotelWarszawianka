@@ -24,6 +24,7 @@ const Lang := preload("res://scripts/lang.gd")
 const Notebook := preload("res://scripts/notebook.gd")
 const Wallet := preload("res://scripts/wallet.gd")
 const FullMap := preload("res://scripts/full_map.gd")
+const Fakes := preload("res://tools/fakes.gd")
 ## The map's bounds (centrum.json `bounds` since map north, 2026-10-31: the L-shaped map's box).
 const BOUNDS := Rect2(-3136.1, -2775.4, 5317.8, 4511.4)
 const HEROES := ["srodmiescie", "trakt", "stare_miasto", "powisle", "praga"]
@@ -33,13 +34,6 @@ const KNOWN := {"palac_kultury": [Vector2(-1227, 243), "srodmiescie"], "rynek": 
 		"zbawiciela": [Vector2(-477, 1592), "poludnie"], "arkadia": [Vector2(-2529, -2565), "muranow"],
 		"sejm": [Vector2(307, 984), "lazienki"], "palma": [Vector2(-170, 332), "srodmiescie"],
 		"spawn": [Vector2(-911.6, 278.6), "srodmiescie"]}
-
-
-class StubHud extends CanvasLayer:
-	var notes: Array = []
-
-	func show_note(title: String, body: String, _colour: Color) -> void:
-		notes.append([title, body])
 
 
 var _problems := 0
@@ -145,7 +139,7 @@ func _ties(d: Districts, points: Dictionary) -> void:
 func _flow(points: Dictionary) -> void:
 	var w := Wallet.new()
 	w.persistent = false
-	var hud := StubHud.new()
+	var hud := Fakes.Hud.new()
 	var d := Districts.new()
 	d.wallet = w
 	d.hud = hud
@@ -159,7 +153,7 @@ func _flow(points: Dictionary) -> void:
 	_expect(d.is_discovered("powisle") and hud.notes.size() == 1 and w.respect == Districts.DISCOVER_RESPECT,
 			"Powiśle discovered: cards %d, respect %d" % [hud.notes.size(), w.respect])
 	if hud.notes.size() == 1:
-		_expect(hud.notes[0][0] == "Odkryto: Powiśle" and str(hud.notes[0][1]).begins_with(str(d.districts[d.by_id["powisle"]]["line"][0])), "the card: %s / %s" % hud.notes[0])
+		_expect(hud.note_titles[0] == "Odkryto: Powiśle" and str(hud.note_texts[0]).begins_with(str(d.districts[d.by_id["powisle"]]["line"][0])), "the card: %s / %s" % [hud.note_titles[0], hud.note_texts[0]])
 	d.tick(KNOWN["kopernik"][0])
 	d.tick(KNOWN["spawn"][0])
 	d.tick(KNOWN["kopernik"][0])
@@ -202,7 +196,7 @@ func _flow(points: Dictionary) -> void:
 	# --district= shows the card even for a district found already; --districts= presets.
 	d.force_card = "srodmiescie"
 	d.tick(KNOWN["kopernik"][0])
-	_expect(hud.notes.size() == 2 and hud.notes[1][0] == "Odkryto: Śródmieście", "--district=: %d cards" % hud.notes.size())
+	_expect(hud.notes.size() == 2 and hud.note_titles[1] == "Odkryto: Śródmieście", "--district=: %d cards" % hud.notes.size())
 	d.preset("none")
 	_expect(w.districts.is_empty(), "--districts=none")
 	d.preset("praga:2,wola")

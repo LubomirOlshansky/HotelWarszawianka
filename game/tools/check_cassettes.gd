@@ -14,15 +14,9 @@ extends SceneTree
 const Cassettes := preload("res://scripts/cassettes.gd")
 const First10 := preload("res://scripts/first10.gd")
 const Wallet := preload("res://scripts/wallet.gd")
+const Fakes := preload("res://tools/fakes.gd")
 const SCRATCH := "user://check_cassettes_scratch.cfg"
 const MAX_WORDS := 90
-
-
-class StubHud extends CanvasLayer:
-	var notes: Array = []
-
-	func show_note(title: String, body: String, _colour: Color) -> void:
-		notes.append([title, body])
 
 
 class StubRadio extends Node:
@@ -93,7 +87,7 @@ func _fresh() -> Array:
 	c.load_data()
 	var w := Wallet.new()
 	w.persistent = false
-	var hud := StubHud.new()
+	var hud := Fakes.Hud.new()
 	var radio := StubRadio.new()
 	c.wallet = w
 	c.hud = hud
@@ -105,7 +99,7 @@ func _flow() -> void:
 	var f := _fresh()
 	var c: Cassettes = f[0]
 	var w: Wallet = f[1]
-	var hud: StubHud = f[2]
+	var hud: Fakes.Hud = f[2]
 	var radio: StubRadio = f[3]
 	var roof := Vector3(100.0, 30.0, -900.0)
 	# Every cassette gets a roof spot 300 m apart (a roof that is not found logs a warning, which
@@ -126,7 +120,7 @@ func _flow() -> void:
 	c.tick(roof + Vector3(2.0, 9.0, 1.0), true)
 	_expect(c.is_taken(First10.CASSETTE_ID), "the helicopter low over it takes it")
 	_expect(int(w.respect) == r0 + c.respect, "+%d respect (%d -> %d)" % [c.respect, r0, w.respect])
-	_expect(hud.notes.size() == 1 and str(hud.notes[0][0]).contains("KASETA") and str(hud.notes[0][1]).contains(str(c.entries[i]["line"][0])) and not str(hud.notes[0][1]).contains(str(c.entries[i]["line"][1])),
+	_expect(hud.notes.size() == 1 and str(hud.note_titles[0]).contains("KASETA") and str(hud.note_texts[0]).contains(str(c.entries[i]["line"][0])) and not str(hud.note_texts[0]).contains(str(c.entries[i]["line"][1])),
 			"the card with the Polish line only: %s" % [hud.notes])
 	_expect(radio.opened == [3], "the next locked PÓŁNOC FM track opened: %s" % [radio.opened])
 	_expect(not c.take(First10.CASSETTE_ID), "a repeat does nothing")

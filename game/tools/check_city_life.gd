@@ -30,27 +30,7 @@ const Notebook := preload("res://scripts/notebook.gd")
 const EggBook := preload("res://scripts/egg_book.gd")
 const Wallet := preload("res://scripts/wallet.gd")
 const Props := preload("res://scripts/props.gd")
-
-
-## A stand-in for dialogue.gd: records each line asked for.
-class FakeDialogue extends Node:
-	var said: Array = []
-
-	func say(_anchor: Variant, speaker: String, group: String, tag := "", _s := 4.0, _a := Color.WHITE, _h := 2.6, _p := false, _k := 0, _key := "") -> Array:
-		said.append([speaker, group, tag])
-		return ["…", "…"]
-
-	func say_ambient(_anchor: Variant, speaker: String, group: String, tag := "", _s := 4.0, _a := Color.WHITE, _h := 2.6, _p := false) -> Array:
-		return say(_anchor, speaker, group, tag, _s, _a, _h, _p)
-
-	func say_reaction(_anchor: Variant, speaker: String, group: String, tag := "", _s := 4.0, _a := Color.WHITE, _h := 2.6, _p := false, _key := "") -> Array:
-		return say(_anchor, speaker, group, tag, _s, _a, _h, _p)
-
-	func count(group: String, tag: String) -> int:
-		var n := 0
-		for l: Array in said:
-			n += int(l[1] == group and l[2] == tag)
-		return n
+const Fakes := preload("res://tools/fakes.gd")
 
 
 var problems: Array[String] = []
@@ -161,7 +141,7 @@ func _check_rules() -> void:
 
 # 2. (in _check_city: a real walker) -----------------------------------------------------------
 
-func _check_horn(life: Node, dlg: FakeDialogue) -> void:
+func _check_horn(life: Node, dlg: Fakes.Dialogue) -> void:
 	var dogs: Array = life.get("_dogs")
 	if dogs.is_empty():
 		problems.append("no walkers to honk at")
@@ -531,7 +511,8 @@ func _check_armchair_rules() -> void:
 
 
 func _check_city(nb: Notebook, data: Dictionary) -> void:
-	var dlg := FakeDialogue.new()
+	var dlg := Fakes.Dialogue.new()
+	dlg.say_words = ["…", "…"]
 	root.add_child(dlg)
 	var life: Node3D = CityLife.new()
 	life.dialogue = dlg

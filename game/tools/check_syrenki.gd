@@ -18,15 +18,9 @@ const Districts := preload("res://scripts/districts.gd")
 const Garage := preload("res://scripts/garage.gd")
 const Syrenki := preload("res://scripts/syrenki.gd")
 const Wallet := preload("res://scripts/wallet.gd")
+const Fakes := preload("res://tools/fakes.gd")
 const SCRATCH := "user://check_syrenki_scratch.cfg"
 const MAX_WORDS := 70
-
-
-class StubHud extends CanvasLayer:
-	var notes: Array = []
-
-	func show_note(title: String, body: String, _colour: Color) -> void:
-		notes.append([title, body])
 
 
 var _problems := 0
@@ -109,7 +103,7 @@ func _flush(s: Syrenki) -> void:
 func _flow() -> void:
 	var w := Wallet.new()
 	w.persistent = false
-	var hud := StubHud.new()
+	var hud := Fakes.Hud.new()
 	var s := _make(w, hud)
 	# Flying high: not found. Near on the ground: found.
 	s.tick(_at(s, 0), true, 60.0)
@@ -118,8 +112,8 @@ func _flow() -> void:
 	_expect(w.syrenki.has("s01_palac") and w.respect == 5, "6 m away: record %s, respect %d" % [w.syrenki, w.respect])
 	_expect(hud.notes.size() == 1, "%d cards for the first find" % hud.notes.size())
 	if hud.notes.size() == 1:
-		var body := str(hud.notes[0][1]).split("\n")
-		_expect(hud.notes[0][0] == "SYRENKA 1/20" and body.size() == 2 and body[0] == s.entries[0]["name"][0]
+		var body := str(hud.note_texts[0]).split("\n")
+		_expect(hud.note_titles[0] == "SYRENKA 1/20" and body.size() == 2 and body[0] == s.entries[0]["name"][0]
 				and body[1] == s.entries[0]["line"][0], "the card: %s" % [hud.notes[0]])
 	s.tick(_at(s, 0))
 	_expect(w.syrenki.size() == 1 and w.respect == 5 and hud.notes.size() == 1, "a repeat find counted")
@@ -137,7 +131,7 @@ func _flow() -> void:
 	_expect(Garage.rule("scale", "red", 0, {}, 0) == "locked", "rule()'s default count is not 0")
 	_flush(s)
 	_expect(hud.notes.size() == cards + 2, "5th find: %d new cards, not 2 (the find and its reward)" % (hud.notes.size() - cards))
-	_expect(str(hud.notes[hud.notes.size() - 1][0]).contains("NAGRODA") and str(hud.notes[hud.notes.size() - 1][1]).contains("Łuska Syreny"),
+	_expect(str(hud.note_titles[hud.notes.size() - 1]).contains("NAGRODA") and str(hud.note_texts[hud.notes.size() - 1]).contains("Łuska Syreny"),
 			"the reward card: %s" % [hud.notes[hud.notes.size() - 1]])
 	_expect(w.zl == 0, "the 5th reward paid %d zł" % w.zl)
 	for i in range(5, 9):
@@ -171,7 +165,7 @@ func _save() -> void:
 	DirAccess.remove_absolute(SCRATCH)
 	var w := Wallet.new()
 	w.path = SCRATCH
-	var hud := StubHud.new()
+	var hud := Fakes.Hud.new()
 	var s := _make(w, hud)
 	for i in 3:
 		s.collect(str(s.entries[i]["id"]))

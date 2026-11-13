@@ -54,6 +54,7 @@ errortrap            quick
 eventday             quick
 evtow                quick
 facadekit            quick
+fakes                quick
 fans                 quick
 finite               smoke
 first10              quick
@@ -112,6 +113,7 @@ parodies             quick
 pause                quick
 pause-run            smoke
 places               quick
+placescripts         quick
 placzamkowy          quick
 plain                runs
 pois                 roads
@@ -191,3 +193,4 @@ water                roads     slow
 water-prebuilt       smoke     slow
 wellness             quick
 zaglebie             quick
+zamekramps           quick

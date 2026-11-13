@@ -12,26 +12,9 @@ extends SceneTree
 const First10 := preload("res://scripts/first10.gd")
 const Ladder := preload("res://scripts/ladder.gd")
 const Wallet := preload("res://scripts/wallet.gd")
+const Fakes := preload("res://tools/fakes.gd")
 const SCRATCH := "user://check_end_card_scratch.cfg"
 const SCRATCH_OFF := "user://check_end_card_off.cfg"
-
-
-## Just what first10.gd asks of the HUD.
-class FakeHud extends CanvasLayer:
-	signal card_pressed(index: int)
-	var title := ""
-	var body := ""
-	var buttons := PackedStringArray()
-	var up := false
-
-	func show_card(t: String, b: String, bs: PackedStringArray, _accent: Color, _bottom := false, _t_en := "", _b_en := "") -> void:
-		title = t
-		body = b
-		buttons = bs
-		up = true
-
-	func hide_card() -> void:
-		up = false
 
 
 var _problems := 0
@@ -109,18 +92,18 @@ func _old_save() -> void:
 
 func _card() -> void:
 	var w := _wallet(true, {"kebab": 10})
-	var hud := FakeHud.new()
+	var hud := Fakes.Hud.new()
 	var f := First10.new()
 	f.wallet = w
 	f.hud = hud
 	f.hud.card_pressed.connect(f._on_card)
 	f.show_end_card()
-	_expect(hud.up and hud.title == First10.END_TITLE[0] and First10.REPO in hud.body, "the card is up: %s" % hud.title)
-	_expect(hud.buttons.size() == 1 and hud.buttons[0] == First10.END_BUTTON, "one button, Jedź dalej · Free roam: %s" % [hud.buttons])
+	_expect(hud.card != "" and hud.card == First10.END_TITLE[0] and First10.REPO in hud.body, "the card is up: %s" % hud.card)
+	_expect(hud.button_words.size() == 1 and hud.button_words[0] == First10.END_BUTTON, "one button, Jedź dalej · Free roam: %s" % [hud.button_words])
 	_expect(w.intro.has("end_seen") and not First10.end_due(w), "end_seen kept")
 	_expect(f.end_card_shown(), "the director knows the card is up")
 	hud.card_pressed.emit(0)
-	_expect(not hud.up and not f.end_card_shown(), "the button closes it: free roam")
+	_expect(hud.card == "" and not f.end_card_shown(), "the button closes it: free roam")
 	var lines := First10.end_words()[1].split("\n")
 	_expect(lines.size() == 2 and lines[0].begins_with(First10.END_BODY[0]) and First10.REPO in lines[1], "the Polish body, line by line: %s" % [lines])
 	f.free()

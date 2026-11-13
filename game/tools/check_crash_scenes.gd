@@ -23,6 +23,7 @@ const Traffic := preload("res://scripts/traffic.gd")
 const Models := preload("res://scripts/models.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Dialogue := preload("res://scripts/dialogue.gd")
+const Fakes := preload("res://tools/fakes.gd")
 const BUBBLE := 70
 
 
@@ -46,21 +47,6 @@ class FakeWalkers extends Node3D:
 		figures[i] = at
 	func clear_scene(i: int) -> void:
 		figures.erase(i)
-
-
-class FakeBubbles extends Control:
-	var said := 0
-	func say(_anchor: Variant, _speaker: String, _line: String, _sub := "", _s := 4.0, _a := Color.WHITE, _h := 2.6, _k := 0, _key := "") -> bool:
-		said += 1
-		return true
-	func allows(_k: int, _key := "") -> bool:
-		return true
-	func is_talking(_anchor: Variant) -> bool:
-		return false
-	func hush(_anchor: Variant) -> void:
-		pass
-	func muted() -> bool:
-		return false
 
 
 var problems: Array[String] = []
@@ -271,7 +257,7 @@ func _scenes(g: LaneGraph, traffic: Node3D, map: Node3D) -> CrashScenes:
 	cs.walkers = FakeWalkers.new()
 	root.add_child(cs.walkers)
 	var dlg := Dialogue.new()
-	dlg.bubbles = FakeBubbles.new()
+	dlg.bubbles = Fakes.Bubbles.new()
 	root.add_child(dlg)
 	root.add_child(dlg.bubbles)
 	cs.dialogue = dlg
@@ -391,7 +377,7 @@ func _check_timer(map: Node3D, digest: PackedStringArray) -> void:
 		problems.append("timer: the next scene %.1f s after (want %.0f-%.0f)" % [gap, CrashScenes.GAP.x, CrashScenes.GAP.y])
 	if (cs.walkers as FakeWalkers).figures.size() != CrashScenes.PEOPLE.size():
 		problems.append("timer: the second scene has %d people" % (cs.walkers as FakeWalkers).figures.size())
-	var said: int = (cs.dialogue.bubbles as FakeBubbles).said
+	var said: int = (cs.dialogue.bubbles as Fakes.Bubbles).said.size()
 	if said < 3:
 		problems.append("timer: %d lines said with the car by the scene (want 3+)" % said)
 	digest.append("timer: first at %.0f s, lived %.0f s, next %.0f s later, %d lines said" % [first_at, life, gap, said])

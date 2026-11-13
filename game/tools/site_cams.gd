@@ -7,7 +7,7 @@ extends SceneTree
 ## Unknown key, or a site that builds nothing: a message and exit 1.
 ## The maths (box_for, cams_for) is static, so tools/check_turntable.gd calls the same code.
 
-const MeshQuality := preload("res://tools/check_mesh_quality.gd")
+const MeshQuality := preload("res://tools/mesh_probe.gd")
 const Landmarks := preload("res://scripts/landmarks.gd")
 ## The free margin round the model in every tile (the brief: about 15 %).
 const MARGIN := 1.15
@@ -36,16 +36,19 @@ static func box_for(key: String) -> Dictionary:
 		if s["key"] == key:
 			known = true
 	if not known:
+		map.free()  # the stub is a Node3D since the shared probe: not counted, so freed by hand
 		return {}
 	var rec := MeshQuality.Recorder.new()
 	marks.build(rec, Rect2(), key)
 	if rec.pos.is_empty():
+		map.free()  # the stub is a Node3D since the shared probe: not counted, so freed by hand
 		return {}
 	var lo := rec.pos[0]
 	var hi := rec.pos[0]
 	for p: Vector3 in rec.pos:
 		lo = lo.min(p)
 		hi = hi.max(p)
+	map.free()
 	return {"min": lo, "max": hi, "tris": rec.pos.size() / 3}
 
 

@@ -71,12 +71,9 @@ const GATES := ["flying", "away", "mission", "water", "rescue target", "rescue o
 ## comment `line` answers with.
 class PlayDialogue extends Fakes.Dialogue:
 	var host_hold := false
-	var say_words: Array = ["Słowo", "A word"]
 	func _init() -> void:
+		say_words = ["Słowo", "A word"]
 		line_words = ["Komentarz", "A comment"]
-	func say(anchor: Variant, who: String, group: String, tag := "", s := 4.0, c := Color.WHITE, h := 2.6, p := false) -> Array:
-		super.say(anchor, who, group, tag, s, c, h, p)
-		return say_words
 
 
 ## missions.gd's side the rides ask: the state of its rescue calls and whether one has a target.

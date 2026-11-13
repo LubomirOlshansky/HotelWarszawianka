@@ -1,4 +1,4 @@
-extends Node3D
+extends "res://scripts/place.gd"
 ## The 3D screen at Złote Tarasy, moved and squared off from F's photos (2026-11-11: "this screen in
 ## the game is a curve, maybe it has an L shape on the edge of the building, maybe you put it in the
 ## wrong place"): the big LED screen wraps Skylight's south-east corner over the street entrance, an
@@ -29,7 +29,6 @@ const SHADER := "res://shaders/led_screen.gdshader"
 ## The words the screen shows, one line each: the game's title (two lines), the agency's mark.
 const LINES := ["AROUND", "WARSAW", "NOSE."]
 
-var map: Node3D
 var length := 0.0
 var corner := 0.0           # metres along the screen to the corner (the wide face's length)
 var mesh_instance: MeshInstance3D
@@ -95,7 +94,7 @@ func build() -> void:
 	mat.set_shader_parameter("words_px", Vector2(tex.get_width(), tex.get_height()))
 	mat.set_shader_parameter("line_px", float(Pixel.LINE))
 	mesh_instance.material_override = mat
-	add_child(mesh_instance)
+	part(mesh_instance)
 	print("tarasy_screen: %.1f m x %.1f m (corner at %.1f m) at y %.1f, corner (%.1f, %.1f)" % [length, HEIGHT, corner, y0 + MARGIN,
 			(pts[1] as Vector2).x, (pts[1] as Vector2).y])
 
