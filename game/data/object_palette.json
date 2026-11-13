@@ -1,0 +1,27 @@
+{
+	"_about": "The city objects palette (docs/design/city-objects-plan.md 3.2). Step 1 (solid classes) starts it with the classes alone: one row per class of collider face, the answer the car gets (H hard, S smash, P push, R ride, G ghost) and a note. Every class answers H in step 1, which is today's behaviour. game/scripts/solidity.gd reads it; map_builder.gd _solid and the dressing scripts' bodies name these ids (game/tools/check_solids.gd).",
+	"classes": [
+		{"id": "building", "answer": "H", "note": "an OpenStreetMap building's walls, the first 5 m (map_builder _build_buildings)"},
+		{"id": "lod2", "answer": "H", "note": "a GUGiK LoD2 building's steep triangles (map_builder _build_lod2)"},
+		{"id": "small_building", "answer": "H", "note": "an OpenStreetMap kiosk, shed, carport, roof, service hut or any outline under 30 m2 (the census's split), or a researched small building (small_buildings.gd)"},
+		{"id": "fence", "answer": "H", "note": "a barrier line of kind fence, slab or open railing (map_builder _build_barriers)"},
+		{"id": "hedge", "answer": "H", "note": "a barrier line of kind hedge"},
+		{"id": "wall", "answer": "H", "note": "a barrier line of kind wall, and the Old Town's city walls"},
+		{"id": "stair_wall", "answer": "H", "note": "a wall or fence the bake marked as a stair's balustrade (the line's st, tools/object_fixes.py)"},
+		{"id": "railing", "answer": "H", "note": "an open railing that is no barrier line: the fence along the railway cutting's top"},
+		{"id": "struct_wall", "answer": "H", "note": "retaining walls, the cutting's parapets, the viaduct's closed bays, the water's edge"},
+		{"id": "tunnel", "answer": "H", "note": "a wall inside a tunnel, from its floor to over a bus"},
+		{"id": "portal", "answer": "H", "note": "a tunnel portal's headwall"},
+		{"id": "guard_deck", "answer": "H", "note": "a deck's parapet or railing over a drop, and the guard rails on decks"},
+		{"id": "guard_ground", "answer": "H", "note": "a guard rail on the ground"},
+		{"id": "pier", "answer": "H", "note": "bridge piers and portal legs, and the Tamka footbridge's pier and deck"},
+		{"id": "platform", "answer": "H", "note": "a railway platform's or tram island's solid sides"},
+		{"id": "parked", "answer": "H", "note": "a parked car's box"},
+		{"id": "shelter", "answer": "H", "note": "a tram or bus shelter's box"},
+		{"id": "prop", "answer": "H", "note": "street details, monuments, park pieces and a square's blocks and cubes (the dressing scripts' bodies)"},
+		{"id": "pocket", "answer": "H", "note": "an invisible wall across a gap a car would wedge into (map_builder _bridge_pockets)"},
+		{"id": "garage_door", "answer": "H", "note": "a garage door at a ramp's top, or a car park mouth's barrier arm"},
+		{"id": "landmark", "answer": "H", "note": "a landmark site's walls (landmarks.gd), and the Ratusz Arsenal tower"},
+		{"id": "edge", "answer": "H", "note": "the invisible walls at the map's edge and the roadworks that close the roads there"}
+	]
+}

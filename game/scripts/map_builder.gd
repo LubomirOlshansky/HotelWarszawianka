@@ -23,6 +23,8 @@ const SmallBuildings := preload("res://scripts/small_buildings.gd")
 const MapEdge := preload("res://scripts/map_edge.gd")
 const EdgeRoadworks := preload("res://scripts/edge_roadworks.gd")
 const RatuszHub := preload("res://scripts/ratusz_hub.gd")
+## The city objects plan, step 1: the solid classes every collider face is filed under (`_solid`).
+const Solidity := preload("res://scripts/solidity.gd")
 ## Pasaż Wiecha's white Y masts stand where the map has its lamps (first_scene.gd PASAZ).
 const FirstScene := preload("res://scripts/first_scene.gd")
 ## Tile size for instanced things (trees, lamps, parked cars). Loop 2b: 512 m (was 256): one
@@ -164,7 +166,9 @@ var _lod2_footprints: Array = []
 ## the north-east corner, east of the extension to Rondo Radosława and Arkadia). Each holds a
 ## corner of `bounds` (tools/map_shape.py, the bakes' twin of in_map, map_outline, clip_to_map).
 @export_storage var outside: Array[Rect2] = []
-var _wall_faces := PackedVector3Array()
+## The city objects plan, step 1: the collider's faces (three vertices each) by solid class
+## ({StringName: PackedVector3Array}, a class of solidity.gd), filled through `_solid`.
+var _solids := {}
 
 ## Terrain heights in metres relative to the bake's base height; empty means a flat world.
 @export_storage var _terrain: Dictionary = {}
@@ -485,7 +489,7 @@ func build_sector(key: Vector2i, roofs_only := false, merge := true) -> Node3D:
 	# their shop signs): the landmarks and the water's edge in it are built too.
 	var ctx: Array = data.get("context", [])
 	_near = Rect2(ctx[0], ctx[1], ctx[2] - ctx[0], ctx[3] - ctx[1]) if ctx.size() == 4 else _sector_rect.grow(SECTOR_MARGIN)
-	_wall_faces.clear()
+	_solids.clear()
 	_scratch_roof.resize(_roof.size())
 	_scratch_roof.fill(NO_ROOF)
 	if proxy_colours:
@@ -505,7 +509,7 @@ func build_sector(key: Vector2i, roofs_only := false, merge := true) -> Node3D:
 	if merge:
 		_merge_roofs()
 	_merge = true
-	_wall_faces.clear()
+	_solids.clear()
 	data = whole
 	_out = self
 	_in_sector = false
@@ -2231,12 +2235,12 @@ func _build_walls(st) -> void:
 				# Inside a tunnel: solid from its floor to over a bus, not up to the street above.
 				var fa := float(lows[i])
 				var fb := float(lows[i + 1])
-				_wall_faces.append_array([Vector3(a.x, fa - 1.0, a.y), Vector3(b.x, fb - 1.0, b.y), Vector3(b.x, fb + 4.5, b.y),
+				_solid(&"tunnel", [Vector3(a.x, fa - 1.0, a.y), Vector3(b.x, fb - 1.0, b.y), Vector3(b.x, fb + 4.5, b.y),
 						Vector3(a.x, fa - 1.0, a.y), Vector3(b.x, fb + 4.5, b.y), Vector3(a.x, fa + 4.5, a.y)])
 			elif flag & 1:
 				var y0a := float(lows[i]) - 1.0
 				var y0b := float(lows[i + 1]) - 1.0
-				_wall_faces.append_array([Vector3(a.x, y0a, a.y), Vector3(b.x, y0b, b.y), Vector3(b.x, tb + 1.6, b.y),
+				_solid(&"struct_wall", [Vector3(a.x, y0a, a.y), Vector3(b.x, y0b, b.y), Vector3(b.x, tb + 1.6, b.y),
 						Vector3(a.x, y0a, a.y), Vector3(b.x, tb + 1.6, b.y), Vector3(a.x, ta + 1.6, a.y)])
 				# PT-40: a solid run's open end by a Poniatowski tower gets a lead-in.
 				if i == 0 or not int(flags[i - 1]) & 1:
@@ -2273,7 +2277,7 @@ func _wall_taper(e: Vector2, on: Vector2, out: Vector2, y0: float, top: float, t
 	# Only round the approach's own level: past a river end the lead-in hangs over the boulevard
 	# road that runs under the deck (check_drive: Wybrzeże's lane at 939, -152).
 	y0 = maxf(y0, top - WALL_TAPER_DEEP)
-	_wall_faces.append_array([Vector3(e.x, y0, e.y), Vector3(f.x, y0, f.y), Vector3(f.x, top, f.y),
+	_solid(&"struct_wall", [Vector3(e.x, y0, e.y), Vector3(f.x, y0, f.y), Vector3(f.x, top, f.y),
 			Vector3(e.x, y0, e.y), Vector3(f.x, top, f.y), Vector3(e.x, top, e.y)])
 	wall_tapers += 1
 
@@ -2312,7 +2316,7 @@ func _build_portals(st) -> void:
 		# The headwall's front face is solid (the street above can't drive off into the ramp).
 		var a := head - d * 0.5 - side * (w * 0.5 + 1.2)
 		var b := head - d * 0.5 + side * (w * 0.5 + 1.2)
-		_wall_faces.append_array([Vector3(a.x, y + PORTAL_MOUTH, a.y), Vector3(b.x, y + PORTAL_MOUTH, b.y), Vector3(b.x, top + 1.6, b.y),
+		_solid(&"portal", [Vector3(a.x, y + PORTAL_MOUTH, a.y), Vector3(b.x, y + PORTAL_MOUTH, b.y), Vector3(b.x, top + 1.6, b.y),
 				Vector3(a.x, y + PORTAL_MOUTH, a.y), Vector3(b.x, top + 1.6, b.y), Vector3(a.x, top + 1.6, a.y)])
 	_uv2 = Vector2.ZERO
 
@@ -2429,7 +2433,7 @@ func _build_cutting(st) -> void:
 				fence.append(top[k])
 			else:
 				if fence.size() >= 2:
-					_railing_along(st, fence, 1.7, 0.0, CUT_FENCE, CUT_FENCE.darkened(0.2), true)
+					_railing_along(st, fence, 1.7, 0.0, CUT_FENCE, CUT_FENCE.darkened(0.2), true, &"railing")
 				fence = PackedVector2Array()
 				if wall[k] == 0 and free and mine and k > 0:
 					fence.append(top[k])
@@ -2444,7 +2448,7 @@ func _build_cutting(st) -> void:
 								free and not _cut_by_street(streets, top[k + 1]), along)
 			along += seg
 		if fence.size() >= 2:
-			_railing_along(st, fence, 1.7, 0.0, CUT_FENCE, CUT_FENCE.darkened(0.2), true)
+			_railing_along(st, fence, 1.7, 0.0, CUT_FENCE, CUT_FENCE.darkened(0.2), true, &"railing")
 	_uv2 = Vector2.ZERO
 
 
@@ -2475,7 +2479,7 @@ func _cut_wall_piece(st, a: Vector2, b: Vector2, oa: Vector2, ob: Vector2, fa: f
 	if parapet:
 		_quad(st, Vector3(a1.x, ra + 0.1, a1.y), Vector3(b1.x, rb + 0.1, b1.y), Vector3(b1.x, tb, b1.y), Vector3(a1.x, ta, a1.y),
 				-nin, WALL_CONCRETE.darkened(0.05))
-		_wall_faces.append_array([Vector3(a1.x, ra - 0.5, a1.y), Vector3(b1.x, rb - 0.5, b1.y), Vector3(b1.x, tb + 1.5, b1.y),
+		_solid(&"struct_wall", [Vector3(a1.x, ra - 0.5, a1.y), Vector3(b1.x, rb - 0.5, b1.y), Vector3(b1.x, tb + 1.5, b1.y),
 				Vector3(a1.x, ra - 0.5, a1.y), Vector3(b1.x, tb + 1.5, b1.y), Vector3(a1.x, ta + 1.5, a1.y)])
 	# The top band's outer edge, down to the street's ground.
 	_quad(st, Vector3(a2.x, ra - 0.6, a2.y), Vector3(b2.x, rb - 0.6, b2.y), Vector3(b2.x, rb + 0.1, b2.y),
@@ -3832,7 +3836,7 @@ func _ms_pier(st, o: Vector2, u: Vector2, n: Vector2, s: float, top: float) -> v
 	for i in poly.size():
 		var a := poly[i]
 		var b := poly[(i + 1) % poly.size()]
-		_wall_faces.append_array([Vector3(a.x, y0, a.y), Vector3(b.x, y0, b.y), Vector3(b.x, top, b.y),
+		_solid(&"pier", [Vector3(a.x, y0, a.y), Vector3(b.x, y0, b.y), Vector3(b.x, top, b.y),
 				Vector3(a.x, y0, a.y), Vector3(b.x, top, b.y), Vector3(a.x, top, a.y)])
 
 
@@ -4067,7 +4071,7 @@ func _sd_pier(st, o: Vector2, u: Vector2, n: Vector2, s: float, top: float) -> v
 	for i in ring.size():
 		var a := ring[i]
 		var b := ring[(i + 1) % ring.size()]
-		_wall_faces.append_array([Vector3(a.x, y0, a.y), Vector3(b.x, y0, b.y), Vector3(b.x, top, b.y),
+		_solid(&"pier", [Vector3(a.x, y0, a.y), Vector3(b.x, y0, b.y), Vector3(b.x, top, b.y),
 				Vector3(a.x, y0, a.y), Vector3(b.x, top, b.y), Vector3(a.x, top, a.y)])
 
 
@@ -4560,7 +4564,7 @@ func _pn_pier(st, o: Vector2, u: Vector2, n: Vector2, s: float, top: float) -> v
 	for i in poly.size():
 		var a := poly[i]
 		var b := poly[(i + 1) % poly.size()]
-		_wall_faces.append_array([Vector3(a.x, y0, a.y), Vector3(b.x, y0, b.y), Vector3(b.x, top, b.y),
+		_solid(&"pier", [Vector3(a.x, y0, a.y), Vector3(b.x, y0, b.y), Vector3(b.x, top, b.y),
 				Vector3(a.x, y0, a.y), Vector3(b.x, top, b.y), Vector3(a.x, top, a.y)])
 
 
@@ -4777,7 +4781,7 @@ func _pv_pier(st, f: Array, side: int, p: Vector3, k: int) -> void:
 	for i in 4:
 		var a := corners[i]
 		var b := corners[(i + 1) % 4]
-		_wall_faces.append_array([Vector3(a.x, y0, a.y), Vector3(b.x, y0, b.y), Vector3(b.x, top, b.y),
+		_solid(&"pier", [Vector3(a.x, y0, a.y), Vector3(b.x, y0, b.y), Vector3(b.x, top, b.y),
 				Vector3(a.x, y0, a.y), Vector3(b.x, top, b.y), Vector3(a.x, top, a.y)])
 
 
@@ -4910,7 +4914,7 @@ func _pv_span(st, f: Array, side: int, s0: float, s1: float, k: int) -> void:
 ## A closed bay (photo 17): a rendered wall PV_INFILL_IN in from the plane, from the ground up to
 ## the rib's intrados, with an arched door in the middle and a window either side; a bar's bay
 ## (PV_BARS) has warm glass lit from inside (M_LAMP glows at night), the rest dark glass; every
-## wall is solid (`_wall_faces`), so the bars' neon signs (storefronts.gd VIADUKT) find it.
+## wall is solid (`_solid`), so the bars' neon signs (storefronts.gd VIADUKT) find it.
 func _pv_infill(st, f: Array, side: int, s0: float, s1: float, under: PackedFloat32Array, segs: int) -> void:
 	var n: Vector2 = f[2]
 	var u: Vector2 = f[1]
@@ -4930,7 +4934,7 @@ func _pv_infill(st, f: Array, side: int, s0: float, s1: float, under: PackedFloa
 	var wa := _pv_at(f, side, s0, -PV_INFILL_IN)
 	var wb := _pv_at(f, side, s1, -PV_INFILL_IN)
 	var wt := minf(under[0], under[segs]) + 1.0
-	_wall_faces.append_array([Vector3(wa.x, y0, wa.y), Vector3(wb.x, y0, wb.y), Vector3(wb.x, wt, wb.y),
+	_solid(&"struct_wall", [Vector3(wa.x, y0, wa.y), Vector3(wb.x, y0, wb.y), Vector3(wb.x, wt, wb.y),
 			Vector3(wa.x, y0, wa.y), Vector3(wb.x, wt, wb.y), Vector3(wa.x, wt, wa.y)])
 	var bar := _pv_bar(side, (s0 + s1) * 0.5)
 	var glass := PV_BAR_GLASS if bar else PV_DARK_GLASS
@@ -5038,7 +5042,7 @@ func _build_garage_doors(st) -> void:
 			_box_oriented(st, Vector3(p.x, y + 1.2, p.y), basis, Vector3(0.4, 2.4, 0.4), PORTAL_CONCRETE)
 		var a := at - side * (w * 0.5 + 0.4)
 		var b := at + side * (w * 0.5 + 0.4)
-		_wall_faces.append_array([Vector3(a.x, y - 0.5, a.y), Vector3(b.x, y - 0.5, b.y), Vector3(b.x, y + 2.9, b.y),
+		_solid(&"garage_door", [Vector3(a.x, y - 0.5, a.y), Vector3(b.x, y - 0.5, b.y), Vector3(b.x, y + 2.9, b.y),
 				Vector3(a.x, y - 0.5, a.y), Vector3(b.x, y + 2.9, b.y), Vector3(a.x, y + 2.9, a.y)])
 	_uv2 = Vector2.ZERO
 
@@ -5115,7 +5119,7 @@ func _build_garage_mouths(st) -> void:
 					Color("#c23a32") if k % 2 == 0 else Color("#f2f2ee"))
 		var a := bar - side * w * 0.5
 		var b := bar + side * w * 0.5
-		_wall_faces.append_array([Vector3(a.x, y - 0.5, a.y), Vector3(b.x, y - 0.5, b.y), Vector3(b.x, open, b.y),
+		_solid(&"garage_door", [Vector3(a.x, y - 0.5, a.y), Vector3(b.x, y - 0.5, b.y), Vector3(b.x, open, b.y),
 				Vector3(a.x, y - 0.5, a.y), Vector3(b.x, open, b.y), Vector3(a.x, open, a.y)])
 		# The P board on the hood's roof, read from up the ramp and from over the car park.
 		_mouth_p(st, Vector3(mid.x, roof + 0.75, mid.y), basis, 1.1)
@@ -7634,7 +7638,7 @@ func _build_rails(st) -> void:
 
 ## A solid along a polyline whose foot follows the terrain: hedges, fences, walls,
 ## platforms drawn as lines. Goes into the building meshes (UV.x < 0: no windows).
-func _wall_along(st, poly: PackedVector2Array, width: float, height: float, col: Color, collide: bool) -> void:
+func _wall_along(st, poly: PackedVector2Array, width: float, height: float, col: Color, collide: bool, cls: StringName) -> void:
 	var hw := width * 0.5
 	for i in poly.size() - 1:
 		var a := poly[i]
@@ -7663,7 +7667,7 @@ func _wall_along(st, poly: PackedVector2Array, width: float, height: float, col:
 				var p0: Vector3 = bottom[k]
 				var p1: Vector3 = bottom[(k + 1) % 4]
 				var up := Vector3(0, height + 1.5, 0)
-				_wall_faces.append_array([p0, p1, p1 + up, p0, p1 + up, p0 + up])
+				_solid(cls, [p0, p1, p1 + up, p0, p1 + up, p0 + up])
 
 
 const BARRIER_STYLE := {
@@ -7690,9 +7694,9 @@ const BARRIER_STYLE := {
 ## top and a middle rail you can see through (Operation Unslop's tram railing and stair balustrade).
 ## It collides like a wall of the same height, so driving stays as it was.
 func _railing_along(st, poly: PackedVector2Array, height: float, upstand: float, up_col: Color, rail_col: Color, collide: bool,
-		post_every := 2.0, base := NAN, base_end := NAN) -> void:
+		cls: StringName, post_every := 2.0, base := NAN, base_end := NAN) -> void:
 	if upstand > 0.0:
-		_wall_along(st, poly, 0.2, upstand, up_col, false)
+		_wall_along(st, poly, 0.2, upstand, up_col, false, cls)
 	var run := 0.0
 	var next_post := 0.0
 	var low := maxf(upstand, 0.0) + (0.1 if upstand > 0.0 else 0.35)
@@ -7724,7 +7728,7 @@ func _railing_along(st, poly: PackedVector2Array, height: float, upstand: float,
 			next_post += post_every
 		run += length
 		if collide:
-			_wall_faces.append_array([Vector3(a.x, ga - 0.3, a.y), Vector3(b.x, gb - 0.3, b.y), Vector3(b.x, gb + height + 1.5, b.y),
+			_solid(cls, [Vector3(a.x, ga - 0.3, a.y), Vector3(b.x, gb - 0.3, b.y), Vector3(b.x, gb + height + 1.5, b.y),
 					Vector3(a.x, ga - 0.3, a.y), Vector3(b.x, gb + height + 1.5, b.y), Vector3(a.x, ga + height + 1.5, a.y)])
 
 ## Operation Unslop's per-object decisions (tools/street_pass.py --apply writes them from the street
@@ -8323,7 +8327,7 @@ func _build_city_walls(st) -> void:
 			var shade := CITY_WALL.darkened(0.04 * float(i % 3))
 			_quad(st, Vector3(a.x, ga, a.y), Vector3(b.x, gb, b.y), Vector3(b.x, tops[j], b.y), Vector3(a.x, tops[i], a.y), n, shade)
 			if h >= 1.0:
-				_wall_faces.append_array([Vector3(a.x, ga, a.y), Vector3(b.x, gb, b.y), Vector3(b.x, tops[j] + 1.5, b.y),
+				_solid(&"wall", [Vector3(a.x, ga, a.y), Vector3(b.x, gb, b.y), Vector3(b.x, tops[j] + 1.5, b.y),
 						Vector3(a.x, ga, a.y), Vector3(b.x, tops[j] + 1.5, b.y), Vector3(a.x, tops[i] + 1.5, a.y)])
 			if h >= WALL_MERLON_MIN and Vector2(n.x, n.z).dot((a + b) * 0.5 - OLD_TOWN_HEART) > 0.0:
 				_merlons(st, a, b, tops[i], tops[j], Vector2(n.x, n.z), _wall_depth(ring))
@@ -8449,6 +8453,16 @@ func _site_wall(flat: Array) -> Array:
 	return []
 
 
+## The city objects plan, step 1: a barrier line's solid class, from its kind (`fence`, `hedge`,
+## `wall`; a `platform` line never collides); a wall or fence the bake gave a stair's balustrade
+## style (`st`, tools/object_fixes.py: beside a flight of steps) is a `stair_wall`, whatever style
+## a street pass draws it in.
+static func barrier_class(l: Dictionary) -> StringName:
+	if str(l.get("st", "")).begins_with("balustrade"):
+		return &"stair_wall"
+	return StringName(str(l["k"]))
+
+
 func _build_barriers(st) -> void:
 	_uv2 = Vector2(0.5, -1.0)
 	_load_object_overrides()
@@ -8498,10 +8512,11 @@ func _build_barriers(st) -> void:
 					style = BARRIER_STYLE[str(o[1])]
 		var pts := _pts(l["p"])
 		var solid: bool = l["k"] != "platform" and float(style[2]) >= BARRIER_SOLID_MIN
+		var cls := barrier_class(l)
 		if style.size() > 3:
 			var open: Array = style[3]
 			# A railing OSM maps (tools/barrier_tags.py) has a post every 3 m: 30 km of them.
-			_railing_along(st, pts, float(style[2]), float(open[0]), Color(style[0]), Color(str(open[1])), true,
+			_railing_along(st, pts, float(style[2]), float(open[0]), Color(style[0]), Color(str(open[1])), true, cls,
 					3.0 if l.has("ft") or (l["k"] == "fence" and float(l.get("h", 0.0)) > FENCE_SOLID_MAX) else 2.0)
 			continue
 		# Loop 3b: a stop's platform is kerb height (0.25 m), not a wall: like the kerbs and
@@ -8514,17 +8529,17 @@ func _build_barriers(st) -> void:
 			for i in pts.size():
 				if i > 0 and _on_sunk_edge(pts[i - 1], pts[i]):
 					if piece.size() >= 2:
-						_wall_along(st, piece, float(style[1]), float(style[2]), Color(style[0]), solid)
+						_wall_along(st, piece, float(style[1]), float(style[2]), Color(style[0]), solid, cls)
 					piece = PackedVector2Array()
 				piece.append(pts[i])
 			if piece.size() >= 2:
-				_wall_along(st, piece, float(style[1]), float(style[2]), Color(style[0]), solid)
+				_wall_along(st, piece, float(style[1]), float(style[2]), Color(style[0]), solid, cls)
 			continue
 		if l["k"] == "wall" and not _stair_idx.is_empty():
 			for piece in _stair_gaps(pts):
-				_wall_along(st, piece, float(style[1]), float(style[2]), Color(style[0]), solid)
+				_wall_along(st, piece, float(style[1]), float(style[2]), Color(style[0]), solid, cls)
 			continue
-		_wall_along(st, pts, float(style[1]), float(style[2]), Color(style[0]), solid)
+		_wall_along(st, pts, float(style[1]), float(style[2]), Color(style[0]), solid, cls)
 	_build_pkin_bushes(st)
 	_uv2 = Vector2.ZERO
 
@@ -8701,12 +8716,12 @@ func _build_bridge_structures(st) -> void:
 					var r1: Vector2 = p1 - right * side * 0.12
 					_quad(st, Vector3(p0.x, ya + top, p0.y), Vector3(p1.x, yb + top, p1.y), Vector3(r1.x, yb + top, r1.y),
 							Vector3(r0.x, ya + top, r0.y), Vector3.UP, concrete.lightened(0.1))
-					_railing_along(st, PackedVector2Array([r0, r1]), DECK_RAIL_H, 0.0, concrete, Color(rail), false,
+					_railing_along(st, PackedVector2Array([r0, r1]), DECK_RAIL_H, 0.0, concrete, Color(rail), false, &"guard_deck",
 							DECK_RAIL_BARS, ya + 0.08, yb + 0.08)
 				if is_outer and rail != "":
 					var drop_r := maxf(ya - terrain_height(p0.x, p0.y), yb - terrain_height(p1.x, p1.y))
 					if drop_r > 1.0:
-						_wall_faces.append_array([Vector3(p0.x, ya - 0.2, p0.y), Vector3(p1.x, yb - 0.2, p1.y), Vector3(p1.x, yb + 1.6, p1.y),
+						_solid(&"guard_deck", [Vector3(p0.x, ya - 0.2, p0.y), Vector3(p1.x, yb - 0.2, p1.y), Vector3(p1.x, yb + 1.6, p1.y),
 								Vector3(p0.x, ya - 0.2, p0.y), Vector3(p1.x, yb + 1.6, p1.y), Vector3(p0.x, ya + 1.6, p0.y)])
 				elif is_outer:
 					# The parapet's top and inner face.
@@ -8720,7 +8735,7 @@ func _build_bridge_structures(st) -> void:
 					# metre of the ground beside it, as at its ends, the parapet is a kerb to the car).
 					var drop := maxf(ya - terrain_height(p0.x, p0.y), yb - terrain_height(p1.x, p1.y))
 					if (piers or d["k"] == "path") and drop > 1.0:
-						_wall_faces.append_array([Vector3(p0.x, ya - 0.2, p0.y), Vector3(p1.x, yb - 0.2, p1.y), Vector3(p1.x, yb + 1.6, p1.y),
+						_solid(&"guard_deck", [Vector3(p0.x, ya - 0.2, p0.y), Vector3(p1.x, yb - 0.2, p1.y), Vector3(p1.x, yb + 1.6, p1.y),
 								Vector3(p0.x, ya - 0.2, p0.y), Vector3(p1.x, yb + 1.6, p1.y), Vector3(p0.x, ya + 1.6, p0.y)])
 			for side in [-1.0, 1.0]:
 				if not (join & (1 if side < 0.0 else 2)):
@@ -8739,7 +8754,7 @@ func _build_bridge_structures(st) -> void:
 						Vector3(k0.x, ya + 0.22, k0.y), -kn, concrete.darkened(0.08))
 				var drop2 := maxf(ya - terrain_height(k0.x, k0.y), yb - terrain_height(k1.x, k1.y))
 				if (piers or d["k"] == "path" or d["k"] == "tram") and drop2 > 1.0:
-					_wall_faces.append_array([Vector3(k0.x, ya - 0.2, k0.y), Vector3(k1.x, yb - 0.2, k1.y), Vector3(k1.x, yb + 1.6, k1.y),
+					_solid(&"guard_deck", [Vector3(k0.x, ya - 0.2, k0.y), Vector3(k1.x, yb - 0.2, k1.y), Vector3(k1.x, yb + 1.6, k1.y),
 							Vector3(k0.x, ya - 0.2, k0.y), Vector3(k1.x, yb + 1.6, k1.y), Vector3(k0.x, ya + 1.6, k0.y)])
 	var ms := _srednicowy_frame()
 	var pn := _poniatowski_frame()
@@ -8788,7 +8803,7 @@ func _pier(st, p: Dictionary, col: Color) -> void:
 	for k in 4:
 		var a := corners[k]
 		var b := corners[(k + 1) % 4]
-		_wall_faces.append_array([Vector3(a.x, y0, a.y), Vector3(b.x, y0, b.y), Vector3(b.x, y1, b.y),
+		_solid(&"pier", [Vector3(a.x, y0, a.y), Vector3(b.x, y0, b.y), Vector3(b.x, y1, b.y),
 				Vector3(a.x, y0, a.y), Vector3(b.x, y1, b.y), Vector3(a.x, y1, a.y)])
 
 
@@ -8807,6 +8822,7 @@ func _build_guard_rails(st) -> void:
 	for g in data.get("guards", []):
 		var poly := _pts(g["p"])
 		var dk := int(g.get("dk", -1))
+		var guard := &"guard_deck" if dk >= 0 else &"guard_ground"
 		var run := 0.0
 		var next_post := 0.0
 		for i in poly.size() - 1:
@@ -8833,7 +8849,7 @@ func _build_guard_rails(st) -> void:
 				_box_oriented(st, Vector3(p.x, y + 0.35, p.y), Basis(Vector3.UP, atan2(-dir.x, -dir.y)), Vector3(0.1, 0.7, 0.1), post)
 				next_post += 4.0
 			run += length
-			_wall_faces.append_array([Vector3(a.x, ga - 0.3, a.y), Vector3(b.x, gb - 0.3, b.y), Vector3(b.x, gb + 1.6, b.y),
+			_solid(guard, [Vector3(a.x, ga - 0.3, a.y), Vector3(b.x, gb - 0.3, b.y), Vector3(b.x, gb + 1.6, b.y),
 					Vector3(a.x, ga - 0.3, a.y), Vector3(b.x, gb + 1.6, b.y), Vector3(a.x, ga + 1.6, a.y)])
 		if poly.size() > 1:
 			ends.append([poly[0], dk, ends.size() / 2])
@@ -8867,7 +8883,7 @@ func _build_guard_rails(st) -> void:
 				var p1: Vector2 = seg[2]
 				var y0: float = seg[1]
 				var y1: float = seg[3]
-				_wall_faces.append_array([Vector3(p0.x, y0 - 0.3, p0.y), Vector3(p1.x, y1 - 0.3, p1.y), Vector3(p1.x, y1 + 1.6, p1.y),
+				_solid(&"guard_deck", [Vector3(p0.x, y0 - 0.3, p0.y), Vector3(p1.x, y1 - 0.3, p1.y), Vector3(p1.x, y1 + 1.6, p1.y),
 						Vector3(p0.x, y0 - 0.3, p0.y), Vector3(p1.x, y1 + 1.6, p1.y), Vector3(p0.x, y0 + 1.6, p0.y)])
 			guard_joins += 1
 	_uv2 = Vector2.ZERO
@@ -8998,7 +9014,7 @@ func _build_shore() -> void:
 				var g1 := terrain_height(p1.x, p1.y)
 				var h0 := _shore_wall_top(p0, g0)
 				var h1 := _shore_wall_top(p1, g1)
-				_wall_faces.append_array([Vector3(p0.x, g0 - 1.0, p0.y), Vector3(p1.x, g1 - 1.0, p1.y), Vector3(p1.x, h1, p1.y),
+				_solid(&"struct_wall", [Vector3(p0.x, g0 - 1.0, p0.y), Vector3(p1.x, g1 - 1.0, p1.y), Vector3(p1.x, h1, p1.y),
 						Vector3(p0.x, g0 - 1.0, p0.y), Vector3(p1.x, h1, p1.y), Vector3(p0.x, h0, p0.y)])
 
 
@@ -9273,7 +9289,7 @@ func _build_platforms(st) -> void:
 				var b0 := Vector3(p0.x, terrain_height(p0.x, p0.y) - 0.3, p0.y)
 				var b1 := Vector3(p1.x, terrain_height(p1.x, p1.y) - 0.3, p1.y)
 				var up := Vector3(0.0, ground + h + 1.6 - minf(b0.y, b1.y), 0.0)
-				_wall_faces.append_array([b0, b1, b1 + up, b0, b1 + up, b0 + up])
+				_solid(&"platform", [b0, b1, b1 + up, b0, b1 + up, b0 + up])
 	_uv2 = Vector2.ZERO
 
 
@@ -9297,7 +9313,7 @@ func _tram_island(st, a: Dictionary, poly: PackedVector2Array, top: float) -> vo
 		_strip(st, _inset_run(run, poly, TRAM_TACTILE_IN + TRAM_TACTILE_W * 0.5), TRAM_TACTILE_W, top + 0.008,
 				TRAM_TACTILE_COL, false)
 	for flat: Array in a.get("re", []):
-		_railing_along(st, _inset_run(_pts(flat), poly, 0.15), 1.1, 0.0, TRAM_RAILING_COL, TRAM_RAILING_COL, false, 2.0, top)
+		_railing_along(st, _inset_run(_pts(flat), poly, 0.15), 1.1, 0.0, TRAM_RAILING_COL, TRAM_RAILING_COL, false, &"platform", 2.0, top)
 
 
 ## A run of a polygon's outline moved `d` m into the polygon (each point along its segments' mean
@@ -9904,6 +9920,19 @@ func _open_wall(p: Vector2, open: Array) -> bool:
 	return false
 
 
+## The city objects plan, step 1: an OpenStreetMap building's solid class, the road-objects
+## census's split (tools/road_objects.py `objects`): one of these kinds, or any outline under
+## SMALL_AREA m², is a `small_building`; the rest are `building`s.
+const SMALL_KINDS := ["roof", "steps", "column", "kiosk", "carport", "shed", "service", "toilets", "transformer_tower"]
+const SMALL_AREA := 30.0
+
+
+static func building_class(bld: Dictionary, poly: PackedVector2Array) -> StringName:
+	if str(bld.get("kind", "")) in SMALL_KINDS or absf(_poly_area(poly)) < SMALL_AREA:
+		return &"small_building"
+	return &"building"
+
+
 func _build_buildings(st, keep: Array, marks) -> void:
 	var list: Array = data["buildings"]
 	var open: Array = data.get("lod2_open", [])
@@ -9929,6 +9958,7 @@ func _build_buildings(st, keep: Array, marks) -> void:
 		var mh := float(bottoms.get(index, bld["mh"]))
 		if mh < 0.0:
 			continue  # a tiny floating bit (_part_bottoms)
+		var cls := building_class(bld, poly)
 		var ground := INF
 		for q in poly:
 			ground = minf(ground, terrain_height(q.x, q.y))
@@ -9949,7 +9979,7 @@ func _build_buildings(st, keep: Array, marks) -> void:
 					var b := poly[(i + 1) % poly.size()]
 					if not _open_wall((a + b) * 0.5, open):
 						var g1 := ground + minf(5.0, h)
-						_wall_faces.append_array([Vector3(a.x, ground - 1.0, a.y), Vector3(b.x, ground - 1.0, b.y),
+						_solid(&"small_building", [Vector3(a.x, ground - 1.0, a.y), Vector3(b.x, ground - 1.0, b.y),
 								Vector3(b.x, g1, b.y), Vector3(a.x, ground - 1.0, a.y), Vector3(b.x, g1, b.y),
 								Vector3(a.x, g1, a.y)])
 			continue
@@ -10016,7 +10046,7 @@ func _build_buildings(st, keep: Array, marks) -> void:
 				var g0 := ground - 1.0
 				# Loop 3b: never over the building's own top (a viaduct's pillar ends under its slab).
 				var g1 := ground + minf(5.0, h)
-				_wall_faces.append_array([Vector3(a.x, g0, a.y), Vector3(b.x, g0, b.y), Vector3(b.x, g1, b.y),
+				_solid(cls, [Vector3(a.x, g0, a.y), Vector3(b.x, g0, b.y), Vector3(b.x, g1, b.y),
 						Vector3(a.x, g0, a.y), Vector3(b.x, g1, b.y), Vector3(a.x, g1, a.y)])
 		if rise > 0.0:
 			_pitched_gables(st, pitched, ground + wall_h, wall_h, wall)
@@ -10421,7 +10451,7 @@ func _build_lod2(walls, marks) -> Array:
 						solid = false
 						break
 			if solid:
-				_wall_faces.append_array([pos[t], pos[t + 1], pos[t + 2]])
+				_solid(&"lod2", [pos[t], pos[t + 1], pos[t + 2]])
 		_roof_triangle(pos[t], pos[t + 1], pos[t + 2], flat_ish, col[t])
 	_has_lod2 = true
 	if not _in_sector:
@@ -11202,7 +11232,7 @@ func _build_street_furniture() -> void:
 			var a: Vector3 = t * footprint[k]
 			var b: Vector3 = t * footprint[(k + 1) % 4]
 			var up := Vector3(0, 1.5, 0)
-			_wall_faces.append_array([a, b, b + up, a, b + up, a + up])
+			_solid(&"parked", [a, b, b + up, a, b + up, a + up])
 
 
 ## Street-lamp heads, and the light they give off at night (linear; alpha = halo brightness).
@@ -12140,7 +12170,7 @@ func _build_props() -> void:
 	var glows: Array[Color] = []
 	glows.resize(shelters.size() / 3)
 	glows.fill(SHELTER_GLOW)
-	_props(_shared["shelter"], _shared["fixture"], shelters, 4.0, none, false, glows)
+	_props(_shared["shelter"], _shared["fixture"], shelters, 4.0, none, false, glows, [], &"shelter")
 
 
 ## The Royal Route's black granite benches (the Chopin benches, with the button that plays him):
@@ -12185,9 +12215,10 @@ func _split_chopin_benches(list: Array) -> Array:
 
 
 ## Instances of one prop at (x, z, yaw) triples; props bigger than `solid` metres
-## across become obstacles. `fine`: under a metre tall (loop 2b: no shadow, FINE_GROUP).
+## across become obstacles (of solid class `cls`, step 1). `fine`: under a metre tall (loop 2b: no
+## shadow, FINE_GROUP).
 func _props(mesh: Mesh, material: Material, list: Array, solid: float, tints: Array[Color], fine := false,
-		custom: Array[Color] = [], extra: Array[Transform3D] = []) -> void:
+		custom: Array[Color] = [], extra: Array[Transform3D] = [], cls := &"prop") -> void:
 	var spots: Array[Transform3D] = []
 	for i in range(0, list.size() - 2, 3):
 		var x := float(list[i])
@@ -12214,7 +12245,7 @@ func _props(mesh: Mesh, material: Material, list: Array, solid: float, tints: Ar
 			var a: Vector3 = c[k]
 			var b: Vector3 = c[(k + 1) % 4]
 			var up := Vector3(0, 2.0, 0)
-			_wall_faces.append_array([a, b, b + up, a, b + up, a + up])
+			_solid(cls, [a, b, b + up, a, b + up, a + up])
 
 
 ## PT-7 (2026-11-02): the car pinned in the dents of a building block's ground outline. Where
@@ -12358,7 +12389,7 @@ func _bridge_pockets(keep: Array, marks) -> void:
 		var p1 := Vector3(b.x, gb - 0.5, b.y)
 		var q0 := Vector3(a.x, ga + POCKET_WALL, a.y)
 		var q1 := Vector3(b.x, gb + POCKET_WALL, b.y)
-		_wall_faces.append_array([p0, p1, q1, p0, q1, q0])
+		_solid(&"pocket", [p0, p1, q1, p0, q1, q0])
 		pocket_walls += 1
 
 
@@ -12526,41 +12557,77 @@ func _on_road(a: Vector2, b: Vector2, roads: Array) -> bool:
 	return false
 
 
+## The city objects plan, step 1: files a collider's faces (three vertices each) under their solid
+## class (a class of solidity.gd: `building`, `fence`, `pier`, ...), so a contact can be named and
+## a class later given another answer. Every collider face of the city goes through here.
+func _solid(cls: StringName, faces: PackedVector3Array) -> void:
+	if not _solids.has(cls):
+		_solids[cls] = PackedVector3Array()
+	_solids[cls].append_array(faces)
+
+
+## The colliders: one StaticBody3D per solid class, `Solid_<class>` with meta "solid" = the class
+## (step 1), in solidity.gd's order; all on layer 1, backface collision on, as the one body was.
 func _build_collision() -> void:
-	var faces := _wall_faces
-	if _in_sector:
-		# Loop 3c: the faces whose centre lies in the sector (each face in exactly one).
-		faces = PackedVector3Array()
-		for i in range(0, _wall_faces.size() - 2, 3):
-			var c := (_wall_faces[i] + _wall_faces[i + 1] + _wall_faces[i + 2]) / 3.0
-			if _sector_rect.has_point(Vector2(c.x, c.z)):
-				faces.append_array([_wall_faces[i], _wall_faces[i + 1], _wall_faces[i + 2]])
+	var order := Solidity.classes()
+	var extra: Array = []
+	for cls: StringName in _solids:
+		if not cls in order:
+			extra.append(cls)
+	if not extra.is_empty():
+		extra.sort()
+		push_error("map: collider faces under classes solidity.gd doesn't know: %s" % [extra])
+		order.append_array(extra)
+	for cls: StringName in order:
+		if not _solids.has(cls):
+			continue
+		var all: PackedVector3Array = _solids[cls]
+		var faces := all
+		if _in_sector:
+			# Loop 3c: the faces whose centre lies in the sector (each face in exactly one).
+			faces = PackedVector3Array()
+			for i in range(0, all.size() - 2, 3):
+				var c := (all[i] + all[i + 1] + all[i + 2]) / 3.0
+				if _sector_rect.has_point(Vector2(c.x, c.z)):
+					faces.append_array([all[i], all[i + 1], all[i + 2]])
 		if faces.is_empty():
-			return
+			continue
+		var body := _solid_body(cls)
+		if _in_sector:
+			# Loop 3d-2b: a sector's faces in shapes of at most COLLIDER_CHUNK faces, sorted by 64 m
+			# cell (each shape a compact patch). The physics server builds a shape made on the
+			# streamer's worker on the main thread, at once: a sector's 7,000-19,000 faces as one shape
+			# stalled the frame its load ended 5-20 ms on the Mac; the prebuilt sector's worker loads
+			# these one a frame (tools/bake_city.gd saves each as a piece). The faces are the same.
+			# Step 1: each class's faces cut on their own, so every patch holds one class.
+			for part in _collider_chunks(faces):
+				var cs := CollisionShape3D.new()
+				var piece := ConcavePolygonShape3D.new()
+				piece.backface_collision = true
+				piece.set_faces(part)
+				cs.shape = piece
+				body.add_child(cs)
+			_out.add_child(body)
+			continue
+		var shape := CollisionShape3D.new()
+		var concave := ConcavePolygonShape3D.new()
+		concave.backface_collision = true
+		concave.set_faces(faces)
+		shape.shape = concave
+		body.add_child(shape)
+		add_child(body)
+	if not _in_sector:
+		var edge := _solid_body(&"edge")
+		_add_edge_walls(edge)
+		add_child(edge)
+
+
+## A class's collider body (step 1): named after it, the class in its "solid" meta, layer 1.
+static func _solid_body(cls: StringName) -> StaticBody3D:
 	var body := StaticBody3D.new()
-	if _in_sector:
-		# Loop 3d-2b: a sector's faces in shapes of at most COLLIDER_CHUNK faces, sorted by 64 m
-		# cell (each shape a compact patch). The physics server builds a shape made on the
-		# streamer's worker on the main thread, at once: a sector's 7,000-19,000 faces as one shape
-		# stalled the frame its load ended 5-20 ms on the Mac; the prebuilt sector's worker loads
-		# these one a frame (tools/bake_city.gd saves each as a piece). The faces are the same.
-		for part in _collider_chunks(faces):
-			var cs := CollisionShape3D.new()
-			var piece := ConcavePolygonShape3D.new()
-			piece.backface_collision = true
-			piece.set_faces(part)
-			cs.shape = piece
-			body.add_child(cs)
-		_out.add_child(body)
-		return
-	var shape := CollisionShape3D.new()
-	var concave := ConcavePolygonShape3D.new()
-	concave.backface_collision = true
-	concave.set_faces(faces)
-	shape.shape = concave
-	body.add_child(shape)
-	_add_edge_walls(body)
-	add_child(body)
+	body.name = "Solid_" + String(cls)
+	body.set_meta(&"solid", cls)
+	return body
 
 
 ## Loop 3d-2b: a sector's collider faces, at most this many to a shape (_build_collision).
@@ -12592,6 +12659,7 @@ func _collider_chunks(faces: PackedVector3Array) -> Array[PackedVector3Array]:
 func _build_edge_walls() -> void:
 	var body := StaticBody3D.new()
 	body.name = "Edges"
+	body.set_meta(&"solid", &"edge")
 	_add_edge_walls(body)
 	add_child(body)
 

@@ -35,6 +35,9 @@
 # `pois` runs tools/check_pois.py (content POIs, 2026-10-31): the baked corner shops, metro
 # entrances, bike docks, Leżaks and zones (Q1-Q6: none on the carriageway, a crossing, a kerb ramp,
 # in anything solid or off the map; the density, the egg zone, the odd shares).
+# `solids` runs game/tools/check_solids.gd (the city objects plan, step 1, 2026-11-13): in six sectors
+# the collider faces per solid class are the same on the runtime and prebuilt paths and their total is
+# the recorded one; every collider body of the city (sectors, edge walls, dressing) carries a known class.
 # `deckxray` runs game/tools/check_deck_xray.gd (GAMEPLAY_PLAN 0.3, 2026-11-03): the car's x-ray is on
 # under a bridge or viaduct deck (Trasa Łazienkowska) and off on top of one and on open streets.
 # `tunnelcut` runs game/tools/check_tunnel_cut.gd (F, 2026-11-08): in every tunnel the ground that
@@ -1115,6 +1118,9 @@ for s in $want; do
 		drive-prebuilt) skip_prebuilt drive-prebuilt || check drive-prebuilt '^check_drive:' --script res://tools/check_drive.gd -- --prebuilt ;;
 		# PT bug log (docs/PLAYTEST.md): the real car through the spots a playtest found it stopping
 		# dead (PT-1: Marszałkowska's Centrum tram stop); the sectors round them, both city paths.
+		# The city objects plan, step 1: every collider face has its solid class (solidity.gd), the same
+		# faces per class in the runtime and prebuilt sectors, every city body classed.
+		solids) skip_prebuilt solids || check solids '^solids:' --script res://tools/check_solids.gd ;;
 		deckxray) check deckxray '^check_deck_xray:' --script res://tools/check_deck_xray.gd ;;
 		tunnelcut) check tunnelcut '^check_tunnel_cut:' --script res://tools/check_tunnel_cut.gd ;;
 		lanedrive) check lanedrive '^check_lane_drive:' --fixed-fps 60 --script res://tools/check_lane_drive.gd ;;

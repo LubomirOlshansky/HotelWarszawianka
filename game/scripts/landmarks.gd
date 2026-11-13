@@ -2538,7 +2538,7 @@ func _collide(ring: PackedVector2Array) -> void:
 		for k in range(1, steps + 1):
 			var p1 := a.lerp(b, float(k) / steps)
 			var g1: float = _collide_foot(p1)
-			map._wall_faces.append_array([Vector3(p0.x, g0, p0.y), Vector3(p1.x, g1, p1.y), Vector3(p1.x, g1 + 6.0, p1.y),
+			map._solid(&"landmark", [Vector3(p0.x, g0, p0.y), Vector3(p1.x, g1, p1.y), Vector3(p1.x, g1 + 6.0, p1.y),
 					Vector3(p0.x, g0, p0.y), Vector3(p1.x, g1 + 6.0, p1.y), Vector3(p0.x, g0 + 6.0, p0.y)])
 			p0 = p1
 			g0 = g1
@@ -2558,7 +2558,7 @@ func _collide_span(ring: PackedVector2Array, y0: float, y1: float) -> void:
 	for i in ring.size():
 		var a := ring[i]
 		var b := ring[(i + 1) % ring.size()]
-		map._wall_faces.append_array([Vector3(a.x, y0, a.y), Vector3(b.x, y0, b.y), Vector3(b.x, y1, b.y),
+		map._solid(&"landmark", [Vector3(a.x, y0, a.y), Vector3(b.x, y0, b.y), Vector3(b.x, y1, b.y),
 				Vector3(a.x, y0, a.y), Vector3(b.x, y1, b.y), Vector3(a.x, y1, a.y)])
 
 
@@ -3919,7 +3919,7 @@ func _tarasy_wave(site: Dictionary) -> void:
 			_quad(Vector3(a.x, ga, a.y), Vector3(b.x, gb, b.y), Vector3(b.x, yb, b.y), Vector3(a.x, ya, a.y),
 					Vector3(n.x, 0, n.y), TARASY_RIM, Vector2(0, ga - _g), Vector2(a.distance_to(b), gb - _g),
 					Vector2(a.distance_to(b), yb - _g), Vector2(0, ya - _g), maxf(ya, yb) - _g)
-			map._wall_faces.append_array([Vector3(a.x, ga - 1.0, a.y), Vector3(b.x, gb - 1.0, b.y), Vector3(b.x, gb + 5.0, b.y),
+			map._solid(&"landmark", [Vector3(a.x, ga - 1.0, a.y), Vector3(b.x, gb - 1.0, b.y), Vector3(b.x, gb + 5.0, b.y),
 					Vector3(a.x, ga - 1.0, a.y), Vector3(b.x, gb + 5.0, b.y), Vector3(a.x, ga + 5.0, a.y)])
 
 
@@ -8013,7 +8013,7 @@ func _sunk_edges(sk: Dictionary) -> void:
 				_sunk_band(w0 + d * 0.02, w0 + d * 0.08, t0, t0, 0.99, nout)
 			# The car: from the floor to well over the railing (or the parapet), on the edge.
 			var over := 1.6 if style == "rail" or style == "shops" else 0.6
-			map._wall_faces.append_array([Vector3(p0.x, f0 - 0.5, p0.y), Vector3(p1.x, f1 - 0.5, p1.y), Vector3(p1.x, t1 + over, p1.y),
+			map._solid(&"landmark", [Vector3(p0.x, f0 - 0.5, p0.y), Vector3(p1.x, f1 - 0.5, p1.y), Vector3(p1.x, t1 + over, p1.y),
 					Vector3(p0.x, f0 - 0.5, p0.y), Vector3(p1.x, t1 + over, p1.y), Vector3(p0.x, t0 + over, p0.y)])
 
 

@@ -536,6 +536,7 @@ func _colliders(list: Array) -> Node3D:
 	root.name = "EdgeRoadworks"
 	var body := StaticBody3D.new()
 	body.name = "Barriers"
+	body.set_meta(&"solid", &"edge")  # the city objects plan's solid class (solidity.gd)
 	root.add_child(body)
 	for c: Dictionary in list:
 		var xf := frame(c)

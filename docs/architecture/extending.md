@@ -23,6 +23,7 @@ move later, and don't build a third private copy.
 | Turning the radio or a bus down under something (a talk, a venue's music, a voice) | a row in `Sfx.DUCKS` (`sfx.gd`), then `Sfx.duck("name")` and `Sfx.release("name")`, or `Sfx.duck("name", seconds)`; ducks stack, the deepest counts (`check_mixer`) | writing a player's or a bus's level yourself, or saving and restoring the level you found |
 | A vibration | `Access.buzz` (goes through `haptics.gd`) | `Input.vibrate_handheld` directly |
 | An AI car or group of people | city-ai.md section 7 | a node per car, a new person material |
+| Something solid the car hits (a collider) | in `map_builder.gd`: `_solid(class, faces)` with a class of `solidity.gd` (the list is `game/data/object_palette.json`; a new class is a row there); a script's own `StaticBody3D` in the city: `set_meta("solid", class)`. `check_solids` compares the classes on both city paths | faces added to a body or an array of your own without a class; a class name that is not in the palette |
 | A building, landmark or prop | `landmarks.gd`, `models.gd`, `props.gd` and the skill `model-from-photos`; the map bake for data (skill `bake-map`) | geometry added to only one city path |
 | Something drawn every frame, a light, a material, a shader | graphics.md, then report bench before and after | a new shader without `check_shader_budget` |
 | A quality-dependent extra | a field in `tiers.gd` and, if it costs CPU, a step in `governor.gd` | `if OS.get_model_name() ...` in a feature |
