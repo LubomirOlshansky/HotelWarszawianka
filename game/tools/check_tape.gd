@@ -21,38 +21,17 @@ const Tape := preload("res://scripts/tape.gd")
 const Notebook := preload("res://scripts/notebook.gd")
 const Wallet := preload("res://scripts/wallet.gd")
 const HudScript := preload("res://scripts/hud.gd")
+const Fakes := preload("res://tools/fakes.gd")
 const MAX_PL := 70
 
 var problems: Array[String] = []
 var verbose := false
 
 
-## A stand-in for the HUD's context button and note card.
-class FakeHud:
-	extends CanvasLayer
-	var owner_now := ""
-	var notes: Array = []
-
-	func show_pill(_pl: String, _en := "", who := "call") -> void:
-		owner_now = who
-
-	func hide_pill() -> void:
-		owner_now = ""
-
-	func pill_shown(who: String) -> bool:
-		return owner_now == who
-
-	func pill_free() -> bool:
-		return owner_now == ""
-
+## The shared HUD, with the context button's priority rule as hud.gd has it (`pill_free_for`).
+class TapeHud extends Fakes.Hud:
 	func pill_free_for(who: String) -> bool:
-		return owner_now == "" or HudScript.pill_outranks(who, owner_now)
-
-	func show_note(title: String, body: String, _c: Color) -> void:
-		notes.append([title, body])
-
-	func notebook_changed() -> void:
-		pass
+		return pill == "" or HudScript.pill_outranks(who, pill)
 
 
 func _initialize() -> void:
@@ -79,7 +58,7 @@ func _run() -> void:
 	var wallet: Wallet = Wallet.new()
 	wallet.persistent = false
 	root.add_child(wallet)
-	var hud := FakeHud.new()
+	var hud := TapeHud.new()
 	root.add_child(hud)
 	var tape: Tape = Tape.new()
 	tape.wallet = wallet
@@ -187,7 +166,7 @@ func _check_reach(tape: Tape, data: Dictionary) -> int:
 	return with_ghost
 
 
-func _check_play(tape: Tape, wallet: Wallet, hud: FakeHud) -> void:
+func _check_play(tape: Tape, wallet: Wallet, hud: TapeHud) -> void:
 	var i := tape.index_of("t_defilad_2012")
 	var at: Vector2 = tape.spots[i]["at"]
 	var p := Vector3(at.x + 10.0, 0.0, at.y)
@@ -210,7 +189,7 @@ func _check_play(tape: Tape, wallet: Wallet, hud: FakeHud) -> void:
 		problems.append("the tape didn't play from the button")
 	if wallet.respect - before != Tape.RESPECT or not wallet.tapes.has("t_defilad_2012"):
 		problems.append("the first play paid %d respect (want %d) and stamped %s" % [wallet.respect - before, Tape.RESPECT, wallet.tapes])
-	if hud.notes.is_empty() or not str(hud.notes[-1][0]).begins_with("KASETA · 2012"):
+	if hud.notes.is_empty() or not str(hud.note_titles[-1]).begins_with("KASETA · 2012"):
 		problems.append("no then card shown (%s)" % [hud.notes])
 	# The dither follows the fade: nothing kept at the start, KEEP at full.
 	var keep0 := _kept(tape)

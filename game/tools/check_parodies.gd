@@ -31,6 +31,7 @@ const LaneGraph := preload("res://scripts/lane_graph.gd")
 const PixelFont := preload("res://scripts/pixel_font.gd")
 const Neon := preload("res://scripts/neon_signs.gd")
 const Props := preload("res://scripts/props.gd")
+const Fakes := preload("res://tools/fakes.gd")
 
 ## Two older kebab_order lines (loop 2b) over the Polish bubbles' 70: not this loop's words to
 ## change (BACKLOG "From loop MW-2").
@@ -39,41 +40,6 @@ const OLD_LONG := ["Zamówienie dla pana Krzysztofa z Powiśla. W uwagach: „du
 ## The dialogue groups the parodies speak or show.
 const GROUPS := ["rechotka", "easter_rechotka", "pedzik", "lezak", "easter_lezak", "kebab_vendor", "kebab_order", "signs",
 		"column_posters", "mrozulo_review", "mrozulo_owner", "office"]
-
-
-## A stand-in for dialogue.gd: the real lines, records each one asked for.
-class FakeDialogue extends Node:
-	var lines := {}
-	var said: Array = []
-	var bubbles: FakeBubbles
-
-	func say(_anchor: Variant, speaker: String, group: String, tag := "", _s := 4.0, _a := Color.WHITE, _h := 2.6, _p := false, _k := 0, _key := "") -> Array:
-		said.append([speaker, group, tag])
-		return ["…", "…"]
-
-	func say_ambient(_anchor: Variant, speaker: String, group: String, tag := "", _s := 4.0, _a := Color.WHITE, _h := 2.6, _p := false) -> Array:
-		return say(_anchor, speaker, group, tag, _s, _a, _h, _p)
-
-	func say_reaction(_anchor: Variant, speaker: String, group: String, tag := "", _s := 4.0, _a := Color.WHITE, _h := 2.6, _p := false, _key := "") -> Array:
-		return say(_anchor, speaker, group, tag, _s, _a, _h, _p)
-
-	func line(group: String, tag := "", _prefer := false) -> Array:
-		said.append(["", group, tag])
-		return ["…", "…"]
-
-	func count(group: String, tag: String) -> int:
-		var n := 0
-		for l: Array in said:
-			n += int(l[1] == group and l[2] == tag)
-		return n
-
-
-class FakeBubbles extends Control:
-	var n := 0
-	func say(_anchor: Variant, _who: String, _pl: String, _en: String, _s := 3.0, _a := Color.WHITE, _h := 2.0) -> void:
-		n += 1
-	func say_ambient(_anchor: Variant, _who: String, _pl: String, _en: String, _s := 3.0, _a := Color.WHITE, _h := 2.0) -> void:
-		n += 1
 
 
 ## Flat ground; a roof over the synthetic facade's box (z < -5 round x 0) for the wall test.
@@ -92,15 +58,6 @@ class FakeMap extends Node3D:
 		return false
 	func top_height(x: float, z: float, _r := 0.0) -> float:
 		return 12.0 if z < -5.0 and z > -15.0 and absf(x - 5000.0) < 10.0 else 0.0
-
-
-class FakeHud extends CanvasLayer:
-	var toasts: Array = []
-	var notes: Array = []
-	func toast(pl: String, en := "") -> void:
-		toasts.append([pl, en])
-	func show_note(a: String, b: String, _c := Color.WHITE) -> void:
-		notes.append([a, b])
 
 
 var problems: Array[String] = []
@@ -128,10 +85,11 @@ func _run() -> void:
 		print("check_parodies: PROBLEM (no map/centrum.json or places.json)")
 		quit(1)
 		return
-	var dlg := FakeDialogue.new()
-	dlg.bubbles = FakeBubbles.new()
+	var dlg := Fakes.Dialogue.new()
+	dlg.say_words = ["…", "…"]
+	dlg.bubbles = Fakes.Bubbles.new()
 	dlg.add_child(dlg.bubbles)
-	dlg.lines = JSON.parse_string(FileAccess.get_file_as_string("res://data/dialogue.json"))
+	var lines: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://data/dialogue.json"))
 	root.add_child(dlg)
 	var wallet: Wallet = Wallet.new()
 	wallet.persistent = false
@@ -143,7 +101,7 @@ func _run() -> void:
 	_expect(eggs.load_eggs(), "data/eggs.json doesn't load")
 	var map := FakeMap.new()
 	root.add_child(map)
-	var hud := FakeHud.new()
+	var hud := Fakes.Hud.new()
 	root.add_child(hud)
 	var graph := LaneGraph.new(data["graph"], map)
 	var sf: Storefronts = Storefronts.new()
@@ -162,7 +120,7 @@ func _run() -> void:
 	sf.setup(data, book.places)
 	var setup_ms := (Time.get_ticks_usec() - t0) / 1000.0
 	_check_picks(sf, data, book, graph)
-	_check_words(dlg.lines)
+	_check_words(lines)
 	var wall := await _check_wall(sf)
 	var tick_us := _check_hooks(sf, dlg, hud, wallet, eggs)
 	var tris := _check_meshes()
@@ -498,7 +456,7 @@ func _check_wall(sf: Storefronts) -> float:
 
 # 5. ------------------------------------------------------------------------------------------
 
-func _check_hooks(sf: Storefronts, dlg: FakeDialogue, hud: FakeHud, wallet: Wallet, eggs: EggBook) -> float:
+func _check_hooks(sf: Storefronts, dlg: Fakes.Dialogue, hud: Fakes.Hud, wallet: Wallet, eggs: EggBook) -> float:
 	# Twelve shops "on their walls" (the game's rays do this at sector load).
 	var picked: Array[int] = []
 	for i in sf.shops.size():
@@ -550,11 +508,11 @@ func _check_hooks(sf: Storefronts, dlg: FakeDialogue, hud: FakeHud, wallet: Wall
 	sf._process(1.0 / 60.0)
 	var moved := Vector2(at0.x, at0.z).distance_to(Vector2(sf.scooters[li]["at"].x, sf.scooters[li]["at"].z))
 	_expect(moved >= 0.29 and moved <= 3.01, "knock: the Leżak moved %.2f m (want 1-3, or 0.3 by a lane)" % moved)
-	_expect(dlg.bubbles.n == 1, "knock: %d asides (want 1)" % dlg.bubbles.n)
+	_expect((dlg.bubbles as Fakes.Bubbles).said.size() == 1, "knock: %d asides (want 1)" % (dlg.bubbles as Fakes.Bubbles).said.size())
 	var at1: Vector3 = sf.scooters[li]["at"]
 	veh = [at1 + Vector3(0.3, 0.0, 0.0), 20.0, false]
 	sf._process(1.0 / 60.0)
-	_expect(dlg.bubbles.n == 1, "knock: a second aside within the minute")
+	_expect((dlg.bubbles as Fakes.Bubbles).said.size() == 1, "knock: a second aside within the minute")
 	# The eggs on synthetic stops: within their reach, still, 2 s.
 	for id: String in ["easter_rechotka", "easter_lezak"]:
 		_expect(eggs.by_id.has(id), "eggs.json: no %s card" % id)

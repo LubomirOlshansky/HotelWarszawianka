@@ -20,6 +20,7 @@ const Chatter := preload("res://scripts/chatter.gd")
 const Bubbles := preload("res://scripts/bubbles.gd")
 const Dialogue := preload("res://scripts/dialogue.gd")
 const Rides := preload("res://scripts/rides.gd")
+const Fakes := preload("res://tools/fakes.gd")
 const DT := 0.1
 
 var _problems := 0
@@ -40,12 +41,6 @@ class FakeDriver extends RefCounted:
 	var kind := 0
 	var pos := Vector3(4, 0, 0)
 	var size := Vector3(1.8, 1.5, 4.2)
-
-
-class FakeHud extends CanvasLayer:
-	var toasts: Array[String] = []
-	func toast(text: String, _gloss := "") -> void:
-		toasts.append(text)
 
 
 var bubbles: Control
@@ -257,7 +252,7 @@ func _reading_time() -> void:
 
 
 func _ride_toasts() -> void:
-	var hud := FakeHud.new()
+	var hud := Fakes.Hud.new()
 	root.add_child(hud)
 	var rides := Rides.new()
 	rides.hud = hud
@@ -276,6 +271,7 @@ func _ride_toasts() -> void:
 		print("ride: ten bumps, one toast: %s" % hud.toasts[0])
 	# A penalty, then the ride ends before the merge: no toast.
 	hud.toasts.clear()
+	hud.toasts_en.clear()
 	rides._drive_note("corner", ["zakręt", "zakręty", "fast corner", "fast corners"])
 	rides.stage = Rides.Stage.RESULT
 	for s in roundi(4.0 / DT):

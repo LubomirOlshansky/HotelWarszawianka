@@ -27,21 +27,13 @@ extends SceneTree
 ##   godot --headless --path game --script res://tools/check_fans.gd [-- --verbose]
 
 const Fans := preload("res://scripts/fans.gd")
+const Fakes := preload("res://tools/fakes.gd")
 
 
 ## A stand-in for the map: flat ground.
 class FakeMap extends Node3D:
 	func deck_height(_dk: int, _x: float, _z: float) -> float:
 		return 0.0
-
-
-## Records the lines asked for.
-class FakeDialogue extends Node:
-	var said: Array = []
-
-	func say_ambient(_anchor: Variant, speaker: String, group: String, tag := "", _s := 4.0, _a := Color.WHITE, _h := 2.6, _p := false) -> Array:
-		said.append([speaker, group, tag])
-		return ["x", "x"]
 
 
 var problems: Array[String] = []
@@ -234,7 +226,8 @@ func _check_lines(digest: PackedStringArray) -> void:
 func _check_node(data: Dictionary, digest: PackedStringArray) -> void:
 	var map := FakeMap.new()
 	root.add_child(map)
-	var dlg := FakeDialogue.new()
+	var dlg := Fakes.Dialogue.new()
+	dlg.say_words = ["x", "x"]
 	root.add_child(dlg)
 	var f := Fans.new()
 	f.map = map
@@ -282,7 +275,7 @@ func _check_node(data: Dictionary, digest: PackedStringArray) -> void:
 	_expect(float(g1["chant"]) > 0.0, "the horn by the %s group didn't start a chant" % g1["id"])
 	var honked := false
 	for i in range(before, dlg.said.size()):
-		honked = honked or dlg.said[i][2] == "honk"
+		honked = honked or dlg.tags[i] == "honk"
 	_expect(honked, "no honk line after the horn")
 	# Lines in a minute at the gate.
 	before = dlg.said.size()
@@ -303,14 +296,6 @@ func _check_node(data: Dictionary, digest: PackedStringArray) -> void:
 
 
 # 7. -------------------------------------------------------------------------------------------
-
-## Records the toasts.
-class FakeHud extends CanvasLayer:
-	var toasts: Array = []
-
-	func ambient_toast(pl: String, en: String) -> void:
-		toasts.append([pl, en])
-
 
 func _check_match_day(data: Dictionary, digest: PackedStringArray) -> void:
 	# The phases: Saturday's window opens at 15:00, kick-off 16:30.
@@ -383,9 +368,10 @@ func _check_match_day(data: Dictionary, digest: PackedStringArray) -> void:
 	# A node: walking in, then home after a win and after a draw.
 	var map := FakeMap.new()
 	root.add_child(map)
-	var dlg := FakeDialogue.new()
+	var dlg := Fakes.Dialogue.new()
+	dlg.say_words = ["x", "x"]
 	root.add_child(dlg)
-	var hud := FakeHud.new()
+	var hud := Fakes.Hud.new()
 	root.add_child(hud)
 	var f := Fans.new()
 	f.map = map
@@ -427,7 +413,7 @@ func _check_match_day(data: Dictionary, digest: PackedStringArray) -> void:
 		f.tick(0.5)
 	var walk_lines := 0
 	for i in range(before, dlg.said.size()):
-		walk_lines += 1 if dlg.said[i][2] == "walk" or dlg.said[i][2] == "car" else 0
+		walk_lines += 1 if dlg.tags[i] == "walk" or dlg.tags[i] == "car" else 0
 	_expect(walk_lines >= 1, "the walkers said nothing in a minute")
 	# The match: the walkers' way is empty once everyone is in.
 	now = {"hour": kick + 0.6, "weekday": 6}
@@ -443,7 +429,7 @@ func _check_match_day(data: Dictionary, digest: PackedStringArray) -> void:
 	now = {"hour": kick + Fans.FULL_TIME + 0.05, "weekday": 6}
 	f.tick(0.5)
 	_expect(f.phase == "leave" and f.result == "win" and f.celebrating(), "no win at full time (%s, %s)" % [f.phase, f.result])
-	_expect(hud.toasts.size() == 1 and str(hud.toasts[0][0]).contains("wygrana"), "no full-time toast after a win (%s)" % [hud.toasts])
+	_expect(hud.ambient.size() == 1 and str(hud.ambient[0]).contains("wygrana"), "no full-time toast after a win (%s)" % [hud.ambient])
 	for i in 3000:
 		f.t += 0.1
 		f.move(0.1)
@@ -468,7 +454,7 @@ func _check_match_day(data: Dictionary, digest: PackedStringArray) -> void:
 		f.t += 0.5
 		f.tick(0.5)
 	for i in range(before, dlg.said.size()):
-		tags[dlg.said[i][2]] = true
+		tags[dlg.tags[i]] = true
 	_expect(tags.has("win"), "no win lines on the way home (%s)" % [tags.keys()])
 	# The next match ends in a draw.
 	now = {"hour": kick + 0.6, "weekday": 6}
@@ -476,8 +462,8 @@ func _check_match_day(data: Dictionary, digest: PackedStringArray) -> void:
 	f.force_result = "draw"
 	now = {"hour": kick + Fans.FULL_TIME + 0.05, "weekday": 6}
 	f.tick(0.5)
-	_expect(f.result == "draw" and not f.celebrating() and hud.toasts.size() == 2 and str(hud.toasts[1][1]).contains("draw"),
-			"no draw at the next full time (%s, %s)" % [f.result, hud.toasts])
+	_expect(f.result == "draw" and not f.celebrating() and hud.ambient.size() == 2 and str(hud.ambient_en[1]).contains("draw"),
+			"no draw at the next full time (%s, %s)" % [f.result, hud.ambient])
 	# The cost of a move with the walkers out.
 	var t0 := Time.get_ticks_usec()
 	for i in 200:
@@ -549,7 +535,8 @@ func _check_dodge(data: Dictionary, digest: PackedStringArray) -> void:
 	# A node before kick-off: a car comes at a walker head on at 12 m/s.
 	var map := FakeMap.new()
 	root.add_child(map)
-	var dlg := FakeDialogue.new()
+	var dlg := Fakes.Dialogue.new()
+	dlg.say_words = ["x", "x"]
 	root.add_child(dlg)
 	var f := Fans.new()
 	f.map = map
@@ -593,8 +580,8 @@ func _check_dodge(data: Dictionary, digest: PackedStringArray) -> void:
 			f.move(0.1)
 		_expect(f.w_off[w].length() < 0.05, "a walker still %.1f m off its way 6 s after the car" % f.w_off[w].length())
 	var said_dodge := 0
-	for l: Array in dlg.said:
-		said_dodge += 1 if l[2] == "dodge" else 0
+	for i in dlg.said.size():
+		said_dodge += 1 if dlg.tags[i] == "dodge" else 0
 	# A car driven slowly through the gate's group.
 	var g: Dictionary = f.groups[0]
 	var a: Vector2 = g["at"]
@@ -629,8 +616,8 @@ func _check_dodge(data: Dictionary, digest: PackedStringArray) -> void:
 		f.t += 0.5
 		f.tick(0.5)
 	for i in range(before, dlg.said.size()):
-		match_lines += 1 if dlg.said[i][2] == "match" else 0
-		_expect(dlg.said[i][2] != "kid", "the kid talks outside during the match")
+		match_lines += 1 if dlg.tags[i] == "match" else 0
+		_expect(dlg.tags[i] != "kid", "the kid talks outside during the match")
 	_expect(match_lines >= 1, "no match lines from those left outside")
 	now = {"hour": kick + Fans.FULL_TIME - 0.01, "weekday": 6}
 	f.tick(0.5)

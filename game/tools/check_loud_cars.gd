@@ -24,6 +24,7 @@ const Models := preload("res://scripts/models.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Dialogue := preload("res://scripts/dialogue.gd")
 const Sfx := preload("res://scripts/sfx.gd")
+const Fakes := preload("res://tools/fakes.gd")
 const BUBBLE := 70
 
 
@@ -51,19 +52,6 @@ class FakeSfx extends Node:
 	var played: Array = []
 	func play_at(n: String, at: Vector3, _gain_db := 0.0) -> void:
 		played.append([n, at])
-
-
-class FakeBubbles extends Control:
-	func say(_anchor: Variant, _speaker: String, _line: String, _sub := "", _s := 4.0, _a := Color.WHITE, _h := 2.6, _k := 0, _key := "") -> bool:
-		return true
-	func allows(_k: int, _key := "") -> bool:
-		return true
-	func is_talking(_anchor: Variant) -> bool:
-		return false
-	func hush(_anchor: Variant) -> void:
-		pass
-	func muted() -> bool:
-		return false
 
 
 var problems: Array[String] = []
@@ -321,7 +309,7 @@ func _check_traffic(g: LaneGraph, map: Node3D, digest: PackedStringArray) -> voi
 	root.add_child(fsfx)
 	root.add_child(fradio)
 	var dlg := Dialogue.new()
-	dlg.bubbles = FakeBubbles.new()
+	dlg.bubbles = Fakes.Bubbles.new()
 	root.add_child(dlg)
 	root.add_child(dlg.bubbles)
 	lc.traffic = traffic

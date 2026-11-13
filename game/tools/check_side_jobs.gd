@@ -45,89 +45,6 @@ const Fakes := preload("res://tools/fakes.gd")
 const DT := 1.0 / 60.0
 
 
-class FakeDialogue extends Node:
-	var said: Array = []
-	var bubbles: Control = null
-
-	func say(_anchor: Variant, speaker: String, group: String, tag := "", _s := 4.0, _a := Color.WHITE, _h := 2.6, _p := false, _k := 0, _key := "") -> Array:
-		said.append([speaker, group, tag])
-		return ["…", "…"]
-
-	func say_ambient(_anchor: Variant, speaker: String, group: String, tag := "", _s := 4.0, _a := Color.WHITE, _h := 2.6, _p := false) -> Array:
-		return say(_anchor, speaker, group, tag, _s, _a, _h, _p)
-
-	func say_reaction(_anchor: Variant, speaker: String, group: String, tag := "", _s := 4.0, _a := Color.WHITE, _h := 2.6, _p := false, _key := "") -> Array:
-		return say(_anchor, speaker, group, tag, _s, _a, _h, _p)
-
-	func line(group: String, tag := "", _prefer := false) -> Array:
-		said.append(["", group, tag])
-		return ["…", "…"]
-
-	func count(group: String, tag: String) -> int:
-		var n := 0
-		for l: Array in said:
-			n += int(l[1] == group and l[2] == tag)
-		return n
-
-
-class FakeHud extends CanvasLayer:
-	signal card_pressed(index: int)
-	signal abort_pressed
-	signal challenge_pressed
-	var toasts: Array = []
-	var cards: Array = []
-	var challenge := false
-	var status := ""
-	var pois := 0
-	var _up := false
-	var _owner: Object = null
-
-	func toast(pl: String, en := "") -> void:
-		toasts.append([pl, en])
-
-	func show_note(_a: String, _b: String, _c := Color.WHITE) -> void:
-		pass
-
-	func show_card(title: String, _body: String, _b: PackedStringArray, _c: Color, _bottom := false, _te := "", _be := "", _s := false) -> void:
-		cards.append(title)
-		_up = true
-		_owner = null
-
-	func hide_card() -> void:
-		_up = false
-		_owner = null
-
-	func own_card(o: Object) -> void:
-		_owner = o
-
-	func card_is(o: Object) -> bool:
-		return _up and _owner == o
-
-	func card_showing() -> bool:
-		return _up
-
-	func ticker_out() -> void:
-		pass
-
-	func show_status(title: String, _clock: String, _d: String, _h: String, _p: float, _c: Color, _badge := "", _i := {}, _he := "") -> void:
-		status = title
-
-	func hide_status() -> void:
-		status = ""
-
-	func show_challenge(_t: String, _c: Color, _g := "", _s := "", _se := "") -> void:
-		challenge = true
-
-	func hide_challenge() -> void:
-		challenge = false
-
-	func hide_pill() -> void:
-		pass
-
-	func set_minimap_pois(points: PackedVector2Array, _c: PackedColorArray, _s := PackedInt32Array()) -> void:
-		pois = points.size()
-
-
 class FakeMissions extends Node:
 	var paused := false
 	func close() -> void:
@@ -302,9 +219,10 @@ static func _path(pts: Array, k := "foot") -> Dictionary:
 
 
 func _check_race() -> void:
-	var hud := FakeHud.new()
+	var hud := Fakes.Hud.new()
 	root.add_child(hud)
-	var dlg := FakeDialogue.new()
+	var dlg := Fakes.Dialogue.new()
+	dlg.say_words = ["…", "…"]
 	root.add_child(dlg)
 	var wallet: Wallet = Wallet.new()
 	wallet.persistent = false
@@ -336,7 +254,7 @@ func _check_race() -> void:
 	cr.paths = detour
 	cr.on_order(Vector3(0, 0, 0), Vector3(300, 0, 0), 1, true, -1, 0.0, go)
 	await _until(cr, func() -> bool: return cr.state != CourierRace.State.ROUTING)
-	_expect(cr.state == CourierRace.State.IDLE and not hud.challenge, "a 3 × detour was challenged")
+	_expect(cr.state == CourierRace.State.IDLE and hud.challenge == "", "a 3 × detour was challenged")
 	# By day, unforced: nothing.
 	cr.force = false
 	cr.paths = straight
@@ -347,10 +265,10 @@ func _check_race() -> void:
 	cr.on_order(Vector3(0, 0, 0), Vector3(300, 0, 0), 2, true, -1, 0.0, go)
 	await _until(cr, func() -> bool: return cr.state != CourierRace.State.ROUTING)
 	cr.step(DT)
-	_expect(cr.state == CourierRace.State.OFFER and hud.challenge and dlg.count("pedzik", "challenge") == 1, "the straight way wasn't challenged")
+	_expect(cr.state == CourierRace.State.OFFER and hud.challenge != "" and dlg.count("pedzik", "challenge") == 1, "the straight way wasn't challenged")
 	car.global_position = Vector3(0, 0, 0)
 	cr.set_road(320.0)
-	_expect(cr.accept() and cr.racing() and went[0] == 1 and not hud.challenge, "ŚCIGAJ didn't start the race and the delivery")
+	_expect(cr.accept() and cr.racing() and went[0] == 1 and hud.challenge == "", "ŚCIGAJ didn't start the race and the delivery")
 	_expect(not cr.accept(), "a second ŚCIGAJ")
 	var frames := 0
 	var t0 := Time.get_ticks_usec()
@@ -388,7 +306,7 @@ func _check_race() -> void:
 	await _until(cr, func() -> bool: return cr.state != CourierRace.State.ROUTING)
 	for k in roundi((CourierRace.OFFER_S + 0.2) * 60.0):
 		cr.step(DT)
-	_expect(cr.state == CourierRace.State.IDLE and not hud.challenge and not cr.accept(), "the challenge stayed past 6 s")
+	_expect(cr.state == CourierRace.State.IDLE and hud.challenge == "" and not cr.accept(), "the challenge stayed past 6 s")
 	# Loop couriers: the challenger is a courier waiting at the stand. Unforced at night, none waiting:
 	# no challenge.
 	var life := FakeLife.new()
@@ -400,7 +318,7 @@ func _check_race() -> void:
 		night_n += 1
 	cr.on_order(Vector3(0, 0, 0), Vector3(300, 0, 0), night_n, true, -1, 0.0, go, 7)
 	await _until(cr, func() -> bool: return cr.state != CourierRace.State.ROUTING)
-	_expect(cr.state == CourierRace.State.IDLE and not hud.challenge, "a challenge with no courier waiting at the stand")
+	_expect(cr.state == CourierRace.State.IDLE and hud.challenge == "", "a challenge with no courier waiting at the stand")
 	# Two waiting: the challenge from the last one's spot; he stands (the race's rider hidden) until ŚCIGAJ.
 	var spot := Vector3(2.0, 0.0, -3.0)
 	life.waiting = [[Vector3(-2.0, 0.0, -3.0), 0.0], [spot, 0.0]]
@@ -476,9 +394,10 @@ func _check_roundup(sf: Storefronts, map: FakeMap, wallet: Wallet) -> void:
 			if i < j:
 				var d: float = (sf.zones[i]["at"] as Vector3).distance_to(sf.zones[j]["at"])
 				_expect(d >= RoundupJob.DEPOT_SPACING, "depots %d and %d %.0f m apart" % [i, j, d])
-	var hud := FakeHud.new()
+	var hud := Fakes.Hud.new()
 	root.add_child(hud)
-	var dlg := FakeDialogue.new()
+	var dlg := Fakes.Dialogue.new()
+	dlg.say_words = ["…", "…"]
 	root.add_child(dlg)
 	var car := FakeCar.new()
 	root.add_child(car)

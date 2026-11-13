@@ -33,27 +33,7 @@ const Notebook := preload("res://scripts/notebook.gd")
 const EggBook := preload("res://scripts/egg_book.gd")
 const Wallet := preload("res://scripts/wallet.gd")
 const TimeOfDay := preload("res://scripts/time_of_day.gd")
-
-
-## A stand-in for dialogue.gd: records each line asked for.
-class FakeDialogue extends Node:
-	var said: Array = []
-
-	func say(_anchor: Variant, speaker: String, group: String, tag := "", _s := 4.0, _a := Color.WHITE, _h := 2.6, _p := false, _k := 0, _key := "") -> Array:
-		said.append([speaker, group, tag])
-		return ["…", "…"]
-
-	func say_ambient(_anchor: Variant, speaker: String, group: String, tag := "", _s := 4.0, _a := Color.WHITE, _h := 2.6, _p := false) -> Array:
-		return say(_anchor, speaker, group, tag, _s, _a, _h, _p)
-
-	func say_reaction(_anchor: Variant, speaker: String, group: String, tag := "", _s := 4.0, _a := Color.WHITE, _h := 2.6, _p := false, _key := "") -> Array:
-		return say(_anchor, speaker, group, tag, _s, _a, _h, _p)
-
-	func count(group: String, tag: String) -> int:
-		var n := 0
-		for l: Array in said:
-			n += int(l[1] == group and l[2] == tag)
-		return n
+const Fakes := preload("res://tools/fakes.gd")
 
 
 var problems: Array[String] = []
@@ -90,7 +70,8 @@ func _run() -> void:
 		print("check_crowds: PROBLEM (no map data or places.json)")
 		quit(1)
 		return
-	var dlg := FakeDialogue.new()
+	var dlg := Fakes.Dialogue.new()
+	dlg.say_words = ["…", "…"]
 	root.add_child(dlg)
 	var c: Crowds = _make(book.places, data, dlg, 1.0)
 	_check_sites(c)
@@ -503,7 +484,7 @@ func _run_ticks(c: Crowds, seconds: float) -> void:
 		c.tick(Crowds.TICK)
 
 
-func _check_door(c: Crowds, dlg: FakeDialogue) -> void:
+func _check_door(c: Crowds, dlg: Fakes.Dialogue) -> void:
 	var smola: Dictionary = c.sites[c.by_id["smola"]]
 	var door: Vector2 = smola["door"]
 	eye = Vector3(door.x, 0.0, door.y)
@@ -656,7 +637,7 @@ func _check_dawn(c: Crowds, _data: Dictionary) -> float:
 ## weekends, its standing groups on the rondo's kerbs, its routes over the real footways (the
 ## zebra crossings among them), its walkers on a Wednesday morning (the dawn crowd's MultiMesh,
 ## none at night, on a Sunday, or far from the rondo), and its lines.
-func _check_office(c: Crowds, data: Dictionary, dlg: FakeDialogue) -> void:
+func _check_office(c: Crowds, data: Dictionary, dlg: Fakes.Dialogue) -> void:
 	_expect(Crowds.office_level(8.5, 3, false) == 1.0 and Crowds.office_level(12.5, 3, false) > 0.5
 			and Crowds.office_level(17.0, 5, false) == 1.0, "office level at rush hours on a working day")
 	_expect(Crowds.office_level(8.5, 6, false) == 0.0 and Crowds.office_level(8.5, 7, false) == 0.0, "no office crowd on a weekend")
@@ -717,7 +698,7 @@ func _check_office(c: Crowds, data: Dictionary, dlg: FakeDialogue) -> void:
 	now = {"hour": 8.5, "weekday": 3}
 	seen = true
 	c.refresh()
-	dlg.said.clear()
+	dlg.forget()
 	_run_ticks(c, 40.0)
 	var want := Crowds.office_count(Crowds.OFFICE_MAX, 8.5, 3, false)
 	_expect(c.office_on and c.walk_mode == "office" and c.walkers.size() == want, "office walkers on a Wednesday at 08:30: %d (want %d)" % [c.walkers.size(), want])
@@ -737,8 +718,8 @@ func _check_office(c: Crowds, data: Dictionary, dlg: FakeDialogue) -> void:
 	for s: Dictionary in offices:
 		_expect(int(s["n"]) >= int(s["max"]) - 1, "office site %s holds %d at 08:30 (max %d)" % [s["id"], s["n"], s["max"]])
 	var said := 0
-	for l: Array in dlg.said:
-		said += int(l[1] == "office")
+	for i in dlg.said.size():
+		said += int(dlg.groups[i] == "office")
 	_expect(said >= 4, "office lines in 40 s: %d (want 4 or more)" % said)
 	for i in c.walkers.size():
 		var p := c.walker_pos(i)

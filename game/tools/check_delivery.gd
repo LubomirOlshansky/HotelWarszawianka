@@ -18,6 +18,7 @@ extends SceneTree
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Jobs := preload("res://scripts/jobs.gd")
 const RouteLine := preload("res://scripts/route_line.gd")
+const Fakes := preload("res://tools/fakes.gd")
 
 var problems: Array[String] = []
 var verbose := false
@@ -38,25 +39,6 @@ class FakeMap extends Node3D:
 		return false
 	func top_height(_x: float, _z: float, _r := 0.0) -> float:
 		return 0.0
-
-
-## What jobs.gd asks of the hud for NASTĘPNE: the toast and the minimap's route (with its owner).
-class FakeHud extends CanvasLayer:
-	var toasts: Array = []
-	var route := PackedVector2Array()
-	var owner_now := ""
-
-	func toast(pl: String, _en := "") -> void:
-		toasts.append(pl)
-
-	func set_minimap_route(points: PackedVector2Array, _c: Color, who := "") -> void:
-		route = points
-		owner_now = who
-
-	func clear_minimap_route(who: String) -> void:
-		if owner_now == who:
-			route = PackedVector2Array()
-			owner_now = ""
 
 
 func _initialize() -> void:
@@ -185,7 +167,7 @@ func _check_heat(jobs: Jobs) -> String:
 
 ## 4. NASTĘPNE from a door: the nearest stand by road, pointed at, routed; the owner rule.
 func _check_next(jobs: Jobs, graph: LaneGraph, stands: Array) -> String:
-	var hud := FakeHud.new()
+	var hud := Fakes.Hud.new()
 	root.add_child(hud)
 	var car := CharacterBody3D.new()
 	root.add_child(car)
@@ -221,12 +203,12 @@ func _check_next(jobs: Jobs, graph: LaneGraph, stands: Array) -> String:
 	_expect(mine <= best + 0.5, "NASTĘPNE picked stand %d at %.0f m, the nearest is %.0f m" % [i, mine, best])
 	_expect(jobs.pointing() and jobs.target_position() == stands[i]["ring"] and jobs.stop_spot() == stands[i]["ring"],
 			"the pointer: pointing %s, target %s, stand ring %s" % [jobs.pointing(), jobs.target_position(), stands[i]["ring"]])
-	_expect(hud.route.size() >= 2 and hud.owner_now == "jobs", "NASTĘPNE drew no route (%d points, owner '%s')" % [hud.route.size(), hud.owner_now])
+	_expect(hud.route.size() >= 2 and hud.route_owner == "jobs", "NASTĘPNE drew no route (%d points, owner '%s')" % [hud.route.size(), hud.route_owner])
 	var ring: Vector3 = stands[i]["ring"]
 	_expect(hud.route.size() >= 2 and hud.route[hud.route.size() - 1].distance_to(Vector2(ring.x, ring.z)) < 0.5, "the route doesn't end at the stand's ring")
 	_expect(hud.toasts.size() == 1 and String(hud.toasts[0]).begins_with("Następne zamówienie"), "the toast: %s" % [hud.toasts])
 	# Another activity drew its own route since: the pointer's end leaves it alone.
 	hud.set_minimap_route(PackedVector2Array([Vector2.ZERO, Vector2.ONE]), Color.WHITE, "rides")
 	jobs.call("_route_off", true)
-	_expect(hud.route.size() == 2 and hud.owner_now == "rides", "the jobs route's end wiped the ride's route")
+	_expect(hud.route.size() == 2 and hud.route_owner == "rides", "the jobs route's end wiped the ride's route")
 	return "stand %d at %.0f m by road" % [i, mine]
