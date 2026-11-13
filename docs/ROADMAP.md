@@ -723,6 +723,12 @@ Beta goal: a visitor explores the city with everything open, an easy city drive,
 - [ ] Collision rework v2: walls redirect by angle, never stop; Classic gets the wall follow; traffic shoved, not a stop (F's phone A/B)
 - [ ] Street sweeps with verdicts per object, first Marszałkowska, Świętokrzyska, Jerozolimskie; stairwells and canopies; soft fences; narrow streets
 
+### Left: a city built for driving (F, 2026-11-13; plan docs/design/drivable-city.md, re-ranks the block above)
+- [x] Research: every object type with purpose and verdict, five solidity classes (Hard, Smash, Push, Ride, Ghost), design rules, ranked plan (2026-11-13, docs only)
+- [ ] Contact log and the sloppy driver; baseline of contacts and dead stops per street
+- [ ] Fences and hedges break when driven through (Smash class, in bulk); parked cars can be pushed, thinned in pinches
+- [ ] No invisible or oversized colliders (check and collider view); narrow streets and yards; tapers and chamfers; the ratchets
+
 ### Left: smoother roads, road objects, then buildings (F, 2026-11-04; plan docs/design/roads-and-objects-plan.md, items in docs/plan/city-plan.json)
 - [x] Research and the day-by-day plan; `tools/street_features.py` (Mapillary detections against the game's props), 2026-11-04 (docs/tools only)
 - [ ] Junction shapes with kerb returns and smoothed bends (RS1, RS2), both city paths
@@ -733,6 +739,8 @@ Beta goal: a visitor explores the city with everything open, an easy city drive,
 - [x] Round 4 at Marszałkowska × Złota: the U-turn's median opening as one flush paved footprint with rounded, kerbed noses and continuous rails (drive test in check_stuck_spots), arrows from each lane's real moves (U-turn arrow before a median opening), stop lines before both crossings, small hatched islands stretched into tapers along the edge (`tools/road_smooth.py` shape_openings, crossing_kit, paint_islands), 2026-11-05
 - [x] Road design system POC (F, 2026-11-06): streets as one axis + cross-sections, junctions built from their arms (`tools/road_design.py`, spec `docs/roads/palace.json`, plots `tools/road_design_plot.py`, skill `road-design`, verify `design`); Marszałkowska × Świętokrzyska, Marszałkowska to Złota, Emilii Plater mid-block designed and shot before/after (docs/design/road-design-palace-results.md); not applied to the shipped map yet
 - [ ] Road design rollout (F, 2026-11-06): every street on the map, area by area (docs/design/road-design-rollout.md, areas in docs/plan/road-areas.json, progress `tools/road_progress.py`); areas 1-2 designed; F 2026-11-07: main as base for the rest, fixing only real bugs (areas 3-7 redesigns dropped)
+- [x] Research: roads true to life (F, 2026-11-13): what the road checks miss at lane level, ten detector rules, a first measurement and the fix order RT-1 to RT-9 (docs/design/roads-true-to-life.md)
+- [ ] Roads true to life: RT-1 the `road_truth` detector, then lane links from `turn:lanes`, turn restrictions, lane changes as paint, roundabouts (BACKLOG "Roads true to life")
 - [x] Road design round 2: the Emilii Plater ends (× Świętokrzyska, × Jerozolimskie), Jerozolimskie, tram U-turns, so the area closes on junctions with no seams; then the lane graph from the spec and the phone bench, and F decides whether it replaces the OSM ribbons
 - [ ] Width that varies along streets from the ortho (RS3 part 2) and the asphalt's history in the shader (RS7, bench)
 - [x] Street-objects log and the object budget (log everything, add only what earns its place), 2026-11-04

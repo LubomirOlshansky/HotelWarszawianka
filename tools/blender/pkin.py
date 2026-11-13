@@ -707,6 +707,32 @@ def build(m):
         m.frustum(orb, 230.5, Model.ngon(0, 0, 0.3, 6), 231.1, M_GOLD, GOLD, smooth=True)
 
 
+# --- the floodlight's projectors -----------------------------------------------------------------
+# F, 2026-11-13: "bake the projector light". The real Palace is lit by about 124 LED projectors on
+# the terrace roofs, each lighting the walls that rise from its terrace; the low wings only from the
+# ground. Every face carries the height of the terrace its light comes from (UV `top`.x, read by
+# landmarks.gd into the vertex alpha), and building.gdshader's floodlight() fades the light up from it.
+SHAFT_LAMPS = [67.0, 114.0, 139.0, 143.0, 168.0, 188.0]
+
+
+def lamp_level(pts):
+    """The terrace height whose projectors light this face (0: the ground)."""
+    zb = min(p.z for p in pts)
+    cu = sum(p.x for p in pts) / len(pts)
+    cv = sum(p.y for p in pts) / len(pts)
+    if zb < 17.0:
+        return 0.0
+    if abs(cu) > 33.5 or abs(cv) > 36.5:
+        return 0.0     # the wings and the Congress Hall: lit from the ground only
+    if zb < 65.5 or abs(cu) > 24.0 or abs(cv) > 24.0:
+        return 18.0    # the first tier and its corner towers, from the base's roof
+    lamp = 67.0
+    for z in SHAFT_LAMPS:
+        if zb + 1.5 >= z:
+            lamp = z
+    return lamp
+
+
 # --- into Blender ------------------------------------------------------------------------------
 def to_blender(m, name):
     me = bpy.data.meshes.new(name)
@@ -739,6 +765,7 @@ def to_blender(m, name):
         if n.length > 1e-9:
             n.normalize()
         zmax = max(p.z for p in pts) if top is None else top
+        lamp = lamp_level(pts)
         wall = abs(n.z) < 0.3 and n.length > 0.5
         if wall:
             t = Vector((-n.y, n.x, 0.0))
@@ -748,7 +775,7 @@ def to_blender(m, name):
                 loop[uv_wall].uv = (1000.0 + p.x * t.x + p.y * t.y, p.z)
             else:
                 loop[uv_wall].uv = (-1.0, -1.0)
-            loop[uv_top].uv = (0.0, zmax)
+            loop[uv_top].uv = (lamp, zmax)
     # Weld coincident corners within a face set so smooth parts shade round, then normals out.
     bmesh.ops.triangulate(bm, faces=bm.faces[:])
     bm.to_mesh(me)

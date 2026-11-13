@@ -2919,6 +2919,10 @@ func _palace_glb(outer: PackedVector2Array, g: float) -> bool:
 					# glTF flips V (v' = 1 - v): turn the metres above the ground back.
 					u.append(Vector2(-1.0, -1.0) if uv[i].x < 0.0 else Vector2(uv[i].x, 1.0 - uv[i].y))
 				var top := 1.0 - uv2[idx[t]].y
+				# The projector's terrace height (tools/blender/pkin.py lamp_level) into the vertex
+				# alpha, 0.75 + metres / 1024: building.gdshader's floodlight() fades the light up
+				# from it. Alpha 1 (every other model) keeps the shader's own falloff.
+				col.a = 0.75 + clampf(uv2[idx[t]].x, 0.0, 250.0) / 1024.0
 				var fn := (p[1] - p[0]).cross(p[2] - p[0])
 				if fn.length_squared() < 1e-10:
 					continue
