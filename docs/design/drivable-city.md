@@ -1,6 +1,7 @@
 # A city built for driving: what is solid, what yields, what goes
 
-**Status (2026-11-13):** research and a ranked plan. No game code changed. It is the follow-up to
+**Status (2026-11-13):** research and a ranked plan. No game code changed. The build plan, item by item,
+is `docs/design/drivable-city-build.md`. It is the follow-up to
 `docs/design/road-objects.md` (2026-11-04: the object audit, the census tool, the street-by-street
 pipeline, the collision targets). That plan still holds for the detail; this page says what
 happened to it, changes one decision in it, and puts the work in a new order.
