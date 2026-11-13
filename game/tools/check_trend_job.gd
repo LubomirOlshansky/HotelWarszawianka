@@ -113,7 +113,7 @@ const CAFES := [["KROPKA.", 29, "matcha latte z kropką", "a matcha latte with a
 
 
 ## A world that has two heights that never agree: one taken from the wrong place shows.
-class SlopeMap extends Node3D:
+class SlopeMap extends Fakes.FlatMap:
 	func ground_height(x: float, z: float) -> float:
 		return 2.0 + 0.001 * x + 0.0005 * z
 	func terrain_height(x: float, z: float) -> float:

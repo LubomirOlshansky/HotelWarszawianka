@@ -10,13 +10,18 @@ extends SceneTree
 ##     function's name, and is put right in one place;
 ##   B no private copies: no script under res://tools writes its own class with a function of the HUD's (a toast,
 ##     a card, a note, the status line, the context button, the minimap's route or pins), or one that speaks
-##     (`say`, `say_ambient`, `say_reaction`: the dialogue's and the bubbles'), unless the class extends one of
-##     fakes.gd's. The ones still left are named in LEFT with the reason; a name there that is no longer a
-##     private stand-in gives a `fakes: WARN` line (the step's row warns until the name is taken off the
-##     list: the change that moved the class is not held up by this list);
+##     (`say`, `say_ambient`, `say_reaction`: the dialogue's and the bubbles'), or one of the map's (a height, a
+##     roof, a tunnel, the shore, the map's edge), unless the class extends one of fakes.gd's. A class that does
+##     extend one may add a function the game's script has and the stand-in has not (a shore, the map's edge:
+##     the game asks a map for those only when it has them, so the shared flat map must not): that function
+##     must take the game's arguments too, read from its line. The private ones still left are named in LEFT
+##     with the reason; a name there that is no longer a private stand-in gives a `fakes: WARN` line (the
+##     step's row warns until the name is taken off the list: the change that moved the class is not held up
+##     by this list);
 ##   C the stand-ins remember what they are given: the HUD's toasts, small toasts, notes and cards in both
 ##     languages and in step; the card's owner and a press; the dialogue's lines with their group, tag, class
-##     and key, what `say` and `line` answer, `count`; the bubbles' budget (`ok`, `allows`, `muted`).
+##     and key, what `say` and `line` answer, `count`; the bubbles' budget (`ok`, `allows`, `muted`); the flat
+##     map's answers and what it must not have.
 ##
 ##   godot --headless --path game --script res://tools/check_fakes.gd
 
@@ -43,12 +48,28 @@ const HUD_MARKS := ["toast", "ambient_toast", "show_note", "show_card", "show_si
 		"show_pill", "show_banner", "show_challenge", "set_minimap_route", "set_minimap_pois", "set_minimap_dots",
 		"set_quest_dots"]
 const TALK_MARKS := ["say", "say_ambient", "say_reaction"]
-## The private stand-ins still left, by file: the racer work has these checks in hand (2026-11-13); each
-## moves to fakes.gd with that work's next change to the check.
+## The functions that make a class a stand-in for the map (map_builder.gd).
+const MAP_MARKS := ["ground_height", "terrain_height", "deck_height", "tunnel_height", "roof_height", "top_height",
+		"in_tunnel", "shore_distance", "in_map", "sunk_floor", "tunnel_floor_under"]
+## The private stand-ins still left, by file. The racer work has its checks in hand (2026-11-13): each moves
+## to fakes.gd with that work's next change to the check. The builders' stub map (`StubMap`: the city as
+## landmarks.gd's builders and the place scripts see it) was shared by the places work on 2026-11-13
+## (mesh_probe.gd, four scripts on it) and check_sites.gd keeps an older copy: one stand-in for both is
+## TD-11's next group.
 const LEFT := {
-	"check_police.gd": ["FakeHud", "FakeBubbles"],
-	"check_crazy_drivers.gd": ["FakeBubbles"],
+	"check_police.gd": ["FakeHud", "FakeBubbles", "FakeMap"],
+	"check_crazy_drivers.gd": ["FakeBubbles", "FakeMap"],
+	"check_ladder.gd": ["FakeMap"],
+	"check_race_cuts.gd": ["FakeMap"],
+	"check_race_links.gd": ["FakeMap"],
+	"check_street_meet.gd": ["FakeMap", "PlayMap"],
+	"race_bench.gd": ["FakeMap"],
+	"mesh_probe.gd": ["StubMap"],
+	"check_sites.gd": ["StubMap"],
 }
+## The types a function's line can name that the engine reports by the same word.
+const PLAIN_TYPES := ["bool", "int", "float", "String", "Vector2", "Vector3", "Rect2", "Color", "Dictionary", "Array",
+		"PackedFloat32Array", "PackedVector2Array", "PackedVector3Array", "Callable"]
 const TOOLS := "res://tools"
 
 var _facts := 0
@@ -58,13 +79,14 @@ var _problems := 0
 func _initialize() -> void:
 	var a := _arguments()
 	var b := _private_copies()
+	_maps()
 	_remember()
 	if _problems == 0:
 		var named := 0
 		for f: String in LEFT:
 			named += (LEFT[f] as Array).size()
-		print("check_fakes: OK (%d facts: %d functions and %d signals of %d stand-ins take the game's arguments; %d scripts under tools read, %d private stand-ins left of the %d named)" % [
-				_facts, a[0], a[1], PAIRS.size(), b[0], b[1], named])
+		print("check_fakes: OK (%d facts: %d functions and %d signals of %d stand-ins take the game's arguments; %d scripts under tools read, %d functions a check adds to a stand-in compared, %d private stand-ins left of the %d named)" % [
+				_facts, a[0], a[1], PAIRS.size(), b[0], b[2], b[1], named])
 		quit(0)
 	else:
 		print("check_fakes: FAILED (%d of %d facts)" % [_problems, _facts])
@@ -130,7 +152,7 @@ func _arguments() -> Array:
 			var mine: Array = s["args"]
 			var other: Array = their_signals[name]["args"]
 			_ok(mine.size() == other.size(), "A Fakes.%s's signal %s carries %d values, %s's %d" % [who, name, mine.size(), path.get_file(), other.size()])
-	_ok(functions >= 40, "A only %d functions compared (the stand-ins had 51 of the game's on 2026-11-13)" % functions)
+	_ok(functions >= 45, "A only %d functions compared (the stand-ins had 57 of the game's on 2026-11-13)" % functions)
 	return [functions, signals]
 
 
@@ -167,6 +189,7 @@ func _private_copies() -> Array:
 	files.sort()
 	_ok(files.size() >= 100, "B only %d scripts under %s" % [files.size(), TOOLS])
 	var left := 0
+	var added := 0
 	var found := {}
 	for f in files:
 		var lines := FileAccess.get_file_as_string("%s/%s" % [TOOLS, f]).split("\n")
@@ -180,6 +203,7 @@ func _private_copies() -> Array:
 				continue
 			var base := m.get_string(2)
 			var functions: Array[String] = []
+			var heads := {}
 			var j := i + 1
 			while j < lines.size() and (lines[j].begins_with("\t") or lines[j].strip_edges() == ""):
 				var e := inner_extends.search(lines[j])
@@ -188,15 +212,20 @@ func _private_copies() -> Array:
 				var fn := function.search(lines[j])
 				if fn != null:
 					functions.append(fn.get_string(1))
+					heads[fn.get_string(1)] = lines[j]
 				j += 1
-			classes[m.get_string(1)] = [base, functions]
+			classes[m.get_string(1)] = [base, functions, heads]
 			i = j
 		for name: String in classes:
 			var marks: Array[String] = []
 			for fn: String in classes[name][1]:
-				if fn in HUD_MARKS or fn in TALK_MARKS:
+				if fn in HUD_MARKS or fn in TALK_MARKS or fn in MAP_MARKS:
 					marks.append(fn)
-			if marks.is_empty() or _shared(name, classes):
+			var of := _shared_class(name, classes)
+			if of != "":
+				added += _added(f, name, of, classes[name][2])
+				continue
+			if marks.is_empty():
 				continue
 			found["%s:%s" % [f, name]] = true
 			var allowed: Array = LEFT.get(f, [])
@@ -210,20 +239,95 @@ func _private_copies() -> Array:
 			_facts += 1
 			if not found.has("%s:%s" % [f, name]):
 				print("fakes: WARN LEFT names %s in %s, which is no longer a private stand-in: take it off the list in check_fakes.gd" % [name, f])
-	return [files.size(), left]
+	return [files.size(), left, added]
 
 
-## Whether the class extends one of fakes.gd's, itself or through another class of its file.
-func _shared(name: String, classes: Dictionary) -> bool:
+## The class of fakes.gd that the class extends, itself or through another class of its file ("" if none).
+func _shared_class(name: String, classes: Dictionary) -> String:
 	var hops := 0
 	var at := name
 	while classes.has(at) and hops < 8:
 		var base := String(classes[at][0])
 		if base.begins_with("Fakes."):
-			return true
+			return base.trim_prefix("Fakes.")
 		at = base
 		hops += 1
-	return false
+	return ""
+
+
+## A class that extends fakes.gd's `of`: each function it adds (one the stand-in has not) that the game's
+## script has too must take the game's arguments, as its line `heads[name]` writes them. A function the
+## stand-in has is held by the engine (an override must take what its parent's takes) and by part A.
+## Answers how many such functions were compared.
+func _added(file: String, cls: String, of: String, heads: Dictionary) -> int:
+	var path := ""
+	for pair: Array in PAIRS:
+		if String(pair[0]) == of:
+			path = String(pair[1])
+	var fake := ((Fakes as GDScript).get_script_constant_map().get(of)) as GDScript
+	if path == "" or fake == null:
+		return 0
+	var mine := {}
+	for m: Dictionary in fake.get_script_method_list():
+		mine[String(m["name"])] = true
+	var n := 0
+	for m: Dictionary in (load(path) as GDScript).get_script_method_list():
+		var name := String(m["name"])
+		if not heads.has(name) or mine.has(name) or name == "_init":
+			continue
+		n += 1
+		var diff := _line_differs(String(heads[name]), m)
+		_ok(diff == "", "B %s's %s (it extends Fakes.%s) adds %s, which %s has too, and does not take what the game's does: %s" % [
+				file, cls, of, name, path.get_file(), diff])
+	return n
+
+
+## "" when the function written on `line` takes and answers what the game's `other` does, else what differs.
+## The count of arguments and of defaults always; a type where the line names a plain one.
+func _line_differs(line: String, other: Dictionary) -> String:
+	var open := line.find("(")
+	var close := line.rfind(")")
+	if open < 0 or close < open:
+		return "its line could not be read (keep the function's head on one line)"
+	var args: Array[String] = []
+	var depth := 0
+	var word := ""
+	for c in line.substr(open + 1, close - open - 1):
+		if c in "([{":
+			depth += 1
+		elif c in ")]}":
+			depth -= 1
+		if c == "," and depth == 0:
+			args.append(word.strip_edges())
+			word = ""
+		else:
+			word += c
+	if word.strip_edges() != "":
+		args.append(word.strip_edges())
+	var b: Array = other["args"]
+	if args.size() != b.size():
+		return "%d arguments, the game's %d" % [args.size(), b.size()]
+	var defaults := 0
+	for i in args.size():
+		var eq := args[i].find("=")
+		if eq >= 0:
+			defaults += 1
+		var colon := args[i].find(":")
+		if colon < 0 or (eq >= 0 and colon == eq - 1):
+			continue  # no type written, or one the engine works out (`:=`)
+		var type := args[i].substr(colon + 1, (eq if eq >= 0 else args[i].length()) - colon - 1).strip_edges()
+		var theirs := type_string(int(b[i]["type"]))
+		if type in PLAIN_TYPES and theirs in PLAIN_TYPES and type != theirs:
+			return "argument %d (%s) is %s, the game's (%s) %s" % [i + 1, args[i].substr(0, colon), type, b[i]["name"], theirs]
+	if defaults != (other["default_args"] as Array).size():
+		return "%d arguments with a default, the game's %d" % [defaults, (other["default_args"] as Array).size()]
+	var arrow := line.find("->", close)
+	if arrow >= 0:
+		var answers := line.substr(arrow + 2).strip_edges().trim_suffix(":").strip_edges()
+		var theirs := type_string(int(other["return"]["type"]))
+		if answers in PLAIN_TYPES and theirs in PLAIN_TYPES and answers != theirs:
+			return "answers %s, the game's %s" % [answers, theirs]
+	return ""
 
 
 # --- C: the stand-ins remember what they are given -------------------------------------------
@@ -311,3 +415,19 @@ func _remember() -> void:
 	_ok(not b.say(self, "Mati", "Nie") and not b.say_ambient(self, "Pies", "Nie") and not b.allows(Chatter.QUEST) and b.muted()
 			and b.said.size() == 3, "C a budget that refuses: nothing shows and nothing is remembered: %s" % [b.said])
 	b.free()
+
+
+## C, the maps: the flat map is flat and has no shore or edge.
+func _maps() -> void:
+	var map := Fakes.FlatMap.new()
+	_ok(map.ground_height(3.0, -4.0) == 0.0 and map.terrain_height(3.0, -4.0) == 0.0 and map.deck_height(2, 3.0, -4.0) == 0.0
+			and map.tunnel_height(1, 3.0, -4.0) == 0.0 and map.top_height(3.0, -4.0) == 0.0 and map.top_height(3.0, -4.0, 2.0) == 0.0
+			and not map.in_tunnel(3.0, -4.0, -5.0), "C the flat map is not flat, or has a tunnel")
+	_ok(map.roof_height(3.0, -4.0) == -1000.0, "C a new flat map has a roof over a point: %.1f" % map.roof_height(3.0, -4.0))
+	map.roof_level = -INF
+	_ok(map.roof_height(3.0, -4.0) == -INF, "C `roof_level` is not what `roof_height` answers: %.1f" % map.roof_height(3.0, -4.0))
+	# The game asks a map for its shore and its edge only when it has them (landmarks.gd, lane_graph.gd): a
+	# flat map that had them would change what every check on it plays.
+	_ok(not map.has_method("shore_distance") and not map.has_method("in_map") and not ("bounds" in map),
+			"C the flat map has a shore or an edge (`shore_distance`, `in_map`, `bounds`): a check that needs one adds it in its own class")
+	map.free()

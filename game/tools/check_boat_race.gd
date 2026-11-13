@@ -42,7 +42,7 @@ const STEP := 1.0 / 60.0
 
 
 ## The map's water from water.bin's shore channel; flat ground.
-class WaterMap extends Node3D:
+class WaterMap extends Fakes.FlatMap:
 	var _r := PackedByteArray()
 	var _w := 0
 	var _h := 0

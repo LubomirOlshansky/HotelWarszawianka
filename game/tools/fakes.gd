@@ -537,9 +537,37 @@ class Wallet extends Node:
 		saves += 1
 
 
+## map_builder.gd's heights for a check with no city: the ground, the terrain, every deck and tunnel floor and
+## the top of whatever stands at a point lie flat at 0, no point is under a roof and none is in a tunnel.
+## It has no shore and no edge (`shore_distance`, `in_map`, `bounds`), and must not grow them: the game asks a
+## map for those only when it has them (landmarks.gd, lane_graph.gd), so every check on the flat map would
+## play something else. A check that needs a slope, a shore or its own roofs writes a class that extends
+## this one with those functions only; they must take the game's arguments (check_fakes.gd A and B).
 class FlatMap extends Node3D:
+	## What `roof_height` answers: far under everything, so no point is under a roof (-INF for a check whose
+	## map said so).
+	var roof_level := -1000.0
+
 	func ground_height(_x: float, _z: float) -> float:
 		return 0.0
+
+	func terrain_height(_x: float, _z: float) -> float:
+		return 0.0
+
+	func deck_height(_g: int, _x: float, _z: float) -> float:
+		return 0.0
+
+	func tunnel_height(_t: int, _x: float, _z: float) -> float:
+		return 0.0
+
+	func roof_height(_x: float, _z: float) -> float:
+		return roof_level
+
+	func top_height(_x: float, _z: float, _radius := 0.0) -> float:
+		return 0.0
+
+	func in_tunnel(_x: float, _z: float, _y: float) -> bool:
+		return false
 
 
 class Car extends Node3D:
