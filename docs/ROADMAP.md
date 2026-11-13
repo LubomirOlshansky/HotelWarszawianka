@@ -489,6 +489,7 @@ then the Launch gate.
 - [x] Rotunda Dynasy, Park Odkrywców's listening pipes and parabolic dishes, the Kahl stone (2026-11-09, F's photos)
 - [x] Powiśle street name plates (2026-11-09, `tamka.gd` `plate_spots`): Warsaw's navy plate on a grey pole at 50+ corners where Powiśle's side streets meet Tamka, Dobra, Topiel and the embankment, the main street's name high and the side street's low (check_tamka; phone look open)
 - [x] Teatr Ateneum's portico on Jaracza from F's photos (2026-11-09, `tamka.gd` `_ateneum`): two stout columns on steps, the TEATR IM. STEFANA JARACZA architrave, the pale arched band with ATENEUM in red, green, black and blue block letters, the dark door and poster cases (check_tamka; phone look open)
+- [ ] Powiśle alive (F, 2026-11-13; plan `docs/powisle-life.md`, BACKLOG "P6/P8 Powiśle alive"): real bars on their real streets as parody signs, summer gardens, people by time of day, queues on Zajęcza, bar sound and night glow. Plan written; L1-L6 open
 - [ ] Powiśle, more real (F, 2026-11-08; plan `docs/powisle-plan.md`, items P1-P12 in BACKLOG): the power plant from photos, real houses on every street, the missing buildings, setts and kerbs, furniture, shops, parks, life, night look. Plan written; items open
 - [x] Street furniture along the main line's route (Krakowskie Przedmieście, Nowy Świat, the Old
       Town's edge, Plac Zbawiciela, the boulevards, Rondo Daszyńskiego)
@@ -576,6 +577,7 @@ then the Launch gate.
   - [ ] RF4b Powiśle roof terraces, L-shaped hips; the phone bench and a Mac look
 
 ### Left: content and feel
+- [ ] **Rooftop run** (F, 2026-11-13; BACKLOG "Rooftop run"): a side job on the Activity kit that drives a photographer between the rooftop clubs PEVEL 27, THE WJU (Spektrum Tower, PR #703) and "the roof" (which roof is open in QUESTIONS); queued, new work is stopped
 - [ ] **"Betonowy album", collect every modernist building** (F, 2026-11-03; docs/design/modernism-collection.md section 2): Pani Wanda's lost slides as Fotka Kadr shots, five story slides, the Emilia then card, the "Betonowa" paint for the whole album. Designed, not built; ships with the nine ★ buildings and grows as M1-M17 land
 - [x] **Bar-crawl taxi quests** (F, 2026-11-04): drive a company of 3-5 through three famous bars (the parody fascias on Nowogrodzka, Mazowiecka, Wilcza, the Powiśle viaduct, the boulevard, the Party House, Praga) against the clock. Done 2026-11-07: `bar_crawl.gd`, four groups and four routes, the stays at the kerb, the mood and the pay, a night call (20:00-04:00); `check_bar_crawl` in verify. Stamps, the phone feel test and more routes in BACKLOG "Bar-crawl taxi quests, next steps"
 - [ ] **Vitkac quests** (F, 2026-11-03; backlog "Vitkac quests and ride stories"): the black-stone luxury block on Bracka as a quest place, with the quests built around it. Not started; the landmark is the 2026-11-03 photo build (PR #385)
@@ -748,7 +750,8 @@ Beta goal: a visitor explores the city with everything open, an easy city drive,
 - [x] Road design system POC (F, 2026-11-06): streets as one axis + cross-sections, junctions built from their arms (`tools/road_design.py`, spec `docs/roads/palace.json`, plots `tools/road_design_plot.py`, skill `road-design`, verify `design`); Marszałkowska × Świętokrzyska, Marszałkowska to Złota, Emilii Plater mid-block designed and shot before/after (docs/design/road-design-palace-results.md); not applied to the shipped map yet
 - [ ] Road design rollout (F, 2026-11-06): every street on the map, area by area (docs/design/road-design-rollout.md, areas in docs/plan/road-areas.json, progress `tools/road_progress.py`); areas 1-2 designed; F 2026-11-07: main as base for the rest, fixing only real bugs (areas 3-7 redesigns dropped)
 - [x] Research: roads true to life (F, 2026-11-13): what the road checks miss at lane level, ten detector rules, a first measurement and the fix order RT-1 to RT-9 (docs/design/roads-true-to-life.md)
-- [ ] Roads true to life: RT-1 the `road_truth` detector, then lane links from `turn:lanes`, turn restrictions, lane changes as paint, roundabouts (BACKLOG "Roads true to life")
+- [x] Roads true to life RT-1: the `road_truth` checker (`tools/road_truth.py`, verify step `roadtruth`), ten rules on the lane graph as a ratchet, two more against raw OpenStreetMap, a sample checked against the aerial photo (2026-11-13)
+- [ ] Roads true to life RT-2 to RT-9: lane links from `turn:lanes`, turn restrictions, lane changes as paint, roundabouts, kinks (BACKLOG "Roads true to life")
 - [x] Road design round 2: the Emilii Plater ends (× Świętokrzyska, × Jerozolimskie), Jerozolimskie, tram U-turns, so the area closes on junctions with no seams; then the lane graph from the spec and the phone bench, and F decides whether it replaces the OSM ribbons
 - [ ] Width that varies along streets from the ortho (RS3 part 2) and the asphalt's history in the shader (RS7, bench)
 - [x] Street-objects log and the object budget (log everything, add only what earns its place), 2026-11-04
