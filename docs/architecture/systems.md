@@ -56,7 +56,7 @@ fails if a script is in neither page, so add a row when you add a file.
 | `heli.gd` | The helicopter. |
 | `boat.gd` | Boats for the boat race. |
 | `gamepad.gd` | Controllers. |
-| `follow_camera.gd` | The follow camera's rules (shared with tests). |
+| `follow_camera.gd` | The follow camera's rules (shared with tests), and the test-only free camera's flag text and view (`--cam=X,Y,Z`, main.gd `_update_free_camera`; check `check_free_cam`, verify step `freecam`). |
 | `camera_shots.gd` | Cinematic moments on Phantom Camera. |
 | `tunnel_xray.gd` | The car seen through the ground in tunnels. |
 | `skids.gd`, `crash_fx.gd`, `splash.gd`, `money_pop.gd`, `haptics.gd` | Juice: tyre marks, sparks, splash, "+54 zł", vibration (every buzz goes through `haptics.gd`). |

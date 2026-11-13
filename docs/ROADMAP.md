@@ -725,9 +725,17 @@ Beta goal: a visitor explores the city with everything open, an easy city drive,
 
 ### Left: a city built for driving (F, 2026-11-13; plan docs/design/drivable-city.md, re-ranks the block above)
 - [x] Research: every object type with purpose and verdict, five solidity classes (Hard, Smash, Push, Ride, Ghost), design rules, ranked plan (2026-11-13, docs only)
-- [ ] Contact log and the sloppy driver; baseline of contacts and dead stops per street
+- [x] The build plan: a brief per item for Opus threads, order and dependencies, broken things' memory and recovery (docs/design/drivable-city-build.md, 2026-11-13, docs only)
+- [ ] Solid classes in the collider (no change in behaviour), then the contact log and the sloppy driver; baseline of contacts and dead stops per street
+- [ ] Collision answer v2 behind presets (with the controls thread)
 - [ ] Fences and hedges break when driven through (Smash class, in bulk); parked cars can be pushed, thinned in pinches
 - [ ] No invisible or oversized colliders (check and collider view); narrow streets and yards; tapers and chamfers; the ratchets
+
+### Left: walls, fences and rails that look real (F, 2026-11-13; plan docs/design/walls-true-to-life.md)
+- [x] Research: the real types, how a line gets its type from tags and its setting, how each is drawn whole and broken, cost and fallbacks, the phases (2026-11-13, docs only)
+- [ ] Types in the bake and the heavy kit (walls with foot, cap and piers, noise screens, parapets), W0 to W2
+- [ ] Fences and hedges as see-through instanced panels that fall when broken, W3 to W5 (after "fences break" above)
+- [ ] Hoardings, graffiti, gates; types in the street sweeps, W6 and W7
 
 ### Left: smoother roads, road objects, then buildings (F, 2026-11-04; plan docs/design/roads-and-objects-plan.md, items in docs/plan/city-plan.json)
 - [x] Research and the day-by-day plan; `tools/street_features.py` (Mapillary detections against the game's props), 2026-11-04 (docs/tools only)
