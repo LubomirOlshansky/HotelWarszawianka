@@ -448,6 +448,7 @@ class ToyRacer:
 	var race_block := 0.0
 	var race_rng: RandomNumberGenerator
 	var cuts_taken := 0
+	var links_taken := 0
 	var mistakes := 0
 	var wrong_turns := 0
 	var blocks := 0

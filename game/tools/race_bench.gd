@@ -81,7 +81,13 @@ const STARTS := {
 	"marszalkowska": Vector2(-1161.8, -456.9),
 	"spawn": Vector2(-911.6, 278.6),
 	"poniatowski": Vector2(1000.0, -153.0),
+	"yard": Vector2(-2314.0, -60.0),
 }
+## Racer AI step 5: a start in Wola from which the way to Rondo ONZ is 670 m shorter through a
+## yard (the race link from the junction at (-2461, -21), 3.5 m wide: Halina dares it, Słoik knows
+## none; by road 1726 m).
+const YARD_START := "yard"
+const YARD_FINISH := "Rondo ONZ"
 ## A finish whose circle another road runs through (race_planner.gd `ends`): the Palace, whose
 ## junction is on one carriageway of Emilii Plater while the other passes 14 m from it, 600 m
 ## short of it by road. The guided first race went there from Marszałkowska in the whole game
@@ -669,7 +675,7 @@ func roads_to(node: int) -> PackedFloat32Array:
 func links_of(name: String) -> Array:
 	if not _links.has(name):
 		var stats := Ladder.racer(Ladder.rung_of(name))
-		_links[name] = cuts.links(float(stats["cuts"]), hash(name))
+		_links[name] = cuts.links(float(stats["cuts"]), hash(name), float(stats.get("yards", 0.0)), float(stats.get("narrow", 99.0)))
 	return _links[name]
 
 
@@ -1066,6 +1072,7 @@ func race(spec: Dictionary) -> Dictionary:
 			"in a junction of" if pull["junction"] else "on", pull["street"], pull["where"].x, pull["where"].y, pull["at"]]
 	out["seen_share"] = snappedf(float(probe.seen) / n, 0.01)
 	out["cuts"] = d.cuts_taken
+	out["links"] = d.links_taken
 	out["mistakes"] = d.mistakes
 	out["wrong_turns"] = d.wrong_turns
 	out["blocks"] = d.blocks
@@ -1426,7 +1433,9 @@ static func judge(results: Array) -> Array:
 	# The skill ladder: flat out on clear roads, rung by rung.
 	var ladder := {}
 	for r: Dictionary in by_id.values():
-		if r["tuning"] == "ladder" and r["situation"] == "clear" and r["player"] == "none" and not r.has("via") and r["finished"] and int(r["seed"]) == 0:
+		if r["tuning"] == "ladder" and r["situation"] == "clear" and r["player"] == "none" and not r.has("via") and r["finished"] and int(r["seed"]) == 0 \
+				and r["start"] != YARD_START:
+			# (The yard course tests who knows the yard, not pace: its own mark below.)
 			if not ladder.has(r["start"]):
 				ladder[r["start"]] = {}
 			ladder[r["start"]][Ladder.rung_of(String(r["rival"]))] = r
@@ -1453,6 +1462,29 @@ static func judge(results: Array) -> Array:
 			ladder_ok = false
 			worst = ladder[start][rungs[0]]["id"]
 	out.append(_mark("skill_ladder", "Skill ladder", ladder_ok if ladder_n > 0 else null, "flat out on clear roads: " + note, worst))
+
+	# The yard (racer AI step 5): on the course through a Wola yard, on clear roads, a rival who
+	# knows every yard takes a race link and one who knows none goes round by the streets.
+	var yard_n := 0
+	var yard_ok := true
+	var yard_names := PackedStringArray()
+	worst = ""
+	for r: Dictionary in by_id.values():
+		if r["start"] != YARD_START or r["situation"] != "clear" or r["player"] != "none" or int(r["seed"]) != 0 or r.has("via"):
+			continue
+		var knows := float(Ladder.racer(Ladder.rung_of(String(r["rival"]))).get("yards", 0.0))
+		if knows > 0.0 and knows < 1.0:
+			continue
+		yard_n += 1
+		var took := int(r.get("links", 0))
+		yard_names.append("%s %d (%.1f s)" % [r["rival"], took, _run(r)])
+		if not r["finished"] or (took > 0) != (knows >= 1.0):
+			yard_ok = false
+			if worst == "":
+				worst = r["id"]
+	yard_names.sort()
+	out.append(_mark("yard_links", "Yard links", yard_ok if yard_n > 0 else null,
+			"race links taken on the yard course, clear roads (all yards known: at least one; none known: none): " + ", ".join(yard_names), worst))
 
 	# The same race twice.
 	var same := 0

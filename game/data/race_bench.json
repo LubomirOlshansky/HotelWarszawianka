@@ -23,6 +23,7 @@
 		"honest_car": "fail",
 		"route_sense": "fail",
 		"skill_ladder": "pass",
-		"same_twice": "pass"
+		"same_twice": "pass",
+		"yard_links": "pass"
 	}
 }

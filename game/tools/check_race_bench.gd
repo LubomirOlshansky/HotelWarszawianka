@@ -285,6 +285,13 @@ func _matrix(full: bool) -> Array:
 	# The final's last stretch: from the middle of Most Poniatowskiego to Trzy mosty's finish.
 	for situation: String in ["clear", "low"]:
 		out.append(_spec(RaceBench.FINAL_RIVAL, "final", RaceBench.FINAL_START, situation, "none"))
+	# Racer AI step 5: the race through a yard (race links), on clear roads and in Low traffic: Halina
+	# and Zbyszek know the yard, Słoik knows none.
+	for who: String in [HALINA, "Słoik z Radomia", "Taksiarz Zbyszek"]:
+		for situation: String in ["clear", "low"]:
+			var s := _spec(who, "ladder", RaceBench.YARD_START, situation, "none")
+			s["finish"] = RaceBench.YARD_FINISH
+			out.append(s)
 	# Other draws of the town's cars: every race in traffic above again with each of DRAWS, so a
 	# mark that counts them is read over three draws and not one (Independence: a pair's time
 	# over its draws; the contact counts: draw by draw). Draws 3 and 4 are the ones in which

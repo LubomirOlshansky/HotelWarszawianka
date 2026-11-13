@@ -120,6 +120,8 @@ race                 local     slow
 racebench            quick
 racecuts             quick
 raceline             quick
+racelinks            quick
+racelinks-drive      smoke     slow
 raceplanner          quick
 radio                quick
 railsignals          smoke
