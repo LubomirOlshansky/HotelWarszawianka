@@ -7,7 +7,10 @@ extends RefCounted
 ## colour, the small toasts and the minimap's dots (the boat race uses them), whether the card
 ## sits at the bottom of the screen, the words on its buttons, both languages of a card, a toast
 ## and a hint, how long each bubble stays, the minimap's job pins and the challenge taken down (the round-up uses them), the
-## status line's small pictures (`icons`: the deliveries use them), whether
+## status line's small pictures (`icons`: the deliveries use them), the buttons' words changed on a card that is up
+## (`set_card_button`, with the English kept apart: `button_words_en`), the courier's challenge (`show_challenge`), the
+## minimap's route with its owner (`clear_minimap_route`), a wallet's `best_time` and a dialogue's `notes` and `line_notes`
+## (added with the check of the deliveries, check_job_play.gd), whether
 ## a card is up (`cards_up`, as `card_showing`) and the message director's word on a call (`calls_ok`,
 ## `call_ok()`; the trend job's check uses them), how often the news ticker went out (`tickers`); a
 ## dialogue that remembers what was said, where and how, and the lines asked for (and whether each
@@ -20,6 +23,7 @@ extends RefCounted
 class Hud extends CanvasLayer:
 	signal card_pressed(index: int)
 	signal abort_pressed
+	signal challenge_pressed
 	## The context button's tap, with whose button it was (a check emits it).
 	signal context_pressed(who: String)
 	## The card that is up: its title ("" when none), its text, how many buttons, and the words on
@@ -122,6 +126,10 @@ class Hud extends CanvasLayer:
 		body = text
 		buttons = btn.size()
 		button_words = btn
+		button_words_en = PackedStringArray()
+		for w in btn:
+			var parts := String(w).split("|")
+			button_words_en.append(parts[parts.size() - 1])
 		stacked = false
 		low = false
 		side = false
@@ -184,10 +192,22 @@ class Hud extends CanvasLayer:
 	var route_colour := Color.WHITE
 	var routes_set := 0
 
-	func set_minimap_route(points: PackedVector2Array, colour: Color, _who := "") -> void:
+	## Whose the route is (hud.gd's owner rule) and how often a `clear_minimap_route` came.
+	var route_owner := ""
+	var routes_cleared := 0
+
+	func set_minimap_route(points: PackedVector2Array, colour: Color, who := "") -> void:
 		route = points
 		route_colour = colour
+		route_owner = who
 		routes_set += 1
+
+	## hud.gd's `clear_minimap_route`: the route goes only when `who` owns it.
+	func clear_minimap_route(who: String) -> void:
+		routes_cleared += 1
+		if who == route_owner:
+			route = PackedVector2Array()
+			route_owner = ""
 
 	func set_minimap_pois(points: PackedVector2Array, colours: PackedColorArray, shapes := PackedInt32Array()) -> void:
 		pois = points.size()
@@ -197,7 +217,35 @@ class Hud extends CanvasLayer:
 		pois_set += 1
 
 	func hide_challenge() -> void:
+		challenge = ""
 		challenges_hidden += 1
+
+	## The English of the buttons' words (as the card gave them; `set_card_button` changes them), how
+	## often `set_card_button` changed one and how often it found no card or no such button.
+	var button_words_en := PackedStringArray()
+	var buttons_set := 0
+	var buttons_lost := 0
+
+	## hud.gd's `set_card_button`: relabels button `i` of the card that is up.
+	func set_card_button(i: int, pl: String, en: String) -> void:
+		if card == "" or i < 0 or i >= button_words.size():
+			buttons_lost += 1
+			return
+		button_words[i] = pl
+		button_words_en[i] = en
+		buttons_set += 1
+
+	## hud.gd's `show_challenge`: the courier's challenge (its text, colour and the two sub lines).
+	var challenge := ""
+	var challenge_accent := Color.WHITE
+	var challenge_sub := ""
+	var challenge_sub_en := ""
+
+	func show_challenge(text: String, accent_: Color, _gloss := "flash your lights to race (L)", sub := "", sub_en := "") -> void:
+		challenge = text
+		challenge_accent = accent_
+		challenge_sub = sub
+		challenge_sub_en = sub_en
 
 	func show_pill(pl: String, en := "", who := "call") -> void:
 		pill = who
@@ -279,6 +327,8 @@ class Dialogue extends Node:
 	var line_prefers: Array[bool] = []
 	## What `line` answers when it is switched off: an empty bag, as dialogue.gd's for a group it has no line for.
 	var no_lines := false
+	## "group:tag" to a Dictionary `line` appends to the words it answers (dialogue.gd's note on a line).
+	var line_notes := {}
 
 	func say(anchor: Variant, who: String, group: String, tag := "", s := 4.0, c := Color.WHITE, h := 2.6, p := false) -> Array:
 		said.append(group + ":" + tag)
@@ -290,7 +340,16 @@ class Dialogue extends Node:
 	func line(group: String, tag := "", prefer := false) -> Array:
 		line_asks.append(group + ":" + tag)
 		line_prefers.append(prefer)
-		return [] if no_lines else line_words
+		if no_lines:
+			return []
+		var key := group + ":" + tag
+		if line_notes.has(key):
+			return line_words + [line_notes[key]]
+		return line_words
+
+	## dialogue.gd's `notes`: the line's third entry when it is a Dictionary.
+	func notes(l: Array) -> Dictionary:
+		return l[2] if l.size() > 2 and l[2] is Dictionary else {}
 
 	## dialogue.gd's ambient chatter (a bystander's line): remembered the same way.
 	func say_ambient(anchor: Variant, who: String, group: String, tag := "", s := 4.0, c := Color.WHITE, h := 2.6, p := false) -> Array:
@@ -313,11 +372,15 @@ class Bubbles extends Control:
 	func is_talking(_anchor: Variant) -> bool:
 		return talking
 
-	func say(_anchor: Variant, _who: String, pl: String, _en: String, s := 4.0, _c := Color.WHITE, _h := 2.6) -> bool:
+	func say(_anchor: Variant, _who: String, pl: String, _en: String, s := 4.0, c := Color.WHITE, _h := 2.6) -> bool:
 		if ok:
 			said.append(pl)
 			durations.append(s)
+			colours.append(c)
 		return ok
+
+	## The colour of each of those bubbles, in step with `said`.
+	var colours: Array[Color] = []
 
 	## How long each of those bubbles stays (seconds), in step with `said`.
 	var durations: Array[float] = []
@@ -350,10 +413,14 @@ class Wallet extends Node:
 	var keep := {}
 	var best := {}
 
+	## Every payment as [amount, gain, kind], in step with `kinds` (a check that tells two payments of one delivery apart).
+	var payments: Array = []
+
 	func pay(amount: int, gain := 0, kind := "") -> void:
 		money += amount
 		respect += gain
 		kinds.append(kind)
+		payments.append([amount, gain, kind])
 
 	## wallet.gd's `spend`: false (and nothing taken) when there is not enough.
 	func spend(amount: int) -> bool:
@@ -361,6 +428,10 @@ class Wallet extends Node:
 			return false
 		money -= amount
 		return true
+
+	## wallet.gd's `best_time`: the best time under the key, -1.0 when there is none.
+	func best_time(key: String) -> float:
+		return float(best.get(key, -1.0))
 
 	## wallet.gd's `record`: true if the time beats the best (or is the first).
 	func record(key: String, seconds: float) -> bool:

@@ -96,6 +96,11 @@
 # rig (no traffic), a save that has driven before and the director; the rides that are made (counted over
 # seeded draws), two rides in a row, and the plans (the river, the park, the Frogs turn, the story's place,
 # the scan) asked straight on a bigger test city (CI too).
+# The deliveries on the kit (2026-11-13): `jobplay` runs game/tools/check_job_play.gd (with --fixed-fps 60 for the
+# autopilot's frames): the real jobs.gd on the committed map and the stand-ins of tools/fakes.gd, played headless:
+# what setup builds from the map, the places and the pull-in, the order card and its count-down, the drive, the
+# heat, the door, the result cards, the craft kebab and the Zagłębie, the słoiki run and its jars, the pointer to
+# the next stand, other cards and other jobs, the test flags and the autopilot (CI too).
 # Beta values (2026-11-04): `laneassist` runs game/tools/check_lane_assist.gd: the lane assist on
 # the real car (a 6° start, a 300 m curve, a deliberate turn, when it must not pull) and the lane's
 # direction on the committed map (~10 s).
@@ -1166,6 +1171,8 @@ for s in $want; do
 		couriers) check couriers '^check_couriers:' --script res://tools/check_couriers.gd ;;
 		# Beta values: the deliveries' route, the heat's words, NASTĘPNE.
 		delivery) check delivery '^check_delivery:' --script res://tools/check_delivery.gd ;;
+		# The deliveries played on the activity kit (the committed map, fake HUD, the autopilot over the engine's frames).
+		jobplay) check jobplay '^check_job_play:' --fixed-fps 60 --script res://tools/check_job_play.gd ;;
 		# Loop MW-4: everyday life and trends: dogs, riders, runners, Kolka, the Wiralek cycle, the
 		# "Na czasie" pay, the Zając, Fat Thursday, the life eggs (E16 E18-E20 E27-E30).
 		life) check life '^check_city_life:' --script res://tools/check_city_life.gd ;;
