@@ -38,7 +38,7 @@ Both collide. Windows follow the building shader's night rule.
 
 ## 7. Detail level and budget
 
-L2, budget 1300 triangles (measured with the mesh-quality check). One surface with the city.
+L2, budget 1600 triangles (measured 1316). One surface with the city.
 
 ## 8. Parts table
 
