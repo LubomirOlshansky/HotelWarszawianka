@@ -41,3 +41,23 @@ No new material, shader branch or draw call: everything goes into the site's bui
 ## 6. Ground and night
 
 The podium and the tower carry the car walls. At night the glass lights by the skin's rule, the club's edge burns warm white, the screens' rail blue, the cube tables glow, the fin's edge is a pale line; SPEKTRAL in pale white on the south and north screens, THE WJU in pink on the east and west.
+
+## 7. Detail level and budget
+
+L3 (a landmark seen close from the helicopter and the roof), triangle budget 3900 (built: 3567). One building mesh, +0 draw calls, no new material or shader branch.
+
+## 8. Parts table
+
+| id | shape | size | position | material | feature |
+| --- | --- | --- | --- | --- | --- |
+| SP-1 | mapped drum, prism | about 32 m across, 122 m | the outline's middle | M_SKIN S_BANDS #5f86a3 | blue glass in white bands (S-01, S-06) |
+| SP-2 | mapped slabs, prisms | 106 and 118 m | round the drum | M_SKIN S_GRID #26384a | dark square grid (S-03) |
+| SP-3 | podium parts, prisms | 12 to 36 m | round the foot, wing to Twarda | S_GRID / S_RIBBON / M_STONE | glazed hall, grey storeys, white edge (S-02) |
+| SP-4 | fin, wedge | 2.5 m thick, 32 to 117 m, 15 m out at the foot | the drum's south notch | M_GLASS #9cc6c2, lit edge M_LAMP | the slanted glass fin (S-03, S-04, S-06) |
+| SP-5 | screen ring, 32 sides | drum radius + 0.2 m, 3.2 m under to 2.4 m over the roof | the drum's top | M_GLASS #a8cbcb, posts, rail M_LAMP 0.5 | the crown's glass screens, blue rail (S-05, S-08) |
+| SP-6 | club drum, 28 sides | 72 % of the drum's radius, 3.4 m | on the drum's roof | M_STONE, lit band M_LAMP | the raised deck and its lit ring (S-07, S-09) |
+| SP-7 | railing ring | 1.1 m | the club deck's edge | M_STONE #c3dad9 | glass railing (S-10) |
+| SP-8 | lounge groups, boxes | chairs 0.72 m, tables 0.64 m | 8 round the bar | M_STONE white, tables M_LAMP | white lounge, glowing cube tables (S-10, S-11) |
+| SP-9 | palms in pots | pot 1 m, palm 3 to 3.8 m | 6 by the railing | M_STONE | terrace palms (S-10) |
+| SP-10 | bar and parasols | bar 4.4 m across, parasols 3 m | the middle | M_STONE white | round bar, white parasols (S-09) |
+| SP-11 | signs | 10 m and 7 m wide | screens N/S and E/W | landmark neon | SPEKTRAL, THE WJU |
