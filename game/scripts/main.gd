@@ -402,6 +402,17 @@ var _flag_color_safe := false
 var _flag_lang := ""
 ## --lift=M: aim the camera M metres above the vehicle (close-ups of tall landmarks).
 var cam_lift := 0.0
+## --cam=X,Z or X,Y,Z (tests and screenshots, not for players): the free camera. It looks at that
+## world point (Y left out: the ground there), turned by --yaw= and --pitch=, --size= tall, and
+## stays there whatever the car does: no follow, no lead, no zoom. The car stands where --at puts
+## it (default: under the camera, so the city streams in around the view) and is hidden unless
+## --cam-car; no occlusion ghost. follow_camera.gd parse_free / free_view.
+var free_cam := false
+var _free_cam_at := Vector3.ZERO
+var _free_cam_car := false
+## --cams=NAME:X,Y,Z,YAW,PITCH,SIZE+NAME2:...: one run, several free cameras, one shot each
+## (files NAME_FFFF.png; the --spots machinery moves the car under each). follow_camera.gd parse_cams.
+var _cams: Array = []
 ## The ghosted footprint's sunlight: given back in full above GHOST_SUN_HIGH degrees of
 ## sun, none below GHOST_SUN_LOW; GHOST_SUN_SCALE matches it to the renderer's sun
 ## (measured: with 1.8 a ghosted footprint behind the Palace read 154.7 against 159.3 for
@@ -5375,6 +5386,32 @@ func _parse_args() -> void:
 			debug_roads = true
 		elif arg.begins_with("--lift="):
 			cam_lift = float(arg.trim_prefix("--lift="))
+		elif arg.begins_with("--cam="):
+			var fc := FollowCamera.parse_free(arg.trim_prefix("--cam="))
+			if fc.is_empty():
+				push_error("--cam: '%s' is not X,Z or X,Y,Z" % arg)
+			else:
+				free_cam = true
+				_free_cam_at = Vector3(fc[0], fc[1], fc[2])
+				no_ghost = true
+				if not _has_arg("--at="):
+					start_at = Vector3(fc[0], 0.0, fc[2])
+		elif arg == "--cam-car":
+			_free_cam_car = true
+		elif arg.begins_with("--cams="):
+			_cams = FollowCamera.parse_cams(arg.trim_prefix("--cams="))
+			if _cams.is_empty():
+				push_error("--cams: '%s' is not NAME:X,Y,Z[,YAW[,PITCH[,SIZE]]] joined with +" % arg)
+			else:
+				free_cam = true
+				no_ghost = true
+				for c: Dictionary in _cams:
+					shot_spots.append([c["name"], Vector2(c["at"].x, c["at"].z), INF])
+					_flag_yaw = _flag_yaw or not is_nan(c["yaw"])
+					_flag_pitch = _flag_pitch or not is_nan(c["pitch"])
+					_flag_size = _flag_size or not is_nan(c["size"])
+				start_at = Vector3(_cams[0]["at"].x, 0.0, _cams[0]["at"].z)
+				_apply_cam(0)
 		elif arg.begins_with("--ghost-debug="):
 			ghost_debug = int(arg.trim_prefix("--ghost-debug="))
 		elif arg == "--prebuilt":
@@ -8701,6 +8738,11 @@ func _update_camera(dt: float) -> void:
 		cam.global_transform = Transform3D(cb, club.centre + cb.z * 120.0)
 		cam.far = 300.0
 		return
+	if free_cam:
+		_update_free_camera()
+		return
+	if solo_site != "" and not _free_cam_car:
+		car.visible = false  # a landmark alone (--solo): no car, nothing but the model
 	var vehicle: Node3D = heli if flying else car
 	var speed: float = heli.speed() if flying else absf(car.forward_speed)
 	if top_down:
@@ -8771,6 +8813,43 @@ func _update_camera(dt: float) -> void:
 		cam.size = _view_size
 		cam.global_transform = view_xf
 	cam.far = _camera_far(maxf(CAMERA_DISTANCE, cam.size * 1.6), size)
+
+
+## True when a game flag begins with `prefix` (--cam leaves the car's place to --at when it is given).
+func _has_arg(prefix: String) -> bool:
+	for a in game_args():
+		if a.begins_with(prefix):
+			return true
+	return false
+
+
+## --cams: camera `i` of the list becomes the free camera (what it leaves out stays the run's).
+func _apply_cam(i: int) -> void:
+	var c: Dictionary = _cams[i]
+	_free_cam_at = c["at"]
+	if not is_nan(c["yaw"]):
+		cam_yaw = c["yaw"]
+		cam_yaw_target = cam_yaw
+	if not is_nan(c["pitch"]):
+		camera_pitch = c["pitch"]
+	if not is_nan(c["size"]):
+		base_size = c["size"]
+
+
+## --cam: the free camera's frame (see free_cam): the view fixed on its point.
+func _update_free_camera() -> void:
+	var focus := _free_cam_at
+	if is_nan(focus.y):
+		focus.y = map.ground_height(focus.x, focus.z)
+	focus.y += cam_lift
+	car.visible = _free_cam_car
+	cam_focus = focus
+	cam_yaw_target = cam_yaw
+	_view_size = base_size
+	var xf := FollowCamera.free_view(focus, cam_yaw, _view_pitch(), _view_size, CAMERA_DISTANCE)
+	cam.size = _view_size
+	cam.global_transform = Transform3D(xf.basis, _snap_to_pixels(xf.origin, xf.basis, _view_size))
+	cam.far = _camera_far(maxf(CAMERA_DISTANCE, cam.size * 1.6), _view_size)
 
 
 ## A point moved onto the pixel grid of a view `size` m tall turned `basis` (across and up the
@@ -8904,6 +8983,8 @@ var _spot_base := 0
 func _next_spot() -> void:
 	_spot_i += 1
 	var sp: Array = shot_spots[_spot_i]
+	if not _cams.is_empty():
+		_apply_cam(_spot_i)
 	var p: Vector2 = sp[1]
 	car.global_position = Vector3(p.x, map.ground_height(p.x, p.y), p.y)
 	if sp[2] != INF:
