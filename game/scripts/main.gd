@@ -5322,6 +5322,9 @@ func _parse_args() -> void:
 			sun_pitch = float(arg.trim_prefix("--sun="))
 		elif arg == "--debug-ao":
 			debug_ao = true
+		elif arg.begins_with("--palace="):
+			# The Blender trial (2026-11-13): code, blender (LOD 0) or blender1 (LOD 1).
+			preload("res://scripts/landmarks.gd").palace_flag = arg.trim_prefix("--palace=")
 		elif arg.begins_with("--solo="):
 			solo_site = arg.trim_prefix("--solo=")
 			MapBuilder.solo_site = solo_site

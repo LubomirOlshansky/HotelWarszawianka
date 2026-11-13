@@ -2649,6 +2649,8 @@ func _build_palace(site: Dictionary) -> void:
 	var outer: PackedVector2Array = site["zone"][0]
 	_g = _ground_under(outer)
 	var g := _g
+	if palace_source() != "code" and _palace_glb(outer, g):
+		return
 	var stone := SANDSTONE
 	var light := SANDSTONE_LIGHT
 	var roof := Color("#8f877a")
@@ -2743,6 +2745,7 @@ func _build_palace(site: Dictionary) -> void:
 		var cv := -12.0 + k * 4.8
 		_lbox(53.4, cv, 0.65, 0.65, g, g + 13.5, light, M_STONE)
 	_lbox(53.4, 0.0, 1.5, 12.8, g + 13.5, g + 15.6, stone, M_STONE, light)
+	_palace_name(54.95, g)
 
 	# Tier one: walls to 67 m, a roof only on the corner towers (the shaft stands on the rest).
 	_mode = M_MONUMENT
@@ -2850,6 +2853,124 @@ func _build_palace(site: Dictionary) -> void:
 	_prism(_rect(0.0, 0.0, 1.0, 1.0), g + 225.0, g + 225.8, SPIRE_GOLD, SPIRE_GOLD, M_GOLD, M_GOLD)
 	_palace_venues(g)
 
+
+
+## The Blender trial (2026-11-13): where the Palace comes from. "code" is `_build_palace` below;
+## "blender" (LOD 0) and "blender1" (LOD 1) read the glb that tools/blender/pkin.py exports. Set by
+## main.gd's `--palace=`; the sector bake (tools/bake_city.gd) reads AW_PALACE instead.
+static var palace_flag := ""
+
+
+static func palace_source() -> String:
+	if palace_flag != "":
+		return palace_flag
+	var env := OS.get_environment("AW_PALACE")
+	return env if env != "" else "code"
+
+
+## The Palace from the Blender model: every triangle of the glb into the city mesh with the
+## material code and colour its material name carries (`M<code>_<rrggbb>`), the wall UVs from
+## UV, the wall's top from UV2.y, and the glb's own normals (round columns and the drum shade
+## smooth). The clocks, the gates, the collision and the venues stay in code. False if the
+## file is missing (the code model is built instead).
+func _palace_glb(outer: PackedVector2Array, g: float) -> bool:
+	var path := "res://models/pkin/pkin_lod%d.glb" % (1 if palace_source() == "blender1" else 0)
+	if not ResourceLoader.exists(path):
+		push_warning("palace: %s missing, building the code model" % path)
+		return false
+	var scene: Node = (load(path) as PackedScene).instantiate()
+	var meshes := scene.find_children("*", "MeshInstance3D", true, false)
+	for node: Node in meshes:
+		var mesh := (node as MeshInstance3D).mesh
+		for si in mesh.get_surface_count():
+			var mat := mesh.surface_get_material(si)
+			var parts := (mat.resource_name if mat else "M3_d8c49c").trim_prefix("M").split("_")
+			var mode := float(parts[0])
+			var col := Color("#" + parts[1])
+			var arr := mesh.surface_get_arrays(si)
+			var vs: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+			var ns: PackedVector3Array = arr[Mesh.ARRAY_NORMAL]
+			var uv: PackedVector2Array = arr[Mesh.ARRAY_TEX_UV]
+			var uv2: PackedVector2Array = arr[Mesh.ARRAY_TEX_UV2]
+			var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX]
+			if idx.is_empty():
+				idx = PackedInt32Array(range(vs.size()))
+			_mode = mode
+			for t in range(0, idx.size(), 3):
+				var p: Array[Vector3] = []
+				var n: Array[Vector3] = []
+				var u: Array[Vector2] = []
+				for k in 3:
+					var i := idx[t + k]
+					var q := vs[i]
+					var w := _w(q.x, q.z)
+					p.append(Vector3(w.x, g + q.y, w.y))
+					var nq := ns[i]
+					var nw := _a * nq.x + _b * nq.z
+					n.append(Vector3(nw.x, nq.y, nw.y).normalized())
+					# glTF flips V (v' = 1 - v): turn the metres above the ground back.
+					u.append(Vector2(-1.0, -1.0) if uv[i].x < 0.0 else Vector2(uv[i].x, 1.0 - uv[i].y))
+				var top := 1.0 - uv2[idx[t]].y
+				var fn := (p[1] - p[0]).cross(p[2] - p[0])
+				if fn.length_squared() < 1e-10:
+					continue
+				fn = fn.normalized()
+				# The glb's winding is outward: keep the face normal on the side the corners face.
+				if fn.dot(n[0] + n[1] + n[2]) < 0.0:
+					fn = -fn
+				_tri_smooth(p, n, fn, col, u, top)
+	scene.free()
+	_mode = M_STONE
+	# What stays in code: the car's collision, the clocks, the courtyard gates, the venues.
+	_collide(outer)
+	for f in 4:
+		var nu: float = [1.0, -1.0, 0.0, 0.0][f]
+		var nv: float = [0.0, 0.0, 1.0, -1.0][f]
+		# The clocks sit over the arcade on the 12.6 m tier (the photos), not under it.
+		_dial(_w(nu * 6.42, nv * 6.42), g + 178.0, Vector2(_a * nu + _b * nv), 2.8)
+	for gate in P_GATES:
+		_palace_gate(float(gate[0]), float(gate[1]), float(gate[2]), float(gate[3]), g, SANDSTONE_LIGHT)
+	_palace_name(54.05, g)
+	_palace_venues(g)
+	return true
+
+
+## `_tri` with a normal per corner (the glb's smooth parts); `fn` the face normal for winding.
+func _tri_smooth(p: Array[Vector3], n: Array[Vector3], fn: Vector3, col: Color, u: Array[Vector2], top: float) -> void:
+	var a := p[0]
+	var b := p[1]
+	var c := p[2]
+	var na := n[0]
+	var nb := n[1]
+	var nc := n[2]
+	var ua := u[0]
+	var ub := u[1]
+	var uc := u[2]
+	if ((b - a).cross(c - a).dot(fn) > 0.0) == CLOCKWISE_FRONT:
+		var t := b
+		b = c
+		c = t
+		var tn := nb
+		nb = nc
+		nc = tn
+		var tu := ub
+		ub = uc
+		uc = tu
+	st.set_color(col)
+	st.set_uv2(Vector2(_mode, top))
+	st.set_normal(na)
+	st.set_uv(ua)
+	st.add_vertex(a)
+	st.set_normal(nb)
+	st.set_uv(ub)
+	st.add_vertex(b)
+	st.set_normal(nc)
+	st.set_uv(uc)
+	st.add_vertex(c)
+	if not _no_roof:
+		map._roof_triangle(a, b, c, absf(fn.y) >= 0.3)
+	if _id > 0:
+		_mark_pick(a, b, c)
 
 
 ## A gate in the Palace's base on the west-facing wall at plane u (the wall faces -u): a dark
@@ -2963,6 +3084,12 @@ static func pkin_theatre_doors() -> Dictionary:
 		"theatre_kinoteka": PKIN_O + PKIN_A * 0.0 + PKIN_B * 73.0,
 		"theatre_kongresowa": PKIN_O + PKIN_A * -72.0 + PKIN_B * 37.0,
 	}
+
+
+## PAŁAC KULTURY I NAUKI in red neon on the main portico's entablature (F's photos, 2026-11-13:
+## red tubes over the columns on Marszałkowska, lit at night), on its +u face at u.
+func _palace_name(u: float, g: float) -> void:
+	_pkin_row(["PAŁAC", "KULTURY", "I", "NAUKI"], u, 0.0, g + 13.75, 1.7, 1.4, Color(1.0, 0.16, 0.12))
 
 
 func _palace_venues(g: float) -> void:
