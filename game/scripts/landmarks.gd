@@ -636,8 +636,11 @@ const INFO := {
 			"Najstarszy bazar Warszawy, od 1882 roku. Stare budy obok nowych zielonych pawilonów. Kupisz tu wszystko.",
 			"Warsaw's oldest market, since 1882. Old sheds face the new green kiosks. Everything is for sale."],
 	"teresy": ["Kościół św. Teresy od Dzieciątka Jezus",
-			"Ceglany kościół parafialny na Powiślu, ze stromym dachem i sygnaturką.",
-			"A brick parish church in Powiśle, with a steep roof and a bell turret."],
+			"Jasny kościół parafialny przy Tamce, z wysokimi łukowymi oknami, okrągłym oknem i wielkim portalem.",
+			"A light parish church on Tamka, with tall arched windows, a round window and a big arched porch."],
+	"flisac": ["Flisac, Tamka 2",
+			"Apartamentowiec przy moście Świętokrzyskim: jasny kamienny szkielet, tarasy na dachu i kawa na rogu.",
+			"The apartment block by the Świętokrzyski bridge: a light stone grid, roof terraces and coffee on the corner."],
 	"muzeum": ["Muzeum Narodowe",
 			"Gmach z lat 1927–1938 przy Alejach Jerozolimskich.",
 			"The museum's building of 1927–1938 on Al. Jerozolimskie."],
@@ -988,6 +991,8 @@ static func tower_colour(key: String, fallback: Color) -> Color:
 		return BARB_WALL
 	if key == "teresy":
 		return TERESY_BRICK
+	if key == "flisac":
+		return FLISAC_STONE
 	if key == "vitkac":
 		return VITKAC_WALL
 	if key == "dom_partii":
@@ -1309,6 +1314,7 @@ func _find_sites() -> void:
 	# Powiśle (2026-11-02): Hortus on Topiel and Moderna on Zajęcza, models from their outlines.
 	_find_hortus()
 	_find_moderna()
+	_find_flisac()
 	# Plac Krasińskich (CITY_INVENTORY 22 and 79, 2026-11-02): the Uprising Monument and the palace.
 	# Sąd Najwyższy's colonnade (2026-11-02): green ribbed columns instead of OSM's white boxes.
 	# Found (and built) before the monument: its beams' cells would cover the monument's tap.
@@ -1777,6 +1783,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_hortus(s)
 			"moderna":
 				_build_moderna(s)
+			"flisac":
+				_build_flisac(s)
 			"pomnik_powstania":
 				_build_pomnik_powstania(s)
 			"krasinski":
@@ -17546,6 +17554,319 @@ func _build_moderna(site: Dictionary) -> void:
 	_collide(ring)
 
 
+## Flisac (Tamka 2, the Ghelamco apartments by the Świętokrzyski bridge, 2022; F's photos
+## 2026-11-13): a model instead of the mapped 14 m block. A V of two wings round the bend of Tamka
+## and Wybrzeże Kościuszkowskie, a corner chamfered where they meet. Shops on the ground floor behind
+## dark glass between the stone piers (a coffee place under a white canopy at the corner, a
+## grocer's and a wine shop on the sides), six floors of a light stone grid (3.6 m bays, big
+## dark windows, a copper blind here and there, a few loggias), a dark coping, then two set-back
+## floors behind a glass-balustraded terrace, and a green roof with a pergola of glass, planters,
+## a dark lift core and air-conditioning boxes. The low 7.6 m block in the elbow (OpenStreetMap) is
+## the garden podium. The shops' names are parodies (KAWOBIURKO, KAROLEK, WINOSTORY). Spec
+## docs/landmarks/specs/flisac.md.
+const FLISAC_AT := Vector2(470.0, -560.0)       # a point in the wings
+const FLISAC_PODIUM_AT := Vector2(440.0, -562.0)  # a point in the low block
+const FLISAC_CORNER := Vector2(451.3, -582.9)   # the chamfer's middle
+const FLISAC_TAMKA := Vector2(421.0, -569.0)    # the Tamka front's middle
+const FLISAC_WYBRZEZE := Vector2(475.0, -560.0) # the Wybrzeże front's middle
+const FLISAC_STONE := Color("#e9e6df")
+const FLISAC_STONE_UP := Color("#dcd8d0")
+const FLISAC_GOLD := Color("#d9a83a")    # the courtyard side's fin screen
+const FLISAC_PIER := Color("#c9c1b1")
+const FLISAC_FRAME := Color("#33363a")
+const FLISAC_GLASS := Color("#43505b")
+const FLISAC_SHOP := Color("#2f3a42")
+const FLISAC_COPPER := Color("#b9733f")
+const FLISAC_COPING := Color("#3d4044")
+const FLISAC_GREEN := Color("#7b9a55")
+const FLISAC_PALE := Color("#a9bcc4")
+const FLISAC_GROUND := 4.6
+const FLISAC_FLOOR := 3.2
+const FLISAC_FLOORS := 5
+const FLISAC_BAY := 3.6
+const FLISAC_SETBACK := 3.6
+const FLISAC_PODIUM := 7.6
+
+
+func _find_flisac() -> void:
+	var main := _tallest_at(FLISAC_AT)
+	if main.size() < 3 or absf(_area(main)) < 400.0:
+		return
+	var low := _tallest_at(FLISAC_PODIUM_AT)
+	var zone: Array = [main]
+	if low.size() >= 3:
+		zone.append(low)
+	_add_site("flisac", zone)
+	if not sites.is_empty() and sites[-1]["key"] == "flisac":
+		sites[-1]["ring"] = _simplify(main, 0.9)
+		sites[-1]["podium"] = _simplify(low, 0.5) if low.size() >= 3 else PackedVector2Array()
+
+
+## The edge of `ring` whose middle is nearest `at`.
+func _edge_near(ring: PackedVector2Array, at: Vector2) -> int:
+	var best := 0
+	var d := INF
+	for i in ring.size():
+		var m := (ring[i] + ring[(i + 1) % ring.size()]) * 0.5
+		if m.distance_to(at) < d:
+			d = m.distance_to(at)
+			best = i
+	return best
+
+
+## A flat panel on a wall: along-wall metres u0..u1 from `a` (direction `d`), absolute heights
+## y0..y1, standing `off` metres out of the wall plane (`run`: the wall's distance along the facade).
+func _fl_quad(a: Vector2, d: Vector2, n: Vector2, run: float, u0: float, u1: float, y0: float, y1: float,
+		off: float, col: Color, mode: float) -> void:
+	if u1 <= u0 or y1 <= y0:
+		return
+	var p0 := a + d * u0 + n * off
+	var p1 := a + d * u1 + n * off
+	var keep := _mode
+	_mode = mode
+	_quad(Vector3(p0.x, y0, p0.y), Vector3(p1.x, y0, p1.y), Vector3(p1.x, y1, p1.y), Vector3(p0.x, y1, p0.y),
+			Vector3(n.x, 0.0, n.y), col, Vector2(run + u0, y0 - _g), Vector2(run + u1, y0 - _g),
+			Vector2(run + u1, y1 - _g), Vector2(run + u0, y1 - _g), y1 - _g)
+	_mode = keep
+
+
+## The windows of a stack of floors along every edge of `ring`: a dark frame, a pane lit by chance
+## at night, and now and then a copper blind or a loggia (a deep dark opening with a glass rail).
+func _fl_windows(ring: PackedVector2Array, y_first: float, floors: int, floor_h: float, sill: float, win_h: float,
+		win_w: float, loggias: bool) -> void:
+	var run := 0.0
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var len := a.distance_to(b)
+		if len >= 4.5:
+			var n := _out(ring, a, b)
+			var d := (b - a) / len
+			var bays := maxi(1, roundi(len / FLISAC_BAY))
+			var step := len / float(bays)
+			for k in bays:
+				var uc := (float(k) + 0.5) * step
+				for f in floors:
+					var y0 := y_first + f * floor_h + sill
+					var r := fposmod(sin(float(i * 131 + k * 17 + f * 31) * 12.9898) * 43758.5453, 1.0)
+					var half := win_w * 0.5
+					if loggias and r < 0.14:
+						_fl_quad(a, d, n, run, uc - half - 0.3, uc + half + 0.3, y0 - 0.1, y0 + win_h + 0.1, 0.03, FLISAC_FRAME.darkened(0.3), M_STONE)
+						_fl_quad(a, d, n, run, uc - half - 0.15, uc + half + 0.15, y0 + 1.0, y0 + win_h, 0.06, FLISAC_FRAME, _pane_at(run + uc, y0))
+						_fl_quad(a, d, n, run, uc - half - 0.3, uc + half + 0.3, y0 - 0.1, y0 + 1.0, 0.12, FLISAC_PALE, M_STONE)
+						continue
+					_fl_quad(a, d, n, run, uc - half - 0.08, uc + half + 0.08, y0 - 0.08, y0 + win_h + 0.08, 0.03, FLISAC_FRAME, M_STONE)
+					_fl_quad(a, d, n, run, uc - half, uc + half, y0, y0 + win_h, 0.06, FLISAC_GLASS, _pane_at(run + uc, y0))
+					if r > 0.8:
+						_fl_quad(a, d, n, run, uc - half, uc + half, y0 + win_h * 0.45, y0 + win_h, 0.09, FLISAC_COPPER, M_STONE)
+		run += len
+
+
+## The ground floor: dark shop glass between the stone piers, a dark fascia over it.
+func _fl_shops(ring: PackedVector2Array, g: float) -> void:
+	var run := 0.0
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var len := a.distance_to(b)
+		if len >= 4.5:
+			var n := _out(ring, a, b)
+			var d := (b - a) / len
+			var bays := maxi(1, roundi(len / FLISAC_BAY))
+			var step := len / float(bays)
+			for k in bays:
+				var uc := (float(k) + 0.5) * step
+				var half := step * 0.5 - 0.62
+				_fl_quad(a, d, n, run, uc - half - 0.06, uc + half + 0.06, g + 0.28, g + 4.0, 0.03, FLISAC_FRAME, M_STONE)
+				_fl_quad(a, d, n, run, uc - half, uc + half, g + 0.35, g + 3.92, 0.06, FLISAC_SHOP, _pane_at(run + uc, g))
+			_fl_quad(a, d, n, run, 0.0, len, g + 4.0, g + 4.6, 0.05, FLISAC_COPING, M_STONE)
+		run += len
+
+
+func _build_flisac(site: Dictionary) -> void:
+	var ring: PackedVector2Array = site["ring"]
+	if ring.size() < 3:
+		return
+	_o = Vector2.ZERO
+	_a = Vector2(1, 0)
+	_b = Vector2(0, 1)
+	_g = _ground_under(ring)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	var top1 := g + FLISAC_GROUND + FLISAC_FLOORS * FLISAC_FLOOR
+	var top2 := top1 + 0.4 + 3.1
+	var top3 := top2 + 0.4 + 3.1
+	# the wings: stone walls, a dark coping, the roof terrace green, a glass balustrade round it
+	_prism(ring, g - 1.5, top1 - 0.15, FLISAC_STONE, none, M_STONE, M_STONE)
+	for q: PackedVector2Array in Geometry2D.offset_polygon(ring, 0.1, Geometry2D.JOIN_MITER):
+		_prism(q, top1 - 0.15, top1 + 0.35, FLISAC_COPING, FLISAC_GREEN, M_STONE, M_STONE)
+	_fl_shops(ring, g)
+	_fl_windows(ring, g + FLISAC_GROUND, FLISAC_FLOORS, FLISAC_FLOOR, 0.55, 2.4, 2.45, true)
+	_flisac_fins(ring, site["podium"], g + FLISAC_GROUND + 0.25, top1 - 0.15, g + FLISAC_PODIUM + 0.25)
+	for q: PackedVector2Array in Geometry2D.offset_polygon(ring, -0.5, Geometry2D.JOIN_MITER):
+		_prism(q, top1 + 0.35, top1 + 1.35, FLISAC_PALE, none, M_STONE, M_STONE)
+	# two stepped floors over the five full ones: a set-back floor with a green roof all round, then
+	# a smaller second step that stays clear of the corner, so the corner keeps a big terrace
+	var inset := Geometry2D.offset_polygon(ring, -FLISAC_SETBACK, Geometry2D.JOIN_MITER)
+	var corner := PackedVector2Array()
+	for k in 8:
+		corner.append(FLISAC_CORNER + Vector2.from_angle(TAU * k / 8.0) * 17.0)
+	for q: PackedVector2Array in inset:
+		if q.size() < 3 or absf(_area(q)) < 60.0 or Geometry2D.is_polygon_clockwise(q):
+			continue
+		var upper := _simplify(q, 0.5)
+		_prism(upper, top1 + 0.35, top2 - 0.2, FLISAC_STONE_UP, none, M_STONE, M_STONE)
+		for c: PackedVector2Array in Geometry2D.offset_polygon(upper, 0.1, Geometry2D.JOIN_MITER):
+			_prism(c, top2 - 0.2, top2 + 0.3, FLISAC_COPING, FLISAC_GREEN, M_STONE, M_STONE)
+		_fl_windows(upper, top1 + 0.35, 1, 3.1, 0.3, 2.5, 2.6, false)
+		_collide(upper)
+		for s2: PackedVector2Array in Geometry2D.offset_polygon(upper, -2.4, Geometry2D.JOIN_MITER):
+			if s2.size() < 3 or Geometry2D.is_polygon_clockwise(s2):
+				continue
+			for top: PackedVector2Array in Geometry2D.clip_polygons(s2, corner):
+				if top.size() < 3 or absf(_area(top)) < 50.0 or Geometry2D.is_polygon_clockwise(top):
+					continue
+				var step := _simplify(top, 0.5)
+				_prism(step, top2 + 0.3, top3 - 0.2, FLISAC_STONE_UP, none, M_STONE, M_STONE)
+				for c: PackedVector2Array in Geometry2D.offset_polygon(step, 0.1, Geometry2D.JOIN_MITER):
+					_prism(c, top3 - 0.2, top3 + 0.3, FLISAC_COPING, FLISAC_GREEN, M_STONE, M_STONE)
+				_fl_windows(step, top2 + 0.3, 1, 3.1, 0.3, 2.5, 2.6, false)
+				_flisac_roof(step, top3 + 0.3)
+				_collide(step)
+	# the low block in the elbow: a garden podium
+	var low: PackedVector2Array = site["podium"]
+	if low.size() >= 3:
+		_prism(low, g - 1.5, g + FLISAC_PODIUM - 0.3, FLISAC_STONE_UP, none, M_STONE, M_STONE)
+		for c: PackedVector2Array in Geometry2D.offset_polygon(low, 0.1, Geometry2D.JOIN_MITER):
+			_prism(c, g + FLISAC_PODIUM - 0.3, g + FLISAC_PODIUM + 0.2, FLISAC_COPING, FLISAC_GREEN.darkened(0.08), M_STONE, M_STONE)
+		_fl_windows(low, g + 0.6, 2, 3.4, 0.6, 2.2, 2.3, false)
+	_flisac_corner(ring, g)
+	_collide(ring)
+	if low.size() >= 3:
+		_collide(low)
+
+
+## The courtyard side's gold fin screen: a deep gold fin between every bay on the walls that face
+## into the V (the street fronts stay white), up the five full floors.
+func _flisac_fins(ring: PackedVector2Array, low: PackedVector2Array, y0: float, y1: float, y_low: float) -> void:
+	var near_low := Geometry2D.offset_polygon(low, 1.0, Geometry2D.JOIN_MITER) if low.size() >= 3 else []
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var len := a.distance_to(b)
+		if len < 4.5:
+			continue
+		var n := _out(ring, a, b)
+		var m := (a + b) * 0.5
+		if n.dot(FLISAC_PODIUM_AT - m) <= 0.0 or m.distance_to(FLISAC_PODIUM_AT) > 45.0:
+			continue
+		var d := (b - a) / len
+		var bays := maxi(1, roundi(len / FLISAC_BAY))
+		var step := len / float(bays)
+		for k in range(1, bays):
+			var p := a + d * (step * k)
+			var y := y0
+			for q: PackedVector2Array in near_low:
+				if Geometry2D.is_point_in_polygon(p + n * 0.4, q):
+					y = y_low
+			_prism(PackedVector2Array([p - d * 0.12 - n * 0.05, p + d * 0.12 - n * 0.05, p + d * 0.12 + n * 0.75, p - d * 0.12 + n * 0.75]),
+					y, y1, FLISAC_GOLD, FLISAC_GOLD, M_STONE, M_STONE)
+
+
+## The corner café and the shops' names: a white canopy on posts over the terrace on the chamfer,
+## hedges along the Tamka front, and the parody names in neon on the fascia.
+func _flisac_corner(ring: PackedVector2Array, g: float) -> void:
+	var none := Color(0, 0, 0, 0)
+	var e := _edge_near(ring, FLISAC_CORNER)
+	var a := ring[e]
+	var b := ring[(e + 1) % ring.size()]
+	var len := a.distance_to(b)
+	var n := _out(ring, a, b)
+	var d := (b - a) / len
+	var mid := len * 0.5
+	var span := minf(len * 0.5 - 1.0, 5.5)
+	var canopy := PackedVector2Array([a + d * (mid - span) + n * 0.4, a + d * (mid + span) + n * 0.4,
+			a + d * (mid + span) + n * 4.0, a + d * (mid - span) + n * 4.0])
+	_prism(canopy, g + 3.15, g + 3.45, Color("#ebe7dd"), Color("#f4f1e8"), M_STONE, M_STONE)
+	for u: float in [-span + 0.2, span - 0.2]:
+		_prism(PackedVector2Array([a + d * (mid + u) + n * 3.8, a + d * (mid + u + 0.12) + n * 3.8,
+				a + d * (mid + u + 0.12) + n * 3.92, a + d * (mid + u) + n * 3.92]), g, g + 3.15, FLISAC_FRAME, none, M_STONE, M_STONE)
+	# the terrace's low glass screen and the tables' dark tops under the canopy
+	_prism(PackedVector2Array([a + d * (mid - span) + n * 4.0, a + d * (mid + span) + n * 4.0,
+			a + d * (mid + span) + n * 4.06, a + d * (mid - span) + n * 4.06]), g + 0.1, g + 1.2, FLISAC_PALE, none, M_STONE, M_STONE)
+	for k in 4:
+		var c := a + d * (mid - span + 1.6 + k * 2.5) + n * 2.3
+		_prism(PackedVector2Array([c + Vector2(-0.4, -0.4), c + Vector2(0.4, -0.4), c + Vector2(0.4, 0.4), c + Vector2(-0.4, 0.4)]),
+				g, g + 0.78, Color("#3a3c40"), Color("#3a3c40"), M_STONE, M_STONE)
+	# hedges: low green boxes along the Tamka front's foot
+	var t := _edge_near(ring, FLISAC_TAMKA)
+	var ta := ring[t]
+	var tb := ring[(t + 1) % ring.size()]
+	var tl := ta.distance_to(tb)
+	var tn := _out(ring, ta, tb)
+	var td := (tb - ta) / tl
+	for k in int(tl / 6.0):
+		var u := 3.0 + 6.0 * k
+		if u + 4.0 > tl:
+			break
+		_prism(PackedVector2Array([ta + td * u + tn * 0.5, ta + td * (u + 4.0) + tn * 0.5, ta + td * (u + 4.0) + tn * 1.5, ta + td * u + tn * 1.5]),
+				g, g + 0.9, Color("#5d8344"), Color("#6f9a4f"), M_STONE, M_STONE)
+	# the shops' names: a coffee place at the corner, a grocer's further along Tamka, a wine shop on Wybrzeże
+	var tn3 := Vector3(tn.x, 0.0, tn.y)
+	var at := ta + td * (tl - 8.0) + tn * 0.05
+	signs.append(["KAWOBIURKO", Vector3(at.x, g + 4.02, at.y), tn3, 0.26, Color(1.0, 0.95, 0.85)])
+	var at2 := ta + td * (tl - 23.0) + tn * 0.05
+	signs.append(["KAROLEK", Vector3(at2.x, g + 4.02, at2.y), tn3, 0.26, Color(0.2, 0.45, 1.0)])
+	var w := _edge_near(ring, FLISAC_WYBRZEZE)
+	var wa := ring[w]
+	var wb := ring[(w + 1) % ring.size()]
+	var wl := wa.distance_to(wb)
+	var wn := _out(ring, wa, wb)
+	var wd := (wb - wa) / wl
+	var at3 := wa + wd * (wl * 0.5) + wn * 0.05
+	signs.append(["WINOSTORY", Vector3(at3.x, g + 4.02, at3.y), Vector3(wn.x, 0.0, wn.y), 0.26, Color(1.0, 0.25, 0.25)])
+
+
+## The green roof on the top floor: a lift core and air-conditioning boxes, planters of grass, and
+## a glass-roofed pergola along the longest edge on posts.
+func _flisac_roof(ring: PackedVector2Array, y: float) -> void:
+	var none := Color(0, 0, 0, 0)
+	var longest := 0
+	for i in ring.size():
+		if ring[i].distance_to(ring[(i + 1) % ring.size()]) > ring[longest].distance_to(ring[(longest + 1) % ring.size()]):
+			longest = i
+	var a := ring[longest]
+	var b := ring[(longest + 1) % ring.size()]
+	var len := a.distance_to(b)
+	if len < 12.0:
+		return
+	var n := _out(ring, a, b)
+	var d := (b - a) / len
+	# the pergola: posts every 3.6 m, a glass roof
+	var posts := int((len - 4.0) / 3.6)
+	for k in posts + 1:
+		var c := a + d * (2.0 + 3.6 * k) - n * 1.4
+		for off: float in [0.0, -1.8]:
+			var p := c + n * off
+			_prism(PackedVector2Array([p + Vector2(-0.09, -0.09), p + Vector2(0.09, -0.09), p + Vector2(0.09, 0.09), p + Vector2(-0.09, 0.09)]),
+					y, y + 2.9, FLISAC_FRAME, FLISAC_FRAME, M_STONE, M_STONE)
+	_prism(PackedVector2Array([a + d * 1.8 - n * 0.4, a + d * (2.2 + 3.6 * posts) - n * 0.4, a + d * (2.2 + 3.6 * posts) - n * 3.4, a + d * 1.8 - n * 3.4]),
+			y + 2.9, y + 3.02, FLISAC_PALE, FLISAC_PALE, M_STONE, M_STONE)
+	# planters of grass behind it, dark green with pale tufts
+	for k in int(len / 5.0):
+		var p := a + d * (3.0 + 5.0 * k) - n * 4.3
+		var q := PackedVector2Array([p, p + d * 2.4, p + d * 2.4 - n * 0.9, p - n * 0.9])
+		_prism(q, y, y + 0.8, Color("#5f7a49"), Color("#a5ab62"), M_STONE, M_STONE)
+	# the lift core and two air-conditioning boxes
+	var c := (a + b) * 0.5 - n * 6.0
+	_prism(PackedVector2Array([c + d * 3.0 - n * 2.0, c + d * 3.0 + n * 2.0, c - d * 3.0 + n * 2.0, c - d * 3.0 - n * 2.0]),
+			y, y + 3.4, Color("#35383c"), Color("#4a4d52"), M_STONE, M_STONE)
+	for k in 2:
+		var p := c + d * (6.0 + 1.8 * k)
+		_prism(PackedVector2Array([p + Vector2(-0.6, -0.6), p + Vector2(0.6, -0.6), p + Vector2(0.6, 0.6), p + Vector2(-0.6, 0.6)]),
+				y, y + 1.1, Color("#51555a"), Color("#6b6f73"), M_STONE, M_STONE)
+
+
 func _build_teatr(_site: Dictionary) -> void:
 	_o = TEATR
 	_a = TEATR_AXIS.normalized()
@@ -26331,19 +26652,28 @@ func _dormer(sgn: float, u: float, v: float, y: float, hu: float, hv: float, ris
 
 
 ## The parish church of St Thérèse of the Child Jesus (Kościół św. Teresy od Dzieciątka Jezus,
-## Powiśle): a brick hall church with a steep gable roof, a lower chapel at the choir end, a
-## lower parish house behind and a small bell turret on the ridge over the front gable. The
-## whole mapped outline is replaced; the massing follows it. Spec docs/landmarks/specs/teresy.md.
+## Powiśle, Tamka): rebuilt 2026-11-13 from F's photos (a corner view from Tamka, the Flisac
+## visualisation). A light cream plastered hall under a grey-green gable roof: tall round-headed
+## windows with a lattice over plain panels, a round window in the front gable over a big arched
+## porch, a green copper gutter line, a slim copper-capped stair tower at the street corner, a
+## lower chapel at the choir end and the parish house behind. Not brick, as the first (photoless)
+## model had it. The whole mapped outline is replaced; the massing follows it. Spec
+## docs/landmarks/specs/teresy.md.
 ## Frame: origin at the outline's centre, u along the nave (axis 50 degrees), +v to the right
-## of it; the nave is u -10..21.8, v -7.8..14.3, the front gable at u +21.8 (photo check).
+## of it; the nave is u -10..21.8, v -7.8..14.3, the front gable at u +21.8 (towards Tamka).
 const TERESY := Vector2(369.93, -579.04)
 const TERESY_AXIS := Vector2(0.6428, 0.7660)
-const TERESY_BRICK := Color("#b8644b")
-const TERESY_BRICK_LOW := Color("#a65a44")
-const TERESY_TILE := Color("#8f4f40")
-const TERESY_TRIM := Color("#d9cdb4")
-const TERESY_DARK := Color("#3a3f42")
+const TERESY_BRICK := Color("#e4dbb8")      # the plaster (the name is from the first model)
+const TERESY_BRICK_LOW := Color("#d9d0ac")  # the lower blocks and the panels under the windows
+const TERESY_TILE := Color("#5f6c66")       # the roof's grey-green
+const TERESY_TRIM := Color("#efe8cf")
+const TERESY_DARK := Color("#343a40")
 const TERESY_GOLD := Color("#c9a24a")
+const TERESY_COPPER := Color("#6f9d88")     # the gutter line and the spire
+const TERESY_DOOR := Color("#5b3626")
+const TERESY_EAVES := 12.6
+const TERESY_RISE := 7.0
+const TERESY_WINDOWS := [-5.6, -0.2, 5.2, 10.6, 16.0]
 
 
 func _find_teresy() -> void:
@@ -26354,6 +26684,51 @@ func _find_teresy() -> void:
 			sites[-1]["ring"] = outline
 
 
+## A pane's lit-by-chance material from a place on the wall (a pane is lit whole at night).
+func _pane_at(a: float, b: float) -> float:
+	return M_PANE + 0.01 + 0.98 * fposmod(sin(a * 12.9898 + b * 78.233 + _o.x) * 437.585, 1.0)
+
+
+## The upper half of a round (n-sided) disc at c facing n: an arch's head over a flat opening.
+func _arch_cap(c: Vector3, n: Vector3, r: float, sides: int, col: Color) -> void:
+	var side := Vector3.UP.cross(n).normalized()
+	var top := c.y + r - _g
+	for k in sides:
+		var a0 := PI * k / sides
+		var a1 := PI * (k + 1) / sides
+		var p0 := c + (side * cos(a0) + Vector3.UP * sin(a0)) * r
+		var p1 := c + (side * cos(a1) + Vector3.UP * sin(a1)) * r
+		_tri(c, p0, p1, n, col, Vector2(r, c.y - _g), Vector2(r + cos(a0) * r, p0.y - _g),
+				Vector2(r + cos(a1) * r, p1.y - _g), top)
+
+
+## A round-headed window on the nave's side wall at `face` (v), standing out of it towards
+## `sgn` (+1: the +v wall): a trim frame, dark lattice glass, a plain panel under the sill.
+func _teresy_window(face: float, sgn: float, u: float, y0: float, w: float, h: float) -> void:
+	var out := _b * sgn
+	var n3 := Vector3(out.x, 0.0, out.y)
+	var arch := y0 + h - w * 0.5
+	var keep := _mode
+	# the panel under the sill and the frame
+	_mode = M_STONE
+	_wall(_w(u - w * 0.5 - 0.1, face + sgn * 0.04), _w(u + w * 0.5 + 0.1, face + sgn * 0.04), y0 - 3.0, y0 - 0.15, out, TERESY_BRICK_LOW)
+	_wall(_w(u - w * 0.5 - 0.3, face + sgn * 0.05), _w(u + w * 0.5 + 0.3, face + sgn * 0.05), y0 - 0.15, arch, out, TERESY_TRIM)
+	var cf := _w(u, face + sgn * 0.05)
+	_arch_cap(Vector3(cf.x, arch, cf.y), n3, w * 0.5 + 0.3, 8, TERESY_TRIM)
+	# the glass, a lattice of thin bars over it
+	_mode = _pane_at(u, y0)
+	_wall(_w(u - w * 0.5, face + sgn * 0.08), _w(u + w * 0.5, face + sgn * 0.08), y0, arch, out, TERESY_DARK)
+	var cg := _w(u, face + sgn * 0.08)
+	_arch_cap(Vector3(cg.x, arch, cg.y), n3, w * 0.5, 8, TERESY_DARK)
+	_mode = M_STONE
+	var bar := TERESY_DARK.lightened(0.18)
+	for k in [-0.25, 0.25]:
+		_wall(_w(u + w * k - 0.03, face + sgn * 0.12), _w(u + w * k + 0.03, face + sgn * 0.12), y0, arch + w * 0.4, out, bar)
+	for yy in [y0 + h * 0.3, y0 + h * 0.58, arch]:
+		_wall(_w(u - w * 0.5, face + sgn * 0.12), _w(u + w * 0.5, face + sgn * 0.12), yy, yy + 0.07, out, bar)
+	_mode = keep
+
+
 func _build_teresy(_site: Dictionary) -> void:
 	_o = TERESY
 	_a = TERESY_AXIS.normalized()
@@ -26362,45 +26737,69 @@ func _build_teresy(_site: Dictionary) -> void:
 	var g := _g
 	var wall := TERESY_BRICK
 	var none := Color(0, 0, 0, 0)
-	# the nave: a trimmed plinth, brick walls (Gothic mode: buttresses and lancets) to the eaves
-	_lbox(5.9, 3.25, 15.9, 11.05, g - 0.6, g + 0.9, TERESY_TRIM.darkened(0.12), M_STONE, TERESY_TRIM)
-	_lbox(5.9, 3.25, 15.8, 10.95, g + 0.9, g + 10.0, wall, M_GOTHIC, TERESY_TILE)
-	_lbox(5.9, 3.25, 15.9, 11.05, g + 10.0, g + 10.5, TERESY_TRIM, M_STONE, TERESY_TRIM)
-	# the steep roof: front and back gables, slopes with a small overhang
-	_gable(21.9, -10.0, 3.25, 11.35, g + 10.5, 6.8, wall, TERESY_TILE)
+	var eaves := g + TERESY_EAVES
+	# the nave: a low plinth, cream plaster walls to the eaves, a green copper gutter line over a cornice
+	_lbox(5.9, 3.25, 15.9, 11.05, g - 0.6, g + 1.0, TERESY_TRIM.darkened(0.14), M_STONE, TERESY_TRIM)
+	_lbox(5.9, 3.25, 15.8, 10.95, g + 1.0, eaves - 0.5, wall, M_STONE, TERESY_TILE)
+	_lbox(5.9, 3.25, 15.9, 11.05, eaves - 0.5, eaves - 0.1, TERESY_COPPER, M_STONE, TERESY_COPPER)
+	_lbox(5.9, 3.25, 15.95, 11.1, eaves - 0.1, eaves + 0.3, TERESY_TRIM, M_STONE, TERESY_TILE)
+	# the steep gable roof, the front gable's face in plaster
+	_gable(21.95, -10.0, 3.25, 11.4, eaves + 0.3, TERESY_RISE, wall, TERESY_TILE)
 	# the lower annex at the choir end and the polygonal chapel on the north side
-	_lbox(-11.7, 5.8, 1.7, 8.5, g - 0.6, g + 6.5, TERESY_BRICK_LOW, M_GOTHIC, TERESY_TILE)
+	_lbox(-11.7, 5.8, 1.7, 8.5, g - 0.6, g + 6.5, TERESY_BRICK_LOW, M_STONE, TERESY_TILE)
 	var chapel := PackedVector2Array([_w(-9.8, -7.9), _w(-10.0, -9.8), _w(-7.0, -11.9), _w(-3.0, -10.6),
 			_w(-1.4, -7.6), _w(-1.4, -7.9)])
-	_prism(chapel, g - 0.6, g + 7.5, TERESY_BRICK_LOW, none, M_GOTHIC, M_STONE)
+	_prism(chapel, g - 0.6, g + 7.5, TERESY_BRICK_LOW, none, M_STONE, M_STONE)
 	_frustum(chapel, g + 7.5, _shrink_ring(chapel, 0.6), g + 9.0, TERESY_TILE, TERESY_TILE)
-	# the parish house behind the nave: brick, a window storey, a hipped tile roof
+	# the parish house behind the nave: plaster, a window storey, a hipped roof
 	_lbox(-3.25, 21.6, 7.55, 7.4, g - 0.6, g + 8.0, TERESY_BRICK_LOW, M_MONUMENT, TERESY_TILE)
 	_lbox(-3.25, 21.6, 7.75, 7.6, g + 8.0, g + 8.5, TERESY_TRIM, M_STONE, TERESY_TRIM)
 	_hip(-3.25, 21.6, 7.75, 7.6, g + 8.5, 3.6, TERESY_TILE)
-	# the front: a stepped portal (dark door, trim frame), a round window and a cross on the gable
-	_mode = M_GLASS
-	_wall(_w(21.97, 0.0), _w(21.97, 5.0), g + 0.9, g + 6.0, _a, TERESY_DARK)
-	_mode = M_STONE
-	_lbox(22.1, 2.5, 0.2, 3.1, g + 6.0, g + 6.5, TERESY_TRIM, M_STONE, TERESY_TRIM)
-	for k in 3:
-		_lbox(22.7 + 0.5 * k, 2.5, 0.5, 3.6 - 0.3 * k, g - 0.6, g + 0.9 - 0.3 * k, TERESY_TRIM.darkened(0.15), M_STONE, TERESY_TRIM)
-	var oc := _w(21.98, 3.25)
-	_disc(Vector3(oc.x, g + 12.6, oc.y), Vector3(_a.x, 0.0, _a.y), 1.5, 10, TERESY_DARK)
-	_lbox(21.9, 3.25, 0.15, 0.15, g + 17.3, g + 19.9, TERESY_GOLD, M_STONE, TERESY_GOLD)
-	_lbox(21.9, 3.25, 0.15, 0.7, g + 18.6, g + 18.9, TERESY_GOLD, M_STONE, TERESY_GOLD)
-	# the bell turret on the ridge: a square brick shaft with louvres, a steep cap and a cross
-	var rt := g + 16.6
-	_lbox(16.0, 3.25, 1.5, 1.5, rt - 2.5, rt + 3.0, wall, M_STONE, wall)
-	_mode = M_GLASS
+	# the tall round-headed windows along both sides, and the corner piers
 	for sd: float in [-1.0, 1.0]:
-		_wall(_w(15.0, 3.25 + sd * 1.52), _w(17.0, 3.25 + sd * 1.52), rt + 0.6, rt + 2.6, _b * sd, TERESY_DARK)
-		_wall(_w(16.0 + sd * 1.52, 2.25), _w(16.0 + sd * 1.52, 4.25), rt + 0.6, rt + 2.6, _a * sd, TERESY_DARK)
+		var face := 3.25 + sd * 11.05
+		for u: float in TERESY_WINDOWS:
+			_teresy_window(face, sd, u, g + 4.0, 1.9, 7.3)
+		for cu: float in [-9.9, 21.7]:
+			_lbox(cu, 3.25 + sd * 10.8, 0.7, 0.45, g - 0.6, eaves - 0.1, TERESY_TRIM, M_STONE, TERESY_TRIM)
+	# the front: a stepped plinth, the big arched porch with a dark recess and a smaller arch in it,
+	# a round window with a trim ring over it, corner piers, a gilt cross at the apex
+	var fa := Vector3(_a.x, 0.0, _a.y)
 	_mode = M_STONE
-	_lbox(16.0, 3.25, 1.75, 1.75, rt + 3.0, rt + 3.4, TERESY_TRIM, M_STONE, TERESY_TRIM)
-	_pyramid(_rect(16.0, 3.25, 1.6, 1.6), rt + 3.4, rt + 7.6, TERESY_TILE)
-	_lbox(16.0, 3.25, 0.12, 0.12, rt + 7.6, rt + 9.6, TERESY_GOLD, M_STONE, TERESY_GOLD)
-	_lbox(16.0, 3.25, 0.12, 0.55, rt + 8.6, rt + 8.85, TERESY_GOLD, M_STONE, TERESY_GOLD)
+	var porch := _w(21.97, 3.25)
+	_wall(_w(21.96, 3.25 - 3.4), _w(21.96, 3.25 + 3.4), g + 0.4, g + 6.6, _a, TERESY_TRIM.darkened(0.05))
+	_arch_cap(Vector3(porch.x, g + 6.6, porch.y), fa, 3.4, 10, TERESY_TRIM.darkened(0.05))
+	_mode = _pane_at(1.0, 2.0)
+	_wall(_w(21.99, 3.25 - 2.9), _w(21.99, 3.25 + 2.9), g + 0.9, g + 6.4, _a, TERESY_DARK.darkened(0.15))
+	_arch_cap(Vector3(porch.x, g + 6.4, porch.y) + fa * 0.03, fa, 2.9, 10, TERESY_DARK.darkened(0.15))
+	_mode = M_STONE
+	_wall(_w(22.02, 3.25 - 1.5), _w(22.02, 3.25 + 1.5), g + 0.9, g + 5.0, _a, TERESY_DOOR)
+	for k in 3:
+		_lbox(22.6 + 0.5 * k, 3.25, 0.5, 3.9 - 0.3 * k, g - 0.6, g + 0.8 - 0.3 * k, TERESY_TRIM.darkened(0.12), M_STONE, TERESY_TRIM)
+	var oc := _w(21.99, 3.25)
+	_disc(Vector3(oc.x, g + 15.0, oc.y), fa, 2.1, 14, TERESY_TRIM.darkened(0.08))
+	_mode = _pane_at(3.0, 4.0)
+	_disc(Vector3(oc.x, g + 15.0, oc.y) + fa * 0.03, fa, 1.65, 14, TERESY_DARK)
+	_mode = M_STONE
+	for sd: float in [-1.0, 1.0]:
+		_lbox(22.1, 3.25 + sd * 10.6, 0.4, 0.8, g - 0.6, eaves + 0.3, TERESY_TRIM, M_STONE, TERESY_TRIM)
+	_lbox(22.0, 3.25, 0.15, 0.15, g + 19.6, g + 22.6, TERESY_GOLD, M_STONE, TERESY_GOLD)
+	_lbox(22.0, 3.25, 0.18, 0.7, g + 21.0, g + 21.3, TERESY_GOLD, M_STONE, TERESY_GOLD)
+	# the side door by the front corner (brown, under a small hood, three steps)
+	_wall(_w(18.6, 3.25 - 11.1), _w(20.4, 3.25 - 11.1), g + 0.3, g + 2.9, -_b, TERESY_DOOR)
+	_lbox(19.5, 3.25 - 11.3, 1.2, 0.35, g + 2.9, g + 3.2, TERESY_TRIM, M_STONE, TERESY_TRIM)
+	for k in 3:
+		_lbox(19.5, 3.25 - 11.4 - 0.3 * k, 1.3, 0.3, g - 0.6, g + 0.45 - 0.15 * k, TERESY_TRIM.darkened(0.12), M_STONE, TERESY_TRIM)
+	# the stair tower at the street corner: a cream shaft with louvres, a copper spire and a cross
+	_lbox(15.9, 3.25 + 11.4, 1.7, 1.5, g - 0.6, g + 20.4, wall, M_STONE, wall)
+	_lbox(15.9, 3.25 + 11.4, 1.9, 1.7, g + 20.2, g + 21.0, TERESY_TRIM, M_STONE, TERESY_TRIM)
+	_mode = M_STONE
+	for sd: float in [-1.0, 1.0]:
+		_wall(_w(14.8, 3.25 + 11.4 + sd * 1.52), _w(17.0, 3.25 + 11.4 + sd * 1.52), g + 15.4, g + 19.2, _b * sd, TERESY_DARK)
+		_wall(_w(15.9 + sd * 1.72, 3.25 + 11.4 - 0.9), _w(15.9 + sd * 1.72, 3.25 + 11.4 + 0.9), g + 15.4, g + 19.2, _a * sd, TERESY_DARK)
+	_pyramid(_rect(15.9, 3.25 + 11.4, 1.95, 1.75), g + 21.0, g + 30.0, TERESY_COPPER)
+	_lbox(15.9, 3.25 + 11.4, 0.12, 0.12, g + 30.0, g + 32.2, TERESY_GOLD, M_STONE, TERESY_GOLD)
+	_lbox(15.9, 3.25 + 11.4, 0.12, 0.55, g + 31.2, g + 31.5, TERESY_GOLD, M_STONE, TERESY_GOLD)
 	# the car stops at the walls
 	_collide(_rect(5.9, 3.25, 15.9, 11.05))
 	_collide(_rect(-3.25, 21.6, 7.55, 7.4))

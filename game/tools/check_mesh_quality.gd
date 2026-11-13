@@ -247,7 +247,8 @@ const BUDGET := {
 	"gielda": 1050,
 	"filharmonia": 1450,
 	"teatr_polski": 760,
-	"teresy": 280,
+	"teresy": 900,  # 2026-11-13 photo rebuild (cream plaster, round-headed windows, porch, spire)
+	"flisac": 4200,  # 2026-11-13: the grid of panes, loggias and shop glass, 3,552 triangles
 	"florian": 2480,
 	"bazar": 2210,
 	"sw_krzyz": 1250,  # 2026-11-06 photo pass: the real flat front, balustrade and statue
