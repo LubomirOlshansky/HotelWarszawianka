@@ -63,7 +63,7 @@ and Marii Magdaleny are not in the game.
 
 | Church | Address | State | Tier | Photos | Next step |
 | --- | --- | --- | --- | --- | --- |
-| Kościół Najświętszego Zbawiciela | Plac Zbawiciela 1 | `zbawiciela`, 1029 tris | A | 41 / 11 | photo rebuild: plaster, belfries, spires, dome; F's `pkin-surroundings` has none |
+| Kościół Najświętszego Zbawiciela | Plac Zbawiciela 1 | `zbawiciela`, rebuilt 2026-11-13 from Mapillary panoramas (cream plaster, one door under the pediment, statue niches, round windows, slimmer 58 m towers with arched belfries and green bulb caps) | A | 41 / 11 | dome over the crossing and the nave's side walls unseen under scaffolding; porch depth and the belfries' details from two clear views |
 | Kościół św. Aleksandra | Plac Trzech Krzyży | `aleksander`, 1218 tris | A | 77 / 12 | photo rebuild: portico ends, columns, towers |
 | Kościół Świętej Trójcy (ewang.) | Plac Małachowskiego 1 | `trojca`, 1901 tris | A | 4 / 2 | oculi, portico count; Commons photos on the Mac |
 | Kościół Wizytek | Krakowskie Przedmieście 34 | `wizytki`, 566 tris | A | 4 / 2 | gable, towers or none; Commons |

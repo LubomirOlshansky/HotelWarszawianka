@@ -65,7 +65,7 @@ transept ends. Open *(photo check)*: whether the real church is floodlit and in 
 
 ## 7. Detail level and budget
 
-L3 for the porch and towers, L2 for the body; 1199 triangles measured (with the night lamps), budget 1250
+L3 for the porch and towers, L2 for the body; 1543 triangles measured (2026-11-13 photo rebuild, arched windows and caps), budget 1600
 (`check_mesh_quality.gd`). Shot: `--at=-417,1590 --heading=340 --time=day --size=45 --nohud`.
 
 ## 8. Parts table
@@ -84,3 +84,13 @@ L3 for the porch and towers, L2 for the body; 1199 triangles measured (with the 
 | belfries | 2 octagons | r 3.4 m, 32..50 m | on the shafts | M_MONUMENT | 3 towers |
 | spires | 2 frustums | r 3.5 to 0.5 m, 51..69 m | on the belfries | M_STONE | 4 roof |
 | dome | drum, 5 frustums, lantern | r 6.9 m, to 46.3 m | u -0.5, v -29 | M_MONUMENT, M_STONE | 4 roof |
+
+## 9. Photo rebuild (2026-11-13, Mapillary panoramas of 2026-06, refs/zbawiciela, never committed)
+
+Changed from the first model: cream plaster (#e4dccb), grey plinth, nave and transept roofs grey
+sheet (#6d7276), verdigris towers and dome (#5f9c88); the three portals became ONE tall door in the
+middle bay under a relief arch and the pediment (paired pilasters either side), the side bays got a
+statue niche and a round window (stained at night); the towers are 58 m (OSM's 76 m is not what
+the photos show): a square shaft with slit windows, a square belfry with round-headed louvres and
+corner pilasters, a cornice, a bulbous cap, a lantern, a ball and a cross. Still unseen (scaffolding
+in most photos): the dome's drum, the nave's side walls, the porch's depth. No new material.
