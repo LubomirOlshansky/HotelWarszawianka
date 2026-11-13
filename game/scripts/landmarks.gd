@@ -16718,8 +16718,9 @@ const FLISAC_PODIUM_AT := Vector2(440.0, -562.0)  # a point in the low block
 const FLISAC_CORNER := Vector2(451.3, -582.9)   # the chamfer's middle
 const FLISAC_TAMKA := Vector2(421.0, -569.0)    # the Tamka front's middle
 const FLISAC_WYBRZEZE := Vector2(475.0, -560.0) # the Wybrzeże front's middle
-const FLISAC_STONE := Color("#d8d0c0")
-const FLISAC_STONE_UP := Color("#cdc5b6")
+const FLISAC_STONE := Color("#e9e6df")
+const FLISAC_STONE_UP := Color("#dcd8d0")
+const FLISAC_GOLD := Color("#d9a83a")    # the courtyard side's fin screen
 const FLISAC_PIER := Color("#c9c1b1")
 const FLISAC_FRAME := Color("#33363a")
 const FLISAC_GLASS := Color("#43505b")
@@ -16730,7 +16731,7 @@ const FLISAC_GREEN := Color("#7b9a55")
 const FLISAC_PALE := Color("#a9bcc4")
 const FLISAC_GROUND := 4.6
 const FLISAC_FLOOR := 3.2
-const FLISAC_FLOORS := 6
+const FLISAC_FLOORS := 5
 const FLISAC_BAY := 3.6
 const FLISAC_SETBACK := 3.6
 const FLISAC_PODIUM := 7.6
@@ -16842,17 +16843,23 @@ func _build_flisac(site: Dictionary) -> void:
 	var g := _g
 	var none := Color(0, 0, 0, 0)
 	var top1 := g + FLISAC_GROUND + FLISAC_FLOORS * FLISAC_FLOOR
-	var top2 := top1 + 0.4 + 2.0 * 3.1
+	var top2 := top1 + 0.4 + 3.1
+	var top3 := top2 + 0.4 + 3.1
 	# the wings: stone walls, a dark coping, the roof terrace green, a glass balustrade round it
 	_prism(ring, g - 1.5, top1 - 0.15, FLISAC_STONE, none, M_STONE, M_STONE)
 	for q: PackedVector2Array in Geometry2D.offset_polygon(ring, 0.1, Geometry2D.JOIN_MITER):
 		_prism(q, top1 - 0.15, top1 + 0.35, FLISAC_COPING, FLISAC_GREEN, M_STONE, M_STONE)
 	_fl_shops(ring, g)
 	_fl_windows(ring, g + FLISAC_GROUND, FLISAC_FLOORS, FLISAC_FLOOR, 0.55, 2.4, 2.45, true)
+	_flisac_fins(ring, site["podium"], g + FLISAC_GROUND + 0.25, top1 - 0.15, g + FLISAC_PODIUM + 0.25)
 	for q: PackedVector2Array in Geometry2D.offset_polygon(ring, -0.5, Geometry2D.JOIN_MITER):
 		_prism(q, top1 + 0.35, top1 + 1.35, FLISAC_PALE, none, M_STONE, M_STONE)
-	# the two set-back floors, in a darker stone with floor-to-ceiling glass
+	# two stepped floors over the five full ones: a set-back floor with a green roof all round, then
+	# a smaller second step that stays clear of the corner, so the corner keeps a big terrace
 	var inset := Geometry2D.offset_polygon(ring, -FLISAC_SETBACK, Geometry2D.JOIN_MITER)
+	var corner := PackedVector2Array()
+	for k in 8:
+		corner.append(FLISAC_CORNER + Vector2.from_angle(TAU * k / 8.0) * 17.0)
 	for q: PackedVector2Array in inset:
 		if q.size() < 3 or absf(_area(q)) < 60.0 or Geometry2D.is_polygon_clockwise(q):
 			continue
@@ -16860,9 +16867,21 @@ func _build_flisac(site: Dictionary) -> void:
 		_prism(upper, top1 + 0.35, top2 - 0.2, FLISAC_STONE_UP, none, M_STONE, M_STONE)
 		for c: PackedVector2Array in Geometry2D.offset_polygon(upper, 0.1, Geometry2D.JOIN_MITER):
 			_prism(c, top2 - 0.2, top2 + 0.3, FLISAC_COPING, FLISAC_GREEN, M_STONE, M_STONE)
-		_fl_windows(upper, top1 + 0.35, 2, 3.1, 0.3, 2.5, 2.6, false)
-		_flisac_roof(upper, top2 + 0.3)
+		_fl_windows(upper, top1 + 0.35, 1, 3.1, 0.3, 2.5, 2.6, false)
 		_collide(upper)
+		for s2: PackedVector2Array in Geometry2D.offset_polygon(upper, -2.4, Geometry2D.JOIN_MITER):
+			if s2.size() < 3 or Geometry2D.is_polygon_clockwise(s2):
+				continue
+			for top: PackedVector2Array in Geometry2D.clip_polygons(s2, corner):
+				if top.size() < 3 or absf(_area(top)) < 50.0 or Geometry2D.is_polygon_clockwise(top):
+					continue
+				var step := _simplify(top, 0.5)
+				_prism(step, top2 + 0.3, top3 - 0.2, FLISAC_STONE_UP, none, M_STONE, M_STONE)
+				for c: PackedVector2Array in Geometry2D.offset_polygon(step, 0.1, Geometry2D.JOIN_MITER):
+					_prism(c, top3 - 0.2, top3 + 0.3, FLISAC_COPING, FLISAC_GREEN, M_STONE, M_STONE)
+				_fl_windows(step, top2 + 0.3, 1, 3.1, 0.3, 2.5, 2.6, false)
+				_flisac_roof(step, top3 + 0.3)
+				_collide(step)
 	# the low block in the elbow: a garden podium
 	var low: PackedVector2Array = site["podium"]
 	if low.size() >= 3:
@@ -16874,6 +16893,33 @@ func _build_flisac(site: Dictionary) -> void:
 	_collide(ring)
 	if low.size() >= 3:
 		_collide(low)
+
+
+## The courtyard side's gold fin screen: a deep gold fin between every bay on the walls that face
+## into the V (the street fronts stay white), up the five full floors.
+func _flisac_fins(ring: PackedVector2Array, low: PackedVector2Array, y0: float, y1: float, y_low: float) -> void:
+	var near_low := Geometry2D.offset_polygon(low, 1.0, Geometry2D.JOIN_MITER) if low.size() >= 3 else []
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var len := a.distance_to(b)
+		if len < 4.5:
+			continue
+		var n := _out(ring, a, b)
+		var m := (a + b) * 0.5
+		if n.dot(FLISAC_PODIUM_AT - m) <= 0.0 or m.distance_to(FLISAC_PODIUM_AT) > 45.0:
+			continue
+		var d := (b - a) / len
+		var bays := maxi(1, roundi(len / FLISAC_BAY))
+		var step := len / float(bays)
+		for k in range(1, bays):
+			var p := a + d * (step * k)
+			var y := y0
+			for q: PackedVector2Array in near_low:
+				if Geometry2D.is_point_in_polygon(p + n * 0.4, q):
+					y = y_low
+			_prism(PackedVector2Array([p - d * 0.12 - n * 0.05, p + d * 0.12 - n * 0.05, p + d * 0.12 + n * 0.75, p - d * 0.12 + n * 0.75]),
+					y, y1, FLISAC_GOLD, FLISAC_GOLD, M_STONE, M_STONE)
 
 
 ## The corner café and the shops' names: a white canopy on posts over the terrace on the chamfer,
