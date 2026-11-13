@@ -169,10 +169,10 @@ func _edges(map: Node3D, where: String) -> void:
 
 func _dress(node: Node3D, map: Node3D, data := {}) -> Node3D:
 	node.set("map", map)
+	# A place script (place.gd) takes what main.gd hands it from `ctx`; the map's data for ratusz_hub.
+	if not data.is_empty():
+		node.set("ctx", {"data": data})
 	node.name = (node.get_script() as Script).resource_path.get_file().get_basename()
 	root.add_child(node)
-	if node.has_method("build") and data.is_empty():
-		node.call("build")
-	else:
-		node.call("build", data)
+	node.call("build")
 	return node
