@@ -64,7 +64,7 @@ and Marii Magdaleny are not in the game.
 | Church | Address | State | Tier | Photos | Next step |
 | --- | --- | --- | --- | --- | --- |
 | Kościół Najświętszego Zbawiciela | Plac Zbawiciela 1 | `zbawiciela`, rebuilt 2026-11-13 from F's ten photos and Mapillary (spec sections 9-10): white plaster, columned portal, tall arched window, stepped attic, towers to about 70 m with dark green bell caps and needle spires, gabled verdigris roofs, crossing lantern, domed chapel; the square's colonnades as columns (`zbawiciela_plac`) | A | 41 / 11 + F's 10 | tower height unconfirmed; north transept back and apse unseen |
-| Kościół św. Aleksandra | Plac Trzech Krzyży | `aleksander`, 1218 tris | A | 77 / 12 | photo rebuild: portico ends, columns, towers |
+| Kościół św. Aleksandra | Plac Trzech Krzyży | `aleksander`, rebuilt 2026-11-13 from nine Mapillary photos and LoD2 heights (spec): stepped podium, a blank cream drum, an upper drum of arched windows and niches, a low green copper dome with a small cross (no lantern, no towers since the post-war rebuild), a six-column Corinthian portico on each end, 2316 tris | A | 77 / 12 | north portico and portico roof colour unseen |
 | Kościół Świętej Trójcy (ewang.) | Plac Małachowskiego 1 | `trojca`, 1901 tris | A | 4 / 2 | oculi, portico count; Commons photos on the Mac |
 | Kościół Wizytek | Krakowskie Przedmieście 34 | `wizytki`, 566 tris | A | 4 / 2 | gable, towers or none; Commons |
 | Kościół św. Teresy | Tamka 4A | `teresy` | in rebuild | 33 / 1 | own thread, not touched here |
@@ -334,7 +334,7 @@ All with a card; check_landmarks only (except where noted). Open issue common to
 | Pałac Staszica | M_MONUMENT + front model | #e2d6b8 / #5f6f6a | `_build_staszic` (spec staszic.md, 2026-11-01): plinth band, cornice with corner pilasters, four-column portico with pediment, Thorvaldsen's seated Copernicus; heights estimated (no LoD2 in the cloud) |
 | Zachęta | M_MONUMENT | #d9b98c / #7d7466 | |
 | Kościół Wszystkich Świętych | M_MONUMENT | #ddcfaa / #6e7f6e | |
-| Kościół św. Aleksandra | model (M_MONUMENT drum) | #ebe4d2 / #7f8f88 | `_build_aleksander` (spec aleksander.md, 2026-11-01): drum, windows, copper dome, lantern, cross, a six-column portico on each end; heights estimated |
+| Kościół św. Aleksandra | model (M_STONE, blank drum) | #ece5d3 / #6a9f86 | `_build_aleksander` (spec aleksander.md, photo rebuild 2026-11-13): podium, blank drum, windowed upper drum, low dome and cross, two six-column Corinthian porticoes; LoD2 heights |
 | Hala Gwardii | model (not a skin) | #a85c40 / #6d7470 | `_build_gwardii` (spec gwardii.md, 2026-11-01): Mirowska's twin, symmetric, a portal at both ends, 16 pilasters a side measured from the outline; 1212 tris |
 | Osiedle Za Żelazną Bramą | model (not a skin) | #d2cfc6 etc. / #77777a | `_build_zelazna` (spec zelazna.md, 2026-11-01): eleven blocks from their OSM outlines in S_ESTATE (panel bays, ribbon windows, loggia stacks), blank ends with a stair slot, entrances with canopies, lift houses; 855 tris |
 | Hala Mirowska | model (not a skin) | #a85c40 / #6d7470 | `_build_mirowska` (spec mirowska.md, 2026-11-01): brick walls with round-headed windows between pilasters, nave roof with glazed lantern, gable ends, four corner turrets, red-roofed west annex; 1458 tris |
