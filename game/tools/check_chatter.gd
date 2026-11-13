@@ -261,7 +261,8 @@ func _ride_toasts() -> void:
 	root.add_child(hud)
 	var rides := Rides.new()
 	rides.hud = hud
-	rides.state = Rides.State.RIDE
+	rides.phase = Rides.Phase.RUN
+	rides.stage = Rides.Stage.RIDE
 	for i in 10:
 		rides._drive_note("bump", ["stłuczka", "stłuczki", "bump", "bumps"])
 		for s in 2:
@@ -276,7 +277,7 @@ func _ride_toasts() -> void:
 	# A penalty, then the ride ends before the merge: no toast.
 	hud.toasts.clear()
 	rides._drive_note("corner", ["zakręt", "zakręty", "fast corner", "fast corners"])
-	rides.state = Rides.State.RESULT
+	rides.stage = Rides.Stage.RESULT
 	for s in roundi(4.0 / DT):
 		rides._drive_tick(DT)
 	_expect(hud.toasts.is_empty(), "ride: a drive toast after the ride ended")
