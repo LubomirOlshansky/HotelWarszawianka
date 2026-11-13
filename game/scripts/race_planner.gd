@@ -508,20 +508,27 @@ class Plan:
 		var key := (e << 16) | g
 		if _cut_id.has(key):
 			return _cut_id[key]
-		var p0 := graph.point_at(e, graph.e_s1[e], graph.lane_offset(e, 0))
-		var d0 := graph.direction(e, graph.e_s1[e])
-		var p3 := graph.point_at(g, graph.e_s0[g], graph.lane_offset(g, 0))
-		var d3 := graph.direction(g, graph.e_s0[g])
-		var reach := clampf(p0.distance_to(p3) * 0.25, 1.0, 8.0)
-		var length := LaneGraph.bezier_length(PackedVector2Array([p0, p0 + d0 * reach, p3 - d3 * reach, p3]))
-		var chord := (p3 - p0).normalized()
-		var turn := maxf(absf(d0.angle_to(chord)), absf(chord.angle_to(d3)))
+		var curve := RaceCuts.curve(graph, e, 0, g)
+		var length := LaneGraph.bezier_length(curve)
 		var id := _thru.size()
 		_cut_id[key] = id
 		_cut_e.append(e)
-		var c := minf(minf(Traffic.CUT_TOP, Traffic.race_turn_speed(length, turn * 2.0, lat)), speed(e))
-		_thru.append(c)
-		_cross.append((length * RaceCuts.COST + RaceCuts.GAIN) / c)
+		if RaceCuts.is_link(curve):
+			# A race link (racer AI step 5): its bends' speeds metre by metre, LINK_TOP at most.
+			var tl := RaceCuts.drive_time(curve, lat, minf(RaceCuts.LINK_TOP, speed(e)))
+			var cl := minf(RaceCuts.bend_speed(curve, lat, RaceCuts.LINK_TOP), speed(e))
+			_thru.append(cl)
+			_cross.append(tl * RaceCuts.COST + RaceCuts.GAIN / cl)
+		else:
+			var p0 := curve[0]
+			var p3 := curve[3]
+			var d0 := graph.direction(e, graph.e_s1[e])
+			var d3 := graph.direction(g, graph.e_s0[g])
+			var chord := (p3 - p0).normalized()
+			var turn := maxf(absf(d0.angle_to(chord)), absf(chord.angle_to(d3)))
+			var c := minf(minf(Traffic.CUT_TOP, Traffic.race_turn_speed(length, turn * 2.0, lat)), speed(e))
+			_thru.append(c)
+			_cross.append((length * RaceCuts.COST + RaceCuts.GAIN) / c)
 		_time.append(INF)
 		_done.append(0)
 		return id

@@ -215,7 +215,13 @@
 # `racecuts` runs game/tools/check_race_cuts.gd: the racers' shortcuts (game/data/race_cuts.json from
 # tools/race_cuts.py) snap to the lane graph, knowledge per rival, the routing with them never longer,
 # 60 races driven with traffic.gd's own cut choice all arrive and some take a cut, the rivals' human
-# lines (CI too, map part skipped without centrum.json). The racer AI rebuild (2026-11-09,
+# lines (CI too, map part skipped without centrum.json). Racer AI step 5 (2026-11-13): `racelinks`
+# runs game/tools/check_race_links.gd: the race links through yards and car parks
+# (game/data/race_links.json from tools/race_links.sh) all proven or refused by the player's car, the
+# proven ones loaded, each one's curve on its points, knowledge by `yards` and `narrow`, each worth
+# taking and the routing never longer (no city; CI too); `racelinks-drive` drives the player's car
+# over every proven link in the prebuilt city (check_lane_drive.gd --links --prebuilt): a wall, a
+# fence or a post since put in a link's way fails it (about a minute). The racer AI rebuild (2026-11-09,
 # docs/design/race-ai.md): `racebench` runs game/tools/check_race_bench.gd: the race bench's quick
 # matrix (the prototype race Powiśle to Plac Trzech Krzyży with Pani Halina on the committed
 # centrum.json's lane graph: clear roads, Busy traffic, a blocked street and a crash against the test
@@ -1208,6 +1214,8 @@ for s in $want; do
 		cassettes) check cassettes '^cassettes:' --script res://tools/check_cassettes.gd ;;
 		ladder) check ladder '^ladder:' --script res://tools/check_ladder.gd ;;
 		racecuts) check racecuts '^race_cuts:' --script res://tools/check_race_cuts.gd ;;
+		racelinks) check racelinks '^race_links:' --script res://tools/check_race_links.gd ;;
+		racelinks-drive) skip_prebuilt racelinks-drive || check racelinks-drive '^check_lane_drive:' --fixed-fps 60 --script res://tools/check_lane_drive.gd -- --links --prebuilt ;;
 		raceline) check raceline '^race_line:' --script res://tools/check_race_line.gd ;;
 		racebench) check racebench '^check_race_bench:' --script res://tools/check_race_bench.gd ;;
 		raceplanner) check raceplanner '^check_race_planner:' --script res://tools/check_race_planner.gd ;;
