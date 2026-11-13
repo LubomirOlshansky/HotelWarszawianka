@@ -55,8 +55,8 @@ LoD2 (eaves ring 13.8 m, upper drum's roof 18.9 m, dome apex 25.7 m) and the pho
   niche a shade darker than the wall. The two faces on the axis are left plain: the pediments
   stand in front of them. Then a white cornice.
 - **Porticoes**: six columns across (centres at v ±1.15, ±3.45, ±5.75), one more on each side
-  2.3 m behind the corner ones, antae at the cella front's corners. Each column: square plinth,
-  eight-sided tapering shaft, a flared Corinthian capital, a square abacus. White architrave and
+  2.3 m behind the corner ones, antae at the cella front's corners. Each column is the facade kit's
+  `kit_column(..., Order.CORINTHIAN)`: square plinth, six-sided shaft, flared capital, abacus. White architrave and
   frieze, a cornice over them, the pediment (white tympanum) and a dark cross on its apex. The
   pediment roof stops against a plain block over the cella's back, as high as the band.
 - **Steps**: the south portico has a broad flight of three steps in front. The north portico (the
@@ -78,15 +78,15 @@ to the drum.
 | Drum walls, cella, tympanum, north base | #f1f0eb | M_STONE (plain: the real drum has no windows) |
 | Columns, cornices, surrounds | #faf9f5 | M_STONE |
 | Blind niches | #dedcd4 | M_STONE |
-| Plinth band | #c9c6bd | M_STONE |
+| Plinth band | #d4d0c6 (PAL_PALE_CONCRETE) | M_STONE |
 | Copper flashing on cornice tops | #7aa892 | M_STONE |
-| Plinth vents | #3a3f42 | M_GLASS |
-| Podium, steps, portico floor | #a5a197 | M_STONE |
-| Dome | #6a9f86 to 15 % lighter | M_STONE |
+| Plinth vents | #323a40 (PAL_GLASS_DARK) | M_GLASS |
+| Podium, steps, portico floor | #a8a49c (PAL_GREY_STONE) | M_STONE |
+| Dome | #6f9a8a (PAL_PATINA_COPPER) to 15 % lighter | M_STONE |
 | Portico roofs | #5f8a76 | M_STONE |
-| Windows | #3a3f42 | M_GLASS |
-| Doors | #4a3b31 | M_GLASS |
-| Crosses | #3f4240 | M_STONE |
+| Windows | #323a40 (PAL_GLASS_DARK) | M_GLASS |
+| Doors | #5e432f (PAL_OAK) | M_GLASS |
+| Crosses | #2a2c2f (PAL_IRON) | M_STONE |
 
 No new material, shader instruction or draw call: the old model used M_MONUMENT, M_STONE and
 M_GLASS; the new one drops M_MONUMENT (whose painted windows the real drum doesn't have).
@@ -101,7 +101,7 @@ after the war without its later towers." Windows are plain dark glass, not lit.
 
 ## 7. Detail level and budget
 
-L2, triangle budget 2700 (measured 2436, plus about 10 %; `check_mesh_quality.gd`). Shots:
+L2, triangle budget 2600 (measured 2340, plus about 10 %; `check_mesh_quality.gd`). Shots:
 `--solo=aleksander --solo-look=lit`, then in the city from Nowy Świat and from the square's
 east side, on both city paths.
 
@@ -129,7 +129,7 @@ the true dome curve (LoD2 is coarse; the photos show faint ribs, not built).
 | floor and steps | floor + 3 front steps (south), floor + 2 x 3 side steps (north) | 13.4 m wide | each end | M_STONE | 4 porticoes |
 | cella attic | box | 1.6 x 10.4 m | y 11.9..13.8, cella back | M_STONE | 4 porticoes |
 | vents | 28 panels | 0.36 x 0.36 m | plinth band | M_GLASS | 1 blank drum |
-| columns | 8 Corinthian columns | r 0.46, 8.5 m | each end | M_STONE | 4 porticoes |
+| columns | 8 kit_column CORINTHIAN | r 0.46, 8.5 m | each end | M_STONE | 4 porticoes |
 | antae | 2 boxes | 0.4 x 0.9 m | cella corners | M_STONE | 4 porticoes |
 | entablature | 2 boxes | 13.4 m wide | y 9.9..11.9 | M_STONE | 4 porticoes |
 | pediment | gable | rise 3.3 m | y 11.9 | M_STONE | 4 porticoes |

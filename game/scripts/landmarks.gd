@@ -18071,14 +18071,14 @@ const ALEKS_FLOOR := 1.4         ## the porticoes' floor
 const ALEKS_WALL := Color("#f1f0eb")    ## white plaster (F's photos: white, not cream)
 const ALEKS_TRIM := Color("#faf9f5")    ## cornices, columns, surrounds
 const ALEKS_NICHE := Color("#dedcd4")   ## the blind niches' shade
-const ALEKS_BASE := Color("#c9c6bd")    ## the plinth band
+const ALEKS_BASE := PAL_PALE_CONCRETE    ## the plinth band
 const ALEKS_LEDGE := Color("#7aa892")   ## the copper flashing on the cornices' tops (the aerial)
-const ALEKS_STEP := Color("#a5a197")    ## granite steps and podium
-const ALEKS_COPPER := Color("#6a9f86")  ## the dome's green copper
+const ALEKS_STEP := PAL_GREY_STONE    ## granite steps and podium
+const ALEKS_COPPER := PAL_PATINA_COPPER  ## the dome's green copper
 const ALEKS_ROOF := Color("#5f8a76")    ## the porticoes' copper roofs
-const ALEKS_DARK := Color("#3a3f42")
-const ALEKS_DOOR := Color("#4a3b31")
-const ALEKS_IRON := Color("#3f4240")    ## the crosses (they read dark against the sky)
+const ALEKS_DARK := PAL_GLASS_DARK
+const ALEKS_DOOR := PAL_OAK
+const ALEKS_IRON := PAL_IRON    ## the crosses (they read dark against the sky)
 ## The dome over the attic: [radius, height above the street] (LoD2: apex 25.7 m).
 const ALEKS_DOME := [[9.6, 20.0], [9.1, 20.9], [8.0, 21.9], [6.4, 22.9], [4.5, 23.8], [2.4, 24.6], [0.7, 25.0]]
 ## A portico's column spots across it (v) and the return columns' setback from the front.
@@ -18102,18 +18102,6 @@ func _aleks_ring(r: float, n: int) -> PackedVector2Array:
 		var ang := TAU * (k + 0.5) / n
 		out.append(ALEKS + (_a * cos(ang) + _b * sin(ang)) * r)
 	return out
-
-
-## A Corinthian column on a local spot: a square plinth, an eight-sided tapering shaft, a flared
-## capital and a square abacus.
-func _aleks_column(cu: float, cv: float, y0: float, y1: float) -> void:
-	var c := _w(cu, cv)
-	var none := Color(0, 0, 0, 0)
-	_prism(_rect(cu, cv, 0.6, 0.6), y0, y0 + 0.35, ALEKS_TRIM.darkened(0.05), ALEKS_TRIM.darkened(0.08), M_STONE, M_STONE)
-	_mode = M_STONE
-	_frustum(_circle(c, 0.46, 8), y0 + 0.35, _circle(c, 0.4, 8), y1 - 1.0, ALEKS_TRIM)
-	_frustum(_circle(c, 0.41, 8), y1 - 1.0, _circle(c, 0.62, 8), y1 - 0.22, ALEKS_TRIM.darkened(0.06))
-	_prism(_rect(cu, cv, 0.66, 0.66), y1 - 0.22, y1, ALEKS_TRIM, none, M_STONE)
 
 
 func _build_aleksander(_site: Dictionary) -> void:
@@ -18228,9 +18216,9 @@ func _build_aleksander(_site: Dictionary) -> void:
 		for side: float in [-1.0, 1.0]:
 			_lbox(sgn * (back + 0.2), side * 5.75, 0.2, 0.45, fl, g + 9.9, ALEKS_TRIM, M_STONE)
 		for v: float in ALEKS_COLS:
-			_aleks_column(sgn * (face - 0.75), v, fl, g + 9.9)
+			kit_column(sgn * (face - 0.75), v, fl, g + 9.9, ALEKS_TRIM, 0.46, Order.CORINTHIAN)
 		for v: float in [ALEKS_COLS[0], ALEKS_COLS[-1]]:
-			_aleks_column(sgn * (face - 0.75 - ALEKS_RETURN), v, fl, g + 9.9)
+			kit_column(sgn * (face - 0.75 - ALEKS_RETURN), v, fl, g + 9.9, ALEKS_TRIM, 0.46, Order.CORINTHIAN)
 		# the entablature (architrave and frieze, then the cornice), the pediment and its cross
 		var e0 := root
 		var e1 := face + 0.05
