@@ -6632,8 +6632,8 @@ const SKINS := [
 	# The Jesuit church (F's Old Town trailer pass, 2026-11-08): LoD2 draws the church with its tower
 	# over 55 m, so the bake gave it the office towers' blue glass. Salmon plaster with white
 	# pilasters on Świętojańska and the brick tower above the roofs (Mapillary photos, refs/oldtown_jezuici2).
-	{"key": "jezuici", "osm": "Sanktuarium Matki Bożej Łaskawej", "mode": M_MONUMENT, "wall": "#d6a447", "roof": "#a5553c",
-			"upper": [20.0, "#9a4b38"]},
+	{"key": "jezuici", "osm": "Sanktuarium Matki Bożej Łaskawej", "mode": M_MONUMENT, "wall": "#dd8f82", "roof": "#6a4d44",
+			"upper": [20.0, "#dd8f82"]},
 	{"key": "sw_anna", "osm": "Kościół pw. Świętej Anny", "mode": M_MONUMENT, "wall": "#e6dcc4", "roof": "#8a5a44"},
 	{"key": "sw_krzyz", "osm": "Kościół pw. Świętego Krzyża", "mode": M_MONUMENT, "wall": "#e3d9c0", "roof": "#5d6e64"},
 	{"key": "staszic", "osm": "Pałac Staszica", "mode": M_MONUMENT, "wall": "#e6dcc4", "roof": "#6a8f80"},
@@ -18240,15 +18240,18 @@ func _build_aleksander(_site: Dictionary) -> void:
 
 
 ## The Jesuit church (Sanktuarium Matki Bożej Łaskawej, Świętojańska 10, next to the Cathedral):
-## the mass stays the kept LoD2 block in its skin (`jezuici`); the model adds the front the street
-## sees. Built 2026-11-13 from Mapillary photos (a 2010 one with the front in salmon, a 2018 one
-## after the repaint to ochre; refs/jezuici, never shipped) and the LoD2 heights (the front wall to
-## 22.8 m, the gable apex 33.6 m, the wing's eaves 14 m). Spec docs/landmarks/specs/jezuici.md.
-## - the main front (12.9 m, set 4.5 m back from the wing): a grey plinth, a giant order of flat
-##   pilasters in two pairs, a string course between the storeys, a round-headed portal under a
-##   small pediment with a statue niche over it, framed windows either side, a big cornice, an
-##   attic and a tall triangular pediment with a cross;
-## - the wing next to it (7.3 m, the tower's base): the same pilasters, cornice and windows, 14 m.
+## the mass stays the kept LoD2 block in its skin (`jezuici`); the model is everything the eye
+## reads on it. Rebuilt 2026-11-13 from F's four photos (the stepped front by day and by night,
+## the tower's helm, the front from the side), two Mapillary photos and the LoD2 heights
+## (front wall 22.8 m, gable apex 33.6 m, wing eaves 14 m, tower decagon r 3.2 to 56 m, a turret
+## at u 13.2 to 38 m). Spec docs/landmarks/specs/jezuici.md. Dusty pink plaster, cream trim:
+## - the front: a tall tier of four giant pilasters with carved capitals, then three narrower
+##   tiers (each a window between pilasters, a cornice and scroll buttresses either side), cream
+##   pinnacles with gold balls and a gold cross; an arched portal under a small pediment;
+## - the wing (the tower's base, 4.5 m forward): pilasters, a statue niche, a door, windows;
+## - the side wall toward the Cathedral: pilasters on the outline's bumps, three framed windows, a cornice;
+## - the tower: a decagon with corner pilasters, arched openings, a green copper helm, a lantern,
+##   an onion cap with a gold ball and cross; the roof turret in green copper.
 ## Frame: origin at the wing's NW corner, u along Świętojańska to the south-east, +v out to the street.
 const JEZ := Vector2(-764.2, -1648.3)
 const JEZ_AXIS := Vector2(0.685, 0.729)
@@ -18256,9 +18259,27 @@ const JEZ_FRONT := -4.47            ## the main front's face in v: 3 cm proud of
 const JEZ_U0 := 7.9
 const JEZ_U1 := 20.8
 const JEZ_MID := 14.35
-const JEZ_TRIM := PAL_WHITE_STONE   ## the white pilasters and surrounds (both photos)
-const JEZ_OCHRE := Color("#d6a447")  ## the repainted plaster (the 2018 photo), the skin's wall colour
-const JEZ_ROOF := Color("#8a4a38")
+const JEZ_TRIM := Color("#efe6d2")   ## the cream pilasters and surrounds (F's photos)
+const JEZ_PINK := Color("#dd8f82")   ## the dusty pink plaster (F's day photos; the skin's wall colour)
+const JEZ_ROOF := Color("#6a4d44")
+const JEZ_TOWER := Vector2(6.3, -32.0)    ## the tower's decagon (LoD2), local u, v
+const JEZ_TURRET := Vector2(13.2, -32.1)  ## the roof turret (LoD2)
+const JEZ_WEST := 19.93              ## the side wall's face in u (the outline's, bumps reach 20.45)
+
+
+## A ring of n points round a local centre, the first on the u axis: the tower's decagon (LoD2).
+func _jez_ring(c: Vector2, r: float, n: int) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for k in n:
+		var ang := TAU * k / n
+		out.append(_w(c.x + r * cos(ang), c.y + r * sin(ang)))
+	return out
+
+
+## A cream pinnacle on a cornice: a small square shaft and a gold ball.
+func _jez_pinnacle(u: float, v: float, y: float, h: float) -> void:
+	_lbox(u, v, 0.26, 0.26, y, y + h, JEZ_TRIM, M_STONE)
+	_prism(_circle(_w(u, v), 0.3, 6), y + h, y + h + 0.5, PAL_GOLD, PAL_GOLD, M_STONE, M_STONE)
 
 
 func _build_jezuici(_site: Dictionary) -> void:
@@ -18267,41 +18288,141 @@ func _build_jezuici(_site: Dictionary) -> void:
 	kit_front(JEZ, to)
 	_g = map.terrain_height(_w(m, 0.0).x, _w(m, 0.0).y)
 	var g := _g
-	var none := Color(0, 0, 0, 0)
 	_mode = M_STONE
-	# the main front
+	# --- the front: four tiers, each narrower, each with its cornice and scroll buttresses
 	kit_face(JEZ_FRONT)
-	kit_wall(JEZ_U0, JEZ_U1, g - 0.2, g + 22.2, JEZ_OCHRE)
+	kit_wall(JEZ_U0, JEZ_U1, g - 0.2, g + 14.0, JEZ_PINK)
+	kit_wall(m - 4.1, m + 4.1, g + 13.9, g + 22.4, JEZ_PINK)
+	kit_wall(m - 2.6, m + 2.6, g + 22.3, g + 28.4, JEZ_PINK)
+	kit_wall(m - 1.6, m + 1.6, g + 28.3, g + 33.2, JEZ_PINK)
 	kit_ledge(JEZ_U0, JEZ_U1, g - 0.2, 1.1, PAL_GREY_STONE, 0.16)
+	# tier 1: the giant order, carved capitals, a string course, the cornice
 	for du: float in [-5.95, -2.35, 2.35, 5.95]:
-		kit_pilaster(m + du, g + 0.8, g + 20.5, JEZ_TRIM, 0.9, 0.16)
-	kit_ledge(JEZ_U0, JEZ_U1, g + 9.6, 0.4, JEZ_TRIM, 0.14)
-	kit_cornice(JEZ_U0, JEZ_U1, g + 20.6, JEZ_TRIM, 0.6, 1.1)
-	kit_attic(JEZ_U0, JEZ_U1, g + 21.2, JEZ_TRIM, 1.0, Attic.WALL)
+		kit_pilaster(m + du, g + 0.8, g + 13.5, JEZ_TRIM, 1.0, 0.2)
+		_kbox(m + du - 0.75, m + du + 0.75, JEZ_FRONT - 0.04, JEZ_FRONT + 0.34, g + 12.3, g + 13.1, JEZ_TRIM)
+	kit_ledge(JEZ_U0, JEZ_U1, g + 6.6, 0.4, JEZ_TRIM, 0.14)
+	kit_cornice(JEZ_U0, JEZ_U1, g + 14.0, JEZ_TRIM, 0.6, 1.2)
 	for wu: float in [m - 4.15, m + 4.15]:
 		kit_window(wu, g + 2.3, 2.4, Win.FRAMED, JEZ_TRIM, PAL_GLASS_DARK, 0.55)
-		kit_window(wu, g + 11.4, 3.6, Win.PEDIMENT, JEZ_TRIM, PAL_GLASS_DARK, 0.7)
-	# the portal and the statue niche over it
+		kit_window(wu, g + 8.2, 3.2, Win.ARCHED, JEZ_TRIM, PAL_GLASS_DARK, 0.65)
 	kit_door(m, g + 1.1, 4.6, 1.1, JEZ_TRIM, PAL_OAK, true)
-	kit_pediment(m, 1.7, g + 6.2, 1.0, JEZ_TRIM, JEZ_ROOF, 0.45, JEZ_OCHRE)
-	_arch_panel(_w(m, JEZ_FRONT), _a, _b, 1.05, g + 11.4, g + 14.2, JEZ_TRIM, 0.05, M_STONE)
-	_arch_panel(_w(m, JEZ_FRONT), _a, _b, 0.8, g + 11.6, g + 14.2, JEZ_OCHRE.darkened(0.2), 0.09, M_STONE)
-	_lbox(m, JEZ_FRONT + 0.2, 0.28, 0.2, g + 11.6, g + 14.4, JEZ_TRIM, M_STONE)   # the statue
-	# the tall pediment over the attic and its cross
-	kit_pediment(m, 6.4, g + 22.2, 10.5, JEZ_OCHRE, JEZ_ROOF, 0.5, JEZ_TRIM)
-	_lbox(m, JEZ_FRONT + 0.4, 0.07, 0.07, g + 32.0, g + 34.8, PAL_GOLD, M_STONE, PAL_GOLD)
-	_lbox(m, JEZ_FRONT + 0.4, 0.5, 0.07, g + 33.2, g + 33.45, PAL_GOLD, M_STONE, PAL_GOLD)
-	# the wing, the tower's base, 4.5 m forward of the main front
+	kit_pediment(m, 1.7, g + 6.2, 1.0, JEZ_TRIM, JEZ_ROOF, 0.45, JEZ_PINK.darkened(0.15))
+	kit_window(m, g + 8.0, 4.6, Win.PEDIMENT, JEZ_TRIM, PAL_GLASS_DARK, 0.85)
+	# tier 2
+	for du2: float in [-3.65, 3.65]:
+		kit_pilaster(m + du2, g + 14.6, g + 22.0, JEZ_TRIM, 0.9, 0.2)
+	kit_window(m, g + 16.2, 4.0, Win.ARCHED, JEZ_TRIM, PAL_GLASS_DARK, 0.9)
+	kit_cornice(m - 4.1, m + 4.1, g + 22.4, JEZ_TRIM, 0.55, 1.1)
+	# tier 3
+	for du3: float in [-2.2, 2.2]:
+		kit_pilaster(m + du3, g + 23.0, g + 28.0, JEZ_TRIM, 0.7, 0.18)
+	kit_window(m, g + 24.2, 2.8, Win.ARCHED, JEZ_TRIM, PAL_GLASS_DARK, 0.6)
+	kit_cornice(m - 2.6, m + 2.6, g + 28.4, JEZ_TRIM, 0.5, 1.0)
+	# tier 4 and its small pediment, the cross
+	kit_window(m, g + 29.5, 2.2, Win.PLAIN, JEZ_TRIM, PAL_GLASS_DARK, 0.5)
+	kit_pediment(m, 1.8, g + 33.2, 2.2, JEZ_TRIM, JEZ_ROOF, 0.4)
+	_lbox(m, JEZ_FRONT + 0.3, 0.07, 0.07, g + 35.2, g + 38.2, PAL_GOLD, M_STONE, PAL_GOLD)
+	_lbox(m, JEZ_FRONT + 0.3, 0.5, 0.07, g + 36.6, g + 36.85, PAL_GOLD, M_STONE, PAL_GOLD)
+	# the scroll buttresses: steps from one tier's cornice up to the next tier's wall
+	var steps := [[6.45, 5.5, 14.6, 15.6], [5.5, 4.9, 15.6, 17.4], [4.9, 4.2, 17.4, 19.6],
+			[4.1, 3.5, 22.9, 24.0], [3.5, 2.9, 24.0, 26.2], [2.6, 2.1, 28.9, 30.2]]
+	for st: Array in steps:
+		for sg: float in [-1.0, 1.0]:
+			var ua := m + sg * float(st[0])
+			var ub := m + sg * float(st[1])
+			_kbox(minf(ua, ub), maxf(ua, ub), JEZ_FRONT - 0.04, JEZ_FRONT + 0.5, g + float(st[2]), g + float(st[3]), JEZ_TRIM)
+	# the pinnacles with gold balls on the cornices
+	for pe: Array in [[6.2, 14.6], [3.9, 22.9], [2.4, 28.9]]:
+		for sg2: float in [-1.0, 1.0]:
+			_jez_pinnacle(m + sg2 * float(pe[0]), JEZ_FRONT + 0.4, g + float(pe[1]), 1.6)
+	# --- the wing, the tower's base, 4.5 m forward of the main front
 	kit_face(0.03)
-	kit_wall(0.4, 7.7, g - 0.2, g + 13.4, JEZ_OCHRE)
+	kit_wall(0.4, 7.7, g - 0.2, g + 13.4, JEZ_PINK)
 	kit_ledge(0.4, 7.7, g - 0.2, 1.1, PAL_GREY_STONE, 0.16)
 	for wp: float in [0.95, 7.15]:
-		kit_pilaster(wp, g + 0.8, g + 13.4, JEZ_TRIM, 0.8, 0.14)
-	kit_ledge(0.4, 7.7, g + 8.6, 0.35, JEZ_TRIM, 0.12)
+		kit_pilaster(wp, g + 0.8, g + 13.0, JEZ_TRIM, 0.8, 0.16)
 	kit_cornice(0.4, 7.7, g + 13.4, JEZ_TRIM, 0.55, 0.9)
-	for wu2: float in [3.0, 5.2]:
-		kit_window(wu2, g + 2.4, 2.2, Win.FRAMED, JEZ_TRIM, PAL_GLASS_DARK, 0.5)
-		kit_window(wu2, g + 9.6, 2.6, Win.SILL_HEAD, JEZ_TRIM, PAL_GLASS_DARK, 0.5)
+	kit_door(5.5, g + 1.1, 2.8, 0.65, JEZ_TRIM, PAL_OAK, false)
+	kit_window(2.8, g + 2.2, 2.0, Win.FRAMED, JEZ_TRIM, PAL_GLASS_DARK, 0.55)
+	# the statue niche over it (the photos), and the arched window beside
+	_arch_panel(_w(2.8, 0.03), _a, _b, 0.8, g + 6.0, g + 8.4, JEZ_TRIM, 0.05, M_STONE)
+	_arch_panel(_w(2.8, 0.03), _a, _b, 0.58, g + 6.2, g + 8.4, JEZ_PINK.darkened(0.25), 0.09, M_STONE)
+	_lbox(2.8, 0.25, 0.22, 0.18, g + 6.3, g + 8.7, JEZ_TRIM, M_STONE)
+	kit_window(5.5, g + 7.6, 3.2, Win.ARCHED, JEZ_TRIM, PAL_GLASS_DARK, 0.6)
+	# --- the side wall toward the Cathedral: pilasters on the outline's bumps, three framed windows
+	var w0 := JEZ + JEZ_AXIS.normalized() * JEZ_WEST + _b * -4.5
+	var w1 := JEZ + JEZ_AXIS.normalized() * JEZ_WEST + _b * -24.4
+	var fa := kit_front(w0, w1)
+	kit_face(0.03)
+	kit_wall(0.2, fa - 0.1, g - 0.2, g + 15.0, JEZ_PINK)
+	kit_ledge(0.2, fa - 0.1, g - 0.2, 1.0, PAL_GREY_STONE, 0.14)
+	for sp: float in [0.8, 6.8, 12.8, 18.8]:
+		kit_pilaster(sp, g + 0.8, g + 14.4, JEZ_TRIM, 1.6, 0.6)
+	for sw: float in [3.8, 9.8, 15.8]:
+		kit_window(sw, g + 6.6, 4.4, Win.FRAMED, JEZ_TRIM, PAL_GLASS_DARK, 0.7)
+	kit_cornice(0.2, fa - 0.1, g + 15.0, JEZ_TRIM, 0.6, 1.1)
+	# --- the tower: a decagon (LoD2: r 3.2, walls from 20 m, helm to 56 m); the shaft inside holds it up
+	var tw := _w(JEZ_TOWER.x, JEZ_TOWER.y)
+	var tc := JEZ_TOWER
+	_mode = M_STONE
+	_prism(_jez_ring(tc, 2.6, 10), g - 0.6, g + 45.2, JEZ_PINK, JEZ_PINK, M_STONE, M_STONE)
+	for k in 10:
+		var va := TAU * k / 10.0
+		_lbox(tc.x + 3.22 * cos(va), tc.y + 3.22 * sin(va), 0.22, 0.22, g + 23.5, g + 44.0, JEZ_TRIM, M_STONE)
+	_prism(_jez_ring(tc, 3.35, 10), g + 33.0, g + 33.5, JEZ_TRIM, JEZ_TRIM, M_STONE, M_STONE)
+	_prism(_jez_ring(tc, 3.5, 10), g + 44.0, g + 44.5, JEZ_TRIM, JEZ_TRIM, M_STONE, M_STONE)
+	_prism(_jez_ring(tc, 3.3, 10), g + 44.5, g + 45.0, JEZ_TRIM, JEZ_TRIM, M_STONE, M_STONE)
+	for k in 10:
+		var fang := TAU * (k + 0.5) / 10.0
+		var fout := _a * cos(fang) + _b * sin(fang)
+		var falong := Vector2(fout.y, -fout.x)
+		var fat := tw + fout * (3.2 * cos(PI / 10.0))
+		_arch_panel(fat, falong, fout, 0.85, g + 35.8, g + 39.8, JEZ_TRIM, 0.05, M_STONE)
+		_arch_panel(fat, falong, fout, 0.62, g + 36.0, g + 39.8, PAL_GLASS_DARK, 0.09, M_GLASS)
+	_mode = M_STONE
+	# the green helm: a flared lip, a waist, the lantern in cream with dark openings, the onion cap, ball and cross
+	var helm := [[3.0, 45.0], [3.55, 46.7], [2.7, 48.3], [1.7, 50.0]]
+	for k in helm.size() - 1:
+		var ha: Array = helm[k]
+		var hb: Array = helm[k + 1]
+		_frustum(_jez_ring(tc, float(ha[0]), 10), g + float(ha[1]), _jez_ring(tc, float(hb[0]), 10), g + float(hb[1]), PAL_PATINA_COPPER, PAL_PATINA_COPPER)
+	_prism(_jez_ring(tc, 1.35, 10), g + 50.0, g + 53.0, JEZ_TRIM, JEZ_TRIM, M_STONE, M_STONE)
+	for k in 10:
+		if k % 2 == 1:
+			continue
+		var lang := TAU * (k + 0.5) / 10.0
+		var lout := _a * cos(lang) + _b * sin(lang)
+		var lalong := Vector2(lout.y, -lout.x)
+		_arch_panel(tw + lout * (1.35 * cos(PI / 10.0)), lalong, lout, 0.32, g + 50.6, g + 52.0, PAL_GLASS_DARK, 0.04, M_GLASS)
+	var cap := [[1.7, 53.0], [1.55, 54.0], [0.9, 55.0], [0.3, 55.9]]
+	for k in cap.size() - 1:
+		var ca: Array = cap[k]
+		var cb: Array = cap[k + 1]
+		_frustum(_jez_ring(tc, float(ca[0]), 10), g + float(ca[1]), _jez_ring(tc, float(cb[0]), 10), g + float(cb[1]), PAL_PATINA_COPPER, PAL_PATINA_COPPER)
+	_prism(_circle(tw, 0.3, 6), g + 55.9, g + 56.6, PAL_GOLD, PAL_GOLD, M_STONE, M_STONE)
+	_lbox(tc.x, tc.y, 0.07, 0.07, g + 56.6, g + 59.2, PAL_GOLD, M_STONE, PAL_GOLD)
+	_lbox(tc.x, tc.y, 0.45, 0.07, g + 57.8, g + 58.05, PAL_GOLD, M_STONE, PAL_GOLD)
+	# --- the roof turret (LoD2: a base at 29 m, a lantern to 36 m, a tip at 38 m), in green copper
+	var uc := JEZ_TURRET
+	var uw := _w(uc.x, uc.y)
+	_prism(_jez_ring(uc, 2.3, 10), g - 0.6, g + 29.4, JEZ_PINK, JEZ_PINK, M_STONE, M_STONE)
+	var tur := [[3.3, 28.8], [3.3, 31.0], [2.0, 32.6]]
+	for k in tur.size() - 1:
+		var ta: Array = tur[k]
+		var tb: Array = tur[k + 1]
+		_frustum(_jez_ring(uc, float(ta[0]), 10), g + float(ta[1]), _jez_ring(uc, float(tb[0]), 10), g + float(tb[1]), PAL_PATINA_COPPER, PAL_PATINA_COPPER)
+	_prism(_jez_ring(uc, 1.6, 10), g + 32.6, g + 36.0, JEZ_TRIM, JEZ_TRIM, M_STONE, M_STONE)
+	for k in 10:
+		if k % 2 == 1:
+			continue
+		var uang := TAU * (k + 0.5) / 10.0
+		var uout := _a * cos(uang) + _b * sin(uang)
+		var ualong := Vector2(uout.y, -uout.x)
+		_arch_panel(uw + uout * (1.6 * cos(PI / 10.0)), ualong, uout, 0.32, g + 33.2, g + 34.8, PAL_GLASS_DARK, 0.04, M_GLASS)
+	_frustum(_jez_ring(uc, 1.9, 10), g + 36.0, _jez_ring(uc, 0.3, 10), g + 38.6, PAL_PATINA_COPPER, PAL_PATINA_COPPER)
+	_prism(_circle(uw, 0.28, 6), g + 38.6, g + 39.2, PAL_GOLD, PAL_GOLD, M_STONE, M_STONE)
+	_lbox(uc.x, uc.y, 0.06, 0.06, g + 39.2, g + 41.4, PAL_GOLD, M_STONE, PAL_GOLD)
+	_lbox(uc.x, uc.y, 0.38, 0.06, g + 40.2, g + 40.4, PAL_GOLD, M_STONE, PAL_GOLD)
 
 
 ## The Church of the Holiest Saviour (Kościół Najświętszego Zbawiciela; Józef Dziekoński and

@@ -1,9 +1,9 @@
-- The Jesuit church on Świętojańska, next to the Cathedral, has its real front now: ochre plaster with white pilasters in two pairs, a round portal under a small pediment with a statue niche over it, framed windows, a big cornice and a tall pediment with a gold cross, and the same trim on the wing at the street end.
+- The Jesuit church on Świętojańska, next to the Cathedral, is rebuilt from your photos: dusty pink plaster with cream pilasters, the stepped four-tier front with scroll buttresses, gold-ball pinnacles and a gold cross, the low wing with its statue niche, the pilastered side wall, and the tall tower with its green copper helm, lantern and onion cap, plus the small green turret on the roof.
 
 ## Backlog
 - fixed: Old Town set, the Jesuit church (Jezuici) model (church review order 3, first of the set)
-- found: the tower and apse of the Jesuit church stay the LoD2 mass in a skin; the portal's real pediment shape and the number of bays are not checked against a close photo (only two street photos face the front)
-- found: the Jesuit church's colour changed from salmon to ochre with a repaint; the 2010 Mapillary photos still show salmon
+- found: the scroll buttresses are stepped boxes and the portal pediment a triangle; the tower's bell stage has ten identical openings where the photos show pairs; the nave beyond 24 m and the apse stay the LoD2 mass
+- found: the Jesuit church's front is floodlit warm at night in F's photo; no floodlights built
 
 ## Roadmap
-- added: "Jesuit church (Sanktuarium Matki Bożej Łaskawej) front rebuilt on the facade kit (F, 2026-11-13, churches review, Old Town set)"
+- added: "Jesuit church (Sanktuarium Matki Bożej Łaskawej) rebuilt from F's photos on the facade kit (F, 2026-11-13, churches review, Old Town set)"

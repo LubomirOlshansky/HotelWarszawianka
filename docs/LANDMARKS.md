@@ -100,7 +100,7 @@ and Marii Magdaleny are not in the game.
 
 | Building | Address | State | Tier | Photos | Next step |
 | --- | --- | --- | --- | --- | --- |
-| Sanktuarium MB Łaskawej (Jezuici) | Świętojańska 10 | skin `jezuici` (ochre after the repaint) plus `_build_jezuici` front, 2026-11-13 (spec `jezuici.md`, 844 tris): giant white pilasters, portal, statue niche, tall pediment, the wing | A | 9 / 5 | the tower and apse stay LoD2's mass; portal pediment shape, bay count |
+| Sanktuarium MB Łaskawej (Jezuici) | Świętojańska 10 | skin `jezuici` (dusty pink) plus `_build_jezuici`, 2026-11-13 from F's photos (spec `jezuici.md`, 2585 tris): stepped four-tier front, wing with niche, side wall, decagon tower with green helm, roof turret | A | 9 / 5 + F's 4 | volutes are stepped boxes; nave east of 24 m and the apse stay LoD2; floodlights |
 | Klasztor Sióstr Wizytek | Krakowskie Przedmieście / Karowa | plain block, 2495 m² | B | 0 / 0 | with the church |
 | Klasztor Ojców Dominikanów | Freta | plain block, 1892 m² | B | 3 / 0 | with St Hyacinth |
 | Klasztor Ojców Kapucynów | Miodowa | plain block | B | 1 / 0 | with Przemienienia |
@@ -327,7 +327,7 @@ All with a card; check_landmarks only (except where noted). Open issue common to
 | Teatr Polski | M_MONUMENT + front model | #e2ddcd / #76a08c | `_build_teatr_polski` (spec teatr_polski.md, 2026-11-02): the Karasia front, its two drums with balustrades, oculi, the long balcony, the green kiosk; ~620 tris |
 | Barbakan | brick model | #b2604a / #a9502f | `_build_barbakan` (spec barbakan.md; F's photos 2026-11-08): the bastion's crown of brick posts under stone pyramids, a corbel band and loopholes, four round towers at the mapped outlines with tile cones, tiled arm roofs, the pointed gate, the gate wall to Nowomiejska, the bridge arches |
 | Archikatedra św. Jana | M_GOTHIC | #9a4b38 / #6e3a2e | |
-| Kościół Jezuitów (Sanktuarium MB Łaskawej) | M_MONUMENT skin + `_build_jezuici` front (M_STONE) | #d6a447 (was #dc9f8a) / #a5553c, tower top #9a4b38 | skin `jezuici` (2026-11-08, Mapillary refs): its 60 m LoD2 tower had the blue glass skin of buildings over 55 m; the skin's new `upper` key paints walls above 20 m in brick; card |
+| Kościół Jezuitów (Sanktuarium MB Łaskawej) | M_MONUMENT skin + `_build_jezuici` (M_STONE) | #dd8f82 (was #dc9f8a) / #6a4d44 (was #a5553c), tower top #9a4b38 | skin `jezuici` (2026-11-08, Mapillary refs): its 60 m LoD2 tower had the blue glass skin of buildings over 55 m; the skin's new `upper` key paints walls above 20 m in brick; card |
 | Kościół św. Anny | M_MONUMENT | #e6dcc4 / #8a5a44 | `_build_anna` (spec anna.md, 2026-11-01): four-column portico, pediment, wings, bell-tower trim, terrace balustrade; 586 tris |
 | Pałac Prezydencki | M_MONUMENT | #ece3cc / #6a7a77 | facade to model |
 | Kościół Świętego Krzyża | M_MONUMENT + front model | #e3d9c0 / #5d6e64 | `_build_krzyz` (spec krzyz.md, 2026-11-01): four-column portico, upper storey, pediment, two towers with copper onion helms; dome over the crossing not modelled |
