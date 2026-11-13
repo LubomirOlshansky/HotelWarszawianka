@@ -57,7 +57,7 @@ CONTENT = ["game/dialogue/*", "game/audio/*", "game/art/*", "game/icon.png"] + [
 # Objects built in code and the data they read: they change the city's meshes and colliders,
 # not the roads or the ground.
 LANDMARK_SCRIPTS = [
-    "landmarks", "models", "props", "storefronts", "neon_signs", "monuments", "small_buildings",
+    "landmarks", "facade_kit", "models", "props", "storefronts", "neon_signs", "monuments", "small_buildings",
     "powisle_houses", "roof_dress", "tenement_trim", "osm_roofs", "old_town_roofs", "tarasy_screen",
     "spire_motion", "skwer_zlota", "plac_pieciu_rogow", "ratusz_hub", "rail_yard", "park_props_life",
     "park_props_play", "park_props_water", "patelnia", "places", "place", "first_scene", "tamka",

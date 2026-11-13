@@ -931,6 +931,11 @@ The card gets one line for that, one with both ways in kilometres, one with what
 ways over the streets round them, the player's a solid line and the rival's dashed, the start a
 dot and the finish chequered. On a phone the card is made wider by the picture; where it would
 not fit, the card keeps its width and the words wrap narrower. A race given up has no report.
+
+**Changed the same day (F, 2026-11-13: "detailed info about lose or win is not needed").** The
+card keeps its own short lines and the picture of both routes. The report's three lines are no
+longer put on it (`rivals.gd` `REPORT_LINES` false); they are still worked out and printed in
+the log (`race report: ...`), where tuning reads them.
 So after a loss to Halina the player sees the yard she took.
 
 **Found on the way.** The metres to the finish (`RaceCuts.links`) could still hand out a shortcut

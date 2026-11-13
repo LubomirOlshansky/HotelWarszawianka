@@ -219,6 +219,15 @@ def refs_text():
         idx = os.path.join(rdir, "INDEX.md")
         if os.path.exists(idx):
             out.append(open(idx, encoding="utf-8").read())
+    # the shared store (tools/refs_store.py): only the places that have photos there
+    sidx = os.path.join(os.environ.get("REFS_STORE") or "/mnt/project-files/refs/", "INDEX.json")
+    if os.path.exists(sidx):
+        try:
+            for x in json.load(open(sidx, encoding="utf-8")).get("inventory", []):
+                if x["photos"] + x["street_photos"] + x["more_count"] > 0:
+                    out.append(x["place"] + " " + (x["slug"] or "").replace("_", " "))
+        except (OSError, ValueError, KeyError):
+            pass
     return norm("\n".join(out))
 
 

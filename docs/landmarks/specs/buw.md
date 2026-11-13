@@ -14,6 +14,18 @@ between the lawns is the glass field, OSM's 6 m part is the glass pyramid on the
 LoD2 check): the deck at 15 m (64 % of the roof), the glass ridges about 17 m; LoD2's lower
 10 m part is the court in the south notch, Collegium Iuridicum II's roof, now part of the
 site; the four mapped round parts on the north-east band are the ventilators.
+**Pass 4, 2026-11-13** (F's twenty photos, street level, Street View and the air): the
+copper screen is a frieze from 10.8 m to over the roof with BIBLIOTEKA UNIWERSYTECKA across its
+top and twelve narrower pages under it, a pair of round copper columns in each gap; the band is
+a curved green glass vault with dark ribs; the other fronts are off-white concrete with three
+storeys of teal windows behind the trellis and ivy; the tall blue glass hall past the copper's
+south end; the magenta steel lattice tower (OSM's 15 pink parts) by Lipowa; the round "vents"
+are concrete drums to 3 m over the roof with slit tops (four more outside the north front),
+the one by the round east corner a lookout with people; the oculus is a ribbed silver-green
+glass dome; railings on the walkways, benches, more flower colours; Collegium Iuridicum IV
+(Wybrzeże Kościuszkowskie 47) is the grey villa with white stone trim and the glass spire,
+built in the same site; a cascade, a pool, three steel trees and beds in the lower garden;
+the roof's mapped footways carry walkers 15 m up.
 
 ## 1. Identity
 

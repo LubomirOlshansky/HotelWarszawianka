@@ -13,10 +13,14 @@ GUGiK LoD2 heights and what the model remembered; nobody put a photo beside the 
 ## 1. Reference photos (before any spec)
 
 - **Any photo from the internet (F, 2026-11-08)**: when a building lacks photos, download them yourself from anywhere (Commons, Mapillary, Panoramax, news, blogs, company or architect sites, any search result) without checking the licence: they are modelling references only, kept in the gitignored `refs/`, never shipped in the repo or the game. Don't wait for the user for photos.
-- **Where**: `refs/<slug>/` at the repo root, gitignored (other people's photos, whatever their licence,
-  never go into the repo). `refs/<slug>/SOURCES.md` lists each file: Commons page URL,
-  author, licence, and one line on what it shows (angle, which face). `refs/INDEX.md` lists
-  the buildings. The slug is the site key in `landmarks.gd` when there is one.
+- **Where**: the shared store `/mnt/project-files/refs/<slug>/` is the home (a network mount all cloud
+  threads see; the Mac does not mount it). `refs/<slug>/` at the repo root, gitignored, is the working
+  copy (other people's photos, whatever their licence, never go into the repo). Before writing a spec
+  `python3 -I tools/refs_store.py pull <slug>`; right after gathering `push <slug>` (it re-runs the index).
+  A cloud thread reads the store's `INDEX.md` first (ranked like the inventory; `gaps` lists what is
+  missing, `where TEXT` finds a slug) and asks for the Mac only for what the store lacks. `SOURCES.md` lists each file: Commons
+  page URL, author, licence, and one line on what it shows (angle, which face). The slug is the site key in
+  `landmarks.gd` when there is one; `tools/refs_slugs.tsv` ties slugs to inventory rows.
 - **What**: 3-4 photos a building: one street-level front, one elevated or aerial view that
   shows the whole silhouette and roof (the game is seen from above), one detail (base,
   entrance, crown). Daylight; a night photo only for what lights up.
@@ -78,7 +82,12 @@ photos say goes into the spec as values. Sections, every value filled:
 7. **Detail level and budget** (below), and the shots to take.
 8. **Parts table**: one row per part (id, shape, size, position, material code, which identity
    feature it serves). The builder names its functions after the part ids, and a failed check
-   or a reviewer's fix points at a row, not at prose.
+   or a reviewer's fix points at a row, not at prose. Windows, balconies, ledges, cornices,
+   pilasters, columns, pediments, porticos and lanterns are **facade kit parts**
+   (`docs/design/facade-kit.md`): the shape cell names the part and its style
+   (`kit_window SILL_HEAD`, `kit_balcony IRON`), and the material cell a palette name
+   (`PAL_SANDSTONE`) unless the photo gives the building a colour of its own. A part the kit
+   lacks is written as a new kit style, not as a helper of the landmark.
 
 The spec lives at `docs/landmarks/specs/<slug>.md`, and `tools/check_spec.py` (a `verify.sh` step,
 `spec`) FAILs one that lacks a section, a level, a budget number or a filled parts-table cell
@@ -134,6 +143,11 @@ kind repeated across the whole map gets one MultiMesh. No new node, material or 
 - **Shots for the judge**: besides the lit matched shots, one unlit (flat colour) shot and one
   silhouette on a plain background per main angle, with the landmark alone when the flag
   exists: shape errors hide in lighting and street clutter.
+- **The turntable is the first look at any model**: `tools/turntable.sh KEY` (about a minute) gives
+  every side of the site on one sheet (lit from 8 sides at two heights, flat, silhouette, top
+  view), so a builder and F check the whole model before any single matched shot is taken. The
+  sheet is `shots/turntable_KEY/KEY_turntable.png`; open it and look, then take matched shots for
+  the sides that need a closer look.
 - **Side by side, photo first**: the reviewer opens the photos and shots and scores them
   *before* reading the spec (a judge favours what it wrote or read; the spec comes after, to
   name what is missing). Scores 1-5 on silhouette, proportions, colour, identity features

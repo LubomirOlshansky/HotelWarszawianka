@@ -109,3 +109,14 @@ listed in the archive's flags table. Every run passes `--nosave` and quits.
 - Android: `tools/export_android.sh` (signed Play AAB).
 - Device runs (skill `device-run`) only when F says so for the current loop.
 - Never overlap `export_ios.sh` and `xcodebuild`; turn Autopilot off before exports.
+
+## 6. Reference photos
+
+Photos of real buildings are modelling reference only: never committed, never shipped. Their home is the
+shared store `/mnt/project-files/refs/<slug>/` (a network mount all cloud threads see; the Mac does not
+mount it); the repo's gitignored `refs/<slug>/` is the working copy. `tools/refs_store.py` owns both:
+`index` writes the store's `INDEX.md` and `INDEX.json` in the rank order of `docs/CITY_INVENTORY.md` Part 1
+(slugs tied by `tools/refs_slugs.tsv`, folders that live elsewhere in the shared folder by the store's
+`ALIASES.tsv`), `gaps` lists the places with no photo or no ortho (the Mac gather worklist), `show` and
+`where` look a place up, `pull` and `push` sync the two copies (never deleting; a different size is a
+conflict and the destination wins). Verify step `refs-store` runs its selftest.
