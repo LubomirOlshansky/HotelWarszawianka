@@ -202,3 +202,53 @@ func zoom_step(size: float, base: float, extra: float, dt: float) -> float:
 	_base = lerpf(_base, base, 1.0 - exp(-ZOOM_OUT_RATE * dt))
 	_extra = lerpf(_extra, extra, 1.0 - exp(-(ZOOM_OUT_RATE if extra > _extra else ZOOM_IN_RATE) * dt))
 	return _base + _extra
+
+
+## The free camera (--cam=X,Y,Z, a test and screenshot flag, hidden from players): the point it
+## looks at, from "X,Z" or "X,Y,Z" (Y in metres; left out it is the ground under X,Z, which main.gd
+## looks up). [] when the text is not numbers. Returns [x, y, z], y NAN for "ground".
+static func parse_free(text: String) -> Array:
+	var p := text.split(",")
+	if p.size() < 2 or p.size() > 3:
+		return []
+	for s in p:
+		if not s.strip_edges().is_valid_float():
+			return []
+	return _free_xyz(p)
+
+
+## Several free cameras for one run (--cams=, shots.sh's turntables: a run costs ~40 s, a shot
+## ~1 s more): "NAME:X,Y,Z,YAW,PITCH,SIZE" joined with "+", Y empty for the ground, YAW, PITCH and
+## SIZE optional (the run's own --yaw, --pitch and --size when left out). Returns a list of
+## {name, at (Vector3, y NAN for the ground), yaw, pitch, size (NAN when left out)}, [] when any
+## camera is not in that form.
+static func parse_cams(text: String) -> Array:
+	var out: Array = []
+	for item in text.split("+", false):
+		var ns := item.split(":")
+		if ns.size() != 2 or ns[0].strip_edges() == "" or not ns[0].is_valid_filename():
+			return []
+		var f := ns[1].split(",")
+		if f.size() < 3 or f.size() > 6:
+			return []
+		for i in f.size():
+			if not (f[i].strip_edges().is_valid_float() or (i == 1 and f[i].strip_edges() == "")):
+				return []
+		out.append({"name": ns[0], "at": Vector3(float(f[0]), float(f[1]) if f[1].strip_edges() != "" else NAN, float(f[2])),
+				"yaw": float(f[3]) if f.size() > 3 else NAN, "pitch": float(f[4]) if f.size() > 4 else NAN,
+				"size": float(f[5]) if f.size() > 5 else NAN})
+	return out
+
+
+static func _free_xyz(p: PackedStringArray) -> Array:
+	# "X,Z" is the ground point; "X,Y,Z" has the height in the middle, like a world position.
+	if p.size() == 2:
+		return [float(p[0]), NAN, float(p[1])]
+	return [float(p[0]), float(p[1]), float(p[2])]
+
+
+## The free camera's view: looking at `focus` with the orbit's yaw and pitch (degrees, as
+## main.gd's cam_yaw and camera_pitch), as far back as the follow camera sits for a view `size` m tall.
+static func free_view(focus: Vector3, yaw: float, pitch: float, size: float, distance_min: float) -> Transform3D:
+	var basis := Basis.from_euler(Vector3(deg_to_rad(pitch), deg_to_rad(yaw), 0.0))
+	return Transform3D(basis, focus + basis.z * maxf(distance_min, size * 1.6))

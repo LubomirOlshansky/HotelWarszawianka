@@ -725,7 +725,9 @@ Beta goal: a visitor explores the city with everything open, an easy city drive,
 
 ### Left: a city built for driving (F, 2026-11-13; plan docs/design/drivable-city.md, re-ranks the block above)
 - [x] Research: every object type with purpose and verdict, five solidity classes (Hard, Smash, Push, Ride, Ghost), design rules, ranked plan (2026-11-13, docs only)
-- [ ] Contact log and the sloppy driver; baseline of contacts and dead stops per street
+- [x] The build plan: a brief per item for Opus threads, order and dependencies, broken things' memory and recovery (docs/design/drivable-city-build.md, 2026-11-13, docs only)
+- [ ] Solid classes in the collider (no change in behaviour), then the contact log and the sloppy driver; baseline of contacts and dead stops per street
+- [ ] Collision answer v2 behind presets (with the controls thread)
 - [ ] Fences and hedges break when driven through (Smash class, in bulk); parked cars can be pushed, thinned in pinches
 - [ ] No invisible or oversized colliders (check and collider view); narrow streets and yards; tapers and chamfers; the ratchets
 

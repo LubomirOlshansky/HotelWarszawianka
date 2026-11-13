@@ -1679,6 +1679,8 @@ Ghost) set by object type and context in bulk, the override file for exceptions 
 ground-level streets. This order replaces steps 1-7 of "Road objects and collisions" above (the
 same work, re-ranked; its detail in road-objects.md still holds).
 - [x] Research: every object type with its purpose and verdict, what makes the game unreasonably harder, design rules R1-R9, the plan (2026-11-13, docs only)
+- [x] The build plan (2026-11-13, docs only): `docs/design/drivable-city-build.md`, a brief per item for Opus threads (design, steps, acceptance, traps), the order and what depends on what, broken things' memory and recovery (session memory, repaired out of sight), the seam with the walls-look thread. New numbers: only 4.7 of 209 km of fence and hedge have a hazard behind; 60.8 of 68 km of barrier walls carry no height; 209 km of service ways are outside the census
+- [ ] 0 Solid classes in the collider (`_wall_faces` by class, one body per class per sector, `solidity.gd`, `check_solids`): no change in behaviour; it comes before item 1
 - [ ] 1 Contact log (`check_lane_drive --contacts`: collider class and census id, speed before and after), the sloppy driver, a dead-stop line in dev and Autopilot runs; baseline per street
 - [ ] 2 Collision rework v2 (road-objects.md 4.2-4.3): answer by angle, head-on kick, corner pivot, traffic shove; after or inside the controls thread (both edit `car.gd`); F's phone A/B
 - [ ] 3 Smash class: the solidity table as data; fences and hedges off the hard collider onto a soft layer (drag, sound, debris); a fence with a drop over 1.5 m, a railway cutting or water behind it becomes a guard rail; bench, both city paths
