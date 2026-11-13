@@ -89,7 +89,7 @@ preloads is loaded before the title can show (`check_boot` holds the list).
 
 | Layer | What | Command |
 | --- | --- | --- |
-| Map data | invariants and counts | `python3 -I tools/check_map_data.py`, `check_roads.py`, `check_streets.py` ... |
+| Map data | invariants and counts | `python3 -I tools/check_map_data.py`, `check_roads.py`, `check_streets.py`, `road_truth.py` (lanes, turns, roundabouts) ... |
 | Rules | pure scripts, no map | `game/tools/check_*.gd` (about 200), each prints `<name>: OK` |
 | Headless runs | the game for N seconds with flags; `boot-run` starts it as a player's launch does (the title first, the game loaded behind it) | `tools/verify.sh` steps `plain`, `prebuilt`, `boot-run`, `police-runs` ... |
 | All of it | one PASS / WARN / FAIL table | `tools/verify.sh [--quick]`; the steps and their sets are one list, `tools/ci_steps.txt`; CI picks its jobs from the changed paths (`tools/ci_tier.py`) and sums them up in one `gate` check; main runs every group |
