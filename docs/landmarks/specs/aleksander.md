@@ -4,7 +4,9 @@ Site key `aleksander` in `game/scripts/landmarks.gd` (`_find_aleksander`, `_buil
 First written 2026-11-01 in a cloud thread from the OpenStreetMap outline alone. **Rebuilt
 2026-11-13** (churches review order 2) from nine Mapillary photos of 2019-2026 (`refs/aleksander`,
 never committed or shipped; the best: the south portico from Plac Trzech Krzyży's east side, the
-drum close up, a 2026 panorama from the south) and the GUGiK LoD2 roof heights in the map pack.
+drum close up, a 2026 panorama from the south), F's three photos and a Commons photo in the shared
+store (`refs/aleksander`, top-50 T23: the north portico from the west, the south portico, an
+aerial from the south) and the GUGiK LoD2 roof heights in the map pack.
 
 ## 1. Identity
 
@@ -12,7 +14,7 @@ Chrystian Piotr Aigner's church of 1818-1825, a rotunda in the manner of the Pan
 middle of Plac Trzech Krzyży at the head of Nowy Świat. Given two towers in the 1890s, burnt in
 1944, rebuilt after the war in Aigner's form, without the towers. What makes it read as itself:
 
-1. **A tall, blank cream drum** (no windows at all on the lower drum) on a stepped stone podium.
+1. **A tall, blank white drum** (no windows at all on the lower drum) on a stepped stone podium.
 2. **A lower, set-back upper drum** where round-headed windows alternate with blind arched niches.
 3. **A low green copper dome** with only a small cross on top (no lantern).
 4. **A portico of six white Corinthian columns** under a pediment with a cross, on both ends of
@@ -44,9 +46,10 @@ LoD2 (eaves ring 13.8 m, upper drum's roof 18.9 m, dome apex 25.7 m) and the pho
 
 - **Podium**: granite grey, one step all round 2.3 m out from the drum, the platform 1.4 m out.
   In front of each portico three steps down to the square.
-- **Lower drum**: a plinth band, then smooth cream plaster with nothing on it (the photos show
+- **Lower drum**: a plinth band with small square vents, then smooth white plaster with nothing on it (the photos show
   no windows), a thin white string course near the top, a white dentilled cornice in two tiers.
-- **Set-back band**: plain plaster under a small cap (the LoD2 eaves ring).
+- **Set-back band**: plain plaster under a small cap (the LoD2 eaves ring). The tops of the
+  cornice, the band's cap and the upper cornice carry green copper flashing (the aerial).
 - **Upper drum**: 24 faces lined up with the axis. The 10 even faces off the axis carry a
   round-headed window (white surround, dark glass, 1.44 m wide); the 12 odd faces a blind arched
   niche a shade darker than the wall. The two faces on the axis are left plain: the pediments
@@ -54,7 +57,10 @@ LoD2 (eaves ring 13.8 m, upper drum's roof 18.9 m, dome apex 25.7 m) and the pho
 - **Porticoes**: six columns across (centres at v ±1.15, ±3.45, ±5.75), one more on each side
   2.3 m behind the corner ones, antae at the cella front's corners. Each column: square plinth,
   eight-sided tapering shaft, a flared Corinthian capital, a square abacus. White architrave and
-  frieze, a cornice over them, the pediment (cream tympanum) and a dark cross on its apex.
+  frieze, a cornice over them, the pediment (white tympanum) and a dark cross on its apex. The
+  pediment roof stops against a plain block over the cella's back, as high as the band.
+- **Steps**: the south portico has a broad flight of three steps in front. The north portico (the
+  ground falls toward Nowy Świat) stands on a white base wall with a flight down each side.
 - **Cella**: a block from the drum to the cella front, 4.8 m behind the columns' front; a big
   door (2.6 x 5.9 m) in a white surround and a smaller door either side; two small windows, one
   over the other, in each side wall of the block (seen in the photos).
@@ -69,10 +75,12 @@ to the drum.
 
 | Part | Colour | Material code |
 | --- | --- | --- |
-| Drum walls, cella, tympanum | #ece5d3 | M_STONE (plain: the real drum has no windows) |
-| Columns, cornices, surrounds | #f5f1e6 | M_STONE |
-| Blind niches | #ddd5c1 | M_STONE |
-| Plinth band | #b9b2a3 | M_STONE |
+| Drum walls, cella, tympanum, north base | #f1f0eb | M_STONE (plain: the real drum has no windows) |
+| Columns, cornices, surrounds | #faf9f5 | M_STONE |
+| Blind niches | #dedcd4 | M_STONE |
+| Plinth band | #c9c6bd | M_STONE |
+| Copper flashing on cornice tops | #7aa892 | M_STONE |
+| Plinth vents | #3a3f42 | M_GLASS |
 | Podium, steps, portico floor | #a5a197 | M_STONE |
 | Dome | #6a9f86 to 15 % lighter | M_STONE |
 | Portico roofs | #5f8a76 | M_STONE |
@@ -93,12 +101,12 @@ after the war without its later towers." Windows are plain dark glass, not lit.
 
 ## 7. Detail level and budget
 
-L2, triangle budget 2550 (measured 2316, plus about 10 %; `check_mesh_quality.gd`). Shots:
+L2, triangle budget 2700 (measured 2436, plus about 10 %; `check_mesh_quality.gd`). Shots:
 `--solo=aleksander --solo-look=lit`, then in the city from Nowy Świat and from the square's
 east side, on both city paths.
 
-Open photo checks (no photo reached): the north portico is assumed the same as the south one;
-the portico roofs' colour (assumed copper green); the true dome curve (LoD2 is coarse).
+Open photo checks: the east side of the north portico's base (a flight assumed on both sides);
+the true dome curve (LoD2 is coarse; the photos show faint ribs, not built).
 
 ## 8. Parts table
 
@@ -118,7 +126,9 @@ the portico roofs' colour (assumed copper green); the true dome curve (LoD2 is c
 | dome | 6 frustums | r 9.6 to 0.7 | y 20.0..25.0 | M_STONE | 3 dome |
 | cross | pedestal + 2 boxes | 3.3 m | y 24.9..28.2 | M_STONE | 3 dome |
 | cella | box | 12.2 m wide | each end | M_STONE | 4 porticoes |
-| floor and steps | 4 boxes | 13.4 m wide | each end | M_STONE | 4 porticoes |
+| floor and steps | floor + 3 front steps (south), floor + 2 x 3 side steps (north) | 13.4 m wide | each end | M_STONE | 4 porticoes |
+| cella attic | box | 1.6 x 10.4 m | y 11.9..13.8, cella back | M_STONE | 4 porticoes |
+| vents | 28 panels | 0.36 x 0.36 m | plinth band | M_GLASS | 1 blank drum |
 | columns | 8 Corinthian columns | r 0.46, 8.5 m | each end | M_STONE | 4 porticoes |
 | antae | 2 boxes | 0.4 x 0.9 m | cella corners | M_STONE | 4 porticoes |
 | entablature | 2 boxes | 13.4 m wide | y 9.9..11.9 | M_STONE | 4 porticoes |

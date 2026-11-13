@@ -18682,8 +18682,8 @@ func _build_sejm(_site: Dictionary) -> void:
 ## St Alexander's church (Kościół Świętego Aleksandra; Chrystian Piotr Aigner's rotunda of
 ## 1818-1825 in the middle of Plac Trzech Krzyży, given towers in the 1890s, burnt in 1944 and
 ## rebuilt in Aigner's form without them). Rebuilt 2026-11-13 from Mapillary photos (refs/aleksander,
-## never shipped) and the GUGiK LoD2 heights (eaves 13.8 m, upper drum 18.9 m, dome 25.7 m).
-## Spec docs/landmarks/specs/aleksander.md. Cream plaster, white trim, a green copper dome:
+## never shipped), F's photos (top-50 T23) and the GUGiK LoD2 heights (eaves 13.8 m, upper drum 18.9 m, dome 25.7 m).
+## Spec docs/landmarks/specs/aleksander.md. White plaster, copper-flashed cornices, a green copper dome:
 ## - a stepped stone podium round the whole church;
 ## - a tall blank lower drum (no windows) with a string course and a dentilled cornice in line
 ##   with the porticoes' entablature, then a plain set-back band;
@@ -18701,10 +18701,11 @@ const ALEKS_HALF := 6.4          ## the porticoes' half width (the outline)
 const ALEKS_ENDS := [18.0, -17.4]
 const ALEKS_PODIUM := 0.8        ## the podium's top above the street
 const ALEKS_FLOOR := 1.4         ## the porticoes' floor
-const ALEKS_WALL := Color("#ece5d3")    ## cream plaster
-const ALEKS_TRIM := Color("#f5f1e6")    ## white cornices, columns, surrounds
-const ALEKS_NICHE := Color("#ddd5c1")   ## the blind niches' shade
-const ALEKS_BASE := Color("#b9b2a3")    ## the plinth band
+const ALEKS_WALL := Color("#f1f0eb")    ## white plaster (F's photos: white, not cream)
+const ALEKS_TRIM := Color("#faf9f5")    ## cornices, columns, surrounds
+const ALEKS_NICHE := Color("#dedcd4")   ## the blind niches' shade
+const ALEKS_BASE := Color("#c9c6bd")    ## the plinth band
+const ALEKS_LEDGE := Color("#7aa892")   ## the copper flashing on the cornices' tops (the aerial)
 const ALEKS_STEP := Color("#a5a197")    ## granite steps and podium
 const ALEKS_COPPER := Color("#6a9f86")  ## the dome's green copper
 const ALEKS_ROOF := Color("#5f8a76")    ## the porticoes' copper roofs
@@ -18769,14 +18770,26 @@ func _build_aleksander(_site: Dictionary) -> void:
 	# tiers, then the plain set-back band and its cap
 	_prism(_aleks_ring(r + 0.15, 24), p - 0.1, p + 0.9, ALEKS_BASE, none, M_STONE)
 	_prism(_aleks_ring(r, 24), p + 0.9, g + 11.0, ALEKS_WALL, none, M_STONE)
+	# small square vents in the plinth band, two to a face, clear of the porticoes
+	_mode = M_GLASS
+	for k in 24:
+		if k % 12 <= 2 or k % 12 >= 10:
+			continue
+		var va := TAU * k / 24.0
+		var vo := _a * cos(va) + _b * sin(va)
+		var vt := Vector2(vo.y, -vo.x)
+		var vp := c + vo * ((r + 0.15) * face_c + 0.03)
+		for dt: float in [-0.6, 0.6]:
+			_wall(vp + vt * (dt - 0.18), vp + vt * (dt + 0.18), p + 0.3, p + 0.66, vo, ALEKS_DARK)
+	_mode = M_STONE
 	_prism(_aleks_ring(r + 0.08, 24), g + 9.7, g + 9.95, ALEKS_TRIM, none, M_STONE)
 	_prism(_aleks_ring(r + 0.25, 24), g + 11.0, g + 11.4, ALEKS_TRIM, none, M_STONE)
-	_prism(_aleks_ring(r + 0.55, 24), g + 11.4, g + 11.9, ALEKS_TRIM, ALEKS_TRIM.darkened(0.1), M_STONE, M_STONE)
+	_prism(_aleks_ring(r + 0.55, 24), g + 11.4, g + 11.9, ALEKS_TRIM, ALEKS_LEDGE, M_STONE, M_STONE)
 	_prism(_aleks_ring(r - 0.3, 24), g + 11.9, g + 13.6, ALEKS_WALL, none, M_STONE)
-	_prism(_aleks_ring(r - 0.15, 24), g + 13.6, g + 13.8, ALEKS_TRIM, ALEKS_WALL.darkened(0.12), M_STONE, M_STONE)
+	_prism(_aleks_ring(r - 0.15, 24), g + 13.6, g + 13.8, ALEKS_TRIM, ALEKS_LEDGE, M_STONE, M_STONE)
 	# the upper drum, its cornice and the plain attic ring
 	_prism(_aleks_ring(ru, 24), g + 13.8, g + 18.0, ALEKS_WALL, none, M_STONE)
-	_prism(_aleks_ring(ru + 0.45, 24), g + 18.0, g + 18.9, ALEKS_TRIM, ALEKS_WALL.darkened(0.12), M_STONE, M_STONE)
+	_prism(_aleks_ring(ru + 0.45, 24), g + 18.0, g + 18.9, ALEKS_TRIM, ALEKS_LEDGE, M_STONE, M_STONE)
 	_prism(_aleks_ring(ru - 0.6, 24), g + 18.9, g + 20.0, ALEKS_WALL, none, M_STONE)
 	# round-headed windows on the even faces, blind niches on the odd ones; none on the axis,
 	# where the pediments stand in front of the upper drum
@@ -18828,12 +18841,22 @@ func _build_aleksander(_site: Dictionary) -> void:
 		_mode = M_STONE
 		# the cella block, the floor and the steps down to the square
 		_lbox(sgn * (root + back) * 0.5, 0.0, (back - root) * 0.5, hv - 0.3, p - 0.2, g + 9.9, ALEKS_WALL, M_STONE)
-		_lbox(sgn * (back + face + 0.3) * 0.5, 0.0, (face + 0.3 - back) * 0.5, hv + 0.3, g - 0.5, fl, ALEKS_STEP, M_STONE, ALEKS_STEP.lightened(0.08))
-		var steps := [[0.3, 0.8, 1.0], [0.8, 1.3, 0.6], [1.3, 1.8, 0.25]]
-		for st: Array in steps:
-			var s0 := face + float(st[0])
-			var s1 := face + float(st[1])
-			_lbox(sgn * (s0 + s1) * 0.5, 0.0, (s1 - s0) * 0.5, hv + 0.3, g - 0.5, g + float(st[2]), ALEKS_STEP, M_STONE, ALEKS_STEP.lightened(0.05))
+		# the south portico has a broad flight in front; the north one (the ground falls toward
+		# Nowy Świat) stands on a white base wall with a flight down each side (F's photos)
+		var front := sgn < 0.0
+		var reach := 1.8 if front else 0.3
+		_lbox(sgn * (back + face + 0.3) * 0.5, 0.0, (face + 0.3 - back) * 0.5, hv + 0.3, g - 0.5, fl,
+				ALEKS_STEP if front else ALEKS_WALL, M_STONE, ALEKS_STEP.lightened(0.08))
+		var flight := [[0.3, 0.8, 1.0], [0.8, 1.3, 0.6], [1.3, 1.8, 0.25]]
+		for st: Array in flight:
+			var s0 := float(st[0])
+			var s1 := float(st[1])
+			if front:
+				_lbox(sgn * (face + (s0 + s1) * 0.5), 0.0, (s1 - s0) * 0.5, hv + 0.3, g - 0.5, g + float(st[2]), ALEKS_STEP, M_STONE, ALEKS_STEP.lightened(0.05))
+			else:
+				for side: float in [-1.0, 1.0]:
+					_lbox(sgn * (face - 1.6), side * (hv + 0.3 + (s0 + s1) * 0.5 - 0.3), 1.9, (s1 - s0) * 0.5,
+							g - 0.5, g + float(st[2]), ALEKS_STEP, M_STONE, ALEKS_STEP.lightened(0.05))
 		# the antae at the cella front's corners, then the columns: six across, one more each side
 		for side: float in [-1.0, 1.0]:
 			_lbox(sgn * (back + 0.2), side * 5.75, 0.2, 0.45, fl, g + 9.9, ALEKS_TRIM, M_STONE)
@@ -18846,10 +18869,12 @@ func _build_aleksander(_site: Dictionary) -> void:
 		var e1 := face + 0.05
 		_lbox(sgn * (e0 + e1) * 0.5, 0.0, (e1 - e0) * 0.5, hv + 0.05, g + 9.9, g + 11.2, ALEKS_TRIM, M_STONE)
 		_lbox(sgn * (e0 + e1 + 0.25) * 0.5, 0.0, (e1 + 0.25 - e0) * 0.5, hv + 0.3, g + 11.2, g + 11.9, ALEKS_TRIM, M_STONE, ALEKS_TRIM.darkened(0.1))
-		_gable(sgn * (face + 0.2), sgn * root, 0.0, hv + 0.3, g + 11.9, 3.3, ALEKS_WALL, ALEKS_ROOF, false)
+		# the pediment roof stops against a plain block over the cella's back, as high as the band
+		_gable(sgn * (face + 0.2), sgn * (root + 1.6), 0.0, hv + 0.3, g + 11.9, 3.3, ALEKS_WALL, ALEKS_ROOF, true)
+		_lbox(sgn * (root + 0.8), 0.0, 0.8, hv - 1.2, g + 11.9, g + 13.8, ALEKS_WALL, M_STONE, ALEKS_LEDGE)
 		_lbox(sgn * (face + 0.05), 0.0, 0.08, 0.08, g + 15.2, g + 16.9, ALEKS_IRON, M_STONE, ALEKS_IRON)
 		_lbox(sgn * (face + 0.05), 0.0, 0.08, 0.45, g + 16.2, g + 16.38, ALEKS_IRON, M_STONE, ALEKS_IRON)
-		var arm := _rect(sgn * (root + face + 1.8) * 0.5, 0.0, (face + 1.8 - root) * 0.5, hv + 0.3)
+		var arm := _rect(sgn * (root + face + reach) * 0.5, 0.0, (face + reach - root) * 0.5, hv + (0.3 if front else 1.8))
 		var merged := Geometry2D.merge_polygons(ring, arm)
 		if not merged.is_empty():
 			ring = _largest(merged)

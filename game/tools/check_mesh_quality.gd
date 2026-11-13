@@ -57,7 +57,7 @@ const BUDGET := {
 	"church_trojca_praga": 410,
 	"church_zielonoswiatkowy": 320,
 	"church_zwycieska": 950,
-	"aleksander": 2550,  # 2026-11-13 photo rebuild: podium, upper drum windows, Corinthian porticoes
+	"aleksander": 2700,  # 2026-11-13 photo rebuild: podium, upper drum windows, Corinthian porticoes
 	"barbakan": 1500,  # 2026-11-06 photo pass: merlon caps and swollen cone roofs
 	"piano_house": 180,
 	"cube_house": 390,
