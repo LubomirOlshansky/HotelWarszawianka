@@ -1,7 +1,7 @@
 extends SceneTree
 ## The Ratusz Arsenał interchange (ratusz_hub.gd, F's photos 2026-11-07) against the committed map:
 ## the three hub platforms are found with the tracks on their front side, each gets its arched
-## canopy (arches, benches, two boards), the whole hub is one surface inside its triangle budget,
+## canopy (arches, benches, two boards) standing on the platform from end to end, the whole hub is one surface inside its triangle budget,
 ## Gruba Kaśka stands between the two Solidarności platforms, Andersa's stop 03 has none, the tower
 ## and its railings keep clear of the tracks, the generic shelters on the hub platforms
 ## are dropped and no others, the station's entrances take the Ratusz forms and each form builds,
@@ -48,7 +48,7 @@ func _init() -> void:
 	for p: Dictionary in plats:
 		var span := RatuszHub.canopy_span(p)
 		_expect(float(span[1]) - float(span[0]) >= 20.0, "canopy at %s only %.1f m long" % [p["c"], float(span[1]) - float(span[0])])
-		_expect(float(span[2]) >= 3.0, "canopy at %s only %.1f m deep" % [p["c"], span[2]])
+		_expect(float(span[2]) >= RatuszHub.DEPTH_MIN, "canopy at %s only %.1f m deep" % [p["c"], span[2]])
 		# The front (v1) edge's middle is nearer a track than the back (v0) edge's.
 		var c: Vector2 = p["c"]
 		var n: Vector2 = p["n"]
@@ -60,6 +60,16 @@ func _init() -> void:
 			df = minf(df, Geometry2D.get_closest_point_to_segment(front, sg[0], sg[1]).distance_to(front))
 			db = minf(db, Geometry2D.get_closest_point_to_segment(back, sg[0], sg[1]).distance_to(back))
 		_expect(df < db, "platform at %s: its canopy opens away from the tracks (front %.1f m, back %.1f m)" % [c, df, db])
+		# Every arch stands on its platform: its foot and its front tip inside the outline (F's
+		# screenshot, 2026-11-13: the south canopy's back had stood up to 4 m out over the road).
+		var off := 0
+		var ribs := RatuszHub.canopy_ribs(p)
+		for r: Vector3 in ribs:
+			for v: float in [r.y, r.y + r.z]:
+				var q := c + (p["a"] as Vector2) * r.x + n * v
+				if not Geometry2D.is_point_in_polygon(q, p["poly"]):
+					off += 1
+		_expect(off == 0, "platform at %s: %d arch ends off the platform (of %d arches)" % [c, off, ribs.size()])
 	# The hub with no map (flat ground).
 	var hub := RatuszHub.new()
 	hub.build(data)
@@ -73,6 +83,7 @@ func _init() -> void:
 		if ch is MeshInstance3D:
 			meshes += 1
 	_expect(meshes == 1, "%d meshes (one draw call wanted)" % meshes)
+	var hub_tris := hub.triangles
 	hub.free()
 	# The tower and its railings against the tracks.
 	var near := RatuszHub._track_segments(data, RatuszHub.TOWER, 40.0)
@@ -118,7 +129,7 @@ func _init() -> void:
 	Models.passengers(s, face, 0.1, 0.9, 0.27, 0.78, 3)
 	var pt := _tris(s.mesh())
 	_expect(pt > 0 and pt <= MAX_PASSENGER_TRIS, "%d passenger triangles on a 8 m band" % pt)
-	print("ratusz_hub: %d platforms, %d entrance forms, %d passenger triangles a band" % [plats.size(), forms.size(), pt])
+	print("ratusz_hub: %d platforms, %d hub triangles, %d entrance forms, %d passenger triangles a band" % [plats.size(), hub_tris, forms.size(), pt])
 	if _problems > 0:
 		print("ratusz_hub: FAIL (%d)" % _problems)
 		quit(1)
