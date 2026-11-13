@@ -632,6 +632,8 @@ class Driver:
 	var block_off := 0.0
 	var block_wait := 0.0
 	var cuts_taken := 0
+	## Of those, the race links (yards, car parks, alleys: race_cuts.gd), for the race bench.
+	var links_taken := 0
 	var mistakes := 0
 	var wrong_turns := 0
 	var blocks := 0
@@ -2299,26 +2301,27 @@ func _cut_to(d: Driver, e: int, g: int) -> void:
 	d.conn_pace = 1.0
 	d.conn_y0 = graph.height(e, graph.e_s1[e])
 	d.conn_y1 = graph.height(g, graph.e_s0[g])
-	var chord := (d.conn[3] - d.conn[0]).normalized()
-	var turn := maxf(absf(graph.direction(e, graph.e_s1[e]).angle_to(chord)), absf(chord.angle_to(graph.direction(g, graph.e_s0[g]))))
-	d.v_turn = minf(CUT_TOP, race_turn_speed(d.conn_len, turn * 2.0, d.race_lat))
+	if RaceCuts.is_link(d.conn):
+		# A race link (racer AI step 5): at its tightest bend's speed.
+		d.v_turn = RaceCuts.bend_speed(d.conn, d.race_lat, RaceCuts.LINK_TOP)
+	else:
+		var chord := (d.conn[3] - d.conn[0]).normalized()
+		var turn := maxf(absf(graph.direction(e, graph.e_s1[e]).angle_to(chord)), absf(chord.angle_to(graph.direction(g, graph.e_s0[g]))))
+		d.v_turn = minf(CUT_TOP, race_turn_speed(d.conn_len, turn * 2.0, d.race_lat))
 	d.next_reg = graph.e_lane0[g] + d.next_lane
 	d.run_red = true
 	d.on_cut = true
 	if d.cut_edge != e:
 		d.cut_edge = e
 		d.cuts_taken += 1
+		if RaceCuts.is_link(d.conn):
+			d.links_taken += 1
 
 
-## Human rivals: the curve of the shortcut from the end of edge e, lane `lane`, onto edge g (into
-## the lane of the same number, or g's last).
+## Human rivals: the curve of the shortcut (or race link) from the end of edge e, lane `lane`, onto
+## edge g (into the lane of the same number, or g's last): race_cuts.gd `curve`.
 func cut_curve(e: int, lane: int, g: int) -> PackedVector2Array:
-	var p0 := graph.point_at(e, graph.e_s1[e], graph.lane_offset(e, lane))
-	var d0 := graph.direction(e, graph.e_s1[e])
-	var p3 := graph.point_at(g, graph.e_s0[g], graph.lane_offset(g, mini(lane, graph.e_lanes[g] - 1)))
-	var d3 := graph.direction(g, graph.e_s0[g])
-	var reach := clampf(p0.distance_to(p3) * 0.25, 1.0, 8.0)
-	return PackedVector2Array([p0, p0 + d0 * reach, p3 - d3 * reach, p3])
+	return RaceCuts.curve(graph, e, lane, g)
 
 
 ## Human rivals: the edge a racer takes on after the best of `cuts` ([edge on, metres, ...] from
@@ -2868,20 +2871,25 @@ func _player_gap_in_curve(d: Driver) -> float:
 	var t0 := d.cu / d.conn_len if d.in_conn else 0.0
 	var rest := d.conn_len * (1.0 - t0)
 	# The curve's point nearest the car, of one every 2 m or so (in the curve: from the next on,
-	# a car beside or behind is not ahead).
-	var n := clampi(ceili(rest / 2.0), 2, 12)
+	# a car beside or behind is not ahead). A race link's long curve: its next RACE_LOOK m only.
+	var span := minf(rest, RACE_LOOK) if RaceCuts.is_link(d.conn) else rest
+	var t1 := 1.0 if span >= rest else t0 + span / d.conn_len
+	var n := clampi(ceili(span / 2.0), 2, 12)
 	var near := 5.29
 	var near_t := -1.0
 	for k in range(1 if d.in_conn else 0, n + 1):
-		var t := lerpf(t0, 1.0, float(k) / n)
+		var t := lerpf(t0, t1, float(k) / n)
 		var dd := LaneGraph.bezier(d.conn, t).distance_squared_to(pp)
 		if dd < near:
 			near = dd
 			near_t = t
 	if near_t >= 0.0:
 		return before + (near_t - t0) * d.conn_len - back
-	var on := (d.conn[3] - d.conn[2]).normalized()
-	var rel := pp - d.conn[3]
+	if span < rest:
+		return INF
+	var last := d.conn.size() - 1
+	var on := (d.conn[last] - d.conn[last - 1]).normalized()
+	var rel := pp - d.conn[last]
 	var along := rel.dot(on)
 	if along > 0.0 and along < RACE_LOOK and absf(rel.cross(on)) < 2.3:
 		return before + rest + along - back

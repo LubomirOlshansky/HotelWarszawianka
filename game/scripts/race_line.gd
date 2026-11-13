@@ -29,6 +29,7 @@ extends RefCounted
 ## and the racer brakes for each such place in time, at its own braking.
 
 const LaneGraph := preload("res://scripts/lane_graph.gd")
+const RaceCuts := preload("res://scripts/race_cuts.gd")
 
 ## A car's width (m) and the gap it keeps to its lane's edge: what is left of the lane each side
 ## is free for the line, SIDE_MAX at most.
@@ -740,7 +741,7 @@ func _points(st: Stretch, cuts: Array, forced: PackedByteArray, plain: bool) -> 
 		var is_cut := i < cuts.size() and cuts[i] != null
 		var back := edges[i + 1] == g.e_reverse[edges[i]] or turn > HAIRPIN
 		pace.append(1.0 if is_cut else maxf(length[i], TURN_RADIUS * turn) / length[i])
-		fix.append(CUT_TOP if is_cut else (UTURN_SPEED if back else INF))
+		fix.append((RaceCuts.LINK_TOP if RaceCuts.is_link(curve[i]) else CUT_TOP) if is_cut else (UTURN_SPEED if back else INF))
 		hard.append(1 if is_cut or back else 0)
 	# The junctions, each from one street to the next that is not inside it: what it is driven as,
 	# and the sideways move at its two mouths.
@@ -757,7 +758,7 @@ func _points(st: Stretch, cuts: Array, forced: PackedByteArray, plain: bool) -> 
 		var e := edges[i]
 		var f := edges[j]
 		var p0 := curve[i][0]
-		var p3 := curve[j - 1][3]
+		var p3 := curve[j - 1][curve[j - 1].size() - 1]
 		var d0 := g.direction(e, g.e_s1[e])
 		var d3 := g.direction(f, g.e_s0[f])
 		var theta := d0.angle_to(d3)
@@ -941,8 +942,9 @@ func _points(st: Stretch, cuts: Array, forced: PackedByteArray, plain: bool) -> 
 func _way(st: Stretch, curve: Array[PackedVector2Array], a: PackedFloat32Array, z: PackedFloat32Array, i: int, j: int) -> PackedVector2Array:
 	var out := PackedVector2Array()
 	for q in range(i, j):
-		for k in range(1, 8):
-			out.append(LaneGraph.bezier(curve[q], k / 8.0))
+		var m := 8 * maxi((curve[q].size() - 1) / 3, 1)
+		for k in range(1, m):
+			out.append(LaneGraph.bezier(curve[q], float(k) / m))
 		if q + 1 == j:
 			break
 		var e := st.edges[q + 1]
