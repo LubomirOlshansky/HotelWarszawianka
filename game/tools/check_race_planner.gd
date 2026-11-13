@@ -42,7 +42,9 @@ extends SceneTree
 ##   to the circle of its finish by the stadium, FINAL_GAIN m less than round to its junction;
 ##   and the guided first race from Marszałkowska as the whole game ran it comes home on that
 ##   road, by its plan's clock, in Low traffic with a player about too (101 s by the plan to the
-##   junction, 2026-11-12).
+##   junction, 2026-11-12).;
+## - nerve (step 6a, a racer's `dare`): a car coming the other way 160 m off stops Halina's pass
+##   and not Seba's or Bartek's, and 100 m off it stops everybody's.
 ##   godot --headless --path game --script res://tools/check_race_planner.gd
 ## Prints "check_race_planner: OK (...)" or the problems (exit 1).
 
@@ -108,6 +110,7 @@ func _run() -> void:
 	_wrong_and_tight()
 	_races()
 	_circle()
+	_care()
 	_bench.close()
 	if _problems == 0:
 		print("check_race_planner: OK (%s)" % " · ".join(_notes))
@@ -432,6 +435,62 @@ func _drive(fin: Dictionary, plan: RacePlanner.Plan, dist: PackedFloat32Array, e
 	traffic.free()
 	cam.free()
 	return out
+
+
+## Step 6a, a racer's `dare` (ladder.gd; Traffic `_oncoming_clear`): with a car coming the other
+## way CARE_GAP m off at CARE_V, the daring and the plain racer take a pass of CARE_X m in
+## CARE_T s and the careful one does not; CARE_SHORT m off nobody does, because the room a pass
+## needs is not a matter of nerve; and with the road empty all three go.
+const CARE_X := 60.0
+const CARE_T := 4.0
+const CARE_V := 10.0
+const CARE_GAP := 160.0
+const CARE_SHORT := 100.0
+
+func _care() -> void:
+	var e := -1
+	for k in _graph.e_len.size():
+		var rev: int = _graph.e_reverse[k]
+		if rev >= 0 and _graph.e_lanes[rev] == 1 and _graph.e_lanes[k] == 1 and _graph.e_len[k] > CARE_GAP + 120.0:
+			e = k
+			break
+	_expect(e >= 0, "no two-way street long enough to test a pass on")
+	if e < 0:
+		return
+	var cam := Camera3D.new()
+	root.add_child(cam)
+	var traffic: Node3D = Traffic.new()
+	root.add_child(traffic)
+	traffic.setup(_graph, _bench._map, cam, {})
+	traffic.set_process(false)
+	traffic.set_physics_process(false)
+	traffic.spawning = false
+	var size: Vector3 = Rivals.RIVALS[RaceBench.rival_index(HALINA)]["size"]
+	var body := Node3D.new()
+	traffic.add_child(body)
+	var d = traffic.add_node_driver(body, size, e, 0, 20.0)
+	var took := PackedStringArray()
+	for name: String in ["Seba z Pragi", "Bulwar Bartek", HALINA]:
+		var dare: float = Ladder.racer(Ladder.rung_of(name))["dare"]
+		d.race_dare = dare
+		var margin: float = Traffic.PASS_MARGIN * dare
+		_expect(traffic._oncoming_clear(d, CARE_X, CARE_T, margin), "%s does not pass on an empty road" % name)
+		var other := Node3D.new()
+		traffic.add_child(other)
+		var rev: int = _graph.e_reverse[e]
+		var o = traffic.add_node_driver(other, size, rev, 0, _graph.e_len[e] - 20.0 - CARE_GAP)
+		o.v = CARE_V
+		if traffic._oncoming_clear(d, CARE_X, CARE_T, margin):
+			took.append(name)
+		traffic.teleport(o, rev, 0, _graph.e_len[e] - 20.0 - CARE_SHORT)
+		o.v = CARE_V
+		_expect(not traffic._oncoming_clear(d, CARE_X, CARE_T, margin), "%s passes with a car %d m off" % [name, int(CARE_SHORT)])
+		traffic.remove(o)
+		other.free()
+	_expect(took == PackedStringArray(["Seba z Pragi", "Bulwar Bartek"]), "with a car %d m off the pass is taken by %s, not by Seba and Bartek alone" % [int(CARE_GAP), ", ".join(took)])
+	_notes.append("dare: a car %d m off stops Halina's pass, not Seba's or Bartek's" % int(CARE_GAP))
+	traffic.free()
+	cam.free()
 
 
 ## A finish's circle (RacePlanner.ends: the roads through it; rivals.gd FINISH_RADIUS).

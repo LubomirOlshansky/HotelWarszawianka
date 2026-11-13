@@ -27,6 +27,8 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		# MDM's roofs (F's Street View shots, 2026-11-05): the red MDM, a parody of the phone maker
 		# and of the car maker, and the hotel's own sign on the corner block.
 		"MDM", "XIAOMY", "BYDŁO", "HOTEL MDM",
+		# Flisac's shops on Tamka (F's photos, 2026-11-13): parodies of a coffee chain, a grocer and a wine shop.
+		"KAWOBIURKO", "KAROLEK", "WINOSTORY",
 		# The Palace's own name over its main portico (F's photos, 2026-11-13).
 		"PAŁAC", "KULTURY", "NAUKI",
 		# The Pawilony (2026-10-31): the bars' little words and the gate's name.
@@ -133,7 +135,11 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		# cat-food advert on the end wall and the rooftop billboard (a parody, MRAU).
 		"BIURA", "RESTAURACJA", "BUM BAR", "SZTUKA", "UKŁADANIA", "MISKI", "MRAU", "DLA KOTÓW",
 		# The car park behind the Novotel (F's photos, 2026-11-07): the corner bar's parody names.
-		"KLUBOLEJNIA", "LEJALNIA", "DRINK BAR"]
+		"KLUBOLEJNIA", "LEJALNIA", "DRINK BAR",
+		# Elektrownia Powiśle, the whole complex (F, 2026-11-13): its own name on the Dobra gable,
+		# the food hall, the brewery, the shops and bars (parodies with a power-station pun).
+		"ELEKTROWNIA", "HALA TURBIN", "BROWAR KOMIN", "ROSOMAK", "KAWA 220V", "AMPERIK", "FAZA",
+		"BEZPIECZNIK", "PIEROGARNIA", "SPOŻYWCZAK", "WATOWNIA", "ZWARCIE"]
 ## Tube colours (linear, bright): pink, cyan, violet, and a few words' usual colours.
 const PINK := Color(1.0, 0.1, 0.55)
 const CYAN := Color(0.1, 0.9, 1.0)

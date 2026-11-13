@@ -316,6 +316,16 @@ const MISTAKE_DAZE := 0.8
 const WRONG_FAR := 300.0
 const WRONG_CHANCE := 0.2
 const WRONG_SURE := 0.5
+## Step 6a: the wrong turn is a moment the player sees (BACKLOG, "Słoik's wrong turn"): on the
+## street he should not have taken he lifts off for WRONG_DAZE s (the satnav thinks again) with
+## his hazard lights on for WRONG_SHOW s (race_signals.gd).
+const WRONG_DAZE := 0.9
+const WRONG_SHOW := 2.4
+## Step 6a, what a racer's headlight flash is read from (`held_up`): the seconds it has been
+## within HELD_GAP m of a car going HELD_SLOWER m/s or more under the speed it wants, not in a
+## pass. (A look only: it changes nothing in how it drives.)
+const HELD_GAP := 14.0
+const HELD_SLOWER := 3.0
 ## Blocking (Game AI Pro's "one lateral move"): a racer with the player BLOCK_BACK m or less behind
 ## it, catching up, rolls its `race_block` once in BLOCK_EVERY s; on a hit it moves across onto the
 ## player's line, once, and holds it for BLOCK_HOLD s (the player can still go round the other side).
@@ -634,6 +644,15 @@ class Driver:
 	var race_mistake := 0.0
 	var race_wrong := 0
 	var race_block := 0.0
+	## Racer AI step 6a (docs/design/race-ai.md 6.1): how much clear oncoming road it wants for a
+	## pass over the centre line (× PASS_MARGIN and PASS_KEEP: ladder.gd `dare`), and what its
+	## lights are read from (race_signals.gd): its pull this frame (m/s², under 0 braking), the
+	## seconds it has sat behind a slower car with no way past, and the seconds left of its
+	## satnav's moment after a wrong turn (WRONG_SHOW: it lifts off, hazards on).
+	var race_dare := 1.0
+	var accel_now := 0.0
+	var held_up := 0.0
+	var wrong_t := 0.0
 	## A rival's own dice for its wrong turns and mistakes (rivals.gd `arm_racer`; null: none). The
 	## traffic's dice are shared with every car on the road, so a rival that rolled them made its
 	## human moments where the player's car happened to shift the sequence: on the race bench
@@ -1445,11 +1464,14 @@ func _start(d: Driver, e: int, lane: int, s: float) -> void:
 		d.race_mistake = 0.0
 		d.race_wrong = 0
 		d.race_block = 0.0
+		d.race_dare = 1.0
 		d.race_rng = null
 	d.on_cut = false
 	d.hop_go = false
 	d.mistake_side = 0.0
 	d.block_t = 0.0
+	d.held_up = 0.0
+	d.wrong_t = 0.0
 	# The night-buses loop: a pooled driver forgets its last stop (and a ring bus's parking).
 	d.halt_e = -1
 	d.halting = false
@@ -2076,6 +2098,9 @@ func _enter_edge(d: Driver, e: int, lane: int, s: float) -> void:
 	# Its racing line goes on along the street it enters, or is dropped here (while its place is
 	# still the end of the curve it came by).
 	_line_settle(d)
+	# Step 6a: onto the street of a wrong turn (the one chosen at `wrong_edge`'s end, not a way
+	# back onto its own street): the satnav's moment.
+	var took_wrong := d.wrong_edge >= 0 and d.wrong_edge == d.edge and e != d.edge and d.race_rng != null
 	var on_line := d.line != null and d.conn_end < 0.0 and d.line_q + 1 < d.line.edges.size() \
 			and d.line.edges[d.line_q + 1] == e and d.line.lanes[d.line_q + 1] == lane
 	if not on_line:
@@ -2134,6 +2159,9 @@ func _enter_edge(d: Driver, e: int, lane: int, s: float) -> void:
 		d.slide = MISTAKE_SLIDE * d.mistake_side
 		d.mistake_side = 0.0
 		d.mistakes += 1
+	if took_wrong:
+		d.daze = maxf(d.daze, WRONG_DAZE)
+		d.wrong_t = WRONG_SHOW
 	_choose_next(d)
 
 
@@ -2823,12 +2851,17 @@ func _drive(d: Driver, dt: float) -> void:
 		a = minf(a, -(d.race_brake if d.race_brake > 0.0 else RACE_DECEL * 0.7))
 	var v_was := d.v
 	d.v = maxf(0.0, d.v + maxf(a, -10.0) * dt)
+	if racer:
+		# Step 6a, for its lights (race_signals.gd): held up behind a slower car, not passing it.
+		d.held_up = d.held_up + dt if gap < HELD_GAP and lead_v < v0 - HELD_SLOWER and d.pass_t <= 0.0 and not dazed else 0.0
+		d.wrong_t = maxf(d.wrong_t - dt, 0.0)
 	if d.line != null and line_v < INF:
 		# (The line's speeds fall as fast as the racer brakes; the pull towards a speed lags a
 		# falling one, and it would come into the bend too fast.)
 		d.v = minf(d.v, maxf(line_v, v_was - maxf(10.0, d.race_brake) * dt))
 	if gap < 0.2:
 		d.v = minf(d.v, maxf(lead_v, 0.0) * 0.5)
+	d.accel_now = (d.v - v_was) / maxf(dt, 0.001)
 	if d.back == BACK_STOP and d.v < 0.3 and not d.in_conn:
 		d.v = 0.0
 		_back_begin(d, minf(leader_gap, player_gap))
@@ -3594,8 +3627,11 @@ func _pass_plan(d: Driver, tight: bool) -> bool:
 
 ## Step 4b: whether the oncoming lanes a pass by racer d is driven in are clear for the x m and
 ## t s it takes: no oncoming car nearer than those metres, the metres it comes itself meanwhile
-## and while d moves back over (RACE_PASS_BACK s), and `margin` m.
+## and while d moves back over (RACE_PASS_BACK s), and `margin` m. A careful racer (`race_dare`
+## over 1) counts the oncoming car's metres that many times over, so it waits for a longer gap;
+## a daring one gets no discount on them, because the gap it needs is physics, not nerve.
 func _oncoming_clear(d: Driver, x: float, t: float, margin: float) -> bool:
+	var care := maxf(d.race_dare, 1.0)
 	var e := d.edge
 	var rev := graph.e_reverse[e]
 	var at := graph.e_len[e] - d.s
@@ -3605,7 +3641,7 @@ func _oncoming_clear(d: Driver, x: float, t: float, margin: float) -> bool:
 			continue
 		for o: Driver in _lane_cars[graph.e_lane0[rev] + k]:
 			var dd: float = at - o.ls
-			if dd > -8.0 and dd - (o.length + d.length) * 0.5 < x + o.v * (t + RACE_PASS_BACK) + margin:
+			if dd > -8.0 and dd - (o.length + d.length) * 0.5 < x + o.v * (t + RACE_PASS_BACK) * care + margin:
 				return false
 	return true
 
@@ -3623,7 +3659,7 @@ func _pass_start(d: Driver, tight: bool) -> bool:
 		return false
 	if _pl_rear[0] - front > maxf(d.v + 10.0, (d.v - _pl_v[0]) * 2.5 + 6.0):
 		return false
-	if not _pass_plan(d, tight) or not _oncoming_clear(d, _pp_x, _pp_t, PASS_MARGIN):
+	if not _pass_plan(d, tight) or not _oncoming_clear(d, _pp_x, _pp_t, PASS_MARGIN * d.race_dare):
 		return false
 	d.pass_t = _pp_t
 	d.pass_off = graph.lane_offset(e, 0) - graph.e_lw[e] * 0.9
@@ -3667,7 +3703,7 @@ func _pass_drive(d: Driver, dt: float) -> void:
 		_pass_end(d, 0.0)  # past a car, and room before the next one: back in
 		return
 	# A racer without a line has no way through the junction beside its lane: back in before it.
-	if (d.line != null or graph.e_s1[e] - d.s > 12.0) and _pass_plan(d, d.pass_tight) and _oncoming_clear(d, _pp_x, _pp_t, PASS_KEEP):
+	if (d.line != null or graph.e_s1[e] - d.s > 12.0) and _pass_plan(d, d.pass_tight) and _oncoming_clear(d, _pp_x, _pp_t, PASS_KEEP * d.race_dare):
 		d.pass_t = maxf(_pp_t, 0.05)
 		d.pass_cap = INF
 		d.pass_back = false

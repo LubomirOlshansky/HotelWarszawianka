@@ -1,0 +1,2 @@
+## Backlog
+- fixed: the racer AI had its design and history in one long document and no short page for tuning (F, 2026-11-13: "a document that describes this AI driving system, to make it easier later to tune it and change"): `docs/design/race-ai-tuning.md` lists every part, every knob with its range and when to turn it, how to test a change, the traps, and where a new thing goes. Each racer step keeps it current

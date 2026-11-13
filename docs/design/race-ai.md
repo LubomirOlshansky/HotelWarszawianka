@@ -1,5 +1,9 @@
 # Race AI: the audit, the new design and the race bench
 
+**To tune or change the racers, start with [race-ai-tuning.md](race-ai-tuning.md):** every knob,
+where it lives, how to test a change and the known traps. This document is the why and the
+history.
+
 **Status (2026-11-12):** steps 1 to 4a of 8 are built. Step 1 was the race bench, the prototype
 race and the recorded baseline of the old driver. Step 2 took the rubber band out: every rival
 drives its own skill from the line to the finish, whatever the player does
@@ -860,6 +864,93 @@ courtyard, brake lights before a corner, a flash of the headlights behind a slow
 a mistake. After the race the result card shows the rival's route against the player's and where
 the time went.
 
+### 6.1 Step 6a as built: told apart, and the result card
+
+Step 6a adds nothing to how fast a rival is. It makes what the earlier steps built visible, and
+gives each rival the rest of its row in the table above.
+
+**Four traits more per rival** (`ladder.gd`).
+
+| Rival | `dare` | `indicate` (s) | `flash` (s) | `home` |
+| --- | --- | --- | --- | --- |
+| Pani Halina | 2.5 | 3.0 | never | Powiśle, Śródmieście, the Royal Route |
+| Słoik z Radomia | 1.5 | 1.0 | never | nowhere |
+| Bulwar Bartek | 1.0 | 1.6 | 3.0 | Powiśle |
+| Seba z Pragi | 0.5 | never | 0.8 | Praga |
+| Taksiarz Zbyszek | 1.3 | 2.2 | 2.5 | nowhere (he knows every cut anyway) |
+| Mordor Mike | 0.7 | 0.7 | 1.2 | Wola |
+
+- **`dare`: nerve in a pass over the centre line** (`traffic.gd` `_pass_start`, `_pass_drive`,
+  `_oncoming_clear`). The spare metres of clear oncoming road a pass needs are 10 m times
+  `dare` (4 m times it to keep a pass going). A careful rival (`dare` over 1) also counts the
+  metres the oncoming car comes that many times over, so Halina wants a gap about twice as long
+  as the pass needs. A daring one gets no discount on those metres: the room a pass takes is
+  physics, so Seba's nerve is the 5 m he leaves where Halina leaves 25 m, and never a pass that
+  cannot be made. `check_race_planner.gd` holds it: a car 160 m off stops Halina's pass and not
+  Seba's or Bartek's, and 100 m off it stops everybody's.
+  On the bench it moves little, as it should: of 303 races only four of Halina's in traffic
+  change (196 passes over the centre line in her 158 races in traffic, 202 without the rule),
+  and no other rival's time moves at all against main.
+- **`home`: where it knows every way** (`race_cuts.gd` `links`, `area`). Each shortcut and yard
+  has its district (`districts.gd`, from its entry). At home a rival knows every cut and every
+  yard it fits through and dares, whatever its `cuts` and `yards` shares; away it knows its share
+  as before. Halina knew every yard already and three cuts in ten; in Powiśle and Śródmieście she
+  knows them all now. No race in the game is in Praga yet, so Seba's home shows first in step 6b.
+- **`indicate`, `flash`: its lights** (`race_signals.gd`, below).
+
+**Lights that say what the car does** (`race_signals.gd`, `rivals.gd` `_signal_tick`). Read from
+the traffic driver every frame, so a light never says what the car does not do, and nothing here
+changes the driving:
+
+- brake lights from a pull of 2 m/s² (lifting off is not braking), held a quarter of a second,
+  and while the car stands;
+- an indicator before a turn of 26° or more off the street's direction, a shortcut or a yard,
+  from `indicate` seconds before the junction and never less than 10 m; and for a lane change or
+  a pass out and back. Seba never indicates;
+- two flashes of the headlights after `flash` seconds held up behind a slower car (within 14 m,
+  3 m/s under its own speed, not already passing), and again after 3.5 s. Halina and Słoik never
+  flash;
+- the hazard lights for 2.4 s after a wrong turn (Słoik's satnav thinks again; the car also lifts
+  off for 0.9 s), and while a rival backs out of a blocked street;
+- a wobble of the body on a mistake in a corner, and a slow weave while Mike is on the phone.
+
+The lamps are four small meshes on the rival's car with one shared unshaded material, each drawn
+only while it is lit: at most two draw calls more for one car.
+
+**The result card** (`race_report.gd`, `rivals.gd` `_report_close`, `_report_art`, `hud.gd`
+`set_card_art`). While a street race runs the report keeps both cars' ways. At the end it splits
+the gap three ways and names the largest, if it is worth a second:
+
+- **the route**: one way was shorter (a shortcut, a yard, a wrong turn), in seconds at the
+  winner's pace;
+- **the standing**: seconds under walking pace (a queue, a crash, a block);
+- **the pace**: the rest, who was quicker on the move.
+
+The card gets one line for that, one with both ways in kilometres, one with what the rival did
+(shortcuts, yards, wrong-way hops, wrong turns, mistakes, passes, blocks), and a picture: both
+ways over the streets round them, the player's a solid line and the rival's dashed, the start a
+dot and the finish chequered. On a phone the card is made wider by the picture; where it would
+not fit, the card keeps its width and the words wrap narrower. A race given up has no report.
+So after a loss to Halina the player sees the yard she took.
+
+**Found on the way.** The metres to the finish (`RaceCuts.links`) could still hand out a shortcut
+that joins a street the rival had found blocked: the time plan never took it, but the distance
+shown and the bench's turn-back test were measured through it (720 m short for Halina's blocked
+race). The links leave out an exit onto a shut street now.
+
+**The bench** has two marks more (7.3): **Ladder curve** (each rung 3 to 12 % quicker than the
+one below, as the geometric mean over the courses every rung has driven on clear roads) and
+**Told apart** (every turn of a rival who indicates has its indicator on; the one who never
+indicates never does; one who never flashes never does; every wrong turn is followed by the
+hazard lights; it also prints the flashes and the passes over the centre line of each). The
+ladder's times needed no retuning: SŁOIK 6.9 %, BARTEK 5.7 %, SEBA 7.7 %, ZBYSZEK 5.8 %, MIKE
+5.6 % over three courses.
+
+**What it does not do yet.** The pack race, Trzy mosty's field and the police have no lights and
+no report (step 6b). Bartek's block and Seba's contact are the numbers of step 2. A race
+difficulty option (easier or harder by the rivals' skill profiles, never by a rival that waits)
+is in the backlog for after this step (F, 2026-11-13).
+
 ## 7. How we test it: the race bench
 
 Racing has its own test bench, and no step of the rebuild merges without its numbers.
@@ -1013,6 +1104,8 @@ top of that file; a change that moves one says why in its PR.
 | **Honest car** | never over the player's car's top speed (108 km/h), pull (15 m/s²), sideways grip (19 m/s², measured as v² x turn / 8 m over every 8 m of its way, but for the 8 m in which the game stopped it dead: its heading swings as it stands) or brakes (30 m/s²: a harder stop is the game stopping the car, not the car) | 4a, 4b |
 | **Route sense** | its own choice of route is at most 5 % slower than the best of the forced routes (on clear roads; in the full matrix in traffic too) | 3 |
 | **Skill ladder** | flat out on clear roads with no player, each rival up the ladder is as fast as the one below (1 % slack) and the top rival at least 10 % faster than the first. Full matrix only | 2 |
+| **Ladder curve** | on clear roads with no player, each rung is 3 to 12 % quicker than the one below, as the geometric mean over the courses all six have driven: no rung is a wall and no two are the same race. Full matrix only | 6a |
+| **Told apart** | a rival's lights are its own: one who indicates has its indicator on into every turn it makes, one who never does never has; one who never flashes its headlights never does; every wrong turn is followed by the hazard lights. It also prints each rival's flashes and passes over the centre line, read and not judged | 6a |
 | **Yard links** | on the yard course on clear roads, a rival who knows every yard takes a race link and one who knows none takes none. Full matrix only | 5 |
 | **Wrong-way hops** | on the hop course without the town's cars: a rival who dares takes the hop on clear roads, refuses it with a car parked on the street and still finishes; one who does not dare never takes one | 5b |
 | **Wrong-way hops in traffic** | in every race in traffic: no car of the town's on a street while a racer hops it (or turning into it), none driven through there, and no hop by a rival who does not dare. Full matrix only | 5b |
@@ -1186,6 +1279,32 @@ out of the player's sight was fitted again to the new driver (`RACE_STUCK` 0.77,
 `RACE_STUCK_END` 0.7, `RACE_STUCK_LIGHTS` 7.4; the old numbers made a race 16.5 % too short).
 [5.3](#53-step-4b-as-built-sight-the-sideways-move-the-pass-the-way-round) says what is left.
 
+**After step 6a** (2026-11-13, the cloud's full matrix of 304 races, three draws in traffic).
+Step 6a changes no rival's pace, and the bench says so: against main every race on clear roads
+has the same time but Słoik's (0.4 to 0.6 s for the moment his satnav thinks again) and Halina's
+blocked ones; in traffic the times of Bartek, Seba, Zbyszek and Mike are the same race for race,
+and Halina's mean goes from 172.4 to 166.0 s over 158 races (her home district's shortcuts).
+
+| Mark | Full matrix, step 6a |
+| --- | --- |
+| Finishes | passes: 303 of 303 (recorded once:Linux) |
+| Independence | **fail**: 11 % on clear roads; in traffic 37 % for the worst pair over its draws, 63 % in one race (31 and 47 % after step 5b: Halina's first race from Leszczyńska in Busy traffic behind a player who never moves) |
+| No crawl | pass: 2.3 s |
+| Passes traffic | **fail**: 20.6 s; more than 4 s in 18 of 217 races in traffic |
+| No ghosting | **fail**: 98 cars driven through (31, 31 and 27 by draw in Busy traffic) |
+| Re-routes | pass: 9 of 9 |
+| Recovers | **fail**: moved by the game in view 6 times; 9 of 9 crashes recovered |
+| Honest car | **fail**: one corner at 20.5 m/s² (19), one pull of 15.6 m/s² (15), stopped dead 63 times |
+| Route sense | passes for the first time on the full matrix: 2 of 2 free choices within 5 % (recorded once:Linux, not held until the Mac's run) |
+| Skill ladder | pass: 59.6, 59.6, 52.7, 48.6, 45.9 and 43.4 s on the short course; Słoik ties Halina there |
+| Ladder curve | pass (new): SŁOIK 6.9 %, BARTEK 5.7 %, SEBA 7.7 %, ZBYSZEK 5.8 %, MIKE 5.6 % over three courses |
+| Told apart | pass (new): 1277 of 1277 turns indicated; no indication in Seba's 39 races; flashes Seba 212, Mike 110, Zbyszek 81, Bartek 58, Halina and Słoik 0; 18 of 18 wrong turns followed by the hazard lights |
+| Yard links, Wrong-way hops, Same race twice | pass, as before |
+| Wrong-way hops in traffic | passes: 2 hops taken, 4 refused, no car met (once:Linux) |
+
+Told apart is recorded as a plain pass though it reads races in traffic too: it holds a rule
+about each light (it follows what the driver does), not a count that moves with the draw.
+
 ### 7.5 What the bench does not see
 
 - **The city.** It has the lane graph only: no walls, kerbs or street furniture. Today's rail
@@ -1252,7 +1371,7 @@ after. Step 2 ends the complaint in F's message. The steps after it make racing 
 | 4b (done) | Driver, part 2: overtaking (a pass whose length comes from both cars' speeds and the racer's pull and that can be given up, nobody beside it on the way out, a smooth sideways move that ends before the corner, a side held while there is more to pass), collisions (a car across a junction is seen, no car put down in a racer's way), recovery | Real passes. Nobody drives through a car. A crashed rival reverses and goes on | Passes traffic, No ghosting, Recovers, Finishes, Honest car (the dead stops, the slide of a pass); Independence on the full matrix, once it is judged over several draws (no turning back behind a player's car that only waits) |
 | 5 (done) | Race links: alleys, courtyards, car parks (5.4) | Halina turns into a courtyard and comes out in front | Real-car proof for every link (37 links proven, 15 refused) |
 | 5b (done) | Wrong-way hops on one-way streets, for Seba and Mike (5.5; F's yes to question 3) | Seba and Mike dart the wrong way down a short one-way street when it is empty | Wrong-way hops, and in traffic (48 hops proven, 4 refused) |
-| 6a | Personalities, visible decisions, result card with both routes, tuning | You can tell Seba from Zbyszek by how they drive | The ladder's curve of times |
+| 6a (done) | Personalities, visible decisions, result card with both routes, tuning (6.1) | You can tell Seba from Zbyszek by how they drive | The ladder's curve of times (Ladder curve, Told apart) |
 | 6b | One race object for the pack race, Trzy mosty, police chasers and crazy drivers | Every race in the game uses the new driver | All marks on every race mode |
 
 Every pull request waits for green checks and the audit before it merges.

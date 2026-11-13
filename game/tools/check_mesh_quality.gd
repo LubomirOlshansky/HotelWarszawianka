@@ -156,7 +156,7 @@ const BUDGET := {
 	# Browary + the Central Garden's gravel path, café clearings and the sedum roofs (2026-11-02).
 	"browary": 3900,   # 2026-11-03: paved main path and clearing edges (look check)
 	"koszyki": 1370,
-	"elektrownia": 1950,
+	"elektrownia": 7600,  # 2026-11-13: the whole complex (hall, halls, passage, office, old wing, gardens): 1634 -> ~6850
 	"rotunda_dynasy": 1400,
 	"mpw": 3200,
 	"metropolitan": 3100,
@@ -247,7 +247,8 @@ const BUDGET := {
 	"gielda": 1050,
 	"filharmonia": 1450,
 	"teatr_polski": 760,
-	"teresy": 280,
+	"teresy": 900,  # 2026-11-13 photo rebuild (cream plaster, round-headed windows, porch, spire)
+	"flisac": 4200,  # 2026-11-13: the grid of panes, loggias and shop glass, 3,552 triangles
 	"florian": 2480,
 	"bazar": 2210,
 	"sw_krzyz": 1250,  # 2026-11-06 photo pass: the real flat front, balustrade and statue
