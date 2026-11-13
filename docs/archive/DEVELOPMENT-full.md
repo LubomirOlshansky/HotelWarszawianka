@@ -4203,6 +4203,11 @@ the bench's "jobs+eggs" line holds them, and answers `busy` / the target / the c
 autopilot for them: one activity at a time, as every job), `storefronts.gd` (`lying_near`,
 `collect`, `restore_collected`, the payphone), `props.gd` (`add_payphone`, `carried_armchair`),
 `city_life.gd` (the armchair man), `main.gd` (flags, the round-up's construction, key L).
+Since 2026-11-13 (tech-debt TD-1) `roundup_job.gd` is an activity of the kit (`activity.gd`) and
+main.gd's child, in the frame just before `jobs.gd`: `jobs.gd` no longer steps it nor slides the
+autopilot's car for it (main.gd's `_slide_car` does, as for every activity of the kit), and the
+bench's "side jobs + eggs" line no longer holds its step (about 1 µs a frame while idle).
+`jobs.gd` still answers `busy`, the target and the card keys for it.
 Data: `eggs.json` E34 (`event`) and E40 (`stop`, 8 m, 2 s): no words changed.
 
 - **The courier race** (parodies.md 4.3): at night, a kebab order rolls (`CourierRace.roll`, by the

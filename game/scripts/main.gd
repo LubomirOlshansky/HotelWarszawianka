@@ -2810,7 +2810,7 @@ func _build_storefronts(data: Dictionary, world: Node3D) -> void:
 	# "Dżemini" (trend_job.gd): the MLASK sticker goes on DŻEMINI KEBAB's wall.
 	if trend_job != null:
 		trend_job.storefronts = storefronts
-	# Loop jobs-2: the Leżak round-up, at the zones storefronts.gd painted (jobs.gd steps it).
+	# Loop jobs-2: the Leżak round-up, at the zones storefronts.gd painted (an activity of the kit).
 	if jobs != null:
 		var ru := RoundupJob.new()
 		ru.name = "RoundupJob"
@@ -2826,9 +2826,13 @@ func _build_storefronts(data: Dictionary, world: Node3D) -> void:
 		ru.autopilot = autopilot
 		ru.force = roundup_flag
 		ru.log_on = parody_log or roundup_flag
-		ru.set_process(false)
-		jobs.add_child(ru)
+		# In the frame just before jobs.gd, as when jobs.gd stepped it first.
+		add_child(ru)
+		move_child(ru, jobs.get_index())
 		ru.setup(world)
+		# The director says when it may offer itself, with the round-up's own test for everything
+		# outside the kit (jobs.gd's: nothing else on, no kebab or słoiki of its own).
+		activities.add(ru, func() -> bool: return jobs._free() and not jobs.own_busy())
 		jobs.roundup = ru
 		if roundup_flag:
 			ru.start_at_nearest()
@@ -7287,8 +7291,9 @@ func _process(dt: float) -> void:
 	_feed_life(pos)
 	var boating := boat_race != null and boat_race.busy()
 	# An activity of the kit is on (a tour, its guest rides along): no side job is offered
-	# meanwhile (the jobs read it as flying).
-	var touring := activities.busy()
+	# meanwhile (the jobs read it as flying). Not when it is a job itself (the round-up): the
+	# jobs hold each other off by name, and a job that read itself as flying would stop.
+	var touring := activities.busy() and not activities.current().is_job
 	if police != null:
 		police.flying = flying or boating  # loop 3g-1: the police ignore the helicopter (and the boat race)
 		police.zone = zone  # loop 3g-2: the city guards' zone pill and whistle
@@ -7918,7 +7923,8 @@ func _show_target() -> void:
 		var ma := roundi(Vector2(ap.x - at_a.x, ap.z - at_a.z).length())
 		var on_a := cam.unproject_position(ap + Vector3(0, 3.5, 0)) * float(view.stretch_shrink)
 		hud.set_target(on_a, act.target_label(ma), act.target_colour(), ma > 12 and act.target_arrow())
-		_put_target(Vector2(ap.x, ap.z), act.target_colour(), false)
+		# A job's target is the main line's while the guide runs (the first job is its goal).
+		_put_target(Vector2(ap.x, ap.z), act.target_colour(), act.is_job and _guide_on())
 		_new_target("job", ap)
 		return
 	if rivals != null and rivals.has_target():

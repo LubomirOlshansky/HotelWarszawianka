@@ -487,6 +487,19 @@ func _refusals_and_looks() -> void:
 	_run(a, 0.1)
 	_expect(hud.card == "WYNIK" and hud.stacked, "and a stacked card put back is still stacked")
 	hud.press(0)
+	# A job's cards sit at the bottom of the screen (the round-up's); the others in the middle.
+	_expect(not a.cards_low and not a.is_job and not hud.low, "a run's card is in the middle of the screen by default, and an activity is no job unless it says so")
+	a.cards_low = true
+	a.show_card(["NISKO", "LOW"], ["tekst", "text"], PackedStringArray(["OK|OK"]))
+	_expect(hud.card == "NISKO" and hud.low, "cards_low: the card sits at the bottom")
+	hud.hide_card()
+	_run(a, 0.1)
+	_expect(hud.card == "NISKO" and hud.low, "and a low card put back is still low")
+	hud.press(0)
+	a.cards_low = false
+	a.show_card(["WYNIK", "RESULT"], ["tekst", "text"], PackedStringArray(["OK|OK"]))
+	_expect(hud.card == "WYNIK" and not hud.low, "the next card without it is in the middle again")
+	hud.press(0)
 	a.finish()
 	_expect(not a._mark.visible, "the end takes the mark down")
 
