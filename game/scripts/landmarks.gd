@@ -1796,6 +1796,9 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"archikatedra":
 				_mark_zone(s)  # the nave stays LoD2's, in its brick; the stepped-gable front is ours
 				_build_archikatedra(s)
+			"jezuici":
+				_mark_zone(s)  # the mass stays LoD2's, in its skin; the front and the wing's trim are ours
+				_build_jezuici(s)
 			"wizytki":
 				_mark_zone(s)  # the nave stays LoD2's, in its skin; the facade and the turret are ours
 				_build_wizytki(s)
@@ -6629,7 +6632,7 @@ const SKINS := [
 	# The Jesuit church (F's Old Town trailer pass, 2026-11-08): LoD2 draws the church with its tower
 	# over 55 m, so the bake gave it the office towers' blue glass. Salmon plaster with white
 	# pilasters on Świętojańska and the brick tower above the roofs (Mapillary photos, refs/oldtown_jezuici2).
-	{"key": "jezuici", "osm": "Sanktuarium Matki Bożej Łaskawej", "mode": M_MONUMENT, "wall": "#dc9f8a", "roof": "#a5553c",
+	{"key": "jezuici", "osm": "Sanktuarium Matki Bożej Łaskawej", "mode": M_MONUMENT, "wall": "#d6a447", "roof": "#a5553c",
 			"upper": [20.0, "#9a4b38"]},
 	{"key": "sw_anna", "osm": "Kościół pw. Świętej Anny", "mode": M_MONUMENT, "wall": "#e6dcc4", "roof": "#8a5a44"},
 	{"key": "sw_krzyz", "osm": "Kościół pw. Świętego Krzyża", "mode": M_MONUMENT, "wall": "#e3d9c0", "roof": "#5d6e64"},
@@ -18234,6 +18237,71 @@ func _build_aleksander(_site: Dictionary) -> void:
 		if not merged.is_empty():
 			ring = _largest(merged)
 	_collide(ring)
+
+
+## The Jesuit church (Sanktuarium Matki Bożej Łaskawej, Świętojańska 10, next to the Cathedral):
+## the mass stays the kept LoD2 block in its skin (`jezuici`); the model adds the front the street
+## sees. Built 2026-11-13 from Mapillary photos (a 2010 one with the front in salmon, a 2018 one
+## after the repaint to ochre; refs/jezuici, never shipped) and the LoD2 heights (the front wall to
+## 22.8 m, the gable apex 33.6 m, the wing's eaves 14 m). Spec docs/landmarks/specs/jezuici.md.
+## - the main front (12.9 m, set 4.5 m back from the wing): a grey plinth, a giant order of flat
+##   pilasters in two pairs, a string course between the storeys, a round-headed portal under a
+##   small pediment with a statue niche over it, framed windows either side, a big cornice, an
+##   attic and a tall triangular pediment with a cross;
+## - the wing next to it (7.3 m, the tower's base): the same pilasters, cornice and windows, 14 m.
+## Frame: origin at the wing's NW corner, u along Świętojańska to the south-east, +v out to the street.
+const JEZ := Vector2(-764.2, -1648.3)
+const JEZ_AXIS := Vector2(0.685, 0.729)
+const JEZ_FRONT := -4.47            ## the main front's face in v: 3 cm proud of the LoD2 wall at -4.5 (the wing's is 0.03)
+const JEZ_U0 := 7.9
+const JEZ_U1 := 20.8
+const JEZ_MID := 14.35
+const JEZ_TRIM := PAL_WHITE_STONE   ## the white pilasters and surrounds (both photos)
+const JEZ_OCHRE := Color("#d6a447")  ## the repainted plaster (the 2018 photo), the skin's wall colour
+const JEZ_ROOF := Color("#8a4a38")
+
+
+func _build_jezuici(_site: Dictionary) -> void:
+	var m := JEZ_MID
+	var to := JEZ + JEZ_AXIS.normalized() * 21.0
+	kit_front(JEZ, to)
+	_g = map.terrain_height(_w(m, 0.0).x, _w(m, 0.0).y)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	_mode = M_STONE
+	# the main front
+	kit_face(JEZ_FRONT)
+	kit_wall(JEZ_U0, JEZ_U1, g - 0.2, g + 22.2, JEZ_OCHRE)
+	kit_ledge(JEZ_U0, JEZ_U1, g - 0.2, 1.1, PAL_GREY_STONE, 0.16)
+	for du: float in [-5.95, -2.35, 2.35, 5.95]:
+		kit_pilaster(m + du, g + 0.8, g + 20.5, JEZ_TRIM, 0.9, 0.16)
+	kit_ledge(JEZ_U0, JEZ_U1, g + 9.6, 0.4, JEZ_TRIM, 0.14)
+	kit_cornice(JEZ_U0, JEZ_U1, g + 20.6, JEZ_TRIM, 0.6, 1.1)
+	kit_attic(JEZ_U0, JEZ_U1, g + 21.2, JEZ_TRIM, 1.0, Attic.WALL)
+	for wu: float in [m - 4.15, m + 4.15]:
+		kit_window(wu, g + 2.3, 2.4, Win.FRAMED, JEZ_TRIM, PAL_GLASS_DARK, 0.55)
+		kit_window(wu, g + 11.4, 3.6, Win.PEDIMENT, JEZ_TRIM, PAL_GLASS_DARK, 0.7)
+	# the portal and the statue niche over it
+	kit_door(m, g + 1.1, 4.6, 1.1, JEZ_TRIM, PAL_OAK, true)
+	kit_pediment(m, 1.7, g + 6.2, 1.0, JEZ_TRIM, JEZ_ROOF, 0.45, JEZ_OCHRE)
+	_arch_panel(_w(m, JEZ_FRONT), _a, _b, 1.05, g + 11.4, g + 14.2, JEZ_TRIM, 0.05, M_STONE)
+	_arch_panel(_w(m, JEZ_FRONT), _a, _b, 0.8, g + 11.6, g + 14.2, JEZ_OCHRE.darkened(0.2), 0.09, M_STONE)
+	_lbox(m, JEZ_FRONT + 0.2, 0.28, 0.2, g + 11.6, g + 14.4, JEZ_TRIM, M_STONE)   # the statue
+	# the tall pediment over the attic and its cross
+	kit_pediment(m, 6.4, g + 22.2, 10.5, JEZ_OCHRE, JEZ_ROOF, 0.5, JEZ_TRIM)
+	_lbox(m, JEZ_FRONT + 0.4, 0.07, 0.07, g + 32.0, g + 34.8, PAL_GOLD, M_STONE, PAL_GOLD)
+	_lbox(m, JEZ_FRONT + 0.4, 0.5, 0.07, g + 33.2, g + 33.45, PAL_GOLD, M_STONE, PAL_GOLD)
+	# the wing, the tower's base, 4.5 m forward of the main front
+	kit_face(0.03)
+	kit_wall(0.4, 7.7, g - 0.2, g + 13.4, JEZ_OCHRE)
+	kit_ledge(0.4, 7.7, g - 0.2, 1.1, PAL_GREY_STONE, 0.16)
+	for wp: float in [0.95, 7.15]:
+		kit_pilaster(wp, g + 0.8, g + 13.4, JEZ_TRIM, 0.8, 0.14)
+	kit_ledge(0.4, 7.7, g + 8.6, 0.35, JEZ_TRIM, 0.12)
+	kit_cornice(0.4, 7.7, g + 13.4, JEZ_TRIM, 0.55, 0.9)
+	for wu2: float in [3.0, 5.2]:
+		kit_window(wu2, g + 2.4, 2.2, Win.FRAMED, JEZ_TRIM, PAL_GLASS_DARK, 0.5)
+		kit_window(wu2, g + 9.6, 2.6, Win.SILL_HEAD, JEZ_TRIM, PAL_GLASS_DARK, 0.5)
 
 
 ## The Church of the Holiest Saviour (Kościół Najświętszego Zbawiciela; Józef Dziekoński and
