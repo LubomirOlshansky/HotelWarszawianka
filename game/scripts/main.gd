@@ -159,6 +159,7 @@ const BoatRace := preload("res://scripts/boat_race.gd")
 ## na kółkach", Claire's drive round Kieślowski's Warsaw, and "Kino objazdowe", the director
 ## friend's cinema tour (F's asks 2026-11-07).
 const Activities := preload("res://scripts/activities.gd")
+const PauseReasons := preload("res://scripts/pause_reasons.gd")
 const Tour := preload("res://scripts/tour.gd")
 
 ## "Dym u Senatorka", Ivan's shisha night (shisha.gd, F's ask 2026-11-08), and the lounge upstairs
@@ -612,6 +613,10 @@ var boat_race: BoatRace
 ## The activity kit's director (activities.gd): which activity of the kit is on, who may start,
 ## where it sends the player. The tours below are the first to join it.
 var activities := Activities.new()
+## The game's pause (pause_reasons.gd, TD-20): the loading bar, the settings card, the full map and
+## the garage card each hold their own reason, and the game runs when none is held. Nothing here
+## or in a system writes `get_tree().paused` itself.
+var _pause: PauseReasons
 ## The Kieślowski tour (tour.gd with data/dekalog_tour.json): --dekalog=call (Claire phones now), =go (the tour starts
 ## with the car at the pickup), =auto (that, the cards answered by themselves), =0 (none); --dekalog-log.
 var dekalog_tour: Tour
@@ -1011,6 +1016,7 @@ var _cam_turn_max := 0.0
 
 
 func _ready() -> void:
+	_pause = PauseReasons.new(get_tree())
 	_parse_args()
 	_trap_start()  # the error trap (TD-14): before anything else can fail
 	Gamepad.install()  # the gamepad loop: the pad's stick and trigger actions
@@ -1096,13 +1102,13 @@ func _ready() -> void:
 		get_tree().quit(1)
 		return
 	if title != null:
-		get_tree().paused = true  # the loading bar: nothing half-built moves between the build's steps
+		_pause.hold(PauseReasons.LOAD)  # the loading bar: nothing half-built moves between the build's steps
 		title.cap = lerpf(LOAD_FILES, LOAD_BUILT, LOAD_MARKS[0])
 		LoadYield.begin()  # the long setups let a frame through now and then (load_yield.gd)
 	await _build_world()
 	LoadYield.finish()
 	if title != null:
-		get_tree().paused = false
+		_pause.release(PauseReasons.LOAD)
 	view.visible = true
 	_preloaded.clear()
 	_put_at_resume()
@@ -1462,7 +1468,7 @@ func _on_new_game() -> void:
 		return
 	_remember_on = false
 	_new_game_pending = true
-	get_tree().paused = false
+	_pause.release_all()  # the scene reloads: nothing of this one keeps the next paused
 	get_tree().call_deferred("reload_current_scene")
 
 
@@ -3301,10 +3307,10 @@ func _build_garage(world: Node3D) -> void:
 	garage.opened.connect(func() -> void:
 		car.vel = Vector3.ZERO
 		car.forward_speed = 0.0
-		get_tree().paused = true
+		_pause.hold(PauseReasons.GARAGE)
 		_blip_sound())
 	garage.closed.connect(func() -> void:
-		get_tree().paused = false
+		_pause.release(PauseReasons.GARAGE)
 		_blip_sound())
 
 
@@ -6246,7 +6252,7 @@ func _open_settings() -> void:
 		_end_phone_bench(false)
 	print("settings panel: open (paused)")
 	_blip_sound()
-	get_tree().paused = true
+	_pause.hold(PauseReasons.SETTINGS)
 	hud.open_settings(_settings_state())
 
 
@@ -6272,7 +6278,7 @@ func _open_full_map() -> void:
 	_story_tick()  # the questlines' starts and quest focus as they are now (the same)
 	print("full map: open (paused), %d places found on it" % found.size())
 	_blip_sound()
-	get_tree().paused = true
+	_pause.hold(PauseReasons.MAP)
 	if hud.full_map != null:
 		hud.full_map.hospitals = missions != null and missions.has_target()  # only a rescue needs them
 	hud.open_full_map(Vector2(pos.x, pos.z), yaw, found)
@@ -6592,8 +6598,8 @@ func _teleport_test() -> void:
 
 
 func _close_full_map() -> void:
-	print("full map: closed")
-	get_tree().paused = false
+	_pause.release(PauseReasons.MAP)
+	print("full map: closed%s" % _pause.still())
 	_blip_sound()
 
 
@@ -6647,8 +6653,8 @@ func _set_language(code: String) -> void:
 
 
 func _close_settings() -> void:
-	print("settings panel: closed")
-	get_tree().paused = false
+	_pause.release(PauseReasons.SETTINGS)
+	print("settings panel: closed%s" % _pause.still())
 	_blip_sound()
 	# Loop MW-6 (Open Question 7): Spacer offered once, after the first pause.
 	if not settings.wander_offered and spacer != null and not spacer.on:

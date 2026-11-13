@@ -109,6 +109,8 @@ palacelights         quick
 parkdetails          quick
 parkmesh             quick
 parodies             quick
+pause                quick
+pause-run            smoke
 places               quick
 placzamkowy          quick
 plain                runs

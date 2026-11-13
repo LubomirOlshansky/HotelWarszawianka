@@ -4507,7 +4507,9 @@ ring), `garage_card.gd` (new: the paint card), `wallet.gd` (`spend`, `paint`, `p
   "Warsztat u Mirka otwarty: Brzeska, Praga. Lakier za złotówki." The ring is always open then.
 - **The card**: drive into the ring and stop (under 1.5 m/s) with nothing else on (no job, ride,
   race, rescue, police, helicopter, map or settings open): the game pauses under the card like the
-  settings card. Title and wallet, Mirek's line (Polish over English), the eight paints as
+  settings card. (TD-20, 2026-11-13: each card holds its own reason in `pause_reasons.gd`; the
+  full map that a tap on the minimap opens over this card no longer starts the game when it
+  closes.) Title and wallet, Mirek's line (Polish over English), the eight paints as
   swatches (the colour with its stripe, the Polish name, the price, "na aucie · on", "masz · yours"
   or "k/5 sekretów"), the action for the swatch picked (KUP ZA 300 ZŁ · Buy, LAKIERUJ · Paint it
   free, BRAKUJE 120 ZŁ, ZA 5 SEKRETÓW; greyed when it can't be done) and WYJAZD · Drive off (Esc
