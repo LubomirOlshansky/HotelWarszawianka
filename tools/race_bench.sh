@@ -11,6 +11,11 @@
 #   tools/race_bench.sh --only=TEXT [--trace]   only the races whose id contains TEXT, with what the
 #                                        rival does once a second (--list prints the ids); its lines
 #                                        go to build/race_bench/part.log and no json is written
+#   tools/race_bench.sh --jobs=N         run the matrix in N parts side by side and judge them as one
+#                                        run (the full matrix is 272 races: 15 minutes in one
+#                                        go, 4 on four cores). The races come out the same; only
+#                                        the json's timing fields (step_usec, wall_ms) are not to be
+#                                        trusted with other parts running
 #   tools/race_bench.sh --write          run both matrices and record their marks in
 #                                        game/data/race_bench.json (when a change moves a mark on purpose)
 # Exit code: the check's (0 when no mark recorded as a pass fails), 2 for a usage error.
@@ -19,7 +24,7 @@ setopt pipe_fail
 ROOT=${0:A:h:h}
 GODOT=${GODOT:-godot}
 out=$ROOT/build/race_bench
-matrix=full; name=; write=0; partial=0; rest=()
+matrix=full; name=; write=0; partial=0; jobs=1; rest=()
 for a in "$@"; do
 	case $a in
 		--quick) matrix=quick ;;
@@ -28,7 +33,8 @@ for a in "$@"; do
 		--against=*) rest+=(--against=${${a#--against=}:A}) ;;
 		--only=*|--list) rest+=($a); partial=1 ;;
 		--trace) rest+=($a) ;;
-		*) print -r -- "usage: tools/race_bench.sh [--quick] [--out=NAME] [--against=FILE] [--only=TEXT] [--trace] [--list] [--write]"; exit 2 ;;
+		--jobs=<->) jobs=${a#--jobs=} ;;
+		*) print -r -- "usage: tools/race_bench.sh [--quick] [--out=NAME] [--against=FILE] [--only=TEXT] [--trace] [--list] [--jobs=N] [--write]"; exit 2 ;;
 	esac
 done
 if ! command -v $GODOT > /dev/null; then
@@ -50,6 +56,24 @@ run() {
 	# A part of the matrix is not a run to keep the numbers of: no json, and its own log, so a
 	# look at one race does not write over the last whole run's lines.
 	if (( partial )); then n=part; else flags+=(--json=$out/$n.json); fi
+	if (( jobs > 1 && ! partial )); then
+		# In parts: each part's races to its own json and log, then one run of the check that
+		# judges them all (the lines of the races first, part by part).
+		local k pids=() files=() bad=0
+		for (( k = 0; k < jobs; k++ )); do
+			files+=($out/$n.part$k.json)
+			( cd $ROOT/game && $GODOT --headless --path . --script res://tools/check_race_bench.gd -- ${flags:#--json=*} --part=$k/$jobs --json=$out/$n.part$k.json ) > $out/$n.part$k.log 2>&1 &
+			pids+=($!)
+		done
+		for k in $pids; do wait $k || bad=1; done
+		cat $out/$n.part<->.log > $out/$n.log
+		grep -v '^check_race_bench: part ' $out/$n.log
+		(( bad )) && { print -r -- "race_bench: a part did not run to its end (see $out/$n.part*.log)"; return 1 }
+		( cd $ROOT/game && $GODOT --headless --path . --script res://tools/check_race_bench.gd -- $flags --merge=${(j:,:)files} ) 2>&1 | tee -a $out/$n.log
+		local code=$pipestatus[1]
+		rm -f $out/$n.part<->.json $out/$n.part<->.log
+		return $code
+	fi
 	( cd $ROOT/game && $GODOT --headless --path . --script res://tools/check_race_bench.gd -- $flags ) 2>&1 | tee $out/$n.log
 }
 

@@ -7,7 +7,7 @@ extends RefCounted
 ##
 ## A race is a `spec` (see `race`): the rival, the tuning (a ladder race or the guided first
 ## race), the start and the finish, a situation and a test player.
-##   Situations: "clear" (no traffic), "heavy" (Settings -> Traffic: Busy), "blocked" (clear
+##   Situations: "clear" (no traffic), "low" and "heavy" (Settings -> Traffic: Low, Busy), "blocked" (clear
 ##   roads and a wall of parked cars across a street of the rival's own route), "crash" (clear
 ##   roads, a wreck in the rival's lanes and a knock from the side).
 ##   Test players (the player is a ghost driver, as the game's --autopilot): "none", "stopped"
@@ -62,8 +62,10 @@ const FOLLOW_GAP := 15.0
 const FOLLOW_ROLL := 8.0
 
 ## Situations: the Traffic setting's level (-1: no traffic at all), a wall, a wreck and a knock.
+## `low` is the whole game's own level (Settings → Traffic: Low), `heavy` its Busy.
 const SITUATIONS := {
 	"clear": {"traffic": -1},
+	"low": {"traffic": 1},
 	"heavy": {"traffic": 3},
 	"blocked": {"traffic": -1, "wall": true},
 	"crash": {"traffic": -1, "wreck": true},
@@ -77,6 +79,8 @@ const STARTS := {
 	"tamka": Vector2(200.0, -400.0),
 	"leszczynska": Vector2(300.0, -790.0),
 	"marszalkowska": Vector2(-1161.8, -456.9),
+	"spawn": Vector2(-911.6, 278.6),
+	"poniatowski": Vector2(1000.0, -153.0),
 }
 ## A finish whose circle another road runs through (race_planner.gd `ends`): the Palace, whose
 ## junction is on one carriageway of Emilii Plater while the other passes 14 m from it, 600 m
@@ -85,6 +89,14 @@ const STARTS := {
 ## way through the circle took 66 s.
 const PALACE := "Pałac Kultury i Nauki"
 const PALACE_START := "marszalkowska"
+## ... and from the map's spawn, the course of the whole game's `--race=0` (step 4b: the courses
+## that had only been measured with scratch specs).
+const SPAWN_START := "spawn"
+## The final's last stretch (a spec's tuning `final`: Seba with the final's racer, ladder.gd
+## FINAL_RACER, to Trzy mosty's finish by the stadium): from the middle of Most Poniatowskiego,
+## 557 m, flat out, with the jog at the bridge's end.
+const FINAL_START := "poniatowski"
+const FINAL_RIVAL := "Seba z Pragi"
 const ROUTES := {
 	"dobra": [Vector2(292.0, -471.0), Vector2(477.0, -210.0)],
 	"topiel": [Vector2(114.0, -430.0)],
@@ -92,8 +104,18 @@ const ROUTES := {
 }
 
 ## The pass marks' limits (docs/design/race-ai.md):
-## the rival's time may move this share whatever the player does;
+## the rival's time may move this share whatever the player does: a race on clear roads by
+## itself (the same race on any machine), a race among the town's cars together with the other
+## draws of the town's cars it was run in (a pair's seconds with the player over all its draws
+## against its seconds alone over the same draws: one race in traffic is 5 to 12 % from the
+## next draw's with nothing changed, and the worst of thirty such races passed or failed with the
+## draw, step 4a), and no single race in traffic more than INDEPENDENCE_ONE (a rival that does
+## something else altogether because of the player: the turn back behind a car that only waits);
 const INDEPENDENCE := 0.15
+const INDEPENDENCE_ONE := 0.4
+## a count over races in traffic is also given draw by draw for the draws with this many races
+## or more (the whole set run again with other dice);
+const DRAW_RACES := 10
 ## boxed in: a race the rival never finishes because the player's own stopped car stood in front
 ## of it with no lane to pass in (a one-lane one-way street) for more than this share of the race
 ## is not Independence's to judge: that is a block, not the rival's pace following the player's
@@ -770,6 +792,10 @@ func race(spec: Dictionary) -> Dictionary:
 	var sit: Dictionary = SITUATIONS.get(out["situation"], {})
 	var kind := String(out["player"])
 	var fin := finish(String(spec.get("finish", FINISH)))
+	if out["tuning"] == "final":
+		# The final: its own racer and Trzy mosty's finish (rivals.gd `start_final`).
+		rung = Ladder.FINAL
+		fin = final_finish()
 	if who < 0 or rung < 0 or fin.is_empty() or sit.is_empty() or not kind in PLAYERS:
 		error = "%s: unknown rival, finish, situation or player" % out["id"]
 		out["error"] = error
@@ -1138,13 +1164,19 @@ static func judge(results: Array) -> Array:
 	# Finishes.
 	var unfinished := 0
 	var worst := ""
+	# Whether the set has races among the town's cars (a mark that counts them is a traffic mark:
+	# check_race_bench.gd records its pass only from two machines).
+	var traffic := false
+	for r: Dictionary in by_id.values():
+		if _in_traffic(r):
+			traffic = true
 	for r: Dictionary in by_id.values():
 		if not r["finished"]:
 			unfinished += 1
 			if worst == "":
 				worst = r["id"]
 	out.append(_mark("finishes", "Finishes", unfinished == 0 if not by_id.is_empty() else null,
-			"%d of %d races finished" % [by_id.size() - unfinished, by_id.size()], worst))
+			"%d of %d races finished" % [by_id.size() - unfinished, by_id.size()], worst, traffic))
 
 	# Independence: the rival's time whatever the player does, against its time with no player on
 	# the same roads. (In traffic too, both ways: the town's cars are where the player is, and a
@@ -1152,10 +1184,15 @@ static func judge(results: Array) -> Array:
 	# Before step 3 only slower counted there: a player left behind meant empty streets.)
 	var judged := 0
 	var dev := 0.0
+	var one := 0.0
 	var lost := 0
 	var boxed := 0
 	worst = ""
 	var worst_lost := ""
+	var worst_one := ""
+	# In traffic: a pair's seconds with the player and alone, over its draws; and the draws.
+	var pairs := {}
+	var draws := {}
 	for key: String in groups:
 		var g: Dictionary = groups[key]
 		for sp: String in g:
@@ -1174,14 +1211,43 @@ static func judge(results: Array) -> Array:
 					worst_lost = r["id"]
 				continue
 			var x := absf(_run(r) / maxf(_run(base), 1.0) - 1.0)
-			if x > dev:
-				dev = x
-				worst = r["id"]
-	out.append(_mark("independence", "Independence", (dev <= INDEPENDENCE and lost == 0) if judged > 0 else null,
-			"the rival's time moves up to %d %% with the player (limit %d %%)%s%s" % [roundi(dev * 100.0), roundi(INDEPENDENCE * 100.0),
+			if not _in_traffic(r):
+				if x > dev:
+					dev = x
+					worst = r["id"]
+				continue
+			if x > one:
+				one = x
+				worst_one = r["id"]
+			var pair := "%s/%s/%s" % [key, r["situation"], r["player"]]
+			if not pairs.has(pair):
+				pairs[pair] = [0.0, 0.0, 0]
+			pairs[pair][0] += _run(r)
+			pairs[pair][1] += _run(base)
+			pairs[pair][2] += 1
+			draws[int(r["seed"])] = true
+	var pair_dev := 0.0
+	var worst_pair := ""
+	for pair: String in pairs:
+		var x := absf(float(pairs[pair][0]) / maxf(float(pairs[pair][1]), 1.0) - 1.0)
+		if x > pair_dev:
+			pair_dev = x
+			worst_pair = "%s over %d draws" % [pair, pairs[pair][2]]
+	var indep_ok := dev <= INDEPENDENCE and pair_dev <= INDEPENDENCE and one <= INDEPENDENCE_ONE and lost == 0
+	var indep_worst := worst_lost
+	if dev > INDEPENDENCE:
+		indep_worst = worst
+	elif pair_dev > INDEPENDENCE:
+		indep_worst = worst_pair
+	elif one > INDEPENDENCE_ONE:
+		indep_worst = worst_one
+	out.append(_mark("independence", "Independence", indep_ok if judged > 0 else null,
+			"the rival's time moves with the player up to %d %% on clear roads (limit %d %%)%s%s%s" % [roundi(dev * 100.0), roundi(INDEPENDENCE * 100.0),
+			"; in traffic up to %d %% for a pair over its draws (limit %d %%; %d pairs, %d draws) and %d %% in one race (limit %d %%)" % [
+				roundi(pair_dev * 100.0), roundi(INDEPENDENCE * 100.0), pairs.size(), draws.size(), roundi(one * 100.0), roundi(INDEPENDENCE_ONE * 100.0)] if not pairs.is_empty() else "",
 			"; %d of %d races it finishes alone it never finishes with the player" % [lost, judged] if lost > 0 else "",
 			"; %d not judged here: boxed in behind the player's stopped car with no lane to pass in (Finishes counts it)" % boxed if boxed > 0 else ""],
-			worst if dev > INDEPENDENCE or lost == 0 else worst_lost))
+			indep_worst, not pairs.is_empty()))
 
 	# No crawl.
 	var crawl := -1.0
@@ -1191,17 +1257,24 @@ static func judge(results: Array) -> Array:
 			crawl = float(r["crawl_longest_s"])
 			worst = r["id"]
 	out.append(_mark("no_crawl", "No crawl", (crawl <= CRAWL_MAX) if crawl >= 0.0 else null,
-			"longest crawl on a free straight road %.1f s (limit %.0f)" % [crawl, CRAWL_MAX], worst))
+			"longest crawl on a free straight road %.1f s (limit %.0f)" % [crawl, CRAWL_MAX], worst, traffic))
 
-	# Passes traffic: in the heavy situation.
+	# Passes traffic: among the town's cars.
 	var behind := -1.0
+	var behind_n := 0
+	var behind_of := 0
 	worst = ""
 	for r: Dictionary in by_id.values():
-		if r["situation"] == "heavy" and float(r["behind_room_longest_s"]) > behind:
+		if not _in_traffic(r):
+			continue
+		behind_of += 1
+		if float(r["behind_room_longest_s"]) > BEHIND_MAX:
+			behind_n += 1
+		if float(r["behind_room_longest_s"]) > behind:
 			behind = float(r["behind_room_longest_s"])
 			worst = r["id"]
 	out.append(_mark("passes_traffic", "Passes traffic", (behind <= BEHIND_MAX) if behind >= 0.0 else null,
-			"longest behind one slower car with a free lane beside it %.1f s (limit %.0f)" % [behind, BEHIND_MAX], worst))
+			"longest behind one slower car with a free lane beside it %.1f s (limit %.0f), longer than that in %d of %d races in traffic" % [behind, BEHIND_MAX, behind_n, behind_of], worst, true))
 
 	# No ghosting.
 	var through := 0
@@ -1213,7 +1286,7 @@ static func judge(results: Array) -> Array:
 		if int(r["overlaps"]) > 0 and worst == "":
 			worst = r["id"]
 	out.append(_mark("no_ghosting", "No ghosting", through == 0 if not by_id.is_empty() else null,
-			"drove through %d cars (%.1f s inside one; %.2f s or more counts)" % [through, through_s, GHOST_MIN], worst))
+			"drove through %d cars (%.1f s inside one; %.2f s or more counts)%s" % [through, through_s, GHOST_MIN, _by_draw(by_id, ["overlaps"])], worst, traffic))
 
 	# Re-routes: the blocked street, against the same race on clear roads.
 	var blocked := 0
@@ -1265,7 +1338,7 @@ static func judge(results: Array) -> Array:
 				worst = r["id"]
 				note = "the wreck and the knock cost %s%.1f s, %d cars driven through (allowed %.0f s and none)" % ["" if r["finished"] else "the race: ", _run(r) - _run(base), int(r["overlaps"]), RECOVER_LOSS]
 	out.append(_mark("recovers", "Recovers", (moved == 0 and recovered == crashes) if not by_id.is_empty() else null,
-			"moved by the game in view %d times; %d of %d crashes recovered%s" % [moved, recovered, crashes, "; " + note if note != "" else ""], worst))
+			"moved by the game in view %d times%s; %d of %d crashes recovered%s" % [moved, _by_draw(by_id, ["slips_seen", "jumps_seen"]), recovered, crashes, "; " + note if note != "" else ""], worst, traffic))
 
 	# Honest car: the player's car's limits (top speed, pull, sideways grip, brakes).
 	var top := 0.0
@@ -1289,8 +1362,8 @@ static func judge(results: Array) -> Array:
 			if grip > PLAYER_GRIP:
 				worst = r["id"]
 	out.append(_mark("honest_car", "Honest car", honest if not by_id.is_empty() else null,
-			"top %.0f km/h (the car's %.0f), pull %.1f m/s² (%.0f), sideways %.1f m/s² (%.0f): %s; stopped dead by the game %d times (its brakes: %.0f m/s²)" % [
-			top, PLAYER_TOP * 3.6, pull, PLAYER_ACCEL, grip, PLAYER_GRIP, note, dead, PLAYER_BRAKE], worst))
+			"top %.0f km/h (the car's %.0f), pull %.1f m/s² (%.0f), sideways %.1f m/s² (%.0f): %s; stopped dead by the game %d times (its brakes: %.0f m/s²)%s" % [
+			top, PLAYER_TOP * 3.6, pull, PLAYER_ACCEL, grip, PLAYER_GRIP, note, dead, PLAYER_BRAKE, _by_draw(by_id, ["hard_stops"])], worst, traffic))
 
 	# Route sense: the free choice against the forced routes.
 	var sense_n := 0
@@ -1319,7 +1392,7 @@ static func judge(results: Array) -> Array:
 			worst = free["id"]
 			note = text
 	out.append(_mark("route_sense", "Route sense", sense_ok == sense_n if sense_n > 0 else null,
-			"%d of %d free choices within %d %% of the best forced route; %s" % [sense_ok, sense_n, roundi((ROUTE_SENSE - 1.0) * 100.0), note], worst))
+			"%d of %d free choices within %d %% of the best forced route; %s" % [sense_ok, sense_n, roundi((ROUTE_SENSE - 1.0) * 100.0), note], worst, traffic))
 
 	# The skill ladder: flat out on clear roads, rung by rung.
 	var ladder := {}
@@ -1381,5 +1454,32 @@ static func _run(r: Dictionary) -> float:
 	return float(r["time"]) - float(r["hold_s"])
 
 
-static func _mark(id: String, title: String, passed: Variant, value: String, worst: String) -> Dictionary:
-	return {"id": id, "title": title, "pass": passed, "value": value if passed != null else "", "worst": worst if passed == false else ""}
+## Whether race r ran among the town's cars (its situation's Traffic level).
+static func _in_traffic(r: Dictionary) -> bool:
+	return int(SITUATIONS.get(r["situation"], {}).get("traffic", -1)) >= 0
+
+
+## A count over the races in Busy traffic, draw by draw of the town's cars (the sum of `fields`
+## in each draw that has DRAW_RACES races or more): "; in Busy traffic by draw 0: 52, 3: 48" or "".
+static func _by_draw(by_id: Dictionary, fields: Array) -> String:
+	var sums := {}
+	var races := {}
+	for r: Dictionary in by_id.values():
+		if r["situation"] != "heavy":
+			continue
+		var draw := int(r["seed"])
+		races[draw] = int(races.get(draw, 0)) + 1
+		for f: String in fields:
+			sums[draw] = int(sums.get(draw, 0)) + int(r[f])
+	var keys: Array = races.keys()
+	keys.sort()
+	var parts := PackedStringArray()
+	for draw: int in keys:
+		if int(races[draw]) >= DRAW_RACES:
+			parts.append("%d: %d" % [draw, int(sums.get(draw, 0))])
+	return "; in Busy traffic by draw %s" % ", ".join(parts) if parts.size() > 1 else ""
+
+
+## `traffic`: the mark counts races among the town's cars (another draw on another machine).
+static func _mark(id: String, title: String, passed: Variant, value: String, worst: String, traffic := false) -> Dictionary:
+	return {"id": id, "title": title, "pass": passed, "value": value if passed != null else "", "worst": worst if passed == false else "", "traffic": traffic}

@@ -1,5 +1,5 @@
 {
-	"about": "The race bench's pass marks as recorded (docs/design/race-ai.md, game/tools/check_race_bench.gd), for the quick matrix (verify and CI) and the full one (tools/race_bench.sh): a mark recorded pass that fails is a problem; one recorded fail that passes is a warning until it is recorded here (tools/race_bench.sh --write); one recorded unsteady (set by hand: it passes or fails with the draw of the town's cars, and its step is not built) is not held and --write leaves it.",
+	"about": "The race bench's pass marks as recorded (docs/design/race-ai.md, game/tools/check_race_bench.gd), for the quick matrix (verify and CI) and the full one (tools/race_bench.sh): a mark recorded pass that fails is a problem; one recorded fail that passes is a warning until it is recorded here (tools/race_bench.sh --write); one recorded once:<machine> counts races in traffic and has passed on that machine only (--write on the other machine makes it a pass; not held until then); one recorded unsteady (set by hand: it passes or fails with the draw of the town's cars, and its step is not built) is not held and --write leaves it.",
 	"quick": {
 		"finishes": "pass",
 		"independence": "pass",
@@ -14,7 +14,7 @@
 	},
 	"full": {
 		"finishes": "fail",
-		"independence": "unsteady",
+		"independence": "fail",
 		"no_crawl": "pass",
 		"passes_traffic": "fail",
 		"no_ghosting": "fail",
