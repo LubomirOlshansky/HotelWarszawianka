@@ -21,8 +21,9 @@ extends RefCounted
 ##
 ## The rules (check_fakes.gd holds both, step `fakes`): a function here that the game's own script has too takes the
 ## same arguments as the game's (so a new parameter on `hud.toast` fails one step with the function's name, not the
-## checks that reach it); and no check writes its own stand-in for the HUD, the dialogue or the bubbles: it takes
-## the one here, and extends it for what only that check needs.
+## checks that reach it); and no check writes its own stand-in for the HUD, the dialogue, the bubbles or the map: it
+## takes the one here, and extends it for what only that check needs (a function it adds there that the game's script
+## has too takes the game's arguments as well).
 ##
 ## With the checks that carried private copies (2026-11-13): every note's title and text (`note_titles`,
 ## `note_texts`), every card's title (`cards`), the English of the small toasts (`ambient_en`), how often the
