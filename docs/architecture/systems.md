@@ -38,13 +38,15 @@ fails if a script is in neither page, so add a row when you add a file.
 | `landmarks.gd` | Landmark buildings built in code from real footprints (the largest file, ~35k lines). |
 | `models.gd` | Meshes of everything that moves (cars, buses, trams, people) and shared materials. |
 | `props.gd`, `park_props_life.gd`, `park_props_play.gd`, `park_props_water.gd` | Box-built props in the actors' material, one surface. |
-| `park_details.gd`, `street_details.gd`, `first_scene.gd`, `skwer_zlota.gd`, `plac_pieciu_rogow.gd`, `ratusz_hub.gd`, `tamka.gd`, `centralny_ramp.gd`, `patelnia.gd` | Hand-placed dressing for named places the map data lacks. |
+| `places.gd` | The owner of the place scripts (2026-11-13): `Places.TABLE` (one row per place: key, script, node, triangle budget, own draw items, optional `--solo` sites), built by main.gd's one `_build_places`, which merges every poured mesh into one MeshInstance3D per 512 m sector (`places_<cx>_<cz>`). No distance range (decisions.md). Checked by `check_place_scripts.gd`. |
+| `place.gd` | The base of a place script: `map`, `ctx` (data, dialogue, clock, focus, vehicle, logs), `pour(mesh, shadows)` for static dressing in the actors' material, `part(node)` for anything else (own material, a mover, a StaticBody3D). |
+| `park_details.gd`, `street_details.gd`, `first_scene.gd`, `skwer_zlota.gd`, `plac_pieciu_rogow.gd`, `ratusz_hub.gd`, `tamka.gd`, `centralny_ramp.gd`, `patelnia.gd` | Places (extend `place.gd`, a row in `Places.TABLE`): hand-placed dressing for named spots the map data lacks. |
 | `storefronts.gd`, `neon_signs.gd`, `pixel_font.gd` | Shop fronts and parody signs, night neon, the 5x7 world font. |
 | `roof_dress.gd`, `osm_roofs.gd`, `old_town_roofs.gd`, `tenement_trim.gd`, `powisle_houses.gd`, `small_buildings.gd` | Building detail on top of LoD2 and OSM shapes. |
 | `monuments.gd` | Statues, plaques and benches from OSM. |
 | `map_edge.gd`, `edge_roadworks.gd` | Land past the map edge, roadworks closing roads at the edge. |
 | `rail_cut.gd`, `rail_yard.gd`, `station_lines.gd` | Railway cutting, platforms, platform centre lines. |
-| `spire_motion.gd`, `tarasy_screen.gd`, `palace_lights.gd` | Animated landmark parts (Spire ticker and fountains, Złote Tarasy screen, Palace lighting by date). |
+| `spire_motion.gd`, `tarasy_screen.gd`, `palace_lights.gd` | Animated landmark parts (Spire ticker and fountains, Złote Tarasy screen: both places with `part` meshes in their own material; Palace lighting by date). |
 | `ped_zones.gd`, `scooter_zones.gd` | Pedestrian zones and e-scooter zones as point tests. |
 | `districts.gd` | Which district a point is in; district discovery. |
 | `map_art.gd`, `map_icons.gd` | The full map's own drawing and landmark icons. |

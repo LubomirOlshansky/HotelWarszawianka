@@ -1,4 +1,4 @@
-extends Node3D
+extends "res://scripts/place.gd"
 ## Tamka from F's photos (F, 2026-11-08: "Tamka should feel alive"; 18 photos in the Mac folder
 ## warsaw-needed-photos/powisle, sources in its SOURCES.md; spec docs/powisle-tamka.md).
 ## What the photos show and the map had no layer for:
@@ -156,7 +156,6 @@ const AMBIENT_GAP := Vector2(35.0, 60.0)
 const AMBIENT_VIEW := 70.0
 const ACCENT := Color("#ff7ab8")
 
-var map: Node3D
 var dialogue: Node
 ## {"hour": float, "weekday": int} (TimeOfDay.local_clock).
 var clock: Callable
@@ -180,30 +179,31 @@ var _t := 0.0
 
 ## Builds the bollards and the footbridge (one mesh, the deck's collider) and the walker.
 func build() -> void:
+	# What main.gd hands every place (ctx), unless a check set the field directly.
+	if dialogue == null:
+		dialogue = ctx.get("dialogue")
+	if not clock.is_valid():
+		clock = ctx.get("clock", Callable())
+	if not focus.is_valid():
+		focus = ctx.get("focus", Callable())
+	if not vehicle.is_valid():
+		vehicle = ctx.get("vehicle", Callable())
+	log_on = log_on or bool((ctx.get("logs", {}) as Dictionary).get("tamka", false))
 	var cells := {}
 	_bollards(cells)
 	_park(cells)
 	_plates(cells)
 	_ateneum(cells)
 	for key: Vector2i in cells:
-		var cell := MeshInstance3D.new()
-		cell.name = "Bollards_%d_%d" % [key.x, key.y]
-		cell.mesh = (cells[key] as SurfaceTool).commit()
-		cell.material_override = Models.material()
-		cell.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		add_child(cell)
+		pour((cells[key] as SurfaceTool).commit(), false, "Bollards_%d_%d" % [key.x, key.y])
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var body := StaticBody3D.new()
 	body.name = "TamkaSolids"
 	body.set_meta(&"solid", &"pier")  # the footbridge's pier and deck: the solid class (solidity.gd)
 	_footbridge(st, body)
-	var mi := MeshInstance3D.new()
-	mi.name = "TamkaProps"
-	mi.mesh = st.commit()
-	mi.material_override = Models.material()
-	add_child(mi)
-	add_child(body)
+	pour(st.commit(), true, "TamkaProps")
+	part(body)
 	_cum.resize(WALK.size())
 	_cum[0] = 0.0
 	for i in range(1, WALK.size()):
@@ -213,7 +213,7 @@ func build() -> void:
 	_walker.mesh = walker_mesh()
 	_walker.material_override = Models.material()
 	_walker.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(_walker)
+	part(_walker)
 	_s = 0.3 * _cum[_cum.size() - 1]
 	_ambient_t = AMBIENT_GAP.x
 	if log_on:

@@ -1,4 +1,4 @@
-extends Node3D
+extends "res://scripts/place.gd"
 ## The Warsaw Spire's moving parts (F, 2026-11-06, from his photos): the LED ticker that runs round
 ## the crown with the phone brand's parody adverts, and the jets of the plaza's fountains (the big
 ## pool, its two small pools and the pebble channel beside Spire B). The tower, the wings, the pools'
@@ -85,7 +85,6 @@ static func channel_line() -> PackedVector2Array:
 	return out
 
 
-var map: Node3D
 var ticker: MeshInstance3D
 var jet_mesh: MeshInstance3D
 var tick_length := 0.0
@@ -212,7 +211,7 @@ func _build_ticker(base: PackedVector2Array, g: float) -> void:
 	mat.set_shader_parameter("band", TICK_Y1 - TICK_Y0)
 	mat.set_shader_parameter("speed", TICK_SPEED)
 	ticker.material_override = mat
-	add_child(ticker)
+	part(ticker)
 	print("spire ticker: %.1f m round, %d LEDs of text, %d laps" % [s, tex.get_width(), int(laps)])
 
 
@@ -262,7 +261,7 @@ func _build_jets() -> void:
 	var mat := ShaderMaterial.new()
 	mat.shader = load("res://shaders/spire_jets.gdshader")
 	jet_mesh.material_override = mat
-	add_child(jet_mesh)
+	part(jet_mesh)
 
 
 func _cone(st: SurfaceTool, p: Vector2, y0: float, y1: float, r0: float, r1: float, foot: float, phase: float) -> void:

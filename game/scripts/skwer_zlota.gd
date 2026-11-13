@@ -1,4 +1,4 @@
-extends Node3D
+extends "res://scripts/place.gd"
 ## Skwer Linearny na Złotej (F, 2026-11-02): the furniture of the linear park Złota became between
 ## Marszałkowska and Jasna (opened 3 August 2026; RS Architektura Krajobrazu for the city). The map
 ## data has its lawns, tree pits, walks, flowerbeds and both fountains (OpenStreetMap), and
@@ -62,8 +62,6 @@ const ITEMS := [
 	["bollards", 46.0, 188.0, "w", 5], ["bollards", 56.0, 188.0, "w", 5], ["bollards", 64.0, 188.0, "w", 4],
 ]
 
-var map: Node3D
-var count := 0
 
 
 static func at(s: float, t: float) -> Vector2:
@@ -112,12 +110,8 @@ func build() -> void:
 			"lamp":
 				Props.add_park_lamp(st, xf)
 		count += 1
-	var mi := MeshInstance3D.new()
-	mi.name = "SkwerZlotaProps"
-	mi.mesh = st.commit()
-	mi.material_override = Models.material()
-	add_child(mi)
-	add_child(body)
+	pour(st.commit(), true, "SkwerZlotaProps")
+	part(body)
 
 
 ## A bench bent round a circle (centre s, t; radius r) from angle a0 to a1 (radians from +t towards

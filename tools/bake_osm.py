@@ -468,6 +468,10 @@ def main(src, trees_src, dst, extras_src=None, more_src=None):
     # and the site's walls placed (tools/centralny_ramp.py; the same code runs on a baked map).
     import centralny_ramp
     print("centralny_ramp: " + centralny_ramp.apply(out, map_dir))
+    # Grodzka's ramp by the Royal Castle (F, 2026-11-13): one smooth climb past Pałac pod Blachą up to
+    # the W-Z tunnel instead of pit fills and their walls (tools/zamek_ramps.py; the same code runs on a baked map).
+    import zamek_ramps
+    print("zamek_ramps: " + zamek_ramps.apply(out, map_dir))
     # G8/G9 (2026-11-01): shelters onto the kerb of their bus road, turned roof along it; benches
     # turned to face the walk (tools/snap_props.py; the same code runs on a baked map).
     import snap_props

@@ -8,7 +8,7 @@ extends SceneTree
 ## must not change the city shows every site identical.
 ##   godot --headless --path game --script res://tools/site_dump.gd -- --out=/abs/dir [--only=key,key]
 
-const Quality := preload("res://tools/check_mesh_quality.gd")
+const Quality := preload("res://tools/mesh_probe.gd")
 const Landmarks := preload("res://scripts/landmarks.gd")
 
 
@@ -82,5 +82,6 @@ func _initialize() -> void:
 	for s in marks.signs:
 		extra.store_line(str(s))
 	extra.close()
+	map.free()  # the stub is a Node3D (mesh_probe.gd): freed by hand
 	print("site_dump: %d sites, %d triangles in %s" % [written, verts / 3, out])
 	quit(0)

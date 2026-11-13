@@ -1,4 +1,4 @@
-extends Node3D
+extends "res://scripts/place.gd"
 ## Plac Pięciu Rogów (F, 2026-11-06): the furniture of the square the junction of Chmielna,
 ## Szpitalna, Zgoda, Bracka and Krucza became (opened 5 July 2022). tools/car_free.py takes the
 ## asphalt out, lays the pale slabs over the whole outline, keeps the buses' and permit holders'
@@ -81,8 +81,6 @@ const CHMIELNA_ITEMS := [
 	["cafe", -322.8, 81.5, "#e9e1cf"],
 ]
 
-var map: Node3D
-var count := 0
 
 
 ## Builds the mesh and the solids' colliders; `map` gives the ground (map_builder.ground_height).
@@ -120,12 +118,8 @@ func build() -> void:
 				_egg(st, xf)
 				_solid(body, xf, Vector3(3.2, 2.4, 2.3))
 		count += 1
-	var mi := MeshInstance3D.new()
-	mi.name = "PlacPieciuRogowProps"
-	mi.mesh = st.commit()
-	mi.material_override = Models.material()
-	add_child(mi)
-	add_child(body)
+	pour(st.commit(), true, "PlacPieciuRogowProps")
+	part(body)
 
 
 func _solid(body: StaticBody3D, xf: Transform3D, size: Vector3) -> void:

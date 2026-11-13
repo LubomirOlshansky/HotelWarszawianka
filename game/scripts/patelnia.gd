@@ -1,4 +1,4 @@
-extends Node3D
+extends "res://scripts/place.gd"
 ## The Patelnia at Metro Centrum dressed as a lively entrance (F, 2026-11-13, twelve photos: the
 ## square from the Palace's side, the aerials from the Palace's terrace and straight down, the
 ## barrels' mouths, the Pasaż Handlowy front, the murals over the years). The landmark site
@@ -68,9 +68,6 @@ const MURAL_ROWS := 32
 const LAMP_OUT := 4.6
 const LAMP_STEP := 7.5
 
-var map: Node3D
-var count := 0
-var tris := 0
 var _rng := RandomNumberGenerator.new()
 ## The Patelnia's rings as built (map_builder.gd sunk_entry), by key: the runtime city keeps them in
 ## map._sunk, the prebuilt one doesn't, so they are rebuilt here from SUNKEN.
@@ -110,12 +107,8 @@ func build() -> void:
 	_square_life(st, ring)
 	var mesh := st.commit()
 	tris = mesh.surface_get_array_len(0) / 3
-	var mi := MeshInstance3D.new()
 	print("patelnia: %d pieces, %d triangles (murals %d quads)" % [count, tris, _mq])
-	mi.name = "PatelniaDressing"
-	mi.mesh = mesh
-	mi.material_override = Models.material()
-	add_child(mi)
+	pour(mesh, true, "PatelniaDressing")
 
 
 # --- Helpers ---------------------------------------------------------------------------------

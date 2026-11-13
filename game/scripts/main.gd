@@ -94,26 +94,8 @@ const Districts := preload("res://scripts/districts.gd")
 ## Loop 3h slice 2: the 20 Syrenki (collectibles).
 const Syrenki := preload("res://scripts/syrenki.gd")
 const Cassettes := preload("res://scripts/cassettes.gd")
-## First scene items 4-5: the kiosk, stall, cafés and planters by the start (first_scene.gd).
-const FirstScene := preload("res://scripts/first_scene.gd")
-## Skwer Linearny na Złotej (2026-11-02): the park's stone blocks, benches, cafés (skwer_zlota.gd).
-const SkwerZlota := preload("res://scripts/skwer_zlota.gd")
-## The car park ramp by Dworzec Centralny (F, 2026-11-08): its signs and bollards (centralny_ramp.gd).
-const CentralnyRamp := preload("res://scripts/centralny_ramp.gd")
-## The Patelnia by Metro Centrum dressed as a lively entrance (F, 2026-11-13): patelnia.gd.
-const Patelnia := preload("res://scripts/patelnia.gd")
-## Plac Pięciu Rogów (2026-11-06): the square's cubes, lamps, cafés and egg (plac_pieciu_rogow.gd).
-const PlacPieciuRogow := preload("res://scripts/plac_pieciu_rogow.gd")
-## The 3D corner screen on Skylight at Złote Tarasy (2026-11-05, tarasy_screen.gd).
-const TarasyScreen := preload("res://scripts/tarasy_screen.gd")
-## The Warsaw Spire's LED ticker and plaza jets (2026-11-06, spire_motion.gd).
-const SpireMotion := preload("res://scripts/spire_motion.gd")
-## Street details along the main line (street_details.gd, tools/bake_street_details.py).
-const StreetDetails := preload("res://scripts/street_details.gd")
-## The Ratusz Arsenał interchange's canopies, tower and railings (ratusz_hub.gd).
-const RatuszHub := preload("res://scripts/ratusz_hub.gd")
-## Park details: statues, a carousel, ducks, people on the benches (park_details.gd, tools/bake_park_details.py).
-const ParkDetails := preload("res://scripts/park_details.gd")
+## The place scripts (first scene, the Patelnia, Tamka ...): one owner, one table, one mesh per sector (places.gd).
+const Places := preload("res://scripts/places.gd")
 ## Loop 3h slice 3: the final race's route (the start's hint for --trzy-mosty).
 const TrzyMosty := preload("res://scripts/trzy_mosty.gd")
 const Ladder := preload("res://scripts/ladder.gd")
@@ -187,8 +169,6 @@ const LoudCars := preload("res://scripts/loud_cars.gd")
 const CrazyDrivers := preload("res://scripts/crazy_drivers.gd")
 ## Wellness circles (docs/design/city-life-satire.md): sound healing, techno yoga, the 40+ club, park kung-fu.
 const Wellness := preload("res://scripts/wellness.gd")
-## Tamka from F's photos (2026-11-08): bollards, the footbridge, KEBONAFIDE (tamka.gd).
-const Tamka := preload("res://scripts/tamka.gd")
 ## The garage loop: Warsztat u Mirka and its paint jobs (garage.gd, its card garage_card.gd).
 const Garage := preload("res://scripts/garage.gd")
 ## Loop 3h slice 4: the guided first 10 minutes and the end card.
@@ -698,7 +678,6 @@ var fans_phase := ""
 var fans_result := ""
 ## Wellness circles (wellness.gd); flags --wellness=0 (none), --wellness-now (every spot on at any hour), --wellness-log.
 var wellness: Wellness
-var tamka: Tamka
 var wellness_flag := 1
 var wellness_now := false
 var wellness_log := false
@@ -1878,26 +1857,8 @@ func _build_world() -> void:
 	await LoadYield.tick("_build_syrenki")
 	_build_cassettes(world)
 	await LoadYield.tick("_build_cassettes")
-	_build_first_scene(world)
-	await LoadYield.tick("_build_first_scene")
-	_build_skwer_zlota(world)
-	await LoadYield.tick("_build_skwer_zlota")
-	_build_centralny_ramp(world)
-	await LoadYield.tick("_build_centralny_ramp")
-	_build_patelnia(world)
-	await LoadYield.tick("_build_patelnia")
-	_build_plac_pieciu_rogow(world)
-	await LoadYield.tick("_build_plac_pieciu_rogow")
-	_build_tarasy_screen(world)
-	await LoadYield.tick("_build_tarasy_screen")
-	_build_spire_motion(world)
-	await LoadYield.tick("_build_spire_motion")
-	_build_street_details(world)
-	await LoadYield.tick("_build_street_details")
-	_build_ratusz_hub(data, world)
-	await LoadYield.tick("_build_ratusz_hub")
-	_build_park_details(world)
-	await LoadYield.tick("_build_park_details")
+	await _build_places(data, world)
+	await LoadYield.tick("_build_places")
 	_build_garage(world)
 	await LoadYield.tick("_build_garage")
 	await _load_mark(0.66)
@@ -2004,7 +1965,6 @@ func _build_world() -> void:
 	await LoadYield.tick("_build_crazy_drivers")
 	_build_wellness(world)
 	await LoadYield.tick("_build_wellness")
-	_build_tamka(world)
 	_build_first10()
 	await LoadYield.tick("_build_first10")
 	await _load_mark(0.99)
@@ -2121,7 +2081,8 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	if solo_site != "":
 		walkers.visible = false  # a landmark alone (--solo): no people either
 	# First scene item 6: busier pavements on Marszałkowska by the start.
-	var busy := walkers.set_busy(FirstScene.FRAME_O, FirstScene.FRAME_S, FirstScene.FRAME_T, FirstScene.BUSY_BANDS, FIRST_SCENE)
+	var busy := walkers.set_busy(Crowds.FirstScene.FRAME_O, Crowds.FirstScene.FRAME_S, Crowds.FirstScene.FRAME_T,
+			Crowds.FirstScene.BUSY_BANDS, FIRST_SCENE)  # the frame's numbers: the place script's own consts (no hook)
 	print("first scene: %d busy pavement points" % busy)
 	# F's LIM photos (2026-11-06): the pavement under Centrum LIM's arcade and the Dworzec Centralny
 	# tram stop in front of it, busy at every hour.
@@ -2149,121 +2110,26 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 			_bench_ghost = traffic.add_ghost(hit[0], hit[1], hit[2])
 
 
-## First scene items 4-5 (first_scene.gd): the street furniture on Marszałkowska's east
-## pavement by the start, on both city paths.
-func _build_first_scene(world: Node3D) -> void:
-	if solo_site != "":
-		return
-	var fs := FirstScene.new()
-	fs.name = "FirstScene"
-	fs.map = map
-	world.add_child(fs)
-	fs.build()
-
-
-## Skwer Linearny na Złotej (skwer_zlota.gd): the linear park's furniture, on both city paths.
-func _build_skwer_zlota(world: Node3D) -> void:
-	if solo_site != "":
-		return
-	var sz := SkwerZlota.new()
-	sz.name = "SkwerZlota"
-	sz.map = map
-	world.add_child(sz)
-	sz.build()
-
-
-## The car park ramp by Dworzec Centralny (centralny_ramp.gd): the board over the tunnel's mouth
-## and the bollards between the lanes, on both city paths.
-func _build_centralny_ramp(world: Node3D) -> void:
-	if solo_site != "":
-		return
-	var cr := CentralnyRamp.new()
-	cr.name = "CentralnyRamp"
-	cr.map = map
-	world.add_child(cr)
-	cr.build()
-
-
-## The Patelnia by Metro Centrum (patelnia.gd): the barrels' M mouths, the Pasaż Handlowy front,
-## billboards, murals, the slope's shrubs and globe lamps, the performers and stalls; both city paths.
-func _build_patelnia(world: Node3D) -> void:
-	if solo_site != "":
-		return
-	var pt := Patelnia.new()
-	pt.name = "Patelnia"
-	pt.map = map
-	world.add_child(pt)
-	pt.build()
-
-
-## Plac Pięciu Rogów (plac_pieciu_rogow.gd): the square's furniture, on both city paths.
-func _build_plac_pieciu_rogow(world: Node3D) -> void:
-	if solo_site != "":
-		return
-	var pr := PlacPieciuRogow.new()
-	pr.name = "PlacPieciuRogow"
-	pr.map = map
-	world.add_child(pr)
-	pr.build()
-
-
-## The 3D corner screen at Złote Tarasy (tarasy_screen.gd), on both city paths.
-func _build_tarasy_screen(world: Node3D) -> void:
-	if solo_site != "":
-		return
-	var ts := TarasyScreen.new()
-	ts.name = "TarasyScreen"
-	ts.map = map
-	world.add_child(ts)
-	ts.build()
-
-
-## The Warsaw Spire's moving parts (spire_motion.gd): the crown's LED ticker and the plaza's jets,
-## on both city paths.
-func _build_spire_motion(world: Node3D) -> void:
-	if solo_site != "" and solo_site != "spire":
-		return
-	var sm := SpireMotion.new()
-	sm.name = "SpireMotion"
-	sm.map = map
-	world.add_child(sm)
-	sm.build()
-
-
-## Street details along the main line (street_details.gd): kiosks, stalls, cafés, planters and
-## stop kits on the pavements of the streets the main line uses, on both city paths.
-func _build_street_details(world: Node3D) -> void:
-	if solo_site != "":
-		return
-	var sd := StreetDetails.new()
-	sd.name = "StreetDetails"
-	sd.map = map
-	world.add_child(sd)
-	sd.build()
-
-
-## The Ratusz Arsenał interchange (ratusz_hub.gd, F's photos 2026-11-07): the arched tram canopies,
-## their benches and boards, the round stone tower and its railings, on both city paths.
-func _build_ratusz_hub(d: Dictionary, world: Node3D) -> void:
-	if solo_site != "":
-		return
-	var hub := RatuszHub.new()
-	hub.name = "RatuszHub"
-	hub.map = map
-	world.add_child(hub)
-	hub.build(d)
-
-
-## Park details (park_details.gd): the pieces of Ogród Saski, Ogród Krasińskich and Park
-## Ujazdowski, on both city paths.
-func _build_park_details(world: Node3D) -> void:
-	if solo_site != "":
-		return
-	var pd := ParkDetails.new()
-	pd.name = "ParkDetails"
-	pd.map = map
-	world.add_child(pd)
-	pd.build()
+## The place scripts (places.gd, table in `Places.TABLE`): the first scene's props, the Patelnia,
+## Tamka ... built in one step on both city paths, their dressing merged into one mesh per map
+## sector. A place's hooks and flags stay in its own script; a new place is a script and a table row.
+func _build_places(data: Dictionary, world: Node3D) -> void:
+	var places := Places.new()
+	places.name = "Places"
+	world.add_child(places)
+	var vehicle_now := func() -> Array:
+		if flying:
+			return [heli.global_position, heli.speed() * 3.6, true]
+		return [car.global_position, car.vel.length() * 3.6, false]
+	var ctx := {
+		"data": data,
+		"dialogue": dialogue,
+		"clock": tod.local_clock,
+		"focus": func() -> Vector3: return cam_focus,
+		"vehicle": vehicle_now,
+		"logs": {"tamka": tamka_log},
+	}
+	await places.build(map, ctx, solo_site)
 
 
 ## First scene (docs/design/first-scene.md item 6): a start on Marszałkowska between
@@ -3190,26 +3056,6 @@ func _build_crazy_drivers(world: Node3D) -> void:
 	crazy_drivers.log_on = crazy_log
 	crazy_drivers.focus = func() -> Vector3: return cam_focus
 	world.add_child(crazy_drivers)
-
-
-## Tamka (tamka.gd): the bollards, the footbridge by the castle and KEBONAFIDE with his dalmatian,
-## on both city paths.
-func _build_tamka(world: Node3D) -> void:
-	if solo_site != "":
-		return
-	tamka = Tamka.new()
-	tamka.name = "Tamka"
-	tamka.map = map
-	tamka.dialogue = dialogue
-	tamka.log_on = tamka_log
-	tamka.clock = tod.local_clock
-	tamka.focus = func() -> Vector3: return cam_focus
-	tamka.vehicle = func() -> Array:
-		if flying:
-			return [heli.global_position, heli.speed() * 3.6, true]
-		return [car.global_position, car.vel.length() * 3.6, false]
-	world.add_child(tamka)
-	tamka.build()
 
 
 ## The wellness circles (wellness.gd): none with --wellness=0 or --crowd=0.

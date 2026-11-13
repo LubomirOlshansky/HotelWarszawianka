@@ -69,7 +69,7 @@ rain reads these, never its own copy.
 | --- | --- |
 | Many copies of a thing | One MultiMesh (instance colour in custom data). `instance_buffers.gd` writes it. |
 | More people | Rent slots in pedestrians' MultiMesh (+0 draw calls). |
-| Static props | Append boxes to the shared props surface (props.gd style) in the actors' material. |
+| Static props | Append boxes to the shared props surface (props.gd style) in the actors' material. A place script's dressing is poured to `places.gd`, which merges it into one mesh per 512 m sector (one draw call per sector, shadow casters and non-casters apart). |
 | A detail only close up | Its own visibility range (`fine_detail` hidden beyond 170 m, 240 m on Ultra). |
 | Night-only light | `glow.gdshader` or the lamp map, gated by `lights_on`. Avoid real lights. |
 | Something in the static city | It must appear on **both city paths**: the runtime build (`map_builder.gd`) and the prebuilt sectors (`tools/bake_city.gd`). Check with `--prebuilt`. |
