@@ -48,6 +48,15 @@ var since_release := 99.0
 ## POINT with FOLLOW_HELD: the held direction (screen) and the camera's yaw when it was set.
 var _set_aim := Vector2.ZERO
 var _set_yaw := 0.0
+## CLASSIC, F 2026-11-13: the HUD's fixed arrow buttons (hud.gd `arrows`: +1 left, -1 right, 0
+## none), set by the game before `drive`. An arrow is all or nothing, so the steering it gives
+## ramps: ARROW_START of full lock at once (a tap is a small correction), full lock after
+## ARROW_RAMP s held. The car's own limits (car.gd max_turn) make full lock gentler at speed.
+const ARROW_START := 0.35
+const ARROW_RAMP := 0.3
+var arrows := 0
+var _arrow_dir := 0
+var _arrow_t := 0.0
 
 
 ## Sets the car's controls from the stick (screen space, -1..1, y down; `stick_on` while its
@@ -62,6 +71,16 @@ func drive(car: Node, stick: Vector2, stick_on: bool, keys: Dictionary, gas: boo
 	var brake_key: bool = keys.get("brake", false)
 	if scheme == CLASSIC:
 		var s := float(left) - float(right)
+		if arrows != 0:
+			if arrows != _arrow_dir:
+				_arrow_dir = arrows
+				_arrow_t = 0.0
+			_arrow_t += dt
+			var u := clampf(_arrow_t / ARROW_RAMP, 0.0, 1.0)
+			s = float(arrows) * (ARROW_START + (1.0 - ARROW_START) * u * u * (3.0 - 2.0 * u))
+		else:
+			_arrow_dir = 0
+			_arrow_t = 0.0
 		if stick_on and absf(stick.x) > STEER_DEAD:
 			var u := clampf((absf(stick.x) - STEER_DEAD) / (1.0 - STEER_DEAD), 0.0, 1.0)
 			# A gentle curve: fine corrections near the middle, full lock at the edge.
@@ -103,6 +122,9 @@ func drive(car: Node, stick: Vector2, stick_on: bool, keys: Dictionary, gas: boo
 ## Nothing held (the title screen, the helicopter, an autopilot): the camera may follow.
 func release() -> void:
 	held = false
+	arrows = 0
+	_arrow_dir = 0
+	_arrow_t = 0.0
 	_set_aim = Vector2.ZERO
 
 
