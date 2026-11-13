@@ -65,7 +65,7 @@ transept ends. Open *(photo check)*: whether the real church is floodlit and in 
 
 ## 7. Detail level and budget
 
-L3 for the porch and towers, L2 for the body; see section 9; budget in `check_mesh_quality.gd`
+L3 for the front and towers, L2 for the body; 3254 triangles measured (2026-11-13), budget 3400 (`check_mesh_quality.gd`); the square's colonnades (`zbawiciela_plac`) 2106 triangles, budget 2200
 (`check_mesh_quality.gd`). Shot: `--at=-417,1590 --heading=340 --time=day --size=45 --nohud`.
 
 ## 8. Parts table
