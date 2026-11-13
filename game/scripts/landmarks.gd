@@ -11479,9 +11479,9 @@ func _pt_ramp(hv: float, g: float, d: float) -> void:
 ## crenellated stone wing running south down the escarpment. Over the walk: the arcade's
 ## merlons 6.4 m, the towers' crown 16.6 m (LoD2: 19.6-19.9 m over a walk at ~3.1 m).
 const PWT_AXIS := Vector2(0.947, -0.321)   # along the deck, east (towards the river)
-## A tower: centre, +1 south of the deck (-1 north), half width. The north one sits 0.6 m off its
+## A tower: centre, +1 south of the deck (-1 north), half width. The north one sits 1.1 m off its
 ## LoD2 footprint, away from the Aleje: there the footprint reached into the kerb lane (check_drive).
-const PWT_TOWERS := [[Vector2(182.1, 97.3), -1.0, 2.6], [Vector2(190.4, 124.4), 1.0, 2.8]]
+const PWT_TOWERS := [[Vector2(181.94, 96.83), -1.0, 2.6], [Vector2(190.4, 124.4), 1.0, 2.8]]
 const PWT_RISE := 16.6       # the crown's top over the walk
 const PWT_ARCADE := Vector2(181.25, 127.3)   # centre
 const PWT_ARCADE_HALF := Vector2(6.3, 2.3)    # half length (along the walk), half depth
@@ -11601,7 +11601,9 @@ func _pwt_tower(r: float, g: float, d: float, club: bool) -> void:
 		# The club in the tower: its pink sign over the walk's portal.
 		var at := _w(0.0, -r - 0.12)
 		signs.append(["WIEŻYCZKA", Vector3(at.x, d + 4.2, at.y), Vector3(-_b.x, 0.0, -_b.y), 0.22, PWT_NEON])
-	_collide_span(_rect(0.0, 0.0, r + 0.3, r + 0.3), g - 1.0, d + 6.0)
+	# The walk side's collider stops at the shaft (the base's plinth is 0.25 m proud): a bus in the
+	# Aleje's kerb lane brushes the plinth's line by the north tower (check_drive).
+	_collide_span(_rect(0.0, 0.15, r + 0.3, r + 0.15), g - 1.0, d + 6.0)
 
 
 ## The south arcade pavilion (+u along the walk, +v away from it): a stone base down to the
@@ -20699,6 +20701,19 @@ const POW_WHITE := Color("#e6e4dd")
 const POW_GREY := Color("#8d9095")
 const POW_DARK := Color("#2f3236")
 const POW_GLASS := Color("#5d717c")
+const POW_GRANITE := Color("#9b9c97")
+## The tunnel's mouth under the upper pavilion (F's platform photo, 2026-11-13): a grey station
+## block over two dark mouths, one per pair of tracks, a pier with a stair up from the platform
+## between them. The frame: the line where Trains.TUNNEL_POWISLE cuts the rails (origin, +lat
+## along it to the south, +out away from the tunnel); the tracks cross it at lat -6.9, -3.1,
+## 5.8 and 9.3, the platform between the pairs at lat 0-3.
+const POW_MOUTH_O := Vector2(178.52, 76.91)
+const POW_MOUTH_LAT := Vector2(0.328, 0.945)
+const POW_MOUTH_SPAN := Vector2(-10.6, 13.0)   # the headwall's ends (map_builder _build_rail_portals)
+const POW_MOUTH_PIER := Vector2(-1.2, 3.6)     # the pier between the two mouths
+const POW_MOUTH_H := 6.4                       # map_builder RAIL_MOUTH
+const POW_CLAD := Color("#a3a49f")
+const POW_SIGN := Color("#24489a")
 const POW_NEON := Color(1.0, 0.82, 0.2)   # the round pavilion's yellow tube letters
 const POW_BLUE := Color(0.2, 0.5, 1.0)     # the upper pavilion's letters over the doors
 # The round pavilion from F's photos (2026-11-06): the saucer's knife edge, the letter boxes on
@@ -20779,9 +20794,53 @@ func _pow_roof(u: float, v: float, hu: float, hv: float) -> float:
 
 func _build_powisle(site: Dictionary) -> void:
 	_pow_upper(site["frame"])
+	_pow_portal()
 	_pow_lower()
 	for f: Array in site.get("platforms", []):
 		_pow_canopy(f)
+
+
+## The station block over the tunnel's mouth, the pier between its two mouths and the stair from
+## the platform into the pier (POW_MOUTH_*). Drawn in front of map_builder's headwall (its face
+## on the cut line), after _pow_upper (_g is the pavilion's floor).
+func _pow_portal() -> void:
+	_o = POW_MOUTH_O
+	_a = POW_MOUTH_LAT
+	_b = Vector2(_a.y, -_a.x)   # out of the tunnel, east
+	var rail: float = map.terrain_height(_w(-5.0, 4.0).x, _w(-5.0, 4.0).y)
+	var top: float = maxf(_g + 0.6, rail + POW_MOUTH_H + 3.0)
+	var lo := POW_MOUTH_SPAN.x
+	var hi := POW_MOUTH_SPAN.y
+	var mid := (lo + hi) * 0.5
+	var half := (hi - lo) * 0.5
+	var band: float = rail + POW_MOUTH_H
+	# The block over the mouths: cladding, a dark ribbon of windows, a cornice.
+	_lbox(mid, 0.6, half, 0.6, band, top, POW_CLAD, M_STONE, POW_GREY)
+	var win: float = band + (top - band) * 0.35
+	var n := maxi(4, roundi((hi - lo) / 2.2))
+	for k in n:
+		var u := lo + 0.6 + (hi - lo - 1.2) * (k + 0.5) / n
+		_lbox(u, 1.22, (hi - lo - 1.2) / n * 0.5 - 0.12, 0.03, win, win + 1.3, POW_DARK, M_STONE)
+	_lbox(mid, 0.7, half + 0.1, 0.7, top - 0.3, top, POW_GREY.lightened(0.15), M_STONE)
+	_lbox(mid, 0.65, half + 0.05, 0.65, band - 0.35, band, POW_GREY, M_STONE)
+	# The blue station boards under the block, one over each mouth.
+	for u: float in [(lo + POW_MOUTH_PIER.x) * 0.5, (POW_MOUTH_PIER.y + hi) * 0.5]:
+		_lbox(u, 1.3, 1.4, 0.05, band - 1.1, band - 0.45, POW_SIGN, M_STONE)
+		_lbox(u, 1.36, 1.2, 0.02, band - 0.9, band - 0.65, POW_WHITE, M_STONE)
+	# The pier between the mouths, its doorway at the stair's head.
+	var pm := (POW_MOUTH_PIER.x + POW_MOUTH_PIER.y) * 0.5
+	var ph := (POW_MOUTH_PIER.y - POW_MOUTH_PIER.x) * 0.5
+	_lbox(pm, 0.6, ph, 0.6, rail - 0.3, band, POW_CLAD.darkened(0.05), M_STONE)
+	var deck: float = rail + 0.9          # the platform's top
+	var head: float = rail + 3.6          # the stair's head, the doorway's sill
+	_lbox(pm, 1.22, 1.0, 0.03, head, head + 2.4, POW_DARK, M_STONE)
+	# The stair down the platform to the pier.
+	var steps := 9
+	var run := 0.75
+	for k in steps:
+		var y: float = deck + (head - deck) * (k + 1) / steps
+		var o := 1.2 + (steps - 1 - k) * run
+		_lbox(pm, o + run * 0.5, 1.0, run * 0.5, deck, y, POW_GRANITE.darkened(0.08 if k % 2 == 0 else 0.0), M_STONE)
 
 
 func _pow_upper(f: Array) -> void:
@@ -20807,11 +20866,10 @@ func _pow_upper(f: Array) -> void:
 			g = maxf(g, map.terrain_height(p.x, p.y))
 	_g = g
 	var none := Color(0, 0, 0, 0)
-	# The base down to the ground on the escarpment's falling side: glazed like the hall.
-	var keep_mode := _mode
-	_prism(_rect(0.0, 0.0, hu, hv), g - 6.0, g, POW_GLASS.darkened(0.1), POW_GREY.lightened(0.2), M_PAVILION, M_STONE)
-	_mode = keep_mode
-	_mullions(_rect(0.0, 0.0, hu, hv), g - 6.0, g, 1.8, 0.05, POW_DARK)
+	# The base down to the ground on the escarpment's falling side: grey granite (F's street photo,
+	# 2026-11-13: the glass hall stands on a granite plinth; the glazed base read as the tracks
+	# running into a glass wall).
+	_lbox(0.0, 0.0, hu, hv, g - 6.0, g, POW_GRANITE, M_STONE, POW_GREY.lightened(0.2))
 	# The glass hall, set back under the roof; its tops follow the roof's underside.
 	var iu := hu - POW_INSET
 	var iv := hv - POW_INSET
