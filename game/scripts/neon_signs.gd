@@ -48,6 +48,8 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		# Its front's roof letters from F's photos (2026-11-11): the menswear maker's name spelt the
 		# Polish way (the bank's board is PEPEO ŻUBR, already in the list).
 		"WISTULA",
+		# The power company's red roof sign on Wybrzeże Kościuszkowskie 41 (F's photos, 2026-11-13).
+		"ELEKTRON",
 		# HOTEL PIURE's rooftop date bar (G3).
 		"LORETKA",
 		# Arkadka from F's photos (2026-11-03): Westfield as "west field" in Polish, the
