@@ -17,6 +17,13 @@ proof is the player's own car driving it in the built city (game/tools/check_lan
 --links, then --proofs here: tools/race_links.sh): a link without a proof that matches its points
 is never handed to a racer (race_cuts.gd), and one the car could not drive keeps why (`refused`).
 
+Racer AI step 5b (5.5): the wrong-way hops (kind "wrong"). A hop is one block of a one-way street
+driven against its way: from the junction at the street's end back to the junction at its start,
+along the lane on the racer's right, HOP_MAX m at most. Only small one-way streets (HOP_KINDS): never one carriageway of a road with another the other way beside it, a ring, a
+slip road, a bridge, a tunnel or a street with tram rails. It must save a racer what a link must.
+Only a rival that dares takes one (ladder.gd `hops`: Seba and Mike), and only when the street is
+empty (traffic.gd `_hop_clear`). The player's car proves it like any link.
+
 Writes game/data/race_links.json: per link its two junctions' positions (so a re-bake that moves
 node ids keeps it), its points, the narrowest width of its yard part, its kind (yard: mostly
 through a yard; park: mostly along car park aisles), the metres it saves, and a hash of its points
@@ -56,6 +63,14 @@ SLOPE_MAX = 0.12
 LEVEL_MAX = 0.7      # the ground along a link off the straight between its ends' heights (m)
 GARAGE_KEEP = 18.0   # no yard point this close to a garage ramp's door (R9)
 EDGE_POINT = 4.0     # the points of a link are about this far apart
+HOP_MAX = 150.0      # metres of one-way street driven the wrong way, at most (race-ai.md, question 3)
+HOP_MIN = 45.0       # ... and at least (shorter: a slip or a gap in a median)
+HOP_KINDS = {"residential": 2, "living_street": 2, "unclassified": 2, "tertiary": 1}  # the kind: its lanes at most
+HOP_TWIN = 45.0      # a way of the same name running the other way this close: a dual carriageway
+HOP_BEND = 0.8       # rad a hop's street may turn in all (more: a ring or a slip road)
+HOP_TRIM = 6.0       # a hop's points begin and end this far inside the street's lanes
+HOP_EXIT = 1.75      # rad a hop may turn into the road it joins (race_cuts.gd EXIT_TURN)
+HOP_RAIL = 6.0       # no tram rail this close to the street's middle
 
 
 def main():
@@ -418,9 +433,137 @@ def main():
 			"w": round(c["w"], 1), "len": round(c["len"], 1), "save": round(c["save"]),
 			"p": flatp, "proof": old_proof.get(lid, ""), "refused": old_refused.get(lid, ""),
 		})
+	# Racer AI step 5b: the wrong-way hops, one block of a one-way street against its way.
+	ends = set((e["a"], e["b"]) for e in edges)
+	taken = set((round(l["a"][0], 1), round(l["a"][1], 1), round(l["b"][0], 1), round(l["b"][1], 1)) for l in links)
+	rails = Grid()
+	for t in data.get("trams", []):
+		r = ring(t["p"])
+		for k in range(len(r) - 1):
+			a, b = r[k], r[k + 1]
+			rails.add_box(min(a[0], b[0]), min(a[1], b[1]), max(a[0], b[0]), max(a[1], b[1]), (a, b))
+
+	def heading(i):
+		p = epts[i]
+		L = max(math.hypot(p[-1][0] - p[0][0], p[-1][1] - p[0][1]), 1e-6)
+		return ((p[-1][0] - p[0][0]) / L, (p[-1][1] - p[0][1]) / L)
+
+	def middle(i):
+		p, c = epts[i], ecum[i]
+		half = c[-1] * 0.5
+		k = 0
+		while k + 2 < len(c) and c[k + 1] < half:
+			k += 1
+		t = (half - c[k]) / max(c[k + 1] - c[k], 1e-6)
+		return (p[k][0] + (p[k + 1][0] - p[k][0]) * t, p[k][1] + (p[k + 1][1] - p[k][1]) * t)
+
+	by_name = {}
+	for i, e in enumerate(edges):
+		if e.get("name"):
+			by_name.setdefault(e["name"], []).append(i)
+	ins = [[] for _ in nodes]
+	outs = [[] for _ in nodes]
+	for j, f in enumerate(edges):
+		ins[f["b"]].append((j, f))
+		outs[f["a"]].append((j, f))
+	hop_why = {}
+	hops = 0
+	for i, e in enumerate(edges):
+		if (e["b"], e["a"]) in ends or not usable[i] or int(e["n"]) > HOP_KINDS.get(e["k"], 0):
+			continue
+		total = ecum[i][-1]
+		if total < HOP_MIN or total > HOP_MAX:
+			continue
+		w = ""
+		p = epts[i]
+		bend = 0.0
+		for k in range(1, len(p) - 1):
+			a0 = math.atan2(p[k][1] - p[k - 1][1], p[k][0] - p[k - 1][0])
+			a1 = math.atan2(p[k + 1][1] - p[k][1], p[k + 1][0] - p[k][0])
+			bend += abs((a1 - a0 + math.pi) % (2 * math.pi) - math.pi)
+		mid = middle(i)
+		hx, hz = heading(i)
+		if bend > HOP_BEND:
+			w = "bend"
+		if not w:
+			for j in by_name.get(e.get("name", ""), ()):
+				if j == i:
+					continue
+				ox, oz = heading(j)
+				if hx * ox + hz * oz < -0.7 and any(seg_dist(mid, epts[j][k], epts[j][k + 1]) < HOP_TWIN for k in range(len(epts[j]) - 1)):
+					w = "twin"
+					break
+		if not w:
+			for (a, b) in rails.near(mid[0] - HOP_RAIL - 60, mid[1] - HOP_RAIL - 60, mid[0] + HOP_RAIL + 60, mid[1] + HOP_RAIL + 60):
+				if any(seg_dist(q, a, b) < HOP_RAIL for q in p):
+					w = "rails"
+					break
+		A, B = e["b"], e["a"]  # the hop runs from the street's end to its start
+		if not w and not any(f["b"] == A and j != i and f.get("tn", -1) < 0 and not f.get("cf", 0) for j, f in ins[A]):
+			w = "no way in"  # (only the street itself comes to its end: the next block is one-way too)
+		if not w:
+			# A road out of its start that the hop can join (race_cuts.gd EXIT_TURN).
+			back = (p[0][0] - p[1][0], p[0][1] - p[1][1])
+			ok = False
+			for j, f in outs[B]:
+				q = epts[j]
+				if j == i or f.get("cf", 0) or len(q) < 2:
+					continue
+				turn = abs((math.atan2(q[1][1] - q[0][1], q[1][0] - q[0][0]) - math.atan2(back[1], back[0]) + math.pi) % (2 * math.pi) - math.pi)
+				if turn <= HOP_EXIT:
+					ok = True
+			if not ok:
+				w = "no way on"
+		if not w:
+			if A not in road_cache:
+				road_cache[A] = roads_from(A)
+			road = road_cache[A].get(B, REACH * 1.5)
+			if road - total * CUT_COST - CUT_GAIN < SAVE_MIN or road < total * SAVE_RATIO:
+				w = "no gain"
+		pts = []
+		if not w:
+			# Its points: from the street's lanes' end back to their start, along its first lane
+			# (the one by its left edge: on the right of a car that drives it the wrong way).
+			# (HOP_TRIM m short at each end: the turn in and the turn out get that much more room.)
+			s = float(e["s1"]) - HOP_TRIM
+			s0 = float(e["s0"]) + HOP_TRIM
+			while s > s0:
+				pts.append(lane_point(i, s))
+				s -= EDGE_POINT
+			if s0 < float(e["s1"]) - HOP_TRIM:
+				pts.append(lane_point(i, s0))
+			if len(pts) < 2:
+				w = "short"
+		if not w:
+			cum = [0.0]
+			for j in range(1, len(pts)):
+				cum.append(cum[-1] + math.hypot(pts[j][0] - pts[j - 1][0], pts[j][1] - pts[j - 1][1]))
+			h0, h1 = height(*pts[0]), height(*pts[-1])
+			if any(abs(height(*q) - (h0 + (h1 - h0) * cum[j] / max(cum[-1], 0.01))) > LEVEL_MAX for j, q in enumerate(pts)):
+				w = "level"
+		an, bn = nodes[A], nodes[B]
+		if not w and (round(an[0], 1), round(an[1], 1), round(bn[0], 1), round(bn[1], 1)) in taken:
+			w = "a link there"
+		hop_why[w or "ok"] = hop_why.get(w or "ok", 0) + 1
+		if w:
+			continue
+		flatp = []
+		for q in pts:
+			flatp += [round(q[0], 1), round(q[1], 1)]
+		lid = hashlib.sha1(json.dumps(["wrong", round(an[0], 1), round(an[1], 1), round(bn[0], 1), round(bn[1], 1), flatp]).encode()).hexdigest()[:12]
+		links.append({
+			"id": lid,
+			"a": [round(an[0], 1), round(an[1], 1)], "b": [round(bn[0], 1), round(bn[1], 1)],
+			"kind": "wrong",
+			"w": round(float(e["lw"]) * int(e["n"]), 1), "len": round(total, 1), "save": round(road - total),
+			"p": flatp, "proof": old_proof.get(lid, ""), "refused": old_refused.get(lid, ""),
+			"name": e.get("name", ""),
+		})
+		hops += 1
+	print("race_links: %d wrong-way hops; rejected: %s" % (hops, ", ".join("%s %d" % (k, v) for k, v in sorted(hop_why.items()) if k != "ok")))
 	links.sort(key=lambda l: (l["a"], l["b"]))
 	with open(out_path, "w") as f:
-		f.write('{"_note": "Racer AI step 5: race links through yards, car parks and alleys, junction a to junction b along points p (x, z). Made by tools/race_links.py from centrum.json; proof is set when the player\'s car drove it (check_lane_drive.gd --links), refused says why it could not. Do not edit by hand.",\n"links": [\n')
+		f.write('{"_note": "Racer AI steps 5 and 5b: race links through yards, car parks and alleys, and wrong-way hops along one-way streets (kind wrong), junction a to junction b along points p (x, z). Made by tools/race_links.py from centrum.json; proof is set when the player\'s car drove it (check_lane_drive.gd --links), refused says why it could not. Do not edit by hand.",\n"links": [\n')
 		f.write(",\n".join(json.dumps(l, ensure_ascii=False) for l in links))
 		f.write("\n]}\n")
 	proven = sum(1 for l in links if l["proof"])
@@ -438,7 +581,7 @@ def main():
 				f.write('<polyline fill="none" stroke="#555" stroke-width="3" points="%s"/>' % " ".join("%.0f,%.0f" % (p[k], p[k + 1]) for k in range(0, len(p) - 1, 2)))
 			for l in links:
 				p = l["p"]
-				f.write('<polyline fill="none" stroke="#4fd8ff" stroke-width="4" points="%s"/>' % " ".join("%.1f,%.1f" % (p[k], p[k + 1]) for k in range(0, len(p) - 1, 2)))
+				f.write('<polyline fill="none" stroke="%s" stroke-width="4" points="%s"/>' % ("#ff9a3c" if l["kind"] == "wrong" else "#4fd8ff", " ".join("%.1f,%.1f" % (p[k], p[k + 1]) for k in range(0, len(p) - 1, 2))))
 			f.write("</svg>")
 
 

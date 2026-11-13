@@ -410,6 +410,19 @@ const RACE_GAP_OUT := 0.8
 ## oncoming road within the metres the two close in SPAWN_PASS_T s (a car is put down at about
 ## SPAWN_V m/s): what a racer meets it must have been able to see coming.
 const SPAWN_CLEAR := 25.0
+## Racer AI step 5b (docs/design/race-ai.md 5.5): a wrong-way hop, one block of a small one-way
+## street driven against its way (a race link of kind "wrong", race_cuts.gd `hop`), by a rival
+## that dares (ladder.gd `hops`). The racer looks first and takes it only when the street is
+## empty (`_hop_clear`): it decides HOP_DECIDE m before the place it could still stop from, so
+## whichever way it goes on it has the room to brake for. No car on the street or on a curve into
+## it, none standing by its kerb, nobody else hopping it, the player's car not in the way, and
+## every car that means to turn into it far enough from its stop line to wait there (its braking
+## distance and HOP_STOP m). From then until the racer is off the street the street is held
+## (`_hop_held`): a car that would turn into it waits at its stop line as at a red light, and
+## none is put down on it. A street not empty is refused for the race (RacePlanner.Plan
+## `refuse`: its plan is searched again without the hop) and the racer takes its best other way.
+const HOP_DECIDE := 12.0
+const HOP_STOP := 6.0
 const SPAWN_BRAKE := 8.0
 const SPAWN_PASS_T := 4.0
 const SPAWN_V := 9.0
@@ -634,6 +647,11 @@ class Driver:
 	var cuts_taken := 0
 	## Of those, the race links (yards, car parks, alleys: race_cuts.gd), for the race bench.
 	var links_taken := 0
+	## Step 5b: a wrong-way hop it has looked down and is taking (the street is held for it until
+	## it is on the next one), the hops taken and those refused (the street was not empty).
+	var hop_go := false
+	var hops_taken := 0
+	var hops_refused := 0
 	var mistakes := 0
 	var wrong_turns := 0
 	var blocks := 0
@@ -720,6 +738,10 @@ signal bumped_driver(d: Driver)
 ## A racer found its street blocked and turns back (BACK_* above): its plan has shut the street;
 ## the race's owner gives it the metres left without that street (`reroute`).
 signal turned_back(d: Driver)
+## Step 5b: a racer found the one-way street of a wrong-way hop not empty and takes another way:
+## its plan has dropped the hop (`plan.no_hop`); the race's owner gives it the metres left without
+## it (`reroute`).
+signal hop_refused(d: Driver)
 ## A car has been held up behind the player's stopped car for a while (it may shout).
 signal blocked_by_player(d: Driver)
 ## Loop 3g-1: the player's car hit a police car at `speed` m/s (police.gd: a warning or a ram).
@@ -864,6 +886,8 @@ var _jc_at := PackedVector2Array()
 var _racers_out: Array[Driver] = []
 ## Every racer on the road (as of the frame before): `_try_spawn` puts no car down in their way.
 var _racers: Array[Driver] = []
+## Step 5b: the one-way streets a racer is hopping the wrong way now, {edge: the racer}.
+var _hop_held := {}
 var _rg_gap := INF
 var _rg_v := 0.0
 var _rg_parked := false
@@ -1002,10 +1026,17 @@ func _process(dt: float) -> void:
 		_give_way_to_sirens()
 	_racers_out.clear()
 	_racers.clear()
+	_hop_held.clear()
 	for d in _active:
 		if d.race_accel <= 0.0 or d.parked:
 			continue
 		_racers.append(d)
+		if d.hop_go:
+			var hop := RaceCuts.hop(graph.e_b[d.edge], graph.e_a[d.next_edge]) if d.on_cut and d.next_edge >= 0 else -1
+			if hop >= 0:
+				_hop_held[hop] = d
+			else:
+				d.hop_go = false
 		if not d.ghost and (d.v < 1.0 or (not d.in_conn \
 				and (d.pass_t > 0.0 or absf(d.off - graph.lane_offset(d.edge, d.lane)) > OUT_OFF))):
 			_racers_out.append(d)
@@ -1291,6 +1322,9 @@ func _try_spawn(anywhere: bool) -> bool:
 			return false
 	if Vector2(player_pos.x, player_pos.z).distance_to(q) < 14.0:
 		return false
+	# Step 5b: nor on a one-way street a racer is hopping the wrong way.
+	if _hop_held.has(e):
+		return false
 	# Step 4b: nor in a racer's way: no driver answers for a car that was not there when it
 	# chose its speed or began a pass (SPAWN_CLEAR).
 	for racer in _racers:
@@ -1413,6 +1447,7 @@ func _start(d: Driver, e: int, lane: int, s: float) -> void:
 		d.race_block = 0.0
 		d.race_rng = null
 	d.on_cut = false
+	d.hop_go = false
 	d.mistake_side = 0.0
 	d.block_t = 0.0
 	# The night-buses loop: a pooled driver forgets its last stop (and a ring bus's parking).
@@ -2065,6 +2100,7 @@ func _enter_edge(d: Driver, e: int, lane: int, s: float) -> void:
 	_register(d, graph.e_lane0[e] + lane)
 	d.ls = s
 	d.on_cut = false
+	d.hop_go = false
 	d.cut_edge = -1
 	d.block_t = 0.0
 	# A new street: no way on chosen for it yet, and the wrong turn it took is behind it. (Kept, a
@@ -2318,6 +2354,61 @@ func _cut_to(d: Driver, e: int, g: int) -> void:
 			d.links_taken += 1
 
 
+## Step 5b: racer d, with a wrong-way hop ahead (`on_cut`, a link that drives against a one-way
+## street), looks down it once it is HOP_DECIDE m from where it could still stop: empty, it takes
+## it and the street is held for it (`hop_go`); not empty, the hop is refused for the race and it
+## chooses its way on again. True for a racer with no plan (no other way on to choose) while the
+## street is not empty: it waits at the stop line.
+func _hop_look(d: Driver) -> bool:
+	var e := d.edge
+	var hop := RaceCuts.hop(graph.e_b[e], graph.e_a[d.next_edge])
+	if hop < 0:
+		return false
+	if d.ghost:
+		d.hop_go = true  # (the bench's ghost drives alone: nothing to look for, nothing held)
+		d.hops_taken += 1
+		return false
+	var brake := d.race_brake if d.race_brake > 0.0 else RACE_DECEL * 0.7
+	if graph.e_s1[e] - d.s > d.v * d.v / (2.0 * brake) + HOP_DECIDE:
+		return false
+	if _hop_clear(d, hop):
+		d.hop_go = true
+		d.hops_taken += 1
+		_hop_held[hop] = d
+		return false
+	if d.plan == null:
+		return true
+	d.hops_refused += 1
+	d.plan.refuse(e, d.next_edge)
+	# (It was counted as a shortcut when it was chosen, `_cut_to`.)
+	d.cuts_taken -= 1
+	d.links_taken -= 1
+	d.cut_edge = -1
+	hop_refused.emit(d)
+	_choose_next(d)
+	return false
+
+
+## Step 5b: whether one-way street `hop` is empty for racer d to drive the wrong way (HOP_* above).
+func _hop_clear(d: Driver, hop: int) -> bool:
+	if _hop_held.has(hop) and _hop_held[hop] != d:
+		return false
+	for k in graph.e_lanes[hop]:
+		# (Its lanes' lists hold the cars on it and those on a junction's curve into it.)
+		if not _lane_cars[graph.e_lane0[hop] + k].is_empty():
+			return false
+	for o in _active:
+		if o == d or o.ghost:
+			continue
+		if o.parked:
+			if o.edge == hop:
+				return false
+		elif o.next_edge == hop and not o.in_conn \
+				and graph.e_s1[o.edge] - o.s - o.length * 0.5 < o.v * o.v / (2.0 * DECEL) + HOP_STOP:
+			return false
+	return not _player_in(d, d.conn)
+
+
 ## Human rivals: the curve of the shortcut (or race link) from the end of edge e, lane `lane`, onto
 ## edge g (into the lane of the same number, or g's last): race_cuts.gd `curve`.
 func cut_curve(e: int, lane: int, g: int) -> PackedVector2Array:
@@ -2401,6 +2492,9 @@ func _drive(d: Driver, dt: float) -> void:
 			return
 	var e := d.edge
 	var racer := racing_mode(d)
+	var hop_stop := false
+	if racer and d.on_cut and not d.in_conn and not d.hop_go and d.next_edge >= 0 and RaceCuts.is_link(d.conn):
+		hop_stop = _hop_look(d)
 	var v0 := graph.e_speed[e] * d.speed_factor
 	if racer and d.race_top > 0.0:
 		v0 = minf(d.race_top, RACE_CLASS_TOP[graph.e_class[e]]) * d.race_share * d.race_effort
@@ -2589,6 +2683,10 @@ func _drive(d: Driver, dt: float) -> void:
 			lead_v = d.cross_v
 		if not d.in_conn:
 			var stop := _red_ahead(d)
+			if hop_stop or (d.next_edge >= 0 and not _hop_held.is_empty() and _hop_held.get(d.next_edge) != null and _hop_held[d.next_edge] != d):
+				# Step 5b: a racer is hopping the street it turns into the wrong way (or a racer
+				# with no other way waits for its hop's street to empty): at the stop line.
+				stop = minf(stop, maxf(graph.e_s1[e] - d.s - d.length * 0.5, 0.0))
 			if stop < gap:
 				gap = stop
 				lead_v = 0.0

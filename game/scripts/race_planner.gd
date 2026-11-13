@@ -274,6 +274,9 @@ class Plan:
 	## The shortcuts it knows ({node: [edge on, metres, ...]}) and the edges closed to it.
 	var cuts := {}
 	var shut := {}
+	## The one-way streets it will not hop the wrong way again this race ({edge: true}): one that
+	## was not empty when it came to it (`refuse`; RaceCuts.hop).
+	var no_hop := {}
 	## The roads through the finish's circle (RacePlanner.ends: {edge: Vector2(the s it enters at,
 	## the s it leaves at)}; none: the finish is the junction alone).
 	var ends := {}
@@ -506,6 +509,10 @@ class Plan:
 	## metres with RaceCuts.GAIN m on top (what a shortcut must save to be worth taking).
 	func _cut_state(e: int, g: int) -> int:
 		var key := (e << 16) | g
+		var hop := RaceCuts.hop(graph.e_b[e], graph.e_a[g])
+		if hop >= 0 and (hop == e or no_hop.has(hop)):
+			# A wrong-way hop back along the street it came by, or one it found not empty: no way on.
+			return -1
 		if _cut_id.has(key):
 			return _cut_id[key]
 		var curve := RaceCuts.curve(graph, e, 0, g)
@@ -726,6 +733,18 @@ class Plan:
 				best_turn = turn
 				best = f
 		return best
+
+	## The wrong-way hop from the end of edge e that joins edge g is not taken again this race (its
+	## street was not empty when the racer came to it), from any street, and the plan is searched
+	## again without it: as with a street found blocked, the way that led to it is no way now.
+	## False when it is no hop or was refused already.
+	func refuse(e: int, g: int) -> bool:
+		var hop := RaceCuts.hop(graph.e_b[e], graph.e_a[g])
+		if hop < 0 or no_hop.has(hop):
+			return false
+		no_hop[hop] = true
+		restart()
+		return true
 
 	## Closes `edges` to this racer (a street it found blocked) and plans again; false when they
 	## were closed already.
