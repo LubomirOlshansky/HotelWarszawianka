@@ -6,8 +6,11 @@ extends RefCounted
 ## banner, the notes, the quest's dots and the quiet screen (the street meet uses them), the card's
 ## colour, the small toasts and the minimap's dots (the boat race uses them), whether the card
 ## sits at the bottom of the screen, the words on its buttons, both languages of a card, a toast
-## and a hint, the minimap's job pins and the challenge taken down (the round-up uses them); a
-## dialogue that remembers what was said, where and how, and the lines asked for; the bubbles over the
+## and a hint, the minimap's job pins and the challenge taken down (the round-up uses them), whether
+## a card is up (`cards_up`, as `card_showing`) and the message director's word on a call (`calls_ok`,
+## `call_ok()`; the trend job's check uses them), how often the news ticker went out (`tickers`); a
+## dialogue that remembers what was said, where and how, and the lines asked for (and whether each
+## was the preferred one, `line_prefers`; `no_lines` makes the bag empty); the bubbles over the
 ## car; a wallet; the rescue calls' switch and how often the line was closed; a flat map; a car
 ## that can be hit and has a speed. A check that needs one of these takes it from here, so a new parameter on `hud.toast`
 ## is changed in one place.
@@ -158,8 +161,11 @@ class Hud extends CanvasLayer:
 		badge = ""
 		hint_en = ""
 
+	## How often the news ticker was sent off (hud.gd `ticker_out`: a call or a request takes its place).
+	var tickers := 0
+
 	func ticker_out() -> void:
-		pass
+		tickers += 1
 
 	func set_minimap_pois(points: PackedVector2Array, colours: PackedColorArray, shapes := PackedInt32Array()) -> void:
 		pois = points.size()
@@ -212,6 +218,16 @@ class Hud extends CanvasLayer:
 	func card_showing() -> bool:
 		return card != ""
 
+	## hud.gd's `cards_up`: true while a card is up (a job asks before it offers).
+	func cards_up() -> bool:
+		return card != ""
+
+	## What `call_ok` answers (hud.gd: whether a call may ring now); a check sets it to false.
+	var calls_ok := true
+
+	func call_ok() -> bool:
+		return calls_ok
+
 	## A tap on the card's button `i`: to the card's owner, else to every listener.
 	func press(i: int) -> void:
 		if _owner != null and is_instance_valid(_owner):
@@ -236,6 +252,10 @@ class Dialogue extends Node:
 	## answers ([Polish, English]; [] for a group with no line).
 	var line_asks: Array[String] = []
 	var line_words: Array = ["…", "…"]
+	## Whether each of those lines was asked for as the preferred one (`line`'s third argument), in step with `line_asks`.
+	var line_prefers: Array[bool] = []
+	## What `line` answers when it is switched off: an empty bag, as dialogue.gd's for a group it has no line for.
+	var no_lines := false
 
 	func say(anchor: Variant, who: String, group: String, tag := "", s := 4.0, c := Color.WHITE, h := 2.6, p := false) -> Array:
 		said.append(group + ":" + tag)
@@ -244,9 +264,10 @@ class Dialogue extends Node:
 		hows.append([s, c, h, p])
 		return []
 
-	func line(group: String, tag := "", _prefer := false) -> Array:
+	func line(group: String, tag := "", prefer := false) -> Array:
 		line_asks.append(group + ":" + tag)
-		return line_words
+		line_prefers.append(prefer)
+		return [] if no_lines else line_words
 
 	## dialogue.gd's ambient chatter (a bystander's line): remembered the same way.
 	func say_ambient(anchor: Variant, who: String, group: String, tag := "", s := 4.0, c := Color.WHITE, h := 2.6, p := false) -> Array:
