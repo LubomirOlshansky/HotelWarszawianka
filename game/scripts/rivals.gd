@@ -322,6 +322,10 @@ var _cut_in := {}
 var _cut_table := {}
 var _cut_dist := {}
 var _stats := {}
+## The rung and the rival `_use_cuts` was last called for (-1: none yet): a hop refused in the
+## race takes the shortcuts again without it (`_on_hop_refused`).
+var _cut_rung := -1
+var _cut_rival := -1
 ## The route planner (race_planner.gd, docs/design/race-ai.md 5: one for the map) and this race's
 ## plan: the rival's own table of seconds to the finish, by which it picks its streets (null: no
 ## race on). It is searched a slice a frame from the challenge on, so the start costs no frame.
@@ -485,6 +489,7 @@ func setup(lane_graph: LaneGraph, traffic_node: Traffic, hud_layer: CanvasLayer,
 			_finish_race(false, "You gave up."))
 	traffic.bumped_driver.connect(_on_bumped)
 	traffic.turned_back.connect(_on_turned_back)
+	traffic.hop_refused.connect(_on_hop_refused)
 
 
 ## Seba's underglow on the road: a cyan oval round the car.
@@ -717,9 +722,11 @@ func _pick_finish(d) -> Dictionary:
 
 
 ## Human rivals: the shortcuts rival i knows on rung `rung` (its `cuts` share) for this race.
-func _use_cuts(rung: int, i: int) -> void:
+func _use_cuts(rung: int, i: int, no_hop := {}) -> void:
 	_stats = Ladder.racer(rung)
-	var both := _cuts.links(float(_stats["cuts"]), hash(String(RIVALS[i]["name"])), float(_stats.get("yards", 0.0)), float(_stats.get("narrow", 99.0)))
+	_cut_rung = rung
+	_cut_rival = i
+	var both := _cuts.links(float(_stats["cuts"]), hash(String(RIVALS[i]["name"])), float(_stats.get("yards", 0.0)), float(_stats.get("narrow", 99.0)), float(_stats.get("hops", 0.0)), no_hop)
 	_cut_table = both[0]
 	_cut_in = both[1]
 	_cut_dist = {}
@@ -810,6 +817,18 @@ func _stale(p: RacePlanner.Plan) -> bool:
 		return false
 	var now := traffic.race_density()
 	return absf(p.density - now) > PLAN_STALE * maxf(p.density, now)
+
+
+## Racer AI step 5b: a racing rival found the one-way street of a wrong-way hop not empty and
+## takes another way (traffic.gd `hop_refused`: its plan has dropped the hop): the metres it has
+## left, which the gap on the HUD reads, are counted without that hop from here on.
+func _on_hop_refused(d) -> void:
+	if state != State.RACE or rival < 0 or d != _drivers[rival] or d.plan == null or _cut_rival < 0:
+		return
+	_use_cuts(_cut_rung, _cut_rival, d.plan.no_hop)
+	traffic.reroute(d, graph.distances_to(d.finish, INF, true, _planner.links(d.finish, d.plan.ends, _cut_in, d.plan.shut), d.plan.shut))
+	var street := graph.e_name[d.edge]
+	print("race: %s does not hop the wrong way from %s at %.1f s (the street was not empty)" % [RIVALS[rival]["name"], street if street != "" else "a street", _race_time])
 
 
 ## A racing rival found its street blocked and turns back (traffic.gd `turned_back`: its plan has

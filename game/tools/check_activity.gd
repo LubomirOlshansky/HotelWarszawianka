@@ -20,6 +20,11 @@ extends SceneTree
 ## - the ✕ drops a run (not a call, an offer or a run with its card up), with the quit words; the
 ##   play limit drops it without them;
 ## - the autopilot answers the call, takes the offer and presses the run's cards;
+## - what a ride (rides.gd) needed: cards the drive goes on under (`cards_hold` off: the run ticks
+##   in every frame, the press and the life still work, the ✕ drops the run under them), a holding
+##   card that still stops the run in the frame it closes, a card taken down without a press
+##   (`close_card`, never somebody else's), a side card with its buttons stacked, and the
+##   activity that drives the autopilot's car itself (`drive_player`);
 ## - the director: at most one activity of the kit on at a time, `world_free` holds all of them
 ##   (but one that joined with its own test for the world, as the EV tow does: that one is asked
 ##   instead), and it names the one that is on, the one with a target and why the helicopter is
@@ -74,6 +79,10 @@ class Probe extends Activity:
 	var auto_btn := 0
 	## The caller's portrait when it is not under their name ("" for the kit's own: the name).
 	var call_face := ""
+	## It drives the autopilot's car itself (the kit's own: main.gd slides it).
+	var drives := false
+	## A press of a card of the run ends the run (a result card that goes by itself).
+	var ends_on_press := false
 
 	func _call_card() -> Dictionary:
 		var c := {"who": "Próba", "about": ["Ktoś od prób.", "Somebody who tests."]}
@@ -99,6 +108,8 @@ class Probe extends Activity:
 
 	func _card_pressed(index: int) -> void:
 		pressed.append(index)
+		if ends_on_press:
+			finish()
 
 	func _card_expired() -> void:
 		if own_expiry:
@@ -120,6 +131,9 @@ class Probe extends Activity:
 
 	func grounded() -> Array:
 		return ["Próba nie lata", "The probe doesn't fly"] if busy() else []
+
+	func drive_player() -> bool:
+		return drives if drives else super.drive_player()
 
 	func _ended() -> void:
 		ended += 1
@@ -157,6 +171,7 @@ func _go() -> void:
 	_abort_and_limit()
 	_autopilot()
 	_job_cards()
+	_ride_cards()
 	_director()
 	_real_hud()
 	_tour_data()
@@ -625,6 +640,104 @@ func _job_cards() -> void:
 	a.show_side_card(["BOK 4", "SIDE 4"], ["tekst", "text"], PackedStringArray(["OK|OK"]))
 	a.finish()
 	_expect(hud.card == "", "a side card too")
+
+
+## What a ride needed of the kit (rides.gd): cards the drive goes on under, the ✕ under them, a
+## card taken down without a press, a side card with its buttons stacked, and the autopilot's car
+## driven by the activity itself.
+func _ride_cards() -> void:
+	var hud := _hud()
+	var a := _probe(hud)
+	var frames := func(n: int) -> void:
+		for i in n:
+			a._process(STEP)
+	_expect(a.cards_hold, "a card of the run holds the run by default")
+	# A holding card stops the run in the frame it closes too (its life: 0.25 s, the third frame).
+	a.meet()
+	a.show_card(["KRÓTKA", "SHORT"], ["tekst", "text"], PackedStringArray(["OK|OK"]), 0.25)
+	var ticks := a.ticks
+	frames.call(3)
+	_expect(hud.card == "" and a.pressed == [0] and a.ticks == ticks, "a holding card whose life ran out: no run tick in that frame (%d)" % (a.ticks - ticks))
+	frames.call(1)
+	_expect(a.ticks == ticks + 1, "the run goes on the frame after")
+	a.finish()
+	# Cards the drive goes on under.
+	a.cards_hold = false
+	a.pressed.clear()
+	a.meet()
+	a.show_side_card(["PYTA", "ASKS"], ["tekst", "text"], PackedStringArray(["TAK|YES", "NIE|NO"]), 0.0, Color(0, 0, 0, 0), true)
+	_expect(hud.card == "PYTA" and hud.side and hud.stacked and hud.card_is(a) and hud.accent == a.colour,
+			"show_side_card's `stacked`: beside the road, its buttons one under the other, in the activity's colour")
+	ticks = a.ticks
+	var run_t := a._run_t
+	frames.call(10)
+	_expect(a.ticks == ticks + 10 and hud.card == "PYTA", "cards_hold off: the run goes on under its card, every frame (%d of 10)" % (a.ticks - ticks))
+	_expect(is_equal_approx(a._run_t - run_t, 10 * STEP), "and the run's clock with it")
+	hud.hide_card()
+	frames.call(1)
+	_expect(hud.card == "PYTA" and hud.stacked and hud.card_is(a), "a card something took down still comes back, stacked as it was")
+	hud.press(1)
+	_expect(a.pressed == [1] and hud.card == "" and a.phase == Activity.Phase.RUN, "its press still comes to the activity")
+	a.show_side_card(["WYNIK", "RESULT"], ["tekst", "text"], PackedStringArray(), 0.25)
+	_expect(hud.card == "WYNIK" and not hud.stacked and hud.buttons == 0, "the next side card: not stacked, no buttons")
+	ticks = a.ticks
+	frames.call(3)
+	_expect(hud.card == "" and a.pressed == [1, 0], "its life still closes it as its first button (%s)" % [a.pressed])
+	_expect(a.ticks == ticks + 3, "and the run ticked in the frame it closed too (%d of 3)" % (a.ticks - ticks))
+	# The autopilot's tap.
+	a.autopilot = true
+	a.show_side_card(["PYTA 2", "ASKS 2"], ["tekst", "text"], PackedStringArray(["TAK|YES", "NIE|NO"]))
+	a.auto_btn = 1
+	_run(a, Activity.AUTO_CARD + 0.2)
+	_expect(hud.card == "" and a.pressed == [1, 0, 1], "the autopilot taps such a card as any other (%s)" % [a.pressed])
+	a.auto_btn = 0
+	a.autopilot = false
+	# The ✕: under a card that does not hold, the run drops and the card goes.
+	a.show_side_card(["PYTA 3", "ASKS 3"], ["tekst", "text"], PackedStringArray(["TAK|YES", "NIE|NO"]))
+	a.may_abort = false
+	hud.abort_pressed.emit()
+	_expect(a.phase == Activity.Phase.RUN and hud.card == "PYTA 3", "cards_hold off: the ✕ still asks the subclass")
+	a.may_abort = true
+	hud.toasts.clear()
+	hud.abort_pressed.emit()
+	_expect(a.idle() and hud.card == "" and hud.toasts == ["Koniec próby"], "cards_hold off: the ✕ drops the run under its card, and the card goes (%s)" % [hud.toasts])
+	# A card taken down without a press.
+	a.meet()
+	a.pressed.clear()
+	a.close_card()
+	_expect(a.phase == Activity.Phase.RUN and a.pressed.is_empty(), "close_card with no card up: nothing")
+	a.show_side_card(["PYTA 4", "ASKS 4"], ["tekst", "text"], PackedStringArray(["TAK|YES", "NIE|NO"]), 0.25)
+	a.close_card()
+	_expect(hud.card == "" and a.pressed.is_empty() and a.phase == Activity.Phase.RUN, "close_card: the card is down, nothing was pressed, the run is on")
+	frames.call(4)
+	_expect(hud.card == "" and a.pressed.is_empty(), "and it neither comes back nor runs out afterwards")
+	a.show_side_card(["PYTA 5", "ASKS 5"], ["tekst", "text"], PackedStringArray(["TAK|YES", "NIE|NO"]))
+	hud.show_card("CUDZA", "x", PackedStringArray(["OK"]), Color.WHITE)
+	a.close_card()
+	_expect(hud.card == "CUDZA", "close_card never takes down somebody else's card")
+	hud.hide_card()
+	frames.call(2)
+	_expect(hud.card == "", "and the closed card does not come back once theirs is gone")
+	a.finish()
+	# A card whose press ends the run (the ride's result card, which goes by itself): the run does
+	# not tick once more after its own end.
+	a.meet()
+	a.pressed.clear()
+	a.ends_on_press = true
+	a.show_side_card(["KONIEC", "THE END"], ["tekst", "text"], PackedStringArray(), 0.25)
+	ticks = a.ticks
+	var ends := a.ended
+	frames.call(3)
+	_expect(a.idle() and a.ended == ends + 1 and a.pressed == [0] and hud.card == "", "cards_hold off: a card whose life ends the run ends it (%s)" % [a.pressed])
+	_expect(a.ticks == ticks + 2, "and the run does not tick in the frame of its own end (%d of 2)" % (a.ticks - ticks))
+	frames.call(2)
+	_expect(a.ticks == ticks + 2, "nor in the frames after it")
+	a.ends_on_press = false
+	# A holding activity is as before: the ✕ does nothing under its card (`_abort_and_limit`).
+	# The autopilot's car.
+	_expect(not a.drive_player(), "drive_player: false by default (main.gd slides the autopilot's car to the target)")
+	a.drives = true
+	_expect(a.drive_player(), "a subclass that drives the car itself says so")
 
 
 # --- the director ----------------------------------------------------------------------------------

@@ -28,7 +28,7 @@ func _initialize() -> void:
 			and fresh.master == 1.0 and fresh.music == 1.0 and fresh.effects == 1.0 and not fresh.perf and fresh.classic_follow \
 			and fresh.fps == 60 and fresh.style == 0 and not fresh.vhs and not fresh.zone_cap and fresh.handling == 0 and is_equal_approx(fresh.sensitivity, 0.5) \
 			and not fresh.text_large and not fresh.calm and not fresh.color_safe and fresh.vibration and fresh.stop_assist \
-			and not fresh.left_handed and not fresh.lane_assist and fresh.view == 80.0 and fresh.pitch == 30.0
+			and not fresh.left_handed and fresh.lane_assist and fresh.pads == Settings.PADS_ARROWS and fresh.view == 80.0 and fresh.pitch == 30.0
 	print("defaults from a missing file: %s (%s)" % ["OK" if defaults else "WRONG", fresh.summary()])
 	ok = ok and defaults
 
@@ -106,14 +106,27 @@ func _initialize() -> void:
 	a.vibration = false
 	a.stop_assist = false
 	a.left_handed = true
-	a.lane_assist = true
+	a.lane_assist = false  # off by choice (on is the default since 2026-11-13) survives the round trip
+	a.pads = Settings.PADS_SLIDER
 	a.view = 40.0
 	a.pitch = 50.0
 	a.save()
 	var b := Settings.new()
 	b.path = SCRATCH
 	b.load_file()
-	var same := a.summary() == b.summary() and b.classic_follow == a.classic_follow and b.view == 40.0 and b.pitch == 50.0
+	var same := a.summary() == b.summary() and b.classic_follow == a.classic_follow and b.view == 40.0 and b.pitch == 50.0 \
+			and not b.lane_assist and b.pads == Settings.PADS_SLIDER
+	# F 2026-11-13: a save from before the arrows (lane assist off, no `lane_assist_default`, no
+	# `pads`) loads with the lane assist on and the arrows, once.
+	var cfg_la := ConfigFile.new()
+	cfg_la.set_value("game", "lane_assist", false)
+	cfg_la.save(SCRATCH_OLD)
+	var la := Settings.new()
+	la.path = SCRATCH_OLD
+	la.load_file()
+	var la_ok := la.lane_assist and la.pads == Settings.PADS_ARROWS
+	print("an old save's lane assist and pads: %s (lane assist %s, pads %d)" % ["OK" if la_ok else "WRONG", la.lane_assist, la.pads])
+	ok = ok and la_ok
 	# F (2026-11-07): a hand-edited angle that isn't one of the choices loads as the default.
 	var cfg_p := ConfigFile.new()
 	cfg_p.set_value("display", "pitch", 33.0)

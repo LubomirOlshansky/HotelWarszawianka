@@ -860,6 +860,8 @@ var traffic_level := Settings.DEFAULT_TRAFFIC
 ## -2: no --quality= (Tiers.AUTO is -1).
 var _flag_quality := -2
 var _flag_controls := -1
+## F 2026-11-13: --pads=arrows|slider: Classic's touch controls for the run (settings.gd `pads`).
+var _flag_pads := -1
 ## --handling=cruise|sport|grounded (or 0..2): the run drives that profile whatever the settings say.
 var _flag_handling := -1
 ## Beta values: --lane-assist=on|off overrides Settings → Jazda → Asysta pasa for the run; the
@@ -1753,6 +1755,7 @@ func _build_world() -> void:
 	add_child(hud)
 	await LoadYield.tick("hud")
 	hud.set_scheme(controls.scheme)
+	hud.set_arrows_layout((_flag_pads if _flag_pads >= 0 else settings.pads) == Settings.PADS_ARROWS)  # F 2026-11-13
 	hud.set_left_handed(Access.left_handed)  # accessibility (2026-11-01)
 	hud.set_touch_off(no_touch)  # desktop: --no-touch
 	hud.settings_pressed.connect(_open_settings)
@@ -2742,10 +2745,27 @@ func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
 	rides.force_answer = ride_answer
 	rides.start_stars = ride_stars
 	rides.gps_first = gps_in
+	rides.hud = hud
+	rides.bubbles = bubbles
+	rides.dialogue = dialogue
+	rides.wallet = wallet
+	rides.missions = missions
+	rides.rivals = rivals
+	rides.jobs = jobs
+	rides.graph = graph
+	rides.traffic = traffic
+	rides.map = map
+	rides.car = car
+	rides.tod = tod
+	rides.weather = weather
+	rides.map_data = data
 	add_child(rides)
 	nodes["jobs"] = jobs
 	nodes["weather"] = weather
-	rides.setup(nodes, data, world)
+	rides.setup(world)
+	# The director counts it among the activities (one of the kit at a time); the ride's own
+	# `_free` holds every rule for what is outside the kit, so its test here is "yes".
+	activities.add(rides, func() -> bool: return true)
 	jobs.rides = rides
 	# --- end loop 2d-1 ---
 	eggs = Eggs.new()
@@ -5338,6 +5358,9 @@ func _parse_args() -> void:
 			sun_pitch = float(arg.trim_prefix("--sun="))
 		elif arg == "--debug-ao":
 			debug_ao = true
+		elif arg.begins_with("--palace="):
+			# The Blender trial (2026-11-13): code, blender (LOD 0) or blender1 (LOD 1).
+			preload("res://scripts/landmarks.gd").palace_flag = arg.trim_prefix("--palace=")
 		elif arg.begins_with("--solo="):
 			solo_site = arg.trim_prefix("--solo=")
 			MapBuilder.solo_site = solo_site
@@ -5569,6 +5592,8 @@ func _parse_args() -> void:
 			_stress_to = maxf(0.0, float(arg.trim_prefix("--stress-to=")))
 		elif arg.begins_with("--controls="):
 			_flag_controls = Controls.parse(arg.trim_prefix("--controls="))
+		elif arg.begins_with("--pads="):
+			_flag_pads = 1 if arg.trim_prefix("--pads=") in ["slider", "strip", "1"] else 0
 		elif arg.begins_with("--handling="):
 			_flag_handling = Car.parse_handling(arg.trim_prefix("--handling="))
 		elif arg.begins_with("--lane-assist="):
@@ -6462,6 +6487,7 @@ func _settings_state() -> Dictionary:
 			"text_large": int(settings.text_large), "calm": int(settings.calm), "color_safe": int(settings.color_safe),
 			"vibration": int(settings.vibration), "stop_assist": int(settings.stop_assist),
 			"lane_assist": int(car.lane_assist if car != null else settings.lane_assist),
+			"pads": 0 if hud == null or hud.arrows_layout else 1,
 			"left_handed": int(settings.left_handed), "lang": maxi(0, Lang.CODES.find(Lang.code))}
 
 
@@ -6567,6 +6593,12 @@ func _on_setting(key: String, value: Variant) -> void:
 		"handling":
 			settings.handling = clampi(int(value), 0, 2)
 			car.set_handling(settings.handling)
+		"pads":
+			# F 2026-11-13: fixed arrows + pedals (0, the default) or the sliding strip (1).
+			settings.pads = clampi(int(value), 0, 1)
+			hud.set_arrows_layout(settings.pads == Settings.PADS_ARROWS)
+			settings.save()
+			hud.settings_panel.sync(_settings_state())
 		"lane_assist":
 			settings.lane_assist = int(value) == 1
 			car.lane_assist = settings.lane_assist
@@ -7858,8 +7890,6 @@ func _stop_assist() -> void:
 		pass
 	elif activities.targeted() != null:
 		at = activities.targeted().stop_spot()
-	elif rides != null and rides.has_target():
-		at = rides.stop_spot()
 	elif jobs != null and jobs.has_target():
 		at = jobs.stop_spot()
 	elif missions.has_target():
@@ -7965,16 +7995,6 @@ func _show_target() -> void:
 		_put_target(Vector2(f.x, f.z), rivals.target_colour(), _guide_on() or rivals.main_race())
 		_new_target("race", f)
 		return
-	# Loop 2d-1: a Podwózka ride's pin, passenger or door.
-	if rides != null and rides.has_target() and Lines.shows(Lines.Line.CAR, flying):
-		var rp: Vector3 = rides.target_position()
-		var at_r := _vehicle_position()
-		var mr := roundi(Vector2(rp.x - at_r.x, rp.z - at_r.z).length())
-		var on_r := cam.unproject_position(rp + Vector3(0, 3.5, 0)) * float(view.stretch_shrink)
-		hud.set_target(on_r, "%d m" % mr, rides.target_colour(), mr > 12)
-		_put_target(Vector2(rp.x, rp.z), rides.target_colour(), _guide_on())
-		_new_target("job", rp)
-		return
 	if jobs != null and jobs.has_target() and Lines.shows(Lines.Line.CAR, flying):
 		var j: Vector3 = jobs.target_position()
 		var at_j := _vehicle_position()
@@ -8075,7 +8095,7 @@ func _new_target(source: String, t: Vector3) -> void:
 		return
 	var p := _vehicle_position()
 	var speed: float = heli.speed() if flying else absf(car.forward_speed)
-	var busy: bool = hud.stick_active() or controls.held or hud.gas or hud.brake or _heli_held
+	var busy: bool = hud.stick_active() or hud.arrows() != 0 or controls.held or hud.gas or hud.brake or _heli_held
 	if speed > LOOK_SPEED or busy or Vector2(t.x - p.x, t.z - p.z).length() < CameraShots.NEAR:
 		return
 	var ground := Vector3(p.x, map.ground_height(p.x, p.z), p.z) if flying else p
@@ -8148,6 +8168,7 @@ func _read_input(dt: float) -> void:
 			if not bon and Gamepad.stick() != Vector2.ZERO:
 				bstick = Gamepad.stick()
 				bon = true
+			controls.arrows = hud.arrows()
 			controls.drive(boat_race.player, bstick, bon, bkeys, hud.gas or Gamepad.gas(), hud.brake or Gamepad.brake(), cam_yaw, dt)
 		return
 	if flying:
@@ -8174,6 +8195,7 @@ func _read_input(dt: float) -> void:
 	if not stick_on and pad_stick != Vector2.ZERO:
 		stick = pad_stick
 		stick_on = true
+	controls.arrows = hud.arrows()  # F 2026-11-13: the fixed arrow buttons (ramped in drive_controls.gd)
 	controls.drive(car, stick, stick_on, keys, hud.gas or Gamepad.gas(), hud.brake or Gamepad.brake(), cam_yaw, dt)
 	# The drag (street_meet.gd): the car holds the strip and any gas is full gas.
 	if meet != null:
@@ -8251,11 +8273,11 @@ func _autopilot(dt: float) -> void:
 		return
 	if rivals != null and rivals.drive_player():
 		return
-	if rides != null and rides.drive_player():
-		return  # loop 2d-1
 	if jobs != null and jobs.drive_player():
 		return
 	var act := activities.targeted()
+	if act != null and act.drive_player():
+		return  # it drives the car itself (a ride on the app's route: rides.gd)
 	if act != null and not flying and not act.flown:
 		_slide_car(act.target_position(), dt)
 		return

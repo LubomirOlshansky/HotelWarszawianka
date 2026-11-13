@@ -128,12 +128,14 @@ class PlayCalls extends Fakes.Calls:
 		return target
 
 
-## rides.gd's `state` and `busy()`, rivals.gd's `busy()`.
+## rides.gd's `idle()` (by `state`: 0 idle, 1 a request up, 2 a ride on) and `busy()`, rivals.gd's `busy()`.
 class PlayBusy extends Node:
 	var state := 0
 	var on := false
 	func busy() -> bool:
 		return on
+	func idle() -> bool:
+		return state == 0
 
 
 class PlayCar extends CharacterBody3D:

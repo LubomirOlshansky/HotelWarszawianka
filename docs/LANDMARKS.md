@@ -30,6 +30,93 @@ Progress is ticked in docs/ROADMAP.md "v1.0 checklist".
 Norblin, Browary, Wschodnia, Bazar Różyckiego and Pasaż Wiecha (BACKLOG "Landmark look-check fixes");
 Cedet, the Europejski, the KP gate, the Castle and Poniatowski are other threads' items.
 
+## Churches review (F, 2026-11-13)
+
+F asked which churches are modelled as real landmarks, which are generic, and which could still be
+modelled. Review only, no models built. Sources: `game/map/centrum.json` (53 religious outlines),
+`CHURCHES` and the `_build_*` functions in `landmarks.gd`, the specs, `docs/design/churches.md`.
+Photo column: street-level photos within 45 m on Mapillary and Panoramax (`tools/street_photos.py --list`,
+2026-11-13), as "all / facing the church"; 0 can also mean no coverage. Commons photos are gathered on
+the Mac (`refs/`), the Tamka church is being rebuilt in its own thread. Tiers: **A** on the demo's routes
+or a skyline church, photo rebuild first; **B** named, visible from the road, kit model to check against
+photos; **C** small, tucked away or outside the player's loops.
+
+**Counts.** Photo-built 6 (Florian, Karmelici, Archikatedra front, Anna, Święty Krzyż, Wszystkich Świętych) ·
+own hand-built model from the outline, never checked against photos 5 (Zbawiciela, Aleksander,
+Trójca on Plac Małachowskiego, Wizytki, Teresy) · church kit (outline plus guessed style) 22 · skin only 1
+(Jezuici) · plain block 21 unnamed religious outlines and 10 monasteries and chapels. The map's north
+(Praga north of z -2045) is cut off, so Loretańska, Stygmatów, Nawiedzenia, Benon, Kazimierz, Jan Boży
+and Marii Magdaleny are not in the game.
+
+### Photo-built (done well; only their leftovers are open)
+
+| Church | Address | State | Open |
+| --- | --- | --- | --- |
+| Bazylika św. Michała i Floriana | Floriańska 3 | site `florian`, Commons report | front direction look check |
+| Kościół Karmelitów (Wniebowzięcia NMP) | Krakowskie Przedmieście 52/54 | `karmelici`, `refs/krakowskie` | none |
+| Archikatedra św. Jana | Świętojańska 8 | `archikatedra`, front from `refs/archikatedra` | tower, apse, side walls (A) |
+| Kościół św. Anny | Krakowskie Przedmieście 68 | `anna`, `refs/st_anne` | tower cap |
+| Kościół Świętego Krzyża | Krakowskie Przedmieście 3 | `krzyz`, `refs/sw_krzyz` plus F's T09 photos | dome over the crossing |
+| Kościół Wszystkich Świętych | Plac Grzybowski 3/5 | `wszystkich`, photo report | none |
+
+### Own model from the outline, never photo-checked
+
+| Church | Address | State | Tier | Photos | Next step |
+| --- | --- | --- | --- | --- | --- |
+| Kościół Najświętszego Zbawiciela | Plac Zbawiciela 1 | `zbawiciela`, 1029 tris | A | 41 / 11 | photo rebuild: plaster, belfries, spires, dome; F's `pkin-surroundings` has none |
+| Kościół św. Aleksandra | Plac Trzech Krzyży | `aleksander`, 1218 tris | A | 77 / 12 | photo rebuild: portico ends, columns, towers |
+| Kościół Świętej Trójcy (ewang.) | Plac Małachowskiego 1 | `trojca`, 1901 tris | A | 4 / 2 | oculi, portico count; Commons photos on the Mac |
+| Kościół Wizytek | Krakowskie Przedmieście 34 | `wizytki`, 566 tris | A | 4 / 2 | gable, towers or none; Commons |
+| Kościół św. Teresy | Tamka 4A | `teresy` | in rebuild | 33 / 1 | own thread, not touched here |
+
+### Church kit (outline plus guessed style, front end by nearest road)
+
+| Church | Address | Tier | Photos | Note |
+| --- | --- | --- | --- | --- |
+| Kościół Niepokalanego Poczęcia NMP | Krakowskie Przedmieście 62 | A | 57 / 12 | kit box is only 9 x 4 m: check the real size and front |
+| Katedra polowa WP | Długa 13/15 | A | 13 / 1 | two domed towers guessed |
+| Kościół Przemienienia Pańskiego (Kapucyni) | Miodowa 13 | A | 13 / 0 | no towers guessed; Commons |
+| Kościół św. Marcina | Piwna 9/11 | A | 12 / 1 | Old Town street, turret guessed |
+| Kościół św. Jacka (Dominikanie) | Freta 8/10 | A | 11 / 1 | two helms guessed, 35 m long |
+| Kościół św. Ducha | Długa 3 | A | 1 / 0 | one helm guessed; Commons |
+| Cerkiew Zaśnięcia NMP | Miodowa 16 | B | 0 / 0 | onion dome guessed |
+| Synagoga Nożyków | Twarda 6 | A | 0 / 0 | Próżna's anchor; Commons has many |
+| Kościół św. Antoniego Padewskiego | Senatorska 31 | B | 44 / 0 | one helm guessed |
+| Kościół św. Brata Alberta i Andrzeja | Senatorska 18B | B | 28 / 2 | modern pyramid guessed |
+| Kościół Ewangelicko-Reformowany | Al. Solidarności 74 | B | 30 / 0 | brick, pyramid guessed |
+| Kościół Narodzenia NMP | Al. Solidarności 80 | B | 7 / 1 | one helm guessed |
+| Kościół św. Augustyna | Nowolipki 18 | B | 0 / 0 | brick, pyramid guessed |
+| Kościół Piotra i Pawła | Nowogrodzka | B | 5 / 0 | neo-Gothic spire guessed |
+| Kościół Dzieciątka Jezus | Lindleya 12 | B | 39 / 2 | LoD2 gives 30 m |
+| Kościół Zielonoświątkowy | Sienna 68/70 | B | 26 / 6 | no tower guessed |
+| Kościół Miłosierdzia Bożego i św. Faustyny | Żytnia 1 | B | 33 / 8 | modern pyramid |
+| Kościół św. Karola Boromeusza | Chłodna 21 | B | 27 / 7 | helm guessed |
+| Kościół Matki Bożej Jerozolimskiej | Łazienkowska | B | 29 / 4 | neo-Gothic spire guessed; near the stadium |
+| Kościół Trójcy Świętej (Praga) | Solec / Praga | C | 0 / 0 | neoclassical, no tower |
+| Kościół MB Częstochowskiej | Zagórna 5 | C | 17 / 4 | modern pyramid |
+| Kościół MB Zwycięskiej (katedra Grochowska) | Grochowska 365 | B | 0 / 0 | far east, twin spires guessed |
+
+### Skin only or generic (no model)
+
+| Building | Address | State | Tier | Photos | Next step |
+| --- | --- | --- | --- | --- | --- |
+| Sanktuarium MB Łaskawej (Jezuici) | Świętojańska 10 | skin `jezuici`, Mapillary refs | A | 9 / 5 | model: 60 m tower, brick front; Cathedral's neighbour |
+| Klasztor Sióstr Wizytek | Krakowskie Przedmieście / Karowa | plain block, 2495 m² | B | 0 / 0 | with the church |
+| Klasztor Ojców Dominikanów | Freta | plain block, 1892 m² | B | 3 / 0 | with St Hyacinth |
+| Klasztor Ojców Kapucynów | Miodowa | plain block | B | 1 / 0 | with Przemienienia |
+| Dom zakonny Misjonarzy | Krakowskie Przedmieście 3 | plain block, next to Holy Cross | B | none | with Holy Cross |
+| Kościół Adwentystów Dnia Siódmego (unnamed church outline) | Foksal 8 | plain | C | 12 / 1 | small |
+| Kościół Karola Boromeusza (Powązkowska) and Kościół Niepokalanego Poczęcia (Grójecka) | map edge | plain church outlines, no model | C | 22 / 1 and 4 / 0 | edge of the map |
+| Kaplica Baptystów, Kaplica MB Częstochowskiej, Klasztor pallotynów, Zbór Praga dla Chrystusa, Kaplica św. Barbary, Sala św. Faustyny, Franciszkanki (Piwna, Żelazna), Monaster (Miodowa 16) | various | plain blocks | C | few | only if a street pass needs them |
+
+### Order if F wants them built (proposal)
+
+1. Najświętszego Zbawiciela (Plac Zbawiciela, many photos, on the first-minute loop) and Aleksander (Trzech Krzyży).
+2. The Old Town set in one pass: Jezuici model, Archikatedra's tower, Katedra polowa, Kapucyni, św. Jacka and Dominikanie, św. Marcina, św. Ducha.
+3. Krakowskie Przedmieście: Wizytki with her convent, Niepokalanego Poczęcia (size check), Trójca (Lutheran).
+4. Synagoga Nożyków with the Próżna pass.
+5. The B kit churches by photo count: Dzieciątka Jezus, Miłosierdzia Bożego, Zielonoświątkowy, Karola Boromeusza, Jerozolimska.
+
 ## Part 1. The plan, by priority
 
 Photos (2026-10-31): `refs/` on the Mac holds 51 buildings, 154 free photos and 50 GUGiK
