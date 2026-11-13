@@ -16,6 +16,7 @@ zygmunt	Kolumna Zygmunta
 rynek	Rynek Starego Miasta and its Syrenka
 stadium	Stadion Narodowy
 poniatowski	Most Poniatowskiego (towers and deck)
+swietokrzyski	Most Świętokrzyski
 kopernik	Centrum Nauki Kopernik and Planetarium (OSM: Planetarium Niebo Kopernika)
 buw	Biblioteka Uniwersytecka (BUW) and its roof garden
 teatr	Teatr Wielki and Teatr Narodowy
@@ -28,6 +29,7 @@ archikatedra	Archikatedra św. Jana
 anna	Kościół św. Anny
 europejski	Hotel Bristol and Hotel Europejski
 prezydencki	Pałac Prezydencki
+q22	Rondo ONZ towers: Q22, Rondo 1, Cosmopolitan, InterContinental (OSM: InterContinental), Warsaw Trade Tower
 hotel_warszawa	Hotel Warszawa (the 1934 Prudential)
 cedet	Cedet (Dom Towarowy CDT)
 syrenka_powisle	Pomnik Syreny nad Wisłą (OSM: Syrenka na Powiślu)
@@ -42,6 +44,7 @@ sejm	Sejm and Senat (OSM: Sala posiedzeń Sejmu RP, Senat RP)
 ujazdowski	Zamek Ujazdowski
 zacheta	Zachęta
 trojca	Kościół Świętej Trójcy
+metropolitan	Metropolitan
 muzeum	Muzeum Narodowe and Muzeum Wojska Polskiego's yard
 dom_partii	Dom Partii (OSM: Centrum Bankowo-Finansowe) and Rondo de Gaulle'a's palm
 pawilony	Pawilony za Nowym Światem
@@ -55,7 +58,10 @@ norblin	Fabryka Norblina (OSM: Plater, Galwan)
 browary	Browary Warszawskie (OSM: Warzelnia, Laboratorium, Willa Schielego)
 arkadia	Westfield Arkadia (Arkadka)
 forest	Forest
+warsaw_unit	Rondo Daszyńskiego towers: Warsaw Unit, Skyliner, The Warsaw HUB, Mennica Legacy Tower, Generation Park Y
+bridge	Wola towers: The Bridge, Generation Park X and Z, Atlas Tower, Pekao Tower, Warsaw Towers
 lim-podium	Centrum LIM (Marriott) and Novotel
+blekitny	Błękitny Wieżowiec and Plac Bankowy
 bankowy	Plac Bankowy's palaces: Ratusz (OSM: Urząd Miasta Stołecznego Warszawy), Mazowiecki Urząd Wojewódzki, Gmach Giełdy i Banku Polskiego, Arsenał
 slowacki	Pomnik Juliusza Słowackiego and Pomnik Stefana Starzyńskiego (OSM: Juliusz Słowacki, Stefan Starzyński)
 nike	Pomnik Bohaterów Warszawy (Nike) (OSM: Warszawska Nike)
@@ -64,7 +70,9 @@ pilsudskiego	Pomnik Józefa Piłsudskiego, the Smolensk monuments, Pomnik Lecha 
 pomnik_wschod	Pomnik Poległym i Pomordowanym na Wschodzie (OSM: Poległym i Pomordowanym na Wschodzie)
 umschlagplatz	Umschlagplatz memorial
 srodmiescie	Warszawa Śródmieście, Ochota, Powiśle, Stadion stations
+gdanska	Dworzec Gdański and its metro (OSM: Dworzec Warszawa Gdańska)
 wschodnia	Warszawa Wschodnia
+nbp	Narodowy Bank Polski
 poczta	Poczta Główna
 filharmonia	Filharmonia Narodowa
 pasta	PAST-a
@@ -74,12 +82,15 @@ jablkowscy	Dom Towarowy Braci Jabłkowskich
 sheraton	Sheraton Grand Warsaw
 teatr_polski	Teatr Polski and Teatr Powszechny
 florian	Bazylika Katedralna Świętego Michała Archanioła i Świętego Floriana Męczennika
+koneser	Koneser and Ząbkowska's tenements
 bazar	Bazar Różyckiego
+fontanny	Multimedialny Park Fontann
 polonia	Hotel Polonia Palace, Radisson Blu Sobieski (Radysław Blu)
 pavilions	Plac Defilad's pavilions: Cepelia, Zodiak, Scena Relax (OSM: Pawilon Cepelii)
 barki	The river barges and the marina (Wieczorek, Biała Barka, Marinka, Kaskadka)
 bulwary	Bulwary Wiślane: Schodki, the pavilions, the containers
 miodowa	Pałac Paca, Pałac Branickich (Miodowa), Pałac Prymasowski, Pałac Blanka, Pałac Jabłonowskich
+wszystkich	Plac Grzybowski and Kościół Wszystkich Świętych
 orly	Dom pod Orłami and Skwer Linearny na Złotej
 mf	Ministerstwo Finansów
 saski	Saski Crescent, Saski Park, Senator
@@ -89,6 +100,7 @@ gigantami	Kamienica Pod Gigantami, Pałac Pod Karczochem, Kamienica Ławrynowicz
 wedel	Kamienica Wedla
 zelazna	Osiedle Za Żelazną Bramą
 kaskada	Aleja Jana Pawła II's blocks and Kaskada
+platinum	Platinum Towers, Łucka City, Ilmet, Central Tower, Spektrum, PZU, JM Tower, Chałubińskiego 8, Westynka, Chilton
 legia	Stadion Leguminy
 gbc	Gdański Business Center
 wkd_srodmiescie	Warszawa Śródmieście WKD and Warszawa Ochota WKD (the WKD commuter line's stops)
