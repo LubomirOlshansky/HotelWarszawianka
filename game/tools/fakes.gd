@@ -167,6 +167,16 @@ class Hud extends CanvasLayer:
 	func ticker_out() -> void:
 		tickers += 1
 
+	## hud.gd's `set_minimap_route`: the line the minimap draws now, its colour, and how often it was set.
+	var route := PackedVector2Array()
+	var route_colour := Color.WHITE
+	var routes_set := 0
+
+	func set_minimap_route(points: PackedVector2Array, colour: Color, _who := "") -> void:
+		route = points
+		route_colour = colour
+		routes_set += 1
+
 	func set_minimap_pois(points: PackedVector2Array, colours: PackedColorArray, shapes := PackedInt32Array()) -> void:
 		pois = points.size()
 		poi_points = points
@@ -295,6 +305,12 @@ class Bubbles extends Control:
 			said.append(pl)
 		return ok
 
+	## bubbles.gd's `hush`: the anchors whose bubble was taken down, in order.
+	var hushed: Array = []
+
+	func hush(anchor: Variant) -> void:
+		hushed.append(anchor)
+
 
 ## missions.gd's switch for the rescue calls, and how often the rescue line was closed (`close`).
 class Calls extends Node:
@@ -335,6 +351,12 @@ class Wallet extends Node:
 			return false
 		best[key] = seconds
 		return true
+
+	## wallet.gd's `save`: how often it was asked for.
+	var saves := 0
+
+	func save() -> void:
+		saves += 1
 
 
 class FlatMap extends Node3D:

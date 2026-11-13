@@ -89,6 +89,11 @@
 # request and the run of every kind of order (Na czasie, Limitka, Czwarty, the DESKA call and its
 # match, Mlask, Dżemini, the coffee run), the pay's conditions one at a time, which order comes
 # first, one order over another, the autopilot to every end, the dice draw for draw (CI too).
+# Podwózka on the kit (2026-11-13): `rideplay` runs game/tools/check_ride_play.gd (with --fixed-fps 60 for the
+# autopilot's frames): the real Rides on the stand-ins of tools/fakes.gd, played headless: the settings, the
+# button and what holds a request back, the request card, the way to the passenger, the ride and its stars,
+# the pay, the cancels, the quirks, every kind of passenger, the story passengers, the autopilot, the bare
+# rig (no traffic), a save that has driven before and the director (CI too).
 # Beta values (2026-11-04): `laneassist` runs game/tools/check_lane_assist.gd: the lane assist on
 # the real car (a 6° start, a 300 m curve, a deliberate turn, when it must not pull) and the lane's
 # direction on the committed map (~10 s).
@@ -1220,6 +1225,8 @@ for s in $want; do
 		life-soak) life_soak ;;
 		# Loop 2d-1: Podwózka's star and pay tables, the streak and the cancel rules, its lines.
 		rides) check rides '^check_rides:' --script res://tools/check_rides.gd ;;
+		# Podwózka played on the activity kit (fake HUD, small city, the autopilot over the engine's own frames).
+		rideplay) check rideplay '^check_ride_play:' --fixed-fps 60 --script res://tools/check_ride_play.gd ;;
 		cost) check cost '^check_cost_cuts:' --script res://tools/check_cost_cuts.gd ;;
 		# The Old Town's dormers and chimneys (scripts/old_town_roofs.gd): on the slope, outward, small.
 		oldtownroofs) check oldtownroofs '^check_old_town_roofs:' --script res://tools/check_old_town_roofs.gd ;;

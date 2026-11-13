@@ -130,6 +130,7 @@ rave                 quick
 rescues              quick
 ride                 local     slow
 ride-police          local     slow
+rideplay             quick
 rides                quick
 roads                roads
 roadworks            quick
