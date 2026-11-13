@@ -24416,9 +24416,11 @@ func _elek_life(g: float) -> void:
 	var none := Color(0, 0, 0, 0)
 	# The passage's pale granite and the plaza's setts.
 	var passage := _lpoly([[44.2, -22.0], [56.6, -21.6], [56.9, 23.0], [50.3, 23.0], [50.3, -3.3], [44.2, -3.3]])
-	_cap(passage, g + 0.06, Color("#c4c1ba"))
+	var pg := _mean_ground(passage)
+	_cap(passage, pg + 0.1, Color("#c4c1ba"))
 	var plaza := _lpoly([[-40.5, 18.3], [-8.0, 18.3], [-8.0, 29.2], [-18.4, 29.8], [-16.2, 36.0], [-40.5, 36.0]])
-	_cap(plaza, g + 0.06, Color("#8f8580"))
+	var zg := _mean_ground(plaza)
+	_cap(plaza, zg + 0.1, Color("#8f8580"))
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1904
 	var u := -40.0
@@ -24428,13 +24430,13 @@ func _elek_life(g: float) -> void:
 			if rng.randf() < 0.42 and Geometry2D.is_point_in_polygon(_w(u + 0.45, v + 0.45), plaza):
 				var col: Color = ELEK_SETT[rng.randi() % ELEK_SETT.size()]
 				var sq := _rect(u + 0.45, v + 0.45, 0.42, 0.42)
-				_quad(Vector3(sq[0].x, g + 0.09, sq[0].y), Vector3(sq[3].x, g + 0.09, sq[3].y), Vector3(sq[2].x, g + 0.09, sq[2].y),
-						Vector3(sq[1].x, g + 0.09, sq[1].y), Vector3.UP, col)
+				_quad(Vector3(sq[0].x, zg + 0.13, sq[0].y), Vector3(sq[3].x, zg + 0.13, sq[3].y), Vector3(sq[2].x, zg + 0.13, sq[2].y),
+						Vector3(sq[1].x, zg + 0.13, sq[1].y), Vector3.UP, col)
 			v += 1.0
 		u += 1.0
 	# The passage: beer tables (along v) and festoons zigzagging from wall to wall.
 	for t: Vector2 in ELEK_BEER:
-		var y := g + 0.06
+		var y := pg + 0.1
 		_lbox(t.x, t.y, 0.38, 1.15, y + 0.68, y + 0.76, Color("#b98a5a"), M_STONE, Color("#c99a68"))
 		_lbox(t.x, t.y, 0.06, 0.85, y, y + 0.68, Color("#3b3d40"))
 		for side: float in [-1.0, 1.0]:
