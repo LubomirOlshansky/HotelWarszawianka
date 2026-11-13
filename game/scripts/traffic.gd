@@ -150,9 +150,9 @@ const PASAT_PAINT := ["#1d1e21", "#3a3d42", "#2f3d33", "#2a3340", "#8c9096"]
 ## radius) of the junction curve, at least RACE_TURN_MIN; a racer with a plan by its racing line
 ## instead, LINE_* below), a shorter headway, through every red
 ## (a little slower in the box, RACE_RED_SLOW of its speed within RACE_RED_LOOK m of the line),
-## crossing cars only when one is within RACE_CROSS m, and round slower traffic and the player's
-## car: a free lane, or out over the centre line for a pass when the oncoming lane it would be
-## driven in is clear for RACE_PASS_CLEAR m and for as long as the pass takes.
+## the cars that cross its way at a junction by where they will be (`_race_cross`), and round
+## slower traffic and the player's car: a free lane, or out over the centre line for a pass
+## planned from both cars' speeds (`_pass_start`, PASS_* below).
 ## (F 2026-11-05, "they go very slowly": 30/25/19/12 held them to 68 km/h on the centre's side
 ## streets, where the player does 90.)
 const RACE_CLASS_TOP := [33.0, 29.0, 25.0, 16.0]
@@ -177,10 +177,7 @@ const RACE_HAIRPIN := RaceLine.HAIRPIN
 const UTURN_SPEED := RaceLine.UTURN_SPEED
 const RACE_RED_SLOW := 0.75
 const RACE_RED_LOOK := 30.0
-const RACE_CROSS := 7.0
 const RACE_LOOK := 30.0
-const RACE_PASS_CLEAR := 70.0
-const RACE_PASS_ROOM := 40.0
 ## Racer mode: a pass over the centre line minds the oncoming lanes whose line lies within this
 ## many metres of the line it drives itself (a car's width and a margin): the lane it is driven
 ## in. On a street with two lanes each way the far oncoming lane is a lane's width clear of the
@@ -190,7 +187,7 @@ const RACE_PASS_ROOM := 40.0
 const RACE_PASS_BESIDE := 2.5
 ## Racer mode: ... and an oncoming car in such a lane must be further off than the two cars
 ## close in the time the pass takes and this long (s) to come back into its lane.
-## RACE_PASS_CLEAR m alone are 2.3 s away when a racer at 70 km/h meets a town car at 40, and a
+## A fixed 70 m alone are 2.3 s away when a racer at 70 km/h meets a town car at 40, and a
 ## pass takes up to 4 s: it ended inside the oncoming car (race bench, step 4a).
 const RACE_PASS_BACK := 0.7
 ## Racer mode: a racer that has moved to another lane stays in it this long (s) before it looks
@@ -199,8 +196,6 @@ const RACE_PASS_BACK := 0.7
 ## looked free: a racer changed lane and back every frame, never moved over, and followed a slow
 ## player down a two-lane road for 35 s (race bench, the first race from Leszczyńska).
 const RACE_LANE_HOLD := 2.0
-## Racer mode: stood still this long behind a car with no way past, it slips through (s).
-const RACE_KNOT := 1.5
 ## The town's traffic in a racer's way (docs/design/race-ai.md 5, step 3 of the racer AI rebuild;
 ## the friend's "route score = driving time + traffic delay + risk penalty"): the seconds a
 ## racer expects to lose on a street (`race_delay`). It drives a share of the street behind
@@ -210,13 +205,16 @@ const RACE_KNOT := 1.5
 ## RACE_STUCK_LIGHTS s at each of its lights. All at `density` 1 (Busy), in proportion below it.
 ## Fitted by least squares on 252 bench races (tools/race_traffic.sh: three rivals over ten
 ## courses at Low, Normal and Busy, each street's seconds against the same street on clear
-## roads); it gives a race's time in traffic to 7 %, of which 5 to 6 % is the town's draw of
-## cars. The numbers are this driver's: fit them again when the way a racer passes changes
-## (step 4b).
-const RACE_STUCK := [0.77, 0.24, 0.39]
+## roads). The numbers are the driver's: fitted again for step 4b's, which stands in a queue
+## where step 4a's drove through it (the light's share was 1.5 s and the street's end 0.25 s,
+## the oncoming road's 0.24; the old numbers gave this driver's races 16.5 % too short). They
+## give a race's time in traffic to 15 %, of which 11 to 12 % is the town's draw of cars.
+## (The fit's shares for the oncoming road and for several lanes are 0.47 and 0.43, the same
+## within its noise; kept in the order the planner's check holds: lanes cost more.)
+const RACE_STUCK := [0.77, 0.44, 0.46]
 const RACE_STUCK_SPEED := 10.0
-const RACE_STUCK_END := 0.25
-const RACE_STUCK_LIGHTS := 1.5
+const RACE_STUCK_END := 0.7
+const RACE_STUCK_LIGHTS := 7.4
 ## Out of the band of town cars round the view (MARGIN, and AWAY_ROOM m beyond it) a racer had
 ## empty streets: in Busy traffic a rival that left the player at the line came home up to 38 %
 ## sooner than alone among the town's cars (the race bench: Halina in 107 s against 131 s,
@@ -228,7 +226,7 @@ const AWAY_ROOM := 15.0
 const AWAY_TAU := 3.0
 const AWAY_EASE := 0.3
 ## Turning back (docs/design/race-ai.md 5, step 3 of the racer AI rebuild: "nobody reacts to a
-## blocked road"; before, a racer stood RACE_KNOT s at a wall and drove through it). A racer with
+## blocked road"; before, a racer stood 1.5 s at a wall and drove through it). A racer with
 ## a plan (race_planner.gd) that finds its street blocked tells the plan, which shuts the street
 ## to it for the race and finds another way, and turns round. Blocked is: a wall, a parked car
 ## within WALL_SPAN m along every lane of the road and of the oncoming road, seen from WALL_SEE
@@ -237,7 +235,7 @@ const AWAY_EASE := 0.3
 ## street at BACK_TURN m/s; on a one-way street it backs to the junction behind and out onto the
 ## road it came by, at BACK_SPEED m/s at most (the player's car's own reverse, car.gd
 ## `reverse_speed`), keeping BACK_CLEAR m from a car behind it. Boxed in behind as well for
-## BACK_GIVE_UP s it does what a racer without a plan does (RACE_KNOT). A street it has turned
+## BACK_GIVE_UP s it does what a racer without a plan does (RACE_KNOT_LAST). A street it has turned
 ## back in already it drives on through (a wall: the knot rule), or, boxed by the player's car
 ## again, turns back in BACK_TRIES times at most a race. `back` says where it is in this:
 ## stopping for the block, backing up for room (and waiting for the oncoming lane), backing out
@@ -247,6 +245,24 @@ const AWAY_EASE := 0.3
 const WALL_SEE := 40.0
 const WALL_SPAN := 8.0
 const BOX_WAIT := 3.0
+## ... but not when the player's car only waits itself (step 4b; a rival made a U-turn behind a
+## player who stood 4 s in the traffic on Książęca, 171 m before the finish, and came home 3 km
+## and four minutes later): with a car within QUEUE_GAP m in front of the player's car along
+## the racer's way, or a red or amber light there, the racer waits behind it as in any queue.
+## And on a street with an oncoming road it waits BOX_WAIT_PASS s before it turns back: a gap
+## to pass in comes sooner than the way round.
+const QUEUE_GAP := 12.0
+const BOX_WAIT_PASS := 8.0
+## ... and where there is no way back either (a one-way street with cars behind it, a street
+## its plan has no other way from), it goes round the player's car at walking pace
+## (SHOULDER_SPEED m/s forward, SHOULDER_SIDE m/s sideways even as it stands), over the kerb if it
+## must, SIDE_CLEAR m from the car's side, and back to its lane once past it; given up after
+## SHOULDER_MOST s or when the player's car moves off. The last resort: the first race did not
+## finish behind a player who parked on Tamka (race bench, Finishes).
+const PLAYER_IN := 1.0
+const SHOULDER_SPEED := 3.0
+const SHOULDER_SIDE := 0.8
+const SHOULDER_MOST := 20.0
 const BACK_GAP := 5.0
 const BACK_TURN := 3.5
 const BACK_SPEED := 7.0
@@ -345,6 +361,110 @@ const GRIP_EFFORT_LEAST := 0.85
 const GRIP_EFFORT_MOST := 1.15
 const LINE_FAST := 15.0
 const RACE_GRIP_MOST := 19.0
+## Overtake, contact, recover (docs/design/race-ai.md 8, step 4b of the racer AI rebuild). Until
+## now a racer that passed over the centre line or slipped out of a knot stopped seeing cars
+## (`squeeze`) for a time worked out when it set off, and slid sideways at 4 m/s from one frame
+## to the next: the race bench counted 473 cars driven through in 196 races in traffic, 382 dead
+## stops and a sideways pull of 23.6 m/s² in the worst sideways move.
+## Now a racer on a street sees the cars by where they are (`_race_gap`): a car is in its way when
+## the two bodies overlap across the road (BESIDE_GAP m to spare), whatever lane either is in, and
+## the oncoming cars count as soon as its own side is over the centre line. So out for a pass it
+## no longer sees the cars of its own lane, and does see the one that comes at it.
+## It moves sideways as a car does (`_side_step`): its sideways speed builds up and falls off at
+## SIDE_ACCEL m/s² (the pull the move asks of the car, on top of the line's), SIDE_SPEED m/s at
+## most and never more than SIDE_SLOPE of its speed forward (a standing car does not move
+## sideways), and never into a car that is alongside (`_side_room`: SIDE_CLEAR m kept).
+## Behind a car it means to go round it stands RACE_GAP m short (room to steer out), and closes up
+## to RACE_GAP_OUT m while it steers out.
+const SIDE_ACCEL := 5.0
+const SIDE_SPEED := 4.0
+const SIDE_SLOPE := 0.4
+const SIDE_CLEAR := 0.45
+const BESIDE_GAP := 0.2
+## (A car alongside whose side is within SIDE_RUB m of its own is beside it, not in front: it
+## moves away from it sideways as it drives on.)
+const SIDE_RUB := 0.3
+const RACE_GAP := 4.0
+const RACE_GAP_OUT := 0.8
+## The pass over the centre line (`_pass_start`, `_pass_drive`). Before it goes out it works out
+## how long the pass takes and how far it goes (`_pass_plan`): from its own speed and pull, the
+## speed of the cars ahead, and the whole row of them up to the first gap it can come back into
+## (PASS_SLOT m and half the speed it has over the car beyond); PASS_MOST s at most, ending
+## PASS_END m before the junction, with no bend of its line in it that takes more than LINE_BUSY
+## of its grip. The oncoming lane it drives in must be clear for that far, for as far as an
+## oncoming car comes meanwhile, and PASS_MARGIN m. It comes back PASS_IN m in front of the car
+## it passed (PASS_IN_TIGHT cutting in on the player, BLOCK_TIGHT).
+## Every frame of the pass it looks again: with room in its own lane before the next car it comes
+## back; with the next car close it holds its side and goes on, if the plan from here still
+## holds (PASS_KEEP m of margin: a pass is not given up for a metre); if not, it gives the pass
+## up: behind the car it is beside it falls back (PASS_FALL m/s slower than that car) and comes
+## in behind it; with its tail past that car's middle it finishes past that one car. After a pass
+## given up it waits PASS_WAIT s before it tries again.
+## A standing queue up to a junction it passes to the junction itself (the junction's curve
+## brings it back to its lane), when it runs the lights, does not turn right there across the
+## queue's front, and the oncoming road is clear all the way.
+## The town's cars see a racer that is out of its lane by where it is (`_racers_out`, within
+## OUT_SEE m in front of them): the oncoming car brakes for it too.
+## No car is put down (`_try_spawn`) on a racer's own street within SPAWN_CLEAR m in front of it
+## and its braking distance (at SPAWN_BRAKE m/s²), nor, while it is out of its lane, on the
+## oncoming road within the metres the two close in SPAWN_PASS_T s (a car is put down at about
+## SPAWN_V m/s): what a racer meets it must have been able to see coming.
+const SPAWN_CLEAR := 25.0
+const SPAWN_BRAKE := 8.0
+const SPAWN_PASS_T := 4.0
+const SPAWN_V := 9.0
+const PASS_SLOT := 10.0
+const PASS_MOST := 7.0
+const PASS_END := 6.0
+const PASS_MARGIN := 10.0
+const PASS_KEEP := 4.0
+const PASS_IN := 2.0
+const PASS_IN_TIGHT := 0.6
+const PASS_FALL := 3.0
+const PASS_WAIT := 1.5
+const PASS_STEP := 0.2
+const PASS_QUEUE := 6.0
+const PASS_LEAST := 4.0
+const OUT_SEE := 35.0
+const OUT_OFF := 0.7
+const OUT_BESIDE := 0.5
+const OUT_NEAR := 22.0
+const OUT_WAY := 6
+## ... and a racer whose own side is over the centre line brakes for an oncoming car it would
+## meet within OUT_MEET s (further off, its pass's plan answers for it). The player's car, to a
+## racer that moves over beside it or passes it: PLAYER_LONG by PLAYER_WIDE m.
+const OUT_MEET := 1.2
+const PLAYER_LONG := 4.5
+const PLAYER_WIDE := 1.9
+## ... and the knot rule is the last resort only: a racer stands in a queue like any car, and
+## slips through the car ahead only after RACE_KNOT_LAST s without moving (a ring of cars that
+## wait for each other; the town's own cars give up on one after 8 s).
+const RACE_KNOT_LAST := 30.0
+## Cars across a junction (`_race_cross`). A racer took a crossing car for a car in its way only
+## within 7 m, and after 1.5 s of waiting for one no longer: at speed that was a dead
+## stop or a drive through (the race bench: most of the 382 dead stops). Now, coming to a
+## junction, in it and just out of it, it looks along its own way (`_way_at`: its line, or its
+## lane and the junction's curve) CROSS_SEE m and CROSS_TIME s of its speed ahead, CROSS_FAR m at
+## most, a place every CROSS_STEP m, and along the way of each car round that junction that is
+## not a car of its own lanes: a place both come to within CROSS_SLACK s of each other (and the
+## time the two bodies take to clear it) is taken; it brakes to stop CROSS_KEEP m before it, with
+## its own brakes, and goes when the other is through or would come later. A car that stands in
+## its way it waits for RACE_CROSS_WAIT s (then the knot rule).
+const CROSS_SEE := 10.0
+const CROSS_TIME := 2.0
+const CROSS_FAR := 40.0
+const CROSS_STEP := 2.5
+const CROSS_SLACK := 0.6
+const CROSS_KEEP := 2.5
+const RACE_CROSS_WAIT := 6.0
+## ... and a car that stands with only its side in the racer's way (a queue at the mouth of the
+## next street, where two lanes lie closer than two cars are wide: its middle SWERVE_LEAST m or
+## more beside the racer's way) the racer steers round: up to SWERVE_MOST m aside, within its
+## road (SWERVE_OVER m over the edge of the outer lanes at most) and not into a car alongside,
+## held SWERVE_HOLD s after the last such car. Where that is not enough the car is in its way.
+const SWERVE_CURVE := 1.5
+const SWERVE_OVER := 0.4
+const SWERVE_HOLD := 1.0
 ## Pole lamps: red, amber, green.
 const LAMP_ON := [Color("#ff3b2f"), Color("#ffb21e"), Color("#43ff6e")]
 const LAMP_OFF := Color("#2a2c2e")
@@ -462,6 +582,30 @@ class Driver:
 	var pass_off := 0.0
 	## Racer mode: the seconds it still holds the lane it has just moved to (RACE_LANE_HOLD).
 	var lane_hold := 0.0
+	## Step 4b (SIDE_* and PASS_* above): its sideways speed (m/s, + to the right); in a pass,
+	## whether it cuts in, the speed it is held to while it gives the pass up (INF: none), and the
+	## seconds before it tries a pass again.
+	var off_v := 0.0
+	## ... and steering round a car that stands with its side in its way (SWERVE_* above): how far
+	## aside it means to be (m, + to the right), how far it is, and the seconds it still holds it.
+	var swerve := 0.0
+	var swerve_now := 0.0
+	var swerve_t := 0.0
+	## Step 4b: going round the player's stopped car (SHOULDER_* above): the side (-1 left, 1
+	## right; 0 not), and the seconds left for it.
+	var shoulder := 0.0
+	var shoulder_t := 0.0
+	## Step 4b: what `_race_cross` saw at its last look (`look_tick`, the traffic's `_tick`).
+	var look_gap := INF
+	var look_seen := false
+	var look_tick := -2
+	var pass_tight := false
+	## ... whether it has come up beside a car yet (until then the car in front is the one it
+	## set out to pass, however much room there is behind it), and whether it is falling back.
+	var pass_by := false
+	var pass_back := false
+	var pass_cap := INF
+	var pass_wait := 0.0
 	## Racer mode, out of the town's cars (AWAY_* above): the seconds of expected traffic delay it
 	## still owes, and the share of its speed it covers ground at meanwhile.
 	var away_debt := 0.0
@@ -711,6 +855,28 @@ var _view_mid := Vector2.ZERO
 ## ... and the junction cars' ground positions, so the pair test rejects far pairs on a packed
 ## array instead of reading two drivers' properties.
 var _jc_at := PackedVector2Array()
+## Step 4b: the racers out of their lane this frame (OUT_* above); what `_race_gap` found (the
+## gap, that car's speed along the racer's way, whether it is parked); the cars of the lane a
+## pass goes by, in order (`_pass_cars`: each one's tail and nose along the lane, and its speed);
+## and what `_pass_plan` worked out (the metres and seconds the pass takes).
+var _racers_out: Array[Driver] = []
+## Every racer on the road (as of the frame before): `_try_spawn` puts no car down in their way.
+var _racers: Array[Driver] = []
+var _rg_gap := INF
+var _rg_v := 0.0
+var _rg_parked := false
+var _sr_lo := 0.0
+var _sr_hi := 0.0
+var _pl_rear := PackedFloat32Array()
+var _pl_front := PackedFloat32Array()
+var _pl_v := PackedFloat32Array()
+var _pp_x := 0.0
+var _pp_t := 0.0
+## ... and for `_race_cross`: the cars near, and the places and times of one car's way.
+var _rc_near: Array[Driver] = []
+var _rc_at := PackedVector2Array()
+var _rc_mid := PackedVector2Array()
+var _rc_dir := PackedVector2Array()
 ## The ground in view, kept by _update_view(): centre, right and ahead axes, half size (m).
 var view_centre := Vector2.ZERO
 ## A zone the traffic keeps out of (event_day.gd's cordon): (Vector2 game-plane point) -> bool.
@@ -832,6 +998,15 @@ func _process(dt: float) -> void:
 	_junction_conflicts()
 	if not _sirens.is_empty():
 		_give_way_to_sirens()
+	_racers_out.clear()
+	_racers.clear()
+	for d in _active:
+		if d.race_accel <= 0.0 or d.parked:
+			continue
+		_racers.append(d)
+		if not d.ghost and (d.v < 1.0 or (not d.in_conn \
+				and (d.pass_t > 0.0 or absf(d.off - graph.lane_offset(d.edge, d.lane)) > OUT_OFF))):
+			_racers_out.append(d)
 	var i := 0
 	visible_count = 0
 	_tick += 1
@@ -1114,6 +1289,19 @@ func _try_spawn(anywhere: bool) -> bool:
 			return false
 	if Vector2(player_pos.x, player_pos.z).distance_to(q) < 14.0:
 		return false
+	# Step 4b: nor in a racer's way: no driver answers for a car that was not there when it
+	# chose its speed or began a pass (SPAWN_CLEAR).
+	for racer in _racers:
+		if racer.in_conn:
+			continue
+		if racer.edge == e:
+			var ahead := s - racer.s
+			if ahead > -6.0 and ahead < SPAWN_CLEAR + racer.v * racer.v / (2.0 * SPAWN_BRAKE):
+				return false
+		elif graph.e_reverse[racer.edge] == e and (racer.pass_t > 0.0 or racer in _racers_out):
+			var ahead := graph.e_len[e] - s - racer.s
+			if ahead > -6.0 and ahead < SPAWN_CLEAR + (racer.v + SPAWN_V) * SPAWN_PASS_T:
+				return false
 	# Lanes of different roads meet at junctions: keep clear of every car, not just this lane's.
 	for o in _active:
 		if Vector2(o.pos.x, o.pos.z).distance_squared_to(q) < 100.0 + o.length * o.length:
@@ -1198,6 +1386,15 @@ func _start(d: Driver, e: int, lane: int, s: float) -> void:
 	d.run_red = false
 	d.yield_t = 0.0
 	d.pass_t = 0.0
+	d.pass_cap = INF
+	d.pass_wait = 0.0
+	d.off_v = 0.0
+	d.swerve = 0.0
+	d.swerve_now = 0.0
+	d.swerve_t = 0.0
+	d.shoulder = 0.0
+	d.shoulder_t = 0.0
+	d.look_tick = -2
 	d.lane_hold = 0.0
 	d.away_debt = 0.0
 	d.away_pace = 1.0
@@ -2212,6 +2409,10 @@ func _drive(d: Driver, dt: float) -> void:
 		# Loop 3g-1: giving way to a police car with its lights on.
 		d.yield_t -= dt
 		v0 = minf(v0, YIELD_SPEED)
+	if d.shoulder != 0.0:
+		v0 = minf(v0, SHOULDER_SPEED)
+	if d.pass_t > 0.0:
+		v0 = minf(v0, d.pass_cap)  # step 4b: a pass given up: falling back behind the car beside it
 	var line_v := INF
 	if d.line != null:
 		line_v = _line_ahead(d, dt)
@@ -2270,19 +2471,104 @@ func _drive(d: Driver, dt: float) -> void:
 						turned_back.emit(d)
 						_choose_next(d)
 					break
+	# Step 4b: a racer on a street sees the cars by where they are across the road (`_race_gap`),
+	# from where it is to where it is moving over to.
+	var by_place := racer and not d.in_conn
+	var out_gap := -INF
+	var lat := 0.0
+	var side_to := d.off_target
+	if racer:
+		d.swerve_t -= dt
+		if d.swerve_t <= 0.0 or d.pass_t > 0.0:
+			d.swerve = 0.0
+	if by_place:
+		lat = _lat_at(e, d.s, Vector2(d.pos.x, d.pos.z))
+		if d.pass_t > 0.0:
+			# (A pass given up, falling back: as near its lane as the car beside it lets it.)
+			if not d.pass_back:
+				side_to = d.pass_off
+		elif d.block_t > 0.0:
+			side_to = d.block_off
+		elif d.shoulder != 0.0:
+			# Round the player's stopped car: beside it, SIDE_CLEAR m from its side; until past it.
+			var way := graph.direction(e, clampf(d.s, 0.0, graph.e_len[e]))
+			var rel := Vector2(player_pos.x - d.pos.x, player_pos.z - d.pos.z)
+			d.shoulder_t -= dt
+			if d.shoulder_t <= 0.0 or not player_on_road or rel.dot(way) < -(PLAYER_LONG + d.length) * 0.5 - 1.0 \
+					or Vector2(player_vel.x, player_vel.z).length_squared() > 4.0:
+				d.shoulder = 0.0
+			else:
+				side_to = d.off + rel.dot(RaceLine.right(way)) + d.shoulder * ((d.size.x + PLAYER_WIDE) * 0.5 + SIDE_CLEAR + 0.1)
+		elif d.swerve != 0.0 or d.swerve_now != 0.0:
+			# Steering round a car that stands with its side in the way: within its road.
+			var room := (graph.e_lw[e] - d.size.x) * 0.5 + SWERVE_OVER
+			side_to = clampf(side_to + d.swerve, minf(side_to, graph.lane_offset(e, 0) - room), maxf(side_to, graph.lane_offset(e, graph.e_lanes[e] - 1) + room))
 	if d.squeeze <= 0.0:
-		for o in _lane_cars[lane_id]:
-			if o != d and o.ls > d.ls:
-				var g: float = o.ls - d.ls - (o.length + d.length) * 0.5
+		if by_place:
+			_race_gap(d, lat, lat + side_to - d.off)
+			gap = _rg_gap
+			lead_v = _rg_v
+			lead_parked = _rg_parked
+			if d.shoulder != 0.0:
+				# Off its road it sees every car by its place: one of another road stands there.
+				var way := graph.direction(e, clampf(d.s, 0.0, graph.e_len[e]))
+				var right := RaceLine.right(way)
+				var here := Vector2(d.pos.x, d.pos.z)
+				for o in _active:
+					if o == d or o.ghost or o.edge == e or absf(o.pos.y - d.pos.y) > 2.5:
+						continue
+					var rel := Vector2(o.pos.x, o.pos.z) - here
+					if rel.length_squared() > 225.0:
+						continue
+					var g := rel.dot(way) - (o.length + d.length) * 0.5
+					var across := rel.dot(right)
+					if g > -1.0 and g < gap and across > minf(0.0, side_to - d.off) - (o.length + d.size.x) * 0.5 \
+							and across < maxf(0.0, side_to - d.off) + (o.length + d.size.x) * 0.5:
+						gap = maxf(g, 0.0)
+						lead_v = 0.0
+						lead_parked = false
+		else:
+			for o in _lane_cars[lane_id]:
+				if o != d and o.ls > d.ls:
+					var g: float = o.ls - d.ls - (o.length + d.length) * 0.5
+					if g < gap:
+						gap = g
+						lead_v = o.v
+						lead_parked = o.parked
+		if not d.ghost and d.cross_ignore <= 0.0:
+			# ... and any car sees a racer that is out of its lane, or stands, by where it is
+			# (and waits for it no longer than for a crossing car: `cross_wait`).
+			for r in _racers_out:
+				if r == d or r.reg == lane_id or (by_place and r.edge == e and not r.in_conn) or (racer and r.v < 1.0):
+					continue
+				var r_rel := Vector2(r.pos.x - d.pos.x, r.pos.z - d.pos.z)
+				if r_rel.length_squared() > OUT_SEE * OUT_SEE or absf(r.pos.y - d.pos.y) > 2.5:
+					continue
+				var g := INF
+				var r_fwd := Vector2(-sin(r.yaw), -cos(r.yaw))
+				if r.v < 1.0:
+					# One that stands: in the way only where this car's own way goes through it.
+					if r_rel.length_squared() < OUT_NEAR * OUT_NEAR:
+						g = _way_gap(d, r, r_fwd)
+				else:
+					var d_fwd := Vector2(-sin(d.yaw), -cos(d.yaw))
+					var r_along := r_rel.dot(d_fwd)
+					if r_along > 0.0 and absf(r_rel.cross(d_fwd)) < (r.size.x + d.size.x) * 0.5 + OUT_BESIDE:
+						g = r_along - (r.length + d.length) * 0.5
 				if g < gap:
 					gap = g
-					lead_v = o.v
-					lead_parked = o.parked
+					out_gap = g
+					lead_v = r_fwd.dot(Vector2(-sin(d.yaw), -cos(d.yaw))) * r.v
+					lead_parked = false
 		if not d.in_conn and d.next_reg >= 0:
 			var base: float = graph.e_s1[e] - d.s + d.conn_len - graph.e_s0[d.next_edge]
 			for o in _lane_cars[d.next_reg]:
 				if o != d:
 					var g: float = base + o.ls - (o.length + d.length) * 0.5
+					# (Step 4b: a car on another street's curve into that lane is not in front of a
+					# racer by the lane's metres: it is where it is, `_race_cross` looks at it.)
+					if by_place and d.crazy == 0 and o.in_conn and o.edge != e:
+						continue
 					if g < gap:
 						gap = g
 						lead_v = o.v
@@ -2292,7 +2578,9 @@ func _drive(d: Driver, dt: float) -> void:
 		gap -= BACK_GAP - MIN_GAP  # it stops BACK_GAP m short of the wall: room to turn round
 	var player_gap := INF
 	if not d.ghost:
-		var cross := d.cross_gap < gap and d.squeeze <= 0.0 and d.cross_ignore <= 0.0 and (not racer or d.crazy > 0 or d.cross_gap < RACE_CROSS)
+		# (Step 4b: a racer looks along its way for the cars that cross it, `_race_cross`.)
+		var looked := racer and d.crazy == 0 and d.squeeze <= 0.0 and d.cross_ignore <= 0.0 and _race_cross(d)
+		var cross := d.cross_gap < gap and d.squeeze <= 0.0 and d.cross_ignore <= 0.0 and (not racer or d.crazy > 0 or looked)
 		if cross:
 			gap = d.cross_gap
 			lead_v = d.cross_v
@@ -2324,6 +2612,23 @@ func _drive(d: Driver, dt: float) -> void:
 					# bends with the junction's curve. The player's car at the mouth of the street
 					# opposite is not in the way of a turn; one that turned the corner ahead still is.
 					g = _player_gap_in_curve(d)
+				elif by_place and not d.chase:
+					# Step 4b: on its street the player's car is in a racer's way as any car is
+					# (`_race_gap`): by the street's direction and where the two are across it, not
+					# by its own nose (askew in a move sideways, it took a car beside it for one in
+					# front and the two stood for good). Alongside and clear of it: not in its way;
+					# nor with the two bodies PLAYER_IN m into each other after a touch: standing
+					# does not part them (each took the other for the car in front, for good), moving
+					# on and apart does (`_side_room`).
+					var way := graph.direction(e, clampf(d.s, 0.0, graph.e_len[e]))
+					var al := rel.dot(way)
+					var pl := lat + rel.dot(RaceLine.right(way))
+					var half := d.size.x * 0.5 + BESIDE_GAP + PLAYER_WIDE * 0.5
+					var lat_to := lat if d.shoulder != 0.0 else lat + side_to - d.off
+					if al > 0.0 and pl > minf(lat, lat_to) - half and pl < maxf(lat, lat_to) + half \
+							and (al >= (PLAYER_LONG + d.length) * 0.5 or (absf(pl - lat) < (d.size.x + PLAYER_WIDE) * 0.5 - SIDE_RUB \
+							and al >= (PLAYER_LONG + d.length) * 0.5 - PLAYER_IN)):
+						g = al - d.length * 0.5 - d.keep_gap
 				# Loop 3g-1: a chaser looks wider and keeps `keep_gap` behind (it never rams).
 				elif along > 0.0 and absf(rel.cross(fwd)) < (4.0 if d.chase else 2.3):
 					g = along - d.length * 0.5 - d.keep_gap
@@ -2332,9 +2637,9 @@ func _drive(d: Driver, dt: float) -> void:
 					if g < gap:
 						gap = g
 						lead_v = maxf(0.0, Vector2(player_vel.x, player_vel.z).dot(fwd))
-		if cross and gap == d.cross_gap and d.v < 0.3 and not d.sees_tram:
+		if ((cross and gap == d.cross_gap) or gap == out_gap) and d.v < 0.3 and not d.sees_tram:
 			d.cross_wait += dt
-			if d.cross_wait > (1.5 if racer else 8.0):
+			if d.cross_wait > (RACE_CROSS_WAIT if racer else 8.0):
 				d.cross_ignore = 3.0
 				d.cross_wait = 0.0
 				_ov_knots += 1
@@ -2376,14 +2681,21 @@ func _drive(d: Driver, dt: float) -> void:
 			# changed lane in the daze of a mistake was put 2.6 m sideways in one frame, race bench.)
 			d.off = clampf(d.off + d.slide * dt, minf(d.off, d.off_target - SHOVE_ACROSS), maxf(d.off, d.off_target + SHOVE_ACROSS))
 		d.slide = move_toward(d.slide, 0.0, SLIDE_DECEL * dt)
+		d.off_v = 0.0
 	else:
 		d.slide = 0.0
 		var to := d.off_target
-		if d.pass_t > 0.0:
+		if d.pass_t > 0.0 and not d.pass_back:
 			to = d.pass_off
 		elif d.block_t > 0.0:
 			to = d.block_off
-		d.off = move_toward(d.off, to, (4.0 if racer else 2.5) * dt)
+		if by_place:
+			d.off = _side_step(d, d.off, _side_room(d, lat, side_to), dt)
+			d.swerve_now = d.off - to if d.pass_t <= 0.0 and d.block_t <= 0.0 and (d.swerve != 0.0 or d.swerve_now != 0.0) else 0.0
+		else:
+			d.off = move_toward(d.off, to, (4.0 if racer else 2.5) * dt)
+			if d.line == null:
+				d.off_v = 0.0  # (on its line through a junction it moves over by `line_dyn`)
 	if d.held or d.stun > 0.0 or d.arrived:
 		gap = minf(gap, 0.0)
 		lead_v = 0.0
@@ -2395,7 +2707,12 @@ func _drive(d: Driver, dt: float) -> void:
 	if gap < INF:
 		var head := RACE_HEADWAY if racer else HEADWAY
 		var comfy := sqrt(amax * RACE_DECEL) if racer else sqrt(ACCEL * DECEL)
-		var star := MIN_GAP + maxf(0.0, d.v * head + d.v * (d.v - lead_v) / (2.0 * comfy))
+		# (Step 4b: a racer on a street stands RACE_GAP m short, room to steer out; steering out,
+		# it closes up.)
+		var least := MIN_GAP
+		if by_place and not d.ghost and gap == _rg_gap:
+			least = RACE_GAP_OUT if absf(side_to - d.off) > 0.3 else RACE_GAP
+		var star := least + maxf(0.0, d.v * head + d.v * (d.v - lead_v) / (2.0 * comfy))
 		var q := star / maxf(gap, 0.05)
 		a -= (amax if racer else ACCEL) * q * q
 	if dazed:
@@ -2410,7 +2727,7 @@ func _drive(d: Driver, dt: float) -> void:
 		# falling one, and it would come into the bend too fast.)
 		d.v = minf(d.v, maxf(line_v, v_was - maxf(10.0, d.race_brake) * dt))
 	if gap < 0.2:
-		d.v = minf(d.v, lead_v * 0.5)
+		d.v = minf(d.v, maxf(lead_v, 0.0) * 0.5)
 	if d.back == BACK_STOP and d.v < 0.3 and not d.in_conn:
 		d.v = 0.0
 		_back_begin(d, minf(leader_gap, player_gap))
@@ -2431,7 +2748,13 @@ func _drive(d: Driver, dt: float) -> void:
 		d.line_i = d.line.seek(x, d.line_i)
 		# (Beside its line the car's own metres are the step: the line's are more inside a bend.)
 		along = d.line.advance(x, d.line_i, step / _line_share(d, d.line_i))
-		d.line_dyn = move_toward(d.line_dyn, 0.0, 4.0 * dt) if d.in_conn else d.off - graph.lane_offset(e, d.lane)
+		# (In a junction's curve it comes back to its line, or steers round a car that stands with
+		# its side in the way, SWERVE_*.)
+		if d.in_conn:
+			d.line_dyn = _side_step(d, d.line_dyn, d.swerve, dt)
+			d.swerve_now = d.line_dyn if d.swerve != 0.0 else 0.0
+		else:
+			d.line_dyn = d.off - graph.lane_offset(e, d.lane)
 	elif d.in_conn:
 		along = step * d.conn_pace
 	if d.line_carry != Vector2.ZERO:
@@ -2610,25 +2933,18 @@ func _away_pace(d: Driver, dt: float) -> float:
 
 
 ## Racer mode: past slower traffic and the player's car. Start looking RACE_LOOK m back; a free
-## lane of the same road first (as _overtake); else, on a road with an oncoming lane clear for
-## RACE_PASS_CLEAR m and for as long as the pass takes (`_race_pass`; and RACE_PASS_ROOM m of
-## this road left before the junction), out over the centre line for long enough to get by,
-## ignoring the cars in its own lane meanwhile. Stuck still
-## behind someone with no way past for RACE_KNOT s (a knot of cars in a junction box): it slips through.
+## lane of the same road first (as _overtake); else, from the lane by the centre line of a road
+## with an oncoming one, out over it for a pass (`_pass_start`, driven by `_pass_drive`). Stuck
+## still behind someone with no way past for RACE_KNOT_LAST s (a knot of cars in a junction
+## box): it slips through.
 func _race_overtake(d: Driver, leader_gap: float, player_gap: float, dt: float) -> void:
 	d.squeeze -= dt
 	d.lane_hold -= dt
+	d.pass_wait -= dt
 	if d.pass_t > 0.0:
-		d.pass_t -= dt
-		d.squeeze = maxf(d.squeeze, 0.1)
-		if d.pass_t <= 0.0 or d.in_conn or graph.e_s1[d.edge] - d.s < 6.0:
-			# Back in lane; stay out while a car is alongside (if the junction allows).
-			if not d.in_conn and graph.e_s1[d.edge] - d.s >= 6.0 and _alongside(d):
-				d.pass_t = 0.3
-			else:
-				d.pass_t = 0.0
-				d.squeeze = 0.0
-		return
+		_pass_drive(d, dt)
+		if d.pass_t > 0.0 or d.squeeze > 0.0:
+			return
 	# A chaser keeps its gap behind the player (it never passes or rams); a rival goes round.
 	var ahead := leader_gap if d.chase else minf(leader_gap, player_gap)
 	if ahead > RACE_LOOK:
@@ -2643,7 +2959,7 @@ func _race_overtake(d: Driver, leader_gap: float, player_gap: float, dt: float) 
 		if _change_lane(d, ahead + 6.0, 4.0 if d.v < 3.0 else 12.0):
 			d.lane_hold = RACE_LANE_HOLD
 			return
-		if _race_pass(d, ahead, d.race_block >= BLOCK_TIGHT and player_gap <= leader_gap):
+		if _pass_start(d, d.race_block >= BLOCK_TIGHT and player_gap <= leader_gap):
 			return
 	if d.v < 1.0:
 		d.still += dt
@@ -2654,55 +2970,619 @@ func _race_overtake(d: Driver, leader_gap: float, player_gap: float, dt: float) 
 			# junction's curve: backwards out of the curve).
 			d.still = 0.0
 			if d.plan != null and not d.held and d.stun <= 0.0 and not d.arrived:
+				if _player_queues(d, player_gap):
+					d.back_wait = 0.0  # the player's car waits in a queue: so does the racer
+					return
 				d.back_wait += dt
-				if d.back_wait > BOX_WAIT:
+				if d.back_wait > (BOX_WAIT if d.in_conn or graph.e_reverse[d.edge] < 0 else BOX_WAIT_PASS):
 					d.back_wait = 0.0
 					if _curve_back(d) if d.in_conn else _turn_back(d, false):
 						return
+					if not d.in_conn and d.shoulder == 0.0 and d.pass_t <= 0.0:
+						# No way back: round the player's car, on the kerb's side unless it stands there.
+						var way := graph.direction(d.edge, clampf(d.s, 0.0, graph.e_len[d.edge]))
+						var side := Vector2(player_pos.x - d.pos.x, player_pos.z - d.pos.z).dot(RaceLine.right(way))
+						d.shoulder = 1.0 if side <= 0.3 else -1.0
+						d.shoulder_t = SHOULDER_MOST
 		else:
 			d.back_wait = 0.0
 		# A knot of cars in a junction box (headless runs: Halina stood 20 s at the start behind
-		# a town car that stood too): a racer slips through after RACE_KNOT s, seen or not.
+		# a town car that stood too): a racer slips through after RACE_KNOT_LAST s, seen or not.
 		# A crazy driver (town traffic, no race to win) never slips through a queue.
-		if d.still > RACE_KNOT and d.crazy == 0:
+		if d.still > RACE_KNOT_LAST and d.crazy == 0:
 			d.squeeze = 2.0
 			d.cross_ignore = 2.0
 			d.still = 0.0
 
 
-## Racer mode: starts a pass over the centre line if the oncoming lane is clear (see above).
-func _race_pass(d: Driver, ahead: float, tight := false) -> bool:
+## Racer mode: whether the player's car, standing `player_gap` m in front of racer d, only
+## waits itself (QUEUE_GAP above): a car in front of it along d's way, or a light against it.
+func _player_queues(d: Driver, player_gap: float) -> bool:
+	# (The player's car from d's front: its tail at the gap and d's `keep_gap`, about 4.5 m long.)
+	var nose := player_gap + d.keep_gap + 4.5
+	if not d.in_conn:
+		var red := _red_gap(d)
+		if red > nose - 3.0 and red < nose + QUEUE_GAP:
+			return true
+	var fwd := Vector2(-sin(d.yaw), -cos(d.yaw))
+	for o in _active:
+		if o == d or o.ghost or o.parked or o.clip < 1.0 or absf(o.pos.y - player_pos.y) > 2.5:
+			continue
+		var rel := Vector2(o.pos.x - player_pos.x, o.pos.z - player_pos.z)
+		var along := rel.dot(fwd)
+		# (A car going its way, in its lane: not the oncoming one that stands beside it.)
+		if along > 1.0 and along < QUEUE_GAP + (o.length + 4.5) * 0.5 and absf(rel.cross(fwd)) < 2.0 \
+				and fwd.dot(Vector2(-sin(o.yaw), -cos(o.yaw))) > 0.5:
+			return true
+	return false
+
+
+## Step 4b: the place on the ground `ahead` m further along driver d's way: its racing line, or
+## its lane's line, the junction's curve and the lane it comes out in.
+func _way_at(d: Driver, ahead: float) -> Vector2:
+	if d.line != null:
+		var x := minf(_line_x(d) + ahead, d.line.xl[d.line.xl.size() - 1])
+		var i := d.line.seek(x, d.line_i)
+		var p := d.line.point(x, i)
+		return p + d.line.side(x, i) * d.line_dyn if d.line_dyn != 0.0 else p
 	var e := d.edge
-	var left := graph.e_s1[e] - d.s
-	if left < RACE_PASS_ROOM or _line_busy(d):
+	if not d.in_conn:
+		var left := graph.e_s1[e] - d.s
+		if ahead <= left or d.next_edge < 0:
+			return graph.point_at(e, minf(d.s + ahead, graph.e_len[e]), d.off)
+		ahead -= left
+	else:
+		ahead += d.cu
+	if ahead < d.conn_len:
+		return LaneGraph.bezier(d.conn, ahead / d.conn_len)
+	var f := d.next_edge
+	var from: float = d.conn_end if d.conn_end >= 0.0 else graph.e_s0[f]
+	return graph.point_at(f, minf(from + ahead - d.conn_len, graph.e_len[f]), graph.lane_offset(f, d.next_lane))
+
+
+## Step 4b: the metres driver d has before racer r, who stands (heading `r_fwd`), is in its way:
+## along d's own way, OUT_WAY stretches of CROSS_STEP m; INF when its way does not go through r.
+func _way_gap(d: Driver, r: Driver, r_fwd: Vector2) -> float:
+	var was := Vector2(d.pos.x, d.pos.z)
+	var at := Vector2(r.pos.x, r.pos.z)
+	for k in OUT_WAY:
+		var p := _way_at(d, (k + 1) * CROSS_STEP)
+		var mid := (was + p) * 0.5
+		var dir := (p - was).normalized()
+		was = p
+		if k == 0 and (at - mid).dot(dir) < -CROSS_STEP * 0.5:
+			continue
+		if _sat(dir, d.length + CROSS_STEP, d.size.x + 0.6, r_fwd, r.length, r.size.x, at - mid):
+			return maxf(k * CROSS_STEP - 1.0, 0.0)
+	return INF
+
+
+## Step 4b: racer d looks for a car that will be in its way at a junction (CROSS_* above): true
+## when there is one, with `cross_gap` the metres it has to stop in. A car that stands in its way
+## it steers round instead where it can (`swerve`, SWERVE_* above).
+func _race_cross(d: Driver) -> bool:
+	# (Every other frame: what it saw the frame before stands for one more, a third of a metre
+	# at speed. The look is the dearest part of a racer's frame among the town's cars.)
+	if (_tick + d.slot) & 1 == 1 and d.look_tick == _tick - 1:
+		d.cross_gap = d.look_gap
+		if d.look_seen:
+			d.cross_v = 0.0
+		return d.look_seen
+	d.look_seen = _race_cross_look(d)
+	d.look_gap = d.cross_gap
+	d.look_tick = _tick
+	return d.look_seen
+
+
+## Step 4b: `_race_cross`'s look itself.
+func _race_cross_look(d: Driver) -> bool:
+	var e := d.edge
+	var reach := minf(CROSS_SEE + d.v * CROSS_TIME, CROSS_FAR)
+	d.cross_gap = INF
+	if not d.in_conn and graph.e_s1[e] - d.s > reach and d.s - graph.e_s0[e] > PATH_EXIT:
 		return false
+	var here := Vector2(d.pos.x, d.pos.z)
+	_rc_near.clear()
+	for q in junction_cars:
+		if q == d or absf(q.pos.y - d.pos.y) > 2.5:
+			continue
+		# The cars of its own lanes it follows by the lane (and those beside it on its street it
+		# sees by their place); two curves into one lane are side by side until they meet.
+		if q.reg == d.reg and not (d.in_conn and q.in_conn and d.lane != q.lane):
+			continue
+		if not d.in_conn and ((q.reg == d.next_reg and not (q.in_conn and q.edge != e)) or (q.edge == e and not q.in_conn)):
+			continue
+		var far := reach + q.v * CROSS_TIME + 8.0
+		if Vector2(q.pos.x, q.pos.z).distance_squared_to(here) < far * far:
+			_rc_near.append(q)
+	if _rc_near.is_empty():
+		return false
+	# Its own way: the middle of each CROSS_STEP m of it, and its heading there.
+	_rc_mid.clear()
+	_rc_dir.clear()
+	var was := here
+	var along := CROSS_STEP
+	while along <= reach:
+		var p := _way_at(d, along)
+		_rc_mid.append((was + p) * 0.5)
+		_rc_dir.append((p - was).normalized())
+		was = p
+		along += CROSS_STEP
+	var n := _rc_mid.size()
+	var pace := maxf(d.v, 4.0)
+	# The first stretch of its way a car is in (n: none).
+	var first := n
+	# How far it has steered aside already (the stretches of its way have moved over with it), how
+	# far it may (on a street: within its road; on its line through a junction: SWERVE_CURVE m;
+	# not in a pass, not on a junction's curve without a line), and what it has to (m, + to the
+	# right) for the cars that stand in its way, from which stretch on.
+	var aside := d.swerve_now
+	var room_r := 0.0
+	var room_l := 0.0
+	if d.pass_t <= 0.0:
+		if d.in_conn:
+			if d.line != null:
+				# (On its line through a junction: within the street it comes out in.)
+				var f := d.next_edge
+				var over := (graph.e_lw[f] - d.size.x) * 0.5 + SWERVE_OVER
+				room_r = maxf(graph.lane_offset(f, graph.e_lanes[f] - 1) + over - graph.lane_offset(f, d.next_lane), SWERVE_CURVE)
+				room_l = maxf(graph.lane_offset(f, d.next_lane) - graph.lane_offset(f, 0) + over, SWERVE_CURVE)
+		else:
+			var edge := (graph.e_lw[e] - d.size.x) * 0.5 + SWERVE_OVER
+			room_r = maxf(graph.lane_offset(e, graph.e_lanes[e] - 1) + edge - d.off_target, 0.0)
+			room_l = maxf(d.off_target - graph.lane_offset(e, 0) + edge, 0.0)
+	var swerve := 0.0
+	var swerve_from := n
+	# Its own body on a stretch: the stretch longer, a margin wider (and the 0.15 m `_sat` lets
+	# two bodies overlap).
+	var p_long := d.length + CROSS_STEP
+	var p_wide := d.size.x + 2.0 * PATH_MARGIN + 0.3
+	for q in _rc_near:
+		var qf := Vector2(-sin(q.yaw), -cos(q.yaw))
+		var qp := Vector2(q.pos.x, q.pos.z)
+		var stands := q.v <= 0.5
+		# The other car's way, a place every CROSS_STEP m (standing: where it is), and its body
+		# there: longer by the metres it makes in CROSS_SLACK s either way.
+		_rc_at.clear()
+		_rc_at.append(qp)
+		if not stands:
+			var span := q.v * (reach / pace + CROSS_SLACK) + CROSS_STEP
+			var at := CROSS_STEP
+			while at < span + CROSS_STEP:
+				_rc_at.append(_way_at(q, at))
+				at += CROSS_STEP
+		var q_long := q.length + 2.0 * q.v * CROSS_SLACK
+		for k in mini(first, n):
+			var dir := _rc_dir[k]
+			var q_at := qp
+			var q_dir := qf
+			if not stands:
+				# Where the other car is when d's middle is on this stretch.
+				var gone := q.v * (k + 0.5) * CROSS_STEP / pace / CROSS_STEP
+				var j := mini(int(gone), _rc_at.size() - 2)
+				q_at = _rc_at[j].lerp(_rc_at[j + 1], clampf(gone - j, 0.0, 1.0))
+				if _rc_at[j + 1].distance_squared_to(_rc_at[j]) > 0.01:
+					q_dir = (_rc_at[j + 1] - _rc_at[j]).normalized()
+			var rel := q_at - _rc_mid[k]
+			# (Not a car whose middle it has passed already.)
+			if rel.length_squared() > 196.0 or (k == 0 and rel.dot(dir) < -CROSS_STEP * 0.5):
+				continue
+			var in_way := _sat(dir, p_long, p_wide, q_dir, q_long, q.size.x, rel)
+			if stands and (room_r > 0.0 or room_l > 0.0):
+				# A car that stands: round it, on the side its middle is not (all across d's way
+				# as it would be had it not steered aside yet: it holds the way round until it is
+				# past), or where there is more room.
+				var right := RaceLine.right(dir)
+				if not in_way and (aside == 0.0 or not _sat(dir, p_long, p_wide, q_dir, q_long, q.size.x, rel + right * aside)):
+					continue
+				var across := -rel.cross(dir) + aside
+				var away := -signf(across) if absf(across) > 0.3 else (1.0 if room_r >= room_l else -1.0)
+				if swerve != 0.0:
+					away = signf(swerve)
+				var most := room_r if away > 0.0 else room_l
+				var need := 0.0
+				var step := maxf(absf(swerve), 0.3)
+				while step <= most + 0.01:
+					if not _sat(dir, p_long, p_wide, q_dir, q_long, q.size.x, rel - right * (away * step - aside)):
+						need = away * step
+						break
+					step += 0.3
+				if need != 0.0:
+					swerve = need
+					swerve_from = mini(swerve_from, k)
+					continue
+			if in_way:
+				first = k
+				break
+	if swerve != 0.0:
+		# The way round must be free of every car that stands there too, as far as it sees.
+		var ok := true
+		for q in _rc_near:
+			if q.v > 0.5:
+				continue
+			var qf := Vector2(-sin(q.yaw), -cos(q.yaw))
+			var qp := Vector2(q.pos.x, q.pos.z)
+			for k in mini(first, n):
+				var rel := qp - _rc_mid[k]
+				if rel.length_squared() < 196.0 and _sat(_rc_dir[k], p_long, p_wide, qf, q.length, q.size.x, rel - RaceLine.right(_rc_dir[k]) * (swerve - aside)):
+					ok = false
+					break
+			if not ok:
+				break
+		if ok:
+			d.swerve = swerve
+			d.swerve_t = SWERVE_HOLD
+		else:
+			first = mini(first, swerve_from)  # no way round: that car is in its way
+	if first >= n:
+		return false
+	# (Never nearer than a car's brakes can answer: no dead stop for a car seen late.)
+	d.cross_gap = maxf(first * CROSS_STEP - d.length * 0.5 - CROSS_KEEP, 0.3)
+	d.cross_v = 0.0
+	return true
+
+
+## Step 4b: how far right of edge e's centreline the ground point p lies, taken at station s.
+func _lat_at(e: int, s: float, p: Vector2) -> float:
+	var at := clampf(s, 0.0, graph.e_len[e])
+	var i := graph.seek(e, at, graph.e_first[e])
+	return (p - graph.point(e, at, 0.0, i)).dot(RaceLine.right((graph.pts[i + 1] - graph.pts[i]).normalized()))
+
+
+## Step 4b: where car o of edge e's lanes is across that road (m right of its centreline): a car
+## on the lane's rail by its offset, a racer on its line by where it is on the ground.
+func _lat_of(o: Driver, e: int) -> float:
+	if o.line == null and not o.in_conn and o.edge == e:
+		return o.off
+	return _lat_at(e, o.ls, Vector2(o.pos.x, o.pos.z))
+
+
+## Step 4b: the car in racer d's way on its street (`_rg_gap`, `_rg_v`, `_rg_parked`): the nearest
+## one ahead in any lane of the road whose body overlaps d's across the road, anywhere from where
+## d is (`lat`, m right of the centreline) to where it is moving over to (`lat_to`); and, as soon
+## as that reaches over the centre line, the oncoming car it would meet within OUT_MEET s (further
+## off, a pass under way has its plan and is not braked for it).
+func _race_gap(d: Driver, lat: float, lat_to: float) -> void:
+	_rg_gap = INF
+	_rg_v = 0.0
+	_rg_parked = false
+	var e := d.edge
+	var half := d.size.x * 0.5 + BESIDE_GAP
+	var lo := minf(lat, lat_to) - half
+	var hi := maxf(lat, lat_to) + half
+	var lane0 := graph.e_lane0[e]
+	for k in graph.e_lanes[e]:
+		for o: Driver in _lane_cars[lane0 + k]:
+			if o == d or o.ls <= d.ls:
+				continue
+			var g: float = o.ls - d.ls - (o.length + d.length) * 0.5
+			if g >= _rg_gap:
+				continue
+			if o.parked and k == d.lane and d.pass_t <= 0.0:
+				pass  # (a wreck that shuts its lane, wherever its body lies)
+			else:
+				var ol := _lat_of(o, e)
+				if ol + o.size.x * 0.5 <= lo or ol - o.size.x * 0.5 >= hi:
+					continue
+				# (A car alongside, where d is moving over to: not in its way, it cannot move
+				# over yet, `_side_room`. Counted, the two stood beside each other for good.)
+				if g < 0.0 and absf(ol - lat) >= (d.size.x + o.size.x) * 0.5 - SIDE_RUB:
+					continue
+			_rg_gap = g
+			_rg_v = o.v
+			_rg_parked = o.parked
 	var rev := graph.e_reverse[e]
-	if rev < 0:
-		return false  # a one-way street: its other lanes or nothing (no oncoming side to use)
-	var lw := graph.e_lw[e]
-	var out := graph.lane_offset(e, 0) - lw * 0.9
-	# Long enough to get by the car ahead and its leader's length, at our speed edge over theirs.
-	# Cutting in (BLOCK_TIGHT): past the player it pulls back in right in front of the bumper.
-	var need := clampf((ahead + (9.0 if tight else 16.0)) / maxf(d.v * 0.35, 3.0), 1.2, 4.0)
-	if need * maxf(d.v, 5.0) > left - 6.0:
-		return false
-	# The oncoming cars: on the reverse edge, s_rev ~ e_len - s; clear ahead of us in the lanes
-	# the pass is driven in (`_pass_lanes`), for RACE_PASS_CLEAR m and for as far as the two cars
-	# close while it is out and comes back in (RACE_PASS_BACK).
+	if rev < 0 or lo >= graph.lane_offset(e, 0) - graph.e_lw[e] * 0.5:
+		return
 	var at := graph.e_len[e] - d.s
-	var mind := _pass_lanes(e, rev, d.s, out)
+	# (Out there with no pass under way, or falling back from one: it brakes in time to stand.)
+	var far := 4.0 if d.pass_t > 0.0 and not d.pass_back else 4.0 + d.v * d.v / (2.0 * SPAWN_BRAKE)
+	for k in graph.e_lanes[rev]:
+		for o: Driver in _lane_cars[graph.e_lane0[rev] + k]:
+			var dd: float = at - o.ls
+			if dd <= 0.0:
+				continue
+			var g: float = dd - (o.length + d.length) * 0.5
+			if g >= _rg_gap or g > (d.v + o.v) * OUT_MEET + far:
+				continue
+			var ol := _lat_at(e, graph.e_len[e] - o.ls, Vector2(o.pos.x, o.pos.z))
+			if ol + o.size.x * 0.5 <= lo or ol - o.size.x * 0.5 >= hi:
+				continue
+			_rg_gap = g
+			_rg_v = -o.v
+			_rg_parked = false
+
+
+## Step 4b: how far racer d may move over towards offset `to` this frame: not into a car that is
+## alongside (within a metre of overlapping it along the road; SIDE_CLEAR m kept between the
+## bodies, and away from one that is nearer than that): the cars of its road's lanes, the
+## oncoming cars it is about to meet, the player's car. Between two such cars: the middle.
+func _side_room(d: Driver, lat: float, to: float) -> float:
+	var e := d.edge
+	# (Its offset counts from its lane's line; its racing line lies `dev` m beside that.)
+	var dev := lat - d.off
+	_sr_lo = -INF
+	_sr_hi = INF
+	var lane0 := graph.e_lane0[e]
+	for k in graph.e_lanes[e]:
+		for o: Driver in _lane_cars[lane0 + k]:
+			if o != d and absf(o.ls - d.ls) < (o.length + d.length) * 0.5 + 1.0:
+				_side_limit(d, _lat_of(o, e) - dev, o.size.x)
+	var rev := graph.e_reverse[e]
+	if rev >= 0 and minf(to, d.off) + dev - d.size.x * 0.5 < graph.lane_offset(e, 0) - graph.e_lw[e] * 0.5:
+		var at := graph.e_len[e] - d.s
+		for k in graph.e_lanes[rev]:
+			for o: Driver in _lane_cars[graph.e_lane0[rev] + k]:
+				var dd: float = at - o.ls
+				if dd > -(o.length + d.length) * 0.5 - 1.0 and dd < (o.length + d.length) * 0.5 + 1.0 + (d.v + o.v) * 0.4:
+					_side_limit(d, _lat_at(e, graph.e_len[e] - o.ls, Vector2(o.pos.x, o.pos.z)) - dev, o.size.x)
+	if player_on_road and not d.ghost:
+		var rel := Vector2(player_pos.x - d.pos.x, player_pos.z - d.pos.z)
+		if rel.length_squared() < 100.0:
+			var way := graph.direction(e, minf(d.s, graph.e_len[e]))
+			if absf(rel.dot(way)) < (PLAYER_LONG + d.length) * 0.5 + 1.0:
+				_side_limit(d, d.off + rel.dot(RaceLine.right(way)), PLAYER_WIDE)
+	if _sr_lo > _sr_hi:
+		return (_sr_lo + _sr_hi) * 0.5
+	return clampf(to, _sr_lo, _sr_hi)
+
+
+## Step 4b: a car `wide` m wide alongside racer d at offset `at` bounds how far d may be to that
+## side (`_sr_lo`, `_sr_hi`): SIDE_CLEAR m between the bodies.
+func _side_limit(d: Driver, at: float, wide: float) -> void:
+	var room := (d.size.x + wide) * 0.5 + SIDE_CLEAR
+	if at >= d.off:
+		_sr_hi = minf(_sr_hi, at - room)
+	else:
+		_sr_lo = maxf(_sr_lo, at + room)
+
+
+## Step 4b: racer d moves over from `at` towards `to` (m across its way) as a car does (SIDE_*
+## above): its sideways speed builds up at SIDE_ACCEL m/s² and falls off again in time to end at
+## `to`. Returns where it is after this frame.
+func _side_step(d: Driver, at: float, to: float, dt: float) -> float:
+	var err := to - at
+	if absf(err) < 0.005 and absf(d.off_v) < SIDE_ACCEL * dt * 2.0:
+		d.off_v = 0.0
+		return to
+	var most := minf(SIDE_SPEED, SIDE_SLOPE * d.v)
+	if d.shoulder != 0.0:
+		most = maxf(most, SHOULDER_SIDE)
+	# (The speed it can still stop from at `to`, with a little in hand for the frame's step.)
+	var want := signf(err) * minf(most, sqrt(1.6 * SIDE_ACCEL * absf(err)))
+	d.off_v = move_toward(d.off_v, want, SIDE_ACCEL * dt)
+	var step := d.off_v * dt
+	if step * err > 0.0 and absf(step) >= absf(err):
+		d.off_v = 0.0
+		return to
+	return at + step
+
+
+## Step 4b: the speed racer d would drive its street at with nobody in its way (m/s).
+func _race_top(d: Driver) -> float:
+	var e := d.edge
+	if d.v_cap > 0.0:
+		return d.v_cap
+	if d.race_top <= 0.0:
+		return graph.e_speed[e] * d.speed_factor
+	var top := minf(d.race_top, RACE_CLASS_TOP[graph.e_class[e]]) * d.race_share * d.race_effort
+	if d.crazy > 0:
+		top = minf(top, graph.e_speed[e] * CRAZY_OVER[d.crazy])
+	return top
+
+
+## Step 4b: the cars a pass by racer d has to do with (`_pl_rear`, `_pl_front`, `_pl_v`, in order
+## along the lane): those of its street's lane by the centre line whose nose is beyond station
+## `from` of that lane, and the player's car when it is in that lane (a chaser's quarry is not a
+## car to pass).
+func _pass_cars(d: Driver, from: float) -> void:
+	_pl_rear.clear()
+	_pl_front.clear()
+	_pl_v.clear()
+	var e := d.edge
+	for o: Driver in _lane_cars[graph.e_lane0[e]]:
+		if o != d and o.ls + o.length * 0.5 > from:
+			_pass_add(o.ls - o.length * 0.5, o.ls + o.length * 0.5, o.v)
+	if player_on_road and not d.ghost and not d.chase:
+		var rel := Vector2(player_pos.x - d.pos.x, player_pos.z - d.pos.z)
+		if rel.length_squared() < 3600.0 and absf(player_pos.y - d.pos.y) < 2.5:
+			var way := graph.direction(e, minf(d.s, graph.e_len[e]))
+			var at := d.ls + rel.dot(way)
+			if at + PLAYER_LONG * 0.5 > from and absf(_lat_at(e, d.s + rel.dot(way), Vector2(player_pos.x, player_pos.z)) - graph.lane_offset(e, 0)) < graph.e_lw[e] * 0.5 + 0.5:
+				_pass_add(at - PLAYER_LONG * 0.5, at + PLAYER_LONG * 0.5, maxf(0.0, Vector2(player_vel.x, player_vel.z).dot(way)))
+
+
+func _pass_add(rear: float, front: float, v: float) -> void:
+	var i := _pl_rear.size()
+	_pl_rear.append(rear)
+	_pl_front.append(front)
+	_pl_v.append(v)
+	while i > 0 and _pl_rear[i - 1] > rear:
+		_pl_rear[i] = _pl_rear[i - 1]
+		_pl_front[i] = _pl_front[i - 1]
+		_pl_v[i] = _pl_v[i - 1]
+		i -= 1
+	_pl_rear[i] = rear
+	_pl_front[i] = front
+	_pl_v[i] = v
+
+
+## Step 4b: whether racer d's way on turns right at the end of its street (across the front of
+## the cars it would have passed on their left).
+func _turns_right(d: Driver) -> bool:
+	if d.next_edge < 0:
+		return false
+	var a := graph.direction(d.edge, graph.e_s1[d.edge])
+	var b := graph.direction(d.next_edge, graph.e_s0[d.next_edge])
+	return b.dot(RaceLine.right(a)) > 0.3
+
+
+## Step 4b: whether racer d may pass a row of cars (the fastest at `slowest` m/s) all the way to
+## the junction: a standing queue, by a racer on a line that runs the lights and does not turn
+## right there across the queue's front.
+func _pass_to_end(d: Driver, slowest: float) -> bool:
+	return d.line != null and d.run_red and slowest <= PASS_QUEUE and d.next_edge >= 0 and not _turns_right(d)
+
+
+## Step 4b: the pass racer d would make from here by the cars of `_pass_cars` (PASS_* above): the
+## metres (`_pp_x`) and seconds (`_pp_t`) until its tail is PASS_IN m (cutting in: PASS_IN_TIGHT)
+## past the nose of the last car of the row in front of it, the row ending at the first gap long
+## enough to come back into. It speeds up by its own pull to the street's speed and no faster
+## than its line allows on the way. False when there is no such pass: longer than PASS_MOST s, a
+## bend of its line in it, or the junction first; but a standing queue up to the junction is
+## passed to the junction (the whole street left), by a racer on a line that runs the lights and
+## does not turn right there.
+func _pass_plan(d: Driver, tight: bool) -> bool:
+	var n := _pl_rear.size()
+	if n == 0:
+		return false
+	var e := d.edge
+	var i := 0
+	var slowest := _pl_v[0]
+	while i + 1 < n and _pl_rear[i + 1] - _pl_front[i] < PASS_SLOT + 0.5 * maxf(d.v - _pl_v[i + 1], 0.0):
+		i += 1
+		slowest = maxf(slowest, _pl_v[i])
+	var u := _pl_v[i]
+	var need := _pl_front[i] + (PASS_IN_TIGHT if tight else PASS_IN) - (d.ls - d.length * 0.5)
+	var left := graph.e_s1[e] - d.s
+	var top := _race_top(d)
+	var v := d.v
+	var rel := 0.0
+	var x := 0.0
+	var t := 0.0
+	var li := d.line_i
+	var lx := _line_x(d) if d.line != null else 0.0
+	var to_end := false
+	var bend := false
+	while true:
+		if not to_end and rel >= need:
+			if not bend:
+				break
+			# (Past the row inside the junction's own bend: on to the junction, if it may.)
+			if not _pass_to_end(d, slowest):
+				return false
+			to_end = true
+		if to_end and x >= left:
+			break
+		if t >= PASS_MOST:
+			return false
+		v = minf(v + d.race_accel * (1.0 - pow(minf(v / maxf(top, 0.1), 1.0), 4.0)) * PASS_STEP, top)
+		if d.line != null and lx + x < d.line.xl[d.line.xl.size() - 1]:
+			li = d.line.seek(lx + x, li)
+			v = minf(v, maxf(d.line.speed(lx + x, li), 1.0))
+			# (A bend of its line on the way: no pass, but for a queue passed to the junction,
+			# where the bend is the junction's own and the line's speed there is kept.)
+			if x < left and v * v * maxf(d.line.turn[li], d.line.turn[li + 1]) / RaceLine.RUN > LINE_BUSY * d.line_grip:
+				bend = true
+		rel += (v - u) * PASS_STEP
+		x += v * PASS_STEP
+		t += PASS_STEP
+		if not to_end and x > left - PASS_END:
+			if not _pass_to_end(d, slowest):
+				return false
+			to_end = true
+	_pp_x = minf(x, left) if to_end else x
+	_pp_t = t
+	return true
+
+
+## Step 4b: whether the oncoming lanes a pass by racer d is driven in are clear for the x m and
+## t s it takes: no oncoming car nearer than those metres, the metres it comes itself meanwhile
+## and while d moves back over (RACE_PASS_BACK s), and `margin` m.
+func _oncoming_clear(d: Driver, x: float, t: float, margin: float) -> bool:
+	var e := d.edge
+	var rev := graph.e_reverse[e]
+	var at := graph.e_len[e] - d.s
+	var mind := _pass_lanes(e, rev, d.s, graph.lane_offset(e, 0) - graph.e_lw[e] * 0.9)
 	for k in graph.e_lanes[rev]:
 		if mind[k] == 0:
 			continue
-		for o in _lane_cars[graph.e_lane0[rev] + k]:
+		for o: Driver in _lane_cars[graph.e_lane0[rev] + k]:
 			var dd: float = at - o.ls
-			if dd > -8.0 and dd < maxf(RACE_PASS_CLEAR, (maxf(d.v, 5.0) + o.v) * (need + RACE_PASS_BACK)):
+			if dd > -8.0 and dd - (o.length + d.length) * 0.5 < x + o.v * (t + RACE_PASS_BACK) + margin:
 				return false
-	d.pass_t = need
-	d.pass_off = out
-	d.squeeze = need
+	return true
+
+
+## Step 4b: racer d goes out over the centre line for a pass, if it is behind a slower car in the
+## lane by the centre line, near enough that it is out as it gets there, the pass can be made
+## (`_pass_plan`) and the oncoming lane is clear for it (`_oncoming_clear`).
+func _pass_start(d: Driver, tight: bool) -> bool:
+	var e := d.edge
+	if d.lane != 0 or d.pass_wait > 0.0 or graph.e_reverse[e] < 0 or graph.e_s1[e] - d.s < PASS_LEAST or _line_busy(d):
+		return false
+	var front := d.ls + d.length * 0.5
+	_pass_cars(d, front - 0.5)
+	if _pl_rear.is_empty() or _pl_v[0] > _race_top(d) - 2.0:
+		return false
+	if _pl_rear[0] - front > maxf(d.v + 10.0, (d.v - _pl_v[0]) * 2.5 + 6.0):
+		return false
+	if not _pass_plan(d, tight) or not _oncoming_clear(d, _pp_x, _pp_t, PASS_MARGIN):
+		return false
+	d.pass_t = _pp_t
+	d.pass_off = graph.lane_offset(e, 0) - graph.e_lw[e] * 0.9
+	d.pass_tight = tight
+	d.pass_by = false
+	d.pass_back = false
+	d.pass_cap = INF
 	d.race_passes += 1
 	return true
+
+
+## Step 4b: a frame of racer d's pass (PASS_* above): back into its lane when there is room before
+## the next car; on past the next car too while the plan from here holds; given up when it does
+## not.
+func _pass_drive(d: Driver, dt: float) -> void:
+	if d.in_conn:
+		_pass_end(d, 0.0)  # (the junction's curve brings it back to its lane)
+		return
+	if d.v < 1.0:
+		# Standing out there (it gave the pass up beside a queue that stands): the last resort.
+		d.still += dt
+		if d.still > RACE_KNOT_LAST and d.crazy == 0:
+			_pass_end(d, 0.0)
+			d.squeeze = 2.0
+			d.cross_ignore = 2.0
+			d.still = 0.0
+			return
+	else:
+		d.still = 0.0
+	var e := d.edge
+	var rear := d.ls - d.length * 0.5
+	var front := d.ls + d.length * 0.5
+	_pass_cars(d, rear - (PASS_IN_TIGHT if d.pass_tight else PASS_IN))
+	if _pl_rear.is_empty():
+		_pass_end(d, 0.0)
+		return
+	var room := _pl_rear[0] - front
+	if room < 1.0:
+		d.pass_by = true
+	elif d.pass_by and room > clampf((d.v - _pl_v[0]) * 1.2, 4.0, 30.0):
+		_pass_end(d, 0.0)  # past a car, and room before the next one: back in
+		return
+	# A racer without a line has no way through the junction beside its lane: back in before it.
+	if (d.line != null or graph.e_s1[e] - d.s > 12.0) and _pass_plan(d, d.pass_tight) and _oncoming_clear(d, _pp_x, _pp_t, PASS_KEEP):
+		d.pass_t = maxf(_pp_t, 0.05)
+		d.pass_cap = INF
+		d.pass_back = false
+		return
+	# Given up.
+	d.pass_t = 0.05
+	if room >= 1.0:
+		_pass_end(d, PASS_WAIT)  # behind that car: back in behind it
+	elif rear > (_pl_rear[0] + _pl_front[0]) * 0.5 - 1.0:
+		# Its tail is past that car's middle: on past this one car, no faster than the next.
+		d.pass_cap = maxf(_pl_v[1], _pl_v[0] + 2.0) if _pl_rear.size() > 1 and _pl_rear[1] - front < 12.0 else INF
+	else:
+		d.pass_cap = maxf(_pl_v[0] - PASS_FALL, 0.0)
+		d.pass_back = true
+
+
+func _pass_end(d: Driver, wait: float) -> void:
+	d.pass_t = 0.0
+	d.pass_back = false
+	d.pass_cap = INF
+	d.pass_wait = wait
 
 
 ## Racer mode: the lanes of the oncoming road `rev` that a pass over the centre line of edge e
@@ -2727,16 +3607,6 @@ func _pass_lanes(e: int, rev: int, s: float, out: float) -> PackedByteArray:
 			return mind
 	mind.fill(1)
 	return mind
-
-
-## Racer mode: a car of its own road's lanes within a car's length beside d.
-func _alongside(d: Driver) -> bool:
-	var e := d.edge
-	for k in graph.e_lanes[e]:
-		for o in _lane_cars[graph.e_lane0[e] + k]:
-			if o != d and absf(o.ls - d.ls) < (o.length + d.length) * 0.5 + 1.5:
-				return true
-	return false
 
 
 ## Moves to the neighbouring lane with the most room ahead (more than `room`
@@ -2880,7 +3750,7 @@ func _back_begin(d: Driver, room: float) -> void:
 
 
 ## Turning back: gives the manoeuvre up (no room behind, the oncoming lane never free): it
-## stands where it is and the old rule takes over (RACE_KNOT).
+## stands where it is and the old rule takes over (RACE_KNOT_LAST).
 func _back_give_up(d: Driver) -> void:
 	d.back = BACK_NONE
 	d.back_v = 0.0
@@ -3272,7 +4142,8 @@ func _place(d: Driver) -> void:
 	var moved := Vector2(p.x - d.pos.x, p.y - d.pos.z)
 	if d.back_v > 0.0:
 		moved = -moved  # backing up: the nose points against the motion
-	if moved.length_squared() > 0.000001:
+	# (Round the player's car at a standstill it edges sideways: its nose stays where it points.)
+	if moved.length_squared() > 0.000001 and not (d.shoulder != 0.0 and d.v < 1.0):
 		d.yaw = lerp_angle(d.yaw, atan2(-moved.x, -moved.y), 0.35)
 	d.pos = Vector3(p.x, y, p.y)
 	if not d.ghost:
