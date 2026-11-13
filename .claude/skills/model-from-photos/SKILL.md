@@ -100,7 +100,7 @@ The spec lives at `docs/landmarks/specs/<slug>.md`, and `tools/check_spec.py` (a
 (DEVELOPMENT.md "Performance budgets"), so detail goes into the one shared building material
 through the landmark material codes (no draw call of its own), merged into the site's mesh.
 Budgets in triangles: L2 up to ~3,000, L3 up to ~8,000 a site (the Palace and the stadium may go
-higher, named in the spec); the site's triangle budget goes into `check_sites.gd` (which holds the budgets today) in the same change.
+higher, named in the spec); the site's triangle budget goes into `BUDGET` in `game/tools/check_mesh_quality.gd` in the same change (a site without an entry fails the check).
 No new material, light or MultiMesh without a measured before/after draw-call count. Window
 grids belong in `building.gdshader`'s window rhythm, not one mesh per window.
 
@@ -111,7 +111,7 @@ models work; longer agent runs don't improve the shape, and the commonest failur
 parts, z-fighting) are ones a judge looking at shots misses.
 
 1. **Automatic** (the builder, before any review): `tools/verify.sh --quick`, the site's
-   triangle budget, and the mesh check when it exists (BACKLOG: `check_mesh_quality.gd`:
+   triangle budget, and the mesh check (`game/tools/check_mesh_quality.gd`:
    coplanar overlapping faces, zero-area and flipped triangles, parts touching neither the
    ground nor another part). A FAIL goes back to the builder, not to the reviewer.
 2. **The builder's own look, in stages**: massing first (render, compare the silhouette with
