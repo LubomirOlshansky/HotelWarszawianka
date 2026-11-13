@@ -1,4 +1,4 @@
-extends Node
+extends "res://scripts/activity.gd"
 ## Loop jobs-2 (docs/design/parodies.md 5.3, DEMO 6.3): the Leżak round-up, a night side job. A few
 ## of storefronts.gd's empty parking zones are **Leżak depots** (a teal ring and a teal square on
 ## the minimap at night: one per DEPOT_SPACING m of the hero districts, the egg's standing zone
@@ -10,15 +10,15 @@ extends Node
 ## unloaded are paid, no bonus). Collected Leżaks are gone from the pavement until the next
 ## morning (storefronts.gd `restore_collected`, by day). One activity at a time, as every job.
 ##
-## jobs.gd owns this node and steps it (`step`) in its own _process, answers busy / target / the
-## card keys for it, and main.gd's autopilot asks it through jobs.gd's drive_player. Cost: idle,
+## It is an activity of the kit (activity.gd): the kit has its cards, the ✕, the ring and "busy",
+## and the director (activities.gd) says when it may offer itself. jobs.gd still answers `busy()`,
+## the target and the card keys for it by name (police.gd, rivals.gd, first10.gd and main.gd ask
+## jobs.gd), until jobs.gd moves too (tech-debt TD-1). Cost: idle,
 ## a 2 Hz look at the depots (a handful of distances); while it runs, ≤ 10 distances a frame and
 ## the HUD's status. Nothing new is drawn but the depots' dashed rings (one mesh each, shown at
 ## night only while no job runs) and the shared beacon: +0-1 draw calls near a depot.
 
-const Beacon := preload("res://scripts/beacon.gd")
 const MapIcons := preload("res://scripts/map_icons.gd")
-const StopAssist := preload("res://scripts/stop_assist.gd")
 const Missions := preload("res://scripts/missions.gd")
 
 ## Teal (the passengers' and goods' job colour, as the słoiki); the pins in Leżak's violet.
@@ -44,25 +44,21 @@ const RESPECT := 40
 const LIMIT := 360.0
 const LOOK_EVERY := 0.5
 const RESULT_LIFE := 12.0
+## The offer's card goes after this long (s) with no answer.
+const OFFER_LIFE := 12.0
 
-enum State { IDLE, OFFER, COLLECT, RESULT }
+## The run's stages (the kit's `phase` is IDLE or RUN here; this activity never rings).
+enum Stage { NONE, OFFER, COLLECT, RESULT }
 
-var hud: CanvasLayer
-var dialogue: Node
-var wallet: Node
 var missions: Node
-var map: Node3D
-var car: CharacterBody3D
 var tod: Node
 ## jobs.gd (its _free, _night, _marker and flying).
 var jobs: Node
 ## storefronts.gd: the zones and the Leżaks.
 var store: Node
-var state := State.IDLE
+var stage := Stage.NONE
 ## --roundup: the offer at the depot nearest the car, day or night.
 var force := false
-var autopilot := false
-var log_on := false
 ## The depots: {at: Vector3, zone: int, marker: Node3D, cool: bool}.
 var depots: Array[Dictionary] = []
 ## The job: its depot, the Leżaks to round up (storefronts indices), those in the boot, unloaded.
@@ -70,18 +66,17 @@ var depot := -1
 var targets: Array[int] = []
 var boot := 0
 var unloaded := 0
-var clock := 0.0
+var secs := 0.0
 ## Round-ups finished (the check, the log).
 var done := 0
 ## What the last finish paid: {zl, bonus, respect, all}.
 var last_pay := {}
 
-var _beacon: Node3D
 var _look_t := 0.0
-var _t := 0.0
 var _shown := false
 var _was_night := false
-var _ghost_leg := -1
+## The ✕'s words for this run ([Polish, English]): `drop` writes them, `_quit_words` gives them.
+var _quit: Array = []
 
 
 ## The pay for `n` Leżaks unloaded of `want`, in `secs` (static: check_side_jobs.gd runs it): 8 zł
@@ -117,6 +112,12 @@ static func pick_depots(zone_list: Array, spacing: float) -> Array[int]:
 
 
 func setup(world: Node3D) -> void:
+	tag = "roundup"
+	colour = COLOUR
+	dark = Color("#2f6fb5")
+	is_job = true
+	cards_low = true
+	super.setup(world)
 	if store == null:
 		return
 	for i in pick_depots(store.zones, DEPOT_SPACING):
@@ -126,25 +127,14 @@ func setup(world: Node3D) -> void:
 		marker.global_position = at
 		marker.visible = false
 		depots.append({"at": at, "zone": i, "marker": marker, "cool": false})
-	_beacon = Beacon.new()
-	world.add_child(_beacon)
-	_beacon.setup(COLOUR, Color("#2f6fb5"))
-	hud.card_pressed.connect(_on_card)
-	hud.abort_pressed.connect(func() -> void:
-		if state == State.COLLECT:
-			_give_up())
 	var where := PackedStringArray()
 	for d in depots:
 		where.append("%d,%d" % [roundi(d["at"].x), roundi(d["at"].z)])
 	print("roundup: %d Leżak depots (%s)" % [depots.size(), " ".join(where)])
 
 
-func busy() -> bool:
-	return state != State.IDLE
-
-
 func has_target() -> bool:
-	return state == State.COLLECT
+	return phase == Phase.RUN and stage == Stage.COLLECT
 
 
 ## The nearest Leżak still out, or the depot when the boot is full or none are left.
@@ -168,15 +158,15 @@ func target_colour() -> Color:
 
 
 func primary() -> bool:
-	if state == State.OFFER or state == State.RESULT:
-		_on_card(0)
+	if phase == Phase.RUN and (stage == Stage.OFFER or stage == Stage.RESULT):
+		card_pressed(0)
 		return true
 	return false
 
 
 func secondary() -> bool:
-	if state == State.OFFER:
-		_on_card(1)
+	if phase == Phase.RUN and stage == Stage.OFFER:
+		card_pressed(1)
 		return true
 	return false
 
@@ -185,28 +175,29 @@ func _night() -> bool:
 	return tod != null and tod.mode == 2
 
 
-## One frame (jobs.gd's _process).
-func step(dt: float) -> void:
+func _process(dt: float) -> void:
+	super._process(dt)
+	# The offer goes when the car drives off (the kit knows only a card's life): as NOT NOW, or
+	# as GO! for the autopilot. After the kit's frame, so nothing else of this frame runs once
+	# it is down.
+	if phase == Phase.RUN and stage == Stage.OFFER and _flat(car.global_position, depots[depot]["at"]) > DEPOT_R + 7.0:
+		card_pressed(0 if autopilot else 1)
+
+
+## Twice a second while idle: the depots' rings by night, the morning's Leżaks, a pull-in. (No
+## call: the kit's call clock is not used.)
+func _idle_tick(dt: float) -> void:
 	if depots.is_empty():
 		return
-	_t += dt
-	match state:
-		State.IDLE:
-			_look_t -= dt
-			if _look_t <= 0.0:
-				_look_t = LOOK_EVERY
-				_look()
-		State.OFFER:
-			if _flat(car.global_position, depots[depot]["at"]) > DEPOT_R + 7.0 or _t > (3.0 if autopilot else 12.0):
-				if autopilot:
-					_go()
-				else:
-					_on_card(1)
-		State.COLLECT:
-			_collect_tick(dt)
-		State.RESULT:
-			if _t > RESULT_LIFE:
-				_release()
+	_look_t -= dt
+	if _look_t <= 0.0:
+		_look_t = LOOK_EVERY
+		_look()
+
+
+func _run_tick(dt: float) -> void:
+	if stage == Stage.COLLECT:
+		_collect_tick(dt)
 
 
 ## Twice a second while idle: the depots' rings by night, the morning's Leżaks, a pull-in.
@@ -218,7 +209,7 @@ func _look() -> void:
 			var n: int = store.restore_collected()
 			if n > 0 and log_on:
 				print("roundup: morning: %d Leżaks lie about again" % n)
-	var open: bool = (night or force) and jobs._free() and not jobs.own_busy()
+	var open: bool = (night or force) and bool(free_now.call())
 	_show_depots(open)
 	if not open:
 		return
@@ -253,6 +244,8 @@ func depot_points() -> PackedVector2Array:
 
 ## The card at depot i (--roundup too). False if too few Leżaks lie within reach.
 func offer(i: int) -> bool:
+	if phase != Phase.IDLE:
+		return false
 	var at: Vector3 = depots[i]["at"]
 	var near: Array[int] = store.lying_near(Vector2(at.x, at.z), REACH, WANT)
 	if near.size() < AT_LEAST:
@@ -265,40 +258,52 @@ func offer(i: int) -> bool:
 	targets = near
 	boot = 0
 	unloaded = 0
-	state = State.OFFER
-	_t = 0.0
+	start()
+	return true
+
+
+## The run begins with the offer: the card at the depot (a card of the run, so its buttons come
+## here only).
+func _begin() -> void:
+	if depot < 0 or targets.is_empty():
+		finish()  # started with nothing to collect (nobody does): over at once
+		return
+	stage = Stage.OFFER
 	_show_depots(false)
 	missions.close()
 	missions.paused = true
 	hud.hide_pill()
 	hud.hide_challenge()
+	var at: Vector3 = depots[depot]["at"]
 	var n := targets.size()
-	hud.show_card("ZBIERZ %d LEŻAKÓW" % n, "Bagażnik mieści %d. %d zł za sztukę, +%d zł za komplet w 6 min." % [BOOT, PER, BONUS],
-			PackedStringArray(["GO!", "NOT NOW"]), COLOUR, true, "Round up %d Leżaks" % n,
-			"The boot holds %d. %d zł each, +%d zł for all of them within 6 min." % [BOOT, PER, BONUS])
+	show_card(["ZBIERZ %d LEŻAKÓW" % n, "Round up %d Leżaks" % n],
+			["Bagażnik mieści %d. %d zł za sztukę, +%d zł za komplet w 6 min." % [BOOT, PER, BONUS],
+			"The boot holds %d. %d zł each, +%d zł for all of them within 6 min." % [BOOT, PER, BONUS]],
+			PackedStringArray(["GO!", "NOT NOW"]), OFFER_LIFE)
 	if dialogue != null:
 		dialogue.say(func() -> Vector3: return at, "Leżak", "lezak", "start", 4.5, PIN_COLOUR, 1.6, true)
-	print("roundup: offer at depot %d (%d,%d): %d Leżaks within %d m" % [i, roundi(at.x), roundi(at.z), n, roundi(REACH)])
-	return true
+	print("roundup: offer at depot %d (%d,%d): %d Leżaks within %d m" % [depot, roundi(at.x), roundi(at.z), n, roundi(REACH)])
 
 
-func _on_card(index: int) -> void:
-	match state:
-		State.OFFER:
+func _card_pressed(index: int) -> void:
+	match stage:
+		Stage.OFFER:
 			if index == 0:
 				_go()
 			else:
-				_release()
-		State.RESULT:
-			_release()
+				finish()
+		Stage.RESULT:
+			finish()
+
+
+## A card nobody answered: the offer as NOT NOW, the result as OK.
+func _card_expired() -> void:
+	finish()
 
 
 func _go() -> void:
-	state = State.COLLECT
-	_t = 0.0
-	clock = 0.0
-	_ghost_leg = -1
-	hud.hide_card()
+	stage = Stage.COLLECT
+	secs = 0.0
 	_pins()
 	_beacon.recolour(COLOUR)
 	_beacon.waving = false
@@ -307,7 +312,7 @@ func _go() -> void:
 
 
 func _collect_tick(dt: float) -> void:
-	clock += dt
+	secs += dt
 	var p := car.global_position
 	var kmh: float = car.vel.length() * 3.6
 	var flying: bool = jobs.flying
@@ -319,19 +324,19 @@ func _collect_tick(dt: float) -> void:
 				targets.remove_at(k)
 				boot += 1
 				hud.toast("+1 LEŻAK · BAGAŻNIK %d/%d" % [boot, BOOT], "+1 Leżak in the boot (%d of %d)" % [boot, BOOT])
-				print("roundup: picked up Leżak %d (boot %d/%d, %d left out) at %.0f s" % [i, boot, BOOT, targets.size(), clock])
+				print("roundup: picked up Leżak %d (boot %d/%d, %d left out) at %.0f s" % [i, boot, BOOT, targets.size(), secs])
 				_pins()
 				break
 	var at: Vector3 = depots[depot]["at"]
 	var dd := _flat(p, at)
 	if boot > 0 and dd < UNLOAD_R and car.vel.length() < UNLOAD_SPEED and not flying:
 		unloaded += boot
-		print("roundup: unloaded %d at the depot (%d back) at %.0f s" % [boot, unloaded, clock])
+		print("roundup: unloaded %d at the depot (%d back) at %.0f s" % [boot, unloaded, secs])
 		hud.toast("WYŁADOWANO %d · RAZEM %d/%d" % [boot, unloaded, unloaded + targets.size()],
 				"Unloaded %d · %d of %d back" % [boot, unloaded, unloaded + targets.size()])
 		boot = 0
 		if targets.is_empty():
-			_finish()
+			_result()
 			return
 	var back := boot >= BOOT or targets.is_empty()
 	if back:
@@ -339,7 +344,7 @@ func _collect_tick(dt: float) -> void:
 	else:
 		_beacon.visible = false
 	var want := unloaded + boot + targets.size()
-	var left := LIMIT - clock
+	var left := LIMIT - secs
 	var clk := ("%d:%02d" % [int(left) / 60, int(left) % 60]) if left > 0.0 else "+%d:%02d" % [int(-left) / 60, int(-left) % 60]
 	var hint := ["Podjedź powoli do fioletowej pinezki", "Drive up slowly to a violet pin"]
 	var dist := dd
@@ -355,8 +360,8 @@ func _collect_tick(dt: float) -> void:
 			hint = ["Wolniej! Poniżej 15 km/h", "Slower! Under 15 km/h"]
 	if flying:
 		hint = ["Wyląduj: Leżaki jadą w bagażniku", "Land: the Leżaks ride in the boot"]
-	hud.show_status("LEŻAKI %d/%d · BAGAŻNIK %d/%d" % [unloaded, want, boot, BOOT], clk, "%d m" % roundi(dist), hint[0],
-			clampf(clock / LIMIT, 0.0, 1.0), COLOUR if left > 0.0 else FAIL_COLOUR, "", {}, hint[1])
+	status("LEŻAKI %d/%d · BAGAŻNIK %d/%d" % [unloaded, want, boot, BOOT], clk, "%d m" % roundi(dist), hint,
+			clampf(secs / LIMIT, 0.0, 1.0), COLOUR if left > 0.0 else FAIL_COLOUR)
 
 
 ## The nearest Leżak still out, while the boot has room (-1: none, or the boot is full).
@@ -391,55 +396,53 @@ func _pins() -> void:
 	hud.set_minimap_pois(pts, colours, shapes)
 
 
-func _finish() -> void:
-	state = State.RESULT
-	_t = 0.0
-	hud.hide_status()
+func _result() -> void:
+	stage = Stage.RESULT
+	hide_status()
 	_beacon.visible = false
 	var want := unloaded
-	var r := pay(unloaded, want, clock)
+	var r := pay(unloaded, want, secs)
 	last_pay = r
 	wallet.pay(int(r["zl"]), int(r["respect"]), "roundup")
 	done += 1
 	var l: Array = dialogue.line("lezak", "done", true) if dialogue != null else []
 	var quote := "„%s”\n" % l[0] if not l.is_empty() else ""
 	var quote_en := "\"%s\"\n" % l[1] if not l.is_empty() else ""
-	var mm := "%d:%02d" % [int(clock) / 60, int(clock) % 60]
-	hud.show_card("ZEBRANE · %d LEŻAKÓW · +%d zł" % [unloaded, int(r["zl"])],
-			"%s%d × %d zł%s, +%d szacunku · czas %s" % [quote, unloaded, PER,
+	var mm := "%d:%02d" % [int(secs) / 60, int(secs) % 60]
+	show_card(["ZEBRANE · %d LEŻAKÓW · +%d zł" % [unloaded, int(r["zl"])], "Rounded up · %d Leżaks · +%d zł" % [unloaded, int(r["zl"])]],
+			["%s%d × %d zł%s, +%d szacunku · czas %s" % [quote, unloaded, PER,
 			(" + %d zł premii" % int(r["bonus"])) if int(r["bonus"]) > 0 else "", int(r["respect"]), mm],
-			PackedStringArray(["OK"]), COLOUR, true, "Rounded up · %d Leżaks · +%d zł" % [unloaded, int(r["zl"])],
 			"%s%d × %d zł%s, +%d respect · time %s" % [quote_en, unloaded, PER,
-			(" + %d zł bonus" % int(r["bonus"])) if int(r["bonus"]) > 0 else "", int(r["respect"]), mm])
+			(" + %d zł bonus" % int(r["bonus"])) if int(r["bonus"]) > 0 else "", int(r["respect"]), mm]],
+			PackedStringArray(["OK"]), RESULT_LIFE)
 	_pins_off()
-	print("roundup: done: %d Leżaks back in %.0f s: +%d zł (%d × %d%s), +%d respect (wallet %d zł)" % [unloaded, clock,
+	print("roundup: done: %d Leżaks back in %.0f s: +%d zł (%d × %d%s), +%d respect (wallet %d zł)" % [unloaded, secs,
 			int(r["zl"]), unloaded, PER, (" + %d bonus" % int(r["bonus"])) if int(r["bonus"]) > 0 else "", int(r["respect"]), wallet.zl])
 
 
 ## ✕: the ones unloaded are paid (no bonus, no respect); the ones in the boot go back out.
-func _give_up() -> void:
+func drop(by_player: bool) -> void:
 	var r := pay(unloaded, unloaded + boot + targets.size(), INF)
 	if int(r["zl"]) > 0:
 		wallet.pay(int(r["zl"]), 0, "roundup")
-	hud.hide_status()
-	hud.toast("Koniec zbierania · +%d zł" % int(r["zl"]), "Round-up given up · +%d zł" % int(r["zl"]))
+	_quit = ["Koniec zbierania · +%d zł" % int(r["zl"]), "Round-up given up · +%d zł" % int(r["zl"])]
 	print("roundup: given up with %d back, %d in the boot: +%d zł" % [unloaded, boot, int(r["zl"])])
-	_release()
+	super.drop(by_player)
+
+
+func _quit_words() -> Array:
+	return _quit
 
 
 func _pins_off() -> void:
 	hud.set_minimap_pois(PackedVector2Array(), PackedColorArray())
 
 
-func _release() -> void:
+## Back to idle (the old `_release`): the depot offers again once the car has left it (25 m).
+func _ended() -> void:
 	if depot >= 0 and depot < depots.size():
-		# The depot offers again once the car has left it (25 m).
 		depots[depot]["cool"] = true
-	state = State.IDLE
-	_t = 0.0
-	_beacon.visible = false
-	hud.hide_card()
-	hud.hide_status()
+	stage = Stage.NONE
 	missions.paused = false
 	missions.close()
 	_pins_off()
@@ -447,27 +450,6 @@ func _release() -> void:
 	boot = 0
 	# jobs.gd shows its places again (and the depots with them) at its next look.
 	jobs.places_dirty()
-
-
-## --autopilot: the car slides to the nearest Leżak, then the depot (as trend_job.gd's), slowly
-## for the last metres (the pick-up wants under 15 km/h).
-func drive_player() -> bool:
-	if not autopilot or state != State.COLLECT:
-		return false
-	var to3: Vector3 = target_position() - car.global_position
-	var to := Vector3(to3.x, 0.0, to3.z)
-	var d := to.length()
-	car.collision_mask = 0
-	car.vel = Vector3.ZERO
-	car.throttle = 0.0
-	var dt := get_process_delta_time()
-	if d > 1.0:
-		var v := 18.0 if d > 20.0 else 3.0
-		var step_m := minf(d - 0.5, v * dt)
-		car.global_position += to / d * step_m
-		car.global_position.y = map.ground_height(car.global_position.x, car.global_position.z) + 0.05
-		car.rotation.y = atan2(-to.x, -to.z)
-	return true
 
 
 ## --roundup: the car in the ring of the depot nearest it, the card up.

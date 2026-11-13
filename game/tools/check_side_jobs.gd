@@ -70,6 +70,8 @@ class FakeHud extends CanvasLayer:
 	var challenge := false
 	var status := ""
 	var pois := 0
+	var _up := false
+	var _owner: Object = null
 
 	func toast(pl: String, en := "") -> void:
 		toasts.append([pl, en])
@@ -77,10 +79,25 @@ class FakeHud extends CanvasLayer:
 	func show_note(_a: String, _b: String, _c := Color.WHITE) -> void:
 		pass
 
-	func show_card(title: String, _body: String, _b: PackedStringArray, _c: Color, _bottom := false, _te := "", _be := "") -> void:
+	func show_card(title: String, _body: String, _b: PackedStringArray, _c: Color, _bottom := false, _te := "", _be := "", _s := false) -> void:
 		cards.append(title)
+		_up = true
+		_owner = null
 
 	func hide_card() -> void:
+		_up = false
+		_owner = null
+
+	func own_card(o: Object) -> void:
+		_owner = o
+
+	func card_is(o: Object) -> bool:
+		return _up and _owner == o
+
+	func card_showing() -> bool:
+		return _up
+
+	func ticker_out() -> void:
 		pass
 
 	func show_status(title: String, _clock: String, _d: String, _h: String, _p: float, _c: Color, _badge := "", _i := {}, _he := "") -> void:
@@ -472,6 +489,7 @@ func _check_roundup(sf: Storefronts, map: FakeMap, wallet: Wallet) -> void:
 	ru.tod = tod
 	ru.jobs = jobs
 	ru.store = sf
+	ru.free_now = func() -> bool: return jobs._free() and not jobs.own_busy()
 	root.add_child(ru)
 	ru.set_process(false)
 	ru.setup(world)
@@ -480,28 +498,28 @@ func _check_roundup(sf: Storefronts, map: FakeMap, wallet: Wallet) -> void:
 	car.global_position = Vector3(9000, 0, 9000)
 	var t0 := Time.get_ticks_usec()
 	for k in 3000:
-		ru.step(DT)
+		ru._process(DT)
 	_summary["idle_us"] = "%.2f µs a frame" % (float(Time.get_ticks_usec() - t0) / 3000.0)
 	# Into depot 0's ring at night: the card; GO.
 	var dep: Vector3 = ru.depots[0]["at"]
 	car.global_position = dep
 	for k in 40:
-		ru.step(DT)
-	_expect(ru.state == RoundupJob.State.OFFER and hud.cards.size() == 1 and dlg.count("lezak", "start") == 1, "no card at the depot")
+		ru._process(DT)
+	_expect(ru.stage == RoundupJob.Stage.OFFER and hud.cards.size() == 1 and dlg.count("lezak", "start") == 1, "no card at the depot")
 	var want := ru.targets.size()
 	var picked: Array[int] = ru.targets.duplicate()
 	_expect(want >= RoundupJob.AT_LEAST and want <= RoundupJob.WANT, "%d Leżaks to round up at depot 0 (want 4-10)" % want)
-	_expect(ru.primary() and ru.state == RoundupJob.State.COLLECT and hud.pois == want + 1, "GO didn't start it (pins %d)" % hud.pois)
+	_expect(ru.primary() and ru.stage == RoundupJob.Stage.COLLECT and hud.pois == want + 1, "GO didn't start it (pins %d)" % hud.pois)
 	var zl := wallet.zl
 	var rs := wallet.respect
 	var loads := _drive_round(ru, car, dep, 0.0)
-	_expect(ru.state == RoundupJob.State.RESULT and loads >= 2 and _max_boot == RoundupJob.BOOT, "the round-up: state %d after %d loads, the boot at most %d (want the card, a full boot of 5)" % [
-			ru.state, loads, _max_boot])
+	_expect(ru.stage == RoundupJob.Stage.RESULT and loads >= 2 and _max_boot == RoundupJob.BOOT, "the round-up: state %d after %d loads, the boot at most %d (want the card, a full boot of 5)" % [
+			ru.stage, loads, _max_boot])
 	_expect(wallet.zl - zl == want * 8 + 40 and wallet.respect - rs == 40, "paid %d zł, %d respect (want %d, 40)" % [wallet.zl - zl,
 			wallet.respect - rs, want * 8 + 40])
 	_expect(dlg.count("lezak", "done") == 1, "the done line: %d" % dlg.count("lezak", "done"))
 	for k in 60:
-		ru.step(DT)
+		ru._process(DT)
 	_expect(wallet.zl - zl == want * 8 + 40, "the round-up paid twice")
 	var gone := 0
 	for i in picked:
@@ -509,11 +527,11 @@ func _check_roundup(sf: Storefronts, map: FakeMap, wallet: Wallet) -> void:
 	_expect(gone == want and sf.lying_near(Vector2(dep.x, dep.z), RoundupJob.REACH, 50).all(func(i: int) -> bool: return not i in picked),
 			"%d of %d collected Leżaks off the pavement" % [gone, want])
 	ru.primary()
-	_expect(ru.state == RoundupJob.State.IDLE and jobs.dirty == 1, "OK didn't close the card")
+	_expect(ru.idle() and jobs.dirty == 1, "OK didn't close the card")
 	# The morning: they lie about again.
 	tod.mode = 0
 	for k in 40:
-		ru.step(DT)
+		ru._process(DT)
 	var back := 0
 	for i in picked:
 		back += int(not sf.scooters[i].get("gone", false))
@@ -522,11 +540,11 @@ func _check_roundup(sf: Storefronts, map: FakeMap, wallet: Wallet) -> void:
 	tod.mode = 2
 	car.global_position = Vector3(9000, 0, 9000)
 	for k in 40:
-		ru.step(DT)
+		ru._process(DT)
 	car.global_position = dep
 	for k in 40:
-		ru.step(DT)
-	_expect(ru.state == RoundupJob.State.OFFER, "no second card")
+		ru._process(DT)
+	_expect(ru.stage == RoundupJob.Stage.OFFER, "no second card")
 	ru.primary()
 	zl = wallet.zl
 	rs = wallet.respect
@@ -536,34 +554,34 @@ func _check_roundup(sf: Storefronts, map: FakeMap, wallet: Wallet) -> void:
 	ru.primary()
 	tod.mode = 0
 	for k in 40:
-		ru.step(DT)
+		ru._process(DT)
 	# ✕ after one load: the unloaded paid, no bonus, no respect.
 	tod.mode = 2
 	car.global_position = Vector3(9000, 0, 9000)
 	for k in 40:
-		ru.step(DT)
+		ru._process(DT)
 	car.global_position = dep
 	for k in 40:
-		ru.step(DT)
+		ru._process(DT)
 	ru.primary()
 	zl = wallet.zl
 	rs = wallet.respect
 	_drive_round(ru, car, dep, 0.0, 1)
 	var unl := ru.unloaded
 	hud.abort_pressed.emit()
-	_expect(ru.state == RoundupJob.State.IDLE and wallet.zl - zl == unl * 8 and wallet.respect == rs and unl > 0,
+	_expect(ru.idle() and wallet.zl - zl == unl * 8 and wallet.respect == rs and unl > 0,
 			"✕ after %d unloaded paid %d zł, %d respect" % [unl, wallet.zl - zl, wallet.respect - rs])
 	# Nothing in the day.
 	tod.mode = 0
 	for k in 40:
-		ru.step(DT)
+		ru._process(DT)
 	car.global_position = Vector3(9000, 0, 9000)
 	for k in 40:
-		ru.step(DT)
+		ru._process(DT)
 	car.global_position = dep
 	for k in 40:
-		ru.step(DT)
-	_expect(ru.state == RoundupJob.State.IDLE, "a round-up card by day")
+		ru._process(DT)
+	_expect(ru.idle(), "a round-up card by day")
 	_summary["roundup"] = "%d depots, %d Leżaks in %d unloads (a full boot of 5) +%d zł +40 respect once, late no bonus, ✕ pays %d unloaded, back by morning" % [
 			deps.size(), want, loads, want * 8 + 40, unl]
 
@@ -579,15 +597,15 @@ func _drive_round(ru: RoundupJob, car: FakeCar, dep: Vector3, extra: float, max_
 	_max_boot = 0
 	var guard := 0
 	car.vel = Vector3.ZERO
-	while ru.state == RoundupJob.State.COLLECT and guard < 200:
+	while ru.stage == RoundupJob.Stage.COLLECT and guard < 200:
 		guard += 1
 		var to: Vector3 = ru.target_position()
 		car.global_position = to + Vector3(1.0, 0, 0)
 		var before := ru.unloaded
 		if to.distance_to(dep) < 0.01 and ru.targets.is_empty():
-			ru.clock += extra
+			ru.secs += extra
 		for k in 3:
-			ru.step(DT)
+			ru._process(DT)
 			_max_boot = maxi(_max_boot, ru.boot)
 		if ru.unloaded > before:
 			loads += 1

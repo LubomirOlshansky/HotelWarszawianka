@@ -119,9 +119,11 @@ var trend: Node
 ## (police.gd sets it).
 var heat_frozen := false
 ## Loop jobs-2 (parodies.md 4.3): the courier race (courier_race.gd, a child: it rides along a
-## kebab order) and the Leżak round-up (roundup_job.gd, a child too; main.gd makes it). Both step
-## in this script's _process, so the bench's "jobs+eggs" line holds them.
+## kebab order; it steps in this script's _process, so the bench's "jobs+eggs" line holds it).
 var courier: CourierRace
+## The Leżak round-up (roundup_job.gd): an activity of the kit (activity.gd; main.gd makes it and
+## the director runs it) that jobs.gd still answers for: busy, the target, the keys, the depots'
+## squares.
 var roundup: Node
 
 ## Stands: {ring: Vector3, at: Vector3, yaw, heading, node, marker, cool, across; loop MW-2: xf (the
@@ -607,11 +609,10 @@ func _process(dt: float) -> void:
 		return
 	var t0 := Time.get_ticks_usec()
 	_t += dt
-	# Loop jobs-2: the courier race and the round-up step here (idle: a match on their state).
+	# Loop jobs-2: the courier race steps here (idle: a match on its state).
+	# (The round-up is an activity of the kit now: it steps itself.)
 	if courier.state != CourierRace.State.IDLE:
 		courier.step(dt)
-	if roundup != null:
-		roundup.step(dt)
 	match state:
 		State.IDLE:
 			_look_for_work()
@@ -1505,8 +1506,6 @@ func _put_car(place: Dictionary) -> void:
 ## The autopilot drives the job's route (returns true while it does): on a ghost
 ## driver along the lane graph, then straight to the door's ring.
 func drive_player() -> bool:
-	if roundup != null and roundup.drive_player():
-		return true  # loop jobs-2
 	if not autopilot or state != State.DELIVER:
 		return false
 	var target: Vector3 = _order["ring"]
