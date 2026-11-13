@@ -29,7 +29,9 @@ extends Node
 ## line's `badge`) and with stages that are not the kit's at all (a raid, a drag on a tree of lights);
 ## boat_race.gd the first the player leaves the car for (the rings lead on the water, no arrow:
 ## `target_arrow`), with a card in a colour of its own (`show_card`'s `tint`) and with a result
-## card the autopilot leaves by its second button (`_auto_button`).
+## card the autopilot leaves by its second button (`_auto_button`); roundup_job.gd the first side
+## job (`is_job`), with no call at all (a pull-in starts it), its cards at the bottom of the
+## screen (`cards_low`) and a target that is not the kit's ring (the nearest Leżak).
 
 const Beacon := preload("res://scripts/beacon.gd")
 const Access := preload("res://scripts/access.gd")
@@ -76,6 +78,13 @@ var arrive := StopAssist.RING
 ## player is on the water): its arrow shows in the air too, and neither the stop assist nor the
 ## autopilot's car is sent to its target (main.gd).
 var flown := false
+## One of the side jobs (a kebab, a ride, the round-up): while the first minutes' guide runs its
+## target is the main line's (the first job is the guide's goal: main.gd `_show_target`), and the
+## other jobs are not told the player is away on a tour (main.gd's "touring").
+var is_job := false
+## The cards of the run sit at the bottom of the screen (hud.gd `show_card`'s `bottom`), as a
+## job's cards do: the road ahead stays in view.
+var cards_low := false
 
 var phase := Phase.IDLE
 ## Seconds in this phase, or since the run's last card went up.
@@ -283,7 +292,7 @@ func start() -> void:
 
 # --- the cards (TD-16) ---------------------------------------------------------------------------
 
-## A card of the run, in the middle of the screen: this activity's own, so its buttons come to
+## A card of the run, in the middle of the screen (at its bottom with `cards_low`): this activity's own, so its buttons come to
 ## `_card_pressed` and to nobody else. The run's clock stands while it is up. With `life` the
 ## card closes by itself after that many seconds (`_card_expired`: as if its first button were
 ## pressed, a result card nobody has to tap). `stacked`: its buttons one under the other. `tint`:
@@ -300,7 +309,7 @@ func _put_card() -> void:
 	var title: Array = _card_args[0]
 	var body: Array = _card_args[1]
 	var tint: Color = _card_args[4]
-	hud.show_card(str(title[0]), str(body[0]), _card_args[2], colour if tint.a == 0.0 else tint, false, str(title[1]), str(body[1]), _card_args[3])
+	hud.show_card(str(title[0]), str(body[0]), _card_args[2], colour if tint.a == 0.0 else tint, cards_low, str(title[1]), str(body[1]), _card_args[3])
 	_own_card()
 
 

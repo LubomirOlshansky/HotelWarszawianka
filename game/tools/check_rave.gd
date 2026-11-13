@@ -80,7 +80,7 @@ class FakeSounds extends Node:
 ## dialogue.gd's `line` over the real data: the first line of a group.
 class Talk extends Fakes.Dialogue:
 	var lines := {}
-	func line(group: String) -> Array:
+	func line(group: String, _tag := "", _prefer := false) -> Array:
 		var rows: Array = lines.get(group, [])
 		return rows[0] if not rows.is_empty() else []
 

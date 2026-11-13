@@ -4,9 +4,12 @@ extends RefCounted
 ## joins the kit): a HUD that remembers the card, the status line and the toasts, and sends a
 ## card's press to its owner as hud.gd does (tech-debt TD-16), with the context button, the
 ## banner, the notes, the quest's dots and the quiet screen (the street meet uses them), the card's
-## colour, the small toasts and the minimap's dots (the boat race uses them); a
-## dialogue that remembers what was said; the bubbles over the car; a wallet; the rescue calls'
-## switch; a flat map; a car that can be hit. A check that needs one of these takes it from here, so a new parameter on `hud.toast`
+## colour, the small toasts and the minimap's dots (the boat race uses them), whether the card
+## sits at the bottom of the screen, both languages of a card, a toast and a hint, the minimap's
+## job pins and the challenge taken down (the round-up uses them); a
+## dialogue that remembers what was said and where, and the lines asked for; the bubbles over the
+## car; a wallet; the rescue calls' switch and how often the line was closed; a flat map; a car
+## that can be hit and has a speed. A check that needs one of these takes it from here, so a new parameter on `hud.toast`
 ## is changed in one place.
 
 
@@ -19,9 +22,14 @@ class Hud extends CanvasLayer:
 	var card := ""
 	var body := ""
 	var buttons := 0
-	## Whether the card that is up has its buttons one under the other, and its colour.
+	## Whether the card that is up has its buttons one under the other, its colour, and whether it
+	## sits at the bottom of the screen (hud.gd `show_card`'s `bottom`).
 	var stacked := false
 	var accent := Color.WHITE
+	var low := false
+	## The English of the card that is up (hud.gd shows one language; a check reads both).
+	var card_en := ""
+	var body_en := ""
 	## The status line's hint ("" when it is down), its count ("2/4"), its title, its colour and the
 	## badge beside the title ("" when none); its distance ("140 m"), how far its bar is filled, and
 	## how many status lines were drawn so far (a line drawn again counts again).
@@ -33,7 +41,21 @@ class Hud extends CanvasLayer:
 	var status_title := ""
 	var tint := Color.WHITE
 	var badge := ""
+	## The status line's hint in English.
+	var hint_en := ""
 	var toasts: Array[String] = []
+	## The English of each toast, in step with `toasts`.
+	var toasts_en: Array[String] = []
+	## The minimap's job pins (hud.gd `set_minimap_pois`): how many, their places, colours and
+	## shapes, and how often they were set; how often the pill and the courier's challenge were
+	## taken down.
+	var pois := 0
+	var poi_points := PackedVector2Array()
+	var poi_colours := PackedColorArray()
+	var poi_shapes := PackedInt32Array()
+	var pois_set := 0
+	var pills_hidden := 0
+	var challenges_hidden := 0
 	## The small toasts that wait their turn (hud.gd `ambient_toast`), and how many dots the minimap
 	## has for the others in a race.
 	var ambient: Array[String] = []
@@ -55,10 +77,13 @@ class Hud extends CanvasLayer:
 	var broadcast := 0
 	var _owner: Object = null
 
-	func show_card(title: String, text: String, btn: PackedStringArray, a: Color, _bottom := false, _te := "", _be := "", s := false) -> void:
+	func show_card(title: String, text: String, btn: PackedStringArray, a: Color, bottom := false, te := "", be := "", s := false) -> void:
 		_up(title, text, btn.size())
 		stacked = s
 		accent = a
+		low = bottom
+		card_en = te
+		body_en = be
 
 	func show_side_card(title: String, text: String, btn: PackedStringArray, a: Color, _te := "", _be := "", s := false, _f := "") -> void:
 		_up(title, text, btn.size())
@@ -75,6 +100,9 @@ class Hud extends CanvasLayer:
 		body = text
 		buttons = n
 		stacked = false
+		low = false
+		card_en = ""
+		body_en = ""
 		shown += 1
 
 	func hide_card() -> void:
@@ -83,8 +111,9 @@ class Hud extends CanvasLayer:
 		body = ""
 		buttons = 0
 
-	func toast(a: String, _b := "") -> void:
+	func toast(a: String, b := "") -> void:
 		toasts.append(a)
+		toasts_en.append(b)
 
 	func ambient_toast(a: String, _b := "") -> void:
 		ambient.append(a)
@@ -92,8 +121,9 @@ class Hud extends CanvasLayer:
 	func set_minimap_dots(points: PackedVector2Array, _colours: PackedColorArray) -> void:
 		mini_dots = points.size()
 
-	func show_status(t: String, c: String, d: String, h: String, p: float, a: Color, b := "", _i := {}, _he := "") -> void:
+	func show_status(t: String, c: String, d: String, h: String, p: float, a: Color, b := "", _i := {}, he := "") -> void:
 		status = h
+		hint_en = he
 		count = c
 		distance = d
 		progress = p
@@ -109,9 +139,20 @@ class Hud extends CanvasLayer:
 		progress = 0.0
 		status_title = ""
 		badge = ""
+		hint_en = ""
 
 	func ticker_out() -> void:
 		pass
+
+	func set_minimap_pois(points: PackedVector2Array, colours: PackedColorArray, shapes := PackedInt32Array()) -> void:
+		pois = points.size()
+		poi_points = points
+		poi_colours = colours
+		poi_shapes = shapes
+		pois_set += 1
+
+	func hide_challenge() -> void:
+		challenges_hidden += 1
 
 	func show_pill(pl: String, _en := "", who := "call") -> void:
 		pill = who
@@ -120,6 +161,7 @@ class Hud extends CanvasLayer:
 	func hide_pill() -> void:
 		pill = ""
 		pill_word = ""
+		pills_hidden += 1
 
 	func pill_shown(who: String) -> bool:
 		return pill == who
@@ -165,12 +207,26 @@ class Hud extends CanvasLayer:
 class Dialogue extends Node:
 	## "group:tag" of every line asked for.
 	var said: Array[String] = []
+	## Where each was said, in step with `said`: the anchor as it was given (a node, a place, or
+	## a Callable that names the place), and the speaker's name.
+	var anchors: Array = []
+	var speakers: Array[String] = []
 	## dialogue.gd's bubbles (a script that speaks its own lines over the car uses them).
 	var bubbles: Control
+	## dialogue.gd's `line`: "group:tag" of every line taken as words (for a card), and what it
+	## answers ([Polish, English]; [] for a group with no line).
+	var line_asks: Array[String] = []
+	var line_words: Array = ["…", "…"]
 
-	func say(_anchor: Variant, _who: String, group: String, tag := "", _s := 4.0, _c := Color.WHITE, _h := 2.6, _p := false) -> Array:
+	func say(anchor: Variant, who: String, group: String, tag := "", _s := 4.0, _c := Color.WHITE, _h := 2.6, _p := false) -> Array:
 		said.append(group + ":" + tag)
+		anchors.append(anchor)
+		speakers.append(who)
 		return []
+
+	func line(group: String, tag := "", _prefer := false) -> Array:
+		line_asks.append(group + ":" + tag)
+		return line_words
 
 	## dialogue.gd's ambient chatter (a bystander's line): remembered the same way.
 	func say_ambient(anchor: Variant, who: String, group: String, tag := "", s := 4.0, c := Color.WHITE, h := 2.6, p := false) -> Array:
@@ -199,14 +255,22 @@ class Bubbles extends Control:
 		return ok
 
 
-## missions.gd's switch for the rescue calls.
+## missions.gd's switch for the rescue calls, and how often the rescue line was closed (`close`).
 class Calls extends Node:
 	var paused := false
+	var closed := 0
+
+	func close() -> void:
+		closed += 1
 
 
 class Wallet extends Node:
 	var money := 0
 	var respect := 0
+	## wallet.gd's own name for the money (a script's log line reads it).
+	var zl: int:
+		get:
+			return money
 	var kinds: Array[String] = []
 	## wallet.gd's kept facts (a club card, a count of wins) and the best time under each key.
 	var keep := {}
@@ -239,3 +303,7 @@ class FlatMap extends Node3D:
 
 class Car extends Node3D:
 	signal bumped(collider: Object, speed: float)
+	## car.gd's speed (m/s) and what the test flags set when they put the car somewhere.
+	var vel := Vector3.ZERO
+	var forward_speed := 0.0
+	var throttle := 0.0
