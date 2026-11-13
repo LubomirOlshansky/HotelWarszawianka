@@ -11,7 +11,9 @@ lane_graph.gd   the road network baked from OSM: directed edges, lanes, junction
 traffic.gd      every AI car: one Driver per car on the graph, drawn as one MultiMesh per kind
      ├─ rivals.gd        named racers: wander as traffic, race with race_to / stop_racing
      │    ├─ race_planner.gd  a racer's plan: seconds to the finish from every street, by its own skill
-     │    └─ race_line.gd     a racer's line: its place on the ground and a speed for every metre of its way
+     │    ├─ race_line.gd     a racer's line: its place on the ground and a speed for every metre of its way
+     │    ├─ race_signals.gd  a racing rival's lights: brake lights, indicators, hazards, headlight flash, wobble
+     │    └─ race_report.gd   a race's two ways and what decided it, for the result card and its picture
      ├─ police.gd        patrol cars (POLICE kind) + perception + the chase state machine
      │    └─ police/     beehave trees that only move a unit's car (5 Hz, ticked by hand)
      ├─ buses.gd         buses on traffic's BUS pool, sent to stops (send_to_stop / let_go)
@@ -92,8 +94,20 @@ skill, not from the player's speed. Built so far (steps 1 to 4a of 8):
 - **Out of the town's cars** (traffic exists only round the view) a racer pays the delay its
   streets would have cost, as ground not covered (`AWAY_*`), so a race out of sight is not a race
   on empty streets.
+- **Told apart** (step 6a). A rival's own numbers in `ladder.gd` beyond its pace: `dare` (the
+  clear oncoming road a pass needs), `indicate` and `flash` (how early it indicates, how soon it
+  flashes its headlights at a slower car), `home` (districts whose every shortcut and yard it
+  knows: `RaceCuts.links`' `home`). **The lights** (`race_signals.gd`) are read from the Driver
+  every frame of a race by `rivals.gd` (`_signal_tick`) and never change how it drives: `tick`
+  is pure (a `State`, the Driver, the graph), `build` makes four lamp meshes on the rival's
+  `body` node, shown only while lit. A new thing a rival should be seen to do is a field on the
+  Driver that `tick` reads, not a second copy of the decision. **The report** (`race_report.gd`)
+  keeps both cars' ways through a race and at its end names what decided it (the route, the
+  standing, the pace); `rivals.gd` adds its lines to the result card and its picture
+  (`RaceReport.Sketch`) through `hud.set_card_art`.
 - The pack race, the autopilot's ghost and Halina's roll-up behind the car before the first race
-  (`call_first`) still go by metres (no plan).
+  (`call_first`) still go by metres (no plan), and only the ladder races and the final have
+  lights and a report (step 6b: one race session for every race).
 
 Still to come: RaceDriver (passing, contact and recovery are the old rail car's; its pass over
 the centre line, `_race_pass`, minds only the oncoming lanes it uses and how fast the two cars

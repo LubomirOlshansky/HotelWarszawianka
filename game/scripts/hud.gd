@@ -228,6 +228,12 @@ var _card_buttons: BoxContainer
 ## F 2026-11-10: the caller's face on a card's head (a quest offer; Portraits), and the phone view
 ## of an incoming call (show_call) inside the same panel: the card's own rows hide meanwhile.
 var _card_rows: VBoxContainer
+## Racer AI step 6a: the row of a card's words and its picture, and the picture (`set_card_art`).
+var _card_mid: HBoxContainer
+var _card_art: Control
+## ... the card's width without it (px), and the room between the words and the picture (points).
+var _card_art_w := 0.0
+const CARD_ART_GAP := 10.0
 var _card_face: Control
 var _card_face_tex: Texture2D
 var _card_face_letter := ""
@@ -1617,9 +1623,14 @@ func _build_mission_panels() -> void:
 	_card_title_en.clip_text = true
 	_card_title_en.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	head.add_child(_card_title_en)
+	# (The words, and beside them a card's picture when it has one: `set_card_art`.)
+	_card_mid = HBoxContainer.new()
+	_card_mid.add_theme_constant_override("separation", roundi(CARD_ART_GAP * pt))
+	box.add_child(_card_mid)
 	var text := VBoxContainer.new()
 	text.add_theme_constant_override("separation", roundi(2.0 * pt))
-	box.add_child(text)
+	text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_card_mid.add_child(text)
 	_card_body = _label(T_SUB, INK)
 	_wrap(_card_body, CARD_W - 20.0)
 	text.add_child(_card_body)
@@ -1723,6 +1734,7 @@ func show_card(title: String, body: String, buttons: PackedStringArray, accent: 
 		title_en := "", body_en := "", stacked := false) -> void:
 	accent = Access.tint(accent)  # colour-safe (access.gd)
 	_card_owner = null  # a new card is nobody's until its maker calls own_card
+	_drop_card_art()  # ... and has no picture until its maker gives it one
 	title = Lang.pick(title, title_en)
 	body = Lang.pick(body, body_en)
 	title_en = ""
@@ -1789,6 +1801,45 @@ func card_button_text(index: int) -> String:
 func hide_card() -> void:
 	_card_owner = null
 	_show(_card, false)
+	_drop_card_art()
+
+
+## Racer AI step 6a: a picture beside the words of the card showing now (the race result's two
+## routes: race_report.gd `Sketch`). Call it right after `show_card`; `art`'s
+## `custom_minimum_size` is its size on screen. The card grows wider by the picture, so its
+## words keep their lines; on a screen with no room for that between the top row's buttons it
+## keeps its width and the words wrap narrower. The card owns the picture from here: the next
+## card shown, or this one's end, frees it and gives the card its shape back.
+func set_card_art(art: Control) -> void:
+	_drop_card_art()
+	_card_art = art
+	_card_art_w = _card.custom_minimum_size.x
+	_card_mid.add_child(art)
+	var more := art.custom_minimum_size.x + CARD_ART_GAP * pt
+	_card.custom_minimum_size.x = _card_art_w + more
+	_card.reset_size()
+	_layout()
+	if _unplaced.has(_card.name):
+		_card.custom_minimum_size.x = _card_art_w
+		var w := (_card_art_w - more) / pt - 20.0
+		_wrap(_card_body, w)
+		_wrap(_card_body_en, w)
+		_card.reset_size()
+	_mark()
+
+
+## True while the card showing has a picture (`set_card_art`).
+func card_has_art() -> bool:
+	return _card_art != null
+
+
+func _drop_card_art() -> void:
+	if _card_art == null:
+		return
+	_card_mid.remove_child(_card_art)
+	_card_art.queue_free()
+	_card_art = null
+	_set_card_width(_card_art_w / pt)
 
 
 # --- tech-debt TD-16: the card's owner ---------------------------------------------------------

@@ -31,6 +31,7 @@ extends RefCounted
 ## (traffic.gd `_hop_clear`).
 
 const LaneGraph := preload("res://scripts/lane_graph.gd")
+const Districts := preload("res://scripts/districts.gd")
 
 const PATH := "res://data/race_cuts.json"
 const LINKS_PATH := "res://data/race_links.json"
@@ -66,6 +67,9 @@ var width := PackedFloat32Array()
 var kind := PackedStringArray()
 ## Per race link (from `first_link` on), its id in the file.
 var link_id := PackedStringArray()
+## Racer AI step 6a: the district each cut and link lies in (data/districts.json's id by the
+## middle of its two junctions; "" outside them all), for a rival's home ground (`links`' `home`).
+var area := PackedStringArray()
 ## Cuts in the file whose ends found no node.
 var missed := 0
 var total := 0
@@ -120,6 +124,7 @@ func load_cuts(graph, path := PATH) -> void:
 		width.append(l[4])
 		kind.append(l[5])
 		link_id.append(l[6])
+	_mark_areas(graph)
 
 
 func _read_cuts(graph, path: String) -> void:
@@ -235,6 +240,16 @@ func _node(graph, exact: Dictionary, p: Vector2) -> int:
 	return -1
 
 
+## Step 6a: each cut's and link's district (`area`), read once from the districts' data.
+func _mark_areas(graph) -> void:
+	area.resize(a.size())
+	var districts := Districts.new()
+	if districts.load_data():
+		for i in a.size():
+			area[i] = districts.district_at((graph.node_pos[a[i]] + graph.node_pos[b[i]]) * 0.5)
+	districts.free()
+
+
 ## Whether a rival knowing `share` of the cuts (0-1), seeded by `seed` (its name), knows cut i.
 static func knows(i: int, share: float, seed: int) -> bool:
 	if share <= 0.0:
@@ -249,22 +264,31 @@ static func knows(i: int, share: float, seed: int) -> bool:
 ## of `share`, the race links of `yards` the racer dares (`narrow`: the narrowest it takes, m), and
 ## the wrong-way hops of `hops` (0: it never drives against a one-way street) but those along the
 ## streets of `no_hop` ({edge: true}: the hops it has refused this race, RacePlanner.Plan).
-func links(share: float, seed: int, yards := 0.0, narrow := 99.0, hops := 0.0, no_hop := {}) -> Array:
+## A cut is not handed out onto a road of `shut` ({edge: true}: the streets its plan has found
+## blocked. Step 6a: the metres round a blocked street counted the cut that joins the blocked
+## street itself, 720 m short for Halina behind a wall on Leona Kruczkowskiego; the plan she
+## drives by never did).
+func links(share: float, seed: int, yards := 0.0, narrow := 99.0, hops := 0.0, no_hop := {}, home := [], shut := {}) -> Array:
 	var table := {}
 	var extra := {}
 	for i in a.size():
+		# Step 6a: on its home ground (`home`: district ids) it knows every cut and every yard
+		# it dares; a wrong-way hop is a dare, not knowledge, and stays its own share.
+		var at_home := not home.is_empty() and area[i] != "" and home.has(area[i])
 		if shape[i].is_empty():
-			if not knows(i, share, seed):
+			if not at_home and not knows(i, share, seed):
 				continue
 		elif kind[i] == "wrong":
 			if not knows(i - first_link + LINK_SEED, hops, seed) or no_hop.has(hop(a[i], b[i])):
 				continue
-		elif width[i] < narrow or not knows(i - first_link + LINK_SEED, yards, seed):
+		elif width[i] < narrow or (not at_home and not knows(i - first_link + LINK_SEED, yards, seed)):
 			continue
 		for way in 2:
 			var from := a[i] if way == 0 else b[i]
 			var exits: PackedInt32Array = exits_ab[i] if way == 0 else exits_ba[i]
 			for g in exits:
+				if shut.has(g):
+					continue
 				if not table.has(from):
 					table[from] = PackedFloat32Array()
 				table[from].append_array(PackedFloat32Array([g, length[i]]))

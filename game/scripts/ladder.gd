@@ -61,6 +61,15 @@ extends RefCounted
 ##   of a corner near the player (Halina, Bartek; more when it pushes), `wrong` wrong turns a race
 ##   (Słoik), `block` the chance of moving across the player's line when chased (Seba most),
 ##   `phone` a one-second brake for a call (Mike).
+## - **Told apart by how they drive** (racer AI step 6a, docs/design/race-ai.md 6.1): `dare`, how
+##   much clear oncoming road a pass over the centre line needs (× traffic.gd PASS_MARGIN, and
+##   over 1 the oncoming car's metres count that many times: Halina takes wide gaps only, Seba
+##   narrow ones, and nobody a pass that cannot be made); `indicate`, the seconds before a turn, a pass or a
+##   yard its indicator comes on (race_signals.gd: Halina early, Mike late with his hands full,
+##   Seba never); `flash`, the seconds it sits behind a slower car before it flashes its
+##   headlights (0: never; Seba at once); `home`, the districts (data/districts.json ids) where it
+##   knows every shortcut and yard it dares, whatever its `cuts` and `yards` (Halina's Powiśle and
+##   Śródmieście, Bartek's riverside, Seba's Praga, Mike's office towers in Wola).
 ## - **The record** is the wallet's `ladder` (rung id -> the day it was first beaten, yyyymmdd;
 ##   the save's [ladder] section, wallet.gd). The final's win is `ladder["trzy_mosty"]`
 ##   (`final_won`), for the end card of the next slice.
@@ -72,22 +81,28 @@ const Lang := preload("res://scripts/lang.gd")
 const RUNGS := [
 	{"id": "halina", "rival": "Pani Halina", "short": "HALINA", "stake": 60, "respect": 0, "pace": 1.25, "accel": 1.5,
 		"share": 0.70, "race_accel": 8.0, "brake": 4.5, "lat": 10.0, "knows": 1.0, "caution": 0.8,
-		"cuts": 0.3, "yards": 1.0, "narrow": 3.5, "hops": 0.0, "mistake": 0.2, "wrong": 0, "block": 0.0, "phone": false},
+		"cuts": 0.3, "yards": 1.0, "narrow": 3.5, "hops": 0.0, "mistake": 0.2, "wrong": 0, "block": 0.0, "phone": false,
+		"dare": 2.5, "indicate": 3.0, "flash": 0.0, "home": ["powisle", "srodmiescie", "trakt"]},
 	{"id": "sloik", "rival": "Słoik z Radomia", "short": "SŁOIK", "stake": 90, "respect": 100, "pace": 1.3, "accel": 1.55,
 		"share": 0.92, "race_accel": 9.5, "brake": 8.0, "lat": 11.0, "knows": 0.0, "caution": 0.5,
-		"cuts": 0.0, "yards": 0.0, "narrow": 4.5, "hops": 0.0, "mistake": 0.12, "wrong": 1, "block": 0.0, "phone": false},
+		"cuts": 0.0, "yards": 0.0, "narrow": 4.5, "hops": 0.0, "mistake": 0.12, "wrong": 1, "block": 0.0, "phone": false,
+		"dare": 1.5, "indicate": 1.0, "flash": 0.0, "home": []},
 	{"id": "bartek", "rival": "Bulwar Bartek", "short": "BARTEK", "stake": 120, "respect": 220, "pace": 1.35, "accel": 1.6,
 		"share": 0.80, "race_accel": 10.5, "brake": 9.0, "lat": 12.0, "knows": 0.5, "caution": 0.3,
-		"cuts": 0.4, "yards": 0.3, "narrow": 3.0, "hops": 0.0, "mistake": 0.2, "wrong": 0, "block": 0.3, "phone": false},
+		"cuts": 0.4, "yards": 0.3, "narrow": 3.0, "hops": 0.0, "mistake": 0.2, "wrong": 0, "block": 0.3, "phone": false,
+		"dare": 1.0, "indicate": 1.6, "flash": 3.0, "home": ["powisle"]},
 	{"id": "seba", "rival": "Seba z Pragi", "short": "SEBA", "stake": 150, "respect": 340, "pace": 1.4, "accel": 1.65,
 		"share": 0.86, "race_accel": 12.0, "brake": 13.0, "lat": 15.0, "knows": 0.7, "caution": 0.0,
-		"cuts": 0.6, "yards": 0.6, "narrow": 2.8, "hops": 1.0, "mistake": 0.08, "wrong": 0, "block": 0.9, "phone": false},
+		"cuts": 0.6, "yards": 0.6, "narrow": 2.8, "hops": 1.0, "mistake": 0.08, "wrong": 0, "block": 0.9, "phone": false,
+		"dare": 0.5, "indicate": 0.0, "flash": 0.8, "home": ["praga"]},
 	{"id": "zbyszek", "rival": "Taksiarz Zbyszek", "short": "ZBYSZEK", "stake": 200, "respect": 480, "pace": 1.45, "accel": 1.7,
 		"share": 0.93, "race_accel": 12.5, "brake": 12.0, "lat": 15.5, "knows": 1.0, "caution": 0.2,
-		"cuts": 1.0, "yards": 1.0, "narrow": 3.0, "hops": 0.0, "mistake": 0.03, "wrong": 0, "block": 0.4, "phone": false},
+		"cuts": 1.0, "yards": 1.0, "narrow": 3.0, "hops": 0.0, "mistake": 0.03, "wrong": 0, "block": 0.4, "phone": false,
+		"dare": 1.3, "indicate": 2.2, "flash": 2.5, "home": []},
 	{"id": "mike", "rival": "Mordor Mike", "short": "MIKE", "stake": 300, "respect": 640, "pace": 1.5, "accel": 1.75,
 		"share": 1.0, "race_accel": 13.5, "brake": 13.0, "lat": 16.5, "knows": 0.4, "caution": 0.1,
-		"cuts": 0.5, "yards": 0.5, "narrow": 2.8, "hops": 1.0, "mistake": 0.05, "wrong": 0, "block": 0.3, "phone": true},
+		"cuts": 0.5, "yards": 0.5, "narrow": 2.8, "hops": 1.0, "mistake": 0.05, "wrong": 0, "block": 0.3, "phone": true,
+		"dare": 0.7, "indicate": 0.7, "flash": 1.2, "home": ["wola"]},
 ]
 ## The final race: index RUNGS.size() (6) everywhere a rung index is asked for.
 const FINAL := 6
@@ -108,14 +123,17 @@ const FINAL_ACCEL := 1.7
 ## Seba's racing in the final (`racer`): his own late brakes and grip with nearly Mike's
 ## straights, every shortcut, always blocking.
 const FINAL_RACER := {"share": 0.98, "race_accel": 13.0, "brake": 12.5, "lat": 16.0, "knows": 1.0, "caution": 0.0,
-		"cuts": 1.0, "yards": 1.0, "narrow": 2.8, "hops": 1.0, "mistake": 0.05, "wrong": 0, "block": 1.0, "phone": false}
+		"cuts": 1.0, "yards": 1.0, "narrow": 2.8, "hops": 1.0, "mistake": 0.05, "wrong": 0, "block": 1.0, "phone": false,
+		"dare": 0.5, "indicate": 0.0, "flash": 0.8, "home": []}
 ## Racing outside the ladder: a middling driver (between Bartek and Seba).
 const DEFAULT_RACER := {"share": 0.82, "race_accel": 10.5, "brake": 9.0, "lat": 12.5, "knows": 0.6, "caution": 0.3,
-		"cuts": 0.5, "yards": 0.5, "narrow": 3.0, "hops": 0.0, "mistake": 0.1, "wrong": 0, "block": 0.3, "phone": false}
+		"cuts": 0.5, "yards": 0.5, "narrow": 3.0, "hops": 0.0, "mistake": 0.1, "wrong": 0, "block": 0.3, "phone": false,
+		"dare": 1.0, "indicate": 1.5, "flash": 2.0, "home": []}
 ## Halina on a gentle day: the guided first race (rivals.gd `call_first`) and every race against
 ## her until she has been beaten once (`gentle`). Gentler than on her rung, and as steady.
 const FIRST_RACER := {"share": 0.65, "race_accel": 7.0, "brake": 4.0, "lat": 9.5, "knows": 1.0, "caution": 1.0,
-		"cuts": 0.3, "yards": 1.0, "narrow": 3.5, "hops": 0.0, "mistake": 0.2, "wrong": 0, "block": 0.0, "phone": false}
+		"cuts": 0.3, "yards": 1.0, "narrow": 3.5, "hops": 0.0, "mistake": 0.2, "wrong": 0, "block": 0.0, "phone": false,
+		"dare": 2.5, "indicate": 3.0, "flash": 0.0, "home": ["powisle", "srodmiescie", "trakt"]}
 ## An easier rematch: each race lost in a row to a rival makes it this much slower the next time
 ## (the straights and the corners), up to EASE_MAX; the streak's key in the save's [keep].
 const EASE_STEP := 0.05

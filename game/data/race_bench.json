@@ -11,7 +11,8 @@
 		"honest_car": "fail",
 		"route_sense": "pass",
 		"same_twice": "pass",
-		"wrong_way": "pass"
+		"wrong_way": "pass",
+		"told_apart": "pass"
 	},
 	"full": {
 		"finishes": "once:Linux",
@@ -22,11 +23,13 @@
 		"reroutes": "pass",
 		"recovers": "fail",
 		"honest_car": "fail",
-		"route_sense": "fail",
+		"route_sense": "once:Linux",
 		"skill_ladder": "pass",
 		"same_twice": "pass",
 		"yard_links": "pass",
 		"wrong_way": "pass",
-		"wrong_way_traffic": "once:Linux"
+		"wrong_way_traffic": "once:Linux",
+		"ladder_curve": "pass",
+		"told_apart": "pass"
 	}
 }

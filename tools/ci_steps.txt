@@ -123,6 +123,8 @@ raceline             quick
 racelinks            quick
 racelinks-drive      smoke     slow
 raceplanner          quick
+racereport           quick
+racesignals          quick
 radio                quick
 railsignals          smoke
 rain                 local     slow
