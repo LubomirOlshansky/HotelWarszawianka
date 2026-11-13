@@ -57,7 +57,7 @@ const BUDGET := {
 	"church_trojca_praga": 410,
 	"church_zielonoswiatkowy": 320,
 	"church_zwycieska": 950,
-	"aleksander": 1460,
+	"aleksander": 2600,  # 2026-11-13 photo rebuild: podium, upper drum windows, Corinthian porticoes
 	"barbakan": 1500,  # 2026-11-06 photo pass: merlon caps and swollen cone roofs
 	"piano_house": 180,
 	"cube_house": 390,
@@ -97,7 +97,7 @@ const BUDGET := {
 	"blekitny": 910,
 	"bridge": 700,
 	"grzybowska77": 2000,
-	"buw": 2900,
+	"buw": 9000,  # 2026-11-13 pass 4 from F's photos (copper frieze and letters, ribbed vault, ivy fronts, pink lattice, drums, dome, Collegium Iuridicum IV, lower garden): 8672 tris, +0 draw calls
 	"central": 340,
 	"centralna": 1650,
 	"chalubinskiego8": 1520,
@@ -105,6 +105,8 @@ const BUDGET := {
 	"plac_grzybowski": 1500,  # 2026-11-08 photo build (F): 1429 tris, the cascade field is 48 blocks
 	"prozna": 5100,  # 2026-11-08 photo build (F): 5014 tris, 1,300 of them the 90 bollards
 	"dom_partii": 6200,  # 2026-11-12 rebuilt whole from F's photos (towers, colonnade, frieze, courtyard fountain): 5202 tris, +0 draw calls
+	"eon41": 1300,  # 2026-11-13 photo rebuild (F): the power company's L-block, curve, medallions, glass tower, lantern
+	"asp37": 1600,  # 2026-11-13 the Academy of Fine Arts: the 1914 school and JEMS's wing
 	"deski": 2300,
 	"rynek": 3100,
 	"syrenka": 480,
@@ -154,7 +156,7 @@ const BUDGET := {
 	# Browary + the Central Garden's gravel path, café clearings and the sedum roofs (2026-11-02).
 	"browary": 3900,   # 2026-11-03: paved main path and clearing edges (look check)
 	"koszyki": 1370,
-	"elektrownia": 1950,
+	"elektrownia": 7600,  # 2026-11-13: the whole complex (hall, halls, passage, office, old wing, gardens): 1634 -> ~6850
 	"rotunda_dynasy": 1400,
 	"mpw": 3200,
 	"metropolitan": 3100,
@@ -180,7 +182,7 @@ const BUDGET := {
 	"pko_branch": 220,  # 2026-11-09 photo rebuild (F): 162 tris (granite slab, glass bays, wings, courtyard)
 	"dekalog_estate": 18000,
 	"inflancka_pools": 1000,
-	"spektrum": 990,
+	"spektrum": 3900,  # 2026-11-13 rebuild from F's photos (3567 tris): fin, podium, crown screens, the rooftop club THE WJU and its lounge; +0 draw calls
 	"spire": 6600,  # 2026-11-06 photo rebuild (F), 6151 tris (vase, steel crown ring, drum): steel columns, canopy bow, Spire B/C crowns and eaves, plaza kerbs, channel, 26 trees; +0 draw calls
 	"tr": 500,
 	"tower75": 220,
@@ -217,6 +219,7 @@ const BUDGET := {
 	"pomnik_wschod": 1280,
 	"ochota": 1420,
 	"powisle": 6800,
+	"powisle_towers": 1900,   # the viaduct's Powiśle gate towers, arcade, wing and kiosk (2026-11-13, 1608)
 	"barka_wieczor": 1820,
 	"barka_biala": 1400,
 	"barka_marina": 2240,
@@ -244,7 +247,8 @@ const BUDGET := {
 	"gielda": 1050,
 	"filharmonia": 1450,
 	"teatr_polski": 760,
-	"teresy": 280,
+	"teresy": 900,  # 2026-11-13 photo rebuild (cream plaster, round-headed windows, porch, spire)
+	"flisac": 4200,  # 2026-11-13: the grid of panes, loggias and shop glass, 3,552 triangles
 	"florian": 2480,
 	"bazar": 2210,
 	"sw_krzyz": 1250,  # 2026-11-06 photo pass: the real flat front, balustrade and statue
@@ -254,7 +258,8 @@ const BUDGET := {
 	"zamkowy": 1700,
 	"arkady": 2600,
 	"kino_muranow": 6000,
-	"zbawiciela": 1250,
+	"zbawiciela": 3400,
+	"zbawiciela_plac": 2200,
 	"tarasy": 9400,  # 2026-11-11 F's photos: the triangular glass wave, the guitar, the café (5455); the whole complex: podium ledges, shop boards, Lumen's setback (7781)
 	"tarasy_plaza": 2750,  # 2026-11-11: the sunken plaza by the station: walls, shopfronts, railings, treads, umbrellas (2290)
 	"trojca": 2300,
@@ -291,6 +296,8 @@ const BUDGET := {
 	"nocny": 7000,
 	# Kolejowa's old railway warehouses, the pinball museum and the teal club (F's photos).
 	"kolejowa": 2500,
+	# The facade kit's test building (facade_kit.gd kit_sampler): every part and style once.
+	"kit_sampler": 3600,  # 2985 measured: the facade kit's test building
 }
 ## Known defects per site: {"zfight": n, "degenerate": n, "badnormal": n, "float": n}.
 ## Towarowa 22's drone taxi hovers 7 m over its pad by design (the "Warsaw of the future").
@@ -414,6 +421,14 @@ func _initialize() -> void:
 		var found := _examine(key, rec)
 		measured[key] = found
 		_judge(key, found)
+	# The facade kit's sampler (facade_kit.gd `kit_sampler`, docs/design/facade-kit.md section 6):
+	# not a site, built and judged like one, so a kit part that flickers, floats or lights wrongly fails here.
+	var kit_rec := Recorder.new()
+	marks.build(kit_rec, Rect2(), "kit_sampler")
+	if kit_rec.pos.size() > 0:
+		var kit_found := _examine("kit_sampler", kit_rec)
+		measured["kit_sampler"] = kit_found
+		_judge("kit_sampler", kit_found)
 	for key: String in BUDGET:
 		if not measured.has(key):
 			problems.append("%s: has a budget but builds nothing (site gone?)" % key)

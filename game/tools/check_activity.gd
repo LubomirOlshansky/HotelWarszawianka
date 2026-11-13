@@ -25,10 +25,13 @@ extends SceneTree
 ##   card that still stops the run in the frame it closes, a card taken down without a press
 ##   (`close_card`, never somebody else's), a side card with its buttons stacked, and the
 ##   activity that drives the autopilot's car itself (`drive_player`);
+## - what the deliveries (jobs.gd) needed: the status line's small pictures (`status`'s `icons`:
+##   the kebab's heat, the jars);
 ## - the director: at most one activity of the kit on at a time, `world_free` holds all of them
 ##   (but one that joined with its own test for the world, as the EV tow does: that one is asked
 ##   instead), and it names the one that is on, the one with a target and why the helicopter is
-##   refused;
+##   refused; `job_on` is true while a side job (`is_job`) is on and only then; the M and K keys
+##   go to the first activity that takes them, in the order they joined, and to nobody after it;
 ## - the real HUD (hud.gd): a real button's press goes to the card's owner only, and an unowned
 ##   card's press to every listener, as before the kit;
 ## - every data/*_tour.json: all the keys tour.gd reads, both languages, known shot kinds, only the
@@ -83,6 +86,10 @@ class Probe extends Activity:
 	var drives := false
 	## A press of a card of the run ends the run (a result card that goes by itself).
 	var ends_on_press := false
+	## It takes the M and K keys while a card of its run is up (the kit's own: it takes neither),
+	## and each key it took: 0 for M, 1 for K.
+	var keys := false
+	var keyed: Array[int] = []
 
 	func _call_card() -> Dictionary:
 		var c := {"who": "Próba", "about": ["Ktoś od prób.", "Somebody who tests."]}
@@ -134,6 +141,20 @@ class Probe extends Activity:
 
 	func drive_player() -> bool:
 		return drives if drives else super.drive_player()
+
+	func primary() -> bool:
+		if keys and _card_up:
+			keyed.append(0)
+			card_pressed(0)
+			return true
+		return super.primary()
+
+	func secondary() -> bool:
+		if keys and _card_up:
+			keyed.append(1)
+			card_pressed(1)
+			return true
+		return super.secondary()
 
 	func _ended() -> void:
 		ended += 1
@@ -476,6 +497,15 @@ func _refusals_and_looks() -> void:
 	_expect(hud.badge == "2/9" and hud.tint == a.colour, "the status line's badge reaches the HUD, in the activity's colour still")
 	a.status("Próba", "1/1", "5 m", ["jedź", "drive"], 0.5)
 	_expect(hud.badge == "", "and the next line without one has none")
+	# The line's small pictures (the kebab's heat, the jars): none unless asked for.
+	_expect(hud.icons.is_empty(), "the status line has no pictures unless it is given some: %s" % [hud.icons])
+	a.status("Próba", "1/1", "5 m", ["jedź", "drive"], 0.5, Color.RED, "1ST", {"heat": 0.75})
+	_expect(hud.icons == {"heat": 0.75} and hud.badge == "1ST" and hud.tint == Color.RED and hud.status == "jedź" and hud.hint_en == "drive",
+			"the status line's pictures reach the HUD, with its badge, its colour and both hints: %s" % [hud.icons])
+	a.status("Próba", "1/1", "5 m", ["jedź", "drive"], 0.5, Color(0, 0, 0, 0), "", {"jars": [5, 6], "shake": 0.25})
+	_expect(hud.icons == {"jars": [5, 6], "shake": 0.25} and hud.tint == a.colour, "the jars' picture too, in the activity's colour: %s" % [hud.icons])
+	a.status("Próba", "1/1", "5 m", ["jedź", "drive"], 0.5)
+	_expect(hud.icons.is_empty(), "and the next line without pictures has none")
 	# The ring beside the spot, with its own radius.
 	a.set_target(Vector2(10.0, 20.0))
 	_expect(is_equal_approx(a._beacon._ring_radius, a.arrive - 0.5), "the ring's radius is the stop ring's by default")
@@ -803,6 +833,57 @@ func _director() -> void:
 	_expect(d.current() == a and d.busy_tag() == "first" and not d.may_start(c), "taken: now it is the current one")
 	a.finish()
 	a.offer_busy = true
+	# The side jobs (`is_job`): `job_on` is what the game asked jobs.gd by name ("is a kebab, a
+	# ride, the round-up or a trend job on?"). True while one of them is on, and only then.
+	_expect(not d.job_on(), "nothing on: no job on")
+	a.ring()
+	hud.press(0)
+	hud.press(0)
+	_expect(d.busy() and d.current() == a and not d.job_on(), "an activity that is not a job runs: the director is busy, no job is on")
+	a.finish()
+	b.is_job = true
+	b.offer_busy = false
+	b.ring()
+	hud.press(0)
+	_expect(b.phase == Activity.Phase.OFFER and not d.job_on(), "a job's request card that leaves the player free: no job on yet")
+	hud.press(0)
+	_expect(d.job_on() and d.current() == b, "the request taken: a job is on")
+	a.is_job = true
+	_expect(d.job_on(), "a job is on whichever of the jobs it is (the first is one now, and idle)")
+	b.finish()
+	_expect(not d.job_on(), "the job over: none on")
+	a.is_job = false
+	b.is_job = false
+	b.offer_busy = true
+	# The M and K keys (the pad's A and X): the director asks each activity in the order they
+	# joined; the first that takes the key gets it and nobody after it is asked. The kit's own
+	# answer is "not mine".
+	_expect(not d.primary() and not d.secondary(), "no activity takes a key unless it says so")
+	a.keys = true
+	b.keys = true
+	c.keys = true
+	_expect(not d.primary() and not d.secondary() and a.keyed.is_empty() and b.keyed.is_empty() and c.keyed.is_empty(),
+			"nobody has a card of the run up: the keys are nobody's")
+	b.start()
+	b.show_card(["KARTA", "CARD"], ["Tekst", "Text"], PackedStringArray(["OK", "NIE"]))
+	var b_pressed := b.pressed.size()
+	_expect(d.secondary() and b.keyed == [1] and b.pressed.size() == b_pressed + 1 and b.pressed[-1] == 1
+			and a.keyed.is_empty() and c.keyed.is_empty() and not hud.card_showing(),
+			"K goes to the one whose card is up, as its second button (%s, %s)" % [b.keyed, b.pressed])
+	_expect(not d.primary() and b.keyed == [1], "its card is down now: M is nobody's")
+	# Two with a card up at once (the game never has that): the one that joined first takes the
+	# key, alone.
+	a.start()
+	a.show_card(["PIERWSZA", "FIRST"], ["Tekst", "Text"], PackedStringArray(["OK"]))
+	b.show_card(["DRUGA", "SECOND"], ["Tekst", "Text"], PackedStringArray(["OK"]))
+	_expect(d.primary() and a.keyed == [0] and b.keyed == [1] and c.keyed.is_empty() and hud.card == "DRUGA",
+			"M with two cards up: the first in the list takes it and the second is not asked (%s, %s)" % [a.keyed, b.keyed])
+	_expect(d.primary() and a.keyed == [0] and b.keyed == [1, 0] and not hud.card_showing(), "M again: now it is the second's (%s)" % [b.keyed])
+	a.finish()
+	b.finish()
+	a.keys = false
+	b.keys = false
+	c.keys = false
 
 
 # --- the real HUD (TD-16) --------------------------------------------------------------------------

@@ -12,7 +12,7 @@ extends Control
 ##     state in view; Point with the camera off is the Fixed camera scheme);
 ##   Świat · World: Time of day (the old TIME button), Weather (RAIN), Traffic;
 ##   Obraz · Picture: Retro and the camera angle (F, 2026-11-07: 30°, 40°, 50°), Quality (loop G1: Auto, the default, then Low, Medium,
-##     High, Ultra; Auto's English line names the level it picked here), VHS tape (VHS), Frame
+##     High, Ultra, Experimental; Auto's English line names the level it picked here), VHS tape (VHS), Frame
 ##     rate, the performance overlay and the TEST bench;
 ##   Dźwięk · Sound: volume, radio, effects (− and + in tenths, or drag along the bar).
 ## Loop MW-1: a fifth tab, ZESZYT · notebook: MOJA WARSZAWA, the city notebook
@@ -58,16 +58,22 @@ const Gamepad := preload("res://scripts/gamepad.gd")  # the gamepad loop
 ## on, it follows the car (Point; Classic's default), off it stays put (Fixed camera; Classic
 ## with the camera fixed).
 const CAMERA := [["Wł.", "On"], ["Wył.", "Off"]]
-## What the one scheme (drive_controls.gd CLASSIC) does, in a line.
+## F 2026-11-13: Classic's touch controls (settings.gd `pads`): fixed arrows + pedals, or the strip.
+const PADS := [["Strzałki", "Arrows"], ["Suwak", "Slider"]]
+## What each (PADS) does, in a line.
 const CONTROLS_SAY := [
-	["Kierownica lewo–prawo, gaz i hamulec po prawej.", "Steer left–right; GAS and BRAKE on the right."],
+	["Strzałki w lewym rogu, gaz i hamulec w prawym.", "Arrows bottom left; GAS and BRAKE bottom right."],
+	["Przesuń kciukiem w lewo–prawo, gaz i hamulec po prawej.", "Slide your thumb left–right; GAS and BRAKE on the right."],
 ]
 ## Loop MW-3: Świt (Dawn) last, the mode's index (time_of_day.gd DAWN after LIVE).
 const TIME := [["Dzień", "Day"], ["Zmierzch", "Dusk"], ["Noc", "Night"], ["Na żywo", "Live"], ["Świt", "Dawn"]]
 const WEATHER := [["Pogodnie", "Clear"], ["Deszcz", "Rain"]]
 const TRAFFIC := [["Pustawo", "Almost empty"], ["Mało", "Low"], ["Normalnie", "Normal"], ["Tłoczno", "Busy"]]
 ## Loop G1: index 0 is Auto (settings.gd AUTO), then the levels (tiers.gd LOW..ULTRA) one up.
-const QUALITY := [["Auto", "auto"], ["Niska", "Low"], ["Średnia", "Medium"], ["Wysoka", "High"], ["Ultra", "Ultra"]]
+## F 2026-11-10: Experimental after Ultra (tiers.gd: Ultra plus the trailer's extras, to test on the
+## phone; this session only, never saved).
+const QUALITY := [["Auto", "auto"], ["Niska", "Low"], ["Średnia", "Medium"], ["Wysoka", "High"], ["Ultra", "Ultra"],
+		["Eksperyment", "Experimental"]]
 const ON_OFF := [["Wył.", "Off"], ["Wł.", "On"]]
 ## F (2026-11-07): the camera's angle over the ground, follow_camera.gd PITCHES (30° the default).
 const ANGLE := [["30°", "30°"], ["40°", "40°"], ["50°", "50°"]]
@@ -223,6 +229,7 @@ func _build() -> void:
 	rescue.add_child(_new_game_button)
 
 	_heading(drive[0], "Sterowanie", "Controls")
+	_segments(drive[0], "pads", PADS)
 	_say_pl = _text("", T_SUB, INK)
 	_say_en = _text("", T_SUB, SUB)
 	for l in [_say_pl, _say_en]:
@@ -234,7 +241,7 @@ func _build() -> void:
 	_segments(drive[1], "camera", CAMERA)
 	_heading(drive[1], "Prowadzenie", "Handling")
 	_segments(drive[1], "handling", HANDLING)
-	# Beta values (2026-11-04): the lane assist (lane_assist.gd), Classic only, off by default,
+	# Beta values (2026-11-04): the lane assist (lane_assist.gd), Classic only, on by default since 2026-11-13,
 	# side by side with the pedestrian zones (a fourth row made the panel too tall for the phone).
 	var pair := HBoxContainer.new()
 	pair.add_theme_constant_override("separation", _px(8))
@@ -575,7 +582,7 @@ func sync(state: Dictionary) -> void:
 	for key in _bars:
 		_values[key] = float(state.get(key, 1.0))
 		(_bars[key] as Control).queue_redraw()
-	_say(scheme)
+	_say(int(state.get("pads", 0)))
 
 
 func close() -> void:
@@ -863,8 +870,8 @@ func _select(key: String, index: int) -> void:
 		(buttons[k] as Button).set_pressed_no_signal(k == index)
 
 
-func _say(_scheme: int) -> void:
-	var s: Array = CONTROLS_SAY[0]
+func _say(pads: int) -> void:
+	var s: Array = CONTROLS_SAY[clampi(pads, 0, CONTROLS_SAY.size() - 1)]
 	_say_pl.text = Lang.pick(s[0], s[1])
 	_say_en.text = ""
 	_say_en.visible = false

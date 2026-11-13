@@ -3,6 +3,20 @@
 Small problems that agents reported or that showed up in screenshots. They are fixed in the
 "loop" stage after the roadmap versions (or earlier, when an agent is already in that file).
 
+## Fill the shared photo store (2026-11-13, building-pipeline-review item 3)
+
+`tools/refs_store.py` and the store `/mnt/project-files/refs/` exist. The Mac's `refs/` and F's three photo folders were copied in on 2026-11-13 (3,103 files; F's folders sit under `_f/` and are tied to slugs in `ALIASES.tsv`).
+- [ ] New photos gathered on the Mac after 2026-11-13 still need a cloud thread with Mac access to copy them in (the store is not mounted on the Mac).
+- [ ] A Mac gather run works down `python3 -I tools/refs_store.py gaps` (Commons and the orthophoto), then `push`.
+- [ ] 33 inventory rows still have no slug in `tools/refs_slugs.tsv` (the index shows `-`): add a line when a place gets a spec or a site key.
+
+
+## Rooftop run: drive a photographer between the roof clubs (F, 2026-11-13: "add some quest to backlog to transport photographer between the rooftop clubs like pevel27, the view and the roof")
+
+Not built: new work is stopped (STOP NEW WORK, F 2026-11-11); queued for when it is lifted. A side job in the Podwózka family: a photographer (a passenger with a face, like the ride stories) has to shoot the city's rooftop clubs in one evening and the player drives them from roof to roof.
+- [ ] Stops, in the order F named them (parody names only): **PEVEL 27** (F's spelling of Level 27; the real club is on Al. Jerozolimskie, the game's only rooftop club today is Level 26 on the Atlas Tower, site `level26_club`, so the 27 needs its own parody name and place, QUESTIONS), **THE WJU** (the parody of The View, the club on Spektrum Tower, Twarda 18, built in PR #703; F kept this name on 2026-11-13), and **"the roof"** (which roof F means is open, QUESTIONS; default LORETKA, the pink date bar on HOTEL PIURE's roof, the one rooftop venue already in the game).
+- Default to build when it starts: a job on the Activity kit (`extends "res://scripts/activity.gd"`, `is_job` set, registered with `activities.add`; recipe in `docs/architecture/extending.md`, the way Podwózka's rides and the courier job are ported): the photographer calls, the player picks them up, three stops each ending at the club's door or its lift (the Senatorek lobby's way in is the model for "up to the roof"), a few seconds of flash and a line at each stop, then a fare and a tip, +½ star on a smooth drive like a ride. Words in Polish with English (warsaw-tone skill), the caller's face from `Portraits` (initial on a disc until a portrait exists). Check: `check_job_play`-style play of the whole job in a new `check_*` that joins `tools/ci_steps.txt`.
+- Extras once it plays: the stop order by night (clubs lit, queues up), a shot that needs the car stopped in a ring for 2 s, the photographer's photos as Fotka cards.
 
 ## Churches still to model from photos (F, 2026-11-13; review in docs/LANDMARKS.md "Churches review")
 
@@ -120,6 +134,7 @@ F: too little detail in Powiśle; wants real houses, street details and the powe
 - [x] P13b Powiśle houses pass 2 (2026-11-09): 19 photographed houses off Tamka in `powisle_houses.gd` (plaster, balconies, base, street fronts from the map). Left: Tamka 36 and other firewall murals, Smolna 32 (no usable photo), Pawilon Tańca (inside only), the brick ornament on Klub Bankowca, the stone grid on Carpathia
 - [x] P1 Elektrownia Powiśle from photos and P2-ish Chopin museum rebuild (2026-11-09, specs elektrownia.md, ostrogski.md). Left: the new blocks round the Elektrownia, its yard and night look, the castle stairs from Tamka
 - [x] P7/P8 from F's photos (2026-11-09): Rotunda Dynasy (`rotunda_dynasy`), Park Odkrywców's listening pipes and dishes, the Kahl stone (tamka.gd PARK_*). Left from the photo set: Teatr Ateneum's portico (which face is the door), Buffo, the BUW roof garden and canopy, the corten river stairs, the moorings and the port, the Zajęcza mural. Street plates and Teatr Ateneum's portico done in follow-ups (2026-11-09). Still left: Buffo and the Zajęcza mural (parked in QUESTIONS, 2026-11-09: wall and outline not identifiable), the Bulwary's corten stair landing and terraced riverfront steps by the science centre (photos F02/*, needs the quay's heights from the terrain), the moorings and piers; the BUW roof garden is already detailed in `buw.md`
+- [ ] P6/P8 Powiśle alive (F, 2026-11-13; plan `docs/powisle-life.md`): L1 ~25 real bars and shops as parody signs on their real streets (Zajęcza 4, the boulevard 9, Solec, Aleja 3 Maja, Browarna, Smolna, Ludna; Sonnet, light) · L2 terrace/garden helper, one MultiMesh per cell, summer and winter, empty in rain (Opus, full DoD, bench) · L3 day schedule of people and Thu-Sat queues on Zajęcza (crowds.gd; Sonnet, Opus review of caps) · L4 bar music through doors and night glow (Opus, lights budget) · L5 furniture to 1.5× (P5) and the park pass (P7) · L6 Mac then phone look. Waits for the "Elektrownia Powiśle with life" thread for the Elektrownia's own spots
 - [ ] P13 Up to 300 more real houses, quest loop and Tamka first, Museum of Fryderyk Chopin (list H001-H300 in docs/powisle-photos-needed.txt)
 
 ## Trees and fences in the water and on the roads (F, 2026-11-08)
@@ -1066,13 +1081,17 @@ Left:
 
 ## Roads true to life: lane-level faults (F, 2026-11-13; docs/design/roads-true-to-life.md)
 
+**Parked by F on 2026-11-13** after the checker (RT-1): the rest waits as tech debt TD-23
+(docs/architecture/tech-debt.md). The `roadtruth` ratchet keeps the counts from growing meanwhile.
+
 Research only so far. The paint and kerbs at way joins are checked (`smooth`, `fixes`), the lane
 level is not: a first measurement of the baked map found 378 lane count changes with no side road,
 84 short lane blips, 373 straight-on lane links landing over 2.5 m aside, 155 turn-back links away
 from dead ends, 77 kinks over 20° on main roads and 4 of 14 roundabout rings whose lane count
 changes inside the ring (upper bounds, not yet checked against photos). In order:
 
-- [ ] RT-1 `tools/road_truth.py` (rules R1-R10, verify step `roadtruth`, findings on the console map)
+- [x] RT-1 `tools/road_truth.py` (2026-11-13): rules R1-R10 on the baked map as a ratchet (verify step `roadtruth`: R1 379, R2 71, R3 403, R5 144, R6 83, R7 262, R8 56, R9 21, R10 266), and with `--osm=` on the Mac 264 turn restrictions the lane graph ignores (of 556) and 353 approaches whose lanes take exits their `turn:lanes` forbid; 12 of 14 sampled places differ from the aerial photo
+- [ ] RT-1b the checker's findings as a layer on the dev console's map (`--json=`); the graph edges of a roundabout flagged by the bake so R9 need not guess by shape
 - [ ] RT-2 lane links through junctions from OSM `turn:lanes` instead of `next_lane`'s guess; arrows from the same data
 - [ ] RT-3 keep OSM `restriction` relations (`prepare_demo.py` drops them), drop forbidden links, U-turns only at dead ends and mapped median gaps
 - [ ] RT-4 lane adds and drops as paint (blips joined or made turn pockets; a dashed line starts, hatching, the kerb stays)
@@ -1679,6 +1698,8 @@ Ghost) set by object type and context in bulk, the override file for exceptions 
 ground-level streets. This order replaces steps 1-7 of "Road objects and collisions" above (the
 same work, re-ranked; its detail in road-objects.md still holds).
 - [x] Research: every object type with its purpose and verdict, what makes the game unreasonably harder, design rules R1-R9, the plan (2026-11-13, docs only)
+- [x] The build plan (2026-11-13, docs only): `docs/design/drivable-city-build.md`, a brief per item for Opus threads (design, steps, acceptance, traps), the order and what depends on what, broken things' memory and recovery (session memory, repaired out of sight), the seam with the walls-look thread. New numbers: only 4.7 of 209 km of fence and hedge have a hazard behind; 60.8 of 68 km of barrier walls carry no height; 209 km of service ways are outside the census
+- [ ] 0 Solid classes in the collider (`_wall_faces` by class, one body per class per sector, `solidity.gd`, `check_solids`): no change in behaviour; it comes before item 1
 - [ ] 1 Contact log (`check_lane_drive --contacts`: collider class and census id, speed before and after), the sloppy driver, a dead-stop line in dev and Autopilot runs; baseline per street
 - [ ] 2 Collision rework v2 (road-objects.md 4.2-4.3): answer by angle, head-on kick, corner pivot, traffic shove; after or inside the controls thread (both edit `car.gd`); F's phone A/B
 - [ ] 3 Smash class: the solidity table as data; fences and hedges off the hard collider onto a soft layer (drag, sound, debris); a fence with a drop over 1.5 m, a railway cutting or water behind it becomes a guard rail; bench, both city paths
@@ -1690,6 +1711,28 @@ same work, re-ranked; its detail in road-objects.md still holds).
 - [ ] 9 Small things: stalls Smash, carts Push, busts, stones and steles under 1 m Ghost, monuments within 1 m of a lane moved back
 - [ ] 10 Ratchets (R9): hard metres within 1 m of a lane by class in `check_map_data.py`; contacts per km and dead stops per street in the drive check
 - [ ] 11 Street sweeps for what the class rules leave (exceptions, landmark rings, look)
+
+## Walls, fences and rails that look real (F, 2026-11-13; docs/design/walls-true-to-life.md)
+
+F: "there are the walls now, but they should represent the real type of object and texture, and how
+to handle it if it is ruined". Research and the phased plan: `docs/design/walls-true-to-life.md`.
+Found: 155.5 of 188 km of fence and 56.8 of 70 km of wall have no OSM detail and are drawn as one
+grey band or one beige slab; the type must come from what the barrier stands next to (a prototype
+names a setting for 60 % of the fence metres from the map's own data; the rest needs land-use
+outlines the bake drops). One image pixel is 10 to 17 cm at the default zoom, so a type is its
+colour, height, outline, post rhythm and openness, not a brick pattern. Proposed: heavy (Hard)
+types as shaped geometry in the city mesh, light (Smash) types as instanced 2 m panels with their
+own small shader (the building shader, 502 of 505, is not touched); a broken panel lies down until
+`soft_things` repairs it (the memory is docs/design/drivable-city-build.md section 5).
+- [x] Research: the types, the classification, how each is drawn and broken, cost, fallbacks, the phases (2026-11-13, docs only)
+- [ ] W0 Type sheet: 6 to 10 reference photos per type (never committed), a card per type, a 20-sample check of each context rule
+- [ ] W1 Types in the bake: `tools/barrier_types.py` (full OSM tags, context outlines, `ty` and `tc` per line), counts in `check_map_data.py`, the type plot; Mac re-bake
+- [ ] W2 Heavy kit: `game/data/barrier_kit.json`, walls with foot, cap, piers, panels and end pieces; noise screens, precast, brick, stone, jersey, parapets; heights by setting; bench
+- [ ] W3 Panel trial on one stretch behind `--barriers=panels`: `panel.gdshader`, a `MultiMesh` per sector, the bar rule at three zooms, draw calls, the Adreno count; F's look check
+- [ ] W4 Panels city-wide, both city paths, the old fence geometry behind the switch
+- [ ] W5 Broken looks per type from the `soft_things` events (after the build plan's item 3)
+- [ ] W6 Content: hoarding posters with parody developers, graffiti patches, gates, bollard rows
+- [ ] W7 Types in the street sweeps; the share of barriers with a default type only goes down
 
 ## After the beta: driving extras and the city economy (F, 2026-11-03, plan only)
 
@@ -2992,6 +3035,10 @@ real ones added to `brand_denylist.json`). One PR each:
       inside the walls and the east half looked open. Now `roof` false and `cap` 27.4 (LORETKA's deck
       sits on it), and `_piure_strips` puts a beige strip (M_LAMP) beside each window on the two
       long fronts, alternating sides by floor, from F's photos, 2026-11-12.
+- [x] LORETKA's terrace crowd on the prebuilt city (audit, 2026-11-13: 260 crowd sites runtime, 259
+      prebuilt): `loretka_plan` took the hotel's height from the building parts, which the prebuilt
+      index (map/index.res) does not carry, so the plan came back empty. It now falls back to
+      `LOR_HEIGHT` 27.4 (the block's `cap`); `check_crowds` checks the plan without the parts.
 - [ ] Other street blocks may borrow a too-low LoD2 roof the same way (2026-11-12 scan: the block's
       `top` against the survey roof inside its outline; gaps over 8 m at 118254728, 961448757,
       947222657, 853013401, 152199063, 238560043, 30302026; many 3-6 m gaps are just parapets).

@@ -23,6 +23,14 @@ evidence for a report (`shots/loop3_*.png`). For a spot not in the list:
 --heading=DEG --shots=240 --out=$PWD/../shots/NAME` (DEVELOPMENT.md lists every flag: `--size=`
 view height in metres, `--yaw=`, `--lift=`, `--nohud`, `--tap=X,Y`, `--settings`, ...).
 
+**Before/after of a place: use the free camera, not the car.** `--cam=X,Z` (or `--cam=X,Y,Z` for a
+height) puts the view on that world point, fixed, with the car hidden under it; `--yaw=`, `--pitch=`,
+`--size=` orbit and zoom it, `--lift=` raises it, `--cam-car` keeps the car in the shot. Same flags on
+the runtime and the `--prebuilt` city, so a before and an after differ only in what changed:
+`tools/shots.sh --set=spawn_day -- --cam=-1290,170 --yaw=135 --size=60`. Many views in one run (a run is
+~40 s): `--cams="palace:-1290,,170,135,-30,120+arcade:-1113,,-263,45,-30,60"` (NAME:X,Y,Z,YAW,PITCH,SIZE,
+Y empty = ground, the last three optional) writes palace_0030.png, arcade_0030.png with `--shots=30 --out=DIR`.
+
 - Before/after: same spot, same flags, same size; render the "before" from a copy of the old
   code if the change is already in (`cp -cR game game_before` on APFS; `game_*/` is gitignored;
   delete it afterwards).
@@ -32,6 +40,12 @@ view height in metres, `--yaw=`, `--lift=`, `--nohud`, `--tap=X,Y`, `--settings`
   size of a known iPhone gets that phone's points and safe area (`game/scripts/screen_points.gd`;
   2868x1320 is 956x440 pt), any other window is taken as a phone 390 pt tall, so these shots
   show real HUD sizes. `game/tools/check_hud.gd` measures them (44 pt, 11 pt, overlaps).
+
+## The turntable: the first look at a model
+
+For one landmark or model, start with `tools/turntable.sh KEY` (about a minute, one PNG sheet:
+lit from 8 sides at two heights, flat, silhouette, top view; the site alone, nothing else drawn)
+before any single shots. Then take single shots only for the sides that need a closer look.
 
 ## Look at them (open every PNG with Read; never judge a shot you didn't look at)
 

@@ -53,12 +53,14 @@ endcard              quick
 errortrap            quick
 eventday             quick
 evtow                quick
+facadekit            quick
 fans                 quick
 finite               smoke
 first10              quick
 first10-run          local     slow
 firstlife            runs
 fixes                quick
+freecam              quick
 gamepad              quick
 garage               quick
 governor             quick
@@ -69,6 +71,7 @@ heights              quick
 heli                 local     slow
 heliview             quick
 hud                  quick
+jobplay              quick
 jobs2                quick
 juice                quick
 kebab                local     slow
@@ -106,6 +109,8 @@ palacelights         quick
 parkdetails          quick
 parkmesh             quick
 parodies             quick
+pause                quick
+pause-run            smoke
 places               quick
 placzamkowy          quick
 plain                runs
@@ -123,18 +128,22 @@ raceline             quick
 racelinks            quick
 racelinks-drive      smoke     slow
 raceplanner          quick
+racereport           quick
+racesignals          quick
 radio                quick
 railsignals          smoke
 rain                 local     slow
 ram                  runs
 ratuszhub            quick
 rave                 quick
+refs-store           quick
 rescues              quick
 ride                 local     slow
 ride-police          local     slow
 rideplay             quick
 rides                quick
 roads                roads
+roadtruth            quick
 roadworks            quick
 roadworks-prebuilt   smoke     slow
 roofdress            quick
@@ -177,6 +186,7 @@ tramstops            quick
 trendjob             quick
 trzy-mosty           local     slow
 tunnelcut            smoke
+turntable           quick
 water                roads     slow
 water-prebuilt       smoke     slow
 wellness             quick

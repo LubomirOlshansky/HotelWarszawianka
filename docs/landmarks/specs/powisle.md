@@ -36,8 +36,8 @@ the canopies' length and the neon's letters.
 ## 1. Identity
 
 Two little 1960s pavilions at either end of a station on an embankment: the upper one a glass
-hall under a white roof stretched between two concrete arches and sagging between them ("a kite
-floating in the air"), at the Aleje level by the Poniatowski Bridge, right over the cross-city
+hall under a white twisted roof (a hyperbolic paraboloid with straight edges: two corners up, two
+down, the low one by the bridge's gate tower), at the Aleje level by the Poniatowski Bridge, right over the cross-city
 tunnel's mouth; the lower one a round glass drum under a white saucer with its rim turned up
 (the "UFO"), the café-club "Warszawa Powiśle" with the station's name in yellow tube letters on top of the rim.
 Romanowicz and Szymaniak, designed 1954-55, opened 1963.
@@ -61,9 +61,10 @@ Romanowicz and Szymaniak, designed 1954-55, opened 1963.
 
 ## 4. Roof
 
-- Upper (after the Mac photo check, 2026-11-01): a 10 x 10 grid, the kite sagging: 4.4 m over
-  the floor across its middle, its two ends turned up to 7.2 m (a parabola along), its long sides
-  dipping 0.6 m. A dark fascia (0.4 m) along both long sides follows the sag. The base down the
+- Upper (rebuilt from street photos 2026-11-13, F: "the pavilion with the slanted roof"): a 10 x 10
+  grid over a hyperbolic paraboloid, 5.2 m over the floor in the middle, its corners 1.8 m up or
+  down (3.4-7.0 m), the south-east one low; the edges stay straight. A dark brick-brown fascia
+  (0.4 m) runs round the edges. The base down the
   escarpment is glass with mullions, and the blue WARSZAWA POWIŚLE letters hang over the doors on
   the side the game's camera sees.
 - Lower: an inverted dome, a shallow saucer of r 14.6 m (it overhangs the drum about twice, per
@@ -94,10 +95,17 @@ L3, budget 6800 triangles (in `check_mesh_quality.gd`; built 6186 after the 2026
 | --- | --- | --- | --- | --- | --- |
 | base | glass prism + mullions | the upper outline, 6 m | under the upper hall | glass | the escarpment's edge |
 | upper_hall | glass panels | outline - 1.6 m | the upper outline | M_PAVILION | glass up to the roof |
-| upper_roof | grid 10 x 10 | 3.4-7.2 m, sag 0.9 m | over the upper outline | white / grey | the kite between two arches |
-| fascia | swept rib | 0.4 m | the roof's long sides | dark | the kite's edge |
+| upper_roof | grid 10 x 10 | 3.4-7.0 m, twisted | over the upper outline | white / grey | the hypar, SE corner low |
+| fascia | swept rib | 0.4 m | the roof's edges | brick brown | the hypar's edge |
 | letters | neon | WARSZAWA POWIŚLE | over the doors, camera side | blue neon | the station's name |
 | drum | glass prism | r 7.8 m, 3.4 m | (400.8, -6.3) | M_PAVILION | the round ticket hall, now a bar |
 | saucer | rings | r 14.6 m, rim 4.5 m, dish 0.8 m | over the drum | white / grey | the inverted dome |
 | neon | sign | WARSZAWA POWIŚLE | standing on the rim's edge, camera side | yellow neon | the bar's tube letters |
 | canopies | slab + X supports | 72 m x 4.8 m, 3.6 m high | each side platform's middle | white / dark steel | the X canopies |
+
+## 2026-11-13: tunnel mouth
+
+OSM ended the four cross-city tracks on the pavilion's east face and 6 m north of it, so the
+rails ran into the glass base and two stopped in the open. `Trains.TUNNEL_POWISLE` cuts all four on
+one line 1.5 m in front of the face; the concrete headwall (`map_builder._build_rail_portals`)
+stands there with every track going into the dark mouth.

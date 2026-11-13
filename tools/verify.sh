@@ -96,6 +96,11 @@
 # rig (no traffic), a save that has driven before and the director; the rides that are made (counted over
 # seeded draws), two rides in a row, and the plans (the river, the park, the Frogs turn, the story's place,
 # the scan) asked straight on a bigger test city (CI too).
+# The deliveries on the kit (2026-11-13): `jobplay` runs game/tools/check_job_play.gd (with --fixed-fps 60 for the
+# autopilot's frames): the real jobs.gd on the committed map and the stand-ins of tools/fakes.gd, played headless:
+# what setup builds from the map, the places and the pull-in, the order card and its count-down, the drive, the
+# heat, the door, the result cards, the craft kebab and the Zagłębie, the słoiki run and its jars, the pointer to
+# the next stand, other cards and other jobs, the test flags and the autopilot (CI too).
 # Beta values (2026-11-04): `laneassist` runs game/tools/check_lane_assist.gd: the lane assist on
 # the real car (a 6° start, a 300 m curve, a deliberate turn, when it must not pull) and the lane's
 # direction on the committed map (~10 s).
@@ -876,6 +881,17 @@ for s in $want; do
 				0) row PASS "architecture" $secs "check_architecture: OK · $counts" ;;
 				*) row FAIL "architecture" $secs "$(grep '^check_architecture:' $logs/architecture.log | head -1) · $counts ($logs/architecture.log)" ;;
 			esac ;;
+		# Reference-photo store (2026-11-13): tools/refs_store.py builds a fake store, inventory and repo
+		# in a temp dir and exercises index, gaps, pull, push, aliases and conflicts (no map, no photos).
+		refs-store)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/refs_store.py --selftest > $logs/refs-store.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			case $code in
+				0) row PASS "refs-store" $secs "refs_store: OK" ;;
+				*) row FAIL "refs-store" $secs "$(grep -m1 '^refs_store:' $logs/refs-store.log) ($logs/refs-store.log)" ;;
+			esac ;;
 		# Map north (2026-10-31): nothing of the map where the map isn't (its bounds without the
 		# corner left `outside`), every sector on the map (tools/check_outline.py O1-O5; O6, dead
 		# ends on the extension's edge, reported).
@@ -959,6 +975,15 @@ for s in $want; do
 			case $code in
 				0) row PASS "fixes" $secs "$(grep '^road_fixes: ' $logs/fixes.log | tail -1)" ;;
 				*) row FAIL "fixes" $secs "$(grep '^road_fixes: ' $logs/fixes.log | tail -1) ($logs/fixes.log)" ;;
+			esac ;;
+		roadtruth)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/road_truth.py --check > $logs/roadtruth.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			case $code in
+				0) row PASS "roadtruth" $secs "$(grep '^road_truth counts: ' $logs/roadtruth.log | tail -1)" ;;
+				*) row FAIL "roadtruth" $secs "$(grep '^road_truth: ' $logs/roadtruth.log | tail -1) ($logs/roadtruth.log)" ;;
 			esac ;;
 		smooth)
 			t0=$EPOCHREALTIME
@@ -1071,6 +1096,20 @@ for s in $want; do
 			esac ;;
 		streetmesh) check streetmesh '^street_details:' --script res://tools/check_street_details.gd ;;
 		ratuszhub) check ratuszhub '^ratusz_hub:' --script res://tools/check_ratusz_hub.gd ;;
+		# The facade kit's ratchet (2026-11-13): no new private window, balcony, ledge, cornice,
+		# pediment or column helper in landmarks.gd, and the kit's parts and palette match
+		# docs/design/facade-kit.md (tools/check_facade_kit.py; no map, ~0.1 s).
+		facadekit)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/check_facade_kit.py > $logs/facadekit.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			counts=$(grep -m1 '^check_facade_kit counts:' $logs/facadekit.log)
+			counts=${counts#check_facade_kit counts: }
+			case $code in
+				0) row PASS "facadekit" $secs "check_facade_kit: OK · $counts" ;;
+				*) row FAIL "facadekit" $secs "$(grep '^check_facade_kit: ' $logs/facadekit.log | tail -1) · $counts ($logs/facadekit.log)" ;;
+			esac ;;
 		# Landmark specs (LANDMARKS 0.4): every docs/landmarks/specs/*.md has all eight sections, a
 		# detail level, a triangle budget and a filled parts table (tools/check_spec.py; ~0.1 s).
 		spec)
@@ -1178,6 +1217,8 @@ for s in $want; do
 		couriers) check couriers '^check_couriers:' --script res://tools/check_couriers.gd ;;
 		# Beta values: the deliveries' route, the heat's words, NASTĘPNE.
 		delivery) check delivery '^check_delivery:' --script res://tools/check_delivery.gd ;;
+		# The deliveries played on the activity kit (the committed map, fake HUD, the autopilot over the engine's frames).
+		jobplay) check jobplay '^check_job_play:' --fixed-fps 60 --script res://tools/check_job_play.gd ;;
 		# Loop MW-4: everyday life and trends: dogs, riders, runners, Kolka, the Wiralek cycle, the
 		# "Na czasie" pay, the Zając, Fat Thursday, the life eggs (E16 E18-E20 E27-E30).
 		life) check life '^check_city_life:' --script res://tools/check_city_life.gd ;;
@@ -1196,6 +1237,10 @@ for s in $want; do
 		# Nocny spot: the club's cars, lines, clock, pay, the drag's times, the meets and the strip on the real graph.
 		meet) check meet '^check_street_meet:' --fixed-fps 60 --script res://tools/check_street_meet.gd ;;
 		# Boat race: the course in open water, the boat, a whole race, the three-miss rule, the lines.
+		# Free camera (--cam=X,Y,Z): the flag's text and the view it gives.
+		# Site turntable (tools/turntable.sh): the cameras' maths for a site and the sheet's tiling; no renderer.
+		turntable) check turntable '^check_turntable:' --script res://tools/check_turntable.gd ;;
+		freecam) check freecam '^check_free_cam:' --script res://tools/check_free_cam.gd ;;
 		boatrace) check boatrace '^check_boat_race:' --script res://tools/check_boat_race.gd ;;
 		dekalog) check dekalog '^check_dekalog_tour:' --script res://tools/check_dekalog_tour.gd ;;
 		kinotour) check kinotour '^check_kino_tour:' --script res://tools/check_kino_tour.gd ;;
@@ -1227,6 +1272,9 @@ for s in $want; do
 		save) check save '^check_save:' --script res://tools/check_save.gd ;;
 		errortrap) check errortrap '^check_error_trap:' --script res://tools/check_error_trap.gd ;;
 		boot) check boot '^check_boot:' --script res://tools/check_boot.gd ;;
+		# TD-20: the pause's one owner (pause_reasons.gd): the reasons on a real tree, and no other
+		# script writes the tree's pause (no map; CI too).
+		pause) check pause '^check_pause:' --script res://tools/check_pause.gd ;;
 		activity) check activity '^check_activity:' --script res://tools/check_activity.gd ;;
 		districts) check districts '^check_districts:' --script res://tools/check_districts.gd ;;
 		syrenki) check syrenki '^syrenki:' --script res://tools/check_syrenki.gd ;;
@@ -1238,6 +1286,9 @@ for s in $want; do
 		raceline) check raceline '^race_line:' --script res://tools/check_race_line.gd ;;
 		racebench) check racebench '^check_race_bench:' --script res://tools/check_race_bench.gd ;;
 		raceplanner) check raceplanner '^check_race_planner:' --script res://tools/check_race_planner.gd ;;
+		# Racer AI step 6a: a rival's lights and its own numbers; the result card's report and picture.
+		racesignals) check racesignals '^race_signals:' --script res://tools/check_race_signals.gd ;;
+		racereport) check racereport '^race_report:' --script res://tools/check_race_report.gd ;;
 		first10) check first10 '^first10:' --script res://tools/check_first10.gd ;;
 		mainline) check mainline '^main_line:' --script res://tools/check_main_line.gd ;;
 		chatter) check chatter '^check_chatter:' --script res://tools/check_chatter.gd ;;
@@ -1339,6 +1390,9 @@ for s in $want; do
 		# ENGINE_TOKENS: the engine's exit line for the index's threaded load (see `problems`); 19 is
 		# its count for the index's 10 files, a count to change only with them.
 		boot-run) skip_prebuilt "run: boot" || ENGINE_TOKENS=19 game boot 8000 "^boot: the boot scene's title stayed up" --boot --prebuilt --title-choice=continue ;;
+		# TD-20: the real game on the prebuilt city, through the real input: the garage card with the
+		# full map over it stays paused when the map closes; each card alone pauses and lets go.
+		pause-run) skip_prebuilt pause-run || check pause-run '^check_pause:' --fixed-fps 60 --script res://tools/check_pause.gd -- --nosave --notitle --prebuilt --garage ;;
 		classic) game classic 600 "" --controls=classic ;;
 		ios) run_ios ;;
 	esac

@@ -1159,7 +1159,48 @@ func ground_height(x: float, z: float) -> float:
 ## Where a vehicle at height `near_y` drives: of the terrain and the decks over the
 ## point, the highest one it can step onto (a ramp rises gently; a deck 5 m over the
 ## road stays overhead). The car and the skid marks use it.
+## F (2026-11-13, a screenshot at Most Poniatowskiego's west end): the bake lays a bridge's road,
+## tram and footway as separate pieces (decks, and fills on the approaches) with open strips
+## between them, up to ~2.5 m on the Poniatowski and Powiśle viaducts where the drawn deck runs
+## whole across, and end to end where the deck hands over to its approach; a car crossing from the
+## road onto the tracks read the ground 5-10 m down through a strip and fell under the bridge
+## (probe 2026-11-13: 1,848 such points at 0.5 m along the viaducts). Where the level drops more
+## than STRIP_DROP under the car and, along one line, a level within STRIP_STEP of the car's lies on
+## both sides at most STRIP apart in all, the car drives the level between them.
+const STRIP := 4.5          # the widest strip bridged (the west end's widest measured ~3.7 m)
+const STRIP_STEP_OUT := 0.5 # the search's step out from the point, each way
+const STRIP_DROP := 2.0
+const STRIP_STEP := 1.2
+const STRIP_DIRS := [Vector2(1.0, 0.0), Vector2(0.0, 1.0), Vector2(0.7071, 0.7071), Vector2(0.7071, -0.7071)]
+
+
 func drive_height(x: float, z: float, near_y: float) -> float:
+	var best := _drive_level(x, z, near_y)
+	if best < near_y - STRIP_DROP:
+		for d: Vector2 in STRIP_DIRS:
+			var a := _strip_side(x, z, -d, near_y)
+			if a.x < 0.0:
+				continue
+			var b := _strip_side(x, z, d, near_y)
+			if b.x >= 0.0 and a.x + b.x <= STRIP:
+				return lerpf(a.y, b.y, a.x / maxf(a.x + b.x, 0.001))
+	return best
+
+
+## STRIP: the first point out along `dir` (STRIP_STEP_OUT apart, at most STRIP) whose level lies
+## within STRIP_STEP of near_y: (how far, its level), or (-1, 0) when there is none.
+func _strip_side(x: float, z: float, dir: Vector2, near_y: float) -> Vector2:
+	var t := STRIP_STEP_OUT
+	while t <= STRIP:
+		var h := _drive_level(x + dir.x * t, z + dir.y * t, near_y)
+		if absf(h - near_y) <= STRIP_STEP:
+			return Vector2(t, h)
+		t += STRIP_STEP_OUT
+	return Vector2(-1.0, 0.0)
+
+
+## drive_height without the strip test (STRIP).
+func _drive_level(x: float, z: float, near_y: float) -> float:
 	var best := terrain_height(x, z)
 	var on_ground := true
 	var feet := []
@@ -2038,7 +2079,23 @@ var _yard = RailYard.new()
 ## A footway's lift over the ground (an island platform OSM maps as a footway: RailYard.HEIGHT),
 ## by its ends (RailYard.key); pedestrians.gd asks.
 func footway_lift(line: PackedVector2Array) -> float:
-	return float(_yard.lifts.get(RailYard.key(line), 0.0)) if line.size() >= 2 else 0.0
+	if line.size() < 2:
+		return 0.0
+	var lift := float(_yard.lifts.get(RailYard.key(line), 0.0))
+	if lift != 0.0:
+		return lift
+	# F (2026-11-13): people on the University Library's roof garden (landmarks.gd garden_lift)
+	if not _buw_looked:
+		_buw_looked = true
+		for l: Dictionary in data.get("landmarks", []):
+			if l.get("name", "") == "Biblioteka Uniwersytecka":
+				_library_ring = _pts(l["p"])
+	return Landmarks.garden_lift(line, _library_ring) if _library_ring.size() >= 3 else 0.0
+
+
+## The University Library's outline for footway_lift, looked up once.
+var _library_ring := PackedVector2Array()
+var _buw_looked := false
 
 
 func _load_cut() -> void:

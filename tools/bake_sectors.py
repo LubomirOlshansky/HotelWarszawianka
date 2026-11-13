@@ -167,11 +167,14 @@ SITE_AREAS = [
     (-175.0, 125.0, -145.0, 150.0),         # Smolna 38 (building=office, no name; landmarks.gd S38_AT)
     (-650.0, -790.0, -630.0, -765.0),       # Plac Piłsudskiego's south-east block (landmarks.gd KROLEWSKA_BLOCK)
     (-3105.0, -2455.0, -2920.0, -2335.0),   # map north: the Forest tower's office block (unnamed in OSM; docs/DEMO.md 2.2)
+    (440.0, -580.0, 465.0, -555.0),         # Flisac, Tamka 2: the 14 m wings and the 7.6 m garden block in the elbow (unnamed in OSM; landmarks.gd FLISAC_AT, FLISAC_PODIUM_AT)
     (-2175.0, -2520.0, -1945.0, -2335.0),   # Gdański Business Center (unnamed in OSM; landmarks.gd GBC_BOX)
     (-445.0, 1605.0, -395.0, 1680.0),       # Kościół Najświętszego Zbawiciela (landmarks.gd ZB_NAVE_AT, ZB_TOWER_AT)
     (-2290.0, 185.0, -2165.0, 235.0),       # Norblin's old works (landmarks.gd NORBLIN_OLD, F's look check 2026-11-03)
     (-2254.0, 232.0, -2234.0, 252.0),       # and its glazed hall on Prosta ("Verit", NORBLIN_HALL_AT)
     (-2410.0, 160.0, -2345.0, 265.0),       # Prosta 28's tower, annex and wings (unnamed in OSM; landmarks.gd P28_BOX)
+    (430.0, -580.0, 470.0, -540.0),         # Wybrzeże Kościuszkowskie 41, the power company's L-block (unnamed in OSM; landmarks.gd _find_eon41)
+    (470.0, -515.0, 520.0, -455.0),         # the Academy of Fine Arts' school and new wing (unnamed in OSM; landmarks.gd _find_asp37)
     # behind the Eastern Wall (landmarks.gd _find_behind): the 75 m tower and the four 1960s
     # slabs, unnamed in OSM, found by the outline under TOWER75_AT and SLAB_AT (their bboxes)
     (-837.0, 245.0, -804.0, 270.0),
@@ -214,6 +217,7 @@ SITE_AREAS = [
     # Kino Muranów (landmarks.gd _find_kino_muranow): the cinema pavilion's outline under KM_AT
     (-1700.0, -1240.0, -1640.0, -1170.0),
     (-450.0, 1580.0, -385.0, 1670.0),       # Kościół Zbawiciela's nave and towers (landmarks.gd ZB_*; MDM's box ends at z 1620)
+    (-490.0, 1525.0, -350.0, 1615.0),       # Plac Zbawiciela's colonnades (landmarks.gd _find_zbawiciela_plac: the 7.6 m roof parts)
     # the church kit (landmarks.gd CHURCHES): the outline under each church's `at` point
     (-853, -1629, -749, -1525),   # church_sw_marcin
     (-1019, -1461, -938, -1380),   # church_kapucyni
