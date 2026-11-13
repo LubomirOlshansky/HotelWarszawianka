@@ -113,14 +113,16 @@ skill, not from the player's speed. Built so far (steps 1 to 4a of 8):
   keeps both cars' ways through a race and at its end names what decided it (the route, the
   standing, the pace); `rivals.gd` adds its lines to the result card and its picture
   (`RaceReport.Sketch`) through `hud.set_card_art`.
-- The pack race, the autopilot's ghost and Halina's roll-up behind the car before the first race
-  (`call_first`) still go by metres (no plan), and only the ladder races and the final have
-  lights and a report (step 6b: one race session for every race).
+- The night club's pack race (`street_meet.gd`, `ladder.gd` `CLUB`) races on the session too
+  (step 6b part 1b): a plan, a racing line, shortcuts and lights each, and no report. The
+  autopilot's ghost and Halina's roll-up behind the car before the first race (`call_first`)
+  still go by metres (no plan), and only the ladder races and the final have a report. The
+  police chasers and the crazy drivers are steps 6b-2 and 6b-3.
 
 Still to come: RaceDriver (passing, contact and recovery are the old rail car's; its pass over
 the centre line, `_race_pass`, minds only the oncoming lanes it uses and how fast the two cars
-close, and is a timer until step 4b), RaceNav's links, RaceSession; a new race mode should use
-RaceSession once it exists instead of its own ranking. Every race change reports `tools/race_bench.sh` before and after (`check_race_bench`,
+close, and is a timer until step 4b), RaceNav's links; a new race mode uses
+RaceSession instead of its own ranking. Every race change reports `tools/race_bench.sh` before and after (`check_race_bench`,
 `check_race_planner`, `check_race_line`).
 
 ## 4. Police (`police.gd`, `police/`)

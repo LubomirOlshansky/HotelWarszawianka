@@ -13,7 +13,7 @@ how that rival drives. The root cause of "Halina drives like the mob" (F, 2026-1
 rubber band: she took 74 s alone and 180 s beside a player who never moved. The bench's
 **Independence** mark holds the rule; a change that ties pace to the player fails it.
 
-The only thing left of "keeping it close" is **effort** (`rivals.gd` `effort_of`): 0.9 to 1.04
+The only thing left of "keeping it close" is **effort** (`race_session.gd` `effort_of`): 0.9 to 1.04
 of the rival's own pace, by the time gap, moving 0.05 a second at most. Do not widen it to fix
 difficulty. Change the skill profile.
 
@@ -30,7 +30,9 @@ profiles and never makes a rival wait.
 | Route | `game/scripts/race_planner.gd` | the streets, by the rival's own seconds to the finish, traffic counted | 5.1 |
 | Line and speed | `game/scripts/race_line.gd` | the racing line and a speed for every metre | 5.2 |
 | Driver | `game/scripts/traffic.gd` (the Driver's part for racers) | following, passing, lane changes, blocked streets, recovery, delay out of sight | 5.1, 5.3 |
-| Race | `game/scripts/rivals.gd` | start, effort, finish line, cards, the rival's car | 4, 6 |
+| Session | `game/scripts/race_session.gd` | one race's mechanics for every race mode: course, racers, plans, start, legs, effort, order, reroutes, lights, end | 6.2 |
+| Race | `game/scripts/rivals.gd` | the challenge, the words, the cards, the pay, the ghost, the player's checkpoints, the rival's car (the mechanics are the session's) | 4, 6 |
+| Pack race | `game/scripts/street_meet.gd`, `ladder.gd` `CLUB` | the night club's race: who comes onto the road when, and the eight club profiles | 6.2 |
 | Lights | `game/scripts/race_signals.gd` | what the car shows; changes no driving | 6.1 |
 | Result card | `game/scripts/race_report.gd`, `hud.gd` `set_card_art` | both routes and what decided the race | 6.1 |
 | Bench | `game/tools/race_bench.gd`, `check_race_bench.gd`, `tools/race_bench.sh`, `game/data/race_bench.json` | the marks every change is held against | 7 |
@@ -70,7 +72,15 @@ in a row, 15 % at most; between races, never during one), and Halina's gentle da
 order of the times; check the Skill ladder and Ladder curve marks (each rung 3 to 12 % quicker
 than the one below).
 
-### 3.2 Effort and the race (`rivals.gd`)
+**The club's pack has its own table, `ladder.gd` `CLUB`** (eight profiles: six ring cars, Darek,
+Lena), with the same keys as `RUNGS`; `CLUB_PACE` is the pace the pack is held to. To make the
+club easier or harder, move `share` and `lat` together here too and keep the order of the eight
+(ring 0 the slowest, Lena the quickest: 161.6 s to 140.6 s alone on the club course). No club car
+may be over the player's car (Honest car). The Pack order mark holds the order: on clear roads
+the club comes home in the order of its racers' own pace, neighbours less than 1.5 % apart may
+swap. Race-ai.md 6.2 has the table.
+
+### 3.2 Effort and the race (`race_session.gd`)
 
 | Constant | Value | Meaning |
 | --- | --- | --- |
@@ -95,6 +105,7 @@ than the one below).
 | Wrong turn | `WRONG_CHANCE` 0.2, `WRONG_SURE` 0.5, `WRONG_FAR` 300 m, `WRONG_DAZE` 0.9 s, `WRONG_SHOW` 2.4 s | where one may happen, the lift and the hazards after |
 | Hop | `HOP_DECIDE` 12 m, `HOP_STOP` 6 m | where it looks before a wrong-way hop |
 | Out of sight | `RACE_STUCK` [0.77, 0.44, 0.46], `RACE_STUCK_END` 0.7, `RACE_STUCK_LIGHTS` 7.4, `AWAY_ROOM`, `AWAY_TAU`, `AWAY_EASE` | the delay a racer pays for the town's traffic where no town cars exist. **Fitted, not hand-set**: `tools/race_traffic.sh` |
+| Pack rules | `_race_cross_look`, `_merge_gap` | between racers that have plans only: in the look across a junction a racer behind (still on the street it leaves, or less far along the same curve) is not in the way and one ahead on a shortcut's curve is; two racers level in two lanes into one shortcut: the one behind follows the other in. Without them the pack drives through itself at the first shortcut |
 | Held up (lights only) | `HELD_GAP` 14 m, `HELD_SLOWER` 3 m/s | when "behind a slower car" counts for the headlight flash |
 | Limits | `RACE_GRIP_MOST` 19 | never over the player's car |
 
@@ -129,8 +140,8 @@ picture only, the report's lines go to the log).
 ## 4. How to test a change
 
 1. **The fast checks** (seconds; all in CI's quick group):
-   `tools/verify.sh --only=ladder,raceline,raceplanner,racecuts,racesignals,racereport,first10,racebench`
-2. **The quick bench** (24 races, under a minute): `tools/race_bench.sh --quick`.
+   `tools/verify.sh --only=ladder,raceline,raceplanner,racecuts,racesignals,racereport,first10,racebench,meet`
+2. **The quick bench** (40 races, under a minute): `tools/race_bench.sh --quick`.
 3. **The full bench before and after** (304 races, about 21 minutes with `--jobs=3`):
    run it on main first (`--out=before`), then on the change with
    `--against=build/race_bench/before.json`. Report the marks and which races' times moved.
@@ -151,7 +162,7 @@ picture only, the report's lines go to the log).
 The marks, in one line each (full text in race-ai.md 7.3): Finishes, Independence (the one
 rule), No crawl, Passes traffic, No ghosting, Re-routes, Recovers, Honest car (never over the
 player's car), Route sense, Skill ladder, Ladder curve, Told apart, Yard links, Wrong-way hops
-(and in traffic), Same race twice. The state of each is in race-ai.md 7.4.
+(and in traffic), Pack order, Pack in traffic, Same race twice. The state of each is in race-ai.md 7.4.
 
 ## 5. Traps
 
@@ -169,8 +180,18 @@ player's car), Route sense, Skill ladder, Ladder curve, Told apart, Yard links, 
   never finishes.
 - **Do not edit game files while a bench runs**: it reads the working tree.
 - **Deliberate-break runs rewrite source files**: run nothing else at the same time.
-- **The pack race, Trzy mosty's field and the police** do not use the plan, the links, the lights
-  or the report yet (step 6b).
+- **The police chasers and the crazy drivers** do not use the plan, the links, the lights or the
+  report yet (steps 6b-2 and 6b-3). The pack race and Trzy mosty do (the pack has no report).
+- **A pool car out of sight is driven every other frame.** A probe that reads a speed change
+  must divide by the time since the car was last driven, not by the frame's time, or it reads a
+  pull twice as big as it is (the bench's Probe does).
+- **Eight racers into one shortcut need the merge rule** (`_merge_gap`) and the crossing look
+  (`_race_cross_look`); a new shortcut rule that skips them brings the pack's driving through
+  each other back (Pack order and No ghosting show it).
+- **The out-of-sight delay is too large on wide streets.** `AWAY_*` was fitted on narrower
+  streets; in Busy traffic a club racer far from the player pays up to 170 s of it on
+  the 2.9 km club course, about twice its clear-road time (Pack in traffic holds that all get
+  home; BACKLOG).
 - **A new key in a profile** goes into every profile and into `check_first10.gd`'s toy racer when
   the driver reads it.
 - **A new bench situation** (`SITUATIONS` in `race_bench.gd`) is picked up by other loops of the
@@ -184,6 +205,6 @@ player's car), Route sense, Skill ladder, Ladder curve, Told apart, Yard links, 
 | a difficulty option | a scale over the profiles in `ladder.gd` (as `eased` does), never in the driver; tech-debt TD-12 |
 | a new habit you can see | a trait in `ladder.gd`, read in `race_signals.gd` |
 | a new way through the town | `tools/race_links.py`, proven by `tools/race_links.sh` |
-| a new race mode | `rivals.gd` today; step 6b makes one race session for all of them |
+| a new race mode | a `RaceSession` (`race_session.gd`: `course`, `add`, `start`, `advance`, `rank`), and the words, cards and pay in the mode's own script |
 | a new line on the result card | `race_report.gd` `lines` |
 | a new rule the racers must keep | a mark in `race_bench.gd`, its row in race-ai.md 7.3 |

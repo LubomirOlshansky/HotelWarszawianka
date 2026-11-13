@@ -164,16 +164,18 @@ gives them one driver and one race object, so a fix lands everywhere.
 | Street race ladder: Pani Halina, Słoik z Radomia, Bulwar Bartek, Seba z Pragi, Taksiarz Zbyszek, Mordor Mike, to 11 finishes (`rivals.gd`, `ladder.gd`) | Rail racer plus the band, a share of the 600 shortcuts each | New driver, a skill profile per rival, routes by time |
 | The guided first race with Pani Halina (`rivals.gd` `first_speed`) | A special band: she holds 30 m in front at the player's own pace, then lets the player catch her | Same driver, on her gentle day (section 6); the script is gone since step 2 (parked question 1) |
 | Trzy mosty, the ladder final against Seba | Rail racer with a weak band | New driver, the long route over the three bridges |
-| Night club pack race (`street_meet.gd`) | Several rail racers at full speed with every shortcut, no band | Same driver, one race object for the whole pack |
-| Police chasers (`police.gd`) | Rail racer that never passes the player | The driver with a chase goal, later |
-| Crazy drivers (`crazy_drivers.gd`) | Rail racer with no route | The driver with an aggressive profile, later |
+| Night club pack race (`street_meet.gd`) | Several rail racers at full speed with every shortcut, no band | Same driver, one race object for the whole pack: done since step 6b part 1 (6.2) |
+| Police chasers (`police.gd`) | Rail racer that never passes the player | The driver with a chase goal, later (step 6b-2) |
+| Crazy drivers (`crazy_drivers.gd`) | Rail racer with no route | The driver with an aggressive profile, later (step 6b-3) |
 | Drag race at the night club | A simulated run, no driving | Stays |
 | Courier bike race | Its own rider on the footways | Stays, may share the route planner later |
 | Boat race on the Vistula (`boat_race.gd`) | Its own boat driver | Stays |
 
 Since step 2 the ladder races, the guided first race and Trzy mosty have no band: each rival
 drives its skill profile, with an effort that follows the time gap (section 6). The pack race,
-the police chasers and the crazy drivers never had one. All of them still drive the rail racer.
+the police chasers and the crazy drivers never had one. Since step 6b part 1 the pack race drives
+the new driver too, on the same race session (6.2); the police chasers (6b-2) and the crazy
+drivers (6b-3) still drive the rail racer.
 
 Normal traffic keeps its rail and car-following model (IDM). That model is right for traffic.
 What changes is that racers treat traffic as moving obstacles with a predicted path.
@@ -218,7 +220,11 @@ RaceSession  one race: the grid, the racers, the ranking, the result (every race
   player's car. What differs is how much of them the racer uses, what the racer knows and what
   the racer dares.
 - **RaceSession.** The grid, the racers, the ranking and the result for the ladder, the first
-  race, Trzy mosty and the pack race; later the police chasers and the crazy drivers.
+  race, Trzy mosty and the pack race; later the police chasers and the crazy drivers. Built in
+  step 6b part 1 as `game/scripts/race_session.gd` (6.2): the mechanics only (course, racers,
+  plans, start, legs, effort, order, reroutes, lights, end); the words, cards and pay stay in the
+  race mode's own script. The ladder races, the guided first race, Trzy mosty, the night club's
+  pack race and the race bench run on it.
 
 **Rejected.** The player's physics car for rivals: the buildings' walls exist only near the
 player's car, so a physics rival far ahead would drive through houses or need the whole city
@@ -951,10 +957,110 @@ hazard lights; it also prints the flashes and the passes over the centre line of
 ladder's times needed no retuning: SŁOIK 6.9 %, BARTEK 5.7 %, SEBA 7.7 %, ZBYSZEK 5.8 %, MIKE
 5.6 % over three courses.
 
-**What it does not do yet.** The pack race, Trzy mosty's field and the police have no lights and
-no report (step 6b). Bartek's block and Seba's contact are the numbers of step 2. A race
+**What it did not do yet.** The pack race, Trzy mosty's field and the police had no lights and
+no report (step 6b; the pack has its lights since 6b part 1, 6.2, and no report by F's word). Bartek's block and Seba's contact are the numbers of step 2. A race
 difficulty option (easier or harder by the rivals' skill profiles, never by a rival that waits)
 is in the backlog for after this step (F, 2026-11-13).
+
+### 6.2 Step 6b part 1 as built: one race session, and the club's pack on it
+
+Step 6b is three pull requests: **6b-1** (this one) the race session, with the ladder races, the
+guided first race, Trzy mosty and the night club's pack race on it; **6b-2** the police chasers
+on the racers' driver; **6b-3** the crazy drivers.
+
+**Part 1a: the session** (`game/scripts/race_session.gd`, a `RefCounted`). It owns the course,
+the racers, the shortcuts, the distances and the plan of every leg, the start, the legs, the
+effort, the order, the reroutes, the lights' tick and the end. It has no HUD, no words and no
+pay. The statics `Pace`, `arm_racer`, `race_stats`, `pace_tick`, `effort_of`, `own_pace`,
+`home_at` and `remaining_from` and the constants `EFFORT_*`, `EASE_FROM`, `EASE_FULL`, `PUSH_*`,
+`FINISH_RADIUS`, `HOME_SNAP` and `PLAN_STALE` moved there from `rivals.gd` (2281 lines to about
+2030). `rivals.gd` keeps the challenge, the cards, the pay, the talk, the ghost and the player's
+checkpoints. The bench's `race()` runs the same session. Proof: the full bench, 304 of 304 old
+races identical to main (every field but the wall-clock ones), and the whole-game runs `race`,
+`trzy-mosty` and `first10-run` pass. Two switches keep where the game and the bench differed:
+`home_circle` (off in Trzy mosty: Seba is home on arriving) and `exact_left` (the bench sums the
+legs at full precision).
+
+**Found on the way.** Trzy mosty already drove the plan, the links, the lights and the report
+(steps 3 to 6a); it lacked only the shared race object. The pack race had a route in metres and
+no plan, so no racing line; its cars had up to 6 % more top speed than the player's car and
+corner numbers from before step 4a.
+
+**Part 1b: the pack.** Eight club profiles in `ladder.gd` `CLUB` (six ring cars, Darek, Lena).
+All are locals (`cuts` 1, `yards` 1, `narrow` 3, `knows` 0.8, `caution` 0.2, no hops, no wrong
+turns), and nobody is over the player's car. Alone on clear roads over the club course (2.9 km
+from Plac Defilad's door to meet 2's):
+
+| Racer | share | lat | race_accel | brake | Time alone |
+| --- | --- | --- | --- | --- | --- |
+| ring 0 | 0.86 | 14.4 | 10.5 | 9 | 161.6 s |
+| ring 1 | 0.867 | 14.5 | 11 | 9.5 | 159.0 s |
+| ring 2 | 0.875 | 14.7 | 11 | 10 | 157.1 s |
+| ring 3 | 0.884 | 14.9 | 11.5 | 11 | 154.3 s |
+| ring 4 | 0.893 | 15.0 | 12 | 12 | 151.9 s |
+| ring 5 | 0.907 | 15.2 | 12 | 12.5 | 149.5 s |
+| Darek | 0.93 | 15.5 | 12.5 | 12 | 146.3 s |
+| Lena | 0.98 | 16.0 | 13 | 12.5 | 140.6 s |
+
+They are fitted so that the median racer is within 3 % of the old pack driver's clear-road time
+(old 143.7 to 146.3 s from a standing start, median 145.1 s; new median 146.7 s, +1.1 %), and the
+field spreads 13.6 %.
+
+**The pack's session.** One session for the race, prepared at the raid (not at the pin). A plan
+slice for one racer a frame (`round_robin`). A plan searched toward the racer's road before it
+has a Driver (`"from"`: the first frame was 120 ms, now 2 ms). Shortcut tables shared between the
+racers of one cuts profile. A racer that is home leaves racer mode. Effort by the time gap, as in
+every race. Race lights for the pack, only for the cars in view, built at the race's start and
+freed at its end. The better cars come onto the road first (`street_meet.gd` `SCATTER_FROM`,
+`GRID`). There is no result report for the pack (F, 2026-11-13: detailed information about a win
+or a loss is not needed).
+
+**Two rules in `traffic.gd`**, both only between racers that have plans (a race of one is
+unchanged):
+
+- In the look across a junction, another racer that is behind it and still on the street it
+  leaves, or less far along the same curve, is not in its way; one ahead on a shortcut's curve
+  is (`_race_cross_look`).
+- Two racers level in two lanes into one shortcut: the one behind follows the other in
+  (`_merge_gap`).
+
+Before them the club's cars drove through each other at the first shortcut (8 to 20 times in the
+bench's pack race on clear roads; now 0) and came home out of order (club2 lost 13 s, club4 9 s;
+now the order of the profiles).
+
+**Old pack driver against the new one**, the same four bench races (home of 8, old / new; median
+s; last s; cars driven through; dead stops; seconds stood, the eight together).
+
+| Race | Home | Median | Last | Driven through | Dead stops | Stood |
+| --- | --- | --- | --- | --- | --- | --- |
+| Clear, no player | 8 / 8 | 177.8 / 160.3 | 193.2 / 174.5 | 16 / 0 | 2 / 0 | 141 / 9 |
+| Clear, average player | 8 / 8 | 176.8 / 173.4 | 193.8 / 186.9 | 16 / 0 | 1 / 0 | 140 / 11 |
+| Busy, no player | 7 / 8 | 346.2 / 289.7 | 420 (not home) / 389.8 | 32 / 17 | 18 / 16 | 493 / 256 |
+| Busy, average player | 8 / 8 | 357.4 / 348.8 | 380.0 / 363.4 | 13 / 1 | 1 / 1 | 147 / 33 |
+
+**The bench** has a new race kind, `pack`: the club's eight on the course "club", and each racer
+alone first ("solo") on clear roads. The quick matrix is 40 races (it was 24 before this step),
+the full one 344 (it was 304). Two marks more (7.3): **Pack order** and **Pack in traffic**.
+Finishes no longer counts the pack's races in traffic (they have their own mark). The Probe's
+pull now divides a speed change by the time since the car was last driven (a pool car out of
+sight is driven every other frame).
+
+**Frame cost** (the cloud, software renderer, 120 s): traffic 1.03 to 0.99 ms, rivals 0.10 to
+0.10, meet 0.01 to 0.01, draw calls unchanged (final numbers TBD-6b1).
+
+**Known and left** (BACKLOG). In Busy traffic a club racer far from the player still pays a
+large out-of-sight delay (`AWAY_*`, fitted on narrower streets: the wide-street case of step
+4b's notes; 629 s for the eight together with nobody near, 1,349 s with the average player),
+so the pack takes about twice its clear-road time there, and with nobody near the eight still
+drive through 17 cars in Marszałkowska's queue (the old driver: 32). The
+session's worst frame is the one plan slice before the start (0.9 ms median, 3.6 to 5 ms at
+worst on the cloud machine; 19 ms seen once in a whole-game run and not traced: the phone is the
+question). The police chasers and the crazy drivers are 6b-2 and 6b-3.
+
+`check_street_meet.gd` follows: the handed-over racer has its CLUB profile's share, `race_accel`,
+`lat`, `brake`, block, the car's top, `CLUB_PACE`, a plan and a shortcut table (before: the old
+`RACE_ACCEL` and `RACE_LAT`); every racer has its lights in the race; and after meet 2 the
+session and the lights are gone.
 
 ## 7. How we test it: the race bench
 
@@ -1020,7 +1126,7 @@ the final's own racer (a spec's tuning `final`).
 ```zsh
 tools/race_bench.sh                    # the full matrix: 272 races, about 15 minutes
 tools/race_bench.sh --jobs=4           # ... in four parts side by side, judged as one run: 4 minutes on four cores
-tools/race_bench.sh --quick            # the quick matrix: 21 races, 30 s (verify step `racebench`, in CI)
+tools/race_bench.sh --quick            # the quick matrix: 40 races, 30 s (verify step `racebench`, in CI)
 tools/race_bench.sh --only=tamka/heavy/none --trace   # some races, with what the rival does once a second
 tools/race_bench.sh --out=before       # on main: build/race_bench/before.json ...
 tools/race_bench.sh --against=build/race_bench/before.json   # ... then on the branch, both runs side by side
@@ -1094,7 +1200,7 @@ are only good from a run with nothing beside it.
 
 ### 7.3 The pass marks
 
-`race_bench.gd` `judge` turns a set of races into fourteen marks. The limits are constants at the
+`race_bench.gd` `judge` turns a set of races into eighteen marks. The limits are constants at the
 top of that file; a change that moves one says why in its PR.
 
 | Mark | Passes when | Step |
@@ -1114,6 +1220,8 @@ top of that file; a change that moves one says why in its PR.
 | **Yard links** | on the yard course on clear roads, a rival who knows every yard takes a race link and one who knows none takes none. Full matrix only | 5 |
 | **Wrong-way hops** | on the hop course without the town's cars: a rival who dares takes the hop on clear roads, refuses it with a car parked on the street and still finishes; one who does not dare never takes one | 5b |
 | **Wrong-way hops in traffic** | in every race in traffic: no car of the town's on a street while a racer hops it (or turning into it), none driven through there, and no hop by a rival who does not dare. Full matrix only | 5b |
+| **Pack order** | the club's eight on the course "club" on clear roads with no player come home in the order of their own pace (each racer alone first: "solo"); neighbours less than 1.5 % apart may swap; all eight are home. Quick and full matrix | 6b-1 |
+| **Pack in traffic** | in the pack's races in Busy traffic every club racer is home within 420 s. Full matrix only | 6b-1 |
 | **Same race twice** | a repeated race gives the same time, streets and metres | 1 |
 
 The probe that measures a race (`race_bench.gd` `Probe`) reads what a spectator could see: where
@@ -1310,6 +1418,15 @@ and Halina's mean goes from 172.4 to 166.0 s over 158 races (her home district's
 Told apart is recorded as a plain pass though it reads races in traffic too: it holds a rule
 about each light (it follows what the driver does), not a count that moves with the draw.
 
+**After step 6b part 1** (the pack on the race session, 6.2). The 304 old races are the same as
+main's. Two marks are new: **Pack order** passes (quick and full matrix: on clear roads with no
+player the club comes home in the order of its racers' own pace, all home), and **Pack in
+traffic** passes on the cloud machine and is recorded `once:Linux` until the Mac's run (full
+matrix: 16 of 16 club racers home in the pack's two races in Busy traffic; before the merge rule
+of 6.2 three of eight missed the bench's 420 s with nobody near). The quick matrix is 40 races
+(it was 24), the full one 344 (it was 304).
+
+
 ### 7.5 What the bench does not see
 
 - **The city.** It has the lane graph only: no walls, kerbs or street furniture. Today's rail
@@ -1377,7 +1494,9 @@ after. Step 2 ends the complaint in F's message. The steps after it make racing 
 | 5 (done) | Race links: alleys, courtyards, car parks (5.4) | Halina turns into a courtyard and comes out in front | Real-car proof for every link (37 links proven, 15 refused) |
 | 5b (done) | Wrong-way hops on one-way streets, for Seba and Mike (5.5; F's yes to question 3) | Seba and Mike dart the wrong way down a short one-way street when it is empty | Wrong-way hops, and in traffic (48 hops proven, 4 refused) |
 | 6a (done) | Personalities, visible decisions, result card with both routes, tuning (6.1) | You can tell Seba from Zbyszek by how they drive | The ladder's curve of times (Ladder curve, Told apart) |
-| 6b | One race object for the pack race, Trzy mosty, police chasers and crazy drivers | Every race in the game uses the new driver | All marks on every race mode |
+| 6b-1 (done) | One race session (`race_session.gd`) for the ladder races, the guided first race, Trzy mosty and the night club's pack race (6.2) | The club's drivers race like the ladder's rivals: own skill each, real overtakes, shortcuts, no driving through each other, none faster than your car | Pack order (new); Pack in traffic recorded fail; the 304 old races identical to main |
+| 6b-2 | Police chasers on the racers' driver | Police chase with the race driver | Marks on the chase |
+| 6b-3 | Crazy drivers on the racers' driver | Every race in the game uses the new driver | All marks on every race mode |
 
 Every pull request waits for green checks and the audit before it merges.
 

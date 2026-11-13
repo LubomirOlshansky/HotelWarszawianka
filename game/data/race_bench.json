@@ -33,6 +33,6 @@
 		"ladder_curve": "pass",
 		"told_apart": "pass",
 		"pack_order": "pass",
-		"pack_traffic": "fail"
+		"pack_traffic": "once:Linux"
 	}
 }
