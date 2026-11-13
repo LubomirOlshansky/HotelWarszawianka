@@ -167,6 +167,7 @@ SITE_AREAS = [
     (-175.0, 125.0, -145.0, 150.0),         # Smolna 38 (building=office, no name; landmarks.gd S38_AT)
     (-650.0, -790.0, -630.0, -765.0),       # Plac Piłsudskiego's south-east block (landmarks.gd KROLEWSKA_BLOCK)
     (-3105.0, -2455.0, -2920.0, -2335.0),   # map north: the Forest tower's office block (unnamed in OSM; docs/DEMO.md 2.2)
+    (440.0, -580.0, 465.0, -555.0),         # Flisac, Tamka 2: the 14 m wings and the 7.6 m garden block in the elbow (unnamed in OSM; landmarks.gd FLISAC_AT, FLISAC_PODIUM_AT)
     (-2175.0, -2520.0, -1945.0, -2335.0),   # Gdański Business Center (unnamed in OSM; landmarks.gd GBC_BOX)
     (-445.0, 1605.0, -395.0, 1680.0),       # Kościół Najświętszego Zbawiciela (landmarks.gd ZB_NAVE_AT, ZB_TOWER_AT)
     (-2290.0, 185.0, -2165.0, 235.0),       # Norblin's old works (landmarks.gd NORBLIN_OLD, F's look check 2026-11-03)
