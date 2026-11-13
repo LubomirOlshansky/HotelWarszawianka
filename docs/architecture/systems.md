@@ -30,6 +30,7 @@ fails if a script is in neither page, so add a row when you add a file.
 | `city_maps.gd` | AO, lamp-light and surface maps per sector, fed to shaders. |
 | `chunked_surface.gd` | SurfaceTool that files triangles into tiles so off-screen tiles are culled. |
 | `index_pack.gd` | Packs the map index smaller in memory once the city is open. |
+| `facade_kit.gd` | What every landmark is built from: the emitting core (material codes, triangle, wall, prism), the local frame, the shared facade parts (`kit_*`) and the palette (`PAL_*`). `landmarks.gd` extends it. docs/design/facade-kit.md. |
 | `instance_buffers.gd` | Writes MultiMesh buffers the same on every renderer. |
 | `lane_graph.gd` | The road network (lanes, junction curves, lights, distances). See city-ai.md. |
 | `landmarks.gd` | Landmark buildings built in code from real footprints (the largest file, ~35k lines). |

@@ -53,6 +53,7 @@ endcard              quick
 errortrap            quick
 eventday             quick
 evtow                quick
+facadekit            quick
 fans                 quick
 finite               smoke
 first10              quick

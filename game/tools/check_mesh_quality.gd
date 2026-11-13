@@ -296,6 +296,8 @@ const BUDGET := {
 	"nocny": 7000,
 	# Kolejowa's old railway warehouses, the pinball museum and the teal club (F's photos).
 	"kolejowa": 2500,
+	# The facade kit's test building (facade_kit.gd kit_sampler): every part and style once.
+	"kit_sampler": 3600,  # 2985 measured: the facade kit's test building
 }
 ## Known defects per site: {"zfight": n, "degenerate": n, "badnormal": n, "float": n}.
 ## Towarowa 22's drone taxi hovers 7 m over its pad by design (the "Warsaw of the future").
@@ -419,6 +421,14 @@ func _initialize() -> void:
 		var found := _examine(key, rec)
 		measured[key] = found
 		_judge(key, found)
+	# The facade kit's sampler (facade_kit.gd `kit_sampler`, docs/design/facade-kit.md section 6):
+	# not a site, built and judged like one, so a kit part that flickers, floats or lights wrongly fails here.
+	var kit_rec := Recorder.new()
+	marks.build(kit_rec, Rect2(), "kit_sampler")
+	if kit_rec.pos.size() > 0:
+		var kit_found := _examine("kit_sampler", kit_rec)
+		measured["kit_sampler"] = kit_found
+		_judge("kit_sampler", kit_found)
 	for key: String in BUDGET:
 		if not measured.has(key):
 			problems.append("%s: has a budget but builds nothing (site gone?)" % key)

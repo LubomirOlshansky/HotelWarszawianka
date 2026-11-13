@@ -24,6 +24,7 @@ move later, and don't build a third private copy.
 | A vibration | `Access.buzz` (goes through `haptics.gd`) | `Input.vibrate_handheld` directly |
 | An AI car or group of people | city-ai.md section 7 | a node per car, a new person material |
 | A building, landmark or prop | `landmarks.gd`, `models.gd`, `props.gd` and the skill `model-from-photos`; the map bake for data (skill `bake-map`) | geometry added to only one city path |
+| A window, balcony, ledge, cornice, column, pediment or wall colour on a landmark | the facade kit: a `kit_*` part and a `PAL_*` colour of `facade_kit.gd` (docs/design/facade-kit.md); a new style goes into the kit | a private `_xx_window` helper or a one-off hex colour (`tools/check_facade_kit.py` fails the first) |
 | Something drawn every frame, a light, a material, a shader | graphics.md, then report bench before and after | a new shader without `check_shader_budget` |
 | A quality-dependent extra | a field in `tiers.gd` and, if it costs CPU, a step in `governor.gd` | `if OS.get_model_name() ...` in a feature |
 | A setup step at load | a `_build_x(world)` in main.gd followed by `await LoadYield.tick("_build_x")` | long work in one frame |
@@ -57,6 +58,31 @@ In main.gd: a `const` preload, a `var`, a `_build_x` that sets the references an
 a `LoadYield.tick`, and a test flag if needed. An activity takes its shape from the kit instead
 (`activity.gd`, the first row for it above): it joins the director, and nothing is added to
 `_free_block`.
+
+## Extending the facade kit
+
+The kit (`facade_kit.gd`, docs/design/facade-kit.md) is meant to grow. When a landmark needs a
+facade element the kit lacks:
+
+1. **A new part or style goes into the kit, in the landmark's own PR**: a `kit_*` function, or a
+   value in `Win`, `Balcony`, `Attic` or `Order`. Its arguments are where, how big and which
+   colours; its proportions are fixed inside it. Never a private helper in `landmarks.gd`
+   (verify step `facadekit` fails it).
+2. **Add it to `kit_sampler()`** so `check_mesh_quality` examines it (z-fighting, floating
+   parts, normals), raise the sampler's budget on purpose, and **describe it in
+   docs/design/facade-kit.md** (the check fails when the kit and the doc disagree).
+3. **Prove nothing else moved**: `site_dump.gd` before and after, `tools/site_parity.py`; every
+   site but the landmark's own must be `same`.
+4. **A colour**: a building's own measured colour is a named constant of that building. A colour
+   a second building needs joins the palette (`PAL_*`, the kit and the doc's table together).
+
+These are decisions, not routine edits, so they go to the Opus or Fable session and to F's look:
+changing a proportion of an existing part or a palette value (it moves every landmark that uses
+it: before and after shots of each), and any look that would need the building shader (it has no
+budget; decisions.md).
+
+A Sonnet `object-modeler` uses the kit and escalates when a part is missing; the session that
+wrote the spec adds the style.
 
 ## When the owner can't do it
 
