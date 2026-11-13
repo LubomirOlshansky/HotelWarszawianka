@@ -464,8 +464,8 @@ const INFO := {
 			"Okrągły plac MDM z lat 50.: kolumnady wokół ronda, a pod nimi kawiarnie do późnej nocy.",
 			"MDM's round square of the 1950s: colonnades round the roundabout and cafés under them till late."],
 	"aleksander": ["Kościół Świętego Aleksandra",
-			"Rotunda na placu Trzech Krzyży.",
-			"The rotunda on Plac Trzech Krzyży."],
+			"Rotunda Aignera z lat 1818-1825 z dwoma portykami; po wojnie odbudowana bez dawnych wież.",
+			"Aigner's rotunda of 1818-1825 with two porticoes; rebuilt after the war without its later towers."],
 	"zelazna": ["Osiedle Za Żelazną Bramą",
 			"Jedenaście bloków z wielkiej płyty, zaprojektowanych przez Skolimowskiego.",
 			"Eleven large-panel blocks of the 1960s-70s, designed by Jerzy Skolimowski."],
@@ -18046,26 +18046,44 @@ func _build_sejm(_site: Dictionary) -> void:
 	_collide(ring)
 
 
-## St Alexander's church (Kościół Świętego Aleksandra; Kubicki's Pantheon-like rotunda of
-## 1818-1826 on Plac Trzech Krzyży): a model instead of a skin. A drum 11.3 m in radius under a
-## copper dome with a small lantern and a cross, a pedimented portico of six columns on each end of
-## the long axis (the mapped outline is mirrored: 12.8 m wide, 18.0 m out to the north end, 17.4 m
-## to the south). Spec docs/landmarks/specs/aleksander.md. Centre and radius are a circle fitted
-## to the outline's arcs; heights are estimates (no LoD2 in the cloud).
+## St Alexander's church (Kościół Świętego Aleksandra; Chrystian Piotr Aigner's rotunda of
+## 1818-1825 in the middle of Plac Trzech Krzyży, given towers in the 1890s, burnt in 1944 and
+## rebuilt in Aigner's form without them). Rebuilt 2026-11-13 from Mapillary photos (refs/aleksander,
+## never shipped), F's photos (top-50 T23) and the GUGiK LoD2 heights (eaves 13.8 m, upper drum 18.9 m, dome 25.7 m).
+## Spec docs/landmarks/specs/aleksander.md. White plaster, copper-flashed cornices, a green copper dome:
+## - a stepped stone podium round the whole church;
+## - a tall blank lower drum (no windows) with a string course and a dentilled cornice in line
+##   with the porticoes' entablature, then a plain set-back band;
+## - a lower, set-back upper drum where round-headed windows alternate with blind arched niches,
+##   its own cornice, a plain attic ring and the low dome with a small cross on top (no lantern);
+## - a portico of six Corinthian columns on each end of the long axis (one more column on each
+##   side behind the corner ones), a pediment with a cross, a cella front with a big door and two
+##   side doors, small windows in the cella block's sides, and steps down to the square.
 ## Frame: origin at the rotunda's centre, u along the long axis to the north (Nowy Świat), +v east.
 const ALEKS := Vector2(-110.8, 541.7)
 const ALEKS_AXIS := Vector2(-0.232, -0.973)
-const ALEKS_R := 11.3
-const ALEKS_HALF := 6.4         # the porticoes' half width
+const ALEKS_R := 11.3            ## the lower drum (a circle fitted to the outline's arcs)
+const ALEKS_UP_R := 10.2         ## the upper drum
+const ALEKS_HALF := 6.4          ## the porticoes' half width (the outline)
 const ALEKS_ENDS := [18.0, -17.4]
-const ALEKS_WALL := Color("#ebe4d2")
-const ALEKS_TRIM := Color("#f3eee0")
-const ALEKS_BASE := Color("#b5ab97")
-const ALEKS_COPPER := Color("#7f8f88")
-const ALEKS_DARK := Color("#3a3f42")
-const ALEKS_GOLD := Color("#c9a24a")
-## The dome's profile over the attic: [radius, height above ground].
-const ALEKS_DOME := [[10.4, 17.0], [9.9, 19.0], [8.8, 21.0], [7.3, 22.8], [5.6, 24.2], [3.8, 25.2], [2.8, 25.6]]
+const ALEKS_PODIUM := 0.8        ## the podium's top above the street
+const ALEKS_FLOOR := 1.4         ## the porticoes' floor
+const ALEKS_WALL := Color("#f1f0eb")    ## white plaster (F's photos: white, not cream)
+const ALEKS_TRIM := Color("#faf9f5")    ## cornices, columns, surrounds
+const ALEKS_NICHE := Color("#dedcd4")   ## the blind niches' shade
+const ALEKS_BASE := PAL_PALE_CONCRETE    ## the plinth band
+const ALEKS_LEDGE := Color("#7aa892")   ## the copper flashing on the cornices' tops (the aerial)
+const ALEKS_STEP := PAL_GREY_STONE    ## granite steps and podium
+const ALEKS_COPPER := PAL_PATINA_COPPER  ## the dome's green copper
+const ALEKS_ROOF := Color("#5f8a76")    ## the porticoes' copper roofs
+const ALEKS_DARK := PAL_GLASS_DARK
+const ALEKS_DOOR := PAL_OAK
+const ALEKS_IRON := PAL_IRON    ## the crosses (they read dark against the sky)
+## The dome over the attic: [radius, height above the street] (LoD2: apex 25.7 m).
+const ALEKS_DOME := [[9.6, 20.0], [9.1, 20.9], [8.0, 21.9], [6.4, 22.9], [4.5, 23.8], [2.4, 24.6], [0.7, 25.0]]
+## A portico's column spots across it (v) and the return columns' setback from the front.
+const ALEKS_COLS := [-5.75, -3.45, -1.15, 1.15, 3.45, 5.75]
+const ALEKS_RETURN := 2.3
 
 
 func _find_aleksander() -> void:
@@ -18076,65 +18094,142 @@ func _find_aleksander() -> void:
 			sites[-1]["ring"] = outline
 
 
+## A ring of n points round the rotunda, turned with the long axis: face k's middle sits at the
+## local angle k * TAU / n from u (so faces line up with the porticoes and the windows).
+func _aleks_ring(r: float, n: int) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for k in n:
+		var ang := TAU * (k + 0.5) / n
+		out.append(ALEKS + (_a * cos(ang) + _b * sin(ang)) * r)
+	return out
+
+
 func _build_aleksander(_site: Dictionary) -> void:
 	_o = ALEKS
 	_a = ALEKS_AXIS.normalized()
 	_b = Vector2(-_a.y, _a.x)
 	var c := ALEKS
 	var r := ALEKS_R
+	var ru := ALEKS_UP_R
 	_g = _ground_under(_circle(c, r, 8))
 	var g := _g
 	var none := Color(0, 0, 0, 0)
-	var light := ALEKS_TRIM
-	# plinth, drum, cornice, attic
-	_prism(_circle(c, r + 0.3, 24), g - 0.5, g + 1.0, ALEKS_BASE, ALEKS_BASE, M_STONE, M_STONE)
-	_prism(_circle(c, r, 24), g + 1.0, g + 13.5, ALEKS_WALL, none, M_MONUMENT)
-	_prism(_circle(c, r + 0.45, 24), g + 13.5, g + 14.4, light, light, M_STONE, M_STONE)
-	_prism(_circle(c, r - 0.5, 24), g + 14.4, g + 17.0, ALEKS_WALL, ALEKS_WALL.darkened(0.08), M_STONE, M_STONE)
-	# tall windows round the drum, between the two porticoes (not on the ends' axis)
-	_mode = M_GLASS
-	for k in 12:
-		var ang := deg_to_rad(15.0 + 30.0 * k)
-		var out := _a * cos(ang) + _b * sin(ang)
-		var tan := Vector2(out.y, -out.x)
-		var p := c + out * (r * cos(PI / 24.0) + 0.07)
-		_wall(p - tan * 0.6, p + tan * 0.6, g + 5.0, g + 10.2, out, ALEKS_DARK)
+	var p := g + ALEKS_PODIUM
+	var fl := g + ALEKS_FLOOR
+	var face_c := cos(PI / 24.0)  # a 24-gon's face distance over its vertex radius
 	_mode = M_STONE
-	# dome
+	# the podium: a step all round, then the platform the church stands on
+	_prism(_aleks_ring(r + 2.3, 24), g - 0.5, g + 0.4, ALEKS_STEP, ALEKS_STEP.lightened(0.04), M_STONE, M_STONE)
+	_prism(_aleks_ring(r + 1.4, 24), g + 0.4, p, ALEKS_STEP, ALEKS_STEP.lightened(0.07), M_STONE, M_STONE)
+	# the lower drum: a plinth band, the blank wall, a string course, the dentilled cornice in two
+	# tiers, then the plain set-back band and its cap
+	_prism(_aleks_ring(r + 0.15, 24), p - 0.1, p + 0.9, ALEKS_BASE, none, M_STONE)
+	_prism(_aleks_ring(r, 24), p + 0.9, g + 11.0, ALEKS_WALL, none, M_STONE)
+	# small square vents in the plinth band, two to a face, clear of the porticoes
+	_mode = M_GLASS
+	for k in 24:
+		if k % 12 <= 2 or k % 12 >= 10:
+			continue
+		var va := TAU * k / 24.0
+		var vo := _a * cos(va) + _b * sin(va)
+		var vt := Vector2(vo.y, -vo.x)
+		var vp := c + vo * ((r + 0.15) * face_c + 0.03)
+		for dt: float in [-0.6, 0.6]:
+			_wall(vp + vt * (dt - 0.18), vp + vt * (dt + 0.18), p + 0.3, p + 0.66, vo, ALEKS_DARK)
+	_mode = M_STONE
+	_prism(_aleks_ring(r + 0.08, 24), g + 9.7, g + 9.95, ALEKS_TRIM, none, M_STONE)
+	_prism(_aleks_ring(r + 0.25, 24), g + 11.0, g + 11.4, ALEKS_TRIM, none, M_STONE)
+	_prism(_aleks_ring(r + 0.55, 24), g + 11.4, g + 11.9, ALEKS_TRIM, ALEKS_LEDGE, M_STONE, M_STONE)
+	_prism(_aleks_ring(r - 0.3, 24), g + 11.9, g + 13.6, ALEKS_WALL, none, M_STONE)
+	_prism(_aleks_ring(r - 0.15, 24), g + 13.6, g + 13.8, ALEKS_TRIM, ALEKS_LEDGE, M_STONE, M_STONE)
+	# the upper drum, its cornice and the plain attic ring
+	_prism(_aleks_ring(ru, 24), g + 13.8, g + 18.0, ALEKS_WALL, none, M_STONE)
+	_prism(_aleks_ring(ru + 0.45, 24), g + 18.0, g + 18.9, ALEKS_TRIM, ALEKS_LEDGE, M_STONE, M_STONE)
+	_prism(_aleks_ring(ru - 0.6, 24), g + 18.9, g + 20.0, ALEKS_WALL, none, M_STONE)
+	# round-headed windows on the even faces, blind niches on the odd ones; none on the axis,
+	# where the pediments stand in front of the upper drum
+	for k in 24:
+		if k % 12 == 0:
+			continue
+		var ang := TAU * k / 24.0
+		var out := _a * cos(ang) + _b * sin(ang)
+		var along := Vector2(out.y, -out.x)
+		var at := c + out * (ru * face_c)
+		if k % 2 == 0:
+			_arch_panel(at, along, out, 1.0, g + 14.4, g + 16.3, ALEKS_TRIM, 0.04, M_STONE)
+			_arch_panel(at, along, out, 0.72, g + 14.6, g + 16.3, ALEKS_DARK, 0.08, M_GLASS)
+		else:
+			_arch_panel(at, along, out, 0.8, g + 14.5, g + 16.3, ALEKS_NICHE, 0.04, M_STONE)
+	# the dome, lighter toward the top, then the cross on a small pedestal
+	_mode = M_STONE
 	for k in ALEKS_DOME.size() - 1:
 		var da: Array = ALEKS_DOME[k]
 		var db: Array = ALEKS_DOME[k + 1]
-		var col := ALEKS_COPPER.lerp(ALEKS_COPPER.lightened(0.12), float(k) / ALEKS_DOME.size())
-		_frustum(_circle(c, da[0], 24), g + float(da[1]), _circle(c, db[0], 24), g + float(db[1]), col)
-	# lantern: a base, the windowed drum, a cornice, the cap, a ball and the cross
-	_prism(_circle(c, 2.9, 12), g + 25.4, g + 26.3, ALEKS_BASE, ALEKS_BASE, M_STONE, M_STONE)
-	_prism(_circle(c, 2.3, 12), g + 26.3, g + 30.0, ALEKS_TRIM, none, M_MONUMENT)
-	_prism(_circle(c, 2.8, 12), g + 30.0, g + 30.6, light, light, M_STONE, M_STONE)
-	_frustum(_circle(c, 2.6, 12), g + 30.6, _circle(c, 0.3, 12), g + 33.0, ALEKS_COPPER.lightened(0.06), ALEKS_COPPER)
-	_prism(_circle(c, 0.4, 6), g + 33.0, g + 33.7, ALEKS_GOLD, ALEKS_GOLD, M_STONE, M_STONE)
-	_lbox(0.0, 0.0, 0.1, 0.1, g + 33.7, g + 37.0, ALEKS_GOLD, M_STONE, ALEKS_GOLD)
-	_lbox(0.0, 0.0, 0.1, 0.65, g + 35.6, g + 35.84, ALEKS_GOLD, M_STONE, ALEKS_GOLD)
-	# the two porticoes: a cella, a stylobate, six columns, an entablature, a pediment, a door
-	var ring := _circle(c, r + 0.3, 24)
+		var col := ALEKS_COPPER.lerp(ALEKS_COPPER.lightened(0.15), float(k) / ALEKS_DOME.size())
+		var top := ALEKS_COPPER.lightened(0.15) if k == ALEKS_DOME.size() - 2 else none
+		_frustum(_aleks_ring(da[0], 24), g + float(da[1]), _aleks_ring(db[0], 24), g + float(db[1]), col, top)
+	_prism(_circle(c, 0.35, 6), g + 24.9, g + 25.6, ALEKS_IRON, ALEKS_IRON, M_STONE, M_STONE)
+	_lbox(0.0, 0.0, 0.09, 0.09, g + 25.6, g + 28.2, ALEKS_IRON, M_STONE, ALEKS_IRON)
+	_lbox(0.0, 0.0, 0.09, 0.6, g + 27.2, g + 27.42, ALEKS_IRON, M_STONE, ALEKS_IRON)
+	# the two porticoes
+	var ring := _aleks_ring(r + 2.3, 24)
 	for end: float in ALEKS_ENDS:
 		var sgn := signf(end)
 		var face := absf(end)
-		var back := face - 4.4
-		var mid := sgn * (r - 2.0 + back) * 0.5
-		var half := (back - r + 2.0) * 0.5
+		var back := face - 4.8           # the cella front
+		var root := r - 1.5              # where the cella block meets the drum
 		var hv := ALEKS_HALF
-		# the door first, so the cella wall stays whole (7 cm proud of it)
-		_mode = M_GLASS
-		var du := sgn * (back + 0.07)
-		_wall(_w(du, sgn * 1.1), _w(du, -sgn * 1.1), g + 0.9, g + 5.6, _a * sgn, ALEKS_DARK)
+		# the cella front's doors first, so its wall stays whole behind them
+		var du := sgn * (back + 0.08)
 		_mode = M_STONE
-		_lbox(mid, 0.0, half, hv - 0.4, g - 0.5, g + 11.0, ALEKS_WALL, M_MONUMENT, ALEKS_WALL.darkened(0.08))
-		_lbox(sgn * (back + 2.2), 0.0, 2.2, hv, g - 0.5, g + 0.8, ALEKS_BASE, M_STONE, ALEKS_BASE.lightened(0.08))
-		for v: float in [-5.8, -3.6, -1.2, 1.2, 3.6, 5.8]:
-			_column(sgn * (face - 1.0), v, 0.42, g + 0.8, g + 9.4, ALEKS_TRIM)
-		_lbox(sgn * (back + 2.25), 0.0, 2.25, hv, g + 9.4, g + 10.9, light, M_STONE, ALEKS_WALL.darkened(0.08))
-		_gable(sgn * (face + 0.05), sgn * (r - 2.0), 0.0, hv + 0.1, g + 10.9, 2.3, ALEKS_WALL, ALEKS_COPPER, false)
-		var arm := _rect(sgn * (r - 2.0 + face) * 0.5, 0.0, (face - r + 2.0) * 0.5, hv)
+		_wall(_w(du, sgn * 1.75), _w(du, -sgn * 1.75), fl, fl + 6.6, _a * sgn, ALEKS_TRIM)
+		_mode = M_GLASS
+		_wall(_w(du + sgn * 0.04, sgn * 1.3), _w(du + sgn * 0.04, -sgn * 1.3), fl, fl + 5.9, _a * sgn, ALEKS_DOOR)
+		for dv: float in [-4.6, 4.6]:
+			_wall(_w(du, dv + sgn * 0.6), _w(du, dv - sgn * 0.6), fl, fl + 3.2, _a * sgn, ALEKS_DOOR)
+		# small windows, two up, in the cella block's side walls
+		for side: float in [-1.0, 1.0]:
+			var sv := side * (hv - 0.3 + 0.06)
+			var su := sgn * (back - 1.4)
+			for wy: float in [3.6, 7.0]:
+				_wall(_w(su - 0.35, sv), _w(su + 0.35, sv), g + wy, g + wy + 1.1, _b * side, ALEKS_DARK)
+		_mode = M_STONE
+		# the cella block, the floor and the steps down to the square
+		_lbox(sgn * (root + back) * 0.5, 0.0, (back - root) * 0.5, hv - 0.3, p - 0.2, g + 9.9, ALEKS_WALL, M_STONE)
+		# the south portico has a broad flight in front; the north one (the ground falls toward
+		# Nowy Świat) stands on a white base wall with a flight down each side (F's photos)
+		var front := sgn < 0.0
+		var reach := 1.8 if front else 0.3
+		_lbox(sgn * (back + face + 0.3) * 0.5, 0.0, (face + 0.3 - back) * 0.5, hv + 0.3, g - 0.5, fl,
+				ALEKS_STEP if front else ALEKS_WALL, M_STONE, ALEKS_STEP.lightened(0.08))
+		var flight := [[0.3, 0.8, 1.0], [0.8, 1.3, 0.6], [1.3, 1.8, 0.25]]
+		for st: Array in flight:
+			var s0 := float(st[0])
+			var s1 := float(st[1])
+			if front:
+				_lbox(sgn * (face + (s0 + s1) * 0.5), 0.0, (s1 - s0) * 0.5, hv + 0.3, g - 0.5, g + float(st[2]), ALEKS_STEP, M_STONE, ALEKS_STEP.lightened(0.05))
+			else:
+				for side: float in [-1.0, 1.0]:
+					_lbox(sgn * (face - 1.6), side * (hv + 0.3 + (s0 + s1) * 0.5 - 0.3), 1.9, (s1 - s0) * 0.5,
+							g - 0.5, g + float(st[2]), ALEKS_STEP, M_STONE, ALEKS_STEP.lightened(0.05))
+		# the antae at the cella front's corners, then the columns: six across, one more each side
+		for side: float in [-1.0, 1.0]:
+			_lbox(sgn * (back + 0.2), side * 5.75, 0.2, 0.45, fl, g + 9.9, ALEKS_TRIM, M_STONE)
+		for v: float in ALEKS_COLS:
+			kit_column(sgn * (face - 0.75), v, fl, g + 9.9, ALEKS_TRIM, 0.46, Order.CORINTHIAN)
+		for v: float in [ALEKS_COLS[0], ALEKS_COLS[-1]]:
+			kit_column(sgn * (face - 0.75 - ALEKS_RETURN), v, fl, g + 9.9, ALEKS_TRIM, 0.46, Order.CORINTHIAN)
+		# the entablature (architrave and frieze, then the cornice), the pediment and its cross
+		var e0 := root
+		var e1 := face + 0.05
+		_lbox(sgn * (e0 + e1) * 0.5, 0.0, (e1 - e0) * 0.5, hv + 0.05, g + 9.9, g + 11.2, ALEKS_TRIM, M_STONE)
+		_lbox(sgn * (e0 + e1 + 0.25) * 0.5, 0.0, (e1 + 0.25 - e0) * 0.5, hv + 0.3, g + 11.2, g + 11.9, ALEKS_TRIM, M_STONE, ALEKS_TRIM.darkened(0.1))
+		# the pediment roof stops against a plain block over the cella's back, as high as the band
+		_gable(sgn * (face + 0.2), sgn * (root + 1.6), 0.0, hv + 0.3, g + 11.9, 3.3, ALEKS_WALL, ALEKS_ROOF, true)
+		_lbox(sgn * (root + 0.8), 0.0, 0.8, hv - 1.2, g + 11.9, g + 13.8, ALEKS_WALL, M_STONE, ALEKS_LEDGE)
+		_lbox(sgn * (face + 0.05), 0.0, 0.08, 0.08, g + 15.2, g + 16.9, ALEKS_IRON, M_STONE, ALEKS_IRON)
+		_lbox(sgn * (face + 0.05), 0.0, 0.08, 0.45, g + 16.2, g + 16.38, ALEKS_IRON, M_STONE, ALEKS_IRON)
+		var arm := _rect(sgn * (root + face + reach) * 0.5, 0.0, (face + reach - root) * 0.5, hv + (0.3 if front else 1.8))
 		var merged := Geometry2D.merge_polygons(ring, arm)
 		if not merged.is_empty():
 			ring = _largest(merged)
