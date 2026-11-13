@@ -97,6 +97,10 @@ func _run() -> void:
 	_check_first_scene(c)
 	_check_decks(c, data)
 	_check_level26(c, book, data)
+	# The prebuilt city's index (map/index.res) has neither buildings nor site_parts: LORETKA's
+	# terrace (its plan from the hotel's outline alone) must stay a crowd site there too.
+	var bare := {"landmarks": (data as Dictionary).get("landmarks", [])}
+	_expect(not Crowds.Landmarks.loretka_plan(bare).is_empty(), "LORETKA's terrace has no plan without the building parts (the prebuilt index)")
 	_check_door(c, dlg)
 	var cost := _check_dawn(c, data)
 	_check_office(c, data, dlg)

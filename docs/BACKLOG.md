@@ -3025,6 +3025,10 @@ real ones added to `brand_denylist.json`). One PR each:
       inside the walls and the east half looked open. Now `roof` false and `cap` 27.4 (LORETKA's deck
       sits on it), and `_piure_strips` puts a beige strip (M_LAMP) beside each window on the two
       long fronts, alternating sides by floor, from F's photos, 2026-11-12.
+- [x] LORETKA's terrace crowd on the prebuilt city (audit, 2026-11-13: 260 crowd sites runtime, 259
+      prebuilt): `loretka_plan` took the hotel's height from the building parts, which the prebuilt
+      index (map/index.res) does not carry, so the plan came back empty. It now falls back to
+      `LOR_HEIGHT` 27.4 (the block's `cap`); `check_crowds` checks the plan without the parts.
 - [ ] Other street blocks may borrow a too-low LoD2 roof the same way (2026-11-12 scan: the block's
       `top` against the survey roof inside its outline; gaps over 8 m at 118254728, 961448757,
       947222657, 853013401, 152199063, 238560043, 30302026; many 3-6 m gaps are just parapets).

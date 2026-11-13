@@ -97,7 +97,7 @@ const BUDGET := {
 	"blekitny": 910,
 	"bridge": 700,
 	"grzybowska77": 2000,
-	"buw": 2900,
+	"buw": 9000,  # 2026-11-13 pass 4 from F's photos (copper frieze and letters, ribbed vault, ivy fronts, pink lattice, drums, dome, Collegium Iuridicum IV, lower garden): 8672 tris, +0 draw calls
 	"central": 340,
 	"centralna": 1650,
 	"chalubinskiego8": 1520,
@@ -258,7 +258,8 @@ const BUDGET := {
 	"zamkowy": 1700,
 	"arkady": 2600,
 	"kino_muranow": 6000,
-	"zbawiciela": 1250,
+	"zbawiciela": 3400,
+	"zbawiciela_plac": 2200,
 	"tarasy": 9400,  # 2026-11-11 F's photos: the triangular glass wave, the guitar, the café (5455); the whole complex: podium ledges, shop boards, Lumen's setback (7781)
 	"tarasy_plaza": 2750,  # 2026-11-11: the sunken plaza by the station: walls, shopfronts, railings, treads, umbrellas (2290)
 	"trojca": 2300,

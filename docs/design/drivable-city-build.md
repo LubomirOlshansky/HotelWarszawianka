@@ -5,6 +5,9 @@ research: five solidity classes, a verdict per object type, rules R1-R9). No gam
 Research and plan on Fable; **each item below is built by its own Opus thread** from its section
 here, which is written to be that thread's brief.
 
+**The order of work is now in `docs/design/city-objects-plan.md`** (the single plan that joins this
+page with the walls plan, 2026-11-13). The items below remain the build briefs.
+
 F (2026-11-13): "make the very detailed plan and research with Fable, implementation with Opus.
 And as a separate task: how to make the walls look more like in life, representing the real type
 of object and texture, and how to handle it when it is ruined: the memory of it and the recovery."
