@@ -1,4 +1,4 @@
-extends Node
+extends "res://scripts/activity.gd"
 ## Loop 2d-1: Podwózka, the app-taxi side job (docs/design/parodies.md 3.3; the rules and the
 ## pay are ride_rules.gd, the GPS moments of the app-taxis in traffic gps_moments.gd).
 ##
@@ -17,11 +17,17 @@ extends Node
 ## in the status panel; at the door a result card with the passenger's comment and the pay.
 ## Cancel: the ✕ any time, or the passenger after 3 × the ETA: no pay, the streak ends. The
 ## police loop calls on_pulled_over() (one star).
+##
+## An activity of the kit (activity.gd, tech-debt TD-1): the request is the kit's offer card and
+## leaves the player free (`offer_busy` off), so the ride is on only once it is taken; the way to
+## the passenger, the ride and the result are the stages of the kit's RUN. Its cards sit beside
+## the road with the drive going on under them (`cards_hold` off): the passenger's question, and
+## the result card, which goes by itself. The target is the script's own (the pin, the passenger,
+## the door, at the lane graph's height), and on a test run it drives the autopilot's car itself
+## (`drive_player`). The director (activities.gd) counts it among the activities; jobs.gd, the
+## police and the first minutes' guide still ask it by name (tech-debt TD-1).
 
-const Access := preload("res://scripts/access.gd")
 const Rules := preload("res://scripts/ride_rules.gd")
-const Beacon := preload("res://scripts/beacon.gd")
-const StopAssist := preload("res://scripts/stop_assist.gd")
 const Props := preload("res://scripts/props.gd")
 const Models := preload("res://scripts/models.gd")
 const Missions := preload("res://scripts/missions.gd")
@@ -98,25 +104,24 @@ const RESULT_LIFE := 12.0
 const RESULT_OFF := 25.0
 const SHIRTS := ["#3b8f5a", "#2f6fb5", "#7a4fb5", "#c9b458", "#4c6650", "#5d6f8a"]
 
-enum State { IDLE, OFFER, PICKUP, RIDE, RESULT }
+## The run's stage (the kit's `phase` is RUN then; NONE outside a run).
+enum Stage { NONE, PICKUP, RIDE, RESULT }
 
-var hud: CanvasLayer
 var bubbles: Control
-var dialogue: Node
-var wallet: Node
 var missions: Node
 var rivals: Node
 var jobs: Node
 var graph: LaneGraph
 var traffic: Node3D
-var map: Node3D
-var car: CharacterBody3D
 var tod: Node
 var weather: Node
 var moments: Node
 ## Loop MW-2: the Frogs (storefronts.gd: shop_near, frogs_at_junction); null: none placed.
 var frogs: Node
-var state := State.IDLE
+var stage := Stage.NONE
+## What main.gd's bake gives (`setup` reads it once): the address and park points ("pois"), the
+## spawn, the river's drivable spots ("drivable_bank").
+var map_data := {}
 ## Set by the game each frame: in the helicopter; `away`: the title screen or the bench is up
 ## (no offers, and the first 2 minutes wait).
 var flying := false
@@ -129,9 +134,7 @@ var guide_hold := false
 ## Testing: --autopilot drives the app's route (--ignore-app: the shortest one); --parody-log
 ## prints `ride:` lines; --ride-quirk, --passenger and --stars force the quirk, the passenger
 ## type and the live rating's start.
-var autopilot := false
 var ignore_app := false
-var log_on := false
 var force_quirk := ""
 var force_passenger := ""
 ## --ride-story=ID: that story passenger on the next rides ("none": no story); --ride-answer=0|1:
@@ -144,7 +147,6 @@ var _stories: Array = []
 var _beat := 0
 var _beat_since := 0.0
 var _asking := false
-var _ask_t := 0.0
 ## Story lines said and questions answered (tools/check_rides.gd, the logs).
 var story_lines := 0
 var story_answers := 0
@@ -173,8 +175,11 @@ var _result_card: Array = []
 var _result_in := 0.0
 var _result_at := Vector3.ZERO
 var _rules := Rules.new()
-var _session := 0.0
-var _t := 0.0
+## Seconds of play: the first two minutes count on it. It stands while the player is away (the
+## title screen, the bench, a club), which the kit's own session clock does not.
+var _played := 0.0
+## A request was taken back this frame (`_tick`): no idle tick in the same frame.
+var _withdrawn := false
 var _offer_in := -1.0
 var _pill_at := -1.0
 var _rides := 0
@@ -194,7 +199,6 @@ var _legs: Array[Dictionary] = []
 var _leg := 0
 var _ghost = null
 var _stall := 0.0
-var _beacon: Node3D
 var _rider: Node3D
 var _rider_mesh: MeshInstance3D
 var _bang: MeshInstance3D
@@ -228,25 +232,22 @@ var _drive_counts: Array[int] = []
 var drive_toasts := 0
 
 
-func setup(nodes: Dictionary, data: Dictionary, world: Node3D) -> void:
-	hud = nodes["hud"]
-	bubbles = nodes["bubbles"]
-	dialogue = nodes["dialogue"]
-	wallet = nodes["wallet"]
-	missions = nodes["missions"]
-	rivals = nodes["rivals"]
-	jobs = nodes["jobs"]
-	graph = nodes["graph"]
-	traffic = nodes["traffic"]
-	map = nodes["map"]
-	car = nodes["car"]
-	tod = nodes["tod"]
-	weather = nodes.get("weather")
+## main.gd hands in the nodes (hud, bubbles, dialogue, wallet, missions, rivals, jobs, graph,
+## traffic, map, car, tod, weather) and `map_data` before this.
+func setup(world: Node3D) -> void:
+	tag = "podwózka"
+	colour = COLOUR
+	dark = Color(SHIRTS[0])
+	card_life = OFFER_LIFE
+	is_job = true
+	offer_busy = false
+	cards_hold = false
+	super.setup(world)
 	_rng.randomize()
 	_base = _rng.randi() % 100000
 	_stories = Stories.load_all()
 	var t0 := Time.get_ticks_msec()
-	for p in data.get("pois", []):
+	for p in map_data.get("pois", []):
 		match String(p["k"]):
 			"address":
 				var door: Array = p["door"]
@@ -256,20 +257,14 @@ func setup(nodes: Dictionary, data: Dictionary, world: Node3D) -> void:
 				var w := Vector2(p["x"], p["z"])
 				if not _wet(w, 2.0) and not _roofed(w):
 					_parks.append({"name": String(p["name"]), "w": w})
-	var sp: Dictionary = data.get("spawn", {})
+	var sp: Dictionary = map_data.get("spawn", {})
 	_spawn_lane = graph.snap(Vector2(float(sp.get("x", 0.0)), float(sp.get("z", 0.0))), 60.0, Vector2.ZERO, true, true)
-	if not _bank_spots(data):  # map round 2b: the bake's drivable river spots, else the scan
+	if not _bank_spots(map_data):  # map round 2b: the bake's drivable river spots, else the scan
 		_queue_river()
-	_beacon = Beacon.new()
-	world.add_child(_beacon)
-	_beacon.setup(COLOUR, Color(SHIRTS[0]))
+	map_data = {}
 	_build_rider(world)
 	_gps_anchor = func() -> Vector3: return car.global_position + Vector3(0, 3.4, 0)
 	_offer_in = _rng.randf_range(OFFER_GAP.x, OFFER_GAP.y)
-	hud.card_pressed.connect(_on_card)
-	hud.abort_pressed.connect(func():
-		if state == State.PICKUP or state == State.RIDE:
-			_cancel(false))
 	hud.context_pressed.connect(_on_context)
 	car.bumped.connect(_on_bump)
 	if traffic != null:
@@ -323,22 +318,18 @@ static func _cube(st: SurfaceTool, c: Vector3, size: Vector3) -> void:
 
 # --- the game's view of the job ----------------------------------------------------------------
 
-func busy() -> bool:
-	return state != State.IDLE and state != State.OFFER
-
-
 func has_target() -> bool:
-	return state == State.PICKUP or state == State.RIDE
+	return stage == Stage.PICKUP or stage == Stage.RIDE
 
 
 ## PT-15: a request card is up, waiting for ACCEPT / SKIP.
 func offering() -> bool:
-	return state == State.OFFER
+	return phase == Phase.OFFER
 
 
 ## The pin (then the passenger, once the car is near the pin or them), or the ride's real door.
 func target_position() -> Vector3:
-	if state == State.PICKUP:
+	if stage == Stage.PICKUP:
 		var near: bool = _flat(car.global_position, _ride["pin"]) < 30.0 or _flat(car.global_position, _ride["board"]) < 70.0
 		return _ride["board"] if near else _ride["pin"]
 	return _ride["ring"]
@@ -347,28 +338,27 @@ func target_position() -> Vector3:
 ## Where the car should stop now (stop_assist.gd): the passenger once the arrow points at them
 ## (never the pin, which is only roughly where they wait), then the door.
 func stop_spot() -> Vector3:
-	if state == State.RIDE:
+	if stage == Stage.RIDE:
 		return _ride["ring"]
-	if state == State.PICKUP and target_position() == _ride["board"]:
+	if stage == Stage.PICKUP and target_position() == _ride["board"]:
 		return _ride["board"]
 	return Vector3.INF
 
 
-func target_colour() -> Color:
-	return COLOUR
-
-
 ## Keyboard: M accepts a request or closes the result card, K skips a request.
 func primary() -> bool:
-	if state == State.OFFER or (state == State.RESULT and _result_in <= 0.0):
-		_on_card(0)
+	if phase == Phase.OFFER:
+		card_pressed(0)
+		return true
+	if stage == Stage.RESULT and _result_in <= 0.0:
+		finish()
 		return true
 	return false
 
 
 func secondary() -> bool:
-	if state == State.OFFER:
-		_on_card(1)
+	if phase == Phase.OFFER:
+		card_pressed(1)
 		return true
 	return false
 
@@ -376,7 +366,7 @@ func secondary() -> bool:
 ## The police loop (3g-2) calls this when the player has been pulled over with a passenger on
 ## board (police.md 8.3): exactly one star. Escaping a chase costs nothing (don't call it).
 func on_pulled_over() -> void:
-	if state != State.RIDE:
+	if stage != Stage.RIDE:
 		return
 	_rules.pull_over()
 	_star_note(-Rules.POLICE, "police", ["policja", "police"])
@@ -439,35 +429,10 @@ func _process(dt: float) -> void:
 	if graph == null:
 		return
 	var t0 := Time.get_ticks_usec()
-	if not away:
-		_session += dt
-	_t += dt
-	_drive_tick(dt)
-	if not _river_ready:
-		_river_step(RIVER_BUDGET)
-	match state:
-		State.IDLE:
-			_idle_tick(dt)
-		State.OFFER:
-			_offer_tick()
-		State.PICKUP:
-			_pickup_tick(dt)
-		State.RIDE:
-			_ride_tick(dt)
-		State.RESULT:
-			if _result_in > 0.0:
-				_result_in -= dt
-				if _result_in <= 0.0:
-					var card: Array = _result_card
-					var text: Array = card[0]
-					hud.show_side_card(text[0], text[1], PackedStringArray(), card[1], text[2], text[3])
-					_result_at = car.global_position
-					_t = 0.0
-			elif _t > RESULT_LIFE or _flat(car.global_position, _result_at) > RESULT_OFF:
-				_release()
+	super._process(dt)
 	# One card at a time: while a ride's request or result is up (or about to be), the app-taxis'
 	# GPS bubbles and the radio host wait; they come after.
-	var card_up := state == State.OFFER or state == State.RESULT or _asking
+	var card_up := phase == Phase.OFFER or stage == Stage.RESULT or _asking
 	if moments != null:
 		moments.held = card_up
 	dialogue.host_hold = card_up
@@ -476,6 +441,38 @@ func _process(dt: float) -> void:
 		_bang.position.y = 0.15 * sin(_t * 6.0)
 		_rider_mesh.position.y = maxf(0.0, 0.12 * sin(_t * 9.0))
 	last_usec = Time.get_ticks_usec() - t0 + (moments.last_usec if moments != null else 0)
+
+
+## Every frame, before the phase's own part: the play clock, the merged drive toast, the river's
+## scan, and a request taken away (the old OFFER state's first tests; its 10 s are the kit's
+## `card_life`, and the kit's autopilot takes it).
+func _tick(dt: float) -> void:
+	if not away:
+		_played += dt
+	_drive_tick(dt)
+	if not _river_ready:
+		_river_step(RIVER_BUDGET)
+	if phase != Phase.OFFER:
+		return
+	# A rescue call opened over the request, or anything else starting, takes it away.
+	if not _calls_quiet() or (jobs != null and jobs.side_busy()) or (rivals != null and rivals.busy()):
+		_withdrawn = true
+		_end(0.0)  # their card is up now, not ours
+	elif rivals != null and rivals.calling():
+		_withdraw()  # PT-15: her prompt is a strip, not a card: ours must go, not hide behind it
+	elif flying or away:
+		_withdraw()
+
+
+## The run's frame (under its cards too: `cards_hold` is off).
+func _run_tick(dt: float) -> void:
+	match stage:
+		Stage.PICKUP:
+			_pickup_tick(dt)
+		Stage.RIDE:
+			_ride_tick(dt)
+		Stage.RESULT:
+			_result_tick(dt)
 
 
 func _physics_process(dt: float) -> void:
@@ -487,7 +484,7 @@ func _physics_process(dt: float) -> void:
 ## Harsh braking and fast corners, measured as the słoiki are (jobs.gd), cost stars.
 func _step(dt: float) -> void:
 	# The autopilot puts the car on its ghost's path (its turns are steps, not driving).
-	if state != State.RIDE or dt <= 0.0 or flying or autopilot:
+	if stage != Stage.RIDE or dt <= 0.0 or flying or autopilot:
 		_have_last = false
 		return
 	var v: float = car.forward_speed
@@ -512,7 +509,7 @@ func _step(dt: float) -> void:
 
 
 func _on_bump(_collider: Object, speed: float) -> void:
-	if state == State.RIDE and _rules.drive_event("bump", speed):
+	if stage == Stage.RIDE and _rules.drive_event("bump", speed):
 		_drive_note("bump %.1f m/s" % speed, ["stłuczka", "stłuczki", "bump", "bumps"])
 
 
@@ -526,7 +523,7 @@ func _free() -> bool:
 		return false
 	if mission_on.is_valid() and bool(mission_on.call()):
 		return false
-	if state == State.IDLE and hud != null and hud.cards_up():
+	if idle() and hud != null and hud.cards_up():
 		return false  # no request over a result or win card (2026-11-08)
 	if jobs != null and jobs.side_busy():
 		return false  # loop MW-4: the "Na czasie" job too
@@ -540,7 +537,10 @@ func _calls_quiet() -> bool:
 
 
 func _idle_tick(dt: float) -> void:
-	var free := _free() and _session >= FIRST_OFFER
+	if _withdrawn:
+		_withdrawn = false
+		return
+	var free := _free() and _played >= FIRST_OFFER
 	if not free:
 		_set_pill(false)
 		_pill_at = -1.0
@@ -576,11 +576,11 @@ func _set_start(on: bool) -> void:
 
 func _on_context(owner: String) -> void:
 	if owner == "ride_start":
-		if state == State.PICKUP and not flying:
+		if stage == Stage.PICKUP and not flying:
 			_set_start(false)
 			_board()
 		return
-	if owner == "ride" and state == State.IDLE and _pill_at < 0.0:
+	if owner == "ride" and idle() and _pill_at < 0.0:
 		_pill_at = _t
 		hud.toast("Szukam kursu…", "Finding you a ride…")
 
@@ -588,7 +588,7 @@ func _on_context(owner: String) -> void:
 ## G12 part 2: the AUTO list may offer "ask for a ride" now (the PODWÓZKA button's rule: in the
 ## car, nothing else on, past the first FIRST_OFFER seconds).
 func can_request() -> bool:
-	return state == State.IDLE and _free() and _session >= FIRST_OFFER
+	return idle() and _free() and _played >= FIRST_OFFER
 
 
 ## G12 part 2: the AUTO list's request: as a tap on PODWÓZKA (a request within PILL_DELAY s).
@@ -616,12 +616,8 @@ func _offer_here() -> void:
 
 func _show_offer(r: Dictionary) -> void:
 	_ride = r
-	state = State.OFFER
-	_t = 0.0
 	_set_pill(false)
-	var text := Rules.offer_text({"name": r["name"], "away": r["away"], "road": r["road"], "their": r["their"],
-			"note": r["note"], "night": r["night"], "rain": r["rain"], "rating": _rating()})
-	hud.show_side_card(text[0], text[1], PackedStringArray(["ACCEPT", "SKIP"]), COLOUR, text[2], text[3])
+	_offer()
 	hud.ticker_out()
 	print("podwózka ride %d: %s (%s) at %s, %d m away, to %s, %d m by road%s" % [r["n"], r["name"], r["type"], r["pin_name"],
 			roundi(r["away"]), r["dest"], roundi(r["road"]), (", quirk " + String(r["quirk"])) if r["quirk"] != "" else ""])
@@ -631,45 +627,25 @@ func _show_offer(r: Dictionary) -> void:
 			roundi(r["eta"]), r["quirk"] if r["quirk"] != "" else "none", Rules.multiplier(r["night"], r["rain"]), _rating()])
 
 
-## The request waits 10 s (the autopilot takes it after 2); a rescue call opened over it, or
-## anything else starting, takes it away.
-func _offer_tick() -> void:
-	if not _calls_quiet() or (jobs != null and jobs.side_busy()) or (rivals != null and rivals.busy()):
-		state = State.IDLE  # their card is up now, not ours
-		return
-	if rivals != null and rivals.calling():
-		_withdraw()  # PT-15: her prompt is a strip, not a card: ours must go, not hide behind it
-		return
-	if flying or away:
-		_withdraw()
-		return
-	if autopilot and _t > 2.0:
-		_accept()
-	elif _t > OFFER_LIFE:
-		_withdraw()
+## The request's card (the kit shows it beside the road and owns its buttons).
+func _offer_card() -> Dictionary:
+	var r := _ride
+	var text := Rules.offer_text({"name": r["name"], "away": r["away"], "road": r["road"], "their": r["their"],
+			"note": r["note"], "night": r["night"], "rain": r["rain"], "rating": _rating()})
+	return {"title": [text[0], text[2]], "body": [text[1], text[3]], "buttons": ["ACCEPT", "SKIP"]}
 
 
-func _withdraw() -> void:
-	hud.hide_card()
-	state = State.IDLE
-	_t = 0.0
+## SKIP, or nobody took the request in its 10 s (the kit's `card_life`): the next one comes by
+## the clock, as after the old `_withdraw`.
+func _refused(_timed_out: bool) -> void:
 	_log("offer %d gone" % _ride.get("n", -1))
 
 
-func _on_card(index: int) -> void:
-	if state == State.RESULT and _result_in > 0.0:
-		return  # the result card isn't up yet
-	match state:
-		State.OFFER:
-			if index == 0:
-				_accept()
-			else:
-				_withdraw()
-		State.RIDE:
-			if _asking:
-				_answer(index)
-		State.RESULT:
-			_release()
+## The request is taken back (a rival's prompt, the air, the title screen).
+func _withdraw() -> void:
+	_withdrawn = true
+	_end(0.0)
+	_log("offer %d gone" % _ride.get("n", -1))
 
 
 # --- a ride: making one -----------------------------------------------------------------------
@@ -872,13 +848,12 @@ func _story_place(r: Dictionary, st: Dictionary, rng: RandomNumberGenerator, ker
 
 # --- pickup ---------------------------------------------------------------------------------
 
-func _accept() -> void:
+## The request is taken (the kit's start): the way to the passenger.
+func _begin() -> void:
 	_rides += 1
-	state = State.PICKUP
-	_t = 0.0
+	stage = Stage.PICKUP
 	_hold = 0.0
 	_said_pickup = false
-	hud.hide_card()
 	_claim()
 	_beacon.recolour(COLOUR)
 	_beacon.waving = true
@@ -915,14 +890,14 @@ func _claim() -> void:
 	hud.hide_challenge()
 
 
-func _release() -> void:
-	state = State.IDLE
+## Back to idle. After a run: what the old `_release` did (the kit has taken down the status
+## line, the card and the ring). After a request nobody took: nothing more, and `_ride` stays.
+func _ended() -> void:
+	if stage == Stage.NONE:
+		return
+	stage = Stage.NONE
 	_asking = false
-	_t = 0.0
-	_beacon.visible = false
 	_rider.visible = false
-	hud.hide_card()
-	hud.hide_status()
 	hud.set_minimap_route(PackedVector2Array(), COLOUR)
 	missions.paused = false
 	missions.close()
@@ -956,15 +931,14 @@ func _pickup_tick(dt: float) -> void:
 		hint = ["Stań przy pasażerze", "Pull up by the passenger"]
 	elif _ride["offset"] and (to_pin < 40.0 or to_rider < 70.0):
 		hint = ["Pinezka swoje, pasażer swoje: szukaj „!”", "The pin is here, the passenger isn't: look for the !"]
-	hud.show_status("PODWÓZKA · ODBIÓR: %s" % _ride["name"], _clock_text(_t), "%d m" % roundi(_flat(p, target_position())),
-			hint[0], _hold / BOARD_HOLD, COLOUR, "", {}, hint[1])
+	status("PODWÓZKA · ODBIÓR: %s" % _ride["name"], _clock_text(_t), "%d m" % roundi(_flat(p, target_position())),
+			hint, _hold / BOARD_HOLD)
 
 
 func _board() -> void:
 	_set_start(false)
-	state = State.RIDE
+	stage = Stage.RIDE
 	_ride["picked_after"] = _t
-	_t = 0.0
 	_rider.visible = false
 	bubbles.hush(_rider)
 	_rules.begin(_ride["eta"], start_stars if start_stars > 0.0 else Rules.START)
@@ -1005,9 +979,9 @@ func _t_pickup() -> float:
 func _plan() -> void:
 	var a_e: int = _ride["p_e"]
 	var a_s: float = _ride["p_s"]
-	var finish: int = _ride["finish"]
-	var ring: Vector3 = _ride["ring"]
-	var dist_b := graph.distances_to(finish)
+	var last: int = _ride["finish"]
+	var goal: Vector3 = _ride["ring"]
+	var dist_b := graph.distances_to(last)
 	var quirk: String = _ride["quirk"]
 	var q := {}
 	if quirk == "oldtown":
@@ -1029,20 +1003,20 @@ func _plan() -> void:
 	_ride["q"] = q
 	_route = PackedVector2Array()
 	var direct := PackedVector2Array()
-	_road_path(a_e, a_s, finish, dist_b, direct)
-	direct.append(Vector2(ring.x, ring.z))
-	_legs = [{"node": finish}, {"to": Vector2(ring.x, ring.z)}]
+	_road_path(a_e, a_s, last, dist_b, direct)
+	direct.append(Vector2(goal.x, goal.z))
+	_legs = [{"node": last}, {"to": Vector2(goal.x, goal.z)}]
 	if quirk == "river" or quirk == "zone":
 		var e1: int = q["e"]
 		var s1: float = q["s"]
 		_path_to(a_e, a_s, e1, s1, graph.distances_to(graph.e_a[e1]), _route)
 		_route.append(q["w"])
 		_route.append(q["r2"])
-		_road_path(q["e2"], q["s2"], finish, dist_b, _route)
-		_route.append(Vector2(ring.x, ring.z))
+		_road_path(q["e2"], q["s2"], last, dist_b, _route)
+		_route.append(Vector2(goal.x, goal.z))
 		if not ignore_app:
-			_legs = [{"node": graph.e_b[e1], "near": q["r"]}, {"to": q["w"]}, {"to": q["r2"]}, {"node": finish},
-					{"to": Vector2(ring.x, ring.z)}]
+			_legs = [{"node": graph.e_b[e1], "near": q["r"]}, {"to": q["w"]}, {"to": q["r2"]}, {"node": last},
+					{"to": Vector2(goal.x, goal.z)}]
 			if a_e != e1 or a_s > s1:
 				_legs.push_front({"node": graph.e_a[e1]})
 		_log("quirk %s: waypoint %d,%d %s, %d m off the road, the app's way %d m longer than the shortest" % [quirk,
@@ -1058,8 +1032,8 @@ func _plan() -> void:
 
 func _ride_tick(dt: float) -> void:
 	var p := car.global_position
-	var ring: Vector3 = _ride["ring"]
-	var d := _flat(p, ring)
+	var goal: Vector3 = _ride["ring"]
+	var d := _flat(p, goal)
 	var speed: float = car.vel.length()
 	if _rules.tick(dt):
 		_star_note(-Rules.LATE_STEP, "late %d s" % roundi(_rules.clock - _rules.eta), ["spóźnienie", "late"])
@@ -1092,8 +1066,8 @@ func _ride_tick(dt: float) -> void:
 		hint = ["Stań w kręgu", "Pull up inside the ring"]
 	elif _ride["quirk"] != "" and _quirk_done == "":
 		hint = ["Cel to turkusowe światło. Kropki to pomysł aplikacji.", "The goal is the teal beacon. The dots are the app's idea."]
-	hud.show_status("PODWÓZKA → %s" % _ride["dest"], Rules.stars_text(_rules.stars()), "%d m" % roundi(d),
-			hint[0], _rules.clock / _rules.eta, COLOUR, "", {}, hint[1])
+	status("PODWÓZKA → %s" % _ride["dest"], Rules.stars_text(_rules.stars()), "%d m" % roundi(d),
+			hint, _rules.clock / _rules.eta)
 
 
 ## Nawigacja speaks 200 m before the quirk; the waypoint driven (a believer's +½), or ignored (a
@@ -1103,8 +1077,8 @@ func _quirk_tick(p: Vector3) -> void:
 	if quirk == "" or _quirk_done == "reached" or _quirk_done == "reroute":
 		return
 	var q: Dictionary = _ride["q"]
-	var ring := Vector2(_ride["ring"].x, _ride["ring"].z)
-	var to_door := Vector2(p.x - ring.x, p.z - ring.y).length()
+	var goal := Vector2(_ride["ring"].x, _ride["ring"].z)
+	var to_door := Vector2(p.x - goal.x, p.z - goal.y).length()
 	if quirk == "reroute":
 		if _rules.clock > 0.4 * _rules.eta or to_door < 0.6 * float(_ride["straight"]):
 			_reroute()
@@ -1126,7 +1100,7 @@ func _quirk_tick(p: Vector3) -> void:
 			_star_note(Rules.BONUS, "followed the app", ["za aplikacją", "followed the app"])
 			dialogue.say(car, _ride["name"], "podwozka_passenger", "followed", 3.5, COLOUR, 2.4, true)
 	elif _quirk_done == "" and (_said_quirk or _rules.clock > 20.0) and dw > 2.0 * REACH \
-			and to_door < PASSED * w.distance_to(ring):
+			and to_door < PASSED * w.distance_to(goal):
 		# Past it: the car is well nearer the door than the waypoint is (it can still go back).
 		_quirk_done = "ignored"
 		_log("quirk %s ignored at %.1f s (%s passenger)" % [quirk, _rules.clock, _ride["type"]])
@@ -1163,19 +1137,19 @@ func _reroute() -> void:
 		return
 	var e: int = hit[0]
 	var back: int = graph.e_a[e]
-	var finish: int = _ride["finish"]
-	var ring: Vector3 = _ride["ring"]
+	var last: int = _ride["finish"]
+	var goal: Vector3 = _ride["ring"]
 	var route := PackedVector2Array()
 	_road_path(e, hit[2], back, graph.distances_to(back), route)
 	var n := back
-	var dist_b := graph.distances_to(finish)
+	var dist_b := graph.distances_to(last)
 	var first := -1
 	for f in graph.node_out[n]:
 		if first < 0 or graph.e_len[f] + dist_b[graph.e_b[f]] < graph.e_len[first] + dist_b[graph.e_b[first]]:
 			first = f
 	if first >= 0:
-		_road_path(first, 0.0, finish, dist_b, route)
-	route.append(Vector2(ring.x, ring.z))
+		_road_path(first, 0.0, last, dist_b, route)
+	route.append(Vector2(goal.x, goal.z))
 	_route = route
 	hud.set_minimap_route(_route, COLOUR)
 	if autopilot and not ignore_app:
@@ -1214,7 +1188,7 @@ func _drive_note(why: String, words: Array) -> void:
 func _drive_tick(dt: float) -> void:
 	if _drive_sum <= 0.0:
 		return
-	if state != State.RIDE:
+	if stage != Stage.RIDE:
 		_drive_reset()
 		return
 	_drive_quiet += dt
@@ -1247,16 +1221,11 @@ func _story_tick(dt: float, d: float) -> void:
 	var st: Dictionary = _ride["story"]
 	_beat_since += dt
 	if _asking:
-		_ask_t += dt
-		if autopilot and _ask_t >= Stories.AUTO:
-			_answer(maxi(force_answer, 0))
-		elif _ask_t >= Stories.ASK_LIFE:
-			_answer(-1)
 		return
 	if _beat > 3:
 		return
 	var done := clampf(1.0 - d / maxf(float(_ride["straight"]), 1.0), 0.0, 1.0)
-	if not Stories.due(_beat, done, _t, _beat_since) or bubbles.is_talking(car):
+	if not Stories.due(_beat, done, _rules.clock, _beat_since) or bubbles.is_talking(car):
 		return
 	if _beat < 3:
 		var l: Array = st["lines"][_beat]
@@ -1264,7 +1233,7 @@ func _story_tick(dt: float, d: float) -> void:
 			_beat += 1
 			_beat_since = 0.0
 			story_lines += 1
-			_log("story %s line %d at %d%% of the way, %.0f s in" % [st["id"], _beat, roundi(done * 100.0), _t])
+			_log("story %s line %d at %d%% of the way, %.0f s in" % [st["id"], _beat, roundi(done * 100.0), _rules.clock])
 	elif not flying and not hud.cards_up():
 		_ask(done)
 
@@ -1273,23 +1242,21 @@ func _ask(done: float) -> void:
 	var st: Dictionary = _ride["story"]
 	var a: Array = st["answers"]
 	_asking = true
-	_ask_t = 0.0
 	_beat = 4
 	_beat_since = 0.0
-	hud.hide_status()
+	hide_status()
 	var name_pl := String(_ride["name"])
-	hud.show_side_card("%s PYTA" % name_pl.to_upper(), String(st["ask"][0]),
+	show_side_card(["%s PYTA" % name_pl.to_upper(), "%s asks" % name_pl], [String(st["ask"][0]), String(st["ask"][1])],
 			PackedStringArray(["%s|%s" % [a[0]["say"][0], a[0]["say"][1]], "%s|%s" % [a[1]["say"][0], a[1]["say"][1]]]),
-			COLOUR, "%s asks" % name_pl, String(st["ask"][1]), true)
+			Stories.ASK_LIFE, Color(0, 0, 0, 0), true)
 	Access.buzz(40, 0.4)
-	_log("story %s asks at %d%% of the way, %.0f s in" % [st["id"], roundi(done * 100.0), _t])
+	_log("story %s asks at %d%% of the way, %.0f s in" % [st["id"], roundi(done * 100.0), _rules.clock])
 
 
 ## The answer `i` (0 or 1; -1: none in time): the passenger's reply, and a good talk's half star.
 func _answer(i: int) -> void:
 	var st: Dictionary = _ride["story"]
 	_asking = false
-	hud.hide_card()
 	_ride["answer"] = i
 	var l: Array = st.get("silent", Stories.SILENT)
 	if i >= 0:
@@ -1312,15 +1279,64 @@ func _story_answer() -> Dictionary:
 	return st["answers"][i]
 
 
+## A button on a card of the run: an answer to the passenger's question; a tap on the result
+## card (or a cancelled ride's) closes it.
+func _card_pressed(index: int) -> void:
+	if _asking:
+		_answer(index)
+	else:
+		finish()
+
+
+## A card nobody pressed: the passenger lets the question go; the result card has had its time.
+func _card_expired() -> void:
+	if _asking:
+		_answer(-1)
+	else:
+		finish()
+
+
+## The autopilot answers the question (--ride-answer, else the first answer); the result card
+## waits out its life, as before the kit.
+func _auto_button() -> int:
+	return maxi(force_answer, 0) if _asking else -1
+
+
+## The ✕ cancels on the way to the passenger and on the ride (under the question too), not on
+## the result card.
+func _can_abort() -> bool:
+	return stage == Stage.PICKUP or stage == Stage.RIDE
+
+
+## The ✕ (the kit's limit on a run is not used: `by_player` is always true).
+func drop(by_player: bool) -> void:
+	_cancel(not by_player)
+
+
 # --- the end of a ride ------------------------------------------------------------------------
 
+## After the door (or a cancel): the result card comes RESULT_AFTER s later (Nawigacja's line
+## first), and goes RESULT_LIFE s after that (the kit's card life) or once the car is RESULT_OFF
+## m away.
+func _result_tick(dt: float) -> void:
+	if _result_in > 0.0:
+		_result_in -= dt
+		if _result_in <= 0.0:
+			var card: Array = _result_card
+			var text: Array = card[0]
+			show_side_card([text[0], text[2]], [text[1], text[3]], PackedStringArray(), RESULT_LIFE, card[1])
+			_result_at = car.global_position
+	elif _flat(car.global_position, _result_at) > RESULT_OFF:
+		finish()
+
+
 func _arrive() -> void:
-	state = State.RESULT
+	stage = Stage.RESULT
 	if _asking:
 		_asking = false
-		hud.hide_card()
+		close_card()
 		_log("story: arrived before an answer")
-	hud.hide_status()
+	hide_status()
 	_remove_ghost()
 	bubbles.hush(car)
 	var early := _rules.arrive()
@@ -1338,16 +1354,16 @@ func _arrive() -> void:
 	wallet.keep["podwozka_streak"] = int(pay["streak_after"])
 	var zl_before: int = wallet.zl
 	wallet.pay(int(pay["total"]), int(pay["respect"]), "podwozka")
-	var tag := "police" if _rules.pulled_over else ("5" if final >= 5.0 else ("4" if final >= 4.0 else "low"))
+	var mood := "police" if _rules.pulled_over else ("5" if final >= 5.0 else ("4" if final >= 4.0 else "low"))
 	_beacon.place(_ride["ring"], ARRIVE - 0.5, false, true)
 	hud.set_minimap_route(PackedVector2Array(), COLOUR)
 	hud.ticker_out()
 	# Nawigacja's "you have arrived" first; the result card when it has been said (one at a time).
 	dialogue.say(_gps_anchor, "Nawigacja", "podwozka_gps", "arrive", 2.0, COLOUR, 0.0, true)
 	# The passenger's comment is on the card (a bubble too would say it twice).
-	var comment: Array = dialogue.line("podwozka_rating", tag, true)
+	var comment: Array = dialogue.line("podwozka_rating", mood, true)
 	# A story passenger's last word (the answer's outro), unless the ride went badly.
-	if answer.has("outro") and (tag == "5" or tag == "4"):
+	if answer.has("outro") and (mood == "5" or mood == "4"):
 		comment = answer["outro"]
 	var text := Rules.result_text({"stars": final, "name": _ride["name"], "place": _ride["dest"], "time": _clock_text(_rules.clock),
 			"comment": comment, "pay": pay, "rating": _rating(), "why": _why()})
@@ -1391,14 +1407,13 @@ func _why() -> Array:
 ## The ✕ (by_passenger false) or the passenger giving up after 3 × the ETA: no pay, no stars
 ## lost, the 5-star streak ends.
 func _cancel(by_passenger: bool) -> void:
-	var riding := state == State.RIDE
+	var riding := stage == Stage.RIDE
 	_asking = false
-	state = State.RESULT
+	stage = Stage.RESULT
 	_set_start(false)
 	_result_in = 0.0
 	_result_at = car.global_position
-	_t = 0.0
-	hud.hide_status()
+	hide_status()
 	_remove_ghost()
 	bubbles.hush(car)
 	_beacon.visible = false
@@ -1412,17 +1427,20 @@ func _cancel(by_passenger: bool) -> void:
 	if by_passenger and riding:
 		var l: Array = dialogue.say(car, who, "podwozka_rating", "cancel", 4.5, FAIL_COLOUR, 2.4, true)
 		var quote := "„%s”\n" % l[0] if not l.is_empty() else ""
-		hud.show_side_card("PASAŻER ANULOWAŁ", quote + "%s wysiada. Bez opłat; seria pięciu gwiazdek przepadła." % who,
-				PackedStringArray(), FAIL_COLOUR, "The passenger cancelled",
-				("%s\n" % l[1] if not l.is_empty() else "") + "%s gets out. No charge; the 5-star streak is gone." % who)
+		show_side_card(["PASAŻER ANULOWAŁ", "The passenger cancelled"],
+				[quote + "%s wysiada. Bez opłat; seria pięciu gwiazdek przepadła." % who,
+				("%s\n" % l[1] if not l.is_empty() else "") + "%s gets out. No charge; the 5-star streak is gone." % who],
+				PackedStringArray(), RESULT_LIFE, FAIL_COLOUR)
 	elif by_passenger:
-		hud.show_side_card("PASAŻER ANULOWAŁ", "%s wybiera inną Podwózkę. Bez opłat; seria przepadła." % who,
-				PackedStringArray(), FAIL_COLOUR, "The passenger cancelled",
-				"%s picked another Podwózka. No charge; the streak is gone." % who)
+		show_side_card(["PASAŻER ANULOWAŁ", "The passenger cancelled"],
+				["%s wybiera inną Podwózkę. Bez opłat; seria przepadła." % who,
+				"%s picked another Podwózka. No charge; the streak is gone." % who],
+				PackedStringArray(), RESULT_LIFE, FAIL_COLOUR)
 	else:
-		hud.show_side_card("KURS ANULOWANY", ("%s wysiada tutaj." if riding else "%s zostaje na chodniku.") % who
-				+ " Bez opłat; seria przepadła.", PackedStringArray(), FAIL_COLOUR, "Ride cancelled",
-				("%s gets out here." if riding else "%s stays on the pavement.") % who + " No charge; the streak is gone.")
+		show_side_card(["KURS ANULOWANY", "Ride cancelled"],
+				[("%s wysiada tutaj." if riding else "%s zostaje na chodniku.") % who + " Bez opłat; seria przepadła.",
+				("%s gets out here." if riding else "%s stays on the pavement.") % who + " No charge; the streak is gone."],
+				PackedStringArray(), RESULT_LIFE, FAIL_COLOUR)
 	_log("cancelled by the %s %s after %.1f s: no pay, no stars lost, streak %d -> 0" % ["passenger" if by_passenger else "player",
 			"during the ride" if riding else "before the pickup", _rules.clock if riding else _t, streak])
 	print("podwózka cancelled: %s, by the %s" % [who, "passenger" if by_passenger else "player"])
@@ -1753,7 +1771,7 @@ func _water_distance(p: Vector2) -> float:
 
 ## --autopilot: drives the legs (the road on a ghost driver, the off-road bits straight).
 func drive_player() -> bool:
-	if not autopilot or (state != State.PICKUP and state != State.RIDE) or _leg >= _legs.size():
+	if not autopilot or (stage != Stage.PICKUP and stage != Stage.RIDE) or _leg >= _legs.size():
 		return false
 	var leg: Dictionary = _legs[_leg]
 	var dt := get_process_delta_time()
@@ -1845,6 +1863,7 @@ func _rain() -> bool:
 	return weather != null and weather.state == 1
 
 
+## The job's log (--parody-log): `ride: ...`, in place of the kit's `tag: ...`.
 func _log(what: String) -> void:
 	if log_on:
 		print("ride: " + what)
