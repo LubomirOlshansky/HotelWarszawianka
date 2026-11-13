@@ -3,6 +3,10 @@
 **Status (2026-11-13):** research and a phased plan. No game code changed. Implementation is for
 Opus threads, one phase per PR (section 10).
 
+**The order of work is now in `docs/design/city-objects-plan.md`** (the single plan that joins this
+page with the drivable-city build plan, 2026-11-13; its object palette is this page's
+`barrier_kit.json`, widened to every street object). The sections below remain the build briefs.
+
 F (2026-11-13): "How to make these walls look more like in life. There are the walls now, but
 they should represent the real type of object and texture, and how to handle it if it is ruined:
 the memory of it and the recovery."
