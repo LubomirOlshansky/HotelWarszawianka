@@ -792,7 +792,7 @@ vec3 weave(float u, float h, float top, out vec3 glow) {
 // rooms glowing through it at night. Param 0.5, Złote Tarasy's wave (F, 2026-11-11): every
 // triangle is one real pane and carries its corners' barycentric coordinates as UV (-2 - b,
 // so the tops stay "not a wall"), the steel frame drawn along its edges; blue glass with more
-// sky in it by day, at night the frame lit blue over the mall's warm light. Straight-line maths
+// sky in it by day, at night gold: the frame bright, the panes amber over the mall's warm light. Straight-line maths
 // only (no branch: the Adreno budget, check_shader_budget.gd).
 vec3 glass_roof(vec3 col, vec2 xz, vec2 uv, float param, out vec3 glow) {
 	vec2 d = vec2(xz.x + xz.y, xz.x - xz.y) / 3.4;
@@ -807,7 +807,13 @@ vec3 glass_roof(vec3 col, vec2 xz, vec2 uv, float param, out vec3 glow) {
 	c = mix(c, mix(c, srgb_to_linear(vec3(0.93, 0.93, 0.9)), mix(0.7, 0.45, panes) * daylight + 0.1), bar);
 	float lit = step(0.001, lights_on);
 	vec3 warm = mix(WARM_PALE, vec3(1.0, 0.85, 0.55), n) * (0.55 + 0.35 * hash12(floor(d)));
-	glow = lit * mix(warm * (1.0 - bar), mix(warm * 0.16 + vec3(0.05, 0.12, 0.35), vec3(0.3, 0.55, 1.0) * 1.5, bar), panes);
+	// Param 0.5 at night (F, 2026-11-13, his Varso photo): the whole wave glows warm gold from the
+	// mall under it. The steel frame is the brightest (the lattice reads as gold lines), each
+	// pane an amber fill that varies in soft patches (n) and per pane (hash12), never blue.
+	vec3 gold = vec3(1.0, 0.74, 0.36);
+	vec3 pane_glow = gold * (0.2 + 0.5 * n);
+	vec3 wave_glow = mix(pane_glow, vec3(1.0, 0.84, 0.52) * 1.9, bar);
+	glow = lit * mix(warm * (1.0 - bar), wave_glow, panes);
 	return c * mix(1.0, mix(0.5, 0.45, panes), lit * (1.0 - bar));
 }
 

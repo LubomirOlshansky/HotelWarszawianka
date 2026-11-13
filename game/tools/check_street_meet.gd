@@ -61,21 +61,40 @@ class PlayMap extends FakeMap:
 		return 0.5
 
 
-## traffic.gd's Driver, as much of it as the meet reads and writes.
+## traffic.gd's Driver, as much of it as the meet and its race session (race_session.gd: the
+## fields `arm_racer` sets, the street a plan is searched from, in view) read and write.
 class Driver extends RefCounted:
 	var id := 0
 	var pos := Vector3.ZERO
 	var yaw := 0.0
+	var edge := 0
+	var visible := false
 	var parked := false
 	var persistent := false
 	var ghost := false
 	var active := true
 	var arrived := false
 	var cuts: Variant = null
+	var plan: Variant = null
 	var race_top := 0.0
+	var race_share := 0.0
 	var race_accel := 0.0
+	var race_brake := 0.0
 	var race_lat := 0.0
 	var race_effort := 0.0
+	var race_corner := 0.0
+	var race_still := 0.0
+	var race_passes := 0
+	var race_mistake := 0.0
+	var race_wrong := 0
+	var race_block := 0.0
+	var race_dare := 1.0
+	var race_rng: RandomNumberGenerator
+	var cuts_taken := 0
+	var links_taken := 0
+	var mistakes := 0
+	var wrong_turns := 0
+	var blocks := 0
 	var speed_factor := 1.0
 	var accel_factor := 1.0
 	## The stand-in's own: racing to a node, the road left to it (m), a patrol car.
@@ -86,6 +105,8 @@ class Driver extends RefCounted:
 
 ## traffic.gd as the meet uses it: every call remembered by name in `calls`.
 class PlayTraffic extends Node3D:
+	signal turned_back(d: Driver)
+	signal hop_refused(d: Driver)
 	var calls: Array[String] = []
 	var all: Array = []
 	var cars: Array = []
@@ -106,8 +127,9 @@ class PlayTraffic extends Node3D:
 		cars.append(d)
 		return d
 
-	func add_parked_car(_e: int, _s: float, at: Vector3, yaw: float, _block_lane: int, _shape: int, _paint: Color) -> Driver:
+	func add_parked_car(e: int, _s: float, at: Vector3, yaw: float, _block_lane: int, _shape: int, _paint: Color) -> Driver:
 		var d := make(at, yaw)
+		d.edge = e
 		d.parked = true
 		cars.append(d)
 		calls.append("add_parked_car")
@@ -119,7 +141,8 @@ class PlayTraffic extends Node3D:
 		d.parked = true
 		calls.append("park")
 
-	func unpark(d: Driver, _e: int, _lane: int, _s: float) -> void:
+	func unpark(d: Driver, e: int, _lane: int, _s: float) -> void:
+		d.edge = e
 		d.parked = false
 		calls.append("unpark")
 
@@ -133,9 +156,17 @@ class PlayTraffic extends Node3D:
 		d.racing = false
 		calls.append("stop_racing")
 
-	func race_to(d: Driver, _finish: int, _dist: PackedFloat32Array, _plan: Variant = null) -> void:
+	func race_to(d: Driver, _finish: int, _dist: PackedFloat32Array, plan: Variant = null) -> void:
 		d.racing = true
+		d.plan = plan
 		calls.append("race_to")
+
+	func reroute(_d: Driver, _dist: PackedFloat32Array) -> void:
+		calls.append("reroute")
+
+	## No town cars on the stand-in's roads (the plans count none).
+	func race_density() -> float:
+		return 0.0
 
 	func remaining(d: Driver) -> float:
 		return d.left
@@ -146,8 +177,9 @@ class PlayTraffic extends Node3D:
 	func drivers() -> Array:
 		return cars
 
-	func add_node_driver(node: Node3D, _size: Vector3, _e: int, _lane: int, _s: float) -> Driver:
+	func add_node_driver(node: Node3D, _size: Vector3, e: int, _lane: int, _s: float) -> Driver:
 		var d := make(node.global_position, node.global_rotation.y)
+		d.edge = e
 		cars.append(d)
 		calls.append("add_node_driver")
 		return d
@@ -889,12 +921,22 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_ok(m.has_target() and m.target_position() == goal and m.target_colour() == Meet.PIN_COLOUR and _director.targeted() == m, "the race's target is meet 2's middle, in PIN_COLOUR")
 	_ok(Color(m._beacon.get("_colour")) == Meet.PIN_COLOUR and is_equal_approx(float(m._beacon.get("_ring_radius")), Meet.ARRIVE_R * 0.6), "the ring is recoloured, ARRIVE_R * 0.6")
 	_ok(_until(_glided, 40.0), "every racer reaches the road")
+	# Racer AI step 6b part 1b: each racer drives its own CLUB profile (ladder.gd) on the race
+	# session, with a plan, in the player's own car (its top, never over it).
 	var handed := true
+	var lamps := 0
+	var top: float = _car.max_speed * _car.top_mult
 	for r in m._racers:
 		var d: Driver = r["d"]
-		handed = handed and d != null and d.persistent and not d.parked and d.race_top > 0.0 and d.race_accel >= Meet.RACE_ACCEL.x and d.race_accel <= Meet.RACE_ACCEL.y \
-				and d.race_lat == Meet.RACE_LAT and d.speed_factor == 1.4 and d.racing
-	_ok(handed, "the racers are in traffic: unparked, persistent, race fields set, racing")
+		var club := Meet.Ladder.club(int(r["glow"]))
+		handed = handed and d != null and d.persistent and not d.parked and d.racing and d.plan != null and is_equal_approx(d.race_top, top) \
+				and d.race_share == float(club["share"]) and d.race_accel == float(club["race_accel"]) and d.race_lat == float(club["lat"]) \
+				and d.race_brake == float(club["brake"]) and d.race_block == float(club["block"]) \
+				and d.speed_factor == Meet.Ladder.CLUB_PACE.x and d.accel_factor == Meet.Ladder.CLUB_PACE.y and d.cuts is Dictionary and not (d.cuts as Dictionary).is_empty()
+		if r.get("lamps") is Node3D and (r["lamps"] as Node3D).get_node_or_null("brake") != null:
+			lamps += 1
+	_ok(handed, "the racers are in traffic: unparked, persistent, racing with a plan, each its CLUB profile at the player's top, the club's pace, every shortcut")
+	_ok(lamps == m._racers.size(), "every racer has its race lights (%d of %d)" % [lamps, m._racers.size()])
 	_ok(_traffic.count("unpark") == Meet.RING_CARS and _traffic.count("add_node_driver") == 2 and _traffic.count("race_to") == Meet.RING_CARS + 2, "pool cars unparked, Darek and Lena node drivers, race_to for all")
 	_frames(0.6)
 	_ok(_hud.badge == "1ST" and _hud.status_title.contains("WYŚCIG") and _hud.status == "Bądź pierwszy na miejscu", "nobody ahead: the badge 1ST")
@@ -924,6 +966,10 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 		if r["d"] != null:
 			parked = parked and (r["d"] as Driver).parked
 	_ok(parked, "the racers who have drivers are parked in the new ring")
+	var lamps_left := 0
+	for r in m._racers:
+		lamps_left += 1 if r.has("lamps") or r.has("r") else 0
+	_ok(m._race == null and lamps_left == 0, "the race is over: its session and every racer's lights gone")
 
 	# 6. Meet 2, the second raid, the pin to the drag.
 	_ok(_until(_in.bind(Meet.Stage.RAID2), 20.0), "meet 2 talks, then the sirens")

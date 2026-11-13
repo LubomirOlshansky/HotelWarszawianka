@@ -1,8 +1,9 @@
 extends RefCounted
 ## The race bench (docs/design/race-ai.md, "How we test it"): one rival's race, start to finish, on
 ## the committed map's lane graph (map/centrum.json) with the real traffic (traffic.gd) and the
-## game's own race code (rivals.gd's static core: `arm_racer`, `pace_tick`, `first_start_step`,
-## `remaining_from`, `finish_node`, `lane_behind`), but without the city, the car, the HUD or a
+## game's own race code (the race session, race_session.gd, that rivals.gd races on: the course,
+## the rival's shortcuts, distances, plans, effort and lights; and rivals.gd's `first_start_step`,
+## `finish_node`, `lane_behind`), but without the city, the car, the HUD or a
 ## renderer, so a race takes a second or two and the same race runs the same way every time.
 ##
 ## A race is a `spec` (see `race`): the rival, the tuning (a ladder race or the guided first
@@ -28,7 +29,9 @@ const Ladder := preload("res://scripts/ladder.gd")
 const RaceCuts := preload("res://scripts/race_cuts.gd")
 const RacePlanner := preload("res://scripts/race_planner.gd")
 const RaceSignals := preload("res://scripts/race_signals.gd")
+const RaceSession := preload("res://scripts/race_session.gd")
 const TrzyMosty := preload("res://scripts/trzy_mosty.gd")
+const StreetMeet := preload("res://scripts/street_meet.gd")
 const Settings := preload("res://scripts/settings.gd")
 const FollowCamera := preload("res://scripts/follow_camera.gd")
 
@@ -115,6 +118,17 @@ const SPAWN_START := "spawn"
 ## 557 m, flat out, with the jog at the bridge's end.
 const FINAL_START := "poniatowski"
 const FINAL_RIVAL := "Seba z Pragi"
+## Racer AI step 6b part 1b, the night club's pack race (street_meet.gd): the course "club" from
+## the door of meet 1 (Plac Defilad) to the door's junction of meet 2 (by the National Stadium),
+## the doors as street_meet.gd finds them (`find_meets`); the eight racers of ladder.gd CLUB come
+## onto the kerb lane where and when the scatter brings them (`scatter_plan`, glides at GLIDE_V
+## STAGGER s apart from the raid on; the plans searched from then, as street_meet.gd does); the
+## test player in the next lane level with the last of them (behind it on a road of one lane).
+## A race of the pack is a row per racer (`pack`); on clear roads alone it also races each racer
+## by itself first ("solo"): its clear-road pace, which the Pack order mark holds the pack to,
+## give or take neighbours less than PACK_TIE apart.
+const PACK_START := "club"
+const PACK_TIE := 0.015
 const ROUTES := {
 	"dobra": [Vector2(292.0, -471.0), Vector2(477.0, -210.0)],
 	"topiel": [Vector2(114.0, -430.0)],
@@ -299,6 +313,9 @@ class Probe:
 	var _leader_t := 0.0
 	var _leader_room_t := 0.0
 	var _last_edge := -1
+	## Seconds since its speed was last taken (DT, or 2 DT for a car out of sight driven every other
+	## frame).
+	var _since := 0.0
 
 	## One frame at race time `t`: `held` while the rival waits at the line, `ghost` the test
 	## player's driver (null: none; `player_live`: still in the race).
@@ -324,7 +341,14 @@ class Probe:
 				if OS.is_stdout_verbose():
 					print("    put elsewhere at %.1f s: %.1f m in a frame, from (%.1f, %.1f) to (%.1f, %.1f) on %s: v %.1f edge %d s %.1f conn %s cu %.1f/%.1f off %.1f back %d" % [
 							t, moved, _ppos.x, _ppos.z, p.x, p.z, _street(d.edge), d.v, d.edge, d.s, d.in_conn, d.cu, d.conn_len, d.off, d.get("back") if "back" in d else 0])
-			var a: float = (gv - _pv) / DT
+			# (A car out of sight that traffic.gd drove this frame for two (half its updates out of
+			# sight: a pool car of the night club's pack) changed its speed over two frames: step 6b
+			# part 1b, the pack's pull of 24 m/s² was a car pulling 12 measured over one.)
+			_since += DT
+			var a := 0.0
+			if not ("pending" in d and d.pending > 0.0):
+				a = (gv - _pv) / _since
+				_since = 0.0
 			accel_max = maxf(accel_max, a)
 			if not knocked:
 				brake_max = maxf(brake_max, -a)
@@ -339,7 +363,8 @@ class Probe:
 								t, _pv, gv, _street(d.edge), d.edge, d.s, d.in_conn, d.cu, d.conn_len, d.next_edge, d.get("back") if "back" in d else 0])
 		knocked = false
 		_started = true
-		_pv = gv
+		if _since == 0.0:
+			_pv = gv
 		_ppos = p
 		_pseen = d.visible
 		driven += gv * DT
@@ -637,7 +662,7 @@ func open(root: Node) -> bool:
 	_map = FakeMap.new()
 	root.add_child(_map)
 	graph = LaneGraph.new(parsed["graph"], _map)
-	_data = {"landmarks": parsed.get("landmarks", []), "pois": parsed.get("pois", [])}
+	_data = {"landmarks": parsed.get("landmarks", []), "pois": parsed.get("pois", []), "origin": parsed.get("origin", [52.234, 21.024])}
 	cuts = RaceCuts.new()
 	cuts.load_cuts(graph)
 	planner = RacePlanner.new(graph)
@@ -660,6 +685,8 @@ static func rival_index(name: String) -> int:
 ## A race's name: the rival's ladder id, the tuning, the start, the situation (and the traffic's
 ## draw when it is not the first), the player (and the forced route).
 static func race_id(spec: Dictionary) -> String:
+	if spec.get("tuning", "") == "pack":
+		return "club/pack/%s/%s/%s" % [spec.get("start_name", PACK_START), spec.get("situation", "clear"), spec.get("player", "none")]
 	var rung := Ladder.rung_of(String(spec["rival"]))
 	var who := String(Ladder.RUNGS[rung]["id"]) if rung >= 0 else String(spec["rival"])
 	var situation := String(spec.get("situation", "clear"))
@@ -678,7 +705,7 @@ func finish(name: String) -> Dictionary:
 		if f["name"] == name:
 			var node := Rivals.finish_node(graph, _data, f)
 			if node >= 0:
-				return {"name": name, "node": node, "at": graph.node_pos[node], "ends": planner.ends(node, graph.node_pos[node], Rivals.FINISH_RADIUS)}
+				return {"name": name, "node": node, "at": graph.node_pos[node], "ends": planner.ends(node, graph.node_pos[node], RaceSession.FINISH_RADIUS)}
 	return {}
 
 
@@ -691,7 +718,7 @@ func final_finish() -> Dictionary:
 		return {}
 	var at := Vector2(route.finish["pos"].x, route.finish["pos"].z)
 	var node: int = route.finish["node"]
-	return {"node": node, "at": at, "ends": planner.ends(node, at, Rivals.FINISH_RADIUS), "from": route.legs[route.legs.size() - 2]}
+	return {"node": node, "at": at, "ends": planner.ends(node, at, RaceSession.FINISH_RADIUS), "from": route.legs[route.legs.size() - 2]}
 
 
 ## The roads' distances to `node` (rivals.gd `_distances`).
@@ -878,12 +905,11 @@ func race(spec: Dictionary) -> Dictionary:
 	var goal := Vector3(fin["at"].x, 0.0, fin["at"].y)
 	out["route_m"] = graph.remaining(dist, e0, s0)
 	out["road_m"] = graph.remaining(plain, e0, s0)
-	# The forced route's legs: each point's node and the distances to it, the finish last.
-	var legs: Array = []
+	# The course: the forced route's points' nodes, the finish last (its circle on the last leg).
+	var legs := PackedInt32Array()
 	for p: Vector2 in spec.get("via", []):
-		var n := graph.nearest_node(p)
-		legs.append([n, racer_to(name, n)])
-	legs.append([fin["node"], dist])
+		legs.append(graph.nearest_node(p))
+	legs.append(fin["node"])
 
 	# This race's world: a fresh traffic system (its own seeds) and the lights' clock at zero.
 	graph.clock = 0.0
@@ -945,31 +971,36 @@ func race(spec: Dictionary) -> Dictionary:
 		cam.free()
 		return out
 
-	# A street the rival finds blocked: the metres it has left are counted without it from then on
-	# (rivals.gd `_on_turned_back`).
-	traffic.turned_back.connect(func(who) -> void:
-		if who == d and d.plan != null:
-			traffic.reroute(d, graph.distances_to(d.finish, INF, true, planner.links(d.finish, d.plan.ends, links_of(name, d.plan.no_hop, d.plan.shut)[1], d.plan.shut), d.plan.shut)))
-	# A wrong-way hop it refused (step 5b, rivals.gd `_on_hop_refused`): the metres without that hop.
-	traffic.hop_refused.connect(func(who) -> void:
-		if who == d and d.plan != null:
-			var less: Array = links_of(name, d.plan.no_hop, d.plan.shut)
-			traffic.reroute(d, graph.distances_to(d.finish, INF, true, planner.links(d.finish, d.plan.ends, less[1], d.plan.shut), d.plan.shut)))
+	# The race session (race_session.gd), as rivals.gd races: the rival its one racer, with its
+	# rung's pace and racer stats (the final's in the final, Halina's gentle day in the first race),
+	# the shortcuts of its rung (the bench's own rule: the rival's rung's, also in the final), its own
+	# dice (the same for this rival and draw whoever the test player is). The metres left are summed
+	# leg by leg (`exact_left`), as the bench always did; every leg's distances now.
+	var session := RaceSession.new()
+	session.setup(graph, traffic, planner, cuts, _roads)
+	session.course(legs, fin["at"], RaceSession.FINISH_RADIUS)
+	session.exact_left = true
+	var r := session.add(d, name, Ladder.FIRST_RACER if first else Ladder.racer(rung), Ladder.pace(rung), {
+			"top": PLAYER_TOP, "ease": float(spec.get("ease", 0.0)), "dice": hash("%s/%d" % [name, int(out["seed"])]),
+			"cuts_of": Ladder.racer(Ladder.rung_of(name)), "plan": not spec.get("no_plan", false)})
+	session.prepare()
+	# A street the rival finds blocked, a wrong-way hop it refused (step 5b): the metres it has left
+	# are counted without it from then on (rivals.gd `_on_turned_back`, `_on_hop_refused`).
+	traffic.turned_back.connect(func(who) -> void: session.turned_back(who))
+	traffic.hop_refused.connect(func(who) -> void: session.hop_refused(who))
 	var probe := Probe.new()
 	probe.graph = graph
 	probe.d = d
-	var pace := Rivals.Pace.new()
 	var stats := {}
-	# Step 6a: the rival's lights (race_signals.gd), and of the turns it made how many it had
-	# indicated as it went into the junction.
-	var sig := RaceSignals.State.new()
+	# Step 6a: the rival's lights (race_signals.gd, the session's `signals`), and of the turns it
+	# made how many it had indicated as it went into the junction.
+	var sig := r.sig
 	var sig_conn := false
 	var turns := 0
 	var turns_lit := 0
 	var t := -LEAD_IN
 	var started := false
 	var hold := false
-	var leg := 0
 	var tick := 0.0
 	var player_live := ghost != null
 	var rival_left := INF
@@ -995,28 +1026,18 @@ func race(spec: Dictionary) -> Dictionary:
 		if not started and t >= 0.0:
 			started = true
 			t = 0.0
-			# Its own dice: the same for this rival and draw whoever the test player is.
-			stats = Rivals.arm_racer(d, rung, PLAYER_TOP, table, first, float(spec.get("ease", 0.0)), hash("%s/%d" % [name, int(out["seed"])]))
 			if spec.has("skill"):
-				# Tuning: racer stats to try in place of the rival's own (share, race_accel, brake, lat).
-				var skill: Dictionary = spec["skill"]
-				stats = stats.duplicate()
-				stats.merge(skill, true)
-				d.race_share = float(skill.get("share", d.race_share))
-				d.race_accel = float(skill.get("race_accel", d.race_accel))
-				d.race_brake = float(skill.get("brake", d.race_brake))
-				d.race_lat = float(skill.get("lat", d.race_lat))
+				# Tuning: racer stats to try in place of the rival's own (share, race_accel, brake, lat),
+				# armed and planned with.
+				r.stats = r.stats.duplicate()
+				r.stats.merge(spec["skill"], true)
+			stats = r.stats
 			# The rival's plan (rivals.gd `_go`): a table of times to the finish (its circle) for its
-			# own driving, and one to each point of a forced route (a junction).
+			# own driving, and one to each point of a forced route (a junction), all made now for
+			# the town's traffic as it is; then it is armed and sets off (`start`).
 			for k in legs.size():
-				var l: Array = legs[k]
-				if spec.get("no_plan", false):
-					l.append(null)
-				elif k < legs.size() - 1:
-					l.append(planner.plan(int(l[0]), stats, PLAYER_TOP, table, traffic.race_density()))
-				else:
-					l.append(planner.plan(int(l[0]), stats, PLAYER_TOP, table, traffic.race_density(), PackedInt32Array(), fin["at"], Rivals.FINISH_RADIUS))
-			traffic.race_to(d, legs[0][0], legs[0][1], legs[0][2])
+				session.plan(r, k)
+			session.start(r)
 			plan_s = _plan_time(d)
 			# PT-11: in the first race she waits at the line until the player moves.
 			hold = first and ghost != null
@@ -1028,18 +1049,17 @@ func race(spec: Dictionary) -> Dictionary:
 				# way back, and then slipped through her and the wall).
 				var own = null
 				if not spec.get("no_plan", false) and (kind == "follower" or sit.has("wall")):
-					own = planner.plan(fin["node"], stats, PLAYER_TOP, table if kind == "follower" else {}, 0.0, PackedInt32Array(), fin["at"], Rivals.FINISH_RADIUS)
+					own = planner.plan(fin["node"], stats, PLAYER_TOP, table if kind == "follower" else {}, 0.0, PackedInt32Array(), fin["at"], RaceSession.FINISH_RADIUS)
 				_arm_player(traffic, ghost, kind, fin["node"], plain, dist, table, own)
 		if started:
 			if hold and Rivals.first_start_step(t, ghost.v) == "release":
 				hold = false
 				d.held = false
 				out["hold_s"] = snappedf(t, 0.01)
-			if leg < legs.size() - 1 and not d.in_conn and graph.e_b[d.edge] == legs[leg][0]:
-				leg += 1
+			if r.leg < legs.size() - 1 and not d.in_conn and graph.e_b[d.edge] == legs[r.leg]:
 				# The clock: what the last leg's plan still held for this street is in the next one's.
 				plan_s -= _plan_time(d)
-				traffic.race_to(d, legs[leg][0], legs[leg][1], legs[leg][2])
+				session.next_leg(r)
 				plan_s += _plan_time(d)
 			if kind == "follower" and player_live:
 				# The follower: as fast as it takes to sit FOLLOW_GAP m behind the rival; while it is
@@ -1052,14 +1072,16 @@ func race(spec: Dictionary) -> Dictionary:
 			tick -= DT
 			if tick <= 0.0:
 				tick = TICK
-				rival_left = _left(traffic, d, legs, leg)
 				if ghost == null:
 					player_left = INF
 				elif player_live:
-					player_left = Rivals.remaining_from(graph, dist, Vector2(ghost.pos.x, ghost.pos.z), goal, fin["ends"])
+					player_left = RaceSession.remaining_from(graph, dist, Vector2(ghost.pos.x, ghost.pos.z), goal, fin["ends"])
 				else:
 					player_left = 0.0
-				var mult := Rivals.pace_tick(pace, d, float(stats.get("mistake", 0.0)), rival_left, player_left)
+				# The metres left and the effort (RaceSession.pace_tick) for each racer.
+				session.rank(player_left)
+				rival_left = r.left
+				var mult: float = d.race_effort
 				if knock_left > 0.0 and rival_left < knock_left:
 					# The knock: a full hit from the side (traffic.gd on_player_bump's daze and slide).
 					knock_left = -1.0
@@ -1078,29 +1100,279 @@ func race(spec: Dictionary) -> Dictionary:
 		if not started:
 			continue
 		probe.sample(t, traffic, ghost, hold, player_live)
-		RaceSignals.tick(sig, d, graph, stats, DT)
+		session.signals(DT)
 		if d.in_conn and not sig_conn and RaceSignals.turn_side(d, graph) != 0:
 			turns += 1
 			if sig.indicating():
 				turns_lit += 1
 		sig_conn = d.in_conn
-		if player_live and kind != "stopped" and (ghost.arrived or Rivals.home_at(graph, ghost.pos, goal, fin["ends"])):
+		if player_live and kind != "stopped" and (ghost.arrived or RaceSession.home_at(graph, ghost.pos, goal, fin["ends"])):
 			# The player is home first (the game's own test: the circle, or level with it on a road
 			# through it): the game's race ends here; the bench lets the rival drive on to the line
 			# (its time is what is measured) with the player's car out of the way.
 			player_live = false
 			out["player_time"] = snappedf(t, 0.01)
-		if leg == legs.size() - 1 and (d.arrived or Vector2(d.pos.x, d.pos.z).distance_to(fin["at"]) < Rivals.FINISH_RADIUS):
+		if r.leg == legs.size() - 1 and session.arrived(r):
 			out["finished"] = true
 			out["time"] = snappedf(t, 0.01)
 			break
 
+	_fill(out, probe, d, r, session, turns, turns_lit, plan_s, t)
+	traffic.free()
+	cam.free()
+	out["wall_ms"] = Time.get_ticks_msec() - wall0
+	return out
+
+
+## The night club's pack race (PACK_START above): a row per racer, as `race` gives one (its id
+## club<k>/pack/club/<situation>/<player>, its rival "club<k>", its tuning "pack"), and on clear
+## roads with no player each racer alone first (club<k>/solo/club/clear/none). `spec`: situation
+## (a SITUATIONS key without a wall, a wreck or a parked car), player ("none" or a PLAYERS entry the
+## pack is raced against), seed. The session as street_meet.gd races it: one for the field, the
+## plans one racer a frame (`round_robin`), home on arriving or THERE_M m from the junction, home
+## racers out of racer mode. Each row also has `session_most_usec`, the most one frame of the
+## session's work took after the start (its plans, the order, the effort and the lights of all
+## eight), and `session_start_usec`, the start's frame (all of them sent off at once).
+func pack(spec: Dictionary) -> Array:
+	var rows: Array = []
+	var sit: Dictionary = SITUATIONS.get(String(spec.get("situation", "clear")), {})
+	var kind := String(spec.get("player", "none"))
+	if sit.is_empty() or sit.has("wall") or sit.has("wreck") or sit.has("hop_car") or not kind in PLAYERS:
+		error = "%s: unknown or unfit situation or player for the pack" % race_id(spec)
+		return [{"id": race_id(spec), "error": error}]
+	if sit.get("traffic", -1) == -1 and kind == "none" and not spec.has("solo"):
+		for k in Ladder.CLUB.size():
+			var one := spec.duplicate()
+			one["solo"] = k
+			rows.append_array(pack(one))
+	rows.append_array(_pack_race(spec))
+	return rows
+
+
+func _pack_race(spec: Dictionary) -> Array:
+	var wall0 := Time.get_ticks_msec()
+	error = ""
+	var situation := String(spec.get("situation", "clear"))
+	var sit: Dictionary = SITUATIONS[situation]
+	var kind := String(spec.get("player", "none"))
+	var solo := int(spec.get("solo", -1))
+	var tuning := "solo" if solo >= 0 else "pack"
+	var meets := StreetMeet.find_meets(graph, null, _data.get("origin", [52.234, 21.024]))
+	if meets.size() < 2:
+		error = "%s: the meets are not on this map" % race_id(spec)
+		return [{"id": race_id(spec), "error": error}]
+	var door: Dictionary = meets[0]["door"]
+	var e0: int = door["e"]
+	var node: int = graph.e_b[int(meets[1]["door"]["e"])]
+	var goal: Vector3 = meets[1]["at"]
+	var plain := roads_to(node)
+	var lane0: int = graph.e_lanes[e0] - 1
+	var club := Ladder.CLUB.size()
+	var who: Array = range(club) if solo < 0 else [solo]
+
+	graph.clock = 0.0
+	var cam := Camera3D.new()
+	cam.projection = Camera3D.PROJECTION_ORTHOGONAL
+	cam.size = FollowCamera.DEFAULT_SIZE
+	_root.add_child(cam)
+	var traffic: Node3D = Traffic.new()
+	_root.add_child(traffic)
+	traffic.setup(graph, _map, cam, {})
+	traffic.set_process(false)
+	traffic.set_physics_process(false)
+	var level := int(spec.get("traffic", sit.get("traffic", -1)))
+	traffic.spawning = level >= 0
+	if level >= 0:
+		traffic.density = float(Settings.TRAFFIC[level])
+	if int(spec.get("seed", 0)) != 0:
+		traffic._rng.seed = 2026 + int(spec["seed"])
+	# The racers as street_meet.gd's raid lets them go: the six of the ring parked in their slots
+	# (traffic's pool cars), Darek and Lena on the plaza without a Driver yet; each glides to its
+	# spot on the door's road (`grid_s`), STAGGER s after the one before, at GLIDE_V m/s (Lena
+	# from the middle, where she drifts), and races from the moment it is there (the pin comes
+	# PIN_AFTER s after the sirens: t = 0).
+	var session := RaceSession.new()
+	session.setup(graph, traffic, planner, cuts, _roads)
+	session.course(PackedInt32Array([node]))
+	session.round_robin = true
+	session.home_within = StreetMeet.THERE_M
+	var slots: Array = meets[0]["slots"]
+	var froms: Array[Vector3] = []
+	for k in club:
+		froms.append(meets[0]["at"] if k == club - 1 else slots[k])
+	var scatter := StreetMeet.scatter_plan(graph, door, froms)
+	var outs: Array = []
+	var probes: Array = []
+	var spots := PackedFloat32Array()
+	var go_t := PackedFloat32Array()
+	var back_s := INF
+	for k: int in who:
+		var s: float = scatter[0][k]
+		back_s = minf(back_s, s)
+		var to2 := graph.point_at(e0, s, graph.lane_offset(e0, lane0))
+		var from: Vector3 = froms[k]
+		go_t.append(-StreetMeet.PIN_AFTER + float(scatter[1][k]) + float(scatter[2][k]))
+		spots.append(s)
+		var d = null
+		if k < StreetMeet.RING_CARS:
+			d = traffic.add_parked_car(e0, s, from, 0.0, 0, k % 4, Color("#c9c9c9"))
+			traffic.park(d, e0, s, from, 0.0, -1)
+		session.add(d, "club%d" % k, Ladder.club(k), Ladder.CLUB_PACE, {"top": PLAYER_TOP, "dice": hash("club%d/%d" % [k, int(spec.get("seed", 0))]), "from": e0})
+		var probe := Probe.new()
+		probe.graph = graph
+		probes.append(probe)
+		var id := "club%d/%s/%s/%s/%s" % [k, tuning, PACK_START, situation + ("-s%d" % int(spec["seed"]) if int(spec.get("seed", 0)) != 0 else ""), kind]
+		outs.append({"id": id, "rival": "club%d" % k, "tuning": tuning, "start": PACK_START, "situation": situation, "player": kind,
+				"seed": int(spec.get("seed", 0)), "finished": false, "time": TIME_LIMIT, "hold_s": 0.0,
+				"route_m": graph.remaining(session.distances(session.racers[session.racers.size() - 1], 0), e0, s), "road_m": graph.remaining(plain, e0, s)})
+	var ghost = null
+	if kind != "none":
+		ghost = traffic.add_ghost(e0, 0 if lane0 > 0 else lane0, back_s if lane0 > 0 else maxf(back_s - StreetMeet.GRID, graph.e_s0[e0]))
+		ghost.held = true
+	session.prepare()
+	traffic.turned_back.connect(func(d) -> void: session.turned_back(d))
+	traffic.hop_refused.connect(func(d) -> void: session.hop_refused(d))
+	var n := session.racers.size()
+	var turns := PackedInt32Array()
+	var lit := PackedInt32Array()
+	var conn := PackedByteArray()
+	var plan_s := PackedFloat32Array()
+	turns.resize(n)
+	lit.resize(n)
+	conn.resize(n)
+	plan_s.resize(n)
+	var t := -StreetMeet.PIN_AFTER
+	var started := false
+	var tick := 0.0
+	var player_live := ghost != null
+	var player_left := INF
+	var most_usec := 0
+	var start_usec := 0
+	var next_trace := 0.0
+	traffic.race_debug = bool(spec.get("trace", false))
+	while t < TIME_LIMIT:
+		if player_live:
+			traffic.player_on_road = true
+			traffic.player_pos = ghost.pos
+			traffic.player_vel = Vector3(-sin(ghost.yaw), 0.0, -cos(ghost.yaw)) * ghost.v
+		else:
+			traffic.player_on_road = false
+			traffic.player_pos = Vector3(goal.x + 5000.0, 0.0, goal.z)
+			traffic.player_vel = Vector3.ZERO
+		# The view: on the test player, else on the middle of the pack still racing (the door
+		# before anybody races).
+		var focus: Vector3 = ghost.pos if ghost != null else meets[0]["door"]["at"]
+		if ghost == null:
+			var on: Array = session.racers.filter(func(o) -> bool: return o.started and not o.home)
+			if not on.is_empty():
+				on.sort_custom(func(a, b) -> bool: return a.left < b.left)
+				focus = on[on.size() / 2].d.pos
+		_look(cam, focus)
+		var u0 := Time.get_ticks_usec()
+		if not started and t >= 0.0:
+			started = true
+			t = 0.0
+			if ghost != null:
+				_arm_player(traffic, ghost, kind, node, plain, plain, {})
+		# The racers that reach the road: into traffic and away (street_meet.gd `_hand_over`).
+		for k in n:
+			var r: RaceSession.Racer = session.racers[k]
+			if r.started or t < go_t[k] or t < 0.0:
+				continue
+			if r.d == null:
+				var body := Node3D.new()
+				traffic.add_child(body)
+				r.d = traffic.add_node_driver(body, Vector3(1.85, 1.35, 4.5), e0, lane0, spots[k])
+			else:
+				traffic.unpark(r.d, e0, lane0, spots[k])
+			r.d.persistent = true
+			var s0 := Time.get_ticks_usec()
+			session.start(r)
+			start_usec = maxi(start_usec, Time.get_ticks_usec() - s0)
+			plan_s[k] = _plan_time(r.d)
+			probes[k].d = r.d
+			outs[k]["hold_s"] = snappedf(t, 0.01)
+		session.plan_tick(false)
+		if started:
+			session.advance(t)
+			for k in n:
+				var r: RaceSession.Racer = session.racers[k]
+				if r.home and not outs[k]["finished"]:
+					outs[k]["finished"] = true
+					outs[k]["time"] = snappedf(r.home_t, 0.01)
+					outs[k]["place"] = r.place
+					traffic.stop_racing(r.d)
+			tick -= DT
+			if tick <= 0.0:
+				tick = TICK
+				if ghost == null:
+					player_left = INF
+				elif player_live:
+					player_left = RaceSession.remaining_from(graph, plain, Vector2(ghost.pos.x, ghost.pos.z), goal)
+				else:
+					player_left = 0.0
+				session.rank(player_left)
+			session.signals(DT)
+		most_usec = maxi(most_usec, Time.get_ticks_usec() - u0)
+		if spec.get("trace", false) and started and t >= next_trace:
+			# (--trace: once a second each racer still on its way: where, how fast, what it waits for.)
+			next_trace += 1.0
+			for k in n:
+				var r: RaceSession.Racer = session.racers[k]
+				if r.started and not r.home:
+					var q = r.d
+					print("  trace %s: t %.0f s · %.1f m/s on %s e%d s%.1f lane %d%s · left %.0f m · cross gap %.1f, held up %.1f s, pass %.1f, still %.1f s" % [
+							r.name, t, q.v, probes[k]._street(q.edge), q.edge, q.s, q.lane, " (curve to e%d%s)" % [q.next_edge, ", a cut" if q.on_cut else ""] if q.in_conn else "",
+							r.left, q.cross_gap, q.held_up, q.pass_t, q.race_still])
+		traffic._process(DT)
+		t += DT
+		if not started:
+			continue
+		var all_home := true
+		for k in n:
+			var r: RaceSession.Racer = session.racers[k]
+			if r.home:
+				continue
+			all_home = false
+			if not r.started:
+				continue
+			probes[k].sample(t, traffic, ghost, false, player_live)
+			if r.d.in_conn and conn[k] == 0 and RaceSignals.turn_side(r.d, graph) != 0:
+				turns[k] += 1
+				if r.sig.indicating():
+					lit[k] += 1
+			conn[k] = 1 if r.d.in_conn else 0
+		if player_live and (ghost.arrived or Vector2(ghost.pos.x, ghost.pos.z).distance_to(Vector2(goal.x, goal.z)) <= StreetMeet.ARRIVE_R):
+			player_live = false
+			for o: Dictionary in outs:
+				o["player_time"] = snappedf(t, 0.01)
+		if all_home:
+			break
+	for k in n:
+		var r: RaceSession.Racer = session.racers[k]
+		if r.d == null:
+			outs[k]["error"] = "%s: never reached the road" % outs[k]["id"]
+			continue
+		_fill(outs[k], probes[k], r.d, r, session, turns[k], lit[k], plan_s[k], r.home_t if r.home else t)
+		outs[k]["session_most_usec"] = most_usec
+		outs[k]["session_start_usec"] = start_usec
+		outs[k]["wall_ms"] = Time.get_ticks_msec() - wall0
+	session.end()
+	traffic.free()
+	cam.free()
+	return outs
+
+## What a racer did in a race (`race`, `pack`), from its Probe into the race's row `out`: the
+## time's company (winner, metres left, speeds, crawls, contacts, the car's limits, lights, the
+## plan's clock, the streets and the seconds on each). `t` is the race time it was last sampled at.
+func _fill(out: Dictionary, probe: Probe, d, r: RaceSession.Racer, session: RaceSession, turns: int, turns_lit: int, plan_s: float, t: float) -> void:
+	var sig := r.sig
 	var crawl := probe.crawl()
 	if OS.is_stdout_verbose() and crawl.y > CRAWL_MAX and probe.crawl_end >= 0:
 		print("    longest crawl %.1f s ended at %.1f s on %s (%.0f, %.0f) at %.1f m/s" % [crawl.y, probe.crawl_end * DT, probe._street(probe.edge_at[probe.crawl_end]), probe.px[probe.crawl_end], probe.pz[probe.crawl_end], probe.v[probe.crawl_end]])
 	var n := maxi(probe.frames, 1)
 	out["winner"] = "player" if out.has("player_time") else ("rival" if out["finished"] else "nobody")
-	out["left_m"] = snappedf(_left(traffic, d, legs, leg), 1.0) if not out["finished"] else 0.0
+	out["left_m"] = snappedf(session.metres_left(r), 1.0) if not out["finished"] else 0.0
 	out["driven_m"] = snappedf(probe.driven, 1.0)
 	out["mean_kmh"] = snappedf(probe.driven / maxf(float(out["time"]) - float(out["hold_s"]), 1.0) * 3.6, 0.1)
 	out["top_kmh"] = snappedf(probe.top_v * 3.6, 0.1)
@@ -1144,8 +1416,8 @@ func race(spec: Dictionary) -> Dictionary:
 	out["blocks"] = d.blocks
 	out["centre_passes"] = d.race_passes
 	out["lights"] = {"brakes": sig.brakes, "indications": sig.indications, "flashes": sig.flashes, "hazards": sig.hazards, "turns": turns, "turns_lit": turns_lit}
-	out["pace_lo"] = snappedf(pace.lo, 0.01)
-	out["pace_hi"] = snappedf(pace.hi, 0.01)
+	out["pace_lo"] = snappedf(r.effort.lo, 0.01)
+	out["pace_hi"] = snappedf(r.effort.hi, 0.01)
 	out["share"] = snappedf(d.race_share, 0.001)
 	out["plan_s"] = snappedf(plan_s, 0.1)
 	out["turned_back"] = d.turns_back
@@ -1162,10 +1434,6 @@ func race(spec: Dictionary) -> Dictionary:
 	for k in probe.edge_t.size():
 		edge_s.append(snappedf((probe.edge_t[k + 1] if k + 1 < probe.edge_t.size() else t) - probe.edge_t[k], 0.01))
 	out["edge_s"] = edge_s
-	traffic.free()
-	cam.free()
-	out["wall_ms"] = Time.get_ticks_msec() - wall0
-	return out
 
 
 ## The seconds the rival's plan gives it from where it is to its plan's finish (0: no plan).
@@ -1174,15 +1442,6 @@ func _plan_time(d) -> float:
 		return 0.0
 	var t: float = d.plan.left(d.edge, d.s, d.v)
 	return t if t < INF else 0.0
-
-
-## The metres the rival has left: to the finish, through the forced route's legs still to come.
-func _left(traffic: Node3D, d, legs: Array, leg: int) -> float:
-	var left: float = traffic.remaining(d)
-	for k in range(leg, legs.size() - 1):
-		var onward: PackedFloat32Array = legs[k + 1][1]
-		left += onward[legs[k][0]]
-	return left
 
 
 ## The view: the game's camera on `focus` (yaw VIEW_YAW, FollowCamera's pitch and size).
@@ -1270,13 +1529,30 @@ static func judge(results: Array) -> Array:
 	for r: Dictionary in by_id.values():
 		if _in_traffic(r):
 			traffic = true
+	# (The night club's pack among the town's cars is counted by its own mark, Pack in traffic:
+	# eight racers that leave one door into Busy traffic are another question than one rival's
+	# race, and a known fault of theirs must not take the hold off every other race's finish.)
+	var counted := 0
+	var pack_n := 0
+	var pack_home := 0
+	var pack_worst := ""
 	for r: Dictionary in by_id.values():
+		if r["tuning"] == "pack" and _in_traffic(r):
+			pack_n += 1
+			if r["finished"]:
+				pack_home += 1
+			elif pack_worst == "":
+				pack_worst = r["id"]
+			continue
+		counted += 1
 		if not r["finished"]:
 			unfinished += 1
 			if worst == "":
 				worst = r["id"]
 	out.append(_mark("finishes", "Finishes", unfinished == 0 if not by_id.is_empty() else null,
-			"%d of %d races finished" % [by_id.size() - unfinished, by_id.size()], worst, traffic))
+			"%d of %d races finished" % [counted - unfinished, counted], worst, traffic))
+	out.append(_mark("pack_traffic", "Pack in traffic", pack_home == pack_n if pack_n > 0 else null,
+			"%d of %d of the club's racers home in the pack's races among the town's cars" % [pack_home, pack_n], pack_worst, true))
 
 	# Independence: the rival's time whatever the player does, against its time with no player on
 	# the same roads. (In traffic too, both ways: the town's cars are where the player is, and a
@@ -1576,6 +1852,8 @@ static func judge(results: Array) -> Array:
 		if not r.has("lights") or not r["finished"]:
 			continue
 		var traits: Dictionary = Ladder.FINAL_RACER if r["tuning"] == "final" else Ladder.racer(Ladder.rung_of(String(r["rival"])))
+		if r["tuning"] == "pack" or r["tuning"] == "solo":
+			traits = Ladder.club(int(String(r["rival"]).trim_prefix("club")))
 		var l: Dictionary = r["lights"]
 		told_n += 1
 		var bad := false
@@ -1689,6 +1967,51 @@ static func judge(results: Array) -> Array:
 			"in %d races in traffic %d hops taken and %d refused (the street was not empty), %d of the town's cars met on a hopped street, %d driven through there" % [
 			hop_races, hop_taken, hop_refused, hop_met, hop_hit], hop_worst, true))
 
+	# Pack order (racer AI step 6b part 1b): on clear roads without a player the night club comes
+	# home in the order of its racers' own pace there (each alone on the same course, "solo", from
+	# the same spot at the same moment), give or take two whose own times are less than PACK_TIE
+	# apart, and every one of them gets there. (Home times from the pin: the order of arrival.)
+	var solos := {}
+	var packs := {}
+	for r: Dictionary in by_id.values():
+		if r["start"] != PACK_START or r["situation"] != "clear" or r["player"] != "none" or int(r["seed"]) != 0:
+			continue
+		if r["tuning"] == "solo":
+			solos[r["rival"]] = r
+		elif r["tuning"] == "pack":
+			packs[r["rival"]] = r
+	var order_ok := not packs.is_empty() and solos.size() == packs.size()
+	var swapped := 0
+	var home := 0
+	var order_names := PackedStringArray()
+	worst = ""
+	var who: Array = packs.keys()
+	who.sort_custom(func(a: String, b: String) -> bool: return _home(solos.get(a, packs[a])) < _home(solos.get(b, packs[b])))
+	for a: String in who:
+		var p: Dictionary = packs[a]
+		var o: Dictionary = solos.get(a, {})
+		if p["finished"] and not o.is_empty() and o["finished"]:
+			home += 1
+		else:
+			order_ok = false
+			if worst == "":
+				worst = p["id"]
+		order_names.append("%s %.1f s alone, %.1f s in the pack" % [a, _home(o) if not o.is_empty() else -1.0, _home(p)])
+	for i in who.size():
+		for j in range(i + 1, who.size()):
+			var a: String = who[i]
+			var b: String = who[j]
+			if not solos.has(a) or not solos.has(b) or _home(solos[b]) < _home(solos[a]) * (1.0 + PACK_TIE):
+				continue
+			if _home(packs[a]) > _home(packs[b]):
+				swapped += 1
+				order_ok = false
+				if worst == "":
+					worst = packs[a]["id"]
+	out.append(_mark("pack_order", "Pack order", order_ok if not packs.is_empty() else null,
+			"%d of %d of the club home on clear roads, %d pairs more than %.1f %% apart by their own pace home in the other order: %s" % [
+			home, packs.size(), swapped, PACK_TIE * 100.0, ", ".join(order_names)], worst))
+
 	# The same race twice.
 	var same := 0
 	worst = ""
@@ -1711,6 +2034,12 @@ static func _clear_of(g: Dictionary, r: Dictionary) -> Dictionary:
 		if not base.is_empty() and base["finished"]:
 			return base
 	return {}
+
+
+## A racer's time home from the start of its race (the pack's: from the pin, its glide to the road
+## included).
+static func _home(r: Dictionary) -> float:
+	return float(r["time"])
 
 
 ## A race's time once the rival is let go (the first race's wait at the line is not racing).

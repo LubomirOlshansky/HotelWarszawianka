@@ -37,7 +37,7 @@ extends SceneTree
 ##   metres (RacePlanner.links) and the minimap's line (route_line.gd) end where the road enters;
 ##   a racer on the lane furthest from the finish is home there, outside the circle, and with the
 ##   plan to the junction alone or past the circle she is not; the player's car has the same line
-##   (Rivals.home_at): home on that road level with the circle in any lane, and not 3 m short of
+##   (RaceSession.home_at): home on that road level with the circle in any lane, and not 3 m short of
 ##   it, past it, OFF_ROAD beside the road or on another level; Trzy mosty's last leg is planned
 ##   to the circle of its finish by the stadium, FINAL_GAIN m less than round to its junction;
 ##   and the guided first race from Marszałkowska as the whole game ran it comes home on that
@@ -53,6 +53,7 @@ const RacePlanner := preload("res://scripts/race_planner.gd")
 const Traffic := preload("res://scripts/traffic.gd")
 const Ladder := preload("res://scripts/ladder.gd")
 const Rivals := preload("res://scripts/rivals.gd")
+const RaceSession := preload("res://scripts/race_session.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const RouteLine := preload("res://scripts/route_line.gd")
 
@@ -122,7 +123,7 @@ func _run() -> void:
 
 ## The racer stats of `name` on its rung (rivals.gd `race_stats`), with `over` on top.
 func _stats(name: String, over := {}) -> Dictionary:
-	var out := Rivals.race_stats(Ladder.rung_of(name)).duplicate()
+	var out := RaceSession.race_stats(Ladder.rung_of(name)).duplicate()
 	out.merge(over, true)
 	return out
 
@@ -347,7 +348,7 @@ func _races() -> void:
 	var away := _race(HALINA, {"view": FAR_VIEW, "traffic": 3})
 	if alone["finished"] and away["finished"]:
 		var owed := 0.0
-		var share := float(Rivals.race_stats(Ladder.rung_of(HALINA))["share"])
+		var share := float(RaceSession.race_stats(Ladder.rung_of(HALINA))["share"])
 		var driven := PackedInt32Array(away["edges"])
 		for k in range(1, driven.size()):
 			owed += Traffic.race_delay(_graph, driven[k], minf(RaceBench.PLAYER_TOP, Traffic.RACE_CLASS_TOP[_graph.e_class[driven[k]]]) * share, 1.0)
@@ -421,7 +422,7 @@ func _drive(fin: Dictionary, plan: RacePlanner.Plan, dist: PackedFloat32Array, e
 	var body := Node3D.new()
 	traffic.add_child(body)
 	var d = traffic.add_node_driver(body, Rivals.RIVALS[RaceBench.rival_index(HALINA)]["size"], e, lane, s)
-	Rivals.arm_racer(d, Ladder.rung_of(HALINA), RaceBench.PLAYER_TOP, {}, false, 0.0, 1)
+	RaceSession.arm_racer(d, RaceSession.race_stats(Ladder.rung_of(HALINA), false, 0.0), Ladder.pace(Ladder.rung_of(HALINA)), RaceBench.PLAYER_TOP, {}, 1)
 	traffic.race_to(d, fin["node"], dist, plan)
 	var t := 0.0
 	while t < most and not d.arrived and d.edge == e and not d.in_conn:
@@ -496,7 +497,7 @@ func _care() -> void:
 ## A finish's circle (RacePlanner.ends: the roads through it; rivals.gd FINISH_RADIUS).
 func _circle() -> void:
 	var planner: RacePlanner = _bench.planner
-	var radius := Rivals.FINISH_RADIUS
+	var radius := RaceSession.FINISH_RADIUS
 	var top := RaceBench.PLAYER_TOP
 	# The prototype race's finish: no road but its own junction's runs through the circle, and the
 	# plan made for the circle is the plan to the junction, state for state.
@@ -649,23 +650,23 @@ func _circle() -> void:
 	var mid := (end_f.x + end_f.y) * 0.5
 	var on_far: Vector2 = _graph.point_at(f, mid, _graph.lane_offset(f, far[1]))
 	var up: float = _graph.height(f, mid)
-	_expect(on_far.distance_to(fin["at"]) > radius + 1.0 and Rivals.home_at(_graph, Vector3(on_far.x, up, on_far.y), goal, ends),
+	_expect(on_far.distance_to(fin["at"]) > radius + 1.0 and RaceSession.home_at(_graph, Vector3(on_far.x, up, on_far.y), goal, ends),
 			"the player's car in the furthest lane of %s, level with the circle, is home (%.1f m from the finish's point)" % [_graph.e_name[f], on_far.distance_to(fin["at"])])
-	_expect(not Rivals.home_at(_graph, Vector3(on_far.x, up, on_far.y), goal, {}), "... by that road alone: at a finish with no road through its circle it is not")
-	_expect(Rivals.home_at(_graph, Vector3(fin["at"].x + radius - 1.0, up + 40.0, fin["at"].y), goal, {}), "inside the circle a car is home, whatever its road (PT-22)")
+	_expect(not RaceSession.home_at(_graph, Vector3(on_far.x, up, on_far.y), goal, {}), "... by that road alone: at a finish with no road through its circle it is not")
+	_expect(RaceSession.home_at(_graph, Vector3(fin["at"].x + radius - 1.0, up + 40.0, fin["at"].y), goal, {}), "inside the circle a car is home, whatever its road (PT-22)")
 	var short: Vector2 = _graph.point_at(f, end_f.x - 3.0, _graph.lane_offset(f, far[1]))
-	_expect(short.distance_to(fin["at"]) > radius and not Rivals.home_at(_graph, Vector3(short.x, up, short.y), goal, ends), "3 m short of the circle in that lane it is not home")
+	_expect(short.distance_to(fin["at"]) > radius and not RaceSession.home_at(_graph, Vector3(short.x, up, short.y), goal, ends), "3 m short of the circle in that lane it is not home")
 	var far_g := _lane_gap(g, past, fin["at"], true)
 	var gone: Vector2 = _graph.point_at(g, past, _graph.lane_offset(g, far_g[1]))
-	_expect(gone.distance_to(fin["at"]) > radius and not Rivals.home_at(_graph, Vector3(gone.x, up, gone.y), goal, ends), "past the circle on %s it is not home" % _graph.e_name[g])
+	_expect(gone.distance_to(fin["at"]) > radius and not RaceSession.home_at(_graph, Vector3(gone.x, up, gone.y), goal, ends), "past the circle on %s it is not home" % _graph.e_name[g])
 	var centre: Vector2 = fin["at"]
 	var away := (on_far - centre).normalized()
 	var kerb := on_far + away * 2.0
 	var beside := on_far + away * OFF_ROAD
-	_expect(Rivals.home_at(_graph, Vector3(kerb.x, up, kerb.y), goal, ends), "at the kerb of that lane it is home")
-	_expect(beside.distance_to(fin["at"]) < radius + RacePlanner.END_REACH and not Rivals.home_at(_graph, Vector3(beside.x, up, beside.y), goal, ends),
+	_expect(RaceSession.home_at(_graph, Vector3(kerb.x, up, kerb.y), goal, ends), "at the kerb of that lane it is home")
+	_expect(beside.distance_to(fin["at"]) < radius + RacePlanner.END_REACH and not RaceSession.home_at(_graph, Vector3(beside.x, up, beside.y), goal, ends),
 			"%.0f m off the road it is not (%.1f m from the finish's point)" % [OFF_ROAD, beside.distance_to(fin["at"])])
-	_expect(not Rivals.home_at(_graph, Vector3(on_far.x, up + RacePlanner.END_LEVEL + 1.0, on_far.y), goal, ends) and not Rivals.home_at(_graph, Vector3(on_far.x, up - RacePlanner.END_LEVEL - 1.0, on_far.y), goal, ends),
+	_expect(not RaceSession.home_at(_graph, Vector3(on_far.x, up + RacePlanner.END_LEVEL + 1.0, on_far.y), goal, ends) and not RaceSession.home_at(_graph, Vector3(on_far.x, up - RacePlanner.END_LEVEL - 1.0, on_far.y), goal, ends),
 			"%.0f m over or under that road it is not" % (RacePlanner.END_LEVEL + 1.0))
 
 	# Trzy mosty's finish by the stadium: the avenue's other carriageway runs through its circle,
@@ -677,7 +678,7 @@ func _circle() -> void:
 		var to_junction: PackedFloat32Array = _bench.roads_to(last["node"])
 		_expect(to_circle[last["from"]] < to_junction[last["from"]] - FINAL_GAIN,
 				"from the last bridge it is %.0f m to the circle and %.0f m to the finish's junction" % [to_circle[last["from"]], to_junction[last["from"]]])
-		var seba := Rivals.race_stats(Ladder.FINAL)
+		var seba := RaceSession.race_stats(Ladder.FINAL)
 		var leg_c: RacePlanner.Plan = planner.plan(last["node"], seba, top, {}, 0.0, PackedInt32Array(), last["at"], radius)
 		var leg_j: RacePlanner.Plan = planner.plan(last["node"], seba, top)
 		var best_c := INF

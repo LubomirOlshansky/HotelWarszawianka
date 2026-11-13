@@ -158,6 +158,8 @@ const PASAT_PAINT := ["#1d1e21", "#3a3d42", "#2f3d33", "#2a3340", "#8c9096"]
 const RACE_CLASS_TOP := [33.0, 29.0, 25.0, 16.0]
 ## Racer mode: once a second while a racer stands still, what holds it (main.gd --race-debug).
 var race_debug := false
+## `_merge_gap`'s other answer: the speed of the car it found (m/s).
+var _merge_v := 0.0
 const RACE_DECEL := 8.0
 const RACE_HEADWAY := 0.6
 const RACE_TURN_MIN := RaceLine.SPEED_LEAST
@@ -2709,6 +2711,13 @@ func _drive(d: Driver, dt: float) -> void:
 		if cross:
 			gap = d.cross_gap
 			lead_v = d.cross_v
+		if racer and d.plan != null and d.on_cut and not d.in_conn and d.next_edge >= 0:
+			# Step 6b part 1b: two of a pack side by side into one shortcut: the one behind
+			# lets the other in (`_merge_gap`).
+			var merge := _merge_gap(d)
+			if merge < gap:
+				gap = merge
+				lead_v = _merge_v
 		if not d.in_conn:
 			var stop := _red_ahead(d)
 			if hop_stop or (d.next_edge >= 0 and not _hop_held.is_empty() and _hop_held.get(d.next_edge) != null and _hop_held[d.next_edge] != d):
@@ -3196,6 +3205,32 @@ func _way_gap(d: Driver, r: Driver, r_fwd: Vector2) -> float:
 	return INF
 
 
+## Racer AI step 6b part 1b, the night club's pack: the metres racer d, about to leave its street
+## by a shortcut, has to the tail of another racer with a plan that is ahead of it in another
+## lane of the street and takes the same shortcut (INF: none), with `_merge_v` that car's speed.
+## A shortcut is one car wide and is entered from any lane, and a racer does not see the cars of
+## the lanes beside it as in its way (`_race_cross_look`): two of the club level in two lanes
+## turned into the cut together and drove through each other, 8 to 10 times at the start of the
+## bench's pack race on clear roads. Now the one behind (level: the higher slot) follows the
+## other in. One racer with a plan alone meets none, so a race of one is as before.
+func _merge_gap(d: Driver) -> float:
+	var e := d.edge
+	var best := INF
+	for l in graph.e_lanes[e]:
+		if l == d.lane:
+			continue
+		for q: Driver in _lane_cars[graph.e_lane0[e] + l]:
+			if q.plan == null or q.in_conn or not q.on_cut or q.next_edge != d.next_edge or q.edge != e:
+				continue
+			if q.s < d.s or (q.s == d.s and q.slot > d.slot):
+				continue
+			var g := q.s - d.s - (q.length + d.length) * 0.5
+			if g < best:
+				best = g
+				_merge_v = q.v
+	return maxf(best, 0.3)
+
+
 ## Step 4b: racer d looks for a car that will be in its way at a junction (CROSS_* above): true
 ## when there is one, with `cross_gap` the metres it has to stop in. A car that stands in its way
 ## it steers round instead where it can (`swerve`, SWERVE_* above).
@@ -3225,11 +3260,26 @@ func _race_cross_look(d: Driver) -> bool:
 	for q in junction_cars:
 		if q == d or absf(q.pos.y - d.pos.y) > 2.5:
 			continue
+		# Racer AI step 6b part 1b, the night club's pack (several racers with plans in one race;
+		# never the test player's car, so a race of one is as before): another of them behind it
+		# is not a car in its way, nor one still on the street it is turning out of, nor one less
+		# far along the same junction's curve (each of those waits for it: who is first goes); one
+		# ahead on a shortcut's curve is in its way, also from its own lane (the lane's metres do
+		# not reach along a long curve). Before, two of the club onto one shortcut each stood for
+		# the other, 0.3 m apart, until the knot rule let them through each other, and the next
+		# drove into the one on the curve: 8 to 20 cars driven through at the start of the bench's
+		# pack race.
+		var mate: bool = d.plan != null and q.plan != null and not q.ghost
+		if mate and ((q.pos.x - d.pos.x) * -sin(d.yaw) + (q.pos.z - d.pos.z) * -cos(d.yaw) < 0.0
+				or (d.in_conn and not q.in_conn and q.edge == d.edge)
+				or (d.in_conn and q.in_conn and d.cu / maxf(d.conn_len, 0.1) > q.cu / maxf(q.conn_len, 0.1))):
+			continue
+		var curve_ahead: bool = mate and q.on_cut and q.in_conn
 		# The cars of its own lanes it follows by the lane (and those beside it on its street it
 		# sees by their place); two curves into one lane are side by side until they meet.
-		if q.reg == d.reg and not (d.in_conn and q.in_conn and d.lane != q.lane):
+		if q.reg == d.reg and not (d.in_conn and q.in_conn and d.lane != q.lane) and not curve_ahead:
 			continue
-		if not d.in_conn and ((q.reg == d.next_reg and not (q.in_conn and q.edge != e)) or (q.edge == e and not q.in_conn)):
+		if not d.in_conn and ((q.reg == d.next_reg and not (q.in_conn and q.edge != e)) or (q.edge == e and not q.in_conn)) and not curve_ahead:
 			continue
 		var far := reach + q.v * CROSS_TIME + 8.0
 		if Vector2(q.pos.x, q.pos.z).distance_squared_to(here) < far * far:

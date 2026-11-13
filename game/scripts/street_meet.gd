@@ -60,7 +60,10 @@ extends "res://scripts/activity.gd"
 ##
 ## Nothing here per frame when idle (a TICK s look). During the quest: the meet's few draw calls
 ## (marks, smoke, glow, the crowd, three own cars and their lights, the start gate at the drag), the
-## parked racers and the cordon are the traffic's pool cars (no new draw calls).
+## parked racers and the cordon are the traffic's pool cars (no new draw calls). From the first raid
+## to meet 2 the race session (race_session.gd: a slice of one racer's plan a frame, the effort and
+## the order at 5 Hz) and the lamps of the racers in view (race_signals.gd: a draw call for each
+## lamp lit).
 ##
 ## Flags (main.gd): --meet-call (Darek rings now), --meet=on (night rules at any hour), --meet=0,
 ## --meet-at=raid|race|meet2|drag|stage (jump to that beat), --meet-log.
@@ -73,6 +76,10 @@ const InstanceBuffers := preload("res://scripts/instance_buffers.gd")
 const Rave := preload("res://scripts/rave.gd")
 const Lang := preload("res://scripts/lang.gd")
 const RaceCuts := preload("res://scripts/race_cuts.gd")
+const RacePlanner := preload("res://scripts/race_planner.gd")
+const RaceSession := preload("res://scripts/race_session.gd")
+const RaceSignals := preload("res://scripts/race_signals.gd")
+const Ladder := preload("res://scripts/ladder.gd")
 
 const CLUB := "WARSAW NIGHT RACING CLUB"
 const FRIEND := "Darek „Bawarka”"
@@ -153,17 +160,22 @@ const CORDON_GONE := 90.0
 ## The pin (the next destination) comes this long after the sirens start, once the cordon has
 ## closed in, whether or not the chase is still on.
 const PIN_AFTER := 4.5
-## The scatter: each car glides off the plaza to the road at GLIDE_V m/s, STAGGER s apart.
+## The scatter: each car glides off the plaza to the road at GLIDE_V m/s, STAGGER s apart, to its
+## spot on the kerb lane by the door, GRID m from the next (`grid_s`).
 const GLIDE_V := 9.0
 const STAGGER := 0.35
-## The race to meet 2: arriving within ARRIVE_R m counts (any speed); the racers' racer stats.
+const GRID := 7.0
+## A racer farther than this (m) from the meet's middle when the scatter begins glides from the
+## middle (`_scatter`).
+const SCATTER_FROM := 80.0
+## The race to meet 2: arriving within ARRIVE_R m counts (any speed). The racers drive the race
+## session's driver (racer AI step 6b part 1b, race_session.gd): each its own profile (ladder.gd
+## `CLUB`, fitted on the race bench; F 2026-11-08 "they drive dumb and slow": locals with every
+## shortcut and yard, the player's own car, none over it), a plan by its own seconds, the racing
+## line, honest passing, the effort by the time gap; a racer is there on arriving or under
+## THERE_M m from the door's junction.
 const ARRIVE_R := 22.0
-## F 2026-11-08 ("they drive dumb and slow"; "the other racers too"): at least the player's own top
-## speed (as the ladder's rivals now), a sports car's pull, corners near the ladder's best rivals,
-## and every shortcut in the city (race_cuts.gd: they are locals).
-const RACE_SHARE := Vector2(1.0, 1.06)
-const RACE_ACCEL := Vector2(6.0, 8.0)
-const RACE_LAT := 7.6
+const THERE_M := 12.0
 ## [złoty, respect] by place (1st, 2nd, 3rd, the rest).
 const PLACE_PAY := [[200, 40], [120, 25], [60, 12], [0, 5]]
 ## The drag win and the loss.
@@ -314,9 +326,18 @@ var _chase_seen := false
 
 ## The racers: {d: traffic Driver, node: Node3D or null, name, glide: {} (from, to, yaw, t, then)}.
 var _racers: Array[Dictionary] = []
+## The player's metres to meet 2's door by road (`_player_left`) and that junction.
 var _race_dist := PackedFloat32Array()
 var _race_node := -1
-var _there: Array[int] = []
+## The race (racer AI step 6b part 1b, race_session.gd): one session from the first raid (its
+## distances and plans searched a slice a frame while the police come in) to meet 2 or the end;
+## the racers' entries hold their session racer as "r" and their lamps as "lamps"
+## (race_signals.gd, shown while the car is in view). Its clock, the 5 Hz step of the effort and
+## the order, and the most one frame of its work took (µs, for the log).
+var _race: RaceSession
+var _race_t := 0.0
+var _rank_t := 0.0
+var race_most_usec := 0
 
 ## The scene's own nodes.
 var _scene: Node3D
@@ -345,10 +366,10 @@ var _cordon_leaving := false
 ## the box-in reads at night and from the far camera.
 var _flash: MultiMeshInstance3D
 var _flash_t := 0.0
-## The race's distances with the club's shortcuts (race_cuts.gd), and the cuts' table.
+## The city's shortcuts (race_cuts.gd) and the route planner (race_planner.gd), made once for the
+## club's race (rivals.gd keeps its own pair).
 var _cuts: RaceCuts
-var _cut_table := {}
-var _race_cut_dist := PackedFloat32Array()
+var _planner: RacePlanner
 
 ## The drag: the exhibition pairs ({cars: [Node3D, Node3D], t, profile, lanes}), the run.
 var _shows: Array[Dictionary] = []
@@ -1033,6 +1054,8 @@ func _process(dt: float) -> void:
 	if not _racers.is_empty():
 		_glides(dt)
 		_racer_dots()
+	if _race != null:
+		_race_frame(dt)
 	if not _cordon.is_empty():
 		_cordon_frame(dt)
 	if not _shows.is_empty():
@@ -1340,6 +1363,8 @@ func _raid() -> void:
 	_drifting = false
 	_tandem = false
 	_scatter()
+	if meet_i == 0:
+		_race_prepare()
 	var boxed := _cordon_in()
 	_log("raid at %s: %d patrol cars, %d in the cordon" % [m["id"], sent, boxed])
 
@@ -1501,16 +1526,59 @@ func _racer_by(name: String) -> Dictionary:
 func _scatter() -> void:
 	var m: Dictionary = meets[meet_i]
 	var door: Dictionary = m["door"]
+	var froms: Array[Vector3] = []
+	var c: Vector3 = m["at"]
+	for r in _racers:
+		# (A car not on the plaza yet, Lena before her drift's first frame on --meet-at=raid, at
+		# the world's origin, glides from the middle: the scatter waits for the longest glide,
+		# and one of 107 s held the whole pack at the line, step 6b part 1b.)
+		var p := _racer_pos(r)
+		froms.append(p if Vector2(p.x, p.z).distance_to(Vector2(c.x, c.z)) < SCATTER_FROM else c)
+	var plan := scatter_plan(graph, door, froms)
 	var k := 0
 	for r in _racers:
-		var from := _racer_pos(r)
 		var e: int = door["e"]
-		var s: float = clampf(float(door["s"]) + (k - _racers.size() * 0.5) * 7.0, graph.e_s0[e] + 3.0, graph.e_s1[e] - 3.0)
+		var s: float = plan[0][k]
 		var to2 := graph.point_at(e, s, graph.lane_offset(e, graph.e_lanes[e] - 1))
 		var to := Vector3(to2.x, graph.height(e, s), to2.y)
-		r["glide"] = {"from": from, "to": to, "t": -k * STAGGER, "dur": maxf(1.2, from.distance_to(to) / GLIDE_V), "e": e, "s": s,
-				"then": "drive"}
+		r["glide"] = {"from": froms[k], "to": to, "t": -float(plan[1][k]), "dur": float(plan[2][k]), "e": e, "s": s, "then": "drive"}
 		k += 1
+
+
+## Where on the door's road racer `k` of `n` lands in the scatter (the race bench's `pack` grid
+## too): GRID m apart round the door along the road, the whole line moved inside the road's ends
+## (step 6b part 1b: at Plac Defilad the door is 6 m from its road's start, and four of the eight
+## landed on one spot, one car in another).
+static func grid_s(g: LaneGraph, door: Dictionary, k: int, n: int) -> float:
+	var e: int = door["e"]
+	var lo := g.e_s0[e] + 3.0
+	var hi := maxf(lo, g.e_s1[e] - 3.0 - (n - 1) * GRID)
+	return minf(clampf(float(door["s"]) - n * 0.5 * GRID, lo, hi) + k * GRID, g.e_s1[e] - 3.0)
+
+
+## The scatter of racers gliding from `froms` (`_racers` order: ladder.gd CLUB's, slowest
+## first) to the door's road: [each one's spot on it (`grid_s`), the seconds it waits before it
+## glides off, the seconds its glide takes (at GLIDE_V)]. They come onto the road the best first,
+## STAGGER s apart, each on the spot in front of the next one's (step 6b part 1b: so the pack
+## sets off in the order of its pace, as a club would, and no car comes onto the road on top of
+## one already driving off: before, the first away took the back spot and the next appeared on
+## its way, and the race bench's pack drove through 8 to 20 cars at the start).
+static func scatter_plan(g: LaneGraph, door: Dictionary, froms: Array[Vector3]) -> Array:
+	var n := froms.size()
+	var spots := PackedFloat32Array()
+	var durs := PackedFloat32Array()
+	var most := 0.0
+	for k in n:
+		var s := grid_s(g, door, k, n)
+		var e: int = door["e"]
+		var to := g.point_at(e, s, g.lane_offset(e, g.e_lanes[e] - 1))
+		spots.append(s)
+		durs.append(maxf(1.2, Vector2(froms[k].x, froms[k].z).distance_to(to) / GLIDE_V))
+		most = maxf(most, durs[k])
+	var waits := PackedFloat32Array()
+	for k in n:
+		waits.append((n - 1 - k) * STAGGER + most - durs[k])
+	return [spots, waits, durs]
 
 
 func _racer_pos(r: Dictionary) -> Vector3:
@@ -1561,20 +1629,32 @@ func _hand_over(r: Dictionary, then: String, e: int, s: float) -> void:
 	if d == null:
 		return
 	d.persistent = true
-	d.race_top = _player_top() * _rng.randf_range(RACE_SHARE.x, RACE_SHARE.y)
-	d.race_accel = _rng.randf_range(RACE_ACCEL.x, RACE_ACCEL.y)
-	d.race_lat = RACE_LAT
-	d.race_effort = 1.0
-	d.speed_factor = 1.4
-	d.accel_factor = 1.6
-	if stage == Stage.RACE and not _race_dist.is_empty():
-		_race_off(d)
+	# The cruise away from the raid, as the club always drove it (racer mode takes over at the pin).
+	d.speed_factor = Ladder.CLUB_PACE.x
+	d.accel_factor = Ladder.CLUB_PACE.y
+	if r.has("r"):
+		(r["r"] as RaceSession.Racer).d = d
+	if stage == Stage.RACE and _race != null:
+		_race_off(r)
 
 
-## A racer off to meet 2 by the club's shortcuts.
-func _race_off(d) -> void:
-	d.cuts = _cut_table
-	traffic.race_to(d, _race_node, _race_cut_dist)
+## A racer off to meet 2 (the session's `start`: armed with its CLUB profile, its plan, every
+## shortcut and yard it knows), its lamps on a holder that follows the car (Darek's and Lena's on
+## their own cars).
+func _race_off(r: Dictionary) -> void:
+	var rr: RaceSession.Racer = r.get("r")
+	if rr == null or rr.started or rr.d == null:
+		return
+	_race.start(rr)
+	if not r.has("lamps"):
+		var lamps := RaceSignals.build(rr.d.size if "size" in rr.d else Vector3(1.8, 1.4, 4.4))
+		if r["node"] != null:
+			(r["node"] as Node3D).add_child(lamps)
+		else:
+			lamps.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+			_scene.get_parent().add_child(lamps)
+		lamps.visible = false
+		r["lamps"] = lamps
 
 
 func _player_top() -> float:
@@ -1583,26 +1663,49 @@ func _player_top() -> float:
 	return 30.0
 
 
-## The race to meet 2: every racer (those still gliding join when they reach the road).
-func _start_race() -> void:
-	var m: Dictionary = meets[1]
-	var door: Dictionary = m["door"]
+## The race's session, when the first raid begins (the course is known: meet 2's door's
+## junction): every racer added with its CLUB profile (those without a Driver yet, Darek and Lena
+## on the plaza, get theirs at the road), the distances made now (one search: the club knows the
+## same shortcuts) and the plans searched a slice a frame through the raid (`_race_frame`) towards
+## the door's road, where they all set off ("from"; about 25 slices each), so the pin starts the
+## race without a long frame.
+func _race_prepare() -> void:
+	_race_end()
+	var door: Dictionary = meets[1]["door"]
 	_race_node = graph.e_b[int(door["e"])]
 	_race_dist = graph.distances_to(_race_node)
-	_race_cut_dist = _race_dist
-	_cut_table = {}
 	if _cuts == null:
 		_cuts = RaceCuts.new()
 		_cuts.load_cuts(graph)
-	if _cuts.a.size() > 0:
-		var both: Array = _cuts.links(1.0, 873)
-		_cut_table = both[0]
-		_race_cut_dist = graph.distances_to(_race_node, INF, true, both[1])
-	_there.clear()
+	if _planner == null:
+		_planner = RacePlanner.new(graph)
+	_race = RaceSession.new()
+	_race.setup(graph, traffic, _planner, _cuts, {_race_node: _race_dist})
+	_race.course(PackedInt32Array([_race_node]))
+	_race.round_robin = true
+	_race.home_within = THERE_M
+	for r in _racers:
+		var k := int(r.get("glow", 0))
+		r["r"] = _race.add(r["d"], String(r["name"]), Ladder.club(k), Ladder.CLUB_PACE,
+				{"top": _player_top(), "dice": hash("%s/%d" % [r["name"], nights]), "from": int(meets[0]["door"]["e"])})
+	_race.prepare()
+	_race_t = 0.0
+	_rank_t = 0.0
+	race_most_usec = 0
+
+
+## The race to meet 2: every racer (those still gliding join when they reach the road).
+func _start_race() -> void:
+	var m: Dictionary = meets[1]
+	if _race == null:
+		_race_prepare()
+	if not traffic.turned_back.is_connected(_on_turned_back):
+		traffic.turned_back.connect(_on_turned_back)
+		traffic.hop_refused.connect(_on_hop_refused)
 	for r in _racers:
 		var d = r["d"]
 		if d != null and r["glide"].is_empty() and not d.parked:
-			_race_off(d)
+			_race_off(r)
 	stage = Stage.RACE
 	_stage_t = 0.0
 	_line(RACE_LINES[_rng.randi() % RACE_LINES.size()], 3.5)
@@ -1627,41 +1730,87 @@ func _player_left() -> float:
 	return best
 
 
-## The race's place now: 1 + the racers already there + those with less road left.
-func _place_now() -> int:
-	var mine := _player_left()
-	var p := 1 + _there.size()
-	for i in _racers.size():
-		var d = _racers[i]["d"]
-		if i in _there or d == null or d.parked:
-			continue
-		if traffic.remaining(d) < mine:
-			p += 1
-	return p
+## Every frame from the first raid while the session is on: a slice of one racer's plan; in the
+## race the racers that are there (home: out of racer mode, they drive on), five times a second
+## the effort by the time gap and the order, and the lights of the racers in view.
+func _race_frame(dt: float) -> void:
+	var t0 := Time.get_ticks_usec()
+	_race.plan_tick(false)
+	if stage == Stage.RACE:
+		_race_t += dt
+		_race.advance(_race_t)
+		for r in _racers:
+			var rr: RaceSession.Racer = r.get("r")
+			if rr != null and rr.home and not r.get("there", false):
+				r["there"] = true
+				traffic.stop_racing(rr.d)
+				_log("%s there (%d.) at %.1f s (the session's work so far %.2f ms at most in a frame)" % [r["name"], rr.place, _race_t, race_most_usec / 1000.0])
+		_rank_t -= dt
+		if _rank_t <= 0.0:
+			_rank_t = 0.2
+			_race.rank(_player_left())
+		_race.signals(dt, true)
+		for r in _racers:
+			if not r.has("lamps"):
+				continue
+			var rr: RaceSession.Racer = r.get("r")
+			var lamps: Node3D = r["lamps"]
+			var lit: bool = rr != null and rr.started and not rr.home and rr.d.visible
+			lamps.visible = lit
+			if not lit:
+				continue
+			if r["node"] == null:
+				lamps.global_transform = Transform3D(Basis(Vector3.UP, rr.d.yaw), rr.d.pos)
+			RaceSignals.show(lamps, rr.sig)
+
+
+## The race is over (or the night is): every racer out of racer mode, the reroutes let go, the
+## lamps freed.
+func _race_end() -> void:
+	if _race == null:
+		return
+	_race.end()
+	_race = null
+	if traffic.turned_back.is_connected(_on_turned_back):
+		traffic.turned_back.disconnect(_on_turned_back)
+		traffic.hop_refused.disconnect(_on_hop_refused)
+	for r in _racers:
+		if r.has("lamps"):
+			(r["lamps"] as Node3D).free()
+		r.erase("lamps")
+		r.erase("r")
+		r.erase("there")
+	_log("race session over: its work took %.2f ms at most in a frame" % (race_most_usec / 1000.0))
+
+
+## A club racer found its street blocked, or a wrong-way hop's street not empty (traffic.gd): its
+## metres left without that way (race_session.gd).
+func _on_turned_back(d) -> void:
+	if _race != null:
+		_race.turned_back(d)
+
+
+func _on_hop_refused(d) -> void:
+	if _race != null:
+		_race.hop_refused(d)
 
 
 func _t_race(dt: float, at: Vector3) -> void:
 	_stage_t += dt
 	var goal: Vector3 = meets[1]["at"]
-	for i in _racers.size():
-		var d = _racers[i]["d"]
-		if d == null or i in _there:
-			continue
-		if d.arrived or (not d.parked and traffic.remaining(d) < 12.0):
-			_there.append(i)
-			_log("%s there (%d.)" % [_racers[i]["name"], _there.size()])
-	var p := _place_now()
+	var p := _race.place_of(_player_left()) if _race != null else 1
 	var n := _racers.size() + 1
 	_status("%s · WYŚCIG" % String(meets[1]["name"][0]).to_upper(), "Bądź pierwszy na miejscu", "Be first there",
 			at, goal, PIN_COLOUR, "%d/%d" % [p, n] if p > 1 else "1ST")
 	if Vector2(at.x, at.z).distance_to(Vector2(goal.x, goal.z)) <= ARRIVE_R:
-		_race_done(1 + _there.size())
+		_race_done(_race.place_of(0.0) if _race != null else 1)
 
 
 ## Arrived at meet 2 in place `p`: the pay, the new ring (racers who are there park in it; the rest
 ## come in out of sight), the club talks.
 func _race_done(p: int) -> void:
 	place = p
+	_race_end()
 	last_pay = place_pay(p)
 	if wallet != null:
 		wallet.pay(int(last_pay[0]), int(last_pay[1]), "meet_race")
@@ -1692,7 +1841,6 @@ func _race_done(p: int) -> void:
 				_put_node(r["node"], slot, yaw)
 			continue
 		r["glide"] = {}
-		traffic.stop_racing(d)
 		traffic.park(d, int(door["e"]), float(door["s"]), slot, yaw, -1)
 		if r["node"] != null:
 			_put_node(r["node"], slot, yaw)
@@ -1708,6 +1856,7 @@ func _race_done(p: int) -> void:
 ## The racers leave the quest: back to ordinary traffic (released out of sight), Darek's and Lena's
 ## node drivers gone.
 func _release_racers() -> void:
+	_race_end()
 	for r in _racers:
 		var d = r["d"]
 		if d != null and d.active:

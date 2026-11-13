@@ -33,7 +33,7 @@ extends RefCounted
 ##   order of the times, not of any one number). Nothing here reads the player's speed or place:
 ##   the rubber band that did (`band`, `aim`: a rival's speed as a mix of its own and the
 ##   player's) made Halina crawl at 0.3 of her pace in front of a waiting player, and is gone.
-##   What is left of "closeness" is rivals.gd `effort_of`: a rival far in front eases to
+##   What is left of "closeness" is race_session.gd `effort_of`: a rival far in front eases to
 ##   EFFORT_EASE of its own pace, one behind pushes a little, by the time gap alone. `pace` stays
 ##   as the cruise-time liveliness and the old tests' order.
 ## - **Racing: the streets it takes** (docs/design/race-ai.md 5, 2026-11-10; the friend's point 5:
@@ -134,13 +134,59 @@ const DEFAULT_RACER := {"share": 0.82, "race_accel": 10.5, "brake": 9.0, "lat": 
 const FIRST_RACER := {"share": 0.65, "race_accel": 7.0, "brake": 4.0, "lat": 9.5, "knows": 1.0, "caution": 1.0,
 		"cuts": 0.3, "yards": 1.0, "narrow": 3.5, "hops": 0.0, "mistake": 0.2, "wrong": 0, "block": 0.0, "phone": false,
 		"dare": 2.5, "indicate": 3.0, "flash": 0.0, "home": ["powisle", "srodmiescie", "trakt"]}
+## Racer AI step 6b (street_meet.gd, the race from Plac Defilad to meet 2): the night club's eight
+## racers, in the order of street_meet.gd `_racers` (the six cars of the ring, then Darek „Bawarka",
+## then Lena „Bokiem"), slowest first. Locals: every shortcut and yard down to 3 m (`cuts`, `yards`,
+## `narrow`), most of the town's traffic counted, little caution; no wrong-way hops (F allowed them
+## for Seba and Mike only), no wrong turns, no phone; they defend (`block`) and never ram. Skill is
+## a spread: the ring about Seba's level (the brief asked from about Bartek's up; the fit's 10 to
+## 14 % spread put the slowest there: at Bartek's numbers it is 21 % behind Lena), Darek near
+## Zbyszek, Lena the best, near Mike. Nobody over the player's car (the racer's top is the player's own). Fitted on
+## the race bench (tools/race_bench.sh, its `pack` races, step 6b part 1b): the median of the eight
+## alone on clear roads within 3 % of the old pack's time over the course (top x1.03 of the car,
+## full share, no plan), the field about 10 to 14 % from Lena to the slowest, each 1 to 4 % from
+## the next; the Pack order mark holds the order. Alone from a standing start: 153.5, 151.2,
+## 149.7, 147.6, 145.8, 143.7, 140.5 (Darek), 135.2 s (Lena); median 146.7 s, the old pack
+## 145.1 s (+1.1 %), the spread 13.6 %.
+const CLUB := [
+	# The ring's six: a hatchback on a budget, the estate, the hot hatch, two coupes, the saloon.
+	{"share": 0.86, "race_accel": 10.5, "brake": 9.0, "lat": 14.4, "knows": 0.8, "caution": 0.2,
+		"cuts": 1.0, "yards": 1.0, "narrow": 3.0, "hops": 0.0, "mistake": 0.15, "wrong": 0, "block": 0.2, "phone": false,
+		"dare": 1.6, "indicate": 2.0, "flash": 0.0, "home": []},
+	{"share": 0.867, "race_accel": 11.0, "brake": 9.5, "lat": 14.5, "knows": 0.8, "caution": 0.2,
+		"cuts": 1.0, "yards": 1.0, "narrow": 3.0, "hops": 0.0, "mistake": 0.12, "wrong": 0, "block": 0.3, "phone": false,
+		"dare": 1.2, "indicate": 1.2, "flash": 2.0, "home": []},
+	{"share": 0.875, "race_accel": 11.0, "brake": 10.0, "lat": 14.7, "knows": 0.8, "caution": 0.2,
+		"cuts": 1.0, "yards": 1.0, "narrow": 3.0, "hops": 0.0, "mistake": 0.1, "wrong": 0, "block": 0.4, "phone": false,
+		"dare": 0.8, "indicate": 0.0, "flash": 1.0, "home": []},
+	{"share": 0.884, "race_accel": 11.5, "brake": 11.0, "lat": 14.9, "knows": 0.8, "caution": 0.2,
+		"cuts": 1.0, "yards": 1.0, "narrow": 3.0, "hops": 0.0, "mistake": 0.1, "wrong": 0, "block": 0.25, "phone": false,
+		"dare": 1.4, "indicate": 2.5, "flash": 0.0, "home": []},
+	{"share": 0.893, "race_accel": 12.0, "brake": 12.0, "lat": 15.0, "knows": 0.8, "caution": 0.2,
+		"cuts": 1.0, "yards": 1.0, "narrow": 3.0, "hops": 0.0, "mistake": 0.08, "wrong": 0, "block": 0.35, "phone": false,
+		"dare": 1.0, "indicate": 1.0, "flash": 1.5, "home": []},
+	{"share": 0.907, "race_accel": 12.0, "brake": 12.5, "lat": 15.2, "knows": 0.8, "caution": 0.2,
+		"cuts": 1.0, "yards": 1.0, "narrow": 3.0, "hops": 0.0, "mistake": 0.08, "wrong": 0, "block": 0.3, "phone": false,
+		"dare": 0.7, "indicate": 0.6, "flash": 0.8, "home": []},
+	# Darek „Bawarka": the club's host, near Zbyszek's level, indicates like a gentleman.
+	{"share": 0.93, "race_accel": 12.5, "brake": 12.0, "lat": 15.5, "knows": 0.8, "caution": 0.2,
+		"cuts": 1.0, "yards": 1.0, "narrow": 3.0, "hops": 0.0, "mistake": 0.06, "wrong": 0, "block": 0.3, "phone": false,
+		"dare": 1.1, "indicate": 1.8, "flash": 2.0, "home": []},
+	# Lena „Bokiem": the best of them, near Mike; late on the brakes, never on the indicator.
+	{"share": 0.98, "race_accel": 13.0, "brake": 12.5, "lat": 16.0, "knows": 0.8, "caution": 0.2,
+		"cuts": 1.0, "yards": 1.0, "narrow": 3.0, "hops": 0.0, "mistake": 0.05, "wrong": 0, "block": 0.4, "phone": false,
+		"dare": 0.6, "indicate": 0.0, "flash": 0.5, "home": []},
+]
+## The club's cruise pace before the race (traffic.gd speed_factor, accel_factor; as the pack
+## always drove away from a raid) and in it (Ladder.pace's meaning; racer mode drives by `CLUB`).
+const CLUB_PACE := Vector2(1.4, 1.6)
 ## An easier rematch: each race lost in a row to a rival makes it this much slower the next time
 ## (the straights and the corners), up to EASE_MAX; the streak's key in the save's [keep].
 const EASE_STEP := 0.05
 const EASE_MAX := 0.15
 const LOST_KEY := "race_lost_"
 ## No racer, eased or not, holds less than this share of the road's racing speed on a straight:
-## times the least effort (rivals.gd EFFORT_EASE) it stays over half the road's speed, the race
+## times the least effort (race_session.gd EFFORT_EASE) it stays over half the road's speed, the race
 ## bench's crawl line (race_bench.gd CRAWL_SHARE; check_ladder.gd holds the three together).
 const SHARE_MIN := 0.58
 ## The pace of a race outside the ladder (no wallet, an unknown rival): the old flat one.
@@ -186,6 +232,16 @@ static func racer(i: int) -> Dictionary:
 	if i < 0 or i >= RUNGS.size():
 		return DEFAULT_RACER
 	var r: Dictionary = RUNGS[i]
+	var out := {}
+	for k in DEFAULT_RACER:
+		out[k] = r[k]
+	return out
+
+
+## The racer stats of the club's racer `i` (CLUB; street_meet.gd's `_racers` order), with
+## DEFAULT_RACER's keys as `racer` gives them.
+static func club(i: int) -> Dictionary:
+	var r: Dictionary = CLUB[clampi(i, 0, CLUB.size() - 1)]
 	var out := {}
 	for k in DEFAULT_RACER:
 		out[k] = r[k]
