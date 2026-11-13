@@ -30,6 +30,7 @@ const Ladder := preload("res://scripts/ladder.gd")
 const Lang := preload("res://scripts/lang.gd")
 const TrzyMosty := preload("res://scripts/trzy_mosty.gd")
 const Rivals := preload("res://scripts/rivals.gd")
+const RaceSession := preload("res://scripts/race_session.gd")
 const Wallet := preload("res://scripts/wallet.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const RaceBench := preload("res://tools/race_bench.gd")
@@ -121,10 +122,24 @@ func _data() -> void:
 	_skill("the default racer", Ladder.DEFAULT_RACER)
 	_skill("Halina's gentle day", Ladder.FIRST_RACER)
 	_expect(Ladder.racer(Ladder.FINAL) == Ladder.FINAL_RACER and Ladder.racer(-1) == Ladder.DEFAULT_RACER, "racer(FINAL) and racer(-1)")
+	# Racer AI step 6b part 1b: the night club's eight (street_meet.gd's pack race), every key of a
+	# racer, locals with no wrong-way hop, and nobody over the player's car.
+	_expect(Ladder.CLUB.size() == 8, "the club has %d racers (want 8: the ring's six, Darek, Lena)" % Ladder.CLUB.size())
+	for i in Ladder.CLUB.size():
+		var row: Dictionary = Ladder.CLUB[i]
+		for k: String in Ladder.DEFAULT_RACER:
+			_expect(row.has(k), "the club's racer %d has no %s" % [i, k])
+		var c := Ladder.club(i)
+		_skill("the club's racer %d" % i, c)
+		_expect(float(c["hops"]) == 0.0 and int(c["wrong"]) == 0 and not bool(c["phone"]) and float(c["cuts"]) == 1.0 and float(c["yards"]) == 1.0,
+				"the club's racer %d: a local with no hop, wrong turn or phone" % i)
+		_expect(float(c["share"]) <= 1.0 and float(c["lat"]) <= 16.5 and float(c["race_accel"]) <= 13.5 and float(c["brake"]) <= 13.0,
+				"the club's racer %d over the ladder's best (share %.2f, lat %.1f, pull %.1f, brake %.1f)" % [i, c["share"], c["lat"], c["race_accel"], c["brake"]])
+		_expect(float(c["block"]) >= 0.2 and float(c["block"]) <= 0.4, "the club's racer %d: block %.2f (they defend, never ram)" % [i, c["block"]])
 	for k: String in ["share", "race_accel", "brake", "lat"]:
 		_expect(float(Ladder.FIRST_RACER[k]) < float(Ladder.racer(0)[k]), "the gentle day's %s is not under her rung's" % k)
-	_expect(Ladder.SHARE_MIN * Rivals.EFFORT_EASE >= RaceBench.CRAWL_SHARE,
-			"the slowest racer at its least effort is under the bench's crawl line: %.2f x %.2f < %.2f" % [Ladder.SHARE_MIN, Rivals.EFFORT_EASE, RaceBench.CRAWL_SHARE])
+	_expect(Ladder.SHARE_MIN * RaceSession.EFFORT_EASE >= RaceBench.CRAWL_SHARE,
+			"the slowest racer at its least effort is under the bench's crawl line: %.2f x %.2f < %.2f" % [Ladder.SHARE_MIN, RaceSession.EFFORT_EASE, RaceBench.CRAWL_SHARE])
 	# An easier rematch: EASE_STEP a loss in a row, EASE_MAX at most, on the straights and in the corners.
 	_expect(Ladder.ease_of(0) == 0.0 and Ladder.ease_of(-2) == 0.0 and is_equal_approx(Ladder.ease_of(1), Ladder.EASE_STEP)
 			and is_equal_approx(Ladder.ease_of(3), Ladder.EASE_MAX) and is_equal_approx(Ladder.ease_of(40), Ladder.EASE_MAX), "ease_of: %.2f, %.2f, %.2f" % [Ladder.ease_of(1), Ladder.ease_of(3), Ladder.ease_of(40)])
@@ -151,7 +166,7 @@ func _skill(who: String, s: Dictionary) -> void:
 	_expect(float(s["brake"]) > 0.0 and float(s["brake"]) <= RaceBench.PLAYER_BRAKE, "%s: brake %.1f m/s²" % [who, s["brake"]])
 	_expect(float(s["lat"]) > 0.0 and float(s["lat"]) <= RaceBench.PLAYER_GRIP, "%s: grip %.1f m/s²" % [who, s["lat"]])
 	_expect(not s.has("band") and not s.has("aim"), "%s still has a rubber band" % who)
-	_expect(float(s["mistake"]) >= 0.0 and float(s["mistake"]) * Rivals.PUSH_MISTAKES <= 0.5, "%s: mistakes %.2f a corner" % [who, s["mistake"]])
+	_expect(float(s["mistake"]) >= 0.0 and float(s["mistake"]) * RaceSession.PUSH_MISTAKES <= 0.5, "%s: mistakes %.2f a corner" % [who, s["mistake"]])
 
 
 func _gating() -> void:

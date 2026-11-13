@@ -224,6 +224,7 @@ func _matrix(full: bool) -> Array:
 		hop["finish"] = RaceBench.HOP_FINISH
 		out.append(hop)
 	if not full:
+		out.append_array(_pack_matrix(false))
 		return out
 	# Route sense in traffic: the free choice from Leszczyńska is in the loop below.
 	for route: String in RaceBench.ROUTES:
@@ -325,6 +326,19 @@ func _matrix(full: bool) -> Array:
 				if not seen.has(id):
 					seen[id] = true
 					out.append(again)
+	# Racer AI step 6b part 1b: the night club's pack (last, so the races above keep their numbers).
+	out.append_array(_pack_matrix(true))
+	return out
+
+
+## The night club's pack race (RaceBench `pack`: a row per racer, and on clear roads alone each
+## racer by itself first). Quick: on clear roads alone. Full: clear roads and Busy traffic, alone
+## and with the average test player.
+func _pack_matrix(full: bool) -> Array:
+	var out: Array = []
+	for situation: String in (["clear", "heavy"] if full else ["clear"]):
+		for player: String in (["none", "average"] if full else ["none"]):
+			out.append({"rival": "club", "tuning": "pack", "start_name": RaceBench.PACK_START, "situation": situation, "player": player})
 	return out
 
 
@@ -354,7 +368,17 @@ func _race(spec: Dictionary) -> bool:
 			spec["wall"] = _bench.plan_wall(spec, edges)
 		else:
 			spec["wreck"] = _bench.plan_wreck(spec, edges)
-	var r := _bench.race(spec)
+	if spec.get("tuning", "") == "pack":
+		# The pack: a row per racer, each printed as a race.
+		var ok := true
+		for row: Dictionary in _bench.pack(spec):
+			ok = _row(row, spec) and ok
+		return ok
+	return _row(_bench.race(spec), spec)
+
+
+## One race's row (`race`, or a racer's of `pack`): kept and printed.
+func _row(r: Dictionary, spec: Dictionary) -> bool:
 	if not r.has("id"):
 		return false
 	r["n"] = int(spec.get("n", -1))
@@ -405,6 +429,8 @@ func _race(spec: Dictionary) -> bool:
 		extras.append("wreck on %s, knocked at %.0f s" % [r["wreck"]["street"], r.get("knock_s", -1.0)])
 	if float(r.get("plan_s", 0.0)) > 0.0 and r["finished"] and r["situation"] == "clear":
 		extras.append("the plan's clock %.1f s (%+.0f %%)" % [r["plan_s"], (float(r["plan_s"]) / maxf(float(r["time"]) - float(r["hold_s"]), 1.0) - 1.0) * 100.0])
+	if r.has("session_most_usec"):
+		extras.append("place %d · the session's work %.2f ms at most in a frame, %.1f ms at the start" % [int(r.get("place", 0)), float(r["session_most_usec"]) / 1000.0, float(r["session_start_usec"]) / 1000.0])
 	if _before.has(r["id"]):
 		var b: Dictionary = _before[r["id"]]
 		extras.append("before: %s%.1f s, crawl %.1f s, behind %.1f s, through %d cars" % [

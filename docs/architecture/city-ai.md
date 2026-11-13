@@ -10,6 +10,7 @@ lane_graph.gd   the road network baked from OSM: directed edges, lanes, junction
      │
 traffic.gd      every AI car: one Driver per car on the graph, drawn as one MultiMesh per kind
      ├─ rivals.gd        named racers: wander as traffic, race with race_to / stop_racing
+     │    ├─ race_session.gd  one race's mechanics: the course, the racers, their plans, effort and order
      │    ├─ race_planner.gd  a racer's plan: seconds to the finish from every street, by its own skill
      │    ├─ race_line.gd     a racer's line: its place on the ground and a speed for every metre of its way
      │    ├─ race_signals.gd  a racing rival's lights: brake lights, indicators, hazards, headlight flash, wobble
@@ -66,7 +67,14 @@ skill, not from the player's speed. Built so far (steps 1 to 4a of 8):
 
 - **The profile** is a rung's racer stats in `ladder.gd` (how much of the car it uses, its
   mistakes, what it knows of the town's traffic and how it weighs a street with no way past);
-  `Rivals.arm_racer` puts them on the Driver, and the rival rolls its own dice (`race_rng`).
+  `RaceSession.arm_racer` puts them on the Driver, and the rival rolls its own dice (`race_rng`).
+- **The race session** (`race_session.gd`, step 6b part 1a: a `RefCounted` a race, no HUD, no
+  words, no pay): the course (the junctions in order, the last the finish and its circle), its
+  racers (a Driver each, the profile, the shortcuts, per leg the distances and the plan), the
+  start (`arm_racer`, `race_to`), the legs, the effort (`pace_tick`, 5 Hz `rank`), the order, the
+  reroutes after `turned_back` / `hop_refused`, the lights' tick and the end. `rivals.gd` (the
+  ladder, the guided first race, Trzy mosty) and the race bench (`race_bench.gd` `race`) both race
+  on it; the words, cards, ghost, the player's checkpoints and the pay stay theirs.
 - **The plan** (`race_planner.gd`, one `RacePlanner` for the map, one `Plan` a race or a leg): a
   search back from the finish gives this racer's seconds to go from every street, with the
   shortcuts it knows and the delay it expects from the town's traffic (`Traffic.race_delay`,
@@ -105,14 +113,16 @@ skill, not from the player's speed. Built so far (steps 1 to 4a of 8):
   keeps both cars' ways through a race and at its end names what decided it (the route, the
   standing, the pace); `rivals.gd` adds its lines to the result card and its picture
   (`RaceReport.Sketch`) through `hud.set_card_art`.
-- The pack race, the autopilot's ghost and Halina's roll-up behind the car before the first race
-  (`call_first`) still go by metres (no plan), and only the ladder races and the final have
-  lights and a report (step 6b: one race session for every race).
+- The night club's pack race (`street_meet.gd`, `ladder.gd` `CLUB`) races on the session too
+  (step 6b part 1b): a plan, a racing line, shortcuts and lights each, and no report. The
+  autopilot's ghost and Halina's roll-up behind the car before the first race (`call_first`)
+  still go by metres (no plan), and only the ladder races and the final have a report. The
+  police chasers and the crazy drivers are steps 6b-2 and 6b-3.
 
 Still to come: RaceDriver (passing, contact and recovery are the old rail car's; its pass over
 the centre line, `_race_pass`, minds only the oncoming lanes it uses and how fast the two cars
-close, and is a timer until step 4b), RaceNav's links, RaceSession; a new race mode should use
-RaceSession once it exists instead of its own ranking. Every race change reports `tools/race_bench.sh` before and after (`check_race_bench`,
+close, and is a timer until step 4b), RaceNav's links; a new race mode uses
+RaceSession instead of its own ranking. Every race change reports `tools/race_bench.sh` before and after (`check_race_bench`,
 `check_race_planner`, `check_race_line`).
 
 ## 4. Police (`police.gd`, `police/`)
