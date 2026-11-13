@@ -113,6 +113,11 @@ const ROUTES := {
 ## something else altogether because of the player: the turn back behind a car that only waits);
 const INDEPENDENCE := 0.15
 const INDEPENDENCE_ONE := 0.4
+## A pair is held to INDEPENDENCE over its draws only with INDEPENDENCE_DRAWS of them or more: one
+## race's time moves 11 to 12 % with the draw of the town's cars by itself (tools/race_traffic.sh,
+## step 4b's fit), and a rival out of the player's sight pays the mean of them. With fewer (the
+## quick matrix has one draw) each race is held to INDEPENDENCE_ONE only.
+const INDEPENDENCE_DRAWS := 3
 ## a count over races in traffic is also given draw by draw for the draws with this many races
 ## or more (the whole set run again with other dice);
 const DRAW_RACES := 10
@@ -122,7 +127,7 @@ const DRAW_RACES := 10
 ## (Finishes counts the race, and step 4b's driver has to get round);
 const BOXED_SHARE := 0.5
 ## crawling: under CRAWL_SHARE of the road's racing speed for more than CRAWL_MAX s in a row with
-## nobody within FREE_AHEAD m in front and the next STRAIGHT_AHEAD m of its own way bending under
+## nobody within FREE_AHEAD m in front (nor a car crossing its way that near) and the next STRAIGHT_AHEAD m of its own way bending under
 ## STRAIGHT_BEND rad. Pulling away after the game stopped it dead is not a crawl (Honest car
 ## counts every dead stop): from the stop until its speed is back at CRAWL_SHARE of the road's,
 ## DEAD_AWAY s at most, so a racer that stays slow after one is still caught;
@@ -130,12 +135,14 @@ const CRAWL_SHARE := 0.5
 const CRAWL_MAX := 3.0
 const DEAD_AWAY := 4.0
 const FREE_AHEAD := 30.0
+const FREE_NEAR := 6.0
+const FREE_NEAR_SIDE := 3.2
 const STRAIGHT_AHEAD := 40.0
 const STRAIGHT_BEND := 0.3
 ## behind the same slower car (under BEHIND_SLOW of the road's racing speed, within BEHIND_GAP m)
 ## for more than BEHIND_MAX s while a lane beside it is free: another lane of its road with no
-## slow car from PASS_BACK m behind to PASS_AHEAD m ahead, or the oncoming lane with no car at all
-## for ONCOMING_AHEAD m;
+## slow car from PASS_BACK m behind to PASS_AHEAD m ahead, or, for a rival in the lane by the
+## centre line, the oncoming lane with no car at all for ONCOMING_AHEAD m;
 const BEHIND_SLOW := 0.7
 const BEHIND_GAP := 12.0
 const BEHIND_MAX := 4.0
@@ -350,7 +357,8 @@ class Probe:
 		px.append(p.x)
 		pz.append(p.z)
 		# (Out of the town's cars it is in the traffic it does not see: no free road to crawl on.)
-		flag.append((FREE if _free and pace >= 0.999 else 0) | (HELD if held or d.held or d.daze > 0.0 or d.stun > 0.0 else 0) | (CONN if d.in_conn else 0)
+		# (Nor is its road free while it gives way to a car that crosses it at a junction.)
+		flag.append((FREE if _free and pace >= 0.999 and d.cross_gap >= FREE_AHEAD else 0) | (HELD if held or d.held or d.daze > 0.0 or d.stun > 0.0 else 0) | (CONN if d.in_conn else 0)
 				| (DEAD if dead else 0) | (AWAY if _dead_t >= 0.0 else 0))
 
 	## The cars round the rival (every other frame): a car in its box, the car it sits behind,
@@ -360,6 +368,7 @@ class Probe:
 		var here := Vector2(d.pos.x, d.pos.z)
 		var road_top: float = minf(PLAYER_TOP, Traffic.RACE_CLASS_TOP[graph.e_class[d.edge]])
 		_free = true
+		var road: Vector2 = fwd if d.in_conn else graph.direction(d.edge, clampf(d.s, 0.0, graph.e_len[d.edge]))
 		var lead = null
 		var lead_gap := INF
 		var over := {}
@@ -374,7 +383,10 @@ class Probe:
 			var along := rel.dot(fwd)
 			var side := absf(rel.cross(fwd))
 			var room: float = (o.length + d.length) * 0.5
-			if d2 < (room + 1.0) * (room + 1.0) and Traffic._boxes_overlap(d, o, rel):
+			# (The bench's map is flat: a street on a viaduct and the street under it are one
+			# place here. Away from a junction a bridge's car and a ground street's never meet.)
+			var level: bool = d.in_conn or o.in_conn or graph.e_bridge[d.edge] == graph.e_bridge[o.edge]
+			if level and d2 < (room + 1.0) * (room + 1.0) and Traffic._boxes_overlap(d, o, rel):
 				var was := float(_over.get(o, 0.0))
 				over[o] = was + DT * 2.0
 				if over[o] >= GHOST_MIN:
@@ -393,7 +405,12 @@ class Probe:
 							print("      its line: %s, beside it %.2f m, stepping over %.2f m, %.2f m from its lane's line; the other car %.2f m from its own" % [
 									"on" if d.line != null else "none", d.line_dyn, d.line_carry.length(), here.distance_to(rail),
 									Vector2(o.pos.x, o.pos.z).distance_to(traffic._rail_at(o))])
-			if along > 0.0 and along - room < FREE_AHEAD and side < 2.2:
+			# (Ahead by the street's direction, not the car's nose: a car that stopped half way
+			# into the next lane stands askew, with its queue beside its nose.)
+			# A car just ahead in the next lane's width is in front too (a car at the head of a
+			# queue that turns across a rival passing it: the rival brakes for it, FREE_NEAR).
+			if rel.dot(road) > 0.0 and ((rel.dot(road) - room < FREE_AHEAD and absf(rel.cross(road)) < 2.2) \
+					or (rel.dot(road) - room < FREE_NEAR and absf(rel.cross(road)) < FREE_NEAR_SIDE)):
 				_free = false
 			if along > 0.0 and side < 1.8 and along - room < lead_gap:
 				lead_gap = along - room
@@ -451,7 +468,9 @@ class Probe:
 				across.append((graph.point_at(e, d.s, graph.lane_offset(e, k)) - here).cross(fwd))
 				oncoming.append(0)
 		var rev := graph.e_reverse[e]
-		if rev >= 0:
+		# (Only from the lane by the centre line: a car in another lane has a lane of cars between
+		# it and the oncoming one, and that lane is judged by itself above.)
+		if rev >= 0 and d.lane == 0:
 			var nearest := INF
 			for k in graph.e_lanes[rev]:
 				var x := (graph.point_at(rev, graph.e_len[e] - d.s, graph.lane_offset(rev, k)) - here).cross(fwd)
@@ -483,6 +502,9 @@ class Probe:
 		return n if n != "" else "an unnamed link"
 
 	## Crawling (CRAWL_SHARE above): [seconds in all, the longest stretch].
+	## The sample at which the longest crawl ended (for the trace).
+	var crawl_end := -1
+
 	func crawl() -> Vector2:
 		var n := v.size()
 		var j := 0
@@ -497,7 +519,9 @@ class Probe:
 			if slow and flag[i] == FREE and absf(angle_difference(yaw[i], yaw[j])) < STRAIGHT_BEND:
 				run += 1
 				total += 1
-				longest = maxi(longest, run)
+				if run > longest:
+					longest = run
+					crawl_end = i
 			else:
 				run = 0
 		return Vector2(total, longest) * DT
@@ -1004,6 +1028,8 @@ func race(spec: Dictionary) -> Dictionary:
 			break
 
 	var crawl := probe.crawl()
+	if OS.is_stdout_verbose() and crawl.y > CRAWL_MAX and probe.crawl_end >= 0:
+		print("    longest crawl %.1f s ended at %.1f s on %s (%.0f, %.0f) at %.1f m/s" % [crawl.y, probe.crawl_end * DT, probe._street(probe.edge_at[probe.crawl_end]), probe.px[probe.crawl_end], probe.pz[probe.crawl_end], probe.v[probe.crawl_end]])
 	var n := maxi(probe.frames, 1)
 	out["winner"] = "player" if out.has("player_time") else ("rival" if out["finished"] else "nobody")
 	out["left_m"] = snappedf(_left(traffic, d, legs, leg), 1.0) if not out["finished"] else 0.0
@@ -1229,6 +1255,9 @@ static func judge(results: Array) -> Array:
 	var pair_dev := 0.0
 	var worst_pair := ""
 	for pair: String in pairs:
+		# (One draw of the town's cars is no measure of a pair: INDEPENDENCE_DRAWS.)
+		if int(pairs[pair][2]) < INDEPENDENCE_DRAWS:
+			continue
 		var x := absf(float(pairs[pair][0]) / maxf(float(pairs[pair][1]), 1.0) - 1.0)
 		if x > pair_dev:
 			pair_dev = x
