@@ -1081,6 +1081,9 @@ Left:
 
 ## Roads true to life: lane-level faults (F, 2026-11-13; docs/design/roads-true-to-life.md)
 
+**Parked by F on 2026-11-13** after the checker (RT-1): the rest waits as tech debt TD-23
+(docs/architecture/tech-debt.md). The `roadtruth` ratchet keeps the counts from growing meanwhile.
+
 Research only so far. The paint and kerbs at way joins are checked (`smooth`, `fixes`), the lane
 level is not: a first measurement of the baked map found 378 lane count changes with no side road,
 84 short lane blips, 373 straight-on lane links landing over 2.5 m aside, 155 turn-back links away
