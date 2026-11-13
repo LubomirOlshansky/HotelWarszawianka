@@ -42,12 +42,13 @@ const MODELS := {
 	"arm64": Tiers.HIGH, "x86_64": Tiers.HIGH, "GenericDevice": Tiers.HIGH, "": Tiers.HIGH,
 	"iPhone": Tiers.HIGH, "iPhone12": Tiers.HIGH, "iPhoneX,1": Tiers.HIGH,
 }
-## Screen -> the Sharp image at Low, Medium, High, Ultra.
+## Screen -> the Sharp image at Low, Medium, High, Ultra, Experimental (F 2026-11-10: the screen's
+## own pixels).
 const IMAGES := {
-	Vector2i(1792, 828): [Vector2i(896, 414), Vector2i(896, 414), Vector2i(896, 414), Vector2i(1792, 828)],
-	Vector2i(2532, 1170): [Vector2i(844, 390), Vector2i(844, 390), Vector2i(1266, 585), Vector2i(1266, 585)],
-	Vector2i(2868, 1320): [Vector2i(956, 440), Vector2i(956, 440), Vector2i(1434, 660), Vector2i(1434, 660)],
-	Vector2i(1334, 750): [Vector2i(667, 375), Vector2i(667, 375), Vector2i(667, 375), Vector2i(1334, 750)],
+	Vector2i(1792, 828): [Vector2i(896, 414), Vector2i(896, 414), Vector2i(896, 414), Vector2i(1792, 828), Vector2i(1792, 828)],
+	Vector2i(2532, 1170): [Vector2i(844, 390), Vector2i(844, 390), Vector2i(1266, 585), Vector2i(1266, 585), Vector2i(2532, 1170)],
+	Vector2i(2868, 1320): [Vector2i(956, 440), Vector2i(956, 440), Vector2i(1434, 660), Vector2i(1434, 660), Vector2i(2868, 1320)],
+	Vector2i(1334, 750): [Vector2i(667, 375), Vector2i(667, 375), Vector2i(667, 375), Vector2i(1334, 750), Vector2i(1334, 750)],
 }
 ## main.gd STYLES' lines: Sharp, Fine, Clean, Chunky.
 const LINES := [480.0, 360.0, 240.0, 170.0]
@@ -109,7 +110,7 @@ func _initialize() -> void:
 				if k < 1 or pixels > float(qs["budget"]) * 1e6:
 					problems.append("%dx%d %s at %.0f lines: x%d, %.2f MP over the budget %.2f" % [screen.x, screen.y,
 							qs["name"], lines, k, pixels / 1e6, qs["budget"]])
-				if q == Tiers.ULTRA:
+				if q >= Tiers.ULTRA:
 					continue
 				# Loop 2b's rule: the style's scale, Low and Medium one step coarser.
 				var old := maxi(1, floori(screen.y / lines)) + int(qs["step"])
@@ -131,12 +132,14 @@ func _initialize() -> void:
 		if img != pair[2]:
 			problems.append("Auto on %s: %dx%d, wanted %dx%d" % [pair[0], img.x, img.y, pair[2].x, pair[2].y])
 
-	for t in [["auto", Tiers.AUTO], ["Ultra", Tiers.ULTRA], ["med", Tiers.MEDIUM], ["2", Tiers.HIGH], ["9", Tiers.ULTRA], ["fast", -2]]:
+	for t in [["auto", Tiers.AUTO], ["Ultra", Tiers.ULTRA], ["med", Tiers.MEDIUM], ["2", Tiers.HIGH], ["9", Tiers.ULTRA], ["fast", -2],
+			["experimental", Tiers.EXPERIMENTAL], ["Exp", Tiers.EXPERIMENTAL], ["4", Tiers.ULTRA]]:
 		if Tiers.parse(t[0]) != t[1]:
 			problems.append("--quality=%s parsed as %d, wanted %d" % [t[0], Tiers.parse(t[0]), t[1]])
 
 	_check_sharp()
 	_check_back_off()
+	_check_experimental()
 
 	if problems.is_empty():
 		print("check_tiers: OK (%d model ids, %d screens, %d comparisons with loop 2b, %d phones for Auto's sharp image)" % [
@@ -268,3 +271,28 @@ func _check_back_off() -> void:
 	if Tiers.sharp_clean({}) != Tiers.sharp_state() or int(cleaned["wait"]) != Tiers.SHARP_WAIT_MAX \
 			or int(cleaned["calm"]) != 0 or int(cleaned["trial"]) != Tiers.SHARP_WAIT_MAX or not cleaned["fallback"]:
 		problems.append("cleaning a state: %s / %s" % [Tiers.sharp_clean({}), cleaned])
+
+
+## F 2026-11-10: Experimental is opt-in (Auto never picks it, on any model id or screen), draws the
+## screen's own pixels at every style, and only it carries the trailer's extras.
+func _check_experimental() -> void:
+	for model: String in SCREENS:
+		if Tiers.for_model(model) == Tiers.EXPERIMENTAL:
+			problems.append("Auto picks Experimental on %s" % model)
+	for model: String in MODELS:
+		if Tiers.for_model(model) == Tiers.EXPERIMENTAL:
+			problems.append("Auto picks Experimental on %s" % model)
+	for screen: Vector2i in IMAGES:
+		for lines in LINES:
+			if Tiers.image_scale(Vector2(screen), lines, Tiers.EXPERIMENTAL) != 1:
+				problems.append("Experimental at %dx%d, %.0f lines: x%d, wanted x1" % [screen.x, screen.y, lines,
+						Tiers.image_scale(Vector2(screen), lines, Tiers.EXPERIMENTAL)])
+	for q in Tiers.QUALITY.size():
+		var on := q == Tiers.EXPERIMENTAL
+		if (int(Tiers.extra(q, "msaa")) != Viewport.MSAA_DISABLED) != on or (float(Tiers.extra(q, "lod")) < 1.0) != on \
+				or (int(Tiers.extra(q, "soft")) != RenderingServer.SHADOW_QUALITY_HARD) != on or bool(Tiers.extra(q, "full")) != on:
+			problems.append("%s: the trailer's extras %s" % [Tiers.NAMES[q], "missing" if on else "where only Experimental has them"])
+	if Tiers.describe(Tiers.EXPERIMENTAL, Tiers.EXPERIMENTAL, "iPhone17,2", 1) != "Experimental ×1":
+		problems.append("describe Experimental: \"%s\"" % Tiers.describe(Tiers.EXPERIMENTAL, Tiers.EXPERIMENTAL, "iPhone17,2", 1))
+	print("experimental: opt-in on %d model ids, x1 on %d screens x %d styles, extras only there" % [
+			SCREENS.size() + MODELS.size(), IMAGES.size(), LINES.size()])

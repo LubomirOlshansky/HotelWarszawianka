@@ -987,7 +987,7 @@ the frame did.) Loop 2e cut it to four lines; loop G1 made the last one the qual
 scale and the governor (`High ×2 · gov GPU 2/2 · CPU 2/2 · wide`); objects and the shadow pass's
 triangles are on the BENCH card.
 
-**Quality** (QUALITY, U, Settings, `--quality=auto|low|medium|high|ultra`; saved since loop 2a;
+**Quality** (QUALITY, U, Settings, `--quality=auto|low|medium|high|ultra|experimental`; saved since loop 2a;
 loop 2b made Medium and Low real steps; loop G1 added **Auto**, the default, and **Ultra**,
 `tiers.gd`):
 
@@ -5871,7 +5871,7 @@ Command-line options (after `--`):
 | `--clock=HH:MM` / `--date=YYYYMMDD` | start Live's clock at that Warsaw time (and date; default today); loop MW-3: with a fixed look (`--time=night --clock=01:00`) the game clock starts there, the look stays |
 | `--weather=clear\|rain` | start dry or in the rain (default clear) |
 | `--perf` | show the performance overlay (loop 2e: four lines: fps, frame time, worst, cap · CPU process + physics + draw, GPU, memory · draw calls by pass · objects, triangles) |
-| `--quality=auto\|low\|medium\|high\|ultra` | the quality for this run (not saved; loop G1: default Auto, the level `tiers.gd` picks for the device; 0–3 are Low–Ultra) |
+| `--quality=auto\|low\|medium\|high\|ultra\|experimental` | the quality for this run (not saved; loop G1: default Auto, the level `tiers.gd` picks for the device; 0–3 are Low–Ultra; `experimental`/`exp` by name only, F 2026-11-10: Ultra plus the trailer's extras, never saved even from Settings) |
 | `--model=ID` | loop G1: pick Auto's level as if on that device (`--model=iPhone12,1` is the iPhone 11: High; since loop G1b Auto draws it sharp, 1792×828 ×1, and 896×414 ×2 in the fallback; `iPhone17,2` the Pro Max: Ultra) |
 | `--last-session=struggled\|calm` | loop G1b: start Auto as if the last session at the sharp image struggled (this launch is the ×2 fallback) or was calm (the sharp image), whatever the settings file says; nothing of it is written. The `quality:` lines say what Auto picked and why (`quality: Auto→High ×1 sharp (iPhone12,1) · image 1792x828`, `quality: Auto→High ×2 fallback (last session: GPU extras down 74 s of 410) · …`) |
 | `--governor=on\|off\|log` | loop G1: the frame governor on or off for this run (default: on in a normal launch, held in test runs, the bench, the probe and the BENCH minute; `on` lets it act in those too); `log` is on plus a `governor status:` line every 5 s (loop G1b: with the session's tally where Auto's sharp rule applies) and a `governor minute N:` line per counted minute (fps, missed refreshes, GPU-bound ones, GPU extras down) |
