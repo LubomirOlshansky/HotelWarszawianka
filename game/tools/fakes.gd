@@ -169,7 +169,7 @@ class Hud extends CanvasLayer:
 		buttons = 0
 		button_words = PackedStringArray()
 
-	func toast(a: String, b := "", _priority := 0) -> void:
+	func toast(a: String, b := "", _priority := 2) -> void:  # 2 is Messages.INFO, hud.gd's default
 		toasts.append(a)
 		toasts_en.append(b)
 
@@ -298,7 +298,7 @@ class Hud extends CanvasLayer:
 	func hide_banner() -> void:
 		banner = ""
 
-	func show_note(title: String, text: String, _a: Color, _priority := 0) -> void:
+	func show_note(title: String, text: String, _a: Color, _priority := 2) -> void:  # Messages.INFO, as hud.gd
 		notes.append(title + ": " + text)
 		note_titles.append(title)
 		note_texts.append(text)
@@ -374,7 +374,7 @@ class Dialogue extends Node:
 	## "group:tag" to a Dictionary `line` appends to the words it answers (dialogue.gd's note on a line).
 	var line_notes := {}
 
-	func say(anchor: Variant, who: String, group: String, tag := "", s := 4.0, c := Color.WHITE, h := 2.6, p := false, k := Chatter.QUEST, key := "") -> Array:
+	func say(anchor: Variant, who: String, group: String, tag := "", s := 4.0, c := Color("#ffd23f"), h := 2.6, p := false, k := Chatter.QUEST, key := "") -> Array:
 		said.append(group + ":" + tag)
 		groups.append(group)
 		tags.append(tag)
@@ -419,11 +419,11 @@ class Dialogue extends Node:
 		return l[2] if l.size() > 2 and l[2] is Dictionary else {}
 
 	## dialogue.gd's ambient chatter (a bystander's line): remembered the same way, as an AMBIENT line.
-	func say_ambient(anchor: Variant, who: String, group: String, tag := "", s := 4.0, c := Color.WHITE, h := 2.6, p := false) -> Array:
+	func say_ambient(anchor: Variant, who: String, group: String, tag := "", s := 4.0, c := Color("#ffd23f"), h := 2.6, p := false) -> Array:
 		return say(anchor, who, group, tag, s, c, h, p, Chatter.AMBIENT)
 
 	## dialogue.gd's line of someone reacting to the player (a shout, a near miss): a REACTION line with its key.
-	func say_reaction(anchor: Variant, who: String, group: String, tag := "", s := 4.0, c := Color.WHITE, h := 2.6, p := false, key := "") -> Array:
+	func say_reaction(anchor: Variant, who: String, group: String, tag := "", s := 4.0, c := Color("#ffd23f"), h := 2.6, p := false, key := "") -> Array:
 		return say(anchor, who, group, tag, s, c, h, p, Chatter.REACTION, key)
 
 
@@ -443,7 +443,7 @@ class Bubbles extends Control:
 	func is_talking(_anchor: Variant) -> bool:
 		return talking
 
-	func say(_anchor: Variant, _who: String, pl: String, _en := "", s := 4.0, c := Color.WHITE, _h := 2.6, k := Chatter.QUEST, key := "") -> bool:
+	func say(_anchor: Variant, _who: String, pl: String, _en := "", s := 4.0, c := Color("#ffd23f"), _h := 2.6, k := Chatter.QUEST, key := "") -> bool:
 		if ok:
 			said.append(pl)
 			durations.append(s)
@@ -457,10 +457,10 @@ class Bubbles extends Control:
 	var keys: Array[String] = []
 
 	## bubbles.gd's `say_ambient` and `say_reaction`: the same bubble, as an AMBIENT or a REACTION line.
-	func say_ambient(anchor: Variant, who: String, pl: String, en := "", s := 4.0, c := Color.WHITE, h := 2.6) -> bool:
+	func say_ambient(anchor: Variant, who: String, pl: String, en := "", s := 4.0, c := Color("#ffd23f"), h := 2.6) -> bool:
 		return say(anchor, who, pl, en, s, c, h, Chatter.AMBIENT)
 
-	func say_reaction(anchor: Variant, who: String, pl: String, en := "", s := 4.0, c := Color.WHITE, h := 2.6, key := "") -> bool:
+	func say_reaction(anchor: Variant, who: String, pl: String, en := "", s := 4.0, c := Color("#ffd23f"), h := 2.6, key := "") -> bool:
 		return say(anchor, who, pl, en, s, c, h, Chatter.REACTION, key)
 
 	## bubbles.gd's `allows` (would a line of this class show now: `ok`) and `muted` (the player drives too

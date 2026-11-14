@@ -69,6 +69,9 @@ const MAP_MARKS := ["ground_height", "terrain_height", "deck_height", "tunnel_he
 const SOUND_MARKS := ["announce", "tune", "station_index", "next_locked", "unlock_track", "host_moment", "play_at",
 		"soften_engine", "add_crowd"]
 const WALKER_MARKS := ["set_stop", "clear_stop", "set_scene", "clear_scene", "startle", "stamp"]
+## The functions only a map the builders see has (map_builder.gd's own, which landmarks.gd, the place scripts and
+## the facade kit call; group 3): a class with one of them stands in for that map even with no height.
+const BUILDER_MARKS := ["_solid", "_roof_triangle", "_grid_height", "platform_top"]
 ## The private stand-ins still left, by file. The racer work has its checks in hand (2026-11-13): each moves
 ## to fakes.gd with that work's next change to the check.
 const LEFT := {
@@ -182,6 +185,13 @@ func _differs(mine: Dictionary, other: Dictionary) -> String:
 	var db: Array = other["default_args"]
 	if da.size() != db.size():
 		return "%d arguments with a default, the game's %d" % [da.size(), db.size()]
+	# The defaults themselves (group 3): a call that leaves one out gets the game's value, so the stand-in records
+	# what the game would have been given (`unlock_track(n)` is an egg's).
+	for i in da.size():
+		var same: bool = typeof(da[i]) == typeof(db[i]) and (da[i] == db[i] or (da[i] is float and is_nan(da[i]) and is_nan(db[i])))
+		if not same:
+			var k := a.size() - da.size() + i
+			return "argument %d (%s) defaults to %s, the game's (%s) to %s" % [k + 1, a[k]["name"], var_to_str(da[i]), b[k]["name"], var_to_str(db[i])]
 	for i in a.size():
 		if int(a[i]["type"]) != int(b[i]["type"]):
 			return "argument %d (%s) is %s, the game's (%s) %s" % [i + 1, a[i]["name"], type_string(int(a[i]["type"])),
@@ -235,7 +245,7 @@ func _private_copies() -> Array:
 		for name: String in classes:
 			var marks: Array[String] = []
 			for fn: String in classes[name][1]:
-				if fn in HUD_MARKS or fn in TALK_MARKS or fn in MAP_MARKS or fn in SOUND_MARKS or fn in WALKER_MARKS:
+				if fn in HUD_MARKS or fn in TALK_MARKS or fn in MAP_MARKS or fn in SOUND_MARKS or fn in WALKER_MARKS or fn in BUILDER_MARKS:
 					marks.append(fn)
 			var of := _shared_class(name, classes)
 			if of != "":
