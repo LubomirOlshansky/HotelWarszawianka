@@ -334,7 +334,7 @@ All with a card; check_landmarks only (except where noted). Open issue common to
 | Filharmonia Narodowa | M_MONUMENT + front model | #e3ded2 / #8e9392 | `_build_filharmonia` (spec filharmonia.md, 2026-11-02): eleven giant columns on Jasna, a composer on each sill, the FN roundel and SALA KONCERTOWA in green neon; 1196 tris |
 | Teatr Polski | M_MONUMENT + front model | #e2ddcd / #76a08c | `_build_teatr_polski` (spec teatr_polski.md, 2026-11-02): the Karasia front, its two drums with balustrades, oculi, the long balcony, the green kiosk; ~620 tris |
 | Barbakan | brick model | #b2604a / #a9502f | `_build_barbakan` (spec barbakan.md; F's photos 2026-11-08): the bastion's crown of brick posts under stone pyramids, a corbel band and loopholes, four round towers at the mapped outlines with tile cones, tiled arm roofs, the pointed gate, the gate wall to Nowomiejska, the bridge arches |
-| Archikatedra św. Jana | M_GOTHIC | #9a4b38 / #6e3a2e | |
+| Archikatedra św. Jana | M_GOTHIC | #9a4b38 / #829a8f (copper, 2026-11-14) | |
 | Kościół Jezuitów (Sanktuarium MB Łaskawej) | model `_build_jezuici` (M_STONE; SKINS entry with `model`) | #dd8f82 (was #dc9f8a) / #6a4d44 (was #a5553c), tower top #9a4b38 | skin `jezuici` (2026-11-08, Mapillary refs): its 60 m LoD2 tower had the blue glass skin of buildings over 55 m; the skin's new `upper` key paints walls above 20 m in brick; card |
 | Kościół św. Anny | M_MONUMENT | #e6dcc4 / #8a5a44 | `_build_anna` (spec anna.md, 2026-11-01): four-column portico, pediment, wings, bell-tower trim, terrace balustrade; 586 tris |
 | Pałac Prezydencki | M_MONUMENT | #ece3cc / #6a7a77 | facade to model |
