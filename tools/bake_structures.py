@@ -882,11 +882,11 @@ def place_garage_doors(m):
     return out
 
 
-BARRIER_HALF = {"fence": 0.06, "wall": 0.18, "hedge": 0.45}   # map_builder.gd BARRIER_STYLE widths / 2
+BARRIER_HALF = {"fence": 0.06, "wall": 0.18, "hedge": 0.45}   # the palette's barrier types' thickness / 2 (game/data/object_palette.json)
 PROP_SOLID = {"benches": 3.2, "bikes": 3.4, "columns": 1.4, "shelters": 4.0}   # map_builder.gd _build_props
 DRIVE_HALF = 1.7       # a lane's drive corridor: a bus's half width (1.3), and 0.4 m for a 12 m
                        # bus box's chord on a bend and the game's mitred lane offsets
-BARRIER_TOP = 2.5      # loop 3e leftovers: a barrier's top over the ground (map_builder.gd BARRIER_STYLE: a wall 1.9 m) and a little
+BARRIER_TOP = 2.5      # loop 3e leftovers: a barrier's top over the ground (the palette's wall type: 1.9 m) and a little
 ROAD_INSET = 0.15      # a carriageway's own corridor: its half width less this
 SMALL_BUILDING = 30.0  # a mapped building this small (a kiosk, a vent) in a lane is left out
 GUARD_END = 8.0        # loop 3e: a deck's guard rail this near its piece's end clears a bus on the lanes there...
