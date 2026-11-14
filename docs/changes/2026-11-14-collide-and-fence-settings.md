@@ -1,0 +1,7 @@
+- Two new settings under Świat: how hard bumps feel (Zderzenia: Classic, Soft, Medium, Firm) and whether fences and hedges break when you drive through them (Łamliwe płoty, off to start with).
+
+## Backlog
+- fixed: the collision presets and the breakable fences were only test flags; they are Settings → Świat → "Zderzenia · Collisions" (`settings.gd` `collide`, v1 "Klasyka" by default) and "Łamliwe płoty · Smashable fences" (`soft_fences`, off by default, F 2026-11-14: "on for you only, off for testers"), both applied live (no restart: `soft_things.gd` `set_soft` takes the restored colliders out of every loaded sector or puts them back, verify step `softthings` case M3 on both paths); `--collide=` and `--no-soft` still win for a run, `--soft` turns the fences breakable for one; `check_lane_drive.gd` drives hard by default as the game does, its drive log (step `drivelog`) and `--wander` with `--soft`
+- found: `soft_things.gd` writes the player car's `vel` from outside the car (the smash's cost and the grind's nudge): `# WORKAROUND(arch)`, tech-debt TD-24 (a car-side hook when the controls lane allows `car.gd` edits)
+- found: with the fences hard (the default), every sector that comes in rebuilds its fence and hedge colliders on the main thread (`soft_things.gd` `harden`, as `--no-soft` did on the prebuilt city); measured in check_soft_things' M3, a cost at sector load the phone should be watched for (a hitch while streaming)
+
