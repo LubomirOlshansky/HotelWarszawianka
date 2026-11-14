@@ -46,7 +46,7 @@ const BUDGET := {
 	"church_duch": 3300,  # 2026-11-14: the whole Holy Spirit church and both towers from photos (measured 3010)
 	"church_dzieciatka": 1800,  # 2026-11-14: the whole brick Child Jesus church from photos (measured 1594)
 	"church_jacek": 2800,  # 2026-11-14: the whole St Hyacinth church from photos (measured 2550)
-	"church_jerozolimska": 810,
+	"church_jerozolimska": 1050,  # 2026-11-14: the whole brick church, its portico and the bell tower next door, from photos (measured 921)
 	"church_kapucyni": 2400,  # 2026-11-14: the whole Capuchin church from photos (measured 2136)
 	"church_karol": 1850,  # 2026-11-14: the whole classicist church on Chłodna, two west towers and the apse, from photos (measured 1693)
 	"church_katedra_polowa": 3200,  # 2026-11-14: the whole Field Cathedral from photos (measured 2917)

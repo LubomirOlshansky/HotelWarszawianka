@@ -63,7 +63,7 @@ Status as of 2026-11-01. "Kit model" = built by the church kit; "model" = its ow
 | Klasztor pallotynów | monastery | 1761, -1687 | open: convent or monastery: plain block, a later pass |
 | Kościól Św. Karola Boromeusza | church | -2152, -461 | model from photos (`church_karol`, `_build_karol`, spec `karol.md`), 2026-11-14 |
 | Kościół Ewangelicko-Reformowany | church | -1749, -1104 | kit model (`church_reformowany`), 2026-11-01 |
-| Kościół Matki Bożej Jerozolimskiej | church | 984, 1319 | kit model (`church_jerozolimska`), 2026-11-01 |
+| Kościół Matki Bożej Jerozolimskiej | church | 984, 1319 | model from photos (`church_jerozolimska`, `_build_jerozolimska`, spec `jerozolimska.md`), 2026-11-14 |
 | Kościół Niepokalanego Poczęcia Najświętszej Maryi Panny | church | -649, -1240 | kit model (`church_niepokalanego`), 2026-11-01 |
 | Kościół Przemienienia Pańskiego | church | -975, -1432 | kit model (`church_kapucyni`), 2026-11-01 |
 | Kościół Wizytek | church | -467, -787 | facade, wing and turret on kept skin (`wizytki`) |

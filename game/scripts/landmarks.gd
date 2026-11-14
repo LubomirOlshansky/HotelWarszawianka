@@ -787,7 +787,7 @@ const INFO := {
 	"church_antoniego": ["Kościół św. Antoniego Padewskiego", "Kościół franciszkanów na Senatorskiej.", "The Franciscans' church on Senatorska."],
 	"church_alberta": ["Kościół św. Brata Alberta", "Kościół parafialny.", "A parish church."],
 	"church_reformowany": ["Kościół Ewangelicko-Reformowany", "Kościół ewangelicko-reformowany z cegły.", "A brick Reformed church."],
-	"church_jerozolimska": ["Kościół Matki Bożej Jerozolimskiej", "Kościół parafialny.", "A parish church."],
+	"church_jerozolimska": ["Kościół Matki Bożej Jerozolimskiej", "Ceglany kościół z portykiem naprzeciw stadionu.", "A brick church with a portico across from the stadium."],
 	"church_zielonoswiatkowy": ["Kościół Zielonoświątkowy", "Zbór zielonoświątkowy.", "A Pentecostal church."],
 	"church_dzieciatka": ["Kościół Dzieciątka Jezus", "Kościół parafialny z wysoką wieżą.", "A parish church with a tall tower."],
 	"church_narodzenia": ["Kościół Narodzenia NMP", "Kościół parafialny.", "A parish church."],
@@ -19615,6 +19615,158 @@ func _build_karol(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The parish church of Our Lady of Jerusalem (Kościół Matki Bożej Jerozolimskiej, ul. Łazienkowska,
+## across the street from the Legia stadium), a banded red-and-yellow brick church in a former
+## barracks complex. The whole church as a model that replaces the old kit church
+## (`church_jerozolimska`, built by `_build_church` until 2026-11-14: a box with a spire, its
+## front turned away from the street). From Mapillary photos of 2018-2024 along Łazienkowska
+## (refs/jerozolimska, never shipped), the OSM outline and GUGiK's LoD2 (over the ground: the
+## street block's eaves 15 and its ridge 19 along the street; the nave's eaves 13.6 and ridge 19.6;
+## the lower chancel 10.3 and 17; the aisles 5.5 to 7; the north-east block 10; the bell tower
+## in the next block west, its base 16.5, its top 22.3 to 23.4). Spec docs/landmarks/specs/jerozolimska.md.
+## - the street front: a long brick block under a grey roof along the street, a portico of seven
+##   stone columns on two steps before it with a flat brick-topped entablature, a round-headed
+##   portal and a row of round-headed windows over the portico;
+## - the nave behind it under a steep grey gable, its clerestory windows over the lean-to aisles;
+##   the lower chancel and the polygonal north apse; the low blocks round the back yard;
+## - the square red-brick bell tower 40 m west on the corner of the next block (in LoD2, cut at
+##   12 m under the model's tower): a yellow band, two round-headed openings a side, a corbelled
+##   top, a low pyramid roof and a cross.
+## Frame: origin at the street front's west corner, u along the street to the east, +v to the
+## street (south); the front faces +v.
+const JZ_O := Vector2(969.9, 1346.0)
+const JZ_A := Vector2(0.9962, 0.0870)
+const JZ_C := 12.3                     ## the nave's axis (u): the portal, the ridges, the apse
+const JZ_TU := -32.5                   ## the bell tower's centre (u, v)
+const JZ_TV := -3.0
+const JZ_BRICK := Color("#a9553a")     ## the red brick (photos: warm, a little orange)
+const JZ_YELLOW := Color("#c99a5e")    ## the yellow brick bands and corbels
+const JZ_STONE := Color("#d8d2c4")     ## the portico's stone columns and steps
+const JZ_ROOF := Color("#767a7e")      ## the grey sheet roofs
+const JZ_DOOR := Color("#3e302a")      ## the dark doors
+
+
+## The bell tower's LoD2 cut 12 m over the ground (`lod2_tops`): the next block's LoD2 carries
+## the tower; the model's tower stands on the cut.
+func _jz_tops() -> void:
+	var b := Vector2(-JZ_A.y, JZ_A.x)
+	var ring := PackedVector2Array()
+	for c: Vector2 in [Vector2(-5.4, -5.4), Vector2(5.4, -5.4), Vector2(5.4, 5.4), Vector2(-5.4, 5.4)]:
+		ring.append(JZ_O + JZ_A * (JZ_TU + c.x) + b * (JZ_TV + c.y))
+	lod2_tops.append([ring, 12.0, JZ_O + JZ_A * JZ_TU + b * JZ_TV])
+
+
+## A round-headed window on the current front at u: a yellow brick surround and the pane.
+func _jz_arch(u: float, y0: float, spring: float, hw: float) -> void:
+	var at := _w(u, _face)
+	_arch_panel(at, _a, _b, hw + 0.2, y0 - 0.15, spring, JZ_YELLOW, 0.03, M_STONE)
+	_arch_panel(at, _a, _b, hw, y0, spring, PAL_GLASS_DARK, 0.07, _lit(u + _face, y0))
+
+
+## Turns the frame so +v points out of a side (0 street/south, 1 west, 2 north, 3 east):
+## a point (u, v) is then (u, v), (v, -u), (-u, -v) or (-v, u).
+func _jz_turn(side: int) -> void:
+	var b := Vector2(-JZ_A.y, JZ_A.x)
+	_a = [JZ_A, b, -JZ_A, -b][side]
+	_b = Vector2(-_a.y, _a.x)
+
+
+func _build_jerozolimska(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(JZ_O, JZ_O + JZ_A)
+	_g = _ground_under(outline)
+	var g := _g
+	var c := JZ_C
+	var none := Color(0, 0, 0, 0)
+	_mode = M_STONE
+	# --- the street block: walls to 15, a gable roof along the street to 19
+	var front := _rect(12.65, -3.75, 12.65, 3.75)  # u 0..25.3, v -7.5..0
+	_prism(front, g - 1.0, g + 15.0, JZ_BRICK, none, M_STONE)
+	kit_ledge_ring(front, g + 14.4, 0.5, JZ_YELLOW, 0.15)
+	_gable(0.0, 25.3, -3.75, 3.9, g + 15.0, 4.0, JZ_BRICK, JZ_ROOF, true)
+	# --- the nave (u 6.1..18.5) to the chancel, and the chancel to the apse
+	var ka := _a
+	var kb := _b
+	_prism(_lpoly([[6.1, -22.5], [18.5, -22.5], [18.5, -7.5], [6.1, -7.5]]), g + 5.0, g + 13.6, JZ_BRICK, none, M_STONE)
+	_prism(_lpoly([[6.3, -34.6], [18.3, -34.6], [18.3, -22.5], [6.3, -22.5]]), g - 1.0, g + 10.3, JZ_BRICK, none, M_STONE)
+	_a = kb
+	_b = ka
+	_gable(-22.5, -7.5, c, 6.35, g + 13.6, 6.0, JZ_BRICK, JZ_ROOF, false)
+	_gable(-34.6, -22.5, c, 6.15, g + 10.3, 6.7, JZ_BRICK, JZ_ROOF, false)
+	_a = ka
+	_b = kb
+	# the apse: half an octagon round (c, -34.6), walls to 9.5, a roof to a point at 13.2
+	var ac := _w(c - 0.9, -34.6)
+	var bb := Vector2(-JZ_A.y, JZ_A.x)
+	var half := PackedVector2Array()
+	for k in 5:
+		var ang := PI * k / 4.0
+		half.append(ac + (JZ_A * cos(ang) - bb * sin(ang)) * 4.1)
+	_prism(half, g - 1.0, g + 9.5, JZ_BRICK, none, M_STONE)
+	var tip := PackedVector2Array()
+	for p: Vector2 in half:
+		tip.append(ac + (p - ac) * 0.12)
+	_frustum(half, g + 9.5, tip, g + 13.2, JZ_ROOF, JZ_ROOF)
+	# --- the low blocks: the aisles, the west block, the north-east block (flat, grey tops)
+	for blk: Array in [[0.0, 6.1, -30.0, -7.5, 6.5], [18.5, 25.2, -30.0, -7.5, 6.5],
+			[-0.5, 6.3, -38.2, -30.0, 7.5], [17.1, 25.3, -46.4, -30.0, 10.0]]:
+		var r := _lpoly([[blk[0], blk[2]], [blk[1], blk[2]], [blk[1], blk[3]], [blk[0], blk[3]]])
+		_prism(r, g - 1.0, g + float(blk[4]), JZ_BRICK, JZ_ROOF.lightened(0.08), M_STONE, M_STONE)
+		kit_ledge_ring(r, g + float(blk[4]) - 0.45, 0.4, JZ_YELLOW, 0.12)
+	# --- the street front: bands, the portal and the windows over the portico
+	kit_face(0.0)
+	_kbox(0.0, 25.3, -0.02, 0.1, g + 6.6, g + 7.0, JZ_YELLOW)
+	_kbox(0.0, 25.3, -0.02, 0.1, g + 11.8, g + 12.1, JZ_YELLOW)
+	for wu: float in [3.2, 7.4, 12.3, 17.2, 21.4]:
+		_jz_arch(wu, g + 8.0, g + 10.4, 0.7)
+	kit_door(c, g + 0.6, 3.8, 1.1, JZ_YELLOW, JZ_DOOR, true)
+	for du: float in [5.0, 19.6]:
+		kit_door(du, g + 0.6, 2.8, 0.7, JZ_YELLOW, JZ_DOOR, true)
+	# the portico: two steps, seven stone columns, the entablature and its brick top
+	_kbox(2.6, 22.0, -0.04, 2.9, g - 1.0, g + 0.3, JZ_STONE.darkened(0.06))
+	_kbox(3.0, 21.6, -0.04, 2.5, g + 0.3, g + 0.6, JZ_STONE)
+	kit_colonnade(3.6, 21.0, 7, 2.0, g + 0.6, g + 5.3, JZ_STONE, 0.3)
+	_kbox(3.0, 21.6, -0.04, 2.5, g + 5.3, g + 5.9, JZ_STONE)
+	_kbox(2.9, 21.7, -0.04, 2.6, g + 5.9, g + 6.5, JZ_BRICK, M_STONE)
+	# --- the nave's and the chancel's sides: clerestory and side windows
+	for side: int in [1, 3]:
+		_jz_turn(side)
+		var s := -1.0 if side == 1 else 1.0
+		# turned: west (1) u' = v, face v' = -u; east (3) u' = -v, face v' = u
+		kit_face(-6.1 if side == 1 else 18.5)
+		for nv: float in [-10.0, -13.7, -17.4, -21.0]:
+			_jz_arch(-s * nv, g + 8.6, g + 11.6, 0.6)
+		kit_face(-0.0 if side == 1 else 25.2)
+		for av: float in [-11.0, -16.0, -21.0, -26.0]:
+			_jz_arch(-s * av, g + 1.6, g + 4.0, 0.55)
+	_jz_turn(2)
+	kit_face(34.6)
+	_jz_arch(-c, g + 11.0, g + 13.6, 0.9)  # the chancel's north gable over the apse
+	kit_front(JZ_O, JZ_O + JZ_A)
+	_collide(outline)
+	# --- the bell tower in the next block west: its base, the shaft, the belfry, roof and cross
+	var tc := _w(JZ_TU, JZ_TV)
+	_g = map.terrain_height(tc.x, tc.y)
+	var gt := _g
+	# the base from the ground (inside the next block below its 12 m cut, so it stands on something)
+	_lbox(JZ_TU, JZ_TV, 5.0, 5.0, gt - 1.0, gt + 16.5, JZ_BRICK, M_STONE, JZ_ROOF.lightened(0.08))
+	_lbox(JZ_TU, JZ_TV, 5.12, 5.12, gt + 16.0, gt + 16.45, JZ_YELLOW, M_STONE, none)
+	_lbox(JZ_TU, JZ_TV, 4.0, 4.0, gt + 16.5, gt + 22.0, JZ_BRICK, M_STONE, none)
+	_lbox(JZ_TU, JZ_TV, 4.15, 4.15, gt + 21.6, gt + 22.3, JZ_YELLOW, M_STONE, JZ_YELLOW)
+	for side2: int in 4:
+		_jz_turn(side2)
+		var p := Vector2(JZ_TU, JZ_TV)
+		var lu: float = [p.x, p.y, -p.x, -p.y][side2]
+		var lv: float = [p.y, -p.x, -p.y, p.x][side2]
+		kit_face(lv + 4.0)
+		for d: float in [-1.3, 1.3]:
+			_arch_panel(_w(lu + d, _face), _a, _b, 0.55, gt + 18.2, gt + 20.4, CHURCH_DARK, 0.04, M_STONE)
+	kit_front(JZ_O, JZ_O + JZ_A)
+	_hip(JZ_TU, JZ_TV, 4.15, 4.15, gt + 22.3, 1.1, JZ_ROOF)
+	_kap_cross(JZ_TU, JZ_TV, gt + 23.3, 2.2)
+	_g = g
+
+
 ## The Nożyk Synagogue (Synagoga Nożyków, ul. Twarda 6; Karol and Leandro Marconi, 1898-1902;
 ## burnt 1944, rebuilt 1977-1983; Warsaw's only pre-war synagogue still standing), a cream
 ## neo-Romanesque house of prayer in its courtyard south of Plac Grzybowski. The whole building as
@@ -30997,6 +31149,8 @@ func _find_churches() -> void:
 			sites[-1]["outline"] = outline
 			if ch["key"] == "church_sw_marcin":
 				_marcin_tops()  # the LoD2 tower in the monastery's block, under the model's tower
+			elif ch["key"] == "church_jerozolimska":
+				_jz_tops()  # the bell tower is LoD2 in the next block: cut it under the model's tower
 			elif ch["key"] == "church_niepokalanego":
 				_np_tops()  # the church is part of the convent's one LoD2 run: cut it under the model
 
@@ -31039,6 +31193,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_dzieciatka":
 		_build_dzieciatka(site)  # the whole brick Child Jesus church from photos, tower to the west, not the kit church
+		return
+	if site["key"] == "church_jerozolimska":
+		_build_jerozolimska(site)  # the whole brick church on Łazienkowska, its portico and its bell tower, from photos
 		return
 	if site["key"] == "church_karol":
 		_build_karol(site)  # the whole cream classicist church on Chłodna, its two west towers and the apse, from photos
