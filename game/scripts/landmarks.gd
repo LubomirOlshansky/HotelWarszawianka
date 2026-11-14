@@ -792,7 +792,7 @@ const INFO := {
 	"church_dzieciatka": ["Kościół Dzieciątka Jezus", "Kościół parafialny z wysoką wieżą.", "A parish church with a tall tower."],
 	"church_narodzenia": ["Kościół Narodzenia NMP na Lesznie", "Barokowy kościół z wieżyczką zegarową.", "A Baroque church with a clock turret."],
 	"church_karol": ["Kościół św. Karola Boromeusza", "Klasycystyczna bazylika przy Chłodnej.", "The classical basilica on Chłodna Street."],
-	"church_augustyn": ["Kościół św. Augustyna", "Kościół parafialny z cegły.", "A brick parish church."],
+	"church_augustyn": ["Kościół św. Augustyna", "Ceglana bazylika z wieżą na 70 metrów.", "A brick basilica with a 70-metre tower."],
 	"church_miloserdzie": ["Kościół Miłosierdzia Bożego", "Kościół parafialny.", "A parish church."],
 	"church_piotr_pawel": ["Kościół Świętych Piotra i Pawła", "Kościół parafialny z cegły.", "A brick parish church."],
 	"church_trojca_praga": ["Kościół Świętej Trójcy na Solcu", "Klasycystyczny kościół z wieżyczką.", "A classicist church with a bell turret."],
@@ -20406,6 +20406,147 @@ func _sl_turn(side: int) -> void:
 	_b = Vector2(-_a.y, _a.x)
 
 
+## St Augustine's church (Kościół św. Augustyna, ul. Nowolipki 18; Józef Pius Dziekoński,
+## 1891-96), a red clinker-brick neo-Romanesque basilica whose 70 m tower on the front's corner
+## was Warsaw's tallest when built and the one thing left standing over the ghetto's ruins in
+## 1945. The whole church as a model that replaces the old kit church (`church_augustyn`, built by
+## `_build_church` until 2026-11-14: a brick box with a pyramid tower, its front at the far end).
+## No open street photo faces it from the cloud; built from the church's published description
+## (Wikipedia: the three-nave basilica, the two-storey front with three arcades, six niches, a
+## large rose and a pediment, paired roses in the clerestory, triple windows in the aisles, the
+## tower to 70 m with a 5.1 m cross on a 1.35 m ball), the OSM outline and GUGiK's LoD2 (over the
+## ground: the tower 68.5; the nave's eaves 22.5 and ridge 26.5; the aisles 9.5 to 14; a stair
+## turret 40). Spec docs/landmarks/specs/augustyn.md.
+## Frame: origin at the front's middle on the south-east end, u along the church to the
+## north-west apse, v across; the front faces -u; the tower stands at v -11.
+const AU_O := Vector2(-2399.2, -1142.5)
+const AU_A := Vector2(-0.4297, -0.9030)
+const AU_BRICK := Color("#9b4632")     ## the red clinker brick
+const AU_STONE := Color("#d7c3a0")     ## the beige stone details
+const AU_DARKSTONE := Color("#8a4a38") ## the brown-red stone bands
+const AU_ROOF := Color("#5e6266")      ## the grey roofs
+const AU_SPIRE := Color("#4d5a58")     ## the spire's dark sheet
+
+
+## A lean-to roof over an aisle: from the outer wall's top (v_out, y_out) up to the nave wall
+## (v_in, y_in) between u0 and u1, with its two end triangles.
+func _au_lean(u0: float, u1: float, v_out: float, v_in: float, y_out: float, y_in: float, col: Color) -> void:
+	var at := func(u: float, v: float, y: float) -> Vector3:
+		var p := _w(u, v)
+		return Vector3(p.x, y, p.y)
+	var b := Vector2(-AU_A.y, AU_A.x)
+	var side := signf(v_out - v_in)
+	var n := (Vector3(b.x, 0.0, b.y) * side * (y_in - y_out) + Vector3.UP * absf(v_out - v_in)).normalized()
+	var none := Vector2(-1, -1)
+	_quad(at.call(u0, v_out, y_out), at.call(u1, v_out, y_out), at.call(u1, v_in, y_in), at.call(u0, v_in, y_in), n, col)
+	for e: Array in [[u0, -1.0], [u1, 1.0]]:
+		var eu: float = e[0]
+		var en := Vector3(AU_A.x, 0.0, AU_A.y) * float(e[1])
+		_tri(at.call(eu, v_out, y_out), at.call(eu, v_in, y_out), at.call(eu, v_in, y_in), en, AU_BRICK, none, none, none, -1.0, false)
+
+
+func _build_augustyn(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(AU_O, AU_O + AU_A)
+	_g = _ground_under(outline)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	var b := Vector2(-AU_A.y, AU_A.x)
+	_mode = M_STONE
+	# --- the nave and choir under one roof, the aisles with lean-tos, the apse
+	var nave := _lpoly([[0.0, -7.0], [61.0, -7.0], [61.0, 7.0], [0.0, 7.0]])
+	_prism(nave, g - 1.0, g + 22.5, AU_BRICK, none, M_STONE)
+	kit_ledge_ring(nave, g + 22.0, 0.5, AU_STONE, 0.18)
+	_gable(0.0, 61.0, 0.0, 7.2, g + 22.5, 4.2, AU_BRICK, AU_ROOF, true)
+	var rings: Array[PackedVector2Array] = [nave]
+	for s: float in [-1.0, 1.0]:
+		var u0 := 11.2 if s < 0.0 else 1.0
+		var aisle := _lpoly([[u0, s * 7.0], [59.0, s * 7.0], [59.0, s * 15.0], [u0, s * 15.0]])
+		_prism(aisle, g - 2.5, g + 9.5, AU_BRICK, none, M_STONE)
+		kit_ledge_ring(aisle, g + 9.0, 0.45, AU_STONE, 0.15)
+		_au_lean(11.0 if s > 0.0 else u0, 59.0, s * 15.0, s * 7.0, g + 9.5, g + 14.0, AU_ROOF.lightened(0.05))
+		rings.append(aisle)
+	var ac := _w(61.0, 0.0)
+	var half := PackedVector2Array()
+	for k in 7:
+		var ang := -PI * 0.5 + PI * k / 6.0
+		half.append(ac + (AU_A * cos(ang) + b * sin(ang)) * 6.8)
+	_prism(half, g - 1.0, g + 19.0, AU_BRICK, none, M_STONE)
+	var tip := PackedVector2Array()
+	for p: Vector2 in half:
+		tip.append(ac + (p - ac) * 0.2)
+	_frustum(half, g + 19.0, tip, g + 24.0, AU_ROOF, AU_ROOF)
+	for i in rings.size():
+		kit_ledge_ring(rings[i], g - 2.5, 3.5 - 0.04 * i, AU_DARKSTONE, 0.07)
+	# --- the sides: paired roses in the clerestory, triple round-headed windows in the aisles
+	for s2: float in [-1.0, 1.0]:
+		var vc := s2 * 7.0
+		var vs := s2 * 15.0
+		var out := b * s2
+		for bu: float in [15.0, 21.0, 27.0, 33.0, 39.0, 45.0, 51.0, 57.0]:
+			for du: float in [-1.2, 1.2]:
+				var rp := _w(bu + du, vc + s2 * 0.04)
+				_disc(Vector3(rp.x, g + 18.0, rp.y), Vector3(out.x, 0.0, out.y), 0.85, 8, AU_STONE)
+				var rp2 := _w(bu + du, vc + s2 * 0.08)
+				_disc(Vector3(rp2.x, g + 18.0, rp2.y), Vector3(out.x, 0.0, out.y), 0.6, 8, PAL_GLASS_DARK)
+			for du2: float in [-1.0, 0.0, 1.0]:
+				_arch_panel(_w(bu + du2, vs), AU_A, out, 0.35, g + 3.0, g + 6.4, PAL_GLASS_DARK, 0.05, _lit(bu + du2 + vs, g + 3.0))
+			_kbox(bu + 2.6, bu + 3.4, minf(vs, vs + s2 * 0.5), maxf(vs, vs + s2 * 0.5), g - 2.5, g + 9.0, AU_BRICK)
+	# --- the front: three arcades of the portico, six niches, the great rose, the pediment
+	var fo := -AU_A
+	_kbox(-1.6, 0.0, -6.0, 6.0, g - 1.0, g + 7.5, AU_BRICK)
+	_kbox(-1.75, -1.55, -6.2, 6.2, g + 7.5, g + 8.1, AU_STONE)
+	for av: float in [-3.6, 0.0, 3.6]:
+		_arch_panel(_w(-1.6, av), b, fo, 1.35, g + 0.0, g + 5.2, CHURCH_DARK, 0.02, M_STONE)
+	for nv: float in [-4.5, -2.7, -0.9, 0.9, 2.7, 4.5]:
+		_arch_panel(_w(0.0, nv), b, fo, 0.55, g + 9.0, g + 11.0, AU_STONE, 0.04, M_STONE)
+	var rc := _w(-0.04, 0.0)
+	_disc(Vector3(rc.x, g + 16.0, rc.y), Vector3(fo.x, 0.0, fo.y), 3.2, 14, AU_STONE)
+	var rc2 := _w(-0.08, 0.0)
+	_disc(Vector3(rc2.x, g + 16.0, rc2.y), Vector3(fo.x, 0.0, fo.y), 2.6, 14, PAL_GLASS_DARK)
+	_kbox(-0.2, 0.0, -7.3, 7.3, g + 21.9, g + 22.6, AU_STONE)
+	_kap_cross(0.3, 0.0, g + 26.7, 2.2)
+	# the chapel annex on the front's other side
+	var fr := _lpoly([[1.0, 7.0], [11.0, 7.0], [11.0, 15.0], [1.0, 15.0]])
+	_prism(fr, g + 9.5, g + 12.3, AU_BRICK, AU_ROOF.lightened(0.1), M_STONE, M_STONE)
+	# --- the tower on the front's corner: shaft, two stages, the belfry arcades, the spire
+	var tu := 7.0
+	var tv := -11.0
+	_lbox(tu, tv, 4.0, 4.0, g - 1.0, g + 34.0, AU_BRICK, M_STONE, none)
+	kit_ledge_ring(_rect(tu, tv, 4.0, 4.0), g + 13.0, 0.45, AU_STONE, 0.12)
+	kit_ledge_ring(_rect(tu, tv, 4.0, 4.0), g + 24.0, 0.45, AU_STONE, 0.12)
+	_lbox(tu, tv, 4.25, 4.25, g + 34.0, g + 34.7, AU_STONE, M_STONE, AU_STONE.darkened(0.06))
+	_lbox(tu, tv, 3.4, 3.4, g + 34.7, g + 47.0, AU_BRICK, M_STONE, none)
+	_lbox(tu, tv, 3.65, 3.65, g + 47.0, g + 47.6, AU_STONE, M_STONE, AU_STONE.darkened(0.06))
+	var tc := _w(tu, tv)
+	for dd: Vector2 in [AU_A, -AU_A, b, -b]:
+		var al := Vector2(-dd.y, dd.x)
+		for k2: float in [-1.15, 0.0, 1.15]:
+			_arch_panel(tc + dd * 3.4 + al * k2, al, dd, 0.42, g + 39.0, g + 44.5, CHURCH_DARK, 0.03, M_STONE)
+		_arch_panel(tc + dd * 4.0, al, dd, 0.5, g + 26.0, g + 30.5, CHURCH_DARK, 0.03, M_STONE)
+		_disc(Vector3((tc + dd * 4.03).x, g + 18.5, (tc + dd * 4.03).y), Vector3(dd.x, 0.0, dd.y), 0.9, 8, AU_STONE)
+	for s3: float in [-1.0, 1.0]:
+		for t: float in [-1.0, 1.0]:
+			_pinnacle(tu + s3 * 3.2, tv + t * 3.2, 0.7, g + 47.6, 3.0, AU_STONE)
+	var sq := func(h: float) -> PackedVector2Array:
+		return _rect(tu, tv, h, h)
+	_frustum(sq.call(3.0), g + 47.6, sq.call(0.15), g + 63.4, AU_SPIRE, AU_SPIRE)
+	_lbox(tu, tv, 0.6, 0.6, g + 63.4, g + 64.6, Color("#c9a64a"), M_STONE, Color("#c9a64a"))
+	_kap_cross(tu, tv, g + 64.6, 5.1)
+	# --- the small stair turret by the choir
+	var st := _w(50.0, 6.0)
+	var oct := PackedVector2Array()
+	for k3 in 8:
+		var an := PI * (k3 + 0.5) / 4.0
+		oct.append(st + (AU_A * cos(an) + b * sin(an)) * 1.3)
+	_frustum(oct, g + 14.0, oct, g + 34.0, AU_BRICK)
+	var otip := PackedVector2Array()
+	for p2: Vector2 in oct:
+		otip.append(st + (p2 - st) * 0.1)
+	_frustum(oct, g + 34.0, otip, g + 40.0, AU_SPIRE, AU_SPIRE)
+	_collide(outline)
+
+
 ## The Nożyk Synagogue (Synagoga Nożyków, ul. Twarda 6; Karol and Leandro Marconi, 1898-1902;
 ## burnt 1944, rebuilt 1977-1983; Warsaw's only pre-war synagogue still standing), a cream
 ## neo-Romanesque house of prayer in its courtyard south of Plac Grzybowski. The whole building as
@@ -31832,6 +31973,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_dzieciatka":
 		_build_dzieciatka(site)  # the whole brick Child Jesus church from photos, tower to the west, not the kit church
+		return
+	if site["key"] == "church_augustyn":
+		_build_augustyn(site)  # the whole brick basilica and its 70 m tower
 		return
 	if site["key"] == "church_trojca_praga":
 		_build_trojca_solec(site)  # Holy Trinity on Solec: temple front and crossing turret, from photos

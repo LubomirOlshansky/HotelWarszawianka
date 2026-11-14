@@ -73,7 +73,7 @@ Status as of 2026-11-01. "Kit model" = built by the church kit; "model" = its ow
 | Kościół parafialny pw. Narodzenia Najświętszej Maryi Panny | church | -1969, -976 | model from photos (`church_narodzenia`, `_build_narodzenia`, spec `narodzenia.md`), 2026-11-14 |
 | Kościół pw. Matki Boskiej Zwycięskiej | cathedral | 1971, -1373 | kit model (`church_zwycieska`), 2026-11-01 |
 | Kościół pw. Miłosierdzia Bożego i Świętej Faustyny | church | -2749, -693 | model from photos (`church_miloserdzie`, `_build_miloserdzie`, spec `miloserdzie.md`), 2026-11-14 |
-| Kościół pw. Świętego Augustyna | church | -2417, -1176 | kit model (`church_augustyn`), 2026-11-01 |
+| Kościół pw. Świętego Augustyna | church | -2417, -1176 | model from the description and LoD2 (`church_augustyn`, `_build_augustyn`, spec `augustyn.md`), 2026-11-14 |
 | Kościół pw. Świętego Ducha | church | -1020, -1836 | kit model (`church_duch`), 2026-11-01 |
 | Kościół pw. Świętego Jacka | church | -1011, -1913 | kit model (`church_jacek`), 2026-11-01 |
 | Kościół pw. Świętego Krzyża | church | -473, -525 | model on kept skin: baroque facade and towers (`sw_krzyz`) |
