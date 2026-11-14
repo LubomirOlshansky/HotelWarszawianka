@@ -530,6 +530,12 @@ def main(src, trees_src, dst, extras_src=None, more_src=None):
     # on the finished data (they keep clear of its solids; tools/bake_street_pois.py).
     import bake_street_pois
     bake_street_pois.add(out, els, nodes, ways, map_dir)
+    # City objects plan step 5 (2026-11-14): every wall, fence and hedge's type (ty), sureness (tc),
+    # solidity class (sc), hazard reason (hz) and height by setting (hs), last, on the finished lines,
+    # from OSM's full barrier tags and the land-use outlines in this export (tools/object_types.py;
+    # the game reads none of it yet).
+    import object_types
+    print(object_types.apply(out, map_dir, els))
     with open(dst, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
     print(f"tunnels: {len(tunnel_roads)} tunnel roads, {len(out['tunnels']['pieces'])} pieces, "

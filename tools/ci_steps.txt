@@ -98,6 +98,7 @@ models               quick
 monumentmesh         quick
 monuments            quick
 objects              quick
+objecttypes          quick
 oldtowndrive         smoke
 oldtownroofs         smoke
 oldtram              quick

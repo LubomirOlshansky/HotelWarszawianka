@@ -5422,6 +5422,22 @@ System Trace: the iPhone 11 at ×2 holds 60 at its lowest GPU clock, Loop G1 abo
 
 ## Map data
 
+**Barrier types (city objects plan step 5, 2026-11-14)**: `tools/object_types.py` is the last pass of
+bake_osm (also a CLI on a baked map: `apply`, `fetch` for an Overpass context file in
+`data/raw/osm/` where there is no raw export, `--selftest` = verify step `objecttypes`). It gives every fence, wall
+and hedge line `ty` (a type id), `tc` (tag / structure / context / default), `sc` (H/S/P/R/G), `hz`
+(drop / railway / water / deck, when hard by a hazard) and `hs` (the height by setting when OSM gives
+none; `h` is left alone), stamped `object_types: {v, osm, ctx}`. The game reads none of these keys (the
+hash dump of six sectors, runtime and prebuilt, was identical with and without them). The rules were
+checked on 20 random lines each against Mapillary/Panoramax photos; rules that failed were narrowed or
+dropped (the comment above `DROPPED` lists the counts). The first run, in the cloud without OSM context
+(map evidence only), gave fence `tc default` 31.4 % of 188.2 km, walls 46.8 % of 69.6 km and hedges
+32.4 % of 20.9 km; class km H 79.3, S 191.0, R 8.5, G 0; hard fences km deck 2.0, drop 3.3, railway 2.0
+and water 1.1. `check_map_data.py` FENCE_DEFAULT_MAX is 32.0 %, and it only goes down. The committed
+centrum.json waits for the next full re-bake on the Mac (bake_osm passes its raw OSM export, so the full tags and context outlines count); until
+then the check reports "not in this centrum.json yet". The type plot is
+`tools/overlay_object_types.py plot`, and the contact sheets are `... sheet`.
+
 **Trees and fences off the water and the roads (F, 2026-11-08)**: `tools/object_audit.py` rules T1 (a
 scanned tree's trunk in a water area, a sandbar excepted), T2 (on the drawn asphalt at grade, check_streets
 S1's test, not on an island or a median) and L6 (a fence or hedge more than `WET_IN` 0.6 m inside a water
