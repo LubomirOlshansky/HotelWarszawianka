@@ -20,8 +20,8 @@ extends "res://scripts/activity.gd"
 ## (`rave_meet`); drive there and stop at the door: the bouncer asks three questions (QUESTIONS;
 ## at a secret rave one is the password LEKTI said), three right answers get you both in, the
 ## first wrong one gets "Nie tym razem. Wróć później." Mati's lines: `rave_ziomek` (tags board,
-## board_smola, ride, meet, go, go_smola, door_ok, door_out, abort). ✕ gives up (Mati takes the night bus). The calls (missions.gd) are paused
-## while it runs.
+## board_smola, ride, meet, go, go_smola, door_ok, door_out, abort). ✕ gives up (Mati takes the night bus). The rescue calls (missions.gd)
+## wait while it runs (`rescue_calls` HOLD).
 ##
 ## **Two questlines** (story_quests.gd, F 2026-11-09): "Sekretny rave" starts in person at Mati's
 ## block (HOME_LL), "Smoła" on Jerozolimskie by Rondo Dmowskiego (SMOLA_START_LL); each has its own badge and WĄTKI row
@@ -175,7 +175,6 @@ const TICK := 0.25
 ## The run's own stages (the kit's phases come first: idle, the call, the offer, the run).
 enum Stage { NONE, PICKUP, MEET, DRIVE, DOOR, RESULT }
 
-var missions: Node
 var graph: LaneGraph
 var radio: Node
 var city_sounds: Node
@@ -244,8 +243,6 @@ var _talk_t := 0.0
 var _crowd_t := 0.0
 var _dance_t := 0.0
 var _noticed := false
-var _calls_were := false
-var _holds_calls := false
 ## Met in person: Mati gets in at once (`meet_in_person`).
 var _met := false
 var _mordor := -1
@@ -265,6 +262,7 @@ var _voice_queue: Array[AudioStream] = []
 func _init() -> void:
 	tag = "rave"
 	colour = COLOUR
+	rescue_calls = RescueCalls.HOLD  # the rescue calls wait for the night and go on after it (the director)
 	dark = Color("#16161a")
 	card_life = RING_LIFE
 
@@ -1020,10 +1018,6 @@ func _refused(timed_out: bool) -> void:
 
 ## JADĘ! (Mati waiting at his block: the dashed ring, waving) or met in person (already in the car).
 func _begin() -> void:
-	_calls_were = missions.paused if missions != null else false
-	if missions != null:
-		missions.paused = true
-	_holds_calls = true
 	_hold_t = 0.0
 	if _met:
 		_met = false
@@ -1250,10 +1244,6 @@ func _quit_words() -> Array:
 
 ## Back to free play: the calls back on, next weekend's spot, LEKTI later.
 func _ended() -> void:
-	if _holds_calls:
-		_holds_calls = false
-		if missions != null:
-			missions.paused = _calls_were
 	_hood.visible = false
 	if stage == Stage.RESULT and kind == "rave":
 		var nights := night_spots()

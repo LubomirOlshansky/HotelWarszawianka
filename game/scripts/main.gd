@@ -1826,9 +1826,11 @@ func _build_world() -> void:
 	hud.chatter = bubbles.chatter
 	# The message director (docs/design/hud-messages.md): a quest with no status card of its own
 	# still counts as one (the radio host and the flavour keep quiet, notes and calls wait).
+	# M1: the rescue line counts through `_quest_running` (its target), not its two cards, as before it
+	# joined the director (the pacer, TD-3, is to settle whether its cards are a quest too).
 	hud.quest_on = func() -> bool:
 		return _quest_running() \
-				or activities.busy() \
+				or (activities.busy() and activities.current() != missions) \
 				or (rides != null and rides.busy()) or (trend_job != null and trend_job.busy())
 	bubbles.project = func(p: Vector3) -> Vector2: return cam.unproject_position(p) * float(view.stretch_shrink)
 	hud.add_speech(bubbles)  # above the target pointer, below the panels (PT-10)
@@ -1914,6 +1916,7 @@ func _build_world() -> void:
 		jobs.start_sloik(start_sloik, start_sloik_station)
 		cam_focus = car.global_position
 	elif rides != null and start_ride >= 0:
+		missions.close()  # the request card comes first (rides.gd put the call off itself before M1)
 		rides.start_ride(start_ride)  # loop 2d-1
 		cam_focus = car.global_position
 	if rivals != null and (start_race > 0 or start_rival > 0):
@@ -1971,8 +1974,13 @@ func _build_world() -> void:
 	await LoadYield.tick("_build_stories")
 	_build_crawl(data, world)
 	await LoadYield.tick("_build_crawl")
-	await _build_storefronts(data, world)
+	await _build_storefronts(data, world)  # the Leżak round-up joins the director here
 	await LoadYield.tick("_build_storefronts")
+	# M1: the rescue line joins the director last (after the round-up above), so the M and K keys,
+	# the arrow and the stop assist ask every other activity first, as they did before it joined; the
+	# other activities' runs hold or restart its calls through the director (activity.gd
+	# `rescue_calls`).
+	activities.add(missions)
 	_build_packs(data, world)
 	await LoadYield.tick("_build_packs")
 	_build_fans(data, world)
@@ -2121,7 +2129,6 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	rivals.traffic = traffic
 	rivals.hud = hud
 	rivals.bubbles = bubbles
-	rivals.missions = missions
 	rivals.map = map
 	rivals.car = car
 	rivals.setup(world, data)
@@ -2684,7 +2691,6 @@ func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
 	jobs.bubbles = bubbles
 	jobs.dialogue = dialogue
 	jobs.wallet = wallet
-	jobs.missions = missions
 	jobs.rivals = rivals
 	jobs.graph = graph
 	jobs.traffic = traffic
@@ -2711,7 +2717,6 @@ func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
 	rides.bubbles = bubbles
 	rides.dialogue = dialogue
 	rides.wallet = wallet
-	rides.missions = missions
 	rides.rivals = rivals
 	rides.jobs = jobs
 	rides.graph = graph
@@ -2820,7 +2825,6 @@ func _build_storefronts(data: Dictionary, world: Node3D) -> void:
 		ru.hud = hud
 		ru.dialogue = dialogue
 		ru.wallet = wallet
-		ru.missions = missions
 		ru.map = map
 		ru.car = car
 		ru.tod = tod
@@ -3495,8 +3499,7 @@ func _build_stories(world: Node3D) -> void:
 		var own: Callable = d.get("meet", Callable())
 		if own.is_valid():
 			d["meet"] = func() -> bool:
-				if missions.state == Missions.State.RINGING:
-					missions.close()
+				missions.put_off()
 				return bool(own.call())
 	if story_flag != "":
 		get_tree().create_timer(1.5).timeout.connect(func() -> void: stories.start(story_flag))
@@ -3712,7 +3715,6 @@ func _build_rave(data: Dictionary, world: Node3D) -> void:
 	rave.hud = hud
 	rave.dialogue = dialogue
 	rave.wallet = wallet
-	rave.missions = missions
 	rave.map = map
 	rave.graph = graph
 	rave.radio = radio
@@ -3789,7 +3791,6 @@ func _build_shisha(data: Dictionary, world: Node3D) -> void:
 	shisha.hud = hud
 	shisha.dialogue = dialogue
 	shisha.wallet = wallet
-	shisha.missions = missions
 	shisha.map = map
 	shisha.graph = graph
 	shisha.origin = data.get("origin", [52.234, 21.024])
@@ -3939,8 +3940,9 @@ func _free_block(ringing_ok := false, guide_ok := false) -> String:
 		return "first-10 guide"
 	if not ringing_ok and not hud.call_ok():
 		return "calls: a call rang lately, or a quest or a chase is on or just ended (messages.gd)"
-	var ringing: bool = ringing_ok and missions.state == Missions.State.RINGING
-	if hud.cards_up() or (missions.state != Missions.State.CLOSED and not ringing) or missions.has_target():
+	# The rescue line's card or run holds everything, and its call ringing on the context button
+	# (the director's `call_on_pill`) unless `ringing_ok`.
+	if hud.cards_up() or missions.busy() or (activities.call_on_pill() and not ringing_ok):
 		return "a card, mission or rescue target is up"
 	if (rides != null and rides.busy()) or (jobs != null and activities.job_on()) or (trend_job != null and trend_job.busy()):
 		return "ride/job/trend job busy"
@@ -3962,7 +3964,6 @@ func _build_meet(data: Dictionary, world: Node3D) -> void:
 	meet.hud = hud
 	meet.dialogue = dialogue
 	meet.wallet = wallet
-	meet.missions = missions
 	meet.map = map
 	meet.graph = graph
 	meet.traffic = traffic
@@ -4012,7 +4013,6 @@ func _build_crawl(data: Dictionary, world: Node3D) -> void:
 	crawl.hud = hud
 	crawl.bubbles = bubbles
 	crawl.wallet = wallet
-	crawl.missions = missions
 	crawl.map = map
 	crawl.graph = graph
 	crawl.origin = data.get("origin", [52.234, 21.024])
@@ -4045,7 +4045,6 @@ func _build_ev_tow(world: Node3D) -> void:
 	ev_tow.hud = hud
 	ev_tow.dialogue = dialogue
 	ev_tow.wallet = wallet
-	ev_tow.missions = missions
 	ev_tow.map = map
 	ev_tow.graph = graph
 	ev_tow.traffic = traffic
@@ -4076,7 +4075,7 @@ func _ev_free() -> bool:
 		return false
 	if first10 != null and first10.guide_on():
 		return false
-	if hud.cards_up() or missions.state != Missions.State.CLOSED or missions.has_target():
+	if hud.cards_up() or missions.busy() or activities.call_on_pill():
 		return false
 	if (rides != null and rides.busy()) or (jobs != null and activities.job_on()) or (trend_job != null and trend_job.busy()):
 		return false
@@ -4247,7 +4246,6 @@ func _build_city_life(data: Dictionary, world: Node3D) -> void:
 		trend_job.hud = hud
 		trend_job.dialogue = dialogue
 		trend_job.wallet = wallet
-		trend_job.missions = missions
 		trend_job.rivals = rivals
 		trend_job.jobs = jobs
 		trend_job.rides = rides
@@ -7372,7 +7370,7 @@ func _process(dt: float) -> void:
 	# An activity of the kit is on (a tour, its guest rides along): no side job is offered
 	# meanwhile (the jobs read it as flying). Not when it is a job itself (the round-up): the
 	# jobs hold each other off by name, and a job that read itself as flying would stop.
-	var touring := activities.busy() and not activities.current().is_job
+	var touring := activities.busy() and not activities.current().is_job and activities.current() != missions  # (a rescue holds the jobs off by its own tests: M1)
 	if police != null:
 		police.flying = flying or boating  # loop 3g-1: the police ignore the helicopter (and the boat race)
 		police.zone = zone  # loop 3g-2: the city guards' zone pill and whistle
@@ -7910,8 +7908,6 @@ func _stop_assist() -> void:
 		at = activities.targeted().stop_spot()
 	elif jobs != null and jobs.pointing():
 		at = jobs.stop_spot()
-	elif missions.has_target():
-		at = missions.stop_spot()
 	car.assist_at = at
 	car.assist_reach = StopAssist.RING
 
@@ -7992,9 +7988,10 @@ func _main_line_tick(dt: float) -> void:
 ## The arrow and minimap dot for the mission target.
 func _show_target() -> void:
 	_free_now = false
-	# The activity kit (tech-debt TD-2): whichever activity sends the player somewhere now.
-	var act := activities.targeted()
-	if act != null and (not flying or act.flown):
+	# The activity kit (tech-debt TD-2): whichever activity sends the player somewhere now (in the
+	# air one that is flown; the rescue line is, and comes last).
+	var act := activities.targeted(flying)
+	if act != null:
 		var ap: Vector3 = act.target_position()
 		var at_a := _vehicle_position()
 		var ma := roundi(Vector2(ap.x - at_a.x, ap.z - at_a.z).length())
@@ -8018,7 +8015,7 @@ func _show_target() -> void:
 		_new_target("job", j)
 		return
 	# G12 part 2: the quest pin picked on the full map, while nothing else is on; reached, it goes.
-	if not quest_pin.is_empty() and not missions.has_target():
+	if not quest_pin.is_empty():
 		var qp: Vector2 = quest_pin["at"]
 		var at_q := _vehicle_position()
 		var cassette := str(quest_pin["group"]) == "cassette"
@@ -8043,7 +8040,7 @@ func _show_target() -> void:
 			_put_target(qp, cq, false)
 			return
 	# Loop 3h slice 4: the guide's arrow (the first stand, the boulevard tape, Powiśle, the garage).
-	if not missions.has_target() and first10 != null and first10.hint_shown():
+	if first10 != null and first10.hint_shown():
 		var fp: Vector3 = first10.hint_at
 		var at_f := _vehicle_position()
 		var mf := roundi(Vector2(fp.x - at_f.x, fp.z - at_f.z).length())
@@ -8052,7 +8049,7 @@ func _show_target() -> void:
 		_put_target(Vector2(fp.x, fp.z), First10.HINT_COLOUR, true)
 		return
 	# Loop MW-6: Spacer's soft hint, the edge arrow to the nearest notebook place not found yet.
-	if not missions.has_target() and spacer != null and spacer.hint_shown():
+	if spacer != null and spacer.hint_shown():
 		var hp := spacer.hint_at
 		var at_h := _vehicle_position()
 		var mh := roundi(Vector2(hp.x - at_h.x, hp.y - at_h.z).length())
@@ -8065,7 +8062,7 @@ func _show_target() -> void:
 	# The main line's nudge (main_nudge.gd): now and then, while nothing else is on, the gold edge
 	# arrow to the next rival or the final's start; the minimap keeps its star (no side pin).
 	var ma: Vector2 = main_step.get("at", Vector2.INF)
-	if not missions.has_target() and _nudge_arrow and ma != Vector2.INF and Lines.shows(Lines.Line.CAR, flying):
+	if _nudge_arrow and ma != Vector2.INF and Lines.shows(Lines.Line.CAR, flying):
 		var at_m := _vehicle_position()
 		var mm := roundi(Vector2(ma.x - at_m.x, ma.y - at_m.z).length())
 		var on_m := cam.unproject_position(Vector3(ma.x, map.ground_height(ma.x, ma.y) + 3.5, ma.y)) * float(view.stretch_shrink)
@@ -8073,21 +8070,10 @@ func _show_target() -> void:
 		_put_target(Vector2.INF, Color.WHITE, false)
 		_free_now = not _quest_running()
 		return
-	if not missions.has_target():
-		hud.set_target(Vector2.ZERO, "", Color.WHITE, false)
-		_put_target(Vector2.INF, Color.WHITE, false)
-		_last_target_source = ""
-		_free_now = not _quest_running()  # quest focus: no main-line toast over a countdown or a door
-		return
-	var t: Vector3 = missions.target_position()
-	var colour: Color = missions.target_colour()
-	var pos := _vehicle_position()
-	var metres := roundi(Vector2(t.x - pos.x, t.z - pos.z).length())
-	var at := cam.unproject_position(t + Vector3(0, 3.5, 0)) * float(view.stretch_shrink)
-	# Up close the ring says enough, and the pointer would sit on the vehicle's own marker.
-	hud.set_target(at, "%d m" % metres, colour, metres > 12)
-	_put_target(Vector2(t.x, t.z), colour, _guide_on())
-	_new_target("rescue", t)
+	hud.set_target(Vector2.ZERO, "", Color.WHITE, false)
+	_put_target(Vector2.INF, Color.WHITE, false)
+	_last_target_source = ""
+	_free_now = not _quest_running()  # quest focus: no main-line toast over a countdown or a door
 
 
 ## Camera loop: a new rescue or delivery target (not a race's: they come one after another) gets a
@@ -8628,17 +8614,14 @@ func _unhandled_key_input(event: InputEvent) -> void:
 ## delivery, the round-up, a trend job).
 func _primary() -> void:
 	if activities.primary():
-		return
-	if missions.state == missions.State.OFFER or missions.state == missions.State.RESULT:
-		missions.primary()
-	elif not hud.press_pill():
-		missions.primary()
+		return  # a card's first button (the rescue line's cards too: it joined the director last)
+	if not hud.press_pill():
+		missions.call_now()
 
 
 ## K / the pad's X: the mission card's second button.
 func _secondary() -> void:
-	if not activities.secondary():
-		missions.secondary()
+	activities.secondary()
 
 
 ## L / the D-pad's left: flash the lights (loop jobs-2: the courier's challenge first, only while

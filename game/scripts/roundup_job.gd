@@ -19,7 +19,6 @@ extends "res://scripts/activity.gd"
 ## night only while no job runs) and the shared beacon: +0-1 draw calls near a depot.
 
 const MapIcons := preload("res://scripts/map_icons.gd")
-const Missions := preload("res://scripts/missions.gd")
 
 ## Teal (the passengers' and goods' job colour, as the słoiki); the pins in Leżak's violet.
 const COLOUR := Color("#4fd8c4")
@@ -50,7 +49,6 @@ const OFFER_LIFE := 12.0
 ## The run's stages (the kit's `phase` is IDLE or RUN here; this activity never rings).
 enum Stage { NONE, OFFER, COLLECT, RESULT }
 
-var missions: Node
 var tod: Node
 ## jobs.gd (its _free, _night, _marker and flying).
 var jobs: Node
@@ -114,6 +112,7 @@ static func pick_depots(zone_list: Array, spacing: float) -> Array[int]:
 func setup(world: Node3D) -> void:
 	tag = "roundup"
 	colour = COLOUR
+	rescue_calls = RescueCalls.RESTART  # a round-up puts off a rescue call and counts it again from its end (the director)
 	dark = Color("#2f6fb5")
 	is_job = true
 	cards_low = true
@@ -270,8 +269,6 @@ func _begin() -> void:
 		return
 	stage = Stage.OFFER
 	_show_depots(false)
-	missions.close()
-	missions.paused = true
 	hud.hide_pill()
 	hud.hide_challenge()
 	var at: Vector3 = depots[depot]["at"]
@@ -443,8 +440,6 @@ func _ended() -> void:
 	if depot >= 0 and depot < depots.size():
 		depots[depot]["cool"] = true
 	stage = Stage.NONE
-	missions.paused = false
-	missions.close()
 	_pins_off()
 	targets = []
 	boot = 0

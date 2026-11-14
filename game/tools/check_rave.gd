@@ -409,7 +409,6 @@ func _make(g: LaneGraph, origin: Array) -> void:
 	_rv.hud = _hud
 	_rv.dialogue = _talk
 	_rv.wallet = _wallet
-	_rv.missions = _calls
 	_rv.map = map
 	_rv.graph = g
 	_rv.radio = _radio
@@ -427,6 +426,7 @@ func _make(g: LaneGraph, origin: Array) -> void:
 	_director.add(_rv)
 	_other = Activity.new()
 	_director.add(_other)
+	_director.add(_calls)
 
 
 func _frames(seconds: float) -> void:
@@ -570,7 +570,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_ok(c.phase == Activity.Phase.OFFER and _hud.card == "📞 MATI" and _hud.buttons == 2 and _hud.card_is(c) and "Słyszałeś Lektiego" in _hud.body and not c.pickup.is_empty(),
 			"answered: Mati's offer, two buttons, his own card, a kerb found (%s)" % _hud.card)
 	_ok(c.busy() and _director.busy() and _director.busy_tag() == "rave" and _director.current() == c and not c.under_way(), "from the offer card on the night is busy, but not yet under way")
-	_ok(not _calls.paused and not _director.may_start(_other), "the rescue calls are not held yet; the director refuses a second activity")
+	_ok(not _calls._held() and not _director.may_start(_other), "the rescue calls are not held yet; the director refuses a second activity")
 	_hud.toasts.clear()
 	_hud.press(1)
 	_ok(c.idle() and _toast("nie płacz") and not _toast("Odrzucono") and _hud.card == "" and c.pickup.is_empty(), "the offer declined: idle, with his words")
@@ -589,7 +589,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_radio.station = 0
 	_to_pickup()
 	b = c._beacon
-	_ok(_is(Rave.Stage.PICKUP) and _calls.paused and _toast("Jedź po Matiego"), "JADĘ!: on the way to Mati, the rescue calls held")
+	_ok(_is(Rave.Stage.PICKUP) and _calls._held() and _toast("Jedź po Matiego"), "JADĘ!: on the way to Mati, the rescue calls held")
 	_ok(c.under_way() and c.busy() and c.has_target() and c.target_position() == c.pickup["at"] and c.target_colour() == Rave.PICK_COLOUR, "the target is Mati's kerb, in the pickup's amber")
 	_ok(_director.targeted() == c and c.stop_spot() == Vector3.INF and c.target_label(50) == "50 m", "the director points at the night; no stop assist; the arrow says metres")
 	_ok(b.visible and b.position == c.pickup["side"] and b.pattern == Beacon.Pattern.DASHED and is_equal_approx(b._ring_radius, Rave.PICK_R) and b._person.visible
@@ -610,7 +610,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_ok(_is(Rave.Stage.PICKUP), "stopped a metre outside the ring is not at Mati's")
 	_park()
 	_frames(1.2)
-	_ok(_is(Rave.Stage.MEET) and _radio.station == 3 and _calls.paused, "stopped in the ring: Mati is in, the radio on MORDOR FM, the calls still held")
+	_ok(_is(Rave.Stage.MEET) and _radio.station == 3 and _calls._held(), "stopped in the ring: Mati is in, the radio on MORDOR FM, the calls still held")
 
 	# The meeting point.
 	var m: Dictionary = c.meeting
@@ -666,7 +666,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_frames(Rave.RESULT_LIFE - 3.0)
 	_ok(_hud.card == "NIE DZIŚ", "the out card waits its 12 s")
 	_frames(4.0)
-	_ok(c.idle() and _hud.card == "" and not _director.busy() and not _calls.paused, "then closes by itself: idle, the calls back as they were")
+	_ok(c.idle() and _hud.card == "" and not _director.busy() and not _calls._held(), "then closes by itself: idle, the calls back as they were")
 	_ok(c.night_spot == c.night_spots()[(c.night_spots().find(spot0) + 1) % c.night_spots().size()], "the next night spot after a secret rave's result")
 
 	# A full night: three right answers, in; the cash for the club.
@@ -696,7 +696,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_ok(c.idle() and _hud.card == "" and _entered == [["SEKRETNY RAVE", "SECRET RAVE"]] and _wallet.money == money - Rave.ENTRY, "PŁACĘ with cash: the club opens once, the ticket is taken")
 	_ok(not _toast("Za mało gotówki"), "no cash toast")
 	_ok(c.night_spot == c.night_spots()[(c.night_spots().find(spot0) + 1) % c.night_spots().size()], "the next night spot after a secret rave's result")
-	_ok(not _calls.paused, "the calls are back")
+	_ok(not _calls._held(), "the calls are back")
 
 	# PŁACĘ without cash, POTEM, and the card's own 45 s.
 	_entered.clear()
@@ -741,7 +741,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	for row: Array in [[Rave.Stage.PICKUP, false], [Rave.Stage.MEET, true], [Rave.Stage.DRIVE, false]]:
 		_calls.paused = bool(row[1])
 		_reach(int(row[0]))
-		_ok(_is(int(row[0])) and _calls.paused, "the ✕ night at stage %d is on" % int(row[0]))
+		_ok(_is(int(row[0])) and _calls._held(), "the ✕ night at stage %d is on" % int(row[0]))
 		var kept: int = c.night_spot
 		money = _wallet.money
 		_hud.toasts.clear()
@@ -749,7 +749,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 		_hud.abort_pressed.emit()
 		_ok(c.idle() and _hud.status == "" and not b.visible and not c._hood.visible and not c.has_target() and not _director.busy(), "the ✕ at stage %d ends the night: idle, nothing up" % int(row[0]))
 		_ok(_toast("Mati łapie nocny autobus") and "rave_ziomek:abort" in _talk.said and _wallet.money == money, "with the night-bus words and Mati's goodbye, nothing paid")
-		_ok(_calls.paused == bool(row[1]) and c.night_spot == kept, "the calls as they were (%s) and the night spot kept" % [row[1]])
+		_ok(_calls.paused == bool(row[1]) and _calls._held() == bool(row[1]) and c.night_spot == kept, "the calls as they were (%s) and the night spot kept" % [row[1]])
 		_ok(c.tease_in >= Rave.NEXT_TEASE.x and c.tease_in <= Rave.NEXT_TEASE.y, "LEKTI far off again")
 	_calls.paused = false
 
@@ -758,7 +758,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_pos = Vector3.ZERO
 	_hud.toasts.clear()
 	var shown: int = _hud.shown
-	_ok(c.meet_in_person("rave") and _is(Rave.Stage.MEET) and _calls.paused and c.kind == "rave" and not c.password.is_empty() and not c.heard, "met at his block: Mati is in, on to the meeting point, a password drawn, not heard")
+	_ok(c.meet_in_person("rave") and _is(Rave.Stage.MEET) and _calls._held() and c.kind == "rave" and not c.password.is_empty() and not c.heard, "met at his block: Mati is in, on to the meeting point, a password drawn, not heard")
 	_nights += 1
 	_ok(not _toast("Jedź po Matiego") and _hud.shown == shown and c.quest_spot == c.night_spot and c._hood.visible, "no call, no offer and no pickup")
 	_ok(not c.meet_in_person("rave") and not c.ring() and not c.tease() and c.busy_kind("rave") and not c.busy_kind("smola"), "no second meeting or call during the night; busy for the rave only")

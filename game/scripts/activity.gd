@@ -45,7 +45,10 @@ extends Node
 ## own on top of the kit's phases (the prompt behind a rival is idle; the challenge to the result is
 ## the run), whose challenge waits for another activity's request card beside the road
 ## (`request_up`), and whose target the camera does not turn to (`target_source`) and is the main
-## line's at times of its own (`main_target`).
+## line's at times of its own (`main_target`); missions.gd (the rescue line, the last to join) the first
+## whose call rings on the HUD's context button and waits there (`pill_call`, `_show_ring`), whose
+## stages are numbered for a script outside the kit (police.gd reads its State), and the one the
+## other activities' runs hold or restart (`rescue_calls`, `other_started`, `other_ended`).
 
 const Beacon := preload("res://scripts/beacon.gd")
 const Access := preload("res://scripts/access.gd")
@@ -74,6 +77,22 @@ var free_now: Callable = func() -> bool: return true
 ## Another activity's request card that leaves the player free is up (`offer_busy` off: Podwózka's,
 ## the trend job's). The director sets this too; a rival's challenge waits for it (rivals.gd, PT-15).
 var request_up: Callable = func() -> bool: return false
+## Another activity's run holds the rescue calls now (its `rescue_calls` is HOLD or RESTART): the director
+## sets this too; the rescue line's countdown stands still while it is true (missions.gd).
+var calls_held: Callable = func() -> bool: return false
+## Another activity's call waits on the context button now (`pill_call`: the rescue line's WEZWANIE):
+## the director sets this too; the ride app keeps off the button, the trend job's calls wait.
+var call_waiting: Callable = func() -> bool: return false
+## The rescue line (another activity with `pill_call`) has its card or run up (`rescue_busy`), or sends
+## the player somewhere (`rescue_aimed`): the director sets these too. The ride app, the jobs and the
+## trend job ask them where they asked missions.gd by name before it joined the director (M1; the
+## pacer, TD-3, is to settle which of its stages hold which activity).
+var rescue_busy: Callable = func() -> bool: return false
+var rescue_aimed: Callable = func() -> bool: return false
+## The director's ears: this activity's run starts (`start`) and ends (`_end` from the run). It tells
+## every other activity (`other_started`, `other_ended`).
+var on_start: Callable
+var on_end: Callable
 ## Testing aid: calls at any hour.
 var force_hours := false
 
@@ -110,6 +129,18 @@ var offer_busy := true
 ## whose cards sit beside the road while the drive goes on: `_run_tick` keeps running under them
 ## and the ✕ still drops the run (a passenger's question, a result that goes once the car is off).
 var cards_hold := true
+## What the rescue line's countdown to its next call (missions.gd) does while this one's run is on:
+## GO_ON counts on (a call that comes due waits for the message director: the tours, the boat race);
+## HOLD stands still and goes on from where it stood after the run (the friends' nights, the tow);
+## RESTART puts off a call that rings at the start, stands still, and counts from NEXT_CALL again at
+## the end (the side jobs and the races). The pacer (TD-3) is to own these numbers.
+enum RescueCalls { GO_ON, HOLD, RESTART }
+var rescue_calls := RescueCalls.GO_ON
+## The call rings on the HUD's context button and waits there until it is pressed, not as the
+## phone's call card (`_show_ring`; with `card_life` INF it has no time limit): the rescue line's
+## WEZWANIE. While it rings nothing else of the kit phones (main.gd `_free_block`), the ride app
+## keeps off the button and the trend job's calls wait (`call_waiting`).
+var pill_call := false
 
 var phase := Phase.IDLE
 ## Seconds in this phase, or since the run's last card went up.
@@ -289,14 +320,20 @@ func ring() -> bool:
 		return false
 	phase = Phase.RING
 	_t = 0.0
+	_show_ring()
+	_log("call ringing")
+	return true
+
+
+## How the call shows: the phone's call card from `_call_card` (its buttons come here: `own_card`),
+## the news ticker out, a buzz. A subclass with `pill_call` shows its own (the rescue line's pill).
+func _show_ring() -> void:
 	var c := _call_card()
 	var about: Array = c.get("about", ["", ""])
 	hud.show_call(str(c.get("who", "")), str(about[0]), colour, str(about[1]), str(c.get("face", "")))
 	_own_card()
 	hud.ticker_out()
 	Access.buzz(60, 0.6)
-	_log("call ringing")
-	return true
 
 
 func _offer() -> void:
@@ -322,12 +359,15 @@ func meet() -> bool:
 	return true
 
 
-## It starts (the offer taken, a meeting, a test flag).
+## It starts (the offer taken, a meeting, a test flag). The director hears it before `_begin`, so a
+## call another activity puts off goes before this run shows anything (missions.gd `other_started`).
 func start() -> void:
 	phase = Phase.RUN
 	_t = 0.0
 	_run_t = 0.0
 	_card_up = false
+	if on_start.is_valid():
+		on_start.call()
 	_begin()
 
 
@@ -452,7 +492,9 @@ func finish() -> void:
 
 ## Back to idle, the next call `cool` s away. Everything this activity put up comes down here,
 ## so a subclass can't leave a status line, a card or a beacon behind.
+## A run that ends tells the director after `_ended` (a call or an offer turned down does not).
 func _end(cool: float) -> void:
+	var ran := phase == Phase.RUN
 	hide_status()
 	_card_up = false
 	_hide_own_card()
@@ -461,6 +503,8 @@ func _end(cool: float) -> void:
 	_t = 0.0
 	_next_call = _session + cool
 	_ended()
+	if ran and on_end.is_valid():
+		on_end.call()
 
 
 func _log(msg: String) -> void:
@@ -563,4 +607,15 @@ func drive_player() -> bool:
 
 ## Back to idle: a subclass clears its own run here.
 func _ended() -> void:
+	pass
+
+
+## Another activity's run has just started (`a`, the director's notice, before its `_begin`): the
+## rescue line puts off its ringing call for a run that restarts the calls (`a.rescue_calls`).
+func other_started(_a: Node) -> void:
+	pass
+
+
+## Another activity's run has just ended (`a`, after its `_ended`).
+func other_ended(_a: Node) -> void:
 	pass

@@ -622,7 +622,6 @@ func _make(g: LaneGraph, origin: Array) -> void:
 	_m.hud = _hud
 	_m.dialogue = talk
 	_m.wallet = _wallet
-	_m.missions = _calls
 	_m.map = map
 	_m.graph = g
 	_m.traffic = _traffic
@@ -640,6 +639,7 @@ func _make(g: LaneGraph, origin: Array) -> void:
 	_director.add(_m)
 	_other = Activity.new()
 	_director.add(_other)
+	_director.add(_calls)  # the rescue line joins last, as in main.gd (M1)
 
 
 func _vehicle() -> Array:
@@ -785,7 +785,7 @@ func _quit(label: String) -> void:
 	_ok(_police.stood_down == down + 1, "the ✕ in %s: the chase called off" % label)
 	_clean("the ✕ in " + label)
 	_tune("the ✕ in " + label)
-	_ok(not _calls.paused, "the ✕ in %s: the rescue calls back" % label)
+	_ok(not _calls._held(), "the ✕ in %s: the rescue calls back" % label)
 	_ok(m._cordon.is_empty(), "the ✕ in %s: the cordon gone" % label)
 
 
@@ -878,7 +878,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	for k in Meet.RING_CARS:
 		dice.randi()
 	_ok(m._rng.state == dice.state, "the dice: JADĘ! draws the crowd's places and a shape for each parked car")
-	_ok(_calls.paused and m.nights == 1, "the rescue calls held, the night counted")
+	_ok(_calls._held() and m.nights == 1, "the rescue calls held, the night counted")
 	_ok(_toast("Jedź na spot") and _hud.card == "", "the toast, the cards down")
 	_ok(m._scene.visible and _traffic.count("add_parked_car") == Meet.RING_CARS and m._racers.size() == Meet.RING_CARS + 2, "the scene is up with RING_CARS parked cars from the traffic, Darek and Lena")
 	_ok(m._bawarka.visible and m._porsze.visible and m._crowd.visible, "Darek's Bawarka, Lena's Porszę and the crowd are up")
@@ -1046,7 +1046,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_clean("OK after the win")
 	var next_call := dice.randf_range(Meet.NEXT_CALL.x, Meet.NEXT_CALL.y)
 	_ok(m._rng.state == dice.state and m.call_in == next_call, "the dice: the night's end draws the next call once (%.0f s)" % m.call_in)
-	_ok(not _calls.paused and _wallet.keep.has("wnrc_member"), "the rescue calls as they were")
+	_ok(not _calls._held() and _wallet.keep.has("wnrc_member"), "the rescue calls as they were")
 	_ok(_director.may_start(_other), "after the night the director lets another start")
 	_ok(_hud.broadcast == 0, "no press went unowned")
 
@@ -1089,7 +1089,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_tune("off the strip")
 	_hud.press(1)
 	_clean("KONIEC")
-	_ok(_calls.paused, "the rescue calls held before the night stay held")
+	_ok(_calls.paused and _calls._held(), "the rescue calls held before the night stay held")
 
 	# Night 3: the spin, the nitro, the card nobody presses.
 	_calls.paused = false
@@ -1109,7 +1109,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_ok(m.stage == Meet.Stage.RESULT and _hud.card == "POZA PASEM", "the card waits")
 	_frames(2.0)
 	_clean("the card left")
-	_ok(_placed == placed0 and not _calls.paused, "the card nobody presses ends the night and does not rematch")
+	_ok(_placed == placed0 and not _calls._held(), "the card nobody presses ends the night and does not rematch")
 
 	# 9. The ✕ in every stage under way.
 	_calls.paused = false

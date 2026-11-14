@@ -1,4 +1,4 @@
-extends Node
+extends "res://scripts/activity.gd"
 ## Rescue missions. A call comes in for a person at a real place on the map: the
 ## roof of a named building, a named street, a park or square, a Vistula beach or
 ## sandbar. The player gets there, holds still next to them for a moment, then
@@ -8,19 +8,25 @@ extends Node
 ## a rescue pays złoty and respect (wallet.gd). Loop 2e: no card at the start: a call comes in
 ## during play (FIRST_CALL seconds in, then NEXT_CALL after each one ends or is put off) and
 ## waits as the HUD's context button, WEZWANIE, until the player opens it.
+##
+## M1 (TD-1's last activity): an activity of the kit (activity.gd). Its stages (`State`, which
+## police.gd reads by number) ride on the kit's phases: IDLE and CLOSED are IDLE (the countdown,
+## `_idle_tick`), RINGING is RING (the pill: `pill_call`, `_show_ring`, no time limit), OFFER is
+## OFFER (the call card), PICKUP, DROPOFF and RESULT are RUN (`_run_tick`, the result card). Its
+## two cards are its own (`hud.own_card`) and wait for a press. The director (activities.gd) knows
+## it: the arrow, the stop assist and the M and K keys find it there, and another activity's run
+## holds its countdown or puts its call off (activity.gd `rescue_calls`) where each of them wrote
+## `paused` and called `close()` before.
 
 ## Loop 3g-2 (police.md 8.1): a call was accepted (police.gd ends a chase).
 signal accepted
 
 const Gamepad := preload("res://scripts/gamepad.gd")  # the pad's A in the call toast (2026-11-03)
-const Access := preload("res://scripts/access.gd")
 const Haptics := preload("res://scripts/haptics.gd")
-const Beacon := preload("res://scripts/beacon.gd")
 const Lines := preload("res://scripts/quest_lines.gd")
 ## Where the people wait and the hospitals (the second half of this script until TD-1's step M0).
 const Places := preload("res://scripts/rescue_places.gd")
 
-const StopAssist := preload("res://scripts/stop_assist.gd")
 const HOLD_TIME := 1.5
 const CAR_REACH := StopAssist.RING          # stop this close to the person...
 const CAR_STOPPED := StopAssist.STOP_SPEED  # ...going no faster than this (m/s)
@@ -39,23 +45,27 @@ const TITLES := ["STREET RESCUE", "ROOF RESCUE", "RIVER RESCUE", "PARK RESCUE"]
 ## Loop 2e: the cards, the status and the toasts in Polish, the English under it.
 const TITLES_PL := ["RATUNEK NA ULICY", "RATUNEK NA DACHU", "RATUNEK NAD WISŁĄ", "RATUNEK W PARKU"]
 enum State { IDLE, OFFER, CLOSED, PICKUP, DROPOFF, RESULT, RINGING }
+## The kit's phase of each stage (the `state` setter keeps them in step).
+const PHASE_OF := {State.IDLE: Phase.IDLE, State.CLOSED: Phase.IDLE, State.RINGING: Phase.RING, State.OFFER: Phase.OFFER,
+		State.PICKUP: Phase.RUN, State.DROPOFF: Phase.RUN, State.RESULT: Phase.RUN}
 ## Loop 2e: seconds of play before the first call comes in, and between calls (first guesses;
 ## docs/DEMO.md 6.2 puts the first rescue at 4:00 in the scripted first ten minutes).
 const FIRST_CALL := 60.0
 const NEXT_CALL := 90.0
 
-var map: Node3D
-var hud: CanvasLayer
-var state := State.IDLE
+var state := State.IDLE:
+	set(s):
+		state = s
+		phase = PHASE_OF[s]
 var number := 0
 var total_score := 0
 ## Where the player is, kept by tick(); new calls come from places near it.
 var player := Vector3.ZERO
-## A street race or a side job is on: no calls until it ends (one activity at a time).
+## main.gd holds the calls: the phone bench's minute, a boat ride (an activity's run holds them
+## through the director: activity.gd `rescue_calls`, `calls_held`). While held the countdown stands still
+## and nothing opens a call (`_held`).
 var paused := false
-## Set by the game: the wallet, everybody's lines, and where the vehicle's cabin is.
-var wallet: Node
-var dialogue: Node
+## Set by the game: where the vehicle's cabin is (the kit's `wallet` and `dialogue` too).
 var vehicle_anchor: Callable
 ## Who needs rescuing: first names only.
 const NAMES := ["Ania", "Kuba", "Ola", "Tomek", "Zosia", "Bartek", "Magda", "Piotrek", "Ewa", "Marek"]
@@ -83,15 +93,26 @@ var held := false
 ## driving: places the car reaches). Off for --mission and the checks, which ask for a kind.
 var line_split := false
 var _flying := false
+## The vehicle's speed (m/s), kept by tick() for the run's frame.
+var _speed := 0.0
 ## G12 part 2: the next call is a helicopter's (the HELI list's "rescue call" request), once.
 var _want_heli := false
 ## G12c: the next call is the peacock's (the HELI list's "Pan Paw" request), once.
 var _want_peacock := false
 
 
-func setup(map_node: Node3D, data: Dictionary, world: Node3D, hud_layer: CanvasLayer) -> void:
+## The places from `data` (the map's roads, landmarks and pois), the two beacons in `world`, the
+## HUD's buttons. Not the kit's `setup(world)`: the line has no beacon of the kit's and no clock of
+## its own; it is ticked by main.gd (`tick`) at its old place in the frame.
+func setup(map_node: Node3D, data := {}, world: Node3D = null, hud_layer: CanvasLayer = null) -> void:
 	map = map_node
 	hud = hud_layer
+	tag = "rescue"
+	colour = PICKUP_COLOUR
+	card_life = INF  # the pill and the call card wait until pressed
+	pill_call = true
+	flown = true  # either vehicle: the arrow shows in the air too, and main.gd's autopilot has its own drive
+	set_process(false)
 	places.map = map_node
 	var t0 := Time.get_ticks_msec()
 	places.collect_road_names(data["roads"])
@@ -124,18 +145,15 @@ func setup(map_node: Node3D, data: Dictionary, world: Node3D, hud_layer: CanvasL
 	# setting changes mid-call (it was fixed at load before).
 	_dropoff.setup(DROPOFF_COLOUR, Color("#f2efe8"))
 	_dropoff.waving = false
-	hud.card_pressed.connect(_on_card)
 	hud.pill_pressed.connect(func(): offer(number + 1))
-	hud.abort_pressed.connect(func():
-		if has_target():
-			_finish(false, ["Akcja odwołana.", "You called the rescue off."]))
+	hud.abort_pressed.connect(abort)
 
 
 # --- the flow -------------------------------------------------------------------
 
 ## Shows the call card for mission n.
 func offer(n: int) -> void:
-	if places.hospitals.is_empty() or paused:
+	if places.hospitals.is_empty() or _held():
 		return
 	number = n
 	_mission = _make(n)
@@ -151,6 +169,7 @@ func offer(n: int) -> void:
 			PackedStringArray(["ACCEPT", "SKIP", "LATER"]), PICKUP_COLOUR, false,
 			"Call %d · %s" % [n, TITLES[_mission["kind"]].to_lower()],
 			"%s About %s of you. Get them to the hospital in %s." % [_mission["gloss"], where[1], _clock(limit)])
+	hud.own_card(self)
 
 
 const COMPASS_PL := ["na północ", "na północny wschód", "na wschód", "na południowy wschód", "na południe", "na południowy zachód", "na zachód", "na północny zachód"]
@@ -166,8 +185,12 @@ func _where(at: Vector3) -> Array:
 	return ["ok. %d m %s" % [metres, COMPASS_PL[i]], "%d m %s" % [metres, COMPASS_EN[i]]]
 
 
-## Offers mission n and accepts it at once (the --mission flag).
-func start(n: int) -> void:
+## Offers mission n and accepts it at once (the --mission flag). With no n: the kit's start, the
+## call taken (`accept`: the director hears it, then `_begin`).
+func start(n := -1) -> void:
+	if n < 0:
+		super.start()
+		return
 	offer(n)
 	print("rescue call %d: %s" % [n, _mission.get("short", "?")])
 	accept()
@@ -176,6 +199,11 @@ func start(n: int) -> void:
 func accept() -> void:
 	if _mission.is_empty():
 		return
+	start()
+
+
+## The call taken (ACCEPT, TRY AGAIN, the guide, the flag): to the person, the clock from here.
+func _begin() -> void:
 	state = State.PICKUP
 	_limit = _limit_for(_mission)
 	_time_left = _limit
@@ -235,7 +263,7 @@ func ring_in(seconds: float) -> bool:
 ## G12 part 2: a rescue call may be asked for now (the HELI list's request): no call on, ringing
 ## or counting down past the guide's hold, and calls not switched off.
 func can_request() -> bool:
-	return (state == State.CLOSED or state == State.RINGING) and not calls_off and not held and not paused \
+	return (state == State.CLOSED or state == State.RINGING) and not calls_off and not held and not _held() \
 			and not places.hospitals.is_empty()
 
 
@@ -300,6 +328,11 @@ static func warm_haptics() -> bool:
 func _ring() -> void:
 	if places.hospitals.is_empty():
 		return
+	ring()
+
+
+## The kit's ring, as the rescue line's: the pill, a toast, a lighter buzz (not the phone's card).
+func _show_ring() -> void:
 	state = State.RINGING
 	if hud.get("messages") != null:
 		hud.messages.call_rang()
@@ -315,26 +348,41 @@ func _ring() -> void:
 	print("rescue call ringing (buzz %.1f ms)" % ((Time.get_ticks_usec() - t0) / 1000.0))
 
 
-## Keyboard: M answers the card's first button (or opens the next call).
-func primary() -> void:
-	if paused:
-		return
-	match state:
-		State.OFFER, State.RESULT:
-			_on_card(0)
-		State.CLOSED, State.RINGING:
-			offer(number + 1)
+## Keyboard: M answers the card's first button (the director asks, activities.gd `primary`). True
+## while its card is up, held or not (the key goes no further, as before the kit).
+func primary() -> bool:
+	if state != State.OFFER and state != State.RESULT:
+		return false
+	if not _held():
+		_on_card(0)
+	return true
 
 
-## Keyboard: N skips a call, or moves on to the next call from a result.
-func secondary() -> void:
-	if paused:
-		return
-	match state:
-		State.OFFER:
-			_on_card(1)
-		State.RESULT:
-			_on_card(0 if _success else 1)
+## M with nothing else to take it (main.gd `_primary`, after the context button): the next call on
+## the card now, a ringing one too.
+func call_now() -> void:
+	if not _held() and (state == State.CLOSED or state == State.RINGING):
+		offer(number + 1)
+
+
+## Keyboard: K skips a call, or moves on to the next call from a result (activities.gd `secondary`).
+func secondary() -> bool:
+	if state != State.OFFER and state != State.RESULT:
+		return false
+	if not _held():
+		_on_card(1 if state == State.OFFER else (0 if _success else 1))
+	return true
+
+
+## The line's cards are its own (`hud.own_card`): the HUD sends their buttons here.
+func card_pressed(index: int) -> void:
+	_on_card(index)
+
+
+## The ✕ on the status line: the rescue is called off (the failure card).
+func abort() -> void:
+	if has_target():
+		_finish(false, ["Akcja odwołana.", "You called the rescue off."])
 
 
 ## Card buttons: an offer is ACCEPT / SKIP / LATER, a success NEXT CALL / FREE ROAM,
@@ -360,6 +408,16 @@ func _on_card(index: int) -> void:
 
 func has_target() -> bool:
 	return state == State.PICKUP or state == State.DROPOFF
+
+
+## The camera's look at a new target (main.gd `_new_target`).
+func target_source() -> String:
+	return "rescue"
+
+
+## The minimap's star in place of a pin while the first minutes' guide runs, as before the kit.
+func main_target(guide: bool) -> bool:
+	return guide
 
 
 func target_position() -> Vector3:
@@ -390,25 +448,40 @@ func needs_heli() -> bool:
 
 
 ## Runs the clock and checks for pick-up and hand-over. `pos` is the vehicle
-## (the bottom of the skids for the helicopter), `speed` its speed in m/s.
+## (the bottom of the skids for the helicopter), `speed` its speed in m/s. main.gd calls it at the
+## line's old place in its frame; it runs the kit's frame (`_idle_tick`, `_run_tick`).
 func tick(dt: float, pos: Vector3, speed: float, flying: bool) -> void:
 	player = pos
 	_flying = flying
-	if state == State.CLOSED and not paused and _call_in >= 0.0 and not calls_off and not held:
-		# Sweep 2: start the haptic engine a moment before the call (it stops itself when idle).
-		if _call_in >= HAPTICS_LEAD and _call_in - dt < HAPTICS_LEAD:
-			warm_haptics()
-		_call_in -= dt
-		if _call_in < 0.0:
-			# The message director (hud-messages.md, F 2026-11-11): a rescue rings only when the
-			# HUD's call gate says so (free roam, settled, spaced from any other call); till then
-			# it waits at zero.
-			if hud != null and hud.has_method("call_ok") and not hud.call_ok():
-				_call_in = 0.0
-			else:
-				_ring()
+	_speed = speed
+	_process(dt)
+
+
+## The countdown to the next call (CLOSED), while nothing holds it.
+func _idle_tick(dt: float) -> void:
+	if state != State.CLOSED or _held() or _call_in < 0.0 or calls_off or held:
+		return
+	# Sweep 2: start the haptic engine a moment before the call (it stops itself when idle).
+	if _call_in >= HAPTICS_LEAD and _call_in - dt < HAPTICS_LEAD:
+		warm_haptics()
+	_call_in -= dt
+	if _call_in < 0.0:
+		# The message director (hud-messages.md, F 2026-11-11): a rescue rings only when the
+		# HUD's call gate says so (free roam, settled, spaced from any other call); till then
+		# it waits at zero.
+		if hud != null and hud.has_method("call_ok") and not hud.call_ok():
+			_call_in = 0.0
+		else:
+			_ring()
+
+
+## The run: the clock, the pick-up and the hand-over (nothing on the result card).
+func _run_tick(dt: float) -> void:
 	if not has_target():
 		return
+	var pos := player
+	var speed := _speed
+	var flying := _flying
 	if not calls_off:
 		_time_left -= dt
 	if _time_left <= 0.0:
@@ -501,6 +574,7 @@ func _finish(success: bool, why: Array) -> void:
 				_mission["hospital"]["name"], _clock(_limit - _time_left), _clock(_limit), score, total_score, pay],
 				PackedStringArray(["NEXT CALL", "FREE ROAM"]), _dropoff_colour(), false, "Rescued",
 				"Safe and sound at the hospital: time, score and pay above.")
+		hud.own_card(self)
 		Access.buzz(120, 0.8)
 		if dialogue != null:
 			dialogue.say(_dropoff, "Ratownik", "rescue_done", "peacock" if _mission.get("peacock", false) else "", 5.0, _dropoff_colour(), 3.6)
@@ -510,6 +584,7 @@ func _finish(success: bool, why: Array) -> void:
 		hud.show_card("ZA PÓŹNO", "%s Punkty razem: %d." % [why[0], total_score],
 				PackedStringArray(["TRY AGAIN", "NEXT CALL", "FREE ROAM"]), FAIL_COLOUR, false, "Too late",
 				"%s Score total %d." % [why[1], total_score])
+		hud.own_card(self)
 
 
 ## The call for mission n: a place of its kind a short trip from the player
@@ -554,6 +629,47 @@ func _limit_for(m: Dictionary) -> float:
 	var climb := maxf(0.0, pos.y - map.ground_height(pos.x, pos.z)) / 5.0
 	var t := 35.0 + route / (17.0 if m["heli"] else 9.5) + climb
 	return ceilf(t / 5.0) * 5.0
+
+
+# --- the director and the guide (M1) ------------------------------------------------
+
+## main.gd's holds (`paused`) or another activity's run (`calls_held`, its `rescue_calls`).
+func _held() -> bool:
+	return paused or bool(calls_held.call())
+
+
+## Another activity's run starts (the director, before its `_begin`): a job or a race puts the call
+## off (the pill, the card and the status line down, NEXT_CALL again), as each did by name.
+func other_started(a: Node) -> void:
+	if a.rescue_calls == RescueCalls.RESTART:
+		close()
+
+
+## ...and when it ends, the next call is NEXT_CALL away again.
+func other_ended(a: Node) -> void:
+	if a.rescue_calls == RescueCalls.RESTART:
+		close()
+
+
+## The questline friend walked up (main.gd): a call still ringing is put off.
+func put_off() -> void:
+	if state == State.RINGING:
+		close()
+
+
+## The guide's questions (first10.gd): the pill is up; the result card is up.
+func ringing() -> bool:
+	return state == State.RINGING
+
+
+func result_up() -> bool:
+	return state == State.RESULT
+
+
+## The guide's replay takes the ringing call: the next call's card, accepted at once.
+func answer() -> void:
+	offer(number + 1)
+	accept()
 
 
 # --- helpers --------------------------------------------------------------------

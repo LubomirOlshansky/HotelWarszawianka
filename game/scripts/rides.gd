@@ -30,7 +30,6 @@ extends "res://scripts/activity.gd"
 const Rules := preload("res://scripts/ride_rules.gd")
 const Props := preload("res://scripts/props.gd")
 const Models := preload("res://scripts/models.gd")
-const Missions := preload("res://scripts/missions.gd")
 const GpsMoments := preload("res://scripts/gps_moments.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Jobs := preload("res://scripts/jobs.gd")
@@ -108,7 +107,6 @@ const SHIRTS := ["#3b8f5a", "#2f6fb5", "#7a4fb5", "#c9b458", "#4c6650", "#5d6f8a
 enum Stage { NONE, PICKUP, RIDE, RESULT }
 
 var bubbles: Control
-var missions: Node
 var rivals: Node
 var jobs: Node
 var graph: LaneGraph
@@ -230,11 +228,12 @@ var _drive_counts: Array[int] = []
 var drive_toasts := 0
 
 
-## main.gd hands in the nodes (hud, bubbles, dialogue, wallet, missions, rivals, jobs, graph,
+## main.gd hands in the nodes (hud, bubbles, dialogue, wallet, rivals, jobs, graph,
 ## traffic, map, car, tod, weather) and `map_data` before this.
 func setup(world: Node3D) -> void:
 	tag = "podwózka"
 	colour = COLOUR
+	rescue_calls = RescueCalls.RESTART  # a ride puts off a rescue call and counts it again from its end (the director)
 	dark = Color(SHIRTS[0])
 	card_life = OFFER_LIFE
 	is_job = true
@@ -416,7 +415,6 @@ func start_ride(n: int) -> bool:
 	_log("the car at %d,%d heading %d°, the passenger at %d,%d (%d m), the pin at %d,%d" % [roundi(at.x), roundi(at.y),
 			roundi(rad_to_deg(atan2(heading.x, -heading.y))), roundi(r["kerb"].x), roundi(r["kerb"].y),
 			roundi(at.distance_to(r["kerb"])), roundi(r["pin"].x), roundi(r["pin"].z)])
-	missions.close()
 	_show_offer(r)
 	return true
 
@@ -453,8 +451,9 @@ func _tick(dt: float) -> void:
 		_river_step(RIVER_BUDGET)
 	if phase != Phase.OFFER:
 		return
-	# A rescue call opened over the request, or anything else starting, takes it away.
-	if not _calls_quiet() or (jobs != null and jobs.side_busy()) or (rivals != null and rivals.busy()):
+	# A rescue call opened over the request (its card or run: the director's `rescue_busy`), or a job
+	# or a race starting, takes it away.
+	if bool(rescue_busy.call()) or (jobs != null and jobs.side_busy()) or (rivals != null and rivals.busy()):
 		_end(0.0)  # their card is up now, not ours
 	elif rivals != null and rivals.calling():
 		_withdraw()  # PT-15: her prompt is a strip, not a card: ours must go, not hide behind it
@@ -517,7 +516,7 @@ func _on_bump(_collider: Object, speed: float) -> void:
 ## ringing (WEZWANIE waiting on the context button) doesn't stop a request card: taking the
 ## ride puts the call off, as any job does.
 func _free() -> bool:
-	if flying or away or car.in_water or missions.has_target() or not _calls_quiet():
+	if flying or away or car.in_water or bool(rescue_busy.call()):
 		return false
 	if mission_on.is_valid() and bool(mission_on.call()):
 		return false
@@ -530,18 +529,14 @@ func _free() -> bool:
 	return rivals == null or not (rivals.busy() or rivals.calling())
 
 
-func _calls_quiet() -> bool:
-	return missions.state == Missions.State.CLOSED or missions.state == Missions.State.RINGING
-
-
 func _idle_tick(dt: float) -> void:
 	var free := _free() and _played >= FIRST_OFFER
 	if not free:
 		_set_pill(false)
 		_pill_at = -1.0
 		return
-	# The context button is the call's while one rings.
-	_set_pill(missions.state == Missions.State.CLOSED)
+	# The context button is the call's while one rings (the director's `call_waiting`).
+	_set_pill(not bool(call_waiting.call()))
 	_offer_in -= dt
 	if guide_hold:
 		_offer_in = maxf(_offer_in, HOLD_GAP)  # a beat comes first; a request a while after it
@@ -878,8 +873,6 @@ func _begin() -> void:
 
 ## Other activities stop offering themselves while a ride runs.
 func _claim() -> void:
-	missions.close()
-	missions.paused = true
 	hud.hide_pill()
 	hud.hide_challenge()
 
@@ -893,8 +886,6 @@ func _ended() -> void:
 	_asking = false
 	_rider.visible = false
 	hud.set_minimap_route(PackedVector2Array(), COLOUR)
-	missions.paused = false
-	missions.close()
 	_remove_ghost()
 	_ride = {}
 	_offer_in = _rng.randf_range(OFFER_GAP.x, OFFER_GAP.y)

@@ -30,7 +30,6 @@ const Activity := preload("res://scripts/activity.gd")
 const Activities := preload("res://scripts/activities.gd")
 const Fakes := preload("res://tools/fakes.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
-const Missions := preload("res://scripts/missions.gd")
 const Stories := preload("res://scripts/taxi_stories.gd")
 const DT := 1.0 / 60.0
 const SEED := 20261113
@@ -74,14 +73,6 @@ class PlayDialogue extends Fakes.Dialogue:
 	func _init() -> void:
 		say_words = ["Słowo", "A word"]
 		line_words = ["Komentarz", "A comment"]
-
-
-## missions.gd's side the rides ask: the state of its rescue calls and whether one has a target.
-class PlayCalls extends Fakes.Calls:
-	var state: int = Missions.State.CLOSED
-	var target := false
-	func has_target() -> bool:
-		return target
 
 
 ## rivals.gd's side: a race on, a rival's prompt, the race finishes ({name, node}).
@@ -349,7 +340,7 @@ var hud: Fakes.Hud
 var bubbles: Fakes.Bubbles
 var dialogue: PlayDialogue
 var wallet: Fakes.Wallet
-var missions: PlayCalls
+var missions: Fakes.Calls
 var rivals: PlayRivals
 var jobs: PlayJobs
 var car: PlayCar
@@ -564,7 +555,7 @@ func _rig(full := true, kept := {}, opts := {}) -> void:
 	wallet = Fakes.Wallet.new()
 	wallet.money = 100
 	wallet.keep = kept.duplicate(true)
-	missions = PlayCalls.new()
+	missions = Fakes.Calls.new()
 	rivals = PlayRivals.new()
 	jobs = PlayJobs.new()
 	car = PlayCar.new()
@@ -609,7 +600,6 @@ func _rig(full := true, kept := {}, opts := {}) -> void:
 	q.bubbles = bubbles
 	q.dialogue = dialogue
 	q.wallet = wallet
-	q.missions = missions
 	q.rivals = rivals if full else null
 	q.jobs = jobs
 	q.graph = _graph
@@ -644,6 +634,7 @@ func _rig(full := true, kept := {}, opts := {}) -> void:
 	other.setup(world)
 	other.set_process(false)
 	director.add(other, func() -> bool: return true)
+	director.add(missions)
 	if full:
 		q.mission_on = func() -> bool: return _mission or director.busy()
 		q.club_doors = func() -> Array: return clubs
@@ -740,9 +731,9 @@ func _gate(name: String, on: bool) -> void:
 		"water":
 			car.in_water = on
 		"rescue target":
-			missions.target = on
+			missions.put(Activity.Phase.RUN if on else Activity.Phase.IDLE, on)
 		"rescue offer":
-			missions.state = Missions.State.OFFER if on else Missions.State.CLOSED
+			missions.put(Activity.Phase.OFFER if on else Activity.Phase.IDLE)
 		"a side job":
 			jobs.side = on
 		"a race":
@@ -987,13 +978,13 @@ func _b_idle() -> void:
 		_secs(2.0 / 60.0)
 		_ok(hud.pill == "ride", "the button did not come back after %s" % gate)
 	# A rescue call ringing: the button is the call's, a request still comes.
-	missions.state = Missions.State.RINGING
+	missions.put(Activity.Phase.RING)
 	_secs(2.0 / 60.0)
 	_ok(hud.pill == "" and q.can_request(), "a ringing call: the button down (it is the call's), a request still possible")
 	_ok(_offer_now(), "a request comes while a rescue call rings")
 	_secs(0.5)
 	_ok(_on_offer(), "the ringing call did not take the request away")
-	missions.state = Missions.State.CLOSED
+	missions.put(Activity.Phase.IDLE)
 	hud.press(1)
 	_ok(_is_idle(), "SKIP closed the request")
 	_secs(2.0 / 60.0)
@@ -1136,7 +1127,7 @@ func _c_request() -> void:
 	# The ✕ does nothing; the calls are not touched.
 	var closed0 := missions.closed
 	_abort()
-	_ok(_on_offer() and not missions.paused and missions.closed == closed0, "the ✕ did something to the request, or the calls were touched")
+	_ok(_on_offer() and not missions._held() and missions.closed == closed0, "the ✕ did something to the request, or the calls were touched")
 	# Nobody answers.
 	var money := wallet.money
 	var toasts := _toast_n()
@@ -1191,12 +1182,12 @@ func _c_request() -> void:
 	for gate: String in ["mission", "water", "ringing"]:
 		_offer_now()
 		if gate == "ringing":
-			missions.state = Missions.State.RINGING
+			missions.put(Activity.Phase.RING)
 		else:
 			_gate(gate, true)
 		_secs(0.5)
 		_ok(_on_offer() and hud.card == "PODWÓZKA · NOWY KURS", "%s took the request away" % gate)
-		missions.state = Missions.State.CLOSED
+		missions.put(Activity.Phase.IDLE)
 		_gate("mission", false)
 		_gate("water", false)
 		hud.press(1)
@@ -1277,7 +1268,7 @@ func _d_pickup() -> void:
 	_ok(_in_stage(Rides.Stage.PICKUP) and q.busy() and director.current() == q and director.busy_tag() == "podwózka",
 			"ACCEPT: the way to the passenger, busy, the director sees it")
 	_ok(not director.may_start(other) and director.targeted() == q and q.has_target(), "ACCEPT: nobody else may start, the arrow is the ride's")
-	_ok(hud.card == "" and missions.paused and missions.closed == closed0 + 1, "ACCEPT: no card, the calls held and the line closed")
+	_ok(hud.card == "" and missions._held() and missions.closed == closed0 + 1, "ACCEPT: no card, the calls held and the line closed")
 	_ok(hud.pills_hidden == pills0 + 1 and hud.challenges_hidden == ch0 + 1, "ACCEPT: the button and the challenge taken down")
 	_ok(_last_toast() == "Kurs przyjęty: %s czeka" % nm and _last_toast_en() == "Ride accepted: %s is waiting" % nm, "ACCEPT: the toast reads %s" % _last_toast())
 	_ok(q._rides == rides0 + 1, "ACCEPT: one more ride counted")
@@ -1421,7 +1412,7 @@ func _d_pickup() -> void:
 	_ok(_in_stage(Rides.Stage.RESULT), "the cancelled card went before its 12 s")
 	var closed1 := missions.closed
 	_secs(0.2)
-	_ok(_is_idle() and hud.card == "" and not missions.paused, "the cancelled card stayed up, or the calls stayed held")
+	_ok(_is_idle() and hud.card == "" and not missions._held(), "the cancelled card stayed up, or the calls stayed held")
 	_ok(q._ride == {} and _stage() == Rides.Stage.NONE and hud.status_title == "" and not q._beacon.visible, "back to idle: the ride is gone")
 	_ok(q._offer_in >= 75.0 and q._offer_in <= 120.0, "the next request's clock is 75 to 120 s: %.1f" % q._offer_in)
 	_ok(missions.closed == closed1 + 1, "the calls' line was closed once more at the end (%d / %d)" % [missions.closed, closed1])
@@ -1570,7 +1561,7 @@ func _e_ride() -> void:
 	_secs(11.7)
 	_ok(_in_stage(Rides.Stage.RESULT), "the result card went before its 12 s")
 	_secs(0.3)
-	_ok(_is_idle() and hud.card == "" and not missions.paused and not q._beacon.visible, "after the ride: a card, the calls held or the ring")
+	_ok(_is_idle() and hud.card == "" and not missions._held() and not q._beacon.visible, "after the ride: a card, the calls held or the ring")
 	_ok(q.primary() == false and q.secondary() == false, "the keys do something while idle")
 	# The card goes once the car is 25 m off; M and a tap close it.
 	var r2 := _through_to_card(n)

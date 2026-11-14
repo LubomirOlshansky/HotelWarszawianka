@@ -687,29 +687,40 @@ func _escort() -> void:
 
 # --- J. the keys ---------------------------------------------------------------------------------------
 
+## The M key as main.gd presses it for the line (`_primary`): the card's first button, or with no
+## card up the next call. The line on the kit answers the director (`primary`) and gives the rest to
+## `call_now`; before the kit its `primary` did both.
+func _key_m() -> void:
+	if m.has_method("call_now"):
+		if not bool(m.call("primary")):
+			m.call("call_now")
+	else:
+		m.call("primary")
+
+
 func _keys() -> void:
 	m.quiet_start(1.0)
-	m.primary()
+	_key_m()
 	_expect(int(m.state) == Missions.State.OFFER and m.number == 1, "J M while counting down: the next call's card")
 	m.secondary()
 	_expect(int(m.state) == Missions.State.OFFER and m.number == 2, "J K on a card: SKIP")
-	m.primary()
+	_key_m()
 	_expect(int(m.state) == Missions.State.PICKUP, "J M on a card: ACCEPT")
 	m.secondary()
-	m.primary()
+	_key_m()
 	_expect(int(m.state) == Missions.State.PICKUP, "J the keys do nothing under way")
 	hud.abort_pressed.emit()
 	m.secondary()
 	_expect(int(m.state) == Missions.State.OFFER and m.number == 3, "J K on a failure's card: NEXT CALL")
 	m.paused = true
-	m.primary()
+	_key_m()
 	m.secondary()
 	_expect(int(m.state) == Missions.State.OFFER and m.number == 3, "J the keys do nothing while paused")
 	m.paused = false
 	hud.press(2)
 	_ticks(90.5)
 	_expect(int(m.state) == Missions.State.RINGING, "J 90 s after LATER the next call rings")
-	m.primary()
+	_key_m()
 	_expect(int(m.state) == Missions.State.OFFER and m.number == 4, "J M while ringing: the call's card")
 	hud.pad_mode = true
 	hud.press(2)

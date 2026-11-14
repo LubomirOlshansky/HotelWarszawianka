@@ -64,13 +64,6 @@ class PlayDialogue extends Fakes.Dialogue:
 		say_words = ["Słowo", "A word"]
 
 
-## missions.gd's side: whether a rescue has a target.
-class PlayCalls extends Fakes.Calls:
-	var target := false
-	func has_target() -> bool:
-		return target
-
-
 class PlayRivals extends Node:
 	var on := false
 	func busy() -> bool:
@@ -224,7 +217,7 @@ class Rig:
 	var bubbles: Fakes.Bubbles
 	var dialogue: PlayDialogue
 	var wallet: Fakes.Wallet
-	var missions: PlayCalls
+	var missions: Fakes.Calls
 	var rivals: PlayRivals
 	var car: PlayCar
 	var tod: PlayTod
@@ -339,7 +332,7 @@ func _rig(full := true, kept := {}, opts := {}) -> Rig:
 	s.wallet = Fakes.Wallet.new()
 	s.wallet.money = 100
 	s.wallet.keep = kept.duplicate(true)
-	s.missions = PlayCalls.new()
+	s.missions = Fakes.Calls.new()
 	s.rivals = PlayRivals.new()
 	s.car = PlayCar.new()
 	s.tod = PlayTod.new()
@@ -375,7 +368,6 @@ func _rig(full := true, kept := {}, opts := {}) -> Rig:
 	q.bubbles = s.bubbles
 	q.dialogue = s.dialogue
 	q.wallet = s.wallet
-	q.missions = s.missions
 	q.rivals = s.rivals if full else null
 	q.graph = _graph
 	q.traffic = s.traffic
@@ -397,6 +389,7 @@ func _rig(full := true, kept := {}, opts := {}) -> Rig:
 		q.roundup = s.round
 		q.others_busy = func() -> bool: return _mission
 		q.courier.life = s.life
+	s.director.add(s.missions)
 	q.set_process(false)
 	q.set_physics_process(false)
 	q._rng.seed = SEED
@@ -1087,7 +1080,7 @@ func _gate(name: String, on: bool) -> void:
 		"a questline":
 			_mission = on
 		"a rescue":
-			r.missions.target = on
+			r.missions.put(Activity.Phase.RUN if on else Activity.Phase.IDLE, on)
 		"a ride":
 			r.rides.on = on
 		"the trend job":
@@ -1127,7 +1120,7 @@ func _s_c_order() -> void:
 	var d := r.director
 	_ok(int(q.phase) == Activity.Phase.RUN and int(q.job) == 1 and q.busy() and q.own_busy() and q.side_busy() and d.job_on(), "C: RUN, KEBAB, busy, side job on")
 	_ok(d.current() == q and d.busy_tag() == "jobs" and d.targeted() == null and not q.pointing(), "C: the director's current, no target")
-	_ok(r.missions.paused and r.missions.closed == closed0 + 1 and r.hud.pills_hidden == pills0 + 1 and r.hud.challenges_hidden == chal0 + 1,
+	_ok(r.missions._held() and r.missions.closed == closed0 + 1 and r.hud.pills_hidden == pills0 + 1 and r.hud.challenges_hidden == chal0 + 1,
 			"C: the rescue calls wait, the pill and challenge go")
 	var any_vis := false
 	for st in q._stands:
@@ -1203,7 +1196,7 @@ func _s_c_order() -> void:
 	var kinds1: int = r.wallet.kinds.size()
 	_press(1)
 	_ok(_stage() == 0 and int(q.job) == 0 and r.hud.card == "" and bool(_stand(int(o["stand"]))["cool"]), "C: NOT NOW: idle at once, the card down, the stand cool")
-	_ok(r.bubbles.hushed.back() == _stand(int(o["stand"]))["node"] and not r.missions.paused and r.missions.closed == closed1 + 1, "C: NOT NOW: the vendor hushed, the calls ring again")
+	_ok(r.bubbles.hushed.back() == _stand(int(o["stand"]))["node"] and not r.missions._held() and r.missions.closed == closed1 + 1, "C: NOT NOW: the vendor hushed, the calls ring again")
 	_ok(r.wallet.kinds.size() == kinds1 and r.hud.toasts.size() == toasts1 and r.hud.route_owner != "jobs", "C: NOT NOW: no pay, no toast, no route")
 	_rig()
 	q = r.q
@@ -1451,7 +1444,7 @@ func _s_e_results() -> void:
 	var o1: Dictionary = res["o"]
 	var closed0: int = r.missions.closed
 	_press(0)
-	_ok(_stage() == 0 and r.hud.card == "" and not q._beacon.visible and not r.missions.paused and r.missions.closed == closed0 + 1 \
+	_ok(_stage() == 0 and r.hud.card == "" and not q._beacon.visible and not r.missions._held() and r.missions.closed == closed0 + 1 \
 			and r.hud.route_owner != "jobs" and not q.pointing() and int(q.next_stand) == -1 and not bool(_stand(int(o1["stand"]))["cool"]), "E: OK: idle, the ring hidden, the calls ring, no pointer")
 	_at(FAR)
 	_f()
@@ -3683,7 +3676,7 @@ func _s_n_sloik() -> void:
 	var started0: int = q.orders_started()
 	q.start_sloik(0, _lone_station(0))
 	_sync()
-	_ok(q.orders_started() == started0 + 1 and r.missions.closed > closed0 and r.missions.paused and r.hud.pills_hidden > pills0 and r.hud.challenges_hidden > chal0 \
+	_ok(q.orders_started() == started0 + 1 and r.missions.closed > closed0 and r.missions._held() and r.hud.pills_hidden > pills0 and r.hud.challenges_hidden > chal0 \
 			and not bool(q._places_shown), "N: a run's card counts the order and claims the places as a kebab's does")
 	_f()
 	_ok(r.hud.button_words[0] == "JEDZIEMY! · 9" and r.hud.button_words_en[0] == "GO! · 9", "N: the run's count-down")

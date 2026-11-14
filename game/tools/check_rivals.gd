@@ -137,14 +137,6 @@ class PlayWallet extends Fakes.Wallet:
 		changed.emit(money, respect, amount)
 
 
-## missions.gd's `has_target` (the rescue calls have somebody to go to).
-class PlayCalls extends Fakes.Calls:
-	var target := false
-
-	func has_target() -> bool:
-		return target
-
-
 ## car.gd as rivals.gd drives and asks it: the lights, the autopilot's fields, the top speed.
 class PlayCar extends Fakes.Car:
 	var flashes := 0
@@ -184,7 +176,7 @@ var _world: Node3D
 var _cam: Camera3D
 var _hud: PlayHud
 var _bub: PlayBubbles
-var _calls: PlayCalls
+var _calls: Fakes.Calls
 var _wallet: PlayWallet
 var _tod: PlayTod
 var _car: PlayCar
@@ -294,7 +286,7 @@ func _new_world(auto: bool, pace := WIN_PACE, night := false, at := HOME) -> voi
 	root.add_child(_hud)
 	_bub = PlayBubbles.new()
 	root.add_child(_bub)
-	_calls = PlayCalls.new()
+	_calls = Fakes.Calls.new()
 	root.add_child(_calls)
 	_wallet = PlayWallet.new()
 	root.add_child(_wallet)
@@ -325,7 +317,6 @@ func _new_world(auto: bool, pace := WIN_PACE, night := false, at := HOME) -> voi
 	_rv.traffic = _traffic
 	_rv.hud = _hud
 	_rv.bubbles = _bub
-	_rv.missions = _calls
 	_rv.map = _map
 	_rv.car = _car
 	_rv.setup(_world, _data)
@@ -336,6 +327,7 @@ func _new_world(auto: bool, pace := WIN_PACE, night := false, at := HOME) -> voi
 	root.add_child(_probe)
 	_probe.set_process(false)
 	_dir.add(_probe)
+	_dir.add(_calls)
 
 
 func _free_world() -> void:
@@ -452,7 +444,7 @@ func _ended(what: String) -> void:
 	_ok(not _rv._beacon.visible, "%s: the beacon is hidden" % what)
 	_ok(_dir.targeted() == null, "%s: nothing is the target" % what)
 	_ok(not _rv.has_target(), "%s: has_target() is false" % what)
-	_ok(not _calls.paused, "%s: the rescue calls are free again" % what)
+	_ok(not _calls._held(), "%s: the rescue calls are free again" % what)
 	_ok(not _rv.racing(), "%s: racing() is false" % what)
 	_ok(not _rv.in_race(), "%s: in_race() is false" % what)
 	_eq(_dir.grounded(), [], "%s: the helicopter is not refused" % what)
@@ -507,7 +499,7 @@ func _a_win() -> void:
 	_eq(_hud.challenge, "", "the challenge: the HUD's prompt is down")
 	_ok(_hud.challenges_hidden > 0, "the challenge: the prompt was taken down")
 	_ok(_hud.banner.begins_with("WYŚCIG "), "the challenge: the banner names the race (%s)" % _hud.banner)
-	_ok(_calls.paused, "the challenge: the rescue calls wait")
+	_ok(_calls._held(), "the challenge: the rescue calls wait")
 	_eq(_calls.closed, closed0 + 1, "the challenge: the rescue line was closed once")
 	_ok(_hud.pills_hidden > pills0, "the challenge: the context button was taken down")
 	_ok(not _hud.card_showing(), "the challenge: no card is up")
@@ -599,7 +591,7 @@ func _a_win() -> void:
 	_ok(_hud.routes_cleared > 0 and _hud.route.is_empty(), "the result: the minimap's way is gone")
 	_eq(_dir.grounded(), [], "the result: the helicopter is free again")
 	_ok(not _rv.main_race(), "the result: no main race")
-	_ok(_calls.paused, "the result: the rescue calls still wait")
+	_ok(_calls._held(), "the result: the rescue calls still wait")
 	_ok(not _probe.free_now.call(), "the result: another activity may not start under the card")
 	_ok(not _rv.drive_player(), "the result: nobody drives the player")
 	_eq(_rv.stop_spot(), INF3, "the result: no stop ring")
@@ -778,7 +770,7 @@ func _d_give_up() -> void:
 	_eq(int(_rv.state), 2, "the cross in the challenge does nothing")
 	_eq(_rv.phase, Activity.Phase.RUN, "the cross in the challenge: still RUN")
 	_ok(not _hud.card_showing(), "the cross in the challenge: no card")
-	_ok(_calls.paused, "the cross in the challenge: the rescue calls still wait")
+	_ok(_calls._held(), "the cross in the challenge: the rescue calls still wait")
 	_ok(_hud.banner != "", "the cross in the challenge: the banner stays")
 	_ok(_reach(3, 400), "the countdown")
 	_run_frames(50)
@@ -859,7 +851,7 @@ func _e_holds() -> void:
 				_ok(_rv.free_now.call(), "a request card: free_now is true")
 				_ok(_rv.request_up.call(), "a request card: request_up is true"))
 	_hold("flying", func() -> void: _flying = true, func() -> void: _flying = false)
-	_hold("a rescue call with a target", func() -> void: _calls.target = true, func() -> void: _calls.target = false)
+	_hold("a rescue call with a target", func() -> void: _calls.put(Activity.Phase.RUN, true), func() -> void: _calls.put(Activity.Phase.IDLE))
 	_hold("a card up", func() -> void: _hud.show_card("INNA KARTA", "tekst", PackedStringArray(["OK"]), Color.WHITE),
 			func() -> void: _hud.hide_card())
 	_hold("the full map open", func() -> void: _hud.map_open = true, func() -> void: _hud.map_open = false)
@@ -1018,7 +1010,7 @@ func _g_locked() -> void:
 	_eq(_bub.said.back() if _bub.said.size() > 0 else "", MIKE_REFUSE, "Mike refuses in his own words")
 	_eq(_wallet.payments.size(), 0, "nothing is paid")
 	_eq(_calls.closed, 0, "the rescue line was left alone")
-	_ok(not _calls.paused, "the rescue calls are free")
+	_ok(not _calls._held(), "the rescue calls are free")
 	_eq(_hud.shown, 0, "no card")
 	_eq(_rv._races, 0, "no race was begun")
 	_ok(not _rv.has_target() and not _rv.racing(), "no target, not racing")
@@ -1096,7 +1088,7 @@ func _h_final() -> void:
 	_eq(_rv.start_marker(), Vector2.INF, "the final: the marker is gone")
 	_eq(_hud.banner, "TRZY MOSTY", "the final: the banner")
 	_ok(_bub.said.has(SEBA_CHALLENGE), "Seba challenges")
-	_ok(_calls.paused and _calls.closed == 1, "the final: the rescue calls wait")
+	_ok(_calls._held() and _calls.closed == 1, "the final: the rescue calls wait")
 	_ok(not _probe.free_now.call(), "the final: another activity may not start")
 	_eq(_dir.grounded(), GROUNDED, "the final: the helicopter is refused")
 	_cross()
@@ -1483,7 +1475,7 @@ func _m_rollup() -> void:
 	_frame()
 	_rv.call_first()
 	_run_frames(30)
-	_calls.target = true
+	_calls.put(Activity.Phase.RUN, true)
 	_run_frames(2)
 	_ok(not _rv.first_waiting(), "a rescue starts: she gives up")
 	_eq(_rv.first_result, "declined", "the rescue: declined")

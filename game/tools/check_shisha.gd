@@ -381,7 +381,6 @@ func _make() -> void:
 	_night.hud = _hud
 	_night.dialogue = talk
 	_night.wallet = _wallet
-	_night.missions = _calls
 	_night.map = map
 	_night.rng_seed = 7
 	_night.vehicle = func() -> Array: return [_pos, _kmh, false]
@@ -392,6 +391,7 @@ func _make() -> void:
 	_director = Activities.new()
 	_director.world_free = func() -> bool: return _world_free
 	_director.add(_night)
+	_director.add(_calls)
 
 
 func _step(seconds: float) -> void:
@@ -484,7 +484,7 @@ func _play(digest: PackedStringArray) -> void:
 	_ok(c.phase == Activity.Phase.OFFER and _hud.card == "📞 IVAN" and _hud.buttons == 2 and _hud.card_is(c) and "Szisza dziś?" in _hud.body,
 			"answered: Ivan's offer, two buttons, the night's own card (%s)" % _hud.card)
 	_ok(c.busy() and _director.busy() and _director.busy_tag() == "shisha" and _director.current() == c, "from the offer card on the night is busy (the kit's one meaning)")
-	_ok(not _calls.paused, "but the rescue calls are not held yet")
+	_ok(not _calls._held(), "but the rescue calls are not held yet")
 	_hud.toasts.clear()
 	_hud.press(1)
 	_ok(c.idle() and _toast("następnym razem ty stawiasz") and not _toast("Odrzucono"), "the offer declined: idle, with Ivan's words")
@@ -502,7 +502,7 @@ func _play(digest: PackedStringArray) -> void:
 	_hud.toasts.clear()
 	_hud.press(0)
 	_ok(_at(Shisha.Stage.TO_IVAN), "JADĘ!: on the way to Ivan")
-	_ok(_calls.paused, "the rescue calls are held")
+	_ok(_calls._held(), "the rescue calls are held")
 	_ok(_toast("Jedź po Ivana"), "the toast sends the player")
 	_ok(c.has_target() and c.target_position() == Vector3(300.0, 1.5, 0.0) and c.target_colour() == Shisha.PICK_COLOUR, "the target is Ivan's kerb, in the pickup's amber")
 	_ok(_director.targeted() == c and c.stop_spot() == Vector3.INF, "the director points at the night; no stop assist at the kerb (as before the kit)")
@@ -550,7 +550,7 @@ func _play(digest: PackedStringArray) -> void:
 	_bubbles.said.clear()
 	_hud.abort_pressed.emit()
 	_ok(c.idle() and _hud.status == "" and not b.visible and not c.has_target() and not _director.busy(), "the ✕ on the way there ends the night: idle, nothing up")
-	_ok(_toast("nocny autobus") and _wallet.money == money and not _calls.paused and c.nights == 0, "with the night-bus words, nothing paid, the calls back, no night counted")
+	_ok(_toast("nocny autobus") and _wallet.money == money and not _calls._held() and c.nights == 0, "with the night-bus words, nothing paid, the calls back, no night counted")
 	_step(1.0)
 	_ok(_bubbles.said.size() == 1 and _bubbles.said[0] == _line("abort"), "and his goodbye is still said (%s)" % [_bubbles.said])
 
@@ -588,7 +588,7 @@ func _play(digest: PackedStringArray) -> void:
 	_step(1.6)
 	_ok(c.inside() and _entered.size() == 1 and is_same(_entered[0], c.votes), "stopped within %d m of the kerb: the three go in, the lounge opens once with the night's votes" % Shisha.DOOR_R)
 	_ok(not c.has_target() and not b.visible and not m.visible and _hud.status == "", "inside: no target, no ring, no status line")
-	_ok(c.busy() and _director.current() == c and _calls.paused, "busy inside, the calls still held")
+	_ok(c.busy() and _director.current() == c and _calls._held(), "busy inside, the calls still held")
 	_hud.abort_pressed.emit()
 	_ok(c.inside(), "the ✕ does nothing inside (the lounge has its own way out)")
 	_bubbles.said.clear()
@@ -624,13 +624,14 @@ func _play(digest: PackedStringArray) -> void:
 	_ok(_hud.card == "DYM U SENATORKA" and _hud.card_is(c) and _hud.stacked and _hud.buttons == 1
 			and ("Za kurs: %d zł" % int(want[0])) in _hud.body and "„Forhend”" in _hud.body, "the result card is the night's own, stacked, with the pay and the pipe's name")
 	_ok(not c.has_target() and not b.visible and _hud.status == "", "no target, no ring, no status line under it")
-	_ok(c.busy() and _calls.paused, "still busy until the card closes")
+	_ok(c.busy() and _calls._held(), "still busy until the card closes")
 	_ok(c.nights == 1 and c.last_pay == {"zl": want[0], "respect": want[1], "outcome": "smoke", "score": 7}, "one night done, its pay kept (%s)" % [c.last_pay])
 	_hud.abort_pressed.emit()
 	_ok(_at(Shisha.Stage.RESULT) and _hud.card != "", "the ✕ does nothing on the result card")
 	_hud.press(0)
 	_ok(c.idle() and _hud.card == "" and not _director.busy(), "OK closes it: idle")
 	_ok(_calls.paused, "the calls were off before the night and are off after it")
+	_ok(_calls._held(), "the calls are still held after the night")
 	_calls.paused = false
 	_ok(c.call_in >= Shisha.NEXT_CALL.x and c.call_in <= Shisha.NEXT_CALL.y and b.pattern == Beacon.Pattern.DASHED and b._colour == Shisha.PICK_COLOUR,
 			"the next call drawn, the ring a friend's again")
@@ -659,7 +660,7 @@ func _play(digest: PackedStringArray) -> void:
 	_step(Shisha.RESULT_LIFE - 1.0)
 	_ok(_hud.card == "DYM U SENATORKA", "the card stays for its life")
 	_step(1.5)
-	_ok(c.idle() and _hud.card == "" and c.nights == 2 and not _calls.paused, "then closes by itself: idle, two nights, the calls back on")
+	_ok(c.idle() and _hud.card == "" and c.nights == 2 and not _calls._held(), "then closes by itself: idle, two nights, the calls back on")
 
 	# A night they left early: half the pay, no respect, Ivan's sigh.
 	c.enter_lounge = func(v: Dictionary) -> void: _entered.append(v)

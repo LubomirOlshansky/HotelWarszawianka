@@ -22,7 +22,7 @@ extends "res://scripts/activity.gd"
 ##
 ## Bubbles in the car come from data/shisha.json "scenes", one line every SCENE_GAP s (they go on
 ## after the end: the goodbye is said on the way off). ✕ gives up on the way there (Ivan catches
-## the night bus). The calls (missions.gd) are paused while it runs.
+## the night bus). The rescue calls (missions.gd) wait while it runs (`rescue_calls` HOLD).
 ##
 ## Cost: a 0.25 s step (the stops, the status line and the bubbles are read on it, as before the
 ## kit); during the quest the kit's beacon as the pickup ring, on the way to the lounge a second
@@ -84,7 +84,6 @@ enum Stage { TO_IVAN, TO_BOGDAN, TO_LOUNGE, INSIDE, DROP_BOGDAN, DROP_IVAN, RESU
 
 const TICK := 0.25
 
-var missions: Node
 var graph: LaneGraph
 ## Into the lounge (main.gd `_enter_lounge`: lounge.gd) with the votes dictionary, empty: the lounge
 ## asks them at the table and fills this same dictionary (the result card reads the pipe's name).
@@ -124,13 +123,12 @@ var _queue: Array = []
 var _scene_t := 0.0
 ## Met in person: Ivan gets in at once (`meet`).
 var _met := false
-var _holds_calls := false
-var _calls_were := false
 
 
 func _init() -> void:
 	tag = "shisha"
 	colour = COLOUR
+	rescue_calls = RescueCalls.HOLD  # the rescue calls wait for the night and go on after it (the director)
 	dark = Color("#16161a")
 	card_life = RING_LIFE
 	clock = func() -> float: return 20.0
@@ -411,10 +409,6 @@ func _met_words() -> String:
 
 ## JADĘ!: Ivan waiting at his block (or, met in person, already in the car).
 func _begin() -> void:
-	_calls_were = missions.paused if missions != null else false
-	if missions != null:
-		missions.paused = true
-	_holds_calls = true
 	_hold_t = 0.0
 	if _met:
 		_met = false
@@ -573,10 +567,6 @@ func _quit_words() -> Array:
 
 ## Back to idle: the rescue calls again, the ring a friend's again, Ivan's next call drawn.
 func _ended() -> void:
-	if _holds_calls:
-		_holds_calls = false
-		if missions != null:
-			missions.paused = _calls_were
 	_pickup_ring()
 	_met = false
 	_hold_t = 0.0

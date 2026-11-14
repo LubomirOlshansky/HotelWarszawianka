@@ -35,7 +35,6 @@ const Activity := preload("res://scripts/activity.gd")
 const Activities := preload("res://scripts/activities.gd")
 const Fakes := preload("res://tools/fakes.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
-const Missions := preload("res://scripts/missions.gd")
 const Crowds := preload("res://scripts/crowds.gd")
 const CityLife := preload("res://scripts/city_life.gd")
 const CoffeeRun := preload("res://scripts/coffee_run.gd")
@@ -118,14 +117,6 @@ class SlopeMap extends Fakes.FlatMap:
 		return 2.0 + 0.001 * x + 0.0005 * z
 	func terrain_height(x: float, z: float) -> float:
 		return 5.0 + 0.0007 * x - 0.0003 * z
-
-
-## missions.gd's side: the state of the rescue line, whether a rescue has a target.
-class PlayCalls extends Fakes.Calls:
-	var state: int = Missions.State.CLOSED
-	var target := false
-	func has_target() -> bool:
-		return target
 
 
 ## rides.gd's `idle()` (by `state`: 0 idle, 1 a request up, 2 a ride on) and `busy()`, rivals.gd's `busy()`.
@@ -281,7 +272,7 @@ var world: Node3D
 var hud: Fakes.Hud
 var dlg: Fakes.Dialogue
 var wallet: Fakes.Wallet
-var calls: PlayCalls
+var calls: Fakes.Calls
 var rivals: PlayBusy
 var rides: PlayBusy
 var jobs: PlayJobs
@@ -391,7 +382,7 @@ func _rig(kept := {}) -> void:
 	wallet = Fakes.Wallet.new()
 	wallet.money = 100
 	wallet.keep = kept.duplicate()
-	calls = PlayCalls.new()
+	calls = Fakes.Calls.new()
 	rivals = PlayBusy.new()
 	rides = PlayBusy.new()
 	jobs = PlayJobs.new()
@@ -424,7 +415,6 @@ func _rig(kept := {}) -> void:
 	tj.hud = hud
 	tj.dialogue = dlg
 	tj.wallet = wallet
-	tj.missions = calls
 	tj.rivals = rivals
 	tj.jobs = jobs
 	tj.rides = rides
@@ -457,6 +447,7 @@ func _rig(kept := {}) -> void:
 	other.set_process(false)
 	other.setup(world)
 	director.add(other, func() -> bool: return true)
+	director.add(calls)
 	first_at = {"kawa": tj._kawa_at, "dz": tj._dz_at, "deska": tj._deski_at}
 	_calls_off()
 
@@ -761,9 +752,9 @@ func _gate(name: String, on: bool) -> void:
 		"water":
 			car.in_water = on
 		"rescue target":
-			calls.target = on
+			calls.put(Activity.Phase.RUN if on else Activity.Phase.IDLE, on)
 		"rescue offer":
-			calls.state = Missions.State.OFFER if on else Missions.State.CLOSED
+			calls.put(Activity.Phase.OFFER if on else Activity.Phase.IDLE)
 		"own job":
 			jobs.own = on
 		"a ride":
@@ -823,9 +814,9 @@ func _b_look() -> void:
 		_ok(_idle(), "SKIP closed it after: %s" % gate)
 	# A rescue call ringing does not hold a request back.
 	_rested()
-	calls.state = Missions.State.RINGING
+	calls.put(Activity.Phase.RING)
 	_ok(_until_phase(Activity.Phase.OFFER, 0.6), "a ringing rescue call does not hold a request back")
-	calls.state = Missions.State.CLOSED
+	calls.put(Activity.Phase.IDLE)
 	_press(1)
 	# The director's word counts, with a function and with another activity on.
 	_rested()
@@ -925,7 +916,7 @@ func _c_request() -> void:
 	var door: Vector2 = pick["door"]
 	_ok(door.distance_to(DEST) <= 300.0, "the address is within 300 m of Rondo Daszyńskiego")
 	_ok(jobs.picks[-1] == [0.0, 9000.0, tj.done * 7919 + 0 * 31 + 5 * 3], "the address picked from 0 to 9000 m with the slot's seed")
-	_ok(not calls.paused and calls.closed == c0, "the rescue line is not touched by a request")
+	_ok(not calls._held() and calls.closed == c0, "the rescue line is not touched by a request")
 	var toasts0 := hud.toasts.size()
 	_abort()
 	_ok(_is_phase(Activity.Phase.OFFER) and hud.card_is(tj), "the ✕ does nothing on a request")
@@ -980,7 +971,7 @@ func _d_run() -> void:
 	_ok(tj.phase == Activity.Phase.RUN and tj.stage == Trend.Stage.PICKUP and tj.busy(), "ACCEPT: RUN, PICKUP, busy")
 	_ok(director.current() == tj and director.busy_tag() == "trend job" and not director.may_start(other) and director.targeted() == tj, "the director: it is on, named, nobody else may start, it has the target")
 	_ok(hud.card == "", "no card up")
-	_ok(calls.paused and calls.closed == c0 + 1 and hud.pills_hidden == ph0 + 1 and hud.challenges_hidden == ch0 + 1, "the rescue line paused and closed once, the pill and the challenge taken down")
+	_ok(calls._held() and calls.closed == c0 + 1 and hud.pills_hidden == ph0 + 1 and hud.challenges_hidden == ch0 + 1, "the rescue line paused and closed once, the pill and the challenge taken down")
 	_ok(_toast("Na czasie: odbiór przy kolejce", "On trend: pick up by the queue"), "the toast")
 	_ok(_ring_is(ring, PINK, false), "the ring at the kerb, radius 12.5, pink, not waving")
 	_ok(tj.has_target() and _near(tj.target_position(), ring) and _near(tj.stop_spot(), ring), "the target and the stop spot are the pickup")
@@ -1046,7 +1037,7 @@ func _d_run() -> void:
 	_ok(hud.card == title and hud.side and hud.card_is(tj), "the result card is back beside the road, still the job's own")
 	var c1 := calls.closed
 	_press(0)
-	_ok(_idle() and not calls.paused and calls.closed == c1 + 1 and tj.order == {} and hud.card == "" and not _look()["vis"] \
+	_ok(_idle() and not calls._held() and calls.closed == c1 + 1 and tj.order == {} and hud.card == "" and not _look()["vis"] \
 			and is_equal_approx(tj._card_rest, tj._played + 2.5), "OK: idle, the rescue line free and closed once more, no order, no card, no ring, 2.5 s rest")
 	# Left alone: 10 s.
 	_slot_run(0)
@@ -1086,7 +1077,7 @@ func _d_run() -> void:
 			_by(tj.order["door_ring"], 100.0, 10.0)
 			_secs(0.5)
 		_abort()
-		_ok(_idle() and _toast("Anulowane", "Cancelled") and wallet.money == m0 and not calls.paused and tj.done == d0 and not _look()["vis"] \
+		_ok(_idle() and _toast("Anulowane", "Cancelled") and wallet.money == m0 and not calls._held() and tj.done == d0 and not _look()["vis"] \
 				and hud.status == "" and is_equal_approx(tj._card_rest, tj._played + 2.5), "the ✕ %s: idle, Anulowane, no pay, the line free, the ring and the status down, 2.5 s rest" % where)
 	_mark("D")
 
@@ -1399,9 +1390,9 @@ func _g_deska() -> void:
 	_press(1)
 	_rested()
 	tj._deski_at = tj._played
-	calls.state = Missions.State.RINGING
+	calls.put(Activity.Phase.RING)
 	_ok(_quiet(1.1), "no call while a rescue call rings")
-	calls.state = Missions.State.CLOSED
+	calls.put(Activity.Phase.IDLE)
 	_ok(_until_phase(Activity.Phase.RING, 0.6), "the call rings when the rescue line is quiet")
 	_press(1)
 	_rested()
@@ -1455,7 +1446,7 @@ func _g_deska() -> void:
 	var road := _deska_go()
 	var gr := _terrain(GATE)
 	_ok(tj.has_target() and _near(tj.target_position(), gr) and _ring_is(gr, TEAL, true), "JADĘ!: the target is the gate at the terrain height, the ring teal and waving")
-	_ok(_toast("Czwarty: na kort Deski, jedź albo leć", "Fourth player: to the DESKA court, drive or fly") and calls.paused and calls.closed == c0 + 1, "the toast, the rescue line paused and closed")
+	_ok(_toast("Czwarty: na kort Deski, jedź albo leć", "Fourth player: to the DESKA court, drive or fly") and calls._held() and calls.closed == c0 + 1, "the toast, the rescue line paused and closed")
 	_ok(tj.padel_busy() and not tj.padel_idle(), "padel_busy() from JADĘ! on")
 	_ok(is_equal_approx(float(tj.order["road"]), road), "the road is 1.3 times the straight way at the call")
 	_secs(0.5)
@@ -1548,7 +1539,7 @@ func _g_deska() -> void:
 	c0 = calls.closed
 	flying = false
 	_ok(tj.padel_meet() and _in_stage(Trend.Stage.RESULT) and _sub() == "match" and hud.card.begins_with("PADEL · PUNKT 1/3") and not tj.order["flew"], "padel_meet() from idle: the match at once, on cards")
-	_ok(calls.paused and calls.closed == c0 + 1 and tj.padel_busy(), "met: the rescue line paused and closed, padel_busy()")
+	_ok(calls._held() and calls.closed == c0 + 1 and tj.padel_busy(), "met: the rescue line paused and closed, padel_busy()")
 	_press(0)
 	_press(0)
 	_press(0)
@@ -2031,7 +2022,7 @@ func _j_kawa() -> void:
 	var c0 := calls.closed
 	_press(0)
 	_ok(_in_stage(Trend.Stage.DELIVER) and _sub() == "dock" and _near(tj.target_position(), _terrain(DOCK)) and tj.target_colour() == BROWN, "JADĘ: the dock leg, the dock at the terrain height, the brown target")
-	_ok(_toast("Kawowy rajd: jedź do stacji ROWERILO przy Elektrowni", "Coffee run: drive to the ROWERILO dock by Elektrownia") and calls.paused and calls.closed == c0 + 1, "the toast, the rescue line paused and closed")
+	_ok(_toast("Kawowy rajd: jedź do stacji ROWERILO przy Elektrowni", "Coffee run: drive to the ROWERILO dock by Elektrownia") and calls._held() and calls.closed == c0 + 1, "the toast, the rescue line paused and closed")
 	wallet.money = 500
 	_kawa_ride(false, true)
 	_ok(not tj.kawa_idle() and tj.idle(), "after a run Zuzia rests: idle() but not kawa_idle()")
@@ -2061,7 +2052,7 @@ func _j_kawa() -> void:
 	_frame()
 	flying = false
 	_ok(_idle() and _toast("Rower nie lata. Rajd przerwany.", "Bikes don't fly. The run is off.") and car.models.size() == n_models + 1 and car.model == "hatch" and tj._parked == null \
-			and wallet.money == m and not calls.paused, "flying on the bike: idle, the words, the car again, the copy gone, no pay")
+			and wallet.money == m and not calls._held(), "flying on the bike: idle, the words, the car again, the copy gone, no pay")
 	tj._played += 400.0
 	# The ✕ on the bike.
 	_rested()
