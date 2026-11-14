@@ -248,6 +248,7 @@ SITE_AREAS = [
     (-1115, 858, -1086, 892),   # church_barbara
     (-545, -600, -460, -535),   # church_misjonarze
     (-95, -780, -45, -725),   # church_misjonarze_radna
+    (-1040, -1432, -974, -1380),   # church_kapucyni_klasztor
     (1575.0, 1570.0, 1605.0, 1610.0),       # the sailing marina's club house (landmarks.gd MARINA_AT, unnamed in OSM)
     (1715.0, 1295.0, 1755.0, 1345.0),       # the Monkey Love garden (landmarks.gd MONKEY_AT, built as Małpi Love)
     (1385.0, 670.0, 1480.0, 900.0),         # Port Czerniakowski's spit: Majami, WTW and the halls (landmarks.gd PORT_TIP, PORT_WTW, PORT_HALLS)
