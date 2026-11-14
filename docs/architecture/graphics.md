@@ -58,7 +58,7 @@ rain reads these, never its own copy.
   Measure with `--probe` at 2868x1320 on the Mobile renderer.
 - **Scripts**: all systems about 1 ms a frame on the Mac at the spawn.
 - **Adreno shader budget**: the Android driver fails to link fragment shaders past a
-  control-flow ceiling. The lite building shader stands at 498 of about 508. Prefer `step`, `mix`,
+  control-flow ceiling. The lite building shader stands at 501 of 505 (2026-11-13; `check_shader_budget` prints the number, trust it over this line), and 15 of the 16 skin slots are taken (slot 1 is free). Prefer `step`, `mix`,
   ternaries and `all()`/`any()` over `if`; run `check_shader_budget.gd`. The next shader change to
   building must slim it first.
 - **Streaming**: a frame that loads a sector at most 33 ms; the main thread per frame at most 3 ms.

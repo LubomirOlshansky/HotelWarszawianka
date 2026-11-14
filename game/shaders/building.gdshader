@@ -418,7 +418,7 @@ const int M_PANE = 15;
 // floor bands, Rondo 1's fins, the hotel's white grid, Cosmopolitan's balcony slabs, dark
 // glass, gold glass, and an open frame (Rondo 1's crown: the panes are cut away).
 const int S_SAIL = 0;
-const int S_DIAMOND = 1;
+// 1 is free: the diamond grid had no building left (removed 2026-11-13); the next new skin takes it.
 const int S_BANDS = 2;
 const int S_FINS = 3;
 const int S_GRID = 4;
@@ -462,12 +462,6 @@ vec3 skin(int s, vec3 col, float u, float h, float top, out vec3 glow, out bool 
 		float hi = r > 0.86 ? 0.0 : 0.9;
 		frame = any(bvec3(fy < lo, fy > hi, fract(u / 1.5) < 0.05));
 		frame_col = white * (0.97 + 0.06 * hash12(vec2(floor(u / 1.5), level)));
-	} else if (s == S_DIAMOND) {
-		float d1 = fract((u + h) / 5.2);
-		float d2 = fract((u - h) / 5.2);
-		frame = any(bvec2(d1 < 0.08, d2 < 0.08));
-		frame_col = mix(silver, white, 0.5);
-		c *= 1.0 + 0.12 * (hash12(vec2(floor((u + h) / 5.2), floor((u - h) / 5.2))) - 0.5);
 	} else if (s == S_BANDS) {
 		frame = any(bvec2(fract(h / fh) < 0.3, fract(u / 1.5) < 0.1));
 		frame_col = silver;
