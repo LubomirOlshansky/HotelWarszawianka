@@ -1,5 +1,7 @@
 # Kościół św. Augustyna (St Augustine's church), ul. Nowolipki 18: spec
 
+**Provisional.** This model is built from a text description and LoD2 only, with no photo. Its front details, belfry and spire shape wait for a photo check (listed first in KEY-PLACES-NEED-PHOTOS).
+
 Site key `church_augustyn` in `game/scripts/landmarks.gd` (`_find_churches` finds it,
 `_build_church` hands it to `_build_augustyn`): the whole church is one model that replaces the
 kit church. Written 2026-11-14 from the church's published description (Wikipedia, "St.
