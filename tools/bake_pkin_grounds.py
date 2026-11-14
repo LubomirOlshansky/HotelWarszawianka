@@ -17,7 +17,7 @@ game/data/pkin_grounds.json:
 closed ways whose centre lies in it are kept. map_builder.gd draws the lots (asphalt for the big
 Plac Defilad lot, grey pavers for the kerbside lots along the Palace's service roads) and the bay
 lines, and a shrub bed with bushes on each scrub; it also draws every OSM `wall` inside `zone`
-as the low granite planter or retaining wall it is (PKIN_WALL), not a 1.9 m wall. `forecourt` is
+as the low granite planter or retaining wall it is (the palette's pkin_wall type), not a 1.9 m wall. `forecourt` is
 the open square before Teatr Studio's portico (F's photos, 2026-11-07): light granite with Plac
 Defilad's dark bands every 6 m (`bands`, in 6 m pieces so each sector owns its own), and no
 barrier line stands in it (OSM still maps the TR Warszawa site's old fence hard against the
