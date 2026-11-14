@@ -241,6 +241,8 @@ SITE_AREAS = [
     (1914, -1434, 2018, -1330),   # church_zwycieska
     (-1058, -1559, -985, -1487),   # church_cerkiew
     (-1609, -268, -1529, -188),   # church_nozykow
+    (-2650, -780, -2585, -695),   # church_rodziny_maryi
+    (1720, -1725, 1800, -1655),   # church_pallotyni
     (1575.0, 1570.0, 1605.0, 1610.0),       # the sailing marina's club house (landmarks.gd MARINA_AT, unnamed in OSM)
     (1715.0, 1295.0, 1755.0, 1345.0),       # the Monkey Love garden (landmarks.gd MONKEY_AT, built as Małpi Love)
     (1385.0, 670.0, 1480.0, 900.0),         # Port Czerniakowski's spit: Majami, WTW and the halls (landmarks.gd PORT_TIP, PORT_WTW, PORT_HALLS)
