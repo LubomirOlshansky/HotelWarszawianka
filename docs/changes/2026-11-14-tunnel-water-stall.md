@@ -1,0 +1,1 @@
+- Driving through the Wisłostrada tunnel under the river's edge no longer counts as falling into the water, so you are not stalled and towed there.

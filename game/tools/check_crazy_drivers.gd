@@ -10,7 +10,10 @@ extends SceneTree
 ##   3. 60 s of the real traffic with the view moving through the centre: crazy drivers appear,
 ##      never more than crazy_target and never two Pasatinis, the counts match, each of the right
 ##      kind and shape, in racer mode, on a lane, never over its top speed, and faster on average
-##      than the town cars round them;
+##      than the town cars round them; racer AI step 6b part 3 (crazy_route.gd, ticked by
+##      crazy_drivers.gd every frame): every crazy driver 5 s in the band or more has a fare and a
+##      plan (it used to wander with no route), some drive their racing line, and each one let go
+##      leaves its ride;
 ##   4. crazy_drivers.gd's tick: a cut-in near the player honks and makes one line; a second
 ##      cut-in by the same car honks again but makes no second line;
 ##   5. with crazy_target 0, none spawn.
@@ -220,6 +223,25 @@ func _check_traffic(g: LaneGraph, map: Node3D, digest: PackedStringArray) -> voi
 	var crazy_n := 0
 	var town_v := 0.0
 	var town_n := 0
+	# The crazy drivers' owner from the start (its fares: crazy_route.gd), its voice tested below.
+	var cd := CrazyDrivers.new()
+	var fsfx := FakeSfx.new()
+	root.add_child(fsfx)
+	var dlg := Dialogue.new()
+	var bubbles := FakeBubbles.new()
+	dlg.bubbles = bubbles
+	root.add_child(dlg)
+	root.add_child(bubbles)
+	cd.traffic = traffic
+	cd.sfx = fsfx
+	cd.dialogue = dlg
+	cd.set_process(false)
+	root.add_child(cd)
+	if cd.route == null:
+		problems.append("fares: crazy_drivers.gd made no route (crazy_route.gd)")
+	var since := {}
+	var unplanned := 0
+	var lined := {}
 	var frames := 60 * 60
 	for f in frames:
 		var u := float(f) / frames * (path.size() - 1)
@@ -228,9 +250,22 @@ func _check_traffic(g: LaneGraph, map: Node3D, digest: PackedStringArray) -> voi
 		var focus := Vector3(at.x, 0.0, at.y)
 		cam.global_transform = Transform3D(Basis.IDENTITY, focus + Vector3(0.0, 80.0, 60.0)).looking_at(focus, Vector3.UP)
 		traffic.player_pos = focus + Vector3(0.0, 0.0, 200.0)  # out of the way
+		if cd.route != null:
+			cd._process(1.0 / 60.0)
 		traffic.call("_process", 1.0 / 60.0)
 		if f % 30 == 0:
 			most = maxi(most, _crazy_ok(traffic, "frame %d" % f))
+			for d in traffic.drivers():
+				if d.crazy <= 0:
+					continue
+				if not since.has(d):
+					since[d] = f
+				if d.line != null:
+					lined[d] = true
+				if f - int(since[d]) >= 300 and cd.route != null:
+					var ride = cd.route.ride_of(d)
+					if ride == null or ride.fare < 0 or d.plan == null or d.route.is_empty():
+						unplanned += 1
 			for d in traffic.drivers():
 				if d.kind == Traffic.Kind.BUS or d.kind == Traffic.Kind.POLICE or d.v < 2.0 or d.in_conn:
 					continue
@@ -250,20 +285,11 @@ func _check_traffic(g: LaneGraph, map: Node3D, digest: PackedStringArray) -> voi
 	var tv := town_v / maxf(town_n, 1.0)
 	if crazy_n > 0 and cv < tv * 1.15:
 		problems.append("traffic: crazy drivers at %.1f m/s on average, town cars %.1f (want 15 %%+ faster)" % [cv, tv])
+	if unplanned > 0:
+		problems.append("fares: %d looks at a crazy driver 5 s in the band or more without a fare and a plan" % unplanned)
+	if lined.is_empty():
+		problems.append("fares: no crazy driver drove its racing line in 60 s")
 	# The tick: a cut-in next to the player.
-	var cd := CrazyDrivers.new()
-	var fsfx := FakeSfx.new()
-	root.add_child(fsfx)
-	var dlg := Dialogue.new()
-	var bubbles := FakeBubbles.new()
-	dlg.bubbles = bubbles
-	root.add_child(dlg)
-	root.add_child(bubbles)
-	cd.traffic = traffic
-	cd.sfx = fsfx
-	cd.dialogue = dlg
-	cd.set_process(false)
-	root.add_child(cd)
 	var one: Object = null
 	for d in traffic.drivers():
 		if d.crazy > 0:
@@ -300,8 +326,12 @@ func _check_traffic(g: LaneGraph, map: Node3D, digest: PackedStringArray) -> voi
 	for d in traffic.drivers().duplicate():
 		if d.crazy > 0:
 			traffic.remove(d)
+	if cd.route != null and not cd.route.rides.is_empty():
+		problems.append("fares: %d rides left after their crazy drivers were let go" % cd.route.rides.size())
 	for f in 60 * 10:
 		traffic.call("_process", 1.0 / 60.0)
 	if _crazy_ok(traffic, "crazy_target 0") != 0:
 		problems.append("crazy_target 0: crazy drivers still spawn")
 	digest.append("traffic: %d crazy at most, %d in 60 s, kinds %s, %.1f vs town %.1f m/s, tick %d cuts %d lines" % [most, ever.size(), kinds.keys(), cv, tv, cd.cuts, cd.lines])
+	if cd.route != null:
+		digest.append("fares: %d reached, %d dropped, %d on their line" % [cd.route.reached, cd.route.dropped, lined.size()])

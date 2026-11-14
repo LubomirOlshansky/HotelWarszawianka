@@ -28,7 +28,24 @@ extends SceneTree
 ## `python3 -I tools/race_links.py --proofs=FILE` (tools/race_links.sh does both). A rival is
 ## handed only a link with a proof, so a racer goes only where the player's car can.
 ##
-##   godot --headless --path game --fixed-fps 60 --script res://tools/check_lane_drive.gd [-- --prebuilt --handling=grounded --verbose --only=NAME --streets=A,B --box=... --links --write=FILE]
+## The city objects plan, step 3 (docs/design/drivable-city-build.md, item 1): --contacts=FILE writes
+## the contact log (contact_log.gd: one line per contact episode, what was touched and how hard, and
+## the km per street) for tools/drive_report.py. --driver=sloppy drives like a hurried phone player
+## instead of the careful driver above, on the game's own Classic inputs (drive_controls.gd: the
+## fixed arrows, all-or-nothing GAS and BRAKE, the lane assist on as in the default settings,
+## --assist=off without it): it aims up to SLOPPY_SIDE m off the lane's centre and SLOPPY_HEAD deg
+## off its heading (slow noise from a fixed seed, --seed=N, per route), looks a third shorter, and
+## holds SLOPPY_PACE of the street's limit until SLOPPY_LATE m before a bend. It is expected to
+## touch things: a route never fails on a contact; where a player would call the tow (stuck
+## Car.STALL_TIME s, in the water WATER_TOW s, off the route, under the road) it is towed
+## SLOPPY_TOW m on and the contact log says so; after SLOPPY_TOWS tows the route is given up.
+## --set=A drives route set A (the census's top 25 streets, the first ten minutes' streets, the P14
+## streets, Trzy mosty: SET_A; street ends behind the edge roadworks left out, a street whose far
+## ends are one-way driven the one way).
+## The careful driver's lines and results do not move with any of this (the log only watches).
+## --dry lists the routes and their length and drives nothing.
+##
+##   godot --headless --path game --fixed-fps 60 --script res://tools/check_lane_drive.gd [-- --prebuilt --handling=grounded --verbose --only=NAME[|NAME2] --streets=A,B --box=... --links --write=FILE --driver=careful|sloppy --contacts=FILE --set=A --seed=N --assist=on|off --dry]
 
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const SectorStreamer := preload("res://scripts/sector_streamer.gd")
@@ -39,6 +56,9 @@ const IndexPack := preload("res://scripts/index_pack.gd")
 const REACH := 60.0
 const TrzyMosty := preload("res://scripts/trzy_mosty.gd")
 const RaceCuts := preload("res://scripts/race_cuts.gd")
+const ContactLog := preload("res://scripts/contact_log.gd")
+const DriveControls := preload("res://scripts/drive_controls.gd")
+const LaneAssist := preload("res://scripts/lane_assist.gd")
 ## --links: the metres of street before a link and of the way on after it, the most a link's
 ## drive may stray from its curve (m), and the frames it may touch something fixed.
 const LINK_IN := 25.0
@@ -59,6 +79,37 @@ const OFF_ROUTE := 12.0
 const BEND_AHEAD := 35.0
 const CRUISE_NARROW := 14.0
 const CRUISE_FAST := 30.0
+
+## Route set A (item 1's baseline, about 60 km): the census's top 25 named streets (tools/road_objects.py:
+## the most solid metres within 3 m of a lane's edge, main 2026-11-14), the streets of the first ten
+## minutes (docs/DEMO.md 6.2: the start, the first order and stand, Halina's race to the Palm, the
+## boulevards) not among them, the P14 streets (STREETS) and the three Trzy mosty legs. Each street
+## from one end to the other, both ways.
+const SET_A_CENSUS := ["Aleja Armii Ludowej", "Aleje Jerozolimskie", "Aleja Jana Pawła II", "Tunel Wisłostrady",
+		"Most Łazienkowski", "Most Księcia Józefa Poniatowskiego", "Most Świętokrzyski", "Wybrzeże Kościuszkowskie",
+		"Aleja „Solidarności”", "Prosta", "Marszałkowska", "Generała Władysława Andersa", "Most Śląsko-Dąbrowski",
+		"Okopowa", "Tytusa Chałubińskiego", "Krucza", "Kozia", "Towarowa", "Wybrzeże Szczecińskie", "Czeska",
+		"Kolejowa", "Grzybowska", "Aleja Księcia Józefa Poniatowskiego", "Jana Zamoyskiego", "Lipska"]
+const SET_A_FIRST10 := ["Świętokrzyska", "Nowy Świat", "Emilii Plater"]
+
+## The sloppy driver (--driver=sloppy): how far off the lane's centre it aims (m), how far off its
+## heading (deg), how much shorter it looks than the careful one, its share of the street's limit, how
+## late it slows for a bend (m), how often it may change what it presses (s: a thumb, not a servo),
+## the heading error it lets go (deg), the noise's knots along the route (m), and its tows.
+const SLOPPY_SIDE := 1.5
+const SLOPPY_HEAD := 10.0
+const SLOPPY_LOOK := 2.0 / 3.0
+const SLOPPY_PACE := 0.9
+const SLOPPY_LATE := 15.0
+const SLOPPY_REACT := 0.1
+const SLOPPY_DEAD := 3.0
+const SLOPPY_SIDE_KNOT := 30.0
+const SLOPPY_HEAD_KNOT := 12.0
+const SLOPPY_TOW := 12.0
+const SLOPPY_TOWS := 5
+## In the water this long (s): the game's tow out of it (main.gd `_tow_out_of_water`, about 2 s).
+const WATER_TOW := 2.0
+const SEED := 20261114
 
 var prebuilt := false
 ## --handling=cruise|sport|grounded: drive the routes in that profile (-1: the car's default, Cruise).
@@ -92,6 +143,29 @@ var write_to := ""
 var _touch := 0
 var _passed: Array[String] = []
 var _failed := {}
+## Item 1: the driver, the contact log, the route set, the noise's seed, the lane assist, --dry.
+var sloppy := false
+var contacts_to := ""
+var clog: ContactLog
+var set_a := false
+var noise_seed := SEED
+var assist := true
+var dry := false
+var _controls: DriveControls
+var _edges := PackedInt32Array()
+var _names := PackedStringArray()
+var _rng_side := PackedFloat32Array()
+var _rng_head := PackedFloat32Array()
+var _react := 0.0
+var _arrow := 0
+var _gas := false
+var _brake := false
+var _lane_t := 0.0
+var _tows := 0
+var _wet := 0.0
+var _gave_up := false
+var _ep0 := 0
+var _total_m := 0.0
 
 
 func _initialize() -> void:
@@ -112,6 +186,20 @@ func _initialize() -> void:
 			links = true
 		elif a.begins_with("--write="):
 			write_to = a.trim_prefix("--write=")
+		elif a.begins_with("--driver="):
+			sloppy = a.trim_prefix("--driver=") == "sloppy"
+			if not a.trim_prefix("--driver=") in ["careful", "sloppy"]:
+				_fail_build("--driver= is careful or sloppy, not %s" % a.trim_prefix("--driver="))
+		elif a.begins_with("--contacts="):
+			contacts_to = a.trim_prefix("--contacts=")
+		elif a == "--set=A":
+			set_a = true
+		elif a.begins_with("--seed="):
+			noise_seed = int(a.trim_prefix("--seed="))
+		elif a.begins_with("--assist="):
+			assist = a.trim_prefix("--assist=") != "off"
+		elif a == "--dry":
+			dry = true
 		elif a.begins_with("--box="):
 			var b := a.trim_prefix("--box=").split_floats(",")
 			box = Rect2(minf(b[0], b[2]), minf(b[1], b[3]), absf(b[2] - b[0]), absf(b[3] - b[1]))
@@ -126,9 +214,15 @@ func _initialize() -> void:
 		map.setup_streamed(JSON.parse_string(FileAccess.get_file_as_string(SectorStreamer.INDEX_JSON)), ShaderMaterial.new(), ShaderMaterial.new())
 	map.data = map.index_data
 	graph = LaneGraph.new(map.data["graph"], map)
+	_names = ContactLog.street_names(map.data["graph"])
 	if links:
 		streets = []
 		_add_links()
+	if set_a:
+		streets = []
+		for st: String in SET_A_CENSUS + SET_A_FIRST10 + STREETS:
+			if not streets.has(st):
+				streets.append(st)
 	for street: String in streets:
 		var ends := _street_ends(street)
 		if ends.is_empty():
@@ -146,7 +240,7 @@ func _initialize() -> void:
 			stops.append(graph.nearest_node(Vector2(f[0], f[1])))
 		_add_route(parts[0], stops, CRUISE_NARROW)
 	var tm := TrzyMosty.new()
-	if streets != STREETS or extra != "" or links:
+	if (streets != STREETS and not set_a) or extra != "" or links:
 		pass
 	elif not tm.build(graph, map.data):
 		_fail_build("Trzy mosty: %s" % tm.error)
@@ -159,6 +253,15 @@ func _initialize() -> void:
 		for i in 3:
 			var part := stops.slice(cut[i], cut[i + 1] + 1)
 			_add_route("Trzy mosty leg %d (%s)" % [i + 1, TrzyMosty.BRIDGES[i]["pl"]], part, CRUISE_FAST)
+	if dry:
+		var km := 0.0
+		for r: Dictionary in routes:
+			km += float(r["len"]) / 1000.0
+			print("route %s: %.0f m (--at=%.0f,%.0f)" % [r["name"], float(r["len"]), r["pts"][0].x, r["pts"][0].z])
+		print("check_lane_drive: %d routes, %.1f km (--dry: nothing driven)" % [routes.size(), km])
+		_over = true
+		quit(1 if _failures > 0 else 0)
+		return
 	var n := 0
 	for k: Array in map.index_data["sectors"]["keys"]:
 		var key := Vector2i(int(k[0]), int(k[1]))
@@ -181,6 +284,15 @@ func _initialize() -> void:
 		map.measure_sectors()
 	IndexPack.pack(map.index_data)
 	print("check_lane_drive: %d routes, %d sectors %s in %d ms" % [routes.size(), n, "loaded" if prebuilt else "built", Time.get_ticks_msec() - t0])
+	if sloppy or contacts_to != "":
+		clog = ContactLog.new()
+		clog.street_at = _street_at
+		if contacts_to != "" and not clog.open(contacts_to):
+			_fail_build("cannot write the contact log %s" % contacts_to)
+		print("check_lane_drive: %s driver%s, contact log %s" % ["sloppy" if sloppy else "careful",
+				" (Classic, lane assist %s, seed %d)" % ["on" if assist else "off", noise_seed] if sloppy else "",
+				contacts_to if contacts_to != "" else "on stdout"])
+		clog.echo = contacts_to == "" or verbose
 
 
 func _fail_build(why: String) -> void:
@@ -194,6 +306,9 @@ func _street_ends(street: String) -> Array:
 	for e in graph.e_a.size():
 		if graph.e_name[e] == street:
 			for n: int in [graph.e_a[e], graph.e_b[e]]:
+				# Route set A: not from behind the edge roadworks (the closed band at the map's edge).
+				if set_a and graph.in_works_band(graph.node_pos[n]):
+					continue
 				if graph.node_scc[n] != 0 and not nodes.has(n) and (box.size == Vector2.ZERO or box.has_point(graph.node_pos[n])):
 					nodes.append(n)
 	if nodes.size() < 2:
@@ -224,7 +339,7 @@ func _add_links() -> void:
 	for i in range(cuts.first_link, cuts.a.size()):
 		var lid := cuts.link_id[i - cuts.first_link]
 		var name := "link %s %s %.0f m" % [lid, cuts.kind[i], cuts.length[i]]
-		if only != "" and not name.contains(only):
+		if not _wanted(name):
 			continue
 		var pts: PackedVector2Array = cuts.shape[i]
 		var first := (pts[1] - pts[0]).normalized()
@@ -250,11 +365,13 @@ func _add_links() -> void:
 				best = dot
 				g = f
 		var route := PackedVector3Array()
+		var edges := PackedInt32Array()
 		var off := graph.lane_offset(e_in, 0)
 		var s := maxf(graph.e_s1[e_in] - LINK_IN, graph.e_s0[e_in])
 		while s < graph.e_s1[e_in]:
 			var q := graph.point_at(e_in, s, off)
 			route.append(Vector3(q.x, graph.height(e_in, s), q.y))
+			edges.append(e_in)
 			s += STEP
 		var c := RaceCuts.curve(graph, e_in, 0, g)
 		var y0 := graph.height(e_in, graph.e_s1[e_in])
@@ -264,23 +381,36 @@ func _add_links() -> void:
 			var q := LaneGraph.bezier(c, float(k) / cn)
 			var x := Vector2(q.x, q.y)
 			route.append(Vector3(q.x, map.drive_height(x.x, x.y, lerpf(y0, y1, float(k) / cn)), q.y))
+			edges.append(g)
 		s = graph.e_s0[g] + STEP
 		off = graph.lane_offset(g, 0)
 		while s < minf(graph.e_s0[g] + LINK_OUT, graph.e_s1[g]):
 			var q := graph.point_at(g, s, off)
 			route.append(Vector3(q.x, graph.height(g, s), q.y))
+			edges.append(g)
 			s += STEP
 		var length := 0.0
 		for k in range(1, route.size()):
 			length += route[k].distance_to(route[k - 1])
-		routes.append({"name": name, "pts": route, "cruise": RaceCuts.LINK_TOP, "len": length, "link": lid})
+		routes.append({"name": name, "pts": route, "cruise": RaceCuts.LINK_TOP, "len": length, "link": lid, "edges": edges})
+
+
+## --only=A|B: a route whose name contains any of the parts (all routes without --only).
+func _wanted(name: String) -> bool:
+	if only == "":
+		return true
+	for part: String in only.split("|", false):
+		if name.contains(part):
+			return true
+	return false
 
 
 ## The shortest lane path through `stops` (graph nodes), as points on lane 0 every STEP m.
 func _add_route(name: String, stops: PackedInt32Array, cruise: float) -> void:
-	if only != "" and not name.contains(only):
+	if not _wanted(name):
 		return
 	var pts := PackedVector3Array()
+	var edges := PackedInt32Array()
 	var prev := -1
 	var lane := 0
 	for i in stops.size() - 1:
@@ -297,7 +427,12 @@ func _add_route(name: String, stops: PackedInt32Array, cruise: float) -> void:
 					best_c = c
 					best = e
 			if best < 0 or best_c == INF or guard > 5000:
-				_fail_build("%s: no lane path from node %d to %d" % [name, n, stops[i + 1]])
+				if set_a:
+					# Route set A takes each street both ways where it can: a street whose far ends
+					# are one-way (a dual carriageway's, the map's edge) is driven the one way.
+					print("skip %s: no lane path from node %d to %d" % [name, n, stops[i + 1]])
+				else:
+					_fail_build("%s: no lane path from node %d to %d" % [name, n, stops[i + 1]])
 				return
 			# Across the junction as traffic drives it: the lane traffic would take and the curve.
 			if prev >= 0:
@@ -309,6 +444,7 @@ func _add_route(name: String, stops: PackedInt32Array, cruise: float) -> void:
 				for k in range(1, cn):
 					var q := LaneGraph.bezier(c, float(k) / cn)
 					pts.append(Vector3(q.x, lerpf(hy, hy2, float(k) / cn), q.y))
+					edges.append(best)
 				lane = j
 			prev = best
 			var off := graph.lane_offset(best, lane)
@@ -316,6 +452,7 @@ func _add_route(name: String, stops: PackedInt32Array, cruise: float) -> void:
 			while s < graph.e_s1[best]:
 				var q := graph.point_at(best, s, off)
 				pts.append(Vector3(q.x, graph.height(best, s), q.y))
+				edges.append(best)
 				s += STEP
 			n = graph.e_b[best]
 	if pts.size() < 4:
@@ -327,7 +464,7 @@ func _add_route(name: String, stops: PackedInt32Array, cruise: float) -> void:
 	if verbose:
 		for i in range(0, pts.size(), 5):
 			print("   route %s point %d: %.1f, %.1f, %.1f" % [name, i, pts[i].x, pts[i].z, pts[i].y])
-	routes.append({"name": name, "pts": pts, "cruise": cruise, "len": length})
+	routes.append({"name": name, "pts": pts, "cruise": cruise, "len": length, "edges": edges})
 
 
 func _next() -> bool:
@@ -339,10 +476,17 @@ func _next() -> bool:
 		return false
 	var r: Dictionary = routes[_r]
 	_path = r["pts"]
+	_edges = r["edges"]
 	_cruise = float(r["cruise"])
 	car = Car.new()
 	if handling >= 0:
 		car.set_handling(handling)
+	if clog != null:
+		clog.reset()
+		clog.tag = str(r["name"])
+		_ep0 = clog.lines.size()
+	if sloppy:
+		_start_sloppy(str(r["name"]), float(r["len"]))
 	car.ground_height = map.drive_height
 	car.water_at = map.in_water
 	car.kerb_feel = map.kerb_feel
@@ -398,19 +542,19 @@ func _physics_process(dt: float) -> bool:
 			best = j
 	_idx = best
 	var v := Vector2(car.vel.x, car.vel.z).length()
+	if clog != null:
+		# Before the car's step: the collisions and the velocity its last step left (contact_log.gd).
+		clog.observe(car, dt)
+	if sloppy:
+		_drive_sloppy(dt, p, v, best_d)
+		return false
 	var look := LOOK + v * 0.3
 	var ahead := mini(_idx + int(ceil(look / STEP)), _path.size() - 1)
 	var aim := _path[ahead] - p
 	aim.y = 0.0
 	# Grounded brakes at ~1.1 g, not 3 g: a careful driver looks a stopping distance further on.
 	var bend := _bend(_idx, BEND_AHEAD + v + (v * v / 18.0 if car.weighty else 0.0))
-	var want := _cruise
-	if bend > deg_to_rad(70.0):
-		want = 6.0
-	elif bend > deg_to_rad(40.0):
-		want = 9.0
-	elif bend > deg_to_rad(20.0):
-		want = minf(_cruise, 14.0)
+	var want := _bend_speed(bend, _cruise)
 	if car.weighty:
 		# Grounded turns with ~1.2 g at most: no faster than 80 % of that grip allows on the bend's radius.
 		var reach := BEND_AHEAD + v
@@ -479,15 +623,182 @@ func _physics_process(dt: float) -> bool:
 				_failed[String(r["link"])] = ", ".join(why)
 		elif r.has("link"):
 			_passed.append(String(r["link"]))
+		if clog != null:
+			clog.flush()
 		if not _next():
 			_finish()
 	return false
+
+
+## The careful driver's speed for the sharpest bend ahead (rad), at most `cruise`.
+func _bend_speed(bend: float, cruise: float) -> float:
+	if bend > deg_to_rad(70.0):
+		return 6.0
+	if bend > deg_to_rad(40.0):
+		return 9.0
+	if bend > deg_to_rad(20.0):
+		return minf(cruise, 14.0)
+	return cruise
+
+
+## The contact log's street: the route's own edge at the car's progress (its name and limit), so the
+## km and the contacts of a street count the same metres.
+func _street_at(_x: float, _z: float) -> Array:
+	if _edges.is_empty():
+		return ["", 0.0]
+	var e := _edges[clampi(_idx, 0, _edges.size() - 1)]
+	return [_names[e], graph.e_speed[e]]
+
+
+## A new route for the sloppy driver: Classic controls, the lane assist as set, the route's noise.
+func _start_sloppy(name: String, length: float) -> void:
+	_controls = DriveControls.new()
+	_controls.scheme = DriveControls.CLASSIC
+	car.lane_assist = assist
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash("%s/%d" % [name, noise_seed])
+	_rng_side = PackedFloat32Array()
+	for _i in int(length / SLOPPY_SIDE_KNOT) + 3:
+		_rng_side.append(rng.randf_range(-1.0, 1.0))
+	_rng_head = PackedFloat32Array()
+	for _i in int(length / SLOPPY_HEAD_KNOT) + 3:
+		_rng_head.append(rng.randf_range(-1.0, 1.0))
+	_react = 0.0
+	_arrow = 0
+	_gas = false
+	_brake = false
+	_lane_t = 0.0
+	_tows = 0
+	_wet = 0.0
+	_gave_up = false
+
+
+## Slow noise: the knots' values, eased between them, at `d` m along the route.
+static func _noise(knots: PackedFloat32Array, knot: float, d: float) -> float:
+	var u := maxf(d, 0.0) / knot
+	var i := mini(int(u), knots.size() - 2)
+	var f := clampf(u - i, 0.0, 1.0)
+	return lerpf(knots[i], knots[i + 1], f * f * (3.0 - 2.0 * f))
+
+
+## The sloppy driver's frame: what it presses (the arrows, GAS, BRAKE, through drive_controls.gd as
+## the HUD does), the tow when a player would call it, and the route's end. Never fails a route.
+func _drive_sloppy(dt: float, p: Vector3, v: float, off_now: float) -> void:
+	var d := _idx * STEP
+	var look := (LOOK + v * 0.3) * SLOPPY_LOOK
+	var ahead := mini(_idx + int(ceil(look / STEP)), _path.size() - 1)
+	var nxt := mini(ahead + 1, _path.size() - 1)
+	var along := Vector2(_path[nxt].x - _path[ahead].x, _path[nxt].z - _path[ahead].z)
+	if along.length() < 0.01:
+		along = Vector2(_path[ahead].x - p.x, _path[ahead].z - p.z)
+	along = along.normalized()
+	var side := Vector2(-along.y, along.x) * SLOPPY_SIDE * _noise(_rng_side, SLOPPY_SIDE_KNOT, d)
+	var aim := (Vector2(_path[ahead].x, _path[ahead].z) + side - Vector2(p.x, p.z))
+	aim = aim.rotated(deg_to_rad(SLOPPY_HEAD) * _noise(_rng_head, SLOPPY_HEAD_KNOT, d))
+	var e := _edges[clampi(_idx, 0, _edges.size() - 1)]
+	var limit := graph.e_speed[e] if graph.e_speed[e] > 1.0 else 13.9
+	var want := _bend_speed(_bend(_idx, SLOPPY_LATE), SLOPPY_PACE * limit)
+	_react -= dt
+	if _react <= 0.0:
+		_react = SLOPPY_REACT
+		var fwd := Vector3(-sin(car.rotation.y), 0.0, -cos(car.rotation.y))
+		var err := rad_to_deg(fwd.signed_angle_to(Vector3(aim.x, 0.0, aim.y), Vector3.UP)) if aim.length() > 0.5 else 0.0
+		_arrow = 1 if err > SLOPPY_DEAD else (-1 if err < -SLOPPY_DEAD else 0)
+		_brake = v > want + 4.0
+		_gas = not _brake and v < want
+	if assist:
+		_lane_t -= dt
+		if _lane_t <= 0.0:
+			_lane_t = 0.1
+			var f2 := Vector2(-sin(car.rotation.y), -cos(car.rotation.y))
+			var h2 := LaneAssist.lane_heading(graph, Vector2(p.x, p.z), f2, v)
+			car.lane_dir = Vector3(h2.x, 0.0, h2.y)
+	_controls.arrows = _arrow
+	_controls.drive(car, Vector2.ZERO, false, {}, _gas, _brake, 0.0, dt)
+	if verbose and int(_t / dt) % 30 == 0:
+		print("   t=%.1f at %.0f, %.0f  %.1f m/s (want %.0f) point %d/%d arrow %d%s%s%s" % [_t, p.x, p.z, v, want, _idx,
+				_path.size(), _arrow, " gas" if _gas else "", " brake" if _brake else "",
+				"  touching" if car.get_slide_collision_count() > 0 else ""])
+	_min_v = minf(_min_v, v) if _t > 3.0 else _min_v
+	var r: Dictionary = routes[_r]
+	var done := _idx >= _path.size() - 3
+	var under: float = map.drive_height(p.x, p.z, p.y) - p.y
+	var tow := ""
+	_wet = _wet + dt if car.in_water else 0.0
+	if _wet > WATER_TOW:
+		tow = "in the water"
+	elif car.stalled > Car.STALL_TIME:
+		tow = "stuck %.0f s" % car.stalled
+	elif off_now > OFF_ROUTE:
+		tow = "%.0f m off the route" % off_now
+	elif under > 1.0:
+		tow = "%.1f m under the road" % under
+	if tow != "" and not done:
+		if _tows >= SLOPPY_TOWS:
+			_gave_up = true
+		else:
+			_tow(tow, p)
+	var limit_t: float = float(r["len"]) / 4.0 + 40.0 + 30.0 * _tows
+	if not (done or _gave_up or _t > limit_t):
+		return
+	if clog != null:
+		clog.flush()
+	var n := 0
+	var dead := 0
+	for i in range(_ep0, clog.lines.size()):
+		if clog.lines[i].begins_with("contact\t"):
+			n += 1
+			dead += 1 if clog.lines[i].contains("dead_stop") else 0
+	var how := "ok      " if done else ("gave up " if _gave_up else "timeout ")
+	print("%s %s: %.0f m in %.1f s (%.0f km/h on average), slowest %.1f m/s · %d contacts, %d dead stops, %d unsticks, %d tows  (--at=%.0f,%.0f)" % [
+			how, r["name"], float(r["len"]), _t, float(r["len"]) / maxf(_t, 0.1) * 3.6, 0.0 if _min_v == INF else _min_v,
+			n, dead, int(car.unsticks), _tows, _path[0].x, _path[0].z])
+	_total_m += float(r["len"]) if done else _idx * STEP
+	if not _next():
+		_finish()
+
+
+## The player's tow, as the game's (main.gd `_tow_to_lane`): the car stopped and put back on the
+## route SLOPPY_TOW m on from where it is, facing along it.
+func _tow(why: String, p: Vector3) -> void:
+	_tows += 1
+	var j := mini(_idx + int(SLOPPY_TOW / STEP), _path.size() - 2)
+	var d := _path[j + 1] - _path[j]
+	car.global_position = _path[j]
+	car.rotation.y = atan2(-d.x, -d.z)
+	if car.in_water:
+		car.leave_water()
+	car.reset_motion()
+	car.reset_physics_interpolation()
+	_idx = j
+	_wet = 0.0
+	if clog != null:
+		clog.mark("tow")
+	print("   tow %d on %s: %s at %.0f, %.0f" % [_tows, routes[_r]["name"], why, p.x, p.z])
 
 
 func _finish() -> void:
 	if _over:
 		return
 	_over = true
+	if clog != null:
+		clog.close()
+		var by := {}
+		var n := 0
+		for line: String in clog.lines:
+			if line.begins_with("contact\t"):
+				n += 1
+				var cls := String(ContactLog.parse(line).get("class", ""))
+				by[cls] = int(by.get(cls, 0)) + 1
+		var parts: Array[String] = []
+		var keys: Array = by.keys()
+		keys.sort()
+		for k: String in keys:
+			parts.append("%s %d" % [k, by[k]])
+		print("check_lane_drive: %d contacts (%s), %d unknown%s" % [n, ", ".join(parts), clog.unknown.size(),
+				"" if clog.unknown.is_empty() else ": " + ", ".join(clog.unknown.slice(0, 5))])
+		if sloppy:
+			print("check_lane_drive: sloppy driver over %.1f km" % (_total_m / 1000.0))
 	if write_to != "":
 		var f := FileAccess.open(write_to, FileAccess.WRITE)
 		f.store_string(JSON.stringify({"passed": _passed, "failed": _failed}) + "\n")

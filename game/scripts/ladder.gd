@@ -192,6 +192,28 @@ const CLUB := [
 const POLICE := {"share": 1.0, "race_accel": 7.0, "brake": 6.0, "lat": 12.0, "knows": 0.6, "caution": 0.5,
 		"cuts": 0.0, "yards": 0.0, "narrow": 4.5, "hops": 0.0, "mistake": 0.0, "wrong": 0, "block": 0.0, "phone": false,
 		"dare": 1.5, "indicate": 0.0, "flash": 0.0, "home": []}
+## Racer AI step 6b part 3 (crazy_drivers.gd, crazy_route.gd; docs/design/crazy-drivers.md): the
+## crazy drivers on the racers' driver, by `crazy` - 1: the Szkoda Oktawia taxi, the Szprynter
+## courier, the Pasatini. They know the town (`cuts`, `yards` rising to the Pasatini's all of them,
+## `narrow` 3 m), the Pasatini dares a short wrong-way hop now and then (`hops`), the taxi has a
+## fare on the phone; `mistake` and `block` are traffic.gd CRAZY_MISTAKE and CRAZY_BLOCK, little
+## `caution`, bold over the centre line (`dare` under 1: a narrow gap will do). Their top is
+## traffic.gd CRAZY_TOP and their cap over the road's limit CRAZY_OVER (the Driver's, after the
+## plan's speed). The lights' keys are unused (no race lights: town cars to the eye). `share`,
+## `race_accel`, `brake` and `lat` are fitted on the race bench (its `crazy` races, old against new)
+## so that on clear roads a crazy driver gets about town as fast as the old one (no plan, corners
+## as they are) and cuts in near the player as often.
+const CRAZY := [
+	{"share": 1.0, "race_accel": 3.2, "brake": 5.6, "lat": 10.0, "knows": 0.8, "caution": 0.1,
+		"cuts": 0.6, "yards": 0.5, "narrow": 3.0, "hops": 0.0, "mistake": 0.0, "wrong": 0, "block": 0.5, "phone": true,
+		"dare": 0.6, "indicate": 0.0, "flash": 0.0, "home": []},
+	{"share": 1.0, "race_accel": 3.0, "brake": 5.6, "lat": 9.0, "knows": 0.8, "caution": 0.1,
+		"cuts": 0.8, "yards": 0.8, "narrow": 3.0, "hops": 0.0, "mistake": 0.0, "wrong": 0, "block": 0.5, "phone": false,
+		"dare": 0.6, "indicate": 0.0, "flash": 0.0, "home": []},
+	{"share": 1.0, "race_accel": 4.0, "brake": 5.6, "lat": 12.0, "knows": 0.8, "caution": 0.0,
+		"cuts": 1.0, "yards": 1.0, "narrow": 3.0, "hops": 0.3, "mistake": 0.15, "wrong": 0, "block": 0.75, "phone": false,
+		"dare": 0.5, "indicate": 0.0, "flash": 0.0, "home": []},
+]
 ## The club's cruise pace before the race (traffic.gd speed_factor, accel_factor; as the pack
 ## always drove away from a raid) and in it (Ladder.pace's meaning; racer mode drives by `CLUB`).
 const CLUB_PACE := Vector2(1.4, 1.6)

@@ -81,6 +81,100 @@ that need the numbers again build them into their tools.
 | What does the census not see? | **209 km of service ways** (45 % of all drawn road length) are drawn and driven but are not in the lane graph, so nothing along them is measured. Yards, car parks and back lanes are exactly where players get stuck | item 1 extends the census to service ways before anything is judged "fine" |
 | Dead ends in the lane graph | 61 edges end with no way out (5.3 km), most at the map edge | traps are in the service ways, not in the graph |
 
+### The drive baseline (item 1, 2026-11-14, main bf9e8d4)
+
+**What was run.** Route set A (`check_lane_drive.gd --set=A`, `SET_A_CENSUS` + `SET_A_FIRST10` +
+the P14 streets + the three Trzy mosty legs): 61 routes, ~99 km for the sloppy driver and 95 km
+for the careful one (the careful one ends a route where it fails). Each street from end to end both
+ways; 8 streets one way only (their far ends are one-way: a dual carriageway's, a slip road's), and
+street ends behind the edge roadworks are left out. Both drivers, in the two handling profiles the
+brief calls "Cruise and Grounded" (car.gd `Handling.CRUISE`, the default, and `Handling.GROUNDED`,
+`--handling=grounded`), on the **prebuilt** city; the runtime city as a cross-check on three
+streets (Hoża, Marszałkowska, Most Świętokrzyski, both ways, and Trzy mosty's second leg, 14 km):
+its contact log is **identical, line for line,** to the prebuilt city's on the same routes, for
+both drivers. The sloppy run is deterministic (two runs, identical contact files and output). The
+careful driver's default run (`check_lane_drive` with no flags) prints exactly what main printed,
+on both paths. To repeat:
+
+```
+cd game && godot --headless --path . --fixed-fps 60 --script res://tools/check_lane_drive.gd -- \
+    --prebuilt --set=A --driver=sloppy [--handling=grounded] --contacts=/tmp/sloppy.tsv
+python3 -I tools/drive_report.py sloppy=/tmp/sloppy.tsv [careful=...] [--census] [--md] [--baseline=tools/drive_baseline.json]
+```
+
+The numbers per street for every run are in `tools/drive_baseline.json`. Every contact had a
+class (0 `unknown`); 96 % of the sloppy contacts join to a census object within 2.5 m of the car.
+
+| Run | km | contacts / km | by class (per km) | speed kept | dead stops | unsticks | tows (water) | at speed | unknown |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| sloppy, Cruise, prebuilt | 98.8 | 2.71 | guard_deck 1.58, fence 0.48, guard_ground 0.20, tunnel 0.14, pier 0.12 | 0.91 | 20 | 11 | 8 (3) | 0.94 | 0 |
+| careful, Cruise, prebuilt | 95.1 | 0.05 | guard_deck 0.04, tunnel 0.01 | 0.99 | 0 | 0 | 0 (3) | 0.81 | 0 |
+| sloppy, Grounded, prebuilt | 100.2 | 4.72 | guard_deck 2.34, fence 1.07, tunnel 0.44, guard_ground 0.33, pier 0.15 | 0.92 | 26 | 9 | 11 (3) | 0.96 | 0 |
+| careful, Grounded, prebuilt | 95.1 | 0.05 | guard_deck 0.04, tunnel 0.01 | 0.98 | 0 | 0 | 0 (3) | 0.80 | 0 |
+| sloppy, Cruise, runtime (3 streets) | 14.0 | 1.36 | guard_deck 0.93, fence 0.29, parked 0.07, wall 0.07 | 0.91 | 0 | 0 | 0 (0) | 0.96 | 0 |
+| careful, Cruise, runtime (3 streets) | 13.8 | 0.00 | - | - | 0 | 0 | 0 (0) | 0.86 | 0 |
+
+"Speed kept" is the median of (lowest speed in the second after a contact) / (speed going in);
+"at speed" the share of the time above 80 % of the street's limit; "water" the careful driver's
+stalls too (it is not towed). The ten worst streets of the sloppy driver (at least 0.25 km driven,
+ranked by contacts per km plus five times the stops per km; the speed taken is the m/s lost
+summed by class; the objects are the census ids, `tools/road_objects.py` `oid`):
+
+| Street (Cruise) | km | contacts / km | dead stops / unsticks / tows | speed kept | what takes the speed | most hit |
+| --- | --- | --- | --- | --- | --- | --- |
+| Juliana Ursyna Niemcewicza | 0.49 | 6.1 | 2 / 0 / 0 | 0.00 | parked 21 | two parked cars at -2918,1353 |
+| (unnamed secondary_link) (the slip roads by Most Poniatowskiego) | 3.73 | 7.2 | 5 / 3 / 1 | 0.88 | guard_deck 49, pier 42 | the deck rail at 917,-14 (6×), 988,8 |
+| Aleja Armii Ludowej | 1.17 | 13.7 | 1 / 0 / 0 | 0.94 | guard_deck 29, guard_ground 9 | the deck rail at 857,1313 (7×), the ground rail at 92,1621 |
+| (unnamed primary_link) (by the Łazienkowski) | 1.24 | 8.9 | 2 / 0 / 0 | 0.84 | guard_deck 22, struct_wall 3 | deck rails at 1209,1048 and 1306,957 |
+| Tytusa Chałubińskiego | 2.67 | 6.7 | 3 / 2 / 0 | 0.90 | pier 32, small_building 14, guard_deck 10 | the viaduct's rail at -1432,894 (7×), its piers at -1449,806 |
+| Okopowa | 0.28 | 14.1 | 0 / 0 / 0 | 0.96 | fence 3 | the fence at -2984,-290 (4×) |
+| Aleja Jana Pawła II | 4.74 | 4.0 | 4 / 4 / 1 | 0.71 | fence 46, wall 19, pier 14 | the fence and wall at -1567,566 (7×) |
+| Williama Heerleina Lindleya | 0.35 | 11.3 | 0 / 0 / 0 | 0.94 | fence 3 | the fence at -1909,862 |
+| Aleje Jerozolimskie | 7.35 | 6.4 | 3 / 2 / 1 | 0.92 | guard_deck 85, fence 4 | Poniatowski bridge's rails at 441,30 (11×), 195,105 (7×) |
+| Wał Miedzeszyński | 0.51 | 0.0 | 0 / 0 / 1 | - | - | (off the route at a fork, towed) |
+
+| Street (Grounded) | km | contacts / km | dead stops / unsticks / tows | speed kept | what takes the speed | most hit |
+| --- | --- | --- | --- | --- | --- | --- |
+| Juliana Ursyna Niemcewicza | 0.50 | 16.0 | 2 / 0 / 0 | 0.95 | parked 22, fence 2 | the parked cars at -2918,1353 |
+| Most Świętokrzyski | 2.09 | 17.2 | 2 / 0 / 0 | 0.92 | guard_deck 51, fence 12 | the deck rails at 508,-737 (11×), 867,-989 |
+| Okopowa | 0.29 | 20.7 | 0 / 0 / 0 | 0.94 | fence 5 | the fence at -2984,-290 |
+| (unnamed secondary_link) | 3.82 | 9.7 | 4 / 2 / 1 | 0.90 | pier 34, guard_deck 33, struct_wall 13 | the deck rail at 917,-14 |
+| Tunel Wisłostrady | 2.96 | 12.9 | 0 / 0 / 3 | 0.93 | tunnel 53 | the tunnel's walls at 157,-1051 (19×), 165,-1060 |
+| Solec | 0.95 | 2.1 | 1 / 1 / 1 | 0.02 | shelter 15 | the shelter at 635,-94 |
+| Tytusa Chałubińskiego | 2.71 | 7.7 | 3 / 2 / 0 | 0.88 | pier 27, guard_deck 22, small_building 15 | the viaduct's rail at -1432,894 (12×) |
+| Aleja Jana Pawła II | 4.78 | 6.5 | 5 / 4 / 1 | 0.90 | fence 34, pier 24, small_building 23 | the rail at -1514,688, the fence at -1567,566 |
+| Most Łazienkowski | 1.17 | 12.0 | 1 / 0 / 0 | 0.93 | guard_deck 36 | the deck rail at 1750,944 (7×) |
+| Aleja Armii Ludowej | 1.18 | 16.2 | 0 / 0 / 0 | 0.95 | guard_ground 18, guard_deck 7 | the ground rail at 92,1621 |
+
+**What it says.** Guard rails (on decks and on the ground) are two thirds of the sloppy driver's
+contacts in Cruise (176 of 268) and mostly glancing (0.9 of the speed kept), but a deck rail taken
+nose-on at a slip road's bend is still the commonest dead stop (8 of 20), then piers (6), parked
+cars and small buildings (2 each); the dead stops sit on the slip roads by Most Poniatowskiego (5)
+and the Łazienkowski (2), Jana Pawła II (4), Chałubińskiego (3), Jerozolimskie (3) and
+Niemcewicza (2). Grounded touches 1.7 times as often as Cruise (it slides wider at the same pace)
+with a few more dead stops (26), piers first (7), then small buildings and fences (4 each). The
+careful driver touches almost nothing (5 glancing contacts in 95 km): the checks so far drove a
+player nobody is.
+
+**Found by it** (not fixed here; for the map lane): (1) **the water test fires inside Tunel
+Wisłostrady**: at 527,-671 and 382,-847 the tunnel's own lanes lie under a water area, and
+`map_builder.in_water` (water above, the car under the terrain) puts the car "in the water": the
+careful driver stalls there on the lane's centre in both directions and the sloppy one is towed.
+A player driving the tunnel would be splashed and towed the same way. `check_water` leaves tunnel
+lanes out on purpose, so nothing caught it. Over the whole lane graph (every lane every 3 m at its
+lane height) the class is 9 of 1,777 tunnel lane points, all in those two spots of Tunel
+Wisłostrady; no deck or ground lane point (157,413) is in the water. The fix belongs in
+`in_water` (not under a tunnel's roof), for the map lane after step 2 lands. (2) The sloppy driver ends up 3 m under the road at
+the east end of Most Poniatowskiego (1537,-169; Cruise once, Grounded once on Trzy mosty's leg 3).
+
+**The census of service ways** (`tools/road_objects.py`, the second pass, apart from the lane
+bands, which print as before): 209 km of service ways drawn; 1,685 solid objects stand on a
+service way itself (790 barriers, 655 buildings, 108 structure walls, 76 parked cars) and 4,967
+within 1 m of its edge; 45,050 m of building wall and 30,653 m of barrier lie within 3 m of a
+service way's edge. 98 % of the solid metres on or within 3 m of a service way are on unnamed ones (yards, car parks, back
+lanes). Not split by cause yet (a way ending in a wall, a gate, a passage the bake does not open):
+item 6's work list (`--json` writes them as `service_items`).
+
 ## 3. The order and what depends on what
 
 ```
@@ -155,6 +249,15 @@ as now. Faces filtered per sector by their centre (`_sector_rect`) must keep tha
 body's name first).
 
 ### Item 1. Contact log, sloppy driver, the census of service ways, the baseline
+
+**Built (2026-11-14):** `contact_log.gd`, `--contacts=FILE` (main.gd and the check),
+`check_lane_drive --driver=sloppy --set=A`, `tools/drive_report.py`, the service-way pass of
+`tools/road_objects.py`, `tools/drive_baseline.json`, verify step `drivelog`; the numbers are in
+section 2, "The drive baseline". Choices made in the build: the sloppy driver presses the game's
+own Classic controls (drive_controls.gd: the fixed arrows, GAS and BRAKE all or nothing, the lane
+assist on as the settings default) with no change to car.gd; it is towed where a player would
+call the tow (stuck 8 s, in the water, 12 m off the route, under the road); a street's km and its
+contacts count the route's own edge, so they add up.
 
 **Goal.** A number for "how hard is this street" that a phone player would recognise, and a name
 for whatever stopped the car.

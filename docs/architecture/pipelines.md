@@ -24,6 +24,9 @@ sectors/s_<i>_<j>.scn, proxies.scn, index.res, shared/*.res   (the prebuilt city
 - After any re-bake: the whole chain, then `python3 -I tools/check_map_data.py`. New counts only on
   purpose, recorded in that script and the archive's "Map data" together.
 - Skill `bake-map` before editing any bake. Roads have their own system (skill `road-design`).
+- The last pass of `bake_osm.py` is `tools/object_types.py` (city objects plan step 5): each barrier
+  line's type, class, hazard and height by setting are decided here, in the bake, never at run time;
+  `tools/overlay_object_types.py` draws the type plot and the 20-sample check's contact sheets.
 
 ### 1b. A landmark from Blender (trial, 2026-11-13: the Palace only)
 

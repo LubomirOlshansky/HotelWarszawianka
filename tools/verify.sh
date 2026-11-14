@@ -45,6 +45,9 @@
 # `lanedrive` runs game/tools/check_lane_drive.gd (PT-21, 2026-11-04): the real car steered along
 # lane-graph routes (the P14 narrow streets both ways, the three Trzy mosty legs), no traffic; a stall,
 # an unstick, leaving the route or sinking fails it. About 3.5 min (44 sectors built).
+# `drivelog` (the city objects plan, step 3, 2026-11-14): route set A driven by check_lane_drive's sloppy
+# driver on the prebuilt city with the contact log (--contacts=), then tools/drive_report.py's table;
+# it gates nothing yet (PASS when it ran and every contact has a class).
 # `stuckspots` runs game/tools/check_stuck_spots.gd (PT-1, 2026-11-02): the real car with the gas
 # held through the playtest's dead-stop spots; none may stall, need an unstick or lose its speed.
 # `oldtowndrive` runs game/tools/check_old_town_drive.gd (2026-11-08): the real car drives ten legs
@@ -302,6 +305,9 @@
 # Dworzec Centralny's car park ramp (F, 2026-11-08): `centralnyramp` runs tools/centralny_ramp.py
 # --check (the service tunnel under Aleja Jana Pawła II is a drive: its tunnel, portal and frame, the
 # way out from the portal, no garage door across it; no map beyond centrum.json, CI too).
+# City objects plan step 5 (2026-11-14): `objecttypes` runs tools/object_types.py --selftest (the
+# barrier type rules on synthetic lines, the OSM reader in both formats, its copies of the wall
+# builder's hand lists against city_barriers.gd; no map, CI too).
 # Grodzka's ramp by the Royal Castle (F, 2026-11-13): `zamekramps` runs tools/zamek_ramps.py --check
 # (the slip road past Pałac pod Blachą up to the W-Z tunnel is one smooth climb: no pit fills or their
 # walls on it, one ground profile; no map beyond centrum.json, CI too).
@@ -396,7 +402,7 @@ fi
 # Operation Unslop review (2026-11-05): the road loop ran the whole --quick (~100 steps, most start
 # the game) after every tweak. --roads keeps only the steps a road rule can break; steps not in
 # STEPS_ALL on this branch (e.g. `smooth` before the smooth-roads PR) are skipped.
-STEPS_ROADS=(map roads streets streetdetails streetpass design models overrides smooth fixes centralnyramp zamekramps cyclehang portbridge objects tramstops drive stuckspots)
+STEPS_ROADS=(map roads streets streetdetails streetpass design models overrides smooth fixes centralnyramp zamekramps objecttypes cyclehang portbridge objects tramstops drive stuckspots)
 # Loop 3g-1: minutes of play in the police soak (P13; the full one is 10).
 SOAK_MINUTES=${NW_SOAK_MINUTES:-3}
 # Longest a single step may take, in seconds, before it is stopped (macOS has no `timeout`).
@@ -1020,6 +1026,15 @@ for s in $want; do
 				0) row PASS "tramstops" $secs "$(grep '^tramstops: ' $logs/tramstops.log | tail -1)" ;;
 				*) row FAIL "tramstops" $secs "$(grep '^tramstops: ' $logs/tramstops.log | head -1) ($logs/tramstops.log)" ;;
 			esac ;;
+		objecttypes)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/object_types.py --selftest > $logs/objecttypes.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			case $code in
+				0) row PASS "objecttypes" $secs "$(grep '^object_types selftest: ' $logs/objecttypes.log | tail -1)" ;;
+				*) row FAIL "objecttypes" $secs "$(grep -m1 '^object_types selftest: ' $logs/objecttypes.log) ($logs/objecttypes.log)" ;;
+			esac ;;
 		objects)
 			t0=$EPOCHREALTIME
 			python3 -I $ROOT/tools/object_fixes.py --check > $logs/objects.log 2>&1
@@ -1163,6 +1178,31 @@ for s in $want; do
 		# bridges and tunnels (height jumps). The runtime city (the prebuilt one: --prebuilt).
 		drive) check drive '^check_drive:' --script res://tools/check_drive.gd ;;
 		drive-prebuilt) skip_prebuilt drive-prebuilt || check drive-prebuilt '^check_drive:' --script res://tools/check_drive.gd -- --prebuilt ;;
+		# The city objects plan, step 3 (docs/design/drivable-city-build.md item 1): route set A (~99 km)
+		# driven by the sloppy driver on the prebuilt city with its contact log, then the drive report
+		# (tools/drive_report.py: contacts per km by class, dead stops, unsticks, tows, the ten worst
+		# streets). It gates nothing yet (item 10 makes it a ratchet on tools/drive_baseline.json):
+		# PASS when the drive and the report ran and no contact lacks a class (~3 min).
+		drivelog)
+			skip_prebuilt drivelog && continue
+			t0=$EPOCHREALTIME
+			( cd $GAME && limited $STEP_LIMIT $GODOT --headless --path . --fixed-fps 60 --script res://tools/check_lane_drive.gd \
+				-- --prebuilt --set=A --driver=sloppy --contacts=$logs/drivelog.tsv ) > $logs/drivelog.log 2>&1
+			code=$?
+			python3 -I $ROOT/tools/drive_report.py "sloppy=$logs/drivelog.tsv" >> $logs/drivelog.log 2>&1
+			rep=$?
+			(( code == 0 )) && code=$rep
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			np=$(problems $logs/drivelog.log | wc -l | tr -d ' ')
+			counts=$(grep -m1 '^== sloppy:' $logs/drivelog.log)
+			counts=${${counts#== sloppy: }[1,160]}
+			if (( code == 142 )); then
+				row FAIL drivelog $secs "stopped after ${STEP_LIMIT}s: $logs/drivelog.log"
+			elif (( code == 0 && np == 0 )) && grep -q '^check_lane_drive: OK' $logs/drivelog.log && grep -q ', 0 unknown)$' $logs/drivelog.log; then
+				row PASS drivelog $secs "$counts"
+			else
+				row FAIL drivelog $secs "exit $code, $np error/warning lines: $(problems $logs/drivelog.log | head -1 | cut -c1-120) ($logs/drivelog.log)"
+			fi ;;
 		# PT bug log (docs/PLAYTEST.md): the real car through the spots a playtest found it stopping
 		# dead (PT-1: Marszałkowska's Centrum tram stop); the sectors round them, both city paths.
 		# The city objects plan, step 1: every collider face has its solid class (solidity.gd), the same

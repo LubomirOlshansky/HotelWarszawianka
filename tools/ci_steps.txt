@@ -47,6 +47,7 @@ districts            quick
 drape                ground
 drive                roads
 drive-prebuilt       smoke     slow
+drivelog             smoke     slow
 edge                 quick
 eggs                 quick
 endcard              quick
@@ -97,6 +98,7 @@ models               quick
 monumentmesh         quick
 monuments            quick
 objects              quick
+objecttypes          quick
 oldtowndrive         smoke
 oldtownroofs         smoke
 oldtram              quick

@@ -867,6 +867,14 @@ var _flag_handling := -1
 var _flag_lane := -1
 var _lane_t := 0.0
 const LANE_EVERY := 0.1
+## The city objects plan, step 3 (docs/design/drivable-city-build.md item 1): --contacts=FILE writes
+## the contact log of the run's car (contact_log.gd, one line per contact episode: what it touched,
+## how hard, on which street; Autopilot's runs too) for tools/drive_report.py. Loaded only then;
+## a release build reads no flags (release.gd), so it never starts there.
+const CONTACT_LOG := "res://scripts/contact_log.gd"
+var contacts_to := ""
+var _contacts: RefCounted
+var _contact_names := PackedStringArray()
 var _flag_traffic := -1
 var _flag_fixed := false
 var _flag_perf := false
@@ -1115,6 +1123,8 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
+	if _contacts != null:
+		_contacts.close()
 	# A shots run that ends before its last shot (--quit-after, a closed window) says which
 	# frames are missing and where it was, instead of ending quietly after "city built".
 	var missing: Array[int] = []
@@ -1838,6 +1848,8 @@ func _build_world() -> void:
 	await _load_mark(0.26)
 	if data.has("graph"):
 		graph = LaneGraph.new(data["graph"], map)
+	if contacts_to != "":
+		_start_contact_log(data)
 	if debug_roads:
 		var dr: Node3D = load("res://scripts/debug_roads.gd").new()
 		world.add_child(dr)
@@ -5373,6 +5385,8 @@ func _parse_args() -> void:
 			start_mission = maxi(1, int(arg.trim_prefix("--mission=")))
 		elif arg == "--autopilot":
 			autopilot = true
+		elif arg.begins_with("--contacts="):
+			contacts_to = arg.trim_prefix("--contacts=")
 		elif arg == "--race-debug":
 			race_debug = true
 		elif arg.begins_with("--ghost-pace="):
@@ -6648,8 +6662,38 @@ func _on_context_pressed(owner: String) -> void:
 		_unstuck()
 
 
+## --contacts=FILE (step 3): the log starts once the car and the lane graph are there; it watches
+## the car once a physics frame, before the car's step, as check_lane_drive does.
+func _start_contact_log(data: Dictionary) -> void:
+	var log_script := load(CONTACT_LOG) as GDScript
+	_contacts = log_script.new()
+	_contact_names = log_script.street_names(data["graph"]) if data.has("graph") else PackedStringArray()
+	_contacts.street_at = _contact_street
+	if not _contacts.open(contacts_to):
+		_contacts = null
+		return
+	get_tree().physics_frame.connect(_observe_contacts)
+	print("contacts: the car's contacts go to %s" % contacts_to)
+
+
+func _observe_contacts() -> void:
+	if _contacts != null and car != null and is_instance_valid(car) and not get_tree().paused:
+		_contacts.observe(car, get_physics_process_delta_time())
+
+
+## The contact log's street: the nearest lane's name and limit within 8 m, else none.
+func _contact_street(x: float, z: float) -> Array:
+	var hit: Array = graph.snap(Vector2(x, z), 8.0) if graph != null else []
+	if hit.is_empty():
+		return ["(off the lanes)", 0.0]
+	var e: int = hit[0]
+	return [_contact_names[e] if e < _contact_names.size() else graph.e_name[e], graph.e_speed[e]]
+
+
 ## The car onto the nearest lane facing its way (else just the nearest free spot), stopped.
 func _tow_to_lane(why: String) -> void:
+	if _contacts != null:
+		_contacts.mark("tow")
 	var at := car.global_position
 	var yaw := car.rotation.y
 	var lane := _lane_spot(at, yaw)
@@ -6780,6 +6824,8 @@ func _on_car_splashed(speed: float) -> void:
 ## no fail; a rescue, a delivery or a race carries on.
 func _tow_out_of_water() -> void:
 	_tow_wait = -1.0
+	if _contacts != null:
+		_contacts.mark("tow")
 	var at := car.global_position
 	var spot := _water_tow_spot(at, _last_dry, _last_dry_yaw)
 	var where: Vector3 = spot[0]
@@ -7638,6 +7684,8 @@ func _make_stats() -> BenchStats:
 		b.systems["city life"] = [life, "spent_usec", true]  # loop MW-4
 	if buses != null:
 		b.systems["buses"] = [buses, "spent_usec", true]  # the night-buses loop
+	if crazy_drivers != null:
+		b.systems["crazy drivers"] = [crazy_drivers, "spent_usec", true]  # racer AI step 6b part 3: their fares
 	if crash_scenes != null:
 		b.systems["crash scenes"] = [crash_scenes, "spent_usec", true]
 	if old_tram != null:

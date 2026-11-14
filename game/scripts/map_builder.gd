@@ -1495,7 +1495,11 @@ const WET := 2.5
 ## Loop 10a: a vehicle at height y over (x, z) is in the water: well past the water's edge
 ## and down at the water's level (a bridge deck over the river is not the water).
 func in_water(x: float, z: float, y: float) -> bool:
-	return shore_distance(x, z) >= WET and y < terrain_height(x, z) + 0.5
+	if shore_distance(x, z) < WET or y >= terrain_height(x, z) + 0.5:
+		return false
+	# A vehicle on a tunnel's floor, under the river's edge, is under the water, not in it
+	# (Tunel Wisłostrady at (527,-671): the car "splashed" and was towed).
+	return not in_tunnel(x, z, y)
 
 
 ## Loop 10a: the nearest dry point to (x, z) inside the edge walls (the point itself when it

@@ -89,6 +89,12 @@ MAP = os.path.join(ROOT, "game", "map")
 # Marszałkowska by Sienkiewicza (F, 2026-11-09, road design area marsz_sienkiewicza): 44,872 trees (+10
 # young columnar elms on the west green strip between the tram and the southbound lanes). Before: 269172 / 44862.
 EXPECTED = {"trees3d": 269232, "pois": 4572, "trees3d_crown": 44872}
+# City objects plan step 5 (2026-11-14, tools/object_types.py): the share of fence metres whose type
+# is only the default (`tc: default`) may only go down. The pass run on this map without OSM context
+# (map evidence only, cloud 2026-11-14): 31.4 % of 188.2 km; walls 46.8 %, hedges 32.4 %; class km
+# H 79.3, S 191.0, R 8.5, G 0; hard fences km deck 2.0, drop 3.3, railway 2.0, water 1.1. The full
+# re-bake with tools/object_types.py fetch (Overpass context) should land lower: lower this then.
+FENCE_DEFAULT_MAX = 32.0
 # docs/DEMO.md 7 row 7: the lane graph's strongly connected share at least this.
 SCC_SHARE = 0.95
 
@@ -159,12 +165,53 @@ def main() -> int:
     else:
         report("FAIL", "palm", "missing (bake_osm.py writes it from GUGIK_NOT_TREES)")
 
+    barrier_types(data, report)
+
     if gugik_missing():
         report("WARN", "GUGiK outputs", "missing: %s: run tools/setup_map.sh --full (it needs GUGiK's raw data in "
                "data/raw: tools/fetch_demo.py, docs/DEVELOPMENT.md \"Map data\")" % ", ".join(gugik_missing()))
     sectors(data, expected, report)
     print("map data: " + ("OK" if failures == 0 else f"{failures} FAILED"))
     return 0 if failures == 0 else 1
+
+
+def barrier_types(data, report):
+    """City objects plan step 5 (tools/object_types.py): every wall, fence and hedge carries ty, tc
+    and sc; the fences' `tc: default` share stays at or under FENCE_DEFAULT_MAX (it only goes
+    down); the metres per type and the hard fences by reason are printed. Before the map is baked
+    with the pass (its stamp `object_types` missing) this says so and passes."""
+    kinds = ("fence", "wall", "hedge")
+    bar = [l for l in data.get("lines", []) if l.get("k") in kinds]
+    stamp = data.get("object_types")
+    if not stamp:
+        report("OK", "barrier types", "not in this centrum.json yet: the next full re-bake writes them "
+               "(bake_osm.py runs tools/object_types.py); %d barrier lines" % len(bar))
+        return
+    untyped = sum(1 for l in bar if not all(k in l for k in ("ty", "tc", "sc")))
+    metres = {}
+    default = {"fence": 0.0}
+    total = {"fence": 0.0}
+    hard = {}
+    for l in bar:
+        p = l["p"]
+        L = sum(math.dist((p[i], p[i + 1]), (p[i + 2], p[i + 3])) for i in range(0, len(p) - 3, 2))
+        metres[(l["k"], l.get("ty"))] = metres.get((l["k"], l.get("ty")), 0.0) + L
+        if l["k"] == "fence":
+            total["fence"] += L
+            if l.get("tc") == "default":
+                default["fence"] += L
+            if l.get("hz"):
+                hard[l["hz"]] = hard.get(l["hz"], 0.0) + L
+    share = 100.0 * default["fence"] / max(total["fence"], 1.0)
+    report("OK" if untyped == 0 else "FAIL", "barrier types", "%d of %d lines typed (v%s, %s OSM ways, %s context outlines)"
+           % (len(bar) - untyped, len(bar), stamp.get("v"), stamp.get("osm"), stamp.get("ctx")))
+    report("OK" if share <= FENCE_DEFAULT_MAX else "FAIL", "fence default",
+           "%.1f %% of %.1f km with tc default (at most %.1f %%); hard fences km: %s" % (
+               share, total["fence"] / 1000, FENCE_DEFAULT_MAX,
+               ", ".join("%s %.1f" % (k, v / 1000) for k, v in sorted(hard.items())) or "none"))
+    for kind in kinds:
+        rows = sorted(((ty, m) for (k, ty), m in metres.items() if k == kind), key=lambda r: -r[1])
+        print("     %s km by type: %s" % (kind, ", ".join("%s %.1f" % (ty, m / 1000) for ty, m in rows)))
 
 
 def sha256_file(path):

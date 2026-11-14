@@ -5422,6 +5422,22 @@ System Trace: the iPhone 11 at ×2 holds 60 at its lowest GPU clock, Loop G1 abo
 
 ## Map data
 
+**Barrier types (city objects plan step 5, 2026-11-14)**: `tools/object_types.py` is the last pass of
+bake_osm (also a CLI on a baked map: `apply`, `fetch` for an Overpass context file in
+`data/raw/osm/` where there is no raw export, `--selftest` = verify step `objecttypes`). It gives every fence, wall
+and hedge line `ty` (a type id), `tc` (tag / structure / context / default), `sc` (H/S/P/R/G), `hz`
+(drop / railway / water / deck, when hard by a hazard) and `hs` (the height by setting when OSM gives
+none; `h` is left alone), stamped `object_types: {v, osm, ctx}`. The game reads none of these keys (the
+hash dump of six sectors, runtime and prebuilt, was identical with and without them). The rules were
+checked on 20 random lines each against Mapillary/Panoramax photos; rules that failed were narrowed or
+dropped (the comment above `DROPPED` lists the counts). The first run, in the cloud without OSM context
+(map evidence only), gave fence `tc default` 31.4 % of 188.2 km, walls 46.8 % of 69.6 km and hedges
+32.4 % of 20.9 km; class km H 79.3, S 191.0, R 8.5, G 0; hard fences km deck 2.0, drop 3.3, railway 2.0
+and water 1.1. `check_map_data.py` FENCE_DEFAULT_MAX is 32.0 %, and it only goes down. The committed
+centrum.json waits for the next full re-bake on the Mac (bake_osm passes its raw OSM export, so the full tags and context outlines count); until
+then the check reports "not in this centrum.json yet". The type plot is
+`tools/overlay_object_types.py plot`, and the contact sheets are `... sheet`.
+
 **Trees and fences off the water and the roads (F, 2026-11-08)**: `tools/object_audit.py` rules T1 (a
 scanned tree's trunk in a water area, a sandbar excepted), T2 (on the drawn asphalt at grade, check_streets
 S1's test, not on an island or a median) and L6 (a fence or hedge more than `WET_IN` 0.6 m inside a water
@@ -5825,6 +5841,7 @@ Command-line options (after `--`):
 | `--autopilot` | testing aid: fly (or, ghosting through walls, drive) to each mission target, or to the target of the activity of the kit that is on (a tour's pickup and stops); in a race or a side job, drive the route; with `--rival`, tail the rival |
 | `--ghost-pace=X` | testing aid (street races, 2026-11-04): the autopilot's speed factor in a race (default 1.8, an average player; 2.4 a quick one; `racer`: a skilled player in traffic.gd's racer mode at the car's top), for the race-AI runs (`tools/race_ai.sh`) |
 | `--handling=cruise\|sport\|grounded` | Grounded handling (2026-11-08): drive this run in that profile (car.gd PROFILES), whatever Settings → Jazda says; `check_lane_drive.gd` takes it too |
+| `--contacts=FILE` | the city objects plan, step 3 (2026-11-14): write the car's contact log (`contact_log.gd`: one line per contact episode, its solid class, speed in and kept, angle, street, `dead_stop` / `unstick` / `tow`; a `drive` line per street leg) to FILE during the run, Autopilot's too; `python3 -I tools/drive_report.py FILE` makes the table. `check_lane_drive.gd` takes it too, with `--driver=careful\|sloppy`, `--set=A`, `--seed=N`, `--assist=on\|off` and `--dry` (item 1 of docs/design/drivable-city-build.md). A release build reads no flags |
 | `--lane-assist=on\|off` | beta values (2026-11-04): the lane assist "Asysta pasa" (`lane_assist.gd`, Classic only) for this run, whatever Settings → Jazda says (off by default) |
 | `--race-debug` | testing aid (street races, 2026-11-04): once a second while a racing rival or a chaser stands still, traffic.gd prints what holds it (the car ahead, the player, a crossing car, a red, the lane); and (2026-11-09, docs/design/race-ai.md) once a second of a race rivals.gd prints `race trace:` (the rival's speed, its skill share and effort, the road's class, the metres both have left, the player's speed, the rival's lead in metres and seconds, whether she is seen) |
 | `--no-traffic` | no traffic, trams, pedestrians or rivals |

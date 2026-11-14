@@ -166,7 +166,7 @@ gives them one driver and one race object, so a fix lands everywhere.
 | Trzy mosty, the ladder final against Seba | Rail racer with a weak band | New driver, the long route over the three bridges |
 | Night club pack race (`street_meet.gd`) | Several rail racers at full speed with every shortcut, no band | Same driver, one race object for the whole pack: done since step 6b part 1 (6.2) |
 | Police chasers (`police.gd`, `police/chase_route.gd`) | Rail racer that never passes the player | The driver with a chase goal: a plan toward the player, the racing line, honest braking; done since step 6b part 2 (6.3). The search, the escort, the blockers and the roadblocks still drive the old way |
-| Crazy drivers (`crazy_drivers.gd`) | Rail racer with no route | The driver with an aggressive profile, later (step 6b-3) |
+| Crazy drivers (`crazy_drivers.gd`, `crazy_route.gd`) | Rail racer with no route | The driver with an aggressive profile, driving fares across town: a plan, the racing line, honest braking; done since step 6b part 3 (6.4) |
 | Drag race at the night club | A simulated run, no driving | Stays |
 | Courier bike race | Its own rider on the footways | Stays, may share the route planner later |
 | Boat race on the Vistula (`boat_race.gd`) | Its own boat driver | Stays |
@@ -174,9 +174,9 @@ gives them one driver and one race object, so a fix lands everywhere.
 Since step 2 the ladder races, the guided first race and Trzy mosty have no band: each rival
 drives its skill profile, with an effort that follows the time gap (section 6). The pack race,
 the police chasers and the crazy drivers never had one. Since step 6b part 1 the pack race drives
-the new driver too, on the same race session (6.2), and since step 6b part 2 a police car in a
-chase drives it as well, on a session of its own (6.3); the crazy drivers (6b-3) still drive the
-rail racer.
+the new driver too, on the same race session (6.2), since step 6b part 2 a police car in a
+chase drives it as well, on a session of its own (6.3), and since step 6b part 3 so do the crazy
+drivers, a session each (6.4). Every race mode drives the new driver now.
 
 Normal traffic keeps its rail and car-following model (IDM). That model is right for traffic.
 What changes is that racers treat traffic as moving obstacles with a predicted path.
@@ -221,11 +221,11 @@ RaceSession  one race: the grid, the racers, the ranking, the result (every race
   player's car. What differs is how much of them the racer uses, what the racer knows and what
   the racer dares.
 - **RaceSession.** The grid, the racers, the ranking and the result for the ladder, the first
-  race, Trzy mosty, the pack race and the police chasers; later the crazy drivers. Built in
+  race, Trzy mosty, the pack race, the police chasers and the crazy drivers. Built in
   step 6b part 1 as `game/scripts/race_session.gd` (6.2): the mechanics only (course, racers,
   plans, start, legs, effort, order, reroutes, lights, end); the words, cards and pay stay in the
   race mode's own script. The ladder races, the guided first race, Trzy mosty, the night club's
-  pack race, the police chasers (6.3) and the race bench run on it.
+  pack race, the police chasers (6.3), the crazy drivers (6.4) and the race bench run on it.
 
 **Rejected.** The player's physics car for rivals: the buildings' walls exist only near the
 player's car, so a physics rival far ahead would drive through houses or need the whole city
@@ -1154,6 +1154,91 @@ worst frame and how a chase feels: braking into turns, keeping off, the escapes.
 **Known and left** (BACKLOG). Shortcuts for the police (a patrol keeps to the roads for now); the
 search phase, the escort and the blockers still on the old driver; the crazy drivers are 6b-3.
 
+### 6.4 Step 6b part 3 as built: crazy drivers on fares
+
+The crazy drivers (taxi, courier, Pasatini; crazy-drivers.md) drive the racers' driver: a plan by
+their own seconds to a fare, the racing line, a tight curve as the arc a car can turn, honest
+braking into turns, and a new way after `turned_back` or `hop_refused`. Before they wandered in
+racer mode with no route: corners as the junction curve is, no plan, no line. They measured 27 to
+64 m/s² sideways, which no real car does; they measure 9 to 15.5 now. Step 6b is done with this:
+every race mode drives the new driver (the ladder, the first race, Trzy mosty, the pack race,
+the police chasers, the crazy drivers).
+
+**The fares' own object** (`game/scripts/crazy_route.gd`, a `RefCounted`), owned and ticked every
+frame by `crazy_drivers.gd` (its 4 Hz voice tick is unchanged), because the fares are the crazies'
+own.
+- A **fare** is a junction 600 to 1500 m away, roughly ahead of the car, in the strongly connected
+  part of the map and inside the band's area (outside the edge roadworks' band). It is picked by
+  the fares' own generator (`FARE_SEED` 2031), so no other car's draw moves. The next fare is
+  picked when less than 150 m are left; a fare not reached in 240 s, or unreachable, is dropped.
+  The distances are bounded at 2000 m (`MAX_COST`).
+- One `RaceSession` per crazy, since each has its own goal: it joins on traffic.gd's new
+  `crazy_spawned` signal and leaves on `crazy_released`. Each frame does one of: a fare search,
+  one send, or one plan slice of 40 states (`SLICE`), never two of them.
+- A crazy with no ride (the bench's `old`, a run without that node) wanders as before.
+- The bench's `crazy` races drive the same object, so no copy of the rule exists.
+
+**The profiles** (`ladder.gd` `CRAZY`, taxi / courier / Pasatini): share 1.0, `race_accel`
+3.2 / 3.0 / 4.0, `brake` 5.6, `lat` 10 / 9 / 12, knows 0.8, caution 0.1 / 0.1 / 0, `dare` 0.6 /
+0.6 / 0.5 (bold), cuts 0.6 / 0.8 / 1.0, yards 0.5 / 0.8 / 1.0, narrow 3, hops 0 / 0 / 0.3,
+`mistake` 0 / 0 / 0.15, `block` 0.5 / 0.5 / 0.75, `phone` true for the taxi. The top and the cap
+over the limit stay `CRAZY_TOP` and `CRAZY_OVER` (traffic.gd), applied after the plan's speed.
+The starting values passed the fit; none moved. Their character is kept: over the limit, fresh
+reds, blocks and tight cut-ins, the Pasatini running wide near the player, never slipping through
+a queue, yielding to crossing cars, the voice's cut-in counts.
+
+**Changes in `traffic.gd`**:
+- Signals `crazy_spawned` / `crazy_released`, the spawn statistics in `_crazy_stats`, and
+  `add_crazy` for the bench.
+- `_choose_way`'s plan gate and the arc gate include a crazy with a plan; the racers' corner and
+  mistake branch skips crazies; the crazy corner rule uses the arc and skips hairpins (with no
+  plan the arc is the curve, as before).
+- `lined` lets crazies in; a crazy's line ends at its fare at the slowest way-on speed, as a
+  chaser's does; the out-of-sight delay stays off for crazies.
+
+**The planner's cache** (`race_planner.gd`): a per-planner cache of link curves, bend speeds and
+drive times (`link_curve`, `link_bend`, `link_time`, `warm_link`); results are unchanged.
+`crazy_route.gd` fills it for every link at setup (the city's load: about 110 ms for the three
+kinds on the cloud machine), else a step at a time in frames that have spent less than 1 ms.
+Before, the first meeting of a long yard link cost 1.2 to 2.7 ms in one frame; now the worst
+planner step is 0.13 ms.
+
+**The bench** has a new race kind, `crazy`: one crazy of each kind, 180 s, three spawns (avenue,
+powisle, tamka), clear and heavy, with and without the average test player; every race runs twice,
+`old` and `new`: 72 rows. The full matrix is 488 races (it was 416); the quick one gains one (the
+taxi, clear, with the player). Two marks more (7.3): **Crazy pace** and **Crazy stays crazy**.
+
+**Old crazy driver against the new**, clear roads, the median over the three spawns:
+
+| Kind | Mean speed new / old | Cut-ins near the player, new against old |
+| --- | --- | --- |
+| Taxi | x1.07 | +0 |
+| Courier | x1.04 | +1 |
+| Pasatini | x1.06 | +0 |
+
+Single races spread x0.8 to x1.8 (a fare against a wander). With the test player, the cut-ins
+near it were 11 / 16 / 7 for the three kinds. In Busy traffic the new crazies cut in 27 times
+against the old ones' 7, and the bench's player overlaps them 9 times against 1. Traced: the
+bench's player (no brakes for a car ahead) runs into a crazy that cut in ahead of it; the crazy
+is never alongside or behind. No driving change. In the game the player's car is solid: the
+phone shows how that feels.
+
+**Proof that nothing else moved.** The 416 old races are identical to main's (only the wall-clock
+fields differ). Verify passes. No crawl went from 2.3 to 3.0 s, at its limit; the 3.0 s is an
+old-driver crazy row on Powiśle.
+
+**Frame cost.** The crazies' script work a frame, single job: median 2.1 ms in the frames that
+work, 0.009 ms over all frames (old 0.002), worst 3.3 ms (3 of 36 rows over 3 ms; the brief's gate
+was 3). What is left is one send building its racing line in one go (as every racer's send does)
+and the 2000 m search on the frame a fare is picked; splitting either changes the driving. The
+frame bench (the cloud): traffic 0.91 to 0.93 ms, a new row "crazy drivers" 0.10 ms, draw
+calls 106 to 106. Only the phone can show the worst frame, the load-time cost and the cut-ins'
+feel.
+
+**Known and left** (BACKLOG). The planner does not know `CRAZY_OVER` (it plans by the limit, the
+car then goes over it); the worst frame (3.3 ms) on the phone; both drivers (the chasers' and the
+crazies') stop dead at Tamka and Most Świętokrzyski, where a red follows a junction curve.
+
 ## 7. How we test it: the race bench
 
 Racing has its own test bench, and no step of the rebuild merges without its numbers.
@@ -1216,9 +1301,9 @@ the final's own racer (a spec's tuning `final`).
 ### 7.2 Running it
 
 ```zsh
-tools/race_bench.sh                    # the full matrix: 416 races since step 6b part 2, about 26 minutes with --jobs=3
+tools/race_bench.sh                    # the full matrix: 488 races since step 6b part 3, about 30 minutes with --jobs=3
 tools/race_bench.sh --jobs=4           # ... in four parts side by side, judged as one run: 4 minutes on four cores
-tools/race_bench.sh --quick            # the quick matrix: 41 races, 30 s (verify step `racebench`, in CI)
+tools/race_bench.sh --quick            # the quick matrix: 42 races, 30 s (verify step `racebench`, in CI)
 tools/race_bench.sh --only=tamka/heavy/none --trace   # some races, with what the rival does once a second
 tools/race_bench.sh --out=before       # on main: build/race_bench/before.json ...
 tools/race_bench.sh --against=build/race_bench/before.json   # ... then on the branch, both runs side by side
@@ -1292,7 +1377,7 @@ are only good from a run with nothing beside it.
 
 ### 7.3 The pass marks
 
-`race_bench.gd` `judge` turns a set of races into twenty marks. The limits are constants at the
+`race_bench.gd` `judge` turns a set of races into twenty-two marks. The limits are constants at the
 top of that file; a change that moves one says why in its PR.
 
 | Mark | Passes when | Step |
@@ -1316,6 +1401,8 @@ top of that file; a change that moves one says why in its PR.
 | **Pack in traffic** | in the pack's races in Busy traffic every club racer is home within 420 s. Full matrix only | 6b-1 |
 | **Chase keeps off** | in the bench's `chase` races (the new driver; the old ones are kept out) no chaser overlaps the player's car or is in front of it on its street: 36 chasers, 0 rams, 0 in front. Quick and full matrix | 6b-2 |
 | **Chase balance** | on clear roads the new driver against the old: the average player's gap to the first chaser at 20 and 30 s within 12 m, the fast player's escape time within 15 %; a course may go to twice that. Full matrix only | 6b-2 |
+| **Crazy pace** | on clear roads the new crazy driver against the old, the median over the spawns: mean speed x1.0 to x1.1 of the old driver's, and cut-ins near the player not fewer than the old driver's minus one: taxi x1.07 +0 cut-ins, courier x1.04 +1, Pasatini x1.06 +0. Full matrix only | 6b-3 |
+| **Crazy stays crazy** | with a player every kind cuts in or blocks near it at least once; every new crazy on clear roads reaches a fare; in traffic each kind does at least one: cut-ins near the player 11 / 16 / 7. Quick and full matrix | 6b-3 |
 | **Same race twice** | a repeated race gives the same time, streets and metres | 1 |
 
 The probe that measures a race (`race_bench.gd` `Probe`) reads what a spectator could see: where
@@ -1528,6 +1615,13 @@ second chaser at 20 s on one course). The quick matrix is 41 races (it was 40), 
 (it was 344: 72 chase rows). Dead stops 80 to 84, four of them among the new chasers (Honest car
 is a known fail of the rebuild).
 
+**After step 6b part 3** (the crazy drivers on the racers' driver, 6.4). The 416 old races are
+identical to main's (only the wall-clock fields differ). Two marks are new: **Crazy pace** passes
+(full matrix: taxi x1.07, courier x1.04, Pasatini x1.06) and **Crazy stays crazy** passes (cut-ins
+near the player 11 / 16 / 7; recorded pass on the quick matrix, `once:Linux` on the full one).
+No crawl reads 3.0 s (it was 2.3), at its limit: the 3.0 s is an old-driver crazy row on Powiśle.
+The quick matrix is 42 races (it was 41), the full one 488 (it was 416: 72 crazy rows).
+
 
 ### 7.5 What the bench does not see
 
@@ -1598,7 +1692,7 @@ after. Step 2 ends the complaint in F's message. The steps after it make racing 
 | 6a (done) | Personalities, visible decisions, result card with both routes, tuning (6.1) | You can tell Seba from Zbyszek by how they drive | The ladder's curve of times (Ladder curve, Told apart) |
 | 6b-1 (done) | One race session (`race_session.gd`) for the ladder races, the guided first race, Trzy mosty and the night club's pack race (6.2) | The club's drivers race like the ladder's rivals: own skill each, real overtakes, shortcuts, no driving through each other, none faster than your car | Pack order (new); Pack in traffic recorded fail; the 304 old races identical to main |
 | 6b-2 (done) | Police chasers on the racers' driver (`police/chase_route.gd`, `ladder.gd` `POLICE`, 6.3) | Police cars in a chase brake for corners and take a proper line, and are as easy or hard to shake off as before | Chase keeps off, Chase balance (new); the 344 old races identical to main |
-| 6b-3 | Crazy drivers on the racers' driver | Every race in the game uses the new driver | All marks on every race mode |
+| 6b-3 (done) | Crazy drivers on the racers' driver, on fares (`crazy_route.gd`, `ladder.gd` `CRAZY`, 6.4). Step 6b is done | Taxis, couriers and the Pasatini drive to a fare across town and take proper racing lines, and still cut in, run reds and speed. Every race in the game uses the new driver | Crazy pace, Crazy stays crazy (new); the 416 old races identical to main |
 
 Every pull request waits for green checks and the audit before it merges.
 

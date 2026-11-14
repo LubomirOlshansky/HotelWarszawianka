@@ -34,6 +34,7 @@ const RaceSession := preload("res://scripts/race_session.gd")
 const Wallet := preload("res://scripts/wallet.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const RaceBench := preload("res://tools/race_bench.gd")
+const Traffic := preload("res://scripts/traffic.gd")
 const SCRATCH := "user://check_ladder_scratch.cfg"
 const MAX_WORDS := 70
 
@@ -144,6 +145,17 @@ func _data() -> void:
 	_expect(float(Ladder.POLICE["share"]) == 1.0 and float(Ladder.POLICE["cuts"]) == 0.0 and float(Ladder.POLICE["yards"]) == 0.0
 			and float(Ladder.POLICE["hops"]) == 0.0 and int(Ladder.POLICE["wrong"]) == 0 and float(Ladder.POLICE["mistake"]) == 0.0
 			and float(Ladder.POLICE["block"]) == 0.0 and not bool(Ladder.POLICE["phone"]), "the police racer: share 1, roads only, no mistake, block or phone")
+	# Racer AI step 6b part 3: the crazy drivers (crazy_route.gd), a row by kind, every key of a
+	# racer, traffic.gd's own block and mistake, a wrong-way hop for the Pasatini only, no wrong turn.
+	_expect(Ladder.CRAZY.size() == 3, "the crazy drivers have %d rows (want 3: taxi, courier, Pasatini)" % Ladder.CRAZY.size())
+	for i in Ladder.CRAZY.size():
+		var row: Dictionary = Ladder.CRAZY[i]
+		for k: String in Ladder.DEFAULT_RACER:
+			_expect(row.has(k), "the crazy driver %d has no %s" % [i + 1, k])
+		_skill("the crazy driver %d" % (i + 1), row)
+		_expect(is_equal_approx(float(row["block"]), float(Traffic.CRAZY_BLOCK[i + 1])) and is_equal_approx(float(row["mistake"]), float(Traffic.CRAZY_MISTAKE[i + 1])),
+				"the crazy driver %d: block %.2f, mistake %.2f (traffic.gd CRAZY_BLOCK, CRAZY_MISTAKE)" % [i + 1, row["block"], row["mistake"]])
+		_expect(int(row["wrong"]) == 0 and (float(row["hops"]) == 0.0) == (i + 1 != 3), "the crazy driver %d: wrong %d, hops %.1f (a hop for the Pasatini only)" % [i + 1, row["wrong"], row["hops"]])
 	for k: String in ["share", "race_accel", "brake", "lat"]:
 		_expect(float(Ladder.FIRST_RACER[k]) < float(Ladder.racer(0)[k]), "the gentle day's %s is not under her rung's" % k)
 	_expect(Ladder.SHARE_MIN * RaceSession.EFFORT_EASE >= RaceBench.CRAWL_SHARE,
