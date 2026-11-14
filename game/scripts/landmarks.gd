@@ -798,7 +798,7 @@ const INFO := {
 	"church_trojca_praga": ["Kościół Świętej Trójcy", "Kościół parafialny.", "A parish church."],
 	"church_czestochowska": ["Kościół Matki Bożej Częstochowskiej", "Kościół parafialny.", "A parish church."],
 	"church_zwycieska": ["Kościół Matki Boskiej Zwycięskiej", "Kościół parafialny z dwiema wieżami.", "A parish church with two towers."],
-	"church_cerkiew": ["Cerkiew Zaśnięcia Matki Bożej", "Cerkiew prawosławna.", "An Orthodox church."],
+	"church_cerkiew": ["Cerkiew Zaśnięcia Matki Bożej", "Greckokatolicka cerkiew bazylianów przy Miodowej.", "The Basilians' Greek Catholic church on Miodowa."],
 	"church_nozykow": ["Synagoga Nożyków", "Jedyna przedwojenna synagoga Warszawy, przy Twardej.", "Warsaw's only pre-war synagogue, on Twarda."],
 }
 
@@ -20163,6 +20163,75 @@ func _build_narodzenia(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The Basilians' Greek Catholic church of the Dormition (Cerkiew Zaśnięcia Matki Bożej, Miodowa
+## 16), the classicist church hall behind the Basilian monastery's street wing; its front shows on
+## Miodowa as the wing's middle under a pediment with a cross (part of the monastery's building,
+## not of this model). The hall as a model that replaces the old kit church (`church_cerkiew`,
+## built by `_build_church` until 2026-11-14 with an onion dome the church never had). From the
+## Mapillary 360s of 2026 along Miodowa (refs/cerkiew, never shipped: they show the street
+## front; the hall stands in the courtyards and is unphotographed), the OSM outline and GUGiK's
+## LoD2 (over the ground: the eaves 16 to 17, the ridge 24.5, the polygonal east end 20).
+## Spec docs/landmarks/specs/cerkiew.md.
+## - a plain white hall under a grey gable roof, pilasters and tall round-headed windows a side;
+## - its west gable over the street wing's roof with an oculus and a cross;
+## - the polygonal east end under a low roof.
+## Frame: origin at the hall's west corner by the street wing, u along the hall away from Miodowa,
+## v across.
+const BZ_O := Vector2(-1034.4, -1518.1)
+const BZ_A := Vector2(0.569, -0.822)
+const BZ_C := 7.9                      ## the hall's axis (v)
+const BZ_WALL := Color("#ebe5d7")      ## the white-cream plaster (the street front's)
+const BZ_TRIM := Color("#f5f1e8")      ## pilasters, frames
+const BZ_ROOF := Color("#5d6268")      ## the grey sheet roof
+
+
+func _build_cerkiew(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(BZ_O, BZ_O + BZ_A)
+	_g = _ground_under(outline)
+	var g := _g
+	var c := BZ_C
+	var none := Color(0, 0, 0, 0)
+	var b := Vector2(-BZ_A.y, BZ_A.x)
+	_mode = M_STONE
+	# --- the hall: walls to 16.5, one gable roof, a plinth
+	var hall := _lpoly([[0.0, 0.0], [18.0, 0.0], [18.0, 15.8], [0.0, 15.8]])
+	_prism(hall, g - 1.0, g + 16.5, BZ_WALL, none, M_STONE)
+	kit_ledge_ring(hall, g + 16.0, 0.5, BZ_TRIM, 0.18)
+	kit_ledge_ring(hall, g - 1.0, 1.6, BZ_WALL.darkened(0.12), 0.06)
+	_gable(0.0, 18.0, c, 8.1, g + 16.5, 8.0, BZ_WALL, BZ_ROOF, true)
+	# --- the polygonal east end: walls to 16, a low roof to 20
+	var east := _lpoly([[18.0, 0.0], [21.2, 0.0], [24.3, 3.5], [24.4, 11.8], [21.4, 15.4], [18.0, 15.5]])
+	_prism(east, g - 1.0, g + 15.9, BZ_WALL, none, M_STONE)
+	kit_ledge_ring(east, g + 15.4, 0.45, BZ_TRIM, 0.16)
+	var ec := _w(19.5, c)
+	# the frustum wants the ring the other way round from the outline's
+	var ring := PackedVector2Array()
+	var tip := PackedVector2Array()
+	for k in range(east.size() - 1, -1, -1):
+		ring.append(east[k])
+		tip.append(ec + (east[k] - ec) * 0.25)
+	_frustum(ring, g + 15.9, tip, g + 20.0, BZ_ROOF, BZ_ROOF)
+	# --- the sides: pilasters, tall round-headed windows
+	for s: float in [-1.0, 1.0]:
+		var vf := c + s * 7.9
+		var out := b * s
+		for pu: float in [0.6, 6.0, 12.0, 17.4]:
+			_kbox(pu - 0.35, pu + 0.35, minf(vf, vf + s * 0.14), maxf(vf, vf + s * 0.14), g + 0.6, g + 16.0, BZ_TRIM)
+		for wu: float in [3.3, 9.0, 14.7]:
+			var at := _w(wu, vf)
+			_arch_panel(at, BZ_A, out, 1.0, g + 6.8, g + 12.4, BZ_TRIM, 0.03, M_STONE)
+			_arch_panel(at, BZ_A, out, 0.8, g + 7.0, g + 12.4, PAL_GLASS_DARK, 0.07, _lit(wu + vf, g + 7.0))
+	# --- the west gable over the street wing: an oculus, the cross
+	var wo := -BZ_A
+	var oc := _w(-0.05, c)
+	_disc(Vector3(oc.x, g + 19.6, oc.y), Vector3(wo.x, 0.0, wo.y), 1.2, 10, BZ_TRIM)
+	var oc2 := _w(-0.1, c)
+	_disc(Vector3(oc2.x, g + 19.6, oc2.y), Vector3(wo.x, 0.0, wo.y), 0.9, 10, PAL_GLASS_DARK)
+	_kap_cross(0.3, c, g + 24.5, 1.6)
+	_collide(outline)
+
+
 ## The Nożyk Synagogue (Synagoga Nożyków, ul. Twarda 6; Karol and Leandro Marconi, 1898-1902;
 ## burnt 1944, rebuilt 1977-1983; Warsaw's only pre-war synagogue still standing), a cream
 ## neo-Romanesque house of prayer in its courtyard south of Plac Grzybowski. The whole building as
@@ -31589,6 +31658,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_dzieciatka":
 		_build_dzieciatka(site)  # the whole brick Child Jesus church from photos, tower to the west, not the kit church
+		return
+	if site["key"] == "church_cerkiew":
+		_build_cerkiew(site)  # the Basilians' church hall without the kit's onion dome
 		return
 	if site["key"] == "church_narodzenia":
 		_build_narodzenia(site)  # the whole Baroque church and its clock turret, from photos

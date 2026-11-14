@@ -41,7 +41,7 @@ const BUDGET := {
 	"church_alberta": 950,  # 2026-11-14: the whole classicist frontage on Plac Teatralny, portico and two wings, from photos (measured 818)
 	"church_antoniego": 990,
 	"church_augustyn": 890,
-	"church_cerkiew": 410,
+	"church_cerkiew": 410,  # 2026-11-14: the Basilians' church hall from LoD2 and the street front (measured 288)
 	"church_czestochowska": 510,
 	"church_duch": 3300,  # 2026-11-14: the whole Holy Spirit church and both towers from photos (measured 3010)
 	"church_dzieciatka": 1800,  # 2026-11-14: the whole brick Child Jesus church from photos (measured 1594)

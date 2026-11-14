@@ -51,7 +51,7 @@ Status as of 2026-11-01. "Kit model" = built by the church kit; "model" = its ow
 
 | Church (OSM name) | Kind | Centre (x, z) | Status |
 | --- | --- | --- | --- |
-| Cerkiew pw. Zaśnięcia Najświętszej Marii Panny | church | -1019, -1526 | kit model (`church_cerkiew`), 2026-11-01 |
+| Cerkiew pw. Zaśnięcia Najświętszej Marii Panny | church | -1019, -1526 | model from LoD2 and the street front (`church_cerkiew`, `_build_cerkiew`, spec `cerkiew.md`), 2026-11-14 |
 | Dom Zakonny Sióstr Franciszkanek Służebnic Krzyża | monastery | -790, -1557 | open: convent or monastery: plain block, a later pass |
 | Dom zakonny Księży Misjonarzy | monastery | -519, -547 | open: convent or monastery: plain block, a later pass |
 | Kaplica Kościoła Baptystów | chapel | -2255, -359 | open: small chapel: a later pass |
