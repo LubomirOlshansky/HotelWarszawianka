@@ -790,7 +790,7 @@ const INFO := {
 	"church_jerozolimska": ["Kościół Matki Bożej Jerozolimskiej", "Ceglany kościół z portykiem naprzeciw stadionu.", "A brick church with a portico across from the stadium."],
 	"church_zielonoswiatkowy": ["Kościół Zielonoświątkowy", "Zbór zielonoświątkowy.", "A Pentecostal church."],
 	"church_dzieciatka": ["Kościół Dzieciątka Jezus", "Kościół parafialny z wysoką wieżą.", "A parish church with a tall tower."],
-	"church_narodzenia": ["Kościół Narodzenia NMP", "Kościół parafialny.", "A parish church."],
+	"church_narodzenia": ["Kościół Narodzenia NMP na Lesznie", "Barokowy kościół z wieżyczką zegarową.", "A Baroque church with a clock turret."],
 	"church_karol": ["Kościół św. Karola Boromeusza", "Klasycystyczna bazylika przy Chłodnej.", "The classical basilica on Chłodna Street."],
 	"church_augustyn": ["Kościół św. Augustyna", "Kościół parafialny z cegły.", "A brick parish church."],
 	"church_miloserdzie": ["Kościół Miłosierdzia Bożego", "Kościół parafialny.", "A parish church."],
@@ -19979,6 +19979,190 @@ func _build_reformowany(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The church of the Nativity of the Virgin Mary on Leszno (Kościół Narodzenia NMP, al.
+## Solidarności 80), a salmon-pink Baroque church with white pilasters, its three-storey front to
+## the avenue and a small copper clock turret over the pediment. The whole church as a model that
+## replaces the old kit church (`church_narodzenia`, built by `_build_church` until 2026-11-14: a
+## beige box with a helm tower, its front on the north end). From Mapillary photos of 2020 and
+## 2022 along al. Solidarności (one straight onto the front, refs/narodzenia, never shipped), the
+## OSM outline and GUGiK's LoD2 (over the ground: the nave's eaves 16.5 and ridge 22; the front's
+## pediment 23; the turret's top 30; the aisles 8; the lower chancel 15 and 19; the back wings 8).
+## Spec docs/landmarks/specs/narodzenia.md.
+## - the front: a full-width ground storey with paired pilasters and a pedimented door, a
+##   nave-wide storey with the tall round-headed window, an attic with three arched windows
+##   between scrolls, the pediment, and behind it the turret: a balustrade with urns, a
+##   green clock stage with a clock a side, a little dome and a spire with the cross;
+## - the nave under a red tile roof, pilasters and round-headed windows over the lean-to aisles;
+## - the lower chancel with its own gable, the low wings either side of it.
+## Frame: origin at the front's south-west corner, u from the front (south-south-east, to the
+## avenue) back to the chancel, v across; the front faces -u.
+const NR_O := Vector2(-1971.4, -955.6)
+const NR_A := Vector2(-0.4656, -0.8850)
+const NR_C := 12.0                     ## the church's axis (v): the door, the turret, the ridges
+const NR_WALL := Color("#d49885")      ## the salmon-pink plaster (photos)
+const NR_TRIM := Color("#efe7da")      ## the white pilasters, cornices, frames
+const NR_ROOF := Color("#a3553f")      ## the red tile roofs
+const NR_COPPER := Color("#5f8a78")    ## the turret's green copper
+const NR_BASE := Color("#a39a8e")      ## the grey plinth
+const NR_DOOR := Color("#4a3a30")      ## the dark wooden door
+
+
+## Turns the kit frame so that +v points out of one side of the church (0 the v = 24 side,
+## 1 the front, 2 the v = 0 side, 3 the back), as `_kb_turn` does for St Charles: a point (u, v)
+## of the church's frame is then (u, v), (v, -u), (-u, -v) or (-v, u) in the turned one.
+func _nr_turn(side: int) -> void:
+	var b := Vector2(-NR_A.y, NR_A.x)
+	match side:
+		0:
+			_a = NR_A
+		1:
+			_a = b
+		2:
+			_a = -NR_A
+		_:
+			_a = -b
+	_b = Vector2(-_a.y, _a.x)
+
+
+## A round-headed window on the turned frame's face: a white frame and the pane over it.
+func _nr_win(u: float, y0: float, spring: float, hw: float) -> void:
+	var at := _w(u, _face)
+	_arch_panel(at, _a, _b, hw + 0.2, y0 - 0.2, spring, NR_TRIM, 0.03, M_STONE)
+	_arch_panel(at, _a, _b, hw, y0, spring, PAL_GLASS_DARK, 0.07, _lit(u + _face, y0))
+
+
+## An octagon of radius r round c with faces along the church's axes.
+func _nr_oct(c: Vector2, r: float) -> PackedVector2Array:
+	var b := Vector2(-NR_A.y, NR_A.x)
+	var ring := PackedVector2Array()
+	for k in 8:
+		var ang := PI * (k + 0.5) / 4.0
+		ring.append(c + (NR_A * cos(ang) + b * sin(ang)) * r)
+	return ring
+
+
+## A pilaster on the turned frame's face: one white box (the kit's three-box one costs too much
+## at this count).
+func _nr_pil(u: float, y0: float, y1: float, w: float, proud: float) -> void:
+	_kbox(u - w * 0.5, u + w * 0.5, _face - 0.04, _face + proud, y0, y1, NR_TRIM)
+
+
+func _build_narodzenia(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(NR_O, NR_O + NR_A)
+	_g = _ground_under(outline)
+	var g := _g
+	var c := NR_C
+	var none := Color(0, 0, 0, 0)
+	_mode = M_STONE
+	# --- the masses: nave, aisles with the front's wide ground storey, chancel, back wings
+	var nave := _lpoly([[0.0, 4.0], [23.0, 4.0], [23.0, 20.0], [0.0, 20.0]])
+	_prism(nave, g - 1.0, g + 16.5, NR_WALL, none, M_STONE)
+	kit_ledge_ring(nave, g + 15.95, 0.5, NR_TRIM, 0.2)
+	_gable(0.6, 23.0, c, 8.2, g + 16.5, 5.5, NR_WALL, NR_ROOF, true)
+	var rings: Array[PackedVector2Array] = [nave]
+	for av: Array in [[0.0, 4.0], [20.0, 24.0]]:
+		var aisle := _lpoly([[1.4, av[0]], [23.0, av[0]], [23.0, av[1]], [1.4, av[1]]])
+		_prism(aisle, g - 1.0, g + 8.3, NR_WALL, NR_ROOF.lightened(0.06), M_STONE, M_STONE)
+		kit_ledge_ring(aisle, g + 7.75, 0.4, NR_TRIM, 0.15)
+		rings.append(aisle)
+		var fr := _lpoly([[0.0, av[0]], [1.4, av[0]], [1.4, av[1]], [0.0, av[1]]])
+		_prism(fr, g - 1.0, g + 10.5, NR_WALL, NR_ROOF.lightened(0.06), M_STONE, M_STONE)
+	var chancel := _lpoly([[23.0, 6.5], [32.9, 6.5], [32.9, 17.5], [23.0, 17.5]])
+	_prism(chancel, g - 1.0, g + 15.0, NR_WALL, none, M_STONE)
+	kit_ledge_ring(chancel, g + 14.5, 0.45, NR_TRIM, 0.18)
+	_gable(32.9, 23.0, c, 5.7, g + 15.0, 4.0, NR_WALL, NR_ROOF, false)
+	rings.append(chancel)
+	for wv: Array in [[0.0, 6.5], [17.5, 25.6]]:
+		var wing := _lpoly([[23.05, wv[0]], [32.9, wv[0]], [32.9, wv[1]], [23.05, wv[1]]])
+		_prism(wing, g - 1.0, g + 8.0, NR_WALL.lightened(0.04), NR_ROOF.lightened(0.1), M_STONE, M_STONE)
+		rings.append(wing)
+	for i in rings.size():
+		# the plinths' tops 4 cm apart where the blocks meet
+		kit_ledge_ring(rings[i], g - 1.0, 1.7 - 0.04 * i, NR_BASE, 0.06)
+	# --- the front (turned: u' = v, the face at u = 0)
+	_nr_turn(1)
+	kit_face(0.0)
+	# the ground storey across the whole front, its cornice at 10.5
+	_kbox(-0.15, 24.15, -0.05, 0.25, g + 10.2, g + 10.75, NR_TRIM)
+	for pv: float in [0.45, 3.55, 4.75, 7.6, 16.4, 19.25, 20.45, 23.55]:
+		_nr_pil(pv, g + 0.7, g + 10.2, 0.7, 0.14)
+	kit_door(c, g + 0.0, 4.0, 1.1, NR_TRIM, NR_DOOR)
+	kit_pediment(c, 1.7, g + 4.25, 0.9, NR_TRIM, NR_TRIM.darkened(0.08), 0.3)
+	for wv2: float in [2.0, 22.0]:
+		_nr_win(wv2, g + 3.0, g + 6.2, 0.75)
+	for wv3: float in [6.2, 17.8]:
+		_nr_win(wv3, g + 3.0, g + 6.8, 0.7)
+	# the nave-wide middle storey, its cornice at 16.5, the tall window
+	_kbox(3.85, 20.15, -0.05, 0.25, g + 16.1, g + 16.6, NR_TRIM)
+	for pv2: float in [4.5, 7.4, 16.6, 19.5]:
+		_nr_pil(pv2, g + 10.75, g + 16.1, 0.65, 0.12)
+	_nr_win(c, g + 11.4, g + 14.4, 1.3)
+	# the attic over the nave's eaves: three arched windows, two scrolls, the pediment
+	_kbox(6.5, 17.5, -1.0, 0.0, g + 16.0, g + 20.0, NR_WALL)
+	for pv3: float in [6.9, 17.1]:
+		_nr_pil(pv3, g + 16.6, g + 20.0, 0.6, 0.12)
+	_nr_win(c, g + 17.0, g + 18.7, 0.85)
+	for wv4: float in [9.2, 14.8]:
+		_nr_win(wv4, g + 17.4, g + 18.6, 0.4)
+	for s: float in [-1.0, 1.0]:
+		var sv := c + s * 6.3
+		_kbox(minf(sv, sv + s * 1.7), maxf(sv, sv + s * 1.7), -0.8, 0.1, g + 16.6, g + 17.3, NR_TRIM)
+		_kbox(minf(sv, sv + s * 0.8), maxf(sv, sv + s * 0.8), -0.8, 0.1, g + 17.3, g + 18.3, NR_TRIM)
+		var dc := _w(sv + s * 1.3, 0.16)
+		_disc(Vector3(dc.x, g + 17.75, dc.y), Vector3(_b.x, 0.0, _b.y), 0.45, 8, NR_TRIM.darkened(0.06))
+	kit_pediment(c, 5.8, g + 20.0, 3.0, NR_TRIM, NR_ROOF, 0.35)
+	# --- the sides: pilasters and round-headed windows on the aisles and the nave over them
+	for side: int in [0, 2]:
+		_nr_turn(side)
+		var sg := 1.0 if side == 0 else -1.0
+		kit_face(sg * (12.0 + sg * 12.0))
+		for pu: float in [2.6, 8.0, 13.4, 18.8]:
+			_nr_pil(sg * pu, g + 0.7, g + 7.75, 0.6, 0.12)
+		for wu: float in [5.3, 10.7, 16.1, 21.0]:
+			_nr_win(sg * wu, g + 2.4, g + 5.4, 0.75)
+		kit_face(sg * (12.0 + sg * 8.0))
+		for pu2: float in [1.0, 6.0, 11.0, 16.0, 21.4]:
+			_nr_pil(sg * pu2, g + 8.3, g + 15.95, 0.6, 0.12)
+		for wu2: float in [3.5, 8.5, 13.5, 18.7]:
+			_nr_win(sg * wu2, g + 10.2, g + 13.6, 0.95)
+		kit_face(sg * (12.0 + sg * 5.5))
+		for wu3: float in [26.0, 30.0]:
+			_nr_win(sg * wu3, g + 4.0, g + 9.0, 0.8)
+	# --- the back: the chancel's gable end, an oculus, the wings' windows
+	_nr_turn(3)
+	kit_face(32.9)
+	_nr_win(-c, g + 4.0, g + 9.5, 1.0)
+	var oc := _w(-c, 32.97)
+	_disc(Vector3(oc.x, g + 16.4, oc.y), Vector3(_b.x, 0.0, _b.y), 0.9, 10, NR_TRIM)
+	for wv5: float in [3.2, 21.5]:
+		_kbox(-wv5 - 0.6, -wv5 + 0.6, 32.88, 32.96, g + 2.5, g + 4.8, PAL_GLASS_DARK, _lit(wv5, g + 2.5))
+		_kbox(-wv5 - 0.6, -wv5 + 0.6, 32.88, 32.96, g + 5.4, g + 7.2, PAL_GLASS_DARK, _lit(wv5 + 1.0, g + 5.4))
+	kit_front(NR_O, NR_O + NR_A)
+	# --- the clock turret behind the pediment: base, balustrade and urns, clock stage, dome, spire
+	var tu := 2.6
+	_lbox(tu, c, 1.9, 1.9, g + 19.0, g + 22.3, NR_WALL, M_STONE, none)
+	_lbox(tu, c, 2.05, 2.05, g + 22.3, g + 22.95, NR_TRIM, M_STONE, NR_TRIM.darkened(0.05))
+	for s2: float in [-1.0, 1.0]:
+		for t: float in [-1.0, 1.0]:
+			_pinnacle(tu + s2 * 1.8, c + t * 1.8, 0.35, g + 22.95, 0.9, NR_TRIM)
+	var tc := _w(tu, c)
+	var bb := Vector2(-NR_A.y, NR_A.x)
+	_frustum(_nr_oct(tc, 1.45), g + 22.95, _nr_oct(tc, 1.45), g + 26.5, NR_COPPER.darkened(0.15))
+	for s3: float in [-1.0, 1.0]:
+		for dd: Vector2 in [NR_A * s3, bb * s3]:
+			var fp := tc + dd * 1.36
+			_arch_panel(fp, Vector2(-dd.y, dd.x), dd, 0.35, g + 23.3, g + 24.4, CHURCH_DARK, 0.03, M_STONE)
+			var cp := tc + dd * 1.4
+			_disc(Vector3(cp.x, g + 25.6, cp.y), Vector3(dd.x, 0.0, dd.y), 0.45, 10, NR_TRIM)
+	_frustum(_nr_oct(tc, 1.6), g + 26.5, _nr_oct(tc, 1.6), g + 26.8, NR_TRIM)
+	_frustum(_nr_oct(tc, 1.5), g + 26.8, _nr_oct(tc, 1.0), g + 27.7, NR_COPPER)
+	_frustum(_nr_oct(tc, 1.0), g + 27.7, _nr_oct(tc, 0.3), g + 28.3, NR_COPPER.lightened(0.05))
+	_frustum(_nr_oct(tc, 0.3), g + 28.3, _nr_oct(tc, 0.05), g + 30.3, NR_COPPER, NR_COPPER)
+	_kap_cross(tu, c, g + 30.3, 1.1)
+	_collide(outline)
+
+
 ## The Nożyk Synagogue (Synagoga Nożyków, ul. Twarda 6; Karol and Leandro Marconi, 1898-1902;
 ## burnt 1944, rebuilt 1977-1983; Warsaw's only pre-war synagogue still standing), a cream
 ## neo-Romanesque house of prayer in its courtyard south of Plac Grzybowski. The whole building as
@@ -31405,6 +31589,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_dzieciatka":
 		_build_dzieciatka(site)  # the whole brick Child Jesus church from photos, tower to the west, not the kit church
+		return
+	if site["key"] == "church_narodzenia":
+		_build_narodzenia(site)  # the whole Baroque church and its clock turret, from photos
 		return
 	if site["key"] == "church_reformowany":
 		_build_reformowany(site)  # the whole neo-Gothic church with its openwork spire, from photos

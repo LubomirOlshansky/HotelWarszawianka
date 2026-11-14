@@ -70,7 +70,7 @@ Status as of 2026-11-01. "Kit model" = built by the church kit; "model" = its ow
 | Kościół Wniebowzięcia Najświętszej Maryi Panny i świętego Józefa Oblubieńca | church | -582, -1036 | front on kept skin (`karmelici`) |
 | Kościół Zielonoświątkowy | church | -1890, 332 | model from photos (`church_zielonoswiatkowy`, `_build_zielonoswiatkowy`, spec `zielonoswiatkowy.md`), 2026-11-14 |
 | Kościół parafialny pw. Dzieciątka Jezus | church | -1825, 980 | model from photos (`church_dzieciatka`, `_build_dzieciatka`, spec `dzieciatka.md`), 2026-11-14 |
-| Kościół parafialny pw. Narodzenia Najświętszej Maryi Panny | church | -1969, -976 | kit model (`church_narodzenia`), 2026-11-01 |
+| Kościół parafialny pw. Narodzenia Najświętszej Maryi Panny | church | -1969, -976 | model from photos (`church_narodzenia`, `_build_narodzenia`, spec `narodzenia.md`), 2026-11-14 |
 | Kościół pw. Matki Boskiej Zwycięskiej | cathedral | 1971, -1373 | kit model (`church_zwycieska`), 2026-11-01 |
 | Kościół pw. Miłosierdzia Bożego i Świętej Faustyny | church | -2749, -693 | model from photos (`church_miloserdzie`, `_build_miloserdzie`, spec `miloserdzie.md`), 2026-11-14 |
 | Kościół pw. Świętego Augustyna | church | -2417, -1176 | kit model (`church_augustyn`), 2026-11-01 |
