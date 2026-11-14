@@ -20425,11 +20425,11 @@ func _sl_turn(side: int) -> void:
 ## north-west apse, v across; the front faces -u; the tower stands at v -11.
 const AU_O := Vector2(-2399.2, -1142.5)
 const AU_A := Vector2(-0.4297, -0.9030)
-const AU_BRICK := Color("#9b4632")     ## the red clinker brick
+const AU_BRICK := Color("#b9583b")     ## the orange-red brick (photos)
 const AU_STONE := Color("#d7c3a0")     ## the beige stone details
 const AU_DARKSTONE := Color("#8a4a38") ## the brown-red stone bands
 const AU_ROOF := Color("#5e6266")      ## the grey roofs
-const AU_SPIRE := Color("#4d5a58")     ## the spire's dark sheet
+const AU_SPIRE := Color("#5f9580")     ## the green copper of the spire and turrets (photos)
 
 
 ## A lean-to roof over an aisle: from the outer wall's top (v_out, y_out) up to the nave wall
@@ -20510,6 +20510,18 @@ func _build_augustyn(site: Dictionary) -> void:
 	_disc(Vector3(rc2.x, g + 16.0, rc2.y), Vector3(fo.x, 0.0, fo.y), 2.6, 14, PAL_GLASS_DARK)
 	_kbox(-0.2, 0.0, -7.3, 7.3, g + 21.9, g + 22.6, AU_STONE)
 	_kap_cross(0.3, 0.0, g + 26.7, 2.2)
+	# the slim corner turrets of the front gable, with little green spires
+	for s4: float in [-1.0, 1.0]:
+		var cc := _w(-0.3, s4 * 7.0)
+		var r8 := PackedVector2Array()
+		for k6 in 8:
+			var an6 := PI * (k6 + 0.5) / 4.0
+			r8.append(cc + (AU_A * cos(an6) + b * sin(an6)) * 0.75)
+		_frustum(r8, g + 8.1, r8, g + 24.5, AU_BRICK)
+		var r8t := PackedVector2Array()
+		for p3: Vector2 in r8:
+			r8t.append(cc + (p3 - cc) * 0.1)
+		_frustum(r8, g + 24.5, r8t, g + 27.5, AU_SPIRE, AU_SPIRE)
 	# the chapel annex on the front's other side
 	var fr := _lpoly([[1.0, 7.0], [11.0, 7.0], [11.0, 15.0], [1.0, 15.0]])
 	_prism(fr, g + 9.5, g + 12.3, AU_BRICK, AU_ROOF.lightened(0.1), M_STONE, M_STONE)
@@ -20529,12 +20541,23 @@ func _build_augustyn(site: Dictionary) -> void:
 			_arch_panel(tc + dd * 3.4 + al * k2, al, dd, 0.42, g + 39.0, g + 44.5, CHURCH_DARK, 0.03, M_STONE)
 		_arch_panel(tc + dd * 4.0, al, dd, 0.5, g + 26.0, g + 30.5, CHURCH_DARK, 0.03, M_STONE)
 		_disc(Vector3((tc + dd * 4.03).x, g + 18.5, (tc + dd * 4.03).y), Vector3(dd.x, 0.0, dd.y), 0.9, 8, AU_STONE)
+	# the small top stage with its arched openings, then the octagonal green spire
+	_lbox(tu, tv, 2.6, 2.6, g + 47.6, g + 52.0, AU_BRICK, M_STONE, none)
+	for dd2: Vector2 in [AU_A, -AU_A, b, -b]:
+		var al2 := Vector2(-dd2.y, dd2.x)
+		for k4: float in [-0.8, 0.8]:
+			_arch_panel(tc + dd2 * 2.6 + al2 * k4, al2, dd2, 0.32, g + 48.4, g + 50.8, CHURCH_DARK, 0.03, M_STONE)
+	_lbox(tu, tv, 2.8, 2.8, g + 52.0, g + 52.5, AU_STONE, M_STONE, AU_STONE.darkened(0.06))
 	for s3: float in [-1.0, 1.0]:
 		for t: float in [-1.0, 1.0]:
-			_pinnacle(tu + s3 * 3.2, tv + t * 3.2, 0.7, g + 47.6, 3.0, AU_STONE)
-	var sq := func(h: float) -> PackedVector2Array:
-		return _rect(tu, tv, h, h)
-	_frustum(sq.call(3.0), g + 47.6, sq.call(0.15), g + 63.4, AU_SPIRE, AU_SPIRE)
+			_pinnacle(tu + s3 * 3.2, tv + t * 3.2, 0.7, g + 47.6, 2.4, AU_STONE)
+	var oc8 := func(r: float) -> PackedVector2Array:
+		var ring := PackedVector2Array()
+		for k5 in 8:
+			var an5 := PI * (k5 + 0.5) / 4.0
+			ring.append(tc + (AU_A * cos(an5) + b * sin(an5)) * r)
+		return ring
+	_frustum(oc8.call(2.5), g + 52.5, oc8.call(0.12), g + 63.4, AU_SPIRE, AU_SPIRE)
 	_lbox(tu, tv, 0.6, 0.6, g + 63.4, g + 64.6, Color("#c9a64a"), M_STONE, Color("#c9a64a"))
 	_kap_cross(tu, tv, g + 64.6, 5.1)
 	# --- the small stair turret by the choir
