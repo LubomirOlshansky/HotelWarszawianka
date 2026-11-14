@@ -2097,7 +2097,17 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 		rivals.ghost_pace = ghost_pace
 	rivals.wallet = wallet
 	rivals.tod = tod  # loop 3h slice 3: the final waits for the night
-	rivals.setup(graph, traffic, hud, bubbles, missions, map, world, car, data)
+	rivals.graph = graph
+	rivals.traffic = traffic
+	rivals.hud = hud
+	rivals.bubbles = bubbles
+	rivals.missions = missions
+	rivals.map = map
+	rivals.car = car
+	rivals.setup(world, data)
+	# The director keeps one activity of the kit at a time; the race's own tests for the air, the
+	# rescue and the cards stay in rivals.gd (`world_free` would refuse the guide's first race).
+	activities.add(rivals, func() -> bool: return true)
 	await LoadYield.tick("rivals.setup")
 	if ladder_flag >= 0 or trzy_mosty_flag:
 		rivals.preset_ladder(ladder_flag if ladder_flag >= 0 else Ladder.RUNGS.size())  # loop 3h slice 3
@@ -2641,21 +2651,6 @@ func _end_phone_bench(done: bool) -> void:
 	hud.show_bench_card(text)
 
 
-## What rivals.gd asks the side jobs by name, answered as jobs.gd did before it joined the kit
-## (`_build_side_jobs`). It goes when the rivals move to the kit.
-class JobsForRivals extends Node:
-	## () -> bool: one of the side jobs is on (the director's `job_on`).
-	var job_on: Callable
-	## () -> bool: a Podwózka request card is up (rides.gd `offering`).
-	var offered: Callable
-
-	func busy() -> bool:
-		return bool(job_on.call())
-
-	func ride_offered() -> bool:
-		return bool(offered.call())
-
-
 ## The side jobs (kebab stands, the słoiki run) and the easter eggs.
 func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
 	var nodes := {"hud": hud, "bubbles": bubbles, "dialogue": dialogue, "wallet": wallet, "missions": missions,
@@ -2681,15 +2676,6 @@ func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
 	jobs.setup(world)
 	if solo_site != "":
 		jobs.clear_stands()  # a landmark alone (--solo): no kebab stand beside it
-	if rivals != null:
-		# WORKAROUND(arch): rivals.gd asks the side jobs by name ("is a job on?", "is a ride's
-		# request up?") and cannot change while the racer-AI rebuild has it, see tech-debt TD-1.
-		var seen := JobsForRivals.new()
-		seen.name = "JobsForRivals"
-		seen.job_on = activities.job_on
-		seen.offered = func() -> bool: return rides != null and rides.offering()
-		add_child(seen)
-		rivals.jobs = seen
 	# --- loop 2d-1: Podwózka, the app-taxi side job (and the GPS moments of the app-taxis) ---
 	rides = Rides.new()
 	rides.autopilot = autopilot
@@ -3938,8 +3924,6 @@ func _free_block(ringing_ok := false, guide_ok := false) -> String:
 		return "a card, mission or rescue target is up"
 	if (rides != null and rides.busy()) or (jobs != null and activities.job_on()) or (trend_job != null and trend_job.busy()):
 		return "ride/job/trend job busy"
-	if rivals != null and rivals.busy():
-		return "rival race busy"
 	if activities.busy():
 		return activities.busy_tag() + " busy"
 	if flying or car.in_water:
@@ -3979,8 +3963,6 @@ func _build_meet(data: Dictionary, world: Node3D) -> void:
 	meet.setup(world)
 	# `meet.autopilot` stays off: a test run does not answer Darek or the result card (it never did).
 	activities.add(meet)  # the director says when Darek may ring (nothing else on: world_free)
-	if rivals != null:
-		rivals.meet = meet
 	if meet_flag == "call":
 		get_tree().create_timer(1.0).timeout.connect(func() -> void: meet.ring())
 	if meet_at != "":
@@ -4077,8 +4059,6 @@ func _ev_free() -> bool:
 	if hud.cards_up() or missions.state != Missions.State.CLOSED or missions.has_target():
 		return false
 	if (rides != null and rides.busy()) or (jobs != null and activities.job_on()) or (trend_job != null and trend_job.busy()):
-		return false
-	if rivals != null and rivals.busy():
 		return false
 	return flying or not car.in_water
 
@@ -7866,7 +7846,7 @@ func _vehicle_position() -> Vector3:
 ## arrow's order (a race has none), so it brakes itself into it.
 func _stop_assist() -> void:
 	var at := Vector3.INF
-	if flying or (rivals != null and rivals.has_target()):
+	if flying:
 		pass
 	elif activities.targeted() != null:
 		at = activities.targeted().stop_spot()
@@ -7962,18 +7942,11 @@ func _show_target() -> void:
 		var ma := roundi(Vector2(ap.x - at_a.x, ap.z - at_a.z).length())
 		var on_a := cam.unproject_position(ap + Vector3(0, 3.5, 0)) * float(view.stretch_shrink)
 		hud.set_target(on_a, act.target_label(ma), act.target_colour(), ma > 12 and act.target_arrow())
-		# A job's target is the main line's while the guide runs (the first job is its goal).
-		_put_target(Vector2(ap.x, ap.z), act.target_colour(), act.is_job and _guide_on())
-		_new_target("job", ap)
-		return
-	if rivals != null and rivals.has_target():
-		var f: Vector3 = rivals.target_position()
-		var p := _vehicle_position()
-		var m := roundi(Vector2(f.x - p.x, f.z - p.z).length())
-		var on := cam.unproject_position(f + Vector3(0, 3.5, 0)) * float(view.stretch_shrink)
-		hud.set_target(on, "%d m" % m, rivals.target_colour(), m > 12)
-		_put_target(Vector2(f.x, f.z), rivals.target_colour(), _guide_on() or rivals.main_race())
-		_new_target("race", f)
+		# A job's target is the main line's while the guide runs (the first job is its goal); a race's
+		# is too, and for the ladder's next rung (`main_target`), and a race's gets no camera look
+		# (`target_source`).
+		_put_target(Vector2(ap.x, ap.z), act.target_colour(), act.main_target(_guide_on()))
+		_new_target(act.target_source(), ap)
 		return
 	# The pointer to the next kebab stand (the delivered card's NASTĘPNE): no activity is on then.
 	# (A delivery's door is the kit's target, above.)
@@ -8316,9 +8289,6 @@ func _toggle_vehicle() -> void:
 		return
 	if flying and ev_tow != null and ev_tow.carrying():
 		hud.toast("Najpierw odstaw %s pod ładowarkę (albo ✕)" % EvTow.NAME, "Set the %s down at the charger first (or ✕)" % EvTow.NAME)
-		return
-	if rivals != null and rivals.racing():
-		hud.toast("Najpierw dokończ wyścig", "Finish the race first")
 		return
 	var grounded := activities.grounded()  # the activity that is on keeps the player on the ground
 	if not grounded.is_empty():

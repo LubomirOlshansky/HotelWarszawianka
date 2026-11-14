@@ -144,6 +144,7 @@ ride                 local     slow
 ride-police          local     slow
 rideplay             quick
 rides                quick
+rivals               quick
 roads                roads
 roadtruth            quick
 roadworks            quick

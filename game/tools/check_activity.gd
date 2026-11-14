@@ -832,7 +832,31 @@ func _director() -> void:
 	hud.press(0)
 	_expect(d.current() == a and d.busy_tag() == "first" and not d.may_start(c), "taken: now it is the current one")
 	a.finish()
+	# `offering`, each joined activity's `request_up`: a request card that leaves the player free
+	# is up, someone else's (a rival's challenge waits for it, rivals.gd). An offer that holds the
+	# player is no such card (it is on: `free_now` answers for it).
+	_expect(not d.offering() and not a.request_up.call() and not b.request_up.call(), "no request card up: nobody is offering")
+	a.ring()
+	_expect(not d.offering(), "a ringing phone is no request card")
+	hud.press(0)
+	_expect(d.offering() and d.offering(b) and not d.offering(a) and b.request_up.call() and c.request_up.call() and not a.request_up.call(),
+			"offer_busy off, its request card up: the others see it, the one offering does not")
+	hud.press(0)
+	_expect(not d.offering() and not b.request_up.call(), "taken: it runs, no request card is up")
+	a.finish()
 	a.offer_busy = true
+	a.ring()
+	hud.press(0)
+	_expect(a.phase == Activity.Phase.OFFER and not d.offering() and not b.request_up.call(), "an offer that holds the player is no request card")
+	a.finish()
+	var lone := _probe(hud, "lone")
+	_expect(not lone.request_up.call(), "an activity that never joined the director sees no request card")
+	lone.free()
+	# The target's two words for main.gd: what the camera calls it and whether it is the main line's.
+	_expect(a.target_source() == "job" and not a.main_target(false) and not a.main_target(true), "the kit's target: a job's for the camera, not the main line's")
+	a.is_job = true
+	_expect(a.main_target(true) and not a.main_target(false), "a side job's target is the main line's while the guide runs, and only then")
+	a.is_job = false
 	# The side jobs (`is_job`): `job_on` is what the game asked jobs.gd by name ("is a kebab, a
 	# ride, the round-up or a trend job on?"). True while one of them is on, and only then.
 	_expect(not d.job_on(), "nothing on: no job on")
