@@ -69,13 +69,13 @@ fails if a script is in neither page, so add a row when you add a file.
 ## 4. Activities: things the player does
 
 An activity of **the kit** extends `activity.gd` and joins the director, which knows which one is
-on. Two have not moved yet (`rivals.gd` and `missions.gd`, one per PR, tech-debt TD-1): each runs on
-its own and answers `busy()`, and `main.gd` `_free_block()` decides whether one may start.
+on. One has not moved yet (`missions.gd`, last, with the offer pacer, tech-debt TD-1 and TD-3): it
+runs on its own and answers `busy()`, and `main.gd` `_free_block()` decides whether it may start.
 
 | Script | Owns |
 | --- | --- |
 | `activity.gd` | **The activity kit's base class** (TD-1, with TD-2 and TD-16): the phases (idle, the phone rings, the offer, the run), the call's clock, the cards (a card it shows is its own; the press comes to it alone), the target (its beacon; the arrow, the metres, the minimap's dot and the stop assist read it through the director), the ✕, the autopilot's taps, the log, and one end that takes down everything it put up. A subclass gives the words and the play. |
-| `activities.gd` | **The activity director**: an activity of the kit joins with `add`. `current()`, `busy()`, `busy_tag()`; `may_start(a)` (one of the kit at a time, and `world_free`, main.gd's test for everything not in the kit yet, or the activity's own test given as `add`'s second argument: the EV tow's, which may start from the air); `targeted()`; `grounded()` (why the helicopter is refused). Not built yet: who may interrupt whom, and the context for `messages.gd`. |
+| `activities.gd` | **The activity director**: an activity of the kit joins with `add`. `current()`, `busy()`, `busy_tag()`; `may_start(a)` (one of the kit at a time, and `world_free`, main.gd's test for everything not in the kit yet, or the activity's own test given as `add`'s second argument: the EV tow's, which may start from the air); `targeted()`; `grounded()` (why the helicopter is refused); `offering()` (another activity's request card that leaves the player free is up: Podwózka's, the trend job's; each activity's `request_up`, which a rival's challenge waits for). Not built yet: who may interrupt whom, and the context for `messages.gd`. |
 | `tour.gd` | A guided tour, the kit's first activity: a guest phones, the pickup, a list of stops with a card at each, one shot asked for on each leg, hits against the pay, a question at the end. The tours are data files: `game/data/kino_tour.json` ("Kino objazdowe") and `game/data/dekalog_tour.json` ("Dekalog na kółkach"). |
 | `bar_crawl.gd` | The bar crawl ("Rajd po barach"), an activity of the kit: a night group phones, the pickup at a kerb, three bars against a clock with a stay at the first two, the group's mood (knocks and hard stops), pay by bars, mood and time. The kit holds its call, cards, target and end; the script keeps the groups, the routes, the clock and the mood. Groups' lines: `game/data/bar_crawl.json`. |
 | `missions.gd`, `beacon.gd`, `route_line.gd` | Rescue missions (call, pickup, hospital); the ground ring and light column marker; the road route as a polyline for the minimap. |

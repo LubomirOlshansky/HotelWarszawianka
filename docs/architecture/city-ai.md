@@ -113,6 +113,18 @@ skill, not from the player's speed. Built so far (steps 1 to 4a of 8):
   keeps both cars' ways through a race and at its end names what decided it (the route, the
   standing, the pace); `rivals.gd` adds its lines to the result card and its picture
   (`RaceReport.Sketch`) through `hud.set_card_art`.
+- **On the activity kit** (2026-11-14, tech-debt TD-1): `rivals.gd` extends `activity.gd`. Its six
+  states stay (`state`: cruise, the prompt behind a rival, the challenge, the countdown, the race,
+  the result); the first two are the kit's idle phase, the rest its run (`start()` where a race
+  begins). The kit holds the result card (the race's own: only its OK ends the race, and it comes
+  back if another card covers it), the status line, the race's flag (the kit's beacon, placed by
+  the race at the finish's and the bridges' own heights), the ✕ (`drop`: a race given up gets its
+  lose card) and the end (`_ended`: back to cruise). A challenge, Halina's roll-up and the Trzy
+  mosty start marker come only while the director says so (`free_now`: no other activity of the
+  kit is on; `request_up`: no other's request card is up beside the road). The camera does not
+  turn to look at the finish (`target_source` "race") and the race is the main line's target while the
+  guide runs or when it is the final or the next rung's race (`main_target`, `main_race`). The script keeps the rivals, the challenge, the words, the pay, the talk,
+  the ghost and the player's checkpoints.
 - The night club's pack race (`street_meet.gd`, `ladder.gd` `CLUB`) races on the session too
   (step 6b part 1b): a plan, a racing line, shortcuts and lights each, and no report. The
   autopilot's ghost and Halina's roll-up behind the car before the first race (`call_first`)
