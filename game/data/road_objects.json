@@ -58,7 +58,21 @@
   ]
  },
  "hard_lines": {
+  "barrier:fence:-1036:-868": "step 7 check_landmarks (2026-11-14): on main this line is what stops the car ray from the Saxon Garden to Grób Nieznanego Żołnierza; kept hard so the site stays closed as before (the garden's iron railing, 36 m)",
   "barrier:fence:-1358:650": "step 7 --wander trap (2026-11-14): the tram stop's railing on Aleje Jerozolimskie by Centrum (-1329,638); through it the car lands on the tram island between the platforms' sides and the hard tram railings and cannot get back out",
-  "barrier:fence:142:-1092": "step 7 --wander trap (2026-11-14): the Vistula boulevard's railing at Powiśle (95,-1134); through it the car lands on the promenade a level down and cannot climb back"
+  "barrier:fence:-1430:-1450": "step 7 check_landmarks (2026-11-14): on main this line is what stops the car ray from the north to Pałac Krasińskich; kept hard so the site stays closed as before (an iron railing, 195 m)",
+  "barrier:fence:-2238:-2076": "step 7 check_landmarks (2026-11-14): on main this line is what stops the car ray from the north-east to Umschlagplatz; kept hard so the site stays closed as before (a chain-link fence, 139 m)",
+  "barrier:fence:-2844:-2156": "step 7 check_landmarks (2026-11-14): on main this line is what stops the car ray from the north to the flag on rondo Radosława; kept hard so the site stays closed as before (a plain fence, 132 m)",
+  "barrier:fence:-906:-760": "step 7 check_landmarks (2026-11-14): on main this line is what stops the car ray from the Saxon Garden to Grób Nieznanego Żołnierza; kept hard so the site stays closed as before (the garden's iron railing, 102 m)",
+  "barrier:fence:-938:-750": "step 7 check_landmarks (2026-11-14): on main this line is what stops the car ray from the Saxon Garden to Grób Nieznanego Żołnierza; kept hard so the site stays closed as before (the garden's iron railing, 88 m)",
+  "barrier:fence:1172:352": "step 7 check_landmarks (2026-11-14): on main this line is what stops the car ray from the north-east to Kościół Świętej Trójcy (Praga); kept hard so the site stays closed as before (a plain fence, 163 m)",
+  "barrier:fence:142:-1092": "step 7 --wander trap (2026-11-14): the Vistula boulevard's railing at Powiśle (95,-1134); through it the car lands on the promenade a level down and cannot climb back",
+  "barrier:fence:1740:1498": "step 7 check_landmarks (2026-11-14): on main this line is what stops the car ray from the north-east to Małpi Love; kept hard so the site stays closed as before (an iron railing, 365 m)",
+  "barrier:hedge:-1042:-1316": "step 7 check_landmarks (2026-11-14): on main this line is what stops the car ray from the west to Pomnik Bohaterów Warszawy; kept hard so the site stays closed as before (the monument's hedge, 15 m off its ring, 62 m)",
+  "barrier:hedge:-1086:-806": "step 7 check_landmarks (2026-11-14): on main this line is what stops the car ray from the Saxon Garden to Grób Nieznanego Żołnierza; kept hard so the site stays closed as before (the garden's hedge, 187 m)",
+  "barrier:hedge:-128:-672": "step 7 check_landmarks (2026-11-14): on main this line is what stops the car ray from the south to Rotunda na Dynasach; kept hard so the site stays closed as before (a low hedge, 13 m)",
+  "barrier:hedge:-1874:-220": "step 7 check_landmarks (2026-11-14): on main this line is what stops the car ray from the south to Westynka; kept hard so the site stays closed as before (the tower's garden hedge, 14 m)",
+  "barrier:hedge:-1890:-220": "step 7 check_landmarks (2026-11-14): on main this line is what stops the car ray from the south to Westynka; kept hard so the site stays closed as before (the tower's garden hedge, 25 m)",
+  "barrier:hedge:624:-1994": "step 7 check_landmarks (2026-11-14): on main this line is what stops the car ray from the east to Katedra św. Floriana; kept hard so the site stays closed as before (a low hedge, 24 m)"
  }
 }
