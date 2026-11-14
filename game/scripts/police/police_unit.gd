@@ -14,7 +14,8 @@ extends Node
 ##   ├ SequenceReactive  Roadblock: IsRole(roadblock) → hold_or_leave (parked; 10 s, then goes)
 ##   ├ SequenceReactive  Blocker  : IsRole(blocker) → hold_or_leave
 ##   ├ SequenceReactive  Search   : IsRole(chaser), IsPhase(search) → search_area
-##   ├ SequenceReactive  Chase    : IsRole(chaser) → pursue (re-planned 1 Hz by police.gd)
+##   ├ SequenceReactive  Chase    : IsRole(chaser) → pursue (re-planned 1 Hz by police.gd; racer AI
+##   │                              step 6b part 2: on the racers' driver, police/chase_route.gd)
 ##   ├ SequenceReactive  Trap     : IsRole(trap) → stay_parked
 ##   ├ SequenceReactive  Club     : IsRole(club) → stay_parked (loop MW-3: parked by a club)
 ##   ├ SequenceReactive  Crash    : IsRole(crash) → attend (a crash scene's car: parked, lights on)
@@ -46,6 +47,10 @@ const CHASE_GAP := 10.0
 ## when one is close, and round traffic that doesn't give way. Its top speed stays chase_top
 ## (CHASE_SHARE of the player's), so a flat-out run still escapes; corners cost the player less
 ## than before, not nothing (CHASE_LAT under the rivals' 7.5).
+## Racer AI step 6b part 2: a chaser drives the racers' driver with ladder.gd POLICE's numbers
+## (police/chase_route.gd `join`); these two are the chase without a plan (the race bench's
+## `old`, the reference the POLICE profile is fitted against) and CHASE_LAT the car's grip in
+## every other mode.
 const CHASE_RACE_ACCEL := 6.0
 const CHASE_LAT := 6.5
 ## Searching: to the last-seen point, then round it within SEARCH_REACH at 30 km/h.
@@ -193,20 +198,14 @@ func drive_as_traffic() -> int:
 
 
 ## The chaser: lights on, after the player on the lane graph (police.gd re-plans the route once
-## a second, one unit a frame), never closer than CHASE_GAP behind, slow through reds.
+## a second, one unit a frame), never closer than CHASE_GAP behind, slow through reds; on the
+## racers' driver (step 6b part 2, `arm_chase`).
 func pursue() -> int:
 	if _mode != "chase":
 		_mode = "chase"
-		_racer(true)
-		var d = driver
-		if d.parked:
+		if driver.parked:
 			police.pull_out(self)
-		traffic.set_lights(d, true)
-		d.chase = true
-		d.held = false
-		d.persistent = true
-		d.accel_factor = CHASE_ACCEL
-		d.keep_gap = CHASE_GAP
+		arm_chase(driver, traffic, police.chase_route, police.chase_top())
 		police.request_replan(self)
 	# Every tick: a car swapped or tuned at the garage mid-chase changes the pace at once.
 	driver.v_cap = police.chase_top()
@@ -342,12 +341,41 @@ func guard_follow() -> int:
 	return BeehaveNode.RUNNING
 
 
-## Racer mode for the chase (CHASE_RACE_ACCEL above), off in every other mode.
+## Racer mode off in every mode but the chase (step 6b part 2: and the unit out of the chase's
+## session, police/chase_route.gd `leave`).
 func _racer(on: bool) -> void:
 	if driver == null:
 		return
-	driver.race_accel = CHASE_RACE_ACCEL if on else 0.0
-	driver.race_lat = CHASE_LAT
-	driver.race_top = 0.0
-	driver.race_effort = 1.0
-	driver.pass_t = 0.0
+	if not on and police != null and police.chase_route != null:
+		police.chase_route.leave(driver)
+	racer_mode(driver, on)
+	if not on:
+		driver.race_brake = 0.0
+		driver.race_share = 1.0
+
+
+## Racer mode as the chase had it before step 6b part 2 (CHASE_RACE_ACCEL above; on), or off.
+static func racer_mode(d, on: bool) -> void:
+	d.race_accel = CHASE_RACE_ACCEL if on else 0.0
+	d.race_lat = CHASE_LAT
+	d.race_top = 0.0
+	d.race_effort = 1.0
+	d.pass_t = 0.0
+
+
+## A chaser armed as `pursue` arms it (the race bench's `chase` arms its chasers here too): lights
+## on, after the player, kept CHASE_GAP behind, never parked or held, its top `top` (m/s,
+## police.gd `chase_top`; re-read every tick by `pursue`), and on the racers' driver through
+## `route` (police/chase_route.gd `join`: a racer of the chase's session with ladder.gd POLICE's
+## numbers; with `route.planned` off, the old racer mode alone).
+static func arm_chase(d, traffic_node, route, top: float) -> void:
+	racer_mode(d, true)
+	traffic_node.set_lights(d, true)
+	d.chase = true
+	d.held = false
+	d.persistent = true
+	d.accel_factor = CHASE_ACCEL
+	d.keep_gap = CHASE_GAP
+	d.v_cap = top
+	if route != null:
+		route.join(d, top, Vector2(d.speed_factor, CHASE_ACCEL))

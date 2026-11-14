@@ -624,6 +624,21 @@ func speeds(p: Path, lat: float, brake: float, fast_from := INF, fast_to := -INF
 		p.v[i] = minf(p.v[i], sqrt(next * next + 2.0 * brake * (p.gm[i + 1] - p.gm[i])))
 
 
+## Racer AI step 6b part 2: line p ends at `v` m/s at most, braked down to it at `brake` m/s² (a
+## police chaser's line ends at its goal, the end of the player's street, which is no finish line:
+## it comes to that junction ready for whichever way the player takes on).
+func end_speed(p: Path, v: float, brake: float) -> void:
+	var n := p.v.size()
+	if n == 0 or p.v[n - 1] <= v:
+		return
+	p.v[n - 1] = v
+	for i in range(n - 2, -1, -1):
+		var c := sqrt(p.v[i + 1] * p.v[i + 1] + 2.0 * brake * (p.gm[i + 1] - p.gm[i]))
+		if p.v[i] <= c:
+			break
+		p.v[i] = c
+
+
 # --- building a stretch ---------------------------------------------------------------------------
 
 ## A stretch, built: first with every junction as wide as its room allows. A junction whose arc
