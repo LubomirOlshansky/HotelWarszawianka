@@ -53,7 +53,7 @@ kept only where its fix is worth that (the first set: 695 -> 1256 such cells, 26
     python3 -I tools/road_profiles.py --show=ID [MAP_DIR]  an entry's chain, profile and ground, station by station
     python3 -I tools/road_profiles.py --propose=N|service [MAP_DIR]   draft entries for the top places no entry covers
 
-tools/bake_osm.py runs `apply` after zamek_ramps. Re-run tools/bake_sectors.py and bake_city.gd after it.
+tools/bake_osm.py runs `apply` after lane_tapers. Re-run tools/bake_sectors.py and bake_city.gd after it.
 """
 import json
 import math

@@ -26,7 +26,7 @@ cloud fix thread proves the cause with headless lines in minutes.
 
 ## 0. Setup (once per Mac; the user does the account steps)
 
-1. Install the `autopilot` CLI from the same release as the add-on (v1.0.0-753232a; the add-on no
+1. Install the `autopilot` CLI from the same release as the add-on (v1.0.0-1cb2383; the add-on no
    longer bundles `agent_service/`; get the installer from the ramenvr/autopilot release page). Claude
    Code's auto mode blocks it ("code from external"): the user runs it.
 2. `autopilot connect claude`, then a new Claude Code session (it blocks this as

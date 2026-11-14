@@ -115,10 +115,12 @@ const QUARTER := 402.0
 const WATCH_BACK := 30.0
 
 ## Night: 21:00 to 04:00.
-const NIGHT_HOURS := Vector2(21.0, 4.0)
+static var NIGHT_HOURS: Vector2 = Pacer.span("meet", "hours")
 ## Free-play seconds before the first call of a night and between calls.
-const FIRST_CALL := Vector2(240.0, 480.0)
-const NEXT_CALL := Vector2(1500.0, 2400.0)
+static var FIRST_CALL: Vector2 = Pacer.span("meet", "first_call")
+static var NEXT_CALL: Vector2 = Pacer.span("meet", "next_call")
+## A call that could not ring tries again this long after (s).
+static var RETRY: float = Pacer.num("meet", "retry")
 const RING_LIFE := 25.0
 ## The ring of parked cars and the people at a meet.
 const RING_CARS := 6
@@ -1086,7 +1088,7 @@ func _tick(dt: float) -> void:
 	if phase == Phase.IDLE and auto and _free() and (force or night_on(_hour())):
 		call_in -= _due
 		if call_in <= 0.0 and not ring():
-			call_in = 20.0
+			call_in = RETRY
 
 
 ## The kit's session clock is not Darek's: see `_tick`.

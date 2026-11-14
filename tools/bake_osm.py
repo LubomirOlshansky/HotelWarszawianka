@@ -472,11 +472,6 @@ def main(src, trees_src, dst, extras_src=None, more_src=None):
     # the W-Z tunnel instead of pit fills and their walls (tools/zamek_ramps.py; the same code runs on a baked map).
     import zamek_ramps
     print("zamek_ramps: " + zamek_ramps.apply(out, map_dir))
-    # Torn roads (F, 2026-11-14): the roads the 10 m grid smeared an embankment or a cutting into,
-    # each on its own ground profile, one table entry a place (tools/road_profiles.py; the same code
-    # runs on a baked map).
-    import road_profiles
-    print("road_profiles: " + road_profiles.apply(out, map_dir))
     # G8/G9 (2026-11-01): shelters onto the kerb of their bus road, turned roof along it; benches
     # turned to face the walk (tools/snap_props.py; the same code runs on a baked map).
     import snap_props
@@ -513,6 +508,17 @@ def main(src, trees_src, dst, extras_src=None, more_src=None):
     # junctions' mouths, zebras and cycle crossings run on to the kerbs (tools/road_fixes.py).
     import road_fixes
     print("road_fixes: " + road_fixes.apply(out))
+    # Lane drops (F, 2026-11-14, "two lanes to one can be smoother, like real life"): where a street
+    # loses or gains a lane, the asphalt, kerbs and edge lines drift over a real-life taper (about
+    # 1:15) through as many ways of the street as it needs (tools/lane_tapers.py; the same code
+    # runs on a baked map). After road_fixes, before object_fixes moves objects off the new asphalt.
+    import lane_tapers
+    print("lane_tapers: " + lane_tapers.apply(out))
+    # Torn roads (F, 2026-11-14): the roads the 10 m grid smeared an embankment or a cutting into,
+    # each on its own ground profile, one table entry a place (tools/road_profiles.py; the same code
+    # runs on a baked map). After lane_tapers: the corridors take the roads' final widths.
+    import road_profiles
+    print("road_profiles: " + road_profiles.apply(out, map_dir))
     # Street objects unslopped (F, 2026-11-07): lamps, signals, benches, bins, racks, shelters, parked
     # cars and barriers out of walls, carriageways, water and decks; gates where paths cross fences;
     # balustrades round stairs (tools/object_fixes.py; the same code runs on a baked map). Before

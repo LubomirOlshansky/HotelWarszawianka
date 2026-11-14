@@ -119,6 +119,9 @@ const SHOTS := {
 	# The railway audit (trains.gd, tools/make_sfx.py, 2026-11-07): a train's wheels going by (on
 	# a bridge, with the girders' drone), its horn out of a tunnel mouth, the platform gong.
 	"train_rumble": -5.0, "train_bridge": -4.0, "train_horn": -13.0, "station_gong": -12.0,
+	# The city objects plan, step 7 (soft_things.gd, main.gd _on_soft_broke, tools/make_sfx.py): the car
+	# through a steel fence, a wooden one, a hedge (set near scooter_clatter by the files' RMS).
+	"smash_fence_metal": -12.0, "smash_fence_wood": -11.0, "smash_hedge": -12.0,
 }
 ## Loop 3g-2: the siren loop (one positional voice) and its level there.
 const SIREN := "police_siren"
@@ -150,6 +153,7 @@ const SHOT_RULES := {
 	"cafe_bell": [LOW, 1, 0.03], "frog_chime": [LOW, 1, 0.0], "phone_shutter": [LOW, 1, 0.0], "watch_beep": [LOW, 1, 0.0],
 	"loud_rev": [NORMAL, 1, 0.06], "tram_bell": [NORMAL, 2, 0.0], "old_tram_bell": [NORMAL, 1, 0.0], "tram_creak": [LOW, 1, 0.05],
 	"train_rumble": [NORMAL, 1, 0.04], "train_bridge": [NORMAL, 1, 0.04], "train_horn": [NORMAL, 1, 0.0], "station_gong": [NORMAL, 1, 0.0],
+	"smash_fence_metal": [NORMAL, 2, 0.08], "smash_fence_wood": [NORMAL, 2, 0.08], "smash_hedge": [NORMAL, 2, 0.08],
 }
 ## A sound may have more than one take: `name.wav`, then `name_2.wav` up to `name_4.wav` beside
 ## it. A take is picked at random, never the same one twice running.

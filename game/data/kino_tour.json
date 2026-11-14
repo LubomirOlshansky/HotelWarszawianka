@@ -9,12 +9,6 @@
 	"lines": "kino_wiktor",
 	"colour": "#e0453a",
 	"dark": "#3a1f2a",
-	"hours": [
-		14.0,
-		23.0
-	],
-	"first_call": 480,
-	"call_cool": 1800,
 	"play_limit": 2400,
 	"banter": [
 		16,

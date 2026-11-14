@@ -8,7 +8,7 @@ breaks things most often.
 ```
 data/raw/ (OSM extract, GUGiK LoD2 sheets, terrain, orthophoto; gitignored)
    │ tools/bake_all.sh → bake_osm.py, bake_gugik.py, bake_terrain.py, bake_structures.py,
-   │                     bake_ao.py, bake_lights.py, bake_water.py, fixes (road_fixes, object_fixes ...)
+   │                     bake_ao.py, bake_lights.py, bake_water.py, fixes (road_fixes, lane_tapers, object_fixes ...)
    ▼
 game/map/centrum.json, ao.bin, lights.bin, water.bin   (committed: the ODbL database)
 game/map/lod2.*, terrain.json                          (derived; the "map pack" release asset)
@@ -29,7 +29,7 @@ sectors/s_<i>_<j>.scn, proxies.scn, index.res, shared/*.res   (the prebuilt city
   `tools/overlay_object_types.py` draws the type plot and the 20-sample check's contact sheets.
 - Roads the 10 m ground grid tears (an embankment or a cutting smeared into the asphalt, the
   ground poking through it) get a ground profile of their own from `tools/road_profiles.py`: one
-  table entry a place, applied by `bake_osm.py` after `zamek_ramps.py` (and on a baked map).
+  table entry a place, applied by `bake_osm.py` after `lane_tapers.py` (and on a baked map).
   `--scan` ranks the places left; verify step `roadprofiles` keeps the count going down.
 
 ### 1b. A landmark from Blender (trial, 2026-11-13: the Palace only)

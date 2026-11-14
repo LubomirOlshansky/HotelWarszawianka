@@ -23,6 +23,10 @@ extends RefCounted
 ##   check's own)  also (other classes touched)
 ## and one `drive` line a street leg (street, m, s, fast: the seconds above FAST of its limit), for
 ## the km and the share of time at speed. `tag` (the check's route name) joins every line as route=.
+## Step 7: the soft things (soft_things.gd) are no colliders: it calls `soft_touch` when the car
+## breaks a panel, and those episodes are `contact` lines of their own with the flag `soft` (class
+## fence or hedge, the same fields; `panels` the panels broken), so tools/drive_report.py tells a
+## smash from a hard contact.
 
 ## An episode ends after this long with no contact (s); its lowest speed is watched this long.
 const FREE := 0.25
@@ -48,6 +52,8 @@ var lines := PackedStringArray()
 var echo := false
 ## The episodes so far by class (for a summary), and the unknown bodies' paths.
 var counts := {}
+## Step 7: the soft episodes so far by class.
+var soft_counts := {}
 var unknown: Array[String] = []
 
 var _file: FileAccess
@@ -61,6 +67,8 @@ var _leg := {}
 var _street_wait := 0.0
 var _pos := Vector3.ZERO
 var _wet := false
+var _soft_ep := {}
+var _dt := 0.0
 
 
 ## Writes the lines to `path` as well (each flushed at once, so a killed run keeps them).
@@ -77,8 +85,10 @@ func observe(car: CharacterBody3D, dt: float) -> void:
 	if car == null or not is_instance_valid(car):
 		return
 	_t += dt
+	_dt = dt
 	var vel := Vector3(car.vel.x, 0.0, car.vel.z)
 	var speed := vel.length()
+	_soft_watch(speed)
 	var p := car.global_position
 	_pos = p
 	if not _seen:
@@ -141,6 +151,49 @@ func observe(car: CharacterBody3D, dt: float) -> void:
 	_prev_vel = vel
 
 
+## Step 7: soft_things.gd broke a panel of class `cls` (fence, hedge) at `at` this frame, the car's
+## way `angle` deg off the line: a soft episode opens (or goes on, within FREE s of the last panel).
+## Called after the car's step; the speed going in is the one this frame began with.
+func soft_touch(cls: String, at: Vector3, angle: float, panels := 1) -> void:
+	if not _soft_ep.is_empty() and _t - float(_soft_ep["seen"]) <= FREE:
+		_soft_ep["seen"] = _t
+		_soft_ep["touch"] = float(_soft_ep["touch"]) + _dt
+		_soft_ep["panels"] = int(_soft_ep["panels"]) + panels
+		return
+	_close_soft()
+	var st: Array = street_at.call(_pos.x, _pos.z)
+	var v_in := _prev_vel.length()
+	_soft_ep = {"t": _t, "x": at.x, "z": at.z, "cls": cls, "in": v_in, "low": v_in, "low3": v_in, "angle": angle,
+			"street": str(st[0]), "seen": _t, "touch": _dt, "panels": panels}
+
+
+func _soft_watch(speed: float) -> void:
+	if _soft_ep.is_empty():
+		return
+	var age := _t - float(_soft_ep["t"])
+	if age <= WATCH:
+		_soft_ep["low"] = minf(float(_soft_ep["low"]), speed)
+	if age <= DEAD_TIME:
+		_soft_ep["low3"] = minf(float(_soft_ep["low3"]), speed)
+	if _t - float(_soft_ep["seen"]) > FREE and age >= WATCH:
+		_close_soft()
+
+
+func _close_soft() -> void:
+	if _soft_ep.is_empty():
+		return
+	var flags := ["soft"]
+	var v_in := float(_soft_ep["in"])
+	if v_in - float(_soft_ep["low3"]) >= DEAD_LOST and float(_soft_ep["low3"]) <= v_in * (1.0 - DEAD_SHARE):
+		flags.push_front("dead_stop")
+	var cls := str(_soft_ep["cls"])
+	soft_counts[cls] = int(soft_counts.get(cls, 0)) + 1
+	_write("contact\tt=%.2f\tx=%.1f\tz=%.1f\tclass=%s\tin=%.1f\tlow=%.1f\tangle=%.0f\tdur=%.2f\tstreet=%s\tflags=%s\tpanels=%d" % [
+			float(_soft_ep["t"]), float(_soft_ep["x"]), float(_soft_ep["z"]), cls, v_in, float(_soft_ep["low"]),
+			float(_soft_ep["angle"]), float(_soft_ep["touch"]), _soft_ep["street"], ",".join(flags), int(_soft_ep["panels"])])
+	_soft_ep = {}
+
+
 ## A flag for the open episode, else the last one if it ended under LATE s ago, else a line of
 ## its own (`event`, no class: nothing was touched).
 func mark(flag: String) -> void:
@@ -157,6 +210,7 @@ func mark(flag: String) -> void:
 ## The open episode and the street leg written out (the end of a route, of a run).
 func flush() -> void:
 	_close()
+	_close_soft()
 	_end_leg()
 
 
