@@ -19,38 +19,10 @@ extends SceneTree
 const EggBook := preload("res://scripts/egg_book.gd")
 const Notebook := preload("res://scripts/notebook.gd")
 const Wallet := preload("res://scripts/wallet.gd")
+const Fakes := preload("res://tools/fakes.gd")
 const MAX_PL := 70
 const OLD_SPOTS := ["palma", "pigeons", "barriers", "patelnia", "syrenka"]
 const KINDS := ["stop", "pass", "hover", "land", "circle", "lap", "street", "between", "tape", "legacy", "waits", "event"]
-
-
-## A stand-in for radio.gd: tracks 1-2 free, the rest locked; records the calls.
-class FakeRadio:
-	extends Node
-	var calls: Array = []
-	var open := {1: true, 2: true}
-
-	func unlock_track(n: int, why := "egg") -> bool:
-		calls.append([n, why])
-		if open.has(n):
-			return false
-		open[n] = true
-		return true
-
-	func next_locked() -> int:
-		for n in range(1, 8):
-			if not open.has(n):
-				return n
-		return 0
-
-
-## A stand-in for tape.gd's stamp.
-class FakeTape:
-	extends Node
-	var stamped: Array = []
-
-	func stamp(id: String, _date := 0) -> void:
-		stamped.append(id)
 
 
 var problems: Array[String] = []
@@ -332,8 +304,9 @@ func _check_triggers(book: EggBook) -> int:
 
 
 func _check_rewards(book: EggBook, wallet: Wallet) -> void:
-	var radio := FakeRadio.new()
-	var tape := FakeTape.new()
+	var radio := Fakes.Radio.new()
+	radio.open = {1: true, 2: true}
+	var tape := Fakes.Tape.new()
 	root.add_child(radio)
 	root.add_child(tape)
 	book.radio = radio
@@ -351,13 +324,13 @@ func _check_rewards(book: EggBook, wallet: Wallet) -> void:
 		problems.append("e07: the save has no day for it (%s)" % wallet.eggs.get("e07"))
 	# E14: PÓŁNOC FM track 5 through the radio.
 	book.record("e14")
-	if radio.calls.is_empty() or int(radio.calls[0][0]) != 5:
-		problems.append("e14: didn't ask the radio for track 5 (%s)" % [radio.calls])
+	if radio.unlocks.is_empty() or int(radio.unlocks[0][0]) != 5:
+		problems.append("e14: didn't ask the radio for track 5 (%s)" % [radio.unlocks])
 	# E31: track 2 is free already, so the lowest locked one opens (track 3).
-	radio.calls.clear()
+	radio.unlocks.clear()
 	book.record("e31")
-	if radio.calls.size() != 2 or int(radio.calls[0][0]) != 2 or int(radio.calls[1][0]) != 3:
-		problems.append("e31: the radio calls %s (want track 2, then 3)" % [radio.calls])
+	if radio.unlocks.size() != 2 or int(radio.unlocks[0][0]) != 2 or int(radio.unlocks[1][0]) != 3:
+		problems.append("e31: the radio calls %s (want track 2, then 3)" % [radio.unlocks])
 	# E38: the then card stamped.
 	book.record("e38")
 	if not "t_palac_2020" in tape.stamped:

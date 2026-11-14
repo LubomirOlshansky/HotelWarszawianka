@@ -47,25 +47,6 @@ const BUBBLE := 90
 const DT := 1.0 / 60.0
 
 
-## The radio's stand-in: the station tuned (MORDOR FM is index 3), what was announced.
-class FakeRadio extends Node:
-	var station := 0
-	var said: Array[String] = []
-	func station_index(id: String) -> int:
-		return 3 if id == "mordor_fm" else -1
-	func announce(pl: String, _en := "") -> void:
-		said.append(pl)
-	func tune(i: int) -> void:
-		station = i
-
-
-## city_sounds.gd's stand-in: the crowds asked for.
-class FakeSounds extends Node:
-	var crowds: Array[String] = []
-	func add_crowd(id: String, _kind: String, _at: Vector3, _on: Callable) -> void:
-		crowds.append(id)
-
-
 ## dialogue.gd's `line` over the real data: the first line of a group.
 class Talk extends Fakes.Dialogue:
 	var lines := {}
@@ -83,8 +64,8 @@ var _bubbles: Fakes.Bubbles
 var _wallet: Fakes.Wallet
 var _calls: Fakes.Calls
 var _talk: Talk
-var _radio: FakeRadio
-var _sounds: FakeSounds
+var _radio: Fakes.Radio
+var _sounds: Fakes.CitySounds
 var _director: Activities
 var _other: Activity
 var _pos := Vector3.ZERO
@@ -417,8 +398,10 @@ func _make(g: LaneGraph, origin: Array) -> void:
 	_talk = Talk.new()
 	_talk.bubbles = _bubbles
 	_talk.lines = JSON.parse_string(FileAccess.get_file_as_string("res://data/dialogue.json"))
-	_radio = FakeRadio.new()
-	_sounds = FakeSounds.new()
+	_radio = Fakes.Radio.new()
+	_radio.station = 0
+	_radio.stations = {"mordor_fm": 3}
+	_sounds = Fakes.CitySounds.new()
 	var map := Fakes.FlatMap.new()
 	for node: Node in [_hud, _bubbles, _wallet, _calls, _talk, _radio, _sounds, map]:
 		world.add_child(node)

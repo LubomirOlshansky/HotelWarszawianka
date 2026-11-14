@@ -17,6 +17,7 @@ extends SceneTree
 
 const Places := preload("res://scripts/places.gd")
 const MeshProbe := preload("res://tools/mesh_probe.gd")
+const Fakes := preload("res://tools/fakes.gd")
 const PLACE_BASE := "extends \"res://scripts/place.gd\""
 ## The defect pass cuts a mesh of more than TILE_AT triangles into TILE m tiles (see _tiles).
 const TILE := 48.0
@@ -60,7 +61,7 @@ func _initialize() -> void:
 			"vehicle": Callable(), "logs": {}}
 	_table_and_scripts()
 	_main_has_no_hooks()
-	var map := MeshProbe.StubMap.new()
+	var map := Fakes.BuilderMap.new()
 	map.data = data
 	var places := Places.new()
 	places.name = "Places"

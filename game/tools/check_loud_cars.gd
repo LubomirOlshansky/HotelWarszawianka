@@ -28,19 +28,6 @@ const Fakes := preload("res://tools/fakes.gd")
 const BUBBLE := 70
 
 
-class FakeRadio extends Node:
-	var station := 0
-	var said: Array = []
-	func announce(text: String, _sub := "") -> void:
-		said.append(text)
-
-
-class FakeSfx extends Node:
-	var played: Array = []
-	func play_at(n: String, at: Vector3, _gain_db := 0.0) -> void:
-		played.append([n, at])
-
-
 var problems: Array[String] = []
 var verbose := false
 
@@ -291,8 +278,9 @@ func _check_traffic(g: LaneGraph, map: Node3D, digest: PackedStringArray) -> voi
 			print("hold %d: %d cars, %d loud, counts %s" % [f, traffic.drivers().size(), traffic.loud_count, traffic.get("_counts")])
 	# KEBAB FM and the revs: a loud car at the ear.
 	var lc := LoudCars.new()
-	var fsfx := FakeSfx.new()
-	var fradio := FakeRadio.new()
+	var fsfx := Fakes.Sfx.new()
+	var fradio := Fakes.Radio.new()
+	fradio.station = 0
 	root.add_child(fsfx)
 	root.add_child(fradio)
 	var dlg := Dialogue.new()
