@@ -1,0 +1,8 @@
+## Backlog
+- fixed: architecture TD-11, group 3 of 3 (the radio, the sounds, the walkers, the tape and the builders' map): 13 private stand-ins in 9 scripts under `game/tools` are gone; the checks take `Fakes.Radio`, `Fakes.Sfx`, `Fakes.CitySounds`, `Fakes.Walkers`, `Fakes.Tape` and `Fakes.BuilderMap` (`game/tools/fakes.gd`). Each moved check's game scripts take the same answers from them as before (every place a game script takes one was counted and compared, old check against new), the old and new checks give the same verdict on every deliberate break of the game scripts they load, and every landmark site built alone on the new builders' map has the same vertices as on the old one (`site_dump.gd`, 1,213 sites)
+- fixed: step `fakes` holds them too: a script under `game/tools` that writes its own radio, sound, walker or tape stand-in fails it, and the builders' map's functions with a `_` name (`_solid`, `_roof_triangle`, `_grid_height`) must take map_builder.gd's arguments like the rest
+- fixed: `site_dump.gd` (the landmark refactors' parity dump) and `site_cams.gd` (the turntable's cameras) build on the shared builders' map; `mesh_probe.gd` keeps only its Recorder and the examination
+- found: 26 private classes in 9 scripts under `game/tools` stay: 20 in the racer work's scripts, left with that work (`check_fakes.gd` `LEFT` names the ones step `fakes` would fail), five in `check_side_jobs` (missions, car, jobs, clock, life: after the missions port) and `check_chatter`'s traffic driver
+
+## Roadmap
+- added: "Shared test stand-ins, group 3: the radio, the sounds, the walkers, the tape and the builders' map (F, 2026-11-13, architecture plan, background item; tech-debt TD-11)": ticked, 13 private copies in 9 scripts moved (verify step `fakes`)
