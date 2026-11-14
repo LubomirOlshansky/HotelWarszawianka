@@ -19,19 +19,6 @@ const SCRATCH := "user://check_cassettes_scratch.cfg"
 const MAX_WORDS := 90
 
 
-class StubRadio extends Node:
-	var opened: Array[int] = []
-	var next := 3
-
-	func next_locked() -> int:
-		return next
-
-	func unlock_track(n: int, why := "") -> bool:
-		opened.append(n)
-		next += 1
-		return why == "cassette"
-
-
 var _problems := 0
 
 
@@ -88,7 +75,8 @@ func _fresh() -> Array:
 	var w := Wallet.new()
 	w.persistent = false
 	var hud := Fakes.Hud.new()
-	var radio := StubRadio.new()
+	var radio := Fakes.Radio.new()
+	radio.open = {1: true, 2: true}
 	c.wallet = w
 	c.hud = hud
 	c.radio = radio
@@ -100,7 +88,7 @@ func _flow() -> void:
 	var c: Cassettes = f[0]
 	var w: Wallet = f[1]
 	var hud: Fakes.Hud = f[2]
-	var radio: StubRadio = f[3]
+	var radio: Fakes.Radio = f[3]
 	var roof := Vector3(100.0, 30.0, -900.0)
 	# Every cassette gets a roof spot 300 m apart (a roof that is not found logs a warning, which
 	# verify.sh counts as a failure; the map-free check keeps that path out).
@@ -122,10 +110,10 @@ func _flow() -> void:
 	_expect(int(w.respect) == r0 + c.respect, "+%d respect (%d -> %d)" % [c.respect, r0, w.respect])
 	_expect(hud.notes.size() == 1 and str(hud.note_titles[0]).contains("KASETA") and str(hud.note_texts[0]).contains(str(c.entries[i]["line"][0])) and not str(hud.note_texts[0]).contains(str(c.entries[i]["line"][1])),
 			"the card with the Polish line only: %s" % [hud.notes])
-	_expect(radio.opened == [3], "the next locked PÓŁNOC FM track opened: %s" % [radio.opened])
+	_expect(_opened(radio) == [3], "the next locked PÓŁNOC FM track opened: %s" % [_opened(radio)])
 	_expect(not c.take(First10.CASSETTE_ID), "a repeat does nothing")
 	c.tick(roof + Vector3(2.0, 9.0, 1.0), true)
-	_expect(hud.notes.size() == 1 and radio.opened.size() == 1, "a second look over it does nothing")
+	_expect(hud.notes.size() == 1 and _opened(radio).size() == 1, "a second look over it does nothing")
 	for e in c.entries:
 		if e["id"] != First10.CASSETTE_ID:
 			_expect(not c.is_taken(str(e["id"])), "%s, 300 m or more away: not taken by the other's pickup" % e["id"])
@@ -152,3 +140,11 @@ func _save() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(SCRATCH))
 	w.free()
 	b.free()
+
+
+## The track numbers asked to open, in order (Fakes.Radio's unlocks without the why).
+func _opened(radio: Fakes.Radio) -> Array[int]:
+	var out: Array[int] = []
+	for u: Array in radio.unlocks:
+		out.append(int(u[0]))
+	return out

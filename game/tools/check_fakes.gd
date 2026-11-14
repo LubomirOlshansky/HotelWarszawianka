@@ -38,7 +38,19 @@ const PAIRS := [
 	["Calls", "res://scripts/missions.gd"],
 	["FlatMap", "res://scripts/map_builder.gd"],
 	["Car", "res://scripts/car.gd"],
+	["BuilderMap", "res://scripts/map_builder.gd"],
+	["Radio", "res://scripts/radio.gd"],
+	["Sfx", "res://scripts/sfx.gd"],
+	["CitySounds", "res://scripts/city_sounds.gd"],
+	["Walkers", "res://scripts/pedestrians.gd"],
+	["Tape", "res://scripts/tape.gd"],
 ]
+## The engine's own functions a script may give (`_init`, `_ready`...): a stand-in's and the game's need not
+## take the same. Every other function whose name begins with `_` is compared when the game's script has it
+## too (the builders call map_builder.gd's `_solid` and `_roof_triangle`), and is a helper of the stand-in's
+## when it has not.
+const VIRTUALS := ["_init", "_ready", "_process", "_physics_process", "_enter_tree", "_exit_tree", "_notification",
+		"_input", "_unhandled_input", "_draw", "_to_string", "_get", "_set", "_get_property_list"]
 ## The functions that are a stand-in's own (a check calls them; the game's script has no such function).
 const OWN := {
 	"Hud": ["press"],
@@ -52,21 +64,24 @@ const TALK_MARKS := ["say", "say_ambient", "say_reaction"]
 ## The functions that make a class a stand-in for the map (map_builder.gd).
 const MAP_MARKS := ["ground_height", "terrain_height", "deck_height", "tunnel_height", "roof_height", "top_height",
 		"in_tunnel", "shore_distance", "in_map", "sunk_floor", "tunnel_floor_under"]
+## The functions that make a class a stand-in for the radio, the sound effects, the city's sounds, the walkers
+## and the tape (radio.gd, sfx.gd, city_sounds.gd, pedestrians.gd, tape.gd; group 3).
+const SOUND_MARKS := ["announce", "tune", "station_index", "next_locked", "unlock_track", "host_moment", "play_at",
+		"soften_engine", "add_crowd"]
+const WALKER_MARKS := ["set_stop", "clear_stop", "set_scene", "clear_scene", "startle", "stamp"]
+## The functions only a map the builders see has (map_builder.gd's own, which landmarks.gd, the place scripts and
+## the facade kit call; group 3): a class with one of them stands in for that map even with no height.
+const BUILDER_MARKS := ["_solid", "_roof_triangle", "_grid_height", "platform_top"]
 ## The private stand-ins still left, by file. The racer work has its checks in hand (2026-11-13): each moves
-## to fakes.gd with that work's next change to the check. The builders' stub map (`StubMap`: the city as
-## landmarks.gd's builders and the place scripts see it) was shared by the places work on 2026-11-13
-## (mesh_probe.gd, four scripts on it) and check_sites.gd keeps an older copy: one stand-in for both is
-## TD-11's next group.
+## to fakes.gd with that work's next change to the check.
 const LEFT := {
-	"check_police.gd": ["FakeHud", "FakeBubbles", "FakeMap"],
-	"check_crazy_drivers.gd": ["FakeBubbles", "FakeMap"],
+	"check_police.gd": ["FakeHud", "FakeBubbles", "FakeMap", "FakeRadio"],
+	"check_crazy_drivers.gd": ["FakeBubbles", "FakeMap", "FakeSfx"],
 	"check_ladder.gd": ["FakeMap"],
 	"check_race_cuts.gd": ["FakeMap"],
 	"check_race_links.gd": ["FakeMap"],
 	"check_street_meet.gd": ["FakeMap", "PlayMap"],
 	"race_bench.gd": ["FakeMap"],
-	"mesh_probe.gd": ["StubMap"],
-	"check_sites.gd": ["StubMap"],
 }
 ## The types a function's line can name that the engine reports by the same word.
 const PLAIN_TYPES := ["bool", "int", "float", "String", "Vector2", "Vector3", "Rect2", "Color", "Dictionary", "Array",
@@ -82,6 +97,7 @@ func _initialize() -> void:
 	var b := _private_copies()
 	_maps()
 	_remember()
+	_group3()
 	if _problems == 0:
 		var named := 0
 		for f: String in LEFT:
@@ -128,7 +144,9 @@ func _arguments() -> Array:
 		var seen_own := {}
 		for m: Dictionary in fake.get_script_method_list():
 			var name := String(m["name"])
-			if name.begins_with("_") or name.begins_with("@"):  # a helper, or a property's getter
+			if name.begins_with("@") or name in VIRTUALS:  # a property's getter, or the engine's own
+				continue
+			if name.begins_with("_") and not theirs.has(name):  # the stand-in's helper
 				continue
 			if not theirs.has(name):
 				seen_own[name] = true
@@ -167,6 +185,13 @@ func _differs(mine: Dictionary, other: Dictionary) -> String:
 	var db: Array = other["default_args"]
 	if da.size() != db.size():
 		return "%d arguments with a default, the game's %d" % [da.size(), db.size()]
+	# The defaults themselves (group 3): a call that leaves one out gets the game's value, so the stand-in records
+	# what the game would have been given (`unlock_track(n)` is an egg's).
+	for i in da.size():
+		var same: bool = typeof(da[i]) == typeof(db[i]) and (da[i] == db[i] or (da[i] is float and is_nan(da[i]) and is_nan(db[i])))
+		if not same:
+			var k := a.size() - da.size() + i
+			return "argument %d (%s) defaults to %s, the game's (%s) to %s" % [k + 1, a[k]["name"], var_to_str(da[i]), b[k]["name"], var_to_str(db[i])]
 	for i in a.size():
 		if int(a[i]["type"]) != int(b[i]["type"]):
 			return "argument %d (%s) is %s, the game's (%s) %s" % [i + 1, a[i]["name"], type_string(int(a[i]["type"])),
@@ -220,7 +245,7 @@ func _private_copies() -> Array:
 		for name: String in classes:
 			var marks: Array[String] = []
 			for fn: String in classes[name][1]:
-				if fn in HUD_MARKS or fn in TALK_MARKS or fn in MAP_MARKS:
+				if fn in HUD_MARKS or fn in TALK_MARKS or fn in MAP_MARKS or fn in SOUND_MARKS or fn in WALKER_MARKS or fn in BUILDER_MARKS:
 					marks.append(fn)
 			var of := _shared_class(name, classes)
 			if of != "":
@@ -460,3 +485,76 @@ func _maps() -> void:
 	_ok(not map.has_method("shore_distance") and not map.has_method("in_map") and not ("bounds" in map),
 			"C the flat map has a shore or an edge (`shore_distance`, `in_map`, `bounds`): a check that needs one adds it in its own class")
 	map.free()
+
+
+## C, group 3: the builders' map, the radio, the sound effects, the city's sounds, the walkers and the tape.
+func _group3() -> void:
+	var map := Fakes.BuilderMap.new()
+	_ok(map.ground_height(3.0, -4.0) == 0.0 and map.terrain_height(3.0, -4.0) == 0.0 and map._grid_height(3.0, -4.0) == 0.0
+			and is_nan(map.platform_top(3.0, -4.0)) and is_nan(map.tunnel_floor_under(3.0, -4.0)),
+			"C the builders' map is not flat, or has a platform or a tunnel under a point")
+	_ok(not map._sunk.is_empty() and map.sunk_floor(1.0e6, 1.0e6) == INF, "C the builders' map has no sunken places, or one far off the map")
+	var sk: Dictionary = map._sunk[0]
+	var ring: PackedVector2Array = sk["ring"]
+	var mid := Vector2.ZERO
+	for q in ring:
+		mid += q
+	mid /= float(ring.size())
+	var floor_y := map.sunk_floor(mid.x, mid.y)
+	_ok(not Geometry2D.is_point_in_polygon(mid, ring) or (floor_y < 0.0 and floor_y > -10.0),
+			"C the first sunken place's floor is not under the flat ground: %.2f" % floor_y)
+	map._solid(&"wall", PackedVector3Array([Vector3.ZERO, Vector3.ONE, Vector3.UP]))
+	map._roof_triangle(Vector3.ZERO, Vector3.ONE, Vector3.UP, true)
+	_ok(map._wall_faces.size() == 3 and map.roof_tris == 1 and map.data.is_empty() and float(map._terrain["step"]) == 10.0,
+			"C the builders' map keeps the colliders and roof triangles it is handed: %d faces, %d roof triangles" % [map._wall_faces.size(), map.roof_tris])
+	# A FlatMap's decks, roofs, tunnels, shore and edge would answer `has_method` where the builders' map must not.
+	var flat_only := ["deck_height", "tunnel_height", "roof_height", "top_height", "in_tunnel", "shore_distance", "in_map"]
+	var has: Array[String] = []
+	for m: String in flat_only:
+		if map.has_method(m):
+			has.append(m)
+	_ok(has.is_empty(), "C the builders' map has what only a FlatMap may have: %s" % [has])
+	map.free()
+
+	var radio := Fakes.Radio.new()
+	_ok(radio.station == -1 and radio.next_locked() == 1 and radio.station_index("mordor_fm") == -1, "C a new radio is on, or has a track open, or knows a station")
+	radio.stations = {"mordor_fm": 3}
+	radio.tune(radio.station_index("mordor_fm"))
+	radio.announce("Uwaga", "Attention")
+	radio.announce("Dwa")
+	_ok(radio.station == 3 and radio.tuned == [3] and radio.said == ["Uwaga", "Dwa"] and radio.subtitles == ["Attention", ""],
+			"C the radio's station, tunes and words in step: %d / %s / %s / %s" % [radio.station, radio.tuned, radio.said, radio.subtitles])
+	radio.open = {1: true, 2: true}
+	_ok(radio.next_locked() == 3 and radio.unlock_track(3, "cassette") and not radio.unlock_track(3) and radio.next_locked() == 4
+			and radio.unlocks == [[3, "cassette"], [3, "egg"]], "C the tracks: the next locked one, opened once, every ask kept: %s" % [radio.unlocks])
+	_ok(radio.host_moment() and radio.host_moment(4.0) and radio.moments == 2, "C the host's moment is refused, or not counted")
+	radio.moment_ok = false
+	_ok(not radio.host_moment() and radio.moments == 3, "C `moment_ok` is not what the host's moment answers")
+	radio.free()
+
+	var sfx := Fakes.Sfx.new()
+	sfx.play_at("horn", Vector3(1, 0, 2))
+	sfx.play_at("crash", Vector3.ZERO, -6.0)
+	sfx.soften_engine(10.0)
+	_ok(sfx.played == [["horn", Vector3(1, 0, 2)], ["crash", Vector3.ZERO]] and sfx.softened == 1,
+			"C the sounds played at a place, and the engine softened: %s / %d" % [sfx.played, sfx.softened])
+	sfx.free()
+	var sounds := Fakes.CitySounds.new()
+	sounds.add_crowd("thump_0", "thump", Vector3.ZERO, func() -> bool: return true)
+	_ok(sounds.crowds == ["thump_0"], "C the city's crowds asked for: %s" % [sounds.crowds])
+	sounds.free()
+	var walkers := Fakes.Walkers.new()
+	walkers.set_stop(2, Vector3(1, 0, 1), 0.0, Color.RED, 0.5)
+	walkers.set_scene(0, Vector3(5, 0, 5), 1.0, Color.BLUE, 0.2)
+	walkers.set_scene(1, Vector3(6, 0, 5), 1.0, Color.BLUE, 0.2)
+	walkers.clear_scene(0)
+	_ok(walkers.stops == {2: Vector3(1, 0, 1)} and walkers.scenes == {1: Vector3(6, 0, 5)} and walkers.startle(Vector2.ZERO, 8.0) == 0
+			and walkers.startled == 1, "C the figures at the stops and the scenes, apart, and the startles: %s / %s / %d" % [walkers.stops, walkers.scenes, walkers.startled])
+	walkers.clear_stop(2)
+	_ok(walkers.stops.is_empty(), "C a stop's figure not taken away")
+	walkers.free()
+	var tape := Fakes.Tape.new()
+	tape.stamp("t_palac_2020")
+	tape.stamp("t_most", 20261114)
+	_ok(tape.stamped == ["t_palac_2020", "t_most"], "C the then cards stamped: %s" % [tape.stamped])
+	tape.free()

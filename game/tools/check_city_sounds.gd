@@ -19,26 +19,12 @@ const Notebook := preload("res://scripts/notebook.gd")
 const CitySounds := preload("res://scripts/city_sounds.gd")
 const Radio := preload("res://scripts/radio.gd")
 const Sfx := preload("res://scripts/sfx.gd")
+const Fakes := preload("res://tools/fakes.gd")
 
 ## Saturday 01:30 (the Night look's Friday night), Friday 14:00, Friday 19:30.
 const NIGHT := {"hour": 1.5, "weekday": 6}
 const DAY := {"hour": 14.0, "weekday": 5}
 const DUSK := {"hour": 19.5, "weekday": 5}
-
-
-class FakeRadio extends Node:
-	var moments := 0
-
-	func host_moment(_s: float) -> bool:
-		moments += 1
-		return true
-
-
-class FakeSfx extends Node:
-	var softened := 0
-
-	func soften_engine(_s: float) -> void:
-		softened += 1
 
 
 func _initialize() -> void:
@@ -153,8 +139,8 @@ func _run() -> void:
 	if gap < CitySounds.METRO_GAP.x or gap > CitySounds.METRO_GAP.y:
 		problems.append("metro %s: a train at %.1f s, the next %.1f s later (want 180-240)" % [metro["id"], n0, gap])
 	# 5. the 02:00 beat
-	var fr := FakeRadio.new()
-	var fs := FakeSfx.new()
+	var fr := Fakes.Radio.new()
+	var fs := Fakes.Sfx.new()
 	root.add_child(fr)
 	root.add_child(fs)
 	cs.radio = fr

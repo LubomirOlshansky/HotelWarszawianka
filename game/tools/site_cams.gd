@@ -1,7 +1,8 @@
 extends SceneTree
 ## The turntable's cameras (tools/turntable.sh): builds ONE landmark site alone, the way the mesh
-## check does (its StubMap and Recorder, flat ground), takes the bounding box of its triangles and
-## prints the `--cams` value that looks at it from all round, plus the `--lift` to go with it.
+## check does (the shared Fakes.BuilderMap and mesh_probe.gd's Recorder, flat ground), takes the
+## bounding box of its triangles and prints the `--cams` value that looks at it from all round, plus
+## the `--lift` to go with it.
 ##   godot --headless --path game --script res://tools/site_cams.gd -- --site=rotunda [--tile=480x360]
 ## Output: `site_cams: KEY centre X,Z size W x D x H m, N tris`, `cams: ...`, `lift: M`.
 ## Unknown key, or a site that builds nothing: a message and exit 1.
@@ -9,6 +10,7 @@ extends SceneTree
 
 const MeshQuality := preload("res://tools/mesh_probe.gd")
 const Landmarks := preload("res://scripts/landmarks.gd")
+const Fakes := preload("res://tools/fakes.gd")
 ## The free margin round the model in every tile (the brief: about 15 %).
 const MARGIN := 1.15
 ## The eight compass yaws of the turntable, degrees, and the two ring pitches and the top's.
@@ -24,7 +26,7 @@ static func box_for(key: String) -> Dictionary:
 	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://map/centrum.json"))
 	if not data is Dictionary:
 		return {}
-	var map := MeshQuality.StubMap.new()
+	var map := Fakes.BuilderMap.new()
 	var bounds: Array = data.get("bounds", [-3200.0, -2200.0, 3200.0, 2200.0])
 	map._roof_x0 = float(bounds[0])
 	map._roof_z0 = float(bounds[1])
@@ -36,12 +38,12 @@ static func box_for(key: String) -> Dictionary:
 		if s["key"] == key:
 			known = true
 	if not known:
-		map.free()  # the stub is a Node3D since the shared probe: not counted, so freed by hand
+		map.free()  # the map is a Node3D (Fakes.BuilderMap): not counted, so freed by hand
 		return {}
 	var rec := MeshQuality.Recorder.new()
 	marks.build(rec, Rect2(), key)
 	if rec.pos.is_empty():
-		map.free()  # the stub is a Node3D since the shared probe: not counted, so freed by hand
+		map.free()  # the map is a Node3D (Fakes.BuilderMap): not counted, so freed by hand
 		return {}
 	var lo := rec.pos[0]
 	var hi := rec.pos[0]

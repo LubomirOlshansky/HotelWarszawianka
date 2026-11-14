@@ -24,6 +24,7 @@ extends SceneTree
 const MapBuilderRef := preload("res://scripts/map_builder.gd")
 const Landmarks := preload("res://scripts/landmarks.gd")
 const MeshProbe := preload("res://tools/mesh_probe.gd")
+const Fakes := preload("res://tools/fakes.gd")
 ## Triangles a site may hold: measured on 2026-10-31 plus about 20 % (raise on purpose only).
 const BUDGET := {
 	"scena_relax": 600,
@@ -317,7 +318,7 @@ func _initialize() -> void:
 		print("check_mesh_quality: 1 problem\n  map/centrum.json missing or unreadable")
 		quit(1)
 		return
-	var map := MeshProbe.StubMap.new()
+	var map := Fakes.BuilderMap.new()
 	var bounds: Array = data.get("bounds", [-3200.0, -2200.0, 3200.0, 2200.0])
 	map._roof_x0 = float(bounds[0])
 	map._roof_z0 = float(bounds[1])

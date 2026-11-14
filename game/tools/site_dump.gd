@@ -1,13 +1,14 @@
 extends SceneTree
 ## Parity proof for refactors of the landmark code (the facade kit, the split of landmarks.gd):
-## builds every site alone through `landmarks.gd`, the way `check_mesh_quality.gd` does (its stub
-## map and flat ground, the committed `map/centrum.json` only), and writes each site's vertices
+## builds every site alone through `landmarks.gd`, the way `check_mesh_quality.gd` does (the shared
+## `Fakes.BuilderMap` and flat ground, the committed `map/centrum.json` only), and writes each site's vertices
 ## to `<out>/<key>.bin`: per vertex 14 float32 (position 3, normal 3, colour 4, uv 2, uv2 2: see
 ## `Dump.add_vertex`), in the order they were emitted. Run it before and after a change and
 ## compare the two folders with `python3 -I tools/site_parity.py before after`: a refactor that
 ## must not change the city shows every site identical.
 ##   godot --headless --path game --script res://tools/site_dump.gd -- --out=/abs/dir [--only=key,key]
 
+const Fakes := preload("res://tools/fakes.gd")
 const Quality := preload("res://tools/mesh_probe.gd")
 const Landmarks := preload("res://scripts/landmarks.gd")
 
@@ -53,7 +54,7 @@ func _initialize() -> void:
 		print("site_dump: map/centrum.json missing or unreadable")
 		quit(1)
 		return
-	var map := Quality.StubMap.new()
+	var map := Fakes.BuilderMap.new()
 	var bounds: Array = data.get("bounds", [-3200.0, -2200.0, 3200.0, 2200.0])
 	map._roof_x0 = float(bounds[0])
 	map._roof_z0 = float(bounds[1])
@@ -82,6 +83,6 @@ func _initialize() -> void:
 	for s in marks.signs:
 		extra.store_line(str(s))
 	extra.close()
-	map.free()  # the stub is a Node3D (mesh_probe.gd): freed by hand
+	map.free()  # the map is a Node3D (Fakes.BuilderMap): freed by hand
 	print("site_dump: %d sites, %d triangles in %s" % [written, verts / 3, out])
 	quit(0)
