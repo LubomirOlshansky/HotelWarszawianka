@@ -56,7 +56,7 @@ const BUDGET := {
 	"church_nozykow": 410,
 	"church_piotr_pawel": 1020,
 	"church_reformowany": 1150,
-	"church_sw_marcin": 750,
+	"church_sw_marcin": 2400,  # 2026-11-14: the whole St Martin church and its tower from photos (measured 2043)
 	"church_trojca_praga": 410,
 	"church_zielonoswiatkowy": 320,
 	"church_zwycieska": 950,
