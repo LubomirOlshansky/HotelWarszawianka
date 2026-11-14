@@ -798,6 +798,7 @@ const INFO := {
 	"church_trojca_praga": ["Kościół Świętej Trójcy na Solcu", "Klasycystyczny kościół z wieżyczką.", "A classicist church with a bell turret."],
 	"church_czestochowska": ["Kościół Matki Bożej Częstochowskiej", "Modernistyczny kościół z dachem do ziemi.", "A modernist church with a roof down to the ground."],
 	"church_zwycieska": ["Kościół Matki Boskiej Zwycięskiej", "Kościół parafialny z dwiema wieżami.", "A parish church with two towers."],
+	"church_chrystusa_krola": ["Kościół Chrystusa Króla Pokoju", "Kościół pallotynów i kaplica MB Częstochowskiej.", "The Pallottines' church and the Częstochowa chapel."],
 	"church_pallotyni": ["Dom pallotynów", "Modernistyczny dom pallotynów przy Skaryszewskiej.", "The Pallottines' modernist house on Skaryszewska."],
 	"church_rodziny_maryi": ["Siostry Rodziny Maryi", "Dom zgromadzenia sióstr franciszkanek Rodziny Maryi.", "The house of the Franciscan Sisters of the Family of Mary."],
 	"church_dominikanie": ["Klasztor Dominikanów", "Klasztor dominikanów przy kościele św. Jacka.", "The Dominican priory beside St Hyacinth's."],
@@ -21377,6 +21378,114 @@ func _build_zwycieska(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The Pallottines' church of Christ the King of Peace (Kościół Chrystusa Króla Pokoju,
+## Skaryszewska 12, Praga; parish of St Vincent Pallotti) with the Our Lady of Częstochowa chapel
+## in front of it: the small cream chapel with white quoins, a big dark cross and a door under its
+## gable on the street; a slim white bell tower with an arched lantern at its left corner and a
+## little white turret on its ridge; behind it the square church under a big brown metal pyramid
+## roof with an octagonal arched lantern, a dome and two crosses; low flat-roofed parish wings
+## round it. A model that replaces the plain OpenStreetMap block (building 3051, "Kaplica pw.
+## Matki Boskiej Częstochowskiej"; no landmark until 2026-11-14). From 7 Commons photos
+## (refs/churches/pallottines_skaryszewska, reference only, never shipped), the OSM outline and
+## GUGiK's LoD2 (over the ground: the wings 9.5, the church's eaves 14.5 and its roof 20.5 with
+## the lantern to 23, the chapel's eaves 9.6 and ridge 12.4). Spec docs/landmarks/specs/chrystusa_krola.md.
+## Frame: origin at the outline's centre, u from the street (Skaryszewska, u = -16.8) into the
+## block, v to its left.
+const CK_O := Vector2(1725.1, -1677.5)
+const CK_A := Vector2(0.607, 0.795)
+const CK_CREAM := Color("#eedfb4")     ## the chapel's cream plaster (photos)
+const CK_WHITE := Color("#f3f0e8")     ## quoins, the tower, the turret
+const CK_WING := Color("#e6dcc4")      ## the parish wings
+const CK_ROOF := Color("#7c6a4b")      ## the church's brown metal roof
+const CK_TILE := Color("#8a8a84")      ## the chapel's and wings' grey roofs
+const CK_DARK := Color("#3f3c38")      ## the lantern, the cross, the door
+
+
+func _build_chrystusa_krola(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(CK_O, CK_O + CK_A)
+	_g = _ground_under(outline)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	_mode = M_STONE
+	# --- the low parish wings round the church: the whole outline to 9.5, flat
+	_prism(outline, g - 1.0, g + 9.5, CK_WING, CK_TILE, M_STONE, M_STONE)
+	kit_ledge_ring(outline, g + 9.3, 0.2, CK_WHITE, 0.08)
+	# --- the church: a square to 14.5 under a brown pyramid to 20.5, a band of windows round it
+	var ch := _rect(3.5, 0.5, 9.0, 9.0)
+	_prism(ch, g + 9.0, g + 14.5, CK_WING, none, M_STONE)
+	_hip(3.5, 0.5, 9.0, 9.0, g + 14.5, 6.0, CK_ROOF)
+	for e: Array in [[Vector2(-5.5, -8.5), Vector2(-5.5, 9.5)], [Vector2(12.5, -8.5), Vector2(-5.5, -8.5)],
+			[Vector2(12.5, 9.5), Vector2(12.5, -8.5)], [Vector2(-5.5, 9.5), Vector2(12.5, 9.5)]]:
+		var p0: Vector2 = e[0]
+		var p1: Vector2 = e[1]
+		kit_front(CK_O, CK_O + CK_A)
+		kit_front(_w(p0.x, p0.y), _w(p1.x, p1.y))
+		kit_panes([2.25, 6.75, 11.25, 15.75], [g + 10.4], 3.6, 3.0, PAL_GLASS_DARK, 0.05)
+	kit_front(CK_O, CK_O + CK_A)
+	# the lantern: an octagon with arched openings, a dome and two crosses
+	var lc := _w(3.5, 0.5)
+	var lan := _circle(lc, 1.6, 8)
+	_prism(lan, g + 19.4, g + 22.0, CK_DARK, none, M_STONE)
+	for k in 4:
+		var a := lan[(2 * k + 1) % 8]
+		var b := lan[2 * k]
+		var ln := kit_front(a, b)
+		kit_panes([ln * 0.5], [g + 20.0], 0.6, 1.6, CK_WHITE.darkened(0.5), 0.04)
+	kit_front(CK_O, CK_O + CK_A)
+	_frustum(_circle(lc, 1.75, 8), g + 22.0, _circle(lc, 0.2, 8), g + 23.3, CK_DARK)
+	_kap_cross(3.5, 0.5, g + 23.3, 2.2)
+	_kap_cross(5.2, 0.5, g + 19.2, 2.6)
+	# --- the chapel on the street: walls to 9.6 a little proud of the wings, a gable to 12.4
+	var cp := _rect(-12.5, 1.15, 4.3, 5.95)
+	_prism(cp, g - 1.0, g + 9.6, CK_CREAM, none, M_STONE)
+	_gable(-16.8, -8.2, 1.15, 5.95, g + 9.6, 2.8, CK_CREAM, CK_TILE, true)
+	kit_front(_w(-16.8, -4.8), _w(-16.8, 7.1))
+	kit_face(0.0)
+	kit_pilaster(0.35, g, g + 9.5, CK_WHITE, 0.7, 0.08)
+	kit_pilaster(11.55, g, g + 9.5, CK_WHITE, 0.7, 0.08)
+	kit_ledge(-0.2, 12.1, g + 9.3, 0.35, CK_WHITE, 0.2)
+	kit_door(5.95, g, 3.2, 1.1, CK_WHITE, CK_DARK)
+	kit_panes([3.6, 8.3], [g + 6.0], 0.5, 0.9, PAL_GLASS_DARK, 0.05)
+	_kbox(9.55, 9.85, 0.0, 0.25, g + 0.3, g + 5.9, CK_DARK)  # the big cross by the door
+	_kbox(8.6, 10.8, 0.0, 0.25, g + 4.2, g + 4.5, CK_DARK)
+	kit_front(CK_O, CK_O + CK_A)
+	_kap_cross(-16.9, 1.15, g + 12.4, 1.2)
+	# the little white turret on the chapel's ridge at its back
+	_lbox(-9.2, 1.15, 0.8, 0.8, g + 11.0, g + 14.2, CK_WHITE)
+	_frustum(_rect(-9.2, 1.15, 0.95, 0.95), g + 14.2, _rect(-9.2, 1.15, 0.1, 0.1), g + 15.2, CK_DARK)
+	_kap_cross(-9.2, 1.15, g + 15.2, 1.0)
+	# --- the slim white bell tower at the chapel's left corner: shaft, arched lantern, cap, cross
+	_lbox(-15.5, -5.85, 1.35, 1.15, g - 1.0, g + 18.5, CK_WHITE)
+	kit_ledge_ring(_rect(-15.5, -5.85, 1.35, 1.15), g + 18.3, 0.25, CK_WHITE.darkened(0.06), 0.12)
+	var tc := _w(-15.5, -5.85)
+	var bel := _circle(tc, 1.05, 8)
+	_prism(bel, g + 18.5, g + 20.8, CK_WHITE, none, M_STONE)
+	for k in 4:
+		var a := bel[(2 * k + 1) % 8]
+		var b := bel[2 * k]
+		var ln := kit_front(a, b)
+		kit_panes([ln * 0.5], [g + 18.9], 0.45, 1.4, CK_DARK, 0.04)
+	kit_front(CK_O, CK_O + CK_A)
+	_frustum(_circle(tc, 1.15, 8), g + 20.8, _circle(tc, 0.15, 8), g + 22.0, CK_DARK)
+	_kap_cross(-15.5, -5.85, g + 22.0, 1.4)
+	# --- windows on the wings
+	for e: Array in [[Vector2(-8.25, -15.23), Vector2(-5.76, -6.79)], [Vector2(12.05, -21.88), Vector2(-8.25, -15.23)],
+			[Vector2(9.94, 20.93), Vector2(26.21, 15.11)], [Vector2(-3.46, 8.81), Vector2(0.64, 20.75)],
+			[Vector2(26.21, 15.11), Vector2(22.27, 3.79)], [Vector2(21.12, 0.02), Vector2(19.13, -5.78)]]:
+		var p0: Vector2 = e[0]
+		var p1: Vector2 = e[1]
+		kit_front(CK_O, CK_O + CK_A)
+		var ln := kit_front(_w(p0.x, p0.y), _w(p1.x, p1.y))
+		var n := maxi(1, floori(ln / 2.6))
+		var cols: Array = []
+		for i in n:
+			cols.append((float(i) + 0.5) * ln / float(n))
+		kit_panes(cols, [g + 1.2, g + 5.2], 1.4, 2.4, PAL_GLASS_DARK, 0.05)
+	kit_front(CK_O, CK_O + CK_A)
+	_collide(outline)
+
+
 ## The Nożyk Synagogue (Synagoga Nożyków, ul. Twarda 6; Karol and Leandro Marconi, 1898-1902;
 ## burnt 1944, rebuilt 1977-1983; Warsaw's only pre-war synagogue still standing), a cream
 ## neo-Romanesque house of prayer in its courtyard south of Plac Grzybowski. The whole building as
@@ -32748,6 +32857,8 @@ const CHURCHES := [
 			"fill": 0.8, "style": "baroque", "wall": "#e6d4a6", "roof": "#97594a", "towers": 0, "cap": "none"},
 	{"key": "church_rodziny_maryi", "at": Vector2(-2617.0, -739.0), "o": Vector2(-2625.3, -761.4), "out": Vector2(-0.356, -0.934), "L": 13.5, "W": 49.4,
 			"fill": 0.9, "style": "neoclassical", "wall": "#e6c2a2", "roof": "#4d5257", "towers": 0, "cap": "none"},
+	{"key": "church_chrystusa_krola", "at": Vector2(1729.0, -1673.0), "o": Vector2(1715.0, -1688.0), "out": Vector2(-0.607, -0.795), "L": 20.0, "W": 12.0,
+			"fill": 0.8, "style": "modern", "wall": "#eedfb4", "roof": "#7c6a4b", "towers": 1, "cap": "none"},
 	{"key": "church_pallotyni", "at": Vector2(1761.0, -1687.0), "o": Vector2(1760.6, -1702.8), "out": Vector2(0.560, -0.829), "L": 51.2, "W": 24.1,
 			"fill": 0.8, "style": "modern", "wall": "#d8cba2", "roof": "#8c8b86", "towers": 0, "cap": "none"},
 	{"key": "church_nozykow", "at": Vector2(-1569.1, -228.0), "o": Vector2(-1546.1, -229.5), "out": Vector2(0.9975, -0.0712), "L": 16.4, "W": 11.6,
@@ -32829,6 +32940,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_czestochowska":
 		_build_czestochowska(site)  # the modernist A-frame church and its pylons, from photos
+		return
+	if site["key"] == "church_chrystusa_krola":
+		_build_chrystusa_krola(site)  # the Pallottines' church and its chapel on Skaryszewska, from photos
 		return
 	if site["key"] == "church_pallotyni":
 		_build_pallotyni(site)  # the Pallottines' 1930s modernist house on Skaryszewska

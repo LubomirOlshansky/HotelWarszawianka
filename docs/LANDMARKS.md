@@ -111,7 +111,8 @@ and Marii Magdaleny are not in the game.
 | Dom zakonny Misjonarzy | Krakowskie Przedmieście 3 | plain block, next to Holy Cross | B | none | with Holy Cross |
 | Kościół Adwentystów Dnia Siódmego (unnamed church outline) | Foksal 8 | plain | C | 12 / 1 | small |
 | Kościół Karola Boromeusza (Powązkowska) and Kościół Niepokalanego Poczęcia (Grójecka) | map edge | plain church outlines, no model | C | 22 / 1 and 4 / 0 | edge of the map |
-| Kaplica Baptystów, Kaplica MB Częstochowskiej, Klasztor pallotynów, Zbór Praga dla Chrystusa, Kaplica św. Barbary, Sala św. Faustyny, Franciszkanki (Piwna, Żelazna), Monaster (Miodowa 16) | various | plain blocks | C | few | only if a street pass needs them |
+| Kościół Chrystusa Króla Pokoju and the Częstochowa chapel | Skaryszewska 12 | `_build_chrystusa_krola`, replacing the plain OSM block (building 3051), 2026-11-14 from 7 Commons photos and LoD2 (spec `chrystusa_krola.md`, 768 tris): the cream chapel with white quoins, a big dark cross and its door on the street, the slim white bell tower with an arched lantern, the small turret on its ridge, the square church behind under a brown pyramid roof with an arched lantern and two crosses, the flat parish wings | C | 7 / 0 | wings' windows are defaults |
+| Kaplica Baptystów, Zbór Praga dla Chrystusa, Kaplica św. Barbary, Sala św. Faustyny, Franciszkanki (Piwna, Żelazna), Monaster (Miodowa 16) | various | plain blocks | C | few | only if a street pass needs them |
 
 ### Order if F wants them built (proposal)
 
