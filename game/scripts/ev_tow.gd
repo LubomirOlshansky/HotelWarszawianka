@@ -112,7 +112,6 @@ const AMBER := Color("#ffae1a")
 ## rope, the car on the bay with the result card.
 enum Stage { NONE, FLY, CARRY, RESULT }
 
-var missions: Node
 var graph: LaneGraph
 var traffic: Node3D
 var radio: Node
@@ -153,7 +152,6 @@ var _acc := 0.0
 var _clock := 0.0
 var _blink := 0.0
 var _said_low := false
-var _calls_were := false
 ## A tow is on (from LECĘ! or the hook on a stranger's car to the end): `_ended` clears it.
 var _towing := false
 var _rng := RandomNumberGenerator.new()
@@ -173,6 +171,7 @@ var spent_usec := 0
 func _init() -> void:
 	tag = "ev"
 	colour = COLOUR
+	rescue_calls = RescueCalls.HOLD  # the rescue calls wait for a tow and go on after it (the director)
 	dark = Color("#2f6fb5")  # Bartek's shirt, in the pickup ring
 	card_life = RING_LIFE
 	flown = true
@@ -565,9 +564,6 @@ func _refused(timed_out: bool) -> void:
 ## with Bartek; or a stranger's car already hooked on (`_stranger_hook`), straight to the carry.
 func _begin() -> void:
 	_towing = true
-	_calls_were = missions.paused if missions != null else false
-	if missions != null:
-		missions.paused = true
 	if bool(job.get("stranger", false)):
 		_hook()
 		return
@@ -810,8 +806,6 @@ func _ended() -> void:
 	_set_body(_body, false)
 	_totem.visible = false
 	_rope.visible = false
-	if missions != null:
-		missions.paused = _calls_were
 	job = {}
 	target = -1
 	if not was_stranger:

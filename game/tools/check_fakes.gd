@@ -55,6 +55,7 @@ const VIRTUALS := ["_init", "_ready", "_process", "_physics_process", "_enter_tr
 const OWN := {
 	"Hud": ["press"],
 	"Dialogue": ["count", "forget"],
+	"Calls": ["put"],
 }
 ## The functions that make a class a stand-in for the HUD, and for the dialogue or the bubbles.
 const HUD_MARKS := ["toast", "ambient_toast", "show_note", "show_card", "show_side_card", "show_call", "show_status",

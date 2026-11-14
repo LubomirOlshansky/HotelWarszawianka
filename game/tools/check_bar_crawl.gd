@@ -191,7 +191,6 @@ func _make() -> void:
 	_crawl.hud = _hud
 	_crawl.bubbles = _bubbles
 	_crawl.wallet = _wallet
-	_crawl.missions = _calls
 	_crawl.map = map
 	_crawl.rng_seed = 7
 	_crawl.vehicle = func() -> Array: return [_pos, _kmh, false]
@@ -207,6 +206,7 @@ func _make() -> void:
 	_director = Activities.new()
 	_director.world_free = func() -> bool: return _world_free
 	_director.add(_crawl)
+	_director.add(_calls)
 
 
 func _run(seconds: float) -> void:
@@ -299,7 +299,7 @@ func _play() -> void:
 			and ("Czas: %s." % BarCrawl.clock_text(budget)) in _hud.body, true)
 	_expect("the offer has two buttons", _hud.buttons, 2)
 	_expect("from the offer card on the crawl is busy (the kit's one meaning)", c.busy() and _director.busy() and _director.busy_tag() == "crawl", true)
-	_expect("but the rescue calls are not held yet", _calls.paused, false)
+	_expect("but the rescue calls are not held yet", _calls._held(), false)
 	_hud.press(1)
 	_expect("the offer declined: idle, with its words", c.idle() and _toast_has("Trudno!"), true)
 	c.ring()
@@ -323,7 +323,7 @@ func _play() -> void:
 	_hud.toasts.clear()
 	_hud.press(0)
 	_expect("the offer taken: on the way to the group", _is(BarCrawl.Stage.PICKUP), true)
-	_expect("the rescue calls are held", _calls.paused, true)
+	_expect("the rescue calls are held", _calls._held(), true)
 	_expect("the toast sends the player", _toast_has("Jedź po grupę"), true)
 	_expect("the target is the kerb", c.has_target() and c.target_position() == Vector3(300.0, 1.5, 0.0), true)
 	_expect("in the pickup's amber", c.target_colour(), BarCrawl.PICK_COLOUR)
@@ -432,12 +432,12 @@ func _play() -> void:
 	_expect("paid for three bars, the tip by the mood and the bonus", _wallet.money == int(want[0]) and _wallet.respect == int(want[1]) and _wallet.kinds == ["crawl"], true)
 	_expect("the result card is the crawl's own", _hud.card == "RAJD PO BARACH" and _hud.card_is(c) and "3 z 3 barów" in _hud.body, true)
 	_expect("no target, no beacon, no status line under it", not c.has_target() and not b.visible and _hud.status == "", true)
-	_expect("still busy until the card closes, the calls still held", c.busy() and _calls.paused, true)
+	_expect("still busy until the card closes, the calls still held", c.busy() and _calls._held(), true)
 	_run(BarCrawl.RESULT_LIFE - 1.0)
 	_expect("the card stays for its life", _hud.card, "RAJD PO BARACH")
 	_run(1.5)
 	_expect("then closes by itself: idle", c.idle() and _hud.card == "" and not _director.busy(), true)
-	_expect("the rescue calls are back on", _calls.paused, false)
+	_expect("the rescue calls are back on", _calls._held(), false)
 	_expect("one crawl done", c.crawls == 1 and int(c.last_pay["done"]) == 3 and bool(c.last_pay["on_time"]), true)
 
 	# Out of time after one bar: paid for that bar, no tip; the calls go back to what they were.
@@ -457,6 +457,7 @@ func _play() -> void:
 	_hud.press(0)
 	_expect("OK closes it", c.idle() and _hud.card == "", true)
 	_expect("the calls were off before the crawl and are off after it", _calls.paused, true)
+	_expect("the calls are still held after the crawl", _calls._held(), true)
 	_calls.paused = false
 
 	# The ✕ on a leg: they walk, nothing paid.
@@ -467,7 +468,7 @@ func _play() -> void:
 	_hud.toasts.clear()
 	_hud.abort_pressed.emit()
 	_expect("the ✕ ends the crawl: idle, nothing up", c.idle() and _hud.status == "" and not b.visible, true)
-	_expect("with the walking words, nothing paid, the calls back", _toast_has("idzie dalej pieszo") and _wallet.money == money and not _calls.paused, true)
+	_expect("with the walking words, nothing paid, the calls back", _toast_has("idzie dalej pieszo") and _wallet.money == money and not _calls._held(), true)
 	# The ✕ on the result card does nothing.
 	_aboard()
 	c.time_left = 0.3

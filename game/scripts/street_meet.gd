@@ -277,7 +277,6 @@ const GLOWS := [Color("#ff4fd8"), Color("#38f6ff"), Color("#7cff3a"), Color("#ff
 enum Stage { NONE, TO_MEET, MEET, RAID, RACE, MEET2, RAID2, TO_DRAG, WATCH, LINE, DRAG, RESULT }
 const STAGES := ["none", "to_meet", "meet", "raid", "race", "meet2", "raid2", "to_drag", "watch", "line", "drag", "result"]
 
-var missions: Node
 var graph: LaneGraph
 var traffic: Node3D
 var police: Node
@@ -321,7 +320,6 @@ var _stage_t := 0.0
 var _hold_t := 0.0
 var _talk_i := 0
 var _talk_t := 0.0
-var _calls_were := false
 var _chase_seen := false
 
 ## The racers: {d: traffic Driver, node: Node3D or null, name, glide: {} (from, to, yaw, t, then)}.
@@ -408,6 +406,7 @@ var spent_usec := 0
 func _init() -> void:
 	tag = "meet"
 	colour = COLOUR
+	rescue_calls = RescueCalls.HOLD  # the rescue calls wait for the night and go on after it (the director)
 	dark = Color("#1a1a1e")
 	card_life = RING_LIFE
 
@@ -1267,9 +1266,6 @@ func meet_in_person() -> bool:
 
 ## JADĘ!: the meet goes up on Plac Defilad, the beacon in the ring's gap.
 func _begin() -> void:
-	_calls_were = missions.paused if missions != null else false
-	if missions != null:
-		missions.paused = true
 	nights += 1
 	_show_meet(0)
 	var g: Vector3 = meets[0]["gap"]
@@ -2344,7 +2340,7 @@ func _quit_words() -> Array:
 
 ## Back to free play (the kit calls this at every end: a call or an offer turned down or not
 ## answered, the ✕, the result card closed). After a night: the car's own tune back, the racers
-## back to traffic, everything of the drag down, the rescue calls as they were.
+## back to traffic, everything of the drag down (the rescue calls go on by themselves: `rescue_calls`).
 func _ended() -> void:
 	var was_on := stage != Stage.NONE
 	if was_on:
@@ -2360,8 +2356,6 @@ func _ended() -> void:
 			n.visible = false
 		_shows.clear()
 		_cordon_leave(true)
-		if missions != null:
-			missions.paused = _calls_were
 	stage = Stage.NONE
 	_hold_t = 0.0
 	# The dice as they always rolled: once when the call came by the clock (`call_in` ran out),

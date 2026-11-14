@@ -41,7 +41,6 @@ extends Node
 ## (screenshots).
 
 const Ladder := preload("res://scripts/ladder.gd")
-const Missions := preload("res://scripts/missions.gd")
 
 ## Five looks a second.
 const TICK := 0.2
@@ -444,7 +443,7 @@ func facts() -> Dictionary:
 	# PT-15: a ride request's card up counts (Halina won't roll up over it).
 	# Everything that makes the moment not free, a job of the player's aside.
 	var other: bool = (jobs != null and jobs.ride_offered()) or (rivals != null and (rivals.busy() or rivals.first_waiting())) \
-			or (missions != null and (missions.has_target() or int(missions.state) in [Missions.State.OFFER, Missions.State.RESULT])) \
+			or (missions != null and missions.busy()) \
 			or (police != null and int(police.phase) != 0) or (garage != null and garage.is_open()) or _end_up \
 			or bool(side_busy.call())
 	var busy: bool = other or (jobs != null and bool(job_on.call()))
@@ -465,7 +464,7 @@ func facts() -> Dictionary:
 		"calling": rivals != null and rivals.first_waiting(),
 		"race_next": _race_next,
 		"trap": police != null and police.first_armed(),
-		"rang": missions != null and int(missions.state) in [Missions.State.RINGING, Missions.State.OFFER, Missions.State.PICKUP, Missions.State.DROPOFF, Missions.State.RESULT],
+		"rang": missions != null and not missions.idle(),
 		"rescued": wallet != null and int(wallet.jobs.get("rescue", 0)) > 0,
 		"heli_call": missions != null and missions.has_method("call_needs_heli") and missions.call_needs_heli(),
 		"tape": _tape_done(),
@@ -546,7 +545,7 @@ func _fire(id: String) -> void:
 
 ## What runs between the beats: the call kept coming once let through, Halina's retries.
 func _follow_up(f: Dictionary) -> void:
-	if fired.has("rescue") and not f["rang"] and f["free"] and missions != null and int(missions.state) == Missions.State.CLOSED \
+	if fired.has("rescue") and not f["rang"] and f["free"] and missions != null and missions.idle() \
 			and missions.call_in() > RESCUE_RING + 1.0:
 		missions.ring_in(RESCUE_RING)
 	if fired.has("race") and rivals != null and str(rivals.first_result) == "declined" and _race_tries < RACE_TRIES:
@@ -704,12 +703,16 @@ func _script(f: Dictionary) -> void:
 	if hud != null and hud.finger_shown() and t > FINGER_IDLE + 3.0 \
 			and not (rivals != null and rivals.has_method("first_nudging") and rivals.first_nudging()):
 		hud.ghost_finger(false)
-	var card := (jobs != null and int(jobs.stage) == 3) or (rivals != null and int(rivals.state) == 5) \
-			or (missions != null and int(missions.state) == Missions.State.RESULT)
+	var card: bool = (jobs != null and int(jobs.stage) == 3) or (rivals != null and int(rivals.state) == 5) \
+			or (missions != null and missions.result_up())
 	_card_t = _card_t + TICK if card else 0.0
 	if _card_t > 3.0:
 		_card_t = 0.0
-		hud.card_pressed.emit(1)  # OK / FREE ROAM (a rescue's index 1 is FREE ROAM)
+		hud.card_pressed.emit(1)  # OK on a card of no one's own
+		# The rescue's result card is its own (M1): its FREE ROAM (index 1), as the press above did
+		# when missions.gd listened to every card.
+		if missions != null and missions.result_up():
+			missions.card_pressed(1)
 		# A job's result card is its own (the activity kit): its second button (NASTĘPNE) where it
 		# has one, else its first, as index 1 did when jobs.gd listened to every card.
 		if jobs != null and int(jobs.stage) == 3 and not jobs.secondary():
@@ -720,14 +723,13 @@ func _script(f: Dictionary) -> void:
 			rivals.card_pressed(0)
 	if rivals != null and rivals.first_waiting() and int(rivals.state) == 1:
 		rivals.flash()
-	if missions != null and int(missions.state) == Missions.State.RINGING and not f["rescued"]:
+	if missions != null and missions.ringing() and not f["rescued"]:
 		_call_t += TICK
 		if _call_t > 2.0:
 			_call_t = 0.0
-			missions.offer(missions.number + 1)
-			missions.accept()
+			missions.answer()
 	if fired.has("tape") and not f["tape"] and f["free"] and _cassette() >= 0 and missions != null \
-			and int(missions.state) in [Missions.State.CLOSED, Missions.State.IDLE]:
+			and missions.idle():
 		# The player would fly there over Powiśle: the car is put on the boulevard below (KASETA's
 		# spot there, a street; districts.gd discovers Powiśle from it, as the flight would), then
 		# the cassette is taken (the pickup rule itself: check_cassettes.gd).
@@ -738,7 +740,7 @@ func _script(f: Dictionary) -> void:
 			car.reset_physics_interpolation()
 		cassettes.take(CASSETTE_ID)
 	elif fired.has("tape") and not f["tape"] and f["free"] and tape != null and missions != null \
-			and int(missions.state) in [Missions.State.CLOSED, Missions.State.IDLE]:
+			and missions.idle():
 		var at := _tape_at()
 		if at != Vector3.INF and car != null:
 			car.global_position = at + Vector3(0, 0.5, 0)
