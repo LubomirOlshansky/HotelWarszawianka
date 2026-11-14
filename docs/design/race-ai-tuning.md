@@ -143,7 +143,8 @@ After a map change run both and `check_race_links`, `check_race_cuts`.
 ### 3.7 Lights and the card
 
 `race_signals.gd`: `BRAKE_FROM` −2 m/s², `TURN_MIN` 0.45 rad, `TURN_LEAST` 10 m, `BLINK` 0.7 s,
-`FLASH_AGAIN` 3.5 s, `WOBBLE_*`, the colours. `race_report.gd`: `NAMED` 1 s (a cause must be
+`FLASH_AGAIN` 3.5 s, `WOBBLE_*`, the colours, and how big they read: `LAMP_SCALE` 1.3, the glow on the
+road `BRAKE_POOL` 1.5 m, `INDICATOR_POOL` 1.1 m, `FLASH_POOL` 1.6 m, `POOL_ALPHA` 0.75. `race_report.gd`: `NAMED` 1 s (a cause must be
 worth this to be named), `WALK` 1 m/s (under it a car stands). `rivals.gd` `REPORT_ART` (the
 picture's size on the card) and `REPORT_LINES` (off since F, 2026-11-13: the card shows the
 picture only, the report's lines go to the log).

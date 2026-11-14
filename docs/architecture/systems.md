@@ -27,6 +27,7 @@ fails if a script is in neither page, so add a row when you add a file.
 | --- | --- |
 | `map_builder.gd` | The city from map data: terrain, roads, markings, rails, buildings, trees, colliders, the height, roof and picking grids. The global map index (heights, decks, tunnels, water test). |
 | `sector_streamer.gd` | 512 m sectors streamed round the camera (prebuilt `.scn` or built at runtime). |
+| `solidity.gd` | **The solid classes** (the city objects plan, step 1): the class list every collider face is filed under (`building`, `lod2`, `fence`, `hedge`, `wall`, `pier`, `parked`, `landmark`, `edge`, ...) and the answer each gets (H, S, P, R, G; all H today), read once from `game/data/object_palette.json`, the one source. Pure and static. `map_builder.gd` `_solid(class, faces)` files the faces, one `Solid_<class>` body per class per sector with meta `solid`; the dressing scripts' bodies carry the same meta (`check_solids`). |
 | `sector_proxies.gd` | One low-detail mesh per sector while it loads and in far views. |
 | `city_maps.gd` | AO, lamp-light and surface maps per sector, fed to shaders. |
 | `chunked_surface.gd` | SurfaceTool that files triangles into tiles so off-screen tiles are culled. |

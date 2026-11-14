@@ -3460,6 +3460,13 @@ buffers a frame, and the physics server a patch a frame. Helicopter pass, the sl
 between a sector's load start and its last node: **median 16.9 → 10.3 ms, p90 23.0 → 11.6, max
 23.8 → 13.0** (the frames' median 8.3-8.5 ms, the Mac's 120 Hz display). The web's sector packs
 carry the pieces (`pack_sectors.gd`; the Web preset leaves `map/sectors/s_*/*` out of its pack).
+The city objects plan, step 1 (2026-11-13): the faces are filed by solid class (`solidity.gd`,
+`game/data/object_palette.json`; `map_builder.gd` `_solid`) and each class's faces are cut into
+patches on their own, under one `Solid_<class>` body per class with meta `solid` (the whole-city
+build: one body per class, the edge walls `Solid_edge`). The face set of every sector, both paths,
+and of the whole city is the same (hash of the sorted faces, 112 sectors); the patches went from 695
+to 1,590 and the pieces from 2,619 to 3,514 (at most 49 a sector, was 40): the same load work
+(`check_solids`, verify step `solids`), about 8 more frames for a sector at one piece a frame.
 
 **4. Far levels: measured, not built.** The camera is orthographic: every metre on screen is the
 same size, so nothing in the view is far. In every probe view the sectors drawn have their ground

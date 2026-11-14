@@ -200,6 +200,7 @@ func build() -> void:
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	var body := StaticBody3D.new()
 	body.name = "TamkaSolids"
+	body.set_meta(&"solid", &"pier")  # the footbridge's pier and deck: the solid class (solidity.gd)
 	_footbridge(st, body)
 	pour(st.commit(), true, "TamkaProps")
 	part(body)
