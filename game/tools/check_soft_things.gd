@@ -17,7 +17,11 @@ extends SceneTree
 ##      meta) is the prebuilt sector's, number for number, and only S fences and hedges are in it
 ##      (centrum.json `sc`);
 ##   M2 `--no-soft`: the builder's faces with CityBarriers.soft_off are the soft build's faces plus
-##      SoftThings.hard_faces of its soft list, class by class (the prebuilt path's restore is exact).
+##      SoftThings.hard_faces of its soft list, class by class (the prebuilt path's restore is exact);
+##   M3 the settings row (Łamliwe płoty, 2026-11-14), live: a sector loaded with the fences hard (the
+##      default) has the --no-soft build's fence and hedge faces, on both paths; `set_soft(true)` takes
+##      the restored bodies out (the soft build's faces, the sector swept) and `set_soft(false)` puts
+##      them back (the --no-soft faces again, nothing swept, every broken panel standing).
 ## Prints `check_soft_things: OK (...)` (exit 0) or the problems (exit 1). The map part needs the
 ## sector split and the prebuilt sectors (tools/setup_map.sh); --all compares every sector (slow).
 ##   godot --headless --path game --script res://tools/check_soft_things.gd [-- --all --sectors=i,j;i,j --verbose]
@@ -36,6 +40,9 @@ const DT := 1.0 / 60.0
 
 var problems: Array[String] = []
 var verbose := false
+## M3: the time the hard restores took (soft_things.gd harden_usec) and how many were made.
+var _m3_usec := 0
+var _m3_hardens := 0
 var _broke: Array = []
 var _repaired: Array = []
 var _car: Car
@@ -374,10 +381,51 @@ func _map_part(all: bool, only: Array[Vector2i]) -> String:
 			var w: PackedStringArray = want.get(cls, PackedStringArray())
 			_expect(got == w, "M2 %s %s: the soft build's faces + the restored ones = the --no-soft build's (%d + restored = %d, want %d)" % [
 					key, cls, (soft_faces.get(cls, PackedStringArray()) as PackedStringArray).size(), got.size(), w.size()])
+		# M3: the setting turned over on a loaded sector, the runtime build's and the prebuilt one.
+		var again: Node3D = runtime.build_sector(key)
+		root.add_child(again)
+		_m3_toggle(again, key, "runtime", want, soft_faces)
+		again.free()
+		var pre_again := (load(path) as PackedScene).instantiate() as Node3D
+		root.add_child(pre_again)
+		_m3_toggle(pre_again, key, "prebuilt", want, soft_faces)
+		pre_again.free()
 		if verbose:
 			print("   %s: %d soft lines, %d segments" % [key, (soft["ids"] as PackedStringArray).size(), segs])
 	runtime.free()
-	return "%d sectors on both paths: %d soft lines, %d segments" % [keys.size(), lines, segs]
+	return "%d sectors on both paths: %d soft lines, %d segments; the hard restore %.1f ms a sector on average" % [keys.size(), lines, segs,
+			_m3_usec / 1000.0 / maxf(_m3_hardens, 1)]
+
+
+## M3: sector `sector` (in the tree) loaded with the fences hard, then turned breakable and hard
+## again; its fence and hedge faces each time against `hard` (the --no-soft build's) and `soft_faces`
+## (the soft build's).
+func _m3_toggle(sector: Node3D, key: Vector2i, path: String, hard: Dictionary, soft_faces: Dictionary) -> void:
+	var st := SoftThings.new()
+	st.no_soft = true
+	root.add_child(st)
+	st.add_sector(sector)
+	_expect(_same_faces(_class_faces(sector), hard), "M3 %s %s: loaded with the fences hard, its faces are the --no-soft build's" % [key, path])
+	_expect(st.segment_count() == 0, "M3 %s %s: nothing swept while hard (%d segments)" % [key, path, st.segment_count()])
+	var n := st.set_soft(true)
+	_expect(n == 1 and _same_faces(_class_faces(sector), soft_faces), "M3 %s %s: breakable live, the restored bodies are gone (%d sectors turned)" % [key, path, n])
+	_expect(st.segment_count() > 0, "M3 %s %s: breakable live, the sector is swept" % [key, path])
+	st._remember("x#0", "x", 0, Vector3.ZERO)
+	n = st.set_soft(false)
+	_expect(n == 1 and _same_faces(_class_faces(sector), hard), "M3 %s %s: hard again live, the --no-soft faces are back" % [key, path])
+	_expect(st.segment_count() == 0 and st.broken_count() == 0, "M3 %s %s: hard again, nothing swept and nothing left broken" % [key, path])
+	_expect(st.set_soft(false) == 0 and _same_faces(_class_faces(sector), hard), "M3 %s %s: hard twice adds nothing" % [key, path])
+	_m3_usec += st.harden_usec
+	_m3_hardens += 2
+	st.free()
+
+
+## Fence and hedge faces the same in `a` and `b` (sorted byte keys by class).
+static func _same_faces(a: Dictionary, b: Dictionary) -> bool:
+	for cls: StringName in [&"fence", &"hedge"]:
+		if a.get(cls, PackedStringArray()) != b.get(cls, PackedStringArray()):
+			return false
+	return true
 
 
 ## Every collider face of a sector root by class, as sorted byte keys (fence and hedge only matter).

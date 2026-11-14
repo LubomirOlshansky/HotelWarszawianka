@@ -8,12 +8,16 @@ extends SceneTree
 ## Auto's image state (`[auto_image]`) round-trips, a file without it starts sharp, hand-edited
 ## values are cleaned, and --nosave writes none of it either. F's asks (2026-10-30): the
 ## pedestrian zones' cap (`zone_cap`) is off in a missing file and round-trips on. F (2026-11-07): the closest zoom (40 m) and
-## the camera angle (`pitch`) round-trip; an angle that isn't a choice loads as 30°. The real
+## the camera angle (`pitch`) round-trip; an angle that isn't a choice loads as 30°. Settings rows
+## (2026-11-14): a missing file has the collision answer v1 (`collide` 0) and the fences hard
+## (`soft_fences` off); mid and breakable round-trip; a hand-edited preset out of range is clamped. The real
 ## user://settings.cfg is never touched. Deletes its scratch files.
 ##   godot --headless --path game --script res://tools/check_settings.gd
 
 const Settings := preload("res://scripts/settings.gd")
 const Tiers := preload("res://scripts/tiers.gd")
+const CollideRules := preload("res://scripts/collide_rules.gd")
+const SettingsPanel := preload("res://scripts/settings_panel.gd")
 const SCRATCH := "user://settings_check.cfg"
 const SCRATCH_OFF := "user://settings_check_nosave.cfg"
 const SCRATCH_OLD := "user://settings_check_old.cfg"
@@ -28,7 +32,8 @@ func _initialize() -> void:
 			and fresh.master == 1.0 and fresh.music == 1.0 and fresh.effects == 1.0 and not fresh.perf and fresh.classic_follow \
 			and fresh.fps == 60 and fresh.style == 0 and not fresh.vhs and not fresh.zone_cap and fresh.handling == 0 and is_equal_approx(fresh.sensitivity, 0.5) \
 			and not fresh.text_large and not fresh.calm and not fresh.color_safe and fresh.vibration and fresh.stop_assist \
-			and not fresh.left_handed and fresh.lane_assist and fresh.pads == Settings.PADS_SLIDER and fresh.view == 80.0 and fresh.pitch == 30.0
+			and not fresh.left_handed and fresh.lane_assist and fresh.pads == Settings.PADS_SLIDER and fresh.view == 80.0 and fresh.pitch == 30.0 \
+			and fresh.collide == 0 and not fresh.soft_fences
 	print("defaults from a missing file: %s (%s)" % ["OK" if defaults else "WRONG", fresh.summary()])
 	ok = ok and defaults
 
@@ -99,6 +104,8 @@ func _initialize() -> void:
 	a.vhs = true
 	a.zone_cap = true
 	a.handling = 1
+	a.collide = 2  # settings rows (2026-11-14): mid, and the fences breakable (off is the default)
+	a.soft_fences = true
 	a.sensitivity = 0.8
 	a.text_large = true
 	a.calm = true
@@ -115,7 +122,7 @@ func _initialize() -> void:
 	b.path = SCRATCH
 	b.load_file()
 	var same := a.summary() == b.summary() and b.classic_follow == a.classic_follow and b.view == 40.0 and b.pitch == 50.0 \
-			and not b.lane_assist and b.pads == Settings.PADS_ARROWS
+			and not b.lane_assist and b.pads == Settings.PADS_ARROWS and b.collide == 2 and b.soft_fences
 	# F 2026-11-13: a save from before the arrows (lane assist off, no `lane_assist_default`, no
 	# `pads`) loads with the lane assist on; F 2026-11-14: and the slider.
 	var cfg_la := ConfigFile.new()
@@ -150,6 +157,20 @@ func _initialize() -> void:
 	var angle_ok := sp.pitch == 30.0 and sp.view == 40.0
 	print("camera angle and zoom from a hand-edited file: %s (%.0f°, %.0f m)" % ["OK" if angle_ok else "WRONG", sp.pitch, sp.view])
 	ok = ok and angle_ok
+	# Settings rows (2026-11-14): a hand-edited collision preset out of range is clamped.
+	var cfg_c := ConfigFile.new()
+	cfg_c.set_value("game", "collide", 9)
+	cfg_c.save(SCRATCH_OLD)
+	var sc := Settings.new()
+	sc.path = SCRATCH_OLD
+	sc.load_file()
+	# The row's choices are collide_rules.gd's presets, v1 first (the panel's COLLIDE, main.gd's index).
+	var collide_ok := sc.collide == Settings.COLLIDE_PRESETS - 1 and not sc.soft_fences \
+			and CollideRules.PRESETS.size() == Settings.COLLIDE_PRESETS and CollideRules.PRESETS[0] == CollideRules.V1 \
+			and SettingsPanel.COLLIDE.size() == Settings.COLLIDE_PRESETS
+	print("collision preset from a hand-edited file: %s (%d, fences %s)" % ["OK" if collide_ok else "WRONG", sc.collide,
+			"breakable" if sc.soft_fences else "hard"])
+	ok = ok and collide_ok
 	print("round trip: %s\n  saved  %s\n  loaded %s" % ["OK" if same else "DIFFERENT", a.summary(), b.summary()])
 	ok = ok and same
 
