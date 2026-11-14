@@ -868,6 +868,9 @@ var _flag_controls := -1
 var _flag_pads := -1
 ## --handling=cruise|sport|grounded (or 0..2): the run drives that profile whatever the settings say.
 var _flag_handling := -1
+## The city objects plan, step 6: --collide=v1|soft|mid|firm, the car's collision answer
+## (collide_rules.gd; the car and traffic get it). v1, today's answer, is the default (no setting yet).
+var _flag_collide := &"v1"
 ## Beta values: --lane-assist=on|off overrides Settings → Jazda → Asysta pasa for the run; the
 ## lane's direction is looked up every LANE_EVERY s (lane_assist.gd).
 var _flag_lane := -1
@@ -1689,6 +1692,7 @@ func _build_world() -> void:
 	car.set_sensitivity(settings.sensitivity)
 	# G4: Cruise by default, Sport or Grounded from Settings → Jazda (--handling= for a run).
 	car.set_handling(settings.handling if _flag_handling < 0 else _flag_handling)
+	car.collide = _flag_collide
 	car.lane_assist = settings.lane_assist if _flag_lane < 0 else _flag_lane == 1
 	world.add_child(car)
 	_xray = TunnelXray.new()
@@ -2073,6 +2077,7 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	var t0 := Time.get_ticks_msec()
 	traffic = Traffic.new()
 	traffic.race_debug = race_debug
+	traffic.collide = _flag_collide
 	traffic.count_overlaps = _traffic_overlaps
 	world.add_child(traffic)
 	await traffic.setup(graph, map, cam, data)
@@ -5575,6 +5580,8 @@ func _parse_args() -> void:
 			_flag_pads = 1 if arg.trim_prefix("--pads=") in ["slider", "strip", "1"] else 0
 		elif arg.begins_with("--handling="):
 			_flag_handling = Car.parse_handling(arg.trim_prefix("--handling="))
+		elif arg.begins_with("--collide="):
+			_flag_collide = Car.CollideRules.parse(arg.trim_prefix("--collide="))
 		elif arg.begins_with("--lane-assist="):
 			_flag_lane = 1 if arg.trim_prefix("--lane-assist=") in ["on", "1", "true"] else 0
 		elif arg.begins_with("--traffic="):

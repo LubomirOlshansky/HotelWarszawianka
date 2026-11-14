@@ -1,0 +1,6 @@
+## Backlog
+- found: the city objects plan, step 6 (collision answer v2) is built behind `--collide=v1|soft|mid|firm` (`game/scripts/collide_rules.gd`); the default stays `v1`, today's answer bit for bit (check_lane_drive's default output, the race bench and route set A's sloppy contact files identical to main's, with no flag and with `--collide=v1`). With `mid`, route set A's sloppy driver on the prebuilt city: dead stops 20 → 0 (Cruise) and 26 → 0 (Grounded), unsticks 11 → 0 and 9 → 0. Waiting for F's phone A/B of the three presets; then the default changes in its own PR with the race marks recorded again, and the setting "Zderzenia" joins Settings → Jazda
+- found: `--collide=firm` in Grounded still has one dead stop and one unstick on route set A (sloppy driver), and `soft` in Grounded two dead stops and 8 tows (v1: 7); only `mid` meets the plan's bar so far
+- found: the corner pivot (build plan item 2, point 6) fires once or twice in 99 km of route set A; whether it is wanted at all is for the phone A/B
+- found: trains (`trains.gd`) still answer as traffic with a v2 preset (car_keep by angle), not as a wall like trams and buses: one `set_meta(&"heavy", true)` if F wants it
+- found: a T-boned traffic car slides off its line harder with v2 (`shove_side` up to 0.8) but does not spin: traffic.gd has no yaw of its own for a hit car
