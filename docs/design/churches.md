@@ -80,7 +80,7 @@ Status as of 2026-11-01. "Kit model" = built by the church kit; "model" = its ow
 | Kościół pw. Świętego Marcina | church | -795, -1584 | kit model (`church_sw_marcin`), 2026-11-01 |
 | Kościół pw. Świętej Anny | church | -658, -1350 | model, kept skin: portico and tower trim (`sw_anna`, #211 deck people) |
 | Kościół pw. Świętych Apostołów Piotra i Pawła | church | -1129, 830 | kit model (`church_piotr_pawel`), 2026-11-01 |
-| Kościół Świętego Antoniego Padewskiego | church | -1211, -978 | kit model (`church_antoniego`), 2026-11-01 |
+| Kościół Świętego Antoniego Padewskiego | church | -1211, -978 | model from 15 Commons photos and LoD2 (`church_antoniego`, `_build_antoniego`, spec `antoniego.md`), 2026-11-14: white Baroque church, red tile roofs, slate turret with a green double onion, octagonal chapel, cloister wings round the cross square |
 | Kościół Świętej Trójcy | church | -855, -511 | model (`trojca`, Zug's rotunda) |
 | Kościół Świętej Trójcy na Solcu | church | 1071, 263 | model from photos (`church_trojca_praga`, `_build_trojca_solec`, spec `trojca_solec.md`), 2026-11-14 |
 | Kościół św. Brata Alberta i św. Andrzeja Apostoła | church | -1074, -1133 | model from photos (`church_alberta`, `_build_alberta`, spec `alberta.md`), 2026-11-14 |

@@ -39,7 +39,7 @@ const BUDGET := {
 	"filtry": 3000,
 	"level26_club": 860,
 	"church_alberta": 950,  # 2026-11-14: the whole classicist frontage on Plac Teatralny, portico and two wings, from photos (measured 818)
-	"church_antoniego": 990,
+	"church_antoniego": 1250,
 	"church_augustyn": 1900,  # 2026-11-14: the whole brick basilica and its 70 m tower, checked against photos (measured 1759)
 	"church_pallotyni": 840,  # 2026-11-14: the Pallottines' modernist house (measured 726)
 	"church_rodziny_maryi": 720,  # 2026-11-14: the sisters' long house, its middle block and annex (measured 622)
