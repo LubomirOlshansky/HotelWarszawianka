@@ -177,6 +177,21 @@ const CLUB := [
 		"cuts": 1.0, "yards": 1.0, "narrow": 3.0, "hops": 0.0, "mistake": 0.05, "wrong": 0, "block": 0.4, "phone": false,
 		"dare": 0.6, "indicate": 0.0, "flash": 0.5, "home": []},
 ]
+## Racer AI step 6b part 2 (police.gd, police/chase_route.gd): a police chaser on the racers'
+## driver. `share` 1.0 of the chase's own top (police.gd `chase_top`, 0.8 of the player's car, held
+## by the Driver's `v_cap`); a patrol car keeps to the roads (no cuts, yards or hops, no wrong
+## turns), makes no mistakes, never blocks, has no phone; careful (`caution`, `dare`). `lat`,
+## `race_accel` and `brake` are fitted on the race bench (its `chase` races, old against new) so
+## that a chaser closes on the player and an escape takes as long as with the old chase driver
+## (CHASE_RACE_ACCEL 6, CHASE_LAT 6.5, no plan, no line). The lights' keys are unused (a chaser
+## has its light bar). Fitted (clear roads, three courses, 1 and 2 chasers): the average player's
+## gap at 20 and 30 s within 2 m of the old driver's for the first chaser, the fast player's escape
+## within 4 % (avenue 13.9 / 13.4 s, Powiśle 28.0 / 27.3 s, the yard 14.5 / 15.0 s); the line made
+## it quicker through corners at the starting 10 / 9 / 12.5, so its pull and brakes came down. Its
+## sideways pull is 10 to 15 m/s² where the old one's measured 27 to 42 (corners "as they are").
+const POLICE := {"share": 1.0, "race_accel": 7.0, "brake": 6.0, "lat": 12.0, "knows": 0.6, "caution": 0.5,
+		"cuts": 0.0, "yards": 0.0, "narrow": 4.5, "hops": 0.0, "mistake": 0.0, "wrong": 0, "block": 0.0, "phone": false,
+		"dare": 1.5, "indicate": 0.0, "flash": 0.0, "home": []}
 ## The club's cruise pace before the race (traffic.gd speed_factor, accel_factor; as the pack
 ## always drove away from a raid) and in it (Ladder.pace's meaning; racer mode drives by `CLUB`).
 const CLUB_PACE := Vector2(1.4, 1.6)

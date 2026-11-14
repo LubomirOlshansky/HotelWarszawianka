@@ -129,7 +129,8 @@ skill, not from the player's speed. Built so far (steps 1 to 4a of 8):
   (step 6b part 1b): a plan, a racing line, shortcuts and lights each, and no report. The
   autopilot's ghost and Halina's roll-up behind the car before the first race (`call_first`)
   still go by metres (no plan), and only the ladder races and the final have a report. The
-  police chasers and the crazy drivers are steps 6b-2 and 6b-3.
+  police chasers drive it too, on a session of their own (step 6b part 2, section 4); the crazy
+  drivers are step 6b-3.
 
 Still to come: RaceDriver (passing, contact and recovery are the old rail car's; its pass over
 the centre line, `_race_pass`, minds only the oncoming lanes it uses and how fast the two cars
@@ -146,7 +147,13 @@ The gentle police: warnings and jokes, never a fine. Read docs/design/police.md 
 - **One state machine in police.gd**: CALM, LIZAK, CHASE 1-3, SEARCH, PULLOVER, then a cooldown.
   Every chase ends by itself.
 - **Beehave trees only move cars** (`police_unit.gd`, `police/bt/*`), ticked by hand at 5 Hz.
-  City guards on foot (`police/guards.gd`, `guard_unit.gd`) are fixed pedestrians with a tree.
+- **The chasers' way** (`police/chase_route.gd`, racer AI step 6b-2): the replan rule (one chaser a
+  frame, once a second, to the end of the player's street) and the chase's `RaceSession`: the
+  chasers drive the racers' driver (ladder.gd `POLICE`: a plan, the racing line, honest corners),
+  their goal remade only when it moves (`retarget`), their top the chase's own (`v_cap`). The race
+  bench's `chase` races drive the same object, old driver against new. The search, the escort, the
+  blockers and the roadblocks still drive the old way (no plan).
+- **City guards** on foot (`police/guards.gd`, `guard_unit.gd`) are fixed pedestrians with a tree.
 - **The pull-over talk** is Dialogue Manager (`game/dialogue/police.dialogue`,
   `police_balloon.gd`, `police_talk.gd`); words in `data/dialogue.json`.
 - **Rule from CLAUDE.md**: new behaviour that chooses between several actions decides on Beehave
