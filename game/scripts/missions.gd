@@ -50,8 +50,8 @@ const PHASE_OF := {State.IDLE: Phase.IDLE, State.CLOSED: Phase.IDLE, State.RINGI
 		State.PICKUP: Phase.RUN, State.DROPOFF: Phase.RUN, State.RESULT: Phase.RUN}
 ## Loop 2e: seconds of play before the first call comes in, and between calls (first guesses;
 ## docs/DEMO.md 6.2 puts the first rescue at 4:00 in the scripted first ten minutes).
-const FIRST_CALL := 60.0
-const NEXT_CALL := 90.0
+static var FIRST_CALL: float = Pacer.num("rescue", "first_call")
+static var NEXT_CALL: float = Pacer.num("rescue", "next_call")
 
 var state := State.IDLE:
 	set(s):
