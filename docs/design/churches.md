@@ -88,7 +88,7 @@ Status as of 2026-11-01. "Kit model" = built by the church kit; "model" = its ow
 | Monaster Zaśnięcia Najświętszej Bogurodzicy i św. Jozafata biskupa i męczennika | monastery | -1025, -1518 | open: convent or monastery: plain block, a later pass |
 | Parafia Świętej Teresy od Dzieciątka Jezus | church | 370, -579 | model (`teresy`, #225) |
 | Sala św. Faustyny | chapel | -2792, 1574 | open: small chapel: a later pass |
-| Synagoga Nożyków | synagogue | -1565, -229 | kit model (`church_nozykow`), 2026-11-01 |
+| Synagoga Nożyków | synagogue | -1565, -229 | whole model from photos (`_build_nozyk`, spec `nozyk.md`), 2026-11-14; the kit's front faced east |
 | Zgromadzenie Sióstr Franciszkanek Rodziny Maryi | religious | -2617, -739 | open: convent or monastery: plain block, a later pass |
 
 Also on the map (no model): the Archikatedra św. Jana (`archikatedra`, front on the kept skin,
