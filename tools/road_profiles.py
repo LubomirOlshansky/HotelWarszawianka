@@ -62,6 +62,7 @@ import sys
 
 TOOLS = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, TOOLS)
+import map_shape  # noqa: E402  (the map outline: bank walls stay inside it)
 
 VERSION = 1
 KEY = "road_profiles"
@@ -394,7 +395,8 @@ def _apply_spot(out, m, spot):
                 w["b"][k] = min(w["b"][k], round(h - 0.05, 2))
                 feet += 1
     spurs = _spurs(out, m, spot, pts, cum, level, l, r)
-    banks = _banks(m, pts, hs, l, r, _crossings(out, spot, pts, cum, l, r)) if spot.get("banks", True) else []
+    banks = _banks(m, pts, hs, l, r, _crossings(out, spot, pts, cum, l, r),
+                   map_shape.of(out).contains) if spot.get("banks", True) else []
     worst = max(abs(hs[k + 1] - hs[k]) / max(cum[k + 1] - cum[k], 1e-9) for k in range(len(hs) - 1))
     rec = {"len": round(cum[-1], 1), "from": hs[0], "to": hs[-1], "steepest": round(worst, 3), "wall_feet": feet,
            "banks": round(sum(_len(_pairs(w["p"])) for w in banks), 1)}
@@ -526,7 +528,7 @@ def _len(pts):
     return sum(math.dist(a, b) for a, b in zip(pts, pts[1:]))
 
 
-def _banks(m, pts, hs, l, r, cut=()):
+def _banks(m, pts, hs, l, r, cut=(), inside=None):
     """Retaining walls along the corridor's sides where the profile stands over the ground past
     them by BANK or more (a road on a bench over a lower boulevard): the ground there is drawn on
     the grid, so without a wall the road's edge would hang over it. Stone, open (not solid: the
@@ -544,7 +546,9 @@ def _banks(m, pts, hs, l, r, cut=()):
             edge = (pts[k][0] + ox * off, pts[k][1] + oz * off)
             g = m.terrain(pts[k][0] + ox * (off + BANK_OUT), pts[k][1] + oz * (off + BANK_OUT))
             sk = STEP * k
-            if hs[k] - g >= BANK and not any(abs(sk - s0) <= w for s0, w in cut):
+            # (never past the map's outline: check_outline O1)
+            if hs[k] - g >= BANK and not any(abs(sk - s0) <= w for s0, w in cut) \
+                    and (inside is None or inside(*edge)):
                 run.append((edge, hs[k], g))
                 continue
             if len(run) >= 2:
