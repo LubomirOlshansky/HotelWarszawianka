@@ -19273,6 +19273,246 @@ func _build_marcin(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The Pauline church of the Holy Spirit (Kościół św. Ducha, the Paulines') at Długa 3, where Freta
+## meets Długa and Nowomiejska by the Barbican: built 1707-1717 (Józef Piola and Józef Szymon
+## Bellotti), burnt in 1944 and rebuilt by 1956. Rebuilt here 2026-11-14 as the whole building from
+## Mapillary photos (the front from Freta and Mostowa, the Długa side with both towers' caps and
+## the chapel's pediment, the lower front's niches and portal; refs/sw_ducha, never shipped) and
+## GUGiK's LoD2 (heights over the ground: towers' walls 26.9, their caps to 35.5, front cornice
+## 20.6, pediment 25.5, nave eaves 20.6 and ridge 25.0, chapels 12.2-12.4, the Częstochowa chapel's
+## gable 14-15):
+## - a cream two-storey front between two towers: paired pilasters, an arched portal with a
+##   segmental hood, statues in niches, a full entablature, an arched window over it and a
+##   triangular pediment with an oculus, a ball and a cross;
+## - two square towers flush with the front: plain shafts with small windows, a belfry stage with
+##   corner pilasters, an arched opening and a round clock window on each face, a cornice with
+##   urns, a green copper bell cap, an open lantern, a small bulb and a spire with a cross;
+## - the tall nave under a green copper roof (gable to the front, hip at the east), arched
+##   clerestory windows between lesenes over the chapels;
+## - on the Długa side the chapels under a copper lean-to and the Częstochowa chapel (1746) with
+##   its gable and pediment to Długa; the monastery's wings close the other side and the back.
+## Frame: origin at the kit's front point, u along the front (+u to the Długa side), +v out of the
+## front towards the Barbican.
+const DU_O := Vector2(-1005.6, -1848.8)
+const DU_A := Vector2(-0.8491, -0.5283)
+const DU_C := -0.15                    ## the front's and the nave's axis (u)
+const DU_NV := -5.3                    ## the towers' and front block's back (v), where the nave starts
+const DU_TOWERS := [8.65, -9.0]        ## the towers' centres (u), LoD2's shafts
+const DU_TV := -2.9
+const DU_WALL := Color("#ece2c6")      ## the cream plaster
+const DU_TRIM := Color("#f6f0de")      ## pilasters, cornices, surrounds
+const DU_ROOF := Color("#72a490")      ## the pale green copper of the roofs
+const DU_CAP := Color("#5b8a78")       ## the towers' darker copper caps
+const DU_BASE := Color("#b8b1a0")      ## plinths
+
+
+## The front frame again, after a wall of another direction moved it.
+func _du_home() -> void:
+	kit_front(DU_O, DU_O + DU_A * 10.0)
+
+
+## A round-headed window or niche on the current front at u: a trim surround and a dark pane,
+## flat on the face (two arch panels).
+func _du_arch(u: float, y0: float, h: float, hw: float, glass := PAL_GLASS_DARK) -> void:
+	var at := _w(u, _face)
+	_arch_panel(at, _a, _b, hw + 0.25, y0 - 0.25, y0 + h - hw, DU_TRIM, 0.04, M_STONE)
+	_arch_panel(at, _a, _b, hw, y0, y0 + h - hw, glass, 0.08, _lit(u, y0) if glass == PAL_GLASS_DARK else M_STONE)
+
+
+## A gable roof whose ridge runs along v (the nave's): `_gable` in the swapped frame, no back.
+func _du_gable(vf: float, vb: float, cu: float, hu: float, y: float, h: float) -> void:
+	var ka := _a
+	var kb := _b
+	_a = kb
+	_b = ka
+	_gable(vf, vb, cu, hu, y, h, DU_WALL, DU_ROOF, false)
+	_a = ka
+	_b = kb
+
+
+## One face of a tower, `from` to `to` (plan corners, outside on the left): small windows on the
+## shaft, then the belfry's corner pilasters, its arched opening and the round clock window.
+func _du_tower_face(from: Vector2, to: Vector2, g: float, front: bool) -> void:
+	var w := kit_front(from, to)
+	var c := w * 0.5
+	kit_face(0.0)
+	for pu: float in [0.35, w - 0.35]:
+		_kbox(pu - 0.35, pu + 0.35, -0.02, 0.14, g + 21.2, g + 26.4, DU_TRIM)
+	_du_arch(c, g + 22.0, 3.3, 0.72, PAL_IRON)
+	var oc := _w(c, 0.06)
+	_disc(Vector3(oc.x, g + 26.05, oc.y), Vector3(_b.x, 0.0, _b.y), 0.4, 8, DU_TRIM.darkened(0.12))
+	if front:
+		kit_window(c, g + 16.2, 1.5, Win.FRAMED, DU_TRIM, PAL_GLASS_DARK, 0.45)
+		var o2 := _w(c, 0.06)
+		_disc(Vector3(o2.x, g + 18.9, o2.y), Vector3(_b.x, 0.0, _b.y), 0.35, 8, PAL_GLASS_DARK)
+	else:
+		kit_window(c, g + 9.6, 1.2, Win.FRAMED, DU_TRIM, PAL_GLASS_DARK, 0.4)
+		var o3 := _w(c, 0.06)
+		_disc(Vector3(o3.x, g + 15.6, o3.y), Vector3(_b.x, 0.0, _b.y), 0.4, 8, PAL_GLASS_DARK)
+
+
+## One tower at u = tu: the shaft, its ledge and cornice rings, the four faces, the urns, the bell
+## cap, the open lantern, the bulb, the spire and the cross.
+func _du_tower(tu: float, g: float) -> void:
+	var tv := DU_TV
+	var none := Color(0, 0, 0, 0)
+	_lbox(tu, tv, 2.1, 2.45, g + 0.6, g + 26.9, DU_WALL, M_STONE, none)
+	_prism(_rect(tu, tv, 2.22, 2.57), g + 12.0, g + 12.5, DU_TRIM, none, M_STONE, M_STONE)
+	_prism(_rect(tu, tv, 2.3, 2.65), g + 20.6, g + 21.2, DU_TRIM, none, M_STONE, M_STONE)
+	_prism(_rect(tu, tv, 2.45, 2.8), g + 26.9, g + 27.5, DU_TRIM, DU_CAP, M_STONE, M_STONE)
+	var corners := [_w(tu - 2.1, tv + 2.45), _w(tu + 2.1, tv + 2.45), _w(tu + 2.1, tv - 2.45), _w(tu - 2.1, tv - 2.45)]
+	for k in 4:
+		_du_tower_face(corners[k], corners[(k + 1) % 4], g, k == 0)
+	_du_home()
+	for cu: float in [-1.0, 1.0]:
+		for cv: float in [-1.0, 1.0]:
+			_pinnacle(tu + cu * 1.95, tv + cv * 2.3, 0.4, g + 27.5, 1.1, DU_TRIM)
+	# the bell cap: [radius, height over the ground], octagonal, then the lantern, bulb and spire
+	var cap: Array = [[2.0, 27.5], [2.12, 28.1], [1.9, 29.0], [1.35, 29.8], [0.85, 30.3]]
+	for k in cap.size() - 1:
+		var p: Array = cap[k]
+		var q: Array = cap[k + 1]
+		_frustum(_jac_ring(tu, tv, float(p[0]), 8), g + float(p[1]), _jac_ring(tu, tv, float(q[0]), 8), g + float(q[1]), DU_CAP)
+	_prism(_jac_ring(tu, tv, 0.82, 8), g + 30.3, g + 32.3, DU_TRIM, none, M_STONE, M_STONE)
+	for f: Array in [[0.0, 1.0], [0.0, -1.0], [1.0, 0.0], [-1.0, 0.0]]:
+		_lbox(tu + float(f[0]) * 0.8, tv + float(f[1]) * 0.8, 0.04 + 0.22 * absf(float(f[1])), 0.04 + 0.22 * absf(float(f[0])), g + 30.6, g + 31.9, PAL_IRON)
+	var bulb: Array = [[1.0, 32.3], [1.0, 32.5], [0.9, 33.1], [0.5, 33.8], [0.14, 34.4]]
+	for k in bulb.size() - 1:
+		var p: Array = bulb[k]
+		var q: Array = bulb[k + 1]
+		_frustum(_jac_ring(tu, tv, float(p[0]), 8), g + float(p[1]), _jac_ring(tu, tv, float(q[0]), 8), g + float(q[1]), DU_CAP)
+	_frustum(_jac_ring(tu, tv, 0.14, 6), g + 34.4, _jac_ring(tu, tv, 0.05, 6), g + 36.0, DU_CAP, DU_CAP)
+	_prism(_jac_ring(tu, tv, 0.22, 6), g + 34.8, g + 35.2, PAL_GOLD, PAL_GOLD, M_STONE, M_STONE)
+	_kap_cross(tu, tv, g + 36.0, 1.4)
+
+
+func _build_duch(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	_g = _ground_under(outline)
+	var g := _g
+	var c := DU_C
+	var plan: PackedVector2Array = _simplify(outline, 0.6)
+	var none := Color(0, 0, 0, 0)
+	var trim := DU_TRIM
+	_mode = M_STONE
+	_du_home()
+	# --- the masses: the body behind the front (chapels, aisles, sacristy) from the outline
+	var body := _largest(Geometry2D.intersect_polygons(plan, _lpoly([[-14.0, DU_NV], [14.0, DU_NV], [14.0, -50.0], [-14.0, -50.0]])))
+	_prism(_largest(Geometry2D.offset_polygon(plan, 0.25, Geometry2D.JOIN_MITER)), g - 0.6, g + 0.9, DU_BASE, none, M_STONE, M_STONE)
+	_prism(body, g + 0.8, g + 12.3, DU_WALL, DU_ROOF, M_STONE, M_STONE)
+	_prism(_largest(Geometry2D.offset_polygon(body, 0.3, Geometry2D.JOIN_MITER)), g + 11.9, g + 12.5, trim, DU_ROOF, M_STONE, M_STONE)
+	# the chapels' copper lean-to on the Długa side, from the eaves up against the nave
+	var lean := [Vector2(11.0, DU_NV), Vector2(11.0, -28.4), Vector2(5.95, -28.4), Vector2(5.95, DU_NV)]
+	var ys := [g + 12.5, g + 12.5, g + 14.4, g + 14.4]
+	var lp: Array[Vector3] = []
+	for k in 4:
+		var p: Vector2 = _w(lean[k].x, lean[k].y)
+		lp.append(Vector3(p.x, ys[k], p.y))
+	var ln := (lp[1] - lp[0]).cross(lp[3] - lp[0]).normalized()
+	if ln.y < 0.0:
+		ln = -ln
+	_quad(lp[0], lp[1], lp[2], lp[3], ln, DU_ROOF)
+	# --- the front block between the towers and the towers themselves
+	_lbox(c, -2.875, 6.75, 2.425, g + 0.6, g + 20.6, DU_WALL, M_STONE, DU_ROOF)
+	for tu: float in DU_TOWERS:
+		_du_tower(tu, g)
+	_du_home()
+	# --- the nave: walls over the chapels to the eaves, a cornice, the copper roof with its hip
+	var nc := -0.3
+	_lbox(nc, -22.1, 6.2, 16.8, g + 12.0, g + 20.6, DU_WALL, M_STONE, none)
+	_prism(_rect(nc, -22.1, 6.5, 17.1), g + 20.4, g + 20.9, trim, none, M_STONE, M_STONE)
+	_du_gable(-0.9, -33.2, nc, 6.5, g + 20.9, 4.1)
+	var ap: Vector2 = _w(nc, -33.2)
+	var apex := Vector3(ap.x, g + 25.0, ap.y)
+	var eaves: Array[Vector3] = []
+	for q: Vector2 in [Vector2(nc - 6.5, -33.2), Vector2(nc - 6.5, -39.2), Vector2(nc + 6.5, -39.2), Vector2(nc + 6.5, -33.2)]:
+		var e := _w(q.x, q.y)
+		eaves.append(Vector3(e.x, g + 20.9, e.y))
+	for k in 3:
+		var n := (eaves[k + 1] - eaves[k]).cross(apex - eaves[k]).normalized()
+		if n.y < 0.0:
+			n = -n
+		_tri(eaves[k], eaves[k + 1], apex, n, DU_ROOF, Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
+	# the clerestory: five arched windows a side between lesenes, over the chapels' roofs
+	for side: float in [-1.0, 1.0]:
+		var a := _w(nc + side * 6.2, -36.5 if side < 0.0 else -7.5)
+		var b := _w(nc + side * 6.2, -7.5 if side < 0.0 else -36.5)
+		var cw := kit_front(a, b)
+		kit_face(0.0)
+		for k in 5:
+			_du_arch(cw * (0.1 + 0.2 * float(k)), g + 15.0, 4.4, 0.85)
+		for k in 4:
+			_kbox(cw * (0.2 + 0.2 * float(k)) - 0.3, cw * (0.2 + 0.2 * float(k)) + 0.3, -0.02, 0.12, g + 14.4, g + 20.4, trim)
+		_du_home()
+	# the east end over the sacristy: an oculus under the hip
+	var e0 := _w(nc - 6.2, -38.9)
+	var e1 := _w(nc + 6.2, -38.9)
+	var ew := kit_front(e0, e1)
+	kit_face(0.0)
+	var eo := _w(ew * 0.5, 0.06)
+	_disc(Vector3(eo.x, g + 16.6, eo.y), Vector3(_b.x, 0.0, _b.y), 1.0, 10, PAL_GLASS_DARK)
+	_du_home()
+	# --- the front: two storeys of paired pilasters, the portal, niches, window and pediment
+	kit_face(-0.45)
+	kit_ledge(-11.4, 11.0, g + 0.6, 0.6, DU_BASE, 0.2)
+	for pu: float in [c - 5.95, c - 5.05, c - 2.6, c - 1.7, c + 1.7, c + 2.6, c + 5.05, c + 5.95]:
+		kit_pilaster(pu, g + 1.2, g + 11.9, trim, 0.7, 0.2)
+		_kbox(pu - 0.3, pu + 0.3, -0.49, -0.29, g + 13.4, g + 20.2, trim)
+	for tu: float in DU_TOWERS:
+		for s: float in [-1.0, 1.0]:
+			kit_pilaster(tu + s * 1.75, g + 1.2, g + 11.9, trim, 0.7, 0.16)
+	kit_cornice(-11.0, 10.6, g + 12.3, trim, 0.45, 0.5)
+	kit_ledge(c - 6.6, c + 6.6, g + 12.75, 0.7, DU_WALL.darkened(0.04), 0.1)
+	kit_cornice(c - 6.75, c + 6.75, g + 20.6, trim, 0.5, 0.6)
+	# the portal: an arched door in a frame under a segmental hood, a plaque over it
+	_kbox(c - 1.35, c + 1.35, -0.45, -0.15, g + 0.9, g + 6.0, trim)
+	kit_face(-0.15)
+	kit_door(c, g + 1.0, 4.2, 0.95, trim, PAL_OAK, true)
+	kit_pediment(c, 1.6, g + 6.0, 0.8, trim, DU_ROOF, 0.35, none)
+	_kbox(c - 0.7, c + 0.7, -0.15, -0.08, g + 7.6, g + 8.5, PAL_IRON)
+	kit_face(-0.45)
+	# niches with statues either side of the portal and of the upper window
+	for s: float in [-1.0, 1.0]:
+		_du_arch(c + s * 3.85, g + 3.0, 3.0, 0.6, DU_WALL.darkened(0.2))
+		_jac_statue(c + s * 3.85, -0.2, g + 3.1, 2.0)
+		_du_arch(c + s * 3.85, g + 15.0, 2.8, 0.55, DU_WALL.darkened(0.2))
+		_jac_statue(c + s * 3.85, -0.2, g + 15.1, 1.9)
+	_du_arch(c, g + 14.2, 4.8, 1.1)
+	# the pediment with its oculus, the ball and the cross
+	kit_pediment(c, 6.85, g + 21.1, 4.4, DU_WALL, DU_ROOF, 0.45, trim.darkened(0.05))
+	var po := _w(c, 0.08)
+	_disc(Vector3(po.x, g + 22.5, po.y), Vector3(_b.x, 0.0, _b.y), 0.55, 8, PAL_GLASS_DARK)
+	_frustum(_jac_ring(c, -0.2, 0.35, 8), g + 25.4, _jac_ring(c, -0.2, 0.42, 8), g + 25.8, DU_CAP)
+	_frustum(_jac_ring(c, -0.2, 0.42, 8), g + 25.8, _jac_ring(c, -0.2, 0.15, 8), g + 26.3, DU_CAP)
+	_kap_cross(c, -0.2, g + 26.3, 1.5)
+	# --- the Długa side: the chapels' arched windows between lesenes, the Częstochowa chapel
+	var dw := kit_front(_w(11.0, -6.0), _w(11.0, -28.2))
+	kit_face(0.0)
+	for k in 4:
+		_du_arch(dw * (0.125 + 0.25 * float(k)), g + 4.0, 4.6, 0.75)
+	for k in 3:
+		_kbox(dw * (0.25 + 0.25 * float(k)) - 0.3, dw * (0.25 + 0.25 * float(k)) + 0.3, -0.02, 0.12, g + 0.9, g + 11.9, trim)
+	_du_home()
+	# the chapel (1746): walls to its cornice, a copper gable roof across, the pediment to Długa
+	_du_home()
+	_gable(11.7, 5.95, -33.65, 5.25, g + 12.5, 2.6, DU_WALL, DU_ROOF, false)
+	var cw2 := kit_front(_w(11.7, -28.4), _w(11.7, -38.9))
+	kit_face(0.0)
+	for pu: float in [0.45, 2.6, cw2 - 2.6, cw2 - 0.45]:
+		kit_pilaster(pu, g + 1.0, g + 11.9, trim, 0.7, 0.18)
+	_du_arch(cw2 * 0.5, g + 4.2, 5.4, 1.0)
+	var tri0 := _w(cw2 * 0.5, 0.04)
+	_disc(Vector3(tri0.x, g + 13.4, tri0.y), Vector3(_b.x, 0.0, _b.y), 0.5, 8, trim.darkened(0.08))
+	_du_home()
+	# --- the monastery side: the courtyard's arched windows (the wings close the rest)
+	var mw := kit_front(_w(-11.7, -26.0), _w(-11.7, -12.8))
+	kit_face(0.0)
+	for k in 3:
+		_du_arch(mw * (0.18 + 0.32 * float(k)), g + 4.0, 4.6, 0.75)
+	_du_home()
+	_collide(outline)
+
+
 ## The Church of the Holiest Saviour (Kościół Najświętszego Zbawiciela; Józef Dziekoński and
 ## Józef Piotrowski, 1901-1911) on the south side of Plac Zbawiciela, its front to the north,
 ## to the square. Rebuilt 2026-11-13 from F's ten photos (front, both obliques, the side with the
@@ -29460,6 +29700,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_sw_marcin":
 		_build_marcin(site)  # the whole St Martin's church and its tower from photos, not the kit church
+		return
+	if site["key"] == "church_duch":
+		_build_duch(site)  # the whole Holy Spirit church and its two towers from photos, not the kit church
 		return
 	var ch := _church_spec(site["key"])
 	if ch.is_empty():
