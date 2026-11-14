@@ -905,6 +905,14 @@ const SMASH_SOUND_GAP := 0.12
 const SMASH_SAY_GAP := 25.0
 const SMASH_SAY_CHANCE := 0.3
 const SMASH_BUBBLE := Color("#9fd36a")
+## Step 8a: a pushed parked car's knock (a car's thump, pitched), at most this often (s); a bubble from
+## its owner now and then (dialogue.json "parked_push", inside the chatter budget).
+var _push_sound_t := -10.0
+var _push_said_t := -100.0
+const PUSH_SOUND_GAP := 0.2
+const PUSH_SAY_GAP := 25.0
+const PUSH_SAY_CHANCE := 0.35
+const PUSH_BUBBLE := Color("#f0b35a")
 var _flag_traffic := -1
 var _flag_fixed := false
 var _flag_perf := false
@@ -6723,7 +6731,8 @@ func _build_soft_things(world: Node3D) -> void:
 	soft_things.no_soft = not _soft_on()
 	world.add_child(soft_things)
 	soft_things.broke.connect(_on_soft_broke)
-	print("soft things: fences and hedges %s (%s)" % ["breakable" if _soft_on() else "hard",
+	soft_things.pushed.connect(_on_car_pushed)
+	print("soft things: fences, hedges and parked cars %s (%s)" % ["breakable" if _soft_on() else "hard",
 			"--no-soft" if _no_soft else ("--soft" if _flag_soft else "the setting")])
 
 
@@ -6771,9 +6780,30 @@ func _start_soft_things() -> void:
 	soft_things.camera = cam
 	soft_things.focus_at = _vehicle_position
 	soft_things.contacts = _contacts
+	soft_things.graph = graph  # step 8a: a pushed car never comes to rest in a lane
+	soft_things.ground_at = map.terrain_height
 	tod.lights_switched.connect(func(on: bool) -> void:
 		if not on:
 			soft_things.on_dawn())
+
+
+## Step 8a: a parked car was pushed: the knock (`smash_car`, a voice limit of 2), a buzz, the wallet's
+## counter, and now and then its owner's bubble (dialogue.json "parked_push").
+func _on_car_pushed(_id: String, at: Vector3, _dir: Vector3, speed: float) -> void:
+	if wallet != null:
+		wallet.count_push()
+	var now := _clock_s()
+	if now - _push_sound_t < PUSH_SOUND_GAP:
+		return
+	_push_sound_t = now
+	if sfx != null:
+		sfx.play_at("smash_car", at, clampf((speed - 8.0) * 0.4, -6.0, 3.0))
+	Access.buzz(40, 0.4)
+	if dialogue != null and now - _push_said_t > PUSH_SAY_GAP and randf() < PUSH_SAY_CHANCE:
+		var said := dialogue.say_reaction(func() -> Vector3: return at, "", "parked_push", "",
+				3.5, PUSH_BUBBLE, 2.2, false, "smash")
+		if not said.is_empty():
+			_push_said_t = now
 
 
 ## Step 7: a panel broke: its sound (a voice limit of 2 in Sfx), a light buzz, the wallet's counter,

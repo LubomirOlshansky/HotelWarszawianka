@@ -73,6 +73,7 @@ signal car_returned(id: String)
 const Solidity := preload("res://scripts/solidity.gd")
 const CityBarriers := preload("res://scripts/city_barriers.gd")
 const MapBuilder := preload("res://scripts/map_builder.gd")
+const LaneGraph := preload("res://scripts/lane_graph.gd")
 
 ## The cell hash's cell (m).
 const CELL := 8.0
@@ -1284,13 +1285,13 @@ const LANE_LEVEL := 2.5
 static func corridor_segments(g, at: Vector2, reach: float, y: float) -> PackedFloat32Array:
 	var out := PackedFloat32Array()
 	var box := Rect2(at - Vector2(reach, reach), Vector2(reach, reach) * 2.0)
-	var cell: float = g.CELL
+	var cell := LaneGraph.CELL
 	var seen := {}
 	var c0 := Vector2i(floori((at.x - reach - 30.0) / cell), floori((at.y - reach - 30.0) / cell))
 	var c1 := Vector2i(floori((at.x + reach + 30.0) / cell), floori((at.y + reach + 30.0) / cell))
 	for cz in range(c0.y, c1.y + 1):
 		for cx in range(c0.x, c1.x + 1):
-			var list: Variant = g.grid.get(g.cell_key(Vector2((cx + 0.5) * cell, (cz + 0.5) * cell)))
+			var list: Variant = g.grid.get(LaneGraph.cell_key(Vector2((cx + 0.5) * cell, (cz + 0.5) * cell)))
 			if list == null:
 				continue
 			for e: int in list:
