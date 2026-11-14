@@ -271,7 +271,8 @@ NZ_S0, NZ_H0, NZ_M0 = 36.0, -9.66, 0.034
 NZ_S1, NZ_H1, NZ_M1 = 118.0, -7.42, 0.024
 NZ_HEAD, NZ_TAIL = 6.0, 4.0
 NZ_SPLIT = 100.0               # the two-lane part ends here (the way narrows to one lane)
-NZ_SIDES = ((4.0, 5.2), (2.0, 5.2))   # (W-Z side, river side) of each piece
+NZ_SIDES = ((5.4, 5.2), (2.0, 5.2))   # (W-Z side, river side) of each piece: past the lane by a sub-cell and more,
+#                                       short of the W-Z pavement itself (C11: the drawn ground interpolates across the edge)
 NZ_PAVE = 6.0                  # a pavement fill point this near the line, on the river side, is the ramp's
 NZ_WALL_IN = 7.0               # river-side retaining walls this near the line take the ramp's level
 NZ_WALL_WZ = 7.5               # W-Z side walls this near stand from the ramp's level
