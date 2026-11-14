@@ -5,7 +5,7 @@ extends SceneTree
 ##     street of the map passes within the kerb search's 30 m of its door, and enough flats of its
 ##     Muranów box lie in the order's road window (the straight-line prefilter of `_pick_address`);
 ##     the Centralny station's Powiśle still has plenty;
-##   - the peacock has a roof: one of missions.gd PEACOCK_ROOFS is a mapped landmark, else a
+##   - the peacock has a roof: one of rescue_places.gd PEACOCK_ROOFS is a mapped landmark, else a
 ##     landmark stands within PEACOCK_NEAR of PEACOCK_ANCHOR;
 ##   - the lines: each station has słoiki start lines of its own (tags centralny, gdanski) and the
 ##     peacock has rescue lines (tag peacock) for the pick-up and the hand-over, Polish and English.
@@ -13,7 +13,7 @@ extends SceneTree
 ##   godot --headless --path game --script res://tools/check_rescues.gd
 
 const Jobs := preload("res://scripts/jobs.gd")
-const Missions := preload("res://scripts/missions.gd")
+const RescuePlaces := preload("res://scripts/rescue_places.gd")
 
 var problems: Array[String] = []
 
@@ -103,9 +103,9 @@ func _check_peacock(data: Dictionary) -> String:
 	for l in data["landmarks"]:
 		names[String(l["name"])] = true
 		var p: Array = l["p"]
-		if p.size() >= 2 and Vector2(p[0], p[1]).distance_to(Missions.PEACOCK_ANCHOR) < Missions.PEACOCK_NEAR and near == "":
+		if p.size() >= 2 and Vector2(p[0], p[1]).distance_to(RescuePlaces.PEACOCK_ANCHOR) < RescuePlaces.PEACOCK_NEAR and near == "":
 			near = String(l["name"])
-	for n in Missions.PEACOCK_ROOFS:
+	for n in RescuePlaces.PEACOCK_ROOFS:
 		if names.has(n):
 			return n
 	_expect(near != "", "no landmark near the peacock's anchor and none of PEACOCK_ROOFS is mapped")

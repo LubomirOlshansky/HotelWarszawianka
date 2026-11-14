@@ -4625,7 +4625,7 @@ func _build_cassettes(world: Node3D) -> void:
 	add_child(cassettes)
 	if not cassettes.load_data():
 		return
-	cassettes.place_all(missions.roof_spot)
+	cassettes.place_all(missions.places.roof_spot)
 	if notes != null:
 		cassettes.probe = notes.probe
 
