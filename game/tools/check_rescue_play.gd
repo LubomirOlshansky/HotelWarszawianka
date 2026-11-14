@@ -39,7 +39,12 @@ extends SceneTree
 ##   O. the record of every session: each card, status line, toast and pill in order, each with both beacons
 ##      (where, shown, waving, ring pattern, colours, ring radius, the person's clothes) and the haptics' last
 ##      buzz; then each line said (how, where) and each payment, hashed into the OK line, so two scripts that
-##      play the same print the same line (`-- --trace` prints the record itself, one line each).
+##      play the same print the same line (`-- --trace` prints the record itself, one line each);
+##   P. the line on the kit (M1), with another activity on a real director: what the director answers the
+##      others while the line rings, offers and runs (`call_on_pill`, `rescue_busy`, `rescue_aimed`,
+##      `may_start`, `targeted` in the air, `busy_tag`), the line running only on main.gd's `tick`, and the
+##      two questions main.gd and the guide ask it (`put_off`, `answer`). Played after the record is
+##      hashed, and only on the kit (the line before M1 had none of it).
 ## Words that no player can read (a place's English `text`, its `short`, the log lines) are not checked: the
 ## deliberate-break run lists them, each with its reason (the M0 report).
 ## Prints "check_rescue_play: OK (N facts; ...)" or one "  problem: ..." line per failed fact under
@@ -47,6 +52,8 @@ extends SceneTree
 ##   godot --headless --path game --script res://tools/check_rescue_play.gd [-- --trace]
 
 const Missions := preload("res://scripts/missions.gd")
+const Activity := preload("res://scripts/activity.gd")
+const Activities := preload("res://scripts/activities.gd")
 const Fakes := preload("res://tools/fakes.gd")
 const Haptics := preload("res://scripts/haptics.gd")
 const Access := preload("res://scripts/access.gd")
@@ -338,18 +345,71 @@ func _run() -> void:
 	await _fresh()
 	await _rest()
 	_keep_trace()
+	var entries := trace.size()
 	var digest := "\n".join(trace).sha256_text().left(12)
 	if OS.get_cmdline_user_args().has("--trace"):
 		for line in trace:
 			print("  trace: " + line)
+	await _kit()
 	if problems.is_empty():
-		print("check_rescue_play: OK (%d facts; the record of every session %d entries, %s)" % [facts, trace.size(), digest])
+		print("check_rescue_play: OK (%d facts; the record of every session %d entries, %s)" % [facts, entries, digest])
 		quit(0)
 	else:
 		print("check_rescue_play: PROBLEMS")
 		for p in problems:
 			print("  problem: " + p)
 		quit(1)
+
+
+# --- P. the line on the kit (M1) ----------------------------------------------------------------------
+
+func _kit() -> void:
+	if not m.has_method("other_started"):
+		return  # the line before M1: not an activity of the kit
+	await _fresh()
+	# Untyped: the director and the kit before M1 have none of these questions, and the old line
+	# (main before M1, which this check is played against) must still compile the section it skips.
+	var other: Node = _made(Activity)
+	root.add_child(other)
+	var d: Object = _made(Activities)
+	d.world_free = func() -> bool: return true
+	d.add(other)
+	d.add(m)
+	_expect(not m.is_processing(), "P the line runs only on main.gd's tick, not by itself (set_process off)")
+	m.quiet_start(1.0)
+	_ticks(1.5)
+	_expect(int(m.state) == Missions.State.RINGING and d.call_on_pill(other) and bool(other.call_waiting.call()),
+			"P ringing: the call waits on the context button for the other activities: %d" % int(m.state))
+	_expect(not d.busy() and d.may_start(other) and not d.rescue_busy(other) and not d.rescue_aimed(other),
+			"P ringing: nothing is on, another activity may start")
+	m.put_off()
+	_expect(int(m.state) == Missions.State.CLOSED and hud.pill == "" and not d.call_on_pill(other),
+			"P put_off (the questline friend walked up): the ringing call goes: %d %s" % [int(m.state), hud.pill])
+	m.offer(1)
+	_expect(int(m.state) == Missions.State.OFFER and d.current() == m and d.busy_tag() == "rescue" and d.rescue_busy(other)
+			and not d.rescue_aimed(other), "P the call card: the line is on (\"%s\"), its card up, no target yet" % d.busy_tag())
+	_expect(d.may_start(other) and d.targeted() == null, "P the call card: the director lets another start (the line counts only with a target); no target")
+	m.put_off()
+	_expect(int(m.state) == Missions.State.OFFER, "P put_off keeps a call card: %d" % int(m.state))
+	hud.press(0)
+	_expect(int(m.state) == Missions.State.PICKUP and d.rescue_aimed(other) and d.rescue_busy(other) and not d.may_start(other),
+			"P under way: the line sends the player somewhere, the director refuses another: %d" % int(m.state))
+	_expect(d.targeted() == m and d.targeted(true) == m, "P under way: the arrow's target is the line's, in the air too (flown)")
+	m.put_off()
+	_expect(int(m.state) == Missions.State.PICKUP, "P put_off keeps a rescue under way: %d" % int(m.state))
+	await _fresh()
+	m.quiet_start(1.0)
+	_ticks(1.5)
+	var n: int = m.number
+	m.answer()
+	_expect(int(m.state) == Missions.State.PICKUP and m.number == n + 1 and m.has_target(),
+			"P answer (the guide's replay): the next call is taken at once: %d %d of %d" % [int(m.state), m.number, n])
+	other.free()
+
+
+## A new object of `script`, of no type the parser knows (section P's director and activity).
+func _made(script: Script) -> Object:
+	return script.new()
 
 
 # --- A. what setup finds --------------------------------------------------------------------------
@@ -687,29 +747,40 @@ func _escort() -> void:
 
 # --- J. the keys ---------------------------------------------------------------------------------------
 
+## The M key as main.gd presses it for the line (`_primary`): the card's first button, or with no
+## card up the next call. The line on the kit answers the director (`primary`) and gives the rest to
+## `call_now`; before the kit its `primary` did both.
+func _key_m() -> void:
+	if m.has_method("call_now"):
+		if not bool(m.call("primary")):
+			m.call("call_now")
+	else:
+		m.call("primary")
+
+
 func _keys() -> void:
 	m.quiet_start(1.0)
-	m.primary()
+	_key_m()
 	_expect(int(m.state) == Missions.State.OFFER and m.number == 1, "J M while counting down: the next call's card")
 	m.secondary()
 	_expect(int(m.state) == Missions.State.OFFER and m.number == 2, "J K on a card: SKIP")
-	m.primary()
+	_key_m()
 	_expect(int(m.state) == Missions.State.PICKUP, "J M on a card: ACCEPT")
 	m.secondary()
-	m.primary()
+	_key_m()
 	_expect(int(m.state) == Missions.State.PICKUP, "J the keys do nothing under way")
 	hud.abort_pressed.emit()
 	m.secondary()
 	_expect(int(m.state) == Missions.State.OFFER and m.number == 3, "J K on a failure's card: NEXT CALL")
 	m.paused = true
-	m.primary()
+	_key_m()
 	m.secondary()
 	_expect(int(m.state) == Missions.State.OFFER and m.number == 3, "J the keys do nothing while paused")
 	m.paused = false
 	hud.press(2)
 	_ticks(90.5)
 	_expect(int(m.state) == Missions.State.RINGING, "J 90 s after LATER the next call rings")
-	m.primary()
+	_key_m()
 	_expect(int(m.state) == Missions.State.OFFER and m.number == 4, "J M while ringing: the call's card")
 	hud.pad_mode = true
 	hud.press(2)

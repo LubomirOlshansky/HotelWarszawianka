@@ -17,7 +17,16 @@ extends RefCounted
 ##   - `primary()`, `secondary()`: the M and K keys (the pad's A and X) go to the activity whose
 ##     card takes them;
 ##   - `offering()`: a request card that leaves the player free is up (Podwózka's, the trend
-##     job's), each joined activity's `request_up`.
+##     job's), each joined activity's `request_up`;
+##   - `holds_calls(a)`: another activity's run holds the rescue calls (its `rescue_calls`), each joined
+##     activity's `calls_held`; `call_on_pill(a)`: another activity's call waits on the context
+##     button (the rescue line's WEZWANIE), each joined activity's `call_waiting`; `rescue_busy(a)`,
+##     `rescue_aimed(a)`: the rescue line's card or run is up, or it sends the player somewhere
+##     (`rescue_busy`, `rescue_aimed`: the ride app, the jobs and the trend job ask them, as they
+##     asked missions.gd by name before);
+##   - and it passes on each run's start and end (`on_start`, `on_end`) to every other activity
+##     (`other_started`, `other_ended`): the rescue line puts off its call for a job or a race, as
+##     each of them did by name before the rescue line joined (TD-1's last activity).
 ## At most one activity of the kit is on at a time.
 ##
 ## Not here yet (they come as more activities join, see tech-debt TD-1): a priority table for
@@ -41,6 +50,12 @@ func add(a: Activity, world := Callable()) -> void:
 		_own_world[a] = world
 	a.free_now = may_start.bind(a)
 	a.request_up = offering.bind(a)
+	a.calls_held = holds_calls.bind(a)
+	a.call_waiting = call_on_pill.bind(a)
+	a.rescue_busy = rescue_busy.bind(a)
+	a.rescue_aimed = rescue_aimed.bind(a)
+	a.on_start = _started.bind(a)
+	a.on_end = _ended.bind(a)
 
 
 ## The activity that is on, or null.
@@ -61,19 +76,23 @@ func busy_tag() -> String:
 	return "" if a == null else a.tag
 
 
-## `a` may phone or start now: no activity of the kit is on, and nothing outside it either.
+## `a` may phone or start now: no activity of the kit is on, and nothing outside it either. The rescue
+## line (`pill_call`) counts here only while it sends the player somewhere (`has_target`): its cards
+## hold the others through their own tests (`rescue_busy`, a card on screen, main.gd's `_free_block`),
+## as they did before it joined the director (M1; the pacer, TD-3, is to settle it).
 func may_start(a: Activity) -> bool:
 	var on := current()
-	if on != null and on != a:
+	if on != null and on != a and (not on.pill_call or on.has_target()):
 		return false
 	var world: Callable = _own_world.get(a, world_free)
 	return bool(world.call())
 
 
-## The activity that sends the player somewhere now, or null.
-func targeted() -> Activity:
+## The activity that sends the player somewhere now, or null. `flying`: only one whose target shows
+## in the air (`flown`: the EV tow, the rescue line), as main.gd's arrow asks.
+func targeted(flying := false) -> Activity:
 	for a in list:
-		if a.has_target():
+		if a.has_target() and (not flying or a.flown):
 			return a
 	return null
 
@@ -119,3 +138,50 @@ func secondary() -> bool:
 		if a.secondary():
 			return true
 	return false
+
+
+## The rescue calls wait for a run (`a` aside): an activity whose `rescue_calls` holds or restarts them is
+## in its run.
+func holds_calls(a: Activity = null) -> bool:
+	for o in list:
+		if o != a and o.rescue_calls != Activity.RescueCalls.GO_ON and o.phase == Activity.Phase.RUN:
+			return true
+	return false
+
+
+## A call waits on the context button (`a` aside): an activity with `pill_call` rings.
+func call_on_pill(a: Activity = null) -> bool:
+	for o in list:
+		if o != a and o.pill_call and o.phase == Activity.Phase.RING:
+			return true
+	return false
+
+
+## The rescue line's card or run is up (`a` aside): an activity with `pill_call` is busy.
+func rescue_busy(a: Activity = null) -> bool:
+	for o in list:
+		if o != a and o.pill_call and o.busy():
+			return true
+	return false
+
+
+## The rescue line sends the player somewhere (`a` aside): an activity with `pill_call` has a target.
+func rescue_aimed(a: Activity = null) -> bool:
+	for o in list:
+		if o != a and o.pill_call and o.has_target():
+			return true
+	return false
+
+
+## `a`'s run has started: every other activity hears it.
+func _started(a: Activity) -> void:
+	for o in list:
+		if o != a:
+			o.other_started(a)
+
+
+## `a`'s run has ended: every other activity hears it.
+func _ended(a: Activity) -> void:
+	for o in list:
+		if o != a:
+			o.other_ended(a)

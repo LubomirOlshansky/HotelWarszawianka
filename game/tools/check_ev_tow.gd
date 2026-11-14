@@ -25,7 +25,7 @@ extends SceneTree
 ##      bay's; the hook's rules in flight; the carry, the set-down, the pay and the result card;
 ##      the car's ten seconds on the bay, ended early by flying off; the ✕ before the hook and
 ##      with the car on the rope; a stranded car hooked on with no call, its tip, and Bartek's
-##      clock left alone; the rescue calls held and given back as they were; the director.
+##      clock left alone; the rescue calls held (the stand-in joined to the director) and left as main.gd had them; the director.
 ## Prints "check_ev_tow: OK (...)" or the problems (exit 1).
 ##   godot --headless --path game --script res://tools/check_ev_tow.gd [-- --verbose]
 
@@ -419,7 +419,6 @@ func _check_play(g: LaneGraph, map: Node3D, spawn: Vector3, digest: PackedString
 	t.hud = _hud
 	t.dialogue = _talk
 	t.wallet = _wallet
-	t.missions = _calls
 	t.map = map
 	t.graph = g
 	t.traffic = _lanes
@@ -436,6 +435,7 @@ func _check_play(g: LaneGraph, map: Node3D, spawn: Vector3, digest: PackedString
 	_director.world_free = func() -> bool: return false
 	_director.add(_other)
 	_director.add(t, func() -> bool: return _free)
+	_director.add(_calls)
 	_pos = spawn
 	var b: Node3D = t._beacon
 	var fly := EvTow.Stage.FLY
@@ -492,7 +492,7 @@ func _check_play(g: LaneGraph, map: Node3D, spawn: Vector3, digest: PackedString
 	_ok(away >= EvTow.CAR_FROM - 80.0 and away <= EvTow.CAR_TO + 80.0, "his car stands 450 to 1050 m away (%.0f m)" % away)
 	_ok(t.busy() and _director.busy() and _director.busy_tag() == "ev" and _director.current() == t,
 			"from the offer card on the tow is busy (the kit's one meaning)")
-	_ok(not t._car.visible and _lanes.held.is_empty() and not _calls.paused and not t.has_target(), "nothing is on the road yet")
+	_ok(not t._car.visible and _lanes.held.is_empty() and not _calls._held() and not t.has_target(), "nothing is on the road yet")
 	_hud.abort_pressed.emit()
 	_ok(t.phase == Activity.Phase.OFFER, "the ✕ does nothing on an offer")
 	_frames(EvTow.RING_LIFE + 0.5)
@@ -511,7 +511,7 @@ func _check_play(g: LaneGraph, map: Node3D, spawn: Vector3, digest: PackedString
 	_take()
 	_ok(_is(fly) and _took_off == 1 and _flying and t.calls == 1, "LECĘ! on the ground: up in the helicopter")
 	var car: Vector3 = t.job["at"]
-	_ok(_calls.paused, "the rescue calls are held")
+	_ok(_calls._held(), "the rescue calls are held")
 	_ok(t._car.visible and t._car.global_position.is_equal_approx(car) and _solid(t._body), "his car stands on the road, solid")
 	_ok(_lanes.held.size() == 1 and _lanes.held[0].ghost and not _lanes.held[0].visible, "its lane is held in the traffic by an unseen parked car")
 	_ok(b.visible and b.pattern == Beacon.Pattern.DASHED and b.waving and b._person.visible and b._colour == EvTow.PICK_COLOUR
@@ -566,7 +566,7 @@ func _check_play(g: LaneGraph, map: Node3D, spawn: Vector3, digest: PackedString
 			and not t.carrying(), "the rope, the load, the ring and the status line are gone")
 	_ok(t._car.visible and t._car.global_position.is_equal_approx(bay) and not t._hazards.visible and _solid(t._body)
 			and _lanes.held.size() == 1, "the car stands on the bay, its hazards off, its lane held")
-	_ok(t.busy() and _director.busy() and _calls.paused, "the tow is still on, the rescue calls still held")
+	_ok(t.busy() and _director.busy() and _calls._held(), "the tow is still on, the rescue calls still held")
 	_hud.abort_pressed.emit()
 	_ok(_is(result) and _hud.card != "", "the ✕ does nothing over the result card")
 	_hud.hide_card()   # something else takes the card down
@@ -577,7 +577,7 @@ func _check_play(g: LaneGraph, map: Node3D, spawn: Vector3, digest: PackedString
 	_frames(EvTow.RESULT_LIFE - t._result_t - 0.5)
 	_ok(_is(result) and t._car.visible, "it stays for ten seconds from the set-down")
 	_frames(1.0)
-	_ok(t.idle() and not _director.busy() and not t._car.visible and not t._totem.visible and _lanes.held.is_empty() and not _calls.paused,
+	_ok(t.idle() and not _director.busy() and not t._car.visible and not t._totem.visible and _lanes.held.is_empty() and not _calls._held(),
 			"ten seconds after the set-down the car goes; the lane and the rescue calls are given back")
 	_ok(t.call_in >= EvTow.NEXT_CALL.x and t.call_in <= EvTow.NEXT_CALL.y and t.job.is_empty() and t.target == -1, "Bartek's next call is drawn")
 
@@ -592,6 +592,7 @@ func _check_play(g: LaneGraph, map: Node3D, spawn: Vector3, digest: PackedString
 	_frames(EvTow.RESULT_LIFE + 0.5)
 	_ok(t.idle() and _hud.card == "" and not t._car.visible, "a result card nobody presses goes with the car")
 	_ok(_calls.paused, "rescue calls that were held before the tow stay held after it")
+	_ok(_calls._held(), "rescue calls that were held before the tow stay held after it (the countdown's hold)")
 	_calls.paused = false
 
 	# The result ends early when the player flies off.
@@ -608,7 +609,7 @@ func _check_play(g: LaneGraph, map: Node3D, spawn: Vector3, digest: PackedString
 	_take()
 	_frames(1.0)
 	_hud.abort_pressed.emit()
-	_ok(t.idle() and not t._car.visible and _lanes.held.is_empty() and not _calls.paused and _hud.status == "" and not b.visible
+	_ok(t.idle() and not t._car.visible and _lanes.held.is_empty() and not _calls._held() and _hud.status == "" and not b.visible
 			and _wallet.money == money and _said("ev_tow:drop") == 0, "the ✕ on the way to the car: everything gone, no pay")
 	_take()
 	_hook_on()
@@ -616,7 +617,7 @@ func _check_play(g: LaneGraph, map: Node3D, spawn: Vector3, digest: PackedString
 	_fly_to(Vector3(p.x, 40.0, p.z), 7.0)
 	_hud.abort_pressed.emit()
 	_ok(t.idle() and not t._rope.visible and _heli.sling == 0.0 and not t._car.visible and not t._totem.visible and not b.visible
-			and _said("ev_tow:drop") == 1 and _wallet.money == money and not _calls.paused, "the ✕ with the car on the rope: Bartek sighs, no pay")
+			and _said("ev_tow:drop") == 1 and _wallet.money == money and not _calls._held(), "the ✕ with the car on the rope: Bartek sighs, no pay")
 
 	# The test flags' way in (main.gd `_ev_start`): the kit's presses, then the hook at once.
 	t.ring()
@@ -653,7 +654,7 @@ func _check_play(g: LaneGraph, map: Node3D, spawn: Vector3, digest: PackedString
 	_frames(1.3)
 	_ok(_is(carry) and bool(t.job.get("stranger", false)) and t.strand.is_empty() and not t._strand_car.visible and t._car.visible,
 			"nothing else on: the stranger's car hooks on, with no call")
-	_ok(_calls.paused and t.calls == 6 and _took_off == 1 and t.busy() and _director.current() == t,
+	_ok(_calls._held() and t.calls == 6 and _took_off == 1 and t.busy() and _director.current() == t,
 			"it is a tow like Bartek's (busy, the rescue calls held), but no call of his and no take-off")
 	_ok(t.target == EvTow.pick_charger(t.chargers, Vector2(m.x, m.z), 0.0, true), "to the nearest charger")
 	_ok(t.strand_in >= EvTow.GAP_STRAND.x and t.strand_in <= EvTow.GAP_STRAND.y, "the next stranded car is 3 to 5 minutes away")
@@ -664,7 +665,7 @@ func _check_play(g: LaneGraph, map: Node3D, spawn: Vector3, digest: PackedString
 	_ok(_is(result) and _wallet.money - money == int(want[0]) and int(want[0]) < EvTow.PAY and "obcego" in _hud.body, "set down: the stranger's tip (%d zł)" % (_wallet.money - money))
 	_hud.press(0)
 	_frames(EvTow.RESULT_LIFE)
-	_ok(t.idle() and not _calls.paused and t.call_in == bartek, "over; a stranger's tow does not move Bartek's next call")
+	_ok(t.idle() and not _calls._held() and t.call_in == bartek, "over; a stranger's tow does not move Bartek's next call")
 
 	# No chargers on the map: no call.
 	var kept: Array[Dictionary] = t.chargers

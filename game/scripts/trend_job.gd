@@ -41,7 +41,6 @@ extends "res://scripts/activity.gd"
 ## before it joined the kit); `order["stage"]` names the step inside the kit's RUN.
 
 const Models := preload("res://scripts/models.gd")
-const Missions := preload("res://scripts/missions.gd")
 const CityLife := preload("res://scripts/city_life.gd")
 const Crowds := preload("res://scripts/crowds.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
@@ -201,7 +200,6 @@ const CUSTOMERS := ["Ania z HR", "Tomek z IT", "Kasia z marketingu", "Paweł z f
 ## The run's stage (the kit's `phase` is RUN then); `order["stage"]` still names the step inside it.
 enum Stage { NONE, PICKUP, DELIVER, RESULT }
 
-var missions: Node
 var rivals: Node
 var jobs: Node
 var rides: Node
@@ -339,6 +337,7 @@ static func offers(st: Dictionary, hour: float) -> bool:
 func setup(world: Node3D) -> void:
 	tag = "trend job"
 	colour = COLOUR
+	rescue_calls = RescueCalls.RESTART  # an order puts off a rescue call and counts it again from its end (the director)
 	dark = Color("#2f6fb5")
 	is_job = true
 	offer_busy = false
@@ -414,11 +413,9 @@ func secondary() -> bool:
 ## CARD_REST s after one closed: the OK tap on a result card must never land on the next offer
 ## (Autopilot, padel at DESKA, 2026-11-08). The offer is only queued: `_look` asks again.
 func _free() -> bool:
-	if flying or away or quiet or guide_hold or mission_on or car.in_water or missions.has_target():
+	if flying or away or quiet or guide_hold or mission_on or car.in_water or bool(rescue_busy.call()):
 		return false
 	if offers_held():
-		return false
-	if not (missions.state == Missions.State.CLOSED or missions.state == Missions.State.RINGING):
 		return false
 	if jobs != null and jobs.own_busy():
 		return false
@@ -477,7 +474,7 @@ func _look() -> void:
 		_cool[-3] = _played + ML_COOL
 		if offer_mlask():
 			return
-	var calls_ok: bool = not hold_calls(mission_on, _played, _call_rest, missions.state == Missions.State.RINGING) \
+	var calls_ok: bool = not hold_calls(mission_on, _played, _call_rest, bool(call_waiting.call())) \
 			and (hud == null or not hud.has_method("call_ok") or hud.call_ok())  # the message director's call spacing
 	if calls_ok and not dz_done and van_out(hour) and _played >= _dz_at:
 		_dz_at = _played + DZ_COOL
@@ -1214,8 +1211,6 @@ func _begin() -> void:
 	if _met:
 		_met = false
 		# Met in person at the gate (`padel_meet`): no drive, straight to the match.
-		missions.close()
-		missions.paused = true
 		_clock = 0.0
 		order["stage"] = "offer"
 		order["flew"] = flying
@@ -1231,8 +1226,6 @@ func _begin() -> void:
 		return
 	stage = Stage.PICKUP
 	_hold = 0.0
-	missions.close()
-	missions.paused = true
 	hud.hide_pill()
 	hud.hide_challenge()
 	_beacon.recolour(ML_COLOUR if _is_ml() or _is_dz() else (DROP_COLOUR if _is_drop() else (CZ_COLOUR if _is_cz() else COLOUR)))
@@ -1256,8 +1249,6 @@ func _accept_call() -> void:
 	stage = Stage.DELIVER
 	_clock = 0.0
 	_t = 0.0
-	missions.close()
-	missions.paused = true
 	hud.hide_pill()
 	hud.hide_challenge()
 	_beacon.recolour(CZ_COLOUR)
@@ -1605,8 +1596,6 @@ func _ended() -> void:
 	_ran = false
 	_kawa_car_back()
 	_card_rest = _played + CARD_REST
-	missions.paused = false
-	missions.close()
 	order = {}
 
 
@@ -1716,8 +1705,6 @@ func _accept_kawa() -> void:
 	_clock = 0.0
 	_t = 0.0
 	_hold = 0.0
-	missions.close()
-	missions.paused = true
 	hud.hide_pill()
 	hud.hide_challenge()
 	_beacon.recolour(CoffeeRun.COLOUR)

@@ -224,7 +224,6 @@ enum State { CRUISE, PROMPT, CHALLENGE, COUNTDOWN, RACE, RESULT }
 var graph: LaneGraph
 var traffic: Traffic
 var bubbles: Control
-var missions: Node
 var state := State.CRUISE
 ## Rival in the current prompt or race.
 var rival := -1
@@ -371,10 +370,11 @@ var _nudge_banner_t := 0.0
 func _init() -> void:
 	tag = "rival race"
 	colour = RACE_COLOUR
+	rescue_calls = RescueCalls.RESTART  # a race puts off a rescue call and counts it again from its end (the director)
 	dark = Color("#2b2c2f")
 
 
-## main.gd sets graph, traffic, hud, bubbles, missions, map, car, wallet, tod, autopilot and
+## main.gd sets graph, traffic, hud, bubbles, map, car, wallet, tod, autopilot and
 ## ghost_pace before this.
 func setup(world: Node3D, data := {}) -> void:
 	_rng.seed = 7
@@ -704,8 +704,6 @@ func start_race(i: int) -> void:
 	_stage_t = 0.0
 	start()
 	hud.hide_challenge()
-	missions.close()
-	missions.paused = true
 	hud.hide_pill()
 	hud.hide_card()
 	d.held = true
@@ -993,7 +991,7 @@ func _run_tick(dt: float) -> void:
 
 func _look_for_challenge() -> void:
 	# PT-15: not while another activity of the kit is on, nor over a ride request's card either.
-	if flying or missions.has_target() or not bool(free_now.call()) or bool(request_up.call()):
+	if flying or not bool(free_now.call()) or bool(request_up.call()):
 		return
 	if hud != null and hud.cards_up():
 		return  # no prompt over a result or win card (2026-11-08)
@@ -1018,7 +1016,7 @@ func _look_for_challenge() -> void:
 
 ## Close behind the rival (within 15 m, roughly in its lane), both moving.
 func _can_challenge(i: int) -> bool:
-	if flying or missions.has_target() or not bool(free_now.call()):
+	if flying or not bool(free_now.call()):
 		return false
 	var d = _drivers[i]
 	var rel := Vector2(d.pos.x - car.global_position.x, d.pos.z - car.global_position.z)
@@ -1297,8 +1295,6 @@ func _card_pressed(_index: int) -> void:
 ## The kit's end of a run (its card is already down): cruising again, the rescue calls free.
 func _ended() -> void:
 	state = State.CRUISE
-	missions.paused = false
-	missions.close()
 
 
 ## Bumped mid-race (or just bumped): the rival complains.
@@ -1576,7 +1572,7 @@ func _first_call_tick(dt: float) -> void:
 	_call_t += dt
 	var d = _drivers[_caller]
 	var gap := Vector2(d.pos.x - car.global_position.x, d.pos.z - car.global_position.z).length()
-	var other: bool = missions.has_target() or not bool(free_now.call()) or flying
+	var other: bool = not bool(free_now.call()) or flying
 	if not _call_up and not other:
 		# PT-8: she stops only behind the car (a player who turned round has her in front).
 		var rel := Vector2(d.pos.x - car.global_position.x, d.pos.z - car.global_position.z)
@@ -1715,7 +1711,7 @@ func _look_for_start(dt: float) -> void:
 		_park_seba(first)
 	elif not want and _seba_waiting:
 		_release_seba()
-	var free: bool = _seba_waiting and not flying and not missions.has_target() and bool(free_now.call())
+	var free: bool = _seba_waiting and not flying and bool(free_now.call())
 	_marker(free)
 	if free:
 		var at := car.global_position
@@ -1793,8 +1789,6 @@ func start_final() -> void:
 	_stage_t = 0.0
 	start()
 	hud.hide_challenge()
-	missions.close()
-	missions.paused = true
 	hud.hide_pill()
 	hud.hide_card()
 	_say(_seba, FINAL_LINES["challenge"][0], FINAL_LINES["challenge"][1], 3.5)

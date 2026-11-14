@@ -12,7 +12,7 @@ is off); beehave (bitbrain, v2.9.3, loop 3g-1; the police units' behaviour trees
 hand at 5 Hz; editor plugin off, no autoloads: `police/police_tree.gd` has a lean `_ready`; one
 local line in `debug/debugger_messages.gd`, no messages without a debugger); Dialogue Manager
 (Nathan Hoad, v4.1.0, loop 3g-1; the pull-over's flow, `dialogue/police.dialogue` compiled at
-runtime by `police.gd`; editor plugin off, so no import plugin and no autoload). Autopilot (ramenvr/autopilot, release v1.0.0-753232a of 2026-11-04, plugin/godot/addons/autopilot, 2.0 MB, Apache-2.0; first added 2026-11-02, updated 2026-11-06 from 848084e, `agent_service/` no longer bundled so the CLI comes from the same release; upstream HEAD 9e0fbb0 has unreleased fixes (#36, #31) for a later bump; the free-play playtester, skill
+runtime by `police.gd`; editor plugin off, so no import plugin and no autoload). Autopilot (ramenvr/autopilot, release v1.0.0-1cb2383 of 2026-11-10 (Autopilot-Godot.zip, sha256 1f2b845d, from github.com/ramenvr/autopilot), addons/autopilot, 2.0 MB, Apache-2.0; first added 2026-11-02, updated 2026-11-06 (v1.0.0-753232a, from 848084e) and 2026-11-14 (to v1.0.0-1cb2383: the release's files with CRLF made LF, `agent_service/` left out, so the CLI comes from the same release; stray ui/history.gd.uid gone); upstream main has 30 commits past that release (#51, #52, #53, #55, #56, #64, #68, #69 among them) for a later bump; the free-play playtester, skill
 `autopilot-playtest`; GDScript only; **off in git**: `tools/autopilot.sh on|off` turns the editor
 plugin and its `AutopilotPlaytest` autoload on for a Mac run; excluded from every export and the
 export scripts refuse to run while it is on). **Our own, not an add-on:**

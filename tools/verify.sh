@@ -303,6 +303,8 @@
 # moves smoothly frame to frame; no map (CI too).
 # Smooth roads (2026-11-05): `smooth` runs tools/road_smooth.py --check (the map is smoothed: the
 # width steps at the joins tapered, the lane lines stitched; its steps and jogs never grow).
+# Lane drops (2026-11-14): `tapers` runs tools/lane_tapers.py --check (two lanes become one along a
+# real-life taper, about 1:15; the lane drops steeper than 1:5 away from junctions never grow).
 # Street objects (2026-11-07): `objects` runs tools/object_fixes.py --check (the map's lamps, signals,
 # benches, bins, racks, columns, shelters, parked cars and barriers carry no artifact object_audit.py
 # fixes by itself: inside a wall, in a carriageway, under a deck, doubles, stubs, stair slabs, paths
@@ -1020,6 +1022,15 @@ for s in $want; do
 			case $code in
 				0) row PASS "smooth" $secs "$(grep '^road_smooth: ' $logs/smooth.log | tail -1)" ;;
 				*) row FAIL "smooth" $secs "$(grep '^road_smooth: ' $logs/smooth.log | tail -1) ($logs/smooth.log)" ;;
+			esac ;;
+		tapers)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/lane_tapers.py --check > $logs/tapers.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			case $code in
+				0) row PASS "tapers" $secs "$(grep '^lane_tapers: ' $logs/tapers.log | tail -1)" ;;
+				*) row FAIL "tapers" $secs "$(grep '^lane_tapers: ' $logs/tapers.log | tail -1) ($logs/tapers.log)" ;;
 			esac ;;
 		heights)
 			t0=$EPOCHREALTIME

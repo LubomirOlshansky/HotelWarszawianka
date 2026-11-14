@@ -45,12 +45,6 @@ const Fakes := preload("res://tools/fakes.gd")
 const DT := 1.0 / 60.0
 
 
-class FakeMissions extends Node:
-	var paused := false
-	func close() -> void:
-		pass
-
-
 class FakeCar extends CharacterBody3D:
 	var vel := Vector3.ZERO
 	var forward_speed := 0.0
@@ -394,8 +388,6 @@ func _check_roundup(sf: Storefronts, map: Fakes.FlatMap, wallet: Wallet) -> void
 	ru.hud = hud
 	ru.dialogue = dlg
 	ru.wallet = wallet
-	ru.missions = FakeMissions.new()
-	root.add_child(ru.missions)
 	ru.map = map
 	ru.car = car
 	ru.tod = tod
@@ -702,7 +694,6 @@ func _rig(zones := true, night := true) -> void:
 	_ru.hud = _hud
 	_ru.dialogue = _dlg
 	_ru.wallet = _wallet
-	_ru.missions = _calls
 	_ru.map = map
 	_ru.car = _car
 	_ru.tod = _tod
@@ -723,6 +714,7 @@ func _rig(zones := true, night := true) -> void:
 	_other.set_process(false)
 	_other.setup(_world)
 	_dir.add(_other)
+	_dir.add(_calls)
 
 
 ## The zones and the Leżaks: A (14 round it, two standing, two out of reach), B (three), C (six), D (none).
@@ -955,7 +947,7 @@ func _p_offer() -> void:
 	_ok(_hud.buttons == 2 and _hud.accent == RoundupJob.COLOUR and _hud.low and _hud.card_is(_ru), "two buttons, colour, low, its own")
 	_ok(_hud.button_words == PackedStringArray(["GO!", "NOT NOW"]), "the offer's buttons in order: %s" % [_hud.button_words])
 	_ok(not _pj.shown.back(), "the rings hide at the offer")
-	_ok(_calls.paused and _calls.closed == 1, "rescue calls paused and closed once")
+	_ok(_calls._held() and _calls.closed == 1, "rescue calls paused and closed once")
 	_ok(_hud.pills_hidden == pills + 1 and _hud.challenges_hidden == challenges + 1, "pill and challenge taken down once")
 	_ok(_dlg.said.back() == "lezak:start" and _dlg.speakers.back() == "Leżak", "the lezak start line by Leżak")
 	_ok((_dlg.anchors.back() as Callable).call() == A, "the line's anchor is depot 0")
@@ -975,7 +967,7 @@ func _p_offer() -> void:
 	_ok(_is(RoundupJob.Stage.OFFER) and _hud.card != "", "the offer is still up at 11.9 s")
 	_frames(0.2)
 	_ok(_ru.idle() and _ru.stage == RoundupJob.Stage.NONE and _hud.card == "", "the offer is gone by 12.1 s")
-	_ok(not _calls.paused and _calls.closed == 2 and _pj.dirty == 1, "unanswered: calls free, closed twice, jobs told")
+	_ok(not _calls._held() and _calls.closed == 2 and _pj.dirty == 1, "unanswered: calls free, closed twice, jobs told")
 	_ok(_hud.pois == 0 and _hud.pois_set == pois + 1, "unanswered: the pins set to none")
 	_ok(_ru.depots[0]["cool"] and _ru.targets.is_empty(), "unanswered: depot 0 cool, targets empty")
 	_ok(_hud.toasts.is_empty() and _wallet.kinds.is_empty(), "unanswered: no toast, no pay")
@@ -999,7 +991,7 @@ func _p_offer() -> void:
 	_ok(_pull(0), "offer for NOT NOW")
 	pois = _hud.pois_set
 	_hud.press(1)
-	_ok(_ru.idle() and _hud.card == "" and not _calls.paused and _calls.closed == 2 and _pj.dirty == 1, "NOT NOW: idle, calls free, jobs told")
+	_ok(_ru.idle() and _hud.card == "" and not _calls._held() and _calls.closed == 2 and _pj.dirty == 1, "NOT NOW: idle, calls free, jobs told")
 	_ok(_hud.pois == 0 and _hud.pois_set == pois + 1 and _ru.depots[0]["cool"] and _hud.toasts.is_empty(), "NOT NOW: pins none, cool, no toast")
 	# Driving off.
 	_rig()
@@ -1176,7 +1168,7 @@ func _p_round() -> void:
 	_ok(_is(RoundupJob.Stage.RESULT) and _hud.card != "", "the result is still up at 11.9 s")
 	_frames(0.2)
 	_ok(_ru.idle() and _hud.card == "", "the result is gone by 12.1 s")
-	_ok(_pj.dirty == 1 and not _calls.paused and _ru.depots[0]["cool"] and _ru.boot == 0 and _ru.targets.is_empty(), "after the result: jobs told, calls free, cool, nothing left")
+	_ok(_pj.dirty == 1 and not _calls._held() and _ru.depots[0]["cool"] and _ru.boot == 0 and _ru.targets.is_empty(), "after the result: jobs told, calls free, cool, nothing left")
 	# A second round at depot 0: the four left, ended by OK.
 	first_zl = _wallet.money
 	_ok(_reenter(0), "the second offer at depot 0")
@@ -1237,7 +1229,7 @@ func _p_abort() -> void:
 	_ok(_ru.idle() and _wallet.money - money == 40 and _wallet.respect == respect and _wallet.kinds.back() == "roundup", "✕: 40 zł, no respect")
 	_ok(_hud.toasts.back() == "Koniec zbierania · +40 zł" and _hud.toasts_en.back() == "Round-up given up · +40 zł", "✕: the toast")
 	_ok(_hud.status_title == "" and _hud.pois == 0 and not _ru._beacon.visible and not _ru.has_target() and _dir.targeted() == null, "✕: status, pins, ring, target down")
-	_ok(not _calls.paused and _pj.dirty == dirty + 1 and _ru.boot == 0 and _ru.targets.is_empty() and _ru.done == done and _ru.depots[0]["cool"], "✕: calls free, jobs told, boot and targets empty, done the same, cool")
+	_ok(not _calls._held() and _pj.dirty == dirty + 1 and _ru.boot == 0 and _ru.targets.is_empty() and _ru.done == done and _ru.depots[0]["cool"], "✕: calls free, jobs told, boot and targets empty, done the same, cool")
 	_ok(_ps.collected.size() == 7 and _ps.collected.all(func(i: int) -> bool: return _ps.scooters[i].get("gone", false)), "✕: the seven picked up stay gone")
 	_rig()
 	_ok(_start_round(0), "GO! for the empty ✕")
