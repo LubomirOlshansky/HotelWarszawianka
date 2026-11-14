@@ -798,6 +798,7 @@ const INFO := {
 	"church_trojca_praga": ["Kościół Świętej Trójcy na Solcu", "Klasycystyczny kościół z wieżyczką.", "A classicist church with a bell turret."],
 	"church_czestochowska": ["Kościół Matki Bożej Częstochowskiej", "Modernistyczny kościół z dachem do ziemi.", "A modernist church with a roof down to the ground."],
 	"church_zwycieska": ["Kościół Matki Boskiej Zwycięskiej", "Kościół parafialny z dwiema wieżami.", "A parish church with two towers."],
+	"church_bazylianie": ["Klasztor Bazylianów", "Klasztor bazylianów z frontem cerkwi przy Miodowej.", "The Basilian monastery with the church's front on Miodowa."],
 	"church_cerkiew": ["Cerkiew Zaśnięcia Matki Bożej", "Greckokatolicka cerkiew bazylianów przy Miodowej.", "The Basilians' Greek Catholic church on Miodowa."],
 	"church_nozykow": ["Synagoga Nożyków", "Jedyna przedwojenna synagoga Warszawy, przy Twardej.", "Warsaw's only pre-war synagogue, on Twarda."],
 }
@@ -20547,6 +20548,113 @@ func _build_augustyn(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The Basilian monastery's street wing (Klasztor Bazylianów, Miodowa 16), the classicist front
+## of the monastery whose middle is the front of the Basilians' church (`church_cerkiew`, the
+## hall in the courtyard behind it): a white four-storey wing along Miodowa under a grey hipped
+## roof, a rusticated ground floor, the middle risalit with four giant pilasters, three arched
+## doors and a low pediment with a cross, and the two back wings round the church's hall. A model
+## that replaces the plain OpenStreetMap block (building 1825; no landmark until 2026-11-14). From
+## the Mapillary 360s of 2026 along Miodowa (refs/cerkiew, never shipped), the OSM outline and
+## GUGiK's LoD2 (over the ground: the wing's eaves 17.4 and ridge 20; the pediment 19.4; the back
+## wings 16 to 21; the low annex 4.4). Spec docs/landmarks/specs/bazylianie.md.
+## Frame: origin at the street front's east corner, u along Miodowa west, v out of the front (the
+## kit's way round: the building is at v < 0).
+const BM_O := Vector2(-1047.48, -1518.78)
+const BM_A := Vector2(0.822, 0.568)
+const BM_WALL := Color("#ebe5d7")      ## the white-cream plaster (the church's front, the same)
+const BM_TRIM := Color("#f5f1e8")      ## pilasters, cornices, frames
+const BM_RUST := Color("#ddd5c4")      ## the rusticated ground floor
+const BM_ROOF := Color("#5d6268")      ## the grey sheet roofs
+const BM_DOOR := Color("#4b3c31")      ## the dark wood doors
+
+
+func _build_bazylianie(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(BM_O, BM_O + BM_A)
+	_g = _ground_under(outline)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	_mode = M_STONE
+	# --- the street wing: walls to 17.4, a cornice under the eaves, the hipped roof to 20
+	var wing := _lpoly([[0.0, -6.87], [39.39, -6.87], [39.39, 0.0], [0.0, 0.0]])
+	_prism(wing, g - 1.0, g + 17.4, BM_WALL, none, M_STONE)
+	kit_ledge_ring(wing, g + 16.85, 0.45, BM_TRIM, 0.25)
+	_hip(19.695, -3.435, 19.695, 3.435, g + 17.4, 2.6, BM_ROOF)
+	# --- the back wings round the church's hall, their hipped roofs; the low annex
+	_kbox(35.69, 39.28, -9.65, -6.9, g - 1.0, g + 16.8, BM_WALL)
+	_kbox(0.59, 3.39, -9.6, -6.9, g - 1.0, g + 16.8, BM_WALL)
+	_prism(_lpoly([[27.14, -20.0], [35.79, -20.0], [35.79, -6.9], [27.14, -6.9]]), g - 1.0, g + 16.8, BM_WALL, none, M_STONE)
+	_hip(31.465, -13.45, 4.325, 6.55, g + 16.8, 3.0, BM_ROOF)
+	_prism(_lpoly([[3.29, -22.0], [11.04, -22.0], [11.04, -6.9], [3.29, -6.9]]), g - 1.0, g + 16.8, BM_WALL, none, M_STONE)
+	_hip(7.165, -14.45, 3.875, 7.55, g + 16.8, 3.0, BM_ROOF)
+	_kbox(27.1, 34.99, -24.8, -20.05, g - 1.0, g + 4.4, BM_WALL.darkened(0.05))
+	# --- the street front: the rusticated ground floor, string courses, panes in every bay
+	# (each side's bands run on into the risalit and a few centimetres past the corner, so no end
+	# of them lies in a wall's plane)
+	var sides: Array = [[-0.06, 11.3, [1.5, 4.2, 6.9, 9.6]], [26.88, 39.45, [28.6, 31.6, 34.6, 37.6]]]
+	for sd: Array in sides:
+		var u0: float = sd[0]
+		var u1: float = sd[1]
+		_kbox(u0, u1, -0.02, 0.06, g - 1.0, g + 4.3, BM_RUST)
+		kit_face(0.06)
+		kit_bands(u0, u1, g - 1.0, g + 4.3, 0.75, BM_RUST)
+		kit_face(0.0)
+		kit_panes(sd[2], [g + 1.0], 1.3, 2.3, PAL_GLASS_DARK, 0.11)
+		kit_panes(sd[2], [g + 5.6, g + 9.8], 1.3, 2.5, PAL_GLASS_DARK, 0.05)
+		kit_panes(sd[2], [g + 13.7], 1.3, 1.9, PAL_GLASS_DARK, 0.05)
+		for sy: float in [5.45, 9.65, 13.55]:
+			kit_ledge(u0, u1, g + sy, 0.15, BM_TRIM, 0.12)
+		kit_ledge(u0, u1, g + 4.3, 0.3, BM_TRIM, 0.16)
+	# --- the risalit: stands 0.35 out, giant pilasters on a rusticated base, three arched doors,
+	# its own cornice and the low pediment with the cross
+	var r0 := 11.19
+	var r1 := 26.99
+	_kbox(r0, r1, -0.02, 0.35, g - 1.0, g + 17.4, BM_WALL)
+	_kbox(r0 - 0.15, r1 + 0.15, -0.6, 0.6, g + 17.4, g + 17.75, BM_TRIM)
+	kit_face(0.35)
+	kit_bands(r0, r1, g - 1.0, g + 4.3, 0.75, BM_WALL)
+	kit_ledge(r0, r1, g + 4.3, 0.3, BM_TRIM, 0.16)
+	for pu: float in [11.7, 16.6, 21.6, 26.5]:
+		_kbox(pu - 0.45, pu + 0.45, 0.33, 0.52, g + 4.6, g + 16.9, BM_TRIM)
+		_kbox(pu - 0.55, pu + 0.55, 0.33, 0.6, g + 16.9, g + 17.4, BM_TRIM)
+	for bu: float in [14.15, 19.1, 24.05]:
+		kit_face(0.4)
+		kit_door(bu, g, 3.6, 0.95 if bu == 19.1 else 0.8, BM_TRIM, BM_DOOR, true)
+		kit_face(0.35)
+		for wy: Array in [[5.6, 2.6], [9.8, 2.4], [13.7, 1.9]]:
+			var sy: float = wy[0]
+			var hh: float = wy[1]
+			kit_panes([bu], [g + sy], 1.4, hh, PAL_GLASS_DARK, 0.05)
+			_kbox(bu - 0.95, bu + 0.95, 0.3, 0.5, g + sy + hh + 0.1, g + sy + hh + 0.35, BM_TRIM)
+	kit_face(0.0)
+	# the pediment's slopes run back 3 m into the hipped roof, under its ridge
+	kit_face(-3.0)
+	kit_pediment(19.09, 8.05, g + 17.75, 1.8, BM_TRIM, BM_ROOF, 3.6)
+	kit_face(0.0)
+	_kap_cross(19.09, 0.3, g + 19.55, 1.6)
+	# --- the ends and the back wings' outer walls: panes, so no side is a blank box
+	# (each wall from p to q with its outside on the left, three rows of panes at the fractions)
+	var rows: Array = [g + 5.6, g + 9.8, g + 13.7]
+	var walls: Array = [
+		[Vector2(39.39, 0.0), Vector2(39.39, -6.87), [0.5]],
+		[Vector2(0.0, -6.87), Vector2(0.0, 0.0), [0.5]],
+		[Vector2(35.79, -6.9), Vector2(35.79, -20.0), [0.35, 0.6, 0.85]],
+		[Vector2(3.29, -22.0), Vector2(3.29, -6.9), [0.2, 0.47, 0.73]],
+		[Vector2(35.79, -20.0), Vector2(27.14, -20.0), [0.3, 0.7]],
+		[Vector2(11.04, -22.0), Vector2(3.29, -22.0), [0.3, 0.7]],
+	]
+	for wl: Array in walls:
+		var p: Vector2 = wl[0]
+		var q: Vector2 = wl[1]
+		var n := kit_front(_w(p.x, p.y), _w(q.x, q.y))
+		var cols: Array = []
+		for f: float in wl[2]:
+			cols.append(f * n)
+		kit_panes(cols, rows, 1.2, 2.2, PAL_GLASS_DARK, 0.05)
+		kit_front(BM_O, BM_O + BM_A)
+	_collide(outline)
+
+
 ## The Nożyk Synagogue (Synagoga Nożyków, ul. Twarda 6; Karol and Leandro Marconi, 1898-1902;
 ## burnt 1944, rebuilt 1977-1983; Warsaw's only pre-war synagogue still standing), a cream
 ## neo-Romanesque house of prayer in its courtyard south of Plac Grzybowski. The whole building as
@@ -31912,6 +32020,8 @@ const CHURCHES := [
 			"fill": 0.75, "style": "neogothic", "wall": "#a8503c", "roof": "#6e5d58", "towers": 2, "cap": "spire"},
 	{"key": "church_cerkiew", "at": Vector2(-1021.4, -1523.2), "o": Vector2(-1027.9, -1513.5), "out": Vector2(-0.5623, 0.8269), "L": 12.2, "W": 7.9,
 			"fill": 0.96, "style": "orthodox", "wall": "#ece4d2", "roof": "#4a6a5a", "towers": 0, "cap": "onion"},
+	{"key": "church_bazylianie", "at": Vector2(-1029.8, -1510.2), "o": Vector2(-1031.3, -1507.6), "out": Vector2(-0.568, 0.822), "L": 39.4, "W": 6.9,
+			"fill": 0.9, "style": "neoclassical", "wall": "#ebe5d7", "roof": "#5d6268", "towers": 0, "cap": "none"},
 	{"key": "church_nozykow", "at": Vector2(-1569.1, -228.0), "o": Vector2(-1546.1, -229.5), "out": Vector2(0.9975, -0.0712), "L": 16.4, "W": 11.6,
 			"fill": 0.78, "style": "romanesque", "wall": "#d9c9a3", "roof": "#6f7a76", "towers": 0, "cap": "none"},
 ]
@@ -31982,6 +32092,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_czestochowska":
 		_build_czestochowska(site)  # the modernist A-frame church and its pylons, from photos
+		return
+	if site["key"] == "church_bazylianie":
+		_build_bazylianie(site)  # the Basilian monastery's street wing with the church's front
 		return
 	if site["key"] == "church_cerkiew":
 		_build_cerkiew(site)  # the Basilians' church hall without the kit's onion dome

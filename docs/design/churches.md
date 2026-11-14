@@ -85,7 +85,7 @@ Status as of 2026-11-01. "Kit model" = built by the church kit; "model" = its ow
 | Kościół Świętej Trójcy na Solcu | church | 1071, 263 | model from photos (`church_trojca_praga`, `_build_trojca_solec`, spec `trojca_solec.md`), 2026-11-14 |
 | Kościół św. Brata Alberta i św. Andrzeja Apostoła | church | -1074, -1133 | model from photos (`church_alberta`, `_build_alberta`, spec `alberta.md`), 2026-11-14 |
 | Matki Bożej Częstochowskiej | church | 1132, 868 | model from photos (`church_czestochowska`, `_build_czestochowska`, spec `czestochowska.md`), 2026-11-14 |
-| Monaster Zaśnięcia Najświętszej Bogurodzicy i św. Jozafata biskupa i męczennika | monastery | -1025, -1518 | open: convent or monastery: plain block, a later pass |
+| Monaster Zaśnięcia Najświętszej Bogurodzicy i św. Jozafata biskupa i męczennika | monastery | -1025, -1518 | model from LoD2 and the street photos (`church_bazylianie`, `_build_bazylianie`, spec `bazylianie.md`), 2026-11-14: the street wing with the church's front, the back wings |
 | Parafia Świętej Teresy od Dzieciątka Jezus | church | 370, -579 | model (`teresy`, #225) |
 | Sala św. Faustyny | chapel | -2792, 1574 | open: small chapel: a later pass |
 | Synagoga Nożyków | synagogue | -1565, -229 | whole model from photos (`_build_nozyk`, spec `nozyk.md`), 2026-11-14; the kit's front faced east |
