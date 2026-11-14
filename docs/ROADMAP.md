@@ -150,7 +150,6 @@ then the Launch gate.
 - [x] City wall towers get tile cones (2026-11-09); [ ] the gates from photos, photo-tag the untagged walls and fences
 - [x] Old Town trailer pass (F, 2026-11-08): the Jesuit church's blue glass fixed, Rynek rings, umbrellas and
       café fences, zinc dormers, an autopilot drive check round the Old Town (`check_old_town_drive.gd`)
-- [x] Katedra polowa (Field Cathedral, Długa) rebuilt whole from F's photos on the facade kit (F, 2026-11-13, churches review, Old Town set)
 - [x] Old Town pass 2 (F, 2026-11-08): every Old Town house front in the new Old Town style (portals, casements
       in cream surrounds, painted bands on the Rynek), the Barbican and the Syrenka from F's photos
 - [ ] Stairs deeper than the 10 m ground shows (Skarpa, Karowa, Tamka, metro stairwells) cut into the
