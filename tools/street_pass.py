@@ -720,6 +720,10 @@ def spots(sd):
     return 0
 
 
+## game/data/road_objects.json's own description (--apply writes it).
+ABOUT_OBJECTS = "tools/street_pass.py --apply: per-barrier verdicts from the street records (docs/streets/), read by city_barriers.gd build_barriers (OBJECT_OVERRIDES). Do not edit `items` by hand: change the street's record or its `decisions` in docs/streets/streets.json and re-run. `hard_lines` ({stable id: reason}) is kept by hand and carried over by --apply: fences and hedges the bake classed S that stay hard wherever they are (the city objects plan, step 7: the `check_lane_drive.gd --wander` run's traps, rule R6)."
+
+
 def main():
     args = sys.argv[1:]
     opt = {a.split("=", 1)[0]: (a.split("=", 1)[1] if "=" in a else True) for a in args}
@@ -749,10 +753,10 @@ def main():
                 if o["verdict"] in ("REMOVE", "HARD") or (o["verdict"] in ("RETEXTURE", "REPLACE") and o.get("style")):
                     items[o["id"]] = [o["verdict"], o.get("style", ""), sd["slug"]]
         out = os.path.join(ROOT, "game", "data", "road_objects.json")
+        # Step 7: the hand-kept `hard_lines` (soft lines kept hard by id) are carried over as they are.
+        hard = json.load(open(out, encoding="utf-8")).get("hard_lines", {}) if os.path.exists(out) else {}
         with open(out, "w", encoding="utf-8") as fh:
-            json.dump({"_about": "tools/street_pass.py --apply: per-barrier verdicts from the street records (docs/streets/), "
-                       "read by city_barriers.gd build_barriers (OBJECT_OVERRIDES). Do not edit by hand: change the street's "
-                       "record or its `decisions` in docs/streets/streets.json and re-run.", "items": dict(sorted(items.items()))},
+            json.dump({"_about": ABOUT_OBJECTS, "items": dict(sorted(items.items())), "hard_lines": dict(sorted(hard.items()))},
                       fh, ensure_ascii=False, indent=1)
             fh.write("\n")
         print(f"street_pass: {len(items)} barrier overrides -> game/data/road_objects.json")

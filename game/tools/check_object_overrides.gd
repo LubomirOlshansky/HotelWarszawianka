@@ -2,7 +2,9 @@ extends SceneTree
 ## Operation Unslop's barrier overrides (game/data/road_objects.json, tools/street_pass.py --apply):
 ## every id names a barrier line that exists in the map data (city_barriers.gd barrier_id, the same
 ## stable id the Python tools compute), every style is a placed barrier type of the palette
-## (game/data/object_palette.json "types", city_barriers.gd is_style), every verdict a known one. A stale id (the line moved more than its 2 m cell after a re-bake) fails here.
+## (game/data/object_palette.json "types", city_barriers.gd is_style), every verdict a known one.
+## Step 7: every `hard_lines` id (soft lines kept hard by hand) names a fence or hedge the bake
+## classed S (`sc`), with a reason. A stale id (the line moved more than its 2 m cell after a re-bake) fails here.
 ##   godot --headless --path game --script res://tools/check_object_overrides.gd
 
 const CityBarriers := preload("res://scripts/city_barriers.gd")
@@ -33,16 +35,24 @@ func _init() -> void:
 	if map is Dictionary:
 		for l in (map as Dictionary).get("lines", []):
 			if l["k"] != "platform":
-				ids[CityBarriers.barrier_id(l["k"], l["p"])] = true
+				ids[CityBarriers.barrier_id(l["k"], l["p"])] = l
 	var counts := {}
 	for id: String in items:
 		var o: Array = items[id]
 		_expect(ids.has(id), "%s: no barrier with this id in the map" % id)
 		_expect(str(o[0]) in VERDICTS, "%s: unknown verdict %s" % [id, o[0]])
-		if str(o[0]) != "REMOVE":
+		if str(o[0]) != "REMOVE" and str(o[0]) != "HARD":
 			_expect(CityBarriers.is_style(str(o[1])), "%s: unknown style %s" % [id, o[1]])
 		counts[str(o[1]) if o.size() > 1 and str(o[1]) != "" else str(o[0])] = int(counts.get(str(o[1]) if o.size() > 1 and str(o[1]) != "" else str(o[0]), 0)) + 1
-	print("check_object_overrides counts: %d overrides %s" % [items.size(), counts])
+	var hard: Dictionary = j.get("hard_lines", {}) if j is Dictionary else {}
+	for id: String in hard:
+		var l: Variant = ids.get(id)
+		_expect(l is Dictionary, "hard_lines %s: no barrier with this id in the map" % id)
+		if l is Dictionary:
+			_expect(str(l["k"]) in ["fence", "hedge"] and str(l.get("sc", "")) == "S",
+					"hard_lines %s: not an S fence or hedge (k %s, sc %s): nothing to keep hard" % [id, l["k"], l.get("sc", "")])
+		_expect(str(hard[id]).length() > 10, "hard_lines %s: no reason" % id)
+	print("check_object_overrides counts: %d overrides %s, %d hard lines" % [items.size(), counts, hard.size()])
 	if _problems > 0:
 		print("check_object_overrides: FAIL (%d problems)" % _problems)
 		quit(1)

@@ -123,6 +123,12 @@ const HARD_RAILS: Array[StringName] = [&"tram_railing", &"balustrade", &"balustr
 const PANEL := 2.0
 ## Step 7: fence types (object_types.py `ty`) whose panels sound and break as wood.
 const WOOD_TYPES := ["wood", "hoarding"]
+## Step 7: an S line inside or within this of a landmark site's ring (landmarks.gd `sites` "zone":
+## the outlines its model replaces; the sites with a card, as check_landmarks drives its car rays
+## at) stays hard (m): many sites are closed to the car at
+## bumper height only by their railing or garden fence (the Tomb of the Unknown Soldier from the
+## Saxon Garden: its arcade is open), and a monument's fence is not a thing to smash.
+const LANDMARK_GUARD := 10.0
 
 var map  # map_builder.gd: terrain, decks, the building surface's helpers, `_solid`
 ## Step 7: the soft lines of the last build_barriers (one sector, or the whole map): per line its
@@ -139,6 +145,14 @@ var _soft_line := {}
 var _soft_run := 0.0
 var guard_joins := 0
 var _object_overrides := {}
+## Step 7: road_objects.json "hard_lines" ({stable id: reason}): soft lines kept hard by id, the
+## `--wander` run's traps (rule R6: a trap is hard or a hole to close).
+var _hard_lines := {}
+## Step 7: the landmark sites' rings (made once, from the map's landmarks.gd sites with a card),
+## and each ring's box grown by LANDMARK_GUARD.
+var _guard_rings: Array[PackedVector2Array] = []
+var _guard_boxes: Array[Rect2] = []
+var _guards_made := false
 var _island_boxes: Array = []
 var _island_src: Array = []
 var _pkin_zone := PackedVector2Array()
@@ -315,19 +329,71 @@ func soft_data() -> Dictionary:
 
 ## Step 7: whether barrier line `l`, drawn in `style` and solid, breaks instead of stopping the car:
 ## a fence or hedge the bake classed S (tools/object_types.py `sc`; the game decides no class), not a
-## stair's balustrade (`cls` stair_wall), not drawn as a tram railing or a balustrade, and not kept
-## HARD by an exception (game/data/road_objects.json: the `--wander` run's traps).
+## stair's balustrade (`cls` stair_wall), not drawn as a tram railing or a balustrade, not kept
+## hard by id (game/data/road_objects.json: a street's HARD verdict, or "hard_lines": the
+## `--wander` run's traps), and not within LANDMARK_GUARD m of a landmark site.
 func _is_soft(l: Dictionary, style: Array, cls: StringName, solid: bool) -> bool:
 	if soft_off or not solid or str(l.get("sc", "")) != "S" or (cls != &"fence" and cls != &"hedge"):
 		return false
 	for id: StringName in HARD_RAILS:
 		if style == _s(id):
 			return false
+	var bid := barrier_id(l["k"], l["p"])
+	if _hard_lines.has(bid):
+		return false
 	if not _object_overrides.is_empty():
-		var o: Variant = _object_overrides.get(barrier_id(l["k"], l["p"]))
+		var o: Variant = _object_overrides.get(bid)
 		if o is Array and str(o[0]) == "HARD":
 			return false
-	return true
+	return not near_landmark(l["p"])
+
+
+## Step 7: whether a line (flat x, z points) runs inside or within LANDMARK_GUARD m of a landmark
+## site's ring.
+func near_landmark(flat: Array) -> bool:
+	if not _guards_made:
+		_guards_made = true
+		var marks: Variant = map.get("_marks")
+		var carded := {}
+		for info: Dictionary in map.landmark_info:
+			if str(info.get("pl", "")) != "":
+				carded[info["key"]] = true
+		if marks != null:
+			for s: Dictionary in marks.sites:
+				if not carded.has(s.get("key", "")):
+					continue
+				for ring: PackedVector2Array in s.get("zone", []):
+					if ring.size() < 3:
+						continue
+					var lo := Vector2(INF, INF)
+					var hi := Vector2(-INF, -INF)
+					for v in ring:
+						lo = lo.min(v)
+						hi = hi.max(v)
+					_guard_rings.append(ring)
+					_guard_boxes.append(Rect2(lo, hi - lo).grow(LANDMARK_GUARD))
+	if _guard_boxes.is_empty() or flat.size() < 4:
+		return false
+	var lo := Vector2(INF, INF)
+	var hi := Vector2(-INF, -INF)
+	for i in range(0, flat.size() - 1, 2):
+		lo = lo.min(Vector2(flat[i], flat[i + 1]))
+		hi = hi.max(Vector2(flat[i], flat[i + 1]))
+	var line_box := Rect2(lo, hi - lo)
+	for k in _guard_boxes.size():
+		if not _guard_boxes[k].intersects(line_box, true):
+			continue
+		var ring := _guard_rings[k]
+		for i in range(0, flat.size() - 3, 2):
+			var a := Vector2(flat[i], flat[i + 1])
+			var b := Vector2(flat[i + 2], flat[i + 3])
+			if Geometry2D.is_point_in_polygon(a, ring):
+				return true
+			for j in ring.size():
+				var pq := Geometry2D.get_closest_points_between_segments(a, b, ring[j], ring[(j + 1) % ring.size()])
+				if pq[0].distance_to(pq[1]) <= LANDMARK_GUARD:
+					return true
+	return false
 
 
 ## Step 7: starts soft line `l` (its id, kind, material and panels into the soft list).
@@ -394,11 +460,14 @@ func railing_along(st, poly: PackedVector2Array, height: float, upstand: float, 
 
 func _load_object_overrides() -> void:
 	_object_overrides = {}
+	_hard_lines = {}
 	if not FileAccess.file_exists(OBJECT_OVERRIDES):
 		return
 	var j: Variant = JSON.parse_string(FileAccess.get_file_as_string(OBJECT_OVERRIDES))
 	if j is Dictionary and (j as Dictionary).get("items") is Dictionary:
 		_object_overrides = j["items"]
+	if j is Dictionary and (j as Dictionary).get("hard_lines") is Dictionary:
+		_hard_lines = j["hard_lines"]
 
 
 ## The stable id of a barrier line (tools/street_pass.py stable_id: the mean of its points, each

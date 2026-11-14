@@ -1,5 +1,5 @@
 {
- "_about": "tools/street_pass.py --apply: per-barrier verdicts from the street records (docs/streets/), read by map_builder.gd _build_barriers (OBJECT_OVERRIDES). Do not edit by hand: change the street's record or its `decisions` in docs/streets/streets.json and re-run.",
+ "_about": "tools/street_pass.py --apply: per-barrier verdicts from the street records (docs/streets/), read by city_barriers.gd build_barriers (OBJECT_OVERRIDES). Do not edit `items` by hand: change the street's record or its `decisions` in docs/streets/streets.json and re-run. `hard_lines` ({stable id: reason}) is kept by hand and carried over by --apply: fences and hedges the bake classed S that stay hard wherever they are (the city objects plan, step 7: the `check_lane_drive.gd --wander` run's traps, rule R6).",
  "items": {
   "barrier:fence:-1024:-64": [
    "RETEXTURE",
@@ -56,5 +56,9 @@
    "balustrade",
    "marszalkowska-centrum"
   ]
+ },
+ "hard_lines": {
+  "barrier:fence:-1358:650": "step 7 --wander trap (2026-11-14): the tram stop's railing on Aleje Jerozolimskie by Centrum (-1329,638); through it the car lands on the tram island between the platforms' sides and the hard tram railings and cannot get back out",
+  "barrier:fence:142:-1092": "step 7 --wander trap (2026-11-14): the Vistula boulevard's railing at Powiśle (95,-1134); through it the car lands on the promenade a level down and cannot climb back"
  }
 }
