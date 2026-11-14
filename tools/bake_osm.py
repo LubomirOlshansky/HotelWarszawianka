@@ -472,6 +472,11 @@ def main(src, trees_src, dst, extras_src=None, more_src=None):
     # the W-Z tunnel instead of pit fills and their walls (tools/zamek_ramps.py; the same code runs on a baked map).
     import zamek_ramps
     print("zamek_ramps: " + zamek_ramps.apply(out, map_dir))
+    # Torn roads (F, 2026-11-14): the roads the 10 m grid smeared an embankment or a cutting into,
+    # each on its own ground profile, one table entry a place (tools/road_profiles.py; the same code
+    # runs on a baked map).
+    import road_profiles
+    print("road_profiles: " + road_profiles.apply(out, map_dir))
     # G8/G9 (2026-11-01): shelters onto the kerb of their bus road, turned roof along it; benches
     # turned to face the walk (tools/snap_props.py; the same code runs on a baked map).
     import snap_props
