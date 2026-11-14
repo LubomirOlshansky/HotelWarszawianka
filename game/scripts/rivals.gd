@@ -1,4 +1,4 @@
-extends Node
+extends "res://scripts/activity.gd"
 ## Named rival drivers cruising the city in their own cars, and street races
 ## against them. Pull up close behind a rival while both of you are moving and a
 ## FLASH LIGHTS button appears (key L). Flash, and the rival names a finish at a
@@ -7,9 +7,14 @@ extends Node
 ## race shows a beacon, the edge arrow, the distance and who is in front; a card
 ## and a trash-talk bubble end it. A win pays the rival's stake in złoty and
 ## respect (wallet.gd). Only one activity at a time: no race while a rescue
-## mission or a side job runs, and rescue calls wait while a race is on.
+## mission or another activity of the kit runs, and rescue calls wait while a race is on.
 ##
 ## All characters are made up; the jokes are about the city, not about anyone.
+##
+## An activity of the kit (activity.gd, tech-debt TD-1): CRUISE and PROMPT are its idle phase (no
+## call: a rival is met on the road), CHALLENGE to RESULT its run, the result card the kit's own; the
+## director (activities.gd) says whether another activity is on (`free_now`) or a job's request card
+## is up (`request_up`).
 ##
 ## Loop 3h slice 3: the rival ladder (ladder.gd: the order Halina 60 -> Mike 300 zł, each rung opened
 ## by the one before and by respect) and the final race "Trzy mosty" (trzy_mosty.gd: the route).
@@ -24,11 +29,9 @@ extends Node
 var spent_usec := 0
 
 const Lang := preload("res://scripts/lang.gd")
-const Access := preload("res://scripts/access.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Traffic := preload("res://scripts/traffic.gd")
 const Models := preload("res://scripts/models.gd")
-const Beacon := preload("res://scripts/beacon.gd")
 const Ladder := preload("res://scripts/ladder.gd")
 const TrzyMosty := preload("res://scripts/trzy_mosty.gd")
 const Districts := preload("res://scripts/districts.gd")
@@ -77,7 +80,7 @@ const FIRST_FINISH := "Rondo de Gaulle'a (the Palm)"
 ## The last stretch to the Palm: no stall nudge on it (`first_stall_due`), the finish is in sight.
 const FIRST_EASE := 140.0
 ## Effort, the finish's circle and the race's mechanics are the race session's (race_session.gd,
-## racer AI step 6b): one `_session` a race, its one racer the rival (`_racer`).
+## racer AI step 6b): one `_race_session` a race, its one racer the rival (`_racer`).
 ## A plan made for another traffic than the town has now is made again before the start
 ## (RaceSession.PLAN_STALE, `_plan_tick`), no later than this many seconds into the countdown (a
 ## plan is up to 52 slices: a second at 60 frames a second, and the countdown is three).
@@ -220,24 +223,13 @@ enum State { CRUISE, PROMPT, CHALLENGE, COUNTDOWN, RACE, RESULT }
 
 var graph: LaneGraph
 var traffic: Traffic
-## Nocny spot (street_meet.gd): no challenge while the club's night runs.
-var meet: Node
-var hud: CanvasLayer
 var bubbles: Control
 var missions: Node
-var map: Node3D
-var car: CharacterBody3D
 var state := State.CRUISE
 ## Rival in the current prompt or race.
 var rival := -1
-## The wallet (złoty and respect, saved); a win pays the stake and Ladder.WIN_GAIN respect the
-## first time a rung is beaten (Ladder.REMATCH_GAIN after).
-var wallet: Node
-## The side jobs (jobs.gd): no challenges while one runs.
-var jobs: Node
-## Testing (--autopilot): the player's car follows a ghost driver in races, and
-## tails `tail` (a rival index) before one.
-var autopilot := false
+## Testing (--autopilot, the kit's `autopilot`): the player's car follows a ghost driver in
+## races, and tails `tail` (a rival index) before one.
 ## The autopilot's speed factor in a race (main.gd --ghost-pace): 1.8 an average player; over 10
 ## (--ghost-pace=racer) a skilled player in racer mode.
 var ghost_pace := 1.8
@@ -311,7 +303,7 @@ var _planner: RacePlanner
 ## Racer AI step 6b: this race's session (race_session.gd: the course, the rival's shortcuts,
 ## distances, plans, effort and lights; its plans searched a slice a frame from the challenge on, so
 ## the start costs no frame) and its one racer, the rival (null: no race yet).
-var _session: RaceSession
+var _race_session: RaceSession
 var _racer: RaceSession.Racer
 ## The roads through this race's finish circle (RacePlanner.ends; in the final its last leg's,
 ## the finish by the stadium: a checkpoint has its own rule): the rival's plan ends on them, the
@@ -323,14 +315,15 @@ var _seen_mistakes := 0
 var _seen_wrong := 0
 var _seen_blocks := 0
 var _phone_at := INF
-var _t := 0.0
+## Seconds since the race's last step (the challenge, the countdown, the start); the rivals' lines
+## are timed by it too (`_said`), as before.
+var _stage_t := 0.0
 var _race_time := 0.0
 var _races := 0
 var _lost_sight := 0.0
 var _player_left := 0.0
 var _rival_left := 0.0
 var _rank_timer := 0.0
-var _beacon: Node3D
 var _ghost = null
 var _rng := RandomNumberGenerator.new()
 ## Loop 3h slice 4: the rival rolling up for the guided first race (-1: none), how long it has
@@ -374,15 +367,16 @@ var _stalls := 0
 var _nudge_banner_t := 0.0
 
 
-func setup(lane_graph: LaneGraph, traffic_node: Traffic, hud_layer: CanvasLayer, bubble_layer: Control,
-		mission_node: Node, map_node: Node3D, world: Node3D, player_car: CharacterBody3D, data: Dictionary) -> void:
-	graph = lane_graph
-	traffic = traffic_node
-	hud = hud_layer
-	bubbles = bubble_layer
-	missions = mission_node
-	map = map_node
-	car = player_car
+## The kit's `_init`: the log's name, the race's colour and the beacon's dark.
+func _init() -> void:
+	tag = "rival race"
+	colour = RACE_COLOUR
+	dark = Color("#2b2c2f")
+
+
+## main.gd sets graph, traffic, hud, bubbles, missions, map, car, wallet, tod, autopilot and
+## ghost_pace before this.
+func setup(world: Node3D, data := {}) -> void:
 	_rng.seed = 7
 	_find_finishes(data)
 	_cuts = RaceCuts.new()
@@ -403,9 +397,7 @@ func setup(lane_graph: LaneGraph, traffic_node: Traffic, hud_layer: CanvasLayer,
 	if wallet != null:
 		_open_seen = ladder.open_count()
 		wallet.changed.connect(func(_zl: int, _r: int, _g: int) -> void: _check_ladder())
-	_beacon = Beacon.new()
-	world.add_child(_beacon)
-	_beacon.setup(RACE_COLOUR, Color("#2b2c2f"))
+	super.setup(world)
 	_beacon.pattern = Beacon.Pattern.CHEQUER  # colour-safe: a finish line (beacon.gd)
 	_beacon.waving = true
 	_cooldown.resize(RIVALS.size())
@@ -468,10 +460,6 @@ func setup(lane_graph: LaneGraph, traffic_node: Traffic, hud_layer: CanvasLayer,
 		var d = traffic.add_node_driver(node, r["size"], spot[0], spot[1], spot[2])
 		_drivers.append(d)
 	hud.challenge_pressed.connect(flash)
-	hud.card_pressed.connect(_on_card)
-	hud.abort_pressed.connect(func():
-		if state == State.RACE or state == State.COUNTDOWN:
-			_finish_race(false, "You gave up."))
 	traffic.bumped_driver.connect(_on_bumped)
 	traffic.turned_back.connect(_on_turned_back)
 	traffic.hop_refused.connect(_on_hop_refused)
@@ -594,22 +582,63 @@ func raced() -> bool:
 	return _races > 0 and state == State.CRUISE
 
 
-func busy() -> bool:
-	return state != State.CRUISE and state != State.PROMPT
-
-
+## The kit's question: the race's finish is the target from the countdown to the end of the race.
 func has_target() -> bool:
 	return state == State.COUNTDOWN or state == State.RACE
 
 
+## The kit's question: the finish, or in the final the next bridge's checkpoint.
 func target_position() -> Vector3:
 	if final_on:
 		return final_target()
 	return _finish["pos"]
 
 
+## The kit's question: the final's own colour, else the race's.
 func target_colour() -> Color:
 	return FINAL_COLOUR if final_on else RACE_COLOUR
+
+
+## The kit's question: no stop ring in a race (main.gd gave none).
+func stop_spot() -> Vector3:
+	return Vector3.INF
+
+
+## The kit's question: a race's target gets no camera look (main.gd's old call).
+func target_source() -> String:
+	return "race"
+
+
+## The kit's question: the race's target is the main line's while the guide runs or for the
+## ladder's next rung (main.gd's old `_guide_on() or rivals.main_race()`).
+func main_target(guide: bool) -> bool:
+	return guide or main_race()
+
+
+## The kit's question: why the helicopter is refused, [Polish, English], while a race is on.
+func grounded() -> Array:
+	if racing():
+		return ["Najpierw dokończ wyścig", "Finish the race first"]
+	return []
+
+
+## The kit's question: a test run never pressed the race's result card.
+func _auto_button() -> int:
+	return -1
+
+
+## The kit's question: the ✕ drops a race only from the countdown to the finish.
+func _can_abort() -> bool:
+	return state == State.COUNTDOWN or state == State.RACE
+
+
+## The ✕ (or the clock): given up by the player in the countdown or the race it is the lose card
+## (the run ends when it is pressed); otherwise the kit's.
+func drop(by_player: bool) -> void:
+	if by_player and (state == State.COUNTDOWN or state == State.RACE):
+		_finish_race(false, "You gave up.")
+		return
+	super.drop(by_player)
 
 
 ## Loop 3h slice 3: the final's next point for the player: the next bridge's checkpoint, then the
@@ -665,14 +694,15 @@ func start_race(i: int) -> void:
 		_finish = _pick_finish(d)
 	# A course of one leg to the finish's circle; the plan made now, for the town's traffic as it is.
 	_new_session(PackedInt32Array([_finish["node"]]))
-	_dist = _session.distances(_racer, 0)
-	_session.plan(_racer, 0)
+	_dist = _race_session.distances(_racer, 0)
+	_race_session.plan(_racer, 0)
 	print("race: %s to %s, %d m by road (picked in %.1f ms)" % [RIVALS[i]["name"], _finish["name"],
 			roundi(graph.remaining(_dist, d.edge, d.s)), (Time.get_ticks_usec() - t0) / 1000.0])
 	_races += 1
 	escape_bonus = false
 	state = State.CHALLENGE
-	_t = 0.0
+	_stage_t = 0.0
+	start()
 	hud.hide_challenge()
 	missions.close()
 	missions.paused = true
@@ -730,12 +760,12 @@ func _tuning() -> Array:
 func _new_session(legs: PackedInt32Array) -> void:
 	var tuning := _tuning()
 	var rung: int = tuning[0]
-	_session = RaceSession.new()
-	_session.setup(graph, traffic, _planner, _cuts, _dist_to)
-	_session.course(legs, _finish_at(), RaceSession.FINISH_RADIUS)
-	_racer = _session.add(_drivers[rival], String(RIVALS[rival]["name"]), Ladder.FIRST_RACER if tuning[1] else Ladder.racer(rung),
+	_race_session = RaceSession.new()
+	_race_session.setup(graph, traffic, _planner, _cuts, _dist_to)
+	_race_session.course(legs, _finish_at(), RaceSession.FINISH_RADIUS)
+	_racer = _race_session.add(_drivers[rival], String(RIVALS[rival]["name"]), Ladder.FIRST_RACER if tuning[1] else Ladder.racer(rung),
 			Ladder.pace(rung), {"top": player_top(), "ease": tuning[2], "cuts_of": Ladder.racer(rung)})
-	_ends = _session.ends
+	_ends = _race_session.ends
 
 
 ## The ground point of this race's finish (the final's: its last leg's), the centre of its circle.
@@ -750,14 +780,14 @@ func _finish_at() -> Vector2:
 ## moved it, or the race was called before they were applied: `--race=`). From then on, and all
 ## through the race, a rival keeps the plan it has.
 func _plan_tick() -> void:
-	_session.plan_tick(state == State.CHALLENGE or (state == State.COUNTDOWN and _t < PLAN_STALE_UNTIL))
+	_race_session.plan_tick(state == State.CHALLENGE or (state == State.COUNTDOWN and _stage_t < PLAN_STALE_UNTIL))
 
 
 ## Racer AI step 5b: a racing rival found the one-way street of a wrong-way hop not empty and
 ## takes another way (traffic.gd `hop_refused`: its plan has dropped the hop): the metres it has
 ## left, which the gap on the HUD reads, are counted without that hop from here on.
 func _on_hop_refused(d) -> void:
-	if state != State.RACE or _session == null or _session.hop_refused(d) == null:
+	if state != State.RACE or _race_session == null or _race_session.hop_refused(d) == null:
 		return
 	var street := graph.e_name[d.edge]
 	print("race: %s does not hop the wrong way from %s at %.1f s (the street was not empty)" % [RIVALS[rival]["name"], street if street != "" else "a street", _race_time])
@@ -767,15 +797,16 @@ func _on_hop_refused(d) -> void:
 ## shut the street and looks for another way): the metres it has left, which the gap on the HUD
 ## reads, are counted without that street from here on.
 func _on_turned_back(d) -> void:
-	if state != State.RACE or _session == null or _session.turned_back(d) == null:
+	if state != State.RACE or _race_session == null or _race_session.turned_back(d) == null:
 		return
 	var street := graph.e_name[d.edge]
 	print("race: %s turns back on %s at %.1f s (%d streets shut to it)" % [RIVALS[rival]["name"], street if street != "" else "a street", _race_time, d.plan.shut.size()])
 
 
+## The kit's frame, with the script's own time counted round it.
 func _process(dt: float) -> void:
 	var t0 := Time.get_ticks_usec()
-	_frame(dt)
+	super._process(dt)
 	spent_usec += Time.get_ticks_usec() - t0
 
 
@@ -789,13 +820,13 @@ func _route_tick(dt: float) -> void:
 	if _route == null:
 		_route = RouteLine.new(graph)
 	if final_on:
-		if not _session.ready():
+		if not _race_session.ready():
 			return
 		if _route_cp != _cp:
 			_route_cp = _cp
 			var j := mini(2 * _cp + 1, final_route.legs.size() - 1)
 			var goal: Vector3 = final_target()
-			_route.to_node(final_route.legs[j], Vector2(goal.x, goal.z), _session.distances(_racer, j), _final_ends(j))
+			_route.to_node(final_route.legs[j], Vector2(goal.x, goal.z), _race_session.distances(_racer, j), _final_ends(j))
 	elif not _route.active():
 		if _ends.is_empty():
 			_route.to_node(int(_finish["node"]), _finish_at())
@@ -885,10 +916,11 @@ func _gap_seconds(first: bool) -> float:
 	return time_gap(_rival_left - _player_left, _v_rival if first else _v_player)
 
 
-func _frame(dt: float) -> void:
+## Every frame, whatever the state: the rivals' own clock, the cooldowns, the tags, the lamps.
+func _tick(dt: float) -> void:
 	if graph == null:
 		return
-	_t += dt
+	_stage_t += dt
 	for i in _cooldown.size():
 		_cooldown[i] = maxf(0.0, _cooldown[i] - dt)
 	_update_tags()
@@ -896,6 +928,12 @@ func _frame(dt: float) -> void:
 		_signal_tick(dt)
 	elif _sig_on:
 		_signals_off()
+
+
+## CRUISE and PROMPT (the kit's idle phase): looking for a challenge and for Seba's start.
+func _idle_tick(dt: float) -> void:
+	if graph == null:
+		return
 	if _caller >= 0 and (state == State.CRUISE or state == State.PROMPT):
 		_first_call_tick(dt)  # loop 3h slice 4: Halina rolling up for the first race
 		return
@@ -912,13 +950,18 @@ func _frame(dt: float) -> void:
 			else:
 				_lost_sight = 0.0
 			_look_for_start(dt)
+
+
+## CHALLENGE, COUNTDOWN and RACE (the kit's run; the result card holds it).
+func _run_tick(dt: float) -> void:
+	match state:
 		State.CHALLENGE:
 			if final_on:
 				_prepare_final_step()
 			_plan_tick()
-			if _t > 2.6:
+			if _stage_t > 2.6:
 				state = State.COUNTDOWN
-				_t = 0.0
+				_stage_t = 0.0
 				if final_on:
 					_beacon.place(final_target(), TrzyMosty.CHECK_RADIUS - 6.0)
 				else:
@@ -929,17 +972,17 @@ func _frame(dt: float) -> void:
 			if final_on:
 				_prepare_final_step()
 			_plan_tick()
-			var n := 3 - int(_t)
+			var n := 3 - int(_stage_t)
 			hud.show_banner(str(n) if n > 0 else "START!", Color.WHITE if n > 0 else WIN_COLOUR)
 			_show_status()
 			_route_tick(dt)
-			if _t >= 3.0:
+			if _stage_t >= 3.0:
 				_go()
 		State.RACE:
 			_race_time += dt
 			if first_race:
 				_first_start(dt)
-			if _t > 1.0 and _nudge_banner_t <= 0.0:
+			if _stage_t > 1.0 and _nudge_banner_t <= 0.0:
 				hud.hide_banner()
 			_track(dt)
 			if state == State.RACE:
@@ -949,8 +992,8 @@ func _frame(dt: float) -> void:
 
 
 func _look_for_challenge() -> void:
-	# PT-15: not over a ride request's card either.
-	if flying or missions.has_target() or (jobs != null and (jobs.busy() or jobs.ride_offered())):
+	# PT-15: not while another activity of the kit is on, nor over a ride request's card either.
+	if flying or missions.has_target() or not bool(free_now.call()) or bool(request_up.call()):
 		return
 	if hud != null and hud.cards_up():
 		return  # no prompt over a result or win card (2026-11-08)
@@ -968,14 +1011,14 @@ func _look_for_challenge() -> void:
 				return
 			hud.show_challenge("WYŚCIG · %s" % r["name"].to_upper(), r["colour"], "RACE · %s" % r["name"].to_upper(),
 					"Dotknij albo L: mrugnij światłami", "Tap or L: flash your lights")
-			if _t - _said[i] > 40.0 and not quiet:
+			if _stage_t - _said[i] > 40.0 and not quiet:
 				_say(i, r["approach"][0], r["approach"][1], 3.5)
 			return
 
 
 ## Close behind the rival (within 15 m, roughly in its lane), both moving.
 func _can_challenge(i: int) -> bool:
-	if flying or missions.has_target() or (jobs != null and jobs.busy()) or (meet != null and meet.busy()):
+	if flying or missions.has_target() or not bool(free_now.call()):
 		return false
 	var d = _drivers[i]
 	var rel := Vector2(d.pos.x - car.global_position.x, d.pos.z - car.global_position.z)
@@ -987,7 +1030,7 @@ func _can_challenge(i: int) -> bool:
 
 func _go() -> void:
 	state = State.RACE
-	_t = 0.0
+	_stage_t = 0.0
 	_race_time = 0.0
 	_rank_timer = 0.0
 	var d = _drivers[rival]
@@ -1014,7 +1057,7 @@ func _go() -> void:
 	if final_on:
 		_prepare_final()
 	_racer.dice = _rng.randi()
-	_session.start(_racer)
+	_race_session.start(_racer)
 	var stats := _racer.stats
 	if gentle and not first_race:
 		print("race: %s on a gentle day (not beaten yet)" % RIVALS[rival]["name"])
@@ -1055,13 +1098,13 @@ func _first_start(dt: float) -> void:
 	_nudge_banner_t = maxf(0.0, _nudge_banner_t - dt)
 	var speed := Vector2(car.vel.x, car.vel.z).length()
 	if _first_hold:
-		match first_start_step(_t, speed):
+		match first_start_step(_stage_t, speed):
 			"release":
 				_first_hold = false
 				_drivers[rival].held = false
 				if hud.finger_shown():
 					hud.ghost_finger(false)
-				print("first race: %s goes at %.1f s (%s)" % [RIVALS[rival]["name"], _t, "the player moved" if speed >= FIRST_MOVE else "the wait ran out"])
+				print("first race: %s goes at %.1f s (%s)" % [RIVALS[rival]["name"], _stage_t, "the player moved" if speed >= FIRST_MOVE else "the wait ran out"])
 			"nudge":
 				if not _go_nudged:
 					_go_nudged = true
@@ -1105,7 +1148,7 @@ func _track(dt: float) -> void:
 	if not flying and RaceSession.home_at(graph, car.global_position, _finish["pos"], _ends):
 		_finish_race(true, "")
 		return
-	_session.advance(_race_time)
+	_race_session.advance(_race_time)
 	if _racer.home:
 		_finish_race(false, "")
 		return
@@ -1113,7 +1156,7 @@ func _track(dt: float) -> void:
 	if _rank_timer <= 0.0:
 		_rank_timer = 0.2
 		_player_left = _player_remaining()
-		_session.rank(_player_left)
+		_race_session.rank(_player_left)
 		_rival_left = _racer.left
 		_effort(d)
 		_speeds(d)
@@ -1151,8 +1194,8 @@ func _show_status() -> void:
 		# Beta values (R5): the gap in seconds ("Pani Halina 2,4 s za tobą"); it was metres.
 		var g := gap_words(r["name"], gap, _gap_seconds(first), first)
 		hint = ["Jedź %s! %s." % [goal_pl, g[0]], "Drive %s! %s." % [goal_en, g[1]]]
-	hud.show_status("WYŚCIG · " + Lang.pick(goal_pl, goal_en).to_upper(), _clock(_race_time), "%d m" % metres,
-			hint[0], 0.0, RACE_COLOUR, ("1ST" if first else "2ND") if state == State.RACE else "", {}, hint[1])
+	status("WYŚCIG · " + Lang.pick(goal_pl, goal_en).to_upper(), _clock(_race_time), "%d m" % metres,
+			hint, 0.0, RACE_COLOUR, ("1ST" if first else "2ND") if state == State.RACE else "")
 
 
 func _finish_race(won: bool, why: String) -> void:
@@ -1162,7 +1205,7 @@ func _finish_race(won: bool, why: String) -> void:
 	state = State.RESULT
 	_route_off()
 	hud.hide_banner()
-	hud.hide_status()
+	hide_status()
 	if first_race and hud.finger_shown():
 		hud.ghost_finger(false)
 	_first_hold = false
@@ -1172,7 +1215,7 @@ func _finish_race(won: bool, why: String) -> void:
 	_race_log(d, won)
 	var margin := _finish_margin(won) if why == "" else 0.0
 	var told: Array = _report_told(d, rival, won, margin) if why == "" else ["", ""]
-	_session.end()
+	_race_session.end()
 	_cruise(d)
 	_cooldown[rival] = 25.0
 	if _ghost != null:
@@ -1229,11 +1272,11 @@ func _finish_race(won: bool, why: String) -> void:
 		var total := (" · wallet %s · respect %d" % [_money(wallet.zl), wallet.respect]) if wallet != null else ""
 		var total_pl := (" · w portfelu %s · szacunek %d" % [_money(wallet.zl), wallet.respect]) if wallet != null else ""
 		var record_pl := record.replace("new best!", "nowy rekord!").replace("best", "rekord")
-		hud.show_card("WYGRANA · 1. MIEJSCE", ("Meta: %s, czas %s%s. %s za tobą%s.\n„%s”\n+%d zł (stawka%s) · szacunek +%d%s\n%s" % [
+		show_card(["WYGRANA · 1. MIEJSCE", "Win · 1st"], [("Meta: %s, czas %s%s. %s za tobą%s.\n„%s”\n+%d zł (stawka%s) · szacunek +%d%s\n%s" % [
 				_finish["name"], _clock(_race_time), record_pl, who, by_pl, line[0], stake, bonus_pl, gain, total_pl, told[0]]).strip_edges(),
-				PackedStringArray(["OK"]), WIN_COLOUR, false, "Win · 1st",
 				("You beat %s to %s in %s%s%s. %s +%d zł (the stake%s) · respect +%d%s\n%s" % [
-				who, _finish["name"], _clock(_race_time), by_en, record, line[1], stake, bonus_en, gain, total, told[1]]).strip_edges())
+				who, _finish["name"], _clock(_race_time), by_en, record, line[1], stake, bonus_en, gain, total, told[1]]).strip_edges()],
+				PackedStringArray(["OK"]), 0.0, false, WIN_COLOUR)
 		_report_art(rival, _finish["pos"])
 		Access.buzz(150, 0.9)
 	else:
@@ -1241,16 +1284,19 @@ func _finish_race(won: bool, why: String) -> void:
 		var reason := why if why != "" else "%s got to %s first. You were %d m short%s after %s." % [who, _finish["name"], short, by_en, _clock(_race_time)]
 		var reason_pl := "Wyścig poddany." if why != "" else "%s pierwszy na mecie: %s. Zabrakło ci %d m%s, czas %s." % [
 				who, _finish["name"], short, by_pl, _clock(_race_time)]
-		hud.show_card("PRZEGRANA · 2. MIEJSCE", ("%s\n„%s”\n%s" % [reason_pl, line[0], told[0]]).strip_edges(),
-				PackedStringArray(["OK"]), LOSE_COLOUR, false, "Lose · 2nd", ("%s %s\n%s" % [reason, line[1], told[1]]).strip_edges())
+		show_card(["PRZEGRANA · 2. MIEJSCE", "Lose · 2nd"], [("%s\n„%s”\n%s" % [reason_pl, line[0], told[0]]).strip_edges(),
+				("%s %s\n%s" % [reason, line[1], told[1]]).strip_edges()], PackedStringArray(["OK"]), 0.0, false, LOSE_COLOUR)
 		_report_art(rival, _finish["pos"])
 
 
-func _on_card(_index: int) -> void:
-	if state != State.RESULT:
-		return
+## The result card's OK (the kit's `_card_pressed`): the race is over.
+func _card_pressed(_index: int) -> void:
+	finish()
+
+
+## The kit's end of a run (its card is already down): cruising again, the rescue calls free.
+func _ended() -> void:
 	state = State.CRUISE
-	hud.hide_card()
 	missions.paused = false
 	missions.close()
 
@@ -1266,7 +1312,7 @@ func _on_bumped(d) -> void:
 func _say(i: int, pl: String, en: String, seconds: float) -> void:
 	var r: Dictionary = RIVALS[i]
 	bubbles.say(_nodes[i], r["name"], pl, en, seconds, r["colour"], float(r["size"].y) + 1.0)
-	_said[i] = _t
+	_said[i] = _stage_t
 
 
 ## Name tags over rivals near the player, and their dots on the minimap.
@@ -1321,7 +1367,7 @@ func _signal_tick(dt: float) -> void:
 	var i := _seba if final_on else rival
 	if i < 0:
 		return
-	_session.signals(dt)
+	_race_session.signals(dt)
 	RaceSignals.show(_signals[i], _sig)
 	_bodies[i].rotation.y = _sig.yaw
 	_sig_on = true
@@ -1408,7 +1454,7 @@ func _human_tick(d) -> void:
 func _human_say(kind: String) -> void:
 	var d = _drivers[rival]
 	if quiet or Vector2(d.pos.x - car.global_position.x, d.pos.z - car.global_position.z).length() > HUMAN_NEAR \
-			or _t - _said[rival] < HUMAN_QUIET:
+			or _stage_t - _said[rival] < HUMAN_QUIET:
 		return
 	var lines: Array = HUMAN_LINES[kind]
 	for w in String(RIVALS[rival]["name"]).to_lower().split(" "):
@@ -1530,7 +1576,7 @@ func _first_call_tick(dt: float) -> void:
 	_call_t += dt
 	var d = _drivers[_caller]
 	var gap := Vector2(d.pos.x - car.global_position.x, d.pos.z - car.global_position.z).length()
-	var other: bool = missions.has_target() or (jobs != null and jobs.busy()) or flying
+	var other: bool = missions.has_target() or not bool(free_now.call()) or flying
 	if not _call_up and not other:
 		# PT-8: she stops only behind the car (a player who turned round has her in front).
 		var rel := Vector2(d.pos.x - car.global_position.x, d.pos.z - car.global_position.z)
@@ -1669,14 +1715,14 @@ func _look_for_start(dt: float) -> void:
 		_park_seba(first)
 	elif not want and _seba_waiting:
 		_release_seba()
-	var free: bool = _seba_waiting and not flying and not missions.has_target() and not (jobs != null and jobs.busy())
+	var free: bool = _seba_waiting and not flying and not missions.has_target() and bool(free_now.call())
 	_marker(free)
 	if free:
 		var at := car.global_position
 		var sp := final_route.start_pos
 		if Vector2(at.x - sp.x, at.z - sp.z).length() < START_RADIUS and absf(at.y - sp.y) < 6.0:
 			start_final()
-		elif Vector2(at.x - sp.x, at.z - sp.z).length() < 60.0 and _t - _said[_seba] > 30.0 and not quiet:
+		elif Vector2(at.x - sp.x, at.z - sp.z).length() < 60.0 and _stage_t - _said[_seba] > 30.0 and not quiet:
 			_say(_seba, FINAL_LINES["wait"][0], FINAL_LINES["wait"][1], 4.0)
 
 
@@ -1734,7 +1780,7 @@ func start_final() -> void:
 	# last bridge where the finish's own junction is 680 m round. Seba's last leg ends where the
 	# player's does; he is home on arriving (no circle of his own round the junction).
 	_new_session(final_route.legs)
-	_session.home_circle = false
+	_race_session.home_circle = false
 	_racer.leg = _start_leg
 	_cp = _start_leg >> 1
 	_ghost_leg = _start_leg
@@ -1744,7 +1790,8 @@ func start_final() -> void:
 	_races += 1
 	escape_bonus = false
 	state = State.CHALLENGE
-	_t = 0.0
+	_stage_t = 0.0
+	start()
 	hud.hide_challenge()
 	missions.close()
 	missions.paused = true
@@ -1764,14 +1811,14 @@ func _final_ends(j: int) -> Dictionary:
 ## One leg's distances a frame (about 8 ms each on the Linux container) during the challenge
 ## (RaceSession.prepare_step).
 func _prepare_final_step() -> void:
-	if _session.prepare_step() and _session.ready():
+	if _race_session.prepare_step() and _race_session.ready():
 		_legs_log()
 
 
 ## Every leg's distances now (the start of the race, or the ghost).
 func _prepare_final() -> void:
-	var was := _session.ready()
-	_session.prepare()
+	var was := _race_session.ready()
+	_race_session.prepare()
 	if not was:
 		_legs_log()
 
@@ -1782,7 +1829,7 @@ func _legs_log() -> void:
 	var first := 0.0
 	var d = _drivers[_seba]
 	if d.active:
-		first = graph.remaining(_session.distances(_racer, _start_leg), d.edge, d.s)
+		first = graph.remaining(_race_session.distances(_racer, _start_leg), d.edge, d.s)
 	print("trzy mosty: %d legs, %.0f m by road from leg %d" % [n, first + _racer.after[_start_leg], _start_leg])
 
 
@@ -1790,7 +1837,7 @@ func _track_final(dt: float) -> void:
 	var d = _drivers[_seba]
 	# Seba (the session) and the ghost move on to their next leg on reaching each target.
 	var was := _racer.leg
-	_session.advance(_race_time)
+	_race_session.advance(_race_time)
 	if _racer.home:
 		_finish_race(false, "")
 		return
@@ -1820,8 +1867,8 @@ func _track_final(dt: float) -> void:
 				return
 		var j := mini(2 * _cp + 1, final_route.legs.size() - 1)
 		var goal: Vector3 = final_target()
-		_player_left = _remaining_by(_session.distances(_racer, j), goal, _final_ends(j)) + _racer.after[j]
-		_session.rank(_player_left)
+		_player_left = _remaining_by(_race_session.distances(_racer, j), goal, _final_ends(j)) + _racer.after[j]
+		_race_session.rank(_player_left)
 		_rival_left = _racer.left
 		_effort(d)
 		_speeds(d)
@@ -1843,8 +1890,8 @@ func _show_final_status() -> void:
 	var hint := ["Uwaga…", "Get ready…"]
 	if state == State.RACE:
 		hint = gap_words(r["name"], gap, _gap_seconds(first), first)
-	hud.show_status("%s · TRZY MOSTY" % leg_pl, _clock(_race_time), "%d m" % metres,
-			hint[0], 0.0, FINAL_COLOUR, ("1ST" if first else "2ND") if state == State.RACE else "", {}, hint[1])
+	status("%s · TRZY MOSTY" % leg_pl, _clock(_race_time), "%d m" % metres,
+			hint, 0.0, FINAL_COLOUR, ("1ST" if first else "2ND") if state == State.RACE else "")
 
 
 func _finish_final(won: bool, why: String) -> void:
@@ -1855,14 +1902,14 @@ func _finish_final(won: bool, why: String) -> void:
 	_start_leg = 0
 	_ghost_spot = []
 	hud.hide_banner()
-	hud.hide_status()
+	hide_status()
 	_beacon.visible = false
 	_beacon.recolour(RACE_COLOUR)
 	var d = _drivers[_seba]
 	_race_log(d, won)
 	var told: Array = _report_told(d, _seba, won, margin) if why == "" else ["", ""]
 	var goal: Vector3 = final_route.finish["pos"]
-	_session.end()
+	_race_session.end()
 	_cruise(d)
 	_cooldown[_seba] = 25.0
 	if _ghost != null:
@@ -1895,20 +1942,20 @@ func _finish_final(won: bool, why: String) -> void:
 		var record_pl := record.replace("new best!", "nowy rekord!").replace("best", "rekord")
 		var crown_pl := "KORONA NOCNEJ WARSZAWY TWOJA!\n" if first else ""
 		var crown_en := "The crown of Warsaw by night is yours! " if first else ""
-		hud.show_card("TRZY MOSTY · WYGRANA", "%sTrzy razy przez Wisłę i pierwsze miejsce pod Narodowym, czas %s%s, o %s s przed Sebą.\n„%s”\n+%d zł · szacunek +%d%s" % [
+		show_card(["TRZY MOSTY · WYGRANA", "Three bridges · Win"], ["%sTrzy razy przez Wisłę i pierwsze miejsce pod Narodowym, czas %s%s, o %s s przed Sebą.\n„%s”\n+%d zł · szacunek +%d%s" % [
 				crown_pl, _clock(_race_time), record_pl, ("%.1f" % margin).replace(".", ","), line[0], stake, gain, total_pl] + ("\n" + told[0] if told[0] != "" else ""),
-				PackedStringArray(["OK"]), FINAL_COLOUR, false, "Three bridges · Win",
 				"%sThree times over the Vistula and first to the Stadium in %s%s, %.1f s ahead of Seba. %s +%d zł · respect +%d%s" % [
-				crown_en, _clock(_race_time), record, margin, line[1], stake, gain, total] + ("\n" + told[1] if told[1] != "" else ""))
+				crown_en, _clock(_race_time), record, margin, line[1], stake, gain, total] + ("\n" + told[1] if told[1] != "" else "")],
+				PackedStringArray(["OK"]), 0.0, false, FINAL_COLOUR)
 		_report_art(_seba, goal)
 		Access.buzz(200, 1.0)
 	else:
 		var gave_up := why != ""
-		hud.show_card("TRZY MOSTY · PRZEGRANA", ("%s\n„%s”\nRewanż: Rondo Daszyńskiego, w nocy.\n%s" % [
+		show_card(["TRZY MOSTY · PRZEGRANA", "Three bridges · Lose"], [("%s\n„%s”\nRewanż: Rondo Daszyńskiego, w nocy.\n%s" % [
 				"Finał poddany." if gave_up else "%s pierwszy pod Narodowym (mosty: %d/3, czas %s, zabrakło %s s)." % [who, _cp, _clock(_race_time), ("%.1f" % margin).replace(".", ",")], line[0], told[0]]).strip_edges(),
-				PackedStringArray(["OK"]), LOSE_COLOUR, false, "Three bridges · Lose",
 				("%s %s Rematch: Rondo Daszyńskiego, at night.\n%s" % [
-				"You gave up the final." if gave_up else "%s got to the Stadium first (bridges %d/3, %s, %.1f s short)." % [who, _cp, _clock(_race_time), margin], line[1], told[1]]).strip_edges())
+				"You gave up the final." if gave_up else "%s got to the Stadium first (bridges %d/3, %s, %.1f s short)." % [who, _cp, _clock(_race_time), margin], line[1], told[1]]).strip_edges()],
+				PackedStringArray(["OK"]), 0.0, false, LOSE_COLOUR)
 		_report_art(_seba, goal)
 
 
@@ -1980,7 +2027,9 @@ func put_ahead(i: int, gap := 14.0) -> bool:
 
 
 ## The autopilot drives the player's car (returns true while it does): along the
-## race route on a ghost driver, or 9 m behind the rival it is told to tail.
+## race route on a ghost driver, or 9 m behind the rival it is told to tail. A race whose ghost
+## could not be made: nothing drives the car, as before the kit; the director's slide would take
+## it to the finish.
 func drive_player() -> bool:
 	if _ghost != null and (state == State.COUNTDOWN or state == State.RACE):
 		_follow(_ghost.pos, _ghost.yaw, _ghost.v)
@@ -1990,7 +2039,7 @@ func drive_player() -> bool:
 		var fwd := Vector3(-sin(d.yaw), 0.0, -cos(d.yaw))
 		_follow(d.pos - fwd * 9.0, d.yaw, maxf(d.v, 3.0))
 		return true
-	return false
+	return has_target()
 
 
 func _start_ghost() -> void:
