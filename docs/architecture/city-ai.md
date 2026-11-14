@@ -19,6 +19,7 @@ traffic.gd      every AI car: one Driver per car on the graph, drawn as one Mult
      │    └─ police/     beehave trees that only move a unit's car (5 Hz, ticked by hand)
      ├─ buses.gd         buses on traffic's BUS pool, sent to stops (send_to_stop / let_go)
      ├─ crazy_drivers.gd voices for traffic's crazy racer-mode cars
+     │    └─ crazy_route.gd  their fares: a RaceSession each, the racers' driver to a junction 0.6-1.5 km off
      ├─ crash_scenes.gd  two parked cars and a police car on a main road ahead
      └─ loud_cars.gd     a supercar meet parked by the road
 trams.gd, tram_fleet.gd, old_tram.gd   trams on the baked rails, same lights as cars
@@ -117,8 +118,8 @@ skill, not from the player's speed. Built so far (steps 1 to 4a of 8):
   (step 6b part 1b): a plan, a racing line, shortcuts and lights each, and no report. The
   autopilot's ghost and Halina's roll-up behind the car before the first race (`call_first`)
   still go by metres (no plan), and only the ladder races and the final have a report. The
-  police chasers drive it too, on a session of their own (step 6b part 2, section 4); the crazy
-  drivers are step 6b-3.
+  police chasers drive it too, on a session of their own (step 6b part 2, section 4), and so do
+  the crazy drivers, a session each to their fares (step 6b part 3, `crazy_route.gd`).
 
 Still to come: RaceDriver (passing, contact and recovery are the old rail car's; its pass over
 the centre line, `_race_pass`, minds only the oncoming lanes it uses and how fast the two cars

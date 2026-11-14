@@ -34,6 +34,7 @@ profiles and never makes a rival wait.
 | Race | `game/scripts/rivals.gd` | the challenge, the words, the cards, the pay, the ghost, the player's checkpoints, the rival's car (the mechanics are the session's) | 4, 6 |
 | Pack race | `game/scripts/street_meet.gd`, `ladder.gd` `CLUB` | the night club's race: who comes onto the road when, and the eight club profiles | 6.2 |
 | Police chase | `game/scripts/police/chase_route.gd`, `ladder.gd` `POLICE` | the chasers' way to the player (replan, goal, the chase's session) and their numbers; the top is `police.chase_top()` | 6.3 |
+| Crazy drivers | `game/scripts/crazy_route.gd`, `ladder.gd` `CRAZY`, `traffic.gd` `CRAZY_TOP` / `CRAZY_OVER` | the taxis', couriers' and Pasatini's fares across town (a session each) and their numbers; the top and the cap over the limit are traffic.gd's | 6.4 |
 | Lights | `game/scripts/race_signals.gd` | what the car shows; changes no driving | 6.1 |
 | Result card | `game/scripts/race_report.gd`, `hud.gd` `set_card_art` | both routes and what decided the race | 6.1 |
 | Bench | `game/tools/race_bench.gd`, `check_race_bench.gd`, `tools/race_bench.sh`, `game/data/race_bench.json` | the marks every change is held against | 7 |
@@ -90,6 +91,15 @@ old driver's, the fast player's escape within 15 %). The first try, 10 / 9 / 12.
 the Powiśle course. **Chase keeps off** must stay a pass: no chaser overlaps the player's car or
 is in front of it. Race-ai.md 6.3 has the table.
 
+**The crazy drivers have `ladder.gd` `CRAZY`** (taxi, courier, Pasatini: one profile each, the
+same keys). To make them **wilder**: raise `block` (0.5 / 0.5 / 0.75), the Pasatini's `mistake`
+(0.15) or `CRAZY_OVER` in traffic.gd (the cap over a road's limit, ×1.35 / ×1.3 / ×1.6). To make
+them **tamer**: lower the same. For pace move `lat` (10 / 9 / 12) and `race_accel` (3.2 / 3.0 /
+4.0), a little at a time; the top stays `CRAZY_TOP`, applied after the plan's speed. **Crazy
+pace** (mean speed x1.0 to x1.1 of the old driver's on clear roads) and **Crazy stays crazy**
+(with a player every kind still cuts in or blocks near it, every crazy reaches a fare) guard it.
+Race-ai.md 6.4 has the table.
+
 ### 3.2 Effort and the race (`race_session.gd`)
 
 | Constant | Value | Meaning |
@@ -119,6 +129,7 @@ is in front of it. Race-ai.md 6.3 has the table.
 | Held up (lights only) | `HELD_GAP` 14 m, `HELD_SLOWER` 3 m/s | when "behind a slower car" counts for the headlight flash |
 | Limits | `RACE_GRIP_MOST` 19 | never over the player's car |
 | Police chasers | `_chase_end_speed`, `_on_carriageway` | a chaser's line ends at the slowest way on from its goal junction at its grip (the player's next turn is not known); its look at the player is 4 m wide as before, or anywhere on its own carriageway when it is on its line (a line may pick another lane than the player's). It still keeps `CHASE_GAP` behind and never passes or rams |
+| Crazy fares | `crazy_route.gd` `FARE_NEAR` 600 m, `FARE_FAR` 1500 m, `AHEAD` 1.2 rad, `NEXT_AT` 150 m, `FARE_LATE` 240 s, `MAX_COST` 2000 m, `SLICE` 40, `FARE_SEED` 2031 | a fare is a junction 600 to 1500 m off, roughly ahead, in the strongly connected part of the map and inside the band's area, drawn from its own generator; the next is picked with less than 150 m left; one not reached in 240 s or unreachable is dropped. `CRAZY_TOP`, `CRAZY_OVER` (traffic.gd) are the top and the cap over the limit |
 
 ### 3.4 The route (`race_planner.gd`)
 
@@ -152,9 +163,9 @@ picture only, the report's lines go to the log).
 ## 4. How to test a change
 
 1. **The fast checks** (seconds; all in CI's quick group):
-   `tools/verify.sh --only=ladder,raceline,raceplanner,racecuts,racesignals,racereport,first10,racebench,meet,police`
-2. **The quick bench** (41 races, under a minute): `tools/race_bench.sh --quick`.
-3. **The full bench before and after** (416 races, about 26 minutes with `--jobs=3`):
+   `tools/verify.sh --only=ladder,raceline,raceplanner,racecuts,racesignals,racereport,first10,racebench,meet,police,crazy`
+2. **The quick bench** (42 races, under a minute): `tools/race_bench.sh --quick`.
+3. **The full bench before and after** (488 races, about 30 minutes with `--jobs=3`):
    run it on main first (`--out=before`), then on the change with
    `--against=build/race_bench/before.json`. Report the marks and which races' times moved.
    One race: `tools/race_bench.sh --only=TEXT --trace`.
@@ -174,7 +185,7 @@ picture only, the report's lines go to the log).
 The marks, in one line each (full text in race-ai.md 7.3): Finishes, Independence (the one
 rule), No crawl, Passes traffic, No ghosting, Re-routes, Recovers, Honest car (never over the
 player's car), Route sense, Skill ladder, Ladder curve, Told apart, Yard links, Wrong-way hops
-(and in traffic), Pack order, Pack in traffic, Chase keeps off, Chase balance, Same race twice. The state of each is in race-ai.md 7.4.
+(and in traffic), Pack order, Pack in traffic, Chase keeps off, Chase balance, Crazy pace, Crazy stays crazy, Same race twice. The state of each is in race-ai.md 7.4.
 
 ## 5. Traps
 
@@ -192,10 +203,16 @@ player's car), Route sense, Skill ladder, Ladder curve, Told apart, Yard links, 
   never finishes.
 - **Do not edit game files while a bench runs**: it reads the working tree.
 - **Deliberate-break runs rewrite source files**: run nothing else at the same time.
-- **The crazy drivers** do not use the plan, the links, the lights or the report yet (step
-  6b-3). The pack race, Trzy mosty and the police chasers do (the pack and the chasers have no
-  report, the chasers no lights and no shortcuts). The police's search, escort, blockers and
-  roadblocks still drive the old way, with no plan.
+- **Every race mode drives the planned driver** (step 6b is done). The pack race, Trzy mosty, the
+  police chasers and the crazy drivers do (the pack, the chasers and the crazies have no report;
+  the chasers and the crazies no lights; the chasers no shortcuts). The police's search, escort,
+  blockers and roadblocks still drive the old way, with no plan.
+- **The planner's link cache must be warmed off the frame.** `race_planner.gd` caches each link's
+  curve, bend speeds and drive time (`warm_link`); the first meeting of a long yard link cost 1.2
+  to 2.7 ms in one frame. `crazy_route.gd` warms every link at setup (the load) or in slices of
+  under 1 ms a frame; a new planner user that skips it brings the spike back.
+- **A fare is picked from its own generator** (`FARE_SEED`). Drawing it from traffic.gd's `_rng`
+  or `_crazy_rng` moves every other car's draw and every race in traffic with it.
 - **`race_to` resets the car's way.** A chaser is therefore sent again only when its goal junction
   changes (`RaceSession.retarget`); sent every replan, it twitches between lanes once a second.
   A fresh plan is searched in slices, one chaser a frame, and the car goes by the metres until the

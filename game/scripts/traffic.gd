@@ -770,6 +770,10 @@ signal bumped_police(d: Driver, speed: float)
 ## Loop 3g-1: a police car came into the band (a patrol) or left it (any police car).
 signal police_spawned(d: Driver)
 signal police_released(d: Driver)
+## Racer AI step 6b part 3: a crazy driver came into the band (or the race bench made one,
+## `add_crazy`) or left it (crazy_drivers.gd's fares, crazy_route.gd, join and leave).
+signal crazy_spawned(d: Driver)
+signal crazy_released(d: Driver)
 ## The night-buses loop: a bus sent to a stop (send_to_stop) stands there now, pulled in; and
 ## one let go (its stand over) drives on.
 signal bus_halted(d: Driver)
@@ -1402,16 +1406,62 @@ func _try_spawn(anywhere: bool) -> bool:
 			d.paint = Color(PASAT_PAINT[_crazy_rng.randi() % PASAT_PAINT.size()])
 	_start(d, e, lane, s)
 	if crazy > 0:
-		# After _start (which clears a pooled car's racer stats): racer mode with no route.
-		d.race_top = CRAZY_TOP[crazy]
-		d.race_accel = CRAZY_ACCEL[crazy]
-		d.race_lat = CRAZY_LAT[crazy]
-		d.race_block = CRAZY_BLOCK[crazy]
-		d.race_mistake = CRAZY_MISTAKE[crazy]
-		d.race_effort = 1.0
-		d.race_corner = 1.0
+		_crazy_stats(d)
 	d.v = graph.e_speed[e] * 0.6
+	if crazy > 0:
+		crazy_spawned.emit(d)
 	return true
+
+
+## A crazy driver's racer mode with no route (CRAZY_* above), after _start (which clears a pooled
+## car's racer stats). Step 6b part 3: crazy_route.gd arms it with its ladder.gd CRAZY profile at its
+## first fare (RaceSession `start`).
+func _crazy_stats(d: Driver) -> void:
+	d.race_top = CRAZY_TOP[d.crazy]
+	d.race_accel = CRAZY_ACCEL[d.crazy]
+	d.race_lat = CRAZY_LAT[d.crazy]
+	d.race_block = CRAZY_BLOCK[d.crazy]
+	d.race_mistake = CRAZY_MISTAKE[d.crazy]
+	d.race_effort = 1.0
+	d.race_corner = 1.0
+
+
+## Racer AI step 6b part 3, for the race bench (`crazy` races): a crazy driver of kind `crazy`
+## (CRAZY_*: 1 a taxi, 2 a courier's van, 3 the Pasatini) on lane (e, lane) at s, standing, out of
+## the pool as the band makes one (the city taxi's shape, the panel van, TAXI_PASAT), never drawn by
+## the band's own generators; null if the pool has no car of its kind. Not persistent: the caller
+## decides.
+func add_crazy(e: int, lane: int, s: float, crazy: int) -> Driver:
+	var kind := Kind.VAN if crazy == 2 else Kind.TAXI
+	if crazy < 1 or crazy > 3 or _free.is_empty() or _free_slots[kind].is_empty():
+		return null
+	var d: Driver = _free.pop_back()
+	d.kind = kind
+	d.slot = _free_slots[kind][_free_slots[kind].size() - 1]
+	_free_slots[kind].resize(_free_slots[kind].size() - 1)
+	_counts[kind] += 1
+	var shape := Models.TAXI_PASAT if crazy == 3 else 0
+	var look: Dictionary = Models.TRAFFIC[kind][shape]
+	d.size = look["size"]
+	d.length = d.size.z
+	d.shape = shape
+	d.paint = Color(PASAT_PAINT[0] if crazy == 3 else look["paint"][0])
+	d.speed_factor = 1.0
+	d.accel_factor = 1.3
+	d.loud = false
+	d.persistent = false
+	d.ghost = false
+	d.node = null
+	d.core_only = false
+	d.crazy = crazy
+	crazy_count += 1
+	if crazy == 3:
+		pasat_count += 1
+	_start(d, e, lane, s)
+	_crazy_stats(d)
+	d.v = 0.0
+	crazy_spawned.emit(d)
+	return d
 
 
 ## Puts a driver on a lane and into the active list.
@@ -1506,6 +1556,7 @@ func _release(d: Driver) -> void:
 		d.loud = false
 		loud_count -= 1
 	if d.crazy > 0:
+		crazy_released.emit(d)
 		crazy_count -= 1
 		if d.crazy == 3:
 			pasat_count -= 1
@@ -2204,12 +2255,13 @@ func _choose_way(d: Driver) -> void:
 	var rev := graph.e_reverse[e]
 	var here := graph.direction(e, graph.e_s1[e])
 	var best := -1
-	if d.plan != null and not d.route.is_empty() and (not d.chase or d.plan.step(e, 0)):
+	if d.plan != null and not d.route.is_empty() and (not (d.chase or d.crazy > 0) or d.plan.step(e, 0)):
 		# A racer with a plan: the quickest way on for it (docs/design/race-ai.md 5). It holds the
 		# way it chose for this street unless another saves Plan.SWITCH_GAIN s, and a wrong turn
 		# once taken is taken. (Step 6b part 2: a police chaser's plan is made anew whenever the
 		# player's street moves on and searched a slice a frame; until it knows this street the
-		# chaser goes by the metres below, never the whole search in one frame.)
+		# chaser goes by the metres below, never the whole search in one frame. Step 6b part 3: a
+		# crazy driver's for each fare the same way.)
 		if d.wrong_edge == e and d.next_edge >= 0 and not d.on_cut:
 			best = d.next_edge
 		else:
@@ -2312,16 +2364,17 @@ func _choose_way(d: Driver) -> void:
 	d.conn_pace = 1.0
 	var arc := d.conn_len
 	var hairpin := false
-	if d.race_accel > 0.0 and not d.route.is_empty() and (not d.chase or d.plan != null):
+	if d.race_accel > 0.0 and not d.route.is_empty() and (not (d.chase or d.crazy > 0) or d.plan != null):
 		# A racer drives a tight curve as the arc a car can turn (RACE_TURN_RADIUS), and a hairpin
 		# as a U-turn; so does a police chaser on the racers' driver (step 6b part 2: one with a
-		# plan). One without a plan (the search, the escort) takes the curve as it is.
+		# plan). One without a plan (the search, the escort) takes the curve as it is; so does a
+		# crazy driver without a plan (step 6b part 3: one with a plan, on its fare, drives the arc).
 		arc = race_turn_length(d.conn_len, turn)
 		d.conn_pace = d.conn_len / arc
 		hairpin = best != rev and turn > RACE_HAIRPIN
 	if hairpin:
 		d.v_turn = UTURN_SPEED
-	elif d.race_accel > 0.0 and best != rev and not d.route.is_empty():
+	elif d.race_accel > 0.0 and best != rev and not d.route.is_empty() and d.crazy == 0:
 		# Effort works on grip too: behind, it takes the corners harder (F: "catch up by driving
 		# better, not by a speed boost").
 		d.v_turn = race_turn_speed(arc, turn, d.race_lat * clampf(d.race_corner, GRIP_EFFORT_LEAST, GRIP_EFFORT_MOST))
@@ -2331,9 +2384,10 @@ func _choose_way(d: Driver) -> void:
 			# Human rivals: too fast into this one; out wide on the far side (_enter_edge).
 			d.v_turn *= MISTAKE_FAST
 			d.mistake_side = _outside(e, best)
-	if d.crazy > 0 and best != rev:
-		# Crazy drivers: racer corners, and the Pasatini now and then too fast into one (seen).
-		d.v_turn = race_turn_speed(d.conn_len, turn, d.race_lat)
+	if d.crazy > 0 and best != rev and not hairpin:
+		# Crazy drivers: racer corners, and the Pasatini now and then too fast into one (seen). (The
+		# curve as it is without a plan, `arc` is its length; with one, the arc a car can turn.)
+		d.v_turn = race_turn_speed(arc, turn, d.race_lat)
 		if d.race_mistake > 0.0 and turn > 0.6 and Vector2(player_pos.x - d.pos.x, player_pos.z - d.pos.z).length() < MISTAKE_NEAR \
 				and _crazy_rng.randf() < d.race_mistake:
 			d.v_turn *= MISTAKE_FAST
@@ -4368,10 +4422,10 @@ func _place(d: Driver) -> void:
 # --- the racing line (LINE_* above) ----------------------------------------------------------------
 
 ## Whether driver d drives a racing line: a racer with a plan in a race, a police chaser with
-## one too (step 6b part 2; not a crazy driver or the autopilot's).
+## one too (step 6b part 2), a crazy driver on a fare (step 6b part 3; not the autopilot's).
 static func lined(d) -> bool:
 	return d.plan != null and d.race_accel > 0.0 and d.race_lat > 0.0 and not d.route.is_empty() \
-			and d.crazy == 0 and not d.ghost
+			and not d.ghost
 
 
 ## The lane graph's metres of driver d's place along its line.
@@ -4613,10 +4667,11 @@ func _line_speeds(d: Driver) -> void:
 		_line.speeds(d.line, d.line_grip, brake, at - LINE_FAST, at + d.conn_len + LINE_FAST, MISTAKE_FAST, RACE_GRIP_MOST)
 	else:
 		_line.speeds(d.line, d.line_grip, brake)
-	if d.chase and d.line_full:
+	if (d.chase or d.crazy > 0) and d.line_full:
 		# Step 6b part 2: a police chaser's line ends at its goal, the end of the player's street,
 		# which is no finish: it comes to that junction at the speed of its tightest way on (the
 		# player's next turn is not known yet), not flat out into a turn it then cannot brake for.
+		# Step 6b part 3: so does a crazy driver's at its fare (its way on is the next fare's).
 		_line.end_speed(d.line, _chase_end_speed(d), brake)
 
 

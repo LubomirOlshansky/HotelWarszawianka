@@ -39,6 +39,9 @@ const FollowCamera := preload("res://scripts/follow_camera.gd")
 const Police := preload("res://scripts/police.gd")
 const PoliceUnit := preload("res://scripts/police/police_unit.gd")
 const ChaseRoute := preload("res://scripts/police/chase_route.gd")
+## Racer AI step 6b part 3: the crazy drivers' fares and voice.
+const CrazyRoute := preload("res://scripts/crazy_route.gd")
+const CrazyDrivers := preload("res://scripts/crazy_drivers.gd")
 
 ## The game's frame and the race's ranking tick (rivals.gd `_track`: 5 times a second).
 const DT := 1.0 / 60.0
@@ -158,6 +161,24 @@ const CHASE_AT := [10.0, 20.0, 30.0, 45.0]
 const CHASE_FIT_AT := [20.0, 30.0]
 const CHASE_GAP_TIE := 12.0
 const CHASE_ESCAPE_TIE := 0.15
+## Racer AI step 6b part 3, the crazy drivers (`crazy`): a crazy driver alone in a town for
+## CRAZY_TIME s from three spawns (the starts of the courses above: Powiśle's twisty streets by
+## Leszczyńska, the avenue from the map's spawn, Tamka), with no player or with the average one
+## driving its own course (from CRAZY_BEHIND m behind the crazy driver to the course's finish),
+## `old` (no plan, as before the step) and `new` (on the racers' driver). The Crazy pace mark holds
+## new against old on clear roads (`crazy_pace`): the mean speed's ratio, its median over the
+## spawns with and without the player, not under 1 and within CRAZY_SPEED_TIE over it; the cut-ins
+## near the player not fewer than CRAZY_CUT_TIE under the old's a race (the median over the spawns).
+const CRAZY_SPAWNS := {
+	"powisle": {"start": "leszczynska", "finish": "Plac Trzech Krzyży"},
+	"avenue": {"start": "spawn", "finish": "Pałac Kultury i Nauki"},
+	"tamka": {"start": "tamka", "finish": "Plac Trzech Krzyży"},
+}
+const CRAZY_PLAYERS := ["none", "average"]
+const CRAZY_TIME := 180.0
+const CRAZY_BEHIND := 30.0
+const CRAZY_SPEED_TIE := 0.1
+const CRAZY_CUT_TIE := 1
 const ROUTES := {
 	"dobra": [Vector2(292.0, -471.0), Vector2(477.0, -210.0)],
 	"topiel": [Vector2(114.0, -430.0)],
@@ -306,6 +327,10 @@ class Probe:
 	## ahead within FREE_AHEAD m anywhere across the road (QUARRY_SIDE m to either side) its road is
 	## not free (it holds behind the player in whichever lane, police_unit.gd CHASE_GAP).
 	var quarry := false
+	## Step 6b part 3: the car is a crazy driver of this kind (traffic.gd CRAZY_*): the road's speed
+	## it is held to (the crawl line, a slower car) is its own, the road's limit times CRAZY_OVER
+	## under CRAZY_TOP, not a racer's (0: a racer's).
+	var crazy := 0
 	var overlap_log: Array = []
 	var slips := 0
 	var slips_seen := 0
@@ -433,7 +458,7 @@ class Probe:
 			usec_most_t = t
 		if traffic.last_usec > SLOW_STEP:
 			slow_steps += 1
-		var road_top: float = minf(PLAYER_TOP, Traffic.RACE_CLASS_TOP[graph.e_class[d.edge]])
+		var road_top := _road_top(d.edge)
 		if dead:
 			_dead_t = t
 		elif _dead_t >= 0.0 and (t - _dead_t > DEAD_AWAY or gv >= CRAWL_SHARE * road_top):
@@ -447,7 +472,10 @@ class Probe:
 		pz.append(p.z)
 		# (Out of the town's cars it is in the traffic it does not see: no free road to crawl on.)
 		# (Nor is its road free while it gives way to a car that crosses it at a junction.)
-		flag.append((FREE if _free and pace >= 0.999 and d.cross_gap >= FREE_AHEAD else 0) | (HELD if held or d.held or d.daze > 0.0 or d.stun > 0.0 else 0) | (CONN if d.in_conn else 0)
+		# (Step 6b part 3: a crazy driver stops for a red as a town car does: a red light ahead within
+		# its braking and FREE_AHEAD m holds it, and its road is not free.)
+		var red_free: bool = crazy == 0 or d.in_conn or traffic._red_ahead(d) > FREE_AHEAD + d.v * d.v / (2.0 * Traffic.DECEL)
+		flag.append((FREE if _free and red_free and pace >= 0.999 and d.cross_gap >= FREE_AHEAD else 0) | (HELD if held or d.held or d.daze > 0.0 or d.stun > 0.0 else 0) | (CONN if d.in_conn else 0)
 				| (DEAD if dead else 0) | (AWAY if _dead_t >= 0.0 else 0))
 
 	## The cars round the rival (every other frame): a car in its box, the car it sits behind,
@@ -455,7 +483,7 @@ class Probe:
 	func _scan(t: float, traffic: Node3D, ghost, player_live: bool) -> void:
 		var fwd := Vector2(-sin(d.yaw), -cos(d.yaw))
 		var here := Vector2(d.pos.x, d.pos.z)
-		var road_top: float = minf(PLAYER_TOP, Traffic.RACE_CLASS_TOP[graph.e_class[d.edge]])
+		var road_top := _road_top(d.edge)
 		_free = true
 		var hop := -1
 		if d.hop_go and d.in_conn:
@@ -597,6 +625,13 @@ class Probe:
 				return true
 		return false
 
+	## The road's racing speed on edge e under the player's car's top (a crazy driver's: its own).
+	func _road_top(e: int) -> float:
+		var top: float = minf(PLAYER_TOP, Traffic.RACE_CLASS_TOP[graph.e_class[e]])
+		if crazy > 0:
+			top = minf(top, minf(Traffic.CRAZY_TOP[crazy], graph.e_speed[e] * Traffic.CRAZY_OVER[crazy]))
+		return top
+
 	func _street(e: int) -> String:
 		var n: String = graph.e_name[e]
 		return n if n != "" else "an unnamed link"
@@ -726,6 +761,9 @@ static func rival_index(name: String) -> int:
 static func race_id(spec: Dictionary) -> String:
 	if spec.get("tuning", "") == "chase":
 		return "chase/%s/%s/%s/%s/%d" % [spec.get("mode", "new"), spec.get("course", ""), spec.get("situation", "clear"), spec.get("player", "average"), int(spec.get("chasers", 1))]
+	if spec.get("tuning", "") == "crazy":
+		var sit := String(spec.get("situation", "clear")) + ("-s%d" % int(spec["seed"]) if int(spec.get("seed", 0)) != 0 else "")
+		return "crazy%d/%s/%s/%s/%s" % [int(spec.get("crazy", 1)), spec.get("mode", "new"), spec.get("spawn", ""), sit, spec.get("player", "none")]
 	if spec.get("tuning", "") == "pack":
 		return "club/pack/%s/%s/%s" % [spec.get("start_name", PACK_START), spec.get("situation", "clear"), spec.get("player", "none")]
 	var rung := Ladder.rung_of(String(spec["rival"]))
@@ -1602,6 +1640,165 @@ func chase(spec: Dictionary) -> Array:
 	return outs
 
 
+## Racer AI step 6b part 3, the crazy drivers (CRAZY_SPAWNS above): one crazy driver of kind
+## `crazy` (traffic.gd CRAZY_*: 1 the taxi, 2 the courier, 3 the Pasatini) alone in a town (no other
+## crazy driver), CRAZY_TIME s from a spawn, with its fares and its voice as the game has them
+## (crazy_drivers.gd, crazy_route.gd), the view on it (the band of town cars round it, as in the
+## game, where a crazy driver out of the view is gone). A row, as `race` gives one, its id
+## crazy<k>/<old|new>/<spawn>/<situation>/<player>, its tuning "crazy" (no finisher: Finishes and the
+## marks of a finish leave it out). `spec`: crazy, mode ("old": no plan, as before the step; "new":
+## on the racers' driver), spawn, situation (a SITUATIONS key without a wall, a wreck or a parked
+## car), player ("none", or "average" driving its own course from CRAZY_BEHIND m behind the crazy
+## driver's start to the spawn's finish). What it did, beside the usual: cut_ins (crazy_drivers.gd's
+## count: its blocks and cut-ins within CUT_NEAR m of the player), reds_run (stop lines crossed on a
+## red), fares (reached) and fares_dropped, and the crazy drivers' own script work a frame
+## (crazy_drivers.gd `_process`: the fares, the plan slices and the voice; crazy_most_ms,
+## crazy_median_ms).
+func crazy(spec: Dictionary) -> Dictionary:
+	var wall0 := Time.get_ticks_msec()
+	error = ""
+	var kind := int(spec.get("crazy", 1))
+	var mode := String(spec.get("mode", "new"))
+	var spawn := String(spec.get("spawn", ""))
+	var situation := String(spec.get("situation", "clear"))
+	var who := String(spec.get("player", "none"))
+	var c: Dictionary = CRAZY_SPAWNS.get(spawn, {})
+	var sit: Dictionary = SITUATIONS.get(situation, {})
+	var fin := finish(String(c.get("finish", "")))
+	if c.is_empty() or sit.is_empty() or sit.has("wall") or sit.has("wreck") or sit.has("hop_car") or not who in CRAZY_PLAYERS \
+			or kind < 1 or kind > 3 or not mode in ["old", "new"] or fin.is_empty():
+		error = "%s: unknown or unfit crazy driver, mode, spawn, situation or player" % race_id(spec)
+		return {"id": race_id(spec), "error": error}
+	var plain := roads_to(fin["node"])
+	var places := grid(STARTS[c["start"]], plain, false)
+	if places.is_empty():
+		error = "%s: no lane near the start" % race_id(spec)
+		return {"id": race_id(spec), "error": error}
+	var at: Array = places["car"]
+
+	graph.clock = 0.0
+	var cam := Camera3D.new()
+	cam.projection = Camera3D.PROJECTION_ORTHOGONAL
+	cam.size = FollowCamera.DEFAULT_SIZE
+	_root.add_child(cam)
+	var traffic: Node3D = Traffic.new()
+	_root.add_child(traffic)
+	traffic.setup(graph, _map, cam, {})
+	traffic.set_process(false)
+	traffic.set_physics_process(false)
+	# Alone: the band makes no crazy driver of its own.
+	traffic.crazy_target = 0
+	var level := int(sit.get("traffic", -1))
+	traffic.spawning = level >= 0
+	if level >= 0:
+		traffic.density = float(Settings.TRAFFIC[level])
+	if int(spec.get("seed", 0)) != 0:
+		traffic._rng.seed = 2026 + int(spec["seed"])
+	# The fares (crazy_route.gd, with the bench's planner and shortcuts) and the voice that counts the
+	# cut-ins near the player (crazy_drivers.gd, driven by hand: no sound, no lines).
+	var route := CrazyRoute.new()
+	route.setup(graph, traffic, planner, cuts)
+	route.planned = mode == "new"
+	var voice := CrazyDrivers.new()
+	voice.traffic = traffic
+	voice.set_process(false)
+	voice.setup_route(route)
+	voice.log_on = spec.get("trace", false)
+	var ghost = null
+	if who != "none":
+		var back: Array = Rivals.lane_behind(graph, at[0], at[1], at[2], CRAZY_BEHIND)
+		ghost = traffic.add_ghost(back[0], back[1], back[2])
+		ghost.held = true
+	var d = traffic.add_crazy(at[0], at[1], at[2], kind)
+	if d == null:
+		error = "%s: no car of its kind in the pool" % race_id(spec)
+		voice.free()
+		traffic.free()
+		cam.free()
+		return {"id": race_id(spec), "error": error}
+	# Kept by the band whatever (the view is on it anyway).
+	d.persistent = true
+	d.held = true
+	var probe := Probe.new()
+	probe.graph = graph
+	probe.d = d
+	probe.crazy = kind
+	var out := {"id": race_id(spec), "rival": "crazy%d" % kind, "tuning": "crazy", "mode": mode, "crazy": kind, "spawn": spawn,
+			"start": String(c["start"]), "situation": situation, "player": who, "seed": int(spec.get("seed", 0)), "finished": false,
+			"time": 0.0, "hold_s": 0.0}
+	var t := -LEAD_IN
+	var started := false
+	var spent := PackedInt32Array()
+	var reds := 0
+	var red_edge := -1
+	var red_at := -1.0
+	var next_trace := 0.0
+	while t < CRAZY_TIME:
+		if ghost != null:
+			traffic.player_on_road = true
+			traffic.player_pos = ghost.pos
+			traffic.player_vel = Vector3(-sin(ghost.yaw), 0.0, -cos(ghost.yaw)) * ghost.v
+		else:
+			traffic.player_on_road = false
+			traffic.player_pos = d.pos + Vector3(5000.0, 0.0, 0.0)
+			traffic.player_vel = Vector3.ZERO
+		_look(cam, d.pos)
+		if not started and t >= 0.0:
+			started = true
+			t = 0.0
+			d.held = false
+			if ghost != null:
+				_arm_player(traffic, ghost, who, fin["node"], plain, plain, {})
+		if started:
+			var u0 := Time.get_ticks_usec()
+			voice._process(DT)
+			spent.append(Time.get_ticks_usec() - u0)
+		traffic._process(DT)
+		t += DT
+		if not started:
+			continue
+		probe.sample(t, traffic, ghost, false, ghost != null)
+		# A red run: the first stop line ahead showed red, and the car is past it (on the street, or
+		# into the junction's curve).
+		if red_at >= 0.0 and d.edge == red_edge and (d.in_conn or d.s + d.length * 0.5 > red_at + 0.2):
+			reds += 1
+			red_at = -1.0
+		if not d.in_conn:
+			red_at = -1.0
+			var stops := graph.e_stops[d.edge]
+			var front: float = d.s + d.length * 0.5
+			for k in range(0, stops.size(), 3):
+				if stops[k] < front - 0.2:
+					continue
+				if graph.light(int(stops[k + 1]), int(stops[k + 2])) == LaneGraph.RED:
+					red_edge = d.edge
+					red_at = stops[k]
+				break
+		if spec.get("trace", false) and t >= next_trace:
+			next_trace += 1.0
+			var ride = route.ride_of(d)
+			print("  trace %s: t %.0f s · %.1f m/s on %s e%d lane %d%s · plan %s line %s · fare %s · player %.0f m" % [
+					out["id"], t, d.v, probe._street(d.edge), d.edge, d.lane, " (curve)" if d.in_conn else "", d.plan != null, d.line != null,
+					("%d (%.0f m)" % [ride.fare, traffic.remaining(d)]) if ride != null and ride.fare >= 0 else "none",
+					Vector2(ghost.pos.x - d.pos.x, ghost.pos.z - d.pos.z).length() if ghost != null else -1.0])
+	out["time"] = snappedf(t, 0.01)
+	_fill(out, probe, d, RaceSession.Racer.new(), null, 0, 0, 0.0, t)
+	var ride = route.ride_of(d)
+	out["cut_ins"] = voice.cuts
+	out["reds_run"] = reds
+	out["fares"] = ride.reached if ride != null else 0
+	out["fares_dropped"] = route.dropped
+	var sorted := spent.duplicate()
+	sorted.sort()
+	out["crazy_most_ms"] = snappedf(float(sorted[sorted.size() - 1]) / 1000.0 if not sorted.is_empty() else 0.0, 0.001)
+	out["crazy_median_ms"] = snappedf(float(sorted[sorted.size() / 2]) / 1000.0 if not sorted.is_empty() else 0.0, 0.001)
+	out["wall_ms"] = Time.get_ticks_msec() - wall0
+	voice.free()
+	traffic.free()
+	cam.free()
+	return out
+
+
 ## What a racer did in a race (`race`, `pack`), from its Probe into the race's row `out`: the
 ## time's company (winner, metres left, speeds, crawls, contacts, the car's limits, lights, the
 ## plan's clock, the streets and the seconds on each). `t` is the race time it was last sampled at.
@@ -1751,8 +1948,17 @@ static func judge(results: Array) -> Array:
 	# Honest car) and by their own two; the old driver's are only the reference of Chase balance.
 	var chases: Array = []
 	var chased: Array = []
+	# Step 6b part 3: the crazy drivers' rows (`crazy`) are no races either: the new driver's counted
+	# by the same four marks, all of them by their own two.
+	var crazies: Array = []
+	var crazed: Array = []
 	for r: Dictionary in results:
 		if r.has("error"):
+			continue
+		if r.get("tuning", "") == "crazy":
+			crazies.append(r)
+			if r.get("mode", "") == "new":
+				crazed.append(r)
 			continue
 		if r.get("tuning", "") == "chase":
 			chases.append(r)
@@ -1881,7 +2087,7 @@ static func judge(results: Array) -> Array:
 	# No crawl.
 	var crawl := -1.0
 	worst = ""
-	for r: Dictionary in by_id.values() + chased:
+	for r: Dictionary in by_id.values() + chased + crazed:
 		if float(r["crawl_longest_s"]) > crawl:
 			crawl = float(r["crawl_longest_s"])
 			worst = r["id"]
@@ -1909,12 +2115,12 @@ static func judge(results: Array) -> Array:
 	var through := 0
 	var through_s := 0.0
 	worst = ""
-	for r: Dictionary in by_id.values() + chased:
+	for r: Dictionary in by_id.values() + chased + crazed:
 		through += int(r["overlaps"])
 		through_s += float(r["overlap_s"])
 		if int(r["overlaps"]) > 0 and worst == "":
 			worst = r["id"]
-	out.append(_mark("no_ghosting", "No ghosting", through == 0 if not by_id.is_empty() or not chased.is_empty() else null,
+	out.append(_mark("no_ghosting", "No ghosting", through == 0 if not by_id.is_empty() or not chased.is_empty() or not crazed.is_empty() else null,
 			"drove through %d cars (%.1f s inside one; %.2f s or more counts)%s" % [through, through_s, GHOST_MIN, _by_draw(by_id, ["overlaps"])], worst, traffic))
 
 	# Re-routes: the blocked street, against the same race on clear roads.
@@ -1947,7 +2153,7 @@ static func judge(results: Array) -> Array:
 	var recovered := 0
 	worst = ""
 	note = ""
-	for r: Dictionary in by_id.values() + chased:
+	for r: Dictionary in by_id.values() + chased + crazed:
 		moved += int(r["slips_seen"]) + int(r["jumps_seen"])
 		if int(r["slips_seen"]) + int(r["jumps_seen"]) > 0 and worst == "":
 			worst = r["id"]
@@ -1966,7 +2172,7 @@ static func judge(results: Array) -> Array:
 			elif note == "":
 				worst = r["id"]
 				note = "the wreck and the knock cost %s%.1f s, %d cars driven through (allowed %.0f s and none)" % ["" if r["finished"] else "the race: ", _run(r) - _run(base), int(r["overlaps"]), RECOVER_LOSS]
-	out.append(_mark("recovers", "Recovers", (moved == 0 and recovered == crashes) if not by_id.is_empty() or not chased.is_empty() else null,
+	out.append(_mark("recovers", "Recovers", (moved == 0 and recovered == crashes) if not by_id.is_empty() or not chased.is_empty() or not crazed.is_empty() else null,
 			"moved by the game in view %d times%s; %d of %d crashes recovered%s" % [moved, _by_draw(by_id, ["slips_seen", "jumps_seen"]), recovered, crashes, "; " + note if note != "" else ""], worst, traffic))
 
 	# Honest car: the player's car's limits (top speed, pull, sideways grip, brakes).
@@ -1977,7 +2183,7 @@ static func judge(results: Array) -> Array:
 	var honest := true
 	worst = ""
 	note = ""
-	for r: Dictionary in by_id.values() + chased:
+	for r: Dictionary in by_id.values() + chased + crazed:
 		if float(r["top_kmh"]) > PLAYER_TOP * 3.6 * 1.02 or float(r["accel_max"]) > PLAYER_ACCEL + 0.5 or float(r["lat_max"]) > PLAYER_GRIP or int(r["hard_stops"]) > 0:
 			honest = false
 			if worst == "":
@@ -1990,7 +2196,7 @@ static func judge(results: Array) -> Array:
 			note = String(r["lat_at"])
 			if grip > PLAYER_GRIP:
 				worst = r["id"]
-	out.append(_mark("honest_car", "Honest car", honest if not by_id.is_empty() or not chased.is_empty() else null,
+	out.append(_mark("honest_car", "Honest car", honest if not by_id.is_empty() or not chased.is_empty() or not crazed.is_empty() else null,
 			"top %.0f km/h (the car's %.0f), pull %.1f m/s² (%.0f), sideways %.1f m/s² (%.0f): %s; stopped dead by the game %d times (its brakes: %.0f m/s²)%s" % [
 			top, PLAYER_TOP * 3.6, pull, PLAYER_ACCEL, grip, PLAYER_GRIP, note, dead, PLAYER_BRAKE, _by_draw(by_id, ["hard_stops"])], worst, traffic))
 
@@ -2282,6 +2488,42 @@ static func judge(results: Array) -> Array:
 	var balance := chase_balance(chases)
 	out.append(_mark("chase_balance", "Chase balance", balance["pass"], balance["value"], balance["worst"]))
 
+	# Crazy pace (racer AI step 6b part 3): on clear roads the new crazy driver gets about town and
+	# cuts in near the player as the old one did (`crazy_pace`).
+	var pace := crazy_pace(crazies)
+	out.append(_mark("crazy_pace", "Crazy pace", pace["pass"], pace["value"], pace["worst"]))
+	# Crazy stays crazy: with a player about, every kind cuts in or blocks near it at least once over
+	# its spawns; every new crazy driver on clear roads reaches a fare, and in traffic every kind at
+	# least one over its spawns (a fare 1.5 km off in Busy traffic can take longer than the race).
+	var cut_by := {}
+	var fare_by := {}
+	var no_fare := 0
+	var crazy_traffic := false
+	worst = ""
+	for r: Dictionary in crazed:
+		var k := int(r["crazy"])
+		if _in_traffic(r):
+			crazy_traffic = true
+			fare_by[k] = int(fare_by.get(k, 0)) + int(r["fares"])
+		elif int(r["fares"]) < 1:
+			no_fare += 1
+			if worst == "":
+				worst = r["id"]
+		if r["player"] != "none":
+			cut_by[k] = int(cut_by.get(k, 0)) + int(r["cut_ins"])
+	var tame := PackedStringArray()
+	for k: int in cut_by:
+		if int(cut_by[k]) < 1:
+			tame.append("crazy%d" % k)
+	var stuck := PackedStringArray()
+	for k: int in fare_by:
+		if int(fare_by[k]) < 1:
+			stuck.append("crazy%d" % k)
+	out.append(_mark("crazy_stays", "Crazy stays crazy", (tame.is_empty() and stuck.is_empty() and no_fare == 0) if not cut_by.is_empty() else null,
+			"cut-ins and blocks near the player by kind %s; on clear roads %d crazy drivers on the racers' driver never reached a fare; in traffic fares by kind %s%s%s" % [
+			cut_by, no_fare, fare_by, "; never near the player: " + ", ".join(tame) if not tame.is_empty() else "",
+			"; no fare in traffic: " + ", ".join(stuck) if not stuck.is_empty() else ""], worst, crazy_traffic))
+
 	# The same race twice.
 	var same := 0
 	worst = ""
@@ -2294,6 +2536,66 @@ static func judge(results: Array) -> Array:
 	out.append(_mark("same_twice", "Same race twice", same == repeats.size() if not repeats.is_empty() else null,
 			"%d of %d repeated races came out the same" % [same, repeats.size()], worst))
 	return out
+
+
+## Crazy pace (CRAZY_SPEED_TIE, CRAZY_CUT_TIE above): the crazy drivers' rows on clear roads, new
+## against old in the same race. For each kind, over its spawns with and without the player: the
+## median of the new's mean speed over the old's between 1 and 1 + CRAZY_SPEED_TIE (one race's
+## ratio is the luck of the way: the old one wanders where the new one drives to a fare); with the
+## player, the median over the spawns of the cut-ins near it, new less old, at least -CRAZY_CUT_TIE.
+## {pass (null without a pair), value, worst, table (a line per pair, old / new)}.
+static func crazy_pace(rows: Array) -> Dictionary:
+	var pairs := {}
+	for r: Dictionary in rows:
+		if r["situation"] != "clear":
+			continue
+		var key := "%d/%s/%s" % [int(r["crazy"]), r["player"], r["spawn"]]
+		if not pairs.has(key):
+			pairs[key] = {}
+		pairs[key][r["mode"]] = r
+	var groups := {}
+	var table := PackedStringArray()
+	for key: String in pairs:
+		var p: Dictionary = pairs[key]
+		if not p.has("old") or not p.has("new"):
+			continue
+		var o: Dictionary = p["old"]
+		var w: Dictionary = p["new"]
+		var group := key.get_slice("/", 0)
+		if not groups.has(group):
+			groups[group] = {"ratios": [], "cuts": [], "spawns": []}
+		var ratio := float(w["mean_kmh"]) / maxf(float(o["mean_kmh"]), 0.1)
+		groups[group]["ratios"].append(ratio)
+		groups[group]["spawns"].append(key.get_slice("/", 1) + "/" + key.get_slice("/", 2))
+		if o["player"] != "none":
+			groups[group]["cuts"].append(int(w["cut_ins"]) - int(o["cut_ins"]))
+		table.append("crazy%s: %.1f / %.1f km/h (x%.2f), %.0f / %.0f m, cut-ins near the player %d / %d, reds run %d / %d, fares %d / %d, stood %.0f / %.0f s, sideways %.1f / %.1f m/s², script %.2f / %.2f ms at most, %.3f / %.3f median" % [
+				key, o["mean_kmh"], w["mean_kmh"], ratio, o["driven_m"], w["driven_m"], o["cut_ins"], w["cut_ins"], o["reds_run"], w["reds_run"],
+				o["fares"], w["fares"], o["stopped_s"], w["stopped_s"], o["lat_max"], w["lat_max"], o["crazy_most_ms"], w["crazy_most_ms"], o["crazy_median_ms"], w["crazy_median_ms"]])
+	if groups.is_empty():
+		return {"pass": null, "value": "no crazy driver raced old and new on clear roads", "worst": "", "table": table}
+	var ok := true
+	var worst := ""
+	var notes := PackedStringArray()
+	for group: String in groups:
+		var g: Dictionary = groups[group]
+		var ratios: Array = g["ratios"].duplicate()
+		ratios.sort()
+		var mid: float = ratios[ratios.size() / 2] if ratios.size() % 2 == 1 else (float(ratios[ratios.size() / 2 - 1]) + float(ratios[ratios.size() / 2])) * 0.5
+		var bad := mid < 1.0 or mid > 1.0 + CRAZY_SPEED_TIE
+		var cut_mid := 0.0
+		if not g["cuts"].is_empty():
+			var cuts: Array = g["cuts"].duplicate()
+			cuts.sort()
+			cut_mid = float(cuts[cuts.size() / 2]) if cuts.size() % 2 == 1 else (float(cuts[cuts.size() / 2 - 1]) + float(cuts[cuts.size() / 2])) * 0.5
+			bad = bad or cut_mid < -CRAZY_CUT_TIE
+		notes.append("crazy%s speed x%.2f (%s)%s" % [group, mid, ", ".join(PackedStringArray(g["ratios"].map(func(v): return "%.2f" % v))),
+				", cut-ins %+.1f" % cut_mid if not g["cuts"].is_empty() else ""])
+		if bad:
+			ok = false
+			if worst == "":
+				worst = "crazy" + group
+	return {"pass": ok, "value": "new against old on clear roads, the median over the spawns: " + "; ".join(notes), "worst": worst, "table": table}
 
 
 ## Chase balance (CHASE_FIT_AT, CHASE_GAP_TIE, CHASE_ESCAPE_TIE above): the police chase's rows on

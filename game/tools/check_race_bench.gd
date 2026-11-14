@@ -177,6 +177,12 @@ func _run() -> void:
 		print("\n  The police chase, old / new on clear roads:")
 		for line in table:
 			print("    " + line)
+	# Racer AI step 6b part 3: the crazy drivers, old against new on clear roads, a line a pair.
+	var crazy_table: PackedStringArray = RaceBench.crazy_pace(_results.filter(func(r: Dictionary) -> bool: return r.get("tuning", "") == "crazy" and not r.has("error")))["table"]
+	if not crazy_table.is_empty():
+		print("\n  The crazy drivers, old / new on clear roads:")
+		for line in crazy_table:
+			print("    " + line)
 	for r: Dictionary in _results:
 		if r.has("error"):
 			_problems.append(String(r["error"]))
@@ -232,6 +238,7 @@ func _matrix(full: bool) -> Array:
 	if not full:
 		out.append_array(_pack_matrix(false))
 		out.append_array(_chase_matrix(false))
+		out.append_array(_crazy_matrix(false))
 		return out
 	# Route sense in traffic: the free choice from Leszczyńska is in the loop below.
 	for route: String in RaceBench.ROUTES:
@@ -337,6 +344,8 @@ func _matrix(full: bool) -> Array:
 	out.append_array(_pack_matrix(true))
 	# Racer AI step 6b part 2: the police chase, old and new (after the pack, for the same reason).
 	out.append_array(_chase_matrix(true))
+	# Racer AI step 6b part 3: the crazy drivers, old and new (after the chase, for the same reason).
+	out.append_array(_crazy_matrix(true))
 	return out
 
 
@@ -365,6 +374,24 @@ func _chase_matrix(full: bool) -> Array:
 				for n in [1, 2]:
 					for mode: String in ["old", "new"]:
 						out.append({"rival": "chase", "tuning": "chase", "mode": mode, "course": course, "situation": situation, "player": player, "chasers": n})
+	return out
+
+
+## The crazy drivers (RaceBench `crazy`: a row a race). Quick: the taxi on the racers' driver with
+## the average player on clear roads from the avenue (the spawn where the two meet). Full: every kind, spawn, clear roads and Busy traffic, no
+## player and the average one, the old driver and the new.
+func _crazy_matrix(full: bool) -> Array:
+	var out: Array = []
+	var spawns: Array = RaceBench.CRAZY_SPAWNS.keys()
+	if not full:
+		out.append({"rival": "crazy", "tuning": "crazy", "crazy": 1, "mode": "new", "spawn": "avenue", "situation": "clear", "player": "average"})
+		return out
+	for kind in [1, 2, 3]:
+		for spawn: String in spawns:
+			for situation: String in ["clear", "heavy"]:
+				for player: String in RaceBench.CRAZY_PLAYERS:
+					for mode: String in ["old", "new"]:
+						out.append({"rival": "crazy", "tuning": "crazy", "crazy": kind, "mode": mode, "spawn": spawn, "situation": situation, "player": player})
 	return out
 
 
@@ -400,6 +427,8 @@ func _race(spec: Dictionary) -> bool:
 		for row: Dictionary in _bench.chase(spec):
 			all = _row(row, spec) and all
 		return all
+	if spec.get("tuning", "") == "crazy":
+		return _row(_bench.crazy(spec), spec)
 	if spec.get("tuning", "") == "pack":
 		# The pack: a row per racer, each printed as a race.
 		var ok := true
@@ -466,6 +495,9 @@ func _row(r: Dictionary, spec: Dictionary) -> bool:
 				",".join(PackedStringArray(r["gap_m"].map(func(v): return "%.0f" % v))), ",".join(PackedStringArray(r["road_gap_m"].map(func(v): return "%.0f" % v))),
 				",".join(PackedStringArray(RaceBench.CHASE_AT.map(func(v): return "%.0f" % v))), r["closest_m"],
 				"escaped at %.1f s" % r["escape_s"] if float(r["escape_s"]) >= 0.0 else "no escape", r["rams"], r["ahead"], r["chase_most_ms"], r["chase_median_ms"]])
+	if r.get("tuning", "") == "crazy":
+		extras.append("%d cut-ins near the player, %d reds run, %d fares (%d dropped), the crazy drivers' script %.2f ms at most a frame, %.3f median" % [
+				r["cut_ins"], r["reds_run"], r["fares"], r["fares_dropped"], r["crazy_most_ms"], r["crazy_median_ms"]])
 	if r.has("session_most_usec"):
 		extras.append("place %d · the session's work %.2f ms at most in a frame, %.1f ms at the start" % [int(r.get("place", 0)), float(r["session_most_usec"]) / 1000.0, float(r["session_start_usec"]) / 1000.0])
 	if _before.has(r["id"]):

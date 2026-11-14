@@ -11,6 +11,16 @@ extends Node
 ## reaction window, the car struggling, the car off screen) no longer spends that car's one line:
 ## the cut stays pending for PENDING s and the line comes as soon as the budget lets it while the
 ## car is on screen within SPEAK_NEAR m.
+## Racer AI step 6b part 3: this node owns their fares too (`route`, crazy_route.gd): each crazy
+## driver drives the racers' driver to a junction it picks (a plan, the racing line, honest braking,
+## the reroutes), ticked every frame here (`_process`: a fare's search, a send or a slice of one
+## plan a frame; the voice keeps its 4 Hz tick). Here and not in traffic.gd: the fares are the crazy
+## drivers' own game (traffic.gd keeps the driving, and a crazy driver without a ride wanders as
+## before: the race bench's `old`, a run without this node).
+
+const CrazyRoute := preload("res://scripts/crazy_route.gd")
+const RaceCuts := preload("res://scripts/race_cuts.gd")
+const RacePlanner := preload("res://scripts/race_planner.gd")
 
 ## A cut-in or block counts within this of the player's car (m).
 const CUT_NEAR := 25.0
@@ -30,6 +40,9 @@ var traffic: Node
 var sfx: Node
 var dialogue: Node
 var radio: Node
+## The crazy drivers' fares (null until `setup_route`, which _ready calls with a planner and the
+## city's shortcuts of its own when the owner has not).
+var route: CrazyRoute
 ## -> Vector3: the view's focus.
 var focus: Callable
 var log_on := false
@@ -40,6 +53,9 @@ var horns := 0
 var radio_lines := 0
 ## Cuts whose line never came (the budget kept refusing for PENDING s, or the car left).
 var lost_lines := 0
+## Racer AI step 6b part 3: the microseconds this node's frames took in all (the fares and the voice;
+## the frame bench's "crazy drivers").
+var spent_usec := 0
 
 var _t := 0.0
 ## Driver -> [blocks, race_passes] last tick; Driver -> true once it has spoken.
@@ -50,12 +66,38 @@ var _pending := {}
 var _radio_wait := 0.0
 
 
+func _ready() -> void:
+	if route == null and traffic != null and traffic.graph != null:
+		var cuts := RaceCuts.new()
+		cuts.load_cuts(traffic.graph)
+		var r := CrazyRoute.new()
+		r.setup(traffic.graph, traffic, RacePlanner.new(traffic.graph), cuts)
+		setup_route(r)
+
+
+## The fares' owner `r` (crazy_route.gd, set up): joined to the traffic's crazy drivers (those there
+## now, and each one it makes or lets go from now on) and to their reroutes.
+func setup_route(r: CrazyRoute) -> void:
+	route = r
+	route.log_line = _log
+	traffic.crazy_spawned.connect(route.join)
+	traffic.crazy_released.connect(route.leave)
+	traffic.turned_back.connect(func(d) -> void: route.turned_back(d))
+	traffic.hop_refused.connect(func(d) -> void: route.hop_refused(d))
+	for d in traffic.drivers():
+		if d.crazy > 0:
+			route.join(d)
+
+
 func _process(dt: float) -> void:
+	var u0 := Time.get_ticks_usec()
+	if route != null:
+		route.frame(dt)
 	_t += dt
-	if _t < TICK:
-		return
-	step(_t)
-	_t = 0.0
+	if _t >= TICK:
+		step(_t)
+		_t = 0.0
+	spent_usec += Time.get_ticks_usec() - u0
 
 
 ## One tick of `dt` seconds.
