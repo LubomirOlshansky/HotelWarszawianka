@@ -18644,6 +18644,173 @@ func _build_katedra_polowa(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The Capuchin church (Kościół Przemienienia Pańskiego, ul. Miodowa 13, Kapucyni, 1683-1692 by
+## Tylman van Gameren, front 1750s by Jakub Fontana, rebuilt after 1944): the whole church as a model
+## that replaces the old kit church (`church_kapucyni`, built by `_build_church` until 2026-11-14)
+## and the LoD2 mass inside the outline. From F's Commons photo of the front and the long wall
+## (top-50 set, 100-kosciol-kapucynow-exterior-2), Mapillary 360 views of the front and the OSM
+## outline (29 points, 21.7 m wide, 31 m deep). Spec docs/landmarks/specs/kapucyni.md.
+## Warm cream plaster, a salmon-pink front pavilion, green copper:
+## - the front: a narrow pavilion in salmon with two pairs of cream pilasters, an arched window
+##   with a stone balcony over the portal, an inscription band, an entablature and a triangular
+##   pediment with a pedestal and a cross, urn finials on its feet; a landing with steps and
+##   balustrades in front;
+## - two low cream wings either side with a cornice and a scroll up to the pavilion, a statue on
+##   a pedestal on the right one;
+## - the nave behind: cream walls with tall arched windows over a lower aisle, a hipped green
+##   copper roof with an iron cross; aisles and the sacristy as one low mass with a cornice.
+## Frame: origin at the front's east end, u across (+u to the viewer's right), +v out to Miodowa;
+## the main wall stands at v = 0.8 and the pilasters 1.0 m out of it.
+const KAP_O := Vector2(-958.7, -1428.0)
+const KAP_A := Vector2(-0.7275, -0.6861)
+const KAP_C := 10.85                   ## the front's mirror axis (u)
+const KAP_WALL := Color("#ecdfb4")     ## the warm cream plaster of the body
+const KAP_TRIM := Color("#e8d6aa")     ## pilasters, cornices, surrounds
+const KAP_PINK := Color("#d8806a")     ## the salmon front
+const KAP_INSCR := Color("#e4c3a6")    ## the inscription band on the frieze
+const KAP_BASE := Color("#b9b2a2")     ## steps, plinth, balustrades
+const KAP_ROOF := Color("#76a592")     ## the pale green copper of the roofs
+
+
+## An iron cross (staff and arm) standing on y.
+func _kap_cross(u: float, v: float, y: float, h: float) -> void:
+	_lbox(u, v, 0.07, 0.07, y, y + h, PAL_IRON, M_STONE, PAL_IRON)
+	_lbox(u, v, 0.45, 0.07, y + h * 0.62, y + h * 0.62 + 0.12, PAL_IRON, M_STONE, PAL_IRON)
+
+
+## A gable roof whose ridge runs along v (the pavilion's): `_gable` in the swapped frame.
+func _kap_gable(vf: float, vb: float, cu: float, hu: float, y: float, h: float, face: Color) -> void:
+	var ka := _a
+	var kb := _b
+	_a = kb
+	_b = ka
+	_gable(vf, vb, cu, hu, y, h, face, KAP_ROOF, false)
+	_a = ka
+	_b = kb
+
+
+func _build_kapucyni(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	_g = _ground_under(outline)
+	var g := _g
+	var c := KAP_C
+	var f := 0.8
+	var none := Color(0, 0, 0, 0)
+	_mode = M_STONE
+	kit_front(KAP_O, KAP_O + KAP_A * 10.0)
+	# --- the low mass: the whole footprint (aisles, wings, sacristy, apse) with a straight front
+	var low := PackedVector2Array()
+	for p: Vector2 in outline:
+		var l := _local(p)
+		if l.y > -0.5:
+			l.y = 0.0
+		var w := _w(l.x, l.y)
+		if low.is_empty() or low[low.size() - 1].distance_to(w) > 0.05:
+			low.append(w)
+	var plinth := _largest(Geometry2D.offset_polygon(low, 0.25, Geometry2D.JOIN_MITER))
+	_prism(plinth, g - 0.6, g + 1.0, KAP_BASE, none, M_STONE, M_STONE)
+	_prism(low, g + 0.9, g + 7.4, KAP_WALL, KAP_ROOF, M_STONE, M_STONE)
+	_prism(_largest(Geometry2D.offset_polygon(low, 0.35, Geometry2D.JOIN_MITER)), g + 7.0, g + 7.5, KAP_TRIM, KAP_ROOF, M_STONE, M_STONE)
+	# --- the nave: cream walls to the eaves, the hipped copper roof, the cornice
+	_lbox(c, -16.0, 9.35, 13.5, g + 7.4, g + 12.5, KAP_WALL, M_STONE, KAP_WALL)
+	_prism(_rect(c, -16.0, 9.75, 13.9), g + 12.4, g + 12.9, KAP_TRIM, none, M_STONE, M_STONE)
+	_hip(c, -16.0, 9.85, 14.0, g + 12.9, 5.0, KAP_ROOF)
+	_kap_cross(c, -19.5, g + 17.8, 2.4)
+	# --- the two wings and the pavilion block
+	for sg: float in [-1.0, 1.0]:
+		var wu := c + sg * 7.9
+		_lbox(wu, -2.0, 4.95, 2.2, g + 7.4, g + 8.4, KAP_WALL, M_STONE, KAP_ROOF)
+	_lbox(c, -3.0, 4.85, 3.9, g + 7.4, g + 11.7, KAP_WALL, M_STONE, none)
+	_kap_gable(f - 0.05, -9.0, c, 4.95, g + 11.6, 3.3, KAP_PINK)
+	# --- the front: landing, steps, balustrades
+	kit_face(f)
+	kit_ledge(c - 6.1, c + 6.1, g - 0.2, 1.3, KAP_BASE, 2.2)
+	kit_cornice(c - 6.1, c + 6.1, g + 1.1, KAP_BASE.lightened(0.05), 0.25, 2.45)
+	for k in 4:
+		kit_ledge(c - 3.4 - 0.1 * k, c + 3.4 + 0.1 * k, g - 0.2, 0.3 + 0.3 * float(3 - k), KAP_BASE, 2.2 + 0.55 * float(k + 1))
+	for sg1: float in [-1.0, 1.0]:
+		var ub := c + sg1 * 5.3
+		_kbox(ub - 0.18, ub + 0.18, f + 0.2, f + 2.35, g + 1.35, g + 2.3, KAP_BASE.lightened(0.04))
+		var uc := c + sg1 * 3.75
+		_kbox(uc - 0.12, uc + 0.12, f + 2.2, f + 3.65, g + 0.6, g + 1.5, KAP_BASE)
+		for pu: float in [3.9, 4.4, 4.9]:
+			_kbox(c + sg1 * pu - 0.05, c + sg1 * pu + 0.05, f + 2.2, f + 2.3, g + 1.35, g + 2.2, KAP_BASE.lightened(0.1))
+	# --- the pavilion's front: pink fields, two pairs of pilasters, portal, window, entablature
+	_kbox(c - 4.85, c + 4.85, f - 0.05, f + 0.05, g + 1.1, g + 10.0, KAP_PINK)
+	for sg2: float in [-1.0, 1.0]:
+		for pu2: float in [2.3, 4.15]:
+			var u := c + sg2 * pu2
+			_kbox(u - 0.55, u + 0.55, f - 0.04, f + 0.55, g + 1.1, g + 2.4, KAP_TRIM.darkened(0.04))
+			kit_pilaster(u, g + 2.4, g + 10.0, KAP_TRIM, 0.85, 0.5)
+		_kbox(c + sg2 * 3.2 - 0.3, c + sg2 * 3.2 + 0.3, f - 0.04, f + 0.12, g + 3.0, g + 8.2, KAP_PINK.darkened(0.08))
+	kit_ledge(c - 4.9, c + 4.9, g + 10.0, 0.65, KAP_TRIM, 0.7)
+	_kbox(c - 4.0, c + 4.0, f + 0.3, f + 0.38, g + 10.65, g + 11.35, KAP_INSCR)
+	kit_cornice(c - 4.85, c + 4.85, g + 11.9, KAP_TRIM, 0.45, 1.1)
+	kit_door(c, g + 1.1, 3.4, 1.0, KAP_TRIM, PAL_OAK, false)
+	kit_window(c, g + 5.7, 3.9, Win.ARCHED, KAP_TRIM, PAL_GLASS_DARK, 0.95)
+	kit_balcony(c, g + 5.7, 1.2, Balcony.STONE, KAP_TRIM, KAP_TRIM, 0.7)
+	# the pediment: salmon field, stone raking cornice, a cartouche, urns on its feet, the cross
+	kit_pediment(c, 4.6, g + 12.35, 3.1, KAP_PINK, KAP_TRIM.darkened(0.05), 0.75, KAP_PINK.darkened(0.1))
+	var cart := _w(c, f + 0.8)
+	_disc(Vector3(cart.x, g + 13.9, cart.y), Vector3(_b.x, 0.0, _b.y), 0.5, 8, KAP_TRIM)
+	_kbox(c - 0.55, c + 0.55, f - 0.5, f + 0.2, g + 15.25, g + 16.1, KAP_TRIM)
+	_kbox(c - 0.35, c + 0.35, f - 0.35, f + 0.05, g + 16.1, g + 17.0, KAP_TRIM)
+	_kap_cross(c, f - 0.15, g + 17.0, 2.1)
+	for sg3: float in [-1.0, 1.0]:
+		var ur := _w(c + sg3 * 4.9, f + 0.4)
+		_lbox(c + sg3 * 4.9, f + 0.4, 0.35, 0.35, g + 12.4, g + 13.3, KAP_TRIM)
+		_frustum(_circle(ur, 0.2, 6), g + 13.3, _circle(ur, 0.45, 6), g + 14.2, KAP_TRIM)
+		_prism(_circle(ur, 0.12, 6), g + 14.2, g + 14.7, KAP_TRIM, KAP_TRIM, M_STONE, M_STONE)
+	# --- the wings: cream plinth line, door or niche, cornice, the scroll up to the pavilion
+	kit_face(0.0)
+	for sg4: float in [-1.0, 1.0]:
+		var lo := minf(c + sg4 * 4.85, c + sg4 * 10.85)
+		var hi := maxf(c + sg4 * 4.85, c + sg4 * 10.85)
+		var uw := c + sg4 * 8.1
+		kit_cornice(lo, hi, g + 8.4, KAP_TRIM, 0.4, 0.8)
+		kit_window(uw, g + 3.4, 2.4, Win.ARCHED, KAP_TRIM, PAL_GLASS_DARK, 0.7)
+		for sv: Array in [[4.85, 5.7, 11.3], [5.7, 6.6, 10.3], [6.6, 7.5, 9.5]]:
+			var va := c + sg4 * float(sv[0])
+			var vb := c + sg4 * float(sv[1])
+			_kbox(minf(va, vb), maxf(va, vb), -0.3, 1.0, g + 8.8, g + float(sv[2]), KAP_TRIM)
+	# the statue on its pedestal on the wing to the right of the pavilion
+	var sp := _w(c + 7.0, 0.1)
+	_lbox(c + 7.0, 0.1, 0.5, 0.5, g + 8.5, g + 10.0, KAP_TRIM)
+	_frustum(_circle(sp, 0.42, 6), g + 10.0, _circle(sp, 0.25, 6), g + 12.0, PAL_GREY_STONE)
+	_prism(_circle(sp, 0.2, 6), g + 12.0, g + 12.5, PAL_GREY_STONE, PAL_GREY_STONE, M_STONE, M_STONE)
+	# --- the long walls: aisle windows and the nave's tall arched windows, east and west
+	var e0 := _w(c - 9.35, -29.5)  # the nave's wall ends, read before the frame moves
+	var e1 := _w(c - 9.35, -2.5)
+	var w0 := _w(c + 9.35, -2.5)
+	var w1 := _w(c + 9.35, -29.5)
+	var b0 := _w(c + 9.35, -29.5)
+	var b1 := _w(c - 9.35, -29.5)
+	var side := func(from: Vector2, to: Vector2) -> void:
+		var wl := kit_front(from, to)
+		kit_face(0.0)
+		for k in 4:
+			var vu := wl * (0.14 + 0.24 * float(k))
+			kit_window(vu, g + 8.4, 3.3, Win.ARCHED, KAP_TRIM, PAL_GLASS_DARK, 0.8)
+		for k2 in 5:
+			kit_pilaster(wl * (0.04 + 0.23 * float(k2)), g + 8.0, g + 12.0, KAP_TRIM, 0.7, 0.2)
+	side.call(e0, e1)
+	side.call(w0, w1)
+	# the aisle walls: low windows round the footprint's long straight stretches
+	var aisle := func(from: Vector2, to: Vector2) -> void:
+		var wl := kit_front(from, to)
+		kit_face(0.0)
+		var n := int(wl / 6.2)
+		for k in n:
+			kit_window(wl * (float(k) + 0.5) / float(n), g + 2.2, 3.2, Win.ARCHED, KAP_TRIM, PAL_GLASS_DARK, 0.7)
+		kit_ledge(0.0, wl, g + 1.0, 0.3, KAP_BASE, 0.15)
+	aisle.call(outline[13], outline[12])
+	# --- the back wall of the nave: two arched windows under the cornice
+	var back := kit_front(b0, b1)
+	kit_face(0.0)
+	kit_window(back * 0.5, g + 8.6, 3.4, Win.ARCHED, KAP_TRIM, PAL_GLASS_DARK, 1.0)
+	_collide(outline)
+
+
 ## The Church of the Holiest Saviour (Kościół Najświętszego Zbawiciela; Józef Dziekoński and
 ## Józef Piotrowski, 1901-1911) on the south side of Plac Zbawiciela, its front to the north,
 ## to the square. Rebuilt 2026-11-13 from F's ten photos (front, both obliques, the side with the
@@ -28820,6 +28987,9 @@ func _church_spec(key: String) -> Dictionary:
 func _build_church(site: Dictionary) -> void:
 	if site["key"] == "church_katedra_polowa":
 		_build_katedra_polowa(site)  # the whole cathedral from photos, not the kit church
+		return
+	if site["key"] == "church_kapucyni":
+		_build_kapucyni(site)  # the whole Capuchin church from photos, not the kit church
 		return
 	var ch := _church_spec(site["key"])
 	if ch.is_empty():

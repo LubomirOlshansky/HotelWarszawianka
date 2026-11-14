@@ -46,7 +46,7 @@ const BUDGET := {
 	"church_dzieciatka": 710,
 	"church_jacek": 920,
 	"church_jerozolimska": 810,
-	"church_kapucyni": 420,
+	"church_kapucyni": 2400,  # 2026-11-14: the whole Capuchin church from photos (measured 2136)
 	"church_karol": 580,
 	"church_katedra_polowa": 3200,  # 2026-11-14: the whole Field Cathedral from photos (measured 2917)
 	"church_miloserdzie": 370,
