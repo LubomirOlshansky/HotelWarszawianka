@@ -56,7 +56,7 @@ Status as of 2026-11-01. "Kit model" = built by the church kit; "model" = its ow
 | Dom zakonny Księży Misjonarzy | monastery | -519, -547 | open: convent or monastery: plain block, a later pass |
 | Kaplica Kościoła Baptystów | chapel | -2255, -359 | model from 8 Commons photos and LoD2 (`church_baptysci`, `_build_baptysci`, spec `baptysci.md`), 2026-11-14: the grey concrete box over a glazed ground floor, the dark cross |
 | Kaplica pw. Matki Boskiej Częstochowskiej (Kościół Chrystusa Króla Pokoju) | church | 1725, -1677 | model from 7 Commons photos and LoD2 (`church_chrystusa_krola`, `_build_chrystusa_krola`, spec `chrystusa_krola.md`), 2026-11-14: the cream chapel on the street with its white tower, the square church behind under a brown pyramid roof and lantern, the parish wings |
-| Kaplica pw. Świętej Barbary | chapel | -1103, 872 | open: small chapel: a later pass |
+| Kaplica pw. Świętej Barbary | chapel | -1103, 872 | model from 2 Commons photos and LoD2 (`church_barbara`, `_build_barbara`, spec `barbara.md`), 2026-11-14: red brick, steep dark roof, gables at both ends, low annex |
 | Katedra polowa Wojska Polskiego Najświętszej Maryi Panny Królowej Polski | church | -1165, -1647 | kit model (`church_katedra_polowa`), 2026-11-01 |
 | Klasztor Ojców Dominikanów | monastery | -961, -1965 | model from LoD2 and a photo (`church_dominikanie`, `_build_dominikanie`, spec `dominikanie.md`), 2026-11-14: the wings round the cloister, the galleries, the east wing down the slope |
 | Klasztor Ojców Kapucynów | monastery | -1003, -1406 | open: convent or monastery: plain block, a later pass |

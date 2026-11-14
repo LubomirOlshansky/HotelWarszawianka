@@ -798,6 +798,7 @@ const INFO := {
 	"church_trojca_praga": ["Kościół Świętej Trójcy na Solcu", "Klasycystyczny kościół z wieżyczką.", "A classicist church with a bell turret."],
 	"church_czestochowska": ["Kościół Matki Bożej Częstochowskiej", "Modernistyczny kościół z dachem do ziemi.", "A modernist church with a roof down to the ground."],
 	"church_zwycieska": ["Kościół Matki Boskiej Zwycięskiej", "Kościół parafialny z dwiema wieżami.", "A parish church with two towers."],
+	"church_barbara": ["Kaplica św. Barbary", "Ceglana kaplica na Koszykach.", "The brick chapel on Koszyki."],
 	"church_baptysci": ["Kościół Baptystów", "Zbór baptystów przy Walicowie.", "The Baptist church on Waliców."],
 	"church_chrystusa_krola": ["Kościół Chrystusa Króla Pokoju", "Kościół pallotynów i kaplica MB Częstochowskiej.", "The Pallottines' church and the Częstochowa chapel."],
 	"church_pallotyni": ["Dom pallotynów", "Modernistyczny dom pallotynów przy Skaryszewskiej.", "The Pallottines' modernist house on Skaryszewska."],
@@ -21539,6 +21540,62 @@ func _build_baptysci(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## St Barbara's chapel (Kaplica pw. św. Barbary, Koszyki, by Sts Peter and Paul on Nowogrodzka /
+## Emilii Plater): a red brick chapel under a steep dark roof with gables at both ends and a low
+## lean annex on its north side. A model that replaces the plain OpenStreetMap block (building
+## 1521; no landmark until 2026-11-14). From two Commons photos (refs/churches/st_barbara_koszyki,
+## reference only, never shipped; trees and the fence hide most of it), the OSM outline and GUGiK's
+## LoD2 (over the ground: the eaves 8.9, the ridge 11.9, the annex 3.2). Spec docs/landmarks/specs/barbara.md.
+## Frame: origin at the outline's centre, u along the chapel, v to its left.
+const SB_O := Vector2(-1102.0, 874.5)
+const SB_A := Vector2(0.342, 0.940)
+const SB_BRICK := Color("#a4553f")     ## the red brick (photos)
+const SB_STONE := Color("#cfc6b4")     ## copings, sills, the plinth
+const SB_ROOF := Color("#4b4d50")      ## the dark roof
+
+
+func _build_barbara(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(SB_O, SB_O + SB_A)
+	_g = _ground_under(outline)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	_mode = M_STONE
+	var body := _rect(0.07, -0.15, 7.63, 4.52)
+	_prism(body, g - 1.0, g + 8.9, SB_BRICK, none, M_STONE)
+	kit_ledge_ring(body, g - 1.0, 1.5, SB_STONE, 0.08)
+	kit_ledge_ring(body, g + 8.6, 0.3, SB_STONE, 0.15)
+	_gable(7.7, -7.56, -0.15, 4.52, g + 8.9, 3.0, SB_BRICK, SB_ROOF, true)
+	_lbox(0.07, 5.92, 7.6, 1.48, g - 1.0, g + 3.2, SB_BRICK, M_STONE, SB_ROOF)
+	# --- the long sides' tall windows, the gable ends' round windows, the door at the west end
+	for e: Array in [[Vector2(7.7, -4.67), Vector2(-7.56, -4.67)], [Vector2(-7.56, 7.4), Vector2(7.7, 7.4)],
+			[Vector2(-7.56, 4.38), Vector2(7.7, 4.38)]]:
+		var p0: Vector2 = e[0]
+		var p1: Vector2 = e[1]
+		kit_front(SB_O, SB_O + SB_A)
+		var ln := kit_front(_w(p0.x, p0.y), _w(p1.x, p1.y))
+		var high := p0.y > 4.0 and p0.y < 5.0
+		var low := p0.y > 7.0
+		var sill := g + (4.4 if high else (0.8 if low else 1.8))
+		var tall := 3.6 if high else (1.8 if low else 3.2)
+		kit_panes([ln * 0.2, ln * 0.5, ln * 0.8], [sill], 1.2, tall, PAL_GLASS_DARK, 0.05)
+		if not low:
+			kit_panes([ln * 0.2, ln * 0.5, ln * 0.8], [sill + tall], 0.7, 0.35, PAL_GLASS_DARK, 0.05)
+	for e: Array in [[Vector2(7.7, 4.38), Vector2(7.7, -4.67)], [Vector2(-7.56, -4.67), Vector2(-7.56, 4.38)]]:
+		var p0: Vector2 = e[0]
+		var p1: Vector2 = e[1]
+		kit_front(SB_O, SB_O + SB_A)
+		var ln := kit_front(_w(p0.x, p0.y), _w(p1.x, p1.y))
+		var c := _w(ln * 0.5, 0.06)
+		_disc(Vector3(c.x, g + 9.9, c.y), Vector3(_b.x, 0.0, _b.y), 0.8, 8, PAL_GLASS_DARK)
+		kit_panes([ln * 0.3, ln * 0.7], [g + 2.4], 1.1, 3.6, PAL_GLASS_DARK, 0.05)
+		if p0.x < 0.0:
+			kit_door(ln * 0.5, g, 3.4, 1.0, SB_STONE, Color("#4a3328"), true)
+	kit_front(SB_O, SB_O + SB_A)
+	_kap_cross(-7.7, -0.15, g + 11.9, 1.2)
+	_collide(outline)
+
+
 ## The Nożyk Synagogue (Synagoga Nożyków, ul. Twarda 6; Karol and Leandro Marconi, 1898-1902;
 ## burnt 1944, rebuilt 1977-1983; Warsaw's only pre-war synagogue still standing), a cream
 ## neo-Romanesque house of prayer in its courtyard south of Plac Grzybowski. The whole building as
@@ -32910,6 +32967,8 @@ const CHURCHES := [
 			"fill": 0.8, "style": "baroque", "wall": "#e6d4a6", "roof": "#97594a", "towers": 0, "cap": "none"},
 	{"key": "church_rodziny_maryi", "at": Vector2(-2617.0, -739.0), "o": Vector2(-2625.3, -761.4), "out": Vector2(-0.356, -0.934), "L": 13.5, "W": 49.4,
 			"fill": 0.9, "style": "neoclassical", "wall": "#e6c2a2", "roof": "#4d5257", "towers": 0, "cap": "none"},
+	{"key": "church_barbara", "at": Vector2(-1102.0, 874.5), "o": Vector2(-1100.2, 865.8), "out": Vector2(0.940, -0.342), "L": 15.3, "W": 9.0,
+			"fill": 0.9, "style": "neogothic", "wall": "#a4553f", "roof": "#4b4d50", "towers": 0, "cap": "none"},
 	{"key": "church_baptysci", "at": Vector2(-2254.2, -355.1), "o": Vector2(-2251.1, -369.6), "out": Vector2(0.964, -0.265), "L": 24.0, "W": 20.0,
 			"fill": 0.9, "style": "modern", "wall": "#d6d4cc", "roof": "#9a978f", "towers": 0, "cap": "none"},
 	{"key": "church_chrystusa_krola", "at": Vector2(1729.0, -1673.0), "o": Vector2(1715.0, -1688.0), "out": Vector2(-0.607, -0.795), "L": 20.0, "W": 12.0,
@@ -32995,6 +33054,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_czestochowska":
 		_build_czestochowska(site)  # the modernist A-frame church and its pylons, from photos
+		return
+	if site["key"] == "church_barbara":
+		_build_barbara(site)  # St Barbara's brick chapel on Koszyki, from photos and LoD2
 		return
 	if site["key"] == "church_baptysci":
 		_build_baptysci(site)  # the Baptists' modernist box on Waliców, from photos
