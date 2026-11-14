@@ -972,7 +972,7 @@ func _hit(p: Parked, xf: Transform3D, v: Vector2) -> void:
 	var speed := v.length()
 	var d := -n
 	var give := into * Solidity.PUSH_SHARE
-	if _room(p, d, Solidity.push_slide(give) + CAST_SPARE) < Solidity.PUSH_WEDGED:
+	if _room(p, d, cast_reach(give)) < Solidity.PUSH_WEDGED:
 		_wall(p)
 		wedges += 1
 		return
@@ -993,6 +993,12 @@ func _hit(p: Parked, xf: Transform3D, v: Vector2) -> void:
 	pushed.emit(p.id, at, Vector3(d.x, 0.0, d.y), speed)
 	if contacts != null and contacts.has_method("soft_touch"):
 		contacts.soft_touch("parked", at, rad_to_deg(asin(clampf(into / maxf(speed, 0.001), 0.0, 1.0))), 1)
+
+
+## How far a push at `speed` m/s may take a car (m): past the friction stop by CAST_SPARE (a player who
+## keeps pushing), and as far as the lane rule may lengthen the slide (braking REST_BRAKE_LEAST).
+static func cast_reach(speed: float) -> float:
+	return maxf(Solidity.push_slide(speed) + CAST_SPARE, speed * speed / (2.0 * REST_BRAKE_LEAST))
 
 
 ## How far parked car `p` can slide along `d` (up to `want` m): one cast of its box against the
@@ -1208,7 +1214,7 @@ func _push_on(q: Parked, p: Parked) -> void:
 		p.speed = 0.0
 		return
 	var give := into * Solidity.PUSH_SHARE
-	if _room(q, -n, Solidity.push_slide(give) + CAST_SPARE) < Solidity.PUSH_WEDGED:
+	if _room(q, -n, cast_reach(give)) < Solidity.PUSH_WEDGED:
 		p.speed = 0.0
 		return
 	p.speed = maxf(p.speed - give, 0.0)
