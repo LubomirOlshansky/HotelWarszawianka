@@ -41,7 +41,11 @@ extends Node
 ## activity itself (`drive_player`: the app's route on a ghost driver); jobs.gd (the kebab and the
 ## słoiki) the first with small pictures on its status line (`status`'s `icons`: the kebab's heat,
 ## the jars) and the one the M and K keys' path was built for (`primary`, `secondary`: the director
-## asks each activity in turn).
+## asks each activity in turn); rivals.gd (the street races) the first whose stages are states of its
+## own on top of the kit's phases (the prompt behind a rival is idle; the challenge to the result is
+## the run), whose challenge waits for another activity's request card beside the road
+## (`request_up`), and whose target the camera does not turn to (`target_source`) and is the main
+## line's at times of its own (`main_target`).
 
 const Beacon := preload("res://scripts/beacon.gd")
 const Access := preload("res://scripts/access.gd")

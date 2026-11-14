@@ -94,6 +94,9 @@
 # request and the run of every kind of order (Na czasie, Limitka, Czwarty, the DESKA call and its
 # match, Mlask, Dżemini, the coffee run), the pay's conditions one at a time, which order comes
 # first, one order over another, the autopilot to every end, the dice draw for draw (CI too).
+# Street races on the kit (2026-11-14): `rivals` runs game/tools/check_rivals.gd: rivals.gd played headless on the real lane graph
+# (the real traffic, the real director, the shared stand-ins): a ladder race won, lost and given up, the result card the race's
+# own, what holds a challenge back, Halina's roll-up, a locked rival, Trzy mosty at night (CI too; skipped without the map).
 # Podwózka on the kit (2026-11-13): `rideplay` runs game/tools/check_ride_play.gd (with --fixed-fps 60 for the
 # autopilot's frames): the real Rides on the stand-ins of tools/fakes.gd, played headless: the settings, the
 # button and what holds a request back, the request card, the way to the passenger, the ride and its stars,
@@ -1301,6 +1304,8 @@ for s in $want; do
 		raceline) check raceline '^race_line:' --script res://tools/check_race_line.gd ;;
 		racebench) check racebench '^check_race_bench:' --script res://tools/check_race_bench.gd ;;
 		raceplanner) check raceplanner '^check_race_planner:' --script res://tools/check_race_planner.gd ;;
+		# The street races on the activity kit (2026-11-14): the real rivals.gd played headless on the real lane graph.
+		rivals) check rivals '^check_rivals:' --script res://tools/check_rivals.gd ;;
 		# Racer AI step 6a: a rival's lights and its own numbers; the result card's report and picture.
 		racesignals) check racesignals '^race_signals:' --script res://tools/check_race_signals.gd ;;
 		racereport) check racereport '^race_report:' --script res://tools/check_race_report.gd ;;
