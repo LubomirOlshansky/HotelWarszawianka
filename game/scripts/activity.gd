@@ -67,6 +67,9 @@ var vehicle: Callable
 var clock: Callable = func() -> float: return 12.0
 ## Nothing else is on (the director sets this when the activity joins it).
 var free_now: Callable = func() -> bool: return true
+## Another activity's request card that leaves the player free is up (`offer_busy` off: Podwózka's,
+## the trend job's). The director sets this too; a rival's challenge waits for it (rivals.gd, PT-15).
+var request_up: Callable = func() -> bool: return false
 ## Testing aid: calls at any hour.
 var force_hours := false
 
@@ -196,6 +199,19 @@ func target_label(metres: int) -> String:
 ## lead by themselves: the minimap keeps the dot, the arrow stays down.
 func target_arrow() -> bool:
 	return true
+
+
+## What main.gd's camera calls a new target (`_new_target`): "race" gets no look at it (a race's
+## finish: the race is on), anything else may get the camera's look while the car is slow.
+func target_source() -> String:
+	return "job"
+
+
+## The target is the main line's now (main.gd `_put_target`: the minimap's star in place of a pin):
+## a side job's while the first minutes' guide runs (`guide`: the first job is the guide's goal).
+## A race says its own (rivals.gd: any race while the guide runs, and the ladder's next rung).
+func main_target(guide: bool) -> bool:
+	return is_job and guide
 
 
 ## The stop assist's spot (main.gd `_stop_assist`): the ring the car glides into.

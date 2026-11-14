@@ -15,7 +15,9 @@ extends RefCounted
 ##   - `job_on()`: one of the side jobs is on (`is_job`: a kebab, the słoiki, a ride, the round-up,
 ##     a trend job), which the rest of the game asked jobs.gd by name before it joined;
 ##   - `primary()`, `secondary()`: the M and K keys (the pad's A and X) go to the activity whose
-##     card takes them.
+##     card takes them;
+##   - `offering()`: a request card that leaves the player free is up (Podwózka's, the trend
+##     job's), each joined activity's `request_up`.
 ## At most one activity of the kit is on at a time.
 ##
 ## Not here yet (they come as more activities join, see tech-debt TD-1): a priority table for
@@ -38,6 +40,7 @@ func add(a: Activity, world := Callable()) -> void:
 	if world.is_valid():
 		_own_world[a] = world
 	a.free_now = may_start.bind(a)
+	a.request_up = offering.bind(a)
 
 
 ## The activity that is on, or null.
@@ -86,6 +89,17 @@ func grounded() -> Array:
 func job_on() -> bool:
 	for a in list:
 		if a.is_job and a.busy():
+			return true
+	return false
+
+
+## A request card that leaves the player free is up: an activity of the kit other than `a` is in
+## its offer with `offer_busy` off (Podwózka's, the trend job's request beside the road). Each
+## joined activity's `request_up`: a rival's challenge waits for it (rivals.gd, PT-15), which
+## asked Podwózka by name before it joined.
+func offering(a: Activity = null) -> bool:
+	for o in list:
+		if o != a and not o.offer_busy and o.phase == Activity.Phase.OFFER:
 			return true
 	return false
 
