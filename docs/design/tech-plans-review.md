@@ -11,8 +11,9 @@ one system for walls and driving: all this technical work, revise the plan and c
 `systems.md`, `extending.md`), `docs/design/city-objects-plan.md` with its two briefs
 (`drivable-city-build.md`, `walls-true-to-life.md`), `docs/design/race-ai.md`, the older road and
 object plans, `docs/QUESTIONS.md`, the ROADMAP's v1.0 checklist. Every number below was counted
-on main `8b2e4f2d` or read from the two open pull requests (#774 the pacing numbers, #776 the
-soft fences), section 7.
+on main `8b2e4f2d` or read from the two pull requests open at the time (#774 the pacing numbers,
+merged later the same day; #776 the soft fences, with the audit's go and not merged yet),
+section 7.
 
 Contents: [1 In short](#1-in-short) · [2 Plan against main](#2-plan-against-main) ·
 [3 Architecture](#3-the-architecture-plan) · [4 City AI](#4-the-city-ai) ·

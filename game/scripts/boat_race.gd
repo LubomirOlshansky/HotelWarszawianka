@@ -72,9 +72,9 @@ const ARRIVE := 9.0
 const PILL_R := 45.0
 
 ## The call: daytime, after FIRST_CALL s of play, then every CALL_COOL s; the card's life.
-const HOURS := [7.0, 22.0]
-const FIRST_CALL := 300.0
-const CALL_COOL := 1500.0
+static var HOURS: Array = Pacer.pair("boat", "hours")
+static var FIRST_CALL: float = Pacer.num("boat", "first_call")
+static var CALL_COOL: float = Pacer.num("boat", "call_cool")
 const CARD_LIFE := 12.0
 const PLAY_LIMIT := 1800.0
 

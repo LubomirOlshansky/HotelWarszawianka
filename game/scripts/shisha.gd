@@ -60,10 +60,12 @@ const ENTRY_OUT := 7.5
 const ENTRY_R := 6.0
 
 ## The quest's hours (any day): from the evening to the small hours.
-const HOURS := Vector2(17.0, 2.0)
+static var HOURS: Vector2 = Pacer.span("shisha", "hours")
 ## Ivan's first call and the next, in free-play seconds.
-const FIRST_CALL := Vector2(240.0, 420.0)
-const NEXT_CALL := Vector2(1500.0, 2400.0)
+static var FIRST_CALL: Vector2 = Pacer.span("shisha", "first_call")
+static var NEXT_CALL: Vector2 = Pacer.span("shisha", "next_call")
+## A call that could not ring tries again this long after (s).
+static var RETRY: float = Pacer.num("shisha", "retry")
 const RING_LIFE := 25.0
 ## Stopping: within these metres of the ring, under STOP_KMH, for HOLD s.
 const PICK_R := 7.0
@@ -278,7 +280,7 @@ func _tick(dt: float) -> void:
 	if phase == Phase.IDLE and auto and _may_call() and open_at(float(clock.call())):
 		call_in -= _due
 		if call_in <= 0.0 and not ring():
-			call_in = 20.0
+			call_in = RETRY
 
 
 ## The kit's session clock is not Ivan's: see `_tick`.

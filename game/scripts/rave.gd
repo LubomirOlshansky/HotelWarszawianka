@@ -113,16 +113,18 @@ const PASSWORDS := ["BETON", "SYRENA", "MGŁA", "TRAMWAJ ZERO", "PRAGA 97", "BAS
 const NIGHT_HOURS := Vector2(22.0, 6.0)
 const NIGHT_DAYS := [4, 5, 6]
 ## LEKTI's window: from the evening to the small hours of a rave night.
-const TEASE_HOURS := Vector2(19.0, 4.0)
+static var TEASE_HOURS: Vector2 = Pacer.span("rave", "tease_hours")
 ## The day rave: Friday to Sunday afternoons (the fixed looks are "always Friday").
 const DAY_HOURS := Vector2(12.0, 20.0)
 const DAY_DAYS := [5, 6, 7]
 
 ## LEKTI: free-play seconds before his first line, then after a declined or finished night.
-const FIRST_TEASE := Vector2(150.0, 300.0)
-const NEXT_TEASE := Vector2(900.0, 1500.0)
+static var FIRST_TEASE: Vector2 = Pacer.span("rave", "first_tease")
+static var NEXT_TEASE: Vector2 = Pacer.span("rave", "next_tease")
 ## Mati rings this long after LEKTI; the ringing card waits RING_LIFE s.
-const CALL_AFTER := Vector2(30.0, 75.0)
+static var CALL_AFTER: Vector2 = Pacer.span("rave", "call_after")
+## A tease or a call that could not ring tries again this long after (s).
+static var RETRY: float = Pacer.num("rave", "retry")
 const RING_LIFE := 25.0
 ## Where Mati waits: a ground road this far from the player.
 const PICK_FROM := 400.0
@@ -667,13 +669,13 @@ func _tick(dt: float) -> void:
 				# (LEKTI first).
 				if next_kind == "smola" and not smola.is_empty():
 					if not ring("smola"):
-						tease_in = 15.0
+						tease_in = RETRY
 				else:
 					tease()
 	elif _free():
 		call_in -= _due
 		if call_in <= 0.0 and not ring():
-			call_in = 15.0
+			call_in = RETRY
 
 
 ## The kit's session clock is not Mati's: see `_tick`.

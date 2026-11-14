@@ -1,4 +1,6 @@
 extends RefCounted
+
+const Pacer := preload("res://scripts/pacer.gd")
 ## "Kawowy rajd" · the coffee run (F, 2026-11-06; docs/design/coffee-run.md). Zuzia, your bestie
 ## (psiapsi), phones: a coffee run in Powiśle, now. Drive to the ROWERILO dock by Elektrownia, leave
 ## the car there and take a city bike, then ride to four specialty cafés below the escarpment and
@@ -27,9 +29,9 @@ const BIKE_VIEW := 0.55
 const STAMP_HOLD := 1.5
 ## The call: 8:00-19:00 (cafés close early, the third wave sleeps in), after FIRST s of play, then
 ## every COOL s.
-const HOURS := [8.0, 19.0]
-const FIRST := 420.0
-const COOL := 1500.0
+static var HOURS: Array = Pacer.pair("trend", "kawa_hours")
+static var FIRST: float = Pacer.num("trend", "kawa_first")
+static var COOL: float = Pacer.num("trend", "kawa_cool")
 ## After a run Zuzia rests this long before she walks up at the dock again (the quest map).
 const REST := 300.0
 ## Pay: Zuzia returns what you paid (on time) plus THANKS zł and RESPECT; late, half back, nothing

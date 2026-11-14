@@ -108,6 +108,7 @@ opening              quick
 osmroofs             quick
 outline              roads
 overrides            quick
+pacing               quick
 packs                quick
 padel                quick
 palacelights         quick

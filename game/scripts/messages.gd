@@ -1,4 +1,6 @@
 extends RefCounted
+
+const Pacer := preload("res://scripts/pacer.gd")
 ## The message director (docs/design/hud-messages.md, F 2026-11-11: "the game starts to be
 ## overloaded and the user does not see the game"). Every line of text the HUD can put up goes
 ## through one decision here: SHOW it now, DEFER it to the queue, or DROP it. The decision takes
@@ -51,8 +53,8 @@ const MAX_QUEUED := 6
 ## After a quest or a chase ends, a moment of calm before the queue speaks (the result card first).
 const SETTLE := 3.0
 ## Incoming calls: at least this long between two (s), and this long into a calm spell.
-const CALL_GAP := 60.0
-const CALL_SETTLE := 8.0
+static var CALL_GAP: float = Pacer.num("calls", "gap")
+static var CALL_SETTLE: float = Pacer.num("calls", "settle")
 
 var context := FREE
 var clock := 0.0

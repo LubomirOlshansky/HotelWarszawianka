@@ -1324,6 +1324,8 @@ for s in $want; do
 		boatrace) check boatrace '^check_boat_race:' --script res://tools/check_boat_race.gd ;;
 		dekalog) check dekalog '^check_dekalog_tour:' --script res://tools/check_dekalog_tour.gd ;;
 		kinotour) check kinotour '^check_kino_tour:' --script res://tools/check_kino_tour.gd ;;
+		# The offer pacer's numbers (data/pacing.json): sane, every one asked, each script's value the file's.
+		pacing) check pacing '^check_pacing:' --script res://tools/check_pacing.gd ;;
 		# Bar crawl: the groups' lines (no brand), the routes' stops on the map, the hours, clock and pay.
 		crawl) check crawl '^check_bar_crawl:' --script res://tools/check_bar_crawl.gd ;;
 		# Dead electric cars: the TESŁO, the lines, the sling, the chargers on the real graph.
