@@ -3467,6 +3467,40 @@ build: one body per class, the edge walls `Solid_edge`). The face set of every s
 and of the whole city is the same (hash of the sorted faces, 112 sectors); the patches went from 695
 to 1,590 and the pieces from 2,619 to 3,514 (at most 49 a sector, was 40): the same load work
 (`check_solids`, verify step `solids`), about 8 more frames for a sector at one piece a frame.
+The city objects plan, step 7 (2026-11-14): the fences and hedges the bake classed S (`sc`, 4,449
+fence and 956 hedge lines; not a tram railing or balustrade look, not a pocket hedge, not a HARD
+verdict) have no collider. `city_barriers.gd` files their segments (ends, ground, half thickness,
+height, run along the line, panels of 2 m) in the sector root's `soft` meta instead, so the
+prebuilt scenes carry the same list; `soft_things.gd` sweeps the car's box against them (8 m
+cells) and takes 6 % of the speed a fence panel, 10 % a hedge panel, at most 15 % in 0.5 s
+(`solidity.gd` `SMASH_COST`). `check_solids` TOTAL 53,183 → 46,578 faces (-6,605, the six
+sectors' S lines less the ones kept hard below); `--no-soft` gives main's faces back on both paths (`harden` rebuilds them
+with the builder's own `slab_faces` / `rail_faces`). Sloppy set A (prebuilt, Cruise): fence
+contacts 47 → 26 (the 18 on S `rail_street` fences gone; the 26 left are H: 20 `rail_tram`
+railings by the tram bed, 6 `guard_rail`), 24 smashes (77 panels, speed kept 0.92, 0 dead
+stops), dead stops 20 → 19 (Jana Pawła II's fence stop gone; the rest guard rails on decks,
+piers, a kiosk, a wall and parked cars). The `--wander` run (`check_lane_drive.gd`: the car
+through every S line within 10 m of a ground lane and back out) tested 1,731 lines, the same
+verdicts on both paths: 1,661 ok (5 after a drop of over 2.5 m it climbed back from), 68 miss
+(something hard before the line, or another level), 2 traps (the railing of the tram stop on
+Jerozolimskie by Centrum, -1329,638: the car lands on the tram island between the platforms' sides
+and the hard tram railings; the Vistula boulevard's railing at Powiśle, 95,-1134: the car lands on
+the promenade a level down), 0 falls, 0 sinks, 0 in the water. Both stay hard by id:
+`game/data/road_objects.json` `hard_lines` ({stable id: reason}, kept by hand, carried over by
+`street_pass.py --apply`, each id an S fence or hedge of the map by `check_object_overrides`);
+the `--wander` run after it, prebuilt: 1,635 lines, 1,573 ok, 62 miss, 0 traps. Landmarks: an S
+line inside or within 10 m of a carded landmark site's ring (`landmarks.gd` `sites` "zone") stays
+hard (`city_barriers.gd` `LANDMARK_GUARD`: 367 lines, 17.7 km of 5,405 lines, 188 km). That does
+not close every site as on main: `check_landmarks`' car rays start 220 m out and count anything
+they meet, and 15 of main's stopped rays were stopped by a fence or hedge 13 to 220 m from the
+site (the Saxon Garden's railings and hedge before Grób Nieznanego Żołnierza, Westynka's garden
+hedges, a park railing before Małpi Love), so those 15 lines (1.6 km) are `hard_lines` too, a
+reason each; `check_landmarks` (unchanged) gives main's ray counts on both paths. Bench (llvmpipe, about 28
+physics steps a rendered frame; against merged main 1fa1fd262, the same map): draw calls 148 → 148
+runtime, 149 → 149 prebuilt; objects 274 → 268 and 269 → 274, with the main and shadow passes'
+objects the same (59 and 39 prebuilt; 59 → 58 main pass runtime): the totals move outside the two
+3D passes, in both directions, run to run; `soft things` 0.04 ms a frame on both paths, about
+0.002 ms a physics step. The debris particles are one pooled node, made at the first burst.
 
 **4. Far levels: measured, not built.** The camera is orthographic: every metre on screen is the
 same size, so nothing in the view is far. In every probe view the sectors drawn have their ground
@@ -5843,6 +5877,8 @@ Command-line options (after `--`):
 | `--handling=cruise\|sport\|grounded` | Grounded handling (2026-11-08): drive this run in that profile (car.gd PROFILES), whatever Settings → Jazda says; `check_lane_drive.gd` takes it too |
 | `--collide=v1\|soft\|mid\|firm` | the city objects plan, step 6 (2026-11-14): the car's collision answer (`collide_rules.gd`). `v1` (the default, no flag) is today's answer bit for bit; `soft`, `mid`, `firm` the v2 answer: a hit turns the speed along the wall keeping 97 / 90 / 80 % at a graze (less the harder it is met), a head-on hit kicks the nose 35-50° to the freer side once, a T-boned traffic car slides off its line, a tram or bus answers as a wall, ghosting through traffic after 0.8 s in Cruise. No setting yet (after F's phone A/B). `check_lane_drive.gd` and `check_steering.gd` take it too |
 | `--contacts=FILE` | the city objects plan, step 3 (2026-11-14): write the car's contact log (`contact_log.gd`: one line per contact episode, its solid class, speed in and kept, angle, street, `dead_stop` / `unstick` / `tow`; a `drive` line per street leg) to FILE during the run, Autopilot's too; `python3 -I tools/drive_report.py FILE` makes the table. `check_lane_drive.gd` takes it too, with `--driver=careful\|sloppy`, `--set=A`, `--seed=N`, `--assist=on\|off` and `--dry` (item 1 of docs/design/drivable-city-build.md). A release build reads no flags |
+| `--no-soft` | the city objects plan, step 7 (2026-11-14): the city as before step 7, every fence and hedge solid: the runtime builder files the S lines' colliders again (`city_barriers.gd` `soft_off`) and the prebuilt sectors get them back from their `soft` lists (`soft_things.gd` `harden`, the same faces); nothing breaks. For A/B runs and the hash proof (`dump_hashes.gd`). `check_lane_drive.gd` takes it too. A release build reads no flags |
+| `--wander` | `check_lane_drive.gd` only, the city objects plan, step 7 (2026-11-14): no routes; the car is driven at every S fence and hedge line within 10 m of a ground lane, through it and back out (reversing, then turning), and each line gets a verdict (ok, miss, trap, fall, sink, water); `--box=` limits it, `--write=FILE` writes a TSV, `--prebuilt` on the phone's path. A trap or fall is made hard with a HARD verdict in its street's `decisions` (`tools/street_pass.py --apply`) or parked as an Open Question |
 | `--colliders` | the city objects plan, step 4 (2026-11-14): every collider with a solid class drawn as a translucent skin in the colour of its class's planned answer (`collider_view.gd`: hard red, smash yellow, push blue, ride green, the invisible pocket walls magenta; the map's edge walls left out), on both city paths, for shots in street sweeps and for F (`tools/shots.sh ... -- --colliders`). Rule R2's check is `game/tools/check_colliders.gd` (verify step `colliders`). A release build reads no flags |
 | `--lane-assist=on\|off` | beta values (2026-11-04): the lane assist "Asysta pasa" (`lane_assist.gd`, Classic only) for this run, whatever Settings → Jazda says (off by default) |
 | `--race-debug` | testing aid (street races, 2026-11-04): once a second while a racing rival or a chaser stands still, traffic.gd prints what holds it (the car ahead, the player, a crossing car, a red, the lane); and (2026-11-09, docs/design/race-ai.md) once a second of a race rivals.gd prints `race trace:` (the rival's speed, its skill share and effort, the road's class, the metres both have left, the player's speed, the rival's lead in metres and seconds, whether she is seen) |

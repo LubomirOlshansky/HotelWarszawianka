@@ -32,7 +32,12 @@ const SECTORS: Array[Vector2i] = [Vector2i(3, -1), Vector2i(2, -1), Vector2i(-2,
 ## The faces of SECTORS together (2026-11-13, step 1: the colliders as main 2638826 had them, the
 ## same face set per sector before and after the split by class).
 ## 2026-11-14: +36 faces, the pocket hedge at Most Poniatowskiego (city_barriers.gd POCKET_HEDGES, PT-54).
-const TOTAL := 53183
+## 2026-11-14, step 7: -6925 faces (53183 → 46258), the S fences and hedges have no collider now
+## (soft_things.gd breaks them; their segments are the sector's `soft` list, check_soft_things);
+## with them hard again (`--no-soft`: CityBarriers.soft_off, SoftThings.harden) the faces are main's.
+## 2026-11-14, step 7 review: +320 faces (46258 → 46578), S lines kept hard again: inside or within
+## 10 m of a landmark site's ring (city_barriers.gd LANDMARK_GUARD) and road_objects.json hard_lines.
+const TOTAL := 46578
 
 var problems: Array[String] = []
 var verbose := false

@@ -448,6 +448,20 @@ func save() -> void:
 			print("wallet: could not write %s (%s); the file is as it was" % [path, error_string(save_error)])
 
 
+## The city objects plan, step 7 (docs/design/drivable-city-build.md 5.2): a fence or hedge panel
+## the player broke (soft_things.gd `broke`, main.gd). Only counters, by kind, kept in the save's
+## [keep] section as `smash_<kind>` (no section of their own, no version bump): what a records line
+## ("Płoty: 214"), an achievement or a later invoice would read. Written with the next save.
+func count_smash(kind: String) -> void:
+	var key := "smash_" + kind
+	keep[key] = int(keep.get(key, 0)) + 1
+
+
+## Step 7: how many panels of `kind` (fence, hedge) the player has broken, over every session.
+func smashed(kind: String) -> int:
+	return int(keep.get("smash_" + kind, 0))
+
+
 ## Wipes the record (--reset-save).
 func reset() -> void:
 	zl = 0
