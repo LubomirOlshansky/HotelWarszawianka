@@ -3467,6 +3467,19 @@ build: one body per class, the edge walls `Solid_edge`). The face set of every s
 and of the whole city is the same (hash of the sorted faces, 112 sectors); the patches went from 695
 to 1,590 and the pieces from 2,619 to 3,514 (at most 49 a sector, was 40): the same load work
 (`check_solids`, verify step `solids`), about 8 more frames for a sector at one piece a frame.
+The city objects plan, step 7 (2026-11-14): the fences and hedges the bake classed S (`sc`, 4,449
+fence and 956 hedge lines; not a tram railing or balustrade look, not a pocket hedge, not a HARD
+verdict) have no collider. `city_barriers.gd` files their segments (ends, ground, half thickness,
+height, run along the line, panels of 2 m) in the sector root's `soft` meta instead, so the
+prebuilt scenes carry the same list; `soft_things.gd` sweeps the car's box against them (8 m
+cells) and takes 6 % of the speed a fence panel, 10 % a hedge panel, at most 15 % in 0.5 s
+(`solidity.gd` `SMASH_COST`). `check_solids` TOTAL 53,183 → 46,258 faces (-6,925, the six
+sectors' S lines); `--no-soft` gives main's faces back on both paths (`harden` rebuilds them
+with the builder's own `slab_faces` / `rail_faces`). Sloppy set A (prebuilt, Cruise): fence
+contacts 47 → 26 (the 18 on S `rail_street` fences gone; the 26 left are H: 20 `rail_tram`
+railings by the tram bed, 6 `guard_rail`), 24 smashes (77 panels, speed kept 0.92, 0 dead
+stops), dead stops 20 → 19 (Jana Pawła II's fence stop gone; the rest guard rails on decks,
+piers, a kiosk, a wall and parked cars).
 
 **4. Far levels: measured, not built.** The camera is orthographic: every metre on screen is the
 same size, so nothing in the view is far. In every probe view the sectors drawn have their ground
