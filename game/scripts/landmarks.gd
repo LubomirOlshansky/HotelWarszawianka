@@ -19026,6 +19026,99 @@ func _build_niepokalanego(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The Church of Divine Mercy and St Faustina (Kościół pw. Miłosierdzia Bożego i Świętej Faustyny,
+## Żytnia; the Sisters of Our Lady of Mercy, where St Faustina entered in 1925), a plain white
+## plastered church in the sisters' convent on Żytnia. The whole church as a model that replaces
+## the old kit church (`church_miloserdzie`, built by `_build_church` until 2026-11-14: a "modern"
+## box with a pyramid tower). From Mapillary photos of 2017 and 2025 taken along Żytnia (refs/
+## miloserdzie, never shipped), the OSM outline and GUGiK's LoD2 (over the ground: the nave's eaves
+## 8.3, its low ridge 10.3; the low annexes along the street and the south side 4.3; the slim
+## bell tower to 20 with a dome to 25; the three-storey house at the east end 12.5 with a hip).
+## Spec docs/landmarks/specs/miloserdzie.md.
+## - the slim square white bell tower at the street corner: a plain shaft, a cornice, an open
+##   arched lantern stage, a cornice, a small grey dome and a cross;
+## - the nave under a low grey gable, its street wall carrying the big mural in the flag's white and
+##   red (a flat panel); the low annex in front of it with the door under a little tiled porch roof;
+## - the sisters' white house at the east end under a dark tiled hip, two rows of windows a side.
+## Frame: origin at the outline's centre, u along the church to the east (the house), +v to the
+## south; the street (Żytnia) runs along the north side (-v).
+const FA_O := Vector2(-2748.8, -692.9)
+const FA_A := Vector2(-0.2703, -0.9628)
+const FA_WALL := Color("#ecebe6")      ## the white plaster (photos: a cool white)
+const FA_TRIM := Color("#f4f3ef")      ## cornices, piers
+const FA_ROOF := Color("#6a6e72")      ## the nave's grey sheet roof
+const FA_TILE := Color("#4c4644")      ## the house's dark tiles
+const FA_DOME := Color("#7c8084")      ## the tower's grey dome
+const FA_RED := Color("#c23a3a")       ## the mural's red
+const FA_MURAL := Color("#5d5f63")     ## the mural's dark figures and emblem
+const FA_BASE := Color("#8a5040")      ## the brick plinth of the street annex
+
+
+func _build_miloserdzie(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(FA_O, FA_O + FA_A)
+	_g = _ground_under(outline)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	_mode = M_STONE
+	# --- the nave: walls to 8.3, a low gable along u to 10.3
+	var nave := _rect(-4.3, -0.15, 15.3, 4.65)  # u -19.6..11, v -4.8..4.5
+	_prism(nave, g - 1.0, g + 8.3, FA_WALL, none, M_STONE)
+	kit_ledge_ring(nave, g + 7.95, 0.35, FA_TRIM, 0.15)
+	_gable(-19.6, 11.0, -0.15, 4.95, g + 8.3, 2.0, FA_WALL, FA_ROOF, true)
+	# the nave's tall windows on the south side and the west end (the street side has the mural)
+	kit_face(4.5)
+	for wu: float in [-15.0, -9.5, -4.0, 1.5, 7.0]:
+		_kbox(wu - 0.65, wu + 0.65, 4.45, 4.55, g + 4.9, g + 7.4, PAL_GLASS_DARK, _lit(wu, g + 4.9))
+	# --- the mural on the street wall over the annex: white-red flag field, emblem, figures
+	_kbox(-6.0, 5.0, -4.84, -4.8, g + 4.3, g + 7.8, FA_WALL.darkened(0.04))
+	_kbox(-5.2, -1.2, -4.9, -4.84, g + 4.6, g + 5.9, FA_RED)
+	_kbox(-3.9, -2.4, -4.94, -4.84, g + 4.6, g + 7.4, FA_MURAL)
+	_kbox(0.3, 4.2, -4.9, -4.84, g + 4.6, g + 7.5, FA_MURAL.lightened(0.25))
+	# --- the low annexes: along the street (north), the south side and its porch
+	var north := _lpoly([[-7.15, -8.3], [11.0, -8.3], [11.0, -4.8], [-7.15, -4.8]])
+	_prism(north, g - 1.0, g + 4.3, FA_WALL, FA_ROOF.lightened(0.1), M_STONE, M_STONE)
+	_kbox(-7.15, 11.0, -8.42, -8.3, g - 1.0, g + 0.9, FA_BASE)
+	kit_face(-8.3)
+	for du: float in [-3.0, 3.5]:
+		_kbox(du - 0.6, du + 0.6, -8.36, -8.3, g + 0.0, g + 2.4, PAL_DARK_DOOR)
+	_kbox(1.6, 5.4, -9.6, -8.3, g + 2.6, g + 2.8, FA_TRIM)
+	for wn: float in [-5.5, -1.0, 6.0, 9.0]:
+		_kbox(wn - 0.45, wn + 0.45, -8.36, -8.3, g + 1.5, g + 3.0, PAL_GLASS_DARK, _lit(wn, g + 1.5))
+	var south := _lpoly([[-11.0, 4.5], [11.0, 4.5], [11.0, 7.2], [3.1, 7.2], [3.1, 9.25], [-0.65, 9.25], [-0.65, 7.2], [-11.0, 7.2]])
+	_prism(south, g - 1.0, g + 4.3, FA_WALL, FA_ROOF.lightened(0.1), M_STONE, M_STONE)
+	# --- the sisters' house at the east end: three storeys, a dark tiled hip
+	_kbox(11.0, 19.7, -8.3, 6.4, g - 1.0, g + 11.0, FA_WALL)
+	kit_ledge_ring(_rect(15.35, -0.95, 4.35, 7.35), g + 10.7, 0.3, FA_TRIM, 0.25)
+	_hip(15.35, -0.95, 4.6, 7.6, g + 11.0, 2.4, FA_TILE)
+	for sv: float in [-1.0, 1.0]:
+		kit_face(-8.3 if sv < 0.0 else 6.4)
+		for hu: float in [12.9, 17.8]:
+			for hy: float in [4.2, 7.6]:
+				_kbox(hu - 0.55, hu + 0.55, _face - 0.03, _face + 0.03, g + hy, g + hy + 1.5, PAL_GLASS_DARK, _lit(hu * sv, g + hy))
+	for hv: float in [-5.0, 3.0]:
+		for hy2: float in [1.0, 4.2, 7.6]:
+			_kbox(19.67, 19.73, hv - 0.55, hv + 0.55, g + hy2, g + hy2 + 1.5, PAL_GLASS_DARK, _lit(hv, g + hy2))
+	# --- the bell tower at the street corner: shaft, lantern stage, dome, cross
+	var tu := -9.225
+	var tv := -6.975
+	_lbox(tu, tv, 2.075, 1.975, g - 1.0, g + 18.0, FA_WALL, M_STONE, none)
+	_lbox(tu, tv, 2.25, 2.15, g + 18.0, g + 18.4, FA_TRIM, M_STONE, FA_TRIM)
+	kit_face(-8.95)
+	_disc(Vector3(_w(tu, -8.98).x, g + 16.4, _w(tu, -8.98).y), Vector3(-_b.x, 0.0, -_b.y), 0.5, 10, PAL_DARK_STEEL)
+	for pu: float in [-1.0, 1.0]:
+		for pv: float in [-1.0, 1.0]:
+			_lbox(tu + pu * 1.3, tv + pv * 1.2, 0.35, 0.35, g + 18.4, g + 21.4, FA_WALL, M_STONE, none)
+	_lbox(tu, tv, 0.9, 0.85, g + 18.4, g + 21.4, CHURCH_DARK, M_STONE, none)
+	_lbox(tu, tv, 1.85, 1.75, g + 21.0, g + 21.4, FA_WALL, M_STONE, none)
+	_lbox(tu, tv, 2.0, 1.9, g + 21.4, g + 21.8, FA_TRIM, M_STONE, FA_TRIM)
+	var tc := _w(tu, tv)
+	_frustum(_circle(tc, 1.6, 8), g + 21.8, _circle(tc, 1.35, 8), g + 22.9, FA_DOME)
+	_frustum(_circle(tc, 1.35, 8), g + 22.9, _circle(tc, 0.35, 8), g + 24.3, FA_DOME.lightened(0.06))
+	_kap_cross(tu, tv, g + 24.3, 1.6)
+	_collide(outline)
+
+
 ## The parish church of the Child Jesus (Kościół parafialny pw. Dzieciątka Jezus, by the Child Jesus
 ## hospital between Lindleya and Oczki), a red-brick neo-Gothic hall church. The whole church as a
 ## model that replaces the old kit church (`church_dzieciatka`, built by `_build_church` until
@@ -30647,6 +30740,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_dzieciatka":
 		_build_dzieciatka(site)  # the whole brick Child Jesus church from photos, tower to the west, not the kit church
+		return
+	if site["key"] == "church_miloserdzie":
+		_build_miloserdzie(site)  # the whole white Divine Mercy church and its bell tower from photos, not the kit church
 		return
 	var ch := _church_spec(site["key"])
 	if ch.is_empty():

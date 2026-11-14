@@ -50,7 +50,7 @@ const BUDGET := {
 	"church_kapucyni": 2400,  # 2026-11-14: the whole Capuchin church from photos (measured 2136)
 	"church_karol": 580,
 	"church_katedra_polowa": 3200,  # 2026-11-14: the whole Field Cathedral from photos (measured 2917)
-	"church_miloserdzie": 370,
+	"church_miloserdzie": 640,  # 2026-11-14: the whole Divine Mercy church and its bell tower from photos (measured 560)
 	"church_narodzenia": 470,
 	"church_niepokalanego": 720,  # 2026-11-14: the whole Res Sacra Miser church from photos (measured 644)
 	"church_nozykow": 2900,  # 2026-11-14: the whole Nożyk Synagogue from photos (measured 2625)
