@@ -17,6 +17,8 @@ extends SceneTree
 ##   E. what holds a challenge back, one by one (and Spacer's quiet), each released again;
 ##   F. Halina's roll-up for the guided first race: rolling up, the flash back, the start hold, declined, a job
 ##      on at the call;
+##   G. a locked rival: the prompt says what is missing, a flash is refused; H. Trzy mosty at night: Seba at the
+##      start, the marker, the final's stages, won and given up;
 ##   I-N (the gaps the deliberate breaks of rivals.gd found): I. the kit's fields and what setup connects
 ##   (the flag, the HUD's button, bumps, the ladder's wallet, the dice); J. the start and the stages (the flag's
 ##   colour and size, the held rival and ghost, the lamps, the route, the banner's colours, the clock, the place,
@@ -25,9 +27,7 @@ extends SceneTree
 ##   roll-up (from the air or a prompt, her pace, what stops her, the nudge, how near she stops); N. Trzy mosty's
 ##   start look, Seba's line, the bridges counted from the first, Seba not home in the circle, and the autopilot's
 ##   car (the tail, the ghost, the collisions).
-##   G. a locked rival: the prompt says what is missing, a flash is refused; H. Trzy mosty at night: Seba at the
-##      start, the marker, the final's stages, won and given up.
-## Prints "check_rivals: OK (N checks; A-H, S s)" or one "  problem: ..." line per failed fact under
+## Prints "check_rivals: OK (N checks; A-N, S s)" or one "  problem: ..." line per failed fact under
 ## "check_rivals: PROBLEMS" (exit 1). `-- --only=A,C` runs some of the parts (a debugging aid).
 ##   godot --headless --path game --script res://tools/check_rivals.gd
 
