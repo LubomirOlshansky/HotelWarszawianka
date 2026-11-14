@@ -47,7 +47,7 @@ Current state, tiers and photo counts (2026-11-13): docs/LANDMARKS.md "Churches 
 
 ## Inventory
 
-Status as of 2026-11-01. "Kit model" = built by the church kit; "model" = its own builder.
+Status as of 2026-11-14 (after #773, the last of the 2026-11-14 photo batch). "Kit model" = built by the church kit; "model" = its own builder. Still open: the Capuchin monastery, the Franciscan Sisters of the Cross on Piwna, Sala św. Faustyny (no photos yet), and the Archikatedra's side walls and east end (the LoD2 mass, no side photos yet). One combined phone measurement of the whole church set is on the next-build list.
 
 | Church (OSM name) | Kind | Centre (x, z) | Status |
 | --- | --- | --- | --- |

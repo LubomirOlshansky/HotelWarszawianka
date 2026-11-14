@@ -6639,7 +6639,10 @@ const SKINS := [
 	# walls on the river side of the courtyard in the Vistula front's cream (`pale`), not salmon.
 	{"key": "zamek", "osm": "Zamek Królewski", "mode": M_MONUMENT, "wall": ZAMEK_WALL, "roof": ZAMEK_ROOF,
 			"steep": 0.3},
-	{"key": "archikatedra", "osm": "Archikatedra pw. Świętego Jana Chrzciciela", "mode": M_GOTHIC, "wall": "#9a4b38", "roof": "#6e3a2e"},
+	# The cathedral's roof is green copper (2026-11-14, photo and orthophoto); LoD2 draws it steeper than
+	# the default 0.7, so `steep` 0.3 keeps its slopes in the roof colour, not the brick.
+	{"key": "archikatedra", "osm": "Archikatedra pw. Świętego Jana Chrzciciela", "mode": M_GOTHIC, "wall": "#9a4b38", "roof": "#829a8f",
+			"steep": 0.3},
 	# The Jesuit church (F's Old Town trailer pass, 2026-11-08): LoD2 draws the church with its tower
 	# over 55 m, so the bake gave it the office towers' blue glass. Salmon plaster with white
 	# pilasters on Świętojańska and the brick tower above the roofs (Mapillary photos, refs/oldtown_jezuici2).
@@ -25546,10 +25549,12 @@ const ARCH_COPPER := Color("#6f9a8a")   # photo 3: the ridge lantern's weathered
 const CATH_SPLAY := Color("#e8e1d2")    # the window splays (photo 1: white plaster)
 const CATH_PANEL := Color("#e3dccf")    # the gable's cream panels
 ## The nave roof (F, 2026-11-09, photos E06-E08): the LoD2 mass is a flat slab to about 18.5 m over
-## the ground; a steep tiled gable stands on it, eaves 0.7 m under the slab's top so the slab is
+## the ground; a steep copper gable stands on it, eaves 0.7 m under the slab's top so the slab is
 ## hidden inside, ridge along the nave's axis (u 14.2, half width 14.2 m, from the front gable
 ## back to the tower at v -46).
-const CATH_TILE := Color("#85402f")
+## The roof is sheet copper gone green, not tile (2026-11-14: photo 3 shows the seamed copper sheets
+## round the ridge turret, the orthophoto the whole roof grey-green; it was red-brown tile #85402f).
+const CATH_COPPER_ROOF := Color("#829a8f")
 const CATH_EAVE := 17.8
 const CATH_RISE := 11.2
 const CATH_NAVE_U := 14.2
@@ -25617,14 +25622,14 @@ func _build_archikatedra(_site: Dictionary) -> void:
 	_lbox(m, 0.62, 0.7, 0.14, cy + 2.0, cy + 2.4, ARCH_GOLD, M_STONE, ARCH_GOLD)
 	# the lantern on the roof ridge behind (photo 3): an octagonal copper bell turret with a
 	# pointed cap, a ball and a cross
-	# The nave roof: a steep tiled gable over the LoD2 slab, the ridge along the nave (see CATH_*)
+	# The nave roof: a steep copper gable over the LoD2 slab, the ridge along the nave (see CATH_*)
 	var eave := g + CATH_EAVE
 	var ridge := eave + CATH_RISE
 	var fa := _a
 	var fb := _b
 	_a = fb
 	_b = fa
-	_gable(-1.0, CATH_NAVE_BACK, CATH_NAVE_U, 14.2, eave, CATH_RISE, ARCH_BRICK, CATH_TILE, true)
+	_gable(-1.0, CATH_NAVE_BACK, CATH_NAVE_U, 14.2, eave, CATH_RISE, ARCH_BRICK, CATH_COPPER_ROOF, true)
 	_a = fa
 	_b = fb
 	# a stone ridge cap and the ridge's end blocks
