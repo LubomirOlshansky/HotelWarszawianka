@@ -19048,6 +19048,231 @@ func _build_jacek(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## St Martin's church (Kościół św. Marcina, the former Augustinians', now the Franciscan Sisters
+## Servants of the Cross) at Piwna 9/11: the Gothic church of the 14th-15th c., remodelled in the
+## 1740s-1760s (front by Karol Bay), burnt in 1944 and rebuilt 1952-1959. Rebuilt here 2026-11-14 as
+## the whole building, from F's Piwna photos (old-town E13: the tower over Piwna from Plac Zamkowy),
+## his Plac Zamkowy and drone photos (the nave's side and roofs, the gable end), three Mapillary
+## photos and GUGiK's LoD2 (heights, the tower's place), refs/sw_marcin (never shipped):
+## - a long, tall nave in warm ochre plaster under a steep green copper roof, a gable to Piwna
+##   (pilasters, a great arched window, an oculus, a cross) and a hip at the east end;
+## - lower aisles and chapels on both sides under flat copper roofs, clerestory windows over them;
+## - the lower front on Piwna: a two-storey front with pilasters, an arched portal, a cornice and a
+##   curved attic with a statue in a niche, low wings either side (the outline's front);
+## - the tower beside the chancel, in the monastery (LoD2 places it 18 m south of the nave's axis):
+##   a brick Gothic shaft, two ochre stages with corner pilasters and arched openings, a cornice,
+##   a green copper bell dome, an open lantern, a small bulb and a spire with a cross (~42 m).
+## Frame: origin at the kit's front point on Piwna, u along the front (+u towards the tower, south),
+## +v out to Piwna; the nave runs back to v = -55.
+const MAR_O := Vector2(-822.8, -1556.1)
+const MAR_A := Vector2(0.6866, 0.7270)
+const MAR_C := 0.0                     ## the nave's axis (u)
+const MAR_NV := -11.9                  ## the nave's front wall (v), the gable to Piwna
+const MAR_TU := 18.25                  ## the tower's centre (u, v), LoD2's shaft
+const MAR_TV := -52.4
+const MAR_WALL := Color("#e6c98e")     ## the warm ochre plaster
+const MAR_TRIM := Color("#f1e3c0")     ## pilasters, cornices, surrounds
+const MAR_ROOF := Color("#6f9e90")     ## the green copper of the roofs and the dome
+const MAR_BRICK := Color("#9a5a46")    ## the tower's Gothic brick below the stages
+const MAR_BASE := Color("#b9b2a2")     ## plinths
+const MAR_LANTERN := Color("#5f7672")  ## the lantern's darker copper
+
+
+## The front frame again, after a wall of another direction moved it.
+func _mar_home() -> void:
+	kit_front(MAR_O, MAR_O + MAR_A * 10.0)
+
+
+## The LoD2 tower inside the monastery's block, cut 12 m over the ground (`lod2_tops`): the
+## model's own tower stands over it (its shaft is a little wider than LoD2's chamfered one).
+func _marcin_tops() -> void:
+	var b := Vector2(-MAR_A.y, MAR_A.x)
+	var ring := PackedVector2Array()
+	for c: Vector2 in [Vector2(-3.9, -3.7), Vector2(3.9, -3.7), Vector2(3.9, 3.7), Vector2(-3.9, 3.7)]:
+		ring.append(MAR_O + MAR_A * (MAR_TU + c.x) + b * (MAR_TV + c.y))
+	lod2_tops.append([ring, 12.0, MAR_O + MAR_A * MAR_TU + b * MAR_TV])
+
+
+## A gable roof whose ridge runs along v (the nave's), no back triangle: `_gable` swapped.
+func _mar_gable(vf: float, vb: float, cu: float, hu: float, y: float, h: float) -> void:
+	var ka := _a
+	var kb := _b
+	_a = kb
+	_b = ka
+	_gable(vf, vb, cu, hu, y, h, MAR_WALL, MAR_ROOF, false)
+	_a = ka
+	_b = kb
+
+
+## A round-headed window on the current front at u: a trim surround and a dark pane, flat on the
+## face (two arch panels, a dozen triangles; the church has thirty of them).
+func _mar_arch(u: float, y0: float, h: float, hw: float, glass := PAL_GLASS_DARK) -> void:
+	var at := _w(u, _face)
+	_arch_panel(at, _a, _b, hw + 0.25, y0 - 0.25, y0 + h - hw, MAR_TRIM, 0.04, M_STONE)
+	_arch_panel(at, _a, _b, hw, y0, y0 + h - hw, glass, 0.08, _lit(u, y0))
+
+
+## The windows and pilasters of one face of the tower, `from` to `to` (plan corners, outside on
+## the left).
+func _mar_tower_face(from: Vector2, to: Vector2, g: float) -> void:
+	var w := kit_front(from, to)
+	var c := w * 0.5
+	kit_face(0.0)
+	for pu: float in [0.45, w - 0.45]:
+		_kbox(pu - 0.45, pu + 0.45, -0.02, 0.16, g + 12.2, g + 26.4, MAR_TRIM)
+	for pu: float in [c - 1.9, c + 1.9]:
+		_kbox(pu - 0.25, pu + 0.25, -0.02, 0.1, g + 20.3, g + 26.4, MAR_TRIM)
+	_mar_arch(c, g + 15.6, 2.8, 0.6)
+	_mar_arch(c, g + 21.4, 3.4, 0.75, PAL_IRON)
+
+
+func _build_marcin(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	_g = _ground_under(outline)
+	var g := _g
+	var c := MAR_C
+	var plan: PackedVector2Array = _simplify(outline, 0.6)
+	var none := Color(0, 0, 0, 0)
+	var trim := MAR_TRIM
+	_mode = M_STONE
+	_mar_home()
+	# plan points of the fronts, read in the home frame before kit_front moves it
+	var f0 := _w(11.1, -1.9)
+	var f1 := _w(1.4, 0.0)
+	var l0 := _w(-1.4, -3.1)
+	var l1 := _w(-2.4, -9.1)
+	# --- the masses: the low front on Piwna, the aisles and chapels behind, both from the outline
+	var front := _largest(Geometry2D.intersect_polygons(plan, _lpoly([[-14.0, 2.0], [14.0, 2.0], [14.0, MAR_NV], [-14.0, MAR_NV]])))
+	var body := _largest(Geometry2D.intersect_polygons(plan, _lpoly([[-14.0, MAR_NV], [14.0, MAR_NV], [14.0, -60.0], [-14.0, -60.0]])))
+	_prism(_largest(Geometry2D.offset_polygon(plan, 0.25, Geometry2D.JOIN_MITER)), g - 0.6, g + 0.9, MAR_BASE, none, M_STONE, M_STONE)
+	_prism(front, g + 0.8, g + 8.6, MAR_WALL, MAR_ROOF, M_STONE, M_STONE)
+	_prism(_largest(Geometry2D.offset_polygon(front, 0.3, Geometry2D.JOIN_MITER)), g + 8.2, g + 8.8, trim, MAR_ROOF, M_STONE, M_STONE)
+	_prism(body, g + 0.8, g + 12.7, MAR_WALL, MAR_ROOF, M_STONE, M_STONE)
+	_prism(_largest(Geometry2D.offset_polygon(body, 0.3, Geometry2D.JOIN_MITER)), g + 12.3, g + 12.9, trim, MAR_ROOF, M_STONE, M_STONE)
+	# --- the nave: walls over the aisles to the eaves, a cornice, the steep copper roof
+	_lbox(c, -33.45, 7.3, 21.55, g + 12.6, g + 21.3, MAR_WALL, M_STONE, none)
+	_prism(_rect(c, -33.45, 7.6, 21.85), g + 21.1, g + 21.6, trim, none, M_STONE, M_STONE)
+	_mar_gable(MAR_NV + 0.3, -48.2, c, 7.6, g + 21.6, 5.0)
+	# the hip at the east end: two side slopes and the end slope up to the ridge's end
+	var ap: Vector2 = _w(c, -48.2)
+	var apex := Vector3(ap.x, g + 26.6, ap.y)
+	var eaves: Array[Vector3] = []
+	for q: Vector2 in [Vector2(c - 7.6, -48.2), Vector2(c - 7.6, -55.3), Vector2(c + 7.6, -55.3), Vector2(c + 7.6, -48.2)]:
+		var e := _w(q.x, q.y)
+		eaves.append(Vector3(e.x, g + 21.6, e.y))
+	for k in 3:
+		var n := (eaves[k + 1] - eaves[k]).cross(apex - eaves[k]).normalized()
+		if n.y < 0.0:
+			n = -n
+		_tri(eaves[k], eaves[k + 1], apex, n, MAR_ROOF, Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
+	_kap_cross(c, MAR_NV + 0.3, g + 26.6, 2.0)
+	# --- the gable front over Piwna: pilasters, the great window, the cornice, oculus, urns
+	kit_face(MAR_NV)
+	for pu: float in [c - 6.9, c - 3.3, c + 3.3, c + 6.9]:
+		kit_pilaster(pu, g + 8.8, g + 21.1, trim, 0.9, 0.25)
+	kit_cornice(c - 7.3, c + 7.3, g + 21.1, trim, 0.5, 0.7)
+	_mar_arch(c, g + 12.2, 6.6, 1.5)
+	kit_ledge(c - 7.3, c + 7.3, g + 11.2, 0.35, trim, 0.15)
+	var gc := _w(c, MAR_NV + 0.35)
+	_disc(Vector3(gc.x, g + 23.3, gc.y), Vector3(_b.x, 0.0, _b.y), 0.75, 10, PAL_GLASS_DARK)
+	for s: float in [-1.0, 1.0]:
+		_pinnacle(c + s * 7.0, MAR_NV + 0.2, 0.7, g + 21.6, 1.7, trim)
+		_kbox(c + s * 7.0 - 0.6, c + s * 7.0 + 0.6, MAR_NV - 0.2, MAR_NV + 0.5, g + 8.8, g + 9.6, trim)
+	# --- the lower front on Piwna: the forward run of the outline, its portal and attic
+	var fw := kit_front(f1, f0)
+	var fc := fw * 0.5
+	kit_face(0.0)
+	_kbox(-0.2, fw + 0.2, -0.3, 0.25, g - 0.2, g + 1.0, MAR_BASE)
+	for pu: float in [0.5, fc - 2.2, fc + 2.2, fw - 0.5]:
+		kit_pilaster(pu, g + 1.0, g + 8.2, trim, 0.8, 0.22)
+	kit_cornice(0.0, fw, g + 8.2, trim, 0.45, 0.6)
+	# the portal: an arched door in a frame with a small segmental hood
+	_kbox(fc - 1.7, fc + 1.7, -0.05, 0.3, g + 0.9, g + 5.6, trim)
+	kit_face(0.3)
+	kit_door(fc, g + 0.9, 4.0, 1.05, trim, PAL_OAK, true)
+	kit_pediment(fc, 1.9, g + 5.6, 0.9, trim, MAR_ROOF, 0.35, none)
+	kit_face(0.0)
+	for wu: float in [1.9, fw - 1.9]:
+		_mar_arch(wu, g + 2.4, 3.0, 0.55)
+		kit_window(wu, g + 6.0, 1.2, Win.FRAMED, trim, PAL_GLASS_DARK, 0.45)
+	# the curved attic over the portal: a stepped, scrolled screen with a niche and a statue
+	_kbox(fc - 2.6, fc + 2.6, -0.4, 0.0, g + 8.6, g + 11.2, MAR_WALL)
+	for st: Array in [[2.6, 3.6, 9.4], [3.6, 4.4, 8.9]]:
+		for sg: float in [-1.0, 1.0]:
+			var a0 := fc + sg * float(st[0])
+			var a1 := fc + sg * float(st[1])
+			_kbox(minf(a0, a1), maxf(a0, a1), -0.4, 0.0, g + 8.6, g + float(st[2]) - 0.2, MAR_WALL)
+			_kbox(minf(a0, a1), maxf(a0, a1), -0.45, 0.12, g + float(st[2]) - 0.2, g + float(st[2]), trim)
+	kit_cornice(fc - 2.6, fc + 2.6, g + 11.2, trim, 0.35, 0.4)
+	kit_pediment(fc, 2.4, g + 11.6, 1.2, MAR_WALL, MAR_ROOF, 0.3, trim.darkened(0.06))
+	_mar_arch(fc, g + 8.9, 2.0, 0.55, MAR_WALL.darkened(0.18))
+	_jac_statue(fc, 0.35, g + 9.0, 1.7)
+	_kap_cross(fc, 0.0, g + 12.8, 1.4)
+	# the notch and the set-back wing left of it: plain plaster, two windows, the cornice
+	_mar_home()
+	var lw := kit_front(_w(-10.4, -7.5), _w(-6.2, -7.7))
+	kit_face(0.0)
+	kit_window(lw * 0.5, g + 3.0, 2.4, Win.FRAMED, trim, PAL_GLASS_DARK, 0.55)
+	kit_front(l1, l0)
+	kit_face(0.0)
+	kit_window(3.0, g + 3.0, 2.4, Win.FRAMED, trim, PAL_GLASS_DARK, 0.55)
+	_mar_home()
+	# --- the north side: the aisle's arched windows, the nave's clerestory over its roof
+	var nw := kit_front(_w(-11.5, -54.5), _w(-11.5, -13.0))
+	kit_face(0.0)
+	for k in 6:
+		var u := nw * (0.08 + 0.168 * float(k))
+		_mar_arch(u, g + 4.2, 5.0, 0.85)
+		if k < 5:
+			_kbox(u + nw * 0.084 - 0.3, u + nw * 0.084 + 0.3, -0.02, 0.15, g + 0.9, g + 12.3, trim)
+	_mar_home()
+	for side: float in [-1.0, 1.0]:
+		var a := _w(c + side * 7.3, -53.5 if side < 0.0 else -13.5)
+		var b := _w(c + side * 7.3, -13.5 if side < 0.0 else -53.5)
+		var cw := kit_front(a, b)
+		kit_face(0.0)
+		for k in 6:
+			_mar_arch(cw * (0.09 + 0.164 * float(k)), g + 14.2, 5.0, 0.9)
+		_mar_home()
+	# the east end: a tall arched window over the chapels' roof
+	var e0 := _w(c + 7.3, -55.0)
+	var e1 := _w(c - 7.3, -55.0)
+	var ew := kit_front(e0, e1)
+	kit_face(0.0)
+	_mar_arch(ew * 0.5, g + 14.0, 5.6, 1.2)
+	_mar_home()
+	# --- the tower: brick shaft, two ochre stages, cornice, bell dome, lantern, bulb, spire
+	var tu := MAR_TU
+	var tv := MAR_TV
+	_lbox(tu, tv, 3.6, 3.4, g - 0.6, g + 12.0, MAR_BRICK, M_STONE, none)
+	_lbox(tu, tv, 3.6, 3.4, g + 12.0, g + 26.4, MAR_WALL, M_STONE, none)
+	_prism(_rect(tu, tv, 3.75, 3.55), g + 11.8, g + 12.2, trim, none, M_STONE, M_STONE)
+	_prism(_rect(tu, tv, 3.75, 3.55), g + 19.8, g + 20.3, trim, none, M_STONE, M_STONE)
+	_prism(_rect(tu, tv, 4.1, 3.9), g + 26.4, g + 27.1, trim, MAR_ROOF, M_STONE, M_STONE)
+	var corners := [_w(tu - 3.6, tv + 3.4), _w(tu + 3.6, tv + 3.4), _w(tu + 3.6, tv - 3.4), _w(tu - 3.6, tv - 3.4)]
+	for k in 4:
+		_mar_tower_face(corners[k], corners[(k + 1) % 4], g)
+	_mar_home()
+	# the bell dome: [radius, height over the ground], octagonal, then the lantern and the bulb
+	var dome: Array = [[3.8, 27.1], [4.0, 28.0], [3.7, 29.4], [2.9, 30.6], [1.6, 31.5], [1.1, 31.9]]
+	for k in dome.size() - 1:
+		var p: Array = dome[k]
+		var q: Array = dome[k + 1]
+		_frustum(_jac_ring(tu, tv, float(p[0]), 8), g + float(p[1]), _jac_ring(tu, tv, float(q[0]), 8), g + float(q[1]), MAR_ROOF)
+	_prism(_jac_ring(tu, tv, 1.1, 8), g + 31.9, g + 34.0, MAR_LANTERN, none, M_STONE, M_STONE)
+	for fc2: Array in [[0.0, 1.0], [0.0, -1.0], [1.0, 0.0], [-1.0, 0.0]]:
+		_lbox(tu + float(fc2[0]) * 1.0, tv + float(fc2[1]) * 1.0, 0.04 + 0.3 * absf(float(fc2[1])), 0.04 + 0.3 * absf(float(fc2[0])), g + 32.2, g + 33.5, PAL_IRON)
+	var bulb: Array = [[1.35, 34.0], [1.35, 34.2], [1.5, 34.8], [1.15, 35.6], [0.45, 36.3], [0.18, 36.8]]
+	for k in bulb.size() - 1:
+		var p: Array = bulb[k]
+		var q: Array = bulb[k + 1]
+		_frustum(_jac_ring(tu, tv, float(p[0]), 8), g + float(p[1]), _jac_ring(tu, tv, float(q[0]), 8), g + float(q[1]), MAR_ROOF)
+	_frustum(_jac_ring(tu, tv, 0.18, 6), g + 36.8, _jac_ring(tu, tv, 0.07, 6), g + 40.2, MAR_ROOF, MAR_ROOF)
+	_prism(_jac_ring(tu, tv, 0.26, 6), g + 37.7, g + 38.2, PAL_GOLD, PAL_GOLD, M_STONE, M_STONE)
+	_kap_cross(tu, tv, g + 40.2, 1.7)
+	_collide(outline)
+
+
 ## The Church of the Holiest Saviour (Kościół Najświętszego Zbawiciela; Józef Dziekoński and
 ## Józef Piotrowski, 1901-1911) on the south side of Plac Zbawiciela, its front to the north,
 ## to the square. Rebuilt 2026-11-13 from F's ten photos (front, both obliques, the side with the
@@ -29205,6 +29430,8 @@ func _find_churches() -> void:
 		_add_site(ch["key"], zone)
 		if not sites.is_empty() and sites[-1]["key"] == ch["key"]:
 			sites[-1]["outline"] = outline
+			if ch["key"] == "church_sw_marcin":
+				_marcin_tops()  # the LoD2 tower in the monastery's block, under the model's tower
 
 
 func _near_any(spots: Array[Vector2], p: Vector2, r: float) -> bool:
@@ -29230,6 +29457,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_jacek":
 		_build_jacek(site)  # the whole St Hyacinth's church from photos, not the kit church
+		return
+	if site["key"] == "church_sw_marcin":
+		_build_marcin(site)  # the whole St Martin's church and its tower from photos, not the kit church
 		return
 	var ch := _church_spec(site["key"])
 	if ch.is_empty():
