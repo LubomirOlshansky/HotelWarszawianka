@@ -61,7 +61,7 @@ Status as of 2026-11-01. "Kit model" = built by the church kit; "model" = its ow
 | Klasztor Ojców Dominikanów | monastery | -961, -1965 | open: convent or monastery: plain block, a later pass |
 | Klasztor Ojców Kapucynów | monastery | -1003, -1406 | open: convent or monastery: plain block, a later pass |
 | Klasztor pallotynów | monastery | 1761, -1687 | open: convent or monastery: plain block, a later pass |
-| Kościól Św. Karola Boromeusza | church | -2152, -461 | kit model (`church_karol`), 2026-11-01 |
+| Kościól Św. Karola Boromeusza | church | -2152, -461 | model from photos (`church_karol`, `_build_karol`, spec `karol.md`), 2026-11-14 |
 | Kościół Ewangelicko-Reformowany | church | -1749, -1104 | kit model (`church_reformowany`), 2026-11-01 |
 | Kościół Matki Bożej Jerozolimskiej | church | 984, 1319 | kit model (`church_jerozolimska`), 2026-11-01 |
 | Kościół Niepokalanego Poczęcia Najświętszej Maryi Panny | church | -649, -1240 | kit model (`church_niepokalanego`), 2026-11-01 |
