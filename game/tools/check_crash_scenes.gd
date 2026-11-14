@@ -27,15 +27,6 @@ const Fakes := preload("res://tools/fakes.gd")
 const BUBBLE := 70
 
 
-## A stand-in for pedestrians.gd's scene figures.
-class FakeWalkers extends Node3D:
-	var figures := {}
-	func set_scene(i: int, at: Vector3, _yaw: float, _shirt: Color, _trousers: float) -> void:
-		figures[i] = at
-	func clear_scene(i: int) -> void:
-		figures.erase(i)
-
-
 var problems: Array[String] = []
 var verbose := false
 
@@ -241,7 +232,7 @@ func _scenes(g: LaneGraph, traffic: Node3D, map: Node3D) -> CrashScenes:
 	cs.traffic = traffic
 	cs.graph = g
 	cs.map = map
-	cs.walkers = FakeWalkers.new()
+	cs.walkers = Fakes.Walkers.new()
 	root.add_child(cs.walkers)
 	var dlg := Dialogue.new()
 	dlg.bubbles = Fakes.Bubbles.new()
@@ -348,8 +339,8 @@ func _check_timer(map: Node3D, digest: PackedStringArray) -> void:
 			var ahead: float = m.x - pos[0].x
 			if ahead < CrashScenes.AHEAD.x - 40.0 or ahead > CrashScenes.AHEAD.y + 40.0:
 				problems.append("timer: the scene %.0f m ahead (want %.0f-%.0f)" % [ahead, CrashScenes.AHEAD.x, CrashScenes.AHEAD.y])
-			if (cs.walkers as FakeWalkers).figures.size() != CrashScenes.PEOPLE.size():
-				problems.append("timer: %d people at the scene (want %d)" % [(cs.walkers as FakeWalkers).figures.size(), CrashScenes.PEOPLE.size()])
+			if (cs.walkers as Fakes.Walkers).scenes.size() != CrashScenes.PEOPLE.size():
+				problems.append("timer: %d people at the scene (want %d)" % [(cs.walkers as Fakes.Walkers).scenes.size(), CrashScenes.PEOPLE.size()])
 		if first_at >= 0.0 and cleared_at < 0.0 and cs.scene.is_empty():
 			cleared_at = t
 		if cleared_at >= 0.0 and second_at < 0.0 and not cs.scene.is_empty():
@@ -362,8 +353,8 @@ func _check_timer(map: Node3D, digest: PackedStringArray) -> void:
 	var gap := second_at - cleared_at
 	if second_at < 0.0 or gap < CrashScenes.GAP.x or gap > CrashScenes.GAP.y + 4.0:
 		problems.append("timer: the next scene %.1f s after (want %.0f-%.0f)" % [gap, CrashScenes.GAP.x, CrashScenes.GAP.y])
-	if (cs.walkers as FakeWalkers).figures.size() != CrashScenes.PEOPLE.size():
-		problems.append("timer: the second scene has %d people" % (cs.walkers as FakeWalkers).figures.size())
+	if (cs.walkers as Fakes.Walkers).scenes.size() != CrashScenes.PEOPLE.size():
+		problems.append("timer: the second scene has %d people" % (cs.walkers as Fakes.Walkers).scenes.size())
 	var said: int = (cs.dialogue.bubbles as Fakes.Bubbles).said.size()
 	if said < 3:
 		problems.append("timer: %d lines said with the car by the scene (want 3+)" % said)

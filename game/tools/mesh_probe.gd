@@ -1,8 +1,8 @@
 extends RefCounted
 ## The examination of a mesh's triangles shared by check_mesh_quality.gd (every landmark site) and
 ## check_places.gd (every place script), moved out of check_mesh_quality.gd on 2026-11-13 without
-## changing a result: a stub map with flat ground, a Recorder that stands in for the SurfaceTool
-## the builders write to (and reads a finished mesh back into the same arrays), and `examine`,
+## changing a result: a Recorder that stands in for the SurfaceTool the builders write to (and reads
+## a finished mesh back into the same arrays), and `examine`,
 ## which counts the defects a judge looking at a shot misses:
 ##   - ZFIGHT: same-facing triangles on one plane (within 2 cm) that overlap by more than
 ##     0.01 m^2 flicker when the camera moves;
@@ -12,9 +12,8 @@ extends RefCounted
 ##     box of a part that does (grown 10 cm): detail hanging in the air.
 ##     A site in ON_ROOF stands on a mapped roof: its lowest level counts as its ground.
 ##   - plain: triangles without a landmark material code (UV2.x < 2).
-## The caller owns the ratchets (BUDGET, KNOWN) and the verdict.
-
-const MapBuilderRef := preload("res://scripts/map_builder.gd")
+## The caller owns the ratchets (BUDGET, KNOWN) and the verdict. The map the builders see on flat
+## ground is the shared `Fakes.BuilderMap` (fakes.gd; it was this file's StubMap until TD-11 group 3).
 
 const ZFIGHT_AREA := 0.01
 const ZFIGHT_PLANE := 0.02
@@ -36,63 +35,6 @@ var _data: Dictionary = {}
 
 func _init(data: Dictionary = {}) -> void:
 	_data = data
-
-
-## The city as the builders see it, on flat ground (tops at 0, the sunken places 3.4 m under it).
-## A Node3D, so a place script (`var map: Node3D`) takes it; `data` and `_terrain` are what the
-## places read besides the heights.
-class StubMap extends Node3D:
-	const ROOF_CELL := 4.0
-	var _roof_x0 := 0.0
-	var _roof_z0 := 0.0
-	var _roof_nx := 0
-	var _roof_nz := 0
-	var _wall_faces := PackedVector3Array()
-	var data: Dictionary = {}
-	var _terrain := {"step": 10.0}
-
-	## The sunken places (map_builder SUNKEN) on the flat ground: tops at 0, floors 3.4 m under it.
-	var _sunk: Array[Dictionary] = []
-
-	func _init() -> void:
-		for e: Dictionary in MapBuilderRef.SUNKEN:
-			var f := e.duplicate()
-			if not is_nan(float(f["hb"])):
-				f["hb"] = -3.4
-			if f.has("rim"):
-				f["rim"] = 0.0
-			_sunk.append(MapBuilderRef.sunk_entry(f, 0.0, 10.0))
-
-	## map_builder.gd's collider by class (step 1, solid classes): here one bag, as before.
-	func _solid(_cls: StringName, faces: PackedVector3Array) -> void:
-		_wall_faces.append_array(faces)
-
-	func _grid_height(_x: float, _z: float) -> float:
-		return 0.0
-
-	func sunk_floor(x: float, z: float, _grown := false) -> float:
-		for sk: Dictionary in _sunk:
-			if Geometry2D.is_point_in_polygon(Vector2(x, z), sk["ring"]):
-				return MapBuilderRef.sunk_level(sk, Vector2(x, z))
-		return INF
-
-	func sunk_level(sk: Dictionary, p: Vector2) -> float:
-		return MapBuilderRef.sunk_level(sk, p)
-
-	func terrain_height(_x: float, _z: float) -> float:
-		return 0.0
-
-	func ground_height(_x: float, _z: float) -> float:
-		return 0.0
-
-	func platform_top(_x: float, _z: float) -> float:
-		return NAN
-
-	func tunnel_floor_under(_x: float, _z: float) -> float:
-		return NAN
-
-	func _roof_triangle(_a: Vector3, _b: Vector3, _c: Vector3, _is_roof: bool, _col := Color(0, 0, 0, 0)) -> void:
-		pass
 
 
 class Recorder:

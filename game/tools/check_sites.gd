@@ -19,9 +19,9 @@ extends SceneTree
 ## Prints a line per site, then `check_sites: OK` (exit 0) or the problems (exit 1).
 ##   godot --headless --path game --script res://tools/check_sites.gd
 
-const MapBuilderRef := preload("res://scripts/map_builder.gd")
 const Landmarks := preload("res://scripts/landmarks.gd")
 const Chunked := preload("res://scripts/chunked_surface.gd")
+const Fakes := preload("res://tools/fakes.gd")
 ## Triangles a site may hold (the museum and Plac loop's own models).
 const BUDGET := {"muzeum": 3300, "europejski": 8000, "grob": 600, "metropolitan": 3200, "wiktoria": 900,
 		"hotel_kasztel": 400, "hotel_canaletto": 400, "hotel_starowka": 400, "polonia": 1450, "ujazdowski": 1650, "sobieski": 1500,
@@ -34,57 +34,6 @@ const DENY := ["sofitel", "victoria"]
 const MAX_LINE := 70
 
 var problems: Array[String] = []
-
-
-## A stand-in for map_builder.gd: flat ground, the roof grid's frame, the car walls.
-class StubMap:
-	const ROOF_CELL := 4.0
-	var _roof_x0 := 0.0
-	var _roof_z0 := 0.0
-	var _roof_nx := 0
-	var _roof_nz := 0
-	var _wall_faces := PackedVector3Array()
-	var roof_tris := 0
-
-	## The sunken places (map_builder SUNKEN) on the flat ground: tops at 0, floors 3.4 m under it.
-	var _sunk: Array[Dictionary] = []
-
-	func _init() -> void:
-		for e: Dictionary in MapBuilderRef.SUNKEN:
-			var f := e.duplicate()
-			if not is_nan(float(f["hb"])):
-				f["hb"] = -3.4
-			if f.has("rim"):
-				f["rim"] = 0.0
-			_sunk.append(MapBuilderRef.sunk_entry(f, 0.0, 10.0))
-
-	## map_builder.gd's collider by class (step 1, solid classes): here one bag, as before.
-	func _solid(_cls: StringName, faces: PackedVector3Array) -> void:
-		_wall_faces.append_array(faces)
-
-	func _grid_height(_x: float, _z: float) -> float:
-		return 0.0
-
-	func sunk_floor(x: float, z: float, _grown := false) -> float:
-		for sk: Dictionary in _sunk:
-			if Geometry2D.is_point_in_polygon(Vector2(x, z), sk["ring"]):
-				return MapBuilderRef.sunk_level(sk, Vector2(x, z))
-		return INF
-
-	func sunk_level(sk: Dictionary, p: Vector2) -> float:
-		return MapBuilderRef.sunk_level(sk, p)
-
-	func terrain_height(_x: float, _z: float) -> float:
-		return 0.0
-
-	func ground_height(_x: float, _z: float) -> float:
-		return 0.0
-
-	func tunnel_floor_under(_x: float, _z: float) -> float:
-		return NAN
-
-	func _roof_triangle(_a: Vector3, _b: Vector3, _c: Vector3, _is_roof: bool, _col := Color(0, 0, 0, 0)) -> void:
-		roof_tris += 1
 
 
 ## A stand-in for the city's building surface: keeps what the landmark emits.
@@ -117,7 +66,7 @@ func _initialize() -> void:
 		print("check_sites: 1 problem\n  map/centrum.json missing or unreadable")
 		quit(1)
 		return
-	var map := StubMap.new()
+	var map := Fakes.BuilderMap.new()
 	var bounds: Array = data.get("bounds", [-3200.0, -2200.0, 3200.0, 2200.0])
 	map._roof_x0 = float(bounds[0])
 	map._roof_z0 = float(bounds[1])
@@ -128,6 +77,7 @@ func _initialize() -> void:
 	for key: String in BUDGET:
 		_check_site(marks, map, key)
 	_check_skins(marks, data)
+	map.free()
 	if problems.is_empty():
 		print("check_sites: OK")
 		quit(0)
@@ -186,7 +136,7 @@ func _check_zones(marks, data: Dictionary) -> void:
 	print("check_sites: zones: %d buildings dropped under the sites, %d neighbours kept" % [dropped, kept])
 
 
-func _check_site(marks, map: StubMap, key: String) -> void:
+func _check_site(marks, map: Fakes.BuilderMap, key: String) -> void:
 	var k := -1
 	for i in marks.sites.size():
 		if marks.sites[i]["key"] == key:

@@ -22,22 +22,7 @@ const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Pedestrians := preload("res://scripts/pedestrians.gd")
 const EggBook := preload("res://scripts/egg_book.gd")
 const Wallet := preload("res://scripts/wallet.gd")
-
-
-## A stand-in for pedestrians.gd: the stop figures written and the walkers startled.
-class FakeWalkers extends Node3D:
-	var figures := {}
-	var startled := 0
-
-	func set_stop(i: int, _at: Vector3, _yaw: float, _shirt: Color, _trousers: float) -> void:
-		figures[i] = true
-
-	func clear_stop(i: int) -> void:
-		figures.erase(i)
-
-	func startle(_at: Vector2, _r: float) -> int:
-		startled += 1
-		return 0
+const Fakes := preload("res://tools/fakes.gd")
 
 
 var problems: Array[String] = []
@@ -175,7 +160,7 @@ func _check_people(digest: PackedStringArray) -> void:
 				return
 			most = maxi(most, p)
 	var b: Buses = Buses.new()
-	var w := FakeWalkers.new()
+	var w := Fakes.Walkers.new()
 	b.walkers = w
 	root.add_child(b)
 	root.add_child(w)
@@ -185,12 +170,12 @@ func _check_people(digest: PackedStringArray) -> void:
 	var by_day := 0
 	for h in [7.5, 8.0, 12.0, 16.0, 17.0]:
 		b._stop_figures(h)
-		by_day = maxi(by_day, w.figures.size())
-		if w.figures.size() > Buses.WAIT_SLOTS or w.figures.size() < b._near.size():
-			problems.append("stop figures at %.1f: %d for %d stops (cap %d)" % [h, w.figures.size(), b._near.size(), Buses.WAIT_SLOTS])
+		by_day = maxi(by_day, w.stops.size())
+		if w.stops.size() > Buses.WAIT_SLOTS or w.stops.size() < b._near.size():
+			problems.append("stop figures at %.1f: %d for %d stops (cap %d)" % [h, w.stops.size(), b._near.size(), Buses.WAIT_SLOTS])
 	b._stop_figures(23.0)
-	if not w.figures.is_empty():
-		problems.append("stop figures at 23:00 with no ring: %d" % w.figures.size())
+	if not w.stops.is_empty():
+		problems.append("stop figures at 23:00 with no ring: %d" % w.stops.size())
 	b.free()
 	w.free()
 	digest.append("stops 2-5 people by day, ≤ %d waiting figures (%d seen)" % [Buses.WAIT_SLOTS, by_day])
@@ -198,7 +183,7 @@ func _check_people(digest: PackedStringArray) -> void:
 
 func _check_horn(digest: PackedStringArray) -> void:
 	var b: Buses = Buses.new()
-	var w := FakeWalkers.new()
+	var w := Fakes.Walkers.new()
 	b.walkers = w
 	b.vehicle = func() -> Array: return veh
 	root.add_child(b)
