@@ -463,7 +463,7 @@ def classify(d, sd):
         model = MODEL_FOR.get((rule, cls)) or MODEL_FOR.get((rule, "*")) or MODEL_FOR.get(("*", cls))
         if model is None and cls == "barrier":
             model = "barrier:" + kind
-        # The drawn style (map_builder.gd BARRIER_STYLE) a verdict applies, when it has one.
+        # The drawn style (a placed barrier type, game/data/object_palette.json) a verdict applies, when it has one.
         style = ""
         if model == "tram_railing":
             style = "tram_railing"
@@ -749,7 +749,7 @@ def main():
         out = os.path.join(ROOT, "game", "data", "road_objects.json")
         with open(out, "w", encoding="utf-8") as fh:
             json.dump({"_about": "tools/street_pass.py --apply: per-barrier verdicts from the street records (docs/streets/), "
-                       "read by map_builder.gd _build_barriers (OBJECT_OVERRIDES). Do not edit by hand: change the street's "
+                       "read by city_barriers.gd build_barriers (OBJECT_OVERRIDES). Do not edit by hand: change the street's "
                        "record or its `decisions` in docs/streets/streets.json and re-run.", "items": dict(sorted(items.items()))},
                       fh, ensure_ascii=False, indent=1)
             fh.write("\n")

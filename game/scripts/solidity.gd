@@ -10,6 +10,8 @@ extends RefCounted
 ## collider face under a class (`_solid(cls, faces)`, one `StaticBody3D` per class per sector,
 ## named `Solid_<class>` with `set_meta("solid", cls)`); the dressing scripts' own bodies carry
 ## the same meta (game/tools/check_solids.gd).
+## Step 2 (the wall builder) adds the palette's barrier types ("types": one row per wall, fence,
+## hedge, rail and guard rail look; `types`, `type_row`), drawn by city_barriers.gd.
 ##
 ## The answers: H hard (the car stops and slides, today's wall), S smash (it breaks, the car goes
 ## through for a share of its speed), P push (it gives way), R ride (the car drives over it),
@@ -28,6 +30,10 @@ const ANSWERS := ["H", "S", "P", "R", "G"]
 
 ## {"list": Array[StringName] in the file's order, "answer": {StringName: String}}.
 static var _table: Dictionary = _load()
+## Step 2 (the wall builder): the palette's barrier types, {"list": Array[StringName] in the
+## file's order, "row": {StringName: Dictionary}}, each row read-only. city_barriers.gd draws them;
+## the palette is their one source (no copy of a look in code).
+static var _types: Dictionary = _load_types()
 
 
 ## Every class, in the palette's order (the order map_builder.gd adds its bodies in).
@@ -44,6 +50,39 @@ static func answer(cls: StringName) -> String:
 
 static func is_known(cls: StringName) -> bool:
 	return (_table["answer"] as Dictionary).has(cls)
+
+
+## Every barrier type's id, in the palette's order (step 2).
+static func types() -> Array[StringName]:
+	var out: Array[StringName] = []
+	out.assign(_types["list"])
+	return out
+
+
+## A barrier type's palette row (read-only: id, family, draw, colour, sizes, ...; the palette's
+## "_types" says what each key means), or an empty Dictionary for an id not in the palette.
+static func type_row(id: StringName) -> Dictionary:
+	return (_types["row"] as Dictionary).get(id, {})
+
+
+## The palette's types, checked: a row without an id or a draw, or an id twice, is reported
+## (push_error) and left out.
+static func _load_types() -> Dictionary:
+	var list: Array[StringName] = []
+	var rows := {}
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(PALETTE)) if FileAccess.file_exists(PALETTE) else null
+	if not parsed is Dictionary or not (parsed as Dictionary).get("types") is Array:
+		push_error("solidity: %s is missing or has no \"types\" list" % PALETTE)
+		return {"list": list, "row": rows}
+	for row: Variant in parsed["types"]:
+		var id := StringName(str((row as Dictionary).get("id", ""))) if row is Dictionary else &""
+		if id == &"" or rows.has(id) or str((row as Dictionary).get("draw", "")) == "":
+			push_error("solidity: a bad type row in %s: %s" % [PALETTE, row])
+			continue
+		(row as Dictionary).make_read_only()
+		list.append(id)
+		rows[id] = row
+	return {"list": list, "row": rows}
 
 
 ## The palette's classes, checked: a row without an id or with an answer outside ANSWERS, or an

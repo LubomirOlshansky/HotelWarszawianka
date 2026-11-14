@@ -11,7 +11,8 @@ time (nothing hand-kept but the WANTED list's reasons):
   prop        Props static builders (game/scripts/props.gd: `add_*` and mesh functions)
   instanced   map_builder.gd's shared instanced meshes (bench, bin, lamp, shelter, trees...)
               with the count the map data places
-  barrier     map_builder.gd BARRIER_STYLE (the drawn style of OSM fences, walls, hedges)
+  barrier     the placed barrier types of game/data/object_palette.json "types" (the drawn style of
+              OSM fences, walls, hedges; game/scripts/city_barriers.gd draws them) and the guard rail
   detail      street_details.gd, park_details.gd and monuments.gd kinds, counted in game/data
   metro       Props.add_metro_entrance forms
   vehicle     Models (game/scripts/models.gd) vehicle and people meshes
@@ -35,7 +36,7 @@ S = os.path.join(ROOT, "game", "scripts")
 
 # What a street pass may ask for that the game does not draw yet: id -> (name, why it is needed).
 # A model leaves this list when its code exists (the scan then finds it under its own id, or as a
-# BARRIER_STYLE "barrier:<id>", as tram_railing and balustrade did on 2026-11-05).
+# placed palette type "barrier:<id>", as tram_railing and balustrade did on 2026-11-05).
 WANTED = {
     "balustrade": ("Stair and metro balustrade (granite with a steel rail; glass for newer stations)",
                    "road-objects B5: stair walls drawn as 1.9 m grey slabs"),
@@ -105,20 +106,23 @@ def build():
             seen.add(k)
             lib.append({"id": "instanced:" + k, "cat": "instanced", "name": k.replace("_", " "), "about": doc_before(mb, i),
                         "file": f"game/scripts/map_builder.gd:{i + 1}", "count": counts.get(k), "used_by": ["centrum.json"]})
-    for i, ln in enumerate(mb):
-        if ln.startswith("const BARRIER_STYLE"):
-            j = i + 1
-            while not mb[j].startswith("}"):
-                m = re.match(r'\s*"([a-z_]+)": \["(#[0-9a-f]+)", ([0-9.]+), ([0-9.]+)(, \[[^\]]*\])?\]', mb[j])
-                if m:
-                    k = m.group(1)
-                    kind = "open railing" if m.group(5) else f"{m.group(3)} m thick"
-                    lib.append({"id": "barrier:" + k, "cat": "barrier", "name": k, "about": f"{m.group(2)}, {kind}, {m.group(4)} m high (one style for every {k})",
-                                "file": f"game/scripts/map_builder.gd:{j + 1}", "count": line_kinds.get(k), "used_by": ["centrum.json lines"]})
-                j += 1
-        if ln.startswith("func _build_guard_rails("):
-            lib.append({"id": "barrier:guard_rail", "cat": "barrier", "name": "guard rail", "about": doc_before(mb, i),
-                        "file": f"game/scripts/map_builder.gd:{i + 1}", "count": None, "used_by": ["centrum.json guards"]})
+    # The placed barrier types (step 2 of the city objects plan: the looks are palette rows).
+    pal = os.path.join(ROOT, "game", "data", "object_palette.json")
+    pal_lines = open(pal, encoding="utf-8").read().split("\n")
+    types_at = next((i for i, ln in enumerate(pal_lines) if ln.strip().startswith('"types"')), 0)
+    for row in json.load(open(pal, encoding="utf-8")).get("types", []):
+        if not row.get("placed"):
+            continue
+        k = row["id"]
+        kind = "open railing" if row.get("draw") == "railing" else f"{row['thickness']} m thick"
+        line = next((i + 1 for i, ln in enumerate(pal_lines) if i > types_at and f'"id": "{k}"' in ln), 1)
+        lib.append({"id": "barrier:" + k, "cat": "barrier", "name": k, "about": f"{row['colour']}, {kind}, {row['height']} m high (one style for every {k})",
+                    "file": f"game/data/object_palette.json:{line}", "count": line_kinds.get(k), "used_by": ["centrum.json lines"]})
+    cb = open(os.path.join(S, "city_barriers.gd"), encoding="utf-8").read().split("\n")
+    for i, ln in enumerate(cb):
+        if ln.startswith("func build_guard_rails("):
+            lib.append({"id": "barrier:guard_rail", "cat": "barrier", "name": "guard rail", "about": doc_before(cb, i),
+                        "file": f"game/scripts/city_barriers.gd:{i + 1}", "count": None, "used_by": ["centrum.json guards"]})
     for rel, fname, cat in (("game/scripts/street_details.gd", "street_details.json", "detail"),
                             ("game/scripts/park_details.gd", "park_details.json", "park"),
                             ("game/scripts/monuments.gd", "monuments.json", "monument")):

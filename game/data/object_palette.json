@@ -1,10 +1,10 @@
 {
-	"_about": "The city objects palette (docs/design/city-objects-plan.md 3.2). Step 1 (solid classes) starts it with the classes alone: one row per class of collider face, the answer the car gets (H hard, S smash, P push, R ride, G ghost) and a note. Every class answers H in step 1, which is today's behaviour. game/scripts/solidity.gd reads it; map_builder.gd _solid and the dressing scripts' bodies name these ids (game/tools/check_solids.gd).",
+	"_about": "The city objects palette (docs/design/city-objects-plan.md 3.2). Step 1 (solid classes) starts it with the classes alone: one row per class of collider face, the answer the car gets (H hard, S smash, P push, R ride, G ghost) and a note. Every class answers H in step 1, which is today's behaviour. Step 2 adds the barrier types (types, see _types). game/scripts/solidity.gd reads it; map_builder.gd _solid and the dressing scripts' bodies name these ids (game/tools/check_solids.gd).",
 	"classes": [
 		{"id": "building", "answer": "H", "note": "an OpenStreetMap building's walls, the first 5 m (map_builder _build_buildings)"},
 		{"id": "lod2", "answer": "H", "note": "a GUGiK LoD2 building's steep triangles (map_builder _build_lod2)"},
 		{"id": "small_building", "answer": "H", "note": "an OpenStreetMap kiosk, shed, carport, roof, service hut or any outline under 30 m2 (the census's split), or a researched small building (small_buildings.gd)"},
-		{"id": "fence", "answer": "H", "note": "a barrier line of kind fence, slab or open railing (map_builder _build_barriers)"},
+		{"id": "fence", "answer": "H", "note": "a barrier line of kind fence, slab or open railing (city_barriers.gd build_barriers)"},
 		{"id": "hedge", "answer": "H", "note": "a barrier line of kind hedge"},
 		{"id": "wall", "answer": "H", "note": "a barrier line of kind wall, and the Old Town's city walls"},
 		{"id": "stair_wall", "answer": "H", "note": "a wall or fence the bake marked as a stair's balustrade (the line's st, tools/object_fixes.py)"},
@@ -23,5 +23,35 @@
 		{"id": "garage_door", "answer": "H", "note": "a garage door at a ramp's top, or a car park mouth's barrier arm"},
 		{"id": "landmark", "answer": "H", "note": "a landmark site's walls (landmarks.gd), and the Ratusz Arsenal tower"},
 		{"id": "edge", "answer": "H", "note": "the invisible walls at the map's edge and the roadworks that close the roads there"}
+	],
+	"_types": "Step 2 (the wall builder): one row per barrier type, today's looks, read by game/scripts/solidity.gd (types, type_row) and drawn by game/scripts/city_barriers.gd. id; family (heavy, light, low; nothing reads it yet: the later steps' panels and breaking); draw (slab: a box along the line, _wall_along; railing: posts and two rails you see through, _railing_along, on an upstand of `upstand` m in `colour`, posts and rails in `rail`, a post every `posts` m, every `posts_mapped` m on a line OpenStreetMap maps the fence type or a ball-stop net of; city_wall, guard_rail: their own builders); colour (hex, the body); thickness and height (m; height is the default when the line has no mapped `h`); h_range: a mapped height clamped to it; low_height, low_thickness: a mapped wall that low is that thin; material: the OSM `m` (tools/barrier_tags.py) whose colour, and unmapped height, the row gives a wall; placed: a street pass (game/data/road_objects.json), the bake's `st` (tools/object_fixes.py) or city_barriers.gd SITE_WALLS may name it, and an OSM line kind named so is drawn with it; note.",
+	"types": [
+		{"id": "hedge", "family": "light", "draw": "slab", "colour": "#4f7d39", "thickness": 0.9, "height": 1.2, "h_range": [0.4, 3.0], "placed": true, "note": "an OSM hedge"},
+		{"id": "fence", "family": "light", "draw": "slab", "colour": "#7d838a", "thickness": 0.12, "height": 1.6, "h_range": [0.5, 2.5], "placed": true, "note": "an OSM fence with no fence type: a solid grey band; mapped over the range's top (the ball-stop nets) it is a fence_mesh"},
+		{"id": "wall", "family": "heavy", "draw": "slab", "colour": "#a49d92", "thickness": 0.35, "height": 1.9, "low_height": 1.0, "low_thickness": 0.3, "placed": true, "note": "an OSM wall with no material"},
+		{"id": "platform", "family": "low", "draw": "slab", "colour": "#d2cdc3", "thickness": 2.4, "height": 0.25, "placed": true, "note": "a stop's platform drawn as a line: kerb height, never solid"},
+		{"id": "tram_railing", "family": "light", "draw": "railing", "colour": "#22262a", "thickness": 0.06, "height": 1.1, "upstand": 0.0, "rail": "#22262a", "posts": 2.0, "posts_mapped": 3.0, "placed": true, "note": "Operation Unslop (2026-11-05): the black steel railing along tram beds and platform edges, open (F: the solid strip read as a black wall)"},
+		{"id": "balustrade", "family": "heavy", "draw": "slab", "colour": "#8f8f8a", "thickness": 0.3, "height": 1.0, "placed": true, "note": "a granite balustrade round a metro entrance's stair, instead of the 1.9 m wall"},
+		{"id": "balustrade_rail", "family": "heavy", "draw": "railing", "colour": "#a9a59d", "thickness": 0.2, "height": 1.0, "upstand": 0.45, "rail": "#2a2e33", "posts": 2.0, "posts_mapped": 3.0, "placed": true, "note": "a concrete upstand with a steel rail at platform and underpass stairs, and round a stairwell"},
+		{"id": "balustrade_white", "family": "heavy", "draw": "slab", "colour": "#ece8dc", "thickness": 0.26, "height": 1.05, "placed": true, "note": "Kino Muranów's white balustrade (the terrace's, landmarks KM_BALUSTER) down its stairs"},
+		{"id": "barrier_default", "family": "heavy", "draw": "slab", "colour": "#999999", "thickness": 0.3, "height": 1.0, "note": "a barrier line of a kind no row above is named after"},
+		{"id": "garden_ring", "family": "low", "draw": "slab", "colour": "#d8d2c4", "thickness": 0.3, "height": 0.45, "note": "the Royal Castle gardens' small closed wall rings (basins, vase beds, round path nodes): a low stone kerb"},
+		{"id": "low_wall", "family": "low", "draw": "slab", "colour": "#b3ada3", "thickness": 0.4, "height": 0.55, "note": "planter edges OSM maps as walls (Wars's front on Widok, the Rotunda's stair, Kino Muranów's fountain steps)"},
+		{"id": "island_edge", "family": "low", "draw": "slab", "colour": "#8e8b84", "thickness": 0.25, "height": 0.2, "note": "a wall inside a traffic island: a planting bed's granite kerb, drawn, not solid"},
+		{"id": "pkin_wall", "family": "low", "draw": "slab", "colour": "#aaa69e", "thickness": 0.4, "height": 0.65, "note": "the Palace of Culture's knee-high granite planters and raised lawns' retaining walls"},
+		{"id": "basin_rim", "family": "low", "draw": "slab", "colour": "#cfc9bd", "thickness": 0.35, "height": 0.45, "note": "a fountain basin's rim, or a small ring by a flight of steps"},
+		{"id": "fence_railing", "family": "light", "draw": "railing", "colour": "#2a2e33", "thickness": 0.05, "height": 1.2, "h_range": [0.8, 2.5], "upstand": 0.0, "rail": "#2a2e33", "posts": 2.0, "posts_mapped": 3.0, "note": "a fence OSM calls a railing (ft: railing, bars, balustrade, metal): an open steel railing"},
+		{"id": "fence_mesh", "family": "light", "draw": "railing", "colour": "#8b9196", "thickness": 0.05, "height": 1.8, "h_range": [1.0, 8.0], "upstand": 0.0, "rail": "#8b9196", "posts": 2.0, "posts_mapped": 3.0, "note": "a chain-link fence, or a solid one mapped over the fence row's range (the ball-stop nets): an open grey mesh"},
+		{"id": "fence_wood", "family": "light", "draw": "slab", "colour": "#7f6248", "thickness": 0.08, "height": 1.5, "note": "a wooden fence: brown boards"},
+		{"id": "wall_brick", "family": "heavy", "draw": "slab", "material": "brick", "colour": "#a8644b", "thickness": 0.35, "height": 1.9, "note": "a wall OSM maps as brick"},
+		{"id": "wall_stone", "family": "heavy", "draw": "slab", "material": "stone", "colour": "#b9b2a5", "thickness": 0.35, "height": 1.9, "note": "a stone wall"},
+		{"id": "wall_concrete", "family": "heavy", "draw": "slab", "material": "concrete", "colour": "#a9a69f", "thickness": 0.35, "height": 1.9, "note": "a concrete wall"},
+		{"id": "wall_gabion", "family": "heavy", "draw": "slab", "material": "gabion", "colour": "#8f897e", "thickness": 0.35, "height": 1.9, "note": "a gabion wall"},
+		{"id": "wall_glass", "family": "heavy", "draw": "slab", "material": "glass", "colour": "#a9bcc0", "thickness": 0.35, "height": 1.9, "note": "a glass wall or screen"},
+		{"id": "wall_wood", "family": "heavy", "draw": "slab", "material": "wood", "colour": "#7f6248", "thickness": 0.35, "height": 1.9, "note": "a wooden wall"},
+		{"id": "wall_metal", "family": "heavy", "draw": "slab", "material": "metal", "colour": "#7b8085", "thickness": 0.35, "height": 1.9, "note": "a metal wall"},
+		{"id": "wall_noise", "family": "heavy", "draw": "slab", "material": "noise", "colour": "#7e8a84", "thickness": 0.35, "height": 4.0, "note": "a noise barrier: 4 m where OSM maps no height"},
+		{"id": "city_wall", "family": "heavy", "draw": "city_wall", "colour": "#b8704f", "cap": "#c98a6c", "roof": "#9a4a38", "merlon_from": 5.0, "merlon": 1.6, "crenel": 0.7, "merlon_h": 0.9, "note": "the Old Town's defence walls (OSM city_wall areas): brick, a pale brick cap; from merlon_from m up crenellated on the outer face (merlons merlon m wide, crenel m gaps, merlon_h m high); a tower's tile cone in roof"},
+		{"id": "guard_rail", "family": "heavy", "draw": "guard_rail", "colour": "#a7abb0", "post": "#6c7075", "posts": 4.0, "note": "a guard rail (every bridge edge, mapped barrier=guard_rail): a steel beam 0.55-0.85 m up on posts every `posts` m"}
 	]
 }

@@ -68,7 +68,7 @@ TREE_SHIFT = 3.0   # T2: a tree moves at most this far off the road...
 TREE_CLEAR = 0.8   # ...to a spot with the asphalt at least this far from its trunk
 REMOVE = ("P1", "P3", "P4", "P5", "P6", "P7", "P11")
 AUTO = REMOVE + ("P2", "P10", "L1", "L2", "L3", "L4", "L5", "L6", "T1", "T2", "T3")
-# map_builder.gd BARRIER_STYLE: a concrete upstand with an open rail, 1 m (street_pass B5's look).
+# The palette's barrier type (game/data/object_palette.json): a concrete upstand with an open rail, 1 m (street_pass B5's look).
 STAIR_STYLE = "balustrade_rail"
 # Left after the fixes on the demo map (2026-11-07): the ratchet of --check.
 CHECK_LEFT = {"P1": 0, "P2": 0, "P3": 0, "P4": 0, "P5": 0, "P6": 0, "P7": 0, "P10": 0, "P11": 0,
