@@ -306,6 +306,8 @@
 # fixes by itself: inside a wall, in a carriageway, under a deck, doubles, stubs, stair slabs, paths
 # walled off; 2026-11-08: no scanned tree in the water or on the asphalt, no fence or hedge in the
 # water; the CHECK rules are only counted).
+# Re-bake guard (2026-11-14): `postpasses` runs tools/check_post_passes.py (road_fixes, lane_tapers, zamek_ramps and
+# object_fixes each leave the committed map unchanged: a pass that is not idempotent drifts it on every re-run).
 # Stairs across the city (2026-11-07): `stairs` runs tools/stairs.py --check (the map's flights carry
 # their OSM tags: step count, width, handrails, ramps; map_builder.gd builds the stone flights from them)
 # and tools/barrier_tags.py --check (walls, fences and hedges carry their mapped heights, materials and
@@ -1064,6 +1066,15 @@ for s in $want; do
 				0) row PASS "objects" $secs "$(grep '^object_fixes: ' $logs/objects.log | tail -1)" ;;
 				*) row FAIL "objects" $secs "$(grep '^object_fixes: ' $logs/objects.log | tail -1) ($logs/objects.log)" ;;
 			esac ;;
+		postpasses)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/check_post_passes.py > $logs/postpasses.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			case $code in
+				0) row PASS "postpasses" $secs "$(grep '^check_post_passes: ' $logs/postpasses.log | tail -1)" ;;
+				*) row FAIL "postpasses" $secs "$(grep -v '^ ' $logs/postpasses.log | tail -2 | tr '\n' ' ') ($logs/postpasses.log)" ;;
+			esac ;;
 		stairs)
 			t0=$EPOCHREALTIME
 			python3 -I $ROOT/tools/stairs.py --check > $logs/stairs.log 2>&1 && \
@@ -1415,6 +1426,8 @@ for s in $want; do
 		# Loop 10a: where a car can get into the water (whole map), and the game's tow decisions.
 		water) check water '^check_water:' --script res://tools/check_water.gd ;;
 		water-prebuilt) skip_prebuilt water-prebuilt || check water-prebuilt '^check_water:' --script res://tools/check_water.gd -- --prebuilt ;;
+		# 2026-11-14: a sector is the same whatever was built before it (forward and reverse order, ~10 min with a window).
+		sectororder) STEP_LIMIT=$(( STEP_LIMIT > 1500 ? STEP_LIMIT : 1500 )) shown sectororder '^check_sector_order:' --script res://tools/check_sector_order.gd ;;
 		# Loop 3c: the sectors are the whole city (meshes, pixels at 10 spots), streaming misses nothing.
 		# The loading fix (2026-10-31): seven passes now, ~13 min: at least 25 min before it's stopped.
 		streaming) STEP_LIMIT=$(( STEP_LIMIT > 1500 ? STEP_LIMIT : 1500 )) shown streaming '^check_streaming:' --script res://tools/check_streaming.gd -- --keep=$logs/streaming ;;

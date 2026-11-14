@@ -2318,8 +2318,12 @@ def load_spec(area):
         return json.load(f)
 
 
+# Specs in docs/roads/ that are trials: main does not apply them, so a re-bake must not either.
+TRIALS = ("palace",)
+
+
 def apply_all(out):
-    """bake_osm.py: every area in docs/roads/ (a fresh bake has none applied)."""
+    """bake_osm.py: every area in docs/roads/ except the TRIALS (a fresh bake has none applied)."""
     done = []
     if not os.path.isdir(SPECS):
         return "no areas"
@@ -2327,7 +2331,7 @@ def apply_all(out):
         if not name.endswith(".json"):
             continue
         area = name[:-5]
-        if area in out.get("road_design", {}):
+        if area in TRIALS or area in out.get("road_design", {}):
             continue
         d = Design(load_spec(area), out["roads"]).build()
         apply_design(out, d)

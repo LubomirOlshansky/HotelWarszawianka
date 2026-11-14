@@ -508,6 +508,10 @@ func build_sector(key: Vector2i, roofs_only := false, merge := true) -> Node3D:
 	var ctx: Array = data.get("context", [])
 	_near = Rect2(ctx[0], ctx[1], ctx[2] - ctx[0], ctx[3] - ctx[1]) if ctx.size() == 4 else _sector_rect.grow(SECTOR_MARGIN)
 	_solids.clear()
+	# Lazy caches filled from `data`, which is this sector's file: kept from an earlier sector they would
+	# hold that sector's roads and make the result depend on the build order (check_sector_order.gd).
+	_powisle_segs.clear()
+	_nowy_segs.clear()
 	_scratch_roof.resize(_roof.size())
 	_scratch_roof.fill(NO_ROOF)
 	if proxy_colours:
@@ -528,6 +532,8 @@ func build_sector(key: Vector2i, roofs_only := false, merge := true) -> Node3D:
 		_merge_roofs()
 	_merge = true
 	_solids.clear()
+	_powisle_segs.clear()
+	_nowy_segs.clear()
 	data = whole
 	_out = self
 	_in_sector = false
@@ -8546,7 +8552,10 @@ func _index_platforms() -> void:
 	_plat_index.clear()
 	_plat_polys.clear()
 	_plat_tops.clear()
-	for a in data.get("platforms", []):
+	# The whole map's platforms (a sector's file holds only its own, and this index is built once, by whichever
+	# sector asks first: a platform of another sector would be missing for every later one; the index keeps them all).
+	var whole: Dictionary = index_data if _in_sector and index_data.has("platforms") else data
+	for a in whole.get("platforms", []):
 		var poly := _pts(a["p"])
 		if poly.size() < 3:
 			continue
