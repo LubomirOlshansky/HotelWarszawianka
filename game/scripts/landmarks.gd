@@ -19200,8 +19200,8 @@ func _build_miloserdzie(site: Dictionary) -> void:
 	_disc(Vector3(_w(tu, -8.98).x, g + 16.4, _w(tu, -8.98).y), Vector3(-_b.x, 0.0, -_b.y), 0.5, 10, PAL_DARK_STEEL)
 	for pu: float in [-1.0, 1.0]:
 		for pv: float in [-1.0, 1.0]:
-			_lbox(tu + pu * 1.3, tv + pv * 1.2, 0.35, 0.35, g + 18.4, g + 21.4, FA_WALL, M_STONE, none)
-	_lbox(tu, tv, 0.9, 0.85, g + 18.4, g + 21.4, CHURCH_DARK, M_STONE, none)
+			_lbox(tu + pu * 1.3, tv + pv * 1.2, 0.35, 0.35, g + 18.4, g + 21.1, FA_WALL, M_STONE, none)
+	_lbox(tu, tv, 0.9, 0.85, g + 18.4, g + 21.1, CHURCH_DARK, M_STONE, none)
 	_lbox(tu, tv, 1.85, 1.75, g + 21.0, g + 21.4, FA_WALL, M_STONE, none)
 	_lbox(tu, tv, 2.0, 1.9, g + 21.4, g + 21.8, FA_TRIM, M_STONE, FA_TRIM)
 	var tc := _w(tu, tv)
