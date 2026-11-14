@@ -795,7 +795,7 @@ const INFO := {
 	"church_augustyn": ["Kościół św. Augustyna", "Kościół parafialny z cegły.", "A brick parish church."],
 	"church_miloserdzie": ["Kościół Miłosierdzia Bożego", "Kościół parafialny.", "A parish church."],
 	"church_piotr_pawel": ["Kościół Świętych Piotra i Pawła", "Kościół parafialny z cegły.", "A brick parish church."],
-	"church_trojca_praga": ["Kościół Świętej Trójcy", "Kościół parafialny.", "A parish church."],
+	"church_trojca_praga": ["Kościół Świętej Trójcy na Solcu", "Klasycystyczny kościół z wieżyczką.", "A classicist church with a bell turret."],
 	"church_czestochowska": ["Kościół Matki Bożej Częstochowskiej", "Modernistyczny kościół z dachem do ziemi.", "A modernist church with a roof down to the ground."],
 	"church_zwycieska": ["Kościół Matki Boskiej Zwycięskiej", "Kościół parafialny z dwiema wieżami.", "A parish church with two towers."],
 	"church_cerkiew": ["Cerkiew Zaśnięcia Matki Bożej", "Greckokatolicka cerkiew bazylianów przy Miodowej.", "The Basilians' Greek Catholic church on Miodowa."],
@@ -20298,6 +20298,114 @@ func _build_czestochowska(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## Holy Trinity church on Solec (Kościół Świętej Trójcy na Solcu, the site key still says Praga):
+## a cream classicist church with a temple front and pediment towards the north-east, a short
+## transept and a slim bell turret with a little bulb dome over the crossing. The whole church as a
+## model that replaces the old kit church (`church_trojca_praga`, built by `_build_church` until
+## 2026-11-14: a plain box). From Mapillary 360s of 2025 and 2026 on the avenue to the north-east
+## (the front and the turret against the sky from 96 m; refs/trojca_praga, never shipped), the OSM
+## outline and GUGiK's LoD2 (over the ground: the nave's eaves 14 and ridge 17; the transept's
+## ridge 17.2; the turret's top 26.4; the chancel 16.5; the back wings 9).
+## Spec docs/landmarks/specs/trojca_solec.md.
+## Frame: origin at the front's middle, u from the front (north-east) back, v across; the front
+## faces -u.
+const SL_O := Vector2(1077.3, 252.8)
+const SL_A := Vector2(-0.6905, 0.7234)
+const SL_WALL := Color("#e2d6bc")      ## the cream plaster
+const SL_TRIM := Color("#f2ecdf")      ## pilasters, cornice, pediment
+const SL_ROOF := Color("#63696e")      ## the grey sheet roofs
+const SL_DOME := Color("#5b6764")      ## the turret's dark dome
+const SL_DOOR := Color("#4a3a30")
+
+
+func _build_trojca_solec(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(SL_O, SL_O + SL_A)
+	_g = _ground_under(outline)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	var b := Vector2(-SL_A.y, SL_A.x)
+	_mode = M_STONE
+	# --- the masses: nave, transept, chancel, the low wings and the side annex
+	var nave := _lpoly([[0.0, -4.6], [19.5, -4.6], [19.5, 4.6], [0.0, 4.6]])
+	_prism(nave, g - 1.0, g + 14.1, SL_WALL, none, M_STONE)
+	kit_ledge_ring(nave, g + 13.5, 0.5, SL_TRIM, 0.2)  # its top 5 cm under the transept's and 10 under the front's entablature
+	_gable(0.0, 19.5, 0.0, 4.85, g + 14.1, 2.9, SL_WALL, SL_ROOF, false)
+	var tran := _lpoly([[19.5, -7.5], [25.0, -7.5], [25.0, 7.5], [19.5, 7.5]])
+	_prism(tran, g - 1.0, g + 14.1, SL_WALL, none, M_STONE)
+	kit_ledge_ring(tran, g + 13.55, 0.5, SL_TRIM, 0.2)
+	var ka := _a
+	var kb := _b
+	_a = kb
+	_b = ka
+	_gable(-7.5, 7.5, 22.25, 2.95, g + 14.1, 3.1, SL_WALL, SL_ROOF, true)
+	_a = ka
+	_b = kb
+	var ch := _lpoly([[25.0, -4.0], [31.0, -4.0], [31.0, 4.0], [25.0, 4.0]])
+	_prism(ch, g - 1.0, g + 13.5, SL_WALL, none, M_STONE)
+	_gable(31.0, 25.0, 0.0, 4.2, g + 13.5, 3.0, SL_WALL, SL_ROOF, false)
+	for wv: Array in [[-9.5, -4.0], [4.0, 9.5]]:
+		_prism(_lpoly([[25.05, wv[0]], [31.0, wv[0]], [31.0, wv[1]], [25.05, wv[1]]]), g - 1.0, g + 9.0, SL_WALL, SL_ROOF.lightened(0.1), M_STONE, M_STONE)
+	_prism(_lpoly([[6.0, 4.6], [10.0, 4.6], [10.0, 9.5], [6.0, 9.5]]), g - 1.0, g + 8.6, SL_WALL, SL_ROOF.lightened(0.1), M_STONE, M_STONE)
+	kit_ledge_ring(nave, g - 1.0, 1.6, SL_WALL.darkened(0.15), 0.06)
+	# --- the temple front: four pilasters, the entablature, the pediment, the door, a window
+	_sl_turn(1)
+	kit_face(0.0)
+	for pv: float in [-4.1, -1.6, 1.6, 4.1]:
+		_kbox(pv - 0.35, pv + 0.35, -0.04, 0.16, g + 0.6, g + 12.6, SL_TRIM)
+	_kbox(-4.75, 4.75, -0.04, 0.3, g + 12.6, g + 14.1, SL_TRIM)
+	kit_pediment(0.0, 5.0, g + 14.1, 2.9, SL_TRIM, SL_ROOF, 0.35)
+	kit_door(0.0, g + 0.0, 4.2, 1.0, SL_TRIM, SL_DOOR, true)
+	var wa := _w(0.0, 0.0)
+	_arch_panel(wa, _a, _b, 0.9, g + 6.6, g + 10.2, SL_TRIM, 0.03, M_STONE)
+	_arch_panel(wa, _a, _b, 0.7, g + 6.8, g + 10.2, PAL_GLASS_DARK, 0.07, _lit(1.0, g + 6.8))
+	kit_front(SL_O, SL_O + SL_A)
+	# --- the sides: tall round-headed windows between pilasters
+	for s: float in [-1.0, 1.0]:
+		var vf := s * 4.6
+		var out := b * s
+		for pu: float in [0.8, 6.4, 12.6, 19.0]:
+			_kbox(pu - 0.3, pu + 0.3, minf(vf, vf + s * 0.12), maxf(vf, vf + s * 0.12), g + 0.6, g + 13.6, SL_TRIM)
+		for wu: float in [3.6, 15.8]:
+			_arch_panel(_w(wu, vf), SL_A, out, 0.9, g + 5.0, g + 10.5, SL_TRIM, 0.03, M_STONE)
+			_arch_panel(_w(wu, vf), SL_A, out, 0.7, g + 5.2, g + 10.5, PAL_GLASS_DARK, 0.07, _lit(wu + vf, g + 5.2))
+		var te := _w(22.25, s * 7.5)
+		_arch_panel(te, SL_A, out, 1.0, g + 5.0, g + 10.8, PAL_GLASS_DARK, 0.06, _lit(s, g + 5.0))
+	# --- the bell turret over the crossing: base, belfry arches, bulb dome, spire, cross
+	var tu := 22.3
+	_lbox(tu, 0.0, 1.5, 1.5, g + 15.0, g + 21.0, SL_WALL, M_STONE, none)
+	_lbox(tu, 0.0, 1.65, 1.65, g + 21.0, g + 21.4, SL_TRIM, M_STONE, SL_TRIM.darkened(0.05))
+	var tc := _w(tu, 0.0)
+	for dd: Vector2 in [SL_A, -SL_A, b, -b]:
+		_arch_panel(tc + dd * 1.5, Vector2(-dd.y, dd.x), dd, 0.45, g + 18.2, g + 20.0, CHURCH_DARK, 0.03, M_STONE)
+	var ring := func(r: float) -> PackedVector2Array:
+		var o := PackedVector2Array()
+		for k in 8:
+			var an := PI * (k + 0.5) / 4.0
+			o.append(tc + (SL_A * cos(an) + b * sin(an)) * r)
+		return o
+	_frustum(ring.call(1.2), g + 21.4, ring.call(1.45), g + 22.6, SL_DOME)
+	_frustum(ring.call(1.45), g + 22.6, ring.call(0.5), g + 23.9, SL_DOME)
+	_frustum(ring.call(0.5), g + 23.9, ring.call(0.06), g + 25.6, SL_DOME.lightened(0.05), SL_DOME)
+	_kap_cross(tu, 0.0, g + 25.6, 1.0)
+	_collide(outline)
+
+
+## Turns the kit frame round SL_A as `_kb_turn` does round KB_A (1: +v out of the front).
+func _sl_turn(side: int) -> void:
+	var b := Vector2(-SL_A.y, SL_A.x)
+	match side:
+		0:
+			_a = SL_A
+		1:
+			_a = b
+		2:
+			_a = -SL_A
+		_:
+			_a = -b
+	_b = Vector2(-_a.y, _a.x)
+
+
 ## The Nożyk Synagogue (Synagoga Nożyków, ul. Twarda 6; Karol and Leandro Marconi, 1898-1902;
 ## burnt 1944, rebuilt 1977-1983; Warsaw's only pre-war synagogue still standing), a cream
 ## neo-Romanesque house of prayer in its courtyard south of Plac Grzybowski. The whole building as
@@ -31724,6 +31832,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_dzieciatka":
 		_build_dzieciatka(site)  # the whole brick Child Jesus church from photos, tower to the west, not the kit church
+		return
+	if site["key"] == "church_trojca_praga":
+		_build_trojca_solec(site)  # Holy Trinity on Solec: temple front and crossing turret, from photos
 		return
 	if site["key"] == "church_czestochowska":
 		_build_czestochowska(site)  # the modernist A-frame church and its pylons, from photos
