@@ -45,7 +45,7 @@ extends SceneTree
 ## in a gap and caught the next piece's end, pinned at (1307, 959) (the playtest's 1.6 s stop at
 ## (1308, 960)). Under the ramp, its pier stood 2 m off Solec's west kerb: a car on the kerb lane
 ## drifting 5° west hit it head on. Fixed: guard rail gaps under 1.5 m on a deck get a shallow V behind the rail line (lanes cut through stay clear)
-## (map_builder.gd GUARD_JOIN), and piers keep 2 m more room beside a main road wherever their
+## (city_barriers.gd GUARD_JOIN), and piers keep 2 m more room beside a main road wherever their
 ## slide finds it (tools/bake_structures.py PIER_ROADSIDE; 44 of 359 piers moved 1-2 m). All but
 ## the last spot fail on the old map; a car that leaves Solec 3 m or more onto the verge can still
 ## meet the pier, as at any pier.
@@ -102,9 +102,9 @@ extends SceneTree
 ##
 ## PT-47 (F, 2026-11-08, a screenshot): an invisible wall on Emilii Plater's paved median by the
 ## Palace, the car stopped dead with nothing in sight. OSM's two wavy planter-edge walls (gabion)
-## inside the median islands drew as a 0.2 m granite kerb (ISLAND_EDGE) but kept the 1.9 m wall's
+## inside the median islands drew as a 0.2 m granite kerb (the palette's island_edge type) but kept the 1.9 m wall's
 ## collider, 1.7 m of invisible wall braided along the median for ~300 m. Fixed: a barrier drawn
-## under 0.3 m is not solid, like the stop platforms (map_builder.gd BARRIER_SOLID_MIN). The five
+## under 0.3 m is not solid, like the stop platforms (city_barriers.gd BARRIER_SOLID_MIN). The five
 ## spots drive along and across the median; all fail on the old map (a sweep of 120 lines along
 ## and across it: 47 failed before, none on the median after).
 ##
@@ -241,7 +241,7 @@ func _initialize() -> void:
 		map.measure_sectors()
 	IndexPack.pack(map.index_data)
 	print("check_stuck_spots: %d sectors %s in %d ms%s" % [n, "loaded" if prebuilt else "built", Time.get_ticks_msec() - t0,
-			"" if prebuilt else ", %d pocket walls, %d guard rail gaps closed, %d wall lead-ins" % [map.pocket_walls, map.guard_joins, map.wall_tapers]])
+			"" if prebuilt else ", %d pocket walls, %d guard rail gaps closed, %d wall lead-ins" % [map.pocket_walls, map.barriers.guard_joins, map.wall_tapers]])
 	for s: Array in SEAMS:
 		var h: float = map.drive_height(s[0], s[1], float(s[2]))
 		var bad := absf(h - float(s[2])) > SEAM_TOL

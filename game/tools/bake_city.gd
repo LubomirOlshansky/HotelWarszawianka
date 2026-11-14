@@ -32,7 +32,8 @@ const BUILDER_ONLY := ["site_parts", "kerbs", "medians", "islands", "shore", "fi
 const CITY_INPUTS := ["map/lod2.bin", "map/terrain.json", "map/ao.bin", "map/lights.bin", "map/water.bin",
 		"scripts/map_builder.gd", "scripts/chunked_surface.gd", "scripts/neon_signs.gd", "scripts/landmarks.gd",
 		"scripts/sector_proxies.gd", "scripts/models.gd", "scripts/pixel_font.gd", "scripts/index_pack.gd",
-		"scripts/city_maps.gd", "tools/bake_city.gd", "data/courts.json", "scripts/solidity.gd", "data/object_palette.json"]
+		"scripts/city_maps.gd", "tools/bake_city.gd", "data/courts.json", "scripts/solidity.gd", "data/object_palette.json",
+		"scripts/city_barriers.gd"]
 
 
 ## Set at the end of _bake: a script error (a builder that doesn't compile) ends _bake early

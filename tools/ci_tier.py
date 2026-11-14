@@ -70,7 +70,7 @@ LANDMARKS = ["game/scripts/%s.gd" % name for name in LANDMARK_SCRIPTS] + [
 MAP_SCRIPTS = [
     "map_builder", "lane_graph", "chunked_surface", "sector_streamer", "sector_proxies", "index_pack",
     "instance_buffers", "street_details", "park_details", "map_edge", "edge_roadworks",
-    "centralny_ramp", "rail_cut", "tunnel_xray", "load_yield", "city_maps",
+    "centralny_ramp", "rail_cut", "tunnel_xray", "load_yield", "city_maps", "city_barriers",
 ]
 FULL = ["game/scripts/%s.gd" % name for name in MAP_SCRIPTS] + [
     "game/shaders/*", "game/map/*", "game/tools/bake_city.gd", "tools/*", ".github/*",
@@ -237,6 +237,7 @@ def selftest() -> int:
         (["game/data/courts.json"], "landmarks"),
         (["game/scripts/map_builder.gd"], "full"),
         (["game/scripts/map_builder.gd.uid"], "full"),
+        (["game/scripts/city_barriers.gd"], "full"),
         (["game/shaders/building.gdshader"], "full"),
         (["game/map/centrum.json"], "full"),
         (["tools/verify.sh"], "full"),
