@@ -38,7 +38,7 @@ const BUDGET := {
 	"gigantami": 4000,
 	"filtry": 3000,
 	"level26_club": 860,
-	"church_alberta": 310,
+	"church_alberta": 950,  # 2026-11-14: the whole classicist frontage on Plac Teatralny, portico and two wings, from photos (measured 818)
 	"church_antoniego": 990,
 	"church_augustyn": 890,
 	"church_cerkiew": 410,
@@ -46,19 +46,19 @@ const BUDGET := {
 	"church_duch": 3300,  # 2026-11-14: the whole Holy Spirit church and both towers from photos (measured 3010)
 	"church_dzieciatka": 1800,  # 2026-11-14: the whole brick Child Jesus church from photos (measured 1594)
 	"church_jacek": 2800,  # 2026-11-14: the whole St Hyacinth church from photos (measured 2550)
-	"church_jerozolimska": 810,
+	"church_jerozolimska": 1050,  # 2026-11-14: the whole brick church, its portico and the bell tower next door, from photos (measured 921)
 	"church_kapucyni": 2400,  # 2026-11-14: the whole Capuchin church from photos (measured 2136)
-	"church_karol": 580,
+	"church_karol": 1850,  # 2026-11-14: the whole classicist church on Chłodna, two west towers and the apse, from photos (measured 1693)
 	"church_katedra_polowa": 3200,  # 2026-11-14: the whole Field Cathedral from photos (measured 2917)
-	"church_miloserdzie": 370,
+	"church_miloserdzie": 640,  # 2026-11-14: the whole Divine Mercy church and its bell tower from photos (measured 560)
 	"church_narodzenia": 470,
 	"church_niepokalanego": 720,  # 2026-11-14: the whole Res Sacra Miser church from photos (measured 644)
 	"church_nozykow": 2900,  # 2026-11-14: the whole Nożyk Synagogue from photos (measured 2625)
 	"church_piotr_pawel": 1020,
-	"church_reformowany": 1150,
+	"church_reformowany": 1150,  # 2026-11-14: the whole neo-Gothic church and its spire from photos (measured 1020)
 	"church_sw_marcin": 2400,  # 2026-11-14: the whole St Martin church and its tower from photos (measured 2043)
 	"church_trojca_praga": 410,
-	"church_zielonoswiatkowy": 320,
+	"church_zielonoswiatkowy": 1000,  # 2026-11-14: the whole modernist Pentecostal hall from photos (measured 919)
 	"church_zwycieska": 950,
 	"jezuici": 3800,  # 2026-11-13: the whole Jesuit church replaces LoD2 (nave, roofs, front, aisle, tower, turret)
 	"aleksander": 2600,  # 2026-11-13 photo rebuild: podium, upper drum windows, Corinthian porticoes

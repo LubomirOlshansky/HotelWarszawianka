@@ -61,18 +61,18 @@ Status as of 2026-11-01. "Kit model" = built by the church kit; "model" = its ow
 | Klasztor Ojców Dominikanów | monastery | -961, -1965 | open: convent or monastery: plain block, a later pass |
 | Klasztor Ojców Kapucynów | monastery | -1003, -1406 | open: convent or monastery: plain block, a later pass |
 | Klasztor pallotynów | monastery | 1761, -1687 | open: convent or monastery: plain block, a later pass |
-| Kościól Św. Karola Boromeusza | church | -2152, -461 | kit model (`church_karol`), 2026-11-01 |
-| Kościół Ewangelicko-Reformowany | church | -1749, -1104 | kit model (`church_reformowany`), 2026-11-01 |
-| Kościół Matki Bożej Jerozolimskiej | church | 984, 1319 | kit model (`church_jerozolimska`), 2026-11-01 |
+| Kościól Św. Karola Boromeusza | church | -2152, -461 | model from photos (`church_karol`, `_build_karol`, spec `karol.md`), 2026-11-14 |
+| Kościół Ewangelicko-Reformowany | church | -1749, -1104 | model from photos (`church_reformowany`, `_build_reformowany`, spec `reformowany.md`), 2026-11-14 |
+| Kościół Matki Bożej Jerozolimskiej | church | 984, 1319 | model from photos (`church_jerozolimska`, `_build_jerozolimska`, spec `jerozolimska.md`), 2026-11-14 |
 | Kościół Niepokalanego Poczęcia Najświętszej Maryi Panny | church | -649, -1240 | kit model (`church_niepokalanego`), 2026-11-01 |
 | Kościół Przemienienia Pańskiego | church | -975, -1432 | kit model (`church_kapucyni`), 2026-11-01 |
 | Kościół Wizytek | church | -467, -787 | facade, wing and turret on kept skin (`wizytki`) |
 | Kościół Wniebowzięcia Najświętszej Maryi Panny i świętego Józefa Oblubieńca | church | -582, -1036 | front on kept skin (`karmelici`) |
-| Kościół Zielonoświątkowy | church | -1890, 332 | kit model (`church_zielonoswiatkowy`), 2026-11-01 |
+| Kościół Zielonoświątkowy | church | -1890, 332 | model from photos (`church_zielonoswiatkowy`, `_build_zielonoswiatkowy`, spec `zielonoswiatkowy.md`), 2026-11-14 |
 | Kościół parafialny pw. Dzieciątka Jezus | church | -1825, 980 | model from photos (`church_dzieciatka`, `_build_dzieciatka`, spec `dzieciatka.md`), 2026-11-14 |
 | Kościół parafialny pw. Narodzenia Najświętszej Maryi Panny | church | -1969, -976 | kit model (`church_narodzenia`), 2026-11-01 |
 | Kościół pw. Matki Boskiej Zwycięskiej | cathedral | 1971, -1373 | kit model (`church_zwycieska`), 2026-11-01 |
-| Kościół pw. Miłosierdzia Bożego i Świętej Faustyny | church | -2749, -693 | kit model (`church_miloserdzie`), 2026-11-01 |
+| Kościół pw. Miłosierdzia Bożego i Świętej Faustyny | church | -2749, -693 | model from photos (`church_miloserdzie`, `_build_miloserdzie`, spec `miloserdzie.md`), 2026-11-14 |
 | Kościół pw. Świętego Augustyna | church | -2417, -1176 | kit model (`church_augustyn`), 2026-11-01 |
 | Kościół pw. Świętego Ducha | church | -1020, -1836 | kit model (`church_duch`), 2026-11-01 |
 | Kościół pw. Świętego Jacka | church | -1011, -1913 | kit model (`church_jacek`), 2026-11-01 |
@@ -83,7 +83,7 @@ Status as of 2026-11-01. "Kit model" = built by the church kit; "model" = its ow
 | Kościół Świętego Antoniego Padewskiego | church | -1211, -978 | kit model (`church_antoniego`), 2026-11-01 |
 | Kościół Świętej Trójcy | church | -855, -511 | model (`trojca`, Zug's rotunda) |
 | Kościół Świętej Trójcy | church | 1071, 263 | kit model (`church_trojca_praga`) |
-| Kościół św. Brata Alberta i św. Andrzeja Apostoła | church | -1074, -1133 | kit model (`church_alberta`), 2026-11-01 |
+| Kościół św. Brata Alberta i św. Andrzeja Apostoła | church | -1074, -1133 | model from photos (`church_alberta`, `_build_alberta`, spec `alberta.md`), 2026-11-14 |
 | Matki Bożej Częstochowskiej | church | 1132, 868 | kit model (`church_czestochowska`), 2026-11-01 |
 | Monaster Zaśnięcia Najświętszej Bogurodzicy i św. Jozafata biskupa i męczennika | monastery | -1025, -1518 | open: convent or monastery: plain block, a later pass |
 | Parafia Świętej Teresy od Dzieciątka Jezus | church | 370, -579 | model (`teresy`, #225) |
