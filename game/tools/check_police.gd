@@ -111,12 +111,35 @@ class FakeDriver extends RefCounted:
 	var squeeze := 0.0
 	var ghost := false
 	var core_only := false
+	# Racer AI step 6b part 2: what the race session arms on a chaser (RaceSession.arm_racer) and
+	# its plan (traffic.gd race_to's).
+	var speed_factor := 0.95
+	var race_share := 1.0
+	var race_brake := 0.0
+	var race_corner := 1.0
+	var race_still := 0.0
+	var race_passes := 0
+	var cuts := {}
+	var race_mistake := 0.0
+	var race_wrong := 0
+	var race_block := 0.0
+	var race_dare := 1.0
+	var race_rng: RandomNumberGenerator
+	var cuts_taken := 0
+	var links_taken := 0
+	var mistakes := 0
+	var wrong_turns := 0
+	var blocks := 0
+	var plan = null
 
 
 class FakeTraffic extends Node3D:
 	signal police_spawned(d)
 	signal police_released(d)
 	signal bumped_police(d, speed: float)
+	# Racer AI step 6b part 2: the race session's (police/chase_route.gd).
+	signal turned_back(d)
+	signal hop_refused(d)
 	var police_target := 0
 	var police_min_dist := 0.0
 	var patrol_wait := 0.0
@@ -163,11 +186,18 @@ class FakeTraffic extends Node3D:
 		d.s = s
 	func set_lights(d, on: bool) -> void:
 		d.lights = on
-	func race_to(d, finish: int, dist: PackedFloat32Array) -> void:
+	func race_to(d, finish: int, dist: PackedFloat32Array, plan = null) -> void:
 		d.route = dist
 		d.finish = finish
+		d.plan = plan
+	func reroute(d, dist: PackedFloat32Array) -> void:
+		if not d.route.is_empty():
+			d.route = dist
+	func race_density() -> float:
+		return 0.0
 	func stop_racing(d) -> void:
 		d.route = PackedFloat32Array()
+		d.plan = null
 
 
 class FakeMap extends Node3D:
@@ -555,9 +585,17 @@ func _machine() -> void:
 			u.driver.pos = car.global_position - Vector3(30.0, 0.0, 0.0)
 	await _steps(1.0, hold)
 	var hatch_cap: float = u.driver.v_cap if u.driver != null else -1.0
-	# Street races R1: a chaser drives in racer mode (pull, corners, careful through reds).
+	# Street races R1: a chaser drives in racer mode (pull, corners, careful through reds); racer AI
+	# step 6b part 2: on the racers' driver, ladder.gd POLICE's numbers, a plan to the player's
+	# street, one of the chase's session's racers.
 	var racer_accel: float = u.driver.race_accel if u.driver != null else -1.0
-	_case("chase racer mode", absf(racer_accel - preload("res://scripts/police/police_unit.gd").CHASE_RACE_ACCEL) < 0.01, "race_accel %.1f m/s²" % racer_accel)
+	var police_racer: Dictionary = preload("res://scripts/ladder.gd").POLICE
+	var armed: bool = u.driver != null and absf(racer_accel - float(police_racer["race_accel"])) < 0.01 \
+			and absf(u.driver.race_lat - float(police_racer["lat"])) < 0.01 and absf(u.driver.race_brake - float(police_racer["brake"])) < 0.01
+	var raced: bool = u.driver != null and u.driver.plan != null and p.chase_route.session.racer_of(u.driver) != null
+	_case("chase racer mode", armed and raced, "race_accel %.1f m/s², lat %.1f, brake %.1f, a plan %s, in the chase's session %s" % [
+			racer_accel, u.driver.race_lat if u.driver != null else -1.0, u.driver.race_brake if u.driver != null else -1.0,
+			u.driver != null and u.driver.plan != null, u.driver != null and p.chase_route.session.racer_of(u.driver) != null])
 	var tt: Dictionary = Upgrades.stats("tt", {"engine": Upgrades.MAX_LEVEL})
 	car.top_mult = float(tt["top_mult"])
 	await _steps(1.0, hold)

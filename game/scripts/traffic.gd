@@ -2204,10 +2204,12 @@ func _choose_way(d: Driver) -> void:
 	var rev := graph.e_reverse[e]
 	var here := graph.direction(e, graph.e_s1[e])
 	var best := -1
-	if d.plan != null and not d.route.is_empty():
+	if d.plan != null and not d.route.is_empty() and (not d.chase or d.plan.step(e, 0)):
 		# A racer with a plan: the quickest way on for it (docs/design/race-ai.md 5). It holds the
 		# way it chose for this street unless another saves Plan.SWITCH_GAIN s, and a wrong turn
-		# once taken is taken.
+		# once taken is taken. (Step 6b part 2: a police chaser's plan is made anew whenever the
+		# player's street moves on and searched a slice a frame; until it knows this street the
+		# chaser goes by the metres below, never the whole search in one frame.)
 		if d.wrong_edge == e and d.next_edge >= 0 and not d.on_cut:
 			best = d.next_edge
 		else:
@@ -2310,10 +2312,10 @@ func _choose_way(d: Driver) -> void:
 	d.conn_pace = 1.0
 	var arc := d.conn_len
 	var hairpin := false
-	if d.race_accel > 0.0 and not d.route.is_empty() and not d.chase:
+	if d.race_accel > 0.0 and not d.route.is_empty() and (not d.chase or d.plan != null):
 		# A racer drives a tight curve as the arc a car can turn (RACE_TURN_RADIUS), and a hairpin
-		# as a U-turn. A police chaser takes the curve as it is, until it gets the racers' driver
-		# (docs/design/race-ai.md, step 6b).
+		# as a U-turn; so does a police chaser on the racers' driver (step 6b part 2: one with a
+		# plan). One without a plan (the search, the escort) takes the curve as it is.
 		arc = race_turn_length(d.conn_len, turn)
 		d.conn_pace = d.conn_len / arc
 		hairpin = best != rev and turn > RACE_HAIRPIN
@@ -2767,8 +2769,10 @@ func _drive(d: Driver, dt: float) -> void:
 							and (al >= (PLAYER_LONG + d.length) * 0.5 or (absf(pl - lat) < (d.size.x + PLAYER_WIDE) * 0.5 - SIDE_RUB \
 							and al >= (PLAYER_LONG + d.length) * 0.5 - PLAYER_IN)):
 						g = al - d.length * 0.5 - d.keep_gap
-				# Loop 3g-1: a chaser looks wider and keeps `keep_gap` behind (it never rams).
-				elif along > 0.0 and absf(rel.cross(fwd)) < (4.0 if d.chase else 2.3):
+				# Loop 3g-1: a chaser looks wider and keeps `keep_gap` behind (it never rams); step 6b
+				# part 2: one on its racing line, whose line may pick another lane than the player's,
+				# sees the player anywhere across its own carriageway (it never draws alongside to pass).
+				elif along > 0.0 and (absf(rel.cross(fwd)) < (4.0 if d.chase else 2.3) or (d.chase and d.line != null and _on_carriageway(d, rel))):
 					g = along - d.length * 0.5 - d.keep_gap
 				if g < INF:
 					player_gap = g
@@ -3545,6 +3549,23 @@ func _side_step(d: Driver, at: float, to: float, dt: float) -> float:
 		d.off_v = 0.0
 		return to
 	return at + step
+
+
+## Step 6b part 2: the player's car, at `rel` from driver d on its street, is on d's own
+## carriageway ahead of it (between the outer edges of its lanes, a little margin either side).
+func _on_carriageway(d: Driver, rel: Vector2) -> bool:
+	if d.in_conn:
+		return false
+	var e := d.edge
+	var way := graph.direction(e, clampf(d.s, 0.0, graph.e_len[e]))
+	var al := rel.dot(way)
+	if al <= 0.0:
+		return false
+	var lat := _lat_at(e, d.s + al, Vector2(player_pos.x, player_pos.z))
+	var a := graph.lane_offset(e, 0)
+	var b := graph.lane_offset(e, graph.e_lanes[e] - 1)
+	var half := graph.e_lw[e] * 0.5 + 0.5
+	return lat > minf(a, b) - half and lat < maxf(a, b) + half
 
 
 ## Step 4b: the speed racer d would drive its street at with nobody in its way (m/s).
@@ -4346,10 +4367,10 @@ func _place(d: Driver) -> void:
 
 # --- the racing line (LINE_* above) ----------------------------------------------------------------
 
-## Whether driver d drives a racing line: a racer with a plan in a race (not a chaser, a crazy
-## driver or the autopilot's).
+## Whether driver d drives a racing line: a racer with a plan in a race, a police chaser with
+## one too (step 6b part 2; not a crazy driver or the autopilot's).
 static func lined(d) -> bool:
-	return d.plan != null and d.race_accel > 0.0 and d.race_lat > 0.0 and not d.route.is_empty() and not d.chase \
+	return d.plan != null and d.race_accel > 0.0 and d.race_lat > 0.0 and not d.route.is_empty() \
 			and d.crazy == 0 and not d.ghost
 
 
@@ -4592,6 +4613,26 @@ func _line_speeds(d: Driver) -> void:
 		_line.speeds(d.line, d.line_grip, brake, at - LINE_FAST, at + d.conn_len + LINE_FAST, MISTAKE_FAST, RACE_GRIP_MOST)
 	else:
 		_line.speeds(d.line, d.line_grip, brake)
+	if d.chase and d.line_full:
+		# Step 6b part 2: a police chaser's line ends at its goal, the end of the player's street,
+		# which is no finish: it comes to that junction at the speed of its tightest way on (the
+		# player's next turn is not known yet), not flat out into a turn it then cannot brake for.
+		_line.end_speed(d.line, _chase_end_speed(d), brake)
+
+
+## Step 6b part 2: the speed a police chaser on its line takes the junction at its line's end with,
+## the slowest of the ways on from there at its grip (not back the way it came, nor a hairpin).
+func _chase_end_speed(d: Driver) -> float:
+	var last: int = d.line.edges[d.line.edges.size() - 1]
+	var outs := graph.node_out[graph.e_b[last]]
+	var y0: int = d.plan.planner.first[last]
+	var least := INF
+	for k in outs.size():
+		var curve: Vector2 = d.plan.planner.curve(y0 + k)
+		if outs[k] == graph.e_reverse[last] or curve.y > RACE_HAIRPIN:
+			continue
+		least = minf(least, race_turn_speed(curve.x, curve.y, d.line_grip))
+	return least
 
 
 ## Driver d's racing line kept up for this frame (dropped where it ends or d is no racer on a

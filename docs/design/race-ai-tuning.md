@@ -33,6 +33,7 @@ profiles and never makes a rival wait.
 | Session | `game/scripts/race_session.gd` | one race's mechanics for every race mode: course, racers, plans, start, legs, effort, order, reroutes, lights, end | 6.2 |
 | Race | `game/scripts/rivals.gd` | the challenge, the words, the cards, the pay, the ghost, the player's checkpoints, the rival's car (the mechanics are the session's) | 4, 6 |
 | Pack race | `game/scripts/street_meet.gd`, `ladder.gd` `CLUB` | the night club's race: who comes onto the road when, and the eight club profiles | 6.2 |
+| Police chase | `game/scripts/police/chase_route.gd`, `ladder.gd` `POLICE` | the chasers' way to the player (replan, goal, the chase's session) and their numbers; the top is `police.chase_top()` | 6.3 |
 | Lights | `game/scripts/race_signals.gd` | what the car shows; changes no driving | 6.1 |
 | Result card | `game/scripts/race_report.gd`, `hud.gd` `set_card_art` | both routes and what decided the race | 6.1 |
 | Bench | `game/tools/race_bench.gd`, `check_race_bench.gd`, `tools/race_bench.sh`, `game/data/race_bench.json` | the marks every change is held against | 7 |
@@ -80,6 +81,15 @@ may be over the player's car (Honest car). The Pack order mark holds the order: 
 the club comes home in the order of its racers' own pace, neighbours less than 1.5 % apart may
 swap. Race-ai.md 6.2 has the table.
 
+**The police chasers have `ladder.gd` `POLICE`** (one profile, the same keys). To make a chase
+harder or easier move `lat`, `race_accel` and `brake` (12, 7 and 6 now), a little at a time, and
+never the top: the top is `police.chase_top()`, 0.8 of the player's car, held by `v_cap`. A
+chaser through corners faster than that makes the fast player's escape slower and the bench's
+**Chase balance** mark is the guard (the average player's gap at 20 and 30 s within 12 m of the
+old driver's, the fast player's escape within 15 %). The first try, 10 / 9 / 12.5, was too much on
+the Powiśle course. **Chase keeps off** must stay a pass: no chaser overlaps the player's car or
+is in front of it. Race-ai.md 6.3 has the table.
+
 ### 3.2 Effort and the race (`race_session.gd`)
 
 | Constant | Value | Meaning |
@@ -108,6 +118,7 @@ swap. Race-ai.md 6.2 has the table.
 | Pack rules | `_race_cross_look`, `_merge_gap` | between racers that have plans only: in the look across a junction a racer behind (still on the street it leaves, or less far along the same curve) is not in the way and one ahead on a shortcut's curve is; two racers level in two lanes into one shortcut: the one behind follows the other in. Without them the pack drives through itself at the first shortcut |
 | Held up (lights only) | `HELD_GAP` 14 m, `HELD_SLOWER` 3 m/s | when "behind a slower car" counts for the headlight flash |
 | Limits | `RACE_GRIP_MOST` 19 | never over the player's car |
+| Police chasers | `_chase_end_speed`, `_on_carriageway` | a chaser's line ends at the slowest way on from its goal junction at its grip (the player's next turn is not known); its look at the player is 4 m wide as before, or anywhere on its own carriageway when it is on its line (a line may pick another lane than the player's). It still keeps `CHASE_GAP` behind and never passes or rams |
 
 ### 3.4 The route (`race_planner.gd`)
 
@@ -141,9 +152,9 @@ picture only, the report's lines go to the log).
 ## 4. How to test a change
 
 1. **The fast checks** (seconds; all in CI's quick group):
-   `tools/verify.sh --only=ladder,raceline,raceplanner,racecuts,racesignals,racereport,first10,racebench,meet`
-2. **The quick bench** (40 races, under a minute): `tools/race_bench.sh --quick`.
-3. **The full bench before and after** (304 races, about 21 minutes with `--jobs=3`):
+   `tools/verify.sh --only=ladder,raceline,raceplanner,racecuts,racesignals,racereport,first10,racebench,meet,police`
+2. **The quick bench** (41 races, under a minute): `tools/race_bench.sh --quick`.
+3. **The full bench before and after** (416 races, about 26 minutes with `--jobs=3`):
    run it on main first (`--out=before`), then on the change with
    `--against=build/race_bench/before.json`. Report the marks and which races' times moved.
    One race: `tools/race_bench.sh --only=TEXT --trace`.
@@ -163,7 +174,7 @@ picture only, the report's lines go to the log).
 The marks, in one line each (full text in race-ai.md 7.3): Finishes, Independence (the one
 rule), No crawl, Passes traffic, No ghosting, Re-routes, Recovers, Honest car (never over the
 player's car), Route sense, Skill ladder, Ladder curve, Told apart, Yard links, Wrong-way hops
-(and in traffic), Pack order, Pack in traffic, Same race twice. The state of each is in race-ai.md 7.4.
+(and in traffic), Pack order, Pack in traffic, Chase keeps off, Chase balance, Same race twice. The state of each is in race-ai.md 7.4.
 
 ## 5. Traps
 
@@ -181,8 +192,14 @@ player's car), Route sense, Skill ladder, Ladder curve, Told apart, Yard links, 
   never finishes.
 - **Do not edit game files while a bench runs**: it reads the working tree.
 - **Deliberate-break runs rewrite source files**: run nothing else at the same time.
-- **The police chasers and the crazy drivers** do not use the plan, the links, the lights or the
-  report yet (steps 6b-2 and 6b-3). The pack race and Trzy mosty do (the pack has no report).
+- **The crazy drivers** do not use the plan, the links, the lights or the report yet (step
+  6b-3). The pack race, Trzy mosty and the police chasers do (the pack and the chasers have no
+  report, the chasers no lights and no shortcuts). The police's search, escort, blockers and
+  roadblocks still drive the old way, with no plan.
+- **`race_to` resets the car's way.** A chaser is therefore sent again only when its goal junction
+  changes (`RaceSession.retarget`); sent every replan, it twitches between lanes once a second.
+  A fresh plan is searched in slices, one chaser a frame, and the car goes by the metres until the
+  plan knows its street (`_choose_way`), so a chaser's first seconds are not on the line.
 - **A pool car out of sight is driven every other frame.** A probe that reads a speed change
   must divide by the time since the car was last driven, not by the frame's time, or it reads a
   pull twice as big as it is (the bench's Probe does).

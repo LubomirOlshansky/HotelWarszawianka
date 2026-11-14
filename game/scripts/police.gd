@@ -48,6 +48,9 @@ const Talk := preload("res://scripts/police/police_talk.gd")
 const Balloon := preload("res://scripts/police/police_balloon.gd")
 ## Loop 3g-2: the city guards.
 const Guards := preload("res://scripts/police/guards.gd")
+## Racer AI step 6b part 2: the chasers' way to the player (the replan rule, the racers' driver).
+const ChaseRoute := preload("res://scripts/police/chase_route.gd")
+const RacePlanner := preload("res://scripts/race_planner.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const MapBuilder := preload("res://scripts/map_builder.gd")
 const TRAPS_PATH := "res://data/police_traps.json"
@@ -128,9 +131,10 @@ const TRAP_BAND := 320.0
 const MEGAPHONE_GAP := 8.0
 const UNIT_GAP := 20.0
 const CHASE_LINES := Vector2(10.0, 12.0)
-## Chasers re-plan once a second (one unit a frame), the search bounded at MAX_COST m.
-const MAX_COST := 800.0
-const REPLAN := 1.0
+## Chasers re-plan once a second (one unit a frame), the search bounded at MAX_COST m (the rule
+## lives in police/chase_route.gd since racer AI step 6b part 2: the race bench drives it too).
+const MAX_COST := ChaseRoute.MAX_COST
+const REPLAN := ChaseRoute.REPLAN
 ## No patrol car appears within this of the player during the cooldown.
 const COOLDOWN_SPAWN := 200.0
 ## The pull-over: a line's time, the reply's auto-pick, the longest it may take.
@@ -245,8 +249,10 @@ var _units: Array = []
 var _free: Array = []
 var _unit_of := {}
 var _engaged: Array = []
-var _replans: Array = []
-var _planned := {}
+## Racer AI step 6b part 2: the replan rule and the chase's race session (the chasers on the
+## racers' driver), police/chase_route.gd; police_unit.gd joins and leaves it.
+var chase_route: ChaseRoute
+var _is_chaser := func(u) -> bool: return u.role() == "chaser"
 var _tick_t := 0.0
 var _frame := 0
 var _strike_t := 0.0
@@ -364,6 +370,11 @@ func setup(nodes: Dictionary, data: Dictionary, world: Node3D) -> void:
 	traffic.police_spawned.connect(_on_spawned)
 	traffic.police_released.connect(_on_released)
 	traffic.bumped_police.connect(_on_bumped)
+	# Racer AI step 6b part 2: the chasers' route planner now, while the city builds.
+	chase_route = ChaseRoute.new()
+	chase_route.setup(graph, traffic, RacePlanner.new(graph))
+	traffic.turned_back.connect(_on_turned_back)
+	traffic.hop_refused.connect(_on_hop_refused)
 	traffic.police_target = PATROLS[clampi(int(opts.get("traffic_level", 2)), 0, 3)]
 	traffic.patrol_wait = 5.0 if now else 20.0
 	_load_traps(data)
@@ -464,6 +475,7 @@ func _step(dt: float) -> void:
 			_talk_frame(dt)
 	_traps_frame()
 	_replan_one()
+	chase_route.frame()
 	_hud_frame()
 	_halos_frame()
 
@@ -493,9 +505,10 @@ func _bind(d, role: String):
 
 
 func _unbind(u) -> void:
+	chase_route.leave(u.driver)
 	_unit_of.erase(u.driver)
 	_engaged.erase(u)
-	_replans.erase(u)
+	chase_route.forget(u)
 	for t in traps:
 		if t["unit"] == u:
 			t["unit"] = null
@@ -549,23 +562,19 @@ func chasing() -> bool:
 
 
 func request_replan(u) -> void:
-	if not u in _replans:
-		_replans.append(u)
+	chase_route.ask(u)
 
 
-## One route a frame at most: the chasers by turns once a second, and anyone who asked.
+## One route a frame at most: the chasers by turns once a second, and anyone who asked
+## (police/chase_route.gd `next`). In a chase to the player's street (`goal_of`), on the racers'
+## driver (`send`: only a new goal remakes anything); in the search by the metres as before.
 func _replan_one() -> void:
-	if _replans.is_empty():
-		for u in _engaged:
-			if u.role() == "chaser" and clock - float(_planned.get(u, -99.0)) >= REPLAN:
-				_replans.append(u)
-				break
-	if _replans.is_empty():
+	var u = chase_route.next(_engaged, clock, _is_chaser)
+	if u == null:
 		return
-	var u = _replans.pop_front()
 	if u.driver == null or not u.driver.active or u.driver.parked:
 		return
-	_planned[u] = clock
+	chase_route.routed(u, clock)
 	var d = u.driver
 	var p := _xz(car.global_position)
 	var node := -1
@@ -575,14 +584,24 @@ func _replan_one() -> void:
 			node = graph.nearest_node(seen)
 		else:
 			node = _wander_node(seen)
-	elif _edge >= 0 and graph.node_pos[graph.e_b[_edge]].distance_to(p) < 400.0:
-		node = graph.e_b[_edge]
-	else:
-		node = graph.nearest_node(p)
-	if node < 0:
+		if node < 0:
+			return
+		d.goal = graph.node_pos[node]
+		traffic.race_to(d, node, graph.distances_to(node, MAX_COST))
 		return
-	d.goal = graph.node_pos[node]
-	traffic.race_to(d, node, graph.distances_to(node, MAX_COST))
+	node = ChaseRoute.goal_of(graph, _edge, p)
+	if node >= 0:
+		chase_route.send(d, node)
+
+
+## Racer AI step 6b part 2: a chaser on the racers' driver found its street blocked, or a hop
+## not empty (none dares one): its metres to the goal without it (the chase's session).
+func _on_turned_back(d) -> void:
+	chase_route.turned_back(d)
+
+
+func _on_hop_refused(d) -> void:
+	chase_route.hop_refused(d)
 
 
 ## A node within the search reach of the last-seen point (police_unit.gd SEARCH_REACH).
@@ -640,7 +659,7 @@ func _track_player() -> void:
 	var v := _xz(car.vel)
 	var speed := v.length()
 	var fwd := Vector2(-sin(car.rotation.y), -cos(car.rotation.y))
-	var hit: Array = graph.snap(p, 7.0, fwd if speed > 1.0 else Vector2.ZERO)
+	var hit: Array = ChaseRoute.player_street(graph, p, fwd, speed)
 	if hit.is_empty():
 		var any: Array = graph.snap(p, 7.0)
 		if not any.is_empty() and speed > 3.0 and graph.e_reverse[any[0]] < 0 \

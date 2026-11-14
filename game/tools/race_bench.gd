@@ -34,6 +34,11 @@ const TrzyMosty := preload("res://scripts/trzy_mosty.gd")
 const StreetMeet := preload("res://scripts/street_meet.gd")
 const Settings := preload("res://scripts/settings.gd")
 const FollowCamera := preload("res://scripts/follow_camera.gd")
+## Racer AI step 6b part 2: the police chase (police.gd's rules, police/chase_route.gd, the unit's
+## arming in police_unit.gd).
+const Police := preload("res://scripts/police.gd")
+const PoliceUnit := preload("res://scripts/police/police_unit.gd")
+const ChaseRoute := preload("res://scripts/police/chase_route.gd")
 
 ## The game's frame and the race's ranking tick (rivals.gd `_track`: 5 times a second).
 const DT := 1.0 / 60.0
@@ -129,6 +134,30 @@ const FINAL_RIVAL := "Seba z Pragi"
 ## give or take neighbours less than PACK_TIE apart.
 const PACK_START := "club"
 const PACK_TIE := 0.015
+## Racer AI step 6b part 2, the police chase (`chase`): the test player drives a course of the
+## races above from its grid, with 1 or 2 police chasers set off CHASE_BEHIND m behind it on its
+## way, armed and routed by police.gd's own rules (police_unit.gd `arm_chase`,
+## police/chase_route.gd); the race ends at the chase's longest cap (police.gd CAPS) or at the
+## escape (the player ESCAPE_DIST from every chaser, as the crow flies). Each chase is raced
+## `old` (the chaser without a plan, as before the step) and `new` (on the racers' driver), and
+## the Chase balance mark holds the two together on clear roads: against the average player the
+## gap at CHASE_FIT_AT s within CHASE_GAP_TIE m (the median over the courses; no course over twice
+## that), against the fast one the escape's time within CHASE_ESCAPE_TIE (where one never escapes
+## the other must not either). Courses: an avenue (from the map's spawn by Marszałkowska, Aleje
+## Jerozolimskie and Emilii Plater to the Palace), Powiśle's twisty
+## streets (Leszczyńska to Plac Trzech Krzyży, Dobra and Topiel) and the yard course in Wola,
+## where the player knows the yard (Halina's shortcuts and plan) and the police do not.
+const CHASE_COURSES := {
+	"avenue": {"start": "spawn", "finish": "Pałac Kultury i Nauki"},
+	"powisle": {"start": "leszczynska", "finish": "Plac Trzech Krzyży"},
+	"yard": {"start": "yard", "finish": "Rondo ONZ", "cut": "Pani Halina"},
+}
+const CHASE_PLAYERS := ["average", "fast"]
+const CHASE_BEHIND := 30.0
+const CHASE_AT := [10.0, 20.0, 30.0, 45.0]
+const CHASE_FIT_AT := [20.0, 30.0]
+const CHASE_GAP_TIE := 12.0
+const CHASE_ESCAPE_TIE := 0.15
 const ROUTES := {
 	"dobra": [Vector2(292.0, -471.0), Vector2(477.0, -210.0)],
 	"topiel": [Vector2(114.0, -430.0)],
@@ -169,6 +198,7 @@ const DEAD_AWAY := 4.0
 const FREE_AHEAD := 30.0
 const FREE_NEAR := 6.0
 const FREE_NEAR_SIDE := 3.2
+const QUARRY_SIDE := 8.0
 const STRAIGHT_AHEAD := 40.0
 const STRAIGHT_BEND := 0.3
 ## behind the same slower car (under BEHIND_SLOW of the road's racing speed, within BEHIND_GAP m)
@@ -270,6 +300,12 @@ class Probe:
 	var hop_overlaps := 0
 	var _hop_seen := {}
 	var touches := 0
+	## Step 6b part 2: of the cars driven through, the player's (a police chaser's ram).
+	var rams := 0
+	## Step 6b part 2: the car is a police chaser and the player its quarry: with the player's car
+	## ahead within FREE_AHEAD m anywhere across the road (QUARRY_SIDE m to either side) its road is
+	## not free (it holds behind the player in whichever lane, police_unit.gd CHASE_GAP).
+	var quarry := false
 	var overlap_log: Array = []
 	var slips := 0
 	var slips_seen := 0
@@ -452,6 +488,8 @@ class Probe:
 					inside = true
 					if was < GHOST_MIN:
 						overlaps += 1
+						if o.ghost:
+							rams += 1
 						if hop >= 0:
 							hop_overlaps += 1
 						if not o.parked and fwd.dot(Vector2(-sin(o.yaw), -cos(o.yaw))) < -0.5:
@@ -471,7 +509,8 @@ class Probe:
 			# A car just ahead in the next lane's width is in front too (a car at the head of a
 			# queue that turns across a rival passing it: the rival brakes for it, FREE_NEAR).
 			if rel.dot(road) > 0.0 and ((rel.dot(road) - room < FREE_AHEAD and absf(rel.cross(road)) < 2.2) \
-					or (rel.dot(road) - room < FREE_NEAR and absf(rel.cross(road)) < FREE_NEAR_SIDE)):
+					or (rel.dot(road) - room < FREE_NEAR and absf(rel.cross(road)) < FREE_NEAR_SIDE) \
+				or (quarry and o.ghost and rel.dot(road) - room < FREE_AHEAD and absf(rel.cross(road)) < QUARRY_SIDE)):
 				_free = false
 			if along > 0.0 and side < 1.8 and along - room < lead_gap:
 				lead_gap = along - room
@@ -685,6 +724,8 @@ static func rival_index(name: String) -> int:
 ## A race's name: the rival's ladder id, the tuning, the start, the situation (and the traffic's
 ## draw when it is not the first), the player (and the forced route).
 static func race_id(spec: Dictionary) -> String:
+	if spec.get("tuning", "") == "chase":
+		return "chase/%s/%s/%s/%s/%d" % [spec.get("mode", "new"), spec.get("course", ""), spec.get("situation", "clear"), spec.get("player", "average"), int(spec.get("chasers", 1))]
 	if spec.get("tuning", "") == "pack":
 		return "club/pack/%s/%s/%s" % [spec.get("start_name", PACK_START), spec.get("situation", "clear"), spec.get("player", "none")]
 	var rung := Ladder.rung_of(String(spec["rival"]))
@@ -1362,6 +1403,205 @@ func _pack_race(spec: Dictionary) -> Array:
 	cam.free()
 	return outs
 
+## Racer AI step 6b part 2, the police chase (CHASE_COURSES above): a row per chaser, as `race`
+## gives one, its id chase<k>/<old|new>/<course>/<situation>/<player>/<chasers>, its tuning "chase"
+## (no finisher: Finishes and the marks of a finish leave it out). `spec`: course, mode ("old": the
+## chaser without a plan, as before the step; "new": on the racers' driver), situation (a
+## SITUATIONS key without a wall, a wreck or a parked car), player ("average" or "fast", on its own
+## plan as in `race`), chasers (1 or 2: CHASE_BEHIND m behind the player, the second as far again).
+## What the chase did, beside the usual: gap_m and road_m (straight and along the roads to the
+## player at each CHASE_AT s; -1 once the chase is over), closest_m, escape_s (-1: none), rams
+## (driven into the player's car), ahead (times in front of it on its street), and the chase's own
+## script work a frame (the replan rule and the plan slices: chase_most_ms, chase_median_ms).
+func chase(spec: Dictionary) -> Array:
+	var wall0 := Time.get_ticks_msec()
+	error = ""
+	var course := String(spec.get("course", ""))
+	var mode := String(spec.get("mode", "new"))
+	var situation := String(spec.get("situation", "clear"))
+	var kind := String(spec.get("player", "average"))
+	var n := int(spec.get("chasers", 1))
+	var c: Dictionary = CHASE_COURSES.get(course, {})
+	var sit: Dictionary = SITUATIONS.get(situation, {})
+	var fin := finish(String(c.get("finish", "")))
+	if c.is_empty() or sit.is_empty() or sit.has("wall") or sit.has("wreck") or sit.has("hop_car") or not kind in CHASE_PLAYERS \
+			or n < 1 or n > 2 or not mode in ["old", "new"] or fin.is_empty():
+		error = "%s: unknown or unfit course, mode, situation, player or chasers for a chase" % race_id(spec)
+		return [{"id": race_id(spec), "error": error}]
+	var plain := roads_to(fin["node"])
+	var table := {}
+	var pdist := plain
+	if c.has("cut"):
+		table = links_of(String(c["cut"]))[0]
+		pdist = racer_to(String(c["cut"]), fin["node"], fin["ends"])
+	var places := grid(STARTS[c["start"]], pdist, false)
+	if places.is_empty():
+		error = "%s: no lane near the start" % race_id(spec)
+		return [{"id": race_id(spec), "error": error}]
+	var goal := Vector3(fin["at"].x, 0.0, fin["at"].y)
+
+	graph.clock = 0.0
+	var cam := Camera3D.new()
+	cam.projection = Camera3D.PROJECTION_ORTHOGONAL
+	cam.size = FollowCamera.DEFAULT_SIZE
+	_root.add_child(cam)
+	var traffic: Node3D = Traffic.new()
+	_root.add_child(traffic)
+	traffic.setup(graph, _map, cam, {})
+	traffic.set_process(false)
+	traffic.set_physics_process(false)
+	var level := int(sit.get("traffic", -1))
+	traffic.spawning = level >= 0
+	if level >= 0:
+		traffic.density = float(Settings.TRAFFIC[level])
+	if int(spec.get("seed", 0)) != 0:
+		traffic._rng.seed = 2026 + int(spec["seed"])
+	var car: Array = places["car"]
+	var ghost = traffic.add_ghost(car[0], car[1], car[2])
+	ghost.held = true
+	# The chasers: police cars of the traffic's own pool (driven every other frame out of sight, as
+	# in the game), each CHASE_BEHIND m behind the one in front on the player's way.
+	var chasers: Array = []
+	var at: Array = car
+	for k in n:
+		at = Rivals.lane_behind(graph, at[0], at[1], at[2], CHASE_BEHIND)
+		var d = traffic.add_police(at[0], at[1], at[2])
+		if d == null:
+			error = "%s: no police car in the pool" % race_id(spec)
+			traffic.free()
+			cam.free()
+			return [{"id": race_id(spec), "error": error}]
+		d.held = true
+		chasers.append(d)
+	# police.gd's chase: the replan rule and the chase's session (police/chase_route.gd), a route
+	# planner of the map's (the bench's one), the turned-back streets to the session.
+	var route := ChaseRoute.new()
+	route.setup(graph, traffic, planner)
+	route.planned = mode == "new"
+	traffic.turned_back.connect(func(who) -> void: route.turned_back(who))
+	traffic.hop_refused.connect(func(who) -> void: route.hop_refused(who))
+	var top: float = PLAYER_TOP * PoliceUnit.CHASE_SHARE
+	var end_t: float = Police.CAPS[Police.CAPS.size() - 1]
+	var probes: Array = []
+	var outs: Array = []
+	for k in n:
+		var probe := Probe.new()
+		probe.graph = graph
+		probe.d = chasers[k]
+		probe.quarry = true
+		probes.append(probe)
+		outs.append({"id": "chase%d/%s/%s/%s/%s/%d" % [k + 1, mode, course, situation + ("-s%d" % int(spec["seed"]) if int(spec.get("seed", 0)) != 0 else ""), kind, n],
+				"rival": "chase%d" % (k + 1), "tuning": "chase", "mode": mode, "course": course, "chasers": n, "start": String(c["start"]),
+				"situation": situation, "player": kind, "seed": int(spec.get("seed", 0)), "finished": false, "time": 0.0, "hold_s": 0.0,
+				"route_m": graph.remaining(pdist, car[0], car[2]), "road_m": graph.remaining(plain, car[0], car[2]),
+				"gap_m": [], "road_gap_m": [], "closest_m": INF, "escape_s": -1.0, "ahead": 0})
+	var ahead := PackedByteArray()
+	ahead.resize(n)
+	var t := -LEAD_IN
+	var started := false
+	var tick := 0.0
+	var street := -1
+	var next_at := 0
+	var spent := PackedInt32Array()
+	var next_trace := 0.0
+	while t < end_t:
+		traffic.player_on_road = true
+		traffic.player_pos = ghost.pos
+		traffic.player_vel = Vector3(-sin(ghost.yaw), 0.0, -cos(ghost.yaw)) * ghost.v
+		_look(cam, ghost.pos)
+		var p := Vector2(ghost.pos.x, ghost.pos.z)
+		if not started and t >= 0.0:
+			started = true
+			t = 0.0
+			# The player on its own plan where it takes the yard (as `race` arms a follower); the
+			# chasers armed as police_unit.gd `pursue` arms them, each asking for its route.
+			var own = null
+			if c.has("cut"):
+				own = planner.plan(fin["node"], Ladder.racer(Ladder.rung_of(String(c["cut"]))), PLAYER_TOP, table, 0.0, PackedInt32Array(), fin["at"], RaceSession.FINISH_RADIUS)
+			_arm_player(traffic, ghost, kind, fin["node"], pdist, pdist, table, own)
+			for d in chasers:
+				PoliceUnit.arm_chase(d, traffic, route, top)
+				route.ask(d)
+		if started:
+			var u0 := Time.get_ticks_usec()
+			tick -= DT
+			if tick <= 0.0:
+				tick = TICK
+				# police.gd's perception, 5 times a second: the player's street, each chaser's distance.
+				var hit := ChaseRoute.player_street(graph, p, Vector2(-sin(ghost.yaw), -cos(ghost.yaw)), ghost.v)
+				street = int(hit[0]) if not hit.is_empty() else -1
+			# police.gd `_replan_one`: one chaser a frame, those that asked first, else the one due.
+			var who = route.next(chasers, t)
+			if who != null and who.active and not who.parked:
+				route.routed(who, t)
+				var node := ChaseRoute.goal_of(graph, street, p)
+				if node >= 0:
+					route.send(who, node)
+			route.frame()
+			spent.append(Time.get_ticks_usec() - u0)
+		traffic._process(DT)
+		t += DT
+		if not started:
+			continue
+		var dists := PackedFloat32Array()
+		var far := true
+		for k in n:
+			var d = chasers[k]
+			probes[k].sample(t, traffic, ghost, false, true)
+			var gap := Vector2(d.pos.x - ghost.pos.x, d.pos.z - ghost.pos.z).length()
+			dists.append(gap)
+			if gap < Police.ESCAPE_DIST:
+				far = false
+			outs[k]["closest_m"] = minf(float(outs[k]["closest_m"]), gap)
+			# In front of the player on its own street (a pass).
+			var in_front: bool = not d.in_conn and not ghost.in_conn and d.edge == ghost.edge and d.s > ghost.s
+			if in_front and ahead[k] == 0:
+				outs[k]["ahead"] = int(outs[k]["ahead"]) + 1
+			ahead[k] = 1 if in_front else 0
+		if next_at < CHASE_AT.size() and t >= CHASE_AT[next_at] - DT * 0.5:
+			# The gaps: straight, and along the roads (to the end of the player's street).
+			var to: int = graph.e_b[ghost.next_edge if ghost.in_conn and ghost.next_edge >= 0 else ghost.edge]
+			var via := graph.distances_to(to)
+			var goal_at := Vector3(graph.node_pos[to].x, 0.0, graph.node_pos[to].y)
+			var own_left := RaceSession.remaining_from(graph, via, p, goal_at)
+			for k in n:
+				var d = chasers[k]
+				outs[k]["gap_m"].append(snappedf(dists[k], 0.1))
+				outs[k]["road_gap_m"].append(snappedf(RaceSession.remaining_from(graph, via, Vector2(d.pos.x, d.pos.z), goal_at) - own_left, 0.1))
+			next_at += 1
+		if spec.get("trace", false) and t >= next_trace:
+			next_trace += 1.0
+			for k in n:
+				var d = chasers[k]
+				print("  trace %s: t %.0f s · player %.1f m/s on %s · chaser %.1f m/s on %s e%d lane %d%s · %.0f m · plan %s line %s" % [
+						outs[k]["id"], t, ghost.v, probes[k]._street(ghost.edge), d.v, probes[k]._street(d.edge), d.edge, d.lane,
+						" (curve)" if d.in_conn else "", dists[k], d.plan != null, d.line != null])
+		# (police.gd counts the distances at 5 Hz; the frame after the tick is the same here.)
+		if far and tick >= TICK - DT * 0.5:
+			for o: Dictionary in outs:
+				o["escape_s"] = snappedf(t, 0.01)
+			break
+	for k in n:
+		while outs[k]["gap_m"].size() < CHASE_AT.size():
+			outs[k]["gap_m"].append(-1.0)
+			outs[k]["road_gap_m"].append(-1.0)
+	var sorted := spent.duplicate()
+	sorted.sort()
+	for k in n:
+		var o: Dictionary = outs[k]
+		o["time"] = snappedf(t, 0.01)
+		_fill(o, probes[k], chasers[k], RaceSession.Racer.new(), null, 0, 0, 0.0, t)
+		o["closest_m"] = snappedf(float(o["closest_m"]), 0.1)
+		o["rams"] = probes[k].rams
+		o["chase_most_ms"] = snappedf(float(sorted[sorted.size() - 1]) / 1000.0 if not sorted.is_empty() else 0.0, 0.001)
+		o["chase_median_ms"] = snappedf(float(sorted[sorted.size() / 2]) / 1000.0 if not sorted.is_empty() else 0.0, 0.001)
+		o["player_m"] = snappedf(float(o["route_m"]) - traffic.remaining(ghost), 1.0) if traffic.remaining(ghost) < INF else -1.0
+		o["wall_ms"] = Time.get_ticks_msec() - wall0
+	traffic.free()
+	cam.free()
+	return outs
+
+
 ## What a racer did in a race (`race`, `pack`), from its Probe into the race's row `out`: the
 ## time's company (winner, metres left, speeds, crawls, contacts, the car's limits, lights, the
 ## plan's clock, the streets and the seconds on each). `t` is the race time it was last sampled at.
@@ -1372,7 +1612,7 @@ func _fill(out: Dictionary, probe: Probe, d, r: RaceSession.Racer, session: Race
 		print("    longest crawl %.1f s ended at %.1f s on %s (%.0f, %.0f) at %.1f m/s" % [crawl.y, probe.crawl_end * DT, probe._street(probe.edge_at[probe.crawl_end]), probe.px[probe.crawl_end], probe.pz[probe.crawl_end], probe.v[probe.crawl_end]])
 	var n := maxi(probe.frames, 1)
 	out["winner"] = "player" if out.has("player_time") else ("rival" if out["finished"] else "nobody")
-	out["left_m"] = snappedf(session.metres_left(r), 1.0) if not out["finished"] else 0.0
+	out["left_m"] = (snappedf(session.metres_left(r), 1.0) if session != null else -1.0) if not out["finished"] else 0.0
 	out["driven_m"] = snappedf(probe.driven, 1.0)
 	out["mean_kmh"] = snappedf(probe.driven / maxf(float(out["time"]) - float(out["hold_s"]), 1.0) * 3.6, 0.1)
 	out["top_kmh"] = snappedf(probe.top_v * 3.6, 0.1)
@@ -1506,8 +1746,18 @@ static func judge(results: Array) -> Array:
 	var by_id := {}
 	var groups := {}
 	var repeats: Array = []
+	# Step 6b part 2: the police chase's rows (`chase`) are no races to a finish: kept apart, the
+	# new driver's counted by the marks of how a car drives (No crawl, No ghosting, Recovers,
+	# Honest car) and by their own two; the old driver's are only the reference of Chase balance.
+	var chases: Array = []
+	var chased: Array = []
 	for r: Dictionary in results:
 		if r.has("error"):
+			continue
+		if r.get("tuning", "") == "chase":
+			chases.append(r)
+			if r.get("mode", "") == "new":
+				chased.append(r)
 			continue
 		if by_id.has(r["id"]):
 			repeats.append(r)
@@ -1631,7 +1881,7 @@ static func judge(results: Array) -> Array:
 	# No crawl.
 	var crawl := -1.0
 	worst = ""
-	for r: Dictionary in by_id.values():
+	for r: Dictionary in by_id.values() + chased:
 		if float(r["crawl_longest_s"]) > crawl:
 			crawl = float(r["crawl_longest_s"])
 			worst = r["id"]
@@ -1659,12 +1909,12 @@ static func judge(results: Array) -> Array:
 	var through := 0
 	var through_s := 0.0
 	worst = ""
-	for r: Dictionary in by_id.values():
+	for r: Dictionary in by_id.values() + chased:
 		through += int(r["overlaps"])
 		through_s += float(r["overlap_s"])
 		if int(r["overlaps"]) > 0 and worst == "":
 			worst = r["id"]
-	out.append(_mark("no_ghosting", "No ghosting", through == 0 if not by_id.is_empty() else null,
+	out.append(_mark("no_ghosting", "No ghosting", through == 0 if not by_id.is_empty() or not chased.is_empty() else null,
 			"drove through %d cars (%.1f s inside one; %.2f s or more counts)%s" % [through, through_s, GHOST_MIN, _by_draw(by_id, ["overlaps"])], worst, traffic))
 
 	# Re-routes: the blocked street, against the same race on clear roads.
@@ -1697,7 +1947,7 @@ static func judge(results: Array) -> Array:
 	var recovered := 0
 	worst = ""
 	note = ""
-	for r: Dictionary in by_id.values():
+	for r: Dictionary in by_id.values() + chased:
 		moved += int(r["slips_seen"]) + int(r["jumps_seen"])
 		if int(r["slips_seen"]) + int(r["jumps_seen"]) > 0 and worst == "":
 			worst = r["id"]
@@ -1716,7 +1966,7 @@ static func judge(results: Array) -> Array:
 			elif note == "":
 				worst = r["id"]
 				note = "the wreck and the knock cost %s%.1f s, %d cars driven through (allowed %.0f s and none)" % ["" if r["finished"] else "the race: ", _run(r) - _run(base), int(r["overlaps"]), RECOVER_LOSS]
-	out.append(_mark("recovers", "Recovers", (moved == 0 and recovered == crashes) if not by_id.is_empty() else null,
+	out.append(_mark("recovers", "Recovers", (moved == 0 and recovered == crashes) if not by_id.is_empty() or not chased.is_empty() else null,
 			"moved by the game in view %d times%s; %d of %d crashes recovered%s" % [moved, _by_draw(by_id, ["slips_seen", "jumps_seen"]), recovered, crashes, "; " + note if note != "" else ""], worst, traffic))
 
 	# Honest car: the player's car's limits (top speed, pull, sideways grip, brakes).
@@ -1727,7 +1977,7 @@ static func judge(results: Array) -> Array:
 	var honest := true
 	worst = ""
 	note = ""
-	for r: Dictionary in by_id.values():
+	for r: Dictionary in by_id.values() + chased:
 		if float(r["top_kmh"]) > PLAYER_TOP * 3.6 * 1.02 or float(r["accel_max"]) > PLAYER_ACCEL + 0.5 or float(r["lat_max"]) > PLAYER_GRIP or int(r["hard_stops"]) > 0:
 			honest = false
 			if worst == "":
@@ -1740,7 +1990,7 @@ static func judge(results: Array) -> Array:
 			note = String(r["lat_at"])
 			if grip > PLAYER_GRIP:
 				worst = r["id"]
-	out.append(_mark("honest_car", "Honest car", honest if not by_id.is_empty() else null,
+	out.append(_mark("honest_car", "Honest car", honest if not by_id.is_empty() or not chased.is_empty() else null,
 			"top %.0f km/h (the car's %.0f), pull %.1f m/s² (%.0f), sideways %.1f m/s² (%.0f): %s; stopped dead by the game %d times (its brakes: %.0f m/s²)%s" % [
 			top, PLAYER_TOP * 3.6, pull, PLAYER_ACCEL, grip, PLAYER_GRIP, note, dead, PLAYER_BRAKE, _by_draw(by_id, ["hard_stops"])], worst, traffic))
 
@@ -2012,6 +2262,26 @@ static func judge(results: Array) -> Array:
 			"%d of %d of the club home on clear roads, %d pairs more than %.1f %% apart by their own pace home in the other order: %s" % [
 			home, packs.size(), swapped, PACK_TIE * 100.0, ", ".join(order_names)], worst))
 
+	# Chase keeps off (racer AI step 6b part 2): no police chaser on the racers' driver ever drives
+	# into the player's car or gets in front of it on its street (it keeps its gap behind).
+	var rams := 0
+	var fronts := 0
+	var chase_traffic := false
+	worst = ""
+	for r: Dictionary in chased:
+		rams += int(r.get("rams", 0))
+		fronts += int(r.get("ahead", 0))
+		chase_traffic = chase_traffic or _in_traffic(r)
+		if int(r.get("rams", 0)) + int(r.get("ahead", 0)) > 0 and worst == "":
+			worst = r["id"]
+	out.append(_mark("chase_keeps_off", "Chase keeps off", rams + fronts == 0 if not chased.is_empty() else null,
+			"%d chasers on the racers' driver: %d rams into the player's car, %d times in front of it on its street" % [chased.size(), rams, fronts], worst, chase_traffic))
+
+	# Chase balance (step 6b part 2): on clear roads the new chaser closes and is escaped as the old
+	# one was (`chase_balance`).
+	var balance := chase_balance(chases)
+	out.append(_mark("chase_balance", "Chase balance", balance["pass"], balance["value"], balance["worst"]))
+
 	# The same race twice.
 	var same := 0
 	worst = ""
@@ -2024,6 +2294,93 @@ static func judge(results: Array) -> Array:
 	out.append(_mark("same_twice", "Same race twice", same == repeats.size() if not repeats.is_empty() else null,
 			"%d of %d repeated races came out the same" % [same, repeats.size()], worst))
 	return out
+
+
+## Chase balance (CHASE_FIT_AT, CHASE_GAP_TIE, CHASE_ESCAPE_TIE above): the police chase's rows on
+## clear roads, new against old in the same race. Against the average player the chase's gap at
+## each CHASE_FIT_AT s (the nearest chaser's, straight metres: what police.gd's escape counts)
+## within CHASE_GAP_TIE m of the old one's, the median over the courses, and no course over twice
+## that; against the fast player the escape's time within CHASE_ESCAPE_TIE of the old one's the
+## same way, and where one never escapes neither may the other. {pass (null without pairs),
+## value, worst, table (a line per chaser, old / new, for the report)}.
+static func chase_balance(rows: Array) -> Dictionary:
+	var pairs := {}
+	var races := {}
+	for r: Dictionary in rows:
+		if r["situation"] != "clear" or int(r["seed"]) != 0:
+			continue
+		var key := "%s/%s/%d/%s" % [r["player"], r["course"], int(r["chasers"]), r["rival"]]
+		if not pairs.has(key):
+			pairs[key] = {}
+		pairs[key][r["mode"]] = r
+		# The chase (all its chasers): the nearest one's gaps.
+		var race := "%s/%s/%d" % [r["player"], r["course"], int(r["chasers"])]
+		if not races.has(race):
+			races[race] = {}
+		if not races[race].has(r["mode"]):
+			races[race][r["mode"]] = {"player": r["player"], "course": r["course"], "chasers": int(r["chasers"]), "escape_s": float(r["escape_s"]), "gap_m": r["gap_m"].duplicate()}
+		else:
+			var near: Array = races[race][r["mode"]]["gap_m"]
+			for i in near.size():
+				if float(r["gap_m"][i]) >= 0.0:
+					near[i] = minf(float(near[i]), float(r["gap_m"][i])) if float(near[i]) >= 0.0 else float(r["gap_m"][i])
+	# {measure: {course: [deviation, ...]}}; a deviation over its limit is INF where one side has none.
+	var devs := {}
+	var lines := PackedStringArray()
+	for key: String in races:
+		var pr: Dictionary = races[key]
+		if not pr.has("old") or not pr.has("new"):
+			continue
+		var o: Dictionary = pr["old"]
+		var w: Dictionary = pr["new"]
+		var course := String(o["course"])
+		var group := "%s/%d" % [o["player"], int(o["chasers"])]
+		if o["player"] == "average":
+			for at in CHASE_FIT_AT:
+				var i := CHASE_AT.find(at)
+				var a := float(o["gap_m"][i])
+				var b := float(w["gap_m"][i])
+				var x := 0.0 if a < 0.0 and b < 0.0 else (INF if a < 0.0 or b < 0.0 else absf(b - a) / CHASE_GAP_TIE)
+				var m := "gap %.0f s %s" % [at, group]
+				if not devs.has(m):
+					devs[m] = {}
+				devs[m][course] = x
+		else:
+			var a := float(o["escape_s"])
+			var b := float(w["escape_s"])
+			var x := 0.0 if a < 0.0 and b < 0.0 else (INF if a < 0.0 or b < 0.0 else absf(b / a - 1.0) / CHASE_ESCAPE_TIE)
+			var m := "escape %s" % group
+			if not devs.has(m):
+				devs[m] = {}
+			devs[m][course] = x
+	for key: String in pairs:
+		var pr: Dictionary = pairs[key]
+		if not pr.has("old") or not pr.has("new"):
+			continue
+		var o: Dictionary = pr["old"]
+		var w: Dictionary = pr["new"]
+		lines.append("%s: gap %s / %s m, along the roads %s / %s m, closest %.0f / %.0f m, escape %.1f / %.1f s, stood %.1f / %.1f s, through %d / %d cars, script %.2f / %.2f ms most, %.3f / %.3f median" % [
+				key, ",".join(PackedStringArray(o["gap_m"].map(func(v): return "%.0f" % v))), ",".join(PackedStringArray(w["gap_m"].map(func(v): return "%.0f" % v))),
+				",".join(PackedStringArray(o["road_gap_m"].map(func(v): return "%.0f" % v))), ",".join(PackedStringArray(w["road_gap_m"].map(func(v): return "%.0f" % v))),
+				float(o["closest_m"]), float(w["closest_m"]), float(o["escape_s"]), float(w["escape_s"]), float(o["stopped_s"]), float(w["stopped_s"]),
+				int(o["overlaps"]), int(w["overlaps"]), float(o["chase_most_ms"]), float(w["chase_most_ms"]), float(o["chase_median_ms"]), float(w["chase_median_ms"])])
+	if devs.is_empty():
+		return {"pass": null, "value": "", "worst": "", "table": lines}
+	var ok := true
+	var worst := ""
+	var parts := PackedStringArray()
+	for m: String in devs:
+		var xs: Array = devs[m].values()
+		xs.sort()
+		var median: float = xs[xs.size() / 2] if xs.size() % 2 == 1 else (xs[xs.size() / 2 - 1] + xs[xs.size() / 2]) * 0.5
+		var most: float = xs[xs.size() - 1]
+		parts.append("%s median %.2f, most %.2f of the limit" % [m, median, most])
+		if median > 1.0 or most > 2.0:
+			ok = false
+			if worst == "":
+				worst = m
+	return {"pass": ok, "value": "new against old on clear roads (the limit: %.0f m on a gap, %.0f %% on an escape; 1.00 is the limit, a course may go to 2): %s" % [
+			CHASE_GAP_TIE, CHASE_ESCAPE_TIE * 100.0, "; ".join(parts)], "worst": worst, "table": lines}
 
 
 ## The race to hold r (a blocked street, a crash) against: the same group's race on clear roads

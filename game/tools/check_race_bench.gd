@@ -171,6 +171,12 @@ func _run() -> void:
 			known.append(m["title"])
 			if want != "fail" and only == "" and not writing:
 				_problems.append("%s fails and is recorded as %s: %s [%s]" % [m["title"], want, m["value"], m["worst"]])
+	# Racer AI step 6b part 2: the police chase, old against new on clear roads, a line a chaser.
+	var table: PackedStringArray = RaceBench.chase_balance(_results.filter(func(r: Dictionary) -> bool: return r.get("tuning", "") == "chase" and not r.has("error")))["table"]
+	if not table.is_empty():
+		print("\n  The police chase, old / new on clear roads:")
+		for line in table:
+			print("    " + line)
 	for r: Dictionary in _results:
 		if r.has("error"):
 			_problems.append(String(r["error"]))
@@ -225,6 +231,7 @@ func _matrix(full: bool) -> Array:
 		out.append(hop)
 	if not full:
 		out.append_array(_pack_matrix(false))
+		out.append_array(_chase_matrix(false))
 		return out
 	# Route sense in traffic: the free choice from Leszczyńska is in the loop below.
 	for route: String in RaceBench.ROUTES:
@@ -328,6 +335,8 @@ func _matrix(full: bool) -> Array:
 					out.append(again)
 	# Racer AI step 6b part 1b: the night club's pack (last, so the races above keep their numbers).
 	out.append_array(_pack_matrix(true))
+	# Racer AI step 6b part 2: the police chase, old and new (after the pack, for the same reason).
+	out.append_array(_chase_matrix(true))
 	return out
 
 
@@ -339,6 +348,23 @@ func _pack_matrix(full: bool) -> Array:
 	for situation: String in (["clear", "heavy"] if full else ["clear"]):
 		for player: String in (["none", "average"] if full else ["none"]):
 			out.append({"rival": "club", "tuning": "pack", "start_name": RaceBench.PACK_START, "situation": situation, "player": player})
+	return out
+
+
+## The police chase (RaceBench `chase`: a row per chaser). Quick: one chaser on the racers' driver
+## after the average player on clear roads. Full: every course, clear roads and Busy traffic, the
+## average and the fast player, one and two chasers, the old driver and the new.
+func _chase_matrix(full: bool) -> Array:
+	var out: Array = []
+	if not full:
+		out.append({"rival": "chase", "tuning": "chase", "mode": "new", "course": "powisle", "situation": "clear", "player": "average", "chasers": 1})
+		return out
+	for course: String in RaceBench.CHASE_COURSES:
+		for situation: String in ["clear", "heavy"]:
+			for player: String in RaceBench.CHASE_PLAYERS:
+				for n in [1, 2]:
+					for mode: String in ["old", "new"]:
+						out.append({"rival": "chase", "tuning": "chase", "mode": mode, "course": course, "situation": situation, "player": player, "chasers": n})
 	return out
 
 
@@ -368,6 +394,12 @@ func _race(spec: Dictionary) -> bool:
 			spec["wall"] = _bench.plan_wall(spec, edges)
 		else:
 			spec["wreck"] = _bench.plan_wreck(spec, edges)
+	if spec.get("tuning", "") == "chase":
+		# The police chase: a row per chaser, each printed as a race.
+		var all := true
+		for row: Dictionary in _bench.chase(spec):
+			all = _row(row, spec) and all
+		return all
 	if spec.get("tuning", "") == "pack":
 		# The pack: a row per racer, each printed as a race.
 		var ok := true
@@ -429,6 +461,11 @@ func _row(r: Dictionary, spec: Dictionary) -> bool:
 		extras.append("wreck on %s, knocked at %.0f s" % [r["wreck"]["street"], r.get("knock_s", -1.0)])
 	if float(r.get("plan_s", 0.0)) > 0.0 and r["finished"] and r["situation"] == "clear":
 		extras.append("the plan's clock %.1f s (%+.0f %%)" % [r["plan_s"], (float(r["plan_s"]) / maxf(float(r["time"]) - float(r["hold_s"]), 1.0) - 1.0) * 100.0])
+	if r.get("tuning", "") == "chase":
+		extras.append("gap %s m (along the roads %s) at %s s, closest %.0f m, %s, %d rams, %d times in front, the chase's script %.2f ms at most a frame, %.3f median" % [
+				",".join(PackedStringArray(r["gap_m"].map(func(v): return "%.0f" % v))), ",".join(PackedStringArray(r["road_gap_m"].map(func(v): return "%.0f" % v))),
+				",".join(PackedStringArray(RaceBench.CHASE_AT.map(func(v): return "%.0f" % v))), r["closest_m"],
+				"escaped at %.1f s" % r["escape_s"] if float(r["escape_s"]) >= 0.0 else "no escape", r["rams"], r["ahead"], r["chase_most_ms"], r["chase_median_ms"]])
 	if r.has("session_most_usec"):
 		extras.append("place %d · the session's work %.2f ms at most in a frame, %.1f ms at the start" % [int(r.get("place", 0)), float(r["session_most_usec"]) / 1000.0, float(r["session_start_usec"]) / 1000.0])
 	if _before.has(r["id"]):

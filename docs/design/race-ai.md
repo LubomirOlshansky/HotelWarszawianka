@@ -165,7 +165,7 @@ gives them one driver and one race object, so a fix lands everywhere.
 | The guided first race with Pani Halina (`rivals.gd` `first_speed`) | A special band: she holds 30 m in front at the player's own pace, then lets the player catch her | Same driver, on her gentle day (section 6); the script is gone since step 2 (parked question 1) |
 | Trzy mosty, the ladder final against Seba | Rail racer with a weak band | New driver, the long route over the three bridges |
 | Night club pack race (`street_meet.gd`) | Several rail racers at full speed with every shortcut, no band | Same driver, one race object for the whole pack: done since step 6b part 1 (6.2) |
-| Police chasers (`police.gd`) | Rail racer that never passes the player | The driver with a chase goal, later (step 6b-2) |
+| Police chasers (`police.gd`, `police/chase_route.gd`) | Rail racer that never passes the player | The driver with a chase goal: a plan toward the player, the racing line, honest braking; done since step 6b part 2 (6.3). The search, the escort, the blockers and the roadblocks still drive the old way |
 | Crazy drivers (`crazy_drivers.gd`) | Rail racer with no route | The driver with an aggressive profile, later (step 6b-3) |
 | Drag race at the night club | A simulated run, no driving | Stays |
 | Courier bike race | Its own rider on the footways | Stays, may share the route planner later |
@@ -174,8 +174,9 @@ gives them one driver and one race object, so a fix lands everywhere.
 Since step 2 the ladder races, the guided first race and Trzy mosty have no band: each rival
 drives its skill profile, with an effort that follows the time gap (section 6). The pack race,
 the police chasers and the crazy drivers never had one. Since step 6b part 1 the pack race drives
-the new driver too, on the same race session (6.2); the police chasers (6b-2) and the crazy
-drivers (6b-3) still drive the rail racer.
+the new driver too, on the same race session (6.2), and since step 6b part 2 a police car in a
+chase drives it as well, on a session of its own (6.3); the crazy drivers (6b-3) still drive the
+rail racer.
 
 Normal traffic keeps its rail and car-following model (IDM). That model is right for traffic.
 What changes is that racers treat traffic as moving obstacles with a predicted path.
@@ -220,11 +221,11 @@ RaceSession  one race: the grid, the racers, the ranking, the result (every race
   player's car. What differs is how much of them the racer uses, what the racer knows and what
   the racer dares.
 - **RaceSession.** The grid, the racers, the ranking and the result for the ladder, the first
-  race, Trzy mosty and the pack race; later the police chasers and the crazy drivers. Built in
+  race, Trzy mosty, the pack race and the police chasers; later the crazy drivers. Built in
   step 6b part 1 as `game/scripts/race_session.gd` (6.2): the mechanics only (course, racers,
   plans, start, legs, effort, order, reroutes, lights, end); the words, cards and pay stay in the
   race mode's own script. The ladder races, the guided first race, Trzy mosty, the night club's
-  pack race and the race bench run on it.
+  pack race, the police chasers (6.3) and the race bench run on it.
 
 **Rejected.** The player's physics car for rivals: the buildings' walls exist only near the
 player's car, so a physics rival far ahead would drive through houses or need the whole city
@@ -1068,6 +1069,91 @@ question). The police chasers and the crazy drivers are 6b-2 and 6b-3.
 `RACE_ACCEL` and `RACE_LAT`); every racer has its lights in the race; and after meet 2 the
 session and the lights are gone.
 
+### 6.3 Step 6b part 2 as built: police chasers on the racers' driver
+
+A police car in a chase (`police_unit.gd` `pursue`) drives the racers' driver: a plan by its own
+seconds toward the player, the racing line, a tight curve as the arc a car can turn, honest
+braking into turns, and a new way after `turned_back` or `hop_refused`. Before it was a rail
+racer: a route by the metres once a second, no plan, no line, curves as they are, with
+`CHASE_RACE_ACCEL` 6 and `CHASE_LAT` 6.5 from before step 4a's grip. It measured 27 to 42 m/s²
+sideways, which no real car does; it measures 8.6 to 15.2 now.
+
+**The chase's own object** (`game/scripts/police/chase_route.gd`, a `RefCounted`).
+- The replan rule moved out of `police.gd` and is the same: a route once `REPLAN` 1 s for each
+  chaser, one chaser a frame; the goal is the end of the player's street when that is within
+  `GOAL_NEAR` 400 m of the car, else the nearest junction; the search is bounded at `MAX_COST`
+  800 m.
+- The chase's `RaceSession`: a chaser joins when it pursues (`join`, from `police_unit.gd`
+  `arm_chase`) and leaves when it stops (`leave`).
+- Only a new goal junction remakes anything (`RaceSession.retarget`: one leg, the distances and
+  plans dropped and made anew). The chaser routed now is sent at once and the others one a frame
+  after (`_resend`). Plan slices go one chaser a frame (`round_robin`), never in a frame that
+  remade a goal.
+- The bench's chase races drive the same object, so no copy of the rule exists.
+- The search, the escort, the blockers and the roadblocks still drive the old way (no plan).
+
+**The session's additions** (`race_session.gd`): `max_cost` (distances bounded; `INF` for every
+race as before), `remove(r)`, `retarget(junction, most, send)` and `resend(r)`; `_reroute` honours
+`max_cost`. A chaser has no effort by the gap (its pace is its own: its top is `police.chase_top()`,
+0.8 of the player's car, by `v_cap`), no race lights (it has the light bar) and no finish circle.
+
+**The profile** (`ladder.gd` `POLICE`): share 1.0, `race_accel` 7, `brake` 6, `lat` 12, knows
+0.6, caution 0.5, dare 1.5, narrow 4.5, cuts 0, yards 0, hops 0, wrong 0, mistake 0, block 0, no
+phone. The first try was 10 / 9 / 12.5 (the old numbers scaled as the club's were), and it was
+too much: the line made the chaser quicker through corners, so the fast player no longer escaped
+on the Powiśle course. The pull and the brakes came down.
+
+**Six changes in `traffic.gd`**, all for a chaser:
+- `_choose_way`: a chaser uses its plan only once the plan knows its street (`plan.step(e, 0)`);
+  before that it goes by the metres.
+- The tight-curve arc, for a chaser with a plan.
+- `lined()` no longer shuts chasers out.
+- In `_line_speeds` a chaser's line ends at `_chase_end_speed` (new): the slowest way on from the
+  goal junction at its grip, because the player's next turn is not known (`race_line.gd`
+  `end_speed`).
+- The look at the player is 4 m wide as before, or anywhere on the chaser's own carriageway when
+  it is on its line (`_on_carriageway`): a line may pick another lane than the player's, and a
+  chaser never draws alongside to pass.
+- Everything else about `d.chase` is as it was: it keeps `CHASE_GAP` behind, never passes or
+  rams, and goes slowly through a red with the siren.
+
+**The bench** has a new race kind, `chase`: the test player (average, fast) on three courses
+(avenue: the spawn to the Palace; powisle; yard, where the player takes a shortcut), with one or
+two chasers starting 30 and 60 m behind, armed and routed by the game's own code. A race ends at
+45 s or at the escape (100 m from every chaser). Every chase race runs twice, `old` (no plan, the
+driver before) and `new`, in the same bench: 72 chase rows. The quick matrix is 41 races (it was
+40), the full one 416 (it was 344). The old chase rows are kept out of the existing marks, and
+chasers are not finishers. The situation "busy" is the bench's `heavy`. Two marks more (7.3):
+**Chase keeps off** (36 chasers, 0 rams, 0 in front) and **Chase balance** (medians 0.09 to 0.20
+of the limit, worst 1.43).
+
+**Old chase driver against the new**, clear roads, first chaser (old / new):
+
+| Course, player | Gap at 10 s | at 20 s | at 30 s | at 45 s | Escape |
+| --- | --- | --- | --- | --- | --- |
+| Avenue, average | 27 / 30 m | 33 / 34 m | 35 / 33 m | 37 / 34 m | - |
+| Avenue, fast | | | | | 13.9 / 13.4 s |
+| Powiśle, average | 31 / 31 m | 29 / 28 m | 27 / 29 m | 45 / 33 m | - |
+| Powiśle, fast | | | | | 28.0 / 27.3 s |
+| Yard, average | | | | | 17.8 / 18.0 s |
+| Yard, fast | | | | | 14.5 / 15.0 s |
+
+The old second chaser on the avenue got lost (171 and 316 m behind); the new one stays 35 to 73 m
+behind. Heavy traffic is noisy for both drivers.
+
+**Proof that nothing else moved.** The 344 races of the bench before are identical to main's
+(only the session's own wall-clock fields differ). The other marks are as on main. Dead stops
+went 80 to 84, four of them among the new chasers (Honest car is a known fail of the rebuild).
+
+**Frame cost.** The chase's own script work a frame in the bench: worst 1.1 to 2.8 ms with three
+bench jobs at once and up to 3.4 ms alone (the old driver 0.47 ms), median about 0.01 ms. The
+frame bench (the cloud, no chase in it): traffic 1.02 to 0.95 ms, police 0.11 to 0.11, rivals
+0.10 to 0.09, draw calls 106 to 106 (58 in the main pass). Only the phone can show the chase's
+worst frame and how a chase feels: braking into turns, keeping off, the escapes.
+
+**Known and left** (BACKLOG). Shortcuts for the police (a patrol keeps to the roads for now); the
+search phase, the escort and the blockers still on the old driver; the crazy drivers are 6b-3.
+
 ## 7. How we test it: the race bench
 
 Racing has its own test bench, and no step of the rebuild merges without its numbers.
@@ -1130,9 +1216,9 @@ the final's own racer (a spec's tuning `final`).
 ### 7.2 Running it
 
 ```zsh
-tools/race_bench.sh                    # the full matrix: 272 races, about 15 minutes
+tools/race_bench.sh                    # the full matrix: 416 races since step 6b part 2, about 26 minutes with --jobs=3
 tools/race_bench.sh --jobs=4           # ... in four parts side by side, judged as one run: 4 minutes on four cores
-tools/race_bench.sh --quick            # the quick matrix: 40 races, 30 s (verify step `racebench`, in CI)
+tools/race_bench.sh --quick            # the quick matrix: 41 races, 30 s (verify step `racebench`, in CI)
 tools/race_bench.sh --only=tamka/heavy/none --trace   # some races, with what the rival does once a second
 tools/race_bench.sh --out=before       # on main: build/race_bench/before.json ...
 tools/race_bench.sh --against=build/race_bench/before.json   # ... then on the branch, both runs side by side
@@ -1206,7 +1292,7 @@ are only good from a run with nothing beside it.
 
 ### 7.3 The pass marks
 
-`race_bench.gd` `judge` turns a set of races into eighteen marks. The limits are constants at the
+`race_bench.gd` `judge` turns a set of races into twenty marks. The limits are constants at the
 top of that file; a change that moves one says why in its PR.
 
 | Mark | Passes when | Step |
@@ -1228,6 +1314,8 @@ top of that file; a change that moves one says why in its PR.
 | **Wrong-way hops in traffic** | in every race in traffic: no car of the town's on a street while a racer hops it (or turning into it), none driven through there, and no hop by a rival who does not dare. Full matrix only | 5b |
 | **Pack order** | the club's eight on the course "club" on clear roads with no player come home in the order of their own pace (each racer alone first: "solo"); neighbours less than 1.5 % apart may swap; all eight are home. Quick and full matrix | 6b-1 |
 | **Pack in traffic** | in the pack's races in Busy traffic every club racer is home within 420 s. Full matrix only | 6b-1 |
+| **Chase keeps off** | in the bench's `chase` races (the new driver; the old ones are kept out) no chaser overlaps the player's car or is in front of it on its street: 36 chasers, 0 rams, 0 in front. Quick and full matrix | 6b-2 |
+| **Chase balance** | on clear roads the new driver against the old: the average player's gap to the first chaser at 20 and 30 s within 12 m, the fast player's escape time within 15 %; a course may go to twice that. Full matrix only | 6b-2 |
 | **Same race twice** | a repeated race gives the same time, streets and metres | 1 |
 
 The probe that measures a race (`race_bench.gd` `Probe`) reads what a spectator could see: where
@@ -1432,6 +1520,14 @@ matrix: 16 of 16 club racers home in the pack's two races in Busy traffic; befor
 of 6.2 three of eight missed the bench's 420 s with nobody near). The quick matrix is 40 races
 (it was 24), the full one 344 (it was 304).
 
+**After step 6b part 2** (the police chasers on the racers' driver, 6.3). The 344 old races are
+identical to main's (only the session's wall-clock fields differ). Two marks are new: **Chase
+keeps off** passes (recorded pass on the quick matrix, `once:Linux` on the full one) and **Chase
+balance** passes (full matrix: the medians are 0.09 to 0.20 of the limit, the worst 1.43, the
+second chaser at 20 s on one course). The quick matrix is 41 races (it was 40), the full one 416
+(it was 344: 72 chase rows). Dead stops 80 to 84, four of them among the new chasers (Honest car
+is a known fail of the rebuild).
+
 
 ### 7.5 What the bench does not see
 
@@ -1501,7 +1597,7 @@ after. Step 2 ends the complaint in F's message. The steps after it make racing 
 | 5b (done) | Wrong-way hops on one-way streets, for Seba and Mike (5.5; F's yes to question 3) | Seba and Mike dart the wrong way down a short one-way street when it is empty | Wrong-way hops, and in traffic (48 hops proven, 4 refused) |
 | 6a (done) | Personalities, visible decisions, result card with both routes, tuning (6.1) | You can tell Seba from Zbyszek by how they drive | The ladder's curve of times (Ladder curve, Told apart) |
 | 6b-1 (done) | One race session (`race_session.gd`) for the ladder races, the guided first race, Trzy mosty and the night club's pack race (6.2) | The club's drivers race like the ladder's rivals: own skill each, real overtakes, shortcuts, no driving through each other, none faster than your car | Pack order (new); Pack in traffic recorded fail; the 304 old races identical to main |
-| 6b-2 | Police chasers on the racers' driver | Police chase with the race driver | Marks on the chase |
+| 6b-2 (done) | Police chasers on the racers' driver (`police/chase_route.gd`, `ladder.gd` `POLICE`, 6.3) | Police cars in a chase brake for corners and take a proper line, and are as easy or hard to shake off as before | Chase keeps off, Chase balance (new); the 344 old races identical to main |
 | 6b-3 | Crazy drivers on the racers' driver | Every race in the game uses the new driver | All marks on every race mode |
 
 Every pull request waits for green checks and the audit before it merges.

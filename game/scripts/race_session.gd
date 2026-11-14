@@ -20,6 +20,11 @@ extends RefCounted
 ## on one course: `round_robin` (their plans one racer a frame), `home_within` (home that near the
 ## finish as well), the distances shared by racers who know the same shortcuts, and `signals`'
 ## `seen_only`. A one-racer race is the same as before.
+##
+## Step 6b part 2: the police chasers (police/chase_route.gd), racers whose goal moves with the
+## player: `retarget` (a new goal for all of them, one leg), `remove` (a unit that stops chasing)
+## and `max_cost` (their distances bounded, as the chase's search always was). No effort, no
+## lights, no finish circle there; everything else as for a race.
 
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Traffic := preload("res://scripts/traffic.gd")
@@ -137,6 +142,10 @@ var exact_left := false
 var round_robin := false
 var home_within := 0.0
 var _turn := 0
+## Step 6b part 2, the police chase: the distances of a leg without shortcuts searched no further
+## than this many metres from its junction (INF: the whole map, the owner's cache `roads_to`; the
+## chase's goal moves every few seconds, and the whole map costs about 8 ms a search).
+var max_cost := INF
 ## The shortcut tables made for a cuts profile that every name knows alike (`_learn_cuts`).
 var _links := {}
 var racers: Array[Racer] = []
@@ -231,7 +240,10 @@ func distances(r: Racer, leg: int) -> PackedFloat32Array:
 				return r.dists[leg]
 		var node := legs[leg]
 		var extra := planner.links(node, ends if leg == legs.size() - 1 else {}, r.cut_in)
-		r.dists[leg] = roads_to(node) if extra.is_empty() else graph.distances_to(node, INF, true, extra)
+		if max_cost < INF:
+			r.dists[leg] = graph.distances_to(node, max_cost, true, extra)
+		else:
+			r.dists[leg] = roads_to(node) if extra.is_empty() else graph.distances_to(node, INF, true, extra)
 	return r.dists[leg]
 
 
@@ -415,6 +427,43 @@ func place_of(metres: float) -> int:
 	return n
 
 
+## Step 6b part 2: racer `r` leaves the race (a police unit that stops chasing): its plans are
+## dropped here; its Driver is its owner's again.
+func remove(r: Racer) -> void:
+	racers.erase(r)
+	r.plans.fill(null)
+
+
+## Step 6b part 2: a new goal for every racer (the police chase: the end of the player's street
+## moved on). One leg to `junction`, no finish circle; every racer's distances (searched no
+## further than `most` m, `max_cost`) and plan for it dropped and made anew, and each racer that
+## has started sent there again (`race_to`: until its new plan knows the street it is on it goes
+## by the metres; with `send` false its owner sends each, `resend`, a frame apart: each send builds
+## a racing line). A racer not started yet is sent by its owner (`start`).
+func retarget(junction: int, most := INF, send := true) -> void:
+	legs = PackedInt32Array([junction])
+	at = Vector2.INF
+	radius = 0.0
+	ends = {}
+	max_cost = most
+	for r in racers:
+		r.leg = 0
+		r.dists = [null]
+		r.plans = [null]
+		r.after = PackedFloat32Array()
+	if not send:
+		return
+	for r in racers:
+		if r.started:
+			resend(r)
+
+
+## Step 6b part 2: racer `r` sent again to its leg's junction by its leg's distances and plan as
+## they are now (`retarget`).
+func resend(r: Racer) -> void:
+	traffic.race_to(r.d, legs[r.leg], distances(r, r.leg), plan(r, r.leg))
+
+
 ## The racer on Driver `d` (null: none).
 func racer_of(d) -> Racer:
 	for r in racers:
@@ -450,7 +499,7 @@ func hop_refused(d) -> Racer:
 
 func _reroute(r: Racer) -> void:
 	var d = r.d
-	traffic.reroute(d, graph.distances_to(d.finish, INF, true, planner.links(d.finish, d.plan.ends, r.cut_in, d.plan.shut), d.plan.shut))
+	traffic.reroute(d, graph.distances_to(d.finish, max_cost, true, planner.links(d.finish, d.plan.ends, r.cut_in, d.plan.shut), d.plan.shut))
 
 
 ## Every frame: the lights of each racer that races (race_signals.gd; the owner shows them); with

@@ -136,6 +136,14 @@ func _data() -> void:
 		_expect(float(c["share"]) <= 1.0 and float(c["lat"]) <= 16.5 and float(c["race_accel"]) <= 13.5 and float(c["brake"]) <= 13.0,
 				"the club's racer %d over the ladder's best (share %.2f, lat %.1f, pull %.1f, brake %.1f)" % [i, c["share"], c["lat"], c["race_accel"], c["brake"]])
 		_expect(float(c["block"]) >= 0.2 and float(c["block"]) <= 0.4, "the club's racer %d: block %.2f (they defend, never ram)" % [i, c["block"]])
+	# Racer AI step 6b part 2: the police chaser (police/chase_route.gd), every key of a racer, the
+	# chase's own top in full (share 1), a patrol car on the roads only, no mistake, no block.
+	for k: String in Ladder.DEFAULT_RACER:
+		_expect(Ladder.POLICE.has(k), "the police racer has no %s" % k)
+	_skill("the police chaser", Ladder.POLICE)
+	_expect(float(Ladder.POLICE["share"]) == 1.0 and float(Ladder.POLICE["cuts"]) == 0.0 and float(Ladder.POLICE["yards"]) == 0.0
+			and float(Ladder.POLICE["hops"]) == 0.0 and int(Ladder.POLICE["wrong"]) == 0 and float(Ladder.POLICE["mistake"]) == 0.0
+			and float(Ladder.POLICE["block"]) == 0.0 and not bool(Ladder.POLICE["phone"]), "the police racer: share 1, roads only, no mistake, block or phone")
 	for k: String in ["share", "race_accel", "brake", "lat"]:
 		_expect(float(Ladder.FIRST_RACER[k]) < float(Ladder.racer(0)[k]), "the gentle day's %s is not under her rung's" % k)
 	_expect(Ladder.SHARE_MIN * RaceSession.EFFORT_EASE >= RaceBench.CRAWL_SHARE,
