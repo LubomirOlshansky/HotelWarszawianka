@@ -76,6 +76,8 @@ var graph: LaneGraph
 ## The traffic the crazy drivers drive in (traffic.gd).
 var traffic
 var planner: RacePlanner
+## The city's shortcuts (null: none): each ride's session learns them anew after a turn back.
+var cuts: RaceCuts
 ## The crazy drivers drive the racers' driver (false: as before, the race bench's `old`).
 var planned := true
 var rides: Array = []
@@ -106,6 +108,7 @@ func setup(lane_graph: LaneGraph, traffic_node, race_planner: RacePlanner, race_
 	graph = lane_graph
 	traffic = traffic_node
 	planner = race_planner
+	cuts = race_cuts
 	_rng.seed = FARE_SEED
 	_fares = PackedInt32Array()
 	for n in graph.node_pos.size():
@@ -150,7 +153,7 @@ func join(d) -> void:
 	var r := Ride.new()
 	r.d = d
 	r.session = RaceSession.new()
-	r.session.setup(graph, traffic, planner, null, {})
+	r.session.setup(graph, traffic, planner, cuts, {})
 	r.session.round_robin = true
 	r.session.max_cost = MAX_COST
 	rides.append(r)
