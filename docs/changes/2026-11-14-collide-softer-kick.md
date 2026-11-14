@@ -1,0 +1,4 @@
+## Backlog
+- fixed: the v2 collision presets (`--collide=soft|mid|firm`, step 6) swung the nose 55-75 deg in half a second on a head-on hit, which Autopilot's tester read as a snap, not a glance (Mac, main 70577991). The head-on kick is now 15-25 deg (was 35-50) and the nose turns off the wall at 3.5 / 4 / 3 rad/s in Cruise / Sport / Grounded (was 6 / 7 / 4.5). Sloppy set A with mid (Cruise, prebuilt): 2 dead stops (v1 20), 0 unsticks (v1 11), 2.20 contacts/km (v1 2.69). The default stays v1.
+- found: the foot of Nowy Zjazd (-372,-1509) stops the car dead in every preset: a guard rail with a stone wall 0.8 m behind it jams the car between them (Autopilot, 2026-11-14). For step 10 (ends and corners) or a collider fix.
+- found: the dead-end corner on Wronia: with mid and firm the car keeps hitting and sliding; mid got the tow offer after 8 s (Autopilot, 2026-11-14).
