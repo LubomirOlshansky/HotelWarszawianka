@@ -46,7 +46,12 @@ read the box's LoD2), and the inputs below are `data/work/demo/*` (trees, OSM, o
    `tools/bake_structures.py` on the finished data: piers, retaining walls, tunnel walls and
    portals, garage doors, the Poniatowski towers' seats, buildings cut under decks, aprons,
    solid things cleared out of the lanes; loop 3b-2: `tools/bake_banks.py`, built and natural
-   banks on `shore`, `sand`, `sandbars`, and `trees3d_crown`, the crowns' scale by the roads)
+   banks on `shore`, `sand`, `sandbars`, and `trees3d_crown`, the crowns' scale by the roads;
+   then the fix passes (cycle_hang ... object_fixes, bus and tram stops, the content POIs) and,
+   last, city objects step 5: `tools/object_types.py`, every wall, fence and hedge's type `ty`,
+   sureness `tc`, class `sc`, hazard `hz` and height by setting `hs`, from the finished lines,
+   OSM's full barrier tags and the land-use outlines in the raw export; the game reads none of
+   it yet; `check_map_data.py` "barrier types" counts it, `verify.sh objecttypes` its selftest)
    → `game/map/centrum.json`. It reads
    `game/map/terrain.json` for the decks and `game/map/lod2.*` for the cuts (bake GUGiK
    first). Loop 3b (R2): the deck solver follows the decks measured in the 0.5 m surface model
