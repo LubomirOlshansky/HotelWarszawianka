@@ -798,6 +798,7 @@ const INFO := {
 	"church_trojca_praga": ["Kościół Świętej Trójcy na Solcu", "Klasycystyczny kościół z wieżyczką.", "A classicist church with a bell turret."],
 	"church_czestochowska": ["Kościół Matki Bożej Częstochowskiej", "Modernistyczny kościół z dachem do ziemi.", "A modernist church with a roof down to the ground."],
 	"church_zwycieska": ["Kościół Matki Boskiej Zwycięskiej", "Kościół parafialny z dwiema wieżami.", "A parish church with two towers."],
+	"church_dominikanie": ["Klasztor Dominikanów", "Klasztor dominikanów przy kościele św. Jacka.", "The Dominican priory beside St Hyacinth's."],
 	"church_bazylianie": ["Klasztor Bazylianów", "Klasztor bazylianów z frontem cerkwi przy Miodowej.", "The Basilian monastery with the church's front on Miodowa."],
 	"church_cerkiew": ["Cerkiew Zaśnięcia Matki Bożej", "Greckokatolicka cerkiew bazylianów przy Miodowej.", "The Basilians' Greek Catholic church on Miodowa."],
 	"church_nozykow": ["Synagoga Nożyków", "Jedyna przedwojenna synagoga Warszawy, przy Twardej.", "Warsaw's only pre-war synagogue, on Twarda."],
@@ -20655,6 +20656,116 @@ func _build_bazylianie(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The Dominican priory (Klasztor Ojców Dominikanów, Freta 10) beside St Hyacinth's: the cream
+## plastered wings round the cloister garth on the New Town's slope to the river. A model that
+## replaces the plain OpenStreetMap block (building 3005; no landmark until 2026-11-14). From a
+## Mapillary photo of 2020 in the passage by the west wing (refs/dominikanie, never shipped: pale
+## yellow plaster, a rusticated ground floor under a cornice band, plain windows), the OSM outline
+## and GUGiK's LoD2 (absolute heights, the ground falling from about 0 to -4 to the north-east: the
+## long wing's eaves 13 and ridge 17.3, its outer gallery 8.6 to 10 and the cloister walk 10 to 7.4
+## under lean-tos, the east wing's eaves 7.8 and ridge 13, the low west range 4.5).
+## Spec docs/landmarks/specs/dominikanie.md.
+## Frame: origin at the long wing's west corner by the church, u along the wing east, v across
+## (to the cloister and the river).
+const DK_O := Vector2(-989.0, -1957.1)
+const DK_A := Vector2(0.704, -0.710)
+const DK_WALL := Color("#e6d4a6")      ## the pale yellow plaster (photo)
+const DK_TRIM := Color("#efe4c4")      ## cornices, bands
+const DK_RUST := Color("#d9c590")      ## the rusticated ground floor
+const DK_ROOF := Color("#97594a")      ## the red-brown roofs (St Hyacinth's)
+
+
+## A lean-to roof between u0 and u1 in the current frame: from the outer edge (v_out, y_out) up to
+## the wall it leans on (v_in, y_in), with its two end triangles in `wall`.
+func _dk_lean(u0: float, u1: float, v_out: float, v_in: float, y_out: float, y_in: float, wall: Color, roof: Color) -> void:
+	var at := func(u: float, v: float, y: float) -> Vector3:
+		var p := _w(u, v)
+		return Vector3(p.x, y, p.y)
+	var side := signf(v_out - v_in)
+	var n := (Vector3(_b.x, 0.0, _b.y) * side * (y_in - y_out) + Vector3.UP * absf(v_out - v_in)).normalized()
+	var none := Vector2(-1, -1)
+	_quad(at.call(u0, v_out, y_out), at.call(u1, v_out, y_out), at.call(u1, v_in, y_in), at.call(u0, v_in, y_in), n, roof)
+	for e: Array in [[u0, -1.0], [u1, 1.0]]:
+		var eu: float = e[0]
+		var en := Vector3(_a.x, 0.0, _a.y) * float(e[1])
+		_tri(at.call(eu, v_out, y_out), at.call(eu, v_in, y_out), at.call(eu, v_in, y_in), en, wall, none, none, none, -1.0, false)
+
+
+## One wall of the priory from p to q (local metres), its outside on the left of p→q: a pane every
+## `step` metres on each sill height in `rows` (absolute), `proud` off the wall. Puts the priory's frame back.
+func _dk_side(p: Vector2, q: Vector2, step: float, rows: Array, h: float, proud := 0.05) -> void:
+	var n := kit_front(_w(p.x, p.y), _w(q.x, q.y))
+	var k := maxi(1, floori(n / step))
+	var cols: Array = []
+	for i in k:
+		cols.append((float(i) + 0.5) * n / float(k))
+	kit_panes(cols, rows, 1.15, h, PAL_GLASS_DARK, proud)
+	kit_front(DK_O, DK_O + DK_A)
+
+
+func _build_dominikanie(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(DK_O, DK_O + DK_A)
+	_g = _ground_under(outline)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	_mode = M_STONE
+	# --- the long wing: walls to 13, its gable roof to 17.3 (gables at both ends)
+	var wing := _lpoly([[0.0, 5.0], [62.0, 5.0], [62.0, 13.8], [0.0, 13.8]])
+	_prism(wing, g - 1.0, 13.0, DK_WALL, none, M_STONE)
+	kit_ledge_ring(wing, 12.55, 0.45, DK_TRIM, 0.2)
+	_gable(0.0, 62.0, 9.4, 4.4, 13.0, 4.3, DK_WALL, DK_ROOF, true)
+	# --- the outer gallery along the north-west side under a lean-to (8.6 to 10)
+	_prism(_lpoly([[0.0, 0.0], [46.5, 0.0], [46.5, 5.02], [0.0, 5.02]]), g - 1.0, 8.6, DK_WALL, none, M_STONE)
+	_dk_lean(0.0, 46.5, -0.25, 5.0, 8.6, 10.2, DK_WALL, DK_ROOF)
+	# --- the cloister walk on the garth side under a lean-to (10 down to 7.4)
+	_prism(_lpoly([[13.0, 13.78], [46.5, 13.78], [46.5, 21.0], [13.0, 21.0]]), g - 1.0, 7.4, DK_WALL, none, M_STONE)
+	_dk_lean(13.0, 46.5, 21.25, 13.8, 7.4, 10.2, DK_WALL, DK_ROOF)
+	# --- the low west range round the church's chancel
+	_kbox(5.3, 13.0, 13.85, 21.0, g - 1.0, 5.5, DK_WALL.darkened(0.04))
+	_kbox(4.5, 13.0, 21.05, 31.7, g - 1.0, 4.5, DK_WALL.darkened(0.04))
+	# --- the east wing down the slope: walls to 7.8, its gable roof to 13 along v
+	var east := _lpoly([[46.52, -21.4], [61.5, -21.4], [61.5, 34.0], [46.52, 34.0]])
+	_prism(east, g - 1.0, 7.8, DK_WALL, none, M_STONE)
+	kit_ledge_ring(east, 7.4, 0.4, DK_TRIM, 0.18)
+	kit_front(_w(54.01, -21.4), _w(54.01, 34.0))
+	_gable(0.0, 55.4, 0.0, 7.49, 7.8, 5.2, DK_WALL, DK_ROOF, true)
+	kit_front(DK_O, DK_O + DK_A)
+	# --- the rusticated ground floor and the band over it on the gallery's outer side
+	for s: Array in [[Vector2(46.5, 0.0), Vector2(0.0, 0.0)]]:
+		var p: Vector2 = s[0]
+		var q: Vector2 = s[1]
+		var n := kit_front(_w(p.x, p.y), _w(q.x, q.y))
+		_kbox(-0.05, n + 0.05, -0.02, 0.06, g - 1.0, 3.6, DK_RUST)
+		kit_face(0.06)
+		kit_bands(-0.05, n + 0.05, g - 1.0, 3.6, 0.7, DK_RUST)
+		kit_face(0.0)
+		kit_ledge(-0.08, n + 0.08, 3.6, 0.3, DK_TRIM, 0.14)
+		kit_front(DK_O, DK_O + DK_A)
+	# --- panes on every side (three storeys on the long wing, two on the east wing and the walks)
+	# (the long wing's west end stands against the church's buildings: no panes there)
+	_dk_side(Vector2(46.5, 0.0), Vector2(0.0, 0.0), 3.4, [0.9], 2.2, 0.12)
+	_dk_side(Vector2(46.5, 0.0), Vector2(0.0, 0.0), 3.4, [4.9], 2.2)
+	_dk_side(Vector2(46.5, 5.0), Vector2(0.0, 5.0), 3.4, [10.3], 1.6)
+	_dk_side(Vector2(62.0, 13.8), Vector2(62.0, 5.0), 3.0, [9.0], 2.0)
+	_dk_side(Vector2(5.3, 13.8), Vector2(13.0, 13.8), 3.0, [6.2, 9.0], 2.0)
+	_dk_side(Vector2(13.0, 21.0), Vector2(46.5, 21.0), 3.4, [0.5, 3.8], 2.0)
+	_dk_side(Vector2(13.0, 13.8), Vector2(46.5, 13.8), 3.4, [10.5], 1.6)
+	_dk_side(Vector2(61.5, 34.0), Vector2(61.5, 14.0), 3.3, [-2.2, 1.2, 4.6], 2.0)
+	_dk_side(Vector2(61.5, 5.0), Vector2(61.5, -21.4), 3.3, [1.2, 4.6], 2.0)
+	_dk_side(Vector2(46.52, 21.0), Vector2(46.52, 34.0), 3.3, [-2.2, 1.2, 4.6], 2.0)
+	_dk_side(Vector2(46.52, -21.4), Vector2(46.52, -0.7), 3.3, [1.2, 4.6], 2.0)
+	_dk_side(Vector2(61.5, -21.4), Vector2(46.52, -21.4), 3.6, [1.2, 4.6], 2.0)
+	_dk_side(Vector2(46.52, 34.0), Vector2(61.5, 34.0), 3.6, [-2.2, 1.2, 4.6], 2.0)
+	# --- the doors: the gallery's and the east wing's
+	kit_front(_w(46.5, 0.0), _w(0.0, 0.0))
+	kit_face(0.12)
+	kit_door(23.0, -0.3, 3.0, 0.9, DK_TRIM, Color("#5a4232"), true)
+	kit_face(0.0)
+	kit_front(DK_O, DK_O + DK_A)
+	_collide(outline)
+
+
 ## The Nożyk Synagogue (Synagoga Nożyków, ul. Twarda 6; Karol and Leandro Marconi, 1898-1902;
 ## burnt 1944, rebuilt 1977-1983; Warsaw's only pre-war synagogue still standing), a cream
 ## neo-Romanesque house of prayer in its courtyard south of Plac Grzybowski. The whole building as
@@ -32022,6 +32133,8 @@ const CHURCHES := [
 			"fill": 0.96, "style": "orthodox", "wall": "#ece4d2", "roof": "#4a6a5a", "towers": 0, "cap": "onion"},
 	{"key": "church_bazylianie", "at": Vector2(-1029.8, -1510.2), "o": Vector2(-1031.3, -1507.6), "out": Vector2(-0.568, 0.822), "L": 39.4, "W": 6.9,
 			"fill": 0.9, "style": "neoclassical", "wall": "#ebe5d7", "roof": "#5d6268", "towers": 0, "cap": "none"},
+	{"key": "church_dominikanie", "at": Vector2(-961.0, -1965.0), "o": Vector2(-972.6, -1973.6), "out": Vector2(-0.710, -0.704), "L": 62.0, "W": 13.8,
+			"fill": 0.8, "style": "baroque", "wall": "#e6d4a6", "roof": "#97594a", "towers": 0, "cap": "none"},
 	{"key": "church_nozykow", "at": Vector2(-1569.1, -228.0), "o": Vector2(-1546.1, -229.5), "out": Vector2(0.9975, -0.0712), "L": 16.4, "W": 11.6,
 			"fill": 0.78, "style": "romanesque", "wall": "#d9c9a3", "roof": "#6f7a76", "towers": 0, "cap": "none"},
 ]
@@ -32092,6 +32205,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_czestochowska":
 		_build_czestochowska(site)  # the modernist A-frame church and its pylons, from photos
+		return
+	if site["key"] == "church_dominikanie":
+		_build_dominikanie(site)  # the Dominican priory's wings round the cloister
 		return
 	if site["key"] == "church_bazylianie":
 		_build_bazylianie(site)  # the Basilian monastery's street wing with the church's front
