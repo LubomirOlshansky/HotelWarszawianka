@@ -58,7 +58,7 @@ const BUDGET := {
 	"church_reformowany": 1150,
 	"church_sw_marcin": 2400,  # 2026-11-14: the whole St Martin church and its tower from photos (measured 2043)
 	"church_trojca_praga": 410,
-	"church_zielonoswiatkowy": 320,
+	"church_zielonoswiatkowy": 1000,  # 2026-11-14: the whole modernist Pentecostal hall from photos (measured 919)
 	"church_zwycieska": 950,
 	"jezuici": 3800,  # 2026-11-13: the whole Jesuit church replaces LoD2 (nave, roofs, front, aisle, tower, turret)
 	"aleksander": 2600,  # 2026-11-13 photo rebuild: podium, upper drum windows, Corinthian porticoes

@@ -19026,6 +19026,98 @@ func _build_niepokalanego(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The Pentecostal church (Kościół Zielonoświątkowy, Sienna), a modernist hall of the 1950s on a
+## corner of Sienna: a brick ground floor under a cream plastered upper volume that oversails it on
+## a pier at the entrance, groups of three tall cream fins on its end walls, a flat roof, a tall
+## brick stair block beside the entrance. The whole building as a model that replaces the old kit
+## church (`church_zielonoswiatkowy`, built by `_build_church` until 2026-11-14: a gabled "modern"
+## church box). From Mapillary photos of 2021 taken along Sienna and the side street (refs/
+## zielonoswiatkowy, never shipped), the OSM outline and GUGiK's LoD2 (flat roofs: the hall 12, the
+## east wing 9.4, the stair block 14). Spec docs/landmarks/specs/zielonoswiatkowy.md.
+## Frame: origin at the outline's centre, u along the building (axis (-0.3881, 0.9216)), +v to the
+## hall's side; the hall is the half with v over 6, the lower wing the other.
+const ZL_O := Vector2(-1890.1, 331.7)
+const ZL_A := Vector2(-0.3881, 0.9216)
+const ZL_BRICK := Color("#8f4a36")     ## the dark red brick of the ground floor and the stair block
+const ZL_CREAM := Color("#e2d6bf")     ## the cream plaster of the upper volume
+const ZL_FIN := Color("#ece3d0")       ## the fins and the copings, a shade paler
+const ZL_ROOF := Color("#8e8f8c")      ## the flat roofs
+
+
+## The windows and the fin groups on every edge of `ring` longer than 4 m, between y0 and y1
+## (absolute): a fin group of three ribs at a quarter and three quarters of an edge longer than
+## 9 m, square windows every 2.6 m on the storeys at `rows` (absolute sills) clear of the fins.
+func _zl_dress(ring: PackedVector2Array, y0: float, y1: float, rows: Array, fins: bool) -> void:
+	var n := ring.size()
+	var keep := _mode
+	for i in n:
+		var p := ring[i]
+		var q := ring[(i + 1) % n]
+		var l := p.distance_to(q)
+		if l < 4.0:
+			continue
+		var d := (q - p) / l
+		var out := _out(ring, p, q)
+		var spots: Array[float] = []
+		if fins and l > 9.0:
+			spots = [l * 0.25, l * 0.75]
+			for s: float in spots:
+				for k in 3:
+					var c := p + d * (s + (k - 1) * 0.6) + out * 0.2
+					_mode = M_STONE
+					_prism(_circle(c, 0.24, 4), y0 + 0.4, y1 - 0.5, ZL_FIN, ZL_FIN, M_STONE, M_STONE)
+		var t := 1.6
+		while t < l - 1.4:
+			var clear := true
+			for s2: float in spots:
+				if absf(t - s2) < 1.6:
+					clear = false
+			if clear:
+				for r in rows:
+					var y := float(r)
+					_mode = _lit(t + p.x, y)
+					_wall(p + d * (t - 0.6) + out * 0.05, p + d * (t + 0.6) + out * 0.05, y, y + 1.5, out, PAL_GLASS_DARK)
+			t += 2.6
+	_mode = keep
+
+
+func _build_zielonoswiatkowy(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(ZL_O, ZL_O + ZL_A)
+	_g = _ground_under(outline)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	_mode = M_STONE
+	var hall_half := _lpoly([[-40.0, 6.0], [40.0, 6.0], [40.0, 30.0], [-40.0, 30.0]])
+	var wing_half := _lpoly([[-40.0, -30.0], [40.0, -30.0], [40.0, 6.0], [-40.0, 6.0]])
+	var hall := _largest(Geometry2D.intersect_polygons(outline, hall_half))
+	var wing := _largest(Geometry2D.intersect_polygons(outline, wing_half))
+	# --- the hall: a brick ground floor, the cream volume to 12, a coping, the flat roof
+	_prism(hall, g - 1.0, g + 4.0, ZL_BRICK, none, M_STONE)
+	_prism(hall, g + 4.0, g + 12.0, ZL_CREAM, ZL_ROOF, M_STONE, M_STONE)
+	kit_ledge_ring(hall, g + 11.7, 0.4, ZL_FIN, 0.12)
+	kit_ledge_ring(hall, g + 3.85, 0.3, ZL_FIN, 0.2)
+	_zl_dress(hall, g + 4.0, g + 12.0, [g + 5.3, g + 8.5], true)
+	_zl_dress(hall, g, g + 4.0, [g + 1.3], false)
+	# --- the lower wing: the same two materials, flat roof at 9.4
+	_prism(wing, g - 1.0, g + 3.6, ZL_BRICK, none, M_STONE)
+	_prism(wing, g + 3.6, g + 9.4, ZL_CREAM, ZL_ROOF, M_STONE, M_STONE)
+	kit_ledge_ring(wing, g + 9.1, 0.4, ZL_FIN, 0.12)
+	_zl_dress(wing, g + 3.6, g + 9.4, [g + 5.2, g + 7.4], false)
+	_zl_dress(wing, g, g + 3.6, [g + 1.2], false)
+	# --- the tall brick stair block by the entrance, a slit window up it
+	_kbox(-21.2, -16.8, 6.0, 10.2, g - 1.0, g + 14.0, ZL_BRICK)
+	_kbox(-21.3, -16.7, 5.9, 10.3, g + 13.7, g + 14.1, ZL_FIN)
+	_kbox(-19.3, -18.7, 10.2, 10.26, g + 4.5, g + 12.5, PAL_GLASS_DARK, _lit(-19.0, g + 4.5))
+	# --- the entrance under the oversailing upper volume: its pier and the dark glazed doors
+	_kbox(-24.6, -23.9, 4.2, 4.9, g - 1.0, g + 4.0, ZL_FIN)
+	var e0 := _w(-22.4, 1.2)
+	var e1 := _w(-19.2, 4.2)
+	_mode = M_STONE
+	_wall(e0, e1, g, g + 2.6, (e1 - e0).orthogonal().normalized() * -1.0, PAL_DARK_DOOR)
+	_collide(outline)
+
+
 ## The Church of Divine Mercy and St Faustina (Kościół pw. Miłosierdzia Bożego i Świętej Faustyny,
 ## Żytnia; the Sisters of Our Lady of Mercy, where St Faustina entered in 1925), a plain white
 ## plastered church in the sisters' convent on Żytnia. The whole church as a model that replaces
@@ -30740,6 +30832,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_dzieciatka":
 		_build_dzieciatka(site)  # the whole brick Child Jesus church from photos, tower to the west, not the kit church
+		return
+	if site["key"] == "church_zielonoswiatkowy":
+		_build_zielonoswiatkowy(site)  # the whole modernist Pentecostal hall from photos, not the kit church
 		return
 	if site["key"] == "church_miloserdzie":
 		_build_miloserdzie(site)  # the whole white Divine Mercy church and its bell tower from photos, not the kit church

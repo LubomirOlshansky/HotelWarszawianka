@@ -68,7 +68,7 @@ Status as of 2026-11-01. "Kit model" = built by the church kit; "model" = its ow
 | Kościół Przemienienia Pańskiego | church | -975, -1432 | kit model (`church_kapucyni`), 2026-11-01 |
 | Kościół Wizytek | church | -467, -787 | facade, wing and turret on kept skin (`wizytki`) |
 | Kościół Wniebowzięcia Najświętszej Maryi Panny i świętego Józefa Oblubieńca | church | -582, -1036 | front on kept skin (`karmelici`) |
-| Kościół Zielonoświątkowy | church | -1890, 332 | kit model (`church_zielonoswiatkowy`), 2026-11-01 |
+| Kościół Zielonoświątkowy | church | -1890, 332 | model from photos (`church_zielonoswiatkowy`, `_build_zielonoswiatkowy`, spec `zielonoswiatkowy.md`), 2026-11-14 |
 | Kościół parafialny pw. Dzieciątka Jezus | church | -1825, 980 | model from photos (`church_dzieciatka`, `_build_dzieciatka`, spec `dzieciatka.md`), 2026-11-14 |
 | Kościół parafialny pw. Narodzenia Najświętszej Maryi Panny | church | -1969, -976 | kit model (`church_narodzenia`), 2026-11-01 |
 | Kościół pw. Matki Boskiej Zwycięskiej | cathedral | 1971, -1373 | kit model (`church_zwycieska`), 2026-11-01 |
