@@ -97,7 +97,6 @@ enum Job { NONE, KEBAB, SLOIK }
 enum Stage { NONE, ORDER, DELIVER, RESULT }
 
 var bubbles: Control
-var missions: Node
 var rivals: Node
 var graph: LaneGraph
 var traffic: Node3D
@@ -195,11 +194,12 @@ var next_stand := -1
 var _delivered := false
 
 
-## main.gd hands in the nodes (hud, bubbles, dialogue, wallet, missions, rivals, graph, traffic,
+## main.gd hands in the nodes (hud, bubbles, dialogue, wallet, rivals, graph, traffic,
 ## map, car, tod) and `map_data` before this.
 func setup(world: Node3D) -> void:
 	tag = "jobs"
 	colour = KEBAB_COLOUR
+	rescue_calls = RescueCalls.RESTART  # an order puts off a rescue call and counts it again from its end (the director)
 	dark = Color("#2f6fb5")
 	is_job = true
 	cards_low = true
@@ -583,9 +583,9 @@ func target_colour() -> Color:
 	return KEBAB_COLOUR if job == Job.KEBAB or _pointing() else SLOIK_COLOUR
 
 
-## Nothing else on: no rescue under way, no race, not flying.
+## Nothing else on: no rescue under way (the director's `rescue_aimed`), no race, not flying.
 func _free() -> bool:
-	if flying or missions.has_target():
+	if flying or bool(rescue_aimed.call()):
 		return false
 	if others_busy.is_valid() and idle() and bool(others_busy.call()):
 		return false  # story_quests.gd: a questline (boat race, rave...) is on
@@ -671,7 +671,7 @@ func _look_for_work() -> void:
 ## helicopter too: the list is for planning), the Leżak depots while they are out (night).
 func offer_places() -> Array:
 	var out: Array = []
-	if not idle() or missions.has_target() or (rides != null and rides.busy()) \
+	if not idle() or bool(rescue_aimed.call()) or (rides != null and rides.busy()) \
 			or (trend != null and trend.busy()) or round_busy() or (rivals != null and rivals.busy()):
 		return out
 	for s in _stands:
@@ -738,8 +738,6 @@ func places_dirty() -> void:
 ## Other activities stop offering themselves while a job runs.
 func _claim() -> void:
 	_show_places(false)
-	missions.close()
-	missions.paused = true
 	hud.hide_pill()
 	hud.hide_challenge()
 
@@ -749,8 +747,6 @@ func _claim() -> void:
 func _ended() -> void:
 	stage = Stage.NONE
 	job = Job.NONE
-	missions.paused = false
-	missions.close()
 	for st in _stations:
 		(st["person"] as Node3D).visible = true
 	_remove_ghost()

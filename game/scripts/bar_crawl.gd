@@ -20,8 +20,8 @@ extends "res://scripts/activity.gd"
 ## pay for the bars they got to. ✕ gives up (they walk).
 ##
 ## **Pay** (`pay_for`): per bar reached, plus a tip by mood and an on-time bonus when all three
-## were made. The calls (missions.gd) are paused while it runs; nothing else starts from the
-## offer card to the result card's close (the director, activities.gd).
+## were made. The rescue calls (missions.gd) wait while it runs (`rescue_calls` HOLD); nothing else starts
+## from the offer card to the result card's close (the director, activities.gd).
 ##
 ## Cost: the crawl steps four times a second (TICK; the hard-stop rule is written for that step);
 ## one beacon; no new meshes.
@@ -110,7 +110,6 @@ const TICK := 0.25
 enum Stage { PICKUP, DRIVE, WAIT, RESULT }
 
 var bubbles: Control
-var missions: Node
 var graph: LaneGraph
 var origin := [52.234, 21.024]
 ## The call's timer runs (off in test runs but for the flags).
@@ -152,14 +151,12 @@ var _said_late := false
 var _bump_t := 0.0
 var _calm_t := 0.0
 var _last_kmh := 0.0
-## The rescue calls are held by this crawl, and what they were before.
-var _holds_calls := false
-var _calls_were := false
 
 
 func _init() -> void:
 	tag = "crawl"
 	colour = COLOUR
+	rescue_calls = RescueCalls.HOLD  # the rescue calls wait for the crawl and go on after it (the director)
 	dark = Color("#2a2320")
 	card_life = RING_LIFE
 	clock = func() -> float: return 22.0
@@ -383,10 +380,6 @@ func _begin() -> void:
 	if pickup.is_empty() and (route < 0 or group < 0 or not _find_pickup()):
 		drop(false)  # started with no call before it and no kerb to be found
 		return
-	_calls_were = missions.paused if missions != null else false
-	_holds_calls = true
-	if missions != null:
-		missions.paused = true
 	stage = Stage.PICKUP
 	_hold_t = 0.0
 	var side: Vector3 = pickup["side"]
@@ -553,9 +546,6 @@ func _quit_words() -> Array:
 
 ## Back to free play: the calls back on, the next call later.
 func _ended() -> void:
-	if _holds_calls and missions != null:
-		missions.paused = _calls_were
-	_holds_calls = false
 	pickup = {}
 	route = -1
 	group = -1
