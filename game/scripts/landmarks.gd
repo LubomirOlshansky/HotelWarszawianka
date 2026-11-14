@@ -786,7 +786,7 @@ const INFO := {
 	"church_jacek": ["Kościół św. Jacka", "Kościół dominikanów na Nowym Mieście.", "The Dominicans' church in the New Town."],
 	"church_antoniego": ["Kościół św. Antoniego Padewskiego", "Kościół franciszkanów na Senatorskiej.", "The Franciscans' church on Senatorska."],
 	"church_alberta": ["Kościół św. Brata Alberta i św. Andrzeja", "Kościół środowisk twórczych przy placu Teatralnym.", "The artists' church on Theatre Square."],
-	"church_reformowany": ["Kościół Ewangelicko-Reformowany", "Kościół ewangelicko-reformowany z cegły.", "A brick Reformed church."],
+	"church_reformowany": ["Kościół Ewangelicko-Reformowany", "Neogotycki kościół z ażurową iglicą.", "A neo-Gothic church with an openwork spire."],
 	"church_jerozolimska": ["Kościół Matki Bożej Jerozolimskiej", "Ceglany kościół z portykiem naprzeciw stadionu.", "A brick church with a portico across from the stadium."],
 	"church_zielonoswiatkowy": ["Kościół Zielonoświątkowy", "Zbór zielonoświątkowy.", "A Pentecostal church."],
 	"church_dzieciatka": ["Kościół Dzieciątka Jezus", "Kościół parafialny z wysoką wieżą.", "A parish church with a tall tower."],
@@ -19866,6 +19866,119 @@ func _build_alberta(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The Evangelical Reformed church (Kościół Ewangelicko-Reformowany, al. Solidarności 74; Adolf
+## Loewe, 1866-80), a cream neo-Gothic hall church with one tall tower over its front and the
+## openwork grey spire Warsaw knows it by. The whole church as a model that replaces the old kit
+## church (`church_reformowany`, built by `_build_church` until 2026-11-14: a brick box with a
+## pyramid, its front at the far end). From Mapillary photos of 2022-2025 along al. Solidarności
+## (refs/reformowany, never shipped), the OSM outline and GUGiK's LoD2 (over the ground: the
+## nave's eaves 13 and its ridge 20.3; the tower's top 31 and the spire's tip 52; the chancel
+## 16; the low vestry 4.5). Spec docs/landmarks/specs/reformowany.md.
+## - the front to the avenue: a pointed portal, a rose window, the gable with its pinnacles,
+##   two slim corner turrets, the tower rising from behind the gable with tall belfry lancets,
+##   four corner pinnacles and the octagonal grey spire with dark openwork slits and a cross;
+## - the nave under one grey roof, buttresses and tall lancets along both sides; the three-sided
+##   chancel at the north end and the low vestry behind it.
+## Frame: origin at the front's east corner, u along the church to the north-west, +v across it;
+## the front faces -u (to the avenue).
+const RF_O := Vector2(-1749.5, -1082.9)
+const RF_A := Vector2(-0.448, -0.894)
+const RF_C := 9.9                      ## the church's axis (v): the tower, the portal, the ridge
+const RF_WALL := Color("#ddcb98")      ## the cream-yellow brick and render (photos)
+const RF_TRIM := Color("#ece2c4")      ## pinnacles, frames, the rose window's ring
+const RF_ROOF := Color("#686d72")      ## the grey roof
+const RF_SPIRE := Color("#8d969c")     ## the spire's grey metal
+const RF_BASE := Color("#9b958a")      ## the plinth
+
+
+## A pointed window on the wall at (u, v) looking `out`, along `along`: a trim field and the pane.
+func _rf_lancet(u: float, v: float, along: Vector2, out: Vector2, hw: float, y0: float, spring: float) -> void:
+	var at := _w(u, v)
+	_lancet_panel(at, along, out, hw + 0.2, y0 - 0.15, spring, RF_TRIM, 0.03, M_STONE)
+	_lancet_panel(at, along, out, hw, y0, spring, PAL_GLASS_DARK, 0.07, _lit(u + v, y0))
+
+
+func _build_reformowany(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(RF_O, RF_O + RF_A)
+	_g = _ground_under(outline)
+	var g := _g
+	var c := RF_C
+	var none := Color(0, 0, 0, 0)
+	var b := Vector2(-RF_A.y, RF_A.x)
+	_mode = M_STONE
+	# --- the nave: one box, a plinth, a band under the eaves, one gable roof along u
+	var nave := _rect(21.5, c, 20.0, 9.6)  # u 1.5..41.5, v 0.3..19.5
+	_prism(nave, g - 1.0, g + 13.0, RF_WALL, none, M_STONE)
+	kit_ledge_ring(nave, g - 1.0, 1.6, RF_BASE, 0.08)
+	kit_ledge_ring(nave, g + 12.5, 0.5, RF_TRIM, 0.18)
+	_gable(1.5, 41.5, c, 9.85, g + 13.0, 7.3, RF_WALL, RF_ROOF, true)
+	# buttresses and lancets on both long sides
+	for s: float in [-1.0, 1.0]:
+		var vf := c + s * 9.6
+		for bu: float in [1.9, 6.6, 11.3, 16.0, 20.7, 25.4, 30.1, 34.8, 39.5]:
+			_kbox(bu - 0.4, bu + 0.4, minf(vf, vf + s * 0.9), maxf(vf, vf + s * 0.9), g - 1.0, g + 11.0, RF_WALL)
+			_kbox(bu - 0.3, bu + 0.3, minf(vf, vf + s * 0.5), maxf(vf, vf + s * 0.5), g + 11.0, g + 13.6, RF_TRIM)
+		for wu: float in [9.0, 13.6, 18.3, 23.0, 27.7, 32.4, 37.1]:
+			_rf_lancet(wu, vf, RF_A, b * s, 0.8, g + 3.5, g + 9.5)
+	# --- the chancel: three sides past the nave's end, walls to 12, a low roof to 16
+	var ac := _w(41.5, c)
+	var ring := PackedVector2Array()
+	for k in 4:
+		var ang := -PI * 0.5 + PI * k / 3.0
+		ring.append(ac + (RF_A * cos(ang) + b * sin(ang)) * 6.0)
+	_prism(ring, g - 1.0, g + 12.0, RF_WALL, none, M_STONE)
+	var tip := PackedVector2Array()
+	for p: Vector2 in ring:
+		tip.append(ac + (p - ac) * 0.15)
+	_frustum(ring, g + 12.0, tip, g + 16.0, RF_ROOF, RF_ROOF)
+	for k2 in range(3):
+		var am := -PI * 0.5 + PI * (k2 + 0.5) / 3.0
+		var dm := RF_A * cos(am) + b * sin(am)
+		var pm := ac + dm * 6.0 * cos(PI / 6.0)
+		_lancet_panel(pm, Vector2(-dm.y, dm.x), dm, 0.7, g + 3.5, g + 8.5, PAL_GLASS_DARK, 0.06, _lit(float(k2), g + 3.5))
+	# the low vestry behind the chancel
+	_prism(_lpoly([[44.0, 1.5], [48.5, 1.5], [48.5, 18.0], [44.0, 18.0]]), g - 1.0, g + 4.5, RF_WALL, RF_ROOF.lightened(0.08), M_STONE, M_STONE)
+	# --- the front: the portal, the rose window, a lancet pair, the gable's pinnacles, two turrets
+	var fo := -RF_A
+	_lancet_panel(_w(1.5, c), b, fo, 1.75, g + 0.65, g + 4.2, RF_TRIM, 0.03, M_STONE)
+	_lancet_panel(_w(1.5, c), b, fo, 1.25, g + 0.0, g + 3.6, PAL_DARK_DOOR, 0.12, M_STONE)
+	_disc(Vector3(_w(1.4, c).x, g + 9.0, _w(1.4, c).y), Vector3(fo.x, 0.0, fo.y), 2.0, 12, RF_TRIM)
+	_disc(Vector3(_w(1.36, c).x, g + 9.0, _w(1.36, c).y), Vector3(fo.x, 0.0, fo.y), 1.6, 12, PAL_GLASS_DARK)
+	for lv: float in [c - 5.0, c + 5.0]:
+		_rf_lancet(1.5, lv, b, fo, 0.7, g + 3.5, g + 8.8)
+	_pinnacle(1.2, c, 0.6, g + 20.0, 2.4, RF_TRIM)
+	for tv: float in [0.3, 19.5]:
+		_lbox(1.5, tv, 0.9, 0.9, g - 1.0, g + 15.5, RF_WALL, M_STONE, none)
+		_pinnacle(1.5, tv, 1.6, g + 15.5, 4.0, RF_TRIM)
+	# --- the tower over the front: the shaft from the roof, belfry lancets, corner pinnacles
+	var tu := 6.75
+	_lbox(tu, c, 2.4, 2.4, g + 13.0, g + 30.0, RF_WALL, M_STONE, none)
+	kit_ledge_ring(_rect(tu, c, 2.4, 2.4), g + 29.4, 0.6, RF_TRIM, 0.15)
+	for s2: float in [-1.0, 1.0]:
+		_rf_lancet(tu, c + s2 * 2.4, RF_A, b * s2, 0.55, g + 23.0, g + 27.0)
+		_rf_lancet(tu + s2 * 2.4, c, b, RF_A * s2, 0.55, g + 23.0, g + 27.0)
+		for t: float in [-1.0, 1.0]:
+			_pinnacle(tu + s2 * 2.15, c + t * 2.15, 0.6, g + 30.0, 4.2, RF_TRIM)
+	# the octagonal openwork spire: three rings, dark slits on its lower faces, a cross
+	var tc := _w(tu, c)
+	var oct := func(r: float) -> PackedVector2Array:
+		var o := PackedVector2Array()
+		for k3 in 8:
+			var an := PI * (k3 + 0.5) / 4.0
+			o.append(tc + (RF_A * cos(an) + b * sin(an)) * r)
+		return o
+	_frustum(oct.call(2.2), g + 30.0, oct.call(1.5), g + 38.0, RF_SPIRE)
+	_frustum(oct.call(1.5), g + 38.0, oct.call(0.12), g + 51.0, RF_SPIRE.lightened(0.05), RF_SPIRE)
+	for k4 in 4:
+		var an2 := PI * k4 / 2.0
+		var dn := RF_A * cos(an2) + b * sin(an2)
+		var sl := tc + dn * 1.9
+		_wall(sl - Vector2(-dn.y, dn.x) * 0.2, sl + Vector2(-dn.y, dn.x) * 0.2, g + 31.0, g + 36.0, dn, CHURCH_DARK)
+	_kap_cross(tu, c, g + 51.0, 1.8)
+	_collide(outline)
+
+
 ## The Nożyk Synagogue (Synagoga Nożyków, ul. Twarda 6; Karol and Leandro Marconi, 1898-1902;
 ## burnt 1944, rebuilt 1977-1983; Warsaw's only pre-war synagogue still standing), a cream
 ## neo-Romanesque house of prayer in its courtyard south of Plac Grzybowski. The whole building as
@@ -31292,6 +31405,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_dzieciatka":
 		_build_dzieciatka(site)  # the whole brick Child Jesus church from photos, tower to the west, not the kit church
+		return
+	if site["key"] == "church_reformowany":
+		_build_reformowany(site)  # the whole neo-Gothic church with its openwork spire, from photos
 		return
 	if site["key"] == "church_alberta":
 		_build_alberta(site)  # the whole classicist front on Plac Teatralny, its portico and the two wings, from photos

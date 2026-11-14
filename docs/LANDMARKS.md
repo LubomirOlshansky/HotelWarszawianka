@@ -83,7 +83,7 @@ and Marii Magdaleny are not in the game.
 | Cerkiew Zaśnięcia NMP | Miodowa 16 | B | 0 / 0 | onion dome guessed |
 | Kościół św. Antoniego Padewskiego | Senatorska 31 | B | 44 / 0 | one helm guessed |
 | Kościół św. Brata Alberta i Andrzeja | Senatorska 29 (Plac Teatralny) | `_build_alberta`, the whole frontage replacing the kit church (a "modern" box with a pyramid), 2026-11-14 from Mapillary photos across Plac Teatralny and LoD2 (spec `alberta.md`, 818 tris): the yellow church front behind a giant portico of four white Corinthian columns on steps, the pediment and the grey gable running back; two white three-storey wings with an arcaded ground floor and red mansard roofs with dormers | B | 28 / 2 | back side default (faces the theatre yard) |
-| Kościół Ewangelicko-Reformowany | Al. Solidarności 74 | B | 30 / 0 | brick, pyramid guessed |
+| Kościół Ewangelicko-Reformowany | Al. Solidarności 74 | `_build_reformowany`, the whole church replacing the kit church (a brick box with a pyramid, its front at the far end), 2026-11-14 from far Mapillary photos along al. Solidarności and LoD2 (spec `reformowany.md`, 1020 tris): the cream neo-Gothic hall with buttresses and tall lancets, the front's pointed portal, rose window, gable pinnacle and corner turrets, the tower over the front with belfry lancets and pinnacles, and the octagonal grey openwork spire to 52 m; the three-sided chancel and a low vestry | B | 30 / 2 | openwork spire approximated (solid with slits); north end default |
 | Kościół Narodzenia NMP | Al. Solidarności 80 | B | 7 / 1 | one helm guessed |
 | Kościół św. Augustyna | Nowolipki 18 | B | 0 / 0 | brick, pyramid guessed |
 | Kościół Piotra i Pawła | Nowogrodzka | B | 5 / 0 | neo-Gothic spire guessed |
