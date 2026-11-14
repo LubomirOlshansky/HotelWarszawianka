@@ -35,9 +35,11 @@ extends Node
 ## it broke. Nothing is saved: a new launch starts with a whole city. Version 1 look: the debris
 ## flies and the fence stays drawn (section 5.5, way 1).
 ##
-## `--no-soft` (main.gd): `no_soft` on: nothing is swept, and a prebuilt sector's soft lines get
-## their colliders back (`harden`: the very faces the builder would have filed, city_barriers.gd
-## `slab_faces` / `rail_faces`), so both paths collide exactly as before step 7.
+## `no_soft` on (main.gd: Settings → Łamliwe płoty off, the default since 2026-11-14, or `--no-soft`):
+## nothing is swept, and every loaded sector's soft lines get their colliders back (`harden`: the very
+## faces the builder would have filed, city_barriers.gd `slab_faces` / `rail_faces`), so both paths
+## collide exactly as before step 7. `set_soft` turns it over live on the sectors already loaded (the
+## restored bodies go, or come), so the setting needs no restart.
 
 signal broke(id: String, panel: int, kind: StringName, at: Vector3, direction: Vector3, speed: float)
 signal repaired(id: String, panel: int)
@@ -84,8 +86,12 @@ var focus_at := Callable()
 var view_test := Callable()
 ## contact_log.gd when a run logs contacts (main.gd --contacts, check_lane_drive).
 var contacts: RefCounted
-## --no-soft: nothing breaks; prebuilt sectors get their soft lines' colliders back.
+## Nothing breaks; loaded sectors get their soft lines' colliders back (set before the first sector,
+## then through `set_soft`).
 var no_soft := false
+## Microseconds spent restoring colliders (`harden`, on the main thread when a sector comes in with
+## the fences hard, or at a toggle), for the bench and the check.
+var harden_usec := 0
 ## Microseconds spent in the physics step (the bench's systems table).
 var spent_usec := 0
 ## Panels broken this session, and the sweeps run (frames the car was tested).
@@ -94,8 +100,12 @@ var sweeps := 0
 
 var _clock := 0.0
 var _dawns := 0
-## Sector key -> {"soft": the soft list, "cells": {Vector2i: PackedInt32Array of segment indices}}.
+## Sector key -> {"root", "soft": the soft list, "cells": {Vector2i: PackedInt32Array of segment
+## indices}}: the sectors being swept (none while `no_soft`).
 var _sectors := {}
+## Sector key -> its root, every loaded sector with a soft list (swept or hardened), so `set_soft`
+## can turn the ones already loaded over.
+var _roots := {}
 ## Line id -> its material ("metal", "wood", "hedge"), for the sound and the debris.
 var _mat_of := {}
 ## "id#panel" -> [clock, dawns, at, id, panel], oldest first.
@@ -116,27 +126,69 @@ func _ready() -> void:
 
 
 ## A sector is in (the streamer's sector_ready, twice per sector: once is enough): its soft list
-## into the hash; with --no-soft, its colliders back instead (the prebuilt path; the runtime builder
-## files them itself with CityBarriers.soft_off).
+## into the hash; with `no_soft`, its colliders back instead (the runtime builder makes the soft list
+## either way; with --no-soft it files them itself with CityBarriers.soft_off and has no list).
 func add_sector(root: Node3D) -> void:
 	if root == null or not root.has_meta(&"soft"):
 		return
 	var key := _key_of(root)
-	if _sectors.has(key) and is_same(_sectors[key]["root"], root):
+	if _roots.has(key) and is_same(_roots[key], root):
 		return
-	var soft: Dictionary = root.get_meta(&"soft")
+	_roots[key] = root
+	if not root.tree_exiting.is_connected(_on_root_gone):
+		root.tree_exiting.connect(_on_root_gone.bind(root), CONNECT_ONE_SHOT)
 	if no_soft:
-		if not root.has_meta(&"soft_hard"):
-			root.set_meta(&"soft_hard", true)
-			harden(root, soft, Rect2(Vector2(key) * SECTOR, Vector2(SECTOR, SECTOR)) if root.name.begins_with("s_") else Rect2())
-		return
+		_harden_root(key, root)
+	else:
+		_watch(key, root)
+
+
+## Step 7's settings row (F 2026-11-14): the fences and hedges break (`on`) or are hard, on every
+## sector loaded now and every one that comes in after. Hard: the swept list is dropped, every broken
+## panel stands again and the sectors get their colliders back; breakable: those bodies go and the
+## sectors are swept again. Returns the sectors turned over.
+func set_soft(on: bool) -> int:
+	if on == not no_soft:
+		return 0
+	no_soft = not on
+	_have_prev = false
+	var n := 0
+	for key: Vector2i in _roots.keys():
+		var root: Node3D = _roots[key]
+		if not is_instance_valid(root):
+			_roots.erase(key)
+			continue
+		if no_soft:
+			_harden_root(key, root)
+		else:
+			soften(root)
+			_watch(key, root)
+		n += 1
+	if no_soft:
+		reset()
+		_sectors.clear()
+	return n
+
+
+## A sector's soft list into the sweep's hash.
+func _watch(key: Vector2i, root: Node3D) -> void:
+	var soft: Dictionary = root.get_meta(&"soft")
 	_sectors[key] = {"root": root, "soft": soft, "cells": _cells_of(soft)}
 	var ids: PackedStringArray = soft["ids"]
 	var mats: PackedStringArray = soft["mats"]
 	for i in ids.size():
 		_mat_of[ids[i]] = mats[i]
-	if not root.tree_exiting.is_connected(_on_root_gone):
-		root.tree_exiting.connect(_on_root_gone.bind(root), CONNECT_ONE_SHOT)
+
+
+## A sector's soft lines hard (once: the root's "soft_hard" meta says it has them).
+func _harden_root(key: Vector2i, root: Node3D) -> void:
+	_sectors.erase(key)
+	if root.has_meta(&"soft_hard"):
+		return
+	var t0 := Time.get_ticks_usec()
+	root.set_meta(&"soft_hard", true)
+	harden(root, root.get_meta(&"soft"), Rect2(Vector2(key) * SECTOR, Vector2(SECTOR, SECTOR)) if root.name.begins_with("s_") else Rect2())
+	harden_usec += Time.get_ticks_usec() - t0
 
 
 ## The sector's soft list is gone with its root (an unload).
@@ -148,6 +200,8 @@ func _on_root_gone(root: Node3D) -> void:
 	var key := _key_of(root)
 	if _sectors.has(key) and is_same(_sectors[key]["root"], root):
 		_sectors.erase(key)
+	if _roots.has(key) and is_same(_roots[key], root):
+		_roots.erase(key)
 
 
 static func _key_of(root: Node) -> Vector2i:
@@ -181,7 +235,7 @@ static func _cells_of(soft: Dictionary) -> Dictionary:
 	return cells
 
 
-## --no-soft on a prebuilt sector: its soft lines' collider faces, one body per class (`Solid_<class>`
+## A sector with its fences hard: its soft lines' collider faces, one body per class (`Solid_<class>`
 ## meta, as the builder's own), the faces whose centre lies in `rect` (an empty rect: all of them).
 static func harden(root: Node3D, soft: Dictionary, rect: Rect2) -> void:
 	var by := hard_faces(soft, rect)
@@ -196,6 +250,19 @@ static func harden(root: Node3D, soft: Dictionary, rect: Rect2) -> void:
 		shape.shape = concave
 		body.add_child(shape)
 		root.add_child(body)
+
+
+## `harden` undone: the restored bodies (`SoftHard_<class>`) leave the sector, its soft lines break
+## again. Returns the bodies taken out.
+static func soften(root: Node3D) -> int:
+	var n := 0
+	for c in root.get_children():
+		if String(c.name).begins_with("SoftHard_"):
+			root.remove_child(c)
+			c.queue_free()
+			n += 1
+	root.remove_meta(&"soft_hard")
+	return n
 
 
 ## The faces the builder would have filed for the soft list's segments ({class: faces}), cut to the
@@ -412,6 +479,8 @@ func _sweep(from: Transform3D, to: Transform3D, v: Vector2, dt: float) -> void:
 							broke.emit(id, panel, kind, at, Vector3(way.x, 0.0, way.y), speed)
 	if grind:
 		keep *= 1.0 - cap_take(_window, _clock, Solidity.GRIND_COST * dt)
+	# WORKAROUND(arch): the smash's cost and the grind's nudge are written into the car's `vel` from
+	# here, because car.gd (the controls lane) was not to change in step 7; see TD-24.
 	if keep < 1.0:
 		car.vel *= keep
 	if grind and nudge != Vector2.ZERO:

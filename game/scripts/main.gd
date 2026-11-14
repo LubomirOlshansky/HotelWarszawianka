@@ -869,8 +869,9 @@ var _flag_pads := -1
 ## --handling=cruise|sport|grounded (or 0..2): the run drives that profile whatever the settings say.
 var _flag_handling := -1
 ## The city objects plan, step 6: --collide=v1|soft|mid|firm, the car's collision answer
-## (collide_rules.gd; the car and traffic get it). v1, today's answer, is the default (no setting yet).
-var _flag_collide := &"v1"
+## (collide_rules.gd; the car and traffic get it) for the run, over Settings → Świat → Zderzenia
+## (settings.gd `collide`, v1 by default); &"" when not given.
+var _flag_collide := &""
 ## Beta values: --lane-assist=on|off overrides Settings → Jazda → Asysta pasa for the run; the
 ## lane's direction is looked up every LANE_EVERY s (lane_assist.gd).
 var _flag_lane := -1
@@ -891,6 +892,11 @@ const SoftThings := preload("res://scripts/soft_things.gd")
 const CityBarriers := preload("res://scripts/city_barriers.gd")
 var soft_things: SoftThings
 var _no_soft := false
+## Settings rows (F 2026-11-14): --soft makes the fences and hedges break for the run whatever
+## Settings → Świat → Łamliwe płoty says (off by default; the checks and drive logs that measure step
+## 7 pass it). --no-soft wins over it and over the setting for the whole run (its sectors are built
+## with no soft list, so nothing could turn them breakable).
+var _flag_soft := false
 ## Step 7's feedback: the last smash sound, buzz and bubble (game seconds), so a fence taken
 ## lengthwise is one noise, not twenty.
 var _smash_sound_t := -10.0
@@ -1709,7 +1715,7 @@ func _build_world() -> void:
 	car.set_sensitivity(settings.sensitivity)
 	# G4: Cruise by default, Sport or Grounded from Settings → Jazda (--handling= for a run).
 	car.set_handling(settings.handling if _flag_handling < 0 else _flag_handling)
-	car.collide = _flag_collide
+	car.collide = _collide_preset()
 	car.lane_assist = settings.lane_assist if _flag_lane < 0 else _flag_lane == 1
 	world.add_child(car)
 	_xray = TunnelXray.new()
@@ -2103,7 +2109,7 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	var t0 := Time.get_ticks_msec()
 	traffic = Traffic.new()
 	traffic.race_debug = race_debug
-	traffic.collide = _flag_collide
+	traffic.collide = _collide_preset()
 	traffic.count_overlaps = _traffic_overlaps
 	world.add_child(traffic)
 	await traffic.setup(graph, map, cam, data)
@@ -5422,6 +5428,8 @@ func _parse_args() -> void:
 			# Step 7: before the city is built (the builder reads it: every fence and hedge hard).
 			_no_soft = true
 			CityBarriers.soft_off = true
+		elif arg == "--soft":
+			_flag_soft = true
 		elif arg == "--race-debug":
 			race_debug = true
 		elif arg.begins_with("--ghost-pace="):
@@ -6494,7 +6502,9 @@ func _settings_state() -> Dictionary:
 			"master": settings.master, "music": settings.music, "effects": settings.effects, "perf": int(show_perf),
 			"fps": maxi(0, Settings.FPS.find(settings.fps)), "style": style_index, "vhs": int(vhs),
 			"angle": maxi(0, FollowCamera.PITCHES.find(-camera_pitch)),
-			"weather": weather.state, "time": tod.mode, "wander": int(spacer != null and spacer.on), "zones": int(zone_cap_on), "handling": settings.handling, "chatter": settings.chatter, "sensitivity": settings.sensitivity,
+			"weather": weather.state, "time": tod.mode, "wander": int(spacer != null and spacer.on), "zones": int(zone_cap_on), "handling": settings.handling, "chatter": settings.chatter,
+			"collide": maxi(0, Car.CollideRules.PRESETS.find(car.collide)) if car != null else settings.collide,
+			"soft_fences": int(not soft_things.no_soft) if soft_things != null else int(settings.soft_fences), "sensitivity": settings.sensitivity,
 			"text_large": int(settings.text_large), "calm": int(settings.calm), "color_safe": int(settings.color_safe),
 			"vibration": int(settings.vibration), "stop_assist": int(settings.stop_assist),
 			"lane_assist": int(car.lane_assist if car != null else settings.lane_assist),
@@ -6604,6 +6614,13 @@ func _on_setting(key: String, value: Variant) -> void:
 		"handling":
 			settings.handling = clampi(int(value), 0, 2)
 			car.set_handling(settings.handling)
+		"collide":
+			# Settings rows (F 2026-11-14): the collision answer, live (the car reads it each contact).
+			settings.collide = clampi(int(value), 0, Settings.COLLIDE_PRESETS - 1)
+			_apply_collide(Car.CollideRules.PRESETS[settings.collide])
+		"soft_fences":
+			settings.soft_fences = int(value) == 1
+			_apply_soft_fences(settings.soft_fences)
 		"pads":
 			# F 2026-11-13: fixed arrows + pedals (0, the default) or the sliding strip (1).
 			settings.pads = clampi(int(value), 0, 1)
@@ -6703,9 +6720,49 @@ func _on_context_pressed(owner: String) -> void:
 func _build_soft_things(world: Node3D) -> void:
 	soft_things = SoftThings.new()
 	soft_things.name = "SoftThings"
-	soft_things.no_soft = _no_soft
+	soft_things.no_soft = not _soft_on()
 	world.add_child(soft_things)
 	soft_things.broke.connect(_on_soft_broke)
+	print("soft things: fences and hedges %s (%s)" % ["breakable" if _soft_on() else "hard",
+			"--no-soft" if _no_soft else ("--soft" if _flag_soft else "the setting")])
+
+
+## Settings rows: whether the fences and hedges break this run (--no-soft, else --soft, else the
+## setting; off by default).
+func _soft_on() -> bool:
+	if _no_soft:
+		return false
+	return _flag_soft or settings.soft_fences
+
+
+## Settings rows: the collision answer for the run (--collide=, else the setting; v1 by default).
+func _collide_preset() -> StringName:
+	if _flag_collide != &"":
+		return _flag_collide
+	return Car.CollideRules.PRESETS[clampi(settings.collide, 0, Car.CollideRules.PRESETS.size() - 1)]
+
+
+## Settings rows, applied live: the collision answer to the car and traffic.
+func _apply_collide(preset: StringName) -> void:
+	if car != null:
+		car.collide = preset
+	if traffic != null:
+		traffic.collide = preset
+	print("collide: %s" % preset)
+
+
+## Settings rows, applied live: the fences and hedges on every loaded sector (soft_things.gd
+## `set_soft`). --no-soft keeps them hard for the run.
+func _apply_soft_fences(on: bool) -> void:
+	if soft_things == null:
+		return
+	if _no_soft:
+		print("soft things: --no-soft keeps the fences hard this run")
+		return
+	var t0 := Time.get_ticks_usec()
+	var n := soft_things.set_soft(on)
+	print("soft things: fences and hedges %s, %d sectors turned over in %.1f ms" % ["breakable" if on else "hard", n,
+			(Time.get_ticks_usec() - t0) / 1000.0])
 
 
 ## Step 7: the car, the camera, the player's place for rule B, the contact log; a dawn repairs.

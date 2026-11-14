@@ -59,7 +59,8 @@
 # lane-graph routes (the P14 narrow streets both ways, the three Trzy mosty legs), no traffic; a stall,
 # an unstick, leaving the route or sinking fails it. About 3.5 min (44 sectors built).
 # `drivelog` (the city objects plan, step 3, 2026-11-14): route set A driven by check_lane_drive's sloppy
-# driver on the prebuilt city with the contact log (--contacts=), then tools/drive_report.py's table;
+# driver on the prebuilt city with the contact log (--contacts=) and step 7's fences breakable (--soft: the
+# game's default since 2026-11-14 is hard), then tools/drive_report.py's table;
 # it gates nothing yet (PASS when it ran and every contact has a class).
 # `stuckspots` runs game/tools/check_stuck_spots.gd (PT-1, 2026-11-02): the real car with the gas
 # held through the playtest's dead-stop spots; none may stall, need an unstick or lose its speed.
@@ -1211,7 +1212,7 @@ for s in $want; do
 			skip_prebuilt drivelog && continue
 			t0=$EPOCHREALTIME
 			( cd $GAME && limited $STEP_LIMIT $GODOT --headless --path . --fixed-fps 60 --script res://tools/check_lane_drive.gd \
-				-- --prebuilt --set=A --driver=sloppy --contacts=$logs/drivelog.tsv ) > $logs/drivelog.log 2>&1
+				-- --prebuilt --set=A --driver=sloppy --soft --contacts=$logs/drivelog.tsv ) > $logs/drivelog.log 2>&1
 			code=$?
 			python3 -I $ROOT/tools/drive_report.py "sloppy=$logs/drivelog.tsv" >> $logs/drivelog.log 2>&1
 			rep=$?
