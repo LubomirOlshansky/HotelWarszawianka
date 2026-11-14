@@ -15406,28 +15406,49 @@ func _build_wiktoria(site: Dictionary) -> void:
 ## the OpenStreetMap outlines, GUGiK's LoD2 heights and the user's photo of Zachęta (with the
 ## church's dome beside it); the values the specs mark *(photo check)* wait for the Mac's photos.
 ##
-## Holy Trinity (Kościół Ewangelicko-Augsburski Świętej Trójcy, Szymon Bogumił Zug, 1777-1781):
-## a white rotunda on a Greek-cross plan, a Tuscan portico of four columns under a pediment on
-## each arm, a low copper dome and a tall columned lantern with a cross. The drum's centre and
-## radius are a circle fitted to its mapped outline; the arms' faces are the outline's.
+## Holy Trinity (Kościół Ewangelicko-Augsburski Świętej Trójcy, Szymon Bogumił Zug, 1777-1781),
+## rebuilt 2026-11-14 from street photos (Mapillary: the north-west portico and the drum close up,
+## the dome and lantern from Plac Piłsudskiego) and LoD2 (spec trojca.md): a white rotunda on a
+## Greek cross. The lower drum is rusticated (horizontal courses) with tall round-arched windows,
+## two in each quarter; a dentilled band; the upper drum banded too, with eight framed oculi
+## (over each portico and on the diagonals) between small round paterae; the entablature and a
+## cornice. On each arm a portico of four fluted Doric columns, a triglyph frieze and a pediment
+## with a lunette, a door under a gilt glory in an arched niche behind. A low copper dome with
+## small dormers, a glazed lantern of piers on a collar, an overhanging cornice, a ribbed cap, a
+## knob and a cross (58 m). The drum's rings turn with the arms, so a flat facet faces each
+## window. The drum's centre and radius are a circle fitted to its mapped outline; the arms'
+## faces are the outline's.
 const TROJCA := Vector2(-854.6, -508.6)
 const TROJCA_TURN := -24.6      # degrees: the arm towards the square (ENE)
 const TROJCA_R := 16.7
 ## Each arm: its turn from TROJCA_TURN and how far its portico's front stands from the centre.
 const TROJCA_ARMS := [[0.0, 21.8], [90.0, 24.1], [180.0, 21.7], [270.0, 21.3]]
-## The dome's profile over the drum's attic: [radius, height above ground] (LoD2: 28.6 m at r 14.5,
-## 36 m at r 8, the lantern from 37 m to 49 m, its cap to 52 m; 58 m to the cross's top).
-const TROJCA_DOME := [[16.4, 26.5], [15.3, 28.8], [13.4, 31.3], [10.9, 33.6], [8.0, 35.6], [5.7, 36.7]]
+## The dome's profile over the drum's cornice: [radius, height above ground] (LoD2: 29.4 m at
+## r 15, 34.1 m at r 11, 36.9 m at r 8, the lantern's foot 37.9 m).
+const TROJCA_DOME := [[16.6, 26.6], [15.6, 29.0], [14.0, 31.6], [11.5, 34.0], [8.5, 36.4], [5.6, 37.5]]
 const TROJCA_WHITE := Color("#e9e7e1")
+const TROJCA_GROOVE := Color("#bdb9af")
 const TROJCA_PLINTH := Color("#a9a59d")
-const TROJCA_COPPER := Color("#6f9f8f")
-const TROJCA_COPPER_DARK := Color("#4f7d70")
+const TROJCA_COPPER := Color("#79a796")
+const TROJCA_COPPER_DARK := Color("#557f72")
+const TROJCA_ROOF := Color("#6d7377")
 const TROJCA_GLASS := Color("#3c4a52")
+const TROJCA_DOOR := Color("#4a3a2e")
 const TROJCA_GOLD := Color("#c9a24a")
 
 
 func _find_trojca() -> void:
 	_add_site("trojca", [_circle(TROJCA, 25.5, 24)])
+
+
+## A ring round the drum's centre turned with the arms: with n = 32 a flat facet faces each arm,
+## each diagonal and every 11.25 degrees between.
+func _trojca_ring(r: float, n: int) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	var t := deg_to_rad(TROJCA_TURN)
+	for k in n:
+		out.append(TROJCA + Vector2.from_angle(t + TAU * (k + 0.5) / n) * r)
+	return out
 
 
 func _build_trojca(_site: Dictionary) -> void:
@@ -15437,56 +15458,118 @@ func _build_trojca(_site: Dictionary) -> void:
 	var g := _g
 	var none := Color(0, 0, 0, 0)
 	var light := TROJCA_WHITE.lightened(0.06)
-	# plinth, drum_low, band, drum_high, cornice, attic
-	_prism(_circle(c, r + 0.3, 32), g - 0.5, g + 1.2, TROJCA_PLINTH, TROJCA_PLINTH, M_STONE, M_STONE)
-	_prism(_circle(c, r, 32), g + 1.2, g + 15.0, TROJCA_WHITE, none, M_MONUMENT)
-	_prism(_circle(c, r + 0.35, 32), g + 15.0, g + 15.8, light, light, M_STONE, M_STONE)
-	_prism(_circle(c, r, 32), g + 15.8, g + 24.5, TROJCA_WHITE, none, M_STONE)
-	_prism(_circle(c, r + 0.45, 32), g + 24.5, g + 25.3, light, light, M_STONE, M_STONE)
-	_prism(_circle(c, r, 32), g + 25.3, g + 26.5, TROJCA_WHITE, TROJCA_WHITE.darkened(0.1), M_STONE, M_STONE)
-	# oculi: one round window on every other facet of the upper drum
-	for k in range(0, 32, 2):
-		var mid := (TAU * (k + 0.5) / 32.0 + TAU * (k + 1.5) / 32.0) * 0.5
-		var d := Vector2.from_angle(mid)
-		var inset := r * cos(PI / 32.0) + 0.06
-		var p := c + d * inset
-		_disc(Vector3(p.x, g + 20.0, p.y), Vector3(d.x, 0.0, d.y), 1.1, 8, TROJCA_GLASS)
-	# dome
+	var apo := r * cos(PI / 32.0)   # the facets' distance from the centre
+	# plinth, the rusticated lower drum, the dentilled band, the upper drum, the entablature
+	_prism(_trojca_ring(r + 0.3, 32), g - 0.5, g + 1.0, TROJCA_PLINTH, TROJCA_PLINTH, M_STONE, M_STONE)
+	_prism(_trojca_ring(r, 32), g + 1.0, g + 13.0, TROJCA_WHITE, none, M_STONE)
+	_prism(_trojca_ring(r + 0.18, 32), g + 12.75, g + 13.0, TROJCA_GROOVE, none, M_STONE)
+	_prism(_trojca_ring(r + 0.32, 32), g + 13.0, g + 13.9, light, light, M_STONE, M_STONE)
+	_prism(_trojca_ring(r, 32), g + 13.9, g + 24.4, TROJCA_WHITE, none, M_STONE)
+	_prism(_trojca_ring(r + 0.15, 32), g + 24.4, g + 25.0, light, none, M_STONE)
+	_prism(_trojca_ring(r + 0.1, 32), g + 25.0, g + 25.8, TROJCA_WHITE, none, M_STONE)
+	_prism(_trojca_ring(r + 0.6, 32), g + 25.8, g + 26.6, light, TROJCA_COPPER_DARK, M_STONE, M_STONE)
+	# the courses: a shadow line every 2.4 m below, every 1.5 m above (the oculi's frames cover them)
+	for y: float in [3.4, 5.8, 8.2, 10.6, 16.4, 17.9, 21.4, 22.9]:
+		_prism(_trojca_ring(r + 0.02, 32), g + y, g + y + 0.16, TROJCA_GROOVE, none, M_STONE)
+	var t0 := deg_to_rad(TROJCA_TURN)
+	# two arched windows in each quarter, 11.25 degrees either side of the diagonal
+	for q in 4:
+		for off: float in [33.75, 56.25]:
+			var d := Vector2.from_angle(t0 + deg_to_rad(90.0 * q + off))
+			var along := Vector2(-d.y, d.x)
+			var p := c + d * apo
+			_arch_panel(p, along, d, 1.75, g + 2.2, g + 9.6, light, 0.04, M_STONE)
+			_arch_panel(p, along, d, 1.4, g + 2.5, g + 9.6, TROJCA_GLASS, 0.08, _lit(90.0 * q + off, 2.5))
+			var kp := p + d * 0.1
+			_prism(PackedVector2Array([kp - along * 0.3, kp + along * 0.3, kp + along * 0.3 + d * 0.25,
+					kp - along * 0.3 + d * 0.25]), g + 10.6, g + 11.6, light, light, M_STONE, M_STONE)
+	# eight oculi, over each portico and on the diagonals: a framed round window, a patera above
+	# and below, on a raised panel
+	for k in 8:
+		var d := Vector2.from_angle(t0 + deg_to_rad(45.0 * k))
+		var along := Vector2(-d.y, d.x)
+		var p := c + d * apo
+		_prism(PackedVector2Array([p - along * 2.0, p + along * 2.0, p + along * 2.0 + d * 0.14,
+				p - along * 2.0 + d * 0.14]), g + 15.2, g + 24.3, light, none, M_STONE)
+		var o := Vector3(d.x, 0.0, d.y)
+		var at := Vector3(p.x, g + 19.6, p.y)
+		_disc(at + o * 0.16, o, 2.05, 12, TROJCA_GROOVE)
+		_disc(at + o * 0.2, o, 1.8, 12, light)
+		_mode = _lit(45.0 * k, 19.6)
+		_disc(at + o * 0.24, o, 1.45, 12, TROJCA_GLASS)
+		_mode = M_STONE
+		for dy: float in [-2.75, 2.75]:
+			_disc(at + o * 0.2 + Vector3.UP * dy, o, 0.42, 6, TROJCA_GROOVE)
+	# the dome, its small dormers on the lower slope
 	_mode = M_STONE
 	for k in TROJCA_DOME.size() - 1:
 		var a: Array = TROJCA_DOME[k]
 		var b: Array = TROJCA_DOME[k + 1]
-		var col := TROJCA_COPPER.lerp(TROJCA_COPPER.lightened(0.12), float(k) / TROJCA_DOME.size())
-		_frustum(_circle(c, a[0], 32), g + float(a[1]), _circle(c, b[0], 32), g + float(b[1]), col)
-	# lantern: its balustrade, the columned drum, a cornice, the cap, ball and cross
-	_prism(_circle(c, 5.9, 16), g + 36.6, g + 37.6, TROJCA_COPPER_DARK, TROJCA_COPPER_DARK, M_STONE, M_STONE)
-	_prism(_circle(c, 4.6, 16), g + 37.6, g + 46.0, TROJCA_COPPER, none, M_MONUMENT)
-	_prism(_circle(c, 5.1, 16), g + 46.0, g + 46.7, TROJCA_COPPER_DARK, none, M_STONE)
+		var col := TROJCA_COPPER.lerp(TROJCA_COPPER.lightened(0.1), float(k) / TROJCA_DOME.size())
+		_frustum(_trojca_ring(a[0], 32), g + float(a[1]), _trojca_ring(b[0], 32), g + float(b[1]), col)
+	for k in 8:
+		_o = c
+		_a = Vector2.from_angle(t0 + deg_to_rad(22.5 + 45.0 * k))
+		_b = Vector2(-_a.y, _a.x)
+		_lbox(15.0, 0.0, 0.5, 0.5, g + 29.0, g + 30.6, TROJCA_COPPER_DARK, M_STONE, none)
+		_mode = _lit(float(k), 29.5)
+		_wall(_w(15.52, -0.3), _w(15.52, 0.3), g + 29.5, g + 30.3, _a, TROJCA_GLASS)
+		_mode = M_STONE
+		_gable(15.5, 14.3, 0.0, 0.55, g + 30.6, 0.5, TROJCA_COPPER_DARK, TROJCA_COPPER_DARK, false)
+	# lantern: a collar, the glazed drum between eight piers, an overhanging cornice, the ribbed
+	# cap, a knob and the cross
+	_prism(_trojca_ring(5.0, 16), g + 37.3, g + 39.6, TROJCA_COPPER_DARK, TROJCA_COPPER_DARK, M_STONE, M_STONE)
+	_prism(_trojca_ring(5.15, 16), g + 39.6, g + 39.9, TROJCA_COPPER_DARK.darkened(0.2), none, M_STONE)
+	_prism(_trojca_ring(4.4, 16), g + 39.6, g + 47.6, TROJCA_COPPER, none, M_MONUMENT)
+	for k in 8:
+		_o = c
+		_a = Vector2.from_angle(t0 + deg_to_rad(45.0 * k))
+		_b = Vector2(-_a.y, _a.x)
+		_lbox(4.45, 0.0, 0.3, 0.32, g + 39.9, g + 47.6, TROJCA_COPPER_DARK, M_STONE, none)
+	_prism(_trojca_ring(5.3, 16), g + 47.6, g + 48.4, TROJCA_COPPER_DARK, none, M_STONE)
 	_mode = M_STONE
-	_frustum(_circle(c, 5.1, 16), g + 46.7, _circle(c, 3.8, 16), g + 48.6, TROJCA_COPPER)
-	_frustum(_circle(c, 3.8, 16), g + 48.6, _circle(c, 1.7, 16), g + 49.9, TROJCA_COPPER.lightened(0.06))
-	_frustum(_circle(c, 1.7, 16), g + 49.9, _circle(c, 0.3, 16), g + 50.4, TROJCA_COPPER.lightened(0.1), TROJCA_COPPER)
-	_prism(_circle(c, 0.4, 6), g + 50.4, g + 51.1, TROJCA_GOLD, TROJCA_GOLD, M_STONE, M_STONE)
+	_frustum(_trojca_ring(5.3, 16), g + 48.4, _trojca_ring(3.7, 16), g + 49.7, TROJCA_COPPER)
+	_frustum(_trojca_ring(3.7, 16), g + 49.7, _trojca_ring(1.7, 16), g + 50.9, TROJCA_COPPER.lightened(0.05))
+	_frustum(_trojca_ring(1.7, 16), g + 50.9, _trojca_ring(0.35, 16), g + 51.7, TROJCA_COPPER.lightened(0.1), TROJCA_COPPER)
+	_prism(_circle(c, 0.45, 6), g + 51.7, g + 52.6, TROJCA_GOLD, TROJCA_GOLD, M_STONE, M_STONE)
 	_o = c
-	_a = Vector2.from_angle(deg_to_rad(TROJCA_TURN))
+	_a = Vector2.from_angle(t0)
 	_b = Vector2(-_a.y, _a.x)
-	_lbox(0.0, 0.0, 0.11, 0.11, g + 51.1, g + 55.6, TROJCA_GOLD, M_STONE, TROJCA_GOLD)
-	_lbox(0.0, 0.0, 0.11, 0.75, g + 54.0, g + 54.24, TROJCA_GOLD, M_STONE, TROJCA_GOLD)
-	# arms: a vestibule, the stylobate, four Tuscan columns, the entablature and the pediment
+	_lbox(0.0, 0.0, 0.11, 0.11, g + 52.6, g + 57.0, TROJCA_GOLD, M_STONE, TROJCA_GOLD)
+	_lbox(0.0, 0.0, 0.11, 0.8, g + 55.4, g + 55.64, TROJCA_GOLD, M_STONE, TROJCA_GOLD)
+	# arms: the vestibule with its door under a gilt glory, the stylobate, four fluted Doric
+	# columns, the entablature with triglyphs, the pediment with a lunette under a grey roof
 	var ring := _circle(c, r + 0.3, 32)
 	for arm: Array in TROJCA_ARMS:
 		_o = c
-		_a = Vector2.from_angle(deg_to_rad(TROJCA_TURN + float(arm[0])))
+		_a = Vector2.from_angle(t0 + deg_to_rad(float(arm[0])))
 		_b = Vector2(-_a.y, _a.x)
 		var face: float = arm[1]
-		var back := face - 4.4
-		_lbox((r - 2.0 + back) * 0.5, 0.0, (back - r + 2.0) * 0.5, 6.0, g - 0.5, g + 12.5, TROJCA_WHITE, M_MONUMENT, TROJCA_WHITE.darkened(0.1))
-		_lbox(back + 2.2, 0.0, 2.2, 6.8, g - 0.5, g + 0.6, TROJCA_PLINTH, M_STONE, TROJCA_PLINTH.lightened(0.1))
-		for v: float in [-4.6, -1.55, 1.55, 4.6]:
-			_column(face - 1.0, v, 0.55, g + 0.6, g + 10.7, TROJCA_WHITE)
-		_lbox(back + 2.25, 0.0, 2.25, 6.6, g + 10.7, g + 12.5, light, M_STONE, TROJCA_WHITE.darkened(0.1))
-		_gable(face + 0.05, r - 2.0, 0.0, 6.7, g + 12.5, 3.4, TROJCA_WHITE, TROJCA_COPPER_DARK, false)
-		var arm_ring := _rect((r - 2.0 + face) * 0.5, 0.0, (face - r + 2.0) * 0.5, 6.8)
+		var back := face - 4.2
+		_lbox((r - 2.0 + back) * 0.5, 0.0, (back - r + 2.0) * 0.5, 6.0, g - 0.5, g + 15.0, TROJCA_WHITE, M_STONE, TROJCA_ROOF)
+		_mode = M_STONE
+		_arch_panel(_w(back, 0.0), _b, _a, 2.3, g + 1.1, g + 6.4, TROJCA_WHITE.darkened(0.12), 0.04, M_STONE)
+		_wall(_w(back + 0.08, -1.2), _w(back + 0.08, 1.2), g + 1.1, g + 5.0, _a, TROJCA_DOOR)
+		_arch_cap(Vector3(_w(back + 0.08, 0.0).x, g + 6.4, _w(back + 0.08, 0.0).y), Vector3(_a.x, 0.0, _a.y), 1.6, 8, TROJCA_GOLD)
+		for k in 3:
+			_lbox(back + 2.1, 0.0, 2.1 + 0.3 * (2 - k), 6.8 + 0.3 * (2 - k), g - 0.5 + 0.0 * k, g + 0.4 + 0.35 * k,
+					TROJCA_PLINTH, M_STONE, TROJCA_PLINTH.lightened(0.1))
+		for v: float in [-5.0, -1.85, 1.85, 5.0]:
+			_column(face - 0.9, v, 0.68, g + 1.1, g + 12.0, TROJCA_WHITE)
+		_lbox(back + 2.2, 0.0, 2.2, 6.4, g + 12.0, g + 12.9, light, M_STONE, none)
+		_lbox(back + 2.2, 0.0, 2.15, 6.35, g + 12.9, g + 14.1, TROJCA_WHITE, M_STONE, none)
+		for k in 7:
+			var v := -5.0 + float(k) * 5.0 / 3.0
+			_lbox(face + 0.21, v, 0.06, 0.25, g + 12.95, g + 14.05, TROJCA_GROOVE, M_STONE, none)
+		_lbox(back + 2.4, 0.0, 2.4, 6.7, g + 14.1, g + 15.0, light, M_STONE, TROJCA_ROOF)
+		_gable(face + 0.2, r - 2.0, 0.0, 6.7, g + 15.0, 3.0, TROJCA_WHITE, TROJCA_ROOF, false)
+		_mode = M_STONE
+		var lun := _w(face + 0.25, 0.0)
+		_arch_cap(Vector3(lun.x, g + 15.35, lun.y), Vector3(_a.x, 0.0, _a.y), 1.5, 6, light)
+		_mode = _lit(float(arm[0]), 15.4)
+		_arch_cap(Vector3(lun.x + _a.x * 0.04, g + 15.45, lun.y + _a.y * 0.04), Vector3(_a.x, 0.0, _a.y), 1.2, 6, TROJCA_GLASS)
+		_mode = M_STONE
+		var arm_ring := _rect((r - 2.0 + face) * 0.5, 0.0, (face - r + 2.0) * 0.5, 7.4)
 		var merged := Geometry2D.merge_polygons(ring, arm_ring)
 		if not merged.is_empty():
 			ring = _largest(merged)
