@@ -31,7 +31,8 @@ const SECTORS: Array[Vector2i] = [Vector2i(3, -1), Vector2i(2, -1), Vector2i(-2,
 		Vector2i(0, 0), Vector2i(1, -1)]
 ## The faces of SECTORS together (2026-11-13, step 1: the colliders as main 2638826 had them, the
 ## same face set per sector before and after the split by class).
-const TOTAL := 53147
+## 2026-11-14: +36 faces, the pocket hedge at Most Poniatowskiego (city_barriers.gd POCKET_HEDGES, PT-54).
+const TOTAL := 53183
 
 var problems: Array[String] = []
 var verbose := false
