@@ -714,6 +714,10 @@ func _script(f: Dictionary) -> void:
 		# has one, else its first, as index 1 did when jobs.gd listened to every card.
 		if jobs != null and int(jobs.stage) == 3 and not jobs.secondary():
 			jobs.primary()
+		# The race's result card is its own too: its OK, as the press above did when rivals.gd
+		# listened to every card.
+		if rivals != null and int(rivals.state) == 5 and rivals.has_method("card_pressed"):
+			rivals.card_pressed(0)
 	if rivals != null and rivals.first_waiting() and int(rivals.state) == 1:
 		rivals.flash()
 	if missions != null and int(missions.state) == Missions.State.RINGING and not f["rescued"]:
