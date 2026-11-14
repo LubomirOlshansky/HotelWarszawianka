@@ -45,6 +45,7 @@ deckxray             smoke
 dekalog              quick
 delivery             quick
 design               quick
+devflags             quick
 districts            quick
 drape                ground
 drive                roads

@@ -1331,6 +1331,8 @@ for s in $want; do
 		kinotour) check kinotour '^check_kino_tour:' --script res://tools/check_kino_tour.gd ;;
 		# The offer pacer's numbers (data/pacing.json): sane, every one asked, each script's value the file's.
 		pacing) check pacing '^check_pacing:' --script res://tools/check_pacing.gd ;;
+		# The command-line flags' one owner (TD-4 a): dev_flags.gd sets them, main.gd reads flags.NAME.
+		devflags) check devflags '^check_dev_flags:' --script res://tools/check_dev_flags.gd ;;
 		# Bar crawl: the groups' lines (no brand), the routes' stops on the map, the hours, clock and pay.
 		crawl) check crawl '^check_bar_crawl:' --script res://tools/check_bar_crawl.gd ;;
 		# Dead electric cars: the TESŁO, the lines, the sling, the chargers on the real graph.
