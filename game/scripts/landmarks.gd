@@ -19026,6 +19026,203 @@ func _build_niepokalanego(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The parish church of the Child Jesus (Kościół parafialny pw. Dzieciątka Jezus, by the Child Jesus
+## hospital between Lindleya and Oczki), a red-brick neo-Gothic hall church. The whole church as a
+## model that replaces the old kit church (`church_dzieciatka`, built by `_build_church` until
+## 2026-11-14: a beige "modern" box with a pyramid tower on the wrong, east end). From Mapillary
+## photos of 2019-2026 taken from Lindleya, Oczki and Chałubińskiego (refs/dzieciatka, never shipped),
+## the OSM outline and GUGiK's LoD2 (over the ground: the nave's eaves 11 and its one big gable
+## ridge 18; the tower's eaves 23 and its roof 28; the short transepts' eaves 8 and ridges 12.7;
+## the chancel's eaves 11.3, ridge 15 and its three-sided east end; the low annexes 3.3 to 6.6, the
+## sacristy 9.5). Spec docs/landmarks/specs/dzieciatka.md.
+## - the tower stands in the middle of the WEST front, 0.7 m proud: a pointed portal over steps,
+##   a tall lancet, two string courses, a belfry with two louvred lancets a side and an oculus
+##   over them, a brick eaves band, four corner pinnacles and a green copper hipped roof with a cross;
+## - the nave and aisles under one steep dark green roof (45 degrees), buttresses and tall lancets
+##   in cream plastered recesses, a corbelled eaves band;
+## - two short transepts with stepped gables filled with cream blind lancets, a big lancet below;
+## - the lower chancel with a three-sided east end, low lean-to annexes north and south, the
+##   flat sacristy at the east end.
+## Frame: origin at the nave's north-west corner area, u along the church to the east (the chancel),
+## +v to the south; the front faces -u (west).
+const DZ_O := Vector2(-1842.0, 980.0)
+const DZ_A := Vector2(0.9353, -0.3539)
+const DZ_C := 4.875                    ## the church's axis (v): the tower, the portal, the ridges
+const DZ_BRICK := Color("#a5482f")     ## the red brick (photos: warm, a little orange)
+const DZ_BRICK_LT := Color("#b65c40")  ## bands, buttress caps, the portal's frame
+const DZ_CREAM := Color("#e4d6b6")     ## the plastered recesses and blind panels
+const DZ_ROOF := Color("#4f6b5c")      ## the nave's dark green copper
+const DZ_COPPER := Color("#6e9a86")    ## the tower's paler verdigris
+const DZ_BASE := Color("#8e8a82")      ## the granite plinth and steps
+const DZ_DOOR := Color("#3b2e2a")      ## the dark oak doors
+
+
+## A pointed recess with its pane: the cream field `hw` + 0.25 wide, the glass `hw` inside it,
+## 4 cm apart (`_wall` drops a later wall within 3 cm of an earlier one in its plane).
+func _dz_lancet(u: float, v: float, along: Vector2, out: Vector2, hw: float, y0: float, spring: float,
+		field := DZ_CREAM) -> void:
+	var at := _w(u, v)
+	_lancet_panel(at, along, out, hw + 0.25, y0 - 0.2, spring, field, 0.03, M_STONE)
+	_lancet_panel(at, along, out, hw, y0, spring, PAL_GLASS_DARK, 0.07, _lit(u + v, y0))
+
+
+## A gable roof whose ridge runs along v (a transept's): `_gable` in the swapped frame.
+func _dz_gable(vf: float, vb: float, cu: float, hu: float, y: float, h: float) -> void:
+	var ka := _a
+	var kb := _b
+	_a = kb
+	_b = ka
+	_gable(vf, vb, cu, hu, y, h, DZ_BRICK, DZ_ROOF, false)
+	_a = ka
+	_b = kb
+
+
+## A transept's front: the wall's big lancet and the stepped gable over the roof, five steps a
+## side with a cream blind lancet in each of the three middle ones. `vf` is the face, `s` its
+## outward sign in v.
+func _dz_transept_front(vf: float, s: float, g: float) -> void:
+	var cu := 12.45
+	var hu := 3.05
+	var out := _b * s
+	_dz_lancet(cu, vf, _a, out, 0.85, g + 2.5, g + 5.7)
+	# the steps: boxes standing 0.15 m out of the face, each 0.6 m narrower a side and 0.95 m higher
+	var v0 := vf + s * 0.15
+	var v1 := vf - s * 0.35
+	for k in 5:
+		var hw := hu + 0.1 - k * 0.6
+		var y0 := g + 8.0 + k * 0.95
+		_kbox(cu - hw, cu + hw, minf(v0, v1), maxf(v0, v1), y0 if k > 0 else g + 7.6, y0 + 0.95, DZ_BRICK)
+		_kbox(cu - hw - 0.05, cu - hw + 0.45, minf(v0, v1) - 0.05, maxf(v0, v1) + 0.05, y0 + 0.85, y0 + 1.05, DZ_BRICK_LT)
+		_kbox(cu + hw - 0.45, cu + hw + 0.05, minf(v0, v1) - 0.05, maxf(v0, v1) + 0.05, y0 + 0.85, y0 + 1.05, DZ_BRICK_LT)
+	for d: float in [-1.0, 0.0, 1.0]:
+		_lancet_panel(_w(cu + d * 1.1, v0), _a, out, 0.32, g + 8.4, g + (10.9 if d == 0.0 else 10.0), DZ_CREAM, 0.03, M_STONE)
+
+
+## A buttress on a long wall at u, standing `s` (outward sign in v) out of the face at vf.
+func _dz_buttress(u: float, vf: float, s: float, g: float, top: float) -> void:
+	var a := vf
+	_kbox(u - 0.35, u + 0.35, minf(a, a + s * 0.75), maxf(a, a + s * 0.75), g - 1.0, g + top - 1.8, DZ_BRICK)
+	_kbox(u - 0.38, u + 0.38, minf(a, a + s * 0.8), maxf(a, a + s * 0.8), g + top - 1.8, g + top - 1.6, DZ_BRICK_LT)
+	_kbox(u - 0.3, u + 0.3, minf(a, a + s * 0.42), maxf(a, a + s * 0.42), g + top - 1.6, g + top, DZ_BRICK)
+
+
+func _build_dzieciatka(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(DZ_O, DZ_O + DZ_A)
+	var c := DZ_C
+	var gp := _w(-3.0, c)
+	_g = map.terrain_height(gp.x, gp.y)  # the street's ground before the tower (14.5; the plot is flat)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	_mode = M_STONE
+	# --- the nave and aisles: one box, a plinth, the corbelled eaves band, one steep gable roof
+	var nave := _rect(10.0, c, 9.6, 7.075)  # u 0.4..19.6, v -2.2..11.95
+	_prism(nave, g - 1.0, g + 11.0, DZ_BRICK, none, M_STONE)
+	kit_ledge_ring(nave, g - 1.0, 1.6, DZ_BASE, 0.1)
+	kit_ledge_ring(nave, g + 10.3, 0.7, DZ_BRICK_LT, 0.18)
+	_gable(0.4, 19.6, c, 7.45, g + 11.0, 7.0, DZ_BRICK, DZ_ROOF, true)
+	# the side walls: buttresses and lancets in cream recesses (two bays west of the transepts,
+	# one east of them, its sill over the annex roofs)
+	for s: float in [-1.0, 1.0]:
+		var vf := c + s * 7.075
+		for bu: float in [0.75, 4.95]:
+			_dz_buttress(bu, vf, s, g, 9.4)
+		for wu: float in [2.85, 7.1]:
+			_dz_lancet(wu, vf, _a, _b * s, 0.7, g + 3.0, g + 8.0)
+		_dz_lancet(17.55, vf, _a, _b * s, 0.7, g + 5.2, g + 8.2)
+	# the west wall either side of the tower: an aisle lancet each, a corner buttress
+	for wv: float in [0.0, 9.75]:
+		_dz_lancet(0.4, wv, -_b, -_a, 0.6, g + 3.2, g + 7.6)
+	for cv: float in [-2.2, 11.95]:
+		_kbox(-0.35, 0.4, cv - 0.35, cv + 0.35, g - 1.0, g + 8.5, DZ_BRICK)
+		_kbox(-0.4, 0.4, cv - 0.4, cv + 0.4, g + 8.5, g + 8.7, DZ_BRICK_LT)
+	# --- the transepts: u 9.4..15.5, out to v -3.8 and 13.65, eaves 8, ridge 12.7
+	_kbox(9.4, 15.5, -3.8, -2.2, g - 1.0, g + 8.0, DZ_BRICK)
+	_kbox(9.4, 15.5, 11.95, 13.65, g - 1.0, g + 8.0, DZ_BRICK)
+	_dz_gable(-3.6, 1.5, 12.45, 3.25, g + 8.0, 4.7)
+	_dz_gable(13.45, 8.2, 12.45, 3.25, g + 8.0, 4.7)
+	_dz_transept_front(-3.8, -1.0, g)
+	_dz_transept_front(13.65, 1.0, g)
+	# --- the chancel: narrower and lower, a three-sided east end under its own roof
+	var ch := _lpoly([[19.6, 0.9], [28.0, 0.9], [31.5, 3.0], [31.5, 6.75], [28.0, 8.85], [19.6, 8.85]])
+	_prism(ch, g - 1.0, g + 11.3, DZ_BRICK, none, M_STONE)
+	kit_ledge_ring(ch, g + 10.7, 0.6, DZ_BRICK_LT, 0.15)
+	_gable(28.0, 19.6, c, 4.2, g + 11.3, 3.7, DZ_BRICK, DZ_ROOF, false)
+	var apex := _w(28.0, c)
+	var a3 := Vector3(apex.x, g + 15.0, apex.y)
+	var eaves: Array = [[28.0, c - 4.2], [31.75, 2.85], [31.75, 6.9], [28.0, c + 4.2]]
+	for k in 3:
+		var p: Vector2 = _w(float(eaves[k][0]), float(eaves[k][1]))
+		var q: Vector2 = _w(float(eaves[k + 1][0]), float(eaves[k + 1][1]))
+		var pa := Vector3(p.x, g + 11.3, p.y)
+		var pb := Vector3(q.x, g + 11.3, q.y)
+		var n := (pb - pa).cross(a3 - pa).normalized()
+		if n.y < 0.0:
+			n = -n
+		_tri(pa, pb, a3, n, DZ_ROOF, Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
+	for s2: float in [-1.0, 1.0]:
+		for wu2: float in [22.0, 25.6]:
+			_dz_lancet(wu2, c + s2 * 3.975, _a, _b * s2, 0.55, g + 6.9, g + 9.3)
+	# --- the low annexes: north along the transept and chancel, south by the chancel, the sacristy
+	var north := _lpoly([[15.5, -4.1], [27.6, -4.1], [27.6, 0.9], [19.6, 0.9], [19.6, -2.2], [15.5, -2.2]])
+	_prism(north, g - 1.0, g + 3.4, DZ_BRICK, none, M_STONE)
+	_prism(_largest(Geometry2D.offset_polygon(north, 0.25, Geometry2D.JOIN_MITER)), g + 3.4, g + 3.75, DZ_BRICK_LT, DZ_ROOF, M_STONE, M_STONE)
+	var south := _lpoly([[19.6, 8.85], [27.6, 8.85], [27.1, 11.9], [19.6, 11.95]])
+	_prism(south, g - 1.0, g + 4.4, DZ_BRICK, none, M_STONE)
+	_prism(_largest(Geometry2D.offset_polygon(south, 0.25, Geometry2D.JOIN_MITER)), g + 4.4, g + 4.75, DZ_BRICK_LT, DZ_ROOF, M_STONE, M_STONE)
+	_kbox(31.4, 35.4, 0.7, 9.3, g - 1.0, g + 9.2, DZ_BRICK)
+	kit_ledge_ring(_rect(33.4, 5.0, 2.0, 4.3), g + 8.7, 0.5, DZ_BRICK_LT, 0.15)
+	_hip(33.4, 5.0, 2.15, 4.45, g + 9.2, 0.8, DZ_ROOF)
+	for su: float in [-1.0, 1.0]:
+		_dz_lancet(33.4, c + (-4.175 if su < 0.0 else 4.425), _a, _b * su, 0.45, g + 3.0, g + 6.0)
+		_dz_lancet(23.5, c + (-8.975 if su < 0.0 else 7.075), _a, _b * su, 0.4, g + 0.9, g + 2.3)
+	# --- the tower: u -0.6..4.6, v 2.05..7.95, walls to 23, the copper hip to 28 and a cross
+	var tw := _rect(2.0, c, 2.6, 2.95)
+	_prism(tw, g - 1.0, g + 23.0, DZ_BRICK, none, M_STONE)
+	kit_ledge_ring(tw, g - 1.0, 1.7, DZ_BASE, 0.1)
+	for sy: float in [11.6, 16.9]:
+		kit_ledge_ring(tw, g + sy, 0.35, DZ_BRICK_LT, 0.12)
+	kit_ledge_ring(tw, g + 22.4, 0.6, DZ_BRICK_LT, 0.22)
+	_hip(2.0, c, 2.85, 3.2, g + 23.0, 5.0, DZ_COPPER)
+	_kap_cross(2.0, c, g + 27.9, 2.1)
+	for pu: float in [-0.45, 4.45]:
+		for pv: float in [2.2, 7.55]:
+			_pinnacle(pu, pv, 0.55, g + 23.0, 3.2, DZ_BRICK)
+	# the west corner buttresses, stepped
+	for bv: float in [2.05, 7.95]:
+		_kbox(-1.3, -0.6, bv - 0.35, bv + 0.35, g - 1.0, g + 9.6, DZ_BRICK)
+		_kbox(-1.35, -0.6, bv - 0.4, bv + 0.4, g + 9.6, g + 9.8, DZ_BRICK_LT)
+		_kbox(-0.95, -0.6, bv - 0.3, bv + 0.3, g + 9.8, g + 11.6, DZ_BRICK)
+	# the portal: steps, a lighter brick frame, the pointed door; the tall lancet over it
+	for k in 3:
+		_kbox(-1.6 - 0.45 * (2 - k), -0.6, c - 1.9 + 0.25 * k, c + 1.9 - 0.25 * k, g - 0.6, g + 0.05 + 0.15 * k, DZ_BASE)
+	# the tall cream recess of the lower stage (photo from Lindleya's south end): the door at its
+	# foot, the lancet window over it; the stepped gable standing on the string course above
+	var pt := _w(-0.6, c)
+	_lancet_panel(pt, -_b, -_a, 1.35, g + 0.4, g + 8.6, DZ_CREAM, 0.03, M_STONE)
+	_lancet_panel(pt, -_b, -_a, 0.95, g + 0.4, g + 2.6, DZ_DOOR, 0.08, M_STONE)
+	_lancet_panel(pt, -_b, -_a, 0.8, g + 4.7, g + 8.6, PAL_GLASS_DARK, 0.08, _lit(-0.6, g + 4.7))
+	for k2 in 4:
+		var sw := 2.45 - 0.5 * k2
+		_kbox(-0.95, -0.6, c - sw, c + sw, g + 11.95 + 0.95 * k2, g + 12.9 + 0.95 * k2, DZ_BRICK)
+		_kbox(-1.0, -0.6, c - sw - 0.05, c - sw + 0.4, g + 12.8 + 0.95 * k2, g + 13.0 + 0.95 * k2, DZ_BRICK_LT)
+		_kbox(-1.0, -0.6, c + sw - 0.4, c + sw + 0.05, g + 12.8 + 0.95 * k2, g + 13.0 + 0.95 * k2, DZ_BRICK_LT)
+	for d3: float in [-1.0, 0.0, 1.0]:
+		_lancet_panel(_w(-0.95, c + d3 * 1.05), -_b, -_a, 0.3, g + 12.3, g + (14.6 if d3 == 0.0 else 13.7), DZ_CREAM, 0.03, M_STONE)
+	# the belfry: two louvred lancets on every face, an oculus over them
+	var faces: Array = [[-0.6, c, -_b, -_a], [4.6, c, _b, _a], [2.0, c - 2.95, _a, -_b], [2.0, c + 2.95, _a, _b]]
+	for f: Array in faces:
+		var along: Vector2 = f[2]
+		var out: Vector2 = f[3]
+		var fc := _w(float(f[0]), float(f[1]))
+		for d2: float in [-1.0, 1.0]:
+			_lancet_panel(fc + along * d2 * 1.0, along, out, 0.6, g + 17.4, g + 19.6, DZ_BRICK_LT, 0.04, M_STONE)
+			_lancet_panel(fc + along * d2 * 1.0, along, out, 0.42, g + 17.6, g + 19.6, CHURCH_DARK, 0.09, M_STONE)
+		var oc := fc + out * 0.06
+		_disc(Vector3(oc.x, g + 21.5, oc.y), Vector3(out.x, 0.0, out.y), 0.55, 10, DZ_CREAM)
+	_collide(outline)
+
+
 ## The Nożyk Synagogue (Synagoga Nożyków, ul. Twarda 6; Karol and Leandro Marconi, 1898-1902;
 ## burnt 1944, rebuilt 1977-1983; Warsaw's only pre-war synagogue still standing), a cream
 ## neo-Romanesque house of prayer in its courtyard south of Plac Grzybowski. The whole building as
@@ -30447,6 +30644,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_nozykow":
 		_build_nozyk(site)  # the whole Nożyk Synagogue from photos, front to the west, not the kit church
+		return
+	if site["key"] == "church_dzieciatka":
+		_build_dzieciatka(site)  # the whole brick Child Jesus church from photos, tower to the west, not the kit church
 		return
 	var ch := _church_spec(site["key"])
 	if ch.is_empty():

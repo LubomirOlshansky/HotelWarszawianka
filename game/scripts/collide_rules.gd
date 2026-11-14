@@ -52,15 +52,16 @@ const KEEP := {
 ## most it may be (m/s): a little push out of the wall so the next frame is not pressed into it.
 const BOUNCE := {SOFT: 0.06, MID: 0.08, FIRM: 0.10}
 const BOUNCE_MOST := 1.5
-## The nose turns toward the new way at this rate (rad/s): 6 in Cruise (the spec), a little
-## quicker in Sport, slower in Grounded (the body's inertia).
-const YAW_RATE := {CRUISE: 6.0, SPORT: 7.0, GROUNDED: 4.5}
+## The nose turns toward the new way at this rate (rad/s): 3.5 in Cruise, a little quicker in
+## Sport, slower in Grounded (the body's inertia). The spec's 6 with a 35-50 deg kick swung the nose
+## 55-75 deg in half a second, which Autopilot's tester read as a snap (Mac, 2026-11-14).
+const YAW_RATE := {CRUISE: 3.5, SPORT: 4.0, GROUNDED: 3.0}
 ## Head-on: over HEADON_DEG from the wall and HEADON_SPEED m/s, a kick of KICK_MIN deg at
 ## HEADON_DEG rising to KICK_MAX straight on, once per contact episode.
 const HEADON_DEG := 75.0
 const HEADON_SPEED := 4.0
-const KICK_MIN := 35.0
-const KICK_MAX := 50.0
+const KICK_MIN := 15.0
+const KICK_MAX := 25.0
 ## While the contact lasts (the nose still turning off the wall) the car keeps at least the speed
 ## the hit gave it, less this scrape (1/s): v1's lightest scrape.
 const SLIDE_SCRAPE := V1_SCRAPE * V1_SCRAPE_MIN

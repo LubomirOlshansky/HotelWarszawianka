@@ -1622,6 +1622,15 @@ near the player 11 / 16 / 7; recorded pass on the quick matrix, `once:Linux` on 
 No crawl reads 3.0 s (it was 2.3), at its limit: the 3.0 s is an old-driver crazy row on Powiśle.
 The quick matrix is 42 races (it was 41), the full one 488 (it was 416: 72 crazy rows).
 
+**The Mac's run, 2026-11-14** (F's go; `--write` on main c7dc5f86). Every mark recorded
+`once:Linux` passed on the Mac too and is now recorded pass: Independence, No ghosting and
+Recovers on the quick matrix; Finishes, Route sense, Wrong-way hops in traffic, Pack in traffic,
+Chase keeps off and Crazy stays crazy on the full one. The full matrix's known fails stay fail as
+recorded (Independence 41 % in traffic, Passes traffic 18.7 s, No ghosting 152 cars, Recovers 4,
+Honest car 15.6 m/s²). Told apart on the Mac: 1457 of 1457 turns indicated, 0 indications from
+the rival who never indicates, 18 of 18 wrong turns followed by hazards; flashes Seba 205, Mike
+104, Zbyszek 74, Bartek 58, Pani Halina and Słoik 0.
+
 
 ### 7.5 What the bench does not see
 

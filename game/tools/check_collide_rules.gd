@@ -73,17 +73,17 @@ func _table() -> void:
 		var firm := CollideRules.keep_along(CollideRules.FIRM, float(a))
 		if not (soft >= mid and mid >= firm):
 			_problems.append("at %d deg soft %.2f, mid %.2f, firm %.2f are out of order" % [a, soft, mid, firm])
-	# The head-on kick: only over HEADON_DEG and HEADON_SPEED, 35-50 deg; v1 never kicks.
+	# The head-on kick: only over HEADON_DEG and HEADON_SPEED, 15-25 deg; v1 never kicks.
 	var kick_hi := float(CollideRules.answer(CollideRules.MID, 0, 14.0, 90.0)["kick_deg"])
 	var kick_lo := float(CollideRules.answer(CollideRules.MID, 0, 14.0, 76.0)["kick_deg"])
-	if not (kick_hi <= 50.0 and kick_lo >= 35.0 and kick_hi >= kick_lo):
-		_problems.append("the head-on kick is %.0f-%.0f deg, not 35-50" % [kick_lo, kick_hi])
+	if not (kick_hi <= 25.0 and kick_lo >= 15.0 and kick_hi >= kick_lo):
+		_problems.append("the head-on kick is %.0f-%.0f deg, not 15-25" % [kick_lo, kick_hi])
 	if float(CollideRules.answer(CollideRules.MID, 0, 3.0, 90.0)["kick_deg"]) != 0.0 \
 			or float(CollideRules.answer(CollideRules.MID, 0, 14.0, 60.0)["kick_deg"]) != 0.0 \
 			or float(CollideRules.answer(CollideRules.V1, 0, 14.0, 90.0)["kick_deg"]) != 0.0:
 		_problems.append("a kick where there should be none (slow, glancing, or v1)")
-	if float(CollideRules.answer(CollideRules.MID, CollideRules.CRUISE, 10.0, 30.0)["yaw_rate"]) != 6.0:
-		_problems.append("the nose does not turn at 6 rad/s in Cruise")
+	if float(CollideRules.answer(CollideRules.MID, CollideRules.CRUISE, 10.0, 30.0)["yaw_rate"]) != 3.5:
+		_problems.append("the nose does not turn at 3.5 rad/s in Cruise")
 	# Traffic: v1 keeps CAR_KEEP whatever the hit; v2 by angle (rear-end 0.75, side 0.85, T-bone 0.4).
 	for p: StringName in CollideRules.PRESETS:
 		for a in range(0, 91, 10):
