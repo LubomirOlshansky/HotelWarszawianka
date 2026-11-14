@@ -7,6 +7,11 @@ extends SceneTree
 ## --grid writes the landmarks' roof-grid cells (4 m, one colour per landmark, red = id)
 ## and their info (bounds) for tools/overlay_landmarks.py, which lays them over the
 ## orthophoto.
+## Step 7 (2026-11-14): the S fences and hedges have no collider (soft_things.gd breaks them). A car
+## ray that meets nothing solid but crosses one of their lines (the sectors' `soft` lists) counts as
+## stopped, as it was before step 7, and is counted apart: a site open to the car behind a
+## smashable fence is a finding the summary names (the landmark's own model leaves a way in at
+## bumper height: an arcade, a gate, a garden), not a failure of this check.
 
 ## Sites that are only ground-level dressing (no part over about 2 m): the heli test expects it to
 ## fly over them, not to be stopped. bulwary_basen (K7, 2026-11-02): the splash pool, its 0.3 m
@@ -24,6 +29,11 @@ const LOW_MONUMENTS := {"maly_powstaniec": 1.5, "starzynski": 2.5, "umschlagplat
 
 var map: Node3D
 var _frames := 0
+## Step 7: every soft segment of the city as [a, b] pairs (flat: ax, az, bx, bz), and the sites
+## whose rays only a soft line stops.
+var _soft := PackedFloat32Array()
+var _open_behind_soft: Array[String] = []
+const CityBarriers := preload("res://scripts/city_barriers.gd")
 
 
 func _initialize() -> void:
@@ -46,6 +56,7 @@ func _check() -> int:
 	rescue.map = map
 	var data: Dictionary = map.data
 	var failures := 0
+	_gather_soft()
 	for k in map.landmark_info.size():
 		var info: Dictionary = map.landmark_info[k]
 		if info["pl"] == "":
@@ -82,9 +93,11 @@ func _check() -> int:
 		for corner in [box.position, box.end, Vector2(box.position.x, box.end.y), Vector2(box.end.x, box.position.y)]:
 			reach = maxf(reach, c.distance_to(corner) + 10.0)
 		var hits := 0
+		var by_soft := 0
 		for d in 12:
 			var dir := Vector2.from_angle(TAU * d / 12.0)
 			var r := reach
+			var stopped := false
 			while r > 4.0:
 				var p0 := c + dir * r
 				var p1 := c + dir * (r - 2.0)
@@ -92,8 +105,14 @@ func _check() -> int:
 						Vector3(p1.x, map.drive_height(p1.x, p1.y, 0.0) + 0.8, p1.y))
 				if not space.intersect_ray(q).is_empty():
 					hits += 1
+					stopped = true
 					break
 				r -= 2.0
+			if not stopped and _crosses_soft(c + dir * reach, c):
+				hits += 1
+				by_soft += 1
+		if by_soft > 0:
+			_open_behind_soft.append("%s (%d)" % [info["name"], by_soft])
 		print("%-22s tallest cell %5.1f m above ground at %s · tap finds %s · car rays stopped %d/12" % [
 				info["name"], tallest - ground, at.round(), ("it" + above) if tap == k else "id %d" % tap, hits])
 		# A bridge's pylon stands in the median between two carriageways: a car from along the
@@ -151,6 +170,8 @@ func _check() -> int:
 				names.append([l["key"], l["name"], l["centre"].x, l["centre"].y])
 			meta.store_string(JSON.stringify({"x0": map._roof_x0, "z0": map._roof_z0, "cell": map.ROOF_CELL, "landmarks": names}))
 			print("grid written to ", arg.trim_prefix("--grid="))
+	print("landmark check: %d sites open to the car only behind a fence or hedge it breaks (step 7; car rays a soft line stops): %s" % [
+			_open_behind_soft.size(), ", ".join(_open_behind_soft)])
 	print("landmark check: %s" % ("OK" if failures == 0 else "%d FAILED" % failures))
 	return failures
 
@@ -263,3 +284,28 @@ func _fly_checks() -> int:
 			failures += 1
 		heli.free()
 	return failures
+
+
+## Step 7: the soft segments of every sector the streamer opened (their roots' `soft` meta).
+func _gather_soft() -> void:
+	var n := CityBarriers.SOFT_STRIDE
+	for root: Node in [map] + map.get_children():
+		if not root.has_meta(&"soft"):
+			continue
+		var segs: PackedFloat64Array = (root.get_meta(&"soft") as Dictionary)["segs"]
+		for i in segs.size() / n:
+			_soft.append_array([segs[i * n + 1], segs[i * n + 2], segs[i * n + 3], segs[i * n + 4]])
+
+
+## Step 7: whether the plan segment p..q crosses a soft line.
+func _crosses_soft(p: Vector2, q: Vector2) -> bool:
+	var lo := Vector2(minf(p.x, q.x), minf(p.y, q.y))
+	var hi := Vector2(maxf(p.x, q.x), maxf(p.y, q.y))
+	for i in range(0, _soft.size(), 4):
+		var a := Vector2(_soft[i], _soft[i + 1])
+		var b := Vector2(_soft[i + 2], _soft[i + 3])
+		if maxf(a.x, b.x) < lo.x or minf(a.x, b.x) > hi.x or maxf(a.y, b.y) < lo.y or minf(a.y, b.y) > hi.y:
+			continue
+		if Geometry2D.segment_intersects_segment(p, q, a, b) != null:
+			return true
+	return false
