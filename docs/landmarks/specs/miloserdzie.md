@@ -46,17 +46,17 @@ gable (unphotographed, default). The house: two windows a storey on each long si
 on the east end.
 
 ## 5. Roof
-Grey sheet (#6a6e72) on the nave, a paler grey on the annexes' flat tops; dark tiles (#4c4644) on
-the house's hip; the tower's dome grey (#7c8084), an iron cross.
+Red tiles (#9a4034) on the nave, a paler grey on the annexes' flat tops; red tiles (#8c3b31) on
+the house's hip; the tower's dome green copper (#6f9584), an iron cross.
 
 ## 6. Colour and material
 | Part | Colour | Material |
 | --- | --- | --- |
 | Plaster | #ecebe6 | M_STONE |
 | Cornices, piers | #f4f3ef | M_STONE |
-| Nave roof | #6a6e72 | M_STONE |
-| House roof | #4c4644 | M_STONE |
-| Dome | #7c8084 | M_STONE |
+| Nave roof | #9a4034 | M_STONE |
+| House roof | #8c3b31 | M_STONE |
+| Dome | #6f9584 | M_STONE |
 | Mural red, figures | #c23a3a, #5d5f63 | M_STONE |
 | Plinth | #8a5040 | M_STONE |
 | Windows | PAL_GLASS_DARK | lit by chance at night (`_lit`) |
@@ -74,10 +74,13 @@ L1, triangle budget 640 (measured 560, `check_mesh_quality.gd`): a plain church,
 
 | id | shape | size | position | material | feature |
 | --- | --- | --- | --- | --- | --- |
-| nave | box + gable | 30.6 x 9.3 m | u -19.6..11, y to 10.3 | M_STONE #ecebe6, #6a6e72 | 4 nave |
+| nave | box + gable | 30.6 x 9.3 m | u -19.6..11, y to 10.3 | M_STONE #ecebe6, #9a4034 | 4 nave |
 | mural | 4 flat panels | 11 x 3.5 m | street wall, y 4.3..7.8 | #c23a3a, #5d5f63 | 3 mural |
 | annexes | 2 prisms | 4.3 m | north and south | M_STONE | 3 mural |
 | doors, porch | 2 boxes + slab | 1.2 m | street annex | PAL_DARK_DOOR, #f4f3ef | 3 mural |
-| house | box + hip | 8.7 x 14.7 m | u 11..19.7, y to 13.4 | M_STONE, #4c4644 | 4 house |
-| tower | box, 4 piers, core, 2 frustums, cross | 4.15 x 3.95 m | u -11.3..-7.15, y to 25.9 | M_STONE, #7c8084 | 2 tower |
+| house | box + hip | 8.7 x 14.7 m | u 11..19.7, y to 13.4 | M_STONE, #8c3b31 | 4 house |
+| tower | box, 4 piers, core, 2 frustums, cross | 4.15 x 3.95 m | u -11.3..-7.15, y to 25.9 | M_STONE, #6f9584 | 2 tower |
 | windows | flat panes | 1.1 to 1.3 m | nave south, house, annex | PAL_GLASS_DARK | 4 nave |
+
+Checked 2026-11-14 against 8 Commons photos (refs/churches/faustina_zytnia): the massing, the tower
+and the white walls hold; the roofs are red tiles and the dome green copper (recoloured).
