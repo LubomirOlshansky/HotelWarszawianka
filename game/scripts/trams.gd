@@ -53,6 +53,9 @@ class Tram:
 	var v := 0.0
 	var next := -1
 	var dwell := 0.0
+	## What its gap was last set by (--race-debug's look round a racer that stands): 0 nothing,
+	## 1 a stop or a light, 2 a tram ahead, 3 a car on the rails, 4 the player's car.
+	var held_by := 0
 	var served := -1
 	var bell_wait := 0.0
 	var cars: Array[AnimatableBody3D] = []
@@ -398,6 +401,7 @@ func _process(dt: float) -> void:
 func _move(tram: Tram, dt: float) -> void:
 	var head := _head(tram)
 	var gap := INF
+	tram.held_by = 0
 	# Stops and lights on this piece and the next.
 	for pass_ in 2:
 		var piece := head if pass_ == 0 else tram.next
@@ -415,6 +419,7 @@ func _move(tram: Tram, dt: float) -> void:
 			elif graph.light(int(halts[k + 2]), int(halts[k + 3])) == LaneGraph.GREEN:
 				continue
 			gap = ahead
+			tram.held_by = 1
 			if halts[k + 1] == 0.0 and ahead < 0.6 and tram.v < 0.3:
 				tram.dwell += dt
 				if tram.dwell > DWELL:
@@ -434,7 +439,9 @@ func _move(tram: Tram, dt: float) -> void:
 			var rel: Vector2 = q - here
 			var along := rel.dot(fwd)
 			if along > 0.0 and along < 60.0 and absf(rel.cross(fwd)) < 2.0:
-				gap = minf(gap, along - 3.0)
+				if along - 3.0 < gap:
+					gap = along - 3.0
+					tram.held_by = 2
 	if traffic != null and not traffic.junction_cars.is_empty():
 		_ahead.clear()
 		var a := 0.0
@@ -459,13 +466,17 @@ func _move(tram: Tram, dt: float) -> void:
 				var way := _ahead[mini(k + 1, _ahead.size() - 1)] - _ahead[maxi(k - 1, 0)]
 				if absf(df.dot(way.normalized())) >= 0.75 and out.length() >= HALF_WIDTH + ON_RAILS:
 					continue
-				gap = minf(gap, k * AHEAD_STEP - STOP_SHORT)
+				if k * AHEAD_STEP - STOP_SHORT < gap:
+					gap = k * AHEAD_STEP - STOP_SHORT
+					tram.held_by = 3
 				break
 	if player_on_road:
 		var rel := Vector2(player_pos.x, player_pos.z) - here
 		var along := rel.dot(fwd)
 		if along > 0.0 and along < 40.0 and absf(rel.cross(fwd)) < 2.6:
-			gap = minf(gap, along - 4.0)
+			if along - 4.0 < gap:
+				gap = along - 4.0
+				tram.held_by = 4
 			if tram.bell_wait <= 0.0 and along < 30.0 and tram.v > 2.0:
 				tram.bell_wait = 8.0
 				_ring(tram)

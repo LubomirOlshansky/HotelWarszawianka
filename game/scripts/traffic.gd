@@ -2937,7 +2937,8 @@ func _drive(d: Driver, dt: float) -> void:
 	if racer and not d.held and d.v < 1.0:
 		d.race_still += dt
 		if race_debug and fmod(d.race_still, 1.0) < dt:
-			print("race debug: still %.0f s at (%.0f, %.0f) e%d s%.0f/%.0f lanes %d rev %d: leader %.1f player %.1f cross %.1f ign %.1f red %.1f gap %.1f pass %.1f sq %.1f conn %s chase %s" % [d.race_still, d.pos.x, d.pos.z, e, d.s, graph.e_s1[e], graph.e_lanes[e], graph.e_reverse[e], leader_gap, player_gap, d.cross_gap, d.cross_ignore, _red_ahead(d) if not d.in_conn else -1.0, gap, d.pass_t, d.squeeze, d.in_conn, d.chase])
+			print("race debug: still %.0f s at (%.0f, %.0f) e%d s%.0f/%.0f lanes %d rev %d: leader %.1f player %.1f cross %.1f ign %.1f red %.1f gap %.1f pass %.1f sq %.1f conn %s chase %s tram %s" % [d.race_still, d.pos.x, d.pos.z, e, d.s, graph.e_s1[e], graph.e_lanes[e], graph.e_reverse[e], leader_gap, player_gap, d.cross_gap, d.cross_ignore, _red_ahead(d) if not d.in_conn else -1.0, gap, d.pass_t, d.squeeze, d.in_conn, d.chase, d.sees_tram])
+			_debug_around(d)
 
 	var step := d.v * dt
 	if d.away_debt > 0.0 or d.away_pace < 1.0:
@@ -3199,6 +3200,28 @@ func _race_overtake(d: Driver, leader_gap: float, player_gap: float, dt: float) 
 			d.squeeze = 2.0
 			d.cross_ignore = 2.0
 			d.still = 0.0
+
+
+## --race-debug: what holds the cars and trams round a racer that stands (the cars within
+## 15 m in front of it, each with what it waits for itself, and the tram cars within 30 m), so a
+## knot of several (a town car waiting for a tram that waits for the racer) shows in one line each.
+func _debug_around(d: Driver) -> void:
+	var fwd := Vector2(-sin(d.yaw), -cos(d.yaw))
+	var here := Vector2(d.pos.x, d.pos.z)
+	for o in _active:
+		if o == d or o.ghost or absf(o.pos.y - d.pos.y) > 2.5:
+			continue
+		var rel := Vector2(o.pos.x, o.pos.z) - here
+		if rel.length_squared() > 225.0 or rel.dot(fwd) < -2.0:
+			continue
+		print("race debug:   car at %.1f ahead %.1f across · v %.1f e%d s%.0f conn %s cross %.1f tram %s still %.0f parked %s racer %s crazy %d" % [rel.dot(fwd), rel.cross(fwd), o.v, o.edge, o.s, o.in_conn, o.cross_gap, o.sees_tram, o.still, o.parked, o.plan != null, o.crazy])
+	for c in _tram_at.size():
+		if _tram_at[c].distance_squared_to(here) < 900.0:
+			print("race debug:   tram car at %.1f ahead %.1f across · front %d look %.1f m" % [(_tram_at[c] - here).dot(fwd), (_tram_at[c] - here).cross(fwd), _tram_front[c], _tram_ahead[c]])
+	if trams != null:
+		for t in trams.trams:
+			if Vector2(t.pos.x, t.pos.z).distance_squared_to(here) < 2500.0:
+				print("race debug:   tram at (%.0f, %.0f) v %.1f dwell %.1f held by %s" % [t.pos.x, t.pos.z, t.v, t.dwell, ["nothing", "a stop or light", "a tram", "a car", "the player"][t.held_by]])
 
 
 ## Racer mode: whether the player's car, standing `player_gap` m in front of racer d, only
