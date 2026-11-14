@@ -508,6 +508,12 @@ def main(src, trees_src, dst, extras_src=None, more_src=None):
     # junctions' mouths, zebras and cycle crossings run on to the kerbs (tools/road_fixes.py).
     import road_fixes
     print("road_fixes: " + road_fixes.apply(out))
+    # Lane drops (F, 2026-11-14, "two lanes to one can be smoother, like real life"): where a street
+    # loses or gains a lane, the asphalt, kerbs and edge lines drift over a real-life taper (about
+    # 1:15) through as many ways of the street as it needs (tools/lane_tapers.py; the same code
+    # runs on a baked map). After road_fixes, before object_fixes moves objects off the new asphalt.
+    import lane_tapers
+    print("lane_tapers: " + lane_tapers.apply(out))
     # Street objects unslopped (F, 2026-11-07): lamps, signals, benches, bins, racks, shelters, parked
     # cars and barriers out of walls, carriageways, water and decks; gates where paths cross fences;
     # balustrades round stairs (tools/object_fixes.py; the same code runs on a baked map). Before
