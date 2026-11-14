@@ -42,6 +42,7 @@ extends SceneTree
 const Activity := preload("res://scripts/activity.gd")
 const Activities := preload("res://scripts/activities.gd")
 const Tour := preload("res://scripts/tour.gd")
+const Pacer := preload("res://scripts/pacer.gd")
 const Hud := preload("res://scripts/hud.gd")
 const Fakes := preload("res://tools/fakes.gd")
 
@@ -1010,10 +1011,14 @@ func _tour_shape(id: String, d: Dictionary, lines: Dictionary) -> void:
 	_expect(_pair(d.get("name")), w + "`name` needs Polish and English")
 	for k: String in ["colour", "dark"]:
 		_expect(Color.html_is_valid(str(d.get(k, ""))), w + "`%s` is not a colour" % k)
-	var h: Array = d.get("hours", [])
-	_expect(h.size() == 2 and float(h[0]) >= 0.0 and float(h[0]) < float(h[1]) and float(h[1]) <= 24.0, w + "`hours` are not [from, to] in a day")
-	for k: String in ["first_call", "call_cool", "play_limit"]:
-		_expect(float(d.get(k, 0.0)) > 0.0, w + "`%s` must be more than 0" % k)
+	# When it calls lives in the pacing file, under the tour's id (TD-3).
+	var pace: Dictionary = Pacer.data().get(id, {})
+	var pw := "pacing.json %s: " % id
+	var h: Array = pace.get("hours", [])
+	_expect(h.size() == 2 and float(h[0]) >= 0.0 and float(h[0]) < float(h[1]) and float(h[1]) <= 24.0, pw + "`hours` are not [from, to] in a day")
+	for k: String in ["first_call", "call_cool"]:
+		_expect(float(pace.get(k, 0.0)) > 0.0, pw + "`%s` must be more than 0" % k)
+	_expect(float(d.get("play_limit", 0.0)) > 0.0, w + "`play_limit` must be more than 0")
 	var b: Array = d.get("banter", [])
 	_expect(b.size() == 2 and float(b[0]) > 0.0 and float(b[0]) <= float(b[1]), w + "`banter` is not [min, max] seconds")
 	_expect(int(d.get("bump_max", 0)) >= 1, w + "`bump_max` must be 1 or more")
