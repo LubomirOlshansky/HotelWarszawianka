@@ -1,0 +1,95 @@
+{
+	"_about": "When the game offers the next thing: every number that says when a call may ring or an offer may come, in seconds of play unless it says hours. [a, b] seconds means a random time between a and b; hours [from, to] may run past midnight (17 to 2). Each source keeps its own countdown and reads its numbers here (pacer.gd). How long a card stays up, distances, and the offers that come from driving past a place (deliveries, the round-up, rivals' challenges, friends met in person) have no clock and are not here. check_pacing.gd checks this file.",
+	"calls": {
+		"_note": "Every friend's call: at least gap s after the last call of anyone, and settle s into a calm spell (after a result, a chase or a quest). A call the player asked for does not wait.",
+		"gap": 60,
+		"settle": 8
+	},
+	"rescue": {
+		"_note": "The rescue line (WEZWANIE): the first call this long after the start, the next this long after a rescue ends or is skipped.",
+		"first_call": 60,
+		"next_call": 90
+	},
+	"activity": {
+		"_note": "The default for an activity of the kit that sets nothing of its own: the first call after first_call s, then every call_cool s.",
+		"first_call": 600,
+		"call_cool": 1800
+	},
+	"boat": {
+		"_note": "Szymek's boat race: between these hours, the first call after first_call s, then every call_cool s.",
+		"hours": [7, 22],
+		"first_call": 300,
+		"call_cool": 1500
+	},
+	"kino": {
+		"_note": "The cinema tour: between these hours, the first call after first_call s, then every call_cool s.",
+		"hours": [14, 23],
+		"first_call": 480,
+		"call_cool": 1800
+	},
+	"dekalog": {
+		"_note": "The Dekalog tour: between these hours, the first call after first_call s, then every call_cool s.",
+		"hours": [16, 23.5],
+		"first_call": 600,
+		"call_cool": 1800
+	},
+	"shisha": {
+		"_note": "Ivan's shisha night: between these hours; the first call, then the next after a night or a no; a call that could not ring tries again after retry s.",
+		"hours": [17, 2],
+		"first_call": [240, 420],
+		"next_call": [1500, 2400],
+		"retry": 20
+	},
+	"crawl": {
+		"_note": "The bar crawl: between these hours; the first call, then the next after a crawl or a no; retry as above.",
+		"hours": [20, 4],
+		"first_call": [240, 420],
+		"next_call": [1200, 1800],
+		"retry": 20
+	},
+	"meet": {
+		"_note": "Darek's night racing club: between these hours; the first call, then the next after a night or a no; retry as above.",
+		"hours": [21, 4],
+		"first_call": [240, 480],
+		"next_call": [1500, 2400],
+		"retry": 20
+	},
+	"rave": {
+		"_note": "Mati's nights: his tease between tease_hours, the first after first_tease s and the next after next_tease s; his call call_after s after the tease; retry as above.",
+		"tease_hours": [19, 4],
+		"first_tease": [150, 300],
+		"next_tease": [900, 1500],
+		"call_after": [30, 75],
+		"retry": 15
+	},
+	"ev_tow": {
+		"_note": "Bartek's EV tow: the first call, then the next after a tow or a no; retry as above. The stranded cars: the first after first_strand s, the next strand_gap s after one clears.",
+		"first_call": [300, 480],
+		"next_call": [720, 1080],
+		"retry": 20,
+		"first_strand": [110, 220],
+		"strand_gap": [170, 320]
+	},
+	"rides": {
+		"_note": "Podwózka: the first request after first_offer s of driving, then offer_gap s after each ride or request; a request held by the first minutes' guide comes at least hold_gap s after the hold lets go.",
+		"first_offer": 120,
+		"offer_gap": [75, 120],
+		"hold_gap": 30
+	},
+	"trend": {
+		"_note": "The trend courier's orders. Dżemini: first after dz_first s, again dz_cool s after a skip. Kawa: between kawa_hours, first after kawa_first s, then every kawa_cool s. Deski (padel): between deski_hours, first after deski_first s, then every deski_cool s. A slot offers again after slot_cool s; Mlask between ml_hours, again after ml_cool s. card_rest s after a card closes before the next offer; call_rest s after a rescue ends before a friend's call.",
+		"dz_first": 300,
+		"dz_cool": 900,
+		"kawa_hours": [8, 19],
+		"kawa_first": 420,
+		"kawa_cool": 1500,
+		"deski_hours": [8, 22],
+		"deski_first": 660,
+		"deski_cool": 1200,
+		"slot_cool": 240,
+		"ml_hours": [11, 21],
+		"ml_cool": 300,
+		"card_rest": 2.5,
+		"call_rest": 20
+	}
+}

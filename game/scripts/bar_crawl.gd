@@ -63,9 +63,11 @@ const ROUTES := [
 
 ## The call's window (wraps past midnight) and the free-play seconds before the first and the
 ## next call.
-const HOURS := Vector2(20.0, 4.0)
-const FIRST_CALL := Vector2(240.0, 420.0)
-const NEXT_CALL := Vector2(1200.0, 1800.0)
+static var HOURS: Vector2 = Pacer.span("crawl", "hours")
+static var FIRST_CALL: Vector2 = Pacer.span("crawl", "first_call")
+static var NEXT_CALL: Vector2 = Pacer.span("crawl", "next_call")
+## A call that could not ring tries again this long after (s).
+static var RETRY: float = Pacer.num("crawl", "retry")
 const RING_LIFE := 25.0
 ## The pickup: a kerb this far from the player.
 const PICK_FROM := 250.0
@@ -295,7 +297,7 @@ func _tick(dt: float) -> void:
 	if phase == Phase.IDLE and auto and _may_call() and _hours_now():
 		call_in -= _due
 		if call_in <= 0.0 and not ring():
-			call_in = 20.0
+			call_in = RETRY
 
 
 ## The kit's session clock is not the crawl's: see `_tick`.

@@ -9,12 +9,6 @@
 	"lines": "dekalog_claire",
 	"colour": "#3f6fd8",
 	"dark": "#1d2440",
-	"hours": [
-		16.0,
-		23.5
-	],
-	"first_call": 600,
-	"call_cool": 1800,
 	"play_limit": 2700,
 	"banter": [
 		17,

@@ -71,11 +71,11 @@ const SAY_AT := 200.0
 const PASSED := 0.5
 ## A quirk's leg is silly, not a tour: at most this much longer than the shortest road.
 const DETOUR_MAX := 1500.0
-const FIRST_OFFER := 120.0
-const OFFER_GAP := Vector2(75.0, 120.0)
+static var FIRST_OFFER: float = Pacer.num("rides", "first_offer")
+static var OFFER_GAP: Vector2 = Pacer.span("rides", "offer_gap")
 const OFFER_LIFE := 10.0
 ## A held request (`guide_hold`) comes at least this long after the hold lets go.
-const HOLD_GAP := 30.0
+static var HOLD_GAP: float = Pacer.num("rides", "hold_gap")
 const PILL_DELAY := 1.2
 const CHAT_GAP := Vector2(25.0, 40.0)
 ## The river spots: a waypoint RIVER_INLAND m in from the water's edge, dry for RIVER_DRY m all

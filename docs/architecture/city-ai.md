@@ -64,7 +64,7 @@ Rivals are traffic Drivers with a personality. The race AI rebuild is four layer
 and a race object: RaceNav (where a car can go, with race links), RacePlanner (seconds to the
 finish per racer), RacePath (racing line and speed per metre), RaceDriver (overtakes, collisions,
 recovery), RacerProfile and RaceSession. **No rubber band**: difficulty comes from each rival's
-skill, not from the player's speed. Built so far (steps 1 to 4a of 8):
+skill, not from the player's speed. All eight steps are built (race-ai.md section 8, 2026-11-14):
 
 - **The profile** is a rung's racer stats in `ladder.gd` (how much of the car it uses, its
   mistakes, what it knows of the town's traffic and how it weighs a street with no way past);
@@ -133,10 +133,11 @@ skill, not from the player's speed. Built so far (steps 1 to 4a of 8):
   police chasers drive it too, on a session of their own (step 6b part 2, section 4), and so do
   the crazy drivers, a session each to their fares (step 6b part 3, `crazy_route.gd`).
 
-Still to come: RaceDriver (passing, contact and recovery are the old rail car's; its pass over
-the centre line, `_race_pass`, minds only the oncoming lanes it uses and how fast the two cars
-close, and is a timer until step 4b), RaceNav's links; a new race mode uses
-RaceSession instead of its own ranking. Every race change reports `tools/race_bench.sh` before and after (`check_race_bench`,
+The rebuild is done: passing, contact and recovery (step 4b), race links and wrong-way hops
+(steps 5 and 5b) are in. A new race mode uses RaceSession instead of its own ranking. What is
+left open is in docs/design/tech-plans-review.md section 4 (two drivers in `traffic.gd`, switched
+by `lined(d)`; the police's search, escort and roadblocks on the old one; the marks that run only
+locally). Every race change reports `tools/race_bench.sh` before and after (`check_race_bench`,
 `check_race_planner`, `check_race_line`).
 
 ## 4. Police (`police.gd`, `police/`)

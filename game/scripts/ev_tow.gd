@@ -47,8 +47,10 @@ const FAIL_COLOUR := Color("#e2574c")
 const BUBBLE := Color("#3fd17a")
 
 ## The call: seconds of free play before the first, then between calls (declined or done).
-const FIRST_CALL := Vector2(300.0, 480.0)
-const NEXT_CALL := Vector2(720.0, 1080.0)
+static var FIRST_CALL: Vector2 = Pacer.span("ev_tow", "first_call")
+static var NEXT_CALL: Vector2 = Pacer.span("ev_tow", "next_call")
+## A call that could not ring tries again this long after (s).
+static var RETRY: float = Pacer.num("ev_tow", "retry")
 ## The ringing card waits this long before Bartek gives up.
 const RING_LIFE := 25.0
 ## Where his car stands: a main road this far from the player.
@@ -81,8 +83,8 @@ const QUICK := 150.0
 const BONUS := 60
 const RESULT_LIFE := 10.0
 ## The stranded cars: the first after FIRST_STRAND s, the next GAP_STRAND s after one clears.
-const FIRST_STRAND := Vector2(110.0, 220.0)
-const GAP_STRAND := Vector2(170.0, 320.0)
+static var FIRST_STRAND: Vector2 = Pacer.span("ev_tow", "first_strand")
+static var GAP_STRAND: Vector2 = Pacer.span("ev_tow", "strand_gap")
 const STRAND_LIFE := Vector2(170.0, 280.0)
 const STRAND_TALK_R := 45.0
 const STRAND_FAR := 650.0
@@ -466,7 +468,7 @@ func step(dt: float) -> void:
 		if auto and _free():
 			call_in -= dt
 			if call_in <= 0.0 and not ring():
-				call_in = 20.0
+				call_in = RETRY
 		_stranger_hook(dt, at, flying)
 		return
 	match stage:

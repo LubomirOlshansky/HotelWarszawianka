@@ -52,6 +52,7 @@ extends Node
 
 const Beacon := preload("res://scripts/beacon.gd")
 const Access := preload("res://scripts/access.gd")
+const Pacer := preload("res://scripts/pacer.gd")
 const StopAssist := preload("res://scripts/stop_assist.gd")
 
 enum Phase { IDLE, RING, OFFER, RUN }
@@ -102,8 +103,8 @@ var colour := Color.WHITE
 var dark := Color.BLACK
 ## The call rings between these hours, after `first_call` s of play, then every `call_cool` s.
 var hours := Vector2(0.0, 24.0)
-var first_call := 600.0
-var call_cool := 1800.0
+var first_call: float = Pacer.num("activity", "first_call")
+var call_cool: float = Pacer.num("activity", "call_cool")
 ## A call or an offer nobody answers goes after this long (s).
 var card_life := 12.0
 ## The run gives up after this long (s) without finishing; 0 for no limit.
