@@ -42,7 +42,7 @@ const BUDGET := {
 	"church_antoniego": 990,
 	"church_augustyn": 890,
 	"church_cerkiew": 410,  # 2026-11-14: the Basilians' church hall from LoD2 and the street front (measured 288)
-	"church_czestochowska": 510,
+	"church_czestochowska": 620,  # 2026-11-14: the modernist A-frame church and its pylons from photos (measured 551)
 	"church_duch": 3300,  # 2026-11-14: the whole Holy Spirit church and both towers from photos (measured 3010)
 	"church_dzieciatka": 1800,  # 2026-11-14: the whole brick Child Jesus church from photos (measured 1594)
 	"church_jacek": 2800,  # 2026-11-14: the whole St Hyacinth church from photos (measured 2550)

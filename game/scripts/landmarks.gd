@@ -796,7 +796,7 @@ const INFO := {
 	"church_miloserdzie": ["Kościół Miłosierdzia Bożego", "Kościół parafialny.", "A parish church."],
 	"church_piotr_pawel": ["Kościół Świętych Piotra i Pawła", "Kościół parafialny z cegły.", "A brick parish church."],
 	"church_trojca_praga": ["Kościół Świętej Trójcy", "Kościół parafialny.", "A parish church."],
-	"church_czestochowska": ["Kościół Matki Bożej Częstochowskiej", "Kościół parafialny.", "A parish church."],
+	"church_czestochowska": ["Kościół Matki Bożej Częstochowskiej", "Modernistyczny kościół z dachem do ziemi.", "A modernist church with a roof down to the ground."],
 	"church_zwycieska": ["Kościół Matki Boskiej Zwycięskiej", "Kościół parafialny z dwiema wieżami.", "A parish church with two towers."],
 	"church_cerkiew": ["Cerkiew Zaśnięcia Matki Bożej", "Greckokatolicka cerkiew bazylianów przy Miodowej.", "The Basilians' Greek Catholic church on Miodowa."],
 	"church_nozykow": ["Synagoga Nożyków", "Jedyna przedwojenna synagoga Warszawy, przy Twardej.", "Warsaw's only pre-war synagogue, on Twarda."],
@@ -20232,6 +20232,72 @@ func _build_cerkiew(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The parish church of Our Lady of Częstochowa (Kościół Matki Bożej Częstochowskiej, ul. Zagórna
+## 5, Powiśle), a 1960s modernist church: a steep green copper A-frame roof that comes down almost
+## to the ground at the front, a glazed triangular front with the doors under a canopy, and the
+## twin concrete pylons with the bells and the tall cross before it. The whole church as a model
+## that replaces the old kit church (`church_czestochowska`, built by `_build_church` until
+## 2026-11-14: a beige box with a pyramid tower). From Mapillary photos of 2026 on Zagórna (the
+## front from 68 m, the side wall close up; refs/czestochowska, never shipped), the OSM outline
+## and GUGiK's LoD2 (over the ground: the A-frame's ridge 15; the pylons 22.5; the side walls
+## about 6 under the roof's eaves; the flat back block 8). Spec docs/landmarks/specs/czestochowska.md.
+## Frame: origin at the front's middle by the pylons, u from the front (south-east, to Zagórna)
+## back, v across; the front faces -u.
+const MC_O := Vector2(1142.0, 880.0)
+const MC_A := Vector2(-0.6402, -0.7682)
+const MC_WALL := Color("#c8c5be")      ## the grey render of the side walls (photos)
+const MC_COPPER := Color("#7fa290")    ## the pale green copper roof
+const MC_CONCRETE := Color("#6f7172")  ## the pylons and the roof's edges
+const MC_FRAME := Color("#b39a5c")     ## the gold window frames
+const MC_LIGHT := Color("#e9e6df")     ## the cross, the canopy
+
+
+func _build_czestochowska(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(MC_O, MC_O + MC_A)
+	_g = _ground_under(outline)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	var b := Vector2(-MC_A.y, MC_A.x)
+	_mode = M_STONE
+	# --- the front A-frame: the roof from the ground to the ridge, its concrete edge, the glass
+	_gable(-2.0, 6.2, 0.0, 8.2, g + 0.3, 14.7, MC_CONCRETE, MC_COPPER, true)
+	_gable(-2.06, -2.0, 0.0, 7.3, g + 0.9, 13.1, PAL_GLASS_DARK, PAL_GLASS_DARK, false)
+	_kbox(-2.3, -2.0, -8.4, 8.4, g - 1.0, g + 0.3, MC_CONCRETE)
+	# the doors and their canopy at the foot of the glass
+	_kbox(-3.4, -2.0, -5.0, 5.0, g - 1.0, g + 3.1, MC_WALL)
+	_kbox(-3.46, -3.4, -4.4, 4.4, g + 0.1, g + 2.7, PAL_GLASS_DARK)
+	_kbox(-4.4, -2.0, -5.6, 5.6, g + 3.1, g + 3.45, MC_LIGHT)
+	_kbox(-6.0, -3.4, -6.0, 6.0, g - 1.0, g + 0.15, MC_WALL.darkened(0.08))
+	# --- the nave: side walls to 6, the roof to the ridge, rows of gold-framed windows
+	var nave := _lpoly([[6.0, -11.0], [30.0, -11.0], [30.0, 11.0], [6.0, 11.0]])
+	_prism(nave, g - 1.0, g + 6.0, MC_WALL, none, M_STONE)
+	_gable(6.0, 30.0, 0.0, 11.3, g + 6.0, 9.5, MC_WALL, MC_COPPER, true)
+	for s2: float in [-1.0, 1.0]:
+		var vf := s2 * 11.0
+		for wu: float in [9.0, 14.5, 20.0, 25.5]:
+			for wy: float in [1.2, 3.7]:
+				_kbox(wu - 2.0, wu + 2.0, minf(vf, vf + s2 * 0.05), maxf(vf, vf + s2 * 0.05), g + wy, g + wy + 1.5, MC_FRAME)
+				_kbox(wu - 1.8, wu + 1.8, minf(vf, vf + s2 * 0.09), maxf(vf, vf + s2 * 0.09), g + wy + 0.15, g + wy + 1.35, PAL_GLASS_DARK, _lit(wu + vf, g + wy))
+	# --- the flat back block
+	var back := _lpoly([[30.05, -9.0], [41.4, -9.0], [41.4, 9.0], [30.05, 9.0]])
+	_prism(back, g - 1.0, g + 8.0, MC_WALL, MC_CONCRETE.lightened(0.15), M_STONE, M_STONE)
+	for wu2: float in [32.5, 36.0, 39.5]:
+		for s3: float in [-1.0, 1.0]:
+			_kbox(wu2 - 1.2, wu2 + 1.2, minf(s3 * 9.0, s3 * 9.06), maxf(s3 * 9.0, s3 * 9.06), g + 2.0, g + 6.0, PAL_GLASS_DARK, _lit(wu2 * s3, g + 2.0))
+	# --- the twin pylons before the front, the bells between them, the emblem, the cross
+	for s4: float in [-1.0, 1.0]:
+		_kbox(-3.0, -2.0, minf(s4 * 0.6, s4 * 1.9), maxf(s4 * 0.6, s4 * 1.9), g + 3.45, g + 22.5, MC_CONCRETE)
+	for by: float in [16.0, 18.0, 20.0]:
+		_kbox(-2.75, -2.25, -0.6, 0.6, g + by, g + by + 0.25, MC_CONCRETE.darkened(0.15))
+		_kbox(-2.7, -2.3, -0.35, 0.35, g + by + 0.25, g + by + 1.1, MC_FRAME.darkened(0.25))
+	var em := _w(-3.05, 0.0)
+	_disc(Vector3(em.x, g + 11.0, em.y), Vector3(-MC_A.x, 0.0, -MC_A.y), 0.9, 10, MC_LIGHT)
+	_kbox(-2.6, -2.4, -0.1, 0.1, g + 21.0, g + 27.0, MC_LIGHT)
+	_kbox(-2.6, -2.4, -1.0, 1.0, g + 24.6, g + 24.85, MC_LIGHT)
+	_collide(outline)
+
+
 ## The Nożyk Synagogue (Synagoga Nożyków, ul. Twarda 6; Karol and Leandro Marconi, 1898-1902;
 ## burnt 1944, rebuilt 1977-1983; Warsaw's only pre-war synagogue still standing), a cream
 ## neo-Romanesque house of prayer in its courtyard south of Plac Grzybowski. The whole building as
@@ -31658,6 +31724,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_dzieciatka":
 		_build_dzieciatka(site)  # the whole brick Child Jesus church from photos, tower to the west, not the kit church
+		return
+	if site["key"] == "church_czestochowska":
+		_build_czestochowska(site)  # the modernist A-frame church and its pylons, from photos
 		return
 	if site["key"] == "church_cerkiew":
 		_build_cerkiew(site)  # the Basilians' church hall without the kit's onion dome
