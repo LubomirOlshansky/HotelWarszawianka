@@ -40,9 +40,10 @@ const BUDGET := {
 	"level26_club": 860,
 	"church_alberta": 950,  # 2026-11-14: the whole classicist frontage on Plac Teatralny, portico and two wings, from photos (measured 818)
 	"church_antoniego": 990,
-	"church_augustyn": 890,
-	"church_cerkiew": 410,
-	"church_czestochowska": 510,
+	"church_augustyn": 1750,  # 2026-11-14: the whole brick basilica and its 70 m tower (measured 1603)
+	"church_bazylianie": 1000,  # 2026-11-14: the Basilian monastery's street wing and back wings (measured 896)
+	"church_cerkiew": 410,  # 2026-11-14: the Basilians' church hall from LoD2 and the street front (measured 288)
+	"church_czestochowska": 620,  # 2026-11-14: the modernist A-frame church and its pylons from photos (measured 551)
 	"church_duch": 3300,  # 2026-11-14: the whole Holy Spirit church and both towers from photos (measured 3010)
 	"church_dzieciatka": 1800,  # 2026-11-14: the whole brick Child Jesus church from photos (measured 1594)
 	"church_jacek": 2800,  # 2026-11-14: the whole St Hyacinth church from photos (measured 2550)
@@ -51,13 +52,13 @@ const BUDGET := {
 	"church_karol": 1850,  # 2026-11-14: the whole classicist church on Chłodna, two west towers and the apse, from photos (measured 1693)
 	"church_katedra_polowa": 3200,  # 2026-11-14: the whole Field Cathedral from photos (measured 2917)
 	"church_miloserdzie": 640,  # 2026-11-14: the whole Divine Mercy church and its bell tower from photos (measured 560)
-	"church_narodzenia": 470,
+	"church_narodzenia": 1450,  # 2026-11-14: the whole Baroque church and its clock turret from photos (measured 1305)
 	"church_niepokalanego": 720,  # 2026-11-14: the whole Res Sacra Miser church from photos (measured 644)
 	"church_nozykow": 2900,  # 2026-11-14: the whole Nożyk Synagogue from photos (measured 2625)
 	"church_piotr_pawel": 1020,
 	"church_reformowany": 1150,  # 2026-11-14: the whole neo-Gothic church and its spire from photos (measured 1020)
 	"church_sw_marcin": 2400,  # 2026-11-14: the whole St Martin church and its tower from photos (measured 2043)
-	"church_trojca_praga": 410,
+	"church_trojca_praga": 520,  # 2026-11-14: Holy Trinity on Solec, temple front and crossing turret from photos (measured 469)
 	"church_zielonoswiatkowy": 1000,  # 2026-11-14: the whole modernist Pentecostal hall from photos (measured 919)
 	"church_zwycieska": 950,
 	"jezuici": 3800,  # 2026-11-13: the whole Jesuit church replaces LoD2 (nave, roofs, front, aisle, tower, turret)

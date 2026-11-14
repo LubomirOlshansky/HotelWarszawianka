@@ -51,7 +51,7 @@ Status as of 2026-11-01. "Kit model" = built by the church kit; "model" = its ow
 
 | Church (OSM name) | Kind | Centre (x, z) | Status |
 | --- | --- | --- | --- |
-| Cerkiew pw. Zaśnięcia Najświętszej Marii Panny | church | -1019, -1526 | kit model (`church_cerkiew`), 2026-11-01 |
+| Cerkiew pw. Zaśnięcia Najświętszej Marii Panny | church | -1019, -1526 | model from LoD2 and the street front (`church_cerkiew`, `_build_cerkiew`, spec `cerkiew.md`), 2026-11-14 |
 | Dom Zakonny Sióstr Franciszkanek Służebnic Krzyża | monastery | -790, -1557 | open: convent or monastery: plain block, a later pass |
 | Dom zakonny Księży Misjonarzy | monastery | -519, -547 | open: convent or monastery: plain block, a later pass |
 | Kaplica Kościoła Baptystów | chapel | -2255, -359 | open: small chapel: a later pass |
@@ -70,10 +70,10 @@ Status as of 2026-11-01. "Kit model" = built by the church kit; "model" = its ow
 | Kościół Wniebowzięcia Najświętszej Maryi Panny i świętego Józefa Oblubieńca | church | -582, -1036 | front on kept skin (`karmelici`) |
 | Kościół Zielonoświątkowy | church | -1890, 332 | model from photos (`church_zielonoswiatkowy`, `_build_zielonoswiatkowy`, spec `zielonoswiatkowy.md`), 2026-11-14 |
 | Kościół parafialny pw. Dzieciątka Jezus | church | -1825, 980 | model from photos (`church_dzieciatka`, `_build_dzieciatka`, spec `dzieciatka.md`), 2026-11-14 |
-| Kościół parafialny pw. Narodzenia Najświętszej Maryi Panny | church | -1969, -976 | kit model (`church_narodzenia`), 2026-11-01 |
+| Kościół parafialny pw. Narodzenia Najświętszej Maryi Panny | church | -1969, -976 | model from photos (`church_narodzenia`, `_build_narodzenia`, spec `narodzenia.md`), 2026-11-14 |
 | Kościół pw. Matki Boskiej Zwycięskiej | cathedral | 1971, -1373 | kit model (`church_zwycieska`), 2026-11-01 |
 | Kościół pw. Miłosierdzia Bożego i Świętej Faustyny | church | -2749, -693 | model from photos (`church_miloserdzie`, `_build_miloserdzie`, spec `miloserdzie.md`), 2026-11-14 |
-| Kościół pw. Świętego Augustyna | church | -2417, -1176 | kit model (`church_augustyn`), 2026-11-01 |
+| Kościół pw. Świętego Augustyna | church | -2417, -1176 | model from the description and LoD2 (`church_augustyn`, `_build_augustyn`, spec `augustyn.md`), 2026-11-14 |
 | Kościół pw. Świętego Ducha | church | -1020, -1836 | kit model (`church_duch`), 2026-11-01 |
 | Kościół pw. Świętego Jacka | church | -1011, -1913 | kit model (`church_jacek`), 2026-11-01 |
 | Kościół pw. Świętego Krzyża | church | -473, -525 | model on kept skin: baroque facade and towers (`sw_krzyz`) |
@@ -82,10 +82,10 @@ Status as of 2026-11-01. "Kit model" = built by the church kit; "model" = its ow
 | Kościół pw. Świętych Apostołów Piotra i Pawła | church | -1129, 830 | kit model (`church_piotr_pawel`), 2026-11-01 |
 | Kościół Świętego Antoniego Padewskiego | church | -1211, -978 | kit model (`church_antoniego`), 2026-11-01 |
 | Kościół Świętej Trójcy | church | -855, -511 | model (`trojca`, Zug's rotunda) |
-| Kościół Świętej Trójcy | church | 1071, 263 | kit model (`church_trojca_praga`) |
+| Kościół Świętej Trójcy na Solcu | church | 1071, 263 | model from photos (`church_trojca_praga`, `_build_trojca_solec`, spec `trojca_solec.md`), 2026-11-14 |
 | Kościół św. Brata Alberta i św. Andrzeja Apostoła | church | -1074, -1133 | model from photos (`church_alberta`, `_build_alberta`, spec `alberta.md`), 2026-11-14 |
-| Matki Bożej Częstochowskiej | church | 1132, 868 | kit model (`church_czestochowska`), 2026-11-01 |
-| Monaster Zaśnięcia Najświętszej Bogurodzicy i św. Jozafata biskupa i męczennika | monastery | -1025, -1518 | open: convent or monastery: plain block, a later pass |
+| Matki Bożej Częstochowskiej | church | 1132, 868 | model from photos (`church_czestochowska`, `_build_czestochowska`, spec `czestochowska.md`), 2026-11-14 |
+| Monaster Zaśnięcia Najświętszej Bogurodzicy i św. Jozafata biskupa i męczennika | monastery | -1025, -1518 | model from LoD2 and the street photos (`church_bazylianie`, `_build_bazylianie`, spec `bazylianie.md`), 2026-11-14: the street wing with the church's front, the back wings |
 | Parafia Świętej Teresy od Dzieciątka Jezus | church | 370, -579 | model (`teresy`, #225) |
 | Sala św. Faustyny | chapel | -2792, 1574 | open: small chapel: a later pass |
 | Synagoga Nożyków | synagogue | -1565, -229 | whole model from photos (`_build_nozyk`, spec `nozyk.md`), 2026-11-14; the kit's front faced east |
