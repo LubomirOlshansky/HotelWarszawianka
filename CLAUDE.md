@@ -73,6 +73,7 @@ Irreversible things, paid tools, device runs and store submissions wait for the 
 ```zsh
 tools/verify.sh [--quick|--ios|--only=a,b]   # the verification set, one PASS/FAIL table
 tools/shots.sh [--set=core|quick|names] [--size=2532x1170]   # phone-size screenshots
+tools/turntable.sh KEY [--looks=lit,flat,sil]   # one site alone from every side, one sheet (~50 s)
 cd game && godot --path . --disable-vsync -- --bench --nosave  # bench
 tools/export_ios.sh   # splits the map, prebuilds sectors, exports build/ios
 tools/export_android.sh [--skip-city|--apk]   # the signed Play AAB
@@ -84,10 +85,11 @@ tools/export_android.sh [--skip-city|--apk]   # the signed Play AAB
   standard library, a usage docstring. Checks are `game/tools/check_*.gd` printing `<name>: OK`
   and exiting 0/1; a new check joins `tools/verify.sh` in the same change. New test flags are
   parsed in `main.gd` and noted in the archive's flags table.
-- **Docs bookkeeping: BACKLOG** (fixed removed, found added), plus ONE plain line under the day
-  in `docs/CHANGELOG.md` only for a change the player or visitor can see (it feeds the live
-  /progress/ page), and the item's line ticked (or added) in ROADMAP "v1.0 checklist" in the
-  same PR, so progress stays checkable in one place. No progress-log row.
+- **Docs bookkeeping: one change note per pull request** (`docs/changes/YYYY-MM-DD-name.md`,
+  format in `docs/changes/README.md`): the plain line a player or visitor can see (it feeds the
+  live /progress/ page), what the change fixed and found for the BACKLOG, and the ROADMAP "v1.0
+  checklist" line it ticks or adds. A pull request does not edit `docs/CHANGELOG.md`,
+  `docs/BACKLOG.md` or `docs/ROADMAP.md`; the weekly fold moves the notes there.
 - **Architecture.** A new activity, text, call, map target, sound, saved value or per-frame system plugs into the owner
   named in `docs/architecture/extending.md`, never a private copy. A needed workaround is marked
   `# WORKAROUND(arch)` and gets a row in `docs/architecture/tech-debt.md`; a new script gets a row in
@@ -99,6 +101,10 @@ tools/export_android.sh [--skip-city|--apk]   # the signed Play AAB
 - **Definition of done** is light or full by change kind (docs/WORKFLOW.md): light for content,
   text, site, docs, polish; full (verify, shots, bench, `--ios`) for gameplay, geometry and
   anything per-frame. Name what only the phone can show.
+- **Landmark and building models.** Before the pull request, run `tools/turntable.sh KEY` for
+  every site built or changed, look at the sheet (`shots/turntable_KEY/KEY_turntable.png`: all
+  sides, lit, flat and silhouette, the top) and say in the PR what it showed. City shots come
+  after it, not instead of it (F, 2026-11-13).
 
 ## Git
 
