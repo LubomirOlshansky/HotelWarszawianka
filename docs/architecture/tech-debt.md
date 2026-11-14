@@ -32,8 +32,8 @@ architecture"); what was decided against is in [decisions.md](decisions.md).
 
 F picks what is built. Nothing below is started unless its state says so.
 
-**Review of 2026-11-14** (docs/design/tech-plans-review.md): it proposes TD-4 (a) with the
-ratchets next, then the rest of TD-1 (the priority table, one busy test), TD-10 in a planned pause
+**Review of 2026-11-14** (docs/design/tech-plans-review.md): it proposes TD-4 (a) next and the
+ratchets right after it, then the rest of TD-1 (the priority table, one busy test), TD-10 in a planned pause
 of the church work, TD-3's rules and TD-13 parked, TD-12 cut. The order above stands until F picks.
 
 ## The rows

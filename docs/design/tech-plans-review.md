@@ -63,7 +63,7 @@ the measurements give.
 | --- | --- | --- |
 | Architecture: safety net (TD-8, TD-14, TD-15) | done | done, with checks |
 | Architecture: activity kit (TD-1, TD-2, TD-16) | built, all 15 scripts | true. Left: `_free_block` (140 lines) and three variants (`_story_free`, `_world_free`, `_ev_free`) plus `_quest_running` still live in `main.gd`; the "who may interrupt whom" table is not built; 2 listeners of `card_pressed` remain (16 before) |
-| Architecture: offer pacer (TD-3) | step 3, "M2" | #774 moves 53 numbers into `game/data/pacing.json` with today's values. None of the pacer's three rules (quiet time, one offer at a time, variety) is built; they are five questions for F |
+| Architecture: offer pacer (TD-3) | step 3, "M2" | #774 moves 53 numbers into `game/data/pacing.json` with today's values. Of the pacer's rules, one offer at a time is the director's (`may_start` and the run notices of M1) and a shared gap between friends' calls exists (`calls.gap`, 60 s). Variety and a shared quiet time after a finish are not built; they are questions for F |
 | Architecture: marker registry (TD-13) | step 3 | not started |
 | Architecture: background rows | TD-11, TD-18, TD-20, TD-5 done | true. TD-4 (a), TD-10, TD-19, TD-22 open; TD-17 dropped by F |
 | Architecture: the measures | `main.gd` under 6,000; one busy list | `main.gd` 9,456 and rising; one list plus four variants |
@@ -91,8 +91,9 @@ list of CI steps removed real sources of conflicts.
   `other_started` and more). Several of them are the missing priority table written as single
   fields. If the table is not built now, the next activity adds hook thirty-one.
 - **"The offer pacer" is a name ahead of the thing.** #774 is a good, safe step (one file F can
-  tune) but it is not a pacer. If the row is marked done, the rules are lost. It should read
-  "TD-3 (a) numbers: done; (b) rules: not started, waits for F".
+  tune) and the director already keeps one offer at a time, but two of the row's rules are not
+  built: variety, and a shared quiet time after a finish. If the row is marked done, they are
+  lost. It should say which parts are done and that those two wait for F.
 - **TD-4 (a) is the best value on the page and sits under "any time".** The test harness is about
   2,300 lines of `main.gd`, it changes nothing a player sees, and `main.gd` changed in 46
   commits in four days, so every thread pays for its size.
@@ -222,7 +223,7 @@ here: nothing was run; no claim above is about how the game feels.
 | --- | --- | --- |
 | TD-12 one difficulty estimate | cut | the racers' design replaced it |
 | TD-3 (b) variety between callers | cut unless F asks | no complaint behind it |
-| TD-3 (b) quiet time, one offer at a time | park for F's feel of the first hour | play change |
+| TD-3 (b) a shared quiet time after a finish | park for F's feel of the first hour | play change |
 | TD-13 marker registry | park until after a phone build | no bug drives it |
 | TD-6 slot allocator | park until the next renter | cheap when needed |
 | Moving the race driver out of `traffic.gd` | park; write the seam into `city-ai.md` only | no race work is planned |
@@ -242,7 +243,7 @@ nothing a player feels, so it runs now. Part 2 is one sitting. Part 3 follows th
 | # | Lane | Item | Proof |
 | --- | --- | --- | --- |
 | 1 | map | **The bake chain makes main's map again**: the three causes in #776's note, and `build_sector` no longer depending on build order. Before any step that re-bakes | a from-scratch bake on the Mac equals main's map by `check_map_data.py` and the sector hashes |
-| 2 | architecture | After #774: **TD-4 (a)**, the test harness out of `main.gd`, with the **ratchets** in `check_architecture.py` at today's numbers (lines in `main.gd`, `_x_free` tests, `card_pressed` listeners) | every check and flag as before; the line count drops by about 2,300 and cannot rise |
+| 2 | architecture | After #774: **TD-4 (a)**, the test harness out of `main.gd`; then, in its own pull request, the **ratchets** in `check_architecture.py` at the new numbers (lines in `main.gd`, `_x_free` tests, `card_pressed` listeners) | every check and flag as before; the line count drops by about 2,300 and cannot rise |
 | 3 | architecture | **Finish TD-1**: the priority table (who may interrupt whom) in the director, `_free_block` and its variants down to one, the single-purpose hooks that the table replaces removed | old against new on the whole-game runs the missions port used |
 | 4 | landmarks | **TD-10**, the split of `landmarks.gd` by area, in a planned pause of the church thread of about an hour | `site_parity.py`: no vertex moves on 1,213 sites |
 | 5 | AI | **Honest gates**: the police soak with seeded dice and a pinned clock; a short seeded race in CI; the two failing marks as tech-debt rows; the seam between the two drivers written into `city-ai.md` | the soak passes ten runs in ten |
