@@ -17,6 +17,14 @@ extends SceneTree
 ##   E. what holds a challenge back, one by one (and Spacer's quiet), each released again;
 ##   F. Halina's roll-up for the guided first race: rolling up, the flash back, the start hold, declined, a job
 ##      on at the call;
+##   I-N (the gaps the deliberate breaks of rivals.gd found): I. the kit's fields and what setup connects
+##   (the flag, the HUD's button, bumps, the ladder's wallet, the dice); J. the start and the stages (the flag's
+##   colour and size, the held rival and ghost, the lamps, the route, the banner's colours, the clock, the place,
+##   a car in the air); K. the prompt's sight, the approach line, who can be challenged; L. the result (the rival
+##   let go, the escape bonus, the lose card that stays, the cool-downs, the first race's result); M. Halina's
+##   roll-up (from the air or a prompt, her pace, what stops her, the nudge, how near she stops); N. Trzy mosty's
+##   start look, Seba's line, the bridges counted from the first, Seba not home in the circle, and the autopilot's
+##   car (the tail, the ghost, the collisions).
 ##   G. a locked rival: the prompt says what is missing, a flash is refused; H. Trzy mosty at night: Seba at the
 ##      start, the marker, the final's stages, won and given up.
 ## Prints "check_rivals: OK (N checks; A-H, S s)" or one "  problem: ..." line per failed fact under
@@ -30,6 +38,8 @@ const Activities := preload("res://scripts/activities.gd")
 const Rivals := preload("res://scripts/rivals.gd")
 const Ladder := preload("res://scripts/ladder.gd")
 const Fakes := preload("res://tools/fakes.gd")
+const Beacon := preload("res://scripts/beacon.gd")
+const RaceSession := preload("res://scripts/race_session.gd")
 const FollowCamera := preload("res://scripts/follow_camera.gd")
 
 const DT := 1.0 / 60.0
@@ -53,7 +63,7 @@ const WIN_GREEN := Color("#56d68a")
 const LOSE_RED := Color("#e2574c")
 const LOCKED_GREY := Color("#9a93ab")
 const GOLD := Color("#ffcf3a")
-const PARTS := ["A", "B", "C", "D", "E", "F", "G", "H"]
+const PARTS := ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N"]
 const GROUNDED := ["Najpierw dokończ wyścig", "Finish the race first"]
 const HALINA_APPROACH := "Dziecko, nie siedź mi tak na ogonie, babcia się spieszy!"
 const HALINA_CHALLENGE := ["Spieszę się %s. Dogonisz babcię?", "Promocja na ogórki się kończy! Jedziemy %s!"]
@@ -78,6 +88,12 @@ class PlayHud extends Fakes.Hud:
 	var finals: Array[Vector2] = []
 	var arts := 0
 	var wallets: Array = []
+	## Each banner as [text, colour], every call.
+	var banner_cols: Array = []
+
+	func show_banner(text: String, a: Color) -> void:
+		super(text, a)
+		banner_cols.append([text, a])
 
 	func cards_up() -> bool:
 		return super() or map_open
@@ -211,11 +227,17 @@ func _run() -> void:
 	_part_run("F", _f_first)
 	_part_run("G", _g_locked)
 	_part_run("H", _h_final)
+	_part_run("I", _i_setup)
+	_part_run("J", _j_stages)
+	_part_run("K", _k_prompt)
+	_part_run("L", _l_result)
+	_part_run("M", _m_rollup)
+	_part_run("N", _n_final_drive)
 	for part: String in PARTS:
 		if (_only.is_empty() or part in _only) and not _marks.has(part):
 			problems.append("part %s did not run to its end (a script error?)" % part)
 	if problems.is_empty():
-		print("check_rivals: OK (%d checks; A-H, %.1f s)" % [_n, (Time.get_ticks_msec() - t0) / 1000.0])
+		print("check_rivals: OK (%d checks; A-N, %.1f s)" % [_n, (Time.get_ticks_msec() - t0) / 1000.0])
 		quit(0)
 	else:
 		print("check_rivals: PROBLEMS")
@@ -705,6 +727,9 @@ func _c_lose() -> void:
 	_ok(not _rv.racing() and not _rv.has_target(), "no longer racing")
 	_ok(_rv.busy() and _dir.current() == _rv, "the lose card still holds the kit")
 	_eq(_rv.first_result, "", "an ordinary race says nothing about the first race")
+	_run_frames(600)
+	_eq(int(_rv.state), 5, "the lose card is still up ten seconds on")
+	_ok(_hud.card_is(_rv), "the lose card is still the race's ten seconds on")
 	_hud.press(0)
 	_ended("OK on the lose card")
 	_ok(_rv.raced(), "a lost race counts as raced")
@@ -918,7 +943,9 @@ func _f_first() -> void:
 	_frame()
 	_rv.call_first()
 	_ok(_reach(1, 1500), "declined: the prompt")
-	_run_frames(560)
+	_run_frames(450)
+	_ok(not _bub.said.has(FIRST_NUDGE), "declined: no nudge before 8 s")
+	_run_frames(110)
 	_ok(_bub.said.has(FIRST_NUDGE), "declined: she nudges after a few seconds")
 	_eq(int(_rv.state), 1, "declined: still waiting")
 	_run_frames(700)
@@ -953,6 +980,7 @@ func _f_first() -> void:
 	_run_frames(2)
 	_ok(not _rv.first_waiting(), "a probe starts while she rolls up: she gives up")
 	_eq(_rv.first_result, "declined", "a probe starts while she rolls up: declined")
+	_ok(_rv._cooldown[HALINA] > 24.0, "giving up puts a 25 s cool-down on her (%.1f)" % _rv._cooldown[HALINA])
 	_eq(int(_rv.state), 0, "a probe starts while she rolls up: CRUISE")
 	_new_world(false)
 	_frame()
@@ -1025,6 +1053,22 @@ func _h_final() -> void:
 	_ok(_rv._beacon.visible and _rv._beacon.global_position.distance_to(_rv.final_route.start_pos) < 3.0, "the beacon stands at the start")
 	_eq(_hud.finals.back() if _hud.finals.size() > 0 else Vector2.INF, _start_xz(), "the minimap's diamond is at the start")
 	_ok(_rv._seba_waiting, "Seba waits at the start")
+	_eq(_rv._beacon._colour, GOLD, "the start marker's flag is gold")
+	_eq(_rv._beacon._ring_radius, 8.0, "the start marker's ring is 8 m")
+	_eq(_rv._beacon.global_position.y, _rv.final_route.start_pos.y, "the marker stands on the start")
+	_flying = true
+	_run_frames(30)
+	_eq(_rv.start_marker(), Vector2.INF, "flying: no start marker")
+	_flying = false
+	_run_frames(30)
+	_eq(_rv.start_marker(), _start_xz(), "landed: the marker is back")
+	# After what held it back goes, the marker is back at the next look (every 0.2 s), whenever that goes.
+	for k in 13:
+		_probe.phase = Activity.Phase.RUN
+		_run_frames(30 + k)
+		_probe.phase = Activity.Phase.IDLE
+		_run_frames(13)
+		_eq(_rv.start_marker(), _start_xz(), "the marker is back within 13 frames of the probe going (after %d frames on)" % (30 + k))
 	_probe.phase = Activity.Phase.RUN
 	_run_frames(30)
 	_eq(_rv.start_marker(), Vector2.INF, "another activity starts: the marker goes")
@@ -1065,6 +1109,11 @@ func _h_final() -> void:
 	_eq(_hud.status, "Uwaga…", "the countdown's hint")
 	_ok(_rv.has_target() and _dir.targeted() == _rv, "the final's target is the first bridge")
 	_eq(_rv.target_position(), cps[0]["pos"], "the target is the first checkpoint")
+	_ok(_rv._beacon.visible and Vector2(_rv._beacon.global_position.x - cps[0]["pos"].x, _rv._beacon.global_position.z - cps[0]["pos"].z).length() < 3.0,
+			"the final's flag stands at the first bridge, not at the stadium")
+	_eq(_rv._beacon._ring_radius, 14.0, "a bridge's ring is 14 m")
+	_eq(_rv._beacon._colour, GOLD, "the final's flag is gold")
+	_ok(_hud.routes_set > 0, "the final's way is on the minimap in the countdown")
 	_eq(_rv.target_colour(), GOLD, "the target is gold")
 	_ok(_rv.main_target(false), "the final is the main line's")
 	_eq(_rv.stop_spot(), INF3, "no stop ring")
@@ -1073,8 +1122,10 @@ func _h_final() -> void:
 	_ok(_hud.status_title == "MOST 1/3 · TRZY MOSTY" and (_hud.badge == "1ST" or _hud.badge == "2ND"), "the race's status line has the place (%s)" % _hud.badge)
 	# The three bridges and the finish, by putting the car on each (Seba cannot be there in the time).
 	for k in cps.size():
+		var routes0 := _hud.routes_set
 		_car.global_position = cps[k]["pos"]
 		_run_frames(20)
+		_ok(_hud.routes_set > routes0, "a new way is drawn on the minimap after bridge %d" % (k + 1))
 		_ok(_hud.toasts.has("MOST %d/3 · %s" % [k + 1, cps[k]["pl"]]), "bridge %d is counted and toasted" % (k + 1))
 		_ok(_rv.target_position() == (cps[k + 1]["pos"] if k + 1 < cps.size() else _rv.final_route.finish["pos"]), "the target moves on after bridge %d" % (k + 1))
 		_eq(int(_rv.state), 4, "still racing after bridge %d" % (k + 1))
@@ -1094,6 +1145,8 @@ func _h_final() -> void:
 	_ok(not _rv._beacon.visible, "the beacon is down")
 	_ok(not _rv.has_target() and _dir.targeted() == null, "no target")
 	_eq(_hud.arts, 1, "the card has the picture")
+	_eq(_rv._beacon._colour, PINK, "after the final the flag is the race's pink again")
+	_ok(_rv._cooldown[SEBA] > 24.0, "Seba has a 25 s cool-down (%.1f)" % _rv._cooldown[SEBA])
 	_hud.press(0)
 	_ended("OK after the final")
 	_ok(_rv.raced(), "the final counts as raced")
@@ -1101,7 +1154,9 @@ func _h_final() -> void:
 	# Given up.
 	_new_world(true, WIN_PACE, true)
 	_rv.preset_ladder(6)
+	_hud.show_card("INNA KARTA", "tekst", PackedStringArray(["OK"]), Color.WHITE)
 	_ok(_rv.start_final_now(0), "--trzy-mosty starts the final at once")
+	_ok(not _hud.card_showing(), "the final takes a card that was up down")
 	_run_frames(5)
 	_eq(int(_rv.state), 2, "the final is in its challenge")
 	_ok(_rv.final_on and _dir.current() == _rv, "the final is the director's current")
@@ -1121,7 +1176,399 @@ func _h_final() -> void:
 	_eq(_hud.status, "", "the status line is down")
 	_ok(not _rv._beacon.visible and _rv._ghost == null, "the beacon and the ghost are down")
 	_ok(not _rv.has_target(), "no target")
+	_run_frames(600)
+	_eq(int(_rv.state), 5, "the final's lose card is still up ten seconds on")
+	_ok(_hud.card_is(_rv), "the final's lose card is still the race's ten seconds on")
 	_cross()
 	_eq(int(_rv.state), 5, "the cross under the card does nothing")
 	_hud.press(0)
 	_ended("OK after the final given up")
+
+
+# --- shared by the gap parts -----------------------------------------------------------------------
+
+## The car out of reach of every rival: the autopilot off, standing, for `n` frames.
+func _stand(n: int) -> void:
+	_auto = false
+	_vel = Vector3.ZERO
+	_run_frames(n)
+
+
+## The car put `back` m behind rival `i`'s driver and `side` m to its side, moving at `speed`, every frame for `n`
+## frames (the autopilot's own place, moved about).
+func _keep_near(i: int, back: float, side: float, speed: float, n: int) -> void:
+	_auto = false
+	_vel = Vector3(speed, 0.0, 0.0)
+	for k in n:
+		var d = _rv._drivers[i]
+		var fwd := Vector3(-sin(d.yaw), 0.0, -cos(d.yaw))
+		_rv._follow(d.pos - fwd * back + Vector3.UP.cross(fwd) * side, d.yaw, speed)
+		_frame()
+
+
+func _xz(a: Vector3, b: Vector3) -> float:
+	return Vector2(a.x - b.x, a.z - b.z).length()
+
+
+## No lamp of any rival is lit.
+func _lamps_out() -> bool:
+	for lamps: Node3D in _rv._signals:
+		for n in ["brake", "left", "right", "flash"]:
+			if lamps.get_node(n).visible:
+				return false
+	return true
+
+
+# --- I. the kit's fields and what setup connects ---------------------------------------------------------
+
+func _i_setup() -> void:
+	_new_world(true, WIN_PACE)
+	_eq(_rv.colour, PINK, "the race's colour is pink")
+	_eq(_rv.dark, Color("#2b2c2f"), "the flag's dark is the race's")
+	_ok(_rv._beacon.waving, "the flag waves")
+	_eq(_rv._beacon.pattern, Beacon.Pattern.CHEQUER, "the flag is a chequered finish line")
+	_eq(_rv._beacon._colour, PINK, "the flag is pink")
+	_rv.preset_ladder(6)
+	# A bump is heard: the rival complains.
+	_traffic.bumped_driver.emit(_rv._drivers[HALINA])
+	_eq(_bub.said, ["Ej! Uważaj na lakier!"], "a bumped rival complains")
+	# The HUD's FLASH LIGHTS button.
+	_tail(HALINA)
+	_ok(_reach(1, 1500), "a prompt")
+	_hud.challenge_pressed.emit()
+	_eq(int(_rv.state), 2, "the HUD's FLASH LIGHTS button starts the race")
+	_eq(_car.flashes, 1, "the button flashes the lights")
+	# The dice are seeded with 7, so a world plays its races the same way each time. The seed is
+	# read rather than a first draw: how many draws the spawns take depends on the lane graph, which
+	# main moves.
+	_eq(int(_rv._rng.seed), 7, "the dice are seeded with 7")
+	_ok(_said_one_of(HALINA_CHALLENGE, _rv._finish["pl"]), "the challenge line is one of Halina's (%s)" % _bub.said.back())
+	_ok(_reach(4, 800), "the race")
+	var dice1: int = _rv._racer.dice
+	_hud.abort_pressed.emit()
+	_hud.press(0)
+	_rv.put_ahead(SLOIK)
+	_rv.tail = SLOIK
+	_auto = true
+	_ok(_reach(1, 1500), "a second prompt")
+	_rv.flash()
+	_ok(_reach(4, 800), "a second race")
+	_ok(_rv._racer.dice != dice1, "the second race has other dice than the first (%d, %d)" % [dice1, _rv._racer.dice])
+	# The ladder's wallet is heard: the pay that opens the next rung says so.
+	_new_world(false)
+	_wallet.ladder[Ladder.id_of(0)] = 1
+	_wallet.pay(0, 100, "test")
+	_ok(_hud.toasts.has("Nowy rywal: Słoik z Radomia"), "a pay that opens a rung toasts the new rival (%s)" % str(_hud.toasts))
+
+
+# --- J. the start and the stages -------------------------------------------------------------------------
+
+func _j_stages() -> void:
+	_race_on(HALINA, 6)
+	_eq(_rv._beacon._colour, PINK, "the race's flag is pink")
+	_eq(_rv._beacon._ring_radius, RaceSession.FINISH_RADIUS - 4.0, "the finish's flag is 12 m")
+	_ok(_rv._ghost != null and not _rv._ghost.held, "the ghost is let go at GO")
+	_ok(not _rv._drivers[HALINA].held, "the rival is let go at GO")
+	_ok(_rv._sig_on, "in the race the rival's lamps may be lit")
+	_ok(_hud.routes_set > 0, "the minimap's way is drawn")
+	var cols: Array = []
+	for b: Array in _hud.banner_cols:
+		if cols.is_empty() or cols[cols.size() - 1] != b:
+			cols.append(b)
+	for t in ["3", "2", "1"]:
+		_ok(cols.any(func(b: Array) -> bool: return b[0] == t and b[1] == Color.WHITE), "the countdown's %s is white" % t)
+	_ok(cols.any(func(b: Array) -> bool: return b[0] == "START!" and b[1] == WIN_GREEN), "START! is green")
+	var clock0: String = _hud.count
+	_run_frames(60)
+	_ok(_hud.count != clock0, "the race's clock runs (%s, %s)" % [clock0, _hud.count])
+	# The player's metres left are refreshed five times a second, the way redrawn as the car moves.
+	var routes0 := _hud.routes_set
+	_auto = false
+	_vel = Vector3(10.0, 0.0, 0.0)
+	var changes := 0
+	var last: float = _rv._player_left
+	for i in 60:
+		_frame()
+		if _rv._player_left != last:
+			changes += 1
+			last = _rv._player_left
+	_ok(changes >= 4, "the metres left are refreshed about five times a second (%d changes in a second)" % changes)
+	_ok(_hud.routes_set > routes0, "the minimap's way is redrawn as the car moves")
+	# The place: first when nearer the finish than the rival, second when farther; the hint gives the gap.
+	var fin: Vector3 = _rv._finish["pos"]
+	_vel = Vector3.ZERO
+	_car.global_position = fin + Vector3(50.0, 0.0, 0.0)
+	_run_frames(30)
+	_eq(int(_rv.state), 4, "50 m from the finish is not home")
+	_eq(_hud.badge, "1ST", "nearer the finish than the rival: first")
+	_ok(_hud.status.contains("Pani Halina") and _hud.status.contains(" za tobą"), "first: the hint says how far behind she is (%s)" % _hud.status)
+	_car.global_position = fin + Vector3(6000.0, 0.0, 0.0)
+	_run_frames(30)
+	_eq(_hud.badge, "2ND", "farther than the rival: second")
+	_ok(_hud.status.contains("Pani Halina") and _hud.status.contains(" przed tobą"), "second: the hint says she is ahead (%s)" % _hud.status)
+	# In the air the finish does not count; landed, it does.
+	_car.global_position = fin
+	_flying = true
+	_run_frames(20)
+	_eq(int(_rv.state), 4, "the car on the finish in the air does not win")
+	_flying = false
+	_run_frames(20)
+	_eq(int(_rv.state), 5, "landed on the finish, the race is won")
+
+	# The challenge and the countdown, stage by stage.
+	_new_world(true, WIN_PACE)
+	_rv.preset_ladder(6)
+	_tail(HALINA)
+	_reach(1, 1500)
+	_hud.show_card("INNA KARTA", "tekst", PackedStringArray(["OK"]), Color.WHITE)
+	_rv.escape_bonus = true
+	_rv.flash()
+	_ok(not _hud.card_showing(), "the race takes a card that was up down")
+	_ok(not _rv.escape_bonus, "an old escape is forgotten when a race starts")
+	_ok(_rv._drivers[HALINA].held, "the rival is held in the challenge")
+	_eq(_rv._beacon._colour, PINK, "the race's flag is pink from the challenge")
+	_reach(3, 400)
+	_run_frames(10)
+	_ok(not _rv._sig_on and _lamps_out(), "no lamp is lit in the countdown")
+	_eq(_hud.badge, "", "no place in the countdown")
+	_eq(_rv._beacon._ring_radius, RaceSession.FINISH_RADIUS - 4.0, "the finish's flag is 12 m in the countdown")
+	_ok(_rv._ghost != null and _rv._ghost.held, "the ghost waits for GO")
+	_ok(_rv._drivers[HALINA].held, "the rival waits for GO")
+	_car.global_position += Vector3(20.0, 0.0, 0.0)
+	_ok(_rv.drive_player(), "the countdown: the ghost drives the player")
+	_ok(_xz(_car.global_position, _rv._ghost.pos) < 0.5, "the countdown: the car is put where the ghost waits")
+	_eq(_car.collision_mask, 0, "a driven car has no collisions")
+	_run_frames(60)
+	_ok(_hud.routes_set > 0, "the way is on the minimap before GO")
+	# The start marker at night goes when a street race starts; the race's flag is pink.
+	_new_world(true, WIN_PACE, true)
+	_rv.preset_ladder(6)
+	_tail(SLOIK)
+	_until(func() -> bool: return _rv.start_marker() != Vector2.INF, 600, "the start marker")
+	_ok(_reach(1, 1500), "a prompt at night")
+	_ok(_rv.start_marker() != Vector2.INF, "the marker stays under a prompt")
+	_rv.flash()
+	_eq(_rv.start_marker(), Vector2.INF, "a street race takes the start marker down")
+	_eq(_hud.finals.back(), Vector2.INF, "and the minimap's diamond")
+	_ok(not _rv._seba_waiting, "and Seba is let go")
+	_reach(3, 400)
+	_run_frames(5)
+	_eq(_rv._beacon._colour, PINK, "the street race's flag is pink, not the final's gold")
+	_eq(_rv._beacon._ring_radius, 12.0, "and 12 m")
+	_ok(_xz(_rv._beacon.global_position, _rv._finish["pos"]) < 3.0, "and at the finish")
+	# The day under a prompt takes the marker down.
+	_new_world(true, WIN_PACE, true)
+	_rv.preset_ladder(6)
+	_tail(SLOIK)
+	_until(func() -> bool: return _rv.start_marker() != Vector2.INF, 600, "the start marker")
+	_ok(_reach(1, 1500), "a prompt at night, again")
+	_tod.mode = 0
+	_run_frames(40)
+	_eq(int(_rv.state), 1, "the prompt is still up")
+	_eq(_rv.start_marker(), Vector2.INF, "the day under a prompt takes the start marker down")
+
+
+# --- K. the prompt -----------------------------------------------------------------------------------------
+
+func _k_prompt() -> void:
+	# Sight: out of reach 1.0 s the prompt stays, back in reach the count starts again, 1.2 s and it goes.
+	_new_world(true, WIN_PACE)
+	_rv.preset_ladder(6)
+	_tail(HALINA)
+	_ok(_reach(1, 1500), "a prompt")
+	_stand(60)
+	_eq(int(_rv.state), 1, "out of reach for 1.0 s the prompt is still up")
+	_auto = true
+	_run_frames(5)
+	_stand(60)
+	_eq(int(_rv.state), 1, "out of reach again for 1.0 s after being in reach the prompt is still up")
+	_run_frames(40)
+	_eq(int(_rv.state), 0, "out of reach for 1.4 s the prompt goes")
+	_eq(_hud.challenge, "", "the prompt is off the HUD")
+	# The approach line comes only every 40 s.
+	_stand(840)
+	_auto = true
+	_ok(_reach(1, 600), "a second prompt behind the same rival")
+	_eq(_bub.said.count(HALINA_APPROACH), 1, "the approach line is not said again 15 s later")
+	# In the air the prompt goes.
+	_flying = true
+	_run_frames(100)
+	_eq(int(_rv.state), 0, "a player who takes off loses the prompt")
+	_eq(_hud.challenge, "", "and the HUD's challenge")
+	# Standing still behind the rival is no challenge.
+	_new_world(true, WIN_PACE)
+	_rv.preset_ladder(6)
+	_tail(HALINA)
+	_ok(_reach(1, 1500), "a prompt, for the car to stand")
+	_keep_near(HALINA, 9.0, 0.0, 0.0, 100)
+	_eq(int(_rv.state), 0, "a car standing right behind the rival is no challenge")
+	# From beside is none either.
+	_new_world(true, WIN_PACE)
+	_rv.preset_ladder(6)
+	_tail(HALINA)
+	_ok(_reach(1, 1500), "a prompt, for the car to move beside")
+	_keep_near(HALINA, 5.0, 6.0, 8.0, 100)
+	_eq(int(_rv.state), 0, "a car 6 m to the side of the rival's line is no challenge")
+	# Control: behind in its lane and moving it is.
+	_new_world(true, WIN_PACE)
+	_rv.preset_ladder(6)
+	_tail(HALINA)
+	_ok(_reach(1, 1500), "a prompt, for the control")
+	_keep_near(HALINA, 9.0, 0.0, 8.0, 100)
+	_eq(int(_rv.state), 1, "a car right behind the rival and moving keeps the prompt")
+	# A prompt that ended with sight partly lost: a new prompt starts its count afresh.
+	_new_world(true, WIN_PACE)
+	_tail(MIKE)
+	_ok(_reach(1, 1500), "a locked prompt behind Mike")
+	_stand(60)
+	_rv.flash()
+	_eq(int(_rv.state), 0, "the flash at a locked rival is refused")
+	_rv.put_ahead(HALINA)
+	_rv.tail = HALINA
+	_auto = true
+	_ok(_reach(1, 1500), "a prompt behind Halina")
+	_eq(_rv.rival, HALINA, "it is Halina's")
+	_stand(60)
+	_eq(int(_rv.state), 1, "the new prompt survives 1.0 s out of reach (the old count is forgotten)")
+
+
+# --- L. the result -----------------------------------------------------------------------------------------
+
+func _l_result() -> void:
+	_race_on(HALINA, 6)
+	_ok(_rv._sig_on, "the lamps may be lit in the race")
+	_rv.escape_bonus = true
+	_finish_now()
+	_ok(_reach(5, 60), "won")
+	_run_frames(2)
+	_ok(not _rv._sig_on and _lamps_out(), "after the race every lamp is out")
+	_eq(_wallet.payments, [[72, 20, "race"]], "an escape in the race pays the stake and a fifth")
+	_ok(_hud.body.contains("+20 % ZA UCIECZKĘ"), "the card says so (%s)" % _hud.body)
+	_ok(_hud.body_en.contains("+20 % FOR THE ESCAPE"), "and in English")
+	var d = _rv._drivers[HALINA]
+	_ok(not d.held, "the rival is let go after the race")
+	_eq(d.speed_factor, 1.08, "the rival cruises at the town's pace again")
+	_eq(d.race_top, 0.0, "the rival is out of racer mode")
+	_ok(_rv._cooldown[HALINA] > 24.0, "the rival has a 25 s cool-down (%.1f)" % _rv._cooldown[HALINA])
+	_hud.press(0)
+	_ended("OK after the escape")
+
+
+# --- M. Halina's roll-up -------------------------------------------------------------------------------------
+
+func _m_rollup() -> void:
+	_new_world(false)
+	_frame()
+	_rv.flying = true
+	_ok(not _rv.call_first(), "nobody rolls up while the player flies")
+	_ok(not _rv.first_waiting(), "and nobody is waiting")
+	_rv.flying = false
+	_new_world(true, WIN_PACE)
+	_rv.preset_ladder(6)
+	_tail(HALINA)
+	_ok(_reach(1, 1500), "a prompt")
+	_ok(not _rv.call_first(), "nobody rolls up under a prompt")
+	_ok(not _rv.first_waiting(), "and nobody is waiting")
+	_new_world(false)
+	_frame()
+	_ok(_rv.call_first(), "call_first()")
+	_eq(_rv._drivers[HALINA].speed_factor, 1.3, "she rolls up quickly")
+	_eq(_rv._drivers[HALINA].accel_factor, 1.6, "and takes off fast")
+	_run_frames(30)
+	_flying = true
+	_run_frames(2)
+	_ok(not _rv.first_waiting(), "the player takes off: she gives up")
+	_eq(_rv.first_result, "declined", "the air: declined")
+	_new_world(false)
+	_frame()
+	_rv.call_first()
+	_run_frames(30)
+	_calls.target = true
+	_run_frames(2)
+	_ok(not _rv.first_waiting(), "a rescue starts: she gives up")
+	_eq(_rv.first_result, "declined", "the rescue: declined")
+	# She flashes only within 14 m and behind the car.
+	_new_world(false)
+	_frame()
+	_rv.call_first()
+	var spot: Array = _rv._spot_behind(20.0)
+	_ok(not spot.is_empty(), "a place 20 m behind the car")
+	_traffic.teleport(_rv._drivers[HALINA], spot[0], spot[1], spot[2])
+	_run_frames(3)
+	_ok(not _rv._call_up and int(_rv.state) == 0, "20 m behind the car she has not flashed")
+	_new_world(false)
+	_frame()
+	_rv.call_first()
+	spot = _rv._spot_behind(10.0)
+	_traffic.teleport(_rv._drivers[HALINA], spot[0], spot[1], spot[2])
+	_run_frames(3)
+	_ok(_rv._call_up and int(_rv.state) == 1, "10 m behind the car she flashes")
+	_new_world(false)
+	_frame()
+	_rv.call_first()
+	_rv.put_ahead(HALINA, 8.0)
+	_run_frames(3)
+	_ok(not _rv._call_up and int(_rv.state) == 0, "8 m in front of the car she has not flashed")
+	# Won: the guided first race's result is kept.
+	_new_world(false)
+	_frame()
+	_rv.call_first()
+	_ok(_reach(1, 1500), "the first race's prompt")
+	_run_frames(10)
+	_rv.flash()
+	_ok(_reach(4, 800), "the first race")
+	_finish_now()
+	_ok(_reach(5, 60), "the first race is won")
+	_eq(_rv.first_result, "won", "the guided first race's result is kept")
+	_ok(not _rv.first_race, "and it is over")
+
+
+# --- N. Trzy mosty's start look and the autopilot's car --------------------------------------------------------
+
+func _n_final_drive() -> void:
+	# Seba's line when the car is near the start (not in its ring): once, and again after 30 s.
+	_new_world(false, WIN_PACE, true)
+	_rv.preset_ladder(6)
+	_run_frames(30)
+	_car.global_position = _rv.final_route.start_pos + Vector3(30.0, 0.0, 0.0)
+	_run_frames(1200)
+	_eq(_bub.said.count(SEBA_WAIT), 1, "Seba says his wait line once in 20 s")
+	_eq(int(_rv.state), 0, "outside the ring the final does not start")
+	_run_frames(700)
+	_eq(_bub.said.count(SEBA_WAIT), 2, "and again after 30 s")
+	# The bridges before the one it starts on are counted.
+	_new_world(true, WIN_PACE, true)
+	_rv.preset_ladder(6)
+	_ok(_rv.start_final_now(2), "the final from the second bridge")
+	_eq(_rv._cp, 1, "one bridge is counted before it")
+	_ok(_reach(3, 400), "the countdown")
+	_run_frames(2)
+	_eq(_hud.status_title, "MOST 2/3 · TRZY MOSTY", "the status line names the second bridge")
+	# Seba inside the stadium's circle is not home, but at the end of his plan.
+	_ok(_reach(4, 400), "the race")
+	_run_frames(10)
+	var last: int = _rv._race_session.legs.size() - 1
+	_rv._racer.leg = last
+	var at: Vector2 = _rv._race_session.at
+	var hit := _graph.snap(at, 8.0, Vector2.ZERO, true)
+	_ok(not hit.is_empty(), "a lane inside the finish's circle")
+	if not hit.is_empty():
+		_traffic.teleport(_rv._drivers[SEBA], hit[0], hit[1], hit[2])
+		_run_frames(5)
+		_ok(_xz(_rv._drivers[SEBA].pos, Vector3(at.x, 0.0, at.y)) < _rv._race_session.radius, "Seba is inside the finish's circle")
+		_ok(not _rv._racer.home and int(_rv.state) == 4, "Seba in the circle, off the line his plan ends on, is not home")
+	# The autopilot's car: the tail behind a prompt, the ghost, the collisions.
+	_new_world(true, WIN_PACE)
+	_rv.preset_ladder(6)
+	_tail(HALINA)
+	_ok(_reach(1, 1500), "a prompt")
+	_ok(_rv.drive_player(), "the autopilot drives the car behind the rival under a prompt")
+	var d9: float = _xz(_car.global_position, _rv._drivers[HALINA].pos)
+	_ok(d9 > 8.5 and d9 < 9.5, "9 m behind the rival (%.2f)" % d9)
+	_eq(_car.collision_mask, 0, "a driven car has no collisions")
+	_rv.flash()
+	_ok(_reach(4, 800), "the race")
+	_run_frames(30)
+	_traffic.remove(_rv._ghost)
+	_rv._ghost = null
+	_ok(_rv.drive_player(), "a race without its ghost: the director still slides the car")
