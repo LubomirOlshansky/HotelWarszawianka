@@ -28,7 +28,8 @@ const PALETTE := "res://data/object_palette.json"
 ## Hard, Smash, Push, Ride, Ghost.
 const ANSWERS := ["H", "S", "P", "R", "G"]
 
-## {"list": Array[StringName] in the file's order, "answer": {StringName: String}}.
+## {"list": Array[StringName] in the file's order, "answer": {StringName: String},
+## "planned": {StringName: String}}.
 static var _table: Dictionary = _load()
 ## Step 2 (the wall builder): the palette's barrier types, {"list": Array[StringName] in the
 ## file's order, "row": {StringName: Dictionary}}, each row read-only. city_barriers.gd draws them;
@@ -46,6 +47,12 @@ static func classes() -> Array[StringName]:
 ## The answer a class gets ("H", "S", "P", "R" or "G"); "" for a class not in the palette.
 static func answer(cls: StringName) -> String:
 	return str((_table["answer"] as Dictionary).get(cls, ""))
+
+
+## Step 4: the answer the research plans for a class (the palette's `planned`, drivable-city.md 3),
+## for the collider view (collider_view.gd); its `answer` when the row has none.
+static func planned(cls: StringName) -> String:
+	return str((_table["planned"] as Dictionary).get(cls, answer(cls)))
 
 
 static func is_known(cls: StringName) -> bool:
@@ -90,10 +97,11 @@ static func _load_types() -> Dictionary:
 static func _load() -> Dictionary:
 	var list: Array[StringName] = []
 	var answers := {}
+	var plans := {}
 	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(PALETTE)) if FileAccess.file_exists(PALETTE) else null
 	if not parsed is Dictionary or not (parsed as Dictionary).get("classes") is Array:
 		push_error("solidity: %s is missing or has no \"classes\" list" % PALETTE)
-		return {"list": list, "answer": answers}
+		return {"list": list, "answer": answers, "planned": plans}
 	for row: Variant in parsed["classes"]:
 		var id := StringName(str((row as Dictionary).get("id", ""))) if row is Dictionary else &""
 		var ans := str((row as Dictionary).get("answer", "")) if row is Dictionary else ""
@@ -102,4 +110,6 @@ static func _load() -> Dictionary:
 			continue
 		list.append(id)
 		answers[id] = ans
-	return {"list": list, "answer": answers}
+		var plan := str((row as Dictionary).get("planned", ans))
+		plans[id] = plan if plan in ANSWERS else ans
+	return {"list": list, "answer": answers, "planned": plans}

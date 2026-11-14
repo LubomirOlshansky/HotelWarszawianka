@@ -29,6 +29,7 @@ chatter              quick
 classic              local     slow
 coffee               local     slow
 coffeerun            quick
+colliders            smoke     slow
 cost                 smoke
 couriers             quick
 courts               roads     slow
