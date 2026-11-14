@@ -3473,8 +3473,8 @@ verdict) have no collider. `city_barriers.gd` files their segments (ends, ground
 height, run along the line, panels of 2 m) in the sector root's `soft` meta instead, so the
 prebuilt scenes carry the same list; `soft_things.gd` sweeps the car's box against them (8 m
 cells) and takes 6 % of the speed a fence panel, 10 % a hedge panel, at most 15 % in 0.5 s
-(`solidity.gd` `SMASH_COST`). `check_solids` TOTAL 53,183 → 46,258 faces (-6,925, the six
-sectors' S lines); `--no-soft` gives main's faces back on both paths (`harden` rebuilds them
+(`solidity.gd` `SMASH_COST`). `check_solids` TOTAL 53,183 → 46,578 faces (-6,605, the six
+sectors' S lines less the ones kept hard below); `--no-soft` gives main's faces back on both paths (`harden` rebuilds them
 with the builder's own `slab_faces` / `rail_faces`). Sloppy set A (prebuilt, Cruise): fence
 contacts 47 → 26 (the 18 on S `rail_street` fences gone; the 26 left are H: 20 `rail_tram`
 railings by the tram bed, 6 `guard_rail`), 24 smashes (77 panels, speed kept 0.92, 0 dead
@@ -3485,12 +3485,22 @@ verdicts on both paths: 1,661 ok (5 after a drop of over 2.5 m it climbed back f
 (something hard before the line, or another level), 2 traps (the railing of the tram stop on
 Jerozolimskie by Centrum, -1329,638: the car lands on the tram island between the platforms' sides
 and the hard tram railings; the Vistula boulevard's railing at Powiśle, 95,-1134: the car lands on
-the promenade a level down), 0 falls, 0 sinks, 0 in the water. Both left soft (an Open Question of step 7).
-The car rays of `check_landmarks` (a car from 220 m out in 12 directions) now pass the S lines:
-a ray a soft line stops counts as stopped, as before, and the 12 sites with such rays are named
-(Grób Nieznanego Żołnierza 3 of 12, from the Saxon Garden's side). Bench (llvmpipe, about 28
-physics steps a rendered frame): draw calls 149 → 148 runtime, 148 → 148 prebuilt; `soft things`
-0.05 / 0.04 ms a frame, about 0.002 ms a physics step.
+the promenade a level down), 0 falls, 0 sinks, 0 in the water. Both stay hard by id:
+`game/data/road_objects.json` `hard_lines` ({stable id: reason}, kept by hand, carried over by
+`street_pass.py --apply`, each id an S fence or hedge of the map by `check_object_overrides`);
+the `--wander` run after it, prebuilt: 1,635 lines, 1,573 ok, 62 miss, 0 traps. Landmarks: an S
+line inside or within 10 m of a carded landmark site's ring (`landmarks.gd` `sites` "zone") stays
+hard (`city_barriers.gd` `LANDMARK_GUARD`: 367 lines, 17.7 km of 5,405 lines, 188 km). That does
+not close every site as on main: `check_landmarks`' car rays start 220 m out and count anything
+they meet, and 15 of main's stopped rays were stopped by a fence or hedge 13 to 220 m from the
+site (the Saxon Garden's railings and hedge before Grób Nieznanego Żołnierza, Westynka's garden
+hedges, a park railing before Małpi Love), so those 15 lines (1.6 km) are `hard_lines` too, a
+reason each; `check_landmarks` (unchanged) gives main's ray counts on both paths. Bench (llvmpipe, about 28
+physics steps a rendered frame; against merged main 1fa1fd262, the same map): draw calls 148 → 148
+runtime, 149 → 149 prebuilt; objects 274 → 268 and 269 → 274, with the main and shadow passes'
+objects the same (59 and 39 prebuilt; 59 → 58 main pass runtime): the totals move outside the two
+3D passes, in both directions, run to run; `soft things` 0.04 ms a frame on both paths, about
+0.002 ms a physics step. The debris particles are one pooled node, made at the first burst.
 
 **4. Far levels: measured, not built.** The camera is orthographic: every metre on screen is the
 same size, so nothing in the view is far. In every probe view the sectors drawn have their ground
