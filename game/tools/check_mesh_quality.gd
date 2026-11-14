@@ -41,6 +41,7 @@ const BUDGET := {
 	"church_alberta": 950,  # 2026-11-14: the whole classicist frontage on Plac Teatralny, portico and two wings, from photos (measured 818)
 	"church_antoniego": 990,
 	"church_augustyn": 1750,  # 2026-11-14: the whole brick basilica and its 70 m tower (measured 1603)
+	"church_rodziny_maryi": 720,  # 2026-11-14: the sisters' long house, its middle block and annex (measured 622)
 	"church_dominikanie": 600,  # 2026-11-14: the Dominican priory's wings round the cloister (measured 492)
 	"church_bazylianie": 1000,  # 2026-11-14: the Basilian monastery's street wing and back wings (measured 896)
 	"church_cerkiew": 410,  # 2026-11-14: the Basilians' church hall from LoD2 and the street front (measured 288)

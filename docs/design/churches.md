@@ -89,7 +89,7 @@ Status as of 2026-11-01. "Kit model" = built by the church kit; "model" = its ow
 | Parafia Świętej Teresy od Dzieciątka Jezus | church | 370, -579 | model (`teresy`, #225) |
 | Sala św. Faustyny | chapel | -2792, 1574 | open: small chapel: a later pass |
 | Synagoga Nożyków | synagogue | -1565, -229 | whole model from photos (`_build_nozyk`, spec `nozyk.md`), 2026-11-14; the kit's front faced east |
-| Zgromadzenie Sióstr Franciszkanek Rodziny Maryi | religious | -2617, -739 | open: convent or monastery: plain block, a later pass |
+| Zgromadzenie Sióstr Franciszkanek Rodziny Maryi | religious | -2617, -739 | model from LoD2 and two photos (`church_rodziny_maryi`, `_build_rodziny_maryi`, spec `rodziny_maryi.md`), 2026-11-14: the long banded peach house, its blind windows and the taller middle block |
 
 Also on the map (no model): the Archikatedra św. Jana (`archikatedra`, front on the kept skin,
 PR #167) and the Barbican's neighbours are the Old Town lane's; Praga's cathedral (Bazylika

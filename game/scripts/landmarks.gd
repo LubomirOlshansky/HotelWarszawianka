@@ -798,6 +798,7 @@ const INFO := {
 	"church_trojca_praga": ["Kościół Świętej Trójcy na Solcu", "Klasycystyczny kościół z wieżyczką.", "A classicist church with a bell turret."],
 	"church_czestochowska": ["Kościół Matki Bożej Częstochowskiej", "Modernistyczny kościół z dachem do ziemi.", "A modernist church with a roof down to the ground."],
 	"church_zwycieska": ["Kościół Matki Boskiej Zwycięskiej", "Kościół parafialny z dwiema wieżami.", "A parish church with two towers."],
+	"church_rodziny_maryi": ["Siostry Rodziny Maryi", "Dom zgromadzenia sióstr franciszkanek Rodziny Maryi.", "The house of the Franciscan Sisters of the Family of Mary."],
 	"church_dominikanie": ["Klasztor Dominikanów", "Klasztor dominikanów przy kościele św. Jacka.", "The Dominican priory beside St Hyacinth's."],
 	"church_bazylianie": ["Klasztor Bazylianów", "Klasztor bazylianów z frontem cerkwi przy Miodowej.", "The Basilian monastery with the church's front on Miodowa."],
 	"church_cerkiew": ["Cerkiew Zaśnięcia Matki Bożej", "Greckokatolicka cerkiew bazylianów przy Miodowej.", "The Basilians' Greek Catholic church on Miodowa."],
@@ -20766,6 +20767,85 @@ func _build_dominikanie(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The house of the Franciscan Sisters of the Family of Mary (Zgromadzenie Sióstr Franciszkanek
+## Rodziny Maryi): a long low classicist house in warm peach plaster, banded all over, its street
+## end with tall blind windows under small attic windows, a granite plinth and dark hipped roofs;
+## the taller middle block of two storeys and a low annex on its west side. A model that replaces
+## the plain OpenStreetMap block (building 3328; no landmark until 2026-11-14). From two Mapillary
+## photos of 2020 on the street at its north end (refs/rodziny, never shipped), the OSM outline and
+## GUGiK's LoD2 (over the ground: the end wings' eaves 6.4 and ridges 9.4, the middle block's
+## eaves 9.4 and ridge 11.4, the annex 5.4). Spec docs/landmarks/specs/rodziny_maryi.md.
+## Frame: origin at the street end's west corner, u along that end, v along the house away from the
+## street.
+const RM_O := Vector2(-2631.6, -759.0)
+const RM_A := Vector2(0.934, -0.356)
+const RM_WALL := Color("#e6c2a2")      ## the warm peach plaster (photos)
+const RM_PANEL := Color("#d9b292")     ## the blind windows' recesses
+const RM_TRIM := Color("#efd9c3")      ## cornice, sills
+const RM_BASE := Color("#b5a48f")      ## the granite plinth
+const RM_ROOF := Color("#4d5257")      ## the dark sheet roofs
+
+
+## One wall of the house from p to q (local metres), its outside on the left of p→q: panes every
+## `step` metres on each sill height in `rows` (absolute), `w` by `h`. Puts the house's frame back.
+func _rm_side(p: Vector2, q: Vector2, step: float, rows: Array, w: float, h: float) -> void:
+	var n := kit_front(_w(p.x, p.y), _w(q.x, q.y))
+	var k := maxi(1, floori(n / step))
+	var cols: Array = []
+	for i in k:
+		cols.append((float(i) + 0.5) * n / float(k))
+	kit_panes(cols, rows, w, h, PAL_GLASS_DARK, 0.05)
+	kit_front(RM_O, RM_O + RM_A)
+
+
+func _build_rodziny_maryi(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(RM_O, RM_O + RM_A)
+	_g = _ground_under(outline)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	_mode = M_STONE
+	# --- the two end wings: walls to 21, hipped roofs to 24
+	for wing: Array in [[0.0, 13.0], [34.5, 49.4]]:
+		var v0: float = wing[0]
+		var v1: float = wing[1]
+		var r := _lpoly([[0.05, v0], [13.55, v0], [13.55, v1], [0.05, v1]])
+		_prism(r, g - 1.0, g + 6.4, RM_WALL, none, M_STONE)
+		kit_ledge_ring(r, g + 6.0, 0.4, RM_TRIM, 0.2)
+		kit_ledge_ring(r, g - 1.0, 1.6, RM_BASE, 0.06)
+		_hip(6.8, (v0 + v1) * 0.5, 6.75, (v1 - v0) * 0.5, g + 6.4, 3.0, RM_ROOF)
+	# --- the middle block: two storeys, walls to 24, a hipped roof to 26; the low annex west
+	var mid := _lpoly([[-0.9, 12.95], [14.5, 12.95], [14.5, 34.55], [-0.9, 34.55]])
+	_prism(mid, g - 1.0, g + 9.4, RM_WALL, none, M_STONE)
+	kit_ledge_ring(mid, g + 9.0, 0.4, RM_TRIM, 0.2)
+	kit_ledge_ring(mid, g - 1.0, 1.65, RM_BASE, 0.06)
+	kit_ledge_ring(mid, g + 4.4, 0.25, RM_TRIM, 0.1)
+	_hip(6.8, 23.75, 7.7, 10.8, g + 9.4, 2.0, RM_ROOF)
+	_kbox(-4.0, -0.85, 18.7, 28.3, g - 1.0, g + 5.4, RM_WALL.darkened(0.04))
+	# --- the street end: banded plaster, five tall blind windows, small attic windows over them
+	kit_front(_w(13.55, 0.0), _w(0.05, 0.0))
+	kit_face(0.0)
+	kit_bands(0.0, 13.5, g + 0.6, g + 5.9, 0.55, RM_WALL)
+	for k in 5:
+		var bu := 1.55 + 2.6 * float(k)
+		_kbox(bu - 0.7, bu + 0.7, -0.05, 0.04, g + 1.1, g + 4.4, RM_PANEL)
+		_kbox(bu - 0.85, bu + 0.85, -0.05, 0.16, g + 0.95, g + 1.1, RM_TRIM)
+	kit_panes([1.55, 4.15, 6.75, 9.35, 11.95], [g + 4.9], 0.8, 0.75, PAL_GLASS_DARK, 0.05)
+	kit_front(RM_O, RM_O + RM_A)
+	# --- panes on the other sides: the end wings' long sides and far end, the middle's two storeys
+	_rm_side(Vector2(0.05, 0.0), Vector2(0.05, 13.0), 2.6, [g + 1.3], 1.2, 2.6)
+	_rm_side(Vector2(13.55, 13.0), Vector2(13.55, 0.0), 2.6, [g + 1.3], 1.2, 2.6)
+	_rm_side(Vector2(0.05, 34.5), Vector2(0.05, 49.4), 2.6, [g + 1.3], 1.2, 2.6)
+	_rm_side(Vector2(13.55, 49.4), Vector2(13.55, 34.5), 2.6, [g + 1.3], 1.2, 2.6)
+	_rm_side(Vector2(0.05, 49.4), Vector2(13.55, 49.4), 2.6, [g + 1.3], 1.2, 2.6)
+	_rm_side(Vector2(-0.9, 28.3), Vector2(-0.9, 34.55), 2.6, [g + 1.2, g + 5.2], 1.2, 2.4)
+	_rm_side(Vector2(-0.9, 12.95), Vector2(-0.9, 18.7), 2.6, [g + 1.2, g + 5.2], 1.2, 2.4)
+	_rm_side(Vector2(-0.9, 18.7), Vector2(-0.9, 28.3), 2.6, [g + 5.8], 1.2, 2.2)
+	_rm_side(Vector2(14.5, 34.55), Vector2(14.5, 12.95), 2.7, [g + 1.2, g + 5.2], 1.2, 2.4)
+	_rm_side(Vector2(-4.0, 18.7), Vector2(-4.0, 28.3), 3.2, [g + 1.2], 1.2, 2.4)
+	_collide(outline)
+
+
 ## The Nożyk Synagogue (Synagoga Nożyków, ul. Twarda 6; Karol and Leandro Marconi, 1898-1902;
 ## burnt 1944, rebuilt 1977-1983; Warsaw's only pre-war synagogue still standing), a cream
 ## neo-Romanesque house of prayer in its courtyard south of Plac Grzybowski. The whole building as
@@ -32135,6 +32215,8 @@ const CHURCHES := [
 			"fill": 0.9, "style": "neoclassical", "wall": "#ebe5d7", "roof": "#5d6268", "towers": 0, "cap": "none"},
 	{"key": "church_dominikanie", "at": Vector2(-961.0, -1965.0), "o": Vector2(-972.6, -1973.6), "out": Vector2(-0.710, -0.704), "L": 62.0, "W": 13.8,
 			"fill": 0.8, "style": "baroque", "wall": "#e6d4a6", "roof": "#97594a", "towers": 0, "cap": "none"},
+	{"key": "church_rodziny_maryi", "at": Vector2(-2617.0, -739.0), "o": Vector2(-2625.3, -761.4), "out": Vector2(-0.356, -0.934), "L": 13.5, "W": 49.4,
+			"fill": 0.9, "style": "neoclassical", "wall": "#e6c2a2", "roof": "#4d5257", "towers": 0, "cap": "none"},
 	{"key": "church_nozykow", "at": Vector2(-1569.1, -228.0), "o": Vector2(-1546.1, -229.5), "out": Vector2(0.9975, -0.0712), "L": 16.4, "W": 11.6,
 			"fill": 0.78, "style": "romanesque", "wall": "#d9c9a3", "roof": "#6f7a76", "towers": 0, "cap": "none"},
 ]
@@ -32205,6 +32287,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_czestochowska":
 		_build_czestochowska(site)  # the modernist A-frame church and its pylons, from photos
+		return
+	if site["key"] == "church_rodziny_maryi":
+		_build_rodziny_maryi(site)  # the Franciscan sisters' long peach house
 		return
 	if site["key"] == "church_dominikanie":
 		_build_dominikanie(site)  # the Dominican priory's wings round the cloister
