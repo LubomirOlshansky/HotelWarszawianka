@@ -1273,6 +1273,10 @@ for s in $want; do
 		trendjob) check trendjob '^check_trend_job:' --script res://tools/check_trend_job.gd ;;
 		# DEMO 6.3: the second słoiki station (Dworzec Gdański) and the Łazienki peacock rescue.
 		rescues) check rescues '^check_rescues:' --script res://tools/check_rescues.gd ;;
+		# The missions port (M0, 2026-11-14): the rescue line played on fakes.gd and a small city (the
+		# countdown and its holds, the ring, the offer, a rescue by car and by helicopter, the pay, the ends,
+		# the calls by kind, the escort, the keys); its digest is the record the port is held to.
+		rescueplay) check rescueplay '^check_rescue_play:' --script res://tools/check_rescue_play.gd ;;
 		# Loop couriers: the waiting couriers, the kerb riders, the dodge, the near miss's line.
 		couriers) check couriers '^check_couriers:' --script res://tools/check_couriers.gd ;;
 		# Beta values: the deliveries' route, the heat's words, NASTĘPNE.

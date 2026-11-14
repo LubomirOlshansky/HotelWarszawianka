@@ -42,8 +42,8 @@ func _physics_process(_delta: float) -> bool:
 
 func _check() -> int:
 	var space: PhysicsDirectSpaceState3D = map.get_world_3d().direct_space_state
-	var missions: Node = load("res://scripts/missions.gd").new()
-	missions.map = map
+	var rescue: RefCounted = load("res://scripts/rescue_places.gd").new()
+	rescue.map = map
 	var data: Dictionary = map.data
 	var failures := 0
 	for k in map.landmark_info.size():
@@ -106,14 +106,14 @@ func _check() -> int:
 			need = 5  # Dworzec Wodny floats at the boulevard's edge like the barges
 		if tap != k or hits < need:
 			failures += 1
-	# Roof rescues that the landmarks' outlines now give (missions.gd's own search).
+	# Roof rescues that the landmarks' outlines now give (the rescue line's own search, rescue_places.gd).
 	for l in data.get("landmarks", []):
 		if l["name"] in ["Pałac Kultury i Nauki", "Rotunda PKO", "Varso Tower", "Złote Tarasy"]:
 			var poly := PackedVector2Array()
 			var flat: Array = l["p"]
 			for i in range(0, flat.size() - 1, 2):
 				poly.append(Vector2(flat[i], flat[i + 1]))
-			var spot: Vector3 = missions._flat_roof(poly)
+			var spot: Vector3 = rescue.flat_roof(poly)
 			if spot == Vector3.INF:
 				print("roof rescue on %s: none (no flat roof 20 m up)" % l["name"])
 			else:
@@ -135,7 +135,6 @@ func _check() -> int:
 			var g: float = map.terrain_height(spire.x, spire.y)
 			print("Palace spire cell %s: top %.1f m above ground; heli top_height there at r=3: %.1f m; 12 m off: %.1f m" % [
 					spire.round(), best - g, map.top_height(spire.x, spire.y, 3.0) - g, map.top_height(spire.x + 12.0, spire.y, 3.0) - g])
-	missions.free()
 	failures += _fly_checks()
 	for arg in OS.get_cmdline_user_args():
 		if arg.begins_with("--grid="):

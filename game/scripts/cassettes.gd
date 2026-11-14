@@ -5,7 +5,7 @@ extends Node
 ## boulevards, is the guide's 6:00 beat (first10.gd points its arrow here).
 ##
 ## - **Where.** Each lies on a landmark's roof: the rescue's flat-roof spot of that landmark
-##   (missions.gd `roof_spot`, its highest flat spot), so a helicopter can come down to it.
+##   (rescue_places.gd `roof_spot`, its highest flat spot), so a helicopter can come down to it.
 ## - **The prop.** One MeshInstance3D for all of them (one surface, one draw call; hidden once
 ##   every one is taken): a big pink cassette (CASSETTE m wide, so it reads from the helicopter's
 ##   height) with its label and reels, and a pink diamond over it (Models LIT_SIGN: it glows at

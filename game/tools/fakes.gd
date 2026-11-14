@@ -44,6 +44,10 @@ class Hud extends CanvasLayer:
 	signal challenge_pressed
 	## The context button's tap, with whose button it was (a check emits it).
 	signal context_pressed(who: String)
+	## The rescue line's context button (WEZWANIE) tapped (a check emits it), as hud.gd's.
+	signal pill_pressed
+	## A pad is in use (hud.gd: the toasts name its buttons); a check sets it.
+	var pad_mode := false
 	## The card that is up: its title ("" when none), its text, how many buttons, and the words on
 	## them in order.
 	var card := ""

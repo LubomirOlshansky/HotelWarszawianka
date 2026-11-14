@@ -7,7 +7,7 @@ extends SceneTree
 ##      the stick held into the part: inside every frame, sliding along the side it meets and
 ##      round the corner without a step back (jitter) or a stop; a push across a side slides
 ##      along it; a point inside the part (a teleport) goes out by the nearest inner side.
-##   E2 the rescue spots (missions.gd: streets, parks, the river, the hospitals) are all
+##   E2 the rescue spots (rescue_places.gd: streets, parks, the river, the hospitals) are all
 ##      `in_map(p, -40)`; the count the old rectangle would have let into the corner is printed.
 ##   E3 the minimap's mesh (hud.gd `_minimap_mesh`, the full map draws the same): no park, street or
 ##      tunnel triangle in a part left outside; the off-map ground covers each part whole; the
@@ -16,7 +16,7 @@ extends SceneTree
 ##   godot --headless --path game --script res://tools/check_edge.gd
 
 const Heli := preload("res://scripts/heli.gd")
-const Missions := preload("res://scripts/missions.gd")
+const RescuePlaces := preload("res://scripts/rescue_places.gd")
 const Hud := preload("res://scripts/hud.gd")
 
 ## The map's shape without a city: map_builder.gd's `in_map` and `map_outline` on the committed
@@ -181,28 +181,26 @@ func _fly(map: Node3D, heli: Node3D, name: String, start: Vector2, dir: Vector2,
 # --- E2 the rescue spots -----------------------------------------------------------------------
 
 func _missions(map: Node3D, data: Dictionary) -> String:
-	var m: Node = Missions.new()
+	var m := RescuePlaces.new()
 	m.map = map
-	for k in m.ORDER:
-		m._places[k] = []
-	m._collect_road_names(data["roads"])
-	m._find_streets(data["roads"])
-	m._find_pois(data.get("pois", []))
+	m.collect_road_names(data["roads"])
+	m.find_streets(data["roads"])
+	m.find_pois(data.get("pois", []))
 	var n := 0
 	var bad := 0
 	var old_box := 0
-	var inner: Rect2 = map.bounds.grow(-Missions.EDGE_PAD)
+	var inner: Rect2 = map.bounds.grow(-RescuePlaces.EDGE_PAD)
 	var all: Array = []
-	for k in m._places:
-		all.append_array(m._places[k])
-	all.append_array(m._hospitals)
+	for k in m.by_kind:
+		all.append_array(m.by_kind[k])
+	all.append_array(m.hospitals)
 	for pl: Dictionary in all:
 		var at: Vector3 = pl.get("at", pl.get("pos", Vector3.INF))
 		if at == Vector3.INF:
 			continue
 		var q := Vector2(at.x, at.z)
 		n += 1
-		if not map.in_map(q, -Missions.EDGE_PAD):
+		if not map.in_map(q, -RescuePlaces.EDGE_PAD):
 			bad += 1
 			if bad <= 3:
 				problems.append("E2 a rescue spot at %s is off the map's outline (40 m in)" % q.round())
@@ -211,11 +209,10 @@ func _missions(map: Node3D, data: Dictionary) -> String:
 	rng.seed = 7
 	for i in 20000:
 		var q := Vector2(rng.randf_range(inner.position.x, inner.end.x), rng.randf_range(inner.position.y, inner.end.y))
-		if not map.in_map(q, -Missions.EDGE_PAD):
+		if not map.in_map(q, -RescuePlaces.EDGE_PAD):
 			old_box += 1
 	if n == 0:
 		problems.append("E2 no rescue spots found")
-	m.free()
 	return "%d rescue spots, %d off (the old box's area %.1f %% off the outline)" % [n, bad, old_box / 200.0]
 
 
