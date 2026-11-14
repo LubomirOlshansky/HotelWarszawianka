@@ -107,7 +107,7 @@ class PlayCar extends CharacterBody3D:
 
 ## The map as the jobs and the lane graph ask it: three heights that never agree (one taken from
 ## the wrong place shows), roofs in patches (a kerb's spot under one is no spot).
-class CityMap extends Node3D:
+class CityMap extends Fakes.FlatMap:
 	func terrain_height(x: float, z: float) -> float:
 		return 3.0 + 0.0007 * x - 0.0003 * z
 	func ground_height(x: float, z: float) -> float:

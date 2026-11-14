@@ -47,17 +47,6 @@ const SCENES := ["board_ivan", "leg1", "court", "board_bogdan", "flavour", "flav
 const TAPPED := ["Kelner", "Barman", "Goście", "Oliwka", "Mistrz", "Ivan", "Bogdan", "Bramkarz", "Recepcja"]
 
 
-class FakeMap extends Node3D:
-	func ground_height(_x: float, _z: float) -> float:
-		return 0.0
-	func terrain_height(_x: float, _z: float) -> float:
-		return 0.0
-	func deck_height(_g: int, _x: float, _z: float) -> float:
-		return 0.0
-	func tunnel_height(_t: int, _x: float, _z: float) -> float:
-		return 0.0
-
-
 var problems: Array[String] = []
 var verbose := false
 ## The play's stand-ins and inputs.
@@ -90,7 +79,7 @@ func _run() -> void:
 	_check_meshes(digest)
 	await _check_arrival(digest)
 	var m: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://map/centrum.json"))
-	var map := FakeMap.new()
+	var map := Fakes.FlatMap.new()
 	root.add_child(map)
 	var g := LaneGraph.new(m["graph"], map)
 	_check_map(g, m.get("origin", [52.234, 21.024]), digest)

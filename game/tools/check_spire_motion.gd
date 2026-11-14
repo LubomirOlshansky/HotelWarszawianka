@@ -7,13 +7,11 @@ extends SceneTree
 ##   godot --headless --path game --script res://tools/check_spire_motion.gd
 
 const SpireMotion := preload("res://scripts/spire_motion.gd")
+const Fakes := preload("res://tools/fakes.gd")
 
 
-class FakeMap extends Node3D:
+class FakeMap extends Fakes.FlatMap:
 	var data := {}
-
-	func terrain_height(_x: float, _z: float) -> float:
-		return 0.0
 
 
 var _problems := 0

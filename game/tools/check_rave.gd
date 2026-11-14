@@ -47,17 +47,6 @@ const BUBBLE := 90
 const DT := 1.0 / 60.0
 
 
-class FakeMap extends Node3D:
-	func ground_height(_x: float, _z: float) -> float:
-		return 0.0
-	func terrain_height(_x: float, _z: float) -> float:
-		return 0.0
-	func deck_height(_g: int, _x: float, _z: float) -> float:
-		return 0.0
-	func tunnel_height(_t: int, _x: float, _z: float) -> float:
-		return 0.0
-
-
 ## The radio's stand-in: the station tuned (MORDOR FM is index 3), what was announced.
 class FakeRadio extends Node:
 	var station := 0
@@ -123,7 +112,7 @@ func _run() -> void:
 	_check_door(digest)
 	_check_targets(digest)
 	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://map/centrum.json"))
-	var map := FakeMap.new()
+	var map := Fakes.FlatMap.new()
 	root.add_child(map)
 	var g := LaneGraph.new(data["graph"], map)
 	var sp: Dictionary = data.get("spawn", {})
@@ -430,7 +419,7 @@ func _make(g: LaneGraph, origin: Array) -> void:
 	_talk.lines = JSON.parse_string(FileAccess.get_file_as_string("res://data/dialogue.json"))
 	_radio = FakeRadio.new()
 	_sounds = FakeSounds.new()
-	var map := FakeMap.new()
+	var map := Fakes.FlatMap.new()
 	for node: Node in [_hud, _bubbles, _wallet, _calls, _talk, _radio, _sounds, map]:
 		world.add_child(node)
 	_rv = Rave.new()

@@ -27,19 +27,6 @@ const Fakes := preload("res://tools/fakes.gd")
 const BUBBLE := 70
 
 
-class FakeMap extends Node3D:
-	func ground_height(_x: float, _z: float) -> float:
-		return 0.0
-	func terrain_height(_x: float, _z: float) -> float:
-		return 0.0
-	func deck_height(_g: int, _x: float, _z: float) -> float:
-		return 0.0
-	func tunnel_height(_t: int, _x: float, _z: float) -> float:
-		return 0.0
-	func roof_height(_x: float, _z: float) -> float:
-		return -1000.0
-
-
 ## A stand-in for pedestrians.gd's scene figures.
 class FakeWalkers extends Node3D:
 	var figures := {}
@@ -64,7 +51,7 @@ func _run() -> void:
 	_check_mesh(digest)
 	_check_lines(digest)
 	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://map/centrum.json"))
-	var map := FakeMap.new()
+	var map := Fakes.FlatMap.new()
 	root.add_child(map)
 	var g := LaneGraph.new(data["graph"], map)
 	_check_spots(g, digest)

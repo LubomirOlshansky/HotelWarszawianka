@@ -24,23 +24,6 @@ var problems: Array[String] = []
 var verbose := false
 
 
-class FakeMap extends Node3D:
-	func ground_height(_x: float, _z: float) -> float:
-		return 0.0
-	func terrain_height(_x: float, _z: float) -> float:
-		return 0.0
-	func deck_height(_g: int, _x: float, _z: float) -> float:
-		return 0.0
-	func tunnel_height(_t: int, _x: float, _z: float) -> float:
-		return 0.0
-	func roof_height(_x: float, _z: float) -> float:
-		return -INF
-	func in_tunnel(_x: float, _z: float, _y: float) -> bool:
-		return false
-	func top_height(_x: float, _z: float, _r := 0.0) -> float:
-		return 0.0
-
-
 func _initialize() -> void:
 	verbose = "--verbose" in OS.get_cmdline_user_args()
 	_run.call_deferred()
@@ -57,7 +40,8 @@ func _run() -> void:
 		print("check_delivery: FAIL (no map/centrum.json)")
 		quit(1)
 		return
-	var map := FakeMap.new()
+	var map := Fakes.FlatMap.new()
+	map.roof_level = -INF
 	root.add_child(map)
 	var graph := LaneGraph.new(data["graph"], map)
 	var world := Node3D.new()

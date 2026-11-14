@@ -29,22 +29,6 @@ const Props := preload("res://scripts/props.gd")
 const Fakes := preload("res://tools/fakes.gd")
 
 
-## The map's heights flat at 0 and no roofs (the stands' kerb test and the lane graph's heights).
-class FakeMap extends Node3D:
-	func ground_height(_x: float, _z: float) -> float:
-		return 0.0
-	func terrain_height(_x: float, _z: float) -> float:
-		return 0.0
-	func deck_height(_g: int, _x: float, _z: float) -> float:
-		return 0.0
-	func tunnel_height(_t: int, _x: float, _z: float) -> float:
-		return 0.0
-	func roof_height(_x: float, _z: float) -> float:
-		return -1000.0
-	func top_height(_x: float, _z: float, _r := 0.0) -> float:
-		return 0.0
-
-
 var problems: Array[String] = []
 var verbose := false
 var now := {"hour": 1.5, "weekday": 6}
@@ -149,7 +133,7 @@ func _check_dodge() -> void:
 # 4.-6. ----------------------------------------------------------------------------------------
 
 func _check_city(nb: Notebook, data: Dictionary) -> void:
-	var map := FakeMap.new()
+	var map := Fakes.FlatMap.new()
 	root.add_child(map)
 	var graph := LaneGraph.new(data["graph"], map)
 	# The stands as jobs.gd places them (its kerb test on the lane graph).

@@ -17,11 +17,7 @@ const Fleet := preload("res://scripts/tram_fleet.gd")
 const Trams := preload("res://scripts/trams.gd")
 const OldTram := preload("res://scripts/old_tram.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
-
-
-class FakeMap extends Node3D:
-	func deck_height(_dk: int, _x: float, _z: float) -> float:
-		return 0.0
+const Fakes := preload("res://tools/fakes.gd")
 
 
 var problems: Array[String] = []
@@ -37,7 +33,7 @@ func _run() -> void:
 	_check_meshes(digest)
 	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://map/centrum.json"))
 	var g := LaneGraph.new(data["graph"], null)
-	var map := FakeMap.new()
+	var map := Fakes.FlatMap.new()
 	root.add_child(map)
 	var trams: Trams = Trams.new()
 	root.add_child(trams)

@@ -40,21 +40,6 @@ const BUBBLE := 90
 const DT := 1.0 / 60.0
 
 
-class FakeMap extends Node3D:
-	func ground_height(_x: float, _z: float) -> float:
-		return 0.0
-	func terrain_height(_x: float, _z: float) -> float:
-		return 0.0
-	func deck_height(_g: int, _x: float, _z: float) -> float:
-		return 0.0
-	func tunnel_height(_t: int, _x: float, _z: float) -> float:
-		return 0.0
-	func roof_height(_x: float, _z: float) -> float:
-		return -1000.0
-	func top_height(_x: float, _z: float, _r := 0.0) -> float:
-		return 0.0
-
-
 ## The helicopter as the tow reads it: where it is, how fast, and the load on its sling.
 class Sling extends Node3D:
 	var sling := 0.0
@@ -121,7 +106,7 @@ func _run() -> void:
 	_check_rope(digest)
 	_check_rules(digest)
 	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://map/centrum.json"))
-	var map := FakeMap.new()
+	var map := Fakes.FlatMap.new()
 	root.add_child(map)
 	var g := LaneGraph.new(data["graph"], map)
 	_check_map(g, map, digest)

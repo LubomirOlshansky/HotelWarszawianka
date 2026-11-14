@@ -97,7 +97,7 @@ class PlayRivals extends Node:
 
 ## The map as the rides ask it: its outline, the water (the river east of SHORE, a pond), roofs,
 ## and three heights that never agree (one taken from the wrong place shows).
-class WorldMap extends Node3D:
+class WorldMap extends Fakes.FlatMap:
 	## Whether it is the bigger city's map (a rig sets it).
 	var big := false
 	## An island some scene lays in the river by the map's east edge (empty: none).
@@ -129,7 +129,7 @@ class WorldMap extends Node3D:
 
 
 ## The lane graph's own map: the road's surface (not the terrain the map gives).
-class RoadMap extends Node3D:
+class RoadMap extends Fakes.FlatMap:
 	func terrain_height(x: float, z: float) -> float:
 		return 1.0 + 0.0011 * x - 0.0007 * z
 	func tunnel_height(_t: int, x: float, z: float) -> float:

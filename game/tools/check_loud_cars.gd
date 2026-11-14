@@ -28,19 +28,6 @@ const Fakes := preload("res://tools/fakes.gd")
 const BUBBLE := 70
 
 
-class FakeMap extends Node3D:
-	func ground_height(_x: float, _z: float) -> float:
-		return 0.0
-	func terrain_height(_x: float, _z: float) -> float:
-		return 0.0
-	func deck_height(_g: int, _x: float, _z: float) -> float:
-		return 0.0
-	func tunnel_height(_t: int, _x: float, _z: float) -> float:
-		return 0.0
-	func roof_height(_x: float, _z: float) -> float:
-		return -1000.0
-
-
 class FakeRadio extends Node:
 	var station := 0
 	var said: Array = []
@@ -70,7 +57,7 @@ func _run() -> void:
 	var data: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://map/centrum.json"))
 	_check_meet(data, digest)
 	_check_lines(digest)
-	var map := FakeMap.new()
+	var map := Fakes.FlatMap.new()
 	root.add_child(map)
 	var g := LaneGraph.new(data["graph"], map)
 	await _check_traffic(g, map, digest)

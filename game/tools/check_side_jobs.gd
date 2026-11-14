@@ -51,23 +51,6 @@ class FakeMissions extends Node:
 		pass
 
 
-class FakeMap extends Node3D:
-	func ground_height(_x: float, _z: float) -> float:
-		return 0.0
-	func terrain_height(_x: float, _z: float) -> float:
-		return 0.0
-	func deck_height(_g: int, _x: float, _z: float) -> float:
-		return 0.0
-	func tunnel_height(_t: int, _x: float, _z: float) -> float:
-		return 0.0
-	func roof_height(_x: float, _z: float) -> float:
-		return -1000.0
-	func in_tunnel(_x: float, _z: float, _y: float) -> bool:
-		return false
-	func top_height(_x: float, _z: float, _r := 0.0) -> float:
-		return 0.0
-
-
 class FakeCar extends CharacterBody3D:
 	var vel := Vector3.ZERO
 	var forward_speed := 0.0
@@ -139,7 +122,7 @@ func _run() -> void:
 		print("check_side_jobs: PROBLEM (no map/centrum.json or places.json)")
 		quit(1)
 		return
-	var map := FakeMap.new()
+	var map := Fakes.FlatMap.new()
 	root.add_child(map)
 	var wallet: Wallet = Wallet.new()
 	wallet.persistent = false
@@ -227,7 +210,7 @@ func _check_race() -> void:
 	var wallet: Wallet = Wallet.new()
 	wallet.persistent = false
 	root.add_child(wallet)
-	var map := FakeMap.new()
+	var map := Fakes.FlatMap.new()
 	root.add_child(map)
 	var car := FakeCar.new()
 	root.add_child(car)
@@ -385,7 +368,7 @@ func _check_roundup_rules() -> void:
 
 # 4. ------------------------------------------------------------------------------------------
 
-func _check_roundup(sf: Storefronts, map: FakeMap, wallet: Wallet) -> void:
+func _check_roundup(sf: Storefronts, map: Fakes.FlatMap, wallet: Wallet) -> void:
 	var deps := RoundupJob.pick_depots(sf.zones, RoundupJob.DEPOT_SPACING)
 	_expect(deps.size() >= 2, "%d Leżak depots" % deps.size())
 	for i in deps:

@@ -160,7 +160,7 @@ class Probe extends Activity:
 		ended += 1
 
 
-class SlopeMap extends Node3D:
+class SlopeMap extends Fakes.FlatMap:
 	func ground_height(x: float, _z: float) -> float:
 		return 2.0 + x * 0.01
 

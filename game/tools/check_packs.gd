@@ -25,12 +25,6 @@ const Dialogue := preload("res://scripts/dialogue.gd")
 const Fakes := preload("res://tools/fakes.gd")
 
 
-## A stand-in for the map: flat ground.
-class FakeMap extends Node3D:
-	func deck_height(_dk: int, _x: float, _z: float) -> float:
-		return 0.0
-
-
 var problems: Array[String] = []
 var verbose := false
 var now := {"hour": 14.0, "weekday": 5}
@@ -257,7 +251,7 @@ func _check_lines(digest: PackedStringArray) -> void:
 # 7. -------------------------------------------------------------------------------------------
 
 func _check_node(data: Dictionary, digest: PackedStringArray) -> void:
-	var map := FakeMap.new()
+	var map := Fakes.FlatMap.new()
 	root.add_child(map)
 	var dlg := Fakes.Dialogue.new()
 	dlg.say_words = ["x", "x"]
