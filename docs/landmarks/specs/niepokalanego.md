@@ -38,6 +38,12 @@ LoD2 (seed 0.891) over the front's ground (6.4 m): front corners 11.9 to 12.5, a
 nave eaves about 12, ridge 14.85, chancel eaves 6 to 7 with its hip apex at 11.4. The OSM outline's
 front has a 0.75 m deep notch between u 3.35 and 5.65: the door bay behind the columns.
 
+LoD2 cut: GUGiK models the church and the whole convent block east of it as one building whose
+centre lies outside the outline, so the site alone does not drop it (in the city its roof and walls
+showed through the model). `_np_tops` (called from `_find_churches`) adds a `lod2_tops` ring over
+the church and the chancel, 0.3 m inside the walls shared with Dom Polonii and the convent wing,
+and cuts LoD2 there to 0.2 m over the front's ground, under the model.
+
 ## 3. Facade
 Lower storey: grey plinth on the piers; corner lesenes (0.7 m); the door bay one step up, a dark
 wooden door 1.36 x 2.45 m with a hood, a half-round fanlight (0.76 m radius) at 3.3 m; two Tuscan
