@@ -798,6 +798,7 @@ const INFO := {
 	"church_trojca_praga": ["Kościół Świętej Trójcy na Solcu", "Klasycystyczny kościół z wieżyczką.", "A classicist church with a bell turret."],
 	"church_czestochowska": ["Kościół Matki Bożej Częstochowskiej", "Modernistyczny kościół z dachem do ziemi.", "A modernist church with a roof down to the ground."],
 	"church_zwycieska": ["Kościół Matki Boskiej Zwycięskiej", "Kościół parafialny z dwiema wieżami.", "A parish church with two towers."],
+	"church_baptysci": ["Kościół Baptystów", "Zbór baptystów przy Walicowie.", "The Baptist church on Waliców."],
 	"church_chrystusa_krola": ["Kościół Chrystusa Króla Pokoju", "Kościół pallotynów i kaplica MB Częstochowskiej.", "The Pallottines' church and the Częstochowa chapel."],
 	"church_pallotyni": ["Dom pallotynów", "Modernistyczny dom pallotynów przy Skaryszewskiej.", "The Pallottines' modernist house on Skaryszewska."],
 	"church_rodziny_maryi": ["Siostry Rodziny Maryi", "Dom zgromadzenia sióstr franciszkanek Rodziny Maryi.", "The house of the Franciscan Sisters of the Family of Mary."],
@@ -21486,6 +21487,58 @@ func _build_chrystusa_krola(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The Baptist church on Waliców (Kościół Chrześcijan Baptystów, Waliców 25; 1970s, among the
+## Wola tower blocks): a modernist box, its blank light grey upper storey of fair-faced concrete
+## overhanging a glazed ground floor set back under it, a big dark cross on the front and the line
+## "PRAWDĘ I POKÓJ MIŁUJCIE - MÓWI PAN NIEBIOS" along its foot (here a dark band). A model that
+## replaces the plain OpenStreetMap block (building 7442; no landmark until 2026-11-14). From 8
+## Commons photos (refs/churches/baptist_walicow, reference only, never shipped), the OSM outline
+## and GUGiK's LoD2 (over the ground: the flat top at 8.6). The four-storey extension at the back
+## (building site in 2025) is left out. Spec docs/landmarks/specs/baptysci.md.
+## Frame: origin at the outline's centre, u along the front (toward Chłodna's end at -u), v to
+## the north; the front with the cross faces Waliców (-v).
+const BP_O := Vector2(-2255.3, -359.0)
+const BP_A := Vector2(0.265, 0.964)
+const BP_WALL := Color("#d6d4cc")      ## the light grey concrete (photos)
+const BP_BASE := Color("#8e8b84")      ## the ground floor's piers and frames
+const BP_DARK := Color("#4e3628")      ## the cross
+const BP_ROOF := Color("#9a978f")      ## the flat roof
+
+
+func _build_baptysci(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(BP_O, BP_O + BP_A)
+	_g = _ground_under(outline)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	_mode = M_STONE
+	# --- the glazed ground floor set back under the box, the box overhanging it
+	_prism(_rect(4.0, 0.0, 11.0, 9.0), g - 1.0, g + 3.3, BP_BASE, none, M_STONE)
+	var box := _rect(4.0, 0.0, 12.0, 10.0)
+	_prism(box, g + 3.3, g + 8.6, BP_WALL, BP_ROOF, M_STONE, M_STONE)
+	kit_ledge_ring(box, g + 8.6, 0.2, BP_WALL.lightened(0.05), 0.04)
+	for e: Array in [[Vector2(15.0, -9.0), Vector2(-7.0, -9.0)], [Vector2(-7.0, 9.0), Vector2(15.0, 9.0)],
+			[Vector2(-7.0, -9.0), Vector2(-7.0, 9.0)], [Vector2(15.0, 9.0), Vector2(15.0, -9.0)]]:
+		var p0: Vector2 = e[0]
+		var p1: Vector2 = e[1]
+		kit_front(BP_O, BP_O + BP_A)
+		var ln := kit_front(_w(p0.x, p0.y), _w(p1.x, p1.y))
+		var n := maxi(1, floori(ln / 1.9))
+		var cols: Array = []
+		for i in n:
+			cols.append((float(i) + 0.5) * ln / float(n))
+		kit_panes(cols, [g + 0.3], ln / float(n) - 0.25, 2.6, PAL_GLASS_DARK, 0.04)
+	# --- the front on Waliców: the cross, the line of lettering
+	kit_front(BP_O, BP_O + BP_A)
+	kit_front(_w(16.0, -10.0), _w(-8.0, -10.0))
+	kit_face(0.0)
+	_kbox(15.2, 15.6, 0.0, 0.12, g + 4.6, g + 8.0, BP_DARK)
+	_kbox(14.1, 16.7, 0.0, 0.12, g + 6.7, g + 7.1, BP_DARK)
+	_kbox(1.5, 22.5, 0.0, 0.06, g + 3.75, g + 4.05, BP_BASE.darkened(0.25))
+	kit_front(BP_O, BP_O + BP_A)
+	_collide(outline)
+
+
 ## The Nożyk Synagogue (Synagoga Nożyków, ul. Twarda 6; Karol and Leandro Marconi, 1898-1902;
 ## burnt 1944, rebuilt 1977-1983; Warsaw's only pre-war synagogue still standing), a cream
 ## neo-Romanesque house of prayer in its courtyard south of Plac Grzybowski. The whole building as
@@ -32857,6 +32910,8 @@ const CHURCHES := [
 			"fill": 0.8, "style": "baroque", "wall": "#e6d4a6", "roof": "#97594a", "towers": 0, "cap": "none"},
 	{"key": "church_rodziny_maryi", "at": Vector2(-2617.0, -739.0), "o": Vector2(-2625.3, -761.4), "out": Vector2(-0.356, -0.934), "L": 13.5, "W": 49.4,
 			"fill": 0.9, "style": "neoclassical", "wall": "#e6c2a2", "roof": "#4d5257", "towers": 0, "cap": "none"},
+	{"key": "church_baptysci", "at": Vector2(-2254.2, -355.1), "o": Vector2(-2251.1, -369.6), "out": Vector2(0.964, -0.265), "L": 24.0, "W": 20.0,
+			"fill": 0.9, "style": "modern", "wall": "#d6d4cc", "roof": "#9a978f", "towers": 0, "cap": "none"},
 	{"key": "church_chrystusa_krola", "at": Vector2(1729.0, -1673.0), "o": Vector2(1715.0, -1688.0), "out": Vector2(-0.607, -0.795), "L": 20.0, "W": 12.0,
 			"fill": 0.8, "style": "modern", "wall": "#eedfb4", "roof": "#7c6a4b", "towers": 1, "cap": "none"},
 	{"key": "church_pallotyni", "at": Vector2(1761.0, -1687.0), "o": Vector2(1760.6, -1702.8), "out": Vector2(0.560, -0.829), "L": 51.2, "W": 24.1,
@@ -32940,6 +32995,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_czestochowska":
 		_build_czestochowska(site)  # the modernist A-frame church and its pylons, from photos
+		return
+	if site["key"] == "church_baptysci":
+		_build_baptysci(site)  # the Baptists' modernist box on Waliców, from photos
 		return
 	if site["key"] == "church_chrystusa_krola":
 		_build_chrystusa_krola(site)  # the Pallottines' church and its chapel on Skaryszewska, from photos
