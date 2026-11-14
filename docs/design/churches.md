@@ -47,12 +47,12 @@ Current state, tiers and photo counts (2026-11-13): docs/LANDMARKS.md "Churches 
 
 ## Inventory
 
-Status as of 2026-11-14 (after #773, the last of the 2026-11-14 photo batch). "Kit model" = built by the church kit; "model" = its own builder. Still open: the Franciscan Sisters of the Cross on Piwna, Sala św. Faustyny (no photos yet), and the Archikatedra's side walls and east end (the LoD2 mass, no side photos yet). One combined phone measurement of the whole church set is on the next-build list.
+Status as of 2026-11-14 (after #773, the last of the 2026-11-14 photo batch). "Kit model" = built by the church kit; "model" = its own builder. Still open: Sala św. Faustyny (no photos yet), and the Archikatedra's side walls and east end (the LoD2 mass, no side photos yet). One combined phone measurement of the whole church set is on the next-build list.
 
 | Church (OSM name) | Kind | Centre (x, z) | Status |
 | --- | --- | --- | --- |
 | Cerkiew pw. Zaśnięcia Najświętszej Marii Panny | church | -1019, -1526 | model from LoD2 and the street front (`church_cerkiew`, `_build_cerkiew`, spec `cerkiew.md`), 2026-11-14 |
-| Dom Zakonny Sióstr Franciszkanek Służebnic Krzyża | monastery | -790, -1557 | open: convent or monastery: plain block, a later pass |
+| Dom Zakonny Sióstr Franciszkanek Służebnic Krzyża | monastery | -790, -1557 | model from 9 Commons photos and LoD2 (`church_franciszkanki_piwna`, `_build_franciszkanki_piwna`, spec `franciszkanki_piwna.md`), 2026-11-14: ochre ranges round St Martin's chancel, the Piwna front with its stone portal, hipped roofs |
 | Dom zakonny Księży Misjonarzy | monastery | -519, -547 | the street wing and the Karowa wing (OSM building 7141, -500, -567) are a model from 8 Commons photos and LoD2 (`church_misjonarze`, `_build_misjonarze`, spec `misjonarze.md`), 2026-11-14: the 17-bay ochre front, white rusticated ground floor, eleven dormers; this back wing stays the plain block |
 | Dom Księży Misjonarzy (Radna 14) | monastery | -66, -752 | model from 7 Commons photos and LoD2 (`church_misjonarze_radna`, `_build_misjonarze_radna`, spec `misjonarze_radna.md`), 2026-11-14: the cream front, the portal with the Virgin in her blue niche, the chapel block behind |
 | Kaplica Kościoła Baptystów | chapel | -2255, -359 | model from 8 Commons photos and LoD2 (`church_baptysci`, `_build_baptysci`, spec `baptysci.md`), 2026-11-14: the grey concrete box over a glazed ground floor, the dark cross |
