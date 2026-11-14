@@ -52,10 +52,11 @@ extends SceneTree
 ## when the way there runs within WANDER_SQUARE deg of the line), on WANDER_PAST m beyond it, and
 ## then tries to leave as a player would: reversing back out through its own gap (WANDER_BACK s),
 ## then turning and driving back (WANDER_TURN s). A line is a `trap` where the car does not get back
-## within WANDER_HOME m of its start, a `fall` where it dropped WANDER_DROP m under the line's foot
-## (a cutting, a wall's top), `sink` where it went under the surface (drive_height: ground with no
-## surface), `water` where it ended in the river; `miss` where it never reached the line (something
-## hard in the way, another level). Sector by sector (each with its neighbours loaded); --box=
+## within WANDER_HOME m of its start, a `fall` where it does not get back after dropping over
+## WANDER_DROP m under the line's foot (a cutting, a wall's top: `ok` with the drop noted when it
+## climbs back), `sink` where it went under the surface (drive_height: ground with no surface),
+## `water` where it ended in the river; `miss` where it never reached the line (something hard in
+## the way, another level). Sector by sector (each with its neighbours loaded); --box=
 ## limits it; --write=FILE writes every test as a TSV. It reports and exits 0 (a survey, not a gate).
 ## --dry lists the routes and their length and drives nothing.
 ##
@@ -1067,9 +1068,6 @@ func _wander_step(dt: float) -> void:
 	if p.y < -100.0 or h - p.y > 1.0:
 		_w_done("sink", "%.1f m under the surface" % (h - p.y))
 		return
-	if _w_low > WANDER_DROP:
-		_w_done("fall", "%.1f m under the line's foot" % _w_low)
-		return
 	if car.in_water:
 		_w_done("water", "in the water")
 		return
@@ -1092,7 +1090,7 @@ func _wander_step(dt: float) -> void:
 			car.throttle = 0.0
 			car.braking = true
 			if home < WANDER_HOME:
-				_w_done("ok", "reversed out")
+				_w_done("ok", "reversed out" + _w_drop())
 				return
 			if _w_t > WANDER_BACK:
 				_w_phase = 3
@@ -1102,10 +1100,16 @@ func _wander_step(dt: float) -> void:
 			car.braking = false
 			car.throttle = clampf(8.0 / car.top_speed(), 0.0, 1.0)
 			if home < WANDER_HOME:
-				_w_done("ok", "turned and drove out")
+				_w_done("ok", "turned and drove out" + _w_drop())
 				return
 			if _w_t > WANDER_TURN:
-				_w_done("trap", "%.0f m from its lane after reversing %.0f s and driving %.0f s" % [home, WANDER_BACK, WANDER_TURN])
+				_w_done("fall" if _w_low > WANDER_DROP else "trap", "%.0f m from its lane after reversing %.0f s and driving %.0f s%s" % [
+						home, WANDER_BACK, WANDER_TURN, _w_drop()])
+
+
+## --wander: the drop under the line's foot, when it is over WANDER_DROP, for the verdict's text.
+func _w_drop() -> String:
+	return " (down %.1f m under the line's foot)" % _w_low if _w_low > WANDER_DROP else ""
 
 
 ## --wander: the test's verdict into the rows (and printed when it is a finding), on to the next.
