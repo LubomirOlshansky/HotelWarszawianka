@@ -32,8 +32,9 @@ extends SceneTree
 ##      player's speed untouched, a `parked` box collider where the car stands (car.gd answers it as a
 ##      wall with the preset's rules), gone once the player is HARD_NEAR m away;
 ##   P4 a chain of two: the first car slides into the one behind it, which slides on; the two end apart;
-##   P5 rest never in a lane: pushed toward a lane it goes on across it, to rest clear of every lane;
-##      with lanes all the way it is `towed` and hidden out of view; pushed away from the lane it slides
+##   P5 rest never in a lane: pushed toward a lane it stops short, clear of every lane; with the only
+##      clear rest under PUSH_WEDGED (a lane at its nose) it cannot move: a wall; its bay in the lanes
+##      and lanes all the way, it is `towed` and hidden out of view; pushed away from the lane it slides
 ##      as friction stops it;
 ##   P6 its sector unloaded and loaded again finds it where it was left; back in its bay by rule B (far,
 ##      out of view, 10 min); `reset` puts every car back;
@@ -76,7 +77,7 @@ var _soft: SoftThings
 var _pushed: Array = []
 var _returned: Array = []
 ## M5's counts.
-var _m5 := {"cars": 0, "pushes": 0, "natural": 0, "ruled": 0, "bays": 0, "usec": 0}
+var _m5 := {"cars": 0, "pushes": 0, "natural": 0, "ruled": 0, "wedged": 0, "bays": 0, "usec": 0}
 
 
 ## A map stub for a hand-made lane graph (P5): flat ground at 0.
@@ -543,21 +544,29 @@ func _road(z: float, lanes: int, flat: Node3D) -> LaneGraph:
 func _p5_lanes() -> void:
 	var flat := FlatMap.new()
 	root.add_child(flat)
-	# One lane from z -5.5 to -2.5: 0.4 m past the car's front end (the car along z, -2.1 .. 2.1).
-	var one := _road(-5.5, 1, flat)
-	var segs := SoftThings.corridor_segments(one, Vector2.ZERO, 30.0, 0.0)
-	_expect(not segs.is_empty() and SoftThings.in_corridor(Transform3D(Basis(), Vector3(0, 0, -3.0)), segs)
+	# A lane from z -7 to -4 (its centreline at -7, the lane to its right): the car (along z, -2.1 ..
+	# 2.1) pushed 3 m back would rest half in it: it stops short, clear of it.
+	var near := _road(-7.0, 1, flat)
+	var segs := SoftThings.corridor_segments(near, Vector2.ZERO, 30.0, 0.0)
+	_expect(not segs.is_empty() and SoftThings.in_corridor(Transform3D(Basis(), Vector3(0, 0, -5.0)), segs)
 			and not SoftThings.in_corridor(Transform3D(), segs), "P5 the lane's corridor is found (%d segments)" % (segs.size() / 6))
 	_setup_cars([[0.0, 0.0, 0.0]], Vector3(0, 0, 9.0), 0.0)
-	_soft.graph = one
-	_soft.view_test = func(_at: Vector3) -> bool: return false
+	_soft.graph = near
 	_drive_to_hit(Vector3(0, 0, -10.0), 120)
 	_settle(300)
 	var p := _parked(0.0, 0.0)
-	_expect(p.state == SoftThings.MOVED and not SoftThings.in_corridor(p.xf, segs) and p.xf.origin.z < -5.5,
-			"P5 pushed toward a lane: across it, clear of it at z %.2f (state %d)" % [p.xf.origin.z, p.state])
-	# Lanes all the way (5 lanes, 15 m): no free rest within reach: towed, hidden once out of view.
-	var wide := _road(-17.5, 5, flat)  # its lanes from z -17.5 to -2.5
+	_expect(p.state == SoftThings.MOVED and not SoftThings.in_corridor(p.xf, segs) and p.xf.origin.z < -1.0,
+			"P5 pushed toward a lane: stops short of it at z %.2f (state %d)" % [p.xf.origin.z, p.state])
+	# A lane 0.4 m off its nose: the only clear rest is under PUSH_WEDGED: it cannot move, a wall.
+	var close := _road(-5.5, 1, flat)
+	_setup_cars([[0.0, 0.0, 0.0]], Vector3(0, 0, 9.0), 0.0)
+	_soft.graph = close
+	var kept := _drive_to_hit(Vector3(0, 0, -10.0), 40) / 10.0
+	p = _parked(0.0, 0.0)
+	_expect(_pushed.is_empty() and _soft.lane_wedges == 1 and p.hard != null and is_equal_approx(kept, 1.0),
+			"P5 a lane at its nose: not pushed, a wall (%d pushes, %d lane wedges)" % [_pushed.size(), _soft.lane_wedges])
+	# Its bay in the lanes already (a bake defect) and lanes all the way: towed, hidden once out of view.
+	var wide := _road(-15.0, 5, flat)  # its lanes from z -15 to 0
 	_setup_cars([[0.0, 0.0, 0.0]], Vector3(0, 0, 9.0), 0.0)
 	_soft.graph = wide
 	_soft.view_test = func(_at: Vector3) -> bool: return false
@@ -568,7 +577,7 @@ func _p5_lanes() -> void:
 	_expect(p.state == SoftThings.TOWED and p.hidden and _soft.towed == 1, "P5 lanes all the way: towed and hidden (state %d, hidden %s)" % [p.state, p.hidden])
 	# Pushed away from the lane (the player on the lane's side, heading +z): it just slides.
 	_setup_cars([[0.0, 0.5, 0.0]], Vector3(0, 0, -9.0), PI)
-	_soft.graph = one
+	_soft.graph = close
 	_drive_to_hit(Vector3(0, 0, 10.0), 120)
 	_settle(300)
 	p = _parked(0.0, 0.5)
@@ -691,11 +700,19 @@ func _map_part(all: bool, only: Array[Vector2i]) -> String:
 	runtime.setup_streamed(index, ShaderMaterial.new(), ShaderMaterial.new())
 	var segs := 0
 	var lines := 0
+	var cars_n := 0
+	# M5: one soft_things with the map's lane graph, for the lane rule.
+	runtime.data = runtime.index_data
+	var m5 := SoftThings.new()
+	m5.graph = LaneGraph.new(runtime.index_data["graph"], runtime)
+	root.add_child(m5)
 	for key in keys:
 		CityBarriers.soft_off = false
 		var built: Node3D = runtime.build_sector(key)
 		var soft: Dictionary = built.get_meta(&"soft", {})
+		var cars: Dictionary = built.get_meta(&"soft_cars", {})
 		var soft_faces := _class_faces(built)
+		var drawn_rt := _car_instances(built, cars)
 		built.free()
 		var path := "res://map/sectors/%s.scn" % MapBuilder.sector_name(key)
 		if not ResourceLoader.exists(path):
@@ -703,6 +720,8 @@ func _map_part(all: bool, only: Array[Vector2i]) -> String:
 			continue
 		var inst := (load(path) as PackedScene).instantiate()
 		var pre: Dictionary = inst.get_meta(&"soft", {})
+		var pre_cars: Dictionary = inst.get_meta(&"soft_cars", {})
+		var drawn_pb := _car_instances(inst, pre_cars)
 		inst.free()
 		var same := soft.size() == pre.size()
 		for k: String in soft:
@@ -710,25 +729,39 @@ func _map_part(all: bool, only: Array[Vector2i]) -> String:
 		_expect(same, "M1 %s: the runtime and prebuilt soft lists are the same (%d and %d segments)" % [key,
 				(soft.get("segs", PackedFloat64Array()) as PackedFloat64Array).size() / CityBarriers.SOFT_STRIDE,
 				(pre.get("segs", PackedFloat64Array()) as PackedFloat64Array).size() / CityBarriers.SOFT_STRIDE])
-		if soft.is_empty():
+		# M4: the parked cars' lists and their instances, both paths.
+		var n_cars := (cars.get("cars", PackedFloat64Array()) as PackedFloat64Array).size() / MapBuilder.CAR_STRIDE
+		_expect(cars.size() == pre_cars.size() and (cars.is_empty() or cars["cars"] == pre_cars["cars"]),
+				"M4 %s: the runtime and prebuilt parked-car lists are the same (%d and %d cars)" % [key, n_cars,
+				(pre_cars.get("cars", PackedFloat64Array()) as PackedFloat64Array).size() / MapBuilder.CAR_STRIDE])
+		_expect(drawn_rt == "" and drawn_pb == "", "M4 %s: every own car has its instance in its tile's MultiMesh (runtime: %s; prebuilt: %s)" % [
+				key, "ok" if drawn_rt == "" else drawn_rt, "ok" if drawn_pb == "" else drawn_pb])
+		_expect(not soft_faces.has(&"parked"), "M4 %s: the soft build files no parked collider (%d faces)" % [key,
+				(soft_faces.get(&"parked", PackedStringArray()) as PackedStringArray).size()])
+		cars_n += n_cars
+		_m5_sector(m5, cars)
+		if soft.is_empty() and cars.is_empty():
 			continue
-		var not_s := 0
-		for id: String in soft["ids"]:
-			if not s_ids.has(id):
-				not_s += 1
-		_expect(not_s == 0, "M1 %s: every soft line is an S fence or hedge of centrum.json (%d are not)" % [key, not_s])
-		lines += (soft["ids"] as PackedStringArray).size()
-		segs += (soft["segs"] as PackedFloat64Array).size() / CityBarriers.SOFT_STRIDE
+		if not soft.is_empty():
+			var not_s := 0
+			for id: String in soft["ids"]:
+				if not s_ids.has(id):
+					not_s += 1
+			_expect(not_s == 0, "M1 %s: every soft line is an S fence or hedge of centrum.json (%d are not)" % [key, not_s])
+			lines += (soft["ids"] as PackedStringArray).size()
+			segs += (soft["segs"] as PackedFloat64Array).size() / CityBarriers.SOFT_STRIDE
 		# M2: the builder with --no-soft against the soft build plus the restore.
 		CityBarriers.soft_off = true
 		var hard: Node3D = runtime.build_sector(key)
 		CityBarriers.soft_off = false
 		var want := _class_faces(hard)
-		var hard_meta := hard.has_meta(&"soft")
+		var hard_meta := hard.has_meta(&"soft") or hard.has_meta(&"soft_cars")
 		hard.free()
-		var restored := SoftThings.hard_faces(soft, Rect2(Vector2(key) * MapBuilder.SECTOR, Vector2(MapBuilder.SECTOR, MapBuilder.SECTOR)))
+		var rect := Rect2(Vector2(key) * MapBuilder.SECTOR, Vector2(MapBuilder.SECTOR, MapBuilder.SECTOR))
+		var restored := SoftThings.hard_faces(soft, rect) if not soft.is_empty() else {}
+		restored[&"parked"] = SoftThings.car_faces(cars, rect)
 		_expect(not hard_meta, "M2 %s: no soft list with --no-soft" % key)
-		for cls: StringName in [&"fence", &"hedge"]:
+		for cls: StringName in SAME_CLASSES:
 			var got: PackedStringArray = soft_faces.get(cls, PackedStringArray()).duplicate()
 			got.append_array(_keys(restored.get(cls, PackedVector3Array())))
 			got.sort()
@@ -738,51 +771,133 @@ func _map_part(all: bool, only: Array[Vector2i]) -> String:
 		# M3: the setting turned over on a loaded sector, the runtime build's and the prebuilt one.
 		var again: Node3D = runtime.build_sector(key)
 		root.add_child(again)
-		_m3_toggle(again, key, "runtime", want, soft_faces)
+		_m3_toggle(again, key, "runtime", want, soft_faces, not soft.is_empty(), n_cars)
 		again.free()
 		var pre_again := (load(path) as PackedScene).instantiate() as Node3D
 		root.add_child(pre_again)
-		_m3_toggle(pre_again, key, "prebuilt", want, soft_faces)
+		_m3_toggle(pre_again, key, "prebuilt", want, soft_faces, not soft.is_empty(), n_cars)
 		pre_again.free()
 		if verbose:
-			print("   %s: %d soft lines, %d segments" % [key, (soft["ids"] as PackedStringArray).size(), segs])
+			print("   %s: %d soft lines, %d segments, %d parked cars" % [key, (soft.get("ids", PackedStringArray()) as PackedStringArray).size(), segs, n_cars])
+	m5.free()
 	runtime.free()
-	return "%d sectors on both paths: %d soft lines, %d segments; the hard restore %.1f ms a sector on average" % [keys.size(), lines, segs,
-			_m3_usec / 1000.0 / maxf(_m3_hardens, 1)]
+	print("check_soft_things: M5 the lane rule over %d parked cars (%d pushes off their sides and ends at 8 m/s, no walls): rests in a lane %d with friction alone -> %d with the rule (towed), %d walls instead (the only clear rest under %.1f m); bays in a lane %d; %.2f ms a plan" % [
+			_m5["cars"], _m5["pushes"], _m5["natural"], _m5["ruled"], _m5["wedged"], Solidity.PUSH_WEDGED, _m5["bays"],
+			_m5["usec"] / 1000.0 / maxf(_m5["pushes"], 1)])
+	return "%d sectors on both paths: %d soft lines, %d segments, %d parked cars; the hard restore %.1f ms a sector on average; lane rule: %d of %d pushes rest in a lane (%d with friction alone, %d walls)" % [
+			keys.size(), lines, segs, cars_n, _m3_usec / 1000.0 / maxf(_m3_hardens, 1), _m5["ruled"], _m5["pushes"], _m5["natural"], _m5["wedged"]]
 
 
-## M3: sector `sector` (in the tree) loaded with the fences hard, then turned breakable and hard
-## again; its fence and hedge faces each time against `hard` (the --no-soft build's) and `soft_faces`
-## (the soft build's).
-func _m3_toggle(sector: Node3D, key: Vector2i, path: String, hard: Dictionary, soft_faces: Dictionary) -> void:
+## M4: "" when every own car of `cars` has its instance (slot) in the parked MultiMesh of its tile under
+## `sector`, else what is wrong.
+func _car_instances(sector: Node, cars: Dictionary) -> String:
+	if cars.is_empty():
+		return ""
+	var by_tile := {}
+	for c in sector.get_children():
+		var mmi := c as MultiMeshInstance3D
+		if mmi != null and mmi.has_meta(MapBuilder.PARKED_TILE):
+			by_tile[mmi.get_meta(MapBuilder.PARKED_TILE)] = mmi.multimesh
+	var list: PackedFloat64Array = cars["cars"]
+	var own_by_tile := {}
+	for o in range(0, list.size(), MapBuilder.CAR_STRIDE):
+		if list[o + 4] < 0.5:
+			continue
+		var tile := Vector2i(int(list[o + 5]), int(list[o + 6]))
+		own_by_tile[tile] = int(own_by_tile.get(tile, 0)) + 1
+		var mm: MultiMesh = by_tile.get(tile)
+		if mm == null:
+			return "no MultiMesh for tile %s" % tile
+		if int(list[o + 7]) < 0 or int(list[o + 7]) >= mm.instance_count:
+			return "car at %.1f, %.1f: instance %d of %d" % [list[o], list[o + 1], int(list[o + 7]), mm.instance_count]
+	for tile: Vector2i in own_by_tile:
+		if (by_tile[tile] as MultiMesh).instance_count != int(own_by_tile[tile]):
+			return "tile %s draws %d cars, %d own" % [tile, (by_tile[tile] as MultiMesh).instance_count, own_by_tile[tile]]
+	return ""
+
+
+## M5: every own car of `cars` pushed off its two sides and two ends at 8 m/s (PUSH_SHARE of it), no
+## walls: where friction alone would stop it, and where the lane rule rests it, in a lane or not.
+func _m5_sector(st: SoftThings, cars: Dictionary) -> void:
+	if cars.is_empty():
+		return
+	var list: PackedFloat64Array = cars["cars"]
+	for o in range(0, list.size(), MapBuilder.CAR_STRIDE):
+		if list[o + 4] < 0.5:
+			continue
+		var bay := SoftThings.bay_of(list, o)
+		_m5["cars"] += 1
+		var at := Vector2(bay.origin.x, bay.origin.z)
+		var near := SoftThings.corridor_segments(st.graph, at, 12.0, bay.origin.y)
+		if SoftThings.in_corridor(bay, near):
+			_m5["bays"] += 1
+		var right := Vector2(bay.basis.x.x, bay.basis.x.z).normalized()
+		var back := Vector2(bay.basis.z.x, bay.basis.z.z).normalized()
+		for d: Vector2 in [right, -right, back, -back]:
+			var speed := 8.0 * Solidity.PUSH_SHARE
+			var natural := bay
+			natural.origin += Vector3(d.x, 0.0, d.y) * Solidity.push_slide(speed)
+			if SoftThings.in_corridor(natural, near):
+				_m5["natural"] += 1
+			var p := SoftThings.Parked.new()
+			p.bay = bay
+			p.xf = bay
+			p.dir = d
+			p.speed = speed
+			p.speed0 = speed
+			p.limit = INF
+			var t0 := Time.get_ticks_usec()
+			var friction := st._plan_rest(p)
+			_m5["usec"] += Time.get_ticks_usec() - t0
+			_m5["pushes"] += 1
+			if p.target >= 0.0 and p.target < Solidity.PUSH_WEDGED and p.target < friction - 0.01:
+				_m5["wedged"] += 1  # it would stop on the spot: a wall instead
+			elif p.in_lane:
+				_m5["ruled"] += 1
+			else:
+				var rest := bay
+				rest.origin += Vector3(d.x, 0.0, d.y) * p.target
+				var segs := SoftThings.corridor_segments(st.graph, Vector2(rest.origin.x, rest.origin.z), 4.0, bay.origin.y)
+				_expect(not SoftThings.in_corridor(rest, segs), "M5 the lane rule's rest for the car at %.1f, %.1f is clear of the lanes" % [at.x, at.y])
+
+
+## M3: sector `sector` (in the tree) loaded with the soft things hard, then turned soft and hard again;
+## its fence, hedge and parked faces each time against `hard` (the --no-soft build's) and `soft_faces`
+## (the soft build's); `lines` (it has soft lines) and `cars` (its parked cars) say what is swept.
+func _m3_toggle(sector: Node3D, key: Vector2i, path: String, hard: Dictionary, soft_faces: Dictionary, lines: bool, cars: int) -> void:
 	var st := SoftThings.new()
 	st.no_soft = true
 	root.add_child(st)
 	st.add_sector(sector)
-	_expect(_same_faces(_class_faces(sector), hard), "M3 %s %s: loaded with the fences hard, its faces are the --no-soft build's" % [key, path])
-	_expect(st.segment_count() == 0, "M3 %s %s: nothing swept while hard (%d segments)" % [key, path, st.segment_count()])
+	_expect(_same_faces(_class_faces(sector), hard), "M3 %s %s: loaded with the soft things hard, its faces are the --no-soft build's" % [key, path])
+	_expect(st.segment_count() == 0 and st.car_count() == 0, "M3 %s %s: nothing swept while hard (%d segments, %d cars)" % [key, path, st.segment_count(), st.car_count()])
 	var n := st.set_soft(true)
-	_expect(n == 1 and _same_faces(_class_faces(sector), soft_faces), "M3 %s %s: breakable live, the restored bodies are gone (%d sectors turned)" % [key, path, n])
-	_expect(st.segment_count() > 0, "M3 %s %s: breakable live, the sector is swept" % [key, path])
+	_expect(n == 1 and _same_faces(_class_faces(sector), soft_faces), "M3 %s %s: soft live, the restored bodies are gone (%d sectors turned)" % [key, path, n])
+	_expect((st.segment_count() > 0) == lines and (st.car_count() > 0) == (cars > 0), "M3 %s %s: soft live, the sector is swept (%d segments, %d cars)" % [
+			key, path, st.segment_count(), st.car_count()])
 	st._remember("x#0", "x", 0, Vector3.ZERO)
 	n = st.set_soft(false)
 	_expect(n == 1 and _same_faces(_class_faces(sector), hard), "M3 %s %s: hard again live, the --no-soft faces are back" % [key, path])
-	_expect(st.segment_count() == 0 and st.broken_count() == 0, "M3 %s %s: hard again, nothing swept and nothing left broken" % [key, path])
+	_expect(st.segment_count() == 0 and st.car_count() == 0 and st.broken_count() == 0, "M3 %s %s: hard again, nothing swept and nothing left broken" % [key, path])
 	_expect(st.set_soft(false) == 0 and _same_faces(_class_faces(sector), hard), "M3 %s %s: hard twice adds nothing" % [key, path])
 	_m3_usec += st.harden_usec
 	_m3_hardens += 2
 	st.free()
 
 
-## Fence and hedge faces the same in `a` and `b` (sorted byte keys by class).
+## The classes the soft things restore (step 7's fences and hedges, step 8a's parked cars).
+const SAME_CLASSES: Array[StringName] = [&"fence", &"hedge", &"parked"]
+
+
+## Fence, hedge and parked faces the same in `a` and `b` (sorted byte keys by class).
 static func _same_faces(a: Dictionary, b: Dictionary) -> bool:
-	for cls: StringName in [&"fence", &"hedge"]:
+	for cls: StringName in SAME_CLASSES:
 		if a.get(cls, PackedStringArray()) != b.get(cls, PackedStringArray()):
 			return false
 	return true
 
 
-## Every collider face of a sector root by class, as sorted byte keys (fence and hedge only matter).
+## Every collider face of a sector root by class, as sorted byte keys (fence, hedge and parked only).
 func _class_faces(node: Node) -> Dictionary:
 	var out := {}
 	for n in node.find_children("*", "CollisionShape3D", true, false):
@@ -790,7 +905,7 @@ func _class_faces(node: Node) -> Dictionary:
 		if body == null or not body.has_meta(&"solid"):
 			continue
 		var cls := StringName(body.get_meta(&"solid"))
-		if cls != &"fence" and cls != &"hedge":
+		if not cls in SAME_CLASSES:
 			continue
 		var shape := (n as CollisionShape3D).shape as ConcavePolygonShape3D
 		if shape == null:

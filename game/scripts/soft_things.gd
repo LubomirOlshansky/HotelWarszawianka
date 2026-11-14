@@ -105,7 +105,8 @@ const DEBRIS_COLOUR := {"metal": Color("#3b3f44"), "wood": Color("#8a6a43"), "he
 ## Step 8a, the parked cars: half width and half length of the box (map_builder.gd PARKED_FOOT) and its
 ## height; nothing is pushed slower than CAR_MIN_SPEED (m/s: a creep still moves it, a little), nor by
 ## less than PUSH_INTO m/s into its face (a brush); the lane rule looks for a free rest in REST_STEP m
-## steps, braking at most / least this hard to stop there (m/s²); a wedged car's collider stays while
+## steps, as short as it likes (a stop on the spot brakes REST_BRAKE_MOST) and as long as braking
+## REST_BRAKE_LEAST m/s² allows; a wedged car's collider stays while
 ## the player is within HARD_NEAR m; the cast reaches CAST_SPARE m past the friction stop (room for a
 ## player who keeps pushing); a push is one contact while touches come within TOUCH_GAP s.
 const CAR_HALF := Vector2(0.9, 2.1)
@@ -113,7 +114,7 @@ const CAR_HIGH := 1.5
 const CAR_MIN_SPEED := 0.3
 const PUSH_INTO := 0.2
 const REST_STEP := 0.25
-const REST_BRAKE_MOST := 18.0
+const REST_BRAKE_MOST := 200.0
 const REST_BRAKE_LEAST := 2.0
 const HARD_NEAR := 9.0
 const CAST_SPARE := 2.0
@@ -155,6 +156,9 @@ var chains := 0
 var towed := 0
 var casts := 0
 var returns := 0
+## Step 8a: pushes refused because the only rest out of the lanes was within PUSH_WEDGED m (a wall
+## instead, counted in `wedges` too).
+var lane_wedges := 0
 
 
 ## Step 8a: one parked car: its bay from the map, where it is now, its slide.
@@ -979,15 +983,18 @@ func _hit(p: Parked, xf: Transform3D, v: Vector2) -> void:
 	var t := Vector2(-n.y, n.x)
 	var c := Vector2(p.xf.origin.x, p.xf.origin.z)
 	var offset := (me - c).dot(t)
+	var side_face := absf(n.dot(Vector2(p.xf.basis.x.x, p.xf.basis.x.z).normalized())) > 0.7
+	var half_t := CAR_HALF.y if side_face else CAR_HALF.x
+	if not _start_slide(p, d, give, clampf(offset / half_t, -1.0, 1.0)):
+		_wall(p)  # the lane rule would stop it within PUSH_WEDGED: it cannot move either
+		wedges += 1
+		return
 	# WORKAROUND(arch): the push's answer is written into the car's `vel` from here, as step 7's smash
 	# cost is, because car.gd (the controls lane) is not to change; see TD-24.
 	var nv := push_answer(v, n, offset)
 	car.vel = Vector3(nv.x, car.vel.y, nv.y)
-	var side_face := absf(n.dot(Vector2(p.xf.basis.x.x, p.xf.basis.x.z).normalized())) > 0.7
-	var half_t := CAR_HALF.y if side_face else CAR_HALF.x
 	var at := Vector3(c.x + n.x * (CAR_HALF.x if side_face else CAR_HALF.y), p.xf.origin.y + 0.7, c.y + n.y * (CAR_HALF.x if side_face else CAR_HALF.y))
 	at += Vector3(t.x, 0.0, t.y) * clampf(offset, -half_t, half_t)
-	_start_slide(p, d, give, clampf(offset / half_t, -1.0, 1.0))
 	pushes += 1
 	_remember(p.id, p.id, -1, p.xf.origin)
 	pushed.emit(p.id, at, Vector3(d.x, 0.0, d.y), speed)
@@ -1084,20 +1091,33 @@ func _car_in_way(p: Parked, xf: Transform3D, d: Vector2, upto: float) -> Array:
 
 
 ## Parked car `p` starts sliding along `d` at `speed` m/s, spinning by `lever` (-1..1: where along the
-## face it was hit), toward a rest the lane rule allows.
-func _start_slide(p: Parked, d: Vector2, speed: float, lever: float) -> void:
-	if p.state == BAY:
-		_off_bay.append(p)
-	if not _sliding.has(p):
-		_sliding.append(p)
-	p.state = SLIDING
+## face it was hit), toward a rest the lane rule allows. False (and `p` as it was) when the only rest
+## out of the lanes is within PUSH_WEDGED m short of where friction would take it: it cannot move.
+func _start_slide(p: Parked, d: Vector2, speed: float, lever: float) -> bool:
+	var was := [p.dir, p.speed, p.speed0, p.gone, p.spin]
 	p.dir = d
 	p.speed = speed
 	p.speed0 = speed
 	p.gone = 0.0
 	p.spin = clampf(-Solidity.PUSH_SPIN * speed * lever, -Solidity.PUSH_SPIN_MOST, Solidity.PUSH_SPIN_MOST)
+	var natural := _plan_rest(p)
+	if p.target >= 0.0 and p.target < Solidity.PUSH_WEDGED and p.target < natural - 0.01:
+		p.dir = was[0]
+		p.speed = was[1]
+		p.speed0 = was[2]
+		p.gone = was[3]
+		p.spin = was[4]
+		p.target = -1.0
+		p.brake = Solidity.PUSH_FRICTION
+		lane_wedges += 1
+		return false
+	if p.state == BAY:
+		_off_bay.append(p)
+	if not _sliding.has(p):
+		_sliding.append(p)
+	p.state = SLIDING
 	p.hidden = false
-	_plan_rest(p)
+	return true
 
 
 ## The player still touching `p` and closing on it: the speeds along its way shared (it is carried
@@ -1217,13 +1237,15 @@ func _push_on(q: Parked, p: Parked) -> void:
 	if _room(q, -n, cast_reach(give)) < Solidity.PUSH_WEDGED:
 		p.speed = 0.0
 		return
-	p.speed = maxf(p.speed - give, 0.0)
-	_plan_rest(p)
 	var t := Vector2(-n.y, n.x)
 	var side_face := absf(n.dot(Vector2(q.xf.basis.x.x, q.xf.basis.x.z).normalized())) > 0.7
 	var lever := clampf((Vector2(p.xf.origin.x, p.xf.origin.z) - Vector2(q.xf.origin.x, q.xf.origin.z)).dot(t)
 			/ (CAR_HALF.y if side_face else CAR_HALF.x), -1.0, 1.0)
-	_start_slide(q, -n, give, lever)
+	if not _start_slide(q, -n, give, lever):
+		p.speed = 0.0
+		return
+	p.speed = maxf(p.speed - give, 0.0)
+	_plan_rest(p)
 	chains += 1
 	_remember(q.id, q.id, -1, q.xf.origin)
 	pushed.emit(q.id, q.xf.origin + Vector3(0, 0.7, 0), Vector3(-n.x, 0.0, -n.y), give)
@@ -1244,18 +1266,19 @@ func _rest(p: Parked) -> void:
 
 
 ## The lane rule: where `p` comes to rest, never in a lane corridor. From where friction would stop
-## it (never past its clamp), the nearest spot either way (REST_STEP apart, braking between
-## REST_BRAKE_LEAST and REST_BRAKE_MOST) whose box is clear of every lane of the graph on its level;
-## with none it rests where friction stops it and is `towed`. No graph: friction alone.
-func _plan_rest(p: Parked) -> void:
+## it (never past its clamp), the nearest spot either way (REST_STEP apart, from where it is now to as
+## far as braking REST_BRAKE_LEAST allows) whose box is clear of every lane of the graph on its level;
+## with none it rests where friction stops it and is `towed`. No graph: friction alone. Returns where
+## friction alone would stop it (_start_slide: a rest shortened under PUSH_WEDGED is a wedge).
+func _plan_rest(p: Parked) -> float:
 	p.brake = Solidity.PUSH_FRICTION
 	p.target = -1.0
 	p.in_lane = false
 	var v2 := p.speed * p.speed
 	var natural := minf(p.gone + v2 / (2.0 * Solidity.PUSH_FRICTION), p.limit)
 	if graph == null:
-		return
-	var lo := minf(p.gone + v2 / (2.0 * REST_BRAKE_MOST), natural)
+		return natural
+	var lo := p.gone
 	var hi := minf(p.limit, p.gone + v2 / (2.0 * REST_BRAKE_LEAST))
 	var from := Vector2(p.xf.origin.x, p.xf.origin.z)
 	var reach := hi - p.gone + CAR_HALF.y + 1.0
@@ -1278,10 +1301,11 @@ func _plan_rest(p: Parked) -> void:
 		k += 1
 	if best < 0.0:
 		p.in_lane = true
-		return
+		return natural
 	p.target = best
 	var left := best - p.gone
-	p.brake = v2 / (2.0 * left) if left > 0.01 else REST_BRAKE_MOST * 10.0
+	p.brake = v2 / (2.0 * left) if left > 0.01 else REST_BRAKE_MOST
+	return natural
 
 
 ## The lanes near `at` (within `reach` m, on its level: their surface within LANE_LEVEL m of `y`) of
