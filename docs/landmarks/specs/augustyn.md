@@ -1,6 +1,6 @@
 # Kościół św. Augustyna (St Augustine's church), ul. Nowolipki 18: spec
 
-**Provisional.** This model is built from a text description and LoD2 only, with no photo. Its front details, belfry and spire shape wait for a photo check (listed first in KEY-PLACES-NEED-PHOTOS).
+**Checked against photos 2026-11-14.** First built from a text description and LoD2 only; then checked against 11 Wikimedia Commons photos (refs/churches/st_augustine_nowolipki, reference only, never shipped). The check changed the brick to the photos' orange-red, the spire to octagonal green copper over a small arcaded top stage, and added the front gable's two corner turrets.
 
 Site key `church_augustyn` in `game/scripts/landmarks.gd` (`_find_churches` finds it,
 `_build_church` hands it to `_build_augustyn`): the whole church is one model that replaces the
@@ -68,7 +68,7 @@ No new material, shader instruction or draw call.
 The car is stopped by the outline (`_collide`). Card text names the 70 m tower. No floodlights.
 
 ## 8. Detail level and budget
-L2 (a 70 m tower seen from across the north-west), triangle budget 1750 (measured 1603, `check_mesh_quality.gd`). Shots:
+L2 (a 70 m tower seen from across the north-west), triangle budget 1900 (measured 1759, `check_mesh_quality.gd`). Shots:
 `tools/turntable.sh church_augustyn`.
 
 ## 9. Parts table
