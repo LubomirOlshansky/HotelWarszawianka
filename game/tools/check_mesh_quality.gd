@@ -48,7 +48,7 @@ const BUDGET := {
 	"church_jerozolimska": 810,
 	"church_kapucyni": 420,
 	"church_karol": 580,
-	"church_katedra_polowa": 870,
+	"church_katedra_polowa": 3200,  # 2026-11-14: the whole Field Cathedral from photos (measured 2917)
 	"church_miloserdzie": 370,
 	"church_narodzenia": 470,
 	"church_niepokalanego": 400,
