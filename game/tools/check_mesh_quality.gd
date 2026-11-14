@@ -271,7 +271,7 @@ const BUDGET := {
 	"varso_place": 1100,
 	"wcf": 1400,  # 2026-11-08 F's 13 photos: the Emilii Plater portico, piers, fins, the low roof's rail (1319)
 	"wszystkich": 1300,
-	"wizytki": 690,
+	"wizytki": 3600,  # 2026-11-14: the whole Visitationist church replaces LoD2 (front, nave, aisles, chancel, wing, turret; measured 3248)
 	"branickich": 1500,
 	"archikatedra": 1100,
 	"sw_anna": 1050,  # 2026-11-06 photo pass: giant order, niches, attic, tower dome
