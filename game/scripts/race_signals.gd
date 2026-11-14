@@ -50,6 +50,19 @@ const WEAVE_HZ := 0.8
 const RED := Color("#ff2418")
 const AMBER := Color("#ffa51e")
 const WHITE := Color("#fff6d8")
+## The glow of a lit lamp on the road (Mac look, 2026-11-13: at the game's normal camera a rival is
+## about 10 px long and its lamps 1 to 2 px, too small to read): a soft pool of the lamp's colour
+## on the ground round it, POOL_ALPHA at its middle and nothing at its edge, POOL_Y above the road.
+## Brake lights BRAKE_POOL m behind the car, an indicator INDICATOR_POOL m at its corner, the
+## headlight flash FLASH_POOL m in front. In the lamp's own mesh, so a lit lamp is still one draw.
+const POOL_ALPHA := 0.75
+const POOL_Y := 0.06
+const POOL_SIDES := 16
+const BRAKE_POOL := 1.5
+const INDICATOR_POOL := 1.1
+const FLASH_POOL := 1.6
+## The lamps themselves are LAMP_SCALE of the sizes below, read from the game's height.
+const LAMP_SCALE := 1.3
 
 static var _material: StandardMaterial3D
 
@@ -210,12 +223,16 @@ static func material() -> StandardMaterial3D:
 		_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		_material.vertex_color_use_as_albedo = true
 		_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+		# The pools fade out by their vertices' alpha; the lamps' boxes are opaque (alpha 1).
+		_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_material.disable_receive_shadows = true
 	return _material
 
 
 ## The lamps of a car `size` (width, height, length; its front faces -Z, +X is its right): a node
 ## "signals" with four meshes, "brake", "left", "right" and "flash", all hidden. Bigger than a real
-## car's lamps: they are read from the game's height, on a phone.
+## car's lamps (LAMP_SCALE), and each with its glow on the road (`_pool`): they are read from the
+## game's height, on a phone.
 static func build(size: Vector3) -> Node3D:
 	var out := Node3D.new()
 	out.name = "signals"
@@ -228,7 +245,7 @@ static func build(size: Vector3) -> Node3D:
 		[Vector3(hw - 0.3, y, hl + 0.03), Vector3(0.56, 0.26, 0.1)],
 		[Vector3(0.0, minf(size.y * 0.78, y + 0.55), hl - 0.12), Vector3(0.7, 0.1, 0.1)],
 	]
-	out.add_child(_lamp("brake", brake, RED))
+	out.add_child(_lamp("brake", brake, RED, [[Vector3(0.0, POOL_Y, hl + BRAKE_POOL * 0.55), BRAKE_POOL]]))
 	for sgn: float in [-1.0, 1.0]:
 		# An indicator: the front and the rear corner, wrapped round it, and one on the wing.
 		var x := sgn * (hw + 0.02)
@@ -237,22 +254,28 @@ static func build(size: Vector3) -> Node3D:
 			[Vector3(x - sgn * 0.14, y + 0.3, hl + 0.02), Vector3(0.36, 0.24, 0.3)],
 			[Vector3(x, y + 0.12, -hl * 0.35), Vector3(0.1, 0.16, 0.34)],
 		]
-		out.add_child(_lamp("left" if sgn < 0.0 else "right", boxes, AMBER))
+		var pools := [
+			[Vector3(sgn * (hw + INDICATOR_POOL * 0.4), POOL_Y, -hl - INDICATOR_POOL * 0.25), INDICATOR_POOL],
+			[Vector3(sgn * (hw + INDICATOR_POOL * 0.4), POOL_Y, hl + INDICATOR_POOL * 0.25), INDICATOR_POOL],
+		]
+		out.add_child(_lamp("left" if sgn < 0.0 else "right", boxes, AMBER, pools))
 	var flash := [
 		[Vector3(-hw + 0.36, y, -hl - 0.04), Vector3(0.6, 0.28, 0.1)],
 		[Vector3(hw - 0.36, y, -hl - 0.04), Vector3(0.6, 0.28, 0.1)],
 	]
-	out.add_child(_lamp("flash", flash, WHITE))
+	out.add_child(_lamp("flash", flash, WHITE, [[Vector3(0.0, POOL_Y, -hl - FLASH_POOL * 0.6), FLASH_POOL]]))
 	return out
 
 
-static func _lamp(name: String, boxes: Array, colour: Color) -> MeshInstance3D:
+static func _lamp(name: String, boxes: Array, colour: Color, pools: Array) -> MeshInstance3D:
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	for p: Array in pools:
+		_pool(st, p[0], p[1], colour)
 	st.set_color(colour)
 	for b: Array in boxes:
 		var c: Vector3 = b[0]
-		var h: Vector3 = b[1] * 0.5
+		var h: Vector3 = b[1] * 0.5 * LAMP_SCALE
 		for axis in 3:
 			for sgn: float in [-1.0, 1.0]:
 				var n := Vector3.ZERO
@@ -275,6 +298,23 @@ static func _lamp(name: String, boxes: Array, colour: Color) -> MeshInstance3D:
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.visible = false
 	return mi
+
+
+## A lamp's glow on the road: a flat disc of `radius` m round `at`, `colour` at POOL_ALPHA in the
+## middle, fading to nothing at the edge.
+static func _pool(st: SurfaceTool, at: Vector3, radius: float, colour: Color) -> void:
+	var mid := Color(colour, POOL_ALPHA)
+	var edge := Color(colour, 0.0)
+	for k in POOL_SIDES:
+		var a0 := TAU * k / POOL_SIDES
+		var a1 := TAU * (k + 1) / POOL_SIDES
+		st.set_normal(Vector3.UP)
+		st.set_color(mid)
+		st.add_vertex(at)
+		st.set_color(edge)
+		st.add_vertex(at + Vector3(cos(a1), 0.0, sin(a1)) * radius)
+		st.set_color(edge)
+		st.add_vertex(at + Vector3(cos(a0), 0.0, sin(a0)) * radius)
 
 
 ## The lamps of `signals` (`build`) as `st` has them, or all off when `st` is null.

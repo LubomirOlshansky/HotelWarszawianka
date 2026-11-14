@@ -262,6 +262,7 @@ func build() -> void:
 	pour(mesh, false, "RatuszHubMesh")
 	var body := StaticBody3D.new()
 	body.name = "RatuszTowerSolid"
+	body.set_meta(&"solid", &"landmark")  # the city objects plan's solid class (solidity.gd)
 	var shape := CollisionShape3D.new()
 	var cyl := CylinderShape3D.new()
 	cyl.radius = TOWER_R + 0.15

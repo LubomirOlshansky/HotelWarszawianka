@@ -157,6 +157,7 @@ shisha               quick
 shisha-run           local     slow
 sites                quick
 smooth               quick
+solids               smoke
 sounds               quick
 spec                 quick
 spiremotion          quick
