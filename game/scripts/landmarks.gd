@@ -785,20 +785,21 @@ const INFO := {
 	"church_duch": ["Kościół Świętego Ducha", "Barokowy kościół paulinów na Nowym Mieście.", "A baroque Pauline church in the New Town."],
 	"church_jacek": ["Kościół św. Jacka", "Kościół dominikanów na Nowym Mieście.", "The Dominicans' church in the New Town."],
 	"church_antoniego": ["Kościół św. Antoniego Padewskiego", "Kościół franciszkanów na Senatorskiej.", "The Franciscans' church on Senatorska."],
-	"church_alberta": ["Kościół św. Brata Alberta", "Kościół parafialny.", "A parish church."],
-	"church_reformowany": ["Kościół Ewangelicko-Reformowany", "Kościół ewangelicko-reformowany z cegły.", "A brick Reformed church."],
-	"church_jerozolimska": ["Kościół Matki Bożej Jerozolimskiej", "Kościół parafialny.", "A parish church."],
+	"church_alberta": ["Kościół św. Brata Alberta i św. Andrzeja", "Kościół środowisk twórczych przy placu Teatralnym.", "The artists' church on Theatre Square."],
+	"church_reformowany": ["Kościół Ewangelicko-Reformowany", "Neogotycki kościół z ażurową iglicą.", "A neo-Gothic church with an openwork spire."],
+	"church_jerozolimska": ["Kościół Matki Bożej Jerozolimskiej", "Ceglany kościół z portykiem naprzeciw stadionu.", "A brick church with a portico across from the stadium."],
 	"church_zielonoswiatkowy": ["Kościół Zielonoświątkowy", "Zbór zielonoświątkowy.", "A Pentecostal church."],
 	"church_dzieciatka": ["Kościół Dzieciątka Jezus", "Kościół parafialny z wysoką wieżą.", "A parish church with a tall tower."],
-	"church_narodzenia": ["Kościół Narodzenia NMP", "Kościół parafialny.", "A parish church."],
-	"church_karol": ["Kościół św. Karola Boromeusza", "Kościół przy Cmentarzu Powązkowskim.", "The church by Powązki Cemetery."],
-	"church_augustyn": ["Kościół św. Augustyna", "Kościół parafialny z cegły.", "A brick parish church."],
+	"church_narodzenia": ["Kościół Narodzenia NMP na Lesznie", "Barokowy kościół z wieżyczką zegarową.", "A Baroque church with a clock turret."],
+	"church_karol": ["Kościół św. Karola Boromeusza", "Klasycystyczna bazylika przy Chłodnej.", "The classical basilica on Chłodna Street."],
+	"church_augustyn": ["Kościół św. Augustyna", "Ceglana bazylika z wieżą na 70 metrów.", "A brick basilica with a 70-metre tower."],
 	"church_miloserdzie": ["Kościół Miłosierdzia Bożego", "Kościół parafialny.", "A parish church."],
 	"church_piotr_pawel": ["Kościół Świętych Piotra i Pawła", "Kościół parafialny z cegły.", "A brick parish church."],
-	"church_trojca_praga": ["Kościół Świętej Trójcy", "Kościół parafialny.", "A parish church."],
-	"church_czestochowska": ["Kościół Matki Bożej Częstochowskiej", "Kościół parafialny.", "A parish church."],
+	"church_trojca_praga": ["Kościół Świętej Trójcy na Solcu", "Klasycystyczny kościół z wieżyczką.", "A classicist church with a bell turret."],
+	"church_czestochowska": ["Kościół Matki Bożej Częstochowskiej", "Modernistyczny kościół z dachem do ziemi.", "A modernist church with a roof down to the ground."],
 	"church_zwycieska": ["Kościół Matki Boskiej Zwycięskiej", "Kościół parafialny z dwiema wieżami.", "A parish church with two towers."],
-	"church_cerkiew": ["Cerkiew Zaśnięcia Matki Bożej", "Cerkiew prawosławna.", "An Orthodox church."],
+	"church_bazylianie": ["Klasztor Bazylianów", "Klasztor bazylianów z frontem cerkwi przy Miodowej.", "The Basilian monastery with the church's front on Miodowa."],
+	"church_cerkiew": ["Cerkiew Zaśnięcia Matki Bożej", "Greckokatolicka cerkiew bazylianów przy Miodowej.", "The Basilians' Greek Catholic church on Miodowa."],
 	"church_nozykow": ["Synagoga Nożyków", "Jedyna przedwojenna synagoga Warszawy, przy Twardej.", "Warsaw's only pre-war synagogue, on Twarda."],
 }
 
@@ -19026,6 +19027,191 @@ func _build_niepokalanego(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The Pentecostal church (Kościół Zielonoświątkowy, Sienna), a modernist hall of the 1950s on a
+## corner of Sienna: a brick ground floor under a cream plastered upper volume that oversails it on
+## a pier at the entrance, groups of three tall cream fins on its end walls, a flat roof, a tall
+## brick stair block beside the entrance. The whole building as a model that replaces the old kit
+## church (`church_zielonoswiatkowy`, built by `_build_church` until 2026-11-14: a gabled "modern"
+## church box). From Mapillary photos of 2021 taken along Sienna and the side street (refs/
+## zielonoswiatkowy, never shipped), the OSM outline and GUGiK's LoD2 (flat roofs: the hall 12, the
+## east wing 9.4, the stair block 14). Spec docs/landmarks/specs/zielonoswiatkowy.md.
+## Frame: origin at the outline's centre, u along the building (axis (-0.3881, 0.9216)), +v to the
+## hall's side; the hall is the half with v over 6, the lower wing the other.
+const ZL_O := Vector2(-1890.1, 331.7)
+const ZL_A := Vector2(-0.3881, 0.9216)
+const ZL_BRICK := Color("#8f4a36")     ## the dark red brick of the ground floor and the stair block
+const ZL_CREAM := Color("#e2d6bf")     ## the cream plaster of the upper volume
+const ZL_FIN := Color("#ece3d0")       ## the fins and the copings, a shade paler
+const ZL_ROOF := Color("#8e8f8c")      ## the flat roofs
+
+
+## The windows and the fin groups on every edge of `ring` longer than 4 m, between y0 and y1
+## (absolute): a fin group of three ribs at a quarter and three quarters of an edge longer than
+## 9 m, square windows every 2.6 m on the storeys at `rows` (absolute sills) clear of the fins.
+func _zl_dress(ring: PackedVector2Array, y0: float, y1: float, rows: Array, fins: bool) -> void:
+	var n := ring.size()
+	var keep := _mode
+	for i in n:
+		var p := ring[i]
+		var q := ring[(i + 1) % n]
+		var l := p.distance_to(q)
+		if l < 4.0:
+			continue
+		var d := (q - p) / l
+		var out := _out(ring, p, q)
+		var spots: Array[float] = []
+		if fins and l > 9.0:
+			spots = [l * 0.25, l * 0.75]
+			for s: float in spots:
+				for k in 3:
+					var c := p + d * (s + (k - 1) * 0.6) + out * 0.2
+					_mode = M_STONE
+					_prism(_circle(c, 0.24, 4), y0 + 0.4, y1 - 0.5, ZL_FIN, ZL_FIN, M_STONE, M_STONE)
+		var t := 1.6
+		while t < l - 1.4:
+			var clear := true
+			for s2: float in spots:
+				if absf(t - s2) < 1.6:
+					clear = false
+			if clear:
+				for r in rows:
+					var y := float(r)
+					_mode = _lit(t + p.x, y)
+					_wall(p + d * (t - 0.6) + out * 0.05, p + d * (t + 0.6) + out * 0.05, y, y + 1.5, out, PAL_GLASS_DARK)
+			t += 2.6
+	_mode = keep
+
+
+func _build_zielonoswiatkowy(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(ZL_O, ZL_O + ZL_A)
+	_g = _ground_under(outline)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	_mode = M_STONE
+	var hall_half := _lpoly([[-40.0, 6.0], [40.0, 6.0], [40.0, 30.0], [-40.0, 30.0]])
+	var wing_half := _lpoly([[-40.0, -30.0], [40.0, -30.0], [40.0, 6.0], [-40.0, 6.0]])
+	var hall := _largest(Geometry2D.intersect_polygons(outline, hall_half))
+	var wing := _largest(Geometry2D.intersect_polygons(outline, wing_half))
+	# --- the hall: a brick ground floor, the cream volume to 12, a coping, the flat roof
+	_prism(hall, g - 1.0, g + 4.0, ZL_BRICK, none, M_STONE)
+	_prism(hall, g + 4.0, g + 12.0, ZL_CREAM, ZL_ROOF, M_STONE, M_STONE)
+	kit_ledge_ring(hall, g + 11.7, 0.4, ZL_FIN, 0.12)
+	kit_ledge_ring(hall, g + 3.85, 0.3, ZL_FIN, 0.2)
+	_zl_dress(hall, g + 4.0, g + 12.0, [g + 5.3, g + 8.5], true)
+	_zl_dress(hall, g, g + 4.0, [g + 1.3], false)
+	# --- the lower wing: the same two materials, flat roof at 9.4
+	_prism(wing, g - 1.0, g + 3.6, ZL_BRICK, none, M_STONE)
+	_prism(wing, g + 3.6, g + 9.4, ZL_CREAM, ZL_ROOF, M_STONE, M_STONE)
+	kit_ledge_ring(wing, g + 9.1, 0.4, ZL_FIN, 0.12)
+	_zl_dress(wing, g + 3.6, g + 9.4, [g + 5.2, g + 7.4], false)
+	_zl_dress(wing, g, g + 3.6, [g + 1.2], false)
+	# --- the tall brick stair block by the entrance, a slit window up it
+	_kbox(-21.2, -16.8, 6.0, 10.2, g - 1.0, g + 14.0, ZL_BRICK)
+	_kbox(-21.3, -16.7, 5.9, 10.3, g + 13.7, g + 14.1, ZL_FIN)
+	_kbox(-19.3, -18.7, 10.2, 10.26, g + 4.5, g + 12.5, PAL_GLASS_DARK, _lit(-19.0, g + 4.5))
+	# --- the entrance under the oversailing upper volume: its pier and the dark glazed doors
+	_kbox(-24.6, -23.9, 4.2, 4.9, g - 1.0, g + 4.0, ZL_FIN)
+	var e0 := _w(-22.4, 1.2)
+	var e1 := _w(-19.2, 4.2)
+	_mode = M_STONE
+	_wall(e0, e1, g, g + 2.6, (e1 - e0).orthogonal().normalized() * -1.0, PAL_DARK_DOOR)
+	_collide(outline)
+
+
+## The Church of Divine Mercy and St Faustina (Kościół pw. Miłosierdzia Bożego i Świętej Faustyny,
+## Żytnia; the Sisters of Our Lady of Mercy, where St Faustina entered in 1925), a plain white
+## plastered church in the sisters' convent on Żytnia. The whole church as a model that replaces
+## the old kit church (`church_miloserdzie`, built by `_build_church` until 2026-11-14: a "modern"
+## box with a pyramid tower). From Mapillary photos of 2017 and 2025 taken along Żytnia (refs/
+## miloserdzie, never shipped), the OSM outline and GUGiK's LoD2 (over the ground: the nave's eaves
+## 8.3, its low ridge 10.3; the low annexes along the street and the south side 4.3; the slim
+## bell tower to 20 with a dome to 25; the three-storey house at the east end 12.5 with a hip).
+## Spec docs/landmarks/specs/miloserdzie.md.
+## - the slim square white bell tower at the street corner: a plain shaft, a cornice, an open
+##   arched lantern stage, a cornice, a small grey dome and a cross;
+## - the nave under a low grey gable, its street wall carrying the big mural in the flag's white and
+##   red (a flat panel); the low annex in front of it with the door under a little tiled porch roof;
+## - the sisters' white house at the east end under a dark tiled hip, two rows of windows a side.
+## Frame: origin at the outline's centre, u along the church to the east (the house), +v to the
+## south; the street (Żytnia) runs along the north side (-v).
+const FA_O := Vector2(-2748.8, -692.9)
+const FA_A := Vector2(-0.2703, -0.9628)
+const FA_WALL := Color("#ecebe6")      ## the white plaster (photos: a cool white)
+const FA_TRIM := Color("#f4f3ef")      ## cornices, piers
+const FA_ROOF := Color("#6a6e72")      ## the nave's grey sheet roof
+const FA_TILE := Color("#4c4644")      ## the house's dark tiles
+const FA_DOME := Color("#7c8084")      ## the tower's grey dome
+const FA_RED := Color("#c23a3a")       ## the mural's red
+const FA_MURAL := Color("#5d5f63")     ## the mural's dark figures and emblem
+const FA_BASE := Color("#8a5040")      ## the brick plinth of the street annex
+
+
+func _build_miloserdzie(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(FA_O, FA_O + FA_A)
+	_g = _ground_under(outline)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	_mode = M_STONE
+	# --- the nave: walls to 8.3, a low gable along u to 10.3
+	var nave := _rect(-4.3, -0.15, 15.3, 4.65)  # u -19.6..11, v -4.8..4.5
+	_prism(nave, g - 1.0, g + 8.3, FA_WALL, none, M_STONE)
+	kit_ledge_ring(nave, g + 7.95, 0.35, FA_TRIM, 0.15)
+	_gable(-19.6, 11.0, -0.15, 4.95, g + 8.3, 2.0, FA_WALL, FA_ROOF, true)
+	# the nave's tall windows on the south side and the west end (the street side has the mural)
+	kit_face(4.5)
+	for wu: float in [-15.0, -9.5, -4.0, 1.5, 7.0]:
+		_kbox(wu - 0.65, wu + 0.65, 4.45, 4.55, g + 4.9, g + 7.4, PAL_GLASS_DARK, _lit(wu, g + 4.9))
+	# --- the mural on the street wall over the annex: white-red flag field, emblem, figures
+	_kbox(-6.0, 5.0, -4.84, -4.8, g + 4.3, g + 7.8, FA_WALL.darkened(0.04))
+	_kbox(-5.2, -1.2, -4.9, -4.84, g + 4.6, g + 5.9, FA_RED)
+	_kbox(-3.9, -2.4, -4.94, -4.84, g + 4.6, g + 7.4, FA_MURAL)
+	_kbox(0.3, 4.2, -4.9, -4.84, g + 4.6, g + 7.5, FA_MURAL.lightened(0.25))
+	# --- the low annexes: along the street (north), the south side and its porch
+	var north := _lpoly([[-7.15, -8.3], [11.0, -8.3], [11.0, -4.8], [-7.15, -4.8]])
+	_prism(north, g - 1.0, g + 4.3, FA_WALL, FA_ROOF.lightened(0.1), M_STONE, M_STONE)
+	_kbox(-7.15, 11.0, -8.42, -8.3, g - 1.0, g + 0.9, FA_BASE)
+	kit_face(-8.3)
+	for du: float in [-3.0, 3.5]:
+		_kbox(du - 0.6, du + 0.6, -8.36, -8.3, g + 0.0, g + 2.4, PAL_DARK_DOOR)
+	_kbox(1.6, 5.4, -9.6, -8.3, g + 2.6, g + 2.8, FA_TRIM)
+	for wn: float in [-5.5, -1.0, 6.0, 9.0]:
+		_kbox(wn - 0.45, wn + 0.45, -8.36, -8.3, g + 1.5, g + 3.0, PAL_GLASS_DARK, _lit(wn, g + 1.5))
+	var south := _lpoly([[-11.0, 4.5], [11.0, 4.5], [11.0, 7.2], [3.1, 7.2], [3.1, 9.25], [-0.65, 9.25], [-0.65, 7.2], [-11.0, 7.2]])
+	_prism(south, g - 1.0, g + 4.3, FA_WALL, FA_ROOF.lightened(0.1), M_STONE, M_STONE)
+	# --- the sisters' house at the east end: three storeys, a dark tiled hip
+	_kbox(11.0, 19.7, -8.3, 6.4, g - 1.0, g + 11.0, FA_WALL)
+	kit_ledge_ring(_rect(15.35, -0.95, 4.35, 7.35), g + 10.7, 0.3, FA_TRIM, 0.25)
+	_hip(15.35, -0.95, 4.6, 7.6, g + 11.0, 2.4, FA_TILE)
+	for sv: float in [-1.0, 1.0]:
+		kit_face(-8.3 if sv < 0.0 else 6.4)
+		for hu: float in [12.9, 17.8]:
+			for hy: float in [4.2, 7.6]:
+				_kbox(hu - 0.55, hu + 0.55, _face - 0.03, _face + 0.03, g + hy, g + hy + 1.5, PAL_GLASS_DARK, _lit(hu * sv, g + hy))
+	for hv: float in [-5.0, 3.0]:
+		for hy2: float in [1.0, 4.2, 7.6]:
+			_kbox(19.67, 19.73, hv - 0.55, hv + 0.55, g + hy2, g + hy2 + 1.5, PAL_GLASS_DARK, _lit(hv, g + hy2))
+	# --- the bell tower at the street corner: shaft, lantern stage, dome, cross
+	var tu := -9.225
+	var tv := -6.975
+	_lbox(tu, tv, 2.075, 1.975, g - 1.0, g + 18.0, FA_WALL, M_STONE, none)
+	_lbox(tu, tv, 2.25, 2.15, g + 18.0, g + 18.4, FA_TRIM, M_STONE, FA_TRIM)
+	kit_face(-8.95)
+	_disc(Vector3(_w(tu, -8.98).x, g + 16.4, _w(tu, -8.98).y), Vector3(-_b.x, 0.0, -_b.y), 0.5, 10, PAL_DARK_STEEL)
+	for pu: float in [-1.0, 1.0]:
+		for pv: float in [-1.0, 1.0]:
+			_lbox(tu + pu * 1.3, tv + pv * 1.2, 0.35, 0.35, g + 18.4, g + 21.1, FA_WALL, M_STONE, none)
+	_lbox(tu, tv, 0.9, 0.85, g + 18.4, g + 21.1, CHURCH_DARK, M_STONE, none)
+	_lbox(tu, tv, 1.85, 1.75, g + 21.0, g + 21.4, FA_WALL, M_STONE, none)
+	_lbox(tu, tv, 2.0, 1.9, g + 21.4, g + 21.8, FA_TRIM, M_STONE, FA_TRIM)
+	var tc := _w(tu, tv)
+	_frustum(_circle(tc, 1.6, 8), g + 21.8, _circle(tc, 1.35, 8), g + 22.9, FA_DOME)
+	_frustum(_circle(tc, 1.35, 8), g + 22.9, _circle(tc, 0.35, 8), g + 24.3, FA_DOME.lightened(0.06))
+	_kap_cross(tu, tv, g + 24.3, 1.6)
+	_collide(outline)
+
+
 ## The parish church of the Child Jesus (Kościół parafialny pw. Dzieciątka Jezus, by the Child Jesus
 ## hospital between Lindleya and Oczki), a red-brick neo-Gothic hall church. The whole church as a
 ## model that replaces the old kit church (`church_dzieciatka`, built by `_build_church` until
@@ -19220,6 +19406,1252 @@ func _build_dzieciatka(site: Dictionary) -> void:
 			_lancet_panel(fc + along * d2 * 1.0, along, out, 0.42, g + 17.6, g + 19.6, CHURCH_DARK, 0.09, M_STONE)
 		var oc := fc + out * 0.06
 		_disc(Vector3(oc.x, g + 21.5, oc.y), Vector3(out.x, 0.0, out.y), 0.55, 10, DZ_CREAM)
+	_collide(outline)
+
+
+## St Charles Borromeo (Kościół św. Karola Boromeusza, ul. Chłodna 21; Henryk Marconi, 1841-49,
+## rebuilt after 1944), a cream classicist basilica between Chłodna and Elektoralna. The whole
+## church as a model that replaces the old kit church (`church_karol`, built by `_build_church`
+## until 2026-11-14: a beige box with a kit tower). From Mapillary photos of 2019-2026 taken along
+## Elektoralna and from the Chłodna corner (refs/karol, never shipped), the OSM outline and
+## GUGiK's LoD2 (over the ground: the nave and its clerestory 16 with a low ridge 17; the aisles
+## and the west block 10 to 11; the transept 10.5 to 11; the apse 11 and its half dome to 14).
+## Spec docs/landmarks/specs/karol.md.
+## - the west front on Chłodna: a pedimented portal and a tall round-headed window between
+##   pilasters, the nave's pediment over it and the two slim towers on its corners (a square
+##   shaft, an arched belfry with corner urns, an octagonal arcaded lantern, a small grey dome
+##   and a cross; neither is in OSM or LoD2, placed from the photos);
+## - the nave's clerestory with round-headed windows, the lower aisles with pilasters and the
+##   tall relief panels between them over a grey plinth;
+## - the transept with a pediment, a pedimented door and a lunette at each end;
+## - the semicircular apse to Elektoralna with pilasters, a cornice and a grey-green half dome;
+##   the nave's east pediment over it with a little arched bell-cote and a cross.
+## Frame: origin by the crossing's west side, u along the church to the east (the apse), +v to
+## the south; the front faces -u (west).
+const KB_O := Vector2(-2151.7, -460.7)
+const KB_A := Vector2(0.8643, -0.5029)
+const KB_C := -0.1                     ## the church's axis (v): the portal, the ridges, the apse
+const KB_WALL := Color("#e6d6a8")      ## the warm cream plaster (photos)
+const KB_TRIM := Color("#f1e9cf")      ## pilasters, cornices, pediments
+const KB_RELIEF := Color("#d3c296")    ## the shadowed relief panels and recesses
+const KB_ROOF := Color("#70757a")      ## the grey sheet roofs
+const KB_DOME := Color("#5f6f68")      ## the apse's dark grey-green half dome
+const KB_TOWER_ROOF := Color("#7d8287") ## the towers' small grey domes
+const KB_BASE := Color("#a29d91")      ## the grey stone plinth
+const KB_DOOR := Color("#4a3a30")      ## the dark wooden doors
+
+
+## Turns the kit frame so that +v points out of one side of the church (0 south, 1 west, 2 north,
+## 3 east) and kit_pilaster, kit_door and kit_pediment work on it: a point (u, v) of the church's
+## frame is then (v, -u), (-u, -v) or (-v, u) in the turned one.
+func _kb_turn(side: int) -> void:
+	var b := Vector2(-KB_A.y, KB_A.x)
+	match side:
+		0:
+			_a = KB_A
+		1:
+			_a = b
+		2:
+			_a = -KB_A
+		_:
+			_a = -b
+	_b = Vector2(-_a.y, _a.x)
+
+
+## A round-headed window on the turned frame's face: a trim surround and the pane 4 cm over it.
+func _kb_arch_win(u: float, y0: float, spring: float, hw: float) -> void:
+	var at := _w(u, _face)
+	_arch_panel(at, _a, _b, hw + 0.2, y0 - 0.15, spring, KB_TRIM, 0.03, M_STONE)
+	_arch_panel(at, _a, _b, hw, y0, spring, PAL_GLASS_DARK, 0.07, _lit(u + _face, y0))
+
+
+## An octagon of radius `r` round c whose faces look along the church's axes (so arches sit
+## flat on them): corners at 22.5 degrees off the axes.
+func _kb_oct(c: Vector2, r: float) -> PackedVector2Array:
+	var b := Vector2(-KB_A.y, KB_A.x)
+	var ring := PackedVector2Array()
+	for k in 8:
+		var ang := PI * (k + 0.5) / 4.0
+		ring.append(c + (KB_A * cos(ang) + b * sin(ang)) * r)
+	return ring
+
+
+## One of the two west towers at (tu, tv) of the church's frame, from its foot on the west block
+## (y0) to the cross: shaft, belfry with an arched opening a side and corner urns, an octagonal
+## lantern with four arches, a small dome and a cross.
+func _kb_tower(tu: float, tv: float, g: float) -> void:
+	var none := Color(0, 0, 0, 0)
+	var hw := 1.6
+	_lbox(tu, tv, hw, hw, g + 9.0, g + 20.0, KB_WALL, M_STONE, none)
+	_lbox(tu, tv, hw + 0.18, hw + 0.18, g + 19.6, g + 20.1, KB_TRIM, M_STONE, KB_TRIM)
+	_lbox(tu, tv, hw - 0.15, hw - 0.15, g + 20.1, g + 24.0, KB_WALL, M_STONE, none)
+	_lbox(tu, tv, hw + 0.05, hw + 0.05, g + 23.6, g + 24.1, KB_TRIM, M_STONE, KB_TRIM)
+	var c := _w(tu, tv)
+	var a := KB_A
+	var b := Vector2(-KB_A.y, KB_A.x)
+	for s: float in [-1.0, 1.0]:
+		# the belfry's arch on all four faces
+		_arch_panel(c + a * ((hw - 0.15) * s), b, a * s, 0.6, g + 20.6, g + 22.6, CHURCH_DARK, 0.03, M_STONE)
+		_arch_panel(c + b * ((hw - 0.15) * s), a, b * s, 0.6, g + 20.6, g + 22.6, CHURCH_DARK, 0.03, M_STONE)
+		for t: float in [-1.0, 1.0]:
+			_pinnacle(tu + s * 1.35, tv + t * 1.35, 0.32, g + 24.1, 0.9, KB_TRIM)
+	# the octagonal lantern, its four arches, the dome and the cross
+	_frustum(_kb_oct(c, 1.05), g + 24.1, _kb_oct(c, 1.05), g + 26.9, KB_WALL)
+	for s2: float in [-1.0, 1.0]:
+		_arch_panel(c + a * (0.97 * s2), b, a * s2, 0.3, g + 24.6, g + 26.0, CHURCH_DARK, 0.04, M_STONE)
+		_arch_panel(c + b * (0.97 * s2), a, b * s2, 0.3, g + 24.6, g + 26.0, CHURCH_DARK, 0.04, M_STONE)
+	_frustum(_kb_oct(c, 1.2), g + 26.9, _kb_oct(c, 1.1), g + 27.2, KB_TRIM)
+	_frustum(_kb_oct(c, 1.1), g + 27.2, _kb_oct(c, 0.7), g + 28.2, KB_TOWER_ROOF)
+	_frustum(_kb_oct(c, 0.7), g + 28.2, _kb_oct(c, 0.12), g + 28.9, KB_TOWER_ROOF.lightened(0.06))
+	_kap_cross(tu, tv, g + 28.9, 1.4)
+
+
+func _build_karol(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(KB_O, KB_O + KB_A)
+	_g = _ground_under(outline)
+	var g := _g
+	var c := KB_C
+	var none := Color(0, 0, 0, 0)
+	_mode = M_STONE
+	# --- the masses: nave with its clerestory, aisles, the west block, the transept
+	var nave := _lpoly([[-13.3, c - 4.7], [23.6, c - 4.7], [23.6, c + 4.7], [-13.3, c + 4.7]])
+	_prism(nave, g - 1.0, g + 15.8, KB_WALL, none, M_STONE)
+	kit_ledge_ring(nave, g + 15.3, 0.5, KB_TRIM, 0.22)
+	_gable(-13.3, 23.6, c, 4.95, g + 15.8, 1.6, KB_TRIM, KB_ROOF, true)
+	var rings: Array[PackedVector2Array] = []
+	for s: float in [-1.0, 1.0]:
+		var aisle := _rect(4.4, c + s * 6.55, 12.7, 1.85)  # u -8.3..17.1, out to v 8.4
+		_prism(aisle, g - 1.0, g + 10.3, KB_WALL, KB_ROOF.lightened(0.08), M_STONE, M_STONE)
+		rings.append(aisle)
+	var west := _rect(-10.8, c, 2.5, 6.5)  # u -13.3..-8.3, v -6.6..6.4
+	_prism(west, g - 1.0, g + 10.3, KB_WALL, KB_ROOF.lightened(0.08), M_STONE, M_STONE)
+	var tran := _rect(20.4, -0.3, 3.3, 10.7)  # u 17.1..23.7, v -11..10.4
+	_prism(tran, g - 1.0, g + 10.8, KB_WALL, none, M_STONE)
+	rings.append(west)
+	rings.append(tran)
+	for i in rings.size():
+		kit_ledge_ring(rings[i], g - 1.0, 2.0, KB_BASE, 0.08)
+		# the bands stop under the flat tops (10.3), the west block's 5 cm under the aisles'
+		kit_ledge_ring(rings[i], g + [9.85, 9.85, 9.8, 10.4][i], 0.4, KB_TRIM, 0.2)
+	var ka := _a
+	var kb := _b
+	_a = kb
+	_b = ka
+	_gable(-11.0, 10.4, 20.4, 3.5, g + 10.8, 1.5, KB_TRIM, KB_ROOF, true)
+	_a = ka
+	_b = kb
+	# --- the apse: a half ring of eight walls, its cornice and the half dome
+	var ac := _w(23.7, c)
+	var half := PackedVector2Array()
+	var half_out := PackedVector2Array()
+	for k in 9:
+		var ang := -PI * 0.5 + PI * k / 8.0
+		var d := KB_A * cos(ang) + Vector2(-KB_A.y, KB_A.x) * sin(ang)
+		half.append(ac + d * 4.9)
+		half_out.append(ac - KB_A * 0.06 + d * 5.15)  # its hidden back 6 cm off the apse wall's
+	_prism(half, g - 1.0, g + 11.4, KB_WALL, none, M_STONE)
+	_frustum(half_out, g + 11.4, half_out, g + 11.8, KB_TRIM, none)
+	_frustum(half_out, g - 1.0, half_out, g + 0.9, KB_BASE, none)
+	var r0 := half
+	var y0 := g + 11.8
+	for step: Array in [[0.86, 13.1], [0.6, 14.1], [0.15, 14.6]]:
+		var r1 := PackedVector2Array()
+		for p: Vector2 in half:
+			r1.append(ac + (p - ac) * float(step[0]))
+		_frustum(r0, y0, r1, g + float(step[1]), KB_DOME, KB_DOME if float(step[0]) < 0.2 else none)
+		r0 = r1
+		y0 = g + float(step[1])
+	var bb := Vector2(-KB_A.y, KB_A.x)
+	for k2 in range(1, 8):
+		var d2 := (half[k2] - ac).normalized()
+		var t2 := Vector2(-d2.y, d2.x)
+		_wall(ac + d2 * 5.0 - t2 * 0.3, ac + d2 * 5.0 + t2 * 0.3, g + 0.9, g + 11.4, d2, KB_TRIM)
+	for k3 in range(1, 7):
+		var am := -PI * 0.5 + PI * (k3 + 0.5) / 8.0
+		var dm := KB_A * cos(am) + bb * sin(am)
+		_arch_panel(ac + dm * 4.806, Vector2(-dm.y, dm.x), dm, 0.5, g + 3.0, g + 7.4, KB_RELIEF, 0.04, M_STONE)
+	# --- the side walls: pilasters, the relief panels between them, clerestory windows
+	for side: int in [0, 2]:
+		_kb_turn(side)
+		var sg := 1.0 if side == 0 else -1.0
+		# in the turned frame: u' = sg * u, the face v' = sg * v
+		kit_face(sg * (c + sg * 8.4))
+		for pu: float in [-8.0, -4.6, -1.2, 2.2, 5.6, 9.0, 12.4, 16.8]:
+			_kbox(sg * pu - 0.3, sg * pu + 0.3, _face - 0.04, _face + 0.14, g + 1.0, g + 9.9, KB_TRIM)
+		for ru: float in [-6.3, -2.9, 0.5, 3.9, 7.3, 10.7, 14.6]:
+			_kbox(sg * ru - 0.45, sg * ru + 0.45, _face - 0.02, _face + 0.06, g + 3.2, g + 7.6, KB_RELIEF)
+			_kbox(sg * ru - 0.3, sg * ru + 0.3, _face - 0.02, _face + 0.1, g + 0.0, g + 0.7, PAL_GLASS_DARK)
+		kit_face(sg * (c + sg * 4.7))
+		for cu: float in [-10.6, -6.3, -2.9, 0.5, 3.9, 7.3, 10.7, 14.6]:
+			_arch_panel(_w(sg * cu, _face), _a, _b, 0.65, g + 11.4, g + 13.6, PAL_GLASS_DARK, 0.05, _lit(cu, g + 11.4))
+		# the transept's end: pilasters, a pedimented door, a lunette, the pediment's tympanum
+		kit_face(sg * (-0.3 + sg * 10.7))
+		var tu := sg * 20.4
+		for pt: float in [-3.1, -1.5, 1.5, 3.1]:
+			_kbox(tu + pt - 0.28, tu + pt + 0.28, _face - 0.04, _face + 0.14, g + 1.0, g + 10.4, KB_TRIM)
+		kit_door(tu, g + 0.3, 3.2, 0.8, KB_TRIM, KB_DOOR)
+		kit_pediment(tu, 1.35, g + 3.75, 0.8, KB_TRIM, KB_TRIM.darkened(0.08), 0.3)
+		_kb_arch_win(tu, g + 6.0, g + 7.4, 0.95)
+	# --- the west front: pilasters, the portal, the tall window over it
+	_kb_turn(1)
+	kit_face(13.3)
+	for pv: float in [-4.6, -2.2, 2.0, 4.4]:
+		kit_pilaster(pv + c, g + 1.0, g + 9.9, KB_TRIM, 0.7, 0.16)
+	kit_door(c, g + 0.3, 4.2, 1.05, KB_TRIM, KB_DOOR, true)
+	kit_pediment(c, 1.9, g + 5.2, 1.0, KB_TRIM, KB_TRIM.darkened(0.08), 0.35)
+	_kb_arch_win(c, g + 10.6, g + 13.4, 1.2)
+	_kbox(c - 4.9, c + 4.9, 13.26, 13.46, g + 15.0, g + 15.7, KB_TRIM)
+	# --- the east pediment over the apse and its little bell-cote
+	_kb_turn(3)
+	kit_face(23.6)
+	_kbox(-c - 0.7, -c + 0.7, 22.9, 23.68, g + 17.0, g + 19.0, KB_WALL)
+	_arch_panel(_w(-c, 23.68), _a, _b, 0.4, g + 17.5, g + 18.4, CHURCH_DARK, 0.04, M_STONE)
+	_kbox(-c - 0.85, -c + 0.85, 22.75, 23.8, g + 19.0, g + 19.3, KB_TRIM)
+	kit_front(KB_O, KB_O + KB_A)
+	_kap_cross(23.3, c, g + 19.3, 1.3)
+	# --- the two west towers on the front's corners
+	for tv: float in [c - 4.9, c + 4.9]:
+		_kb_tower(-11.75, tv, g)
+	_collide(outline)
+
+
+## The parish church of Our Lady of Jerusalem (Kościół Matki Bożej Jerozolimskiej, ul. Łazienkowska,
+## across the street from the Legia stadium), a banded red-and-yellow brick church in a former
+## barracks complex. The whole church as a model that replaces the old kit church
+## (`church_jerozolimska`, built by `_build_church` until 2026-11-14: a box with a spire, its
+## front turned away from the street). From Mapillary photos of 2018-2024 along Łazienkowska
+## (refs/jerozolimska, never shipped), the OSM outline and GUGiK's LoD2 (over the ground: the
+## street block's eaves 15 and its ridge 19 along the street; the nave's eaves 13.6 and ridge 19.6;
+## the lower chancel 10.3 and 17; the aisles 5.5 to 7; the north-east block 10; the bell tower
+## in the next block west, its base 16.5, its top 22.3 to 23.4). Spec docs/landmarks/specs/jerozolimska.md.
+## - the street front: a long brick block under a grey roof along the street, a portico of seven
+##   stone columns on two steps before it with a flat brick-topped entablature, a round-headed
+##   portal and a row of round-headed windows over the portico;
+## - the nave behind it under a steep grey gable, its clerestory windows over the lean-to aisles;
+##   the lower chancel and the polygonal north apse; the low blocks round the back yard;
+## - the square red-brick bell tower 40 m west on the corner of the next block (in LoD2, cut at
+##   12 m under the model's tower): a yellow band, two round-headed openings a side, a corbelled
+##   top, a low pyramid roof and a cross.
+## Frame: origin at the street front's west corner, u along the street to the east, +v to the
+## street (south); the front faces +v.
+const JZ_O := Vector2(969.9, 1346.0)
+const JZ_A := Vector2(0.9962, 0.0870)
+const JZ_C := 12.3                     ## the nave's axis (u): the portal, the ridges, the apse
+const JZ_TU := -32.5                   ## the bell tower's centre (u, v)
+const JZ_TV := -3.0
+const JZ_BRICK := Color("#a9553a")     ## the red brick (photos: warm, a little orange)
+const JZ_YELLOW := Color("#c99a5e")    ## the yellow brick bands and corbels
+const JZ_STONE := Color("#d8d2c4")     ## the portico's stone columns and steps
+const JZ_ROOF := Color("#767a7e")      ## the grey sheet roofs
+const JZ_DOOR := Color("#3e302a")      ## the dark doors
+
+
+## The bell tower's LoD2 cut 12 m over the ground (`lod2_tops`): the next block's LoD2 carries
+## the tower; the model's tower stands on the cut.
+func _jz_tops() -> void:
+	var b := Vector2(-JZ_A.y, JZ_A.x)
+	var ring := PackedVector2Array()
+	for c: Vector2 in [Vector2(-5.4, -5.4), Vector2(5.4, -5.4), Vector2(5.4, 5.4), Vector2(-5.4, 5.4)]:
+		ring.append(JZ_O + JZ_A * (JZ_TU + c.x) + b * (JZ_TV + c.y))
+	lod2_tops.append([ring, 12.0, JZ_O + JZ_A * JZ_TU + b * JZ_TV])
+
+
+## A round-headed window on the current front at u: a yellow brick surround and the pane.
+func _jz_arch(u: float, y0: float, spring: float, hw: float) -> void:
+	var at := _w(u, _face)
+	_arch_panel(at, _a, _b, hw + 0.2, y0 - 0.15, spring, JZ_YELLOW, 0.03, M_STONE)
+	_arch_panel(at, _a, _b, hw, y0, spring, PAL_GLASS_DARK, 0.07, _lit(u + _face, y0))
+
+
+## Turns the frame so +v points out of a side (0 street/south, 1 west, 2 north, 3 east):
+## a point (u, v) is then (u, v), (v, -u), (-u, -v) or (-v, u).
+func _jz_turn(side: int) -> void:
+	var b := Vector2(-JZ_A.y, JZ_A.x)
+	_a = [JZ_A, b, -JZ_A, -b][side]
+	_b = Vector2(-_a.y, _a.x)
+
+
+func _build_jerozolimska(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(JZ_O, JZ_O + JZ_A)
+	_g = _ground_under(outline)
+	var g := _g
+	var c := JZ_C
+	var none := Color(0, 0, 0, 0)
+	_mode = M_STONE
+	# --- the street block: walls to 15, a gable roof along the street to 19
+	var front := _rect(12.65, -3.75, 12.65, 3.75)  # u 0..25.3, v -7.5..0
+	_prism(front, g - 1.0, g + 15.0, JZ_BRICK, none, M_STONE)
+	kit_ledge_ring(front, g + 14.4, 0.5, JZ_YELLOW, 0.15)
+	_gable(0.0, 25.3, -3.75, 3.9, g + 15.0, 4.0, JZ_BRICK, JZ_ROOF, true)
+	# --- the nave (u 6.1..18.5) to the chancel, and the chancel to the apse
+	var ka := _a
+	var kb := _b
+	_prism(_lpoly([[6.1, -22.5], [18.5, -22.5], [18.5, -7.5], [6.1, -7.5]]), g + 5.0, g + 13.6, JZ_BRICK, none, M_STONE)
+	_prism(_lpoly([[6.3, -34.6], [18.3, -34.6], [18.3, -22.5], [6.3, -22.5]]), g - 1.0, g + 10.3, JZ_BRICK, none, M_STONE)
+	_a = kb
+	_b = ka
+	_gable(-22.5, -7.5, c, 6.35, g + 13.6, 6.0, JZ_BRICK, JZ_ROOF, false)
+	_gable(-34.6, -22.5, c, 6.15, g + 10.3, 6.7, JZ_BRICK, JZ_ROOF, false)
+	_a = ka
+	_b = kb
+	# the apse: half an octagon round (c, -34.6), walls to 9.5, a roof to a point at 13.2
+	var ac := _w(c - 0.9, -34.6)
+	var bb := Vector2(-JZ_A.y, JZ_A.x)
+	var half := PackedVector2Array()
+	for k in 5:
+		var ang := PI * k / 4.0
+		half.append(ac + (JZ_A * cos(ang) - bb * sin(ang)) * 4.1)
+	_prism(half, g - 1.0, g + 9.5, JZ_BRICK, none, M_STONE)
+	var tip := PackedVector2Array()
+	for p: Vector2 in half:
+		tip.append(ac + (p - ac) * 0.12)
+	_frustum(half, g + 9.5, tip, g + 13.2, JZ_ROOF, JZ_ROOF)
+	# --- the low blocks: the aisles, the west block, the north-east block (flat, grey tops)
+	for blk: Array in [[0.0, 6.1, -30.0, -7.5, 6.5], [18.5, 25.2, -30.0, -7.5, 6.5],
+			[-0.5, 6.3, -38.2, -30.0, 7.5], [17.1, 25.3, -46.4, -30.0, 10.0]]:
+		var r := _lpoly([[blk[0], blk[2]], [blk[1], blk[2]], [blk[1], blk[3]], [blk[0], blk[3]]])
+		_prism(r, g - 1.0, g + float(blk[4]), JZ_BRICK, JZ_ROOF.lightened(0.08), M_STONE, M_STONE)
+		kit_ledge_ring(r, g + float(blk[4]) - 0.45, 0.4, JZ_YELLOW, 0.12)
+	# --- the street front: bands, the portal and the windows over the portico
+	kit_face(0.0)
+	_kbox(0.0, 25.3, -0.02, 0.1, g + 6.6, g + 7.0, JZ_YELLOW)
+	_kbox(0.0, 25.3, -0.02, 0.1, g + 11.8, g + 12.1, JZ_YELLOW)
+	for wu: float in [3.2, 7.4, 12.3, 17.2, 21.4]:
+		_jz_arch(wu, g + 8.0, g + 10.4, 0.7)
+	kit_door(c, g + 0.6, 3.8, 1.1, JZ_YELLOW, JZ_DOOR, true)
+	for du: float in [5.0, 19.6]:
+		kit_door(du, g + 0.6, 2.8, 0.7, JZ_YELLOW, JZ_DOOR, true)
+	# the portico: two steps, seven stone columns, the entablature and its brick top
+	_kbox(2.6, 22.0, -0.04, 2.9, g - 1.0, g + 0.3, JZ_STONE.darkened(0.06))
+	_kbox(3.0, 21.6, -0.04, 2.5, g + 0.3, g + 0.6, JZ_STONE)
+	kit_colonnade(3.6, 21.0, 7, 2.0, g + 0.6, g + 5.3, JZ_STONE, 0.3)
+	_kbox(3.0, 21.6, -0.04, 2.5, g + 5.3, g + 5.9, JZ_STONE)
+	_kbox(2.9, 21.7, -0.04, 2.6, g + 5.9, g + 6.5, JZ_BRICK, M_STONE)
+	# --- the nave's and the chancel's sides: clerestory and side windows
+	for side: int in [1, 3]:
+		_jz_turn(side)
+		var s := -1.0 if side == 1 else 1.0
+		# turned: west (1) u' = v, face v' = -u; east (3) u' = -v, face v' = u
+		kit_face(-6.1 if side == 1 else 18.5)
+		for nv: float in [-10.0, -13.7, -17.4, -21.0]:
+			_jz_arch(-s * nv, g + 8.6, g + 11.6, 0.6)
+		kit_face(-0.0 if side == 1 else 25.2)
+		for av: float in [-11.0, -16.0, -21.0, -26.0]:
+			_jz_arch(-s * av, g + 1.6, g + 4.0, 0.55)
+	_jz_turn(2)
+	kit_face(34.6)
+	_jz_arch(-c, g + 11.0, g + 13.6, 0.9)  # the chancel's north gable over the apse
+	kit_front(JZ_O, JZ_O + JZ_A)
+	_collide(outline)
+	# --- the bell tower in the next block west: its base, the shaft, the belfry, roof and cross
+	var tc := _w(JZ_TU, JZ_TV)
+	_g = map.terrain_height(tc.x, tc.y)
+	var gt := _g
+	# the base from the ground (inside the next block below its 12 m cut, so it stands on something)
+	_lbox(JZ_TU, JZ_TV, 5.0, 5.0, gt - 1.0, gt + 16.5, JZ_BRICK, M_STONE, JZ_ROOF.lightened(0.08))
+	_lbox(JZ_TU, JZ_TV, 5.12, 5.12, gt + 16.0, gt + 16.45, JZ_YELLOW, M_STONE, none)
+	_lbox(JZ_TU, JZ_TV, 4.0, 4.0, gt + 16.5, gt + 22.0, JZ_BRICK, M_STONE, none)
+	_lbox(JZ_TU, JZ_TV, 4.15, 4.15, gt + 21.6, gt + 22.3, JZ_YELLOW, M_STONE, JZ_YELLOW)
+	for side2: int in 4:
+		_jz_turn(side2)
+		var p := Vector2(JZ_TU, JZ_TV)
+		var lu: float = [p.x, p.y, -p.x, -p.y][side2]
+		var lv: float = [p.y, -p.x, -p.y, p.x][side2]
+		kit_face(lv + 4.0)
+		for d: float in [-1.3, 1.3]:
+			_arch_panel(_w(lu + d, _face), _a, _b, 0.55, gt + 18.2, gt + 20.4, CHURCH_DARK, 0.04, M_STONE)
+	kit_front(JZ_O, JZ_O + JZ_A)
+	_hip(JZ_TU, JZ_TV, 4.15, 4.15, gt + 22.3, 1.1, JZ_ROOF)
+	_kap_cross(JZ_TU, JZ_TV, gt + 23.3, 2.2)
+	_g = g
+
+
+## The church of St Brother Albert and St Andrew (Kościół św. Brata Alberta i św. Andrzeja
+## Apostoła, the artists' church on Plac Teatralny, Senatorska 29), a classicist front on the
+## square: a giant portico of four white columns and a pediment over the yellow church front,
+## between two white three-storey wings under red mansard roofs with dormers. The whole frontage
+## as a model that replaces the old kit church (`church_alberta`, built by `_build_church` until
+## 2026-11-14: a "modern" box with a pyramid, its front at the block's end). From Mapillary
+## photos of 2014-2022 across Plac Teatralny and Senatorska (refs/alberta, never shipped), the
+## OSM outline and GUGiK's LoD2 (over the ground: the wings' eaves 10 and their flat tops 16.4;
+## the middle block's pediment ridge 15.5, running back over the church). Spec
+## docs/landmarks/specs/alberta.md.
+## Frame: origin at the front's north-west corner, u along the front to the south-east, +v out
+## of the front to the square; the block runs back to v -17.5.
+const BA_O := Vector2(-1087.3, -1107.4)
+const BA_A := Vector2(0.808, -0.589)
+const BA_C := 20.75                    ## the portico's axis (u)
+const BA_WHITE := Color("#eeebe3")     ## the wings' white plaster
+const BA_YELLOW := Color("#d8c07a")    ## the church front behind the columns
+const BA_COLUMN := Color("#f5f3ee")    ## the columns, the entablature and the pediment
+const BA_TILE := Color("#9c4a36")      ## the red mansard tiles
+const BA_ROOF := Color("#6f7276")      ## the middle block's grey sheet roof
+const BA_BASE := Color("#b9b4a8")      ## the plinth and steps
+
+
+## One wing (u0..u1): walls to 10, a mansard to a flat top at 16.4, dormers on the front
+## slope, the arcade of the ground floor and two rows of windows on the front and the back.
+func _ba_wing(u0: float, u1: float, g: float) -> void:
+	var none := Color(0, 0, 0, 0)
+	var r := _lpoly([[u0, -17.4], [u1, -17.4], [u1, 0.0], [u0, 0.0]])
+	_prism(r, g - 1.0, g + 10.0, BA_WHITE, none, M_STONE)
+	kit_ledge_ring(r, g - 1.0, 1.4, BA_BASE, 0.06)
+	kit_ledge_ring(r, g + 9.6, 0.4, BA_COLUMN, 0.25)
+	var top := _lpoly([[u0 + 1.2, -13.6], [u1 - 1.2, -13.6], [u1 - 1.2, -3.8], [u0 + 1.2, -3.8]])
+	_frustum(r, g + 10.0, top, g + 16.4, BA_TILE, BA_TILE.darkened(0.08))
+	var cols: Array = []
+	var u := u0 + 1.6
+	while u < u1 - 1.0:
+		cols.append(u)
+		u += 2.7
+	for s: float in [1.0, -1.0]:
+		var vf := 0.0 if s > 0.0 else -17.4
+		for cu: float in cols:
+			# the ground floor's arches, two rows of windows over them
+			_arch_panel(_w(cu, vf), _a * s, _b * s, 0.75, g + 0.4, g + 2.6, CHURCH_DARK, 0.04, M_STONE)
+			for wy: float in [4.0, 7.0]:
+				_mode = _lit(cu * s, g + wy)
+				_wall(_w(cu - 0.55 * s, vf + 0.05 * s), _w(cu + 0.55 * s, vf + 0.05 * s), g + wy, g + wy + 1.7, _b * s, PAL_GLASS_DARK)
+			_mode = M_STONE
+			# a dormer on the slope: a small box and its little gable
+			var dv := -1.0 if s > 0.0 else -16.4
+			_kbox(cu - 0.5, cu + 0.5, minf(dv, dv - 1.6 * s), maxf(dv, dv - 1.6 * s), g + 11.0, g + 12.9, BA_WHITE)
+			_mode = _lit(cu + vf, g + 11.8)
+			_wall(_w(cu - 0.32 * s, dv + 0.02 * s), _w(cu + 0.32 * s, dv + 0.02 * s), g + 11.9, g + 12.6, _b * s, PAL_GLASS_DARK)
+			_mode = M_STONE
+	# the end walls: two windows a storey
+	for e: float in [u0, u1]:
+		var out := -_a if e == u0 else _a
+		for ev: float in [-12.0, -5.4]:
+			for ey: float in [4.0, 7.0]:
+				_mode = _lit(ev + e, g + ey)
+				_wall(_w(e, ev - 0.55) + out * 0.05, _w(e, ev + 0.55) + out * 0.05, g + ey, g + ey + 1.7, out, PAL_GLASS_DARK)
+	_mode = M_STONE
+
+
+func _build_alberta(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(BA_O, BA_O + BA_A)
+	_g = _ground_under(outline)
+	var g := _g
+	var c := BA_C
+	var none := Color(0, 0, 0, 0)
+	_mode = M_STONE
+	_ba_wing(0.0, 14.0, g)
+	_ba_wing(27.5, 41.7, g)
+	# --- the middle block: the yellow church front, the grey gable running back from the pediment
+	var mid := _lpoly([[14.0, -18.2], [27.5, -18.2], [27.5, 0.0], [14.0, 0.0]])
+	_prism(mid, g - 1.0, g + 11.2, BA_YELLOW, none, M_STONE)
+	kit_ledge_ring(mid, g - 1.0, 1.4, BA_BASE, 0.06)
+	var ka := _a
+	var kb := _b
+	_a = kb
+	_b = ka
+	_gable(2.4, -18.2, c, 6.9, g + 11.2, 4.4, BA_COLUMN, BA_ROOF, true)
+	_a = ka
+	_b = kb
+	# the portico: three steps, four columns, the entablature over them back to the wall
+	_kbox(14.4, 27.1, -0.04, 3.4, g - 1.0, g + 0.2, BA_BASE)
+	_kbox(14.8, 26.7, -0.04, 3.0, g + 0.2, g + 0.45, BA_BASE.lightened(0.05))
+	kit_colonnade(16.2, 25.3, 4, 1.9, g + 0.45, g + 10.3, BA_COLUMN, 0.5, Order.CORINTHIAN)
+	_kbox(14.3, 27.2, -0.04, 2.4, g + 10.3, g + 11.2, BA_COLUMN)
+	_kbox(c - 3.5, c + 3.5, 2.38, 2.44, g + 12.0, g + 12.6, BA_YELLOW.darkened(0.1))  # the tympanum's inscription band
+	# the church front behind the columns: the portal, a window over it, two niches
+	kit_face(0.0)
+	kit_door(c, g + 0.45, 4.6, 1.3, BA_COLUMN, PAL_DARK_DOOR, true)
+	_arch_panel(_w(c, 0.0), _a, _b, 0.9, g + 6.0, g + 8.2, PAL_GLASS_DARK, 0.05, _lit(c, g + 6.0))
+	for nu: float in [c - 3.1, c + 3.1]:
+		_arch_panel(_w(nu, 0.0), _a, _b, 0.55, g + 1.2, g + 4.0, BA_YELLOW.darkened(0.12), 0.04, M_STONE)
+	_collide(outline)
+
+
+## The Evangelical Reformed church (Kościół Ewangelicko-Reformowany, al. Solidarności 74; Adolf
+## Loewe, 1866-80), a cream neo-Gothic hall church with one tall tower over its front and the
+## openwork grey spire Warsaw knows it by. The whole church as a model that replaces the old kit
+## church (`church_reformowany`, built by `_build_church` until 2026-11-14: a brick box with a
+## pyramid, its front at the far end). From Mapillary photos of 2022-2025 along al. Solidarności
+## (refs/reformowany, never shipped), the OSM outline and GUGiK's LoD2 (over the ground: the
+## nave's eaves 13 and its ridge 20.3; the tower's top 31 and the spire's tip 52; the chancel
+## 16; the low vestry 4.5). Spec docs/landmarks/specs/reformowany.md.
+## - the front to the avenue: a pointed portal, a rose window, the gable with its pinnacles,
+##   two slim corner turrets, the tower rising from behind the gable with tall belfry lancets,
+##   four corner pinnacles and the octagonal grey spire with dark openwork slits and a cross;
+## - the nave under one grey roof, buttresses and tall lancets along both sides; the three-sided
+##   chancel at the north end and the low vestry behind it.
+## Frame: origin at the front's east corner, u along the church to the north-west, +v across it;
+## the front faces -u (to the avenue).
+const RF_O := Vector2(-1749.5, -1082.9)
+const RF_A := Vector2(-0.448, -0.894)
+const RF_C := 9.9                      ## the church's axis (v): the tower, the portal, the ridge
+const RF_WALL := Color("#ddcb98")      ## the cream-yellow brick and render (photos)
+const RF_TRIM := Color("#ece2c4")      ## pinnacles, frames, the rose window's ring
+const RF_ROOF := Color("#686d72")      ## the grey roof
+const RF_SPIRE := Color("#8d969c")     ## the spire's grey metal
+const RF_BASE := Color("#9b958a")      ## the plinth
+
+
+## A pointed window on the wall at (u, v) looking `out`, along `along`: a trim field and the pane.
+func _rf_lancet(u: float, v: float, along: Vector2, out: Vector2, hw: float, y0: float, spring: float) -> void:
+	var at := _w(u, v)
+	_lancet_panel(at, along, out, hw + 0.2, y0 - 0.15, spring, RF_TRIM, 0.03, M_STONE)
+	_lancet_panel(at, along, out, hw, y0, spring, PAL_GLASS_DARK, 0.07, _lit(u + v, y0))
+
+
+func _build_reformowany(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(RF_O, RF_O + RF_A)
+	_g = _ground_under(outline)
+	var g := _g
+	var c := RF_C
+	var none := Color(0, 0, 0, 0)
+	var b := Vector2(-RF_A.y, RF_A.x)
+	_mode = M_STONE
+	# --- the nave: one box, a plinth, a band under the eaves, one gable roof along u
+	var nave := _rect(21.5, c, 20.0, 9.6)  # u 1.5..41.5, v 0.3..19.5
+	_prism(nave, g - 1.0, g + 13.0, RF_WALL, none, M_STONE)
+	kit_ledge_ring(nave, g - 1.0, 1.6, RF_BASE, 0.08)
+	kit_ledge_ring(nave, g + 12.5, 0.5, RF_TRIM, 0.18)
+	_gable(1.5, 41.5, c, 9.85, g + 13.0, 7.3, RF_WALL, RF_ROOF, true)
+	# buttresses and lancets on both long sides
+	for s: float in [-1.0, 1.0]:
+		var vf := c + s * 9.6
+		for bu: float in [1.9, 6.6, 11.3, 16.0, 20.7, 25.4, 30.1, 34.8, 39.5]:
+			_kbox(bu - 0.4, bu + 0.4, minf(vf, vf + s * 0.9), maxf(vf, vf + s * 0.9), g - 1.0, g + 11.0, RF_WALL)
+			_kbox(bu - 0.3, bu + 0.3, minf(vf, vf + s * 0.5), maxf(vf, vf + s * 0.5), g + 11.0, g + 13.6, RF_TRIM)
+		for wu: float in [9.0, 13.6, 18.3, 23.0, 27.7, 32.4, 37.1]:
+			_rf_lancet(wu, vf, RF_A, b * s, 0.8, g + 3.5, g + 9.5)
+	# --- the chancel: three sides past the nave's end, walls to 12, a low roof to 16
+	var ac := _w(41.5, c)
+	var ring := PackedVector2Array()
+	for k in 4:
+		var ang := -PI * 0.5 + PI * k / 3.0
+		ring.append(ac + (RF_A * cos(ang) + b * sin(ang)) * 6.0)
+	_prism(ring, g - 1.0, g + 12.0, RF_WALL, none, M_STONE)
+	var tip := PackedVector2Array()
+	for p: Vector2 in ring:
+		tip.append(ac + (p - ac) * 0.15)
+	_frustum(ring, g + 12.0, tip, g + 16.0, RF_ROOF, RF_ROOF)
+	for k2 in range(3):
+		var am := -PI * 0.5 + PI * (k2 + 0.5) / 3.0
+		var dm := RF_A * cos(am) + b * sin(am)
+		var pm := ac + dm * 6.0 * cos(PI / 6.0)
+		_lancet_panel(pm, Vector2(-dm.y, dm.x), dm, 0.7, g + 3.5, g + 8.5, PAL_GLASS_DARK, 0.06, _lit(float(k2), g + 3.5))
+	# the low vestry behind the chancel
+	_prism(_lpoly([[44.0, 1.5], [48.5, 1.5], [48.5, 18.0], [44.0, 18.0]]), g - 1.0, g + 4.5, RF_WALL, RF_ROOF.lightened(0.08), M_STONE, M_STONE)
+	# --- the front: the portal, the rose window, a lancet pair, the gable's pinnacles, two turrets
+	var fo := -RF_A
+	_lancet_panel(_w(1.5, c), b, fo, 1.75, g + 0.65, g + 4.2, RF_TRIM, 0.03, M_STONE)
+	_lancet_panel(_w(1.5, c), b, fo, 1.25, g + 0.0, g + 3.6, PAL_DARK_DOOR, 0.12, M_STONE)
+	_disc(Vector3(_w(1.4, c).x, g + 9.0, _w(1.4, c).y), Vector3(fo.x, 0.0, fo.y), 2.0, 12, RF_TRIM)
+	_disc(Vector3(_w(1.36, c).x, g + 9.0, _w(1.36, c).y), Vector3(fo.x, 0.0, fo.y), 1.6, 12, PAL_GLASS_DARK)
+	for lv: float in [c - 5.0, c + 5.0]:
+		_rf_lancet(1.5, lv, b, fo, 0.7, g + 3.5, g + 8.8)
+	_pinnacle(1.2, c, 0.6, g + 20.0, 2.4, RF_TRIM)
+	for tv: float in [0.3, 19.5]:
+		_lbox(1.5, tv, 0.9, 0.9, g - 1.0, g + 15.5, RF_WALL, M_STONE, none)
+		_pinnacle(1.5, tv, 1.6, g + 15.5, 4.0, RF_TRIM)
+	# --- the tower over the front: the shaft from the roof, belfry lancets, corner pinnacles
+	var tu := 6.75
+	_lbox(tu, c, 2.4, 2.4, g + 13.0, g + 30.0, RF_WALL, M_STONE, none)
+	kit_ledge_ring(_rect(tu, c, 2.4, 2.4), g + 29.4, 0.6, RF_TRIM, 0.15)
+	for s2: float in [-1.0, 1.0]:
+		_rf_lancet(tu, c + s2 * 2.4, RF_A, b * s2, 0.55, g + 23.0, g + 27.0)
+		_rf_lancet(tu + s2 * 2.4, c, b, RF_A * s2, 0.55, g + 23.0, g + 27.0)
+		for t: float in [-1.0, 1.0]:
+			_pinnacle(tu + s2 * 2.15, c + t * 2.15, 0.6, g + 30.0, 4.2, RF_TRIM)
+	# the octagonal openwork spire: three rings, dark slits on its lower faces, a cross
+	var tc := _w(tu, c)
+	var oct := func(r: float) -> PackedVector2Array:
+		var o := PackedVector2Array()
+		for k3 in 8:
+			var an := PI * (k3 + 0.5) / 4.0
+			o.append(tc + (RF_A * cos(an) + b * sin(an)) * r)
+		return o
+	_frustum(oct.call(2.2), g + 30.0, oct.call(1.5), g + 38.0, RF_SPIRE)
+	_frustum(oct.call(1.5), g + 38.0, oct.call(0.12), g + 51.0, RF_SPIRE.lightened(0.05), RF_SPIRE)
+	for k4 in 4:
+		var an2 := PI * k4 / 2.0
+		var dn := RF_A * cos(an2) + b * sin(an2)
+		var sl := tc + dn * 1.9
+		_wall(sl - Vector2(-dn.y, dn.x) * 0.2, sl + Vector2(-dn.y, dn.x) * 0.2, g + 31.0, g + 36.0, dn, CHURCH_DARK)
+	_kap_cross(tu, c, g + 51.0, 1.8)
+	_collide(outline)
+
+
+## The church of the Nativity of the Virgin Mary on Leszno (Kościół Narodzenia NMP, al.
+## Solidarności 80), a salmon-pink Baroque church with white pilasters, its three-storey front to
+## the avenue and a small copper clock turret over the pediment. The whole church as a model that
+## replaces the old kit church (`church_narodzenia`, built by `_build_church` until 2026-11-14: a
+## beige box with a helm tower, its front on the north end). From Mapillary photos of 2020 and
+## 2022 along al. Solidarności (one straight onto the front, refs/narodzenia, never shipped), the
+## OSM outline and GUGiK's LoD2 (over the ground: the nave's eaves 16.5 and ridge 22; the front's
+## pediment 23; the turret's top 30; the aisles 8; the lower chancel 15 and 19; the back wings 8).
+## Spec docs/landmarks/specs/narodzenia.md.
+## - the front: a full-width ground storey with paired pilasters and a pedimented door, a
+##   nave-wide storey with the tall round-headed window, an attic with three arched windows
+##   between scrolls, the pediment, and behind it the turret: a balustrade with urns, a
+##   green clock stage with a clock a side, a little dome and a spire with the cross;
+## - the nave under a red tile roof, pilasters and round-headed windows over the lean-to aisles;
+## - the lower chancel with its own gable, the low wings either side of it.
+## Frame: origin at the front's south-west corner, u from the front (south-south-east, to the
+## avenue) back to the chancel, v across; the front faces -u.
+const NR_O := Vector2(-1971.4, -955.6)
+const NR_A := Vector2(-0.4656, -0.8850)
+const NR_C := 12.0                     ## the church's axis (v): the door, the turret, the ridges
+const NR_WALL := Color("#d49885")      ## the salmon-pink plaster (photos)
+const NR_TRIM := Color("#efe7da")      ## the white pilasters, cornices, frames
+const NR_ROOF := Color("#a3553f")      ## the red tile roofs
+const NR_COPPER := Color("#5f8a78")    ## the turret's green copper
+const NR_BASE := Color("#a39a8e")      ## the grey plinth
+const NR_DOOR := Color("#4a3a30")      ## the dark wooden door
+
+
+## Turns the kit frame so that +v points out of one side of the church (0 the v = 24 side,
+## 1 the front, 2 the v = 0 side, 3 the back), as `_kb_turn` does for St Charles: a point (u, v)
+## of the church's frame is then (u, v), (v, -u), (-u, -v) or (-v, u) in the turned one.
+func _nr_turn(side: int) -> void:
+	var b := Vector2(-NR_A.y, NR_A.x)
+	match side:
+		0:
+			_a = NR_A
+		1:
+			_a = b
+		2:
+			_a = -NR_A
+		_:
+			_a = -b
+	_b = Vector2(-_a.y, _a.x)
+
+
+## A round-headed window on the turned frame's face: a white frame and the pane over it.
+func _nr_win(u: float, y0: float, spring: float, hw: float) -> void:
+	var at := _w(u, _face)
+	_arch_panel(at, _a, _b, hw + 0.2, y0 - 0.2, spring, NR_TRIM, 0.03, M_STONE)
+	_arch_panel(at, _a, _b, hw, y0, spring, PAL_GLASS_DARK, 0.07, _lit(u + _face, y0))
+
+
+## An octagon of radius r round c with faces along the church's axes.
+func _nr_oct(c: Vector2, r: float) -> PackedVector2Array:
+	var b := Vector2(-NR_A.y, NR_A.x)
+	var ring := PackedVector2Array()
+	for k in 8:
+		var ang := PI * (k + 0.5) / 4.0
+		ring.append(c + (NR_A * cos(ang) + b * sin(ang)) * r)
+	return ring
+
+
+## A pilaster on the turned frame's face: one white box (the kit's three-box one costs too much
+## at this count).
+func _nr_pil(u: float, y0: float, y1: float, w: float, proud: float) -> void:
+	_kbox(u - w * 0.5, u + w * 0.5, _face - 0.04, _face + proud, y0, y1, NR_TRIM)
+
+
+func _build_narodzenia(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(NR_O, NR_O + NR_A)
+	_g = _ground_under(outline)
+	var g := _g
+	var c := NR_C
+	var none := Color(0, 0, 0, 0)
+	_mode = M_STONE
+	# --- the masses: nave, aisles with the front's wide ground storey, chancel, back wings
+	var nave := _lpoly([[0.0, 4.0], [23.0, 4.0], [23.0, 20.0], [0.0, 20.0]])
+	_prism(nave, g - 1.0, g + 16.5, NR_WALL, none, M_STONE)
+	kit_ledge_ring(nave, g + 15.95, 0.5, NR_TRIM, 0.2)
+	_gable(0.6, 23.0, c, 8.2, g + 16.5, 5.5, NR_WALL, NR_ROOF, true)
+	var rings: Array[PackedVector2Array] = [nave]
+	for av: Array in [[0.0, 4.0], [20.0, 24.0]]:
+		var aisle := _lpoly([[1.4, av[0]], [23.0, av[0]], [23.0, av[1]], [1.4, av[1]]])
+		_prism(aisle, g - 1.0, g + 8.3, NR_WALL, NR_ROOF.lightened(0.06), M_STONE, M_STONE)
+		kit_ledge_ring(aisle, g + 7.75, 0.4, NR_TRIM, 0.15)
+		rings.append(aisle)
+		var fr := _lpoly([[0.0, av[0]], [1.4, av[0]], [1.4, av[1]], [0.0, av[1]]])
+		_prism(fr, g - 1.0, g + 10.5, NR_WALL, NR_ROOF.lightened(0.06), M_STONE, M_STONE)
+	var chancel := _lpoly([[23.0, 6.5], [32.9, 6.5], [32.9, 17.5], [23.0, 17.5]])
+	_prism(chancel, g - 1.0, g + 15.0, NR_WALL, none, M_STONE)
+	kit_ledge_ring(chancel, g + 14.5, 0.45, NR_TRIM, 0.18)
+	_gable(32.9, 23.0, c, 5.7, g + 15.0, 4.0, NR_WALL, NR_ROOF, false)
+	rings.append(chancel)
+	for wv: Array in [[0.0, 6.5], [17.5, 25.6]]:
+		var wing := _lpoly([[23.05, wv[0]], [32.9, wv[0]], [32.9, wv[1]], [23.05, wv[1]]])
+		_prism(wing, g - 1.0, g + 8.0, NR_WALL.lightened(0.04), NR_ROOF.lightened(0.1), M_STONE, M_STONE)
+		rings.append(wing)
+	for i in rings.size():
+		# the plinths' tops 4 cm apart where the blocks meet
+		kit_ledge_ring(rings[i], g - 1.0, 1.7 - 0.04 * i, NR_BASE, 0.06)
+	# --- the front (turned: u' = v, the face at u = 0)
+	_nr_turn(1)
+	kit_face(0.0)
+	# the ground storey across the whole front, its cornice at 10.5
+	_kbox(-0.15, 24.15, -0.05, 0.25, g + 10.2, g + 10.75, NR_TRIM)
+	for pv: float in [0.45, 3.55, 4.75, 7.6, 16.4, 19.25, 20.45, 23.55]:
+		_nr_pil(pv, g + 0.7, g + 10.2, 0.7, 0.14)
+	kit_door(c, g + 0.0, 4.0, 1.1, NR_TRIM, NR_DOOR)
+	kit_pediment(c, 1.7, g + 4.25, 0.9, NR_TRIM, NR_TRIM.darkened(0.08), 0.3)
+	for wv2: float in [2.0, 22.0]:
+		_nr_win(wv2, g + 3.0, g + 6.2, 0.75)
+	for wv3: float in [6.2, 17.8]:
+		_nr_win(wv3, g + 3.0, g + 6.8, 0.7)
+	# the nave-wide middle storey, its cornice at 16.5, the tall window
+	_kbox(3.85, 20.15, -0.05, 0.25, g + 16.1, g + 16.6, NR_TRIM)
+	for pv2: float in [4.5, 7.4, 16.6, 19.5]:
+		_nr_pil(pv2, g + 10.75, g + 16.1, 0.65, 0.12)
+	_nr_win(c, g + 11.4, g + 14.4, 1.3)
+	# the attic over the nave's eaves: three arched windows, two scrolls, the pediment
+	_kbox(6.5, 17.5, -1.0, 0.0, g + 16.0, g + 20.0, NR_WALL)
+	for pv3: float in [6.9, 17.1]:
+		_nr_pil(pv3, g + 16.6, g + 20.0, 0.6, 0.12)
+	_nr_win(c, g + 17.0, g + 18.7, 0.85)
+	for wv4: float in [9.2, 14.8]:
+		_nr_win(wv4, g + 17.4, g + 18.6, 0.4)
+	for s: float in [-1.0, 1.0]:
+		var sv := c + s * 6.3
+		_kbox(minf(sv, sv + s * 1.7), maxf(sv, sv + s * 1.7), -0.8, 0.1, g + 16.6, g + 17.3, NR_TRIM)
+		_kbox(minf(sv, sv + s * 0.8), maxf(sv, sv + s * 0.8), -0.8, 0.1, g + 17.3, g + 18.3, NR_TRIM)
+		var dc := _w(sv + s * 1.3, 0.16)
+		_disc(Vector3(dc.x, g + 17.75, dc.y), Vector3(_b.x, 0.0, _b.y), 0.45, 8, NR_TRIM.darkened(0.06))
+	kit_pediment(c, 5.8, g + 20.0, 3.0, NR_TRIM, NR_ROOF, 0.35)
+	# --- the sides: pilasters and round-headed windows on the aisles and the nave over them
+	for side: int in [0, 2]:
+		_nr_turn(side)
+		var sg := 1.0 if side == 0 else -1.0
+		kit_face(sg * (12.0 + sg * 12.0))
+		for pu: float in [2.6, 8.0, 13.4, 18.8]:
+			_nr_pil(sg * pu, g + 0.7, g + 7.75, 0.6, 0.12)
+		for wu: float in [5.3, 10.7, 16.1, 21.0]:
+			_nr_win(sg * wu, g + 2.4, g + 5.4, 0.75)
+		kit_face(sg * (12.0 + sg * 8.0))
+		for pu2: float in [1.0, 6.0, 11.0, 16.0, 21.4]:
+			_nr_pil(sg * pu2, g + 8.3, g + 15.95, 0.6, 0.12)
+		for wu2: float in [3.5, 8.5, 13.5, 18.7]:
+			_nr_win(sg * wu2, g + 10.2, g + 13.6, 0.95)
+		kit_face(sg * (12.0 + sg * 5.5))
+		for wu3: float in [26.0, 30.0]:
+			_nr_win(sg * wu3, g + 4.0, g + 9.0, 0.8)
+	# --- the back: the chancel's gable end, an oculus, the wings' windows
+	_nr_turn(3)
+	kit_face(32.9)
+	_nr_win(-c, g + 4.0, g + 9.5, 1.0)
+	var oc := _w(-c, 32.97)
+	_disc(Vector3(oc.x, g + 16.4, oc.y), Vector3(_b.x, 0.0, _b.y), 0.9, 10, NR_TRIM)
+	for wv5: float in [3.2, 21.5]:
+		_kbox(-wv5 - 0.6, -wv5 + 0.6, 32.88, 32.96, g + 2.5, g + 4.8, PAL_GLASS_DARK, _lit(wv5, g + 2.5))
+		_kbox(-wv5 - 0.6, -wv5 + 0.6, 32.88, 32.96, g + 5.4, g + 7.2, PAL_GLASS_DARK, _lit(wv5 + 1.0, g + 5.4))
+	kit_front(NR_O, NR_O + NR_A)
+	# --- the clock turret behind the pediment: base, balustrade and urns, clock stage, dome, spire
+	var tu := 2.6
+	_lbox(tu, c, 1.9, 1.9, g + 19.0, g + 22.3, NR_WALL, M_STONE, none)
+	_lbox(tu, c, 2.05, 2.05, g + 22.3, g + 22.95, NR_TRIM, M_STONE, NR_TRIM.darkened(0.05))
+	for s2: float in [-1.0, 1.0]:
+		for t: float in [-1.0, 1.0]:
+			_pinnacle(tu + s2 * 1.8, c + t * 1.8, 0.35, g + 22.95, 0.9, NR_TRIM)
+	var tc := _w(tu, c)
+	var bb := Vector2(-NR_A.y, NR_A.x)
+	_frustum(_nr_oct(tc, 1.45), g + 22.95, _nr_oct(tc, 1.45), g + 26.5, NR_COPPER.darkened(0.15))
+	for s3: float in [-1.0, 1.0]:
+		for dd: Vector2 in [NR_A * s3, bb * s3]:
+			var fp := tc + dd * 1.36
+			_arch_panel(fp, Vector2(-dd.y, dd.x), dd, 0.35, g + 23.3, g + 24.4, CHURCH_DARK, 0.03, M_STONE)
+			var cp := tc + dd * 1.4
+			_disc(Vector3(cp.x, g + 25.6, cp.y), Vector3(dd.x, 0.0, dd.y), 0.45, 10, NR_TRIM)
+	_frustum(_nr_oct(tc, 1.6), g + 26.5, _nr_oct(tc, 1.6), g + 26.8, NR_TRIM)
+	_frustum(_nr_oct(tc, 1.5), g + 26.8, _nr_oct(tc, 1.0), g + 27.7, NR_COPPER)
+	_frustum(_nr_oct(tc, 1.0), g + 27.7, _nr_oct(tc, 0.3), g + 28.3, NR_COPPER.lightened(0.05))
+	_frustum(_nr_oct(tc, 0.3), g + 28.3, _nr_oct(tc, 0.05), g + 30.3, NR_COPPER, NR_COPPER)
+	_kap_cross(tu, c, g + 30.3, 1.1)
+	_collide(outline)
+
+
+## The Basilians' Greek Catholic church of the Dormition (Cerkiew Zaśnięcia Matki Bożej, Miodowa
+## 16), the classicist church hall behind the Basilian monastery's street wing; its front shows on
+## Miodowa as the wing's middle under a pediment with a cross (part of the monastery's building,
+## not of this model). The hall as a model that replaces the old kit church (`church_cerkiew`,
+## built by `_build_church` until 2026-11-14 with an onion dome the church never had). From the
+## Mapillary 360s of 2026 along Miodowa (refs/cerkiew, never shipped: they show the street
+## front; the hall stands in the courtyards and is unphotographed), the OSM outline and GUGiK's
+## LoD2 (over the ground: the eaves 21, the ridge 26.4, the polygonal east end 20 to 23.5).
+## Spec docs/landmarks/specs/cerkiew.md.
+## - a plain white hall under a grey gable roof, pilasters and tall round-headed windows a side;
+## - its west gable over the street wing's roof with an oculus and a cross;
+## - the polygonal east end under a low roof.
+## Frame: origin at the hall's west corner by the street wing, u along the hall away from Miodowa,
+## v across.
+const BZ_O := Vector2(-1034.4, -1518.1)
+const BZ_A := Vector2(0.569, -0.822)
+const BZ_C := 7.9                      ## the hall's axis (v)
+const BZ_WALL := Color("#ebe5d7")      ## the white-cream plaster (the street front's)
+const BZ_TRIM := Color("#f5f1e8")      ## pilasters, frames
+const BZ_ROOF := Color("#5d6268")      ## the grey sheet roof
+
+
+func _build_cerkiew(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(BZ_O, BZ_O + BZ_A)
+	_g = _ground_under(outline)
+	var g := _g
+	var c := BZ_C
+	var none := Color(0, 0, 0, 0)
+	var b := Vector2(-BZ_A.y, BZ_A.x)
+	_mode = M_STONE
+	# --- the hall: walls to 16.5, one gable roof, a plinth
+	var hall := _lpoly([[0.0, 0.0], [18.0, 0.0], [18.0, 15.8], [0.0, 15.8]])
+	_prism(hall, g - 1.0, g + 21.0, BZ_WALL, none, M_STONE)
+	kit_ledge_ring(hall, g + 20.5, 0.5, BZ_TRIM, 0.18)
+	kit_ledge_ring(hall, g - 1.0, 1.6, BZ_WALL.darkened(0.12), 0.06)
+	_gable(0.0, 18.0, c, 8.1, g + 21.0, 5.4, BZ_WALL, BZ_ROOF, true)
+	# --- the polygonal east end: walls to 16, a low roof to 20
+	var east := _lpoly([[18.0, 0.0], [21.2, 0.0], [24.3, 3.5], [24.4, 11.8], [21.4, 15.4], [18.0, 15.5]])
+	_prism(east, g - 1.0, g + 19.9, BZ_WALL, none, M_STONE)
+	kit_ledge_ring(east, g + 19.4, 0.45, BZ_TRIM, 0.16)
+	var ec := _w(19.5, c)
+	# the frustum wants the ring the other way round from the outline's
+	var ring := PackedVector2Array()
+	var tip := PackedVector2Array()
+	for k in range(east.size() - 1, -1, -1):
+		ring.append(east[k])
+		tip.append(ec + (east[k] - ec) * 0.25)
+	_frustum(ring, g + 19.9, tip, g + 23.5, BZ_ROOF, BZ_ROOF)
+	# --- the sides: pilasters, tall round-headed windows
+	for s: float in [-1.0, 1.0]:
+		var vf := c + s * 7.9
+		var out := b * s
+		for pu: float in [0.6, 6.0, 12.0, 17.4]:
+			_kbox(pu - 0.35, pu + 0.35, minf(vf, vf + s * 0.14), maxf(vf, vf + s * 0.14), g + 0.6, g + 20.5, BZ_TRIM)
+		for wu: float in [3.3, 9.0, 14.7]:
+			var at := _w(wu, vf)
+			_arch_panel(at, BZ_A, out, 1.0, g + 9.3, g + 15.6, BZ_TRIM, 0.03, M_STONE)
+			_arch_panel(at, BZ_A, out, 0.8, g + 9.5, g + 15.6, PAL_GLASS_DARK, 0.07, _lit(wu + vf, g + 9.5))
+	# --- the west gable over the street wing: an oculus, the cross
+	var wo := -BZ_A
+	var oc := _w(-0.05, c)
+	_disc(Vector3(oc.x, g + 23.4, oc.y), Vector3(wo.x, 0.0, wo.y), 1.2, 10, BZ_TRIM)
+	var oc2 := _w(-0.1, c)
+	_disc(Vector3(oc2.x, g + 23.4, oc2.y), Vector3(wo.x, 0.0, wo.y), 0.9, 10, PAL_GLASS_DARK)
+	_kap_cross(0.3, c, g + 26.4, 1.6)
+	_collide(outline)
+
+
+## The parish church of Our Lady of Częstochowa (Kościół Matki Bożej Częstochowskiej, ul. Zagórna
+## 5, Powiśle), a 1960s modernist church: a steep green copper A-frame roof that comes down almost
+## to the ground at the front, a glazed triangular front with the doors under a canopy, and the
+## twin concrete pylons with the bells and the tall cross before it. The whole church as a model
+## that replaces the old kit church (`church_czestochowska`, built by `_build_church` until
+## 2026-11-14: a beige box with a pyramid tower). From Mapillary photos of 2026 on Zagórna (the
+## front from 68 m, the side wall close up; refs/czestochowska, never shipped), the OSM outline
+## and GUGiK's LoD2 (over the ground: the A-frame's ridge 15; the pylons 22.5; the side walls
+## about 6 under the roof's eaves; the flat back block 8). Spec docs/landmarks/specs/czestochowska.md.
+## Frame: origin at the front's middle by the pylons, u from the front (south-east, to Zagórna)
+## back, v across; the front faces -u.
+const MC_O := Vector2(1142.0, 880.0)
+const MC_A := Vector2(-0.6402, -0.7682)
+const MC_WALL := Color("#c8c5be")      ## the grey render of the side walls (photos)
+const MC_COPPER := Color("#7fa290")    ## the pale green copper roof
+const MC_CONCRETE := Color("#6f7172")  ## the pylons and the roof's edges
+const MC_FRAME := Color("#b39a5c")     ## the gold window frames
+const MC_LIGHT := Color("#e9e6df")     ## the cross, the canopy
+
+
+func _build_czestochowska(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(MC_O, MC_O + MC_A)
+	_g = _ground_under(outline)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	var b := Vector2(-MC_A.y, MC_A.x)
+	_mode = M_STONE
+	# --- the front A-frame: the roof from the ground to the ridge, its concrete edge, the glass
+	_gable(-2.0, 6.2, 0.0, 8.2, g + 0.3, 14.7, MC_CONCRETE, MC_COPPER, true)
+	_gable(-2.06, -2.0, 0.0, 7.3, g + 0.9, 13.1, PAL_GLASS_DARK, PAL_GLASS_DARK, false)
+	_kbox(-2.3, -2.0, -8.4, 8.4, g - 1.0, g + 0.3, MC_CONCRETE)
+	# the doors and their canopy at the foot of the glass
+	_kbox(-3.4, -2.0, -5.0, 5.0, g - 1.0, g + 3.1, MC_WALL)
+	_kbox(-3.46, -3.4, -4.4, 4.4, g + 0.1, g + 2.7, PAL_GLASS_DARK)
+	_kbox(-4.4, -2.0, -5.6, 5.6, g + 3.1, g + 3.45, MC_LIGHT)
+	_kbox(-6.0, -3.4, -6.0, 6.0, g - 1.0, g + 0.15, MC_WALL.darkened(0.08))
+	# --- the nave: side walls to 6, the roof to the ridge, rows of gold-framed windows
+	var nave := _lpoly([[6.0, -11.0], [30.0, -11.0], [30.0, 11.0], [6.0, 11.0]])
+	_prism(nave, g - 1.0, g + 6.0, MC_WALL, none, M_STONE)
+	_gable(6.0, 30.0, 0.0, 11.3, g + 6.0, 9.5, MC_WALL, MC_COPPER, true)
+	for s2: float in [-1.0, 1.0]:
+		var vf := s2 * 11.0
+		for wu: float in [9.0, 14.5, 20.0, 25.5]:
+			for wy: float in [1.2, 3.7]:
+				_kbox(wu - 2.0, wu + 2.0, minf(vf, vf + s2 * 0.05), maxf(vf, vf + s2 * 0.05), g + wy, g + wy + 1.5, MC_FRAME)
+				_kbox(wu - 1.8, wu + 1.8, minf(vf, vf + s2 * 0.09), maxf(vf, vf + s2 * 0.09), g + wy + 0.15, g + wy + 1.35, PAL_GLASS_DARK, _lit(wu + vf, g + wy))
+	# --- the flat back block
+	var back := _lpoly([[30.05, -9.0], [41.4, -9.0], [41.4, 9.0], [30.05, 9.0]])
+	_prism(back, g - 1.0, g + 8.0, MC_WALL, MC_CONCRETE.lightened(0.15), M_STONE, M_STONE)
+	for wu2: float in [32.5, 36.0, 39.5]:
+		for s3: float in [-1.0, 1.0]:
+			_kbox(wu2 - 1.2, wu2 + 1.2, minf(s3 * 9.0, s3 * 9.06), maxf(s3 * 9.0, s3 * 9.06), g + 2.0, g + 6.0, PAL_GLASS_DARK, _lit(wu2 * s3, g + 2.0))
+	# --- the twin pylons before the front, the bells between them, the emblem, the cross
+	for s4: float in [-1.0, 1.0]:
+		_kbox(-3.0, -2.0, minf(s4 * 0.6, s4 * 1.9), maxf(s4 * 0.6, s4 * 1.9), g + 3.45, g + 22.5, MC_CONCRETE)
+	for by: float in [16.0, 18.0, 20.0]:
+		_kbox(-2.75, -2.25, -0.6, 0.6, g + by, g + by + 0.25, MC_CONCRETE.darkened(0.15))
+		_kbox(-2.7, -2.3, -0.35, 0.35, g + by + 0.25, g + by + 1.1, MC_FRAME.darkened(0.25))
+	var em := _w(-3.05, 0.0)
+	_disc(Vector3(em.x, g + 11.0, em.y), Vector3(-MC_A.x, 0.0, -MC_A.y), 0.9, 10, MC_LIGHT)
+	_kbox(-2.6, -2.4, -0.1, 0.1, g + 21.0, g + 27.0, MC_LIGHT)
+	_kbox(-2.6, -2.4, -1.0, 1.0, g + 24.6, g + 24.85, MC_LIGHT)
+	_collide(outline)
+
+
+## Holy Trinity church on Solec (Kościół Świętej Trójcy na Solcu, the site key still says Praga):
+## a cream classicist church with a temple front and pediment towards the north-east, a short
+## transept and a slim bell turret with a little bulb dome over the crossing. The whole church as a
+## model that replaces the old kit church (`church_trojca_praga`, built by `_build_church` until
+## 2026-11-14: a plain box). From Mapillary 360s of 2025 and 2026 on the avenue to the north-east
+## (the front and the turret against the sky from 96 m; refs/trojca_praga, never shipped), the OSM
+## outline and GUGiK's LoD2 (over the ground: the nave's eaves 14 and ridge 17; the transept's
+## ridge 17.2; the turret's top 26.4; the chancel 16.5; the back wings 9).
+## Spec docs/landmarks/specs/trojca_solec.md.
+## Frame: origin at the front's middle, u from the front (north-east) back, v across; the front
+## faces -u.
+const SL_O := Vector2(1077.3, 252.8)
+const SL_A := Vector2(-0.6905, 0.7234)
+const SL_WALL := Color("#e2d6bc")      ## the cream plaster
+const SL_TRIM := Color("#f2ecdf")      ## pilasters, cornice, pediment
+const SL_ROOF := Color("#63696e")      ## the grey sheet roofs
+const SL_DOME := Color("#5b6764")      ## the turret's dark dome
+const SL_DOOR := Color("#4a3a30")
+
+
+func _build_trojca_solec(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(SL_O, SL_O + SL_A)
+	_g = _ground_under(outline)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	var b := Vector2(-SL_A.y, SL_A.x)
+	_mode = M_STONE
+	# --- the masses: nave, transept, chancel, the low wings and the side annex
+	var nave := _lpoly([[0.0, -4.6], [19.5, -4.6], [19.5, 4.6], [0.0, 4.6]])
+	_prism(nave, g - 1.0, g + 14.1, SL_WALL, none, M_STONE)
+	kit_ledge_ring(nave, g + 13.5, 0.5, SL_TRIM, 0.2)  # its top 5 cm under the transept's and 10 under the front's entablature
+	_gable(0.0, 19.5, 0.0, 4.85, g + 14.1, 2.9, SL_WALL, SL_ROOF, false)
+	var tran := _lpoly([[19.5, -7.5], [25.0, -7.5], [25.0, 7.5], [19.5, 7.5]])
+	_prism(tran, g - 1.0, g + 14.1, SL_WALL, none, M_STONE)
+	kit_ledge_ring(tran, g + 13.55, 0.5, SL_TRIM, 0.2)
+	var ka := _a
+	var kb := _b
+	_a = kb
+	_b = ka
+	_gable(-7.5, 7.5, 22.25, 2.95, g + 14.1, 3.1, SL_WALL, SL_ROOF, true)
+	_a = ka
+	_b = kb
+	var ch := _lpoly([[25.0, -4.0], [31.0, -4.0], [31.0, 4.0], [25.0, 4.0]])
+	_prism(ch, g - 1.0, g + 13.5, SL_WALL, none, M_STONE)
+	_gable(31.0, 25.0, 0.0, 4.2, g + 13.5, 3.0, SL_WALL, SL_ROOF, false)
+	for wv: Array in [[-9.5, -4.0], [4.0, 9.5]]:
+		_prism(_lpoly([[25.05, wv[0]], [31.0, wv[0]], [31.0, wv[1]], [25.05, wv[1]]]), g - 1.0, g + 9.0, SL_WALL, SL_ROOF.lightened(0.1), M_STONE, M_STONE)
+	_prism(_lpoly([[6.0, 4.6], [10.0, 4.6], [10.0, 9.5], [6.0, 9.5]]), g - 1.0, g + 8.6, SL_WALL, SL_ROOF.lightened(0.1), M_STONE, M_STONE)
+	kit_ledge_ring(nave, g - 1.0, 1.6, SL_WALL.darkened(0.15), 0.06)
+	# --- the temple front: four pilasters, the entablature, the pediment, the door, a window
+	_sl_turn(1)
+	kit_face(0.0)
+	for pv: float in [-4.1, -1.6, 1.6, 4.1]:
+		_kbox(pv - 0.35, pv + 0.35, -0.04, 0.16, g + 0.6, g + 12.6, SL_TRIM)
+	_kbox(-4.75, 4.75, -0.04, 0.3, g + 12.6, g + 14.1, SL_TRIM)
+	kit_pediment(0.0, 5.0, g + 14.1, 2.9, SL_TRIM, SL_ROOF, 0.35)
+	kit_door(0.0, g + 0.0, 4.2, 1.0, SL_TRIM, SL_DOOR, true)
+	var wa := _w(0.0, 0.0)
+	_arch_panel(wa, _a, _b, 0.9, g + 6.6, g + 10.2, SL_TRIM, 0.03, M_STONE)
+	_arch_panel(wa, _a, _b, 0.7, g + 6.8, g + 10.2, PAL_GLASS_DARK, 0.07, _lit(1.0, g + 6.8))
+	kit_front(SL_O, SL_O + SL_A)
+	# --- the sides: tall round-headed windows between pilasters
+	for s: float in [-1.0, 1.0]:
+		var vf := s * 4.6
+		var out := b * s
+		for pu: float in [0.8, 6.4, 12.6, 19.0]:
+			_kbox(pu - 0.3, pu + 0.3, minf(vf, vf + s * 0.12), maxf(vf, vf + s * 0.12), g + 0.6, g + 13.6, SL_TRIM)
+		for wu: float in [3.6, 15.8]:
+			_arch_panel(_w(wu, vf), SL_A, out, 0.9, g + 5.0, g + 10.5, SL_TRIM, 0.03, M_STONE)
+			_arch_panel(_w(wu, vf), SL_A, out, 0.7, g + 5.2, g + 10.5, PAL_GLASS_DARK, 0.07, _lit(wu + vf, g + 5.2))
+		var te := _w(22.25, s * 7.5)
+		_arch_panel(te, SL_A, out, 1.0, g + 5.0, g + 10.8, PAL_GLASS_DARK, 0.06, _lit(s, g + 5.0))
+	# --- the bell turret over the crossing: base, belfry arches, bulb dome, spire, cross
+	var tu := 22.3
+	_lbox(tu, 0.0, 1.5, 1.5, g + 15.0, g + 21.0, SL_WALL, M_STONE, none)
+	_lbox(tu, 0.0, 1.65, 1.65, g + 21.0, g + 21.4, SL_TRIM, M_STONE, SL_TRIM.darkened(0.05))
+	var tc := _w(tu, 0.0)
+	for dd: Vector2 in [SL_A, -SL_A, b, -b]:
+		_arch_panel(tc + dd * 1.5, Vector2(-dd.y, dd.x), dd, 0.45, g + 18.2, g + 20.0, CHURCH_DARK, 0.03, M_STONE)
+	var ring := func(r: float) -> PackedVector2Array:
+		var o := PackedVector2Array()
+		for k in 8:
+			var an := PI * (k + 0.5) / 4.0
+			o.append(tc + (SL_A * cos(an) + b * sin(an)) * r)
+		return o
+	_frustum(ring.call(1.2), g + 21.4, ring.call(1.45), g + 22.6, SL_DOME)
+	_frustum(ring.call(1.45), g + 22.6, ring.call(0.5), g + 23.9, SL_DOME)
+	_frustum(ring.call(0.5), g + 23.9, ring.call(0.06), g + 25.6, SL_DOME.lightened(0.05), SL_DOME)
+	_kap_cross(tu, 0.0, g + 25.6, 1.0)
+	_collide(outline)
+
+
+## Turns the kit frame round SL_A as `_kb_turn` does round KB_A (1: +v out of the front).
+func _sl_turn(side: int) -> void:
+	var b := Vector2(-SL_A.y, SL_A.x)
+	match side:
+		0:
+			_a = SL_A
+		1:
+			_a = b
+		2:
+			_a = -SL_A
+		_:
+			_a = -b
+	_b = Vector2(-_a.y, _a.x)
+
+
+## St Augustine's church (Kościół św. Augustyna, ul. Nowolipki 18; Józef Pius Dziekoński,
+## 1891-96), a red clinker-brick neo-Romanesque basilica whose 70 m tower on the front's corner
+## was Warsaw's tallest when built and the one thing left standing over the ghetto's ruins in
+## 1945. The whole church as a model that replaces the old kit church (`church_augustyn`, built by
+## `_build_church` until 2026-11-14: a brick box with a pyramid tower, its front at the far end).
+## No open street photo faces it from the cloud; built from the church's published description
+## (Wikipedia: the three-nave basilica, the two-storey front with three arcades, six niches, a
+## large rose and a pediment, paired roses in the clerestory, triple windows in the aisles, the
+## tower to 70 m with a 5.1 m cross on a 1.35 m ball), the OSM outline and GUGiK's LoD2 (over the
+## ground: the tower 68.5; the nave's eaves 22.5 and ridge 26.5; the aisles 9.5 to 14; a stair
+## turret 40). Spec docs/landmarks/specs/augustyn.md.
+## Frame: origin at the front's middle on the south-east end, u along the church to the
+## north-west apse, v across; the front faces -u; the tower stands at v -11.
+const AU_O := Vector2(-2399.2, -1142.5)
+const AU_A := Vector2(-0.4297, -0.9030)
+const AU_BRICK := Color("#9b4632")     ## the red clinker brick
+const AU_STONE := Color("#d7c3a0")     ## the beige stone details
+const AU_DARKSTONE := Color("#8a4a38") ## the brown-red stone bands
+const AU_ROOF := Color("#5e6266")      ## the grey roofs
+const AU_SPIRE := Color("#4d5a58")     ## the spire's dark sheet
+
+
+## A lean-to roof over an aisle: from the outer wall's top (v_out, y_out) up to the nave wall
+## (v_in, y_in) between u0 and u1, with its two end triangles.
+func _au_lean(u0: float, u1: float, v_out: float, v_in: float, y_out: float, y_in: float, col: Color) -> void:
+	var at := func(u: float, v: float, y: float) -> Vector3:
+		var p := _w(u, v)
+		return Vector3(p.x, y, p.y)
+	var b := Vector2(-AU_A.y, AU_A.x)
+	var side := signf(v_out - v_in)
+	var n := (Vector3(b.x, 0.0, b.y) * side * (y_in - y_out) + Vector3.UP * absf(v_out - v_in)).normalized()
+	var none := Vector2(-1, -1)
+	_quad(at.call(u0, v_out, y_out), at.call(u1, v_out, y_out), at.call(u1, v_in, y_in), at.call(u0, v_in, y_in), n, col)
+	for e: Array in [[u0, -1.0], [u1, 1.0]]:
+		var eu: float = e[0]
+		var en := Vector3(AU_A.x, 0.0, AU_A.y) * float(e[1])
+		_tri(at.call(eu, v_out, y_out), at.call(eu, v_in, y_out), at.call(eu, v_in, y_in), en, AU_BRICK, none, none, none, -1.0, false)
+
+
+func _build_augustyn(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(AU_O, AU_O + AU_A)
+	_g = _ground_under(outline)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	var b := Vector2(-AU_A.y, AU_A.x)
+	_mode = M_STONE
+	# --- the nave and choir under one roof, the aisles with lean-tos, the apse
+	var nave := _lpoly([[0.0, -7.0], [61.0, -7.0], [61.0, 7.0], [0.0, 7.0]])
+	_prism(nave, g - 1.0, g + 22.5, AU_BRICK, none, M_STONE)
+	kit_ledge_ring(nave, g + 22.0, 0.5, AU_STONE, 0.18)
+	_gable(0.0, 61.0, 0.0, 7.2, g + 22.5, 4.2, AU_BRICK, AU_ROOF, true)
+	var rings: Array[PackedVector2Array] = [nave]
+	for s: float in [-1.0, 1.0]:
+		var u0 := 11.2 if s < 0.0 else 1.0
+		var aisle := _lpoly([[u0, s * 7.0], [59.0, s * 7.0], [59.0, s * 15.0], [u0, s * 15.0]])
+		_prism(aisle, g - 2.5, g + 9.5, AU_BRICK, none, M_STONE)
+		kit_ledge_ring(aisle, g + 9.0, 0.45, AU_STONE, 0.15)
+		_au_lean(11.0 if s > 0.0 else u0, 59.0, s * 15.0, s * 7.0, g + 9.5, g + 14.0, AU_ROOF.lightened(0.05))
+		rings.append(aisle)
+	var ac := _w(61.0, 0.0)
+	var half := PackedVector2Array()
+	for k in 7:
+		var ang := -PI * 0.5 + PI * k / 6.0
+		half.append(ac + (AU_A * cos(ang) + b * sin(ang)) * 6.8)
+	_prism(half, g - 1.0, g + 19.0, AU_BRICK, none, M_STONE)
+	var tip := PackedVector2Array()
+	for p: Vector2 in half:
+		tip.append(ac + (p - ac) * 0.2)
+	_frustum(half, g + 19.0, tip, g + 24.0, AU_ROOF, AU_ROOF)
+	for i in rings.size():
+		kit_ledge_ring(rings[i], g - 2.5, 3.5 - 0.04 * i, AU_DARKSTONE, 0.07)
+	# --- the sides: paired roses in the clerestory, triple round-headed windows in the aisles
+	for s2: float in [-1.0, 1.0]:
+		var vc := s2 * 7.0
+		var vs := s2 * 15.0
+		var out := b * s2
+		for bu: float in [15.0, 21.0, 27.0, 33.0, 39.0, 45.0, 51.0, 57.0]:
+			for du: float in [-1.2, 1.2]:
+				var rp := _w(bu + du, vc + s2 * 0.04)
+				_disc(Vector3(rp.x, g + 18.0, rp.y), Vector3(out.x, 0.0, out.y), 0.85, 8, AU_STONE)
+				var rp2 := _w(bu + du, vc + s2 * 0.08)
+				_disc(Vector3(rp2.x, g + 18.0, rp2.y), Vector3(out.x, 0.0, out.y), 0.6, 8, PAL_GLASS_DARK)
+			for du2: float in [-1.0, 0.0, 1.0]:
+				_arch_panel(_w(bu + du2, vs), AU_A, out, 0.35, g + 3.0, g + 6.4, PAL_GLASS_DARK, 0.05, _lit(bu + du2 + vs, g + 3.0))
+			_kbox(bu + 2.6, bu + 3.4, minf(vs, vs + s2 * 0.5), maxf(vs, vs + s2 * 0.5), g - 2.5, g + 9.0, AU_BRICK)
+	# --- the front: three arcades of the portico, six niches, the great rose, the pediment
+	var fo := -AU_A
+	_kbox(-1.6, 0.0, -6.0, 6.0, g - 1.0, g + 7.5, AU_BRICK)
+	_kbox(-1.75, -1.55, -6.2, 6.2, g + 7.5, g + 8.1, AU_STONE)
+	for av: float in [-3.6, 0.0, 3.6]:
+		_arch_panel(_w(-1.6, av), b, fo, 1.35, g + 0.0, g + 5.2, CHURCH_DARK, 0.02, M_STONE)
+	for nv: float in [-4.5, -2.7, -0.9, 0.9, 2.7, 4.5]:
+		_arch_panel(_w(0.0, nv), b, fo, 0.55, g + 9.0, g + 11.0, AU_STONE, 0.04, M_STONE)
+	var rc := _w(-0.04, 0.0)
+	_disc(Vector3(rc.x, g + 16.0, rc.y), Vector3(fo.x, 0.0, fo.y), 3.2, 14, AU_STONE)
+	var rc2 := _w(-0.08, 0.0)
+	_disc(Vector3(rc2.x, g + 16.0, rc2.y), Vector3(fo.x, 0.0, fo.y), 2.6, 14, PAL_GLASS_DARK)
+	_kbox(-0.2, 0.0, -7.3, 7.3, g + 21.9, g + 22.6, AU_STONE)
+	_kap_cross(0.3, 0.0, g + 26.7, 2.2)
+	# the chapel annex on the front's other side
+	var fr := _lpoly([[1.0, 7.0], [11.0, 7.0], [11.0, 15.0], [1.0, 15.0]])
+	_prism(fr, g + 9.5, g + 12.3, AU_BRICK, AU_ROOF.lightened(0.1), M_STONE, M_STONE)
+	# --- the tower on the front's corner: shaft, two stages, the belfry arcades, the spire
+	var tu := 7.0
+	var tv := -11.0
+	_lbox(tu, tv, 4.0, 4.0, g - 1.0, g + 34.0, AU_BRICK, M_STONE, none)
+	kit_ledge_ring(_rect(tu, tv, 4.0, 4.0), g + 13.0, 0.45, AU_STONE, 0.12)
+	kit_ledge_ring(_rect(tu, tv, 4.0, 4.0), g + 24.0, 0.45, AU_STONE, 0.12)
+	_lbox(tu, tv, 4.25, 4.25, g + 34.0, g + 34.7, AU_STONE, M_STONE, AU_STONE.darkened(0.06))
+	_lbox(tu, tv, 3.4, 3.4, g + 34.7, g + 47.0, AU_BRICK, M_STONE, none)
+	_lbox(tu, tv, 3.65, 3.65, g + 47.0, g + 47.6, AU_STONE, M_STONE, AU_STONE.darkened(0.06))
+	var tc := _w(tu, tv)
+	for dd: Vector2 in [AU_A, -AU_A, b, -b]:
+		var al := Vector2(-dd.y, dd.x)
+		for k2: float in [-1.15, 0.0, 1.15]:
+			_arch_panel(tc + dd * 3.4 + al * k2, al, dd, 0.42, g + 39.0, g + 44.5, CHURCH_DARK, 0.03, M_STONE)
+		_arch_panel(tc + dd * 4.0, al, dd, 0.5, g + 26.0, g + 30.5, CHURCH_DARK, 0.03, M_STONE)
+		_disc(Vector3((tc + dd * 4.03).x, g + 18.5, (tc + dd * 4.03).y), Vector3(dd.x, 0.0, dd.y), 0.9, 8, AU_STONE)
+	for s3: float in [-1.0, 1.0]:
+		for t: float in [-1.0, 1.0]:
+			_pinnacle(tu + s3 * 3.2, tv + t * 3.2, 0.7, g + 47.6, 3.0, AU_STONE)
+	var sq := func(h: float) -> PackedVector2Array:
+		return _rect(tu, tv, h, h)
+	_frustum(sq.call(3.0), g + 47.6, sq.call(0.15), g + 63.4, AU_SPIRE, AU_SPIRE)
+	_lbox(tu, tv, 0.6, 0.6, g + 63.4, g + 64.6, Color("#c9a64a"), M_STONE, Color("#c9a64a"))
+	_kap_cross(tu, tv, g + 64.6, 5.1)
+	# --- the small stair turret by the choir
+	var st := _w(50.0, 6.0)
+	var oct := PackedVector2Array()
+	for k3 in 8:
+		var an := PI * (k3 + 0.5) / 4.0
+		oct.append(st + (AU_A * cos(an) + b * sin(an)) * 1.3)
+	_frustum(oct, g + 14.0, oct, g + 34.0, AU_BRICK)
+	var otip := PackedVector2Array()
+	for p2: Vector2 in oct:
+		otip.append(st + (p2 - st) * 0.1)
+	_frustum(oct, g + 34.0, otip, g + 40.0, AU_SPIRE, AU_SPIRE)
+	_collide(outline)
+
+
+## The Basilian monastery's street wing (Klasztor Bazylianów, Miodowa 16), the classicist front
+## of the monastery whose middle is the front of the Basilians' church (`church_cerkiew`, the
+## hall in the courtyard behind it): a white four-storey wing along Miodowa under a grey hipped
+## roof, a rusticated ground floor, the middle risalit with four giant pilasters, three arched
+## doors and a low pediment with a cross, and the two back wings round the church's hall. A model
+## that replaces the plain OpenStreetMap block (building 1825; no landmark until 2026-11-14). From
+## the Mapillary 360s of 2026 along Miodowa (refs/cerkiew, never shipped), the OSM outline and
+## GUGiK's LoD2 (over the ground: the wing's eaves 17.4 and ridge 20; the pediment 19.4; the back
+## wings 16 to 21; the low annex 4.4). Spec docs/landmarks/specs/bazylianie.md.
+## Frame: origin at the street front's east corner, u along Miodowa west, v out of the front (the
+## kit's way round: the building is at v < 0).
+const BM_O := Vector2(-1047.48, -1518.78)
+const BM_A := Vector2(0.822, 0.568)
+const BM_WALL := Color("#ebe5d7")      ## the white-cream plaster (the church's front, the same)
+const BM_TRIM := Color("#f5f1e8")      ## pilasters, cornices, frames
+const BM_RUST := Color("#ddd5c4")      ## the rusticated ground floor
+const BM_ROOF := Color("#5d6268")      ## the grey sheet roofs
+const BM_DOOR := Color("#4b3c31")      ## the dark wood doors
+
+
+func _build_bazylianie(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(BM_O, BM_O + BM_A)
+	_g = _ground_under(outline)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	_mode = M_STONE
+	# --- the street wing: walls to 17.4, a cornice under the eaves, the hipped roof to 20
+	var wing := _lpoly([[0.0, -6.87], [39.39, -6.87], [39.39, 0.0], [0.0, 0.0]])
+	_prism(wing, g - 1.0, g + 17.4, BM_WALL, none, M_STONE)
+	kit_ledge_ring(wing, g + 16.85, 0.45, BM_TRIM, 0.25)
+	_hip(19.695, -3.435, 19.695, 3.435, g + 17.4, 2.6, BM_ROOF)
+	# --- the back wings round the church's hall, their hipped roofs; the low annex
+	_kbox(35.69, 39.28, -9.65, -6.9, g - 1.0, g + 16.8, BM_WALL)
+	_kbox(0.59, 3.39, -9.6, -6.9, g - 1.0, g + 16.8, BM_WALL)
+	_prism(_lpoly([[27.14, -20.0], [35.79, -20.0], [35.79, -6.9], [27.14, -6.9]]), g - 1.0, g + 16.8, BM_WALL, none, M_STONE)
+	_hip(31.465, -13.45, 4.325, 6.55, g + 16.8, 3.0, BM_ROOF)
+	_prism(_lpoly([[3.29, -22.0], [11.04, -22.0], [11.04, -6.9], [3.29, -6.9]]), g - 1.0, g + 16.8, BM_WALL, none, M_STONE)
+	_hip(7.165, -14.45, 3.875, 7.55, g + 16.8, 3.0, BM_ROOF)
+	_kbox(27.1, 34.99, -24.8, -20.05, g - 1.0, g + 4.4, BM_WALL.darkened(0.05))
+	# --- the street front: the rusticated ground floor, string courses, panes in every bay
+	# (each side's bands run on into the risalit and a few centimetres past the corner, so no end
+	# of them lies in a wall's plane)
+	var sides: Array = [[-0.06, 11.3, [1.5, 4.2, 6.9, 9.6]], [26.88, 39.45, [28.6, 31.6, 34.6, 37.6]]]
+	for sd: Array in sides:
+		var u0: float = sd[0]
+		var u1: float = sd[1]
+		_kbox(u0, u1, -0.02, 0.06, g - 1.0, g + 4.3, BM_RUST)
+		kit_face(0.06)
+		kit_bands(u0, u1, g - 1.0, g + 4.3, 0.75, BM_RUST)
+		kit_face(0.0)
+		kit_panes(sd[2], [g + 1.0], 1.3, 2.3, PAL_GLASS_DARK, 0.11)
+		kit_panes(sd[2], [g + 5.6, g + 9.8], 1.3, 2.5, PAL_GLASS_DARK, 0.05)
+		kit_panes(sd[2], [g + 13.7], 1.3, 1.9, PAL_GLASS_DARK, 0.05)
+		for sy: float in [5.45, 9.65, 13.55]:
+			kit_ledge(u0, u1, g + sy, 0.15, BM_TRIM, 0.12)
+		kit_ledge(u0, u1, g + 4.3, 0.3, BM_TRIM, 0.16)
+	# --- the risalit: stands 0.35 out, giant pilasters on a rusticated base, three arched doors,
+	# its own cornice and the low pediment with the cross
+	var r0 := 11.19
+	var r1 := 26.99
+	_kbox(r0, r1, -0.02, 0.35, g - 1.0, g + 17.4, BM_WALL)
+	_kbox(r0 - 0.15, r1 + 0.15, -0.6, 0.6, g + 17.4, g + 17.75, BM_TRIM)
+	kit_face(0.35)
+	kit_bands(r0, r1, g - 1.0, g + 4.3, 0.75, BM_WALL)
+	kit_ledge(r0, r1, g + 4.3, 0.3, BM_TRIM, 0.16)
+	for pu: float in [11.7, 16.6, 21.6, 26.5]:
+		_kbox(pu - 0.45, pu + 0.45, 0.33, 0.52, g + 4.6, g + 16.9, BM_TRIM)
+		_kbox(pu - 0.55, pu + 0.55, 0.33, 0.6, g + 16.9, g + 17.4, BM_TRIM)
+	for bu: float in [14.15, 19.1, 24.05]:
+		kit_face(0.4)
+		kit_door(bu, g, 3.6, 0.95 if bu == 19.1 else 0.8, BM_TRIM, BM_DOOR, true)
+		kit_face(0.35)
+		for wy: Array in [[5.6, 2.6], [9.8, 2.4], [13.7, 1.9]]:
+			var sy: float = wy[0]
+			var hh: float = wy[1]
+			kit_panes([bu], [g + sy], 1.4, hh, PAL_GLASS_DARK, 0.05)
+			_kbox(bu - 0.95, bu + 0.95, 0.3, 0.5, g + sy + hh + 0.1, g + sy + hh + 0.35, BM_TRIM)
+	kit_face(0.0)
+	# the pediment's slopes run back 3 m into the hipped roof, under its ridge
+	kit_face(-3.0)
+	kit_pediment(19.09, 8.05, g + 17.75, 1.8, BM_TRIM, BM_ROOF, 3.6)
+	kit_face(0.0)
+	_kap_cross(19.09, 0.3, g + 19.55, 1.6)
+	# --- the ends and the back wings' outer walls: panes, so no side is a blank box
+	# (each wall from p to q with its outside on the left, three rows of panes at the fractions)
+	var rows: Array = [g + 5.6, g + 9.8, g + 13.7]
+	var walls: Array = [
+		[Vector2(39.39, 0.0), Vector2(39.39, -6.87), [0.5]],
+		[Vector2(0.0, -6.87), Vector2(0.0, 0.0), [0.5]],
+		[Vector2(35.79, -6.9), Vector2(35.79, -20.0), [0.35, 0.6, 0.85]],
+		[Vector2(3.29, -22.0), Vector2(3.29, -6.9), [0.2, 0.47, 0.73]],
+		[Vector2(35.79, -20.0), Vector2(27.14, -20.0), [0.3, 0.7]],
+		[Vector2(11.04, -22.0), Vector2(3.29, -22.0), [0.3, 0.7]],
+	]
+	for wl: Array in walls:
+		var p: Vector2 = wl[0]
+		var q: Vector2 = wl[1]
+		var n := kit_front(_w(p.x, p.y), _w(q.x, q.y))
+		var cols: Array = []
+		for f: float in wl[2]:
+			cols.append(f * n)
+		kit_panes(cols, rows, 1.2, 2.2, PAL_GLASS_DARK, 0.05)
+		kit_front(BM_O, BM_O + BM_A)
 	_collide(outline)
 
 
@@ -30588,6 +32020,8 @@ const CHURCHES := [
 			"fill": 0.75, "style": "neogothic", "wall": "#a8503c", "roof": "#6e5d58", "towers": 2, "cap": "spire"},
 	{"key": "church_cerkiew", "at": Vector2(-1021.4, -1523.2), "o": Vector2(-1027.9, -1513.5), "out": Vector2(-0.5623, 0.8269), "L": 12.2, "W": 7.9,
 			"fill": 0.96, "style": "orthodox", "wall": "#ece4d2", "roof": "#4a6a5a", "towers": 0, "cap": "onion"},
+	{"key": "church_bazylianie", "at": Vector2(-1029.8, -1510.2), "o": Vector2(-1031.3, -1507.6), "out": Vector2(-0.568, 0.822), "L": 39.4, "W": 6.9,
+			"fill": 0.9, "style": "neoclassical", "wall": "#ebe5d7", "roof": "#5d6268", "towers": 0, "cap": "none"},
 	{"key": "church_nozykow", "at": Vector2(-1569.1, -228.0), "o": Vector2(-1546.1, -229.5), "out": Vector2(0.9975, -0.0712), "L": 16.4, "W": 11.6,
 			"fill": 0.78, "style": "romanesque", "wall": "#d9c9a3", "roof": "#6f7a76", "towers": 0, "cap": "none"},
 ]
@@ -30605,6 +32039,8 @@ func _find_churches() -> void:
 			sites[-1]["outline"] = outline
 			if ch["key"] == "church_sw_marcin":
 				_marcin_tops()  # the LoD2 tower in the monastery's block, under the model's tower
+			elif ch["key"] == "church_jerozolimska":
+				_jz_tops()  # the bell tower is LoD2 in the next block: cut it under the model's tower
 			elif ch["key"] == "church_niepokalanego":
 				_np_tops()  # the church is part of the convent's one LoD2 run: cut it under the model
 
@@ -30647,6 +32083,42 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_dzieciatka":
 		_build_dzieciatka(site)  # the whole brick Child Jesus church from photos, tower to the west, not the kit church
+		return
+	if site["key"] == "church_augustyn":
+		_build_augustyn(site)  # the whole brick basilica and its 70 m tower
+		return
+	if site["key"] == "church_trojca_praga":
+		_build_trojca_solec(site)  # Holy Trinity on Solec: temple front and crossing turret, from photos
+		return
+	if site["key"] == "church_czestochowska":
+		_build_czestochowska(site)  # the modernist A-frame church and its pylons, from photos
+		return
+	if site["key"] == "church_bazylianie":
+		_build_bazylianie(site)  # the Basilian monastery's street wing with the church's front
+		return
+	if site["key"] == "church_cerkiew":
+		_build_cerkiew(site)  # the Basilians' church hall without the kit's onion dome
+		return
+	if site["key"] == "church_narodzenia":
+		_build_narodzenia(site)  # the whole Baroque church and its clock turret, from photos
+		return
+	if site["key"] == "church_reformowany":
+		_build_reformowany(site)  # the whole neo-Gothic church with its openwork spire, from photos
+		return
+	if site["key"] == "church_alberta":
+		_build_alberta(site)  # the whole classicist front on Plac Teatralny, its portico and the two wings, from photos
+		return
+	if site["key"] == "church_jerozolimska":
+		_build_jerozolimska(site)  # the whole brick church on Łazienkowska, its portico and its bell tower, from photos
+		return
+	if site["key"] == "church_karol":
+		_build_karol(site)  # the whole cream classicist church on Chłodna, its two west towers and the apse, from photos
+		return
+	if site["key"] == "church_zielonoswiatkowy":
+		_build_zielonoswiatkowy(site)  # the whole modernist Pentecostal hall from photos, not the kit church
+		return
+	if site["key"] == "church_miloserdzie":
+		_build_miloserdzie(site)  # the whole white Divine Mercy church and its bell tower from photos, not the kit church
 		return
 	var ch := _church_spec(site["key"])
 	if ch.is_empty():
