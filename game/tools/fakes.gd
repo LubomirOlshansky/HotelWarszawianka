@@ -31,6 +31,9 @@ extends RefCounted
 ## class and key: `kinds`, `keys`; `say_reaction`), what `say` answers (`say_words`), each line's group and tag
 ## (`groups`, `tags`), `count` and `forget`; the bubbles' `say` as bubbles.gd has it, with `say_ambient`, `say_reaction`,
 ## `allows` and `muted`.
+##
+## Group 3 (2026-11-14): the map as the builders see it while they build (`BuilderMap`), the radio, the sound
+## effects, the city's sounds, the walkers and the tape, each with what the checks that had their own read.
 
 const Chatter := preload("res://scripts/chatter.gd")
 
@@ -577,3 +580,173 @@ class Car extends Node3D:
 	var vel := Vector3.ZERO
 	var forward_speed := 0.0
 	var throttle := 0.0
+
+
+## map_builder.gd as landmarks.gd's builders, the place scripts and the facade kit see it while they build
+## (tech-debt TD-11 group 3; it was `StubMap` in mesh_probe.gd and a copy in check_sites.gd): the ground and
+## the terrain flat at 0, no platform and no tunnel under a point, the sunken places of map_builder's
+## SUNKEN with their tops at 0 and floors 3.4 m under it, an empty roof grid, and the colliders and roof
+## triangles the builders hand it kept (`_wall_faces`, `roof_tris`). It is no FlatMap: the builders reach
+## into map_builder's own fields and helpers, and a FlatMap's decks, roofs and tunnels would answer
+## `has_method` where this map must not. `data` is the bake's dictionary (empty: a check fills what it needs).
+class BuilderMap extends Node3D:
+	const ROOF_CELL := 4.0
+	var _roof_x0 := 0.0
+	var _roof_z0 := 0.0
+	var _roof_nx := 0
+	var _roof_nz := 0
+	var _wall_faces := PackedVector3Array()
+	var data: Dictionary = {}
+	var _terrain := {"step": 10.0}
+	## How many triangles the builders laid on the roof grid (`_roof_triangle`).
+	var roof_tris := 0
+	## The sunken places (map_builder SUNKEN) on the flat ground: tops at 0, floors 3.4 m under it.
+	var _sunk: Array[Dictionary] = []
+
+	func _init() -> void:
+		# Loaded here, not preloaded at the top: every check takes fakes.gd, and only these build.
+		var mb: GDScript = load("res://scripts/map_builder.gd")
+		for e: Dictionary in mb.SUNKEN:
+			var f := e.duplicate()
+			if not is_nan(float(f["hb"])):
+				f["hb"] = -3.4
+			if f.has("rim"):
+				f["rim"] = 0.0
+			_sunk.append(mb.sunk_entry(f, 0.0, 10.0))
+
+	## map_builder.gd's collider by class (step 1, solid classes): here one bag.
+	func _solid(_cls: StringName, faces: PackedVector3Array) -> void:
+		_wall_faces.append_array(faces)
+
+	func _grid_height(_x: float, _z: float) -> float:
+		return 0.0
+
+	func sunk_floor(x: float, z: float, _grown := false) -> float:
+		for sk: Dictionary in _sunk:
+			if Geometry2D.is_point_in_polygon(Vector2(x, z), sk["ring"]):
+				return sunk_level(sk, Vector2(x, z))
+		return INF
+
+	static func sunk_level(sk: Dictionary, p: Vector2) -> float:
+		return (load("res://scripts/map_builder.gd") as GDScript).call("sunk_level", sk, p)
+
+	func terrain_height(_x: float, _z: float) -> float:
+		return 0.0
+
+	func ground_height(_x: float, _z: float) -> float:
+		return 0.0
+
+	func platform_top(_x: float, _z: float) -> float:
+		return NAN
+
+	func tunnel_floor_under(_x: float, _z: float) -> float:
+		return NAN
+
+	func _roof_triangle(_a: Vector3, _b: Vector3, _c: Vector3, _is_roof: bool, _col := Color(0, 0, 0, 0)) -> void:
+		roof_tris += 1
+
+
+## radio.gd for a check with no radio (TD-11 group 3): the station it is on, what it was tuned to and what was
+## said on air, which of PÓŁNOC FM's tracks are open and who asked to open one, and the host's 02:00 moment.
+class Radio extends Node:
+	## The station on (radio.gd `station`): -1 is Off, as radio.gd starts. A check sets it to the one it plays on.
+	var station := -1
+	## Every `tune`, in order.
+	var tuned: Array[int] = []
+	## Every `announce`'s text, and its subtitle in step.
+	var said: Array[String] = []
+	var subtitles: Array[String] = []
+	## `station_index`'s answers by key ({"mordor_fm": 3}); a key not here answers -1, as radio.gd does.
+	var stations := {}
+	## PÓŁNOC FM's tracks that are open, by number (1 is the first): `next_locked` answers the lowest of the
+	## seven that is not, `unlock_track` opens one.
+	var open := {}
+	## Every `unlock_track`'s [number, why], in order, whether it opened the track or not.
+	var unlocks: Array = []
+	## The host's moment: how often it was asked, and what it answers (radio.gd: false when the radio is Off).
+	var moments := 0
+	var moment_ok := true
+
+	func tune(index: int, _quiet := false) -> void:
+		station = index
+		tuned.append(index)
+
+	func announce(text: String, subtitle := "") -> void:
+		said.append(text)
+		subtitles.append(subtitle)
+
+	func station_index(key: String) -> int:
+		return int(stations.get(key, -1))
+
+	func next_locked() -> int:
+		for n in range(1, 8):
+			if not open.has(n):
+				return n
+		return 0
+
+	## True when it opened the track; false when it was open already, as radio.gd answers.
+	func unlock_track(n: int, why := "egg") -> bool:
+		unlocks.append([n, why])
+		if open.has(n):
+			return false
+		open[n] = true
+		return true
+
+	func host_moment(_seconds := 10.0) -> bool:
+		moments += 1
+		return moment_ok
+
+
+## sfx.gd for a check with no sound (TD-11 group 3): the sounds played at a place, and how often the engine
+## was softened.
+class Sfx extends Node3D:
+	## Every `play_at`'s [name, where], in order.
+	var played: Array = []
+	var softened := 0
+
+	func play_at(n: String, at: Vector3, _gain_db := 0.0) -> void:
+		played.append([n, at])
+
+	func soften_engine(_seconds: float) -> void:
+		softened += 1
+
+
+## city_sounds.gd for a check with no city sounds (TD-11 group 3): the crowds asked for, by id.
+class CitySounds extends Node3D:
+	var crowds: Array[String] = []
+
+	func add_crowd(id: String, _kind: String, _at: Vector3, _when: Callable) -> void:
+		crowds.append(id)
+
+
+## pedestrians.gd for a check with no walkers (TD-11 group 3): the figures standing at a bus stop and at a
+## crash scene (each by its index, with where it stands), and how often people were startled.
+class Walkers extends Node3D:
+	var stops := {}
+	var scenes := {}
+	var startled := 0
+
+	func set_stop(i: int, at: Vector3, _yaw: float, _shirt: Color, _trousers: float) -> void:
+		stops[i] = at
+
+	func clear_stop(i: int) -> void:
+		stops.erase(i)
+
+	func set_scene(i: int, at: Vector3, _yaw: float, _shirt: Color, _trousers: float) -> void:
+		scenes[i] = at
+
+	func clear_scene(i: int) -> void:
+		scenes.erase(i)
+
+	## How many walkers it startled: none here.
+	func startle(_at: Vector2, _r: float) -> int:
+		startled += 1
+		return 0
+
+
+## tape.gd for a check with no tape (TD-11 group 3): the then cards stamped, by id.
+class Tape extends Node3D:
+	var stamped: Array[String] = []
+
+	func stamp(id: String, _date := 0) -> void:
+		stamped.append(id)
