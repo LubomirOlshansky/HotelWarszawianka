@@ -307,6 +307,8 @@ func _initialize() -> void:
 		map.setup_streamed(JSON.parse_string(FileAccess.get_file_as_string(SectorStreamer.INDEX_JSON)), ShaderMaterial.new(), ShaderMaterial.new())
 	map.data = map.index_data
 	graph = LaneGraph.new(map.data["graph"], map)
+	soft.graph = graph  # step 8a: a pushed parked car never rests in a lane, as in the game
+	soft.ground_at = map.terrain_height
 	_names = ContactLog.street_names(map.data["graph"])
 	if wander:
 		_start_wander(t0)
@@ -923,6 +925,9 @@ func _finish() -> void:
 			sp.append("%s %d" % [k, clog.soft_counts[k]])
 		print("check_lane_drive: soft things: %d smashes (%s), %d panels broken" % [_smashes(),
 				", ".join(sp), soft.panels_broken])
+		if soft_on:
+			print("check_lane_drive: parked cars: %d pushes, %d walls (%d by the lane rule), %d carried on, %d towed" % [
+					soft.pushes, soft.wedges, soft.lane_wedges, soft.chains, soft.towed])
 		if sloppy:
 			print("check_lane_drive: sloppy driver over %.1f km" % (_total_m / 1000.0))
 	if collide != &"v1":

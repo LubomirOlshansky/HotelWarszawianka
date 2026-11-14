@@ -47,6 +47,8 @@ extends SceneTree
 ##   M5 the lane rule over the map's cars (SECTORS; --all every sector): each car pushed off both sides
 ##      and both ends at 8 m/s, no walls: its rest in a lane counted with friction alone (the defect
 ##      class) and with the rule (what is left is towed); its bay in a lane counted apart (8b's matter).
+##   M6 the cost, the prebuilt sector -2,0: three cars sliding, then the player driving past its cars,
+##      each under 0.1 ms a frame.
 ## Prints `check_soft_things: OK (...)` (exit 0) or the problems (exit 1). The map part needs the
 ## sector split and the prebuilt sectors (tools/setup_map.sh); --all compares every sector (slow).
 ##   godot --headless --path game --script res://tools/check_soft_things.gd [-- --all --sectors=i,j;i,j --verbose]
@@ -122,6 +124,8 @@ func _initialize() -> void:
 	_p7_settings()
 	var cases_ms := Time.get_ticks_msec() - t0
 	var map_note := "no map part (--cases)" if cases_only else _map_part(all, only)
+	if not cases_only:
+		map_note += "; M6 " + await _m6_cost(SECTORS[1])
 	if problems.is_empty():
 		print("check_soft_things: OK (the cases in %d ms; %s; %d ms)" % [cases_ms, map_note, Time.get_ticks_msec() - t0])
 		quit(0)
@@ -786,6 +790,72 @@ func _map_part(all: bool, only: Array[Vector2i]) -> String:
 			_m5["usec"] / 1000.0 / maxf(_m5["pushes"], 1)])
 	return "%d sectors on both paths: %d soft lines, %d segments, %d parked cars; the hard restore %.1f ms a sector on average; lane rule: %d of %d pushes rest in a lane (%d with friction alone, %d walls)" % [
 			keys.size(), lines, segs, cars_n, _m3_usec / 1000.0 / maxf(_m3_hardens, 1), _m5["ruled"], _m5["pushes"], _m5["natural"], _m5["wedged"]]
+
+
+## M6, the script's cost: the prebuilt sector `key` loaded, its parked cars watched with the map's lane
+## graph; three of them pushed (sliding together), then the player driving through the sector at
+## 12 m/s past its first car: the step's microseconds a frame each way (the brief: under 0.1 ms).
+func _m6_cost(key: Vector2i) -> String:
+	var path := "res://map/sectors/%s.scn" % MapBuilder.sector_name(key)
+	if not ResourceLoader.exists(path) or not FileAccess.file_exists("res://map/index.json"):
+		return "no prebuilt sector %s" % key
+	var index: Dictionary = JSON.parse_string(FileAccess.get_file_as_string("res://map/index.json"))
+	var runtime: Node3D = MapBuilder.new()
+	root.add_child(runtime)
+	runtime.setup_streamed(index, ShaderMaterial.new(), ShaderMaterial.new())
+	runtime.data = runtime.index_data
+	var sec := (load(path) as PackedScene).instantiate() as Node3D
+	root.add_child(sec)
+	await physics_frame
+	await physics_frame  # the sector's colliders in the space for the slide's casts
+	var st := SoftThings.new()
+	st.graph = LaneGraph.new(runtime.index_data["graph"], runtime)
+	root.add_child(st)
+	st.set_physics_process(false)
+	st.add_sector(sec)
+	var cars: Array = st._car_sectors.get(key, {}).get("cars", [])
+	if cars.size() < 3:
+		st.free()
+		sec.free()
+		runtime.free()
+		problems.append("M6 %s has %d parked cars" % [key, cars.size()])
+		return "no cars"
+	var started := 0
+	for i in 3:
+		var p: SoftThings.Parked = cars[i * (cars.size() / 3)]
+		var side := Vector2(p.xf.basis.x.x, p.xf.basis.x.z).normalized()
+		if st._start_slide(p, side, 6.0, 0.4) or st._start_slide(p, -side, 6.0, 0.4):
+			started += 1
+	var frames := 0
+	var t0 := Time.get_ticks_usec()
+	while not st._sliding.is_empty() and frames < 600:
+		st.step(DT)
+		frames += 1
+	var slide_us := (Time.get_ticks_usec() - t0) / float(maxi(frames, 1))
+	var c := Car.new()
+	root.add_child(c)
+	c.set_physics_process(false)
+	var first: SoftThings.Parked = cars[0]
+	var along := -Vector3(first.bay.basis.z.x, 0.0, first.bay.basis.z.z).normalized()
+	var aside := Vector3(first.bay.basis.x.x, 0.0, first.bay.basis.x.z).normalized()
+	c.global_position = first.bay.origin + aside * 3.0 - along * 40.0
+	c.look_at(c.global_position + along, Vector3.UP)
+	st.car = c
+	c.vel = along * 12.0
+	st.step(DT)
+	var t1 := Time.get_ticks_usec()
+	for _i in 300:
+		c.global_position += c.vel * DT
+		c.vel = along * 12.0
+		st.step(DT)
+	var drive_us := (Time.get_ticks_usec() - t1) / 300.0
+	st.free()
+	c.free()
+	sec.free()
+	runtime.free()
+	_expect(started > 0 and slide_us < 100.0, "M6 %s: %d cars sliding cost %.1f us a frame (under 100)" % [key, started, slide_us])
+	_expect(drive_us < 100.0, "M6 %s: driving among the cars costs %.1f us a frame (under 100)" % [key, drive_us])
+	return "%s: %d cars sliding %.1f us a frame over %d frames; driving among %d cars %.1f us a frame" % [key, started, slide_us, frames, cars.size(), drive_us]
 
 
 ## M4: "" when every own car of `cars` has its instance (slot) in the parked MultiMesh of its tile under
