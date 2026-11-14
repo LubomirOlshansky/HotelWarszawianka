@@ -18811,6 +18811,243 @@ func _build_kapucyni(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The Dominican church of St Hyacinth (Kościół św. Jacka, ul. Freta 8/10, 1603-1639, front and
+## tower rebuilt in the 1750s and again after 1944): the whole church as a model that replaces the
+## old kit church (`church_jacek`, built by `_build_church` until 2026-11-14) and the LoD2 mass
+## inside the outline (43 points: the church, the tower, the dome chapel and the tenement wing
+## beside it). From F's Commons photos (E23: the front, the portal; top-50 set) and the OSM
+## outline. Spec docs/landmarks/specs/jacek.md.
+## White plaster, a stepped front with a gable, a tall tower with a dark bell stage:
+## - the front: a screen wall with a porch and a pediment over the door, double pilasters, a big
+##   arched window with an iron rail, a gable with a slit window and three statues, scrolls down
+##   to the aisle, two obelisks on the aisle;
+## - the tower on the right: two stages, a cornice, a dark slate bell stage with a bulge, a belt,
+##   an onion and a patina spire with a cross; a round bay at its foot;
+## - behind: the nave (arched clerestory windows, a red-brown gable roof), lower aisles, the round
+##   dome chapel at the back left, and the pink three-storey tenement wing to the right.
+## Frame: origin at the front's NE end, u along the front (+u to the viewer's right, towards the
+## tower), +v out to Freta; the front wall stands at v = 0.35, the aisles' at v = 0.
+const JAC_O := Vector2(-989.0, -1957.1)
+const JAC_A := Vector2(-0.6763, 0.7366)
+const JAC_C := 17.4                    ## the front's mirror axis (u)
+const JAC_TC := 27.0                   ## the tower's centre (u)
+const JAC_WALL := Color("#e9e5d6")     ## the white plaster
+const JAC_TRIM := Color("#f1eee2")     ## pilasters, cornices, surrounds
+const JAC_ROOF := Color("#97594a")     ## the nave's red-brown sheet roof
+const JAC_LEAD := Color("#7d8480")     ## the aisles' lead-grey flat roofs
+const JAC_SLATE := Color("#4c5654")    ## the tower's dark bell stage
+const JAC_PINK := Color("#d9a898")     ## the tenement beside the tower
+const JAC_BASE := Color("#b9b2a2")     ## plinths
+
+
+## A statue on a pedestal: u, v on the local plan, standing on y, `h` tall in all.
+func _jac_statue(u: float, v: float, y: float, h: float) -> void:
+	var c := _w(u, v)
+	_lbox(u, v, 0.4, 0.4, y, y + 0.6, JAC_TRIM)
+	_frustum(_circle(c, 0.34, 6), y + 0.6, _circle(c, 0.2, 6), y + h * 0.82, PAL_GREY_STONE)
+	_prism(_circle(c, 0.17, 6), y + h * 0.82, y + h, PAL_GREY_STONE, PAL_GREY_STONE, M_STONE, M_STONE)
+
+
+## A ring of `n` points round a local spot, its flats facing the frame's axes.
+func _jac_ring(u: float, v: float, r: float, n: int) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for k in n:
+		var t := TAU * (float(k) + 0.5) / float(n)
+		out.append(_w(u + cos(t) * r, v + sin(t) * r))
+	return out
+
+
+## A dome of `n` sides on a local spot: four stepped rings from radius r at y up to a cap.
+func _jac_dome(u: float, v: float, r: float, y: float, h: float, col: Color, n: int) -> void:
+	var c := _w(u, v)
+	var prof: Array = [[1.0, 0.0], [0.93, 0.3], [0.74, 0.62], [0.42, 0.88], [0.14, 1.0]]
+	for k in prof.size() - 1:
+		var a: Array = prof[k]
+		var b: Array = prof[k + 1]
+		_frustum(_circle(c, r * float(a[0]), n), y + h * float(a[1]), _circle(c, r * float(b[0]), n), y + h * float(b[1]), col)
+	_cap(_circle(c, r * 0.14, n), y + h, col.lightened(0.08))
+
+
+## A gable roof whose ridge runs along v (the nave's): `_gable` in the swapped frame.
+func _jac_gable(vf: float, vb: float, cu: float, hu: float, y: float, h: float, face: Color, roof: Color) -> void:
+	var ka := _a
+	var kb := _b
+	_a = kb
+	_b = ka
+	_gable(vf, vb, cu, hu, y, h, face, roof, true)
+	_a = ka
+	_b = kb
+
+
+## The front frame again, after a wall of another direction moved it.
+func _jac_home() -> void:
+	kit_front(JAC_O, JAC_O + JAC_A * 10.0)
+
+
+func _build_jacek(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	_g = _ground_under(outline)
+	var g := _g
+	var c := JAC_C
+	var f := 0.35
+	var none := Color(0, 0, 0, 0)
+	var trim := JAC_TRIM
+	_mode = M_STONE
+	_jac_home()
+	# --- the two masses: the church (u up to 31.5) and the tenement wing beside the tower
+	var church := _largest(Geometry2D.intersect_polygons(outline, _lpoly([[-9.0, 0.3], [31.5, 0.3], [31.5, -40.0], [-9.0, -40.0]])))
+	var wings := Geometry2D.intersect_polygons(outline, _lpoly([[31.5, 0.6], [75.0, 0.6], [75.0, -40.0], [31.5, -40.0]]))
+	var plinth := _largest(Geometry2D.offset_polygon(church, 0.25, Geometry2D.JOIN_MITER))
+	_prism(plinth, g - 0.6, g + 1.0, JAC_BASE, none, M_STONE, M_STONE)
+	_prism(church, g + 0.9, g + 7.7, JAC_WALL, JAC_LEAD, M_STONE, M_STONE)
+	_prism(_largest(Geometry2D.offset_polygon(church, 0.3, Geometry2D.JOIN_MITER)), g + 7.3, g + 7.9, trim, JAC_LEAD, M_STONE, M_STONE)
+	# --- the nave: white walls to the eaves, the red-brown gable roof (ridge along v)
+	_lbox(c, -16.2, 8.7, 15.2, g + 7.7, g + 11.8, JAC_WALL, M_STONE, none)
+	_prism(_rect(c, -16.2, 8.95, 15.4), g + 11.6, g + 12.1, trim, none, M_STONE, M_STONE)
+	_jac_gable(-0.9, -31.4, c, 8.95, g + 12.1, 2.7, JAC_WALL, JAC_ROOF)
+	_kap_cross(c, -30.0, g + 14.6, 2.2)
+	# --- the front: plinth, the screen wall in two storeys, scrolls, gable
+	kit_face(f)
+	_kbox(8.4, 26.4, -0.9, f + 0.2, g - 0.2, g + 1.1, JAC_BASE)
+	_kbox(8.7, 26.1, -0.9, f, g + 1.0, g + 8.4, JAC_WALL)
+	kit_cornice(8.6, 26.2, g + 8.4, trim, 0.5, 0.9)
+	_kbox(12.5, 22.3, -0.9, f, g + 8.9, g + 14.3, JAC_WALL)
+	kit_cornice(12.3, 22.5, g + 13.9, trim, 0.45, 0.8)
+	for st: Array in [[8.7, 9.9, 10.6], [9.9, 11.2, 12.0], [11.2, 12.5, 13.4]]:
+		_kbox(float(st[0]), float(st[1]), -0.9, f - 0.05, g + 8.9, g + float(st[2]), JAC_WALL)
+		_kbox(float(st[0]), float(st[1]), -0.9, f + 0.2, g + float(st[2]) - 0.25, g + float(st[2]), trim)
+	# pilasters: the double pair at the left, one each side of the porch, ionic heads
+	for pu: float in [9.4, 10.9]:
+		kit_pilaster(pu, g + 1.1, g + 8.4, trim, 0.85, 0.35)
+		kit_pilaster(pu, g + 8.9, g + 13.9, trim, 0.85, 0.3)
+	kit_pilaster(13.1, g + 1.1, g + 8.4, trim, 0.8, 0.35)
+	kit_pilaster(21.7, g + 1.1, g + 8.4, trim, 0.8, 0.35)
+	kit_pilaster(13.1, g + 8.9, g + 13.9, trim, 0.7, 0.3)
+	# the great arched window over the porch, its iron rail, the panel round it
+	_kbox(c - 3.6, c + 3.6, f, f + 0.06, g + 9.0, g + 14.2, JAC_WALL.darkened(0.03))
+	kit_window(c, g + 9.8, 3.7, Win.ARCHED, trim, PAL_GLASS_DARK, 2.0)
+	kit_balcony(c, g + 9.8, 2.0, Balcony.PARAPET, PAL_IRON, PAL_IRON, 0.5)
+	# the gable: a pediment, a slit window, the apex statue and one on each foot
+	kit_pediment(c, 4.9, g + 14.3, 2.7, JAC_WALL, trim.darkened(0.04), 0.5, none)
+	_kbox(c - 0.45, c + 0.45, f + 0.5, f + 0.56, g + 14.8, g + 16.1, PAL_GLASS_DARK)
+	_jac_statue(c, 0.0, g + 17.0, 1.9)
+	_jac_statue(c - 3.6, f + 0.2, g + 14.3, 1.7)
+	_jac_statue(c + 3.6, f + 0.2, g + 14.3, 1.7)
+	# the blind niche left of the porch
+	kit_window(11.8, g + 1.3, 3.0, Win.ARCHED, trim, JAC_WALL.darkened(0.1), 0.45)
+	# --- the porch: a low gabled box with the door and its plaque
+	_kbox(14.2, 20.6, -0.9, f + 1.3, g - 0.1, g + 6.2, JAC_WALL)
+	_kbox(14.2, 20.6, -0.9, f + 1.3, g - 0.15, g + 0.3, JAC_BASE)
+	kit_face(f + 0.85)
+	kit_cornice(14.0, 20.8, g + 5.9, trim, 0.45, 0.65)
+	kit_pediment(c, 3.4, g + 6.4, 2.0, JAC_WALL.lightened(0.02), trim.darkened(0.04), 0.45, none)
+	kit_face(f + 1.3)
+	kit_door(c, g + 0.1, 3.2, 0.9, trim, PAL_IRON, false)
+	for sg: float in [-1.0, 1.0]:
+		_kbox(c + sg * 1.2 - 0.14, c + sg * 1.2 + 0.14, f + 1.25, f + 1.4, g + 0.1, g + 3.5, trim)
+	_kbox(c - 0.9, c + 0.9, f + 1.3, f + 1.36, g + 4.2, g + 4.9, PAL_BRONZE)
+	kit_face(f)
+	# --- the aisles beside the front: a cornice, the scroll bases, two obelisks, urns
+	kit_face(0.0)
+	kit_cornice(0.0, 8.7, g + 7.7, trim, 0.5, 0.8)
+	_kbox(2.0, 6.4, -2.2, -0.2, g + 7.9, g + 10.9, JAC_WALL)
+	_kbox(1.8, 6.6, -2.4, -0.1, g + 10.7, g + 11.0, trim)
+	_pinnacle(3.2, -1.3, 1.1, g + 11.0, 4.1, trim)
+	_pinnacle(5.2, -1.3, 1.1, g + 11.0, 4.3, trim)
+	kit_window(3.4, g + 2.2, 3.0, Win.ARCHED, trim, PAL_GLASS_DARK, 0.7)
+	kit_pilaster(1.0, g + 1.1, g + 7.7, trim, 0.8, 0.2)
+	kit_pilaster(7.9, g + 1.1, g + 7.7, trim, 0.8, 0.2)
+	# --- the round bay at the tower's foot
+	var bay := _w(25.3, -0.2)
+	_prism(_circle(bay, 1.85, 8), g + 0.9, g + 3.6, JAC_WALL, JAC_LEAD, M_STONE, M_STONE)
+	_prism(_circle(bay, 2.0, 8), g + 3.4, g + 3.8, trim, JAC_LEAD, M_STONE, M_STONE)
+	# --- the tower: two stages, a cornice, the dark bell stage and the spire
+	var tv := -4.075
+	_lbox(JAC_TC, tv, 4.5, 4.425, g + 0.9, g + 10.1, JAC_WALL, M_STONE, none)
+	_kbox(JAC_TC - 4.8, JAC_TC + 4.8, -8.8, f + 0.3, g - 0.6, g + 1.0, JAC_BASE)
+	_prism(_rect(JAC_TC, tv, 4.85, 4.775), g + 10.1, g + 10.7, trim, none, M_STONE, M_STONE)
+	_lbox(JAC_TC, tv, 4.3, 4.225, g + 10.7, g + 18.4, JAC_WALL, M_STONE, none)
+	_prism(_rect(JAC_TC, tv, 4.85, 4.775), g + 18.4, g + 19.3, trim, JAC_SLATE, M_STONE, M_STONE)
+	# the faces read before the frame moves: NE, SW and the front
+	var ne0 := _w(JAC_TC - 4.5, -8.5)
+	var ne1 := _w(JAC_TC - 4.5, f)
+	var sw0 := _w(JAC_TC + 4.5, f)
+	var sw1 := _w(JAC_TC + 4.5, -8.5)
+	kit_face(f)
+	for pu2: float in [JAC_TC - 3.9, JAC_TC + 3.9]:
+		kit_pilaster(pu2, g + 1.0, g + 10.1, trim, 1.0, 0.3)
+		kit_pilaster(pu2, g + 10.7, g + 18.4, trim, 0.9, 0.25)
+	kit_window(JAC_TC, g + 5.0, 1.7, Win.FRAMED, trim, PAL_GLASS_DARK, 0.55)
+	kit_door(JAC_TC + 1.6, g + 1.0, 2.7, 0.7, trim, PAL_IRON, true)
+	kit_window(JAC_TC, g + 11.9, 3.2, Win.ARCHED, trim, PAL_GLASS_DARK, 0.9)
+	var tface := func(from: Vector2, to: Vector2) -> void:
+		var wl := kit_front(from, to)
+		kit_face(0.0)
+		kit_window(wl * 0.5, g + 11.9, 3.2, Win.ARCHED, trim, PAL_GLASS_DARK, 0.9)
+		kit_window(wl * 0.5, g + 4.6, 2.4, Win.ARCHED, trim, PAL_GLASS_DARK, 0.6)
+	tface.call(ne0, ne1)
+	tface.call(sw0, sw1)
+	_jac_home()
+	# the bell stage: a dark swelling drum, a belt, an onion, a patina spire and a cross
+	var prof: Array = [[19.3, 2.9, 0], [20.3, 3.1, 0], [22.0, 3.25, 0], [23.4, 2.75, 0], [23.9, 3.0, 1], [24.3, 1.4, 0], [25.2, 1.45, 2], [26.2, 0.8, 2]]
+	for k in prof.size() - 1:
+		var a: Array = prof[k]
+		var b: Array = prof[k + 1]
+		var col := JAC_SLATE if int(b[2]) == 0 else (JAC_SLATE.lightened(0.1) if int(b[2]) == 1 else PAL_PATINA_COPPER)
+		_frustum(_jac_ring(JAC_TC, tv, float(a[1]), 8), g + float(a[0]), _jac_ring(JAC_TC, tv, float(b[1]), 8), g + float(b[0]), col)
+	_frustum(_jac_ring(JAC_TC, tv, 0.8, 8), g + 26.2, _jac_ring(JAC_TC, tv, 0.2, 8), g + 28.3, PAL_PATINA_COPPER, PAL_PATINA_COPPER)
+	_kap_cross(JAC_TC, tv, g + 28.3, 1.9)
+	# the louvres and the shell on the four faces of the bell stage
+	for fc: Array in [[0.0, 1.0], [0.0, -1.0], [1.0, 0.0], [-1.0, 0.0]]:
+		var lu := JAC_TC + float(fc[0]) * 3.05
+		var lv := tv + float(fc[1]) * 3.05
+		_lbox(lu, lv, 0.04 + 0.5 * absf(float(fc[1])), 0.04 + 0.5 * absf(float(fc[0])), g + 19.9, g + 21.5, PAL_IRON)
+	# --- the dome chapel behind the left aisle: a drum with a green dome and a cross
+	var cc := _w(-1.0, -18.8)
+	_prism(_circle(cc, 3.6, 12), g + 0.9, g + 8.6, JAC_WALL, none, M_STONE, M_STONE)
+	_prism(_circle(cc, 3.8, 12), g + 8.3, g + 8.8, trim, none, M_STONE, M_STONE)
+	_jac_dome(-1.0, -18.8, 3.7, g + 8.8, 2.7, PAL_PATINA_COPPER, 12)
+	_kap_cross(-1.0, -18.8, g + 11.5, 1.6)
+	# --- the nave's long wall, east side: tall arched windows over the aisle
+	var n0 := _w(c - 8.7, -30.5)
+	var n1 := _w(c - 8.7, -2.0)
+	var nw := kit_front(n0, n1)
+	kit_face(0.0)
+	for k in 4:
+		kit_window(nw * (0.12 + 0.25 * float(k)), g + 8.5, 2.9, Win.ARCHED, trim, PAL_GLASS_DARK, 0.65)
+	# the aisle's wall below it, east
+	var a0 := _w(0.0, -12.4)
+	var a1 := _w(0.0, -0.6)
+	kit_front(a0, a1)
+	kit_face(0.0)
+	kit_window(3.0, g + 2.2, 3.0, Win.ARCHED, trim, PAL_GLASS_DARK, 0.7)
+	kit_window(9.0, g + 2.2, 3.0, Win.ARCHED, trim, PAL_GLASS_DARK, 0.7)
+	# the back wall: a tall arched window under the cornice
+	var r0 := _w(c + 8.7, -31.4)
+	var r1 := _w(c - 8.7, -31.4)
+	var rw := kit_front(r0, r1)
+	kit_face(0.0)
+	kit_window(rw * 0.5, g + 5.0, 5.2, Win.ARCHED, trim, PAL_GLASS_DARK, 1.1)
+	_jac_home()
+	# --- the tenement wing: pink walls, storey bands, a hipped red-tile roof over the front block
+	for k in wings.size():
+		var piece: PackedVector2Array = wings[k]
+		if piece.size() < 3:
+			continue
+		_prism(piece, g + 0.0, g + 11.2, JAC_PINK, PAL_ROOF_TILE, M_STONE, M_STONE)
+	_hip(41.0, -18.4, 10.05, 12.9, g + 11.2, 3.3, PAL_ROOF_TILE)
+	kit_face(-5.8)
+	kit_ledge(31.5, 50.5, g + 3.3, 0.3, trim, 0.1)
+	kit_ledge(31.5, 50.5, g + 6.6, 0.3, trim, 0.1)
+	kit_cornice(31.5, 50.5, g + 10.6, trim, 0.5, 0.5)
+	kit_panes([33.4, 36.0, 38.6, 41.2, 43.8, 46.4, 49.0], [g + 1.1, g + 4.0, g + 7.2], 1.3, 1.8, PAL_GLASS_DARK, 0.05)
+	kit_face(0.0)
+	kit_ledge(50.5, 57.2, g + 3.3, 0.3, trim, 0.1)
+	kit_ledge(50.5, 57.2, g + 6.6, 0.3, trim, 0.1)
+	kit_panes([52.3, 54.9], [g + 1.1, g + 4.0, g + 7.2], 1.3, 1.8, PAL_GLASS_DARK, 0.05)
+	_collide(outline)
+
+
 ## The Church of the Holiest Saviour (Kościół Najświętszego Zbawiciela; Józef Dziekoński and
 ## Józef Piotrowski, 1901-1911) on the south side of Plac Zbawiciela, its front to the north,
 ## to the square. Rebuilt 2026-11-13 from F's ten photos (front, both obliques, the side with the
@@ -28990,6 +29227,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_kapucyni":
 		_build_kapucyni(site)  # the whole Capuchin church from photos, not the kit church
+		return
+	if site["key"] == "church_jacek":
+		_build_jacek(site)  # the whole St Hyacinth's church from photos, not the kit church
 		return
 	var ch := _church_spec(site["key"])
 	if ch.is_empty():
