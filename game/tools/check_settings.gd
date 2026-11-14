@@ -28,7 +28,7 @@ func _initialize() -> void:
 			and fresh.master == 1.0 and fresh.music == 1.0 and fresh.effects == 1.0 and not fresh.perf and fresh.classic_follow \
 			and fresh.fps == 60 and fresh.style == 0 and not fresh.vhs and not fresh.zone_cap and fresh.handling == 0 and is_equal_approx(fresh.sensitivity, 0.5) \
 			and not fresh.text_large and not fresh.calm and not fresh.color_safe and fresh.vibration and fresh.stop_assist \
-			and not fresh.left_handed and fresh.lane_assist and fresh.pads == Settings.PADS_ARROWS and fresh.view == 80.0 and fresh.pitch == 30.0
+			and not fresh.left_handed and fresh.lane_assist and fresh.pads == Settings.PADS_SLIDER and fresh.view == 80.0 and fresh.pitch == 30.0
 	print("defaults from a missing file: %s (%s)" % ["OK" if defaults else "WRONG", fresh.summary()])
 	ok = ok and defaults
 
@@ -107,7 +107,7 @@ func _initialize() -> void:
 	a.stop_assist = false
 	a.left_handed = true
 	a.lane_assist = false  # off by choice (on is the default since 2026-11-13) survives the round trip
-	a.pads = Settings.PADS_SLIDER
+	a.pads = Settings.PADS_ARROWS  # the arrows by choice (the slider is the default since 2026-11-14) survive
 	a.view = 40.0
 	a.pitch = 50.0
 	a.save()
@@ -115,18 +115,30 @@ func _initialize() -> void:
 	b.path = SCRATCH
 	b.load_file()
 	var same := a.summary() == b.summary() and b.classic_follow == a.classic_follow and b.view == 40.0 and b.pitch == 50.0 \
-			and not b.lane_assist and b.pads == Settings.PADS_SLIDER
+			and not b.lane_assist and b.pads == Settings.PADS_ARROWS
 	# F 2026-11-13: a save from before the arrows (lane assist off, no `lane_assist_default`, no
-	# `pads`) loads with the lane assist on and the arrows, once.
+	# `pads`) loads with the lane assist on; F 2026-11-14: and the slider.
 	var cfg_la := ConfigFile.new()
 	cfg_la.set_value("game", "lane_assist", false)
 	cfg_la.save(SCRATCH_OLD)
 	var la := Settings.new()
 	la.path = SCRATCH_OLD
 	la.load_file()
-	var la_ok := la.lane_assist and la.pads == Settings.PADS_ARROWS
+	var la_ok := la.lane_assist and la.pads == Settings.PADS_SLIDER
 	print("an old save's lane assist and pads: %s (lane assist %s, pads %d)" % ["OK" if la_ok else "WRONG", la.lane_assist, la.pads])
 	ok = ok and la_ok
+	# F 2026-11-14: a save from 2026-11-13 (`pads` 0, the arrows default then, no `pads_default`)
+	# loads with the slider, once; saved again, the player's arrows would stay.
+	var cfg_pd := ConfigFile.new()
+	cfg_pd.set_value("controls", "pads", Settings.PADS_ARROWS)
+	cfg_pd.set_value("game", "lane_assist_default", 1)
+	cfg_pd.save(SCRATCH_OLD)
+	var pd := Settings.new()
+	pd.path = SCRATCH_OLD
+	pd.load_file()
+	var pd_ok := pd.pads == Settings.PADS_SLIDER
+	print("a 2026-11-13 save's pads: %s (pads %d)" % ["OK" if pd_ok else "WRONG", pd.pads])
+	ok = ok and pd_ok
 	# F (2026-11-07): a hand-edited angle that isn't one of the choices loads as the default.
 	var cfg_p := ConfigFile.new()
 	cfg_p.set_value("display", "pitch", 33.0)
