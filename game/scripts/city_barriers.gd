@@ -222,7 +222,7 @@ func wall_along(st, poly: PackedVector2Array, width: float, height: float, col: 
 				var p0: Vector3 = bottom[k]
 				var p1: Vector3 = bottom[(k + 1) % 4]
 				var up := Vector3(0, height + 1.5, 0)
-				map._solid(cls, [p0, p1, p1 + up, p0, p1 + up, p0 + up])
+				map._solid(cls, [p0, p1, p1 + up, p0, p1 + up, p0 + up], {"same": true, "h": height})
 
 
 ## An open railing along `poly`: an optional concrete upstand, then round-ish posts every 2 m and a
@@ -265,7 +265,7 @@ func railing_along(st, poly: PackedVector2Array, height: float, upstand: float, 
 		run += length
 		if collide:
 			map._solid(cls, [Vector3(a.x, ga - 0.3, a.y), Vector3(b.x, gb - 0.3, b.y), Vector3(b.x, gb + height + 1.5, b.y),
-					Vector3(a.x, ga - 0.3, a.y), Vector3(b.x, gb + height + 1.5, b.y), Vector3(a.x, ga + height + 1.5, a.y)])
+					Vector3(a.x, ga - 0.3, a.y), Vector3(b.x, gb + height + 1.5, b.y), Vector3(a.x, ga + height + 1.5, a.y)], {"same": true, "h": height})
 
 
 func _load_object_overrides() -> void:
@@ -649,7 +649,7 @@ func build_city_walls(st) -> void:
 			map._quad(st, Vector3(a.x, ga, a.y), Vector3(b.x, gb, b.y), Vector3(b.x, tops[j], b.y), Vector3(a.x, tops[i], a.y), n, shade)
 			if h >= 1.0:
 				map._solid(&"wall", [Vector3(a.x, ga, a.y), Vector3(b.x, gb, b.y), Vector3(b.x, tops[j] + 1.5, b.y),
-						Vector3(a.x, ga, a.y), Vector3(b.x, tops[j] + 1.5, b.y), Vector3(a.x, tops[i] + 1.5, a.y)])
+						Vector3(a.x, ga, a.y), Vector3(b.x, tops[j] + 1.5, b.y), Vector3(a.x, tops[i] + 1.5, a.y)], {"same": true, "h": h})
 			if h >= float(kit["merlon_from"]) and Vector2(n.x, n.z).dot((a + b) * 0.5 - OLD_TOWN_HEART) > 0.0:
 				_merlons(st, kit, a, b, tops[i], tops[j], Vector2(n.x, n.z), _wall_depth(ring))
 		if _is_wall_tower(ring, h):
@@ -928,7 +928,7 @@ func build_guard_rails(st) -> void:
 				next_post += every
 			run += length
 			map._solid(guard, [Vector3(a.x, ga - 0.3, a.y), Vector3(b.x, gb - 0.3, b.y), Vector3(b.x, gb + 1.6, b.y),
-					Vector3(a.x, ga - 0.3, a.y), Vector3(b.x, gb + 1.6, b.y), Vector3(a.x, ga + 1.6, a.y)])
+					Vector3(a.x, ga - 0.3, a.y), Vector3(b.x, gb + 1.6, b.y), Vector3(a.x, ga + 1.6, a.y)], {"same": true, "h": 0.85})
 		if poly.size() > 1:
 			ends.append([poly[0], dk, ends.size() / 2])
 			ends.append([poly[poly.size() - 1], dk, ends.size() / 2])
@@ -962,6 +962,6 @@ func build_guard_rails(st) -> void:
 				var y0: float = seg[1]
 				var y1: float = seg[3]
 				map._solid(&"guard_deck", [Vector3(p0.x, y0 - 0.3, p0.y), Vector3(p1.x, y1 - 0.3, p1.y), Vector3(p1.x, y1 + 1.6, p1.y),
-						Vector3(p0.x, y0 - 0.3, p0.y), Vector3(p1.x, y1 + 1.6, p1.y), Vector3(p0.x, y0 + 1.6, p0.y)])
+						Vector3(p0.x, y0 - 0.3, p0.y), Vector3(p1.x, y1 + 1.6, p1.y), Vector3(p0.x, y0 + 1.6, p0.y)], {"none": "join"})
 			guard_joins += 1
 	map._uv2 = Vector2.ZERO

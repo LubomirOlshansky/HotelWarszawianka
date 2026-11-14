@@ -826,6 +826,9 @@ var signs: Array = []
 ## buildings would (Jabłkowski's corner by the glass block on the Chmielna square, PT-7). Opt-in:
 ## a site appends its own ring; filled anew by each `build`.
 var pocket_rings: Array[PackedVector2Array] = []
+## The city objects plan, step 4: the site being built, the hint its colliders hand map_builder's
+## `_solid` (game/tools/check_colliders.gd names the site in a finding).
+var _r2 := {}
 ## Circles ([centre, radius]) no tree may grow in: a landmark's overhang (Powiśle's saucer).
 var tree_free: Array = []
 ## F's look check (2026-11-03): kept LoD2 parts a model replaces above a height, for map_builder
@@ -1611,6 +1614,7 @@ func build(surface, near := Rect2(), only := "") -> void:
 		if only != "" and key != only:
 			continue
 		_id = k + 1
+		_r2 = {"site": key}
 		_walls.clear()
 		_caps.clear()
 		_holes = s.get("courts", [] as Array[PackedVector2Array])
@@ -2154,7 +2158,7 @@ func _collide(ring: PackedVector2Array) -> void:
 			var p1 := a.lerp(b, float(k) / steps)
 			var g1: float = _collide_foot(p1)
 			map._solid(&"landmark", [Vector3(p0.x, g0, p0.y), Vector3(p1.x, g1, p1.y), Vector3(p1.x, g1 + 6.0, p1.y),
-					Vector3(p0.x, g0, p0.y), Vector3(p1.x, g1 + 6.0, p1.y), Vector3(p0.x, g0 + 6.0, p0.y)])
+					Vector3(p0.x, g0, p0.y), Vector3(p1.x, g1 + 6.0, p1.y), Vector3(p0.x, g0 + 6.0, p0.y)], _r2)
 			p0 = p1
 			g0 = g1
 
@@ -2174,7 +2178,7 @@ func _collide_span(ring: PackedVector2Array, y0: float, y1: float) -> void:
 		var a := ring[i]
 		var b := ring[(i + 1) % ring.size()]
 		map._solid(&"landmark", [Vector3(a.x, y0, a.y), Vector3(b.x, y0, b.y), Vector3(b.x, y1, b.y),
-				Vector3(a.x, y0, a.y), Vector3(b.x, y1, b.y), Vector3(a.x, y1, a.y)])
+				Vector3(a.x, y0, a.y), Vector3(b.x, y1, b.y), Vector3(a.x, y1, a.y)], _r2)
 
 
 func _ground_under(poly: PackedVector2Array) -> float:
@@ -3490,7 +3494,7 @@ func _tarasy_wave(site: Dictionary) -> void:
 					Vector3(n.x, 0, n.y), TARASY_RIM, Vector2(0, ga - _g), Vector2(a.distance_to(b), gb - _g),
 					Vector2(a.distance_to(b), yb - _g), Vector2(0, ya - _g), maxf(ya, yb) - _g)
 			map._solid(&"landmark", [Vector3(a.x, ga - 1.0, a.y), Vector3(b.x, gb - 1.0, b.y), Vector3(b.x, gb + 5.0, b.y),
-					Vector3(a.x, ga - 1.0, a.y), Vector3(b.x, gb + 5.0, b.y), Vector3(a.x, ga + 5.0, a.y)])
+					Vector3(a.x, ga - 1.0, a.y), Vector3(b.x, gb + 5.0, b.y), Vector3(a.x, ga + 5.0, a.y)], _r2)
 
 
 ## The wave's height at a point: each dome a cap with steep, bulging sides (its rim a seventh of
@@ -7573,7 +7577,7 @@ func _sunk_edges(sk: Dictionary) -> void:
 			# The car: from the floor to well over the railing (or the parapet), on the edge.
 			var over := 1.6 if style == "rail" or style == "shops" else 0.6
 			map._solid(&"landmark", [Vector3(p0.x, f0 - 0.5, p0.y), Vector3(p1.x, f1 - 0.5, p1.y), Vector3(p1.x, t1 + over, p1.y),
-					Vector3(p0.x, f0 - 0.5, p0.y), Vector3(p1.x, t1 + over, p1.y), Vector3(p0.x, t0 + over, p0.y)])
+					Vector3(p0.x, f0 - 0.5, p0.y), Vector3(p1.x, t1 + over, p1.y), Vector3(p0.x, t0 + over, p0.y)], _r2)
 
 
 ## The car park ramp's surface between its walls (ring edges 5-0 and 1-2 are the sides): a dark slab
