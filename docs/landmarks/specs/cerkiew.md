@@ -12,7 +12,7 @@ The kit church it replaces (2026-11-01) was an "orthodox" box with an onion dome
 Greek Catholic and classicist and has no onion dome.
 
 ## 1. Identity
-1. A **tall white hall** under a **grey gable roof**, its ridge (24.5 m) over the street wing's
+1. A **tall white hall** under a **grey gable roof**, its ridge (26.4 m) over the street wing's
    roofs, with a **cross** on its west gable.
 2. The **polygonal east end** under a low pyramid roof.
 3. **Pilasters and tall round-headed windows** along the sides.
@@ -24,16 +24,16 @@ terrain under the outline.
 
 | Block | Plan (u, v) | Height over g |
 | --- | --- | --- |
-| hall | u 0 to 18, v 0 to 15.8 | eaves 16.5; gable along u, ridge 24.5 |
-| east end | the outline's six corners from u 18 to 24.4 | 15.9; pyramid roof to 20 |
+| hall | u 0 to 18, v 0 to 15.8 | eaves 21; gable along u, ridge 26.4 |
+| east end | the outline's six corners from u 18 to 24.4 | 19.9; pyramid roof to 23.5 |
 
-LoD2: the eaves 16 to 17, the ridge 24 to 25 along the hall, the east end 20 to 21.
+LoD2: the eaves about 21, the ridge 26.4 along the hall, the east end 20 to 23.5; the monastery's street wing 17.4 at the eaves and 20 at its ridge, its pediment 19.4.
 
 ## 3. Facade: the west gable
 Over the street wing's roof: the gable with a white-framed oculus (r 1.2) and the cross.
 
 ## 4. Facade: the sides and the east end
-Four pilasters and three round-headed windows (1.6 m wide, 7 to 12.4) a side; the east end
+Four pilasters and three round-headed windows (1.6 m wide, 9.5 to 15.6) a side; the east end
 plain (unphotographed, default).
 
 ## 5. Roof
@@ -61,8 +61,8 @@ L1, triangle budget 410 (measured 288, `check_mesh_quality.gd`). Shots:
 
 | id | shape | size | position | material | feature |
 | --- | --- | --- | --- | --- | --- |
-| hall | prism + gable | 18 x 15.8 m | u 0..18, y to 24.5 | #ebe5d7, #5d6268 | 1 hall |
-| east end | polygon prism + pyramid frustum | 6.4 x 15.5 m | u 18..24.4, y to 20 | #ebe5d7, #5d6268 | 1 east end |
+| hall | prism + gable | 18 x 15.8 m | u 0..18, y to 26.4 | #ebe5d7, #5d6268 | 1 hall |
+| east end | polygon prism + pyramid frustum | 6.4 x 15.5 m | u 18..24.4, y to 23.5 | #ebe5d7, #5d6268 | 1 east end |
 | pilasters | boxes | 0.7 m | 4 a side | #f5f1e8 | 8 pilasters |
 | windows | arched panels | 1.6 x 5.6 m | 3 a side | PAL_GLASS_DARK, #f5f1e8 | 6 windows |
-| west gable | oculus discs, cross | r 1.2 m | u 0, y 19.6 to 26 | #f5f1e8 | 1 cross |
+| west gable | oculus discs, cross | r 1.2 m | u 0, y 23.4 to 28 | #f5f1e8 | 1 cross |

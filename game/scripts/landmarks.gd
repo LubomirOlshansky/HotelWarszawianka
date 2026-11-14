@@ -20170,7 +20170,7 @@ func _build_narodzenia(site: Dictionary) -> void:
 ## built by `_build_church` until 2026-11-14 with an onion dome the church never had). From the
 ## Mapillary 360s of 2026 along Miodowa (refs/cerkiew, never shipped: they show the street
 ## front; the hall stands in the courtyards and is unphotographed), the OSM outline and GUGiK's
-## LoD2 (over the ground: the eaves 16 to 17, the ridge 24.5, the polygonal east end 20).
+## LoD2 (over the ground: the eaves 21, the ridge 26.4, the polygonal east end 20 to 23.5).
 ## Spec docs/landmarks/specs/cerkiew.md.
 ## - a plain white hall under a grey gable roof, pilasters and tall round-headed windows a side;
 ## - its west gable over the street wing's roof with an oculus and a cross;
@@ -20196,14 +20196,14 @@ func _build_cerkiew(site: Dictionary) -> void:
 	_mode = M_STONE
 	# --- the hall: walls to 16.5, one gable roof, a plinth
 	var hall := _lpoly([[0.0, 0.0], [18.0, 0.0], [18.0, 15.8], [0.0, 15.8]])
-	_prism(hall, g - 1.0, g + 16.5, BZ_WALL, none, M_STONE)
-	kit_ledge_ring(hall, g + 16.0, 0.5, BZ_TRIM, 0.18)
+	_prism(hall, g - 1.0, g + 21.0, BZ_WALL, none, M_STONE)
+	kit_ledge_ring(hall, g + 20.5, 0.5, BZ_TRIM, 0.18)
 	kit_ledge_ring(hall, g - 1.0, 1.6, BZ_WALL.darkened(0.12), 0.06)
-	_gable(0.0, 18.0, c, 8.1, g + 16.5, 8.0, BZ_WALL, BZ_ROOF, true)
+	_gable(0.0, 18.0, c, 8.1, g + 21.0, 5.4, BZ_WALL, BZ_ROOF, true)
 	# --- the polygonal east end: walls to 16, a low roof to 20
 	var east := _lpoly([[18.0, 0.0], [21.2, 0.0], [24.3, 3.5], [24.4, 11.8], [21.4, 15.4], [18.0, 15.5]])
-	_prism(east, g - 1.0, g + 15.9, BZ_WALL, none, M_STONE)
-	kit_ledge_ring(east, g + 15.4, 0.45, BZ_TRIM, 0.16)
+	_prism(east, g - 1.0, g + 19.9, BZ_WALL, none, M_STONE)
+	kit_ledge_ring(east, g + 19.4, 0.45, BZ_TRIM, 0.16)
 	var ec := _w(19.5, c)
 	# the frustum wants the ring the other way round from the outline's
 	var ring := PackedVector2Array()
@@ -20211,24 +20211,24 @@ func _build_cerkiew(site: Dictionary) -> void:
 	for k in range(east.size() - 1, -1, -1):
 		ring.append(east[k])
 		tip.append(ec + (east[k] - ec) * 0.25)
-	_frustum(ring, g + 15.9, tip, g + 20.0, BZ_ROOF, BZ_ROOF)
+	_frustum(ring, g + 19.9, tip, g + 23.5, BZ_ROOF, BZ_ROOF)
 	# --- the sides: pilasters, tall round-headed windows
 	for s: float in [-1.0, 1.0]:
 		var vf := c + s * 7.9
 		var out := b * s
 		for pu: float in [0.6, 6.0, 12.0, 17.4]:
-			_kbox(pu - 0.35, pu + 0.35, minf(vf, vf + s * 0.14), maxf(vf, vf + s * 0.14), g + 0.6, g + 16.0, BZ_TRIM)
+			_kbox(pu - 0.35, pu + 0.35, minf(vf, vf + s * 0.14), maxf(vf, vf + s * 0.14), g + 0.6, g + 20.5, BZ_TRIM)
 		for wu: float in [3.3, 9.0, 14.7]:
 			var at := _w(wu, vf)
-			_arch_panel(at, BZ_A, out, 1.0, g + 6.8, g + 12.4, BZ_TRIM, 0.03, M_STONE)
-			_arch_panel(at, BZ_A, out, 0.8, g + 7.0, g + 12.4, PAL_GLASS_DARK, 0.07, _lit(wu + vf, g + 7.0))
+			_arch_panel(at, BZ_A, out, 1.0, g + 9.3, g + 15.6, BZ_TRIM, 0.03, M_STONE)
+			_arch_panel(at, BZ_A, out, 0.8, g + 9.5, g + 15.6, PAL_GLASS_DARK, 0.07, _lit(wu + vf, g + 9.5))
 	# --- the west gable over the street wing: an oculus, the cross
 	var wo := -BZ_A
 	var oc := _w(-0.05, c)
-	_disc(Vector3(oc.x, g + 19.6, oc.y), Vector3(wo.x, 0.0, wo.y), 1.2, 10, BZ_TRIM)
+	_disc(Vector3(oc.x, g + 23.4, oc.y), Vector3(wo.x, 0.0, wo.y), 1.2, 10, BZ_TRIM)
 	var oc2 := _w(-0.1, c)
-	_disc(Vector3(oc2.x, g + 19.6, oc2.y), Vector3(wo.x, 0.0, wo.y), 0.9, 10, PAL_GLASS_DARK)
-	_kap_cross(0.3, c, g + 24.5, 1.6)
+	_disc(Vector3(oc2.x, g + 23.4, oc2.y), Vector3(wo.x, 0.0, wo.y), 0.9, 10, PAL_GLASS_DARK)
+	_kap_cross(0.3, c, g + 26.4, 1.6)
 	_collide(outline)
 
 
