@@ -30,6 +30,7 @@ classic              local     slow
 coffee               local     slow
 coffeerun            quick
 colliders            smoke     slow
+colliderules         quick
 cost                 smoke
 couriers             quick
 courts               roads     slow

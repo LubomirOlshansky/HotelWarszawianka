@@ -20,6 +20,17 @@ extends SceneTree
 ##   -- --camera=2a  today's car and controls with loop 2a's camera (the camera loop's "before")
 ##   -- --verbose    also print every test's log, one line per 0.5 s (--every=N: per N frames)
 ##   -- --only=NAME  run only the tests whose name starts with NAME
+##   -- --collide=v1 also run the v2 wall matrix with that preset (numbers only; the before of
+##                   the table; --collide=soft|firm the same for another preset)
+##
+## The city objects plan, step 6 (docs/design/drivable-city-build.md item 2): the v2 wall matrix,
+## with the `mid` preset (collide_rules.gd): a wall met at 10, 30, 60 and 90 deg from 1 m off it at
+## 30 and 60 km/h, in Classic, Point and Fixed, Cruise, Sport and Grounded (72 runs, `v2_...`), each
+## held into the wall (the gas, or the stick the way it started): no dead stop (contact_log.gd's
+## rule: DEAD_SHARE of the speed and DEAD_LOST m/s gone within DEAD_TIME s), no unstick, moving at
+## the end, the speed kept 1 s after the touch, the heading and the time pinned; and head-on at
+## 50 km/h in every scheme and profile (`v2_..._headon50`): driving again at 15 km/h or more 1 s
+## after the touch. The older tests keep the default preset (v1, today's answer).
 ##
 ## Screen positions are in pixels on an iPhone's landscape screen (2532 x 1170) at the
 ## game's default view height. Headings are compass degrees (0 north, 90 east).
@@ -28,6 +39,8 @@ const LegacyCar := preload("res://tools/steering_legacy_car.gd")
 const Car := preload("res://scripts/car.gd")
 const Controls := preload("res://scripts/drive_controls.gd")
 const FollowCamera := preload("res://scripts/follow_camera.gd")
+const CollideRules := preload("res://scripts/collide_rules.gd")
+const ContactLog := preload("res://scripts/contact_log.gd")
 
 const PITCH := -30.0
 const SCREEN := Vector2(2532, 1170)
@@ -40,6 +53,8 @@ var legacy := false
 var camera_2a := false
 var verbose := false
 var only := ""
+## --collide=PRESET: the v2 wall matrix is run with this preset as well (numbers only).
+var extra_preset := &""
 var _every := 30
 var _tests: Array[Dictionary] = []
 var _i := -1
@@ -70,6 +85,8 @@ func _initialize() -> void:
 			_every = maxi(1, int(a.trim_prefix("--every=")))
 		elif a.begins_with("--only="):
 			only = a.trim_prefix("--only=")
+		elif a.begins_with("--collide="):
+			extra_preset = CollideRules.parse(a.trim_prefix("--collide="))
 	_plan()
 	print("check_steering: %s, %d runs" % ["BEFORE loop 2a (legacy car, mapping and camera)" if legacy
 			else "loop 2a car and controls, loop 2a camera (before the camera loop)" if camera_2a
@@ -140,6 +157,37 @@ func _plan() -> void:
 		_add({"name": "brake_90", "schemes": [s], "v0": 90 * KMH, "dur": 6.0, "kind": "brake", "brake_at": 2.5})
 	# A thumb that can't keep still: Classic at 50 km/h, the strip wobbling ±0.35 at 1.2 Hz.
 	_add({"name": "wiggle", "schemes": ["classic"], "v0": 50 * KMH, "dur": 8.0, "kind": "wiggle"})
+	# Step 6: the v2 wall matrix (mid, gated; --collide= another preset beside it, numbers only).
+	var presets: Array[StringName] = [CollideRules.MID]
+	if extra_preset != &"" and extra_preset != CollideRules.MID:
+		presets.append(extra_preset)
+	for preset in presets:
+		for prof: String in ["cruise", "sport", "grounded"]:
+			for v in [30.0, 60.0]:
+				for ang in [10.0, 30.0, 60.0, 90.0]:
+					_add(_v2_case("v2_%s_%s_%d_%d" % [preset, prof, ang, v], preset, prof, v, ang, all_schemes))
+			_add(_v2_case("v2_%s_%s_headon50" % [preset, prof], preset, prof, 50.0, 90.0, all_schemes))
+			# Rounding a building's corner: the stick held north-east, the car sliding east along the
+			# block's south face at 40 km/h until the face ends at x = 0 (the corner pivot's case).
+			_add({"name": "v2_%s_%s_round" % [preset, prof], "schemes": point_schemes, "v0": 40 * KMH, "dur": 4.0, "kind": "wall",
+					"heading": 80.0, "aim": 10.0, "walls": [[Vector3(-20, 2, -21.5), Vector3(40, 4, 20)]], "start": Vector3(-14, 0, -9.8),
+					"collide": preset, "profile": prof, "unstick_max": 0, "v2": true, "gate": preset == CollideRules.MID,
+					"past_x": 1.0})
+
+
+## Step 6: a wall along x met at `ang` deg (0 parallel, 90 head-on) at `v` km/h, the car's corner
+## nearest it 1 m off, held into it for 3 s, with the preset and handling profile named.
+func _v2_case(name: String, preset: StringName, prof: String, v: float, ang: float, schemes: Array) -> Dictionary:
+	var a := deg_to_rad(ang)
+	var face := -11.5
+	var t := {"name": name, "schemes": schemes, "v0": v * KMH, "dur": 3.0, "kind": "wall", "heading": 90.0 - ang,
+			"walls": [[Vector3(0, 2, face - 0.5), Vector3(400, 4, 1)]], "start": Vector3(0, 0, face + 2.0 * sin(a) + 0.9 * cos(a) + 1.0),
+			"collide": preset, "profile": prof, "unstick_max": 0, "v2": true}
+	if preset == CollideRules.MID:
+		t["gate"] = true
+		if name.ends_with("headon50"):
+			t["again_kmh"] = 15.0
+	return t
 
 
 func _add(t: Dictionary) -> void:
@@ -195,6 +243,10 @@ func _start_test() -> void:
 		car.position = c[0]
 		_world.add_child(car)
 	_car = LegacyCar.new() if legacy else Car.new()
+	if _test.has("profile"):
+		_car.set_handling(Car.parse_handling(_test["profile"]))
+	if _test.has("collide"):
+		_car.collide = _test["collide"]
 	_world.add_child(_car)
 	var heading: float = _test.get("heading", 0.0)
 	_car.global_position = _test.get("start", Vector3.ZERO)
@@ -308,7 +360,7 @@ func _input() -> Dictionary:
 		elif out:
 			inp["stick"] = _stick_for(heading + 180.0, "_stick_out")
 		else:
-			inp["stick"] = _stick_for(heading)
+			inp["stick"] = _stick_for(float(_test.get("aim", heading)))
 		return inp
 	return inp
 
@@ -732,6 +784,27 @@ func _m_wall() -> String:
 		out = ", %.1f m from the corner at the end" % d
 	var ok := end_speed >= 2.0 and longest <= float(_test.get("pin_max", 2.0))
 	ok = ok and unsticks <= int(_test.get("unstick_max", 99))
+	if _test.get("v2", false):
+		# Step 6: a dead stop as contact_log.gd counts one (the car's velocity), and (head-on at
+		# 50 km/h) the ground speed 1 s after the touch.
+		var s_in: float = _rows[maxi(first - 1, 0)]["speed"]
+		var low3 := s_in
+		for k in range(first, mini(first + int(ContactLog.DEAD_TIME * 60.0) + 1, _rows.size())):
+			low3 = minf(low3, float(_rows[k]["speed"]))
+		var dead := s_in - low3 >= ContactLog.DEAD_LOST and low3 <= s_in * (1.0 - ContactLog.DEAD_SHARE)
+		var again := float(_rows[k1]["moved"]) * 3.6
+		var gate: bool = _test.get("gate", false)
+		out += ", lowest in 0.3 s %3.0f km/h%s, %d kick(s), %d pivot(s)" % [low3 * 3.6, " DEAD STOP" if dead else "",
+				int(_car.get("kicks")), int(_car.get("pivots"))]
+		if _test.has("past_x"):
+			ok = ok and float(end["x"]) > float(_test["past_x"])
+			out += ", ends at x %.1f" % float(end["x"])
+		if _test.has("again_kmh"):
+			out += ", %s 15 km/h 1 s on" % ("over" if again >= float(_test["again_kmh"]) else "UNDER")
+		if not gate:
+			ok = true
+		else:
+			ok = ok and not dead and again >= float(_test.get("again_kmh", 0.0))
 	if _test.has("end_heading"):
 		ok = ok and absf(angle_difference(deg_to_rad(float(end["go"])), deg_to_rad(float(_test["end_heading"])))) < deg_to_rad(30.0)
 	if _test.has("past"):
