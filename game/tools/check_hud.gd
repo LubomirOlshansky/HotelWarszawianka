@@ -258,7 +258,7 @@ func _check_screen(screen: Vector2i) -> int:
 			bubbles.clear()
 			hud.set_touch_off(mode == "no-touch")
 			hud.set_scheme(1 if state.begins_with("car, Classic") else 0)
-			hud.set_arrows_layout(state != "car, Classic slider")  # F 2026-11-13: arrows, the default
+			hud.set_arrows_layout(state != "car, Classic slider")  # F 2026-11-13 arrows; the slider is the default since 2026-11-14
 			hud.set_flying(state == "helicopter")
 			if state == "helicopter":
 				hud.set_speed(88, 45)
@@ -1139,6 +1139,9 @@ func _check_target_pointer(hud: CanvasLayer, bubbles: Control, screen: Vector2i,
 	# came down; with the thumb up only the resting hint is.
 	hud.set_scheme(1)  # Classic, the slider layout (the arrows layout has no strip)
 	hud.set_arrows_layout(false)
+	# F 2026-11-14: the slider layout has the arrows layout's see-through pedals (the bigger HAMULEC).
+	if not is_equal_approx(float(hud.call("_brake_r")), float(hud.ARROWS_BRAKE_R)) or not hud.call("_pedals_look"):
+		problems.append("%s the slider layout's HAMULEC is not the pedal (%.0f pt)" % [tag, float(hud.call("_brake_r"))])
 	var strip_at := Vector2(float(screen.x) * 0.3, float(screen.y) - 70.0 * pt)
 	var strip_half: float = (float(hud.STICK_R) + 16.0) * pt
 	var strip := Rect2(strip_at - Vector2(strip_half, 16.0 * pt), Vector2(strip_half * 2.0, 32.0 * pt))
@@ -1198,7 +1201,7 @@ func _check_finger_hint(hud: CanvasLayer, bubbles: Control, tag: String) -> void
 	hud.clear_all()
 
 
-## F 2026-11-13: the arrows layout (Classic's default). In both hands' layouts: the two arrows, GAZ
+## F 2026-11-13: the arrows layout (a Settings choice; the slider is the default since 2026-11-14). In both hands' layouts: the two arrows, GAZ
 ## and HAMULEC are touch targets of 44 pt or more, inside the safe area, apart from each other and
 ## in the HUD's no-go rects, the left arrow left of the right one; a finger down on an arrow steers
 ## that way, rolling onto the other switches, lifting lets go; and drive_controls.gd ramps a held

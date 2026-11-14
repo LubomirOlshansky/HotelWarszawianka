@@ -63,9 +63,9 @@ import road_smooth as rs  # noqa: E402
 KEY = "lane_tapers"
 VERSION = 1
 # --check (2026-11-14, first pass): lane drops away from junctions steeper than 1:ABRUPT_RATIO.
-# 111 before the first pass, 41 after it (ways drawn by a carriageway area are not counted: the
+# 111 before the first pass, 39 after it (ways drawn by a carriageway area are not counted: the
 # area's outline is the edge there); lower it when a change leaves fewer, never raise it.
-CHECK_ABRUPT = 41
+CHECK_ABRUPT = 39
 ABRUPT_RATIO = 5.0
 STEP_MIN = 0.3          # m: a smaller edge change is invisible
 STEP_MAX = 6.0          # m: a bigger one is a bay, a slip or a parking strip, not a lane

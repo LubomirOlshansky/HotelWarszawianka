@@ -45,19 +45,18 @@ each side; worst side per place:
 
 | steepest 2 m of the change | before | after |
 | --- | ---: | ---: |
-| a step (steeper than 1:2) | 32 | 13 |
+| a step (steeper than 1:2) | 32 | 11 |
 | 1:2 to 1:5 (a wedge) | 79 | 28 |
-| 1:5 to 1:10 | 122 | 81 |
+| 1:5 to 1:10 | 122 | 83 |
 | 1:10 to 1:15 | 146 | 230 |
 | 1:15 or flatter (real life) | 98 | 138 |
 
 (477 places before, 490 after: the new vertices split no place, but a taper now reaching a way
-that was flat adds it to the count. "Abrupt" = steeper than 1:5: **111 before, 41 after**.)
+that was flat adds it to the count. "Abrupt" = steeper than 1:5: **111 before, 39 after**.)
 
-F's crop at the top of Nowy Zjazd: on today's map a concrete wall stub stands right at the node, so
-only the first metres change; the Nowy Zjazd height fix (its own pull request) removes that stub,
-and re-running the pass on that map turns both sides from a step into 1:15 on one side and 1:8 on
-the other (tested on that branch's map).
+F's crop at the top of Nowy Zjazd: both sides go from a step to a taper, 1:15 on one side and 1:8
+on the other (the river side, where the ramp's retaining wall stands close). The Nowy Zjazd height
+fix (#770) removed the concrete wall stub that stood at the node.
 
 ## 4. The fix (`tools/lane_tapers.py`)
 
@@ -82,10 +81,10 @@ A post-pass on the finished map (bake_osm.py after road_fixes; it also runs on a
   hatching (a line that only passes a narrowing and goes on stays); lamps and signal poles step off
   new asphalt.
 
-What is left (41): squares and short pieces between junctions (Plac Bankowy, Plac Narutowicza,
+What is left (39): squares and short pieces between junctions (Plac Bankowy, Plac Narutowicza,
 Plac Piłsudskiego, Plac Małachowskiego, Wierzbowa, Senatorska and Podwale by Plac Teatralny), and
 streets where a wall, a tram platform or a cycle track stands right at the change (Targowa,
-Anielewicza, Aleja Solidarności, Raszyńska, Most Łazienkowski, Sokola, the top of Nowy Zjazd).
+Anielewicza, Aleja Solidarności, Raszyńska, Most Łazienkowski, Sokola).
 Most of those want the painted version below rather than a moved kerb.
 
 ## 5. Next
