@@ -47,7 +47,7 @@ Current state, tiers and photo counts (2026-11-13): docs/LANDMARKS.md "Churches 
 
 ## Inventory
 
-Status as of 2026-11-14 (after #773, the last of the 2026-11-14 photo batch). "Kit model" = built by the church kit; "model" = its own builder. Still open: Sala św. Faustyny (no photos yet), and the Archikatedra's side walls and east end (the LoD2 mass, no side photos yet). One combined phone measurement of the whole church set is on the next-build list.
+Status as of 2026-11-14 (after #773, the last of the 2026-11-14 photo batch). "Kit model" = built by the church kit; "model" = its own builder. Still open: the Archikatedra's side walls and east end stay the LoD2 mass in brick: the Kanonia and Dziekania houses hide almost all of them, and the 2026-11-14 photos (Commons and Mapillary) show only interiors and the neighbours. One combined phone measurement of the whole church set is on the next-build list.
 
 | Church (OSM name) | Kind | Centre (x, z) | Status |
 | --- | --- | --- | --- |
@@ -88,7 +88,7 @@ Status as of 2026-11-14 (after #773, the last of the 2026-11-14 photo batch). "K
 | Matki Bożej Częstochowskiej | church | 1132, 868 | model from photos (`church_czestochowska`, `_build_czestochowska`, spec `czestochowska.md`), 2026-11-14 |
 | Monaster Zaśnięcia Najświętszej Bogurodzicy i św. Jozafata biskupa i męczennika | monastery | -1025, -1518 | model from LoD2 and the street photos (`church_bazylianie`, `_build_bazylianie`, spec `bazylianie.md`), 2026-11-14: the street wing with the church's front, the back wings |
 | Parafia Świętej Teresy od Dzieciątka Jezus | church | 370, -579 | model (`teresy`, #225) |
-| Sala św. Faustyny | chapel | -2792, 1574 | open: small chapel: a later pass |
+| Sala św. Faustyny | chapel | -2792, 1574 | model from one Commons photo and the OSM outline (`church_sala_faustyny`, `_build_sala_faustyny`, spec `sala_faustyny.md`), 2026-11-14: red brick hall, three steep gabled bays, the round-arched porch |
 | Synagoga Nożyków | synagogue | -1565, -229 | whole model from photos (`_build_nozyk`, spec `nozyk.md`), 2026-11-14; the kit's front faced east |
 | Zgromadzenie Sióstr Franciszkanek Rodziny Maryi | religious | -2617, -739 | model from LoD2 and two photos (`church_rodziny_maryi`, `_build_rodziny_maryi`, spec `rodziny_maryi.md`), 2026-11-14: the long banded peach house, its blind windows and the taller middle block |
 
