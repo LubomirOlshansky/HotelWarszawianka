@@ -4,7 +4,7 @@
 - fixed: the four `.uid` files the places owner (#733) left out (`place.gd`, `places.gd`, `check_place_scripts.gd`, `mesh_probe.gd`), so an import no longer leaves untracked files behind
 - found: eight private map stand-ins in seven scripts are left on purpose (`check_police.gd`, `check_crazy_drivers.gd`, `check_ladder.gd`, `check_race_cuts.gd`, `check_race_links.gd`, `check_street_meet.gd` with two, `race_bench.gd`): the racer work has those scripts in hand; they are named in `check_fakes.gd` `LEFT`
 - found: the builders' stub map (`mesh_probe.gd` `StubMap` and the older copy in `check_sites.gd`) is not a flat map (it carries the map's data and takes roof triangles); it is group 3's first item, named in `LEFT` until then
-- found: 39 private fake classes in 18 scripts under `game/tools` (16 of 120 checks) remain for group 3 (the builders' stub map first, then the radio, the sounds, the walkers and the rest); 20 of them are in the racer work's scripts
+- found: 39 private fake classes in 18 scripts under `game/tools` (16 of 121 checks) remain for group 3 (the builders' stub map first, then the radio, the sounds, the walkers and the rest); 20 of them are in the racer work's scripts
 
 ## Roadmap
 - added: "Shared test stand-ins, group 2: the fake maps (F, 2026-11-13, architecture plan, background item; tech-debt TD-11)": ticked, 18 checks and five rigs on `Fakes.FlatMap` (verify step `fakes`)
