@@ -57,3 +57,19 @@ church_kapucyni`, then in the city `--at=-968,-1436 --heading=315`.
 Open photo checks: the wall to the west (cloister), the apse and back (plain), the exact heights, the
 dome-topped chapel and the statue on the street corner (outside the outline, not built), the nave's
 upper windows (the photo shows pairs), the volutes (stepped boxes).
+
+## 8. Parts table
+
+| id | shape | size | position | material | feature |
+| --- | --- | --- | --- | --- | --- |
+| low mass | prism on the outline, flat copper top, cornice ring | 7.4 m | outline, front at v 0 | M_STONE | 1 massing |
+| nave | box, cornice, hip, iron cross | 18.7 x 27 m, 12.5 m, ridge 17.5 m | u 1.5 to 20.2, v -2.5 to -29.5 | M_STONE | 4 nave |
+| pavilion | box, gable roof | 9.7 m wide, 11.7 m | u 6.0 to 15.7 | M_STONE | 1 front |
+| wings | 2 boxes, cornice, window, 3-step scroll | 5 m wide, 8.4 m | u 0.9 to 6.0, 15.7 to 20.8 | M_STONE | 3 wings |
+| pilasters | 4 kit_pilaster on pedestals | 0.85 m wide, 7.6 m | c +-2.3, +-4.15 | M_STONE | 1 front |
+| portal and window | kit_door, kit_window ARCHED, kit_balcony STONE | 2 x 3.4 m, 1.9 x 3.9 m | c | M_STONE / M_PANE | 1 front |
+| entablature and pediment | bands, kit_cornice, kit_pediment, cartouche disc | 9.2 m wide, 3.1 m tall | y 10 to 15.45 m | M_STONE | 1 front |
+| crowning | pedestal, cross, 2 urns | cross to 19.1 m | c, c +-4.9 | M_STONE | 2 pediment |
+| steps | landing, 4 treads, balustrade piers | 12.2 m wide | v 0.8 to 4.4 | M_STONE | 1 front |
+| statue | pedestal, frustum, head | to 12.5 m | u c+7.0 | M_STONE | 3 wings |
+| side walls | 2 x (4 arched windows, 5 pilasters) | 27 m | u 1.5, 20.2 | M_STONE / M_PANE | 4 nave |
