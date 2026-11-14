@@ -87,6 +87,12 @@ extends SceneTree
 ## (-524, -1441). Fixed: one smooth ~5 % climb (tools/zamek_ramps.py). The first spot fails on the
 ## old map; the other three guard the climb both ways.
 ##
+## Nowy Zjazd's ramp by the Śląsko-Dąbrowski bridgehead (F, 2026-11-14, a screenshot: "why this road
+## looks broken"): the one-way slip road from the loop under the W-Z up past the office block on
+## Wybrzeże Gdańskie lay on the 10 m grid, a 3 m pit beside the office and a 2 m tilt across, the
+## ground poking through the asphalt. Fixed: one smooth ~3 % climb (tools/zamek_ramps.py, Nowy
+## Zjazd). Three lines guard the climb.
+##
 ## Port Czerniakowski's footbridge (F, 2026-11-08, screenshots by Miami Wars): the boulevard's cycle
 ## path ran down into the mouth's cutting between grey walls and broke off at the water, the car
 ## stuck at the gap; north-west of it the fences of a long finished building site stood across the
@@ -183,6 +189,9 @@ const SPOTS := [
 	[-525.0, -1443.0, 250.0, 9.0, 1.5, 0.6, "Grodzka's ramp by the Royal Castle, west up the climb", 250.0],
 	[-560.0, -1432.0, 259.0, 9.0, 1.5, 0.6, "Grodzka's ramp by the Royal Castle, west on to the W-Z tunnel", 259.0],
 	[-560.0, -1432.0, 76.0, 9.0, 1.5, 0.6, "Grodzka's ramp by the Royal Castle, down east to the bend", 76.0],
+	[-409.0, -1475.0, 50.0, 9.0, 1.5, 0.6, "Nowy Zjazd's ramp, up from the loop along the W-Z's embankment", 50.0],
+	[-388.0, -1492.5, 52.0, 9.0, 1.5, 0.6, "Nowy Zjazd's ramp, up past the office block (F's screenshot)", 52.0],
+	[-371.0, -1505.5, 45.0, 9.0, 1.5, 0.6, "Nowy Zjazd's ramp, up on to the bridgehead", 40.0],
 	# PT-54: the quay road below Most Poniatowskiego's west ramp loop, held at the grass pocket
 	# inside it (the hedge along the foot, city_barriers.gd POCKET_HEDGES, keeps the car out).
 	[868.0, -66.0, 355.0, 12.0, 3.0, 0.5, "PT-54 Poniatowski ramp loop, the quay's lane held north into the grass pocket", 355.0, false, -12.5],
