@@ -44,7 +44,7 @@ const BUDGET := {
 	"church_cerkiew": 410,
 	"church_czestochowska": 510,
 	"church_duch": 3300,  # 2026-11-14: the whole Holy Spirit church and both towers from photos (measured 3010)
-	"church_dzieciatka": 710,
+	"church_dzieciatka": 1800,  # 2026-11-14: the whole brick Child Jesus church from photos (measured 1594)
 	"church_jacek": 2800,  # 2026-11-14: the whole St Hyacinth church from photos (measured 2550)
 	"church_jerozolimska": 810,
 	"church_kapucyni": 2400,  # 2026-11-14: the whole Capuchin church from photos (measured 2136)

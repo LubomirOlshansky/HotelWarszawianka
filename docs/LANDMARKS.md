@@ -87,7 +87,7 @@ and Marii Magdaleny are not in the game.
 | Kościół Narodzenia NMP | Al. Solidarności 80 | B | 7 / 1 | one helm guessed |
 | Kościół św. Augustyna | Nowolipki 18 | B | 0 / 0 | brick, pyramid guessed |
 | Kościół Piotra i Pawła | Nowogrodzka | B | 5 / 0 | neo-Gothic spire guessed |
-| Kościół Dzieciątka Jezus | Lindleya 12 | B | 39 / 2 | LoD2 gives 30 m |
+| Kościół Dzieciątka Jezus | Lindleya | `_build_dzieciatka`, the whole church replacing the kit church (a beige "modern" box with its tower on the east end), 2026-11-14 from Mapillary photos from Lindleya, Oczki and Chałubińskiego and LoD2 (spec `dzieciatka.md`, 1594 tris): red-brick neo-Gothic; the slender west tower with a cream pointed recess, the door and a lancet, a stepped gable with blind lancets, the belfry's louvred lancets and oculus, four pinnacles, a green copper hip and a cross (30 m); one steep dark green roof over nave and aisles, buttresses and lancets in cream recesses; two short transepts with stepped gables; the lower chancel with a three-sided east end, low annexes and the sacristy | B | 39 / 2 + 25 wide | east end and south side only seen from far off |
 | Kościół Zielonoświątkowy | Sienna 68/70 | B | 26 / 6 | no tower guessed |
 | Kościół Miłosierdzia Bożego i św. Faustyny | Żytnia 1 | B | 33 / 8 | modern pyramid |
 | Kościół św. Karola Boromeusza | Chłodna 21 | B | 27 / 7 | helm guessed |
