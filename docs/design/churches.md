@@ -83,7 +83,7 @@ Status as of 2026-11-01. "Kit model" = built by the church kit; "model" = its ow
 | Kościół Świętego Antoniego Padewskiego | church | -1211, -978 | kit model (`church_antoniego`), 2026-11-01 |
 | Kościół Świętej Trójcy | church | -855, -511 | model (`trojca`, Zug's rotunda) |
 | Kościół Świętej Trójcy | church | 1071, 263 | kit model (`church_trojca_praga`) |
-| Kościół św. Brata Alberta i św. Andrzeja Apostoła | church | -1074, -1133 | kit model (`church_alberta`), 2026-11-01 |
+| Kościół św. Brata Alberta i św. Andrzeja Apostoła | church | -1074, -1133 | model from photos (`church_alberta`, `_build_alberta`, spec `alberta.md`), 2026-11-14 |
 | Matki Bożej Częstochowskiej | church | 1132, 868 | kit model (`church_czestochowska`), 2026-11-01 |
 | Monaster Zaśnięcia Najświętszej Bogurodzicy i św. Jozafata biskupa i męczennika | monastery | -1025, -1518 | open: convent or monastery: plain block, a later pass |
 | Parafia Świętej Teresy od Dzieciątka Jezus | church | 370, -579 | model (`teresy`, #225) |

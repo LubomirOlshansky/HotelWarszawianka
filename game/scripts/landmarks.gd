@@ -785,7 +785,7 @@ const INFO := {
 	"church_duch": ["Kościół Świętego Ducha", "Barokowy kościół paulinów na Nowym Mieście.", "A baroque Pauline church in the New Town."],
 	"church_jacek": ["Kościół św. Jacka", "Kościół dominikanów na Nowym Mieście.", "The Dominicans' church in the New Town."],
 	"church_antoniego": ["Kościół św. Antoniego Padewskiego", "Kościół franciszkanów na Senatorskiej.", "The Franciscans' church on Senatorska."],
-	"church_alberta": ["Kościół św. Brata Alberta", "Kościół parafialny.", "A parish church."],
+	"church_alberta": ["Kościół św. Brata Alberta i św. Andrzeja", "Kościół środowisk twórczych przy placu Teatralnym.", "The artists' church on Theatre Square."],
 	"church_reformowany": ["Kościół Ewangelicko-Reformowany", "Kościół ewangelicko-reformowany z cegły.", "A brick Reformed church."],
 	"church_jerozolimska": ["Kościół Matki Bożej Jerozolimskiej", "Ceglany kościół z portykiem naprzeciw stadionu.", "A brick church with a portico across from the stadium."],
 	"church_zielonoswiatkowy": ["Kościół Zielonoświątkowy", "Zbór zielonoświątkowy.", "A Pentecostal church."],
@@ -19767,6 +19767,105 @@ func _build_jerozolimska(site: Dictionary) -> void:
 	_g = g
 
 
+## The church of St Brother Albert and St Andrew (Kościół św. Brata Alberta i św. Andrzeja
+## Apostoła, the artists' church on Plac Teatralny, Senatorska 29), a classicist front on the
+## square: a giant portico of four white columns and a pediment over the yellow church front,
+## between two white three-storey wings under red mansard roofs with dormers. The whole frontage
+## as a model that replaces the old kit church (`church_alberta`, built by `_build_church` until
+## 2026-11-14: a "modern" box with a pyramid, its front at the block's end). From Mapillary
+## photos of 2014-2022 across Plac Teatralny and Senatorska (refs/alberta, never shipped), the
+## OSM outline and GUGiK's LoD2 (over the ground: the wings' eaves 10 and their flat tops 16.4;
+## the middle block's pediment ridge 15.5, running back over the church). Spec
+## docs/landmarks/specs/alberta.md.
+## Frame: origin at the front's north-west corner, u along the front to the south-east, +v out
+## of the front to the square; the block runs back to v -17.5.
+const BA_O := Vector2(-1087.3, -1107.4)
+const BA_A := Vector2(0.808, -0.589)
+const BA_C := 20.75                    ## the portico's axis (u)
+const BA_WHITE := Color("#eeebe3")     ## the wings' white plaster
+const BA_YELLOW := Color("#d8c07a")    ## the church front behind the columns
+const BA_COLUMN := Color("#f5f3ee")    ## the columns, the entablature and the pediment
+const BA_TILE := Color("#9c4a36")      ## the red mansard tiles
+const BA_ROOF := Color("#6f7276")      ## the middle block's grey sheet roof
+const BA_BASE := Color("#b9b4a8")      ## the plinth and steps
+
+
+## One wing (u0..u1): walls to 10, a mansard to a flat top at 16.4, dormers on the front
+## slope, the arcade of the ground floor and two rows of windows on the front and the back.
+func _ba_wing(u0: float, u1: float, g: float) -> void:
+	var none := Color(0, 0, 0, 0)
+	var r := _lpoly([[u0, -17.4], [u1, -17.4], [u1, 0.0], [u0, 0.0]])
+	_prism(r, g - 1.0, g + 10.0, BA_WHITE, none, M_STONE)
+	kit_ledge_ring(r, g - 1.0, 1.4, BA_BASE, 0.06)
+	kit_ledge_ring(r, g + 9.6, 0.4, BA_COLUMN, 0.25)
+	var top := _lpoly([[u0 + 1.2, -13.6], [u1 - 1.2, -13.6], [u1 - 1.2, -3.8], [u0 + 1.2, -3.8]])
+	_frustum(r, g + 10.0, top, g + 16.4, BA_TILE, BA_TILE.darkened(0.08))
+	var cols: Array = []
+	var u := u0 + 1.6
+	while u < u1 - 1.0:
+		cols.append(u)
+		u += 2.7
+	for s: float in [1.0, -1.0]:
+		var vf := 0.0 if s > 0.0 else -17.4
+		for cu: float in cols:
+			# the ground floor's arches, two rows of windows over them
+			_arch_panel(_w(cu, vf), _a * s, _b * s, 0.75, g + 0.4, g + 2.6, CHURCH_DARK, 0.04, M_STONE)
+			for wy: float in [4.0, 7.0]:
+				_mode = _lit(cu * s, g + wy)
+				_wall(_w(cu - 0.55 * s, vf + 0.05 * s), _w(cu + 0.55 * s, vf + 0.05 * s), g + wy, g + wy + 1.7, _b * s, PAL_GLASS_DARK)
+			_mode = M_STONE
+			# a dormer on the slope: a small box and its little gable
+			var dv := -1.0 if s > 0.0 else -16.4
+			_kbox(cu - 0.5, cu + 0.5, minf(dv, dv - 1.6 * s), maxf(dv, dv - 1.6 * s), g + 11.0, g + 12.9, BA_WHITE)
+			_mode = _lit(cu + vf, g + 11.8)
+			_wall(_w(cu - 0.32 * s, dv + 0.02 * s), _w(cu + 0.32 * s, dv + 0.02 * s), g + 11.9, g + 12.6, _b * s, PAL_GLASS_DARK)
+			_mode = M_STONE
+	# the end walls: two windows a storey
+	for e: float in [u0, u1]:
+		var out := -_a if e == u0 else _a
+		for ev: float in [-12.0, -5.4]:
+			for ey: float in [4.0, 7.0]:
+				_mode = _lit(ev + e, g + ey)
+				_wall(_w(e, ev - 0.55) + out * 0.05, _w(e, ev + 0.55) + out * 0.05, g + ey, g + ey + 1.7, out, PAL_GLASS_DARK)
+	_mode = M_STONE
+
+
+func _build_alberta(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(BA_O, BA_O + BA_A)
+	_g = _ground_under(outline)
+	var g := _g
+	var c := BA_C
+	var none := Color(0, 0, 0, 0)
+	_mode = M_STONE
+	_ba_wing(0.0, 14.0, g)
+	_ba_wing(27.5, 41.7, g)
+	# --- the middle block: the yellow church front, the grey gable running back from the pediment
+	var mid := _lpoly([[14.0, -18.2], [27.5, -18.2], [27.5, 0.0], [14.0, 0.0]])
+	_prism(mid, g - 1.0, g + 11.2, BA_YELLOW, none, M_STONE)
+	kit_ledge_ring(mid, g - 1.0, 1.4, BA_BASE, 0.06)
+	var ka := _a
+	var kb := _b
+	_a = kb
+	_b = ka
+	_gable(2.4, -18.2, c, 6.9, g + 11.2, 4.4, BA_COLUMN, BA_ROOF, true)
+	_a = ka
+	_b = kb
+	# the portico: three steps, four columns, the entablature over them back to the wall
+	_kbox(14.4, 27.1, -0.04, 3.4, g - 1.0, g + 0.2, BA_BASE)
+	_kbox(14.8, 26.7, -0.04, 3.0, g + 0.2, g + 0.45, BA_BASE.lightened(0.05))
+	kit_colonnade(16.2, 25.3, 4, 1.9, g + 0.45, g + 10.3, BA_COLUMN, 0.5, Order.CORINTHIAN)
+	_kbox(14.3, 27.2, -0.04, 2.4, g + 10.3, g + 11.2, BA_COLUMN)
+	_kbox(c - 3.5, c + 3.5, 2.38, 2.44, g + 12.0, g + 12.6, BA_YELLOW.darkened(0.1))  # the tympanum's inscription band
+	# the church front behind the columns: the portal, a window over it, two niches
+	kit_face(0.0)
+	kit_door(c, g + 0.45, 4.6, 1.3, BA_COLUMN, PAL_DARK_DOOR, true)
+	_arch_panel(_w(c, 0.0), _a, _b, 0.9, g + 6.0, g + 8.2, PAL_GLASS_DARK, 0.05, _lit(c, g + 6.0))
+	for nu: float in [c - 3.1, c + 3.1]:
+		_arch_panel(_w(nu, 0.0), _a, _b, 0.55, g + 1.2, g + 4.0, BA_YELLOW.darkened(0.12), 0.04, M_STONE)
+	_collide(outline)
+
+
 ## The Nożyk Synagogue (Synagoga Nożyków, ul. Twarda 6; Karol and Leandro Marconi, 1898-1902;
 ## burnt 1944, rebuilt 1977-1983; Warsaw's only pre-war synagogue still standing), a cream
 ## neo-Romanesque house of prayer in its courtyard south of Plac Grzybowski. The whole building as
@@ -31193,6 +31292,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_dzieciatka":
 		_build_dzieciatka(site)  # the whole brick Child Jesus church from photos, tower to the west, not the kit church
+		return
+	if site["key"] == "church_alberta":
+		_build_alberta(site)  # the whole classicist front on Plac Teatralny, its portico and the two wings, from photos
 		return
 	if site["key"] == "church_jerozolimska":
 		_build_jerozolimska(site)  # the whole brick church on Łazienkowska, its portico and its bell tower, from photos

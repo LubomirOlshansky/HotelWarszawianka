@@ -38,7 +38,7 @@ const BUDGET := {
 	"gigantami": 4000,
 	"filtry": 3000,
 	"level26_club": 860,
-	"church_alberta": 310,
+	"church_alberta": 950,  # 2026-11-14: the whole classicist frontage on Plac Teatralny, portico and two wings, from photos (measured 818)
 	"church_antoniego": 990,
 	"church_augustyn": 890,
 	"church_cerkiew": 410,
