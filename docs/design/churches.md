@@ -60,7 +60,7 @@ Status as of 2026-11-01. "Kit model" = built by the church kit; "model" = its ow
 | Katedra polowa Wojska Polskiego Najświętszej Maryi Panny Królowej Polski | church | -1165, -1647 | kit model (`church_katedra_polowa`), 2026-11-01 |
 | Klasztor Ojców Dominikanów | monastery | -961, -1965 | model from LoD2 and a photo (`church_dominikanie`, `_build_dominikanie`, spec `dominikanie.md`), 2026-11-14: the wings round the cloister, the galleries, the east wing down the slope |
 | Klasztor Ojców Kapucynów | monastery | -1003, -1406 | open: convent or monastery: plain block, a later pass |
-| Klasztor pallotynów | monastery | 1761, -1687 | open: convent or monastery: plain block, a later pass |
+| Klasztor pallotynów | monastery | 1761, -1687 | model from LoD2 and a photo (`church_pallotyni`, `_build_pallotyni`, spec `pallotyni.md`), 2026-11-14: the 1930s modernist block, ribbon windows, terraces |
 | Kościól Św. Karola Boromeusza | church | -2152, -461 | model from photos (`church_karol`, `_build_karol`, spec `karol.md`), 2026-11-14 |
 | Kościół Ewangelicko-Reformowany | church | -1749, -1104 | model from photos (`church_reformowany`, `_build_reformowany`, spec `reformowany.md`), 2026-11-14 |
 | Kościół Matki Bożej Jerozolimskiej | church | 984, 1319 | model from photos (`church_jerozolimska`, `_build_jerozolimska`, spec `jerozolimska.md`), 2026-11-14 |

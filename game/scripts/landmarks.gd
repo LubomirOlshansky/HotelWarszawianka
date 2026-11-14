@@ -798,6 +798,7 @@ const INFO := {
 	"church_trojca_praga": ["Kościół Świętej Trójcy na Solcu", "Klasycystyczny kościół z wieżyczką.", "A classicist church with a bell turret."],
 	"church_czestochowska": ["Kościół Matki Bożej Częstochowskiej", "Modernistyczny kościół z dachem do ziemi.", "A modernist church with a roof down to the ground."],
 	"church_zwycieska": ["Kościół Matki Boskiej Zwycięskiej", "Kościół parafialny z dwiema wieżami.", "A parish church with two towers."],
+	"church_pallotyni": ["Dom pallotynów", "Modernistyczny dom pallotynów przy Skaryszewskiej.", "The Pallottines' modernist house on Skaryszewska."],
 	"church_rodziny_maryi": ["Siostry Rodziny Maryi", "Dom zgromadzenia sióstr franciszkanek Rodziny Maryi.", "The house of the Franciscan Sisters of the Family of Mary."],
 	"church_dominikanie": ["Klasztor Dominikanów", "Klasztor dominikanów przy kościele św. Jacka.", "The Dominican priory beside St Hyacinth's."],
 	"church_bazylianie": ["Klasztor Bazylianów", "Klasztor bazylianów z frontem cerkwi przy Miodowej.", "The Basilian monastery with the church's front on Miodowa."],
@@ -20846,6 +20847,88 @@ func _build_rodziny_maryi(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The Pallottine house on Skaryszewska 12 (Klasztor pallotynów), a 1930s modernist block in a
+## beige textured render: flat roofs at four heights, white ribbon windows, the low west block
+## with its terraces and planters under a setback top storey, and the east block whose upper floor
+## oversails a recessed ground floor. A model that replaces the plain OpenStreetMap block (building
+## 3045; no landmark until 2026-11-14). From a Mapillary photo of 2019 across Skaryszewska
+## (refs/pallotyni, never shipped), the OSM outline and GUGiK's LoD2 (over the lowest ground: the
+## west block 9.9, its setback storey 12.4, the east block 11.6 and its top 13.8).
+## Spec docs/landmarks/specs/pallotyni.md.
+## Frame: origin at the street front's west corner, u along Skaryszewska east, v into the block.
+const PL_O := Vector2(1748.0, -1711.3)
+const PL_A := Vector2(0.829, 0.560)
+const PL_WALL := Color("#d8cba2")      ## the beige textured render (photo)
+const PL_FRAME := Color("#f2f0ea")     ## the white window frames and copings
+const PL_ROOF := Color("#8c8b86")      ## the flat roofs
+const PL_DARK := Color("#6d6a62")      ## the recessed ground floor's shadow
+
+
+## One wall from p to q (local metres), its outside on the left of p→q: a white frame band and a
+## ribbon of panes from y0 to y1 (absolute), the panes `step` metres apart, from fraction t0 to t1
+## of the wall. Puts the house's frame back.
+func _pl_ribbon(p: Vector2, q: Vector2, y0: float, y1: float, t0 := 0.0, t1 := 1.0, step := 1.3) -> void:
+	var n := kit_front(_w(p.x, p.y), _w(q.x, q.y))
+	var u0 := n * t0 + 0.3
+	var u1 := n * t1 - 0.3
+	if u1 - u0 > 1.0:
+		_kbox(u0 - 0.12, u1 + 0.12, -0.02, 0.05, y0 - 0.12, y1 + 0.12, PL_FRAME)
+		var k := maxi(1, floori((u1 - u0) / step))
+		var cols: Array = []
+		for i in k:
+			cols.append(u0 + (float(i) + 0.5) * (u1 - u0) / float(k))
+		kit_panes(cols, [y0], (u1 - u0) / float(k) - 0.12, y1 - y0, PAL_GLASS_DARK, 0.08)
+	kit_front(PL_O, PL_O + PL_A)
+
+
+func _build_pallotyni(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(PL_O, PL_O + PL_A)
+	_g = _ground_under(outline)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	_mode = M_STONE
+	# --- the west block to 9.9 with a coping, its setback top storey to 12.4
+	var west := _lpoly([[-7.51, 15.33], [0.0, 0.0], [21.3, 0.0], [21.3, 3.52], [29.52, 3.52], [29.52, 15.85],
+			[12.7, 15.8], [12.66, 20.17], [15.71, 20.04], [15.62, 23.84], [-3.02, 23.76], [-6.13, 17.9]])
+	_prism(west, g - 1.0, g + 9.9, PL_WALL, PL_ROOF, M_STONE, M_STONE)
+	kit_ledge_ring(west, g + 9.9, 0.25, PL_FRAME, 0.08)
+	_lbox(13.0, 11.75, 8.0, 3.75, g + 9.9, g + 12.4, PL_WALL, M_STONE, PL_ROOF)
+	# --- the east block: the upper floors to 11.6 over a ground floor set back 0.8 from the street,
+	# its top storey to 13.8
+	var east_up := _lpoly([[29.56, 0.0], [51.15, 0.0], [51.15, 6.23], [48.24, 6.39], [48.35, 15.49], [45.44, 15.64],
+			[45.61, 24.1], [29.57, 23.95]])
+	var east_low := _lpoly([[29.56, 0.8], [50.35, 0.8], [50.35, 6.23], [48.24, 6.39], [48.35, 15.49], [45.44, 15.64],
+			[45.61, 24.1], [29.57, 23.95]])
+	_prism(east_low, g - 1.0, g + 4.4, PL_WALL.darkened(0.06), none, M_STONE)
+	_prism(east_up, g + 4.4, g + 11.6, PL_WALL, PL_ROOF, M_STONE, M_STONE)
+	kit_ledge_ring(east_up, g + 11.6, 0.25, PL_FRAME, 0.08)
+	_lbox(38.925, 12.25, 9.275, 5.75, g + 11.6, g + 13.8, PL_WALL, M_STONE, PL_ROOF)
+	# --- ribbon windows: the west block's low band and its setback storey, the east block's two
+	# floors on the street; bands on the other sides
+	_pl_ribbon(Vector2(21.3, 0.0), Vector2(0.0, 0.0), g + 2.4, g + 4.9, 0.0, 0.75)
+	_pl_ribbon(Vector2(21.0, 8.0), Vector2(5.0, 8.0), g + 10.4, g + 11.8)
+	_pl_ribbon(Vector2(51.15, 0.0), Vector2(29.56, 0.0), g + 5.6, g + 8.0, 0.1, 1.0)
+	_pl_ribbon(Vector2(50.35, 0.8), Vector2(29.56, 0.8), g + 1.6, g + 3.6, 0.05, 0.75)
+	_pl_ribbon(Vector2(29.52, 3.52), Vector2(21.3, 3.52), g + 2.4, g + 4.9)
+	_pl_ribbon(Vector2(51.15, 6.23), Vector2(51.15, 0.0), g + 5.6, g + 8.0)
+	_pl_ribbon(Vector2(48.35, 15.49), Vector2(48.24, 6.39), g + 5.6, g + 8.0)
+	_pl_ribbon(Vector2(45.61, 24.1), Vector2(45.44, 15.64), g + 5.6, g + 8.0)
+	_pl_ribbon(Vector2(29.57, 23.95), Vector2(45.61, 24.1), g + 2.0, g + 4.2)
+	_pl_ribbon(Vector2(29.57, 23.95), Vector2(45.61, 24.1), g + 5.6, g + 8.0)
+	_pl_ribbon(Vector2(-3.02, 23.76), Vector2(15.62, 23.84), g + 2.0, g + 4.2)
+	_pl_ribbon(Vector2(-3.02, 23.76), Vector2(15.62, 23.84), g + 5.6, g + 7.8)
+	_pl_ribbon(Vector2(-7.51, 15.33), Vector2(-6.13, 17.9), g + 2.0, g + 4.2)
+	_pl_ribbon(Vector2(0.0, 0.0), Vector2(-7.51, 15.33), g + 2.0, g + 4.2)
+	_pl_ribbon(Vector2(0.0, 0.0), Vector2(-7.51, 15.33), g + 5.6, g + 7.8)
+	# the terrace's planters along the west block's street edge
+	for k in 7:
+		var pu := 6.5 + 2.2 * float(k)
+		_kbox(pu - 0.6, pu + 0.6, 0.15, 0.7, g + 10.15, g + 10.55, PL_DARK)
+		_kbox(pu - 0.45, pu + 0.45, 0.25, 0.6, g + 10.55, g + 11.2, Color("#5f7a45"))
+	_collide(outline)
+
+
 ## The Nożyk Synagogue (Synagoga Nożyków, ul. Twarda 6; Karol and Leandro Marconi, 1898-1902;
 ## burnt 1944, rebuilt 1977-1983; Warsaw's only pre-war synagogue still standing), a cream
 ## neo-Romanesque house of prayer in its courtyard south of Plac Grzybowski. The whole building as
@@ -32217,6 +32300,8 @@ const CHURCHES := [
 			"fill": 0.8, "style": "baroque", "wall": "#e6d4a6", "roof": "#97594a", "towers": 0, "cap": "none"},
 	{"key": "church_rodziny_maryi", "at": Vector2(-2617.0, -739.0), "o": Vector2(-2625.3, -761.4), "out": Vector2(-0.356, -0.934), "L": 13.5, "W": 49.4,
 			"fill": 0.9, "style": "neoclassical", "wall": "#e6c2a2", "roof": "#4d5257", "towers": 0, "cap": "none"},
+	{"key": "church_pallotyni", "at": Vector2(1761.0, -1687.0), "o": Vector2(1760.6, -1702.8), "out": Vector2(0.560, -0.829), "L": 51.2, "W": 24.1,
+			"fill": 0.8, "style": "modern", "wall": "#d8cba2", "roof": "#8c8b86", "towers": 0, "cap": "none"},
 	{"key": "church_nozykow", "at": Vector2(-1569.1, -228.0), "o": Vector2(-1546.1, -229.5), "out": Vector2(0.9975, -0.0712), "L": 16.4, "W": 11.6,
 			"fill": 0.78, "style": "romanesque", "wall": "#d9c9a3", "roof": "#6f7a76", "towers": 0, "cap": "none"},
 ]
@@ -32287,6 +32372,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_czestochowska":
 		_build_czestochowska(site)  # the modernist A-frame church and its pylons, from photos
+		return
+	if site["key"] == "church_pallotyni":
+		_build_pallotyni(site)  # the Pallottines' 1930s modernist house on Skaryszewska
 		return
 	if site["key"] == "church_rodziny_maryi":
 		_build_rodziny_maryi(site)  # the Franciscan sisters' long peach house
