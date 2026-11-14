@@ -16,6 +16,11 @@ contacts per km plus five times the stops (dead stops, unsticks, tows) per km, w
 that took the most speed there. `unknown` contacts (a body without a solid class) are counted and
 listed: there should be none.
 
+Step 7 (the soft things, game/scripts/soft_things.gd): a `contact` line with the flag `soft` is a
+fence or hedge the car broke through, not a hard contact: it is counted apart (`smashes`, by class,
+the median speed kept through one, and its dead stops) and never in the contacts, the stops or the
+ranking above, so a before/after pair shows what moved from hard to smash.
+
 --census joins each contact to the census (tools/road_objects.py: the nearest object of a matching
 census class within JOIN m of the contact, its `oid`), and lists the objects hit most.
 --md prints the tables as Markdown (for the build plan's section 2). --baseline=OUT writes the
@@ -65,7 +70,8 @@ def street_name(r):
 def summarise(rows, top=10, min_km=0.25, joiner=None):
     """{"overall": {...}, "streets": {name: {...}}, "worst": [...], "unknown": [...]} for one log."""
     st = defaultdict(lambda: {"m": 0.0, "s": 0.0, "fast": 0.0, "contacts": 0, "by": Counter(), "kept": [],
-                              "dead": 0, "unstick": 0, "tow": 0, "water": 0, "lost": Counter(), "objects": Counter()})
+                              "dead": 0, "unstick": 0, "tow": 0, "water": 0, "lost": Counter(), "objects": Counter(),
+                              "smash": 0, "smash_by": Counter(), "smash_kept": [], "smash_dead": 0})
     unknown = []
     joined = 0
     for r in rows:
@@ -77,6 +83,14 @@ def summarise(rows, top=10, min_km=0.25, joiner=None):
         elif r["kind"] == "event":
             if r.get("flag") in ("tow", "unstick", "water"):
                 s[r["flag"]] += 1
+        elif "soft" in r.get("flags", "").split(","):
+            cls = r.get("class") or "unknown"
+            s["smash"] += 1
+            s["smash_by"][cls] += 1
+            v_in, low = float(r["in"]), float(r["low"])
+            if v_in >= 2.0:
+                s["smash_kept"].append(low / v_in)
+            s["smash_dead"] += "dead_stop" in r.get("flags", "").split(",")
         else:
             cls = r.get("class") or "unknown"
             s["contacts"] += 1
@@ -108,14 +122,20 @@ def summarise(rows, top=10, min_km=0.25, joiner=None):
                 "dead_stops": s["dead"], "unsticks": s["unstick"], "tows": s["tow"], "water": s["water"],
                 "fast_share": round(s["fast"] / s["s"], 2) if s["s"] > 0 else None,
                 "lost_by_class": {k: round(v, 1) for k, v in s["lost"].most_common()},
-                "objects": dict(s["objects"].most_common(5))}
+                "objects": dict(s["objects"].most_common(5)),
+                "smashes": s["smash"], "smashes_by_class": dict(sorted(s["smash_by"].items())),
+                "smash_kept_median": round(statistics.median(s["smash_kept"]), 2) if s["smash_kept"] else None,
+                "smash_dead_stops": s["smash_dead"]}
 
     total = {"m": 0.0, "s": 0.0, "fast": 0.0, "contacts": 0, "by": Counter(), "kept": [], "dead": 0, "unstick": 0,
-             "tow": 0, "water": 0, "lost": Counter(), "objects": Counter()}
+             "tow": 0, "water": 0, "lost": Counter(), "objects": Counter(), "smash": 0, "smash_by": Counter(),
+             "smash_kept": [], "smash_dead": 0}
     for s in st.values():
-        for k in ("m", "s", "fast", "contacts", "dead", "unstick", "tow", "water"):
+        for k in ("m", "s", "fast", "contacts", "dead", "unstick", "tow", "water", "smash", "smash_dead"):
             total[k] += s[k]
         total["by"].update(s["by"])
+        total["smash_by"].update(s["smash_by"])
+        total["smash_kept"] += s["smash_kept"]
         total["kept"] += s["kept"]
         total["lost"].update(s["lost"])
         total["objects"].update(s["objects"])
@@ -205,10 +225,13 @@ def classes_line(n, key="by_class_per_km", k=4):
 def print_run(name, rep, md, top):
     o = rep["overall"]
     if md:
+        smash = (f" Smashes (soft, apart from the contacts): {o['smashes']} "
+                 f"({', '.join(f'{k} {v}' for k, v in o['smashes_by_class'].items())}), speed kept median "
+                 f"{fmt(o['smash_kept_median'])}, {o['smash_dead_stops']} dead stops.") if o["smashes"] else ""
         print(f"\n**{name}**: {o['km']:.1f} km, {o['contacts']} contacts ({fmt(o['per_km'])} per km), "
               f"speed kept median {fmt(o['kept_median'])}, {o['dead_stops']} dead stops, {o['unsticks']} unsticks, "
               f"{o['tows']} tows ({o['water']} out of the water), {fmt(o['fast_share'])} of the time above 80 % of the limit, "
-              f"{o['unknown']} unknown. Contacts per km by class: {classes_line(o, k=8)}.\n")
+              f"{o['unknown']} unknown. Contacts per km by class: {classes_line(o, k=8)}.{smash}\n")
         print("| Street | km | contacts / km | by class (per km) | speed kept | dead stops | unsticks | tows | at speed | what takes the speed (m/s lost) |")
         print("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
         for s in rep["worst"]:
@@ -221,6 +244,9 @@ def print_run(name, rep, md, top):
           f"dead stops {o['dead_stops']}, unsticks {o['unsticks']}, tows {o['tows']} (water {o['water']}), at speed {fmt(o['fast_share'])}, "
           f"unknown {o['unknown']}" + (f", joined to the census {o['joined']}" if o["joined"] else ""))
     print(f"   by class per km: {classes_line(o, k=10)}")
+    if o["smashes"]:
+        print(f"   smashes (soft, not contacts): {o['smashes']} ({', '.join(f'{k} {v}' for k, v in o['smashes_by_class'].items())}), "
+              f"kept {fmt(o['smash_kept_median'])}, dead stops {o['smash_dead_stops']}")
     print(f"   {'street':38s} {'km':>6s} {'c/km':>6s} {'kept':>5s} {'dead':>4s} {'unst':>4s} {'tows':>4s} {'fast':>5s}  classes per km")
     for s, n in sorted(rep["streets"].items(), key=lambda kv: -kv[1]["km"]):
         print(f"   {s[:38]:38s} {n['km']:6.2f} {fmt(n['per_km']):>6s} {fmt(n['kept_median']):>5s} {n['dead_stops']:4d} "
@@ -256,12 +282,13 @@ def main():
             return 1
         runs[name] = summarise(read_log(path), top, min_km, joiner)
     if md:
-        print("| Run | km | contacts / km | by class (per km) | speed kept | dead stops | unsticks | tows (water) | at speed | unknown |")
-        print("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
+        print("| Run | km | contacts / km | by class (per km) | speed kept | dead stops | unsticks | tows (water) | at speed | unknown | smashes (kept) |")
+        print("| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |")
         for name, r in runs.items():
             o = r["overall"]
             print(f"| {name} | {o['km']:.1f} | {fmt(o['per_km'])} | {classes_line(o, k=5)} | {fmt(o['kept_median'])} | "
-                  f"{o['dead_stops']} | {o['unsticks']} | {o['tows']} ({o['water']}) | {fmt(o['fast_share'])} | {o['unknown']} |")
+                  f"{o['dead_stops']} | {o['unsticks']} | {o['tows']} ({o['water']}) | {fmt(o['fast_share'])} | {o['unknown']} | "
+                  f"{o['smashes']} ({fmt(o['smash_kept_median'])}) |")
     for name, r in runs.items():
         print_run(name, r, md, top)
     unknown = sum(r["overall"]["unknown"] for r in runs.values())

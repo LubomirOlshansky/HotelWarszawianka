@@ -52,7 +52,7 @@ const FAIL_COLOUR := Color("#e2574c")
 const OFFER_R := 60.0
 const OFFER_LIFE := 10.0
 ## A slot offers again after this long (s).
-const SLOT_COOL := 240.0
+static var SLOT_COOL: float = Pacer.num("trend", "slot_cool")
 const PICKUP := StopAssist.RING
 const PICKUP_SPEED := StopAssist.STOP_SPEED
 const PICKUP_HOLD := 1.5
@@ -92,9 +92,9 @@ const CZ_COLOUR := Color("#2fd0e0")
 ## cassette and the garage 4-5 minutes late), 8:00-22:00, then every DESKI_COOL s of play. No
 ## pickup: the beacon is the club's gate; a helicopter within DESKI_FLY_R m of it counts.
 const DESKI_GATE := Vector2(1475.0, 985.0)
-const DESKI_HOURS := [8.0, 22.0]
-const DESKI_FIRST := 660.0
-const DESKI_COOL := 1200.0
+static var DESKI_HOURS: Array = Pacer.pair("trend", "deski_hours")
+static var DESKI_FIRST: float = Pacer.num("trend", "deski_first")
+static var DESKI_COOL: float = Pacer.num("trend", "deski_cool")
 const DESKI_LIMIT := 480.0
 const DESKI_FLY_R := 28.0
 ## No call within this many metres of the gate.
@@ -148,9 +148,9 @@ const CZ_PLAYERS := ["Prezes z Mokotowa", "Pani Basia", "Trener Dominik", "kuzyn
 ## "Mlask" (G5): the van's spots (places.json ids) by weekday, its hours, the offer's reach, the
 ## legs' limits, the pay *guess*.
 const ML_SPOTS := ["plac_zbawiciela", "hala_koszyki", "kebab_palma", "plac_trzech_krzyzy"]
-const ML_HOURS := [11.0, 21.0]
+static var ML_HOURS: Array = Pacer.pair("trend", "ml_hours")
 const ML_OFFER_R := 30.0
-const ML_COOL := 300.0
+static var ML_COOL: float = Pacer.num("trend", "ml_cool")
 const ML_WARM := 300.0
 const ML_STICKER := 240.0
 const ML_BASE := 40
@@ -164,8 +164,8 @@ const ML_COLD_GRADE := 3.0
 ## much play (s), again this long after a skip, the pay *guess*, the TYGRAM card's blue, the sticker.
 const DZ_SITE := "dzemini_kebab"
 const DZ_KEEP := "dzemini_mlask"
-const DZ_FIRST := 300.0
-const DZ_COOL := 900.0
+static var DZ_FIRST: float = Pacer.num("trend", "dz_first")
+static var DZ_COOL: float = Pacer.num("trend", "dz_cool")
 const DZ_BASE := 60
 const DZ_PER_KM := 10
 const DZ_TIP := 20
@@ -191,10 +191,10 @@ const DEST_ID := "rondo_daszynskiego"
 const DEST_R := 300.0
 const RESULT_LIFE := 10.0
 ## Seconds after a card closes before the next offer may open (the OK tap must not hit it).
-const CARD_REST := 2.5
+static var CARD_REST: float = Pacer.num("trend", "card_rest")
 ## Seconds after a mission ends before a friend's phone call may ring (F 2026-11-08: Mrożulo rang
 ## in the middle of a mission). The call waits, it is not dropped: `_look` asks again.
-const CALL_REST := 20.0
+static var CALL_REST: float = Pacer.num("trend", "call_rest")
 const CUSTOMERS := ["Ania z HR", "Tomek z IT", "Kasia z marketingu", "Paweł z finansów", "Ola z działu prawnego", "Michał ze sprzedaży"]
 
 ## The run's stage (the kit's `phase` is RUN then); `order["stage"]` still names the step inside it.

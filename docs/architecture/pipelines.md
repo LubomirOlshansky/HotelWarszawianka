@@ -8,7 +8,7 @@ breaks things most often.
 ```
 data/raw/ (OSM extract, GUGiK LoD2 sheets, terrain, orthophoto; gitignored)
    │ tools/bake_all.sh → bake_osm.py, bake_gugik.py, bake_terrain.py, bake_structures.py,
-   │                     bake_ao.py, bake_lights.py, bake_water.py, fixes (road_fixes, object_fixes ...)
+   │                     bake_ao.py, bake_lights.py, bake_water.py, fixes (road_fixes, lane_tapers, object_fixes ...)
    ▼
 game/map/centrum.json, ao.bin, lights.bin, water.bin   (committed: the ODbL database)
 game/map/lod2.*, terrain.json                          (derived; the "map pack" release asset)

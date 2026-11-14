@@ -108,6 +108,7 @@ opening              quick
 osmroofs             quick
 outline              roads
 overrides            quick
+pacing               quick
 packs                quick
 padel                quick
 palacelights         quick
@@ -163,6 +164,7 @@ shisha               quick
 shisha-run           local     slow
 sites                quick
 smooth               quick
+softthings           smoke
 solids               smoke
 sounds               quick
 spec                 quick
@@ -184,6 +186,7 @@ stuckspots-prebuilt  smoke     slow
 syrenki              quick
 tamka                quick
 tape                 quick
+tapers               quick
 tarasyscreen         quick
 teleport             runs
 tenementtrim         quick

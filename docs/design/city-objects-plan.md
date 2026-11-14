@@ -19,6 +19,11 @@ step stays where it was written, and each step below names its brief:
 - `walls-true-to-life.md`: the types of wall, fence and rail, how a line gets its type, how each
   is drawn whole and broken (phases W0 to W7).
 
+**Review of 2026-11-14** (`tech-plans-review.md` sections 5 and 9): it proposes mending the bake
+chain before any step that re-bakes, a settings row for the collision preset, the panel trial
+(step 11) before heavy walls (step 9), and the next feel step picked from a fresh baseline. The
+order in section 5 stands until F picks.
+
 Where this page and those disagree, this page wins. The order tables in those two plans are
 replaced by section 5 here.
 

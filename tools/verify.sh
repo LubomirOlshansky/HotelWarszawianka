@@ -47,6 +47,10 @@
 # least 0.3 m tall within 0.5 m in plan), the sites' own drawn heights, and the pocket-wall audit (both
 # ends at a drawn face; slits, notches, fairings); the allowed findings are by rule, each with its
 # reason (~2 min; `-- --all` the whole map, ~10 min).
+# `softthings` runs game/tools/check_soft_things.gd (the city objects plan, step 7, 2026-11-14): the
+# fences and hedges the car smashes through (soft_things.gd) on pure cases (the swept box, the cost per
+# panel and its cap, grinding, rule B's repair, the contact log's soft line), then the soft lists of four
+# sectors the same on both city paths and `--no-soft`'s restore exact (~1 min).
 # `deckxray` runs game/tools/check_deck_xray.gd (GAMEPLAY_PLAN 0.3, 2026-11-03): the car's x-ray is on
 # under a bridge or viaduct deck (Trasa Łazienkowska) and off on top of one and on open streets.
 # `tunnelcut` runs game/tools/check_tunnel_cut.gd (F, 2026-11-08): in every tunnel the ground that
@@ -299,6 +303,8 @@
 # moves smoothly frame to frame; no map (CI too).
 # Smooth roads (2026-11-05): `smooth` runs tools/road_smooth.py --check (the map is smoothed: the
 # width steps at the joins tapered, the lane lines stitched; its steps and jogs never grow).
+# Lane drops (2026-11-14): `tapers` runs tools/lane_tapers.py --check (two lanes become one along a
+# real-life taper, about 1:15; the lane drops steeper than 1:5 away from junctions never grow).
 # Street objects (2026-11-07): `objects` runs tools/object_fixes.py --check (the map's lamps, signals,
 # benches, bins, racks, columns, shelters, parked cars and barriers carry no artifact object_audit.py
 # fixes by itself: inside a wall, in a carriageway, under a deck, doubles, stubs, stair slabs, paths
@@ -1017,6 +1023,15 @@ for s in $want; do
 				0) row PASS "smooth" $secs "$(grep '^road_smooth: ' $logs/smooth.log | tail -1)" ;;
 				*) row FAIL "smooth" $secs "$(grep '^road_smooth: ' $logs/smooth.log | tail -1) ($logs/smooth.log)" ;;
 			esac ;;
+		tapers)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/lane_tapers.py --check > $logs/tapers.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			case $code in
+				0) row PASS "tapers" $secs "$(grep '^lane_tapers: ' $logs/tapers.log | tail -1)" ;;
+				*) row FAIL "tapers" $secs "$(grep '^lane_tapers: ' $logs/tapers.log | tail -1) ($logs/tapers.log)" ;;
+			esac ;;
 		heights)
 			t0=$EPOCHREALTIME
 			python3 -I $ROOT/tools/building_heights.py --check > $logs/heights.log 2>&1
@@ -1218,6 +1233,7 @@ for s in $want; do
 		# faces per class in the runtime and prebuilt sectors, every city body classed.
 		solids) skip_prebuilt solids || check solids '^solids:' --script res://tools/check_solids.gd ;;
 		colliders) check colliders '^check_colliders:' --script res://tools/check_colliders.gd ;;
+		softthings) skip_prebuilt softthings || check softthings '^check_soft_things:' --script res://tools/check_soft_things.gd ;;
 		deckxray) check deckxray '^check_deck_xray:' --script res://tools/check_deck_xray.gd ;;
 		tunnelcut) check tunnelcut '^check_tunnel_cut:' --script res://tools/check_tunnel_cut.gd ;;
 		lanedrive) check lanedrive '^check_lane_drive:' --fixed-fps 60 --script res://tools/check_lane_drive.gd ;;
@@ -1313,6 +1329,8 @@ for s in $want; do
 		boatrace) check boatrace '^check_boat_race:' --script res://tools/check_boat_race.gd ;;
 		dekalog) check dekalog '^check_dekalog_tour:' --script res://tools/check_dekalog_tour.gd ;;
 		kinotour) check kinotour '^check_kino_tour:' --script res://tools/check_kino_tour.gd ;;
+		# The offer pacer's numbers (data/pacing.json): sane, every one asked, each script's value the file's.
+		pacing) check pacing '^check_pacing:' --script res://tools/check_pacing.gd ;;
 		# Bar crawl: the groups' lines (no brand), the routes' stops on the map, the hours, clock and pay.
 		crawl) check crawl '^check_bar_crawl:' --script res://tools/check_bar_crawl.gd ;;
 		# Dead electric cars: the TESŁO, the lines, the sling, the chargers on the real graph.

@@ -316,6 +316,10 @@ func build(path: String, building_mat: ShaderMaterial, flat_mat: ShaderMaterial)
 	_build_parts(marks, false)
 	_build_collision()
 	_index_raised()
+	# Step 7: the whole city's soft lines (soft_things.gd reads them from here with --monolithic).
+	var soft: Dictionary = barriers.soft_data()
+	if not soft.is_empty():
+		set_meta(&"soft", soft)
 	return data
 
 
@@ -524,6 +528,11 @@ func build_sector(key: Vector2i, roofs_only := false, merge := true) -> Node3D:
 		var slices := map_slices(key)
 		if not slices.is_empty():
 			root.set_meta("map_slices", slices)
+		# Step 7: the sector's soft lines (fences and hedges that break: soft_things.gd), saved with
+		# the prebuilt scene, so both city paths read the same list when the sector loads.
+		var soft: Dictionary = barriers.soft_data()
+		if not soft.is_empty():
+			root.set_meta(&"soft", soft)
 	if merge:
 		_merge_roofs()
 	_merge = true
@@ -11786,12 +11795,18 @@ func _solid(cls: StringName, faces: PackedVector3Array, drawn := {}) -> void:
 		_solids[cls] = PackedVector3Array()
 	_solids[cls].append_array(faces)
 	if note_solids:
-		# The ground under each vertex as the build read it (the check holds the drawing against
-		# the same heights).
-		var ground := PackedFloat32Array()
-		for v in faces:
-			ground.append(terrain_height(v.x, v.z))
-		solid_notes.append([cls, faces, drawn, ground])
+		_note_solid(cls, faces, drawn)
+
+
+## Step 4's note of a collider site (`note_solids`), without filing its faces: `_solid`'s, and step
+## 7's soft lines (city_barriers.gd `_soft_seg`, `none: soft`), which are drawn and break instead.
+func _note_solid(cls: StringName, faces: PackedVector3Array, drawn: Dictionary) -> void:
+	# The ground under each vertex as the build read it (the check holds the drawing against
+	# the same heights).
+	var ground := PackedFloat32Array()
+	for v in faces:
+		ground.append(terrain_height(v.x, v.z))
+	solid_notes.append([cls, faces, drawn, ground])
 
 
 ## The colliders: one StaticBody3D per solid class, `Solid_<class>` with meta "solid" = the class
