@@ -195,7 +195,7 @@ func _check_hud() -> void:
 	# its countdown runs out right after Ivan's call, so it waits CALL_GAP, then rings and counts.
 	var rescue: Node = Missions.new()
 	rescue.hud = hud
-	rescue._hospitals.append({"name": "Szpital", "pos": Vector3.ZERO, "children": false})
+	rescue.places.hospitals.append({"name": "Szpital", "pos": Vector3.ZERO, "children": false})
 	rescue.ring_in(0.05)
 	for i in 20:
 		rescue.tick(0.1, Vector3.ZERO, 0.0, false)
