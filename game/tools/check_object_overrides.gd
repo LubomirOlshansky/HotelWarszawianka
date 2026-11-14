@@ -6,7 +6,8 @@ extends SceneTree
 ##   godot --headless --path game --script res://tools/check_object_overrides.gd
 
 const CityBarriers := preload("res://scripts/city_barriers.gd")
-const VERDICTS := ["REMOVE", "RETEXTURE", "REPLACE", "SOFTEN", "KEEP"]
+## HARD (step 7): a fence or hedge the bake classed S kept solid (city_barriers.gd _is_soft).
+const VERDICTS := ["REMOVE", "RETEXTURE", "REPLACE", "SOFTEN", "KEEP", "HARD"]
 
 var _problems := 0
 

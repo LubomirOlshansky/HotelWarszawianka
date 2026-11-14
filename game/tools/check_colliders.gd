@@ -17,7 +17,9 @@ extends SceneTree
 ##      drawing's own outline (`same`: buildings, LoD2, barriers, platforms) are taken at their
 ##      word unless --all (which tests them too: the hints' proof);
 ##   N  invisible on purpose (`none`) only for a reason this check knows: the pocket walls, the
-##      PT-40 lead-ins, the PT-18 rail joins; everything else invisible fails B;
+##      PT-40 lead-ins, the PT-18 rail joins; everything else invisible fails B. A `soft` note
+##      (step 7: a fence or hedge that breaks, soft_things.gd) has no collider at all: it is
+##      counted apart (the "soft" line) and kept out of the class rows and the reach body;
 ##   P  the pocket-wall audit (map_builder.gd _bridge_pockets): both ends within POCKET_END m of
 ##      a drawn face or a block's wall ("at"; up to POCKET_NEAR, "<1m", leaves a gap no car enters
 ##      and passes too), and the gap a slit under POCKET_SLIT m, a notch, or a fairing before a step;
@@ -115,6 +117,8 @@ var pocket_rows := PackedStringArray()
 var pockets := {}
 var low_hard := {}
 var skipped_same := 0
+## Step 7's soft lines (notes with `none: soft`, no collider): per class [segments, faces].
+var soft := {}
 var _ready_points: Array[Vector3] = []
 ## The ground under each collider vertex of the sector, as its build read it.
 var _g_at := {}
@@ -271,6 +275,8 @@ func _wall_body(body: StaticBody3D, notes: Array) -> void:
 	var faces := PackedVector3Array()
 	var every := PackedVector3Array()
 	for note: Array in notes:
+		if str((note[2] as Dictionary).get("none", "")) == "soft":
+			continue
 		if StringName(note[0]) in BLOCK_CLASSES:
 			faces.append_array(note[1])
 		every.append_array(note[1])
@@ -340,6 +346,12 @@ func _check_sector(key: Vector2i) -> void:
 			if rect.has_point(Vector2(c.x, c.z)):
 				faces.append_array([all[i], all[i + 1], all[i + 2]])
 		if faces.is_empty():
+			continue
+		if str(drawn.get("none", "")) == "soft":
+			var sr: Array = soft.get(cls, [0, 0])
+			sr[0] += 1
+			sr[1] += faces.size() / 3
+			soft[cls] = sr
 			continue
 		if probe.x < INF:
 			_probe(cls, faces, drawn)
@@ -625,6 +637,7 @@ func _finish() -> void:
 		pl.append("%s %d" % [k, pockets[k]])
 	print("  pockets: " + ", ".join(pl))
 	print("  hard and drawn 0.3-0.8 m (R2 wants 0.8 m; later steps): %s" % [low_hard])
+	print("  soft (step 7, no collider: soft_things.gd breaks them), [segments, faces] per class: %s" % [soft])
 	print("  'same' sites taken at their word: %d%s" % [skipped_same, "" if test_all else " (--all tests them)"])
 	for k in allowed:
 		print("  allowed %s: %d" % [k, allowed[k]])

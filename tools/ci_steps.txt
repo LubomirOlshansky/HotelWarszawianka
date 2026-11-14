@@ -161,6 +161,7 @@ shisha               quick
 shisha-run           local     slow
 sites                quick
 smooth               quick
+softthings           smoke
 solids               smoke
 sounds               quick
 spec                 quick

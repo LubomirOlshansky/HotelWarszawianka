@@ -36,7 +36,9 @@ The checks (docs/design/operation-unslop.md section 4):
                    (tools/road_objects.py's census)
 Score per block: 100 minus the weighted open findings (WEIGHTS), never below 0.
 --apply writes game/data/road_objects.json (the barriers whose verdict changes how they are drawn:
-REMOVE, or RETEXTURE / REPLACE with a style) from every record; map_builder.gd reads it.
+REMOVE, or RETEXTURE / REPLACE with a style, or HARD: a fence or hedge the car smashes through
+(step 7, soft_things.gd) kept solid, a trap the `--wander` run found) from every record;
+map_builder.gd reads it.
 A street's `decisions` ({id: [verdict, style, why]}) are hand calls from evidence; they win over
 the rules ("F: ..." for F's own calls).
 --check is a ratchet: a check's open count may never grow over the record's. --evidence adds the
@@ -744,7 +746,7 @@ def main():
             for o in json.load(open(path, encoding="utf-8")).get("objects", []):
                 if o["status"] == "owned" or o["cls"] != "barrier":
                     continue
-                if o["verdict"] == "REMOVE" or (o["verdict"] in ("RETEXTURE", "REPLACE") and o.get("style")):
+                if o["verdict"] in ("REMOVE", "HARD") or (o["verdict"] in ("RETEXTURE", "REPLACE") and o.get("style")):
                     items[o["id"]] = [o["verdict"], o.get("style", ""), sd["slug"]]
         out = os.path.join(ROOT, "game", "data", "road_objects.json")
         with open(out, "w", encoding="utf-8") as fh:

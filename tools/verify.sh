@@ -43,6 +43,10 @@
 # least 0.3 m tall within 0.5 m in plan), the sites' own drawn heights, and the pocket-wall audit (both
 # ends at a drawn face; slits, notches, fairings); the allowed findings are by rule, each with its
 # reason (~2 min; `-- --all` the whole map, ~10 min).
+# `softthings` runs game/tools/check_soft_things.gd (the city objects plan, step 7, 2026-11-14): the
+# fences and hedges the car smashes through (soft_things.gd) on pure cases (the swept box, the cost per
+# panel and its cap, grinding, rule B's repair, the contact log's soft line), then the soft lists of four
+# sectors the same on both city paths and `--no-soft`'s restore exact (~1 min).
 # `deckxray` runs game/tools/check_deck_xray.gd (GAMEPLAY_PLAN 0.3, 2026-11-03): the car's x-ray is on
 # under a bridge or viaduct deck (Trasa Łazienkowska) and off on top of one and on open streets.
 # `tunnelcut` runs game/tools/check_tunnel_cut.gd (F, 2026-11-08): in every tunnel the ground that
@@ -1214,6 +1218,7 @@ for s in $want; do
 		# faces per class in the runtime and prebuilt sectors, every city body classed.
 		solids) skip_prebuilt solids || check solids '^solids:' --script res://tools/check_solids.gd ;;
 		colliders) check colliders '^check_colliders:' --script res://tools/check_colliders.gd ;;
+		softthings) skip_prebuilt softthings || check softthings '^check_soft_things:' --script res://tools/check_soft_things.gd ;;
 		deckxray) check deckxray '^check_deck_xray:' --script res://tools/check_deck_xray.gd ;;
 		tunnelcut) check tunnelcut '^check_tunnel_cut:' --script res://tools/check_tunnel_cut.gd ;;
 		lanedrive) check lanedrive '^check_lane_drive:' --fixed-fps 60 --script res://tools/check_lane_drive.gd ;;

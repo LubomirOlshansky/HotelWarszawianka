@@ -46,9 +46,20 @@ extends SceneTree
 ## Step 7: the soft things (soft_things.gd) run as in the game: the S fences and hedges have no
 ## collider, and the car breaks through them at their cost (their contacts are `soft` lines in the
 ## log); --no-soft drives the city as it was before step 7 (every fence and hedge hard, both paths).
+## --wander (step 7, the R6 trap): no routes; the car is aimed at the soft lines instead. For every
+## S fence or hedge line within WANDER_NEAR m of a ground lane (one test a line, at its segment
+## nearest a lane), the car starts on that lane at WANDER_SPEED, drives at the line (square to it
+## when the way there runs within WANDER_SQUARE deg of the line), on WANDER_PAST m beyond it, and
+## then tries to leave as a player would: reversing back out through its own gap (WANDER_BACK s),
+## then turning and driving back (WANDER_TURN s). A line is a `trap` where the car does not get back
+## within WANDER_HOME m of its start, a `fall` where it dropped WANDER_DROP m under the line's foot
+## (a cutting, a wall's top), `sink` where it went under the surface (drive_height: ground with no
+## surface), `water` where it ended in the river; `miss` where it never reached the line (something
+## hard in the way, another level). Sector by sector (each with its neighbours loaded); --box=
+## limits it; --write=FILE writes every test as a TSV. It reports and exits 0 (a survey, not a gate).
 ## --dry lists the routes and their length and drives nothing.
 ##
-##   godot --headless --path game --fixed-fps 60 --script res://tools/check_lane_drive.gd [-- --prebuilt --handling=grounded --verbose --only=NAME[|NAME2] --streets=A,B --box=... --links --write=FILE --driver=careful|sloppy --contacts=FILE --set=A --seed=N --assist=on|off --dry --no-soft]
+##   godot --headless --path game --fixed-fps 60 --script res://tools/check_lane_drive.gd [-- --prebuilt --handling=grounded --verbose --only=NAME[|NAME2] --streets=A,B --box=... --links --write=FILE --driver=careful|sloppy --contacts=FILE --set=A --seed=N --assist=on|off --dry --no-soft --wander]
 
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const SectorStreamer := preload("res://scripts/sector_streamer.gd")
@@ -112,6 +123,20 @@ const SLOPPY_SIDE_KNOT := 30.0
 const SLOPPY_HEAD_KNOT := 12.0
 const SLOPPY_TOW := 12.0
 const SLOPPY_TOWS := 5
+## --wander: the reach from a soft line's segment to a ground lane (m), the speed at it (m/s), the
+## least angle it is crossed at (deg), the metres beyond it, the seconds out, back (reversing) and
+## round (driving), the distance home that counts as back (m), the drop under the line's foot that
+## is a fall (m), and the levels apart (m) that are another level (a deck over it, a wall's top).
+const WANDER_NEAR := 10.0
+const WANDER_SPEED := 12.0
+const WANDER_SQUARE := 35.0
+const WANDER_PAST := 6.0
+const WANDER_OUT := 6.0
+const WANDER_BACK := 8.0
+const WANDER_TURN := 12.0
+const WANDER_HOME := 3.0
+const WANDER_DROP := 2.5
+const WANDER_LEVEL := 3.0
 ## In the water this long (s): the game's tow out of it (main.gd `_tow_out_of_water`, about 2 s).
 const WATER_TOW := 2.0
 const SEED := 20261114
@@ -174,6 +199,26 @@ var _total_m := 0.0
 ## Step 7: the soft things, and --no-soft.
 var soft: SoftThings
 var no_soft := false
+## --wander's state: the sector keys to visit, the one now, the loaded sectors (key: root), the
+## tests of this sector ([id, kind, mat, start, a, b, dir, foot, key]), the phase (0 settle, 1 out,
+## 2 back, 3 round), its clock, whether the car got over the line, the most it dropped, the rows
+## and the verdict counts.
+var wander := false
+var _w_keys: Array[Vector2i] = []
+var _w_k := -1
+var _w_loaded := {}
+var _w_have := {}
+var _w_tests: Array = []
+var _w_i := 0
+var _w_phase := 0
+var _w_t := 0.0
+var _w_frames := 0
+var _w_crossed := false
+var _w_low := 0.0
+var _w_rows := PackedStringArray()
+var _w_counts := {}
+var _w_seen := {}
+var _w_t0 := 0
 
 
 func _initialize() -> void:
@@ -210,6 +255,8 @@ func _initialize() -> void:
 			dry = true
 		elif a == "--no-soft":
 			no_soft = true
+		elif a == "--wander":
+			wander = true
 		elif a.begins_with("--box="):
 			var b := a.trim_prefix("--box=").split_floats(",")
 			box = Rect2(minf(b[0], b[2]), minf(b[1], b[3]), absf(b[2] - b[0]), absf(b[3] - b[1]))
@@ -229,6 +276,9 @@ func _initialize() -> void:
 	map.data = map.index_data
 	graph = LaneGraph.new(map.data["graph"], map)
 	_names = ContactLog.street_names(map.data["graph"])
+	if wander:
+		_start_wander(t0)
+		return
 	if links:
 		streets = []
 		_add_links()
@@ -546,6 +596,9 @@ func _physics_process(dt: float) -> bool:
 	_frames += 1
 	if _frames < 3 or _over:
 		return false
+	if wander:
+		_wander_step(dt)
+		return false
 	if car == null:
 		if not _next():
 			_finish()
@@ -845,3 +898,246 @@ func _finish() -> void:
 	else:
 		print("check_lane_drive: %d of %d routes fail" % [_failures, routes.size()])
 	quit(1 if _failures > 0 else 0)
+
+
+## --wander: the sectors to visit (those meeting --box when given), column by column so the
+## loaded neighbours carry over from one to the next.
+func _start_wander(t0: int) -> void:
+	_w_t0 = t0
+	for k: Array in map.index_data["sectors"]["keys"]:
+		var key := Vector2i(int(k[0]), int(k[1]))
+		_w_have[key] = true
+		var rect := Rect2(Vector2(key) * MapBuilder.SECTOR, Vector2(MapBuilder.SECTOR, MapBuilder.SECTOR))
+		if box.size == Vector2.ZERO or rect.intersects(box):
+			_w_keys.append(key)
+	_w_keys.sort_custom(func(p: Vector2i, q: Vector2i) -> bool: return p.x < q.x or (p.x == q.x and p.y < q.y))
+	IndexPack.pack(map.index_data)
+	print("check_lane_drive: wander over %d sectors (%s city), soft things %s" % [_w_keys.size(),
+			"prebuilt" if prebuilt else "runtime", "off (--no-soft)" if no_soft else "on"])
+	_w_rows.append("id\tkind\tmat\tx\tz\tverdict\tsecs\tdrop\tunsticks\tsector\twhy")
+
+
+## --wander: sector `key` built or loaded (once while it is in reach), its soft list indexed.
+func _w_load(key: Vector2i) -> Node3D:
+	if _w_loaded.has(key):
+		return _w_loaded[key]
+	if not _w_have.has(key):
+		return null
+	var sector: Node3D = (load("res://map/sectors/%s.scn" % MapBuilder.sector_name(key)) as PackedScene).instantiate() \
+			if prebuilt else map.build_sector(key)
+	map.add_child(sector)
+	soft.add_sector(sector)
+	_w_loaded[key] = sector
+	return sector
+
+
+## --wander: on to the next sector with soft lines to test, its neighbours loaded and the sectors
+## out of its reach freed; false when there is none left.
+func _w_next_sector() -> bool:
+	while true:
+		_w_k += 1
+		if _w_k >= _w_keys.size():
+			return false
+		var key := _w_keys[_w_k]
+		for k: Vector2i in _w_loaded.keys():
+			if maxi(absi(k.x - key.x), absi(k.y - key.y)) > 1:
+				(_w_loaded[k] as Node3D).queue_free()
+				_w_loaded.erase(k)
+		var sector := _w_load(key)
+		if sector == null or not sector.has_meta(&"soft"):
+			continue
+		_w_tests = _w_targets(key, sector.get_meta(&"soft"))
+		if _w_tests.is_empty():
+			continue
+		for dx in [-1, 0, 1]:
+			for dz in [-1, 0, 1]:
+				_w_load(key + Vector2i(dx, dz))
+		_w_i = 0
+		return true
+	return false
+
+
+## --wander: one test per soft line of the sector (its own segments, a line once however many
+## sectors it crosses): the segment whose middle is nearest a ground lane within WANDER_NEAR m,
+## the start on that lane and the way across. [id, kind, mat, start, a, b, dir, foot, key].
+func _w_targets(key: Vector2i, sd: Dictionary) -> Array:
+	var n := CityBarriers.SOFT_STRIDE
+	var segs: PackedFloat64Array = sd["segs"]
+	var best := {}
+	for i in segs.size() / n:
+		var o := i * n
+		if segs[o + 10] < 0.5:
+			continue
+		var li := int(segs[o])
+		var id := str(sd["ids"][li])
+		if _w_seen.has(id):
+			continue
+		var a := Vector2(segs[o + 1], segs[o + 2])
+		var b := Vector2(segs[o + 3], segs[o + 4])
+		var m := (a + b) * 0.5
+		if box.size != Vector2.ZERO and not box.has_point(m):
+			continue
+		var sn := graph.snap(m, WANDER_NEAR, Vector2.ZERO, true, true, true)
+		if sn.is_empty():
+			continue
+		var e := int(sn[0])
+		var q := graph.point_at(e, float(sn[2]), graph.lane_offset(e, int(sn[1])))
+		var c := Geometry2D.get_closest_point_to_segment(q, a, b)
+		var d := c.distance_to(q)
+		if best.has(id) and float(best[id][0]) <= d:
+			continue
+		var u := (b - a).normalized()
+		var way := (c - q).normalized() if d > 0.5 else Vector2.ZERO
+		var hy := graph.height(e, float(sn[2]))
+		if way == Vector2.ZERO or absf(way.dot(u)) > cos(deg_to_rad(WANDER_SQUARE)):
+			# Square to the line, from the lane's point slid along the line to face the segment
+			# (the lane runs along the line there), or from 3 m off a line on the lane itself.
+			var nrm := u.orthogonal()
+			way = nrm if nrm.dot(c - q) >= 0.0 else -nrm
+			q = q + u * (c - q).dot(u) if d > 0.5 else c - way * 3.0
+		var foot := minf(segs[o + 5], segs[o + 6])
+		best[id] = [d, id, str(sd["kinds"][li]), str(sd["mats"][li]), Vector3(q.x, hy, q.y), a, b,
+				Vector3(way.x, 0.0, way.y), foot, key]
+	var out: Array = []
+	for id: String in best:
+		_w_seen[id] = true
+		out.append((best[id] as Array).slice(1))
+	return out
+
+
+## --wander: one physics frame of the test now (see the header), or on to the next test or sector.
+func _wander_step(dt: float) -> void:
+	if _w_i >= _w_tests.size():
+		if car != null:
+			car.queue_free()
+			car = null
+		if not _w_next_sector():
+			_wander_finish()
+			return
+		_w_phase = 0
+		_w_frames = 0
+		return
+	var t: Array = _w_tests[_w_i]
+	var start: Vector3 = t[3]
+	var a: Vector2 = t[4]
+	var b: Vector2 = t[5]
+	var dir: Vector3 = t[6]
+	var foot: float = t[7]
+	if _w_phase == 0:
+		# The sectors' bodies are in the space a step after they enter the tree.
+		_w_frames += 1
+		if _w_frames < 3:
+			return
+		_w_t = 0.0
+		_w_low = 0.0
+		if absf(start.y - foot) > WANDER_LEVEL:
+			_w_done("miss", "another level (the lane at %.1f m, the line's foot at %.1f m)" % [start.y, foot])
+			return
+		car = Car.new()
+		if handling >= 0:
+			car.set_handling(handling)
+		car.ground_height = map.drive_height
+		car.water_at = map.in_water
+		car.kerb_feel = map.kerb_feel
+		root.add_child(car)
+		car.global_position = Vector3(start.x, map.drive_height(start.x, start.z, start.y + 1.0), start.z)
+		car.rotation.y = atan2(-dir.x, -dir.z)
+		car.vel = dir * WANDER_SPEED
+		car.reset_physics_interpolation()
+		soft.car = car
+		soft.reset()
+		soft.reset_motion()
+		_w_phase = 1
+		_w_crossed = false
+		return
+	_w_t += dt
+	var p := car.global_position
+	var p2 := Vector2(p.x, p.z)
+	var u := (b - a).normalized()
+	var nrm := u.orthogonal()
+	var side0 := signf(nrm.dot(Vector2(start.x, start.z) - a))
+	if side0 == 0.0:
+		side0 = 1.0
+	var beyond := -nrm.dot(p2 - a) * side0
+	var along := (p2 - a).dot(u)
+	if beyond > 0.0 and along > -2.0 and along < a.distance_to(b) + 2.0:
+		_w_crossed = true
+	var h: float = map.drive_height(p.x, p.z, p.y)
+	_w_low = maxf(_w_low, minf(start.y, foot) - p.y)
+	if p.y < -100.0 or h - p.y > 1.0:
+		_w_done("sink", "%.1f m under the surface" % (h - p.y))
+		return
+	if _w_low > WANDER_DROP:
+		_w_done("fall", "%.1f m under the line's foot" % _w_low)
+		return
+	if car.in_water:
+		_w_done("water", "in the water")
+		return
+	var home := p2.distance_to(Vector2(start.x, start.z))
+	var back := Vector3(start.x - p.x, 0.0, start.z - p.z).normalized()
+	match _w_phase:
+		1:
+			car.target_dir = dir
+			car.braking = false
+			car.throttle = clampf(WANDER_SPEED / car.top_speed(), 0.0, 1.0)
+			if beyond > WANDER_PAST or _w_t > WANDER_OUT:
+				if not _w_crossed:
+					_w_done("miss", "never over the line in %.1f s (something hard before it)" % _w_t)
+					return
+				_w_phase = 2
+				_w_t = 0.0
+		2:
+			# Reversing: the brake held, the tail goes where the stick points.
+			car.target_dir = back
+			car.throttle = 0.0
+			car.braking = true
+			if home < WANDER_HOME:
+				_w_done("ok", "reversed out")
+				return
+			if _w_t > WANDER_BACK:
+				_w_phase = 3
+				_w_t = 0.0
+		3:
+			car.target_dir = back
+			car.braking = false
+			car.throttle = clampf(8.0 / car.top_speed(), 0.0, 1.0)
+			if home < WANDER_HOME:
+				_w_done("ok", "turned and drove out")
+				return
+			if _w_t > WANDER_TURN:
+				_w_done("trap", "%.0f m from its lane after reversing %.0f s and driving %.0f s" % [home, WANDER_BACK, WANDER_TURN])
+
+
+## --wander: the test's verdict into the rows (and printed when it is a finding), on to the next.
+func _w_done(verdict: String, why: String) -> void:
+	var t: Array = _w_tests[_w_i]
+	var c: Vector2 = ((t[4] as Vector2) + (t[5] as Vector2)) * 0.5
+	var key: Vector2i = t[8]
+	_w_counts[verdict] = int(_w_counts.get(verdict, 0)) + 1
+	var stuck := int(car.unsticks) if car != null else 0
+	_w_rows.append("%s\t%s\t%s\t%.1f\t%.1f\t%s\t%.1f\t%.1f\t%d\t%d,%d\t%s" % [t[0], t[1], t[2], c.x, c.y, verdict, _w_t,
+			_w_low, stuck, key.x, key.y, why])
+	if verdict in ["trap", "fall", "sink", "water"] or verbose:
+		print("%s %s %s (%s) at --at=%.0f,%.0f: %s" % [verdict.to_upper(), t[0], t[1], t[2], c.x, c.y, why])
+	if car != null:
+		car.queue_free()
+		car = null
+	_w_i += 1
+	_w_phase = 0
+	_w_frames = 0
+
+
+func _wander_finish() -> void:
+	if _over:
+		return
+	_over = true
+	if write_to != "":
+		var f := FileAccess.open(write_to, FileAccess.WRITE)
+		f.store_string("\n".join(_w_rows) + "\n")
+		f.close()
+	var parts: Array[String] = []
+	for k: String in ["ok", "miss", "trap", "fall", "sink", "water"]:
+		parts.append("%s %d" % [k, int(_w_counts.get(k, 0))])
+	print("check_lane_drive: wander: %d soft lines tested in %d sectors (%s)%s, %d ms" % [_w_rows.size() - 1,
+			_w_keys.size(), ", ".join(parts), (" -> " + write_to) if write_to != "" else "", Time.get_ticks_msec() - _w_t0])
+	quit(0)
