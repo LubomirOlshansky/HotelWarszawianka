@@ -1396,6 +1396,29 @@ func parked(id: String) -> Parked:
 	return _car_of.get(id)
 
 
+## Step 8a, for shots (main.gd `--push-parked=X,Z`): the parked car in its bay nearest `at` (within
+## 40 m) slides off sideways at `speed` m/s as a push would send it, to the side the walls and the lane
+## rule allow. Its id, or "" when none can move.
+func push_near(at: Vector2, speed: float) -> String:
+	var best: Parked = null
+	var best_d := 40.0
+	for key: Vector2i in _car_sectors:
+		for p: Parked in _car_sectors[key]["cars"]:
+			var dist := Vector2(p.xf.origin.x, p.xf.origin.z).distance_to(at)
+			if p.state == BAY and p.hard == null and dist < best_d:
+				best = p
+				best_d = dist
+	if best == null:
+		return ""
+	var side := Vector2(best.xf.basis.x.x, best.xf.basis.x.z).normalized()
+	for d: Vector2 in [side, -side]:
+		if _room(best, d, cast_reach(speed)) >= Solidity.PUSH_WEDGED and _start_slide(best, d, speed, 0.3):
+			pushes += 1
+			_remember(best.id, best.id, -1, best.xf.origin)
+			return best.id
+	return ""
+
+
 ## Step 8a: how many parked cars are swept now (own, in the loaded sectors), and how many off their bays.
 func car_count() -> int:
 	var n := 0

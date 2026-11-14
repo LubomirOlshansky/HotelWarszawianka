@@ -386,6 +386,9 @@ var _flag_left_handed := false
 ## --color-safe: colour-safe markers for this run (Settings → DOSTĘP keeps it otherwise): the HUD's
 ## tint and the race and rescue rings' shapes (beacon.gd), for shots.
 var _flag_color_safe := false
+## --push-parked=X,Z (step 8a, for shots; needs --soft): the parked car nearest X,Z slides off its bay
+## sideways as a push would send it, once its sector is in (`soft_things.gd` `push_near`).
+var _flag_push_parked := Vector2.INF
 ## --lang=pl|en: the language for this run (not saved), over the saved choice and the phone's.
 var _flag_lang := ""
 ## --lift=M: aim the camera M metres above the vehicle (close-ups of tall landmarks).
@@ -5438,6 +5441,9 @@ func _parse_args() -> void:
 			CityBarriers.soft_off = true
 		elif arg == "--soft":
 			_flag_soft = true
+		elif arg.begins_with("--push-parked="):
+			var pp := arg.trim_prefix("--push-parked=").split_floats(",")
+			_flag_push_parked = Vector2(pp[0], pp[1])
 		elif arg == "--race-debug":
 			race_debug = true
 		elif arg.begins_with("--ghost-pace="):
@@ -7482,6 +7488,10 @@ func _process(dt: float) -> void:
 	_moment_frame(dt)  # loop MW-6: --egg, --tape, --fotka and the VHS of a tape
 	_water_frame(dt)
 	_stuck_offer_frame()  # G14's "later": POMOC DROGOWA on the context button when stuck
+	if _flag_push_parked != Vector2.INF and soft_things != null and soft_things.car_count() > 0:
+		var pushed_id := soft_things.push_near(_flag_push_parked, 7.0)
+		print("push-parked: %s" % (pushed_id if pushed_id != "" else "no parked car near %s can move" % _flag_push_parked))
+		_flag_push_parked = Vector2.INF
 	Haptics.tick(dt, not flying and absf(car.forward_speed) > 3.0)
 	if autopilot or _bench_ghost != null:
 		_autopilot(dt)
