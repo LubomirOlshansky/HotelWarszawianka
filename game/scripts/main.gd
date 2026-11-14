@@ -366,6 +366,12 @@ var solo_look := "flat"
 ## Loop 3a: --debug-roads draws the decks, approaches, tunnels, lane heights and piers round
 ## the car (debug_roads.gd, with the Debug Draw add-on).
 var debug_roads := false
+## The city objects plan, step 4: --colliders skins every collider in the colour of its class's
+## planned answer (collider_view.gd: hard red, smash yellow, push blue, ride green, the invisible
+## pocket walls magenta), for shots in street sweeps. Loaded only then; a release build reads no
+## flags (release.gd).
+const COLLIDER_VIEW := "res://scripts/collider_view.gd"
+var collider_view := false
 ## Loop 3b: --tunnel starts the car (with --at) on the floor of a tunnel under that point.
 var start_in_tunnel := false
 ## GAMEPLAY_PLAN 0.3: --under starts the car (with --at) on the road under a bridge or viaduct deck
@@ -1850,6 +1856,8 @@ func _build_world() -> void:
 		graph = LaneGraph.new(data["graph"], map)
 	if contacts_to != "":
 		_start_contact_log(data)
+	if collider_view:
+		world.add_child((load(COLLIDER_VIEW) as GDScript).new())
 	if debug_roads:
 		var dr: Node3D = load("res://scripts/debug_roads.gd").new()
 		world.add_child(dr)
@@ -5314,6 +5322,8 @@ func _parse_args() -> void:
 			start_under = true
 		elif arg == "--debug-roads":
 			debug_roads = true
+		elif arg == "--colliders":
+			collider_view = true
 		elif arg.begins_with("--lift="):
 			cam_lift = float(arg.trim_prefix("--lift="))
 		elif arg.begins_with("--cam="):

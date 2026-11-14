@@ -64,7 +64,7 @@ class StubMap extends Node3D:
 			_sunk.append(MapBuilderRef.sunk_entry(f, 0.0, 10.0))
 
 	## map_builder.gd's collider by class (step 1, solid classes): here one bag, as before.
-	func _solid(_cls: StringName, faces: PackedVector3Array) -> void:
+	func _solid(_cls: StringName, faces: PackedVector3Array, _drawn := {}) -> void:
 		_wall_faces.append_array(faces)
 
 	func _grid_height(_x: float, _z: float) -> float:

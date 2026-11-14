@@ -172,6 +172,18 @@ var _lod2_footprints: Array = []
 ## The city objects plan, step 1: the collider's faces (three vertices each) by solid class
 ## ({StringName: PackedVector3Array}, a class of solidity.gd), filled through `_solid`.
 var _solids := {}
+## The city objects plan, step 4 (rule R2, game/tools/check_colliders.gd): when the check sets
+## `note_solids`, every `_solid` call is kept in `solid_notes` as [class, faces, drawn, ground] (the
+## faces as given, the call site's hint about its drawing: `_solid`; the ground under each
+## vertex as the build read it), so the check can hold each
+## collider against what is drawn there. Off in the game and the bakes: nothing is kept, and the
+## faces are the same either way.
+var note_solids := false
+var solid_notes: Array = []
+## Step 4, the check only: a sector build keeps the triangles of this many 256 m tiles round its
+## own 2 x 2 (chunked_surface.gd `only`), so a drawing that crosses the sector's border is there
+## whole beside the collider faces the sector keeps. 0 in the game.
+var note_reach := 0
 
 ## Terrain heights in metres relative to the bake's base height; empty means a flat world.
 @export_storage var _terrain: Dictionary = {}
@@ -655,7 +667,7 @@ func _build_parts(marks, roofs_only: bool) -> void:
 func _new_surface() -> Chunked:
 	var st := Chunked.new()
 	if _in_sector:
-		st.only = Rect2i(_sector * 2, Vector2i(2, 2))
+		st.only = Rect2i(_sector * 2 - Vector2i(note_reach, note_reach), Vector2i(2, 2) + Vector2i(note_reach, note_reach) * 2)
 	return st
 
 
@@ -2265,12 +2277,12 @@ func _build_walls(st) -> void:
 				var fa := float(lows[i])
 				var fb := float(lows[i + 1])
 				_solid(&"tunnel", [Vector3(a.x, fa - 1.0, a.y), Vector3(b.x, fb - 1.0, b.y), Vector3(b.x, fb + 4.5, b.y),
-						Vector3(a.x, fa - 1.0, a.y), Vector3(b.x, fb + 4.5, b.y), Vector3(a.x, fa + 4.5, a.y)])
+						Vector3(a.x, fa - 1.0, a.y), Vector3(b.x, fb + 4.5, b.y), Vector3(a.x, fa + 4.5, a.y)], R2_SAME)
 			elif flag & 1:
 				var y0a := float(lows[i]) - 1.0
 				var y0b := float(lows[i + 1]) - 1.0
 				_solid(&"struct_wall", [Vector3(a.x, y0a, a.y), Vector3(b.x, y0b, b.y), Vector3(b.x, tb + 1.6, b.y),
-						Vector3(a.x, y0a, a.y), Vector3(b.x, tb + 1.6, b.y), Vector3(a.x, ta + 1.6, a.y)])
+						Vector3(a.x, y0a, a.y), Vector3(b.x, tb + 1.6, b.y), Vector3(a.x, ta + 1.6, a.y)], R2_SAME)
 				# PT-40: a solid run's open end by a Poniatowski tower gets a lead-in.
 				if i == 0 or not int(flags[i - 1]) & 1:
 					_wall_taper(a, -dir, out, y0a, ta + 1.6, towers)
@@ -2307,7 +2319,7 @@ func _wall_taper(e: Vector2, on: Vector2, out: Vector2, y0: float, top: float, t
 	# road that runs under the deck (check_drive: Wybrzeże's lane at 939, -152).
 	y0 = maxf(y0, top - WALL_TAPER_DEEP)
 	_solid(&"struct_wall", [Vector3(e.x, y0, e.y), Vector3(f.x, y0, f.y), Vector3(f.x, top, f.y),
-			Vector3(e.x, y0, e.y), Vector3(f.x, top, f.y), Vector3(e.x, top, e.y)])
+			Vector3(e.x, y0, e.y), Vector3(f.x, top, f.y), Vector3(e.x, top, e.y)], R2_TAPER)
 	wall_tapers += 1
 
 
@@ -2509,7 +2521,7 @@ func _cut_wall_piece(st, a: Vector2, b: Vector2, oa: Vector2, ob: Vector2, fa: f
 		_quad(st, Vector3(a1.x, ra + 0.1, a1.y), Vector3(b1.x, rb + 0.1, b1.y), Vector3(b1.x, tb, b1.y), Vector3(a1.x, ta, a1.y),
 				-nin, WALL_CONCRETE.darkened(0.05))
 		_solid(&"struct_wall", [Vector3(a1.x, ra - 0.5, a1.y), Vector3(b1.x, rb - 0.5, b1.y), Vector3(b1.x, tb + 1.5, b1.y),
-				Vector3(a1.x, ra - 0.5, a1.y), Vector3(b1.x, tb + 1.5, b1.y), Vector3(a1.x, ta + 1.5, a1.y)])
+				Vector3(a1.x, ra - 0.5, a1.y), Vector3(b1.x, tb + 1.5, b1.y), Vector3(a1.x, ta + 1.5, a1.y)], {"same": true, "h": lift})
 	# The top band's outer edge, down to the street's ground.
 	_quad(st, Vector3(a2.x, ra - 0.6, a2.y), Vector3(b2.x, rb - 0.6, b2.y), Vector3(b2.x, rb + 0.1, b2.y),
 			Vector3(a2.x, ra + 0.1, a2.y), -nin, WALL_CONCRETE.darkened(0.05))
@@ -8006,7 +8018,7 @@ func _build_bridge_structures(st) -> void:
 				var drop2 := maxf(ya - terrain_height(k0.x, k0.y), yb - terrain_height(k1.x, k1.y))
 				if (piers or d["k"] == "path" or d["k"] == "tram") and drop2 > 1.0:
 					_solid(&"guard_deck", [Vector3(k0.x, ya - 0.2, k0.y), Vector3(k1.x, yb - 0.2, k1.y), Vector3(k1.x, yb + 1.6, k1.y),
-							Vector3(k0.x, ya - 0.2, k0.y), Vector3(k1.x, yb + 1.6, k1.y), Vector3(k0.x, ya + 1.6, k0.y)])
+							Vector3(k0.x, ya - 0.2, k0.y), Vector3(k1.x, yb + 1.6, k1.y), Vector3(k0.x, ya + 1.6, k0.y)], R2_DECK_GAP)
 	var ms := _srednicowy_frame()
 	var pn := _poniatowski_frame()
 	var pv := _powisle_frame()
@@ -8183,8 +8195,10 @@ func _build_shore() -> void:
 				var g1 := terrain_height(p1.x, p1.y)
 				var h0 := _shore_wall_top(p0, g0)
 				var h1 := _shore_wall_top(p1, g1)
+				# Step 4: a natural bank draws only its wet bands and foam: the water is the drawing.
 				_solid(&"struct_wall", [Vector3(p0.x, g0 - 1.0, p0.y), Vector3(p1.x, g1 - 1.0, p1.y), Vector3(p1.x, h1, p1.y),
-						Vector3(p0.x, g0 - 1.0, p0.y), Vector3(p1.x, h1, p1.y), Vector3(p0.x, h0, p0.y)])
+						Vector3(p0.x, g0 - 1.0, p0.y), Vector3(p1.x, h1, p1.y), Vector3(p0.x, h0, p0.y)],
+						R2_WATER if int(line[2]) != 0 else {})
 
 
 ## Which side of a run the water is on: +1 left (the side Vector2(-d.y, d.x) points to), -1
@@ -8458,7 +8472,8 @@ func _build_platforms(st) -> void:
 				var b0 := Vector3(p0.x, terrain_height(p0.x, p0.y) - 0.3, p0.y)
 				var b1 := Vector3(p1.x, terrain_height(p1.x, p1.y) - 0.3, p1.y)
 				var up := Vector3(0.0, ground + h + 1.6 - minf(b0.y, b1.y), 0.0)
-				_solid(&"platform", [b0, b1, b1 + up, b0, b1 + up, b0 + up])
+				_solid(&"platform", [b0, b1, b1 + up, b0, b1 + up, b0 + up], {"same": true, "h": ground + h + 0.1 - maxf(b0.y, b1.y) - 0.3,
+						"kind": "tram" if a.has("tram") else ("rail" if rail else "high")})
 	_uv2 = Vector2.ZERO
 
 
@@ -9150,7 +9165,7 @@ func _build_buildings(st, keep: Array, marks) -> void:
 						var g1 := ground + minf(5.0, h)
 						_solid(&"small_building", [Vector3(a.x, ground - 1.0, a.y), Vector3(b.x, ground - 1.0, b.y),
 								Vector3(b.x, g1, b.y), Vector3(a.x, ground - 1.0, a.y), Vector3(b.x, g1, b.y),
-								Vector3(a.x, g1, a.y)])
+								Vector3(a.x, g1, a.y)], {"same": true, "h": h if h > 0.5 else float(SmallBuildings.LOOK.get(use, SmallBuildings.LOOK["unknown"])[2])})
 			continue
 		var glass := h > 55.0
 		var wall := _osm_colour(bld["c"], Color(GLASS[hsh % GLASS.size()] if glass else FACADES[hsh % FACADES.size()]))
@@ -9216,7 +9231,7 @@ func _build_buildings(st, keep: Array, marks) -> void:
 				# Loop 3b: never over the building's own top (a viaduct's pillar ends under its slab).
 				var g1 := ground + minf(5.0, h)
 				_solid(cls, [Vector3(a.x, g0, a.y), Vector3(b.x, g0, b.y), Vector3(b.x, g1, b.y),
-						Vector3(a.x, g0, a.y), Vector3(b.x, g1, b.y), Vector3(a.x, g1, a.y)])
+						Vector3(a.x, g0, a.y), Vector3(b.x, g1, b.y), Vector3(a.x, g1, a.y)], {"same": true, "h": wall_h})
 		if rise > 0.0:
 			_pitched_gables(st, pitched, ground + wall_h, wall_h, wall)
 		_uv2 = Vector2(_uv2.x, -1.0)
@@ -9620,7 +9635,7 @@ func _build_lod2(walls, marks) -> Array:
 						solid = false
 						break
 			if solid:
-				_solid(&"lod2", [pos[t], pos[t + 1], pos[t + 2]])
+				_solid(&"lod2", [pos[t], pos[t + 1], pos[t + 2]], R2_SAME)
 		_roof_triangle(pos[t], pos[t + 1], pos[t + 2], flat_ish, col[t])
 	_has_lod2 = true
 	if not _in_sector:
@@ -10204,8 +10219,8 @@ func _tree_multimesh(mesh: Mesh, material: Material, spots: Array[Transform3D], 
 			tiles[key] = []
 		(tiles[key] as Array).append(i)
 	for key: Vector2i in tiles:
-		if _in_sector and key != _sector:
-			continue  # loop 3c: another sector's tile
+		if _in_sector and key != _sector and note_reach == 0:
+			continue  # loop 3c: another sector's tile (step 4's check keeps the tiles round it)
 		var members: Array = tiles[key]
 		var mm := MultiMesh.new()
 		mm.transform_format = MultiMesh.TRANSFORM_3D
@@ -10228,6 +10243,12 @@ func _tree_multimesh(mesh: Mesh, material: Material, spots: Array[Transform3D], 
 		var mmi := MultiMeshInstance3D.new()
 		mmi.multimesh = mm
 		mmi.material_override = material
+		if note_solids:
+			# Step 4: the instances for check_colliders.gd (a headless run keeps no MultiMesh data).
+			var placed: Array[Transform3D] = []
+			for i: int in members:
+				placed.append(spots[i])
+			mmi.set_meta(&"r2_spots", placed)
 		(parent if parent != null else _out).add_child(mmi)
 		made.append(mmi)
 	return made
@@ -11448,6 +11469,9 @@ const STEP_TAPER := 6.0
 ## (~15,100 before the PT-17 bays),
 ## ~300 ms of a sector's build in the cloud (none on the prebuilt path: baked in).
 var pocket_walls := 0
+## Step 4 (the pocket audit, game/tools/check_colliders.gd): each pair of `walls` in
+## _bridge_pockets is a "slit", "notch", "bay" or "fairing" (its rule above), in the same order.
+var _pocket_kinds := PackedStringArray()
 
 
 func _bridge_pockets(keep: Array, marks) -> void:
@@ -11470,6 +11494,11 @@ func _bridge_pockets(keep: Array, marks) -> void:
 		if (bld["p"] as Array).size() < 6 or bld.has("br") or bld.has("cutd") or float(bld["mh"]) >= 0.5:
 			continue
 		if float(bld["h"]) <= float(bld["mh"]) or not marks.keeps_building(bld):
+			continue
+		# Step 4 (R2, check_colliders.gd): the outlines _build_buildings leaves out (a piece of a
+		# bigger building, or nothing there) have no walls to bridge: their pockets stood on open
+		# ground (a 5.6 m invisible wall at Miodowa).
+		if str(bld.get("u", "")) in ["part", "none"]:
 			continue
 		var poly := _pts(bld["p"])
 		if _poly_box(poly).intersects(area):
@@ -11506,6 +11535,7 @@ func _bridge_pockets(keep: Array, marks) -> void:
 			clusters[r] = []
 		clusters[r].append(i)
 	var walls: Array[Vector2] = []
+	_pocket_kinds.clear()
 	for r in clusters:
 		var ids: Array = clusters[r]
 		var outs: Array[PackedVector2Array] = []
@@ -11558,7 +11588,7 @@ func _bridge_pockets(keep: Array, marks) -> void:
 		var p1 := Vector3(b.x, gb - 0.5, b.y)
 		var q0 := Vector3(a.x, ga + POCKET_WALL, a.y)
 		var q1 := Vector3(b.x, gb + POCKET_WALL, b.y)
-		_solid(&"pocket", [p0, p1, q1, p0, q1, q0])
+		_solid(&"pocket", [p0, p1, q1, p0, q1, q0], {"none": "pocket", "kind": _pocket_kinds[w / 2]})
 		pocket_walls += 1
 
 
@@ -11588,6 +11618,7 @@ func _ring_bridges(ring: PackedVector2Array, originals: Array[PackedVector2Array
 				break
 		if best >= 0:
 			walls.append_array([ring[i], ring[best]])
+			_pocket_kinds.append("notch")
 			var k := i
 			while k != best:
 				covered[k] = 1
@@ -11606,6 +11637,7 @@ func _ring_bridges(ring: PackedVector2Array, originals: Array[PackedVector2Array
 				break
 		if best >= 0:
 			walls.append_array([ring[i], ring[best]])
+			_pocket_kinds.append("bay")
 			i = i + ((best - i + n) % n)
 		else:
 			i += 1
@@ -11634,6 +11666,7 @@ func _ring_bridges(ring: PackedVector2Array, originals: Array[PackedVector2Array
 				break
 		if open_ground:
 			walls.append_array([a, b])
+			_pocket_kinds.append("slit")
 
 
 ## Whether ring[i] to ring[i + step] is the mouth of a dent: the mouth from `lo` to `hi` m long,
@@ -11701,6 +11734,7 @@ func _ring_fairings(ring: PackedVector2Array, walls: Array[Vector2], turn := 1.0
 		if back < proud * 3.0:
 			continue
 		walls.append_array([b - d * back, ring[best]])
+		_pocket_kinds.append("fairing")
 
 
 ## Whether a→b crosses a road or comes within its carriageway (`roads`' polylines and widths,
@@ -11726,13 +11760,38 @@ func _on_road(a: Vector2, b: Vector2, roads: Array) -> bool:
 	return false
 
 
+## Step 4: the hints `_solid` sites share (one Dictionary each, nothing made per call).
+const R2_SAME := {"same": true}
+const R2_TAPER := {"none": "taper"}
+const R2_WATER := {"none": "water"}
+const R2_DECK_GAP := {"none": "deck_gap"}
+
+
 ## The city objects plan, step 1: files a collider's faces (three vertices each) under their solid
 ## class (a class of solidity.gd: `building`, `fence`, `pier`, ...), so a contact can be named and
 ## a class later given another answer. Every collider face of the city goes through here.
-func _solid(cls: StringName, faces: PackedVector3Array) -> void:
+## Step 4 (rule R2): `drawn`, the site's hint about what it draws there, kept only for
+## game/tools/check_colliders.gd (`note_solids`); it never changes the faces. Keys, all optional:
+##   h     the drawing's height over the collider's foot (m): a hard class under R2_LOW fails;
+##   same  true: the collider stands on the drawing's own outline (its walls, its slab's sides,
+##         the very triangles), so its plan is the drawing's;
+##   none  invisible on purpose, and why: "pocket" (_bridge_pockets; `kind` slit, notch, bay or
+##         fairing), "taper" (a collider-only lead-in behind a drawn wall), "join" (the V across
+##         a gap between two drawn rails' ends), "water" (a natural bank's edge: the water is
+##         the drawing), "deck_gap" (a deck piece's joined side, drawn as a 0.22 m kerb, over the
+##         drop to the next piece).
+## A site with no hint is held against the drawn meshes alone (the check's plan test).
+func _solid(cls: StringName, faces: PackedVector3Array, drawn := {}) -> void:
 	if not _solids.has(cls):
 		_solids[cls] = PackedVector3Array()
 	_solids[cls].append_array(faces)
+	if note_solids:
+		# The ground under each vertex as the build read it (the check holds the drawing against
+		# the same heights).
+		var ground := PackedFloat32Array()
+		for v in faces:
+			ground.append(terrain_height(v.x, v.z))
+		solid_notes.append([cls, faces, drawn, ground])
 
 
 ## The colliders: one StaticBody3D per solid class, `Solid_<class>` with meta "solid" = the class
