@@ -184,6 +184,13 @@ class Parked:
 	var touched := -INF
 	var hidden := false
 	var hard: StaticBody3D
+	## The MultiMesh drawing it (its tile's), found at the first move.
+	var mm: MultiMesh
+	## While sliding: the bays within `near_rect` (gathered once for a stretch of its way, NEAR_GROW m
+	## round its box), and the ground's last sample (`ground_gone`, m along the slide).
+	var near: Array = []
+	var near_rect := Rect2()
+	var ground_gone := -INF
 
 var _clock := 0.0
 var _dawns := 0
@@ -214,6 +221,12 @@ var _car_of := {}
 var _off_bay: Array = []
 var _sliding: Array = []
 var _car_rest := {}
+## The player's push test's bays (`_push_test`): the rect they were gathered for, and `_cars_gen` then
+## (it counts the sectors' cars coming and going).
+var _near_bays: Array = []
+var _near_rect := Rect2()
+var _near_gen := -1
+var _cars_gen := 0
 
 
 func _ready() -> void:
@@ -792,6 +805,7 @@ func _watch_cars(key: Vector2i, root: Node3D) -> void:
 			_off_bay.append(p)
 			_show(p)
 	_car_sectors[key] = {"root": root, "cars": cars, "cells": cells}
+	_cars_gen += 1
 
 
 ## A sector's cars out of the hash (it left, or its cars are hard now). A pushed car's instance goes
@@ -802,6 +816,7 @@ func _unwatch_cars(key: Vector2i, keep := true) -> void:
 	if sec == null:
 		return
 	_car_sectors.erase(key)
+	_cars_gen += 1
 	for p: Parked in sec["cars"]:
 		_car_of.erase(p.id)
 		_drop_wall(p)
@@ -823,7 +838,9 @@ func _unwatch_cars(key: Vector2i, keep := true) -> void:
 func _show(p: Parked) -> void:
 	if p.slot < 0 or p.root == null or not is_instance_valid(p.root):
 		return
-	var mm := _multimesh(p)
+	if p.mm == null:
+		p.mm = _multimesh(p)
+	var mm := p.mm
 	if mm == null or p.slot >= mm.instance_count:
 		return
 	if p.hidden:
@@ -905,15 +922,26 @@ static func push_answer(v: Vector2, n: Vector2, offset: float) -> Vector2:
 
 ## Every parked car that may meet a box within `lo`..`hi` (the bays in the cells round it, in this
 ## sector and its neighbours, or the whole city's) and every car off its bay, not hidden.
-func _cars_near(lo: Vector2, hi: Vector2, at: Vector3) -> Array:
+func _cars_near(lo: Vector2, hi: Vector2) -> Array:
+	var out := _bays_near(lo, hi)
+	var r := Rect2(lo, hi - lo).grow(CAR_HALF.y)
+	for p: Parked in _off_bay:
+		if not p.hidden and r.has_point(Vector2(p.xf.origin.x, p.xf.origin.z)):
+			out.append(p)
+	return out
+
+
+## The parked cars in their bays in the cells round `lo`..`hi` (this sector's and its neighbours', or
+## the whole city's).
+func _bays_near(lo: Vector2, hi: Vector2) -> Array:
 	var out: Array = []
 	var c0 := Vector2i(floori((lo.x - CAR_HALF.y) / CELL), floori((lo.y - CAR_HALF.y) / CELL))
 	var c1 := Vector2i(floori((hi.x + CAR_HALF.y) / CELL), floori((hi.y + CAR_HALF.y) / CELL))
-	var own := Vector2i(floori(at.x / SECTOR), floori(at.z / SECTOR))
-	var keys: Array[Vector2i] = [WHOLE]  # the whole city's (--monolithic)
-	for dz in [-1, 0, 1]:
-		for dx in [-1, 0, 1]:
-			keys.append(own + Vector2i(dx, dz))
+	# The sectors the box reaches (a car is filed under its bay's sector), and the whole city's (--monolithic).
+	var keys: Array[Vector2i] = [WHOLE]
+	for sz in range(floori((lo.y - CAR_HALF.y) / SECTOR), floori((hi.y + CAR_HALF.y) / SECTOR) + 1):
+		for sx in range(floori((lo.x - CAR_HALF.y) / SECTOR), floori((hi.x + CAR_HALF.y) / SECTOR) + 1):
+			keys.append(Vector2i(sx, sz))
 	for k in keys:
 		var sec: Variant = _car_sectors.get(k)
 		if sec == null:
@@ -929,9 +957,6 @@ func _cars_near(lo: Vector2, hi: Vector2, at: Vector3) -> Array:
 					var p: Parked = cars[i]
 					if p.state == BAY:
 						out.append(p)
-	for p: Parked in _off_bay:
-		if not p.hidden:
-			out.append(p)
 	return out
 
 
@@ -946,13 +971,25 @@ func _push_test(xf: Transform3D, v: Vector2, dt: float) -> void:
 		lo = lo.min(q)
 		hi = hi.max(q)
 	var y := xf.origin.y
-	for p: Parked in _cars_near(lo, hi, xf.origin):
-		var py := p.xf.origin.y
-		if y + BODY_LOW > py + CAR_HIGH + TOP_SLACK or y + BODY_HIGH < py - FOOT_SLACK:
-			continue  # another level (a deck over it, a car park under)
-		if not polys_meet(hull, box_of(p.xf, CAR_HALF)):
-			continue
-		_hit(p, xf, Vector2(car.vel.x, car.vel.z))
+	var mid := (lo + hi) * 0.5
+	var reach := (hi - lo).length() * 0.5 + CAR_HALF.length()
+	# The bays round the car, gathered for a rect PLAYER_GROW m round its box and kept while it stays
+	# inside and no sector came or went; the cars off their bays near it on top.
+	if _near_gen != _cars_gen or not _near_rect.encloses(Rect2(lo, hi - lo)):
+		_near_rect = Rect2(lo, hi - lo).grow(PLAYER_GROW)
+		_near_bays = _bays_near(_near_rect.position, _near_rect.end)
+		_near_gen = _cars_gen
+	for li in 2:
+		for p: Parked in (_near_bays if li == 0 else _off_bay):
+			if p.hidden or (li == 0 and p.state != BAY) or (li == 1 and p.touched == _clock):
+				continue  # left its bay: met from the off-bay list (not twice: one pushed just now)
+			var py := p.xf.origin.y
+			if y + BODY_LOW > py + CAR_HIGH + TOP_SLACK or y + BODY_HIGH < py - FOOT_SLACK:
+				continue  # another level (a deck over it, a car park under)
+			if Vector2(p.xf.origin.x, p.xf.origin.z).distance_squared_to(mid) > reach * reach \
+					or not polys_meet(hull, box_of(p.xf, CAR_HALF)):
+				continue
+			_hit(p, xf, Vector2(car.vel.x, car.vel.z))
 
 
 ## The player meets parked car `p` (next frame): a wall stands (car.gd answers it), it is carried on
@@ -1065,7 +1102,7 @@ func _space() -> PhysicsDirectSpaceState3D:
 func _car_in_way(p: Parked, xf: Transform3D, d: Vector2, upto: float) -> Array:
 	var from := Vector2(xf.origin.x, xf.origin.z)
 	var to := from + d * upto
-	var near := _cars_near(from.min(to), from.max(to), xf.origin)
+	var near := _cars_near(from.min(to), from.max(to))
 	var box0 := box_of(xf, CAR_HALF)
 	var cands: Array = []
 	for q: Parked in near:
@@ -1100,6 +1137,8 @@ func _start_slide(p: Parked, d: Vector2, speed: float, lever: float) -> bool:
 	p.speed0 = speed
 	p.gone = 0.0
 	p.spin = clampf(-Solidity.PUSH_SPIN * speed * lever, -Solidity.PUSH_SPIN_MOST, Solidity.PUSH_SPIN_MOST)
+	p.near_rect = Rect2()
+	p.ground_gone = -INF
 	var natural := _plan_rest(p)
 	if p.target >= 0.0 and p.target < Solidity.PUSH_WEDGED and p.target < natural - 0.01:
 		p.dir = was[0]
@@ -1190,8 +1229,9 @@ func _slide_cars(dt: float) -> void:
 			v1 = 0.0
 		var turn := p.spin * minf((v0 + v1) * 0.5 / maxf(p.speed0, 0.1), 1.0) * dt
 		var next := Transform3D(Basis(Vector3.UP, turn) * p.xf.basis, p.xf.origin + Vector3(p.dir.x, 0.0, p.dir.y) * step)
-		if ground_at.is_valid():
+		if ground_at.is_valid() and (p.gone + step - p.ground_gone >= GROUND_EVERY or v1 <= 0.0):
 			next.origin.y = float(ground_at.call(next.origin.x, next.origin.z))
+			p.ground_gone = p.gone + step
 		var q := _meets_car(p, next)
 		if q != null:
 			_push_on(q, p)
@@ -1214,12 +1254,29 @@ func _meets_car(p: Parked, xf: Transform3D) -> Parked:
 	for v in box:
 		lo = lo.min(v)
 		hi = hi.max(v)
-	var was := box_of(p.xf, CAR_HALF)
-	for q: Parked in _cars_near(lo, hi, xf.origin):
-		if q == p or absf(q.xf.origin.y - xf.origin.y) >= CAR_HIGH:
+	# The bays round its way, kept while its box stays inside the rect they were gathered for.
+	if not p.near_rect.encloses(Rect2(lo, hi - lo)):
+		p.near_rect = Rect2(lo, hi - lo).grow(NEAR_GROW)
+		p.near = _bays_near(p.near_rect.position, p.near_rect.end)
+	var q := _first_met(p, xf, box, p.near, true)
+	return q if q != null else _first_met(p, xf, box, _off_bay, false)
+
+
+## The first car of `list` (in its bay when `bays`) other than `p` that `box` (p's at `xf`) meets and
+## p's box where it is did not.
+func _first_met(p: Parked, xf: Transform3D, box: PackedVector2Array, list: Array, bays: bool) -> Parked:
+	var reach2 := CAR_HALF.length_squared() * 4.0
+	var was := PackedVector2Array()
+	for q: Parked in list:
+		if q == p or q.hidden or (bays and q.state != BAY) or absf(q.xf.origin.y - xf.origin.y) >= CAR_HIGH \
+				or Vector2(q.xf.origin.x - xf.origin.x, q.xf.origin.z - xf.origin.z).length_squared() > reach2:
 			continue
 		var qb := box_of(q.xf, CAR_HALF)
-		if polys_meet(box, qb) and not polys_meet(was, qb):
+		if not polys_meet(box, qb):
+			continue
+		if was.is_empty():
+			was = box_of(p.xf, CAR_HALF)
+		if not polys_meet(was, qb):
 			return q
 	return null
 
@@ -1312,6 +1369,12 @@ func _plan_rest(p: Parked) -> float:
 ## lane graph `g`, as [ax, az, bx, bz, from, to] per centreline segment (`from`..`to` m right of it:
 ## the lanes' outer edges).
 const LANE_LEVEL := 2.5
+## A sliding car gathers the bays within this many metres of its box once, until it leaves that rect.
+const NEAR_GROW := 4.0
+## The player's car the same, a little wider (at 30 m/s it leaves the rect every 10 frames).
+const PLAYER_GROW := 6.0
+## A sliding car samples the ground every this many metres (and where it stops).
+const GROUND_EVERY := 0.25
 static func corridor_segments(g, at: Vector2, reach: float, y: float) -> PackedFloat32Array:
 	var out := PackedFloat32Array()
 	var box := Rect2(at - Vector2(reach, reach), Vector2(reach, reach) * 2.0)
