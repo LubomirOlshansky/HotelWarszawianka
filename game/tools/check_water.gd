@@ -119,6 +119,7 @@ func _physics_process(_delta: float) -> bool:
 		_check_edges()
 		_check_decks()
 		_check_walkers()
+		_check_tunnel_lanes()
 		print("check_water: static checks in %d ms" % (Time.get_ticks_msec() - t))
 		_start_ramming()
 		_phase = 1
@@ -454,6 +455,33 @@ func _check_walkers() -> void:
 		for i in walk_where:
 			print("   footway %d at %s" % [i, walk_where[i]])
 	_failures += lanes + trams + walk_where.size()
+
+
+## A tunnel's own lanes run under the ground, and where the tunnel passes under the river's edge
+## the surface map says water above them. The car on its tunnel lane is not in the water
+## (PT stall: a careful driver in Tunel Wisłostrady "splashed" at (527,-671) and (382,-847) and was
+## towed): map.in_water must be false at every tunnel lane point, at the lane's own height.
+func _check_tunnel_lanes() -> void:
+	var wet := 0
+	var points := 0
+	var where := {}
+	for e in graph.e_a.size():
+		if graph.e_tn[e] < 0:
+			continue
+		var s := 0.0
+		while s <= graph.e_len[e]:
+			var y := graph.height(e, s)
+			for lane in graph.e_lanes[e]:
+				var q := graph.point_at(e, s, graph.lane_offset(e, lane))
+				points += 1
+				if map.in_water(q.x, q.y, y):
+					wet += 1
+					where[graph.e_name[e]] = q.round()
+			s += 2.0
+	print("3b. tunnel lane points the car would be in the water at: %d of %d (every 2 m, each lane)" % [wet, points])
+	for n in where:
+		print("   tunnel lane: %s at %s" % [n, where[n]])
+	_failures += wet
 
 
 # --- 4. the real car at speed -----------------------------------------------------------
