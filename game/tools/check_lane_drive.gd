@@ -115,6 +115,9 @@ const SET_A_CENSUS := ["Aleja Armii Ludowej", "Aleje Jerozolimskie", "Aleja Jana
 		"Okopowa", "Tytusa Chałubińskiego", "Krucza", "Kozia", "Towarowa", "Wybrzeże Szczecińskie", "Czeska",
 		"Kolejowa", "Grzybowska", "Aleja Księcia Józefa Poniatowskiego", "Jana Zamoyskiego", "Lipska"]
 const SET_A_FIRST10 := ["Świętokrzyska", "Nowy Świat", "Emilii Plater"]
+## Step 8a (drivable-city-build.md item 4, step 5): the parking streets of Śródmieście Południowe,
+## lined both sides with parked cars (Krucza and Hoża are in the set already).
+const SET_A_PARKED := ["Wspólna", "Polna", "Stanisława Noakowskiego"]
 
 ## The sloppy driver (--driver=sloppy): how far off the lane's centre it aims (m), how far off its
 ## heading (deg), how much shorter it looks than the careful one, its share of the street's limit, how
@@ -313,7 +316,7 @@ func _initialize() -> void:
 		_add_links()
 	if set_a:
 		streets = []
-		for st: String in SET_A_CENSUS + SET_A_FIRST10 + STREETS:
+		for st: String in SET_A_CENSUS + SET_A_FIRST10 + STREETS + SET_A_PARKED:
 			if not streets.has(st):
 				streets.append(st)
 	for street: String in streets:
