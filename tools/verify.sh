@@ -28,6 +28,10 @@
 # stop from 90 km/h, coast, yaw lag, sideways pull, trail-brake slide, body pitch and roll, and its pull
 # the same as Cruise's, with a Cruise / Sport / Grounded table (no map; CI too). `lanedrive-grounded`
 # is `lanedrive` driven in Grounded (not in --quick).
+# `colliderules` runs game/tools/check_collide_rules.gd (the city objects plan, step 6): the collision
+# answer's table (collide_rules.gd: monotonic in the angle, never more speed out than in, the traffic
+# shares), and the real car into a wall at 12 cases with v1 (today's block gives exactly the v1
+# table) and mid (the car applies the table); no map, ~1 s.
 # `stopassist` runs game/tools/check_stop_assist.gd (2026-10-31): the car brakes itself into a
 # quest's ring from 30-90 km/h and holds for the quest's hold, never touches a car passing or driving
 # away, lets BRAKE reverse out; the quests share the ring and "stopped" (no map; CI too).
@@ -1223,6 +1227,7 @@ for s in $want; do
 		oldtowndrive) check oldtowndrive '^check_old_town_drive:' --fixed-fps 60 --script res://tools/check_old_town_drive.gd ;;
 		finite) check finite '^check_finite:' --fixed-fps 60 --script res://tools/check_finite.gd ;;
 		steering) check steering 'check_steering:' --fixed-fps 60 --script res://tools/check_steering.gd ;;
+		colliderules) check colliderules '^check_collide_rules:' --fixed-fps 60 --script res://tools/check_collide_rules.gd ;;
 		laneassist) check laneassist '^check_lane_assist:' --fixed-fps 60 --script res://tools/check_lane_assist.gd ;;
 		# G14's "later" (2026-11-03): trying to drive and going nowhere for 8 s offers the tow.
 		stuckoffer) check stuckoffer '^check_stuck_offer:' --fixed-fps 60 --script res://tools/check_stuck_offer.gd ;;
