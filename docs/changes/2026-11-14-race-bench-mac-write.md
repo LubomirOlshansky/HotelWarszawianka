@@ -1,0 +1,2 @@
+## Backlog
+- fixed: the race bench's marks that passed on one machine only (`once:Linux` in `game/data/race_bench.json`) waited for the Mac's `--write` (F's go, 2026-11-14). All nine passed on the Mac and are recorded pass: quick Independence, No ghosting, Recovers; full Finishes, Route sense, Wrong-way hops in traffic, Pack in traffic, Chase keeps off, Crazy stays crazy (docs/design/race-ai.md 7.4)
