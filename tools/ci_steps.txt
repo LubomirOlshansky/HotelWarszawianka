@@ -184,6 +184,7 @@ stuckspots-prebuilt  smoke     slow
 syrenki              quick
 tamka                quick
 tape                 quick
+tapers               quick
 tarasyscreen         quick
 teleport             runs
 tenementtrim         quick
