@@ -88,6 +88,11 @@ levels (if their folder is given) to balance the buses against.
   lift_hum       Senatorek (lounge.gd): the cabin's ride, a 2 s loop: a 50 / 100 / 150 Hz motor
       hum (whole cycles, so the loop is seamless) and low band-passed rush of the shaft
   scooter_clatter loop MW-2: a Leżak knocked over: a clank, a thud, a rattle, 0.7 s
+  smash_fence_metal / smash_fence_wood / smash_hedge   the city objects plan, step 7
+      (soft_things.gd): the car through a fence or a hedge, 0.6-0.7 s each: bars knocked flat
+      (a dull thud, three clanks of thin steel, a rattle of mesh); boards snapping (a woody
+      knock at 240 Hz, a crack, splinters); a hedge pushed through (a soft thump under a long
+      leafy rustle, a few twigs snapping)
   fan_chant      the fans by Stadion Leguminy (fans.gd): a belly drum and a wordless crowd tune
       in unison at 120 BPM, a cheer at the phrase's end (an 8 s loop)
   gong_bowls     the sound-healing rings (wellness.gd): a gong every 6 s and a singing bowl between (a 12 s loop)
@@ -1207,6 +1212,93 @@ def scooter_clatter(seed):
     return fade(mix((1.0, out), (1.0, biquad(w, "bp", 2400.0, 1.0))), 0.0, 0.08)
 
 
+def _thud(n, f0, drop, decay):
+    """A short falling sine: the car's nose meeting something soft."""
+    out = zeros(n)
+    for i in range(n):
+        t = i / RATE
+        out[i] = math.exp(-t * decay) * math.sin(TAU * (f0 - drop * t) * t)
+    return out
+
+
+def _place_cut(out, sig, at, gain=1.0):
+    """`place` without the wrap round (a one-shot)."""
+    for i, v in enumerate(sig[: max(0, len(out) - at)]):
+        out[at + i] += gain * v
+
+
+def smash_fence_metal(seed):
+    """Step 7: a steel fence panel knocked flat: a dull thud, three clanks of thin bars (a few
+    inharmonic partials each, short), and the mesh's rattle settling, 0.65 s."""
+    rnd = random.Random(seed)
+    n = int(0.65 * RATE)
+    out = zeros(n)
+    _place_cut(out, _thud(int(0.18 * RATE), 110.0, 160.0, 26.0), 0, 0.9)
+    for at, g in ((0.0, 1.0), (0.05, 0.6), (0.13, 0.45)):
+        f = rnd.uniform(620.0, 900.0)
+        sig = bell(int(0.3 * RATE), [(f, 1.0, 0.05), (f * 2.41, 0.6, 0.035), (f * 4.13, 0.35, 0.022),
+                                     (f * 6.7, 0.18, 0.012)], 0.5, rnd)
+        _place_cut(out, sig, int(at * RATE), g * 0.55)
+    w = noise(n, rnd)
+    for i in range(n):
+        t = i / RATE
+        w[i] *= 0.35 * math.exp(-t * 7.0) * (0.55 + 0.45 * math.sin(TAU * 31.0 * t + rnd.uniform(0, 0.2)))
+    rattle = biquad(biquad(w, "bp", 3200.0, 1.4), "hp", 900.0, 0.7)
+    return fade(saturate(mix((1.0, out), (1.0, rattle)), 1.2), 0.0, 0.08)
+
+
+def smash_fence_wood(seed):
+    """Step 7: wooden boards snapping: a woody knock (240 / 410 Hz bodies), a sharp crack of
+    broadband noise, then splinters (short clicks) and a board hitting the ground, 0.6 s."""
+    rnd = random.Random(seed)
+    n = int(0.6 * RATE)
+    out = zeros(n)
+    exc = zeros(n)
+    m = int(0.004 * RATE)
+    for i in range(m):
+        exc[i] = rnd.uniform(-1, 1) + (1.0 if i < 20 else 0.0)
+    knock = mix((1.0, biquad(exc, "bp", 240.0, 6.0)), (0.7, biquad(exc, "bp", 410.0, 7.0)), (0.4, biquad(exc, "bp", 760.0, 6.0)))
+    _place_cut(out, knock, 0, 3.0)
+    crack = noise(int(0.05 * RATE), rnd)
+    for i in range(len(crack)):
+        crack[i] *= (1 - i / len(crack)) ** 3
+    _place_cut(out, biquad(crack, "lp", 5200.0, 0.7), int(0.012 * RATE), 0.9)
+    for _ in range(9):
+        at = rnd.randrange(int(0.03 * RATE), int(0.35 * RATE))
+        click = noise(int(0.006 * RATE), rnd)
+        for i in range(len(click)):
+            click[i] *= 1 - i / len(click)
+        _place_cut(out, biquad(click, "bp", rnd.uniform(1800, 4200), 2.0), at, rnd.uniform(0.15, 0.4))
+    _place_cut(out, _thud(int(0.12 * RATE), 140.0, 220.0, 34.0), int(0.32 * RATE), 0.45)
+    return fade(saturate(out, 1.3), 0.0, 0.06)
+
+
+def smash_hedge(seed):
+    """Step 7: a hedge pushed through: a soft thump, a long leafy rustle (band-passed noise in
+    gusts as the branches spring back) and a few twigs snapping, 0.7 s."""
+    rnd = random.Random(seed)
+    n = int(0.7 * RATE)
+    out = zeros(n)
+    _place_cut(out, _thud(int(0.16 * RATE), 85.0, 120.0, 22.0), 0, 0.7)
+    w = noise(n, rnd)
+    gusts = [(rnd.uniform(0.0, 0.45), rnd.uniform(0.04, 0.12), rnd.uniform(0.5, 1.0)) for _ in range(7)]
+    for i in range(n):
+        t = i / RATE
+        env = 0.5 * math.exp(-t * 3.2)
+        for at, width, g in gusts:
+            env += g * 0.6 * math.exp(-((t - at) / width) ** 2) * math.exp(-t * 2.0)
+        w[i] *= env
+    rustle = mix((1.0, biquad(w, "bp", 2600.0, 0.8)), (0.6, biquad(w, "bp", 5200.0, 1.0)))
+    _place_cut(out, rustle, 0, 0.9)
+    for _ in range(5):
+        at = rnd.randrange(int(0.02 * RATE), int(0.4 * RATE))
+        snap = noise(int(0.004 * RATE), rnd)
+        for i in range(len(snap)):
+            snap[i] *= 1 - i / len(snap)
+        _place_cut(out, biquad(snap, "bp", rnd.uniform(2500, 5000), 3.0), at, rnd.uniform(0.2, 0.45))
+    return fade(out, 0.002, 0.1)
+
+
 def steps_guitar(seed):
     """The guitarist on the river steps: the same three chords (G, C, D at 92 BPM), a bar
     each with a lazy strum, nylon-soft (Karplus-Strong with more damping than the busker's),
@@ -1961,6 +2053,9 @@ CITY = {"club_leak": lambda: [club_leak(71)], "metro_chime": lambda: [metro_chim
         "cafe_bell": lambda: [cafe_bell(88)],
         # Loop MW-2 (storefronts.gd): the Frogs door's croak chime, a Leżak knocked over.
         "frog_chime": lambda: [frog_chime(89)], "scooter_clatter": lambda: [scooter_clatter(90)],
+        # The city objects plan, step 7 (soft_things.gd, main.gd _on_soft_broke): a fence or hedge broken.
+        "smash_fence_metal": lambda: [smash_fence_metal(112)], "smash_fence_wood": lambda: [smash_fence_wood(113)],
+        "smash_hedge": lambda: [smash_hedge(114)],
         # The night-buses loop (buses.gd): the player's horn.
         "horn_player": lambda: [horn_player()],
         # G13b (car.gd): the nitro lighting.

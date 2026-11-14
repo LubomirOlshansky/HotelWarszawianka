@@ -158,6 +158,10 @@ func _round_trip() -> void:
 	w.syrenki = {"s01": 20261031}
 	w.intro = {"finger": 20261031, "end_seen": 20261031}  # loop 3h slice 4
 	w.district = "powisle"
+	# Step 7: the smash counters (soft_things.gd), in [keep], saved with the next save.
+	w.count_smash("fence")
+	w.count_smash("fence")
+	w.count_smash("hedge")
 	w.pay(25, 1, "kebab")
 	w.pay(10, 0)  # no kind: not a job
 	_expect(w.district_jobs == {"powisle": 1}, "a job paid in Powiśle: %s" % w.district_jobs)
@@ -171,8 +175,11 @@ func _round_trip() -> void:
 			and b.keep == w.keep and b.tracks == w.tracks, "round trip of the v1 sections: %s" % b.summary())
 	_expect(b.district == "", "the district now is not saved: %s" % b.district)
 	_expect(b.intro == w.intro, "round trip of [intro] (loop 3h slice 4): %s" % b.intro)
+	_expect(b.smashed("fence") == 2 and b.smashed("hedge") == 1 and b.smashed("wall") == 0,
+			"round trip of the smash counters (step 7): fence %d, hedge %d" % [b.smashed("fence"), b.smashed("hedge")])
 	b.reset()
 	_expect(b.districts.is_empty() and b.district_jobs.is_empty() and b.syrenki.is_empty() and b.intro.is_empty() and b.zl == 0, "reset() left %s" % b.summary())
+	_expect(b.smashed("fence") == 0, "reset() left the smash counters: %d" % b.smashed("fence"))
 	w.free()
 	b.free()
 

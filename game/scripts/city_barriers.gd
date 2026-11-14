@@ -112,7 +112,31 @@ const GUARD_POCKET := 0.4
 ## mapped height (a solid fence mapped over it is a mesh: the 6 m ball-stop nets round the pitches).
 static var _kit: Dictionary = _load_kit()
 
+## Step 7 (docs/design/drivable-city-build.md item 3): `--no-soft` (main.gd and the checks set it
+## before a build): every fence and hedge collides as it did before step 7 (the same faces, in the
+## same order), and no soft list is made.
+static var soft_off := false
+## Step 7: the styles that stay hard on a fence whatever its class: a tram bed's railing and a
+## stair's balustrades guard a track's edge or a stair's hole (the build plan, item 3).
+const HARD_RAILS: Array[StringName] = [&"tram_railing", &"balustrade", &"balustrade_rail", &"balustrade_white"]
+## Step 7: a smash line's 2 m panels (the look thread's instanced panels use the same length).
+const PANEL := 2.0
+## Step 7: fence types (object_types.py `ty`) whose panels sound and break as wood.
+const WOOD_TYPES := ["wood", "hoarding"]
+
 var map  # map_builder.gd: terrain, decks, the building surface's helpers, `_solid`
+## Step 7: the soft lines of the last build_barriers (one sector, or the whole map): per line its
+## stable id (barrier_id), kind, material for the sound and debris ("metal", "wood", "hedge") and
+## panel count; per segment SOFT_STRIDE numbers (soft_data).
+var soft_ids := PackedStringArray()
+var soft_kinds := PackedStringArray()
+var soft_mats := PackedStringArray()
+var soft_panels := PackedInt32Array()
+var soft_segs := PackedFloat64Array()
+## The line being drawn soft ({"i": its index in soft_ids}; empty: the line collides as always),
+## and the metres drawn along it so far (a segment's start, for its panels).
+var _soft_line := {}
+var _soft_run := 0.0
 var guard_joins := 0
 var _object_overrides := {}
 var _island_boxes: Array = []
@@ -218,11 +242,107 @@ func wall_along(st, poly: PackedVector2Array, width: float, height: float, col: 
 			var n := Vector3(corners[(k + 1) % 4].x - corners[k].x, 0, corners[(k + 1) % 4].y - corners[k].y).cross(Vector3.UP).normalized()
 			map._quad(st, bottom[k], bottom[(k + 1) % 4], top[(k + 1) % 4], top[k], -n, col.darkened(0.08))
 		if collide:
-			for k in [0, 2]:
-				var p0: Vector3 = bottom[k]
-				var p1: Vector3 = bottom[(k + 1) % 4]
-				var up := Vector3(0, height + 1.5, 0)
-				map._solid(cls, [p0, p1, p1 + up, p0, p1 + up, p0 + up], {"same": true, "h": height})
+			var faces := slab_faces(a, b, hw, ga, gb, height)
+			if _soft_line.is_empty():
+				map._solid(cls, faces, {"same": true, "h": height})
+			else:
+				_soft_seg(cls, faces, a, b, hw, ga, gb, height)
+			_soft_run += d.length()
+
+
+## The two long faces of a slab's collider from a to b (half width `hw`, its foot `ga`, `gb` on
+## the ground): from 0.3 m under the ground to `height` + 1.5 m, as the barriers have always
+## collided. Step 7: one function, so a soft line's faces made again from its segment
+## (soft_things.gd `hard_faces`, `--no-soft` on the prebuilt city) are these very faces.
+static func slab_faces(a: Vector2, b: Vector2, hw: float, ga: float, gb: float, height: float) -> PackedVector3Array:
+	var dir := (b - a).normalized()
+	var side := Vector2(-dir.y, dir.x) * hw
+	var corners := [a + side, b + side, b - side, a - side]
+	var g := [ga, gb, gb, ga]
+	var bottom: Array[Vector3] = []
+	for k in 4:
+		var c: Vector2 = corners[k]
+		bottom.append(Vector3(c.x, float(g[k]) - 0.3, c.y))
+	var up := Vector3(0, height + 1.5, 0)
+	var out := PackedVector3Array()
+	for k in [0, 2]:
+		var p0: Vector3 = bottom[k]
+		var p1: Vector3 = bottom[(k + 1) % 4]
+		out.append_array([p0, p1, p1 + up, p0, p1 + up, p0 + up])
+	return out
+
+
+## A railing's collider from a to b: one upright face, from 0.3 m under its foot to `height` + 1.5 m.
+static func rail_faces(a: Vector2, b: Vector2, ga: float, gb: float, height: float) -> PackedVector3Array:
+	return PackedVector3Array([Vector3(a.x, ga - 0.3, a.y), Vector3(b.x, gb - 0.3, b.y), Vector3(b.x, gb + height + 1.5, b.y),
+			Vector3(a.x, ga - 0.3, a.y), Vector3(b.x, gb + height + 1.5, b.y), Vector3(a.x, ga + height + 1.5, a.y)])
+
+
+## Step 7: one segment of soft line `_soft_line` (a slab: half width `hw`; a railing: `hw` 0) where
+## its collider faces would have been. Kept when its middle or one of those faces' centres lies in
+## the sector (the faces are cut by centre, `_build_collision`); `own` (its middle in the sector)
+## says which sector's soft_things entry it is, so a segment counts once. The faces go only into
+## the R2 check's notes (`none: soft`: drawn on purpose with no collider).
+func _soft_seg(cls: StringName, faces: PackedVector3Array, a: Vector2, b: Vector2, hw: float, ga: float, gb: float,
+		height: float) -> void:
+	var own := true
+	if map._in_sector:
+		var rect: Rect2 = map._sector_rect
+		own = rect.has_point((a + b) * 0.5)
+		var keep := own
+		for i in range(0, faces.size() - 2, 3):
+			var c := (faces[i] + faces[i + 1] + faces[i + 2]) / 3.0
+			keep = keep or rect.has_point(Vector2(c.x, c.z))
+		if not keep:
+			return
+	soft_segs.append_array([float(_soft_line["i"]), a.x, a.y, b.x, b.y, ga, gb, hw, height, _soft_run, 1.0 if own else 0.0])
+	if map.note_solids:
+		map._note_solid(cls, faces, {"none": "soft", "same": true, "h": height})
+
+
+## Step 7: the numbers per segment in `soft_segs`: line index, a.x, a.z, b.x, b.z, the ground at a
+## and at b, half width (0: a railing's single face), drawn height, metres along the line at a, own.
+const SOFT_STRIDE := 11
+
+
+## Step 7: the soft list of the last build_barriers, for the sector's root (its "soft" meta, saved
+## with the prebuilt scene) or the whole city's map node: {} when it has none.
+func soft_data() -> Dictionary:
+	if soft_segs.is_empty():
+		return {}
+	return {"ids": soft_ids, "kinds": soft_kinds, "mats": soft_mats, "panels": soft_panels, "segs": soft_segs}
+
+
+## Step 7: whether barrier line `l`, drawn in `style` and solid, breaks instead of stopping the car:
+## a fence or hedge the bake classed S (tools/object_types.py `sc`; the game decides no class), not a
+## stair's balustrade (`cls` stair_wall), not drawn as a tram railing or a balustrade, and not kept
+## HARD by an exception (game/data/road_objects.json: the `--wander` run's traps).
+func _is_soft(l: Dictionary, style: Array, cls: StringName, solid: bool) -> bool:
+	if soft_off or not solid or str(l.get("sc", "")) != "S" or (cls != &"fence" and cls != &"hedge"):
+		return false
+	for id: StringName in HARD_RAILS:
+		if style == _s(id):
+			return false
+	if not _object_overrides.is_empty():
+		var o: Variant = _object_overrides.get(barrier_id(l["k"], l["p"]))
+		if o is Array and str(o[0]) == "HARD":
+			return false
+	return true
+
+
+## Step 7: starts soft line `l` (its id, kind, material and panels into the soft list).
+func _begin_soft(l: Dictionary, pts: PackedVector2Array) -> void:
+	var length := 0.0
+	for i in pts.size() - 1:
+		length += pts[i].distance_to(pts[i + 1])
+	var k := str(l["k"])
+	var ty := str(l.get("ty", ""))
+	_soft_line = {"i": soft_ids.size()}
+	_soft_run = 0.0
+	soft_ids.append(barrier_id(k, l["p"]))
+	soft_kinds.append(k)
+	soft_mats.append("hedge" if k == "hedge" else ("wood" if ty in WOOD_TYPES or str(l.get("ft", "")) == "wood" else "metal"))
+	soft_panels.append(maxi(1, ceili(length / PANEL)))
 
 
 ## An open railing along `poly`: an optional concrete upstand, then round-ish posts every 2 m and a
@@ -264,8 +384,12 @@ func railing_along(st, poly: PackedVector2Array, height: float, upstand: float, 
 			next_post += post_every
 		run += length
 		if collide:
-			map._solid(cls, [Vector3(a.x, ga - 0.3, a.y), Vector3(b.x, gb - 0.3, b.y), Vector3(b.x, gb + height + 1.5, b.y),
-					Vector3(a.x, ga - 0.3, a.y), Vector3(b.x, gb + height + 1.5, b.y), Vector3(a.x, ga + height + 1.5, a.y)], {"same": true, "h": height})
+			var faces := rail_faces(a, b, ga, gb, height)
+			if _soft_line.is_empty():
+				map._solid(cls, faces, {"same": true, "h": height})
+			else:
+				_soft_seg(cls, faces, a, b, 0.0, ga, gb, height)
+		_soft_run += length
 
 
 func _load_object_overrides() -> void:
@@ -775,6 +899,12 @@ static func barrier_class(l: Dictionary) -> StringName:
 func build_barriers(st) -> void:
 	map._uv2 = Vector2(0.5, -1.0)
 	_load_object_overrides()
+	soft_ids = PackedStringArray()
+	soft_kinds = PackedStringArray()
+	soft_mats = PackedStringArray()
+	soft_panels = PackedInt32Array()
+	soft_segs = PackedFloat64Array()
+	_soft_line = {}
 	_stairs_for_walls()
 	for l in map.data.get("lines", []):
 		var site_wall: Array = _site_wall(l["p"]) if l["k"] == "wall" or l["k"] == "fence" else []
@@ -825,11 +955,15 @@ func build_barriers(st) -> void:
 		var pts: PackedVector2Array = map._pts(l["p"])
 		var solid: bool = l["k"] != "platform" and float(style[2]) >= BARRIER_SOLID_MIN
 		var cls := barrier_class(l)
+		# Step 7: a soft line is drawn as before and files no collider faces (soft_things.gd breaks it).
+		if _is_soft(l, style, cls, solid or style.size() > 3):
+			_begin_soft(l, pts)
 		if style.size() > 3:
 			var open: Array = style[3]
 			# A railing OSM maps (tools/barrier_tags.py) has a post every `posts_mapped` m: 30 km of them.
 			railing_along(st, pts, float(style[2]), float(open[0]), Color(style[0]), Color(str(open[1])), true, cls,
 					float(open[3]) if l.has("ft") or (l["k"] == "fence" and float(l.get("h", 0.0)) > float(_kit["fence_max"])) else float(open[2]))
+			_soft_line = {}
 			continue
 		# Loop 3b: a stop's platform is kerb height (0.25 m), not a wall: like the kerbs and
 		# islands, the car drives over it (check_drive.gd found buses brushing them).
@@ -852,6 +986,7 @@ func build_barriers(st) -> void:
 				wall_along(st, piece, float(style[1]), float(style[2]), Color(style[0]), solid, cls)
 			continue
 		wall_along(st, pts, float(style[1]), float(style[2]), Color(style[0]), solid, cls)
+		_soft_line = {}
 	_pocket_hedges(st)
 	map._uv2 = Vector2.ZERO
 

@@ -16,6 +16,9 @@ extends RefCounted
 ## The answers: H hard (the car stops and slides, today's wall), S smash (it breaks, the car goes
 ## through for a share of its speed), P push (it gives way), R ride (the car drives over it),
 ## G ghost (no contact). **In step 1 every class answers H**: today's behaviour, nothing moves.
+## Step 7: a collider face is always hard; the fences and hedges the bake classed S (`sc`) file no
+## faces at all (city_barriers.gd `_is_soft`) and break through soft_things.gd at the costs below, so
+## the faces left under `fence` and `hedge` are the hard ones (a hazard behind, a railing, `--no-soft`).
 ## The research's verdicts (docs/design/drivable-city.md 3, for later steps; nothing reads them):
 ## building H; lod2 H; small_building H (kiosk-size ones Smash candidates later); fence S (H where
 ## a drop, a railway or water is behind); hedge S; wall by height (under 0.6 m R, 0.6-1.2 m S,
@@ -27,6 +30,24 @@ extends RefCounted
 const PALETTE := "res://data/object_palette.json"
 ## Hard, Smash, Push, Ride, Ghost.
 const ANSWERS := ["H", "S", "P", "R", "G"]
+
+## Step 7 (docs/design/drivable-city-build.md item 3): what a smash costs, read by soft_things.gd.
+## The share of the speed a panel takes when the car crosses it, by soft class; at most SMASH_CAP of
+## the speed within SMASH_CAP_TIME s however many panels go; grinding along a line (under
+## GRIND_ANGLE deg between the car's way and the line) costs GRIND_COST of the speed a second and
+## pushes the car out of the line at GRIND_NUDGE m/s. A class not listed costs DEFAULT_SMASH.
+const SMASH_COST := {&"fence": 0.06, &"hedge": 0.10}
+const DEFAULT_SMASH := 0.06
+const SMASH_CAP := 0.15
+const SMASH_CAP_TIME := 0.5
+const GRIND_ANGLE := 15.0
+const GRIND_COST := 0.03
+const GRIND_NUDGE := 0.3
+
+
+## Step 7: the share of the speed one crossed panel of class `cls` takes.
+static func smash_cost(cls: StringName) -> float:
+	return float(SMASH_COST.get(cls, DEFAULT_SMASH))
 
 ## {"list": Array[StringName] in the file's order, "answer": {StringName: String},
 ## "planned": {StringName: String}}.

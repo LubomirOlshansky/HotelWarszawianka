@@ -881,6 +881,21 @@ const CONTACT_LOG := "res://scripts/contact_log.gd"
 var contacts_to := ""
 var _contacts: RefCounted
 var _contact_names := PackedStringArray()
+## The city objects plan, step 7 (docs/design/drivable-city-build.md item 3): the fences and hedges
+## that break (soft_things.gd, made by `_build_soft_things`, fed by `_on_sector_ready`); --no-soft
+## makes every one hard again (exactly the colliders before step 7, on both city paths).
+const SoftThings := preload("res://scripts/soft_things.gd")
+const CityBarriers := preload("res://scripts/city_barriers.gd")
+var soft_things: SoftThings
+var _no_soft := false
+## Step 7's feedback: the last smash sound, buzz and bubble (game seconds), so a fence taken
+## lengthwise is one noise, not twenty.
+var _smash_sound_t := -10.0
+var _smash_said_t := -100.0
+const SMASH_SOUND_GAP := 0.12
+const SMASH_SAY_GAP := 25.0
+const SMASH_SAY_CHANCE := 0.3
+const SMASH_BUBBLE := Color("#9fd36a")
 var _flag_traffic := -1
 var _flag_fixed := false
 var _flag_perf := false
@@ -1657,6 +1672,7 @@ func _build_world() -> void:
 	# editor builds them from their files. --monolithic builds the whole city at once from
 	# centrum.json, as before loop 3c (the pixel diff's reference; city.scn is gone).
 	_load_ms = [Time.get_ticks_msec()]
+	_build_soft_things(world)
 	if not monolithic:
 		data = _open_streamed_city(world, flat_mat)
 		flat_mat = map.flat_material
@@ -1673,6 +1689,7 @@ func _build_world() -> void:
 		world.add_child(map)
 		data = map.build(MAP_PATH, building_mat, flat_mat)
 		map.open_maps_whole()  # loop 3d-2b: every sector's map slices on the GPU at once
+		soft_things.add_sector(map)  # step 7: the whole city's soft lines
 	await _load_mark(0.1)
 
 	for a in data["areas"]:
@@ -1856,6 +1873,7 @@ func _build_world() -> void:
 		graph = LaneGraph.new(data["graph"], map)
 	if contacts_to != "":
 		_start_contact_log(data)
+	_start_soft_things()
 	if collider_view:
 		world.add_child((load(COLLIDER_VIEW) as GDScript).new())
 	if debug_roads:
@@ -5397,6 +5415,10 @@ func _parse_args() -> void:
 			autopilot = true
 		elif arg.begins_with("--contacts="):
 			contacts_to = arg.trim_prefix("--contacts=")
+		elif arg == "--no-soft":
+			# Step 7: before the city is built (the builder reads it: every fence and hedge hard).
+			_no_soft = true
+			CityBarriers.soft_off = true
 		elif arg == "--race-debug":
 			race_debug = true
 		elif arg.begins_with("--ghost-pace="):
@@ -6672,6 +6694,48 @@ func _on_context_pressed(owner: String) -> void:
 		_unstuck()
 
 
+## Step 7: the soft things, before the city opens (the streamer's first sectors come in with it).
+func _build_soft_things(world: Node3D) -> void:
+	soft_things = SoftThings.new()
+	soft_things.name = "SoftThings"
+	soft_things.no_soft = _no_soft
+	world.add_child(soft_things)
+	soft_things.broke.connect(_on_soft_broke)
+
+
+## Step 7: the car, the camera, the player's place for rule B, the contact log; a dawn repairs.
+func _start_soft_things() -> void:
+	soft_things.car = car
+	soft_things.camera = cam
+	soft_things.focus_at = _vehicle_position
+	soft_things.contacts = _contacts
+	tod.lights_switched.connect(func(on: bool) -> void:
+		if not on:
+			soft_things.on_dawn())
+
+
+## Step 7: a panel broke: its sound (a voice limit of 2 in Sfx), a light buzz, the wallet's counter,
+## and now and then a bubble from someone who saw it (dialogue.json "smash", inside the chatter
+## budget). The debris is soft_things' own.
+func _on_soft_broke(id: String, _panel: int, kind: StringName, at: Vector3, _dir: Vector3, speed: float) -> void:
+	if wallet != null:
+		wallet.count_smash(String(kind))
+	var now := _clock_s()
+	if now - _smash_sound_t < SMASH_SOUND_GAP:
+		return
+	_smash_sound_t = now
+	var mat := soft_things.material_of(id)
+	if sfx != null:
+		sfx.play_at("smash_hedge" if mat == "hedge" else ("smash_fence_wood" if mat == "wood" else "smash_fence_metal"), at,
+				clampf((speed - 12.0) * 0.25, -4.0, 2.0))
+	Access.buzz(25, 0.25)
+	if dialogue != null and now - _smash_said_t > SMASH_SAY_GAP and randf() < SMASH_SAY_CHANCE:
+		var said := dialogue.say_reaction(func() -> Vector3: return at, "", "smash", "hedge" if kind == &"hedge" else "fence",
+				3.5, SMASH_BUBBLE, 2.2, false, "smash")
+		if not said.is_empty():
+			_smash_said_t = now
+
+
 ## --contacts=FILE (step 3): the log starts once the car and the lane graph are there; it watches
 ## the car once a physics frame, before the car's step, as check_lane_drive does.
 func _start_contact_log(data: Dictionary) -> void:
@@ -7672,6 +7736,8 @@ func _make_stats() -> BenchStats:
 	if traffic != null:
 		b.systems["traffic"] = [traffic, "last_usec", false]
 		b.systems["traffic bodies"] = [traffic, "spent_usec", true]
+		if soft_things != null:
+			b.systems["soft things"] = [soft_things, "spent_usec", true]  # step 7
 		b.systems["trams"] = [trams, "last_usec", false]
 		if trains != null:
 			b.systems["trains"] = [trains, "last_usec", false]
@@ -9150,6 +9216,8 @@ func _city_nodes() -> Array[Node]:
 ## lights, small casters' shadows as _apply_extras last set them (the quality, the governor's
 ## GPU level, the wide view; loop G1), fine detail by the view's width, --exp.
 func _on_sector_ready(root: Node3D) -> void:
+	if soft_things != null:
+		soft_things.add_sector(root)  # step 7: its soft lines (or, --no-soft, their colliders back)
 	# Loop MW-2: the storefronts first (the neon atlas, a Neon holder of their own goes in below).
 	if storefronts != null:
 		storefronts.on_sector_ready(root)

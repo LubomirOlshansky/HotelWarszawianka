@@ -43,9 +43,12 @@ extends SceneTree
 ## streets, Trzy mosty: SET_A; street ends behind the edge roadworks left out, a street whose far
 ## ends are one-way driven the one way).
 ## The careful driver's lines and results do not move with any of this (the log only watches).
+## Step 7: the soft things (soft_things.gd) run as in the game: the S fences and hedges have no
+## collider, and the car breaks through them at their cost (their contacts are `soft` lines in the
+## log); --no-soft drives the city as it was before step 7 (every fence and hedge hard, both paths).
 ## --dry lists the routes and their length and drives nothing.
 ##
-##   godot --headless --path game --fixed-fps 60 --script res://tools/check_lane_drive.gd [-- --prebuilt --handling=grounded --verbose --only=NAME[|NAME2] --streets=A,B --box=... --links --write=FILE --driver=careful|sloppy --contacts=FILE --set=A --seed=N --assist=on|off --dry]
+##   godot --headless --path game --fixed-fps 60 --script res://tools/check_lane_drive.gd [-- --prebuilt --handling=grounded --verbose --only=NAME[|NAME2] --streets=A,B --box=... --links --write=FILE --driver=careful|sloppy --contacts=FILE --set=A --seed=N --assist=on|off --dry --no-soft]
 
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const SectorStreamer := preload("res://scripts/sector_streamer.gd")
@@ -59,6 +62,8 @@ const RaceCuts := preload("res://scripts/race_cuts.gd")
 const ContactLog := preload("res://scripts/contact_log.gd")
 const DriveControls := preload("res://scripts/drive_controls.gd")
 const LaneAssist := preload("res://scripts/lane_assist.gd")
+const SoftThings := preload("res://scripts/soft_things.gd")
+const CityBarriers := preload("res://scripts/city_barriers.gd")
 ## --links: the metres of street before a link and of the way on after it, the most a link's
 ## drive may stray from its curve (m), and the frames it may touch something fixed.
 const LINK_IN := 25.0
@@ -166,6 +171,9 @@ var _wet := 0.0
 var _gave_up := false
 var _ep0 := 0
 var _total_m := 0.0
+## Step 7: the soft things, and --no-soft.
+var soft: SoftThings
+var no_soft := false
 
 
 func _initialize() -> void:
@@ -200,10 +208,16 @@ func _initialize() -> void:
 			assist = a.trim_prefix("--assist=") != "off"
 		elif a == "--dry":
 			dry = true
+		elif a == "--no-soft":
+			no_soft = true
 		elif a.begins_with("--box="):
 			var b := a.trim_prefix("--box=").split_floats(",")
 			box = Rect2(minf(b[0], b[2]), minf(b[1], b[3]), absf(b[2] - b[0]), absf(b[3] - b[1]))
 	var t0 := Time.get_ticks_msec()
+	CityBarriers.soft_off = no_soft
+	soft = SoftThings.new()
+	soft.no_soft = no_soft
+	root.add_child(soft)
 	# The index first (the lane graph needs only it), then just the sectors within REACH of a route.
 	if prebuilt:
 		map = (load(SectorStreamer.INDEX_SCENE) as PackedScene).instantiate()
@@ -279,6 +293,7 @@ func _initialize() -> void:
 		var sector: Node3D = (load("res://map/sectors/%s.scn" % MapBuilder.sector_name(key)) as PackedScene).instantiate() \
 				if prebuilt else map.build_sector(key)
 		map.add_child(sector)
+		soft.add_sector(sector)
 		n += 1
 	if not prebuilt:
 		map.measure_sectors()
@@ -293,6 +308,9 @@ func _initialize() -> void:
 				" (Classic, lane assist %s, seed %d)" % ["on" if assist else "off", noise_seed] if sloppy else "",
 				contacts_to if contacts_to != "" else "on stdout"])
 		clog.echo = contacts_to == "" or verbose
+		soft.contacts = clog
+	print("check_lane_drive: soft things %s: %d segments in %d sectors" % ["off (--no-soft)" if no_soft else "on",
+			soft.segment_count(), n])
 
 
 func _fail_build(why: String) -> void:
@@ -491,6 +509,8 @@ func _next() -> bool:
 	car.water_at = map.in_water
 	car.kerb_feel = map.kerb_feel
 	root.add_child(car)
+	soft.car = car
+	soft.reset_motion()
 	var d := _path[1] - _path[0]
 	car.global_position = _path[0]
 	car.rotation.y = atan2(-d.x, -d.z)
@@ -745,17 +765,27 @@ func _drive_sloppy(dt: float, p: Vector3, v: float, off_now: float) -> void:
 		clog.flush()
 	var n := 0
 	var dead := 0
+	var smash := 0
 	for i in range(_ep0, clog.lines.size()):
-		if clog.lines[i].begins_with("contact\t"):
+		if clog.lines[i].begins_with("contact\t") and clog.lines[i].contains("flags=soft"):
+			smash += 1
+		elif clog.lines[i].begins_with("contact\t"):
 			n += 1
 			dead += 1 if clog.lines[i].contains("dead_stop") else 0
 	var how := "ok      " if done else ("gave up " if _gave_up else "timeout ")
-	print("%s %s: %.0f m in %.1f s (%.0f km/h on average), slowest %.1f m/s · %d contacts, %d dead stops, %d unsticks, %d tows  (--at=%.0f,%.0f)" % [
+	print("%s %s: %.0f m in %.1f s (%.0f km/h on average), slowest %.1f m/s · %d contacts, %d dead stops, %d unsticks, %d tows%s  (--at=%.0f,%.0f)" % [
 			how, r["name"], float(r["len"]), _t, float(r["len"]) / maxf(_t, 0.1) * 3.6, 0.0 if _min_v == INF else _min_v,
-			n, dead, int(car.unsticks), _tows, _path[0].x, _path[0].z])
+			n, dead, int(car.unsticks), _tows, ", %d smashes" % smash if smash > 0 else "", _path[0].x, _path[0].z])
 	_total_m += float(r["len"]) if done else _idx * STEP
 	if not _next():
 		_finish()
+
+
+func _smashes() -> int:
+	var n := 0
+	for k: String in clog.soft_counts:
+		n += int(clog.soft_counts[k])
+	return n
 
 
 ## The player's tow, as the game's (main.gd `_tow_to_lane`): the car stopped and put back on the
@@ -769,6 +799,7 @@ func _tow(why: String, p: Vector3) -> void:
 	if car.in_water:
 		car.leave_water()
 	car.reset_motion()
+	soft.reset_motion()
 	car.reset_physics_interpolation()
 	_idx = j
 	_wet = 0.0
@@ -786,7 +817,7 @@ func _finish() -> void:
 		var by := {}
 		var n := 0
 		for line: String in clog.lines:
-			if line.begins_with("contact\t"):
+			if line.begins_with("contact\t") and not line.contains("flags=soft"):
 				n += 1
 				var cls := String(ContactLog.parse(line).get("class", ""))
 				by[cls] = int(by.get(cls, 0)) + 1
@@ -797,6 +828,11 @@ func _finish() -> void:
 			parts.append("%s %d" % [k, by[k]])
 		print("check_lane_drive: %d contacts (%s), %d unknown%s" % [n, ", ".join(parts), clog.unknown.size(),
 				"" if clog.unknown.is_empty() else ": " + ", ".join(clog.unknown.slice(0, 5))])
+		var sp: Array[String] = []
+		for k: String in clog.soft_counts:
+			sp.append("%s %d" % [k, clog.soft_counts[k]])
+		print("check_lane_drive: soft things: %d smashes (%s), %d panels broken" % [_smashes(),
+				", ".join(sp), soft.panels_broken])
 		if sloppy:
 			print("check_lane_drive: sloppy driver over %.1f km" % (_total_m / 1000.0))
 	if write_to != "":
