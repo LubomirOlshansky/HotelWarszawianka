@@ -21,6 +21,10 @@ extends Control
 ## and Obraz the FOTKA button beside TEST (closes the card and opens the photo mode: fotka.gd).
 ## F's asks (2026-10-30): Jazda gets "Strefy piesze 20 km/h · Pedestrian zones 20 km/h" Off / On
 ## under the mode (settings.gd `zone_cap`, off by default: key "zones").
+## Settings rows (F 2026-11-14): Świat in three rows gets "Łamliwe płoty · Smashable fences"
+## Off / On beside the weather (settings.gd `soft_fences`, off by default: key "soft_fences") and
+## "Zderzenia · Collisions" beside the traffic (settings.gd `collide`, collide_rules.gd PRESETS:
+## key "collide").
 ## 2026-11-01: Jazda's first column ends with "Utknąłeś? · Stuck?" and POMOC DROGOWA (closes the
 ## card and tows the car onto the nearest road: main.gd `_unstuck`, key "unstuck").
 
@@ -86,6 +90,9 @@ const MODE := [["Miasto", "City"], ["Spacer", "Wander"]]
 const HANDLING := [["Spokojnie", "Cruise"], ["Sportowo", "Sport"], ["Realnie", "Grounded"]]
 ## Phase 0.2: the city's chattiness (settings.gd `chatter`, chatter.gd GAPS).
 const CHATTER := [["Mało", "Quiet"], ["Średnio", "Some"], ["Dużo", "Lots"]]
+## Settings rows (F 2026-11-14): the car's collision answer (settings.gd `collide`, collide_rules.gd
+## PRESETS: v1, soft, mid, firm), short words like the handling's.
+const COLLIDE := [["Klasyka", "Classic"], ["Miękko", "Soft"], ["Średnio", "Medium"], ["Twardo", "Firm"]]
 const LEVELS := [["master", "Głośność", "Volume"], ["music", "Radio", "Radio"], ["effects", "Efekty", "Effects"]]
 
 ## Loop 2e: pixels per point and the safe area in pixels (from the HUD, screen_points.gd).
@@ -258,18 +265,35 @@ func _build() -> void:
 	pair.add_child(lane)
 	_heading(lane, "Asysta pasa", "Lane assist")
 	_segments(lane, "lane_assist", ON_OFF)
-	# Świat · World.
-	var world := _page(body, 2)
+	# Świat · World. Settings rows (F 2026-11-14): in three rows, as Obraz is (a fourth row in the
+	# columns made the card too tall for the phone, a wider second column too wide): the time of day
+	# and the mode; the weather beside the smashable fences, and the chattiness; the traffic and the
+	# collision answer.
+	var world := _rows(body, [2, 2, 2])
 	_heading(world[0], "Pora dnia", "Time of day")
 	_segments(world[0], "time", TIME)
-	_heading(world[0], "Pogoda", "Weather")
-	_segments(world[0], "weather", WEATHER)
-	_heading(world[0], "Ruch uliczny", "Traffic")
-	_steps(world[0], "traffic", TRAFFIC)
 	_heading(world[1], "Tryb gry", "Game mode")
 	_segments(world[1], "wander", MODE)
-	_heading(world[1], "Gadatliwość miasta", "City chattiness")
-	_segments(world[1], "chatter", CHATTER)
+	var weather_pair := HBoxContainer.new()
+	weather_pair.add_theme_constant_override("separation", _px(8))
+	weather_pair.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	world[2].add_child(weather_pair)
+	var weather := VBoxContainer.new()
+	weather.add_theme_constant_override("separation", _px(6))
+	weather_pair.add_child(weather)
+	_heading(weather, "Pogoda", "Weather")
+	_segments(weather, "weather", WEATHER)
+	var fences := VBoxContainer.new()
+	fences.add_theme_constant_override("separation", _px(6))
+	weather_pair.add_child(fences)
+	_heading(fences, "Łamliwe płoty", "Smashable fences")
+	_segments(fences, "soft_fences", ON_OFF)
+	_heading(world[3], "Gadatliwość miasta", "City chattiness")
+	_segments(world[3], "chatter", CHATTER)
+	_heading(world[4], "Ruch uliczny", "Traffic")
+	_steps(world[4], "traffic", TRAFFIC)
+	_heading(world[5], "Zderzenia", "Collisions")
+	_segments(world[5], "collide", COLLIDE)
 	# Three choices beside the five times of day: narrower buttons (still over 44 pt) so the
 	# page keeps the card's width on a 375 pt phone.
 	for b: Button in _groups["chatter"]:

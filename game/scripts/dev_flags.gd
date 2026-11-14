@@ -351,13 +351,19 @@ var _flag_pads := -1
 ## --handling=cruise|sport|grounded (or 0..2): the run drives that profile whatever the settings say.
 var _flag_handling := -1
 ## The city objects plan, step 6: --collide=v1|soft|mid|firm, the car's collision answer
-## (collide_rules.gd; the car and traffic get it). v1, today's answer, is the default (no setting yet).
-var _flag_collide := &"v1"
+## (collide_rules.gd; the car and traffic get it) for the run, over Settings → Świat → Zderzenia
+## (settings.gd `collide`, v1 by default); &"" when not given.
+var _flag_collide := &""
 ## Beta values: --lane-assist=on|off overrides Settings → Jazda → Asysta pasa for the run; the
 ## lane's direction is looked up every LANE_EVERY s (lane_assist.gd).
 var _flag_lane := -1
 var contacts_to := ""
 var _no_soft := false
+## Settings rows (F 2026-11-14): --soft makes the fences and hedges break for the run whatever
+## Settings → Świat → Łamliwe płoty says (off by default; the checks and drive logs that measure step
+## 7 pass it). --no-soft wins over it and over the setting for the whole run (its sectors are built
+## with no soft list, so nothing could turn them breakable).
+var _flag_soft := false
 var _flag_traffic := -1
 var _flag_fixed := false
 var _flag_perf := false
@@ -573,6 +579,8 @@ func parse_with(args: PackedStringArray) -> void:
 			# Step 7: before the city is built (the builder reads it: every fence and hedge hard).
 			_no_soft = true
 			CityBarriers.soft_off = true
+		elif arg == "--soft":
+			_flag_soft = true
 		elif arg == "--race-debug":
 			race_debug = true
 		elif arg.begins_with("--ghost-pace="):

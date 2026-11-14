@@ -1364,7 +1364,7 @@ func _build_world() -> void:
 	car.set_sensitivity(settings.sensitivity)
 	# G4: Cruise by default, Sport or Grounded from Settings → Jazda (--handling= for a run).
 	car.set_handling(settings.handling if flags._flag_handling < 0 else flags._flag_handling)
-	car.collide = flags._flag_collide
+	car.collide = _collide_preset()
 	car.lane_assist = settings.lane_assist if flags._flag_lane < 0 else flags._flag_lane == 1
 	world.add_child(car)
 	_xray = TunnelXray.new()
@@ -1758,7 +1758,7 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	var t0 := Time.get_ticks_msec()
 	traffic = Traffic.new()
 	traffic.race_debug = flags.race_debug
-	traffic.collide = flags._flag_collide
+	traffic.collide = _collide_preset()
 	traffic.count_overlaps = flags._traffic_overlaps
 	world.add_child(traffic)
 	await traffic.setup(graph, map, cam, data)
@@ -5313,7 +5313,9 @@ func _settings_state() -> Dictionary:
 			"master": settings.master, "music": settings.music, "effects": settings.effects, "perf": int(show_perf),
 			"fps": maxi(0, Settings.FPS.find(settings.fps)), "style": style_index, "vhs": int(vhs),
 			"angle": maxi(0, FollowCamera.PITCHES.find(-camera_pitch)),
-			"weather": weather.state, "time": tod.mode, "wander": int(spacer != null and spacer.on), "zones": int(zone_cap_on), "handling": settings.handling, "chatter": settings.chatter, "sensitivity": settings.sensitivity,
+			"weather": weather.state, "time": tod.mode, "wander": int(spacer != null and spacer.on), "zones": int(zone_cap_on), "handling": settings.handling, "chatter": settings.chatter,
+			"collide": maxi(0, Car.CollideRules.PRESETS.find(car.collide)) if car != null else settings.collide,
+			"soft_fences": int(not soft_things.no_soft) if soft_things != null else int(settings.soft_fences), "sensitivity": settings.sensitivity,
 			"text_large": int(settings.text_large), "calm": int(settings.calm), "color_safe": int(settings.color_safe),
 			"vibration": int(settings.vibration), "stop_assist": int(settings.stop_assist),
 			"lane_assist": int(car.lane_assist if car != null else settings.lane_assist),
@@ -5423,6 +5425,13 @@ func _on_setting(key: String, value: Variant) -> void:
 		"handling":
 			settings.handling = clampi(int(value), 0, 2)
 			car.set_handling(settings.handling)
+		"collide":
+			# Settings rows (F 2026-11-14): the collision answer, live (the car reads it each contact).
+			settings.collide = clampi(int(value), 0, Settings.COLLIDE_PRESETS - 1)
+			_apply_collide(Car.CollideRules.PRESETS[settings.collide])
+		"soft_fences":
+			settings.soft_fences = int(value) == 1
+			_apply_soft_fences(settings.soft_fences)
 		"pads":
 			# F 2026-11-13: fixed arrows + pedals (0, the default) or the sliding strip (1).
 			settings.pads = clampi(int(value), 0, 1)
@@ -5522,9 +5531,49 @@ func _on_context_pressed(owner: String) -> void:
 func _build_soft_things(world: Node3D) -> void:
 	soft_things = SoftThings.new()
 	soft_things.name = "SoftThings"
-	soft_things.no_soft = flags._no_soft
+	soft_things.no_soft = not _soft_on()
 	world.add_child(soft_things)
 	soft_things.broke.connect(_on_soft_broke)
+	print("soft things: fences and hedges %s (%s)" % ["breakable" if _soft_on() else "hard",
+			"--no-soft" if flags._no_soft else ("--soft" if flags._flag_soft else "the setting")])
+
+
+## Settings rows: whether the fences and hedges break this run (--no-soft, else --soft, else the
+## setting; off by default).
+func _soft_on() -> bool:
+	if flags._no_soft:
+		return false
+	return flags._flag_soft or settings.soft_fences
+
+
+## Settings rows: the collision answer for the run (--collide=, else the setting; v1 by default).
+func _collide_preset() -> StringName:
+	if flags._flag_collide != &"":
+		return flags._flag_collide
+	return Car.CollideRules.PRESETS[clampi(settings.collide, 0, Car.CollideRules.PRESETS.size() - 1)]
+
+
+## Settings rows, applied live: the collision answer to the car and traffic.
+func _apply_collide(preset: StringName) -> void:
+	if car != null:
+		car.collide = preset
+	if traffic != null:
+		traffic.collide = preset
+	print("collide: %s" % preset)
+
+
+## Settings rows, applied live: the fences and hedges on every loaded sector (soft_things.gd
+## `set_soft`). --no-soft keeps them hard for the run.
+func _apply_soft_fences(on: bool) -> void:
+	if soft_things == null:
+		return
+	if flags._no_soft:
+		print("soft things: --no-soft keeps the fences hard this run")
+		return
+	var t0 := Time.get_ticks_usec()
+	var n := soft_things.set_soft(on)
+	print("soft things: fences and hedges %s, %d sectors turned over in %.1f ms" % ["breakable" if on else "hard", n,
+			(Time.get_ticks_usec() - t0) / 1000.0])
 
 
 ## Step 7: the car, the camera, the player's place for rule B, the contact log; a dawn repairs.

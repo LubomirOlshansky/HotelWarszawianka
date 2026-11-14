@@ -43,9 +43,13 @@ extends SceneTree
 ## streets, Trzy mosty: SET_A; street ends behind the edge roadworks left out, a street whose far
 ## ends are one-way driven the one way).
 ## The careful driver's lines and results do not move with any of this (the log only watches).
-## Step 7: the soft things (soft_things.gd) run as in the game: the S fences and hedges have no
-## collider, and the car breaks through them at their cost (their contacts are `soft` lines in the
-## log); --no-soft drives the city as it was before step 7 (every fence and hedge hard, both paths).
+## Step 7: the soft things (soft_things.gd) run as in the game. Settings rows (2026-11-14): by
+## default as the game's default (Settings → Łamliwe płoty off): the sectors are built soft and
+## soft_things gives every S fence and hedge its collider back as the sector loads, so the output is
+## the city before step 7's. --soft drives with them breakable (no collider; the car breaks through at
+## their cost, their contacts are `soft` lines in the log: route set A's drive log and --wander use
+## it); --no-soft builds them hard (CityBarriers.soft_off, as before step 7, both paths): the default's
+## output must equal it.
 ## --wander (step 7, the R6 trap): no routes; the car is aimed at the soft lines instead. For every
 ## S fence or hedge line within WANDER_NEAR m of a ground lane (one test a line, at its segment
 ## nearest a lane), the car starts on that lane at WANDER_SPEED, drives at the line (square to it
@@ -63,7 +67,7 @@ extends SceneTree
 ## The city objects plan, step 6: --collide=v1|soft|mid|firm drives the car with that collision answer
 ## (collide_rules.gd; v1, today's, by default: the output and the contact log do not move with it).
 ##
-##   godot --headless --path game --fixed-fps 60 --script res://tools/check_lane_drive.gd [-- --prebuilt --handling=grounded --verbose --only=NAME[|NAME2] --streets=A,B --box=... --links --write=FILE --driver=careful|sloppy --contacts=FILE --set=A --seed=N --assist=on|off --collide=PRESET --dry --no-soft --wander]
+##   godot --headless --path game --fixed-fps 60 --script res://tools/check_lane_drive.gd [-- --prebuilt --handling=grounded --verbose --only=NAME[|NAME2] --streets=A,B --box=... --links --write=FILE --driver=careful|sloppy --contacts=FILE --set=A --seed=N --assist=on|off --collide=PRESET --dry --soft --no-soft --wander]
 
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const SectorStreamer := preload("res://scripts/sector_streamer.gd")
@@ -211,8 +215,9 @@ var _wet := 0.0
 var _gave_up := false
 var _ep0 := 0
 var _total_m := 0.0
-## Step 7: the soft things, and --no-soft.
+## Step 7: the soft things; --soft (breakable) and --no-soft (built hard).
 var soft: SoftThings
+var soft_on := false
 var no_soft := false
 ## --wander's state: the sector keys to visit, the one now, the loaded sectors (key: root), the
 ## tests of this sector ([id, kind, mat, start, a, b, dir, foot, key]), the phase (0 settle, 1 out,
@@ -274,15 +279,20 @@ func _initialize() -> void:
 			dry = true
 		elif a == "--no-soft":
 			no_soft = true
+		elif a == "--soft":
+			soft_on = true
 		elif a == "--wander":
 			wander = true
 		elif a.begins_with("--box="):
 			var b := a.trim_prefix("--box=").split_floats(",")
 			box = Rect2(minf(b[0], b[2]), minf(b[1], b[3]), absf(b[2] - b[0]), absf(b[3] - b[1]))
 	var t0 := Time.get_ticks_msec()
+	if wander and not no_soft:
+		soft_on = true  # --wander tests the breakable lines: --soft is implied
+	soft_on = soft_on and not no_soft
 	CityBarriers.soft_off = no_soft
 	soft = SoftThings.new()
-	soft.no_soft = no_soft
+	soft.no_soft = not soft_on
 	root.add_child(soft)
 	# The index first (the lane graph needs only it), then just the sectors within REACH of a route.
 	if prebuilt:
@@ -378,7 +388,7 @@ func _initialize() -> void:
 				contacts_to if contacts_to != "" else "on stdout"])
 		clog.echo = contacts_to == "" or verbose
 		soft.contacts = clog
-	print("check_lane_drive: soft things %s: %d segments in %d sectors" % ["off (--no-soft)" if no_soft else "on",
+	print("check_lane_drive: soft things %s: %d segments in %d sectors" % [_soft_word(),
 			soft.segment_count(), n])
 
 
@@ -942,7 +952,7 @@ func _start_wander(t0: int) -> void:
 	_w_keys.sort_custom(func(p: Vector2i, q: Vector2i) -> bool: return p.x < q.x or (p.x == q.x and p.y < q.y))
 	IndexPack.pack(map.index_data)
 	print("check_lane_drive: wander over %d sectors (%s city), soft things %s" % [_w_keys.size(),
-			"prebuilt" if prebuilt else "runtime", "off (--no-soft)" if no_soft else "on"])
+			"prebuilt" if prebuilt else "runtime", _soft_word()])
 	_w_rows.append("id\tkind\tmat\tx\tz\tverdict\tsecs\tdrop\tunsticks\tsector\twhy")
 
 
@@ -1174,3 +1184,10 @@ func _wander_finish() -> void:
 	print("check_lane_drive: wander: %d soft lines tested in %d sectors (%s)%s, %d ms" % [_w_rows.size() - 1,
 			_w_keys.size(), ", ".join(parts), (" -> " + write_to) if write_to != "" else "", Time.get_ticks_msec() - _w_t0])
 	quit(0)
+
+
+## How the run's fences and hedges are, for its lines.
+func _soft_word() -> String:
+	if no_soft:
+		return "off (--no-soft)"
+	return "on (--soft)" if soft_on else "off (hard, the default)"

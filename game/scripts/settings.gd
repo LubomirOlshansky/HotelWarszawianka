@@ -32,6 +32,9 @@ const TRAFFIC_NAMES := ["Almost empty", "Low", "Normal", "Busy"]
 const TRAFFIC_KEYS := ["empty", "low", "normal", "busy"]
 ## The default for a fresh save: Low (F, 2026-11-01: the default was too heavy). Saves keep their choice.
 const DEFAULT_TRAFFIC := 1
+## How many collision presets the `collide` row has (collide_rules.gd PRESETS: v1, soft, mid, firm;
+## not preloaded here: settings.gd is loaded before the title shows, check_boot.gd).
+const COLLIDE_PRESETS := 4
 
 ## drive_controls.gd: POINT, CLASSIC, FIXED. Classic (steer left / right, GAS and BRAKE) is
 ## the only scheme in Settings since 2026-11-10 (F: remove the point-to-go option); Point and
@@ -96,6 +99,14 @@ var lane_assist := true
 ## Phase 0.2 (docs/GAMEPLAY_PLAN.md): the city's chattiness, chatter.gd GAPS: 0 Mało, 1 Średnio (the
 ## default), 2 Dużo. Settings → ŚWIAT, key "chatter".
 var chatter := 1
+## The city objects plan, settings rows (F 2026-11-14): the car's collision answer, an index into
+## collide_rules.gd PRESETS (0 v1 "Klasyczne", the default; 1 soft, 2 mid, 3 firm), Settings → ŚWIAT,
+## key "collide"; `--collide=` wins for a run.
+var collide := 0
+## Step 7's fences and hedges that break (soft_things.gd), Settings → ŚWIAT, key "soft_fences". Off
+## by default (F 2026-11-14: "on for you only, off for testers"): every fence and hedge is hard, the
+## colliders as before step 7. `--no-soft` keeps them hard for a run, `--soft` breakable.
+var soft_fences := false
 ## Accessibility (access.gd, Settings → ŁATWOŚĆ): larger HUD text, calm (no flashing or shaking),
 ## colour-safe markers, the phone's vibration, and the quest stop assist.
 var text_large := false
@@ -164,6 +175,8 @@ func load_file() -> void:
 	if not cfg.has_section_key("game", "lane_assist_default"):
 		lane_assist = true
 	chatter = clampi(int(cfg.get_value("world", "chatter", chatter)), 0, 2)
+	collide = clampi(int(cfg.get_value("game", "collide", collide)), 0, COLLIDE_PRESETS - 1)
+	soft_fences = bool(cfg.get_value("game", "soft_fences", soft_fences))
 	text_large = bool(cfg.get_value("access", "text_large", text_large))
 	calm = bool(cfg.get_value("access", "calm", calm))
 	color_safe = bool(cfg.get_value("access", "color_safe", color_safe))
@@ -209,6 +222,8 @@ func save() -> void:
 	cfg.set_value("game", "lane_assist", lane_assist)
 	cfg.set_value("game", "lane_assist_default", 1)
 	cfg.set_value("world", "chatter", chatter)
+	cfg.set_value("game", "collide", collide)
+	cfg.set_value("game", "soft_fences", soft_fences)
 	cfg.set_value("access", "text_large", text_large)
 	cfg.set_value("access", "calm", calm)
 	cfg.set_value("access", "color_safe", color_safe)
@@ -223,9 +238,9 @@ func save() -> void:
 
 
 func summary() -> String:
-	return "controls %d pads %d, classic camera %s, traffic %s, quality %s, volume %.0f/%.0f/%.0f %%, perf %s, %d fps, style %d, vhs %s, zone cap %s, handling %d sens %.2f lane %s chatter %d, access large %s calm %s colour-safe %s vibration %s assist %s left-handed %s, auto image %s" % [
+	return "controls %d pads %d, classic camera %s, traffic %s, quality %s, volume %.0f/%.0f/%.0f %%, perf %s, %d fps, style %d, vhs %s, zone cap %s, handling %d sens %.2f lane %s chatter %d, collide %d soft fences %s, access large %s calm %s colour-safe %s vibration %s assist %s left-handed %s, auto image %s" % [
 			controls, pads, "follow" if classic_follow else "fixed", TRAFFIC_NAMES[traffic], "auto" if quality == AUTO else str(quality),
-			master * 100.0, music * 100.0, effects * 100.0, perf, fps, style, vhs, zone_cap, handling, sensitivity, lane_assist, chatter, text_large, calm, color_safe, vibration, stop_assist, left_handed, image_summary()]
+			master * 100.0, music * 100.0, effects * 100.0, perf, fps, style, vhs, zone_cap, handling, sensitivity, lane_assist, chatter, collide, soft_fences, text_large, calm, color_safe, vibration, stop_assist, left_handed, image_summary()]
 
 
 ## Loop G1b: "sharp", "sharp, on trial 1/4" or "fallback, calm 1/2 (GPU extras down 74 s)".
