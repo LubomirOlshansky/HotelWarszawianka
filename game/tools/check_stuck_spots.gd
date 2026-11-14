@@ -119,7 +119,9 @@ const INDEX_SCENE := "res://map/index.res"
 
 ## [x, z, compass heading, start speed m/s, seconds, the share of the start speed kept at the end, what,
 ## optional: the compass heading the stick points to (point-to-steer, held; null for none),
-## optional: true to start on a tunnel's floor].
+## optional: true to start on a tunnel's floor,
+## optional: a level the car must stay under the whole run (a keep-out spot: a wall is to turn it
+## back, so stalling there is no fault; it fails only by climbing past the level)].
 const SPOTS := [
 	[-1659.5, 452.0, 41.0, 8.0, 2.5, 0.6, "Centralny car park ramp, the way in down into the tunnel's mouth", 41.0],
 	[-1625.8, 419.5, 70.0, 8.0, 2.5, 0.6, "Centralny car park tunnel, the way in east under the avenue", null, true],
@@ -181,6 +183,12 @@ const SPOTS := [
 	[-525.0, -1443.0, 250.0, 9.0, 1.5, 0.6, "Grodzka's ramp by the Royal Castle, west up the climb", 250.0],
 	[-560.0, -1432.0, 259.0, 9.0, 1.5, 0.6, "Grodzka's ramp by the Royal Castle, west on to the W-Z tunnel", 259.0],
 	[-560.0, -1432.0, 76.0, 9.0, 1.5, 0.6, "Grodzka's ramp by the Royal Castle, down east to the bend", 76.0],
+	# PT-54: the quay road below Most Poniatowskiego's west ramp loop, held at the grass pocket
+	# inside it (the hedge along the foot, city_barriers.gd POCKET_HEDGES, keeps the car out).
+	[868.0, -66.0, 355.0, 12.0, 3.0, 0.5, "PT-54 Poniatowski ramp loop, the quay's lane held north into the grass pocket", 355.0, false, -12.5],
+	[875.0, -66.0, 340.0, 12.0, 3.0, 0.5, "PT-54 Poniatowski ramp loop, held north-north-west into the pocket", 340.0, false, -12.5],
+	[885.0, -66.0, 10.0, 12.0, 3.0, 0.5, "PT-54 Poniatowski ramp loop, held north-north-east into the pocket", 10.0, false, -12.5],
+	[860.0, -70.0, 30.0, 12.0, 3.0, 0.5, "PT-54 Poniatowski ramp loop, the west mouth, held north-east", 30.0, false, -12.5],
 ]
 ## PT-41: [x, z, the level a car drives at there, what]: drive_height must give it within SEAM_TOL m.
 const SEAMS := [
@@ -205,6 +213,7 @@ var _i := -1
 var _t := 0
 var _stalled := 0.0
 var _worst := 0.0
+var _peak := -1e9
 var _v0 := 0.0
 var _failures := 0
 
@@ -276,6 +285,7 @@ func _next() -> bool:
 	_t = 0
 	_stalled = 0.0
 	_worst = 0.0
+	_peak = -1e9
 	return true
 
 
@@ -290,17 +300,21 @@ func _physics_process(dt: float) -> bool:
 	var v := Vector2(car.vel.x, car.vel.z).length()
 	_stalled = _stalled + dt if v < STALL else 0.0
 	_worst = maxf(_worst, _stalled)
+	_peak = maxf(_peak, car.global_position.y)
 	if verbose and _t % 15 == 0:
 		print("   t=%.2f at %.1f, %.1f  %.1f m/s%s" % [_t * dt, car.global_position.x, car.global_position.z, v,
 				"  touching" if car.get_slide_collision_count() > 0 else ""])
 	if _t * dt < float(s[4]):
 		return false
 	var why: Array[String] = []
-	if _worst > STALL_TIME:
+	if s.size() > 9:
+		if _peak > float(s[9]):
+			why.append("climbed to %.1f m, past the keep-out level %.1f" % [_peak, float(s[9])])
+	elif _worst > STALL_TIME:
 		why.append("stalled under %.0f m/s for %.1f s" % [STALL, _worst])
-	if int(car.unsticks) > 0:
+	if s.size() <= 9 and int(car.unsticks) > 0:
 		why.append("unstuck %d×" % int(car.unsticks))
-	if v < _v0 * float(s[5]):
+	if s.size() <= 9 and v < _v0 * float(s[5]):
 		why.append("ended at %.1f m/s, under %.0f %% of %.0f" % [v, float(s[5]) * 100.0, _v0])
 	var p := car.global_position
 	print("%s %s: %.1f → %.1f m/s, at %.0f, %.0f%s  (--at=%.0f,%.0f --heading=%.0f)" % [

@@ -88,6 +88,18 @@ const SITE_WALLS := [
 const RIVER_FENCE_M := 8.0
 const RIVER_FENCE_SHARE := 0.3
 
+## The pocket inside Most Poniatowskiego's west ramp loop (Autopilot hunt 20261114-003742, 65 s at
+## 6-8 km/h among the ramps; docs/PLAYTEST.md PT-54): the grass embankment between the ramps rises
+## 3-8 m from the quay road to the decks' side skirts, 3.5-4.4 m sheer walls with nothing in front
+## of them, so a car that cut the corner climbed in, hit a skirt, was turned out and hit the next
+## one. The lanes themselves drive clean (check_lane_drive). A hedge along the embankment's foot,
+## a metre up the slope, keeps the car on the road; it stays 6 m or more off every lane of the loop.
+## Lines of points, drawn as `hedge` (the palette's type, solid class hedge).
+const POCKET_HEDGES := [
+	[Vector2(856.5, -89.0), Vector2(860.0, -86.0), Vector2(864.0, -82.5), Vector2(868.0, -78.5), Vector2(871.0, -75.5),
+			Vector2(875.0, -73.0), Vector2(880.0, -73.0), Vector2(886.0, -72.0), Vector2(892.0, -71.5), Vector2(897.5, -70.0)],
+]
+
 ## Guard rails: two rails' ends closer than this get a collider across the gap (narrower than a car).
 const GUARD_JOIN := 1.5
 ## ...the V's depth behind the rail's line, at most (and under half the gap).
@@ -840,7 +852,23 @@ func build_barriers(st) -> void:
 				wall_along(st, piece, float(style[1]), float(style[2]), Color(style[0]), solid, cls)
 			continue
 		wall_along(st, pts, float(style[1]), float(style[2]), Color(style[0]), solid, cls)
+	_pocket_hedges(st)
 	map._uv2 = Vector2.ZERO
+
+
+## POCKET_HEDGES, each piece (two points) in the sector that holds its middle, so a runtime city
+## and the prebuilt sectors get every piece once.
+func _pocket_hedges(st) -> void:
+	var style := _placed("hedge")
+	if style.is_empty():
+		return
+	for line: Array in POCKET_HEDGES:
+		for i in line.size() - 1:
+			var a: Vector2 = line[i]
+			var b: Vector2 = line[i + 1]
+			if map._in_sector and not map._sector_rect.has_point((a + b) * 0.5):
+				continue
+			wall_along(st, PackedVector2Array([a, b]), float(style[1]), float(style[2]), Color(style[0]), true, &"hedge")
 
 
 func _over_river(flat: Array) -> bool:
