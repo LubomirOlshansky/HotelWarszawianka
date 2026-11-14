@@ -58,7 +58,7 @@ const BUDGET := {
 	"church_narodzenia": 1450,  # 2026-11-14: the whole Baroque church and its clock turret from photos (measured 1305)
 	"church_niepokalanego": 720,  # 2026-11-14: the whole Res Sacra Miser church from photos (measured 644)
 	"church_nozykow": 2900,  # 2026-11-14: the whole Nożyk Synagogue from photos (measured 2625)
-	"church_piotr_pawel": 1020,
+	"church_piotr_pawel": 1300,
 	"church_reformowany": 1150,  # 2026-11-14: the whole neo-Gothic church and its spire from photos (measured 1020)
 	"church_sw_marcin": 2400,  # 2026-11-14: the whole St Martin church and its tower from photos (measured 2043)
 	"church_trojca_praga": 520,  # 2026-11-14: Holy Trinity on Solec, temple front and crossing turret from photos (measured 469)

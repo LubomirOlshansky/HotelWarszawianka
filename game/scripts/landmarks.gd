@@ -21115,6 +21115,153 @@ func _build_antoniego(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The church of Sts Peter and Paul (Kościół Świętych Apostołów Piotra i Pawła na Koszykach,
+## Nowogrodzka 51 at Emilii Plater; Józef Pius Dziekoński, 1886-1890s, rebuilt after 1944): a sand
+## stucco neo-Renaissance basilica, its tall flat front with three deep arched porches, a rose
+## window under a gable and two slim corner towers with arched belfries and small domes; over the
+## crossing a tall drum with arched windows and a green copper dome and lantern; a low transept
+## with pedimented ends, low wings either side of a rounded apse. A model that replaces the kit
+## church (whose front was on the wrong end). From 14 Commons photos
+## (refs/churches/sts_peter_paul_nowogrodzka, reference only, never shipped), the OSM outline
+## (building 79) and GUGiK's LoD2 (over the ground: the nave's eaves 17.5 and ridge 23.5, the
+## towers 30.5, the drum 28.5, the dome 42.5 and its lantern 48.5, the apse 22, the wings 11).
+## Spec docs/landmarks/specs/piotr_pawel.md.
+## Frame: origin at the outline's centre, u from the apse (u = -33) to the front (u = 24.5), v to
+## the left of that.
+const SPP_O := Vector2(-1128.8, 830.2)
+const SPP_A := Vector2(-0.9412, 0.3379)
+const SPP_WALL := Color("#d8c9a4")      ## the sand stucco (photos)
+const SPP_TRIM := Color("#e5dbc0")      ## pilasters, cornices, ledges
+const SPP_ROOF := Color("#6b6c66")      ## the grey sheet roofs
+const SPP_COPPER := Color("#6f9e8c")    ## the green copper dome and caps
+const SPP_DARK := Color("#3b3732")      ## doors, porch recesses, belfry openings
+
+
+## Panes along a wall from p to q (local metres), its outside on the left of p→q: one every
+## `step` metres, sill at y (absolute), `w` by `h`, with a narrower pane on top for a round
+## head. Puts the church's frame back.
+func _pp_side(p: Vector2, q: Vector2, step: float, y: float, w: float, h: float) -> void:
+	var n := kit_front(_w(p.x, p.y), _w(q.x, q.y))
+	var k := maxi(1, floori(n / step))
+	var cols: Array = []
+	for i in k:
+		cols.append((float(i) + 0.5) * n / float(k))
+	kit_panes(cols, [y], w, h, PAL_GLASS_DARK, 0.05)
+	if h > w * 1.5:
+		kit_panes(cols, [y + h], w * 0.6, w * 0.3, PAL_GLASS_DARK, 0.05)
+	kit_front(SPP_O, SPP_O + SPP_A)
+
+
+func _build_piotr_pawel(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(SPP_O, SPP_O + SPP_A)
+	_g = _ground_under(outline)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	_mode = M_STONE
+	# --- the nave with its aisles under one low roof: walls to 17.5, the ridge 23.5
+	var nave := _lpoly([[-4.5, -11.3], [24.5, -11.3], [24.5, 11.3], [-4.5, 11.3]])
+	_prism(nave, g - 1.0, g + 17.5, SPP_WALL, none, M_STONE)
+	kit_ledge_ring(nave, g + 17.0, 0.5, SPP_TRIM, 0.25)
+	kit_ledge_ring(nave, g - 1.0, 1.6, SPP_TRIM.darkened(0.12), 0.08)
+	_gable(24.5, -4.5, 0.0, 11.3, g + 17.5, 6.0, SPP_WALL, SPP_ROOF, true)
+	# --- the crossing and the transept: flat-topped to 18.5, pediments on the arms' ends
+	_lbox(-11.5, 0.0, 7.5, 11.3, g - 1.0, g + 18.5, SPP_WALL, M_STONE, SPP_ROOF)
+	for s: float in [-1.0, 1.0]:
+		_lbox(-11.0, s * 13.15, 4.0, 2.15, g - 1.0, g + 18.4, SPP_WALL, M_STONE, SPP_ROOF)
+	var cross := _lpoly([[-19.0, -11.3], [-15.0, -11.3], [-15.0, -15.3], [-7.0, -15.3], [-7.0, -11.3], [-4.0, -11.3],
+			[-4.0, 11.3], [-7.0, 11.3], [-7.0, 15.3], [-15.0, 15.3], [-15.0, 11.3], [-19.0, 11.3]])
+	kit_ledge_ring(cross, g + 17.9, 0.5, SPP_TRIM, 0.2)
+	for e: Array in [[Vector2(-7.0, -15.3), Vector2(-15.0, -15.3)], [Vector2(-15.0, 15.3), Vector2(-7.0, 15.3)]]:
+		var p0: Vector2 = e[0]
+		var p1: Vector2 = e[1]
+		kit_front(SPP_O, SPP_O + SPP_A)
+		kit_front(_w(p0.x, p0.y), _w(p1.x, p1.y))
+		kit_pediment(4.0, 4.4, g + 18.5, 3.0, SPP_WALL, SPP_ROOF, 0.4)
+		kit_panes([4.0], [g + 5.0], 2.0, 6.0, PAL_GLASS_DARK, 0.05)
+		kit_panes([4.0], [g + 11.0], 1.2, 0.6, PAL_GLASS_DARK, 0.05)
+	kit_front(SPP_O, SPP_O + SPP_A)
+	# --- the low wings beside the apse and the rounded apse with its roof
+	for s: float in [-1.0, 1.0]:
+		_lbox(-22.9, s * 10.1, 4.1, 4.9, g - 1.0, g + 11.0, SPP_WALL, M_STONE, SPP_ROOF)
+	var apse: Array = [[-19.0, -5.5]]
+	for k in 7:
+		var ang := -PI * 0.5 - PI * float(k) / 6.0
+		apse.append([-27.5 + 5.5 * cos(ang), 5.5 * sin(ang)])
+	apse.append([-19.0, 5.5])
+	var ap := _lpoly(apse)
+	_prism(ap, g - 1.0, g + 18.0, SPP_WALL, none, M_STONE)
+	kit_ledge_ring(ap, g + 17.6, 0.4, SPP_TRIM, 0.2)
+	_pyramid(ap, g + 18.0, g + 22.5, SPP_ROOF)
+	# --- the drum: 16 sides to 28.5 with arched windows, the dome to 42.5, the lantern and cross
+	var dc := _w(-11.5, 0.0)
+	var drum := _circle(dc, 7.0, 16)
+	_prism(drum, g + 18.5, g + 28.5, SPP_WALL, none, M_STONE)
+	kit_ledge_ring(drum, g + 28.0, 0.5, SPP_TRIM, 0.3)
+	for k in 8:
+		var a := drum[(2 * k + 1) % 16]
+		var b := drum[2 * k]
+		var ln := kit_front(a, b)
+		kit_panes([ln * 0.5], [g + 21.0], 1.2, 4.0, PAL_GLASS_DARK, 0.05)
+		kit_panes([ln * 0.5], [g + 25.0], 0.7, 0.4, PAL_GLASS_DARK, 0.05)
+	kit_front(SPP_O, SPP_O + SPP_A)
+	_frustum(_circle(dc, 7.1, 16), g + 28.5, _circle(dc, 6.4, 16), g + 33.0, SPP_COPPER)
+	_frustum(_circle(dc, 6.4, 16), g + 33.0, _circle(dc, 4.9, 16), g + 37.2, SPP_COPPER)
+	_frustum(_circle(dc, 4.9, 16), g + 37.2, _circle(dc, 2.7, 16), g + 40.6, SPP_COPPER)
+	_frustum(_circle(dc, 2.7, 16), g + 40.6, _circle(dc, 1.0, 16), g + 42.4, SPP_COPPER)
+	_prism(_circle(dc, 0.95, 8), g + 42.4, g + 45.4, SPP_TRIM, none, M_STONE)
+	_frustum(_circle(dc, 1.1, 8), g + 45.4, _circle(dc, 0.1, 8), g + 47.2, SPP_COPPER)
+	_kap_cross(-11.5, 0.0, g + 47.2, 1.8)
+	# --- the two corner towers: square shafts to 23.5, arched belfries to 28, small domes
+	for s: float in [-1.0, 1.0]:
+		var tv := s * 9.9
+		_lbox(23.0, tv, 1.65, 1.6, g - 1.0, g + 23.5, SPP_WALL)
+		kit_ledge_ring(_rect(23.0, tv, 1.65, 1.6), g + 23.2, 0.3, SPP_TRIM, 0.15)
+		var tc := _w(23.0, tv)
+		var bel := _circle(tc, 1.45, 8)
+		_prism(bel, g + 23.5, g + 27.8, SPP_WALL, none, M_STONE)
+		kit_ledge_ring(bel, g + 27.5, 0.3, SPP_TRIM, 0.15)
+		for k in 4:
+			var a := bel[(2 * k + 1) % 8]
+			var b := bel[2 * k]
+			var ln := kit_front(a, b)
+			kit_panes([ln * 0.5], [g + 24.2], 0.6, 2.6, SPP_DARK, 0.05)
+		kit_front(SPP_O, SPP_O + SPP_A)
+		_frustum(_circle(tc, 1.5, 8), g + 27.8, _circle(tc, 0.15, 8), g + 29.8, SPP_COPPER)
+		_kap_cross(23.0, tv, g + 29.8, 1.2)
+	# --- the front: pilasters, three deep arched porches, niches, the rose window, the gable
+	kit_front(_w(24.5, 11.3), _w(24.5, -11.3))
+	kit_face(0.0)
+	kit_ledge(0.0, 22.6, g + 9.0, 0.5, SPP_TRIM, 0.2)
+	for pu: float in [3.6, 8.4, 14.2, 19.0]:
+		kit_pilaster(pu, g, g + 17.0, SPP_TRIM, 0.9, 0.18)
+	kit_door(11.3, g, 8.2, 2.1, SPP_TRIM, SPP_DARK, true)
+	kit_door(6.0, g, 6.6, 1.4, SPP_TRIM, SPP_DARK, true)
+	kit_door(16.6, g, 6.6, 1.4, SPP_TRIM, SPP_DARK, true)
+	kit_panes([6.0, 16.6], [g + 10.8], 0.9, 2.2, SPP_DARK, 0.05)
+	kit_panes([6.0, 16.6], [g + 14.4], 0.8, 0.8, PAL_GLASS_DARK, 0.05)
+	var rc := _w(11.3, 0.06)
+	_disc(Vector3(rc.x, g + 13.6, rc.y), Vector3(_b.x, 0.0, _b.y), 1.7, 12, PAL_GLASS_DARK)
+	kit_pediment(11.3, 6.2, g + 17.5, 4.4, SPP_WALL, SPP_ROOF, 0.35)
+	_kbox(4.0, 18.6, 0.0, 2.6, g - 1.0, g + 0.15, SPP_TRIM.darkened(0.12))  # the steps
+	kit_front(SPP_O, SPP_O + SPP_A)
+	_kap_cross(24.7, 0.0, g + 21.9, 1.8)
+	# --- windows on the nave's sides (tall round-headed below, round ones high), the wings, apse
+	_pp_side(Vector2(21.3, -11.3), Vector2(-4.0, -11.3), 4.2, g + 3.0, 1.4, 5.2)
+	_pp_side(Vector2(-4.0, 11.3), Vector2(21.3, 11.3), 4.2, g + 3.0, 1.4, 5.2)
+	_pp_side(Vector2(21.3, -11.3), Vector2(-4.0, -11.3), 4.2, g + 12.2, 1.1, 1.1)
+	_pp_side(Vector2(-4.0, 11.3), Vector2(21.3, 11.3), 4.2, g + 12.2, 1.1, 1.1)
+	_pp_side(Vector2(-19.0, -15.0), Vector2(-27.0, -15.0), 2.7, g + 3.0, 1.1, 3.4)
+	_pp_side(Vector2(-27.0, 15.0), Vector2(-19.0, 15.0), 2.7, g + 3.0, 1.1, 3.4)
+	for k in 6:
+		var a := ap[k + 1]
+		var b := ap[k + 2]
+		var ln := kit_front(a, b)
+		kit_panes([ln * 0.5], [g + 8.0], 1.0, 4.4, PAL_GLASS_DARK, 0.05)
+	kit_front(SPP_O, SPP_O + SPP_A)
+	_collide(outline)
+
+
 ## The Nożyk Synagogue (Synagoga Nożyków, ul. Twarda 6; Karol and Leandro Marconi, 1898-1902;
 ## burnt 1944, rebuilt 1977-1983; Warsaw's only pre-war synagogue still standing), a cream
 ## neo-Romanesque house of prayer in its courtyard south of Plac Grzybowski. The whole building as
@@ -32526,6 +32673,9 @@ func _church_spec(key: String) -> Dictionary:
 
 
 func _build_church(site: Dictionary) -> void:
+	if site["key"] == "church_piotr_pawel":
+		_build_piotr_pawel(site)  # the whole basilica, its dome and two front towers from photos, front to the west
+		return
 	if site["key"] == "church_antoniego":
 		_build_antoniego(site)  # the whole Franciscan church, its turret, chapel and cloister from photos
 		return
