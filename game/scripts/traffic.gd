@@ -38,6 +38,7 @@ const RaceCuts := preload("res://scripts/race_cuts.gd")
 const RaceLine := preload("res://scripts/race_line.gd")
 const Models := preload("res://scripts/models.gd")
 const InstanceBuffers := preload("res://scripts/instance_buffers.gd")
+const CollideRules := preload("res://scripts/collide_rules.gd")
 const MapBuilder := preload("res://scripts/map_builder.gd")
 
 enum Kind { CAR, TAXI, VAN, BUS, POLICE, NODE }
@@ -794,6 +795,11 @@ var spawning := true
 var player_pos := Vector3.ZERO
 var player_vel := Vector3.ZERO
 var player_on_road := true
+## The city objects plan, step 6: the player car's collision preset (collide_rules.gd; main.gd sets
+## it with the car's from `--collide=`). With a v2 preset a hit car slides off its line by the hit's
+## angle (`_shove`, collide_rules.gd shove_side) and a bus's body says it is heavy (meta `heavy`:
+## the car answers it as a wall).
+var collide := CollideRules.V1
 ## How long the last update took, for --bench.
 var last_usec := 0
 var visible_count := 0
@@ -1109,6 +1115,8 @@ func _bodies_step(_dt: float) -> void:
 			if box.size != d.size:
 				box.size = d.size
 			body.collision_layer = 1
+			if CollideRules.is_v2(collide):
+				body.set_meta(&"heavy", d.kind == Kind.BUS)
 			body.global_transform = Transform3D(Basis(Vector3.UP, d.yaw), d.pos + Vector3(0, d.size.y * 0.5 + 0.1, 0))
 			_body_driver[used] = d
 			used += 1
@@ -1160,7 +1168,11 @@ func _shove(d: Driver) -> void:
 	# right), so the player gets past instead of pushing it down the road.
 	var lat := Vector2(player_pos.x - d.pos.x, player_pos.z - d.pos.z).dot(across)
 	var away := -1.0 if lat > 0.0 else 1.0
-	var push := clampf(pv.dot(across) * SHOVE_SIDE + away * closing * SHOVE_SWERVE, -SHOVE_SLIDE, SHOVE_SLIDE)
+	# Step 6, v2: the side slide grows with the closing angle (a T-boned car is knocked out of its lane).
+	var side_k := SHOVE_SIDE
+	if CollideRules.is_v2(collide):
+		side_k = CollideRules.shove_side(collide, CollideRules.cross_angle(player_vel, Vector3(-sin(d.yaw), 0.0, -cos(d.yaw))))
+	var push := clampf(pv.dot(across) * side_k + away * closing * SHOVE_SWERVE, -SHOVE_SLIDE, SHOVE_SLIDE)
 	if absf(push) > absf(d.slide):
 		d.slide = push
 

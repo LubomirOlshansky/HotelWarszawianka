@@ -674,29 +674,26 @@ func _check_game() -> int:
 	failures += bad_tows
 	# d) Places the game sends the car: rescue spots the car can do, hospitals, the side jobs'
 	#    doors and stands, the spawn.
-	var missions: Node = load("res://scripts/missions.gd").new()
-	missions.map = map
-	for k in missions.ORDER:
-		missions._places[k] = []
-	missions._collect_road_names(map.data["roads"])
-	missions._find_streets(map.data["roads"])
-	missions._find_pois(map.data.get("pois", []))
+	var rescue: RefCounted = load("res://scripts/rescue_places.gd").new()
+	rescue.map = map
+	rescue.collect_road_names(map.data["roads"])
+	rescue.find_streets(map.data["roads"])
+	rescue.find_pois(map.data.get("pois", []))
 	var places := 0
 	var wet_places: Array = []
-	for k in missions._places:
-		for pl: Dictionary in missions._places[k]:
+	for k in rescue.by_kind:
+		for pl: Dictionary in rescue.by_kind[k]:
 			if pl["heli"]:
 				continue
 			places += 1
 			var pos: Vector3 = pl["pos"]
 			if map.in_water(pos.x, pos.z, pos.y):
 				wet_places.append("%s at %s" % [pl["short"], Vector2(pos.x, pos.z).round()])
-	for h: Dictionary in missions._hospitals:
+	for h: Dictionary in rescue.hospitals:
 		places += 1
 		var pos: Vector3 = h["pos"]
 		if map.in_water(pos.x, pos.z, pos.y):
 			wet_places.append("hospital at %s" % Vector2(pos.x, pos.z).round())
-	missions.free()
 	for poi in map.data.get("pois", []):
 		if poi.has("door"):
 			places += 1

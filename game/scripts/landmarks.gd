@@ -799,7 +799,7 @@ const INFO := {
 	"church_czestochowska": ["Kościół Matki Bożej Częstochowskiej", "Kościół parafialny.", "A parish church."],
 	"church_zwycieska": ["Kościół Matki Boskiej Zwycięskiej", "Kościół parafialny z dwiema wieżami.", "A parish church with two towers."],
 	"church_cerkiew": ["Cerkiew Zaśnięcia Matki Bożej", "Cerkiew prawosławna.", "An Orthodox church."],
-	"church_nozykow": ["Synagoga Nożyków", "Synagoga przy Twardej.", "The synagogue on Twarda."],
+	"church_nozykow": ["Synagoga Nożyków", "Jedyna przedwojenna synagoga Warszawy, przy Twardej.", "Warsaw's only pre-war synagogue, on Twarda."],
 }
 
 var data: Dictionary
@@ -19026,6 +19026,304 @@ func _build_niepokalanego(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The Nożyk Synagogue (Synagoga Nożyków, ul. Twarda 6; Karol and Leandro Marconi, 1898-1902;
+## burnt 1944, rebuilt 1977-1983; Warsaw's only pre-war synagogue still standing), a cream
+## neo-Romanesque house of prayer in its courtyard south of Plac Grzybowski. The whole building as
+## a model that replaces the old kit church (`church_nozykow`, built by `_build_church` until
+## 2026-11-14: its front on the wrong, east end, a grid of windows and a CROSS on the gable) and
+## the LoD2 mass. From F's three photos (refs/_f/warsaw-needed-photos/top-50/T33: one
+## straight onto the front, two from its south-west; never shipped), the OSM outline and GUGiK's
+## LoD2 (over the front's ground: the front block's eaves 12, its hip ridge 14.4; the nave's gable
+## ridge 15; the aisles' lean-tos 9.9 to 11.2; the 1923 choir 12 to 13.2). Spec
+## docs/landmarks/specs/nozyk.md.
+## - the front looks WEST over the courtyard: a three-bay middle risalit (0.5 m proud) between two
+##   tall pylons with zinc urns, under a gable with a corbel-arch (Lombard) frieze, a roundel with
+##   the Star of David and a ball finial; below it the arched door at the top of a flight of
+##   steps between two arched windows, two little domed turrets and the Tablets of the Law over the
+##   door, four tall windows between colonnettes and two arched windows above;
+## - the two wings either side: a rusticated ground floor with one arched window, two tall
+##   windows and a triple arched light upstairs, a cornice with corner acroteria;
+## - behind: the front block under a hip, the nave's gable roof running back to the east, the two
+##   aisles under lean-tos with arched windows in two storeys between lesenes, the narrow stair
+##   halls behind the wings and the 1923 choir at the east end (the 1980s wing of the Jewish
+##   Community behind it stays LoD2's).
+## Frame: origin at the front's north end on the wings' line, u along the front to the south
+## (+u to the viewer's right), +v out to the courtyard (west).
+const NZ_O := Vector2(-1579.14, -238.72)
+const NZ_A := Vector2(0.0926, 0.9957)
+const NZ_W := 23.12                    ## the front's width (u)
+const NZ_C := 11.67                    ## the risalit's mirror axis (u): door, roundel, gable
+const NZ_WALL := Color("#e7d4a4")      ## the cream-yellow plaster (photos: warm sand)
+const NZ_TRIM := Color("#efe1b8")      ## cornices, surrounds, colonnettes
+const NZ_ORN := Color("#d6bd86")       ## the carved bands and hoods, a shade deeper
+const NZ_PLINTH := Color("#d8bd82")    ## the plinth, a deeper ochre
+const NZ_ROOF := Color("#7d8486")      ## grey sheet metal
+const NZ_ZINC := Color("#8c9694")      ## the urns and the finial
+## The 1980s wing of the Jewish Community east of the synagogue (its OSM outline): it stays the
+## map's (LoD2), though its centre lies in the site's zone.
+const NZ_WING := [[-1545.4, -225.0], [-1547.5, -224.8], [-1546.5, -234.8], [-1550.8, -234.4], [-1550.9, -236.8],
+		[-1549.6, -236.9], [-1549.8, -239.1], [-1540.4, -240.0], [-1540.2, -237.9], [-1538.6, -221.1],
+		[-1543.2, -220.8], [-1544.9, -220.7]]
+
+
+func _nz_wing_ring() -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for q: Array in NZ_WING:
+		out.append(Vector2(float(q[0]), float(q[1])))
+	return out
+
+
+## The front frame again, after a side wall moved it.
+func _nz_home() -> void:
+	kit_front(NZ_O, NZ_O + NZ_A)
+
+
+## A gable roof whose ridge runs along v (the nave's): `_gable` in the swapped frame.
+func _nz_gable(vf: float, vb: float, cu: float, hu: float, y: float, h: float) -> void:
+	var ka := _a
+	var kb := _b
+	_a = kb
+	_b = ka
+	_gable(vf, vb, cu, hu, y, h, NZ_WALL, NZ_ROOF, true)
+	_a = ka
+	_b = kb
+
+
+## A lean-to roof over an aisle: one sloped quad from the outer eave (u `uo`, height yo) up to
+## the nave's wall (u `ui`, height yi), from v0 to v1.
+func _nz_lean(uo: float, ui: float, v0: float, v1: float, yo: float, yi: float) -> void:
+	var keep := _mode
+	_mode = M_STONE
+	var s := signf(ui - uo)
+	var n := (Vector3.UP * absf(ui - uo) - Vector3(_a.x, 0.0, _a.y) * s * (yi - yo)).normalized()
+	var p0 := _w(uo, v0)
+	var p1 := _w(uo, v1)
+	var p2 := _w(ui, v1)
+	var p3 := _w(ui, v0)
+	_quad(Vector3(p0.x, yo, p0.y), Vector3(p1.x, yo, p1.y), Vector3(p2.x, yi, p2.y), Vector3(p3.x, yi, p3.y), n, NZ_ROOF)
+	_mode = keep
+
+
+## A sloped band on the face (a raking cornice) from (u0, y0) to (u1, y1), `t` tall, standing
+## from v `vb` out to `vf`: its front, top and underside.
+func _nz_rake(u0: float, y0: float, u1: float, y1: float, vb: float, vf: float, t: float, col: Color) -> void:
+	var keep := _mode
+	_mode = M_STONE
+	var at := func(u: float, v: float, y: float) -> Vector3:
+		var p := _w(u, v)
+		return Vector3(p.x, y, p.y)
+	var out := Vector3(_b.x, 0.0, _b.y)
+	var up := (Vector3.UP * absf(u1 - u0) - Vector3(_a.x, 0.0, _a.y) * signf(u1 - u0) * (y1 - y0)).normalized()
+	_quad(at.call(u0, vf, y0), at.call(u1, vf, y1), at.call(u1, vf, y1 + t), at.call(u0, vf, y0 + t), out, col)
+	_quad(at.call(u0, vf, y0 + t), at.call(u1, vf, y1 + t), at.call(u1, vb, y1 + t), at.call(u0, vb, y0 + t), up, col.lightened(0.04))
+	_quad(at.call(u0, vf, y0), at.call(u1, vf, y1), at.call(u1, vb, y1), at.call(u0, vb, y0), -up, col.darkened(0.1))
+	_mode = keep
+
+
+## Rustication: a flat groove line (2 tris) every `step` metres between y0 and y1 on the face.
+func _nz_bands(u0: float, u1: float, y0: float, y1: float, step: float) -> void:
+	var keep := _mode
+	_mode = M_STONE
+	var line := NZ_WALL.darkened(0.13)
+	var y := y0 + step
+	while y + 0.09 < y1:
+		_wall(_w(u0, _face + 0.03), _w(u1, _face + 0.03), y, y + 0.09, _b, line)
+		y += step
+	_mode = keep
+
+
+## An arched window on the face at u: the pane `hw` half wide from the sill up to the spring and
+## its round head, in a trim surround and (when `hood`) a carved hood round that. The layers stand
+## 4 cm apart (more than `_wall`'s 3 cm coplanar cut, which would drop the later ones) and in
+## front of the rustication's grooves.
+func _nz_arch(u: float, sill: float, spring: float, hw: float, hood: bool) -> void:
+	var at := _w(u, _face)
+	if hood:
+		_arch_panel(at, _a, _b, hw + 0.38, sill - 0.12, spring, NZ_ORN, 0.07, M_STONE)
+	_arch_panel(at, _a, _b, hw + 0.18, sill - 0.12, spring, NZ_TRIM, 0.11, M_STONE)
+	_arch_panel(at, _a, _b, hw, sill, spring, PAL_GLASS_DARK, 0.15, _lit(u, sill))
+	_kbox(u - hw - 0.3, u + hw + 0.3, _face - 0.02, _face + 0.24, sill - 0.2, sill - 0.06, NZ_TRIM)  # the sill
+
+
+## A side face from `from` to `to` (its outside on the left of that direction), `len` long, its
+## cornice at `top` (absolute): plinth, rustication to the belt, the belt, an arched window at
+## each `wins` spot on both storeys, lesenes at `les`, and (when `cornice`) a cornice ledge (the
+## front block's ends have the ring cornice already).
+func _nz_side(from: Vector2, to: Vector2, top: float, wins: Array, les: Array, upper_sill: float, cornice := true) -> void:
+	var g := _g
+	var len := kit_front(from, to)
+	kit_face(0.0)
+	kit_ledge(0.0, len, g - 0.5, 1.4, NZ_PLINTH, 0.06)
+	_nz_bands(0.0, len, g + 0.9, g + 5.35, 0.5)
+	kit_ledge(0.0, len, g + 5.35, 0.4, NZ_TRIM, 0.14)
+	for lu: float in les:
+		kit_pilaster(lu, g + 0.9, top - 0.45, NZ_WALL.lightened(0.05), 0.9, 0.18)
+	for wu: float in wins:
+		_nz_arch(wu, g + 1.9, g + 3.5, 0.62, true)
+		_nz_arch(wu, upper_sill, upper_sill + 1.6, 0.55, false)
+	if cornice:
+		kit_ledge(0.0, len, top - 0.45, 0.45, NZ_TRIM, 0.32)
+
+
+## A zinc urn on a pedestal at u, v, standing on y.
+func _nz_urn(u: float, v: float, y: float) -> void:
+	var c := _w(u, v)
+	_lbox(u, v, 0.32, 0.32, y, y + 0.35, NZ_TRIM)
+	_frustum(_circle(c, 0.16, 8), y + 0.35, _circle(c, 0.38, 8), y + 0.75, NZ_ZINC)
+	_frustum(_circle(c, 0.38, 8), y + 0.75, _circle(c, 0.22, 8), y + 1.05, NZ_ZINC)
+	_frustum(_circle(c, 0.22, 8), y + 1.05, _circle(c, 0.05, 8), y + 1.3, NZ_ZINC.lightened(0.08))
+
+
+func _build_nozyk(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	_nz_home()
+	var c := NZ_C
+	var wd := NZ_W
+	var gp := _w(c, 3.0)
+	_g = map.terrain_height(gp.x, gp.y)  # the courtyard before the front (the plot falls 0.5 m to the east)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	var trim := NZ_TRIM
+	var wall := NZ_WALL
+	_mode = M_STONE
+	# --- the masses: the front block, the stair halls behind the wings, the aisles, the nave, the choir
+	_kbox(0.0, wd, -8.2, 0.0, g - 1.0, g + 12.0, wall)
+	_prism(_lpoly([[0.58, -8.2], [6.67, -8.2], [6.67, -11.42], [0.58, -11.42]]), g - 1.0, g + 9.0, wall, none, M_STONE)
+	_prism(_lpoly([[16.67, -8.2], [22.58, -8.2], [22.58, -11.42], [16.67, -11.42]]), g - 1.0, g + 9.04, wall, none, M_STONE)
+	_prism(_lpoly([[2.99, -11.42], [6.67, -11.42], [6.67, -27.9], [4.53, -27.94], [2.02, -27.97], [2.03, -26.97], [3.13, -26.97]]),
+			g - 1.0, g + 9.88, wall, none, M_STONE)
+	_prism(_lpoly([[16.67, -11.42], [20.36, -11.42], [20.43, -29.38], [16.67, -29.83]]), g - 1.0, g + 9.86, wall, none, M_STONE)
+	_kbox(6.67, 16.67, -28.6, -8.2, g - 1.0, g + 12.4, wall)
+	var choir := _lpoly([[6.93, -27.85], [16.77, -29.6], [16.79, -30.22], [6.93, -32.14]])
+	_prism(choir, g - 1.0, g + 12.0, wall, none, M_STONE)
+	_pyramid(choir, g + 12.0, g + 13.2, NZ_ROOF)
+	# --- the roofs: the front block's hip, the nave's gable (its front triangle is the risalit's
+	# gable), the four lean-tos
+	_hip(wd * 0.5, -4.1, wd * 0.5, 4.1, g + 12.0, 2.4, NZ_ROOF)
+	_nz_gable(0.5, -28.6, c, 5.0, g + 12.4, 2.6)
+	_nz_lean(0.58, 6.67, -8.2, -11.42, g + 9.0, g + 11.2)
+	_nz_lean(2.99, 6.67, -11.42, -27.9, g + 9.88, g + 11.2)
+	_nz_lean(22.58, 16.67, -8.2, -11.42, g + 9.04, g + 11.2)
+	_nz_lean(20.4, 16.67, -11.42, -29.6, g + 9.86, g + 11.2)
+	# the cornices round the front block and along the nave's walls over the lean-tos
+	kit_cornice_ring(_lpoly([[0.0, 0.0], [wd, 0.0], [wd, -8.2], [0.0, -8.2]]), g + 11.6, trim, 0.4, 0.42)
+	_kbox(6.52, 16.82, -28.6, -8.2, g + 12.05, g + 12.4, trim)
+	# --- the front: the wings (rusticated ground floor, two storeys of windows)
+	kit_face(0.0)
+	for wing: Array in [[0.0, 6.67, 4.2], [16.67, wd, 19.15]]:
+		var u0: float = wing[0]
+		var u1: float = wing[1]
+		var wc: float = wing[2]
+		kit_ledge(u0, u1, g - 0.5, 1.4, NZ_PLINTH, 0.06)
+		_nz_bands(u0, u1, g + 0.9, g + 5.35, 0.5)
+		kit_ledge(u0 - 0.1, u1, g + 5.35, 0.4, trim, 0.16)
+		_nz_arch(wc, g + 1.9, g + 3.5, 0.62, true)
+		# upstairs: two tall windows over a panel band, a triple arched light in an arcade
+		kit_ledge(wc - 1.35, wc + 1.35, g + 6.05, 0.22, NZ_ORN, 0.1)
+		for s: float in [-0.75, 0.75]:
+			kit_window(wc + s, g + 6.4, 2.1, Win.SILL, trim, PAL_GLASS_DARK, 0.38)
+		kit_ledge(wc - 1.35, wc + 1.35, g + 9.15, 0.2, trim, 0.12)
+		_kbox(wc - 1.3, wc + 1.3, -0.02, 0.06, g + 9.35, g + 10.85, NZ_ORN)
+		for s2: float in [-0.75, 0.0, 0.75]:
+			var at := _w(wc + s2, 0.06)
+			_arch_panel(at, _a, _b, 0.25, g + 9.55, g + 10.1, PAL_GLASS_DARK, 0.03, _lit(wc + s2, g + 9.55))
+		# the corner lesene and the acroterion over the cornice
+		var cu := u0 + 0.45 if u0 < 1.0 else u1 - 0.45
+		kit_pilaster(cu, g + 5.75, g + 11.2, wall.lightened(0.05), 0.9, 0.1)
+		_kbox(cu - 0.6, cu + 0.6, -0.6, 0.3, g + 12.0, g + 12.45, trim)
+		_arch_panel(_w(cu, 0.3), _a, _b, 0.5, g + 12.45, g + 12.45, trim, 0.01, M_STONE)
+	# --- the pylons either side of the risalit, with their urns
+	for pu: float in [7.17, 16.17]:
+		_kbox(pu - 0.5, pu + 0.5, -0.5, 0.8, g - 0.5, g + 12.1, wall)
+		kit_face(0.8)
+		kit_ledge(pu - 0.5, pu + 0.5, g - 0.5, 1.4, NZ_PLINTH, 0.04)
+		_nz_bands(pu - 0.5, pu + 0.5, g + 0.9, g + 5.35, 0.5)
+		kit_ledge(pu - 0.55, pu + 0.55, g + 5.35, 0.4, trim, 0.1)
+		_kbox(pu - 0.62, pu + 0.62, -0.5, 0.95, g + 12.1, g + 12.6, trim)
+		_nz_urn(pu, 0.25, g + 12.6)
+	# --- the risalit: the ground floor with the door and its steps
+	kit_face(0.5)
+	_kbox(7.67, 15.67, -0.5, 0.5, g - 0.5, g + 12.4, wall)
+	kit_ledge(7.67, 15.67, g - 0.5, 1.4, NZ_PLINTH, 0.06)
+	_nz_bands(7.67, 9.9, g + 0.9, g + 5.35, 0.5)
+	_nz_bands(13.44, 15.67, g + 0.9, g + 5.35, 0.5)
+	kit_ledge(7.67, 15.67, g + 5.35, 0.4, trim, 0.16)
+	for k in 4:
+		var d := 2.1 - 0.45 * float(k)
+		_kbox(c - 2.3 + 0.12 * float(k), c + 2.3 - 0.12 * float(k), 0.5, 0.5 + d, g - 0.3, g + 0.25 * float(k + 1), PAL_PALE_CONCRETE)
+	var door := _w(c, 0.5)
+	_arch_panel(door, _a, _b, 1.45, g + 1.0, g + 3.6, NZ_ORN, 0.07, M_STONE)
+	_arch_panel(door, _a, _b, 1.12, g + 1.0, g + 3.6, trim, 0.11, M_STONE)
+	_arch_panel(door, _a, _b, 0.86, g + 1.0, g + 3.45, PAL_OAK, 0.15, M_STONE)
+	for s3: float in [-2.75, 2.75]:
+		_nz_arch(c + s3, g + 1.9, g + 3.5, 0.62, true)
+	# over the door: the Tablets of the Law between two small domed turrets on corbels, a low rail
+	_kbox(c - 1.55, c + 1.55, 0.5, 0.78, g + 5.75, g + 6.15, trim)
+	_arch_panel(_w(c, 0.5), _a, _b, 0.5, g + 5.75, g + 6.75, trim, 0.22, M_STONE)
+	_arch_panel(_w(c, 0.5), _a, _b, 0.36, g + 5.85, g + 6.75, PAL_GREY_STONE, 0.27, M_STONE)
+	for s4: float in [-1.72, 1.72]:
+		var tu := c + s4
+		_lbox(tu, 0.72, 0.2, 0.22, g + 3.7, g + 4.6, trim)
+		_lbox(tu, 0.78, 0.28, 0.28, g + 4.6, g + 6.5, trim)
+		var tc := _w(tu, 0.78)
+		_frustum(_circle(tc, 0.3, 8), g + 6.5, _circle(tc, 0.09, 8), g + 7.05, trim)
+	# upstairs: four tall windows between colonnettes over a sill band, the carved frieze
+	kit_ledge(7.67, 15.67, g + 6.1, 0.22, NZ_ORN, 0.1)
+	for wu: float in [c - 2.75, c - 0.85, c + 0.85, c + 2.75]:
+		kit_window(wu, g + 6.4, 2.1, Win.SILL, trim, PAL_GLASS_DARK, 0.47)
+	for cu2: float in [7.95, c - 1.85, c - 1.65, c + 1.65, c + 1.85, 15.39]:
+		kit_pilaster(cu2, g + 6.3, g + 8.95, trim, 0.2, 0.14)
+	kit_ledge(7.67, 15.67, g + 8.95, 0.45, NZ_ORN, 0.12)
+	# the two arched windows in the gable storey and the roundel with the Star of David
+	for s5: float in [-2.75, 2.75]:
+		_nz_arch(c + s5, g + 9.65, g + 10.0, 0.45, true)
+	var rc := _w(c, 0.53)
+	var out3 := Vector3(_b.x, 0.0, _b.y)
+	_disc(Vector3(rc.x, g + 11.1, rc.y), out3, 1.75, 16, NZ_ORN)
+	var rc2 := _w(c, 0.58)
+	_disc(Vector3(rc2.x, g + 11.1, rc2.y), out3, 1.42, 16, trim)
+	var along := Vector3(_a.x, 0.0, _a.y)
+	for k2 in 2:
+		var sc := _w(c, 0.63 + 0.04 * float(k2))  # the second triangle 4 cm proud: the two overlap
+		var pts: Array[Vector3] = []
+		for j in 3:
+			var ang := PI * 0.5 + PI * float(k2) + TAU * float(j) / 3.0
+			pts.append(Vector3(sc.x, g + 11.1, sc.y) + along * cos(ang) * 0.85 + Vector3.UP * sin(ang) * 0.85)
+		_tri(pts[0], pts[1], pts[2], out3, NZ_ORN.darkened(0.12), Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
+	# the gable: raking cornices, the corbel-arch frieze under them, the ball finial on the apex
+	var apex := g + 15.0
+	for sd: float in [-1.0, 1.0]:
+		var eu := c + sd * 4.0
+		_nz_rake(eu, g + 12.62, c, apex - 0.3, 0.4, 0.82, 0.35, trim)
+		for k3 in 8:
+			var t := (float(k3) + 0.6) / 8.6
+			var bu := lerpf(eu, c, t)
+			var by := lerpf(g + 12.62, apex - 0.3, t)
+			_kbox(bu - 0.13, bu + 0.13, 0.45, 0.66, by - 0.5, by - 0.05, trim)
+	_lbox(c, 0.45, 0.32, 0.32, apex - 0.2, apex + 0.45, trim)
+	var fc := _w(c, 0.45)
+	_frustum(_circle(fc, 0.14, 8), apex + 0.45, _circle(fc, 0.08, 8), apex + 1.0, NZ_ZINC)
+	_frustum(_circle(fc, 0.08, 8), apex + 1.0, _circle(fc, 0.3, 8), apex + 1.28, NZ_ZINC)
+	_frustum(_circle(fc, 0.3, 8), apex + 1.28, _circle(fc, 0.05, 8), apex + 1.7, NZ_ZINC.lightened(0.08))
+	_lbox(c, 0.45, 0.03, 0.03, apex + 1.7, apex + 2.1, PAL_IRON)
+	# --- the sides of the front block, the stair halls, the aisles
+	# (each side's own frame: its outside on the left of from -> to; north is u = 0)
+	_nz_side(_w(0.0, -8.2), _w(0.0, 0.0), g + 12.0, [4.1], [], g + 6.4, false)
+	_nz_home()
+	_nz_side(_w(wd, 0.0), _w(wd, -8.2), g + 12.0, [4.1], [], g + 6.4, false)
+	_nz_home()
+	_nz_side(_w(0.58, -11.42), _w(0.58, -8.2), g + 9.0, [1.6], [], g + 5.9)
+	_nz_home()
+	_nz_side(_w(22.58, -8.2), _w(22.58, -11.42), g + 9.04, [1.6], [], g + 5.9)
+	_nz_home()
+	# the aisles: lesenes where LoD2 has them (v -14.5, -20.6, -26.8), a window in each bay
+	_nz_side(_w(2.99, -27.95), _w(2.99, -11.42), g + 9.88, [4.18, 10.53, 15.13], [1.13, 7.38, 13.48], g + 6.2)
+	_nz_home()
+	_nz_side(_w(20.36, -11.42), _w(20.43, -29.38), g + 9.86, [1.4, 6.0, 12.35], [3.03, 9.13, 15.38], g + 6.2)
+	_nz_home()
+	_collide(outline)
+
+
 ## The Dominican church of St Hyacinth (Kościół św. Jacka, ul. Freta 8/10, 1603-1639, front and
 ## tower rebuilt in the 1750s and again after 1944): the whole church as a model that replaces the
 ## old kit church (`church_jacek`, built by `_build_church` until 2026-11-14) and the LoD2 mass
@@ -30104,7 +30402,8 @@ func _find_churches() -> void:
 		if outline.size() < 3:
 			continue
 		var zone: Array = [_largest(Geometry2D.offset_polygon(outline, 3.0, Geometry2D.JOIN_MITER))]
-		_add_site(ch["key"], zone)
+		# The Community's wing east of the Nożyk Synagogue reaches into the zone: keep it the map's.
+		_add_site(ch["key"], zone, [_nz_wing_ring()] if ch["key"] == "church_nozykow" else [])
 		if not sites.is_empty() and sites[-1]["key"] == ch["key"]:
 			sites[-1]["outline"] = outline
 			if ch["key"] == "church_sw_marcin":
@@ -30145,6 +30444,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_niepokalanego":
 		_build_niepokalanego(site)  # the whole Res Sacra Miser church from photos, not the kit church
+		return
+	if site["key"] == "church_nozykow":
+		_build_nozyk(site)  # the whole Nożyk Synagogue from photos, front to the west, not the kit church
 		return
 	var ch := _church_spec(site["key"])
 	if ch.is_empty():

@@ -37,7 +37,7 @@ static func prefer(list: Array, flying: bool) -> Array:
 	return keep if not keep.is_empty() else list
 
 
-## The rescue kind a new call takes for a player who is `flying` (kinds as missions.gd `Kind`:
+## The rescue kind a new call takes for a player who is `flying` (kinds as rescue_places.gd `Kind`:
 ## 0 street, 1 roof, 2 river, 3 park): flying turns the street and park calls into roof calls
 ## (the helicopter's own), driving turns roof calls into park calls.
 static func kind_for(kind: int, flying: bool) -> int:

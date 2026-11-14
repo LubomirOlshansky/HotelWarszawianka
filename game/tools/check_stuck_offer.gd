@@ -3,6 +3,8 @@ extends SceneTree
 ## drive in one spot (car.gd `stalled`), and main.gd puts POMOC DROGOWA on the context button once it
 ## reaches Car.STALL_TIME. This drives the real car script on a flat test ground and checks:
 ##   pen      boxed in by four walls with the gas held: the offer is due by STALL_TIME + 1 s
+##   pen_mid  the same with the city objects plan's step 6 preset `mid` (collide_rules.gd): a car
+##            that really is boxed in still gets the offer (the v2 answer must not free it)
 ##   open     driving on with the gas held: never due (the spot moves with the car)
 ##   idle     in the pen, 5 s gas, 5 s off the controls, 4 s gas: not due during the pause (time off
 ##            the controls does not count), due after it (nor does it reset)
@@ -38,6 +40,7 @@ var _max_z := 0.0
 func _initialize() -> void:
 	_tests = [
 		["pen", 10.0, "pen", func(_t: float) -> Array: return [1.0, false, false]],
+		["pen_mid", 10.0, "pen", func(_t: float) -> Array: return [1.0, false, false]],
 		["open", 14.0, "", func(_t: float) -> Array: return [0.6, false, false]],
 		["idle", 14.5, "pen", func(t: float) -> Array: return [1.0 if t < 5.0 or t >= 10.0 else 0.0, false, false]],
 		["parked", 10.0, "pen", func(_t: float) -> Array: return [0.0, true, true]],
@@ -103,6 +106,8 @@ func _start() -> void:
 			body.position = w[0]
 			_world.add_child(body)
 	_car = Car.new()
+	if String(_tests[_i][0]).ends_with("_mid"):
+		_car.collide = &"mid"
 	_world.add_child(_car)
 	_car.global_position = Vector3.ZERO
 
@@ -112,7 +117,7 @@ func _finish() -> void:
 	var ok := true
 	var note := ""
 	match name:
-		"pen":
+		"pen", "pen_mid":
 			ok = _due_at >= 0.0 and _due_at <= Car.STALL_TIME + 1.0
 			note = "due at %.1f s" % _due_at if _due_at >= 0.0 else "never due"
 		"open":
@@ -137,7 +142,7 @@ func _finish() -> void:
 			note = "%.1f s, after reset_stall %.1f, after reset_motion %.1f" % [before, after_stall, _car.stalled]
 	if not ok:
 		_problems += 1
-	print("  %-7s %s  %s" % [name, "ok  " if ok else "FAIL", note])
+	print("  %-7s %s  %s" % [name, "ok  " if ok else "FAIL", note + " (ends at %.1f, %.1f)" % [_car.global_position.x, _car.global_position.z]])
 	_world.queue_free()
 	_world = null
 	_car = null

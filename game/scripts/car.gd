@@ -39,6 +39,7 @@ const Haptics := preload("res://scripts/haptics.gd")
 const StopAssist := preload("res://scripts/stop_assist.gd")
 const Models := preload("res://scripts/models.gd")
 const LaneAssist := preload("res://scripts/lane_assist.gd")
+const CollideRules := preload("res://scripts/collide_rules.gd")
 
 ## Hit something hard enough to notice, at `speed` m/s closing speed (traffic stops
 ## the car it was hit by; the słoiki run breaks jars).
@@ -233,6 +234,22 @@ const STALL_RADIUS := 10.0
 ## The driving-feel loop (the ram test): the share of the speed going into a car or a tram that
 ## is kept for the next frame (it was none: a rear-ended car stopped the player dead).
 const CAR_KEEP := 0.5
+## The city objects plan, step 6 (drivable-city-build.md item 2): the collision answer's preset
+## (collide_rules.gd: &"v1" today's answer, the block in `_step` as it was; &"soft", &"mid",
+## &"firm" the v2 answer, `_wall_answer`). main.gd sets it from `--collide=`; the default stays v1
+## until F's phone A/B, then a setting.
+var collide := CollideRules.V1
+## v2: this contact episode's head-on kick and corner pivot are spent, the hardest angle it took
+## (deg), the speed the answer gave it (m/s: kept, less a light scrape, while the nose turns off
+## the wall), and the summed normals of the last two contact frames (the pivot's test).
+var _kicked := false
+var _pivoted := false
+var _ep_angle := -1.0
+var _slide_floor := 0.0
+var _n_hist: Array[Vector3] = []
+## Step 6: how many head-on kicks and corner pivots the v2 answer gave (the checks count them).
+var kicks := 0
+var pivots := 0
 ## Loop 10a: in the water it loses speed at this rate (1/s: from 91 km/h it stops within
 ## ~6 m) and settles this far (m) into it.
 const WATER_DRAG := 4.0
@@ -699,12 +716,25 @@ func _step(dt: float) -> void:
 		var slid := vel
 		var fixed := false
 		var press := 0.0
+		# Step 6 (v2 presets only): a tram or a bus answers as a wall; another car keeps a share by
+		# how it was hit; the class of the fixed thing pressed (solidity.gd) for the rules.
+		var v2 := CollideRules.is_v2(collide)
+		var heavy := false
+		var mover: Node3D = null
+		var cls := &""
 		for k in hits:
 			# (An AnimatableBody3D, traffic's and the trams' bodies, is a StaticBody3D too: not fixed.)
 			var other := get_slide_collision(k).get_collider()
 			if other is StaticBody3D and not other is AnimatableBody3D:
 				_fixed_contact = 0.25
 				fixed = true
+				if v2 and cls == &"":
+					cls = StringName(str(other.get_meta(&"solid", "")))
+			elif v2 and other is AnimatableBody3D:
+				if bool(other.get_meta(&"heavy", false)):
+					heavy = true
+				elif mover == null:
+					mover = other as Node3D
 			var nk := get_slide_collision(k).get_normal()
 			nk.y = 0.0
 			n += nk
@@ -741,7 +771,7 @@ func _step(dt: float) -> void:
 				_car_hold += dt
 		else:
 			_car_hold = 0.0
-		if _car_hold > GHOST_PUSH_TIME:
+		if _car_hold > (CollideRules.ghost_push_time(collide, handling) if v2 else GHOST_PUSH_TIME):
 			# G17: held against traffic this long: pass through those cars for a moment.
 			for k in hits:
 				var body := get_slide_collision(k).get_collider() as PhysicsBody3D
@@ -757,17 +787,27 @@ func _step(dt: float) -> void:
 			scraped.emit(hit.get_position(), hit.get_normal(), slid.length())
 		# What slides along the wall is kept, less a little scrape (loop 2a; it lost 8 % a frame),
 		# lighter the less it presses in (PT-1: brushing a fence along the kerb).
+		var v_in := vel
 		vel = slid * exp(-SCRAPE * clampf(press / SCRAPE_PRESS, SCRAPE_MIN, 1.0) * dt)
-		if not fixed and not slipped:
+		# Step 6: the v2 answer for something fixed (or a tram, a bus), going forward, not parked.
+		var wall_v2 := v2 and (fixed or heavy) and not slipped and not parked and speed > 0.0
+		if not fixed and not slipped and not wall_v2:
 			# A car or a tram gives way (traffic is shoved): keep CAR_KEEP of what went into it,
 			# not a dead stop; something that doesn't move takes the rest on the next frames.
-			vel += (fwd * speed + lateral - slid) * CAR_KEEP
+			# (Step 6, v2: the share by how it was hit, collide_rules.gd car_keep.)
+			var keep_car := CAR_KEEP
+			if v2 and mover != null and n.length() > 0.01 and v_in.length() > 0.1:
+				var into_deg := rad_to_deg(asin(clampf(-v_in.normalized().dot(n), 0.0, 1.0)))
+				keep_car = CollideRules.car_keep(collide, into_deg, CollideRules.cross_angle(v_in, -mover.global_transform.basis.z))
+			vel += (fwd * speed + lateral - slid) * keep_car
 		if slipped:
 			# Slipping past a clipped corner: it keeps its speed (the next frames carry it past).
 			vel = fwd * speed * (SLIP_KEEP if first else 1.0) + lateral
 			n = Vector3.ZERO
 			_wall_normal = Vector3.ZERO
-		if n != Vector3.ZERO:
+		if wall_v2:
+			_wall_answer(v_in, n, fwd, first, brake_now, cls, dt)
+		elif n != Vector3.ZERO:
 			var f := _forward()
 			var into := -f.dot(n)
 			var along := f - n * f.dot(n)
@@ -783,11 +823,23 @@ func _step(dt: float) -> void:
 		vel = velocity
 		_bump_cooldown = 0.0
 		_sound_cooldown = 0.0
+		if _slide_floor > 0.0:
+			# Step 6 (v2 only sets it): just off the wall, the nose still turning, the speed the hit
+			# gave is kept (less the light scrape) until the episode ends; braking lets it go.
+			_slide_floor = 0.0 if brake_now else _slide_floor * exp(-CollideRules.SLIDE_SCRAPE * dt)
+			var h := Vector3(vel.x, 0.0, vel.z)
+			if h.length() > 0.05 and h.length() < _slide_floor:
+				vel = h.normalized() * _slide_floor
 		_contact -= dt
 		if _contact <= 0.0:
 			_wall_side = 0.0
 			_car_push = 0.0
 			_car_hold = 0.0
+			_kicked = false
+			_pivoted = false
+			_ep_angle = -1.0
+			_slide_floor = 0.0
+			_n_hist.clear()
 	vel.y = 0.0
 	global_position.y = ground_height.call(global_position.x, global_position.z, global_position.y)
 	_feel_kerbs(dt)
@@ -857,6 +909,158 @@ func _step(dt: float) -> void:
 	_body.rotation.z = lerpf(_body.rotation.z, lean, 1.0 - exp(-10.0 * dt))
 	var pitch := 0.03 if brake_now and speed > 1.0 else (-0.02 if gas > 0.0 else 0.0)
 	_body.rotation.x = lerpf(_body.rotation.x, pitch, 1.0 - exp(-8.0 * dt))
+
+
+## Step 6 (drivable-city-build.md item 2, the v2 presets): the answer to something fixed, a tram or
+## a bus, after `move_and_slide` and v1's projection (`vel` is v1's slid velocity on entry).
+## `v_in` is the velocity that went in, `n` the summed contact normal (on the ground), `fwd` the
+## nose before the step's turn. A new hit (the episode's first frame, or 15° harder than it took
+## so far) turns the speed along the wall: `t × speed × keep_along + n × speed × bounce`
+## (collide_rules.gd), the side the velocity leans (`_wall_side_for`; nose on the stick's or the
+## strip's, then the freer side, `_freer_side`, and a kick of the nose once per episode, as far as
+## the car fits). While the
+## contact lasts the car keeps at least that speed less a light scrape (not when braking), so
+## the tyres scrubbing while the nose turns do not bleed it to nothing. A front corner rounding
+## something (the normal turned PIVOT_DEG within two frames) pivots about the touch keeping
+## PIVOT_KEEP, once per episode. The nose turns toward the new way at the preset's yaw rate.
+func _wall_answer(v_in: Vector3, n: Vector3, fwd: Vector3, first: bool, brake_now: bool, cls: StringName, dt: float) -> void:
+	v_in.y = 0.0
+	var s := v_in.length()
+	if n.length() < 0.5 and s >= 0.3:
+		# The touches' normals cancel out (both faces of a thin rail, a slip that ended in one): the
+		# one pressed hardest is the wall.
+		var best := 0.0
+		for k in get_slide_collision_count():
+			var nk := get_slide_collision(k).get_normal()
+			nk.y = 0.0
+			if nk.length() > 0.01 and -v_in.dot(nk.normalized()) > best:
+				best = -v_in.dot(nk.normalized())
+				n = nk.normalized()
+	_n_hist.append(n)
+	if _n_hist.size() > 3:
+		_n_hist.remove_at(0)
+	if n.length() < 0.5 or s < 0.3:
+		return
+	var into := -v_in.dot(n) / s
+	var angle := rad_to_deg(asin(clampf(into, 0.0, 1.0)))
+	var ans := CollideRules.answer(collide, handling, s, angle, cls)
+	var t := n.cross(Vector3.UP).normalized()
+	if _corner_pivot(v_in, n, fwd, s):
+		return
+	if into > 0.0 and (first or _ep_angle < 0.0 or angle > _ep_angle + 15.0):
+		var side := _wall_side_for(v_in, t, fwd, angle)
+		if float(ans["kick_deg"]) > 0.0 and not _kicked:
+			# Head-on: the freer side, and the nose kicked that way once this episode.
+			side = _freer_side(n, t, side)
+			_kicked = true
+			kicks += 1
+			var a := fwd.signed_angle_to(t * side, Vector3.UP)
+			var kick := signf(a) * minf(deg_to_rad(float(ans["kick_deg"])), absf(a))
+			# Only as far as the car fits there (a pen, a gap narrower than the car is long: turning
+			# 45° in it would sit half in the walls, and the next slide would push it out through one).
+			for share: float in [1.0, 0.5]:
+				if _fits(Vector3.ZERO, fwd.rotated(Vector3.UP, kick * share)):
+					rotate_y(kick * share)
+					break
+		_wall_side = side
+		vel = t * side * s * float(ans["keep_along"]) + n * s * float(ans["bounce"])
+		_slide_floor = s * float(ans["keep_along"])
+		_ep_angle = maxf(_ep_angle, angle)
+	else:
+		_slide_floor *= exp(-float(ans["scrape"]) * dt)
+		var h := Vector3(vel.x, 0.0, vel.z)
+		if brake_now:
+			_slide_floor = 0.0
+		elif h.length() < _slide_floor:
+			var dir := h.normalized() if h.length() > 0.05 else t * (_wall_side if _wall_side != 0.0 else 1.0)
+			vel = dir * _slide_floor
+	# The nose turns toward the new way, where the car fits (in a pen it would turn into the walls).
+	var go := Vector3(vel.x, 0.0, vel.z)
+	if go.length() > 0.5:
+		var turn := _forward().signed_angle_to(go.normalized(), Vector3.UP)
+		var most := float(ans["yaw_rate"]) * dt
+		turn = clampf(turn, -most, most)
+		if absf(turn) > 0.001 and _fits(Vector3.ZERO, _forward().rotated(Vector3.UP, turn)):
+			rotate_y(turn)
+
+
+## Step 6: which way along the wall (+1 / -1 on `t`) a v2 hit sends the car. Met at an angle (under
+## HEADON_DEG): the way the velocity leans, whatever the controls say (a stick or strip leaning into
+## the wall must not turn a graze round). Nose on: the stick (Point and Fixed: where it points, when
+## that leans along the wall), the strip (Classic, past CLASSIC_WALL_LEAN), the side already picked
+## this touch, the velocity's lean, else the nose's.
+func _wall_side_for(v_in: Vector3, t: Vector3, fwd: Vector3, angle: float) -> float:
+	var along := v_in.dot(t)
+	if angle < CollideRules.HEADON_DEG and absf(along) > 0.01:
+		return signf(along)
+	if target_dir != Vector3.ZERO:
+		var lean := target_dir.dot(t)
+		if absf(lean) > 0.25:
+			return signf(lean)
+	elif absf(steer) > CLASSIC_WALL_LEAN:
+		return 1.0 if signf(fwd.signed_angle_to(t, Vector3.UP)) == signf(steer) else -1.0
+	if _wall_side != 0.0:
+		return _wall_side
+	if absf(along) > 0.01:
+		return signf(along)
+	return 1.0 if fwd.dot(t) >= 0.0 else -1.0
+
+
+## Step 6, head-on: two `test_move` casts, the car turned 45° toward each side of the wall (eased
+## 0.4 m off it) sliding 3 m that way; the side it gets further along, or `prefer` when they are
+## within 0.25 m of each other (an open wall both ways). Only on a head-on frame, once an episode.
+func _freer_side(n: Vector3, t: Vector3, prefer: float) -> float:
+	var travel := [0.0, 0.0]
+	for i in 2:
+		var side := 1.0 if i == 0 else -1.0
+		var face := (-n + t * side).normalized()
+		var xf := Transform3D(Basis(Vector3.UP, atan2(-face.x, -face.z)), global_position + n * 0.4)
+		var hit := KinematicCollision3D.new()
+		travel[i] = hit.get_travel().length() if test_move(xf, t * side * 3.0, hit) else 3.0
+	if absf(float(travel[0]) - float(travel[1])) < 0.25:
+		return prefer
+	return 1.0 if float(travel[0]) > float(travel[1]) else -1.0
+
+
+## Step 6, the corner pivot: the contact's normal turned more than PIVOT_DEG within two frames and
+## a touch within PIVOT_REACH of a front corner (rounding the corner of a building or a wall end):
+## the car turns about the touch by that much (if it fits there), keeping PIVOT_KEEP of the speed,
+## once per episode. True when it pivoted.
+func _corner_pivot(v_in: Vector3, n: Vector3, fwd: Vector3, s: float) -> bool:
+	if _pivoted or s < 2.0 or _n_hist.size() < 3 or _n_hist[0] == Vector3.ZERO:
+		return false
+	var turned := _n_hist[0].signed_angle_to(n, Vector3.UP)
+	if absf(turned) < deg_to_rad(CollideRules.PIVOT_DEG):
+		return false
+	# Rounding an outside corner the touch turns away from the way the car goes (it presses in
+	# less); in an inside corner (a pen, a dead end) the new wall is more in the way: no pivot.
+	var dir := v_in.normalized()
+	if -dir.dot(n) >= -dir.dot(_n_hist[0]):
+		return false
+	var right := fwd.cross(Vector3.UP)
+	var at := Vector3.INF
+	for k in get_slide_collision_count():
+		var rel := get_slide_collision(k).get_position() - global_position
+		var local := Vector2(rel.dot(right), rel.dot(fwd))
+		for corner: Vector2 in [Vector2(0.9, 2.0), Vector2(-0.9, 2.0)]:
+			if local.distance_to(corner) <= CollideRules.PIVOT_REACH:
+				at = get_slide_collision(k).get_position()
+	if at == Vector3.INF:
+		return false
+	_pivoted = true
+	pivots += 1
+	var turn := clampf(turned, -deg_to_rad(CollideRules.PIVOT_DEG), deg_to_rad(CollideRules.PIVOT_DEG))
+	var basis_now := Basis(Vector3.UP, turn)
+	var origin := at + basis_now * (global_position - at)
+	origin.y = global_position.y
+	var xf := Transform3D(basis_now * global_transform.basis, origin)
+	var hit := KinematicCollision3D.new()
+	if test_move(xf, Vector3.ZERO, hit, 0.001, true) and hit.get_depth() > 0.05:
+		return false
+	global_transform = xf
+	vel = (basis_now * v_in) * CollideRules.PIVOT_KEEP
+	_slide_floor = s * CollideRules.PIVOT_KEEP
+	return true
 
 
 ## The gas's pull from `speed` towards `top` this step (every profile: the drag and the races

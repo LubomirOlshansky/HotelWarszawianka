@@ -155,6 +155,8 @@ func setup(lane_graph: LaneGraph, map_node: Node3D, data: Dictionary) -> void:
 			var body := AnimatableBody3D.new()
 			body.sync_to_physics = false
 			body.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+			# The city objects plan, step 6: a tram is heavy (car.gd's v2 presets answer it as a wall).
+			body.set_meta(&"heavy", true)
 			var mi := MeshInstance3D.new()
 			mi.material_override = Models.material()
 			body.add_child(mi)

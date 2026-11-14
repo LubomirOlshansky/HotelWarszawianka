@@ -58,9 +58,12 @@ extends SceneTree
 ## `water` where it ended in the river; `miss` where it never reached the line (something hard in
 ## the way, another level). Sector by sector (each with its neighbours loaded); --box=
 ## limits it; --write=FILE writes every test as a TSV. It reports and exits 0 (a survey, not a gate).
-## --dry lists the routes and their length and drives nothing.
+## --dry lists the routes and their length and drives nothing. --spent prints the car script's time
+## a physics frame (the collision preset's cost).
+## The city objects plan, step 6: --collide=v1|soft|mid|firm drives the car with that collision answer
+## (collide_rules.gd; v1, today's, by default: the output and the contact log do not move with it).
 ##
-##   godot --headless --path game --fixed-fps 60 --script res://tools/check_lane_drive.gd [-- --prebuilt --handling=grounded --verbose --only=NAME[|NAME2] --streets=A,B --box=... --links --write=FILE --driver=careful|sloppy --contacts=FILE --set=A --seed=N --assist=on|off --dry --no-soft --wander]
+##   godot --headless --path game --fixed-fps 60 --script res://tools/check_lane_drive.gd [-- --prebuilt --handling=grounded --verbose --only=NAME[|NAME2] --streets=A,B --box=... --links --write=FILE --driver=careful|sloppy --contacts=FILE --set=A --seed=N --assist=on|off --collide=PRESET --dry --no-soft --wander]
 
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const SectorStreamer := preload("res://scripts/sector_streamer.gd")
@@ -145,6 +148,17 @@ const SEED := 20261114
 var prebuilt := false
 ## --handling=cruise|sport|grounded: drive the routes in that profile (-1: the car's default, Cruise).
 var handling := -1
+## --collide=v1|soft|mid|firm (the city objects plan, step 6): the car's collision answer
+## (collide_rules.gd; v1, today's, by default).
+var collide := &"v1"
+## Step 6: the v2 answer's head-on kicks and corner pivots over every route (printed for a v2 preset).
+var _kicks := 0
+var _pivots := 0
+## --spent (step 6): print the car script's time per physics frame over every route (car.gd
+## `spent_usec`), for the preset's cost; nothing else changes.
+var spent := false
+var _spent_usec := 0
+var _car_frames := 0
 var verbose := false
 var only := ""
 var streets: Array = STREETS
@@ -230,6 +244,8 @@ func _initialize() -> void:
 			verbose = true
 		elif a.begins_with("--handling="):
 			handling = Car.parse_handling(a.trim_prefix("--handling="))
+		elif a.begins_with("--collide="):
+			collide = Car.CollideRules.parse(a.trim_prefix("--collide="))
 		elif a.begins_with("--only="):
 			only = a.trim_prefix("--only=")
 		elif a.begins_with("--streets="):
@@ -252,6 +268,8 @@ func _initialize() -> void:
 			noise_seed = int(a.trim_prefix("--seed="))
 		elif a.begins_with("--assist="):
 			assist = a.trim_prefix("--assist=") != "off"
+		elif a == "--spent":
+			spent = true
 		elif a == "--dry":
 			dry = true
 		elif a == "--no-soft":
@@ -550,6 +568,7 @@ func _next() -> bool:
 	car = Car.new()
 	if handling >= 0:
 		car.set_handling(handling)
+	car.collide = collide
 	if clog != null:
 		clog.reset()
 		clog.tag = str(r["name"])
@@ -831,6 +850,10 @@ func _drive_sloppy(dt: float, p: Vector3, v: float, off_now: float) -> void:
 			how, r["name"], float(r["len"]), _t, float(r["len"]) / maxf(_t, 0.1) * 3.6, 0.0 if _min_v == INF else _min_v,
 			n, dead, int(car.unsticks), _tows, ", %d smashes" % smash if smash > 0 else "", _path[0].x, _path[0].z])
 	_total_m += float(r["len"]) if done else _idx * STEP
+	_kicks += int(car.kicks)
+	_pivots += int(car.pivots)
+	_spent_usec += int(car.spent_usec)
+	_car_frames += int(round(_t * 60.0))
 	if not _next():
 		_finish()
 
@@ -889,6 +912,11 @@ func _finish() -> void:
 				", ".join(sp), soft.panels_broken])
 		if sloppy:
 			print("check_lane_drive: sloppy driver over %.1f km" % (_total_m / 1000.0))
+	if collide != &"v1":
+		print("check_lane_drive: collide %s, %d head-on kicks, %d corner pivots" % [collide, _kicks, _pivots])
+	if spent:
+		print("check_lane_drive: car script %.1f us a physics frame on average (%d frames, collide %s)" % [
+				float(_spent_usec) / maxf(_car_frames, 1.0), _car_frames, collide])
 	if write_to != "":
 		var f := FileAccess.open(write_to, FileAccess.WRITE)
 		f.store_string(JSON.stringify({"passed": _passed, "failed": _failed}) + "\n")
@@ -1037,6 +1065,7 @@ func _wander_step(dt: float) -> void:
 		car = Car.new()
 		if handling >= 0:
 			car.set_handling(handling)
+		car.collide = collide
 		car.ground_height = map.drive_height
 		car.water_at = map.in_water
 		car.kerb_feel = map.kerb_feel
