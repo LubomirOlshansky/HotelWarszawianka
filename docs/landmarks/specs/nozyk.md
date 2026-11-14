@@ -52,7 +52,7 @@ The Community's wing (OSM outline east of the synagogue, LoD2 to 14.9 m) has its
 the site's 3 m zone, so the site would drop it: `_find_churches` passes its outline (`NZ_WING`) as
 the site's keep ring, and it stays the map's LoD2.
 
-## 3. Front (west)
+## 3. Facade: the front (west), base to top
 Ground floor (0 to 5.35 m): an ochre plinth to 0.9 m; rustication grooves every 0.5 m to the belt;
 the belt course (5.35 to 5.75). Wings: an arched window (pane 1.24 m wide, sill 1.9, spring 3.5) in a
 trim surround and a carved hood, at u 4.2 and 19.15. Risalit: the door (1.72 m wide, from the top
@@ -68,7 +68,7 @@ arcade panel; a corner lesene; the cornice (11.2 to 12.0) and a small round-topp
 each outer corner. Gable: raking cornices on the nave's front triangle (slope as the roof's), eight
 corbels under each, a pedestal, zinc stem, ball and spike on the apex (to about 17.1).
 
-## 4. Sides and back
+## 4. Facade: the sides and the back
 Not photographed; built in the front's language (default, see QUESTIONS): plinth, grooves and belt
 on every side; the front block's ends one arched window on each storey; the stair halls one each;
 the aisles a window in each bay between the LoD2 lesenes (three bays, both storeys, the lower ones
@@ -103,3 +103,30 @@ synagoga Warszawy, przy Twardej." / "Warsaw's only pre-war synagogue, on Twarda.
 L3, triangle budget 2900 (measured 2625, `check_mesh_quality.gd`). Shots: `tools/turntable.sh
 church_nozykow`; the front alone `--solo=church_nozykow --lift=8
 --cams=front:-1578.1,,-227.1,270,-4,22`.
+
+## 9. Parts table
+
+| id | shape | size | position | material | feature |
+| --- | --- | --- | --- | --- | --- |
+| front block | box | 23.12 x 8.2 m | u 0..23.12, v -8.2..0, y -1..12 | M_STONE #e7d4a4 | 2 wings |
+| ring cornice | 2 ring prisms | 0.42 m proud | round the front block, y 11.2..12 | M_STONE #efe1b8 | 2 wings |
+| hip | frustum | 23.12 x 8.2 m, rise 2.4 | front block, y 12..14.4 | #7d8486 | 5 roofs |
+| risalit | box | 8 x 1 m | u 7.67..15.67, to v +0.5, y -0.5..12.4 | M_STONE | 1 risalit |
+| pylons | 2 boxes + caps | 1 x 1.3 m | u 6.67..7.67, 15.67..16.67, to v +0.8, y to 12.6 | M_STONE | 1 risalit |
+| urns | pedestal + 3 frustums each | r 0.38, 1.3 m | on the pylons, y 12.6..13.9 | #8c9694 | 1 risalit |
+| rustication | flat grooves | 0.09 m every 0.5 m | every face, y 0.9..5.35 | #e7d4a4 darkened | 3 rusticated base |
+| plinth, belt | ledges | 1.4 m, 0.4 m | every face, y -0.5..0.9, 5.35..5.75 | #d8bd82, #efe1b8 | 3 rusticated base |
+| door | 3 arch panels | leaf 1.72 m, surround 2.9 m | u 11.67, y 1..5.05 | PAL_OAK, #d6bd86 | 4 door |
+| steps | 4 boxes | 4.6 m wide | u 11.67, v 0.5..2.6, y to 1.0 | PAL_PALE_CONCRETE | 4 door |
+| tablets, turrets | arch panels; 2 boxes + domes | tablets 1 m; turrets 0.56 m | u 11.67, 9.95, 13.39, y 3.7..7.4 | PAL_GREY_STONE, #efe1b8 | 4 door |
+| arched windows | 3 arch panels + sill each | pane 1.24 m (upper 1.1, gable 0.9) | wings, risalit, sides | PAL_GLASS_DARK `_lit`, #d6bd86 | 5 windows |
+| tall windows | kit_window SILL | 0.94 and 0.76 m wide, 2.1 m | risalit and wings, y 6.4..8.5 | PAL_GLASS_DARK `_lit` | 5 windows |
+| colonnettes | 6 pilasters | 0.2 m | risalit, y 6.3..8.95 | #efe1b8 | 5 windows |
+| triforium | panel + 3 arch panels per wing | 2.6 m panel, 0.5 m lights | wings, y 9.35..10.85 | #d6bd86, glass | 5 windows |
+| roundel, star | 2 discs + 2 triangles | r 1.75, 1.42, star 0.85 | u 11.67, y 11.1 | #d6bd86, #efe1b8 | 6 gable |
+| rakes, corbels | 2 sloped bands + 16 boxes | 0.35 m band, 0.26 m corbels | gable, y 12.6..15 | #efe1b8 | 6 gable |
+| finial | pedestal, 3 frustums, spike | ball r 0.3 | apex, y 14.8..17.1 | #8c9694 | 6 gable |
+| nave | box + gable | 10 x 20.4 m, rise 2.6 | u 6.67..16.67, v 0.5..-28.6, y to 15 | M_STONE, #7d8486 | 5 roofs |
+| aisles, stair halls | 4 prisms + 4 lean-tos | to 9.0-9.9, 11.2 at the nave | either side of the nave | M_STONE, #7d8486 | 7 sides |
+| lesenes | pilasters | 0.9 m | aisle walls at v -14.5, -20.6, -26.8 | M_STONE | 7 sides |
+| choir | prism + pyramid | 9.9 x 3-4 m | the outline's east bay, y to 13.2 | M_STONE, #7d8486 | 7 sides |
