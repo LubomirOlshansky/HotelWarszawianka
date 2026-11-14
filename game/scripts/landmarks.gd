@@ -780,7 +780,7 @@ const INFO := {
 			"The socialist-realist housing district of 1950–1952."],
 	"church_sw_marcin": ["Kościół św. Marcina", "Kościół przy Piwnej na Starym Mieście.", "A church on Piwna, in the Old Town."],
 	"church_kapucyni": ["Kościół Kapucynów", "Barokowy kościół Przemienienia Pańskiego na Miodowej.", "The baroque Church of the Transfiguration on Miodowa."],
-	"church_niepokalanego": ["Kościół Niepokalanego Poczęcia NMP", "Mała świątynia przy Krakowskim Przedmieściu.", "A small church by Krakowskie Przedmieście."],
+	"church_niepokalanego": ["Kościół Niepokalanego Poczęcia NMP", "Mały klasycystyczny kościół Res Sacra Miser przy Krakowskim Przedmieściu.", "The small classicist Res Sacra Miser church on Krakowskie Przedmieście."],
 	"church_katedra_polowa": ["Katedra Polowa Wojska Polskiego", "Barokowy kościół dawnych pijarów, dziś katedra wojskowa.", "A baroque former Piarist church, now the army's cathedral."],
 	"church_duch": ["Kościół Świętego Ducha", "Barokowy kościół paulinów na Nowym Mieście.", "A baroque Pauline church in the New Town."],
 	"church_jacek": ["Kościół św. Jacka", "Kościół dominikanów na Nowym Mieście.", "The Dominicans' church in the New Town."],
@@ -18814,6 +18814,135 @@ func _build_kapucyni(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The Church of the Immaculate Conception (Kościół Niepokalanego Poczęcia NMP, "Res Sacra Miser",
+## Krakowskie Przedmieście 62; in the refectory of Kazanowski's palace since 1664, its front
+## classicist), a narrow church whose front looks west over Skwer Hoovera to the street, between
+## the white Dom Polonii (north) and a lower convent wing (south). The whole church as a model
+## that replaces the old kit church (`church_niepokalanego`, built by `_build_church` until
+## 2026-11-14: a tower and an onion it never had) and the LoD2 mass. From four Mapillary 360s of
+## 2026 taken from the square (one straight onto the front; refs/res_sacra_miser, never shipped),
+## the OSM outline (8.8 m front, 18.3 m deep, the door bay 0.75 m deep between the columns) and
+## GUGiK's LoD2 (over the front's ground: cornice 12.2, the stepped attic to 14.8; nave eaves 12,
+## ridge 14.8; a lower chancel behind the outline to v -24.5, eaves 6.5, hip to 11.4).
+## Spec docs/landmarks/specs/niepokalanego.md.
+## - the apricot front in two storeys: a lower order with two Tuscan columns before the recessed
+##   door bay (the door, a fanlight lunette over it), lesenes on the corners, an inscription
+##   panel and a cornice; an upper storey with a slightly proud middle field between pilaster
+##   strips and a tall arched window with a keystone, a frieze panel, the dentilled top cornice;
+## - the stepped attic in four tiers over the cornice and the iron cross on it;
+## - behind it the nave under a low grey sheet-metal gable (kept under the attic) with its east wall, and the
+##   lower chancel under a hipped roof.
+## Frame: origin at the front's north end on the outline, u along the front to the south (+u to
+## the viewer's right), +v out to the square (west).
+const NP_O := Vector2(-655.8, -1243.3)
+const NP_TO := Vector2(-652.7, -1235.1)
+const NP_C := 4.5                      ## the front's mirror axis (u): the door, the window, the cross
+const NP_W := 8.77                     ## the front's width
+const NP_WALL := Color("#e8c19f")      ## the apricot plaster (photos: warm, a little pink)
+const NP_TRIM := Color("#f0d3b6")      ## columns, cornices, surrounds
+const NP_SHADE := Color("#d8ac8a")     ## recessed panels
+const NP_BASE := Color("#b9b2a2")      ## plinth and steps
+const NP_ROOF := Color("#7c7f84")      ## grey sheet metal
+const NP_DOOR := Color("#4a3b36")      ## the dark wooden door
+
+
+## GUGiK models the church and the whole convent block east of it as ONE LoD2 building (its
+## centre lies outside the outline, so the site does not drop it): cut that building down to
+## 0.2 m over the front's ground inside the church and its chancel. The ring stays 0.3 m inside
+## the walls shared with Dom Polonii (north) and the convent wing (south), so their walls keep
+## their full height.
+func _np_tops() -> void:
+	var a := (NP_TO - NP_O).normalized()
+	var b := Vector2(-a.y, a.x)
+	var ring := PackedVector2Array()
+	for q: Vector2 in [Vector2(0.6, -0.1), Vector2(8.8, -0.1), Vector2(9.4, -12.6), Vector2(9.95, -22.4), Vector2(2.0, -24.25), Vector2(1.4, -13.1)]:
+		ring.append(NP_O + a * q.x + b * q.y)
+	lod2_tops.append([ring, 0.2, NP_O + a * NP_C + b])
+
+
+## A gable roof whose ridge runs along v (the nave's): `_gable` in the swapped frame.
+func _np_gable(vf: float, vb: float, cu: float, hu: float, y: float, h: float) -> void:
+	var ka := _a
+	var kb := _b
+	_a = kb
+	_b = ka
+	_gable(vf, vb, cu, hu, y, h, NP_WALL, NP_ROOF, true)
+	_a = ka
+	_b = kb
+
+
+func _build_niepokalanego(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(NP_O, NP_TO)
+	var c := NP_C
+	var wd := NP_W
+	var gp := _w(c, 1.0)
+	_g = map.terrain_height(gp.x, gp.y)  # the front's ground; the plot falls 1.2 m to the back
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	var trim := NP_TRIM
+	_mode = M_STONE
+	# --- the body: the outline with its front wall moved back to the door bay's (v -0.75)
+	var body := _lpoly([[0.0, -0.75], [8.78, -0.75], [9.35, -12.29], [9.63, -17.85], [0.91, -18.26]])
+	_prism(body, g - 1.6, g + 12.0, NP_WALL, none, M_STONE, M_STONE)
+	_prism(_largest(Geometry2D.offset_polygon(body, 0.2, Geometry2D.JOIN_MITER)), g + 11.8, g + 12.15, trim, none, M_STONE, M_STONE)
+	# --- the nave's low gable roof (ridge along v) and its east gable wall
+	_np_gable(-1.0, -18.15, 4.7, 4.6, g + 12.1, 2.0)
+	# --- the chancel behind the outline (LoD2): a lower block under a hipped roof
+	_lbox(5.95, -21.3, 4.25, 3.15, g - 1.6, g + 6.5, NP_WALL, M_STONE, none)
+	_prism(_rect(5.95, -21.3, 4.45, 3.35), g + 6.3, g + 6.65, trim, none, M_STONE, M_STONE)
+	_hip(5.95, -21.3, 4.45, 3.35, g + 6.65, 4.7, NP_ROOF)
+	# --- the front, lower storey: the two piers either side of the door bay, the upper wall
+	_kbox(0.0, 3.35, -0.75, 0.0, g - 0.4, g + 6.1, NP_WALL)
+	_kbox(5.65, wd, -0.75, 0.0, g - 0.4, g + 6.1, NP_WALL)
+	_kbox(0.0, wd, -0.75, 0.0, g + 6.0, g + 12.0, NP_WALL)
+	kit_face(0.0)
+	kit_ledge(0.0, 3.35, g - 0.3, 0.6, NP_BASE, 0.12)
+	kit_ledge(5.65, wd, g - 0.3, 0.6, NP_BASE, 0.12)
+	for lu: float in [0.4, wd - 0.4]:
+		kit_pilaster(lu, g + 0.3, g + 5.9, trim, 0.7, 0.1)
+	# the door bay: a step, the door, the fanlight lunette over it
+	_kbox(3.35, 5.65, -0.75, 0.25, g - 0.4, g + 0.15, NP_BASE)
+	kit_face(-0.75)
+	kit_door(c, g + 0.15, 2.45, 0.68, trim, NP_DOOR, false)
+	var at := _w(c, -0.75)
+	_arch_panel(at, _a, _b, 0.92, g + 3.25, g + 3.3, trim, 0.03, M_STONE)
+	_arch_panel(at, _a, _b, 0.76, g + 3.3, g + 3.35, PAL_GLASS_DARK, 0.06, _lit(c, g + 3.3))
+	# the two Tuscan columns before the bay, carrying the architrave
+	for sg: float in [-1.0, 1.0]:
+		kit_column(c + sg * 1.45, -0.15, g + 0.15, g + 5.95, trim, 0.36)
+	# the lower entablature: architrave, the inscription panel, the cornice
+	kit_face(0.0)
+	kit_ledge(0.0, wd, g + 5.95, 0.4, trim, 0.1)
+	_kbox(1.9, 7.1, -0.02, 0.04, g + 6.55, g + 6.95, NP_SHADE)
+	_kbox(0.0, wd, -0.1, 0.16, g + 7.1, g + 7.25, trim)
+	_kbox(-0.1, wd + 0.1, -0.1, 0.42, g + 7.25, g + 7.6, trim)
+	# --- the upper storey: the proud middle field, pilaster strips, the arched window
+	_kbox(1.7, 7.3, -0.05, 0.12, g + 7.6, g + 11.35, NP_WALL)
+	kit_face(0.12)
+	for pu: float in [1.95, 7.05]:
+		kit_pilaster(pu, g + 7.6, g + 11.35, trim, 0.46, 0.08)
+	for sg2: float in [-1.0, 1.0]:
+		kit_pilaster(c + sg2 * 1.4, g + 7.6, g + 9.9, trim, 0.36, 0.06)
+	var wa := _w(c, 0.12)
+	_arch_panel(wa, _a, _b, 1.0, g + 8.0, g + 10.0, trim, 0.03, M_STONE)
+	_arch_panel(wa, _a, _b, 0.74, g + 8.1, g + 10.0, PAL_GLASS_DARK, 0.07, _lit(c, g + 8.1))
+	_kbox(c - 0.17, c + 0.17, 0.1, 0.32, g + 10.75, g + 11.15, trim)  # the keystone
+	_kbox(c - 0.95, c + 0.95, 0.1, 0.3, g + 7.85, g + 8.0, trim)  # the sill
+	_kbox(1.75, 7.25, 0.08, 0.16, g + 11.4, g + 11.65, NP_SHADE)  # the frieze panel
+	# the top cornice: a dentil band and the slab
+	_kbox(0.0, wd, -0.1, 0.24, g + 11.65, g + 11.85, trim.darkened(0.05))
+	_kbox(-0.2, wd + 0.2, -0.2, 0.55, g + 11.85, g + 12.3, trim)
+	# --- the stepped attic: four tiers with copings, the cross on the top one
+	var tiers: Array = [[0.15, wd - 0.15, 12.3, 13.05], [0.95, wd - 0.95, 13.05, 13.55], [1.7, wd - 1.7, 13.55, 14.05], [2.45, wd - 2.45, 14.05, 14.75]]
+	for t: Array in tiers:
+		_kbox(float(t[0]), float(t[1]), -0.95, 0.0, g + float(t[2]), g + float(t[3]) - 0.1, NP_WALL)
+		_kbox(float(t[0]) - 0.08, float(t[1]) + 0.08, -1.0, 0.08, g + float(t[3]) - 0.1, g + float(t[3]), trim)
+	_kbox(c - 0.3, c + 0.3, -0.75, -0.15, g + 14.75, g + 15.1, trim)
+	_kap_cross(c, -0.45, g + 15.1, 1.7)
+	_collide(outline)
+
+
 ## The Dominican church of St Hyacinth (Kościół św. Jacka, ul. Freta 8/10, 1603-1639, front and
 ## tower rebuilt in the 1750s and again after 1944): the whole church as a model that replaces the
 ## old kit church (`church_jacek`, built by `_build_church` until 2026-11-14) and the LoD2 mass
@@ -29897,6 +30026,8 @@ func _find_churches() -> void:
 			sites[-1]["outline"] = outline
 			if ch["key"] == "church_sw_marcin":
 				_marcin_tops()  # the LoD2 tower in the monastery's block, under the model's tower
+			elif ch["key"] == "church_niepokalanego":
+				_np_tops()  # the church is part of the convent's one LoD2 run: cut it under the model
 
 
 func _near_any(spots: Array[Vector2], p: Vector2, r: float) -> bool:
@@ -29928,6 +30059,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_duch":
 		_build_duch(site)  # the whole Holy Spirit church and its two towers from photos, not the kit church
+		return
+	if site["key"] == "church_niepokalanego":
+		_build_niepokalanego(site)  # the whole Res Sacra Miser church from photos, not the kit church
 		return
 	var ch := _church_spec(site["key"])
 	if ch.is_empty():

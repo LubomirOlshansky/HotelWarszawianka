@@ -51,7 +51,7 @@ const BUDGET := {
 	"church_katedra_polowa": 3200,  # 2026-11-14: the whole Field Cathedral from photos (measured 2917)
 	"church_miloserdzie": 370,
 	"church_narodzenia": 470,
-	"church_niepokalanego": 400,
+	"church_niepokalanego": 720,  # 2026-11-14: the whole Res Sacra Miser church from photos (measured 644)
 	"church_nozykow": 410,
 	"church_piotr_pawel": 1020,
 	"church_reformowany": 1150,

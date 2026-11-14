@@ -41,9 +41,9 @@ the Mac (`refs/`), the Tamka church is being rebuilt in its own thread. Tiers: *
 or a skyline church, photo rebuild first; **B** named, visible from the road, kit model to check against
 photos; **C** small, tucked away or outside the player's loops.
 
-**Counts.** Photo-built 7 (Florian, Karmelici, Archikatedra front, Anna, Święty Krzyż, Wszystkich Świętych, Wizytki) ·
+**Counts.** Photo-built 8 (Florian, Karmelici, Archikatedra front, Anna, Święty Krzyż, Wszystkich Świętych, Wizytki, Niepokalanego Poczęcia) ·
 own hand-built model from the outline, never checked against photos 4 (Zbawiciela, Aleksander,
-Trójca on Plac Małachowskiego, Teresy) · church kit (outline plus guessed style) 22 · skin only 1
+Trójca on Plac Małachowskiego, Teresy) · church kit (outline plus guessed style) 21 · skin only 1
 (Jezuici) · plain block 21 unnamed religious outlines and 10 monasteries and chapels. The map's north
 (Praga north of z -2045) is cut off, so Loretańska, Stygmatów, Nawiedzenia, Benon, Kazimierz, Jan Boży
 and Marii Magdaleny are not in the game.
@@ -59,6 +59,7 @@ and Marii Magdaleny are not in the game.
 | Kościół Świętego Krzyża | Krakowskie Przedmieście 3 | `krzyz`, `refs/sw_krzyz` plus F's T09 photos | dome over the crossing |
 | Kościół Wizytek | Krakowskie Przedmieście 34 | `wizytki`, the whole church replacing LoD2, 2026-11-14 from F's straight-on front photo and turret close-up, 14 Panoramax views and LoD2 (spec `wizytki.md`, 3248 tris): the cream two-storey front facing the street (six pairs of Corinthian columns below, four above, blind niches, the iron door, balcony and arched window, bishops in niches, concave sweeps with urns, the crown with its statue group, saints, angels, ball and cross), the nave under a steep red tile roof with an east hip, arched clerestory and aisle windows, the lower chancel, the south wing, the green copper turret (open arched stage, bell cap, onion, cross); the 2026-11-01 model had its front on the wrong, east end | chancel and south wing unseen; turret position along the ridge |
 | Kościół Wszystkich Świętych | Plac Grzybowski 3/5 | `wszystkich`, photo report | none |
+| Kościół Niepokalanego Poczęcia NMP ("Res Sacra Miser") | Krakowskie Przedmieście 62 | `_build_niepokalanego`, the whole church replacing the kit church (a tower and onion it never had), 2026-11-14 from four Mapillary 360s of 2026 taken from Skwer Hoovera (one straight onto the front) and LoD2 (spec `niepokalanego.md`, 644 tris). Size check: the kit box was given in half sizes; the real church is 8.8 m wide and 18.3 m deep, its front to the west across the square between Dom Polonii and the convent wing. Built: the apricot two-storey front, two Tuscan columns before the recessed door bay, the fanlight, the arched window in a proud field with pilaster strips, the dentilled cornice, the four-tier stepped attic with an iron cross, the nave under a low grey gable, the lower chancel with a hip | back, chancel and roof covering unseen (LoD2 only) |
 
 ### Own model from the outline, never photo-checked
 
@@ -73,7 +74,6 @@ and Marii Magdaleny are not in the game.
 
 | Church | Address | Tier | Photos | Note |
 | --- | --- | --- | --- | --- |
-| Kościół Niepokalanego Poczęcia NMP | Krakowskie Przedmieście 62 | A | 57 / 12 | kit box is only 9 x 4 m: check the real size and front |
 | Katedra polowa WP | Długa 13/15 | `_build_katedra_polowa`, the whole cathedral replacing the kit church, 2026-11-14 from F's photos (spec `katedra_polowa.md`, 2917 tris): four giant pilasters, pediment and statue, arch with stained glass, two wings with scrolls and urns, twin belfries with green copper caps and spires, roofs, lantern | A | 13 / 1 + F's 3 | spires and volutes simplified; plain back and sides; no floodlights |
 | Kościół Przemienienia Pańskiego (Kapucyni) | Miodowa 13 | `_build_kapucyni`, the whole church replacing the kit church, 2026-11-14 from F's Commons photo (spec `kapucyni.md`, 2136 tris): salmon pavilion with two pilaster pairs, arched window and balcony, pediment with cross and urns, steps, two wings with scrolls and a statue, cream nave with arched windows, green copper hip | A | 13 / 0 + F's 1 | heights estimated; plain back and cloister side; volutes stepped boxes; no floodlights |
 | Kościół św. Marcina | Piwna 9/11 | `_build_marcin`, the whole church and its tower replacing the kit church, 2026-11-14 from F's Piwna, Plac Zamkowy and drone photos, 3 Mapillary and LoD2 (spec `marcin.md`, 2043 tris): ochre nave under a steep green copper roof, gable to Piwna with a great arched window and oculus, east hip, aisles with arched windows, a low front with an arched portal and a curved attic with a statue, the tower beside the chancel (brick shaft, two ochre stages, bell dome, lantern, bulb, spire, about 42 m) over LoD2's cut tower | A | 12 / 1 + F's 5 | front plane unconfirmed (no straight-on photo); attic shape; tower's brick |
