@@ -79,6 +79,9 @@ var camera: Camera3D
 ## Where the player is for rule B (the car, or the helicopter while flying); the car's position
 ## when not set.
 var focus_at := Callable()
+## Rule B's "in view" for a point, instead of the camera's frustum (check_soft_things.gd: a headless
+## run's camera has no frustum to speak of).
+var view_test := Callable()
 ## contact_log.gd when a run logs contacts (main.gd --contacts, check_lane_drive).
 var contacts: RefCounted
 ## --no-soft: nothing breaks; prebuilt sectors get their soft lines' colliders back.
@@ -171,9 +174,10 @@ static func _cells_of(soft: Dictionary) -> Dictionary:
 		for cz in range(z0, z1 + 1):
 			for cx in range(x0, x1 + 1):
 				var c := Vector2i(cx, cz)
-				if not cells.has(c):
-					cells[c] = PackedInt32Array()
-				(cells[c] as PackedInt32Array).append(s)
+				# (A packed array read out of a Dictionary is a copy: it goes back in.)
+				var list: PackedInt32Array = cells.get(c, PackedInt32Array())
+				list.append(s)
+				cells[c] = list
 	return cells
 
 
@@ -208,15 +212,13 @@ static func hard_faces(soft: Dictionary, rect: Rect2) -> Dictionary:
 		var faces := CityBarriers.slab_faces(a, b, segs[o + 7], segs[o + 5], segs[o + 6], segs[o + 8]) if segs[o + 7] > 0.0 \
 				else CityBarriers.rail_faces(a, b, segs[o + 5], segs[o + 6], segs[o + 8])
 		var cls := StringName(kinds[int(segs[o])])
-		if not out.has(cls):
-			out[cls] = PackedVector3Array()
+		var kept: PackedVector3Array = out.get(cls, PackedVector3Array())
 		for i in range(0, faces.size() - 2, 3):
 			var c := (faces[i] + faces[i + 1] + faces[i + 2]) / 3.0
 			if rect.size == Vector2.ZERO or rect.has_point(Vector2(c.x, c.z)):
-				(out[cls] as PackedVector3Array).append_array([faces[i], faces[i + 1], faces[i + 2]])
-	for cls: StringName in out.keys():
-		if (out[cls] as PackedVector3Array).is_empty():
-			out.erase(cls)
+				kept.append_array([faces[i], faces[i + 1], faces[i + 2]])
+		if not kept.is_empty():
+			out[cls] = kept
 	return out
 
 
@@ -340,6 +342,7 @@ func _sweep(from: Transform3D, to: Transform3D, v: Vector2, dt: float) -> void:
 	var nudge := Vector2.ZERO
 	var touched := ""
 	var touched_at := Vector3.ZERO
+	var touched_n := 0
 	var angle_seen := 0.0
 	var own := Vector2i(floori(to.origin.x / SECTOR), floori(to.origin.z / SECTOR))
 	var c0 := Vector2i(floori(lo.x / CELL), floori(lo.y / CELL))
@@ -403,6 +406,7 @@ func _sweep(from: Transform3D, to: Transform3D, v: Vector2, dt: float) -> void:
 							panels_broken += 1
 							touched = String(kind)
 							touched_at = at
+							touched_n += 1
 							angle_seen = rad_to_deg(acos(clampf(along, 0.0, 1.0)))
 							_burst(at, Vector3(way.x, 0.0, way.y), String(_mat_of.get(id, "metal")))
 							broke.emit(id, panel, kind, at, Vector3(way.x, 0.0, way.y), speed)
@@ -415,7 +419,7 @@ func _sweep(from: Transform3D, to: Transform3D, v: Vector2, dt: float) -> void:
 		if out < Solidity.GRIND_NUDGE:
 			car.vel += Vector3(nudge.x, 0.0, nudge.y) * (Solidity.GRIND_NUDGE - out)
 	if touched != "" and contacts != null and contacts.has_method("soft_touch"):
-		contacts.soft_touch(touched, touched_at, angle_seen)
+		contacts.soft_touch(touched, touched_at, angle_seen, touched_n)
 
 
 func _remember(key: String, id: String, panel: int, at: Vector3) -> void:
@@ -442,6 +446,8 @@ func _repair(key: String) -> void:
 
 
 func _in_view(at: Vector3) -> bool:
+	if view_test.is_valid():
+		return view_test.call(at)
 	return camera != null and is_instance_valid(camera) and camera.is_inside_tree() and camera.is_position_in_frustum(at + Vector3(0, 1.0, 0))
 
 

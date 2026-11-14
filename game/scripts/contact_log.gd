@@ -154,17 +154,17 @@ func observe(car: CharacterBody3D, dt: float) -> void:
 ## Step 7: soft_things.gd broke a panel of class `cls` (fence, hedge) at `at` this frame, the car's
 ## way `angle` deg off the line: a soft episode opens (or goes on, within FREE s of the last panel).
 ## Called after the car's step; the speed going in is the one this frame began with.
-func soft_touch(cls: String, at: Vector3, angle: float) -> void:
+func soft_touch(cls: String, at: Vector3, angle: float, panels := 1) -> void:
 	if not _soft_ep.is_empty() and _t - float(_soft_ep["seen"]) <= FREE:
 		_soft_ep["seen"] = _t
 		_soft_ep["touch"] = float(_soft_ep["touch"]) + _dt
-		_soft_ep["panels"] = int(_soft_ep["panels"]) + 1
+		_soft_ep["panels"] = int(_soft_ep["panels"]) + panels
 		return
 	_close_soft()
 	var st: Array = street_at.call(_pos.x, _pos.z)
 	var v_in := _prev_vel.length()
 	_soft_ep = {"t": _t, "x": at.x, "z": at.z, "cls": cls, "in": v_in, "low": v_in, "low3": v_in, "angle": angle,
-			"street": str(st[0]), "seen": _t, "touch": _dt, "panels": 1}
+			"street": str(st[0]), "seen": _t, "touch": _dt, "panels": panels}
 
 
 func _soft_watch(speed: float) -> void:
