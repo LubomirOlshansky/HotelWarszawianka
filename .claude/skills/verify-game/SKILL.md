@@ -88,6 +88,9 @@ plazas and sand, from the builder's own meshes; ~10 s), `check_ground.gd` (loop 
 not in `--quick`: no ground left under what covers it whole, no hole where it was left out, the
 ground mesh on the height rule; ~2 min), `check_drive.gd` (loop 3b: `drive` and `drive-prebuilt`: a car and a bus along every lane
 against the colliders, the autopilot over 20 routes across bridges and tunnels; ~10 s and ~2 s),
+`check_lane_drive.gd --set=A --driver=sloppy --contacts=` with `tools/drive_report.py` (the city objects
+plan step 3: `drivelog`, route set A, ~99 km on the prebuilt city, the contact log and the per-street table;
+gates nothing yet, PASS when every contact has a class; ~3 min),
 `check_solids.gd` (the city objects plan step 1: `solids`, the collider faces per solid class the same
 in six runtime and prebuilt sectors, their recorded total, every city collider body classed),
 `check_steering.gd`, `check_settings.gd`, `check_tiers.gd` and `check_governor.gd` (loop G1:

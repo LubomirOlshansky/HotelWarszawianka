@@ -1,5 +1,5 @@
 """Road objects census: every solid thing the car can hit, measured against the lane graph.
-    python3 -I tools/road_objects.py [MAP.json] [--json=OUT] [--top=N] [--street=NAME]
+    python3 -I tools/road_objects.py [MAP.json] [--json=OUT] [--top=N] [--street=NAME] [--no-service]
 
 Stage 1 of the road-objects pipeline (docs/design/road-objects.md section 3). Reads the finished
 map data (default game/map/centrum.json) and the baked prop files in game/data (street_details,
@@ -17,8 +17,15 @@ plus `jn`: the sample is within JUNCTION m of a junction node (3+ roads), where 
 across the corner. Objects past 6 m are counted as off-road.
 
 Prints one table per class and the streets with the most edge+kerb metres; --json writes every
-object within 3 m (class, kind, x, z, band, gap, street, junction) as the work list for stage 2
+object within 3 m (id, class, kind, x, z, band, gap, street, junction) as the work list for stage 2
 (classification). Deterministic. Standard library only.
+
+The service ways (the city objects plan, step 3; docs/design/drivable-city-build.md item 1): 45 % of
+the drawn road length is `roads` of kind `service` (yards, car parks, back lanes) that the lane graph
+leaves out, so nothing along them was measured. A second pass (`Ways`) measures the same solids
+against those ways' edges (the centre line +- w/2) in the same bands, printed after the lane tables
+and apart from them, so the lane numbers stay comparable; --json adds them as "service_items".
+--no-service skips it. `oid` names an object the same way for tools/drive_report.py's join.
 """
 import json
 import math
@@ -121,6 +128,93 @@ class Lanes:
         return False
 
 
+class Ways:
+    """The drawn service ways (`roads` of kind service, not bridges) as edges +- w/2, in cells."""
+
+    def __init__(self, d):
+        self.cells = defaultdict(list)
+        self.length = 0.0
+        for r in d.get("roads", []):
+            if r.get("k") != "service" or r.get("bridge"):
+                continue
+            pts = pairs(r["p"])
+            name = r.get("name") or "(unnamed service)"
+            for a, b in zip(pts, pts[1:]):
+                self.length += math.dist(a, b)
+                item = (a, b, float(r["w"]) * 0.5, name)
+                for i in range(math.floor((min(a[0], b[0]) - REACH) / CELL), math.floor((max(a[0], b[0]) + REACH) / CELL) + 1):
+                    for j in range(math.floor((min(a[1], b[1]) - REACH) / CELL), math.floor((max(a[1], b[1]) + REACH) / CELL) + 1):
+                        self.cells[(i, j)].append(item)
+
+    def gap(self, x, z, level="g"):
+        """(gap from the nearest service way's edge, its name, "service") or (inf, '', '')."""
+        best = (math.inf, "", "")
+        if level != "g":
+            return best
+        for a, b, half, name in self.cells.get((math.floor(x / CELL), math.floor(z / CELL)), ()):
+            g = seg_dist(x, z, a, b) - half
+            if g < best[0]:
+                best = (g, name, "service")
+        return best
+
+    def at_junction(self, x, z):
+        return False
+
+
+def oid(cls, kind, pts):
+    """An object's name for joins (tools/drive_report.py): its class, kind and first point."""
+    return f"{cls}:{kind}@{pts[0][0]:.1f},{pts[0][1]:.1f}"
+
+
+def census(d, lanes, only=""):
+    """Every object measured against `lanes` (Lanes or Ways): per class, per street, the rows."""
+    per_class = defaultdict(lambda: Counter())
+    per_street = defaultdict(lambda: Counter())
+    rows = []
+    for cls, kind, pts, level in objects(d, os.path.join(ROOT, "game", "data")):
+        best = (math.inf, "", "")
+        metres = Counter()
+        jn = False
+        for x, z in sample(pts, 1.0):
+            g = lanes.gap(x, z, level)
+            b = band_of(g[0])
+            metres[b] += 1
+            if g[0] < best[0]:
+                best = g + ((x, z),)
+            if b in ("edge", "kerb") and not jn:
+                jn = lanes.at_junction(x, z)
+        if only and best[1] != only:
+            continue
+        b = band_of(best[0])
+        c = per_class[cls]
+        c["n"] += 1
+        c["n_" + b] += 1
+        for k, v in metres.items():
+            c["m_" + k] += v
+        if b in ("lane", "edge", "kerb"):
+            per_street[best[1]][cls] += metres["lane"] + metres["edge"] + metres["kerb"]
+            if jn:
+                c["n_jn"] += 1
+            x, z = best[3]
+            rows.append({"id": oid(cls, kind, pts), "cls": cls, "kind": kind, "x": round(x, 1), "z": round(z, 1), "band": b,
+                         "gap": round(best[0], 2), "street": best[1], "road": best[2], "jn": int(jn),
+                         "m": metres["lane"] + metres["edge"] + metres["kerb"]})
+    return per_class, per_street, rows
+
+
+def report(per_class, per_street, rows, top, what="lane"):
+    head = "in-lane   " if what == "lane" else "on-way    "
+    print(f"class           objects  {head}edge(<1m)  kerb(1-3m)  walk(3-6m)  at-junction   metres edge+kerb")
+    for cls in sorted(per_class, key=lambda k: -(per_class[k]["m_edge"] + per_class[k]["m_kerb"])):
+        c = per_class[cls]
+        print(f"{cls:15s} {c['n']:7d}  {c['n_lane']:7d}  {c['n_edge']:9d}  {c['n_kerb']:10d}  {c['n_walk']:10d}  {c['n_jn']:11d}   {c['m_edge'] + c['m_kerb']:8d}")
+    print(f"\n{'streets' if what == 'lane' else 'service ways'} with the most solid metres within 3 m of a {what}'s edge (top {top}):")
+    for name, cnt in sorted(per_street.items(), key=lambda kv: -sum(kv[1].values()))[:top]:
+        print(f"  {sum(cnt.values()):6d} m  {name:32s} " + ", ".join(f"{k} {v}" for k, v in cnt.most_common(4)))
+    kinds = Counter((r["cls"], r["kind"]) for r in rows if r["band"] in ("lane", "edge"))
+    print(f"\nkinds within 1 m of a {what}'s edge: " + ", ".join(f"{c}/{k} {n}" for (c, k), n in kinds.most_common(20)))
+
+
 def band_of(g):
     for name, lim in BANDS:
         if g < lim:
@@ -179,52 +273,23 @@ def main():
     top = int(next((a.split("=", 1)[1] for a in args if a.startswith("--top=")), "25"))
     only = next((a.split("=", 1)[1] for a in args if a.startswith("--street=")), "")
     d = json.load(open(path, encoding="utf-8"))
-    lanes = Lanes(d)
-    per_class = defaultdict(lambda: Counter())
-    per_street = defaultdict(lambda: Counter())
-    rows = []
-    for cls, kind, pts, level in objects(d, os.path.join(ROOT, "game", "data")):
-        best = (math.inf, "", "")
-        metres = Counter()
-        jn = False
-        for x, z in sample(pts, 1.0):
-            g = lanes.gap(x, z, level)
-            b = band_of(g[0])
-            metres[b] += 1
-            if g[0] < best[0]:
-                best = g + ((x, z),)
-            if b in ("edge", "kerb") and not jn:
-                jn = lanes.at_junction(x, z)
-        if only and best[1] != only:
-            continue
-        b = band_of(best[0])
-        c = per_class[cls]
-        c["n"] += 1
-        c["n_" + b] += 1
-        for k, v in metres.items():
-            c["m_" + k] += v
-        if b in ("lane", "edge", "kerb"):
-            per_street[best[1]][cls] += metres["lane"] + metres["edge"] + metres["kerb"]
-            if jn:
-                c["n_jn"] += 1
-            x, z = best[3]
-            rows.append({"cls": cls, "kind": kind, "x": round(x, 1), "z": round(z, 1), "band": b,
-                         "gap": round(best[0], 2), "street": best[1], "road": best[2], "jn": int(jn),
-                         "m": metres["lane"] + metres["edge"] + metres["kerb"]})
-    print("class           objects  in-lane   edge(<1m)  kerb(1-3m)  walk(3-6m)  at-junction   metres edge+kerb")
-    for cls in sorted(per_class, key=lambda k: -(per_class[k]["m_edge"] + per_class[k]["m_kerb"])):
-        c = per_class[cls]
-        print(f"{cls:15s} {c['n']:7d}  {c['n_lane']:7d}  {c['n_edge']:9d}  {c['n_kerb']:10d}  {c['n_walk']:10d}  {c['n_jn']:11d}   {c['m_edge'] + c['m_kerb']:8d}")
-    print(f"\nstreets with the most solid metres within 3 m of a lane's edge (top {top}):")
-    for name, cnt in sorted(per_street.items(), key=lambda kv: -sum(kv[1].values()))[:top]:
-        print(f"  {sum(cnt.values()):6d} m  {name:32s} " + ", ".join(f"{k} {v}" for k, v in cnt.most_common(4)))
-    kinds = Counter((r["cls"], r["kind"]) for r in rows if r["band"] in ("lane", "edge"))
-    print("\nkinds within 1 m of a lane's edge: " + ", ".join(f"{c}/{k} {n}" for (c, k), n in kinds.most_common(20)))
+    per_class, per_street, rows = census(d, Lanes(d), only)
+    report(per_class, per_street, rows, top)
+    srows = []
+    if "--no-service" not in args:
+        ways = Ways(d)
+        s_class, s_street, srows = census(d, ways, only)
+        print(f"\n--- service ways ({ways.length / 1000:.0f} km drawn, not in the lane graph): the same solids against their edges ---")
+        report(s_class, s_street, srows, top, "service")
+        print(f"service ways: {sum(1 for r in srows if r['band'] in ('lane', 'edge'))} objects within 1 m of a service way's edge, "
+              f"{sum(1 for r in srows if r['band'] == 'lane')} on the way itself")
     if out_json:
         rows.sort(key=lambda r: (r["gap"], r["x"], r["z"]))
+        srows.sort(key=lambda r: (r["gap"], r["x"], r["z"]))
         with open(out_json, "w", encoding="utf-8") as f:
-            json.dump({"_about": "tools/road_objects.py: solid objects within 3 m of a lane's edge", "items": rows}, f, ensure_ascii=False, indent=0)
-        print(f"\nwrote {len(rows)} rows to {out_json}")
+            json.dump({"_about": "tools/road_objects.py: solid objects within 3 m of a lane's edge (items) and of a service way's (service_items)",
+                       "items": rows, "service_items": srows}, f, ensure_ascii=False, indent=0)
+        print(f"\nwrote {len(rows)} rows and {len(srows)} service-way rows to {out_json}")
 
 
 if __name__ == "__main__":
