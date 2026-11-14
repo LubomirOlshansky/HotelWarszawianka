@@ -58,12 +58,13 @@ const Gamepad := preload("res://scripts/gamepad.gd")  # the gamepad loop
 ## on, it follows the car (Point; Classic's default), off it stays put (Fixed camera; Classic
 ## with the camera fixed).
 const CAMERA := [["Wł.", "On"], ["Wył.", "Off"]]
-## F 2026-11-13: Classic's touch controls (settings.gd `pads`): fixed arrows + pedals, or the strip.
+## Classic's touch steering (settings.gd `pads`): fixed arrows or the strip (the default since
+## F 2026-11-14); the pedals are the same in both.
 const PADS := [["Strzałki", "Arrows"], ["Suwak", "Slider"]]
 ## What each (PADS) does, in a line.
 const CONTROLS_SAY := [
-	["Strzałki w lewym rogu, gaz i hamulec w prawym.", "Arrows bottom left; GAS and BRAKE bottom right."],
-	["Przesuń kciukiem w lewo–prawo, gaz i hamulec po prawej.", "Slide your thumb left–right; GAS and BRAKE on the right."],
+	["Strzałki w lewym rogu, pedały gazu i hamulca w prawym.", "Arrows bottom left; GAS and BRAKE pedals bottom right."],
+	["Przesuń kciukiem w lewo–prawo, pedały gazu i hamulca po prawej.", "Slide your thumb left–right; GAS and BRAKE pedals on the right."],
 ]
 ## Loop MW-3: Świt (Dawn) last, the mode's index (time_of_day.gd DAWN after LIVE).
 const TIME := [["Dzień", "Day"], ["Zmierzch", "Dusk"], ["Noc", "Night"], ["Na żywo", "Live"], ["Świt", "Dawn"]]
@@ -582,7 +583,7 @@ func sync(state: Dictionary) -> void:
 	for key in _bars:
 		_values[key] = float(state.get(key, 1.0))
 		(_bars[key] as Control).queue_redraw()
-	_say(int(state.get("pads", 0)))
+	_say(int(state.get("pads", 1)))
 
 
 func close() -> void:

@@ -38,13 +38,14 @@ const DEFAULT_TRAFFIC := 1
 ## Fixed stay in drive_controls.gd for the --controls= test flag only.
 const DEFAULT_CONTROLS := 1
 var controls := DEFAULT_CONTROLS
-## F 2026-11-13: Classic's touch controls: PADS_ARROWS (0, the default: fixed see-through arrows bottom
-## left, GAZ / HAMULEC pedals bottom right, like the phone racers) or PADS_SLIDER (1: the sliding
-## steering strip with round GAS / BRAKE, the layout before). Settings → Jazda → Sterowanie, key "pads".
-## Every save starts on the arrows (no older save has the key).
+## Classic's touch steering: PADS_SLIDER (1, the default since F 2026-11-14: the sliding steering
+## strip) or PADS_ARROWS (0: fixed see-through arrows bottom left, F 2026-11-13). Both have the
+## see-through GAZ / HAMULEC pedals bottom right. Settings → Jazda → Sterowanie, key "pads". A save
+## without `[controls] pads_default` (every save before 2026-11-14) starts on the slider once, then
+## keeps the player's choice.
 const PADS_ARROWS := 0
 const PADS_SLIDER := 1
-var pads := PADS_ARROWS
+var pads := PADS_SLIDER
 ## Classic only: the camera follows the car (CAM toggles it); Point always follows, Fixed never.
 var classic_follow := true
 var traffic := DEFAULT_TRAFFIC
@@ -133,6 +134,8 @@ func load_file() -> void:
 	controls = DEFAULT_CONTROLS
 	classic_follow = bool(cfg.get_value("controls", "classic_follow", classic_follow))
 	pads = clampi(int(cfg.get_value("controls", "pads", pads)), PADS_ARROWS, PADS_SLIDER)
+	if not cfg.has_section_key("controls", "pads_default"):
+		pads = PADS_SLIDER  # F 2026-11-14: the slider is the default again, once for every older save
 	if saved_scheme == 2:  # Fixed camera was Point's still-camera twin: Classic with the camera off
 		classic_follow = false
 	traffic = clampi(int(cfg.get_value("world", "traffic", traffic)), 0, TRAFFIC.size() - 1)
@@ -184,6 +187,7 @@ func save() -> void:
 	cfg.set_value("controls", "scheme", controls)
 	cfg.set_value("controls", "classic_follow", classic_follow)
 	cfg.set_value("controls", "pads", pads)
+	cfg.set_value("controls", "pads_default", 1)
 	cfg.set_value("controls", "classic_default", 1)
 	cfg.set_value("world", "traffic", traffic)
 	cfg.set_value("world", "quality", quality)

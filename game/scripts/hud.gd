@@ -77,7 +77,7 @@ const GAS_R := 40.0
 const GAS_REACH := 48.0
 const CLASSIC_BRAKE_R := 31.0
 const CLASSIC_BRAKE_REACH := 38.0
-## F 2026-11-13 (the arrows layout, the default; settings.gd `pads`): Classic's steering as two fixed,
+## F 2026-11-13 (the arrows layout, a Settings choice since the slider came back as the default on 2026-11-14; settings.gd `pads`): Classic's steering as two fixed,
 ## half-transparent arrow buttons bottom left and the pedals bottom right, like the phone racers F
 ## sent. Each arrow is ARROW_R pt (drawn) and takes a touch within ARROW_REACH; their centres are
 ## ARROW_STEP apart, so the two reaches meet without overlapping and a thumb can roll across.
@@ -175,9 +175,10 @@ var gas := false
 var scheme := 0
 ## Accessibility (2026-11-01): the pedals on the left, the stick on the right (set_left_handed).
 var left_handed := false
-## F 2026-11-13: Classic's controls as fixed arrows + pedals (true, the default) or the old sliding
-## strip with round GAS / BRAKE (false); settings.gd `pads`. The arrows held now, and their fingers.
-var arrows_layout := true
+## F 2026-11-13: Classic's steering as fixed arrows (true) or the sliding strip (false, the default
+## since F 2026-11-14); settings.gd `pads`. GAZ / HAMULEC are the see-through pedals in both
+## (`_pedals_look`). The arrows held now, and their fingers.
+var arrows_layout := false
 var steer_left := false
 var steer_right := false
 var _left_index := -1
@@ -3272,14 +3273,14 @@ func _gas_centre() -> Vector2:
 
 ## The brake's touch radius (a little larger than drawn).
 func _brake_reach() -> float:
-	if _arrows_on():
+	if _pedals_look():
 		return ARROWS_BRAKE_REACH * pt
 	return (CLASSIC_BRAKE_REACH if scheme == CLASSIC else BRAKE_REACH) * pt
 
 
 ## The brake's drawn radius (pt) for the scheme and layout now.
 func _brake_r() -> float:
-	if _arrows_on():
+	if _pedals_look():
 		return ARROWS_BRAKE_R
 	return CLASSIC_BRAKE_R if scheme == CLASSIC else BRAKE_R
 
@@ -3287,6 +3288,12 @@ func _brake_r() -> float:
 ## F 2026-11-13: the arrows layout is up (Classic, on the ground, touch, arrows chosen in Settings).
 func _arrows_on() -> bool:
 	return arrows_layout and scheme == CLASSIC and not flying and not touch_off
+
+
+## F 2026-11-14: Classic on the ground with touch: GAZ and HAMULEC are the see-through pedal plates
+## (the arrows layout's look) whichever steering is chosen, the arrows or the slider.
+func _pedals_look() -> bool:
+	return scheme == CLASSIC and not flying and not touch_off
 
 
 ## The arrows' centres: -1 the left arrow, +1 the right one. Bottom left in the right-handed layout;
@@ -3966,33 +3973,35 @@ func _draw_pad() -> void:
 	if _pedals_hidden:
 		return  # loop 3g-1: the pull-over holds the car
 	if _arrows_on():
-		_draw_arrows_layout()
+		_draw_arrows()
+	if _pedals_look():
+		_draw_pedals()
+		if not _arrows_on() and _stick_index == -1:
+			_draw_strip_hint()
 		return
+	# Point and Fixed (the --controls= test flag only): the round HAMULEC.
 	var bc := _brake_centre()
 	var br := _brake_r() * pt
 	_plate(bc, br, brake)
 	_pad_words(bc, br, "HAMULEC", "brake")
 	if nitro_owned:
 		_draw_nitro(_nitro_centre(), nitro_held)
-	if scheme == CLASSIC:
-		var gc := _gas_centre()
-		if not _gas_on_pill():
-			_plate(gc, GAS_R * pt, gas)
-			_pad_words(gc, GAS_R * pt, "GAZ", "gas")
-		if _stick_index == -1:
-			# Where the steering strip lives, on a small plate, until a thumb comes down.
-			var o := _strip_hint_centre()
-			_strip_plate.set_corner_radius_all(roundi(12.0 * pt))
-			_pad.draw_style_box(_strip_plate, Rect2(o - Vector2(52, 12) * pt, Vector2(104, 24) * pt))
-			_pad.draw_line(o - Vector2(30, 0) * pt, o + Vector2(30, 0) * pt, SUB, 1.6 * pt)
-			for side in [-1.0, 1.0]:
-				var tip := o + Vector2(side * 44, 0) * pt
-				_pad.draw_colored_polygon(PackedVector2Array([tip, tip + Vector2(-side * 7.5, -6) * pt, tip + Vector2(-side * 7.5, 6) * pt]), INK)
 
 
-## F 2026-11-13: the arrows layout: two see-through round arrows bottom left, GAZ (a tall pedal)
-## and HAMULEC (a wide one) bottom right, all in fixed places; held, a control lights in the accent.
-func _draw_arrows_layout() -> void:
+## Where the steering strip lives, on a small plate, until a thumb comes down.
+func _draw_strip_hint() -> void:
+	var o := _strip_hint_centre()
+	_strip_plate.set_corner_radius_all(roundi(12.0 * pt))
+	_pad.draw_style_box(_strip_plate, Rect2(o - Vector2(52, 12) * pt, Vector2(104, 24) * pt))
+	_pad.draw_line(o - Vector2(30, 0) * pt, o + Vector2(30, 0) * pt, SUB, 1.6 * pt)
+	for side in [-1.0, 1.0]:
+		var tip := o + Vector2(side * 44, 0) * pt
+		_pad.draw_colored_polygon(PackedVector2Array([tip, tip + Vector2(-side * 7.5, -6) * pt, tip + Vector2(-side * 7.5, 6) * pt]), INK)
+
+
+## F 2026-11-13: the arrows layout's steering: two see-through round arrows bottom left, in fixed
+## places; held, an arrow lights in the accent.
+func _draw_arrows() -> void:
 	for side in [-1, 1]:
 		var c := _arrow_centre(side)
 		var held := steer_left if side < 0 else steer_right
@@ -4011,6 +4020,11 @@ func _draw_arrows_layout() -> void:
 			ink.append(c + Vector2(q.x * k + 2.0 * k, q.y) * pt)
 		_pad.draw_colored_polygon(under, Color(OUTLINE, 0.45))
 		_pad.draw_colored_polygon(ink, ACCENT if held else Color(INK, 0.92))
+
+
+## GAZ (a tall pedal) and HAMULEC (a wide one) bottom right, see-through, lit when held: the arrows
+## layout's pedals, in both steering layouts since F 2026-11-14.
+func _draw_pedals() -> void:
 	var bc := _brake_centre()
 	var br := ARROWS_BRAKE_R * pt
 	_pedal_plate(Rect2(bc - Vector2(br, br * 0.8), Vector2(br * 2.0, br * 1.6)), brake, 3)

@@ -6476,7 +6476,7 @@ func _settings_state() -> Dictionary:
 			"text_large": int(settings.text_large), "calm": int(settings.calm), "color_safe": int(settings.color_safe),
 			"vibration": int(settings.vibration), "stop_assist": int(settings.stop_assist),
 			"lane_assist": int(car.lane_assist if car != null else settings.lane_assist),
-			"pads": 0 if hud == null or hud.arrows_layout else 1,
+			"pads": settings.pads if hud == null else (0 if hud.arrows_layout else 1),
 			"left_handed": int(settings.left_handed), "lang": maxi(0, Lang.CODES.find(Lang.code))}
 
 
