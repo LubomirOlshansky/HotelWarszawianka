@@ -7684,6 +7684,8 @@ func _make_stats() -> BenchStats:
 		b.systems["city life"] = [life, "spent_usec", true]  # loop MW-4
 	if buses != null:
 		b.systems["buses"] = [buses, "spent_usec", true]  # the night-buses loop
+	if crazy_drivers != null:
+		b.systems["crazy drivers"] = [crazy_drivers, "spent_usec", true]  # racer AI step 6b part 3: their fares
 	if crash_scenes != null:
 		b.systems["crash scenes"] = [crash_scenes, "spent_usec", true]
 	if old_tram != null:

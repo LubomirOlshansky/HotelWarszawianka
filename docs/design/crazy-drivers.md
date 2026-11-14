@@ -55,18 +55,28 @@ lewy pas. Prosimy zjechać i się pomodlić."
 
 They use the taxis' and vans' MultiMeshes, so the draw count stays the same.
 
-## 3. Behaviour (racer mode for wandering cars)
+## 3. Behaviour (racer mode, on fares)
 
 traffic.gd gets `Driver.crazy` (0 none, 1 taxi, 2 courier, 3 Pasatini). A crazy driver drives in
-racer mode (`racing_mode` accepts `crazy > 0` with no route) and wanders the lane graph like any
-town car. It never leaves the roads: the same lanes, junction curves, and give-way to trams.
+racer mode (`racing_mode` accepts `crazy > 0`) on the lane graph like any town car. It never
+leaves the roads: the same lanes, junction curves, and give-way to trams.
+
+Since racer AI step 6b part 3 (2026-11-14) a crazy driver drives **fares** on the racers' driver.
+Each has a fare, a junction 600 to 1500 m away, roughly ahead, in the connected part of the map
+and inside the band's area; at the fare (the next is picked with less than 150 m left) it takes
+another, and one not reached in 240 s is dropped. It plans its own seconds to the fare, takes a
+racing line and brakes honestly into corners (race-ai.md 6.4, `crazy_route.gd`, profiles in
+`ladder.gd` `CRAZY`). Before, it wandered with no route and took corners as the junction curve is,
+27 to 64 m/s² sideways; now 9 to 15.5. A crazy with no ride (the race bench's `old`) wanders as
+before. What makes them crazy is kept: the speed over the limit, fresh reds, blocks and tight
+cut-ins, the Pasatini running wide, no slipping through a queue.
 
 | | Taxi | Courier | Pasatini |
 | --- | --- | --- | --- |
 | Top (m/s, also capped by road class) | 20 (72 km/h) | 18 (65) | 25 (90) |
 | Over the road's limit | ×1.35 | ×1.3 | ×1.6 |
 | Pull (race_accel, m/s²) | 3.2 | 3.0 | 4.0 |
-| Corner grip (race_lat) | 6.0 | 5.0 | 7.0 |
+| Corner grip (`lat` in the `CRAZY` profile, m/s²) | 10 | 9 | 12 |
 | Block / tight cut-in (race_block) | 0.5 | 0.5 | 0.75 |
 | Runs a fresh red | 10 % | 20 % | 35 % |
 | Runs wide in a corner near you | no | no | 15 % |
@@ -136,6 +146,12 @@ Groups: `crazy_taxi`, `crazy_courier`, `crazy_pasatini`, `radio_host` tag "pasat
   English, under 70 characters, no denylisted brand); 40 s of real traffic: crazy drivers appear, at
   most the target, one Pasatini at most, every crazy driver on a lane, faster on average than town
   cars, at least one pass or lane change; a cut-in near the player makes one line, not two.
+- Since step 6b part 3 the check also holds, in the 60 s of traffic: every crazy driver 5 s in the
+  band or more has a fare and a plan (it used to wander with no route), some drive their racing
+  line, and each one let go leaves its ride. The race bench has a kind `crazy` (one crazy of each kind,
+  180 s, three spawns, clear and heavy, with and without the average test player, every race
+  twice, old and new: 72 rows) and two marks, **Crazy pace** and **Crazy stays crazy**
+  (race-ai.md 7.3); `--crazy-log` also prints the fares taken, reached and dropped.
 - `check_loud_cars` updates from three taxi shapes to four.
 - Cost: no draw call, no material. Per-frame work is racer mode on at most three more cars (the same
   code the race rivals run). Bench before/after in the PR.

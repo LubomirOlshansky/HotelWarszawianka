@@ -14,7 +14,8 @@
 		"wrong_way": "pass",
 		"told_apart": "pass",
 		"pack_order": "pass",
-		"chase_keeps_off": "pass"
+		"chase_keeps_off": "pass",
+		"crazy_stays": "pass"
 	},
 	"full": {
 		"finishes": "once:Linux",
@@ -36,6 +37,8 @@
 		"pack_order": "pass",
 		"pack_traffic": "once:Linux",
 		"chase_keeps_off": "once:Linux",
-		"chase_balance": "pass"
+		"chase_balance": "pass",
+		"crazy_pace": "pass",
+		"crazy_stays": "once:Linux"
 	}
 }

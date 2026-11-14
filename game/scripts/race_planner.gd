@@ -83,6 +83,14 @@ var _turn := PackedFloat32Array()
 ## and what a plan to a junction alone has of them: none.
 var _ends := {}
 var _no_ends := {}
+## Racer AI step 6b part 3: what a plan's shortcut state works out from its curve alone, kept for
+## every plan of this planner (the same numbers each time; a race link's speeds were 1.2 to 2.7 ms
+## a link the first time a plan met it, in one frame of its search): the curve and its length by
+## the state's key ((e << 16) | g), a race link's slowest bend by [key, grip] and its seconds by
+## [key, grip, top] (`link_curve`, `link_bend`, `link_time`; `warm_link` works them out ahead).
+var _cut_curves := {}
+var _link_bends := {}
+var _link_times := {}
 
 
 func _init(lane_graph: LaneGraph) -> void:
@@ -104,6 +112,49 @@ func _init(lane_graph: LaneGraph) -> void:
 	_curve.fill(NAN)
 	_turn.resize(states)
 	_turn.fill(0.0)
+
+
+## The curve of the shortcut from the end of edge e onto edge g (RaceCuts.curve) and its length:
+## [PackedVector2Array, float], worked out once.
+func link_curve(e: int, g: int) -> Array:
+	var key := (e << 16) | g
+	if not _cut_curves.has(key):
+		var c := RaceCuts.curve(graph, e, 0, g)
+		_cut_curves[key] = [c, LaneGraph.bezier_length(c)]
+	return _cut_curves[key]
+
+
+## A race link's slowest bend for grip `lat` (RaceCuts.bend_speed at RaceCuts.LINK_TOP), worked out once.
+func link_bend(e: int, g: int, lat: float) -> float:
+	var k := [(e << 16) | g, lat]
+	if not _link_bends.has(k):
+		_link_bends[k] = RaceCuts.bend_speed(link_curve(e, g)[0], lat, RaceCuts.LINK_TOP)
+	return _link_bends[k]
+
+
+## A race link's seconds for grip `lat` at `top` m/s at most (RaceCuts.drive_time), worked out once.
+func link_time(e: int, g: int, lat: float, top: float) -> float:
+	var k := [(e << 16) | g, lat, top]
+	if not _link_times.has(k):
+		_link_times[k] = RaceCuts.drive_time(link_curve(e, g)[0], lat, top)
+	return _link_times[k]
+
+
+## One step of working out the shortcut from e onto g ahead (crazy_route.gd, in a frame of its own
+## a step): its curve, then for a race link its bend for `lat`, then its seconds at `top`. True
+## when nothing is left to work out for it.
+func warm_link(e: int, g: int, lat: float, top: float) -> bool:
+	var key := (e << 16) | g
+	if not _cut_curves.has(key):
+		link_curve(e, g)
+		return not RaceCuts.is_link(_cut_curves[key][0])
+	if not RaceCuts.is_link(_cut_curves[key][0]):
+		return true
+	if not _link_bends.has([key, lat]):
+		link_bend(e, g, lat)
+		return false
+	link_time(e, g, lat, top)
+	return true
 
 
 ## The junction curve of road state y: [the metres a racer drives through it (traffic.gd
@@ -515,15 +566,16 @@ class Plan:
 			return -1
 		if _cut_id.has(key):
 			return _cut_id[key]
-		var curve := RaceCuts.curve(graph, e, 0, g)
-		var length := LaneGraph.bezier_length(curve)
+		var both: Array = planner.link_curve(e, g)
+		var curve: PackedVector2Array = both[0]
+		var length: float = both[1]
 		var id := _thru.size()
 		_cut_id[key] = id
 		_cut_e.append(e)
 		if RaceCuts.is_link(curve):
 			# A race link (racer AI step 5): its bends' speeds metre by metre, LINK_TOP at most.
-			var tl := RaceCuts.drive_time(curve, lat, minf(RaceCuts.LINK_TOP, speed(e)))
-			var cl := minf(RaceCuts.bend_speed(curve, lat, RaceCuts.LINK_TOP), speed(e))
+			var tl: float = planner.link_time(e, g, lat, minf(RaceCuts.LINK_TOP, speed(e)))
+			var cl: float = minf(planner.link_bend(e, g, lat), speed(e))
 			_thru.append(cl)
 			_cross.append(tl * RaceCuts.COST + RaceCuts.GAIN / cl)
 		else:
