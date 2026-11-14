@@ -1799,8 +1799,7 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"jezuici":
 				_build_jezuici(s)  # the whole church (SKINS entry with `model`: it replaces LoD2)
 			"wizytki":
-				_mark_zone(s)  # the nave stays LoD2's, in its skin; the facade and the turret are ours
-				_build_wizytki(s)
+				_build_wizytki(s)  # the whole church (SKINS entry with `model`: it replaces LoD2)
 			"karmelici":
 				_mark_zone(s)  # the nave stays LoD2's, in its skin; the front is ours
 				_build_karmelici(s)
@@ -6636,7 +6635,7 @@ const SKINS := [
 	{"key": "sw_krzyz", "osm": "Kościół pw. Świętego Krzyża", "mode": M_MONUMENT, "wall": "#e3d9c0", "roof": "#5d6e64"},
 	{"key": "staszic", "osm": "Pałac Staszica", "mode": M_MONUMENT, "wall": "#e6dcc4", "roof": "#6a8f80"},
 	{"key": "wszystkich", "osm": "Kościół Wszystkich Świętych", "mode": M_MONUMENT, "wall": "#c6b186", "roof": "#6e7f6e"},
-	{"key": "wizytki", "osm": "Kościół Wizytek", "mode": M_MONUMENT, "wall": "#ecdfc0", "roof": "#6d8f7f"},
+	{"key": "wizytki", "osm": "Kościół Wizytek", "model": true, "mode": M_MONUMENT, "wall": "#ecdfc0", "roof": "#6d8f7f"},
 	{"key": "karmelici", "osm": "Kościół Wniebowzięcia Najświętszej Maryi Panny i świętego Józefa Oblubieńca", "mode": M_MONUMENT, "wall": "#d9cba6", "roof": "#5e8f80"},
 	{"key": "zamoyski", "osm": "Pałac Zamoyskich", "mode": M_MONUMENT, "wall": "#e7dcba", "roof": "#6a6762"},
 	{"key": "mikulski55", "osm": "Kamienica Mikulskiego przy Nowym Świecie 55", "mode": M_MONUMENT, "wall": "#e3c9a2", "roof": "#6d625a"},
@@ -21822,96 +21821,318 @@ func _wsz_drum(c: Vector2) -> void:
 	_prism(_circle(c, 0.12, 4), g + 40.4, g + 42.4, WSZ_GOLD, WSZ_GOLD, M_STONE, M_STONE)
 
 
-## The Visitationists' church (Kościół Wizytek; Karol Bay and Jakub Fontana, 1728-1761) on
-## Krakowskie Przedmieście: the nave stays LoD2's (a kept skin); the model adds the street
-## facade, a two-storey central block with pilasters, a stepped portal and a stepped, curved
-## gable with statues, a lower stepped wing to the north, and a small copper turret over the
-## crossing. Spec docs/landmarks/specs/wizytki.md.
-## Frame: origin at the front's north-east corner on the outline, u along the front (14.2 m,
-## towards the north-north-west), +v out of it to the street (east-north-east).
-const WIZ := Vector2(-431.0, -804.7)
+## The Visitationists' church (Kościół Wizytek, św. Józefa Oblubieńca; Karol Bay 1728-1733, the
+## front by Ephraim Schröger 1756-1761) on Krakowskie Przedmieście, its front to the west, to the
+## street and Cardinal Wyszyński's statue. Rebuilt 2026-11-14 as the whole building (it replaces
+## LoD2; the 2026-11-01 model had put the front on the wrong, east end) from F's straight-on photo
+## of the front and his close-up of the turret, 14 Panoramax views from the street and the square
+## (refs/wizytki_far, never shipped) and GUGiK's LoD2 (heights over the ground: the front's lower
+## cornice 9.4, upper cornice 18.6, its crown 25.3; nave eaves 18.6, ridge 25.2 with a hip at the
+## east; aisles 9.6; chancel to 14; the south wing to 15). Spec docs/landmarks/specs/wizytki.md.
+## - the cream two-storey front: a lower order of six pairs of Corinthian columns over the whole
+##   24 m (the middle four pairs on a forward block), blind arched niches with medallions, the
+##   iron-black door, a balcony and an arched window over it; an upper order of four pairs with
+##   statues of bishops in niches and a great arched window, a broken pediment; concave sweeps
+##   with urns on both storeys; a crown with a statue group in a niche, four saints on the
+##   cornice, angels on scrolled corners, a ball and the cross;
+## - the nave under a steep red tile roof with an east hip, cream walls with arched clerestory
+##   windows between lesenes, the aisles' lean-to roofs, arched windows below; the lower chancel
+##   under its own tile roof; the south wing by the university's house;
+## - the copper turret over the nave's east end: an open arched stage, a bell cap, an onion, a
+##   small lantern, a ball and a cross.
+## Frame: origin at the front's middle on the main wall line, u along the front (to the north),
+## +v into the church (east-north-east). The front itself is built in the swapped frame
+## (`_wiz_front`): u' = WIZ_FM - u, v' = -v (out to the street).
+const WIZ := Vector2(-474.2, -782.6)
 const WIZ_AXIS := Vector2(-0.527, -0.850)
-const WIZ_MID := 7.1
-const WIZ_WALL := Color("#ecdfc0")
-const WIZ_TRIM := Color("#f6f0e0")
-const WIZ_BASE := Color("#b9ae96")
-const WIZ_COPPER := Color("#6d8f7f")
-const WIZ_GOLD := Color("#c9a24a")
-const WIZ_DOOR := Color("#3a3d40")
+const WIZ_FM := 12.1                    ## the front's half width; its middle in the front frame
+const WIZ_WALL := Color("#ead9b8")      ## the cream plaster (photos: warm, a little peach)
+const WIZ_TRIM := Color("#f3e9d4")      ## columns, cornices, surrounds
+const WIZ_SHADE := Color("#d9c6a2")     ## niches and relief panels
+const WIZ_BASE := Color("#bdb19a")      ## plinths
+const WIZ_TILE := Color("#a3553f")      ## the red tile roofs
+const WIZ_COPPER := Color("#5f9884")    ## the turret's green copper
+const WIZ_DOOR := Color("#2c2d2f")      ## the iron-clad door
 
 
-func _build_wizytki(_site: Dictionary) -> void:
-	_o = WIZ
-	_a = WIZ_AXIS.normalized()
-	_b = Vector2(-_a.y, _a.x)  # (0.85, -0.527): out of the front, to the street
-	var m := WIZ_MID
-	_g = map.terrain_height(_w(m, 1.0).x, _w(m, 1.0).y)
+## The body frame: u along the front, +v into the church.
+func _wiz_home() -> void:
+	kit_front(WIZ, WIZ + WIZ_AXIS.normalized() * 10.0)
+
+
+## The front frame: u' from the north end of the front to the south, v' out to the street.
+func _wiz_front() -> void:
+	var a := WIZ_AXIS.normalized()
+	kit_front(WIZ + a * WIZ_FM, WIZ - a * WIZ_FM)
+
+
+## A round-headed window or niche on the current face at u: a trim surround and a pane.
+func _wiz_arch(u: float, y0: float, h: float, hw: float, glass := PAL_GLASS_DARK) -> void:
+	var at := _w(u, _face)
+	_arch_panel(at, _a, _b, hw + 0.22, y0 - 0.22, y0 + h - hw, WIZ_TRIM, 0.04, M_STONE)
+	_arch_panel(at, _a, _b, hw, y0, y0 + h - hw, glass, 0.08, _lit(u, y0) if glass == PAL_GLASS_DARK else M_STONE)
+
+
+## A stone urn on its pedestal at u, v (current frame), standing on y, `h` tall in all.
+func _wiz_urn(u: float, v: float, y: float, h: float) -> void:
+	var c := _w(u, v)
+	_lbox(u, v, 0.32, 0.32, y, y + h * 0.22, WIZ_TRIM)
+	_frustum(_circle(c, 0.16, 6), y + h * 0.22, _circle(c, 0.34, 6), y + h * 0.55, WIZ_SHADE.lightened(0.1))
+	_frustum(_circle(c, 0.34, 6), y + h * 0.55, _circle(c, 0.12, 6), y + h * 0.75, WIZ_SHADE.lightened(0.1))
+	_frustum(_circle(c, 0.16, 6), y + h * 0.75, _circle(c, 0.02, 6), y + h, WIZ_TRIM)
+
+
+## A concave sweep on the front (current frame): the plan-flat profile `pts` ([u, y over the
+## ground] from its foot on the low side round to its top against the wall), filled down to
+## `foot`, from v0 (back) to v1 (its face): the face, the back and the curved top.
+func _wiz_sweep(pts: Array, foot: float, v0: float, v1: float) -> void:
+	var g := _g
+	var poly := PackedVector2Array()
+	poly.append(Vector2(float(pts[-1][0]), foot))
+	for p: Array in pts:
+		poly.append(Vector2(float(p[0]), g + float(p[1])))
+	var idx := Geometry2D.triangulate_polygon(poly)
+	var nf := Vector3(_b.x, 0.0, _b.y)
+	var none := Vector2(-1, -1)
+	for i in range(0, idx.size(), 3):
+		var q: Array[Vector3] = []
+		for k in 3:
+			var s := poly[idx[i + k]]
+			var w1 := _w(s.x, v1)
+			q.append(Vector3(w1.x, s.y, w1.y))
+		_tri(q[0], q[1], q[2], nf, WIZ_WALL, none, none, none, -1.0)
+		var b: Array[Vector3] = []
+		for k in 3:
+			var s := poly[idx[i + k]]
+			var w0 := _w(s.x, v0)
+			b.append(Vector3(w0.x, s.y, w0.y))
+		_tri(b[0], b[1], b[2], -nf, WIZ_WALL, none, none, none, -1.0)
+	for k in pts.size() - 1:
+		var p0 := Vector2(float(pts[k][0]), g + float(pts[k][1]))
+		var p1 := Vector2(float(pts[k + 1][0]), g + float(pts[k + 1][1]))
+		var a0 := _w(p0.x, v0)
+		var a1 := _w(p0.x, v1)
+		var b1 := _w(p1.x, v1)
+		var b0 := _w(p1.x, v0)
+		var along := Vector3(_a.x, 0.0, _a.y) * (p1.x - p0.x) + Vector3.UP * (p1.y - p0.y)
+		var n := along.cross(nf).normalized()
+		if n.y < 0.0:
+			n = -n
+		_quad(Vector3(a0.x, p0.y, a0.y), Vector3(a1.x, p0.y, a1.y), Vector3(b1.x, p1.y, b1.y), Vector3(b0.x, p1.y, b0.y), n, WIZ_TRIM)
+
+
+## One side of the nave from v_from to v_to on the wall at u = `wu` (outside on the left of the
+## run): arched clerestory windows between lesenes, the aisle's arched windows at the given v
+## (on the aisle wall at u = `au`).
+func _wiz_side(wu: float, au: float, v_from: float, v_to: float, aisle: Array) -> void:
+	var g := _g
+	var up := kit_front(_w(wu, v_from), _w(wu, v_to))
+	kit_face(0.0)
+	for k in 4:
+		_wiz_arch(up * (0.125 + 0.25 * float(k)), g + 12.2, 4.4, 0.8)
+	for k in 5:
+		_kbox(up * 0.25 * float(k) - 0.3, up * 0.25 * float(k) + 0.3, -0.02, 0.12, g + 9.9, g + 18.3, WIZ_TRIM)
+	_wiz_home()
+	var ap := kit_front(_w(au, v_from), _w(au, v_to))
+	kit_face(0.0)
+	for v: float in aisle:
+		var t := absf(v - v_from)
+		_wiz_arch(t, g + 3.0, 4.2, 0.75)
+	for k in 6:
+		var pu := ap * float(k) / 5.0
+		_kbox(pu - 0.3, pu + 0.3, -0.02, 0.14, g + 0.6, g + 9.2, WIZ_TRIM)
+	_wiz_home()
+
+
+func _build_wizytki(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["zone"][0]
+	var none := Color(0, 0, 0, 0)
+	var trim := WIZ_TRIM
+	_wiz_home()
+	var fp := _w(0.0, -4.0)
+	_g = map.terrain_height(fp.x, fp.y)
 	var g := _g
 	_mode = M_STONE
-	# the central block: a stone ground floor, a window storey above
-	_lbox(m, -0.7, 7.1, 0.7, g - 0.6, g + 11.0, WIZ_WALL, M_STONE, WIZ_WALL)
-	_lbox(m, -0.6, 6.9, 0.6, g + 11.0, g + 18.0, WIZ_WALL, M_MONUMENT, WIZ_WALL)
-	_lbox(m, 0.0, 7.3, 0.55, g - 0.6, g + 1.2, WIZ_BASE, M_STONE, WIZ_BASE.lightened(0.05))
-	# the portal: a dark door under a small cornice, three steps
-	_mode = M_GLASS
-	_wall(_w(m - 1.3, 0.6), _w(m + 1.3, 0.6), g + 1.2, g + 5.6, _b, WIZ_DOOR)
-	_mode = M_STONE
-	_lbox(m, 0.5, 1.9, 0.25, g + 5.6, g + 6.3, WIZ_TRIM, M_STONE, WIZ_TRIM)
-	for k in 3:
-		_lbox(m, 1.0 + 0.5 * k, 3.4 - 0.5 * k, 0.5 + 0.5 * (2 - k), g - 0.6, g + 0.15 + 0.35 * (2 - k), WIZ_BASE,
-				M_STONE, WIZ_BASE.lightened(0.04))
-	# pilasters on both storeys, the entablature between them, the cornice on top
-	for u: float in [-6.2, -2.2, 2.2, 6.2]:
-		_lbox(m + u, 0.2, 0.45, 0.3, g + 1.2, g + 11.0, WIZ_TRIM, M_STONE, WIZ_TRIM)
-		_lbox(m + u, 0.2, 0.4, 0.3, g + 11.8, g + 18.0, WIZ_TRIM, M_STONE, WIZ_TRIM)
-	_lbox(m, 0.3, 7.4, 0.7, g + 11.0, g + 11.8, WIZ_TRIM, M_STONE, WIZ_TRIM)
-	_lbox(m, 0.3, 7.4, 0.9, g + 18.0, g + 18.9, WIZ_TRIM, M_STONE, WIZ_TRIM)
-	# the curved gable, in three narrowing tiers with volutes, a small pediment and a cross
-	_lbox(m, -0.2, 5.6, 0.7, g + 18.9, g + 20.7, WIZ_WALL, M_STONE, WIZ_WALL)
-	_lbox(m, -0.2, 4.0, 0.7, g + 20.7, g + 22.4, WIZ_WALL, M_STONE, WIZ_WALL)
-	_lbox(m, -0.2, 2.5, 0.7, g + 22.4, g + 23.8, WIZ_WALL, M_STONE, WIZ_WALL)
-	for sd: float in [-1.0, 1.0]:  # the volutes at the tier steps
-		_lbox(m + sd * 6.3, 0.0, 0.7, 0.55, g + 18.9, g + 20.2, WIZ_TRIM, M_STONE, WIZ_TRIM)
-		_lbox(m + sd * 4.8, 0.0, 0.8, 0.55, g + 20.7, g + 21.8, WIZ_TRIM, M_STONE, WIZ_TRIM)
-		_lbox(m + sd * 6.9, 0.3, 0.3, 0.3, g + 18.9, g + 21.0, WIZ_TRIM, M_STONE, WIZ_TRIM)  # statue plinth
-		_lbox(m + sd * 6.9, 0.3, 0.2, 0.2, g + 21.0, g + 22.0, WIZ_TRIM, M_STONE, WIZ_TRIM)  # the figure
+	# --- the masses: aisles and the north chapel to the aisles' cornice, the nave above them
+	var low := _lpoly([[-11.2, 0.0], [11.0, 0.0], [11.0, 26.2], [12.6, 26.2], [12.6, 30.8], [10.4, 30.8],
+			[10.4, 35.0], [-11.2, 35.0]])
+	_prism(low, g - 0.6, g + 9.6, WIZ_WALL, WIZ_TILE, M_STONE, M_STONE)
+	_prism(_largest(Geometry2D.offset_polygon(low, 0.25, Geometry2D.JOIN_MITER)), g - 0.6, g + 0.6, WIZ_BASE, none, M_STONE, M_STONE)
+	_prism(_largest(Geometry2D.offset_polygon(low, 0.3, Geometry2D.JOIN_MITER)), g + 9.2, g + 9.8, trim, none, M_STONE, M_STONE)
+	# the aisles' lean-to roofs, from their cornice up against the nave
+	for s: float in [-1.0, 1.0]:
+		var e0 := _w(s * 11.2, 0.2)
+		var e1 := _w(s * 11.2, 35.0)
+		var r1 := _w(s * 7.2, 35.0)
+		var r0 := _w(s * 7.2, 0.2)
+		var lp: Array[Vector3] = [Vector3(e0.x, g + 9.8, e0.y), Vector3(e1.x, g + 9.8, e1.y),
+				Vector3(r1.x, g + 11.4, r1.y), Vector3(r0.x, g + 11.4, r0.y)]
+		var ln := (lp[1] - lp[0]).cross(lp[3] - lp[0]).normalized()
+		if ln.y < 0.0:
+			ln = -ln
+		_quad(lp[0], lp[1], lp[2], lp[3], ln, WIZ_TILE)
+	# the nave: walls to the eaves, a cornice, the steep tile roof, the hip at the east end
+	_lbox(0.0, 17.6, 7.2, 17.6, g + 9.0, g + 18.6, WIZ_WALL, M_STONE, none)
+	_prism(_rect(0.0, 17.6, 7.5, 17.9), g + 18.3, g + 18.8, trim, none, M_STONE, M_STONE)
 	var ka := _a
 	var kb := _b
 	_a = kb
 	_b = ka
-	_gable(0.5, -0.9, m, 2.5, g + 23.8, 1.5, WIZ_WALL, WIZ_COPPER)
+	_gable(-0.3, 28.0, 0.0, 7.6, g + 18.8, 6.4, WIZ_WALL, WIZ_TILE, false)
 	_a = ka
 	_b = kb
-	var oc := _w(m, 0.55)
-	_disc(Vector3(oc.x, g + 21.5, oc.y), Vector3(_b.x, 0.0, _b.y), 0.8, 8, WIZ_DOOR)
-	_lbox(m, 0.0, 0.15, 0.15, g + 25.3, g + 27.6, WIZ_GOLD, M_STONE, WIZ_GOLD)
-	_lbox(m, 0.0, 0.65, 0.15, g + 26.5, g + 26.9, WIZ_GOLD, M_STONE, WIZ_GOLD)
-	# the stepped north wing: two lower faces following the outline (5.8 and 12.2 m back)
-	_wiz_wing(-3.3, -5.5, 3.3)
-	_wiz_wing(-11.25, -11.9, 4.65)
-	# the turret over the crossing: octagonal drum, a copper cap, a lantern and a cross
-	var c := _w(3.3, -24.0)
-	var top := g + 23.0
-	_prism(_circle(c, 2.5, 8), g - 0.6, top, WIZ_WALL, WIZ_COPPER, M_MONUMENT, M_STONE)
-	_frustum(_circle(c, 2.9, 8), top, _circle(c, 2.9, 8), top + 0.6, WIZ_TRIM, WIZ_TRIM)
-	_frustum(_circle(c, 2.6, 8), top + 0.6, _circle(c, 1.0, 8), top + 3.6, WIZ_COPPER, WIZ_COPPER)
-	_prism(_circle(c, 0.9, 8), top + 3.6, top + 5.2, WIZ_TRIM, WIZ_COPPER, M_MONUMENT, M_STONE)
-	_frustum(_circle(c, 1.1, 8), top + 5.2, _circle(c, 0.15, 8), top + 6.8, WIZ_COPPER, WIZ_COPPER)
-	_lbox(3.3, -24.0, 0.12, 0.12, top + 6.8, top + 8.6, WIZ_GOLD, M_STONE, WIZ_GOLD)
-	_lbox(3.3, -24.0, 0.5, 0.12, top + 7.7, top + 8.0, WIZ_GOLD, M_STONE, WIZ_GOLD)
-	# the car meets the steps and the plinth
-	_collide(_rect(m, 1.5, 3.4, 1.0))
-
-
-## One face of the lower north wing at depth `fv` (centre `cu`, half width `hu`): a stone
-## ground floor, a window storey, pilasters at the ends and a cornice, 14 m up.
-func _wiz_wing(cu: float, fv: float, hu: float) -> void:
-	var g := _g
-	_lbox(cu, fv - 0.8, hu, 0.8, g - 0.6, g + 5.0, WIZ_WALL, M_STONE, WIZ_WALL)
-	_lbox(cu, fv - 0.7, hu - 0.1, 0.7, g + 5.0, g + 13.2, WIZ_WALL, M_MONUMENT, WIZ_WALL)
-	for sd: float in [-1.0, 1.0]:
-		_lbox(cu + sd * (hu - 0.4), fv - 0.1, 0.4, 0.3, g + 0.0, g + 13.2, WIZ_TRIM, M_STONE, WIZ_TRIM)
-	_lbox(cu, fv - 0.5, hu + 0.1, 0.9, g + 13.2, g + 14.1, WIZ_TRIM, M_STONE, WIZ_TRIM)
+	var ap := _w(0.0, 28.0)
+	var apex := Vector3(ap.x, g + 25.2, ap.y)
+	var eaves: Array[Vector3] = []
+	for q: Vector2 in [Vector2(-7.6, 28.0), Vector2(-7.6, 35.5), Vector2(7.6, 35.5), Vector2(7.6, 28.0)]:
+		var e := _w(q.x, q.y)
+		eaves.append(Vector3(e.x, g + 18.8, e.y))
+	for k in 3:
+		var n := (eaves[k + 1] - eaves[k]).cross(apex - eaves[k]).normalized()
+		if n.y < 0.0:
+			n = -n
+		_tri(eaves[k], eaves[k + 1], apex, n, WIZ_TILE, Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
+	# the chancel: lower walls, its own tile roof along the church's axis
+	var chancel := _lpoly([[-10.6, 35.0], [10.4, 35.0], [10.3, 48.4], [-4.0, 48.4], [-3.9, 42.5], [-10.6, 42.5]])
+	_prism(chancel, g - 0.6, g + 9.4, WIZ_WALL, WIZ_TILE, M_STONE, M_STONE)
+	_prism(_largest(Geometry2D.offset_polygon(chancel, 0.25, Geometry2D.JOIN_MITER)), g + 9.0, g + 9.6, trim, none, M_STONE, M_STONE)
+	_a = kb
+	_b = ka
+	_gable(35.0, 48.6, 3.15, 7.45, g + 9.6, 4.4, WIZ_WALL, WIZ_TILE, true)
+	_a = ka
+	_b = kb
+	# the south wing by the university's house, under a tile hip
+	_prism(_rect(-15.55, 28.95, 4.35, 6.95), g - 0.6, g + 10.8, WIZ_WALL, WIZ_TILE, M_STONE, M_STONE)
+	_prism(_rect(-15.55, 28.95, 4.6, 7.2), g + 10.4, g + 11.0, trim, none, M_STONE, M_STONE)
+	_hip(-15.55, 28.95, 4.6, 7.2, g + 11.0, 4.2, WIZ_TILE)
+	# --- the sides: clerestory and aisle windows; north from the front back, south likewise
+	_wiz_side(7.2, 11.0, 34.0, 1.0, [33.0, 21.0, 14.0, 6.0])
+	_wiz_side(-7.2, -11.2, 1.0, 34.0, [6.0, 13.0, 19.5])
+	# --- the turret over the nave's east end: an open arched stage, the bell cap, an onion
+	var tv := 29.5
+	var tc := _w(0.0, tv)
+	_prism(_jac_ring(0.0, tv, 1.45, 8), g + 22.0, g + 25.0, WIZ_COPPER, none, M_STONE, M_STONE)
+	_prism(_jac_ring(0.0, tv, 0.95, 8), g + 25.0, g + 27.6, PAL_IRON, none, M_STONE, M_STONE)
+	for cu: float in [-1.0, 1.0]:
+		for cv: float in [-1.0, 1.0]:
+			_lbox(cu * 1.0, tv + cv * 1.0, 0.24, 0.24, g + 25.0, g + 27.6, WIZ_COPPER, M_STONE, none)
+	var cap: Array = [[1.55, 27.6], [1.9, 28.0], [1.6, 28.7], [0.95, 29.3], [0.7, 29.6], [1.05, 30.2],
+			[1.05, 30.6], [0.6, 31.3], [0.3, 31.6]]
+	for k in cap.size() - 1:
+		var p: Array = cap[k]
+		var q: Array = cap[k + 1]
+		_frustum(_jac_ring(0.0, tv, float(p[0]), 8), g + float(p[1]), _jac_ring(0.0, tv, float(q[0]), 8), g + float(q[1]), WIZ_COPPER)
+	_prism(_jac_ring(0.0, tv, 0.3, 6), g + 31.6, g + 32.3, WIZ_COPPER, none, M_STONE, M_STONE)
+	_frustum(_jac_ring(0.0, tv, 0.36, 6), g + 32.3, _jac_ring(0.0, tv, 0.08, 6), g + 32.8, WIZ_COPPER)
+	_frustum(_circle(tc, 0.2, 6), g + 32.8, _circle(tc, 0.22, 6), g + 33.05, PAL_GOLD)
+	_frustum(_circle(tc, 0.22, 6), g + 33.05, _circle(tc, 0.05, 6), g + 33.3, PAL_GOLD)
+	_kap_cross(0.0, tv, g + 33.3, 1.4)
+	# --- the front (its own frame): two storeys of paired columns, sweeps, the crown
+	_wiz_front()
+	var m := WIZ_FM
+	# the lower wall over the whole width; the forward block of the middle four pairs to the top
+	_kbox(m - 12.1, m + 12.1, -0.2, 1.0, g - 0.6, g + 8.9, WIZ_WALL)
+	_kbox(m - 8.2, m + 8.2, -0.2, 2.0, g - 0.6, g + 18.0, WIZ_WALL)
+	kit_face(1.0)
+	kit_ledge(m - 12.3, m + 12.3, g - 0.6, 1.7, WIZ_BASE, 0.3)
+	kit_face(2.0)
+	kit_ledge(m - 8.4, m + 8.4, g - 0.6, 1.7, WIZ_BASE, 0.3)
+	# the lower order: pairs of Corinthian columns, the outer ones on the back plane
+	for x: float in [2.2, 3.2, 6.4, 7.4]:
+		for s: float in [-1.0, 1.0]:
+			kit_column(m + s * x, 2.45, g + 1.1, g + 7.4, trim, 0.4, Order.CORINTHIAN)
+	for x: float in [10.6, 11.6]:
+		for s: float in [-1.0, 1.0]:
+			kit_column(m + s * x, 1.45, g + 1.1, g + 7.4, trim, 0.4, Order.CORINTHIAN)
+	# its entablature and cornice, breaking forward over the middle block
+	_kbox(m - 12.3, m + 12.3, 0.9, 2.0, g + 7.4, g + 8.9, trim)
+	_kbox(m - 8.3, m + 8.3, 1.9, 2.95, g + 7.4, g + 8.9, trim)
+	_kbox(m - 12.6, m + 12.6, 0.7, 2.35, g + 8.9, g + 9.4, trim)
+	_kbox(m - 8.6, m + 8.6, 1.9, 3.25, g + 8.9, g + 9.4, trim)
+	# blind arched niches with medallions over them between the pairs
+	for s: float in [-1.0, 1.0]:
+		kit_face(2.0)
+		_wiz_arch(m + s * 4.8, g + 2.4, 3.3, 0.72, WIZ_SHADE)
+		var md := _w(m + s * 4.8, 2.08)
+		_disc(Vector3(md.x, g + 6.55, md.y), Vector3(_b.x, 0.0, _b.y), 0.42, 8, WIZ_SHADE)
+		kit_face(1.0)
+		_wiz_arch(m + s * 9.0, g + 2.4, 3.3, 0.72, WIZ_SHADE)
+		var mo := _w(m + s * 9.0, 1.08)
+		_disc(Vector3(mo.x, g + 6.55, mo.y), Vector3(_b.x, 0.0, _b.y), 0.42, 8, WIZ_SHADE)
+	# the middle bay: the iron door in its frame, the balcony, an arched window, a cartouche
+	kit_face(2.0)
+	_kbox(m - 1.3, m + 1.3, 1.96, 2.12, g + 1.1, g + 3.4, trim)
+	kit_face(2.12)
+	kit_door(m, g + 0.0, 3.0, 0.95, trim, WIZ_DOOR)
+	kit_face(2.0)
+	kit_balcony(m, g + 4.3, 1.05, Balcony.STONE, trim, trim, 0.45)
+	kit_window(m, g + 4.4, 1.6, Win.ARCHED, trim, PAL_GLASS_DARK, 0.72)
+	_kbox(m - 0.8, m + 0.8, 1.96, 2.1, g + 6.5, g + 7.3, WIZ_SHADE)
+	# pedestals over the lower cornice: the upper columns' and the outer urns'
+	for x: float in [2.7, 6.9]:
+		for s: float in [-1.0, 1.0]:
+			_kbox(m + s * x - 1.05, m + s * x + 1.05, 1.9, 2.95, g + 9.4, g + 10.3, trim)
+	for s: float in [-1.0, 1.0]:
+		_kbox(m + s * 11.1 - 0.95, m + s * 11.1 + 0.95, 0.8, 2.0, g + 9.4, g + 10.2, trim)
+		for x: float in [10.6, 11.6]:
+			_wiz_urn(m + s * x, 1.4, g + 10.2, 1.7)
+	# the lower sweeps: from the upper storey's side down to the urns' pedestals
+	for s: float in [-1.0, 1.0]:
+		var sw: Array = []
+		for p: Array in [[10.2, 9.4], [10.2, 9.9], [9.4, 10.4], [8.8, 11.2], [8.45, 12.2], [8.2, 13.4]]:
+			sw.append([m + s * float(p[0]), float(p[1])])
+		_wiz_sweep(sw, g + 9.4, 0.4, 1.4)
+	# the upper order: four pairs, statues of bishops in niches, the great window
+	kit_face(2.0)
+	for x: float in [2.2, 3.2, 6.4, 7.4]:
+		for s: float in [-1.0, 1.0]:
+			kit_column(m + s * x, 2.4, g + 10.3, g + 16.8, trim, 0.36, Order.CORINTHIAN)
+	for s: float in [-1.0, 1.0]:
+		_wiz_arch(m + s * 4.8, g + 11.4, 3.0, 0.6, WIZ_SHADE)
+		_jac_statue(m + s * 4.8, 2.25, g + 11.5, 2.3)
+		var rp := _w(m + s * 4.8, 2.08)
+		_disc(Vector3(rp.x, g + 15.6, rp.y), Vector3(_b.x, 0.0, _b.y), 0.4, 8, WIZ_SHADE)
+	_wiz_arch(m, g + 10.9, 3.4, 0.82)
+	_kbox(m - 1.25, m + 1.25, 1.96, 2.25, g + 14.75, g + 15.0, trim)
+	_kbox(m - 0.75, m + 0.75, 1.96, 2.12, g + 15.2, g + 16.3, WIZ_SHADE)
+	# its entablature, the cornice and a broken pediment over the middle
+	_kbox(m - 8.4, m + 8.4, 1.9, 2.85, g + 16.8, g + 18.0, trim)
+	_kbox(m - 8.7, m + 8.7, 1.7, 3.15, g + 18.0, g + 18.5, trim)
+	kit_face(2.4)
+	kit_pediment(m, 2.6, g + 18.5, 1.1, trim, trim.darkened(0.08), 0.5, WIZ_SHADE)
+	# the upper storey's urns and the four saints on the cornice
+	for s: float in [-1.0, 1.0]:
+		for x: float in [6.4, 7.4]:
+			_wiz_urn(m + s * x, 2.5, g + 18.5, 1.9)
+		for x: float in [2.0, 3.4]:
+			_jac_statue(m + s * x, 2.75, g + 18.5, 2.3)
+	# --- the crown: sweeps up from the cornice, a wall with pilasters and a niche for the group,
+	# the scrolled corners with angels, the ball and the cross
+	_kbox(m - 4.3, m + 4.3, 0.6, 2.0, g + 18.0, g + 23.0, WIZ_WALL)
+	for s: float in [-1.0, 1.0]:
+		var cs: Array = []
+		for p: Array in [[6.3, 18.5], [6.3, 18.9], [5.5, 19.3], [4.9, 19.9], [4.55, 20.8], [4.3, 22.0]]:
+			cs.append([m + s * float(p[0]), float(p[1])])
+		_wiz_sweep(cs, g + 18.5, 0.8, 1.8)
+	kit_face(2.0)
+	for x: float in [-3.7, -1.5, 1.5, 3.7]:
+		kit_pilaster(m + x, g + 18.5, g + 23.0, trim, 0.55, 0.14)
+	_wiz_arch(m, g + 19.6, 3.0, 0.68, WIZ_SHADE)
+	for x: float in [-0.3, 0.3]:
+		_jac_statue(m + x, 2.2, g + 19.65, 2.0)
+	_kbox(m - 4.5, m + 4.5, 1.7, 2.4, g + 23.0, g + 23.4, trim)
+	for s: float in [-1.0, 1.0]:
+		_kbox(m + s * 3.5 - 1.0, m + s * 3.5 + 1.0, 1.4, 2.5, g + 23.4, g + 23.9, trim)
+		_jac_statue(m + s * 3.5, 1.95, g + 23.9, 1.6)
+	_kbox(m - 0.55, m + 0.55, 1.5, 2.3, g + 23.4, g + 25.0, trim)
+	_kbox(m - 0.75, m + 0.75, 1.4, 2.4, g + 25.0, g + 25.3, trim)
+	var bc := _w(m, 1.9)
+	_frustum(_circle(bc, 0.2, 6), g + 25.3, _circle(bc, 0.3, 6), g + 25.55, PAL_GOLD)
+	_frustum(_circle(bc, 0.3, 6), g + 25.55, _circle(bc, 0.08, 6), g + 25.85, PAL_GOLD)
+	_kap_cross(m, 1.9, g + 25.85, 1.7)
+	_wiz_home()
+	# the car meets the walls and the front's columns
+	_collide(outline)
 
 
 ## St Anne's church (Kościół św. Anny; Aigner's classical front, 1786-1788) at the start of
