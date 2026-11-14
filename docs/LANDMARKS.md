@@ -75,7 +75,7 @@ and Marii Magdaleny are not in the game.
 | --- | --- | --- | --- | --- |
 | Kościół Niepokalanego Poczęcia NMP | Krakowskie Przedmieście 62 | A | 57 / 12 | kit box is only 9 x 4 m: check the real size and front |
 | Katedra polowa WP | Długa 13/15 | `_build_katedra_polowa`, the whole cathedral replacing the kit church, 2026-11-14 from F's photos (spec `katedra_polowa.md`, 2917 tris): four giant pilasters, pediment and statue, arch with stained glass, two wings with scrolls and urns, twin belfries with green copper caps and spires, roofs, lantern | A | 13 / 1 + F's 3 | spires and volutes simplified; plain back and sides; no floodlights |
-| Kościół Przemienienia Pańskiego (Kapucyni) | Miodowa 13 | A | 13 / 0 | no towers guessed; Commons |
+| Kościół Przemienienia Pańskiego (Kapucyni) | Miodowa 13 | `_build_kapucyni`, the whole church replacing the kit church, 2026-11-14 from F's Commons photo (spec `kapucyni.md`, 2136 tris): salmon pavilion with two pilaster pairs, arched window and balcony, pediment with cross and urns, steps, two wings with scrolls and a statue, cream nave with arched windows, green copper hip | A | 13 / 0 + F's 1 | heights estimated; plain back and cloister side; volutes stepped boxes; no floodlights |
 | Kościół św. Marcina | Piwna 9/11 | A | 12 / 1 | Old Town street, turret guessed |
 | Kościół św. Jacka (Dominikanie) | Freta 8/10 | A | 11 / 1 | two helms guessed, 35 m long |
 | Kościół św. Ducha | Długa 3 | A | 1 / 0 | one helm guessed; Commons |
