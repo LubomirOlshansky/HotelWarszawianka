@@ -252,6 +252,7 @@ SITE_AREAS = [
     (-810, -1590, -752, -1533),   # church_franciszkanki_piwna
     (-2812, 1558, -2775, 1584),   # church_sala_faustyny
     (-465, -868, -378, -796),   # church_wizytki_klasztor
+    (-1205, -1040, -1135, -965),   # church_reformaci_klasztor
     (32, -222, 111, -100),   # szarytki
     (-102, -74, -63, -31),   # adwentysci
     (-860, -1600, -810, -1545),   # elzbietanki
