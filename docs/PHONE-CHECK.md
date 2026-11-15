@@ -50,6 +50,7 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | 12 | Warsaw Spire at night | the LED band's bloom; the frame with the Spire on screen | #784 |
 | 13 | Złote Tarasy at night | the glow | Tarasy glow |
 | 14 | The Old Town by car or helicopter: Miodowa, Piwna, Freta, Krakowskie Przedmieście | the frame rate with the rebuilt churches in view; the Archikatedra's roof is green copper and its walls brick | #701 to #789, #775 |
+| 14a | Varso Tower by day from Rondo ONZ and at night from Chmielna | the grey frame reads as a grid (not noise) at the game's zoom; the louvred crown; the spire's dish platforms glow white at night | Varso rebuild |
 | 15 | Settings → the experimental graphics switch, on and off at the Palace | the look and the frame | #647 |
 
 ## 5. The frame (3 min)
