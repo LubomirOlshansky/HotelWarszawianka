@@ -44,7 +44,9 @@ const SECTORS: Array[Vector2i] = [Vector2i(3, -1), Vector2i(2, -1), Vector2i(-2,
 ## and the phone's place data, #818),
 ## tools/parked_thin.py took 11 parked cars out of these sectors (8 faces a car, filed by face
 ## centre, so a car on a sector's border counts in part).
-const TOTAL := 46502
+## 2026-11-15, Plac Defilad (#848): +260 faces (46502 → 46762), the TR site's wider plot, the
+## market moved into sector (-2, 0) (a box per hut, the van, the tree) and the candelabras' pedestals.
+const TOTAL := 46762
 
 var problems: Array[String] = []
 var verbose := false
