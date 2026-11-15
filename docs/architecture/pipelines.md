@@ -31,6 +31,11 @@ sectors/s_<i>_<j>.scn, proxies.scn, index.res, shared/*.res   (the prebuilt city
   ground poking through it) get a ground profile of their own from `tools/road_profiles.py`: one
   table entry a place, applied by `bake_osm.py` after `lane_tapers.py` (and on a baked map).
   `--scan` ranks the places left; verify step `roadprofiles` keeps the count going down.
+- Which lane a car lands in across a junction, and which exits each lane may take, are the bake's
+  (RT-2, `tools/lane_links.py`, after `road_profiles.py`): the graph edges carry `lk` (the landing
+  lanes, only where they differ from `lane_graph.gd` `next_lane`'s old rule) and `tl` (each lane's
+  turn code, read from the map's turn arrows, which are OSM's `turn:lanes`); the same pass seats
+  those arrows on their lanes. `road_truth.py` R3 is its ratchet.
 
 ### 1b. A landmark from Blender (trial, 2026-11-13: the Palace only)
 

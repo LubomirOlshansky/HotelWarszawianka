@@ -423,6 +423,42 @@ const INFO := {
 	"landau": ["Dom Bankowy Landaua",
 			"Neorenesansowy dom bankiera przy placu Bankowym.",
 			"A banker's neo-Renaissance house on Plac Bankowy."],
+	"uruski": ["Pałac Uruskich",
+			"Pałac z 1847 roku przy bramie uniwersytetu; dziś geografowie.",
+			"An 1847 palace beside the University's gate; geographers inside now."],
+	"stara_buw": ["Stara Biblioteka",
+			"Dawna biblioteka uniwersytetu z zegarem i grupą rzeźb na attyce.",
+			"The University's old library, a clock and three statues on its attic."],
+	"uw_straz": ["Straż Uniwersytecka",
+			"Zielona budka strażników kampusu. Tu wiedzą wszystko.",
+			"The campus guards' green kiosk. They know everything here."],
+	"uw_roch": ["Szpital św. Rocha",
+			"Dawny szpital, dziś kultura polska i samorząd studentów.",
+			"A former hospital, now Polish culture and the student union."],
+	"uw_jezyki": ["Szkoła Języków Obcych",
+			"Tu uczą się mówić po ludzku w każdym języku.",
+			"Where students learn to talk like people in every language."],
+	"uw_pomuzealny": ["Gmach Pomuzealny",
+			"Dawne muzeum, dziś historycy i Sala Kolumnowa.",
+			"A former museum, now the historians and the Column Hall."],
+	"uw_szkola_glowna": ["Szkoła Główna",
+			"Najstarszy gmach dydaktyczny kampusu; archeolodzy.",
+			"The campus's oldest teaching house; the archaeologists."],
+	"uw_porektorski": ["Gmach Porektorski",
+			"Tu mieszkał Fryderyk Chopin.",
+			"Fryderyk Chopin lived here."],
+	"uw_poseminaryjny": ["Collegium Iuridicum I",
+			"Dawne seminarium, dziś prawnicy.",
+			"A former seminary, now the lawyers."],
+	"uw_audytoryjny": ["Gmach Audytoryjny",
+			"Sale wykładowe nauk politycznych.",
+			"Lecture halls of the political scientists."],
+	"uw_mineralogiczny": ["Pawilon Mineralogiczny",
+			"Dawny pawilon minerałów, dziś poloniści.",
+			"The old minerals pavilion, now the Polish department."],
+	"auditorium_maximum": ["Auditorium Maximum",
+			"Największa aula kampusu, imienia Mickiewicza.",
+			"The campus's biggest hall, named after Mickiewicz."],
 	"kazimierzowski": ["Pałac Kazimierzowski",
 			"Barokowy pałac w głębi kampusu, siedziba rektoratu.",
 			"A baroque palace deep in the campus, home of the rector's office."],
@@ -814,6 +850,8 @@ const INFO := {
 	"church_zwycieska": ["Kościół Matki Boskiej Zwycięskiej", "Kościół parafialny z dwiema wieżami.", "A parish church with two towers."],
 	"church_siostry_milosierdzia_zytnia": ["Siostry Matki Bożej Miłosierdzia", "Dom sióstr przy sanktuarium św. Faustyny na Żytniej.", "The Sisters of Our Lady of Mercy's house by St Faustina's shrine."],
 	"church_uczennice_boskiego_mistrza": ["Siostry Uczennice Boskiego Mistrza", "Ceglany dom zakonny sióstr uczennic przy Żytniej.", "The Sister Disciples of the Divine Master's brick convent."],
+	"church_zytnia_dom_zakonny_tyl": ["Dom zakonny na Żytniej, skrzydło", "Długie skrzydło domu zakonnego w głębi posesji przy Żytniej.", "The long wing of the convent behind its range on Żytnia."],
+	"church_zytnia_dom_zakonny": ["Dom zakonny na Żytniej", "Dom zakonny po południowej stronie Żytniej, przy Wolności.", "The convent range on the south side of Żytnia, by Wolność."],
 	"church_zwycieska_klasztor": ["Klasztor przy Matce Bożej Zwycięskiej", "Dom zakonny obok kościoła Matki Bożej Zwycięskiej na Kamionku.", "The religious house beside Our Lady of Victory in Kamionek."],
 	"church_klopotowskiego_18": ["Okno Życia na Kłopotowskiego", "Dom kościelny z oknem życia przy Kłopotowskiego 18.", "A church house with a window of life on Kłopotowskiego."],
 	"church_plebania_florian": ["Plebania katedry św. Floriana", "Plebania praskiej katedry przy Floriańskiej.", "The presbytery of Praga's cathedral on Floriańska."],
@@ -1306,6 +1344,8 @@ func _find_sites() -> void:
 	_add_site("faustyna_klasztor", fkl)
 	if not sites.is_empty() and sites[-1]["key"] == "faustyna_klasztor":
 		sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": FKL_WALL, "roof": FKL_ROOF}
+	# The University campus's escarpment wall and furniture (2026-11-15): quiet, so here.
+	_find_uw_kampus_quiet()
 	# The formal garden before Pałac Krasińskich (F's photos, 2026-11-06).
 	if _landmark("Pałac Krasińskich").size() >= 3:
 		_o = KRAS
@@ -1601,6 +1641,21 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"kazimierzowski":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin; the risalit's portico is ours
 				_build_kazimierzowski(s)
+				_build_kazimierzowski_garden()  # the garden front over the escarpment (2026-11-15)
+			"uruski":
+				_mark_zone(s)  # the mass stays LoD2's, in its skin; the street front is ours
+				_build_uruski(s)
+			"stara_buw":
+				_mark_zone(s)  # the mass stays LoD2's, in its skin; the front and flanks are ours
+				_build_stara_buw(s)
+			"uw_skarpa":
+				_id = 0  # the escarpment wall: no card, not on the picking grid
+				_build_uw_skarpa(s)
+			"uw_straz":
+				_build_uw_straz(s)
+			"uw_kampus":
+				_id = 0  # the campus furniture: no card, not on the picking grid
+				_build_uw_kampus(s)
 			"czapski":
 				_build_czapski(s)
 			"mariensztat":

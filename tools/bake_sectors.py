@@ -265,6 +265,8 @@ SITE_AREAS = [
     (527, -1822, 579, -1775),   # church_klopotowskiego_18
     (-1264, 566, -1098, 670),   # jerozolimskie57 (the row's five outlines and the pavement strip)
     (2011, -1375, 2056, -1345),   # church_zwycieska_klasztor
+    (-2704, -752, -2654, -720),   # church_zytnia_dom_zakonny
+    (-2685, -722, -2609, -688),   # church_zytnia_dom_zakonny_tyl
     (32, -222, 111, -100),   # szarytki
     (-102, -74, -63, -31),   # adwentysci
     (-860, -1600, -810, -1545),   # elzbietanki

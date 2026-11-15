@@ -63,7 +63,7 @@ fails if a script is in neither page, so add a row when you add a file.
 | `props.gd`, `park_props_life.gd`, `park_props_play.gd`, `park_props_water.gd` | Box-built props in the actors' material, one surface. |
 | `places.gd` | The owner of the place scripts (2026-11-13): `Places.TABLE` (one row per place: key, script, node, triangle budget, own draw items, optional `--solo` sites), built by main.gd's one `_build_places`, which merges every poured mesh into one MeshInstance3D per 512 m sector (`places_<cx>_<cz>`). No distance range (decisions.md). Checked by `check_place_scripts.gd`. |
 | `place.gd` | The base of a place script: `map`, `ctx` (data, dialogue, clock, focus, vehicle, logs), `pour(mesh, shadows)` for static dressing in the actors' material, `part(node)` for anything else (own material, a mover, a StaticBody3D). |
-| `park_details.gd`, `street_details.gd`, `first_scene.gd`, `skwer_zlota.gd`, `light_garden.gd`, `plac_pieciu_rogow.gd`, `ratusz_hub.gd`, `tamka.gd`, `centralny_ramp.gd`, `patelnia.gd` | Places (extend `place.gd`, a row in `Places.TABLE`): hand-placed dressing for named spots the map data lacks. |
+| `park_details.gd`, `street_details.gd`, `first_scene.gd`, `skwer_zlota.gd`, `light_garden.gd`, `pkin_hoardings.gd`, `plac_pieciu_rogow.gd`, `ratusz_hub.gd`, `tamka.gd`, `centralny_ramp.gd`, `patelnia.gd` | Places (extend `place.gd`, a row in `Places.TABLE`): hand-placed dressing for named spots the map data lacks. |
 | `storefronts.gd`, `neon_signs.gd`, `pixel_font.gd` | Shop fronts and parody signs, night neon, the 5x7 world font. |
 | `roof_dress.gd`, `osm_roofs.gd`, `old_town_roofs.gd`, `tenement_trim.gd`, `powisle_houses.gd`, `small_buildings.gd` | Building detail on top of LoD2 and OSM shapes. |
 | `monuments.gd` | Statues, plaques and benches from OSM. |
@@ -130,6 +130,7 @@ in one file, `data/pacing.json`, read by the offer pacer (`pacer.gd`, tech-debt 
 | Script | Owns |
 | --- | --- |
 | `hud.gd` | Every on-screen control and panel, sized in points. Cards, toasts, notes, status, minimap, banners. |
+| `map_markers.gd` (TD-13) | **The map marker registry**: every mark the minimap and the full map draw, declared once by its owner (`put`, `put_all(owner, marks)`, `remove`, `clear(owner)`; ids "owner:key", so one owner never wipes another's), and the rule table `RULES` (which layer each map shows in FREE and QUEST). `hud.markers` is the one instance; `full_map.gd` reads the same one. Built so far: JOB (the job places, the round-up's pins), PLACE (the "?" marks), SERVICE (the garage), the final's start (MAIN, kept, not drawn); STORY, MAIN and TARGET still use their HUD setters until their pull requests. Check: `check_map_markers` (verify step `markers`). |
 | `messages.gd` (PR #652) | **The one decision for HUD text**: SHOW, DEFER or DROP by context (FREE, QUEST, CHASE, FOCUS) and priority (AMBIENT to ALERT); call spacing (`call_ok`). |
 | `pacer.gd` (TD-3) | **The offer pacer**: every number that says when a call may ring or an offer may come (the first and the next call, gaps, hours, retries, the rests after a card or a rescue) of 13 sources, the call spacing among them, in one file F tunes, `data/pacing.json`. Each source keeps its own countdown and reads its numbers under its own names (`num`, `span`, `pair`); a missing source or key is an error, never a default (`check_pacing`). One offer at a time stays the director's; variety and a shared quiet time are not built (QUESTIONS.md). |
 | `bubbles.gd`, `chatter.gd` | Speech bubbles over the world; the chatter budget (QUEST, POLICE, REACTION, AMBIENT classes). |
@@ -163,6 +164,7 @@ See [graphics.md](graphics.md).
 | Script | Owns |
 | --- | --- |
 | `time_of_day.gd` | Dawn, day, dusk, night; sun, sky, grade, city lights; global shader uniforms. |
+| `grades.gd` | The colour looks (Settings → Kolory: Natural, the default, Neon, Classic): overrides on `time_of_day.gd`'s looks and the post pass's grade values. |
 | `weather.gd` | Rain and wetness. |
 | `tiers.gd` | Quality levels and what Auto picks per device. |
 | `governor.gd` | Steps extras down when frames run late, back up when calm. |
