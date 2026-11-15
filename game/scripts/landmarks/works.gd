@@ -546,67 +546,106 @@ func _koszyki_pavilion(g: float, cu: float, vf: float) -> void:
 	_a = Vector2(out.y, -out.x)
 	_o = _kos_w(cu, vf)
 	_mode = M_STONE
-	# The frontispiece between the pylons, its rusticated foot and the stepped gable.
-	_lbox(0.0, 0.1, 4.2, 0.2, g - 0.5, g + 10.4, KOS_STONE, M_STONE, KOS_STONE)
-	_lbox(0.0, 0.2, 4.2, 0.2, g - 0.5, g + 0.6, KOS_BASE, M_STONE, KOS_BASE)
-	_lbox(0.0, 0.25, 4.35, 0.2, g + 10.2, g + 10.55, KOS_STONE.darkened(0.05), M_STONE, KOS_STONE)
-	var steps := [[3.4, 10.55, 11.1], [2.5, 11.1, 11.65], [1.6, 11.65, 12.2]]
-	for st: Array in steps:
-		_lbox(0.0, 0.1, float(st[0]), 0.2, g + float(st[1]), g + float(st[2]), KOS_STONE, M_STONE, KOS_STONE)
-	_lbox(0.0, 0.25, 0.9, 0.25, g + 11.2, g + 12.9, KOS_STONE.lightened(0.06), M_STONE, KOS_STONE)
-	# The pylons: stone, a rusticated foot, a red brick panel up the face, a cap and a finial.
+	# The frontispiece between the pylons, its rusticated foot, and the gable over it: its edges
+	# climb in small steps from the pylons to the cartouche, the highest point of the front.
+	_lbox(0.0, 0.1, 4.5, 0.2, g - 0.5, g + 9.9, KOS_STONE, M_STONE, KOS_STONE)
+	_lbox(0.0, 0.2, 4.5, 0.2, g - 0.5, g + 1.8, KOS_BASE, M_STONE, KOS_BASE)
+	var hu := 3.9
+	var y := 9.9
+	while hu > 1.4:
+		_lbox(0.0, 0.1, hu, 0.2, g + y, g + y + 0.45, KOS_STONE, M_STONE, KOS_STONE)
+		_lbox(0.0, 0.18, hu + 0.12, 0.2, g + y + 0.33, g + y + 0.45, KOS_STONE.lightened(0.05), M_STONE, KOS_STONE)
+		hu -= 0.6
+		y += 0.45
+	_lbox(0.0, 0.25, 0.9, 0.25, g + 11.4, g + 13.0, KOS_STONE.lightened(0.06), M_STONE, KOS_STONE)
+	_lbox(0.0, 0.25, 1.3, 0.3, g + 11.4, g + 11.9, KOS_STONE.lightened(0.03), M_STONE, KOS_STONE)
+	# The pylons, lower than the cartouche: stone, a rusticated foot, a tall red brick panel up the
+	# face, a rounded cap (two steps).
 	for side: float in [-1.0, 1.0]:
-		var pu := side * 5.3
-		_lbox(pu, 0.15, 1.1, 0.35, g - 0.5, g + 13.2, KOS_STONE, M_STONE, KOS_STONE)
-		_lbox(pu, 0.2, 1.2, 0.42, g - 0.5, g + 3.4, KOS_BASE, M_STONE, KOS_BASE)
-		_lbox(pu, 0.53, 0.75, 0.05, g + 6.0, g + 11.0, KOS_RED, M_STONE, KOS_RED)
-		_lbox(pu, 0.2, 1.2, 0.45, g + 13.2, g + 13.6, KOS_STONE, M_STONE, KOS_STONE)
-		_lbox(pu, 0.2, 0.6, 0.3, g + 13.6, g + 14.2, KOS_STONE, M_STONE, KOS_STONE)
+		var pu := side * 5.45
+		_lbox(pu, 0.15, 0.95, 0.35, g - 0.5, g + 10.8, KOS_STONE, M_STONE, KOS_STONE)
+		_lbox(pu, 0.2, 1.05, 0.42, g - 0.5, g + 3.0, KOS_BASE, M_STONE, KOS_BASE)
+		_lbox(pu, 0.53, 0.65, 0.05, g + 5.4, g + 10.4, KOS_RED, M_STONE, KOS_RED)
+		_lbox(pu, 0.2, 1.05, 0.42, g + 10.8, g + 11.2, KOS_STONE, M_STONE, KOS_STONE)
+		_lbox(pu, 0.2, 0.7, 0.35, g + 11.2, g + 11.6, KOS_STONE.lightened(0.04), M_STONE, KOS_STONE)
 	# The big arch: a stone ring, the green-framed glass, two stone mullions, two green transoms.
 	var at := _w(0.0, 0.3)
-	_arch_panel(at, _a, _b, 4.4, g + 4.6, g + 5.4, KOS_STONE.lightened(0.04), 0.06, M_STONE)
-	_arch_panel(at, _a, _b, 3.9, g + 4.8, g + 5.4, KOS_GLASS, 0.12, M_GLASS)
-	for mu: float in [-1.3, 1.3]:
-		_lbox(mu, 0.47, 0.16, 0.05, g + 4.8, g + 9.0, KOS_STONE, M_STONE, KOS_STONE)
-	for ty: float in [6.4, 7.8]:
-		var hw := sqrt(maxf(3.9 * 3.9 - pow(maxf(ty - 5.4, 0.0), 2.0), 0.0)) - 0.1
-		_lbox(0.0, 0.46, hw, 0.03, g + ty, g + ty + 0.12, KOS_GREEN, M_STONE, KOS_GREEN)
+	_arch_panel(at, _a, _b, 4.5, g + 5.4, g + 6.4, KOS_STONE.lightened(0.04), 0.04, M_STONE)
+	_arch_panel(at, _a, _b, 4.0, g + 5.6, g + 6.4, KOS_GLASS, 0.14, M_GLASS)
+	for mu: float in [-1.35, 1.35]:
+		_lbox(mu, 0.53, 0.16, 0.05, g + 5.6, g + 10.1, KOS_STONE, M_STONE, KOS_STONE)
+	for ty: float in [7.4, 8.9]:
+		var tw := sqrt(maxf(4.0 * 4.0 - pow(maxf(ty - 6.4, 0.0), 2.0), 0.0)) - 0.1
+		_lbox(0.0, 0.52, tw, 0.03, g + ty, g + ty + 0.12, KOS_GREEN, M_STONE, KOS_GREEN)
 	# The balcony under the arch: a stone ledge and the green railing.
-	_lbox(0.0, 0.5, 4.2, 0.2, g + 4.2, g + 4.8, KOS_STONE.darkened(0.04), M_STONE, KOS_STONE)
-	_lbox(0.0, 0.66, 3.9, 0.03, g + 4.8, g + 5.6, KOS_GREEN, M_STONE, KOS_GREEN)
-	# The ground floor: the arched door in a stone surround, a shop window either side.
-	_arch_panel(at, _a, _b, 1.0, g + 0.0, g + 2.6, KOS_DOOR, 0.12, M_STONE)
+	_lbox(0.0, 0.5, 4.5, 0.2, g + 5.0, g + 5.6, KOS_STONE.darkened(0.04), M_STONE, KOS_STONE)
+	_lbox(0.0, 0.66, 4.0, 0.03, g + 5.6, g + 6.3, KOS_GREEN, M_STONE, KOS_GREEN)
+	# The ground floor: the door in a stone surround, a shop window either side, a lintel over them.
+	_arch_panel(at, _a, _b, 0.95, g + 0.0, g + 2.9, KOS_DOOR, 0.12, M_STONE)
 	for side: float in [-1.0, 1.0]:
-		_lbox(side * 1.45, 0.45, 0.25, 0.15, g - 0.5, g + 4.2, KOS_STONE, M_STONE, KOS_STONE)
-		_lbox(side * 2.9, 0.4, 1.0, 0.03, g + 0.5, g + 3.6, KOS_GLASS, M_GLASS, KOS_GLASS)
-		_lbox(side * 2.9, 0.43, 1.05, 0.03, g + 3.6, g + 3.75, KOS_GREEN, M_STONE, KOS_GREEN)
+		_lbox(side * 1.5, 0.45, 0.3, 0.15, g - 0.5, g + 5.0, KOS_STONE, M_STONE, KOS_STONE)
+		_lbox(side * 2.95, 0.4, 1.05, 0.03, g + 0.3, g + 4.2, KOS_GLASS, M_GLASS, KOS_GLASS)
+		_lbox(side * 2.95, 0.43, 1.1, 0.03, g + 4.2, g + 4.35, KOS_GREEN, M_STONE, KOS_GREEN)
+	_lbox(0.0, 0.42, 4.5, 0.15, g + 4.35, g + 5.0, KOS_STONE, M_STONE, KOS_STONE)
 	_collide(_rect(0.0, 0.3, 6.4, 0.4))
 
 
-## The forecourt's summer terrace: two strings of festoon bulbs on poles across it, lit at night
-## (the night photo); KOSZYKI in blue neon over the hall's door.
+## The forecourt (F's photos 2026-11-15, from above and from the street): a dark steel canopy on
+## thin black posts runs round all four sides of the paved yard, along the street and in front of
+## the brick wings and the hall; two strings of festoon bulbs cross the yard from canopy to canopy,
+## lit at night (the night photo); KOSZYKI in blue neon over the hall's door.
+const KOS_YARD := [21.8, 59.3, 4.9, 21.6]   ## u0, u1, v0, v1 of the paved yard
+const KOS_CANOPY := Color("#3b4044")
+const KOS_POST := Color("#1f2326")
+
+
 func _koszyki_terrace(g: float) -> void:
 	_mode = M_STONE
-	for v: float in [7.5, 15.0]:
-		for end: float in [22.6, 58.3]:
-			var p := _kos_w(end, v)
-			_prism(_circle(p, 0.08, 4), g, g + 4.3, KOS_DOOR, KOS_DOOR, M_STONE, M_STONE)
-		# The wire, pole to pole through every bulb, and the bulbs hanging on it.
+	var u0: float = KOS_YARD[0]
+	var u1: float = KOS_YARD[1]
+	var v0: float = KOS_YARD[2]
+	var v1: float = KOS_YARD[3]
+	var d := 2.6   # the canopy's depth
+	var y0 := g + 3.4
+	var y1 := g + 3.65
+	# The four strips: [u0, u1, v0, v1]; the street's runs in front of the yard's mouth.
+	var strips := [[u0, u1, v0 - 3.6, v0 - 1.0], [u0, u0 + d, v0 - 1.0, v1], [u1 - d, u1, v0 - 1.0, v1],
+			[u0 + d, u1 - d, v1 - d, v1]]
+	for st: Array in strips:
+		var a0: float = st[0]
+		var a1: float = st[1]
+		var b0: float = st[2]
+		var b1: float = st[3]
+		_prism(PackedVector2Array([_kos_w(a0, b0), _kos_w(a1, b0), _kos_w(a1, b1), _kos_w(a0, b1)]), y0, y1,
+				KOS_CANOPY, KOS_CANOPY, M_STONE, M_STONE)
+		# One row of posts down the strip's middle, about every 4.6 m.
+		var along_u := (a1 - a0) > (b1 - b0)
+		var length := (a1 - a0) if along_u else (b1 - b0)
+		var n := maxi(2, roundi(length / 4.6) + 1)
+		for k in n:
+			var t := 0.4 + (length - 0.8) * float(k) / float(n - 1)
+			var pu := (a0 + t) if along_u else (a0 + a1) * 0.5
+			var pv := (b0 + b1) * 0.5 if along_u else (b0 + t)
+			_prism(_circle(_kos_w(pu, pv), 0.08, 4), g, y0, KOS_POST, KOS_POST, M_STONE, M_STONE)
+	# The festoons: a wire from the west canopy's edge to the east one's, sagging through the bulbs.
+	var w0 := u0 + d
+	var w1 := u1 - d
+	for v: float in [9.5, 15.5]:
 		var pts: Array[Vector3] = []
-		var u := 22.6
-		while u < 58.3:
+		var u := w0
+		while u < w1 - 0.5:
 			var q := _kos_w(u, v)
-			pts.append(Vector3(q.x, g + 3.9 - 0.35 * sin(PI * (u - 22.6) / 35.7), q.y))
+			pts.append(Vector3(q.x, y0 - 0.02 - 0.4 * sin(PI * (u - w0) / (w1 - w0)), q.y))
 			u += 2.4
-		var e := _kos_w(58.3, v)
-		pts.append(Vector3(e.x, g + 3.9, e.y))
+		var e := _kos_w(w1, v)
+		pts.append(Vector3(e.x, y0 - 0.02, e.y))
 		var side := Vector2(-KOS_A.y, KOS_A.x) * 0.03
 		for i in range(pts.size() - 1):
 			var a := Vector2(pts[i].x, pts[i].z)
 			var c := Vector2(pts[i + 1].x, pts[i + 1].z)
-			var y := (pts[i].y + pts[i + 1].y) * 0.5
-			_prism(PackedVector2Array([a - side, c - side, c + side, a + side]), y - 0.03, y + 0.03,
-					KOS_DOOR, KOS_DOOR, M_STONE, M_STONE)
+			var wy := (pts[i].y + pts[i + 1].y) * 0.5
+			_prism(PackedVector2Array([a - side, c - side, c + side, a + side]), wy - 0.03, wy + 0.03,
+					KOS_POST, KOS_POST, M_STONE, M_STONE)
 			if i > 0:
 				_prism(_circle(a, 0.13, 4), pts[i].y - 0.13, pts[i].y + 0.13, KOS_BULB, KOS_BULB, M_LAMP, M_LAMP)
 	var at := _kos_w(40.3, 21.0)

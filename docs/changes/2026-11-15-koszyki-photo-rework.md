@@ -1,4 +1,4 @@
-- Hala Koszyki now looks like the real one: both 1909 stone pavilions on Koszykowa with their red brick pylons and big green-framed arches, pale brick halls, and the summer terrace under festoon lights with the blue KOSZYKI sign.
+- Hala Koszyki now looks like the real one: both 1909 stone pavilions on Koszykowa with their red brick pylons and big green-framed arches, pale brick halls, and the paved forecourt with its steel canopy all round, festoon lights and the blue KOSZYKI sign.
 
 ## Backlog
 - fixed: Hala Koszyki's photo check (it was red brick with a glass lantern, from no photos)
