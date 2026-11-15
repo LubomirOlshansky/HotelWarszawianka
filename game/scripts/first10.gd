@@ -1,33 +1,47 @@
 extends Node
 ## Loop 3h slice 4 (docs/DEMO.md 6.2 "The first 10 minutes", 6.3 "The end of the demo"): the guide
-## for a fresh save, and the end card.
+## for a fresh save, the First steps list, and the end card.
 ##
 ## **The guide is a director, not rails.** On a fresh save (`guide_due`: no jobs done, no złoty,
 ## no ladder rung, the guide not finished before) it ticks five times a second (TICK; no per-frame
-## work, no scans) on the seconds of play since the title, and makes each beat of 6.2 happen if it
-## hasn't by itself (`decide`, a pure function of the facts so check_first10.gd tests it without
-## the map). A beat the player reaches alone is "met"; one the director pushes is "fired". Every
-## beat waits while a job, a race, a rescue, a police stop or a card is on (`free`). While a beat
-## is due and waits for that free moment (`due`), the guide holds what would come by itself (a
-## Podwózka request, a "Na czasie" offer: `offers_held`), so a player who takes every ride still
-## meets Halina and the first call in their windows (run 12: the call 83 s late behind a ride).
+## work, no scans) on the seconds of play since the title, and makes each beat happen if it hasn't
+## by itself (`decide`, a pure function of the facts so check_first10.gd tests it without the map).
+## A beat the player reaches alone is "met"; one the director pushes is "fired". Every beat waits
+## while a job, a race, a rescue, a police stop or a card is on (`free`).
 ##
-## | beat | the 6.2 time | what the director does (and its fallback) |
+## **First hour, step 3** (the spec "First hour for the beta", F 2026-11-15): after the first
+## minute the guide no longer fires beats by the clock. It shows ONE choice card (RACE, RIDES, FLY,
+## or JUST DRIVE; the guide's neutral voice, no call), then, whenever the player has been free
+## NEXT_GAP s (and NEXT_GAP s after the last intro), it introduces the next thing on the First
+## steps list (first_steps.gd) the player has not done yet, once each, in the order of INTROS. A
+## player who skipped the kebab still gets the race and the rescue; one who already flew is not
+## told about the helicopter (the intro is "met" by the step's tick).
+##
+## | beat | when | what the director does |
 ## | --- | --- | --- |
 ## | finger | 0:05 | the ghost finger (hud.gd) after FINGER_IDLE s with no touch or key; it goes at the first one |
-## | stand | 0:15 | the edge arrow to the kebab stand by Świętokrzyska (jobs.gd FIRST_STAND), straight ahead of the start (START), until an order starts or LURE_LATEST (then one toast: the kebab will wait) |
-## | order | 0:30 | that stand's next order is the guided one (~250 m straight on up Marszałkowska, jobs.gd `pin_first`) |
-## | race | 1:30 | RACE_AFTER s after the first delivery's card, not before RACE_EARLIEST (or at RACE_LATEST without one) Pani Halina rolls up behind and flashes (rivals.gd `call_first`): the ladder's first rung, a race to the Palm at her own gentle pace (ladder.gd FIRST_RACER: a player who races wins it, and the beat is done on a win or a loss); declined, she tries twice more, RACE_RETRY s apart |
-## | trap | 3:00 | the police's scripted first contact (police.gd), armed by the race; without a race the director arms it at TRAP_LATEST |
-## | rescue | 4:00 | the first call is held (missions.gd `held`) until RESCUE_AT and the race (or RESCUE_LATEST), then rings RESCUE_RING s later |
-## | heli | ~5:00 | a hint toast for the helicopter (open from the first second since 2026-11-01; HELI and H are never locked) |
-## | tape | 6:00 | the arrow to the mixtape on the University Library's roof (cassettes.gd, CASSETTE_ID), picked up from the helicopter: it opens the next PÓŁNOC FM track ("a new song"); without it, KASETA on the boulevards (TAPE_ID) as before |
-## | powisle | 8:00 | "Powiśle discovered" comes from districts.gd; not by POWISLE_AT, the arrow to Powiśle (behind a long Podwózka ride it comes at POWISLE_LATEST, over the ride) |
-## | garage | 10:00 | Mirek's garage (garage.gd `held`) waits for GARAGE_AT and the first earnings, then its toast and an arrow |
+## | stand | 0:10 | the edge arrow to the kebab stand by Świętokrzyska (jobs.gd FIRST_STAND), straight ahead of the start (START), until an order starts or LURE_LATEST (then one toast: the kebab will wait, step 1) |
+## | order | 0:15 | --first10 only: that stand's guided order (~250 m straight on up Marszałkowska, jobs.gd `pin_first`) |
+## | choice | ~1:45 | CHOICE_AFTER s after the first delivery (or the kebab let go), CHOICE_LATEST at the latest, when calls may ring (hud.gd `call_ok`): the choice card. A pick is introduced at once; JUST DRIVE (or no answer in CHOICE_LIFE s) is never asked again |
+## | race | intro | Pani Halina rolls up behind and flashes (rivals.gd `call_first`), once: refused, she joins the others on the map |
+## | trap | intro | the police's scripted first contact (police.gd), armed by the race; without one the director arms it |
+## | rescue | intro | the first call (held by missions.gd `held` until then) rings RESCUE_RING s later |
+## | heli | intro | the helicopter's toast; at once when a rescue is done or a call needs the helicopter |
+## | tape | intro | the arrow to the mixtape on the University Library's roof (cassettes.gd, CASSETTE_ID), from the air; without it, KASETA on the boulevards (TAPE_ID) |
+## | ride | intro | the first Podwózka request (rides.gd `offer_now`) |
+## | powisle | intro | the arrow to Powiśle, unless districts.gd discovered it |
+## | garage | intro | Mirek's garage (garage.gd `held`), after the first earnings: its toast and an arrow |
+## | kebab | intro | the arrow to the stand again, for a player who never delivered one |
 ##
-## The guide ends at the garage (or GUIDE_END s): every hold is let go and `done` is saved. Its
-## progress is the save's [intro] section (wallet.gd `intro`: beat id -> the day); an old save
-## with progress never sees it, so it never locks anything for a returning player.
+## The guide ends when every intro was made or met (or at GUIDE_END s): every hold is let go and
+## `done` is saved. Its progress is the save's [intro] section (wallet.gd `intro`: beat id -> the
+## day); an old save with progress never sees it, so it never locks anything for a returning player.
+##
+## **First steps** (first_steps.gd, any save): the seven steps tick here from the facts, each with
+## its reward; the third opens the friends' calls (`friends_wait`: until FRIENDS_STEPS steps or
+## FRIENDS_AFTER s, then at most one new friend every NEW_FRIEND_GAP s while the guide runs; main.gd
+## `_free_block`), all seven bring the "First steps done" card. With steps left, WHAT_NEXT s of free
+## driving bring the gold arrow to the nearest one that has a place, for WHAT_NEXT_SHOW s.
 ##
 ## **The end card** (any save): once `Ladder.final_won()` (the "Trzy mosty" win, `trzy_mosty` in
 ## [ladder]) and END_JOBS jobs done (wallet.gd `jobs_done`), shown once when nothing else is on:
@@ -35,24 +49,33 @@ extends Node
 ## "Jedź dalej · Free roam" (everything stays unlocked); `end_seen` saved in [intro].
 ##
 ## --first10 scripts the beats' triggers for a headless replay with --autopilot (the car taken to
-## the stand, the flash back, the call answered, the tape played, the cards closed), prints a
-## `first10:` line per beat and `first10: OK` when each fired within its window (WINDOWS), and
-## quits. --end-card shows the end card at once, --first-race has Halina roll up a second in
-## (screenshots).
+## the stand, RACE on the choice card, the flash back, the call answered, the tape played, the cards
+## closed), prints a `first10:` line per beat and `first10: OK` when each came by its window's end
+## (WINDOWS), and quits. --end-card shows the end card at once, --first-race has Halina roll up a
+## second in (screenshots).
 
 const Ladder := preload("res://scripts/ladder.gd")
+const FirstSteps := preload("res://scripts/first_steps.gd")
+const Pacer := preload("res://scripts/pacer.gd")
 
 ## Five looks a second.
 const TICK := 0.2
-## The beats in order, and the window (seconds of play) each one's trigger must fall in for the
-## --first10 replay and check_first10.gd: a beat met by the player before its window is fine (an
-## early order is good); a beat the director fires is fired inside it.
-const BEATS := ["finger", "stand", "order", "race", "trap", "rescue", "heli", "tape", "powisle", "garage"]
+## The intros after the choice card, in the order the guide brings them.
+const INTROS := ["race", "trap", "rescue", "heli", "tape", "ride", "powisle", "garage", "kebab"]
+## The intro a First steps tick makes "met" (the step done by the player: no intro for it).
+const INTRO_STEP := {"race": "race", "trap": "police", "rescue": "rescue", "heli": "heli", "ride": "ride",
+		"garage": "garage", "kebab": "kebab"}
+## The beats a --first10 replay must see, and the window (seconds of play) each one's trigger must
+## fall in for the replay and check_first10.gd: a beat met by the player before its window is fine
+## (an early order is good); a beat the director fires is fired inside it. Since step 3 the intros'
+## windows are wide: they follow the player, not the clock ("kebab" is met by the first delivery,
+## so the replay does not ask for it).
+const BEATS := ["finger", "stand", "order", "choice", "race", "trap", "rescue", "heli", "tape", "ride", "powisle", "garage"]
 const WINDOWS := {
 	"finger": Vector2(4.0, 8.0), "stand": Vector2(10.0, 25.0), "order": Vector2(15.0, 60.0),
-	"race": Vector2(60.0, 200.0), "trap": Vector2(120.0, 330.0), "rescue": Vector2(220.0, 330.0),
-	"heli": Vector2(240.0, 450.0), "tape": Vector2(330.0, 450.0), "powisle": Vector2(300.0, 540.0),
-	"garage": Vector2(570.0, 660.0),
+	"choice": Vector2(60.0, 260.0), "race": Vector2(60.0, 330.0), "trap": Vector2(60.0, 480.0),
+	"rescue": Vector2(100.0, 560.0), "heli": Vector2(100.0, 640.0), "tape": Vector2(100.0, 700.0),
+	"ride": Vector2(100.0, 740.0), "powisle": Vector2(100.0, 740.0), "garage": Vector2(100.0, 760.0),
 }
 ## Where a guided run starts (main.gd `_guide_start`): the northbound carriageway of Marszałkowska
 ## level with the Museum of Modern Art, the Palace on the left, facing north up the street to the
@@ -65,46 +88,49 @@ const FINGER_IDLE := 4.0
 const STAND_AT := 10.0
 ## First hour, step 1: the kebab is a lure, not a duty. With no order started by LURE_LATEST s the
 ## stand's arrow goes with one toast ("lure", not a beat of 6.2: no window), and the free minute
-## before Halina starts then, as after a delivery (or after the first order went back quietly,
-## jobs.gd `first_gone`).
+## before the choice card starts then, as after a delivery (or after the first order went back
+## quietly, jobs.gd `first_gone`).
 const LURE_LATEST := 90.0
 ## --first10: the car is taken to the stand at ORDER_AT s.
 const ORDER_AT := 15.0
-const RACE_AFTER := 6.0
-## The first-10 polish: the short first order is done by ~0:45, so Halina waits for this second
-## (6.2's 1:30 beat; a minute of free driving after the first delivery's card).
-const RACE_EARLIEST := 75.0
-const RACE_LATEST := 180.0
-const RACE_RETRY := 60.0
-const RACE_TRIES := 3
-const TRAP_LATEST := 270.0
-const RESCUE_AT := 225.0
-const RESCUE_LATEST := 300.0
+## First hour, step 3: the choice card's free minute after the first delivery (or the kebab let
+## go), its latest second without either, and how long it stays up unanswered (then: just drive).
+static var CHOICE_AFTER: float = Pacer.num("first_steps", "choice_after")
+static var CHOICE_LATEST: float = Pacer.num("first_steps", "choice_latest")
+const CHOICE_LIFE := 25.0
+## Seconds of free driving, and since the last intro, before the next intro.
+static var NEXT_GAP: float = Pacer.num("first_steps", "next_gap")
+## The friends' calls (main.gd `_free_block`) wait for FRIENDS_STEPS ticked steps or FRIENDS_AFTER s
+## of play, then at most one new friend every NEW_FRIEND_GAP s while the guide runs.
+static var FRIENDS_STEPS: float = Pacer.num("first_steps", "friends_steps")
+static var FRIENDS_AFTER: float = Pacer.num("first_steps", "friends_after")
+static var NEW_FRIEND_GAP: float = Pacer.num("first_steps", "new_friend_gap")
+## "What next?": the gold arrow to the nearest step left after this much free driving, for so long.
+const WHAT_NEXT := 90.0
+const WHAT_NEXT_SHOW := 25.0
+## An intro that cannot be made now (Halina has no lane near, no ride request fits) is tried again
+## after this many seconds, and given up after FIRE_TRIES tries (so the guide never stalls on it).
+const FIRE_RETRY := 2.0
+const FIRE_TRIES := 15
 const RESCUE_RING := 12.0
-const HELI_LATEST := 420.0
-const TAPE_AT := 330.0
 const TAPE_ID := "t_bulwary_2018"
 ## The guide's cassette (cassettes.json): on the BUW roof by the boulevards.
 const CASSETTE_ID := "c01_buw"
-const POWISLE_AT := 450.0
-## The Powiśle beat stops waiting for a Podwózka ride to end here (its window ends at 540 s): a
-## ride taken just before the hold (HOLD_AHEAD) runs up to 4.5 minutes with the drive to the pin
-## (the replay of 2026-11-10: taken at 331 s, done at 600 s, Powiśle 20 s late).
-const POWISLE_LATEST := 520.0
-const GARAGE_AT := 570.0
-## The garage beat stops waiting for a free moment here (its window ends at 660 s).
-const GARAGE_LATEST := 640.0
-const GUIDE_END := 900.0
-## The beats that wait for a free moment; while one of them is due the guide holds new offers.
-const HOLD_BEATS := ["race", "trap", "rescue", "tape", "powisle", "garage"]
-## A beat this close (s) holds new offers too.
-const HOLD_AHEAD := 45.0
+const GUIDE_END := 1200.0
 ## The replay judges by here at the latest (after the last window, before verify.sh's 48000 frames).
-const REPLAY_DEADLINE := 700.0
+const REPLAY_DEADLINE := 770.0
 ## An arrow stays at most this long (s), unless its beat is met first.
 const HINT_S := 150.0
 const GARAGE_HINT_S := 90.0
 const HINT_COLOUR := Color("#ffd23f")
+## The choice card (step 3): its words and buttons ("POLISH|ENGLISH", hud.gd), what each button
+## introduces, in order; the last is JUST DRIVE.
+const CHOICE_TITLE := ["CO TERAZ?", "What now?"]
+const CHOICE_BODY := ["Sześciu rywali. Pokonaj wszystkich i wygraj Trzy mosty. Na start wybierz coś albo po prostu jedź.",
+		"Six rivals. Beat them all and win Trzy mosty. Pick a start, or just drive."]
+const CHOICE_BUTTONS := ["WYŚCIG|RACE", "KURSY|RIDES", "LOT|FLY", "JADĘ|JUST DRIVE"]
+const CHOICE_PICKS := [["race"], ["ride"], ["heli", "tape"], []]
+const CHOICE_COLOUR := Color("#ffd23f")
 ## The end card: the jobs it needs, its words ([Polish, English]), its button ("POLISH|ENGLISH",
 ## hud.gd) and the repo's name (README's; as text, no link).
 const END_JOBS := 10
@@ -124,14 +150,20 @@ const END_COLOUR := Color("#ffd23f")
 const LINES := {
 	"stand": ["Kebab przy Świętokrzyskiej czeka z twoim pierwszym zamówieniem.", "The kebab stand by Świętokrzyska has your first order."],
 	"lure": ["Kebab poczeka na stoisku. Wpadnij, kiedy chcesz.", "The kebab will wait at the stand. Come by anytime."],
+	"kebab": ["Kebab przy Świętokrzyskiej wciąż czeka. Gorący.", "The kebab stand by Świętokrzyska still waits. Hot."],
 	"heli": ["Pogotowie lotnicze pożycza ci stary śmigłowiec: HELI", "The air ambulance lends you its old helicopter: HELI"],
 	"heli_locked": ["Helikopter? Najpierw jedno wezwanie ratunkowe.", "The helicopter comes after your first rescue call."],
 	"tape": ["Na dachu BUW leży kaseta z muzyką. Leć po nią helikopterem.", "A mixtape lies on the BUW roof: fly the helicopter to it."],
 	"tape_ground": ["Na bulwarach czeka KASETA. Zwolnij przy niej.", "A KASETA waits on the boulevards: slow down by it."],
 	"powisle": ["Pod skarpą jest Powiśle. Zjedź w dół, do Wisły.", "Powiśle is below the escarpment: head down to the river."],
+	"ride": ["Ktoś szuka podwózki. Nowe: zlecenie w aplikacji.", "Someone needs a lift. New: a request in the app."],
+	"what_next": ["Pierwsze kroki: jeszcze %d. Złota strzałka pokazuje drogę.", "First steps: %d to go. The gold arrow shows the way."],
 }
 
 signal beat(id: String, how: String, at: float)
+## A First steps tick (first_steps.gd): the step, how many are done now, and whether it was quiet
+## (an old save's progress at the start: no reward).
+signal step_ticked(id: String, n: int, quiet: bool)
 
 ## Set by main.gd.
 var wallet: Node
@@ -149,7 +181,7 @@ var tape: Node
 var radio: Node
 var districts: Node
 var garage: Node
-## cassettes.gd: the guide's 6:00 cassette (null or not placed: KASETA's then card instead).
+## cassettes.gd: the guide's cassette (null or not placed: KASETA's then card instead).
 var cassettes: Node
 ## main.gd: the vehicle is the helicopter now.
 var flying: Callable
@@ -176,9 +208,6 @@ var spent_usec := 0
 var _running := false
 var _tick_t := 0.0
 var _delivered_t := -1.0
-var _race_tries := 0
-var _race_next := 0.0
-var _retry_at := -1.0
 var _stand := -1
 var _end_up := false
 var _song := false
@@ -188,8 +217,35 @@ var _call_t := 0.0
 var _last_pos := Vector3.ZERO
 var _done_t := -1.0
 var _input_base := 0
-## A beat is due and waits for a free moment: new offers are held (`due`).
+## An intro is close and waits for a free moment: new offers are held (`due`).
 var offers_held := false
+## Seconds the player has been free without a break (`facts`' free_for).
+var _free_for := 0.0
+## The choice card is up (since `_choice_t`); the intros its pick asks for first (`want`).
+var _choice_up := false
+var _choice_t := 0.0
+var _want: Array[String] = []
+## An intro that could not be made: not before this second again, and its tries.
+var _retry_t := 0.0
+var _tries := {}
+## Jobs done (wallet.gd `jobs_done`) when the last intro came (`due`: one job between two intros).
+var _jobs_at_intro := 0
+## The First steps facts the signals latch (the race run, the call answered, the helicopter flown,
+## the police met, the garage opened).
+var _raced := false
+var _answered := false
+var _flown := false
+var _police_met := false
+var _garage_opened := false
+## The "First steps done" card is due (shown when free) or up.
+var _all_due := false
+var _all_up := false
+## The friends' calls: the friends heard this session, and when the last new one rang (-1: none).
+var _friends := {}
+var _friend_t := -1.0
+## "What next?": free seconds counted, and the arrow is the one it showed.
+var _next_free := 0.0
+var _what_next := false
 
 
 # --- the rules (static: check_first10.gd tests them without the map) ---------------------------
@@ -209,7 +265,8 @@ static func end_due(w: Node) -> bool:
 
 
 ## The beats the facts say happened by themselves (the player's doing).
-## Facts: input, ordered, raced, trap, rang, tape, powisle, garage (bools).
+## Facts: input, ordered, raced, trap, rang, tape, powisle, garage (bools), and `steps` (the First
+## steps ticked: an intro whose step is done is met).
 static func met(f: Dictionary) -> Array[String]:
 	var out: Array[String] = []
 	if f.get("input", false):
@@ -228,14 +285,19 @@ static func met(f: Dictionary) -> Array[String]:
 		out.append("powisle")
 	if f.get("garage", false):
 		out.append("garage")
+	var steps: Array = f.get("steps", [])
+	for id: String in INTROS:
+		if INTRO_STEP.has(id) and str(INTRO_STEP[id]) in steps and not id in out:
+			out.append(id)
 	return out
 
 
 ## The beats the director fires now, at second `now`, from the facts `f` (met's, plus: free,
-## riding (a Podwózka ride is the only thing on), delivered_t (-1: no delivery yet), calling (a
-## rival is rolling up), race_next, rescued, earned, heli_call (a helicopter-only call is up),
-## scripted) and the beats already triggered
-## (`done`: beat -> second). "done" too, when the guide is over.
+## free_for (seconds free without a break), delivered_t (-1: no delivery yet), calling (a rival is
+## rolling up), rescued, earned, heli_call (a helicopter-only call is up), want (the intros the
+## choice card's pick asks for first), retry_t (no intro before this second), ways (beat -> "fired"
+## or "met", as `how`), scripted) and the beats already triggered (`done`: beat -> second). "done"
+## too, when the guide is over.
 static func decide(now: float, f: Dictionary, done: Dictionary) -> Array[String]:
 	var out: Array[String] = []
 	var free: bool = f.get("free", false)
@@ -251,54 +313,88 @@ static func decide(now: float, f: Dictionary, done: Dictionary) -> Array[String]
 	var delivered: float = f.get("delivered_t", -1.0)
 	if delivered < 0.0 and is_done.call("lure"):
 		delivered = float(done["lure"])
-	if not is_done.call("race") and not f.get("raced", false) and not f.get("calling", false) and free \
-			and now >= float(f.get("race_next", 0.0)) and ((delivered >= 0.0 and now >= maxf(delivered + RACE_AFTER, RACE_EARLIEST)) or now >= RACE_LATEST):
-		out.append("race")
-	if not is_done.call("trap") and not f.get("trap", false) and now >= TRAP_LATEST and free:
-		out.append("trap")
-	if not is_done.call("rescue") and not f.get("rang", false) and now >= RESCUE_AT and free \
-			and (f.get("raced", false) or now >= RESCUE_LATEST):
-		out.append("rescue")
-	if not is_done.call("heli") and (f.get("rescued", false) or f.get("heli_call", false) or now >= HELI_LATEST):
+	if not is_done.call("choice") and free and ((delivered >= 0.0 and now >= delivered + CHOICE_AFTER) or now >= CHOICE_LATEST):
+		out.append("choice")
+	# The helicopter's toast never waits once a rescue is done or a call needs it.
+	if not is_done.call("heli") and (f.get("rescued", false) or f.get("heli_call", false)):
 		out.append("heli")
-	if not is_done.call("tape") and not f.get("tape", false) and is_done.call("heli") and now >= TAPE_AT and free:
-		out.append("tape")
-	# The Powiśle arrow waits for a free moment, but not past its window behind a long Podwózka:
-	# near the window's end its line shows over the ride (the ride's pin keeps the edge arrow, and
-	# the guide's arrow follows when the ride is done). Over a race, a call, the police or a card
-	# it still waits: a note there is in the way (Autopilot 2026-11-09).
-	if not is_done.call("powisle") and not f.get("powisle", false) and now >= POWISLE_AT \
-			and (free or (now >= POWISLE_LATEST and f.get("riding", false))):
-		out.append("powisle")
-	# The garage's toast waits for a free moment, but not past its window: a long ride (Podwózka)
-	# would hold it for minutes, so near the window's end it shows over whatever is running.
-	if not is_done.call("garage") and not f.get("garage", false) and now >= GARAGE_AT and f.get("earned", false) \
-			and (free or now >= GARAGE_LATEST):
-		out.append("garage")
-	if not is_done.call("done") and (now >= GUIDE_END or (is_done.call("garage") and f.get("garage", false))):
+	if is_done.call("choice"):
+		var nxt := next_intro(now, f, done)
+		if nxt != "":
+			out.append(nxt)
+	if not is_done.call("done") and (now >= GUIDE_END or (is_done.call("choice") and _all_intros(done, out))):
 		out.append("done")
 	return out
 
 
-## The beats due now (or within HOLD_AHEAD s) that only wait for a free moment: the ones `decide`
-## would fire then if nothing were on. While this is not empty the guide holds new offers
-## (`offers_held`): a 2-minute ride taken 5 s before a beat would push it past its window.
-static func due(now: float, f: Dictionary, done: Dictionary) -> Array[String]:
+## The intro the director makes now ("" for none): the choice card's pick first (`want`), at once
+## when free; else the first in INTROS not done yet whose turn it can be (`_intro_ready`), once the player
+## has been free NEXT_GAP s and the last intro (or the choice) is NEXT_GAP s back.
+static func next_intro(now: float, f: Dictionary, done: Dictionary) -> String:
+	if not f.get("free", false) or now < float(f.get("retry_t", 0.0)):
+		return ""
+	for id: String in f.get("want", []):
+		if not done.has(id) and _intro_ready(id, f, done):
+			return id
+	if float(f.get("free_for", 0.0)) < NEXT_GAP or now - last_intro(done, f.get("ways", {})) < NEXT_GAP:
+		return ""
+	return waiting_intro(f, done)
+
+
+## The first intro in INTROS not done yet that may come now, free or not ("" for none).
+static func waiting_intro(f: Dictionary, done: Dictionary) -> String:
+	for id: String in INTROS:
+		if not done.has(id) and _intro_ready(id, f, done):
+			return id
+	return ""
+
+
+## The second of the last intro the director made, or of the choice card (-INF: none yet). `ways`
+## (beat -> "fired" or "met"): a step the player did alone does not count.
+static func last_intro(done: Dictionary, ways := {}) -> float:
+	var last := -INF
+	for id: String in INTROS + ["choice"]:
+		if done.has(id) and str(ways.get(id, "fired")) == "fired":
+			last = maxf(last, float(done[id]))
+	return last
+
+
+## An intro's own condition: Halina is not rolling up already; the tape after the helicopter; the
+## garage after the first earnings.
+static func _intro_ready(id: String, f: Dictionary, done: Dictionary) -> bool:
+	match id:
+		"race":
+			return not f.get("calling", false)
+		"tape":
+			return done.has("heli")
+		"garage":
+			return f.get("earned", false)
+	return true
+
+
+static func _all_intros(done: Dictionary, now_out: Array) -> bool:
+	for id: String in INTROS:
+		if not done.has(id) and not id in now_out:
+			return false
+	return true
+
+
+## What the guide holds new offers for now (empty: nothing): the choice card before it has come
+## (the first Podwózka request comes after it), then the intro waiting once a job was done since the
+## last intro (`jobs_since`): one job between two intros, so a player who takes every ride still
+## meets each intro (run 12, 2026-11-03: the call came 83 s late behind a ride), and a rider gets
+## rides between them.
+static func due(_now: float, f: Dictionary, done: Dictionary) -> Array[String]:
 	var out: Array[String] = []
 	if done.has("done"):
 		return out
-	var g := f.duplicate()
-	g["free"] = true
-	# A call under way ends in a rescue, and the helicopter's hint (which never waits) follows it,
-	# so the tape's beat behind them counts as near too.
-	g["rescued"] = bool(f.get("rescued", false)) or bool(f.get("rang", false))
-	var seen := done.duplicate()
-	for pass_i in 2:  # twice: a beat that fires at once (the heli hint) opens the next (the tape)
-		for id in decide(now + HOLD_AHEAD, g, seen):
-			if not seen.has(id):
-				seen[id] = now
-			if id in HOLD_BEATS and not id in out:
-				out.append(id)
+	if not done.has("choice"):
+		out.append("choice")
+		return out
+	if f.get("jobs_since", false) or not f.get("want", []).is_empty():
+		var w := waiting_intro(f, done)
+		if w != "":
+			out.append(w)
 	return out
 
 
@@ -316,6 +412,14 @@ static func judge(done: Dictionary, ways: Dictionary) -> Array[String]:
 		elif str(ways.get(id, "")) == "fired" and at < w.x - 0.5:
 			out.append("%s fired early: %.1f s (window %.0f-%.0f s)" % [id, at, w.x, w.y])
 	return out
+
+
+## The friends' calls wait (`friends_wait`): `steps` ticked, `now` s of play, the last new friend's
+## call at `friend_t` (-1: none yet).
+static func friends_held(steps: int, now: float, friend_t: float) -> bool:
+	if steps < int(FRIENDS_STEPS) and now < FRIENDS_AFTER:
+		return true
+	return friend_t >= 0.0 and now - friend_t < NEW_FRIEND_GAP
 
 
 ## The end card's words: [title, body, title_en, body_en].
@@ -337,27 +441,37 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_PAUSABLE
 
 
-## Hooks up the cards and the tape, and holds what the guide holds (on a fresh save). Called once
-## the city is built (before the title is dismissed).
+## Hooks up the cards, the tape and the First steps' signals, and holds what the guide holds (on a
+## fresh save). Called once the city is built (before the title is dismissed).
 func setup(want_guide: bool) -> void:
 	guide = want_guide and guide_due(wallet)
 	if hud != null:
 		hud.card_pressed.connect(_on_card)
 	if tape != null and tape.has_signal("played"):
 		tape.played.connect(_on_tape)
+	if missions != null and missions.has_signal("accepted"):
+		missions.accepted.connect(func() -> void: _answered = true)
+	if police != null and police.has_signal("chase_ended"):
+		police.chase_ended.connect(_on_police_end)
+	if garage != null and garage.has_signal("opened"):
+		garage.opened.connect(func() -> void: _garage_opened = true)
 	if guide:
 		if missions != null:
 			missions.held = true
 		if garage != null:
 			garage.held = true
 		# 2026-11-01 (F, beta): the helicopter and the map teleport are open from the first second;
-		# the "heli" beat below stays as a hint.
+		# the "heli" intro stays as a hint.
 		if jobs != null:
 			_stand = jobs.first_stand()
 			if _stand >= 0:
 				jobs.pin_first(_stand)
-	print("first10: guide %s%s%s" % ["on" if guide else "off", " (scripted)" if scripted else "",
-			", first stand %d" % _stand if guide else ""])
+	# First steps: what an existing save already shows ticks quietly, with no reward.
+	if wallet != null:
+		for id in FirstSteps.from_wallet(wallet.jobs, wallet.ladder):
+			_tick_step(id, true)
+	print("first10: guide %s%s%s; first steps %d/%d" % ["on" if guide else "off", " (scripted)" if scripted else "",
+			", first stand %d" % _stand if guide else "", steps_done(), FirstSteps.IDS.size()])
 
 
 ## The clock starts (the title is gone, or there was none).
@@ -401,9 +515,36 @@ func hint_shown() -> bool:
 	return hint_at != Vector3.INF
 
 
-## One look: the facts, the beats met and fired, the arrow, the end card.
+## First steps ticked in this save (first_steps.gd).
+func steps_done() -> int:
+	return FirstSteps.count(wallet.intro) if wallet != null else 0
+
+
+## The friends' calls wait now (main.gd `_free_block`, `_ev_free`): while the guide runs, until
+## FRIENDS_STEPS steps or FRIENDS_AFTER s, then NEW_FRIEND_GAP s after each new friend's first call.
+## Before step 3 the whole guide held them (it ran about ten minutes).
+func friends_wait() -> bool:
+	return guide_on() and friends_held(steps_done(), t, _friend_t)
+
+
+## An activity of the kit's phone rang (main.gd, the director's `rang`): `tag` names it. A friend
+## heard for the first time this session starts the NEW_FRIEND_GAP s wait for the next new one.
+func friend_rang(tag: String) -> void:
+	if _friends.has(tag):
+		return
+	_friends[tag] = t
+	if guide_on():
+		_friend_t = t
+		print("first10: a new friend rang (%s) at %.1f s" % [tag, t])
+
+
+## One look: the facts, the First steps, the beats met and fired, the arrow, the cards.
 func tick() -> void:
 	var f := facts()
+	_free_for = _free_for + TICK if f["free"] else 0.0
+	f["free_for"] = _free_for
+	_steps_tick(f)
+	f["steps"] = FirstSteps.done(wallet.intro) if wallet != null else []
 	if guide and not fired.has("done"):
 		for id in met(f):
 			if not fired.has(id):
@@ -412,8 +553,14 @@ func tick() -> void:
 			_fire(id)
 		_follow_up(f)
 	_hold_offers(guide and not due(t, f, fired).is_empty())
+	if _choice_up and t - _choice_t > CHOICE_LIFE:
+		_pick(CHOICE_PICKS.size() - 1, "unanswered")
 	if hint_shown() and (t > hint_until or _hint_met(f)):
 		hint_at = Vector3.INF
+		_what_next = false
+	_what_next_tick(f)
+	if _all_due and not _all_up and f["free"] and not f["rang"]:
+		_show_all_card()
 	if not _end_up and f["free"] and not f["rang"] and end_due(wallet):
 		show_end_card()
 	if end_at >= 0.0 and t >= end_at:
@@ -455,25 +602,23 @@ func facts() -> Dictionary:
 	var other: bool = (jobs != null and jobs.ride_offered()) or (rivals != null and (rivals.busy() or rivals.first_waiting())) \
 			or (missions != null and missions.busy()) \
 			or (police != null and int(police.phase) != 0) or (garage != null and garage.is_open()) or _end_up \
-			or bool(side_busy.call())
+			or _choice_up or _all_up or bool(side_busy.call())
 	var busy: bool = other or (jobs != null and bool(job_on.call()))
-	# A Podwózka ride under way (to the pin, or with the passenger) and nothing else on: the one job
-	# long enough to keep a beat past its window (`decide`, POWISLE_LATEST).
-	var ride: Variant = jobs.get("rides") if jobs != null else null
-	var riding: bool = not other and ride is Node and ride.has_method("has_target") and bool(ride.call("has_target"))
 	var orders: int = jobs.orders_started() if jobs != null else 0
 	var gone: bool = jobs != null and jobs.get("first_gone") == true
 	if _delivered_t < 0.0 and ((wallet != null and wallet.jobs_done() > 0) or gone) and not busy:
 		_delivered_t = t
+	if air:
+		_flown = true
+	if rivals != null and (str(rivals.first_result) in ["won", "lost"] or rivals.raced()):
+		_raced = true
 	return {
 		"input": hud != null and int(hud.input_ms) > _input_base,
 		"free": not busy,
-		"riding": riding,
 		"ordered": orders > 0,
 		"delivered_t": _delivered_t,
-		"raced": rivals != null and (str(rivals.first_result) in ["won", "lost"] or rivals.raced()),
+		"raced": _raced,
 		"calling": rivals != null and rivals.first_waiting(),
-		"race_next": _race_next,
 		"trap": police != null and police.first_armed(),
 		"rang": missions != null and not missions.idle(),
 		"rescued": wallet != null and int(wallet.jobs.get("rescue", 0)) > 0,
@@ -484,7 +629,64 @@ func facts() -> Dictionary:
 		"earned": wallet != null and (wallet.jobs_done() > 0 or int(wallet.zl) > 0),
 		"scripted": scripted,
 		"flying": air,
+		"want": _want,
+		"retry_t": _retry_t,
+		"ways": how,
+		"jobs_since": wallet != null and wallet.jobs_done() > _jobs_at_intro,
 	}
+
+
+## The First steps the facts show now (first_steps.gd `from_facts`), ticked once each.
+func _steps_tick(f: Dictionary) -> void:
+	if wallet == null:
+		return
+	var sf := {
+		"kebab": int(wallet.jobs.get("kebab", 0)) > 0,
+		"ride": int(wallet.jobs.get("podwozka", 0)) > 0,
+		"race": _raced or int(wallet.jobs.get("race", 0)) > 0,
+		"rescue": _answered or bool(f["rescued"]),
+		"heli": _flown,
+		"police": _police_met,
+		"garage": _garage_opened,
+	}
+	for id in FirstSteps.from_facts(sf):
+		if not wallet.intro.has(FirstSteps.KEY + id):
+			_tick_step(id, false)
+
+
+## Ticks step `id` in the save; `quiet` (an old save's progress at the start) brings no reward.
+## Else the step's reward (first_steps.gd `reward`): złoty, a paint at the third and the seventh
+## (owned in Mirek's garage, not put on), the toast, and at the seventh the card when free.
+func _tick_step(id: String, quiet: bool) -> void:
+	if wallet == null or wallet.intro.has(FirstSteps.KEY + id):
+		return
+	wallet.intro[FirstSteps.KEY + id] = maxi(1, roundi(t))
+	var n := steps_done()
+	print("first10: first step %s ticked%s at %.1f s (%d/%d)" % [id, " quietly" if quiet else "", t, n, FirstSteps.IDS.size()])
+	if quiet:
+		wallet.save()
+		step_ticked.emit(id, n, true)
+		return
+	var r := FirstSteps.reward(n)
+	var paint := str(r["paint"])
+	if paint != "" and not wallet.paints.has(paint):
+		wallet.paints[paint] = _today()
+	wallet.pay(int(r["zl"]), int(r["respect"]), "")  # saves
+	if hud != null:
+		var w := FirstSteps.tick_words(id, n)
+		hud.toast(w[0], w[1])
+		if bool(r["noticed"]):
+			hud.toast(FirstSteps.NOTICED_WORDS[0], FirstSteps.NOTICED_WORDS[1])
+	if bool(r["card"]):
+		_all_due = true
+	step_ticked.emit(id, n, false)
+
+
+func _on_police_end(how_: String) -> void:
+	# Stopped (a pull-over), got away, the end of a shift, or off in the helicopter: met. A guard's
+	# talk is not the police's; a meet given up is not the player's chase.
+	if how_ != "guard" and how_ != "quit":
+		_police_met = true
 
 
 func _trigger(id: String, way: String) -> void:
@@ -492,7 +694,10 @@ func _trigger(id: String, way: String) -> void:
 		return
 	fired[id] = snappedf(t, 0.1)
 	how[id] = way
-	if wallet != null and id in BEATS + ["done"]:
+	_want.erase(id)
+	if way == "fired" and (id in INTROS or id == "choice") and wallet != null:
+		_jobs_at_intro = wallet.jobs_done()
+	if wallet != null and id in BEATS + ["done", "lure", "kebab"]:
 		wallet.intro[id] = _today()
 		wallet.save()
 	var w: Vector2 = WINDOWS.get(id, Vector2(-1, -1))
@@ -500,8 +705,10 @@ func _trigger(id: String, way: String) -> void:
 	beat.emit(id, way, t)
 
 
-## The director pushes beat `id`.
+## The director pushes beat `id`; an intro that cannot be made now is tried again FIRE_RETRY s later
+## (and counted as made after FIRE_TRIES tries).
 func _fire(id: String) -> void:
+	var ok := true
 	match id:
 		"finger":
 			if hud != null:
@@ -519,21 +726,20 @@ func _fire(id: String) -> void:
 			# --first10 only: the car at the stand, the guided order.
 			if jobs == null or _stand < 0 or not jobs.start_first(_stand):
 				return
+		"choice":
+			# The one offer, in the guide's neutral voice, when calls may ring (hud.gd `call_ok`).
+			if hud == null or not hud.call_ok():
+				return
+			_show_choice()
 		"race":
-			_race_tries += 1
-			if rivals == null or not rivals.call_first():
-				_race_next = t + 2.0
-				_race_tries -= 1
-				return
+			ok = rivals != null and rivals.call_first()
 		"trap":
-			if police == null:
-				return
-			police.arm_first_contact()
+			if police != null:
+				police.arm_first_contact()
 		"rescue":
-			if missions == null:
-				return
-			missions.held = false
-			missions.ring_in(RESCUE_RING)
+			if missions != null:
+				missions.held = false
+				missions.ring_in(RESCUE_RING)
 		"heli":
 			if hud != null:
 				hud.set_vehicle_shown(true)
@@ -544,6 +750,11 @@ func _fire(id: String) -> void:
 				_hint(at, "KASETA", HINT_S)
 				var words: Array = LINES["tape"] if _cassette() >= 0 else LINES["tape_ground"]
 				hud.toast(words[0], words[1])
+		"ride":
+			var ride: Variant = jobs.get("rides") if jobs != null else null
+			ok = ride is Node and ride.has_method("offer_now") and bool(ride.call("offer_now"))
+			if ok and hud != null:
+				hud.toast(LINES["ride"][0], LINES["ride"][1])
 		"powisle":
 			var at := powisle_at()
 			if at != Vector3.INF:
@@ -554,28 +765,26 @@ func _fire(id: String) -> void:
 				return
 			garage.held = false
 			_hint(garage.at, "MIREK", GARAGE_HINT_S)
+		"kebab":
+			if jobs != null and _stand >= 0:
+				_hint(jobs.stand_ring(_stand), "KEBAB", HINT_S)
+				hud.toast(LINES["kebab"][0], LINES["kebab"][1])
 		"done":
 			_end_guide()
+	if not ok:
+		_tries[id] = int(_tries.get(id, 0)) + 1
+		if int(_tries[id]) < FIRE_TRIES:
+			_retry_t = t + FIRE_RETRY
+			return
+		print("first10: %s could not be made in %d tries: given up" % [id, FIRE_TRIES])
 	_trigger(id, "fired")
 
 
-## What runs between the beats: the call kept coming once let through, Halina's retries.
+## What runs between the beats: the call kept coming once let through.
 func _follow_up(f: Dictionary) -> void:
-	if fired.has("rescue") and not f["rang"] and f["free"] and missions != null and missions.idle() \
-			and missions.call_in() > RESCUE_RING + 1.0:
+	if fired.has("rescue") and how.get("rescue") == "fired" and not f["rang"] and f["free"] and missions != null \
+			and missions.idle() and missions.call_in() > RESCUE_RING + 1.0:
 		missions.ring_in(RESCUE_RING)
-	if fired.has("race") and rivals != null and str(rivals.first_result) == "declined" and _race_tries < RACE_TRIES:
-		if _retry_at < 0.0:
-			_retry_at = t + RACE_RETRY
-		elif t >= _retry_at and f["free"] and not f["raced"]:
-			rivals.first_result = ""
-			if rivals.call_first():
-				_race_tries += 1
-				_retry_at = -1.0
-				print("first10: Halina tries again (%d of %d)" % [_race_tries, RACE_TRIES])
-			else:
-				rivals.first_result = "declined"
-				_retry_at = t + 2.0
 
 
 ## The guide is over: every hold let go.
@@ -591,6 +800,105 @@ func _end_guide() -> void:
 		fired["heli"] = snappedf(t, 0.1)
 		how["heli"] = "fired"
 	_done_t = t
+
+
+# --- first hour, step 3: the choice card, the First steps card, "what next?" ---------------------
+
+func _show_choice() -> void:
+	_choice_up = true
+	_choice_t = t
+	hud.show_card(CHOICE_TITLE[0], CHOICE_BODY[0], PackedStringArray(CHOICE_BUTTONS), CHOICE_COLOUR, false,
+			CHOICE_TITLE[1], CHOICE_BODY[1])
+	hud.own_card(self)
+
+
+## The choice card's button `index` (CHOICE_BUTTONS), or "unanswered": the intros it asks for come
+## first (`want`), at once when free; JUST DRIVE asks for none, and the card never comes again.
+func _pick(index: int, why := "pressed") -> void:
+	_choice_up = false
+	if hud != null and hud.card_is(self):
+		hud.hide_card()
+	var picks: Array = CHOICE_PICKS[clampi(index, 0, CHOICE_PICKS.size() - 1)]
+	for id: String in picks:
+		if not fired.has(id) and not id in _want:
+			_want.append(id)
+	var word := str(CHOICE_BUTTONS[clampi(index, 0, CHOICE_BUTTONS.size() - 1)]).get_slice("|", 1)
+	print("first10: the choice card: %s (%s) at %.1f s" % [word, why, t])
+	if wallet != null:
+		wallet.intro["choice_pick"] = clampi(index, 0, CHOICE_PICKS.size() - 1) + 1
+		wallet.save()
+
+
+## A button of a card the guide owns (hud.gd `own_card`): the choice card's, or the First steps
+## card's.
+func card_pressed(index: int) -> void:
+	if _choice_up:
+		_pick(index)
+	elif _all_up:
+		_all_up = false
+		if hud != null and hud.card_is(self):
+			hud.hide_card()
+		print("first10: the First steps card closed")
+
+
+func _show_all_card() -> void:
+	if hud == null or hud.cards_up():
+		return
+	_all_due = false
+	_all_up = true
+	hud.show_card(FirstSteps.ALL_TITLE[0], FirstSteps.ALL_BODY[0], PackedStringArray([FirstSteps.ALL_BUTTON]),
+			CHOICE_COLOUR, false, FirstSteps.ALL_TITLE[1], FirstSteps.ALL_BODY[1])
+	hud.own_card(self)
+	print("first10: the First steps card (7/7)")
+
+
+## "What next?": WHAT_NEXT s of free driving with steps left and no other arrow up, the gold arrow
+## to the nearest step left that has a place (a kebab stand, Pani Halina, Mirek's garage), for
+## WHAT_NEXT_SHOW s. Not while the guide still has intros to make (they come sooner).
+func _what_next_tick(f: Dictionary) -> void:
+	_next_free = _next_free + TICK if f["free"] and not hint_shown() else 0.0
+	if _next_free < WHAT_NEXT or wallet == null or car == null:
+		return
+	_next_free = 0.0
+	if guide_on() and waiting_intro(f, fired) != "":
+		return
+	var left := FirstSteps.left(wallet.intro)
+	if left.is_empty():
+		return
+	var best := Vector3.INF
+	var word := ""
+	var here := car.global_position
+	for id in left:
+		var at := _step_at(id)
+		if at != Vector3.INF and (best == Vector3.INF or here.distance_to(at) < here.distance_to(best)):
+			best = at
+			word = {"kebab": "KEBAB", "race": "HALINA", "garage": "MIREK"}[id]
+	if best == Vector3.INF:
+		return
+	_hint(best, word, WHAT_NEXT_SHOW)
+	_what_next = true
+	if hud != null:
+		hud.toast(LINES["what_next"][0] % left.size(), LINES["what_next"][1] % left.size())
+	print("first10: what next: %s, %d steps left" % [word, left.size()])
+
+
+## Where step `id` can be done, for "what next?" (INF: nowhere to point at).
+func _step_at(id: String) -> Vector3:
+	match id:
+		"kebab":
+			if jobs != null:
+				var i: int = jobs.first_stand()
+				if i >= 0:
+					return jobs.stand_ring(i)
+		"race":
+			if rivals != null:
+				var p: Vector2 = rivals.rival_at("Pani Halina")
+				if p != Vector2.INF:
+					return Vector3(p.x, map.ground_height(p.x, p.y) if map != null else 0.0, p.y)
+		"garage":
+			if garage != null and garage.is_shown() and garage.at != Vector3.INF:
+				return garage.at
+	return Vector3.INF
 
 
 func _hint(at: Vector3, word: String, seconds: float) -> void:
@@ -620,6 +928,8 @@ func _hint_met(f: Dictionary) -> bool:
 			return f["tape"]
 		"POWIŚLE":
 			return f["powisle"]
+		"HALINA":
+			return f["raced"]
 		"MIREK":
 			return garage != null and car != null and Vector2(car.global_position.x - garage.at.x, car.global_position.z - garage.at.z).length() < 30.0
 	return false
@@ -737,6 +1047,12 @@ func _script(f: Dictionary) -> void:
 		# listened to every card.
 		if rivals != null and int(rivals.state) == 5 and rivals.has_method("card_pressed"):
 			rivals.card_pressed(0)
+	# First hour, step 3: RACE on the choice card after a moment (the race, then the police's first
+	# contact, as before the card); the First steps card's button the same way.
+	if _choice_up and t - _choice_t > 2.0:
+		card_pressed(0)
+	if _all_up:
+		card_pressed(0)
 	if rivals != null and rivals.first_waiting() and int(rivals.state) == 1:
 		rivals.flash()
 	if missions != null and missions.ringing() and not f["rescued"]:

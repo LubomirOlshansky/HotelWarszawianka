@@ -589,6 +589,16 @@ func request() -> void:
 		_on_context("ride")
 
 
+## First hour, step 3: the guide's first request (first10.gd: RIDES on the choice card, or the
+## ride's turn in the First steps): one comes now, before FIRST_OFFER s of driving if need be, as
+## long as nothing else is on (`_free`). False when none could be made.
+func offer_now() -> bool:
+	if not idle() or not _free():
+		return false
+	_offer_here()
+	return not idle()
+
+
 ## A request from near where the car is.
 func _offer_here() -> void:
 	var p := Vector2(car.global_position.x, car.global_position.z)
