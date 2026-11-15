@@ -47,7 +47,7 @@ Current state, tiers and photo counts (2026-11-13): docs/LANDMARKS.md "Churches 
 
 ## Inventory
 
-Status as of 2026-11-14 (after #773, the last of the 2026-11-14 photo batch). "Kit model" = built by the church kit; "model" = its own builder. Still open: Sala św. Faustyny (no photos yet), and the Archikatedra's side walls and east end (the LoD2 mass, no side photos yet). One combined phone measurement of the whole church set is on the next-build list.
+Status as of 2026-11-15 (after #785). Every church in this table now has its own builder; none is left on the kit. Still open: the convent wings and unnamed religious blocks (21 in the map) are plain blocks or, like the Wizytki convent, built from LoD2 with default colours because no open photo reaches them; the Archikatedra's side walls and east end stay the LoD2 mass in brick: the Kanonia and Dziekania houses hide almost all of them, and the 2026-11-14 photos (Commons and Mapillary, 14 more round the east end on 2026-11-15) show only interiors and the neighbours. One combined phone measurement of the whole church set is on the next-build list.
 
 | Church (OSM name) | Kind | Centre (x, z) | Status |
 | --- | --- | --- | --- |
@@ -58,15 +58,16 @@ Status as of 2026-11-14 (after #773, the last of the 2026-11-14 photo batch). "K
 | Kaplica Kościoła Baptystów | chapel | -2255, -359 | model from 8 Commons photos and LoD2 (`church_baptysci`, `_build_baptysci`, spec `baptysci.md`), 2026-11-14: the grey concrete box over a glazed ground floor, the dark cross |
 | Kaplica pw. Matki Boskiej Częstochowskiej (Kościół Chrystusa Króla Pokoju) | church | 1725, -1677 | model from 7 Commons photos and LoD2 (`church_chrystusa_krola`, `_build_chrystusa_krola`, spec `chrystusa_krola.md`), 2026-11-14: the cream chapel on the street with its white tower, the square church behind under a brown pyramid roof and lantern, the parish wings |
 | Kaplica pw. Świętej Barbary | chapel | -1103, 872 | model from 2 Commons photos and LoD2 (`church_barbara`, `_build_barbara`, spec `barbara.md`), 2026-11-14: red brick, steep dark roof, gables at both ends, low annex |
-| Katedra polowa Wojska Polskiego Najświętszej Maryi Panny Królowej Polski | church | -1165, -1647 | kit model (`church_katedra_polowa`), 2026-11-01 |
+| Katedra polowa Wojska Polskiego Najświętszej Maryi Panny Królowej Polski | church | -1165, -1647 | whole model from photos (`church_katedra_polowa`, `_build_katedra_polowa`, spec `katedra_polowa.md`), replacing the 2026-11-01 kit model |
 | Klasztor Ojców Dominikanów | monastery | -961, -1965 | model from LoD2 and a photo (`church_dominikanie`, `_build_dominikanie`, spec `dominikanie.md`), 2026-11-14: the wings round the cloister, the galleries, the east wing down the slope |
+| Klasztor Sióstr Wizytek | convent | -429, -826 | model from LoD2 (`church_wizytki_klasztor`, `_build_wizytki_klasztor`, spec `wizytki_klasztor.md`), 2026-11-15: four ranges round a closed courtyard, steep hipped roofs; colours and windows are defaults (no open photo reaches it) |
 | Klasztor Ojców Kapucynów | monastery | -1003, -1406 | model from 12 Commons photos and LoD2 (`church_kapucyni_klasztor`, `_build_kapucyni_klasztor`, spec `kapucyni_klasztor.md`), 2026-11-14: pale yellow three-storey ranges round the courtyard, hipped green copper roofs |
 | Klasztor pallotynów | monastery | 1761, -1687 | model from LoD2 and a photo (`church_pallotyni`, `_build_pallotyni`, spec `pallotyni.md`), 2026-11-14: the 1930s modernist block, ribbon windows, terraces |
 | Kościól Św. Karola Boromeusza | church | -2152, -461 | model from photos (`church_karol`, `_build_karol`, spec `karol.md`), 2026-11-14 |
 | Kościół Ewangelicko-Reformowany | church | -1749, -1104 | model from photos (`church_reformowany`, `_build_reformowany`, spec `reformowany.md`), 2026-11-14 |
 | Kościół Matki Bożej Jerozolimskiej | church | 984, 1319 | model from photos (`church_jerozolimska`, `_build_jerozolimska`, spec `jerozolimska.md`), 2026-11-14 |
-| Kościół Niepokalanego Poczęcia Najświętszej Maryi Panny | church | -649, -1240 | kit model (`church_niepokalanego`), 2026-11-01 |
-| Kościół Przemienienia Pańskiego | church | -975, -1432 | kit model (`church_kapucyni`), 2026-11-01 |
+| Kościół Niepokalanego Poczęcia Najświętszej Maryi Panny | church | -649, -1240 | whole model from photos (`church_niepokalanego`, `_build_niepokalanego`, spec `niepokalanego.md`), replacing the 2026-11-01 kit model |
+| Kościół Przemienienia Pańskiego | church | -975, -1432 | whole model from photos (`church_kapucyni`, `_build_kapucyni`, spec `kapucyni.md`), replacing the 2026-11-01 kit model |
 | Kościół Wizytek | church | -467, -787 | facade, wing and turret on kept skin (`wizytki`) |
 | Kościół Wniebowzięcia Najświętszej Maryi Panny i świętego Józefa Oblubieńca | church | -582, -1036 | front on kept skin (`karmelici`) |
 | Kościół Zielonoświątkowy | church | -1890, 332 | model from photos (`church_zielonoswiatkowy`, `_build_zielonoswiatkowy`, spec `zielonoswiatkowy.md`), 2026-11-14 |
@@ -75,10 +76,10 @@ Status as of 2026-11-14 (after #773, the last of the 2026-11-14 photo batch). "K
 | Kościół pw. Matki Boskiej Zwycięskiej | cathedral | 1971, -1373 | model from 16 Commons photos and LoD2 (`church_zwycieska`, `_build_zwycieska`, spec `zwycieska.md`), 2026-11-14: cream-white 1930s church, tall front block with a round window and yellow strips, red nave roof, round apse, domed chapel; no spires |
 | Kościół pw. Miłosierdzia Bożego i Świętej Faustyny | church | -2749, -693 | model from photos (`church_miloserdzie`, `_build_miloserdzie`, spec `miloserdzie.md`), 2026-11-14 |
 | Kościół pw. Świętego Augustyna | church | -2417, -1176 | model from the description and LoD2 (`church_augustyn`, `_build_augustyn`, spec `augustyn.md`), 2026-11-14 |
-| Kościół pw. Świętego Ducha | church | -1020, -1836 | kit model (`church_duch`), 2026-11-01 |
-| Kościół pw. Świętego Jacka | church | -1011, -1913 | kit model (`church_jacek`), 2026-11-01 |
+| Kościół pw. Świętego Ducha | church | -1020, -1836 | whole model from photos (`church_duch`, `_build_duch`, spec `duch.md`), replacing the 2026-11-01 kit model |
+| Kościół pw. Świętego Jacka | church | -1011, -1913 | whole model from photos (`church_jacek`, `_build_jacek`, spec `jacek.md`), replacing the 2026-11-01 kit model |
 | Kościół pw. Świętego Krzyża | church | -473, -525 | model on kept skin: baroque facade and towers (`sw_krzyz`) |
-| Kościół pw. Świętego Marcina | church | -795, -1584 | kit model (`church_sw_marcin`), 2026-11-01 |
+| Kościół pw. Świętego Marcina | church | -795, -1584 | whole model from photos (`church_sw_marcin`, `_build_marcin`, spec `marcin.md`), replacing the 2026-11-01 kit model |
 | Kościół pw. Świętej Anny | church | -658, -1350 | model, kept skin: portico and tower trim (`sw_anna`, #211 deck people) |
 | Kościół pw. Świętych Apostołów Piotra i Pawła | church | -1129, 830 | model from 14 Commons photos and LoD2 (`church_piotr_pawel`, `_build_piotr_pawel`, spec `piotr_pawel.md`), 2026-11-14: sand stucco basilica, front with three arched porches, rose window and two corner towers, drum and green dome over the crossing, rounded apse |
 | Kościół Świętego Antoniego Padewskiego | church | -1211, -978 | model from 15 Commons photos and LoD2 (`church_antoniego`, `_build_antoniego`, spec `antoniego.md`), 2026-11-14: white Baroque church, red tile roofs, slate turret with a green double onion, octagonal chapel, cloister wings round the cross square |
@@ -88,7 +89,8 @@ Status as of 2026-11-14 (after #773, the last of the 2026-11-14 photo batch). "K
 | Matki Bożej Częstochowskiej | church | 1132, 868 | model from photos (`church_czestochowska`, `_build_czestochowska`, spec `czestochowska.md`), 2026-11-14 |
 | Monaster Zaśnięcia Najświętszej Bogurodzicy i św. Jozafata biskupa i męczennika | monastery | -1025, -1518 | model from LoD2 and the street photos (`church_bazylianie`, `_build_bazylianie`, spec `bazylianie.md`), 2026-11-14: the street wing with the church's front, the back wings |
 | Parafia Świętej Teresy od Dzieciątka Jezus | church | 370, -579 | model (`teresy`, #225) |
-| Sala św. Faustyny | chapel | -2792, 1574 | open: small chapel: a later pass |
+| Siostry Szarytki (Zakład Sióstr Miłosierdzia, Tamka 35; unnamed in OSM) | monastery | 78, -165 | LoD2 mass in its skin plus a model turret (`szarytki`, `_build_szarytki`, spec `szarytki.md`), 2026-11-15 from 11 Commons photos: white ranges, green copper roofs, the onion turret; the dormers are not built |
+| Sala św. Faustyny | chapel | -2792, 1574 | model from one Commons photo and the OSM outline (`church_sala_faustyny`, `_build_sala_faustyny`, spec `sala_faustyny.md`), 2026-11-14: red brick hall, three steep gabled bays, the round-arched porch |
 | Synagoga Nożyków | synagogue | -1565, -229 | whole model from photos (`_build_nozyk`, spec `nozyk.md`), 2026-11-14; the kit's front faced east |
 | Zgromadzenie Sióstr Franciszkanek Rodziny Maryi | religious | -2617, -739 | model from LoD2 and two photos (`church_rodziny_maryi`, `_build_rodziny_maryi`, spec `rodziny_maryi.md`), 2026-11-14: the long banded peach house, its blind windows and the taller middle block |
 
