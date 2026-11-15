@@ -4839,11 +4839,11 @@ func _open_full_map() -> void:
 	if districts != null and districts.ready_ok:
 		hud.full_map.set_districts(districts.view(), districts.percent_total(), syrenki.found_count() if syrenki != null else 0,
 				syrenki.entries.size() if syrenki != null else 0)  # loop 3h slice 1 (+ slice 2: the Syrenki line)
-	if rivals != null:
-		hud.full_map.set_ladder(rivals.ladder_rows(), rivals.ladder.title() if rivals.ladder != null else [])  # loop 3h slice 3; step 5: RYWALE n/6
 	hud.full_map.quit_what = _quest_quit_name()  # F 2026-11-08: the card's quit button
-	hud.full_map.set_quests(_quest_entries(), Lines.Line.HELI if flying else Lines.Line.CAR,
-			str(quest_pin.get("id", "")))  # G12 part 2: the ZADANIA card
+	var entries := _quest_entries()
+	_fill_map_list(entries)  # first hour step 4: the one list's First steps, Rivals and Collection
+	hud.full_map.set_quests(entries, Lines.Line.HELI if flying else Lines.Line.CAR,
+			str(quest_pin.get("id", "")))  # G12 part 2: the quest list (one list since step 4)
 	if quest_tab_flag >= 0:
 		hud.full_map.show_line(quest_tab_flag)
 		quest_tab_flag = -1
@@ -4856,6 +4856,89 @@ func _open_full_map() -> void:
 		quest_pick_flag = -1
 		if hud.full_map.is_open():
 			hud.full_map.close()
+
+
+## First hour step 4 (the map's one list): what it shows besides the quests. The First steps left
+## (first_steps.gd) with the place or request that does each, from `entries` (`_quest_entries`):
+## the nearest kebab stand, a ride, the easiest rival to call out, a rescue call, Mirek's garage
+## (the helicopter and the police have none: they are words). Friends opens with the third step
+## (as first10.gd lets the friends call). The rivals as chips (ladder.gd `chips`), the final's
+## line and the night for it. The Collection line after the first find.
+func _fill_map_list(entries: Array) -> void:
+	var fm: Control = hud.full_map
+	var left: Array = []
+	var head: Array = []
+	var friends := true
+	if wallet != null:
+		var by_group := {}
+		for e: Dictionary in entries:
+			var g := str(e["group"])
+			if not by_group.has(g) and str(e["action"]) != Lines.NOW:
+				by_group[g] = []
+			if by_group.has(g):
+				(by_group[g] as Array).append(e)
+		var pos := _vehicle_position()
+		var here := Vector2(pos.x, pos.z)
+		for id: String in FirstSteps.left(wallet.intro):
+			var name: Array = FirstSteps.NAMES[id]
+			left.append({"id": id, "pl": name[0], "en": name[1], "entry": _step_entry(id, by_group, here)})
+		head = FirstSteps.header(wallet.intro)
+		friends = FirstSteps.count(wallet.intro) >= FirstSteps.NOTICED_AT
+		if left.is_empty():
+			head = []
+	fm.set_steps(left, head, FirstSteps.PROMISE if not left.is_empty() else [], friends)
+	if rivals != null and rivals.ladder != null and wallet != null:
+		var rows: Array = rivals.ladder_rows()
+		fm.set_rivals(rivals.ladder.chips(), rivals.ladder.title(), rows[rows.size() - 1] if not rows.is_empty() else [],
+				rivals.ladder.final_waits_night() and not tod.lights_on and rivals.night_now.is_valid())
+	else:
+		fm.set_rivals([])
+	var taken := 0
+	if cassettes != null and cassettes.ready_ok:
+		for c: Dictionary in cassettes.entries:
+			if cassettes.is_taken(str(c["id"])):
+				taken += 1
+	var syr := syrenki.found_count() if syrenki != null else 0
+	var found_notes := 0
+	if notes != null:
+		for place: Dictionary in notes.places:
+			if notes.is_found(str(place["id"])):
+				found_notes += 1
+	var words: Array = []
+	if taken + syr + found_notes > 0:
+		var pl := PackedStringArray()
+		var en := PackedStringArray()
+		if districts != null and districts.ready_ok:
+			pl.append("Dzielnice %d%%" % districts.percent_total())
+			en.append("Districts %d%%" % districts.percent_total())
+		if syrenki != null and not syrenki.entries.is_empty():
+			pl.append("Syrenki %d/%d" % [syr, syrenki.entries.size()])
+			en.append("Syrenki %d/%d" % [syr, syrenki.entries.size()])
+		if cassettes != null and cassettes.ready_ok:
+			pl.append("Kasety %d/%d" % [taken, cassettes.entries.size()])
+			en.append("Tapes %d/%d" % [taken, cassettes.entries.size()])
+		words = [" · ".join(pl), " · ".join(en)]
+	fm.set_collection(words)
+
+
+## The place or request that does First step `id` ({} for none), from the list's entries by group:
+## the nearest of a group with places, a request as it is; the race calls out the easiest rival
+## still to beat (Pani Halina first).
+func _step_entry(id: String, by_group: Dictionary, here: Vector2) -> Dictionary:
+	var group := {"kebab": "kebab", "ride": "ride", "rescue": "call", "garage": "garage"}.get(id, "") as String
+	if group != "":
+		var best := {}
+		for e: Dictionary in by_group.get(group, []):
+			if best.is_empty() or (e["at"] != Vector2.INF and here.distance_to(e["at"]) < here.distance_to(best["at"])):
+				best = e
+		return best
+	if id == "race" and rivals != null and rivals.ladder != null and not flying:
+		for c: Dictionary in rivals.ladder.chips():
+			if str(c["state"]) == "open":
+				var e := Lines.entry("step_race", "rival", Lines.Line.CAR, "", "", Vector2.INF, Rivals.RACE_COLOUR, Lines.RIVAL_CALL)
+				e["rung"] = int(c["rung"])
+				return e
+	return {}
 
 
 ## The full map's signals and its refusal, once. PT-19 (2026-11-07): `can_teleport` sat under
@@ -5025,6 +5108,12 @@ func _on_quest_picked(e: Dictionary) -> void:
 		"peacock":
 			missions.request_peacock()
 			quest_pin = {}
+		Lines.NIGHT:
+			# First hour step 4 (the critique's point 5): the final waits for the night; the list's
+			# button switches it on, as the sixth win's NOC does (rivals.gd `night_now`).
+			quest_pin = {}
+			if rivals != null and rivals.night_now.is_valid():
+				rivals.night_now.call()
 		"story":
 			# The beta list: the questline's friend phones now, any hour (story_quests.gd `start`).
 			quest_pin = {}

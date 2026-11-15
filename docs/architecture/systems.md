@@ -120,7 +120,7 @@ in one file, `data/pacing.json`, read by the offer pacer (`pacer.gd`, tech-debt 
 | `padel_match.gd`, `padel_sim.gd` | Padel match view; its pure rules. |
 | `event_day.gd` | 11 November day event. |
 | `story_quests.gd` | The questline registry (`stories.add({...})`): start spots, hours, call, meet, busy, idle. It lists the questlines; which activity is on is the director's (`activities.gd`). |
-| `quest_lines.gd` | Car and helicopter quest lines, marker colours. |
+| `quest_lines.gd` | Car and helicopter quest lines, marker colours; the full map's one list (`sections`: Now, First steps, Rivals, Around town, Friends, Collection; first hour step 4). |
 | `main_line.gd`, `main_nudge.gd` | The main story thread and its on-screen nudge. |
 | `first10.gd` | The fresh-save guide (the choice card, then one intro per First step not done yet), the First steps' ticks and rewards, the friends' wait, and the end card. |
 | `first_steps.gd` | The First steps list (first hour, step 3): the seven steps, their rewards, the save's `fs_` keys, the rows for the map's list. Pure. |
@@ -140,7 +140,7 @@ in one file, `data/pacing.json`, read by the offer pacer (`pacer.gd`, tech-debt 
 | `portraits.gd` | The speakers' faces (`art/portraits/<name>.png`) for the phone call view (`hud.show_call`), quest cards, quest and police bubbles (`bubbles.gd`) and the lounge and club talk panels (`badge`); the initial on a disc when there is no art, none for non-people (`NO_FACE`). |
 | `screen_points.gd`, `access.gd` | Points, safe area, tap sizes; accessibility options. |
 | `settings.gd`, `settings_panel.gd` | Settings in `user://settings.cfg`; the panel. |
-| `full_map.gd` | Full-screen map. |
+| `full_map.gd` | Full-screen map; its one list on the right (`set_quests`, `set_steps`, `set_rivals`, `set_collection`; main.gd `_fill_map_list` feeds it). |
 | `notebook_page.gd`, `garage_card.gd` | Notebook tab; garage card. |
 | `radio.gd`, `greeting_clips.gd`, `opening_audio.gd` | The radio stations and host; launch greeting; opening line. |
 | `sfx.gd` | Audio buses and every effect (engine, tyres, crashes); the mixer: who turns whom down (`DUCKS`, `Sfx.duck` / `Sfx.release`). |

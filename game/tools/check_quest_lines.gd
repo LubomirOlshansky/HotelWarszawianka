@@ -6,7 +6,11 @@ extends SceneTree
 ## reach is wider than the stop ring (G10). G12 part 2, the ZADANIA lists: each tab lists only its
 ## line, requests first, then places nearest first, one per group (three cassettes), at most
 ## MAX_ROWS; the distance text and compass point; the pin is reached within PIN_REACH. G12c: the
-## quest under way leads its tab. G12b: the pad's D-pad pick (`pad_move`) wraps round. Prints `check_quest_lines: OK`, exits 1 on a problem.
+## quest under way leads its tab. G12b: the pad's D-pad pick (`pad_move`) wraps round. First hour
+## step 4, the one map list (`sections`): the sections in order, only Now while something runs,
+## First steps cut to STEPS_SHOWN (places nearest first, then requests, then words), Around town
+## one per kind with the requests first and no rivals, Friends only once opened, the final in
+## Rivals. Prints `check_quest_lines: OK`, exits 1 on a problem.
 ##   godot --headless --path game --script res://tools/check_quest_lines.gd
 
 const Lines := preload("res://scripts/quest_lines.gd")
@@ -44,6 +48,7 @@ func _initialize() -> void:
 			and Lines.HELI_COLOUR != Rides.COLOUR)
 	_expect("START RIDE reaches beyond the stop ring", Rides.START_REACH > StopAssist.RING)
 	_lists()
+	_sections()
 	if _problems == 0:
 		print("check_quest_lines: OK")
 		quit(0)
@@ -93,3 +98,55 @@ func _lists() -> void:
 	_expect("pad: up from 0 wraps to the last", Lines.pad_move(0, 4, -1) == 3)
 	_expect("pad: an empty tab picks nothing", Lines.pad_move(0, 0, 1) == -1)
 	_expect("pad: a pick past a shrunk tab restarts", Lines.pad_move(5, 2, 1) == 0)
+
+
+## First hour step 4: the one map list's sections (quest_lines.gd `sections`).
+func _sections() -> void:
+	var c := Color.WHITE
+	var ride := Lines.entry("ride", "ride", Lines.Line.CAR, "Podwózka", "Ride", Vector2.INF, c, "ride")
+	var garage := Lines.entry("garage", "garage", Lines.Line.CAR, "Mirek", "Mirek", Vector2(0, -200), c)
+	var k1 := Lines.entry("k1", "kebab", Lines.Line.CAR, "Kebab A", "Kebab A", Vector2(0, -900), c)
+	var e: Array = [
+		ride, garage, k1,
+		Lines.entry("k2", "kebab", Lines.Line.CAR, "Kebab B", "Kebab B", Vector2(0, -1300), c),
+		Lines.entry("call", "call", Lines.Line.HELI, "Wezwanie", "Call", Vector2.INF, c, "call"),
+		Lines.entry("c1", "cassette", Lines.Line.HELI, "Kaseta", "Tape", Vector2(50, 0), c),
+		Lines.entry("rival", "rival", Lines.Line.CAR, "Rywal", "Rival", Vector2(10, 10), c),
+		Lines.entry("final", "final", Lines.Line.CAR, "Trzy mosty", "Three bridges", Vector2(800, 0), c),
+		Lines.entry("st", "story", Lines.Line.STORY, "Wątek", "Story", Vector2(100, 0), c, "story"),
+	]
+	var race := Lines.entry("step_race", "rival", Lines.Line.CAR, "", "", Vector2.INF, c, Lines.RIVAL_CALL)
+	var steps: Array = [
+		{"id": "kebab", "pl": "Kebab", "en": "Kebab", "entry": k1},
+		{"id": "ride", "pl": "Podwieź", "en": "Lift", "entry": ride},
+		{"id": "race", "pl": "Wyścig", "en": "Race", "entry": race},
+		{"id": "heli", "pl": "Heli", "en": "Heli", "entry": {}},
+		{"id": "garage", "pl": "Warsztat", "en": "Garage", "entry": garage},
+	]
+	var secs := Lines.sections(e, Lines.Line.CAR, Vector2.ZERO, steps, false)
+	var keys: Array = secs.map(func(x: Dictionary) -> String: return str(x["key"]))
+	_expect("the list's sections in order, no friends before the third step (%s)" % [keys],
+			keys == ["steps", "rivals", "town", "collection"])
+	var st: Array = secs[0]["rows"]
+	var sid: Array = st.map(func(x: Dictionary) -> String: return str(x["step"]))
+	_expect("First steps shows three: the places nearest first, then the requests (%s)" % [sid],
+			sid == ["garage", "kebab", "ride"])
+	_expect("a step row takes the step's own words", str(st[0]["en"]) == "Garage" and not bool(st[0]["label"]))
+	var few := Lines.sections(e, Lines.Line.CAR, Vector2.ZERO, [steps[3]], false)
+	_expect("a step done by a button is words, not a row", bool((few[0]["rows"] as Array)[0]["label"]))
+	var town: Array = secs[2]["rows"]
+	var tid: Array = town.map(func(x: Dictionary) -> String: return str(x["id"]))
+	_expect("Around town: requests, the car's places one per kind, then the heli's, no rivals, none First steps shows (%s)" % [tid],
+			tid == ["call", "c1"])
+	var fl: Array = secs[1]["rows"]
+	_expect("the final is a row of Rivals", fl.size() == 1 and str(fl[0]["id"]) == "final")
+	var flying := Lines.sections(e, Lines.Line.HELI, Vector2.ZERO, [], true)
+	var ftown: Array = (flying.filter(func(x: Dictionary) -> bool: return x["key"] == "town")[0] as Dictionary)["rows"]
+	_expect("flying: the heli's places lead Around town", str(ftown[2]["id"]) == "c1")
+	var fkeys: Array = flying.map(func(x: Dictionary) -> String: return str(x["key"]))
+	_expect("no First steps left: no section; Friends once opened (%s)" % [fkeys],
+			fkeys == ["rivals", "town", "friends", "collection"])
+	var now := Lines.entry("now", "now", Lines.Line.HELI, "Teraz", "Now", Vector2(0, 50), c, Lines.NOW)
+	var ns := Lines.sections([now], Lines.Line.CAR, Vector2.ZERO, steps, true)
+	_expect("something under way: only Now, its one row", ns.size() == 1 and str(ns[0]["key"]) == "now" \
+			and (ns[0]["rows"] as Array).size() == 1)
