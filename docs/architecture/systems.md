@@ -163,6 +163,7 @@ See [graphics.md](graphics.md).
 | Script | Owns |
 | --- | --- |
 | `time_of_day.gd` | Dawn, day, dusk, night; sun, sky, grade, city lights; global shader uniforms. |
+| `grades.gd` | The colour looks (Settings → Kolory: Natural, the default, Neon, Classic): overrides on `time_of_day.gd`'s looks and the post pass's grade values. |
 | `weather.gd` | Rain and wetness. |
 | `tiers.gd` | Quality levels and what Auto picks per device. |
 | `governor.gd` | Steps extras down when frames run late, back up when calm. |

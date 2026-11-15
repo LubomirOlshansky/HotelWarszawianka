@@ -70,6 +70,7 @@ freecam              quick
 gamepad              quick
 garage               quick
 governor             quick
+grades               quick
 ground               ground    slow
 grounded             quick
 handling             quick

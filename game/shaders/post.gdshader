@@ -34,6 +34,14 @@ uniform vec3 grade = vec3(1.025, 1.0, 0.97); // a touch warm
 uniform float tone_amount = 0.0;
 uniform vec3 tone_shadow = vec3(1.0);
 uniform vec3 tone_light = vec3(1.0);
+// The grading look (grades.gd, research prototype): white balance and exposure, contrast
+// round a pivot, lifted blacks, vibrance, a highlight shoulder. The defaults change nothing.
+uniform vec3 g_gain = vec3(1.0);
+uniform float g_contrast = 1.0;
+uniform float g_pivot = 0.18;
+uniform vec3 g_lift = vec3(0.0);
+uniform float g_vibrance = 0.0;
+uniform float g_shoulder = 0.0;
 // Sky behind the slab: top and bottom of the screen (linear), how much of it
 // replaces the plain background (0 = the day's flat colour), and stars.
 uniform float sky_amount = 0.0;
@@ -202,6 +210,22 @@ void fragment() {
 	if (tone_amount > 0.0) {
 		vec3 tint = mix(tone_shadow, tone_light, smoothstep(0.015, 0.45, luma));
 		col = mix(col, col * tint, tone_amount);
+	}
+	col *= g_gain;
+	if (g_contrast != 1.0) {
+		col = g_pivot * pow(col / g_pivot, vec3(g_contrast));
+	}
+	if (g_vibrance != 0.0) {
+		float hi = max(col.r, max(col.g, col.b));
+		float lo = min(col.r, min(col.g, col.b));
+		float sat = (hi - lo) / max(hi, 1e-4);
+		float l2 = dot(col, vec3(0.299, 0.587, 0.114));
+		col = max(mix(vec3(l2), col, 1.0 + g_vibrance * (1.0 - sat)), vec3(0.0));
+	}
+	col += g_lift * (1.0 - min(col, vec3(1.0)));
+	if (g_shoulder > 0.0) {
+		// Rolls the highlights off and leaves the pivot where it was.
+		col = col * (1.0 + g_shoulder * g_pivot) / (1.0 + g_shoulder * col);
 	}
 	float edge_dist = length((SCREEN_UV - 0.5) * vec2(1.0, 0.8));
 	col *= 1.0 - vignette * smoothstep(0.3, 0.75, edge_dist);

@@ -102,6 +102,7 @@ func _initialize() -> void:
 	a.fps = 30
 	a.style = 3
 	a.vhs = true
+	a.grade = 1  # Neon by choice (Warsaw is the default, F 2026-11-15)
 	a.zone_cap = true
 	a.handling = 1
 	a.collide = 2  # settings rows (2026-11-14): mid, and the fences breakable (off is the default)
@@ -122,7 +123,7 @@ func _initialize() -> void:
 	b.path = SCRATCH
 	b.load_file()
 	var same := a.summary() == b.summary() and b.classic_follow == a.classic_follow and b.view == 40.0 and b.pitch == 50.0 \
-			and not b.lane_assist and b.pads == Settings.PADS_ARROWS and b.collide == 2 and b.soft_fences
+			and not b.lane_assist and b.pads == Settings.PADS_ARROWS and b.collide == 2 and b.soft_fences and b.grade == 1
 	# F 2026-11-13: a save from before the arrows (lane assist off, no `lane_assist_default`, no
 	# `pads`) loads with the lane assist on; F 2026-11-14: and the slider.
 	var cfg_la := ConfigFile.new()
