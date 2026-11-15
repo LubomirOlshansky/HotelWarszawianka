@@ -4589,6 +4589,17 @@ const FKL_ROOF := Color("#606366")      ## grey sheet roofs (the church's, photo
 ## docs/landmarks/specs/szarytki_zaulek.md.
 const SZZ_AT := [Vector2(66.0, -262.0), Vector2(100.0, -278.0)]  ## one point inside each outline
 
+## Dom Parafialny im. Prymasa Tysiąclecia, St Barbara's parish house on Świętej Barbary (OSM
+## building 1525, the only named one of these blocks): a pale yellow plastered house along the
+## street's west side, its back block taller. Its outline is ragged (18 corners) and its LoD2 has
+## two heights, so the mass stays GUGiK's LoD2 in a skin: yellow plaster from three Mapillary
+## photos along Świętej Barbary (2020, refs/churches/dom_parafialny_barbara, reference only, never
+## shipped), which show it only at a slant behind trees, under a grey roof (a default). Spec
+## docs/landmarks/specs/dom_parafialny_barbara.md.
+const DPB_AT := Vector2(-1166.0, 740.0)      ## inside the outline
+const DPB_WALL := Color("#e6d49e")           ## pale yellow plaster (photos)
+const DPB_ROOF := Color("#6c6a66")           ## grey roof, a default
+
 
 ## The presbytery of St Florian's cathedral (Plebania katedry św. Floriana, Floriańska, Praga):
 ## an L of two plastered houses behind the cathedral. The range on Floriańska, three tall storeys
