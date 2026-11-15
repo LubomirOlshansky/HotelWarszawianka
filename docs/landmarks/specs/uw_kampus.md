@@ -69,9 +69,15 @@ to 7.5 m.
 Frame: from (-487.3, -691.7) to (-469.2, -650.5), +v out to the street. End risalits u 0-11.3 and
 33.8-45.0 stand 0.6 m out; the middle u 11.3-33.8. Rusticated ground floor to 5 m, a ledge. Middle:
 seven bays, ground windows, first-floor windows with pediments (the second bay a balcony door with
-an iron balcony over the street door), second-floor windows, cornice at 16 m, a statue on a
-pedestal over the middle. Risalits: three bays, a storey taller (windows at 1.3, 6.4, 11.0 and
-15.4 m), corner pilasters, a row of consoles under the deep cornice at 20.6 m (LoD2: 21 m).
+an iron balcony over the street door), relief panels under the pedimented windows, second-floor
+windows, cornice at 16 m. Over the middle's north part (between the second and third bays, 8049)
+the sculpture group: a high pedestal with scrolls, a rearing horse, its rider and a standing
+figure, about 4.5 m over the cornice. Risalits: three bays between four fluted giant pilasters with
+leafy capitals, a storey taller (windows at 1.3, 6.4, 11.0 and 15.4 m, the first floor's
+pedimented over relief panels), a frieze of close consoles under the deep cornice at 20.6 m (LoD2:
+21 m). The south risalit's side over the gate (8049): the outline's south face from (-469.2,
+-650.5) to (-456.1, -655.9), the same three bays and pilasters on its first 12 m, plain wall and the
+cornice behind (F pointed at it again on 2026-11-15, the detail pass).
 
 ### 4. The Old Library (`stara_buw`), photos 8050, 8056, 8070, 8071
 
@@ -137,7 +143,7 @@ the city's window lights.
 ## Detail level and budget
 
 L3, triangle budget 8000 per site at most; an exception for the whole campus, which is seven sites
-(check_mesh_quality.gd): brama_uw 4000, uruski 4000, stara_buw 5000, kazimierzowski 2200,
+(check_mesh_quality.gd): brama_uw 4000, uruski 5000, stara_buw 5000, kazimierzowski 2200,
 uw_skarpa 7000, uw_straz 900, uw_kampus 1500. Draw calls: none added (all in the city mesh).
 
 ## Parts table
@@ -156,14 +162,13 @@ uw_skarpa 7000, uw_straz 900, uw_kampus 1500. Draw calls: none added (all in the
 ## 9. Budget notes
 
 Benches, lamps, trees and paths stay the map's (OSM has the campus's trees and benches). Budgets
-(check_mesh_quality.gd): brama_uw 4000, uruski 4000, stara_buw 5000, kazimierzowski 2200, uw_skarpa
+(check_mesh_quality.gd): brama_uw 4000, uruski 5000, stara_buw 5000, kazimierzowski 2200, uw_skarpa
 7000, uw_straz 900, uw_kampus 1500. Draw calls: none added (all in the city mesh).
 
 ## 10. Defaults (no photo)
 
 The pavilions' campus faces copy the street faces' pediment but have no niche; the Old Library's
-east end and the Uruski court side stay LoD2's; the Uruski statue is placed over the middle's
-centre (the photo shows it over the middle's north part).
+east end and the Uruski court side stay LoD2's; the Uruski sculpture group's figures are blocked out from the photos' silhouette (a horse, its rider, a standing figure), not a likeness.
 
 ## 11. The life: students and the guards' cart
 

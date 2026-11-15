@@ -1,5 +1,5 @@
 {
-  "_about": "The Eastern Wall stores' shops and ads (landmarks.gd _dtc_shops, site dtc, the game's starting street). The shops here change often, so this file is the one place to swap them: edit a line, then re-bake the prebuilt city (bake_city.gd); every word is added to the neon atlas by neon_signs.gd. Brands only as parodies (data/brand_denylist.json). State: F's photos and the trade press, 2026-11-05: Uniqlo took Zara's floor in Junior (Oct 2025), LUCA's bakery opened in Sawa (Oct 2026), TK Maxx opened 7,000 m2 on four floors (Sep 2026), H&M's corner of Wars became a two-storey Żabka with a chicken chain coming next door. Faces: 'west' is the street (Marszałkowska), 'south' the end the camera sees down the street, 'east' the back, 'north'. 'at' is 0..1 along the face, left to right as you stand outside looking at it. banners: printed ads on the curtain wall (y0..y1 metres above ground, default its whole height; 'top': on the set-back top storey instead). fronts: a shop's lit fascia band on the recessed shop windows under the cantilever, its glass tinted ('glass'). props: furniture on the pavement 'out' metres from the face. roof_green: a sedum strip along a long side of the main roof (F's aerials). portal: a coloured frame of two posts round a shop's doors.",
+  "_about": "The Eastern Wall stores' shops and ads (landmarks.gd _dtc_shops, site dtc, the game's starting street). The shops here change often, so this file is the one place to swap them: edit a line, then re-bake the prebuilt city (bake_city.gd); every word is added to the neon atlas by neon_signs.gd. Brands only as parodies (data/brand_denylist.json). State: F's photos and the trade press, 2026-11-05: Uniqlo took Zara's floor in Junior (Oct 2025), LUCA's bakery opened in Sawa (Oct 2026), TK Maxx opened 7,000 m2 on four floors (Sep 2026), H&M's corner of Wars became a two-storey Żabka with a chicken chain coming next door. Faces: 'west' is the street (Marszałkowska), 'south' the end the camera sees down the street, 'east' the back, 'north'. 'at' is 0..1 along the face, left to right as you stand outside looking at it. banners: printed ads on the curtain wall (y0..y1 metres above ground, default its whole height; 'top': on the set-back top storey instead). fronts: a shop's lit fascia band on the recessed shop windows under the cantilever, its glass tinted ('glass'). props: furniture on the pavement 'out' metres from the face. roof_green: a sedum strip along a long side of the main roof (F's aerials). portal: a coloured frame of two posts round a shop's doors. Photo pass 2026-11-15 (F's 7 photos of the stores): added the black BUCIK shoe banner, the cream MANGUSTA wall, TRZY PASKI sportswear, the peach PÓŁ CENY posters, and dark strip-window panels (no lines) on the curtain wall.",
   "stores": {
     "Junior": {
       "banners": [
@@ -58,6 +58,35 @@
             "UNIKAT"
           ],
           "bg": "#d0161e"
+        },
+        {
+          "face": "west",
+          "at": 0.08,
+          "w": 9.0,
+          "lines": [
+            "BUCIK",
+            "obuwie"
+          ],
+          "bg": "#15171c"
+        },
+        {
+          "face": "west",
+          "at": 0.82,
+          "w": 16.0,
+          "lines": [
+            "MANGUSTA"
+          ],
+          "bg": "#eceae4",
+          "ink": "#15171c"
+        },
+        {
+          "face": "west",
+          "at": 0.43,
+          "w": 16.0,
+          "y0": 8.0,
+          "y1": 14.2,
+          "lines": [],
+          "bg": "#4a5a64"
         }
       ],
       "fronts": [
@@ -155,6 +184,25 @@
             "PÓŁ CENY"
           ],
           "bg": "#c8322e"
+        },
+        {
+          "face": "west",
+          "at": 0.5,
+          "w": 13.0,
+          "lines": [
+            "TRZY",
+            "PASKI"
+          ],
+          "bg": "#2a2623"
+        },
+        {
+          "face": "west",
+          "at": 0.12,
+          "w": 14.0,
+          "y0": 8.0,
+          "y1": 14.2,
+          "lines": [],
+          "bg": "#4a5a64"
         }
       ],
       "fronts": [
@@ -202,12 +250,12 @@
         {
           "face": "west",
           "at": 0.4,
-          "w": 11.0,
+          "w": 14.0,
           "lines": [
-            "DUŻE MARKI",
-            "MAŁE CENY"
+            "PÓŁ",
+            "CENY"
           ],
-          "bg": "#f2efe6",
+          "bg": "#f0907a",
           "ink": "#c8322e"
         },
         {
@@ -266,6 +314,15 @@
             "TAK MAKS"
           ],
           "bg": "#d0161e"
+        },
+        {
+          "face": "west",
+          "at": 0.62,
+          "w": 9.0,
+          "lines": [
+            "PÓŁ CENY"
+          ],
+          "bg": "#f0907a"
         }
       ],
       "fronts": [

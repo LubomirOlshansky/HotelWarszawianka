@@ -1440,6 +1440,7 @@ for s in $want; do
 		first10) check first10 '^first10:' --script res://tools/check_first10.gd ;;
 		mainline) check mainline '^main_line:' --script res://tools/check_main_line.gd ;;
 		chatter) check chatter '^check_chatter:' --script res://tools/check_chatter.gd ;;
+		markers) check markers '^check_map_markers:' --script res://tools/check_map_markers.gd ;;
 		messages) check messages '^check_messages:' --script res://tools/check_messages.gd ;;
 		endcard) check endcard '^end_card:' --script res://tools/check_end_card.gd ;;
 		opening) check opening '^opening:' --script res://tools/check_opening.gd ;;

@@ -183,6 +183,7 @@ const INFO := {
 			"Narożna kamienica w brzoskwiniowym tynku, z balkonami i ślepą arkadą na rogu.",
 			"A corner tenement in peach plaster, with iron balconies and a blind arch at the corner."],
 	"adwentysci": ["Kościół Adwentystów na Foksal", "Zbór w żółtej kamienicy za ogródkiem.", "A church inside a yellow house behind a front garden."],
+	"szarytki_zaulek": ["Domy Szarytek przy zaułku", "Dwa domy sióstr miłosierdzia za klasztorem na Tamce.", "Two houses of the Sisters of Charity behind their convent on Tamka."],
 	"faustyna_klasztor": ["Klasztor przy sanktuarium św. Faustyny", "Domy Zgromadzenia Sióstr Matki Bożej Miłosierdzia przy Żytniej.", "The Sisters of Our Lady of Mercy's houses round St Faustina's shrine."],
 	"elzbietanki": ["Siostry Elżbietanki", "Dom prowincjalny sióstr za Piekarską, nad ogrodami Podwala.", "The Elizabethan sisters' provincial house behind Piekarska, over the Podwale gardens."],
 	"szarytki": ["Siostry Szarytki na Tamce", "Klasztor sióstr miłosierdzia pod skarpą, z wieżyczką.", "The Sisters of Charity under the escarpment, with their turret."],
@@ -661,8 +662,8 @@ const INFO := {
 			"Hotel z 1976 roku przy Królewskiej, z widokiem na plac Piłsudskiego.",
 			"A hotel of 1976 on Królewska, looking out over Plac Piłsudskiego."],
 	"bez_kantow": ["Dom bez Kantów",
-			"Modernizm z zaokrąglonymi narożnikami. Kantów tu nie ma.",
-			"Modernism with rounded corners: no kanty (edges, or swindles)."],
+			"Piaskowiec i zaokrąglone narożniki. Kantów tu nie ma.",
+			"Sandstone and rounded corners: no kanty (edges, or swindles)."],
 	"departament": ["Departament Wojskowej Służby Zdrowia",
 			"Przy Królewskiej, na skraju placu Piłsudskiego.",
 			"On Królewska, at the edge of Plac Piłsudskiego."],
@@ -847,6 +848,7 @@ const INFO := {
 	"church_zwycieska": ["Kościół Matki Boskiej Zwycięskiej", "Kościół parafialny z dwiema wieżami.", "A parish church with two towers."],
 	"church_siostry_milosierdzia_zytnia": ["Siostry Matki Bożej Miłosierdzia", "Dom sióstr przy sanktuarium św. Faustyny na Żytniej.", "The Sisters of Our Lady of Mercy's house by St Faustina's shrine."],
 	"church_uczennice_boskiego_mistrza": ["Siostry Uczennice Boskiego Mistrza", "Ceglany dom zakonny sióstr uczennic przy Żytniej.", "The Sister Disciples of the Divine Master's brick convent."],
+	"church_kaplica_florianska": ["Kaplica przy katedrze św. Floriana", "Ośmioboczna ceglana kaplica z łupkowym hełmem, przy ogrodzeniu katedry.", "A small octagonal brick chapel with a slate bell roof, by the cathedral's fence."],
 	"church_zytnia_dom_zakonny_tyl": ["Dom zakonny na Żytniej, skrzydło", "Długie skrzydło domu zakonnego w głębi posesji przy Żytniej.", "The long wing of the convent behind its range on Żytnia."],
 	"church_zytnia_dom_zakonny": ["Dom zakonny na Żytniej", "Dom zakonny po południowej stronie Żytniej, przy Wolności.", "The convent range on the south side of Żytnia, by Wolność."],
 	"church_zwycieska_klasztor": ["Klasztor przy Matce Bożej Zwycięskiej", "Dom zakonny obok kościoła Matki Bożej Zwycięskiej na Kamionku.", "The religious house beside Our Lady of Victory in Kamionek."],
@@ -1339,6 +1341,14 @@ func _find_sites() -> void:
 	_add_site("faustyna_klasztor", fkl)
 	if not sites.is_empty() and sites[-1]["key"] == "faustyna_klasztor":
 		sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": FKL_WALL, "roof": FKL_ROOF}
+	# The Sisters of Charity's two houses by Zaułek Ku Szarytkom (LoD2 only, no photo, 2026-11-15):
+	# LoD2's mass in the convent's white plaster and green copper. Provisional.
+	var szz: Array = []
+	for at: Vector2 in SZZ_AT:
+		szz.append(_outline_at(at))
+	_add_site("szarytki_zaulek", szz)
+	if not sites.is_empty() and sites[-1]["key"] == "szarytki_zaulek":
+		sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": SZT_WALL, "roof": SZT_ROOF, "steep": 0.3}
 	# The University campus's escarpment wall and furniture (2026-11-15): quiet, so here.
 	_find_uw_kampus_quiet()
 	# The formal garden before Pałac Krasińskich (F's photos, 2026-11-06).
@@ -1858,6 +1868,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_adwentysci(s)
 			"faustyna_klasztor":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin
+			"szarytki_zaulek":
+				_mark_zone(s)  # the mass stays LoD2's, in its skin
 			"elzbietanki":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin; the rounded east end is ours
 				_build_elzbietanki(s)
@@ -1876,8 +1888,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"gigantami":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin; the street front is ours
 				_build_gigantami(s)
-			"krolewska":
-				pass  # a skin with no card: drawn by the builder, not on the picking grid
+			"bez_kantow":
+				_build_bez_kantow(s)  # the whole block, Królewska 2 included (it replaces LoD2's wings)
 			_:
 				if key.begins_with("church_"):
 					_build_church(s)
@@ -1981,7 +1993,7 @@ func _mark_zone(site: Dictionary) -> void:
 
 ## The far skyline's colour of each (sector_proxies.gd, through `tower_colour`).
 const PLAC_WALLS := {"metropolitan": "#8a979c", "wiktoria": "#6f6b66", "europejski": "#e7ddc5",
-		"grob": "#ddd3bf", "bez_kantow": "#d3cec2", "departament": "#dccfb2", "krolewska": "#d9d0bb"}
+		"grob": "#ddd3bf", "bez_kantow": "#dccdac", "departament": "#dccfb2"}
 
 
 # --- Filharmonia Narodowa and Teatr Polski ----------------------------------------------------
