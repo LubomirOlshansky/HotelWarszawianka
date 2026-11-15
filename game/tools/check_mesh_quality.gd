@@ -44,6 +44,9 @@ const BUDGET := {
 	"church_alberta": 950,  # 2026-11-14: the whole classicist frontage on Plac Teatralny, portico and two wings, from photos (measured 818)
 	"church_antoniego": 1250,
 	"church_augustyn": 1900,  # 2026-11-14: the whole brick basilica and its 70 m tower, checked against photos (measured 1759)
+	"church_plebania_augustyn": 500,  # 2026-11-15: St Augustine's presbytery from LoD2 (measured 311)
+	"church_plebania_katedra_polowa": 600,  # 2026-11-15: the Field Cathedral's presbytery from photos and LoD2 (measured 537)
+	"church_reformaci_klasztor": 500,  # 2026-11-15: the Reformati friary by St Anthony's from LoD2 (measured 396)
 	"church_wizytki_klasztor": 900,  # 2026-11-15: the Visitation sisters' convent from LoD2
 	"church_sala_faustyny": 250,  # 2026-11-14: the St Faustina hall in Ochota (measured 182)
 	"church_franciszkanki_piwna": 1100,  # 2026-11-14: the Franciscan Sisters' house on Piwna (measured 969)
@@ -114,7 +117,7 @@ const BUDGET := {
 	"prus": 250,
 	"wyszynski": 300,
 	"arkadia": 20300,
-	"blekitny": 910,
+	"blekitny": 1850,  # 2026-11-15 photo pass (1521 tris): mirror glass, the glass barrel vault, the helipad box, the screen and the antennas
 	"bridge": 700,
 	"grzybowska77": 2000,
 	"buw": 9000,  # 2026-11-13 pass 4 from F's photos (copper frieze and letters, ribbed vault, ivy fronts, pink lattice, drums, dome, Collegium Iuridicum IV, lower garden): 8672 tris, +0 draw calls
@@ -154,7 +157,7 @@ const BUDGET := {
 	"jp2_21": 280,
 	"kopernik": 1720,
 	"legia": 700,
-	"lim": 1700,  # the podium from F's photos (2026-11-06): 1415 measured
+	"lim": 2500,  # podium from F's photos (2026-11-06) + the tower from 25 photos (2026-11-15): 2087 measured
 	"loretka": 1120,
 	"lucka": 850,  # 2026-11-06: rebuilt from F's photos (white stepped block, INTERBRUK board, masts)
 	"prosta28": 1400,  # 2026-11-06: X-braced base, stepped tree terraces, stone stack, annex
@@ -295,6 +298,7 @@ const BUDGET := {
 	"widok": 450,
 	"pzu": 900,
 	"jm": 900,
+	"babka": 800,  # 2026-11-15 photo pass with F's photos (637 tris): stone tower, loggia columns, mast, the 34 m block
 	"wiktoria": 230,
 	"wtt": 1640,
 	"zacheta": 720,

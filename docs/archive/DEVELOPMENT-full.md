@@ -5866,7 +5866,7 @@ flag. How the work is run: `docs/WORKFLOW.md`, `CLAUDE.md`.
 
 Screenshots for review: `godot --path game -- --style=0 --size=380 --at=-110,-85 --shots=40 --out=$PWD/shots`.
 
-Command-line options (after `--`). They are parsed in `game/scripts/dev_flags.gd` (TD-4 a, 2026-11-14); main.gd reads each value as `flags.NAME`, and release builds read none (`release.gd`):
+Command-line options (after `--`). They are parsed in `game/scripts/dev_flags.gd` (TD-4 a, 2026-11-14); main.gd reads each value as `flags.NAME`, and release builds read none (`release.gd`). The test runs' own functions are in `game/scripts/dev_harness.gd` (TD-4 a2), loaded only when one of their flags is on (`flags.wants_harness()`; a new test flag whose run calls the harness goes in that list):
 
 | Option | Effect |
 | --- | --- |
@@ -5922,7 +5922,7 @@ Command-line options (after `--`). They are parsed in `game/scripts/dev_flags.gd
 | `--lineup` | loop 2c: every vehicle model standing round the car, all facing its way (beside it the taxi, Podwózka, the police and guard cars and the two vans; a row ahead the cars' four shapes; behind, the six rivals, then the bus and a tram cab car), no traffic, and each model's triangles printed (`lineup:` lines). Close-ups: `--at=-1113.2,-263.4 --heading=160 --size=14 --nohud` (Marszałkowska) |
 | `--race=N` | race rival N (1–6) at once: they are put just ahead of you |
 | `--rival=N` | put rival N just ahead of you (with `--autopilot` you tail them, so the FLASH LIGHTS prompt shows) |
-| `--bench` | drive a route through the traffic and print the average frame time over 600 frames, the scripts' cost and the 3D view's GPU time; loop 2b: also the bench's lines (see Loop 2b), a 30 s cap, the result in `user://bench_result.txt` (removed when a bench starts, so a run that ends early leaves none) |
+| `--bench` | drive a route through the traffic and print the average frame time over 600 frames, the scripts' cost and the 3D view's GPU time; loop 2b: also the bench's lines (see Loop 2b), a 30 s cap, the result in `user://bench_result.txt` (removed when a bench starts, so a run that ends early leaves none). Since TD-4 a2 (#798) its per-frame work runs in `dev_harness.gd`, inside main's measured window, through a call on an Object: about +0.25 ms of script time in the cloud's headless A/B, the size of that machine's noise; compare `--bench` numbers across that commit with care. The phone's BENCH card (`--bench-button`) loads no harness |
 | `--time=day\|dusk\|night\|dawn` | start at that time of day (default day); `dawn` (loop MW-3): Świt, Dusk's palette with the sun in the east-north-east at 05:45 on a Saturday (a fixed night is Friday's) |
 | `--vhs` | VHS overlay on (for this run; Settings saves it since loop 2e) |
 | `--radio=N` | radio station 1–4 (loop MW-5: any station in radio.json; 4 is PÓŁNOC FM), or 0 / `off` (default 1; the radio then doesn't follow the clock) |

@@ -188,6 +188,10 @@ const STYLES := [
 ]
 ## The command-line flags (TD-4 a); main reads each one as `flags.NAME`.
 var flags := DevFlags.new()
+## The test-only functions (TD-4 a2, dev_harness.gd), loaded in `_ready` only for a test flag that uses them.
+## Typed only as Object on purpose: a typed var would preload the script into every build, release too.
+var harness: Object = null
+const DEV_HARNESS := "res://scripts/dev_harness.gd"
 ## The camera's tilt in degrees (minus the angle over the ground): Settings → Obraz "Kąt kamery"
 ## (settings.gd pitch, follow_camera.gd PITCHES) or --pitch=.
 ## Also written by a command-line flag (dev_flags.gd).
@@ -250,8 +254,6 @@ var _bench_t0 := 0
 var _measure_t0 := 0
 ## The frame-rate cap in force (0: none).
 var _cap := 60
-## The result is out (on iOS the app doesn't stop at once after quit()).
-var _bench_done := false
 ## Loop 2b: the BENCH button's run (the overlay or Settings): about a minute on the bench route
 ## at the current settings, then the result card. What it changes is put back afterwards.
 const PHONE_SETTLE := 5.0
@@ -298,7 +300,6 @@ var shots: Array[int] = []
 ## The shots saved so far: the frames of `shots` that reached their PNG (a run that ends
 ## without one says so in _exit_tree).
 var _shots_saved: Array[int] = []
-var _spot_i := 0
 var frame := 0
 ## Also written by a command-line flag (dev_flags.gd).
 var start_at := Vector3.INF
@@ -378,8 +379,6 @@ var fotka_shot := -1.0
 ## Also written by a command-line flag (dev_flags.gd).
 var _egg: Dictionary = {}
 var _rig_t := 0.0
-var _rig_path := PackedVector2Array()
-var _rig_s := 0.0
 var _moment_at := -1.0
 var _vhs_until := -1.0
 var city_sounds: CitySounds
@@ -571,7 +570,6 @@ const LANE_EVERY := 0.1
 ## a release build reads no flags (release.gd), so it never starts there.
 const CONTACT_LOG := "res://scripts/contact_log.gd"
 var _contacts: RefCounted
-var _contact_names := PackedStringArray()
 ## The city objects plan, step 7 (docs/design/drivable-city-build.md item 3): the fences and hedges
 ## that break (soft_things.gd, made by `_build_soft_things`, fed by `_on_sector_ready`); --no-soft
 ## makes every one hard again (exactly the colliders before step 7, on both city paths).
@@ -626,8 +624,6 @@ var _heli_set_aim := Vector2.ZERO
 var _heli_set_yaw := 0.0
 var _perf_wait := 0.0
 var _clock_minute := -1
-var _meters := {"Master": 0.0, "Music": 0.0, "SFX": 0.0, "Ambience": 0.0}
-var _meter_top := {"Master": -200.0, "Music": -200.0, "SFX": -200.0, "Ambience": -200.0}
 ## Loop 10a: the river is off-limits. The car that still gets into the water (a glitch, a gap
 ## nobody found) splashes, settles, and after TOW_DELAY s the tow puts it back on the nearest
 ## lane on dry land, with a line from dialogue.json's water_tow; no money taken, whatever was
@@ -661,12 +657,6 @@ var ram_test := 0
 var first_life := false
 var _first_life_t := 0.0
 const FIRST_LIFE_S := 15.0
-var _ram_driver: RefCounted
-var _ram_t := 0.0
-var _ram_hit := -1.0
-var _ram_unsticks := 0
-var _ram_dir := Vector3.ZERO
-var _tram_watch_at := Vector2.INF
 ## The river's outlines (water bodies of 20,000 m² or more, as tools/bake_water.py counts it):
 ## which tow lines fit.
 var _rivers: Array[PackedVector2Array] = []
@@ -684,12 +674,6 @@ const CAM_LOG_EVERY := 15
 const CAM_TEST_SETTLE := 1.0
 ## Also written by a command-line flag (dev_flags.gd).
 var cam_test := ""
-var _cam_t := 0.0
-var _cam_phase := 0
-var _cam_phase_t := 0.0
-var _cam_aim := 0.0
-var _cam_last_yaw := INF
-var _cam_turn_max := 0.0
 
 
 func _ready() -> void:
@@ -699,6 +683,9 @@ func _ready() -> void:
 	_trap_start()  # the error trap (TD-14): before anything else can fail
 	Gamepad.install()  # the gamepad loop: the pad's stick and trigger actions
 	flags.parse_stream()  # loop 3c (the sectors block at the end of this file)
+	if flags.wants_harness():  # a test flag that runs the harness's code: never --nosave alone, never a release build
+		harness = load(DEV_HARNESS).new()
+		harness.m = self
 	_load_settings()
 	# The audio buses first: the radio plays on Music from the title screen on.
 	Sfx.setup_buses()
@@ -736,6 +723,7 @@ func _ready() -> void:
 	radio.log_on = flags.radio_log
 	wallet = Wallet.new()
 	wallet.persistent = not flags.no_save
+	wallet.save_failed.connect(_save_failed_note)  # before add_child: its _ready may write already
 	add_child(wallet)
 	if flags.reset_save:
 		wallet.reset()
@@ -1014,6 +1002,10 @@ func _remember_frame(dt: float, now := false) -> void:
 func _notification(what: int) -> void:
 	if what in [NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_WM_CLOSE_REQUEST]:
 		_remember_frame(0.0, true)
+		# Whatever waited for the next save (a smashed fence, a pushed car...): iOS may close a
+		# background app without a word. Not in the phone's bench, which holds a stand-in record.
+		if wallet != null and not _phone_bench:
+			wallet.flush()
 		if _trap != null:
 			_trap.mark()  # so far this session ended in order (error_trap.gd)
 	elif what in [NOTIFICATION_APPLICATION_RESUMED, NOTIFICATION_APPLICATION_FOCUS_IN]:
@@ -1039,6 +1031,27 @@ const SAVE_NOTE_COLOUR := Color(1.0, 0.72, 0.3)
 
 ## Safer saves (TD-8): a save that was damaged at launch says so once the city shows. An alert, so
 ## it shows whatever else is on screen; it waits for the opening flyover (the HUD is hidden then).
+## Saves when the app leaves (wallet.gd `save_failed`): what the player is told, once a session, when
+## a write fails (the file on the disk is as it was, and the next save tries again).
+const SAVE_FAILED_NOTE := ["ZAPIS NIEUDANY", "SAVE FAILED",
+		"Nie udało się zapisać postępu. Ostatni dobry zapis jest cały, a gra spróbuje znowu przy następnym zapisie.",
+		"Your progress could not be saved. The last good save is safe, and the game tries again at the next save."]
+
+
+## The first failed write of a session (wallet.gd `save_failed`, sent once): the note waits until
+## play is on (not over the loading, the title or the opening flight), as the save's own note does.
+func _save_failed_note(error: int) -> void:
+	if flags.hide_hud:
+		return
+	while not _started or title != null or _opening_on or hud == null:
+		if not is_inside_tree():
+			return
+		await get_tree().process_frame
+	var t: Array = SAVE_FAILED_NOTE
+	hud.show_note(Lang.pick(t[0], t[1]), Lang.pick(t[2], t[3]), SAVE_NOTE_COLOUR, Messages.ALERT)
+	print("save: the player was told a write failed (%s)" % error_string(error))
+
+
 func _save_note() -> void:
 	if not SAVE_NOTES.has(wallet.load_note) or flags.hide_hud:
 		return
@@ -1543,7 +1556,7 @@ func _build_world() -> void:
 	if data.has("graph"):
 		graph = LaneGraph.new(data["graph"], map)
 	if flags.contacts_to != "":
-		_start_contact_log(data)
+		if harness != null: harness._start_contact_log(data)
 	_start_soft_things()
 	if flags.collider_view:
 		world.add_child((load(COLLIDER_VIEW) as GDScript).new())
@@ -1579,7 +1592,7 @@ func _build_world() -> void:
 		for n in flags.unlock_flag.split(",", false):
 			radio.unlock_track(int(n), "flag")
 	if flags.lineup:
-		_build_lineup(world)
+		if harness != null: harness._build_lineup(world)
 	if flags.start_flying:
 		_take_off(Heli.CRUISE)
 		if flags._start_alt > 0.0:
@@ -1620,9 +1633,9 @@ func _build_world() -> void:
 			cam_focus = car.global_position
 
 	if flags._water_test_at != Vector2.INF:
-		_start_water_test()
+		if harness != null: harness._start_water_test()
 	if cam_test != "":
-		_start_cam_test()
+		if harness != null: harness._start_cam_test()
 	_build_sound(data, world)
 	await LoadYield.tick("_build_sound")
 	await _load_mark(0.67)
@@ -1666,8 +1679,9 @@ func _build_world() -> void:
 	# M1: the rescue line joins the director last (after the round-up above), so the M and K keys,
 	# the arrow and the stop assist ask every other activity first, as they did before it joined; the
 	# other activities' runs hold or restart its calls through the director (activity.gd
-	# `rescue_calls`).
-	activities.add(missions)
+	# `rescue_calls`). Its own test for the world: none (its calls have their own holds, `_held`, and
+	# ring in the air too); the kit's rule, one at a time, is what M and the HELI list ask (`free_now`).
+	activities.add(missions, func() -> bool: return true)
 	_build_packs(data, world)
 	await LoadYield.tick("_build_packs")
 	_build_fans(data, world)
@@ -1735,7 +1749,7 @@ func _build_world() -> void:
 		print("teleport: --map-jump refusal: %s" % ("none" if why.is_empty() else why[1]))
 		_teleport_from_map.call_deferred(flags.map_jump)
 	if flags.teleport_test:
-		_teleport_test.call_deferred()
+		if harness != null: harness._teleport_test.call_deferred()
 	_stats = _make_stats()
 	# Loop 3g-1: the police's script time among the bench's lines.
 	if police != null:
@@ -3192,7 +3206,7 @@ func _build_stories(world: Node3D) -> void:
 	if flags.story_flag != "":
 		get_tree().create_timer(1.5).timeout.connect(func() -> void: stories.start(flags.story_flag))
 	if flags.quest_quit_flag >= 0.0:
-		get_tree().create_timer(flags.quest_quit_flag).timeout.connect(_quest_quit_test)
+		if harness != null: get_tree().create_timer(flags.quest_quit_flag).timeout.connect(harness._quest_quit_test)
 	print("stories: %d questlines (%s)" % [stories.defs.size(), ", ".join(stories.defs.map(func(d: Dictionary) -> String:
 			return "%s %s" % [d["id"], "%.0f,%.0f" % [d["at"].x, d["at"].y] if d["at"] != Vector2.INF else "no start"]))])
 
@@ -4496,7 +4510,7 @@ func _moment_frame(dt: float) -> void:
 		if _moment_at < 0.0:
 			_start_moment()
 	if not _egg.is_empty() and _rig_t >= 0.0:
-		_egg_rig(dt)
+		if harness != null: harness._egg_rig(dt)
 	if fotka != null and fotka.is_open() and fotka_shot >= 0.0:
 		fotka_shot -= dt
 		if fotka_shot < 0.0:
@@ -4505,7 +4519,7 @@ func _moment_frame(dt: float) -> void:
 
 func _start_moment() -> void:
 	if not _egg.is_empty():
-		_egg_place()
+		if harness != null: harness._egg_place()
 	# A tape egg (E36, E37) plays its then card here too.
 	if flags.tape_flag != "" and tape != null:
 		var i := tape.index_of(flags.tape_flag)
@@ -4579,187 +4593,6 @@ func _put_car_near(at: Vector2, reach: float) -> void:
 	_cut_camera()
 	if streamer != null:
 		streamer.finish_view(cam_focus, cam)
-
-
-## --egg: the vehicle at the egg, for its kind of trigger; a motion trigger gets a path the rig
-## drives at its pace (the 2 Hz checks judge it as they would a player).
-func _egg_place() -> void:
-	var t: Dictionary = _egg["trigger"]
-	var kind := str(t.get("kind", ""))
-	var id := str(_egg["id"])
-	var e: Dictionary = egg_book.eggs[egg_book.by_id[id]] if egg_book != null and egg_book.by_id.has(id) else _egg
-	_egg = e
-	var at: Vector2 = e.get("at", Vector2.INF)
-	if e.has("waits"):
-		print("egg: --egg=%s waits for %s: its card is in the notebook, nothing finds it yet" % [id,
-				egg_book.waits.get(str(e["waits"]), e["waits"])])
-		_rig_t = -1.0
-		return
-	match kind:
-		"stop", "pass", "lap", "legacy":
-			# A legacy egg (eggs.gd) fires within 26-30 m of its spot: a lane within 18 m of it, else
-			# 12 m off it (the palm's island, the crowd).
-			var off := Vector2.ZERO
-			if kind == "legacy" and eggs != null and eggs.spots.has(id):
-				var v: Vector3 = eggs.spots[id]
-				at = Vector2(v.x, v.z)
-				off = Vector2(12.0, 0.0)
-			var reach := 18.0 if kind == "legacy" else float(t.get("within", 30.0)) * 0.8
-			if kind == "lap":
-				var r: Array = t["r"]
-				var mid := (float(r[0]) + float(r[1])) * 0.5
-				_rig_path = PackedVector2Array()
-				for k in 73:
-					var a := TAU * k / 72.0
-					_rig_path.append(at + Vector2(cos(a), sin(a)) * mid)
-				_put_car_near(_rig_path[0], 1.0)
-			else:
-				_put_car_near(at, reach)
-				if Vector2(car.global_position.x, car.global_position.z).distance_to(at) > reach:
-					_put_car_near(at + off, 0.0)
-				# A place on a bridge (E09): the lane on the deck, whatever the ground under it.
-				var deck := _egg_deck(at, reach)
-				if not deck.is_empty() and map.in_water(car.global_position.x, car.global_position.z, car.global_position.y):
-					car.global_position = deck[0]
-					car.rotation.y = deck[1]
-					car.reset_physics_interpolation()
-		"street":
-			_rig_path = _street_path(e.get("pieces", PackedVector2Array()))
-			if _rig_path.size() > 1:
-				_put_car_near(_rig_path[0], 1.0)
-		"hover", "land", "between", "circle":
-			if kind == "between" and e.has("a"):
-				at = (e["a"] as Vector2).lerp(e["b"], 0.5)
-			var h := float(t.get("min_alt", 0.0)) + 12.0
-			if kind == "circle":
-				var r2: Array = t["r"]
-				_rig_path = PackedVector2Array()
-				var mid2 := (float(r2[0]) + float(r2[1])) * 0.5
-				for k in 73:
-					var a2 := TAU * k / 72.0
-					_rig_path.append(at + Vector2(cos(a2), sin(a2)) * mid2)
-				at = _rig_path[0]
-				h = 70.0
-			_put_car_near(at, 40.0)
-			_take_off(h)
-			var g: float = map.ground_height(at.x, at.y)
-			if kind == "land":
-				g = map.top_height(at.x, at.y, Heli.RADIUS)
-				h = 6.0
-			heli.place(Vector3(at.x, g + h, at.y), heli.rotation.y, h if kind != "land" else g + h - map.ground_height(at.x, at.y))
-			_cut_camera()
-		"tape":
-			pass  # _start_moment plays the tape (_egg_moment set --tape)
-		"event":
-			# The garage loop: E01 at a club's door (crowds.gd fires it): the car at the door.
-			if t.has("door") and crowds != null and crowds.by_id.has(str(t["door"])):
-				var site: Dictionary = crowds.sites[crowds.by_id[str(t["door"])]]
-				var door: Vector2 = site["door"]
-				_put_car_near(door, Crowds.CAR_NEAR - 1.0)
-				at = door
-	# The start point (the place's hint) may have been in the river (E09): no tow once the car
-	# stands on dry land or a deck.
-	var cp := car.global_position
-	if not flying and car.in_water and not map.in_water(cp.x, cp.z, cp.y):
-		car.leave_water()
-		_tow_wait = -1.0
-	_rig_s = 0.0
-	_rig_t = 0.0
-	print("egg: --egg=%s %s at %.0f, %.0f (%s)" % [id, kind, at.x, at.y, egg_book.describe_state(_egg_state())])
-
-
-## --egg: the lane nearest `at` within `reach` m on any level (a bridge's deck over the river),
-## not in the water: [position, yaw], or [] if none.
-func _egg_deck(at: Vector2, reach: float) -> Array:
-	if graph == null:
-		return []
-	var hit := graph.snap(at, reach, Vector2.ZERO)
-	if hit.is_empty():
-		return []
-	var e: int = hit[0]
-	var lane_s: float = hit[2]
-	var h := graph.height(e, lane_s)
-	var q := graph.point_at(e, lane_s, graph.lane_offset(e, hit[1]))
-	if map.in_water(q.x, q.y, h):
-		return []
-	var d := graph.direction(e, lane_s)
-	return [Vector3(q.x, h, q.y), atan2(-d.x, -d.y)]
-
-
-## The named street's pieces in order along it (from one end to the other).
-func _street_path(pieces: PackedVector2Array) -> PackedVector2Array:
-	var out := PackedVector2Array()
-	if pieces.size() < 2:
-		return out
-	# The two pieces furthest apart are the ends; the rest by their distance along that line.
-	var a := pieces[0]
-	var b := pieces[1]
-	var far := -1.0
-	for p in pieces:
-		for q in pieces:
-			var d := p.distance_squared_to(q)
-			if d > far:
-				far = d
-				a = p
-				b = q
-	var dir := (b - a).normalized()
-	var order: Array = []
-	for p in pieces:
-		order.append([(p - a).dot(dir), p])
-	order.sort_custom(func(x: Array, y: Array) -> bool: return x[0] < y[0])
-	for o: Array in order:
-		out.append(o[1])
-	return out
-
-
-## The --egg rig, each frame: a lap or a street driven at 90 % of its speed limit, the
-## helicopter round its circle, sinking onto its roof, or holding still.
-func _egg_rig(dt: float) -> void:
-	_rig_t += dt
-	var t: Dictionary = _egg["trigger"]
-	var kind := str(t.get("kind", ""))
-	if egg_book != null and egg_book.is_found(str(_egg["id"])):
-		if _rig_t < 1e6:
-			print("egg: --egg=%s found %.1f s after the start" % [_egg["id"], _rig_t])
-			_rig_t = 1e7
-		if kind in ["lap", "street", "circle"]:
-			car.vel = Vector3.ZERO
-		return
-	if flags.egg_log and int(_rig_t / 10.0) != int((_rig_t - dt) / 10.0):
-		print("egg: --egg=%s not yet after %.0f s (%s)" % [_egg["id"], _rig_t, egg_book.describe_state(_egg_state())])
-	match kind:
-		"lap", "street", "circle":
-			if _rig_path.size() < 2:
-				return
-			var speed := float(t.get("max_kmh", 72.0)) * 0.9 / 3.6
-			_rig_s += speed * dt
-			var i := 0
-			var left := _rig_s
-			while i < _rig_path.size() - 1 and left > _rig_path[i].distance_to(_rig_path[i + 1]):
-				left -= _rig_path[i].distance_to(_rig_path[i + 1])
-				i += 1
-			if i >= _rig_path.size() - 1:
-				_rig_s = 0.0
-				i = 0
-				left = 0.0
-			var a := _rig_path[i]
-			var b := _rig_path[i + 1]
-			var dir := (b - a).normalized()
-			var p := a + dir * left
-			var v := Vector3(dir.x, 0.0, dir.y) * speed
-			if kind == "circle":
-				heli.global_position = Vector3(p.x, heli.global_position.y, p.y)
-				heli.vel = v
-			else:
-				car.global_position = Vector3(p.x, map.ground_height(p.x, p.y) + 0.05, p.y)
-				car.rotation.y = atan2(-dir.x, -dir.y)
-				car.vel = v
-		"land":
-			heli.climb = -1.0
-		"hover", "between":
-			heli.input_dir = Vector3.ZERO
-		_:
-			car.vel = Vector3.ZERO
 
 
 # --- loop 3g-1: the police ---------------------------------------------------------------------
@@ -5155,32 +4988,8 @@ func _quest_quit_name() -> Array:
 	return ["zadanie", "quest"]
 
 
-## --quest-quit: the full map open, its quit button tapped twice (if it shows).
-func _quest_quit_test() -> void:
-	print("quest quit test: running %s, %s" % [_quest_running(), _quest_quit_name()])
-	_open_full_map()
-	if not hud.full_map_open():
-		# The map can't open here (the title is up, a settings card...): quit the way its button does.
-		print("quest quit test: the map didn't open, quitting directly")
-		_quit_quest()
-		print("quest quit test: after, running %s" % _quest_running())
-		return
-	var qb := hud.full_map.find_child("quit_quest", true, false) as Button
-	if qb == null:
-		print("quest quit test: no quit button")
-		hud.full_map.close()
-		return
-	print("quest quit test: button \"%s\"" % qb.text)
-	qb.pressed.emit()
-	qb = hud.full_map.find_child("quit_quest", true, false) as Button
-	print("quest quit test: armed \"%s\"" % (qb.text if qb != null else "?"))
-	if qb != null:
-		qb.pressed.emit()
-	print("quest quit test: after, running %s, map open %s" % [_quest_running(), hud.full_map.is_open()])
-
-
 ## F (2026-11-08): the full map's quit button, tapped twice: whatever runs gives up the way its
-## own ✕ on the status card does (hud.abort_pressed: each quest checks it is the one on), the
+## own ✕ on the status card does (hud.abort_pressed: the director passes it to the one that is on), the
 ## quest pin goes too. If something still runs (a quest with no ✕ in this beat), a toast says so.
 func _quit_quest() -> void:
 	quest_pin = {}
@@ -5266,41 +5075,6 @@ func _teleport_from_map(p: Vector2) -> void:
 	car.reset_physics_interpolation()
 	_cut_camera()
 	print("teleport: the car to %.0f, %.0f (asked %.0f, %.0f), heading %.0f" % [to.x, to.z, p.x, p.y, _compass_yaw(spot[1])])
-
-
-## GAMEPLAY_PLAN 0.1: --teleport-test (see TELEPORT_TESTS).
-func _teleport_test() -> void:
-	var bad := 0
-	# PT-19: the map's hold asks main.gd first (a race, a job, a rescue, a chase say no).
-	if hud.full_map == null:
-		hud.open_full_map(Vector2.ZERO, 0.0, PackedVector2Array())  # makes the map (the title may be up)
-	_wire_full_map()
-	if hud.full_map == null or not hud.full_map.can_teleport.is_valid():
-		bad += 1
-		push_error("teleport test: the full map has no refusal (can_teleport), so a hold teleports mid-race")
-	if hud.full_map != null and hud.full_map.is_open():
-		hud.full_map.close()
-	for t: Array in TELEPORT_TESTS:
-		var asked := Vector2(t[0], t[1])
-		_teleport_from_map(asked)
-		var p := car.global_position
-		var ground: float = map.terrain_height(p.x, p.z)
-		var level: float = map.drive_height(p.x, p.z, p.y)
-		var why := ""
-		if map.in_tunnel(p.x, p.z, p.y) or p.y < ground - 1.0:
-			why = "in a tunnel (%.1f m under the ground)" % (ground - p.y)
-		elif absf(p.y - level) > 1.0:
-			why = "off the road's level (%.1f m)" % (p.y - level)
-		elif Vector2(p.x, p.z).distance_to(asked) > 110.0:
-			why = "%.0f m from where it was asked" % Vector2(p.x, p.z).distance_to(asked)
-		if why != "":
-			bad += 1
-			push_error("teleport test: %s: the car at %.0f, %.1f, %.0f is %s" % [t[2], p.x, p.y, p.z, why])
-		else:
-			print("teleport test: %s: %.0f, %.0f, %.1f m over the ground" % [t[2], p.x, p.z, p.y - ground])
-	if bad == 0:
-		print("teleport test: OK %d/%d" % [TELEPORT_TESTS.size(), TELEPORT_TESTS.size()])
-	get_tree().quit(1 if bad > 0 else 0)
 
 
 func _close_full_map() -> void:
@@ -5641,34 +5415,6 @@ func _on_soft_broke(id: String, _panel: int, kind: StringName, at: Vector3, _dir
 			_smash_said_t = now
 
 
-## --contacts=FILE (step 3): the log starts once the car and the lane graph are there; it watches
-## the car once a physics frame, before the car's step, as check_lane_drive does.
-func _start_contact_log(data: Dictionary) -> void:
-	var log_script := load(CONTACT_LOG) as GDScript
-	_contacts = log_script.new()
-	_contact_names = log_script.street_names(data["graph"]) if data.has("graph") else PackedStringArray()
-	_contacts.street_at = _contact_street
-	if not _contacts.open(flags.contacts_to):
-		_contacts = null
-		return
-	get_tree().physics_frame.connect(_observe_contacts)
-	print("contacts: the car's contacts go to %s" % flags.contacts_to)
-
-
-func _observe_contacts() -> void:
-	if _contacts != null and car != null and is_instance_valid(car) and not get_tree().paused:
-		_contacts.observe(car, get_physics_process_delta_time())
-
-
-## The contact log's street: the nearest lane's name and limit within 8 m, else none.
-func _contact_street(x: float, z: float) -> Array:
-	var hit: Array = graph.snap(Vector2(x, z), 8.0) if graph != null else []
-	if hit.is_empty():
-		return ["(off the lanes)", 0.0]
-	var e: int = hit[0]
-	return [_contact_names[e] if e < _contact_names.size() else graph.e_name[e], graph.e_speed[e]]
-
-
 ## The car onto the nearest lane facing its way (else just the nearest free spot), stopped.
 func _tow_to_lane(why: String) -> void:
 	if _contacts != null:
@@ -5863,127 +5609,6 @@ func _activity() -> String:
 			"on" if missions.has_target() else "none", "on" if rivals != null and rivals.racing() else "none", wallet.zl]
 
 
-## Loop 2c, --lineup: every vehicle model standing round the car, all facing its way: beside it
-## the taxi, Podwózka, the police car, the guards' car and the two vans; a row ahead the cars'
-## four shapes; a row behind the six rivals; further back the articulated and the solo bus (and the
-## solo one with its night sign) and a tram cab car.
-## Family shapes go through a MultiMesh with the shape in the custom alpha, as traffic draws
-## them. Prints each model's triangles.
-func _build_lineup(parent: Node3D) -> void:
-	var b := car.global_transform.basis
-	var right := Vector3(b.x.x, 0.0, b.x.z).normalized()
-	var ahead := Vector3(-b.z.x, 0.0, -b.z.z).normalized()
-	var origin := car.global_position
-	var yaw := car.rotation.y
-	var spot := func(x: float, z: float, turn: float) -> Transform3D:
-		var q := origin + right * x + ahead * z
-		q.y = map.ground_height(q.x, q.z)
-		return Transform3D(Basis(Vector3.UP, yaw + turn), q)
-	var cars := Models.traffic_mesh(0)
-	var taxis := Models.traffic_mesh(1)
-	var vans := Models.traffic_mesh(2)
-	var police := Models.police_mesh()
-	# [mesh, shape, paint, x, z, turn, name]
-	var rows := [
-		[taxis, 0, "#f2f2ee", -10.0, 0.0, 0.0, "taxi"], [taxis, 1, "#2b2c2f", -6.6, 0.0, 0.0, "podwozka"],
-		[police, 0, Models.POLICE_WHITE.to_html(false), -3.3, 0.0, 0.0, "police"],
-		[police, 1, Models.GUARD_MUSTARD.to_html(false), 3.3, 0.0, 0.0, "guard"],
-		[police, 2, Models.AMBULANCE_YELLOW.to_html(false), 0.0, -4.7, 0.0, "ambulance"],
-		[vans, 0, "#e9e9e6", 6.7, 0.0, 0.0, "panel van"], [vans, 1, "#d8d2c2", 10.3, 0.0, 0.0, "box van"],
-		[cars, 0, "#b8bcc0", -4.8, 7.5, 0.0, "hatch"], [cars, 1, "#24324a", -1.6, 7.5, 0.0, "saloon"],
-		[cars, 2, "#4c6650", 1.6, 7.5, 0.0, "estate"], [cars, 3, "#2b2c2f", 4.8, 7.5, 0.0, "suv"],
-		[Models.traffic_mesh(3), 0, "#ffffff", -4.0, -17.5, 0.0, "bus"],
-		[Models.traffic_mesh(3), 1, "#ffffff", 0.0, -14.5, 0.0, "solo bus"],
-		[Traffic.night_bus_mesh(), 1, "#ffffff", 4.0, -14.5, 0.0, "solo bus, night sign"],
-	]
-	for r: Array in rows:
-		var mm := MultiMesh.new()
-		mm.transform_format = MultiMesh.TRANSFORM_3D
-		mm.use_custom_data = true
-		mm.mesh = r[0]
-		mm.instance_count = 1
-		mm.set_instance_transform(0, spot.call(r[3], r[4], r[5]))
-		var paint := Color(r[2])
-		mm.set_instance_custom_data(0, Color(paint.r, paint.g, paint.b, float(r[1])))
-		var mmi := MultiMeshInstance3D.new()
-		mmi.multimesh = mm
-		mmi.material_override = Models.material()
-		parent.add_child(mmi)
-		print("lineup: %s %d triangles" % [r[6], _triangles(r[0])])
-	for i in Rivals.RIVALS.size():
-		var mi := MeshInstance3D.new()
-		mi.mesh = Models.rival_mesh(Rivals.RIVALS[i]["style"])
-		mi.material_override = Models.material()
-		mi.transform = spot.call(-8.0 + i * 3.2, -8.0, 0.0)
-		parent.add_child(mi)
-		print("lineup: rival %s %d triangles" % [Rivals.RIVALS[i]["name"], _triangles(mi.mesh)])
-	var tram := MeshInstance3D.new()
-	tram.mesh = Models.tram_mesh(true)
-	tram.material_override = Models.material()
-	tram.transform = spot.call(4.0, -17.0, 0.0)
-	parent.add_child(tram)
-	print("lineup: tram cab car %d triangles" % _triangles(tram.mesh))
-	var own := 0
-	for c in car.get_children():
-		for m in c.get_children():
-			if m is MeshInstance3D and (m as MeshInstance3D).mesh is ArrayMesh \
-					and (m as MeshInstance3D).material_override != Models.glow_material():
-				own += _triangles((m as MeshInstance3D).mesh)
-	print("lineup: the player's car %d triangles" % own)
-
-
-static func _triangles(mesh: Mesh) -> int:
-	var n := 0
-	for k in mesh.get_surface_count():
-		var arrays := mesh.surface_get_arrays(k)
-		var idx: PackedInt32Array = arrays[Mesh.ARRAY_INDEX] if arrays[Mesh.ARRAY_INDEX] != null else PackedInt32Array()
-		n += (idx.size() if not idx.is_empty() else (arrays[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()) / 3
-	return n
-
-
-## Loop 10a, --drive-into-water=X,Z: the car at X,Z, facing the nearest water at least 4 m past
-## its edge (within 120 m), flat out, its collision off as if it had jumped the edge (a ramp, a
-## glitch); the collision comes back on 3 m past the edge, and the splash and the tow follow.
-func _start_water_test() -> void:
-	var p := flags._water_test_at
-	var best := Vector2.ZERO
-	var best_r := 120.0
-	for k in 72:
-		var d := Vector2.from_angle(TAU * k / 72.0)
-		var r := 2.0
-		while r < best_r:
-			var q := p + d * r
-			if map.shore_distance(q.x, q.y) >= 4.0:
-				best_r = r
-				best = d
-				break
-			r += 1.0
-	if best == Vector2.ZERO:
-		print("water test: no water within 120 m of %.0f, %.0f" % [p.x, p.y])
-		return
-	car.global_position = Vector3(p.x, map.drive_height(p.x, p.y, map.terrain_height(p.x, p.y)), p.y)
-	car.rotation.y = atan2(-best.x, -best.y)
-	car.vel = Vector3.ZERO
-	car.reset_physics_interpolation()
-	car.collision_mask = 0
-	cam_focus = car.global_position
-	water_test = 1
-	print("water test: from %.0f, %.0f towards the water %.0f m away (heading %03.0f°); %s" % [p.x, p.y, best_r,
-			fposmod(rad_to_deg(atan2(best.x, -best.y)), 360.0), _activity()])
-
-
-## Loop 10a: the water test drives flat out, straight on; collision back on past the edge.
-func _water_test_frame() -> void:
-	car.target_dir = Vector3.ZERO
-	car.steer = 0.0
-	car.throttle = 1.0
-	car.braking = false
-	var p := car.global_position
-	if water_test == 1 and map.shore_distance(p.x, p.z) >= 3.0:
-		car.collision_mask = 1
-		water_test = 2
-
-
 ## First scene items 6-7, --first-life: the start's life and sound after FIRST_LIFE_S s (see `first_life`).
 func _first_life_frame(dt: float) -> void:
 	_first_life_t += dt
@@ -6020,190 +5645,6 @@ func _first_life_frame(dt: float) -> void:
 		print("first life: %d problems (%s)" % [problems.size(), line])
 
 
-## The driving-feel loop, --ram-test: after 2 s of traffic, the moving car (not police, not a bus)
-## with the longest straight run left on its lane gets the player's car put 14 m behind it, going
-## 6 m/s faster; the stick then points along that lane (Point) at 65 km/h. Logs the hit (`traffic`'s
-## daze), the rammed car's speed after the shove and how soon the player's car gets past it (its
-## centre a car's length ahead along the lane), or that it never did in 10 s.
-func _ram_test_frame(dt: float) -> void:
-	_ram_t += dt
-	if ram_test == 1:
-		car.target_dir = Vector3.ZERO
-		car.throttle = 0.0
-		if _ram_t < 2.0 or traffic == null:
-			return
-		var best: Traffic.Driver = null
-		var best_run := 60.0
-		for d in traffic.drivers():
-			if d.ghost or d.in_conn or d.parked or d.kind >= Traffic.Kind.BUS or d.v < 3.0 or d.s < 20.0:
-				continue
-			var run: float = graph.e_len[d.edge] - d.s
-			if run > best_run:
-				best_run = run
-				best = d
-		if best == null:
-			if _ram_t > 12.0:
-				print("ram test: no traffic car with 60 m of lane ahead in 12 s")
-				ram_test = 3
-			return
-		var behind := graph.point_at(best.edge, best.s - 14.0, best.off)
-		car.global_position = Vector3(behind.x, map.drive_height(behind.x, behind.y, best.pos.y), behind.y)
-		car.rotation.y = best.yaw
-		car.reset_physics_interpolation()
-		car.vel = Vector3(-sin(best.yaw), 0.0, -cos(best.yaw)) * (best.v + 6.0)
-		car.forward_speed = best.v + 6.0
-		cam_focus = car.global_position
-		_ram_driver = best
-		_ram_dir = Vector3(-sin(best.yaw), 0.0, -cos(best.yaw))
-		_ram_t = 0.0
-		_ram_unsticks = car.unsticks
-		ram_test = 2
-		print("ram test: behind a traffic car at %.0f, %.0f going %.0f km/h (%.0f m of lane ahead)" % [best.pos.x,
-				best.pos.z, best.v * 3.6, best_run])
-		return
-	var d: Traffic.Driver = _ram_driver
-	# The lane's way at the start (the rammed car's own heading turns as it is shoved aside).
-	var fwd := _ram_dir
-	car.target_dir = fwd
-	car.throttle = 0.6
-	car.steer = 0.0
-	car.braking = false
-	if _ram_hit < 0.0 and d.daze > 0.0:
-		_ram_hit = _ram_t
-		print("ram test: hit at %.0f km/h, the car shoved to %.0f km/h" % [car.vel.length() * 3.6, d.v * 3.6])
-	var ahead := (car.global_position - d.pos).dot(fwd)
-	if _ram_hit >= 0.0 and ahead > d.length:
-		print("ram test: past it %.1f s after the hit, unstuck %d×, the car at %.0f km/h" % [_ram_t - _ram_hit,
-				car.unsticks - _ram_unsticks, car.vel.length() * 3.6])
-		ram_test = 3
-	elif _ram_t > 10.0 or not d.active:
-		print("ram test: %s after 10 s (%.1f m behind, unstuck %d×)" % ["never hit it" if _ram_hit < 0.0 else "NEVER PAST it",
-				-ahead, car.unsticks - _ram_unsticks])
-		ram_test = 3
-
-
-## The traffic loop, --tram-watch=N: keeps the car (and so the view) 30 m ahead of tram N and 20 m
-## to its side, moved on as the tram draws level with that spot or gets 60 m from it.
-func _tram_watch_frame() -> void:
-	if trams == null or flags.tram_watch >= trams.trams.size():
-		return
-	var t: Trams.Tram = trams.trams[flags.tram_watch]
-	var head := Vector2(t.pos.x, t.pos.z)
-	if _tram_watch_at == Vector2.INF or head.distance_to(_tram_watch_at) < 22.0 or head.distance_to(_tram_watch_at) > 60.0:
-		_tram_watch_at = head + t.dir * 30.0 + Vector2(-t.dir.y, t.dir.x) * 20.0
-		car.collision_layer = 0
-		car.collision_mask = 0
-	car.global_position = Vector3(_tram_watch_at.x, t.pos.y + 0.5, _tram_watch_at.y)
-	car.vel = Vector3.ZERO
-	car.forward_speed = 0.0
-	car.target_dir = Vector3.ZERO
-	car.throttle = 0.0
-	cam_focus = car.global_position
-
-
-## Camera loop, --cam-test=NAME: the scheme, the camera behind the car, the car ghosting through
-## walls (the camera is what is tested; a building in the way would end the moment early).
-func _start_cam_test() -> void:
-	if not cam_test in ["classic_turn", "point_release", "brake"]:
-		print("cam test: unknown test '%s' (classic_turn, point_release, brake)" % cam_test)
-		cam_test = ""
-		return
-	controls.scheme = Controls.POINT if cam_test == "point_release" else Controls.CLASSIC
-	hud.set_scheme(controls.scheme)
-	_set_follow(true)
-	car.collision_mask = 0
-	car.vel = Vector3.ZERO
-	car.forward_speed = 0.0
-	cam_yaw = rad_to_deg(car.rotation.y)
-	cam_yaw_target = cam_yaw
-	cam_focus = car.global_position
-	print("cam test: %s, %s, from %.0f, %.0f heading %03.0f°, %.1f s parked first" % [cam_test,
-			Controls.NAMES[controls.scheme], car.global_position.x, car.global_position.z, _compass_yaw(car.rotation.y),
-			CAM_TEST_SETTLE])
-
-
-## The camera test's inputs for this frame, through the scheme's own mapping (as a finger on the
-## stick or the pedals would give them).
-func _cam_test_frame(dt: float) -> void:
-	_cam_t += dt
-	_cam_phase_t += dt
-	var stick := Vector2.ZERO
-	var gas := false
-	var brake := false
-	var kmh := absf(car.forward_speed) * 3.6
-	var heading := _compass_yaw(car.rotation.y)
-	if _cam_t < CAM_TEST_SETTLE:
-		controls.drive(car, stick, false, {}, false, false, cam_yaw, dt)
-		return
-	var phase := _cam_phase
-	match cam_test:
-		"classic_turn":
-			# Up to 50 km/h straight on, then a 90° right turn (a driver's hands: full lock until
-			# 25° short, easing back to the middle), the gas keeping it near 50.
-			gas = kmh < 50.0
-			if _cam_phase == 0 and kmh >= 50.0:
-				_cam_phase = 1
-				_cam_aim = heading + 90.0
-			if _cam_phase >= 1:
-				var err := wrapf(_cam_aim - heading, -180.0, 180.0)
-				stick = Vector2(clampf(err / 25.0, -1.0, 1.0), 0.0)
-				if _cam_phase == 1 and absf(err) < 3.0:
-					_cam_phase = 2
-		"point_release":
-			# Up to 50 km/h pointing straight up the screen, then the stick held to the screen's right
-			# (90° right of the car: the camera is behind it) for 2.5 s, then let go.
-			if _cam_phase == 0:
-				stick = Vector2(0.0, -1.0)
-				if kmh >= 50.0:
-					_cam_phase = 1
-			if _cam_phase == 1:
-				stick = Vector2(1.0, 0.0)
-				if _cam_phase_t >= 2.5:
-					_cam_phase = 2
-		"brake":
-			# Flat out to 90 km/h, then the brake to a stop.
-			if _cam_phase == 0:
-				gas = true
-				if kmh >= 90.0:
-					_cam_phase = 1
-			if _cam_phase == 1:
-				# (Held on at a standstill the brake would reverse: let go once stopped.)
-				brake = true
-				if kmh < 0.5:
-					_cam_phase = 2
-					brake = false
-	if _cam_phase != phase:
-		_cam_phase_t = 0.0
-		print("cam test: phase %d at %.2f s (frame %d), %.0f km/h, heading %03.0f°" % [_cam_phase, _cam_t - CAM_TEST_SETTLE,
-				frame, kmh, heading])
-	controls.drive(car, stick, stick != Vector2.ZERO, {}, gas, brake, cam_yaw, dt)
-
-
-## Camera loop, --cam-log: one `cam:` line every CAM_LOG_EVERY frames (the turn rate is the
-## fastest since the last line).
-func _cam_log_frame(dt: float) -> void:
-	if _cam_last_yaw != INF and dt > 0.0:
-		_cam_turn_max = maxf(_cam_turn_max, absf(wrapf(cam_yaw - _cam_last_yaw, -180.0, 180.0)) / dt)
-	_cam_last_yaw = cam_yaw
-	# This frame's number as the screenshots count it (frame is counted up after the camera).
-	var f := frame + 1
-	if f % CAM_LOG_EVERY != 0:
-		return
-	var vehicle: Node3D = heli if flying else car
-	var pos := vehicle.get_global_transform_interpolated().origin
-	var screen := get_viewport().get_visible_rect().size
-	var on := cam.unproject_position(pos) * float(view.stretch_shrink)
-	var kmh: float = (heli.speed() if flying else absf(car.forward_speed)) * 3.6
-	var held: bool = _heli_held if flying else controls.held or hud.stick_active()
-	print("cam: frame %d %s %s%s finger %s | %3.0f km/h heading %05.1f° camera %05.1f° (off %+5.1f°) turning %3.0f°/s | car on screen %4.0f,%4.0f px (%+4.0f,%+4.0f from the middle) | view %5.1f m" % [
-			f, "heli" if flying else Controls.KEYS[controls.scheme], "follow" if follow else "fixed",
-			" test %s/%d" % [cam_test, _cam_phase] if cam_test != "" else "", "down" if held else "up", kmh,
-			_compass_yaw(vehicle.rotation.y), _compass_yaw(deg_to_rad(cam_yaw)),
-			wrapf(_compass_yaw(deg_to_rad(cam_yaw)) - _compass_yaw(vehicle.rotation.y), -180.0, 180.0), _cam_turn_max,
-			on.x, on.y, on.x - screen.x * 0.5, on.y - screen.y * 0.5, cam.size])
-	_cam_turn_max = 0.0
-
-
 ## A yaw (radians, rotation.y) as a compass heading in degrees (0 north, 90 east).
 static func _compass_yaw(yaw: float) -> float:
 	return fposmod(-rad_to_deg(yaw), 360.0)
@@ -6215,44 +5656,9 @@ func _paused_frame() -> void:
 	if not get_tree().paused or not _started:
 		return
 	frame += 1
-	_inject_clicks()
+	if harness != null: harness._inject_clicks()
 	if frame in shots:
-		_capture(frame)
-
-
-## --clicks: press on frame F, release on F + 2 (through Input, as a real click would come).
-func _inject_clicks() -> void:
-	for c in flags.clicks:
-		if frame != c.z and frame != c.z + 2:
-			continue
-		var e := InputEventMouseButton.new()
-		e.button_index = MOUSE_BUTTON_LEFT
-		e.position = Vector2(c.x, c.y)
-		e.global_position = e.position
-		e.pressed = frame == c.z
-		e.button_mask = MOUSE_BUTTON_MASK_LEFT if e.pressed else 0
-		Input.parse_input_event(e)
-		print("click %s at %d,%d (frame %d)" % ["down" if e.pressed else "up", c.x, c.y, frame])
-	for d in flags.drags:
-		var at := Vector2(d[0], d[1])
-		var step := frame - d[2]
-		if step < 0 or frame > d[5]:
-			continue
-		if step == 0 or frame == d[5]:
-			var b := InputEventMouseButton.new()
-			b.button_index = MOUSE_BUTTON_LEFT
-			b.pressed = step == 0
-			b.position = at + (Vector2(d[3], d[4]) if frame == d[5] else Vector2.ZERO)
-			b.global_position = b.position
-			b.button_mask = MOUSE_BUTTON_MASK_LEFT if b.pressed else 0
-			Input.parse_input_event(b)
-		elif step <= 10:
-			var m := InputEventMouseMotion.new()
-			m.button_mask = MOUSE_BUTTON_MASK_LEFT
-			m.position = at + Vector2(d[3], d[4]) * (step / 10.0)
-			m.global_position = m.position
-			m.relative = Vector2(d[3], d[4]) / 10.0
-			Input.parse_input_event(m)
+		if harness != null: harness._capture(frame)
 
 
 func _apply_style() -> void:
@@ -6290,7 +5696,7 @@ func _process(dt: float) -> void:
 		return
 	var t_main := Time.get_ticks_usec()
 	if flags.bench or flags.probe:
-		_bench_frame()
+		if harness != null: harness._bench_frame()
 	_read_input(dt)
 	_moment_frame(dt)  # loop MW-6: --egg, --tape, --fotka and the VHS of a tape
 	_water_frame(dt)
@@ -6310,7 +5716,7 @@ func _process(dt: float) -> void:
 	_trap_frame(dt)  # the error trap (TD-14): what the game is doing, for the next error
 	_look_frame()  # the loading fix: a look at a new target once its sectors are in
 	if flags.cam_log:
-		_cam_log_frame(dt)
+		if harness != null: harness._cam_log_frame(dt)
 	var pos := _vehicle_position()
 	# GAMEPLAY_PLAN 0.3: in a tunnel, or a bridge or viaduct deck between the car and the camera
 	# (Trasa Łazienkowska over the streets under it).
@@ -6435,8 +5841,8 @@ func _process(dt: float) -> void:
 	hud.set_car_marker(marker, cam.size > 55.0)
 
 	frame += 1
-	_stop_step()
-	_inject_clicks()
+	if harness != null: harness._stop_step()
+	if harness != null: harness._inject_clicks()
 	if frame == 60 and flags.tap_at != Vector2.INF:
 		_on_tap(flags.tap_at)
 	if frame == 60 and flags.bench_button:
@@ -6444,7 +5850,7 @@ func _process(dt: float) -> void:
 	if frame in flags.honk_frames:
 		_honk()  # the night-buses loop: --honk=F
 	if frame in shots:
-		_capture(frame)
+		if harness != null: harness._capture(frame)
 	_govern()
 	_main_usec = Time.get_ticks_usec() - t_main
 	# Loop G1, --stress=cpu: after the game loop's own time is taken (the load isn't the game's).
@@ -6589,53 +5995,6 @@ func _feed_life(pos: Vector3) -> void:
 	rivals.flying = flying
 
 
-## --bench: 300 frames to settle (traffic fills in), then the average of 600 (--bench-frames=)
-## on the ghost route; --probe: the same where the car stands. Wall-clock time between frames,
-## not dt (delta smoothing snaps dt to the display's refresh interval). The first line keeps
-## the format of the bench before loop 2b, so old and new code compare like with like.
-func _bench_frame() -> void:
-	if _bench_done:
-		return
-	if _measure_t0 == 0:
-		if frame < _bench_settle and Time.get_ticks_msec() - _bench_t0 < SETTLE_SECONDS * 1000.0:
-			return
-		_measure_t0 = Time.get_ticks_msec()
-		_stats.start()
-		return
-	_stats.sample()
-	if sfx != null:
-		var peaks := Sfx.bus_peaks()
-		for bus in _meters:
-			_meters[bus] += peaks[bus]
-			_meter_top[bus] = maxf(_meter_top[bus], peaks[bus])
-	if _stats.frames.size() < flags._bench_frames and Time.get_ticks_msec() - _measure_t0 < flags._bench_seconds * 1000.0:
-		return
-	_bench_done = true
-	var r := _stats.report()
-	var n := float(_stats.frames.size())
-	var us := func(k: String) -> float: return r.get("us:" + k, 0.0) / 1000.0
-	var what := "probe" if flags.probe else "bench"
-	print("%s: %.2f ms/frame (%.0f fps, worst %.1f ms) over %d frames · scripts: traffic %.2f + trams %.2f + people %.2f = %.2f ms, side jobs + eggs %.3f ms, sound %.3f ms · 3D view: GPU %.2f ms, render CPU %.2f ms · %.0f cars on screen, %.0f driving · %s · %s · %s · quality %s" % [
-			what, r["ms"], r["fps"], r["worst"], r["frames"],
-			us.call("traffic"), us.call("trams"), us.call("people"), us.call("traffic") + us.call("trams") + us.call("people"),
-			us.call("jobs+eggs"), us.call("sound"), r["gpu"], r["render_cpu"],
-			r.get("n:cars on screen", 0.0), r.get("n:driving", 0.0), "no traffic" if traffic == null else "traffic on", TimeOfDay.NAMES[tod.mode],
-			Weather.NAMES[weather.state], QUALITY[quality]["name"] + " · traffic " + Settings.TRAFFIC_NAMES[traffic_level]])
-	_stats.header = _bench_header("probe" if flags.probe else "bench route (--bench)")
-	_stats.notes = _governor_notes()
-	var text := _stats.text(r)
-	for line in text.split("\n"):
-		print("%s detail: %s" % [what, line])
-	_print_old_late(r)
-	if flags.probe:
-		print("probe view: %s" % _view_census())
-	_write_bench_result(text)
-	print("bench audio peaks, mean / loudest dBFS (-200 = silent or no audio device): Master %.1f / %.1f · Music (radio) %.1f / %.1f · SFX %.1f / %.1f · Ambience %.1f / %.1f" % [
-			_meters["Master"] / n, _meter_top["Master"], _meters["Music"] / n, _meter_top["Music"],
-			_meters["SFX"] / n, _meter_top["SFX"], _meters["Ambience"] / n, _meter_top["Ambience"]])
-	get_tree().quit()
-
-
 ## Loop 2b: the bench's sources: what each system's script costs a frame, how many cars and
 ## people there are.
 func _make_stats() -> BenchStats:
@@ -6769,106 +6128,6 @@ func _apply_experiments() -> void:
 				elif e.begins_with("shadowsize="):
 					RenderingServer.directional_shadow_atlas_set_size(int(e.trim_prefix("shadowsize=")), true)
 		print("experiment: ", e)
-
-
-## Loop 2b, --probe: what stands in the camera's view: nodes and instances, shadow casters,
-## distinct materials and shaders (each shader brings its own pipelines).
-func _view_census() -> String:
-	var planes := cam.get_frustum()
-	var mats := {}
-	var shaders := {}
-	var nodes := 0
-	var instances := 0
-	var casters := 0
-	var caster_instances := 0
-	var kinds := {}
-	var proxy_n := 0
-	var proxy_tris := 0
-	var tower_only := 0
-	var tower_keys := {}
-	var stack: Array[Node] = [sv]
-	while not stack.is_empty():
-		var n: Node = stack.pop_back()
-		for c in n.get_children():
-			stack.append(c)
-		var g := n as GeometryInstance3D
-		if g == null or not g.is_visible_in_tree():
-			continue
-		var box: AABB = g.global_transform * g.get_aabb()
-		var inside := true
-		for pl: Plane in planes:
-			# Outside when every corner lies in front of one of the frustum's planes.
-			var out := true
-			for k in 8:
-				if not pl.is_point_over(box.get_endpoint(k)):
-					out = false
-					break
-			if out:
-				inside = false
-				break
-		if not inside:
-			continue
-		# Loop 3d-2b: a node past its visibility range isn't drawn.
-		if g.visibility_range_end > 0.0 and cam.global_position.distance_to(box.get_center()) > g.visibility_range_end:
-			continue
-		nodes += 1
-		var count := 1
-		var mesh: Mesh = (g as MeshInstance3D).mesh if g is MeshInstance3D else null
-		# Loop 3d-2b: what a far level could take: draws of sectors in view only by their towers.
-		var sector_root := g.get_parent()
-		while sector_root != null and sector_root.get_parent() != null and sector_root.get_parent().name != "Sectors":
-			sector_root = sector_root.get_parent()
-		if streamer != null and sector_root != null and sector_root.get_parent() != null and sector_root.get_parent().name == "Sectors":
-			var parts := String(sector_root.name).trim_prefix("s_").split("_")
-			var key := Vector2i(int(parts[0]), int(parts[1]))
-			if not streamer.ground_in_view(key, 0.0, 25.0, planes):
-				tower_only += 1
-				tower_keys[key] = true
-		# Loop 3d-2b: the far level (the sectors' proxies) on its own line.
-		if g.get_parent().name == "Proxies" and mesh != null and mesh.get_surface_count() > 0:
-			proxy_n += 1
-			for k in mesh.get_surface_count():
-				proxy_tris += mesh.surface_get_array_index_len(k) / 3
-		if g is MultiMeshInstance3D:
-			var mm := (g as MultiMeshInstance3D).multimesh
-			count = mm.visible_instance_count if mm.visible_instance_count >= 0 else mm.instance_count
-			mesh = mm.mesh
-		var mat_name := "-"
-		if g.material_override is ShaderMaterial:
-			mat_name = (g.material_override as ShaderMaterial).shader.resource_path.get_file().get_basename()
-		elif g.material_override != null:
-			mat_name = g.material_override.get_class()
-		var kind := "%s %s %s %d" % ["MMI" if g is MultiMeshInstance3D else g.get_class(), mat_name,
-				g.get_parent().name.left(12), mesh.get_surface_count() if mesh != null else 0]
-		if mesh is ArrayMesh and mesh.get_surface_count() > 0 and g is MultiMeshInstance3D:
-			kind += " v%d" % mesh.surface_get_array_len(0)
-		kinds[kind] = kinds.get(kind, 0) + 1
-		instances += count
-		if g.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
-			casters += 1
-			caster_instances += count
-		var list: Array[Material] = []
-		if g.material_override != null:
-			list.append(g.material_override)
-		elif g is MeshInstance3D and (g as MeshInstance3D).mesh != null:
-			var mi := g as MeshInstance3D
-			for k in mi.mesh.get_surface_count():
-				var m := mi.get_active_material(k)
-				if m != null:
-					list.append(m)
-		for m in list:
-			mats[m.get_instance_id()] = true
-			shaders[(m as ShaderMaterial).shader.resource_path.get_file() if m is ShaderMaterial else m.get_class()] = true
-	var parts := PackedStringArray()
-	for k in kinds:
-		parts.append("%s ×%d" % [k, kinds[k]])
-	var far := ""
-	if streamer != null:
-		far = "\nprobe far level: %d proxies in view, %d triangles; %d sectors in full detail; %d nodes in view from %d sectors whose ground and low buildings are out of it" % [proxy_n, proxy_tris,
-				streamer.loaded().size(), tower_only, tower_keys.size()]
-	return "%d nodes (%d instances) in view, %d shadow-casting nodes (%d instances), %d materials, %d shaders: %s\nprobe kinds: %s%s" % [
-			nodes, instances, casters, caster_instances, mats.size(), shaders.size(), ", ".join(PackedStringArray(shaders.keys())),
-			" | ".join(parts), far]
 
 
 func _vehicle_position() -> Vector3:
@@ -7158,7 +6417,7 @@ func _read_input(dt: float) -> void:
 		return
 
 	if cam_test != "":
-		_cam_test_frame(dt)
+		if harness != null: harness._cam_test_frame(dt)
 		return
 	# Loop 2a: the scheme maps the stick, keys and pedals (drive_controls.gd): Point / Fixed
 	# point in screen space (the camera waits while held), Classic steers car-relative.
@@ -7191,11 +6450,11 @@ func _read_input(dt: float) -> void:
 		car.throttle = 0.8
 		car.steer = 0.0 if frame < 200 else 0.5 * sin(frame * 0.02)
 	if water_test == 1 or water_test == 2:
-		_water_test_frame()
+		if harness != null: harness._water_test_frame()
 	if ram_test == 1 or ram_test == 2:
-		_ram_test_frame(dt)
+		if harness != null: harness._ram_test_frame(dt)
 	if flags.tram_watch >= 0:
-		_tram_watch_frame()
+		if harness != null: harness._tram_watch_frame()
 	if first_life:
 		_first_life_frame(dt)
 	if flags.old_tram_flag == "follow":
@@ -7838,92 +7097,7 @@ func _camera_far(distance: float, size: float) -> float:
 	return cam.near + depth
 
 
-var _stop_at := 0
-var _stop_busy := false
 const STOP_DRAWS := 24
-
-
-func _stop_step() -> void:
-	if flags.stops.is_empty() or frame < 120 or _stop_busy or _stop_at >= flags.stops.size():
-		return
-	_stop_busy = true
-	var s: Array = flags.stops[_stop_at]
-	car.global_position = Vector3(s[0], map.ground_height(s[0], s[1]), s[1])
-	car.vel = Vector3.ZERO
-	cam_yaw = s[2]
-	cam_yaw_target = s[2]
-	camera_pitch = s[3]
-	base_size = s[4]
-	_view_size = s[4]
-	cam.size = s[4]
-	cam_focus = car.global_position
-	# Count drawn frames, not game frames: a hidden window can draw far less often than it runs.
-	for i in STOP_DRAWS:
-		await RenderingServer.frame_post_draw
-	get_viewport().get_texture().get_image().save_png(flags.out_dir.path_join("%s.png" % s[5]))
-	_stop_at += 1
-	_stop_busy = false
-	print("stops: %d / %d %s at %.0f,%.0f" % [_stop_at, flags.stops.size(), s[5], car.global_position.x, car.global_position.z])
-	if _stop_at >= flags.stops.size():
-		_quit_quietly()
-
-
-func _capture(n: int) -> void:
-	await RenderingServer.frame_post_draw
-	if flags.ghost_debug > 0:
-		print("ghost: frame %d centre %.1f %.1f radii %.1f %.1f (screen px)" % [n, _ghost_px.x, _ghost_px.y, _ghost_px.z, _ghost_px.w])
-	var img := get_viewport().get_texture().get_image()
-	# A missing --out folder used to end the run with code 0 and no PNG: make it, and fail loudly.
-	var dir := ProjectSettings.globalize_path(flags.out_dir)
-	if not DirAccess.dir_exists_absolute(dir):
-		DirAccess.make_dir_recursive_absolute(dir)
-	var name := "shot_%04d.png" % n
-	if not flags.shot_spots.is_empty():
-		name = "%s_%04d.png" % [flags.shot_spots[_spot_i][0], n - _spot_base]
-	var err := img.save_png(flags.out_dir.path_join(name))
-	if err != OK:
-		printerr("shots: could not write %s (error %d)" % [flags.out_dir.path_join(name), err])
-		get_tree().quit(1)
-		return
-	_shots_saved.append(n)
-	if n == shots.max():
-		if _spot_i + 1 < flags.shot_spots.size():
-			_next_spot()
-			return
-		_quit_quietly()  # sweep 2: was get_tree().quit()
-
-
-## --spots: the frame the current spot's shot frames count from.
-var _spot_base := 0
-
-
-## --spots: moves the car (and the camera, with no blend) to the next spot and shifts the shot
-## frames by the frames spent so far, so each spot gets the same settle time as the first.
-func _next_spot() -> void:
-	_spot_i += 1
-	var sp: Array = flags.shot_spots[_spot_i]
-	if not flags._cams.is_empty():
-		_apply_cam(_spot_i)
-	var p: Vector2 = sp[1]
-	car.global_position = Vector3(p.x, map.ground_height(p.x, p.y), p.y)
-	if sp[2] != INF:
-		car.rotation.y = -deg_to_rad(sp[2])
-	car.vel = Vector3.ZERO
-	car.forward_speed = 0.0
-	car.reset_physics_interpolation()
-	cam_focus = car.global_position
-	# The same view as the first spot (and as a single --at run): keep the camera's yaw, since
-	# _cut_camera turns a following camera behind the car.
-	var yaw := cam_yaw
-	var yaw_target := cam_yaw_target
-	_cut_camera()
-	cam_yaw = yaw
-	cam_yaw_target = yaw_target
-	var shift: int = frame - _spot_base
-	_spot_base = frame
-	for i in shots.size():
-		shots[i] += shift
-	print("shots: spot %s at %.0f, %.0f (frame %d, shots %s)" % [sp[0], p.x, p.y, frame, str(shots)])
 
 
 # --- sweep 2: a shots run quits without leaking its sounds ---------------------------------
@@ -7931,22 +7105,6 @@ func _next_spot() -> void:
 const QUIET_QUIT_MS := 150
 
 
-## Sweep 2: windowed `--shots` runs sometimes ended with "8 ObjectDB instances were leaked at
-## exit" / "4 resources still in use": the sounds playing at the quit (an AudioStreamWAV and
-## its playback each: the radio's station, the engine's idle and mid loops, the city bed),
-## still held by the audio server because the tree went before its mixing thread let them
-## go (headless runs have no audio device, so they never showed it). The game stops updating
-## (sfx.gd would start a loop again), every player is stopped, and the server gets
-## QUIET_QUIT_MS of real time before the quit.
-func _quit_quietly() -> void:
-	process_mode = Node.PROCESS_MODE_DISABLED
-	for kind: String in ["AudioStreamPlayer", "AudioStreamPlayer2D", "AudioStreamPlayer3D"]:
-		for p: Node in get_tree().root.find_children("*", kind, true, false):
-			p.call("stop")
-	var until := Time.get_ticks_msec() + QUIET_QUIT_MS
-	while Time.get_ticks_msec() < until:
-		await get_tree().process_frame
-	get_tree().quit()
 # --- end sweep 2 ---------------------------------------------------------------------------
 
 
@@ -7971,7 +7129,6 @@ var _soak_minutes := 0.0
 var _soak_route: Array[Vector2] = []
 ## Also written by a command-line flag (dev_flags.gd).
 var _soak_leg := 0
-var _soak_t := 0.0
 const PASS_CAR_SPEED := 45.0
 const PASS_EVENT_S := 7.0
 ## Frames since the pass put the vehicle at its start (-1 once the pass runs: the numbers count
@@ -8014,10 +7171,10 @@ func _open_streamed_city(world: Node3D, flat_mat: ShaderMaterial) -> Dictionary:
 	map.flat_material.set_shader_parameter("debug_ao", flags.debug_ao)
 	map.flat_material.set_shader_parameter("ao_strength", 0.0 if flags.no_ao else 1.0)
 	if flags._pass_kind != "":
-		_soak_route = _pass_route(data)
+		if harness != null: _soak_route = harness._pass_route(data)
 		DirAccess.remove_absolute(ProjectSettings.globalize_path("user://stream_soak_result.txt"))
 	elif _soak_minutes > 0.0:
-		_soak_route = _soak_tour(data)
+		if harness != null: _soak_route = harness._soak_tour(data)
 		DirAccess.remove_absolute(ProjectSettings.globalize_path("user://stream_soak_result.txt"))
 	return data
 
@@ -8079,7 +7236,7 @@ func _on_sector_ready(root: Node3D) -> void:
 func _stream_frame(dt: float) -> void:
 	if streamer != null:
 		if _soak_minutes > 0.0:
-			_soak_frame(dt)
+			if harness != null: harness._soak_frame(dt)
 		var forced := streamer.forced
 		streamer.update(cam_focus, _vehicle_position(), cam)
 		# A sector loaded at once (a jump: a tow, a race start) stalls this frame: the governor
@@ -8093,171 +7250,9 @@ func _stream_frame(dt: float) -> void:
 	sorted.sort()
 	for k in mini(flags._spots.size(), sorted.size()):
 		if frame == sorted[k] - 90:
-			_jump_to_spot(flags._spots[k])
+			if harness != null: harness._jump_to_spot(flags._spots[k])
 		elif frame == sorted[k] - 30 and streamer != null:
 			streamer.finish_view(cam_focus, cam)
-
-
-## --spots: the car to a spot (x, z, heading in degrees), standing, the view on it.
-func _jump_to_spot(s: Vector3) -> void:
-	car.global_position = Vector3(s.x, map.ground_height(s.x, s.y), s.y)
-	car.rotation.y = -deg_to_rad(s.z)
-	car.vel = Vector3.ZERO
-	car.reset_physics_interpolation()
-	_cut_camera()
-	# The sectors round the spot in at once, colliders and all, as the whole city has them.
-	if streamer != null:
-		streamer.finish_view(cam_focus, cam)
-	print("spot: %.1f, %.1f heading %.0f at frame %d" % [s.x, s.y, s.z, frame])
-
-
-## --stream-soak: a serpentine over every sector's middle (row by row), inside the map.
-func _soak_tour(data: Dictionary) -> Array[Vector2]:
-	var b: Array = data["bounds"]
-	var inner := Rect2(b[0], b[1], b[2] - b[0], b[3] - b[1]).grow(-60.0)
-	var rows := {}
-	for key in streamer.keys:
-		var c := (Vector2(key) + Vector2(0.5, 0.5)) * SectorStreamer.SECTOR
-		c = c.clamp(inner.position, inner.end)
-		if not map.in_map(c, -60.0):
-			continue  # map north: a sector's middle in the corner left outside
-		if not rows.has(key.y):
-			rows[key.y] = []
-		rows[key.y].append(c)
-	var route: Array[Vector2] = []
-	var ys := rows.keys()
-	ys.sort()
-	for r in ys.size():
-		var row: Array = rows[ys[r]]
-		row.sort_custom(func(a: Vector2, c: Vector2) -> bool: return a.x < c.x if r % 2 == 0 else a.x > c.x)
-		for p: Vector2 in row:
-			route.append(p)
-	return route
-
-
-## Loop 3d-2b, --stream-pass: the helicopter west to east across the map's middle north of the
-## centre (the Palace, the river, Praga); the car east to west south of it.
-func _pass_route(data: Dictionary) -> Array[Vector2]:
-	var b: Array = data["bounds"]
-	var inner := Rect2(b[0], b[1], b[2] - b[0], b[3] - b[1]).grow(-120.0)
-	if flags._pass_kind == "heli":
-		return [Vector2(inner.position.x, -300.0), Vector2(inner.end.x, -300.0)]
-	if flags._pass_kind == "car":
-		return [Vector2(inner.end.x, 250.0), Vector2(inner.position.x, 250.0)]
-	# The loading fix's passes start at the spawn (route[0]); look's points are its targets, jump's
-	# where the car is put.
-	var spawn: Dictionary = data.get("spawn", {})
-	var route: Array[Vector2] = [Vector2(float(spawn.get("x", 0.0)), float(spawn.get("z", 0.0)))]
-	var points: Array = []
-	match flags._pass_kind:
-		"heli-low", "start", "switch":
-			points = [[300, 279], [300, -800], [-1400, -800], [-1400, 900]]
-			# start: the first two legs (the first minute matters); switch: the car's leg and two flown.
-			points = points.slice(0, {"heli-low": 4, "start": 2, "switch": 3}[flags._pass_kind])
-		"look":
-			points = [[-300, 280], [-900, -750], [-2400, 600], [1000, -500], [1900, -900], [-2900, 1500]]
-		"jump":
-			points = [[500, -300], [-2500, -1200], [1500, 900], [-300, 1300], [-1500, -1700], [1200, -1500]]
-		_:
-			push_warning("--stream-pass=%s: no such pass (heli, car, heli-low, start, switch, look, jump)" % flags._pass_kind)
-	for q: Array in points:
-		route.append(Vector2(float(q[0]), float(q[1])).clamp(inner.position, inner.end))
-	return route
-
-
-## --stream-soak, each frame: the car (then the helicopter) along the tour at 22 m/s, through
-## buildings like the mission autopilot; the view 1x, then wide (220 m), every 20 s.
-func _soak_frame(dt: float) -> void:
-	_soak_t += dt
-	if flags._pass_kind in ["look", "jump"]:
-		if _pass_frames < 0 and _soak_t >= PASS_EVENT_S * _soak_route.size():
-			_soak_minutes = _soak_t / 60.0  # the last look or jump had its PASS_EVENT_S: report
-	elif flags._pass_kind != "" and _soak_leg >= _soak_route.size():
-		_soak_minutes = _soak_t / 60.0  # the pass is over: report as the soak does
-	if _soak_t >= _soak_minutes * 60.0:
-		print("stream soak: %.0f s over %d sectors: %s" % [_soak_t, streamer.keys.size(), streamer.summary()])
-		if soft_things != null:
-			print("stream soak: soft things hardened %d sectors, %.2f ms on average, %.2f ms the most" % [soft_things.harden_count,
-					soft_things.harden_usec / 1000.0 / maxf(soft_things.harden_count, 1), soft_things.harden_most / 1000.0])
-		var numbers := streamer.stats()
-		numbers["governor"] = "%s, %d changes%s" % [governor.state(), governor.changes, ", held" if governor.held else ""]
-		print("stream soak stats: " + JSON.stringify(numbers))
-		# Loop G0+: the numbers also go to a file (as the bench's card does), written and closed
-		# here: on the iPhone get_tree().quit() does nothing and the app is stopped from outside,
-		# so the log's tail is never certain; tools/device_run.sh copies this file back.
-		var f := FileAccess.open("user://stream_soak_result.txt", FileAccess.WRITE)
-		if f != null:
-			f.store_string("stream soak: %.0f s over %d sectors: %s\nstream soak stats: %s\n" % [
-					_soak_t, streamer.keys.size(), streamer.summary(), JSON.stringify(numbers)])
-			f.close()
-		_soak_minutes = 0.0
-		get_tree().quit()
-		return
-	if _soak_route.is_empty():
-		return
-	if flags._pass_kind != "" and _pass_frames >= 0:
-		# The pass starts at its route's start: the vehicle put there, the view finished once the
-		# camera has caught up (its zoom too) and the streamer has nothing left to load, and the
-		# numbers counted from then on.
-		_pass_frames += 1
-		var s0: Vector2 = _soak_route[0]
-		if _pass_frames == 1:
-			# Facing along the route, so the camera has turned there before the numbers count.
-			var d: Vector2 = _soak_route[1] - s0
-			var yaw := atan2(-d.x, -d.y)
-			car.rotation.y = yaw
-			if flying:
-				var alt := flags._start_alt if flags._start_alt > 0.0 else Heli.CRUISE
-				heli.place(Vector3(s0.x, map.ground_height(s0.x, s0.y) + alt, s0.y), yaw, alt)
-			else:
-				car.collision_mask = 0
-				car.global_position = Vector3(s0.x, map.drive_height(s0.x, s0.y, 0.0), s0.y)
-				car.reset_physics_interpolation()
-			_cut_camera()
-			if flying:
-				cam_focus = heli.global_position
-			_soak_leg = 1
-		elif _pass_frames >= 180 and (streamer.idle() or _pass_frames >= 1200):
-			streamer.finish_view(cam_focus, cam)
-			streamer.reset_stats()
-			_soak_t = 0.0
-			_pass_frames = -1
-		return
-	if flags._pass_kind == "car":
-		base_size = FollowCamera.DEFAULT_SIZE * (1.0 + FollowCamera.SPEED_ZOOM)  # the view at top speed
-	elif flags._pass_kind == "heli":
-		base_size = FollowCamera.DEFAULT_SIZE
-		heli.alt_target = Heli.MAX_HEIGHT
-	elif flags._pass_kind != "":
-		base_size = FollowCamera.DEFAULT_SIZE  # the helicopter keeps its height (it climbs over a tower)
-	else:
-		base_size = FollowCamera.DEFAULT_SIZE if int(_soak_t / 20.0) % 2 == 0 else 220.0
-		if not flying and _soak_t > _soak_minutes * 40.0:
-			_take_off(Heli.CRUISE)
-	if flags._pass_kind in ["look", "jump"]:
-		_pass_event()
-		return
-	if flags._pass_kind != "" and _soak_leg >= _soak_route.size():
-		return
-	if flags._pass_kind == "switch" and not flying and _soak_leg >= 2:
-		_take_off(Heli.CRUISE)  # the loading fix: the car's first leg done, the helicopter flies on
-	var target: Vector2 = _soak_route[_soak_leg % _soak_route.size()]
-	var pos := _vehicle_position()
-	var to := Vector2(target.x - pos.x, target.y - pos.z)
-	if to.length() < 25.0:
-		_soak_leg += 1
-		if flags._pass_kind != "":
-			print("stream pass: leg %d done at frame %d (%.0f s)" % [_soak_leg - 1, frame, _soak_t])
-		return
-	if flying:
-		heli.input_dir = Vector3(to.x, 0.0, to.y).normalized()
-		heli.climb = 1.0 if heli.blocked else 0.0
-		return
-	var step := to.normalized() * (PASS_CAR_SPEED if flags._pass_kind in ["car", "switch"] else 22.0) * dt
-	car.collision_mask = 0
-	car.vel = Vector3.ZERO
-	car.global_position = Vector3(pos.x + step.x, map.drive_height(pos.x + step.x, pos.z + step.y, pos.y), pos.z + step.y)
-	car.rotation.y = atan2(-to.x, -to.y)
 
 
 ## The loading fix: a look at a new target (camera_shots.gd) is about to show the target and the
@@ -8317,43 +7312,3 @@ func _look_frame() -> void:
 			"" if streamer.expected_in(1) else " (not all in)"])
 	_look_queued = []
 
-
-## The loading fix: the frames with a proxy in the view since the last look or jump (printed at
-## each: the one before's share).
-var _pass_missing := 0
-
-
-func _pass_tally() -> String:
-	var n := streamer.missing_frames - _pass_missing
-	_pass_missing = streamer.missing_frames
-	return "%d frames with a proxy in the view since the last" % n
-
-
-## The loading fix, --stream-pass=look|jump: every PASS_EVENT_S (from the pass's start) the next
-## route point: a look at it (camera_shots.gd, as a new target gets; the helicopter hovers), or the
-## car put there (as a tow does: no view finished first). The car stays where it was put.
-func _pass_event() -> void:
-	var due := int(_soak_t / PASS_EVENT_S) + 1
-	if flying:
-		heli.input_dir = Vector3.ZERO
-		heli.climb = 0.0
-	if flags._pass_kind == "jump":
-		var at: Vector2 = _soak_route[mini(_soak_leg - 1, _soak_route.size() - 1)]
-		if _soak_leg < due and _soak_leg < _soak_route.size():
-			at = _soak_route[_soak_leg]
-			_soak_leg += 1
-			car.global_position = Vector3(at.x, map.drive_height(at.x, at.y, 0.0), at.y)
-			car.reset_physics_interpolation()
-			_cut_camera()
-			print("stream pass: jump to %.0f, %.0f at frame %d (%s)" % [at.x, at.y, frame, _pass_tally()])
-		car.collision_mask = 0
-		car.vel = Vector3.ZERO
-		car.forward_speed = 0.0
-		car.global_position = Vector3(at.x, map.drive_height(at.x, at.y, 0.0), at.y)
-		return
-	if _soak_leg < due and _soak_leg < _soak_route.size() and not moments.playing() and _look_queued.is_empty():
-		var t: Vector2 = _soak_route[_soak_leg]
-		_soak_leg += 1
-		var p := _vehicle_position()
-		_queue_look(Vector3(p.x, map.ground_height(p.x, p.z), p.z), Vector3(t.x, map.ground_height(t.x, t.y), t.y))
-		print("stream pass: look at %.0f, %.0f at frame %d (%s)" % [t.x, t.y, frame, _pass_tally()])

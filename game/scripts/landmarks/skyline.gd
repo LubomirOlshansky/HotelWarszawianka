@@ -617,11 +617,16 @@ func _build_tower(site: Dictionary) -> void:
 		for w in range(1, (site["zone"] as Array).size()):
 			_spire_wing(site["zone"][w])
 		_g = g
+	var blek_vault: Array[PackedVector2Array] = []
 	for k in parts.size():
 		var b: Dictionary = parts[k]
 		var poly := _pts(b["p"])
 		var h := float(b["h"])
 		var mh := float(b["mh"])
+		if spec["key"] == "blekitny" and str(b.get("c", "")) == "darkslategray":
+			blek_vault.append(poly)  # the glass barrel-vaulted hall, built whole (_blekitny_vault)
+			_collide(poly)  # the strips stand on the ground: they stop cars as before
+			continue
 		if spec["key"] == "zlota44" and h > 40.0 or spec["key"] == "spire" and h > 100.0:
 			continue
 		if mh > 0.5:
@@ -661,6 +666,10 @@ func _build_tower(site: Dictionary) -> void:
 			h = minf(h, float(spec["top"]))
 		var wall := glass
 		var part_skin := skin
+		if spec["key"] == "lim" and h > 100.0:
+			part_skin = M_GLASS  # LIM's tower: the shader's mullions and lit rooms (lim.md)
+		if spec["key"] == "blekitny":
+			part_skin = M_GLASS  # Błękitny's mirror glass, tower and podium alike (blekitny.md)
 		var crown := spec.has("crown_from") and mh >= float(spec["crown_from"]) - 0.5
 		if crown:
 			wall = Color(spec["crown"])
@@ -752,6 +761,12 @@ func _build_tower(site: Dictionary) -> void:
 				_crown_signs(sign_poly, g + sign_h, words[n], spec.get("sign_col", DUSK_WARM), 4.0 + 7.0 * n, 0.85)
 		else:
 			_crown_signs(sign_poly, g + sign_h, str(spec["sign"]), spec.get("sign_col", DUSK_WARM), 4.0, 0.8)
+	if spec["key"] == "blekitny":
+		_blekitny_vault(blek_vault, g)
+		_blekitny_roof(top_poly, g + top_h)
+	if spec.get("babka", false) and (site["zone"] as Array).size() > 1:
+		_babka_block(site["zone"][1], top_poly)
+		_g = g
 	_dusk_details(spec, top_poly, g, top_h)
 
 
@@ -1925,6 +1940,8 @@ func _dusk_details(spec: Dictionary, poly: PackedVector2Array, g: float, top_h: 
 		return
 	if spec.get("marriott", false):
 		_marriott(poly, g, top_h)
+	if spec.get("babka", false):
+		_babka(poly, g, top_h)
 	if spec.has("sign") and not spec.get("crown_sign", false):
 		_crown_signs(poly, g + top_h, str(spec["sign"]), spec.get("sign_col", DUSK_WARM), 3.0,
 				0.75 if spec.get("marriott", false) else 0.7)
@@ -1955,27 +1972,343 @@ func _vsign_tail(poly: PackedVector2Array, y: float) -> void:
 	_crown_signs(poly, y - 6.5, "HOTELS", VSIGN_BLUE, 0.0, 0.26)
 
 
-## The Marriott (the dusk loop): a dark band round the crown (top 7 m) and one two thirds up
-## (4 m), each 0.15 m proud of the glass, a lattice mast on the roof (shaft, platform, a red
-## lamp on top) and the brand's parody (SAMSONG) lit on the mid band, on the south and east
-## faces. The name on the crown goes up with the `sign` key (_dusk_details).
+## Centrum LIM's tower, the Presidential hotel (docs/landmarks/specs/lim.md, 2026-11-15 from 25
+## photos): the mapped 140 m square with its corners cut 3 m back. The cut corners are white
+## panelled piers with grooves, each glass face ends in a white edge strip with a thin light up
+## it at night; two dark bands on the glass faces only (the top 7 m under the hotel's name, 4 m
+## at 62% under the electronics maker's parody SAMSONG), a white parapet, a plant box and a red
+## and white lattice mast to 170 m with two platforms. The glass itself is the parts loop's
+## (M_GLASS). The name on the crown goes up with the `sign` key (_dusk_details).
+const LIM_PIER := Color("#e4e6e3")
+const LIM_DARK_BAND := Color("#14191c")
+const LIM_MAST_RED := Color("#c8322b")
+const LIM_MAST_WHITE := Color("#e8e8e4")
+const LIM_TOWER_FOOT := 15.0   ## the podium's roof, where the tower's white piers start
+
+
 func _marriott(poly: PackedVector2Array, g: float, h: float) -> void:
-	var band := Color("#14191c")
-	var mode := M_SKIN + float(S_DARK) / 16.0
-	var wide := Geometry2D.offset_polygon(poly, 0.15)
-	if wide.is_empty():
-		return
-	var out: PackedVector2Array = wide[0]
-	var mid := g + 0.62 * h
-	_prism(out, g + h - 7.0, g + h, band, Color(0, 0, 0, 0), mode)
-	_prism(out, mid - 2.0, mid + 2.0, band, Color(0, 0, 0, 0), mode)
-	var c := _centre(poly)
+	var keep := _mode
+	_mode = M_STONE
+	var y0 := g + LIM_TOWER_FOOT
 	var roof := g + h
-	var steel := Color("#b8b2a8")
-	_prism(_square(c, 1.2), roof, roof + 26.0, steel, steel.lightened(0.1), M_STONE, M_STONE)
-	_prism(_square(c, 3.0), roof + 14.0, roof + 14.6, steel.darkened(0.15), steel, M_STONE, M_STONE)
-	_prism(_square(c, 0.4), roof + 26.0, roof + 26.8, DUSK_RED, DUSK_RED, M_LAMP, M_LAMP)
+	var mid := g + 0.62 * h
+	var along := Vector2.RIGHT
+	var longest := 0.0
+	for i in poly.size():
+		var a := poly[i]
+		var b := poly[(i + 1) % poly.size()]
+		var length := kit_front(a, b)
+		if _b.dot(_out(poly, a, b)) < 0.0:
+			length = kit_front(b, a)
+		if length > longest:
+			longest = length
+			along = _a
+		if length < 6.0:
+			# A corner pier's face: white panels 4 cm proud, two grooves.
+			_wall(_w(0.0, 0.04), _w(length, 0.04), y0, roof, _b, LIM_PIER)
+			for k in range(1, 3):
+				var u := length * float(k) / 3.0
+				_wall(_w(u - 0.04, 0.08), _w(u + 0.04, 0.08), y0, roof - 0.3, _b, LIM_PIER.darkened(0.22))
+			continue
+		# A glass face: a white edge strip at each end, 0.5 m wide and 0.12 m proud.
+		for e: Vector2 in [Vector2(0.0, 0.5), Vector2(length - 0.5, length)]:
+			_wall(_w(e.x, 0.12), _w(e.y, 0.12), y0, roof, _b, LIM_PIER)
+			_wall(_w(e.x, -0.02), _w(e.x, 0.12), y0, roof, -_a, LIM_PIER.darkened(0.1))
+			_wall(_w(e.y, 0.12), _w(e.y, -0.02), y0, roof, _a, LIM_PIER.darkened(0.1))
+		# The night light up the corner (F's night photos), on the strip at the face's start.
+		_mode = M_LAMP
+		_wall(_w(0.12, 0.16), _w(0.32, 0.16), y0 + 1.0, roof - 0.5, _b, LIM_PIER)
+		_mode = M_STONE
+		# The two dark bands between the strips, 0.15 m proud, with their tops and undersides.
+		for band: Vector2 in [Vector2(roof - 7.0, roof), Vector2(mid - 2.0, mid + 2.0)]:
+			_wall(_w(0.5, 0.15), _w(length - 0.5, 0.15), band.x, band.y, _b, LIM_DARK_BAND)
+			var p0 := _w(0.5, 0.0)
+			var p1 := _w(length - 0.5, 0.0)
+			var q0 := _w(0.5, 0.15)
+			var q1 := _w(length - 0.5, 0.15)
+			_quad(Vector3(p0.x, band.y, p0.y), Vector3(q0.x, band.y, q0.y), Vector3(q1.x, band.y, q1.y),
+					Vector3(p1.x, band.y, p1.y), Vector3.UP, LIM_DARK_BAND.lightened(0.1))
+			_quad(Vector3(p1.x, band.x, p1.y), Vector3(q1.x, band.x, q1.y), Vector3(q0.x, band.x, q0.y),
+					Vector3(p0.x, band.x, p0.y), Vector3.DOWN, LIM_DARK_BAND)
+	_tower_roof(poly, roof, LIM_PIER, Vector2.ZERO)
+	var c := _centre(poly)
+	var side := Vector2(-along.y, along.x)
+	var sq := func(r: float) -> PackedVector2Array:
+		return PackedVector2Array([c + (along + side) * r, c + (-along + side) * r, c + (-along - side) * r, c + (along - side) * r])
+	_prism(sq.call(4.0), roof, roof + 3.0, Color("#4a4f53"), Color("#3e4245"), M_STONE, M_STONE)
+	_lim_mast(c, along, side, roof + 3.0, g + 170.0)
 	_crown_signs(poly, mid, "SAMSONG", DUSK_WARM, 0.0, 0.75)
+	_mode = keep
+
+
+## The mast (photos 1 and 3): a square lattice 2.4 m wide at the foot and 1.2 m at the head, in
+## eight panels painted red and white by turns, two platforms, a pole and the red lamp.
+func _lim_mast(c: Vector2, along: Vector2, side: Vector2, foot: float, head: float) -> void:
+	var corners := func(y: float) -> Array:
+		var r := lerpf(1.2, 0.6, (y - foot) / (head - foot))
+		var out := []
+		for q: Vector2 in [along + side, -along + side, -along - side, along - side]:
+			var p := c + q * r
+			out.append(Vector3(p.x, y, p.y))
+		return out
+	var panels := 8
+	for j in panels:
+		var ya := lerpf(foot, head, float(j) / panels)
+		var yb := lerpf(foot, head, float(j + 1) / panels)
+		var col := LIM_MAST_RED if j % 2 == 0 else LIM_MAST_WHITE
+		var ca: Array = corners.call(ya)
+		var cb: Array = corners.call(yb)
+		for k in 4:
+			var k2 := (k + 1) % 4
+			_beam(ca[k], cb[k], 0.25, col)
+			if j % 2 == 0:
+				_beam(ca[k], cb[k2], 0.12, col)
+			else:
+				_beam(ca[k2], cb[k], 0.12, col)
+	var steel := Color("#8a8f93")
+	for y: float in [foot + 9.0, foot + 18.0]:
+		var r := lerpf(1.2, 0.6, (y - foot) / (head - foot)) + 0.6
+		var deck := PackedVector2Array([c + (along + side) * r, c + (-along + side) * r, c + (-along - side) * r, c + (along - side) * r])
+		_prism(deck, y - 0.4, y, steel, steel.lightened(0.1), M_STONE, M_STONE)
+		_soffit(deck, y - 0.4, steel.darkened(0.25))
+	_frustum(_circle(c, 0.2, 6), head, _circle(c, 0.08, 6), head + 1.6, steel)
+	_prism(_square(c, 0.25), head + 1.6, head + 2.2, DUSK_RED, DUSK_RED, M_LAMP, M_LAMP)
+
+
+# --- Babka Tower (Rondo Babka; spec docs/landmarks/specs/babka.md) ---------------------------
+
+## Rebuilt 2026-11-15 from F's photos (top-50 T42, and his four of the same morning): the tower
+## and the office block that wraps its foot are one pale grey stone complex. The tower is the
+## kit's punched skin (small windows in the stone) with a glazed loggia column down the middle
+## of each face, a stone string course where the block's roof meets it, the parody name on the
+## top floor and a red mast. The 34 m block (the TOWERS `with` outline) is the same stone with
+## its rows of blue office windows, a cornice, and the planters of its roof garden at the
+## tower's foot.
+const BABKA_LOGGIA := Color("#a9b8c4")
+const BABKA_STONE := Color("#d9d8d3")
+const BABKA_BLOCK := Color("#c9cac7")
+const BABKA_ROOF := Color("#8f918f")
+const BABKA_GREEN := Color("#5f7f45")
+const BABKA_RED := Color("#c8322b")
+const BABKA_BLOCK_TOP := 34.0
+
+
+func _babka(poly: PackedVector2Array, g: float, h: float) -> void:
+	var keep := _mode
+	var roof := g + h
+	# The glazed loggia column: the middle 45 % of every face 12 m or longer, from over the
+	# block's roof to under the top floor, 0.1 m proud.
+	_mode = M_SKIN + float(S_EASTWALL) / 16.0
+	var n := poly.size()
+	for i in n:
+		var a := poly[i]
+		var b := poly[(i + 1) % n]
+		var length := kit_front(a, b)
+		if _b.dot(_out(poly, a, b)) < 0.0:
+			length = kit_front(b, a)
+		if length < 12.0:
+			continue
+		var w := length * 0.225
+		_wall(_w(length * 0.5 - w, 0.1), _w(length * 0.5 + w, 0.1), g + BABKA_BLOCK_TOP + 1.2, roof - 3.2, _b, BABKA_LOGGIA)
+	_mode = M_STONE
+	# The string course where the block's roof meets the tower.
+	var course := Geometry2D.offset_polygon(poly, 0.3)
+	if course.size() == 1:
+		_prism(course[0], g + BABKA_BLOCK_TOP + 0.6, g + BABKA_BLOCK_TOP + 1.2, BABKA_STONE, BABKA_STONE, M_STONE, M_STONE)
+		_soffit(course[0], g + BABKA_BLOCK_TOP + 0.6, BABKA_STONE.darkened(0.3))
+	# The top floor, 0.1 m proud in the same stone: the name goes on it.
+	var crown := Geometry2D.offset_polygon(poly, 0.1)
+	if crown.size() == 1:
+		_prism(crown[0], roof - 3.2, roof, BABKA_STONE, Color(0, 0, 0, 0), M_STONE)
+	# The red lattice mast on the roof (T42 photos 1 and 4), a lamp on top.
+	var c := _centre(poly) + (poly[0] - _centre(poly)).normalized() * 4.0
+	_prism(_square(c, 0.7), roof, roof + 12.0, BABKA_RED, BABKA_RED, M_STONE, M_STONE)
+	_prism(_square(c, 0.75), roof + 4.0, roof + 5.0, BABKA_STONE, BABKA_STONE, M_STONE, M_STONE)
+	_prism(_square(c, 0.75), roof + 8.5, roof + 9.5, BABKA_STONE, BABKA_STONE, M_STONE, M_STONE)
+	_prism(_square(c, 0.2), roof + 12.0, roof + 12.4, DUSK_RED, DUSK_RED, M_LAMP, M_LAMP)
+	_mode = keep
+
+
+## The office block round the tower's foot (34 m, one U-shaped outline): stone with punched
+## windows, a cornice that is its roof, its car collision, and the roof garden's planters on the
+## block next to the tower.
+func _babka_block(block: PackedVector2Array, tower: PackedVector2Array) -> void:
+	var g := _ground_under(block)
+	_g = g
+	var none := Color(0, 0, 0, 0)
+	_prism(block, g - 0.4, g + BABKA_BLOCK_TOP - 0.8, BABKA_BLOCK, none, M_SKIN + float(S_PUNCHED) / 16.0, M_STONE)
+	var eave := Geometry2D.offset_polygon(block, 0.2)
+	if eave.size() == 1:
+		_prism(eave[0], g + BABKA_BLOCK_TOP - 0.8, g + BABKA_BLOCK_TOP, BABKA_STONE, BABKA_ROOF, M_STONE, M_STONE)
+	else:
+		_prism(block, g + BABKA_BLOCK_TOP - 0.8, g + BABKA_BLOCK_TOP, BABKA_STONE, BABKA_ROOF, M_STONE, M_STONE)
+	_collide(block)
+	# Planters 3 m out from the tower's corners, where that lands on the block's roof.
+	var tc := _centre(tower)
+	for q in tower:
+		var at := q + (q - tc).normalized() * 3.0
+		if Geometry2D.is_point_in_polygon(at, block) and not Geometry2D.is_point_in_polygon(at, tower):
+			_prism(_square(at, 0.9), g + BABKA_BLOCK_TOP, g + BABKA_BLOCK_TOP + 1.4, BABKA_GREEN.darkened(0.2), BABKA_GREEN, M_STONE, M_STONE)
+
+
+# --- Błękitny Wieżowiec (Plac Bankowy 2; spec docs/landmarks/specs/blekitny.md) ---------------
+
+## Rebuilt 2026-11-15 from photos (refs/blekitny: three Commons photos and the ortho; F's three
+## in top-50 T21). The tower and its stepped podium stay the mapped parts, in the silver-blue
+## mirror glass (M_GLASS). The glass hall on the podium's east side is mapped as seven strips:
+## it is a barrel vault (the ortho's glass tube, the arched glass end in the photo down the side
+## street), built whole here. On the roof: the white plant box with the helipad's H inside a dark
+## steel screen, and the antennas (two red and white, one grey) at the back.
+const BLEK_VAULT_GLASS := Color("#3d5f80")
+const BLEK_RIB := Color("#c9d2d8")
+const BLEK_BOX := Color("#e6e8e6")
+const BLEK_SCREEN := Color("#2c3136")
+const BLEK_RED := Color("#c8322b")
+const BLEK_WHITE := Color("#ececea")
+
+
+## The barrel vault over the mapped strips: its axis across the strips, glass walls from the
+## ground to the springing and glass ends with the arch, a half cylinder of eight glass panels
+## on top with a light rib over every joint, to the strips' height (27.4 m).
+func _blekitny_vault(strips: Array[PackedVector2Array], g: float) -> void:
+	if strips.is_empty():
+		return
+	# The strips run across the hall: their long edge gives the cross direction.
+	var s0 := strips[0]
+	var across := Vector2.ZERO
+	var best := 0.0
+	for i in s0.size():
+		var e := s0[(i + 1) % s0.size()] - s0[i]
+		if e.length() > best:
+			best = e.length()
+			across = e.normalized()
+	var axis := Vector2(across.y, -across.x)
+	var pts: Array[Vector2] = []
+	for s in strips:
+		for q in s:
+			pts.append(q)
+	var c := Vector2.ZERO
+	for q in pts:
+		c += q
+	c /= float(pts.size())
+	var u0 := INF
+	var u1 := -INF
+	var v0 := INF
+	var v1 := -INF
+	for q in pts:
+		u0 = minf(u0, (q - c).dot(axis))
+		u1 = maxf(u1, (q - c).dot(axis))
+		v0 = minf(v0, (q - c).dot(across))
+		v1 = maxf(v1, (q - c).dot(across))
+	var length := kit_front(c + axis * u0 + across * v0, c + axis * u1 + across * v0)
+	# kit_front's _b is left of the axis; keep v running towards `across`.
+	var sv := 1.0 if _b.dot(across) > 0.0 else -1.0
+	var width := v1 - v0
+	var r := width * 0.5
+	var top := g + 27.4
+	var spring := top - r
+	var keep := _mode
+	_mode = M_GLASS
+	var p := func(u: float, v: float, y: float) -> Vector3:
+		var q := _w(u, v * sv)
+		return Vector3(q.x, y, q.y)
+	# The long walls above the podium (it closes them below 17 m).
+	_wall(_w(length, 0.0), _w(0.0, 0.0), g + 17.0, spring, -_b * sv, BLEK_VAULT_GLASS)
+	_wall(_w(0.0, width * sv), _w(length, width * sv), g + 17.0, spring, _b * sv, BLEK_VAULT_GLASS)
+	# The half cylinder.
+	var n := 8
+	for k in n:
+		var a0 := PI * float(k) / n
+		var a1 := PI * float(k + 1) / n
+		var va := r - r * cos(a0)
+		var vb := r - r * cos(a1)
+		var ya := spring + r * sin(a0)
+		var yb := spring + r * sin(a1)
+		var mid := (a0 + a1) * 0.5
+		var nn := Vector3(0, sin(mid), 0) + Vector3(-_b.x, 0, -_b.y) * sv * cos(mid)
+		_quad(p.call(0.0, va, ya), p.call(length, va, ya), p.call(length, vb, yb), p.call(0.0, vb, yb), nn.normalized(), BLEK_VAULT_GLASS)
+	# The arched ends, from the ground: a rectangle to the springing and a fan over it.
+	for e: Array in [[0.0, Vector3(-_a.x, 0, -_a.y)], [length, Vector3(_a.x, 0, _a.y)]]:
+		var u: float = e[0]
+		var en: Vector3 = e[1]
+		_quad(p.call(u, 0.0, g - 0.4), p.call(u, width, g - 0.4), p.call(u, width, spring), p.call(u, 0.0, spring), en, BLEK_VAULT_GLASS)
+		var hub: Vector3 = p.call(u, r, spring)
+		for k in n:
+			var a0 := PI * float(k) / n
+			var a1 := PI * float(k + 1) / n
+			_tri(hub, p.call(u, r - r * cos(a0), spring + r * sin(a0)), p.call(u, r - r * cos(a1), spring + r * sin(a1)), en, BLEK_VAULT_GLASS,
+					Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
+	_mode = M_STONE
+	# Light ribs over the joints, 0.12 m proud, every 3 m along the hall.
+	var ribs := maxi(2, roundi(length / 3.0))
+	for j in range(1, ribs):
+		var u := length * float(j) / ribs
+		for k in n:
+			var a0 := PI * float(k) / n
+			var a1 := PI * float(k + 1) / n
+			var ra := r + 0.12
+			var qa: Vector3 = p.call(u, r - ra * cos(a0), spring + ra * sin(a0))
+			var qb: Vector3 = p.call(u, r - ra * cos(a1), spring + ra * sin(a1))
+			_beam(qa, qb, 0.18, BLEK_RIB)
+	_mode = keep
+
+
+## The roof (the ortho): a white plant box with the helipad's H on it, a dark steel screen round
+## the roof's edge, and the antennas at the box's back (photos: two red and white lattice masts,
+## about 20 m, and a thinner grey one).
+func _blekitny_roof(poly: PackedVector2Array, roof: float) -> void:
+	if poly.size() < 3:
+		return
+	var keep := _mode
+	_mode = M_STONE
+	_prism(poly, roof, roof + 2.2, BLEK_SCREEN, Color(0, 0, 0, 0), M_SKIN + float(S_FRAME) / 16.0)
+	var inner := Geometry2D.offset_polygon(poly, -0.25)
+	if inner.size() == 1:
+		var ring: PackedVector2Array = inner[0]
+		for i in ring.size():
+			var a := ring[i]
+			var b := ring[(i + 1) % ring.size()]
+			_wall(a, b, roof, roof + 2.2, -_out(ring, a, b), BLEK_SCREEN.darkened(0.2))
+	# The long axis of the roof.
+	var along := Vector2.RIGHT
+	var longest := 0.0
+	for i in poly.size():
+		var e := poly[(i + 1) % poly.size()] - poly[i]
+		if e.length() > longest:
+			longest = e.length()
+			along = e.normalized()
+	var side := Vector2(-along.y, along.x)
+	var c := _centre(poly)
+	var box := func(cc: Vector2, hu: float, hv: float) -> PackedVector2Array:
+		return PackedVector2Array([cc + along * hu + side * hv, cc - along * hu + side * hv, cc - along * hu - side * hv, cc + along * hu - side * hv])
+	_prism(box.call(c, 9.0, 5.5), roof, roof + 4.0, BLEK_BOX, BLEK_BOX.darkened(0.05), M_STONE, M_STONE)
+	# The H, two posts and a bar 8 cm over the box's roof.
+	var y := roof + 4.08
+	for r: Rect2 in [Rect2(-2.0, -2.2, 0.7, 4.4), Rect2(1.3, -2.2, 0.7, 4.4), Rect2(-1.3, -0.35, 2.6, 0.7)]:
+		var q0 := c + along * r.position.x + side * r.position.y
+		var q1 := c + along * r.end.x + side * r.position.y
+		var q2 := c + along * r.end.x + side * r.end.y
+		var q3 := c + along * r.position.x + side * r.end.y
+		_quad(Vector3(q0.x, y, q0.y), Vector3(q1.x, y, q1.y), Vector3(q2.x, y, q2.y), Vector3(q3.x, y, q3.y), Vector3.UP, BLEK_SCREEN)
+	for m: Array in [[Vector2(7.0, 3.5), 22.0, true], [Vector2(4.5, 3.8), 17.0, true], [Vector2(-6.0, 3.6), 12.0, false]]:
+		var at: Vector2 = c + along * m[0].x + side * m[0].y
+		_blekitny_mast(at, roof + 4.0, roof + 4.0 + float(m[1]), m[2])
+	_mode = keep
+
+
+## One antenna: a slim square lattice painted red and white by turns (or a grey pole) and a red
+## lamp on top.
+func _blekitny_mast(at: Vector2, y0: float, y1: float, painted: bool) -> void:
+	if not painted:
+		_frustum(_circle(at, 0.18, 6), y0, _circle(at, 0.08, 6), y1, Color("#9aa0a4"))
+		return
+	var bands := 6
+	for j in bands:
+		var ya := lerpf(y0, y1, float(j) / bands)
+		var yb := lerpf(y0, y1, float(j + 1) / bands)
+		var col := BLEK_RED if j % 2 == 0 else BLEK_WHITE
+		_prism(_square(at, 0.35 - 0.03 * j), ya, yb, col, col, M_STONE, M_STONE)
+	_prism(_square(at, 0.18), y1, y1 + 0.5, DUSK_RED, DUSK_RED, M_LAMP, M_LAMP)
 
 
 # --- Centrum LIM's podium (F's night photos, 2026-11-06) ----------------------------------------
