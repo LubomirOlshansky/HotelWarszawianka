@@ -66,6 +66,8 @@ const OLD_TOWN_HEART := Vector2(-805.0, -1745.0)
 ## steel rail round it, not walls; the stairs up to the cinema's roof terrace at both ends of the
 ## pavilion have the terrace's white balustrade down their sides (photos 2 and 4).
 const SITE_WALLS := [
+	# The University's escarpment wall over Powiśle: the site `uw_skarpa` builds it in brick (2026-11-15).
+	[Vector2(-210.5, -650.9), ""],
 	[Vector2(-1639.7, -1217.3), ""],
 	[Vector2(-1667.0, -1217.7), "balustrade_white"],
 	[Vector2(-1657.7, -1219.1), "balustrade_white"],

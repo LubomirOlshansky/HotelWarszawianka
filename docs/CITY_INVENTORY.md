@@ -178,7 +178,7 @@ often, known to every visitor; **B** characteristic, known to locals, gives a st
 | 105 | Ministerstwo Finansów | Świętokrzyska | ministry | ◐ | photo check |
 | 106 | Saski Crescent, Saski Park, Senator | Królewska / Bielańska | offices | ◐ | 2026-11-07 from F's photos (spec `saski.md`): Saski Crescent in teal curtain-wall skin, Senator in pale cladding; left: the stone wing, dark crown and SASKI ROGAL sign, Senator's light well, Saski Park |
 | 107 | Gmach Główny Politechniki Warszawskiej (OSM: Gmach Główny PW) | Noakowskiego / Plac Politechniki | university | ✗ | **photo build**: the courtyard hall's front and the dome |
-| 108 | Uniwersytet: Auditorium Maximum, Stary BUW, Biblioteka Królewska | Krakowskie Przedmieście | university | ✗ | photo pass of the campus |
+| 108 | Uniwersytet: Auditorium Maximum, Stary BUW, Biblioteka Królewska | Krakowskie Przedmieście | university | ◐ | F's 21 photos 2026-11-15 (`refs/uw_campus/`), spec `uw_kampus.md`: the Old Library's front and flanks, Pałac Uruskich's front, Kazimierzowski's garden front, the escarpment wall, the guards' kiosk; the other campus buildings in their colours; ✗ Biblioteka Królewska, the board's 6, 9-11, 14, 19-23 |
 | 109 | Pałac Pod Blachą and Biblioteka Królewska | Plac Zamkowy / Wybrzeże Gdańskie | palace | ✗ | with the Castle (after PR #299) |
 | 110 | Zamek Ostrogskich and the Chopin Institute | Tamka | palace | ◐ | photo check |
 | 111 | Piano House, Cube House, Hortus, Moderna, Dobra and Tamka tenements | Topiel / Leszczyńska / Drewniana / Zajęcza / Dobra / Tamka | upscale flats, tenements | ◐ | photo check |

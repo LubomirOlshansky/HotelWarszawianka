@@ -58,6 +58,7 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | 14c | Centrum LIM's tower by day from Centralna and at night from Jerozolimskie | the white corner piers read as stripes at the game's zoom; the PREZYDENT and SAMSONG names lit at night; the red-and-white mast | LIM tower rebuild |
 | 14d | Błękitny Wieżowiec from Plac Bankowy and Solidarności, by day and at night | the glass reads deep blue with its panel grid (F's photo), not grey; the glass hall reads as a barrel vault; the red-and-white antennas on the roof | Błękitny rebuild |
 | 14e | Babka Tower from Jana Pawła II and the Babka roundabout, by day and at night | the tower reads pale stone with a glazed loggia column on each face, rising out of the 34 m stone office block; WEKTRA lit on the top floor at night | Babka Tower build |
+| 14h | Krakowskie Przedmieście at the University's gate, then the campus avenue to the Old Library, then round Pałac Kazimierzowski to the escarpment, by day and at night | the gate's iron and the eagle read against the campus; the Old Library's clock shows the time and lights at night; the brick escarpment wall with its graffiti from the Powiśle path; the frame on the campus (about 25 k new triangles, no new draw calls) | University campus |
 | 15 | Settings → the experimental graphics switch, on and off at the Palace | the look and the frame | #647 |
 
 ## 5. The frame (3 min)
