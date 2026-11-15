@@ -4627,10 +4627,17 @@ const CTA_MIN_W := 248.0
 const CTA_FLAG := 34.0
 
 
-## A friend's call may ring now (messages.gd `call_ok`): no quest, no chase, settled, spaced.
+## A friend's call may ring now (messages.gd `call_ok`): no quest, no chase, settled, spaced, past the
+## quiet time after a finish.
 func call_ok() -> bool:
 	messages.tick(0.0, context_now())
 	return messages.call_ok()
+
+
+## The quiet time after a finish is on (messages.gd `quiet`): the ride app's requests and Bartek's
+## calls, which do not ask `call_ok`, wait for it too (TD-3).
+func offers_quiet() -> bool:
+	return messages.quiet()
 
 
 ## The player pressed RADIO (or its next key, or R): the caption that comes next shows even in a chase.

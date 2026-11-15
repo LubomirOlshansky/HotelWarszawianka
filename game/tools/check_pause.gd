@@ -114,7 +114,7 @@ func _reasons() -> void:
 
 func _scripts() -> void:
 	# A write of the tree's pause: `get_tree().paused = ...`, `tree.paused = ...`, `set_pause(...)`.
-	# (The rescue calls' `missions.paused` is another thing, tech-debt TD-3.)
+	# (The rescue calls' holds are another thing: the director's `hold_calls`, tech-debt TD-3.)
 	var write := RegEx.create_from_string("(?i)tree\\w*(\\(\\))?\\.paused\\s*=(?!=)|\\.set_pause\\s*\\(")
 	var files: Array[String] = []
 	_gather("res://scripts", files)
