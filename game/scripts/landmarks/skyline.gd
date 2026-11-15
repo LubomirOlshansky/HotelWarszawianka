@@ -651,6 +651,9 @@ func _build_tower(site: Dictionary) -> void:
 			continue
 		if small and spec.has("hall"):
 			base = g - 0.4  # Unit's gate posts stand on the ground
+		if small and spec["key"] == "wtt" and h > 200.0:
+			_wtt_mast(poly, g + mh, g + h)  # stands in front of the crown's flat face from its mapped foot
+			continue
 		if small:
 			# A mast, a spire's piece or a ring: plain painted steel in its mapped colour. It starts on
 			# the roof of the part it stands on (Skyliner's mast on its crown block: no faces inside).
@@ -749,6 +752,8 @@ func _build_tower(site: Dictionary) -> void:
 		_podium_skylight(spec["skylight"][0], float(spec["skylight"][1]))
 	for t: Array in site.get("terraces", []):
 		_roof_terrace(t[0], float(t[1]), t[2])
+	if spec["key"] == "wtt":
+		_wtt_crown_slits(parts, g)
 	if sign_poly.size() >= 3:
 		# The sign on the crown block, not on the shaft (_dusk_details skips it); a name of two
 		# words on a narrow block goes in two rows, so the letters stay readable from the street.
@@ -2147,6 +2152,75 @@ func _babka_block(block: PackedVector2Array, tower: PackedVector2Array) -> void:
 		var at := q + (q - tc).normalized() * 3.0
 		if Geometry2D.is_point_in_polygon(at, block) and not Geometry2D.is_point_in_polygon(at, tower):
 			_prism(_square(at, 0.9), g + BABKA_BLOCK_TOP, g + BABKA_BLOCK_TOP + 1.4, BABKA_GREEN.darkened(0.2), BABKA_GREEN, M_STONE, M_STONE)
+
+
+# --- Warsaw Trade Tower (Chłodna 51; spec docs/landmarks/specs/wtt.md) ------------------------
+
+## Reworked 2026-11-15 from photos (refs/wtt: three Commons photos and the ortho; F's T05 set).
+## The mapped parts carry the massing and their own claddings (TOWERS `skins`): the dark glass
+## drum in floor bands, the beige stone slab, the silver crown with its flat west screen. Here: the
+## crown's horizontal slits round its curved side, and the mast standing in front of the screen
+## from its mapped foot (137 m) to 208 m, grey with red and white bands at the top.
+const WTT_SLIT := Color("#3a4248")
+const WTT_MAST := Color("#8e959b")
+const WTT_RED := Color("#c8322b")
+const WTT_WHITE := Color("#e8e8e4")
+
+
+## Four dark slits, 0.6 m tall and 14 cm proud of the crown's cladding, round the crown's curved
+## side (the flat west screen, where the name and the mast are, stays plain).
+func _wtt_crown_slits(parts: Array[Dictionary], g: float) -> void:
+	var crown := PackedVector2Array()
+	var best := 0.0
+	for b in parts:
+		if str(b.get("c", "")).to_lower() != "#839099" or float(b["mh"]) < 160.0:
+			continue
+		var q := _pts(b["p"])
+		var size := _box_of([q]).size.length()
+		if size > best:
+			best = size
+			crown = q
+	if crown.size() < 3:
+		return
+	var ring := Geometry2D.offset_polygon(crown, 0.2)  # the crown block is clad 6 cm proud (crown_from)
+	if ring.size() != 1:
+		return
+	var p: PackedVector2Array = ring[0]
+	# The flat face: the crown's longest straight edge.
+	var flat := Vector2.ZERO
+	var longest := 0.0
+	for i in p.size():
+		var e := p[(i + 1) % p.size()] - p[i]
+		if e.length() > longest:
+			longest = e.length()
+			flat = e.normalized()
+	var keep := _mode
+	_mode = M_STONE
+	for y in [170.5, 173.5, 176.5, 179.5]:
+		for i in p.size():
+			var a := p[i]
+			var b := p[(i + 1) % p.size()]
+			if a.distance_to(b) < 0.05 or absf((b - a).normalized().dot(flat)) > 0.97:
+				continue
+			_wall(a, b, g + y, g + y + 0.6, _out(p, a, b), WTT_SLIT)
+	_mode = keep
+
+
+## The mast: a grey steel shaft from its mapped foot, the top 14 m in red and white bands, the
+## red lamp on top.
+func _wtt_mast(poly: PackedVector2Array, y0: float, y1: float) -> void:
+	var c := _centre(poly)
+	var band := y1 - 14.0
+	_prism(_square(c, 0.6), y0, band, WTT_MAST, WTT_MAST, M_STONE, M_STONE)
+	var y := band
+	var red := true
+	while y < y1 - 0.1:
+		var top := minf(y + 3.5, y1)
+		var col := WTT_RED if red else WTT_WHITE
+		_prism(_square(c, 0.45), y, top, col, col, M_STONE, M_STONE)
+		y = top
+		red = not red
+	_prism(_square(c, 0.2), y1, y1 + 0.4, DUSK_RED, DUSK_RED, M_LAMP, M_LAMP)
 
 
 # --- Błękitny Wieżowiec (Plac Bankowy 2; spec docs/landmarks/specs/blekitny.md) ---------------

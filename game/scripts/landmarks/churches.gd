@@ -4507,6 +4507,68 @@ func _build_sluzki_dom_generalny(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The house of the Sisters of Our Lady of Mercy on Żytnia (Zgromadzenie Sióstr Matki Bożej
+## Miłosierdzia, Żytnia 3/9, Wola), the range on the street west of St Faustina's shrine: four
+## storeys of red brick over a pale plinth, each column of windows in a white strip, the white
+## stone portal with its little gable and a low gabled roof. A model that replaces the plain
+## OpenStreetMap block (building 2785, an unnamed `religious` building; no landmark until
+## 2026-11-15). From six Mapillary photos on Żytnia (2020-2021, refs/churches/wola_2785, reference
+## only, never shipped), the OSM outline and GUGiK's LoD2 (over the ground: the eaves about 15.5,
+## the ridge about 18). The roof colour and the yard walls are defaults (docs/QUESTIONS.md).
+## Spec docs/landmarks/specs/siostry_milosierdzia_zytnia.md.
+## Frame: origin at the front's west corner, u to the east along Żytnia, +v to the south, into the
+## block; the front faces Żytnia (-v).
+const MBM_O := Vector2(-2813.5, -695.3)
+const MBM_A := Vector2(0.965, -0.262)
+const MBM_BRICK := Color("#a24f3a")     ## the red brick (photos)
+const MBM_WHITE := Color("#ebe8e1")     ## the window strips and the portal (photos)
+const MBM_PLINTH := Color("#c9c8c2")    ## the pale plinth (photos)
+const MBM_ROOF := Color("#5f6163")      ## sheet roof (a default)
+const MBM_DOOR := Color("#5b3d2a")      ## the wooden door
+
+
+func _build_siostry_milosierdzia_zytnia(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(MBM_O, MBM_O + MBM_A)
+	_g = _ground_under(outline)
+	var g := _g
+	_mode = M_STONE
+	var eave := g + 15.5
+	_prism(outline, g - 1.0, eave, MBM_BRICK, MBM_ROOF.darkened(0.2), M_STONE, M_STONE)
+	kit_cornice_ring(outline, eave - 0.4, MBM_BRICK.darkened(0.2), 0.4, 0.2)
+	kit_ledge_ring(outline, g - 1.0, 2.5, MBM_PLINTH, 0.06)
+	_gable(41.6, 0.0, 8.1, 8.2, eave, 2.5, MBM_BRICK, MBM_ROOF, true)
+	# --- every wall: a white strip behind each column of windows, barred windows in the plinth
+	var n := outline.size()
+	for k in n:
+		kit_front(MBM_O, MBM_O + MBM_A)
+		var le := kit_front(outline[(k + 1) % n], outline[k])
+		if le < 3.0:
+			continue
+		var m := maxi(1, floori(le / 3.3))
+		var cs: Array = []
+		for i in m:
+			cs.append((float(i) + 0.5) * le / float(m))
+		kit_face(0.06)
+		for c: float in cs:
+			_kbox(c - 0.8, c + 0.8, -0.02, 0.04, g + 1.6, eave - 1.0, MBM_WHITE)
+		kit_face(0.1)
+		kit_panes(cs, [g + 2.0, g + 5.4, g + 8.8, g + 12.1], 1.1, 2.0, PAL_GLASS_DARK, 0.04)
+		kit_face(0.06)
+		kit_panes(cs, [g + 0.2], 0.9, 0.7, PAL_GLASS_DARK, 0.04)
+	# --- the white stone portal in the middle of the front, under its little gable
+	kit_front(MBM_O, MBM_O + MBM_A)
+	kit_face(-0.51)
+	_kbox(18.3, 23.4, -0.25, 0.0, g - 0.5, g + 4.6, MBM_WHITE)
+	kit_face(-0.76)
+	kit_door(20.85, g, 3.0, 0.9, MBM_WHITE.darkened(0.08), MBM_DOOR, true)
+	# the gable over it: a frame along the portal's axis (u' out of the wall, v' along u)
+	kit_front(_w(20.85, 0.0), _w(20.85, -1.0))
+	_gable(0.8, 0.0, 0.0, 2.6, g + 4.6, 1.4, MBM_WHITE, MBM_WHITE.darkened(0.1), false)
+	kit_front(MBM_O, MBM_O + MBM_A)
+	_collide(outline)
+
+
 const SZT_WALL := Color("#e9e7e0")           ## white plaster (photos 01, 03, 11)
 const SZT_ROOF := Color("#7c9171")           ## dull green copper (photos 01, 02)
 const SZT_TURRET := Vector2(57.0, -162.0)    ## where the south range meets the west one (a default: photo 02)
@@ -6922,6 +6984,8 @@ const CHURCHES := [
 			"fill": 0.8, "style": "baroque", "wall": "#e6d4a6", "roof": "#97594a", "towers": 0, "cap": "none"},
 	{"key": "church_rodziny_maryi", "at": Vector2(-2617.0, -739.0), "o": Vector2(-2625.3, -761.4), "out": Vector2(-0.356, -0.934), "L": 13.5, "W": 49.4,
 			"fill": 0.9, "style": "neoclassical", "wall": "#e6c2a2", "roof": "#4d5257", "towers": 0, "cap": "none"},
+	{"key": "church_siostry_milosierdzia_zytnia", "at": Vector2(-2790.0, -692.0), "o": Vector2(-2813.5, -695.3), "out": Vector2(-0.262, -0.965), "L": 41.6, "W": 16.2,
+			"fill": 0.9, "style": "modern", "wall": "#a24f3a", "roof": "#5f6163", "towers": 0, "cap": "none"},
 	{"key": "church_sluzki_dom_generalny", "at": Vector2(-203.0, -515.0), "o": Vector2(-206.4, -500.9), "out": Vector2(-0.917, 0.400), "L": 28.3, "W": 29.6,
 			"fill": 0.9, "style": "neoclassical", "wall": "#e3c48e", "roof": "#6b6c6c", "towers": 0, "cap": "none"},
 	{"key": "church_uczennice_boskiego_mistrza", "at": Vector2(-2890.0, -650.0), "o": Vector2(-2919.2, -669.7), "out": Vector2(-0.231, -0.973), "L": 37.5, "W": 41.5,
@@ -7031,6 +7095,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_czestochowska":
 		_build_czestochowska(site)  # the modernist A-frame church and its pylons, from photos
+		return
+	if site["key"] == "church_siostry_milosierdzia_zytnia":
+		_build_siostry_milosierdzia_zytnia(site)  # the Sisters of Our Lady of Mercy's house on Żytnia, from photos and LoD2
 		return
 	if site["key"] == "church_sluzki_dom_generalny":
 		_build_sluzki_dom_generalny(site)  # the Servants of Jesus' generalate, from photos and LoD2

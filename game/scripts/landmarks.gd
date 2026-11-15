@@ -41,11 +41,12 @@ const TOWERS := [
 	# Cosmopolitan (Twarda 2/4, F's photos 2026-11-08, docs/landmarks/photo-reports/cosmopolitan.md): a dark
 	# glass shaft with a red-soffit cantilever over a stepped glass podium (_build_cosmopolitan).
 	{"key": "cosmopolitan", "osm": "Cosmopolitan", "style": S_GRID, "glass": "#33485d", "roof": "#8d9399"},
-	# WTT from the top-50 photo set (T05, 2026-11-08): the parts by their mapped colours, the dark
-	# blue ribbon-glass drum, the beige stone slab with punched windows, the silver crown and its name.
-	{"key": "wtt", "osm": "Warsaw Trade Tower", "style": S_RIBBON, "glass": "#2f4558", "roof": "#8d979c",
-			"crown_from": 162.0, "crown": "#bfc6ca", "crown_sign": true, "sign": "UNIKWA", "sign_col": Color(0.95, 0.97, 1.0),
-			"skins": {"#f4d9c6": [S_PUNCHED, "#e6d8c6"], "#839099": [S_TILE, "#bfc6ca"], "#2e404e": [S_RIBBON, "#2f4558"],
+	# WTT from the top-50 photo set (T05, 2026-11-08; reworked 2026-11-15, spec wtt.md): the parts by
+	# their mapped colours, the dark grey glass drum in floor bands, the warm beige stone slab with
+	# punched windows, the plain silver crown (its slits and the mast in skyline.gd) and its name.
+	{"key": "wtt", "osm": "Warsaw Trade Tower", "style": S_RIBBON, "glass": "#36434e", "roof": "#8d979c",
+			"crown_from": 162.0, "crown": "#c5c6c5", "crown_sign": true, "sign": "UNIKWA", "sign_col": Color(0.95, 0.97, 1.0),
+			"skins": {"#f4d9c6": [S_PUNCHED, "#d8c1a5"], "#839099": [S_TILE, "#c5c6c5"], "#2e404e": [S_RIBBON, "#36434e"],
 					"#a6abaa": [S_BANDS, "#9aa3a8"]}},
 	# The Rondo Daszyńskiego towers rebuilt from the Mac's photo reports (F, 2026-11-03;
 	# docs/landmarks/photo-reports/skyliner.md, warsaw_unit.md, mennica.md, gpy.md, warsaw_hub.md).
@@ -840,6 +841,7 @@ const INFO := {
 	"church_trojca_praga": ["Kościół Świętej Trójcy na Solcu", "Klasycystyczny kościół z wieżyczką.", "A classicist church with a bell turret."],
 	"church_czestochowska": ["Kościół Matki Bożej Częstochowskiej", "Modernistyczny kościół z dachem do ziemi.", "A modernist church with a roof down to the ground."],
 	"church_zwycieska": ["Kościół Matki Boskiej Zwycięskiej", "Kościół parafialny z dwiema wieżami.", "A parish church with two towers."],
+	"church_siostry_milosierdzia_zytnia": ["Siostry Matki Bożej Miłosierdzia", "Dom sióstr przy sanktuarium św. Faustyny na Żytniej.", "The Sisters of Our Lady of Mercy's house by St Faustina's shrine."],
 	"church_uczennice_boskiego_mistrza": ["Siostry Uczennice Boskiego Mistrza", "Ceglany dom zakonny sióstr uczennic przy Żytniej.", "The Sister Disciples of the Divine Master's brick convent."],
 	"church_sluzki_dom_generalny": ["Dom Generalny Sióstr Sług Jezusa", "Dom generalny Zgromadzenia Sióstr Sług Jezusa na Sewerynowie.", "The generalate of the Servants of Jesus sisters."],
 	"church_plebania_augustyn": ["Plebania św. Augustyna", "Plebania parafii św. Augustyna na Nowolipkach.", "St Augustine's presbytery on Nowolipki."],
