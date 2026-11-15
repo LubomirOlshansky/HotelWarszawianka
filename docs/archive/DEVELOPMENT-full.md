@@ -5475,7 +5475,12 @@ streets whose 5.5 m lane is the whole road, the box's corner 5-14 cm over its ed
 neighbouring bays 25 / 23 / 35 → 0 / 0 / 0. `check_map_data.py` EXPECTED counts `parked` now (19,284 values,
 and over the sectors). ao.bin re-baked (bake_ao.py reproduces main's file byte for byte from main's map;
 after the pass 4,405 pixels of the small things' channel changed, none of the buildings'), so no shade
-is left where a car went. `--dry --tsv=FILE` writes the per-street table.
+is left where a car went. `--dry --tsv=FILE` writes the per-street table. Vertices (`count_vertices.gd`)
+33,243,609 → 33,237,417 (72 cars × the parked mesh's 86); the bench at the default view (cloud,
+software renderer, so only the counts mean anything) 145 → 144 draw calls, 269 objects. Sloppy set A
+(hard, default settings, prebuilt) is the same before and after, byte for byte: 255 contacts, 22 dead
+stops, 2 on parked cars (Niemcewicza at a free width of 3.86 m, Żurawia at 5.5 m), none of them by a
+car the rules touch.
 
 **Barrier types (city objects plan step 5, 2026-11-14)**: `tools/object_types.py` is the last pass of
 bake_osm (also a CLI on a baked map: `apply`, `fetch` for an Overpass context file in
