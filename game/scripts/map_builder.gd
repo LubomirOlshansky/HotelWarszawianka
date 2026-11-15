@@ -28,7 +28,7 @@ const Solidity := preload("res://scripts/solidity.gd")
 ## Step 2: the wall builder (walls, fences, hedges, rails, guard rails; their looks are the
 ## palette's barrier types). One per map (`barriers`).
 const CityBarriers := preload("res://scripts/city_barriers.gd")
-## Pasaż Wiecha's white Y masts stand where the map has its lamps (first_scene.gd PASAZ).
+## Pasaż Wiecha's white Y masts stand in place of the map's lamps there (first_scene.gd PASAZ).
 const FirstScene := preload("res://scripts/first_scene.gd")
 ## Tile size for instanced things (trees, lamps, parked cars). Loop 2b: 512 m (was 256): one
 ## MultiMesh is one draw call, and the iPhone pays per draw call, not per instance.

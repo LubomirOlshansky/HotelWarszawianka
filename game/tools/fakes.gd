@@ -34,6 +34,7 @@ extends RefCounted
 ##
 ## Group 3 (2026-11-14): the map as the builders see it while they build (`BuilderMap`), the radio, the sound
 ## effects, the city's sounds, the walkers and the tape, each with what the checks that had their own read.
+## The phone's map (2026-11-15, `PhoneMap`, `phone_map`): the map with only the prebuilt city's index in it.
 
 const Chatter := preload("res://scripts/chatter.gd")
 
@@ -689,6 +690,54 @@ class BuilderMap extends Node3D:
 
 	func _roof_triangle(_a: Vector3, _b: Vector3, _c: Vector3, _is_roof: bool, _col := Color(0, 0, 0, 0)) -> void:
 		roof_tris += 1
+
+
+## The phone's map (2026-11-15, after the Warsaw Spire's lights and Tamka's bollards and street plates were found
+## missing on the prebuilt city): the BuilderMap as a place script finds it once the streamed city is open on the
+## prebuilt path, the iPhone's. It holds only the game's index: the bake's whole dictionary less the keys
+## tools/bake_sectors.py leaves to the sectors (SECTOR_ONLY: a sector's file is gone once it is built, and the
+## prebuilt city has no files at all) and less the ones tools/bake_city.gd drops from the prebuilt index
+## (BUILDER_ONLY), packed as IndexPack packs it. It is `index_data` and `data` both, as SectorStreamer.open hands
+## it over. A place that reads lamps, benches, steps, kerbs or islands, from `data` or from ctx's "data", finds
+## none here: check_place_scripts.gd builds every place on this map and on the whole map and fails when a
+## place comes out short on this one. Made by `phone_map(whole)`; `problem` says why it could not be made.
+class PhoneMap extends BuilderMap:
+	var index_data: Dictionary = {}
+	var problem := ""
+
+
+## The phone's map for the bake's whole dictionary (map/centrum.json). Its lists are deep copies: packing
+## them must not touch `whole`, which the check builds the other map from.
+static func phone_map(whole: Dictionary) -> PhoneMap:
+	var m := PhoneMap.new()
+	var drop := sector_only_keys()
+	if drop.is_empty():
+		m.problem = "no SECTOR_ONLY set found in tools/bake_sectors.py (the phone's index cannot be made)"
+	for k: String in (load("res://tools/bake_city.gd") as GDScript).get_script_constant_map()["BUILDER_ONLY"]:
+		drop.append(k)
+	var index := {}
+	for k: String in whole:
+		if not drop.has(k):
+			index[k] = whole[k].duplicate(true) if whole[k] is Array or whole[k] is Dictionary else whole[k]
+	(load("res://scripts/index_pack.gd") as GDScript).call("pack", index)
+	m.index_data = index
+	m.data = index
+	return m
+
+
+## tools/bake_sectors.py's SECTOR_ONLY, read from the script itself (one list: the bake's), or [] when the
+## script or the set is not found.
+static func sector_only_keys() -> Array[String]:
+	var out: Array[String] = []
+	var path := ProjectSettings.globalize_path("res://").path_join("../tools/bake_sectors.py").simplify_path()
+	var src := FileAccess.get_file_as_string(path)
+	var re := RegEx.create_from_string("(?m)^SECTOR_ONLY\\s*=\\s*\\{([^}]*)\\}")
+	var hit := re.search(src)
+	if hit == null:
+		return out
+	for q in RegEx.create_from_string("\"([a-z0-9_]+)\"").search_all(hit.get_string(1)):
+		out.append(q.get_string(1))
+	return out
 
 
 ## radio.gd for a check with no radio (TD-11 group 3): the station it is on, what it was tuned to and what was

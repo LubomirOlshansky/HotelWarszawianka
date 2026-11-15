@@ -12,6 +12,10 @@ extends SceneTree
 ##   - `--solo=KEY` builds a place that does not name the site;
 ##   - a mesh defect of the mesh check's kinds (ZFIGHT, DEGENERATE, BADNORMAL, FLOAT) is found
 ##     beyond the KNOWN ratchet below (per place and kind; below it the check says so: lower it).
+##   - a place builds other triangles or parts on the phone's map (Fakes.PhoneMap: only the prebuilt
+##     city's index, as the iPhone has it) than on the whole map: it reads something the phone's city
+##     does not keep, as the Spire's lights and Tamka's bollards did until 2026-11-15 (PHONE_SHORT
+##     names a known gap with its reason);
 ## Prints a line per place, then `check_place_scripts: OK (...)` (exit 0) or the problems (exit 1).
 ##   godot --headless --path game --script res://tools/check_place_scripts.gd
 
@@ -38,6 +42,14 @@ const KNOWN := {
 	"park_details": {"zfight": 2357, "float": 3602},
 	"tamka": {"zfight": 364, "float": 20},
 	"light_garden": {"float": 7},  # the dandelion clocks' bulb tips on their spikes (2026-11-15)
+}
+
+## Places allowed to differ on the phone's map: the triangles they build there less those on the whole map,
+## and why. Any other difference fails, and so does this one when the count changes.
+const PHONE_SHORT := {
+	# One street name plate more at Zajęcza and Dynasy: plate_spots keeps a plate clear of the houses, and
+	# the houses (`buildings`) are sector-only, so both streamed cities place it against no house (BACKLOG).
+	"tamka": [192, "the plates' house test has no houses on the streamed cities"],
 }
 
 var problems: Array[String] = []
@@ -67,6 +79,7 @@ func _initialize() -> void:
 	var places := Places.new()
 	places.name = "Places"
 	_build_and_count(places, map, ctx)
+	_phone(data, places.facts)
 	_solo(map, ctx)
 	_defects(map, ctx, MeshProbe.new(data))
 	map.free()
@@ -163,6 +176,41 @@ func _build_and_count(places: Node3D, map: Node3D, ctx: Dictionary) -> void:
 		problems.append("no sector mesh built")
 	print("check_place_scripts: %d places, %d triangles, %d sector meshes (%d poured triangles)" % [
 			Places.TABLE.size(), total, places.sector_meshes.size(), poured])
+
+
+## The table again on the phone's map (Fakes.PhoneMap: `data` and ctx's "data" are the prebuilt index): every
+## place builds what it builds on the whole map, or it reads a key the phone's city does not keep.
+func _phone(whole: Dictionary, facts: Dictionary) -> void:
+	var phone := Fakes.phone_map(whole)
+	if phone.problem != "":
+		problems.append("the phone's map: " + phone.problem)
+	var ctx := {"data": phone.index_data, "dialogue": null, "clock": Callable(), "focus": Callable(),
+			"vehicle": Callable(), "logs": {}}
+	var places := Places.new()
+	places.build(phone, ctx, "")
+	var short := 0
+	for row: Dictionary in Places.TABLE:
+		var key := str(row["key"])
+		var a: Dictionary = facts.get(key, {})
+		var b: Dictionary = places.facts.get(key, {})
+		var lost := int(a.get("tris", 0)) - int(b.get("tris", 0))
+		var parts := int(a.get("own", 0)) - int(b.get("own", 0))
+		var known: Array = PHONE_SHORT.get(key, [0, ""])
+		if lost == 0 and parts == 0 and int(known[0]) == 0:
+			continue
+		short += 1
+		if parts == 0 and -lost == int(known[0]):
+			notes.append("%s: %+d triangles on the phone's map (known: %s)" % [key, -lost, known[1]])
+		else:
+			problems.append("%s: %d triangles, %d own parts on the phone's map against %d, %d on the whole map: it reads map data the prebuilt city does not keep (sector-only lists such as lamps or steps, or bake_city's BUILDER_ONLY)" % [
+					key, int(b.get("tris", 0)), int(b.get("own", 0)), int(a.get("tris", 0)), int(a.get("own", 0))])
+	for k: String in PHONE_SHORT:
+		if not facts.has(k):
+			problems.append("PHONE_SHORT names %s, which is no place in the table" % k)
+	print("check_place_scripts: the phone's map (the prebuilt index only, %d keys): %d of %d places differ" % [
+			phone.index_data.size(), short, Places.TABLE.size()])
+	places.free()
+	phone.free()
 
 
 ## With a solo site set only the rows that name it are built.

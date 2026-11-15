@@ -51,6 +51,7 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | --- | --- | --- | --- |
 | 11 | Park Świętokrzyski at night, drive along the light garden | the projection strip answers the car; the arches read at the phone's zoom; the night fill | #786, #788 |
 | 12 | Warsaw Spire at night | the LED band's bloom; the frame with the Spire on screen | #784 |
+| 12a | Warsaw Spire at night, then Tamka and Pasaż Wiecha (behind the Eastern Wall's stores) by day | the Spire's LED band and its night lines of light are on the glass (they were missing on the phone's city); Tamka has its red-and-white bollards on both kerbs and blue name plates at the Powiśle corners; white Y lamp masts stand all along the pasaż | phone map data |
 | 13 | Złote Tarasy at night | the glow | Tarasy glow |
 | 14 | The Old Town by car or helicopter: Miodowa, Piwna, Freta, Krakowskie Przedmieście | the frame rate with the rebuilt churches in view; the Archikatedra's roof is green copper and its walls brick | #701 to #789, #775 |
 | 14a | Varso Tower by day from Rondo ONZ and at night from Chmielna | the grey frame reads as a grid (not noise) at the game's zoom; the louvred crown; the spire's dish platforms glow white at night | Varso rebuild |
