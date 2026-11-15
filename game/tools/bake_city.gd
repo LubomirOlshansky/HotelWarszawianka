@@ -33,7 +33,9 @@ const CITY_INPUTS := ["map/lod2.bin", "map/terrain.json", "map/ao.bin", "map/lig
 		"scripts/map_builder.gd", "scripts/chunked_surface.gd", "scripts/neon_signs.gd", "scripts/landmarks.gd",
 		"scripts/sector_proxies.gd", "scripts/models.gd", "scripts/pixel_font.gd", "scripts/index_pack.gd",
 		"scripts/city_maps.gd", "tools/bake_city.gd", "data/courts.json", "scripts/solidity.gd", "data/object_palette.json",
-		"scripts/city_barriers.gd"]
+		"scripts/city_barriers.gd", "scripts/facade_kit.gd"]
+## TD-10 (2026-11-15): and every file of landmarks.gd's base chain (`scripts/landmarks/*.gd`, by name).
+const CITY_INPUT_DIRS := ["scripts/landmarks"]
 
 
 ## Set at the end of _bake: a script error (a builder that doesn't compile) ends _bake early
@@ -202,11 +204,24 @@ func _remove_dir(dir: String) -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(dir))
 
 
+## CITY_INPUTS and the .gd files of each CITY_INPUT_DIRS folder (tools/check_map_data.py city_inputs).
+static func city_inputs() -> Array[String]:
+	var out: Array[String] = []
+	out.assign(CITY_INPUTS)
+	for d: String in CITY_INPUT_DIRS:
+		var names := Array(DirAccess.get_files_at("res://" + d))
+		names.sort()
+		for f: String in names:
+			if f.ends_with(".gd"):
+				out.append(d + "/" + f)
+	return out
+
+
 ## Loop 3d-1: map/sectors/city.stamp (see CITY_INPUTS).
 func _write_stamp() -> Error:
 	var split: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://map/sectors/split.stamp"))
 	var inputs := {}
-	for p: String in CITY_INPUTS:
+	for p: String in city_inputs():
 		inputs[p] = FileAccess.get_sha256("res://" + p) if FileAccess.file_exists("res://" + p) else ""
 	var stamp := {"split": (split as Dictionary).get("digest", "") if split is Dictionary else "", "inputs": inputs}
 	var f := FileAccess.open("res://map/sectors/city.stamp", FileAccess.WRITE)

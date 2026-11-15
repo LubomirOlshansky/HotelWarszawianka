@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Ratchet: no new private facade helpers in landmarks.gd (docs/design/facade-kit.md, rule 6).
+"""Ratchet: no new private facade helpers in the landmark code (docs/design/facade-kit.md, rule 6).
 
     python3 -I tools/check_facade_kit.py [--list]
 
 Windows, panes, balconies, ledges, cornices, pediments, columns and pilasters are parts of the
 facade kit (game/scripts/facade_kit.gd, `kit_*`). The private helpers that existed before the kit
 (`_euro_window`, `_fk_balcony` ...) are named in ALLOWED below, each with what keeps it from the
-kit. The check fails when landmarks.gd holds a helper of those kinds that is not in ALLOWED (use
+kit. The check fails when landmarks.gd or one of its area files (game/scripts/landmarks/*.gd, TD-10)
+holds a helper of those kinds that is not in ALLOWED (use
 the kit part, or add a style to the kit), and when ALLOWED names one that is gone (delete its
 line: the list only shrinks). It also fails when the kit loses a part the design doc names.
 Prints `check_facade_kit: OK` and exits 0, or the problems and exits 1. --list prints the helpers
@@ -18,6 +19,8 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 LANDMARKS = ROOT / "game" / "scripts" / "landmarks.gd"
+# TD-10 (2026-11-15): landmarks.gd's base chain, one file per area.
+AREAS = ROOT / "game" / "scripts" / "landmarks"
 KIT = ROOT / "game" / "scripts" / "facade_kit.gd"
 DOC = ROOT / "docs" / "design" / "facade-kit.md"
 
@@ -69,7 +72,9 @@ ALLOWED = {
 
 
 def main() -> int:
-    found = HELPER.findall(LANDMARKS.read_text(encoding="utf-8"))
+    found = []
+    for path in [LANDMARKS] + sorted(AREAS.glob("*.gd")):
+        found += HELPER.findall(path.read_text(encoding="utf-8"))
     if "--list" in sys.argv[1:]:
         for name in found:
             print(name)
@@ -81,7 +86,7 @@ def main() -> int:
                             "or add a style to the kit" % name)
     for name in ALLOWED:
         if name not in found:
-            problems.append("ALLOWED names `%s`, which is gone from landmarks.gd: delete its line" % name)
+            problems.append("ALLOWED names `%s`, which is gone from the landmark code: delete its line" % name)
     kit = KIT.read_text(encoding="utf-8")
     parts = set(re.findall(r"^func (kit_[a-z_]+)\(", kit, re.M))
     colours = set(re.findall(r"^const (PAL_[A-Z_]+)\b", kit, re.M))
