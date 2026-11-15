@@ -139,7 +139,7 @@ static var _kit: Dictionary = _load_kit()
 static var soft_off := false
 ## Step 7: the styles that stay hard on a fence whatever its class: a tram bed's railing and a
 ## stair's balustrades guard a track's edge or a stair's hole (the build plan, item 3).
-const HARD_RAILS: Array[StringName] = [&"tram_railing", &"balustrade", &"balustrade_rail", &"balustrade_white", &"stadium_fence"]
+const HARD_RAILS: Array[StringName] = [&"tram_railing", &"balustrade", &"balustrade_rail", &"balustrade_white"]
 ## Step 7: a smash line's 2 m panels (the look thread's instanced panels use the same length).
 const PANEL := 2.0
 ## Step 7: fence types (object_types.py `ty`) whose panels sound and break as wood.
@@ -1040,6 +1040,8 @@ func _gate(st, at: Vector2, d: Vector2) -> void:
 	for sgn in [-1.0, 1.0]:
 		var pier: Vector2 = at + d * GATE_HALF * sgn
 		map._box_oriented(st, Vector3(pier.x, g + 1.325, pier.y), basis, Vector3(0.56, 3.3, 0.56), GATE_STONE)
+		# The piers stand (F, 2026-11-15: iron panels break, piers stand): a hard box, class pier.
+		map._solid(&"pier", slab_faces(pier - d * 0.28, pier + d * 0.28, 0.28, g, g, 2.95), {"same": true, "h": 2.95})
 		var mid: Vector2 = at + d * (GATE_HALF * 0.5) * sgn
 		map._box_oriented(st, Vector3(mid.x, g + 1.15, mid.y), basis, Vector3(0.04, 2.1, GATE_HALF - 0.6), GATE_LEAF)
 		map._box_oriented(st, Vector3(mid.x, g + 0.75, mid.y), basis, Vector3(0.13, 1.0, GATE_HALF - 1.0), GATE_PANEL)

@@ -21,9 +21,9 @@ kept in the gitignored `refs/narodowy_*`, never shipped). The stadium's own mode
 
 | Thing | Where | How |
 | --- | --- | --- |
-| Perimeter fence | every OSM `fence` line 195-345 m from the stadium centre whose bake type is mesh panel, chain link or plain fence (`city_barriers.gd` `stadium_fence_line`; about 19 lines, 2.5 km) | the palette's `stadium_fence` railing: 2.3 m, near-black on a 0.4 m dark base band, posts every 1.5 m, hard (in `HARD_RAILS`, never smashes) |
+| Perimeter fence | every OSM `fence` line 195-345 m from the stadium centre whose bake type is mesh panel, chain link or plain fence (`city_barriers.gd` `stadium_fence_line`; about 19 lines, 2.5 km) | the palette's `stadium_fence` railing: 2.3 m, near-black on a 0.4 m dark base band, posts every 1.5 m, keeps each line's smash class (S: the panels break when Łamliwe płoty is on, as city-objects step 7; F, 2026-11-15: iron panels break, piers stand) |
 | Left alone | the ball-stop nets round the pitches, the railway's chain link (`hz`), any fence with a mapped height or type | their own looks |
-| Gates | each footpath or road under 7 m wide crossing the perimeter fence; one per 15 m, at most 14, numbered clockwise from the north | `city_barriers.gd` `_stadium_gates` (each sector draws the gates whose crossing lies in it): two stone piers 2.95 m, two black leaves with a darker solid panel, a red board 5.8 x 0.85 m on two poles with a pale stripe for the writing and a number plate |
+| Gates | each footpath or road under 7 m wide crossing the perimeter fence; one per 15 m, at most 14, numbered clockwise from the north | `city_barriers.gd` `_stadium_gates` (each sector draws the gates whose crossing lies in it): two stone piers 2.95 m, two black leaves with a darker solid panel, hard piers (class `pier`), a red board 5.8 x 0.85 m on two poles with a pale stripe for the writing and a number plate |
 
 The gate board's writing is stripes: at 10-17 cm a pixel it cannot be read, so it is not
 drawn as text.
