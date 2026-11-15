@@ -164,3 +164,18 @@ Benches, lamps, trees and paths stay the map's (OSM has the campus's trees and b
 The pavilions' campus faces copy the street faces' pediment but have no niche; the Old Library's
 east end and the Uruski court side stay LoD2's; the Uruski statue is placed over the middle's
 centre (the photo shows it over the middle's north part).
+
+## 11. The life: students and the guards' cart
+
+- **Students** (`crowds.gd`, sites `campus_*`, walk mode "campus"): groups standing and sitting
+  with their notes by the Old Library, the kiosk, the gate, the Auditorium Maximum, Kazimierzowski
+  and on the lawn, plus up to 40 walkers between the gate, the faculty doors and the library, on
+  the `campus` curve: full from 10 to 16 on a term-time working day, a quarter at weekends, about
+  a third in July to September, fewer in rain. Lines: dialogue.json `students` (tag "walk" for the
+  walkers). Same person MultiMesh, no draw calls added.
+- **The guards' cart** (`campus_cart.gd`, photo 8074): "Straż Uniwersytecka 001", a white boxy
+  electric cart, black pillars and roof frame, light bar, number on the door. It drives the OSM
+  service ring round the lawn (331 m) at 12 km/h, slower in the bends, stops 25 s at the kiosk
+  each lap, waits for a car in its lane and the guard says a `uw_guard` line ("blocked", or
+  "fast" for a car racing past). One mesh on the actor material (+1 draw call in view), one box
+  collider; hidden and still farther than 260 m from the campus.

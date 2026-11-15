@@ -2,7 +2,8 @@ extends "res://scripts/place.gd"
 ## The 3D screen at Złote Tarasy, moved and squared off from F's photos (2026-11-11: "this screen in
 ## the game is a curve, maybe it has an L shape on the edge of the building, maybe you put it in the
 ## wrong place"): the big LED screen wraps Skylight's south-east corner over the street entrance, an
-## L of two flat faces, a wide one facing the station and the crossing (south-east) and a narrower
+## L of flat faces (F, 2026-11-15: longer to the left, along the curved face, as in his photos:
+## three short faces there), a wide one facing the station and the crossing (south-east) and a narrower
 ## return facing Emilii Plater (east-north-east), from about 11.5 to 25 m up (F's photos, refs/skylight
 ## 06: the "WOW" panels' place). Its anamorphic loop floats out of the frame: a tabby cat leaning
 ## out (F's photo), the game's own promo (AROUND WARSAW over a skyline), and the NOSE. agency's promo
@@ -18,10 +19,17 @@ const Pixel := preload("res://scripts/pixel_font.gd")
 ## Skylight's outline at its south-east corner (centrum.json "Skylight"): the south-east end of the
 ## curved south face, the corner, and a point on the straight east end. Walked so the screen's right
 ## is the viewer's right (from the south-east).
-const WALL := [Vector2(-1367.7, 433.4), Vector2(-1354.6, 423.5), Vector2(-1357.65, 415.03)]
-## Each face's offset off the wall: the wide face is the chord of a curve that bulges 1 m past it,
-## and both clear Skylight's glazed belt (stepped out ~0.4 m at 20-33 m).
-const OFFSETS := [1.6, 0.8]
+const WALL := [Vector2(-1377.4, 438.2), Vector2(-1371.7, 436.0), Vector2(-1367.7, 433.4),
+		Vector2(-1354.6, 423.5), Vector2(-1357.65, 415.03)]
+## Which point of WALL is the tower's corner (the wide face ends there, the return begins).
+const CORNER_AT := 3
+## How far each WALL point is pushed off the wall: the long chord at the corner bulges 1 m past the
+## wall, the points on the curve (F, 2026-11-15: the real screen runs further along the curved face
+## on the left than the L did) less; all clear Skylight's glazed belt (stepped out ~0.4 m at
+## 20-33 m). The corner's entry is unused (CORNER_OFFSETS).
+const OFFSETS := [1.2, 1.4, 1.6, 1.6, 0.8]
+## The corner point pushes out along the two neighbouring faces' offset lines instead (their offsets).
+const CORNER_OFFSETS := [1.6, 0.8]
 const BOTTOM := 11.5        # metres above the ground at the corner: over the lobby's 5 m canopy
 const HEIGHT := 13.5        # the box's height (to 25 m)
 const MARGIN := 2.6         # the mesh below the box, for what hangs out of it
@@ -37,25 +45,39 @@ var mesh_instance: MeshInstance3D
 ## The corner's three points pushed out (the faces' offset lines met at the corner) and each face's
 ## outward normal.
 static func outline() -> Array:
-	var a: Vector2 = WALL[0]
-	var c: Vector2 = WALL[1]
-	var b: Vector2 = WALL[2]
-	var da := (c - a).normalized()
-	var db := (b - c).normalized()
-	var na := Vector2(-da.y, da.x)
-	var nb := Vector2(-db.y, db.x)
-	var a2: Vector2 = a + na * float(OFFSETS[0])
-	var b2: Vector2 = b + nb * float(OFFSETS[1])
-	# The corner: where the two offset lines cross.
-	var c2: Variant = Geometry2D.line_intersects_line(a2, da, b2, -db)
-	var corner: Vector2 = c2 if c2 != null else c + (na + nb).normalized() * float(OFFSETS[0])
-	return [[a2, corner, b2], [na, nb]]
+	var segs := WALL.size() - 1
+	var dirs: Array[Vector2] = []
+	var norms: Array[Vector2] = []
+	for i in segs:
+		var d := ((WALL[i + 1] as Vector2) - (WALL[i] as Vector2)).normalized()
+		dirs.append(d)
+		norms.append(Vector2(-d.y, d.x))
+	var pts: Array[Vector2] = []
+	for i in WALL.size():
+		var w: Vector2 = WALL[i]
+		if i == 0:
+			pts.append(w + norms[0] * float(OFFSETS[0]))
+		elif i == segs:
+			pts.append(w + norms[segs - 1] * float(OFFSETS[segs]))
+		elif i == CORNER_AT:
+			# The corner: where the two faces' offset lines cross.
+			var a2: Vector2 = w + norms[i - 1] * float(CORNER_OFFSETS[0])
+			var b2: Vector2 = w + norms[i] * float(CORNER_OFFSETS[1])
+			var x: Variant = Geometry2D.line_intersects_line(a2, dirs[i - 1], b2, dirs[i])
+			var q: Vector2 = w + (norms[i - 1] + norms[i]).normalized() * float(CORNER_OFFSETS[0])
+			if x != null:
+				q = x
+			pts.append(q)
+		else:
+			pts.append(w + (norms[i - 1] + norms[i]).normalized() * float(OFFSETS[i]))
+	return [pts, norms]
 
 
 func build() -> void:
 	var o := outline()
 	var pts: Array = o[0]
 	var norms: Array = o[1]
+	var at: Vector2 = pts[CORNER_AT]
 	var ground: float = map.ground_height(WALL[1].x, WALL[1].y) if map != null else 0.0
 	var y0 := ground + BOTTOM - MARGIN
 	var st := SurfaceTool.new()
@@ -75,7 +97,7 @@ func build() -> void:
 			st.set_normal(Vector3(n.x, 0, n.y))
 			st.set_uv(v[k][1])
 			st.add_vertex(v[k][0])
-		if i == 0:
+		if i == CORNER_AT - 1:
 			corner = s1
 		s = s1
 	length = s
@@ -83,7 +105,7 @@ func build() -> void:
 	mesh_instance.name = "TarasyScreen"
 	mesh_instance.mesh = st.commit()
 	mesh_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	mesh_instance.custom_aabb = AABB(Vector3(-1372, y0, 410), Vector3(20, MARGIN + HEIGHT, 28))
+	mesh_instance.custom_aabb = AABB(Vector3(-1384, y0, 408), Vector3(32, MARGIN + HEIGHT, 34))
 	var tex := _words_texture()
 	var mat := ShaderMaterial.new()
 	mat.shader = load(SHADER)
@@ -96,7 +118,7 @@ func build() -> void:
 	mesh_instance.material_override = mat
 	part(mesh_instance)
 	print("tarasy_screen: %.1f m x %.1f m (corner at %.1f m) at y %.1f, corner (%.1f, %.1f)" % [length, HEIGHT, corner, y0 + MARGIN,
-			(pts[1] as Vector2).x, (pts[1] as Vector2).y])
+			at.x, at.y])
 
 
 ## The words as one image (red channel = lit): a line of the font a row of LINE texels, each line

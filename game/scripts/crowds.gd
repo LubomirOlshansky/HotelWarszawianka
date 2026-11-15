@@ -278,6 +278,27 @@ const CHILL := {
 	"chill_koszyki": [Vector2(-884.0, 1266.0), 30, 30.0],
 	"chill_elektrownia": [Vector2(241.0, -704.0), 34, 32.0],  # 2026-11-13: the setts plaza by Dobra (the model's rebuild)
 }
+## F's ask (2026-11-15, the University's main campus, docs/landmarks/specs/uw_kampus.md): students
+## standing and sitting with their notes in groups on the campus's paths, on the `campus` curve (a
+## term-time working day). id -> [spot, most people, radius]. Same machinery as CHILL (a third sit),
+## their lines the `students` group. Spots: before the Old Library, by the guards' kiosk, inside the
+## gate, before the Auditorium Maximum, Kazimierzowski's forecourt and the lawn's middle *guess*.
+const CAMPUS := {
+	"campus_library": [Vector2(-346.0, -700.0), 14, 16.0],
+	"campus_kiosk": [Vector2(-382.0, -690.0), 10, 12.0],
+	"campus_gate": [Vector2(-440.0, -656.0), 10, 12.0],
+	"campus_audmax": [Vector2(-352.0, -748.0), 12, 16.0],
+	"campus_kazim": [Vector2(-276.0, -728.0), 10, 14.0],
+	"campus_lawn": [Vector2(-318.0, -704.0), 12, 18.0],
+}
+## The campus walkers' doors (from and to: the gate, the Old Library, the Auditorium Maximum,
+## Kazimierzowski, Szkoła Główna, the History building, Uruski's court) *guess*, read off the
+## outlines; most walkers at once (before `amount`) and the view's wake distance.
+const CAMPUS_DOORS := [["uw_gate", Vector2(-452.0, -650.0)], ["uw_library", Vector2(-338.0, -702.0)],
+		["uw_audmax", Vector2(-352.0, -754.0)], ["uw_kazim", Vector2(-280.0, -724.0)], ["uw_szkola", Vector2(-296.0, -640.0)],
+		["uw_historia", Vector2(-362.0, -640.0)], ["uw_uruski", Vector2(-448.0, -684.0)]]
+const CAMPUS_MAX := 40
+const CAMPUS_NEAR := 300.0
 ## F's ask (2026-11-01): the Vistula boulevards (Bulwary Wiślane, Karowa to Most Świętokrzyski and on
 ## past Kopernik) full of people chilling: groups on the granite steps and benches along the river
 ## edge, about 40-60 m apart, bigger by the Kopernik steps' neighbours. id -> [spot, most people,
@@ -469,6 +490,10 @@ const CURVES := {
 	# *guess*: lunch crowd, the long summer evening on the benches, thinning after 23:00
 	"chill": {11: 0.25, 12: 0.4, 13: 0.5, 14: 0.5, 15: 0.55, 16: 0.7, 17: 0.85, 18: 1.0, 19: 1.0, 20: 1.0, 21: 0.9,
 			22: 0.7, 23: 0.45, 0: 0.2},
+	# *guess*: the campus on a term-time working day: the first lectures from 8, full from 10 to 16,
+	# the library's evening crowd thinning to 21
+	"campus": {7: 0.15, 8: 0.5, 9: 0.75, 10: 1.0, 11: 1.0, 12: 1.0, 13: 1.0, 14: 0.95, 15: 0.9, 16: 0.8, 17: 0.65,
+			18: 0.5, 19: 0.35, 20: 0.2, 21: 0.1},
 	# *guess*: the commute, 7-9 and 15-18 on a working day, a thin shopping day on a weekend
 	"commute": {5: 0.15, 6: 0.4, 7: 0.9, 8: 1.0, 9: 0.7, 10: 0.4, 11: 0.35, 12: 0.4, 13: 0.4, 14: 0.5, 15: 0.8,
 			16: 1.0, 17: 1.0, 18: 0.8, 19: 0.5, 20: 0.35, 21: 0.25, 22: 0.2, 23: 0.1},
@@ -589,6 +614,15 @@ var _route_mode := "dawn"
 var _dawn_asked := false
 var _office_asked := false
 var _office_bubble := 0.0
+## The campus walkers (walk mode "campus"): their routes between CAMPUS_DOORS, the doors, the box
+## the view wakes them in, the lines they said.
+var campus_on := false
+var campus_routes: Array[Dictionary] = []
+var campus_lines := 0
+var _campus_in := {}
+var _campus_box := Rect2()
+var _campus_asked := false
+var _campus_bubble := 0.0
 ## The zebras (polylines) the office walkers may cross; a route's `xs` index into this.
 var _office_zebras: Array[PackedVector2Array] = []
 ## Walker-ticks spent waiting at a red kerb (for the check).
@@ -820,6 +854,18 @@ static func poly_area(flat: Array) -> float:
 ## The chill yards' level 0..1 (hour curve; winter keeps a third of the summer, rain 0.15 *guess*).
 static func chill_level(hour: float, month: int, rain: bool) -> float:
 	return curve_at("chill", hour) * maxf(month_factor(month), 0.35) * (0.15 if rain else 1.0)
+
+
+## The campus's level 0..1 (the students): the `campus` curve on a working day, a quarter of it on
+## Saturday and Sunday, a third in the summer break (July to September, with Live only: month 0 is
+## no calendar, term time) *guess*; rain keeps 0.4 (a dash between the buildings).
+static func campus_level(hour: float, weekday: int, month: int, rain: bool) -> float:
+	var lvl := curve_at("campus", hour)
+	if weekday >= 6:
+		lvl *= 0.25
+	if month >= 7 and month <= 9:
+		lvl *= 0.35
+	return lvl * (0.4 if rain else 1.0)
 
 
 ## Nowogrodzka's pub crowd level 0..1: the `pub` curve × PUB_WEEKDAY (past midnight counts as the
@@ -1145,6 +1191,10 @@ func setup(places: Array, data: Dictionary, seed_value := 1703) -> void:
 	if not (rot_steps["seats"] as Array).is_empty():
 		_add_site({"id": ROTUNDA_STEPS_ID, "kind": "jazz_cafe", "at": rot_steps["centre"], "max": (rot_steps["seats"] as Array).size(),
 				"plan": rot_steps})
+	for uid: String in CAMPUS:
+		var us: Array = CAMPUS[uid]
+		_add_site({"id": uid, "kind": "chill", "campus": true, "at": us[0], "max": int(us[1]), "radius": float(us[2]),
+				"talk": "students"})
 	var doors := Landmarks.pkin_theatre_doors()
 	for tid: String in THEATRES:
 		_add_site({"id": tid, "kind": "chill", "theatre": true, "sit": false, "at": doors[tid], "max": int(THEATRES[tid]), "radius": 10.0})
@@ -1165,6 +1215,7 @@ func setup(places: Array, data: Dictionary, seed_value := 1703) -> void:
 		var os: Array = OFFICE[oid]
 		_add_site({"id": oid, "kind": "office", "at": os[0], "max": int(os[1]), "radius": float(os[2])})
 	_setup_office(data)
+	_setup_campus()
 	if at.has(PLAN_C_ID):
 		_add_site({"id": PLAN_C_ID, "kind": "plan_c", "at": at[PLAN_C_ID], "max": PLAN_C_MAX})
 	# The dawn crowd's ends: the palm, the metro, kebab stands and tram platforms near the clubs.
@@ -2140,7 +2191,7 @@ func _process(dt: float) -> void:
 		var step := _tick_t
 		_tick_t = 0.0
 		tick(step)
-	if (dawn_on or office_on) and not walkers.is_empty():
+	if (dawn_on or office_on or campus_on) and not walkers.is_empty():
 		_walk_t += dt
 		if _walk_t >= WALK_TICK:
 			_walk_t = 0.0
@@ -2203,6 +2254,8 @@ func tick(step: float) -> void:
 					lvl = club_level(hour, weekday, month, rain)
 				if bool(s.get("theatre", false)):
 					lvl = theatre_level(hour, weekday, rain)
+				if bool(s.get("campus", false)):
+					lvl = campus_level(hour, weekday, month if live else 0, rain)
 				want = roundi(int(s["max"]) * k * lvl)
 			"stop":
 				want = roundi(int(s["max"]) * k * maxf(stop_level(hour, weekday, rain), float(s.get("floor", 0.0))))
@@ -2293,8 +2346,10 @@ func tick(step: float) -> void:
 	_redraw()
 	_dawn(hour, weekday, live, look, step, eye2)
 	_office(hour, weekday, rain, step, eye2)
+	_campus(hour, weekday, month if live else 0, rain, step, eye2)
 	levels = {"dawn": 1.0 if dawn_on and not walkers.is_empty() else 0.0,
 			"office": 1.0 if office_on and not walkers.is_empty() else 0.0, "police_club": 1.0 if police_on else 0.0,
+			"campus": 1.0 if campus_on and not walkers.is_empty() else 0.0,
 			"steps": steps_lvl, "guitar": 1.0 if by_id.has(STEPS_ID) and bool(sites[by_id[STEPS_ID]].get("guitar_on", false)) else 0.0,
 			"plan_c": plan_lvl}
 	for s in sites:
@@ -2536,9 +2591,10 @@ func _dawn(hour: float, weekday: int, live: bool, look: String, step: float, eye
 	if on != dawn_on:
 		dawn_on = on
 		if on:
-			walkers.clear()  # the office crowd, if it was out
+			walkers.clear()  # the office crowd or the students, if they were out
 			walk_mode = "dawn"
 			office_on = false
+			campus_on = false
 		elif walk_mode == "dawn":
 			walk_mode = ""
 		if log_on:
@@ -2627,21 +2683,79 @@ func _office(hour: float, weekday: int, rain: bool, step: float, eye2: Vector2) 
 		break
 
 
+## The students between the faculties (F's ask, 2026-11-15): walk mode "campus" while the view is
+## within CAMPUS_NEAR of the campus and its level is up (never with the dawn crowd or the office
+## crowd out: the walkers are one set). A student's line now and then (`students`, tag "walk").
+func _campus(hour: float, weekday: int, month: int, rain: bool, step: float, eye2: Vector2) -> void:
+	var count := roundi(CAMPUS_MAX * amount * campus_level(hour, weekday, month, rain))
+	var has_ends := not (_campus_in.get("to", []) as Array).is_empty()
+	var on := has_ends and not dawn_on and not office_on and count > 0 and _campus_box.grow(CAMPUS_NEAR).has_point(eye2)
+	if on != campus_on:
+		campus_on = on
+		if on:
+			walkers.clear()
+			walk_mode = "campus"
+		elif walk_mode == "campus":
+			walk_mode = ""
+			walkers.clear()
+			_walk_mm.visible_instance_count = 0
+			_walk_mmi.visible = false
+		if log_on:
+			print("night: the students %s" % ("come out" if on else "go in"))
+	if not on:
+		return
+	if campus_routes.is_empty():
+		if _route_task < 0 and not _campus_asked:
+			_start_routes("campus")
+		return
+	while walkers.size() < count:
+		_spawn_walkers(count - walkers.size(), true)
+	while walkers.size() > count:
+		walkers.pop_back()
+	for w in walkers:
+		if float(w["s"]) + float(w["v"]) * (t - float(w["t"])) >= float(campus_routes[int(w["r"])]["len"]):
+			_restart(w)
+	_campus_bubble -= step
+	if _campus_bubble > 0.0:
+		return
+	for i in walkers.size():
+		var p := walker_pos(i)
+		if on_screen.is_valid() and not on_screen.call(p, 2.0):
+			continue
+		_campus_bubble = _rng.randf_range(CHAT_GAP.x, CHAT_GAP.y) * 0.5
+		campus_lines += 1
+		_say(func() -> Vector3: return walker_pos(i) + Vector3(0, 2.0, 0) if i < walkers.size() and walk_mode == "campus" else Vector3.INF,
+				"", "students", "walk", BUBBLE)
+		break
+
+
+## The campus walkers' doors and the box they walk in.
+func _setup_campus() -> void:
+	_campus_in = {"from": CAMPUS_DOORS, "to": CAMPUS_DOORS}
+	var box := Rect2(CAMPUS_DOORS[0][1], Vector2.ZERO)
+	for e: Array in CAMPUS_DOORS:
+		box = box.expand(e[1])
+	_campus_box = box.grow(40.0)
+
+
 ## The routes, found once in a worker thread (pure data: the footways near the clubs).
 func _start_routes(mode := "dawn") -> void:
 	var paths: Array = []
-	var area := _office_box.grow(100.0)
+	var area := (_campus_box if mode == "campus" else _office_box).grow(100.0)
 	for f in _foot:
-		# The office crowd's graph is only the footways near the rondo (the dawn crowd's is all).
-		if mode == "office" and not area.has_point((f["pts"] as PackedVector2Array)[0]):
+		# The office crowd's graph is only the footways near the rondo, the students' the campus's
+		# (the dawn crowd's is all).
+		if mode != "dawn" and not area.has_point((f["pts"] as PackedVector2Array)[0]):
 			continue
 		paths.append([f["pts"], int(f["dk"])])
-	var rin: Dictionary = _office_in if mode == "office" else _route_in
+	var rin: Dictionary = _office_in if mode == "office" else (_campus_in if mode == "campus" else _route_in)
 	var from: Array = rin["from"]
 	var to: Array = rin["to"]
 	_route_mode = mode
 	if mode == "office":
 		_office_asked = true
+	elif mode == "campus":
+		_campus_asked = true
 	else:
 		_dawn_asked = true
 	_route_out = [null]
@@ -2656,9 +2770,10 @@ func _finish_routes() -> void:
 	var found: Variant = _route_out[0] if not _route_out.is_empty() else null
 	var raw: Array = found if found is Array else []
 	var office := _route_mode == "office"
+	var campus := _route_mode == "campus"
 	var made: Array[Dictionary] = []
 	for r: Dictionary in raw:
-		if office and (str(r["from"]) == str(r["to"])):
+		if (office or campus) and (str(r["from"]) == str(r["to"])):
 			continue
 		var pts: PackedVector2Array = r["pts"]
 		var dk: PackedInt32Array = r["dk"]
@@ -2670,10 +2785,18 @@ func _finish_routes() -> void:
 				run += pts[i].distance_to(pts[i - 1])
 			cum.append(run)
 			h.append(map.deck_height(dk[i], pts[i].x, pts[i].y) if map != null else 0.0)
-		if office and run < 40.0:
+		if (office and run < 40.0) or (campus and run < 30.0):
 			continue
 		made.append({"pts": pts, "h": h, "cum": cum, "len": run, "from": r["from"], "to": r["to"], "end": pts[pts.size() - 1],
 				"xs": _route_crossings(pts, cum) if office else []})
+	if campus:
+		campus_routes = made
+		if log_on:
+			print("night: %d campus routes" % made.size())
+		if made.is_empty():
+			_campus_in["to"] = []  # nothing to walk: the students stay in their groups
+		_route_mode = "dawn"
+		return
 	if office:
 		office_routes = made
 		if log_on:
@@ -2757,14 +2880,19 @@ func _spawn_walkers(count: int, spread: bool) -> void:
 		left -= g
 
 
-## The routes the walkers walk now: the office crowd's in mode "office", else the dawn crowd's.
+## The routes the walkers walk now: the office crowd's in mode "office", the students' in mode
+## "campus", else the dawn crowd's.
 func _walk_routes() -> Array[Dictionary]:
+	if walk_mode == "campus":
+		return campus_routes
 	return office_routes if walk_mode == "office" else routes
 
 
 func _walker_shirt() -> Color:
 	if walk_mode == "office":
 		return Color(OFFICE_SHIRTS[_rng.randi() % OFFICE_SHIRTS.size()])
+	if walk_mode == "campus":
+		return Color(BRIGHT[_rng.randi() % BRIGHT.size()] if _rng.randf() < 0.6 else DARK[_rng.randi() % DARK.size()])
 	return Color(DARK[_rng.randi() % DARK.size()] if _rng.randf() < 0.7 else BRIGHT[_rng.randi() % BRIGHT.size()])
 
 
@@ -2797,7 +2925,7 @@ func walker_pos(i: int) -> Vector3:
 ## The walkers' figures, 10 times a second while the view is near their box.
 func _move_walkers() -> void:
 	var eye: Vector3 = focus.call() if focus.is_valid() else Vector3.ZERO
-	var box_now := _office_box if walk_mode == "office" else _walk_box
+	var box_now := _office_box if walk_mode == "office" else (_campus_box if walk_mode == "campus" else _walk_box)
 	if not box_now.grow(ACTIVE_R).has_point(Vector2(eye.x, eye.z)):
 		if _walk_mmi.visible:
 			_walk_mmi.visible = false
