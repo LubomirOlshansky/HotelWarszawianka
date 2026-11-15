@@ -298,6 +298,7 @@ const BUDGET := {
 	"widok": 450,
 	"pzu": 900,
 	"jm": 900,
+	"babka": 800,  # 2026-11-15 photo pass with F's photos (637 tris): stone tower, loggia columns, mast, the 34 m block
 	"wiktoria": 230,
 	"wtt": 1640,
 	"zacheta": 720,
