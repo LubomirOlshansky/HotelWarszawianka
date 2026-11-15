@@ -150,7 +150,7 @@ const BUDGET := {
 	"dtc": 1950,
 	"europejski": 8000,
 	"flaga": 170,
-	"forest": 4900,
+	"forest": 8100,  # 2026-11-15: the real green roof (lawns, wavy corten beds, railing, pavilions, tent), measured 6739 (was 4260)
 	"gpy": 2000,  # RD-3 (2026-11-06): black patches, the wings' decks, trees and tables
 	"gaulle": 880,
 	"rondo": 7000,
