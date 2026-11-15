@@ -27,8 +27,7 @@ const BUDGET := {"muzeum": 3300, "europejski": 8000, "grob": 600, "metropolitan"
 		"hotel_kasztel": 400, "hotel_canaletto": 400, "hotel_starowka": 400, "polonia": 1450, "ujazdowski": 1650, "sobieski": 1500,
 		"zamek": 4400, "arkady": 2400, "kino_muranow": 6000, "dekalog_estate": 18000, "inflancka_pools": 1000, "zamkowy": 1800}
 ## The Królewska edge's skins: key -> a point in a building the skin must cover.
-const SKINNED := {"bez_kantow": Vector2(-580.0, -785.0), "departament": Vector2(-596.0, -702.0),
-		"krolewska": Vector2(-660.0, -790.0)}
+const SKINNED := {"departament": Vector2(-596.0, -702.0)}
 ## Words no card may hold (the hotel's real brand and name).
 const DENY := ["sofitel", "victoria"]
 const MAX_LINE := 70
@@ -259,10 +258,7 @@ func _check_skins(marks, data: Dictionary) -> void:
 		if not found:
 			problems.append("%s: no building at %s (map changed?)" % [key, at])
 		var card: Array = Landmarks.INFO.get(key, [])
-		if key == "krolewska":
-			if not card.is_empty():
-				problems.append("krolewska: has a card (the block's name isn't mapped)")
-		elif card.size() != 3:
+		if card.size() != 3:
 			problems.append("%s: no info card" % key)
 		else:
 			_check_card(key, card)
