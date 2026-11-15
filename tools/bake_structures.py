@@ -1008,12 +1008,12 @@ def clear_carriageways(m):
                     if on_deck:
                         notes["barrier m cut on decks"] += math.dist(a, b) / n
                     if len(run) >= 2:
-                        lines.append({"k": ln["k"], "p": [round(v, 2) for q in _simplify(run) for v in q]})
+                        lines.append(dict(ln, p=[round(v, 2) for q in _simplify(run) for v in q]))
                     run = []
                 else:
                     run.append((x, z))
         if len(run) >= 2:
-            lines.append({"k": ln["k"], "p": [round(v, 2) for q in _simplify(run) for v in q]})
+            lines.append(dict(ln, p=[round(v, 2) for q in _simplify(run) for v in q]))
     d["lines"] = lines
     # The lanes on decks, per deck group (a bus's half width and a little: a deck's own guard
     # rails run along its carriageway's edges, a lane's half width out).
