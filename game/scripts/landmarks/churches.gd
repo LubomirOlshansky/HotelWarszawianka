@@ -4627,6 +4627,67 @@ const K18_ROOF := Color("#5d5f60")      ## sheet roof (a default)
 const K18_DOOR := Color("#5b3528")      ## the brown door (photos)
 
 
+## The monastery block beside Our Lady of Victory (Kamionek, Praga Południe), east of the
+## co-cathedral: a five-storey plastered range under a red tile gable roof with two chimneys, a
+## short projection into the yard. A model that replaces the plain OpenStreetMap block (building
+## 1334, `monastery`, unnamed; no landmark until 2026-11-15) from the OSM outline and GUGiK's LoD2
+## (over the ground: the eaves about 15.9, the ridge 17.9 along the range). **Provisional, no
+## photo**: no open street photo reaches it, so the plaster, the tiles, the windows and the door
+## follow the church next door (docs/QUESTIONS.md). Spec docs/landmarks/specs/zwycieska_klasztor.md.
+## Frame: origin at the north front's west corner, u to the east along the range, +v to the south
+## into the yard; the front faces north (-v), towards Grochowska.
+const ZWK_O := Vector2(2016.9, -1370.6)
+const ZWK_A := Vector2(0.9933, 0.1158)
+const ZWK_WALL := Color("#e6dfcc")      ## cream plaster (a default, the church's tone)
+const ZWK_TRIM := Color("#f2eee3")      ## bands, cornice, window reveals
+const ZWK_ROOF := Color("#b0583b")      ## red tiles (a default, the church's)
+const ZWK_DOOR := Color("#5b3326")      ## the wooden door (a default, the church's)
+
+
+func _build_zwycieska_klasztor(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(ZWK_O, ZWK_O + ZWK_A)
+	_g = _ground_under(outline)
+	var g := _g
+	_mode = M_STONE
+	var none := Color(0, 0, 0, 0)
+	var eave := g + 15.9
+	_prism(outline, g - 1.0, eave, ZWK_WALL, none, M_STONE)
+	kit_cornice_ring(outline, eave - 0.1, ZWK_TRIM, 0.45, 0.35)
+	kit_ledge_ring(outline, g - 1.0, 1.5, ZWK_WALL.darkened(0.15), 0.06)
+	_gable(-0.3, 36.1, 8.6, 9.05, eave, 2.0, ZWK_WALL, ZWK_ROOF, true)
+	# the yard projection's roof: a small gable running into the yard, its ridge under the range's
+	kit_front(_w(17.9, 13.0), _w(17.9, 14.0))
+	_gable(0.0, 5.6, 0.0, 4.85, eave, 1.6, ZWK_WALL, ZWK_ROOF, true)
+	kit_front(ZWK_O, ZWK_O + ZWK_A)
+	# two chimneys (LoD2)
+	_kbox(22.0, 23.2, 4.6, 6.6, eave, eave + 3.6, ZWK_WALL.darkened(0.08))
+	_kbox(31.0, 32.2, 13.4, 15.2, eave, eave + 3.2, ZWK_WALL.darkened(0.08))
+	# --- every wall: five rows of windows, a band over the ground floor
+	var rows := [g + 1.2, g + 4.3, g + 7.4, g + 10.5, g + 13.6]
+	var n := outline.size()
+	for k in n:
+		kit_front(ZWK_O, ZWK_O + ZWK_A)
+		var le := kit_front(outline[(k + 1) % n], outline[k])
+		if le < 2.6:
+			continue
+		var m := maxi(1, floori(le / 2.9))
+		var cs: Array = []
+		for i in m:
+			cs.append((float(i) + 0.5) * le / float(m))
+		kit_ledge(0.0, le, g + 3.6, 0.3, ZWK_TRIM, 0.08)
+		kit_panes(cs, rows, 1.4, 1.95, ZWK_TRIM, 0.03)
+		kit_panes(cs, rows, 1.15, 1.75, PAL_GLASS_DARK, 0.06)
+	# --- the door in the middle of the north front
+	kit_front(ZWK_O, ZWK_O + ZWK_A)
+	kit_front(_w(34.53, 0.0), _w(0.0, 0.0))
+	kit_face(0.06)
+	kit_door(34.53 - 17.3, g, 2.8, 0.8, ZWK_TRIM, ZWK_DOOR)
+	kit_face(0.0)
+	kit_front(ZWK_O, ZWK_O + ZWK_A)
+	_collide(outline)
+
+
 func _build_klopotowskiego_18(site: Dictionary) -> void:
 	var outline: PackedVector2Array = site["outline"]
 	kit_front(K18_O, K18_O + K18_A)
@@ -7176,6 +7237,8 @@ const CHURCHES := [
 			"fill": 0.9, "style": "neoclassical", "wall": "#ecebe6", "roof": "#5d5f60", "towers": 0, "cap": "none"},
 	{"key": "church_plebania_florian", "at": Vector2(534.0, -1963.0), "o": Vector2(525.0, -1990.5), "out": Vector2(0.175, -0.985), "L": 29.7, "W": 48.1,
 			"fill": 0.9, "style": "neoclassical", "wall": "#ece6d8", "roof": "#55504c", "towers": 0, "cap": "none"},
+	{"key": "church_zwycieska_klasztor", "at": Vector2(2034.0, -1361.0), "o": Vector2(2016.9, -1370.6), "out": Vector2(0.116, -0.993), "L": 35.9, "W": 18.4,
+			"fill": 0.9, "style": "neoclassical", "wall": "#e6dfcc", "roof": "#b0583b", "towers": 0, "cap": "none"},
 	{"key": "church_sluzki_dom_generalny", "at": Vector2(-203.0, -515.0), "o": Vector2(-206.4, -500.9), "out": Vector2(-0.917, 0.400), "L": 28.3, "W": 29.6,
 			"fill": 0.9, "style": "neoclassical", "wall": "#e3c48e", "roof": "#6b6c6c", "towers": 0, "cap": "none"},
 	{"key": "church_uczennice_boskiego_mistrza", "at": Vector2(-2890.0, -650.0), "o": Vector2(-2919.2, -669.7), "out": Vector2(-0.231, -0.973), "L": 37.5, "W": 41.5,
@@ -7294,6 +7357,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_klopotowskiego_18":
 		_build_klopotowskiego_18(site)  # the church house with the window of life on Kłopotowskiego, from photos and LoD2
+		return
+	if site["key"] == "church_zwycieska_klasztor":
+		_build_zwycieska_klasztor(site)  # the monastery block beside Our Lady of Victory, from LoD2 (provisional)
 		return
 	if site["key"] == "church_sluzki_dom_generalny":
 		_build_sluzki_dom_generalny(site)  # the Servants of Jesus' generalate, from photos and LoD2
