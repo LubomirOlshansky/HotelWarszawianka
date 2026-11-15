@@ -470,10 +470,16 @@ func hide_status() -> void:
 # --- the end -------------------------------------------------------------------------------------
 
 ## The ✕ on the status line. Only a run that is under way drops, and not under a card of its own
-## that holds it (`cards_hold`).
+## that holds it (`cards_hold`). An activity that joined the director hears the ✕ through it, which
+## passes it to one activity only (activities.gd `abort`); one that has not hears it itself (`setup`).
 func abort() -> void:
-	if phase == Phase.RUN and not (_card_up and cards_hold) and _can_abort():
+	if takes_abort():
 		drop(true)
+
+
+## The ✕ would drop this run now (the director's question: the first activity that says yes gets it).
+func takes_abort() -> bool:
+	return phase == Phase.RUN and not (_card_up and cards_hold) and _can_abort()
 
 
 ## The run is given up: by the player (the ✕) or by the clock.

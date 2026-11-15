@@ -16,6 +16,9 @@ extends RefCounted
 ##     a trend job), which the rest of the game asked jobs.gd by name before it joined;
 ##   - `primary()`, `secondary()`: the M and K keys (the pad's A and X) go to the activity whose
 ##     card takes them;
+##   - `abort()`: the ✕ (hud.abort_pressed) goes to one activity, the first that takes it
+##     (`takes_abort`), where every joined activity heard it and dropped its run before (TD-16's rule
+##     for the cards, for the ✕; 2026-11-15: one ✕ ended a tour's run and a rescue at once);
 ##   - `offering()`: a request card that leaves the player free is up (Podwózka's, the trend
 ##     job's), each joined activity's `request_up`;
 ##   - `holds_calls(a)`: another activity's run holds the rescue calls (its `rescue_calls`), each joined
@@ -56,6 +59,7 @@ func add(a: Activity, world := Callable()) -> void:
 	a.rescue_aimed = rescue_aimed.bind(a)
 	a.on_start = _started.bind(a)
 	a.on_end = _ended.bind(a)
+	_hear_abort(a)
 
 
 ## The activity that is on, or null.
@@ -138,6 +142,29 @@ func secondary() -> bool:
 		if a.secondary():
 			return true
 	return false
+
+
+## The ✕ (hud.abort_pressed): to the first activity, in the order they joined, that takes it now
+## (`takes_abort`: a run under way, not under a card that holds it), and to nobody after it. False when
+## none does. With one thing up this is that one's ✕, as before.
+func abort() -> bool:
+	for a in list:
+		if a.takes_abort():
+			a.abort()
+			return true
+	return false
+
+
+## `a` hears the ✕ through the director from now on: its own line to the signal (activity.gd `setup`,
+## missions.gd `setup`) goes, and the director's is made once per HUD.
+func _hear_abort(a: Activity) -> void:
+	if a.hud == null:
+		return
+	var sig: Signal = a.hud.abort_pressed
+	if sig.is_connected(a.abort):
+		sig.disconnect(a.abort)
+	if not sig.is_connected(abort):
+		sig.connect(abort)
 
 
 ## The rescue calls wait for a run (`a` aside): an activity whose `rescue_calls` holds or restarts them is
