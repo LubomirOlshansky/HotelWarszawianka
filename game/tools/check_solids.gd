@@ -40,7 +40,11 @@ const SECTORS: Array[Vector2i] = [Vector2i(3, -1), Vector2i(2, -1), Vector2i(-2,
 ## 2026-11-15, step 8a: unchanged: the parked cars' colliders are still filed (`Solid_parked`, main's
 ## faces); soft_things.gd turns that body off when the soft things are on (check_soft_things M2-M4).
 ## 2026-11-15, Narodowy grounds: +8 faces (46578 → 46586), the gates' four piers as hard boxes; the perimeter fence keeps its smash class (soft lines file no faces here).
-const TOTAL := 46586
+## 2026-11-15, step 8b: -84 faces (46586 → 46502, measured after merging the Narodowy grounds
+## and the phone's place data, #818),
+## tools/parked_thin.py took 11 parked cars out of these sectors (8 faces a car, filed by face
+## centre, so a car on a sector's border counts in part).
+const TOTAL := 46502
 ## W2 of the walls look (2026-11-15): the same sectors built with `--barriers=typed` (the palette's key
 ## stays classic, so verify runs TOTAL): -147 faces, the typed fences' rails collide with one face
 ## per segment as railing_along's do (a slab has two), the `removed` fragments are not drawn. The

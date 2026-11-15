@@ -52,6 +52,7 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | --- | --- | --- | --- |
 | 11 | Park Świętokrzyski at night, drive along the light garden | the projection strip answers the car; the arches read at the phone's zoom; the night fill | #786, #788 |
 | 12 | Warsaw Spire at night | the LED band's bloom; the frame with the Spire on screen | #784 |
+| 12a | Warsaw Spire at night, then Tamka and Pasaż Wiecha (behind the Eastern Wall's stores) by day | the Spire's LED band and its night lines of light are on the glass (they were missing on the phone's city); Tamka has its red-and-white bollards on both kerbs and blue name plates at the Powiśle corners; white Y lamp masts stand all along the pasaż; the frame on Tamka (about 110k more triangles than before on the phone) | phone map data |
 | 13 | Złote Tarasy at night | the glow | Tarasy glow |
 | 14 | The Old Town by car or helicopter: Miodowa, Piwna, Freta, Krakowskie Przedmieście | the frame rate with the rebuilt churches in view; the Archikatedra's roof is green copper and its walls brick | #701 to #789, #775 |
 | 14a | Varso Tower by day from Rondo ONZ and at night from Chmielna | the grey frame reads as a grid (not noise) at the game's zoom; the louvred crown; the spire's dish platforms glow white at night | Varso rebuild |
@@ -60,6 +61,7 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | 14d | Błękitny Wieżowiec from Plac Bankowy and Solidarności, by day and at night | the glass reads deep blue with its panel grid (F's photo), not grey; the glass hall reads as a barrel vault; the red-and-white antennas on the roof | Błękitny rebuild |
 | 14e | Babka Tower from Jana Pawła II and the Babka roundabout, by day and at night | the tower reads pale stone with a glazed loggia column on each face, rising out of the 34 m stone office block; WEKTRA lit on the top floor at night | Babka Tower build |
 | 14f | Stadion Narodowy's park fence and gate boards, from Waszyngtona and the east path, by day and at night; then drive through a fence panel (it breaks with Łamliwe płoty on) and into a gate pier (it stands) | the black bar fence on its dark base reads open (you see the park through it); the red gate boards over the gates; no new stutter near the stadium | Narodowy grounds #808 |
+| 14g | Warsaw Trade Tower from Rondo ONZ and Chłodna, by day and at night | the dark glass drum's floor bands, the warm beige stone, the silver crown's slits; the mast down the west screen with its red-and-white top | WTT photo rework |
 | 15 | Settings → the experimental graphics switch, on and off at the Palace | the look and the frame | #647 |
 
 ## 5. The frame (3 min)

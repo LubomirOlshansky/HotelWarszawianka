@@ -311,8 +311,12 @@
 # fixes by itself: inside a wall, in a carriageway, under a deck, doubles, stubs, stair slabs, paths
 # walled off; 2026-11-08: no scanned tree in the water or on the asphalt, no fence or hedge in the
 # water; the CHECK rules are only counted).
-# Re-bake guard (2026-11-14): `postpasses` runs tools/check_post_passes.py (road_fixes, lane_tapers, zamek_ramps and
-# object_fixes each leave the committed map unchanged: a pass that is not idempotent drifts it on every re-run).
+# Re-bake guard (2026-11-14): `postpasses` runs tools/check_post_passes.py (road_fixes, lane_tapers, zamek_ramps,
+# object_fixes, road_profiles and parked_thin each leave the committed map unchanged: a pass that is not
+# idempotent drifts it on every re-run).
+# Parked rows (the city objects plan, step 8b, 2026-11-15): `parkedthin` runs tools/parked_thin.py --check
+# (the map is thinned, and over the whole map no parked car's box reaches into a lane, none within 1 m
+# of a lane stands within 15 m of a junction, and no two pinched cars stand in neighbouring bays of a row).
 # Stairs across the city (2026-11-07): `stairs` runs tools/stairs.py --check (the map's flights carry
 # their OSM tags: step count, width, handrails, ramps; map_builder.gd builds the stone flights from them)
 # and tools/barrier_tags.py --check (walls, fences and hedges carry their mapped heights, materials and
@@ -1094,6 +1098,15 @@ for s in $want; do
 			case $code in
 				0) row PASS "objects" $secs "$(grep '^object_fixes: ' $logs/objects.log | tail -1)" ;;
 				*) row FAIL "objects" $secs "$(grep '^object_fixes: ' $logs/objects.log | tail -1) ($logs/objects.log)" ;;
+			esac ;;
+		parkedthin)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/parked_thin.py --check > $logs/parkedthin.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			case $code in
+				0) row PASS "parkedthin" $secs "$(grep '^parked_thin: ' $logs/parkedthin.log | tail -1)" ;;
+				*) row FAIL "parkedthin" $secs "$(grep '^parked_thin: ' $logs/parkedthin.log | tail -1) ($logs/parkedthin.log)" ;;
 			esac ;;
 		postpasses)
 			t0=$EPOCHREALTIME

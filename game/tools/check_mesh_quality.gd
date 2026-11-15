@@ -44,6 +44,7 @@ const BUDGET := {
 	"church_alberta": 950,  # 2026-11-14: the whole classicist frontage on Plac Teatralny, portico and two wings, from photos (measured 818)
 	"church_antoniego": 1250,
 	"church_augustyn": 1900,  # 2026-11-14: the whole brick basilica and its 70 m tower, checked against photos (measured 1759)
+	"church_siostry_milosierdzia_zytnia": 1200,  # 2026-11-15: the Sisters of Our Lady of Mercy's house on Żytnia from photos and LoD2 (measured 874)
 	"church_sluzki_dom_generalny": 1200,  # 2026-11-15: the Servants of Jesus' generalate from photos and LoD2 (measured 798)
 	"church_uczennice_boskiego_mistrza": 1400,  # 2026-11-15: the Sister Disciples' convent from photos and LoD2 (measured 1179)
 	"church_plebania_augustyn": 500,  # 2026-11-15: St Augustine's presbytery from LoD2 (measured 311)
@@ -302,7 +303,7 @@ const BUDGET := {
 	"jm": 900,
 	"babka": 800,  # 2026-11-15 photo pass with F's photos (637 tris): stone tower, loggia columns, mast, the 34 m block
 	"wiktoria": 230,
-	"wtt": 1640,
+	"wtt": 1900,  # 2026-11-15 photo rework (1604 tris): crown slits, the mast from its mapped foot
 	"zacheta": 720,
 	"zlota44": 1800,
 	"zygmunt": 320,
