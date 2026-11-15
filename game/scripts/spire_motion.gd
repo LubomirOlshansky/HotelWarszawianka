@@ -243,16 +243,23 @@ static func fin_edge(base: PackedVector2Array, d: Vector2, h: float) -> Vector2:
 	return p + d * FIN_OUT
 
 
+## The tower's mapped outline. The runtime city keeps the whole map in `data`; the prebuilt city
+## keeps none (its `data` is empty, the landmarks live in the index: `index_data`, outlines packed),
+## so both are read, or the lights mesh came out empty on the phone's path (found 2026-11-15).
 func _outline() -> PackedVector2Array:
 	if map == null:
 		return PackedVector2Array()
-	for l in (map.data as Dictionary).get("landmarks", []):
-		if l["name"] == TOWER:
-			var p: Array = l["p"]
-			var out := PackedVector2Array()
-			for i in range(0, p.size() - 1, 2):
-				out.append(Vector2(float(p[i]), float(p[i + 1])))
-			return out
+	var lists: Array = [(map.data as Dictionary).get("landmarks", [])]
+	if "index_data" in map:
+		lists.append((map.index_data as Dictionary).get("landmarks", []))
+	for list: Array in lists:
+		for l in list:
+			if l["name"] == TOWER:
+				var p: Array = l["p"]
+				var out := PackedVector2Array()
+				for i in range(0, p.size() - 1, 2):
+					out.append(Vector2(float(p[i]), float(p[i + 1])))
+				return out
 	return PackedVector2Array()
 
 
