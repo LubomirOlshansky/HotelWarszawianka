@@ -4392,11 +4392,11 @@ func _build_plebania_augustyn(site: Dictionary) -> void:
 
 
 ## The house of the Sister Disciples of the Divine Master (Dom Sióstr Uczennic Boskiego Mistrza,
-## Ochota): a five-storey 1990s convent in red brick, each column of windows set in a cream
+## Żytnia, Wola): a five-storey 1990s convent in red brick, each column of windows set in a cream
 ## plaster strip, the entrance in a recess on the street front and the chapel's raised hipped
 ## block in the middle of the roof. A model that replaces the plain OpenStreetMap block (building
-## 2846; no landmark until 2026-11-15). From seven Mapillary photos along the street to its north
-## (refs/churches/uczennice_boskiego_mistrza, reference only, never shipped), the OSM outline and
+## 2846; no landmark until 2026-11-15). From seven Mapillary photos along the street to its north,
+## Żytnia (refs/churches/uczennice_boskiego_mistrza, reference only, never shipped), the OSM outline and
 ## GUGiK's LoD2 (over the ground: the roof about 19, the chapel block's ridge about 23). The back
 ## walls and the chapel block's colour are defaults (docs/QUESTIONS.md).
 ## Spec docs/landmarks/specs/uczennice_boskiego_mistrza.md.
@@ -6976,7 +6976,7 @@ func _build_church(site: Dictionary) -> void:
 		_build_czestochowska(site)  # the modernist A-frame church and its pylons, from photos
 		return
 	if site["key"] == "church_uczennice_boskiego_mistrza":
-		_build_uczennice_boskiego_mistrza(site)  # the Sister Disciples' brick convent in Ochota, from photos and LoD2
+		_build_uczennice_boskiego_mistrza(site)  # the Sister Disciples' brick convent on Żytnia, from photos and LoD2
 		return
 	if site["key"] == "church_plebania_augustyn":
 		_build_plebania_augustyn(site)  # St Augustine's presbytery from LoD2 (defaults until photos)

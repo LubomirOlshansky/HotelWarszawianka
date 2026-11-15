@@ -1,6 +1,6 @@
-# Dom Sióstr Uczennic Boskiego Mistrza (the Sister Disciples of the Divine Master, Ochota): spec
+# Dom Sióstr Uczennic Boskiego Mistrza (the Sister Disciples of the Divine Master, Żytnia, Wola): spec
 
-Written 2026-11-15 from seven Mapillary photos taken on the street to the north (2017 and 2025,
+Written 2026-11-15 from seven Mapillary photos taken on Żytnia, the street to the north (2017 and 2025,
 refs/churches/uczennice_boskiego_mistrza, CC BY-SA, reference only, never shipped), the OSM outline
 and GUGiK's LoD2. The back walls and the chapel's raised block are seen by no photo, so they are
 defaults until one arrives (docs/QUESTIONS.md).
