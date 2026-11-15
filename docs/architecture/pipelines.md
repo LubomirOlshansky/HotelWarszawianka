@@ -27,6 +27,10 @@ sectors/s_<i>_<j>.scn, proxies.scn, index.res, shared/*.res   (the prebuilt city
 - The last pass of `bake_osm.py` is `tools/object_types.py` (city objects plan step 5): each barrier
   line's type, class, hazard and height by setting are decided here, in the bake, never at run time;
   `tools/overlay_object_types.py` draws the type plot and the 20-sample check's contact sheets.
+- Roads the 10 m ground grid tears (an embankment or a cutting smeared into the asphalt, the
+  ground poking through it) get a ground profile of their own from `tools/road_profiles.py`: one
+  table entry a place, applied by `bake_osm.py` after `lane_tapers.py` (and on a baked map).
+  `--scan` ranks the places left; verify step `roadprofiles` keeps the count going down.
 
 ### 1b. A landmark from Blender (trial, 2026-11-13: the Palace only)
 
