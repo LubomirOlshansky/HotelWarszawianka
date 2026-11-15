@@ -149,6 +149,8 @@ func _bake() -> Error:
 	err = packed_index.pack(map)
 	if err == OK:
 		err = ResourceSaver.save(packed_index, "res://map/index.res", ResourceSaver.FLAG_COMPRESS)
+	if err == OK and not _same_heights(map):
+		err = FAILED
 	map.free()
 	print("bake_city: %d sector scenes %.1f MB, index.res %.1f MB, proxies.scn %.2f MB (at most %d triangles a sector)" % [
 			keys.size(), total / 1048576.0, FileAccess.get_file_as_bytes("res://map/index.res").size() / 1048576.0,
@@ -231,6 +233,46 @@ func _write_stamp() -> Error:
 	f.store_string(JSON.stringify(stamp, " ", true))
 	f.close()
 	return OK
+
+
+## The heights the game reads at play time (`terrain_height`, `ground_height`: the car, the people,
+## the props and colliders the places build) are the same on the saved prebuilt index, opened as the
+## game opens it (SectorStreamer.ready_prebuilt), as on the map it was saved from, every HEIGHT_STEP m
+## over the map. A height made in map_builder's `_setup` and neither saved nor made again there
+## (2026-11-15: the sunken floors, the rail cut and yard, 685 samples up to 7 m off) fails here.
+const HEIGHT_STEP := 10.0
+
+
+func _same_heights(map: Node3D) -> bool:
+	var pre: Node3D = (load("res://map/index.res") as PackedScene).instantiate()
+	root.add_child(pre)
+	(load("res://scripts/sector_streamer.gd") as GDScript).call("ready_prebuilt", pre)
+	var b: Rect2 = map.get("bounds")
+	var n := 0
+	var off := 0
+	var worst := 0.0
+	var at := Vector2.ZERO
+	var z := b.position.y
+	while z < b.end.y:
+		var x := b.position.x
+		while x < b.end.x:
+			for f: StringName in [&"terrain_height", &"ground_height"]:
+				var d := absf(float(map.call(f, x, z)) - float(pre.call(f, x, z)))
+				if d > 0.01:
+					off += 1
+					if d > worst:
+						worst = d
+						at = Vector2(x, z)
+			n += 1
+			x += HEIGHT_STEP
+		z += HEIGHT_STEP
+	pre.free()
+	if off > 0:
+		push_error("bake_city: the prebuilt index's heights differ from the map's at %d of %d samples (up to %.2f m at %.0f, %.0f): a height map_builder makes in _setup is neither saved nor made again in restore_heights" % [
+				off, n * 2, worst, at.x, at.y])
+		return false
+	print("bake_city: the prebuilt index's heights are the map's at %d samples every %.0f m" % [n, HEIGHT_STEP])
+	return true
 
 
 ## The landmark sites found from the index's `site_parts` must be the whole map's (a landmark
