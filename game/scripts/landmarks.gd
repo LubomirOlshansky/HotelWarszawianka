@@ -811,6 +811,7 @@ const INFO := {
 	"church_zwycieska": ["Kościół Matki Boskiej Zwycięskiej", "Kościół parafialny z dwiema wieżami.", "A parish church with two towers."],
 	"church_siostry_milosierdzia_zytnia": ["Siostry Matki Bożej Miłosierdzia", "Dom sióstr przy sanktuarium św. Faustyny na Żytniej.", "The Sisters of Our Lady of Mercy's house by St Faustina's shrine."],
 	"church_uczennice_boskiego_mistrza": ["Siostry Uczennice Boskiego Mistrza", "Ceglany dom zakonny sióstr uczennic przy Żytniej.", "The Sister Disciples of the Divine Master's brick convent."],
+	"church_zytnia_dom_zakonny": ["Dom zakonny na Żytniej", "Dom zakonny po południowej stronie Żytniej, przy Wolności.", "The convent range on the south side of Żytnia, by Wolność."],
 	"church_zwycieska_klasztor": ["Klasztor przy Matce Bożej Zwycięskiej", "Dom zakonny obok kościoła Matki Bożej Zwycięskiej na Kamionku.", "The religious house beside Our Lady of Victory in Kamionek."],
 	"church_klopotowskiego_18": ["Okno Życia na Kłopotowskiego", "Dom kościelny z oknem życia przy Kłopotowskiego 18.", "A church house with a window of life on Kłopotowskiego."],
 	"church_plebania_florian": ["Plebania katedry św. Floriana", "Plebania praskiej katedry przy Floriańskiej.", "The presbytery of Praga's cathedral on Floriańska."],
