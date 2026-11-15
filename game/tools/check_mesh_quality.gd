@@ -301,7 +301,7 @@ const BUDGET := {
 	"jm": 900,
 	"babka": 800,  # 2026-11-15 photo pass with F's photos (637 tris): stone tower, loggia columns, mast, the 34 m block
 	"wiktoria": 230,
-	"wtt": 1640,
+	"wtt": 1900,  # 2026-11-15 photo rework (1604 tris): crown slits, the mast from its mapped foot
 	"zacheta": 720,
 	"zlota44": 1800,
 	"zygmunt": 320,
