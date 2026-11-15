@@ -1,5 +1,7 @@
 # Klasztor Sióstr Wizytek (the Visitation Sisters' convent, Krakowskie Przedmieście 34): spec
 
+**Provisional, no photo** (2026-11-15). Built from LoD2 and the OSM outline only: no photo shows the convent's outside walls, so the plaster, the roofs and the windows are defaults until one does (docs/QUESTIONS.md).
+
 Site key `church_wizytki_klasztor` in `game/scripts/landmarks.gd` (`_find_churches` finds it by
 the OSM outline under `at`, `_build_church` hands it to `_build_wizytki_klasztor`): the convent
 behind the Visitationist church as one model that replaces the plain OpenStreetMap block
