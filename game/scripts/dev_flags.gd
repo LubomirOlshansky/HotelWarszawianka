@@ -364,6 +364,9 @@ var _no_soft := false
 ## 7 pass it). --no-soft wins over it and over the setting for the whole run (its sectors are built
 ## with no soft list, so nothing could turn them breakable).
 var _flag_soft := false
+## --push-parked=X,Z (step 8a, for shots; needs --soft): the parked car nearest X,Z slides off its bay
+## sideways as a push would send it, once its sector is in (main.gd, `soft_things.gd` `push_near`).
+var _flag_push_parked := Vector2.INF
 var _flag_traffic := -1
 var _flag_fixed := false
 var _flag_perf := false
@@ -581,6 +584,9 @@ func parse_with(args: PackedStringArray) -> void:
 			CityBarriers.soft_off = true
 		elif arg == "--soft":
 			_flag_soft = true
+		elif arg.begins_with("--push-parked="):
+			var pp := arg.trim_prefix("--push-parked=").split_floats(",")
+			_flag_push_parked = Vector2(pp[0], pp[1])
 		elif arg == "--race-debug":
 			race_debug = true
 		elif arg.begins_with("--ghost-pace="):

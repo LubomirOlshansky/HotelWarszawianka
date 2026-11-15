@@ -37,6 +37,8 @@ const SECTORS: Array[Vector2i] = [Vector2i(3, -1), Vector2i(2, -1), Vector2i(-2,
 ## with them hard again (`--no-soft`: CityBarriers.soft_off, SoftThings.harden) the faces are main's.
 ## 2026-11-14, step 7 review: +320 faces (46258 → 46578), S lines kept hard again: inside or within
 ## 10 m of a landmark site's ring (city_barriers.gd LANDMARK_GUARD) and road_objects.json hard_lines.
+## 2026-11-15, step 8a: unchanged: the parked cars' colliders are still filed (`Solid_parked`, main's
+## faces); soft_things.gd turns that body off when the soft things are on (check_soft_things M2-M4).
 const TOTAL := 46578
 
 var problems: Array[String] = []

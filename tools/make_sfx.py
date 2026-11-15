@@ -93,6 +93,9 @@ levels (if their folder is given) to balance the buses against.
       (a dull thud, three clanks of thin steel, a rattle of mesh); boards snapping (a woody
       knock at 240 Hz, a crack, splinters); a hedge pushed through (a soft thump under a long
       leafy rustle, a few twigs snapping)
+  smash_car      the city objects plan, step 8a (soft_things.gd): a parked car shoved, 0.9 s: the
+      collisions' hard knock (thump_hard, the same seed) played at 0.8 of its speed, a heavier,
+      duller body
   fan_chant      the fans by Stadion Leguminy (fans.gd): a belly drum and a wordless crowd tune
       in unison at 120 BPM, a cheer at the phrase's end (an 8 s loop)
   gong_bowls     the sound-healing rings (wellness.gd): a gong every 6 s and a singing bowl between (a 12 s loop)
@@ -1273,6 +1276,22 @@ def smash_fence_wood(seed):
     return fade(saturate(out, 1.3), 0.0, 0.06)
 
 
+def smash_car():
+    """Step 8a: a parked car shoved: thump_hard (its own seed, so the same knock) resampled to
+    0.8 of its speed, a third lower and a quarter longer (linear interpolation), 0.875 s."""
+    x = thump(0.7, 42, True)
+    rate = 0.8
+    n = int(len(x) / rate)
+    out = zeros(n)
+    for i in range(n):
+        f = i * rate
+        k = int(f)
+        a = x[k] if k < len(x) else 0.0
+        b = x[k + 1] if k + 1 < len(x) else 0.0
+        out[i] = a + (b - a) * (f - k)
+    return fade(out, 0.0, 0.06)
+
+
 def smash_hedge(seed):
     """Step 7: a hedge pushed through: a soft thump, a long leafy rustle (band-passed noise in
     gusts as the branches spring back) and a few twigs snapping, 0.7 s."""
@@ -2056,6 +2075,8 @@ CITY = {"club_leak": lambda: [club_leak(71)], "metro_chime": lambda: [metro_chim
         # The city objects plan, step 7 (soft_things.gd, main.gd _on_soft_broke): a fence or hedge broken.
         "smash_fence_metal": lambda: [smash_fence_metal(112)], "smash_fence_wood": lambda: [smash_fence_wood(113)],
         "smash_hedge": lambda: [smash_hedge(114)],
+        # Step 8a (soft_things.gd, main.gd _on_car_pushed): a parked car pushed.
+        "smash_car": lambda: [smash_car()],
         # The night-buses loop (buses.gd): the player's horn.
         "horn_player": lambda: [horn_player()],
         # G13b (car.gd): the nitro lighting.

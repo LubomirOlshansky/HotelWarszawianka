@@ -1177,6 +1177,17 @@ func reset_stall() -> void:
 	_stall_at = Vector2.INF
 
 
+## The city objects plan (TD-24): the one way a soft thing (soft_things.gd) changes the car's speed:
+## `vel` scaled by `share` (what a fence smash keeps; 1.0 leaves it), then `nudge` added (m/s: a
+## grind's push off the line, a pushed parked car's answer, a carried car's shared speed). Called
+## between physics steps; the next `_step` takes the speed from there with the preset's own rules. A
+## soft thing that cannot move (a wedged parked car) is a real collider instead, answered in `_step`.
+func apply_soft_cost(share: float, nudge: Vector3) -> void:
+	if share != 1.0:
+		vel *= share
+	vel += nudge
+
+
 ## Stopped, with nothing of the last contact kept (no pin, no wall, no bounce): a car the game
 ## has just moved (the water's tow, the pause card's unstuck button, 2026-11-01).
 func reset_motion() -> void:
