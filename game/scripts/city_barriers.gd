@@ -101,7 +101,7 @@ const POCKET_HEDGES := [
 ]
 
 ## Stadion Narodowy's perimeter (F, 2026-11-15, a street-level photo by Brama 5; docs/landmarks/specs/
-## stadium_grounds.md): OSM maps the park's boundary as plain mesh-panel, chain-link and plain fences
+## stadium-grounds.md): OSM maps the park's boundary as plain mesh-panel, chain-link and plain fences
 ## 200-345 m from the stadium's centre; the real one is a tall black vertical-bar steel fence, so those
 ## lines are drawn in the palette's stadium_fence type. The ball-stop nets, the railway's fence
 ## (`hz`) and anything with a mapped height keep their own look. praga.gd puts the numbered gates
