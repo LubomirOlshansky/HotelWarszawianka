@@ -54,6 +54,7 @@ const Beacon := preload("res://scripts/beacon.gd")
 const Access := preload("res://scripts/access.gd")
 const Pacer := preload("res://scripts/pacer.gd")
 const StopAssist := preload("res://scripts/stop_assist.gd")
+const GameCtx := preload("res://scripts/game_ctx.gd")
 
 enum Phase { IDLE, RING, OFFER, RUN }
 
@@ -169,6 +170,33 @@ func setup(world: Node3D) -> void:
 	_beacon.setup(colour, dark)
 	_beacon.visible = false
 	hud.abort_pressed.connect(abort)
+
+
+# --- the wiring (TD-4 b, docs/design/wiring-out-of-main.md) ------------------------------------
+
+## Wires the activity from the game's services before it is in the tree: main.gd's `_install` calls
+## it where main.gd once set every field by hand. A subclass copies what it needs from `ctx`, reads
+## its own test flags there (`ctx.flags`), calls this for the three fields every activity gets, and
+## returns false when it is off for this run (then main.gd does not build it). It does not keep
+## `ctx`, so it sees only what existed at its place in the build.
+func install(ctx: GameCtx) -> bool:
+	hud = ctx.hud
+	wallet = ctx.wallet
+	map = ctx.map
+	return true
+
+
+## Sets the activity up once it is in the tree (main.gd's `_install`, after `install`). The default
+## is `setup(world)`; one whose setup takes more says so here.
+func setup_in(ctx: GameCtx) -> void:
+	setup(ctx.world)
+
+
+## After the activity joined the director (main.gd's `_add`): the wiring that must follow `setup`,
+## and the test starts made at the join (the same timers, at the same moment, as when main.gd made
+## them). In a release build the flags keep their defaults, so the test starts do nothing.
+func joined(_ctx: GameCtx) -> void:
+	pass
 
 
 ## The player has taken it on (the offer card or anything after it; with `offer_busy` off only
