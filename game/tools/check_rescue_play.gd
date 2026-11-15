@@ -44,7 +44,11 @@ extends SceneTree
 ##      others while the line rings, offers and runs (`call_on_pill`, `rescue_busy`, `rescue_aimed`,
 ##      `may_start`, `targeted` in the air, `busy_tag`), the line running only on main.gd's `tick`, and the
 ##      two questions main.gd and the guide ask it (`put_off`, `answer`). Played after the record is
-##      hashed, and only on the kit (the line before M1 had none of it).
+##      hashed, and only on the kit (the line before M1 had none of it);
+##   Q. one activity at a time (2026-11-15), on a real director with another activity of the kit and a third
+##      that counts the director's notices: M and the HELI list's two rows offer no call while another runs
+##      (`free_now`), one ✕ ends one thing, a failed rescue's TRY AGAIN ends the first run before the second
+##      starts (as many ends as starts), and the call card's life is the kit's (the pill still waits).
 ## Words that no player can read (a place's English `text`, its `short`, the log lines) are not checked: the
 ## deliberate-break run lists them, each with its reason (the M0 report).
 ## Prints "check_rescue_play: OK (N facts; ...)" or one "  problem: ..." line per failed fact under
@@ -405,6 +409,118 @@ func _kit() -> void:
 	_expect(int(m.state) == Missions.State.PICKUP and m.number == n + 1 and m.has_target(),
 			"P answer (the guide's replay): the next call is taken at once: %d %d of %d" % [int(m.state), m.number, n])
 	other.free()
+	await _one_at_a_time()
+
+
+# --- Q. one activity at a time (2026-11-15) ------------------------------------------------------------
+
+## Another activity of the kit (a tour, say: its run lets the rescue countdown go on, `rescue_calls`
+## GO_ON) that hears the ✕ as every activity does (its `setup`), on the line's director; and a third that
+## only counts the director's notices of the line's runs (`other_started`, `other_ended`).
+func _one_at_a_time() -> void:
+	await _fresh()
+	var other: Node = _made(Activity)
+	other.hud = hud
+	other.tag = "tour"
+	root.add_child(other)
+	other.setup(world)
+	other.set_process(false)  # no call of its own by its clock: the check starts its run
+	var counter: Node = _made(Counter)
+	root.add_child(counter)
+	counter.set_process(false)
+	counter.line = m
+	var d: Object = _made(Activities)
+	d.world_free = func() -> bool: return true
+	d.add(other)
+	d.add(counter)
+	d.add(m)
+	m.quiet_start(60.0)
+	# 1. M (the pad's A) while another activity runs: main.gd `_primary` asks the director's keys, then
+	# the pill (down here), then the line's `call_now`.
+	other.start()
+	_expect(d.current() == other and not bool(m.free_now.call()), "Q another activity runs: the line may not start (free_now)")
+	if not d.primary():
+		m.call_now()
+	_expect(int(m.state) == Missions.State.CLOSED and hud.card == "", "Q 1 M while another activity runs offers no call: %d \"%s\"" % [int(m.state), hud.card])
+	# 2. The HELI list's two rows: not offered (`can_request`), and a press does nothing.
+	_expect(not m.can_request(), "Q 2 the HELI list offers no rescue call while another activity runs")
+	m.request_call(true)
+	m.request_peacock()
+	_expect(int(m.state) == Missions.State.CLOSED and hud.card == "", "Q 2 the HELI list's call and peacock rows start nothing while another runs: %d \"%s\"" % [int(m.state), hud.card])
+	other.finish()
+	_expect(m.can_request() and bool(m.free_now.call()), "Q 1-2 the other's run over: the line may start, the list offers its call again")
+	if not d.primary():
+		m.call_now()
+	_expect(int(m.state) == Missions.State.OFFER and m.number == 1, "Q 1 with nothing else on M offers the next call as before: %d" % int(m.state))
+	# 3. One ✕, two things up (the line under way, and a run started past the director: a test flag or a
+	# questline's meeting): the ✕ ends one, the first in the director's order; the next ✕ the other.
+	hud.press(0)
+	other.start()
+	_expect(int(m.state) == Missions.State.PICKUP and other.phase == Activity.Phase.RUN, "Q 3 two things up: the rescue and another run")
+	hud.abort_pressed.emit()
+	var ended := int(other.phase != Activity.Phase.RUN) + int(int(m.state) == Missions.State.RESULT)
+	_expect(ended == 1, "Q 3 one ✕ ends one thing, not %d (the other's phase %d, the line %d)" % [ended, int(other.phase), int(m.state)])
+	_expect(other.phase != Activity.Phase.RUN and int(m.state) == Missions.State.PICKUP, "Q 3 the ✕ went to the first in the director's order (the other)")
+	hud.abort_pressed.emit()
+	_expect(int(m.state) == Missions.State.RESULT and hud.card == "ZA PÓŹNO", "Q 3 the next ✕ ends the rescue: %d %s" % [int(m.state), hud.card])
+	hud.press(2)
+	_expect(int(m.state) == Missions.State.CLOSED, "Q 3 the ✕ with one thing up is as before: FREE ROAM closes")
+	# 4. A failed rescue and TRY AGAIN: the director hears the first run end before the second starts.
+	counter.starts = 0
+	counter.ends = 0
+	m.offer(m.number + 1)
+	hud.press(0)
+	_expect(counter.starts == 1 and counter.ends == 0, "Q 4 a rescue under way: one start (%d), no end (%d)" % [counter.starts, counter.ends])
+	for i in 6000:
+		if int(m.state) == Missions.State.RESULT:
+			break
+		m.tick(DT, PLAYER, 0.0, false)
+	_expect(int(m.state) == Missions.State.RESULT and hud.button_words.size() == 3, "Q 4 the clock ran out: the failure card: %d" % int(m.state))
+	hud.press(0)
+	_expect(int(m.state) == Missions.State.PICKUP and counter.starts == 2 and counter.ends == 1,
+			"Q 4 TRY AGAIN: the first run ended before the second started: %d starts, %d ends (2, 1)" % [counter.starts, counter.ends])
+	_expect(m.has_target() and d.current() == m, "Q 4 TRY AGAIN: the same rescue on again, the line the one that is on")
+	hud.abort_pressed.emit()
+	hud.press(1)
+	_expect(int(m.state) == Missions.State.OFFER and counter.starts == 2 and counter.ends == 2,
+			"Q 4 NEXT CALL from the failure card: the run ended: %d starts, %d ends" % [counter.starts, counter.ends])
+	hud.press(0)
+	var at: Vector3 = m.target_position()
+	_hold_at(at)
+	_hold_at(m.target_position())
+	_expect(int(m.state) == Missions.State.RESULT and hud.card == "URATOWANI", "Q 4 a rescue done: %d %s" % [int(m.state), hud.card])
+	hud.press(1)
+	_expect(int(m.state) == Missions.State.CLOSED and counter.starts == 3 and counter.ends == 3,
+			"Q 4 FREE ROAM from the success card: as many ends as starts: %d, %d" % [counter.starts, counter.ends])
+	# 5. The call card's life is the kit's (activity.gd `card_life`); the pill still waits.
+	m.offer(m.number + 1)
+	var life: float = other.card_life  # the kit's (the other's is the base class's own)
+	_ticks(life - 0.5)
+	_expect(int(m.state) == Missions.State.OFFER and hud.card.begins_with("WEZWANIE"), "Q 5 the call card is up %.1f s on" % (life - 0.5))
+	_ticks(1.0)
+	_expect(int(m.state) == Missions.State.CLOSED and hud.card == "" and counter.ends == 3,
+			"Q 5 nobody answered the call card: it goes after the kit's %.0f s, no run ended: %d \"%s\"" % [life, int(m.state), hud.card])
+	_expect(m.call_in() > Missions.NEXT_CALL * 0.5 - 1.0 and m.call_in() <= Missions.NEXT_CALL * 0.5, "Q 5 the next call in half the wait, the kit's rule for a call nobody answered: %.1f" % m.call_in())
+	m.ring_in(0.05)
+	_ticks(life * 3.0)
+	_expect(int(m.state) == Missions.State.RINGING and hud.pill_word == "WEZWANIE", "Q 5 the pill still waits with no time limit: %d" % int(m.state))
+	other.free()
+	counter.free()
+
+
+## Section Q's third activity: counts the director's notices of the rescue line's runs.
+class Counter extends "res://scripts/activity.gd":
+	var line: Node
+	var starts := 0
+	var ends := 0
+
+	func other_started(a: Node) -> void:
+		if a == line:
+			starts += 1
+
+	func other_ended(a: Node) -> void:
+		if a == line:
+			ends += 1
 
 
 ## A new object of `script`, of no type the parser knows (section P's director and activity).

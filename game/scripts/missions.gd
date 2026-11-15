@@ -13,10 +13,12 @@ extends "res://scripts/activity.gd"
 ## police.gd reads by number) ride on the kit's phases: IDLE and CLOSED are IDLE (the countdown,
 ## `_idle_tick`), RINGING is RING (the pill: `pill_call`, `_show_ring`, no time limit), OFFER is
 ## OFFER (the call card), PICKUP, DROPOFF and RESULT are RUN (`_run_tick`, the result card). Its
-## two cards are its own (`hud.own_card`) and wait for a press. The director (activities.gd) knows
-## it: the arrow, the stop assist and the M and K keys find it there, and another activity's run
-## holds its countdown or puts its call off (activity.gd `rescue_calls`) where each of them wrote
-## `paused` and called `close()` before.
+## two cards are its own (`hud.own_card`); the result card waits for a press, the call card for the
+## kit's `card_life`. The director (activities.gd) knows it: the arrow, the stop assist and the M and K
+## keys find it there, and another activity's run holds its countdown or puts its call off (activity.gd
+## `rescue_calls`) where each of them wrote `paused` and called `close()` before. 2026-11-15 (one
+## activity at a time): M and the HELI list ask the director's `free_now`, a run ends through the kit's
+## `_end` (`_end_run`: TRY AGAIN, NEXT CALL, FREE ROAM) and the ✕ comes through the director.
 
 ## Loop 3g-2 (police.md 8.1): a call was accepted (police.gd ends a chase).
 signal accepted
@@ -99,6 +101,9 @@ var _speed := 0.0
 var _want_heli := false
 ## G12c: the next call is the peacock's (the HELI list's "Pan Paw" request), once.
 var _want_peacock := false
+## How long the call card waits for a press (s): the kit's `card_life`, read before `setup` sets the
+## pill's (INF) (2026-11-15: the card waited for ever before, and held everything while it did).
+var _offer_life := 0.0
 
 
 ## The places from `data` (the map's roads, landmarks and pois), the two beacons in `world`, the
@@ -109,7 +114,8 @@ func setup(map_node: Node3D, data := {}, world: Node3D = null, hud_layer: Canvas
 	hud = hud_layer
 	tag = "rescue"
 	colour = PICKUP_COLOUR
-	card_life = INF  # the pill and the call card wait until pressed
+	_offer_life = card_life  # the call card's, the kit's own (`offer`)
+	card_life = INF  # the pill waits until pressed (`_show_ring`)
 	pill_call = true
 	flown = true  # either vehicle: the arrow shows in the air too, and main.gd's autopilot has its own drive
 	set_process(false)
@@ -155,9 +161,12 @@ func setup(map_node: Node3D, data := {}, world: Node3D = null, hud_layer: Canvas
 func offer(n: int) -> void:
 	if places.hospitals.is_empty() or _held():
 		return
+	_end_run()
 	number = n
 	_mission = _make(n)
 	state = State.OFFER
+	_t = 0.0
+	card_life = _offer_life  # the kit's life for a call card (`_refused`)
 	_pickup.visible = false
 	_dropoff.visible = false
 	hud.hide_status()
@@ -199,6 +208,7 @@ func start(n := -1) -> void:
 func accept() -> void:
 	if _mission.is_empty():
 		return
+	_end_run()  # TRY AGAIN: the failed run ends before the same call starts again
 	start()
 
 
@@ -234,6 +244,7 @@ func board() -> void:
 ## Hides the card; the next call comes in NEXT_CALL seconds later (loop 2e: it was a RESCUE
 ## CALLS button waiting on screen).
 func close() -> void:
+	_end_run()
 	state = State.CLOSED
 	_call_in = NEXT_CALL
 	_pickup.visible = false
@@ -261,10 +272,11 @@ func ring_in(seconds: float) -> bool:
 
 
 ## G12 part 2: a rescue call may be asked for now (the HELI list's request): no call on, ringing
-## or counting down past the guide's hold, and calls not switched off.
+## or counting down past the guide's hold, calls not switched off, and no other activity of the kit on
+## (the director's `free_now`, 2026-11-15: the list offered the call during a tour).
 func can_request() -> bool:
 	return (state == State.CLOSED or state == State.RINGING) and not calls_off and not held and not _held() \
-			and not places.hospitals.is_empty()
+			and not places.hospitals.is_empty() and bool(free_now.call())
 
 
 ## G12 part 2: the HELI list's request: a call only the helicopter reaches (a roof or a sandbar,
@@ -334,6 +346,7 @@ func _ring() -> void:
 ## The kit's ring, as the rescue line's: the pill, a toast, a lighter buzz (not the phone's card).
 func _show_ring() -> void:
 	state = State.RINGING
+	card_life = INF  # the pill waits until pressed
 	if hud.get("messages") != null:
 		hud.messages.call_rang()
 	hud.show_pill("WEZWANIE", "rescue call")
@@ -359,9 +372,10 @@ func primary() -> bool:
 
 
 ## M with nothing else to take it (main.gd `_primary`, after the context button): the next call on
-## the card now, a ringing one too.
+## the card now, a ringing one too; not while another activity of the kit is on (the director's
+## `free_now`, as every other activity's call obeys; 2026-11-15: M offered a call during a tour).
 func call_now() -> void:
-	if not _held() and (state == State.CLOSED or state == State.RINGING):
+	if not _held() and (state == State.CLOSED or state == State.RINGING) and bool(free_now.call()):
 		offer(number + 1)
 
 
@@ -381,8 +395,13 @@ func card_pressed(index: int) -> void:
 
 ## The ✕ on the status line: the rescue is called off (the failure card).
 func abort() -> void:
-	if has_target():
+	if takes_abort():
 		_finish(false, ["Akcja odwołana.", "You called the rescue off."])
+
+
+## The ✕ calls the rescue off while it sends the player somewhere (the director asks, activities.gd `abort`).
+func takes_abort() -> bool:
+	return has_target()
 
 
 ## Card buttons: an offer is ACCEPT / SKIP / LATER, a success NEXT CALL / FREE ROAM,
@@ -408,6 +427,12 @@ func _on_card(index: int) -> void:
 
 func has_target() -> bool:
 	return state == State.PICKUP or state == State.DROPOFF
+
+
+## The kit's `_end` clears its own beacon; the line has none of the kit's (its two go with its stages:
+## `offer`, `close`, `_begin`).
+func clear_target() -> void:
+	pass
 
 
 ## The camera's look at a new target (main.gd `_new_target`).
@@ -632,6 +657,22 @@ func _limit_for(m: Dictionary) -> float:
 
 
 # --- the director and the guide (M1) ------------------------------------------------
+
+## The run (under way or its result card) is over: it ends through the kit's `_end`, as every
+## activity's does, so the director hears it (`on_end`) before what comes next (the next call's card,
+## FREE ROAM, TRY AGAIN's new run). 2026-11-15: the line left its run without an end, and TRY AGAIN
+## started a second over the first. Nothing when no run is on.
+func _end_run() -> void:
+	if phase == Phase.RUN:
+		_end(0.0)
+
+
+## The call card went unanswered for the kit's `card_life` (activity.gd `_process`; the card is down):
+## put off as LATER does, the next call in half the wait, as the kit's other calls nobody answered.
+func _refused(timed_out: bool) -> void:
+	if timed_out and state == State.OFFER:
+		close()
+		_call_in = NEXT_CALL * 0.5
 
 ## main.gd's holds (`paused`) or another activity's run (`calls_held`, its `rescue_calls`).
 func _held() -> bool:
