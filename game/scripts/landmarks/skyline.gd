@@ -661,6 +661,8 @@ func _build_tower(site: Dictionary) -> void:
 			h = minf(h, float(spec["top"]))
 		var wall := glass
 		var part_skin := skin
+		if spec["key"] == "lim" and h > 100.0:
+			part_skin = M_GLASS  # LIM's tower: the shader's mullions and lit rooms (lim.md)
 		var crown := spec.has("crown_from") and mh >= float(spec["crown_from"]) - 0.5
 		if crown:
 			wall = Color(spec["crown"])
@@ -1955,27 +1957,107 @@ func _vsign_tail(poly: PackedVector2Array, y: float) -> void:
 	_crown_signs(poly, y - 6.5, "HOTELS", VSIGN_BLUE, 0.0, 0.26)
 
 
-## The Marriott (the dusk loop): a dark band round the crown (top 7 m) and one two thirds up
-## (4 m), each 0.15 m proud of the glass, a lattice mast on the roof (shaft, platform, a red
-## lamp on top) and the brand's parody (SAMSONG) lit on the mid band, on the south and east
-## faces. The name on the crown goes up with the `sign` key (_dusk_details).
+## Centrum LIM's tower, the Presidential hotel (docs/landmarks/specs/lim.md, 2026-11-15 from 25
+## photos): the mapped 140 m square with its corners cut 3 m back. The cut corners are white
+## panelled piers with grooves, each glass face ends in a white edge strip with a thin light up
+## it at night; two dark bands on the glass faces only (the top 7 m under the hotel's name, 4 m
+## at 62% under the electronics maker's parody SAMSONG), a white parapet, a plant box and a red
+## and white lattice mast to 170 m with two platforms. The glass itself is the parts loop's
+## (M_GLASS). The name on the crown goes up with the `sign` key (_dusk_details).
+const LIM_PIER := Color("#e4e6e3")
+const LIM_DARK_BAND := Color("#14191c")
+const LIM_MAST_RED := Color("#c8322b")
+const LIM_MAST_WHITE := Color("#e8e8e4")
+const LIM_TOWER_FOOT := 15.0   ## the podium's roof, where the tower's white piers start
+
+
 func _marriott(poly: PackedVector2Array, g: float, h: float) -> void:
-	var band := Color("#14191c")
-	var mode := M_SKIN + float(S_DARK) / 16.0
-	var wide := Geometry2D.offset_polygon(poly, 0.15)
-	if wide.is_empty():
-		return
-	var out: PackedVector2Array = wide[0]
-	var mid := g + 0.62 * h
-	_prism(out, g + h - 7.0, g + h, band, Color(0, 0, 0, 0), mode)
-	_prism(out, mid - 2.0, mid + 2.0, band, Color(0, 0, 0, 0), mode)
-	var c := _centre(poly)
+	var keep := _mode
+	_mode = M_STONE
+	var y0 := g + LIM_TOWER_FOOT
 	var roof := g + h
-	var steel := Color("#b8b2a8")
-	_prism(_square(c, 1.2), roof, roof + 26.0, steel, steel.lightened(0.1), M_STONE, M_STONE)
-	_prism(_square(c, 3.0), roof + 14.0, roof + 14.6, steel.darkened(0.15), steel, M_STONE, M_STONE)
-	_prism(_square(c, 0.4), roof + 26.0, roof + 26.8, DUSK_RED, DUSK_RED, M_LAMP, M_LAMP)
+	var mid := g + 0.62 * h
+	var along := Vector2.RIGHT
+	var longest := 0.0
+	for i in poly.size():
+		var a := poly[i]
+		var b := poly[(i + 1) % poly.size()]
+		var length := kit_front(a, b)
+		if _b.dot(_out(poly, a, b)) < 0.0:
+			length = kit_front(b, a)
+		if length > longest:
+			longest = length
+			along = _a
+		if length < 6.0:
+			# A corner pier's face: white panels 4 cm proud, two grooves.
+			_wall(_w(0.0, 0.04), _w(length, 0.04), y0, roof, _b, LIM_PIER)
+			for k in range(1, 3):
+				var u := length * float(k) / 3.0
+				_wall(_w(u - 0.04, 0.08), _w(u + 0.04, 0.08), y0, roof - 0.3, _b, LIM_PIER.darkened(0.22))
+			continue
+		# A glass face: a white edge strip at each end, 0.5 m wide and 0.12 m proud.
+		for e: Vector2 in [Vector2(0.0, 0.5), Vector2(length - 0.5, length)]:
+			_wall(_w(e.x, 0.12), _w(e.y, 0.12), y0, roof, _b, LIM_PIER)
+			_wall(_w(e.x, -0.02), _w(e.x, 0.12), y0, roof, -_a, LIM_PIER.darkened(0.1))
+			_wall(_w(e.y, 0.12), _w(e.y, -0.02), y0, roof, _a, LIM_PIER.darkened(0.1))
+		# The night light up the corner (F's night photos), on the strip at the face's start.
+		_mode = M_LAMP
+		_wall(_w(0.12, 0.16), _w(0.32, 0.16), y0 + 1.0, roof - 0.5, _b, LIM_PIER)
+		_mode = M_STONE
+		# The two dark bands between the strips, 0.15 m proud, with their tops and undersides.
+		for band: Vector2 in [Vector2(roof - 7.0, roof), Vector2(mid - 2.0, mid + 2.0)]:
+			_wall(_w(0.5, 0.15), _w(length - 0.5, 0.15), band.x, band.y, _b, LIM_DARK_BAND)
+			var p0 := _w(0.5, 0.0)
+			var p1 := _w(length - 0.5, 0.0)
+			var q0 := _w(0.5, 0.15)
+			var q1 := _w(length - 0.5, 0.15)
+			_quad(Vector3(p0.x, band.y, p0.y), Vector3(q0.x, band.y, q0.y), Vector3(q1.x, band.y, q1.y),
+					Vector3(p1.x, band.y, p1.y), Vector3.UP, LIM_DARK_BAND.lightened(0.1))
+			_quad(Vector3(p1.x, band.x, p1.y), Vector3(q1.x, band.x, q1.y), Vector3(q0.x, band.x, q0.y),
+					Vector3(p0.x, band.x, p0.y), Vector3.DOWN, LIM_DARK_BAND)
+	_tower_roof(poly, roof, LIM_PIER, Vector2.ZERO)
+	var c := _centre(poly)
+	var side := Vector2(-along.y, along.x)
+	var sq := func(r: float) -> PackedVector2Array:
+		return PackedVector2Array([c + (along + side) * r, c + (-along + side) * r, c + (-along - side) * r, c + (along - side) * r])
+	_prism(sq.call(4.0), roof, roof + 3.0, Color("#4a4f53"), Color("#3e4245"), M_STONE, M_STONE)
+	_lim_mast(c, along, side, roof + 3.0, g + 170.0)
 	_crown_signs(poly, mid, "SAMSONG", DUSK_WARM, 0.0, 0.75)
+	_mode = keep
+
+
+## The mast (photos 1 and 3): a square lattice 2.4 m wide at the foot and 1.2 m at the head, in
+## eight panels painted red and white by turns, two platforms, a pole and the red lamp.
+func _lim_mast(c: Vector2, along: Vector2, side: Vector2, foot: float, head: float) -> void:
+	var corners := func(y: float) -> Array:
+		var r := lerpf(1.2, 0.6, (y - foot) / (head - foot))
+		var out := []
+		for q: Vector2 in [along + side, -along + side, -along - side, along - side]:
+			var p := c + q * r
+			out.append(Vector3(p.x, y, p.y))
+		return out
+	var panels := 8
+	for j in panels:
+		var ya := lerpf(foot, head, float(j) / panels)
+		var yb := lerpf(foot, head, float(j + 1) / panels)
+		var col := LIM_MAST_RED if j % 2 == 0 else LIM_MAST_WHITE
+		var ca: Array = corners.call(ya)
+		var cb: Array = corners.call(yb)
+		for k in 4:
+			var k2 := (k + 1) % 4
+			_beam(ca[k], cb[k], 0.25, col)
+			if j % 2 == 0:
+				_beam(ca[k], cb[k2], 0.12, col)
+			else:
+				_beam(ca[k2], cb[k], 0.12, col)
+	var steel := Color("#8a8f93")
+	for y: float in [foot + 9.0, foot + 18.0]:
+		var r := lerpf(1.2, 0.6, (y - foot) / (head - foot)) + 0.6
+		var deck := PackedVector2Array([c + (along + side) * r, c + (-along + side) * r, c + (-along - side) * r, c + (along - side) * r])
+		_prism(deck, y - 0.4, y, steel, steel.lightened(0.1), M_STONE, M_STONE)
+		_soffit(deck, y - 0.4, steel.darkened(0.25))
+	_frustum(_circle(c, 0.2, 6), head, _circle(c, 0.08, 6), head + 1.6, steel)
+	_prism(_square(c, 0.25), head + 1.6, head + 2.2, DUSK_RED, DUSK_RED, M_LAMP, M_LAMP)
 
 
 # --- Centrum LIM's podium (F's night photos, 2026-11-06) ----------------------------------------
