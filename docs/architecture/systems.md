@@ -122,7 +122,8 @@ in one file, `data/pacing.json`, read by the offer pacer (`pacer.gd`, tech-debt 
 | `story_quests.gd` | The questline registry (`stories.add({...})`): start spots, hours, call, meet, busy, idle. It lists the questlines; which activity is on is the director's (`activities.gd`). |
 | `quest_lines.gd` | Car and helicopter quest lines, marker colours. |
 | `main_line.gd`, `main_nudge.gd` | The main story thread and its on-screen nudge. |
-| `first10.gd` | The fresh-save guide and the end card. |
+| `first10.gd` | The fresh-save guide (the choice card, then one intro per First step not done yet), the First steps' ticks and rewards, the friends' wait, and the end card. |
+| `first_steps.gd` | The First steps list (first hour, step 3): the seven steps, their rewards, the save's `fs_` keys, the rows for the map's list. Pure. |
 | `spacer.gd`, `fotka.gd` | Wander mode (nothing comes by itself); photo mode. |
 
 ## 5. Feedback: HUD, words and sound
