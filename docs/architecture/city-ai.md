@@ -24,6 +24,7 @@ traffic.gd      every AI car: one Driver per car on the graph, drawn as one Mult
      └─ loud_cars.gd     a supercar meet parked by the road
 trams.gd, tram_fleet.gd, old_tram.gd   trams on the baked rails, same lights as cars
 trains.gd                               trains on the baked railway tracks
+campus_cart.gd                          the University guards' cart on a fixed campus ring
 pedestrians.gd  walkers on footways in one MultiMesh, plus fixed "slots" other systems rent
      ├─ crowds.gd        queues, roof crowds, river people (still figures, same mesh)
      ├─ city_life.gd     dog walkers, cyclists, runners, Hyrax, the Wiralek trend cycle
@@ -166,6 +167,11 @@ The gentle police: warnings and jokes, never a fine. Read docs/design/police.md 
 Trams follow OSM track pieces, stop at platforms, obey the car lights and brake for anything in
 their swept width (`AHEAD_REACH` along the curve). The fleet has four looks. Trains run on the
 railway tracks and come in and out at the map edge.
+
+`campus_cart.gd` is not rail but keeps the same pattern: one code-built vehicle on a fixed ring
+round the University lawn (an AnimatableBody3D), stopping for a car GAP m ahead in its lane and at
+the guards' kiosk once a lap; it hides and drops its collider far from the view. It is not a
+traffic Driver because the campus paths are not in the lane graph.
 
 ## 6. People (`pedestrians.gd` and its renters)
 
