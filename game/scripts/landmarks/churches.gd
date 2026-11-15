@@ -4581,6 +4581,97 @@ const FKL_WALL := Color("#ece9e2")      ## white plaster (the shrine's, photos)
 const FKL_ROOF := Color("#606366")      ## grey sheet roofs (the church's, photos)
 
 
+## The presbytery of St Florian's cathedral (Plebania katedry św. Floriana, Floriańska, Praga):
+## an L of two plastered houses behind the cathedral. The range on Floriańska, three tall storeys
+## under a gable roof, white plaster over a beige rusticated ground floor with round-headed
+## windows, small caps over the upper windows and a cornice; its wing into the yard, three lower
+## storeys in cream plaster with plain windows, ends in a low flat-roofed block. A model that
+## replaces the plain OpenStreetMap block (building 899, `presbytery`; no landmark until
+## 2026-11-15). From five Mapillary photos (2019 and 2020, refs/churches/plebania_florian,
+## reference only, never shipped), the OSM outline and GUGiK's LoD2 (over the ground: the range's
+## eaves about 13.9 and ridge 16, the wing's eaves 12.1 and ridge 13.9, the low block 10.8). The
+## roof colour is a default (docs/QUESTIONS.md). Spec docs/landmarks/specs/plebania_florian.md.
+## Frame: origin at the street front's west corner, u to the east along Floriańska, +v into the
+## block (north-north-west); the street front faces -v.
+const PFL_O := Vector2(525.0, -1990.5)
+const PFL_A := Vector2(0.9845, 0.1753)
+const PFL_WALL := Color("#ece6d8")      ## the range's white plaster (photos)
+const PFL_BASE := Color("#d8c8a6")      ## the beige rusticated ground floor (photos)
+const PFL_WING := Color("#e8d8ad")      ## the yard wing's cream plaster (photos)
+const PFL_TRIM := Color("#f4f1ea")      ## window frames, caps, bands, cornice
+const PFL_ROOF := Color("#55504c")      ## dark sheet roofs (a default)
+const PFL_DOOR := Color("#6a4a30")      ## the wooden doors (photos)
+
+
+func _build_plebania_florian(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(PFL_O, PFL_O + PFL_A)
+	_g = _ground_under(outline)
+	var g := _g
+	_mode = M_STONE
+	var none := Color(0, 0, 0, 0)
+	var e_r := g + 13.9   # the range's eaves
+	var e_w := g + 12.1   # the wing's eaves
+	var e_l := g + 10.8   # the low block's flat roof
+	var rng := _largest(Geometry2D.intersect_polygons(outline, _rect(15.0, 5.9, 16.5, 6.95)))
+	var wing := _largest(Geometry2D.intersect_polygons(outline, _rect(14.5, 28.05, 8.5, 15.25)))
+	var low := _largest(Geometry2D.intersect_polygons(outline, _rect(14.5, 46.5, 8.5, 3.2)))
+	_prism(rng, g - 1.0, e_r, PFL_WALL, none, M_STONE)
+	_prism(wing, g - 1.0, e_w, PFL_WING, none, M_STONE)
+	_prism(low, g - 1.0, e_l, PFL_WING, PFL_ROOF.lightened(0.15), M_STONE, M_STONE)
+	kit_cornice_ring(rng, e_r - 0.1, PFL_TRIM, 0.4, 0.35)
+	kit_cornice_ring(wing, e_w - 0.1, PFL_TRIM, 0.3, 0.25)
+	_gable(-0.3, 29.95, 6.4, 6.75, e_r, 2.1, PFL_WALL, PFL_ROOF, true)
+	# the wing's ridge runs into the yard: a frame with u' along +v from the range's back
+	kit_front(_w(14.55, 12.8), _w(14.55, 13.8))
+	_gable(0.0, 30.6, 0.0, 6.95, e_w, 1.8, PFL_WING, PFL_ROOF, true)
+	# --- every wall: the range has a rusticated ground floor, round-headed windows on the street,
+	# capped windows above; the wing and the low block have plain rows
+	var n := outline.size()
+	for k in n:
+		kit_front(PFL_O, PFL_O + PFL_A)
+		var mid := (outline[k] + outline[(k + 1) % n]) * 0.5 - PFL_O
+		var mv := mid.dot(Vector2(-PFL_A.y, PFL_A.x))
+		var street := mv < 0.6
+		var le := kit_front(outline[(k + 1) % n], outline[k])
+		if le < 2.6:
+			continue
+		var m := maxi(1, floori(le / 2.7))
+		var cs: Array = []
+		for i in m:
+			cs.append((float(i) + 0.5) * le / float(m))
+		if mv < 12.9:
+			_kbox(0.0, le, 0.0, 0.05, g - 1.0, g + 4.4, PFL_BASE)
+			for yb: float in [g + 1.0, g + 2.2, g + 3.4]:
+				_kbox(0.0, le, 0.05, 0.07, yb, yb + 0.07, PFL_BASE.darkened(0.12))
+			kit_ledge(0.0, le, g + 4.4, 0.3, PFL_TRIM, 0.12)
+			kit_panes(cs, [g + 5.5, g + 9.3], 1.6, 2.7, PFL_TRIM, 0.03)
+			kit_panes(cs, [g + 5.65, g + 9.45], 1.2, 2.4, PAL_GLASS_DARK, 0.06)
+			kit_panes(cs, [g + 8.2, g + 12.0], 1.8, 0.25, PFL_TRIM, 0.09)
+			if street:
+				for c: float in cs:
+					var pu := (_w(c, 0.0) - PFL_O).dot(PFL_A)
+					if absf(pu - 3.0) > 1.4 and absf(pu - 9.0) > 1.6:
+						kit_face(0.07)
+						kit_door(c, g + 0.9, 2.7, 0.6, PFL_TRIM, PAL_GLASS_DARK, true)
+						kit_face(0.0)
+			else:
+				kit_panes(cs, [g + 1.3], 1.1, 2.0, PAL_GLASS_DARK, 0.08)
+		elif mv < 43.4:
+			kit_panes(cs, [g + 1.2, g + 4.9, g + 8.6], 1.5, 2.15, PFL_TRIM, 0.03)
+			kit_panes(cs, [g + 1.35, g + 5.05, g + 8.75], 1.2, 1.85, PAL_GLASS_DARK, 0.06)
+		else:
+			kit_panes(cs, [g + 1.3, g + 5.0], 1.2, 1.8, PAL_GLASS_DARK, 0.05)
+	# --- the doors on Floriańska: a plain one near the west corner and the round-headed main door
+	kit_front(PFL_O, PFL_O + PFL_A)
+	kit_front(_w(29.66, 0.0), _w(0.0, 0.0))
+	kit_face(0.07)
+	kit_door(29.66 - 3.0, g, 2.6, 0.7, PFL_TRIM, PFL_DOOR)
+	kit_door(29.66 - 9.0, g, 3.4, 0.85, PFL_TRIM, PFL_DOOR, true)
+	kit_front(PFL_O, PFL_O + PFL_A)
+	_collide(outline)
+
+
 const SZT_WALL := Color("#e9e7e0")           ## white plaster (photos 01, 03, 11)
 const SZT_ROOF := Color("#7c9171")           ## dull green copper (photos 01, 02)
 const SZT_TURRET := Vector2(57.0, -162.0)    ## where the south range meets the west one (a default: photo 02)
@@ -6998,6 +7089,8 @@ const CHURCHES := [
 			"fill": 0.9, "style": "neoclassical", "wall": "#e6c2a2", "roof": "#4d5257", "towers": 0, "cap": "none"},
 	{"key": "church_siostry_milosierdzia_zytnia", "at": Vector2(-2790.0, -692.0), "o": Vector2(-2813.5, -695.3), "out": Vector2(-0.262, -0.965), "L": 41.6, "W": 16.2,
 			"fill": 0.9, "style": "modern", "wall": "#a24f3a", "roof": "#5f6163", "towers": 0, "cap": "none"},
+	{"key": "church_plebania_florian", "at": Vector2(534.0, -1963.0), "o": Vector2(525.0, -1990.5), "out": Vector2(0.175, -0.985), "L": 29.7, "W": 48.1,
+			"fill": 0.9, "style": "neoclassical", "wall": "#ece6d8", "roof": "#55504c", "towers": 0, "cap": "none"},
 	{"key": "church_sluzki_dom_generalny", "at": Vector2(-203.0, -515.0), "o": Vector2(-206.4, -500.9), "out": Vector2(-0.917, 0.400), "L": 28.3, "W": 29.6,
 			"fill": 0.9, "style": "neoclassical", "wall": "#e3c48e", "roof": "#6b6c6c", "towers": 0, "cap": "none"},
 	{"key": "church_uczennice_boskiego_mistrza", "at": Vector2(-2890.0, -650.0), "o": Vector2(-2919.2, -669.7), "out": Vector2(-0.231, -0.973), "L": 37.5, "W": 41.5,
@@ -7110,6 +7203,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_siostry_milosierdzia_zytnia":
 		_build_siostry_milosierdzia_zytnia(site)  # the Sisters of Our Lady of Mercy's house on Żytnia, from photos and LoD2
+		return
+	if site["key"] == "church_plebania_florian":
+		_build_plebania_florian(site)  # St Florian's presbytery on Floriańska, from photos and LoD2
 		return
 	if site["key"] == "church_sluzki_dom_generalny":
 		_build_sluzki_dom_generalny(site)  # the Servants of Jesus' generalate, from photos and LoD2
