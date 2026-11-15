@@ -703,16 +703,16 @@ func _show_places(on: bool, again := false) -> void:
 	var marks: Array[Dictionary] = []
 	if on:
 		for s in _stands:
-			marks.append({"layer": MapMarkers.Layer.JOB, "at": Vector2(s["ring"].x, s["ring"].z), "colour": KEBAB_COLOUR, "shape": MapIcons.POI_KEBAB})
+			marks.append({"layer": MapMarkers.Layer.JOB, "at": Vector2(s["ring"].x, s["ring"].z), "colour": KEBAB_COLOUR, "shape": MapIcons.POI_KEBAB, "group": "kebab"})
 		for st in _stations:
-			marks.append({"layer": MapMarkers.Layer.JOB, "at": Vector2(st["ring"].x, st["ring"].z), "colour": SLOIK_COLOUR, "shape": MapIcons.POI_STATION})
+			marks.append({"layer": MapMarkers.Layer.JOB, "at": Vector2(st["ring"].x, st["ring"].z), "colour": SLOIK_COLOUR, "shape": MapIcons.POI_STATION, "group": "sloik"})
 	# The free-ride boat at the start pontoon (boat_race.gd): its mark stays with the places.
 	if on and boat_spot != Vector2.INF:
-		marks.append({"layer": MapMarkers.Layer.JOB, "at": boat_spot, "colour": BOAT_COLOUR, "shape": MapIcons.POI_BOAT})
+		marks.append({"layer": MapMarkers.Layer.JOB, "at": boat_spot, "colour": BOAT_COLOUR, "shape": MapIcons.POI_BOAT, "group": "boat"})
 	# Loop jobs-2: the Leżak depots at night.
 	if roundup != null and roundup._shown and not round_busy():
 		for q: Vector2 in roundup.depot_points():
-			marks.append({"layer": MapMarkers.Layer.JOB, "at": q, "colour": roundup.COLOUR, "shape": MapIcons.POI_DEPOT})
+			marks.append({"layer": MapMarkers.Layer.JOB, "at": q, "colour": roundup.COLOUR, "shape": MapIcons.POI_DEPOT, "group": "lezak"})
 	hud.markers.put_all("jobs", marks)
 
 

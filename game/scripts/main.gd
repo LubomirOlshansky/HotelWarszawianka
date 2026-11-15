@@ -3268,24 +3268,17 @@ func _story_tick() -> void:
 	_shisha_secret(focus)
 	_meet_night()
 	_rave_night()
-	var m: Array = StoryQuests.marks(stories.defs, focus or flying)
-	var names := PackedStringArray()
-	var blurbs := PackedStringArray()
-	var small := PackedByteArray()
-	if not (focus or flying):
-		for d: Dictionary in stories.defs:
-			if d["at"] != Vector2.INF:
-				names.append(Lang.pick(str(d["pl"]), str(d["en"])))
-				var b: Array = d.get("blurb", ["", ""])
-				blurbs.append(Lang.pick(str(b[0]), str(b[1])))
-				small.append(1 if d.get("small", false) else 0)
-	var key := "%s %d %s" % [focus, (m[0] as PackedVector2Array).size(), Lang.pick("pl", "en")]
+	# The starts are the marker registry's STORY marks (TD-13); its rule table hides them in focus
+	# and in the air.
+	var m: Array[Dictionary] = StoryQuests.map_marks(stories.defs)
+	var key := "%s %s %s" % [focus, m.map(func(e: Dictionary) -> Vector2: return e["at"]), Lang.pick("pl", "en")]
 	if key == _story_key:
 		return
 	_story_key = key
-	hud.set_story(m[0], m[1], focus, names, blurbs, small)
+	hud.markers.put_all("stories", m)
+	hud.set_quest_focus(focus)
 	if flags.stories_log:
-		print("stories: focus %s, %d starts on the map" % ["on" if focus else "off", (m[0] as PackedVector2Array).size()])
+		print("stories: focus %s, %d starts on the map" % ["on" if focus else "off", 0 if focus or flying else m.size()])
 
 
 ## The questline friend may walk up (story_quests.gd): as `_world_free`, but a rescue call that only
@@ -6268,7 +6261,10 @@ func _main_line_tick(dt: float) -> void:
 	if wallet != null:
 		f["jobs"] = wallet.jobs_done()
 	main_step = MainLine.now(f)
-	hud.set_main_line(main_step["at"], str(main_step["pl"]), str(main_step["en"]))
+	# The star is the marker registry's MAIN mark (TD-13), written only when it moves.
+	if main_step["at"] != hud.markers.where("main:star"):
+		hud.markers.put_all("main", MainLine.map_marks(main_step["at"]))
+	hud.set_main_goal(str(main_step["pl"]), str(main_step["en"]))
 	# Nothing comes by itself on the title, in a camera moment or in Spacer (spacer.gd).
 	var quiet := title != null or (moments != null and moments.playing()) or (spacer != null and spacer.on)
 	var n := _nudge.tick(MainLine.STEP_EVERY, main_step, _free_now, quiet)

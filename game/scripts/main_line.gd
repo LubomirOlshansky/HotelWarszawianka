@@ -19,6 +19,7 @@ const COLOUR := Color("#ffd23f")
 const RIM := Color("#2a1d05")
 
 const Ladder := preload("res://scripts/ladder.gd")
+const MapMarkers := preload("res://scripts/map_markers.gd")
 
 ## F (2026-11-08): "for now the main line is only the first task, the kebab". After the first job
 ## (or with no guide on this save) the star, the goal card and the nudge stay off, so they never
@@ -75,6 +76,14 @@ static func step(f: Dictionary) -> Dictionary:
 
 ## The main line as the game shows it: `step` while FIRST_JOB_ONLY lets it through (the guide is
 ## on and no job is done yet: f.jobs), else "done" (no star, no goal line, no nudge).
+## The star as the map marker registry's MAIN mark (map_markers.gd `put_all`, owner "main", id
+## MapMarkers.MAIN_STAR; TD-13): none while the step has no place (`at` INF).
+static func map_marks(at: Vector2) -> Array[Dictionary]:
+	if at == Vector2.INF:
+		return []
+	return [{"layer": MapMarkers.Layer.MAIN, "at": at, "colour": COLOUR, "group": "main", "key": "star"}]
+
+
 static func now(f: Dictionary) -> Dictionary:
 	if FIRST_JOB_ONLY and (not bool(f.get("guide", false)) or int(f.get("jobs", 0)) >= 1):
 		return _out("done", 1, "", "", Vector2.INF)
