@@ -180,6 +180,34 @@ func setup(world: Node3D) -> void:
 	_log("%d routes (%s), %d groups; first call in %.0f s" % [routes.size(), ", ".join(names), groups.size(), call_in])
 
 
+## Its wiring (TD-4 b, once main.gd's `_build_crawl`): none with --no-traffic or --crawl=0.
+## --crawl-route=ID and --crawl-group=ID pick the night, --crawl-log prints it.
+func install(ctx: GameCtx) -> bool:
+	if ctx.traffic == null or ctx.graph == null or ctx.flags.crawl_flag == "0":
+		return false
+	super(ctx)
+	name = "BarCrawl"
+	bubbles = ctx.bubbles
+	graph = ctx.graph as LaneGraph
+	origin = ctx.data.get("origin", [52.234, 21.024])
+	log_on = ctx.flags.crawl_log
+	auto = ctx.flags._crawl_auto
+	autopilot = ctx.flags.autopilot
+	force_route = ctx.flags.crawl_route
+	force_group = ctx.flags.crawl_group
+	vehicle = ctx.vehicle
+	clock = ctx.hour
+	return true
+
+
+## The car's bumps shake the group (`on_bump`); --crawl=call (or --crawl-call) rings a second into
+## the drive, at any hour.
+func joined(ctx: GameCtx) -> void:
+	ctx.car.bumped.connect(func(_c: Object, speed: float) -> void: on_bump(speed))
+	if ctx.flags.crawl_flag == "call":
+		get_tree().create_timer(1.0).timeout.connect(func() -> void: ring())
+
+
 # --- the rules (static: check_bar_crawl.gd runs them) -----------------------------------------
 
 ## The groups' table (data/bar_crawl.json), [] when missing.

@@ -262,6 +262,7 @@ SITE_AREAS = [
     (-2820, -712, -2762, -673),   # church_siostry_milosierdzia_zytnia
     (-2781, -728, -2700, -643),   # faustyna_klasztor
     (519, -1995, 559, -1936),   # church_plebania_florian
+    (527, -1822, 579, -1775),   # church_klopotowskiego_18
     (32, -222, 111, -100),   # szarytki
     (-102, -74, -63, -31),   # adwentysci
     (-860, -1600, -810, -1545),   # elzbietanki

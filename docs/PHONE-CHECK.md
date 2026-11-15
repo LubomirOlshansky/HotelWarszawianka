@@ -64,6 +64,7 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | 14g | Warsaw Trade Tower from Rondo ONZ and Chłodna, by day and at night | the dark glass drum's floor bands, the warm beige stone, the silver crown's slits; the mast down the west screen with its red-and-white top | WTT photo rework |
 | 14h | Krakowskie Przedmieście at the University's gate, then the campus avenue to the Old Library, then round Pałac Kazimierzowski to the escarpment, by day and at night | the gate's iron and the eagle read against the campus; the Old Library's clock shows the time and lights at night; the brick escarpment wall with its graffiti from the Powiśle path; the frame on the campus (about 25 k new triangles, no new draw calls) | University campus |
 | 14i | Stadion Leguminy (Legia) from Łazienkowska and the Trasa, by day and at night | the roof's edge reads as a row of white peaks over a dark truss; the green pitch shows; the columns and green banners along the concourse; the floodlight strip lit at night | Legia photo rework |
+| 14j | Gmach Główny Politechniki from Plac Politechniki and Nowowiejska, by day and at night | the pale stone front reads (not grey); three tall arched windows between paired columns; the attic with its figure group against the sky; the glass hall roof stays blue-grey glass, not zinc; the lamp globes lit at night | Politechnika front |
 | 15 | Settings → the experimental graphics switch, on and off at the Palace | the look and the frame | #647 |
 
 ## 5. The frame (3 min)

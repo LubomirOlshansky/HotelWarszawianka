@@ -45,6 +45,7 @@ const BUDGET := {
 	"church_antoniego": 1250,
 	"church_augustyn": 1900,  # 2026-11-14: the whole brick basilica and its 70 m tower, checked against photos (measured 1759)
 	"church_siostry_milosierdzia_zytnia": 1200,  # 2026-11-15: the Sisters of Our Lady of Mercy's house on Żytnia from photos and LoD2 (measured 874)
+	"church_klopotowskiego_18": 1500,  # 2026-11-15: the church house with the window of life on Kłopotowskiego from photos and LoD2 (measured 1288)
 	"church_plebania_florian": 1500,  # 2026-11-15: St Florian's presbytery on Floriańska from photos and LoD2 (measured 1352)
 	"church_sluzki_dom_generalny": 1200,  # 2026-11-15: the Servants of Jesus' generalate from photos and LoD2 (measured 798)
 	"church_uczennice_boskiego_mistrza": 1400,  # 2026-11-15: the Sister Disciples' convent from photos and LoD2 (measured 1179)
@@ -178,6 +179,7 @@ const BUDGET := {
 	# Open courtyards (F, 2026-11-03): mf and muzeum gained their walled, windowed courts.
 	"mf": 2350,
 	"poczta": 710,
+	"politechnika": 950,  # 2026-11-15 front from F's photos: the columned middle on Plac Politechniki, attic and figures, stairs, lamp pillars
 	"pasta": 580,
 	"msn": 500,
 	# Norblin on its real block (2026-11-02, photo report): two blocks, Plater and Galwan, about

@@ -142,6 +142,10 @@ const BoatRace := preload("res://scripts/boat_race.gd")
 ## na kółkach", Claire's drive round Kieślowski's Warsaw, and "Kino objazdowe", the director
 ## friend's cinema tour (F's asks 2026-11-07).
 const Activities := preload("res://scripts/activities.gd")
+## The kit's base and what an activity may use from the game: an activity wires itself from it
+## (`install`, TD-4 b, docs/design/wiring-out-of-main.md), and main.gd only joins it (`_join`).
+const Activity := preload("res://scripts/activity.gd")
+const GameCtx := preload("res://scripts/game_ctx.gd")
 const PauseReasons := preload("res://scripts/pause_reasons.gd")
 const Tour := preload("res://scripts/tour.gd")
 
@@ -437,6 +441,10 @@ var boat_race: BoatRace
 ## The activity kit's director (activities.gd): which activity of the kit is on, who may start,
 ## where it sends the player. The tours below are the first to join it.
 var activities := Activities.new()
+## What an activity of the kit may use from the game (game_ctx.gd): the world and the city's data
+## once the map is built, the services filled again before each activity installs itself
+## (`_build_ctx`).
+var _ctx := GameCtx.new()
 ## The game's pause (pause_reasons.gd, TD-20): the loading bar, the settings card, the full map and
 ## the garage card each hold their own reason, and the game runs when none is held. Nothing here
 ## or in a system writes `get_tree().paused` itself.
@@ -1372,6 +1380,8 @@ func _build_world() -> void:
 		map.open_maps_whole()  # loop 3d-2b: every sector's map slices on the GPU at once
 		soft_things.add_sector(map)  # step 7: the whole city's soft lines
 	await _load_mark(0.1)
+	_ctx.world = world
+	_ctx.data = data
 
 	for a in data["areas"]:
 		if a["k"] == "water":
@@ -1672,8 +1682,9 @@ func _build_world() -> void:
 	await LoadYield.tick("_build_ev_tow")
 	_build_stories(world)
 	await LoadYield.tick("_build_stories")
-	_build_crawl(data, world)
-	await LoadYield.tick("_build_crawl")
+	# The night groups' calls and their crawls (bar_crawl.gd wires itself); none with --no-traffic or --crawl=0.
+	crawl = _join(BarCrawl.new(), world) as BarCrawl
+	await LoadYield.tick("crawl")
 	await _build_storefronts(data, world)  # the Leżak round-up joins the director here
 	await LoadYield.tick("_build_storefronts")
 	# M1: the rescue line joins the director last (after the round-up above), so the M and K keys,
@@ -3703,37 +3714,56 @@ func _place_car(at: Vector3, yaw: float) -> void:
 	print("teleport: the car to %.0f, %.0f for the meet" % [at.x, at.z])
 
 
-# --- the bar crawl ----------------------------------------------------------------------------
+# --- the activities' wiring (TD-4 b, docs/design/wiring-out-of-main.md) ------------------------
 
-## The night groups' calls and their crawls (bar_crawl.gd, an activity of the kit). None with
-## --no-traffic or --crawl=0.
-func _build_crawl(data: Dictionary, world: Node3D) -> void:
-	if traffic == null or graph == null or flags.crawl_flag == "0":
-		return
-	crawl = BarCrawl.new()
-	crawl.name = "BarCrawl"
-	crawl.hud = hud
-	crawl.bubbles = bubbles
-	crawl.wallet = wallet
-	crawl.map = map
-	crawl.graph = graph
-	crawl.origin = data.get("origin", [52.234, 21.024])
-	crawl.log_on = flags.crawl_log
-	crawl.auto = flags._crawl_auto
-	crawl.autopilot = flags.autopilot
-	crawl.force_route = flags.crawl_route
-	crawl.force_group = flags.crawl_group
-	crawl.vehicle = func() -> Array:
+## The ctx (game_ctx.gd) filled from main's fields as they are now, just before an activity installs
+## itself: each one sees what exists at its place in the build, as when main.gd wired it by hand.
+func _build_ctx() -> GameCtx:
+	_ctx.flags = flags
+	_ctx.hud = hud
+	_ctx.bubbles = bubbles
+	_ctx.wallet = wallet
+	_ctx.map = map
+	_ctx.graph = graph
+	_ctx.traffic = traffic
+	_ctx.car = car
+	_ctx.vehicle = func() -> Array:
 		if flying:
-			return [heli.global_position, heli.speed() * 3.6, true]
-		return [car.global_position, car.vel.length() * 3.6, false]
-	crawl.clock = func() -> float: return float(tod.local_clock()["hour"])
-	world.add_child(crawl)
-	crawl.setup(world)
-	activities.add(crawl)  # the director says when it may ring (nothing else on: `world_free`)
-	car.bumped.connect(func(_c: Object, speed: float) -> void: crawl.on_bump(speed))
-	if flags.crawl_flag == "call":
-		get_tree().create_timer(1.0).timeout.connect(func() -> void: crawl.ring())
+			return [heli.global_position, heli.speed() * 3.6, true, 0.0]
+		return [car.global_position, car.vel.length() * 3.6, false, float(car.forward_speed)]
+	_ctx.hour = func() -> float: return float(tod.local_clock()["hour"])
+	return _ctx
+
+
+## An activity of the kit builds itself: it wires itself from the ctx (`install`; null when it is off
+## for this run, as --crawl=0), goes under `parent` (at `index` when given: the order of the frames)
+## and sets itself up (`setup_in`).
+func _install(a: Activity, parent: Node, index := -1) -> Activity:
+	if not a.install(_build_ctx()):
+		a.free()
+		return null
+	parent.add_child(a)
+	if index >= 0:
+		parent.move_child(a, index)
+	a.setup_in(_ctx)
+	return a
+
+
+## It joins the director, then wires what follows the join (`joined`: its test starts too).
+## `world_test`: its own test for everything outside the kit, as `activities.add` takes it (none:
+## the director's `world_free`). The order of the joins is the director's order: M and K, the ✕,
+## the arrow and the stop assist ask the first one first.
+func _add(a: Activity, world_test := Callable()) -> Activity:
+	if a == null:
+		return null
+	activities.add(a, world_test)
+	a.joined(_ctx)
+	return a
+
+
+## Both at once, for an activity whose setup and join come together (most of them).
+func _join(a: Activity, parent: Node, world_test := Callable()) -> Activity:
+	return _add(_install(a, parent), world_test)
 
 
 # --- dead electric cars ----------------------------------------------------------------------

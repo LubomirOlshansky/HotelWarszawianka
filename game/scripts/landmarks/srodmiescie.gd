@@ -5571,3 +5571,97 @@ func _build_plac_grzybowski(_site: Dictionary) -> void:
 		_prism(_square(tp, 0.07), ty, ty + 0.72, Color("#2d2a28"), Color("#2d2a28"), M_STONE, M_STONE)
 		for q: Vector2 in [Vector2(0.65, 0.0), Vector2(-0.65, 0.0), Vector2(0.0, 0.65), Vector2(0.0, -0.65)]:
 			_prism(_square(tp + q, 0.22), ty, ty + 0.5, Color("#c9a870"), Color("#d6b982"), M_STONE, M_STONE)
+
+
+# --- Gmach Główny Politechniki Warszawskiej (Plac Politechniki) ---------------------------------
+
+## The University of Technology's main building (1899-1901, Stefan Szyller), from F's five photos
+## (refs/_f/warsaw-needed-photos/top-50/T20, 2026-11-13; spec docs/landmarks/specs/politechnika.md).
+## The mass is LoD2's, in cream plaster (SKINS "politechnika"; the Great Hall's glass roof keeps its
+## own colour). LoD2 already has the front pavilion's plan on Plac Politechniki (east-south-east):
+## a flat middle 17.5 m wide between two rounded wings, all to the 22.8 m eave. Its face is ours:
+## the middle bay stands 0.6 m proud in plain stone, its three tall arched windows over three arched
+## doors between paired giant columns under an entablature, a balcony; over the eave an attic with
+## the name's plaque, two urn-topped pylons and the sculpture group (a standing figure with a raised
+## torch between two seated ones); three steps, the round basin and two tall lamp posts in front.
+## The frame: v out of the flat face (LoD2's wall normal), u along it, from its middle.
+const PW_MID := Vector2(-901.85, 1501.7)
+const PW_OUT := Vector2(0.902, 0.431)
+const PW_HALF := 8.75          ## half the flat middle's width (LoD2's wall, -898.1,1493.8 to -905.6,1509.6)
+const PW_EAVE := 22.8          ## LoD2's eave over the ground there
+const PW_WALL := Color("#ece6d8")
+const PW_BASE := Color("#ddd6c6")
+const PW_WHITE := Color("#f4f1e9")
+const PW_GLASS := Color("#2c333a")
+const PW_DOOR := Color("#5b3a2a")
+const PW_STATUE := Color("#d3cec4")
+const PW_LAMP := Color("#5a5048")      ## the dark stone of the lamp pillars
+const PW_GLOBE := Color("#fbf3dc")     ## the white globes, lit at night
+
+
+func _build_politechnika(_site: Dictionary) -> void:
+	_b = PW_OUT.normalized()
+	_a = Vector2(_b.y, -_b.x)
+	_o = PW_MID
+	_g = map.terrain_height(PW_MID.x, PW_MID.y)
+	var g := _g
+	var e := PW_EAVE
+	var hw := PW_HALF
+	# The middle bay, proud of LoD2's wall: plain stone over a rusticated base.
+	var face := 0.6
+	_lbox(0.0, face * 0.5, hw, face * 0.5, g - 0.5, g + e - 1.4, PW_WALL, M_STONE)
+	_lbox(0.0, face * 0.5 + 0.02, hw + 0.02, face * 0.5 + 0.02, g - 0.5, g + 7.2, PW_BASE, M_STONE)
+	_lbox(0.0, face * 0.5 + 0.1, hw + 0.1, face * 0.5 + 0.1, g + 7.0, g + 7.5, PW_WHITE, M_STONE, PW_WHITE)
+	for u: float in [-4.4, 0.0, 4.4]:
+		_arch_win(_w(u, face), -_a, _b, 1.35, g + 9.2, g + 16.2, PW_GLASS)
+		_arch_win(_w(u, face + 0.04), -_a, _b, 1.15, g + 0.6, g + 4.4, PW_DOOR)
+	for u: float in [-7.3, -6.5, -2.6, -1.8, 1.8, 2.6, 6.5, 7.3]:
+		_column(u, face + 0.45, 0.36, g + 7.5, g + e - 2.2, PW_WHITE)
+	# The entablature and the cornice over the columns, the balcony under the windows.
+	_lbox(0.0, face * 0.5 + 0.45, hw + 0.4, face * 0.5 + 0.45, g + e - 2.2, g + e - 1.4, PW_WHITE, M_STONE, PW_WHITE)
+	_lbox(0.0, face * 0.5 + 0.7, hw + 0.7, face * 0.5 + 0.7, g + e - 1.4, g + e - 0.4, PW_WHITE, M_STONE, PW_WHITE)
+	_soffit(_rect(0.0, face * 0.5 + 0.7, hw + 0.7, face * 0.5 + 0.7), g + e - 1.4, PW_WHITE.darkened(0.15))
+	_lbox(0.0, face + 0.45, 6.0, 0.45, g + 8.3, g + 8.8, PW_WHITE, M_STONE, PW_WHITE)
+	# The attic over the middle, on the cornice: the name's plaque, its own cornice, two pylons
+	# with urns, the sculpture group on a pedestal.
+	_lbox(0.0, face - 1.0, hw - 0.4, 1.5, g + e - 0.4, g + e + 4.4, PW_WALL, M_STONE, PW_WHITE)
+	_lbox(0.0, face + 0.52, 4.2, 0.03, g + e + 1.0, g + e + 2.8, PW_BASE.darkened(0.05), M_STONE)
+	_lbox(0.0, face - 1.0, hw - 0.1, 1.8, g + e + 4.4, g + e + 5.0, PW_WHITE, M_STONE, PW_WHITE)
+	for sd: float in [-1.0, 1.0]:
+		var pu := sd * (hw - 1.2)
+		_lbox(pu, face - 0.6, 1.1, 1.1, g + e + 5.0, g + e + 6.6, PW_WALL, M_STONE, PW_WHITE)
+		_prism(_circle(_w(pu, face - 0.6), 0.55, 8), g + e + 6.6, g + e + 8.0, PW_WHITE, PW_WHITE, M_STONE, M_STONE)
+	_lbox(0.0, face - 0.9, 3.2, 1.3, g + e + 5.0, g + e + 6.2, PW_WHITE, M_STONE, PW_WHITE)
+	var fig := _w(0.0, face - 0.9)
+	_prism(_circle(fig, 0.7, 6), g + e + 6.2, g + e + 10.6, PW_STATUE, PW_STATUE, M_STONE, M_STONE)
+	_prism(_circle(fig, 0.42, 6), g + e + 10.6, g + e + 11.4, PW_STATUE, PW_STATUE, M_STONE, M_STONE)
+	var sh := _w(0.35, face - 0.9)
+	var hand := _w(0.8, face - 0.6)
+	_beam(Vector3(sh.x, g + e + 10.2, sh.y), Vector3(hand.x, g + e + 13.2, hand.y), 0.28, PW_STATUE)
+	for sd: float in [-1.0, 1.0]:
+		_prism(_circle(_w(sd * 2.0, face - 0.7), 0.75, 6), g + e + 6.2, g + e + 8.4, PW_STATUE, PW_STATUE, M_STONE, M_STONE)
+	# Three steps up to the doors, held by a low curved stone kerb with a ball at each end, and
+	# the two dark stone pillars on the stair cheeks with their clusters of white globes.
+	for k in 3:
+		var d := 0.45 * (3 - k)
+		_lbox(0.0, face + d * 0.5, hw - 0.4 - k * 0.4, d * 0.5, g - 0.4, g + 0.2 + k * 0.2,
+				PW_BASE.darkened(0.1), M_STONE, PW_BASE.darkened(0.05))
+	var kerb := PW_BASE.darkened(0.12)
+	var n := 8
+	for i in n:
+		var t0 := PI * float(i) / float(n)
+		var t1 := PI * float(i + 1) / float(n)
+		var q := PackedVector2Array([
+			_w(-cos(t0) * 6.6, face + sin(t0) * 4.6), _w(-cos(t1) * 6.6, face + sin(t1) * 4.6),
+			_w(-cos(t1) * 6.2, face + sin(t1) * 4.25), _w(-cos(t0) * 6.2, face + sin(t0) * 4.25)])
+		_prism(q, g - 0.3, g + 0.75, kerb, kerb.lightened(0.05), M_STONE, M_STONE)
+	for sd: float in [-1.0, 1.0]:
+		var bp := _w(sd * 6.4, face + 0.3)
+		_lbox(sd * 6.4, face + 0.3, 0.3, 0.3, g - 0.3, g + 1.0, kerb, M_STONE, kerb)
+		_prism(_circle(bp, 0.28, 6), g + 1.0, g + 1.5, kerb, kerb, M_STONE, M_STONE)
+	for sd: float in [-1.0, 1.0]:
+		var pu := sd * 2.2
+		_lbox(pu, face + 1.0, 0.35, 0.35, g - 0.3, g + 4.6, PW_LAMP, M_STONE, PW_LAMP)
+		_prism(_circle(_w(pu, face + 1.0), 0.75, 6), g + 4.6, g + 5.3, PW_GLOBE, PW_GLOBE, M_LAMP, M_LAMP)
+		_prism(_circle(_w(pu, face + 1.0), 0.3, 6), g + 5.3, g + 6.0, PW_GLOBE, PW_GLOBE, M_LAMP, M_LAMP)
+	_collide(_rect(0.0, face * 0.5, hw, face * 0.5))

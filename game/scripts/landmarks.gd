@@ -630,6 +630,9 @@ const INFO := {
 	"sejm": ["Sejm RP",
 			"Przy Wiejskiej.",
 			"On Wiejska."],
+	"politechnika": ["Gmach Główny Politechniki",
+			"Gmach Główny Politechniki Warszawskiej z 1901 roku. W środku Duża Aula pod szklanym dachem, na froncie Nauka z pochodnią.",
+			"The Warsaw University of Technology's main building of 1901. Inside, the Great Hall under its glass roof; on the front, Science with her torch."],
 	"poczta": ["Poczta Główna",
 			"Główna poczta przy Świętokrzyskiej, z kopułką na rogu Jasnej. Kolejka do okienka jak zawsze.",
 			"The main post office on Świętokrzyska, a small dome on the Jasna corner. A queue at the counter, as ever."],
@@ -844,6 +847,7 @@ const INFO := {
 	"church_zwycieska": ["Kościół Matki Boskiej Zwycięskiej", "Kościół parafialny z dwiema wieżami.", "A parish church with two towers."],
 	"church_siostry_milosierdzia_zytnia": ["Siostry Matki Bożej Miłosierdzia", "Dom sióstr przy sanktuarium św. Faustyny na Żytniej.", "The Sisters of Our Lady of Mercy's house by St Faustina's shrine."],
 	"church_uczennice_boskiego_mistrza": ["Siostry Uczennice Boskiego Mistrza", "Ceglany dom zakonny sióstr uczennic przy Żytniej.", "The Sister Disciples of the Divine Master's brick convent."],
+	"church_klopotowskiego_18": ["Okno Życia na Kłopotowskiego", "Dom kościelny z oknem życia przy Kłopotowskiego 18.", "A church house with a window of life on Kłopotowskiego."],
 	"church_plebania_florian": ["Plebania katedry św. Floriana", "Plebania praskiej katedry przy Floriańskiej.", "The presbytery of Praga's cathedral on Floriańska."],
 	"church_sluzki_dom_generalny": ["Dom Generalny Sióstr Sług Jezusa", "Dom generalny Zgromadzenia Sióstr Sług Jezusa na Sewerynowie.", "The generalate of the Servants of Jesus sisters."],
 	"church_plebania_augustyn": ["Plebania św. Augustyna", "Plebania parafii św. Augustyna na Nowolipkach.", "St Augustine's presbytery on Nowolipki."],
@@ -1552,6 +1556,9 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"poczta":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin; the front, the dome and the hall's glass are ours
 				_build_poczta(s)
+			"politechnika":
+				_mark_zone(s)  # the mass stays LoD2's, in its skin; the rounded front pavilion is ours
+				_build_politechnika(s)
 			"pasta":
 				_build_pasta(s)
 			"teatr":
