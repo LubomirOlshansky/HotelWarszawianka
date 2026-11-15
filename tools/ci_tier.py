@@ -63,6 +63,7 @@ LANDMARK_SCRIPTS = [
     "park_props_play", "park_props_water", "patelnia", "places", "place", "first_scene", "tamka",
 ]
 LANDMARKS = ["game/scripts/%s.gd" % name for name in LANDMARK_SCRIPTS] + [
+    "game/scripts/landmarks/*.gd",  # TD-10: landmarks.gd's area files
     "game/data/courts.json", "game/data/eastern_wall_shops.json", "game/data/monuments.json",
     "game/data/photo_fronts.json", "game/data/small_buildings.json", "game/data/street_blocks/*",
 ]
@@ -234,6 +235,8 @@ def selftest() -> int:
         (["game/scripts/police/police_talk.gd"], "code"),
         (["game/tools/check_hud.gd", "game/tools/check_hud.gd.uid"], "code"),
         (["game/scripts/landmarks.gd", "game/scripts/hud.gd"], "landmarks"),
+        (["game/scripts/landmarks/churches.gd"], "landmarks"),
+        (["game/scripts/landmarks/skyline.gd.uid"], "landmarks"),
         (["game/data/courts.json"], "landmarks"),
         (["game/scripts/map_builder.gd"], "full"),
         (["game/scripts/map_builder.gd.uid"], "full"),

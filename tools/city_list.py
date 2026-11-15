@@ -310,7 +310,7 @@ def main():
     segs, cell = build_street_index(cm)
     specs = load_text("docs/landmarks/specs", "docs/landmarks")
     landmarks_doc = load_text("docs/LANDMARKS.md")
-    code = load_text("game/scripts", "game/data")
+    code = load_text("game/scripts", "game/scripts/landmarks", "game/data")  # TD-10: landmarks.gd's area files
     refs = refs_text()
     bx0, bz0, bx1, bz1 = cm["bounds"]
 

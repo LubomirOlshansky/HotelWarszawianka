@@ -24,6 +24,7 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | 1 | Delete the app, install, launch | the title comes up at once and nothing freezes; once before, a first launch froze and was not reproduced | TD-15, boot scene |
 | 2 | Update over the old build | settings and the save are as they were | #666 |
 | 3 | Play the first ten minutes on a fresh save, taking what is offered | do the calls and offers crowd each other, or leave you with nothing to do | #774, the kit ports |
+| 3a | Launch twice (cold after an install, then warm) and time from the tap to the city | the city comes up no more than about half a second later than in build 10, behind the title (the landmark code is now 17 files in one chain; its cold load in the cloud's debug engine went from 1.9 s to 2.35 s) | TD-10, the landmarks split |
 
 ## 2. Driving feel: Settings → Świat (6 min)
 

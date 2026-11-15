@@ -143,19 +143,24 @@ def build():
         lib.append({"id": "metro:" + f, "cat": "metro", "name": f"metro entrance, {f}", "about": "", "file": f"game/scripts/props.gd:{line}",
                     "count": None, "used_by": ["pois subway_entrance"]})
     lm = open(os.path.join(S, "landmarks.gd"), encoding="utf-8").read().split("\n")
+    # TD-10 (2026-11-15): the builders live in landmarks.gd's area files (game/scripts/landmarks/*.gd).
+    areas = [("game/scripts/landmarks.gd", lm)] + [
+        ("game/scripts/landmarks/" + os.path.basename(f), open(f, encoding="utf-8").read().split("\n"))
+        for f in sorted(glob.glob(os.path.join(S, "landmarks", "*.gd")))]
     start = next(i for i, ln in enumerate(lm) if ln.startswith("func build(surface"))
     for i in range(start, len(lm)):
         m = re.match(r'^\t\t\t"([a-z_0-9]+)":\s*$', lm[i])
         if m:
             fn = re.search(r"(_build_[a-z_0-9]+)\(", lm[i + 1]) if i + 1 < len(lm) else None
-            about, fline = "", i + 1
+            about, fline, frel = "", i + 1, "game/scripts/landmarks.gd"
             if fn:
-                for j, l2 in enumerate(lm):
-                    if l2.startswith("func " + fn.group(1) + "("):
-                        about, fline = doc_before(lm, j), j + 1
+                for rel, src in areas:
+                    j = next((j for j, l2 in enumerate(src) if l2.startswith("func " + fn.group(1) + "(")), None)
+                    if j is not None:
+                        about, fline, frel = doc_before(src, j), j + 1, rel
                         break
             lib.append({"id": "landmark:" + m.group(1), "cat": "landmark", "name": m.group(1), "about": about,
-                        "file": f"game/scripts/landmarks.gd:{fline}", "count": 1, "used_by": ["landmarks.gd sites"]})
+                        "file": f"{frel}:{fline}", "count": 1, "used_by": ["landmarks.gd sites"]})
         if i > start + 5 and lm[i].startswith("func "):
             break
     ids = {e["id"] for e in lib}
