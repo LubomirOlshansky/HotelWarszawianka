@@ -67,4 +67,5 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 ## Answers F owes that are not looks
 
 These wait in `QUESTIONS.md` and block something: the opening's "go" (drop the ignored first
-kebab, then Mati's call); the walls' four defaults; the Powiśle bar names; the Android build's go.
+kebab, then Mati's call); the Powiśle bar names; the Android build's go. (The walls' four
+defaults were answered on 2026-11-15.)
