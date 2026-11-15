@@ -310,6 +310,7 @@ func build(path: String, building_mat: ShaderMaterial, flat_mat: ShaderMaterial)
 	_out = self
 	_setup(JSON.parse_string(FileAccess.get_file_as_string(path)), building_mat, flat_mat)
 	_soft_cars = PackedFloat64Array()
+	_soft_guard = PackedFloat64Array()
 	# v0.8: the landmarks replace whatever LoD2 or OpenStreetMap lump stood in their place.
 	var marks := Landmarks.new(self, data)
 	_marks = marks
@@ -518,6 +519,7 @@ func build_sector(key: Vector2i, roofs_only := false, merge := true) -> Node3D:
 	_near = Rect2(ctx[0], ctx[1], ctx[2] - ctx[0], ctx[3] - ctx[1]) if ctx.size() == 4 else _sector_rect.grow(SECTOR_MARGIN)
 	_solids.clear()
 	_soft_cars = PackedFloat64Array()
+	_soft_guard = PackedFloat64Array()
 	_scratch_roof.resize(_roof.size())
 	_scratch_roof.fill(NO_ROOF)
 	if proxy_colours:
@@ -10330,7 +10332,9 @@ const PARKED_TILE := &"parked_tile"
 const CAR_STRIDE := 8
 ## Step 8a: the parked cars of the last build (one sector, or the whole map), CAR_STRIDE numbers each.
 var _soft_cars := PackedFloat64Array()
-## Step 8a: the parked cars of the last build kept hard by the landmark guard (none with --no-soft).
+## Step 8a: the parked cars of the last build kept hard by the landmark guard (CAR_STRIDE numbers
+## each, the "guard" part of `soft_cars_data`), and how many (none with --no-soft).
+var _soft_guard := PackedFloat64Array()
 var soft_cars_guarded := 0
 
 
@@ -10346,11 +10350,15 @@ static func parked_faces(t: Transform3D) -> PackedVector3Array:
 	return out
 
 
-## Step 8a: the parked cars of the last build for a root's "soft_cars" meta ({} when there are none).
+## Step 8a: the parked cars of the last build for a root's "soft_cars" meta ({} when there are none):
+## "cars" the pushed ones, "guard" the ones kept hard by a landmark (each part only when it has any).
 func soft_cars_data() -> Dictionary:
-	if _soft_cars.is_empty():
-		return {}
-	return {"cars": _soft_cars}
+	var out := {}
+	if not _soft_cars.is_empty():
+		out["cars"] = _soft_cars
+	if not _soft_guard.is_empty():
+		out["guard"] = _soft_guard
+	return out
 
 
 func _box(st, centre: Vector3, size: Vector3, col: Color) -> void:
@@ -10468,28 +10476,23 @@ func _build_street_furniture() -> void:
 		paints.append(Color(CAR_PAINT[int(list[i + 3]) % CAR_PAINT.size()]))
 	for mmi in _tree_multimesh(_shared["parked"], _shared["car_paint"], spots, paints, [], null, PARKED_TILE):
 		mmi.add_to_group(SMALL_CASTERS, true)
-	# Parked cars are obstacles too. Step 8a: they are pushed instead (soft_things.gd): no collider
-	# faces, their boxes in `soft_cars` (the root's "soft_cars" meta, saved with the prebuilt scene, so
-	# both city paths read the same list); with CityBarriers.soft_off (--no-soft) hard as ever, and a
-	# car inside or within LANDMARK_GUARD m of a carded landmark site's ring too, as step 7's fences
-	# (check_landmarks: three sites' car rays were stopped only by a parked car).
+	# Parked cars are obstacles too: their colliders filed as ever (`Solid_parked`), so with the soft
+	# things off (the default) the sector is exactly as before step 8a. Step 8a: their boxes also go
+	# in `soft_cars` (the root's "soft_cars" meta, saved with the prebuilt scene, so both city paths
+	# read the same list): with the soft things on, soft_things.gd turns `Solid_parked` off and pushes
+	# them; a car inside or within LANDMARK_GUARD m of a carded landmark site's ring is in the list's
+	# "guard" part instead and stays hard (its own body then), as step 7's fences there. None with
+	# CityBarriers.soft_off (--no-soft).
 	_soft_cars = PackedFloat64Array()
+	_soft_guard = PackedFloat64Array()
 	soft_cars_guarded = 0
 	var tile_count := {}
 	for i in spots.size():
 		var t := spots[i]
 		var faces := parked_faces(t)
-		var guarded := false
-		if not CityBarriers.soft_off:
-			var foot := []
-			for k in 5:
-				var a := faces[(k % 4) * 6]
-				foot.append_array([a.x, a.z])
-			guarded = barriers.near_landmark(foot)
-		if CityBarriers.soft_off or guarded:
-			soft_cars_guarded += 1 if guarded else 0
-			for k in 4:
-				_solid(&"parked", faces.slice(k * 6, k * 6 + 6))
+		for k in 4:
+			_solid(&"parked", faces.slice(k * 6, k * 6 + 6))
+		if CityBarriers.soft_off:
 			continue
 		var tile := Vector2i(floori(t.origin.x / INSTANCE_TILE), floori(t.origin.z / INSTANCE_TILE))
 		var drawn_here := not _in_sector or tile == _sector or note_reach != 0
@@ -10505,11 +10508,15 @@ func _build_street_furniture() -> void:
 			tile_count[tile] = slot + 1
 		if not keep:
 			continue
-		_soft_cars.append_array([t.origin.x, t.origin.z, float(list[i * 4 + 2]), t.origin.y, 1.0 if own else 0.0,
-				float(tile.x), float(tile.y), float(slot)])
-		if note_solids:
-			for k in 4:
-				_note_solid(&"parked", faces.slice(k * 6, k * 6 + 6), {"none": "soft", "same": true, "h": 1.5})
+		var foot := []
+		for k in 5:
+			var a := faces[(k % 4) * 6]
+			foot.append_array([a.x, a.z])
+		var guarded := barriers.near_landmark(foot)
+		if guarded:
+			soft_cars_guarded += 1
+		(_soft_guard if guarded else _soft_cars).append_array([t.origin.x, t.origin.z, float(list[i * 4 + 2]), t.origin.y,
+				1.0 if own else 0.0, float(tile.x), float(tile.y), float(slot)])
 
 
 ## Street-lamp heads, and the light they give off at night (linear; alpha = halo brightness).

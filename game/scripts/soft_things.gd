@@ -41,9 +41,11 @@ extends Node
 ## collide exactly as before step 7. `set_soft` turns it over live on the sectors already loaded (the
 ## restored bodies go, or come), so the setting needs no restart.
 ##
-## Step 8a (drivable-city-build.md item 4): the parked cars are pushed. The builder files no collider
-## faces for them; their boxes are the sector root's "soft_cars" meta (map_builder.gd `soft_cars_data`,
-## saved with the prebuilt scene) in an 8 m cell hash of their bays. Each physics frame the car's box
+## Step 8a (drivable-city-build.md item 4): the parked cars are pushed. The builder files their
+## colliders as ever (`Solid_parked`); swept, that body is turned off (`cars_hard`: its collision layer
+## 0) and their boxes are the sector root's "soft_cars" meta (map_builder.gd `soft_cars_data`, saved
+## with the prebuilt scene) in an 8 m cell hash of their bays (the list's "guard" cars, by a landmark,
+## stay hard: a `SoftHard_parked` body of their own). Each physics frame the car's box
 ## where it is and where this frame's speed takes it next is tested against them (a frame early, so a
 ## car that cannot move is a wall before the player is inside it):
 ## - a push: the player keeps Solidity.push_keep of the speed (a quarter lost square on, almost nothing
@@ -59,8 +61,8 @@ extends Node
 ##   shortened to the nearest free spot; with none the car is `towed`, hidden once out of view.
 ## A pushed car is remembered like a broken panel (key: its id) and goes back to its bay by rule B; its
 ## MultiMesh instance follows it (the tile's MultiMeshInstance3D carries map_builder.PARKED_TILE), and
-## is put back when its sector unloads. `no_soft` hardens the cars too (their faces as the builder
-## files them, map_builder.gd `parked_faces`): one switch for every soft thing.
+## is put back when its sector unloads. `no_soft` leaves the builder's `Solid_parked` on (nothing to
+## restore, so the default build is exactly as before step 8a): one switch for every soft thing.
 ## Out: `pushed(id, at, dir, speed)` (main.gd: the knock, the counter, a bubble) and `car_returned(id)`.
 
 signal broke(id: String, panel: int, kind: StringName, at: Vector3, direction: Vector3, speed: float)
@@ -282,9 +284,11 @@ func set_soft(on: bool) -> int:
 	return n
 
 
-## A sector's soft list into the sweep's hash (step 8a: and its parked cars into theirs).
+## A sector's soft list into the sweep's hash (step 8a: and its parked cars into theirs, their
+## collider off).
 func _watch(key: Vector2i, root: Node3D) -> void:
 	if root.has_meta(&"soft_cars"):
+		cars_hard(root, false, _rect_of(key, root))
 		_watch_cars(key, root)
 	if not root.has_meta(&"soft"):
 		return
@@ -300,12 +304,12 @@ func _watch(key: Vector2i, root: Node3D) -> void:
 func _harden_root(key: Vector2i, root: Node3D) -> void:
 	_sectors.erase(key)
 	_unwatch_cars(key, false)  # hard in their bays: the pushed ones go back first
-	if root.has_meta(&"soft_hard"):
+	cars_hard(root, true, Rect2())
+	if root.has_meta(&"soft_hard") or not root.has_meta(&"soft"):
 		return
 	var t0 := Time.get_ticks_usec()
 	root.set_meta(&"soft_hard", true)
-	harden(root, root.get_meta(&"soft", {}), Rect2(Vector2(key) * SECTOR, Vector2(SECTOR, SECTOR)) if root.name.begins_with("s_") else Rect2(),
-			root.get_meta(&"soft_cars", {}))
+	harden(root, root.get_meta(&"soft", {}), _rect_of(key, root))
 	var took := Time.get_ticks_usec() - t0
 	harden_usec += took
 	harden_count += 1
@@ -362,11 +366,8 @@ static func _cells_of(soft: Dictionary) -> Dictionary:
 ## A sector with its fences hard: its soft lines' collider faces, one body per class (`Solid_<class>`
 ## meta, as the builder's own), the faces whose centre lies in `rect` (an empty rect: all of them);
 ## step 8a: and its parked cars' (`cars`, the root's "soft_cars" meta) under `parked`.
-static func harden(root: Node3D, soft: Dictionary, rect: Rect2, cars := {}) -> void:
+static func harden(root: Node3D, soft: Dictionary, rect: Rect2) -> void:
 	var by := hard_faces(soft, rect) if not soft.is_empty() else {}
-	var parked := car_faces(cars, rect)
-	if not parked.is_empty():
-		by[&"parked"] = parked
 	for cls: StringName in by:
 		var body := StaticBody3D.new()
 		body.name = "SoftHard_" + String(cls)
@@ -378,6 +379,45 @@ static func harden(root: Node3D, soft: Dictionary, rect: Rect2, cars := {}) -> v
 		shape.shape = concave
 		body.add_child(shape)
 		root.add_child(body)
+
+
+## The sector rect of `key` for a sector root (`s_i_j`), else an empty rect (the whole city: all).
+func _rect_of(key: Vector2i, root: Node3D) -> Rect2:
+	return Rect2(Vector2(key) * SECTOR, Vector2(SECTOR, SECTOR)) if root.name.begins_with("s_") else Rect2()
+
+
+## Step 8a: `root`'s parked cars hard (`hard`: the builder's `Solid_parked` on, the guard's body gone,
+## exactly the build) or swept (`Solid_parked` off, its collision layer 0, and the "guard" cars of its
+## "soft_cars" meta, by a landmark, a `SoftHard_parked` body of their own, cut to `rect`). Cheap
+## either way: no faces are built for the swept cars.
+static func cars_hard(root: Node3D, hard: bool, rect: Rect2) -> void:
+	var body := root.get_node_or_null(^"Solid_parked") as CollisionObject3D
+	var guard := root.get_node_or_null(^"SoftHard_parked")
+	if hard:
+		if body != null and body.collision_layer == 0:
+			body.collision_layer = int(body.get_meta(&"layer_was", 1))
+		if guard != null:
+			root.remove_child(guard)
+			guard.queue_free()
+		return
+	if body != null and body.collision_layer != 0:
+		body.set_meta(&"layer_was", body.collision_layer)
+		body.collision_layer = 0
+	if guard != null:
+		return
+	var faces := car_faces(root.get_meta(&"soft_cars", {}), rect, "guard")
+	if faces.is_empty():
+		return
+	var g := StaticBody3D.new()
+	g.name = "SoftHard_parked"
+	g.set_meta(&"solid", &"parked")
+	var shape := CollisionShape3D.new()
+	var concave := ConcavePolygonShape3D.new()
+	concave.backface_collision = true
+	concave.set_faces(faces)
+	shape.shape = concave
+	g.add_child(shape)
+	root.add_child(g)
 
 
 ## `harden` undone: the restored bodies (`SoftHard_<class>`) leave the sector, its soft lines break
@@ -393,13 +433,14 @@ static func soften(root: Node3D) -> int:
 	return n
 
 
-## Step 8a: the faces the builder files for the parked cars of `cars` (a root's "soft_cars" meta) with
-## --no-soft, at their bays, cut to the faces whose centre lies in `rect` (an empty rect: all).
-static func car_faces(cars: Dictionary, rect: Rect2) -> PackedVector3Array:
+## Step 8a: the faces the builder files for the parked cars of `cars`' `part` (a root's "soft_cars"
+## meta: "cars" or "guard"), at their bays, cut to the faces whose centre lies in `rect` (an empty
+## rect: all).
+static func car_faces(cars: Dictionary, rect: Rect2, part := "cars") -> PackedVector3Array:
 	var out := PackedVector3Array()
-	if cars.is_empty():
+	if not cars.has(part):
 		return out
-	var list: PackedFloat64Array = cars["cars"]
+	var list: PackedFloat64Array = cars[part]
 	for o in range(0, list.size(), MapBuilder.CAR_STRIDE):
 		var faces := MapBuilder.parked_faces(bay_of(list, o))
 		for i in range(0, faces.size() - 2, 3):
@@ -782,7 +823,7 @@ var _walls: Array = []
 ## MultiMesh), each in its bay or, pushed before the sector left, where it was left lying.
 func _watch_cars(key: Vector2i, root: Node3D) -> void:
 	_unwatch_cars(key)
-	var list: PackedFloat64Array = (root.get_meta(&"soft_cars") as Dictionary)["cars"]
+	var list: PackedFloat64Array = (root.get_meta(&"soft_cars") as Dictionary).get("cars", PackedFloat64Array())
 	var cars: Array = []
 	var cells := {}
 	for o in range(0, list.size(), MapBuilder.CAR_STRIDE):

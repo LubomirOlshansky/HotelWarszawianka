@@ -38,12 +38,12 @@ extends SceneTree
 ##      as friction stops it;
 ##   P6 its sector unloaded and loaded again finds it where it was left; back in its bay by rule B (far,
 ##      out of view, 10 min); `reset` puts every car back;
-##   P7 settings off (`no_soft`): the cars' colliders are the builder's (MapBuilder.parked_faces), none
-##      swept; turned on live the colliders go and a push moves a car; off again puts them back, the car
-##      in its bay;
+##   P7 settings off (`no_soft`): the cars' colliders are the builder's `Solid_parked`, on, none
+##      swept; turned on live that body goes off (layer 0) and a push moves a car; off again it is on,
+##      the car in its bay;
 ##   M4 in SECTORS, the runtime and prebuilt "soft_cars" lists are the same and every own car has its
-##      instance in its tile's MultiMesh (both paths); M2 and M3 hold the `parked` faces too: settings
-##      off, the restored faces are the --no-soft build's (main's builder's), on both paths;
+##      instance in its tile's MultiMesh (both paths); M2 and M3 hold the `parked` faces too: the build
+##      files every parked collider as main did; swept, only the landmark guard's cars collide;
 ##   M5 the lane rule over the map's cars (SECTORS; --all every sector): each car pushed off both sides
 ##      and both ends at 8 m/s, no walls: its rest in a lane counted with friction alone (the defect
 ##      class) and with the rule (what is left is towed); its bay in a lane counted apart (8b's matter).
@@ -640,13 +640,23 @@ func _p7_settings() -> void:
 	var sec := Node3D.new()
 	sec.name = "s_0_0"
 	sec.set_meta(&"soft_cars", _cars(list))
+	var want := PackedVector3Array()
+	for c: Array in list:
+		want.append_array(MapBuilder.parked_faces(Transform3D(Basis(Vector3.UP, c[2]), Vector3(c[0], 0.0, c[1]))))
+	# The builder's body, as map_builder.gd files it (`_solid_body`).
+	var solid := StaticBody3D.new()
+	solid.name = "Solid_parked"
+	solid.set_meta(&"solid", &"parked")
+	var cs := CollisionShape3D.new()
+	var concave := ConcavePolygonShape3D.new()
+	concave.set_faces(want)
+	cs.shape = concave
+	solid.add_child(cs)
+	sec.add_child(solid)
 	root.add_child(sec)
 	_setup({}, Vector3(106.0, 0, 100.0), PI * 0.5)
 	_soft.no_soft = true
 	_soft.add_sector(sec)
-	var want := PackedVector3Array()
-	for c: Array in list:
-		want.append_array(MapBuilder.parked_faces(Transform3D(Basis(Vector3.UP, c[2]), Vector3(c[0], 0.0, c[1]))))
 	var w := _keys(want)
 	w.sort()
 	_expect(_parked_faces(sec) == w and _soft.car_count() == 0, "P7 settings off: the cars' colliders are the builder's (%d faces, want %d), none swept" % [
@@ -671,7 +681,8 @@ func _parked_faces(node: Node) -> PackedStringArray:
 	var keys := PackedStringArray()
 	for n in node.find_children("*", "CollisionShape3D", true, false):
 		var body := n.get_parent()
-		if body == null or StringName(str(body.get_meta(&"solid", ""))) != &"parked":
+		if body == null or StringName(str(body.get_meta(&"solid", ""))) != &"parked" \
+				or (body is CollisionObject3D and (body as CollisionObject3D).collision_layer == 0):
 			continue
 		var shape := (n as CollisionShape3D).shape as ConcavePolygonShape3D
 		if shape != null:
@@ -738,15 +749,17 @@ func _map_part(all: bool, only: Array[Vector2i]) -> String:
 				(pre.get("segs", PackedFloat64Array()) as PackedFloat64Array).size() / CityBarriers.SOFT_STRIDE])
 		# M4: the parked cars' lists and their instances, both paths.
 		var n_cars := (cars.get("cars", PackedFloat64Array()) as PackedFloat64Array).size() / MapBuilder.CAR_STRIDE
-		_expect(cars.size() == pre_cars.size() and (cars.is_empty() or cars["cars"] == pre_cars["cars"]),
+		_expect(cars.size() == pre_cars.size() and cars == pre_cars,
 				"M4 %s: the runtime and prebuilt parked-car lists are the same (%d and %d cars)" % [key, n_cars,
 				(pre_cars.get("cars", PackedFloat64Array()) as PackedFloat64Array).size() / MapBuilder.CAR_STRIDE])
 		_expect(drawn_rt == "" and drawn_pb == "", "M4 %s: every own car has its instance in its tile's MultiMesh (runtime: %s; prebuilt: %s)" % [
 				key, "ok" if drawn_rt == "" else drawn_rt, "ok" if drawn_pb == "" else drawn_pb])
+		var guard_n := (cars.get("guard", PackedFloat64Array()) as PackedFloat64Array).size() / MapBuilder.CAR_STRIDE
+		_expect(guard_n == guarded, "M4 %s: the landmark guard's cars are the list's \"guard\" part (%d, want %d)" % [key, guard_n, guarded])
 		var parked_faces_n := (soft_faces.get(&"parked", PackedStringArray()) as PackedStringArray).size()
-		_expect(parked_faces_n <= guarded * 8,
-				"M4 %s: the soft build files parked colliders only for the %d cars by a landmark (%d faces, at most %d)" % [
-				key, guarded, parked_faces_n, guarded * 8])
+		_expect(parked_faces_n > 0 or n_cars + guarded == 0,
+				"M4 %s: the build files the parked cars' colliders as main did (%d faces; %d cars, %d by a landmark)" % [
+				key, parked_faces_n, n_cars, guarded])
 		_guarded += guarded
 		cars_n += n_cars
 		_m5_sector(m5, cars)
@@ -769,7 +782,11 @@ func _map_part(all: bool, only: Array[Vector2i]) -> String:
 		hard.free()
 		var rect := Rect2(Vector2(key) * MapBuilder.SECTOR, Vector2(MapBuilder.SECTOR, MapBuilder.SECTOR))
 		var restored := SoftThings.hard_faces(soft, rect) if not soft.is_empty() else {}
-		restored[&"parked"] = SoftThings.car_faces(cars, rect)
+		# Swept, the parked faces that collide are the landmark guard's only (Solid_parked off).
+		var soft_live := soft_faces.duplicate()
+		var guard_keys := _keys(SoftThings.car_faces(cars, rect, "guard"))
+		guard_keys.sort()
+		soft_live[&"parked"] = guard_keys
 		_expect(not hard_meta, "M2 %s: no soft list with --no-soft" % key)
 		for cls: StringName in SAME_CLASSES:
 			var got: PackedStringArray = soft_faces.get(cls, PackedStringArray()).duplicate()
@@ -781,11 +798,11 @@ func _map_part(all: bool, only: Array[Vector2i]) -> String:
 		# M3: the setting turned over on a loaded sector, the runtime build's and the prebuilt one.
 		var again: Node3D = runtime.build_sector(key)
 		root.add_child(again)
-		_m3_toggle(again, key, "runtime", want, soft_faces, not soft.is_empty(), n_cars)
+		_m3_toggle(again, key, "runtime", want, soft_live, not soft.is_empty(), n_cars)
 		again.free()
 		var pre_again := (load(path) as PackedScene).instantiate() as Node3D
 		root.add_child(pre_again)
-		_m3_toggle(pre_again, key, "prebuilt", want, soft_faces, not soft.is_empty(), n_cars)
+		_m3_toggle(pre_again, key, "prebuilt", want, soft_live, not soft.is_empty(), n_cars)
 		pre_again.free()
 		if verbose:
 			print("   %s: %d soft lines, %d segments, %d parked cars" % [key, (soft.get("ids", PackedStringArray()) as PackedStringArray).size(), segs, n_cars])
@@ -891,7 +908,7 @@ func _car_instances(sector: Node, cars: Dictionary) -> String:
 		var mmi := c as MultiMeshInstance3D
 		if mmi != null and mmi.has_meta(MapBuilder.PARKED_TILE):
 			by_tile[mmi.get_meta(MapBuilder.PARKED_TILE)] = mmi.multimesh
-	var list: PackedFloat64Array = cars["cars"]
+	var list: PackedFloat64Array = cars.get("cars", PackedFloat64Array()) + cars.get("guard", PackedFloat64Array())
 	var own_by_tile := {}
 	for o in range(0, list.size(), MapBuilder.CAR_STRIDE):
 		if list[o + 4] < 0.5:
@@ -914,7 +931,7 @@ func _car_instances(sector: Node, cars: Dictionary) -> String:
 func _m5_sector(st: SoftThings, cars: Dictionary) -> void:
 	if cars.is_empty():
 		return
-	var list: PackedFloat64Array = cars["cars"]
+	var list: PackedFloat64Array = cars.get("cars", PackedFloat64Array())
 	for o in range(0, list.size(), MapBuilder.CAR_STRIDE):
 		if list[o + 4] < 0.5:
 			continue
@@ -995,7 +1012,7 @@ func _class_faces(node: Node) -> Dictionary:
 	var out := {}
 	for n in node.find_children("*", "CollisionShape3D", true, false):
 		var body := n.get_parent()
-		if body == null or not body.has_meta(&"solid"):
+		if body == null or not body.has_meta(&"solid") or (body is CollisionObject3D and (body as CollisionObject3D).collision_layer == 0):
 			continue
 		var cls := StringName(body.get_meta(&"solid"))
 		if not cls in SAME_CLASSES:
