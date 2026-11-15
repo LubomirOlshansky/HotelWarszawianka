@@ -14,8 +14,8 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 - A build is cut when this page reaches 15 open lines or three days pass (`docs/WORKFLOW.md`
   "The build train"). The build's commit and its Mac gate results are named at the top.
 
-**Build:** not cut yet. Last: TestFlight build 10 (2026-11-14). Next: 11 or later.
-**Mac gate at the build's commit:** not run yet.
+**Build:** 11, commit `1d063882`, archived 2026-11-15; the upload waits for F's go. Last uploaded: TestFlight build 10 (2026-11-14).
+**Mac gate at the build's commit:** run 2026-11-15, see `docs/builds/build-11.md`: no red step beyond the known `pois` Q3, `streaming` (step limit) and a flaky `police soak`.
 
 ## 1. Launch and the first minutes (3 min)
 
@@ -25,6 +25,7 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | 2 | Update over the old build | settings and the save are as they were | #666 |
 | 3 | Play the first ten minutes on a fresh save, taking what is offered | do the calls and offers crowd each other, or leave you with nothing to do | #774, the kit ports |
 | 3a | Launch twice (cold after an install, then warm) and time from the tap to the city | the city comes up no more than about half a second later than in build 10, behind the title (the landmark code is now 17 files in one chain; its cold load in the cloud's debug engine went from 1.9 s to 2.35 s) | TD-10, the landmarks split |
+| 3b | Drive a little, swipe home, then close the game from the app switcher and launch it again | the car is where you left it and the money as it was; no "ZAPIS NIEUDANY / SAVE FAILED" note at any time (it shows only when a write fails) | saves when the app leaves |
 
 ## 2. Driving feel: Settings → Świat (6 min)
 
@@ -55,7 +56,8 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | 14b | Drive Trasa Łazienkowska through its cutting, then Wisłostrada past Bednarska and Miodowa | the road is clean of beige ground wedges; the frame there against the rest of the city (the ground there now has finer cells, +4.7 % vertices over 26 places) | #779 |
 | 14c | Centrum LIM's tower by day from Centralna and at night from Jerozolimskie | the white corner piers read as stripes at the game's zoom; the PREZYDENT and SAMSONG names lit at night; the red-and-white mast | LIM tower rebuild |
 | 14d | Błękitny Wieżowiec from Plac Bankowy and Solidarności, by day and at night | the mirror glass reads silver-blue against the sky; the glass hall reads as a barrel vault; the red-and-white antennas on the roof | Błękitny rebuild |
-| 14e | Stadion Narodowy's park fence and gate boards, from Waszyngtona and the east path, by day and at night; then drive round the stadium | the black bar fence on its dark base reads open (you see the park through it); the red gate boards over the gates; no new stutter near the stadium | Narodowy grounds #808 |
+| 14e | Babka Tower from Jana Pawła II and the Babka roundabout, by day and at night | the tower reads pale stone with a glazed loggia column on each face, rising out of the 34 m stone office block; WEKTRA lit on the top floor at night | Babka Tower build |
+| 14f | Stadion Narodowy's park fence and gate boards, from Waszyngtona and the east path, by day and at night; then drive round the stadium | the black bar fence on its dark base reads open (you see the park through it); the red gate boards over the gates; no new stutter near the stadium | Narodowy grounds #808 |
 | 15 | Settings → the experimental graphics switch, on and off at the Palace | the look and the frame | #647 |
 
 ## 5. The frame (3 min)
@@ -68,4 +70,5 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 ## Answers F owes that are not looks
 
 These wait in `QUESTIONS.md` and block something: the opening's "go" (drop the ignored first
-kebab, then Mati's call); the walls' four defaults; the Powiśle bar names; the Android build's go.
+kebab, then Mati's call); the Powiśle bar names; the Android build's go. (The walls' four
+defaults were answered on 2026-11-15.)

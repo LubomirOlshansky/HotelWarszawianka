@@ -1,21 +1,24 @@
 # Walls, fences and rails that look like the real ones
 
-**Status (2026-11-13):** research and a phased plan. No game code changed. Implementation is for
-Opus threads, one phase per PR (section 10).
+**Status (2026-11-15):** re-planned. The first plan (2026-11-13) was written before anything was
+built. Since then steps 1 to 8a of `docs/design/city-objects-plan.md` are merged, F answered the
+four defaults (section 11) and asked for more detail. This page was reviewed against the code on
+main and against fresh street photos, and sections 6, 8, 9 and 10 were written again. No game
+code changed in this review. The build is for Opus threads, one phase per pull request through
+the audit (section 10).
 
-**The order of work is now in `docs/design/city-objects-plan.md`** (the single plan that joins this
-page with the drivable-city build plan, 2026-11-13; its object palette is this page's
-`barrier_kit.json`, widened to every street object). The sections below remain the build briefs.
+**The order of work is in `docs/design/city-objects-plan.md`** (stage C, section 5.2 there). This
+page is the build brief for the look. Where the two differ, that page wins.
 
 F (2026-11-13): "How to make these walls look more like in life. There are the walls now, but
 they should represent the real type of object and texture, and how to handle it if it is ruined:
 the memory of it and the recovery."
 
+F (2026-11-15): the four defaults as recommended; "adding more details always good".
+
 This page owns **what each wall, fence, hedge and rail is and how it looks, whole and broken**.
-Its sister page `docs/design/drivable-city-build.md` owns what the car does to them and how a
-broken one is remembered and repaired (its section 5). The seam between the two is section 7 here.
-It builds on `drivable-city.md` (the five solidity classes, rule R2 "solid looks solid"),
-`road-objects.md` 3.4 (the object library) and `building-pipeline-review.md` (the shader budget).
+`docs/design/drivable-city-build.md` owns what the car does to them and how a broken one is
+remembered and repaired. The seam between the two is section 7 here.
 
 Contents: [1 The answer in short](#1-the-answer-in-short) ·
 [2 What is drawn today](#2-what-is-drawn-today-measured) ·
@@ -26,73 +29,98 @@ Contents: [1 The answer in short](#1-the-answer-in-short) ·
 [7 Broken looks](#7-broken-looks-the-seam-with-the-drivable-city-plan) ·
 [8 Cost on the phone](#8-cost-on-the-phone) ·
 [9 Fallbacks and recovery](#9-fallbacks-and-recovery) ·
-[10 The plan](#10-the-plan-in-phases) · [11 Questions for F](#11-questions-for-f) ·
+[10 The plan](#10-the-plan-in-phases) · [11 F's answers](#11-fs-answers) ·
 [12 How this was measured](#12-how-this-was-measured)
 
 ---
 
 ## 1. The answer in short
 
-1. **Four fifths of the barriers have no type at all.** The map has 279 km of walls, fences and
-   hedges. 155.5 of 188 km of fence and 56.8 of 70 km of wall carry no OpenStreetMap detail, so
-   they are drawn as one grey band (fence) or one beige slab (wall). Tags alone will never fix
-   this; the type has to come from **what the barrier stands next to**.
-2. **Context can name most of them.** A prototype that looks at the tram tracks, railway, roads,
-   stairs, parks, pitches and building kinds beside each line gives a specific setting to 60 % of
-   the fence metres with the data already in the map (section 5). The rest needs land-use
-   outlines the bake drops today (schools' grounds, cemeteries, building sites, allotments,
-   embassies, railway land).
-3. **"Texture" on this game's screen is not a brick pattern.** One pixel of the game's image is
-   10 to 17 cm of street at the default zoom. A brick, a fence bar and a mesh wire are smaller
-   than a pixel. What the player can read is the colour, the height, the outline (foot, cap,
-   piers), the rhythm of posts and panels every 2 to 4 m, and whether the thing is see-through.
-   A type is those five things, plus a few big marks (graffiti, a poster band).
-4. **Two families, drawn two ways.** Heavy things that stop the car (walls, parapets, noise
-   screens, crash barriers) stay in the city's mesh as shaped geometry with colour: no new draw
-   call and no shader change. Light things that break (fences, hedges, low walls) become
-   **instanced panels** with one small shader of their own. That makes them see-through, gives
-   each type its look as a row of data, and lets one panel fall when the car goes through it.
-5. **The building shader is not touched.** It stands at 502 of 505 on the Adreno budget. The new
-   panel shader is separate and is designed with no branches.
-6. **The broken look** follows the drivable-city plan's memory: debris only first (its version
-   1), then the hit panel lies down and stays down until the city repairs it out of sight. Each
-   type has its own way of being broken (section 7).
-7. **The cost is draw calls, not memory.** Panels add one draw call per visible sector (1 to 4
-   in a normal view) and take about 335,000 triangles out of the city meshes. The lookup
-   texture is 2 KB. If the phone bench fails, there is a switch back to today's drawing and a
-   ladder of cheaper steps before that (section 9).
+1. **Every line now has a type, and the game still ignores it.** Step 5 wrote `ty` (37 types),
+   `tc` (how sure), `sc` (class), `hz` (hazard) and `hs` (height by setting) on all 7,928 lines.
+   The game draws by the old styles: 157 km of fence is one grey band, 62 km of wall one beige
+   slab. The first phase makes the game read `ty`. That alone removes the grey band.
+2. **"Texture" on this game's screen is not a brick pattern.** One pixel of the game's image is
+   10 to 17 cm of street at the default zoom. What the player can read is the colour, the height,
+   the outline (foot, cap, piers), the rhythm of posts every 2 to 4 m, and whether the thing is
+   see-through. A type is those five things, plus a few big marks (graffiti, a poster band, ivy).
+3. **Three ways to draw, in the order they are built.** (a) *Typed rows*: every type gets its
+   colour, height and thickness, and light fences become thin posts and rails in the city mesh.
+   No draw call, no shader. (b) *Panels*: light fences and hedges become instanced 2 m panels
+   with one small shader, so they show bars and mesh and one panel can fall. One draw call per
+   visible sector. (c) *The heavy kit*: walls get a foot, a cap, bays and piers as shaped geometry
+   in the city mesh. No draw call, no shader.
+4. **The building shader is not touched by any phase.** It stands at 501 of 505 on the Adreno
+   budget. Every heavy detail is geometry and vertex colour on the shader's existing "prop" path.
+   The second plans review asked that new wall geometry wait for the landmarks' own material
+   (TD-9). It does not need to: the gate of each phase is that `building.gdshader` is unchanged
+   and `check_shader_budget` still prints 501.
+5. **Nothing a tester sees changes by default.** The look is picked by one key in the palette,
+   `barrier_look`, which stays `classic` until F has looked at a build on the phone. Both city
+   paths read it when the city is built, so a build is baked in one look. F's look is a device
+   run or a build cut with the new look, with F's yes (section 9).
+6. **The type rules need one more pass.** The photos of 2026-11-15 show that an unknown wall in
+   the centre is nearly always a knee-high planter edge, not a 1.6 m wall, and that some unknown
+   fences along kerbs are rows of bollards. Phase W3 mends this as a guarded map pass.
+7. **Details are ranked by what reads as Warsaw at the phone's zoom** (section 6.6): see-through
+   fences with a post rhythm first, then heights by setting, then foot, cap and piers, then
+   gates, graffiti, posters, ivy and the night look. Most cost triangles only.
+8. **The broken look** follows the memory that already runs (`soft_things.gd`): the hit panel
+   lies down, tears or leaves a stub by its type, and stands up again when the city repairs it
+   out of sight (section 7). This is what lets the "Miękkie miasto" switch go on for everyone.
 
 ## 2. What is drawn today, measured
 
-From `game/map/centrum.json` on main (05b7c9c), `lines` without the stop platforms:
+From `game/map/centrum.json` on main (f9d5823, 2026-11-15), `lines` of kind fence, wall, hedge:
+7,928 lines, 278.8 km, 30,831 segments.
 
-| Kind | Length | Lines | With any OSM detail (`h`, `m`, `ft`) or a placed style (`st`) | Drawn as |
-| --- | --- | --- | --- | --- |
-| Fence | 188.2 km | 4,909 | 32.7 km (17 %): 29.4 km railing, 0.7 km mesh, 0.5 km wood, 1.8 km height only, 0.2 km stair balustrade | untagged: a solid grey band 0.12 × 1.6 m. Railing: posts and two rails. Mesh: the same rails in grey |
-| Wall | 69.6 km | 2,055 | 12.8 km (18 %): 5.5 km height only, 2.2 km noise screens, 2.2 km concrete, 1.5 km stair balustrade, 0.8 km gabion, 0.4 km brick, 0.2 km stone, 0.1 km glass and wood | untagged: a beige slab 0.35 × 1.9 m. A material changes only the colour |
-| Hedge | 21.0 km | 964 | 3.1 km with a height | a green slab 0.9 × 1.2 m |
+| Kind | Length | Drawn as (the palette's `types`, read by `city_barriers.gd`) |
+| --- | --- | --- |
+| Fence | 188 km | no fence type in the old tags: a solid grey band 0.12 × 1.6 m (157 km). Railing: posts and two rails. Mesh: the same in grey |
+| Wall | 70 km | no material: a beige slab 0.35 × 1.9 m (62 km). A material changes only the colour |
+| Hedge | 21 km | a green slab 0.9 × 1.2 m |
 
-Beside these: 24.4 km of guard rails (`guards`, one steel beam on posts for every bridge edge and
-mapped crash barrier), 20.7 km of structure walls (`walls`: 761 concrete, 731 stone, 27 tunnel),
-22 city-wall pieces in the Old Town, and the hand-placed styles of `BARRIER_STYLE` in
-`map_builder.gd` (tram railing, three balustrades, the Palace's low walls, garden rings, basin
-rims).
+What the data now says they are (`ty`, km):
 
-How they are drawn: `_wall_along` makes a box per segment (10 triangles), `_railing_along` posts
-and two rails; both go into the sector's building mesh with the "prop" code in UV2, so
-`building.gdshader` gives them the flat vertex colour with a little noise and nothing else. All
-barriers together are about 458,000 triangles city-wide (fences 293,000, walls 123,000, hedges
-42,000). A fence casts the shadow of a solid band.
+| Type | km | Sure by | Class |
+| --- | --- | --- | --- |
+| `bars_black` | 59.2 | context 45.2, tag 14.1 | S |
+| `mesh_panel` | 41.0 | context | S |
+| `chain_link` | 31.6 | context 30.9 | S (1.7 H) |
+| `wall_plaster` | 24.0 | context 14.1, **default 9.9** | H |
+| `wall_stone` | 20.9 | tag | H |
+| `hedge_low` | 19.7 | context 11.8, **default 5.9** | S |
+| `fence_plain` | 17.4 | **default 17.2** | S |
+| `green_fence` | 11.5 | context | S |
+| `rail_tram` | 11.2 | tag 9.1 | H |
+| `wall_precast` | 9.1 | context 7.1 | H |
+| `wall_brick` | 4.1 | context 3.7 | H |
+| `low_wall` | 3.9 | context | R 2.9 |
+| `low_lawn` | 3.7 | context | S |
+| `rail_street` | 3.4 | tag 2.5 | S |
+| `noise_screen`, `basin_rim`, `parapet_concrete` | 2.2, 2.1, 2.2 | tag, context, tag | H, R, H |
+| the stair balustrades, `deck_railing`, `guard_rail`, `hedge_tall`, `rail_waterfront` | 1.0 to 1.6 each | structure, tag | H (hedge S) |
+| `gabion`, `ball_net`, `wood`, `bars_pier`, `glass_screen`, `hoarding` | under 1 each | tag | |
 
-What is wrong with that picture, in order of metres:
+Sureness over all: tag 57.5 km (21 %), structure 10.9 km (4 %), context 177.4 km (64 %), default
+33.0 km (12 %).
 
-1. 155 km of fence is an opaque grey strip. Real fences are see-through; this one reads as a wall.
-2. 57 km of wall is one height and one colour with no foot, no cap and no piers.
-3. Hedges are 1.2 m everywhere; in the parks they are knee-high (photo pilot, section 12).
-4. Every bridge has the same motorway crash barrier, whatever its real parapet is.
-5. OSM's own kind is sometimes wrong for the look: a mapped `fence` at the western edge of the
-   map is a 2.5 m concrete wall covered in graffiti; a mapped `wall` by the Filtry is plastered
-   piers with iron panels between them.
+Beside the lines: 24.4 km of guard rails (`guards`), 20.7 km of structure walls (`walls`), 22
+city-wall pieces. They keep their own builders.
+
+All barriers together are about 458,000 triangles city-wide. A fence casts the shadow of a solid
+band.
+
+What is wrong with the picture, in order of metres:
+
+1. 157 km of fence is an opaque grey strip. Real fences are see-through; this one reads as a wall.
+2. 62 km of wall is one height and one colour with no foot, no cap and no piers.
+3. Hedges are 1.2 m everywhere; in the parks they are knee-high or, in the fountain park by
+   Wybrzeże Gdańskie, taller than a person.
+4. An unknown wall in a square stands 1.9 m where the real thing is a 0.5 m planter edge
+   (Plac Grzybowski, section 12).
+5. OSM's own kind is sometimes wrong for the look (a mapped `fence` that is a concrete wall; a
+   mapped `wall` that is piers with iron panels).
 
 ## 3. What a phone pixel can show
 
@@ -100,30 +128,30 @@ The city is drawn into a small pixel image and scaled up. The image has 480 to 8
 default view is 80 m tall, the closest 40 m, the widest 125 m; the camera looks down at 30°, so a
 vertical face shows 87 % of its height.
 
-| Zoom | One image pixel is | A 1.6 m fence is | A brick course (7 cm) | Bars 12 cm apart | Posts 2.5 m apart |
+| Zoom | One image pixel is | A 1.6 m fence is | A brick course (7 cm) | Bars 12 cm apart | Posts 2 m apart |
 | --- | --- | --- | --- | --- | --- |
-| Closest (40 m) | 5 to 8 cm | 17 to 29 px | about 1 px | 1.5 to 2.4 px | 30 to 50 px |
-| Default (80 m) | 10 to 17 cm | 8 to 14 px | under 1 px | under 1.2 px | 15 to 25 px |
-| Widest (125 m) | 15 to 26 cm | 5 to 9 px | no | no | 10 to 16 px |
+| Closest (40 m) | 5 to 8 cm | 17 to 29 px | about 1 px | 1.5 to 2.4 px | 25 to 40 px |
+| Default (80 m) | 10 to 17 cm | 8 to 14 px | under 1 px | under 1.2 px | 12 to 20 px |
+| Widest (125 m) | 15 to 26 cm | 5 to 9 px | no | no | 8 to 13 px |
 
 So the detail ladder for a barrier is:
 
 | Size of the detail | Examples | How it is shown |
 | --- | --- | --- |
 | Under 15 cm | bricks, bars, wires, boards, mortar | never drawn one by one. It becomes the **tone** (brick red with a speckle), or the **openness** (how much you see through) |
-| 0.3 to 1 m | foot band, coping, panel joints, corrugation, a poster band, cage of a gabion | 2 to 6 px: a band of another shade, or a tone change from one panel to the next. No thin lines: a 3 cm joint line flickers at this scale |
-| 2 to 5 m | posts, piers, panel length, gates, steps in height | clear shapes. This is where a type is recognised |
+| 0.3 to 1 m | foot band, coping, panel joints, a poster band, a gabion's cage, a tag | 2 to 6 px: a band of another shade, or a tone change from one bay to the next. No thin lines: a 3 cm joint line flickers at this scale |
+| 2 to 5 m | posts, piers, bay length, gates, steps in height, a slogan | clear shapes. This is where a type is recognised |
 | The whole thing | height, thickness, straight or leafy outline, shadow | read first, at 40 km/h |
 
 The rule for bars and meshes: draw **posts and the top rail solid, and fill the rest with as many
 bars as there are pixels for**, never thinner than one pixel, fixed to the fence so they do not
 crawl when the car moves. At the default zoom a 2 m panel then shows about five bars instead of
-sixteen: what a pixel artist would draw. This rule is the main thing the first trial (W3) checks.
+sixteen: what a pixel artist would draw. The panel trial (W4) checks this rule.
 
 ## 4. The types: Warsaw's walls, fences and rails
 
 Class is the solidity class of `drivable-city.md`: H stops the car, S breaks, R is ridden over.
-The class comes from the bake (`sc`); the type must never contradict it (rule R2):
+The class comes from the bake (`sc`); the look must never contradict it (rule R2):
 
 - **H looks heavy**: closed from foot to top, at least 0.25 m thick, a dark foot band and a
   lighter cap, a shadow. Or a steel beam at bumper height.
@@ -131,296 +159,464 @@ The class comes from the bake (`sc`); the type must never contradict it (rule R2
   shadow band, slim posts.
 - **R looks low**: under 0.6 m, drawn as a kerb or a rim.
 
-Sizes and colours below are first values from the pilot photos (section 12) and general knowledge
-of the city; phase W0 confirms each type against 6 to 10 photos before it is built.
+The exact numbers of each type's look are the rows of section 6.2. The tables here say what the
+real thing is.
 
 ### 4.1 Light: fences, rails and hedges (Smash)
 
-| Type | The real thing | Where | Look (whole) | Height |
-| --- | --- | --- | --- | --- |
-| `rail_street` | the street guard railing: grey or graphite steel, posts, a top rail and a mid rail, older ones yellow | kerbs at crossings and stops, medians, school exits | posts every 2 m, two rails, nothing between | 1.1 m |
-| `rail_tram` | the fence between or beside tram tracks: grey or green welded panels, older black railing | tram beds, platform backs | posts every 2 m, top rail, sparse bars; green or grey by line | 1.1 to 1.2 m |
-| `bars_black` | black steel bars, often spear tops, on a low concrete foot | tenement yards, churches, offices, newer housing (pilot: Praga church, a Wola yard gate) | foot 0.3 m, posts every 2 m, bars | 1.6 to 2.0 m |
-| `bars_pier` | iron panels between plastered or brick piers on a plinth | university, ministries, embassies, palaces, old parks, the Filtry (pilot) | plinth 0.5 m, piers 0.4 m square every 4 m with a cap, bars between | 2.0 to 2.5 m |
-| `mesh_panel` | welded mesh panels, green or grey | schools, kindergartens, playgrounds, dog runs, new estates | posts every 2 m, top edge, fine fill (reads as a tint) | 1.2 to 2.0 m |
-| `chain_link` | old wire netting on thin posts, grey, often leaning | allotments, garages, back plots, railway land | thin posts every 4 m, faint fill, uneven top | 1.5 m |
-| `ball_net` | ball-stop net on tall posts | pitches | posts every 4 m, very faint fill | 4 to 6 m |
-| `low_lawn` | the knee-high lawn guard: hoops or a flat rail, green or black | lawns and paths in parks and estates (pilot: a park path) | one rail on short posts | 0.4 to 0.8 m |
-| `wood` | board fence | rare (0.5 km) | brown boards, small gaps | 1.5 m |
-| `hoarding` | building-site hoarding: sheet metal or boards with the developer's poster band; mesh panels on concrete feet | building sites | closed sheet, a poster band at eye height with parody developer names, feet | 2.0 m |
-| `green_fence` | a fence grown over with ivy and bushes | villa gardens of Saska Kępa and Mokotów (pilot) | bars with a leafy mass over most of it | 1.6 m |
-| `hedge_low`, `hedge_tall` | clipped hedge | parks and squares (low), villas and embassies (tall) | leafy box with a soft, uneven top; lighter than tree crowns | 0.6 m, 1.5 to 2.5 m |
-| `chain_posts` | posts with a chain | monuments, palace forecourts, the Old Town | short posts, a sagging line | 0.7 m |
-| `low_wall` | low masonry: brick, plaster, granite planter edge | squares, planters, terraces | body and a cap; under 0.6 m it is class R and drawn as a rim | 0.3 to 1.2 m |
+| Type | The real thing | Where | Height |
+| --- | --- | --- | --- |
+| `rail_street` | the street guard railing: grey galvanised steel, posts, a top rail, upright bars; older ones yellow | kerbs at crossings and stops, medians, Wybrzeże Szczecińskie, Aleje Jerozolimskie | 1.1 m |
+| `rail_tram` | the fence between or beside tram tracks: black or dark green railing with bars | tram beds, platform backs (Marszałkowska) | 1.15 m |
+| `bars_black` | black steel bars on a low concrete foot | tenement yards, churches, offices, gated housing | 1.6 to 2.0 m |
+| `bars_pier` | iron panels between plastered or brick piers on a plinth | university, ministries, embassies, palaces, old parks | 2.0 to 2.5 m |
+| `mesh_panel` | welded mesh panels, graphite on new estates and offices, green at schools and pitches | schools, playgrounds, dog runs, new estates, by the railway at the stadium | 1.2 to 2.0 m |
+| `chain_link` | old wire netting on thin posts, grey, often leaning | allotments, garages, back plots, railway land | 1.5 m |
+| `ball_net` | ball-stop net on tall posts | pitches | 4 to 6 m |
+| `low_lawn` | the knee-high lawn guard: a flat rail on short posts, green or black | lawns and paths in parks and estates | 0.4 to 0.8 m |
+| `wood` | board fence | rare (0.5 km) | 1.5 m |
+| `hoarding` | building-site hoarding: sheet metal in white, blue or green with a banner band | building sites (Wola: blue on Wronia, green with a banner on Towarowa) | 2.0 m |
+| `green_fence` | a fence grown over with ivy and bushes | villa gardens of Saska Kępa and Mokotów | 1.6 m |
+| `hedge_low`, `hedge_tall` | clipped hedge | parks and squares (low), villas, embassies, the fountain park (tall) | 0.6 to 0.8 m, 1.5 to 3 m |
+| `chain_posts` | posts with a chain | monuments, palace forecourts, the Old Town | 0.7 m |
+| `fence_plain` | **the unknown fence** (F's answer 4): a thin dark see-through railing | wherever nothing is known | 1.4 m |
+| `post_row` (new, W3) | a row of black bollards, no rail | kerbs of Wola's office streets, plaza edges (photos: Prosta, Grzybowska, Plac Grzybowski) | 0.9 m |
+| `stadium_fence` (new, W3) | Stadion Narodowy's own tall perimeter fence: grey posts and bars | the stadium grounds (16 lines of 6.2 m that the rules now call lawn guards and bars) | 6.2 m |
 
 ### 4.2 Heavy: walls, screens and barriers (Hard)
 
-| Type | The real thing | Where | Look | Height |
-| --- | --- | --- | --- | --- |
-| `wall_brick` | red brick with a cap and piers | old factories (Praga, Wola), church yards, barracks | brick red, dark foot, pale cap, piers every 3.5 m | 2.2 to 3.0 m |
-| `wall_plaster` | rendered masonry, cream or grey | yards, institutions | plain body, foot band, tile or concrete cap | 1.8 to 2.5 m |
-| `wall_precast` | the precast concrete fence: posts with stacked slabs, grey, tagged and stained | works, depots, garages, railway land (pilot: the map's west edge) | posts every 2.5 m, panels a shade apart, graffiti band low down | 2.0 to 2.5 m |
-| `wall_stone` | sandstone or granite blocks | the escarpment, palace gardens, the boulevards, Old Town terraces | large blocks as tone patches, heavy cap | by `h` |
-| `retaining` | structure walls (`walls`): concrete or stone under a road or a slope | approaches, trenches, tunnels | coping, darker foot, a joint tone step every 5 m, drip stains under the coping | from the bake |
-| `noise_screen` | steel posts with cassette panels, the top band clear | Trasa Łazienkowska, parts of Wisłostrada, Wał Miedzeszyński (pilot: rust-brown panels, clear top), the railway | posts every 4 m, lower panels green or rust-brown, a pale see-through top band | 4 to 6 m |
-| `gabion` | wire cages of stone | newer landscaping | 1 m cages as tone blocks, speckled | by `h` |
-| `guard_rail` | the steel beam on posts (exists) | fast roads, drops | as now, plus a turned-down end | 0.75 m |
-| `jersey` | concrete barrier, sloped sides | medians of the fast roads, roadworks | 3 m pieces a shade apart, wide foot, sloped end piece | 0.8 m |
-| `parapet_concrete` | estacade parapet with a steel top rail | viaducts and ramps | solid upstand, rail on top, drip line | 1.1 m |
-| `deck_railing` | steel posts and rails with infill | Most Świętokrzyski (pilot), footbridges | stout posts, top rail, kerb upstand under it | 1.1 m |
-| `rail_waterfront` | stainless posts with cables on a granite kerb | Vistula boulevards (pilot) | posts every 2 m, kerb 0.3 m, top rail | 1.1 m |
-| `balustrade_*` | stair-hole balustrades: granite, glass, concrete with a rail, white (exist) | metro and underpass stairs, terraces | as now | 1.0 m |
-| `city_wall` | the Old Town's brick defence walls (exists) | Old Town | as now | mapped |
+| Type | The real thing | Where | Height |
+| --- | --- | --- | --- |
+| `wall_brick` | red brick with a cap and piers | old factories (Praga, Wola), church yards, barracks | 2.2 to 3.0 m |
+| `wall_plaster` | rendered masonry, cream or grey | yards, institutions | 1.6 to 2.5 m |
+| `wall_precast` | the precast concrete fence: posts with stacked slabs, grey, tagged and stained | works, depots, garages, railway land | 2.0 to 2.5 m |
+| `wall_stone` | sandstone or pale concrete blocks with strong joints; on the boulevards a steel handrail on top and graffiti | the escarpment, palace gardens, the Vistula boulevards (Wybrzeże Gdańskie) | by `h` |
+| `noise_screen` | steel posts with cassette panels, the top band clear | Trasa Łazienkowska, parts of Wisłostrada, the railway | 4 to 6 m |
+| `gabion` | wire cages of stone | newer landscaping | by `h` |
+| `glass_screen` | glass panes in steel posts | tram stops (Marszałkowska), terraces | 2.0 m |
+| `guard_rail` | the steel beam on posts (exists) | fast roads, drops | 0.75 m |
+| `parapet_concrete` | a solid upstand with a steel top rail | viaducts, ramps, the boulevards' upper edge | 1.1 m |
+| `deck_railing` | steel posts and rails on a kerb upstand | decks with no model of their own, footbridges | 1.1 m |
+| `rail_waterfront` | stainless posts and a top rail on a granite kerb | Vistula boulevards | 1.1 m |
+| `low_wall` | a planter or terrace edge: granite, dark stone or weathered steel | squares, planters, terraces (Plac Grzybowski, the Palace of Culture) | 0.3 to 0.8 m |
+| `balustrade*`, `basin_rim`, `island_edge`, `city_wall` | exist, with F-approved looks | stairs, fountains, islands, the Old Town | as now |
 
-Bridge parapets belong to each bridge's own model (Poniatowski's stone balustrade is the bridge
-thread's); the types above are for the decks that have no model of their own.
+Bridge parapets belong to each bridge's own model. Retaining walls (`walls`) and the guard rails
+of `guards` keep their own builders; their looks are W7's last item.
 
-**A hazard fence is not always a crash barrier.** The drivable-city plan makes a fence hard when a
-drop, a railway or water is behind it and draws it as a guard rail. A steel beam is right along a
-road. On the boulevards it is wrong: there the hard version is `rail_waterfront`; at a railway it
-is `wall_precast`; at a drop beside a walk it is `parapet_concrete`. So: the bake writes the class
-(`sc: H`) and the reason, and the type table picks the heavy look for that reason.
+**A hazard fence is not always a crash barrier.** The bake writes the class (`sc: H`) and the
+reason (`hz`), and the type is already picked from the reason (`object_types.py` `HAZARD_LOOK`:
+deck → `deck_railing`, water → `rail_waterfront`, drop → `parapet_concrete`).
 
-**Heights by setting** (correcting the 1.9 m default for walls with no height, item 8 of the
-build plan): park or square 0.5 m; planter or basin ring 0.45 m; housing yard 1.2 m; church,
-school and institution 2.0 m; works, depot, railway 2.4 m; cemetery and barracks 2.6 m; noise
-screen 4 m, 6 m along the railway; unknown 1.6 m (not 1.9).
+**Heights by setting** are in the data as `hs` (7,577 lines; 348 have OSM's own `h`). The game
+does not read `hs` yet. W2 does.
 
 ## 5. How a line gets its type
 
-In the bake, once, in bulk. Each line gets `ty` (the type) and `tc` (how sure: `tag`,
-`structure`, `context`, `default`). First match wins:
+Built in step 5 (`tools/object_types.py`, verify step `objecttypes`). First match wins: a street
+pass's override by stable id, a landmark site's own wall, OSM's tags, the structure it belongs
+to, the land beside it, its shape, a default by kind. The 20-sample check of each rule is in that
+file's comment above `DROPPED`; the contact sheets are in `/mnt/project-files/walls-research/step5/`.
 
-| Step | Source | Examples |
-| --- | --- | --- |
-| 0 | the street passes' override file (`game/data/road_objects.json`), by stable id | a named place a sweep has looked at |
-| 1 | a landmark site that builds the wall itself (`SITE_WALLS`, the Palace's grounds) | unchanged |
-| 2 | **OSM tags**, read in full (today three groups are kept): `fence_type` (bars, railing, chain_link, wire, net, panel, corrugated_metal, temporary, glass, paling, slatted, concrete), `material`, `wall=noise_barrier`, `colour`, `height`, and the barrier kinds the bake drops (`jersey_barrier`, `handrail`, `chain`, `cable_barrier`, bollard rows) | `fence_type=chain_link` → `chain_link`; `fence_type=panel` is OSM's word for slabs in grooved posts → `wall_precast`; `temporary` → `hoarding` |
-| 3 | **the structure it belongs to** | along a tram bed → `rail_tram`; round a stair hole → balustrade; along a deck → the bridge's parapet; along a railway → `wall_precast` or `noise_screen`; along water → `rail_waterfront`; along a main road's edge → `rail_street` |
-| 4 | **the land it encloses or borders** | school or kindergarten → `mesh_panel`; church, embassy, university, ministry → `bars_pier`; cemetery, barracks → `wall_brick`; works, depot, garages → `wall_precast`; building site → `hoarding`; pitch → `ball_net` or `mesh_panel` by height; allotments → `chain_link`; villa → `green_fence`; park or lawn, short and beside a path → `low_lawn`; tenement or housing yard → `bars_black` |
-| 5 | **its shape** | a closed ring under 6 m → rim; a fragment under 4 m with nothing near → removed (build plan, item 8) |
-| 6 | **default by kind** | fence → a thin dark see-through railing 1.4 m; wall → `wall_plaster` 1.6 m; hedge → 0.8 m in a park, 1.2 m elsewhere |
+What the check found, and what follows for the look:
 
-**What the map's own data gives today** (prototype `wall_context.py`, section 12; share of metres):
+- Most context rules have **fewer than five judged lines**: yard and school fences stand behind
+  buildings and are not on street photos. They are unproven, not wrong. So the look of the big
+  context types (`bars_black`, `mesh_panel`, `chain_link`: 132 km) must be **quiet and close to
+  each other**: thin, dark or grey, see-through. A wrong guess then costs little. The loud looks
+  (piers, brick, hoardings, graffiti) go only where a tag, a structure or a sweep names the type.
+- Church, institution and embassy fences as `bars_pier` were dropped (3 right, 2 wrong, 15 with
+  no photo). `bars_pier` is 0.1 km today. It comes back by street sweeps and by landmark sites.
+- Building sites were dropped (the outlines are years old). `hoarding` is placed by sweeps.
 
-| Setting | Fence (188 km) | Wall (70 km) | Hedge (21 km) |
+**The type fixes of 2026-11-15** (phase W3, a guarded map pass; evidence in section 12):
+
+| # | Finding | Rule | Proof |
 | --- | --- | --- | --- |
-| Tram bed | 6 % | 1 % | 9 % |
-| Railway | 2 % | 3 % | |
-| Stairs | 1 % | 7 % | |
-| Main road edge | 3 % | 1 % | |
-| Park | 14 % | 25 % | 54 % |
-| Pitch | 2 % | | |
-| School | 4 % | 1 % | 1 % |
-| Church | 1 % | 1 % | |
-| Institution (government, university, hospital) | 2 % | 5 % | 2 % |
-| Works, garages | 3 % | 2 % | |
-| Villa garden | 6 % | | |
-| Housing yard | 15 % | 8 % | 8 % |
-| Waterside | | 4 % | |
-| **Some other building near** | 16 % | 18 % | 8 % |
-| **Open ground, nothing known** | 24 % | 23 % | 18 % |
+| 1 | A `default` wall in a square or a pedestrian zone is a planter edge. Plac Grzybowski: 10 of 10 lines; the Palace of Culture's: already low | `ctx_square`: a wall that no other rule names, with half its samples inside a `ped_zones` outline or a plaza surface, or within 4 m of two or more footways and no building within 6 m, is `low_wall`, `hs` 0.5, class by height | 16 of 20 or dropped |
+| 2 | A `default` fence along a kerb with no building near is often a bollard row (Prosta, Grzybowska: 2 of 5 photos) | `kerb_posts`: a `default` fence with 60 % of its samples within 2.5 m of a carriageway edge and no building within 6 m is `post_row`, class S | 16 of 20 or dropped; the row exists in the palette either way, for sweeps |
+| 3 | The stadium's sixteen 6.2 m fences are typed `low_lawn`, `bars_black`, `fence_plain`, `parapet_concrete` | no light type but `ball_net` may stand over 3 m: a fence with a mapped height of 4 m or more that is not by a pitch is `stadium_fence` inside the stadium's box, `ball_net` elsewhere. The stadium's lines also go into `game/data/road_objects.json` by id, as the plan's section 4 asked | the type plot at the stadium |
+| 4 | Hedges in the fountain park (Skwer 1 Dywizji Pancernej) are 3 to 5 m by their tags and read as `hedge_low` | a hedge with `h` of 1.5 m or more is `hedge_tall` | `--selftest` |
+| 5 | `object_types` is not in `tools/check_post_passes.py` | it joins the list, so the pass is held like the other five (TD-25) | `postpasses` green |
 
-The last two rows (40 % of the fences) are what the map cannot name yet. Most of that ground has
-an OSM outline the bake does not keep: `amenity` school, kindergarten, university, hospital,
-embassy, place of worship and parking; `landuse` cemetery, construction, allotments, industrial,
-railway, military, religious; `leisure` playground, dog park, sports centre, garden. Phase W1
-adds them to the bake as one list of context outlines (`ctx`), used only for this.
-
-**Checking the rules without a verdict per object.** For each rule, a tool draws 20 random lines,
-fetches the nearest street-level photos (`tools/street_photos.py`, already working in the cloud)
-onto one contact sheet, and a reviewer marks right or wrong. A rule ships when at least 16 of 20
-are right; a rule that fails is narrowed or dropped to the default. The pilot (23 photos at 14
-places) already found the two traps in section 2, point 5, and confirmed tram, church, yard,
-park, villa, waterside and noise-screen settings. Mapillary's own detections (fence, wall, guard
-rail as classes in a photo) may settle fence against wall where OSM is wrong; that is untested.
-
-**Keeping it honest.** `check_map_data.py` records the metres per type and the share with
-`tc: default`; the default share only goes down. A plot coloured by type (one PNG for the whole
-map) is the review picture for F.
+The default share is recorded in `check_map_data.py` and only goes down: 12 % today, 9 % or less
+after W3.
 
 ## 6. How a type is drawn
 
-### 6.1 One table of types
+### 6.1 The palette owns the look, and one key picks it
 
-`game/data/barrier_kit.json`: one row per type with its family, height, thickness, colours (body,
-foot, cap, post), post or pier spacing, panel length, openness, bar spacing, the broken look and
-the sound and debris kind. `map_builder.gd` and the panel shader both read it, so a new type or a
-retexture is a data row, as `road-objects.md` 3.4 asked. `BARRIER_STYLE` and `WALL_MATERIAL`
-move into it.
+`game/data/object_palette.json` is the one home of looks (`docs/architecture/extending.md`, row
+"A wall, fence or hedge style"). The first plan's `barrier_kit.json` was never made and is not
+needed. Two additions:
 
-### 6.2 Heavy types: shaped geometry in the city mesh
+- **`"barrier_look"`**: `"classic"`, `"typed"` or `"panels"`. `classic` is today's drawing, by the
+  `types` rows, bit for bit. `typed` is W2. `panels` is W4 onward. The key stays `classic` on main
+  until F says so after a phone look. `--barriers=classic|typed|panels` overrides it for a run of
+  the runtime city and for `bake_city.gd`. A prebuilt city is baked in one look; the prebuilt
+  index is stamped with it and the game prints one line when a flag asks for another.
+- **`"looks"`**: one row per `ty` (section 6.2), read through `solidity.gd` (`look_row(ty)`).
+  The existing `types` rows are not edited by any phase, so the classic look cannot drift. They
+  are deleted in W10, when classic retires.
 
-A wall builder next to `_wall_along` that makes, per run: the foot band, the body cut into panels
-(each panel's colour a step lighter or darker, so the rhythm survives any zoom), the cap with a
-small overhang, piers or posts at the spacing, and an end piece (a pier, a sloped end, a
-turned-down rail) where the build plan's item 7 asks for a taper. Noise screens get posts, opaque
-lower panels and a pale top band. Graffiti and poster bands are a few colour patches low on the
-wall on `wall_precast` and `wall_plaster`, picked by a seed.
+`city_barriers.gd` decides the style of a line as today (the site walls, the garden rings, the
+stairs, the placed styles, the overrides). Under `typed` or `panels`, **only where that chain
+ends at a generic style** (the kind's own row, or what `_mapped_style` made of it) the line is
+drawn from its `ty` row instead. Every hand-placed and F-approved look stays as it is.
 
-No new material and no shader change: the prop path of `building.gdshader` already adds a fine
-speckle to flat colours. Cost: triangles only (section 8).
+Height of a typed line: OSM's `h` clamped to the row's `h_range`, else `hs`, else the row's `h`.
+The collider is made from the same segments at the drawn height, so R2 holds. What collides and
+what breaks does not change with the look (the soft list is the same lines).
 
-### 6.3 Light types: instanced panels with their own shader
+### 6.2 The rows
+
+Colours are sRGB hex. "alt" is a second colour that a share of the lines take, picked by a hash
+of the line's stable id, so a street does not flicker between them. Posts stand every 2 m or 4 m:
+a multiple of the 2 m panel that `soft_things.gd` remembers.
+
+**Light rows** (`family: light`). `draw` is what W2 draws; from W4 a light row is a panel.
+
+| `id` | `draw` | `h` | `thick` | `colour` | alt (share) | posts: every, width | rails | foot: h, colour | `open` | `bars` | `top` | `broken` | `debris` |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `fence_plain` | rail | 1.4 | 0.05 | `#2a2e33` | | 2, 0.06 | 2 | | 0.85 | 0.25 | flat | down | metal |
+| `bars_black` | rail | 1.8 | 0.05 | `#25282c` | | 2, 0.07 | 2 | 0.3, `#9a968e` | 0.70 | 0.12 | flat | down | metal |
+| `bars_pier` | rail | 2.2 | 0.05 | `#25282c` | | 4, 0.07 (piers in W7) | 2 | 0.5, `#b8b0a0` | 0.70 | 0.12 | flat | down | metal |
+| `mesh_panel` | rail | 1.6 | 0.05 | `#3d4145` | `#3f6b4a` (0.4) | 2, 0.06 | 1 | | 0.65 | 0 (a tint, ribs every 0.5 m) | flat | down | metal |
+| `chain_link` | rail | 1.5 | 0.04 | `#8b9196` | | 4, 0.05 | 1 | | 0.78 | 0 | sag | torn | metal |
+| `ball_net` | rail | 5.0 | 0.04 | `#6d7378` | | 4, 0.10 | 1 | | 0.88 | 0 | flat | torn | metal |
+| `stadium_fence` | rail | 6.2 | 0.06 | `#9aa0a6` | | 4, 0.12 | 2 | | 0.80 | 0.15 | flat | down | metal |
+| `rail_street` | rail | 1.1 | 0.05 | `#8d9398` | `#c9a227` (0.1) | 2, 0.06 | 2 | | 0.75 | 0.13 | flat | down | metal |
+| `low_lawn` | rail | 0.6 | 0.04 | `#2f4f36` | `#25282c` (0.3) | 2, 0.05 | 1 | | 0.90 | 0 | flat | gap | metal |
+| `chain_posts` | rail | 0.7 | 0.04 | `#2a2e33` | | 2, 0.10 | 1 | | 0.95 | 0 | sag | gap | metal |
+| `post_row` | rail | 0.9 | 0.12 | `#1f2226` | | 2, 0.12 | 0 | | 1.0 | 0 | flat | gap | metal |
+| `green_fence` | rail | 1.6 | 0.05 | `#25282c`, leaf `#4a7436` | | 2, 0.07 | 2 | 0.3, `#9a968e` | 0.30 | 0.12 | leafy | stub | leaf |
+| `wood` | slab | 1.5 | 0.08 | `#7f6248` | | 2, 0.08 | | | 0.08 | 0.12 | flat | gap | wood |
+| `hoarding` | slab | 2.0 | 0.06 | `#dcdcd6` | `#2d5fa8` (0.3), `#3c7a4c` (0.2) | 2, 0.06 | | | 0 | 0 | flat | flat | sheet |
+| `hedge_low` | slab | 0.8 | 0.9 | `#4f7d39` | | | | | 0 | 0 | leafy | stub | leaf |
+| `hedge_tall` | slab | 1.8 | 1.1 | `#47723a` | | | | | 0 | 0 | leafy | stub | leaf |
+
+`h_range`: `[0.4, 2.5]` for the fences, `[3.0, 8.0]` for `ball_net` and `stadium_fence`,
+`[0.3, 1.0]` for `low_lawn`, `chain_posts` and `post_row`, `[0.4, 1.4]` for `hedge_low`,
+`[1.4, 5.0]` for `hedge_tall`.
+
+**Heavy and low rows** (`family: heavy` or `low`). W2 draws each as a slab in `colour` at `thick`;
+W7 adds what the other columns say.
+
+| `id` | `h` | `thick` | `colour` | alt (share) | foot: h, darker by | cap: h, overhang, colour | bay, shade step | piers: every, width | `marks` |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `wall_plaster` | 1.6 | 0.30 | `#cfc8b8` | `#b9b6ae` (0.4) | 0.3, 0.12 | 0.10, 0.04, `#8f5a48` (alt `#a9a59d`) | 4 m, 0 | | graffiti, ivy, stain |
+| `wall_brick` | 2.4 | 0.38 | `#a8644b` | | 0.35, 0.12 | 0.12, 0.04, `#c9c2b4` | 3.5 m, 0.03 | 3.5, 0.5 | ivy, stain |
+| `wall_precast` | 2.4 | 0.12 | `#a9a69f` | | | | 2.5 m, 0.05; posts 0.15 wide stand 0.03 proud | | graffiti, poster, stain |
+| `wall_stone` | 2.0 | 0.45 | `#b9b2a5` | | 0.3, 0.08 | 0.18, 0.06, `#c8c2b6` | 3 m, 0.04 | | graffiti, stain; a steel top rail (`#6c7075`, 0.9 m) where `hz` is water or drop |
+| `noise_screen` | 4.0 | 0.15 | `#5f7a5c` | `#8a5a3c` (0.4) | | top band 1.0 m, `#b9cdd0` | 4 m, 0.03; posts 0.2 wide `#6c7075` | | stain |
+| `gabion` | 1.6 | 0.8 | `#8f897e` | | | | 1 m, 0.07 | | |
+| `glass_screen` | 2.0 | 0.06 | `#a9bcc0` | | 0.15, 0.2 | | 2 m, 0; posts 0.08 `#6c7075` | | |
+| `parapet_concrete` | 1.1 | 0.25 | `#a9a59d` | | | the upstand is 0.8 m; a rail `#6c7075` on posts every 2 m above it | 5 m, 0.03 | | stain |
+| `deck_railing` | 1.1 | 0.05 | `#6c7075` | | 0.2, `#a9a59d` (a kerb upstand) | | | | drawn as `rail`: posts every 2 m 0.08 wide, 2 rails |
+| `rail_waterfront` | 1.1 | 0.05 | `#b4b8bc` | | 0.3, `#8f8f8a` (granite kerb) | | | | drawn as `rail`: posts every 2 m, 1 rail |
+| `guard_rail` (a line) | 0.75 | 0.06 | `#a7abb0` | | | | | | drawn as `rail`: posts every 4 m 0.1 wide `#6c7075`, 1 rail |
+| `low_wall` | 0.5 | 0.4 | `#b3ada3` | `#5a5550` (0.3) | | 0.06, 0.03, lighter by 0.08 | | | |
+
+`draw: keep` (drawn by today's chain, whatever the look): `rail_tram`, `balustrade`,
+`balustrade_rail`, `balustrade_white`, `basin_rim`, `island_edge`. Not drawn: `site`, `removed`.
+
+Later phases read `open`, `bars`, `top`, `broken`, `debris`, the foot, cap, bay, pier and `marks`
+columns. They are written into the palette in W2 so that the look is decided once, here.
+
+### 6.3 Typed rows: posts and rails in the city mesh (W2)
+
+A new draw kind in `city_barriers.gd`, `rail_lite`, for the rows marked `rail`:
+
+- a post is two crossed upright quads, `width` wide and the line's height tall (4 triangles);
+- a rail is one upright quad 0.06 m tall: one under the top, and with `rails: 2` one at 0.35 m;
+- a foot, where the row has one, is a slab of the foot's height and colour, 0.2 m thick;
+- the building shader draws both sides of a triangle (`render_mode cull_disabled`), so one quad
+  is a rail seen from both sides. Vertex colour only, the "prop" code in UV2, as every barrier.
+
+It costs about 2.5 triangles a metre; today's `railing_along` costs about 7.5. It has no bars and
+no mesh: at the default zoom it reads as a see-through fence of the right height and colour with
+the right post rhythm. That is the whole of what the first plan called "a type", except openness.
+It stays in the code after panels arrive as the cheap step of the fallback ladder (section 9).
+
+Rows marked `slab` use `wall_along` as today, with the row's numbers.
+
+### 6.4 Panels: instanced, with their own shader (W4 to W6)
 
 - **One mesh for everything**: a unit box without a bottom (10 triangles). An instance is one
-  panel: placed at its foot, turned along the line, stretched to the panel's length, height and
-  thickness, sheared to follow the slope. A panel is 2 m of the line, the same 2 m that
-  `soft_things` remembers, so posts stand every 2 m or every 4 m (real panels are 2.5 m; at
-  this pixel size the difference does not show).
-- **One `MultiMesh` per sector**, made in the bake for the prebuilt path and by `map_builder.gd`
-  for the runtime path from the same sector list, written through `instance_buffers.gd`. The
-  instance colour is the tint; the custom data carries the type's row, a seed and the state
-  (whole, down, stub).
-- **One small shader, `panel.gdshader`**: reads the type's row from a 16 × 32 lookup texture made
-  from the kit (a texture read is not control flow, so it costs nothing on the Adreno budget) and
-  draws foot, posts at the panel's ends, top rail, bars by the rule of section 3, the fill tint
-  and the leafy edge of hedges, all with `step` and `mix` and no branch. Holes are cut with
-  `discard`, as the building shader's ghost already does. It reads the shared day, night and
-  rain globals, never its own copy.
-- **No shadow** for panels (a see-through fence has almost none; hedges get a dark foot in the
-  shader instead). This also takes today's fence bands out of the shadow pass.
-- **Colliders** are not this page's: the build plan's item 3 removes them for class S; a panel is
-  only a picture plus an entry in `soft_things`.
+  piece of one panel: placed at its foot, its x axis the piece's vector along the line (the slope
+  is in it, so posts stay upright), its y axis the height, its z axis the thickness.
+- **A panel is 2 m of the line**, index `floor(metres along the line / 2)`: the same index
+  `soft_things.gd` remembers (`city_barriers.gd` `PANEL`). A panel that crosses a corner of the
+  line is two pieces with one index. Pieces under 0.05 m are skipped, as segments are today.
+- **One `MultiMesh` per sector**, a child of the sector's root named `Panels`, built by
+  `city_barriers.gd` from the same loop that draws the lines, on both city paths, and saved in
+  the prebuilt sector's scene. Written through `instance_buffers.gd`. No shadow casting.
+  Visibility range 400 m. The sector's root also carries a `panels` meta: per soft line id, the
+  first instance and the panel index of each of its pieces, so a hit finds its instances.
+- **Custom data, four floats**: the row's index; the metres along the line at the piece's start
+  (so the post rhythm runs through corners); the state (0 whole, 1 down, 2 torn, 3 stub or gap);
+  a seed from the line's stable id (the alt colour, the leafy edge).
+- **One small shader, `panel.gdshader`**: lit, diffuse only (no specular), `cull_disabled`. It
+  reads the row from a lookup texture (8 texels a row, 64 rows, made from the palette's `looks`
+  when the game starts; a texture read is not control flow). In the fragment, with `u` the
+  metres along the line and `v` the metres up, and `px` the metres one image pixel covers
+  (`fwidth(u)`):
+  - post: within half the post's width, or half a pixel if that is more, of a multiple of the
+    post spacing;
+  - rails and foot: bands in `v`, never thinner than a pixel;
+  - bars: the row's spacing doubled until bars are at least 2.5 pixels apart
+    (`spacing × exp2(ceil(log2(2.5 × px / spacing)))`, never under the spacing), each bar one
+    pixel wide, placed in `u`, so they are fixed to the fence;
+  - a tint fill (`bars: 0`): a stipple on a grid fixed to the fence whose cell is the pixel size
+    rounded up to a power of two times 8 cm; a cell is kept when its hash is under `1 - open`;
+  - `top: sag` lowers the top edge by up to 8 cm between posts; `top: leafy` cuts the top edge by
+    a noise of the seed and darkens the lowest 0.2 m;
+  - everything is `step`, `mix` and `max`; one `if` holds the `discard`. The count must stay
+    under 200 of the lit budget of 260 (`check_shader_budget` from the first commit).
+  - It reads the shared day, night and rain globals (`night.gdshaderinc`), never its own copy.
+    At night a row's colour is lifted by 0.15 toward grey, so black bars do not vanish on dark
+    ground.
+- **States** are written by `main.gd`'s reaction to `soft_things.broke` and `repaired` through a
+  small script, `panel_states.gd` (W6): it sets the instance's state and, for `down` and `flat`,
+  its transform (the box laid on the ground on the far side of the hit). The whole transform is
+  put back on `repaired`, from the baked buffer.
 
-Why not the other ways: more patterns in `building.gdshader` has no room (502 of 505); posts and
-bars as real geometry for 188 km is what the railings do today (160,000 triangles for 31 km) and
-still cannot fall over; a photo texture per type shows nothing at this pixel size and would add a
-material per type.
+Why not the other ways: more patterns in `building.gdshader` has no room; bars as real geometry
+for 190 km is about 4 million triangles and cannot fall over; a photo texture per type shows
+nothing at this pixel size and adds a material per type; alpha blending needs sorting and costs
+fill on the phone's GPU.
+
+### 6.5 The heavy kit: shaped geometry in the city mesh (W7)
+
+A wall builder beside `wall_along`, `wall_kit`, that makes, per run of a line: the foot band; the
+body cut into bays, each bay a shade step from the last (so the rhythm survives any zoom); the
+cap with its overhang; piers or proud posts at the spacing; and an end piece (a pier, or a sloped
+end) where step 10 of the objects plan put a taper. Noise screens get posts, opaque lower panels
+and the pale top band. `bars_pier` gets its piers here, with the plinth; the iron between them is
+a panel.
+
+A pier of an S line gets a **diamond collider** (a 0.5 m square turned 45° to the line), filed as
+class `wall`. A car that clips it is turned into the bay instead of stopped. This is F's answer
+1: the panel falls, the piers stand. The gate is the sloppy table at the review places: no new
+dead stop.
+
+No new material and no shader change. Cost: triangles only (section 8).
+
+### 6.6 The details, ranked
+
+Ranked by how much each makes the city read as Warsaw at the default zoom, with what it costs.
+
+| # | Detail | Reads as | Drawn by | Cost | Phase |
+| --- | --- | --- | --- | --- | --- |
+| 1 | See-through fences with a post rhythm, in the type's colour | the single biggest change: 157 km stops being a grey wall | `rail_lite`, then panels | triangles; then one draw call a sector | W2, W4 |
+| 2 | Heights by setting (`hs`): knee-high park hedges and planters, 2.4 m works walls, 6 m nets | streets open up; squares stop looking walled in | the row's height | none | W2 |
+| 3 | Planter edges in squares, bollard rows, the stadium's fence | the centre's real street furniture | W3's pass, W2's rows | none | W3 |
+| 4 | Bars and mesh by the pixel rule; green or graphite mesh; sagging wire | fence kinds tell apart at close zoom | panel shader | the shader | W4, W5 |
+| 5 | A panel that falls, a net that tears, a hedge with a gap | the city answers the car | panel states | a buffer write on a hit | W6 |
+| 6 | Foot band, cap and bays on walls; brick piers; precast posts | walls stop being slabs; brick reads as Praga and Wola | `wall_kit`, vertex colour | triangles | W7 |
+| 7 | Piers with iron panels between them | the university, ministries, embassies | `wall_kit` piers + panels | triangles | W7 |
+| 8 | Noise screens with posts and a pale top band; boulevard walls with a handrail | Trasa Łazienkowska, the Vistula | `wall_kit` | triangles | W7 |
+| 9 | Gates and gaps where a path or a drive crosses a line | yards read as entered, and the car gets through | W8's pass; two taller posts and open leaves in the city mesh | triangles; a map pass | W8 |
+| 10 | Graffiti: colour patches low on precast, plaster and boulevard walls; a few big slogans | Wola, the railway, the boulevards (F's answer 2) | quads in the city mesh 2 cm off the wall, vertex colour; slogans as posters on `props.gd`'s poster path (`poster.gdshader`) | triangles; no draw call if the existing poster item is reused, else one per sector with slogans in view | W9 |
+| 11 | Hoardings with parody developer banners | building sites (F's answer 3) | panel row plus a banner on the poster path | as 10 | W9 |
+| 12 | Ivy over wall tops and villa fences; drip stains under copings | age | green and dark quads by seed, vertex colour; the panel's `leafy` top | triangles | W9 |
+| 13 | Night: bars lifted off the dark ground; a pale top band that catches the sky | fences stay readable at night | the panel shader's globals; vertex colour | none | W4, W9 |
+| 14 | Rain: darker feet and wet caps | weather | the shared rain global in the panel shader; nothing for the city mesh (the building shader does its own) | none | W4 |
+
+Not planned: scrape marks on hard walls, lamps on gate piers (a light each), true glass
+transparency for noise screens (a blended material), textures of bricks or boards.
 
 ## 7. Broken looks: the seam with the drivable-city plan
 
-`drivable-city-build.md` section 5 owns the memory: `soft_things.gd` keeps each broken panel by
-the line's stable id and the panel's index for the session and repairs it out of sight after
-about ten minutes. It offered three ways to show a broken thing. The choice:
+`soft_things.gd` (merged, #776) keeps each broken panel by the line's stable id and the panel's
+index for the session, and repairs it out of sight after about ten minutes. It emits
+`broke(id, panel, kind, at, direction, speed)` and `repaired(id, panel)`, and answers
+`is_broken(id, panel)`. Today only debris shows a break; the fence stays drawn. W6 closes that.
 
-1. **First: debris only** (its way 1), with item 3 of the build plan. Nothing here is needed.
-2. **Then: the panel goes down** (its way 3), which the instanced panels give for free: on
-   `soft_things.broke(id, panel, kind, at, direction, speed)` the panel's state changes in the
-   `MultiMesh` (one small buffer write, no rebuild), and when a sector is built again the bake's
-   panel list is checked against `is_broken(id, panel)`.
-3. Not chosen: the damage map in the building shader (way 2). There is no room for it, and it
-   cannot give a type its own way of breaking.
+The broken look, by the row's `broken`:
 
-The broken look, by type:
+| `broken` | Types | When the car goes through | What stays until the repair |
+| --- | --- | --- | --- |
+| down | `fence_plain`, `bars_black`, `bars_pier`, `mesh_panel`, `rail_street`, `stadium_fence` | the panel swings down away from the hit; a clang; bars fly | the panel flat on the ground, a shade darker, a few degrees askew. Neighbours' posts stand. For `bars_pier` the piers stand with an empty bay |
+| torn | `chain_link`, `ball_net` | the net tears | the fill gone in that panel, the posts standing |
+| gap | `low_lawn`, `chain_posts`, `post_row`, `wood` | flattened; boards fly | nothing drawn in that panel (for `wood`: two boards on the ground) |
+| flat | `hoarding` | the sheet falls flat | the sheet on the ground, banner side up |
+| stub | `green_fence`, hedges | leaves burst | a gap with a low brown stub, a quarter of the height |
+| notch | `low_wall` of class S (0.6 to 1.2 m), later | dust, bricks | the bay at 0.2 m in a rubble tone (step 9c of the objects plan, not this stage) |
+| none | every Hard type | nothing breaks | nothing |
 
-| Type | When the car goes through | What stays until the repair |
-| --- | --- | --- |
-| `rail_street`, `rail_tram`, `bars_black`, `mesh_panel` | the panel swings down away from the hit; a clang; bars fly | the panel flat on the ground, a shade darker, a few degrees askew. Posts of the neighbours stand. The gap is the mark |
-| `bars_pier` | the iron panel goes down, the piers stay | piers with an empty bay |
-| `chain_link`, `ball_net` | the net tears and sags | the fill gone in that bay, posts standing or leaning |
-| `low_lawn`, `chain_posts` | flattened | nothing drawn in that bay |
-| `wood` | boards fly | the bay empty, two boards on the ground |
-| `hoarding` | the sheet falls flat | the sheet on the ground, poster side up |
-| `green_fence`, hedges | leaves burst | a gap with a low brown stub (a quarter of the height) |
-| `low_wall` (0.6 to 1.2 m) | dust, bricks | a notch: the bay at 0.2 m in a rubble tone |
-| every Hard type | nothing breaks | nothing (scrape marks are not planned) |
+How it is wired (W6):
 
-What this page asks of `soft_things`:
-
-- the panel index is `floor(distance along the line / 2 m)`, the same in the bake's panel list;
-- a `repaired(id, panel)` event as well as `broke`: a repair happens 150 m away and out of view,
-  but a sector is 512 m, so the panel may still be loaded and must stand up again;
-- `sc: H` with its reason on the line instead of a fixed `st: guard`, so the heavy look can fit
-  the place (section 4.2).
-
-Debris colour, particle shape and sound come from the type's row in the kit, so a brick wall
-throws red dust and a hedge throws leaves without code per type.
+- `main.gd` connects `broke` and `repaired` to `panel_states.gd`, which finds the sector's
+  `Panels` and the line's instances in its `panels` meta and writes the state.
+- When a sector comes in, `panel_states.gd` asks `soft_things.is_broken` for the lines in its
+  meta and sets those panels down, so a broken fence is still broken after a drive round the
+  block.
+- Debris colour comes from the row (`debris`), replacing `soft_things.gd`'s `DEBRIS_COLOUR`
+  table; the sound stays a row of `Sfx.SHOTS` picked by `debris`.
+- With the soft switch off nothing breaks, so no state is ever written. Panels are drawn the
+  same either way.
 
 ## 8. Cost on the phone
 
 The budgets are in the archive's "Performance budgets": draw calls are the gate, triangles are
-not, and the building shader has no room.
+not, and the building shader has no room. Numbers below are estimates from the map's lengths;
+each phase's gate measures them (section 10).
 
-| What | Today | With this plan | Note |
-| --- | --- | --- | --- |
-| Draw calls, main pass | barriers ride in the building mesh: 0 of their own | **+1 per visible sector** for the panels: 1 to 4 in a default view (sectors are 512 m), more from the helicopter | the one real cost; measured at the four `--probe` views in W3 |
-| Draw calls, shadow pass | fences and hedges cast | panels do not | goes down or stays |
-| Triangles in the city meshes | 458,000 for all barriers | fences and hedges leave (335,000 out); heavy walls gain foot, cap and piers (about +330,000 for 90 km) | about even |
-| Triangles drawn as panels | 0 | 10 per panel, about 115,000 panels city-wide, about 1,300 in a sector | small beside the 0.25 to 0.36 M of a frame |
-| Shader budget (Adreno) | building 502 of 505 | building unchanged; `panel.gdshader` is a new lit shader with a budget of 260 and no branches in its design | `check_shader_budget.gd` counts it from the first commit |
-| Memory | | lookup texture 2 KB; panel buffers 80 bytes a panel, about 0.1 MB a sector; no image textures | not a risk: video memory at the spawn is about 300 MB |
-| Sector load | a frame that loads a sector must stay under 33 ms (the iPhone 11 is already over on some) | the panel buffer is made in the bake; the city mesh gets a little smaller | `check_streaming.gd` before and after |
-| Pixels | opaque bands | `discard` on the panels' pixels | small area; needs the phone to be sure |
+Per-sector counts on main's map (512 m sectors, 102 with barriers): light panels 95,000
+city-wide, 840 in the middle sector, 1,600 at the ninth decile, 5,200 in the densest, 10,600 in
+the densest block of four. Heavy walls 66 km, 460 m in the middle sector, 3.7 km in the densest.
 
-What only the phone can show: the frame with `discard` panels on the iPhone 11 and on the Adreno
-6xx test phone, and whether bars shimmer while driving.
+| Phase | Draw calls, main pass | Draw calls, shadow pass | Triangles | Shader budget | Sector load | App size |
+| --- | --- | --- | --- | --- | --- | --- |
+| W2 typed rows | 0 | 0 | barriers 0.46 M → about 0.65 M city-wide; a default view gains 2,000 to 8,000 | none | the city mesh grows by under 2 %; soft off: no new work | under +10 MB of prebuilt sectors |
+| W3 type fixes | 0 | 0 | none | none | none | none |
+| W4, W5 panels | **+1 per visible sector with panels**: 1 to 4 in a default view, up to 6 zoomed out, up to 9 from the helicopter | 0 (panels cast none; the fence geometry leaves the shadow pass) | the `rail_lite` geometry leaves the city mesh (about −0.4 M); panels are 10 a piece, 0.95 M city-wide, 8,400 in the middle sector | `panel.gdshader` new, under 200 of 260; building unchanged at 501 | one buffer of 64 bytes a piece (54 KB in the middle sector, 330 KB in the densest) and a 2 KB lookup texture made once | +6 MB |
+| W6 broken | 0 | 0 | none | none | a dictionary lookup per soft line of the sector, only while something is broken | none |
+| W7 heavy kit | 0 | 0 | about 10 a metre for 66 km: +0.6 M city-wide, 4,600 in the middle sector, 37,000 in the densest | none | the city mesh grows by about 4 % | about +20 MB |
+| W8 gates | 0 | 0 | about 60 a gate | none | none | none |
+| W9 marks | 0 with the existing poster item; else +1 per sector with a slogan in view | 0 | 2 a patch, about 4,000 patches | none | none | none |
+
+The frame's ceilings that must hold after every phase: draw calls 230 at the spawn, 200 at the
+default river view, 300 zoomed out, 360 from the helicopter; main-pass triangles 0.45 M at the
+spawn and 0.70 M zoomed out; a frame that loads a sector 33 ms.
+
+Pixels: panels use `discard`. On a tile-based GPU that turns off the hidden-surface shortcut for
+those triangles. Fences are a small share of the screen; only the phone can show the cost.
+
+What only the phone can show: the frame with panels on the iPhone 11 and on the Adreno 6xx test
+phone; whether bars shimmer while driving; whether `panel.gdshader` links on Adreno 6xx.
 
 ## 9. Fallbacks and recovery
+
+**The switch.** `barrier_look` in the palette, `classic` on main. A phase is merged with the key
+unchanged. The classic path is proved bit-equal to main in every phase (the sector hashes of
+step 2's proof). A build for testers is always baked `classic` until F has looked at a `typed`
+or `panels` build on the phone (a device run, or a build F allows) and says go. Changing the key
+is then a one-line pull request with a line in `docs/PHONE-CHECK.md`.
 
 If a gate fails, step down this ladder; each step is a switch, not a rewrite.
 
 | If | Then |
 | --- | --- |
-| Draw calls over the ceiling in the helicopter or zoomed-out view | panels get a visibility range (as `fine_detail`, 170 m), so far sectors cost nothing; hedges and low walls, which are opaque, can stay in the city mesh as today |
-| The frame drops on the iPhone 11 | a field in `tiers.gd`: on Low the panels are drawn closed with the type's tint (no `discard`); the governor never touches it |
-| `panel.gdshader` fails to link on Adreno 6xx | a lite path for that GPU as the building shader has: closed panels with posts and rail only |
-| Bars shimmer or crawl | fall back to posts, rails and an even tint for the fill at that zoom |
-| A sector load goes over 33 ms | cap the panels per sector; the longest plain runs merge to 5 m panels |
-| The panels disappoint on the phone altogether | **`--barriers=classic`** and the same setting in the bake: today's builder, kept until the phone bench has passed twice. The heavy kit and the types still apply; the broken look stays at debris only |
-| A type looks wrong | it is a row: set its row to the default look, or override a line by id in `road_objects.json` |
-| A rule mislabels a setting | the rule is dropped to `default`; `check_map_data.py` shows the metres that moved |
-| The two city paths disagree | the panel list is baked once and read by both; a check compares panel counts per sector on both paths |
+| Draw calls over a ceiling in the helicopter or zoomed-out view | the panels' visibility range comes down from 400 m to 250 m; beyond it fences are not drawn (at that zoom a fence is 3 px) |
+| The frame drops on the iPhone 11 with panels | a field in `tiers.gd`, `panel_holes`: on Low and Medium the panel shader skips `discard` and blends the row's colour toward the ground tone by `open`. The governor never touches it |
+| `panel.gdshader` fails to link on Adreno 6xx | that GPU gets `typed` (`rail_lite`), picked in `gpu_quirks.gd`; panels are never the only way a fence is drawn |
+| Bars shimmer or crawl | bars off (`bars: 0` for every row): posts, rails and the tint fill only |
+| A sector load goes over 33 ms | the longest plain runs merge to 4 m pieces (two panel indices share an instance until one breaks) |
+| Panels disappoint on the phone altogether | the key goes to `typed`. Broken looks then stay at debris only, and the soft switch waits |
+| The typed look disappoints | the key stays `classic`; nothing was lost |
+| A type looks wrong | it is a row: change the row, or override a line by id in `road_objects.json` |
+| A rule mislabels a setting | the rule is dropped to `default` in `object_types.py`; `check_map_data.py` shows the metres that moved |
+| The two city paths disagree | `check_barrier_look` compares the vertex count of the city mesh and the piece count of `Panels` per sector on both paths |
 
 Recovery of broken things in play (the car never trapped, repair out of sight, a whole city on a
-new launch, `--no-soft` for developers) is the build plan's section 5 and needs nothing more
-from the look, except that a repaired panel stands up again (section 7).
+new launch, `--no-soft` for developers) is `soft_things.gd`'s and needs nothing more from the
+look, except that a repaired panel stands up again (section 7).
 
 ## 10. The plan, in phases
 
-One PR each. W1 and W2 do not wait for anything. W3 to W5 follow the build plan's item 3 (both
-edit the barrier builder in `map_builder.gd`), so they are agreed with that thread before they
-start.
+W0 (the type sheet) and W1 (types in the bake) were done inside step 5 of the objects plan. One
+pull request per phase from here, in this order, through the audit. Every phase leaves
+`barrier_look` at `classic`.
 
-| # | Phase | What | Model | Gate |
-| --- | --- | --- | --- | --- |
-| **W0** | Type sheet | 6 to 10 reference photos per type in `refs/` (never committed), a card per type (sizes, colours, rhythm, broken look); 20-sample check of each context rule | Sonnet, Haiku scout for photos; Opus art-director accepts | light (docs) |
-| **W1** | Types in the bake | `tools/barrier_types.py`: full tags, context outlines (`ctx`), `ty` and `tc` on every line; counts in `check_map_data.py` and the archive's "Map data"; the type plot; a verify step. Nothing looks different yet. Needs a re-bake on the Mac (the raw OSM is there) | Opus (map-engineer) | full map chain, both paths unchanged |
-| **W2** | Heavy kit | `barrier_kit.json`; the wall builder with foot, cap, piers, panels and end pieces; types of 4.2; heights by setting; guard rails only where a road is | Opus for the builder, Sonnet (object-modeler) per type | full: shots both paths, bench (triangles, draw calls unchanged) |
-| **W3** | Panel trial | `panel.gdshader` and the sector `MultiMesh` on one stretch (Marszałkowska in the centre) behind `--barriers=panels`: the bar rule at three zooms, by day, night and rain; draw calls at the four probe views; the Adreno count | Opus (perf-engineer with gameplay-dev) | F looks at phone-size shots; bench; phone run when F allows |
-| **W4** | Panels city-wide | all types of 4.1 as kit rows, both city paths, the old fence geometry behind the switch | Opus, rows by Sonnet | full, `--ios`, the streaming soak |
-| **W5** | Broken looks | `soft_things` events to panel states, per-type looks of section 7, debris and sound from the kit | Opus | full; `check_soft_things` extended |
-| **W6** | Content | hoarding posters with parody developers, graffiti patches, open and closed gates where paths cross fences, bollard rows, night tint | Sonnet, PixelLab inside the loop's limit | light, shots |
-| **W7** | Sweeps and ratchet | the street-pass skill takes a type per line; the default share only goes down | sweep skill | per street |
+**Gates for every phase**: `tools/verify.sh` green; both city paths; with `classic` the per-sector
+vertex and collider hashes equal main's (the dump scripts of step 2's proof in
+`/mnt/project-files/walls-research/`); `building.gdshader` unchanged and `check_shader_budget`
+at 501; the bench before and after on both paths; shots at phone size, day and night, classic
+beside the new look, at the review places: Stadion Narodowy (`--at=1300,-420`), Marszałkowska by
+the Rotunda (`--at=-880,390`), Plac Grzybowski (`--at=-1410,-250`), Prosta by Wronia
+(`--at=-2560,440`), a school fence (`--at=-1087,-934`), a works wall (`--at=-1621,1200`), the
+boulevards (`--at=-560,-1950`).
 
-Architecture owners: types and looks are data in `game/data/barrier_kit.json`; the builder stays
-in `map_builder.gd`; panel buffers go through `instance_buffers.gd`; the cost switch is a field
-in `tiers.gd`; broken state is `soft_things.gd`'s; new scripts get their rows in
-`docs/architecture/systems.md`. Add-ons: not used (no agent behaviour, no dialogue).
+| # | Phase (objects plan step) | What | Files and owners | Model | Gates beyond the common ones | Only the phone |
+| --- | --- | --- | --- | --- | --- | --- |
+| **W2** | Typed rows and the switch (9a) | `barrier_look` and `--barriers=`; the `looks` rows of 6.2; `rail_lite`; heights from `hs`; `check_barrier_look` | palette (`object_palette.json`), `solidity.gd` (reads it), `city_barriers.gd` (draws), `dev_flags.gd` and `main.gd` (the flag), `bake_city.gd`, the prebuilt index stamp, `tools/verify.sh` | Opus | every `ty` in the map has a row; no line falls to `barrier_default`; draw calls unchanged at the four probe views; barrier triangles at most 0.75 M city-wide; main-pass triangles at most +15,000 at the spawn and +40,000 zoomed out; prebuilt sectors at most +4 % in size; `check_streaming` load-frame p99 at most +5 %; the sloppy table with `typed` equals `classic` within noise | do thin rails read or flicker at the default zoom while driving |
+| **W3** | Type fixes (5b) | the five fixes of section 5 as `object_types.py` version 2, a guarded pass; rows `post_row`, `stadium_fence` | `tools/object_types.py`, `tools/check_post_passes.py`, `tools/check_map_data.py`, `game/data/road_objects.json`, the palette | Opus (`map-engineer`); Haiku gathers the sample photos; the conductor judges | `postpasses` and `objecttypes` green; a second run changes nothing; each new rule 16 of 20 or dropped; default share at most 9 %; `classic` hashes equal main's except the sectors with a line whose `sc` changed, each named | nothing |
+| **W4** | Panel trial (11) | `panel.gdshader`, the sector `Panels` MultiMesh and its meta, the lookup texture; six rows as panels (`fence_plain`, `bars_black`, `mesh_panel`, `chain_link`, `rail_street`, `hedge_low`: 173 km); the rest stay `typed` | `city_barriers.gd` (the piece list), `map_builder.gd` and `bake_city.gd` (the node, as the parked cars' MultiMesh), `instance_buffers.gd`, `game/shaders/panel.gdshader`, `tiers.gd` (`panel_holes`), `gpu_quirks.gd`, `check_shader_budget`, a pure `panel_rule.gd` with `check_panel_rule` | Opus (`perf-engineer`) | draw calls at most +3 at the spawn and the river view, +6 zoomed out, +9 from the helicopter, all under the ceilings; `panel.gdshader` under 200; `check_panel_rule`: bars never closer than 2.5 px and never thinner than 1 px at 5, 10, 17 and 26 cm a pixel; shots at three zooms by day, night and rain; piece counts equal on both paths; load-frame p99 at most +5 % | the frame on the iPhone 11 and the Adreno phone; shimmer of bars and stipple at 40 km/h; the shader links |
+| **W5** | Panels for every light type (12a) | the other light rows as panels (`green_fence`, `low_lawn`, `ball_net`, `wood`, `hoarding`, `hedge_tall`, `chain_posts`, `post_row`, `stadium_fence`, `bars_pier`); `sag` and `leafy` tops; alt colours | the palette, `panel.gdshader`, `city_barriers.gd` | Opus for the shader, Sonnet (`object-modeler`) for rows and shots | as W4; no light line drawn in the city mesh under `panels` except `draw: keep`; the art-director accepts the shot set against section 4 | hedges without a shadow: do they sit on the ground |
+| **W6** | Broken panels (12b) | `panel_states.gd`; states and transforms on `broke` and `repaired`; sectors that come in; debris colour from the row | `soft_things.gd` (owner of the events, unchanged signals), `main.gd` (wiring), new `panel_states.gd` (a row in `systems.md`), `check_soft_things` extended | Opus | every `broken` kind of section 7 shown in a shot at the stadium; a panel broken, driven away from and back to is still down; after `repair_near` it stands; soft off: zero state writes in a 3-minute soak; script time per hit under 0.1 ms | the feel of a fence that falls (PHONE-CHECK line 5 again) |
+| **W7** | The heavy kit (9b) | `wall_kit`: foot, cap, bays, piers, proud posts, end pieces; noise screens; `bars_pier` piers with diamond colliders; the boulevards' top rail; retaining walls' coping | `city_barriers.gd`, the palette | Opus for the builder, Sonnet for rows and shots | draw calls unchanged; barrier triangles at most +0.7 M city-wide; main-pass triangles under the ceilings at the four views; prebuilt sectors at most +6 %; the sloppy table: no new dead stop, none at a pier | nothing new; the frame is in the BENCH line |
+| **W8** | Gates and gaps | a pass `barrier_gates`: where a `paths` or service `roads` centre line crosses a line, a gap of the way's width plus 0.4 m, written as `g` on the line; the builder leaves the gap and stands two posts 0.3 m taller, with open leaves for a drive | `tools/barrier_gates.py` (in `bake_osm.py` and `check_post_passes.py`), `city_barriers.gd` | Opus (`map-engineer`) | the pass idempotent; gaps counted in `check_map_data.py`; the wander run finds no new trap; the sloppy table's fence contacts go down | nothing |
+| **W9** | Marks | graffiti patches and slogans, hoarding banners, ivy, stains (6.6 rows 10 to 12), by seed and by the row's `marks`; text by the warsaw-tone skill | `city_barriers.gd` (patches), `props.gd`'s posters for slogans and banners, `game/data` for the texts | Sonnet; PixelLab inside the loop's limit; the art-director accepts | draw calls at most +1 per sector with a slogan in view, 0 if the poster item is shared; at most one slogan per 150 m of wall | nothing |
+| **W10** | Sweeps and the ratchet (16) | the street-pass skill writes a type per line; the default share only goes down; when `barrier_look` has left `classic` for two builds, the `types` rows and the classic drawing are deleted | `tools/street_pass.py`, `check_map_data.py`, the palette | Sonnet; the sweep skill | per street | nothing |
 
-## 11. Questions for F
+**The lines for `docs/PHONE-CHECK.md`**, each added by its phase's pull request, part 2 or 5:
 
-Parked in `docs/QUESTIONS.md` with the default each phase would build.
+- W2: "A build baked with `typed`: drive Marszałkowska, Plac Grzybowski and the stadium. Do thin
+  fences read as fences, or flicker? Are heights right (planters, park hedges)?"
+- W4: "A build baked with `panels`: the same drive, at the closest, default and widest zoom, by
+  day and at night. Bars and mesh steady while driving? BENCH against the last build."
+- W6: "Miękkie miasto on, `panels` build: drive through a bar fence, a mesh fence, a net and a
+  hedge at the stadium. Does the panel fall the right way; is it still down after a lap?"
 
-1. **Old pier-and-iron fences** (university, ministries, embassies, churches): do they break like
-   other fences? Default: yes, the iron panel falls and the piers stand. The other way: they are
-   hard, as walls are.
-2. **Graffiti on concrete and plaster walls**: default yes, original tags and parody slogans.
-3. **Building-site hoardings with parody developer posters**: default yes.
-4. **A fence nothing is known about**: default a thin dark see-through railing 1.4 m high. The
-   other way: grey mesh.
+**Architecture.** Looks are data in the palette's `looks`; `solidity.gd` reads them;
+`city_barriers.gd` draws them; panel buffers go through `instance_buffers.gd`; the cost switch is
+a field in `tiers.gd`; broken state is `soft_things.gd`'s and `panel_states.gd` only shows it;
+map changes are passes (TD-25); new scripts get their rows in `docs/architecture/systems.md`,
+and W2 widens the "A wall, fence or hedge style" row of `extending.md`. Add-ons: not used (no
+agent behaviour, no dialogue).
+
+**The first phase's brief**, written out for an Opus builder:
+`/mnt/project-files/walls-research/look-plan/brief-phase1.md`.
+
+## 11. F's answers
+
+Answered 2026-11-15 (F): all four as the defaults.
+
+1. **Old pier-and-iron fences** break like other fences: the iron panel falls, the piers stand.
+   Built in W6 (the panel) and W7 (the piers and their diamond colliders).
+2. **Graffiti on concrete and plaster walls**: yes, original tags and parody slogans. W9.
+3. **Building-site hoardings with parody developer posters**: yes. W9; the hoardings themselves
+   are placed by sweeps (section 5).
+4. **A fence nothing is known about** is a thin dark see-through railing 1.4 m high. The row
+   `fence_plain`, drawn from W2.
+
+Open after the re-plan, parked in `docs/QUESTIONS.md` with these defaults:
+
+1. **How F sees the new look on the phone.** Default: a device run of a build baked with
+   `typed` (after W2) and with `panels` (after W4), when F allows a device run; testers' builds
+   stay `classic` until F says go.
+2. **Bollard rows** (`post_row`) break like fences (class S). Default: yes; the other way is
+   hard posts, which would add dead stops along Wola's kerbs.
+3. **Pier colliders.** Default: a pier is solid with a diamond collider that turns the car into
+   the bay; the other way is piers the car passes through.
 
 ## 12. How this was measured
 
-- Lengths, tags and triangle counts: `game/map/centrum.json` on main 05b7c9c, and the builders in
-  `game/scripts/map_builder.gd` (`BARRIER_STYLE`, `_mapped_style`, `_wall_along`,
-  `_railing_along`, `_build_barriers`, `_build_guard_rails`), `tools/barrier_tags.py`.
+- Lengths, types and counts: `game/map/centrum.json` on main f9d5823 (2026-11-15), keys `k`,
+  `ty`, `tc`, `sc`, `hz`, `h`, `hs`; per-sector counts by the middle of each segment on a 512 m
+  grid.
+- The code as it is: `game/data/object_palette.json` (`types`), `game/scripts/city_barriers.gd`
+  (`build_barriers`, `_mapped_style`, `wall_along`, `railing_along`, `PANEL`, `_is_soft`),
+  `solidity.gd`, `soft_things.gd` (signals, `is_broken`), `instance_buffers.gd`, `tiers.gd`,
+  `game/tools/check_shader_budget.gd` (lit budget 260, building 505),
+  `building.gdshader` (`cull_disabled`), `tools/object_types.py`, `tools/check_post_passes.py`.
 - Pixel sizes: `follow_camera.gd` (views 40 to 125 m, pitch 30°), `tiers.gd` (480 lines at
-  least; 828 on the iPhone 11 at Sharp).
-- The context prototype: `/mnt/project-files/walls-research/wall_context.py` (research only, not
-  a bake step). It samples each line every 4 m and votes on tram and rail tracks within 5 and
-  14 m, roads within 9 m, steps within 6 m, the area 2 m to each side and the nearest building's
-  kind within 12 m. Its thresholds are untuned.
-- The photo pilot: 23 Mapillary photos (CC BY-SA 4.0) at 14 places picked by the prototype, two
-  per setting where photos exist, read on contact sheets in the same folder. Reference only,
-  never committed or shipped. Among them: 1505989927822671 (bars on a foot by a Praga church),
-  1444414827202883 (a black bar gate in a Wola yard), 970824793456423 (the graffiti wall mapped
-  as a fence), 162602436441635 (piers and iron panels by the Filtry), 136869858384962 (the
-  boulevard railing), 1576903606561952 (noise screens), 475545233512398 (a lawn guard and hedge
-  in a park), 378134946853997 (overgrown villa fences), 1031851339496432 (Most Świętokrzyski's
-  railing). No photos were found near the sampled school, institution and waterside-wall lines.
-- OSM tagging: the wiki pages `Key:fence_type` and `Key:barrier` (read 2026-11-13). Warsaw's
-  street-furniture catalogue (Katalog elementów małej architektury) has cards for railings and
-  bollards; its 72 MB file was not read, so the colours of `rail_street` are from photos only.
-- Not measured: draw calls and frame time of the panels (W3), how many context rules pass the
-  20-sample check (W0), what the land-use outlines add (W1).
+  least; 828 on the iPhone 11 at Sharp). Section 3 was checked again and stands.
+- **The photo research of 2026-11-15**: 86 Mapillary photos (CC BY-SA 4.0) at eight places, the
+  newest photo within 28 m that faces the middle of a line, `default` lines first, then
+  `context`. Kept in `/mnt/project-files/walls-research/look-plan/photos/` with a contact sheet
+  and a `photos.json` per place. Reference only, never committed or shipped.
+
+  | Place | Photos | What they show |
+  | --- | --- | --- |
+  | Emilii Plater, Złota, Świętokrzyska | 12 | the `default` walls are the Palace of Culture's knee-high granite planters (2 clear), one white site hoarding on Plac Defilad; the `default` hedges are low hedges in the street's planted strips |
+  | Plac Grzybowski | 11 | all 10 `default` walls are the square's raised planting beds: dark edges 0.4 to 0.8 m. Drawn 1.6 m and hard they wall the square in |
+  | Wola: Towarowa, Prosta, Wronia | 12 | of the `default` fences: two bollard rows, a grey steel fence on a low wall, a blue hoarding, a green hoarding with a banner; graffiti on plaster |
+  | Jerozolimskie by Chałubińskiego | 11 | grey kerb railings with bars, bollards, a glass screen at the tram stop, a stone retaining wall along the cutting |
+  | Wybrzeże Szczecińskie | 12 | long grey galvanised railings with bars on a kerb; green mesh by the railway; a brick wall with a hedge at a new block |
+  | Wybrzeże Gdańskie | 12 | the boulevards' pale concrete walls with strong joints, a steel handrail on top, graffiti; hedges taller than a person in the fountain park |
+  | Stadion Narodowy | 4 | poor cover (night shots); a red-and-white barrier on the ramp, mesh panels by the railway. The stadium is judged in the game |
+  | Marszałkowska | 12 | black tram railings with bars; black cast bollards and planters; red-and-white roadworks barriers; low hedges |
+
+- The step-5 contact sheets (`/mnt/project-files/walls-research/step5/`) were read again for the
+  yard fences: most cells show no fence at all, because yard fences stand behind the houses.
+- The first pilot (2026-11-13): 23 Mapillary photos at 14 places, among them 1505989927822671
+  (bars on a foot by a Praga church), 970824793456423 (the graffiti wall mapped as a fence),
+  162602436441635 (piers and iron panels by the Filtry), 136869858384962 (the boulevard
+  railing), 1576903606561952 (noise screens), 475545233512398 (a lawn guard and hedge in a park),
+  378134946853997 (overgrown villa fences).
+- Not measured: draw calls and frame time of the panels (W4), today's draw calls at the four
+  probe views (each phase takes them before and after), how many of W3's rules pass the
+  20-sample check, the size of the prebuilt sectors (W2's gate takes it).
