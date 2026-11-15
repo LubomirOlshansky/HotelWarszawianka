@@ -1994,7 +1994,7 @@ func _mark_zone(site: Dictionary) -> void:
 # --- Plac Piłsudskiego, part 2 (2026-10-31) ---------------------------------------------------
 
 ## The far skyline's colour of each (sector_proxies.gd, through `tower_colour`).
-const PLAC_WALLS := {"metropolitan": "#8a979c", "wiktoria": "#6f6b66", "europejski": "#e7ddc5",
+const PLAC_WALLS := {"metropolitan": "#8a979c", "wiktoria": "#d9d7d0", "europejski": "#e7ddc5",
 		"grob": "#ddd3bf", "bez_kantow": "#dccdac", "departament": "#dccfb2"}
 
 
