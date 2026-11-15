@@ -23,6 +23,7 @@ boatrace             quick
 boot                 quick
 boot-run             smoke
 buses                quick
+campus               quick
 cassettes            quick
 centralnyramp        quick
 chatter              quick
