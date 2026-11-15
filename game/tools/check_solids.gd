@@ -49,7 +49,7 @@ const TOTAL := 46502
 ## stays classic, so verify runs TOTAL): -147 faces, the typed fences' rails collide with one face
 ## per segment as railing_along's do (a slab has two), the `removed` fragments are not drawn. The
 ## soft lines are the same. Moves with TOTAL (a re-bake): `--record --barriers=typed` prints it.
-const TOTAL_TYPED := 46431
+const TOTAL_TYPED := 46355
 
 var problems: Array[String] = []
 var verbose := false
