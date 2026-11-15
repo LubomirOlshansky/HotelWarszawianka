@@ -162,7 +162,7 @@ func _check_hud() -> void:
 	hud.show_status("PARKING POD NARODOWYM · WYŚCIG", "", "2523 m", "Bądź pierwszy", 0.0, Color("#38f6ff"), "2/9", {},
 			"Be first there")
 	hud.set_koguty(1, 1)
-	hud.police_pill("POŚCIG · KONIEC ZMIANY ZA 0:30", "CHASE · END OF SHIFT IN 0:30")
+	hud.police_pill("UCIEKAJ", "GET AWAY", 0.3, 1)
 	_tick(hud, b, 0.2)
 	_expect(hud.messages.context == Messages.CHASE, "the night race with the police isn't a chase (%s)" % Messages.CONTEXT_NAMES[hud.messages.context])
 	hud.ticker("87,3 KEBAB FM:  Aleje Jerozolimskie: stłuczka.", Color("#ff5fc8"), "Aleje Jerozolimskie: a fender bender.")

@@ -46,6 +46,7 @@ const BUDGET := {
 	"church_antoniego": 1250,
 	"church_augustyn": 1900,  # 2026-11-14: the whole brick basilica and its 70 m tower, checked against photos (measured 1759)
 	"church_siostry_milosierdzia_zytnia": 1200,  # 2026-11-15: the Sisters of Our Lady of Mercy's house on Żytnia from photos and LoD2 (measured 874)
+	"church_kaplica_hoza": 300,  # 2026-11-15: the yard chapel behind Hoża 55 from LoD2, provisional (measured 142)
 	"church_kaplica_lucka": 300,  # 2026-11-15: the yard chapel behind Łucka from LoD2, provisional (measured 112)
 	"church_kaplica_florianska": 400,  # 2026-11-15: the octagonal chapel by St Florian's from photos (measured 184)
 	"church_zytnia_dom_zakonny_tyl": 1500,  # 2026-11-15: the range behind the convent on Żytnia from LoD2, provisional (measured 1299)
@@ -196,7 +197,7 @@ const BUDGET := {
 	"norblin": 5700,
 	# Browary + the Central Garden's gravel path, café clearings and the sedum roofs (2026-11-02).
 	"browary": 3900,   # 2026-11-03: paved main path and clearing edges (look check)
-	"koszyki": 1370,
+	"koszyki": 1900,
 	"elektrownia": 7600,  # 2026-11-13: the whole complex (hall, halls, passage, office, old wing, gardens): 1634 -> ~6850
 	"rotunda_dynasy": 1400,
 	"mpw": 3200,

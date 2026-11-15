@@ -1992,6 +1992,8 @@ func _set_quality(choice: int) -> void:
 	var qs: Dictionary = QUALITY[quality]
 	tod.shadows_allowed = qs["shadows"]
 	tod.glow_allowed = qs["glow"]
+	if map != null and map.leaf_material != null:
+		map.leaf_material.set_shader_parameter("limbs", 1.0 if qs.get("tree_limbs", true) else 0.0)
 	if crowds != null:
 		crowds.amount = _crowd_scale()
 		crowds.refresh()
@@ -4622,6 +4624,7 @@ func _build_police(data: Dictionary, world: Node3D) -> void:
 			"bubbles": bubbles, "dialogue": dialogue, "wallet": wallet, "walkers": walkers, "radio": radio, "sfx": sfx,
 			"jobs": jobs, "missions": missions, "tod": tod, "opts": police_opts, "pedal": flags.hold_pedal, "autopilot": flags.autopilot,
 			"rivals": rivals, "ped_zones": ped_zones,
+			"garage_at": func() -> Vector3: return garage.at if garage != null and garage.is_shown() else Vector3.INF,
 			"level_now": func() -> int: return traffic_level,
 			"project": func(p: Vector3) -> Vector2: return cam.unproject_position(p) * float(view.stretch_shrink)}
 	add_child(police)

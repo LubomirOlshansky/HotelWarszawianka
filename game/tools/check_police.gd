@@ -10,8 +10,11 @@ extends SceneTree
 ## P12, the state machine: police.gd driven with synthetic inputs (a straight two-way road, a
 ## stand-in car, traffic and HUD; Dialogue Manager and dialogue.gd for real; no rendering), at
 ## 60 steps a second: the first minute gives nothing, the start grace warns but never chases;
-## two strikes in 45 s start koguty 1 and a faded one doesn't; the caps end chases at 30 / 40 /
-## 45 s; no level rises in a cap's last 10 s; 120 m away searches and 8 s later escapes (+15
+## two strikes in 45 s start koguty 1 and a faded one doesn't; first-hour step 2: no countdown on
+## the pill (its bar fills with the gap), the chasers tire after 30 s (0.8 to 0.7 of the player's
+## top speed), the hidden backstop ends a chase at 120 s, the hiding spots near show on the
+## minimap, Mirek's garage unseen ends it as an escape (not while seen); no level rises in the
+## backstop's last 10 s; 100 m away searches and 8 s later escapes (+15
 ## respect, once), 4 s in a hiding spot, and a unit within 50 m brings the chase back; stopping by
 ## a chaser pulls over in 1.5 s and the conversation ends in a caution in under 10 s; the
 ## cooldown warns but doesn't chase, and a ram chases anyway; the helicopter ends a chase. In
@@ -35,6 +38,7 @@ extends SceneTree
 ##   godot --headless --path game --script res://tools/check_police.gd [-- --verbose]
 
 const Police := preload("res://scripts/police.gd")
+const Unit := preload("res://scripts/police/police_unit.gd")
 const Rivals := preload("res://scripts/rivals.gd")
 const PedZones := preload("res://scripts/ped_zones.gd")
 const Guards := preload("res://scripts/police/guards.gd")
@@ -59,6 +63,7 @@ const USED := [
 	["police_chase", "start", true], ["police_chase", "backup", true], ["police_chase", "roadblock", true],
 	["police_chase", "", false],
 	["police_lost", "escaped", true], ["police_lost", "shift", true], ["police_lost", "heli", true],
+	["police_lost", "garage", true],
 	["police_stop", "routine", true], ["police_stop", "roosters", true], ["police_stop", "trap", true],
 	["police_stop", "kebab", true], ["police_stop", "sloik", true], ["police_stop", "", false],
 	["police_reply", "", false], ["police_reply", "trap", true], ["police_reply", "kebab", true],
@@ -238,12 +243,14 @@ class FakeHud extends CanvasLayer:
 		toasts.append([pl, en])
 	func set_koguty(_lit: int, _mode: int) -> void:
 		pass
-	func police_pill(_pl: String, _en: String) -> void:
-		pass
+	var pill: Array = ["", "", 0.0, 0]
+	var hides := PackedVector2Array()
+	func police_pill(pl: String, en: String, gap := 0.0, mode := 0) -> void:
+		pill = [pl, en, gap, mode]
 	func police_fx(_b: float, _c: PackedVector2Array, _l: Vector2) -> void:
 		pass
-	func set_police_marks(_c: PackedVector2Array, _t: PackedVector2Array) -> void:
-		pass
+	func set_police_marks(_c: PackedVector2Array, _t: PackedVector2Array, h := PackedVector2Array()) -> void:
+		hides = h
 	func set_pedals_hidden(_on: bool) -> void:
 		pass
 
@@ -558,22 +565,80 @@ func _machine() -> void:
 	u.warn_wait = 0.0
 	p._offence("speed", u)
 	_case("two strikes", p.phase == Police.Phase.CHASE and p.level == 1, "two within 45 s: %s L%d" % [Police.PHASES[p.phase], p.level])
-	# The caps: the chaser stays 30 m behind, in sight, the car moving: end of shift at the cap.
-	for lvl in [1, 2, 3]:
+	# First-hour step 2: the chaser stays 30 m behind, in sight, the car moving: the pill reads
+	# UCIEKAJ with no clock and its bar at the gap (30 of 100 m); the chasers tire at 30 s; the
+	# hidden backstop ends the chase at 120 s, at any level.
+	for lvl in [1, 3]:
 		_fresh(true)
 		u = _patrol(470.0)
 		car.vel = Vector3(4.0, 0.0, 0.0)
 		p._start_chase(lvl, u, "check")
-		var at := {"t0": p.clock, "ended": -1.0}
+		var at := {"t0": p.clock, "ended": -1.0, "pill": [], "fresh": -1.0, "tired": -1.0}
 		var keep := func() -> void:
 			if u.driver != null:
 				u.driver.pos = car.global_position - Vector3(30.0, 0.0, 0.0)
+			var t: float = p.clock - at["t0"]
+			if at["pill"].is_empty() and t > 2.0:
+				at["pill"] = hud.pill.duplicate()
+			if at["fresh"] < 0.0 and t > 29.0 and u.driver != null:
+				at["fresh"] = u.driver.v_cap
+			if at["tired"] < 0.0 and t > 31.0 and u.driver != null:
+				at["tired"] = u.driver.v_cap
 			if at["ended"] < 0.0 and p.phase == Police.Phase.CALM:
-				at["ended"] = p.clock - at["t0"]
-		await _steps(50.0, keep)
-		var cap: float = Police.CAPS[lvl - 1]
+				at["ended"] = t
+		await _steps(Police.BACKSTOP + 5.0, keep)
 		var ended: float = at["ended"]
-		_case("cap L%d" % lvl, ended > 0.0 and absf(ended - cap) < 0.1, "end of shift after %.2f s (cap %.0f)" % [ended, cap])
+		_case("backstop L%d" % lvl, ended > 0.0 and absf(ended - Police.BACKSTOP) < 0.1 and hud.toasts.has(["KONIEC ZMIANY", "END OF SHIFT"]),
+				"end of shift after %.2f s (backstop %.0f), toasts %s" % [ended, Police.BACKSTOP, hud.toasts])
+		var pill: Array = at["pill"]
+		var digits := RegEx.create_from_string("[0-9]")
+		var no_clock: bool = pill.size() == 4 and digits.search(String(pill[0]) + String(pill[1])) == null
+		_case("gap bar L%d" % lvl, no_clock and pill[0] == "UCIEKAJ" and pill[1] == "GET AWAY" and int(pill[3]) == 1
+				and absf(float(pill[2]) - 30.0 / Police.ESCAPE_DIST) < 0.03, "the pill %s" % [pill])
+		_case("tired chasers L%d" % lvl, absf(float(at["fresh"]) - 30.0 * Unit.CHASE_SHARE) < 0.01
+				and absf(float(at["tired"]) - 30.0 * Unit.TIRED_SHARE) < 0.01,
+				"top speed %.1f m/s before %.0f s, %.1f m/s after" % [at["fresh"], Police.TIRE_AT, at["tired"]])
+	# The search empties the bar: 130 m away, the pill SZUKAJĄ CIĘ in mode 2, about half left at 4 s.
+	_fresh(true)
+	u = _patrol(470.0)
+	p._start_chase(1, u, "check")
+	await _steps(4.25, func() -> void:
+		if u.driver != null:
+			u.driver.pos = car.global_position - Vector3(130.0, 0.0, 0.0))
+	var sp: Array = hud.pill.duplicate()
+	_case("search bar", p.phase == Police.Phase.SEARCH and sp[0] == "SZUKAJĄ CIĘ" and int(sp[3]) == 2 and absf(float(sp[2]) - 0.5) < 0.05,
+			"the pill %s in %s" % [sp, Police.PHASES[p.phase]])
+	# Mirek's garage: in the ring while a chaser sees the car, the chase goes on; unseen (the search),
+	# it ends as an escape with the respray joke and the respect.
+	_fresh(true)
+	u = _patrol(470.0)
+	car.vel = Vector3(4.0, 0.0, 0.0)
+	p.garage_at = func() -> Vector3: return car.global_position + Vector3(2.0, 0.0, 0.0)
+	p._start_chase(1, u, "check")
+	await _steps(1.0, func() -> void: u.driver.pos = car.global_position - Vector3(30.0, 0.0, 0.0))
+	var seen_on: bool = p.phase == Police.Phase.CHASE
+	await _steps(0.5, func() -> void:
+		if u.driver != null:
+			u.driver.pos = car.global_position - Vector3(130.0, 0.0, 0.0))
+	_case("garage ends it unseen", seen_on and p.phase == Police.Phase.CALM and wallet.respect == Police.ESCAPE_RESPECT
+			and hud.toasts.has(["NOWY LAKIER, KTO PYTA?  +%d" % Police.ESCAPE_RESPECT, "NEW PAINT, WHO'S ASKING?  +%d RESPECT" % Police.ESCAPE_RESPECT]),
+			"seen in the ring: chase %s; unseen: %s, respect %d, toasts %s" % [seen_on, Police.PHASES[p.phase], wallet.respect, hud.toasts])
+	p.garage_at = Callable()
+	# Hiding spots: a deck over the road's middle (x 1000) is found while the chase runs and shows
+	# on the minimap 500 m from the car; none outside a chase.
+	_fresh(true)
+	map.hide_at = Vector2(1000.0, 0.0)
+	u = _patrol(470.0)
+	car.vel = Vector3(4.0, 0.0, 0.0)
+	p._start_chase(1, u, "check")
+	await _steps(1.0, func() -> void: u.driver.pos = car.global_position - Vector3(30.0, 0.0, 0.0))
+	var shown: PackedVector2Array = hud.hides
+	var found_ok: bool = shown.size() == 1 and shown[0].distance_to(Vector2(1000.0, 0.0)) < 30.0
+	p._end("shift")
+	await _steps(0.25)
+	_case("hiding spots on the minimap", found_ok and hud.hides.is_empty(),
+			"in the chase %s, after it %s" % [shown, hud.hides])
+	map.hide_at = Vector2.INF
 	# G13 leftovers: the chasers drive at 0.8 of the player's top speed, the TT's with the engine
 	# at level 3 too (it outran every patrol at the fixed 24 m/s), re-read while the chase runs.
 	_fresh(true)
@@ -604,7 +669,7 @@ func _machine() -> void:
 	_case("chase pace", absf(hatch_cap - 24.0) < 0.01 and absf(tt_cap - want) < 0.01 and absf(p.chase_top() - want) < 0.01,
 			"hatch %.1f m/s, TT engine 3 %.1f m/s (want %.1f)" % [hatch_cap, tt_cap, want])
 	car.top_mult = 1.0
-	# No level rises in the last 10 s of the cap; a ram raises once per 10 s before that.
+	# No level rises in the backstop's last 10 s; a ram raises once per 10 s before that.
 	_fresh(true)
 	u = _patrol(470.0)
 	car.vel = Vector3(4.0, 0.0, 0.0)
@@ -614,9 +679,9 @@ func _machine() -> void:
 	var raised: int = p.level
 	p._offence("ram", u)
 	_case("ram raises once in 10 s", raised == 2 and p.level == 2, "two rams at 5 s: L%d" % p.level)
-	await _steps(30.0, func() -> void: u.driver.pos = car.global_position - Vector3(30.0, 0.0, 0.0))
+	await _steps(Police.BACKSTOP - Police.NO_RISE - 4.0, func() -> void: u.driver.pos = car.global_position - Vector3(30.0, 0.0, 0.0))
 	p._offence("ram", u)
-	_case("no rise in the last 10 s", p.level == 2, "a ram at 35 s of a 40 s cap: L%d" % p.level)
+	_case("no rise in the last 10 s", p.level == 2, "a ram at %.0f s of the %.0f s backstop: L%d" % [p.chase_t, Police.BACKSTOP, p.level])
 	# Escape: 130 m from the chaser searches at once, escapes 8 s later (+15 respect, once).
 	_fresh(true)
 	u = _patrol(470.0)

@@ -4880,6 +4880,19 @@ func _build_kaplica_lucka(site: Dictionary) -> void:
 	_flat_chapel(site["outline"], 5.3, KLU_WALL, Vector2(0.3, 0.95))
 
 
+## The yard chapel behind Hoża 55 (unnamed `chapel`, OSM building 8734, Śródmieście Południowe): a
+## long single storey about 5.8 m tall under a flat roof (GUGiK's LoD2), its short north end
+## towards Hoża. A model that replaces the plain OpenStreetMap block (no landmark until
+## 2026-11-15). **Provisional, no photo**: the twelve street photos within 45 m look along Hoża
+## and none faces the yard (refs/churches/kaplica_8734 is empty), so the walls, windows, door and
+## cross are `_flat_chapel`'s defaults (docs/QUESTIONS.md). Spec docs/landmarks/specs/kaplica_hoza.md.
+const KHZ_WALL := Color("#ddd6c8")      ## pale grey-cream plaster, a default
+
+
+func _build_kaplica_hoza(site: Dictionary) -> void:
+	_flat_chapel(site["outline"], 5.8, KHZ_WALL, Vector2(-0.356, -0.935))
+
+
 func _build_zwycieska_klasztor(site: Dictionary) -> void:
 	var outline: PackedVector2Array = site["outline"]
 	kit_front(ZWK_O, ZWK_O + ZWK_A)
@@ -7483,6 +7496,8 @@ const CHURCHES := [
 			"fill": 0.9, "style": "neogothic", "wall": "#9b4535", "roof": "#3b3d42", "towers": 0, "cap": "none"},
 	{"key": "church_kaplica_lucka", "at": Vector2(-2257.0, 72.4), "o": Vector2(-2263.0, 68.5), "out": Vector2(0.337, 0.942), "L": 8.8, "W": 11.4,
 			"fill": 0.9, "style": "modern", "wall": "#e4dccb", "roof": "#b9b7b1", "towers": 0, "cap": "none"},
+	{"key": "church_kaplica_hoza", "at": Vector2(-1008.9, 1027.6), "o": Vector2(-1007.9, 1019.2), "out": Vector2(-0.356, -0.935), "L": 18.7, "W": 5.9,
+			"fill": 0.9, "style": "modern", "wall": "#ddd6c8", "roof": "#b9b7b1", "towers": 0, "cap": "none"},
 	{"key": "church_sluzki_dom_generalny", "at": Vector2(-203.0, -515.0), "o": Vector2(-206.4, -500.9), "out": Vector2(-0.917, 0.400), "L": 28.3, "W": 29.6,
 			"fill": 0.9, "style": "neoclassical", "wall": "#e3c48e", "roof": "#6b6c6c", "towers": 0, "cap": "none"},
 	{"key": "church_uczennice_boskiego_mistrza", "at": Vector2(-2890.0, -650.0), "o": Vector2(-2919.2, -669.7), "out": Vector2(-0.231, -0.973), "L": 37.5, "W": 41.5,
@@ -7616,6 +7631,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_kaplica_lucka":
 		_build_kaplica_lucka(site)  # the flat-roofed yard chapel behind Łucka, provisional
+		return
+	if site["key"] == "church_kaplica_hoza":
+		_build_kaplica_hoza(site)  # the flat-roofed yard chapel behind Hoża 55, provisional
 		return
 	if site["key"] == "church_sluzki_dom_generalny":
 		_build_sluzki_dom_generalny(site)  # the Servants of Jesus' generalate, from photos and LoD2

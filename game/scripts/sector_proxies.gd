@@ -154,7 +154,7 @@ static func _roads(st: SurfaceTool, map, rect: Rect2, ctx: Dictionary) -> int:
 
 
 static func _trees(st: SurfaceTool, map, rect: Rect2, ctx: Dictionary) -> int:
-	var leaves: Array = MapBuilder.CANOPY_AUTUMN if String(map.season) == "autumn" else MapBuilder.CANOPY_SUMMER
+	var leaves: Array = MapBuilder.CANOPY_NOVEMBER if String(map.season) == "autumn" else MapBuilder.CANOPY_SUMMER
 	var cells := {}
 	var real: Array = ctx["trees"]
 	for i in range(0, real.size() - 5, 6):
