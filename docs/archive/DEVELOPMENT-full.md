@@ -5484,7 +5484,9 @@ stops, 2 on parked cars (Niemcewicza at a free width of 3.86 m, Żurawia at 5.5 
 car the rules touch. With step 8a merged (set A with its parking streets, 102.8 km; before = 8a's own
 runs on main's map): hard 258 → 257 contacts, dead stops 22 → 22, parked contacts 4 → 4 (one dead stop,
 Niemcewicza); `--soft` 244 → 243 contacts, dead stops 21 → 21, 3 pushes, 0 on a parked car. The one
-contact fewer is a time shift of the whole run after Nowy Zjazd, not a thinned car. check_soft_things M5
+contact fewer comes from the run shifting in time after Nowy Zjazd (its log's metres there differ by
+0.1 m; Garbarska's three cars 25 m off went, and the landmarks split came in with the merge), not from a
+contact at a thinned car. check_soft_things M5
 (its four sectors): bays already in a lane 3 → 0, pushes towed by the lane rule 8 → 0, rests in a lane
 with friction alone 31 → 23.
 
