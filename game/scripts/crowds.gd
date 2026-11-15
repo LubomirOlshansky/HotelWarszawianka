@@ -411,6 +411,14 @@ const FIRST_SCENE := {
 	# Pasaż Wiecha behind the stores (2026-11-02): its north café garden (the one on the square by
 	# Chmielna lies past the start box's edge).
 	"street_wiecha_north": [90.0, 69.0, 8, 8.0, true],
+	# The stores' arcade (F's photos, 2026-11-15): shoppers under the white ceiling, window gazers
+	# and people with bags, along the street face (t 34, 3 m in from the cantilever's edge), from
+	# Junior's north end to the start box's south edge. Standers only: the walkers are busy_bands'.
+	"street_arcade_junior_n": [140.0, 34.0, 8, 9.0, false],
+	"street_arcade_junior_s": [100.0, 34.5, 8, 9.0, false],
+	"street_arcade_sawa_n": [30.0, 34.5, 8, 9.0, false],
+	"street_arcade_sawa_s": [-18.0, 34.5, 8, 9.0, false],
+	"street_arcade_wars": [-58.0, 34.5, 6, 8.0, false],
 }
 ## The Palace of Culture's venues (F, 2026-11-07): Bar Studio's garden (landmarks.gd
 ## pkin_studio_plan, sitters in its deck chairs on the jazz café's curve: a summer evening's
