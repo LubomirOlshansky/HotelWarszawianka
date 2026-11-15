@@ -49,6 +49,11 @@ const TOTAL := 46502
 ## stays classic, so verify runs TOTAL): -147 faces, the typed fences' rails collide with one face
 ## per segment as railing_along's do (a slab has two), the `removed` fragments are not drawn. The
 ## soft lines are the same. Moves with TOTAL (a re-bake): `--record --barriers=typed` prints it.
+## W3 of the walls look (2026-11-15, tools/object_types.py v2): both measured again on the retyped map
+## (each with its own `--record` run, never one from the other): TOTAL 46502 and TOTAL_TYPED 46355,
+## unchanged: the stadium's retyped lines keep their look and class (soft, no faces), and the other
+## fixes change no face in these sectors (the planter edges by the Palace of Culture in (-2, 0) keep
+## a placed style).
 const TOTAL_TYPED := 46355
 
 var problems: Array[String] = []
