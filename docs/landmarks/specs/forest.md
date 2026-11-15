@@ -42,12 +42,18 @@ under the top, then the black storey set back 1.6 m.
 ## 4. Roof
 
 - Tower: a 4.4 m plant box 2.4 m high on each slab.
-- Low wings (31 m): green roof on the black storey; on a 10 m grid inside it, corten planters
-  4.4 x 1.4 x 0.6 m with planted tops, timber deck squares 6 x 4 m and, every fifth spot, a
-  copper-clad stair house 4 x 3.2 x 3 m (the aerials' brown boxes).
+- Roof gardens as they are (F, 2026-11-15; four photos of the public green roof: Corten planters and
+  pavilions, lawn, wavy shrub beds, a black louvred top storey, black railing with corten posts, a
+  white stretch tent): on the black storey's roof of each low wing a lawn #6fa04a, a dark paved walk
+  (#5b5e61, 1.8 m) inside the black railing (corten posts every 4 m, black rails), wavy corten-edged
+  beds 1.7 m wide along the edges (silver-green and deep-green shrub in turn, young trees every ~9 m),
+  and in the middle of each wide piece a corten pavilion 5.6 x 3.6 x 3.3 m with a glass front, a dark
+  coping and a gravel roof. The ledge over the glass is a low sedum carpet, not a hedge.
 - The tallest slab also carries a 10 m cobalt-blue motor bowrider on a steel cradle (F's joke, 2026-11-06; `_forest_boat`): white hull with a blue sheer, windshield, seats, sun pad, turned 25 degrees, clear of the plant box and the crown sign. About 120 triangles, no new draw call.
-- The 27.4 m wing: the terrace of 2026-11-01 kept (timber deck, glass balustrade, parasols and
-  tables, crowd `forest_terrace` 11-23 h), its planters now corten 3.2 x 1 m (F's planter photo).
+- The 27.4 m wing, the free public terrace: a grey deck inside the black railing, the wavy beds along
+  it, a lawn strip across, a corten pavilion with a glass front at the south end, a white stretch tent
+  (two peaks on poles) over high tables at the north end, patio heaters down the deck; crowd
+  `forest_terrace` 11-23 h as before (all of it out of the roof grid).
 
 ## 5. Colour and material
 
@@ -74,8 +80,8 @@ glass shows the skins' lit windows; PEPEO ŻUBR is a neon word.
 
 ## 7. Detail level and budget
 
-L2, triangle budget 4900 (an exception to the L2 limit: four buildings, their fins and a
-courtyard of 43 trees in one site; 4077 measured plus 20 %, one landmark mesh, no new draw call). Shots: `--at=-2905,-2330 --yaw=200`, the courtyard `--at=-3010,-2398 --lift=10`.
+L2, triangle budget 8100 (an exception to the L2 limit: four buildings, their fins, the real green roofs and a
+courtyard of 43 trees in one site; 6739 measured plus 20 %, one landmark mesh, no new draw call). Shots: `--at=-2905,-2330 --yaw=200`, the courtyard `--at=-3010,-2398 --lift=10`.
 
 ## 8. Parts table
 
