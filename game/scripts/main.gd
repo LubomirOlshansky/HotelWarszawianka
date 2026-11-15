@@ -8176,6 +8176,9 @@ func _soak_frame(dt: float) -> void:
 		_soak_minutes = _soak_t / 60.0  # the pass is over: report as the soak does
 	if _soak_t >= _soak_minutes * 60.0:
 		print("stream soak: %.0f s over %d sectors: %s" % [_soak_t, streamer.keys.size(), streamer.summary()])
+		if soft_things != null:
+			print("stream soak: soft things hardened %d sectors, %.2f ms on average, %.2f ms the most" % [soft_things.harden_count,
+					soft_things.harden_usec / 1000.0 / maxf(soft_things.harden_count, 1), soft_things.harden_most / 1000.0])
 		var numbers := streamer.stats()
 		numbers["governor"] = "%s, %d changes%s" % [governor.state(), governor.changes, ", held" if governor.held else ""]
 		print("stream soak stats: " + JSON.stringify(numbers))

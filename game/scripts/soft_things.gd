@@ -141,6 +141,9 @@ var no_soft := false
 ## Microseconds spent restoring colliders (`harden`, on the main thread when a sector comes in with
 ## the fences hard, or at a toggle), for the bench and the check.
 var harden_usec := 0
+## How many sectors `harden` restored, and the longest one (µs): the stream soak prints them.
+var harden_count := 0
+var harden_most := 0
 ## Microseconds spent in the physics step (the bench's systems table).
 var spent_usec := 0
 ## Panels broken this session, and the sweeps run (frames the car was tested).
@@ -303,7 +306,10 @@ func _harden_root(key: Vector2i, root: Node3D) -> void:
 	root.set_meta(&"soft_hard", true)
 	harden(root, root.get_meta(&"soft", {}), Rect2(Vector2(key) * SECTOR, Vector2(SECTOR, SECTOR)) if root.name.begins_with("s_") else Rect2(),
 			root.get_meta(&"soft_cars", {}))
-	harden_usec += Time.get_ticks_usec() - t0
+	var took := Time.get_ticks_usec() - t0
+	harden_usec += took
+	harden_count += 1
+	harden_most = maxi(harden_most, took)
 
 
 ## The sector's soft list is gone with its root (an unload).
@@ -634,14 +640,13 @@ func _sweep(from: Transform3D, to: Transform3D, v: Vector2, dt: float) -> void:
 							broke.emit(id, panel, kind, at, Vector3(way.x, 0.0, way.y), speed)
 	if grind:
 		keep *= 1.0 - cap_take(_window, _clock, Solidity.GRIND_COST * dt)
-	# WORKAROUND(arch): the smash's cost and the grind's nudge are written into the car's `vel` from
-	# here, because car.gd (the controls lane) was not to change in step 7; see TD-24.
+	# The smash's cost and the grind's nudge go through the car's own hook (car.gd apply_soft_cost).
 	if keep < 1.0:
-		car.vel *= keep
+		car.apply_soft_cost(keep, Vector3.ZERO)
 	if grind and nudge != Vector2.ZERO:
 		var out := Vector2(car.vel.x, car.vel.z).dot(nudge)
 		if out < Solidity.GRIND_NUDGE:
-			car.vel += Vector3(nudge.x, 0.0, nudge.y) * (Solidity.GRIND_NUDGE - out)
+			car.apply_soft_cost(1.0, Vector3(nudge.x, 0.0, nudge.y) * (Solidity.GRIND_NUDGE - out))
 	if touched != "" and contacts != null and contacts.has_method("soft_touch"):
 		contacts.soft_touch(touched, touched_at, angle_seen, touched_n)
 
@@ -1026,10 +1031,9 @@ func _hit(p: Parked, xf: Transform3D, v: Vector2) -> void:
 		_wall(p)  # the lane rule would stop it within PUSH_WEDGED: it cannot move either
 		wedges += 1
 		return
-	# WORKAROUND(arch): the push's answer is written into the car's `vel` from here, as step 7's smash
-	# cost is, because car.gd (the controls lane) is not to change; see TD-24.
+	# The push's answer through the car's hook (car.gd apply_soft_cost): its ground speed becomes `nv`.
 	var nv := push_answer(v, n, offset)
-	car.vel = Vector3(nv.x, car.vel.y, nv.y)
+	car.apply_soft_cost(1.0, Vector3(nv.x - car.vel.x, 0.0, nv.y - car.vel.z))
 	var at := Vector3(c.x + n.x * (CAR_HALF.x if side_face else CAR_HALF.y), p.xf.origin.y + 0.7, c.y + n.y * (CAR_HALF.x if side_face else CAR_HALF.y))
 	at += Vector3(t.x, 0.0, t.y) * clampf(offset, -half_t, half_t)
 	pushes += 1
@@ -1170,8 +1174,7 @@ func _carry(p: Parked, v: Vector2) -> void:
 		_wall(p)
 		wedges += 1
 		return
-	# WORKAROUND(arch): as in _hit (TD-24).
-	car.vel -= Vector3(p.dir.x, 0.0, p.dir.y) * w * 0.5
+	car.apply_soft_cost(1.0, -Vector3(p.dir.x, 0.0, p.dir.y) * w * 0.5)  # half the closing speed shared
 	if p.state != SLIDING:
 		if not _sliding.has(p):
 			_sliding.append(p)

@@ -10330,6 +10330,8 @@ const PARKED_TILE := &"parked_tile"
 const CAR_STRIDE := 8
 ## Step 8a: the parked cars of the last build (one sector, or the whole map), CAR_STRIDE numbers each.
 var _soft_cars := PackedFloat64Array()
+## Step 8a: the parked cars of the last build kept hard by the landmark guard (none with --no-soft).
+var soft_cars_guarded := 0
 
 
 ## A parked car's collider faces at `t` (its four sides, two triangles each, in the order they were
@@ -10468,13 +10470,24 @@ func _build_street_furniture() -> void:
 		mmi.add_to_group(SMALL_CASTERS, true)
 	# Parked cars are obstacles too. Step 8a: they are pushed instead (soft_things.gd): no collider
 	# faces, their boxes in `soft_cars` (the root's "soft_cars" meta, saved with the prebuilt scene, so
-	# both city paths read the same list); with CityBarriers.soft_off (--no-soft) hard as ever.
+	# both city paths read the same list); with CityBarriers.soft_off (--no-soft) hard as ever, and a
+	# car inside or within LANDMARK_GUARD m of a carded landmark site's ring too, as step 7's fences
+	# (check_landmarks: three sites' car rays were stopped only by a parked car).
 	_soft_cars = PackedFloat64Array()
+	soft_cars_guarded = 0
 	var tile_count := {}
 	for i in spots.size():
 		var t := spots[i]
 		var faces := parked_faces(t)
-		if CityBarriers.soft_off:
+		var guarded := false
+		if not CityBarriers.soft_off:
+			var foot := []
+			for k in 5:
+				var a := faces[(k % 4) * 6]
+				foot.append_array([a.x, a.z])
+			guarded = barriers.near_landmark(foot)
+		if CityBarriers.soft_off or guarded:
+			soft_cars_guarded += 1 if guarded else 0
 			for k in 4:
 				_solid(&"parked", faces.slice(k * 6, k * 6 + 6))
 			continue

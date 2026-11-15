@@ -80,6 +80,8 @@ var _soft: SoftThings
 var _pushed: Array = []
 var _returned: Array = []
 ## M5's counts.
+## M4: parked cars kept hard by the landmark guard (map_builder.gd soft_cars_guarded), over the sectors.
+var _guarded := 0
 var _m5 := {"cars": 0, "pushes": 0, "natural": 0, "ruled": 0, "wedged": 0, "bays": 0, "usec": 0}
 
 
@@ -713,6 +715,7 @@ func _map_part(all: bool, only: Array[Vector2i]) -> String:
 	for key in keys:
 		CityBarriers.soft_off = false
 		var built: Node3D = runtime.build_sector(key)
+		var guarded: int = runtime.soft_cars_guarded
 		var soft: Dictionary = built.get_meta(&"soft", {})
 		var cars: Dictionary = built.get_meta(&"soft_cars", {})
 		var soft_faces := _class_faces(built)
@@ -740,8 +743,11 @@ func _map_part(all: bool, only: Array[Vector2i]) -> String:
 				(pre_cars.get("cars", PackedFloat64Array()) as PackedFloat64Array).size() / MapBuilder.CAR_STRIDE])
 		_expect(drawn_rt == "" and drawn_pb == "", "M4 %s: every own car has its instance in its tile's MultiMesh (runtime: %s; prebuilt: %s)" % [
 				key, "ok" if drawn_rt == "" else drawn_rt, "ok" if drawn_pb == "" else drawn_pb])
-		_expect(not soft_faces.has(&"parked"), "M4 %s: the soft build files no parked collider (%d faces)" % [key,
-				(soft_faces.get(&"parked", PackedStringArray()) as PackedStringArray).size()])
+		var parked_faces_n := (soft_faces.get(&"parked", PackedStringArray()) as PackedStringArray).size()
+		_expect(parked_faces_n <= guarded * 8,
+				"M4 %s: the soft build files parked colliders only for the %d cars by a landmark (%d faces, at most %d)" % [
+				key, guarded, parked_faces_n, guarded * 8])
+		_guarded += guarded
 		cars_n += n_cars
 		_m5_sector(m5, cars)
 		if soft.is_empty() and cars.is_empty():

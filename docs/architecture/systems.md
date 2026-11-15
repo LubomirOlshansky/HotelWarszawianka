@@ -61,7 +61,7 @@ fails if a script is in neither page, so add a row when you add a file.
 
 | Script | Owns |
 | --- | --- |
-| `car.gd` | The player's car physics, signals `bumped`, `impact`, `scraped`, `stuck`, `nitro_started`. Its answer to a hit is `collide_rules.gd`'s table (`collide`, the preset; `_wall_answer` for the v2 presets). |
+| `car.gd` | The player's car physics, signals `bumped`, `impact`, `scraped`, `stuck`, `nitro_started`. Its answer to a hit is `collide_rules.gd`'s table (`collide`, the preset; `_wall_answer` for the v2 presets). A soft thing changes its speed only through `apply_soft_cost(share, nudge)` (`soft_things.gd`: a fence smash, a pushed parked car; TD-24). |
 | `drive_controls.gd` | Touch and key controls to throttle and steering (shared with `check_steering.gd`). |
 | `lane_assist.gd`, `stop_assist.gd` | Lane assist; how forgiving every stop zone is. |
 | `heli.gd` | The helicopter. |
