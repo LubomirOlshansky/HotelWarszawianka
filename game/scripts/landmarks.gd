@@ -699,6 +699,9 @@ const INFO := {
 	"kozia9": ["Kozia 9",
 			"1974–76, Kuźmienko i Sembrat: blok wspina się po piętrze, okna chowają się w zębach.",
 			"1974-76, Kuźmienko and Sembrat: the block climbs a storey at a time, windows hidden in its teeth."],
+	"jerozolimskie57": ["Aleje Jerozolimskie 57-63",
+			"Rząd kamienic naprzeciw Pałacu: odnowiona czerwona z pomarańczowym dachem (dawna Nowa Jerozolima), biała pod białą płachtą, dwie ozdobne z mansardą i zielone arkady z gablotami.",
+			"The tenement row across from the Palace: the restored red one with the orange roof (where Nowa Jerozolima was), the white one under its white wrap, two ornate ones with zinc mansards, and the green arcades with their showcases."],
 	"smolna38": ["Smolna 38",
 			"Przedwojenna kamienica z bramą pod kamienną konsolą i erkerem; wieczorem czerwone światło i kolejka do klubu.",
 			"A pre-war tenement: a gate under a stone console and an oriel; at night red light and the club queue."],
@@ -1194,6 +1197,8 @@ func _find_sites() -> void:
 	_find_hortus()
 	_find_moderna()
 	_find_flisac()
+	# Al. Jerozolimskie 57-63 (F's photos, 2026-11-15): Nowa Jerozolima's red tenement and the row beside it.
+	_find_jerozolimskie57()
 	# Plac Krasińskich (CITY_INVENTORY 22 and 79, 2026-11-02): the Uprising Monument and the palace.
 	# Sąd Najwyższy's colonnade (2026-11-02): green ribbed columns instead of OSM's white boxes.
 	# Found (and built) before the monument: its beams' cells would cover the monument's tap.
@@ -1768,6 +1773,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_karowa18a(s)
 			"smolna38":
 				_build_smolna38(s)
+			"jerozolimskie57":
+				_build_jerozolimskie57(s)
 			"nowogrodzka31":
 				_id = 0  # no card, not on the picking grid
 				_build_nowogrodzka31(s)
