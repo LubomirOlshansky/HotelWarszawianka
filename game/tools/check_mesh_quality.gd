@@ -45,6 +45,7 @@ const BUDGET := {
 	"church_antoniego": 1250,
 	"church_augustyn": 1900,  # 2026-11-14: the whole brick basilica and its 70 m tower, checked against photos (measured 1759)
 	"church_siostry_milosierdzia_zytnia": 1200,  # 2026-11-15: the Sisters of Our Lady of Mercy's house on Żytnia from photos and LoD2 (measured 874)
+	"church_zytnia_dom_zakonny": 900,  # 2026-11-15: the convent range on Żytnia's south side by Wolność from photos and LoD2 (measured 582)
 	"church_zwycieska_klasztor": 1200,  # 2026-11-15: the monastery block beside Our Lady of Victory from LoD2, provisional (measured 850)
 	"church_klopotowskiego_18": 1500,  # 2026-11-15: the church house with the window of life on Kłopotowskiego from photos and LoD2 (measured 1288)
 	"church_plebania_florian": 1500,  # 2026-11-15: St Florian's presbytery on Floriańska from photos and LoD2 (measured 1352)
