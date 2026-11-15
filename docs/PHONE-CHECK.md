@@ -64,6 +64,7 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | 14g | Warsaw Trade Tower from Rondo ONZ and Chłodna, by day and at night | the dark glass drum's floor bands, the warm beige stone, the silver crown's slits; the mast down the west screen with its red-and-white top | WTT photo rework |
 | 14i | Stadion Leguminy (Legia) from Łazienkowska and the Trasa, by day and at night | the roof's edge reads as a row of white peaks over a dark truss; the green pitch shows; the columns and green banners along the concourse; the floodlight strip lit at night | Legia photo rework |
 | 14j | Gmach Główny Politechniki from Plac Politechniki and Nowowiejska, by day and at night | the pale stone front reads (not grey); three tall arched windows between paired columns; the attic with its figure group against the sky; the glass hall roof stays blue-grey glass, not zinc; the lamp globes lit at night | Politechnika front |
+| 14l | Dom bez Kantów and Królewska 2 (the block on the square's south-east corner) from Plac Piłsudskiego, from Królewska going east and from Krakowskie Przedmieście, by day and at night | one long block with every corner rounded and a row of round arches at street level; the cream west part and the sandstone east part read apart, the sandstone one taller; the courtyard open; none of LoD2's old wings left standing beside it; no new stutter near the square | Dom bez Kantów rebuild |
 | 15 | Settings → the experimental graphics switch, on and off at the Palace | the look and the frame | #647 |
 
 ## 5. The frame (3 min)
