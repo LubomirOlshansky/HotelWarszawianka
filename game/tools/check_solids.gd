@@ -47,6 +47,8 @@ var record := false
 
 
 func _initialize() -> void:
+	# W2 of the walls look: --barriers=classic|typed builds the city in that look (the palette's by default).
+	Solidity.barrier_look_from(OS.get_cmdline_user_args())
 	for a in OS.get_cmdline_user_args():
 		if a == "--verbose":
 			verbose = true
