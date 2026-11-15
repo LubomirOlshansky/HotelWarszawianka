@@ -798,6 +798,8 @@ const INFO := {
 	"church_trojca_praga": ["Kościół Świętej Trójcy na Solcu", "Klasycystyczny kościół z wieżyczką.", "A classicist church with a bell turret."],
 	"church_czestochowska": ["Kościół Matki Bożej Częstochowskiej", "Modernistyczny kościół z dachem do ziemi.", "A modernist church with a roof down to the ground."],
 	"church_zwycieska": ["Kościół Matki Boskiej Zwycięskiej", "Kościół parafialny z dwiema wieżami.", "A parish church with two towers."],
+	"church_franciszkanki_piwna": ["Siostry na Piwnej", "Dom sióstr franciszkanek przy kościele św. Marcina.", "The Franciscan sisters' house by St Martin's."],
+	"church_kapucyni_klasztor": ["Klasztor Kapucynów", "Klasztor ojców kapucynów przy Miodowej.", "The Capuchin friars' monastery on Miodowa."],
 	"church_misjonarze_radna": ["Misjonarze na Radnej", "Dom misjonarzy z kaplicą Cudownego Medalika.", "The Missionaries' house with the Miraculous Medal chapel."],
 	"church_misjonarze": ["Dom Księży Misjonarzy", "Dom misjonarzy przy kościele Świętego Krzyża.", "The Missionaries' house by the Holy Cross church."],
 	"church_barbara": ["Kaplica św. Barbary", "Ceglana kaplica na Koszykach.", "The brick chapel on Koszyki."],
@@ -21765,6 +21767,136 @@ func _build_misjonarze_radna(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The Capuchin monastery (Klasztor Ojców Kapucynów, Miodowa 13 / Kapucyńska, beside the church of
+## the Transfiguration; 1680s-1690s, rebuilt after 1944): three-storey ranges in pale yellow plaster
+## round a courtyard under hipped green copper roofs, plain rows of windows, a white cornice. A
+## model that replaces the plain OpenStreetMap block (building 821; no landmark until 2026-11-14).
+## From 12 Commons photos (refs/churches/capuchins_miodowa; 06-09 and 11 show the monastery from
+## Kapucyńska and the W-Z route, reference only, never shipped), the OSM outline and GUGiK's LoD2.
+## Spec docs/landmarks/specs/kapucyni_klasztor.md.
+## The ranges stand at three angles, so each roof has its own frame: KK_O1/KK_A1 along the north
+## range's outer wall (origin at its west corner, +v into the building), KK_O2/KK_A2 along the east
+## range (origin at its south corner, -v inward), KK_O3/KK_A3 along the south range (origin at its
+## west corner, -v inward).
+const KK_O1 := Vector2(-1025.7, -1410.4)
+const KK_A1 := Vector2(0.8453, -0.5343)
+const KK_O2 := Vector2(-990.3, -1383.3)
+const KK_A2 := Vector2(0.6097, -0.7926)
+const KK_O3 := Vector2(-1018.4, -1397.6)
+const KK_A3 := Vector2(0.8912, 0.4535)
+const KK_WALL := Color("#ecdcae")      ## the pale yellow plaster (photos)
+const KK_WHITE := Color("#f1ece0")     ## cornice, plinth band
+const KK_ROOF := Color("#86a993")      ## green copper
+
+
+func _build_kapucyni_klasztor(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(KK_O1, KK_O1 + KK_A1)
+	_g = _ground_under(outline)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	_mode = M_STONE
+	var eave := g + 11.5
+	_prism(outline, g - 1.0, eave, KK_WALL, KK_ROOF.darkened(0.1), M_STONE, M_STONE)
+	kit_cornice_ring(outline, eave - 0.35, KK_WHITE, 0.35, 0.35)
+	kit_ledge_ring(outline, g - 1.0, 1.6, KK_WHITE, 0.06)
+	# --- the hipped roofs, one per range
+	_hip(17.75, 4.5, 17.95, 4.7, eave, 4.2, KK_ROOF)          # north range
+	_hip(-5.1, 2.05, 5.3, 7.1, eave, 4.6, KK_ROOF)           # the west block
+	kit_front(KK_O2, KK_O2 + KK_A2)
+	_hip(12.95, -5.5, 13.1, 5.6, eave, 4.2, KK_ROOF)         # east range
+	kit_front(KK_O3, KK_O3 + KK_A3)
+	_hip(15.75, -5.1, 15.9, 5.5, eave, 4.2, KK_ROOF)         # south range
+	# --- windows on three floors round every wall long enough for one
+	var n := outline.size()
+	for k in n:
+		var a := outline[(k + 1) % n]
+		var b := outline[k]
+		var ln := kit_front(a, b)
+		if ln < 3.0:
+			continue
+		var m := maxi(1, floori(ln / 3.0))
+		var cols: Array = []
+		for i in m:
+			cols.append((float(i) + 0.5) * ln / float(m))
+		kit_panes(cols, [g + 1.2, g + 4.8, g + 8.3], 1.1, 1.8, PAL_GLASS_DARK, 0.05)
+	kit_front(KK_O1, KK_O1 + KK_A1)
+	_collide(outline)
+
+
+## The Franciscan Sisters of the Cross' house on Piwna (Dom Zakonny Sióstr Franciszkanek Służebnic
+## Krzyża, Piwna 9/11; the old Augustinian monastery by St Martin's, rebuilt after 1944): ochre
+## plaster ranges round the church's chancel, three rows of windows on Piwna with the stone portal
+## under its cartouche, hipped tile roofs. St Martin's tower stands in this block on Piwna and is
+## the church's own model (`_build_marcin`). A model that replaces the plain OpenStreetMap block
+## (building 1676; no landmark until 2026-11-14). From 9 Commons photos
+## (refs/churches/franciscan_sisters_piwna, reference only, never shipped), the OSM outline and
+## GUGiK's LoD2 (over the ground: the eaves about 10.5, the ridges about 15).
+## Spec docs/landmarks/specs/franciszkanki_piwna.md.
+## Frame: origin at the front's north corner on Piwna, u along Piwna to the south-east, +v into
+## the block; the front faces Piwna (-v).
+const FS_O := Vector2(-772.0, -1582.8)
+const FS_A := Vector2(0.6253, 0.7804)
+const FS_WALL := Color("#e2b86c")      ## the ochre plaster (photos)
+const FS_STONE := Color("#d8cfbd")     ## the portal, window surrounds, cornice
+const FS_ROOF := Color("#9a5040")      ## tile (a default: no photo shows the roofs)
+const FS_DOOR := Color("#3b3430")      ## the gate's leaves
+
+
+func _build_franciszkanki_piwna(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(FS_O, FS_O + FS_A)
+	_g = _ground_under(outline)
+	var g := _g
+	_mode = M_STONE
+	var eave := g + 10.5
+	_prism(outline, g - 1.0, eave, FS_WALL, FS_ROOF.darkened(0.1), M_STONE, M_STONE)
+	kit_cornice_ring(outline, eave - 0.3, FS_STONE, 0.3, 0.3)
+	_hip(10.5, 4.6, 14.85, 5.5, eave, 4.4, FS_ROOF)      # the range on Piwna
+	_hip(12.9, 26.0, 7.5, 17.7, eave, 4.5, FS_ROOF)      # the long range behind
+	_hip(1.5, 34.95, 4.0, 8.95, eave, 3.5, FS_ROOF)      # the back range
+	# --- the front on Piwna: three rows of windows (none where the tower stands), the portal
+	var ln := kit_front(_w(25.25, -0.65), _w(-4.17, 0.25))
+	kit_face(0.0)
+	var cols: Array = []
+	for i in 10:
+		var c := 1.4 + float(i) * 2.75
+		var u_frame := 25.25 - c
+		if u_frame > -1.2 and u_frame < 7.2:
+			continue
+		if absf(c - 12.4) < 1.5:
+			continue
+		cols.append(c)
+	kit_panes(cols, [g + 1.6, g + 8.0], 1.1, 1.7, PAL_GLASS_DARK, 0.05)
+	for c: float in cols:
+		_kbox(c - 0.75, c + 0.75, 0.0, 0.1, g + 4.75, g + 6.75, FS_STONE)
+	kit_face(0.1)
+	kit_panes(cols, [g + 4.9], 1.1, 1.7, PAL_GLASS_DARK, 0.05)
+	kit_face(0.0)
+	_kbox(10.6, 14.2, 0.0, 0.3, g - 0.2, g + 4.6, FS_STONE)
+	kit_face(0.3)
+	kit_door(12.4, g, 3.6, 1.1, FS_STONE, FS_DOOR, true)
+	_kbox(11.8, 13.0, 0.0, 0.12, g + 4.8, g + 6.0, FS_STONE)
+	kit_face(0.0)
+	kit_ledge(0.0, ln, g + 0.3, 0.3, FS_STONE, 0.08)
+	# --- windows on the other walls long enough for them
+	var n := outline.size()
+	for k in n:
+		kit_front(FS_O, FS_O + FS_A)
+		var a := outline[(k + 1) % n]
+		var b := outline[k]
+		var le := kit_front(a, b)
+		if le < 4.0 or (k >= 21 and k <= 25):
+			continue
+		var m := maxi(1, floori(le / 3.0))
+		var cs: Array = []
+		for i in m:
+			cs.append((float(i) + 0.5) * le / float(m))
+		kit_panes(cs, [g + 1.6, g + 4.9, g + 8.0], 1.0, 1.6, PAL_GLASS_DARK, 0.05)
+	kit_front(FS_O, FS_O + FS_A)
+	_collide(outline)
+
+
 ## The Nożyk Synagogue (Synagoga Nożyków, ul. Twarda 6; Karol and Leandro Marconi, 1898-1902;
 ## burnt 1944, rebuilt 1977-1983; Warsaw's only pre-war synagogue still standing), a cream
 ## neo-Romanesque house of prayer in its courtyard south of Plac Grzybowski. The whole building as
@@ -33138,6 +33270,10 @@ const CHURCHES := [
 			"fill": 0.8, "style": "baroque", "wall": "#e6d4a6", "roof": "#97594a", "towers": 0, "cap": "none"},
 	{"key": "church_rodziny_maryi", "at": Vector2(-2617.0, -739.0), "o": Vector2(-2625.3, -761.4), "out": Vector2(-0.356, -0.934), "L": 13.5, "W": 49.4,
 			"fill": 0.9, "style": "neoclassical", "wall": "#e6c2a2", "roof": "#4d5257", "towers": 0, "cap": "none"},
+	{"key": "church_franciszkanki_piwna", "at": Vector2(-780.1, -1560.9), "o": Vector2(-765.2, -1574.8), "out": Vector2(0.7804, -0.6253), "L": 29.4, "W": 44.0,
+			"fill": 0.9, "style": "baroque", "wall": "#e2b86c", "roof": "#9a5040", "towers": 0, "cap": "none"},
+	{"key": "church_kapucyni_klasztor", "at": Vector2(-1010.6, -1414.6), "o": Vector2(-1010.8, -1419.8), "out": Vector2(-0.5343, -0.8453), "L": 35.4, "W": 9.0,
+			"fill": 0.9, "style": "baroque", "wall": "#ecdcae", "roof": "#86a993", "towers": 0, "cap": "none"},
 	{"key": "church_misjonarze_radna", "at": Vector2(-66.4, -747.0), "o": Vector2(-63.9, -741.6), "out": Vector2(0.459, 0.888), "L": 24.6, "W": 25.2,
 			"fill": 0.9, "style": "neoclassical", "wall": "#e8dcb8", "roof": "#6a6460", "towers": 0, "cap": "none"},
 	{"key": "church_misjonarze", "at": Vector2(-517.5, -570.7), "o": Vector2(-476.1, -569.1), "out": Vector2(0.958, -0.288), "L": 41.0, "W": 14.4,
@@ -33229,6 +33365,12 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_czestochowska":
 		_build_czestochowska(site)  # the modernist A-frame church and its pylons, from photos
+		return
+	if site["key"] == "church_franciszkanki_piwna":
+		_build_franciszkanki_piwna(site)  # the Franciscan Sisters' house on Piwna, from photos and LoD2
+		return
+	if site["key"] == "church_kapucyni_klasztor":
+		_build_kapucyni_klasztor(site)  # the Capuchin monastery on Miodowa, from photos and LoD2
 		return
 	if site["key"] == "church_misjonarze_radna":
 		_build_misjonarze_radna(site)  # the Missionaries' house on Radna, from photos and LoD2
