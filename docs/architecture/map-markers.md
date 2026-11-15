@@ -12,10 +12,10 @@ should grow into. Design background: docs/design/quest-map.md and docs/design/ma
 | Picked place | the same pin, for a place tapped in the ZADANIA list | yes | yes | arrow only | main.gd `quest_pin` (`_on_quest_picked`) |
 | Main line | gold star in a breathing glow | yes (`main_star`) | yes (`set_main_line`) | the guide's beacon | `main_line.gd`; today only for the first kebab (`FIRST_JOB_ONLY`) |
 | Questline starts | round badge, white "!", the line's own colour | pinned to the rim up to 1.5 km | twice a job icon, with the name | lit column and the waving friend within `BEACON_R` 320 m | `story_quests.gd` `marks`, `hud.set_story` / `full_map.set_story` |
-| Street jobs | small icon per stand, station or depot | yes (`set_minimap_pois`) | yes | the kebab stands' rings | `jobs.gd`, `roundup_job.gd`, main.gd `_quest_entries` for the list |
-| Ladder and final | rival rows, Seba's diamond | `set_minimap_final` | `set_ladder` | the race beacon at Rondo Daszyńskiego | `ladder.gd`, `rivals.gd` |
-| Garage | its icon within reach | `set_minimap_garage` | yes | | `garage.gd` |
-| Unfound places | "?" | `set_minimap_unknown` | yes | | `notebook.gd` |
+| Street jobs | small icon per stand, station or depot | yes (registry JOB) | yes, zoomed in | the kebab stands' rings | `jobs.gd` (owner "jobs"), `roundup_job.gd` (owner "roundup", its pins during a run), main.gd `_quest_entries` for the list |
+| Ladder and final | rival rows; the final's start is the main line's star | registry MAIN "rivals:final" (kept, not drawn) | `set_ladder` | the race beacon at Rondo Daszyńskiego | `ladder.gd`, `rivals.gd` |
+| Garage | its diamond within reach | registry SERVICE "garage:workshop" | yes | | `garage.gd` |
+| Unfound places | "?" | registry PLACE (owner "notebook") | no (F 2026-11-08) | | `notebook.gd` |
 | Police and traps | chasers, known traps, edge rooster | yes | | the patrol cars | `police.gd` |
 | Districts, landmarks, metro, hospitals | printed silhouettes and names, hospitals only during a rescue | | `set_districts`, map art | | `districts.gd`, `map_icons.gd`, `missions.gd` |
 
@@ -37,9 +37,11 @@ should grow into. Design background: docs/design/quest-map.md and docs/design/ma
 - **A questline** (a friend, a start spot, hours): one `stories.add({...})` block in main.gd
   `_build_stories` with `at`, `colour`, `hours`, `days`, `call`, `meet`, `busy`, `idle`. The badge,
   the beacon, the greeting, the WĄTKI row and quest focus come for free. This is the model to copy.
-- **A street job's places**: an entry in main.gd `_quest_entries` (the ZADANIA list) and its icons
-  through `hud.set_minimap_pois`. Careful: that setter replaces the whole list, and `jobs.gd` and
-  `roundup_job.gd` both write it (TD-13).
+- **A street job's places, a service, a "?" mark**: an entry in main.gd `_quest_entries` (the
+  ZADANIA list) and its marks in the registry: `hud.markers.put_all("<owner>", [{"layer":
+  MapMarkers.Layer.JOB, "at": xz, "colour": c, "shape": MapIcons.POI_*}, ...])` (replaces only
+  that owner's marks) or `hud.markers.put("<owner>:<key>", layer, xz, colour, shape)` and
+  `remove`. The minimap and the full map draw it by the rule table; no new HUD setter.
 - **The active target**: a `beacon.gd`, `hud.set_minimap_target`, `route_line.gd` +
   `hud.set_minimap_route`, `hud.show_status`, and clear every one of them where the activity ends.
 - **Its busy state for quest focus**: add it to `_quest_running()` in main.gd (another copy of
@@ -48,7 +50,9 @@ should grow into. Design background: docs/design/quest-map.md and docs/design/ma
 ## 4. The weak spots
 
 1. **Many setters, no registry.** About a dozen `set_minimap_*` and `full_map.set_*` calls, each
-   replacing its own list. Two owners of one list overwrite each other.
+   replacing its own list. Two owners of one list overwrote each other. Mended for the job places,
+   the garage, the "?" marks and the final (TD-13 step 1); the questlines, the main line and the
+   target still have their setters.
 2. **Quest focus has its own busy test.** `_quest_running()` checks six activities and the
    questlines' `busy`; `_free_block()` checks fifteen. They disagree: a Podwózka ride or a plain trend delivery blocks new starts in `_free_block()` but does not count for `_quest_running()`.
 3. **The active target is set by each activity.** 24 scripts touch the route line or beacon;
@@ -56,7 +60,7 @@ should grow into. Design background: docs/design/quest-map.md and docs/design/ma
 4. **Visibility rules live in several places**: quest focus in main.gd, flying in quest_lines.gd,
    hours in each def, night in each job.
 
-## 5. The planned marker registry (`map_markers.gd`, TD-13)
+## 5. The marker registry (`map_markers.gd`, TD-13, being built)
 
 One pure registry, like `messages.gd` for text. Every mark is declared once; the minimap, the
 full map, the 3D beacon, the edge arrow and the ZADANIA / WĄTKI lists only read it.
@@ -100,3 +104,11 @@ What this gives the next quest lines:
 first the registry and the rule table with today's behaviour unchanged, then move the setters one
 layer per PR (STORY first, it is already a registry; then JOB; then TARGET), each with before and
 after screenshots of the minimap and full map in free drive, a quest and the helicopter.
+
+**As built (F's go 2026-11-15).** Step 1: the registry and the rule table, with the layers that had
+plain list setters moved (JOB, PLACE, SERVICE, the final's MAIN mark): it mends the two-writer list
+first. Step 2: STORY, the main line's star and quest focus (the context goes into the registry).
+Step 3: TARGET, the edge arrow and the full map's pin (main.gd `_show_target`'s chain). Step 4: road
+routes, so the arrow and the maps follow the roads for every target, not only the ones that draw a
+`route_line.gd` today. Each pull request adds a PHONE-CHECK line for the minimap, the full map and
+the arrow.

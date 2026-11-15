@@ -25,6 +25,7 @@ const MapBuilderRef := preload("res://scripts/map_builder.gd")
 const Landmarks := preload("res://scripts/landmarks.gd")
 const MeshProbe := preload("res://tools/mesh_probe.gd")
 const Fakes := preload("res://tools/fakes.gd")
+const Neon := preload("res://scripts/neon_signs.gd")
 ## Triangles a site may hold: measured on 2026-10-31 plus about 20 % (raise on purpose only).
 const BUDGET := {
 	"scena_relax": 600,
@@ -45,6 +46,8 @@ const BUDGET := {
 	"church_antoniego": 1250,
 	"church_augustyn": 1900,  # 2026-11-14: the whole brick basilica and its 70 m tower, checked against photos (measured 1759)
 	"church_siostry_milosierdzia_zytnia": 1200,  # 2026-11-15: the Sisters of Our Lady of Mercy's house on Żytnia from photos and LoD2 (measured 874)
+	"church_zytnia_dom_zakonny_tyl": 1500,  # 2026-11-15: the range behind the convent on Żytnia from LoD2, provisional (measured 1299)
+	"church_zytnia_dom_zakonny": 900,  # 2026-11-15: the convent range on Żytnia's south side by Wolność from photos and LoD2 (measured 582)
 	"church_zwycieska_klasztor": 1200,  # 2026-11-15: the monastery block beside Our Lady of Victory from LoD2, provisional (measured 850)
 	"church_klopotowskiego_18": 1500,  # 2026-11-15: the church house with the window of life on Kłopotowskiego from photos and LoD2 (measured 1288)
 	"church_plebania_florian": 1500,  # 2026-11-15: St Florian's presbytery on Floriańska from photos and LoD2 (measured 1352)
@@ -97,7 +100,7 @@ const BUDGET := {
 	"sad_najwyzszy": 8000,
 	"ostrogski": 870,
 	"brama_uw": 4000,  # 2026-11-15: rebuilt from F's photos, banded pilasters, iron gates, lamps, flags
-	"uruski": 4000,  # 2026-11-15: Pałac Uruskich's street front from F's photos
+	"uruski": 5000,  # 2026-11-15: Pałac Uruskich's street front and the risalit over the gate, from F's photos (4342 built)
 	"stara_buw": 5000,  # 2026-11-15: the Old Library's front and flanks from F's photos
 	"uw_skarpa": 7000,  # 2026-11-15: the escarpment's brick wall, piers, graffiti, railing
 	"uw_straz": 900,  # 2026-11-15: the guards' kiosk
@@ -383,6 +386,17 @@ func _initialize() -> void:
 		var kit_found := _probe.examine("kit_sampler", kit_rec)
 		measured["kit_sampler"] = kit_found
 		_judge("kit_sampler", kit_found)
+	# Every landmark sign's word must be a row of the neon atlas (neon_signs.gd LANDMARK_WORDS):
+	# a missing word draws nothing (Legia's LEGUMINA, 2026-11-01 to 2026-11-15), and a word wider
+	# than the atlas is cut off (HOTEL EUROPEJSKI).
+	var words := Neon.all_words()
+	for sign: Array in marks.signs:
+		var miss := "sign %s: not in the neon atlas (neon_signs.gd LANDMARK_WORDS)" % sign[0]
+		if not words.has(sign[0]) and not problems.has(miss):
+			problems.append(miss)
+		var wide := "sign %s: wider than the neon atlas (neon_signs.gd ATLAS_W)" % sign[0]
+		if Neon.word_width(sign[0]) + 2 * Neon.PAD > Neon.ATLAS_W and not problems.has(wide):
+			problems.append(wide)
 	for key: String in BUDGET:
 		if not measured.has(key):
 			problems.append("%s: has a budget but builds nothing (site gone?)" % key)

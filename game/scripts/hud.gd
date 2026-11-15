@@ -38,6 +38,7 @@ const FullMap := preload("res://scripts/full_map.gd")
 const MapArt := preload("res://scripts/map_art.gd")
 const MainLine := preload("res://scripts/main_line.gd")
 const MapIcons := preload("res://scripts/map_icons.gd")
+const MapMarkers := preload("res://scripts/map_markers.gd")
 const ScreenPoints := preload("res://scripts/screen_points.gd")
 const Messages := preload("res://scripts/messages.gd")  # the message director (docs/design/hud-messages.md)
 ## drive_controls.gd's schemes (POINT, CLASSIC, FIXED).
@@ -363,19 +364,13 @@ func zoom_in_held_s() -> float:
 	return 0.0 if _zoom_in_down_ms < 0 else float(Time.get_ticks_msec() - _zoom_in_down_ms) / 1000.0
 
 
-## Side-job places on the minimap (kebab stands, the station), blinking.
-var _mini_pois := PackedVector2Array()
-## Loop MW-1: the notebook's places not found yet near the car (map x, z), drawn as "?".
-var _mini_unknown := PackedVector2Array()
-## The garage loop: the garage's diamond (set_minimap_garage), INF while it isn't shown.
-var _mini_garage := Vector2.INF
-var _mini_garage_colour := Color.WHITE
-## Loop 3h slice 3: the final race's start marker (set_minimap_final), INF while it isn't shown;
-## pinned to the rim at any distance (it is the one place to go at night once the final opens).
-var _mini_final := Vector2.INF
-var _mini_final_colour := Color.WHITE
+## The map marker registry (map_markers.gd, TD-13): the street jobs' places and the round-up's
+## pins (JOB), the notebook's "?" marks (PLACE), the garage (SERVICE) and the final's start (MAIN,
+## not drawn: the main line's star stands there). Their owners write it; the minimap and the full
+## map read it.
+var markers := MapMarkers.new()
+## The garage loop: the garage's diamond (a SERVICE mark) is pinned to the rim up to this far.
 const GARAGE_REACH := 1500.0
-var _mini_poi_colours := PackedColorArray()
 ## The questlines' starts (story_quests.gd `marks`): points and colours; empty in quest focus.
 var _mini_story := PackedVector2Array()
 var _mini_story_colours := PackedColorArray()
@@ -386,9 +381,6 @@ const STORY_REACH := 1500.0
 ## Quest focus (main.gd `_story_tick`): something runs; the minimap and the full map hide the side
 ## places, the garage, the "?" marks and the starts, and the main star dims.
 var quest_focus := false
-## G11: the shape of each place's mark (MapIcons.POI_*), parallel to _mini_pois; a short or empty array
-## means squares.
-var _mini_poi_shapes := PackedInt32Array()
 ## G11 (2026-11-01): a place's mark by kind, so the minimap and the full map are not rows of
 ## identical squares: a kebab stand a round badge with a white cone, the station a triangle, a
 ## depot a little house, a scooter a dot, anything else the square.
@@ -2563,18 +2555,27 @@ func _paint_minimap_overlay() -> void:
 	var blink := 0.55 + 0.45 * sin(Time.get_ticks_msec() * 0.006)
 	# Quest focus (story_quests.gd, F 2026-11-07): while something runs, the side places, the garage
 	# and the "?" marks stay off the minimap; only what the player is doing shows.
-	for i in (0 if quest_focus else _mini_pois.size()):
-		if _mini_pois[i].distance_to(_mini_car) > 700.0:
+	# (The rule table, map_markers.gd RULES, says which layers quest focus hides.)
+	var ctx := MapMarkers.context_of(quest_focus)
+	var jobs := markers.shown(MapMarkers.Layer.JOB, MapMarkers.View.MINIMAP, ctx)
+	var job_at: PackedVector2Array = jobs["at"]
+	var job_col: PackedColorArray = jobs["colour"]
+	var job_shape: PackedInt32Array = jobs["shape"]
+	for i in job_at.size():
+		if job_at[i].distance_to(_mini_car) > 700.0:
 			continue
-		var r := ((_mini_pois[i] - _mini_car) * s).rotated(_mini_yaw)
+		var r := ((job_at[i] - _mini_car) * s).rotated(_mini_yaw)
 		var far := r.length() > _mini_radius - 5.0 * pt
 		r = r.limit_length(_mini_radius - 5.0 * pt)
 		var half := (2.0 if far else 3.2) * pt
-		poi_mark(centre + r, half, Color(_mini_poi_colours[i], blink), _mini_poi_shapes[i] if i < _mini_poi_shapes.size() else MapIcons.POI_SQUARE)
+		poi_mark(centre + r, half, Color(job_col[i], blink), job_shape[i])
 	# The garage loop: the garage's diamond, pinned to the rim up to GARAGE_REACH m away.
-	if not quest_focus and _mini_garage != Vector2.INF and _mini_garage.distance_to(_mini_car) <= GARAGE_REACH:
-		var g := ((_mini_garage - _mini_car) * s).rotated(_mini_yaw).limit_length(_mini_radius - 6.0 * pt)
-		_tri_diamond(centre + g, 4.6 * pt, _mini_garage_colour)
+	var service := markers.shown(MapMarkers.Layer.SERVICE, MapMarkers.View.MINIMAP, ctx)
+	var service_at: PackedVector2Array = service["at"]
+	for i in service_at.size():
+		if service_at[i].distance_to(_mini_car) <= GARAGE_REACH:
+			var g := ((service_at[i] - _mini_car) * s).rotated(_mini_yaw).limit_length(_mini_radius - 6.0 * pt)
+			_tri_diamond(centre + g, 4.6 * pt, (service["colour"] as PackedColorArray)[i])
 	# Loop 3h slice 3's diamond at the final's start is the main line's star now (main_line.gd).
 	for i in _mini_dots.size():
 		# Rivals within the minimap's reach; the rest would crowd the rim.
@@ -2596,7 +2597,7 @@ func _paint_minimap_overlay() -> void:
 			_tri_rect(Rect2(at - Vector2(2.8, 1.8) * pt, Vector2(4.0, 3.6) * pt), POLICE_BLUE)
 			_tri_rect(Rect2(at + Vector2(0.6, -0.4) * pt, Vector2(2.2, 4.0) * pt), POLICE_BLUE)
 	# Loop MW-1: the notebook's undiscovered places, a gold "?" on a dark plate (never a name).
-	for q in (PackedVector2Array() if quest_focus else _mini_unknown):
+	for q: Vector2 in markers.shown(MapMarkers.Layer.PLACE, MapMarkers.View.MINIMAP, ctx)["at"]:
 		var r := ((q - _mini_car) * s).rotated(_mini_yaw)
 		if r.length() < _mini_radius - 6.0 * pt:
 			_tri_question(centre + r)
@@ -2796,12 +2797,6 @@ func set_car_marker(at: Vector2, show: bool) -> void:
 		_pad.queue_redraw()
 
 
-## Loop MW-1: the notebook's places not found yet (map coordinates), drawn as "?" (notebook.gd
-## sends them twice a second, only when they change).
-func set_minimap_unknown(points: PackedVector2Array) -> void:
-	_mini_unknown = points
-
-
 ## Loop MW-1: the notebook's record changed (a new entry): the open notebook page shows it.
 func notebook_changed() -> void:
 	if settings_panel != null and settings_panel.has_method("refresh_notebook"):
@@ -2841,20 +2836,6 @@ func _tri_question(at: Vector2, k := 1.0) -> void:
 	_tri_cols.append_array(_question_cols)
 
 
-## The garage loop: Warsztat u Mirka on the minimap and the full map (map coordinates; INF: not
-## shown), a diamond in its colour, pinned to the minimap's rim up to GARAGE_REACH m away.
-func set_minimap_garage(p: Vector2, colour: Color) -> void:
-	_mini_garage = p
-	_mini_garage_colour = colour
-
-
-## Loop 3h slice 3: the final race's start marker on the minimap and the full map (map
-## coordinates; INF: not shown), a diamond in its colour, pinned to the minimap's rim.
-func set_minimap_final(p: Vector2, colour: Color) -> void:
-	_mini_final = p
-	_mini_final_colour = colour
-
-
 ## The questlines' starts on the minimap and the full map, and quest focus (main.gd, a few
 ## times a second; both only when they change).
 func set_story(points: PackedVector2Array, colours: PackedColorArray, focus: bool, names := PackedStringArray(),
@@ -2867,13 +2848,6 @@ func set_story(points: PackedVector2Array, colours: PackedColorArray, focus: boo
 	quest_focus = focus
 	if full_map != null and full_map.is_open():
 		full_map.set_story(points, colours, focus, names, blurbs, small)
-
-
-## Side-job places on the minimap (map coordinates), drawn as blinking squares.
-func set_minimap_pois(points: PackedVector2Array, colours: PackedColorArray, shapes := PackedInt32Array()) -> void:
-	_mini_pois = points
-	_mini_poi_colours = colours
-	_mini_poi_shapes = shapes
 
 
 # --- loop 2d-1: the Podwózka app's route (rides.gd) -------------------------------------------
@@ -3488,18 +3462,11 @@ func open_full_map(car_xz: Vector2, car_yaw: float, found: PackedVector2Array) -
 		add_child(full_map)
 	move_child(full_map, -1)
 	full_map.night = _night
-	full_map.unknown = _mini_unknown
 	full_map.scene_mark = _scene_mark
 	full_map.found = found
 	full_map.target = _mini_target
-	full_map.garage = _mini_garage
-	full_map.garage_colour = _mini_garage_colour
-	full_map.final_start = _mini_final  # loop 3h slice 3
-	full_map.final_colour = _mini_final_colour
 	full_map.target_colour = _mini_target_colour
-	full_map.side_spots = _mini_pois
-	full_map.side_colours = _mini_poi_colours
-	full_map.side_shapes = _mini_poi_shapes
+	full_map.markers = markers
 	full_map.set_story(_mini_story, _mini_story_colours, quest_focus, _story_names, _story_blurbs, _story_small)
 	full_map.set_main_line(_main_at, main_goal[0], main_goal[1])
 	full_map.open(car_xz, car_yaw)

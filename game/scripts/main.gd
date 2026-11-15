@@ -130,6 +130,7 @@ const Governor := preload("res://scripts/governor.gd")
 const Police := preload("res://scripts/police.gd")
 const Buses := preload("res://scripts/buses.gd")
 const OldTram := preload("res://scripts/old_tram.gd")
+const CampusCart := preload("res://scripts/campus_cart.gd")
 const CrashScenes := preload("res://scripts/crash_scenes.gd")
 ## Sekretny rave (rave.gd, F's ask 2026-11-06): LEKTI on MORDOR FM, Mati's call, the raves' rigs.
 const Rave := preload("res://scripts/rave.gd")
@@ -409,6 +410,8 @@ var buses: Buses
 ## The vintage-tram loop (old_tram.gd): the old two-car set on summer weekends, E39; flags
 ## --old-tram (the set now near the car; =follow: and the car kept behind it), --tram-log.
 var old_tram: OldTram
+## The University guards' cart round the main campus (campus_cart.gd, F 2026-11-15).
+var campus_cart: CampusCart
 ## Crash scenes (crash_scenes.gd, 2026-11-01): a fender bender with a police car and an ambulance
 ## now and then on a road ahead; in a normal launch only (test runs repeat). Flags --crash=now (a
 ## scene 45-80 m ahead at the start, for shots), --crash=X,Z (one on the fitting road nearest that
@@ -1467,6 +1470,7 @@ func _build_world() -> void:
 	add_child(tod)
 	if flags.live_clock != "":
 		tod.clock_start = TimeOfDay.warsaw_to_utc(flags.live_clock, flags.live_date)
+	tod.grade = flags.grade if flags.grade != "" else Grades.SETTING[settings.grade]
 	tod.setup(env, sun, post_mat, flags.sun_pitch)
 	await LoadYield.tick("time of day")
 	tod.lights_switched.connect(_show_night_nodes)
@@ -1661,6 +1665,7 @@ func _build_world() -> void:
 	await LoadYield.tick("_build_buses")
 	_build_old_tram(world)
 	await LoadYield.tick("_build_old_tram")
+	_build_campus_cart(world)
 	_build_crash_scenes()
 	await LoadYield.tick("_build_crash_scenes")
 	# The activity kit's director: everything that is not in the kit yet answers through this test
@@ -3823,6 +3828,24 @@ func _build_old_tram(world: Node3D) -> void:
 		old_tram.force(Vector2(car.global_position.x, car.global_position.z))
 
 
+## The guards' cart on the campus's ring (campus_cart.gd); its lines in the crowds' log (--night-log).
+func _build_campus_cart(world: Node3D) -> void:
+	if flags.solo_site != "":
+		return  # a landmark alone (--solo): no cart driving through its turntable
+	campus_cart = CampusCart.new()
+	campus_cart.name = "CampusCart"
+	campus_cart.map = map
+	campus_cart.dialogue = dialogue
+	campus_cart.log_on = flags.night_log
+	campus_cart.focus = func() -> Vector3: return cam_focus
+	campus_cart.vehicle = func() -> Array:
+		if flying:
+			return [heli.global_position, heli.speed() * 3.6, true]
+		return [car.global_position, car.vel.length() * 3.6, false]
+	world.add_child(campus_cart)
+	campus_cart.setup()
+
+
 ## --old-tram=follow: the car (no collisions) kept 22 m behind the old set's tail on its rails,
 ## facing along them, so the view goes with it and E39's count runs.
 func _old_tram_follow_frame() -> void:
@@ -5080,6 +5103,7 @@ func _settings_state() -> Dictionary:
 			"auto": auto_name,
 			"master": settings.master, "music": settings.music, "effects": settings.effects, "perf": int(show_perf),
 			"fps": maxi(0, Settings.FPS.find(settings.fps)), "style": style_index, "vhs": int(vhs),
+			"grade": maxi(0, Grades.SETTING.find(tod.grade)),
 			"angle": maxi(0, FollowCamera.PITCHES.find(-camera_pitch)),
 			"weather": weather.state, "time": tod.mode, "wander": int(spacer != null and spacer.on), "zones": int(zone_cap_on), "handling": settings.handling, "chatter": settings.chatter,
 			"collide": maxi(0, Car.CollideRules.PRESETS.find(car.collide)) if car != null else settings.collide,
@@ -5148,6 +5172,9 @@ func _on_setting(key: String, value: Variant) -> void:
 		"vhs":
 			_set_vhs(int(value) == 1)
 			settings.vhs = vhs
+		"grade":
+			settings.grade = clampi(int(value), 0, Grades.SETTING.size() - 1)
+			tod.set_grade(Grades.SETTING[settings.grade])
 		"weather":
 			weather.set_state(int(value))
 		"time":
@@ -6018,6 +6045,8 @@ func _make_stats() -> BenchStats:
 		b.systems["crash scenes"] = [crash_scenes, "spent_usec", true]
 	if old_tram != null:
 		b.systems["old tram"] = [old_tram, "spent_usec", true]  # the vintage-tram loop
+	if campus_cart != null:
+		b.systems["campus cart"] = [campus_cart, "spent_usec", true]  # the University guards' cart
 	if storefronts != null:
 		b.systems["storefronts"] = [storefronts, "spent_usec", true]  # loop MW-2
 	if packs != null:

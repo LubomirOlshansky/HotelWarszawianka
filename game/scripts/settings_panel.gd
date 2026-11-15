@@ -80,6 +80,8 @@ const TRAFFIC := [["Pustawo", "Almost empty"], ["Mało", "Low"], ["Normalnie", "
 const QUALITY := [["Auto", "auto"], ["Niska", "Low"], ["Średnia", "Medium"], ["Wysoka", "High"], ["Ultra", "Ultra"],
 		["Eksperyment", "Experimental"]]
 const ON_OFF := [["Wył.", "Off"], ["Wł.", "On"]]
+## grades.gd SETTING, in its order.
+const GRADE := [["Natura", "Natural"], ["Neon", "Neon"], ["Klasyk", "Classic"]]
 ## F (2026-11-07): the camera's angle over the ground, follow_camera.gd PITCHES (30° the default).
 const ANGLE := [["30°", "30°"], ["40°", "40°"], ["50°", "50°"]]
 ## Loop 2b: frames per second (settings.gd FPS: 60, 30) and the benchmark button.
@@ -303,21 +305,30 @@ func _build() -> void:
 	# 2026-11-01 (F): the Style picker is gone (always the sharp image); the old VHS tape is now
 	# the "Retro" vaporwave filter (vhs.gdshader), the one switch left in the first row.
 	# F (2026-11-07): the camera's angle beside Retro (follow_camera.gd PITCHES, key "angle").
-	var picture := _rows(body, [2, 1, 2])
+	var picture := _rows(body, [3, 1, 2])
 	_heading(picture[0], "Retro · vaporwave", "Retro filter")
 	_segments(picture[0], "vhs", ON_OFF)
 	_heading(picture[1], "Kąt kamery", "Camera angle")
 	_segments(picture[1], "angle", ANGLE)
-	_heading(picture[2], "Jakość obrazu", "Quality")
+	# F (2026-11-15): the colour look (grades.gd SETTING, key "grade"), beside them.
+	_heading(picture[2], "Kolory", "Colours")
+	_segments(picture[2], "grade", GRADE)
+	# Three pickers in one row: narrower buttons (still over 44 pt) keep the card's width.
+	for key: String in ["vhs", "angle"]:
+		for b: Button in _groups[key]:
+			b.custom_minimum_size.x = touch * 1.05
+	for b: Button in _groups["grade"]:
+		b.custom_minimum_size.x = touch * 1.6
+	_heading(picture[3], "Jakość obrazu", "Quality")
 	var quality := QUALITY.duplicate(true)
 	quality[0] = ["Auto · %s" % _auto_name, "Auto · %s" % _auto_name]
-	_segments(picture[2], "quality", quality)
-	_heading(picture[3], "Klatki na sekundę", "Frame rate")
-	_segments(picture[3], "fps", FPS)
-	_heading(picture[4], "Licznik wydajności", "Performance overlay")
+	_segments(picture[3], "quality", quality)
+	_heading(picture[4], "Klatki na sekundę", "Frame rate")
+	_segments(picture[4], "fps", FPS)
+	_heading(picture[5], "Licznik wydajności", "Performance overlay")
 	var perf_row := HBoxContainer.new()
 	perf_row.add_theme_constant_override("separation", _px(6))
-	picture[4].add_child(perf_row)
+	picture[5].add_child(perf_row)
 	_segments(perf_row, "perf", ON_OFF)
 	# Loop 2b: a minute on the bench route, then a result card to copy (main.gd).
 	var bench := _word_button("TEST", "BENCH")
