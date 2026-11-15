@@ -10,7 +10,10 @@ shader_type spatial;
 // UV.x = metres along the strip, UV.y = metres across it from its middle line (the half width is
 // `half_w`). The pattern is cells of `cell` metres, each with one motif picked by a hash that moves
 // on every `season` seconds (the real show changes about every three minutes), and the cells
-// drift slowly along the alley. Branch-free (tools/check_shader_budget.gd): step, mix and maths.
+// drift slowly along the alley. Like the real one's motion sensors, it answers whoever walks on it:
+// light_garden.gd hands the car's ground point in `visitor` (x, z, and w 1 while the car is close,
+// 0 otherwise), and round it the motifs swap and swell, the light rises and a ring of light runs
+// out from the wheels about once a second. Branch-free (tools/check_shader_budget.gd): step, mix and maths.
 
 render_mode unshaded, blend_add, depth_draw_never, cull_disabled, fog_disabled, shadows_disabled;
 
@@ -23,6 +26,12 @@ uniform float drift = 0.25;
 uniform float strength = 0.85;
 // Metres the strip is pulled towards the camera (depth only), over the ground's layers.
 uniform float lift = 0.9;
+// The car on the projection: xz (in x, y), w 1 when it is near (light_garden.gd), else 0.
+uniform vec4 visitor = vec4(0.0);
+// How far round the car the motifs answer, metres.
+uniform float reach = 6.0;
+
+varying vec2 world_xz;
 
 const vec3 PURPLE = vec3(0.32, 0.12, 0.75);
 const vec3 WHITE = vec3(0.92, 0.92, 1.0);
@@ -35,6 +44,7 @@ float hash(vec2 p) {
 }
 
 void vertex() {
+	world_xz = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz;
 	vec4 view = MODELVIEW_MATRIX * vec4(VERTEX, 1.0);
 	view.z += lift;
 	POSITION = PROJECTION_MATRIX * view;
@@ -46,9 +56,14 @@ void fragment() {
 	vec2 id = floor(uv / cell);
 	vec2 f = fract(uv / cell) - 0.5;
 	float era = floor(TIME / season);
-	float h = hash(id + vec2(era * 7.0, era * 3.0));
+	// The sensors: how near this point is to the car (1 under it, 0 past `reach`), in two steps.
+	float d = length(world_xz - visitor.xy);
+	float near = visitor.w * (step(d, reach) * 0.5 + step(d, reach * 0.5) * 0.5);
+	// Under and round the car every cell turns to another motif (a new hash for the near cells).
+	float h = hash(id + vec2(era * 7.0, era * 3.0) + near * 5.0);
 	float h2 = hash(id.yx + vec2(13.0, era));
-	float r = length(f + (vec2(h, h2) - 0.5) * 0.25);
+	// Near the car the motifs swell by a third.
+	float r = length(f + (vec2(h, h2) - 0.5) * 0.25) / (1.0 + near * 0.33);
 	float ang = atan(f.y, f.x);
 	// The four motifs, each a mask 0..1.
 	float eye = step(r, 0.09);
@@ -69,5 +84,8 @@ void fragment() {
 	c = mix(c, GREEN, leaf * k3);
 	// The beam's edge: the strip fades out over its last 0.3 m either side, in two steps.
 	float edge = step(abs(UV.y), half_w - 0.3) * 0.6 + step(abs(UV.y), half_w) * 0.4;
+	// A ring of light running out from the car, about once a second, out to `reach`.
+	float wave = visitor.w * step(abs(d - fract(TIME * 0.9) * reach), 0.35) * step(d, reach);
+	c = c * (1.0 + near * 0.8) + WHITE * wave * 0.45;
 	ALBEDO = c * edge * strength * lights_on;
 }

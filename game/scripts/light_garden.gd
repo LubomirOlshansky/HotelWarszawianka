@@ -21,8 +21,10 @@ extends "res://scripts/place.gd"
 ## per sector with every other place); the projection is one mesh of its own (additive, night
 ## only). The flowers, bulbs and butterflies use the actors' material's night glow (LIT_SIGN), no
 ## lights. Nothing here is solid: drive-through like the map's benches.
-## Not built (yet): the projection reacting to people walking on it (the real one has motion
-## sensors), and the light figures' slow colour changes.
+## The projection answers the car like the real one's motion sensors answer walkers: `_process`
+## hands the shader the car's ground point while it is near (one uniform, nothing else a frame),
+## and round the wheels the motifs swap and swell, the light rises and rings run out.
+## Not built (yet): the light figures' slow colour changes.
 
 const Props := preload("res://scripts/props.gd")
 const Models := preload("res://scripts/models.gd")
@@ -90,6 +92,14 @@ const WING := [Color("#ff8a1e"), Color("#ffd23a"), Color("#ff4fa3"), Color("#3fb
 const FRAME_GOLD := Color("#f2d27a")
 
 var _st: SurfaceTool
+## The projection's material (its `visitor` uniform follows the car) and the car, from ctx.
+var _mat: ShaderMaterial
+var _vehicle: Callable
+## The last `visitor` w sent, so a far car costs no uniform write.
+var _sent := -1.0
+## The middle of the garden's projections and how near the car must be for them to answer.
+const NEAR_FROM := Vector2(-1286.0, 50.0)
+const NEAR_R := 70.0
 
 
 func build() -> void:
@@ -411,6 +421,8 @@ func _projection() -> void:
 	mat.shader = load("res://shaders/light_garden.gdshader")
 	mat.render_priority = 1
 	mi.material_override = mat
+	_mat = mat
+	_vehicle = ctx.get("vehicle", Callable())
 	part(mi)
 
 
@@ -428,3 +440,19 @@ func _strip_quad(st: SurfaceTool, p0: Vector2, p1: Vector2, d0: Vector2, d1: Vec
 		st.set_normal(Vector3.UP)
 		st.set_uv(v[k][1])
 		st.add_vertex(v[k][0])
+
+
+## The sensors: the car's ground point to the shader while it drives near the projections (not
+## from the helicopter), w 0 once when it leaves.
+func _process(_dt: float) -> void:
+	if _mat == null or not _vehicle.is_valid():
+		return
+	var v: Array = _vehicle.call()
+	var at: Vector3 = v[0]
+	var on := not bool(v[2]) and Vector2(at.x, at.z).distance_to(NEAR_FROM) < NEAR_R
+	if on:
+		_mat.set_shader_parameter("visitor", Vector4(at.x, at.z, 0.0, 1.0))
+		_sent = 1.0
+	elif _sent != 0.0:
+		_mat.set_shader_parameter("visitor", Vector4(0.0, 0.0, 0.0, 0.0))
+		_sent = 0.0
