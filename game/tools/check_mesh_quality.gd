@@ -150,7 +150,7 @@ const BUDGET := {
 	"syrenka_powisle": 260,
 	"dworzec_wodny": 310,
 	"kaskada": 260,
-	"dtc": 1950,
+	"dtc": 2250,
 	"europejski": 8000,
 	"flaga": 170,
 	"forest": 8100,  # 2026-11-15: the real green roof (lawns, wavy corten beds, railing, pavilions, tent), measured 6739 (was 4260)
