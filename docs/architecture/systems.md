@@ -45,7 +45,7 @@ fails if a script is in neither page, so add a row when you add a file.
 | `props.gd`, `park_props_life.gd`, `park_props_play.gd`, `park_props_water.gd` | Box-built props in the actors' material, one surface. |
 | `places.gd` | The owner of the place scripts (2026-11-13): `Places.TABLE` (one row per place: key, script, node, triangle budget, own draw items, optional `--solo` sites), built by main.gd's one `_build_places`, which merges every poured mesh into one MeshInstance3D per 512 m sector (`places_<cx>_<cz>`). No distance range (decisions.md). Checked by `check_place_scripts.gd`. |
 | `place.gd` | The base of a place script: `map`, `ctx` (data, dialogue, clock, focus, vehicle, logs), `pour(mesh, shadows)` for static dressing in the actors' material, `part(node)` for anything else (own material, a mover, a StaticBody3D). |
-| `park_details.gd`, `street_details.gd`, `first_scene.gd`, `skwer_zlota.gd`, `plac_pieciu_rogow.gd`, `ratusz_hub.gd`, `tamka.gd`, `centralny_ramp.gd`, `patelnia.gd` | Places (extend `place.gd`, a row in `Places.TABLE`): hand-placed dressing for named spots the map data lacks. |
+| `park_details.gd`, `street_details.gd`, `first_scene.gd`, `skwer_zlota.gd`, `light_garden.gd`, `plac_pieciu_rogow.gd`, `ratusz_hub.gd`, `tamka.gd`, `centralny_ramp.gd`, `patelnia.gd` | Places (extend `place.gd`, a row in `Places.TABLE`): hand-placed dressing for named spots the map data lacks. |
 | `storefronts.gd`, `neon_signs.gd`, `pixel_font.gd` | Shop fronts and parody signs, night neon, the 5x7 world font. |
 | `roof_dress.gd`, `osm_roofs.gd`, `old_town_roofs.gd`, `tenement_trim.gd`, `powisle_houses.gd`, `small_buildings.gd` | Building detail on top of LoD2 and OSM shapes. |
 | `monuments.gd` | Statues, plaques and benches from OSM. |

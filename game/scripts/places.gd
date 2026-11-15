@@ -45,6 +45,7 @@ const TABLE: Array[Dictionary] = [
 	{"key": "street_details", "script": "res://scripts/street_details.gd", "node": "StreetDetails", "tris": 96200, "own": 0},
 	{"key": "ratusz_hub", "script": "res://scripts/ratusz_hub.gd", "node": "RatuszHub", "tris": 14000, "own": 0},
 	{"key": "park_details", "script": "res://scripts/park_details.gd", "node": "ParkDetails", "tris": 142000, "own": 0},
+	{"key": "light_garden", "script": "res://scripts/light_garden.gd", "node": "LightGarden", "tris": 25000, "own": 1},
 	{"key": "tamka", "script": "res://scripts/tamka.gd", "node": "Tamka", "tris": 138300, "own": 1},
 ]
 
