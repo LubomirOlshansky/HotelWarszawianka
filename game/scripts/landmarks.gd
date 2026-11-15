@@ -684,6 +684,9 @@ const INFO := {
 	"jarmark": ["Jarmark na placu Defilad",
 			"Świąteczne budki, choinka i płotek. Jeszcze się rozstawia.",
 			"The Christmas market on Plac Defilad: huts, a big tree, a fence. Still going up."],
+	"obeliski": ["Obeliski przy Pałacu",
+			"Dwa granitowe obeliski z 1955 roku przy Marszałkowskiej, na północnym i południowym skraju placu.",
+			"Two granite obelisks of 1955 on Marszałkowska, at the north and south ends of Plac Defilad."],
 	"dtc": ["Domy Towarowe Centrum",
 			"Trzy szklane domy towarowe Ściany Wschodniej, 1962–1970. Nazwy po Warsie i Sawie z legendy.",
 			"The Eastern Wall's three glass department stores, 1962–1970, named after the legend's Wars and Sawa."],
@@ -1171,6 +1174,7 @@ func _find_sites() -> void:
 	_find_tr()
 	_find_nozyce()
 	_find_jarmark()
+	_find_obeliski()
 	# First scene item 3 (2026-10-31): the Eastern Wall's three glass department stores.
 	_find_dtc()
 	# The Mac photo check (2026-11-01, specs C and D): the tower and the slabs behind the stores.
@@ -1514,6 +1518,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_nozyce(s)
 			"jarmark":
 				_build_jarmark(s)
+			"obeliski":
+				_build_obeliski(s)
 			"dtc":
 				_build_dtc(s)
 			"trojca":

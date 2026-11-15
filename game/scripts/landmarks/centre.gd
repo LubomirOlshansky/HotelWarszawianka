@@ -3445,7 +3445,7 @@ func _build_pko_branch(site: Dictionary) -> void:
 ## west of the plot the Christmas market going up. All in the museum's frame (MSN, MSN_AXIS): u along
 ## its long side (towards the south-south-east), v out of the Plac Defilad face (towards the Palace).
 const TR_U := Vector2(-62.0, 16.0)   # the plot along u
-const TR_V := Vector2(46.0, 100.0)   # and across (towards the Palace)
+const TR_V := Vector2(46.0, 117.0)   # and across, almost to the Palace's wing (F's aerial, 2026-11-15)
 const TR_BLACK := Color("#1d1e20")   # the hoarding's black boards
 const TR_GATE := Color("#263a73")    # the gate's navy leaves
 const TR_GREEN := Color("#1f7a52")   # the site board
@@ -3504,6 +3504,7 @@ func _build_tr(_site: Dictionary) -> void:
 	_tr_hoarding(g)
 	_tr_shell(g)
 	_tr_yard(g)
+	_tr_far(g)
 	_tr_flags(g)
 	for c: Array in TR_CRANES:
 		_tr_crane(c)
@@ -3656,6 +3657,47 @@ func _tr_yard(g: float) -> void:
 	for p: Array in [[-26.0, 59.0], [-9.0, 55.0], [6.5, 55.5], [-2.0, 94.0], [-30.0, 90.0]]:
 		_ubox(p[0] - 0.55, p[0] + 0.55, p[1] - 0.55, p[1] + 0.55, y0, y0 + 1.1, Color("#dcd9d2"), M_STONE, Color("#cfcbc2"))
 	_ubox(-12.0, -10.8, 58.4, 59.6, y0, y0 + 0.14, Color("#8a6f46"), M_STONE)
+
+
+## The plot's far end towards the Palace (F's aerial, 2026-11-15: the site runs almost to the
+## Palace's wing): the foundation slab with its rebar mats, the dug earth beyond it, the site
+## offices (two storeys of containers with an outside stair), a yellow excavator, pallets.
+func _tr_far(g: float) -> void:
+	var y0 := g + 0.12
+	# The next slab: a low concrete raft with rebar mats laid on it and starter bars at its edge.
+	_ubox(-52.0, -12.0, 86.0, 97.0, y0, y0 + 0.6, TR_CONCRETE, M_STONE, TR_CONCRETE_L)
+	for k in 4:
+		var mu := -49.0 + k * 9.0
+		_ubox(mu, mu + 7.0, 87.5, 95.5, y0 + 0.6, y0 + 0.72, TR_REBAR, M_STONE)
+	_tr_rebar(-52.0, -12.0, 86.2, 96.8, y0 + 0.6, 1.2, 16)
+	# The dug earth: brown ground, a heap and a ramp down into it.
+	_ubox(-58.0, 8.0, 99.0, 113.0, y0, y0 + 0.06, Color("#8a6a48"), M_STONE, Color("#8a6a48"))
+	_frustum(_rect(-24.0, 106.0, 7.0, 4.0), y0 + 0.06, _rect(-24.5, 106.0, 2.5, 1.2), y0 + 3.2, Color("#7d5f40"), Color("#8f7050"))
+	# The site offices: two storeys of white containers by the west run, the stair and its landing.
+	for k in 2:
+		var cy := y0 + k * 2.7
+		_ubox(-59.5, -47.5, 110.0, 114.0, cy, cy + 2.6, Color("#e8e8e4"), M_STONE, Color("#b9bbbd"))
+		for w in 4:
+			var wu := -58.5 + w * 3.0
+			_ubox(wu, wu + 1.4, 109.94, 110.0, cy + 1.0, cy + 2.0, Color("#3c4a5a"), M_STONE)
+	_ubox(-47.5, -45.5, 110.5, 113.5, y0 + 2.6, y0 + 2.75, TR_STEEL, M_STONE)
+	_tr_bar(-45.5, 108.0, y0, -45.5, 112.0, y0 + 2.7, 0.9, TR_STEEL)
+	_tr_bar(-45.0, 110.5, y0 + 2.75, -45.0, 113.5, y0 + 2.75, 0.06, TR_STEEL)
+	# The excavator on the earth: tracks, the yellow body and cab, the boom, the stick, the bucket.
+	var eu := -8.0
+	var ev := 104.0
+	for sz: float in [-1.2, 1.2]:
+		_ubox(eu - 2.0, eu + 2.0, ev + sz - 0.35, ev + sz + 0.35, y0 + 0.06, y0 + 0.9, Color("#2b2b2c"), M_STONE)
+	_ubox(eu - 1.6, eu + 1.4, ev - 1.3, ev + 1.3, y0 + 0.9, y0 + 2.1, TR_YELLOW, M_STONE, TR_YELLOW.darkened(0.1))
+	_ubox(eu + 0.1, eu + 1.4, ev - 1.3, ev - 0.1, y0 + 2.1, y0 + 3.4, TR_YELLOW, M_STONE, TR_YELLOW.darkened(0.1))
+	_ubox(eu + 1.38, eu + 1.42, ev - 1.2, ev - 0.2, y0 + 2.4, y0 + 3.3, Color("#3c4a5a"), M_STONE)
+	_tr_bar(eu + 1.2, ev + 0.4, y0 + 2.0, eu + 4.6, ev + 0.4, y0 + 4.6, 0.45, TR_YELLOW)
+	_tr_bar(eu + 4.6, ev + 0.4, y0 + 4.6, eu + 6.2, ev + 0.4, y0 + 1.2, 0.32, TR_YELLOW)
+	_ubox(eu + 5.7, eu + 6.9, ev - 0.2, ev + 1.0, y0 + 0.4, y0 + 1.3, TR_STEEL, M_STONE)
+	# Pallets of blocks and a timber stack by the slab.
+	for p: Array in [[-5.0, 88.0], [-2.6, 88.0], [-5.0, 90.4]]:
+		_ubox(p[0] - 1.0, p[0] + 1.0, p[1] - 1.0, p[1] + 1.0, y0, y0 + 1.2, Color("#b7b1a6"), M_STONE, Color("#c9c3b8"))
+	_ubox(2.0, 12.0, 86.0, 88.6, y0, y0 + 1.2, TR_TIMBER, M_STONE, TR_TIMBER.darkened(0.12))
 
 
 ## Four white flagpoles with the contractors' banners (parodies, no words): pink, black over
@@ -3831,13 +3873,15 @@ func _nz_blade(tip: Vector2, pivot: Vector2, ring: Vector2, vz: float, ang: floa
 
 # --- The Christmas market on Plac Defilad (F's photos, 2026-11-15) -------------------------------
 
-## The market being set up on the square west of the plot: two staggered rows of white huts with
-## brown trim, red-brown or white roofs and fir garlands; a long row of dark half-timbered huts
-## along the far edge; wooden planters with bare shrubs along the near edge; the big stylised tree
-## with snow on its tiers, red and gold baubles and a gold star, inside a picket fence; the
-## Jarmark board. No stalls' wares and nobody there yet.
-const JAR_U := Vector2(-62.0, -2.0)
-const JAR_V := Vector2(103.0, 155.0)
+## The market being set up south of the museum, between Marszałkowska and Plac Centralny's field
+## (F's red marks on the aerial, 2026-11-15: not between the site and the Palace): a row of white
+## huts with brown trim, red-brown or white roofs and fir garlands along the walk past the museum's
+## south end and three more turned to the plaza, another white row across the axis; two rows of dark
+## half-timbered huts back to back on the plaza by Marszałkowska; wooden planters with bare shrubs;
+## further south on the lawn the big stylised tree with snow on its tiers, red and gold baubles and
+## a gold star, inside a picket fence, the white hoarding with the Jarmark word. It is still going
+## up (F: "for now it is only being built"): some huts are bare frames or roofless, ladders lean on
+## two, wall panels wait on a pallet, a white van stands between the dark rows.
 const JAR_WHITE := Color("#f0eee8")
 const JAR_BROWN := Color("#7a3f22")
 const JAR_ROOF := Color("#6e2f22")
@@ -3845,101 +3889,153 @@ const JAR_DARK := Color("#2a2c30")
 const JAR_CREAM := Color("#e6dcc0")
 const JAR_FIR := Color("#24582f")
 const JAR_FENCE := Color("#b0692d")
-const JAR_TREE_AT := Vector2(-14.0, 127.0)
+const JAR_TREE_AT := Vector2(135.0, 5.0)
+## The huts: [u, v, kind (0 white, 1 dark), quarter turns of the front from -v, state (0 done,
+## 1 roofless, 2 bare frame)]. The museum's frame.
+const JAR_HUTS := [
+	[41.0, 29.0, 0, 0, 0], [45.3, 29.0, 0, 0, 0], [49.6, 29.0, 0, 0, 0], [53.9, 29.0, 0, 0, 0],
+	[58.2, 29.0, 0, 0, 0], [62.5, 29.0, 0, 0, 1],
+	[56.5, 10.0, 0, 1, 0], [56.5, 13.7, 0, 1, 0], [56.5, 17.4, 0, 1, 1],
+	[95.0, 29.0, 0, 0, 0], [99.3, 29.0, 0, 0, 0], [103.6, 29.0, 0, 0, 0], [107.9, 29.0, 0, 0, 1],
+	[112.2, 29.0, 0, 0, 2],
+	[69.0, -11.0, 1, 0, 0], [72.7, -11.0, 1, 0, 0], [76.4, -11.0, 1, 0, 0], [80.1, -11.0, 1, 0, 0],
+	[83.8, -11.0, 1, 0, 0], [87.5, -11.0, 1, 0, 0],
+	[72.7, 5.0, 1, 2, 2], [76.4, 5.0, 1, 2, 0], [80.1, 5.0, 1, 2, 0], [83.8, 5.0, 1, 2, 0], [87.5, 5.0, 1, 2, 1]]
+## The site's zones: one rectangle per row [u, v, half u, half v], the tree's fence.
+const JAR_ZONES := [[51.75, 29.0, 12.6, 1.6], [56.5, 13.7, 1.6, 5.8], [103.6, 29.0, 10.6, 1.6],
+		[78.25, -11.0, 11.0, 1.6], [80.1, 5.0, 9.4, 1.6], [80.0, -3.0, 2.9, 1.2], [135.0, 5.0, 7.0, 7.0]]
 
 
 func _find_jarmark() -> void:
 	_tr_frame()
-	_add_site("jarmark", [_rect((JAR_U.x + JAR_U.y) * 0.5, (JAR_V.x + JAR_V.y) * 0.5,
-			(JAR_U.y - JAR_U.x) * 0.5 + 0.5, (JAR_V.y - JAR_V.x) * 0.5 + 0.5)])
+	var zones: Array = []
+	for z: Array in JAR_ZONES:
+		zones.append(_rect(z[0], z[1], z[2], z[3]))
+	_add_site("jarmark", zones)
 
 
 func _build_jarmark(_site: Dictionary) -> void:
 	_tr_frame()
-	var ring := _rect((JAR_U.x + JAR_U.y) * 0.5, (JAR_V.x + JAR_V.y) * 0.5, (JAR_U.y - JAR_U.x) * 0.5, (JAR_V.y - JAR_V.x) * 0.5)
-	_g = _ground_under(ring)
+	_g = _jar_ground(80.0, 5.0)
 	var g := _g
 	_mode = M_STONE
-	# Row A: seven white huts at v 114; row B: five at v 124, shifted half a hut.
-	for i in 7:
-		_jar_hut(-57.0 + i * 4.3, 114.0, 0, i)
-	for i in 5:
-		_jar_hut(-52.0 + i * 4.3, 124.0, 0, i + 3)
-	# The dark half-timbered row along the far edge (and a short return on the east end).
-	for i in 11:
-		_jar_hut(-57.0 + i * 3.7, 140.0, 1, i)
-	for i in 3:
-		_jar_hut(-3.0, 131.0 + i * 3.7, 1, i + 1, true)
-	# The wooden planters along the near edge and by the tree.
-	for i in 7:
-		_jar_planter(-58.0 + i * 5.0, 107.5, i)
+	var i := 0
+	for h: Array in JAR_HUTS:
+		_jar_hut(h[0], h[1], h[2], i, h[3], h[4])
+		i += 1
+	# The wooden planters: a line in front of the dark rows, three before the white row on the axis.
+	for k in 6:
+		_jar_planter(72.0 + k * 4.0, 18.0, k)
 	for k in 3:
-		_jar_planter(-6.0, 108.0 + k * 3.0, k + 2)
+		_jar_planter(97.2 + k * 4.3, 24.6, k + 1)
+	# A straight run of picket fence behind the white row past the museum.
+	for k in 12:
+		_jar_picket(40.0 + k * 2.0, 36.5, g)
+	var gf := _jar_ground(51.0, 36.5)
+	_tr_bar(40.0, 36.5, gf + 0.35, 62.0, 36.5, gf + 0.35, 0.07, JAR_FENCE.darkened(0.2))
+	_tr_bar(40.0, 36.5, gf + 0.8, 62.0, 36.5, gf + 0.8, 0.07, JAR_FENCE.darkened(0.2))
+	# Still going up: two ladders, the wall panels on a pallet, the white van between the dark rows.
+	_jar_ladder(46.8, 27.4)
+	_jar_ladder(97.0, 27.4)
+	var gp := _jar_ground(116.5, 29.0)
+	_ubox(115.5, 117.5, 28.0, 30.0, gp, gp + 0.15, Color("#9a7a52"), M_STONE)
+	_ubox(115.6, 117.4, 28.2, 29.8, gp + 0.15, gp + 0.75, JAR_WHITE, M_STONE, JAR_WHITE.darkened(0.05))
+	var gv := _jar_ground(80.0, -3.0)
+	_ubox(77.4, 81.6, -4.0, -2.0, gv + 0.35, gv + 2.6, Color("#eef0f0"), M_STONE, Color("#e2e4e4"))
+	_ubox(81.6, 82.9, -4.0, -2.0, gv + 0.35, gv + 1.9, Color("#eef0f0"), M_STONE, Color("#e2e4e4"))
+	_ubox(82.0, 82.92, -3.9, -2.1, gv + 1.2, gv + 1.85, Color("#2e3a46"), M_STONE)
+	for wu: float in [78.4, 81.8]:
+		for wv: float in [-4.02, -2.12]:
+			_ubox(wu - 0.35, wu + 0.35, wv, wv + 0.14, gv, gv + 0.7, Color("#222324"), M_STONE)
+	# The tree in its fence on the lawn to the south, the white hoarding with the Jarmark word.
 	_jar_tree(JAR_TREE_AT, g)
 	_jar_fence(JAR_TREE_AT, 6.6, g)
-	# A straight run of picket fence along the edge towards the museum.
-	for i in 8:
-		var fu := -62.0 + i * 1.9
-		_jar_picket(fu, 104.5, g)
-	var gf := _jar_ground(-54.0, 104.5)
-	_tr_bar(-62.0, 104.5, gf + 0.35, -47.0, 104.5, gf + 0.35, 0.07, JAR_FENCE.darkened(0.2))
-	_tr_bar(-62.0, 104.5, gf + 0.8, -47.0, 104.5, gf + 0.8, 0.07, JAR_FENCE.darkened(0.2))
-	var gb := _jar_ground(-6.5, 117.0)
-	# The Jarmark board: a white panel with its red word, on two posts, facing the south end (+u).
-	_ubox(-6.6, -6.4, 112.0, 113.0, gb, gb + 3.4, JAR_BROWN, M_STONE)
-	_ubox(-6.6, -6.4, 121.0, 122.0, gb, gb + 3.4, JAR_BROWN, M_STONE)
-	_ubox(-6.45, -6.25, 112.0, 122.0, gb + 1.4, gb + 3.4, Color("#f4f2ec"), M_STONE, Color("#f4f2ec"))
-	_usign("JARMARK", -6.2, 117.0, gb + 1.9, _a, 7.0, 0.9, Color(0.82, 0.12, 0.14))
+	var gb := _jar_ground(133.0, -3.5)
+	_ubox(126.0, 140.0, -3.6, -3.4, gb, gb + 2.2, Color("#f4f2ec"), M_STONE, Color("#e4e2dc"))
+	for pu: float in [126.0, 131.0, 135.0, 140.0]:
+		_ubox(pu - 0.06, pu + 0.06, -3.75, -3.35, gb, gb + 2.3, Color("#9a9c9e"), M_STONE)
+	_usign("JARMARK", 131.0, -3.7, gb + 0.8, -_b, 7.0, 0.9, Color(0.82, 0.12, 0.14))
 	_tr_frame()
 
 
 ## One hut at local (u, v): kind 0 white with brown trim, kind 1 dark half-timbered. `n` varies the
-## roof (every third white hut has a white roof) and which huts wear a garland. `turned`: front
-## faces +u, not -v. Ridge along u, 3.1 m long, 2.2 m to the eave.
-func _jar_hut(u: float, v: float, kind: int, n: int, turned := false) -> void:
+## roof (every third white hut has a white roof) and which huts wear a garland. `quarter`: quarter
+## turns of the front from -v (1 faces +u, 2 faces +v). `state`: 0 finished, 1 walls without the
+## roof (rafters only), 2 a bare frame on its floor. Ridge along the front, 3.1 m long, 2.2 m to the eave.
+func _jar_hut(u: float, v: float, kind: int, n: int, quarter := 0, state := 0) -> void:
 	_tr_frame()
 	var pos := _w(u, v)
 	var g: float = map.terrain_height(pos.x, pos.y)
 	var keep_g := _g
 	_g = g
-	var a0 := _a
 	_o = pos
-	if turned:
-		_a = Vector2(-a0.y, a0.x)
-		_b = Vector2(-_a.y, _a.x)
+	for q in quarter:
+		_a = Vector2(-_a.y, _a.x)
+	_b = Vector2(-_a.y, _a.x)
 	var hu := 1.55
 	var hv := 1.1
 	var wall := JAR_WHITE if kind == 0 else JAR_DARK
-	_lbox(0.0, 0.0, hu, hv, g, g + 2.2, wall, M_STONE, wall.darkened(0.1))
-	var roof := JAR_ROOF
-	if kind == 1:
-		roof = Color("#2b2d31")
-	elif n % 3 == 0:
-		roof = Color("#e8e6e0")
-	_gable(-hu - 0.2, hu + 0.2, 0.0, hv + 0.2, g + 2.2, 0.95, wall, roof, true)
-	if kind == 0:
-		# Brown trim: corner and middle battens on both long faces.
-		for fv: float in [-hv, hv]:
-			var ov := fv - 0.04 if fv < 0.0 else fv
-			for bu: float in [-hu, -0.06, hu - 0.12]:
-				_ubox(bu, bu + 0.12, ov, ov + 0.04, g, g + 2.2, JAR_BROWN, M_STONE)
+	if state == 2:
+		# The floor, four corner posts, the eave beams and the gable rafters.
+		_lbox(0.0, 0.0, hu, hv, g, g + 0.18, Color("#9a7a52"), M_STONE)
+		for sx: float in [-hu + 0.06, hu - 0.06]:
+			for sz: float in [-hv + 0.06, hv - 0.06]:
+				_ubox(sx - 0.06, sx + 0.06, sz - 0.06, sz + 0.06, g + 0.18, g + 2.2, JAR_BROWN, M_STONE)
+			_tr_bar(sx, -hv, g + 2.2, sx, 0.0, g + 3.15, 0.1, JAR_BROWN)
+			_tr_bar(sx, hv, g + 2.2, sx, 0.0, g + 3.15, 0.1, JAR_BROWN)
+		for sz: float in [-hv + 0.06, hv - 0.06]:
+			_ubox(-hu, hu, sz - 0.06, sz + 0.06, g + 2.08, g + 2.2, JAR_BROWN, M_STONE)
+		_tr_bar(-hu, 0.0, g + 3.15, hu, 0.0, g + 3.15, 0.1, JAR_BROWN)
 	else:
-		# Cream lower panels with black X braces on the front, a dark counter shelf.
-		_ubox(-hu, hu, -hv - 0.04, -hv, g, g + 1.15, JAR_CREAM, M_STONE)
-		for k in 3:
-			var bu0 := -hu + 0.1 + k * (2.0 * hu - 0.2) / 3.0
-			var bu1 := bu0 + (2.0 * hu - 0.2) / 3.0 - 0.1
-			_tr_bar(bu0, -hv - 0.06, g + 0.05, bu1, -hv - 0.06, g + 1.1, 0.07, JAR_DARK)
-			_tr_bar(bu1, -hv - 0.06, g + 0.05, bu0, -hv - 0.06, g + 1.1, 0.07, JAR_DARK)
-		_ubox(-hu, hu, -hv - 0.3, -hv, g + 1.15, g + 1.25, JAR_DARK, M_STONE)
-	# The fir garland along the front eave and up the gable, on most huts.
-	if n % 4 != 3:
-		_tr_bar(-hu - 0.2, -hv - 0.2, g + 2.2, hu + 0.2, -hv - 0.2, g + 2.2, 0.16, JAR_FIR)
-		_tr_bar(-hu - 0.2, -hv - 0.2, g + 2.2, -hu - 0.2, 0.0, g + 3.15, 0.14, JAR_FIR)
-		_tr_bar(hu + 0.2, -hv - 0.2, g + 2.2, hu + 0.2, 0.0, g + 3.15, 0.14, JAR_FIR)
+		_lbox(0.0, 0.0, hu, hv, g, g + 2.2, wall, M_STONE, wall.darkened(0.1))
+		if state == 1:
+			# Roofless: the ridge beam and three pairs of rafters over the open top.
+			_tr_bar(-hu, 0.0, g + 3.15, hu, 0.0, g + 3.15, 0.1, JAR_BROWN)
+			for ru: float in [-hu + 0.1, 0.0, hu - 0.1]:
+				_tr_bar(ru, -hv, g + 2.2, ru, 0.0, g + 3.15, 0.08, JAR_BROWN)
+				_tr_bar(ru, hv, g + 2.2, ru, 0.0, g + 3.15, 0.08, JAR_BROWN)
+		else:
+			var roof := JAR_ROOF
+			if kind == 1:
+				roof = Color("#2b2d31")
+			elif n % 3 == 0:
+				roof = Color("#e8e6e0")
+			_gable(-hu - 0.2, hu + 0.2, 0.0, hv + 0.2, g + 2.2, 0.95, wall, roof, true)
+		if kind == 0:
+			# Brown trim: corner and middle battens on both long faces.
+			for fv: float in [-hv, hv]:
+				var ov := fv - 0.04 if fv < 0.0 else fv
+				for bu: float in [-hu, -0.06, hu - 0.12]:
+					_ubox(bu, bu + 0.12, ov, ov + 0.04, g, g + 2.2, JAR_BROWN, M_STONE)
+		else:
+			# Cream lower panels with black X braces on the front, a dark counter shelf.
+			_ubox(-hu, hu, -hv - 0.04, -hv, g, g + 1.15, JAR_CREAM, M_STONE)
+			for k in 3:
+				var bu0 := -hu + 0.1 + k * (2.0 * hu - 0.2) / 3.0
+				var bu1 := bu0 + (2.0 * hu - 0.2) / 3.0 - 0.1
+				_tr_bar(bu0, -hv - 0.06, g + 0.05, bu1, -hv - 0.06, g + 1.1, 0.07, JAR_DARK)
+				_tr_bar(bu1, -hv - 0.06, g + 0.05, bu0, -hv - 0.06, g + 1.1, 0.07, JAR_DARK)
+			_ubox(-hu, hu, -hv - 0.3, -hv, g + 1.15, g + 1.25, JAR_DARK, M_STONE)
+		# The fir garland along the front eave and up the gable, on the finished huts that have one.
+		if state == 0 and n % 4 != 3:
+			_tr_bar(-hu - 0.2, -hv - 0.2, g + 2.2, hu + 0.2, -hv - 0.2, g + 2.2, 0.16, JAR_FIR)
+			_tr_bar(-hu - 0.2, -hv - 0.2, g + 2.2, -hu - 0.2, 0.0, g + 3.15, 0.14, JAR_FIR)
+			_tr_bar(hu + 0.2, -hv - 0.2, g + 2.2, hu + 0.2, 0.0, g + 3.15, 0.14, JAR_FIR)
 	_collide(_rect(0.0, 0.0, hu + 0.2, hv + 0.2))
 	_g = keep_g
 	_tr_frame()
+
+
+## An aluminium step ladder opened against a hut's front at local (u, v).
+func _jar_ladder(u: float, v: float) -> void:
+	var g := _jar_ground(u, v)
+	var alu := Color("#c9ccd0")
+	for su: float in [-0.25, 0.25]:
+		_tr_bar(u + su, v - 0.55, g, u + su, v, g + 2.0, 0.06, alu)
+		_tr_bar(u + su, v + 0.45, g, u + su, v, g + 2.0, 0.06, alu)
+	for k in 4:
+		var t := 0.2 + 0.2 * k
+		_tr_bar(u - 0.25, v - 0.55 * (1.0 - t), g + 2.0 * t, u + 0.25, v - 0.55 * (1.0 - t), g + 2.0 * t, 0.04, alu)
 
 
 ## A wooden planter box with dark corner posts, a bare shrub and a ruddy bush in it.
@@ -4005,6 +4101,59 @@ func _jar_ground(u: float, v: float) -> float:
 	var p := _w(u, v)
 	var h: float = map.terrain_height(p.x, p.y)
 	return h
+
+
+# --- The two obelisks on Plac Defilad (F's photos and links, 2026-11-15) -----------------------
+
+## The 1955 granite obelisks on Marszałkowska at the square's north end (by Świętokrzyska) and its
+## south end (towards Jerozolimskie, the hotel tower behind it): a stepped base, a pedestal with a
+## carved garland swag on each face under a cornice, and a tall tapering square shaft with a
+## pyramidion. Spots and the 24 m height are read from photos, not mapped: the museum's frame.
+const OBELISKS := [Vector2(-195.0, 2.0), Vector2(333.0, 4.0)]
+const OBELISK_STONE := Color("#a9a59c")
+const OBELISK_TOP := 24.0
+
+
+func _find_obeliski() -> void:
+	_tr_frame()
+	var zones: Array = []
+	for c: Vector2 in OBELISKS:
+		zones.append(_rect(c.x, c.y, 3.3, 3.3))
+	_add_site("obeliski", zones)
+
+
+func _build_obeliski(_site: Dictionary) -> void:
+	for c: Vector2 in OBELISKS:
+		_tr_frame()
+		_g = _ground_under(_rect(c.x, c.y, 3.2, 3.2))
+		var g := _g
+		_o = _w(c.x, c.y)
+		var st := OBELISK_STONE
+		_mode = M_STONE
+		# Three steps, the pedestal and its cornice.
+		_lbox(0.0, 0.0, 3.2, 3.2, g - 0.3, g + 0.3, st.darkened(0.06), M_STONE, st)
+		_lbox(0.0, 0.0, 2.6, 2.6, g + 0.3, g + 0.6, st.darkened(0.03), M_STONE, st.lightened(0.03))
+		_lbox(0.0, 0.0, 2.0, 2.0, g + 0.6, g + 0.9, st, M_STONE, st.lightened(0.04))
+		_lbox(0.0, 0.0, 1.45, 1.45, g + 0.9, g + 4.2, st.darkened(0.04), M_STONE)
+		_lbox(0.0, 0.0, 1.65, 1.65, g + 4.2, g + 4.55, st.lightened(0.05), M_STONE, st.lightened(0.05))
+		# The garland swag on each face: a hanging V of two carved bands under two rosettes.
+		for k in 4:
+			var f := Vector2.from_angle(PI * 0.5 * k)
+			var s := Vector2(-f.y, f.x)
+			var off := 1.5
+			var l := _o + _a * (f.x * off) + _b * (f.y * off)
+			var y := g + 3.7
+			var p0 := Vector3(l.x + (_a * s.x + _b * s.y).x * 1.0, y, l.y + (_a * s.x + _b * s.y).y * 1.0)
+			var p1 := Vector3(l.x, y - 0.75, l.y)
+			var p2 := Vector3(l.x - (_a * s.x + _b * s.y).x * 1.0, y, l.y - (_a * s.x + _b * s.y).y * 1.0)
+			_beam(p0, p1, 0.22, st.darkened(0.12))
+			_beam(p1, p2, 0.22, st.darkened(0.12))
+		# The shaft, tapering, a band at its foot, and the pyramidion.
+		_lbox(0.0, 0.0, 1.25, 1.25, g + 4.55, g + 5.0, st, M_STONE)
+		_frustum(_rect(0.0, 0.0, 1.15, 1.15), g + 5.0, _rect(0.0, 0.0, 0.72, 0.72), g + OBELISK_TOP, st.lightened(0.02))
+		_pyramid(_rect(0.0, 0.0, 0.72, 0.72), g + OBELISK_TOP, g + OBELISK_TOP + 1.6, st.lightened(0.06))
+		_collide(_rect(0.0, 0.0, 3.2, 3.2))
+	_tr_frame()
 
 
 # --- The Cepelia pavilion and Zodiak (F's photos, 2026-11-08) ---------------------------------
@@ -4367,21 +4516,47 @@ func _build_trybuna(site: Dictionary) -> void:
 	_collide(_rect(1.5, -2.45, 6.9, 2.05))
 
 
+## The square's historic candelabras (F's photo of the Palace's forecourt, 2026-11-15): a square
+## granite pedestal with its cornice and a dark bronze plaque, a round granite column with a base
+## and a flared capital, and on it a black iron head of four curved arms round a centre stem, five
+## frosted white globes lit at night. About 7.3 m tall.
 func _build_plac_centralny_lamps(_site: Dictionary) -> void:
 	_mode = M_STONE
+	var granite := Color("#b3afa6")
+	var granite_l := Color("#c4c0b7")
+	var iron := Color("#25272a")
+	var globe := Color("#f2efe6")
 	for l: Array in PCZ_LAMPS:
 		var p := _pcz_world(l[0], l[1])
 		_g = map.terrain_height(p.x, p.y)
 		var g := _g
-		var iron := Color("#3d4146")
-		_prism(_circle(p, 0.3, 6), g - 0.3, g + 0.9, Color("#8f8d88"), Color("#8f8d88"), M_STONE, M_STONE)
-		_prism(_circle(p, 0.1, 6), g + 0.9, g + 4.4, iron, iron, M_STONE, M_STONE)
-		_prism(_circle(p, 0.22, 6), g + 4.4, g + 4.8, iron, iron, M_STONE, M_STONE)
-		_prism(_circle(p, 0.2, 6), g + 4.8, g + 5.3, Color("#f4eedc"), Color("#f4eedc"), M_LAMP, M_LAMP)
 		_o = p
+		_a = PCZ_N
+		_b = PCZ_E
+		_lbox(0.0, 0.0, 0.62, 0.62, g - 0.3, g + 1.2, granite, M_STONE, granite_l)
+		_lbox(0.0, 0.0, 0.72, 0.72, g + 1.2, g + 1.36, granite_l, M_STONE, granite_l)
+		for fv: float in [-1.0, 1.0]:
+			_lbox(0.0, fv * 0.64, 0.26, 0.02, g + 0.35, g + 0.95, Color("#2f2b25"), M_STONE)
+		_frustum(_circle(p, 0.38, 8), g + 1.36, _circle(p, 0.29, 8), g + 1.75, granite)
+		_prism(_circle(p, 0.26, 8), g + 1.75, g + 4.6, granite, granite, M_STONE, M_STONE)
+		_frustum(_circle(p, 0.27, 8), g + 4.6, _circle(p, 0.42, 8), g + 4.95, granite_l)
+		_lbox(0.0, 0.0, 0.44, 0.44, g + 4.95, g + 5.1, granite_l, M_STONE, granite_l)
+		_prism(_circle(p, 0.08, 5), g + 5.1, g + 6.55, iron, iron, M_STONE, M_STONE)
+		var heads: Array[Vector3] = [Vector3(p.x, g + 6.55, p.y)]
+		for k in 4:
+			var d := _a.rotated(TAU * (k + 0.5) / 4.0) * 0.62
+			var tip := Vector3(p.x + d.x, g + 6.05, p.y + d.y)
+			_beam(Vector3(p.x, g + 5.45, p.y), tip, 0.07, iron)
+			heads.append(tip)
+		_mode = M_LAMP
+		for h: Vector3 in heads:
+			var c := Vector2(h.x, h.z)
+			_frustum(_circle(c, 0.09, 6), h.y, _circle(c, 0.2, 6), h.y + 0.3, globe)
+			_frustum(_circle(c, 0.2, 6), h.y + 0.3, _circle(c, 0.07, 6), h.y + 0.68, globe, globe)
+		_mode = M_STONE
 		_a = Vector2(1.0, 0.0)
 		_b = Vector2(0.0, 1.0)
-		_collide(_rect(0.0, 0.0, 0.3, 0.3))
+		_collide(_rect(0.0, 0.0, 0.62, 0.62))
 
 
 # docs/landmarks/photo-reports/poczta.md and pasta.md; specs docs/landmarks/specs/poczta.md, pasta.md)

@@ -1245,5 +1245,5 @@ func _find_plac_centralny() -> void:
 	_add_site("trybuna", [_rect(-2.0, 2.8, 12.6, 7.4)])
 	var zones: Array = []
 	for l: Array in PCZ_LAMPS:
-		zones.append(_circle(_pcz_world(l[0], l[1]), 0.4, 6))
+		zones.append(_circle(_pcz_world(l[0], l[1]), 0.8, 6))
 	_add_site("plac_centralny_lamps", zones)
