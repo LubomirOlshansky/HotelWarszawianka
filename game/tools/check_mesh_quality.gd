@@ -174,6 +174,7 @@ const BUDGET := {
 	# Open courtyards (F, 2026-11-03): mf and muzeum gained their walled, windowed courts.
 	"mf": 2350,
 	"poczta": 710,
+	"politechnika": 950,  # 2026-11-15 front from F's photos: the columned middle on Plac Politechniki, attic and figures, stairs, lamp pillars
 	"pasta": 580,
 	"msn": 500,
 	# Norblin on its real block (2026-11-02, photo report): two blocks, Plater and Galwan, about
