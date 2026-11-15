@@ -30,6 +30,7 @@ const Neon := preload("res://scripts/neon_signs.gd")
 const BUDGET := {
 	"scena_relax": 600,
 	"smolna38": 2700,
+	"jerozolimskie57": 10000,  # 2026-11-15: the Jerozolimskie row from F's photos: four fronts, canopies, showcases, the building site (measured 9179)
 	"tides": 8000,
 	"ujazdowskie47": 3000,
 	"krasinski_ogrod": 900,

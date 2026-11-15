@@ -3669,6 +3669,363 @@ func _build_foksal15(g: float, none: Color) -> void:
 	_fk_gable(bm, bl * 0.5 - 0.4, 0.0, btop + 0.45, 2.0, FK_CREAM)
 
 
+# --- Al. Jerozolimskie, the south side between Emilii Plater and Poznańska (F's six photos, 2026-11-15; spec docs/landmarks/specs/jerozolimskie57.md) ---
+
+## The row across from the Palace of Culture where Nowa Jerozolima was (no. 57): from the
+## Poznańska end, the freshly restored red tenement under its steep orange tile roof, the plain
+## white house with the big white wrap over its roof, the white house with the arched gate and the
+## ornate one with the zinc mansard at the Emilii Plater corner (Centrum LIM stands beyond). The five
+## OpenStreetMap outlines (116, 117, 849, 847, 848 of centrum.json) are cut into the four houses by
+## the party walls read off the photos and built whole. Frame: u runs from the east end west along
+## the front line, v out to the street (north-north-west). Arcade canopies, the building site's
+## barriers and scaffold stand in front of the row.
+const JR_E := Vector2(-1115.5, 581.2)      # the front line's east end
+const JR_A := Vector2(-0.9447, 0.3296)     # along it, to the west
+const JR_LEN := 148.7
+const JR_CUT: Array[float] = [0.0, 26.2, 70.0, 104.3, 148.7]    # red | plain | arched | ornate
+const JR_AT: Array[Vector2] = [Vector2(-1240.0, 642.0), Vector2(-1219.0, 635.0), Vector2(-1197.0, 615.0),
+		Vector2(-1166.0, 604.0), Vector2(-1133.0, 596.0)]       # a point in each outline
+const JR_DEPTH := 13.0                     # the front range's depth; behind it the plan stays lower
+const JR_RED := Color("#a0463d")           # the restored tenement's red (photo 2, calmed)
+const JR_RED_L := Color("#b9604f")
+const JR_PLASTER := Color("#ddd8de")       # its upper floors: a pale lilac grey
+const JR_WHITE := Color("#e7e6ec")         # the three white houses
+const JR_BASE := Color("#c9c9cf")          # their rusticated ground floors
+const JR_ZINC := Color("#5b5f64")
+const JR_TILE := Color("#c4602f")          # the orange roof tile
+const JR_GREEN := Color("#2d5846")         # the arcade canopies' painted steel
+const JR_SCREEN := Color("#eef0f4")        # the white wrap
+const JR_BOARD := Color("#b8975e")         # the hoarding boards
+const JR_FRAME := Color("#5a4a34")         # the arched house's brown window frames
+
+
+func _find_jerozolimskie57() -> void:
+	var parts: Array[PackedVector2Array] = []
+	var zone: Array = []
+	for at: Vector2 in JR_AT:
+		var q := _tallest_at(at)
+		if q.size() < 3 or not Geometry2D.is_point_in_polygon(at, q):
+			return
+		parts.append(q)
+		zone.append(q)
+	kit_front(JR_E, JR_E + JR_A * JR_LEN)
+	zone.append(_urect(-9.0, JR_LEN, 0.1, 5.0))   # the pavement strip with the canopies and the barriers
+	_add_site("jerozolimskie57", zone)
+	if not sites.is_empty() and sites[-1]["key"] == "jerozolimskie57":
+		sites[-1]["parts"] = parts
+
+
+## One house's plan: the outlines cut to its strip of the front, with a rim along the front line so the
+## outline's small jogs leave no gap (v < 0 is inside).
+func _jr_mass(parts: Array, u0: float, u1: float) -> PackedVector2Array:
+	var cur := _urect(u0, u1, -2.5, 0.0)
+	var box := _urect(u0, u1, -80.0, 0.0)
+	for q: PackedVector2Array in parts:
+		for piece: PackedVector2Array in Geometry2D.intersect_polygons(q, box):
+			if piece.size() < 3 or Geometry2D.is_polygon_clockwise(piece):
+				continue
+			cur = _largest(Geometry2D.merge_polygons(cur, piece))
+	return cur
+
+
+func _jr_axes(u0: float, u1: float, n: int) -> Array[float]:
+	var out: Array[float] = []
+	for i in n:
+		out.append(u0 + (float(i) + 0.5) * (u1 - u0) / float(n))
+	return out
+
+
+## Plain panes on every wall that is neither the front nor a party wall: the sides and the yards.
+func _jr_sides(mass: PackedVector2Array, g: float, rows: Array, trim: Color) -> void:
+	var n := mass.size()
+	for k in n:
+		var p := mass[k]
+		var q := mass[(k + 1) % n]
+		kit_front(JR_E, JR_E + JR_A * JR_LEN)
+		var lp := _local(p)
+		var lq := _local(q)
+		if absf(lp.y) < 0.3 and absf(lq.y) < 0.3:
+			continue
+		var party := false
+		for cut: float in [JR_CUT[1], JR_CUT[2], JR_CUT[3]]:
+			if absf(lp.x - cut) < 0.3 and absf(lq.x - cut) < 0.3:
+				party = true
+		if party:
+			continue
+		var le := kit_front(p, q) if Geometry2D.is_polygon_clockwise(mass) else kit_front(q, p)
+		if le < 3.0:
+			continue
+		var m := maxi(1, floori(le / 4.6))
+		var cs: Array = []
+		for i in m:
+			cs.append((float(i) + 0.5) * le / float(m))
+		kit_panes(cs, rows, 1.3, 1.9, trim, 0.03)
+		kit_panes(cs, rows, 1.05, 1.7, PAL_GLASS_DARK, 0.06)
+	kit_front(JR_E, JR_E + JR_A * JR_LEN)
+
+
+func _build_jerozolimskie57(site: Dictionary) -> void:
+	var parts: Array = site["parts"]
+	_mode = M_STONE
+	_jr_red(parts)
+	_jr_plain(parts)
+	_jr_arched(parts)
+	_jr_ornate(parts)
+	_jr_street()
+
+
+## The mass of a house: the whole plan to a lower flat roof, the front range up to its eaves in
+## `layers` (pairs of [top above ground, colour] from the foot up). Returns the front range.
+func _jr_body(mass: PackedVector2Array, g: float, u0: float, u1: float, eave: float, layers: Array,
+		rear: Color) -> PackedVector2Array:
+	var none := Color(0, 0, 0, 0)
+	_prism(mass, g - 1.0, g + eave - 2.4, rear, PAL_ROOF_GRAVEL.darkened(0.1), M_STONE, M_STONE)
+	var rng := _largest(Geometry2D.intersect_polygons(mass, _urect(u0, u1, -JR_DEPTH, 0.0)))
+	var y0 := g - 1.0
+	for layer: Array in layers:
+		_prism(rng, y0, g + float(layer[0]), layer[1], none, M_STONE)
+		y0 = g + float(layer[0])
+	_collide(mass)
+	pocket_rings.append(mass)
+	return rng
+
+
+# --- no. 57, the red tenement (photos 1, 2, 3) -----------------------------------------------------
+
+func _jr_red(parts: Array) -> void:
+	var u0: float = JR_CUT[0]
+	var u1: float = JR_CUT[1]
+	kit_front(JR_E, JR_E + JR_A * JR_LEN)
+	var mass := _jr_mass(parts, u0, u1)
+	var g := _ground_under(mass)
+	_g = g
+	var eave := 23.0
+	var bay0 := 17.6      # the forward bay on the west side: red to the first balcony, plaster, red crown
+	var none := Color(0, 0, 0, 0)
+	_jr_body(mass, g, u0, bay0, eave, [[8.0, JR_RED], [18.0, JR_PLASTER], [eave, JR_RED]], JR_PLASTER)
+	var bay := _urect(bay0, u1, -JR_DEPTH, 0.9)
+	_prism(bay, g - 1.0, g + 8.0, JR_RED, none, M_STONE)
+	_prism(bay, g + 8.0, g + 17.4, JR_PLASTER, none, M_STONE)
+	_prism(bay, g + 17.4, g + eave + 0.9, JR_RED, JR_RED.darkened(0.1), M_STONE, M_STONE)
+	_jr_sides(mass, g, [g + 3.0, g + 9.0], JR_PLASTER.lightened(0.05))
+	# the roof: a hip over the range, a stepped gable at the east end, three zinc dormers
+	_hip((u0 + bay0) * 0.5, -JR_DEPTH * 0.5, (bay0 - u0) * 0.5, JR_DEPTH * 0.5, g + eave, 9.5, JR_TILE)
+	kit_front(_w(2.9, 0.0), _w(2.9, 1.0))
+	_gable(0.05, -4.5, 0.0, 2.4, g + eave, 4.4, JR_PLASTER, JR_TILE, true)
+	kit_front(JR_E, JR_E + JR_A * JR_LEN)
+	for u: float in [8.6, 11.8, 15.0]:
+		_kbox(u - 0.95, u + 0.95, -4.8, -2.0, g + eave + 2.3, g + eave + 5.0, JR_ZINC)
+		kit_face(-2.0)
+		kit_panes([u], [g + eave + 3.0], 1.1, 1.5, PAL_GLASS_DARK, 0.05)
+		kit_face(0.0)
+	# the lower floors: banded red, windows in lighter red frames, the gabled entrance
+	var ground := _jr_axes(0.4, bay0 - 0.3, 6)
+	for u: float in ground:
+		if absf(u - 13.4) > 1.6:   # the entrance stands here
+			kit_window(u, g + 1.0, 2.4, Win.SILL, JR_RED_L, PAL_GLASS_DARK, 0.62)
+		kit_window(u, g + 4.5, 2.4, Win.SILL, JR_RED_L, PAL_GLASS_DARK, 0.62)
+	kit_ledge(0.0, bay0, g + 7.4, 0.25, JR_RED_L, 0.1)
+	for y: float in [8.9, 12.2, 15.5]:
+		for u: float in ground:
+			kit_window(u, g + y, 2.3, Win.SILL_HEAD, JR_RED, PAL_GLASS_DARK, 0.6)
+	# the balconies: a red balustrade across the left part under the white floors and under the top
+	# floor, two white iron ones between
+	kit_balcony((u0 + bay0) * 0.5, g + 8.9, (bay0 - u0) * 0.5 - 0.3, Balcony.STONE, JR_RED, JR_RED, 1.1)
+	kit_balcony((u0 + bay0) * 0.5, g + 18.6, (bay0 - u0) * 0.5 - 0.3, Balcony.STONE, JR_RED, JR_RED, 1.1)
+	for y: float in [12.2, 15.5]:
+		kit_balcony(5.8, g + y, 1.5, Balcony.IRON, PAL_ALUMINIUM, JR_RED, 0.9)
+	# the top floor: red piers between tall windows
+	for u: float in ground:
+		kit_window(u, g + 18.6, 2.4, Win.PLAIN, JR_RED, PAL_GLASS_DARK, 0.65)
+	for k in 7:
+		kit_pilaster(0.2 + float(k) * (bay0 - 0.4) / 6.0, g + 17.5, g + eave, JR_RED, 0.5, 0.35)
+	kit_cornice(0.0, bay0, g + eave, JR_RED, 0.45, 0.7)
+	# the entrance: a carved red gable over an arched door
+	kit_face(0.0)
+	kit_door(13.4, g, 3.4, 1.2, JR_RED_L, PAL_DARK_DOOR, true)
+	kit_pediment(13.4, 1.9, g + 3.95, 1.6, JR_RED_L, JR_TILE, 0.5)
+	# the bay: three windows a floor, the big arch under it
+	kit_face(0.9)
+	var wb := _jr_axes(bay0 + 0.3, u1 - 0.3, 3)
+	for u: float in wb:
+		kit_window(u, g + 4.5, 2.4, Win.SILL, JR_RED_L, PAL_GLASS_DARK, 0.6)
+		for y: float in [8.9, 12.2, 15.5]:
+			kit_window(u, g + y, 2.3, Win.SILL_HEAD, JR_RED, PAL_GLASS_DARK, 0.6)
+		kit_window(u, g + 18.6, 2.4, Win.PLAIN, JR_RED, PAL_GLASS_DARK, 0.6)
+	kit_door((bay0 + u1) * 0.5, g, 3.2, 1.3, JR_RED_L, PAL_DARK_DOOR, true)
+	kit_cornice(bay0, u1, g + eave + 0.9, JR_RED, 0.5, 0.6)
+	kit_face(0.0)
+
+
+# --- no. 59, the plain white house under its wrap (photos 1, 3, 5) --------------------------------
+
+func _jr_plain(parts: Array) -> void:
+	var u0: float = JR_CUT[1]
+	var u1: float = JR_CUT[2]
+	kit_front(JR_E, JR_E + JR_A * JR_LEN)
+	var mass := _jr_mass(parts, u0, u1)
+	var g := _ground_under(mass)
+	_g = g
+	var eave := 18.2
+	_jr_body(mass, g, u0, u1, eave, [[5.2, JR_BASE], [eave, JR_WHITE]], JR_WHITE)
+	_jr_sides(mass, g, [g + 3.0, g + 9.0], JR_WHITE.darkened(0.04))
+	kit_ledge(u0, u1, g + 5.3, 0.35, JR_WHITE.lightened(0.05), 0.12)
+	var gate := 42.4
+	var axes: Array[float] = []
+	for k in range(-5, 10):
+		axes.append(gate + float(k) * 2.75)
+	for u: float in axes:
+		for y: float in [5.9, 9.2, 12.5]:
+			if absf(u - gate) < 0.1 and y < 6.0:
+				continue
+			kit_window(u, g + y, 2.2, Win.SILL, JR_WHITE.lightened(0.05), PAL_GLASS_DARK, 0.55)
+		kit_window(u, g + 15.7, 1.4, Win.PLAIN, JR_WHITE, PAL_GLASS_DARK, 0.5)
+	# the arched gate with its iron balcony and the tall door over it
+	kit_door(gate, g, 3.7, 1.3, JR_WHITE.lightened(0.05), PAL_DARK_DOOR, true)
+	kit_window(gate, g + 5.9, 2.8, Win.SILL_HEAD, JR_WHITE.lightened(0.05), PAL_GLASS_DARK, 0.7)
+	kit_balcony(gate, g + 5.9, 1.7, Balcony.IRON, PAL_IRON, JR_WHITE, 0.9)
+	# the shops: dark glass between pilasters, east of the gate and west of it
+	for u: float in [29.2, 33.6, 38.0, 47.8, 52.2, 56.6, 61.0, 65.4]:
+		kit_shop_bay(u, g + 0.5, g + 4.0, 1.7, JR_WHITE.lightened(0.05), PAL_GLASS_DARK)
+	kit_cornice(u0, u1, g + eave, JR_WHITE.lightened(0.04), 0.45, 0.8)
+	kit_attic(u0, u1, g + eave, JR_WHITE, 0.9, Attic.WALL)
+	# the wrap: a white screen behind the parapet, seams every 7 m
+	_ubox(u0 + 0.5, u1 - 0.5, -3.2, -2.7, g + eave, g + eave + 10.4, JR_SCREEN, M_STONE, JR_SCREEN)
+	for k in range(1, 6):
+		var us := u0 + 0.5 + float(k) * (u1 - u0 - 1.0) / 6.0
+		_ubox(us - 0.04, us + 0.04, -2.7, -2.64, g + eave, g + eave + 10.4, JR_SCREEN.darkened(0.08), M_STONE)
+
+
+# --- the arched house (photos 4, 5, 6) -------------------------------------------------------------
+
+func _jr_arched(parts: Array) -> void:
+	var u0: float = JR_CUT[2]
+	var u1: float = JR_CUT[3]
+	kit_front(JR_E, JR_E + JR_A * JR_LEN)
+	var mass := _jr_mass(parts, u0, u1)
+	var g := _ground_under(mass)
+	_g = g
+	var eave := 22.4
+	_jr_body(mass, g, u0, u1, eave, [[5.3, JR_BASE], [eave, JR_WHITE]], JR_WHITE)
+	_jr_sides(mass, g, [g + 3.0, g + 9.0], JR_WHITE.darkened(0.04))
+	kit_ledge(u0, u1, g + 5.4, 0.35, JR_WHITE.lightened(0.05), 0.12)
+	var axes := _jr_axes(u0, u1, 7)
+	var trim := JR_WHITE.lightened(0.05)
+	for u: float in axes:
+		kit_window(u, g + 5.9, 2.5, Win.SILL, trim, JR_FRAME, 0.85)
+		kit_window(u, g + 9.3, 2.7, Win.ARCHED, trim, JR_FRAME, 0.85)
+		kit_window(u, g + 12.9, 2.5, Win.SILL, trim, JR_FRAME, 0.85)
+		kit_window(u, g + 16.3, 2.5, Win.SILL, trim, JR_FRAME, 0.85)
+		kit_window(u, g + 19.7, 1.5, Win.PLAIN, trim, JR_FRAME, 0.7)
+	for i: int in [0, 3, 6]:
+		kit_balcony(axes[i], g + 5.9, 1.4, Balcony.STONE, trim, trim, 0.9)
+	# the arched gate on the middle axis, the lounge's door and shop window beside it
+	kit_door(axes[3], g, 3.7, 1.3, trim, PAL_DARK_DOOR, true)
+	for i: int in [0, 1, 2, 4, 6]:
+		kit_shop_bay(axes[i], g + 0.5, g + 4.0, 1.7, trim, PAL_GLASS_DARK)
+	kit_door(axes[5], g + 0.3, 3.0, 0.8, trim, PAL_OAK)
+	_usign("TUTAJ", axes[5], 0.14, g + 4.1, _b, 3.4, 0.55, Color("#e8892b"))
+	kit_cornice(u0, u1, g + eave, trim, 0.5, 0.9)
+	kit_attic(u0, u1, g + eave, JR_WHITE, 0.8, Attic.WALL)
+
+
+# --- the ornate house at the Emilii Plater corner (photos 4, 5, 6) -------------------------------
+
+func _jr_ornate(parts: Array) -> void:
+	var u0: float = JR_CUT[3]
+	var u1: float = JR_CUT[4]
+	kit_front(JR_E, JR_E + JR_A * JR_LEN)
+	var mass := _jr_mass(parts, u0, u1)
+	var g := _ground_under(mass)
+	_g = g
+	var eave := 22.6
+	_jr_body(mass, g, u0, u1, eave, [[5.4, JR_BASE], [eave, JR_WHITE]], JR_WHITE)
+	_jr_sides(mass, g, [g + 3.0, g + 9.0], JR_WHITE.darkened(0.04))
+	kit_ledge(u0, u1, g + 5.5, 0.4, JR_WHITE.lightened(0.06), 0.14)
+	var axes := _jr_axes(u0, u1, 12)
+	var trim := JR_WHITE.lightened(0.06)
+	for u: float in axes:
+		kit_window(u, g + 5.9, 2.5, Win.SILL, trim, PAL_GLASS_DARK, 0.62)
+		kit_window(u, g + 9.3, 2.6, Win.PEDIMENT, trim, PAL_GLASS_DARK, 0.62)
+		kit_window(u, g + 12.7, 2.7, Win.ARCHED, trim, PAL_GLASS_DARK, 0.62)
+		kit_window(u, g + 16.1, 2.5, Win.SILL, trim, PAL_GLASS_DARK, 0.62)
+		kit_window(u, g + 19.4, 2.2, Win.PLAIN, trim, PAL_GLASS_DARK, 0.62)
+	# long stone balconies on the first floor, a small iron one on the third
+	for i: int in [2, 9]:
+		kit_balcony(axes[i], g + 5.9, 5.4, Balcony.STONE, trim, trim, 1.0)
+	kit_balcony(axes[6], g + 12.7, 1.3, Balcony.IRON, PAL_IRON, trim, 0.8)
+	for u: float in [u0 + 0.6, u1 - 0.6]:
+		kit_pilaster(u, g + 5.5, g + eave, trim, 0.7, 0.14)
+	# the shops under the canopy, the coffee house's glass and sign
+	for i: int in range(1, 12, 2):
+		kit_shop_bay(axes[i], g + 0.5, g + 4.0, 2.4, trim, PAL_GLASS_DARK)
+	_usign("PARZYBUDA", (axes[3] + axes[8]) * 0.5, 0.14, g + 4.3, _b, 9.0, 0.7, Color("#d8b85a"))
+	kit_cornice(u0, u1, g + eave, trim, 0.55, 1.0)
+	# the zinc mansard over the range, big dormers, the raised box at the west end
+	_mode = M_STONE
+	_frustum(_urect(u0, u1, -JR_DEPTH, 0.0), g + eave + 0.5, _urect(u0 + 2.6, u1 - 2.6, -JR_DEPTH + 2.6, -2.6),
+			g + eave + 4.4, JR_ZINC, JR_ZINC.darkened(0.06))
+	_ubox(u0, u1, -JR_DEPTH, 0.0, g + eave, g + eave + 0.5, JR_ZINC, M_STONE)
+	for k in 6:
+		var u := u0 + 3.2 + float(k) * 6.2
+		_kbox(u - 1.2, u + 1.2, -3.6, -1.1, g + eave + 1.5, g + eave + 4.0, JR_ZINC)
+		kit_face(-1.1)
+		kit_panes([u], [g + eave + 1.9], 1.5, 1.6, PAL_GLASS_DARK, 0.05)
+		kit_face(0.0)
+	_ubox(u1 - 9.2, u1 - 0.4, -JR_DEPTH + 0.8, -0.4, g + eave + 0.5, g + eave + 6.8, JR_ZINC, M_STONE, JR_ZINC.darkened(0.06))
+	kit_face(-0.4)
+	kit_panes([u1 - 4.8, u1 - 7.4, u1 - 2.2], [g + eave + 2.2], 1.6, 2.4, PAL_GLASS_DARK, 0.05)
+	kit_face(0.0)
+
+
+# --- the pavement: canopies, showcases, barriers, scaffold -------------------------------------
+
+## A green steel arcade over the pavement from u0 to u1, 3 m deep, posts every 5 m, a deep front beam.
+func _jr_canopy(u0: float, u1: float, g: float) -> void:
+	_mode = M_STONE
+	_ubox(u0, u1, 0.0, 3.2, g + 4.5, g + 4.75, JR_GREEN.darkened(0.15), M_STONE, JR_GREEN)
+	_ubox(u0, u1, 3.0, 3.2, g + 4.0, g + 4.5, JR_GREEN, M_STONE)
+	var n := maxi(2, roundi((u1 - u0) / 5.0))
+	for i in n + 1:
+		var u := u0 + 0.1 + (u1 - u0 - 0.2) * float(i) / float(n)
+		_ubox(u - 0.09, u + 0.09, 3.0, 3.18, g, g + 4.0, JR_GREEN, M_STONE)
+		if i < n:
+			var um := u + (u1 - u0 - 0.2) / float(n) * 0.5
+			_ubox(um - 0.05, um + 0.05, 0.1, 3.0, g + 4.2, g + 4.4, JR_GREEN, M_STONE)
+
+
+## Lit ad showcases on the wall under a canopy: `cols` are the posters' colours (parodies, no text).
+func _jr_showcases(u0: float, cols: Array, g: float) -> void:
+	var w := 2.7
+	for i in cols.size():
+		var a := u0 + float(i) * (w + 0.25)
+		_ubox(a, a + w, 0.0, 0.35, g + 0.7, g + 3.3, PAL_DARK_STEEL, M_STONE)
+		_ubox(a + 0.15, a + w - 0.15, 0.35, 0.4, g + 0.85, g + 3.15, cols[i], M_LAMP)
+
+
+func _jr_street() -> void:
+	kit_front(JR_E, JR_E + JR_A * JR_LEN)
+	var g := _ground_under(_urect(0.0, JR_LEN, -6.0, 0.0))
+	_g = g
+	_jr_canopy(50.5, 83.5, g)
+	_jr_showcases(54.3, [Color("#2b8fa3"), Color("#d4542c"), Color("#7a5236"), Color("#3a5ca8")], g)
+	_jr_canopy(110.7, 140.7, g)
+	_jr_showcases(125.8, [Color("#e2662e"), Color("#c23a2f"), Color("#d8b92c")], g)
+	# the building site at the red house: striped barriers on the pavement, a low scaffold on the wall
+	_mode = M_STONE
+	for i in 15:
+		var a := -9.0 + float(i) * 2.4
+		_ubox(a, a + 2.4, 3.2, 3.36, g, g + 1.15, PAL_SIGNAL_RED if i % 2 == 0 else Color("#f0eeea"), M_STONE, PAL_PALE_CONCRETE)
+	for i in 12:
+		var u := 0.8 + float(i) * 2.3
+		_ubox(u - 0.05, u + 0.05, 1.15, 1.25, g, g + 4.2, PAL_DARK_STEEL, M_STONE)
+	for y: float in [2.0, 4.0]:
+		_ubox(0.6, 25.6, 1.15, 1.25, g + y, g + y + 0.1, PAL_DARK_STEEL, M_STONE)
+	_ubox(0.6, 25.6, 0.3, 1.25, g + 4.0, g + 4.1, JR_BOARD, M_STONE, JR_BOARD)
+	for u: float in [2.8, 8.4]:
+		_ubox(u, u + 3.4, 0.4, 0.46, g + 0.3, g + 3.2, JR_BOARD, M_STONE)
+
+
 # --- Warsaw modernism: Młotek, Kozia 9, Karowa 18a (F, 2026-11-03; docs/design/modernism-collection.md) ---
 
 ## A window on a wall's plane a→b: a white frame 4 cm proud, the glass 9 cm proud and 10 cm inside it
