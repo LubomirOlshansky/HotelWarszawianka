@@ -12,7 +12,7 @@ extends SceneTree
 ## TOTAL moves only with the map (a re-bake, a collider added or taken out on purpose): record the
 ## new number here with the reason (`--record` prints it).
 ## Prints `solids: OK (...)` (exit 0) or the problems (exit 1).
-##   godot --headless --path game --script res://tools/check_solids.gd [-- --verbose --record]
+##   godot --headless --path game --script res://tools/check_solids.gd [-- --verbose --record --barriers=typed]
 
 const MapBuilder := preload("res://scripts/map_builder.gd")
 const Solidity := preload("res://scripts/solidity.gd")
@@ -47,6 +47,13 @@ const SECTORS: Array[Vector2i] = [Vector2i(3, -1), Vector2i(2, -1), Vector2i(-2,
 ## 2026-11-15, Plac Defilad (#848): +260 faces (46502 → 46762), the TR site's wider plot, the
 ## market moved into sector (-2, 0) (a box per hut, the van, the tree) and the candelabras' pedestals.
 const TOTAL := 46762
+## W2 of the walls look (2026-11-15): the same sectors built with `--barriers=typed` (the palette's key
+## stays classic, so verify runs TOTAL): -147 faces, the typed fences' rails collide with one face
+## per segment as railing_along's do (a slab has two), the `removed` fragments are not drawn. The
+## soft lines are the same. Moves with TOTAL (a re-bake): `--record --barriers=typed` prints it.
+## 2026-11-15, Plac Defilad (#848): 46355 → 46573 with the same sites (measured with `--record
+## --barriers=typed` on a fresh bake after merging main 85090c58).
+const TOTAL_TYPED := 46573
 
 var problems: Array[String] = []
 var verbose := false
@@ -54,6 +61,8 @@ var record := false
 
 
 func _initialize() -> void:
+	# W2 of the walls look: --barriers=classic|typed builds the city in that look (the palette's by default).
+	Solidity.barrier_look_from(OS.get_cmdline_user_args())
 	for a in OS.get_cmdline_user_args():
 		if a == "--verbose":
 			verbose = true
@@ -94,8 +103,10 @@ func _initialize() -> void:
 			problems.append("S1 %s: faces per class differ: runtime %s, prebuilt %s" % [key, a, b])
 		if verbose:
 			print("  %s: %s" % [key, a])
-	if total != TOTAL:
-		problems.append("S1 the sectors' faces: %d, recorded %d (a re-bake or a collider change: record it in TOTAL)" % [total, TOTAL])
+	var want := TOTAL_TYPED if Solidity.barrier_look() == &"typed" else TOTAL
+	var name := "TOTAL_TYPED" if Solidity.barrier_look() == &"typed" else "TOTAL"
+	if total != want:
+		problems.append("S1 the sectors' faces: %d, recorded %d (a re-bake or a collider change: record it in %s)" % [total, want, name])
 	# S3: the map's own bodies.
 	_edges(runtime, "runtime")
 	if prebuilt != null:
@@ -115,7 +126,7 @@ func _initialize() -> void:
 		dressing += _check_bodies(node, "dressing %s" % node.name, false)
 		node.free()
 	if record:
-		print("solids: --record: TOTAL := %d" % total)
+		print("solids: --record: %s := %d" % ["TOTAL_TYPED" if Solidity.barrier_look() == &"typed" else "TOTAL", total])
 	var names := classes_seen.keys()
 	names.sort()
 	var per := PackedStringArray()

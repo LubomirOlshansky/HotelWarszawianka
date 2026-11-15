@@ -25,7 +25,9 @@ extends SceneTree
 ##   L. the least the game hands in;  M. what deliberate breaks of the script showed;  N. what 138 more
 ##   breaks showed: the kerb asked straight, the orders made straight, the first order's reach, the jars'
 ##   thresholds, the passenger's chat, the minimap's places and route, an order over the river, the
-##   autopilot's ends.
+##   autopilot's ends;  O. first hour, step 1: the guided first order goes back to its stand quietly
+##   (the ✕, NOT NOW, 45 s no closer to the door; a slow drive to the door keeps it), and no order
+##   is left pending forever (a cold kebab no closer for 60 s, a słoiki run no closer for 120 s).
 ## Prints "check_job_play: OK (N checks in F frames; notes)" or one "  problem: ..." line per failed fact under
 ## "check_job_play: PROBLEMS" (exit 1).
 ##   godot --headless --fixed-fps 60 --path game --script res://tools/check_job_play.gd
@@ -299,6 +301,7 @@ func _go() -> void:
 	_s_n_routes()
 	_s_n_river()
 	_s_n_book()
+	_s_o_ends()
 	await _s_k_auto()
 	await _s_n_auto()
 
@@ -2015,11 +2018,18 @@ func _s_j_names() -> void:
 	_f()
 	_ok(_stage() == 1 and q._order["door"] == pick["door"] and int(q.pinned) == -1, "J: the pinned stand's pull-in gives that door, pinned goes")
 	_turn_down()
+	# First hour, step 1: NOT NOW on the guided order sends it back quietly; the stand keeps it.
+	_ok(int(q.pinned) == fs, "J: NOT NOW on the guided order: the stand keeps the short one (pinned %d)" % int(q.pinned))
 	_at(FAR)
 	_f()
 	q.start_kebab(fs)
 	_sync()
-	_ok(float(q._order["road"]) >= 400.0 and int(q.pinned) == -1, "J: the next order there is an ordinary one (400 m or more)")
+	_ok(q._order["door"] == pick["door"] and int(q.pinned) == -1, "J: the next order there is the guided one again")
+	_deliver()
+	_close_result()
+	q.start_kebab(fs)
+	_sync()
+	_ok(float(q._order["road"]) >= 400.0 and int(q.pinned) == -1, "J: after it was delivered, the next order there is an ordinary one (400 m or more)")
 	_turn_down()
 	var other := 1 if fs != 1 else 0
 	q.pin_first(fs)
@@ -4414,3 +4424,125 @@ func _s_k_auto() -> void:
 
 func _find_auto_plain() -> void:
 	_find(0, _plain_day(), "a plain order")
+
+
+# --- O. first hour, step 1: the quiet drop and no order pending forever ------------------------------
+
+## The guided first order from the first stand, GO pressed, the car in the ring; the reasons heard.
+func _o_first(reasons: Array) -> Dictionary:
+	_rig()
+	var q: Node = r.q
+	q.first_dropped.connect(func(why: String) -> void: reasons.append(why))
+	var fs: int = q.first_stand()
+	q.pin_first(fs)
+	var ring: Vector3 = _stand(fs)["ring"]
+	_at(Vector2(ring.x, ring.z))
+	_f()
+	_ok(_stage() == 1 and bool(q._order.get("first", false)), "O: the pinned stand's order is marked first")
+	return {"stand": fs, "o": _ordr()}
+
+
+## The car parked `d` m east of the door for `seconds`, the frames after GO.
+func _o_park(d: float, seconds: float) -> void:
+	_by(r.q._order["ring"], d)
+	_f(roundi(seconds * 60.0))
+
+
+## Asserts the quiet end: no card, the status line down, one toast, the stand keeps the short order.
+func _o_quiet(fs: int, reasons: Array, why: String, toasts0: int) -> void:
+	var q: Node = r.q
+	_ok(_stage() == 0 and int(q.phase) == 0, "O(%s): the first order is over (stage %d)" % [why, _stage()])
+	_ok(r.hud.card == "", "O(%s): no card (%s)" % [why, r.hud.card])
+	_ok(r.hud.status == "", "O(%s): the status line is down (%s)" % [why, r.hud.status])
+	_ok(r.hud.toasts.size() == toasts0 + 1 and r.hud.toasts[-1] == Jobs.QUIET_WORDS[0] and r.hud.toasts_en[-1] == Jobs.QUIET_WORDS[1],
+			"O(%s): one toast, the quiet words (%s)" % [why, r.hud.toasts.slice(toasts0)])
+	_ok(int(q.pinned) == fs and bool(q.first_gone), "O(%s): the stand keeps the short order (pinned %d), first_gone" % [why, int(q.pinned)])
+	_ok(reasons == [why], "O(%s): first_dropped said %s" % [why, reasons])
+	_ok(not q._beacon.visible, "O(%s): the door's beacon is gone" % why)
+
+
+func _s_o_ends() -> void:
+	# 1. GO, then parked 300 m off: still on at 44 s, back to the stand quietly by 45.5 s.
+	var reasons: Array = []
+	var f := _o_first(reasons)
+	_press(0)
+	var t0: int = r.hud.toasts.size()
+	_o_park(300.0, 44.0)
+	_ok(_stage() == 2 and reasons.is_empty(), "O: the first order is still on after 44 s no closer (stage %d)" % _stage())
+	_ok(r.q.stuck_s() > 43.0, "O: stuck_s counts the wait (%.1f)" % r.q.stuck_s())
+	_o_park(300.0, 1.5)
+	_o_quiet(int(f["stand"]), reasons, "stuck", t0)
+	# The pull-in there gives the short order again.
+	var ring: Vector3 = _stand(int(f["stand"]))["ring"]
+	_at(FAR)
+	_f()
+	_at(Vector2(ring.x, ring.z))
+	_f()
+	_ok(_stage() == 1 and r.q._order["door"] == f["o"]["door"], "O: back at the stand, the same short order")
+	# 2. A slow drive to the door keeps it: 6 m nearer every 30 s for 3 minutes.
+	reasons = []
+	f = _o_first(reasons)
+	_press(0)
+	var door: Vector3 = r.q._order["ring"]
+	for k in 6:
+		_by(door, 300.0 - 6.0 * k)
+		_f(30 * 60)
+	_ok(_stage() == 2 and reasons.is_empty(), "O: a slow drive to the door keeps the first order for 3 min (stage %d, %s)" % [_stage(), reasons])
+	# 3. The ✕ on the way, and on the order card: quiet, no red card.
+	reasons = []
+	f = _o_first(reasons)
+	_press(0)
+	_o_park(300.0, 2.0)
+	t0 = r.hud.toasts.size()
+	r.hud.abort_pressed.emit()
+	_f()
+	_o_quiet(int(f["stand"]), reasons, "x", t0)
+	reasons = []
+	f = _o_first(reasons)
+	t0 = r.hud.toasts.size()
+	r.hud.abort_pressed.emit()
+	_f()
+	_o_quiet(int(f["stand"]), reasons, "x", t0)
+	# NOT NOW on the order card.
+	reasons = []
+	f = _o_first(reasons)
+	t0 = r.hud.toasts.size()
+	_press(1)
+	_f()
+	_o_quiet(int(f["stand"]), reasons, "not_now", t0)
+	# 4. An ordinary order left behind: on while hot, ends with its own red card once cold and no
+	# closer for 60 s (the wait counts from GO).
+	_rig()
+	var o := _order_up()
+	var fair := float(o["fair"])
+	_press(0)
+	var cold_at := fair * (1.0 - Jobs.COLD) / 0.6
+	var end_at := maxf(cold_at, Jobs.COLD_STUCK)
+	_o_park(300.0, end_at - 1.0)
+	_ok(_stage() == 2, "O: an ordinary order is still on %.0f s in (cold at %.0f s, stuck from 0)" % [end_at - 1.0, cold_at])
+	_o_park(300.0, 2.0)
+	_ok(_stage() == 3 and r.hud.card == "ZAMÓWIENIE PRZEPADŁO" and r.hud.accent == RED and not bool(r.q.first_gone),
+			"O: the cold kebab no closer for 60 s ends with its own card (stage %d, %s)" % [_stage(), r.hud.card])
+	_f(roundi(Jobs.RESULT_LIFE * 60.0) + 10)
+	_ok(_stage() == 0, "O: and its card goes by itself, nothing left pending (stage %d)" % _stage())
+	# A cold kebab still on its way keeps going.
+	_rig()
+	o = _order_up()
+	_press(0)
+	var door2: Vector3 = o["ring"]
+	var steps := ceili((cold_at + 120.0) / 30.0)
+	for k in steps:
+		_by(door2, 600.0 - 6.0 * k)
+		_f(30 * 60)
+	_ok(_stage() == 2 and float(r.q._heat) < Jobs.COLD, "O: a cold kebab still coming nearer is not dropped (stage %d, heat %.2f)" % [_stage(), float(r.q._heat)])
+	# 5. The słoiki run: no closer for 120 s ends it with its card; 119 s does not.
+	_rig()
+	r.q.start_sloik(0, _lone_station(0))
+	_sync()
+	_press(0)
+	_ok(_stage() == 2, "O: the słoiki run is under way")
+	_o_park(300.0, Jobs.SLOIK_STUCK - 1.0)
+	_ok(_stage() == 2, "O: the słoiki run still on at %.0f s no closer" % (Jobs.SLOIK_STUCK - 1.0))
+	_o_park(300.0, 2.0)
+	_ok(_stage() == 3 and r.hud.card == "KURS PRZERWANY", "O: the słoiki run no closer for 120 s ends with its card (%s)" % r.hud.card)
+	_notes.append("first order quiet by ✕, NOT NOW and 45 s; cold kebab ends at %.0f s, słoiki at %.0f s" % [end_at, Jobs.SLOIK_STUCK])

@@ -11,7 +11,10 @@ extends RefCounted
 ## named `Solid_<class>` with `set_meta("solid", cls)`); the dressing scripts' own bodies carry
 ## the same meta (game/tools/check_solids.gd).
 ## Step 2 (the wall builder) adds the palette's barrier types ("types": one row per wall, fence,
-## hedge, rail and guard rail look; `types`, `type_row`), drawn by city_barriers.gd.
+## hedge, rail and guard rail look; `types`, `type_row`), drawn by city_barriers.gd. W2 of the walls
+## look (docs/design/walls-true-to-life.md 6.1) adds the `looks` rows (one per barrier line type
+## `ty`; `looks`, `look_row`) and the key that picks between the two, `barrier_look` (classic, the
+## `types` rows, by default; `set_barrier_look` for `--barriers=`).
 ##
 ## The answers: H hard (the car stops and slides, today's wall), S smash (it breaks, the car goes
 ## through for a share of its speed), P push (it gives way), R ride (the car drives over it),
@@ -80,6 +83,16 @@ static var _table: Dictionary = _load()
 ## file's order, "row": {StringName: Dictionary}}, each row read-only. city_barriers.gd draws them;
 ## the palette is their one source (no copy of a look in code).
 static var _types: Dictionary = _load_types()
+## W2 of the walls look (docs/design/walls-true-to-life.md 6.1): the palette's `looks` rows, one
+## per barrier line type (`ty`), {"list": Array[StringName], "row": {StringName: Dictionary}},
+## each row read-only, and its `barrier_look` key. Read once when the script loads, on the main
+## thread (the streamer's worker builds sectors and only reads them).
+static var _looks: Dictionary = _load_looks()
+## The looks the game knows (W4 adds `panels`).
+const BARRIER_LOOKS: Array[StringName] = [&"classic", &"typed"]
+## `set_barrier_look`'s override (`--barriers=`, dev_flags.gd, bake_city.gd, the checks): &"" for
+## none, the palette's key then.
+static var _look_override := &""
 
 
 ## Every class, in the palette's order (the order map_builder.gd adds its bodies in).
@@ -115,6 +128,67 @@ static func types() -> Array[StringName]:
 ## "_types" says what each key means), or an empty Dictionary for an id not in the palette.
 static func type_row(id: StringName) -> Dictionary:
 	return (_types["row"] as Dictionary).get(id, {})
+
+
+## W2: the look the city's barriers are drawn in: `set_barrier_look`'s override, else the palette's
+## `barrier_look` (classic: the `types` rows, today's drawing; typed: the `looks` rows).
+static func barrier_look() -> StringName:
+	return _look_override if _look_override != &"" else StringName(_looks["key"])
+
+
+## W2: overrides the palette's look for this run (called before the city is built: dev_flags.gd
+## `--barriers=`, bake_city.gd, the checks). A look outside BARRIER_LOOKS is reported and the
+## override set to classic.
+static func set_barrier_look(look: StringName) -> void:
+	if not look in BARRIER_LOOKS:
+		push_error("solidity: unknown barrier look %s (one of %s): classic" % [look, BARRIER_LOOKS])
+		look = &"classic"
+	_look_override = look
+
+
+## W2: `--barriers=classic|typed` among `args` (a check's or a bake's user arguments) set as the
+## override; nothing when it isn't given.
+static func barrier_look_from(args: PackedStringArray) -> void:
+	for a in args:
+		if a.begins_with("--barriers="):
+			set_barrier_look(StringName(a.trim_prefix("--barriers=")))
+
+
+## W2: every `looks` row's id, in the palette's order.
+static func looks() -> Array[StringName]:
+	var out: Array[StringName] = []
+	out.assign(_looks["list"])
+	return out
+
+
+## W2: the `looks` row of barrier line type `ty` (read-only; the palette's "_looks" says what each
+## key means), or an empty Dictionary for a type with no row.
+static func look_row(ty: StringName) -> Dictionary:
+	return (_looks["row"] as Dictionary).get(ty, {})
+
+
+## W2: the palette's looks and its `barrier_look`, checked as `_load_types` checks the types: a row
+## without an id or a draw, or an id twice, is reported and left out; a key outside BARRIER_LOOKS
+## is reported and read as classic.
+static func _load_looks() -> Dictionary:
+	var list: Array[StringName] = []
+	var rows := {}
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(PALETTE)) if FileAccess.file_exists(PALETTE) else null
+	if not parsed is Dictionary:
+		return {"list": list, "row": rows, "key": "classic"}
+	var key := str((parsed as Dictionary).get("barrier_look", "classic"))
+	if not StringName(key) in BARRIER_LOOKS:
+		push_error("solidity: %s barrier_look %s is not one of %s: classic" % [PALETTE, key, BARRIER_LOOKS])
+		key = "classic"
+	for row: Variant in (parsed as Dictionary).get("looks", []):
+		var id := StringName(str((row as Dictionary).get("id", ""))) if row is Dictionary else &""
+		if id == &"" or rows.has(id) or str((row as Dictionary).get("draw", "")) == "":
+			push_error("solidity: a bad look row in %s: %s" % [PALETTE, row])
+			continue
+		(row as Dictionary).make_read_only()
+		list.append(id)
+		rows[id] = row
+	return {"list": list, "row": rows, "key": key}
 
 
 ## The palette's types, checked: a row without an id or a draw, or an id twice, is reported

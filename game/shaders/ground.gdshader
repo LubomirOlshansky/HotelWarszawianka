@@ -94,6 +94,30 @@ vec3 lamp_reflection(vec2 wp, vec2 away, float dashes, float speed) {
 	return col * (0.25 + 1.5 * dash);
 }
 
+// The lamps on the river (F, 2026-11-15: "the lighting of the bridge and the water"): each lamp
+// a long, narrow, broken column of light running towards the viewer (a point light on rippled
+// water), not a copy of its round pool, and under it a faint slow wash of the whole lit deck.
+// Six taps of the light map, further apart the further out, so the column breaks up by itself.
+vec3 lamp_columns(vec2 wp, vec2 away, float speed) {
+	vec3 core = vec3(0.0);
+	vec3 wash = vec3(0.0);
+	// The taps slide a little from place to place, so the column has no even rungs.
+	float jitter = (value_noise(wp * 0.45) - 0.5) * 3.0;
+	for (int k = 0; k < 6; k++) {
+		float fk = float(k);
+		vec3 l = lamp_light(wp + away * (5.0 + fk * (3.0 + fk) + jitter * (1.0 + fk)));
+		float b = clamp(dot(l, vec3(0.45, 0.45, 0.1)), 0.0, 1.5);
+		float fall = 1.0 - 0.13 * fk;
+		// Only the pool's bright middle (a few metres round the lamp) makes the column.
+		core = max(core, l * smoothstep(0.5, 0.9, b) * fall);
+		wash = max(wash, l * fall);
+	}
+	vec2 side = vec2(-away.y, away.x);
+	float dash = smoothstep(0.4, 0.7, value_noise(vec2(dot(wp, side) * 0.9, dot(wp, away) * 2.6 + TIME * speed)));
+	float slow = value_noise(vec2(dot(wp, side) * 0.15, dot(wp, away) * 0.5 + TIME * 0.3));
+	return core * (0.15 + 1.2 * dash) + wash * 0.06 * (0.4 + slow);
+}
+
 // 1 on the joint lines of a square grid of the given size (metres), else 0.
 float joints(vec2 p, float size, float width) {
 	vec2 d = abs(fract(p / size + 0.5) - 0.5) * size;
@@ -611,7 +635,7 @@ void fragment() {
 		// brightness, and tint grass, cycle lanes and flowerbeds instead of adding to them.
 		vec3 glow;
 		if (id == 3) {
-			glow = lamp_reflection(wp, away, 2.6, 1.6) * 0.7 * (under_deck ? 0.3 : 1.0);
+			glow = lamp_columns(wp, away, 1.6) * 0.7 * (under_deck ? 0.3 : 1.0);
 		} else {
 			vec4 pool = lamp_pool(wp, FRAGCOORD.xy);
 			glow = pool_glow(base * shade * mix(1.0, ao, 0.6), pool, any(bvec3(id == 1, id == 5, id == 11))) * (under_deck ? 0.05 : 1.0);

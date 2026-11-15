@@ -7,11 +7,12 @@ extends SceneTree
 ## and words are literals here; a call's place is read once from where its beacon stands
 ## (`target_position`) and judged by the rig's own data. Per fact, what the rescue line does:
 ##   A. what `setup` finds in the rig (the places of each kind, the peacock's roof, the hospitals);
-##   B. the countdown: the first call, its three holds (`paused`, Spacer's `calls_off`, the guide's
+##   B. the countdown: the first call, its three holds (`calls_held`: another activity's run or main.gd's own
+##      hold through the director; Spacer's `calls_off`, the guide's
 ##      `held`), the HUD's call gate, `ring_in`, `call_in`;
 ##   C. the ring: the WEZWANIE pill, the toast (with a pad too), waiting with no time limit;
 ##   D. the call card: its words, the distance and the compass, the hospital, the time; ACCEPT,
-##      SKIP (the next call at once), LATER (the countdown at 90 s); refused while `paused`;
+##      SKIP (the next call at once), LATER (the countdown at 90 s); refused while held;
 ##   E. under way by car: the pickup's beacon, the status line and every hint, holding still in
 ##      the ring, the person's line, the drop-off, the pay, the score and the card;
 ##   F. by helicopter: a roof only it reaches, the too-high and off-the-ring hints, the stop spot;
@@ -41,7 +42,7 @@ extends SceneTree
 ##      buzz; then each line said (how, where) and each payment, hashed into the OK line, so two scripts that
 ##      play the same print the same line (`-- --trace` prints the record itself, one line each);
 ##   P. the line on the kit (M1), with another activity on a real director: what the director answers the
-##      others while the line rings, offers and runs (`call_on_pill`, `rescue_busy`, `rescue_aimed`,
+##      others while the line rings, offers and runs (`call_on_pill`, `rescue_busy`,
 ##      `may_start`, `targeted` in the air, `busy_tag`), the line running only on main.gd's `tick`, and the
 ##      two questions main.gd and the guide ask it (`put_off`, `answer`). Played after the record is
 ##      hashed, and only on the kit (the line before M1 had none of it);
@@ -384,19 +385,19 @@ func _kit() -> void:
 	_ticks(1.5)
 	_expect(int(m.state) == Missions.State.RINGING and d.call_on_pill(other) and bool(other.call_waiting.call()),
 			"P ringing: the call waits on the context button for the other activities: %d" % int(m.state))
-	_expect(not d.busy() and d.may_start(other) and not d.rescue_busy(other) and not d.rescue_aimed(other),
+	_expect(not d.busy() and d.may_start(other) and not d.rescue_busy(other),
 			"P ringing: nothing is on, another activity may start")
 	m.put_off()
 	_expect(int(m.state) == Missions.State.CLOSED and hud.pill == "" and not d.call_on_pill(other),
 			"P put_off (the questline friend walked up): the ringing call goes: %d %s" % [int(m.state), hud.pill])
 	m.offer(1)
 	_expect(int(m.state) == Missions.State.OFFER and d.current() == m and d.busy_tag() == "rescue" and d.rescue_busy(other)
-			and not d.rescue_aimed(other), "P the call card: the line is on (\"%s\"), its card up, no target yet" % d.busy_tag())
-	_expect(d.may_start(other) and d.targeted() == null, "P the call card: the director lets another start (the line counts only with a target); no target")
+			and not m.has_target(), "P the call card: the line is on (\"%s\"), its card up, no target yet" % d.busy_tag())
+	_expect(not d.may_start(other) and d.targeted() == null, "P the call card: the director refuses another (TD-3: the card holds the others as the run does); no target")
 	m.put_off()
 	_expect(int(m.state) == Missions.State.OFFER, "P put_off keeps a call card: %d" % int(m.state))
 	hud.press(0)
-	_expect(int(m.state) == Missions.State.PICKUP and d.rescue_aimed(other) and d.rescue_busy(other) and not d.may_start(other),
+	_expect(int(m.state) == Missions.State.PICKUP and m.has_target() and d.rescue_busy(other) and not d.may_start(other),
 			"P under way: the line sends the player somewhere, the director refuses another: %d" % int(m.state))
 	_expect(d.targeted() == m and d.targeted(true) == m, "P under way: the arrow's target is the line's, in the air too (flown)")
 	m.put_off()
@@ -528,6 +529,12 @@ func _made(script: Script) -> Object:
 	return script.new()
 
 
+## The line held, or not, as main.gd's own holds (the phone bench, a boat ride) hold it through the
+## director (TD-3): its `calls_held`, which the director binds when the line joins it.
+func _hold(on: bool) -> void:
+	m.calls_held = func() -> bool: return on
+
+
 # --- A. what setup finds --------------------------------------------------------------------------
 
 func _setup_facts() -> void:
@@ -548,11 +555,11 @@ func _countdown() -> void:
 	_expect(int(m.state) == Missions.State.CLOSED and is_equal_approx(m.call_in(), 5.0), "B quiet_start(5) closes and counts 5 s: %d %.1f" % [int(m.state), m.call_in()])
 	_expect(m.can_request(), "B a request may be made while counting down")
 	_expect(hud.pill == "", "B nothing on the pill while counting down")
-	m.paused = true
+	_hold(true)
 	_ticks(10.0)
-	_expect(is_equal_approx(m.call_in(), 5.0) and hud.pill == "", "B paused: the countdown stands at 5 s: %.1f" % m.call_in())
-	_expect(not m.can_request(), "B paused: no request")
-	m.paused = false
+	_expect(is_equal_approx(m.call_in(), 5.0) and hud.pill == "", "B held: the countdown stands at 5 s: %.1f" % m.call_in())
+	_expect(not m.can_request(), "B held: no request")
+	_hold(false)
 	m.calls_off = true
 	_ticks(10.0)
 	_expect(is_equal_approx(m.call_in(), 5.0), "B Spacer's calls_off: the countdown stands: %.1f" % m.call_in())
@@ -616,10 +623,10 @@ func _offer_facts() -> void:
 	hud.press(2)
 	_expect(int(m.state) == Missions.State.CLOSED and hud.card == "" and is_equal_approx(m.call_in(), 90.0),
 			"D LATER: closed, the next call in 90 s: %d %.1f" % [int(m.state), m.call_in()])
-	m.paused = true
+	_hold(true)
 	m.offer(3)
-	_expect(int(m.state) == Missions.State.CLOSED and hud.card == "", "D no offer while paused")
-	m.paused = false
+	_expect(int(m.state) == Missions.State.CLOSED and hud.card == "", "D no offer while held")
+	_hold(false)
 	m.offer(1)
 	_expect(hud.body == first, "D the same call for the same number from the same place: %s" % hud.body)
 
@@ -831,10 +838,10 @@ func _calls() -> void:
 	m.request_call(true)
 	_expect(int(m.state) == Missions.State.OFFER and m.call_needs_heli(), "H the HELI list's rescue call: one only the helicopter reaches, on the card at once: %s" % hud.body)
 	hud.press(2)
-	m.paused = true
+	_hold(true)
 	m.request_call(true)
-	_expect(int(m.state) == Missions.State.CLOSED, "H no request while paused")
-	m.paused = false
+	_expect(int(m.state) == Missions.State.CLOSED, "H no request while held")
+	_hold(false)
 
 
 # --- I. the police escort -------------------------------------------------------------------------------
@@ -888,11 +895,11 @@ func _keys() -> void:
 	hud.abort_pressed.emit()
 	m.secondary()
 	_expect(int(m.state) == Missions.State.OFFER and m.number == 3, "J K on a failure's card: NEXT CALL")
-	m.paused = true
+	_hold(true)
 	_key_m()
 	m.secondary()
-	_expect(int(m.state) == Missions.State.OFFER and m.number == 3, "J the keys do nothing while paused")
-	m.paused = false
+	_expect(int(m.state) == Missions.State.OFFER and m.number == 3, "J the keys do nothing while held")
+	_hold(false)
 	hud.press(2)
 	_ticks(90.5)
 	_expect(int(m.state) == Missions.State.RINGING, "J 90 s after LATER the next call rings")

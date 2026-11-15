@@ -5,6 +5,13 @@ map, and shape the main line so the first 10 minutes come first and the whole of
 an hour. This page is the design; `game/scripts/main_line.gd` is the code (its `step` says what
 the main line wants now), `game/tools/check_main_line.gd` the check.
 
+**Since 2026-11-15 (first hour step 5, "The Six"):** chapter 2 is no longer a ladder. All six
+rivals are open from the start and beaten in any order, the final opens after all six with no
+respect needed (`ladder.gd` `ANY_ORDER`; [street-races.md section 10](street-races.md#10-the-six-first-hour-step-5-f-2026-11-15)).
+The main line's pointer is the easiest rival not beaten yet, any race against a rival not beaten
+yet is the main line's, and the "earn respect" step never comes. The rest of this page describes
+the ladder as it was (still there behind the switch); `FIRST_JOB_ONLY` keeps chapter 2 off screen.
+
 The demo already had the pieces (docs/DEMO.md 6.2 "The first 10 minutes", 6.3 "The first hour":
 the guide, the rival ladder, the final "Trzy mosty", the end card). What it lacked was one thread
 that says "this is the story, the rest is the city": every target looked the same (a dot in the

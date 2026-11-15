@@ -1087,7 +1087,8 @@ func _tick(dt: float) -> void:
 			_cordon_leave()
 	if phase == Phase.IDLE and auto and _free() and (force or night_on(_hour())):
 		call_in -= _due
-		if call_in <= 0.0 and not ring():
+		# Not again straight after its own call while another's waits (TD-3's variety): retry.
+		if call_in <= 0.0 and not (_ring_turn() and ring()):
 			call_in = RETRY
 
 

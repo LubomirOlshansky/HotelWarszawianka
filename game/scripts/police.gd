@@ -2,7 +2,8 @@ extends Node
 ## Loop 3g-1 (police, part one; docs/design/police.md): the gentle police. Warnings and jokes,
 ## never a fine: nothing here ever writes the złoty (an escape adds +15 respect through
 ## wallet.add_respect, the joke notebook counts cautions), nobody is arrested, nothing is rammed,
-## and every chase ends by itself (30 / 40 / 45 s, "Koniec zmiany!").
+## and every chase can be shaken off: the chasers tire after TIRE_AT s, a hidden BACKSTOP ends it
+## at 120 s ("Koniec zmiany!"), and nothing on screen counts down (first-hour step 2, 2026-11-15).
 ##
 ## - Patrol cars drive in the traffic (traffic.gd's POLICE kind, 0 / 1 / 2 / 3 by the Traffic
 ##   level); speed traps ("suszarka") stand at 3 of the spots in data/police_traps.json each
@@ -15,11 +16,13 @@ extends Node
 ## - The state machine of police.md section 4 lives here (CALM, LIZAK, CHASE at level 1-3,
 ##   SEARCH, PULLOVER; then a 180 s cooldown); each unit's beehave tree only moves its car
 ##   (police/police_unit.gd), ticked right after the perception pass.
-## - Escaping (120 m from every chaser, or 4 s out of sight, then 8 s of searching; 4 s in a
-##   hiding spot: under a bridge deck or in a tunnel) pays +15 respect; stopping by a chaser
+## - Escaping (100 m from every chaser, or 4 s out of sight, then 8 s of searching; 4 s in a
+##   hiding spot: under a bridge deck or in a tunnel, which blink on the minimap during a chase;
+##   or into Mirek's garage unseen: a new paint) pays +15 respect; stopping by a chaser
 ##   (1.5 s under 1 m/s within 15 m) or by the officer opens the pull-over (Dialogue Manager,
 ##   game/dialogue/police.dialogue; police/police_balloon.gd), which ends in a caution.
-## - The HUD (hud.gd): the koguty, the pill with the end-of-shift countdown, the edge breath, an
+## - The HUD (hud.gd): the koguty, the pill with the gap bar (UCIEKAJ: the gap opened against the
+##   100 m; SZUKAJĄ CIĘ: the search emptying), the edge breath, an
 ##   edge rooster for an off-screen chaser, the lizak, chasers and known traps on the minimap.
 ##   The light bars flash in actor.gdshader (SIREN); at night their halos and the koguty-3
 ##   searchlight are one glow MultiMesh.
@@ -79,9 +82,14 @@ const WARN_FROM := 60.0
 const COOLDOWN := 180.0
 ## Two strikes within STRIKE_FADE s start koguty 1; one fades every STRIKE_FADE s.
 const STRIKE_FADE := 45.0
-## A chase's cap from its start by its highest level; no level rises in its last NO_RISE s; a
-## ram raises the level at most once every RAM_GAP s.
-const CAPS := [30.0, 40.0, 45.0]
+## First-hour step 2 (F 2026-11-15, the onboarding spec's section 5): no countdown on screen. The
+## chasers tire after TIRE_AT s of the chase (their top speed drops from Unit.CHASE_SHARE to
+## Unit.TIRED_SHARE of the player's), so the gap always opens; a hidden BACKSTOP ends any chase
+## with the end-of-shift joke (it was 30 / 40 / 45 s by level, shown as "END OF SHIFT IN 0:27").
+## No level rises in the backstop's last NO_RISE s; a ram raises the level at most once every
+## RAM_GAP s. The numbers are first guesses for the phone (*guess*).
+const TIRE_AT := 30.0
+const BACKSTOP := 120.0
 const NO_RISE := 10.0
 const RAM_GAP := 10.0
 ## Escape: ESCAPE_DIST from every chaser, or UNSEEN s out of sight; then SEARCH s (SEARCH_HIDDEN
@@ -101,6 +109,16 @@ const PULL_DIST := 15.0
 const PULL_SPEED := 1.0
 const PULL_HOLD := 1.5
 const ESCAPE_RESPECT := 15
+## Hiding spots on the minimap during a chase (first-hour step 2): the road edges in a tunnel or
+## under a deck (the `_hidden` test at an edge's middle), found HIDE_SCAN edges a frame while a
+## chase runs and kept for the session; spots HIDE_APART m apart, the HIDE_SHOWN nearest within
+## HIDE_REACH m.
+const HIDE_SCAN := 120
+const HIDE_APART := 80.0
+const HIDE_SHOWN := 4
+const HIDE_REACH := 600.0
+## Mirek's garage while no chaser sees the player (garage.gd's ring): the chase is over.
+const GARAGE_RING := 6.0
 ## Offences (police.md section 3).
 const SPEED_OVER := 25.0 / 3.6
 const SPEED_REACH := 40.0
@@ -215,6 +233,8 @@ var zone_cap := false
 var guards: Guards
 ## World position -> HUD pixels.
 var project: Callable
+## First-hour step 2: Mirek's garage ring (garage.gd `at`, INF while it is not shown yet), -> Vector3.
+var garage_at: Callable
 ## The player is in the helicopter (main.gd, every frame).
 var flying := false
 ## Loop MW-6: Spacer (spacer.gd, vision.md 4.3): the speed traps give the warning only, nothing
@@ -266,6 +286,16 @@ var _raid_t := 0.0
 ## The chase came from a raid (RAID_ESCAPE counts), until it ends.
 var raid_chase := false
 var _search_t := 0.0
+## The search's length this frame (SEARCH, or SEARCH_HIDDEN in a hiding spot).
+var _search_need := SEARCH
+## The pill's bar (first-hour step 2): in the chase, the share of the escape made (the gap to the
+## nearest unit against the metres needed, or the time out of sight against UNSEEN, the larger);
+## in the search, the share of the search left.
+var gap_share := 0.0
+## Hiding spots (map x, z) found so far, the next edge to look at, the ones shown now.
+var _hides := PackedVector2Array()
+var _hide_next := 0
+var _hide_shown := PackedVector2Array()
 var _still := 0.0
 var _last_seen := Vector3.ZERO
 var _rewarded := false
@@ -551,10 +581,13 @@ func pull_out(u) -> void:
 ## player's own (car.gd max_speed x top_mult: the Ołdi TT and the engine levels), so a bought car
 ## never outruns every patrol at a walk. The nitro's lift is left out on purpose: a burn is the one
 ## way to open a quick gap. A stand-in car without the fields gets the hatch's CHASE_TOP.
+## First-hour step 2: after TIRE_AT s of a chase the chasers tire (Unit.TIRED_SHARE); the escort's
+## pace outside a chase stays.
 func chase_top() -> float:
+	var share := Unit.TIRED_SHARE if chasing() and chase_t >= TIRE_AT else Unit.CHASE_SHARE
 	if car == null or not ("top_mult" in car and "max_speed" in car):
-		return Unit.CHASE_TOP
-	return float(car.max_speed) * float(car.top_mult) * Unit.CHASE_SHARE
+		return Unit.CHASE_TOP * share / Unit.CHASE_SHARE
+	return float(car.max_speed) * float(car.top_mult) * share
 
 
 func chasing() -> bool:
@@ -842,6 +875,7 @@ func _start_chase(lvl: int, u, why: String) -> void:
 	level = lvl
 	top_level = lvl
 	chase_t = 0.0
+	gap_share = 0.0
 	_unseen = 0.0
 	_still = 0.0
 	_rewarded = false
@@ -876,9 +910,9 @@ func _engage(u, role: String) -> void:
 		u.sees = not flying and _sight(u.driver.pos, p)
 
 
-## +1 level (koguty 2: a blocker, 3: the roadblock), unless at 3 or in the cap's last NO_RISE s.
+## +1 level (koguty 2: a blocker, 3: the roadblock), unless at 3 or in the backstop's last NO_RISE s.
 func _raise(why: String) -> bool:
-	if level >= 3 or chase_t > CAPS[top_level - 1] - NO_RISE:
+	if level >= 3 or chase_t > BACKSTOP - NO_RISE:
 		return false
 	level += 1
 	top_level = maxi(top_level, level)
@@ -896,19 +930,22 @@ func _raise(why: String) -> bool:
 
 func _chase_frame(dt: float) -> void:
 	chase_t += dt
-	var cap: float = CAPS[top_level - 1]
-	if chase_t >= cap:
+	if chase_t >= BACKSTOP:
 		_end("shift")
 		return
+	_hide_scan()
 	var p := car.global_position
 	var near := INF
+	var near_any := INF
 	var far := true
 	var seen := false
 	var nearest = null
+	var need := RAID_ESCAPE if raid_chase else ESCAPE_DIST
 	for u in _engaged:
 		if u.driver == null:
 			continue
-		if u.dist < (RAID_ESCAPE if raid_chase else ESCAPE_DIST):
+		near_any = minf(near_any, u.dist)
+		if u.dist < need:
 			far = false
 		if u.sees:
 			seen = true
@@ -918,12 +955,22 @@ func _chase_frame(dt: float) -> void:
 	if _engaged.is_empty():
 		far = true
 	_raid_t = maxf(0.0, _raid_t - dt)
+	# Unseen: in the chase no unit sees the car; in the search none sees it within RESEEN m.
+	var close_seen := false
+	if seen and phase == Phase.SEARCH:
+		for u in _engaged:
+			if u.sees and u.dist < RESEEN:
+				close_seen = true
+	if not (close_seen if phase == Phase.SEARCH else seen) and _in_garage(p):
+		_end("garage")
+		return
 	if phase == Phase.CHASE:
 		if seen:
 			_unseen = 0.0
 			_last_seen = p
 		else:
 			_unseen += dt
+		gap_share = 1.0 if far else clampf(maxf(near_any / need, _unseen / UNSEEN), 0.0, 1.0)
 		if (far or _unseen >= UNSEEN) and _raid_t <= 0.0:
 			phase = Phase.SEARCH
 			_search_t = 0.0
@@ -956,7 +1003,9 @@ func _chase_frame(dt: float) -> void:
 			_last_seen = p
 			_log("seen again (L%d)" % level)
 			return
-		if _search_t >= (SEARCH_HIDDEN if _hidden(p) else SEARCH):
+		_search_need = SEARCH_HIDDEN if _hidden(p) else SEARCH
+		gap_share = clampf(1.0 - _search_t / _search_need, 0.0, 1.0)
+		if _search_t >= _search_need:
 			_end("escaped")
 	# The blockers and the roadblock that the chase has left behind go (police_unit.gd).
 	if log_on:
@@ -966,7 +1015,59 @@ func _chase_frame(dt: float) -> void:
 			_b4()
 
 
-## Ends a chase or a pull-over: "escaped", "shift" (the cap), "heli", "pullover".
+## First-hour step 2 (the spec's "changing the car", GTA's respray): the car in Mirek's garage
+## ring while no unit sees it ends the chase as an escape.
+func _in_garage(p: Vector3) -> bool:
+	if not garage_at.is_valid() or flying:
+		return false
+	var g: Vector3 = garage_at.call()
+	return g != Vector3.INF and Vector2(p.x - g.x, p.z - g.z).length() < GARAGE_RING
+
+
+## First-hour step 2: the hiding spots, HIDE_SCAN road edges a frame while a chase runs (the whole
+## graph once a session; a tunnel edge at once, a ground edge by the deck over its middle), and the
+## HIDE_SHOWN nearest of those found for the minimap.
+func _hide_scan() -> void:
+	var n := graph.e_s0.size()
+	var stop := mini(n, _hide_next + HIDE_SCAN)
+	while _hide_next < stop:
+		var e := _hide_next
+		_hide_next += 1
+		if e < graph.e_cf.size() and graph.e_cf[e] != 0:
+			continue
+		if graph.e_dk[e] >= 0:
+			continue
+		var mid := graph.point_at(e, (graph.e_s0[e] + graph.e_s1[e]) * 0.5)
+		var under := graph.e_tn[e] >= 0
+		if not under:
+			under = map.ground_height(mid.x, mid.y) > map.terrain_height(mid.x, mid.y) + 3.0
+		if not under:
+			continue
+		var apart := true
+		for h in _hides:
+			if h.distance_to(mid) < HIDE_APART:
+				apart = false
+				break
+		if apart:
+			_hides.append(mid)
+
+
+## The HIDE_SHOWN hiding spots nearest the player within HIDE_REACH m (5 Hz, in a chase).
+func _hides_near(p: Vector2) -> PackedVector2Array:
+	var pick: Array = []
+	for h in _hides:
+		var d := h.distance_to(p)
+		if d < HIDE_REACH:
+			pick.append([d, h])
+	pick.sort_custom(func(a, b) -> bool: return a[0] < b[0])
+	var out := PackedVector2Array()
+	for k in mini(HIDE_SHOWN, pick.size()):
+		out.append(pick[k][1])
+	return out
+
+
+## Ends a chase or a pull-over: "escaped", "garage" (an escape into Mirek's garage), "shift" (the
+## hidden backstop), "heli", "pullover".
 ## The raid's chase ends with its quest (PT-52: the night meet given up from the map mid-raid):
 ## the police came for the meet, not for the player. A chase the player started stays on.
 func stand_down() -> void:
@@ -980,15 +1081,18 @@ func _end(how: String) -> void:
 	_raid_t = 0.0
 	var lost = _chaser()
 	match how:
-		"escaped":
-			_log("escaped after %.1f s" % t)
+		"escaped", "garage":
+			_log("escaped after %.1f s%s" % [t, " (Mirek's garage)" if how == "garage" else ""])
 			if not _rewarded:
 				_rewarded = true
 				wallet.add_respect(ESCAPE_RESPECT)
 				wallet.add_escape()
-			hud.toast("UCIECZKA!  +%d" % ESCAPE_RESPECT, "ESCAPED!  +%d RESPECT" % ESCAPE_RESPECT)
+			if how == "garage":
+				hud.toast("NOWY LAKIER, KTO PYTA?  +%d" % ESCAPE_RESPECT, "NEW PAINT, WHO'S ASKING?  +%d RESPECT" % ESCAPE_RESPECT)
+			else:
+				hud.toast("UCIECZKA!  +%d" % ESCAPE_RESPECT, "ESCAPED!  +%d RESPECT" % ESCAPE_RESPECT)
 			sfx_cue("chord")
-			_say_or_radio(lost, "police_lost", "escaped")
+			_say_or_radio(lost, "police_lost", how)
 		"shift":
 			_log("end of shift after %.1f s (L%d)" % [t, top_level])
 			hud.toast("KONIEC ZMIANY", "END OF SHIFT")
@@ -1006,7 +1110,7 @@ func _end(how: String) -> void:
 			# Loop 3g-2 (police.md 8.1): accepting a rescue ends the chase, straight to the cooldown.
 			_log("chase ended after %.1f s: rescue accepted" % t)
 			hud.toast("POLICJA ODPUSZCZA: RATUJESZ KOGOŚ", "THE POLICE BACK OFF: YOU'RE ON A RESCUE")
-	if how == "escaped" and rivals != null and rivals.in_race() and not rivals.escape_bonus:
+	if how in ["escaped", "garage"] and rivals != null and rivals.in_race() and not rivals.escape_bonus:
 		# Loop 3g-2 (police.md 8.2): escaping during a race marks it: a win pays the stake x 1.2.
 		rivals.escape_bonus = true
 		_log("race marked +20 % for the escape")
@@ -1839,15 +1943,19 @@ func _hud_frame() -> void:
 	for t in traps:
 		if t["known"]:
 			known.append(t["car"])
-	hud.set_police_marks(marks, known)
+	if not chasing():
+		_hide_shown = PackedVector2Array()
+	elif _frame % 12 == 0 or _hide_shown.is_empty():
+		_hide_shown = _hides_near(_xz(car.global_position))
+	hud.set_police_marks(marks, known, _hide_shown)
 	var lizak := Vector2.INF
 	match phase:
 		Phase.CHASE:
 			hud.set_koguty(level, 1)
-			hud.police_pill("POŚCIG · KONIEC ZMIANY ZA %s" % _clock_text(), "CHASE · END OF SHIFT IN %s" % _clock_text())
+			hud.police_pill("UCIEKAJ", "GET AWAY", gap_share, 1)
 		Phase.SEARCH:
 			hud.set_koguty(level, 2)
-			hud.police_pill("SZUKAJĄ CIĘ · KONIEC ZMIANY ZA %s" % _clock_text(), "SEARCHING · END OF SHIFT IN %s" % _clock_text())
+			hud.police_pill("SZUKAJĄ CIĘ", "SEARCHING", gap_share, 2)
 		Phase.LIZAK:
 			hud.police_pill("ZATRZYMAJ SIĘ PRZY POLICJANCIE", "PULL OVER BY THE OFFICER")
 			if project.is_valid() and not _lizak_trap.is_empty():
@@ -1870,12 +1978,6 @@ func _hud_frame() -> void:
 		sfx.police_siren(siren)
 	elif sfx != null and phase == Phase.SEARCH:
 		sfx.police_siren(Vector3.INF)
-
-
-## "0:27": the cap's time left.
-func _clock_text() -> String:
-	var left := maxi(0, ceili(CAPS[maxi(top_level, 1) - 1] - chase_t))
-	return "%d:%02d" % [left / 60, left % 60]
 
 
 ## One glow MultiMesh for every police light at night: two pools on the road beside each car

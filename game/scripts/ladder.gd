@@ -70,6 +70,14 @@ extends RefCounted
 ##   headlights (0: never; Seba at once); `home`, the districts (data/districts.json ids) where it
 ##   knows every shortcut and yard it dares, whatever its `cuts` and `yards` (Halina's Powiśle and
 ##   Śródmieście, Bartek's riverside, Seba's Praga, Mike's office towers in Wola).
+## - **The Six** (first hour step 5, F 2026-11-15; the spec "First hour for the beta", section 4):
+##   with ANY_ORDER (`any_order`, on) the ladder's order and its respect gates are gone. All six
+##   rivals are open from the first minute and beaten in any order; each shows its difficulty
+##   (`pips`: Halina 1 to Mike 6, RUNGS' order); the final opens once all six are beaten
+##   (`beaten_count`), respect stays a score. `next_rung` is the easiest rival not beaten yet (the
+##   main line's pointer). Each rival cruises a home area (`den`, `DEN_RADIUS`; rivals.gd brings it
+##   back there unseen) so the player learns where to look. `any_order` off gives the old ladder
+##   (check_ladder.gd still tests it).
 ## - **The record** is the wallet's `ladder` (rung id -> the day it was first beaten, yyyymmdd;
 ##   the save's [ladder] section, wallet.gd). The final's win is `ladder["trzy_mosty"]`
 ##   (`final_won`), for the end card of the next slice.
@@ -82,27 +90,33 @@ const RUNGS := [
 	{"id": "halina", "rival": "Pani Halina", "short": "HALINA", "stake": 60, "respect": 0, "pace": 1.25, "accel": 1.5,
 		"share": 0.70, "race_accel": 8.0, "brake": 4.5, "lat": 10.0, "knows": 1.0, "caution": 0.8,
 		"cuts": 0.3, "yards": 1.0, "narrow": 3.5, "hops": 0.0, "mistake": 0.2, "wrong": 0, "block": 0.0, "phone": false,
-		"dare": 2.5, "indicate": 3.0, "flash": 0.0, "home": ["powisle", "srodmiescie", "trakt"]},
+		"dare": 2.5, "indicate": 3.0, "flash": 0.0, "home": ["powisle", "srodmiescie", "trakt"],
+		"den": Vector2(-950, 150), "den_pl": "Śródmieście", "den_en": "the City Centre"},
 	{"id": "sloik", "rival": "Słoik z Radomia", "short": "SŁOIK", "stake": 90, "respect": 100, "pace": 1.3, "accel": 1.55,
 		"share": 0.92, "race_accel": 9.5, "brake": 8.0, "lat": 11.0, "knows": 0.0, "caution": 0.5,
 		"cuts": 0.0, "yards": 0.0, "narrow": 4.5, "hops": 0.0, "mistake": 0.12, "wrong": 1, "block": 0.0, "phone": false,
-		"dare": 1.5, "indicate": 1.0, "flash": 0.0, "home": []},
+		"dare": 1.5, "indicate": 1.0, "flash": 0.0, "home": [],
+		"den": Vector2(-1380, 560), "den_pl": "Dworzec Centralny", "den_en": "the Central Station"},
 	{"id": "bartek", "rival": "Bulwar Bartek", "short": "BARTEK", "stake": 120, "respect": 220, "pace": 1.35, "accel": 1.6,
 		"share": 0.80, "race_accel": 10.5, "brake": 9.0, "lat": 12.0, "knows": 0.5, "caution": 0.3,
 		"cuts": 0.4, "yards": 0.3, "narrow": 3.0, "hops": 0.0, "mistake": 0.2, "wrong": 0, "block": 0.3, "phone": false,
-		"dare": 1.0, "indicate": 1.6, "flash": 3.0, "home": ["powisle"]},
+		"dare": 1.0, "indicate": 1.6, "flash": 3.0, "home": ["powisle"],
+		"den": Vector2(450, -650), "den_pl": "bulwary", "den_en": "the boulevards"},
 	{"id": "seba", "rival": "Seba z Pragi", "short": "SEBA", "stake": 150, "respect": 340, "pace": 1.4, "accel": 1.65,
 		"share": 0.86, "race_accel": 12.0, "brake": 13.0, "lat": 15.0, "knows": 0.7, "caution": 0.0,
 		"cuts": 0.6, "yards": 0.6, "narrow": 2.8, "hops": 1.0, "mistake": 0.08, "wrong": 0, "block": 0.9, "phone": false,
-		"dare": 0.5, "indicate": 0.0, "flash": 0.8, "home": ["praga"]},
+		"dare": 0.5, "indicate": 0.0, "flash": 0.8, "home": ["praga"],
+		"den": Vector2(1450, -1450), "den_pl": "Praga", "den_en": "Praga"},
 	{"id": "zbyszek", "rival": "Taksiarz Zbyszek", "short": "ZBYSZEK", "stake": 200, "respect": 480, "pace": 1.45, "accel": 1.7,
 		"share": 0.93, "race_accel": 12.5, "brake": 12.0, "lat": 15.5, "knows": 1.0, "caution": 0.2,
 		"cuts": 1.0, "yards": 1.0, "narrow": 3.0, "hops": 0.0, "mistake": 0.03, "wrong": 0, "block": 0.4, "phone": false,
-		"dare": 1.3, "indicate": 2.2, "flash": 2.5, "home": []},
+		"dare": 1.3, "indicate": 2.2, "flash": 2.5, "home": [],
+		"den": Vector2(-650, -1650), "den_pl": "Stare Miasto", "den_en": "the Old Town"},
 	{"id": "mike", "rival": "Mordor Mike", "short": "MIKE", "stake": 300, "respect": 640, "pace": 1.5, "accel": 1.75,
 		"share": 1.0, "race_accel": 13.5, "brake": 13.0, "lat": 16.5, "knows": 0.4, "caution": 0.1,
 		"cuts": 0.5, "yards": 0.5, "narrow": 2.8, "hops": 1.0, "mistake": 0.05, "wrong": 0, "block": 0.3, "phone": true,
-		"dare": 0.7, "indicate": 0.7, "flash": 1.2, "home": ["wola"]},
+		"dare": 0.7, "indicate": 0.7, "flash": 1.2, "home": ["wola"],
+		"den": Vector2(-2550, 320), "den_pl": "Wola", "den_en": "Wola"},
 ]
 ## The final race: index RUNGS.size() (6) everywhere a rung index is asked for.
 const FINAL := 6
@@ -230,8 +244,33 @@ const SHARE_MIN := 0.58
 const DEFAULT_PACE := 1.45
 const DEFAULT_ACCEL := 1.7
 
+## The Six (F 2026-11-15): every rival open from the start, beaten in any order, the final after
+## all six; false: the old ladder (each rung after the one before and its respect).
+const ANY_ORDER := true
+## A rival's home area: it is brought back there (unseen) once it cruises further than this from
+## its `den` (m).
+const DEN_RADIUS := 550.0
+
 ## wallet.gd (its `ladder` and `respect`); null: nothing is beaten, respect 0.
 var wallet: Node
+## ANY_ORDER for this ladder (a check turns it off to test the old gates).
+var any_order := ANY_ORDER
+
+
+## Rung `i`'s difficulty, 1 (Pani Halina) to 6 (Mordor Mike): RUNGS' order is the skill's.
+static func pips(i: int) -> int:
+	return clampi(i, 0, RUNGS.size() - 1) + 1
+
+
+## The pips as text, one dot per step ("•••" for Bartek): the HUD font has • (not ● or ★).
+static func pip_text(i: int) -> String:
+	return "•".repeat(pips(i))
+
+
+## Rung `i`'s home area: [map point (x, z), its name in Polish, in English].
+static func den(i: int) -> Array:
+	var r: Dictionary = RUNGS[clampi(i, 0, RUNGS.size() - 1)]
+	return [r["den"], str(r["den_pl"]), str(r["den_en"])]
 
 
 ## The rung of rival `name` (RIVALS' name), or -1.
@@ -350,12 +389,23 @@ func note_result(i: int, won: bool) -> void:
 	wallet.save()
 
 
-## Rung `i` (0..FINAL) can be raced now.
+## How many of the six are beaten (the final not counted).
+func beaten_count() -> int:
+	var n := 0
+	for i in RUNGS.size():
+		if beaten(i):
+			n += 1
+	return n
+
+
+## Rung `i` (0..FINAL) can be raced now. Any order: the six always, the final after all six.
 func is_open(i: int) -> bool:
 	if i < 0 or i > FINAL:
 		return false
 	if beaten(i):
 		return true
+	if any_order:
+		return i < FINAL or beaten_count() == RUNGS.size()
 	if i > 0 and not beaten(i - 1):
 		return false
 	return respect() >= threshold(i)
@@ -366,12 +416,16 @@ func is_open(i: int) -> bool:
 func missing(i: int) -> PackedStringArray:
 	if is_open(i):
 		return PackedStringArray(["", ""])
+	if any_order:
+		var n := beaten_count()
+		return PackedStringArray(["POKONAJ WSZYSTKICH SZEŚCIU · %d/6" % n, "beat all six first · %d/6" % n])
 	if i > 0 and not beaten(i - 1):
 		return PackedStringArray(["NAJPIERW %s" % RUNGS[i - 1]["short"], "beat %s first" % RUNGS[i - 1]["rival"]])
 	return PackedStringArray(["SZACUNEK %d" % threshold(i), "respect %d" % threshold(i)])
 
 
 ## The first rung not beaten yet (FINAL when only the final is left; FINAL + 1 when it is won).
+## Any order: the easiest rival not beaten yet.
 func next_rung() -> int:
 	for i in FINAL + 1:
 		if not beaten(i):
@@ -411,6 +465,14 @@ func preset(n: int, date := 1) -> void:
 		wallet.respect = need
 
 
+## The card's title, [Polish, English]: "RYWALE 2/6" / "RIVALS 2/6" (any order), else the ladder's.
+func title() -> Array:
+	if any_order:
+		var n := beaten_count()
+		return ["RYWALE %d/6" % n, "RIVALS %d/6" % n]
+	return ["DRABINKA", "RIVAL LADDER"]
+
+
 ## The ladder as rows for the full map's card: [text, state] where state is "won", "next" or
 ## "locked" (`night`: it is night now, for the final's "w nocy · at night").
 func rows(night: bool) -> Array:
@@ -421,6 +483,9 @@ func rows(night: bool) -> Array:
 		var text := "%s · %d zł" % [r["rival"], r["stake"]]
 		if beaten(i):
 			out.append(["★ " + text, "won"])
+		elif any_order:
+			var d := den(i)
+			out.append(["%s %s · %s · %s" % [pip_text(i), r["rival"], Lang.pick(d[1], d[2]), "%d zł" % r["stake"]], "open"])
 		elif i == nxt:
 			out.append(["→ %s · %s" % [text, Lang.pick("otwarty", "open") if is_open(i) else "%s %d" % [Lang.pick("szacunek", "respect"), threshold(i)]], "next"])
 		else:
@@ -428,6 +493,8 @@ func rows(night: bool) -> Array:
 	var fin := Lang.pick("Finał · Trzy mosty · %d zł", "Final · Three Bridges · %d zł") % FINAL_ZL
 	if final_won():
 		out.append(["★ " + fin, "won"])
+	elif any_order and not is_open(FINAL):
+		out.append(["· %s · %s" % [fin, Lang.pick("po sześciu wygranych", "after all six")], "locked"])
 	elif nxt == FINAL:
 		if not is_open(FINAL):
 			out.append(["→ %s · %s %d" % [fin, Lang.pick("szacunek", "respect"), FINAL_RESPECT], "next"])

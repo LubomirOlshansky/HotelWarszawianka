@@ -119,7 +119,7 @@ often, known to every visitor; **B** characteristic, known to locals, gives a st
 | 51 | Kościół Najświętszego Zbawiciela and Plac Zbawiciela | Marszałkowska | church, square | ◐ | photo check: towers, the square's arcades |
 | 52 | Rondo Dmowskiego and Patelnia (Metro Centrum) | Marszałkowska | square, metro | ◐ | Mac look check |
 | 53 | Hala Mirowska and Hala Gwardii | Plac Mirowski | market halls | ◐ | photo pass 2026-11-07 (`warsaw-needed-photos`): Mirowska's glazed gallery and dark fascia on the east front added; still to do: the big lattice-glazed arch in the gable and the HALA MIROWSKA letters (needs a neon atlas word); Gwardii not yet |
-| 54 | Hala Koszyki | Koszykowa | food hall | ◐ | photo check |
+| 54 | Hala Koszyki | Koszykowa | food hall | ● | photos 2026-11-15: both pavilions, terrace |
 | 55 | Elektrownia Powiśle | Dobra | shopping centre in a power station | ◐ | photo check: chimneys |
 | 56 | Fabryka Norblina (OSM: Plater, Galwan) | Prosta | shopping and offices | ★ | moved onto its real block, courts, trees and green roofs from the photo report (2026-11-02); facades: photo check (no facade photo of the new halls yet); F's look-check answers applied 2026-11-03 (BACKLOG "Landmark look-check fixes"). |
 | 57 | Browary Warszawskie (OSM: Warzelnia, Laboratorium, Willa Schielego) | Grzybowska | shopping and offices | ◐ | Central Garden (22 trees, S path, café clearings) and sedum roofs from the photo report (2026-11-02); facades and the Brama: photo check; F's look-check answers applied 2026-11-03 (BACKLOG "Landmark look-check fixes"). |
@@ -174,7 +174,7 @@ often, known to every visitor; **B** characteristic, known to locals, gives a st
 | 101 | Synagoga Nożyków and Próżna's pre-war tenements (Kamienica Zalmana Nożyka, Kamienica Wolanowskiego) | Próżna / Twarda | synagogue, tenements | ◐ | 2026-11-08 (prozna.md): setts and slabs, bollards, the south tenements' arcaded fronts, planters; left: Próżna 12/10 fronts, lamps, the corner oriel; the synagogue is the church kit's |
 | 102 | Plac Grzybowski and Kościół Wszystkich Świętych | Plac Grzybowski | square, church | ◐ | photo-checked 2026-11-06 (wszystkich.md): spired towers, arcade galleries, crossing drum, sandy stone; 2026-11-08 (plac_grzybowski.md): water-garden terraces, timber decks, memorial stone, benches, planter wall, Charlotte's café; open: the slabs' balcony stacks, lamps, aggregate paving, car park bollards |
 | 103 | Dom pod Orłami and Skwer Linearny na Złotej | Jasna / Złota | historic office, new park | ★ | Mac look check |
-| 104 | Hotel Wiktoria (Sofitel Victoria) and Królewska (OSM: Sofitel Victoria) | Królewska | hotel | ◐ | photo check |
+| 104 | Hotel Wiktoria (Sofitel Victoria) and Królewska (OSM: Sofitel Victoria) | Królewska | hotel | ● | photo check on the phone |
 | 105 | Ministerstwo Finansów | Świętokrzyska | ministry | ◐ | photo check |
 | 106 | Saski Crescent, Saski Park, Senator | Królewska / Bielańska | offices | ◐ | 2026-11-07 from F's photos (spec `saski.md`): Saski Crescent in teal curtain-wall skin, Senator in pale cladding; left: the stone wing, dark crown and SASKI ROGAL sign, Senator's light well, Saski Park |
 | 107 | Gmach Główny Politechniki Warszawskiej (OSM: Gmach Główny PW) | Noakowskiego / Plac Politechniki | university | ◐ | photo build 2026-11-15 (site `politechnika`): pale stone skin, the hall's glass roof, the columned front with attic, figures, stairs and lamp pillars |
