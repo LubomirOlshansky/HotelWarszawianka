@@ -1,0 +1,65 @@
+# The phone check: one list for the next build
+
+Everything that only the iPhone can show, in the order of one sitting of about twenty minutes.
+It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the threads' notes
+(plans review of 2026-11-15, `docs/design/tech-plans-review-2.md` section 8).
+
+**Rules.**
+
+- A pull request whose change note says "only the phone can show" adds **one line here**, in the
+  part it belongs to, with what to do and what to look for. A question with a default still goes
+  to `QUESTIONS.md`; a look goes here.
+- F answers each line "fine", "wrong: ..." or "skip". An answered line leaves the page in the
+  next bookkeeping pull request; a "wrong" becomes a backlog item for the line's thread.
+- A build is cut when this page reaches 15 open lines or three days pass (`docs/WORKFLOW.md`
+  "The build train"). The build's commit and its Mac gate results are named at the top.
+
+**Build:** not cut yet. Last: TestFlight build 10 (2026-11-14). Next: 11 or later.
+**Mac gate at the build's commit:** not run yet.
+
+## 1. Launch and the first minutes (3 min)
+
+| # | Do | Look for | From |
+| --- | --- | --- | --- |
+| 1 | Delete the app, install, launch | the title comes up at once and nothing freezes; once before, a first launch froze and was not reproduced | TD-15, boot scene |
+| 2 | Update over the old build | settings and the save are as they were | #666 |
+| 3 | Play the first ten minutes on a fresh save, taking what is offered | do the calls and offers crowd each other, or leave you with nothing to do | #774, the kit ports |
+
+## 2. Driving feel: Settings → Świat (6 min)
+
+| # | Do | Look for | From |
+| --- | --- | --- | --- |
+| 4 | "Zderzenia · Collisions": drive Marszałkowska and scrape a wall, a kerb and a car on Klasyka, then Soft, Medium, Firm | which one should be the default (the measurements favour Medium); does the kick at a head-on hit read as a snap | #760, #765, #780 |
+| 5 | "Łamliwe płoty · Smashable fences" on: at Stadion Narodowy drive through a fence, a hedge and a tall net | the feel of the smash, the debris, the sound, the buzz; the broken fence still stands drawn (known, until panels) | #776 |
+| 6 | The same switch **off** (what testers get): drive fast along Marszałkowska and over a bridge | a hitch each time new streets come in (the fences' colliders are rebuilt at sector load) | #780, #732 |
+| 7 | If the build has it: switch on, shove parked cars on Krucza, end-on and from the side | a push, never a dead stop; where the car comes to rest | step 8a |
+
+## 3. Races and police (4 min)
+
+| # | Do | Look for | From |
+| --- | --- | --- | --- |
+| 8 | A ladder race by day | rivals' lamps by day; a stutter at the start (the route plan) or on the worst frame | racer 6b, #748 |
+| 9 | A street race at night | does it feel like a race; rivals taking yards and back ways | #744, the race links |
+| 10 | Get chased and try to shake them off | the chasers' driving; with fences on, whether cutting through a fence ends the chase at once | the chasers' line driver, #776 |
+
+## 4. Places (4 min)
+
+| # | Do | Look for | From |
+| --- | --- | --- | --- |
+| 11 | Park Świętokrzyski at night, drive along the light garden | the projection strip answers the car; the arches read at the phone's zoom; the night fill | #786, #788 |
+| 12 | Warsaw Spire at night | the LED band's bloom; the frame with the Spire on screen | #784 |
+| 13 | Złote Tarasy at night | the glow | Tarasy glow |
+| 14 | The Old Town by car or helicopter: Miodowa, Piwna, Freta, Krakowskie Przedmieście | the frame rate with the rebuilt churches in view; the Archikatedra's roof is green copper and its walls brick | #701 to #789, #775 |
+| 15 | Settings → the experimental graphics switch, on and off at the Palace | the look and the frame | #647 |
+
+## 5. The frame (3 min)
+
+| # | Do | Look for | From |
+| --- | --- | --- | --- |
+| 16 | Settings → BENCH, run it | the numbers against the last build's | budgets |
+| 17 | Drive across the map for three minutes without stopping | streets that come in late, a hole in the ground, heat | #732 |
+
+## Answers F owes that are not looks
+
+These wait in `QUESTIONS.md` and block something: the opening's "go" (drop the ignored first
+kebab, then Mati's call); the walls' four defaults; the Powiśle bar names; the Android build's go.

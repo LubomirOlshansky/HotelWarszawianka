@@ -24,12 +24,17 @@ chain before any step that re-bakes, a settings row for the collision preset, th
 (step 11) before heavy walls (step 9), and the next feel step picked from a fresh baseline. The
 order in section 5 stands until F picks.
 
+**Second review, 2026-11-15** (`tech-plans-review-2.md` sections 3, 4 and 10), after F's picks of
+2026-11-14 (mend the bake chain first; main's map stays the base; soft fences behind a switch,
+off by default). It changes this page: section 5.1 below is the order from here on, and it wins
+over the tables of stages B to D where they differ.
+
 Where this page and those disagree, this page wins. The order tables in those two plans are
 replaced by section 5 here.
 
 Contents: [1 In short](#1-in-short) · [2 One question, four answers](#2-one-question-four-answers) ·
 [3 The architecture](#3-the-architecture) · [4 Stadion Narodowy](#4-stadion-narodowy-the-walls-stay) ·
-[5 The steps](#5-the-steps-in-order) · [6 Who builds, who judges](#6-who-builds-who-judges) ·
+[5 The steps](#5-the-steps-in-order) ([5.1 from 2026-11-15](#51-the-order-from-2026-11-15-second-review)) · [6 Who builds, who judges](#6-who-builds-who-judges) ·
 [7 Gates](#7-gates-and-what-f-sees) · [8 Risks](#8-risks) · [9 Questions for F](#9-questions-for-f)
 
 ---
@@ -230,6 +235,50 @@ the race marks recorded again.
 What depends on what: 2 after 1 (both touch every collider site); 5 after 2; 7 after 1, 3 and 5;
 8 after 6 and 7; 9 after 5; 11 after 7 (both edit the builder); 12 after 11. Step 6 depends only
 on 3. Steps 3 and 4 can run beside 5.
+
+### 5.1 The order from 2026-11-15 (second review)
+
+**State.** Stage A is merged (steps 1 to 5). Stage B: 6 merged (#760, #765; the default is still
+v1), 7 merged (#776), both behind Settings → Świat since #780 ("Zderzenia", and "Łamliwe płoty",
+off by default). Step 8 is split: **8a** pushing (in work, no map change) and **8b** thinning in
+the pinches (a map change).
+
+**Four rules added.**
+
+1. **The map changes by passes, never by a full bake.** Main's `centrum.json` is the base (F,
+   2026-11-14) and a from-scratch bake does not reproduce it, also after #778. Every step below
+   that changes the map (8b, 9's classes by setting, 10, 13) is written as a pass: it reads
+   main's file and writes it, a second run changes nothing, it is stamp-guarded, it runs inside
+   `bake_osm.py` as well, and it is listed in `tools/check_post_passes.py`. Where a step's brief
+   says "re-bake", read "run the pass". The data stays at its present extract until one planned
+   re-stamp after the demo (tech-debt TD-25).
+2. **The default path is the cheap path.** While the switch is off by default, a sector carries
+   its hard colliders ready and going soft removes them; nothing is rebuilt at sector load for a
+   player who does not have the feature (TD-26). Any step that adds a kind of thing to
+   `soft_things.gd` reports the cost of a sector load with the switch off, before and after.
+3. **The car applies every cost itself.** `soft_things.gd` reports a share of the speed, a nudge
+   or a wall answer; `car.gd` applies it in its own step through one hook (this closes TD-24).
+   No new write to `car.vel` from outside the car.
+4. **No step of stage C starts and no default changes before a build with steps 6, 7 and 8a has
+   been on F's phone** (`docs/PHONE-CHECK.md`, lines 4 to 7).
+
+**The order.**
+
+| # | Step | What | Waits for |
+| --- | --- | --- | --- |
+| a | **8a** Parked cars pushed | as its brief, plus: the car-side hook (rule 3); `harden_usec` per sector load reported (rule 2); the switch renamed "Miękkie miasto · Soft city", one switch for fences and parked cars; the acceptance run gives the **whole** sloppy table by class with `--soft` and `mid`, not only the parked rows | nothing |
+| b | **Hard colliders ready in the sector** | rule 2, for fences, hedges and parked cars, both city paths | a |
+| c | **Cutting through, measured** | the race bench with a scripted player who crosses two fence lines and pushes one car: seconds gained in a race, whether a chase is lost at once. In `race-ai.md`; run by the racer bench's thread, not the conductor | a |
+| d | **F's look 2** on the phone | the presets, the smash, the push, the hitch with the switch off | a build |
+| e | **The default preset** | its own small pull request; race marks recorded again | d |
+| f | **10 Ends, corners and piers** or **11 the panel trial**, whichever a's table and F's look put first. Deck rails and piers were 14 of the baseline's 20 dead stops and nothing built so far touches them, so 10 is the default first | d; #778 for the parts that are passes |
+| g | **8b** Thinning in the pinches | a pass; the rule may be written and counted dry before | #778 |
+| h | **The switch on for everyone** | when a broken fence falls (11 or 12), c's numbers are acceptable or rivals and chasers got the same ways through, and F says so | c, f, F |
+| i | **9 Heavy walls**, cut down to palette rows (height, colour, class by setting); new geometry families only after landmarks have their own material (TD-9: the building shader is at 501 of 505) | d |
+| j | **12, 13, 14, 15, 16** | re-planned after d; 13 only for traps the wander run finds; 14 and 15 belong to the street-by-street loop; 16's ratchets name the CI machine | d |
+
+A pushed car is not seen by the town's rail cars while it slides (about a second); it never
+rests in a lane. Accepted for 8a and written into `soft_things.gd`'s row in `systems.md`.
 
 ## 6. Who builds, who judges
 

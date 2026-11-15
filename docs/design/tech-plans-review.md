@@ -4,6 +4,9 @@
 their own orders until F picks; where F agrees, the conductor of that plan moves the change into
 its own page.
 
+**Followed on 2026-11-15** by `tech-plans-review-2.md`: what became of part 1 below, what F's
+picks on the map and the fences mean for the plans, and the order from there.
+
 F (2026-11-14): "the architectural work, the AI in game, the objects on the road and the plan for
 one system for walls and driving: all this technical work, revise the plan and critique."
 
