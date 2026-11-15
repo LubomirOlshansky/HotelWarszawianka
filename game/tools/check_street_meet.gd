@@ -752,7 +752,7 @@ func _accept() -> void:
 
 ## A night begun at `beat` by the test flag's jump.
 func _jump(beat: String) -> void:
-	_calls.paused = false
+	_director.release_calls("bench")
 	_hud.toasts.clear()
 	_m.jump(beat)
 	_nights += 1
@@ -871,7 +871,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	# 3. JADĘ!: night 1.
 	var gap: Vector3 = m.meets[0]["gap"]
 	_park_at(Vector3(400.0, 0.0, 400.0))
-	_calls.paused = false
+	_director.release_calls("bench")
 	_accept()
 	_ok(m.phase == Activity.Phase.RUN and m.stage == Meet.Stage.TO_MEET and m.under_way() and m.busy() and _director.busy(), "JADĘ!: the night is under way")
 	_crowd_dice(dice)
@@ -1050,8 +1050,9 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_ok(_director.may_start(_other), "after the night the director lets another start")
 	_ok(_hud.broadcast == 0, "no press went unowned")
 
-	# Night 2: in person, held calls; the loss, REWANŻ, the false start, off the strip.
-	_calls.paused = true
+	# Night 2: in person, held calls (main.gd's own hold, through the director); the loss, REWANŻ, the
+	# false start, off the strip.
+	_director.hold_calls("bench", Activity.RescueCalls.HOLD)
 	_park_at(Vector3(400.0, 0.0, 400.0))
 	var shown: int = _hud.shown
 	_ok(m.meet_in_person() and m.stage == Meet.Stage.TO_MEET and m.phase == Activity.Phase.RUN and _hud.shown == shown and _hud.card == "", "meet_in_person() starts the night with no call")
@@ -1089,10 +1090,10 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_tune("off the strip")
 	_hud.press(1)
 	_clean("KONIEC")
-	_ok(_calls.paused and _calls._held(), "the rescue calls held before the night stay held")
+	_ok(_calls._held(), "the rescue calls held before the night stay held")
 
 	# Night 3: the spin, the nitro, the card nobody presses.
-	_calls.paused = false
+	_director.release_calls("bench")
 	_jump("stage")
 	_ok(_in(Meet.Stage.LINE), "(the jump to the stage) on the line")
 	_ok(_drive_until(_in.bind(Meet.Stage.DRAG), 5.0, 1.0) and m._spin_t > 0.0 and Meet.launch_grade(m._revs) == "spin", "gas held from the start: wheelspin")
@@ -1112,7 +1113,7 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 	_ok(_placed == placed0 and not _calls._held(), "the card nobody presses ends the night and does not rematch")
 
 	# 9. The ✕ in every stage under way.
-	_calls.paused = false
+	_director.release_calls("bench")
 	m.start()
 	_nights += 1
 	_quit("TO_MEET")

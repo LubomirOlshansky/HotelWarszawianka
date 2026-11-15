@@ -48,7 +48,13 @@ extends Node
 ## line's at times of its own (`main_target`); missions.gd (the rescue line, the last to join) the first
 ## whose call rings on the HUD's context button and waits there (`pill_call`, `_show_ring`), whose
 ## stages are numbered for a script outside the kit (police.gd reads its State), and the one the
-## other activities' runs hold or restart (`rescue_calls`, `other_started`, `other_ended`).
+## other activities' runs hold or restart (`rescue_calls`, `calls_put_off`).
+##
+## The pacer's rules (TD-3, F 2026-11-15) ride on the call's clock: a call that comes due by its own
+## clock rings through `_ring_turn` (the one that rang last lets another's waiting call go first: the
+## director's `my_turn`) and marks itself waiting while the call gate (`_call_gate`) or `my_turn` holds it
+## (`call_waits`); the message director's quiet time after a finish holds the gate, and the offers that
+## do not ask the gate ask `_hushed`.
 
 const Beacon := preload("res://scripts/beacon.gd")
 const Access := preload("res://scripts/access.gd")
@@ -61,6 +67,9 @@ enum Phase { IDLE, RING, OFFER, RUN }
 ## The autopilot's taps: s after a call or an offer shows, and after a card of the run.
 const AUTO_ANSWER := 1.5
 const AUTO_CARD := 2.5
+## A call that waits (`call_waits`) says so again at least this often (s): a mark older than this is gone
+## (its caller stopped asking: out of its hours, in the air, held by a rule of its own).
+const WAIT_FRESH := 1.0
 const OFFER_BUTTONS := ["JADĘ|ON MY WAY", "NIE DZIŚ|NOT TODAY"]
 
 ## Handed in by main.gd, as to every activity before the kit.
@@ -85,16 +94,20 @@ var calls_held: Callable = func() -> bool: return false
 ## Another activity's call waits on the context button now (`pill_call`: the rescue line's WEZWANIE):
 ## the director sets this too; the ride app keeps off the button, the trend job's calls wait.
 var call_waiting: Callable = func() -> bool: return false
-## The rescue line (another activity with `pill_call`) has its card or run up (`rescue_busy`), or sends
-## the player somewhere (`rescue_aimed`): the director sets these too. The ride app, the jobs and the
-## trend job ask them where they asked missions.gd by name before it joined the director (M1; the
-## pacer, TD-3, is to settle which of its stages hold which activity).
+## The rescue line (another activity with `pill_call`) has its card or run up: the director sets this
+## too. The ride app, the deliveries and the trend job ask it where they asked missions.gd by name
+## before it joined the director (M1); since TD-3 (F 2026-11-15) its card holds them as its run does,
+## and every other activity through the director (`may_start`).
 var rescue_busy: Callable = func() -> bool: return false
-var rescue_aimed: Callable = func() -> bool: return false
+## This one may ring now by its own clock (TD-3's variety, F 2026-11-15): false while it rang last and
+## another activity's call is due and waits (`call_waits`). The director sets this too (`my_turn`).
+var my_turn: Callable = func() -> bool: return true
 ## The director's ears: this activity's run starts (`start`) and ends (`_end` from the run). It tells
-## every other activity (`other_started`, `other_ended`).
+## every other activity (`other_started`, `other_ended`), and the message director that a run ended
+## (the quiet time). `on_ring`: its phone rang (`ring`), whoever asked: the director keeps who rang last.
 var on_start: Callable
 var on_end: Callable
+var on_ring: Callable
 ## Testing aid: calls at any hour.
 var force_hours := false
 
@@ -135,7 +148,9 @@ var cards_hold := true
 ## GO_ON counts on (a call that comes due waits for the message director: the tours, the boat race);
 ## HOLD stands still and goes on from where it stood after the run (the friends' nights, the tow);
 ## RESTART puts off a call that rings at the start, stands still, and counts from NEXT_CALL again at
-## the end (the side jobs and the races). The pacer (TD-3) is to own these numbers.
+## the end (the side jobs and the races; the director tells the line, `calls_put_off`). main.gd's own
+## holds take the same values through the director (`hold_calls`: the phone bench HOLD, a boat ride
+## RESTART; TD-3, F 2026-11-15).
 enum RescueCalls { GO_ON, HOLD, RESTART }
 var rescue_calls := RescueCalls.GO_ON
 ## The call rings on the HUD's context button and waits there until it is pressed, not as the
@@ -150,6 +165,9 @@ var _t := 0.0
 var _session := 0.0
 var _run_t := 0.0
 var _next_call := 0.0
+## When (on `_session`) this one's call last waited: due by its own clock, held by the call gate or
+## by another's turn (`call_waits`).
+var _waited := -INF
 var _beacon: Node3D
 ## A second ring beside the target (`set_mark`), made the first time one is asked for.
 var _mark: Node3D
@@ -327,7 +345,8 @@ func _process(dt: float) -> void:
 					_run_tick(dt)
 
 
-## Twice a second while idle: is it time to phone?
+## Twice a second while idle: is it time to phone? The call that is due waits while the call gate
+## holds it (`call_waits`), and lets another caller's waiting call go first when this one rang last (`_ring_turn`).
 func _idle_tick(dt: float) -> void:
 	if _session < _next_call or int(_session * 2.0) == int((_session - dt) * 2.0):
 		return
@@ -337,18 +356,51 @@ func _idle_tick(dt: float) -> void:
 	if not force_hours and (h < hours.x or h >= hours.y):
 		return
 	if not free_now.call():
+		if not _call_gate():
+			_waited = _session
 		return
-	ring()
+	if _ring_turn():
+		ring()
+
+
+## The call's own clock says ring now: false while another caller's call goes first (TD-3's variety:
+## this one rang last and another's call waits, the director's `my_turn`); this one then waits too.
+func _ring_turn() -> bool:
+	if bool(my_turn.call()):
+		return true
+	_waited = _session
+	return false
+
+
+## This one's call is due and waits: held by the call gate or by another's turn, within the last
+## WAIT_FRESH s (the director asks: whoever rang last lets it go first).
+func call_waits() -> bool:
+	return phase == Phase.IDLE and _session - _waited < WAIT_FRESH
+
+
+## The message director's call gate is open (hud.gd `call_ok`: free roam, settled, spaced from the last
+## call, past the quiet time after a finish); true with a HUD that has none (a check's).
+func _call_gate() -> bool:
+	return hud == null or not hud.has_method("call_ok") or bool(hud.call_ok())
+
+
+## The quiet time after a finish is on (hud.gd `offers_quiet`, TD-3): an offer that does not ask the
+## call gate waits for it (the ride app's requests, Bartek's call). False with a HUD that has none.
+func _hushed() -> bool:
+	return hud != null and hud.has_method("offers_quiet") and bool(hud.offers_quiet())
 
 
 # --- the call, the offer, the start --------------------------------------------------------------
 
-## The phone rings. False unless idle.
+## The phone rings. False unless idle. The director hears it (`on_ring`: who rang last).
 func ring() -> bool:
 	if phase != Phase.IDLE:
 		return false
 	phase = Phase.RING
 	_t = 0.0
+	_waited = -INF
+	if on_ring.is_valid():
+		on_ring.call()
 	_show_ring()
 	_log("call ringing")
 	return true
@@ -389,7 +441,7 @@ func meet() -> bool:
 
 
 ## It starts (the offer taken, a meeting, a test flag). The director hears it before `_begin`, so a
-## call another activity puts off goes before this run shows anything (missions.gd `other_started`).
+## call another activity puts off goes before this run shows anything (missions.gd `calls_put_off`).
 func start() -> void:
 	phase = Phase.RUN
 	_t = 0.0
@@ -653,4 +705,10 @@ func other_started(_a: Node) -> void:
 
 ## Another activity's run has just ended (`a`, after its `_ended`).
 func other_ended(_a: Node) -> void:
+	pass
+
+
+## The rescue calls are put off (the director: a run or a main.gd hold whose `rescue_calls` is RESTART
+## starts or ends): the rescue line closes a ringing call and counts from NEXT_CALL again.
+func calls_put_off() -> void:
 	pass
