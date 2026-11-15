@@ -30,7 +30,7 @@ const VIOLET_SIGN := Color(0.62, 0.25, 1.0)  # Level 26's neon, as neon_signs.gd
 ## paler than life for the game's palette.
 const TOWERS := [
 	{"key": "zlota44", "osm": "Złota 44", "style": S_SAIL, "glass": "#bccdd8", "roof": "#e4e8ea", "crest": "slope"},
-	{"key": "spire", "osm": "Warsaw Spire", "style": S_MIRROR, "glass": "#5a8ecb", "roof": "#b9c4cc",
+	{"key": "spire", "osm": "Warsaw Spire", "style": S_MIRROR, "glass": "#6f8fab", "roof": "#b9c4cc",
 			"with": [Vector2(-2672.0, 195.0), Vector2(-2745.0, 150.0)]},  # the two crescent wings
 	# Q22 and Rondo 1 rebuilt from the top-50 photo set (2026-11-08): _build_q22, _build_rondo1.
 	{"key": "q22", "osm": "Q22", "style": S_BANDS, "glass": "#3f5e5c", "roof": "#9ea4a6", "sign": "DELOJT"},
@@ -6190,23 +6190,24 @@ func _zlota_garden(parts: Array, g: float) -> void:
 ## masts as floating parts. The real tower is a vase (F's photos IMG_7349-7352): a waist low down,
 ## then sides curving in as they flare out to the full plan at the roof (concave, not convex), where the glass runs on past the roof into a
 ## saddle crown, high at the two narrow ends (photos IMG_7329, 7333). So the outline is lofted
-## through SPIRE_RINGS with SpireMotion.k_at (spire_motion.gd: the same rings carry the crown's LED
-## ticker); the shaft is blue mirror glass with a fine silver line at each floor and a lit spine
-## up each narrow end (IMG_7332); the lobby stands back under the shaft behind a ring of polished
+## through SPIRE_RINGS with SpireMotion.k_at (spire_motion.gd: the same rings carry the LED band and
+## the night's lines of light); the shaft is grey-blue mirror glass with a fine silver line at each
+## floor and a glass fin out of each narrow end (IMG_7332, F's night photos 2026-11-14); the lobby stands back under the shaft behind a ring of polished
 ## steel columns in pairs (IMG_7337); a mirrored canopy with upswept wing tips shades the north
 ## entrance (IMG_7336, 7337). The two 55 m crescents flanking the plaza, Spire B and C, are
 ## `_spire_wing`; the plaza's pools, channel and trees `_spire_water`.
 const SpireMotion := preload("res://scripts/spire_motion.gd")
 const SPIRE_TOP := SpireMotion.ROOF
 const SPIRE_LOBBY := 10.0
-## Ring heights: 165.5 and 171.1 are the ticker band's (spire_motion.gd), so it lies flat on the glass.
-const SPIRE_RINGS := [10.0, 25.0, 45.0, 65.0, 85.0, 103.0, 120.0, 135.0, 148.0, 158.0, 165.5, 171.1, 176.0, 180.0]
+## Ring heights: spire_motion.gd's, so its LED band and lines of light lie on the glass.
+const SPIRE_RINGS := SpireMotion.RINGS
 const SPIRE_CROWN := Vector2(6.0, 12.0)  # the crown's open steel ring over the roof: at the wide faces, extra up the horns
 const SPIRE_LOBBY_GLASS := Color("#2c4656")
 const SPIRE_STEEL := Color("#c3ccd3")      # polished steel (M_GOLD + 0.5: no warm glow)
 const SPIRE_MIRROR := Color("#d3dde4")     # the canopy's top
 const SPIRE_MIRROR_UNDER := Color("#8e9aa3")  # its underside, mirroring the plaza
-const SPIRE_SPINE := Color("#86acd0")
+const SPIRE_SPINE := Color("#9fbfd8")      # the fins' pale glass
+const SPIRE_MAST_RED := Color("#c8322c")
 const SPIRE_DRUM := Color("#d9dcdc")       # the roof drum's pale ribbed cladding (IMG_7351)      # the lit strip up each narrow end
 const SPIRE_WING_GLASS := Color("#4778b0")
 const SPIRE_WING_LOBBY := Color("#28404e")
@@ -6261,7 +6262,7 @@ func _spire(outline: PackedVector2Array, g: float, glass: Color, roof: Color, sk
 					Vector2(run + length, h0), Vector2(run + length, h1), Vector2(run, h1), SPIRE_TOP)
 			run += length
 	_mode = keep
-	_spire_spines(base, c, axis, g)
+	_spire_fins(base, c, axis, g)
 	_spire_crown(base, c, axis, g, glass, skin)
 	var top := SpireMotion.ring(base, SPIRE_TOP)
 	# The roof inside the ring (IMG_7351): a gravel walk, then a pale ribbed drum in two tiers with
@@ -6280,7 +6281,13 @@ func _spire(outline: PackedVector2Array, g: float, glass: Color, roof: Color, sk
 	# The masts (the two OSM parts' spots), the beacons' posts.
 	for m: Vector2 in masts:
 		var post := PackedVector2Array([m + Vector2(-0.5, -0.5), m + Vector2(0.5, -0.5), m + Vector2(0.5, 0.5), m + Vector2(-0.5, 0.5)])
-		_prism(post, g + SPIRE_TOP + 11.0, g + 220.0, Color("#d5dade"), Color("#e8ecef"), M_STONE, M_STONE)
+		# white with a red tip in aviation bands (F's night photos: the two masts' red tips), a
+		# red lamp on top that glows at night
+		_prism(post, g + SPIRE_TOP + 11.0, g + 212.0, Color("#d5dade"), Color("#e8ecef"), M_STONE, M_STONE)
+		for k in 4:
+			var tip := SPIRE_MAST_RED if k % 2 == 0 else Color("#e8ecef")
+			_prism(post, g + 212.0 + k * 2.0, g + 214.0 + k * 2.0, tip, tip, M_STONE, M_STONE)
+		_prism(_square(m, 0.45), g + 220.0, g + 221.0, DUSK_RED, DUSK_RED, M_LAMP, M_LAMP)
 	_collide(foot)
 	_aviation(top, func(_q: Vector2) -> float: return g + SPIRE_TOP + SPIRE_CROWN.x)  # the dusk loop
 	_spire_columns(foot, c, g)
@@ -6294,28 +6301,51 @@ func _spire(outline: PackedVector2Array, g: float, glass: Color, roof: Color, sk
 	_spire_water()
 
 
-## The lit spine up each narrow end (the night photo IMG_7332): a strip 2 m wide, 0.15 m proud of
-## the glass, from the lobby to the crown's tip, cool white at night.
-func _spire_spines(base: PackedVector2Array, c: Vector2, axis: Vector2, g: float) -> void:
+## The fins (F's night photos IMG_7977, 7979 and the street photos: a glass blade stands out of
+## each narrow end the whole height and runs on past the roof into the crown's horns): a blade
+## SpireMotion.FIN_OUT deep and 0.6 m thick from FIN_FROM (over the canopy's tips) to FIN_TOP, pale
+## glass lit cool at night; its front edge carries spire_motion.gd's line of light.
+func _spire_fins(base: PackedVector2Array, c: Vector2, axis: Vector2, g: float) -> void:
 	var keep := _mode
-	_mode = M_PAVILION + 0.5
 	for d: Vector2 in [axis, -axis]:
-		var best := 0
-		for i in base.size():
-			if (base[i] - c).dot(d) > (base[best] - c).dot(d):
-				best = i
-		var side := Vector2(-d.y, d.x)
-		var hs: Array = SPIRE_RINGS.duplicate()
-		hs.append(SPIRE_TOP + SPIRE_CROWN.x + SPIRE_CROWN.y - 1.0)
+		var side := Vector2(-d.y, d.x) * 0.3
+		var hs: Array[float] = [SpireMotion.FIN_FROM]
+		for r: float in SPIRE_RINGS:
+			if r > SpireMotion.FIN_FROM:
+				hs.append(r)
+		hs.append(SpireMotion.FIN_TOP)
 		for s in hs.size() - 1:
-			var h0: float = hs[s]
-			var h1: float = hs[s + 1]
-			var p0 := c + (base[best] - c) * SpireMotion.k_at(minf(h0, SPIRE_TOP)) + d * 0.15
-			var p1 := c + (base[best] - c) * SpireMotion.k_at(minf(h1, SPIRE_TOP)) + d * 0.15
-			var w1 := 1.0 if h1 <= SPIRE_TOP else 0.25
-			_quad(Vector3(p0.x - side.x, g + h0, p0.y - side.y), Vector3(p0.x + side.x, g + h0, p0.y + side.y),
-					Vector3(p1.x + side.x * w1, g + h1, p1.y + side.y * w1), Vector3(p1.x - side.x * w1, g + h1, p1.y - side.y * w1),
-					Vector3(d.x, 0.0, d.y), SPIRE_SPINE, Vector2(0, h0), Vector2(2, h0), Vector2(2, h1), Vector2(0, h1), SPIRE_TOP)
+			var h0 := hs[s]
+			var h1 := hs[s + 1]
+			var e0 := SpireMotion.fin_edge(base, d, h0)
+			var e1 := SpireMotion.fin_edge(base, d, h1)
+			# the blade's root a little inside the glass so no seam shows
+			var b0 := e0 - d * (SpireMotion.FIN_OUT + 0.3)
+			var b1 := e1 - d * (SpireMotion.FIN_OUT + 0.3)
+			var uv := [Vector2(0, h0), Vector2(SpireMotion.FIN_OUT, h0), Vector2(SpireMotion.FIN_OUT, h1), Vector2(0, h1)]
+			_mode = M_PAVILION + 0.5
+			for sg in [-1.0, 1.0]:
+				var o: Vector2 = side * sg
+				_quad(Vector3(b0.x + o.x, g + h0, b0.y + o.y), Vector3(e0.x + o.x, g + h0, e0.y + o.y),
+						Vector3(e1.x + o.x, g + h1, e1.y + o.y), Vector3(b1.x + o.x, g + h1, b1.y + o.y),
+						Vector3(o.x, 0.0, o.y).normalized(), SPIRE_SPINE, uv[0], uv[1], uv[2], uv[3], SPIRE_TOP)
+			_mode = M_STONE
+			_quad(Vector3(e0.x - side.x, g + h0, e0.y - side.y), Vector3(e0.x + side.x, g + h0, e0.y + side.y),
+					Vector3(e1.x + side.x, g + h1, e1.y + side.y), Vector3(e1.x - side.x, g + h1, e1.y - side.y),
+					Vector3(d.x, 0.0, d.y), SPIRE_STEEL)
+			if h0 >= SPIRE_TOP:
+				# over the roof the blade's back is in the air
+				_quad(Vector3(b0.x - side.x, g + h0, b0.y - side.y), Vector3(b0.x + side.x, g + h0, b0.y + side.y),
+						Vector3(b1.x + side.x, g + h1, b1.y + side.y), Vector3(b1.x - side.x, g + h1, b1.y - side.y),
+						Vector3(-d.x, 0.0, -d.y), SPIRE_STEEL.darkened(0.1))
+		# the blade's top and its foot
+		for at: Array in [[hs[hs.size() - 1], Vector3.UP], [hs[0], Vector3.DOWN]]:
+			var h: float = at[0]
+			var e := SpireMotion.fin_edge(base, d, h)
+			var bb := e - d * (SpireMotion.FIN_OUT + 0.3)
+			_mode = M_STONE
+			_quad(Vector3(bb.x - side.x, g + h, bb.y - side.y), Vector3(e.x - side.x, g + h, e.y - side.y),
+					Vector3(e.x + side.x, g + h, e.y + side.y), Vector3(bb.x + side.x, g + h, bb.y + side.y), at[1], SPIRE_STEEL)
 	_mode = keep
 
 

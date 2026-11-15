@@ -40,7 +40,7 @@ const TABLE: Array[Dictionary] = [
 	{"key": "patelnia", "script": "res://scripts/patelnia.gd", "node": "Patelnia", "tris": 19300, "own": 0},
 	{"key": "plac_pieciu_rogow", "script": "res://scripts/plac_pieciu_rogow.gd", "node": "PlacPieciuRogow", "tris": 10200, "own": 0},
 	{"key": "tarasy_screen", "script": "res://scripts/tarasy_screen.gd", "node": "TarasyScreen", "tris": 6, "own": 1},
-	{"key": "spire_motion", "script": "res://scripts/spire_motion.gd", "node": "SpireMotion", "tris": 720, "own": 2,
+	{"key": "spire_motion", "script": "res://scripts/spire_motion.gd", "node": "SpireMotion", "tris": 7300, "own": 2,
 			"solo": ["spire"]},
 	{"key": "street_details", "script": "res://scripts/street_details.gd", "node": "StreetDetails", "tris": 96200, "own": 0},
 	{"key": "ratusz_hub", "script": "res://scripts/ratusz_hub.gd", "node": "RatuszHub", "tris": 14000, "own": 0},
