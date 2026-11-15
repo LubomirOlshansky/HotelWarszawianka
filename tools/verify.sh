@@ -197,6 +197,9 @@
 # 09-19, Live Jun-Sep) and one run an hour, the follow count and its reset, the look's draw-call
 # budget (2 car meshes, no node added), a run on the real tracks finding E39 once; centrum.json only
 # (CI too).
+# The University guards' cart (2026-11-15): `campus` runs game/tools/check_campus.gd: the ring round
+# the campus lawn and the kiosk stop, `blocked` and `speed_at`, the one-surface look, a run that laps,
+# is held by a parked car (the guard's line) and hides far from the view, the uw_guard and students lines.
 # The tram fleet (2026-11-06): `tramfleet` runs game/tools/check_tram_fleet.gd: the four looks' meshes
 # (one surface, size, vertex cap), the eight trams carrying FLEET's looks (never more car meshes than
 # three), the vintage swap on an old pair and back, a minute of running; centrum.json only (CI too).
@@ -1388,6 +1391,8 @@ for s in $want; do
 		# Crazy drivers: Szkoda taxis, Szprynter couriers, the Pasatini.
 		crazy) check crazy '^check_crazy_drivers:' --script res://tools/check_crazy_drivers.gd ;;
 		oldtram) check oldtram '^check_old_tram:' --script res://tools/check_old_tram.gd ;;
+		# The University guards' cart (F 2026-11-15): its ring, its rules, its look, a held run, the words.
+		campus) check campus '^check_campus:' --script res://tools/check_campus.gd ;;
 		# The tram fleet: the newest tram, the old pairs and today's, on the real tracks.
 		tramfleet) check tramfleet '^check_tram_fleet:' --script res://tools/check_tram_fleet.gd ;;
 		# The railway (docs/design/railway.md T1): the trains on the rail tracks.
