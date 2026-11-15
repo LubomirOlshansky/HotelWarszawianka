@@ -64,17 +64,47 @@ A square lattice mast from 228 m to 274 m, 3 m wide at the foot and 1.9 m at the
 (2.6 m). A tapering pole from 274 to 308 m, a small lit ring at 294 m, the red lamp to 309.3 m and
 the dusk loop's red light on top at 310 m.
 
-## 6. Night
+## 6. Colour and material
 
-The rooms in the glass (M_GLASS's own share), the lobby warm, the observation box cool white, the
-dish platforms and ring glowing white, the piers' lamp strips, the red lamp.
+Glass #2a5c93 in M_GLASS (the shader's own mullions and transoms, lit rooms at night); the frame
+#565c63, the piers #959ba1 and the louvres #d3d8dc (ribs a shade darker) in the building material;
+roofs #5d6369; the spire's steel #b9c0c8; the dish platforms and the ring #dfe4e9 in M_LAMP; the
+lobby and the observation box in M_PAVILION (the box + 0.5, cool); canopy, lid and service boxes
+in the kit's iron and dark steel.
 
-## 7. Budget
+## 7. Ground and night
 
-3,614 triangles (budget 4,300), no z-fights, no floating parts; the same building material, so
-no draw call is added. No shader change (building.gdshader stays 501 of 505).
+The pavement, Chmielna, Varso Place and the tracks' edge are the map's. Car collision on the mapped
+parts that stand on the ground. Night: the rooms in the glass (M_GLASS's own share), the lobby
+warm, the observation box cool white, the dish platforms and ring glowing white, the piers' lamp
+strips, the red lamp and the dusk loop's red light at 310 m.
 
-## 8. Not built, and what only the phone or the Mac can show
+## 8. Detail level and budget
+
+L3 (the tallest building in the city, seen from half the map), 3,614 triangles, budget 4,300
+(check_mesh_quality BUDGET "varso"); no z-fights, no floating parts; the same building material,
+so no draw call is added. No shader change (building.gdshader stays 501 of 505).
+
+## 9. Parts table
+
+| id | shape | size | position | material | feature |
+| --- | --- | --- | --- | --- | --- |
+| slabs | prisms | mapped rings, to 177, 205 and 230 m | the mapped parts | M_GLASS #2a5c93, roof #5d6369 | 1, 3 blue stack |
+| posts | 3 walls each | 0.44 m wide, 0.34 m proud | every ~4.6 m and each corner, from 12 m | #565c63 | 2 grey frame |
+| transoms | front walls | 0.5 m tall, 0.26 m proud | every 8.3 m from 12 m | #565c63 | 2 grey frame |
+| louvres | plates + ribs | 0.12 m proud, ribs every 1.2 m | 193-204 m and 213.5 m to the top, faces on the crown strips | #d3d8dc | 4 crown |
+| crown screen | prisms + mullions | mapped strips | above the 230 m roof, to 234 m | #d3d8dc | 4 crown |
+| piers | prisms | 1 x 8-11 m, to 209 and 234 m | the mapped piers at the steps | #959ba1 | 3 piers |
+| pier lamps | strips | the pier's end, full height | each pier's outer end | M_LAMP | 3 piers at night |
+| lobby | prism + ledge | mapped ring, 12 m, canopy 1.4 m | west and east of the tower | M_PAVILION, canopy iron | ground floor |
+| deck | box + lid | 5 x 5 x 6 m | 230 m roof, corner farthest from the spire | M_PAVILION + 0.5, lid iron | observation box |
+| mast | 4 leg beams + braces | 3 m to 1.9 m wide, 228-274 m, 11 panels | the L's south-west corner | #b9c0c8 | 5 lattice spire |
+| dishes | 12-sided prisms | r 3 m (r 2.6 m at 274), 0.7 m deep | 240, 250, 260, 274 m | M_LAMP #dfe4e9 | 5 dish platforms |
+| pole | frustum | 274-308 m | on the mast | #b9c0c8 | 5 thin pole |
+| ring | prism | r 1.1 m, 0.5 m | 294 m | M_LAMP | 5 small ring |
+| red lamp | box + dusk light | 1.3 m | 309.3-310 m | red lamp, DUSK_RED | 5 red lamp |
+
+## 10. Not built, and what only the phone or the Mac can show
 
 - The louvres' exact band heights are read from photos taken from the ground. Which faces carry
   them follows the mapped crown strips: the south arm's south face and east end (photos 3, 4, 7)
