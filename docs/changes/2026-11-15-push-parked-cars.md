@@ -1,0 +1,12 @@
+- With Łamliwe płoty on, parked cars no longer stop the car dead: bump one and it slides away with a knock and a spin, never into a lane, and is back in its bay later. Off (the default), they stay solid as before.
+
+## Backlog
+- fixed: the sloppy driver's dead stops on parked cars (the city objects plan, step 8a): parked cars have no collider when the soft things are on; their boxes are the sector's `soft_cars` list (both city paths) and `soft_things.gd` pushes them (the player keeps 1 - 0.25 |cos| of its speed, the car takes 0.6 of the speed into its face and slides with 6 m/s² friction, one cast against the walls; a car that cannot move half a metre is a wall for `car.gd`; a car pushed on pushes the next). Sloppy set A with `--soft` (prebuilt, Cruise, with Krucza, Wspólna, Polna, Noakowskiego and Hoża's parking): dead stops on a parked car 1 → 0, speed kept on a parked contact 0.77 (median), all dead stops 23 → 21
+- fixed: one switch for every soft thing: Settings → Świat → "Łamliwe płoty · Smashable fences" (and `--soft` / `--no-soft`) now covers the parked cars too; the label is unchanged (QUESTIONS: rename it?)
+- found: the lane rule (a pushed car never rests in a lane) cannot always find a rest: over check_soft_things' four sectors, 31 of 644 test pushes would rest in a lane with friction alone; the rule lengthens or shortens the rest, makes 12 a wall (the only clear rest under 0.5 m) and tows 8 (hidden once out of view, back in the bay by rule B); 3 bays are already in a lane (the bake's matter, step 8b)
+- found: step 7's fence and hedge sweep never sweeps in `--monolithic` (the whole-city build): `soft_things.gd` looks fences up by sector key and never under the whole city's key (the parked cars do look there)
+- found: a pushed car rests at the ground's height (`map_builder.gd` `terrain_height`), so on a raised pavement it sits up to a kerb's height low; on Krucza it reads fine at phone size
+- found: driving among parked cars costs the soft things about 45 µs more a physics step on the cloud machine (check_soft_things M6, median 58 µs against about 13 µs with no cars); three cars sliding about 15 µs. To watch on the phone
+
+## Roadmap
+- ticked (half): "Fences and hedges break when driven through (Smash class, in bulk); parked cars can be pushed, thinned in pinches": parked cars can be pushed; the thinning in pinches (step 8b) stays open

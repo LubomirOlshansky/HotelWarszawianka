@@ -926,7 +926,7 @@ func _finish() -> void:
 		print("check_lane_drive: soft things: %d smashes (%s), %d panels broken" % [_smashes(),
 				", ".join(sp), soft.panels_broken])
 		if soft_on:
-			print("check_lane_drive: parked cars: %d pushes, %d walls (%d by the lane rule), %d carried on, %d towed" % [
+			print("check_lane_drive: parked cars: %d pushes, %d walls (%d by the lane rule), %d chain pushes, %d towed" % [
 					soft.pushes, soft.wedges, soft.lane_wedges, soft.chains, soft.towed])
 		if sloppy:
 			print("check_lane_drive: sloppy driver over %.1f km" % (_total_m / 1000.0))
