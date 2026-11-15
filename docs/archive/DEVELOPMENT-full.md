@@ -5456,6 +5456,27 @@ System Trace: the iPhone 11 at ×2 holds 60 at its lowest GPU clock, Loop G1 abo
 
 ## Map data
 
+**Parked rows thinned in the pinches (city objects plan item 4, step 8b, 2026-11-15)**: `tools/parked_thin.py`
+is a pass on main's centrum.json (TD-25: stamp `parked_thin: 1`, a second run changes nothing; the last
+pass of bake_osm, after object_types; listed in `tools/check_post_passes.py`). On the lane graph's
+corridors (every edge but the tunnels; a deck's lanes only where they are within 2.5 m of the ground,
+soft_things.gd's level test, read from terrain.json) and the parked car's box (soft_things.gd
+`CAR_HALF` 0.9 × 2.1 m): **IN** a box reaching into a lane (soft_things.gd `in_corridor`'s nine points)
+moves straight out by its depth + 0.15 m (at most 0.6 m, to a spot off buildings, zebras, tracks and
+other cars) or goes; **JN** a car within 15 m of a junction node (three or more neighbours) whose box is
+within 1 m of a lane's edge goes; **PINCH** where the free width (the nearest lane's width + the gap from
+its edge to the box + the clear asphalt past its far edge up to the next lane, a kerb, a building or
+another parked car) is under 3.6 m, every other car of the row goes (rows: side by side, the car parks'
+bays, or nose to tail, road_design's parking lanes; by index along the row, odd ones go; a car alone
+stays). The rules read the map as the bake left it, so the order does not matter. On main's map: 4,893 →
+4,821 cars (JN 23, PINCH 49 of 142 pinched; IN 25 moved 0.2-0.3 m, none removed: one-lane one-way
+streets whose 5.5 m lane is the whole road, the box's corner 5-14 cm over its edge; Wspólna 14). `--check`
+(verify step `parkedthin`) recomputes the classes on the thinned map: IN, JN and pinched pairs in
+neighbouring bays 25 / 23 / 35 → 0 / 0 / 0. `check_map_data.py` EXPECTED counts `parked` now (19,284 values,
+and over the sectors). ao.bin re-baked (bake_ao.py reproduces main's file byte for byte from main's map;
+after the pass 4,405 pixels of the small things' channel changed, none of the buildings'), so no shade
+is left where a car went. `--dry --tsv=FILE` writes the per-street table.
+
 **Barrier types (city objects plan step 5, 2026-11-14)**: `tools/object_types.py` is the last pass of
 bake_osm (also a CLI on a baked map: `apply`, `fetch` for an Overpass context file in
 `data/raw/osm/` where there is no raw export, `--selftest` = verify step `objecttypes`). It gives every fence, wall
