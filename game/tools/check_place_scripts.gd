@@ -37,6 +37,7 @@ const KNOWN := {
 	"ratusz_hub": {"zfight": 271, "degenerate": 8, "float": 382},
 	"park_details": {"zfight": 2357, "float": 3602},
 	"tamka": {"zfight": 364, "float": 20},
+	"light_garden": {"float": 7},  # the dandelion clocks' bulb tips on their spikes (2026-11-15)
 }
 
 var problems: Array[String] = []
