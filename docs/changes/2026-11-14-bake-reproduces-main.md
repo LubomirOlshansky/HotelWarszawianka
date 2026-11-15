@@ -5,6 +5,8 @@
 - found: the streaming identity check (`check_streaming.gd --only=identity`, sectors against the whole city) was already not clean on the from-scratch map: 219 problems before this change, 138 after (platform heights and the two caches above); mostly building tiles and fixtures near sector borders, not looked into further.
 - found: rebuilding one sector twice in one builder gives the same vertices in another triangle order for 1 of 112 sectors (2_1, buildings, tile 5,3); no script variable of the builder or its objects changes between the two builds. Drawn the same; `check_sector_order.gd` counts it apart as "order only".
 
+- found: the rule for map changes is now written in docs/architecture/decisions.md and `tools/check_post_passes.py`: the map changes only through stamp-guarded, idempotent post-passes on main's `centrum.json`, each listed in `check_post_passes.py` (covers the walls plan steps 8b, 9, 10, 13 and #779). F decided 2026-11-15: main's map stays the base, no re-stamp from the from-scratch map.
+
 ## Roadmap
 - ticked: "Map: the bake chain reproduces main's map" (partly: the causes are fixed and guarded, the residual is listed above)
 - found: the from-scratch comparison is a Mac command (needs `data/raw`, about 10 minutes): see the usage docstring of `tools/diff_map.py`. The no-raw-data guards are `tools/check_post_passes.py` (verify step `postpasses`) and, on the Mac with a window, `game/tools/check_sector_order.gd` (step `sectororder`, local, about 10 minutes).

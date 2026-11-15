@@ -6,6 +6,7 @@ extends SceneTree
 ## order, and compares each sector's meshes, MultiMeshes and collider faces (the same hashes as
 ## check_streaming.gd's identity part, but per sector, so a difference names the sector that
 ## changed). A difference means `build_sector` reads state an earlier sector left behind.
+## `--dump=FILE` also writes every sector's hashes (index order) as JSON, to diff two builds of the code.
 ## Needs a renderer and the sector split (tools/bake_sectors.py): a window opens.
 ##   godot --path game --resolution 320x180 --script res://tools/check_sector_order.gd [-- --verbose]
 ## A mesh whose vertices are the same set in another order is counted apart (`order only`), not a failure.
@@ -28,6 +29,12 @@ func _run() -> void:
 			var want := a.trim_prefix("--sectors=").split(",")
 			keys = keys.filter(func(k: Array) -> bool: return ("%d_%d" % [int(k[0]), int(k[1])]) in want)
 	var fwd := _build_all(index, keys)
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("--dump="):
+			# Every sector's hashes in index order, for comparing two builds of the code (before/after a change).
+			var f := FileAccess.open(a.trim_prefix("--dump="), FileAccess.WRITE)
+			f.store_string(JSON.stringify(fwd, "", true))
+			f.close()
 	var rev_keys := keys.duplicate()
 	rev_keys.reverse()
 	var rev := _build_all(index, rev_keys)

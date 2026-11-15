@@ -1,5 +1,9 @@
 """Are the bake's post-passes a fixed point on the committed map?
 
+The rule (docs/architecture/decisions.md): the map changes only through stamp-guarded, idempotent
+post-passes on main's centrum.json, each listed in this file (`passes()` below). A new pass joins
+that list in the same change.
+
 Usage: python3 -I tools/check_post_passes.py [MAP_DIR] [--only=a,b] [--verbose]
 
 bake_osm.py ends with passes that each run on a finished map (road_fixes, lane_tapers,
