@@ -1309,6 +1309,7 @@ for s in $want; do
 		language) check language '^check_language:' --script res://tools/check_language.gd ;;
 		# Loop G1: model id -> tier, the pixel image at the phones' sizes; the governor's rules.
 		tiers) check tiers '^check_tiers:' --script res://tools/check_tiers.gd ;;
+		trees) check trees '^check_trees:' --script res://tools/check_trees.gd ;;
 		governor) check governor '^check_governor:' --script res://tools/check_governor.gd ;;
 		# 2026-11-08: the Adreno 6xx driver's shader size limit (gpu_quirks.gd); source only, CI too.
 		shaderbudget) check shaderbudget '^check_shader_budget:' --script res://tools/check_shader_budget.gd ;;
