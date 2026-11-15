@@ -258,6 +258,8 @@ SITE_AREAS = [
     (-1175, -1693, -1129, -1645),   # church_plebania_katedra_polowa
     (-2428, -1133, -2392, -1097),   # church_plebania_augustyn
     (-2925, -682, -2872, -625),   # church_uczennice_boskiego_mistrza
+    (-222, -545, -175, -496),   # church_sluzki_dom_generalny
+    (-2820, -712, -2762, -673),   # church_siostry_milosierdzia_zytnia
     (32, -222, 111, -100),   # szarytki
     (-102, -74, -63, -31),   # adwentysci
     (-860, -1600, -810, -1545),   # elzbietanki
