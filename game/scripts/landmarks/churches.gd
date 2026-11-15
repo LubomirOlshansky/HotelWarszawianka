@@ -4255,6 +4255,89 @@ func _build_reformaci_klasztor(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The Field Cathedral's presbytery (plebania of Katedra Polowa Wojska Polskiego, Długa 13/15):
+## a three-storey house in pale cream plaster that stands against the cathedral's north side, its
+## front on Długa a step ahead of the church's, with stucco window surrounds, a balcony over the
+## arched door and a gabled roof along the street. A model that replaces the plain OpenStreetMap
+## block (building 1833; no landmark until 2026-11-15). From two street photos on Długa
+## (Mapillary, refs/churches/plebania_katedra_polowa, reference only, never shipped; trees hide
+## the upper floors), the OSM outline and GUGiK's LoD2 (over the ground: the eaves about 12.8,
+## the ridge about 17.3). The roof colour and the back walls are defaults (docs/QUESTIONS.md).
+## Spec docs/landmarks/specs/plebania_katedra_polowa.md.
+## Frame: origin at the front's corner by the cathedral, u to the north-east along Długa, +v to
+## the south-east, into the block; the front faces Długa (-v).
+const PLK_O := Vector2(-1165.3, -1665.4)
+const PLK_A := Vector2(0.624, -0.781)
+const PLK_WALL := Color("#e8dcc0")      ## pale cream plaster (photos)
+const PLK_TRIM := Color("#f3ece0")      ## window surrounds, cornice, string courses
+const PLK_ROOF := Color("#6f8d7e")      ## green copper like the cathedral's (a default)
+const PLK_DOOR := Color("#4a3426")      ## the oak door
+
+
+func _build_plebania_katedra_polowa(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(PLK_O, PLK_O + PLK_A)
+	_g = _ground_under(outline)
+	var g := _g
+	_mode = M_STONE
+	var eave := g + 12.8
+	_prism(outline, g - 1.0, eave, PLK_WALL, PLK_ROOF.darkened(0.2), M_STONE, M_STONE)
+	kit_cornice_ring(outline, eave - 0.45, PLK_TRIM, 0.45, 0.4)
+	kit_ledge_ring(outline, g - 1.0, 1.3, PLK_TRIM.darkened(0.06), 0.06)
+	_gable(22.75, -0.28, 7.58, 7.75, eave, 4.5, PLK_WALL, PLK_ROOF, true)
+	# --- the front on Długa: three rows of seven windows, framed, the balcony over the door
+	var ln := kit_front(_w(22.65, -0.17), _w(0.0, 0.0))
+	kit_face(0.0)
+	var cols: Array = []
+	for i in 7:
+		cols.append(1.9 + float(i) * (ln - 3.8) / 6.0)
+	var mid: float = cols[3]
+	kit_ledge(0.0, ln, g + 4.6, 0.25, PLK_TRIM, 0.1)
+	kit_ledge(0.0, ln, g + 8.7, 0.25, PLK_TRIM, 0.1)
+	for c: float in cols:
+		for row: Array in [[g + 1.4, 1.8], [g + 5.3, 2.4], [g + 9.3, 1.9]]:
+			var y0: float = row[0]
+			var h: float = row[1]
+			if c == mid and y0 < g + 2.0:
+				continue
+			_kbox(c - 0.75, c + 0.75, 0.0, 0.08, y0 - 0.2, y0 + h + 0.2, PLK_TRIM)
+	kit_face(0.08)
+	for c: float in cols:
+		if c != mid:
+			kit_panes([c], [g + 1.4], 1.1, 1.8, PAL_GLASS_DARK, 0.05)
+	kit_panes(cols, [g + 5.3], 1.1, 2.4, PAL_GLASS_DARK, 0.05)
+	kit_panes(cols, [g + 9.3], 1.1, 1.9, PAL_GLASS_DARK, 0.05)
+	for c: float in cols:
+		_kbox(c - 0.85, c + 0.85, 0.0, 0.18, g + 7.9, g + 8.1, PLK_TRIM)   # the first floor's hoods
+	kit_face(0.0)
+	# the arched door in its stone portal, and the balcony over it on two brackets
+	_kbox(mid - 1.4, mid + 1.4, 0.0, 0.25, g - 0.2, g + 4.0, PLK_TRIM)
+	kit_face(0.25)
+	kit_door(mid, g, 3.4, 0.95, PLK_TRIM.darkened(0.08), PLK_DOOR, true)
+	kit_face(0.0)
+	_kbox(mid - 2.2, mid + 2.2, -1.0, 0.0, g + 4.75, g + 5.0, PLK_TRIM)
+	_kbox(mid - 2.2, mid + 2.2, -1.0, -0.9, g + 5.0, g + 5.95, PLK_DOOR.darkened(0.3))
+	for s: float in [-1.6, 1.6]:
+		_kbox(mid + s - 0.15, mid + s + 0.15, -0.9, 0.0, g + 4.1, g + 4.75, PLK_TRIM)
+	# --- two rows of windows on the other walls (not the one against the cathedral)
+	kit_front(PLK_O, PLK_O + PLK_A)
+	var n := outline.size()
+	for k in n:
+		if k == 1 or k == 2 or k == 3:
+			continue
+		kit_front(PLK_O, PLK_O + PLK_A)
+		var le := kit_front(outline[(k + 1) % n], outline[k])
+		if le < 4.0:
+			continue
+		var m := maxi(1, floori(le / 3.2))
+		var cs: Array = []
+		for i in m:
+			cs.append((float(i) + 0.5) * le / float(m))
+		kit_panes(cs, [g + 1.4, g + 5.3, g + 9.3], 1.1, 1.9, PAL_GLASS_DARK, 0.05)
+	kit_front(PLK_O, PLK_O + PLK_A)
+	_collide(outline)
+
+
 const SZT_WALL := Color("#e9e7e0")           ## white plaster (photos 01, 03, 11)
 const SZT_ROOF := Color("#7c9171")           ## dull green copper (photos 01, 02)
 const SZT_TURRET := Vector2(57.0, -162.0)    ## where the south range meets the west one (a default: photo 02)
@@ -6670,6 +6753,8 @@ const CHURCHES := [
 			"fill": 0.8, "style": "baroque", "wall": "#e6d4a6", "roof": "#97594a", "towers": 0, "cap": "none"},
 	{"key": "church_rodziny_maryi", "at": Vector2(-2617.0, -739.0), "o": Vector2(-2625.3, -761.4), "out": Vector2(-0.356, -0.934), "L": 13.5, "W": 49.4,
 			"fill": 0.9, "style": "neoclassical", "wall": "#e6c2a2", "roof": "#4d5257", "towers": 0, "cap": "none"},
+	{"key": "church_plebania_katedra_polowa", "at": Vector2(-1152.6, -1669.6), "o": Vector2(-1165.3, -1665.4), "out": Vector2(-0.781, -0.624), "L": 23.0, "W": 15.2,
+			"fill": 0.9, "style": "neoclassical", "wall": "#e8dcc0", "roof": "#6f8d7e", "towers": 0, "cap": "none"},
 	{"key": "church_reformaci_klasztor", "at": Vector2(-1170.0, -1001.0), "o": Vector2(-1193.3, -1001.9), "out": Vector2(-0.7464, -0.6655), "L": 36.0, "W": 36.0,
 			"fill": 0.9, "style": "baroque", "wall": "#f0ece2", "roof": "#c4603d", "towers": 0, "cap": "none"},
 	{"key": "church_wizytki_klasztor", "at": Vector2(-444.8, -828.1), "o": Vector2(-458.1, -836.4), "out": Vector2(-0.518, -0.856), "L": 52.0, "W": 56.0,
@@ -6771,6 +6856,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_czestochowska":
 		_build_czestochowska(site)  # the modernist A-frame church and its pylons, from photos
+		return
+	if site["key"] == "church_plebania_katedra_polowa":
+		_build_plebania_katedra_polowa(site)  # the Field Cathedral's presbytery on Długa, from photos and LoD2
 		return
 	if site["key"] == "church_reformaci_klasztor":
 		_build_reformaci_klasztor(site)  # the Reformati friary by St Anthony's from LoD2 (the church's colours)
