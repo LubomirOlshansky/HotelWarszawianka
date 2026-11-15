@@ -1987,6 +1987,8 @@ func _set_quality(choice: int) -> void:
 	var qs: Dictionary = QUALITY[quality]
 	tod.shadows_allowed = qs["shadows"]
 	tod.glow_allowed = qs["glow"]
+	if map != null and map.leaf_material != null:
+		map.leaf_material.set_shader_parameter("limbs", 1.0 if qs.get("tree_limbs", true) else 0.0)
 	if crowds != null:
 		crowds.amount = _crowd_scale()
 		crowds.refresh()
