@@ -43,7 +43,7 @@ Outlines are cleaned of their notches under 3 m² (`_varso_clean`), so the glass
 - **The frame** (#565c63) over it on every face nothing stands in front of: posts 0.44 m wide and
   0.34 m proud every ~4.6 m and at each corner, transoms 0.5 m tall and 0.26 m proud every 8.3 m
   (two storeys) from the lobby's 12 m up.
-- **The crown** on the faces the crown strips stand on: silver louvre plates (#d3d8dc, 0.12 m
+- **The crown** on the faces the crown strips stand on (any of twelve probe points up to 1.6 m inside the face falls in a strip): silver louvre plates (#d3d8dc, 0.12 m
   proud, a darker rib every 1.2 m) from 193 to 204 m and from 213.5 m to the top, the slab's glass
   showing between them. Over the 230 m roof the strips are the louvred screen to 234 m.
 - **Piers** (#959ba1) from the ground to 209 and 234 m, a lamp strip up each one's outer end.
@@ -71,12 +71,13 @@ dish platforms and ring glowing white, the piers' lamp strips, the red lamp.
 
 ## 7. Budget
 
-3,602 triangles (budget 4,300), no z-fights, no floating parts; the same building material, so
+3,614 triangles (budget 4,300), no z-fights, no floating parts; the same building material, so
 no draw call is added. No shader change (building.gdshader stays 501 of 505).
 
 ## 8. Not built, and what only the phone or the Mac can show
 
-- The louvres' exact band heights are read from photos taken from the ground; the faces F's
-  photo from above shows without louvres (the inner faces round the garden) are glass.
+- The louvres' exact band heights are read from photos taken from the ground. Which faces carry
+  them follows the mapped crown strips: the south arm's south face and east end (photos 3, 4, 7)
+  and the faces round the garden (photo 5); the west arm's outer face stays framed glass.
 - The vents in some frame cells, the glass balustrade on top of the crown, the lobby's entrance.
 - Phone: the frame at the game's zoom (a grid or noise?), the spire's dishes at night.

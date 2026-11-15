@@ -3946,7 +3946,10 @@ func _varso_frame(m: Dictionary, all: Array[Dictionary], crowns: Array[Dictionar
 		# The heights of this face something else covers: a slab in front of it, or a crown strip
 		# on it (the strips hug the outline just inside it), which dresses that stretch instead.
 		var probe := (a + b) * 0.5 + out * 0.6
-		var inner := (a + b) * 0.5 - out * 0.6
+		var inner: Array[Vector2] = []
+		for t: float in [0.25, 0.5, 0.75]:
+			for depth: float in [0.3, 0.6, 1.0, 1.6]:
+				inner.append(a.lerp(b, t) - out * depth)
 		var spans: Array[Vector2] = [Vector2(y0, y1)]
 		var crowned: Array[Vector2] = []
 		for o: Dictionary in all + crowns:
@@ -3955,7 +3958,7 @@ func _varso_frame(m: Dictionary, all: Array[Dictionary], crowns: Array[Dictionar
 			var c0: float = o["y0"]
 			var c1: float = o["y1"]
 			if not Geometry2D.is_point_in_polygon(probe, o["p"]):
-				if not (crowns.has(o) and Geometry2D.is_point_in_polygon(inner, o["p"])):
+				if not crowns.has(o) or not inner.any(func(q: Vector2) -> bool: return Geometry2D.is_point_in_polygon(q, o["p"])):
 					continue
 				if minf(c1, y1) - maxf(c0, y0) > 0.5:
 					crowned.append(Vector2(maxf(c0, y0), minf(c1, y1)))
