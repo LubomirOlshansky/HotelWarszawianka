@@ -4637,7 +4637,8 @@ func _forest_wing(poly: PackedVector2Array, g: float, h: float, terrace: bool) -
 	_no_roof = true
 	var hedge := _largest(Geometry2D.offset_polygon(poly, -0.5, Geometry2D.JOIN_MITER))
 	if hedge.size() >= 3:
-		_prism(hedge, glass_top, glass_top + 0.7, FOREST_GREEN.darkened(0.12), Color(0, 0, 0, 0), M_STONE, M_STONE)
+		# The ledge is a low carpet of sedum and white flowers (the photos), not a hedge.
+		_prism(hedge, glass_top, glass_top + 0.25, Color("#8fae6c"), Color("#a9c27f"), M_STONE, M_STONE)
 	_no_roof = false
 	if terrace:
 		_forest_terrace(top_ring, g + h)
@@ -4645,100 +4646,226 @@ func _forest_wing(poly: PackedVector2Array, g: float, h: float, terrace: bool) -
 		_forest_garden(top_ring, g + h)
 
 
-## A roof garden on a wing: on a 10 m grid inside the roof, corten planters with their plants,
-## timber deck squares, and every fifth spot a copper-clad stair house (the photos' brown boxes).
+## The roof gardens as they are (F, 2026-11-15, four photos of the public green roof): over the
+## black louvred top storey a black railing with corten posts runs round the edge; inside it a
+## lawn, a dark paved walk along the railing, long wavy beds of clipped shrub in corten edging
+## (silver-green and deep green) with young trees, and corten pavilions with a glass front, a dark
+## coping and a gravel roof. The terrace wing adds a grey deck, a white stretch tent, patio
+## heaters and high tables. Spec docs/landmarks/specs/forest.md section 4.
+const FOREST_LAWN := Color("#6fa04a")
+const FOREST_PATH := Color("#5b5e61")
+const FOREST_SAGE := Color("#a3b592")
+const FOREST_SHRUB := Color("#5f8f43")
+const FOREST_GRAVEL := Color("#908c85")
+const FOREST_TENT := Color("#f1efe8")
+const FOREST_DECK := Color("#756f68")
+
+
+## The black railing round a roof edge: corten posts every `post` m, a black top rail and a black
+## foot, each one flat face towards the street (single quads, the photos' dark band of balusters).
+func _forest_rail(ring: PackedVector2Array, y: float, post := 4.0) -> void:
+	_mode = M_STONE
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var length := a.distance_to(b)
+		if length < 1.0:
+			continue
+		var e := (b - a) / length
+		var out := _out(ring, a, b)
+		_wall(a, b, y + 1.0, y + 1.1, out, FOREST_BLACK)
+		_wall(a, b, y, y + 0.14, out, FOREST_BLACK)
+		var n := maxi(1, floori(length / post))
+		for k in n + 1:
+			var p := a + e * (length * float(k) / float(n))
+			_wall(p - e * 0.05, p + e * 0.05, y, y + 1.1, out, FOREST_CORTEN.darkened(0.25))
+
+
+## Long wavy beds of clipped shrub in corten edging along the edges of `ring` (itself already
+## inside the roof by `inset`), 1.7 m wide, a sage and a deep-green one in turn, a young tree
+## every ~9 m. `bound` is the roof's inner outline: a bed that would leave it is dropped.
+func _forest_beds(ring: PackedVector2Array, bound: PackedVector2Array, y: float, salt: float) -> void:
+	var idx := 0
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var length := a.distance_to(b)
+		if length < 12.0:
+			continue
+		var e := (b - a) / length
+		var inward := -_out(ring, a, b)
+		var pad := 2.5
+		var run := length - pad * 2.0
+		var n := maxi(3, roundi(run / 4.0))
+		var left := PackedVector2Array()
+		var right := PackedVector2Array()
+		for k in n + 1:
+			var t := float(k) / float(n)
+			var base := a + e * (pad + run * t)
+			var amp := 0.9 * sin(t * run / 7.0 + salt + float(i))
+			base += inward * amp
+			left.append(base + inward * 0.85)
+			right.append(base - inward * 0.85)
+		right.reverse()
+		var bed := left + right
+		var ok := true
+		for q in bed:
+			if not Geometry2D.is_point_in_polygon(q, bound):
+				ok = false
+				break
+		if not ok:
+			continue
+		var sage := (idx % 2 == 0)
+		_prism(bed, y + 0.1, y + 0.6, FOREST_CORTEN, FOREST_CORTEN.darkened(0.2), M_STONE, M_STONE)
+		var top := _largest(Geometry2D.offset_polygon(bed, -0.2, Geometry2D.JOIN_MITER))
+		if top.size() >= 3:
+			_prism(top, y + 0.6, y + 1.3, FOREST_SAGE if sage else FOREST_SHRUB, (FOREST_SAGE if sage else FOREST_SHRUB).lightened(0.12), M_STONE, M_STONE)
+		var q := 1
+		while q < n:
+			if (q + idx) % 2 == 0:
+				var t2 := float(q) / float(n)
+				var p := a + e * (pad + run * t2) + inward * 0.9 * sin(t2 * run / 7.0 + salt + float(i))
+				_mode = M_STONE
+				_pyramid(_circle(p, 0.9, 6), y + 1.2, y + 4.0, FOREST_LEAF[(q + idx) % FOREST_LEAF.size()])
+			q += 2
+		idx += 1
+
+
+## A corten pavilion, `c` its centre, `d` its long axis: 5.6 x 3.6 m, 3.2 m high, a dark coping
+## round a gravel roof and a glass front on one long side (the photos' pavilions).
+func _forest_pavilion(c: Vector2, d: Vector2, y: float, bound: PackedVector2Array) -> void:
+	var n := Vector2(-d.y, d.x)
+	var box := PackedVector2Array([c - d * 2.8 - n * 1.8, c + d * 2.8 - n * 1.8, c + d * 2.8 + n * 1.8, c - d * 2.8 + n * 1.8])
+	for q in box:
+		if not Geometry2D.is_point_in_polygon(q, bound):
+			return
+	_prism(box, y + 0.1, y + 3.3, FOREST_CORTEN, FOREST_BLACK, M_STONE, M_STONE)
+	var gr := _largest(Geometry2D.offset_polygon(box, -0.4, Geometry2D.JOIN_MITER))
+	if gr.size() >= 3:
+		_cap(gr, y + 3.36, FOREST_GRAVEL)
+	var f0 := c - d * 2.2 + n * 1.84
+	var f1 := c + d * 2.2 + n * 1.84
+	_mode = M_PAVILION
+	_quad(Vector3(f0.x, y + 0.2, f0.y), Vector3(f1.x, y + 0.2, f1.y), Vector3(f1.x, y + 3.0, f1.y), Vector3(f0.x, y + 3.0, f0.y),
+			Vector3(n.x, 0.0, n.y), Color("#6b8794"))
+	_mode = M_STONE
+
+
+## The longest edge's direction of a ring (the wing's long axis).
+func _forest_axis(ring: PackedVector2Array) -> Vector2:
+	var best := 0.0
+	var d := Vector2.RIGHT
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		if a.distance_to(b) > best:
+			best = a.distance_to(b)
+			d = (b - a).normalized()
+	return d
+
+
+## The interior pieces of a roof (the ring pulled in `in_m`), the biggest first, at most `most`.
+func _forest_pieces(ring: PackedVector2Array, in_m: float, most: int) -> Array[PackedVector2Array]:
+	var pieces: Array[PackedVector2Array] = []
+	for pc in Geometry2D.offset_polygon(ring, -in_m, Geometry2D.JOIN_MITER):
+		if absf(_area(pc)) >= 60.0:
+			pieces.append(pc)
+	pieces.sort_custom(func(p: PackedVector2Array, q: PackedVector2Array) -> bool: return absf(_area(p)) > absf(_area(q)))
+	return pieces.slice(0, most)
+
+
+## A roof garden on a wing: the lawn, the paved walk along the railing, the wavy corten beds, the
+## railing and a corten pavilion in the middle of each wide piece.
 func _forest_garden(ring: PackedVector2Array, y: float) -> void:
-	var inner := _largest(Geometry2D.offset_polygon(ring, -3.5))
-	if inner.size() < 3:
+	var lawn := _largest(Geometry2D.offset_polygon(ring, -0.6, Geometry2D.JOIN_MITER))
+	if lawn.size() < 3:
 		return
-	var lo := Vector2(INF, INF)
-	var hi := Vector2(-INF, -INF)
-	for q in inner:
-		lo = lo.min(q)
-		hi = hi.max(q)
 	_no_roof = true
-	var k := 0
-	var x := lo.x + 3.0
-	while x < hi.x:
-		var z := lo.y + 3.0
-		while z < hi.y:
-			var p := Vector2(x, z)
-			z += 10.0
-			if not Geometry2D.is_point_in_polygon(p, inner):
-				continue
-			match k % 5:
-				0, 2:
-					_prism(PackedVector2Array([p + Vector2(-2.2, -0.7), p + Vector2(2.2, -0.7), p + Vector2(2.2, 0.7), p + Vector2(-2.2, 0.7)]),
-							y, y + 0.6, FOREST_CORTEN, FOREST_GREEN.lightened(0.1), M_STONE, M_STONE)
-				1, 3:
-					_cap(PackedVector2Array([p + Vector2(-3.0, -2.0), p + Vector2(3.0, -2.0), p + Vector2(3.0, 2.0), p + Vector2(-3.0, 2.0)]),
-							y + 0.08, FOREST_TIMBER)
-				4:
-					_prism(PackedVector2Array([p + Vector2(-2.0, -1.6), p + Vector2(2.0, -1.6), p + Vector2(2.0, 1.6), p + Vector2(-2.0, 1.6)]),
-							y, y + 3.0, FOREST_COPPER, FOREST_BLACK, M_STONE, M_STONE)
-			k += 1
-		x += 10.0
+	_mode = M_STONE
+	_cap(lawn, y + 0.1, FOREST_LAWN)
+	var walk := _largest(Geometry2D.offset_polygon(ring, -1.7, Geometry2D.JOIN_MITER))
+	if walk.size() >= 3:
+		for i in walk.size():
+			var a := walk[i]
+			var b := walk[(i + 1) % walk.size()]
+			var e := (b - a).normalized()
+			var nn := Vector2(-e.y, e.x) * 0.9
+			_cap(PackedVector2Array([a - nn, b - nn, b + nn, a + nn]), y + 0.16, FOREST_PATH)
+	var beds := _largest(Geometry2D.offset_polygon(ring, -4.2, Geometry2D.JOIN_MITER))
+	if beds.size() >= 3:
+		_forest_beds(beds, lawn, y, y * 0.37)
+	# A second run of beds through the middle of a wide roof (the photos' swirling hedges).
+	var mid_beds := _largest(Geometry2D.offset_polygon(ring, -9.5, Geometry2D.JOIN_MITER))
+	if mid_beds.size() >= 3:
+		_forest_beds(mid_beds, lawn, y, y * 0.61 + 2.0)
+	_forest_rail(_largest(Geometry2D.offset_polygon(ring, -0.25, Geometry2D.JOIN_MITER)), y)
+	for pc in _forest_pieces(ring, 6.5, 2):
+		_forest_pavilion(_centre(pc), _forest_axis(pc), y, lawn)
 	_no_roof = false
 
 
-## The Forest's roof terrace (F, 2026-11-01), on the 27 m wing: a timber deck inside a glass
-## balustrade, corten planters with small trees along it (F's photo, 2026-11-03), parasols over
-## round tables, all kept out of the roof grid so the crowd's spots (crowds.gd DECKS
-## `forest_terrace`) still read the block's roof.
+## The Forest's public roof terrace (F, 2026-11-01; the green roof of the photos, 2026-11-15), on
+## the 27 m wing: a grey deck inside the black railing, wavy corten beds along it, a corten
+## pavilion with a glass front at the south end, a white stretch tent over high tables and patio
+## heaters at the north end, a strip of lawn between. All of it out of the roof grid, so the
+## crowd's spots (crowds.gd DECKS `forest_terrace`) still read the block's roof.
 func _forest_terrace(poly: PackedVector2Array, y: float) -> void:
 	var none := Color(0, 0, 0, 0)
-	var edge := Geometry2D.offset_polygon(poly, -0.5)
-	if edge.size() != 1:
+	var rim := _largest(Geometry2D.offset_polygon(poly, -0.5, Geometry2D.JOIN_MITER))
+	if rim.size() < 3:
 		return
-	var rim: PackedVector2Array = edge[0]
-	var rev := PackedVector2Array(rim)
-	rev.reverse()
 	_no_roof = true
 	_mode = M_STONE
-	_cap(rim, y + 0.1, FOREST_TIMBER)
-	_prism(rim, y, y + 1.1, Color("#c9dcdc"), none, M_PAVILION + 0.5)
-	_prism(rev, y, y + 1.1, Color("#c9dcdc"), none, M_PAVILION + 0.5)
-	# Corten planters with a small tree every ~7 m along the glass.
-	var run := 0.0
-	var next := 3.0
-	for i in rim.size():
-		var a := rim[i]
-		var b := rim[(i + 1) % rim.size()]
-		var e := (b - a)
-		var len_e := e.length()
-		var t := e / maxf(len_e, 0.01)
-		var inward := -_out(rim, a, b)
-		while next < run + len_e - 1.0:
-			var p := a + t * (next - run) + inward * 0.9
-			_prism(PackedVector2Array([p - t * 1.6 - inward * 0.5, p + t * 1.6 - inward * 0.5, p + t * 1.6 + inward * 0.5, p - t * 1.6 + inward * 0.5]),
-					y + 0.1, y + 0.8, FOREST_CORTEN, FOREST_GREEN.darkened(0.2), M_STONE, M_STONE)
+	_cap(rim, y + 0.1, FOREST_DECK)
+	var beds := _largest(Geometry2D.offset_polygon(poly, -3.4, Geometry2D.JOIN_MITER))
+	if beds.size() >= 3:
+		_forest_beds(beds, rim, y, 2.1)
+	_forest_rail(_largest(Geometry2D.offset_polygon(poly, -0.25, Geometry2D.JOIN_MITER)), y)
+	var pieces := _forest_pieces(poly, 6.0, 1)
+	if not pieces.is_empty():
+		var pc := pieces[0]
+		var d := _forest_axis(poly)
+		var n := Vector2(-d.y, d.x)
+		var lo := INF
+		var hi := -INF
+		for q in pc:
+			lo = minf(lo, q.dot(d))
+			hi = maxf(hi, q.dot(d))
+		var mid := _centre(pc)
+		var mid_s := mid.dot(d)
+		# Lawn strip in the middle, between the deck's two ends.
+		var lawn := PackedVector2Array([mid - d * 3.0 - n * 40.0, mid + d * 3.0 - n * 40.0, mid + d * 3.0 + n * 40.0, mid - d * 3.0 + n * 40.0])
+		var cut := Geometry2D.intersect_polygons(lawn, pc)
+		if not cut.is_empty():
+			_cap(cut[0], y + 0.16, FOREST_LAWN)
+		var ends: Array[float] = [lo + 5.0, hi - 5.0]
+		var south := mid + d * (ends[0] - mid_s)
+		var north := mid + d * (ends[1] - mid_s)
+		# Pavilion (long side across the roof's width) at one end.
+		_forest_pavilion(south, n, y, rim)
+		# The tent: two peaks over high tables and heaters at the other end.
+		for k in 2:
+			var tc := north + n * (float(k) * 7.0 - 3.5)
+			var sq := PackedVector2Array([tc + (d + n) * 3.5, tc + (d - n) * 3.5, tc - (d + n) * 3.5, tc - (d - n) * 3.5])
+			var inside := true
+			for q in sq:
+				if not Geometry2D.is_point_in_polygon(q, rim):
+					inside = false
+			if not inside:
+				continue
 			_mode = M_STONE
-			_pyramid(_circle(p, 0.75, 6), y + 0.8, y + 3.0, FOREST_GREEN.lightened(0.05))
-			next += 7.0
-		run += len_e
-	# Parasols over round tables on a 7.5 m grid inside the planters.
-	var inner := Geometry2D.offset_polygon(poly, -4.5)
-	if not inner.is_empty():
-		var area: PackedVector2Array = inner[0]
-		var lo := Vector2(INF, INF)
-		for q in area:
-			lo = lo.min(q)
-		var k := 0
-		for ix in 6:
-			for iz in 8:
-				var p := lo + Vector2(ix * 7.5 + 2.0, iz * 7.5 + 2.0)
-				if not Geometry2D.is_point_in_polygon(p, area):
-					continue
-				_prism(_circle(p, 0.55, 6), y + 0.1, y + 0.8, Color("#d9d3c6"), Color("#d9d3c6"), M_STONE, M_STONE)
-				for tc in 3:
-					var q := p + Vector2.from_angle(TAU * tc / 3.0 + 0.4) * 1.2
-					_prism(_circle(q, 0.25, 4), y + 0.1, y + 0.5, Color("#6e7a73"), Color("#6e7a73"), M_STONE, M_STONE)
-				if k % 2 == 0:
-					_prism(_circle(p, 0.05, 4), y + 0.8, y + 2.6, Color("#c9cdd0"), none, M_STONE)
-					_mode = M_STONE
-					_pyramid(PackedVector2Array([p + Vector2(-1.7, -1.7), p + Vector2(1.7, -1.7), p + Vector2(1.7, 1.7), p + Vector2(-1.7, 1.7)]),
-							y + 2.6, y + 3.3, FOREST_PARASOL[(k / 2) % FOREST_PARASOL.size()])
-				k += 1
+			_pyramid(sq, y + 2.7, y + 4.5, FOREST_TENT)
+			for q in sq:
+				_prism(_circle(q, 0.05, 4), y + 0.1, y + 2.7, Color("#c9cdd0"), none, M_STONE)
+			var tp := tc + d * 0.5
+			_prism(_circle(tp, 0.35, 6), y + 0.1, y + 1.1, Color("#25272a"), Color("#25272a"), M_STONE, M_STONE)
+		# Patio heaters (a pole and a round hood) scattered down the deck.
+		for k in 6:
+			var hp := mid + d * (lerpf(lo + 4.0, hi - 4.0, float(k) / 5.0) - mid_s) + n * (3.0 if k % 2 == 0 else -3.0)
+			if not Geometry2D.is_point_in_polygon(hp, rim):
+				continue
+			_prism(_circle(hp, 0.05, 4), y + 0.1, y + 2.3, Color("#c9cdd0"), none, M_STONE)
+			_prism(_circle(hp, 0.4, 6), y + 2.3, y + 2.4, Color("#d9d3c6"), Color("#d9d3c6"), M_STONE, M_STONE)
 	_no_roof = false
 
 

@@ -130,6 +130,7 @@ const Governor := preload("res://scripts/governor.gd")
 const Police := preload("res://scripts/police.gd")
 const Buses := preload("res://scripts/buses.gd")
 const OldTram := preload("res://scripts/old_tram.gd")
+const CampusCart := preload("res://scripts/campus_cart.gd")
 const CrashScenes := preload("res://scripts/crash_scenes.gd")
 ## Sekretny rave (rave.gd, F's ask 2026-11-06): LEKTI on MORDOR FM, Mati's call, the raves' rigs.
 const Rave := preload("res://scripts/rave.gd")
@@ -142,6 +143,10 @@ const BoatRace := preload("res://scripts/boat_race.gd")
 ## na kółkach", Claire's drive round Kieślowski's Warsaw, and "Kino objazdowe", the director
 ## friend's cinema tour (F's asks 2026-11-07).
 const Activities := preload("res://scripts/activities.gd")
+## The kit's base and what an activity may use from the game: an activity wires itself from it
+## (`install`, TD-4 b, docs/design/wiring-out-of-main.md), and main.gd only joins it (`_join`).
+const Activity := preload("res://scripts/activity.gd")
+const GameCtx := preload("res://scripts/game_ctx.gd")
 const PauseReasons := preload("res://scripts/pause_reasons.gd")
 const Tour := preload("res://scripts/tour.gd")
 
@@ -405,6 +410,8 @@ var buses: Buses
 ## The vintage-tram loop (old_tram.gd): the old two-car set on summer weekends, E39; flags
 ## --old-tram (the set now near the car; =follow: and the car kept behind it), --tram-log.
 var old_tram: OldTram
+## The University guards' cart round the main campus (campus_cart.gd, F 2026-11-15).
+var campus_cart: CampusCart
 ## Crash scenes (crash_scenes.gd, 2026-11-01): a fender bender with a police car and an ambulance
 ## now and then on a road ahead; in a normal launch only (test runs repeat). Flags --crash=now (a
 ## scene 45-80 m ahead at the start, for shots), --crash=X,Z (one on the fitting road nearest that
@@ -437,6 +444,10 @@ var boat_race: BoatRace
 ## The activity kit's director (activities.gd): which activity of the kit is on, who may start,
 ## where it sends the player. The tours below are the first to join it.
 var activities := Activities.new()
+## What an activity of the kit may use from the game (game_ctx.gd): the world and the city's data
+## once the map is built, the services filled again before each activity installs itself
+## (`_build_ctx`).
+var _ctx := GameCtx.new()
 ## The game's pause (pause_reasons.gd, TD-20): the loading bar, the settings card, the full map and
 ## the garage card each hold their own reason, and the game runs when none is held. Nothing here
 ## or in a system writes `get_tree().paused` itself.
@@ -1372,6 +1383,8 @@ func _build_world() -> void:
 		map.open_maps_whole()  # loop 3d-2b: every sector's map slices on the GPU at once
 		soft_things.add_sector(map)  # step 7: the whole city's soft lines
 	await _load_mark(0.1)
+	_ctx.world = world
+	_ctx.data = data
 
 	for a in data["areas"]:
 		if a["k"] == "water":
@@ -1457,6 +1470,7 @@ func _build_world() -> void:
 	add_child(tod)
 	if flags.live_clock != "":
 		tod.clock_start = TimeOfDay.warsaw_to_utc(flags.live_clock, flags.live_date)
+	tod.grade = flags.grade if flags.grade != "" else Grades.SETTING[settings.grade]
 	tod.setup(env, sun, post_mat, flags.sun_pitch)
 	await LoadYield.tick("time of day")
 	tod.lights_switched.connect(_show_night_nodes)
@@ -1651,6 +1665,7 @@ func _build_world() -> void:
 	await LoadYield.tick("_build_buses")
 	_build_old_tram(world)
 	await LoadYield.tick("_build_old_tram")
+	_build_campus_cart(world)
 	_build_crash_scenes()
 	await LoadYield.tick("_build_crash_scenes")
 	# The activity kit's director: everything that is not in the kit yet answers through this test
@@ -1672,8 +1687,9 @@ func _build_world() -> void:
 	await LoadYield.tick("_build_ev_tow")
 	_build_stories(world)
 	await LoadYield.tick("_build_stories")
-	_build_crawl(data, world)
-	await LoadYield.tick("_build_crawl")
+	# The night groups' calls and their crawls (bar_crawl.gd wires itself); none with --no-traffic or --crawl=0.
+	crawl = _join(BarCrawl.new(), world) as BarCrawl
+	await LoadYield.tick("crawl")
 	await _build_storefronts(data, world)  # the Leżak round-up joins the director here
 	await LoadYield.tick("_build_storefronts")
 	# M1: the rescue line joins the director last (after the round-up above), so the M and K keys,
@@ -3703,37 +3719,56 @@ func _place_car(at: Vector3, yaw: float) -> void:
 	print("teleport: the car to %.0f, %.0f for the meet" % [at.x, at.z])
 
 
-# --- the bar crawl ----------------------------------------------------------------------------
+# --- the activities' wiring (TD-4 b, docs/design/wiring-out-of-main.md) ------------------------
 
-## The night groups' calls and their crawls (bar_crawl.gd, an activity of the kit). None with
-## --no-traffic or --crawl=0.
-func _build_crawl(data: Dictionary, world: Node3D) -> void:
-	if traffic == null or graph == null or flags.crawl_flag == "0":
-		return
-	crawl = BarCrawl.new()
-	crawl.name = "BarCrawl"
-	crawl.hud = hud
-	crawl.bubbles = bubbles
-	crawl.wallet = wallet
-	crawl.map = map
-	crawl.graph = graph
-	crawl.origin = data.get("origin", [52.234, 21.024])
-	crawl.log_on = flags.crawl_log
-	crawl.auto = flags._crawl_auto
-	crawl.autopilot = flags.autopilot
-	crawl.force_route = flags.crawl_route
-	crawl.force_group = flags.crawl_group
-	crawl.vehicle = func() -> Array:
+## The ctx (game_ctx.gd) filled from main's fields as they are now, just before an activity installs
+## itself: each one sees what exists at its place in the build, as when main.gd wired it by hand.
+func _build_ctx() -> GameCtx:
+	_ctx.flags = flags
+	_ctx.hud = hud
+	_ctx.bubbles = bubbles
+	_ctx.wallet = wallet
+	_ctx.map = map
+	_ctx.graph = graph
+	_ctx.traffic = traffic
+	_ctx.car = car
+	_ctx.vehicle = func() -> Array:
 		if flying:
-			return [heli.global_position, heli.speed() * 3.6, true]
-		return [car.global_position, car.vel.length() * 3.6, false]
-	crawl.clock = func() -> float: return float(tod.local_clock()["hour"])
-	world.add_child(crawl)
-	crawl.setup(world)
-	activities.add(crawl)  # the director says when it may ring (nothing else on: `world_free`)
-	car.bumped.connect(func(_c: Object, speed: float) -> void: crawl.on_bump(speed))
-	if flags.crawl_flag == "call":
-		get_tree().create_timer(1.0).timeout.connect(func() -> void: crawl.ring())
+			return [heli.global_position, heli.speed() * 3.6, true, 0.0]
+		return [car.global_position, car.vel.length() * 3.6, false, float(car.forward_speed)]
+	_ctx.hour = func() -> float: return float(tod.local_clock()["hour"])
+	return _ctx
+
+
+## An activity of the kit builds itself: it wires itself from the ctx (`install`; null when it is off
+## for this run, as --crawl=0), goes under `parent` (at `index` when given: the order of the frames)
+## and sets itself up (`setup_in`).
+func _install(a: Activity, parent: Node, index := -1) -> Activity:
+	if not a.install(_build_ctx()):
+		a.free()
+		return null
+	parent.add_child(a)
+	if index >= 0:
+		parent.move_child(a, index)
+	a.setup_in(_ctx)
+	return a
+
+
+## It joins the director, then wires what follows the join (`joined`: its test starts too).
+## `world_test`: its own test for everything outside the kit, as `activities.add` takes it (none:
+## the director's `world_free`). The order of the joins is the director's order: M and K, the ✕,
+## the arrow and the stop assist ask the first one first.
+func _add(a: Activity, world_test := Callable()) -> Activity:
+	if a == null:
+		return null
+	activities.add(a, world_test)
+	a.joined(_ctx)
+	return a
+
+
+## Both at once, for an activity whose setup and join come together (most of them).
+func _join(a: Activity, parent: Node, world_test := Callable()) -> Activity:
+	return _add(_install(a, parent), world_test)
 
 
 # --- dead electric cars ----------------------------------------------------------------------
@@ -3837,6 +3872,24 @@ func _build_old_tram(world: Node3D) -> void:
 		trams.old_bell.connect(func(at: Vector3) -> void: sfx.play_at("old_tram_bell", at))
 	if flags.old_tram_flag != "":
 		old_tram.force(Vector2(car.global_position.x, car.global_position.z))
+
+
+## The guards' cart on the campus's ring (campus_cart.gd); its lines in the crowds' log (--night-log).
+func _build_campus_cart(world: Node3D) -> void:
+	if flags.solo_site != "":
+		return  # a landmark alone (--solo): no cart driving through its turntable
+	campus_cart = CampusCart.new()
+	campus_cart.name = "CampusCart"
+	campus_cart.map = map
+	campus_cart.dialogue = dialogue
+	campus_cart.log_on = flags.night_log
+	campus_cart.focus = func() -> Vector3: return cam_focus
+	campus_cart.vehicle = func() -> Array:
+		if flying:
+			return [heli.global_position, heli.speed() * 3.6, true]
+		return [car.global_position, car.vel.length() * 3.6, false]
+	world.add_child(campus_cart)
+	campus_cart.setup()
 
 
 ## --old-tram=follow: the car (no collisions) kept 22 m behind the old set's tail on its rails,
@@ -5096,6 +5149,7 @@ func _settings_state() -> Dictionary:
 			"auto": auto_name,
 			"master": settings.master, "music": settings.music, "effects": settings.effects, "perf": int(show_perf),
 			"fps": maxi(0, Settings.FPS.find(settings.fps)), "style": style_index, "vhs": int(vhs),
+			"grade": maxi(0, Grades.SETTING.find(tod.grade)),
 			"angle": maxi(0, FollowCamera.PITCHES.find(-camera_pitch)),
 			"weather": weather.state, "time": tod.mode, "wander": int(spacer != null and spacer.on), "zones": int(zone_cap_on), "handling": settings.handling, "chatter": settings.chatter,
 			"collide": maxi(0, Car.CollideRules.PRESETS.find(car.collide)) if car != null else settings.collide,
@@ -5164,6 +5218,9 @@ func _on_setting(key: String, value: Variant) -> void:
 		"vhs":
 			_set_vhs(int(value) == 1)
 			settings.vhs = vhs
+		"grade":
+			settings.grade = clampi(int(value), 0, Grades.SETTING.size() - 1)
+			tod.set_grade(Grades.SETTING[settings.grade])
 		"weather":
 			weather.set_state(int(value))
 		"time":
@@ -6034,6 +6091,8 @@ func _make_stats() -> BenchStats:
 		b.systems["crash scenes"] = [crash_scenes, "spent_usec", true]
 	if old_tram != null:
 		b.systems["old tram"] = [old_tram, "spent_usec", true]  # the vintage-tram loop
+	if campus_cart != null:
+		b.systems["campus cart"] = [campus_cart, "spent_usec", true]  # the University guards' cart
 	if storefronts != null:
 		b.systems["storefronts"] = [storefronts, "spent_usec", true]  # loop MW-2
 	if packs != null:

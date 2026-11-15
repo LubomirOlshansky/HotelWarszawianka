@@ -25,6 +25,7 @@ const MapBuilderRef := preload("res://scripts/map_builder.gd")
 const Landmarks := preload("res://scripts/landmarks.gd")
 const MeshProbe := preload("res://tools/mesh_probe.gd")
 const Fakes := preload("res://tools/fakes.gd")
+const Neon := preload("res://scripts/neon_signs.gd")
 ## Triangles a site may hold: measured on 2026-10-31 plus about 20 % (raise on purpose only).
 const BUDGET := {
 	"scena_relax": 600,
@@ -45,6 +46,11 @@ const BUDGET := {
 	"church_antoniego": 1250,
 	"church_augustyn": 1900,  # 2026-11-14: the whole brick basilica and its 70 m tower, checked against photos (measured 1759)
 	"church_siostry_milosierdzia_zytnia": 1200,  # 2026-11-15: the Sisters of Our Lady of Mercy's house on Żytnia from photos and LoD2 (measured 874)
+	"church_zytnia_dom_zakonny_tyl": 1500,  # 2026-11-15: the range behind the convent on Żytnia from LoD2, provisional (measured 1299)
+	"church_zytnia_dom_zakonny": 900,  # 2026-11-15: the convent range on Żytnia's south side by Wolność from photos and LoD2 (measured 582)
+	"church_zwycieska_klasztor": 1200,  # 2026-11-15: the monastery block beside Our Lady of Victory from LoD2, provisional (measured 850)
+	"church_klopotowskiego_18": 1500,  # 2026-11-15: the church house with the window of life on Kłopotowskiego from photos and LoD2 (measured 1288)
+	"church_plebania_florian": 1500,  # 2026-11-15: St Florian's presbytery on Floriańska from photos and LoD2 (measured 1352)
 	"church_sluzki_dom_generalny": 1200,  # 2026-11-15: the Servants of Jesus' generalate from photos and LoD2 (measured 798)
 	"church_uczennice_boskiego_mistrza": 1400,  # 2026-11-15: the Sister Disciples' convent from photos and LoD2 (measured 1179)
 	"church_plebania_augustyn": 500,  # 2026-11-15: St Augustine's presbytery from LoD2 (measured 311)
@@ -93,7 +99,12 @@ const BUDGET := {
 	"krasinski": 1810,
 	"sad_najwyzszy": 8000,
 	"ostrogski": 870,
-	"brama_uw": 950,
+	"brama_uw": 4000,  # 2026-11-15: rebuilt from F's photos, banded pilasters, iron gates, lamps, flags
+	"uruski": 5000,  # 2026-11-15: Pałac Uruskich's street front and the risalit over the gate, from F's photos (4342 built)
+	"stara_buw": 5000,  # 2026-11-15: the Old Library's front and flanks from F's photos
+	"uw_skarpa": 7000,  # 2026-11-15: the escarpment's brick wall, piers, graffiti, railing
+	"uw_straz": 900,  # 2026-11-15: the guards' kiosk
+	"uw_kampus": 1500,  # 2026-11-15: bollards and chains, flagpoles
 	"bristol": 2450,
 	"polonia": 1450,
 	"ujazdowski": 1650,
@@ -139,10 +150,10 @@ const BUDGET := {
 	"syrenka_powisle": 260,
 	"dworzec_wodny": 310,
 	"kaskada": 260,
-	"dtc": 1950,
+	"dtc": 2250,
 	"europejski": 8000,
 	"flaga": 170,
-	"forest": 4900,
+	"forest": 8100,  # 2026-11-15: the real green roof (lawns, wavy corten beds, railing, pavilions, tent), measured 6739 (was 4260)
 	"gpy": 2000,  # RD-3 (2026-11-06): black patches, the wings' decks, trees and tables
 	"gaulle": 880,
 	"rondo": 7000,
@@ -159,7 +170,7 @@ const BUDGET := {
 	"ilmet": 400,
 	"jp2_21": 280,
 	"kopernik": 1720,
-	"legia": 700,
+	"legia": 950,  # 2026-11-15 photo rework (762 tris): the roof's membrane tents, podium, concourse columns and banners, glass corners; no corner masts
 	"lim": 2500,  # podium from F's photos (2026-11-06) + the tower from 25 photos (2026-11-15): 2087 measured
 	"loretka": 1120,
 	"lucka": 850,  # 2026-11-06: rebuilt from F's photos (white stepped block, INTERBRUK board, masts)
@@ -172,6 +183,8 @@ const BUDGET := {
 	# Open courtyards (F, 2026-11-03): mf and muzeum gained their walled, windowed courts.
 	"mf": 2350,
 	"poczta": 710,
+	"bez_kantow": 8000,  # 2026-11-15 Dom bez Kantów and Królewska 2 rebuilt whole from F's photos and the orthophoto: the ring, arcades, panes, cornices (measured 6679)
+	"politechnika": 950,  # 2026-11-15 front from F's photos: the columned middle on Plac Politechniki, attic and figures, stairs, lamp pillars
 	"pasta": 580,
 	"msn": 500,
 	# Norblin on its real block (2026-11-02, photo report): two blocks, Plater and Galwan, about
@@ -227,7 +240,7 @@ const BUDGET := {
 	"polin": 450,
 	# Krakowskie Przedmieście and Plac Piłsudskiego from photos (2026-11-02)
 	"czapski": 860,
-	"kazimierzowski": 280,
+	"kazimierzowski": 2200,  # 2026-11-15: + the garden front, its gable and the howitzer (F's photos)
 	"smolensk": 120,
 	"pilsudski": 160,
 	"kaczynski": 100,
@@ -374,6 +387,17 @@ func _initialize() -> void:
 		var kit_found := _probe.examine("kit_sampler", kit_rec)
 		measured["kit_sampler"] = kit_found
 		_judge("kit_sampler", kit_found)
+	# Every landmark sign's word must be a row of the neon atlas (neon_signs.gd LANDMARK_WORDS):
+	# a missing word draws nothing (Legia's LEGUMINA, 2026-11-01 to 2026-11-15), and a word wider
+	# than the atlas is cut off (HOTEL EUROPEJSKI).
+	var words := Neon.all_words()
+	for sign: Array in marks.signs:
+		var miss := "sign %s: not in the neon atlas (neon_signs.gd LANDMARK_WORDS)" % sign[0]
+		if not words.has(sign[0]) and not problems.has(miss):
+			problems.append(miss)
+		var wide := "sign %s: wider than the neon atlas (neon_signs.gd ATLAS_W)" % sign[0]
+		if Neon.word_width(sign[0]) + 2 * Neon.PAD > Neon.ATLAS_W and not problems.has(wide):
+			problems.append(wide)
 	for key: String in BUDGET:
 		if not measured.has(key):
 			problems.append("%s: has a budget but builds nothing (site gone?)" % key)

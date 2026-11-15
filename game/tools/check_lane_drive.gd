@@ -304,6 +304,8 @@ func _initialize() -> void:
 	if prebuilt:
 		map = (load(SectorStreamer.INDEX_SCENE) as PackedScene).instantiate()
 		root.add_child(map)
+		# The phone's map as the game opens it: its data, the heights it does not keep, the roadworks.
+		SectorStreamer.ready_prebuilt(map)
 	else:
 		map = MapBuilder.new()
 		root.add_child(map)

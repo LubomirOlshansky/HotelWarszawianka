@@ -27,6 +27,7 @@ var m: Main
 ## The result is out (on iOS the app doesn't stop at once after quit()).
 var _bench_done := false
 var _spot_i := 0
+var _sweep_i := 0
 var _rig_path := PackedVector2Array()
 var _rig_s := 0.0
 var _contact_names := PackedStringArray()
@@ -846,6 +847,9 @@ func _capture(n: int) -> void:
 	var name := "shot_%04d.png" % n
 	if not m.flags.shot_spots.is_empty():
 		name = "%s_%04d.png" % [m.flags.shot_spots[_spot_i][0], n - _spot_base]
+		if not m.flags.grade_sweep.is_empty():
+			var tg: Array = m.flags.grade_sweep[_sweep_i]
+			name = "%s_%s_%s.png" % [m.flags.shot_spots[_spot_i][0], tg[0], tg[1]]
 	var err := img.save_png(m.flags.out_dir.path_join(name))
 	if err != OK:
 		printerr("shots: could not write %s (error %d)" % [m.flags.out_dir.path_join(name), err])
@@ -853,6 +857,18 @@ func _capture(n: int) -> void:
 		return
 	m._shots_saved.append(n)
 	if n == m.shots.max():
+		if not m.flags.grade_sweep.is_empty():
+			# The next [time, look] pair at this spot; after the last, the first again and on.
+			_sweep_i = (_sweep_i + 1) % m.flags.grade_sweep.size()
+			var tg: Array = m.flags.grade_sweep[_sweep_i]
+			m.tod.set_mode(TimeOfDay.parse(tg[0]), true)
+			m.tod.set_grade(tg[1])
+			if _sweep_i > 0:
+				var shift: int = m.frame - _spot_base
+				_spot_base = m.frame
+				for i in m.shots.size():
+					m.shots[i] += shift
+				return
 		if _spot_i + 1 < m.flags.shot_spots.size():
 			_next_spot()
 			return

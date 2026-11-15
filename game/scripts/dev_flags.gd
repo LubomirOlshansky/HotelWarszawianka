@@ -31,6 +31,11 @@ var m: Main
 ## The follow-camera loop: --size= was given (the saved zoom doesn't apply), and the pinch's span
 ## ratio since its last zoom step.
 var _flag_size := false
+## --grade=NAME: a colour look (grades.gd NAMES) for this run, over the saved setting ("": the
+## setting's); --grade-sweep=TIME,TIME[:LOOK,LOOK]: the harness shoots every --spots spot at each
+## time in each look (comparison sheets).
+var grade := ""
+var grade_sweep: Array = []
 ## --pitch= was given: the saved camera angle (Settings → Obraz) doesn't override it.
 var _flag_pitch := false
 var zone_cap_flag := -1
@@ -664,6 +669,16 @@ func parse_with(args: PackedStringArray) -> void:
 			_exp = arg.trim_prefix("--exp=").split(",")
 		elif arg.begins_with("--time="):
 			start_time = TimeOfDay.parse(arg.trim_prefix("--time="))
+		elif arg.begins_with("--grade="):
+			grade = arg.trim_prefix("--grade=")
+		elif arg.begins_with("--grade-sweep="):
+			# TIME,TIME:GRADE,GRADE : every --spots spot is shot at each time in each look.
+			var tg := arg.trim_prefix("--grade-sweep=").split(":")
+			for t in tg[0].split(","):
+				for g in (tg[1].split(",") if tg.size() > 1 else PackedStringArray(Grades.NAMES)):
+					grade_sweep.append([t, g])
+			start_time = TimeOfDay.parse(grade_sweep[0][0])
+			grade = grade_sweep[0][1]
 		elif arg == "--vhs":
 			_flag_vhs = true
 		elif arg.begins_with("--call-in="):

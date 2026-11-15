@@ -197,6 +197,9 @@
 # 09-19, Live Jun-Sep) and one run an hour, the follow count and its reset, the look's draw-call
 # budget (2 car meshes, no node added), a run on the real tracks finding E39 once; centrum.json only
 # (CI too).
+# The University guards' cart (2026-11-15): `campus` runs game/tools/check_campus.gd: the ring round
+# the campus lawn and the kiosk stop, `blocked` and `speed_at`, the one-surface look, a run that laps,
+# is held by a parked car (the guard's line) and hides far from the view, the uw_guard and students lines.
 # The tram fleet (2026-11-06): `tramfleet` runs game/tools/check_tram_fleet.gd: the four looks' meshes
 # (one surface, size, vertex cap), the eight trams carrying FLEET's looks (never more car meshes than
 # three), the vintage swap on an old pair and back, a minute of running; centrum.json only (CI too).
@@ -1314,6 +1317,8 @@ for s in $want; do
 		# Loop G1: model id -> tier, the pixel image at the phones' sizes; the governor's rules.
 		tiers) check tiers '^check_tiers:' --script res://tools/check_tiers.gd ;;
 		governor) check governor '^check_governor:' --script res://tools/check_governor.gd ;;
+		# F 2026-11-15: the colour looks (grades.gd) against time_of_day.gd's base looks.
+		grades) check grades '^check_grades:' --script res://tools/check_grades.gd ;;
 		# 2026-11-08: the Adreno 6xx driver's shader size limit (gpu_quirks.gd); source only, CI too.
 		shaderbudget) check shaderbudget '^check_shader_budget:' --script res://tools/check_shader_budget.gd ;;
 		heliview) check heliview '^check_heli_view:' --script res://tools/check_heli_view.gd ;;
@@ -1392,6 +1397,8 @@ for s in $want; do
 		# Crazy drivers: Szkoda taxis, Szprynter couriers, the Pasatini.
 		crazy) check crazy '^check_crazy_drivers:' --script res://tools/check_crazy_drivers.gd ;;
 		oldtram) check oldtram '^check_old_tram:' --script res://tools/check_old_tram.gd ;;
+		# The University guards' cart (F 2026-11-15): its ring, its rules, its look, a held run, the words.
+		campus) check campus '^check_campus:' --script res://tools/check_campus.gd ;;
 		# The tram fleet: the newest tram, the old pairs and today's, on the real tracks.
 		tramfleet) check tramfleet '^check_tram_fleet:' --script res://tools/check_tram_fleet.gd ;;
 		# The railway (docs/design/railway.md T1): the trains on the rail tracks.
@@ -1437,6 +1444,7 @@ for s in $want; do
 		first10) check first10 '^first10:' --script res://tools/check_first10.gd ;;
 		mainline) check mainline '^main_line:' --script res://tools/check_main_line.gd ;;
 		chatter) check chatter '^check_chatter:' --script res://tools/check_chatter.gd ;;
+		markers) check markers '^check_map_markers:' --script res://tools/check_map_markers.gd ;;
 		messages) check messages '^check_messages:' --script res://tools/check_messages.gd ;;
 		endcard) check endcard '^end_card:' --script res://tools/check_end_card.gd ;;
 		opening) check opening '^opening:' --script res://tools/check_opening.gd ;;

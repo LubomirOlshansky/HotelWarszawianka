@@ -49,6 +49,23 @@ const SKINS := [
 	{"key": "mniszchow", "osm": "Pałac Mniszchów", "mode": M_MONUMENT, "wall": "#e2cdb6", "roof": "#7a6a62"},
 	{"key": "landau", "osm": "Dom Bankowy Landaua", "mode": M_MONUMENT, "wall": "#d9b99e", "roof": "#6e6660"},
 	{"key": "kazimierzowski", "osm": "Pałac Kazimierzowski", "mode": M_MONUMENT, "wall": "#e2c77a", "roof": "#b5503a"},
+	# The University's campus (F's photos, 2026-11-15, docs/landmarks/specs/uw_kampus.md): the
+	# buildings in their real plaster under their real roofs; the Old Library's and Pałac Uruskich's
+	# fronts are models (old_town.gd _build_stara_buw, _build_uruski). OSM names them by faculty.
+	# LoD2 draws Uruski, the Tyszkiewicz palace and its annex as one model, centred outside Uruski's
+	# outline (`run`): the three take the cream (the Tyszkiewicz palace is pale stone, close enough).
+	{"key": "uruski", "osm": "Wydział Geografii i Studiów Regionalnych UW", "mode": M_MONUMENT, "wall": "#ebdcb6", "roof": "#8a8a86",
+			"run": [-469.4, -712.7]},
+	{"key": "stara_buw", "osm": "Stary BUW", "mode": M_MONUMENT, "wall": "#ede4c9", "roof": "#7aa08e"},
+	{"key": "uw_roch", "osm": "Instytut Kultury Polskiej UW", "mode": M_MONUMENT, "wall": "#eeebe2", "roof": "#8e908d"},
+	{"key": "uw_jezyki", "osm": "Centrum Nauczania Języków Obcych UW", "mode": M_MONUMENT, "wall": "#e9e9e3", "roof": "#9a9c9a"},
+	{"key": "uw_pomuzealny", "osm": "Wydział Historii UW", "mode": M_MONUMENT, "wall": "#e8e0c9", "roof": "#8a8d8a"},
+	{"key": "uw_szkola_glowna", "osm": "Wydział Archeologii UW", "mode": M_MONUMENT, "wall": "#e2c77e", "roof": "#b5553c"},
+	{"key": "uw_porektorski", "osm": "Wydział Kultur Azji i Afryki", "mode": M_MONUMENT, "wall": "#e8dcbc", "roof": "#b5553c"},
+	{"key": "uw_poseminaryjny", "osm": "Wydział Prawa i Administracji UW", "mode": M_MONUMENT, "wall": "#ece6d6", "roof": "#b65a3c"},
+	{"key": "uw_audytoryjny", "osm": "Wydział Nauk Politycznych i Studiów Międzynarodowych", "mode": M_MONUMENT, "wall": "#e8dfc8", "roof": "#8a8d8a"},
+	{"key": "uw_mineralogiczny", "osm": "Wydział Polonistyki UW", "mode": M_MONUMENT, "wall": "#e9dcc0", "roof": "#b5553c"},
+	{"key": "auditorium_maximum", "osm": "Auditorium Maximum", "mode": M_MONUMENT, "wall": "#e4ddcc", "roof": "#8d8e8a"},
 	{"key": "sejm", "osm": "Sejm RP", "mode": M_MONUMENT, "wall": "#e2e0d8", "roof": "#8d8f8c"},
 	# The Mac photo reports (2026-11-02): the masses in their stone; the fronts are models.
 	{"key": "filharmonia", "osm": "Filharmonia Narodowa", "mode": M_MONUMENT, "wall": "#e3ded2", "roof": "#8e9392"},
@@ -57,6 +74,11 @@ const SKINS := [
 	# pink cast (POCZTA_WALL); its
 	# front, corner dome and glazed hall are the site's own model (_build_poczta).
 	{"key": "poczta", "osm": "Poczta Główna", "mode": M_MONUMENT, "wall": "#ecd2c2", "roof": "#77706b"},
+	# Politechnika's main building (F's photos, 2026-11-15, spec politechnika.md): cream plaster
+	# over a grey zinc roof; the main hall's glass roof (`keep`) keeps LoD2's own colour; the
+	# columned middle of the front on Plac Politechniki is the site's own model (_build_politechnika).
+	{"key": "politechnika", "osm": "Gmach Główny PW", "mode": M_MONUMENT, "wall": "#ece6d8", "roof": "#8b9094",
+			"keep": [Vector2(-958.0, 1459.0), Vector2(-914.0, 1459.0), Vector2(-914.0, 1508.0), Vector2(-958.0, 1508.0)]},
 	# Miodowa's and Senatorska's palaces from F's photos (2026-11-07, docs/landmarks/specs/miodowa.md):
 	# cream and pink plaster under tile-red roofs; Paca's roofs are green copper.
 	{"key": "branickich", "osm": "Pałac Branickich", "near": Vector2(-852.0, -1425.0), "mode": M_MONUMENT,
@@ -87,7 +109,14 @@ func _find_skins() -> void:
 		if outline.size() < 3:
 			continue
 		# `hull`: a curved plan's centre falls outside it (Saski Crescent), so the hull joins the zone
-		_add_site(t["key"], [outline, Geometry2D.convex_hull(outline)] if t.get("hull", false) else [outline])
+		var zones: Array = [outline, Geometry2D.convex_hull(outline)] if t.get("hull", false) else [outline]
+		# `run`: a point inside a LoD2 model that merges this building with its neighbours, whose
+		# centre falls outside the outline (Pałac Uruskich, the Tyszkiewicz palace and its annex are
+		# one LoD2 run): a 2 m square there joins the zone, so `skin_at` finds that run too
+		if t.has("run"):
+			var c := Vector2(float(t["run"][0]), float(t["run"][1]))
+			zones.append(PackedVector2Array([c + Vector2(-1, -1), c + Vector2(1, -1), c + Vector2(1, 1), c + Vector2(-1, 1)]))
+		_add_site(t["key"], zones)
 		# `model`: the whole building is a model now (it replaces LoD2); the entry keeps its place in
 		# the site order (tap ids) and its wall colour for the skyline (tower_colour)
 		if t.get("model", false):
@@ -98,6 +127,8 @@ func _find_skins() -> void:
 				sites[-1]["skin"]["steep"] = t["steep"]
 			if t.has("upper"):
 				sites[-1]["skin"]["upper"] = {"over": float(t["upper"][0]), "wall": Color(t["upper"][1])}
+			if t.has("keep"):
+				sites[-1]["skin"]["keep"] = PackedVector2Array(t["keep"])
 			if t["key"] == "zamek":
 				sites[-1]["skin"]["pale"] = {"wall": ZAMEK_VISTULA, "edges": _zamek_river_edges(outline), "near": 3.0}
 				_zamek_tops()
