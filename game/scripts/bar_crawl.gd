@@ -324,7 +324,8 @@ func _tick(dt: float) -> void:
 	_bump_t = maxf(_bump_t - _due, 0.0)
 	if phase == Phase.IDLE and auto and _may_call() and _hours_now():
 		call_in -= _due
-		if call_in <= 0.0 and not ring():
+		# Not again straight after its own call while another's waits (TD-3's variety): retry.
+		if call_in <= 0.0 and not (_ring_turn() and ring()):
 			call_in = RETRY
 
 

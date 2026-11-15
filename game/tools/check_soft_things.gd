@@ -86,6 +86,8 @@ var _m5 := {"cars": 0, "pushes": 0, "natural": 0, "ruled": 0, "wedged": 0, "bays
 
 
 func _initialize() -> void:
+	# W2 of the walls look: --barriers=classic|typed builds the city in that look (the palette's by default).
+	Solidity.barrier_look_from(OS.get_cmdline_user_args())
 	var all := false
 	var cases_only := false
 	var only: Array[Vector2i] = []

@@ -5,8 +5,10 @@
 ## checks that read `Shisha.FIRST_CALL` are as they were, and the random draws are the same calls.
 ## A source or key the file lacks is an error (`errors`, `check_pacing`), never a silent default.
 ##
-## One offer at a time stays the director's (`activities.gd` `may_start` and its run notices);
-## variety and a shared quiet time are not built (both would change play: F's call, QUESTIONS.md).
+## Its rules (TD-3 b, F 2026-11-15) live where the calls are decided: one offer at a time and
+## variety (whoever rang last lets a waiting call go first) are the director's (`activities.gd`
+## `may_start`, `my_turn`), the quiet time after a finish (`calls.quiet`) the message director's
+## (`messages.gd` `call_ok`, `quiet`).
 extends RefCounted
 
 const PATH := "res://data/pacing.json"

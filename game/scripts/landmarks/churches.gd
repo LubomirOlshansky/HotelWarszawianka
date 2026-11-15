@@ -4822,6 +4822,63 @@ func _build_kaplica_florianska(site: Dictionary) -> void:
 	_b = Vector2(0.0, 1.0)
 	_collide(outline)
 
+## A small flat-roofed yard chapel from LoD2 and its OSM outline, for the unnamed `chapel`
+## buildings inside blocks that no photo reaches: plastered walls on a grey plinth to `h` over the
+## ground, a coping, tall narrow windows along every wall at least 4 m long, an arched door in the
+## middle of the wall nearest `door_out`, and a small cross on the roof. **Provisional**: every
+## part of it is a default until a photo turns up (docs/QUESTIONS.md).
+func _flat_chapel(outline: PackedVector2Array, h: float, wall: Color, door_out: Vector2) -> void:
+	_g = _ground_under(outline)
+	var g := _g
+	_mode = M_STONE
+	var top := g + h
+	_prism(outline, g - 0.8, top, wall, PAL_ROOF_GRAVEL, M_STONE, M_STONE)
+	kit_ledge_ring(outline, g - 0.8, 1.2, PAL_GREY_STONE, 0.05)
+	kit_ledge_ring(outline, top - 0.3, 0.45, wall.lightened(0.15), 0.12)
+	var n := outline.size()
+	var door := 0
+	for k in n:
+		var dk := _out(outline, outline[k], outline[(k + 1) % n]).dot(door_out) * outline[k].distance_to(outline[(k + 1) % n])
+		var db := _out(outline, outline[door], outline[(door + 1) % n]).dot(door_out) * outline[door].distance_to(outline[(door + 1) % n])
+		if dk > db:
+			door = k
+	for k in n:
+		var le := kit_front(outline[(k + 1) % n], outline[k])
+		if le < 4.0:
+			continue
+		var m := maxi(1, floori(le / 2.6))
+		var cs: Array = []
+		for i in m:
+			var u := (float(i) + 0.5) * le / float(m)
+			if k == door and absf(u - le * 0.5) < 1.4:
+				continue
+			cs.append(u)
+		kit_panes(cs, [g + 1.4], 0.9, 2.6, wall.darkened(0.25), 0.04)
+		kit_panes(cs, [g + 1.5], 0.7, 2.4, PAL_GLASS_DARK, 0.06)
+		if k == door:
+			kit_door(le * 0.5, g, 2.6, 0.75, wall.lightened(0.15), PAL_DARK_DOOR, true)
+	# the cross on the roof, over the door's end
+	var c := _centre(outline)
+	var dl := kit_front(outline[(door + 1) % n], outline[door])
+	_kbox(dl * 0.5 - 0.07, dl * 0.5 + 0.07, -1.6, -1.46, top, top + 1.6, PAL_IRON)
+	_kbox(dl * 0.5 - 0.45, dl * 0.5 + 0.45, -1.6, -1.46, top + 0.95, top + 1.09, PAL_IRON)
+	_collide(outline)
+	_o = c
+
+
+
+## The yard chapel behind Łucka 2/4/6, off Żelazna (unnamed `chapel`, OSM building 7458, Wola):
+## a single storey about 5.3 m tall under a flat roof (GUGiK's LoD2), in a pale plaster. A model
+## that replaces the plain OpenStreetMap block (no landmark until 2026-11-15). **Provisional, no
+## photo**: no open street photo reaches the yard (refs/churches/kaplica_zelazna is empty), so the
+## walls, windows, door and cross are `_flat_chapel`'s defaults; the door faces the houses on
+## Łucka (docs/QUESTIONS.md). Spec docs/landmarks/specs/kaplica_lucka.md.
+const KLU_WALL := Color("#e4dccb")      ## pale plaster, a default
+
+
+func _build_kaplica_lucka(site: Dictionary) -> void:
+	_flat_chapel(site["outline"], 5.3, KLU_WALL, Vector2(0.3, 0.95))
+
 
 func _build_zwycieska_klasztor(site: Dictionary) -> void:
 	var outline: PackedVector2Array = site["outline"]
@@ -7424,6 +7481,8 @@ const CHURCHES := [
 			"fill": 0.9, "style": "neoclassical", "wall": "#e9d8b2", "roof": "#55585c", "towers": 0, "cap": "none"},
 	{"key": "church_kaplica_florianska", "at": Vector2(459.3, -1999.7), "o": Vector2(459.3, -1999.7), "out": Vector2(-1.0, 0.0), "L": 6.2, "W": 6.3,
 			"fill": 0.9, "style": "neogothic", "wall": "#9b4535", "roof": "#3b3d42", "towers": 0, "cap": "none"},
+	{"key": "church_kaplica_lucka", "at": Vector2(-2257.0, 72.4), "o": Vector2(-2263.0, 68.5), "out": Vector2(0.337, 0.942), "L": 8.8, "W": 11.4,
+			"fill": 0.9, "style": "modern", "wall": "#e4dccb", "roof": "#b9b7b1", "towers": 0, "cap": "none"},
 	{"key": "church_sluzki_dom_generalny", "at": Vector2(-203.0, -515.0), "o": Vector2(-206.4, -500.9), "out": Vector2(-0.917, 0.400), "L": 28.3, "W": 29.6,
 			"fill": 0.9, "style": "neoclassical", "wall": "#e3c48e", "roof": "#6b6c6c", "towers": 0, "cap": "none"},
 	{"key": "church_uczennice_boskiego_mistrza", "at": Vector2(-2890.0, -650.0), "o": Vector2(-2919.2, -669.7), "out": Vector2(-0.231, -0.973), "L": 37.5, "W": 41.5,
@@ -7554,6 +7613,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_kaplica_florianska":
 		_build_kaplica_florianska(site)  # the octagonal brick chapel with its slate bell roof, from photos
+		return
+	if site["key"] == "church_kaplica_lucka":
+		_build_kaplica_lucka(site)  # the flat-roofed yard chapel behind Łucka, provisional
 		return
 	if site["key"] == "church_sluzki_dom_generalny":
 		_build_sluzki_dom_generalny(site)  # the Servants of Jesus' generalate, from photos and LoD2
