@@ -39,7 +39,8 @@ const SECTORS: Array[Vector2i] = [Vector2i(3, -1), Vector2i(2, -1), Vector2i(-2,
 ## 10 m of a landmark site's ring (city_barriers.gd LANDMARK_GUARD) and road_objects.json hard_lines.
 ## 2026-11-15, step 8a: unchanged: the parked cars' colliders are still filed (`Solid_parked`, main's
 ## faces); soft_things.gd turns that body off when the soft things are on (check_soft_things M2-M4).
-const TOTAL := 46578
+## 2026-11-15, Narodowy grounds: +63 faces (46578 → 46641), the perimeter fence drawn as the open stadium_fence railing (rail faces) instead of a slab.
+const TOTAL := 46641
 
 var problems: Array[String] = []
 var verbose := false
