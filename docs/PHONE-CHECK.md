@@ -63,6 +63,7 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | 14f | Stadion Narodowy's park fence and gate boards, from Waszyngtona and the east path, by day and at night; then drive through a fence panel (it breaks with Łamliwe płoty on) and into a gate pier (it stands) | the black bar fence on its dark base reads open (you see the park through it); the red gate boards over the gates; no new stutter near the stadium | Narodowy grounds #808 |
 | 14g | Warsaw Trade Tower from Rondo ONZ and Chłodna, by day and at night | the dark glass drum's floor bands, the warm beige stone, the silver crown's slits; the mast down the west screen with its red-and-white top | WTT photo rework |
 | 14i | Stadion Leguminy (Legia) from Łazienkowska and the Trasa, by day and at night | the roof's edge reads as a row of white peaks over a dark truss; the green pitch shows; the columns and green banners along the concourse; the floodlight strip lit at night | Legia photo rework |
+| 14j | The Forest (Burakowska, north of Rondo Radosława) from the helicopter, by day and at night | the low roofs read as green gardens with rusty beds and a black rail, not as a grid of boxes; the terrace's white tent and pavilion; no new stutter near the tower | Forest roof garden |
 | 15 | Settings → the experimental graphics switch, on and off at the Palace | the look and the frame | #647 |
 
 ## 5. The frame (3 min)
