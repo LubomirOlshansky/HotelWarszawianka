@@ -4110,7 +4110,7 @@ func _varso_spire(at: Vector2, g: float) -> void:
 				_beam(ca[k2], cb[k], 0.2, VARSO_STEEL)
 	for h: float in [240.0, 250.0, 260.0, 274.0]:
 		var dish := _circle(at, 3.0 if h < 270.0 else 2.6, 12)
-		_prism(dish, g + h - 0.7, g + h, VARSO_DISH, VARSO_DISH.darkened(0.08), M_LAMP, M_STONE)
+		_prism(dish, g + h - 0.7, g + h, VARSO_DISH, VARSO_DISH.darkened(0.08), M_LAMP, M_LAMP)
 		_soffit(dish, g + h - 0.7, VARSO_DISH.darkened(0.25))
 	_frustum(_circle(at, 0.45, 8), head, _circle(at, 0.18, 8), g + VARSO_SPIRE_TOP - 2.0, VARSO_STEEL)
 	_prism(_circle(at, 1.1, 10), g + 293.5, g + 294.0, VARSO_DISH, VARSO_DISH, M_LAMP, M_STONE)
