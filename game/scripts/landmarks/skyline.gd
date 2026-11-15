@@ -1937,6 +1937,8 @@ func _dusk_details(spec: Dictionary, poly: PackedVector2Array, g: float, top_h: 
 		return
 	if spec.get("marriott", false):
 		_marriott(poly, g, top_h)
+	if spec.get("babka", false):
+		_babka(poly, g, top_h)
 	if spec.has("sign") and not spec.get("crown_sign", false):
 		_crown_signs(poly, g + top_h, str(spec["sign"]), spec.get("sign_col", DUSK_WARM), 3.0,
 				0.75 if spec.get("marriott", false) else 0.7)
@@ -2068,6 +2070,55 @@ func _lim_mast(c: Vector2, along: Vector2, side: Vector2, foot: float, head: flo
 		_soffit(deck, y - 0.4, steel.darkened(0.25))
 	_frustum(_circle(c, 0.2, 6), head, _circle(c, 0.08, 6), head + 1.6, steel)
 	_prism(_square(c, 0.25), head + 1.6, head + 2.2, DUSK_RED, DUSK_RED, M_LAMP, M_LAMP)
+
+
+# --- Babka Tower (Rondo Babka; spec docs/landmarks/specs/babka.md) ---------------------------
+
+## Rebuilt 2026-11-15 from F's six T42 photos (from the roundabout's south and east, from the
+## Palace). The mapped part is the whole tower (96 m); the shaft's white loggia grid is the kit's
+## slab skin. Over it: the offices' grey glass to 31 m with a white ledge on top, blue glass in
+## the corner bays above, a white crown band under the parody name, and a small mast.
+const BABKA_OFFICE := Color("#5d6f7e")
+const BABKA_CORNER := Color("#5e86ad")
+const BABKA_WHITE := Color("#eceae4")
+const BABKA_OFFICE_TOP := 31.0
+
+
+func _babka(poly: PackedVector2Array, g: float, h: float) -> void:
+	var keep := _mode
+	var roof := g + h
+	var proud := Geometry2D.offset_polygon(poly, 0.12)
+	if proud.size() == 1:
+		# The offices' grey glass from the ground to the ledge.
+		_prism(proud[0], g - 0.4, g + BABKA_OFFICE_TOP, BABKA_OFFICE, Color(0, 0, 0, 0), M_GLASS)
+	var ledge := Geometry2D.offset_polygon(poly, 0.9)
+	if ledge.size() == 1:
+		_prism(ledge[0], g + BABKA_OFFICE_TOP, g + BABKA_OFFICE_TOP + 0.6, BABKA_WHITE, BABKA_WHITE, M_STONE, M_STONE)
+		_soffit(ledge[0], g + BABKA_OFFICE_TOP, BABKA_WHITE.darkened(0.3))
+	# Blue glass in the corner bays (the photos' glazed corners), 2 m along each face from every
+	# outward corner of an edge at least 6 m long, from the ledge to under the crown.
+	_mode = M_GLASS
+	var n := poly.size()
+	for i in n:
+		var a := poly[i]
+		var b := poly[(i + 1) % n]
+		var length := kit_front(a, b)
+		if _b.dot(_out(poly, a, b)) < 0.0:
+			length = kit_front(b, a)
+		if length < 6.0:
+			continue
+		for e: Vector2 in [Vector2(0.0, 2.0), Vector2(length - 2.0, length)]:
+			_wall(_w(e.x, 0.06), _w(e.y, 0.06), g + BABKA_OFFICE_TOP + 0.6, roof - 4.0, _b, BABKA_CORNER)
+	_mode = M_STONE
+	# The crown band: white, 4 m, 0.1 m proud (the name goes on it), and a small mast.
+	var crown := Geometry2D.offset_polygon(poly, 0.1)
+	if crown.size() == 1:
+		_prism(crown[0], roof - 4.0, roof, BABKA_WHITE, Color(0, 0, 0, 0), M_STONE)
+	var c := _centre(poly)
+	_prism(_square(c, 0.4), roof, roof + 9.0, BABKA_WHITE.darkened(0.15), BABKA_WHITE, M_STONE, M_STONE)
+	_prism(_square(c, 0.6), roof + 4.0, roof + 4.4, Color("#c8322b"), Color("#c8322b"), M_STONE, M_STONE)
+	_prism(_square(c, 0.2), roof + 9.0, roof + 9.4, DUSK_RED, DUSK_RED, M_LAMP, M_LAMP)
+	_mode = keep
 
 
 # --- Błękitny Wieżowiec (Plac Bankowy 2; spec docs/landmarks/specs/blekitny.md) ---------------

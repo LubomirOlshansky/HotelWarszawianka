@@ -155,6 +155,11 @@ const TOWERS := [
 	# stand on dark navy glass (a dozen small mapped pilasters in #bfbfc4: kept as mapped).
 	{"key": "pzu", "osm": "PZU Tower", "style": S_RIBBON, "glass": "#8fb5bd", "roof": "#c4cccf"},
 	{"key": "jm", "osm": "JM Tower", "style": S_FINS, "glass": "#2b4560", "roof": "#7d878e", "mapped": true},
+	# Babka Tower (Rondo Zgrupowania AK "Radosław", 2000; spec babka.md, F's T42 photos): a white
+	# flats tower in a grid of loggias over grey office glass, blue glass at its corners, the
+	# cable firm's parody name on the crown (_babka).
+	{"key": "babka", "osm": "Babka Tower", "style": S_SLAB, "glass": "#e3e2dc", "roof": "#9b9794", "sign": "WEKTRA",
+			"babka": true},
 ]
 
 ## The info cards: name, then Polish and English lines. Facts kept to what is certain.
@@ -294,6 +299,9 @@ const INFO := {
 			"An office tower on Al. Jana Pawła II: two glass volumes, one with a round top."],
 	"jm": ["JM Tower", "Biurowiec przy Alejach Jerozolimskich, ciemne szkło i szare żebra.",
 			"An office tower on Al. Jerozolimskie, dark glass and grey fins."],
+	"babka": ["Babka Tower",
+			"96 m przy rondzie Babka. Mieszkania nad biurami, z 2000 roku.",
+			"96 m at the Babka roundabout. Flats over offices, from 2000."],
 	"teatr": ["Teatr Wielki",
 			"Opera Narodowa. Gmach Antonia Corazziego z 1833 roku: dziesięć kolumn, tympanon z płaskorzeźbą i kwadryga Apollina na attyce.",
 			"The National Opera. Antonio Corazzi's building of 1833: ten columns, a carved pediment and Apollo's quadriga on the attic."],

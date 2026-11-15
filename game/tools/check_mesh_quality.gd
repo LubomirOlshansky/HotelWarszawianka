@@ -295,6 +295,7 @@ const BUDGET := {
 	"widok": 450,
 	"pzu": 900,
 	"jm": 900,
+	"babka": 400,  # 2026-11-15 photo pass (287 tris): office glass, ledge, corner glass, crown, mast
 	"wiktoria": 230,
 	"wtt": 1640,
 	"zacheta": 720,
