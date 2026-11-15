@@ -20,10 +20,13 @@ const Pacer := preload("res://scripts/pacer.gd")
 ##
 ## Incoming calls (F 2026-11-11: "also the incoming calls in this queue, with logic too"): a friend's
 ## call rings only in FREE, CALL_SETTLE s into a calm spell (never straight after a result or an
-## escape) and CALL_GAP s after the last call of anyone (no two friends ringing back to back); the
-## callers keep their own timers and ask `call_ok` before they ring (main.gd `_free_block`,
-## trend_job.gd, and the rescue line in missions.gd, which waits at zero), and a call that rings
-## tells `call_rang`. A call the player asked for (the WĄTKI or HELI list, a test flag) does not ask.
+## escape), CALL_GAP s after the last call of anyone (no two friends ringing back to back) and
+## CALL_QUIET s after the last run of an activity ended (the quiet time after a finish: TD-3, F
+## 2026-11-15; the director tells `finished`); the callers keep their own timers and ask `call_ok`
+## before they ring (main.gd `_free_block`, trend_job.gd, and the rescue line in missions.gd, which
+## waits at zero), and a call that rings tells `call_rang`. The ride app's requests and Bartek's
+## calls, which do not ask `call_ok`, wait for the quiet time alone (`quiet`). A call the player
+## asked for (the WĄTKI or HELI list, a test flag) does not ask.
 ##
 ## The queue holds deferred notes until the context lets them through (in arrival order within a
 ## priority, the highest first), one every FLUSH_GAP s, each for at most TTL s; past MAX_QUEUED the
@@ -52,9 +55,11 @@ const TTL := 240.0
 const MAX_QUEUED := 6
 ## After a quest or a chase ends, a moment of calm before the queue speaks (the result card first).
 const SETTLE := 3.0
-## Incoming calls: at least this long between two (s), and this long into a calm spell.
+## Incoming calls: at least this long between two (s), this long into a calm spell, and this long
+## after a run ended.
 static var CALL_GAP: float = Pacer.num("calls", "gap")
 static var CALL_SETTLE: float = Pacer.num("calls", "settle")
+static var CALL_QUIET: float = Pacer.num("calls", "quiet")
 
 var context := FREE
 var clock := 0.0
@@ -67,6 +72,7 @@ var _queue: Array[Dictionary] = []
 var _flushed_at := -INF
 var _calm_since := 0.0
 var _call_at := -INF
+var _done_at := -INF
 var calls := 0
 
 
@@ -144,15 +150,26 @@ func next_ready() -> Dictionary:
 	return out
 
 
-## A friend's call may ring now (see the top: FREE, settled, spaced from the last call).
+## A friend's call may ring now (see the top: FREE, settled, spaced from the last call, past the
+## quiet time).
 func call_ok() -> bool:
-	return context == FREE and clock - _calm_since >= CALL_SETTLE and clock - _call_at >= CALL_GAP
+	return context == FREE and clock - _calm_since >= CALL_SETTLE and clock - _call_at >= CALL_GAP and not quiet()
 
 
 ## A call rang just now (any caller).
 func call_rang() -> void:
 	_call_at = clock
 	calls += 1
+
+
+## A run of an activity ended just now (the director, activities.gd): the quiet time starts.
+func finished() -> void:
+	_done_at = clock
+
+
+## The quiet time after a finish is on: no offer comes by itself for CALL_QUIET s after a run ended.
+func quiet() -> bool:
+	return clock - _done_at < CALL_QUIET
 
 
 func queued() -> int:

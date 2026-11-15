@@ -739,7 +739,8 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 
 	# The ✕ in each stage: the night bus, Mati's goodbye, the calls given back as they were.
 	for row: Array in [[Rave.Stage.PICKUP, false], [Rave.Stage.MEET, true], [Rave.Stage.DRIVE, false]]:
-		_calls.paused = bool(row[1])
+		if bool(row[1]):
+			_director.hold_calls("bench", Activity.RescueCalls.HOLD)  # main.gd's own hold, through the director
 		_reach(int(row[0]))
 		_ok(_is(int(row[0])) and _calls._held(), "the ✕ night at stage %d is on" % int(row[0]))
 		var kept: int = c.night_spot
@@ -749,9 +750,9 @@ func _play(g: LaneGraph, origin: Array, digest: PackedStringArray) -> void:
 		_hud.abort_pressed.emit()
 		_ok(c.idle() and _hud.status == "" and not b.visible and not c._hood.visible and not c.has_target() and not _director.busy(), "the ✕ at stage %d ends the night: idle, nothing up" % int(row[0]))
 		_ok(_toast("Mati łapie nocny autobus") and "rave_ziomek:abort" in _talk.said and _wallet.money == money, "with the night-bus words and Mati's goodbye, nothing paid")
-		_ok(_calls.paused == bool(row[1]) and _calls._held() == bool(row[1]) and c.night_spot == kept, "the calls as they were (%s) and the night spot kept" % [row[1]])
+		_ok(_calls._held() == bool(row[1]) and c.night_spot == kept, "the calls as they were (%s) and the night spot kept" % [row[1]])
 		_ok(c.tease_in >= Rave.NEXT_TEASE.x and c.tease_in <= Rave.NEXT_TEASE.y, "LEKTI far off again")
-	_calls.paused = false
+		_director.release_calls("bench")
 
 	# Met in person: no pickup stage, no call.
 	c.tease_in = 1.0e6
