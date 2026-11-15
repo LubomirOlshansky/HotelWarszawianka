@@ -4615,6 +4615,7 @@ func _build_police(data: Dictionary, world: Node3D) -> void:
 			"bubbles": bubbles, "dialogue": dialogue, "wallet": wallet, "walkers": walkers, "radio": radio, "sfx": sfx,
 			"jobs": jobs, "missions": missions, "tod": tod, "opts": police_opts, "pedal": flags.hold_pedal, "autopilot": flags.autopilot,
 			"rivals": rivals, "ped_zones": ped_zones,
+			"garage_at": func() -> Vector3: return garage.at if garage != null and garage.is_shown() else Vector3.INF,
 			"level_now": func() -> int: return traffic_level,
 			"project": func(p: Vector3) -> Vector2: return cam.unproject_position(p) * float(view.stretch_shrink)}
 	add_child(police)
