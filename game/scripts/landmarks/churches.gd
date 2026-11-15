@@ -4187,6 +4187,74 @@ func _build_wizytki_klasztor(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The Franciscan Reformati friary beside St Anthony of Padua's (Klasztor Reformatów, Senatorska
+## 31; 1680s, rebuilt after 1944): four ranges round a closed courtyard on the church's north-east
+## side, between the church and the street, under red tile hipped roofs. A model that replaces the
+## plain OpenStreetMap block (building 12816, unnamed `monastery`). The massing is GUGiK's LoD2
+## (over the ground: the eaves about 9, the ridges about 13; the courtyard about 18 x 14 m). The
+## church's 15 Commons photos (refs/churches/st_anthony_senatorska) show the complex in white
+## plaster under orange-red tiles, but none shows the friary's own outer walls, so it takes the
+## church's colours and plain window rows (defaults, docs/QUESTIONS.md). Spec
+## docs/landmarks/specs/reformaci_klasztor.md.
+## Frame: origin at the block's west corner, u to the south-east along the range by the street, +v
+## to the north-east.
+const RFM_O := Vector2(-1193.3, -1001.9)
+const RFM_A := Vector2(0.6655, -0.7464)
+const RFM_WALL := Color("#f0ece2")      ## white plaster (the church's, photos)
+const RFM_TRIM := Color("#e0d9ca")      ## cornice, plinth band
+const RFM_ROOF := Color("#c4603d")      ## orange-red tiles (the church's, photos)
+
+
+func _build_reformaci_klasztor(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(RFM_O, RFM_O + RFM_A)
+	_g = _ground_under(outline)
+	var g := _g
+	_mode = M_STONE
+	var eave := g + 9.0
+	var court := _rect(13.0, 17.5, 9.0, 7.0)
+	_prism(outline, g - 1.0, eave, RFM_WALL, Color(0, 0, 0, 0), M_STONE, M_STONE)
+	_cap_holes(outline, [court], eave, RFM_ROOF.darkened(0.25))
+	kit_cornice_ring(outline, eave - 0.3, RFM_TRIM, 0.3, 0.3)
+	kit_ledge_ring(outline, g - 1.0, 1.2, RFM_TRIM, 0.06)
+	# --- the courtyard: walls facing in
+	var n := court.size()
+	for k in n:
+		var a := court[k]
+		var b := court[(k + 1) % n]
+		_wall(a, b, g - 0.6, eave, -_out(court, a, b), RFM_WALL, 0.0)
+	# --- the hipped roofs, one per range (LoD2 ridges)
+	_hip(16.0, 5.25, 20.0, 5.25, eave, 4.0, RFM_ROOF)      # the range by the street
+	_hip(16.0, 30.2, 20.0, 5.7, eave, 4.0, RFM_ROOF)       # the range by the church
+	_hip(0.0, 17.5, 3.9, 7.5, eave, 3.0, RFM_ROOF)         # the short north-west range
+	_hip(29.2, 17.7, 6.9, 17.7, eave, 4.0, RFM_ROOF)       # the long south-east range
+	# --- two rows of windows round every outer wall long enough for one
+	var m := outline.size()
+	for k in m:
+		var ln := kit_front(outline[(k + 1) % m], outline[k])
+		if ln < 3.0:
+			continue
+		var c := maxi(1, floori(ln / 3.4))
+		var cols: Array = []
+		for i in c:
+			cols.append((float(i) + 0.5) * ln / float(c))
+		kit_panes(cols, [g + 1.4, g + 5.0], 1.1, 1.9, PAL_GLASS_DARK, 0.05)
+	# --- and on the courtyard walls, facing in
+	for k in n:
+		var a := court[k]
+		var b := court[(k + 1) % n]
+		var ln := kit_front(a, b)
+		if _b.dot(-_out(court, a, b)) < 0.0:
+			ln = kit_front(b, a)
+		var c := maxi(1, floori(ln / 3.4))
+		var cols: Array = []
+		for i in c:
+			cols.append((float(i) + 0.5) * ln / float(c))
+		kit_panes(cols, [g + 1.4, g + 5.0], 1.1, 1.9, PAL_GLASS_DARK, 0.05)
+	kit_front(RFM_O, RFM_O + RFM_A)
+	_collide(outline)
+
+
 const SZT_WALL := Color("#e9e7e0")           ## white plaster (photos 01, 03, 11)
 const SZT_ROOF := Color("#7c9171")           ## dull green copper (photos 01, 02)
 const SZT_TURRET := Vector2(57.0, -162.0)    ## where the south range meets the west one (a default: photo 02)
@@ -6602,6 +6670,8 @@ const CHURCHES := [
 			"fill": 0.8, "style": "baroque", "wall": "#e6d4a6", "roof": "#97594a", "towers": 0, "cap": "none"},
 	{"key": "church_rodziny_maryi", "at": Vector2(-2617.0, -739.0), "o": Vector2(-2625.3, -761.4), "out": Vector2(-0.356, -0.934), "L": 13.5, "W": 49.4,
 			"fill": 0.9, "style": "neoclassical", "wall": "#e6c2a2", "roof": "#4d5257", "towers": 0, "cap": "none"},
+	{"key": "church_reformaci_klasztor", "at": Vector2(-1170.0, -1001.0), "o": Vector2(-1193.3, -1001.9), "out": Vector2(-0.7464, -0.6655), "L": 36.0, "W": 36.0,
+			"fill": 0.9, "style": "baroque", "wall": "#f0ece2", "roof": "#c4603d", "towers": 0, "cap": "none"},
 	{"key": "church_wizytki_klasztor", "at": Vector2(-444.8, -828.1), "o": Vector2(-458.1, -836.4), "out": Vector2(-0.518, -0.856), "L": 52.0, "W": 56.0,
 			"fill": 0.9, "style": "baroque", "wall": "#e8dcc2", "roof": "#9a5545", "towers": 0, "cap": "none"},
 	{"key": "church_sala_faustyny", "at": Vector2(-2795.0, 1570.0), "o": Vector2(-2794.0, 1577.0), "out": Vector2(0.0, 1.0), "L": 27.0, "W": 14.0,
@@ -6701,6 +6771,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_czestochowska":
 		_build_czestochowska(site)  # the modernist A-frame church and its pylons, from photos
+		return
+	if site["key"] == "church_reformaci_klasztor":
+		_build_reformaci_klasztor(site)  # the Reformati friary by St Anthony's from LoD2 (the church's colours)
 		return
 	if site["key"] == "church_wizytki_klasztor":
 		_build_wizytki_klasztor(site)  # the Visitation sisters' convent from LoD2 (defaults until photos)

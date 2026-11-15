@@ -794,6 +794,7 @@ const INFO := {
 	"church_trojca_praga": ["Kościół Świętej Trójcy na Solcu", "Klasycystyczny kościół z wieżyczką.", "A classicist church with a bell turret."],
 	"church_czestochowska": ["Kościół Matki Bożej Częstochowskiej", "Modernistyczny kościół z dachem do ziemi.", "A modernist church with a roof down to the ground."],
 	"church_zwycieska": ["Kościół Matki Boskiej Zwycięskiej", "Kościół parafialny z dwiema wieżami.", "A parish church with two towers."],
+	"church_reformaci_klasztor": ["Klasztor Reformatów", "Klasztor franciszkanów reformatów przy kościele św. Antoniego.", "The Reformati Franciscans' friary beside St Anthony's."],
 	"church_wizytki_klasztor": ["Klasztor Wizytek", "Klasztor sióstr wizytek za ich kościołem.", "The Visitation sisters' convent behind their church."],
 	"church_sala_faustyny": ["Sala św. Faustyny", "Ceglana sala parafii św. Jakuba na Ochocie.", "The brick parish hall of St James', Ochota."],
 	"church_franciszkanki_piwna": ["Siostry na Piwnej", "Dom sióstr franciszkanek przy kościele św. Marcina.", "The Franciscan sisters' house by St Martin's."],
