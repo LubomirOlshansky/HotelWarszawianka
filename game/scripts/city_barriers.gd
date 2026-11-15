@@ -5,6 +5,10 @@ extends RefCounted
 ## looks are the palette's barrier types (game/data/object_palette.json "types", read through
 ## solidity.gd: no look is kept in code). It decides no type or class beyond what the map's barrier
 ## code always did (the rules below, `barrier_class`).
+## W2 of the walls look (docs/design/walls-true-to-life.md 6.1-6.3): under a look other than classic
+## (solidity.gd `barrier_look`, the palette's key or `--barriers=`) a line whose chain ends generic
+## is drawn from its type's `looks` row instead (`_typed`, `rail_lite_along`); classic, the default,
+## runs none of that and draws as main does.
 ##
 ## A RefCounted the map makes once (map_builder.gd `barriers`), with the map as its reference, the
 ## way landmarks.gd is called: the map swaps `data` for every sector it builds, and the caches here

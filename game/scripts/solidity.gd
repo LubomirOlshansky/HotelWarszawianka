@@ -11,7 +11,10 @@ extends RefCounted
 ## named `Solid_<class>` with `set_meta("solid", cls)`); the dressing scripts' own bodies carry
 ## the same meta (game/tools/check_solids.gd).
 ## Step 2 (the wall builder) adds the palette's barrier types ("types": one row per wall, fence,
-## hedge, rail and guard rail look; `types`, `type_row`), drawn by city_barriers.gd.
+## hedge, rail and guard rail look; `types`, `type_row`), drawn by city_barriers.gd. W2 of the walls
+## look (docs/design/walls-true-to-life.md 6.1) adds the `looks` rows (one per barrier line type
+## `ty`; `looks`, `look_row`) and the key that picks between the two, `barrier_look` (classic, the
+## `types` rows, by default; `set_barrier_look` for `--barriers=`).
 ##
 ## The answers: H hard (the car stops and slides, today's wall), S smash (it breaks, the car goes
 ## through for a share of its speed), P push (it gives way), R ride (the car drives over it),

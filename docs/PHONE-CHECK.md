@@ -34,6 +34,7 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | 5 | "Łamliwe płoty · Smashable fences" on: at Stadion Narodowy drive through a fence, a hedge and a tall net | the feel of the smash, the debris, the sound, the buzz; the broken fence still stands drawn (known, until panels) | #776 |
 | 6 | The same switch **off** (what testers get): drive fast along Marszałkowska and over a bridge | a hitch each time new streets come in (the fences' colliders are rebuilt at sector load, about 3.3 ms per sector in the cloud) | #780, #732 |
 | 7 | Switch on, shove parked cars on Krucza, end-on and from the side | a push, never a dead stop; where the pushed car comes to rest (it may sit a kerb low); the frame among parked cars (the cloud measured about 40 µs more per physics step there) | #796 |
+| 7b | A build baked with `typed` (device run): drive Marszałkowska, Plac Grzybowski and the stadium | do thin fences read as fences, or flicker? Are heights right (planters, park hedges)? | W2 |
 
 ## 3. Races and police (4 min)
 
