@@ -233,6 +233,11 @@ func open(world: Node3D, use_prebuilt: bool, building_mat: ShaderMaterial, flat_
 	map.name = "City"
 	world.add_child(map)
 	if prebuilt:
+		# The game's data is the index on both paths: the runtime map has it as `data` from its set-up
+		# (setup_streamed), the prebuilt one only as `index_data` (`data` is not saved). Without this a
+		# reader of `map.data` (the place scripts: the Spire's lights, Tamka's bollards and plates; the
+		# people on the University Library's roof garden) found nothing on the phone (2026-11-15).
+		map.data = map.index_data
 		EdgeRoadworks.rebuild(map)
 	for k: Array in map.index_data["sectors"]["keys"]:
 		keys.append(Vector2i(int(k[0]), int(k[1])))

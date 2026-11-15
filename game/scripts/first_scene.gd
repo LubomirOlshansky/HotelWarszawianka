@@ -84,12 +84,18 @@ const ITEMS := [
 	["bollards_x", -167.0, 67.5, ""], ["bollards_x", 113.0, 67.5, ""],
 ]
 ## Pasaż Wiecha in the frame above, [s0, s1, t0, t1]: from Aleje Jerozolimskie to the north end
-## behind Junior, between the stores' backs and the pavilions. The map's lamps in it (OSM, on the
-## pasaż's axis) become the photos' white Y masts: a single pole splitting into two arms with long
-## lamp blades (map_builder.gd skips those lamps). PASAZ_MASTS fills the 74 m gap the map leaves
-## under the slab, so they stand about every 25 m.
+## behind Junior, between the stores' backs and the pavilions. The photos' white Y masts stand on
+## it: a single pole splitting into two arms with long lamp blades, about every 25 m (map_builder.gd
+## skips the map's own lamps in it).
 const PASAZ := [-172.0, 116.0, 63.0, 74.0]
-const PASAZ_MASTS := [[-15.0, 68.0], [10.0, 68.0], [100.0, 67.5]]
+## The masts, [s, t] in the frame: eight at the map's lamps on the pasaż's axis (OSM, as centrum.json
+## had them on 2026-11-15) and three in the 74 m gap the map leaves under the slab (-15, 10, 100).
+## Written out, not read from the map's `lamps`: the lamps are a sector-only list, which neither
+## streamed city keeps once its sectors are built (the phone's city has no sector files at all), so
+## eight of the eleven masts were missing on both paths the game plays (found 2026-11-15).
+const PASAZ_MASTS := [[-139.53, 66.57], [-115.47, 67.32], [-106.25, 72.35], [-79.97, 68.27],
+		[-52.51, 72.75], [-40.61, 67.47], [-15.0, 68.0], [10.0, 68.0], [33.22, 68.94], [76.5, 69.06],
+		[100.0, 67.5]]
 ## First scene item 6 (2026-11-02): Marszałkowska's two pavements from Widok to the tram stop north
 ## of the museum, [s0, s1, t0, t1] in the frame above: the west one between the museum's edge and the
 ## tree row, the east one from the kerb to the stores' arcades. Walkers there are denser while the
@@ -182,15 +188,9 @@ static func on_pasaz(p: Vector2) -> bool:
 	return s > PASAZ[0] and s < PASAZ[1] and t > PASAZ[2] and t < PASAZ[3]
 
 
-## Pasaż Wiecha's Y masts: one at each of the map's lamps on it, and PASAZ_MASTS; the arms span
-## the pasaż (they face the street like the rest).
+## Pasaż Wiecha's Y masts (PASAZ_MASTS); the arms span the pasaż (they face the street like the rest).
 func _pasaz_masts(st: SurfaceTool) -> void:
 	var at: Array[Vector2] = []
-	var lamps: Array = map.data.get("lamps", [])
-	for i in range(0, lamps.size() - 1, 2):
-		var p := Vector2(float(lamps[i]), float(lamps[i + 1]))
-		if on_pasaz(p):
-			at.append(p)
 	for m: Array in PASAZ_MASTS:
 		at.append(FRAME_O + FRAME_S * float(m[0]) + FRAME_T * float(m[1]))
 	var yaw := atan2(FRAME_T.x, FRAME_T.y)
