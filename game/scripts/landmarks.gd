@@ -662,8 +662,8 @@ const INFO := {
 			"Hotel z 1976 roku przy Królewskiej, z widokiem na plac Piłsudskiego.",
 			"A hotel of 1976 on Królewska, looking out over Plac Piłsudskiego."],
 	"bez_kantow": ["Dom bez Kantów",
-			"Modernizm z zaokrąglonymi narożnikami. Kantów tu nie ma.",
-			"Modernism with rounded corners: no kanty (edges, or swindles)."],
+			"Piaskowiec i zaokrąglone narożniki. Kantów tu nie ma.",
+			"Sandstone and rounded corners: no kanty (edges, or swindles)."],
 	"departament": ["Departament Wojskowej Służby Zdrowia",
 			"Przy Królewskiej, na skraju placu Piłsudskiego.",
 			"On Królewska, at the edge of Plac Piłsudskiego."],
@@ -848,6 +848,7 @@ const INFO := {
 	"church_zwycieska": ["Kościół Matki Boskiej Zwycięskiej", "Kościół parafialny z dwiema wieżami.", "A parish church with two towers."],
 	"church_siostry_milosierdzia_zytnia": ["Siostry Matki Bożej Miłosierdzia", "Dom sióstr przy sanktuarium św. Faustyny na Żytniej.", "The Sisters of Our Lady of Mercy's house by St Faustina's shrine."],
 	"church_uczennice_boskiego_mistrza": ["Siostry Uczennice Boskiego Mistrza", "Ceglany dom zakonny sióstr uczennic przy Żytniej.", "The Sister Disciples of the Divine Master's brick convent."],
+	"church_kaplica_florianska": ["Kaplica przy katedrze św. Floriana", "Ośmioboczna ceglana kaplica z łupkowym hełmem, przy ogrodzeniu katedry.", "A small octagonal brick chapel with a slate bell roof, by the cathedral's fence."],
 	"church_zytnia_dom_zakonny_tyl": ["Dom zakonny na Żytniej, skrzydło", "Długie skrzydło domu zakonnego w głębi posesji przy Żytniej.", "The long wing of the convent behind its range on Żytnia."],
 	"church_zytnia_dom_zakonny": ["Dom zakonny na Żytniej", "Dom zakonny po południowej stronie Żytniej, przy Wolności.", "The convent range on the south side of Żytnia, by Wolność."],
 	"church_zwycieska_klasztor": ["Klasztor przy Matce Bożej Zwycięskiej", "Dom zakonny obok kościoła Matki Bożej Zwycięskiej na Kamionku.", "The religious house beside Our Lady of Victory in Kamionek."],
@@ -1887,8 +1888,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"gigantami":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin; the street front is ours
 				_build_gigantami(s)
-			"krolewska":
-				pass  # a skin with no card: drawn by the builder, not on the picking grid
+			"bez_kantow":
+				_build_bez_kantow(s)  # the whole block, Królewska 2 included (it replaces LoD2's wings)
 			_:
 				if key.begins_with("church_"):
 					_build_church(s)
@@ -1992,7 +1993,7 @@ func _mark_zone(site: Dictionary) -> void:
 
 ## The far skyline's colour of each (sector_proxies.gd, through `tower_colour`).
 const PLAC_WALLS := {"metropolitan": "#8a979c", "wiktoria": "#6f6b66", "europejski": "#e7ddc5",
-		"grob": "#ddd3bf", "bez_kantow": "#d3cec2", "departament": "#dccfb2", "krolewska": "#d9d0bb"}
+		"grob": "#ddd3bf", "bez_kantow": "#dccdac", "departament": "#dccfb2"}
 
 
 # --- Filharmonia Narodowa and Teatr Polski ----------------------------------------------------

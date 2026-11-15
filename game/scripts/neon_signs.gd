@@ -18,6 +18,8 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		"METROPOLKA", "ENELMEDIK", "ACORN", "HOTELS", "--",
 		# First scene item 3: the Eastern Wall's stores (parodies of their roof names).
 		"JUNIOREK", "SAWKA", "WARSIK",
+		# Junior's hanging cube and the rooftop box beside it (F's photos, 2026-11-15).
+		"JUNIOR", "CITY",
 		# The stores' printed ad banners (the Mac photo check, 2026-11-01).
 		"PROMOCJA", "LODY",
 		# The tower and the slab behind the stores (specs C and D): a parody and a drink.
