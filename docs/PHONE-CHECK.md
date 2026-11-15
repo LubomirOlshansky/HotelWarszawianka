@@ -14,8 +14,8 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 - A build is cut when this page reaches 15 open lines or three days pass (`docs/WORKFLOW.md`
   "The build train"). The build's commit and its Mac gate results are named at the top.
 
-**Build:** not cut yet. Last: TestFlight build 10 (2026-11-14). Next: 11 or later.
-**Mac gate at the build's commit:** not run yet.
+**Build:** 11, commit `1d063882`, archived 2026-11-15; the upload waits for F's go. Last uploaded: TestFlight build 10 (2026-11-14).
+**Mac gate at the build's commit:** run 2026-11-15, see `docs/builds/build-11.md`: no red step beyond the known `pois` Q3, `streaming` (step limit) and a flaky `police soak`.
 
 ## 1. Launch and the first minutes (3 min)
 

@@ -433,6 +433,22 @@ func parse() -> void:
 	parse_with(Main.game_args())
 
 
+## The test flags whose runs call the test harness (TD-4 a2, dev_harness.gd), by the value each sets:
+## --bench, --probe, --cam-log, --cam-test=, --lineup, --teleport-test, --quest-quit=, --contacts=,
+## --tram-watch=, --drive-into-water=, --clicks=, --drag=, --stops=, --spots=, --stream-pass=,
+## --stream-soak=, --shots=, --ram-test and --egg=. main.gd loads the harness once both parsers
+## have run (`parse()`, then `parse_stream()`), only when one of them is on. --nosave, --notitle,
+## --clock=, --autopilot and every other flag set none of them, so those runs play with no harness,
+## as a release build always does (its list is empty, release.gd). `check_dev_flags` checks this
+## list against every harness call's tests in main.gd.
+func wants_harness() -> bool:
+	return bench or probe or cam_log or lineup or teleport_test or quest_quit_flag >= 0.0 \
+			or contacts_to != "" or tram_watch >= 0 or _water_test_at != Vector2.INF \
+			or not clicks.is_empty() or not drags.is_empty() or not stops.is_empty() or not _spots.is_empty() \
+			or _pass_kind != "" or m._soak_minutes > 0.0 or not m.shots.is_empty() or m.cam_test != "" \
+			or m.ram_test != 0 or not m._egg.is_empty()
+
+
 ## The flags of `args`, in their order.
 func parse_with(args: PackedStringArray) -> void:
 	start_station = 1

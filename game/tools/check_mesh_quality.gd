@@ -44,6 +44,7 @@ const BUDGET := {
 	"church_alberta": 950,  # 2026-11-14: the whole classicist frontage on Plac Teatralny, portico and two wings, from photos (measured 818)
 	"church_antoniego": 1250,
 	"church_augustyn": 1900,  # 2026-11-14: the whole brick basilica and its 70 m tower, checked against photos (measured 1759)
+	"church_reformaci_klasztor": 500,  # 2026-11-15: the Reformati friary by St Anthony's from LoD2 (measured 396)
 	"church_wizytki_klasztor": 900,  # 2026-11-15: the Visitation sisters' convent from LoD2
 	"church_sala_faustyny": 250,  # 2026-11-14: the St Faustina hall in Ochota (measured 182)
 	"church_franciszkanki_piwna": 1100,  # 2026-11-14: the Franciscan Sisters' house on Piwna (measured 969)
