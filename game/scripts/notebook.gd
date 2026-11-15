@@ -20,12 +20,13 @@ extends Node
 ##   wallet's `pay`), recorded in the save; loop MW-5: `chapter_done` then opens the next
 ##   locked PÓŁNOC FM track (radio.gd `sync_chapters`, wired in main.gd).
 ## - **On the minimap**: the places not found yet within MINI_REACH m of the car as "?"
-##   (hud.gd `set_minimap_unknown`); never their names.
+##   (the PLACE layer of map_markers.gd, read by hud.gd); never their names.
 ## The page in the settings card is notebook_page.gd.
 
 ## Loop MW-5: a chapter's last card was found (its id); main.gd opens a PÓŁNOC FM track.
 signal chapter_done(chapter_id: String)
 
+const MapMarkers := preload("res://scripts/map_markers.gd")
 const Lang := preload("res://scripts/lang.gd")
 const Access := preload("res://scripts/access.gd")
 const PLACES_PATH := "res://data/places.json"
@@ -370,7 +371,12 @@ func _update_minimap(p: Vector2) -> void:
 				marks.append(at)
 	if marks != _unknown:
 		_unknown = marks
-		hud.set_minimap_unknown(marks)
+		# The "?" marks on the minimap (map_markers.gd, TD-13; the rule table keeps them off the
+		# full map).
+		var put: Array[Dictionary] = []
+		for at: Vector2 in marks:
+			put.append({"layer": MapMarkers.Layer.PLACE, "at": at})
+		hud.markers.put_all("notebook", put)
 
 
 # --- the record ----------------------------------------------------------------------------

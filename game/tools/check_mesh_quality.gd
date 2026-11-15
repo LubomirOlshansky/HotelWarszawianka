@@ -100,7 +100,7 @@ const BUDGET := {
 	"sad_najwyzszy": 8000,
 	"ostrogski": 870,
 	"brama_uw": 4000,  # 2026-11-15: rebuilt from F's photos, banded pilasters, iron gates, lamps, flags
-	"uruski": 4000,  # 2026-11-15: Pałac Uruskich's street front from F's photos
+	"uruski": 5000,  # 2026-11-15: Pałac Uruskich's street front and the risalit over the gate, from F's photos (4342 built)
 	"stara_buw": 5000,  # 2026-11-15: the Old Library's front and flanks from F's photos
 	"uw_skarpa": 7000,  # 2026-11-15: the escarpment's brick wall, piers, graffiti, railing
 	"uw_straz": 900,  # 2026-11-15: the guards' kiosk
@@ -150,7 +150,7 @@ const BUDGET := {
 	"syrenka_powisle": 260,
 	"dworzec_wodny": 310,
 	"kaskada": 260,
-	"dtc": 1950,
+	"dtc": 2250,
 	"europejski": 8000,
 	"flaga": 170,
 	"forest": 8100,  # 2026-11-15: the real green roof (lawns, wavy corten beds, railing, pavilions, tent), measured 6739 (was 4260)
