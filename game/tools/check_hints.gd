@@ -10,6 +10,8 @@ extends SceneTree
 ## - the save's [intro] round trip, and `done_tags` on a fixture wallet;
 ## - the title: the tips load, a new one every TIP_EVERY s while the city builds, none after it
 ##   (the last stays), the done ones last, the line clear of NOWA GRA at the phone's sizes;
+## - the DEV page: six taps on the version do nothing, the seventh opens it, then one tap does;
+##   our A/B switches are there and on no tab; Experimental quality shows only once it opened;
 ## - the spotlight on each target at the phone's sizes: its words inside the safe area and off
 ##   the thing it rings, and gone with `spotlight_off` and `clear_all`.
 ##   godot --headless --path game --script res://tools/check_hints.gd
@@ -19,6 +21,9 @@ const Messages := preload("res://scripts/messages.gd")
 const Title := preload("res://scripts/title.gd")
 const Hud := preload("res://scripts/hud.gd")
 const Wallet := preload("res://scripts/wallet.gd")
+const SettingsPanel := preload("res://scripts/settings_panel.gd")
+## The A/B switches that live on the DEV page only (the Fable critique's list).
+const DEV_KEYS := ["camera", "handling", "lane_assist", "zones", "collide", "soft_fences", "chatter", "perf"]
 const SCREENS := [Vector2i(2532, 1170), Vector2i(1334, 750), Vector2i(1280, 720), Vector2i(2868, 1320)]
 
 var _problems := 0
@@ -38,8 +43,9 @@ func _initialize() -> void:
 	_save()
 	await _title()
 	await _spotlight()
+	await _dev()
 	if _problems == 0:
-		print("check_hints: OK (%d facts: %d hints, %d tips, the rules, the save, the title at %d sizes, the spotlight at %d sizes)" % [
+		print("check_hints: OK (%d facts: %d hints, %d tips, the rules, the save, the title at %d sizes, the spotlight at %d sizes, the DEV page)" % [
 				_facts, Hints.IDS.size(), _tip_count(), SCREENS.size(), SCREENS.size()])
 		quit(0)
 	else:
@@ -258,3 +264,34 @@ func _spotlight() -> void:
 		_expect(hud.spotlight_target() == "", "clear_all takes the spotlight down")
 		vp.queue_free()
 		await process_frame
+
+
+func _dev() -> void:
+	var vp := SubViewport.new()
+	vp.size = Vector2i(2532, 1170)
+	vp.disable_3d = true
+	root.add_child(vp)
+	var panel: Control = SettingsPanel.new()
+	panel.pt = 3.0
+	vp.add_child(panel)
+	panel.open({"controls": 1, "follow": true, "traffic": 1, "quality": 0, "auto": "High", "master": 1.0, "music": 1.0,
+			"effects": 1.0, "fps": 0, "weather": 0, "time": 0})
+	await process_frame
+	var exp: Button = panel._groups["quality"][SettingsPanel.QUALITY.size() - 1]
+	_expect(not exp.visible, "DEV: Experimental quality is hidden before DEV")
+	_expect(str(panel._subtitle.text).ends_with(SettingsPanel.version()), "DEV: the version under the title (%s)" % panel._subtitle.text)
+	for i in SettingsPanel.DEV_TAPS - 1:
+		_expect(not panel.dev_tap(), "DEV: tap %d does not open it" % (i + 1))
+	_expect(panel.dev_tap() and panel._tab == SettingsPanel.DEV_PAGE, "DEV: the seventh tap opens it")
+	_expect(exp.visible, "DEV: Experimental quality shows once DEV opened")
+	var dev_page: Control = panel._pages[SettingsPanel.DEV_PAGE]
+	for key: String in DEV_KEYS:
+		var b: Button = panel._groups[key][0]
+		_expect(dev_page.is_ancestor_of(b), "DEV: %s is on the DEV page" % key)
+		for t in SettingsPanel.TABS.size():
+			_expect(not panel._pages[t].is_ancestor_of(b), "DEV: %s is not on tab %d" % [key, t])
+	_expect(dev_page.is_ancestor_of(dev_page.find_child("bench", true, false)), "DEV: TEST is on the DEV page")
+	panel.set_tab(0)
+	_expect(panel.dev_tap() and panel._tab == SettingsPanel.DEV_PAGE, "DEV: one tap opens it again in the same run")
+	vp.queue_free()
+	await process_frame

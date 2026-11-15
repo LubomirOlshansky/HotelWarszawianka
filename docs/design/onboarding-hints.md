@@ -43,7 +43,18 @@ DRIVE. Sixteen tips, twelve words at most, four Warsaw jokes to twelve game fact
 (`Hints.done_tags`: a job delivered, a rival raced, the map opened, a flight) and those tips go
 last. The same list is DŹWIĘK → PORADY in Settings, so a tip that flashed by is not lost.
 
-## Tuning on the phone (PHONE-CHECK 10e)
+## The DEV page (`settings_panel.gd` `_dev_page`)
+
+The Fable critique's beta settings: testers keep their preferences, our A/B switches move out of
+their way so every tester drives the same car. Seven taps on the version under the settings
+card's title (each within 1.5 s) open the DEV page; once open in a run, one tap does. On it:
+the follow camera, handling and the lane assist; the 20 km/h zones, collisions and smashable
+fences; the city's chattiness, the performance overlay and TEST. Experimental quality shows on
+Obraz only once DEV was opened. The keys are the same as before, so saved values carry over.
+The version is project.godot's `application/config/version` ("0.1", as the export's short
+version).
+
+## Tuning on the phone (PHONE-CHECK 10e, 10f)
 
 - 4.5 m/s for "stop in the ring": too eager, or too late to matter?
 - 3 s for "reverse": before the player gives up, after a normal three-point turn?

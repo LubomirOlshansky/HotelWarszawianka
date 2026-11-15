@@ -58,6 +58,12 @@ const CREDITS_PAGE := 6
 ## tip that flashed by on the title is not lost.
 const TIPS_PAGE := 7
 const TIPS_FILE := "res://data/tips.json"
+## First hour step 6 (the Fable critique, F 2026-11-15): the DEV page, our A/B switches out of the
+## testers' way. It opens after DEV_TAPS taps on the version under the title, each within
+## DEV_TAP_GAP s of the last; once open in a run, one tap opens it again.
+const DEV_PAGE := 8
+const DEV_TAPS := 7
+const DEV_TAP_GAP := 1.5
 const SOUND_TAB := 3
 const Credits := preload("res://scripts/credits.gd")
 const NotebookPage := preload("res://scripts/notebook_page.gd")
@@ -107,6 +113,10 @@ var safe := Rect2()
 ## The RAPORT button on the sound page (the error trap, TD-14): our own debug builds have it,
 ## testers' builds do not (F, 2026-11-12).
 var report_on := OS.is_debug_build()
+## The DEV page was opened in this run (`_dev_tap`): Experimental quality shows on Obraz too.
+var dev_on := false
+var _dev_taps := 0
+var _dev_tap_ms := -100000
 ## The smallest touch target in pixels (44 pt).
 var touch := 132.0
 var _card: PanelContainer
@@ -196,6 +206,12 @@ func _build() -> void:
 	# MOJA WARSZAWA (the notebook tab's title, at T_NOTES): the fifth tab fits a 375 pt phone.
 	_title = _text(Lang.pick("USTAWIENIA", "SETTINGS"), T_HEAD, ACCENT)
 	_subtitle = _text(Lang.pick("gra wstrzymana", "game paused"), T_SUB, SUB)
+	# The version under the title; seven taps on it open the DEV page.
+	_subtitle.name = "version"
+	_subtitle.mouse_filter = Control.MOUSE_FILTER_STOP
+	_subtitle.gui_input.connect(func(e: InputEvent):
+		if e is InputEventMouseButton and (e as InputEventMouseButton).pressed:
+			dev_tap())
 	_subtitle_en = _text("", T_LABEL, SUB)
 	_subtitle_en.visible = false
 	titles.add_child(_title)
@@ -251,59 +267,28 @@ func _build() -> void:
 		l.custom_minimum_size.x = 240.0 * pt
 		drive[0].add_child(l)
 	_level(drive[0], "sensitivity", "Czułość", "Steering", 120.0)
-	_heading(drive[1], "Kamera za autem", "Camera follows the car")
-	_segments(drive[1], "camera", CAMERA)
-	_heading(drive[1], "Prowadzenie", "Handling")
-	_segments(drive[1], "handling", HANDLING)
-	# Beta values (2026-11-04): the lane assist (lane_assist.gd), Classic only, on by default since 2026-11-13,
-	# side by side with the pedestrian zones (a fourth row made the panel too tall for the phone).
-	var pair := HBoxContainer.new()
-	pair.add_theme_constant_override("separation", _px(8))
-	pair.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	drive[1].add_child(pair)
-	var zones := VBoxContainer.new()
-	zones.add_theme_constant_override("separation", _px(6))
-	pair.add_child(zones)
-	_heading(zones, "Strefy piesze 20 km/h", "Pedestrian zones 20 km/h")
-	_segments(zones, "zones", ON_OFF)
-	var lane := VBoxContainer.new()
-	lane.add_theme_constant_override("separation", _px(6))
-	pair.add_child(lane)
-	_heading(lane, "Asysta pasa", "Lane assist")
-	_segments(lane, "lane_assist", ON_OFF)
-	# Świat · World. Settings rows (F 2026-11-14): in three rows, as Obraz is (a fourth row in the
-	# columns made the card too tall for the phone, a wider second column too wide): the time of day
-	# and the mode; the weather beside the smashable fences, and the chattiness; the traffic and the
-	# collision answer.
-	var world := _rows(body, [2, 2, 2])
+	# First hour step 6 (the Fable critique's beta settings, F 2026-11-15): our own A/B switches
+	# (handling, the follow camera, the lane assist, the 20 km/h zones, collisions, smashable
+	# fences, the city's chattiness, the overlay and TEST) live on the DEV page (`_dev_page`,
+	# seven taps on the version under the title), so every tester drives the same car; the
+	# player's own preferences stay on the tabs. Jazda keeps the rescue, the controls and the
+	# steering in its first column; the second shows what DEV holds.
+	_heading(drive[1], "Ustawienia testów", "Test settings")
+	var dev_note := _text(Lang.pick("Prowadzenie, kamera i zderzenia są takie same dla wszystkich testerów.",
+			"Handling, camera and collisions are the same for every tester."), T_SUB, SUB)
+	dev_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dev_note.custom_minimum_size.x = 200.0 * pt
+	drive[1].add_child(dev_note)
+	# Świat · World: the time of day and the mode; the weather and the traffic.
+	var world := _rows(body, [2, 2])
 	_heading(world[0], "Pora dnia", "Time of day")
 	_segments(world[0], "time", TIME)
 	_heading(world[1], "Tryb gry", "Game mode")
 	_segments(world[1], "wander", MODE)
-	var weather_pair := HBoxContainer.new()
-	weather_pair.add_theme_constant_override("separation", _px(8))
-	weather_pair.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	world[2].add_child(weather_pair)
-	var weather := VBoxContainer.new()
-	weather.add_theme_constant_override("separation", _px(6))
-	weather_pair.add_child(weather)
-	_heading(weather, "Pogoda", "Weather")
-	_segments(weather, "weather", WEATHER)
-	var fences := VBoxContainer.new()
-	fences.add_theme_constant_override("separation", _px(6))
-	weather_pair.add_child(fences)
-	_heading(fences, "Łamliwe płoty", "Smashable fences")
-	_segments(fences, "soft_fences", ON_OFF)
-	_heading(world[3], "Gadatliwość miasta", "City chattiness")
-	_segments(world[3], "chatter", CHATTER)
-	_heading(world[4], "Ruch uliczny", "Traffic")
-	_steps(world[4], "traffic", TRAFFIC)
-	_heading(world[5], "Zderzenia", "Collisions")
-	_segments(world[5], "collide", COLLIDE)
-	# Three choices beside the five times of day: narrower buttons (still over 44 pt) so the
-	# page keeps the card's width on a 375 pt phone.
-	for b: Button in _groups["chatter"]:
-		b.custom_minimum_size.x = touch * 1.3
+	_heading(world[2], "Pogoda", "Weather")
+	_segments(world[2], "weather", WEATHER)
+	_heading(world[3], "Ruch uliczny", "Traffic")
+	_steps(world[3], "traffic", TRAFFIC)
 	# Obraz · Picture. Loop G1: in three rows (Quality's five choices made the two columns too
 	# wide for the SE): Style and VHS; Quality; Frame rate and the overlay with TEST.
 	# 2026-11-01 (F): the Style picker is gone (always the sharp image); the old VHS tape is now
@@ -327,27 +312,18 @@ func _build() -> void:
 	var quality := QUALITY.duplicate(true)
 	quality[0] = ["Auto · %s" % _auto_name, "Auto · %s" % _auto_name]
 	_segments(picture[3], "quality", quality)
+	_groups["quality"][QUALITY.size() - 1].visible = dev_on  # Experimental: DEV only (it heats the phone)
 	_heading(picture[4], "Klatki na sekundę", "Frame rate")
 	_segments(picture[4], "fps", FPS)
-	_heading(picture[5], "Licznik wydajności", "Performance overlay")
-	var perf_row := HBoxContainer.new()
-	perf_row.add_theme_constant_override("separation", _px(6))
-	picture[5].add_child(perf_row)
-	_segments(perf_row, "perf", ON_OFF)
-	# Loop 2b: a minute on the bench route, then a result card to copy (main.gd).
-	var bench := _word_button("TEST", "BENCH")
-	bench.name = "bench"
-	bench.pressed.connect(func():
-		close()
-		changed.emit("bench", 1))
-	perf_row.add_child(bench)
-	# Loop MW-6: the photo mode (fotka.gd), from the pause card.
+	# Loop MW-6: the photo mode (fotka.gd), from the pause card. (The overlay and TEST are on DEV.)
+	_heading(picture[5], "Tryb zdjęć", "Photo mode")
 	var photo := _word_button("FOTKA", "PHOTO")
 	photo.name = "fotka"
+	photo.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	photo.pressed.connect(func():
 		close()
 		changed.emit("fotka", 1))
-	perf_row.add_child(photo)
+	picture[5].add_child(photo)
 	# Dźwięk · Sound.
 	var sound := _page(body, 2)
 	for l in LEVELS:
@@ -396,6 +372,9 @@ func _build() -> void:
 	_heading(access[1], "Dla leworęcznych", "Left-handed: pedals on the left")
 	_segments(access[1], "left_handed", ON_OFF)
 
+	var dev := _dev_page(body)
+	_pages.erase(dev)  # page DEV_PAGE: after the credits and the tips below
+
 	# The body is as big as the biggest page, so the card keeps its size from tab to tab.
 	var biggest := Vector2.ZERO
 	for p in _pages:
@@ -419,6 +398,7 @@ func _build() -> void:
 	notebook_page.size = notebook_page.custom_minimum_size
 	_credits_page(body)
 	_tips_page(body)
+	_pages.append(dev)
 	if _target != "":
 		notebook_page.show_target(_target)
 	set_tab(_tab)
@@ -491,10 +471,10 @@ func _rows(parent: Control, cells: Array[int]) -> Array[VBoxContainer]:
 
 ## Shows tab `i` (0 Driving, 1 World, 2 Picture, 3 Sound, 4 Notebook, 5 Access; 6 the credits page).
 func set_tab(i: int) -> void:
-	_tab = clampi(i, 0, TIPS_PAGE if _built else TABS.size() - 1)
+	_tab = clampi(i, 0, DEV_PAGE if _built else TABS.size() - 1)
 	if not _built:
 		return
-	var lit := SOUND_TAB if _tab == CREDITS_PAGE or _tab == TIPS_PAGE else _tab
+	var lit := SOUND_TAB if _tab == CREDITS_PAGE or _tab == TIPS_PAGE else (-1 if _tab == DEV_PAGE else _tab)
 	for k in _pages.size():
 		_pages[k].visible = k == _tab
 	for k in _tabs.size():
@@ -503,10 +483,11 @@ func set_tab(i: int) -> void:
 	var on_notes := _tab == NOTEBOOK_TAB
 	var on_credits := _tab == CREDITS_PAGE
 	var on_tips := _tab == TIPS_PAGE
+	var on_dev := _tab == DEV_PAGE
 	_body.custom_minimum_size = notebook_page.custom_minimum_size if on_notes else _settings_size
-	_title.text = Lang.pick("MOJA WARSZAWA", "MY WARSAW") if on_notes else (Lang.pick("O GRZE", "ABOUT") if on_credits else (Lang.pick("PORADY", "TIPS") if on_tips else Lang.pick("USTAWIENIA", "SETTINGS")))
+	_title.text = Lang.pick("MOJA WARSZAWA", "MY WARSAW") if on_notes else (Lang.pick("O GRZE", "ABOUT") if on_credits else (Lang.pick("PORADY", "TIPS") if on_tips else ("DEV" if on_dev else Lang.pick("USTAWIENIA", "SETTINGS"))))
 	_title.add_theme_font_size_override("font_size", _px(T_NOTES if on_notes else T_HEAD))
-	_subtitle.text = _notes_count() if on_notes else (Lang.pick("licencje i autorzy", "credits and licences") if on_credits else (Lang.pick("z ekranu ładowania", "from the loading screen") if on_tips else Lang.pick("gra wstrzymana", "game paused")))
+	_subtitle.text = _notes_count() if on_notes else (Lang.pick("licencje i autorzy", "credits and licences") if on_credits else (Lang.pick("z ekranu ładowania", "from the loading screen") if on_tips else (Lang.pick("przełączniki testów", "test switches") if on_dev else "%s · %s" % [Lang.pick("gra wstrzymana", "game paused"), version()])))
 	_subtitle_en.text = ""
 	if on_notes:
 		notebook_page.queue_redraw()
@@ -542,6 +523,76 @@ func _credits_page(body: Control) -> void:
 			l.custom_minimum_size.x = col.custom_minimum_size.x
 			col.add_child(l)
 	_pages.append(scroll)
+
+
+## The game's version as the card shows it ("v0.1"): project.godot's application/config/version.
+static func version() -> String:
+	return "v%s" % str(ProjectSettings.get_setting("application/config/version", "dev"))
+
+
+## A tap on the version: the seventh in a row (each within DEV_TAP_GAP s) opens the DEV page, and
+## once it was open in this run every tap does. True when it opened.
+func dev_tap() -> bool:
+	var now := Time.get_ticks_msec()
+	_dev_taps = _dev_taps + 1 if now - _dev_tap_ms <= int(DEV_TAP_GAP * 1000.0) else 1
+	_dev_tap_ms = now
+	if not dev_on and _dev_taps < DEV_TAPS:
+		return false
+	_dev_taps = 0
+	show_dev()
+	return true
+
+
+## Opens the DEV page (and from now on Experimental quality shows on Obraz).
+func show_dev() -> void:
+	dev_on = true
+	if not _built:
+		return
+	(_groups["quality"][QUALITY.size() - 1] as Button).visible = true
+	set_tab(DEV_PAGE)
+	if Gamepad.in_use():
+		pad_focus()
+
+
+## First hour step 6: the DEV page, our own A/B switches (the Fable critique's list): handling,
+## the follow camera and the lane assist; the 20 km/h zones, collisions and smashable fences; the
+## city's chattiness, the performance overlay and TEST. The same keys as before, so main.gd and
+## settings.gd keep them as ever; only where they sit changed.
+func _dev_page(body: Control) -> Control:
+	var at := _pages.size()
+	var dev := _rows(body, [3, 3, 2])
+	_heading(dev[0], "Kamera za autem", "Camera follows the car")
+	_segments(dev[0], "camera", CAMERA)
+	_heading(dev[1], "Prowadzenie", "Handling")
+	_segments(dev[1], "handling", HANDLING)
+	_heading(dev[2], "Asysta pasa", "Lane assist")
+	_segments(dev[2], "lane_assist", ON_OFF)
+	_heading(dev[3], "Strefy 20 km/h", "20 km/h zones")
+	_segments(dev[3], "zones", ON_OFF)
+	_heading(dev[4], "Zderzenia", "Collisions")
+	_segments(dev[4], "collide", COLLIDE)
+	_heading(dev[5], "Łamliwe płoty", "Smashable fences")
+	_segments(dev[5], "soft_fences", ON_OFF)
+	_heading(dev[6], "Gadatliwość miasta", "City chattiness")
+	_segments(dev[6], "chatter", CHATTER)
+	_heading(dev[7], "Licznik wydajności", "Performance overlay")
+	var perf_row := HBoxContainer.new()
+	perf_row.add_theme_constant_override("separation", _px(6))
+	dev[7].add_child(perf_row)
+	_segments(perf_row, "perf", ON_OFF)
+	# Loop 2b: a minute on the bench route, then a result card to copy (main.gd).
+	var bench := _word_button("TEST", "BENCH")
+	bench.name = "bench"
+	bench.pressed.connect(func():
+		close()
+		changed.emit("bench", 1))
+	perf_row.add_child(bench)
+	for key: String in ["camera", "lane_assist", "zones", "soft_fences", "perf"]:
+		for b: Button in _groups[key]:
+			b.custom_minimum_size.x = touch * 1.05
+	var page := _pages[at]
+	page.name = "dev_page"
+	return page
 
 
 ## First hour step 6: shows the tips (DŹWIĘK → PORADY; any tab goes back).
@@ -638,7 +689,7 @@ func pad_focus() -> void:
 
 ## The button the pad's focus starts on: the open tab's.
 func focus_target() -> Button:
-	return _tabs[SOUND_TAB if _tab == CREDITS_PAGE or _tab == TIPS_PAGE else _tab]
+	return _tabs[SOUND_TAB if _tab == CREDITS_PAGE or _tab == TIPS_PAGE else (0 if _tab == DEV_PAGE else _tab)]
 
 
 ## The current values again (after a change that moves another row: Classic's camera).
