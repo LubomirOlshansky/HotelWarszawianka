@@ -60,6 +60,7 @@ const ContactLog := preload("res://scripts/contact_log.gd")
 const Car := preload("res://scripts/car.gd")
 const MapBuilder := preload("res://scripts/map_builder.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
+const Fakes := preload("res://tools/fakes.gd")
 
 ## The stadium's grounds (3,-1: 127 hedges and 35 fences), Marszałkowska and the spawn (-2,0),
 ## Powiśle and the river (0,-1), the Old Town (-2,-3).
@@ -80,14 +81,6 @@ var _pushed: Array = []
 var _returned: Array = []
 ## M5's counts.
 var _m5 := {"cars": 0, "pushes": 0, "natural": 0, "ruled": 0, "wedged": 0, "bays": 0, "usec": 0}
-
-
-## A map stub for a hand-made lane graph (P5): flat ground at 0.
-class FlatMap:
-	extends Node3D
-
-	func terrain_height(_x: float, _z: float) -> float:
-		return 0.0
 
 
 func _initialize() -> void:
@@ -553,7 +546,7 @@ func _road(z: float, lanes: int, flat: Node3D) -> LaneGraph:
 
 
 func _p5_lanes() -> void:
-	var flat := FlatMap.new()
+	var flat := Fakes.FlatMap.new()  # the hand-made lane graph's map (P5)
 	root.add_child(flat)
 	# A lane from z -7 to -4 (its centreline at -7, the lane to its right): the car (along z, -2.1 ..
 	# 2.1) pushed 3 m back would rest half in it: it stops short, clear of it.
