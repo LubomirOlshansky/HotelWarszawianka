@@ -2680,18 +2680,20 @@ const DTC_FASCIA := 0.8      # the slab edge over the shop windows
 const DTC_BODY := 17.5       # the curtain wall's top (OSM part h 17.5)
 const DTC_CORNICE := 0.9   # the light band along the roof edge (F's aerials and street photos)
 const DTC_TOP := 3.0         # the top storey (OSM parts 17.5 to 20.5)
-const DTC_TOP_IN := 3.0      # and how far it stands back from the long sides (the Mac photo check)
-const DTC_TOP_END := 8.0     # and from the ends (6-10 m in the photos)
+const DTC_TOP_IN := 1.6      # and how far it stands back from the long sides (F's photos 2026-11-15: the crown nearly sits on the cornice)
+const DTC_TOP_END := 3.0     # and from the ends (F's photos 2026-11-15: the louvres run almost to the corner)
+const DTC_TOP_ROUND := 3.5   # the crown's rounded corners (the corner by the Half Price banner)
 const DTC_RECESS := 4.5      # the shop floor's set-back under the cantilever (photos: 4-5 m)
 ## Down Marszałkowska (south-south-east) from the stores: the game's camera looks up the street,
 ## so the stores' south ends face it.
 const DTC_SOUTH := Vector2(0.349, 0.937)
 const DTC_SHOP := Color("#6e7f84")      # the dark shop windows deep under the cantilever, lit warm at night
-const DTC_GLASS := Color("#7f97a4")     # the curtain wall's pale blue-grey glass (F's photos, Mapillary 2024-26)
+const DTC_GLASS := Color("#a6bdb4")     # the curtain wall: frosted pale green-grey panels (F's photos 2026-11-15)
 const DTC_ALU := Color("#c9cdcf")       # fascia, cornice, soffit: light aluminium
-const DTC_TOP_WALL := Color("#b4babd")  # the top storey: a light grey louvred screen (Mapillary 2024, F's photos)
+const DTC_TOP_WALL := Color("#8a6d4a")  # the crown: vertical bronze louvres (F's photos 2026-11-15)
 const DTC_ROOF := Color("#4f5559")      # the main roof
 const DTC_TOP_ROOF := Color("#5d6468")  # the top storey's roof
+const DTC_SOFFIT := Color("#eceeea")    # the arcade's white slatted ceiling (F's photo of the pasaż)
 const DTC_SKY := Color("#cfd8dc")       # the roof lights, lit at night
 const DTC_SIGN := Color(1.0, 0.86, 0.55)
 ## The stores' shops and ads (printed banners on the curtain walls, lit shop fronts under the
@@ -2764,12 +2766,13 @@ func _build_dtc(_site: Dictionary) -> void:
 		_prism(outline, g + DTC_BODY - DTC_CORNICE, g + DTC_BODY, DTC_ALU, DTC_ROOF, M_STONE, M_STONE)
 		# soffit: the cantilever's light aluminium underside round the shop floor.
 		_mode = M_STONE
-		_soffit(outline, g + DTC_BASE, DTC_ALU.darkened(0.06))
+		_soffit(outline, g + DTC_BASE, DTC_SOFFIT)
+		_dtc_ceiling(outline, shop, g)
 		# top: the set-back top storey, 3 m in on the long sides and DTC_TOP_END at the ends.
 		var top := _dtc_top(outline)
 		if top.size() >= 3:
 			var y := g + DTC_BODY + DTC_TOP
-			_prism(top, g + DTC_BODY, y, DTC_TOP_WALL, DTC_TOP_ROOF, M_SKIN + float(S_FINS) / 16.0, M_STONE)
+			_prism(top, g + DTC_BODY, y, DTC_TOP_WALL, DTC_TOP_ROOF, M_STONE, M_STONE)   # solid bronze: the S_FINS skin is silver-white
 			_dtc_roof(top, y, d["osm"] == "Junior")
 		var store: Dictionary = shops.get(str(d["osm"]), {})
 		_dtc_banners(outline, top, g, store.get("banners", []))
@@ -2777,6 +2780,9 @@ func _build_dtc(_site: Dictionary) -> void:
 		_dtc_props(outline, g, store.get("props", []))
 		_dtc_green(outline, g, store.get("roof_green", []))
 		_dtc_sign(outline, str(d["sign"]), g + DTC_BODY)
+		if d["osm"] == "Junior":
+			_dtc_cube(outline, g)
+			_dtc_corner_box(outline, g + DTC_BODY)
 		_collide(shop)
 	_mode = M_STONE
 	_dtc_relax()
@@ -2804,7 +2810,97 @@ func _dtc_top(outline: PackedVector2Array) -> PackedVector2Array:
 	var b := hi - DTC_TOP_END
 	var band := PackedVector2Array([c + DTC_SOUTH * a - across * 60.0, c + DTC_SOUTH * b - across * 60.0,
 			c + DTC_SOUTH * b + across * 60.0, c + DTC_SOUTH * a + across * 60.0])
-	return _largest(Geometry2D.intersect_polygons(inset[0], band))
+	var crown := _largest(Geometry2D.intersect_polygons(inset[0], band))
+	# Rounded corners: draw it in and out again with round joins.
+	var in_ := Geometry2D.offset_polygon(crown, -DTC_TOP_ROUND, Geometry2D.JOIN_MITER)
+	if not in_.is_empty():
+		var out_ := Geometry2D.offset_polygon(in_[0], DTC_TOP_ROUND, Geometry2D.JOIN_ROUND)
+		if not out_.is_empty() and _area(out_[0]) > _area(crown) * 0.85:
+			return out_[0]
+	return crown
+
+
+## The arcade's ceiling (F's photo of the pasaż): a row of small recessed lights down the middle of
+## the white soffit, between the cantilever's edge and the shop glass, and a few dark dome cameras.
+## Flat quads and tiny prisms only (about 2 tris a light).
+func _dtc_ceiling(outline: PackedVector2Array, shop: PackedVector2Array, g: float) -> void:
+	var y := g + DTC_BASE - 0.07
+	var col := Color("#6c7074")
+	var c := _centre(outline)
+	var across := Vector2(-DTC_SOUTH.y, DTC_SOUTH.x)
+	var lo := INF
+	var hi := -INF
+	for q in outline:
+		var sv := (q - c).dot(DTC_SOUTH)
+		lo = minf(lo, sv)
+		hi = maxf(hi, sv)
+	# The street-side row: a ray in from the street face finds the edge and the glass.
+	var n := 0
+	var sv := lo + 5.0
+	while sv < hi - 4.0:
+		var from := c + DTC_SOUTH * sv + DTC_EAST * -60.0
+		var edge := _dtc_ray(outline, from, DTC_EAST, 120.0)
+		var glass := _dtc_ray(shop, from, DTC_EAST, 120.0)
+		if not edge.is_empty() and not glass.is_empty():
+			var e: Vector2 = edge[0]
+			var gl: Vector2 = glass[0]
+			if e.distance_to(gl) > 2.0 and e.distance_to(gl) < 8.0:
+				var p := e.lerp(gl, 0.5)
+				var h := 0.16
+				_mode = M_LAMP
+				_quad(Vector3(p.x - h, y, p.y - h), Vector3(p.x + h, y, p.y - h), Vector3(p.x + h, y, p.y + h), Vector3(p.x - h, y, p.y + h), Vector3.DOWN, Color("#fff4d6"))
+				if n % 5 == 2:
+					_mode = M_STONE
+					_prism(_square(e.lerp(gl, 0.3), 0.2), y - 0.35, y + 0.02, col, col, M_STONE, M_STONE)
+				n += 1
+		sv += 6.0
+	_mode = M_STONE
+
+
+## Junior's cube (F's photo of the arcade's end): a hanging silver box, its faces to the street and
+## down the arcade carrying the green bullseye and JUNIOR in green, under the slab at the south end
+## of the store's street face.
+func _dtc_cube(outline: PackedVector2Array, g: float) -> void:
+	var spot := _dtc_spot(outline, "west", 0.97, 0.0)
+	if spot.is_empty():
+		return
+	var o: Vector2 = spot[2]
+	var d: Vector2 = spot[1]
+	var m: Vector2 = (spot[0] as Vector2) + o * 0.8 - d * 2.2   # hangs a little in from the corner
+	var h := 1.5
+	var y0 := g + DTC_BASE - 3.1
+	var y1 := g + DTC_BASE - 0.05
+	var steel := Color("#aeb4b6")
+	_mode = M_STONE
+	_prism(PackedVector2Array([m - d * h - o * h, m + d * h - o * h, m + d * h + o * h, m - d * h + o * h]), y0, y1, steel, steel.darkened(0.1), M_STONE, M_STONE)
+	var rings := [Color("#2f7a37"), Color("#4f9a45"), Color("#8cc063"), Color("#e6e27a")]
+	for face: Array in [[o, d], [d, -o]]:
+		var n: Vector2 = face[0]
+		var t: Vector2 = face[1]
+		var cc := m + n * (h + 0.03)
+		var cy := (y0 + y1) * 0.5 - 0.25
+		for i in rings.size():
+			var r := 1.15 - 0.27 * i
+			var nn := n * (0.06 * i)
+			var a := cc + nn - t * r
+			var b := cc + nn + t * r
+			_quad(Vector3(a.x, cy - r, a.y), Vector3(b.x, cy - r, b.y), Vector3(b.x, cy + r, b.y), Vector3(a.x, cy + r, a.y), Vector3(n.x, 0, n.y), rings[i])
+	_dtc_words(["JUNIOR"], m + o * (h + 0.06), o, y1 - 0.45, y1 - 0.05, 2.8, 0.4, Color("#2f7a37"))
+
+
+## The white box on the roof at the corner (F's photos: a rooftop sign box with the city's logo and
+## a lit word), parody: a plain white box with CITY in blue, facing the street.
+func _dtc_corner_box(outline: PackedVector2Array, y: float) -> void:
+	var spot := _dtc_spot(outline, "west", 0.97, 8.0)
+	if spot.is_empty():
+		return
+	var o: Vector2 = spot[2]
+	var d: Vector2 = spot[1]
+	var m: Vector2 = (spot[0] as Vector2) - o * 2.4 - d * 5.0
+	var w := 4.2
+	_prism(PackedVector2Array([m - d * w - o * 1.2, m + d * w - o * 1.2, m + d * w + o * 1.2, m - d * w + o * 1.2]), y, y + 5.8,
+			Color("#e9ebe9"), Color("#cfd4d6"), M_STONE, M_STONE)
+	signs.append(["CITY", Vector3(m.x + o.x * 1.25, y + 2.2, m.y + o.y * 1.25), Vector3(o.x, 0.0, o.y), 0.7 * 2.0 * w / Neon.length_of("CITY"), Color(0.2, 0.5, 0.9)])
 
 
 ## The top storey's roof (the photo check): small square skylights in pairs and 2 x 2

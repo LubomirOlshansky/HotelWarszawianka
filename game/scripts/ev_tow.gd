@@ -205,6 +205,61 @@ func setup(world: Node3D, seed_value := -1) -> void:
 	_log("%d chargers (%s); first call in %.0f s, first stranded car in %.0f s" % [chargers.size(), ", ".join(names), call_in, strand_in])
 
 
+## Wires the tow from the game (activity.gd `install`; main.gd's `_build_ev_tow` until TD-4 b2).
+## None with --no-traffic or --ev=0. `car` and `autopilot` stay unset, as they always were.
+func install(ctx: GameCtx) -> bool:
+	if ctx.traffic == null or ctx.flags.ev_flag == "0":
+		return false
+	super(ctx)
+	name = "EvTow"
+	dialogue = ctx.dialogue
+	graph = ctx.graph as LaneGraph
+	traffic = ctx.traffic
+	radio = ctx.radio
+	heli = ctx.heli
+	log_on = ctx.flags.ev_log
+	auto = ctx.flags._ev_auto
+	vehicle = ctx.vehicle
+	take_off = ctx.take_off
+	return true
+
+
+## The --ev-* test starts, a second into the drive (main.gd's `_ev_start` until TD-4 b2).
+func joined(ctx: GameCtx) -> void:
+	var mode: String = ctx.flags.ev_flag
+	if mode == "":
+		return
+	var at_car: Node3D = ctx.car
+	var focus_at: Callable = ctx.focus_at
+	get_tree().create_timer(1.0).timeout.connect(func() -> void: _test_start(mode, at_car, focus_at))
+
+
+## `call`: Bartek rings. `stranded`: a stranded car ahead of the player's. `tow`: the call taken,
+## the helicopter over his car, low enough to hook; `tow=carry`: 22 m up, the rope lifting it.
+func _test_start(mode: String, at_car: Node3D, focus_at: Callable) -> void:
+	match mode:
+		"call":
+			ring()
+		"stranded":
+			var p := at_car.global_position
+			var f := -at_car.global_transform.basis.z
+			place_stranded(Vector2(p.x, p.z), Vector2(f.x, f.z).normalized(), true)
+		_:
+			ring()
+			card_pressed(0)  # the call answered
+			card_pressed(0)  # LECĘ!
+			if job.is_empty():
+				return
+			var at: Vector3 = job["at"]
+			if not bool(vehicle.call()[2]):
+				take_off.call()
+			var carry := mode == "tow=carry"
+			heli.place(at + Vector3(-3.0, 0.0, 2.0), heli.rotation.y, 22.0 if carry else ROPE + SIZE.y - 0.5)
+			focus_at.call(heli.global_position)
+			if carry:
+				_hook()
+
+
 func _node(parent: Node, mesh: Mesh) -> MeshInstance3D:
 	var m := MeshInstance3D.new()
 	m.mesh = mesh

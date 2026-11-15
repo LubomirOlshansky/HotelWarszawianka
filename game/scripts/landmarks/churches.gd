@@ -4580,6 +4580,15 @@ const FKL_AT := [Vector2(-2735.0, -713.0), Vector2(-2718.0, -700.0), Vector2(-27
 const FKL_WALL := Color("#ece9e2")      ## white plaster (the shrine's, photos)
 const FKL_ROOF := Color("#606366")      ## grey sheet roofs (the church's, photos)
 
+## The two houses of the Sisters of Charity's grounds north of their convent on Tamka, by Zaułek Ku
+## Szarytkom (OSM 2380, the tall one with a steep gable roof, and 2379, the low one east of it;
+## unnamed `religious` buildings). No photo shows them: the street photos near them look along Tamka,
+## and the convent's Commons photos (refs/churches/szarytki_tamka, reference only, never shipped)
+## show the ranges round the courtyard. Provisional: the mass stays GUGiK's LoD2 in the convent's
+## white plaster and green copper (`szarytki`'s skin), until a photo of them turns up. Spec
+## docs/landmarks/specs/szarytki_zaulek.md.
+const SZZ_AT := [Vector2(66.0, -262.0), Vector2(100.0, -278.0)]  ## one point inside each outline
+
 
 ## The presbytery of St Florian's cathedral (Plebania katedry św. Floriana, Floriańska, Praga):
 ## an L of two plastered houses behind the cathedral. The range on Floriańska, three tall storeys
@@ -4642,6 +4651,176 @@ const ZWK_WALL := Color("#e6dfcc")      ## cream plaster (a default, the church'
 const ZWK_TRIM := Color("#f2eee3")      ## bands, cornice, window reveals
 const ZWK_ROOF := Color("#b0583b")      ## red tiles (a default, the church's)
 const ZWK_DOOR := Color("#5b3326")      ## the wooden door (a default, the church's)
+
+
+## The convent range on Żytnia's south side, opposite the Wolność corner, between St Faustina's
+## convent and the Family of Mary sisters' church (unnamed `religious` building 4473, Wola): two
+## storeys of cream plaster on a red brick plinth, a rusticated ground floor with barred windows,
+## a band, upper windows with sills and caps, a cornice and a grey gable roof. A model that
+## replaces the plain OpenStreetMap block (no landmark until 2026-11-15). From four Mapillary
+## photos along Żytnia and one across the Wolność corner (2020 and 2025,
+## refs/churches/rodziny_maryi_dom, reference only, never shipped), the OSM outline and GUGiK's
+## LoD2 (over the ground: the eaves about 7.8, the ridge 9.8). The yard side is a default
+## (docs/QUESTIONS.md). Spec docs/landmarks/specs/zytnia_dom_zakonny.md.
+## Frame: origin at the street front's west corner on Wolność, u to the east-south-east along
+## Żytnia, +v to the south into the block; the front faces north (-v), onto the street.
+const ZYT_O := Vector2(-2699.1, -732.6)
+const ZYT_A := Vector2(0.9307, -0.3657)
+const ZYT_WALL := Color("#e9d8b2")      ## the cream plaster (photos)
+const ZYT_BRICK := Color("#8b4a36")     ## the red brick plinth (photos)
+const ZYT_TRIM := Color("#f1e8d2")      ## sills, caps, band, cornice
+const ZYT_FRAME := Color("#6a3f2a")     ## the brown window frames (photos)
+const ZYT_ROOF := Color("#55585c")      ## grey sheet roof (photos)
+
+
+func _build_zytnia_dom_zakonny(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(ZYT_O, ZYT_O + ZYT_A)
+	_g = _ground_under(outline)
+	var g := _g
+	_mode = M_STONE
+	var eave := g + 7.8
+	_prism(outline, g - 1.0, eave, ZYT_WALL, ZYT_ROOF.darkened(0.1), M_STONE, M_STONE)
+	kit_cornice_ring(outline, eave - 0.1, ZYT_TRIM, 0.4, 0.3)
+	_gable(-0.2, 40.0, 4.0, 4.3, eave, 2.0, ZYT_WALL, ZYT_ROOF, true)
+	# --- every wall: the brick plinth, the rusticated ground floor, a band, two rows of windows
+	var n := outline.size()
+	for k in n:
+		kit_front(ZYT_O, ZYT_O + ZYT_A)
+		var le := kit_front(outline[(k + 1) % n], outline[k])
+		if le < 2.6:
+			continue
+		var m := maxi(1, floori(le / 3.2))
+		var cs: Array = []
+		for i in m:
+			cs.append((float(i) + 0.5) * le / float(m))
+		_kbox(0.0, le, 0.0, 0.06, g - 1.0, g + 1.0, ZYT_BRICK)
+		for yb: float in [g + 1.9, g + 2.7]:
+			_kbox(0.0, le, 0.0, 0.03, yb, yb + 0.06, ZYT_WALL.darkened(0.12))
+		kit_ledge(0.0, le, g + 3.6, 0.25, ZYT_TRIM, 0.1)
+		kit_panes(cs, [g + 1.3], 1.3, 1.7, PAL_DARK_DOOR, 0.05)
+		kit_panes(cs, [g + 1.35], 1.15, 1.6, PAL_GLASS_DARK, 0.07)
+		kit_panes(cs, [g + 4.6], 1.3, 2.0, ZYT_FRAME, 0.04)
+		kit_panes(cs, [g + 4.7], 1.1, 1.8, PAL_GLASS_DARK, 0.06)
+		kit_panes(cs, [g + 4.45], 1.6, 0.14, ZYT_TRIM, 0.11)
+		kit_panes(cs, [g + 6.75], 1.5, 0.18, ZYT_TRIM, 0.1)
+	kit_front(ZYT_O, ZYT_O + ZYT_A)
+	_collide(outline)
+
+
+## The long range inside the block behind the convent range on Żytnia (unnamed `religious`
+## building 10480, Wola), south of `church_zytnia_dom_zakonny`, its north wall on the yard between
+## them: two storeys under a low grey roof, a lower annex at its east end. A model that replaces
+## the plain OpenStreetMap block (no landmark until 2026-11-15) from the OSM outline and GUGiK's
+## LoD2 (over the ground: the eaves about 6.4, the roof to 8). **Provisional, no photo**: no open
+## photo reaches the yard, so its walls follow the street range in front (the same cream plaster
+## on a brick plinth, barred ground-floor windows, capped upper windows; docs/QUESTIONS.md).
+## Spec docs/landmarks/specs/zytnia_dom_zakonny_tyl.md.
+## Frame: origin at the north wall's west corner, u to the east-north-east, +v to the south; the
+## north wall faces the yard (-v).
+const ZYB_O := Vector2(-2679.6, -701.0)
+const ZYB_A := Vector2(0.9514, -0.3084)
+
+
+func _build_zytnia_dom_zakonny_tyl(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(ZYB_O, ZYB_O + ZYB_A)
+	_g = _ground_under(outline)
+	var g := _g
+	_mode = M_STONE
+	var eave := g + 6.4
+	var main := _largest(Geometry2D.intersect_polygons(outline, _rect(25.9, 4.2, 27.9, 4.5)))
+	var east := _largest(Geometry2D.intersect_polygons(outline, _rect(60.15, 4.2, 6.35, 4.5)))
+	_prism(main, g - 1.0, eave, ZYT_WALL, ZYT_ROOF.darkened(0.1), M_STONE, M_STONE)
+	_prism(east, g - 1.0, g + 5.2, ZYT_WALL, ZYT_ROOF.lightened(0.1), M_STONE, M_STONE)
+	kit_cornice_ring(main, eave - 0.1, ZYT_TRIM, 0.35, 0.3)
+	_gable(-0.2, 53.8, 4.2, 4.6, eave, 1.6, ZYT_WALL, ZYT_ROOF, true)
+	# --- every wall: the brick plinth, the rusticated ground floor, a band, two rows of windows
+	var n := outline.size()
+	for k in n:
+		kit_front(ZYB_O, ZYB_O + ZYB_A)
+		var le := kit_front(outline[(k + 1) % n], outline[k])
+		if le < 2.6:
+			continue
+		var m := maxi(1, floori(le / 3.2))
+		var cs: Array = []
+		for i in m:
+			cs.append((float(i) + 0.5) * le / float(m))
+		_kbox(0.0, le, 0.0, 0.06, g - 1.0, g + 0.9, ZYT_BRICK)
+		for yb: float in [g + 1.6, g + 2.3]:
+			_kbox(0.0, le, 0.0, 0.03, yb, yb + 0.06, ZYT_WALL.darkened(0.12))
+		kit_ledge(0.0, le, g + 3.0, 0.25, ZYT_TRIM, 0.1)
+		kit_panes(cs, [g + 1.1], 1.3, 1.6, PAL_DARK_DOOR, 0.05)
+		kit_panes(cs, [g + 1.15], 1.15, 1.5, PAL_GLASS_DARK, 0.07)
+		kit_panes(cs, [g + 3.7], 1.3, 1.8, ZYT_FRAME, 0.04)
+		kit_panes(cs, [g + 3.8], 1.1, 1.6, PAL_GLASS_DARK, 0.06)
+		kit_panes(cs, [g + 3.55], 1.6, 0.14, ZYT_TRIM, 0.11)
+		kit_panes(cs, [g + 5.55], 1.5, 0.18, ZYT_TRIM, 0.1)
+	kit_front(ZYB_O, ZYB_O + ZYB_A)
+	_collide(outline)
+
+
+## The small octagonal chapel at the north-west corner of St Florian's cathedral close, by the
+## fence on Floriańska (unnamed `chapel`, OSM building 6848, Praga): red brick walls about 3.6 m
+## high under a brick cornice, and a dark slate bell roof that flares at the eaves, with a small
+## finial. A model that replaces the plain OpenStreetMap block (no landmark until 2026-11-15).
+## From eight Mapillary photos on Floriańska (2018-2020, refs/churches/kaplica_florianska,
+## reference only, never shipped): five show it beside the cathedral's front, behind the brick
+## fence with its niched posts. GUGiK has no LoD2 for it. The door and the side away from the
+## street are defaults (docs/QUESTIONS.md). Spec docs/landmarks/specs/kaplica_florianska.md.
+const KFL_BRICK := Color("#9b4535")     ## the red brick (photos, like the cathedral's)
+const KFL_DARK := Color("#7e3528")      ## the cornice's darker brick
+const KFL_SLATE := Color("#3b3d42")     ## the dark slate bell roof (photos)
+const KFL_DOOR := Color("#3a2a22")
+
+
+## `ring` grown or shrunk by `s` about its centre.
+func _kfl_scaled(ring: PackedVector2Array, s: float) -> PackedVector2Array:
+	var c := _centre(ring)
+	var out := PackedVector2Array()
+	for p in ring:
+		out.append(c + (p - c) * s)
+	return out
+
+
+func _build_kaplica_florianska(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	_o = _centre(outline)
+	_a = Vector2(1.0, 0.0)
+	_b = Vector2(0.0, 1.0)
+	_g = _ground_under(outline)
+	var g := _g
+	_mode = M_STONE
+	var eave := g + 3.6
+	_prism(outline, g - 0.8, eave, KFL_BRICK, Color(0, 0, 0, 0), M_STONE)
+	# the plinth and the cornice: two darker brick rings
+	kit_ledge_ring(outline, g - 0.8, 1.2, KFL_DARK, 0.06)
+	kit_ledge_ring(outline, eave - 0.45, 0.45, KFL_DARK, 0.14)
+	# the bell roof: flared at the eaves, swelling, then drawn in to the finial
+	var r0 := _kfl_scaled(outline, 1.12)
+	var r1 := _kfl_scaled(outline, 1.0)
+	var r2 := _kfl_scaled(outline, 0.78)
+	var r3 := _kfl_scaled(outline, 0.42)
+	_frustum(r0, eave, r1, eave + 0.7, KFL_SLATE)
+	_frustum(r1, eave + 0.7, r2, eave + 2.0, KFL_SLATE.lightened(0.04))
+	_frustum(r2, eave + 2.0, r3, eave + 3.0, KFL_SLATE)
+	_pyramid(r3, eave + 3.0, eave + 3.6, KFL_SLATE.lightened(0.04))
+	# the finial: a slim shaft with a small ball
+	var c := _centre(outline)
+	_prism(_circle(c, 0.07, 4), eave + 3.5, eave + 4.4, KFL_SLATE, KFL_SLATE, M_STONE, M_STONE)
+	_frustum(_circle(c, 0.12, 6), eave + 4.1, _circle(c, 0.2, 6), eave + 4.25, KFL_SLATE.lightened(0.1), KFL_SLATE.lightened(0.1))
+	# a door on the side towards the cathedral (east), a default: no photo shows it
+	var n := outline.size()
+	var best := 0
+	for k in n:
+		if _out(outline, outline[k], outline[(k + 1) % n]).dot(Vector2(1.0, 0.0)) > _out(outline, outline[best], outline[(best + 1) % n]).dot(Vector2(1.0, 0.0)):
+			best = k
+	var le := kit_front(outline[(best + 1) % n], outline[best])
+	kit_door(le * 0.5, g, 2.3, 0.55, KFL_DARK, KFL_DOOR, true)
+	_o = c
+	_a = Vector2(1.0, 0.0)
+	_b = Vector2(0.0, 1.0)
+	_collide(outline)
 
 
 func _build_zwycieska_klasztor(site: Dictionary) -> void:
@@ -7239,6 +7418,12 @@ const CHURCHES := [
 			"fill": 0.9, "style": "neoclassical", "wall": "#ece6d8", "roof": "#55504c", "towers": 0, "cap": "none"},
 	{"key": "church_zwycieska_klasztor", "at": Vector2(2034.0, -1361.0), "o": Vector2(2016.9, -1370.6), "out": Vector2(0.116, -0.993), "L": 35.9, "W": 18.4,
 			"fill": 0.9, "style": "neoclassical", "wall": "#e6dfcc", "roof": "#b0583b", "towers": 0, "cap": "none"},
+	{"key": "church_zytnia_dom_zakonny", "at": Vector2(-2680.0, -736.0), "o": Vector2(-2699.1, -732.6), "out": Vector2(-0.366, -0.931), "L": 39.8, "W": 8.0,
+			"fill": 0.9, "style": "neoclassical", "wall": "#e9d8b2", "roof": "#55585c", "towers": 0, "cap": "none"},
+	{"key": "church_zytnia_dom_zakonny_tyl", "at": Vector2(-2650.0, -705.0), "o": Vector2(-2679.6, -701.0), "out": Vector2(-0.308, -0.951), "L": 66.2, "W": 8.5,
+			"fill": 0.9, "style": "neoclassical", "wall": "#e9d8b2", "roof": "#55585c", "towers": 0, "cap": "none"},
+	{"key": "church_kaplica_florianska", "at": Vector2(459.3, -1999.7), "o": Vector2(459.3, -1999.7), "out": Vector2(-1.0, 0.0), "L": 6.2, "W": 6.3,
+			"fill": 0.9, "style": "neogothic", "wall": "#9b4535", "roof": "#3b3d42", "towers": 0, "cap": "none"},
 	{"key": "church_sluzki_dom_generalny", "at": Vector2(-203.0, -515.0), "o": Vector2(-206.4, -500.9), "out": Vector2(-0.917, 0.400), "L": 28.3, "W": 29.6,
 			"fill": 0.9, "style": "neoclassical", "wall": "#e3c48e", "roof": "#6b6c6c", "towers": 0, "cap": "none"},
 	{"key": "church_uczennice_boskiego_mistrza", "at": Vector2(-2890.0, -650.0), "o": Vector2(-2919.2, -669.7), "out": Vector2(-0.231, -0.973), "L": 37.5, "W": 41.5,
@@ -7360,6 +7545,15 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_zwycieska_klasztor":
 		_build_zwycieska_klasztor(site)  # the monastery block beside Our Lady of Victory, from LoD2 (provisional)
+		return
+	if site["key"] == "church_zytnia_dom_zakonny":
+		_build_zytnia_dom_zakonny(site)  # the convent range on Żytnia's south side, from photos and LoD2
+		return
+	if site["key"] == "church_zytnia_dom_zakonny_tyl":
+		_build_zytnia_dom_zakonny_tyl(site)  # the range behind the convent on Żytnia, from LoD2 (provisional)
+		return
+	if site["key"] == "church_kaplica_florianska":
+		_build_kaplica_florianska(site)  # the octagonal brick chapel with its slate bell roof, from photos
 		return
 	if site["key"] == "church_sluzki_dom_generalny":
 		_build_sluzki_dom_generalny(site)  # the Servants of Jesus' generalate, from photos and LoD2

@@ -60,15 +60,15 @@ BOUNDARIES = [
 # week for the flag reads. New code goes to its owner (docs/architecture/extending.md); a structural
 # change makes room. Measured on main 2026-11-15 (f0cdc155), in the comments.
 RATCHETS = {
-    "main.gd lines": (7464, "band"),  # 7,314 + 150 (TD-4: under 6,000 by TD-1's end and TD-4 b)
+    "main.gd lines": (7448, "band"),  # 7,298 + 150 after TD-4 b2 (TD-4: under 6,000 by TD-1's end and TD-4 b)
     "main.gd functions": (258, "band"),  # 252 + 6
-    "main.gd _build_* lines": (1854, "band"),  # 1,814 + 40 after TD-4 b1 (b2 to b12 move the rest of the wiring out)
-    "main.gd flags. reads": (533, "band"),  # 523 + 10 after TD-4 b1 (activities read their own; test flags in the harness)
+    "main.gd _build_* lines": (1835, "band"),  # 1,795 + 40 after TD-4 b2 (b3 to b12 move the rest of the wiring out)
+    "main.gd flags. reads": (527, "band"),  # 517 + 10 after TD-4 b2 (activities read their own; test flags in the harness)
     "main.gd private busy tests": (4, "exact"),  # _free_block, _story_free, _world_free, _ev_free (TD-1)
     # TD-4 b (docs/design/wiring-out-of-main.md): an activity of the kit wires itself and main.gd joins
     # it with `_join` (or `_install`, then `_add`); this counts the calls still wired by hand (the two
-    # tours share one). Measured on b1's head (2026-11-15): 12, 0 when the rescue line has moved.
-    "main.gd activities.add outside _add": (12, "exact"),
+    # tours share one). Measured on b1's head (2026-11-15): 12; on b2's: 11; 0 when the rescue line has moved.
+    "main.gd activities.add outside _add": (11, "exact"),
     "hud.card_pressed listeners": (2, "exact"),  # story_quests.gd, first10.gd (TD-16)
     "Polish literals outside sign scripts": (1125, "band"),  # 1,105 + 20 (TD-19: spoken lines go to dialogue.json)
 }
