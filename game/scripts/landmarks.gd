@@ -181,6 +181,8 @@ const INFO := {
 	"szpitalna5": ["Szpitalna 5",
 			"Narożna kamienica w brzoskwiniowym tynku, z balkonami i ślepą arkadą na rogu.",
 			"A corner tenement in peach plaster, with iron balconies and a blind arch at the corner."],
+	"adwentysci": ["Kościół Adwentystów na Foksal", "Zbór w żółtej kamienicy za ogródkiem.", "A church inside a yellow house behind a front garden."],
+	"elzbietanki": ["Siostry Elżbietanki", "Dom prowincjalny sióstr za Piekarską, nad ogrodami Podwala.", "The Elizabethan sisters' provincial house behind Piekarska, over the Podwale gardens."],
 	"szarytki": ["Siostry Szarytki na Tamce", "Klasztor sióstr miłosierdzia pod skarpą, z wieżyczką.", "The Sisters of Charity under the escarpment, with their turret."],
 	"gigantami": ["Kamienica Pod Gigantami",
 			"Dwaj kamienni giganci trzymają balkon nad bramą. Dobre miejsce na randkę, jeśli zdążysz.",
@@ -1357,6 +1359,20 @@ func _find_sites() -> void:
 		_add_site("szarytki", [szt])
 		if not sites.is_empty() and sites[-1]["key"] == "szarytki":
 			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": SZT_WALL, "roof": SZT_ROOF, "steep": 0.3}
+	# The Adventist church on Foksal 8 (F's photos, 2026-11-15): LoD2's mass in its yellow plaster, the
+	# gate, the balconies and the name band are ours.
+	var adw := _outline_at(ADW_AT)
+	if adw.size() >= 3:
+		_add_site("adwentysci", [adw])
+		if not sites.is_empty() and sites[-1]["key"] == "adwentysci":
+			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": ADW_WALL, "roof": ADW_ROOF}
+	# The Elizabethan sisters' provincial house behind Piekarska (LoD2 only, no photo, 2026-11-15):
+	# LoD2's mass in default Old Town plaster and tiles; the rounded east end is ours.
+	var elz := _outline_at(ELZ_AT)
+	if elz.size() >= 3:
+		_add_site("elzbietanki", [elz])
+		if not sites.is_empty() and sites[-1]["key"] == "elzbietanki":
+			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": ELZ_WALL, "roof": ELZ_ROOF}
 	# The formal garden before Pałac Krasińskich (F's photos, 2026-11-06).
 	if _landmark("Pałac Krasińskich").size() >= 3:
 		_o = KRAS
@@ -2067,6 +2083,12 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"krasinski_ogrod":
 				_id = 0  # not tappable
 				_build_kras_garden()
+			"adwentysci":
+				_mark_zone(s)  # the mass stays LoD2's, in its skin; the gate, balconies and band are ours
+				_build_adwentysci(s)
+			"elzbietanki":
+				_mark_zone(s)  # the mass stays LoD2's, in its skin; the rounded east end is ours
+				_build_elzbietanki(s)
 			"szarytki":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin; the turret is ours
 				_build_szarytki(s)
@@ -3812,9 +3834,29 @@ func _rot_door(c: Vector2, r: float, g: float, d: Vector2, bays: int, wide: floa
 
 # --- Varso Tower ------------------------------------------------------------------------------
 
-## Built from its mapped parts: the glass slabs (177 and 205 m, the south part to 230 m),
-## the dark spines at both ends, the glass crown (193-234 m, lit at night); the thin parts
-## of the spire are replaced by one mast to 310 m with its five rings and a beacon.
+## Rebuilt 2026-11-15 from photos (refs/varso: seven Commons photos and F's seven in top-50 T01;
+## spec docs/landmarks/specs/varso.md). The mapped parts give the massing: a parallelogram plan
+## in three slabs stepping 177 / 205 / 230 m from Chmielna to the tracks, the 230 m top an L that
+## wraps the sky garden on the 205 m roof, silver-grey piers at the steps rising past the roofs,
+## and the crown strips (193-234 m) round the L's outer edges. Built over them: deep blue glass in
+## a proud grey frame (a post every ~4.6 m, a transom every two storeys, 8.3 m, over the 12 m
+## lobby), the crown's silver louvre bands with a glass band between, the glass parapets, the lit
+## observation box at the far end of the top, the lobby's warm glass under its dark canopy, and the
+## spire: a lattice mast from the crown with four round dish platforms, a pole to 310 m with its
+## ring and lamp, floodlit white at night (the platforms glow).
+const VARSO_GLASS := Color("#2a5c93")
+const VARSO_FRAME := Color("#565c63")
+const VARSO_PIER := Color("#959ba1")
+const VARSO_LOUVRE := Color("#d3d8dc")
+const VARSO_ROOF := Color("#5d6369")
+const VARSO_STEEL := Color("#b9c0c8")
+const VARSO_DISH := Color("#dfe4e9")
+const VARSO_LOBBY := 12.0
+const VARSO_STOREY2 := 8.3     # the frame's transom: every two storeys
+const VARSO_BAY := 4.6         # the frame's posts
+const VARSO_SPIRE_TOP := 310.0
+
+
 func _build_varso(site: Dictionary) -> void:
 	var zone: PackedVector2Array = site["zone"][0]
 	_g = _ground_under(zone)
@@ -3822,6 +3864,10 @@ func _build_varso(site: Dictionary) -> void:
 	var spire := Vector2.INF
 	var spire_h := 0.0
 	var parts := _parts_in(zone, func(_b: Dictionary) -> bool: return true)
+	var glass: Array[Dictionary] = []   # {"p": ring, "y0", "y1"} the blue curtain-wall masses
+	var piers: Array[Dictionary] = []
+	var crowns: Array[Dictionary] = []
+	var low: Array[Dictionary] = []      # the lobby and the parapets
 	for b in parts:
 		var poly := _pts(b["p"])
 		var lo := poly[0]
@@ -3839,19 +3885,51 @@ func _build_varso(site: Dictionary) -> void:
 			continue
 		if h < 3.0:
 			continue
-		var col := _osm(b["c"], Color("#334e6b"))
-		var dark := str(b["c"]).to_lower() == "#3f4140"
-		var crown := mh >= 190.0 and h > 220.0
-		var top_col := col.darkened(0.25)
-		if dark:
-			_prism(poly, g + mh - (0.4 if mh < 0.5 else 0.0), g + h, col, top_col, M_STONE, M_STONE)
-		elif crown:
-			# The crown: an open glass lantern round the top floors, lit at night.
-			_prism(poly, g + mh, g + h, col.lightened(0.18), Color(0, 0, 0, 0), M_PAVILION + 0.5)
+		var ring := _varso_clean(poly)
+		var item := {"p": ring, "y0": g + mh, "y1": g + h}
+		if str(b["c"]).to_lower() == "#3f4140" and mh < 0.5 and h > 100.0:
+			piers.append(item)
+		elif mh >= 190.0 and mh < 200.0:
+			crowns.append(item)
+		elif h - mh > 20.0 and h > 100.0:
+			# The small mapped slabs inside the facade (4 by 7 m) stay glass with no frame of their own.
+			item["framed"] = _area(ring) > 80.0
+			glass.append(item)
 		else:
-			_prism(poly, g + mh - (0.4 if mh < 0.5 else 0.0), g + h, col, top_col, M_GLASS, M_STONE)
+			low.append(item)
 		if mh < 0.5 and h > 30.0:
 			_collide(poly)
+	# The piers first (drawn first, their faces win where a slab's wall shares the plane).
+	for p: Dictionary in piers:
+		_prism(p["p"], p["y0"] - 0.4, p["y1"], VARSO_PIER, VARSO_PIER.darkened(0.15), M_STONE, M_STONE)
+		_varso_pier_light(p["p"], _centre(zone), p["y0"], p["y1"])
+	# The crown strips: inside the slabs' outline, so only their screen over the top roof shows
+	# (the louvre bands on the faces under it are the frame's, `_varso_crown_face`).
+	var roof_top := 0.0
+	for m: Dictionary in glass:
+		roof_top = maxf(roof_top, float(m["y1"]))
+	for c: Dictionary in crowns:
+		var top: float = c["y1"]
+		if top - roof_top > 0.5:
+			_prism(c["p"], roof_top - 0.3, top, VARSO_LOUVRE, VARSO_LOUVRE.darkened(0.12), M_STONE, M_STONE)
+			_mullions(c["p"], roof_top, top - 0.3, 1.2, 0.03, VARSO_LOUVRE.darkened(0.28))
+	# The glass masses and their frame.
+	for m: Dictionary in glass:
+		_prism(m["p"], float(m["y0"]) - (0.4 if float(m["y0"]) - g < 0.5 else 0.0), m["y1"], VARSO_GLASS, VARSO_ROOF, M_GLASS, M_STONE)
+	for m: Dictionary in glass:
+		if m["framed"]:
+			_varso_frame(m, glass, crowns)
+	# The lobby (warm glass under a dark canopy) and the glass parapets on the roofs.
+	for l: Dictionary in low:
+		var y0: float = l["y0"]
+		var y1: float = l["y1"]
+		if y0 - g < 0.5 and y1 - g > 8.0:
+			_prism(l["p"], y0 - 0.4, y1, VARSO_GLASS.lightened(0.15), VARSO_ROOF.darkened(0.2), M_PAVILION, M_STONE)
+			kit_ledge_ring(l["p"], y1 - 0.5, 0.7, PAL_IRON, 1.4)
+		elif y0 - g < 0.5:
+			_prism(l["p"], y0 - 0.4, y1, PAL_DARK_STEEL, PAL_DARK_STEEL.darkened(0.1), M_STONE, M_STONE)
+		else:
+			_prism(l["p"], y0, y1, VARSO_GLASS.lightened(0.3), VARSO_ROOF, M_GLASS, M_STONE)
 	# Krajobraz K3: the sky garden on the 205 m roof, round the 230 m top (varso_place.md G1-G4).
 	for b in parts:
 		if float(b["mh"]) < 0.5 and absf(float(b["h"]) - VARSO_GARDEN_H) < 0.5:
@@ -3859,22 +3937,221 @@ func _build_varso(site: Dictionary) -> void:
 				_varso_garden(piece, g + VARSO_GARDEN_H, VARSO_GARDEN)
 	if spire == Vector2.INF:
 		return
-	# The spire: a slender mast tapering to 310 m, its rings, a beacon on top.
-	var steel := Color("#b8c0cc")
+	_varso_deck(spire, glass, g)
+	_varso_spire(spire, g)
+
+
+## A mapped outline without its small notches (Visvalingam: a corner whose triangle with its
+## neighbours is under 3 m² goes), so the glass reads as the photos' clean planes and the frame
+## runs straight along them.
+func _varso_clean(poly: PackedVector2Array) -> PackedVector2Array:
+	var pts := poly.duplicate()
+	while pts.size() > 4:
+		var best := -1
+		var least := 3.0
+		for i in pts.size():
+			var a := pts[(i + pts.size() - 1) % pts.size()]
+			var b := pts[i]
+			var c := pts[(i + 1) % pts.size()]
+			var area := absf((b - a).cross(c - a)) * 0.5
+			if area < least:
+				least = area
+				best = i
+		if best < 0:
+			break
+		pts.remove_at(best)
+	return pts
+
+
+## The grey frame over one glass mass: a post every ~VARSO_BAY m and at each corner, a transom
+## every two storeys over the lobby, on every face (and every stretch of height) no other part of
+## the tower stands in front of.
+func _varso_frame(m: Dictionary, all: Array[Dictionary], crowns: Array[Dictionary]) -> void:
+	var ring: PackedVector2Array = m["p"]
+	var y0: float = m["y0"]
+	var y1: float = m["y1"]
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		var length := a.distance_to(b)
+		if length < 2.0:
+			continue
+		var out := _out(ring, a, b)
+		# The heights of this face something else covers: a slab in front of it, or a crown strip
+		# on it (the strips hug the outline just inside it), which dresses that stretch instead.
+		var probe := (a + b) * 0.5 + out * 0.6
+		var inner: Array[Vector2] = []
+		for t: float in [0.25, 0.5, 0.75]:
+			for depth: float in [0.3, 0.6, 1.0, 1.6]:
+				inner.append(a.lerp(b, t) - out * depth)
+		var spans: Array[Vector2] = [Vector2(y0, y1)]
+		var crowned: Array[Vector2] = []
+		for o: Dictionary in all + crowns:
+			if o == m:
+				continue
+			var c0: float = o["y0"]
+			var c1: float = o["y1"]
+			if not Geometry2D.is_point_in_polygon(probe, o["p"]):
+				if not crowns.has(o) or not inner.any(func(q: Vector2) -> bool: return Geometry2D.is_point_in_polygon(q, o["p"])):
+					continue
+				if minf(c1, y1) - maxf(c0, y0) > 0.5:
+					crowned.append(Vector2(maxf(c0, y0), minf(c1, y1)))
+			var next: Array[Vector2] = []
+			for s in spans:
+				if c1 <= s.x or c0 >= s.y:
+					next.append(s)
+					continue
+				if c0 > s.x:
+					next.append(Vector2(s.x, c0))
+				if c1 < s.y:
+					next.append(Vector2(c1, s.y))
+			spans = next
+		var d := (b - a) / length
+		if Vector2(-d.y, d.x).dot(out) > 0.0:
+			kit_front(a, b)
+		else:
+			kit_front(b, a)
+		var n := maxi(1, roundi(length / VARSO_BAY))
+		var keep := _mode
+		_mode = M_STONE
+		for s in spans:
+			if s.y - s.x < 2.0:
+				continue
+			for k in n:
+				_varso_post(length * float(k) / float(n), s.x, s.y)
+			var y := _g + VARSO_LOBBY
+			while y < s.y - 1.0:
+				if y > s.x + 0.5:
+					_varso_transom(length, y)
+				y += VARSO_STOREY2
+		for c in crowned:
+			_varso_crown_face(length, c.x, c.y)
+		_mode = keep
+
+
+## One post of the frame at u on the current front: its face 0.34 m out, 0.44 m wide, and its
+## two sides (no back, no top: the glass and the transoms close it).
+func _varso_post(u: float, y0: float, y1: float) -> void:
+	_wall(_w(u - 0.22, 0.34), _w(u + 0.22, 0.34), y0, y1, _b, VARSO_FRAME)
+	_wall(_w(u - 0.22, -0.02), _w(u - 0.22, 0.34), y0, y1, -_a, VARSO_FRAME.darkened(0.12))
+	_wall(_w(u + 0.22, 0.34), _w(u + 0.22, -0.02), y0, y1, _a, VARSO_FRAME.darkened(0.12))
+
+
+## A transom of the frame across the current front at height y: its face 0.26 m out and 0.5 m
+## tall (no top: two slabs' ends in one plane would give two tops in one place).
+func _varso_transom(length: float, y: float) -> void:
+	_wall(_w(0.0, 0.26), _w(length, 0.26), y - 0.25, y + 0.25, _b, VARSO_FRAME)
+
+
+## The crown on the current front between y0 and y1 (absolute): the photos' silver louvre bands
+## (193-204 m and 213.5 m to the top) as plates 0.12 m out with a rib every 1.2 m, the glass band
+## between them left to the slab's own glass.
+func _varso_crown_face(length: float, y0: float, y1: float) -> void:
+	for band: Vector2 in [Vector2(_g + 193.0, _g + 204.0), Vector2(_g + 213.5, _g + 240.0)]:
+		var b0 := maxf(band.x, y0)
+		var b1 := minf(band.y, y1)
+		if b1 - b0 < 0.5:
+			continue
+		_wall(_w(0.0, 0.12), _w(length, 0.12), b0, b1, _b, VARSO_LOUVRE)
+		var n := maxi(1, roundi(length / 1.2))
+		for k in range(1, n):
+			var u := length * float(k) / float(n)
+			_wall(_w(u - 0.07, 0.16), _w(u + 0.07, 0.16), b0 + 0.3, b1 - 0.3, _b, VARSO_LOUVRE.darkened(0.28))
+		# The plate's ends and top.
+		_wall(_w(0.0, -0.02), _w(0.0, 0.12), b0, b1, -_a, VARSO_LOUVRE.darkened(0.1))
+		_wall(_w(length, 0.12), _w(length, -0.02), b0, b1, _a, VARSO_LOUVRE.darkened(0.1))
+
+
+## The piers are floodlit at night (F's night photo: a white band up the step's edge): a lamp
+## strip over the pier's outer end, the short face farthest from the tower's middle.
+func _varso_pier_light(ring: PackedVector2Array, mid: Vector2, y0: float, y1: float) -> void:
+	var best := -1
+	var far := -1.0
+	for i in ring.size():
+		var a := ring[i]
+		var b := ring[(i + 1) % ring.size()]
+		if a.distance_to(b) > 2.5:
+			continue
+		var d := ((a + b) * 0.5).distance_to(mid)
+		if d > far:
+			far = d
+			best = i
+	if best < 0:
+		return
+	var a := ring[best]
+	var b := ring[(best + 1) % ring.size()]
+	var out := _out(ring, a, b)
+	var keep := _mode
+	_mode = M_LAMP
+	_wall(a + out * 0.04, b + out * 0.04, y0 + 3.0, y1 - 0.3, out, VARSO_DISH)
+	_mode = keep
+
+
+## The observation box at the far end of the top from the spire (F's photos: a glass room at the
+## crown, lit cool at night): 5 by 5 m on the 230 m roof, 6 m tall, a dark lid.
+func _varso_deck(spire: Vector2, glass: Array[Dictionary], g: float) -> void:
+	var top: Dictionary = {}
+	for m: Dictionary in glass:
+		if top.is_empty() or float(m["y1"]) > float(top["y1"]):
+			top = m
+	if top.is_empty():
+		return
+	var ring: PackedVector2Array = top["p"]
+	var far := 0
+	for i in ring.size():
+		if ring[i].distance_to(spire) > ring[far].distance_to(spire):
+			far = i
+	var p := ring[far]
+	var e1 := (ring[(far + 1) % ring.size()] - p).normalized()
+	var e2 := (ring[(far + ring.size() - 1) % ring.size()] - p).normalized()
+	var box := PackedVector2Array([p + e1 * 1.2 + e2 * 1.2, p + e1 * 6.2 + e2 * 1.2, p + e1 * 6.2 + e2 * 6.2, p + e1 * 1.2 + e2 * 6.2])
+	var y: float = top["y1"]
+	_prism(box, y, y + 6.0, VARSO_GLASS.lightened(0.35), Color(0, 0, 0, 0), M_PAVILION + 0.5)
+	_prism(_ring_out(box, 0.15), y + 6.0, y + 6.5, PAL_IRON, PAL_IRON, M_STONE, M_STONE)
+
+
+## The spire (photos 2, 4, 7 and F's night shot): a square lattice mast from the crown to 274 m,
+## its four legs and a zigzag brace on each face, round dish platforms at the mapped rings (240,
+## 250, 260, 274 m) that glow white at night, a pole on to the top with a small ring at 294 m, the
+## red aviation lamp.
+func _varso_spire(at: Vector2, g: float) -> void:
+	var keep := _mode
 	_mode = M_STONE
-	var sq := func(radius: float) -> PackedVector2Array:
-		var out := PackedVector2Array()
-		for k in 8:
-			out.append(spire + Vector2.from_angle(TAU * k / 8.0) * radius)
+	var foot := g + 228.0
+	var head := g + 274.0
+	var corners := func(y: float) -> Array:
+		var r := lerpf(1.5, 0.95, (y - foot) / (head - foot))
+		var out := []
+		for k in 4:
+			var q := at + Vector2.from_angle(TAU * k / 4.0 + PI * 0.25) * r * 1.41
+			out.append(Vector3(q.x, y, q.y))
 		return out
-	_frustum(sq.call(1.6), g + 193.0, sq.call(1.2), g + 260.0, steel)
-	_frustum(sq.call(1.2), g + 260.0, sq.call(0.35), g + 309.0, steel)
-	for h in [240.0, 250.0, 260.0, 274.0, 294.0]:
-		var rr: float = 2.7 if h < 290.0 else 1.2
-		_prism(sq.call(rr), g + h - 0.6, g + h, Color("#7689a9"), Color("#8fa0bb"), M_STONE, M_STONE)
-	_prism(sq.call(0.5), g + 309.0, g + 310.5, Color("#ff3b30"), Color("#ff6a5c"), M_LAMP, M_LAMP)
+	var lo: Array = corners.call(foot)
+	var hi: Array = corners.call(head)
+	for k in 4:
+		_beam(lo[k], hi[k], 0.4, VARSO_STEEL)
+	var panels := 11
+	for j in panels:
+		var ya := lerpf(foot, head, float(j) / panels)
+		var yb := lerpf(foot, head, float(j + 1) / panels)
+		var ca: Array = corners.call(ya)
+		var cb: Array = corners.call(yb)
+		for k in 4:
+			var k2 := (k + 1) % 4
+			if j % 2 == 0:
+				_beam(ca[k], cb[k2], 0.2, VARSO_STEEL)
+			else:
+				_beam(ca[k2], cb[k], 0.2, VARSO_STEEL)
+	for h: float in [240.0, 250.0, 260.0, 274.0]:
+		var dish := _circle(at, 3.0 if h < 270.0 else 2.6, 12)
+		_prism(dish, g + h - 0.7, g + h, VARSO_DISH, VARSO_DISH.darkened(0.08), M_LAMP, M_LAMP)
+		_soffit(dish, g + h - 0.7, VARSO_DISH.darkened(0.25))
+	_frustum(_circle(at, 0.45, 8), head, _circle(at, 0.18, 8), g + VARSO_SPIRE_TOP - 2.0, VARSO_STEEL)
+	_prism(_circle(at, 1.1, 10), g + 293.5, g + 294.0, VARSO_DISH, VARSO_DISH, M_LAMP, M_STONE)
+	_prism(_square(at, 0.3), g + VARSO_SPIRE_TOP - 2.0, g + VARSO_SPIRE_TOP - 0.7, Color("#ff3b30"), Color("#ff6a5c"), M_LAMP, M_LAMP)
 	# The dusk loop: the aviation light on the spire's very top.
-	_prism(_square(spire, 0.35), g + 310.5, g + 311.2, DUSK_RED, DUSK_RED, M_LAMP, M_LAMP)
+	_prism(_square(at, 0.25), g + VARSO_SPIRE_TOP - 0.7, g + VARSO_SPIRE_TOP, DUSK_RED, DUSK_RED, M_LAMP, M_LAMP)
+	_mode = keep
 
 
 # --- Varso Place (Krajobraz K3, docs/landmarks/specs/varso_place.md) -----------------------------
@@ -22090,6 +22367,92 @@ func _build_szarytki(_site: Dictionary) -> void:
 	_frustum(_circle(c, 0.95, 8), top + 0.7, _circle(c, 0.25, 8), top + 1.6, copper)
 	_prism(_circle(c, 0.08, 4), top + 1.6, top + 2.6, copper, copper, M_STONE, M_STONE)
 	_lbox(0.0, 0.0, 0.32, 0.05, top + 2.2, top + 2.3, copper)
+	_mode = keep
+
+
+## The Seventh-day Adventist church on Foksal 8 (Kościół Adwentystów Dnia Siódmego; the hall is
+## inside a four-storey pale yellow house set back behind a front garden and a fence): the mass
+## stays GUGiK's LoD2 (OSM building 5399, unnamed) in its yellow plaster; the street front's
+## arched gate at its west end, the two iron balconies at its east end and the white band where
+## the church's name runs over the ground floor are ours. From F's 5 Commons photos
+## (refs/churches/adwentysci_foksal, reference only, never shipped). Spec
+## docs/landmarks/specs/adwentysci.md.
+## Frame: origin at the front's east corner, u to the west along Foksal, +v out of the front.
+const ADW_AT := Vector2(-82.0, -48.0)        ## inside the outline
+const ADW_E := Vector2(-70.3, -42.5)         ## the front's east corner
+const ADW_W := Vector2(-92.2, -34.6)         ## the front's west corner
+const ADW_WALL := Color("#ead9a2")           ## pale yellow plaster (photos 01, 02, 05)
+const ADW_ROOF := Color("#7b7d7f")
+const ADW_TRIM := Color("#f2ecd9")           ## the gate's surround, the band, the cornice
+const ADW_DOOR := Color("#4a2c22")           ## the gate's dark brown leaves (photo 03)
+const ADW_IRON := Color("#2a2a2c")
+
+
+func _build_adwentysci(_site: Dictionary) -> void:
+	var ln := kit_front(ADW_E, ADW_W)
+	_g = _ground_under(_outline_at(ADW_AT))
+	var g := _g
+	var keep := _mode
+	_mode = M_STONE
+	kit_face(0.12)
+	# the gate at the west end: a light arched surround and the dark leaves
+	_kbox(ln - 3.4, ln - 0.6, 0.12, 0.22, g, g + 4.0, ADW_TRIM)
+	kit_face(0.22)
+	kit_door(ln - 2.0, g, 3.3, 0.85, ADW_TRIM, ADW_DOOR, true)
+	# the band over the ground floor where the church's name runs (the letters are not built)
+	kit_face(0.12)
+	kit_ledge(5.0, ln - 5.0, g + 3.9, 0.45, ADW_TRIM, 0.06)
+	# the two iron balconies at the east end, on the first and second floors
+	for y: float in [g + 4.6, g + 7.9]:
+		kit_balcony(2.0, y, 1.3, Balcony.IRON, ADW_IRON, ADW_TRIM, 0.9)
+	_mode = keep
+
+
+## The Elizabethan sisters' provincial house (Dom Prowincjalny Sióstr Elżbietanek, OSM building
+## named so, in the block between Piekarska, Piwna and Podwale, behind St Martin's): a two-storey
+## range along the Podwale gardens with a taller block at its west end and a rounded east end
+## (read as the chapel's apse, a default). No photo shows it (F's 12 Commons photos of Piekarska
+## show the street fronts in front of it, not this range), so the colours are defaults, parked in
+## docs/QUESTIONS.md. The mass stays GUGiK's LoD2 (eaves about 8.5 m, ridge 11, the west block
+## 14) in its skin; LoD2 has nothing over the rounded end, so that is ours: a half drum to the
+## eaves under a half cone. Spec docs/landmarks/specs/elzbietanki.md.
+const ELZ_AT := Vector2(-830.0, -1578.0)     ## inside the outline (the main range)
+const ELZ_WALL := Color("#e2cfa6")           ## pale ochre plaster (a default, the Old Town's tone)
+const ELZ_ROOF := Color("#a4553f")           ## red tiles (a default, as the Old Town's roofs)
+const ELZ_APSE := Vector2(-821.5, -1587.1)   ## the rounded end's centre (the outline's arc)
+const ELZ_AXIS := Vector2(0.709, -0.705)     ## out of the range through the rounded end
+const ELZ_TRIM := Color("#f1ebdd")
+const ELZ_IRON := Color("#2a2a2c")
+
+
+func _build_elzbietanki(_site: Dictionary) -> void:
+	_g = _ground_under(_outline_at(ELZ_AT))
+	var g := _g
+	var keep := _mode
+	_mode = M_STONE
+	# a whole drum and cone: the half inside the range is hidden in LoD2's mass
+	var r := 2.9
+	var drum := _circle(ELZ_APSE, r, 14)
+	_prism(drum, g - 0.3, g + 7.6, ELZ_WALL, Color(0, 0, 0, 0), M_STONE, M_STONE)
+	var eave := _circle(ELZ_APSE, r + 0.25, 14)
+	_frustum(drum, g + 7.45, eave, g + 7.75, ELZ_TRIM)
+	_frustum(eave, g + 7.75, _circle(ELZ_APSE, 0.2, 14), g + 10.6, ELZ_ROOF)
+	# a white plinth and two rows of narrow windows round the outer half
+	_frustum(_circle(ELZ_APSE, r + 0.08, 14), g - 0.3, _circle(ELZ_APSE, r + 0.08, 14), g + 0.6, ELZ_TRIM)
+	var side := Vector2(-ELZ_AXIS.y, ELZ_AXIS.x)
+	for k: int in [-1, 0, 1]:
+		var t := float(k) * 0.75
+		var n := ELZ_AXIS * cos(t) + side * sin(t)
+		var c := ELZ_APSE + n * (r + 0.04)
+		var tg := Vector2(-n.y, n.x)
+		for y0: float in [g + 1.4, g + 4.6]:
+			_wall(c - tg * 0.42, c + tg * 0.42, y0, y0 + 2.0, n, PAL_GLASS_DARK)
+	# a small iron cross on the cone's tip
+	_prism(_circle(ELZ_APSE, 0.07, 4), g + 10.4, g + 12.0, ELZ_IRON, ELZ_IRON, M_STONE, M_STONE)
+	_o = ELZ_APSE
+	_a = side
+	_b = ELZ_AXIS
+	_lbox(0.0, 0.0, 0.32, 0.05, g + 11.3, g + 11.42, ELZ_IRON)
 	_mode = keep
 
 

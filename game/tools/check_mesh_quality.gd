@@ -35,6 +35,8 @@ const BUDGET := {
 	"lawrynowicz": 8000,
 	"wedel": 8000,
 	"szpitalna5": 8000,
+	"adwentysci": 500,  # 2026-11-15: the Adventist church on Foksal 8 (gate, balconies, band; the mass is LoD2's)
+	"elzbietanki": 400,  # 2026-11-15: the Elizabethan sisters behind Piekarska (the rounded end; the mass is LoD2's)
 	"szarytki": 300,  # 2026-11-15: the Sisters of Charity's turret (the mass is LoD2's)
 	"gigantami": 4000,
 	"filtry": 3000,
@@ -282,7 +284,7 @@ const BUDGET := {
 	"tarasy_plaza": 2750,  # 2026-11-11: the sunken plaza by the station: walls, shopfronts, railings, treads, umbrellas (2290)
 	"trojca": 3700,  # 2026-11-14 photo rebuild: rusticated drum, arched windows, framed oculi, Doric porticoes with lunettes, dormers, glazed lantern (measured 3361)
 	"unit": 1160,
-	"varso": 2500,
+	"varso": 4300,  # 2026-11-15 photo rebuild (3614 tris): grey frame, louvre crown, lattice spire with dish platforms, lobby, observation box; +0 draw calls
 	"varso_place": 1100,
 	"wcf": 1400,  # 2026-11-08 F's 13 photos: the Emilii Plater portico, piers, fins, the low roof's rail (1319)
 	"wszystkich": 1300,
@@ -319,8 +321,9 @@ const BUDGET := {
 }
 ## Known defects per site: {"zfight": n, "degenerate": n, "badnormal": n, "float": n}.
 ## Towarowa 22's drone taxi hovers 7 m over its pad by design (the "Warsaw of the future").
-## The Szarytki's turret stands on LoD2's ridge, which is the map's, not the site's mesh.
-const KNOWN := {"towarowa22": {"float": 8}, "szarytki": {"float": 16}}
+## The Szarytki's turret stands on LoD2's ridge and the Adventists' balconies hang on LoD2's wall:
+## the map's mass, not the site's mesh.
+const KNOWN := {"towarowa22": {"float": 8}, "szarytki": {"float": 16}, "adwentysci": {"float": 17}}
 
 var _probe: MeshProbe
 var problems: Array[String] = []
