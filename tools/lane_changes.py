@@ -7,7 +7,7 @@ the asphalt instead of jumping sideways in the 3 m between the two ways.
         rewrites the map in place (stamp-guarded: a map already done is left alone); --dry
         measures and writes nothing; --list prints every stretched link with its `--at=`.
     python3 -I tools/lane_changes.py --check [MAP.json]
-        exit 1 unless the map carries the pass and at most CHECK_ABRUPT continuation links still
+        exit 1 unless at most CHECK_ABRUPT continuation links
         move a lane over more steeply than 1:RATE (verify.sh step `lanechanges`; a ratchet: lower
         it, never raise it).
 
@@ -20,7 +20,11 @@ lane or a whole lane sideways inside those 3 m: traffic, the rivals and the play
 alike. Meanwhile the asphalt itself already widens or narrows along a real taper (tools/lane_tapers.py,
 1:10 to 1:15, the lane line ends where it begins), so the lanes ignored the road they were on.
 
-What, on the finished map data (bake_osm.py calls `apply(out)` after lane_links; it also runs on a
+Parked for the beta (TD-27, TD-28; docs/design/roads-true-to-life.md section 6): traffic.gd treats
+every link as a short junction curve, and the stretched links moved the race bench. bake_osm.py does
+not call it yet; `--check` holds the count. When it runs:
+
+What, on the finished map data (to be called from bake_osm.py after lane_links; it also runs on a
 baked map, as the cloud has no OpenStreetMap download):
 
 1. Joins: an edge whose end node has one way on (no side road, as road_truth R1 sees it), turning
@@ -64,7 +68,7 @@ KEY = "lane_changes"
 VERSION = 1
 # --check (2026-11-15, first pass): continuation links that still move a lane over more steeply
 # than 1:RATE. Lower it when a change leaves fewer, never raise it.
-CHECK_ABRUPT = 84     # 586 on main before the pass
+CHECK_ABRUPT = 586    # on main (2026-11-15); the pass is parked (TD-27), with it 227
 STRAIGHT = 0.5        # rad; road_truth R1: the one way on counts as the same street up to this turn
 JUMP = 0.5            # m: a lane landing less than this aside of its own line does not jump
 RATE = 6.0            # m along per m aside: a link at least this long for its shift is a lane change, not a swerve
@@ -73,7 +77,14 @@ PAINT_MIN = 10.0      # m
 TAPER_TOL = 0.25      # m: the drawn width has settled once it stays within this of its value further on
 LOOK = 70.0           # m from the node the taper is looked for
 MIN_DRIVE = 3.5       # m an edge keeps to drive between its two links (road_truth SHORT_M)
+QUEUE_M = 15.0        # m an edge keeps to drive before a junction at its other end: the cars that
+                      # queue there wait on the edge (traffic.gd's leader and yield rules), not in a link
 END_SHARE = 0.45      # most of an edge's length one link may take
+LINK_MAX = 18.0       # m a stretched link may run at most: a junction curve's own size, which traffic.gd's
+                      # car-ahead, overtaking and lane-change rules (none inside a link) expect
+HEIGHT_TOL = 0.15     # m the ground may sag or bulge off the link's straight height (traffic.gd lerps a
+                      # car's height from one end of a link to the other)
+KNOT_M = 25.0         # an edge shorter than this with a junction at its far end is a knot's
 BEND_MAX = 0.15       # rad the road may turn between a stretched link's two ends (more than the node's own turn)
 DRAW_REACH = 3.0      # m from a lane-graph centreline to the drawn road's centreline still read as that road
 DRAW_COS = 0.9        # the drawn road runs along the edge
@@ -88,6 +99,43 @@ SMALL = {"residential", "unclassified", "living_street"}   # lane_graph.gd class
 
 
 # --- the drawn asphalt along an edge -----------------------------------------------------------
+
+class Ground:
+    """The terrain grid (game/map/terrain.json, tools/setup_map.sh): the height a car on a ground
+    road has, to measure a link's sag against."""
+
+    PATH = os.path.join(TOOLS, "..", "game", "map", "terrain.json")
+
+    def __init__(self, t):
+        self.x0, self.z0, self.step = float(t["x0"]), float(t["z0"]), float(t["step"])
+        self.nx, self.nz, self.h = int(t["nx"]), int(t["nz"]), t["h"]
+
+    @classmethod
+    def load(cls):
+        if not os.path.exists(cls.PATH):
+            raise SystemExit("lane_changes: needs %s (run tools/setup_map.sh)" % os.path.normpath(cls.PATH))
+        with open(cls.PATH, encoding="utf-8") as fh:
+            return cls(json.load(fh))
+
+    def at(self, x, z):
+        fx = min(max((x - self.x0) / self.step, 0.0), self.nx - 1.001)
+        fz = min(max((z - self.z0) / self.step, 0.0), self.nz - 1.001)
+        i, j = int(fx), int(fz)
+        u, v = fx - i, fz - j
+        g = lambda a, b: self.h[b * self.nx + a]
+        return (g(i, j) * (1 - u) + g(i + 1, j) * u) * (1 - v) + (g(i, j + 1) * (1 - u) + g(i + 1, j + 1) * u) * v
+
+    def sag(self, ge, gf, le, lf):
+        """The most the ground along the link (the last `le` m of ge, the first `lf` of gf) is off
+        the straight height between its two ends (m)."""
+        pts = [ge.point(max(ge.len - le + le * k / 6.0, 0.0), 0.0) for k in range(7)]
+        pts += [gf.point(lf * k / 6.0, 0.0) for k in range(1, 7)]
+        cum = [0.0]
+        for a, b in zip(pts, pts[1:]):
+            cum.append(cum[-1] + math.dist(a, b))
+        h0, h1, total = self.at(*pts[0]), self.at(*pts[-1]), cum[-1] or 1.0
+        return max(abs(self.at(*p) - (h0 + (h1 - h0) * c / total)) for p, c in zip(pts, cum))
+
 
 class Drawn:
     """The drawn roads (their per-vertex edges, lane_tapers.Way), read across a graph edge."""
@@ -162,6 +210,16 @@ def joins(edges, G, outs, rev):
     return found
 
 
+def knots(edges):
+    """{node: how many other nodes its ways reach} (3 or more: a junction)."""
+    near = defaultdict(set)
+    for e in edges:
+        a, b = int(e["a"]), int(e["b"])
+        near[a].add(b)
+        near[b].add(a)
+    return defaultdict(int, {k: len(v) for k, v in near.items()})
+
+
 def lanes_of(edges, i, f, ge, gf, turn):
     """[(k, j)]: lane k of edge i lands in lane j of f (the RT-2 link, else lane_graph's old rule),
     for the lanes that may go straight on."""
@@ -222,11 +280,12 @@ def stops_on(out, edges, G, ids):
     return found
 
 
-def plan(edges, G, outs, rev, drawn, listing=None, out=None):
+def plan(edges, G, outs, rev, drawn, listing=None, out=None, ground=None):
     """{(edge, 's0'|'s1'): new trim value} for every join whose lanes jump, and the counts."""
     trims = {}
     stats = defaultdict(int)
     found = joins(edges, G, outs, rev)
+    nbrs = knots(edges)
     stops = stops_on(out or {}, edges, G, {i for j in found for i in j[:2]})
     for i, f, turn in found:
         ge, gf = G[i], G[f]
@@ -237,6 +296,17 @@ def plan(edges, G, outs, rev, drawn, listing=None, out=None):
         if shift <= JUMP:
             continue
         stats["jumps"] += 1
+        ei, ef = edges[i], edges[f]
+        if "tn" in ei or "tn" in ef or int(ei.get("br", 0)) or int(ef.get("br", 0)):
+            # on a deck or in a tunnel the height is the structure's, not the terrain's, and the
+            # link's height runs straight from one end to the other (traffic.gd conn_y0/conn_y1)
+            stats["level"] += 1
+            continue
+        if (ge.len < KNOT_M and nbrs[int(edges[i]["a"])] >= 3) or (gf.len < KNOT_M and nbrs[int(edges[f]["b"])] >= 3):
+            # a knot of short ways (a ring, a split junction): the race line and the turns
+            # through it are the junction's, a stretched link there folds the line back on itself
+            stats["knot"] += 1
+            continue
         before = ge.len - ge.s1        # metres of e already in the link
         after = gf.s0                  # metres of f already in it
         te = drawn.taper(ge, True)
@@ -253,13 +323,18 @@ def plan(edges, G, outs, rev, drawn, listing=None, out=None):
         else:
             stats["taper"] += 1
         # each edge's room; what one side cannot take, the other may
-        le = min(want_e, ge.s1 - ge.s0 - MIN_DRIVE + before, ge.len * END_SHARE)
-        lf = min(want_f, gf.s1 - gf.s0 - MIN_DRIVE + after, gf.len * END_SHARE)
+        de = QUEUE_M if nbrs[int(edges[i]["a"])] >= 3 else MIN_DRIVE
+        df = QUEUE_M if nbrs[int(edges[f]["b"])] >= 3 else MIN_DRIVE
+        le = min(want_e, ge.s1 - ge.s0 - de + before, ge.len * END_SHARE)
+        lf = min(want_f, gf.s1 - gf.s0 - df + after, gf.len * END_SHARE)
         le, lf = max(le, before), max(lf, after)
         short = (want_e + want_f) - (le + lf)
         if short > 0:
-            le = max(le, min(le + short, ge.s1 - ge.s0 - MIN_DRIVE + before, ge.len * END_SHARE))
-            lf = max(lf, min(lf + (want_e + want_f) - (le + lf), gf.s1 - gf.s0 - MIN_DRIVE + after, gf.len * END_SHARE))
+            le = max(le, min(le + short, ge.s1 - ge.s0 - de + before, ge.len * END_SHARE))
+            lf = max(lf, min(lf + (want_e + want_f) - (le + lf), gf.s1 - gf.s0 - df + after, gf.len * END_SHARE))
+        if le + lf > LINK_MAX and le + lf > before + after:
+            k = max(LINK_MAX, before + after) / (le + lf)
+            le, lf = max(before, le * k), max(after, lf * k)
         # a signal's stop line stays on its edge with room for a car before it, and a bus stop
         # where a bus still pulls in by its shelter (buses.gd clamps it to s0 + 8 .. s1 - 4)
         if i in stops:
@@ -278,6 +353,12 @@ def plan(edges, G, outs, rev, drawn, listing=None, out=None):
             d0 = ge.direction(max(ge.len - le, 0.01))
             d1 = gf.direction(min(lf, gf.len - 0.01))
             if abs(ll.angle(d0, d1)) <= bend_cap or (le <= before + 1e-6 and lf <= after + 1e-6):
+                break
+            le = max(before, le * 0.85)
+            lf = max(after, lf * 0.85)
+        # the ground under the link may not sag or bulge off its straight height
+        for _ in range(40):
+            if ground is None or ground.sag(ge, gf, le, lf) <= HEIGHT_TOL or (le <= before + 1e-6 and lf <= after + 1e-6):
                 break
             le = max(before, le * 0.85)
             lf = max(after, lf * 0.85)
@@ -324,7 +405,7 @@ def apply(out, listing=None, force=False):
     edges, G, outs, rev = ll.build(out)
     before = len(abrupt(edges, G, outs, rev))
     drawn = Drawn(out)
-    trims, stats = plan(edges, G, outs, rev, drawn, listing, out)
+    trims, stats = plan(edges, G, outs, rev, drawn, listing, out, Ground.load())
     for (i, key), v in trims.items():
         e = edges[i]
         old = float(e[key])
@@ -341,15 +422,13 @@ def apply(out, listing=None, force=False):
 
 
 def check(out):
-    if int(out.get(KEY, 0)) < VERSION:
-        print("lane_changes: the map does not carry the pass (run python3 -I tools/lane_changes.py)")
-        return 1
     edges, G, outs, rev = ll.build(out)
     n = len(abrupt(edges, G, outs, rev))
     if n > CHECK_ABRUPT:
         print("lane_changes: %d continuation links move a lane over steeper than 1:%.0f (ratchet %d)" % (n, RATE, CHECK_ABRUPT))
         return 1
-    print("lane_changes: OK (%d abrupt continuation links, ratchet %d)" % (n, CHECK_ABRUPT))
+    print("lane_changes: OK (%d abrupt continuation links, ratchet %d%s)" % (
+        n, CHECK_ABRUPT, "" if int(out.get(KEY, 0)) >= VERSION else "; the pass is parked, TD-27"))
     return 0
 
 

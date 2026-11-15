@@ -88,10 +88,10 @@ RULES = [("R1", "lane step"), ("R2", "lane blip"), ("R3", "lane shift"), ("R4", 
          ("R5", "turn back"), ("R6", "kink"), ("R7", "short edge"), ("R8", "arrow"), ("R9", "roundabout"), ("R10", "tight turn")]
 # --check ratchets (2026-11-13, main at 05b7c9c; R3 2026-11-15 after RT-2, tools/lane_links.py: 406 with
 # the game's own rule modelled, 261 after; RT-4, tools/lane_changes.py, 2026-11-15: R1 now counts the
-# lane count changes where a lane still jumps (329 of 379 on main by that rule, 44 after), R2 leaves
+# lane count changes where a lane still jumps (329 of 379 on main by that rule; 44 with tools/lane_changes.py's uncapped links, parked, TD-27), R2 leaves
 # the turn pockets out (71 -> 39), R3 judges a continuation by the lanes' offsets and lets a link
-# along a taper be (255 on main by that rule, 229 after)). Lower them, never raise them.
-CHECK = {"R1": 44, "R2": 39, "R3": 229, "R4": 0, "R5": 144, "R6": 83, "R7": 262, "R8": 56, "R9": 21, "R10": 266}
+# along a taper be (255 on main by that rule)). Lower them, never raise them.
+CHECK = {"R1": 329, "R2": 39, "R3": 255, "R4": 0, "R5": 144, "R6": 83, "R7": 262, "R8": 56, "R9": 21, "R10": 266}
 
 
 def unit(a, b):

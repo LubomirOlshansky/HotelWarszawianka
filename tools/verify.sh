@@ -309,16 +309,16 @@
 # width steps at the joins tapered, the lane lines stitched; its steps and jogs never grow).
 # Lane drops (2026-11-14): `tapers` runs tools/lane_tapers.py --check (two lanes become one along a
 # real-life taper, about 1:15; the lane drops steeper than 1:5 away from junctions never grow).
-# Lane changes (RT-4, 2026-11-15): `lanechanges` runs tools/lane_changes.py --check (the map carries the
-# pass: where a street gains, loses or moves a lane between two of its ways, the lane graph's link
-# runs along the drawn taper; the links still steeper than 1:6 never grow).
+# Lane changes (RT-4, 2026-11-15): `lanechanges` runs tools/lane_changes.py --check (the continuation
+# links that move a lane over steeper than 1:6, where a street gains, loses or moves a lane between two
+# of its ways, never grow; the pass that stretches them is parked until traffic drives long links, TD-27).
 # Street objects (2026-11-07): `objects` runs tools/object_fixes.py --check (the map's lamps, signals,
 # benches, bins, racks, columns, shelters, parked cars and barriers carry no artifact object_audit.py
 # fixes by itself: inside a wall, in a carriageway, under a deck, doubles, stubs, stair slabs, paths
 # walled off; 2026-11-08: no scanned tree in the water or on the asphalt, no fence or hedge in the
 # water; the CHECK rules are only counted).
 # Re-bake guard (2026-11-14): `postpasses` runs tools/check_post_passes.py (road_fixes, lane_tapers, zamek_ramps,
-# object_fixes, road_profiles, lane_links, lane_changes and parked_thin each leave the committed map unchanged: a pass that is not
+# object_fixes, road_profiles, lane_links and parked_thin each leave the committed map unchanged: a pass that is not
 # idempotent drifts it on every re-run).
 # Parked rows (the city objects plan, step 8b, 2026-11-15): `parkedthin` runs tools/parked_thin.py --check
 # (the map is thinned, and over the whole map no parked car's box reaches into a lane, none within 1 m

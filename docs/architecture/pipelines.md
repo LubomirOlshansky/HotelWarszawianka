@@ -36,10 +36,6 @@ sectors/s_<i>_<j>.scn, proxies.scn, index.res, shared/*.res   (the prebuilt city
   lanes, only where they differ from `lane_graph.gd` `next_lane`'s old rule) and `tl` (each lane's
   turn code, read from the map's turn arrows, which are OSM's `turn:lanes`); the same pass seats
   those arrows on their lanes. `road_truth.py` R3 is its ratchet.
-- Where a street gains, loses or moves a lane between two of its ways, the link across that node
-  runs along the drawn taper (RT-4, `tools/lane_changes.py`, after `lane_links.py`, `object_fixes.py`
-  and `tram_stops.py`): the edges' `s0`/`s1` are stretched there, the bake's own kept in `s0o`/`s1o`
-  (lane_links reads those). Verify step `lanechanges`; `road_truth.py` R1 and R3 judge the same.
 
 ### 1b. A landmark from Blender (trial, 2026-11-13: the Palace only)
 
