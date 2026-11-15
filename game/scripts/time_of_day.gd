@@ -2,8 +2,9 @@ extends Node
 ## Day, Dusk and Night (and loop MW-3's Dawn): the sun (or moon), the ambient light, the sky behind the
 ## diorama, the colour grade and the city's lights, blended over 1.5 s when the
 ## mode changes. The city's shaders read three global uniforms (project.godot
-## [shader_globals]): lights_on, daylight and sky_colour. Day is the original
-## look exactly: lights off, no grade, no sky gradient, no glow.
+## [shader_globals]): lights_on, daylight and sky_colour. The values below are the "classic"
+## look (by day: lights off, no grade, no sky gradient, no glow); the look the player picked
+## (grades.gd, "warsaw" by default) lays its overrides on top.
 ##
 ## v0.9: Live, a fourth mode: the real sun over Warsaw (52.23 N, 21.01 E) for the
 ## device's clock (or --clock=HH:MM --date=YYYYMMDD, Warsaw time), from the NOAA
@@ -68,6 +69,9 @@ const LOOKS := [
 ]
 
 var mode := DAY
+## The colour look (grades.gd: Settings → Kolory, or --grade=NAME).
+var grade := "warsaw"
+var _day_pitch := -50.0
 var env: Environment
 var sun: DirectionalLight3D
 var post: ShaderMaterial
@@ -104,17 +108,33 @@ func setup(environment: Environment, light: DirectionalLight3D, post_material: S
 	env = environment
 	sun = light
 	post = post_material
-	_looks = LOOKS.duplicate(true)
-	_looks[DAY]["sun_pitch"] = day_pitch
-	# Loop MW-3: Live has no entry of its own (it blends the three); Dawn is Dusk's with the sun
-	# in the east-north-east.
+	_day_pitch = day_pitch
+	_build_looks()
+	_to = _looks[mode]
+	_from = _to
+	_apply(_to)
+
+
+## The colour look (grades.gd), applied at once; the mode and its clock stay as they are.
+func set_grade(name: String) -> void:
+	grade = name
+	_build_looks()
+	_to = _live_look() if mode == LIVE else _looks[mode]
+	_from = _to
+	_t = 1.0
+	_apply(_to)
+
+
+## The looks for this grade: Day, Dusk, Night, then Live (no entry of its own: it blends the
+## three) and Dawn (loop MW-3: Dusk's with the sun in the east-north-east).
+func _build_looks() -> void:
+	_looks = Grades.apply(LOOKS, grade)
+	if not Grades.looks_of(grade)[DAY].has("sun_pitch"):
+		_looks[DAY]["sun_pitch"] = _day_pitch
 	_looks.append({})
 	var dawn: Dictionary = _looks[DUSK].duplicate()
 	dawn["sun_yaw"] = DAWN_SUN_YAW
 	_looks.append(dawn)
-	_to = _looks[mode]
-	_from = _to
-	_apply(_to)
 
 
 static func parse(text: String) -> int:
@@ -329,6 +349,12 @@ func _apply(look: Dictionary) -> void:
 	post.set_shader_parameter("sky_bottom", _linear3(look["sky_bottom"]))
 	post.set_shader_parameter("stars", look["stars"])
 	post.set_shader_parameter("saturation_share", look["saturation_share"])
+	post.set_shader_parameter("g_gain", look["g_gain"])
+	post.set_shader_parameter("g_contrast", look["g_contrast"])
+	post.set_shader_parameter("g_pivot", look["g_pivot"])
+	post.set_shader_parameter("g_lift", look["g_lift"])
+	post.set_shader_parameter("g_vibrance", look["g_vibrance"])
+	post.set_shader_parameter("g_shoulder", look["g_shoulder"])
 	var glow: float = look["glow"]
 	env.glow_enabled = glow > 0.01 and glow_allowed
 	if env.glow_enabled:
