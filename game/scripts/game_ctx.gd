@@ -18,16 +18,26 @@ var data := {}
 ## main.gd with the kit's base (and into every check that builds an activity).
 var flags: Variant
 var hud: CanvasLayer
+## The talk (dialogue.gd): the call and card lines.
+var dialogue: Node
 var bubbles: Control
 var wallet: Node
 var map: Node3D
+## The radio (radio.gd): an activity's news and stings.
+var radio: Node
 ## The traffic's lane graph, null with --no-traffic.
 var graph: RefCounted
 ## The traffic, null with --no-traffic.
 var traffic: Node3D
 var car: CharacterBody3D
+## The helicopter (heli.gd).
+var heli: Node3D
 ## [position, km/h, flying, forward speed] of what the player drives now: the helicopter in the
 ## air, the car on the ground.
 var vehicle: Callable
 ## The hour of the local clock (time_of_day.gd), 0 to 24.
 var hour: Callable
+## Takes the player up in the helicopter from where the car stands, at cruise height.
+var take_off: Callable
+## Puts the camera's focus at a point (a test start that moves the player at once).
+var focus_at: Callable
