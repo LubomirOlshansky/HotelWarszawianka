@@ -904,17 +904,29 @@ for s in $want; do
 				*) row FAIL "streets" $secs "$(grep -m1 '^check_streets:' $logs/streets.log) · $counts ($logs/streets.log)" ;;
 			esac ;;
 		# Architecture docs (2026-11-11): every game script is named in docs/architecture/systems.md
-		# or city-ai.md, and the pages' links resolve (tools/check_architecture.py; no map).
+		# or city-ai.md, and the pages' links resolve (tools/check_architecture.py; no map). Since
+		# 2026-11-15 also the boundaries at zero and the ratchets (tech-debt.md), and its selftest
+		# (each rule broken once on a copy); an exact ratchet under its number is a WARN row (the
+		# change that lowered it writes the new number).
 		architecture)
 			t0=$EPOCHREALTIME
 			python3 -I $ROOT/tools/check_architecture.py > $logs/architecture.log 2>&1
 			code=$?
+			if (( code == 0 )); then
+				python3 -I $ROOT/tools/check_architecture.py --selftest >> $logs/architecture.log 2>&1
+				code=$?
+			fi
 			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
 			counts=$(grep -m1 '^check_architecture counts:' $logs/architecture.log)
 			counts=${counts#check_architecture counts: }
+			awarn=$(grep -m1 '^check_architecture: WARN' $logs/architecture.log)
 			case $code in
-				0) row PASS "architecture" $secs "check_architecture: OK · $counts" ;;
-				*) row FAIL "architecture" $secs "$(grep '^check_architecture:' $logs/architecture.log | head -1) · $counts ($logs/architecture.log)" ;;
+				0) if [[ -n $awarn ]]; then
+						row WARN "architecture" $secs "${awarn[1,160]}"
+					else
+						row PASS "architecture" $secs "check_architecture: OK · $counts"
+					fi ;;
+				*) row FAIL "architecture" $secs "$(grep -E '^check_architecture( selftest)?:' $logs/architecture.log | head -1) · $counts ($logs/architecture.log)" ;;
 			esac ;;
 		# Reference-photo store (2026-11-13): tools/refs_store.py builds a fake store, inventory and repo
 		# in a temp dir and exercises index, gaps, pull, push, aliases and conflicts (no map, no photos).

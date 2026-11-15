@@ -25,13 +25,15 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | 2 | Update over the old build | settings and the save are as they were | #666 |
 | 3 | Play the first ten minutes on a fresh save, taking what is offered | do the calls and offers crowd each other, or leave you with nothing to do | #774, the kit ports |
 | 3a | Launch twice (cold after an install, then warm) and time from the tap to the city | the city comes up no more than about half a second later than in build 10, behind the title (the landmark code is now 17 files in one chain; its cold load in the cloud's debug engine went from 1.9 s to 2.35 s) | TD-10, the landmarks split |
+| 3b | Drive a little, swipe home, then close the game from the app switcher and launch it again | the car is where you left it and the money as it was; no "ZAPIS NIEUDANY / SAVE FAILED" note at any time (it shows only when a write fails) | saves when the app leaves |
+| 3c | During a tour (or a race or a job) press the pad's A and open the HELI list; then open a rescue call card and leave it | A during the run brings no rescue card and the list has no rescue rows; the unanswered rescue card goes after 12 s: is that long enough to read it while driving | one activity at a time |
 
 ## 2. Driving feel: Settings → Świat (6 min)
 
 | # | Do | Look for | From |
 | --- | --- | --- | --- |
 | 4 | "Zderzenia · Collisions": drive Marszałkowska and scrape a wall, a kerb and a car on Klasyka, then Soft, Medium, Firm | which one should be the default (the measurements favour Medium); does the kick at a head-on hit read as a snap | #760, #765, #780 |
-| 5 | "Łamliwe płoty · Smashable fences" on: at Stadion Narodowy drive through a fence, a hedge and a tall net | the feel of the smash, the debris, the sound, the buzz; the broken fence still stands drawn (known, until panels) | #776 |
+| 5 | "Łamliwe płoty · Smashable fences" on: at Stadion Narodowy drive through a fence, a hedge and a tall net | the feel of the smash, the debris, the sound, the buzz; the broken fence still stands drawn (known, until panels); the park's black bar panels break, the gate piers do not | #776 |
 | 6 | The same switch **off** (what testers get): drive fast along Marszałkowska and over a bridge | a hitch each time new streets come in (the fences' colliders are rebuilt at sector load, about 3.3 ms per sector in the cloud) | #780, #732 |
 | 7 | Switch on, shove parked cars on Krucza, end-on and from the side | a push, never a dead stop; where the pushed car comes to rest (it may sit a kerb low); the frame among parked cars (the cloud measured about 40 µs more per physics step there) | #796 |
 | 7b | A build baked with `typed` (device run): drive Marszałkowska, Plac Grzybowski and the stadium | do thin fences read as fences, or flicker? Are heights right (planters, park hedges)? | W2 |
@@ -55,7 +57,9 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | 14a | Varso Tower by day from Rondo ONZ and at night from Chmielna | the grey frame reads as a grid (not noise) at the game's zoom; the louvred crown; the spire's dish platforms glow white at night | Varso rebuild |
 | 14b | Drive Trasa Łazienkowska through its cutting, then Wisłostrada past Bednarska and Miodowa | the road is clean of beige ground wedges; the frame there against the rest of the city (the ground there now has finer cells, +4.7 % vertices over 26 places) | #779 |
 | 14c | Centrum LIM's tower by day from Centralna and at night from Jerozolimskie | the white corner piers read as stripes at the game's zoom; the PREZYDENT and SAMSONG names lit at night; the red-and-white mast | LIM tower rebuild |
-| 14d | Błękitny Wieżowiec from Plac Bankowy and Solidarności, by day and at night | the mirror glass reads silver-blue against the sky; the glass hall reads as a barrel vault; the red-and-white antennas on the roof | Błękitny rebuild |
+| 14d | Błękitny Wieżowiec from Plac Bankowy and Solidarności, by day and at night | the glass reads deep blue with its panel grid (F's photo), not grey; the glass hall reads as a barrel vault; the red-and-white antennas on the roof | Błękitny rebuild |
+| 14e | Babka Tower from Jana Pawła II and the Babka roundabout, by day and at night | the tower reads pale stone with a glazed loggia column on each face, rising out of the 34 m stone office block; WEKTRA lit on the top floor at night | Babka Tower build |
+| 14f | Stadion Narodowy's park fence and gate boards, from Waszyngtona and the east path, by day and at night; then drive through a fence panel (it breaks with Łamliwe płoty on) and into a gate pier (it stands) | the black bar fence on its dark base reads open (you see the park through it); the red gate boards over the gates; no new stutter near the stadium | Narodowy grounds #808 |
 | 15 | Settings → the experimental graphics switch, on and off at the Palace | the look and the frame | #647 |
 
 ## 5. The frame (3 min)

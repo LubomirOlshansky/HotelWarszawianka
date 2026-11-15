@@ -909,6 +909,28 @@ func _director() -> void:
 	a.keys = false
 	b.keys = false
 	c.keys = false
+	# The ✕ (hud.abort_pressed) goes through the director to one activity (2026-11-15): with two runs
+	# up at once (a run started past the director: a meeting, a test flag), one press drops one, the
+	# first in the list that takes it; one under its own card that holds it is passed over; with one
+	# run up it is that one's ✕ as before; an activity that never joined still hears it itself.
+	a.meet()
+	b.meet()
+	hud.abort_pressed.emit()
+	_expect(a.idle() and b.phase == Activity.Phase.RUN, "one ✕ with two runs up drops one, the first in the list (%d, %d)" % [a.phase, b.phase])
+	hud.abort_pressed.emit()
+	_expect(b.idle(), "the next ✕ drops the other")
+	a.meet()
+	b.meet()
+	a.show_card(["KARTA", "CARD"], ["Tekst", "Text"], PackedStringArray(["OK"]))
+	hud.abort_pressed.emit()
+	_expect(a.phase == Activity.Phase.RUN and b.idle(), "the first under its own card that holds it: the ✕ is the second's (%d, %d)" % [a.phase, b.phase])
+	hud.press(0)
+	a.finish()
+	var alone := _probe(hud, "alone")
+	alone.meet()
+	hud.abort_pressed.emit()
+	_expect(alone.idle(), "an activity that never joined the director hears the ✕ itself")
+	alone.free()
 
 
 # --- the real HUD (TD-16) --------------------------------------------------------------------------

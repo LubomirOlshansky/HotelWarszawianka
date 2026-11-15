@@ -28,6 +28,12 @@ extends SceneTree
 ##   that fails leaves the old file as it was; a missing file is a fresh start even with a copy;
 ##   an unsealed file (every save before TD-8) loads and the next write seals it; only the last
 ##   BAD_KEPT damaged files are kept; settings.cfg is written the same way.
+## - saves when the app leaves (2026-11-15): `flush` writes what waited for the next save (a
+##   smashed fence, a value another script set), skips a second write in the frame of a save that
+##   worked, and writes nothing under --nosave; `save_failed` is sent once a session, on the first
+##   failed write, with its error; NOWA GRA wipes nothing when its copy cannot be made; a v1 file
+##   whose copy cannot be made still loads whole; main.gd flushes on pause, focus out and close
+##   (not in the phone's bench) and hears `save_failed` before the wallet's first write.
 ## Never touches the real user://save.cfg or settings.cfg; deletes its scratch files.
 ##   godot --headless --path game --script res://tools/check_save.gd
 
@@ -39,6 +45,7 @@ const SCRATCH_NEW := "user://check_save_newer.cfg"
 const SCRATCH_OFF := "user://check_save_nosave.cfg"
 const SCRATCH_SET := "user://check_save_settings.cfg"
 const SCRATCH_BAD := "user://check_save_bad.cfg"
+const SCRATCH_FLUSH := "user://check_save_flush.cfg"
 
 var _problems := 0
 
@@ -55,6 +62,7 @@ func _initialize() -> void:
 	_resume()
 	await process_frame  # the title's _ready runs inside the tree's first frame
 	_title()
+	await _flush()
 	_clean()
 	if _problems == 0:
 		print("check_save: OK")
@@ -367,6 +375,93 @@ func _title() -> void:
 	f.free()
 
 
+## Saves when the app leaves: flush, the failed-save signal, the checked copies, main.gd's wiring.
+func _flush() -> void:
+	_clean_flush()
+	var w := Wallet.new()
+	w.path = SCRATCH_FLUSH
+	w.load_save()
+	w.save()
+	var saved := _bytes(SCRATCH_FLUSH)
+	# What waits for the next save: the wallet's own counter and another script's direct write.
+	w.count_smash("fence")
+	w.keep["podwozka_stories"] = ["check_save"]
+	w.flush()
+	_expect(_bytes(SCRATCH_FLUSH) == saved, "flush wrote again in the frame of a save that worked")
+	await process_frame
+	w.flush()
+	var cfg := ConfigFile.new()
+	_expect(Wallet.read_whole(SCRATCH_FLUSH, cfg) == "" and int(cfg.get_value("keep", "smash_fence", 0)) == 1
+			and cfg.get_value("keep", "podwozka_stories", []) == ["check_save"], "flush: the waiting changes not written: %s" % cfg.encode_to_text())
+	# The first failed write sends save_failed once, with its error; the later ones do not.
+	var heard := []
+	w.save_failed.connect(func(error: int) -> void: heard.append(error))
+	DirAccess.make_dir_absolute(ProjectSettings.globalize_path(SCRATCH_FLUSH + ".tmp"))
+	w.pay(1, 0)
+	w.pay(1, 0)
+	_expect(w.save_failures == 2 and heard.size() == 1 and int(heard[0]) != OK, "save_failed: failures %d, sent %s" % [w.save_failures, heard])
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(SCRATCH_FLUSH + ".tmp"))
+	await process_frame
+	w.flush()
+	cfg = ConfigFile.new()
+	_expect(w.save_error == OK and heard.size() == 1 and Wallet.read_whole(SCRATCH_FLUSH, cfg) == "" and int(cfg.get_value("wallet", "zl", 0)) == 2,
+			"the flush after failed writes: error %d, sent %s, %s zł" % [w.save_error, heard, cfg.get_value("wallet", "zl", "-")])
+	# NOWA GRA when the copy cannot be made (a folder in the copy's place: the last rename fails,
+	# quietly, as a full or locked disk would): false, nothing wiped, the file as it was.
+	var before := _bytes(SCRATCH_FLUSH)
+	var prev_dir := ProjectSettings.globalize_path(w.previous_path())
+	DirAccess.make_dir_absolute(prev_dir)
+	_expect(not w.start_over() and w.zl == 2 and _bytes(SCRATCH_FLUSH) == before and not FileAccess.file_exists(w.previous_path() + ".tmp"),
+			"NOWA GRA with a failed copy: %s, file changed %s" % [w.summary(), _bytes(SCRATCH_FLUSH) != before])
+	DirAccess.remove_absolute(prev_dir)
+	_expect(w.start_over() and w.zl == 0 and _bytes(w.previous_path()) == before, "NOWA GRA after the copy works again: %s" % w.summary())
+	var prev := w.previous_path()
+	w.free()
+	# --nosave: flush writes nothing.
+	var off := Wallet.new()
+	off.path = SCRATCH_OFF
+	off.persistent = false
+	_drop(SCRATCH_OFF)
+	off.keep["x"] = 1
+	off.flush()
+	_expect(not FileAccess.file_exists(SCRATCH_OFF), "--nosave: flush wrote %s" % SCRATCH_OFF)
+	off.free()
+	# A v1 file whose copy cannot be made still loads whole and migrates.
+	_v1_fixture().save(SCRATCH_FLUSH)
+	var v1 := Wallet.new()
+	v1.path = SCRATCH_FLUSH
+	var backup_dir := ProjectSettings.globalize_path(v1.backup_path(1))
+	DirAccess.make_dir_absolute(backup_dir)
+	v1.load_save()
+	_check_v1_values(v1, "v1 with a failed copy")
+	_expect(v1.migrated_from == 1 and not FileAccess.file_exists(v1.backup_path(1) + ".tmp"), "v1 with a failed copy: migrated from %d, temp left %s" % [
+			v1.migrated_from, FileAccess.file_exists(v1.backup_path(1) + ".tmp")])
+	DirAccess.remove_absolute(backup_dir)
+	_drop(v1.backup_path(1))
+	v1.free()
+	# main.gd: the flush on leaving, not in the phone's bench; the signal heard before the first write.
+	var main := FileAccess.get_file_as_string("res://scripts/main.gd")
+	var note := main.substr(main.find("func _notification("))
+	note = note.substr(0, note.find("\nfunc ", 1))
+	_expect(note.contains("NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_WM_CLOSE_REQUEST")
+			and note.contains("if wallet != null and not _phone_bench:\n\t\t\twallet.flush()"), "main.gd's _notification does not flush the wallet on leaving")
+	var heard_at := main.find("wallet.save_failed.connect(_save_failed_note)")
+	_expect(heard_at > 0 and heard_at < main.find("add_child(wallet)"), "main.gd hears save_failed after the wallet's _ready")
+	_clean_flush()
+	_expect(not FileAccess.file_exists(prev), "the scratch copy %s left behind" % prev)
+
+
+## The flush case's scratch file, its copies and any temp folder a case left (a run cut short too).
+func _clean_flush() -> void:
+	var base := SCRATCH_FLUSH.get_basename()
+	for p in [SCRATCH_FLUSH, base + ".prev.cfg", base + ".v1.cfg"]:
+		for q in [p, p + ".tmp"]:
+			if DirAccess.dir_exists_absolute(ProjectSettings.globalize_path(q)):
+				DirAccess.remove_absolute(ProjectSettings.globalize_path(q))
+			else:
+				_drop(q)
+
+
 ## TD-8: a wallet on the scratch file, loaded as a launch does (the copy kept too).
 func _launch() -> Node:
 	var w := Wallet.new()
@@ -527,6 +622,7 @@ func _damaged() -> void:
 
 func _clean() -> void:
 	_clean_bad()
+	_clean_flush()
 	_drop(SCRATCH_SET + ".tmp")
 	for p in [SCRATCH, SCRATCH_NEW, SCRATCH_OFF, SCRATCH_SET, "user://check_save.v1.cfg", "user://check_save_nosave.v1.cfg",
 			"user://check_save_newer.v3.cfg", "user://check_save_settings_off.cfg", "user://check_save_missing.cfg",

@@ -105,8 +105,9 @@ const TOWERS := [
 	{"key": "equator2", "osm": "Equator II", "style": S_RIBBON, "glass": "#5a7490", "roof": "#8a8f93", "h": 50.5, "sign": "BLUZOFT"},
 	{"key": "skysawa", "osm": "Skysawa", "style": S_BANDS, "glass": "#7e93a3", "roof": "#a7b0b6"},
 	# Błękitny Wieżowiec (Plac Bankowy 2, 1991): untinted reflective float glass that mirrors the
-	# sky, hence blue (its first cladding was copper, the "Golden Tower"; spec blekitny.md).
-	{"key": "blekitny", "osm": "Błękitny Wieżowiec", "style": S_MIRROR, "glass": "#6f9cc6", "roof": "#9aa3aa", "cool": true},
+	# sky, hence blue (its first cladding was copper, the "Golden Tower"; spec blekitny.md). Deep
+	# blue panes in the kit's grid skin (F's look check, 2026-11-15): the glass shader read it grey.
+	{"key": "blekitny", "osm": "Błękitny Wieżowiec", "style": S_GRID, "glass": "#2f6cbf", "roof": "#9aa3aa", "cool": true},
 	# The blue glass office north of Hotel Warszawa on Plac Powstańców (F's photos, 2026-11-08): the
 	# GUGiK LoD2 mesh of this 70 m tower is open (walls and roof in pieces: it read see-through with
 	# a broken top), so the mapped outline is built whole, in solid blue reflective glass.
@@ -155,6 +156,12 @@ const TOWERS := [
 	# stand on dark navy glass (a dozen small mapped pilasters in #bfbfc4: kept as mapped).
 	{"key": "pzu", "osm": "PZU Tower", "style": S_RIBBON, "glass": "#8fb5bd", "roof": "#c4cccf"},
 	{"key": "jm", "osm": "JM Tower", "style": S_FINS, "glass": "#2b4560", "roof": "#7d878e", "mapped": true},
+	# Babka Tower (Rondo Zgrupowania AK "Radosław", 2000; spec babka.md, F's photos): a pale grey
+	# stone tower with punched windows and a glazed loggia column on each face, the cable firm's
+	# parody name on the top floor, a red mast, and the stone office block round its foot (_babka).
+	{"key": "babka", "osm": "Babka Tower", "style": S_PUNCHED, "glass": "#d9d8d3", "roof": "#9b9794", "sign": "WEKTRA",
+			"sign_col": Color(0.3, 0.45, 1.0), "babka": true,
+			"with": [Vector2(-2739.5, -2255.0)]},  # the 34 m office block round its foot (_babka_block)
 ]
 
 ## The info cards: name, then Polish and English lines. Facts kept to what is certain.
@@ -294,6 +301,9 @@ const INFO := {
 			"An office tower on Al. Jana Pawła II: two glass volumes, one with a round top."],
 	"jm": ["JM Tower", "Biurowiec przy Alejach Jerozolimskich, ciemne szkło i szare żebra.",
 			"An office tower on Al. Jerozolimskie, dark glass and grey fins."],
+	"babka": ["Babka Tower",
+			"96 m przy rondzie Babka. Mieszkania nad biurami, z 2000 roku.",
+			"96 m at the Babka roundabout. Flats over offices, from 2000."],
 	"teatr": ["Teatr Wielki",
 			"Opera Narodowa. Gmach Antonia Corazziego z 1833 roku: dziesięć kolumn, tympanon z płaskorzeźbą i kwadryga Apollina na attyce.",
 			"The National Opera. Antonio Corazzi's building of 1833: ten columns, a carved pediment and Apollo's quadriga on the attic."],
@@ -794,6 +804,10 @@ const INFO := {
 	"church_trojca_praga": ["Kościół Świętej Trójcy na Solcu", "Klasycystyczny kościół z wieżyczką.", "A classicist church with a bell turret."],
 	"church_czestochowska": ["Kościół Matki Bożej Częstochowskiej", "Modernistyczny kościół z dachem do ziemi.", "A modernist church with a roof down to the ground."],
 	"church_zwycieska": ["Kościół Matki Boskiej Zwycięskiej", "Kościół parafialny z dwiema wieżami.", "A parish church with two towers."],
+	"church_uczennice_boskiego_mistrza": ["Siostry Uczennice Boskiego Mistrza", "Ceglany dom zakonny sióstr uczennic przy Żytniej.", "The Sister Disciples of the Divine Master's brick convent."],
+	"church_sluzki_dom_generalny": ["Dom Generalny Sióstr Sług Jezusa", "Dom generalny Zgromadzenia Sióstr Sług Jezusa na Sewerynowie.", "The generalate of the Servants of Jesus sisters."],
+	"church_plebania_augustyn": ["Plebania św. Augustyna", "Plebania parafii św. Augustyna na Nowolipkach.", "St Augustine's presbytery on Nowolipki."],
+	"church_plebania_katedra_polowa": ["Plebania Katedry Polowej", "Plebania katedry wojskowej przy Długiej.", "The Field Cathedral's presbytery on Długa."],
 	"church_reformaci_klasztor": ["Klasztor Reformatów", "Klasztor franciszkanów reformatów przy kościele św. Antoniego.", "The Reformati Franciscans' friary beside St Anthony's."],
 	"church_wizytki_klasztor": ["Klasztor Wizytek", "Klasztor sióstr wizytek za ich kościołem.", "The Visitation sisters' convent behind their church."],
 	"church_sala_faustyny": ["Sala św. Faustyny", "Ceglana sala parafii św. Jakuba na Ochocie.", "The brick parish hall of St James', Ochota."],
@@ -1039,6 +1053,10 @@ func _find_sites() -> void:
 			var zone: Array = [outline]
 			for at: Vector2 in t.get("with", []):
 				zone.append(_tallest_at(at))  # a tower's low wings, built with it (the Spire's)
+			if t.get("babka", false) and zone.size() > 1:
+				# Babka's block is a U round a courtyard: its centre is in the yard, so its hull
+				# is what takes it off the map's own buildings.
+				zone.append(Geometry2D.convex_hull(zone[1]))
 			_add_site(t["key"], zone)
 			if not sites.is_empty() and sites[-1]["key"] == t["key"]:
 				sites[-1]["tower"] = t

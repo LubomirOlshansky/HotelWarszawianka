@@ -171,6 +171,8 @@ func _fly_checks() -> int:
 			c = Vector2(735.0, -896.0)  # the pylon at 45 m (the site is a long strip: its middle is open air)
 		elif info["key"] == "arkady":
 			c = Vector2(-560.0, -1606.0)  # the arcades' middle (the box holds the gardens: its middle is a lawn)
+		elif info["key"] == "babka":
+			c = Vector2(-2718.0, -2258.0)  # the tower (the box holds its office block's courtyard: its middle is open air)
 		if str(info["key"]).begins_with("bulwary_"):
 			continue  # the boulevards' 3.6 m pavilions, 2.6 m containers and 25 cm decks: the heli hovers over them
 		var heli: Node3D = Heli.new()

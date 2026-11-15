@@ -723,6 +723,7 @@ func _ready() -> void:
 	radio.log_on = flags.radio_log
 	wallet = Wallet.new()
 	wallet.persistent = not flags.no_save
+	wallet.save_failed.connect(_save_failed_note)  # before add_child: its _ready may write already
 	add_child(wallet)
 	if flags.reset_save:
 		wallet.reset()
@@ -1001,6 +1002,10 @@ func _remember_frame(dt: float, now := false) -> void:
 func _notification(what: int) -> void:
 	if what in [NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_APPLICATION_FOCUS_OUT, NOTIFICATION_WM_CLOSE_REQUEST]:
 		_remember_frame(0.0, true)
+		# Whatever waited for the next save (a smashed fence, a pushed car...): iOS may close a
+		# background app without a word. Not in the phone's bench, which holds a stand-in record.
+		if wallet != null and not _phone_bench:
+			wallet.flush()
 		if _trap != null:
 			_trap.mark()  # so far this session ended in order (error_trap.gd)
 	elif what in [NOTIFICATION_APPLICATION_RESUMED, NOTIFICATION_APPLICATION_FOCUS_IN]:
@@ -1026,6 +1031,27 @@ const SAVE_NOTE_COLOUR := Color(1.0, 0.72, 0.3)
 
 ## Safer saves (TD-8): a save that was damaged at launch says so once the city shows. An alert, so
 ## it shows whatever else is on screen; it waits for the opening flyover (the HUD is hidden then).
+## Saves when the app leaves (wallet.gd `save_failed`): what the player is told, once a session, when
+## a write fails (the file on the disk is as it was, and the next save tries again).
+const SAVE_FAILED_NOTE := ["ZAPIS NIEUDANY", "SAVE FAILED",
+		"Nie udało się zapisać postępu. Ostatni dobry zapis jest cały, a gra spróbuje znowu przy następnym zapisie.",
+		"Your progress could not be saved. The last good save is safe, and the game tries again at the next save."]
+
+
+## The first failed write of a session (wallet.gd `save_failed`, sent once): the note waits until
+## play is on (not over the loading, the title or the opening flight), as the save's own note does.
+func _save_failed_note(error: int) -> void:
+	if flags.hide_hud:
+		return
+	while not _started or title != null or _opening_on or hud == null:
+		if not is_inside_tree():
+			return
+		await get_tree().process_frame
+	var t: Array = SAVE_FAILED_NOTE
+	hud.show_note(Lang.pick(t[0], t[1]), Lang.pick(t[2], t[3]), SAVE_NOTE_COLOUR, Messages.ALERT)
+	print("save: the player was told a write failed (%s)" % error_string(error))
+
+
 func _save_note() -> void:
 	if not SAVE_NOTES.has(wallet.load_note) or flags.hide_hud:
 		return
@@ -1653,8 +1679,9 @@ func _build_world() -> void:
 	# M1: the rescue line joins the director last (after the round-up above), so the M and K keys,
 	# the arrow and the stop assist ask every other activity first, as they did before it joined; the
 	# other activities' runs hold or restart its calls through the director (activity.gd
-	# `rescue_calls`).
-	activities.add(missions)
+	# `rescue_calls`). Its own test for the world: none (its calls have their own holds, `_held`, and
+	# ring in the air too); the kit's rule, one at a time, is what M and the HELI list ask (`free_now`).
+	activities.add(missions, func() -> bool: return true)
 	_build_packs(data, world)
 	await LoadYield.tick("_build_packs")
 	_build_fans(data, world)
@@ -4962,7 +4989,7 @@ func _quest_quit_name() -> Array:
 
 
 ## F (2026-11-08): the full map's quit button, tapped twice: whatever runs gives up the way its
-## own ✕ on the status card does (hud.abort_pressed: each quest checks it is the one on), the
+## own ✕ on the status card does (hud.abort_pressed: the director passes it to the one that is on), the
 ## quest pin goes too. If something still runs (a quest with no ✕ in this beat), a toast says so.
 func _quit_quest() -> void:
 	quest_pin = {}

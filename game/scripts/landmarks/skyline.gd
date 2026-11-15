@@ -668,8 +668,6 @@ func _build_tower(site: Dictionary) -> void:
 		var part_skin := skin
 		if spec["key"] == "lim" and h > 100.0:
 			part_skin = M_GLASS  # LIM's tower: the shader's mullions and lit rooms (lim.md)
-		if spec["key"] == "blekitny":
-			part_skin = M_GLASS  # Błękitny's mirror glass, tower and podium alike (blekitny.md)
 		var crown := spec.has("crown_from") and mh >= float(spec["crown_from"]) - 0.5
 		if crown:
 			wall = Color(spec["crown"])
@@ -764,6 +762,9 @@ func _build_tower(site: Dictionary) -> void:
 	if spec["key"] == "blekitny":
 		_blekitny_vault(blek_vault, g)
 		_blekitny_roof(top_poly, g + top_h)
+	if spec.get("babka", false) and (site["zone"] as Array).size() > 1:
+		_babka_block(site["zone"][1], top_poly)
+		_g = g
 	_dusk_details(spec, top_poly, g, top_h)
 
 
@@ -1937,6 +1938,8 @@ func _dusk_details(spec: Dictionary, poly: PackedVector2Array, g: float, top_h: 
 		return
 	if spec.get("marriott", false):
 		_marriott(poly, g, top_h)
+	if spec.get("babka", false):
+		_babka(poly, g, top_h)
 	if spec.has("sign") and not spec.get("crown_sign", false):
 		_crown_signs(poly, g + top_h, str(spec["sign"]), spec.get("sign_col", DUSK_WARM), 3.0,
 				0.75 if spec.get("marriott", false) else 0.7)
@@ -2068,6 +2071,82 @@ func _lim_mast(c: Vector2, along: Vector2, side: Vector2, foot: float, head: flo
 		_soffit(deck, y - 0.4, steel.darkened(0.25))
 	_frustum(_circle(c, 0.2, 6), head, _circle(c, 0.08, 6), head + 1.6, steel)
 	_prism(_square(c, 0.25), head + 1.6, head + 2.2, DUSK_RED, DUSK_RED, M_LAMP, M_LAMP)
+
+
+# --- Babka Tower (Rondo Babka; spec docs/landmarks/specs/babka.md) ---------------------------
+
+## Rebuilt 2026-11-15 from F's photos (top-50 T42, and his four of the same morning): the tower
+## and the office block that wraps its foot are one pale grey stone complex. The tower is the
+## kit's punched skin (small windows in the stone) with a glazed loggia column down the middle
+## of each face, a stone string course where the block's roof meets it, the parody name on the
+## top floor and a red mast. The 34 m block (the TOWERS `with` outline) is the same stone with
+## its rows of blue office windows, a cornice, and the planters of its roof garden at the
+## tower's foot.
+const BABKA_LOGGIA := Color("#a9b8c4")
+const BABKA_STONE := Color("#d9d8d3")
+const BABKA_BLOCK := Color("#c9cac7")
+const BABKA_ROOF := Color("#8f918f")
+const BABKA_GREEN := Color("#5f7f45")
+const BABKA_RED := Color("#c8322b")
+const BABKA_BLOCK_TOP := 34.0
+
+
+func _babka(poly: PackedVector2Array, g: float, h: float) -> void:
+	var keep := _mode
+	var roof := g + h
+	# The glazed loggia column: the middle 45 % of every face 12 m or longer, from over the
+	# block's roof to under the top floor, 0.1 m proud.
+	_mode = M_SKIN + float(S_EASTWALL) / 16.0
+	var n := poly.size()
+	for i in n:
+		var a := poly[i]
+		var b := poly[(i + 1) % n]
+		var length := kit_front(a, b)
+		if _b.dot(_out(poly, a, b)) < 0.0:
+			length = kit_front(b, a)
+		if length < 12.0:
+			continue
+		var w := length * 0.225
+		_wall(_w(length * 0.5 - w, 0.1), _w(length * 0.5 + w, 0.1), g + BABKA_BLOCK_TOP + 1.2, roof - 3.2, _b, BABKA_LOGGIA)
+	_mode = M_STONE
+	# The string course where the block's roof meets the tower.
+	var course := Geometry2D.offset_polygon(poly, 0.3)
+	if course.size() == 1:
+		_prism(course[0], g + BABKA_BLOCK_TOP + 0.6, g + BABKA_BLOCK_TOP + 1.2, BABKA_STONE, BABKA_STONE, M_STONE, M_STONE)
+		_soffit(course[0], g + BABKA_BLOCK_TOP + 0.6, BABKA_STONE.darkened(0.3))
+	# The top floor, 0.1 m proud in the same stone: the name goes on it.
+	var crown := Geometry2D.offset_polygon(poly, 0.1)
+	if crown.size() == 1:
+		_prism(crown[0], roof - 3.2, roof, BABKA_STONE, Color(0, 0, 0, 0), M_STONE)
+	# The red lattice mast on the roof (T42 photos 1 and 4), a lamp on top.
+	var c := _centre(poly) + (poly[0] - _centre(poly)).normalized() * 4.0
+	_prism(_square(c, 0.7), roof, roof + 12.0, BABKA_RED, BABKA_RED, M_STONE, M_STONE)
+	_prism(_square(c, 0.75), roof + 4.0, roof + 5.0, BABKA_STONE, BABKA_STONE, M_STONE, M_STONE)
+	_prism(_square(c, 0.75), roof + 8.5, roof + 9.5, BABKA_STONE, BABKA_STONE, M_STONE, M_STONE)
+	_prism(_square(c, 0.2), roof + 12.0, roof + 12.4, DUSK_RED, DUSK_RED, M_LAMP, M_LAMP)
+	_mode = keep
+
+
+## The office block round the tower's foot (34 m, one U-shaped outline): stone with punched
+## windows, a cornice that is its roof, its car collision, and the roof garden's planters on the
+## block next to the tower.
+func _babka_block(block: PackedVector2Array, tower: PackedVector2Array) -> void:
+	var g := _ground_under(block)
+	_g = g
+	var none := Color(0, 0, 0, 0)
+	_prism(block, g - 0.4, g + BABKA_BLOCK_TOP - 0.8, BABKA_BLOCK, none, M_SKIN + float(S_PUNCHED) / 16.0, M_STONE)
+	var eave := Geometry2D.offset_polygon(block, 0.2)
+	if eave.size() == 1:
+		_prism(eave[0], g + BABKA_BLOCK_TOP - 0.8, g + BABKA_BLOCK_TOP, BABKA_STONE, BABKA_ROOF, M_STONE, M_STONE)
+	else:
+		_prism(block, g + BABKA_BLOCK_TOP - 0.8, g + BABKA_BLOCK_TOP, BABKA_STONE, BABKA_ROOF, M_STONE, M_STONE)
+	_collide(block)
+	# Planters 3 m out from the tower's corners, where that lands on the block's roof.
+	var tc := _centre(tower)
+	for q in tower:
+		var at := q + (q - tc).normalized() * 3.0
+		if Geometry2D.is_point_in_polygon(at, block) and not Geometry2D.is_point_in_polygon(at, tower):
+			_prism(_square(at, 0.9), g + BABKA_BLOCK_TOP, g + BABKA_BLOCK_TOP + 1.4, BABKA_GREEN.darkened(0.2), BABKA_GREEN, M_STONE, M_STONE)
 
 
 # --- Błękitny Wieżowiec (Plac Bankowy 2; spec docs/landmarks/specs/blekitny.md) ---------------

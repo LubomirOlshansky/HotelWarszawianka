@@ -109,6 +109,7 @@ SITE_NAMES = ["Pałac Kultury i Nauki", "Złote Tarasy", "Lumen", "Skylight", "R
               "Skysawa", "Błękitny Wieżowiec", "Warszawskie Centrum Finansowe", "Centrum LIM", "Chałubińskiego 8",
               "Spektrum Tower", "The Bridge", "Bellona", "Hilton Warsaw City", "The Westin Warsaw", "Novotel Warszawa Centrum", "Centrum Marszałkowska",
               "Central Tower", "Ilmet", "Platinum Tower A", "Platinum Tower B", "Pekao Tower", "Łucka City", "Prosta Tower", "Widok Towers", "PZU Tower", "JM Tower",
+              "Babka Tower",  # Babka Tower (landmarks.gd TOWERS babka, 2026-11-15)
               # map north (2026-10-31): Arkadia, for the landmarks lane (docs/DEMO.md 2.2)
               "Westfield Arkadia",
               # first scene item 3 (2026-10-31): the Eastern Wall's stores (landmarks.gd DTC)
@@ -150,6 +151,7 @@ SITE_AREAS = [
     (-680.0, 1180.0, -350.0, 1620.0),       # MDM (Plac Konstytucji to Plac Zbawiciela, landmarks.gd _find_mdm)
     (-2690.0, 170.0, -2655.0, 215.0),       # Warsaw Spire's east wing (landmarks.gd TOWERS spire "with")
     (-2765.0, 135.0, -2735.0, 170.0),       # and its north-west wing
+    (-2748.0, -2282.0, -2657.0, -2167.0),   # Babka Tower's 34 m office block (landmarks.gd TOWERS babka "with")
     (-2700.0, 560.0, -2655.0, 650.0),       # The Warsaw HUB's towers (landmarks.gd TOWERS "at")
     (-2723.0, 487.0, -2689.0, 538.0),       # and its round-ended hotel tower (TOWERS crowne "at")
     (-3085.0, 690.0, -2745.0, 915.0),       # Wola's 19. Dzielnica estate (landmarks.gd D19_ESTATE's box)
@@ -253,6 +255,10 @@ SITE_AREAS = [
     (-2812, 1558, -2775, 1584),   # church_sala_faustyny
     (-465, -868, -378, -796),   # church_wizytki_klasztor
     (-1205, -1040, -1135, -965),   # church_reformaci_klasztor
+    (-1175, -1693, -1129, -1645),   # church_plebania_katedra_polowa
+    (-2428, -1133, -2392, -1097),   # church_plebania_augustyn
+    (-2925, -682, -2872, -625),   # church_uczennice_boskiego_mistrza
+    (-222, -545, -175, -496),   # church_sluzki_dom_generalny
     (32, -222, 111, -100),   # szarytki
     (-102, -74, -63, -31),   # adwentysci
     (-860, -1600, -810, -1545),   # elzbietanki
