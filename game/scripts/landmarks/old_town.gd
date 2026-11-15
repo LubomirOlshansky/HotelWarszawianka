@@ -1962,6 +1962,16 @@ const UW_KAZ_N := Vector2(-244.1, -747.6)
 
 
 func _find_uw_kampus() -> void:
+	var kiosk := _landmark_near("Ruch", Vector2(-402.0, -691.0), 20.0)
+	if kiosk.size() >= 3:
+		_add_site("uw_straz", [_largest(Geometry2D.offset_polygon(kiosk, 0.5, Geometry2D.JOIN_MITER))])
+		if not sites.is_empty() and sites[-1]["key"] == "uw_straz":
+			sites[-1]["ring"] = kiosk
+
+
+## The campus's quiet sites (no card): found with the other quiet sites at the end of the list,
+## because the cards (`info`) skip quiet sites and a carded site after one gets another's tap id.
+func _find_uw_kampus_quiet() -> void:
 	# The escarpment wall: a thin zone along the line (no building's centre falls in it).
 	var wall := _uw_skarpa_line()
 	if wall.size() >= 2:
@@ -1971,11 +1981,6 @@ func _find_uw_kampus() -> void:
 			if not sites.is_empty() and sites[-1]["key"] == "uw_skarpa":
 				sites[-1]["line"] = wall
 				sites[-1]["quiet"] = true
-	var kiosk := _landmark_near("Ruch", Vector2(-402.0, -691.0), 20.0)
-	if kiosk.size() >= 3:
-		_add_site("uw_straz", [_largest(Geometry2D.offset_polygon(kiosk, 0.5, Geometry2D.JOIN_MITER))])
-		if not sites.is_empty() and sites[-1]["key"] == "uw_straz":
-			sites[-1]["ring"] = kiosk
 	# The furniture: thin zones round each row (bollards in front of Uruski, the flagpoles).
 	_o = UW_URU_N
 	_a = (UW_URU_S - UW_URU_N).normalized()

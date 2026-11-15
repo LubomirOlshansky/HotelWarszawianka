@@ -1320,6 +1320,8 @@ func _find_sites() -> void:
 		_add_site("elzbietanki", [elz])
 		if not sites.is_empty() and sites[-1]["key"] == "elzbietanki":
 			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": ELZ_WALL, "roof": ELZ_ROOF}
+	# The University campus's escarpment wall and furniture (2026-11-15): quiet, so here.
+	_find_uw_kampus_quiet()
 	# The formal garden before Pałac Krasińskich (F's photos, 2026-11-06).
 	if _landmark("Pałac Krasińskich").size() >= 3:
 		_o = KRAS
