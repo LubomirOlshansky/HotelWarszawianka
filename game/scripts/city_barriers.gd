@@ -144,6 +144,15 @@ var soft_segs := PackedFloat64Array()
 var _soft_line := {}
 var _soft_run := 0.0
 var guard_joins := 0
+## W2: what the last build_barriers did with each line under a typed look, {what: lines}: `rail`,
+## `slab` (drawn from the line's `looks` row), `none` (left out by its row), `keep` (its row keeps
+## the classic chain), `classic` (a rule, a site, `st` or a street pass gave it its look; or a
+## platform), `unknown` (no `ty`, or a type with no row: drawn classic, check_barrier_look's gate);
+## low_typed, the stable ids of typed lines drawn under BARRIER_SOLID_MIN (they stop colliding);
+## default_lines, the lines drawn in the barrier_default type (none on today's map).
+var look_counts := {}
+var low_typed := PackedStringArray()
+var default_lines := 0
 var _object_overrides := {}
 ## Step 7: road_objects.json "hard_lines" ({stable id: reason}): soft lines kept hard by id, the
 ## `--wander` run's traps (rule R6: a trap is hard or a hole to close).
@@ -456,6 +465,89 @@ func railing_along(st, poly: PackedVector2Array, height: float, upstand: float, 
 			else:
 				_soft_seg(cls, faces, a, b, 0.0, ga, gb, height)
 		_soft_run += length
+
+
+## W2 (walls doc 6.3): a rail's height, a typed rail row's foot's thickness, and how far the second
+## rail's bottom stands over the foot's top (m): the draw kind's own shape, the same for every row.
+const LITE_RAIL := 0.06
+const LITE_FOOT := 0.2
+const LITE_LOW_RAIL := 0.35
+
+
+## W2 (walls doc 6.3): a typed rail row along `poly`, the cheap see-through fence (about 2.5
+## triangles a metre against railing_along's 7.5): a post every `row.post.every` m along the whole
+## line (the run carries over the segments) and one at its last point, each two crossed upright
+## quads `post.w` wide from the foot's top to `height`; `row.rails` upright quads LITE_RAIL tall,
+## one with its top at `height`, a second LITE_LOW_RAIL over the foot's top; the row's foot, a
+## slab LITE_FOOT thick that does not collide. One quad shows from both sides (the building shader
+## is cull_disabled), in vertex colour with the line's side normal, the prop code the caller set in
+## `map._uv2`. The colliders are railing_along's: one `rail_faces` per segment at `height`, or the
+## soft line's segment (`hw` 0), with `_soft_run` advanced the same way, so a typed city has the
+## same soft lines, ids, panels and segments as the classic one.
+func rail_lite_along(st, poly: PackedVector2Array, row: Dictionary, height: float, colour: Color, collide: bool,
+		cls: StringName) -> void:
+	var post: Dictionary = row.get("post", {})
+	var every := float(post.get("every", 0.0))
+	var pw := float(post.get("w", 0.0)) * 0.5
+	var post_col := Color(str(post["colour"])) if post.has("colour") else colour
+	var rails := int(row.get("rails", 0))
+	var foot: Dictionary = row.get("foot", {})
+	var foot_h := float(foot.get("h", 0.0))
+	if foot_h > 0.0:
+		var foot_col := Color(str(foot["colour"])) if foot.has("colour") else colour.darkened(float(foot.get("darken", 0.0)))
+		wall_along(st, poly, LITE_FOOT, foot_h, foot_col, false, cls)
+	var run := 0.0
+	var next_post := 0.0
+	var last_post := Vector2(INF, INF)
+	var last_dir := Vector2.ZERO
+	for i in poly.size() - 1:
+		var a := poly[i]
+		var b := poly[i + 1]
+		var length := a.distance_to(b)
+		if length < 0.05:
+			continue
+		var dir := (b - a) / length
+		last_dir = dir
+		var side := Vector2(-dir.y, dir.x)
+		var n := Vector3(side.x, 0.0, side.y)
+		var ga: float = map.terrain_height(a.x, a.y)
+		var gb: float = map.terrain_height(b.x, b.y)
+		var bands: Array[float] = []
+		if rails >= 1:
+			bands.append(height - LITE_RAIL)
+		if rails >= 2:
+			bands.append(foot_h + LITE_LOW_RAIL)
+		for y0 in bands:
+			map._quad(st, Vector3(a.x, ga + y0, a.y), Vector3(b.x, gb + y0, b.y), Vector3(b.x, gb + y0 + LITE_RAIL, b.y),
+					Vector3(a.x, ga + y0 + LITE_RAIL, a.y), n, colour)
+		if every > 0.0 and pw > 0.0:
+			while next_post <= run + length:
+				var p := a + dir * (next_post - run)
+				_lite_post(st, p, lerpf(ga, gb, (next_post - run) / length), dir, pw, foot_h, height, n, post_col)
+				last_post = p
+				next_post += every
+		run += length
+		if collide:
+			var faces := rail_faces(a, b, ga, gb, height)
+			if _soft_line.is_empty():
+				map._solid(cls, faces, {"same": true, "h": height})
+			else:
+				_soft_seg(cls, faces, a, b, 0.0, ga, gb, height)
+		_soft_run += length
+	# The post at the line's last point (unless the rhythm put one there already).
+	if last_dir != Vector2.ZERO and every > 0.0 and pw > 0.0:
+		var end := poly[poly.size() - 1]
+		if last_post.distance_to(end) > 0.05:
+			_lite_post(st, end, map.terrain_height(end.x, end.y), last_dir, pw, foot_h, height,
+					Vector3(-last_dir.y, 0.0, last_dir.x), post_col)
+
+
+## W2: one rail_lite post at `p` (the ground there `y`): two crossed upright quads, along and across
+## the line (`dir`), `pw` half wide, from `foot_h` to `height` over the ground, normal `n`.
+func _lite_post(st, p: Vector2, y: float, dir: Vector2, pw: float, foot_h: float, height: float, n: Vector3, col: Color) -> void:
+	for d: Vector2 in [dir * pw, Vector2(-dir.y, dir.x) * pw]:
+		map._quad(st, Vector3(p.x - d.x, y + foot_h, p.y - d.y), Vector3(p.x + d.x, y + foot_h, p.y + d.y),
+				Vector3(p.x + d.x, y + height, p.y + d.y), Vector3(p.x - d.x, y + height, p.y - d.y), n, col)
 
 
 func _load_object_overrides() -> void:
@@ -965,6 +1057,10 @@ static func barrier_class(l: Dictionary) -> StringName:
 
 ## Every barrier line of `data` (`lines`: hedge, fence, wall, platform) in its type, by the rules
 ## above, into the building surface `st`.
+## W2 (walls doc 6.1): with `Solidity.barrier_look()` other than classic, a line whose chain ends
+## generic (its kind's own row, or what `_mapped_style` made of it; a wall that only got its mapped
+## `h` stays generic) is drawn from its `ty`'s `looks` row (`_typed`); every line a rule, a site, the
+## bake's `st` or a street pass gave a look keeps it. Under classic nothing of that runs.
 func build_barriers(st) -> void:
 	map._uv2 = Vector2(0.5, -1.0)
 	_load_object_overrides()
@@ -974,6 +1070,10 @@ func build_barriers(st) -> void:
 	soft_panels = PackedInt32Array()
 	soft_segs = PackedFloat64Array()
 	_soft_line = {}
+	look_counts = {}
+	low_typed = PackedStringArray()
+	default_lines = 0
+	var typed_on := Solidity.barrier_look() != &"classic"
 	_stairs_for_walls()
 	for l in map.data.get("lines", []):
 		var site_wall: Array = _site_wall(l["p"]) if l["k"] == "wall" or l["k"] == "fence" else []
@@ -986,27 +1086,36 @@ func build_barriers(st) -> void:
 		if l["k"] == "fence" and _over_river(l["p"]):
 			continue
 		var style: Array = _placed(str(l["k"]))
+		# W2: whether the chain below ends at the kind's own row or what _mapped_style makes of it.
+		var generic := not style.is_empty()
 		if style.is_empty():
 			style = _s(&"barrier_default")
 		if not site_wall.is_empty():
 			style = _placed(str(site_wall[1]))
+			generic = false
 		elif l["k"] == "wall":
 			if _garden_ring(l["p"]):
 				style = _s(&"garden_ring")
+				generic = false
 			elif _low_wall(l["p"]):
 				style = _s(&"low_wall")
+				generic = false
 			elif _in_island(l["p"]):
 				style = _s(&"island_edge")
+				generic = false
 			elif _in_pkin_zone(l["p"]):
 				style = _placed("balustrade") if _by_steps(l["p"]) else _s(&"pkin_wall")
+				generic = false
 			elif l.has("h"):
 				var wh := float(l["h"])
 				var wall := Solidity.type_row(&"wall")
 				style = [style[0], float(wall["low_thickness"]) if wh <= float(wall["low_height"]) else float(wall["thickness"]), wh]
 			elif _rim_ring(map._pts(l["p"])):
 				style = _s(&"basin_rim")
+				generic = false
 			elif _wraps_stairwell(map._pts(l["p"])):
 				style = _placed("balustrade_rail")
+				generic = false
 		style = _mapped_style(l, style)
 		# Street objects unslopped (tools/object_fixes.py, 2026-11-07): a barrier's own style, the
 		# balustrade of a wall or fence beside a flight of steps that OSM gives no height, material or
@@ -1014,6 +1123,7 @@ func build_barriers(st) -> void:
 		# A street pass's override still wins.
 		if site_wall.is_empty() and l.has("st") and is_style(str(l["st"])):
 			style = _placed(str(l["st"]))
+			generic = false
 		if not _object_overrides.is_empty() and l["k"] != "platform":
 			var o: Variant = _object_overrides.get(barrier_id(l["k"], l["p"]))
 			if o is Array:
@@ -1021,13 +1131,28 @@ func build_barriers(st) -> void:
 					continue
 				if (o as Array).size() > 1 and is_style(str(o[1])):
 					style = _placed(str(o[1]))
+					generic = false
+		# W2: the typed drawing ({}: `style` as ever; draw none: left out, as REMOVE is).
+		var look := {}
+		if typed_on:
+			look = _typed(l, generic)
+			if look.get("draw", &"") == &"none":
+				continue
+		if style == _s(&"barrier_default"):
+			default_lines += 1
 		var pts: PackedVector2Array = map._pts(l["p"])
 		var solid: bool = l["k"] != "platform" and float(style[2]) >= BARRIER_SOLID_MIN
 		var cls := barrier_class(l)
 		# Step 7: a soft line is drawn as before and files no collider faces (soft_things.gd breaks it).
+		# W2: decided on the classic style, so a typed city has the same soft lines.
 		if _is_soft(l, style, cls, solid or style.size() > 3):
 			_begin_soft(l, pts)
-		if style.size() > 3:
+		if not look.is_empty():
+			# W2: a typed line collides at its drawn height (rule R2), by the same rule as a slab.
+			solid = l["k"] != "platform" and float(look["h"]) >= BARRIER_SOLID_MIN
+			if not solid:
+				low_typed.append(barrier_id(l["k"], l["p"]))
+		elif style.size() > 3:
 			var open: Array = style[3]
 			# A railing OSM maps (tools/barrier_tags.py) has a post every `posts_mapped` m: 30 km of them.
 			railing_along(st, pts, float(style[2]), float(open[0]), Color(style[0]), Color(str(open[1])), true, cls,
@@ -1044,20 +1169,75 @@ func build_barriers(st) -> void:
 			for i in pts.size():
 				if i > 0 and map._on_sunk_edge(pts[i - 1], pts[i]):
 					if piece.size() >= 2:
-						wall_along(st, piece, float(style[1]), float(style[2]), Color(style[0]), solid, cls)
+						_draw_piece(st, piece, style, look, solid, cls)
 					piece = PackedVector2Array()
 				piece.append(pts[i])
 			if piece.size() >= 2:
-				wall_along(st, piece, float(style[1]), float(style[2]), Color(style[0]), solid, cls)
+				_draw_piece(st, piece, style, look, solid, cls)
 			continue
 		if l["k"] == "wall" and not _stair_idx.is_empty():
 			for piece in _stair_gaps(pts):
-				wall_along(st, piece, float(style[1]), float(style[2]), Color(style[0]), solid, cls)
+				_draw_piece(st, piece, style, look, solid, cls)
 			continue
-		wall_along(st, pts, float(style[1]), float(style[2]), Color(style[0]), solid, cls)
+		_draw_piece(st, pts, style, look, solid, cls)
 		_soft_line = {}
 	_pocket_hedges(st)
 	map._uv2 = Vector2.ZERO
+
+
+## One piece of a barrier line: in classic `style` with wall_along as ever, or (W2) by `look`, the
+## line's `_typed` drawing: a slab at the row's thickness, or posts and rails (`rail_lite_along`).
+func _draw_piece(st, piece: PackedVector2Array, style: Array, look: Dictionary, solid: bool, cls: StringName) -> void:
+	if look.is_empty():
+		wall_along(st, piece, float(style[1]), float(style[2]), Color(style[0]), solid, cls)
+	elif look["draw"] == &"slab":
+		wall_along(st, piece, float((look["row"] as Dictionary)["thick"]), float(look["h"]), look["colour"], solid, cls)
+	else:
+		rail_lite_along(st, piece, look["row"], float(look["h"]), look["colour"], solid, cls)
+
+
+## W2: line `l`'s typed drawing, from its `ty`'s `looks` row (solidity.gd `look_row`), or {} when it
+## keeps its classic style: a line whose chain did not end `generic`, a platform, no `ty`, a type
+## with no row, or a row drawn `keep`. {"draw": &"none"} for a row not drawn; else {"draw": &"slab"
+## or &"rail", "row", "h", "colour"}. The height is OSM's `h`, else the bake's `hs` (each clamped to
+## the row's `h_range` when it has one), else the row's `h`; the colour the row's, or one of its
+## `alt` colours, picked by a hash of the line's stable id so a line is the same on both paths.
+func _typed(l: Dictionary, generic: bool) -> Dictionary:
+	if not generic or l["k"] == "platform":
+		_count_look(&"classic")
+		return {}
+	var row := Solidity.look_row(StringName(str(l.get("ty", ""))))
+	var draw := StringName(str(row.get("draw", "")))
+	if draw == &"none":
+		_count_look(&"none")
+		return {"draw": &"none"}
+	if draw != &"slab" and draw != &"rail":
+		_count_look(&"keep" if draw == &"keep" else &"unknown")
+		return {}
+	var h := float(row["h"])
+	if l.has("h"):
+		h = float(l["h"])
+	elif l.has("hs"):
+		h = float(l["hs"])
+	if (l.has("h") or l.has("hs")) and row.has("h_range"):
+		h = clampf(h, float(row["h_range"][0]), float(row["h_range"][1]))
+	var colour := Color(str(row["colour"]))
+	var alt: Array = row.get("alt", [])
+	if not alt.is_empty():
+		var pick := posmod(hash(barrier_id(l["k"], l["p"])), 1000)
+		var upto := 0.0
+		for a: Array in alt:
+			upto += float(a[1]) * 1000.0
+			if pick < upto:
+				colour = Color(str(a[0]))
+				break
+	_count_look(draw)
+	return {"draw": draw, "row": row, "h": h, "colour": colour}
+
+
+## W2: one more line (or rail piece) under `what` in `look_counts`.
+func _count_look(what: StringName) -> void:
+	look_counts[what] = int(look_counts.get(what, 0)) + 1
 
 
 ## POCKET_HEDGES, each piece (two points) in the sector that holds its middle, so a runtime city
