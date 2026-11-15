@@ -139,7 +139,14 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		# Elektrownia Powiśle, the whole complex (F, 2026-11-13): its own name on the Dobra gable,
 		# the food hall, the brewery, the shops and bars (parodies with a power-station pun).
 		"ELEKTROWNIA", "HALA TURBIN", "BROWAR KOMIN", "ROSOMAK", "KAWA 220V", "AMPERIK", "FAZA",
-		"BEZPIECZNIK", "PIEROGARNIA", "SPOŻYWCZAK", "WATOWNIA", "ZWARCIE"]
+		"BEZPIECZNIK", "PIEROGARNIA", "SPOŻYWCZAK", "WATOWNIA", "ZWARCIE",
+		# Landmarks' own signs that were never given a row here, so they drew nothing (found
+		# 2026-11-15; check_mesh_quality now fails a sign whose word is missing): the towers'
+		# crowns (Q22, Babka, the EJ on its crown), the stadium, the hotels, the river's bars
+		# and Śródmieście's cafés.
+		"DELOJT", "EJ", "WEKTRA", "LEGUMINA", "BRISTOL", "HOTEL EUROPEJSKI", "POLONIA PALACE",
+		"POLONIA PALACE HOTEL", "MAŁPI LOVE", "MAJAMI WAWA", "WTW", "WIEŻYCZKA", "CHARLOTTA MENORKA",
+		"SEZON", "HEJ!", "SPACJE", "DESKA"]
 ## Tube colours (linear, bright): pink, cyan, violet, and a few words' usual colours.
 const PINK := Color(1.0, 0.1, 0.55)
 const CYAN := Color(0.1, 0.9, 1.0)
@@ -150,7 +157,9 @@ const PIXEL := 0.2
 const PAD := 2
 const GLYPH_H := 7
 const ROW_H := GLYPH_H + 2 * PAD
-const ATLAS_W := 72
+## 128 px holds the longest word (RADA SPÓŁDZIELNI ORŁÓW, 127 px with its pads); at 72 ten
+## landmark words were cut off (2026-11-15). check_mesh_quality fails a sign wider than this.
+const ATLAS_W := 128
 
 const FONT := {
 	"A": [".###.", "#...#", "#...#", "#####", "#...#", "#...#", "#...#"],
