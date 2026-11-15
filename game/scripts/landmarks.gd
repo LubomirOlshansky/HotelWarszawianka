@@ -798,6 +798,7 @@ const INFO := {
 	"church_trojca_praga": ["Kościół Świętej Trójcy na Solcu", "Klasycystyczny kościół z wieżyczką.", "A classicist church with a bell turret."],
 	"church_czestochowska": ["Kościół Matki Bożej Częstochowskiej", "Modernistyczny kościół z dachem do ziemi.", "A modernist church with a roof down to the ground."],
 	"church_zwycieska": ["Kościół Matki Boskiej Zwycięskiej", "Kościół parafialny z dwiema wieżami.", "A parish church with two towers."],
+	"church_wizytki_klasztor": ["Klasztor Wizytek", "Klasztor sióstr wizytek za ich kościołem.", "The Visitation sisters' convent behind their church."],
 	"church_sala_faustyny": ["Sala św. Faustyny", "Ceglana sala parafii św. Jakuba na Ochocie.", "The brick parish hall of St James', Ochota."],
 	"church_franciszkanki_piwna": ["Siostry na Piwnej", "Dom sióstr franciszkanek przy kościele św. Marcina.", "The Franciscan sisters' house by St Martin's."],
 	"church_kapucyni_klasztor": ["Klasztor Kapucynów", "Klasztor ojców kapucynów przy Miodowej.", "The Capuchin friars' monastery on Miodowa."],
@@ -21974,6 +21975,75 @@ func _build_sala_faustyny(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The Visitation Sisters' convent (Klasztor Sióstr Wizytek, Krakowskie Przedmieście 34, behind
+## their church; 1650s-1730s, it came through 1944): four two-storey ranges round a closed
+## courtyard under steep hipped roofs, the long range on Karowa, the garden side over the
+## escarpment. A model that replaces the plain OpenStreetMap block (building 12626; no landmark
+## until 2026-11-15). The massing is GUGiK's LoD2 (over the ground: the eaves about 8, the
+## ridges about 14.5; the courtyard about 16 x 22 m, a flat cloister walk on its west side). No
+## street photo shows the convent (it stands behind the church and its garden wall), so the
+## plaster, the roof colour and the window rows are defaults until photos arrive
+## (docs/QUESTIONS.md). Spec docs/landmarks/specs/wizytki_klasztor.md.
+## Frame: origin at the west range's corner by the church, u to the north-west along it (u 27 is
+## the range on Karowa), +v to the east-north-east, towards the escarpment.
+const WK_O := Vector2(-444.1, -813.3)
+const WK_A := Vector2(-0.518, -0.856)
+const WK_WALL := Color("#e8dcc2")      ## light plaster (a default, the church's tone)
+const WK_WHITE := Color("#f2ede2")     ## cornice, plinth band
+const WK_ROOF := Color("#9a5545")      ## tile (a default)
+
+
+func _build_wizytki_klasztor(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(WK_O, WK_O + WK_A)
+	_g = _ground_under(outline)
+	var g := _g
+	_mode = M_STONE
+	var eave := g + 8.0
+	var court := _rect(7.0, 26.75, 8.0, 11.25)
+	_prism(outline, g - 1.0, eave, WK_WALL, Color(0, 0, 0, 0), M_STONE, M_STONE)
+	_cap_holes(outline, [court], eave, WK_ROOF.darkened(0.25))
+	kit_cornice_ring(outline, eave - 0.3, WK_WHITE, 0.3, 0.3)
+	kit_ledge_ring(outline, g - 1.0, 1.2, WK_WHITE, 0.06)
+	# --- the courtyard: walls facing in, the ground floor's arcade of windows above
+	var n := court.size()
+	for k in n:
+		var a := court[k]
+		var b := court[(k + 1) % n]
+		_wall(a, b, g - 0.6, eave, -_out(court, a, b), WK_WALL, 0.0)
+	# --- the hipped roofs, one per range (LoD2 ridges)
+	_hip(13.5, 7.75, 13.5, 7.75, eave, 6.5, WK_ROOF)       # the west range, by the church
+	_hip(-7.0, 10.5, 7.0, 3.9, eave, 3.4, WK_ROOF)         # its short link to the south
+	_hip(-15.0, 29.5, 7.0, 15.5, eave, 6.5, WK_ROOF)       # the south range
+	_hip(21.0, 26.0, 6.0, 26.0, eave, 6.0, WK_ROOF)        # the range on Karowa
+	_hip(-2.0, 45.0, 29.0, 7.0, eave, 6.5, WK_ROOF)        # the garden range over the escarpment
+	# --- two rows of windows round every outer wall long enough for one
+	var m := outline.size()
+	for k in m:
+		var ln := kit_front(outline[(k + 1) % m], outline[k])
+		if ln < 3.0:
+			continue
+		var c := maxi(1, floori(ln / 3.2))
+		var cols: Array = []
+		for i in c:
+			cols.append((float(i) + 0.5) * ln / float(c))
+		kit_panes(cols, [g + 1.2, g + 4.7], 1.1, 1.8, PAL_GLASS_DARK, 0.05)
+	# --- and on the courtyard walls, facing in
+	for k in n:
+		var a := court[k]
+		var b := court[(k + 1) % n]
+		var ln := kit_front(a, b)
+		if _b.dot(-_out(court, a, b)) < 0.0:
+			ln = kit_front(b, a)
+		var c := maxi(1, floori(ln / 3.2))
+		var cols: Array = []
+		for i in c:
+			cols.append((float(i) + 0.5) * ln / float(c))
+		kit_panes(cols, [g + 1.2, g + 4.7], 1.1, 1.8, PAL_GLASS_DARK, 0.05)
+	kit_front(WK_O, WK_O + WK_A)
+	_collide(outline)
+
+
 ## The Nożyk Synagogue (Synagoga Nożyków, ul. Twarda 6; Karol and Leandro Marconi, 1898-1902;
 ## burnt 1944, rebuilt 1977-1983; Warsaw's only pre-war synagogue still standing), a cream
 ## neo-Romanesque house of prayer in its courtyard south of Plac Grzybowski. The whole building as
@@ -33347,6 +33417,8 @@ const CHURCHES := [
 			"fill": 0.8, "style": "baroque", "wall": "#e6d4a6", "roof": "#97594a", "towers": 0, "cap": "none"},
 	{"key": "church_rodziny_maryi", "at": Vector2(-2617.0, -739.0), "o": Vector2(-2625.3, -761.4), "out": Vector2(-0.356, -0.934), "L": 13.5, "W": 49.4,
 			"fill": 0.9, "style": "neoclassical", "wall": "#e6c2a2", "roof": "#4d5257", "towers": 0, "cap": "none"},
+	{"key": "church_wizytki_klasztor", "at": Vector2(-444.8, -828.1), "o": Vector2(-458.1, -836.4), "out": Vector2(-0.518, -0.856), "L": 52.0, "W": 56.0,
+			"fill": 0.9, "style": "baroque", "wall": "#e8dcc2", "roof": "#9a5545", "towers": 0, "cap": "none"},
 	{"key": "church_sala_faustyny", "at": Vector2(-2795.0, 1570.0), "o": Vector2(-2794.0, 1577.0), "out": Vector2(0.0, 1.0), "L": 27.0, "W": 14.0,
 			"fill": 0.9, "style": "modern", "wall": "#b0503a", "roof": "#4e4f52", "towers": 0, "cap": "none"},
 	{"key": "church_franciszkanki_piwna", "at": Vector2(-780.1, -1560.9), "o": Vector2(-765.2, -1574.8), "out": Vector2(0.7804, -0.6253), "L": 29.4, "W": 44.0,
@@ -33444,6 +33516,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_czestochowska":
 		_build_czestochowska(site)  # the modernist A-frame church and its pylons, from photos
+		return
+	if site["key"] == "church_wizytki_klasztor":
+		_build_wizytki_klasztor(site)  # the Visitation sisters' convent from LoD2 (defaults until photos)
 		return
 	if site["key"] == "church_sala_faustyny":
 		_build_sala_faustyny(site)  # the St Faustina hall in Ochota, from a photo

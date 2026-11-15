@@ -105,7 +105,7 @@ and Marii Magdaleny are not in the game.
 | Building | Address | State | Tier | Photos | Next step |
 | --- | --- | --- | --- | --- | --- |
 | Sanktuarium MB Łaskawej (Jezuici) | Świętojańska 10 | `_build_jezuici`, the whole church replacing LoD2, 2026-11-13 from F's photos (spec `jezuici.md`, 3390 tris): stepped four-tier front, aisle and wing with niche, pilastered nave, roofs, decagon tower with green helm, turret | A | 9 / 5 + F's 4 | volutes are stepped boxes; plain back; floodlights |
-| Klasztor Sióstr Wizytek | Krakowskie Przedmieście / Karowa | plain block, 2495 m² | B | 0 / 0 | with the church |
+| Klasztor Sióstr Wizytek | Krakowskie Przedmieście 34 / Karowa | `_build_wizytki_klasztor`, replacing the plain OSM block (building 12626), 2026-11-15 from LoD2 only (spec `wizytki_klasztor.md`, 644 tris): four two-storey ranges round a closed courtyard, steep hipped roofs, two rows of windows | B | 0 / 0 | plaster, roof colour and windows are defaults until photos arrive |
 | Klasztor Ojców Dominikanów | Freta | plain block, 1892 m² | B | 3 / 0 | with St Hyacinth |
 | Kościół Adwentystów Dnia Siódmego (unnamed church outline) | Foksal 8 | plain | C | 12 / 1 | small |
 | Kościół Karola Boromeusza (Powązkowska) and Kościół Niepokalanego Poczęcia (Grójecka) | map edge | plain church outlines, no model | C | 22 / 1 and 4 / 0 | edge of the map |
