@@ -4391,6 +4391,67 @@ func _build_plebania_augustyn(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The house of the Sister Disciples of the Divine Master (Dom Sióstr Uczennic Boskiego Mistrza,
+## Żytnia, Wola): a five-storey 1990s convent in red brick, each column of windows set in a cream
+## plaster strip, the entrance in a recess on the street front and the chapel's raised hipped
+## block in the middle of the roof. A model that replaces the plain OpenStreetMap block (building
+## 2846; no landmark until 2026-11-15). From seven Mapillary photos along the street to its north,
+## Żytnia (refs/churches/uczennice_boskiego_mistrza, reference only, never shipped), the OSM outline and
+## GUGiK's LoD2 (over the ground: the roof about 19, the chapel block's ridge about 23). The back
+## walls and the chapel block's colour are defaults (docs/QUESTIONS.md).
+## Spec docs/landmarks/specs/uczennice_boskiego_mistrza.md.
+## Frame: origin at the front's west corner, u to the east along the street, +v to the south,
+## into the block; the front faces the street (-v).
+const UBM_O := Vector2(-2919.2, -669.7)
+const UBM_A := Vector2(0.973, -0.231)
+const UBM_BRICK := Color("#a5503a")     ## the red brick (photos)
+const UBM_CREAM := Color("#e9dfc6")     ## the plaster strips round the windows (photos)
+const UBM_CAP := Color("#7e3d2e")       ## the brick coping
+const UBM_ROOF := Color("#6d6a66")      ## the flat roof and the chapel block's sheet roof (a default)
+const UBM_DOOR := Color("#3a3533")      ## the entrance's glass and frames
+
+
+func _build_uczennice_boskiego_mistrza(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(UBM_O, UBM_O + UBM_A)
+	_g = _ground_under(outline)
+	var g := _g
+	_mode = M_STONE
+	var top := g + 19.0
+	_prism(outline, g - 1.0, top, UBM_BRICK, UBM_ROOF, M_STONE, M_STONE)
+	kit_cornice_ring(outline, top - 0.5, UBM_CAP, 0.6, 0.12)
+	# the chapel's raised block on the roof, under a low hipped roof (LoD2)
+	var chapel := _rect(23.0, 19.25, 5.8, 6.6)
+	_prism(chapel, top - 0.2, g + 21.0, UBM_BRICK, Color(0, 0, 0, 0), M_STONE, M_STONE)
+	_hip(23.0, 19.25, 6.0, 6.8, g + 21.0, 2.0, UBM_ROOF)
+	# --- every wall: a cream strip behind each column of windows, wide windows on the ground floor
+	var n := outline.size()
+	for k in n:
+		kit_front(UBM_O, UBM_O + UBM_A)
+		var le := kit_front(outline[(k + 1) % n], outline[k])
+		if le < 3.0:
+			continue
+		var m := maxi(1, floori(le / 3.3))
+		var cs: Array = []
+		for i in m:
+			cs.append((float(i) + 0.5) * le / float(m))
+		kit_face(0.0)
+		for c: float in cs:
+			_kbox(c - 0.85, c + 0.85, -0.02, 0.04, g + 3.8, top - 1.2, UBM_CREAM)
+		kit_face(0.04)
+		kit_panes(cs, [g + 4.6, g + 8.0, g + 11.4, g + 14.8], 1.1, 1.8, PAL_GLASS_DARK, 0.04)
+		kit_face(0.0)
+		kit_panes(cs, [g + 0.9], 1.7, 2.1, PAL_GLASS_DARK, 0.05)
+		kit_ledge(0.0, le, g + 3.4, 0.3, UBM_CAP, 0.08)
+	# --- the entrance at the back of the recess on the street
+	kit_front(UBM_O, UBM_O + UBM_A)
+	kit_front(_w(16.73, 3.97), _w(20.93, 4.04))
+	kit_face(0.0)
+	kit_door(2.1, g, 2.8, 1.3, UBM_CAP, UBM_DOOR)
+	kit_front(UBM_O, UBM_O + UBM_A)
+	_collide(outline)
+
+
 const SZT_WALL := Color("#e9e7e0")           ## white plaster (photos 01, 03, 11)
 const SZT_ROOF := Color("#7c9171")           ## dull green copper (photos 01, 02)
 const SZT_TURRET := Vector2(57.0, -162.0)    ## where the south range meets the west one (a default: photo 02)
@@ -6806,6 +6867,8 @@ const CHURCHES := [
 			"fill": 0.8, "style": "baroque", "wall": "#e6d4a6", "roof": "#97594a", "towers": 0, "cap": "none"},
 	{"key": "church_rodziny_maryi", "at": Vector2(-2617.0, -739.0), "o": Vector2(-2625.3, -761.4), "out": Vector2(-0.356, -0.934), "L": 13.5, "W": 49.4,
 			"fill": 0.9, "style": "neoclassical", "wall": "#e6c2a2", "roof": "#4d5257", "towers": 0, "cap": "none"},
+	{"key": "church_uczennice_boskiego_mistrza", "at": Vector2(-2890.0, -650.0), "o": Vector2(-2919.2, -669.7), "out": Vector2(-0.231, -0.973), "L": 37.5, "W": 41.5,
+			"fill": 0.9, "style": "modern", "wall": "#a5503a", "roof": "#6d6a66", "towers": 0, "cap": "none"},
 	{"key": "church_plebania_augustyn", "at": Vector2(-2405.0, -1115.0), "o": Vector2(-2406.0, -1124.2), "out": Vector2(0.884, -0.466), "L": 14.6, "W": 18.5,
 			"fill": 0.9, "style": "modern", "wall": "#e3dccd", "roof": "#77736c", "towers": 0, "cap": "none"},
 	{"key": "church_plebania_katedra_polowa", "at": Vector2(-1152.6, -1669.6), "o": Vector2(-1165.3, -1665.4), "out": Vector2(-0.781, -0.624), "L": 23.0, "W": 15.2,
@@ -6911,6 +6974,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_czestochowska":
 		_build_czestochowska(site)  # the modernist A-frame church and its pylons, from photos
+		return
+	if site["key"] == "church_uczennice_boskiego_mistrza":
+		_build_uczennice_boskiego_mistrza(site)  # the Sister Disciples' brick convent on Żytnia, from photos and LoD2
 		return
 	if site["key"] == "church_plebania_augustyn":
 		_build_plebania_augustyn(site)  # St Augustine's presbytery from LoD2 (defaults until photos)
