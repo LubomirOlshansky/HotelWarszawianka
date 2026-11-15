@@ -1683,8 +1683,11 @@ func _build_world() -> void:
 	await LoadYield.tick("_build_tours")
 	_build_shisha(data, world)
 	await LoadYield.tick("_build_shisha")
-	_build_ev_tow(world)
-	await LoadYield.tick("_build_ev_tow")
+	# Bartek's call and the stranded TESŁO cars (ev_tow.gd wires itself), under main.gd; none with
+	# --no-traffic or --ev=0. The director says when Bartek may ring, with the tow's own test for
+	# everything outside the kit: it may start from the air (`world_free` refuses the helicopter).
+	ev_tow = _join(EvTow.new(), self, _ev_free) as EvTow
+	await LoadYield.tick("ev_tow")
 	_build_stories(world)
 	await LoadYield.tick("_build_stories")
 	# The night groups' calls and their crawls (bar_crawl.gd wires itself); none with --no-traffic or --crawl=0.
@@ -3719,17 +3722,22 @@ func _place_car(at: Vector3, yaw: float) -> void:
 func _build_ctx() -> GameCtx:
 	_ctx.flags = flags
 	_ctx.hud = hud
+	_ctx.dialogue = dialogue
 	_ctx.bubbles = bubbles
 	_ctx.wallet = wallet
 	_ctx.map = map
+	_ctx.radio = radio
 	_ctx.graph = graph
 	_ctx.traffic = traffic
 	_ctx.car = car
+	_ctx.heli = heli
 	_ctx.vehicle = func() -> Array:
 		if flying:
 			return [heli.global_position, heli.speed() * 3.6, true, 0.0]
 		return [car.global_position, car.vel.length() * 3.6, false, float(car.forward_speed)]
 	_ctx.hour = func() -> float: return float(tod.local_clock()["hour"])
+	_ctx.take_off = func() -> void: _take_off(Heli.CRUISE)
+	_ctx.focus_at = func(p: Vector3) -> void: cam_focus = p
 	return _ctx
 
 
@@ -3766,38 +3774,10 @@ func _join(a: Activity, parent: Node, world_test := Callable()) -> Activity:
 
 # --- dead electric cars ----------------------------------------------------------------------
 
-## Bartek's call and the stranded TESŁO cars (ev_tow.gd). None with --no-traffic or --ev=0.
-func _build_ev_tow(world: Node3D) -> void:
-	if traffic == null or flags.ev_flag == "0":
-		return
-	ev_tow = EvTow.new()
-	ev_tow.name = "EvTow"
-	ev_tow.hud = hud
-	ev_tow.dialogue = dialogue
-	ev_tow.wallet = wallet
-	ev_tow.map = map
-	ev_tow.graph = graph
-	ev_tow.traffic = traffic
-	ev_tow.radio = radio
-	ev_tow.heli = heli
-	ev_tow.log_on = flags.ev_log
-	ev_tow.auto = flags._ev_auto
-	ev_tow.vehicle = func() -> Array:
-		if flying:
-			return [heli.global_position, heli.speed() * 3.6, true]
-		return [car.global_position, car.vel.length() * 3.6, false]
-	ev_tow.take_off = func() -> void: _take_off(Heli.CRUISE)
-	add_child(ev_tow)
-	ev_tow.setup(world)
-	# The director says when Bartek may ring, with the tow's own test for everything outside the
-	# kit: it may start from the air (`world_free` refuses the helicopter).
-	activities.add(ev_tow, _ev_free)
-	if flags.ev_flag != "":
-		get_tree().create_timer(1.0).timeout.connect(_ev_start)
-
-
-## Nothing outside the kit is on: no title, bench, Spacer, guide, card, rescue, ride, job or
-## race (the director adds: no other activity of the kit). The air is fine.
+## The EV tow's own test for everything outside the kit (ev_tow.gd wires itself; this tests
+## main.gd's own state, so it stays here until TD-1's end): nothing outside the kit is on: no
+## title, bench, Spacer, guide, card, rescue, ride, job or race (the director adds: no other
+## activity of the kit). The air is fine.
 func _ev_free() -> bool:
 	if club != null and club.inside:
 		return false
@@ -3810,32 +3790,6 @@ func _ev_free() -> bool:
 	if (rides != null and rides.busy()) or (jobs != null and activities.job_on()) or (trend_job != null and trend_job.busy()):
 		return false
 	return flying or not car.in_water
-
-
-## The --ev-* test flags, a second into the drive.
-func _ev_start() -> void:
-	match flags.ev_flag:
-		"call":
-			ev_tow.ring()
-		"stranded":
-			var p := car.global_position
-			var f := -car.global_transform.basis.z
-			ev_tow.place_stranded(Vector2(p.x, p.z), Vector2(f.x, f.z).normalized(), true)
-		_:
-			ev_tow.ring()
-			ev_tow.card_pressed(0)  # the call answered
-			ev_tow.card_pressed(0)  # LECĘ!
-			if ev_tow.job.is_empty():
-				return
-			var at: Vector3 = ev_tow.job["at"]
-			if not flying:
-				_take_off(Heli.CRUISE)
-			var carry := flags.ev_flag == "tow=carry"
-			# Over the car, low enough to hook; for the carry 22 m up, the rope lifting it.
-			heli.place(at + Vector3(-3.0, 0.0, 2.0), heli.rotation.y, 22.0 if carry else EvTow.ROPE + EvTow.SIZE.y - 0.5)
-			cam_focus = heli.global_position
-			if carry:
-				ev_tow._hook()
 
 
 # --- the vintage-tram loop --------------------------------------------------------------------
