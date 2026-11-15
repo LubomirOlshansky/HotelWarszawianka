@@ -96,7 +96,8 @@ eleven findings are built in. Row TD-4 in `docs/architecture/tech-debt.md`.
 
 About 450 lines leave `_build_*` and about 70 come back (the joins, the hooks that stay,
 `_build_ctx`). After b12: `main.gd` about 6,950 lines, `_build_*` about 1,450, `flags.` reads about
-450. b1 adds three functions to main.gd and removes one, inside the band of 258.
+450. b1 adds four functions to main.gd (`_build_ctx`, `_install`, `_add`, `_join`) and removes one, inside
+the band of 258.
 
 ## 4. The proof, in every pull request (a2's way: old against new)
 
@@ -126,8 +127,8 @@ About 450 lines leave `_build_*` and about 70 come back (the joins, the hooks th
 - Each pull request lowers the bands it moves (`main.gd`'s lines, functions, `_build_*` lines and
   `flags.` reads) to its new numbers, as the ratchets' rule says (tech-debt.md, "What is clean
   today").
-- b1 adds one exact ratchet to step `architecture`: **`activities.add` outside `_add`**, 13 after
-  b1 and 0 after b12.
+- b1 adds one exact ratchet to step `architecture`: **`activities.add` outside `_add`**, the call
+  sites still wired by hand: 12 after b1 (the two tours share one), 0 after b12.
 
 ## 6. What stays, and the target
 

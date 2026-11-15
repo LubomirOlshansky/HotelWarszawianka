@@ -62,9 +62,13 @@ BOUNDARIES = [
 RATCHETS = {
     "main.gd lines": (7464, "band"),  # 7,314 + 150 (TD-4: under 6,000 by TD-1's end and TD-4 b)
     "main.gd functions": (258, "band"),  # 252 + 6
-    "main.gd _build_* lines": (1863, "band"),  # 1,823 + 40 (TD-4 b moves the wiring out)
-    "main.gd flags. reads": (540, "band"),  # 530 + 10 (test flags read in the harness, TD-4)
+    "main.gd _build_* lines": (1854, "band"),  # 1,814 + 40 after TD-4 b1 (b2 to b12 move the rest of the wiring out)
+    "main.gd flags. reads": (533, "band"),  # 523 + 10 after TD-4 b1 (activities read their own; test flags in the harness)
     "main.gd private busy tests": (4, "exact"),  # _free_block, _story_free, _world_free, _ev_free (TD-1)
+    # TD-4 b (docs/design/wiring-out-of-main.md): an activity of the kit wires itself and main.gd joins
+    # it with `_join` (or `_install`, then `_add`); this counts the calls still wired by hand (the two
+    # tours share one). Measured on b1's head (2026-11-15): 12, 0 when the rescue line has moved.
+    "main.gd activities.add outside _add": (12, "exact"),
     "hud.card_pressed listeners": (2, "exact"),  # story_quests.gd, first10.gd (TD-16)
     "Polish literals outside sign scripts": (1125, "band"),  # 1,105 + 20 (TD-19: spoken lines go to dialogue.json)
 }
@@ -111,6 +115,17 @@ def blank(text: str) -> tuple[str, str, list[tuple[int, str]]]:
     return "".join(nocomment), "".join(code), strings
 
 
+def joins_by_hand(code: str) -> int:
+    """`activities.add(` in main.gd outside its function `_add`: the activities still wired by hand."""
+    n, inside = 0, False
+    for line in code.split("\n"):
+        if m := re.match(r"^(?:static )?func ([A-Za-z0-9_]+)", line):
+            inside = m.group(1) == "_add"
+        if not inside:
+            n += len(re.findall(r"\bactivities\.add\s*\(", line))
+    return n
+
+
 def build_lines(code: str) -> int:
     """Lines of main.gd's `_build_*` functions, each from its `func` line to the next function, less the
     blank and doc-comment lines that end it (the next function's doc)."""
@@ -147,6 +162,7 @@ def script_facts(rel: str, text: str) -> tuple[tuple[str, ...], tuple[tuple[str,
         own["main.gd lines"] = text.count("\n")
         own["main.gd functions"] = len(re.findall(r"^(?:static )?func ", code, re.M))
         own["main.gd _build_* lines"] = build_lines(code)
+        own["main.gd activities.add outside _add"] = joins_by_hand(code)
         own["main.gd flags. reads"] = len(re.findall(r"\bflags\.[a-z_]+", code))
         own["main.gd private busy tests"] = len(re.findall(
                 r"^(?:static )?func _(?:[a-z_]+_free|free_block)\s*\(", code, re.M))
@@ -264,6 +280,9 @@ def selftest() -> int:
             ("main.gd", "\n" + reads + "\n", "ratchet main.gd flags. reads"),
             ("main.gd", "\n" + busy + "\n", "ratchet main.gd private busy tests"),
             ("main.gd", "\nfunc _free_selftest_spot() -> bool:\n\treturn true\n", "same main.gd private busy tests"),
+            ("main.gd", "\nfunc _selftest_join(a) -> void:\n\tactivities.add(a)\n", "ratchet main.gd activities.add outside _add"),
+            ("main.gd", "\nfunc _selftest_join(a) -> void:\n\t# activities.add(a)\n\tprint(\"activities.add(a)\")\n",
+                "same main.gd activities.add outside _add"),
             ("hud.gd", "\n" + cards + "\n", "ratchet hud.card_pressed listeners"),
             ("hud.gd", "\n" + polish + "\n", "ratchet Polish literals"),
             (landmark, "\n" + few_polish + "\n", ""),
