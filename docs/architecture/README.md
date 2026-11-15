@@ -66,4 +66,8 @@ with `# WORKAROUND(arch): <why>` and add a row to [tech-debt.md](tech-debt.md). 
 a decision is the bug this folder exists to stop.
 
 `tools/check_architecture.py` (verify step `architecture`) fails when a script in `game/scripts/`
-is missing from systems.md or city-ai.md, so the map of the code can't go stale.
+is missing from systems.md or city-ai.md, so the map of the code can't go stale. Since 2026-11-15 it
+also holds the boundaries at zero (one owner for the save file, the sound buses, the vibration, the ✕;
+no absolute node paths, no autoloads of the game's own) and the ratchets (`main.gd`'s size, the private
+busy tests, the card listeners, the Polish words in code): [tech-debt.md](tech-debt.md), "What is clean
+today". When `main.gd`'s band is full, the new code goes to its owner here, not into `main.gd`.
