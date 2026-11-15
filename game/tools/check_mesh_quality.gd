@@ -96,7 +96,12 @@ const BUDGET := {
 	"krasinski": 1810,
 	"sad_najwyzszy": 8000,
 	"ostrogski": 870,
-	"brama_uw": 950,
+	"brama_uw": 4000,  # 2026-11-15: rebuilt from F's photos, banded pilasters, iron gates, lamps, flags
+	"uruski": 4000,  # 2026-11-15: Pałac Uruskich's street front from F's photos
+	"stara_buw": 5000,  # 2026-11-15: the Old Library's front and flanks from F's photos
+	"uw_skarpa": 7000,  # 2026-11-15: the escarpment's brick wall, piers, graffiti, railing
+	"uw_straz": 900,  # 2026-11-15: the guards' kiosk
+	"uw_kampus": 1500,  # 2026-11-15: bollards and chains, flagpoles
 	"bristol": 2450,
 	"polonia": 1450,
 	"ujazdowski": 1650,
@@ -231,7 +236,7 @@ const BUDGET := {
 	"polin": 450,
 	# Krakowskie Przedmieście and Plac Piłsudskiego from photos (2026-11-02)
 	"czapski": 860,
-	"kazimierzowski": 280,
+	"kazimierzowski": 2200,  # 2026-11-15: + the garden front, its gable and the howitzer (F's photos)
 	"smolensk": 120,
 	"pilsudski": 160,
 	"kaczynski": 100,
