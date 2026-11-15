@@ -53,8 +53,9 @@ const SKINS := [
 	# buildings in their real plaster under their real roofs; the Old Library's and Pałac Uruskich's
 	# fronts are models (old_town.gd _build_stara_buw, _build_uruski). OSM names them by faculty.
 	# LoD2 draws Uruski, the Tyszkiewicz palace and its annex as one model, centred outside Uruski's
-	# outline (`run`): the three take the cream (the Tyszkiewicz palace is pale stone, close enough).
-	{"key": "uruski", "osm": "Wydział Geografii i Studiów Regionalnych UW", "mode": M_MONUMENT, "wall": "#ebdcb6", "roof": "#8a8a86",
+	# outline (`run`): the three take the cream (the Tyszkiewicz palace is pale stone, close enough)
+	# and the green copper roof F's photos 8047 and 8049 show behind Uruski's sculpture group.
+	{"key": "uruski", "osm": "Wydział Geografii i Studiów Regionalnych UW", "mode": M_MONUMENT, "wall": "#ebdcb6", "roof": "#86a894",
 			"run": [-469.4, -712.7]},
 	{"key": "stara_buw", "osm": "Stary BUW", "mode": M_MONUMENT, "wall": "#ede4c9", "roof": "#7aa08e"},
 	{"key": "uw_roch", "osm": "Instytut Kultury Polskiej UW", "mode": M_MONUMENT, "wall": "#eeebe2", "roof": "#8e908d"},
