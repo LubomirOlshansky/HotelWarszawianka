@@ -5481,7 +5481,12 @@ is left where a car went. `--dry --tsv=FILE` writes the per-street table. Vertic
 software renderer, so only the counts mean anything) 145 → 144 draw calls, 269 objects. Sloppy set A
 (hard, default settings, prebuilt) is the same before and after, byte for byte: 255 contacts, 22 dead
 stops, 2 on parked cars (Niemcewicza at a free width of 3.86 m, Żurawia at 5.5 m), none of them by a
-car the rules touch.
+car the rules touch. With step 8a merged (set A with its parking streets, 102.8 km; before = 8a's own
+runs on main's map): hard 258 → 257 contacts, dead stops 22 → 22, parked contacts 4 → 4 (one dead stop,
+Niemcewicza); `--soft` 244 → 243 contacts, dead stops 21 → 21, 3 pushes, 0 on a parked car. The one
+contact fewer is a time shift of the whole run after Nowy Zjazd, not a thinned car. check_soft_things M5
+(its four sectors): bays already in a lane 3 → 0, pushes towed by the lane rule 8 → 0, rests in a lane
+with friction alone 31 → 23.
 
 **Barrier types (city objects plan step 5, 2026-11-14)**: `tools/object_types.py` is the last pass of
 bake_osm (also a CLI on a baked map: `apply`, `fetch` for an Overpass context file in
