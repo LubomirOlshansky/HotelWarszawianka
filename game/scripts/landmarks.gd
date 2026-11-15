@@ -182,6 +182,7 @@ const INFO := {
 			"Narożna kamienica w brzoskwiniowym tynku, z balkonami i ślepą arkadą na rogu.",
 			"A corner tenement in peach plaster, with iron balconies and a blind arch at the corner."],
 	"adwentysci": ["Kościół Adwentystów na Foksal", "Zbór w żółtej kamienicy za ogródkiem.", "A church inside a yellow house behind a front garden."],
+	"faustyna_klasztor": ["Klasztor przy sanktuarium św. Faustyny", "Domy Zgromadzenia Sióstr Matki Bożej Miłosierdzia przy Żytniej.", "The Sisters of Our Lady of Mercy's houses round St Faustina's shrine."],
 	"elzbietanki": ["Siostry Elżbietanki", "Dom prowincjalny sióstr za Piekarską, nad ogrodami Podwala.", "The Elizabethan sisters' provincial house behind Piekarska, over the Podwale gardens."],
 	"szarytki": ["Siostry Szarytki na Tamce", "Klasztor sióstr miłosierdzia pod skarpą, z wieżyczką.", "The Sisters of Charity under the escarpment, with their turret."],
 	"gigantami": ["Kamienica Pod Gigantami",
@@ -1285,6 +1286,14 @@ func _find_sites() -> void:
 		_add_site("elzbietanki", [elz])
 		if not sites.is_empty() and sites[-1]["key"] == "elzbietanki":
 			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": ELZ_WALL, "roof": ELZ_ROOF}
+	# The rest of St Faustina's convent on Żytnia (2026-11-15): LoD2's mass of three buildings in the
+	# shrine's white plaster and grey roofs.
+	var fkl: Array = []
+	for at: Vector2 in FKL_AT:
+		fkl.append(_outline_at(at))
+	_add_site("faustyna_klasztor", fkl)
+	if not sites.is_empty() and sites[-1]["key"] == "faustyna_klasztor":
+		sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": FKL_WALL, "roof": FKL_ROOF}
 	# The formal garden before Pałac Krasińskich (F's photos, 2026-11-06).
 	if _landmark("Pałac Krasińskich").size() >= 3:
 		_o = KRAS
@@ -1782,6 +1791,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"adwentysci":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin; the gate, balconies and band are ours
 				_build_adwentysci(s)
+			"faustyna_klasztor":
+				_mark_zone(s)  # the mass stays LoD2's, in its skin
 			"elzbietanki":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin; the rounded east end is ours
 				_build_elzbietanki(s)

@@ -4568,6 +4568,18 @@ func _build_siostry_milosierdzia_zytnia(site: Dictionary) -> void:
 	kit_front(MBM_O, MBM_O + MBM_A)
 	_collide(outline)
 
+## The rest of the Sisters of Our Lady of Mercy's convent round St Faustina's shrine (Zgromadzenie
+## Sióstr Matki Bożej Miłosierdzia, Żytnia 3/9, Wola): the house on the street east of the church
+## (OSM 4468), the long wing that runs north from it (4469) and the house north of the church
+## (10477), unnamed `religious` buildings. Their roofs are irregular (hips and gables at several
+## heights), so the mass stays GUGiK's LoD2 in a skin: white plaster like the church's (photos of
+## the shrine, refs/churches/faustina_zytnia, and two Mapillary photos on Żytnia, reference only,
+## never shipped) under the church's grey roofs. The church is `church_miloserdzie`, the brick range
+## on the street `church_siostry_milosierdzia_zytnia`. Spec docs/landmarks/specs/faustyna_klasztor.md.
+const FKL_AT := [Vector2(-2735.0, -713.0), Vector2(-2718.0, -700.0), Vector2(-2760.0, -658.0)]  ## one point inside each outline
+const FKL_WALL := Color("#ece9e2")      ## white plaster (the shrine's, photos)
+const FKL_ROOF := Color("#606366")      ## grey sheet roofs (the church's, photos)
+
 
 const SZT_WALL := Color("#e9e7e0")           ## white plaster (photos 01, 03, 11)
 const SZT_ROOF := Color("#7c9171")           ## dull green copper (photos 01, 02)
