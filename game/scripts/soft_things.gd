@@ -1281,16 +1281,22 @@ func _first_met(p: Parked, xf: Transform3D, box: PackedVector2Array, list: Array
 	return null
 
 
-## Sliding car `p` meets parked car `q`: `q` takes PUSH_SHARE of `p`'s speed into its face and slides
-## (unless it cannot move, or stands as a wall), `p` keeps the rest of its own.
+## Sliding car `p` meets parked car `q`: `q` takes PUSH_SHARE of the closing speed into its face and
+## slides (unless it cannot move, or stands as a wall), `p` keeps the rest of its own. A `q` already
+## sliding is only sped up (no second push heard or counted); one sliding away as fast is followed.
 func _push_on(q: Parked, p: Parked) -> void:
 	var v := p.dir * p.speed
 	var n := face_normal(q.xf, Vector2(p.xf.origin.x, p.xf.origin.z))
-	var into := -v.dot(n)
-	if into < PUSH_INTO or q.hard != null:
+	var moving := q.state == SLIDING
+	var vq := q.dir * q.speed if moving else Vector2.ZERO
+	var into := -(v - vq).dot(n)
+	if q.hard != null:
 		p.speed = 0.0
 		return
-	var give := into * Solidity.PUSH_SHARE
+	if into < PUSH_INTO:
+		p.speed = clampf(vq.dot(p.dir), 0.0, p.speed)  # behind it at its pace, or stopped against it
+		return
+	var give := into * Solidity.PUSH_SHARE + maxf(vq.dot(-n), 0.0)
 	if _room(q, -n, cast_reach(give)) < Solidity.PUSH_WEDGED:
 		p.speed = 0.0
 		return
@@ -1301,8 +1307,10 @@ func _push_on(q: Parked, p: Parked) -> void:
 	if not _start_slide(q, -n, give, lever):
 		p.speed = 0.0
 		return
-	p.speed = maxf(p.speed - give, 0.0)
+	p.speed = maxf(p.speed - into * Solidity.PUSH_SHARE, 0.0)
 	_plan_rest(p)
+	if moving:
+		return
 	chains += 1
 	_remember(q.id, q.id, -1, q.xf.origin)
 	pushed.emit(q.id, q.xf.origin + Vector3(0, 0.7, 0), Vector3(-n.x, 0.0, -n.y), give)
