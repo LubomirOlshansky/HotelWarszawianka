@@ -2,7 +2,7 @@ extends SceneTree
 ## The street races on the activity kit (scripts/rivals.gd, tech-debt TD-1), played headless: the real Rivals
 ## and the real Traffic on the real lane graph (map/centrum.json; skipped without it), the real director
 ## (activities.gd) with a probe activity beside it, and the shared stand-ins of tools/fakes.gd (extended below
-## where rivals.gd asks for more: the result card's picture, the minimap's final diamond, the ghost finger, a
+## where rivals.gd asks for more: the result card's picture, the final's mark (hud.markers), the ghost finger, a
 ## wallet's ladder, a car that flashes). A fresh world (traffic, rivals, stand-ins) for every part. What it
 ## pins is what the player sees, from the kit's side (phase, busy, the director's answers, the card and whose
 ## it is, the status line, the target, the end) and from the race's (the prompt, the stages, the pay, the
@@ -79,13 +79,12 @@ const SEBA_WIN := "Wisła jest moja, mordo. Trzy razy ci to pokazałem."
 
 
 ## hud.gd as rivals.gd asks of it beyond the shared stand-in: the card's picture (freed at once), the
-## minimap's final diamond, the ghost finger, the wallet's numbers, the full map (`cards_up`), the pixel size.
+## final's mark (hud.markers, read from the shared stand-in), the ghost finger, the wallet's numbers, the full map (`cards_up`), the pixel size.
 class PlayHud extends Fakes.Hud:
 	var pt := 2.0
 	var map_open := false
 	var finger := false
 	var finger_calls: Array[bool] = []
-	var finals: Array[Vector2] = []
 	var arts := 0
 	var wallets: Array = []
 	## Each banner as [text, colour], every call.
@@ -101,9 +100,6 @@ class PlayHud extends Fakes.Hud:
 	func set_card_art(art: Control) -> void:
 		arts += 1
 		art.free()
-
-	func set_minimap_final(p: Vector2, _colour: Color) -> void:
-		finals.append(p)
 
 	func ghost_finger(on: bool) -> void:
 		finger = on
@@ -1038,12 +1034,12 @@ func _h_final() -> void:
 	_run_frames(60)
 	_eq(_rv.start_marker(), Vector2.INF, "another activity on: no start marker")
 	_ok(not _rv._beacon.visible, "another activity on: no beacon at the start")
-	_eq(_hud.finals.size(), 0, "another activity on: nothing on the minimap")
+	_eq(_hud.markers.has("rivals:final"), false, "another activity on: no final mark")
 	_probe.phase = Activity.Phase.IDLE
 	_run_frames(30)
 	_eq(_rv.start_marker(), _start_xz(), "nothing on: the start marker is set")
 	_ok(_rv._beacon.visible and _rv._beacon.global_position.distance_to(_rv.final_route.start_pos) < 3.0, "the beacon stands at the start")
-	_eq(_hud.finals.back() if _hud.finals.size() > 0 else Vector2.INF, _start_xz(), "the minimap's diamond is at the start")
+	_eq(_hud.markers.where("rivals:final"), _start_xz(), "the final's mark is at the start")
 	_ok(_rv._seba_waiting, "Seba waits at the start")
 	_eq(_rv._beacon._colour, GOLD, "the start marker's flag is gold")
 	_eq(_rv._beacon._ring_radius, 8.0, "the start marker's ring is 8 m")
@@ -1065,7 +1061,7 @@ func _h_final() -> void:
 	_run_frames(30)
 	_eq(_rv.start_marker(), Vector2.INF, "another activity starts: the marker goes")
 	_ok(not _rv._beacon.visible, "another activity starts: the beacon goes")
-	_eq(_hud.finals.back(), Vector2.INF, "another activity starts: the diamond goes")
+	_eq(_hud.markers.where("rivals:final"), Vector2.INF, "another activity starts: the mark goes")
 	_probe.phase = Activity.Phase.IDLE
 	_run_frames(30)
 	_eq(_rv.start_marker(), _start_xz(), "the marker is back")
@@ -1341,7 +1337,7 @@ func _j_stages() -> void:
 	_ok(_rv.start_marker() != Vector2.INF, "the marker stays under a prompt")
 	_rv.flash()
 	_eq(_rv.start_marker(), Vector2.INF, "a street race takes the start marker down")
-	_eq(_hud.finals.back(), Vector2.INF, "and the minimap's diamond")
+	_eq(_hud.markers.where("rivals:final"), Vector2.INF, "and the final's mark")
 	_ok(not _rv._seba_waiting, "and Seba is let go")
 	_reach(3, 400)
 	_run_frames(5)

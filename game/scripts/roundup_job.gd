@@ -19,6 +19,7 @@ extends "res://scripts/activity.gd"
 ## night only while no job runs) and the shared beacon: +0-1 draw calls near a depot.
 
 const MapIcons := preload("res://scripts/map_icons.gd")
+const MapMarkers := preload("res://scripts/map_markers.gd")
 
 ## Teal (the passengers' and goods' job colour, as the słoiki); the pins in Leżak's violet.
 const COLOUR := Color("#4fd8c4")
@@ -378,19 +379,13 @@ func _next() -> int:
 
 ## The violet pins (and the depot) on the minimap.
 func _pins() -> void:
-	var pts := PackedVector2Array()
-	var colours := PackedColorArray()
-	var shapes := PackedInt32Array()
+	var marks: Array[Dictionary] = []
 	for i in targets:
 		var a: Vector3 = store.scooters[i]["at"]
-		pts.append(Vector2(a.x, a.z))
-		colours.append(PIN_COLOUR)
-		shapes.append(MapIcons.POI_SCOOTER)
+		marks.append({"layer": MapMarkers.Layer.JOB, "at": Vector2(a.x, a.z), "colour": PIN_COLOUR, "shape": MapIcons.POI_SCOOTER})
 	var at: Vector3 = depots[depot]["at"]
-	pts.append(Vector2(at.x, at.z))
-	colours.append(COLOUR)
-	shapes.append(MapIcons.POI_DEPOT)
-	hud.set_minimap_pois(pts, colours, shapes)
+	marks.append({"layer": MapMarkers.Layer.JOB, "at": Vector2(at.x, at.z), "colour": COLOUR, "shape": MapIcons.POI_DEPOT})
+	hud.markers.put_all("roundup", marks)
 
 
 func _result() -> void:
@@ -432,7 +427,7 @@ func _quit_words() -> Array:
 
 
 func _pins_off() -> void:
-	hud.set_minimap_pois(PackedVector2Array(), PackedColorArray())
+	hud.markers.clear("roundup")
 
 
 ## Back to idle (the old `_release`): the depot offers again once the car has left it (25 m).

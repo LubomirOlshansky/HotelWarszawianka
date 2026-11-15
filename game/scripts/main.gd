@@ -1470,6 +1470,7 @@ func _build_world() -> void:
 	add_child(tod)
 	if flags.live_clock != "":
 		tod.clock_start = TimeOfDay.warsaw_to_utc(flags.live_clock, flags.live_date)
+	tod.grade = flags.grade if flags.grade != "" else Grades.SETTING[settings.grade]
 	tod.setup(env, sun, post_mat, flags.sun_pitch)
 	await LoadYield.tick("time of day")
 	tod.lights_switched.connect(_show_night_nodes)
@@ -3875,6 +3876,8 @@ func _build_old_tram(world: Node3D) -> void:
 
 ## The guards' cart on the campus's ring (campus_cart.gd); its lines in the crowds' log (--night-log).
 func _build_campus_cart(world: Node3D) -> void:
+	if flags.solo_site != "":
+		return  # a landmark alone (--solo): no cart driving through its turntable
 	campus_cart = CampusCart.new()
 	campus_cart.name = "CampusCart"
 	campus_cart.map = map
@@ -5146,6 +5149,7 @@ func _settings_state() -> Dictionary:
 			"auto": auto_name,
 			"master": settings.master, "music": settings.music, "effects": settings.effects, "perf": int(show_perf),
 			"fps": maxi(0, Settings.FPS.find(settings.fps)), "style": style_index, "vhs": int(vhs),
+			"grade": maxi(0, Grades.SETTING.find(tod.grade)),
 			"angle": maxi(0, FollowCamera.PITCHES.find(-camera_pitch)),
 			"weather": weather.state, "time": tod.mode, "wander": int(spacer != null and spacer.on), "zones": int(zone_cap_on), "handling": settings.handling, "chatter": settings.chatter,
 			"collide": maxi(0, Car.CollideRules.PRESETS.find(car.collide)) if car != null else settings.collide,
@@ -5214,6 +5218,9 @@ func _on_setting(key: String, value: Variant) -> void:
 		"vhs":
 			_set_vhs(int(value) == 1)
 			settings.vhs = vhs
+		"grade":
+			settings.grade = clampi(int(value), 0, Grades.SETTING.size() - 1)
+			tod.set_grade(Grades.SETTING[settings.grade])
 		"weather":
 			weather.set_state(int(value))
 		"time":

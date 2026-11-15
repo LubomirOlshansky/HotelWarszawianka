@@ -40,13 +40,14 @@ const TABLE: Array[Dictionary] = [
 	{"key": "trasa_wz", "script": "res://scripts/trasa_wz.gd", "node": "TrasaWZ", "tris": 20300, "own": 0},
 	{"key": "patelnia", "script": "res://scripts/patelnia.gd", "node": "Patelnia", "tris": 19300, "own": 0},
 	{"key": "plac_pieciu_rogow", "script": "res://scripts/plac_pieciu_rogow.gd", "node": "PlacPieciuRogow", "tris": 10200, "own": 0},
-	{"key": "tarasy_screen", "script": "res://scripts/tarasy_screen.gd", "node": "TarasyScreen", "tris": 6, "own": 1},
+	{"key": "tarasy_screen", "script": "res://scripts/tarasy_screen.gd", "node": "TarasyScreen", "tris": 8, "own": 1},
 	{"key": "spire_motion", "script": "res://scripts/spire_motion.gd", "node": "SpireMotion", "tris": 7300, "own": 2,
 			"solo": ["spire"]},
 	{"key": "street_details", "script": "res://scripts/street_details.gd", "node": "StreetDetails", "tris": 96200, "own": 0},
 	{"key": "ratusz_hub", "script": "res://scripts/ratusz_hub.gd", "node": "RatuszHub", "tris": 14000, "own": 0},
 	{"key": "park_details", "script": "res://scripts/park_details.gd", "node": "ParkDetails", "tris": 142000, "own": 0},
 	{"key": "light_garden", "script": "res://scripts/light_garden.gd", "node": "LightGarden", "tris": 25000, "own": 1},
+	{"key": "pkin_hoardings", "script": "res://scripts/pkin_hoardings.gd", "node": "PkinHoardings", "tris": 6000, "own": 0},
 	{"key": "tamka", "script": "res://scripts/tamka.gd", "node": "Tamka", "tris": 138300, "own": 1},
 ]
 

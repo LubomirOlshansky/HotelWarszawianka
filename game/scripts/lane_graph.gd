@@ -70,6 +70,12 @@ var e_lane0 := PackedInt32Array()
 var lane_count := 0
 ## Stop lines: per edge, flat [s, controller, group, ...] sorted by s.
 var e_stops: Array[PackedFloat32Array] = []
+## RT-2 (TD-23): the bake's lane links (tools/lane_links.py `lk`): Vector2i(e, f) -> the landing
+## lane on f for each lane of e, only where they differ from next_lane's old rule.
+var _links := {}
+## RT-2: each lane's turn code from the way's turn:lanes (the painted arrows; `tl`): edge ->
+## PackedStringArray, one "L"/"T"/"R"/"TR"/... per lane, "" for a lane that may take anything.
+var _turn_codes := {}
 
 var pts := PackedVector2Array()
 var cum := PackedFloat32Array()
@@ -170,6 +176,15 @@ func _init(graph: Dictionary, map: Node3D) -> void:
 		e_stops.append(stops)
 		by_ends[Vector2i(a, b)] = i
 		_heights.append(PackedFloat32Array())
+		var lk: Array = e.get("lk", [])
+		var step := int(e["n"]) + 1
+		for q in range(0, lk.size() - step + 1, step):
+			var to := PackedInt32Array()
+			for k in range(1, step):
+				to.append(int(lk[q + k]))
+			_links[Vector2i(i, int(lk[q]))] = to
+		if e.has("tl"):
+			_turn_codes[i] = PackedStringArray(e["tl"])
 	lane_count = lane_id
 	e_reverse.resize(e_a.size())
 	for i in e_a.size():
@@ -610,18 +625,36 @@ static func bezier_length(c: PackedVector2Array) -> float:
 	return maxf(length, 0.5)
 
 
-## The lane on edge f to continue in after lane k of edge e: right turns take the
-## rightmost lane, left turns the leftmost, straight on keeps the position.
+## The lane on edge f to continue in after lane k of edge e: the bake's link where it has one
+## (RT-2, tools/lane_links.py: straight on into the lane its line leads to, two lanes that turn
+## together side by side), else the old rule: right turns take the rightmost lane, left turns the
+## leftmost, straight on keeps the position.
 func next_lane(e: int, k: int, f: int) -> int:
 	var n := e_lanes[f]
 	if n == 1:
 		return 0
+	var to: PackedInt32Array = _links.get(Vector2i(e, f), PackedInt32Array())
+	if k < to.size():
+		return clampi(to[k], 0, n - 1)
 	var turn := direction(e, e_s1[e]).angle_to(direction(f, e_s0[f]))
 	if turn > 0.6:
 		return n - 1   # right turn (+angle turns clockwise seen from above: +x to +z)
 	if turn < -0.6:
 		return 0
 	return clampi(k + (n - e_lanes[e]) / 2, 0, n - 1)
+
+
+## RT-2: whether lane k of edge e may take exit f by its turn:lanes code (true where it has none).
+## An exit up to 0.6 rad either way is straight on for a T, one over 0.2 rad to a side is that
+## side's turn (a fork's slight right is an R lane's too). tools/lane_links.py `allows` is the same.
+func lane_allows(e: int, k: int, f: int) -> bool:
+	var codes: PackedStringArray = _turn_codes.get(e, PackedStringArray())
+	if k >= codes.size() or codes[k].is_empty():
+		return true
+	var code := codes[k]
+	var turn := direction(e, e_s1[e]).angle_to(direction(f, e_s0[f]))
+	return (code.contains("T") and absf(turn) < 0.6) or (code.contains("R") and turn > 0.2) \
+			or (code.contains("L") and turn < -0.2)
 
 
 # --- traffic lights ---------------------------------------------------------------

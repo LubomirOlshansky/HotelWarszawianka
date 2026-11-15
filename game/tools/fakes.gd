@@ -37,6 +37,7 @@ extends RefCounted
 ## The phone's map (2026-11-15, `PhoneMap`, `phone_map`): the map with only the prebuilt city's index in it.
 
 const Chatter := preload("res://scripts/chatter.gd")
+const MapMarkers := preload("res://scripts/map_markers.gd")
 
 
 class Hud extends CanvasLayer:
@@ -83,14 +84,21 @@ class Hud extends CanvasLayer:
 	var toasts: Array[String] = []
 	## The English of each toast, in step with `toasts`.
 	var toasts_en: Array[String] = []
-	## The minimap's job pins (hud.gd `set_minimap_pois`): how many, their places, colours and
-	## shapes, and how often they were set; how often the pill and the courier's challenge were
-	## taken down.
-	var pois := 0
-	var poi_points := PackedVector2Array()
-	var poi_colours := PackedColorArray()
-	var poi_shapes := PackedInt32Array()
-	var pois_set := 0
+	## The map marker registry (hud.gd `markers`, map_markers.gd): the real one. The minimap's job
+	## pins read from it (its JOB layer): how many, their places, colours and shapes, and how often
+	## the job places' and the round-up's owners wrote theirs; how often the pill and the courier's
+	## challenge were taken down.
+	var markers := MapMarkers.new()
+	var pois: int:
+		get: return poi_points.size()
+	var poi_points: PackedVector2Array:
+		get: return markers.marks_of(MapMarkers.Layer.JOB)["at"]
+	var poi_colours: PackedColorArray:
+		get: return markers.marks_of(MapMarkers.Layer.JOB)["colour"]
+	var poi_shapes: PackedInt32Array:
+		get: return markers.marks_of(MapMarkers.Layer.JOB)["shape"]
+	var pois_set: int:
+		get: return markers.writes("jobs") + markers.writes("roundup")
 	var pills_hidden := 0
 	var challenges_hidden := 0
 	## The small toasts that wait their turn (hud.gd `ambient_toast`), and how many dots the minimap
@@ -241,13 +249,6 @@ class Hud extends CanvasLayer:
 		if who == route_owner:
 			route = PackedVector2Array()
 			route_owner = ""
-
-	func set_minimap_pois(points: PackedVector2Array, colours: PackedColorArray, shapes := PackedInt32Array()) -> void:
-		pois = points.size()
-		poi_points = points
-		poi_colours = colours
-		poi_shapes = shapes
-		pois_set += 1
 
 	func hide_challenge() -> void:
 		challenge = ""

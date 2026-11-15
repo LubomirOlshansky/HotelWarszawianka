@@ -1313,6 +1313,8 @@ for s in $want; do
 		# Loop G1: model id -> tier, the pixel image at the phones' sizes; the governor's rules.
 		tiers) check tiers '^check_tiers:' --script res://tools/check_tiers.gd ;;
 		governor) check governor '^check_governor:' --script res://tools/check_governor.gd ;;
+		# F 2026-11-15: the colour looks (grades.gd) against time_of_day.gd's base looks.
+		grades) check grades '^check_grades:' --script res://tools/check_grades.gd ;;
 		# 2026-11-08: the Adreno 6xx driver's shader size limit (gpu_quirks.gd); source only, CI too.
 		shaderbudget) check shaderbudget '^check_shader_budget:' --script res://tools/check_shader_budget.gd ;;
 		heliview) check heliview '^check_heli_view:' --script res://tools/check_heli_view.gd ;;
@@ -1438,6 +1440,7 @@ for s in $want; do
 		first10) check first10 '^first10:' --script res://tools/check_first10.gd ;;
 		mainline) check mainline '^main_line:' --script res://tools/check_main_line.gd ;;
 		chatter) check chatter '^check_chatter:' --script res://tools/check_chatter.gd ;;
+		markers) check markers '^check_map_markers:' --script res://tools/check_map_markers.gd ;;
 		messages) check messages '^check_messages:' --script res://tools/check_messages.gd ;;
 		endcard) check endcard '^end_card:' --script res://tools/check_end_card.gd ;;
 		opening) check opening '^opening:' --script res://tools/check_opening.gd ;;
