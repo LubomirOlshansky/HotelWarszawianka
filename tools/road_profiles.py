@@ -47,7 +47,7 @@ ratchet: the counts only go down, CHECK_STREETS and CHECK_SERVICE).
 Cost: each lowered 10 m cell is drawn in 100 sub-cells (about 200 more triangles). An entry is
 kept only where its fix is worth that (the first set: 695 -> 1256 such cells, 26 entries).
 
-    python3 -I tools/road_profiles.py [MAP_DIR]            applies SPOTS to game/map/centrum.json (idempotent)
+    python3 -I tools/road_profiles.py [MAP_DIR] [--force]  applies SPOTS to game/map/centrum.json (stamp-guarded)
     python3 -I tools/road_profiles.py --check [MAP_DIR]    verify step `roadprofiles`
     python3 -I tools/road_profiles.py --scan [MAP_DIR] [--json=OUT] [--all]   the ranked list of torn places
     python3 -I tools/road_profiles.py --show=ID [MAP_DIR]  an entry's chain, profile and ground, station by station
@@ -55,6 +55,7 @@ kept only where its fix is worth that (the first set: 695 -> 1256 such cells, 26
 
 tools/bake_osm.py runs `apply` after lane_tapers. Re-run tools/bake_sectors.py and bake_city.gd after it.
 """
+import hashlib
 import json
 import math
 import os
@@ -564,14 +565,28 @@ def _wall(run):
             "b": [round(g, 2) for _, _, g in run], "f": [0] * (len(run) - 1), "k": "stone"}
 
 
-def apply(out, map_dir=None):
-    """Lay every entry's profile (idempotent: an entry's old fill is replaced by its new one)."""
+def _stamp():
+    """What the pass's result depends on besides the map: the table and the constants. A map
+    whose record carries this stamp already has every entry laid (tools/check_post_passes.py:
+    a stamp-guarded pass leaves main's map unchanged and needs no terrain to say so)."""
+    keys = [VERSION, SPOTS, STEP, SIDE, SNAP, SMOOTH, KNOT, WALL_REACH, BANK, BANK_OUT, HELD_BLEND, HALF,
+            SPUR, SPUR_GRADE, STRUCT_CLEAR]
+    return hashlib.sha1(json.dumps(keys, sort_keys=True).encode()).hexdigest()[:12]
+
+
+def apply(out, map_dir=None, force=False):
+    """Lay every entry's profile (idempotent: an entry's old fill is replaced by its new one).
+    Stamp-guarded: a map already stamped with today's table and constants is left as it is
+    (force=True, or --force, lays it again)."""
     if map_dir is None:
         map_dir = os.path.join(TOOLS, "..", "game", "map")
+    old = out.get(KEY, {})
+    if not force and old.get("stamp") == _stamp() and all(s["id"] in old.get("spots", {}) for s in SPOTS):
+        return "%d of %d places on their own profile (stamp %s: unchanged)" % (len(old["spots"]), len(SPOTS), old["stamp"])
     ids = {s["id"] for s in SPOTS}
     out["fills"] = [f for f in out["fills"] if f.get("rp") not in ids]
     out["walls"] = [w for w in out.get("walls", []) if w.get("rp") not in ids]
-    rec = {"v": VERSION, "spots": {}}
+    rec = {"v": VERSION, "stamp": _stamp(), "spots": {}}
     msgs = []
     # The ground as it was without any of these profiles: each entry reads the grid and the
     # bake's own fills, never another entry's.
@@ -775,6 +790,8 @@ def check(out, map_dir):
     rec = out.get(KEY, {})
     if rec.get("v") != VERSION:
         return False, "not applied (python3 -I tools/road_profiles.py)"
+    if rec.get("stamp") != _stamp():
+        return False, "the table or its constants changed since the map was laid (python3 -I tools/road_profiles.py)"
     missing = [s["id"] for s in SPOTS if s["id"] not in rec.get("spots", {})]
     if missing:
         return False, "not applied: " + ", ".join(missing)
@@ -852,7 +869,7 @@ def main(argv):
     sh = [a.split("=", 1)[1] for a in argv if a.startswith("--show=")]
     if sh:
         return show(out, map_dir, sh[0])
-    print("road_profiles: " + apply(out, map_dir))
+    print("road_profiles: " + apply(out, map_dir, force="--force" in sys.argv))
     with open(path, "w", encoding="utf-8") as fh:
         json.dump(out, fh, separators=(",", ":"), ensure_ascii=False)
     return 0
