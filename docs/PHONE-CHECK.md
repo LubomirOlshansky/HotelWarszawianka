@@ -67,6 +67,7 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | 14k | The Forest (Burakowska, north of Rondo Radosława) from the helicopter, by day and at night | the low roofs read as green gardens with rusty beds and a black rail, not as a grid of boxes; the terrace's white tent and pavilion; the phone's frame near the tower (about 1,500 more triangles than before in the one Forest mesh, no new draw call) | Forest roof garden |
 | 14j | Gmach Główny Politechniki from Plac Politechniki and Nowowiejska, by day and at night | the pale stone front reads (not grey); three tall arched windows between paired columns; the attic with its figure group against the sky; the glass hall roof stays blue-grey glass, not zinc; the lamp globes lit at night | Politechnika front |
 | 14k | At night: Legia from Łazienkowska, Hotel Europejski from Krakowskie Przedmieście, Babka Tower, and a shop street (Nowy Świat) | LEGUMINA, HOTEL EUROPEJSKI and WEKTRA lit and whole (not cut off); the shops' neon words unchanged; no new stutter | Landmark signs atlas fix |
+| 14l | The University campus on a weekday at 11:00, then park the car on the ring in front of the Old Library | students in groups and walking between the faculties; the guards' white cart laps the lawn, stops at the kiosk, waits behind the parked car and the guard's bubble shows; the frame with the cart in view (+1 draw call) | University campus |
 | 15 | Settings → the experimental graphics switch, on and off at the Palace | the look and the frame | #647 |
 
 ## 5. The frame (3 min)
