@@ -201,7 +201,7 @@ often, known to every visitor; **B** characteristic, known to locals, gives a st
 | 128 | Atelier Residence, Rezydencja Foksal, Apartamenty Flare, Solec Residence, Złota Chmielna | Bagno / Kopernika / Grzybowska / Solec / Złota | upscale flats | ✗ | photo pass (Młotek moved to #147, the modernism set) |
 | 129 | Platinum Towers, Łucka City, Ilmet, Central Tower, Spektrum, PZU, JM Tower, Chałubińskiego 8, Westynka, Chilton | Grzybowska / Łucka / Jana Pawła II / Jerozolimskie / Twarda / Chałubińskiego | skyscrapers | ○ | crowns by photo (tower table) |
 | 130 | Torwar | Łazienkowska | arena | ✗ | photo build |
-| 131 | Stadion Leguminy | Łazienkowska | stadium | ◐ | photo check |
+| 131 | Stadion Leguminy | Łazienkowska | stadium | ◐ | photo rework 2026-11-15 (street photos of the north fronts; the stands and the south and west fronts still estimates) |
 | 132 | Gdański Business Center | Inflancka | offices | ◐ | photo check |
 | 133 | WTS DESKA | Wioślarska | tennis club | ◐ | photo check |
 | 134 | Klif | Okopowa | shopping centre | ✗ | plain glass mall, low priority |
