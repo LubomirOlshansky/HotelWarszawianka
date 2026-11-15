@@ -21,4 +21,4 @@ sector had no places mesh before).
 
 Open: Grodzka and Nowy Zjazd are drawn 3.25 m wide, about half the real width (a guarded map
 pass); the rough terrain fill between the stair flights; the W-Z platform's own paving; a phone
-look (PHONE-CHECK 14l).
+look (PHONE-CHECK 14m).
