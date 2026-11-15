@@ -253,6 +253,7 @@ SITE_AREAS = [
     (-2812, 1558, -2775, 1584),   # church_sala_faustyny
     (-465, -868, -378, -796),   # church_wizytki_klasztor
     (32, -222, 111, -100),   # szarytki
+    (-102, -74, -63, -31),   # adwentysci
     (1575.0, 1570.0, 1605.0, 1610.0),       # the sailing marina's club house (landmarks.gd MARINA_AT, unnamed in OSM)
     (1715.0, 1295.0, 1755.0, 1345.0),       # the Monkey Love garden (landmarks.gd MONKEY_AT, built as Małpi Love)
     (1385.0, 670.0, 1480.0, 900.0),         # Port Czerniakowski's spit: Majami, WTW and the halls (landmarks.gd PORT_TIP, PORT_WTW, PORT_HALLS)

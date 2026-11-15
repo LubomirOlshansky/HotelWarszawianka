@@ -35,6 +35,7 @@ const BUDGET := {
 	"lawrynowicz": 8000,
 	"wedel": 8000,
 	"szpitalna5": 8000,
+	"adwentysci": 500,  # 2026-11-15: the Adventist church on Foksal 8 (gate, balconies, band; the mass is LoD2's)
 	"szarytki": 300,  # 2026-11-15: the Sisters of Charity's turret (the mass is LoD2's)
 	"gigantami": 4000,
 	"filtry": 3000,
@@ -319,8 +320,9 @@ const BUDGET := {
 }
 ## Known defects per site: {"zfight": n, "degenerate": n, "badnormal": n, "float": n}.
 ## Towarowa 22's drone taxi hovers 7 m over its pad by design (the "Warsaw of the future").
-## The Szarytki's turret stands on LoD2's ridge, which is the map's, not the site's mesh.
-const KNOWN := {"towarowa22": {"float": 8}, "szarytki": {"float": 16}}
+## The Szarytki's turret stands on LoD2's ridge and the Adventists' balconies hang on LoD2's wall:
+## the map's mass, not the site's mesh.
+const KNOWN := {"towarowa22": {"float": 8}, "szarytki": {"float": 16}, "adwentysci": {"float": 17}}
 
 var _probe: MeshProbe
 var problems: Array[String] = []

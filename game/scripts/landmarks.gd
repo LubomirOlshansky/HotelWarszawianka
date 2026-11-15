@@ -181,6 +181,7 @@ const INFO := {
 	"szpitalna5": ["Szpitalna 5",
 			"Narożna kamienica w brzoskwiniowym tynku, z balkonami i ślepą arkadą na rogu.",
 			"A corner tenement in peach plaster, with iron balconies and a blind arch at the corner."],
+	"adwentysci": ["Kościół Adwentystów na Foksal", "Zbór w żółtej kamienicy za ogródkiem.", "A church inside a yellow house behind a front garden."],
 	"szarytki": ["Siostry Szarytki na Tamce", "Klasztor sióstr miłosierdzia pod skarpą, z wieżyczką.", "The Sisters of Charity under the escarpment, with their turret."],
 	"gigantami": ["Kamienica Pod Gigantami",
 			"Dwaj kamienni giganci trzymają balkon nad bramą. Dobre miejsce na randkę, jeśli zdążysz.",
@@ -1357,6 +1358,13 @@ func _find_sites() -> void:
 		_add_site("szarytki", [szt])
 		if not sites.is_empty() and sites[-1]["key"] == "szarytki":
 			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": SZT_WALL, "roof": SZT_ROOF, "steep": 0.3}
+	# The Adventist church on Foksal 8 (F's photos, 2026-11-15): LoD2's mass in its yellow plaster, the
+	# gate, the balconies and the name band are ours.
+	var adw := _outline_at(ADW_AT)
+	if adw.size() >= 3:
+		_add_site("adwentysci", [adw])
+		if not sites.is_empty() and sites[-1]["key"] == "adwentysci":
+			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": ADW_WALL, "roof": ADW_ROOF}
 	# The formal garden before Pałac Krasińskich (F's photos, 2026-11-06).
 	if _landmark("Pałac Krasińskich").size() >= 3:
 		_o = KRAS
@@ -2067,6 +2075,9 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"krasinski_ogrod":
 				_id = 0  # not tappable
 				_build_kras_garden()
+			"adwentysci":
+				_mark_zone(s)  # the mass stays LoD2's, in its skin; the gate, balconies and band are ours
+				_build_adwentysci(s)
 			"szarytki":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin; the turret is ours
 				_build_szarytki(s)
@@ -22090,6 +22101,44 @@ func _build_szarytki(_site: Dictionary) -> void:
 	_frustum(_circle(c, 0.95, 8), top + 0.7, _circle(c, 0.25, 8), top + 1.6, copper)
 	_prism(_circle(c, 0.08, 4), top + 1.6, top + 2.6, copper, copper, M_STONE, M_STONE)
 	_lbox(0.0, 0.0, 0.32, 0.05, top + 2.2, top + 2.3, copper)
+	_mode = keep
+
+
+## The Seventh-day Adventist church on Foksal 8 (Kościół Adwentystów Dnia Siódmego; the hall is
+## inside a four-storey pale yellow house set back behind a front garden and a fence): the mass
+## stays GUGiK's LoD2 (OSM building 5399, unnamed) in its yellow plaster; the street front's
+## arched gate at its west end, the two iron balconies at its east end and the white band where
+## the church's name runs over the ground floor are ours. From F's 5 Commons photos
+## (refs/churches/adwentysci_foksal, reference only, never shipped). Spec
+## docs/landmarks/specs/adwentysci.md.
+## Frame: origin at the front's east corner, u to the west along Foksal, +v out of the front.
+const ADW_AT := Vector2(-82.0, -48.0)        ## inside the outline
+const ADW_E := Vector2(-70.3, -42.5)         ## the front's east corner
+const ADW_W := Vector2(-92.2, -34.6)         ## the front's west corner
+const ADW_WALL := Color("#ead9a2")           ## pale yellow plaster (photos 01, 02, 05)
+const ADW_ROOF := Color("#7b7d7f")
+const ADW_TRIM := Color("#f2ecd9")           ## the gate's surround, the band, the cornice
+const ADW_DOOR := Color("#4a2c22")           ## the gate's dark brown leaves (photo 03)
+const ADW_IRON := Color("#2a2a2c")
+
+
+func _build_adwentysci(_site: Dictionary) -> void:
+	var ln := kit_front(ADW_E, ADW_W)
+	_g = _ground_under(_outline_at(ADW_AT))
+	var g := _g
+	var keep := _mode
+	_mode = M_STONE
+	kit_face(0.12)
+	# the gate at the west end: a light arched surround and the dark leaves
+	_kbox(ln - 3.4, ln - 0.6, 0.12, 0.22, g, g + 4.0, ADW_TRIM)
+	kit_face(0.22)
+	kit_door(ln - 2.0, g, 3.3, 0.85, ADW_TRIM, ADW_DOOR, true)
+	# the band over the ground floor where the church's name runs (the letters are not built)
+	kit_face(0.12)
+	kit_ledge(5.0, ln - 5.0, g + 3.9, 0.45, ADW_TRIM, 0.06)
+	# the two iron balconies at the east end, on the first and second floors
+	for y: float in [g + 4.6, g + 7.9]:
+		kit_balcony(2.0, y, 1.3, Balcony.IRON, ADW_IRON, ADW_TRIM, 0.9)
 	_mode = keep
 
 
