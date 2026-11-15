@@ -238,8 +238,10 @@ Every plan ends a stage with "F looks on the phone", so the build has a beat of 
    passed since the last build, whichever comes first. The coordinator names the commit.
 2. **The build gate at that commit**, on the Mac (a `qa-tester` run): every `local` step of
    `tools/ci_steps.txt` (CI never runs them: the autopilot runs, the soaks, the streaming walk,
-   the race marks, the sector order), `tools/verify.sh --ios`, and the bench on both city paths
-   against the last build's numbers. Each step's result goes into the build's note. A red step
+   the race marks, the sector order), `tools/verify.sh --ios`, the bench on both city paths
+   against the last build's numbers, and one 60-second run of the build exported with the release
+   template (what TestFlight ships), launched with no flags: the title, the city, no error (TD-21:
+   only that template shows how a release build answers a script error; added with TD-4 a2, #798). Each step's result goes into the build's note. A red step
    is fixed, or its feature is switched off for this build; the build does not wait for a
    redesign.
 3. **F's yes** for each upload, as before. Then one sitting with `docs/PHONE-CHECK.md`, top to
