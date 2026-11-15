@@ -586,6 +586,16 @@ const SMASH_SOUND_GAP := 0.12
 const SMASH_SAY_GAP := 25.0
 const SMASH_SAY_CHANCE := 0.3
 const SMASH_BUBBLE := Color("#9fd36a")
+## Step 8a: a pushed parked car's knock (a car's thump, pitched), at most this often (s); a bubble from
+## its owner now and then (dialogue.json "parked_push", inside the chatter budget).
+var _push_sound_t := -10.0
+var _push_said_t := -100.0
+const PUSH_SOUND_GAP := 0.2
+const PUSH_SAY_GAP := 25.0
+const PUSH_SAY_CHANCE := 0.35
+const PUSH_BUBBLE := Color("#f0b35a")
+## --push-parked (dev_flags.gd): the shot's push was made (once).
+var _push_parked_done := false
 ## Also written by a command-line flag (dev_flags.gd).
 var fullmap_span := 0.0
 ## G12 part 2, --quest-pick=N (tests, shots): the full map opens at the start and row N of the
@@ -5534,7 +5544,8 @@ func _build_soft_things(world: Node3D) -> void:
 	soft_things.no_soft = not _soft_on()
 	world.add_child(soft_things)
 	soft_things.broke.connect(_on_soft_broke)
-	print("soft things: fences and hedges %s (%s)" % ["breakable" if _soft_on() else "hard",
+	soft_things.pushed.connect(_on_car_pushed)
+	print("soft things: fences, hedges and parked cars %s (%s)" % ["breakable" if _soft_on() else "hard",
 			"--no-soft" if flags._no_soft else ("--soft" if flags._flag_soft else "the setting")])
 
 
@@ -5582,9 +5593,30 @@ func _start_soft_things() -> void:
 	soft_things.camera = cam
 	soft_things.focus_at = _vehicle_position
 	soft_things.contacts = _contacts
+	soft_things.graph = graph  # step 8a: a pushed car never comes to rest in a lane
+	soft_things.ground_at = map.terrain_height
 	tod.lights_switched.connect(func(on: bool) -> void:
 		if not on:
 			soft_things.on_dawn())
+
+
+## Step 8a: a parked car was pushed: the knock (`smash_car`, a voice limit of 2), a buzz, the wallet's
+## counter, and now and then its owner's bubble (dialogue.json "parked_push").
+func _on_car_pushed(_id: String, at: Vector3, _dir: Vector3, speed: float) -> void:
+	if wallet != null:
+		wallet.count_push()
+	var now := _clock_s()
+	if now - _push_sound_t < PUSH_SOUND_GAP:
+		return
+	_push_sound_t = now
+	if sfx != null:
+		sfx.play_at("smash_car", at, clampf((speed - 8.0) * 0.4, -6.0, 3.0))
+	Access.buzz(40, 0.4)
+	if dialogue != null and now - _push_said_t > PUSH_SAY_GAP and randf() < PUSH_SAY_CHANCE:
+		var said := dialogue.say_reaction(func() -> Vector3: return at, "", "parked_push", "",
+				3.5, PUSH_BUBBLE, 2.2, false, "smash")
+		if not said.is_empty():
+			_push_said_t = now
 
 
 ## Step 7: a panel broke: its sound (a voice limit of 2 in Sfx), a light buzz, the wallet's counter,
@@ -6263,6 +6295,10 @@ func _process(dt: float) -> void:
 	_moment_frame(dt)  # loop MW-6: --egg, --tape, --fotka and the VHS of a tape
 	_water_frame(dt)
 	_stuck_offer_frame()  # G14's "later": POMOC DROGOWA on the context button when stuck
+	if not _push_parked_done and flags._flag_push_parked != Vector2.INF and soft_things != null and soft_things.car_count() > 0:
+		_push_parked_done = true
+		var pushed_id := soft_things.push_near(flags._flag_push_parked, 7.0)
+		print("push-parked: %s" % (pushed_id if pushed_id != "" else "no parked car near %s can move" % flags._flag_push_parked))
 	Haptics.tick(dt, not flying and absf(car.forward_speed) > 3.0)
 	if flags.autopilot or _bench_ghost != null:
 		_autopilot(dt)
@@ -8140,6 +8176,9 @@ func _soak_frame(dt: float) -> void:
 		_soak_minutes = _soak_t / 60.0  # the pass is over: report as the soak does
 	if _soak_t >= _soak_minutes * 60.0:
 		print("stream soak: %.0f s over %d sectors: %s" % [_soak_t, streamer.keys.size(), streamer.summary()])
+		if soft_things != null:
+			print("stream soak: soft things hardened %d sectors, %.2f ms on average, %.2f ms the most" % [soft_things.harden_count,
+					soft_things.harden_usec / 1000.0 / maxf(soft_things.harden_count, 1), soft_things.harden_most / 1000.0])
 		var numbers := streamer.stats()
 		numbers["governor"] = "%s, %d changes%s" % [governor.state(), governor.changes, ", held" if governor.held else ""]
 		print("stream soak stats: " + JSON.stringify(numbers))
