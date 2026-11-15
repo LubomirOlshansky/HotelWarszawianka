@@ -1349,6 +1349,14 @@ func _find_sites() -> void:
 	_add_site("lawrynowicz", [_pts(LW_OUTLINE)])
 	if not sites.is_empty() and sites[-1]["key"] == "lawrynowicz":
 		sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": LW_BRICK, "roof": Color("#6c6a66")}
+	# The Sisters of Charity on Tamka (F's photos, 2026-11-15): LoD2's mass in white plaster and green
+	# copper, the turret is ours. Sites with a card stay before the quiet ones below: the cards
+	# (`info`) skip quiet sites, so a carded site after one gets another site's picking id.
+	var szt := _outline_at(SZT_AT)
+	if szt.size() >= 3:
+		_add_site("szarytki", [szt])
+		if not sites.is_empty() and sites[-1]["key"] == "szarytki":
+			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": SZT_WALL, "roof": SZT_ROOF, "steep": 0.3}
 	# The formal garden before Pałac Krasińskich (F's photos, 2026-11-06).
 	if _landmark("Pałac Krasińskich").size() >= 3:
 		_o = KRAS
@@ -1362,13 +1370,6 @@ func _find_sites() -> void:
 	if not sites.is_empty() and sites[-1]["key"] == "ujazdowskie47":
 		sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": U47_WALL, "roof": Color("#5f6264")}
 		sites[-1]["quiet"] = true
-	# The Sisters of Charity on Tamka (F's photos, 2026-11-15): LoD2's mass in white plaster and green
-	# copper, the turret is ours.
-	var szt := _outline_at(SZT_AT)
-	if szt.size() >= 3:
-		_add_site("szarytki", [szt])
-		if not sites.is_empty() and sites[-1]["key"] == "szarytki":
-			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": SZT_WALL, "roof": SZT_ROOF, "steep": 0.3}
 	# Centrum Marszałkowska (F's photos, 2026-11-08): the stepped glass office on the corner.
 	_find_cmarsz()
 	_find_prozna()
