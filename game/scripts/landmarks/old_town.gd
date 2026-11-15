@@ -2193,10 +2193,10 @@ func _build_uruski(_site: Dictionary) -> void:
 	var wall := UW_CREAM
 	var trim := UW_CREAM_LIT
 	var glass := PAL_GLASS_DARK
-	var risalits := [[0.0, 11.3], [33.8, 45.0]]
 	var mid := [11.3, 33.8]
 	var base_top := g + 5.0
-	# the middle: wall, rustication, the first-floor band, windows, cornice, the balcony
+	# the middle: wall, rustication, the first-floor band, windows with relief panels under the
+	# pedimented ones, cornice, the balcony
 	kit_face(0.1)
 	kit_wall(mid[0], mid[1], g - 0.4, g + 16.0, wall)
 	kit_bands(mid[0], mid[1], g + 0.6, base_top, 0.55, wall)
@@ -2209,35 +2209,79 @@ func _build_uruski(_site: Dictionary) -> void:
 	kit_window_grid(mid[0] + 0.6, mid[1] - 0.6, 7, [g + 11.3], 2.1, Win.SILL_HEAD, trim, glass, 0.58)
 	kit_window(bays[1], g + 6.4, 2.9, Win.PEDIMENT, trim, glass, 0.62)  # the balcony door
 	kit_balcony(bays[1], g + 6.2, 1.6, Balcony.IRON, PAL_IRON, trim, 1.1)
+	for k in bays.size():
+		if k != 1:
+			_kbox(bays[k] - 0.55, bays[k] + 0.55, 0.1, 0.16, g + 5.55, g + 6.05, trim)  # the panel under the sill
 	kit_ledge(mid[0], mid[1], g + 10.6, 0.2, trim)
 	kit_cornice(mid[0], mid[1], g + 16.0, trim, 0.55, 0.9)
-	# the statue on the middle's cornice, on its pedestal
-	var su: float = (mid[0] + mid[1]) * 0.5
-	_lbox(su, 0.4, 1.1, 0.7, g + 16.55, g + 17.6, trim, M_STONE, trim)
-	_kp_figure(su, 0.4, g + 17.6, 2.4, trim.darkened(0.08))
-	_lbox(su - 0.6, 0.4, 0.35, 0.35, g + 17.6, g + 18.5, trim.darkened(0.08), M_STONE, trim.darkened(0.08))
-	# the risalits: a storey taller, corner pilasters, consoles under the deep cornice
-	kit_face(0.7)
-	for r: Array in risalits:
-		var u0: float = r[0]
-		var u1: float = r[1]
-		kit_wall(u0, u1, g - 0.4, g + 20.6, wall)
-		kit_bands(u0, u1, g + 0.6, base_top, 0.55, wall)
-		kit_ledge(u0, u1, base_top, 0.35, trim, 0.12)
-		for pu: float in [u0 + 0.55, u1 - 0.55]:
-			kit_pilaster(pu, base_top + 0.35, g + 19.6, trim, 0.9, 0.16)
-		kit_face(0.75)
-		kit_window_grid(u0 + 1.2, u1 - 1.2, 3, [g + 1.3], 2.5, Win.SILL, trim, glass, 0.62)
-		kit_face(0.7)
-		kit_window_grid(u0 + 1.2, u1 - 1.2, 3, [g + 6.4], 2.6, Win.PEDIMENT, trim, glass, 0.62)
-		kit_window_grid(u0 + 1.2, u1 - 1.2, 3, [g + 11.0, g + 15.4], [2.4, 2.0], Win.SILL_HEAD, trim, glass, 0.6)
-		kit_ledge(u0, u1, g + 10.4, 0.2, trim)
-		var n := int((u1 - u0) / 0.9)
-		for k in n:  # the consoles
-			var cu := u0 + 0.45 + k * (u1 - u0 - 0.9) / maxf(n - 1, 1)
-			_kbox(cu - 0.12, cu + 0.12, _face, _face + 0.75, g + 19.6, g + 20.0, trim)
-		kit_cornice(u0, u1, g + 20.6, trim, 0.6, 1.3)
+	_uw_uruski_group((bays[1] + bays[2]) * 0.5, g + 16.55, trim.darkened(0.08))
+	# the risalits: a storey taller, four fluted giant pilasters, the frieze of paired consoles
+	# under the deep cornice (photos 8047, 8049)
+	for r: Array in [[0.0, 11.3], [33.8, 45.0]]:
+		_uw_uruski_risalit(r[0], r[1], 0.7, g, base_top, wall, trim, glass)
+	# the south risalit's side over the gate (8049): the same three bays, then plain wall back to
+	# where LoD2's mass steps in
+	var side := kit_front(UW_URU_S, Vector2(-456.1, -655.9))
+	kit_face(0.1)  # clear of LoD2's wall on the outline
+	kit_wall(-0.7, side, g - 0.4, g + 20.6, wall)
+	kit_bands(-0.7, side, g + 0.6, base_top, 0.55, wall)
+	kit_ledge(-0.7, side, base_top, 0.35, trim, 0.12)
+	kit_cornice(11.3, side, g + 20.6, trim, 0.6, 1.0)
+	_uw_uruski_risalit(-0.7, 11.3, 0.1, g, base_top, wall, trim, glass)
+	kit_front(UW_URU_N, UW_URU_S)
 	_collide(_lrect(Rect2(0.0, -1.0, 45.0, 2.0)))
+
+
+## One face of Uruski's risalit from u0 to u1 standing at v: rusticated ground floor, three bays
+## between four fluted giant pilasters with leafy capitals, pedimented first-floor windows over
+## relief panels, the frieze of paired consoles and the deep cornice at g + 20.6.
+func _uw_uruski_risalit(u0: float, u1: float, v: float, g: float, base_top: float, wall: Color, trim: Color, glass: Color) -> void:
+	kit_face(v)
+	kit_wall(u0, u1, g - 0.4, g + 20.6, wall)
+	kit_bands(u0, u1, g + 0.6, base_top, 0.55, wall)
+	kit_ledge(u0, u1, base_top, 0.35, trim, 0.12)
+	var step := (u1 - u0 - 1.0) / 3.0
+	var flute := trim.darkened(0.12)
+	for i in 4:  # the giant pilasters, fluted, from the first floor to the frieze
+		var pu := u0 + 0.5 + i * step
+		kit_pilaster(pu, base_top + 0.35, g + 18.7, trim, 0.8, 0.16)
+		for f: float in [-0.2, 0.0, 0.2]:
+			_kbox(pu + f - 0.04, pu + f + 0.04, v + 0.15, v + 0.17, base_top + 0.9, g + 18.0, flute)
+		_kbox(pu - 0.5, pu + 0.5, v - 0.02, v + 0.3, g + 18.0, g + 18.7, trim.lightened(0.04))  # the capital's leaves
+	var centres: Array[float] = []
+	for i in 3:
+		centres.append(u0 + 0.5 + (i + 0.5) * step)
+	kit_face(v + 0.05)
+	for c: float in centres:
+		kit_window(c, g + 1.3, 2.5, Win.SILL, trim, glass, 0.62)
+		kit_window(c, g + 6.4, 2.6, Win.PEDIMENT, trim, glass, 0.62)
+		kit_window(c, g + 11.0, 2.4, Win.SILL_HEAD, trim, glass, 0.6)
+		kit_window(c, g + 15.4, 2.0, Win.SILL_HEAD, trim, glass, 0.6)
+		_kbox(c - 0.55, c + 0.55, v + 0.05, v + 0.11, g + 5.55, g + 6.05, trim)  # the panel under the sill
+	kit_face(v)
+	kit_ledge(u0, u1, g + 10.4, 0.2, trim)
+	kit_ledge(u0, u1, g + 18.7, 0.25, trim, 0.2)  # the frieze's foot
+	var n := int((u1 - u0) / 0.7)
+	for k in n:  # the paired consoles of the frieze
+		var cu := u0 + 0.35 + k * (u1 - u0 - 0.7) / maxf(n - 1, 1)
+		_kbox(cu - 0.1, cu + 0.1, v, v + 0.7, g + 19.0, g + 20.05, trim)
+	kit_cornice(u0, u1, g + 20.6, trim, 0.6, 1.3)
+
+
+## The sculpture group on Uruski's middle (8047, 8049): a high pedestal with scrolls at its
+## sides, a rearing horse and two figures, about 4.5 m over the cornice.
+func _uw_uruski_group(u: float, y: float, col: Color) -> void:
+	var lit := col.lightened(0.06)
+	_lbox(u, 0.5, 1.3, 0.8, y, y + 1.4, lit, M_STONE, lit)  # the pedestal
+	for s: float in [-1.0, 1.0]:
+		_lbox(u + s * 1.55, 0.5, 0.3, 0.5, y, y + 0.9, lit, M_STONE, lit)  # its scrolls
+	var top := y + 1.4
+	_lbox(u + 0.1, 0.5, 0.95, 0.32, top + 0.9, top + 1.7, col, M_STONE, col)  # the horse's body
+	for s: float in [-1.0, 1.0]:
+		_lbox(u + s * 0.7, 0.5, 0.12, 0.12, top, top + 0.95, col, M_STONE, col)  # its legs
+	_lbox(u + 1.0, 0.5, 0.2, 0.18, top + 1.5, top + 2.6, col, M_STONE, col)  # its raised neck and head
+	_kp_figure(u - 0.3, 0.5, top + 1.5, 1.8, col)  # the rider
+	_kp_figure(u - 1.0, 0.75, top, 2.5, col)  # the figure holding it
 
 
 ## The Old Library (Stara Biblioteka, Antoni Adamski and Stefan Szyller 1891-94, the board's 17),
