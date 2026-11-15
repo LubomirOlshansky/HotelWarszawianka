@@ -57,6 +57,11 @@ const SKINS := [
 	# pink cast (POCZTA_WALL); its
 	# front, corner dome and glazed hall are the site's own model (_build_poczta).
 	{"key": "poczta", "osm": "Poczta Główna", "mode": M_MONUMENT, "wall": "#ecd2c2", "roof": "#77706b"},
+	# Politechnika's main building (F's photos, 2026-11-15, spec politechnika.md): cream plaster
+	# over a grey zinc roof; the main hall's glass roof (`keep`) keeps LoD2's own colour; the
+	# rounded front pavilion on Plac Politechniki is the site's own model (_build_politechnika).
+	{"key": "politechnika", "osm": "Gmach Główny PW", "mode": M_MONUMENT, "wall": "#ece6d8", "roof": "#8b9094",
+			"keep": [Vector2(-958.0, 1459.0), Vector2(-914.0, 1459.0), Vector2(-914.0, 1508.0), Vector2(-958.0, 1508.0)]},
 	# Miodowa's and Senatorska's palaces from F's photos (2026-11-07, docs/landmarks/specs/miodowa.md):
 	# cream and pink plaster under tile-red roofs; Paca's roofs are green copper.
 	{"key": "branickich", "osm": "Pałac Branickich", "near": Vector2(-852.0, -1425.0), "mode": M_MONUMENT,
@@ -98,6 +103,8 @@ func _find_skins() -> void:
 				sites[-1]["skin"]["steep"] = t["steep"]
 			if t.has("upper"):
 				sites[-1]["skin"]["upper"] = {"over": float(t["upper"][0]), "wall": Color(t["upper"][1])}
+			if t.has("keep"):
+				sites[-1]["skin"]["keep"] = PackedVector2Array(t["keep"])
 			if t["key"] == "zamek":
 				sites[-1]["skin"]["pale"] = {"wall": ZAMEK_VISTULA, "edges": _zamek_river_edges(outline), "near": 3.0}
 				_zamek_tops()
