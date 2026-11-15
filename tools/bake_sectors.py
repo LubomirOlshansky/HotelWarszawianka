@@ -263,6 +263,7 @@ SITE_AREAS = [
     (53, -294, 115, -243),   # szarytki_zaulek
     (451, -2008, 468, -1991),   # church_kaplica_florianska
     (-2267, 61, -2247, 83),   # church_kaplica_lucka
+    (-1018, 1015, -997, 1043),   # church_kaplica_hoza
     (519, -1995, 559, -1936),   # church_plebania_florian
     (527, -1822, 579, -1775),   # church_klopotowskiego_18
     (2011, -1375, 2056, -1345),   # church_zwycieska_klasztor
