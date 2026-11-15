@@ -148,7 +148,7 @@ in one file, `data/pacing.json`, read by the offer pacer (`pacer.gd`, tech-debt 
 
 | Script | Owns |
 | --- | --- |
-| `wallet.gd` | **The save** (`user://save.cfg`, versioned with `migrate`): złoty, respect, jobs, records, eggs, notes, session spot. Signal `changed(zl, respect, gained)`. A damaged file is moved aside and the last launch's copy loaded (`load_note`, `damage`, `keep_copy`). |
+| `wallet.gd` | **The save** (`user://save.cfg`, versioned with `migrate`): złoty, respect, jobs, records, eggs, notes, session spot. Signal `changed(zl, respect, gained)`. A damaged file is moved aside and the last launch's copy loaded (`load_note`, `damage`, `keep_copy`). `flush` saves when the app leaves (main.gd `_notification`); `save_failed` is sent on a session's first failed write, for main.gd's note. |
 | `safe_file.gd` | The one way a kept file reaches the disk: a temp file, read back, then one rename (`write`, `copy`). Only `wallet.gd` and `settings.gd` call it. |
 | `upgrades.gd`, `garage.gd` | Parts and cars rules; the workshop. |
 | `notebook.gd` | MOJA WARSZAWA, 72 places found. |

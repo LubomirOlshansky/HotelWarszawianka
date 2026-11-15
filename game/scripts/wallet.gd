@@ -26,8 +26,17 @@ extends Node
 ##   its place; without a good copy the game starts fresh; if the file cannot even be moved,
 ##   nothing is written this session (`blocked`). `load_note` says which, for main.gd's note.
 ## - a missing file is still a fresh start, copy or no copy (deleting save.cfg resets the game).
+##
+## Saves when the app leaves (2026-11-15, F's pick after the architecture review). Most changes
+## save at once (`pay`, `spend`, `record`, `find_egg`...), but some only change a value and wait for
+## the next save: `count_smash`, `count_push`, and other scripts' own writes into `keep` and the
+## other sections (a Podwózka story heard, Zagłębie's first welcome). iOS can close a background app
+## without a word, so main.gd calls `flush` when the app is paused, loses focus or is closed. The
+## first write of a session that fails sends `save_failed`, once, for main.gd's note to the player.
 
 signal changed(zl: int, respect: int, gained: int)
+## The first write of this session that failed (the file is as it was): main.gd tells the player once.
+signal save_failed(error: int)
 
 const SafeFile := preload("res://scripts/safe_file.gd")
 
@@ -148,6 +157,8 @@ var blocked := false
 ## TD-8: the writes that failed (the file is then as it was) and the last one's error.
 var save_failures := 0
 var save_error := OK
+## The process frame of the last write that worked: `flush` skips a second write in that frame.
+var _saved_frame := -1
 
 
 func _ready() -> void:
@@ -170,10 +181,13 @@ func load_save() -> void:
 		print("wallet: %s is save version %d, newer than this build's %d: read, never overwritten" % [path, loaded_version, VERSION])
 	elif loaded_version < VERSION:
 		migrated_from = loaded_version
+		var kept := "not kept: --nosave"
 		if persistent:
-			DirAccess.copy_absolute(ProjectSettings.globalize_path(path), ProjectSettings.globalize_path(backup_path(loaded_version)))
+			var copied := SafeFile.copy(path, backup_path(loaded_version))
+			kept = "the old file kept as %s" % backup_path(loaded_version) if copied == OK else \
+					"the old file could not be copied to %s (%s); the file itself was read whole" % [backup_path(loaded_version), error_string(copied)]
 		migrate(cfg, loaded_version)
-		print("wallet: save version %d migrated to %d (the old file kept as %s)" % [migrated_from, VERSION, backup_path(migrated_from)])
+		print("wallet: save version %d migrated to %d (%s)" % [migrated_from, VERSION, kept])
 	_extra.clear()
 	for section in cfg.get_sections():
 		if not section in SECTIONS:
@@ -442,10 +456,22 @@ func save() -> void:
 			cfg.set_value(section, key, _extra[section][key])
 	cfg.set_value(END, "ok", true)  # TD-8: the file's last section; without it the file was cut short
 	save_error = SafeFile.write(cfg, path)
-	if save_error != OK:
+	if save_error == OK:
+		_saved_frame = Engine.get_process_frames()
+	else:
 		save_failures += 1
 		if save_failures == 1:
 			print("wallet: could not write %s (%s); the file is as it was" % [path, error_string(save_error)])
+			save_failed.emit(save_error)
+
+
+## Saves now, whatever changed since the last save (main.gd `_notification`: the app is paused,
+## loses focus or is closed). Skipped when a save already worked in this frame, as the spot's
+## save just before it often did. With --nosave, a newer build's file or a blocked file, nothing.
+func flush() -> void:
+	if _saved_frame == Engine.get_process_frames():
+		return
+	save()
 
 
 ## The city objects plan, step 7 (docs/design/drivable-city-build.md 5.2): a fence or hedge panel
@@ -523,12 +549,16 @@ func has_progress() -> bool:
 
 ## Save and resume: "NOWA GRA" confirmed. The old file is copied to previous_path() first (one
 ## copy, the last one replaced), then the record is wiped as --reset-save does. Not with --nosave
-## (nothing is written) or a newer build's file (never overwritten: false, nothing done).
+## (nothing is written) or a newer build's file (never overwritten: false, nothing done). When the
+## copy cannot be made (safe_file.gd checks it), false too: nothing is wiped without its copy.
 func start_over() -> bool:
 	if newer:
 		return false
 	if persistent and FileAccess.file_exists(path):
-		DirAccess.copy_absolute(ProjectSettings.globalize_path(path), ProjectSettings.globalize_path(previous_path()))
+		var copied := SafeFile.copy(path, previous_path())
+		if copied != OK:
+			print("wallet: could not copy %s to %s (%s); no new game, the record is as it was" % [path, previous_path(), error_string(copied)])
+			return false
 	reset()
 	print("wallet: a new game%s" % (" (the old save kept as %s)" % previous_path() if persistent else " (not saved)"))
 	return true
