@@ -4603,6 +4603,89 @@ const PFL_ROOF := Color("#55504c")      ## dark sheet roofs (a default)
 const PFL_DOOR := Color("#6a4a30")      ## the wooden doors (photos)
 
 
+## The church house at Kłopotowskiego 18 (Praga, a block south of St Florian's), the one with
+## the "Okno Życia" window of life by its door: four storeys on the street, white plaster over a
+## cream rusticated ground floor on a grey plinth, a grey stone door surround under a dark canopy,
+## an iron balcony over the window of life, a hipped roof; a lower wing runs into the yard. A
+## model that replaces the plain OpenStreetMap block (building 8886, `religious`, unnamed; no
+## landmark until 2026-11-15). From eight Mapillary photos along Kłopotowskiego (2020 to 2026,
+## refs/churches/klopotowskiego_8886, reference only, never shipped), the OSM outline and GUGiK's
+## LoD2 (over the ground: the street range's eaves about 13.2 and ridge 17, the wing's roof 13 to
+## 15). The roof colour and the yard walls are defaults (docs/QUESTIONS.md). Spec
+## docs/landmarks/specs/klopotowskiego_18.md.
+## Frame: origin at the street front's west corner, u to the east-south-east along
+## Kłopotowskiego, +v into the block; the street front faces -v.
+const K18_O := Vector2(531.8, -1805.0)
+const K18_A := Vector2(0.8193, -0.5604)
+const K18_WALL := Color("#ecebe6")      ## white plaster over the ground floor (photos)
+const K18_BASE := Color("#e4dcbc")      ## the cream rusticated ground floor (photos)
+const K18_PLINTH := Color("#9b9d9b")    ## the grey plinth (photos)
+const K18_STONE := Color("#a9aba8")     ## the door's grey stone surround (photos)
+const K18_TRIM := Color("#f5f4f0")      ## window caps, bands, cornice
+const K18_FRAME := Color("#4e3a2c")     ## the dark brown window frames (photos)
+const K18_ROOF := Color("#5d5f60")      ## sheet roof (a default)
+const K18_DOOR := Color("#5b3528")      ## the brown door (photos)
+
+
+func _build_klopotowskiego_18(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(K18_O, K18_O + K18_A)
+	_g = _ground_under(outline)
+	var g := _g
+	_mode = M_STONE
+	var none := Color(0, 0, 0, 0)
+	var e_r := g + 13.2   # the street range's eaves
+	var e_w := g + 13.4   # the yard wing's roof (LoD2's lean-to, built flat at its mean)
+	var rng := _largest(Geometry2D.intersect_polygons(outline, _rect(10.9, 6.95, 11.5, 7.15)))
+	var wing := _largest(Geometry2D.intersect_polygons(outline, _rect(19.5, 28.0, 4.5, 14.0)))
+	_prism(rng, g - 1.0, e_r, K18_WALL, none, M_STONE)
+	_prism(wing, g - 1.0, e_w, K18_WALL, K18_ROOF.lightened(0.1), M_STONE, M_STONE)
+	kit_cornice_ring(rng, e_r - 0.1, K18_TRIM, 0.4, 0.35)
+	_hip(10.7, 6.95, 10.95, 7.2, e_r, 3.8, K18_ROOF)
+	# --- every wall: a cream rusticated ground floor on a grey plinth, white upper floors
+	var rows := [g + 4.6, g + 7.6, g + 10.6]
+	var n := outline.size()
+	for k in n:
+		kit_front(K18_O, K18_O + K18_A)
+		var mid := (outline[k] + outline[(k + 1) % n]) * 0.5 - K18_O
+		var mv := mid.dot(Vector2(-K18_A.y, K18_A.x))
+		var le := kit_front(outline[(k + 1) % n], outline[k])
+		if le < 2.6:
+			continue
+		var street := mv < 0.6
+		var m := maxi(1, floori(le / 3.3))
+		var cs: Array = []
+		for i in m:
+			cs.append((float(i) + 0.5) * le / float(m))
+		_kbox(0.0, le, 0.0, 0.05, g - 1.0, g + 0.7, K18_PLINTH)
+		_kbox(0.0, le, 0.0, 0.04, g + 0.7, g + 3.7, K18_BASE)
+		for yb: float in [g + 1.45, g + 2.2, g + 2.95]:
+			_kbox(0.0, le, 0.04, 0.06, yb, yb + 0.06, K18_BASE.darkened(0.1))
+		kit_ledge(0.0, le, g + 3.7, 0.25, K18_TRIM, 0.1)
+		kit_panes(cs, rows, 1.5, 2.1, K18_FRAME, 0.03)
+		kit_panes(cs, rows, 1.25, 1.9, PAL_GLASS_DARK, 0.06)
+		if not street:
+			kit_panes(cs, [g + 1.3], 1.25, 1.8, PAL_GLASS_DARK, 0.06)
+	# --- the street front: the door at u 8 in its grey surround under the canopy, the window of
+	# life beside it under the balcony, tall barred windows either side
+	kit_front(K18_O, K18_O + K18_A)
+	kit_front(_w(21.44, 0.0), _w(0.0, 0.0))
+	var lu := 21.44
+	for wu: float in [2.0, 4.6, 11.4, 14.6, 17.8]:
+		kit_panes([lu - wu], [g + 1.2], 1.6, 2.2, K18_FRAME, 0.07)
+		kit_panes([lu - wu], [g + 1.3], 1.4, 2.0, PAL_GLASS_DARK, 0.09)
+		kit_panes([lu - wu], [g + 3.5], 1.9, 0.2, K18_TRIM, 0.1)
+	_kbox(lu - 12.3, lu - 10.5, 0.0, 0.08, g + 3.45, g + 3.7, Color("#c8372d"))  # the red "Okno Życia" band
+	_kbox(lu - 9.3, lu - 6.7, 0.0, 0.12, g, g + 2.9, K18_STONE)
+	kit_face(0.12)
+	kit_door(lu - 8.0, g, 2.7, 0.65, K18_STONE, K18_DOOR)
+	_kbox(lu - 9.6, lu - 6.4, 0.0, 0.9, g + 2.95, g + 3.25, Color("#3a3634"))
+	kit_face(0.0)
+	kit_balcony(lu - 11.4, g + 4.6, 0.9, Balcony.IRON, Color("#2e2c2b"), K18_TRIM, 0.6)
+	kit_front(K18_O, K18_O + K18_A)
+	_collide(outline)
+
+
 func _build_plebania_florian(site: Dictionary) -> void:
 	var outline: PackedVector2Array = site["outline"]
 	kit_front(PFL_O, PFL_O + PFL_A)
@@ -7089,6 +7172,8 @@ const CHURCHES := [
 			"fill": 0.9, "style": "neoclassical", "wall": "#e6c2a2", "roof": "#4d5257", "towers": 0, "cap": "none"},
 	{"key": "church_siostry_milosierdzia_zytnia", "at": Vector2(-2790.0, -692.0), "o": Vector2(-2813.5, -695.3), "out": Vector2(-0.262, -0.965), "L": 41.6, "W": 16.2,
 			"fill": 0.9, "style": "modern", "wall": "#a24f3a", "roof": "#5f6163", "towers": 0, "cap": "none"},
+	{"key": "church_klopotowskiego_18", "at": Vector2(548.0, -1806.0), "o": Vector2(531.8, -1805.0), "out": Vector2(-0.560, -0.819), "L": 21.4, "W": 41.9,
+			"fill": 0.9, "style": "neoclassical", "wall": "#ecebe6", "roof": "#5d5f60", "towers": 0, "cap": "none"},
 	{"key": "church_plebania_florian", "at": Vector2(534.0, -1963.0), "o": Vector2(525.0, -1990.5), "out": Vector2(0.175, -0.985), "L": 29.7, "W": 48.1,
 			"fill": 0.9, "style": "neoclassical", "wall": "#ece6d8", "roof": "#55504c", "towers": 0, "cap": "none"},
 	{"key": "church_sluzki_dom_generalny", "at": Vector2(-203.0, -515.0), "o": Vector2(-206.4, -500.9), "out": Vector2(-0.917, 0.400), "L": 28.3, "W": 29.6,
@@ -7206,6 +7291,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_plebania_florian":
 		_build_plebania_florian(site)  # St Florian's presbytery on Floriańska, from photos and LoD2
+		return
+	if site["key"] == "church_klopotowskiego_18":
+		_build_klopotowskiego_18(site)  # the church house with the window of life on Kłopotowskiego, from photos and LoD2
 		return
 	if site["key"] == "church_sluzki_dom_generalny":
 		_build_sluzki_dom_generalny(site)  # the Servants of Jesus' generalate, from photos and LoD2
