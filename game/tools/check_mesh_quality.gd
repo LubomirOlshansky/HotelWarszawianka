@@ -41,6 +41,7 @@ const BUDGET := {
 	"church_alberta": 950,  # 2026-11-14: the whole classicist frontage on Plac Teatralny, portico and two wings, from photos (measured 818)
 	"church_antoniego": 1250,
 	"church_augustyn": 1900,  # 2026-11-14: the whole brick basilica and its 70 m tower, checked against photos (measured 1759)
+	"church_franciszkanki_piwna": 1100,  # 2026-11-14: the Franciscan Sisters' house on Piwna (measured 969)
 	"church_kapucyni_klasztor": 900,  # 2026-11-14: the Capuchin monastery on Miodowa (measured 797)
 	"church_misjonarze_radna": 600,  # 2026-11-14: the Missionaries' house on Radna (measured 514)
 	"church_misjonarze": 1150,  # 2026-11-14: the Missionaries' house on Krakowskie Przedmieście (measured 1053)
