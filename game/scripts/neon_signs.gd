@@ -29,6 +29,8 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		"MDM", "XIAOMY", "BYDŁO", "HOTEL MDM",
 		# Flisac's shops on Tamka (F's photos, 2026-11-13): parodies of a coffee chain, a grocer and a wine shop.
 		"KAWOBIURKO", "KAROLEK", "WINOSTORY",
+		# The Jerozolimskie row (F's photos, 2026-11-15): a lounge and a coffee house, invented names.
+		"TUTAJ", "PARZYBUDA",
 		# The Palace's own name over its main portico (F's photos, 2026-11-13).
 		"PAŁAC", "KULTURY", "NAUKI",
 		# The Pawilony (2026-10-31): the bars' little words and the gate's name.
