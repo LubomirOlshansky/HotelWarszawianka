@@ -143,6 +143,7 @@ const CARD_EDGE := Color(1, 1, 1, 0.16)
 const WORDS := {
 	"ACCEPT": "PRZYJMIJ", "SKIP": "POMIŃ", "LATER": "PÓŹNIEJ", "NEXT CALL": "NASTĘPNE",
 	"FREE ROAM": "SWOBODNIE", "TRY AGAIN": "JESZCZE RAZ", "GO!": "JEDZIEMY!", "NOT NOW": "NIE TERAZ",
+	"REMATCH": "REWANŻ", "NIGHT": "NOC",
 }
 enum { DOWN = 1, UP = -1 }
 

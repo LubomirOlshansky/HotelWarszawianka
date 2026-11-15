@@ -575,7 +575,7 @@ func _check_full_map(hud: CanvasLayer, tag: String) -> int:
 	var ld := Ladder.new()
 	ld.wallet = lw
 	ld.preset(3)
-	fm.set_ladder(ld.rows(false))
+	fm.set_ladder(ld.rows(false), ld.title())  # The Six: the RYWALE card, its rows buttons
 	lw.free()
 	await process_frame
 	if fm.rects().has("ladder"):

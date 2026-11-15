@@ -26,7 +26,10 @@ extends SceneTree
 ##   let go, the escape bonus, the lose card that stays, the cool-downs, the first race's result); M. Halina's
 ##   roll-up (from the air or a prompt, her pace, what stops her, the nudge, how near she stops); N. Trzy mosty's
 ##   start look, Seba's line, the bridges counted from the first, Seba not home in the circle, and the autopilot's
-##   car (the tail, the ghost, the collisions).
+##   car (the tail, the ghost, the collisions). O. The Six (first hour step 5, ladder.gd ANY_ORDER): Mike
+##   open on a fresh save, the wider RACE reach (ahead of a standing car) with the pips, the call-out
+##   (where it waits, its ring starts the race, the give-up), the lose card's REWANŻ (the same start and
+##   finish), `race_over`, the win card's "Rywale n/6" and the sixth win's NOC, the home areas.
 ## Prints "check_rivals: OK (N checks; A-N, S s)" or one "  problem: ..." line per failed fact under
 ## "check_rivals: PROBLEMS" (exit 1). `-- --only=A,C` runs some of the parts (a debugging aid).
 ##   godot --headless --path game --script res://tools/check_rivals.gd
@@ -63,7 +66,7 @@ const WIN_GREEN := Color("#56d68a")
 const LOSE_RED := Color("#e2574c")
 const LOCKED_GREY := Color("#9a93ab")
 const GOLD := Color("#ffcf3a")
-const PARTS := ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N"]
+const PARTS := ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"]
 const GROUNDED := ["Najpierw dokończ wyścig", "Finish the race first"]
 const HALINA_APPROACH := "Dziecko, nie siedź mi tak na ogonie, babcia się spieszy!"
 const HALINA_CHALLENGE := ["Spieszę się %s. Dogonisz babcię?", "Promocja na ogórki się kończy! Jedziemy %s!"]
@@ -221,11 +224,12 @@ func _run() -> void:
 	_part_run("L", _l_result)
 	_part_run("M", _m_rollup)
 	_part_run("N", _n_final_drive)
+	_part_run("O", _o_six)
 	for part: String in PARTS:
 		if (_only.is_empty() or part in _only) and not _marks.has(part):
 			problems.append("part %s did not run to its end (a script error?)" % part)
 	if problems.is_empty():
-		print("check_rivals: OK (%d checks; A-N, %.1f s)" % [_n, (Time.get_ticks_msec() - t0) / 1000.0])
+		print("check_rivals: OK (%d checks; A-O, %.1f s)" % [_n, (Time.get_ticks_msec() - t0) / 1000.0])
 		quit(0)
 	else:
 		print("check_rivals: PROBLEMS")
@@ -414,15 +418,28 @@ func _said_one_of(lines: Array, finish: String) -> bool:
 
 
 ## The card up is rivals.gd's, in the shape of a result card of the race.
-func _card_is_result(title_start: String, en: String, accent: Color) -> void:
+func _card_is_result(title_start: String, en: String, accent: Color, words := ["OK"]) -> void:
 	_ok(_hud.card_is(_rv), "the result card is the race's own (the HUD sends its press to rivals)")
 	_ok(_hud.card.begins_with(title_start), "the result card's title begins %s (is %s)" % [title_start, _hud.card])
 	_eq(_hud.card_en, en, "the result card's English title")
-	_eq(_hud.buttons, 1, "the result card has one button")
-	_eq(Array(_hud.button_words), ["OK"], "the result card's button")
+	_eq(_hud.buttons, words.size(), "the result card's number of buttons")
+	_eq(Array(_hud.button_words), words, "the result card's buttons")
 	_eq(_hud.accent, accent, "the result card's colour")
 	_ok(not _hud.low, "the result card sits in the middle of the screen")
 	_ok(not _hud.stacked, "the result card's button is not stacked")
+
+
+## The old ladder (ladder.gd `any_order` off: each rung after the one before and its respect, the
+## prompt only close behind a moving rival): the parts that pin its rules.
+func _old_ladder() -> void:
+	_rv.ladder.any_order = false
+	_rv._open_seen = _rv.ladder.open_count()
+
+
+## The result card's OK (the lose card has REWANŻ first since The Six, first hour step 5).
+func _press_ok() -> void:
+	var i := Array(_hud.button_words).find("OK")
+	_hud.press(maxi(i, 0))
 
 
 ## Everything the race put up is down and the kit is idle (the card pressed, or the race dropped).
@@ -601,7 +618,7 @@ func _a_win() -> void:
 	_eq(_rv._auto_button(), -1, "the autopilot has no button on the result card")
 	_ok(not _rv.raced(), "ten seconds on, not raced() yet")
 	# OK ends it.
-	_hud.press(0)
+	_press_ok()
 	_ended("OK")
 	_frame()
 	_eq(_seq, [0, 1, 2, 3, 4, 5, 0], "the states ended with CRUISE")
@@ -660,7 +677,7 @@ func _b_card() -> void:
 	# Someone else's card over it, and its press.
 	_hud.show_card("INNA KARTA", "tekst", PackedStringArray(["OK"]), Color.WHITE, false, "OTHER CARD", "text")
 	_ok(not _hud.card_is(_rv), "another card is over the result card")
-	_hud.press(0)
+	_press_ok()
 	_eq(_hud.broadcast, 1, "the press of the other card went to every listener")
 	_eq(int(_rv.state), 5, "its press does not end the race")
 	_run_frames(120)
@@ -681,7 +698,7 @@ func _b_card() -> void:
 	_eq(int(_rv.state), 5, "still in RESULT")
 	_run_frames(120)
 	_eq(_hud.shown, 3, "the card is put back once, not every frame")
-	_hud.press(0)
+	_press_ok()
 	_ended("OK after the card came back")
 	_ok(_rv.raced(), "the race counts as raced")
 	_eq(_wallet.payments.size(), 1, "still one payment")
@@ -696,7 +713,7 @@ func _c_lose() -> void:
 	_ok(_rv.main_target(false), "main_target(false) is true for the next rung")
 	_ok(not _rv.first_race, "an ordinary race is not the guided first one")
 	_ok(_reach(5, 16000), "the slow ghost loses the race")
-	_card_is_result("PRZEGRANA", "Lose · 2nd", LOSE_RED)
+	_card_is_result("PRZEGRANA", "Lose · 2nd", LOSE_RED, ["REMATCH", "OK"])
 	_eq(_hud.card, "PRZEGRANA · 2. MIEJSCE", "the lose card's title")
 	_ok(_hud.body.begins_with("Pani Halina pierwszy na mecie: "), "the lose card names who got there first (%s)" % _hud.body)
 	_ok(_hud.body.contains("Zabrakło ci "), "the lose card says how far short")
@@ -718,7 +735,7 @@ func _c_lose() -> void:
 	_run_frames(600)
 	_eq(int(_rv.state), 5, "the lose card is still up ten seconds on")
 	_ok(_hud.card_is(_rv), "the lose card is still the race's ten seconds on")
-	_hud.press(0)
+	_press_ok()
 	_ended("OK on the lose card")
 	_ok(_rv.raced(), "a lost race counts as raced")
 	_eq(_wallet.payments.size(), 0, "still nothing paid")
@@ -734,7 +751,7 @@ func _cross() -> void:
 
 ## The lose card of a race given up.
 func _gave_up_card(what: String) -> void:
-	_card_is_result("PRZEGRANA", "Lose · 2nd", LOSE_RED)
+	_card_is_result("PRZEGRANA", "Lose · 2nd", LOSE_RED, ["REMATCH", "OK"])
 	_ok(_hud.body.contains("Wyścig poddany."), "%s: the card says the race was given up (%s)" % [what, _hud.body])
 	_ok(_hud.body_en.begins_with("You gave up."), "%s: the English says so (%s)" % [what, _hud.body_en])
 	_eq(_wallet.payments.size(), 0, "%s: nothing is paid" % what)
@@ -778,7 +795,7 @@ func _d_give_up() -> void:
 	_eq(int(_rv.state), 5, "the cross under the result card does nothing")
 	_ok(_hud.card_is(_rv), "the cross under the result card leaves the card")
 	_eq(_hud.shown, 1, "the cross under the result card shows nothing")
-	_hud.press(0)
+	_press_ok()
 	_ended("OK after the countdown's cross")
 	_ok(_rv.raced(), "a race given up counts as raced")
 	# A second race, given up in the race itself.
@@ -794,7 +811,7 @@ func _d_give_up() -> void:
 	_cross()
 	_eq(int(_rv.state), 5, "the cross in the race gives it up")
 	_gave_up_card("race")
-	_hud.press(0)
+	_press_ok()
 	_ended("OK after the race's cross")
 	_eq(_hud.cards.size(), 2, "two cards in the two races")
 	_run_frames(1)
@@ -923,7 +940,7 @@ func _f_first() -> void:
 	_ok(not _rv._drivers[HALINA].held, "the car moving lets Halina go")
 	_cross()
 	_eq(int(_rv.state), 5, "the cross gives the first race up")
-	_hud.press(0)
+	_press_ok()
 	_ended("OK after the first race")
 	_ok(not _hud.finger, "no finger after the race")
 	# Declined: nobody flashes back.
@@ -988,6 +1005,7 @@ func _f_first() -> void:
 
 func _g_locked() -> void:
 	_new_world(true, WIN_PACE)
+	_old_ladder()
 	_tail(MIKE)
 	_ok(_reach(1, 1500), "a prompt behind Mike")
 	_eq(_rv.rival, MIKE, "it is Mike's")
@@ -1135,7 +1153,7 @@ func _h_final() -> void:
 	_eq(_hud.arts, 1, "the card has the picture")
 	_eq(_rv._beacon._colour, PINK, "after the final the flag is the race's pink again")
 	_ok(_rv._cooldown[SEBA] > 24.0, "Seba has a 25 s cool-down (%.1f)" % _rv._cooldown[SEBA])
-	_hud.press(0)
+	_press_ok()
 	_ended("OK after the final")
 	_ok(_rv.raced(), "the final counts as raced")
 	_eq(_wallet.payments.size(), 1, "one payment in all")
@@ -1169,7 +1187,7 @@ func _h_final() -> void:
 	_ok(_hud.card_is(_rv), "the final's lose card is still the race's ten seconds on")
 	_cross()
 	_eq(int(_rv.state), 5, "the cross under the card does nothing")
-	_hud.press(0)
+	_press_ok()
 	_ended("OK after the final given up")
 
 
@@ -1211,6 +1229,7 @@ func _lamps_out() -> bool:
 
 func _i_setup() -> void:
 	_new_world(true, WIN_PACE)
+	_old_ladder()
 	_eq(_rv.colour, PINK, "the race's colour is pink")
 	_eq(_rv.dark, Color("#2b2c2f"), "the flag's dark is the race's")
 	_ok(_rv._beacon.waving, "the flag waves")
@@ -1234,7 +1253,7 @@ func _i_setup() -> void:
 	_ok(_reach(4, 800), "the race")
 	var dice1: int = _rv._racer.dice
 	_hud.abort_pressed.emit()
-	_hud.press(0)
+	_press_ok()
 	_rv.put_ahead(SLOIK)
 	_rv.tail = SLOIK
 	_auto = true
@@ -1244,6 +1263,7 @@ func _i_setup() -> void:
 	_ok(_rv._racer.dice != dice1, "the second race has other dice than the first (%d, %d)" % [dice1, _rv._racer.dice])
 	# The ladder's wallet is heard: the pay that opens the next rung says so.
 	_new_world(false)
+	_old_ladder()
 	_wallet.ladder[Ladder.id_of(0)] = 1
 	_wallet.pay(0, 100, "test")
 	_ok(_hud.toasts.has("Nowy rywal: Słoik z Radomia"), "a pay that opens a rung toasts the new rival (%s)" % str(_hud.toasts))
@@ -1361,6 +1381,7 @@ func _j_stages() -> void:
 func _k_prompt() -> void:
 	# Sight: out of reach 1.0 s the prompt stays, back in reach the count starts again, 1.2 s and it goes.
 	_new_world(true, WIN_PACE)
+	_old_ladder()
 	_rv.preset_ladder(6)
 	_tail(HALINA)
 	_ok(_reach(1, 1500), "a prompt")
@@ -1385,6 +1406,7 @@ func _k_prompt() -> void:
 	_eq(_hud.challenge, "", "and the HUD's challenge")
 	# Standing still behind the rival is no challenge.
 	_new_world(true, WIN_PACE)
+	_old_ladder()
 	_rv.preset_ladder(6)
 	_tail(HALINA)
 	_ok(_reach(1, 1500), "a prompt, for the car to stand")
@@ -1392,6 +1414,7 @@ func _k_prompt() -> void:
 	_eq(int(_rv.state), 0, "a car standing right behind the rival is no challenge")
 	# From beside is none either.
 	_new_world(true, WIN_PACE)
+	_old_ladder()
 	_rv.preset_ladder(6)
 	_tail(HALINA)
 	_ok(_reach(1, 1500), "a prompt, for the car to move beside")
@@ -1399,6 +1422,7 @@ func _k_prompt() -> void:
 	_eq(int(_rv.state), 0, "a car 6 m to the side of the rival's line is no challenge")
 	# Control: behind in its lane and moving it is.
 	_new_world(true, WIN_PACE)
+	_old_ladder()
 	_rv.preset_ladder(6)
 	_tail(HALINA)
 	_ok(_reach(1, 1500), "a prompt, for the control")
@@ -1406,6 +1430,7 @@ func _k_prompt() -> void:
 	_eq(int(_rv.state), 1, "a car right behind the rival and moving keeps the prompt")
 	# A prompt that ended with sight partly lost: a new prompt starts its count afresh.
 	_new_world(true, WIN_PACE)
+	_old_ladder()
 	_tail(MIKE)
 	_ok(_reach(1, 1500), "a locked prompt behind Mike")
 	_stand(60)
@@ -1438,7 +1463,7 @@ func _l_result() -> void:
 	_eq(d.speed_factor, 1.08, "the rival cruises at the town's pace again")
 	_eq(d.race_top, 0.0, "the rival is out of racer mode")
 	_ok(_rv._cooldown[HALINA] > 24.0, "the rival has a 25 s cool-down (%.1f)" % _rv._cooldown[HALINA])
-	_hud.press(0)
+	_press_ok()
 	_ended("OK after the escape")
 
 
@@ -1560,3 +1585,111 @@ func _n_final_drive() -> void:
 	_traffic.remove(_rv._ghost)
 	_rv._ghost = null
 	_ok(_rv.drive_player(), "a race without its ghost: the director still slides the car")
+
+
+# --- O. The Six ----------------------------------------------------------------------------------------
+
+func _o_six() -> void:
+	# A fresh save: Mike (the hardest) is open; the prompt comes for him ahead of a standing car.
+	_new_world(false)
+	_rv.homing = false
+	var over: Array = []
+	_rv.race_over.connect(func(who: String, won: bool) -> void: over.append([who, won]))
+	_frame()
+	_ok(_rv.ladder.any_order and _rv.rung_open(MIKE), "a fresh save: Mike is open")
+	_rv.put_ahead(MIKE, 28.0)
+	_vel = Vector3.ZERO
+	_ok(_reach(1, 120), "28 m ahead of a standing car: the RACE prompt")
+	_eq(_rv.rival, MIKE, "the prompt is Mike's")
+	_ok(_hud.challenge.ends_with(" ••••••"), "the prompt shows Mike's six pips (%s)" % _hud.challenge)
+	_rv.flash()
+	_eq(int(_rv.state), 2, "the flash at Mike starts the challenge, no refusal")
+	_ok(_reach(3, 400), "Mike's countdown")
+	_ok(_rv.main_race(), "a rival not beaten yet is the main line's race (any order)")
+	_cross()
+	_eq(int(_rv.state), 5, "the cross gives it up")
+	_card_is_result("PRZEGRANA", "Lose · 2nd", LOSE_RED, ["REMATCH", "OK"])
+	_eq(over, [["Mordor Mike", false]], "race_over: Mike, lost (a race given up counts as raced)")
+	_press_ok()
+	_ended("OK after Mike")
+	# REWANŻ: the same start, the same finish.
+	_race_on(SLOIK, 0, LOSE_PACE)
+	var start: Transform3D = _rv._rematch["car"]
+	var fin := str(_rv._finish["name"])
+	_ok(_reach(5, 16000), "the slow ghost loses to Słoik")
+	_hud.press(0)
+	_eq(int(_rv.state), 2, "REWANŻ: the challenge again")
+	_eq(_rv.rival, SLOIK, "REWANŻ: against Słoik")
+	_eq(str(_rv._finish["name"]), fin, "REWANŻ: to the same finish")
+	_ok(_car.global_position.distance_to(start.origin) < 0.5, "REWANŻ: the car is back at the start")
+	_ok(_reach(3, 400), "REWANŻ: the countdown")
+	_cross()
+	_press_ok()
+	# The call-out: Zbyszek waits near the car, held, in the ring; driving in starts the race.
+	_new_world(false)
+	_rv.homing = false
+	_run_frames(2)
+	var at := _rv.call_out(ZBYSZEK)
+	var here := Vector2(_car.global_position.x, _car.global_position.z)
+	_ok(at != Vector2.INF, "Zbyszek can be called out")
+	_ok(at.distance_to(here) >= Rivals.CALL_NEAR - 5.0 and at.distance_to(here) <= Rivals.CALL_FAR + 5.0, "he waits %.0f m away" % at.distance_to(here))
+	_eq(_rv.called_out, ZBYSZEK, "the call-out is Zbyszek's")
+	_ok(_rv._drivers[ZBYSZEK].held and _rv._beacon.visible, "held, in the race beacon's ring")
+	_ok(_rv.call_out(MIKE) != Vector2.INF, "Mike called out instead")
+	_eq(_rv.called_out, MIKE, "a second call-out replaces the first")
+	_ok(not _rv._drivers[ZBYSZEK].held, "Zbyszek is let go")
+	_run_frames(30)
+	_eq(int(_rv.state), 0, "far from the ring nothing starts")
+	_car.global_position = _rv._out_pos
+	_run_frames(2)
+	_eq(int(_rv.state), 2, "in the ring: the challenge")
+	_eq(_rv.rival, MIKE, "against Mike")
+	_eq(_rv.called_out, -1, "the call-out is over")
+	_ok(_reach(3, 400), "the countdown")
+	_cross()
+	_press_ok()
+	_run_frames(1)
+	_eq(_rv.call_out(-1), Vector2.INF, "no call-out for no rival")
+	var at2 := _rv.call_out(BARTEK)
+	_ok(at2 != Vector2.INF, "Bartek called out")
+	_rv._out_t = Rivals.CALL_WAIT + 1.0
+	_run_frames(1)
+	_ok(_rv.called_out == -1 and not _rv._drivers[BARTEK].held and not _rv._beacon.visible, "after CALL_WAIT s he stops waiting")
+	# The win card counts the six; the sixth win offers the night by day.
+	_new_world(true, WIN_PACE)
+	_rv.homing = false
+	var nights := [0]
+	_rv.night_now = func() -> void: nights[0] += 1
+	_rv.preset_ladder(5)
+	_eq(_rv.ladder.beaten_count(), 5, "five beaten")
+	_tail(MIKE)
+	_reach(1, 1500)
+	_eq(_rv.rival, MIKE, "the prompt is Mike's")
+	_run_frames(10)
+	_rv.flash()
+	_reach(4, 600)
+	_finish_now()
+	_ok(_reach(5, 60), "Mike beaten")
+	_ok(_hud.body.contains("Rywale 6/6") and _hud.body_en.contains("Rivals 6/6"), "the win card counts six (%s)" % _hud.body_en)
+	_ok(_hud.body.contains("Trzy mosty otwarte"), "the win card says the final is open")
+	_eq(Array(_hud.button_words), ["NIGHT", "OK"], "by day the sixth win offers the night")
+	_ok(_rv.final_open(), "the final is open after the sixth")
+	_hud.press(0)
+	_eq(nights[0], 1, "NOC turns the night on")
+	_ended("NOC on the sixth win")
+	# The home areas: Seba far from Praga and out of sight goes back; near the car he stays.
+	_new_world(false)
+	_run_frames(2)
+	var seba = _rv._drivers[SEBA]
+	var wola := _rv._lane_near(Vector2(-2400.0, 300.0), 0.0, 300.0, 0.0)
+	_ok(not wola.is_empty(), "a lane in Wola")
+	_traffic.teleport(seba, wola[0], wola[1], wola[2])
+	var den: Vector2 = Ladder.den(Ladder.rung_of("Seba z Pragi"))[0]
+	for k in 6:
+		_rv._home_tick(Rivals.HOME_EVERY)
+	_ok(Vector2(seba.pos.x, seba.pos.z).distance_to(den) <= Rivals.HOME_IN + 30.0, "Seba is back in Praga (%.0f m from its den)" % Vector2(seba.pos.x, seba.pos.z).distance_to(den))
+	_traffic.teleport(seba, wola[0], wola[1], wola[2])
+	_car.global_position = seba.pos + Vector3(40.0, 0.0, 0.0)
+	for k in 6:
+		_rv._home_tick(Rivals.HOME_EVERY)
+	_ok(Vector2(seba.pos.x, seba.pos.z).distance_to(den) > Ladder.DEN_RADIUS, "in the player's sight he is not moved")
