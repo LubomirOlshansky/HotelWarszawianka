@@ -4452,6 +4452,61 @@ func _build_uczennice_boskiego_mistrza(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The Generalate of the Congregation of the Servants of Jesus (Dom Generalny Zgromadzenia Sióstr
+## Sług Jezusa, Sewerynów, Śródmieście): a six-storey house in ochre plaster on its street, tall windows in
+## even rows, a plain band over the ground floor and the entrance under a small metal canopy, a
+## hipped roof and a wing into the yard. A model that replaces the plain OpenStreetMap block
+## (building 835; no landmark until 2026-11-15). From two Mapillary photos up the street (2020,
+## refs/churches/sluzki_dom_generalny, reference only, never shipped), the OSM outline and GUGiK's
+## LoD2 (over the ground: the eaves about 19.5, the ridge about 23). The roof colour and the yard
+## walls are defaults (docs/QUESTIONS.md). Spec docs/landmarks/specs/sluzki_dom_generalny.md.
+## Frame: origin at the front's south corner, u to the north-north-west along the street, +v to
+## the east-north-east, into the block; the front faces the street (-v).
+const SLJ_O := Vector2(-206.4, -500.9)
+const SLJ_A := Vector2(-0.400, -0.917)
+const SLJ_WALL := Color("#e3c48e")      ## the ochre plaster (photos)
+const SLJ_TRIM := Color("#efe2c4")      ## window reveals, bands, cornice
+const SLJ_ROOF := Color("#6b6c6c")      ## sheet roof (a default)
+const SLJ_DOOR := Color("#5a4632")      ## the wooden door
+
+
+func _build_sluzki_dom_generalny(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(SLJ_O, SLJ_O + SLJ_A)
+	_g = _ground_under(outline)
+	var g := _g
+	_mode = M_STONE
+	var eave := g + 19.5
+	_prism(outline, g - 1.0, eave, SLJ_WALL, SLJ_ROOF.darkened(0.2), M_STONE, M_STONE)
+	kit_cornice_ring(outline, eave - 0.45, SLJ_TRIM, 0.45, 0.35)
+	kit_ledge_ring(outline, g - 1.0, 1.2, SLJ_WALL.darkened(0.12), 0.05)
+	_hip(14.15, 8.85, 14.15, 8.85, eave, 3.5, SLJ_ROOF)      # the range on the street
+	_hip(23.7, 22.2, 4.8, 7.45, eave, 3.0, SLJ_ROOF)         # the wing into the yard
+	# --- every wall: six rows of tall windows, a band over the ground floor
+	var rows := [g + 1.3, g + 4.7, g + 8.0, g + 11.3, g + 14.6]
+	var n := outline.size()
+	for k in n:
+		kit_front(SLJ_O, SLJ_O + SLJ_A)
+		var le := kit_front(outline[(k + 1) % n], outline[k])
+		if le < 3.0:
+			continue
+		var m := maxi(1, floori(le / 2.9))
+		var cs: Array = []
+		for i in m:
+			cs.append((float(i) + 0.5) * le / float(m))
+		kit_ledge(0.0, le, g + 3.6, 0.35, SLJ_TRIM, 0.08)
+		kit_panes(cs, rows, 1.15, 2.0, PAL_GLASS_DARK, 0.05)
+		kit_panes(cs, [g + 17.4], 1.15, 1.4, PAL_GLASS_DARK, 0.05)
+	# --- the entrance near the south corner, under its metal canopy
+	kit_front(SLJ_O, SLJ_O + SLJ_A)
+	kit_front(_w(6.29, 0.34), _w(28.26, 0.0))
+	kit_face(0.0)
+	kit_door(1.6, g, 2.6, 0.75, SLJ_TRIM, SLJ_DOOR)
+	_kbox(0.5, 2.7, -1.1, 0.0, g + 2.95, g + 3.1, Color("#3c3e40"))
+	kit_front(SLJ_O, SLJ_O + SLJ_A)
+	_collide(outline)
+
+
 const SZT_WALL := Color("#e9e7e0")           ## white plaster (photos 01, 03, 11)
 const SZT_ROOF := Color("#7c9171")           ## dull green copper (photos 01, 02)
 const SZT_TURRET := Vector2(57.0, -162.0)    ## where the south range meets the west one (a default: photo 02)
@@ -6867,6 +6922,8 @@ const CHURCHES := [
 			"fill": 0.8, "style": "baroque", "wall": "#e6d4a6", "roof": "#97594a", "towers": 0, "cap": "none"},
 	{"key": "church_rodziny_maryi", "at": Vector2(-2617.0, -739.0), "o": Vector2(-2625.3, -761.4), "out": Vector2(-0.356, -0.934), "L": 13.5, "W": 49.4,
 			"fill": 0.9, "style": "neoclassical", "wall": "#e6c2a2", "roof": "#4d5257", "towers": 0, "cap": "none"},
+	{"key": "church_sluzki_dom_generalny", "at": Vector2(-203.0, -515.0), "o": Vector2(-206.4, -500.9), "out": Vector2(-0.917, 0.400), "L": 28.3, "W": 29.6,
+			"fill": 0.9, "style": "neoclassical", "wall": "#e3c48e", "roof": "#6b6c6c", "towers": 0, "cap": "none"},
 	{"key": "church_uczennice_boskiego_mistrza", "at": Vector2(-2890.0, -650.0), "o": Vector2(-2919.2, -669.7), "out": Vector2(-0.231, -0.973), "L": 37.5, "W": 41.5,
 			"fill": 0.9, "style": "modern", "wall": "#a5503a", "roof": "#6d6a66", "towers": 0, "cap": "none"},
 	{"key": "church_plebania_augustyn", "at": Vector2(-2405.0, -1115.0), "o": Vector2(-2406.0, -1124.2), "out": Vector2(0.884, -0.466), "L": 14.6, "W": 18.5,
@@ -6974,6 +7031,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_czestochowska":
 		_build_czestochowska(site)  # the modernist A-frame church and its pylons, from photos
+		return
+	if site["key"] == "church_sluzki_dom_generalny":
+		_build_sluzki_dom_generalny(site)  # the Servants of Jesus' generalate, from photos and LoD2
 		return
 	if site["key"] == "church_uczennice_boskiego_mistrza":
 		_build_uczennice_boskiego_mistrza(site)  # the Sister Disciples' brick convent on Żytnia, from photos and LoD2
