@@ -360,6 +360,25 @@ func setup_streamed(index: Dictionary, building_mat: ShaderMaterial, flat_mat: S
 		add_child(works)
 
 
+## The prebuilt city (map/index.res) keeps the height grid, the decks, fills, aprons and tunnels
+## (@export_storage), but not what `_setup` makes from the index for `terrain_height` beside them:
+## the sunken places' floors (Patelnia, the Rotunda stair, the underpasses, Złote Tarasy's plaza),
+## the railway cutting west of Centralna, the rail yard (its island platforms' bases and the
+## people's lifts on them, `footway_lift`) and the decks over the cut. Without them the phone's
+## ground stood up to 7 m off the drawn one in 685 of 240,464 samples every 10 m (2026-11-15).
+## SectorStreamer makes them again on the prebuilt map once it has its data.
+func restore_heights() -> void:
+	_load_sunken()
+	if _rail_state.is_empty():
+		_load_cut()  # an index baked before _rail_state was saved
+	else:
+		_cut = RailCut.new()
+		_cut.restore(_rail_state.get("cut", {}))
+		_yard = RailYard.new()
+		_yard.restore(_rail_state.get("yard", {}))
+	_index_cut_decks()
+
+
 ## Loop 3c: each sector's lowest ground (- 20 m: tunnels, the river bed) and its highest roof
 ## or treetop (the terrain + 40 m at least), from the finished roof grid: the streamer loads a
 ## sector whose box meets the camera's view (sector_streamer.gd).
@@ -2154,10 +2173,17 @@ var _library_ring := PackedVector2Array()
 var _buw_looked := false
 
 
+## The cut's and the yard's state (RailCut / RailYard `state`), saved with the prebuilt index so the
+## phone's city has the cutting's and the platforms' heights without sampling the grid again
+## (`restore_heights`; making them takes ~0.6 s in the cloud).
+@export_storage var _rail_state := {}
+
+
 func _load_cut() -> void:
 	_cut = RailCut.new()
 	_yard = RailYard.new()
 	_yard.setup(data.get("paths", []), Trains.trim_rails(data.get("rails", [])), data.get("platforms", []))
+	_rail_state = {"cut": _cut.state(), "yard": _yard.state()}
 	if _t_h.is_empty():
 		return
 	var t0 := Time.get_ticks_msec()
@@ -2174,6 +2200,7 @@ func _load_cut() -> void:
 		for w in (r["wall"] as PackedByteArray):
 			walled += w
 			banked += 1 - w
+	_rail_state = {"cut": _cut.state(), "yard": _yard.state()}
 	print("rail yard: %d footways are island platforms, %d footway rings platform outlines" % [_yard.platforms.size(), _yard.rings.size()])
 	print("rail cut: %d tracks, %d samples in the cutting (%.1f km), %d edge runs (%d bank, %d wall samples), %d ms" % [
 			_cut.tracks.size(), samples, samples * RailCut.STEP / 1000.0, runs.size(), banked, walled, Time.get_ticks_msec() - t0])

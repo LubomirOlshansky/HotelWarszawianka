@@ -47,6 +47,19 @@ var _cells := {}
 var _grid: Callable
 
 
+## What `at` reads, for the prebuilt city to keep (map_builder.gd `_rail_state`): the tracks, the box
+## and the cells. `_grid` is only read while `setup` runs.
+func state() -> Dictionary:
+	return {"tracks": tracks, "box": box, "cells": _cells}
+
+
+## The cutting as `state` gave it, with no grid sampled again.
+func restore(s: Dictionary) -> void:
+	tracks.assign(s.get("tracks", []))
+	box = s.get("box", Rect2())
+	_cells = s.get("cells", {})
+
+
 func setup(rails: Array, grid: Callable) -> void:
 	_grid = grid
 	tracks.clear()
