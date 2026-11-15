@@ -416,6 +416,7 @@ var _card_owner: Object = null
 ## First hour step 6: the ✕ in the card's top right corner (`set_card_close`), and the button it
 ## presses (-1: the card has no ✕).
 var _card_x: Button
+var _card_x_room: Control
 var _card_x_as := -1
 var _side_call := false
 ## Loop 2d-1: the Podwózka app's route on the minimap (map coordinates), drawn dotted.
@@ -1704,6 +1705,11 @@ func _build_mission_panels() -> void:
 	_card_title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	# First hour step 6 (Fable critique point 1): "no, thanks" as a ✕ in the corner, not a
 	# button of its own (`set_card_close`); hidden until a card asks for it.
+	_card_x_room = Control.new()  # pushes the ✕ into the corner when the English title is hidden
+	_card_x_room.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_card_x_room.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_card_x_room.visible = false
+	head.add_child(_card_x_room)
 	_card_x = _chip(head, "✕", "", Color(0, 0, 0, 0))
 	_card_x.name = "card_close"
 	_card_x.custom_minimum_size = Vector2.ONE * TOUCH * pt
@@ -1892,6 +1898,7 @@ func _set_card_x(index: int) -> void:
 	_card_x_as = index
 	if _card_x != null:
 		_card_x.visible = index >= 0
+		_card_x_room.visible = index >= 0 and not _card_title_en.visible
 
 
 ## Racer AI step 6a: a picture beside the words of the card showing now (the race result's two
@@ -4028,12 +4035,32 @@ func spotlight_label_rect() -> Rect2:
 	var r := spotlight_target_rect()
 	var c := r.get_center() if r.has_area() else _screen * 0.5
 	var ring := _spot_ring(r)
-	var y := c.y + ring + 8.0 * pt if c.y < _screen.y * 0.5 else c.y - ring - 8.0 * pt - h
+	var gap := 8.0 * pt
+	var down := c.y < _screen.y * 0.5
+	var y := c.y + ring + gap if down else c.y - ring - gap - h
 	if _spot == "car":
 		y = r.position.y - h  # over the car, where a bubble would stand
 	var x := clampf(c.x - w * 0.5, _safe.position.x + EDGE * pt, _safe.end.x - EDGE * pt - w)
-	y = clampf(y, _safe.position.y + EDGE * pt, _safe.end.y - EDGE * pt - h)
-	return Rect2(x, y, w, h)
+	# Off the fixed controls (the wallet under the minimap, the zoom buttons beside it): step on,
+	# away from the target, until the words sit on free ground.
+	var fixed: Array[Rect2] = []
+	for k: Control in [_gear, _pill, _radio_button, _skip_button, _vehicle_button, _zoom_out_button, _zoom_in_button, _minimap, _wallet, _koguty]:
+		if k != null and k.visible:
+			fixed.append(Rect2(k.position, k.size).grow(4.0 * pt))
+	fixed.append(_speed_rect())
+	fixed.append_array(_pedal_rects())
+	var box := Rect2(x, clampf(y, _safe.position.y + EDGE * pt, _safe.end.y - EDGE * pt - h), w, h)
+	for i in 8:
+		var hit := false
+		for f in fixed:
+			if f.intersects(box) and not f.grow(-4.0 * pt).is_equal_approx(r):
+				hit = true
+				box.position.y = f.end.y + gap if down else f.position.y - gap - h
+				break
+		if not hit:
+			break
+	box.position.y = clampf(box.position.y, _safe.position.y + EDGE * pt, _safe.end.y - EDGE * pt - h)
+	return box
 
 
 func _spot_ring(r: Rect2) -> float:

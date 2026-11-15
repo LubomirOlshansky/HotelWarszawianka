@@ -373,7 +373,7 @@ func _set_tip() -> void:
 	_tip.text = tip_text()
 	# A long tip on a narrow screen: a smaller font rather than words under NOWA GRA.
 	var ps := int(_tip.get_meta("ps", 14))
-	var fs := int(ps * 0.62)
+	var fs := int(ps * 0.8)
 	var font := ThemeDB.fallback_font
 	while fs > 10 and font.get_string_size(_tip.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x > _tip_w:
 		fs -= 1
