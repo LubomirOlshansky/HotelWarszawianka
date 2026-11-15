@@ -182,6 +182,7 @@ const INFO := {
 			"Narożna kamienica w brzoskwiniowym tynku, z balkonami i ślepą arkadą na rogu.",
 			"A corner tenement in peach plaster, with iron balconies and a blind arch at the corner."],
 	"adwentysci": ["Kościół Adwentystów na Foksal", "Zbór w żółtej kamienicy za ogródkiem.", "A church inside a yellow house behind a front garden."],
+	"elzbietanki": ["Siostry Elżbietanki", "Dom prowincjalny sióstr za Piekarską, nad ogrodami Podwala.", "The Elizabethan sisters' provincial house behind Piekarska, over the Podwale gardens."],
 	"szarytki": ["Siostry Szarytki na Tamce", "Klasztor sióstr miłosierdzia pod skarpą, z wieżyczką.", "The Sisters of Charity under the escarpment, with their turret."],
 	"gigantami": ["Kamienica Pod Gigantami",
 			"Dwaj kamienni giganci trzymają balkon nad bramą. Dobre miejsce na randkę, jeśli zdążysz.",
@@ -1365,6 +1366,13 @@ func _find_sites() -> void:
 		_add_site("adwentysci", [adw])
 		if not sites.is_empty() and sites[-1]["key"] == "adwentysci":
 			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": ADW_WALL, "roof": ADW_ROOF}
+	# The Elizabethan sisters' provincial house behind Piekarska (LoD2 only, no photo, 2026-11-15):
+	# LoD2's mass in default Old Town plaster and tiles; the rounded east end is ours.
+	var elz := _outline_at(ELZ_AT)
+	if elz.size() >= 3:
+		_add_site("elzbietanki", [elz])
+		if not sites.is_empty() and sites[-1]["key"] == "elzbietanki":
+			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": ELZ_WALL, "roof": ELZ_ROOF}
 	# The formal garden before Pałac Krasińskich (F's photos, 2026-11-06).
 	if _landmark("Pałac Krasińskich").size() >= 3:
 		_o = KRAS
@@ -2078,6 +2086,9 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"adwentysci":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin; the gate, balconies and band are ours
 				_build_adwentysci(s)
+			"elzbietanki":
+				_mark_zone(s)  # the mass stays LoD2's, in its skin; the rounded east end is ours
+				_build_elzbietanki(s)
 			"szarytki":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin; the turret is ours
 				_build_szarytki(s)
@@ -22394,6 +22405,54 @@ func _build_adwentysci(_site: Dictionary) -> void:
 	# the two iron balconies at the east end, on the first and second floors
 	for y: float in [g + 4.6, g + 7.9]:
 		kit_balcony(2.0, y, 1.3, Balcony.IRON, ADW_IRON, ADW_TRIM, 0.9)
+	_mode = keep
+
+
+## The Elizabethan sisters' provincial house (Dom Prowincjalny Sióstr Elżbietanek, OSM building
+## named so, in the block between Piekarska, Piwna and Podwale, behind St Martin's): a two-storey
+## range along the Podwale gardens with a taller block at its west end and a rounded east end
+## (read as the chapel's apse, a default). No photo shows it (F's 12 Commons photos of Piekarska
+## show the street fronts in front of it, not this range), so the colours are defaults, parked in
+## docs/QUESTIONS.md. The mass stays GUGiK's LoD2 (eaves about 8.5 m, ridge 11, the west block
+## 14) in its skin; LoD2 has nothing over the rounded end, so that is ours: a half drum to the
+## eaves under a half cone. Spec docs/landmarks/specs/elzbietanki.md.
+const ELZ_AT := Vector2(-830.0, -1578.0)     ## inside the outline (the main range)
+const ELZ_WALL := Color("#e2cfa6")           ## pale ochre plaster (a default, the Old Town's tone)
+const ELZ_ROOF := Color("#a4553f")           ## red tiles (a default, as the Old Town's roofs)
+const ELZ_APSE := Vector2(-821.5, -1587.1)   ## the rounded end's centre (the outline's arc)
+const ELZ_AXIS := Vector2(0.709, -0.705)     ## out of the range through the rounded end
+const ELZ_TRIM := Color("#f1ebdd")
+const ELZ_IRON := Color("#2a2a2c")
+
+
+func _build_elzbietanki(_site: Dictionary) -> void:
+	_g = _ground_under(_outline_at(ELZ_AT))
+	var g := _g
+	var keep := _mode
+	_mode = M_STONE
+	# a whole drum and cone: the half inside the range is hidden in LoD2's mass
+	var r := 2.9
+	var drum := _circle(ELZ_APSE, r, 14)
+	_prism(drum, g - 0.3, g + 7.6, ELZ_WALL, Color(0, 0, 0, 0), M_STONE, M_STONE)
+	var eave := _circle(ELZ_APSE, r + 0.25, 14)
+	_frustum(drum, g + 7.45, eave, g + 7.75, ELZ_TRIM)
+	_frustum(eave, g + 7.75, _circle(ELZ_APSE, 0.2, 14), g + 10.6, ELZ_ROOF)
+	# a white plinth and two rows of narrow windows round the outer half
+	_frustum(_circle(ELZ_APSE, r + 0.08, 14), g - 0.3, _circle(ELZ_APSE, r + 0.08, 14), g + 0.6, ELZ_TRIM)
+	var side := Vector2(-ELZ_AXIS.y, ELZ_AXIS.x)
+	for k: int in [-1, 0, 1]:
+		var t := float(k) * 0.75
+		var n := ELZ_AXIS * cos(t) + side * sin(t)
+		var c := ELZ_APSE + n * (r + 0.04)
+		var tg := Vector2(-n.y, n.x)
+		for y0: float in [g + 1.4, g + 4.6]:
+			_wall(c - tg * 0.42, c + tg * 0.42, y0, y0 + 2.0, n, PAL_GLASS_DARK)
+	# a small iron cross on the cone's tip
+	_prism(_circle(ELZ_APSE, 0.07, 4), g + 10.4, g + 12.0, ELZ_IRON, ELZ_IRON, M_STONE, M_STONE)
+	_o = ELZ_APSE
+	_a = side
+	_b = ELZ_AXIS
+	_lbox(0.0, 0.0, 0.32, 0.05, g + 11.3, g + 11.42, ELZ_IRON)
 	_mode = keep
 
 

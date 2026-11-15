@@ -36,6 +36,7 @@ const BUDGET := {
 	"wedel": 8000,
 	"szpitalna5": 8000,
 	"adwentysci": 500,  # 2026-11-15: the Adventist church on Foksal 8 (gate, balconies, band; the mass is LoD2's)
+	"elzbietanki": 400,  # 2026-11-15: the Elizabethan sisters behind Piekarska (the rounded end; the mass is LoD2's)
 	"szarytki": 300,  # 2026-11-15: the Sisters of Charity's turret (the mass is LoD2's)
 	"gigantami": 4000,
 	"filtry": 3000,
