@@ -37,6 +37,7 @@ const TABLE: Array[Dictionary] = [
 	{"key": "first_scene", "script": "res://scripts/first_scene.gd", "node": "FirstScene", "tris": 19800, "own": 0},
 	{"key": "skwer_zlota", "script": "res://scripts/skwer_zlota.gd", "node": "SkwerZlota", "tris": 5300, "own": 0},
 	{"key": "centralny_ramp", "script": "res://scripts/centralny_ramp.gd", "node": "CentralnyRamp", "tris": 5900, "own": 0},
+	{"key": "trasa_wz", "script": "res://scripts/trasa_wz.gd", "node": "TrasaWZ", "tris": 20300, "own": 0},
 	{"key": "patelnia", "script": "res://scripts/patelnia.gd", "node": "Patelnia", "tris": 19300, "own": 0},
 	{"key": "plac_pieciu_rogow", "script": "res://scripts/plac_pieciu_rogow.gd", "node": "PlacPieciuRogow", "tris": 10200, "own": 0},
 	{"key": "tarasy_screen", "script": "res://scripts/tarasy_screen.gd", "node": "TarasyScreen", "tris": 6, "own": 1},

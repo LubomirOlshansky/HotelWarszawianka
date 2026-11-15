@@ -42,6 +42,7 @@ const KNOWN := {
 	"park_details": {"zfight": 2357, "float": 3602},
 	"tamka": {"zfight": 364, "float": 20},
 	"light_garden": {"float": 7},  # the dandelion clocks' bulb tips on their spikes (2026-11-15)
+	"trasa_wz": {"zfight": 249, "float": 128},  # 2026-11-15: the walls, rails and stairs keep set heights (walls and steps are sector-only data) and the kiosk front hangs on the map's kiosk, so on the flat stub the pilaster feet meet and the rails and the front stand off the ground
 }
 
 ## Places allowed to differ on the phone's map: the triangles they build there less those on the whole map,
