@@ -32,7 +32,7 @@ const KNOWN := {
 	"patelnia": {"zfight": 317, "float": 634},
 	"plac_pieciu_rogow": {"zfight": 470, "degenerate": 24, "float": 5},
 	"tarasy_screen": {"float": 1},
-	"spire_motion": {"float": 41},
+	"spire_motion": {"float": 271},  # 2026-11-15: the night lines and LED band lie on the tower's glass (landmarks.gd), not on this mesh
 	"street_details": {"zfight": 7163, "float": 7},
 	"ratusz_hub": {"zfight": 271, "degenerate": 8, "float": 382},
 	"park_details": {"zfight": 2357, "float": 3602},

@@ -2,7 +2,7 @@ extends SceneTree
 ## The Warsaw Spire's moving parts (spire_motion.gd): the tower's vase shape (a waist, then a concave
 ## flare to the widest plan at the roof), the crown's LED ticker (one surface, a band of the right height
 ## wrapped round the crown just proud of the glass, a whole number of text laps so it has no seam)
-## and the plaza jets (one surface, each jet in the fountain's basin, a small pool or the channel);
+## the night's lines of light just proud of the lofted glass, and the plaza jets (one surface, each jet in the fountain's basin, a small pool or the channel);
 ## both shaders load. No map needed: a stand-in map with an oval like the tower's mapped outline.
 ##   godot --headless --path game --script res://tools/check_spire_motion.gd
 
@@ -49,24 +49,45 @@ func _init() -> void:
 	s.build()
 	_expect(s.ticker != null and s.ticker.mesh.get_surface_count() == 1, "ticker not one surface")
 	if s.ticker != null:
-		var aabb := s.ticker.mesh.get_aabb()
-		_expect(absf(aabb.size.y - (SpireMotion.TICK_Y1 - SpireMotion.TICK_Y0)) < 0.01, "ticker band %.2f m" % aabb.size.y)
-		_expect(s.tick_length > 120.0 and s.tick_length < 200.0, "ticker %.1f m round" % s.tick_length)
 		var arr: Array = s.ticker.mesh.surface_get_arrays(0)
-		for v: Vector3 in arr[Mesh.ARRAY_VERTEX]:
-			var k := SpireMotion.k_at(v.y)
-			var q := Vector2(v.x, v.z) - c
-			# on the oval scaled by k, TICK_OUT proud of it
-			var r := Vector2(q.x / (22.5 * k), q.y / (30.5 * k)).length()
-			if r < 1.0 or r > 1.03:
-				_expect(false, "ticker vertex off the glass (%.3f)" % r)
-				break
+		var verts: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+		var cols: PackedColorArray = arr[Mesh.ARRAY_COLOR]
+		var oval := PackedVector2Array()
+		for i in range(0, pts.size(), 2):
+			oval.append(Vector2(pts[i], pts[i + 1]))
+		var base := SpireMotion.plan(oval)
+		var lo := INF
+		var hi := -INF
+		var lines := 0
+		var off := 0
+		for i in verts.size():
+			var v := verts[i]
+			if cols[i].a < 0.25:
+				lo = minf(lo, v.y)
+				hi = maxf(hi, v.y)
+			else:
+				lines += 1
+			# every vertex under the roof just proud of the lofted glass (fin edges stand out further)
+			if v.y > SpireMotion.ROOF - 0.01:
+				continue
+			var ring := SpireMotion.on_glass(base, v.y)
+			var q := Vector2(v.x, v.z)
+			var near := INF
+			for k in ring.size():
+				near = minf(near, Geometry2D.get_closest_point_to_segment(q, ring[k], ring[(k + 1) % ring.size()]).distance_to(q))
+			var inside := Geometry2D.is_point_in_polygon(q, ring)
+			if inside or (near > 0.5 and near < SpireMotion.FIN_OUT - 0.2) or near > SpireMotion.FIN_OUT + 0.4:
+				off += 1
+		_expect(absf((hi - lo) - (SpireMotion.TICK_Y1 - SpireMotion.TICK_Y0)) < 0.01, "LED band %.2f m tall" % (hi - lo))
+		_expect(off == 0, "%d light vertices off the glass" % off)
+		_expect(lines > 0, "no lines of light")
+		_expect(s.tick_length > 120.0 and s.tick_length < 200.0, "ticker %.1f m round" % s.tick_length)
 		var mat := s.ticker.material_override as ShaderMaterial
 		var px: Vector2 = mat.get_shader_parameter("px_m")
 		var wpx: Vector2 = mat.get_shader_parameter("words_px")
 		var laps := s.tick_length / (px.x * wpx.x)
 		_expect(absf(laps * roundf(1.0 / laps) - 1.0) < 0.001 or absf(laps - roundf(laps)) < 0.001, "the text's laps %.3f leave a seam" % laps)
-		_expect(px.x > 0.35 and px.x < 0.7, "LEDs %.2f m wide" % px.x)
+		_expect(px.x > 0.9 and px.x < 1.5, "LEDs %.2f m wide" % px.x)
 	_expect(s.jet_mesh != null and s.jet_mesh.mesh.get_surface_count() == 1, "jets not one surface")
 	var line := SpireMotion.channel_line()
 	for j: Array in SpireMotion.jets():
