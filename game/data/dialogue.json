@@ -6785,5 +6785,30 @@
     ["Lusterka całe? Całe. No to jedź już, jedź.", "Mirrors intact? Intact. Off you go, go on."],
     ["Parkowanie równoległe za mnie? Dzięki, prawie wyszło.", "Parallel parking done for me? Thanks, nearly worked."],
     ["Bilet za szybą był! Na pchanie też trzeba?", "The ticket was on the dash! Do I need one for shoving too?"]
+  ],
+  "students": [
+    ["Kolokwium jest jutro? Myślałem, że w przyszłym semestrze.", "The test is tomorrow? I thought it was next semester."],
+    ["Mam notatki z wykładu. Znaczy: zdjęcie tablicy. Rozmazane.", "I've got the lecture notes. Well, a photo of the board. Blurry."],
+    ["Promotor odpisał! Napisał: „Proszę poprawić”. Wszystko.", "My supervisor replied! He wrote: \"Please revise\". All of it."],
+    ["Stary BUW: cisza, ciepło i wi-fi. Raj, tylko z czytelnikami.", "The Old Library: quiet, heat, wi-fi. Heaven, but with readers."],
+    ["Dziś tylko jeden wykład. Ten, na który nie poszłam.", "Just one lecture today. The one I skipped."],
+    ["Kto ma ładowarkę? Moja bateria ma sesję poprawkową.", "Who has a charger? My battery is resitting its exams."],
+    ["Na prawie mówią, że to zależy. Od czego? To też zależy.", "In law they say it depends. On what? That depends too."],
+    ["Filozofia zaczyna się o ósmej. Pytanie: czy ja też?", "Philosophy starts at eight. The question is: do I?"],
+    ["Bilet do Biblioteki Narodowej? Nie, do bufetu.", "A ticket to the National Library? No, to the canteen."],
+    ["Konsultacje są we wtorki od 12:00 do 12:05. Z przerwą.", "Office hours are Tuesdays 12:00 to 12:05. With a break."],
+    ["Biegnę na Audytorium Maximum. Maximum spóźnienia.", "Running to the Auditorium Maximum. Maximum lateness."],
+    ["Spóźniona? Wykładowca też. Remis.", "Late? So's the lecturer. A draw.", {"only": "walk"}],
+    ["Która sala? 213? Na tym kampusie nie ma 213. Albo jest dwie.", "Which room? 213? There's no 213 on this campus. Or there are two.", {"only": "walk"}],
+    ["Kawa, wykład, kawa, biblioteka, kawa. Plan dnia gotowy.", "Coffee, lecture, coffee, library, coffee. Day planned.", {"only": "walk"}],
+    ["Indeks mam w telefonie, a telefon w drugim budynku.", "My student record's on my phone, and my phone's in the other building.", {"only": "walk"}]
+  ],
+  "uw_guard": [
+    ["Kolego, to kampus, nie parking. Proszę przepuścić wózek.", "Mate, it's a campus, not a car park. Let the cart through, please.", {"only": "blocked"}],
+    ["Ja tu tylko patroluję. Pan tu tylko stoi. Ktoś musi ustąpić.", "I'm just patrolling. You're just standing. Someone has to give way.", {"only": "blocked"}],
+    ["Wózek nr 001 prosi o przejazd. Grzecznie, ale stanowczo.", "Cart number 001 requests passage. Politely, but firmly.", {"only": "blocked"}],
+    ["Wolniej! Tu się studiuje, a nie ściga.", "Slow down! People study here, they don't race.", {"only": "fast"}],
+    ["Dwadzieścia na godzinę, nie dwadzieścia na sekundę!", "Twenty an hour, not twenty a second!", {"only": "fast"}],
+    ["Zapiszę to w raporcie. Długopisem. Bardzo stanowczo.", "I'll put that in my report. In pen. Very firmly.", {"only": "fast"}]
   ]
 }
