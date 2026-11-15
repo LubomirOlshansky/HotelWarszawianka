@@ -135,7 +135,7 @@ lowered. Steps 1 to 3 add no geometry at all.
 | RT-1 | **Done 2026-11-13.** `tools/road_truth.py`, levels 1 and 2 (the console map layer is left) | a tool and a verify step, no map change | everything after it is measured by it |
 | RT-2 | **Done 2026-11-15.** Lane links from `turn:lanes` (`tools/lane_links.py`: the codes come from the map's own arrows, which are the tag; R3 406 → 261, the rest are edges whose lanes do not line up at all, RT-4 and RT-6) | the bake writes each lane's allowed exits into the graph, `next_lane` uses them and keeps today's rule as the fallback; arrows are painted from the same data | the largest cause of "a lane changes into another", in traffic, rivals and arrows at once |
 | RT-3 | Turn restrictions and honest U-turns | keep `restriction` relations in `prepare_demo.py`, drop forbidden links, a turn back only at a dead end or a mapped median gap | wrong turns and U-turns are what a player notices in traffic |
-| RT-4 | Lane changes as paint | per R1/R2 place: a short blip joins its neighbours or becomes a turn pocket; a real add or drop gets its side (from `turn:lanes` and `placement`, else the straight kerb), a starting dashed line and hatching, the kerb stays | F's lesson of 2026-11-05; removes most of the leftover jogs too |
+| RT-4 | **Lanes built 2026-11-15** (section 6). Lane changes as paint | per R1/R2 place: a short blip joins its neighbours or becomes a turn pocket; a real add or drop gets its side (from `turn:lanes` and `placement`, else the straight kerb), a starting dashed line and hatching, the kerb stays | F's lesson of 2026-11-05; removes most of the leftover jogs too |
 | RT-5 | Roundabouts, in groups of three or four | one lane count round the ring, an even radius where the real one is round, give-way lines at every arm, spiral or concentric lines by size; the signalised squares (Dmowskiego, ONZ, de Gaulle'a, Daszyńskiego, Czterdziestolatka) are checked against the photo first, because they are not classic roundabouts | fourteen places, each seen often |
 | RT-6 | Kinks into arcs, short edges merged | main-road centrelines resampled through the same points (R6), junction nodes under 8 m apart become one junction (R7) | smoother driving and lines; touches many kerbs, so after the lane work |
 | RT-7 | The split leftovers | the 25 splits `road_fixes` fix 6 leaves, by kind (forks, slip-road merges, medians at the node) | already in BACKLOG, ranked here |
@@ -155,3 +155,46 @@ AI work (the race planner reads the same graph).
 
 The first prototype scripts and a map of the findings are in the project files under
 `roads-research/`; `tools/road_truth.py` replaces them.
+
+## 6. RT-4 as built (2026-11-15): the lanes follow the taper
+
+What the map showed. Of the 379 lane count changes with no side road (R1), almost every one is an
+OpenStreetMap lane count the mappers tagged on both ways (`lanes`, mostly with `turn:lanes`), so
+they are real adds and drops, not mistakes to join away. The asphalt already changes width there
+along a real-life taper (tools/lane_tapers.py, 1:10 to 1:15). The lanes did not: two ways of one
+street meet with a 1.5 m trim each side, so the link across the node was 3 m long, and every lane
+that did not line up (half a lane at every add or drop, a whole lane for the lane that ends, and
+more where the next way's lanes sit elsewhere) swerved sideways inside those 3 m. 609 such links,
+586 of them steeper than 1:6.
+
+What `tools/lane_changes.py` does (a stamp-guarded pass on main's map; bake_osm.py runs it after
+lane_links, object_fixes and tram_stops):
+
+- At every node where a street goes on with no side road and a lane moves more than 0.5 m (the
+  difference of its two offsets; the two edges share the node), the link is stretched over the
+  drawn taper, measured from the roads' per-vertex edges on both sides of the node. Where the
+  asphalt keeps its width (a painted lane change) the link is 8 m along per metre aside, at least
+  10 m, shared over both ways.
+- Limits: each edge keeps 3.5 m to drive, gives at most 45 % of its length to one link, the road
+  turns at most 0.15 rad more inside the link than at the node, a signal's stop line stays on its
+  edge (6 m clear after the edge's start, 1 m before its end) and a bus stop stays where buses.gd
+  puts it.
+- The trims are the only change (`s0`, `s1`; the bake's own in `s0o`, `s1o`, which lane_links
+  reads so it stays a fixed point). No kerb, line or arrow moves.
+
+Counts (`tools/road_truth.py`, whose R1 and R3 now tell a taper from a jump, `tools/lane_changes.py --check`):
+
+| | main before | after |
+| --- | ---: | ---: |
+| continuation links steeper than 1:6 (`lanechanges`) | 586 | 84 |
+| R1 lane count changes where a lane jumps (of 379) | 329 | 44 |
+| R2 blips (turn pockets left out: more lanes into a junction, one turn-only by its arrows) | 39 (71 before the rule) | 39 |
+| R3 lane shift (a continuation judged by the lanes' offsets) | 255 (261 by the old measure) | 229 |
+
+What is left for later steps: the 84 links without room (short ways between two joins, a stop line
+or a bus stop at the node, a bend); the 39 blips, whose drawn asphalt still bulges or pinches for a
+few dozen metres (joining them moves kerbs, lines and junction corners: a road design area or a
+guarded geometry pass); the painted P-21 hatching and P-9 arrows where a lane ends; and the 212
+R3 links inside junctions, where a one-way street meets a two-way one or the next street's lanes
+sit elsewhere (moving the edges: RT-6 and the road design areas). `--debug-roads` now draws the
+links (amber) between the lanes (blue), so a jump is visible in the game.

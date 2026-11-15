@@ -17,14 +17,21 @@ measures; it changes nothing. The paint and kerbs at way joins are road_smooth's
 The rules, each a way the game's road differs from a real one (lanes are counted from the left,
 as lane_graph.gd does; a "link" is the curve across a junction from one lane to the next edge's):
 
-  R1 lane step     the lane count changes where an edge has one way on and no side road joins
-                   (a real street adds or drops a lane by a taper and paint, mostly at a junction)
+  R1 lane step     the lane count changes where an edge has one way on and no side road joins,
+                   and a lane jumps there: it moves over more than JUMP m in a link shorter than
+                   RATE m per metre aside (a real street adds or drops a lane along a taper; since
+                   RT-4, tools/lane_changes.py, the link runs along the drawn taper; the census of
+                   all such changes is printed beside the counts)
   R2 lane blip     a stretch under BLIP_LEN m whose lane count differs from the same street's
                    edge before it and after it, which agree (a lane that pops up and is gone);
-                   not the piece inside a junction between a dual road's two halves
+                   not the piece inside a junction between a dual road's two halves, nor a turn
+                   pocket (more lanes into a junction, one of them turn-only by its arrows; RT-4)
   R3 lane shift    a lane going straight on lands more than SHIFT_MAX m to the side of where its
                    own line leads (lane_graph.gd `next_lane` guesses the lane; OSM's turn:lanes
-                   are not used), measured across the bisector so a bend in the road does not count
+                   are not used), measured across the bisector so a bend in the road does not count;
+                   where the road goes on with no side road (a continuation, as in R1) the two edges
+                   share the node, so it is the difference of the lane's offsets, and a link at
+                   least RATE m long per metre aside is a lane change along a taper, not a jump
   R4 crossed links two lanes of one approach going straight on into one road cross each other
   R5 turn back     a link that turns by more than BACK_ANGLE rad onto another road at a node that
                    is no dead end (round a median's tip; real ones need a gap and no ban)
@@ -58,6 +65,8 @@ BLIP_LEN = 60.0       # R2
 BOX_LEN = 30.0        # R2: a stretch this short between two crossings is the inside of a junction, not a blip
 THROUGH = 0.25        # R3, R4: rad; a link this straight is "straight on"
 SHIFT_MAX = 1.75      # R3: m, about half a lane
+JUMP = 0.5            # R1: m; a lane moving over less than this across a continuation does not jump
+RATE = 6.0            # R1, R3: m along per m aside; a continuation link this long is a lane change (tools/lane_changes.py)
 TURN_MIN = 0.6        # lane_graph.gd next_lane: a turn from here on takes the outer lane
 BACK_ANGLE = 2.4      # R5: rad (137 degrees)
 TIGHT_R = 3.5         # R10: m, under a small car's turning circle
@@ -78,8 +87,11 @@ RING_ROUND = 0.15     # R9
 RULES = [("R1", "lane step"), ("R2", "lane blip"), ("R3", "lane shift"), ("R4", "crossed links"),
          ("R5", "turn back"), ("R6", "kink"), ("R7", "short edge"), ("R8", "arrow"), ("R9", "roundabout"), ("R10", "tight turn")]
 # --check ratchets (2026-11-13, main at 05b7c9c; R3 2026-11-15 after RT-2, tools/lane_links.py: 406 with
-# the game's own rule modelled, 261 after). Lower them, never raise them.
-CHECK = {"R1": 379, "R2": 71, "R3": 261, "R4": 0, "R5": 144, "R6": 83, "R7": 262, "R8": 56, "R9": 21, "R10": 266}
+# the game's own rule modelled, 261 after; RT-4, tools/lane_changes.py, 2026-11-15: R1 now counts the
+# lane count changes where a lane still jumps (329 of 379 on main by that rule, 44 after), R2 leaves
+# the turn pockets out (71 -> 39), R3 judges a continuation by the lanes' offsets and lets a link
+# along a taper be (255 on main by that rule, 229 after)). Lower them, never raise them.
+CHECK = {"R1": 44, "R2": 39, "R3": 229, "R4": 0, "R5": 144, "R6": 83, "R7": 262, "R8": 56, "R9": 21, "R10": 266}
 
 
 def unit(a, b):
@@ -178,6 +190,17 @@ class Graph:
         return not code or ("T" in code and abs(turn) < TURN_MIN) or ("R" in code and turn > SLIGHT) \
             or ("L" in code and turn < -SLIGHT)
 
+    def continuation(self, ei):
+        """The one edge on from ei's end where no side road joins (R1), or None."""
+        e = self.E[ei]
+        outs = [f for f in self.out[e["b"]] if f != self.rev[ei]]
+        ins = [x for x in self.inn[e["b"]] if not outs or self.rev[x] != outs[0]]
+        return outs[0] if len(outs) == 1 and len(ins) == 1 else None
+
+    def span(self, e, f):
+        """Metres along the road a continuation link spans (the two trims as the game drives them)."""
+        return (e["len"] - e["s1"]) + f["s0"]
+
     def exits(self, ei):
         """The edges a car on edge ei may take at its end: all but the way back, which only a
         dead end allows (traffic.gd)."""
@@ -189,8 +212,22 @@ class Graph:
         return angle(self.E[ei]["d1"], self.E[fi]["d0"])
 
 
+CENSUS = Counter()   # R1's census: every lane count change with no side road, jumping or not
+
+
 def finding(rule, x, z, name, text, worst=0.0):
     return {"rule": rule, "x": round(x, 1), "z": round(z, 1), "name": name, "text": text, "worst": round(worst, 2)}
+
+
+def pocket(g, fi):
+    """A turn pocket (RT-4): a stretch with more lanes than the street before it, ending at a
+    junction, where one of its lanes may only turn (its `tl` code from the map's turn arrows, OSM
+    turn:lanes, has no T). That is the real thing the extra lane is for, not a blip."""
+    f = g.E[fi]
+    tl = f.get("tl") or []
+    ends = {x for x in g.out[f["b"]]} | {x for x in g.inn[f["b"]]}
+    nodes = {g.E[x]["b"] if g.E[x]["a"] == f["b"] else g.E[x]["a"] for x in ends}
+    return len(nodes) >= 3 and any(c and "T" not in c for c in tl)
 
 
 def lane_counts(g):
@@ -203,10 +240,17 @@ def lane_counts(g):
         ins = [x for x in g.inn[e["b"]] if not outs or g.rev[x] != outs[0]]
         if len(outs) == 1 and len(ins) == 1:
             f = E[outs[0]]
-            if f["n"] != e["n"] and abs(g.turn(ei, outs[0])) < STRAIGHT:
-                p = e["P"][-1]
-                out.append(finding("R1", p[0], p[1], e["name"], "%d lanes become %d, no side road (%s)"
-                                   % (e["n"], f["n"], e["k"]), abs(f["n"] - e["n"])))
+            turn = g.turn(ei, outs[0])
+            if f["n"] != e["n"] and abs(turn) < STRAIGHT:
+                CENSUS["R1"] += 1
+                span = g.span(e, f)
+                moves = [abs(g.lane_off(f, g.next_lane(e, k, f, turn)) - g.lane_off(e, k))
+                         for k in range(e["n"]) if g.allows(e, k, turn)]
+                worst = max([m for m in moves if m > JUMP and span < RATE * m], default=None)
+                if worst is not None:
+                    p = e["P"][-1]
+                    out.append(finding("R1", p[0], p[1], e["name"], "%d lanes become %d, no side road, a lane jumps %.1f m in %.1f m (%s)"
+                                       % (e["n"], f["n"], worst, span, e["k"]), abs(f["n"] - e["n"])))
         best = None
         for fi in outs:
             t = abs(g.turn(ei, fi))
@@ -218,7 +262,8 @@ def lane_counts(g):
         hi = nxt.get(fi)
         e, f = E[ei], E[fi]
         boxed = f["len"] < BOX_LEN and len(g.out[f["a"]]) + len(g.inn[f["a"]]) >= 4 and len(g.out[f["b"]]) + len(g.inn[f["b"]]) >= 4
-        if hi is not None and f["len"] < BLIP_LEN and e["n"] == E[hi]["n"] != f["n"] and not boxed:
+        if hi is not None and f["len"] < BLIP_LEN and e["n"] == E[hi]["n"] != f["n"] and not boxed \
+                and not pocket(g, fi):
             p = f["P"][0]
             out.append(finding("R2", p[0], p[1], f["name"], "%d-%d-%d lanes over %.0f m"
                                % (e["n"], f["n"], e["n"], f["len"]), abs(f["n"] - e["n"])))
@@ -242,11 +287,19 @@ def links(g):
             a0, b0 = ends[0][0], ends[0][1]
             if abs(turn) < THROUGH:
                 bis = unit((0.0, 0.0), (e["d1"][0] + f["d0"][0], e["d1"][1] + f["d0"][1]))
+                on = g.continuation(ei) == fi
+                span = g.span(e, f)
                 worst = None
                 for a, b, k, j in ends:
                     if not g.allows(e, k, turn):
                         continue   # a turn lane: the town's cars in it take its turn (traffic.gd)
-                    side = abs((b[0] - a[0]) * -bis[1] + (b[1] - a[1]) * bis[0])
+                    if on:
+                        # one road going on: the edges share the node, the lane moves by its offsets
+                        side = abs(g.lane_off(f, j) - g.lane_off(e, k))
+                        if span >= RATE * side:
+                            continue   # a lane change along the taper (RT-4), R1's to judge
+                    else:
+                        side = abs((b[0] - a[0]) * -bis[1] + (b[1] - a[1]) * bis[0])
                     if side > SHIFT_MAX and math.dist(a, b) > 0.5 and (worst is None or side > worst[0]):
                         worst = (side, a, k, j)
                 if worst:
@@ -526,6 +579,7 @@ def bake_osm_oneway(t):
 
 
 def measure(m):
+    CENSUS.clear()
     g = Graph(m)
     ring_findings, n_rings, ring = rings(g)
     found = lane_counts(g) + links(g) + kinks(g) + arrows(g, m, ring)
@@ -564,7 +618,8 @@ def main(argv):
     if "--osm" in opts:
         line += ", T1 %d, T2 %d" % (counts.get("T1", 0), counts.get("T2", 0))
         print("road_truth " + info)
-    print("road_truth counts: %s (%d edges, %d rings)" % (line, len(g.E), n_rings))
+    print("road_truth counts: %s (%d edges, %d rings; R1 of %d lane count changes with no side road)"
+          % (line, len(g.E), n_rings, CENSUS["R1"]))
     if "--check" in opts:
         over = ["%s %d > %d" % (r, counts.get(r, 0), CHECK[r]) for r, _ in RULES if counts.get(r, 0) > CHECK[r]]
         if over:

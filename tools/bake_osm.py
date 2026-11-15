@@ -543,6 +543,13 @@ def main(src, trees_src, dst, extras_src=None, more_src=None):
     # edge and the railing along the road found once (tools/tram_stops.py).
     import tram_stops
     print("tram_stops: " + tram_stops.apply(out))
+    # Lane changes along the taper (RT-4, TD-23): where a street gains, loses or moves a lane between
+    # two of its ways, the lane graph's link runs along the drawn taper instead of a 3 m jump
+    # (tools/lane_changes.py; the same code runs on a baked map). After lane_tapers (the tapers it
+    # follows), lane_links (which judges its links at the bake's own trims) and object_fixes (the
+    # shelters whose bus stops it keeps clear).
+    import lane_changes
+    print("lane_changes: " + lane_changes.apply(out))
     # Stops turned the wrong way (F, 2026-11-08, Ratusz Arsenał): every tram stop's shelter open side
     # to its track, every shelter off the bus roads to its road, on the shelters as they finally stand.
     print("face_shelters: %d tram, %d road turned, %d left" % snap_props.face_shelters(out))
