@@ -14,6 +14,7 @@ import collections
 import importlib.util
 import json
 import math
+import glob
 import os
 import re
 import sys
@@ -69,10 +70,11 @@ def main():
 
     code = ''
     import glob
-    for f in glob.glob(os.path.join(ROOT, 'game', 'scripts', '*.gd')) + glob.glob(os.path.join(ROOT, 'game', 'data', '*.json')):
+    for f in glob.glob(os.path.join(ROOT, 'game', 'scripts', '*.gd')) + glob.glob(os.path.join(ROOT, 'game', 'scripts', 'landmarks', '*.gd')) + glob.glob(os.path.join(ROOT, 'game', 'data', '*.json')):
         code += open(f, encoding='utf-8').read()
     sites = [(float(a), float(b)) for a, b in re.findall(
-        r'"at": Vector2\(([-\d.]+), ([-\d.]+)\)', open(os.path.join(ROOT, 'game', 'scripts', 'landmarks.gd'), encoding='utf-8').read())]
+        r'"at": Vector2\(([-\d.]+), ([-\d.]+)\)', ''.join(open(f, encoding='utf-8').read() for f in [os.path.join(ROOT, 'game', 'scripts', 'landmarks.gd')]
+                        + sorted(glob.glob(os.path.join(ROOT, 'game', 'scripts', 'landmarks', '*.gd')))))]  # TD-10: and its area files
 
     outlines = {}
     for src in (data['landmarks'], [b for b in data['buildings'] if b['name']]):

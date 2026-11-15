@@ -40,17 +40,48 @@ extends Node
 ## faces the builder would have filed, city_barriers.gd `slab_faces` / `rail_faces`), so both paths
 ## collide exactly as before step 7. `set_soft` turns it over live on the sectors already loaded (the
 ## restored bodies go, or come), so the setting needs no restart.
+##
+## Step 8a (drivable-city-build.md item 4): the parked cars are pushed. The builder files their
+## colliders as ever (`Solid_parked`); swept, that body is turned off (`cars_hard`: its collision layer
+## 0) and their boxes are the sector root's "soft_cars" meta (map_builder.gd `soft_cars_data`, saved
+## with the prebuilt scene) in an 8 m cell hash of their bays (the list's "guard" cars, by a landmark,
+## stay hard: a `SoftHard_parked` body of their own). Each physics frame the car's box
+## where it is and where this frame's speed takes it next is tested against them (a frame early, so a
+## car that cannot move is a wall before the player is inside it):
+## - a push: the player keeps Solidity.push_keep of the speed (a quarter lost square on, almost nothing
+##   brushing along), its speed along the face's normal falling to PUSH_SHARE of what it was (the rest
+##   turned along the face); the parked car takes that PUSH_SHARE along the normal and a small spin,
+##   and slides with PUSH_FRICTION to a stop. One `cast_motion` of its box at the hit (and one for the
+##   car it would meet) clamps the slide at a wall; a car it slides into is pushed on in turn (a chain,
+##   PUSH_SHARE of its speed); a player still pushing carries it along (the speeds shared);
+## - wedged (the slide clamped under PUSH_WEDGED m: a wall, a car that cannot move): a box collider of
+##   class `parked` stands there while the player is near, so car.gd answers it as any wall, with the
+##   preset's own rules (collide_rules.gd);
+## - rest never in a lane corridor (the lane graph's lanes, `graph`): the slide is lengthened or
+##   shortened to the nearest free spot; with none the car is `towed`, hidden once out of view.
+## A pushed car is remembered like a broken panel (key: its id) and goes back to its bay by rule B; its
+## MultiMesh instance follows it (the tile's MultiMeshInstance3D carries map_builder.PARKED_TILE), and
+## is put back when its sector unloads. `no_soft` leaves the builder's `Solid_parked` on (nothing to
+## restore, so the default build is exactly as before step 8a): one switch for every soft thing.
+## Out: `pushed(id, at, dir, speed)` (main.gd: the knock, the counter, a bubble) and `car_returned(id)`.
 
 signal broke(id: String, panel: int, kind: StringName, at: Vector3, direction: Vector3, speed: float)
 signal repaired(id: String, panel: int)
+## Step 8a: a parked car was pushed (`at` where, `dir` the way it slides, `speed` the player's going in),
+## and one went back to its bay (rule B).
+signal pushed(id: String, at: Vector3, dir: Vector3, speed: float)
+signal car_returned(id: String)
 
 const Solidity := preload("res://scripts/solidity.gd")
 const CityBarriers := preload("res://scripts/city_barriers.gd")
+const MapBuilder := preload("res://scripts/map_builder.gd")
+const LaneGraph := preload("res://scripts/lane_graph.gd")
 
 ## The cell hash's cell (m).
 const CELL := 8.0
-## The sector size (map_builder.gd SECTOR).
+## The sector size (map_builder.gd SECTOR), and the key of the whole city's map node (--monolithic).
 const SECTOR := 512.0
+const WHOLE := Vector2i(1 << 20, 1 << 20)
 ## Nothing is swept slower than this (m/s).
 const MIN_SPEED := 2.0
 ## A frame's motion longer than this is a jump (a tow, a teleport): nothing is swept (m).
@@ -73,6 +104,26 @@ const DEBRIS_AMOUNT := 18
 const DEBRIS_LIFE := 1.1
 const DEBRIS_GAP := 0.08
 const DEBRIS_COLOUR := {"metal": Color("#3b3f44"), "wood": Color("#8a6a43"), "hedge": Color("#4d7a35")}
+## Step 8a, the parked cars: half width and half length of the box (map_builder.gd PARKED_FOOT) and its
+## height; nothing is pushed slower than CAR_MIN_SPEED (m/s: a creep still moves it, a little), nor by
+## less than PUSH_INTO m/s into its face (a brush); the lane rule looks for a free rest in REST_STEP m
+## steps, as short as it likes (a stop on the spot brakes REST_BRAKE_MOST) and as long as braking
+## REST_BRAKE_LEAST m/s² allows; a wedged car's collider stays while
+## the player is within HARD_NEAR m; the cast reaches CAST_SPARE m past the friction stop (room for a
+## player who keeps pushing); a push is one contact while touches come within TOUCH_GAP s.
+const CAR_HALF := Vector2(0.9, 2.1)
+const CAR_HIGH := 1.5
+const CAR_MIN_SPEED := 0.3
+const PUSH_INTO := 0.2
+const REST_STEP := 0.25
+const REST_BRAKE_MOST := 200.0
+const REST_BRAKE_LEAST := 2.0
+const HARD_NEAR := 9.0
+const CAST_SPARE := 2.0
+const TOUCH_GAP := 0.3
+## A parked car's states: in its bay, sliding, at rest off its bay, towed (it would have rested in a
+## lane: hidden once out of view, back in its bay by rule B).
+enum { BAY, SLIDING, MOVED, TOWED }
 
 ## The player's car (car.gd) this node watches; main.gd swaps it with the vehicle.
 var car: CharacterBody3D
@@ -92,11 +143,59 @@ var no_soft := false
 ## Microseconds spent restoring colliders (`harden`, on the main thread when a sector comes in with
 ## the fences hard, or at a toggle), for the bench and the check.
 var harden_usec := 0
+## How many sectors `harden` restored, and the longest one (µs): the stream soak prints them.
+var harden_count := 0
+var harden_most := 0
 ## Microseconds spent in the physics step (the bench's systems table).
 var spent_usec := 0
 ## Panels broken this session, and the sweeps run (frames the car was tested).
 var panels_broken := 0
 var sweeps := 0
+## Step 8a: the lane graph (lane_graph.gd) for the slide's lane rule; none: a car may rest anywhere.
+var graph: RefCounted
+## Step 8a: this session's pushes, wedged hits, chain pushes (a sliding car into another), cars towed,
+## casts made, and cars back in their bays.
+var pushes := 0
+var wedges := 0
+var chains := 0
+var towed := 0
+var casts := 0
+var returns := 0
+## Step 8a: pushes refused because the only rest out of the lanes was within PUSH_WEDGED m (a wall
+## instead, counted in `wedges` too).
+var lane_wedges := 0
+
+
+## Step 8a: one parked car: its bay from the map, where it is now, its slide.
+class Parked:
+	var id := ""
+	var bay := Transform3D()
+	var xf := Transform3D()
+	var root: Node3D
+	var tile := Vector2i.ZERO
+	var slot := -1
+	var state := 0
+	## The slide: its way, speed (m/s), braking (m/s²), metres gone, the most it may go (the cast),
+	## where it comes to rest (the lane rule; -1 none yet), its spin (rad/s) at speed0.
+	var dir := Vector2.ZERO
+	var speed := 0.0
+	var brake := 6.0
+	var gone := 0.0
+	var limit := INF
+	var target := -1.0
+	var spin := 0.0
+	var speed0 := 0.0
+	var in_lane := false
+	var touched := -INF
+	var hidden := false
+	var hard: StaticBody3D
+	## The MultiMesh drawing it (its tile's), found at the first move.
+	var mm: MultiMesh
+	## While sliding: the bays within `near_rect` (gathered once for a stretch of its way, NEAR_GROW m
+	## round its box), and the ground's last sample (`ground_gone`, m along the slide).
+	var near: Array = []
+	var near_rect := Rect2()
+	var ground_gone := -INF
 
 var _clock := 0.0
 var _dawns := 0
@@ -118,6 +217,21 @@ var _repair_wait := REPAIR_EVERY
 var _debris: GPUParticles3D
 var _debris_left := 0.0
 var _debris_wait := 0.0
+## Step 8a: sector key -> {"root", "cars": Array of Parked (its own), "cells": {Vector2i:
+## PackedInt32Array of indices into cars}} (none while `no_soft`); id -> Parked for every loaded own
+## car; the cars off their bays and the ones sliding; id -> [rest transform, towed] for a pushed car
+## whose sector left (put back where it lay when the sector comes in again).
+var _car_sectors := {}
+var _car_of := {}
+var _off_bay: Array = []
+var _sliding: Array = []
+var _car_rest := {}
+## The player's push test's bays (`_push_test`): the rect they were gathered for, and `_cars_gen` then
+## (it counts the sectors' cars coming and going).
+var _near_bays: Array = []
+var _near_rect := Rect2()
+var _near_gen := -1
+var _cars_gen := 0
 
 
 func _ready() -> void:
@@ -129,7 +243,7 @@ func _ready() -> void:
 ## into the hash; with `no_soft`, its colliders back instead (the runtime builder makes the soft list
 ## either way; with --no-soft it files them itself with CityBarriers.soft_off and has no list).
 func add_sector(root: Node3D) -> void:
-	if root == null or not root.has_meta(&"soft"):
+	if root == null or not (root.has_meta(&"soft") or root.has_meta(&"soft_cars")):
 		return
 	var key := _key_of(root)
 	if _roots.has(key) and is_same(_roots[key], root):
@@ -170,8 +284,14 @@ func set_soft(on: bool) -> int:
 	return n
 
 
-## A sector's soft list into the sweep's hash.
+## A sector's soft list into the sweep's hash (step 8a: and its parked cars into theirs, their
+## collider off).
 func _watch(key: Vector2i, root: Node3D) -> void:
+	if root.has_meta(&"soft_cars"):
+		cars_hard(root, false, _rect_of(key, root))
+		_watch_cars(key, root)
+	if not root.has_meta(&"soft"):
+		return
 	var soft: Dictionary = root.get_meta(&"soft")
 	_sectors[key] = {"root": root, "soft": soft, "cells": _cells_of(soft)}
 	var ids: PackedStringArray = soft["ids"]
@@ -183,23 +303,31 @@ func _watch(key: Vector2i, root: Node3D) -> void:
 ## A sector's soft lines hard (once: the root's "soft_hard" meta says it has them).
 func _harden_root(key: Vector2i, root: Node3D) -> void:
 	_sectors.erase(key)
-	if root.has_meta(&"soft_hard"):
+	_unwatch_cars(key, false)  # hard in their bays: the pushed ones go back first
+	cars_hard(root, true, Rect2())
+	if root.has_meta(&"soft_hard") or not root.has_meta(&"soft"):
 		return
 	var t0 := Time.get_ticks_usec()
 	root.set_meta(&"soft_hard", true)
-	harden(root, root.get_meta(&"soft"), Rect2(Vector2(key) * SECTOR, Vector2(SECTOR, SECTOR)) if root.name.begins_with("s_") else Rect2())
-	harden_usec += Time.get_ticks_usec() - t0
+	harden(root, root.get_meta(&"soft", {}), _rect_of(key, root))
+	var took := Time.get_ticks_usec() - t0
+	harden_usec += took
+	harden_count += 1
+	harden_most = maxi(harden_most, took)
 
 
 ## The sector's soft list is gone with its root (an unload).
 func remove_sector(key: Vector2i) -> void:
 	_sectors.erase(key)
+	_unwatch_cars(key)
 
 
 func _on_root_gone(root: Node3D) -> void:
 	var key := _key_of(root)
 	if _sectors.has(key) and is_same(_sectors[key]["root"], root):
 		_sectors.erase(key)
+	if _car_sectors.has(key) and is_same(_car_sectors[key]["root"], root):
+		_unwatch_cars(key)
 	if _roots.has(key) and is_same(_roots[key], root):
 		_roots.erase(key)
 
@@ -208,7 +336,7 @@ static func _key_of(root: Node) -> Vector2i:
 	var parts := String(root.name).split("_")
 	if parts.size() == 3 and parts[0] == "s":
 		return Vector2i(int(parts[1]), int(parts[2]))
-	return Vector2i(1 << 20, 1 << 20)  # the whole city (--monolithic)
+	return WHOLE  # the whole city (--monolithic)
 
 
 ## Each segment the sector owns (`own`) in every 8 m cell its box meets.
@@ -236,9 +364,10 @@ static func _cells_of(soft: Dictionary) -> Dictionary:
 
 
 ## A sector with its fences hard: its soft lines' collider faces, one body per class (`Solid_<class>`
-## meta, as the builder's own), the faces whose centre lies in `rect` (an empty rect: all of them).
+## meta, as the builder's own), the faces whose centre lies in `rect` (an empty rect: all of them);
+## step 8a: and its parked cars' (`cars`, the root's "soft_cars" meta) under `parked`.
 static func harden(root: Node3D, soft: Dictionary, rect: Rect2) -> void:
-	var by := hard_faces(soft, rect)
+	var by := hard_faces(soft, rect) if not soft.is_empty() else {}
 	for cls: StringName in by:
 		var body := StaticBody3D.new()
 		body.name = "SoftHard_" + String(cls)
@@ -252,6 +381,45 @@ static func harden(root: Node3D, soft: Dictionary, rect: Rect2) -> void:
 		root.add_child(body)
 
 
+## The sector rect of `key` for a sector root (`s_i_j`), else an empty rect (the whole city: all).
+func _rect_of(key: Vector2i, root: Node3D) -> Rect2:
+	return Rect2(Vector2(key) * SECTOR, Vector2(SECTOR, SECTOR)) if root.name.begins_with("s_") else Rect2()
+
+
+## Step 8a: `root`'s parked cars hard (`hard`: the builder's `Solid_parked` on, the guard's body gone,
+## exactly the build) or swept (`Solid_parked` off, its collision layer 0, and the "guard" cars of its
+## "soft_cars" meta, by a landmark, a `SoftHard_parked` body of their own, cut to `rect`). Cheap
+## either way: no faces are built for the swept cars.
+static func cars_hard(root: Node3D, hard: bool, rect: Rect2) -> void:
+	var body := root.get_node_or_null(^"Solid_parked") as CollisionObject3D
+	var guard := root.get_node_or_null(^"SoftHard_parked")
+	if hard:
+		if body != null and body.collision_layer == 0:
+			body.collision_layer = int(body.get_meta(&"layer_was", 1))
+		if guard != null:
+			root.remove_child(guard)
+			guard.queue_free()
+		return
+	if body != null and body.collision_layer != 0:
+		body.set_meta(&"layer_was", body.collision_layer)
+		body.collision_layer = 0
+	if guard != null:
+		return
+	var faces := car_faces(root.get_meta(&"soft_cars", {}), rect, "guard")
+	if faces.is_empty():
+		return
+	var g := StaticBody3D.new()
+	g.name = "SoftHard_parked"
+	g.set_meta(&"solid", &"parked")
+	var shape := CollisionShape3D.new()
+	var concave := ConcavePolygonShape3D.new()
+	concave.backface_collision = true
+	concave.set_faces(faces)
+	shape.shape = concave
+	g.add_child(shape)
+	root.add_child(g)
+
+
 ## `harden` undone: the restored bodies (`SoftHard_<class>`) leave the sector, its soft lines break
 ## again. Returns the bodies taken out.
 static func soften(root: Node3D) -> int:
@@ -263,6 +431,33 @@ static func soften(root: Node3D) -> int:
 			n += 1
 	root.remove_meta(&"soft_hard")
 	return n
+
+
+## Step 8a: the faces the builder files for the parked cars of `cars`' `part` (a root's "soft_cars"
+## meta: "cars" or "guard"), at their bays, cut to the faces whose centre lies in `rect` (an empty
+## rect: all).
+static func car_faces(cars: Dictionary, rect: Rect2, part := "cars") -> PackedVector3Array:
+	var out := PackedVector3Array()
+	if not cars.has(part):
+		return out
+	var list: PackedFloat64Array = cars[part]
+	for o in range(0, list.size(), MapBuilder.CAR_STRIDE):
+		var faces := MapBuilder.parked_faces(bay_of(list, o))
+		for i in range(0, faces.size() - 2, 3):
+			var c := (faces[i] + faces[i + 1] + faces[i + 2]) / 3.0
+			if rect.size == Vector2.ZERO or rect.has_point(Vector2(c.x, c.z)):
+				out.append_array([faces[i], faces[i + 1], faces[i + 2]])
+	return out
+
+
+## Step 8a: the bay of the parked car at `o` in a "soft_cars" list (the builder's very transform).
+static func bay_of(list: PackedFloat64Array, o: int) -> Transform3D:
+	return Transform3D(Basis(Vector3.UP, list[o + 2]), Vector3(list[o], list[o + 3], list[o + 1]))
+
+
+## Step 8a: a parked car's stable id, from its bay (the same on both paths and in every sector).
+static func car_id(x: float, z: float) -> String:
+	return "parked:%.1f:%.1f" % [x, z]
 
 
 ## The faces the builder would have filed for the soft list's segments ({class: faces}), cut to the
@@ -308,13 +503,20 @@ func step(dt: float) -> void:
 	if _repair_wait <= 0.0:
 		_repair_wait = REPAIR_EVERY
 		_repair_tick()
+	if not _sliding.is_empty():
+		_slide_cars(dt)
 	if car == null or not is_instance_valid(car) or no_soft:
 		_have_prev = false
 		return
 	var xf := car.global_transform
 	var v := Vector2(car.vel.x, car.vel.z)
-	if not _have_prev or car.collision_mask == 0 or v.length() < MIN_SPEED or _sectors.is_empty() \
-			or Vector2(xf.origin.x - _prev.origin.x, xf.origin.z - _prev.origin.z).length() > JUMP:
+	_drop_far_walls(xf.origin)
+	var jumped := _have_prev and Vector2(xf.origin.x - _prev.origin.x, xf.origin.z - _prev.origin.z).length() > JUMP
+	# Step 8a: the parked cars, where the car will be next frame (a creep still pushes).
+	if _have_prev and not jumped and car.collision_mask != 0 and v.length() >= CAR_MIN_SPEED and not _car_sectors.is_empty():
+		_push_test(xf, v, dt)
+		v = Vector2(car.vel.x, car.vel.z)
+	if not _have_prev or car.collision_mask == 0 or v.length() < MIN_SPEED or _sectors.is_empty() or jumped:
 		_prev = xf
 		_have_prev = true
 		return
@@ -479,14 +681,13 @@ func _sweep(from: Transform3D, to: Transform3D, v: Vector2, dt: float) -> void:
 							broke.emit(id, panel, kind, at, Vector3(way.x, 0.0, way.y), speed)
 	if grind:
 		keep *= 1.0 - cap_take(_window, _clock, Solidity.GRIND_COST * dt)
-	# WORKAROUND(arch): the smash's cost and the grind's nudge are written into the car's `vel` from
-	# here, because car.gd (the controls lane) was not to change in step 7; see TD-24.
+	# The smash's cost and the grind's nudge go through the car's own hook (car.gd apply_soft_cost).
 	if keep < 1.0:
-		car.vel *= keep
+		car.apply_soft_cost(keep, Vector3.ZERO)
 	if grind and nudge != Vector2.ZERO:
 		var out := Vector2(car.vel.x, car.vel.z).dot(nudge)
 		if out < Solidity.GRIND_NUDGE:
-			car.vel += Vector3(nudge.x, 0.0, nudge.y) * (Solidity.GRIND_NUDGE - out)
+			car.apply_soft_cost(1.0, Vector3(nudge.x, 0.0, nudge.y) * (Solidity.GRIND_NUDGE - out))
 	if touched != "" and contacts != null and contacts.has_method("soft_touch"):
 		contacts.soft_touch(touched, touched_at, angle_seen, touched_n)
 
@@ -511,6 +712,9 @@ func _evict() -> void:
 func _repair(key: String) -> void:
 	var e: Array = _broken[key]
 	_broken.erase(key)
+	if int(e[4]) < 0:
+		_return_car(String(e[3]))  # step 8a: a pushed car back in its bay
+		return
 	repaired.emit(String(e[3]), int(e[4]))
 
 
@@ -530,6 +734,11 @@ func _player_at() -> Vector3:
 func _repair_tick() -> void:
 	if _broken.is_empty():
 		return
+	# Step 8a: a towed car (it would have rested in a lane) goes once out of view, as if the tow took it.
+	for p: Parked in _off_bay:
+		if p.state == TOWED and not p.hidden and not _in_view(p.xf.origin):
+			p.hidden = true
+			_show(p)
 	var me := _player_at()
 	for key: String in _broken.keys():
 		var e: Array = _broken[key]
@@ -569,6 +778,7 @@ func repair_near(point: Vector3, r: float) -> int:
 func reset() -> void:
 	for key: String in _broken.keys():
 		_repair(key)
+	_car_rest.clear()
 	_window.clear()
 	_have_prev = false
 
@@ -599,6 +809,741 @@ func segment_count() -> int:
 	for k: Vector2i in _sectors:
 		n += (_sectors[k]["soft"]["segs"] as PackedFloat64Array).size() / CityBarriers.SOFT_STRIDE
 	return n
+
+
+# --- step 8a: the parked cars -------------------------------------------------------------------
+
+## The ground under a point for a sliding car (main.gd: the map's terrain_height); none: the bay's.
+var ground_at := Callable()
+## The cars with a wall standing (wedged), so the walls far from the player can go.
+var _walls: Array = []
+
+
+## A sector's parked cars into their hash: the ones it owns (its spot in it, drawn by its tile's
+## MultiMesh), each in its bay or, pushed before the sector left, where it was left lying.
+func _watch_cars(key: Vector2i, root: Node3D) -> void:
+	_unwatch_cars(key)
+	var list: PackedFloat64Array = (root.get_meta(&"soft_cars") as Dictionary).get("cars", PackedFloat64Array())
+	var cars: Array = []
+	var cells := {}
+	for o in range(0, list.size(), MapBuilder.CAR_STRIDE):
+		if list[o + 4] < 0.5:
+			continue  # another sector's car whose collider reached in: that sector pushes it
+		var p := Parked.new()
+		p.bay = bay_of(list, o)
+		p.xf = p.bay
+		p.id = car_id(list[o], list[o + 1])
+		p.root = root
+		p.tile = Vector2i(int(list[o + 5]), int(list[o + 6]))
+		p.slot = int(list[o + 7])
+		var c := Vector2i(floori(list[o] / CELL), floori(list[o + 1] / CELL))
+		var l: PackedInt32Array = cells.get(c, PackedInt32Array())
+		l.append(cars.size())
+		cells[c] = l
+		cars.append(p)
+		_car_of[p.id] = p
+		if _car_rest.has(p.id):
+			var rest: Array = _car_rest[p.id]
+			_car_rest.erase(p.id)
+			p.xf = rest[0]
+			p.state = TOWED if bool(rest[1]) else MOVED
+			p.hidden = p.state == TOWED
+			_off_bay.append(p)
+			_show(p)
+	_car_sectors[key] = {"root": root, "cars": cars, "cells": cells}
+	_cars_gen += 1
+
+
+## A sector's cars out of the hash (it left, or its cars are hard now). A pushed car's instance goes
+## back to its bay (its MultiMesh may be cached and loaded again); `keep` remembers where it lay (the
+## sector unloads), else it is forgotten (its cars are hard in their bays now).
+func _unwatch_cars(key: Vector2i, keep := true) -> void:
+	var sec: Variant = _car_sectors.get(key)
+	if sec == null:
+		return
+	_car_sectors.erase(key)
+	_cars_gen += 1
+	for p: Parked in sec["cars"]:
+		_car_of.erase(p.id)
+		_drop_wall(p)
+		if p.state == BAY:
+			continue
+		if keep:
+			_car_rest[p.id] = [p.xf, p.state == TOWED]
+		else:
+			_broken.erase(p.id)
+		p.xf = p.bay
+		p.hidden = false
+		p.state = BAY
+		_show(p)
+		_off_bay.erase(p)
+		_sliding.erase(p)
+
+
+## The instance of `p` where the car is now (hidden: shrunk to nothing under the ground).
+func _show(p: Parked) -> void:
+	if p.slot < 0 or p.root == null or not is_instance_valid(p.root):
+		return
+	if p.mm == null:
+		p.mm = _multimesh(p)
+	var mm := p.mm
+	if mm == null or p.slot >= mm.instance_count:
+		return
+	if p.hidden:
+		mm.set_instance_transform(p.slot, Transform3D(Basis.from_scale(Vector3(0.001, 0.001, 0.001)), p.bay.origin - Vector3(0, 20.0, 0)))
+	else:
+		mm.set_instance_transform(p.slot, p.xf)
+
+
+## The MultiMesh drawing `p` (its tile's, under its sector root; null when there is none).
+func _multimesh(p: Parked) -> MultiMesh:
+	for c in p.root.get_children():
+		var mmi := c as MultiMeshInstance3D
+		if mmi != null and mmi.get_meta(MapBuilder.PARKED_TILE, Vector2i(1 << 30, 0)) == p.tile:
+			return mmi.multimesh
+	return null
+
+
+## A car's box on the map (x, z), counter-clockwise from its back right, as swept_hull's corners.
+static func box_of(xf: Transform3D, half: Vector2) -> PackedVector2Array:
+	var right := Vector2(xf.basis.x.x, xf.basis.x.z).normalized() * half.x
+	var back := Vector2(xf.basis.z.x, xf.basis.z.z).normalized() * half.y
+	var o := Vector2(xf.origin.x, xf.origin.z)
+	return PackedVector2Array([o + right + back, o + right - back, o - right - back, o - right + back])
+
+
+## Whether convex polygons `a` and `b` overlap (separating axes).
+static func polys_meet(a: PackedVector2Array, b: PackedVector2Array) -> bool:
+	for poly: PackedVector2Array in [a, b]:
+		var n := poly.size()
+		for i in n:
+			var e := poly[(i + 1) % n] - poly[i]
+			var axis := Vector2(-e.y, e.x)
+			var a0 := INF
+			var a1 := -INF
+			var b0 := INF
+			var b1 := -INF
+			for q in a:
+				var d := q.dot(axis)
+				a0 = minf(a0, d)
+				a1 = maxf(a1, d)
+			for q in b:
+				var d := q.dot(axis)
+				b0 = minf(b0, d)
+				b1 = maxf(b1, d)
+			if a1 < b0 or b1 < a0:
+				return false
+	return true
+
+
+## The outward normal of the face of the parked car at `xf` that a body centred at `at` meets (on the
+## map): a side when `at` lies further out past the side than past an end, else an end.
+static func face_normal(xf: Transform3D, at: Vector2) -> Vector2:
+	var right := Vector2(xf.basis.x.x, xf.basis.x.z).normalized()
+	var back := Vector2(xf.basis.z.x, xf.basis.z.z).normalized()
+	var rel := at - Vector2(xf.origin.x, xf.origin.z)
+	var u := rel.dot(right)
+	var w := rel.dot(back)
+	if absf(u) - CAR_HALF.x > absf(w) - CAR_HALF.y:
+		return right * (1.0 if u >= 0.0 else -1.0)
+	return back * (1.0 if w >= 0.0 else -1.0)
+
+
+## The player's answer to a push (pure, for the check): its new velocity on the map after meeting a face
+## with outward normal `n` at velocity `v`, `offset` along the face (which way a square hit turns off):
+## Solidity.push_keep of the speed, PUSH_SHARE of the part into the face left going on into it (the
+## parked car moves as fast that way), the rest turned along the face.
+static func push_answer(v: Vector2, n: Vector2, offset: float) -> Vector2:
+	var speed := v.length()
+	var into := -v.dot(n)
+	if speed < 0.001 or into <= 0.0:
+		return v
+	var t := Vector2(-n.y, n.x)
+	var total := Solidity.push_keep(into / speed) * speed
+	var on := into * Solidity.PUSH_SHARE
+	var along := v.dot(t)
+	var side := signf(along) if absf(along) > 0.05 else (1.0 if offset >= 0.0 else -1.0)
+	return -n * on + t * side * sqrt(maxf(total * total - on * on, 0.0))
+
+
+## Every parked car that may meet a box within `lo`..`hi` (the bays in the cells round it, in this
+## sector and its neighbours, or the whole city's) and every car off its bay, not hidden.
+func _cars_near(lo: Vector2, hi: Vector2) -> Array:
+	var out := _bays_near(lo, hi)
+	var r := Rect2(lo, hi - lo).grow(CAR_HALF.y)
+	for p: Parked in _off_bay:
+		if not p.hidden and r.has_point(Vector2(p.xf.origin.x, p.xf.origin.z)):
+			out.append(p)
+	return out
+
+
+## The parked cars in their bays in the cells round `lo`..`hi` (this sector's and its neighbours', or
+## the whole city's).
+func _bays_near(lo: Vector2, hi: Vector2) -> Array:
+	var out: Array = []
+	var c0 := Vector2i(floori((lo.x - CAR_HALF.y) / CELL), floori((lo.y - CAR_HALF.y) / CELL))
+	var c1 := Vector2i(floori((hi.x + CAR_HALF.y) / CELL), floori((hi.y + CAR_HALF.y) / CELL))
+	# The sectors the box reaches (a car is filed under its bay's sector), and the whole city's (--monolithic).
+	var keys: Array[Vector2i] = [WHOLE]
+	for sz in range(floori((lo.y - CAR_HALF.y) / SECTOR), floori((hi.y + CAR_HALF.y) / SECTOR) + 1):
+		for sx in range(floori((lo.x - CAR_HALF.y) / SECTOR), floori((hi.x + CAR_HALF.y) / SECTOR) + 1):
+			keys.append(Vector2i(sx, sz))
+	for k in keys:
+		var sec: Variant = _car_sectors.get(k)
+		if sec == null:
+			continue
+		var cells: Dictionary = sec["cells"]
+		var cars: Array = sec["cars"]
+		for cz in range(c0.y, c1.y + 1):
+			for cx in range(c0.x, c1.x + 1):
+				var list: Variant = cells.get(Vector2i(cx, cz))
+				if list == null:
+					continue
+				for i: int in list:
+					var p: Parked = cars[i]
+					if p.state == BAY:
+						out.append(p)
+	return out
+
+
+## The player's car against the parked cars: its box now and where this frame's speed takes it.
+func _push_test(xf: Transform3D, v: Vector2, dt: float) -> void:
+	var ahead := xf
+	ahead.origin += Vector3(v.x, 0.0, v.y) * dt
+	var hull := swept_hull(xf, ahead, _half())
+	var lo := hull[0]
+	var hi := hull[0]
+	for q in hull:
+		lo = lo.min(q)
+		hi = hi.max(q)
+	var y := xf.origin.y
+	var mid := (lo + hi) * 0.5
+	var reach := (hi - lo).length() * 0.5 + CAR_HALF.length()
+	# The bays round the car, gathered for a rect PLAYER_GROW m round its box and kept while it stays
+	# inside and no sector came or went; the cars off their bays near it on top.
+	if _near_gen != _cars_gen or not _near_rect.encloses(Rect2(lo, hi - lo)):
+		_near_rect = Rect2(lo, hi - lo).grow(PLAYER_GROW)
+		_near_bays = _bays_near(_near_rect.position, _near_rect.end)
+		_near_gen = _cars_gen
+	for li in 2:
+		for p: Parked in (_near_bays if li == 0 else _off_bay):
+			if p.hidden or (li == 0 and p.state != BAY) or (li == 1 and p.touched == _clock):
+				continue  # left its bay: met from the off-bay list (not twice: one pushed just now)
+			var py := p.xf.origin.y
+			if y + BODY_LOW > py + CAR_HIGH + TOP_SLACK or y + BODY_HIGH < py - FOOT_SLACK:
+				continue  # another level (a deck over it, a car park under)
+			if Vector2(p.xf.origin.x, p.xf.origin.z).distance_squared_to(mid) > reach * reach \
+					or not polys_meet(hull, box_of(p.xf, CAR_HALF)):
+				continue
+			_hit(p, xf, Vector2(car.vel.x, car.vel.z))
+
+
+## The player meets parked car `p` (next frame): a wall stands (car.gd answers it), it is carried on
+## (still in touch), wedged (a wall from now on), or pushed.
+func _hit(p: Parked, xf: Transform3D, v: Vector2) -> void:
+	if p.hard != null:
+		p.touched = _clock
+		return
+	if p.state == TOWED and p.hidden:
+		return
+	var me := Vector2(xf.origin.x, xf.origin.z)
+	if _clock - p.touched <= TOUCH_GAP and p.state != BAY:
+		p.touched = _clock
+		_carry(p, v)
+		return
+	var n := face_normal(p.xf, me)
+	var into := -v.dot(n)
+	if into < PUSH_INTO:
+		return  # brushing along it, or going away
+	p.touched = _clock
+	var speed := v.length()
+	var d := -n
+	var give := into * Solidity.PUSH_SHARE
+	if _room(p, d, cast_reach(give)) < Solidity.PUSH_WEDGED:
+		_wall(p)
+		wedges += 1
+		return
+	var t := Vector2(-n.y, n.x)
+	var c := Vector2(p.xf.origin.x, p.xf.origin.z)
+	var offset := (me - c).dot(t)
+	var side_face := absf(n.dot(Vector2(p.xf.basis.x.x, p.xf.basis.x.z).normalized())) > 0.7
+	var half_t := CAR_HALF.y if side_face else CAR_HALF.x
+	if not _start_slide(p, d, give, clampf(offset / half_t, -1.0, 1.0)):
+		_wall(p)  # the lane rule would stop it within PUSH_WEDGED: it cannot move either
+		wedges += 1
+		return
+	# The push's answer through the car's hook (car.gd apply_soft_cost): its ground speed becomes `nv`.
+	var nv := push_answer(v, n, offset)
+	car.apply_soft_cost(1.0, Vector3(nv.x - car.vel.x, 0.0, nv.y - car.vel.z))
+	var at := Vector3(c.x + n.x * (CAR_HALF.x if side_face else CAR_HALF.y), p.xf.origin.y + 0.7, c.y + n.y * (CAR_HALF.x if side_face else CAR_HALF.y))
+	at += Vector3(t.x, 0.0, t.y) * clampf(offset, -half_t, half_t)
+	pushes += 1
+	_remember(p.id, p.id, -1, p.xf.origin)
+	pushed.emit(p.id, at, Vector3(d.x, 0.0, d.y), speed)
+	if contacts != null and contacts.has_method("soft_touch"):
+		contacts.soft_touch("parked", at, rad_to_deg(asin(clampf(into / maxf(speed, 0.001), 0.0, 1.0))), 1)
+
+
+## How far a push at `speed` m/s may take a car (m): past the friction stop by CAST_SPARE (a player who
+## keeps pushing), and as far as the lane rule may lengthen the slide (braking REST_BRAKE_LEAST).
+static func cast_reach(speed: float) -> float:
+	return maxf(Solidity.push_slide(speed) + CAST_SPARE, speed * speed / (2.0 * REST_BRAKE_LEAST))
+
+
+## How far parked car `p` can slide along `d` (up to `want` m): one cast of its box against the
+## colliders, then the first parked car in its way, which moves on only as far as its own cast allows
+## (a car behind that one stands for a wall). Leaves the cast's clamp in `p.limit`.
+func _room(p: Parked, d: Vector2, want: float) -> float:
+	p.limit = _cast(p.xf, d, want)
+	var way := _car_in_way(p, p.xf, d, p.limit)
+	if way.is_empty():
+		return p.limit
+	var q: Parked = way[0]
+	var gap: float = way[1]
+	if q.hard != null:
+		return gap
+	var q_limit := _cast(q.xf, d, maxf(want - gap, 0.0))
+	var beyond := _car_in_way(q, q.xf, d, q_limit)
+	if not beyond.is_empty():
+		q_limit = float(beyond[1])
+	return minf(p.limit, gap + q_limit)
+
+
+## The free distance (m, at most `want`) for a parked car's box at `xf` moved along `d`: one
+## cast_motion against the colliders (a hair narrower than the car, so a bay touching a wall still
+## moves away from it; never the player's car).
+func _cast(xf: Transform3D, d: Vector2, want: float) -> float:
+	if want <= 0.0:
+		return 0.0
+	casts += 1
+	var space := _space()
+	if space == null:
+		return want
+	var box := BoxShape3D.new()
+	box.size = Vector3(CAR_HALF.x * 2.0 - 0.2, CAR_HIGH - 0.4, CAR_HALF.y * 2.0 - 0.2)
+	var q := PhysicsShapeQueryParameters3D.new()
+	q.shape = box
+	q.transform = Transform3D(xf.basis, xf.origin + Vector3(0, 0.3 + box.size.y * 0.5, 0))
+	q.motion = Vector3(d.x, 0.0, d.y) * want
+	q.collision_mask = 1
+	if car != null and is_instance_valid(car):
+		q.exclude = [car.get_rid()]
+	var r := space.cast_motion(q)
+	if r.size() < 2:
+		return want
+	return want * float(r[0])
+
+
+func _space() -> PhysicsDirectSpaceState3D:
+	if not is_inside_tree():
+		return null
+	var w := get_viewport().find_world_3d()
+	return w.direct_space_state if w != null else null
+
+
+## The first parked car (not `p`) that `p`'s box at `xf` meets moving along `d` within `upto` m, in
+## REST_STEP m steps, and the metres it can go before: [car, gap] or []. A car it already overlaps
+## (two bays drawn into each other) is no obstacle.
+func _car_in_way(p: Parked, xf: Transform3D, d: Vector2, upto: float) -> Array:
+	var from := Vector2(xf.origin.x, xf.origin.z)
+	var to := from + d * upto
+	var near := _cars_near(from.min(to), from.max(to))
+	var box0 := box_of(xf, CAR_HALF)
+	var cands: Array = []
+	for q: Parked in near:
+		if q != p and absf(q.xf.origin.y - xf.origin.y) < CAR_HIGH and not polys_meet(box0, box_of(q.xf, CAR_HALF)):
+			cands.append(q)
+	if cands.is_empty():
+		return []
+	var s := REST_STEP
+	var last := 0.0
+	while true:
+		var go := minf(s, upto)
+		var moved := xf
+		moved.origin += Vector3(d.x, 0.0, d.y) * go
+		var box := box_of(moved, CAR_HALF)
+		for q: Parked in cands:
+			if polys_meet(box, box_of(q.xf, CAR_HALF)):
+				return [q, last]
+		last = go
+		if go >= upto:
+			break
+		s += REST_STEP
+	return []
+
+
+## Parked car `p` starts sliding along `d` at `speed` m/s, spinning by `lever` (-1..1: where along the
+## face it was hit), toward a rest the lane rule allows. False (and `p` as it was) when the only rest
+## out of the lanes is within PUSH_WEDGED m short of where friction would take it: it cannot move.
+func _start_slide(p: Parked, d: Vector2, speed: float, lever: float) -> bool:
+	var was := [p.dir, p.speed, p.speed0, p.gone, p.spin]
+	p.dir = d
+	p.speed = speed
+	p.speed0 = speed
+	p.gone = 0.0
+	p.spin = clampf(-Solidity.PUSH_SPIN * speed * lever, -Solidity.PUSH_SPIN_MOST, Solidity.PUSH_SPIN_MOST)
+	p.near_rect = Rect2()
+	p.ground_gone = -INF
+	var natural := _plan_rest(p)
+	if p.target >= 0.0 and p.target < Solidity.PUSH_WEDGED and p.target < natural - 0.01:
+		p.dir = was[0]
+		p.speed = was[1]
+		p.speed0 = was[2]
+		p.gone = was[3]
+		p.spin = was[4]
+		p.target = -1.0
+		p.brake = Solidity.PUSH_FRICTION
+		lane_wedges += 1
+		return false
+	if p.state == BAY:
+		_off_bay.append(p)
+	if not _sliding.has(p):
+		_sliding.append(p)
+	p.state = SLIDING
+	p.hidden = false
+	return true
+
+
+## The player still touching `p` and closing on it: the speeds along its way shared (it is carried
+## on); at its clamp it is wedged from now on.
+func _carry(p: Parked, v: Vector2) -> void:
+	var going := p.speed if p.state == SLIDING else 0.0
+	var w := v.dot(p.dir) - going
+	if w <= 0.0:
+		return
+	if p.gone >= p.limit - 0.05:
+		_wall(p)
+		wedges += 1
+		return
+	car.apply_soft_cost(1.0, -Vector3(p.dir.x, 0.0, p.dir.y) * w * 0.5)  # half the closing speed shared
+	if p.state != SLIDING:
+		if not _sliding.has(p):
+			_sliding.append(p)
+		p.state = SLIDING
+		p.speed0 = maxf(p.speed0, 0.1)
+	p.speed = going + w * 0.5
+	_plan_rest(p)
+
+
+## A wall where `p` stands (a box collider of class `parked`), until the player is HARD_NEAR m away.
+func _wall(p: Parked) -> void:
+	if p.hard != null:
+		return
+	var body := StaticBody3D.new()
+	body.name = "WedgedCar"
+	body.set_meta(&"solid", &"parked")
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(CAR_HALF.x * 2.0, CAR_HIGH, CAR_HALF.y * 2.0)
+	shape.shape = box
+	body.add_child(shape)
+	add_child(body)
+	body.global_transform = Transform3D(p.xf.basis, p.xf.origin + Vector3(0, CAR_HIGH * 0.5, 0))
+	p.hard = body
+	_walls.append(p)
+	if _sliding.has(p):
+		_rest(p)
+
+
+func _drop_wall(p: Parked) -> void:
+	if p.hard != null:
+		if is_instance_valid(p.hard):
+			p.hard.queue_free()
+		p.hard = null
+	_walls.erase(p)
+
+
+## The walls of wedged cars the player has left behind go.
+func _drop_far_walls(at: Vector3) -> void:
+	for p: Parked in _walls.duplicate():
+		if Vector2(p.xf.origin.x - at.x, p.xf.origin.z - at.z).length() > HARD_NEAR:
+			_drop_wall(p)
+
+
+## The sliding cars one frame on: friction (or the lane rule's braking) to their rest, never past
+## their clamp; one that meets another parked car pushes it on (a chain) and loses what it gave.
+func _slide_cars(dt: float) -> void:
+	for p: Parked in _sliding.duplicate():
+		var v0 := p.speed
+		var v1 := maxf(v0 - p.brake * dt, 0.0)
+		var step := (v0 + v1) * 0.5 * dt
+		var stop_at := p.limit if p.target < 0.0 else minf(p.limit, p.target)
+		if p.gone + step >= stop_at - 0.001:
+			step = maxf(stop_at - p.gone, 0.0)
+			v1 = 0.0
+		var turn := p.spin * minf((v0 + v1) * 0.5 / maxf(p.speed0, 0.1), 1.0) * dt
+		var next := Transform3D(Basis(Vector3.UP, turn) * p.xf.basis, p.xf.origin + Vector3(p.dir.x, 0.0, p.dir.y) * step)
+		if ground_at.is_valid() and (p.gone + step - p.ground_gone >= GROUND_EVERY or v1 <= 0.0):
+			next.origin.y = float(ground_at.call(next.origin.x, next.origin.z))
+			p.ground_gone = p.gone + step
+		var q := _meets_car(p, next)
+		if q != null:
+			_push_on(q, p)
+			if p.speed <= 0.05:
+				_rest(p)
+			continue
+		p.xf = next
+		p.gone += step
+		p.speed = v1
+		_show(p)
+		if v1 <= 0.0:
+			_rest(p)
+
+
+## The first parked car (not `p`) that `p`'s box at `xf` meets and did not meet where it was.
+func _meets_car(p: Parked, xf: Transform3D) -> Parked:
+	var box := box_of(xf, CAR_HALF)
+	var lo := box[0]
+	var hi := box[0]
+	for v in box:
+		lo = lo.min(v)
+		hi = hi.max(v)
+	# The bays round its way, kept while its box stays inside the rect they were gathered for.
+	if not p.near_rect.encloses(Rect2(lo, hi - lo)):
+		p.near_rect = Rect2(lo, hi - lo).grow(NEAR_GROW)
+		p.near = _bays_near(p.near_rect.position, p.near_rect.end)
+	var q := _first_met(p, xf, box, p.near, true)
+	return q if q != null else _first_met(p, xf, box, _off_bay, false)
+
+
+## The first car of `list` (in its bay when `bays`) other than `p` that `box` (p's at `xf`) meets and
+## p's box where it is did not.
+func _first_met(p: Parked, xf: Transform3D, box: PackedVector2Array, list: Array, bays: bool) -> Parked:
+	var reach2 := CAR_HALF.length_squared() * 4.0
+	var was := PackedVector2Array()
+	for q: Parked in list:
+		if q == p or q.hidden or (bays and q.state != BAY) or absf(q.xf.origin.y - xf.origin.y) >= CAR_HIGH \
+				or Vector2(q.xf.origin.x - xf.origin.x, q.xf.origin.z - xf.origin.z).length_squared() > reach2:
+			continue
+		var qb := box_of(q.xf, CAR_HALF)
+		if not polys_meet(box, qb):
+			continue
+		if was.is_empty():
+			was = box_of(p.xf, CAR_HALF)
+		if not polys_meet(was, qb):
+			return q
+	return null
+
+
+## Sliding car `p` meets parked car `q`: `q` takes PUSH_SHARE of the closing speed into its face and
+## slides (unless it cannot move, or stands as a wall), `p` keeps the rest of its own. A `q` already
+## sliding is only sped up (no second push heard or counted); one sliding away as fast is followed.
+func _push_on(q: Parked, p: Parked) -> void:
+	var v := p.dir * p.speed
+	var n := face_normal(q.xf, Vector2(p.xf.origin.x, p.xf.origin.z))
+	var moving := q.state == SLIDING
+	var vq := q.dir * q.speed if moving else Vector2.ZERO
+	var into := -(v - vq).dot(n)
+	if q.hard != null:
+		p.speed = 0.0
+		return
+	if into < PUSH_INTO:
+		p.speed = clampf(vq.dot(p.dir), 0.0, p.speed)  # behind it at its pace, or stopped against it
+		return
+	var give := into * Solidity.PUSH_SHARE + maxf(vq.dot(-n), 0.0)
+	if _room(q, -n, cast_reach(give)) < Solidity.PUSH_WEDGED:
+		p.speed = 0.0
+		return
+	var t := Vector2(-n.y, n.x)
+	var side_face := absf(n.dot(Vector2(q.xf.basis.x.x, q.xf.basis.x.z).normalized())) > 0.7
+	var lever := clampf((Vector2(p.xf.origin.x, p.xf.origin.z) - Vector2(q.xf.origin.x, q.xf.origin.z)).dot(t)
+			/ (CAR_HALF.y if side_face else CAR_HALF.x), -1.0, 1.0)
+	if not _start_slide(q, -n, give, lever):
+		p.speed = 0.0
+		return
+	p.speed = maxf(p.speed - into * Solidity.PUSH_SHARE, 0.0)
+	_plan_rest(p)
+	if moving:
+		return
+	chains += 1
+	_remember(q.id, q.id, -1, q.xf.origin)
+	pushed.emit(q.id, q.xf.origin + Vector3(0, 0.7, 0), Vector3(-n.x, 0.0, -n.y), give)
+
+
+## `p` has stopped: at rest off its bay, or towed when the lane rule found it no free rest.
+func _rest(p: Parked) -> void:
+	_sliding.erase(p)
+	p.speed = 0.0
+	if p.in_lane:
+		if p.state != TOWED:
+			towed += 1
+		p.state = TOWED
+	else:
+		p.state = MOVED
+	if _broken.has(p.id):
+		_broken[p.id][2] = p.xf.origin
+
+
+## The lane rule: where `p` comes to rest, never in a lane corridor. From where friction would stop
+## it (never past its clamp), the nearest spot either way (REST_STEP apart, from where it is now to as
+## far as braking REST_BRAKE_LEAST allows) whose box is clear of every lane of the graph on its level;
+## with none it rests where friction stops it and is `towed`. No graph: friction alone. Returns where
+## friction alone would stop it (_start_slide: a rest shortened under PUSH_WEDGED is a wedge).
+func _plan_rest(p: Parked) -> float:
+	p.brake = Solidity.PUSH_FRICTION
+	p.target = -1.0
+	p.in_lane = false
+	var v2 := p.speed * p.speed
+	var natural := minf(p.gone + v2 / (2.0 * Solidity.PUSH_FRICTION), p.limit)
+	if graph == null:
+		return natural
+	var lo := p.gone
+	var hi := minf(p.limit, p.gone + v2 / (2.0 * REST_BRAKE_LEAST))
+	var from := Vector2(p.xf.origin.x, p.xf.origin.z)
+	var reach := hi - p.gone + CAR_HALF.y + 1.0
+	var segs := corridor_segments(graph, from, reach, p.xf.origin.y)
+	var turn_left := p.spin * p.speed / (2.0 * Solidity.PUSH_FRICTION) * minf(p.speed / maxf(p.speed0, 0.1), 1.0)
+	var best := -1.0
+	var k := 0
+	while true:
+		var tried := false
+		for s: float in ([natural] if k == 0 else [natural + k * REST_STEP, natural - k * REST_STEP]):
+			if s < lo - 0.001 or s > hi + 0.001:
+				continue
+			tried = true
+			var at := Transform3D(Basis(Vector3.UP, turn_left) * p.xf.basis, p.xf.origin + Vector3(p.dir.x, 0.0, p.dir.y) * (s - p.gone))
+			if not in_corridor(at, segs):
+				best = s
+				break
+		if best >= 0.0 or (not tried and k > 0):
+			break
+		k += 1
+	if best < 0.0:
+		p.in_lane = true
+		return natural
+	p.target = best
+	var left := best - p.gone
+	p.brake = v2 / (2.0 * left) if left > 0.01 else REST_BRAKE_MOST
+	return natural
+
+
+## The lanes near `at` (within `reach` m, on its level: their surface within LANE_LEVEL m of `y`) of
+## lane graph `g`, as [ax, az, bx, bz, from, to] per centreline segment (`from`..`to` m right of it:
+## the lanes' outer edges).
+const LANE_LEVEL := 2.5
+## A sliding car gathers the bays within this many metres of its box once, until it leaves that rect.
+const NEAR_GROW := 4.0
+## The player's car the same, a little wider (at 30 m/s it leaves the rect every 10 frames).
+const PLAYER_GROW := 6.0
+## A sliding car samples the ground every this many metres (and where it stops).
+const GROUND_EVERY := 0.25
+static func corridor_segments(g, at: Vector2, reach: float, y: float) -> PackedFloat32Array:
+	var out := PackedFloat32Array()
+	var box := Rect2(at - Vector2(reach, reach), Vector2(reach, reach) * 2.0)
+	var cell := LaneGraph.CELL
+	var seen := {}
+	var c0 := Vector2i(floori((at.x - reach - 30.0) / cell), floori((at.y - reach - 30.0) / cell))
+	var c1 := Vector2i(floori((at.x + reach + 30.0) / cell), floori((at.y + reach + 30.0) / cell))
+	for cz in range(c0.y, c1.y + 1):
+		for cx in range(c0.x, c1.x + 1):
+			var list: Variant = g.grid.get(LaneGraph.cell_key(Vector2((cx + 0.5) * cell, (cz + 0.5) * cell)))
+			if list == null:
+				continue
+			for e: int in list:
+				if seen.has(e):
+					continue
+				seen[e] = true
+				var lw: float = g.e_lw[e]
+				var from: float = g.e_off0[e] - lw * 0.5
+				var to: float = g.e_off0[e] + lw * (int(g.e_lanes[e]) - 0.5)
+				var grow := maxf(absf(from), absf(to))
+				var i0: int = g.e_first[e]
+				for k in int(g.e_count[e]) - 1:
+					var a: Vector2 = g.pts[i0 + k]
+					var b: Vector2 = g.pts[i0 + k + 1]
+					var sb := Rect2(a.min(b), (a.max(b) - a.min(b))).grow(grow)
+					if not sb.intersects(box):
+						continue
+					if absf(float(g.height(e, (g.cum[i0 + k] + g.cum[i0 + k + 1]) * 0.5)) - y) > LANE_LEVEL:
+						continue
+					out.append_array([a.x, a.y, b.x, b.y, from, to])
+	return out
+
+
+## Whether a parked car's box at `xf` reaches into a lane of `segs` (corridor_segments): its corners,
+## the middles of its sides and three points down its middle, a hair inside the lanes' edges.
+static func in_corridor(xf: Transform3D, segs: PackedFloat32Array) -> bool:
+	if segs.is_empty():
+		return false
+	var right := Vector2(xf.basis.x.x, xf.basis.x.z).normalized() * CAR_HALF.x
+	var back := Vector2(xf.basis.z.x, xf.basis.z.z).normalized() * CAR_HALF.y
+	var o := Vector2(xf.origin.x, xf.origin.z)
+	var pts := [o + right + back, o + right - back, o - right - back, o - right + back, o + right, o - right,
+			o, o + back * 0.5, o - back * 0.5]
+	for i in range(0, segs.size(), 6):
+		var a := Vector2(segs[i], segs[i + 1])
+		var d := Vector2(segs[i + 2], segs[i + 3]) - a
+		var l2 := d.length_squared()
+		if l2 < 0.0001:
+			continue
+		var r := Vector2(-d.y, d.x) / sqrt(l2)
+		for q: Vector2 in pts:
+			var t := (q - a).dot(d) / l2
+			if t < 0.0 or t > 1.0:
+				continue
+			var side := (q - a).dot(r)
+			if side > segs[i + 4] + 0.05 and side < segs[i + 5] - 0.05:
+				return true
+	return false
+
+
+## A pushed car back in its bay (rule B, `repair_near`, `reset`): drawn there again, its wall gone.
+func _return_car(id: String) -> void:
+	_car_rest.erase(id)
+	var p: Parked = _car_of.get(id)
+	if p == null:
+		return
+	_drop_wall(p)
+	_off_bay.erase(p)
+	_sliding.erase(p)
+	p.state = BAY
+	p.xf = p.bay
+	p.hidden = false
+	p.speed = 0.0
+	p.touched = -INF
+	_show(p)
+	returns += 1
+	car_returned.emit(id)
+
+
+## Step 8a: the parked car `id` (the check; null when its sector is not in).
+func parked(id: String) -> Parked:
+	return _car_of.get(id)
+
+
+## Step 8a, for shots (main.gd `--push-parked=X,Z`): the parked car in its bay nearest `at` (within
+## 40 m) slides off sideways at `speed` m/s as a push would send it, to the side the walls and the lane
+## rule allow. Its id, or "" when none can move.
+func push_near(at: Vector2, speed: float) -> String:
+	var best: Parked = null
+	var best_d := 40.0
+	for key: Vector2i in _car_sectors:
+		for p: Parked in _car_sectors[key]["cars"]:
+			var dist := Vector2(p.xf.origin.x, p.xf.origin.z).distance_to(at)
+			if p.state == BAY and p.hard == null and dist < best_d:
+				best = p
+				best_d = dist
+	if best == null:
+		return ""
+	var side := Vector2(best.xf.basis.x.x, best.xf.basis.x.z).normalized()
+	for d: Vector2 in [side, -side]:
+		if _room(best, d, cast_reach(speed)) >= Solidity.PUSH_WEDGED and _start_slide(best, d, speed, 0.3):
+			pushes += 1
+			_remember(best.id, best.id, -1, best.xf.origin)
+			return best.id
+	return ""
+
+
+## Step 8a: how many parked cars are swept now (own, in the loaded sectors), and how many off their bays.
+func car_count() -> int:
+	var n := 0
+	for k: Vector2i in _car_sectors:
+		n += (_car_sectors[k]["cars"] as Array).size()
+	return n
+
+
+func off_bay_count() -> int:
+	return _off_bay.size()
 
 
 ## One burst of debris at `at`, thrown along `dir` (one pooled GPUParticles3D: made on the first

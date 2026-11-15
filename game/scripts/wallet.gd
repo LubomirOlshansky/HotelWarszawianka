@@ -462,6 +462,17 @@ func smashed(kind: String) -> int:
 	return int(keep.get("smash_" + kind, 0))
 
 
+## Step 8a (drivable-city-build.md 5.2): a parked car the player pushed (soft_things.gd `pushed`,
+## main.gd), a chain's second car too. One counter in [keep], `pushed_cars`, as the smashes are.
+func count_push() -> void:
+	keep["pushed_cars"] = int(keep.get("pushed_cars", 0)) + 1
+
+
+## Step 8a: how many parked cars the player has pushed, over every session.
+func pushed_cars() -> int:
+	return int(keep.get("pushed_cars", 0))
+
+
 ## Wipes the record (--reset-save).
 func reset() -> void:
 	zl = 0

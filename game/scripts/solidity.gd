@@ -43,11 +43,35 @@ const SMASH_CAP_TIME := 0.5
 const GRIND_ANGLE := 15.0
 const GRIND_COST := 0.03
 const GRIND_NUDGE := 0.3
+## Step 8a (drivable-city-build.md item 4): a parked car pushed, read by soft_things.gd. The player
+## keeps 1 - PUSH_LOSS × |cos θ| of the speed going into it (θ between the car's way and the face's
+## normal: a quarter lost head-on into its end or square into its side, almost nothing brushing it);
+## the parked car takes PUSH_SHARE of the player's speed along that normal, turns PUSH_SPIN rad/s for
+## each m/s of it at a corner (less toward the face's middle, at most PUSH_SPIN_MOST), slides with
+## PUSH_FRICTION m/s² and stops. A car whose slide is clamped under PUSH_WEDGED m (a wall, a car that
+## cannot move) does not give way: the player meets it as a wall.
+const PUSH_LOSS := 0.25
+const PUSH_SHARE := 0.6
+const PUSH_FRICTION := 6.0
+const PUSH_SPIN := 0.08
+const PUSH_SPIN_MOST := 0.6
+const PUSH_WEDGED := 0.5
 
 
 ## Step 7: the share of the speed one crossed panel of class `cls` takes.
 static func smash_cost(cls: StringName) -> float:
 	return float(SMASH_COST.get(cls, DEFAULT_SMASH))
+
+
+## Step 8a: the share of its speed the player keeps pushing a parked car, `cos_in` the cosine of the
+## angle between its way and the face's normal (1 square on, 0 brushing along it).
+static func push_keep(cos_in: float) -> float:
+	return 1.0 - PUSH_LOSS * clampf(absf(cos_in), 0.0, 1.0)
+
+
+## Step 8a: how far a parked car pushed at `speed` m/s slides before it stops (m).
+static func push_slide(speed: float) -> float:
+	return speed * speed / (2.0 * PUSH_FRICTION)
 
 ## {"list": Array[StringName] in the file's order, "answer": {StringName: String},
 ## "planned": {StringName: String}}.

@@ -309,6 +309,8 @@ var _shared := {}
 func build(path: String, building_mat: ShaderMaterial, flat_mat: ShaderMaterial) -> Dictionary:
 	_out = self
 	_setup(JSON.parse_string(FileAccess.get_file_as_string(path)), building_mat, flat_mat)
+	_soft_cars = PackedFloat64Array()
+	_soft_guard = PackedFloat64Array()
 	# v0.8: the landmarks replace whatever LoD2 or OpenStreetMap lump stood in their place.
 	var marks := Landmarks.new(self, data)
 	_marks = marks
@@ -320,6 +322,10 @@ func build(path: String, building_mat: ShaderMaterial, flat_mat: ShaderMaterial)
 	var soft: Dictionary = barriers.soft_data()
 	if not soft.is_empty():
 		set_meta(&"soft", soft)
+	# Step 8a: the whole city's parked cars (pushed, soft_things.gd).
+	var cars := soft_cars_data()
+	if not cars.is_empty():
+		set_meta(&"soft_cars", cars)
 	return data
 
 
@@ -512,6 +518,8 @@ func build_sector(key: Vector2i, roofs_only := false, merge := true) -> Node3D:
 	var ctx: Array = data.get("context", [])
 	_near = Rect2(ctx[0], ctx[1], ctx[2] - ctx[0], ctx[3] - ctx[1]) if ctx.size() == 4 else _sector_rect.grow(SECTOR_MARGIN)
 	_solids.clear()
+	_soft_cars = PackedFloat64Array()
+	_soft_guard = PackedFloat64Array()
 	# Lazy caches filled from `data`, which is this sector's file: kept from an earlier sector they would
 	# hold that sector's roads and make the result depend on the build order (check_sector_order.gd).
 	_powisle_segs.clear()
@@ -537,6 +545,10 @@ func build_sector(key: Vector2i, roofs_only := false, merge := true) -> Node3D:
 		var soft: Dictionary = barriers.soft_data()
 		if not soft.is_empty():
 			root.set_meta(&"soft", soft)
+		# Step 8a: and its parked cars, which are pushed (soft_things.gd), the same way.
+		var cars := soft_cars_data()
+		if not cars.is_empty():
+			root.set_meta(&"soft_cars", cars)
 	if merge:
 		_merge_roofs()
 	_merge = true
@@ -10226,7 +10238,7 @@ func _make_shared() -> void:
 
 
 func _tree_multimesh(mesh: Mesh, material: Material, spots: Array[Transform3D], colours: Array[Color],
-		custom: Array[Color] = [], parent: Node = null) -> Array[MultiMeshInstance3D]:
+		custom: Array[Color] = [], parent: Node = null, tag := &"") -> Array[MultiMeshInstance3D]:
 	var made: Array[MultiMeshInstance3D] = []
 	# One MultiMesh per tile, so off-screen tiles are skipped.
 	var tiles := {}
@@ -10261,6 +10273,8 @@ func _tree_multimesh(mesh: Mesh, material: Material, spots: Array[Transform3D], 
 		var mmi := MultiMeshInstance3D.new()
 		mmi.multimesh = mm
 		mmi.material_override = material
+		if tag != &"":
+			mmi.set_meta(tag, key)  # step 8a: the parked cars' tile (soft_things.gd moves a pushed one)
 		if note_solids:
 			# Step 4: the instances for check_colliders.gd (a headless run keeps no MultiMesh data).
 			var placed: Array[Transform3D] = []
@@ -10316,6 +10330,44 @@ func _conifer_mesh() -> ArrayMesh:
 
 ## The parked cars' paints, picked by the bake's index (loop 2c: models.gd, the red one slate).
 const CAR_PAINT := Models.PARKED_PAINT
+## A parked car's collider: the four sides of a 1.8 x 4.2 m box, 1.5 m high, round its spot.
+const PARKED_FOOT: Array[Vector3] = [Vector3(-0.9, 0, -2.1), Vector3(0.9, 0, -2.1), Vector3(0.9, 0, 2.1), Vector3(-0.9, 0, 2.1)]
+const PARKED_HIGH := 1.5
+## Step 8a: the meta naming the tile of a parked cars' MultiMesh (soft_things.gd finds a pushed car's
+## instance by it), and the numbers per car in `soft_cars`: x, z, yaw, the ground at its spot, own (its
+## spot in this sector: drawn and swept here), its tile's x and z, its instance in that tile's
+## MultiMesh (-1: drawn by another sector).
+const PARKED_TILE := &"parked_tile"
+const CAR_STRIDE := 8
+## Step 8a: the parked cars of the last build (one sector, or the whole map), CAR_STRIDE numbers each.
+var _soft_cars := PackedFloat64Array()
+## Step 8a: the parked cars of the last build kept hard by the landmark guard (CAR_STRIDE numbers
+## each, the "guard" part of `soft_cars_data`), and how many (none with --no-soft).
+var _soft_guard := PackedFloat64Array()
+var soft_cars_guarded := 0
+
+
+## A parked car's collider faces at `t` (its four sides, two triangles each, in the order they were
+## always filed): the builder's and soft_things.gd's restore (`harden`) are the same faces.
+static func parked_faces(t: Transform3D) -> PackedVector3Array:
+	var out := PackedVector3Array()
+	var up := Vector3(0, PARKED_HIGH, 0)
+	for k in 4:
+		var a: Vector3 = t * PARKED_FOOT[k]
+		var b: Vector3 = t * PARKED_FOOT[(k + 1) % 4]
+		out.append_array([a, b, b + up, a, b + up, a + up])
+	return out
+
+
+## Step 8a: the parked cars of the last build for a root's "soft_cars" meta ({} when there are none):
+## "cars" the pushed ones, "guard" the ones kept hard by a landmark (each part only when it has any).
+func soft_cars_data() -> Dictionary:
+	var out := {}
+	if not _soft_cars.is_empty():
+		out["cars"] = _soft_cars
+	if not _soft_guard.is_empty():
+		out["guard"] = _soft_guard
+	return out
 
 
 func _box(st, centre: Vector3, size: Vector3, col: Color) -> void:
@@ -10431,16 +10483,49 @@ func _build_street_furniture() -> void:
 		var z := float(list[i + 1])
 		spots.append(Transform3D(Basis(Vector3.UP, float(list[i + 2])), Vector3(x, terrain_height(x, z), z)))
 		paints.append(Color(CAR_PAINT[int(list[i + 3]) % CAR_PAINT.size()]))
-	for mmi in _tree_multimesh(_shared["parked"], _shared["car_paint"], spots, paints):
+	for mmi in _tree_multimesh(_shared["parked"], _shared["car_paint"], spots, paints, [], null, PARKED_TILE):
 		mmi.add_to_group(SMALL_CASTERS, true)
-	# Parked cars are obstacles too.
-	var footprint := [Vector3(-0.9, 0, -2.1), Vector3(0.9, 0, -2.1), Vector3(0.9, 0, 2.1), Vector3(-0.9, 0, 2.1)]
-	for t in spots:
+	# Parked cars are obstacles too: their colliders filed as ever (`Solid_parked`), so with the soft
+	# things off (the default) the sector is exactly as before step 8a. Step 8a: their boxes also go
+	# in `soft_cars` (the root's "soft_cars" meta, saved with the prebuilt scene, so both city paths
+	# read the same list): with the soft things on, soft_things.gd turns `Solid_parked` off and pushes
+	# them; a car inside or within LANDMARK_GUARD m of a carded landmark site's ring is in the list's
+	# "guard" part instead and stays hard (its own body then), as step 7's fences there. None with
+	# CityBarriers.soft_off (--no-soft).
+	_soft_cars = PackedFloat64Array()
+	_soft_guard = PackedFloat64Array()
+	soft_cars_guarded = 0
+	var tile_count := {}
+	for i in spots.size():
+		var t := spots[i]
+		var faces := parked_faces(t)
 		for k in 4:
-			var a: Vector3 = t * footprint[k]
-			var b: Vector3 = t * footprint[(k + 1) % 4]
-			var up := Vector3(0, 1.5, 0)
-			_solid(&"parked", [a, b, b + up, a, b + up, a + up])
+			_solid(&"parked", faces.slice(k * 6, k * 6 + 6))
+		if CityBarriers.soft_off:
+			continue
+		var tile := Vector2i(floori(t.origin.x / INSTANCE_TILE), floori(t.origin.z / INSTANCE_TILE))
+		var drawn_here := not _in_sector or tile == _sector or note_reach != 0
+		var own := not _in_sector or tile == _sector
+		var keep := own
+		if _in_sector:
+			for k in range(0, faces.size() - 2, 3):
+				var c := (faces[k] + faces[k + 1] + faces[k + 2]) / 3.0
+				keep = keep or _sector_rect.has_point(Vector2(c.x, c.z))
+		var slot := -1
+		if drawn_here:
+			slot = int(tile_count.get(tile, 0))
+			tile_count[tile] = slot + 1
+		if not keep:
+			continue
+		var foot := []
+		for k in 5:
+			var a := faces[(k % 4) * 6]
+			foot.append_array([a.x, a.z])
+		var guarded := barriers.near_landmark(foot)
+		if guarded:
+			soft_cars_guarded += 1
+		(_soft_guard if guarded else _soft_cars).append_array([t.origin.x, t.origin.z, float(list[i * 4 + 2]), t.origin.y,
+				1.0 if own else 0.0, float(tile.x), float(tile.y), float(slot)])
 
 
 ## Street-lamp heads, and the light they give off at night (linear; alpha = halo brightness).

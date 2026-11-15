@@ -113,7 +113,9 @@ CITY_INPUTS = ["map/lod2.bin", "map/terrain.json", "map/ao.bin", "map/lights.bin
                "scripts/landmarks.gd", "scripts/sector_proxies.gd", "scripts/models.gd",
                "scripts/pixel_font.gd", "scripts/index_pack.gd", "scripts/city_maps.gd",
                "tools/bake_city.gd", "data/courts.json", "scripts/solidity.gd", "data/object_palette.json",
-               "scripts/city_barriers.gd"]
+               "scripts/city_barriers.gd", "scripts/facade_kit.gd"]
+# TD-10 (2026-11-15): and every file of landmarks.gd's base chain, by name (bake_city.gd city_inputs).
+CITY_INPUT_DIRS = ["scripts/landmarks"]
 SETUP = "run tools/setup_map.sh"
 # Loop 3d-1 (the user's decision): from GUGiK's data alone, derived like the split: tools/setup_map.sh
 # --full rebuilds them from data/raw (tools/fetch_demo.py's downloads and the LoD2 package).
@@ -266,12 +268,22 @@ def city_state(keys, split_digest):
     stamp = read_json(os.path.join(MAP, "sectors", "city.stamp"))
     if not isinstance(stamp, dict):
         return "STALE", "no sectors/city.stamp (built before loop 3d-1): " + rebuild
-    changed = [p for p in CITY_INPUTS if stamp.get("inputs", {}).get(p) != sha256_file(os.path.join(ROOT, "game", p))]
+    changed = [p for p in city_inputs() if stamp.get("inputs", {}).get(p) != sha256_file(os.path.join(ROOT, "game", p))]
     if split_digest and stamp.get("split") != split_digest:
         changed.insert(0, "the sector split")
     if changed:
         return "STALE", "built from another %s: %s" % (", ".join(changed[:4]), rebuild)
     return "OK", "%d sector scenes, index.res and proxies.scn built from today's split, maps and scripts" % len(keys)
+
+
+def city_inputs():
+    """CITY_INPUTS and the .gd files of each CITY_INPUT_DIRS folder, sorted by name."""
+    out = list(CITY_INPUTS)
+    for d in CITY_INPUT_DIRS:
+        folder = os.path.join(ROOT, "game", d)
+        if os.path.isdir(folder):
+            out += [d + "/" + f for f in sorted(os.listdir(folder)) if f.endswith(".gd")]
+    return out
 
 
 def gugik_missing():

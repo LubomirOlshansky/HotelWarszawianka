@@ -1,0 +1,3 @@
+## Backlog
+- fixed: TD-10, `landmarks.gd` split by area (pipeline review item 5): the 43,546-line file is now a core of 1,919 lines (`_find_sites`, `build()`'s dispatch, the map's questions, `INFO`, `TOWERS`) and 16 files in `game/scripts/landmarks/` (`common.gd` and one per area), one inheritance chain from the facade kit, moved block by block with no line changed; every site alone, the runtime city and the prebuilt city are identical to before
+- found: `facade_kit.gd` was missing from the prebuilt city's inputs (`CITY_INPUTS`), so a kit change did not mark the prebuilt sectors stale; added with the area files

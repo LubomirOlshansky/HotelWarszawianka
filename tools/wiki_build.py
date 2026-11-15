@@ -958,11 +958,20 @@ def police_html() -> str:
 
 # ---- landmarks --------------------------------------------------------------------------------------
 
+def landmarks_rel(name: str) -> str:
+    """The file of landmarks.gd's base chain (TD-10: game/scripts/landmarks/*.gd) that holds `const name`."""
+    for rel in ["game/scripts/landmarks.gd"] + sorted("game/scripts/landmarks/" + p.name for p in (SCRIPTS / "landmarks").glob("*.gd")):
+        if any(c["name"] == name for c in gd_consts(rel)):
+            return rel
+    return "game/scripts/landmarks.gd"
+
+
 def page_landmarks(site: Site) -> int:
     rel = "game/scripts/landmarks.gd"
+    skins_rel = landmarks_rel("SKINS")
     info, info_ln = gd_table(rel, "INFO")
     towers, _ = gd_table(rel, "TOWERS")
-    skins, _ = gd_table(rel, "SKINS")
+    skins, _ = gd_table(skins_rel, "SKINS")
     towers = {t["key"]: t for t in towers or []}
     skins = {s["key"]: s for s in skins or []}
     hero = ["palace", "tarasy", "rotunda", "varso", "stadium", "centralna", "poniatowski"]
@@ -991,9 +1000,9 @@ def page_landmarks(site: Site) -> int:
                         + (f' · mapped as “{esc(t["osm"])}”' if t.get("osm") else ""))
             elif key in skins:
                 s = skins[key]
-                look_ln = line_of(rel, rf'\{{"key": "{re.escape(key)}"', look_ln or 0)
+                look_ln = line_of(skins_rel, rf'\{{"key": "{re.escape(key)}"', look_ln or 0)
                 look = f'Walls {swatch(s.get("wall", ""))} roof {swatch(s.get("roof", ""))} · style <code>{esc(s.get("mode", ""))}</code> · mapped as “{esc(s.get("osm", ""))}”'
-            edits = edit_link(rel, ln, "card text") + (" " + edit_link(rel, look_ln, "look") if look_ln else "")
+            edits = edit_link(rel, ln, "card text") + (" " + edit_link(skins_rel if key in skins and key not in towers else rel, look_ln, "look") if look_ln else "")
             cards.append(f'<article class="card lm" id="lm-{esc(key)}">{site.pics(key, 1)}<h3>{esc(card[0])}</h3>'
                          f'<p>{pl_en(card[1:3])}</p>{"<p class=small>" + look + "</p>" if look else ""}'
                          f'<p class="meta"><code>{esc(key)}</code> {edits}</p></article>')
