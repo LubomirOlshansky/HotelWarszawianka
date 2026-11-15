@@ -244,18 +244,27 @@ func _deski_player(at: Vector2, yaw: float, y: float, seed_n: int, padel: bool) 
 
 ## Stadion Wojska Polskiego on ul. Łazienkowska, home of the capital's football legion (rebuilt
 ## 2008-2010, about 31,000 seats), under the parody name "Stadion Leguminy" (spec
-## docs/landmarks/specs/legia.md, written 2026-11-01 in a cloud thread with no photos). The map
-## has it as one 27 m outline (the bowl), a 20 m west stand and a 5.4 m footprint; the model
-## is built from that outline: a dark glass concourse, a facade of light-grey and graphite
-## panels under a white-green-red band, a white roof ringing an open middle, three rings of
-## seats in white, green and red blocks round a striped pitch (105 x 68 m along the bowl's
-## long axis), four floodlight masts at the corners and LEGUMINA in neon on the south front.
-## Colours, panel rhythm and the mast spots are estimates: the Mac photo check is parked.
+## docs/landmarks/specs/legia.md). First built 2026-11-01 with no photos; rebuilt 2026-11-15 from
+## twelve Mapillary street photos of its Łazienkowska fronts (refs/legia/street/, never shipped).
+## The map has it as one 27 m outline (the bowl), a 20 m west stand and a 5.4 m footprint; the
+## model is built from that outline: a light grey concrete podium with a row of windows, the open
+## concourse behind tall columns above it with green banners between them, glass at the cut
+## corners, and the roof's signature: a row of white membrane tents along the edge, peak after
+## peak over a dark steel truss, overhanging the facade. Inside, three rings of seats round a
+## striped pitch (105 x 68 m along the bowl's long axis), the floodlights in a lit strip under the
+## roof's inner edge (no corner masts: the photos show none), LEGUMINA in neon on the south and
+## east fronts.
 const LEGIA_AT := Vector2(1139.0, 1500.0)
-const LEGIA_TOP := 27.0
 const LEGIA_GREEN := Color("#2b6e3f")
 const LEGIA_RED := Color("#b8212a")
-const LEGIA_PANELS := [Color("#d7dadd"), Color("#bcc1c6"), Color("#5a6068"), Color("#e8eaec"), Color("#a5abb1")]
+const LEGIA_CONCRETE := Color("#c9cccb")
+const LEGIA_RECESS := Color("#2c3136")
+const LEGIA_STEEL := Color("#4b5259")
+const LEGIA_PODIUM := 8.5
+const LEGIA_TOP := 24.5
+const LEGIA_EAVE := 26.0
+const LEGIA_PEAK := 31.5
+const LEGIA_BAY := 12.0
 
 
 func _find_legia() -> void:
@@ -320,42 +329,128 @@ func _build_legia(site: Dictionary) -> void:
 		for v in ring:
 			out.append(c + (v - c) * s)
 		return out
-	# The paved apron and the facade's foot.
-	var apron := _largest(Geometry2D.offset_polygon(ring, 3.5, Geometry2D.JOIN_MITER))
-	_mode = M_STONE
-	_prism(apron, g - 1.5, g + 0.25, Color("#a9a79f"), Color("#b6b4ac"), M_STONE, M_STONE)
-	# The concourse: dark glass to 6.5 m.
-	_prism(ring, g - 1.0, g + 6.5, Color("#2c3640"), none, M_GLASS)
-	# The facade above it: panels in greys, bay by bay, under a graphite band.
-	_mode = M_STONE
-	var bay := 0
+	# A flat band between two rings of the same corners (k to k), facing up or down.
+	var band := func(r0: PackedVector2Array, r1: PackedVector2Array, y: float, col: Color, up: bool) -> void:
+		for k in n:
+			var k1 := (k + 1) % n
+			_quad(Vector3(r0[k].x, y, r0[k].y), Vector3(r0[k1].x, y, r0[k1].y), Vector3(r1[k1].x, y, r1[k1].y),
+					Vector3(r1[k].x, y, r1[k].y), Vector3.UP if up else Vector3.DOWN, col)
+	# The cut corners (short edges at a slant to the bowl's axes) are glass from the ground to the
+	# roof (the photo from the north-east); the long fronts are podium, concourse and columns.
+	var corner: Array[bool] = []
 	for i in n:
-		var a := ring[i]
-		var b := ring[(i + 1) % n]
-		var out := _out(ring, a, b)
-		var length := a.distance_to(b)
-		var cuts := maxi(int(round(length / 7.0)), 1)
-		for k in cuts:
-			var p0 := a.lerp(b, float(k) / cuts)
-			var p1 := a.lerp(b, float(k + 1) / cuts)
-			var h := absi(int(floor(p0.x * 3.0 + p0.y * 7.0)))
-			_wall(p0, p1, g + 6.5, g + 21.8, out, LEGIA_PANELS[(bay * 3 + h) % LEGIA_PANELS.size()])
-			bay += 1
-		_wall(a, b, g + 21.8, g + 23.0, out, Color("#3a4047"))
-		_wall(a, b, g + 23.0, g + 23.4, out, LEGIA_RED)
-		_wall(a, b, g + 23.4, g + 25.0, out, LEGIA_GREEN)
-	# The roof rim: a white fascia, then the membrane down to the open middle.
-	var rim := _largest(Geometry2D.offset_polygon(ring, 0.4, Geometry2D.JOIN_MITER))
-	_prism(rim, g + 25.0, g + LEGIA_TOP + 1.0, Color("#f1f2f0"), none, M_STONE)
+		var e := ring[(i + 1) % n] - ring[i]
+		var d := absf(e.normalized().dot(axis))
+		corner.append(e.length() < 45.0 and d > 0.3 and d < 0.95)
+	# The paved apron round the foot: its sides and a band out from the outline (not a full cap:
+	# a full one 15 cm under the pitch won over it in the game's depth buffer, hiding the grass).
+	var apron := PackedVector2Array()
+	for k in n:
+		apron.append(ring[k] + dirs[k] * 4.0)
+	_mode = M_STONE
+	_prism(apron, g - 1.5, g + 0.25, Color("#a9a79f"), none, M_STONE)
+	band.call(ring, apron, g + 0.25, Color("#b6b4ac"), true)
 	_collide(ring)
-	var hole: PackedVector2Array = oblong.call(80.0, 61.0, 4.0)
+	# The facade: on the long fronts a light grey concrete podium with a row of windows (the kit's
+	# punched skin), a ledge, then the open concourse set back 3 m in shadow up to the roof.
+	var inset: PackedVector2Array = scaled.call(0.97)
+	for i in n:
+		var i1 := (i + 1) % n
+		var a := ring[i]
+		var b := ring[i1]
+		var out := _out(ring, a, b)
+		if corner[i]:
+			_mode = M_GLASS
+			_wall(a, b, g - 1.0, g + LEGIA_TOP, out, Color("#3a4652"))
+			continue
+		_mode = M_SKIN + S_PUNCHED / 16.0
+		_wall(a, b, g - 1.0, g + LEGIA_PODIUM, out, LEGIA_CONCRETE)
+		_mode = M_STONE
+		_quad(Vector3(a.x, g + LEGIA_PODIUM, a.y), Vector3(b.x, g + LEGIA_PODIUM, b.y), Vector3(inset[i1].x, g + LEGIA_PODIUM, inset[i1].y),
+				Vector3(inset[i].x, g + LEGIA_PODIUM, inset[i].y), Vector3.UP, LEGIA_CONCRETE.darkened(0.08))
+		_wall(inset[i], inset[i1], g + LEGIA_PODIUM, g + LEGIA_TOP, out, LEGIA_RECESS)
+		# The recess's ends, where it meets a glass corner.
+		for end: Array in [[a, inset[i], corner[(i + n - 1) % n], (b - a).normalized()], [b, inset[i1], corner[i1], (a - b).normalized()]]:
+			if end[2]:
+				var p: Vector2 = end[0]
+				var q: Vector2 = end[1]
+				var f: Vector2 = end[3]
+				_quad(Vector3(p.x, g + LEGIA_PODIUM, p.y), Vector3(q.x, g + LEGIA_PODIUM, q.y), Vector3(q.x, g + LEGIA_TOP, q.y),
+						Vector3(p.x, g + LEGIA_TOP, p.y), Vector3(f.x, 0.0, f.y), LEGIA_CONCRETE.darkened(0.2))
+	# The roof: a dark steel truss at the eave, 1.035 x the outline out (about 4 m over the
+	# facade), and on it a row of white membrane tents, one a bay (about 12 m), each a low
+	# pyramid peaking at 31.5 m 30 % of the way in from the eave to the valley line (0.9 x the
+	# outline), its sides meeting the next tent's in a valley at the eave's height.
+	var eave: PackedVector2Array = scaled.call(1.035)
+	var inner: PackedVector2Array = scaled.call(0.9)
+	_mode = M_STONE
+	band.call(ring, eave, g + LEGIA_TOP, LEGIA_STEEL.darkened(0.3), false)
 	_mode = M_MEMBRANE
-	var roof_y := g + LEGIA_TOP + 1.0
+	for k in n:
+		var k1 := (k + 1) % n
+		var out := _out(ring, ring[k], ring[k1])
+		_mode = M_STONE
+		_wall(eave[k], eave[k1], g + LEGIA_TOP, g + LEGIA_EAVE, out, LEGIA_STEEL)
+		_mode = M_MEMBRANE
+		var bays := maxi(int(round(eave[k].distance_to(eave[k1]) / LEGIA_BAY)), 1)
+		for j in bays:
+			var t0 := float(j) / bays
+			var t1 := float(j + 1) / bays
+			var e0 := eave[k].lerp(eave[k1], t0)
+			var e1 := eave[k].lerp(eave[k1], t1)
+			var i0 := inner[k].lerp(inner[k1], t0)
+			var i1 := inner[k].lerp(inner[k1], t1)
+			var top2 := ((e0 + e1) * 0.5).lerp((i0 + i1) * 0.5, 0.3)
+			var pk := Vector3(top2.x, g + LEGIA_PEAK, top2.y)
+			var y := g + LEGIA_EAVE
+			var faces := [[Vector3(e0.x, y, e0.y), Vector3(e1.x, y, e1.y), Color("#f6f6f3")],
+					[Vector3(i1.x, y, i1.y), Vector3(i0.x, y, i0.y), Color("#e3e5e4")],
+					[Vector3(i0.x, y, i0.y), Vector3(e0.x, y, e0.y), Color("#eceeeb")],
+					[Vector3(e1.x, y, e1.y), Vector3(i1.x, y, i1.y), Color("#eceeeb")]]
+			for f: Array in faces:
+				var p0: Vector3 = f[0]
+				var p1: Vector3 = f[1]
+				var nr := (p1 - p0).cross(pk - p0).normalized()
+				if nr.y < 0.0:
+					nr = -nr
+				_tri(p0, p1, pk, nr, f[2], Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
+	# The tall columns of the concourse, one at each tent's valley on the long fronts, and green
+	# and white banners hung between them on every third bay.
+	_mode = M_STONE
+	var bay_no := 0
+	for k in n:
+		if corner[k]:
+			continue
+		var k1 := (k + 1) % n
+		var a := ring[k]
+		var b := ring[k1]
+		var out := _out(ring, a, b)
+		var along := (b - a).normalized()
+		var bays := maxi(int(round(eave[k].distance_to(eave[k1]) / LEGIA_BAY)), 1)
+		for j in range(0, bays + 1):
+			var p := a.lerp(b, float(j) / bays)
+			if (j == 0 and corner[(k + n - 1) % n]) or (j == bays and corner[k1]):
+				continue  # the glass corner's edge
+			var s0 := p - along * 0.6
+			var s1 := p + along * 0.6
+			_wall(s0 + out * 0.6, s1 + out * 0.6, g + LEGIA_PODIUM, g + LEGIA_TOP, out, Color("#d9dbda"))
+			_wall(s0 - out * 0.6, s0 + out * 0.6, g + LEGIA_PODIUM, g + LEGIA_TOP, -along, Color("#b9bcbc"))
+			_wall(s1 + out * 0.6, s1 - out * 0.6, g + LEGIA_PODIUM, g + LEGIA_TOP, along, Color("#b9bcbc"))
+		for j in bays:
+			bay_no += 1
+			if bay_no % 3 != 1:
+				continue
+			var q0 := a.lerp(b, float(j) / bays) + along * 1.4 + out * 0.15
+			var q1 := a.lerp(b, float(j + 1) / bays) - along * 1.4 + out * 0.15
+			_wall(q0, q1, g + 11.0, g + 19.0, out, LEGIA_GREEN if bay_no % 2 == 1 else Color("#eef0ec"))
+	# The membrane inside the tents, from the valley line down to the open middle; its last 5 m
+	# grey-blue (the polycarbonate edge), the floodlights in a strip under it.
+	var hole: PackedVector2Array = oblong.call(80.0, 61.0, 4.0)
 	var hole_y := g + 24.0
 	for k in n:
 		var k1 := (k + 1) % n
-		var p0 := Vector3(rim[k].x, roof_y, rim[k].y)
-		var p1 := Vector3(rim[k1].x, roof_y, rim[k1].y)
+		var p0 := Vector3(inner[k].x, g + LEGIA_EAVE, inner[k].y)
+		var p1 := Vector3(inner[k1].x, g + LEGIA_EAVE, inner[k1].y)
 		var p2 := Vector3(hole[k1].x, hole_y, hole[k1].y)
 		var p3 := Vector3(hole[k].x, hole_y, hole[k].y)
 		var g0 := p3 + (p0 - p3) * (5.0 / p0.distance_to(p3))
@@ -363,8 +458,13 @@ func _build_legia(site: Dictionary) -> void:
 		var nr := (p1 - p0).cross(p3 - p0).normalized()
 		if nr.y < 0.0:
 			nr = -nr
+		_mode = M_MEMBRANE
 		_quad(p0, p1, g1, g0, nr, Color("#f4f4f1") if k % 2 == 0 else Color("#e9eae7"))
 		_quad(g0, g1, p2, p3, nr, Color("#8f9aa3") if k % 2 == 0 else Color("#98a2aa"))
+		var face := Vector3(c.x - (hole[k].x + hole[k1].x) * 0.5, 0.0, c.y - (hole[k].y + hole[k1].y) * 0.5).normalized()
+		_mode = M_LAMP
+		_quad(p3 + Vector3(0.0, -1.0, 0.0), p2 + Vector3(0.0, -1.0, 0.0), p2 + Vector3(0.0, -0.3, 0.0), p3 + Vector3(0.0, -0.3, 0.0),
+				face, Color("#fff1c9"))
 	# The bowl, from the pitch out: boards, the lower tier, a gangway, the dark glass of the
 	# boxes, the upper tier up under the roof. Seats in blocks of white, green and red.
 	_mode = M_STONE
@@ -375,7 +475,7 @@ func _build_legia(site: Dictionary) -> void:
 		[oblong.call(78.0, 61.0, 6.0), pitch + 10.0, Color("#8e8a88"), false],
 		[oblong.call(81.0, 64.0, 6.0), pitch + 10.0, Color("#3d4652"), false],
 		[oblong.call(81.0, 64.0, 6.0), pitch + 14.0, Color("#d0d3d6"), true],
-		[scaled.call(0.9), pitch + 23.5, Color(), false]]
+		[inner, pitch + 23.5, Color(), false]]
 	for t in range(1, bowl.size()):
 		var r0: PackedVector2Array = bowl[t - 1][0]
 		var y0: float = bowl[t - 1][1]
@@ -418,22 +518,6 @@ func _build_legia(site: Dictionary) -> void:
 		flat.call(at.call(-52.5, side * 34.0), at.call(52.5, side * 34.0), 0.6, y_long, line)
 		flat.call(at.call(side * 52.5, -34.3), at.call(side * 52.5, 34.3), 0.6, y_short, line)
 	flat.call(at.call(0.0, -34.3), at.call(0.0, 34.3), 0.6, y_short, line)
-	# Four floodlight masts at the corners, with a lit head each.
-	var used: Array[Vector2] = []
-	for sx: float in [-1.0, 1.0]:
-		for sy: float in [-1.0, 1.0]:
-			var best := ring[0]
-			var score := -INF
-			for v in ring:
-				var d := v - c
-				var s := d.dot(across) * sx + d.dot(axis) * sy
-				if d.dot(across) * sx > 0.0 and d.dot(axis) * sy > 0.0 and s > score:
-					score = s
-					best = v
-			used.append(c + (best - c) * 0.97)
-	for p in used:
-		_beam(Vector3(p.x, g, p.y), Vector3(p.x, g + 46.0, p.y), 0.9, Color("#c9ccd0"))
-		_prism(_circle(p, 2.6, 6), g + 46.0, g + 49.0, Color("#8c9096"), Color("#fff1c9"), M_LAMP, M_LAMP)
 	# LEGUMINA in neon on the two fronts the game's camera sees most (the longest edge facing
 	# south, the longest facing east): the sign's width is 0.55 of the front's.
 	var word := "LEGUMINA"
@@ -453,7 +537,7 @@ func _build_legia(site: Dictionary) -> void:
 		var eb := ring[(best_i + 1) % n]
 		var eo := _out(ring, ea, eb)
 		var mid_e := (ea + eb) * 0.5 + eo * 0.6
-		signs.append([word, Vector3(mid_e.x, g + 13.0, mid_e.y), Vector3(eo.x, 0.0, eo.y),
+		signs.append([word, Vector3(mid_e.x, g + 15.0, mid_e.y), Vector3(eo.x, 0.0, eo.y),
 				minf(60.0, best_len * 0.55) / Neon.length_of(word), Color(0.35, 1.0, 0.55)])
 
 

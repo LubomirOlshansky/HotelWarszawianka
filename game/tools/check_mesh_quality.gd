@@ -159,7 +159,7 @@ const BUDGET := {
 	"ilmet": 400,
 	"jp2_21": 280,
 	"kopernik": 1720,
-	"legia": 700,
+	"legia": 950,  # 2026-11-15 photo rework (762 tris): the roof's membrane tents, podium, concourse columns and banners, glass corners; no corner masts
 	"lim": 2500,  # podium from F's photos (2026-11-06) + the tower from 25 photos (2026-11-15): 2087 measured
 	"loretka": 1120,
 	"lucka": 850,  # 2026-11-06: rebuilt from F's photos (white stepped block, INTERBRUK board, masts)

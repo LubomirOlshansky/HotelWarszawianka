@@ -61,6 +61,7 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | 14e | Babka Tower from Jana Pawła II and the Babka roundabout, by day and at night | the tower reads pale stone with a glazed loggia column on each face, rising out of the 34 m stone office block; WEKTRA lit on the top floor at night | Babka Tower build |
 | 14f | Stadion Narodowy's park fence and gate boards, from Waszyngtona and the east path, by day and at night; then drive through a fence panel (it breaks with Łamliwe płoty on) and into a gate pier (it stands) | the black bar fence on its dark base reads open (you see the park through it); the red gate boards over the gates; no new stutter near the stadium | Narodowy grounds #808 |
 | 14g | Warsaw Trade Tower from Rondo ONZ and Chłodna, by day and at night | the dark glass drum's floor bands, the warm beige stone, the silver crown's slits; the mast down the west screen with its red-and-white top | WTT photo rework |
+| 14h | Stadion Leguminy (Legia) from Łazienkowska and the Trasa, by day and at night | the roof's edge reads as a row of white peaks over a dark truss; the green pitch shows; the columns and green banners along the concourse; the floodlight strip lit at night | Legia photo rework |
 | 15 | Settings → the experimental graphics switch, on and off at the Palace | the look and the frame | #647 |
 
 ## 5. The frame (3 min)
