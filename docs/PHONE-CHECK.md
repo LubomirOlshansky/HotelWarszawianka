@@ -33,7 +33,7 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | # | Do | Look for | From |
 | --- | --- | --- | --- |
 | 4 | "Zderzenia · Collisions": drive Marszałkowska and scrape a wall, a kerb and a car on Klasyka, then Soft, Medium, Firm | which one should be the default (the measurements favour Medium); does the kick at a head-on hit read as a snap | #760, #765, #780 |
-| 5 | "Łamliwe płoty · Smashable fences" on: at Stadion Narodowy drive through a fence, a hedge and a tall net | the feel of the smash, the debris, the sound, the buzz; the broken fence still stands drawn (known, until panels) | #776 |
+| 5 | "Łamliwe płoty · Smashable fences" on: at Stadion Narodowy drive through a fence, a hedge and a tall net | the feel of the smash, the debris, the sound, the buzz; the broken fence still stands drawn (known, until panels); the park's black bar panels break, the gate piers do not | #776 |
 | 6 | The same switch **off** (what testers get): drive fast along Marszałkowska and over a bridge | a hitch each time new streets come in (the fences' colliders are rebuilt at sector load, about 3.3 ms per sector in the cloud) | #780, #732 |
 | 7 | Switch on, shove parked cars on Krucza, end-on and from the side | a push, never a dead stop; where the pushed car comes to rest (it may sit a kerb low); the frame among parked cars (the cloud measured about 40 µs more per physics step there) | #796 |
 
@@ -58,6 +58,7 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | 14c | Centrum LIM's tower by day from Centralna and at night from Jerozolimskie | the white corner piers read as stripes at the game's zoom; the PREZYDENT and SAMSONG names lit at night; the red-and-white mast | LIM tower rebuild |
 | 14d | Błękitny Wieżowiec from Plac Bankowy and Solidarności, by day and at night | the glass reads deep blue with its panel grid (F's photo), not grey; the glass hall reads as a barrel vault; the red-and-white antennas on the roof | Błękitny rebuild |
 | 14e | Babka Tower from Jana Pawła II and the Babka roundabout, by day and at night | the tower reads pale stone with a glazed loggia column on each face, rising out of the 34 m stone office block; WEKTRA lit on the top floor at night | Babka Tower build |
+| 14f | Stadion Narodowy's park fence and gate boards, from Waszyngtona and the east path, by day and at night; then drive through a fence panel (it breaks with Łamliwe płoty on) and into a gate pier (it stands) | the black bar fence on its dark base reads open (you see the park through it); the red gate boards over the gates; no new stutter near the stadium | Narodowy grounds #808 |
 | 15 | Settings → the experimental graphics switch, on and off at the Palace | the look and the frame | #647 |
 
 ## 5. The frame (3 min)
