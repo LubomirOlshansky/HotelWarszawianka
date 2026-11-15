@@ -151,6 +151,7 @@ SITE_AREAS = [
     (-680.0, 1180.0, -350.0, 1620.0),       # MDM (Plac Konstytucji to Plac Zbawiciela, landmarks.gd _find_mdm)
     (-2690.0, 170.0, -2655.0, 215.0),       # Warsaw Spire's east wing (landmarks.gd TOWERS spire "with")
     (-2765.0, 135.0, -2735.0, 170.0),       # and its north-west wing
+    (-2748.0, -2282.0, -2657.0, -2167.0),   # Babka Tower's 34 m office block (landmarks.gd TOWERS babka "with")
     (-2700.0, 560.0, -2655.0, 650.0),       # The Warsaw HUB's towers (landmarks.gd TOWERS "at")
     (-2723.0, 487.0, -2689.0, 538.0),       # and its round-ended hotel tower (TOWERS crowne "at")
     (-3085.0, 690.0, -2745.0, 915.0),       # Wola's 19. Dzielnica estate (landmarks.gd D19_ESTATE's box)

@@ -1,74 +1,90 @@
 # Babka Tower (Rondo Zgrupowania AK "Radosław"): spec
 
-Site key `babka` (a TOWERS entry, new 2026-11-15; `_babka` in `game/scripts/landmarks/skyline.gd`).
-Written 2026-11-15 in a cloud thread from F's six photos in
-`refs/_f/warsaw-needed-photos/top-50/T42/` (reference only, never shipped): the tower over the
-roundabout from the south (three), from the east over the flats block (two), and from the Palace's
-terrace. Massing from the one OpenStreetMap part "Babka Tower" in `centrum.json` (96 m), unchanged;
-the seven-storey flats block that wraps it (34 m) stays the map's own building.
+Site key `babka` (a TOWERS entry, new 2026-11-15; `_babka` and `_babka_block` in
+`game/scripts/landmarks/skyline.gd`). Written 2026-11-15 in a cloud thread, and revised the same
+morning after F's look check, from ten photos (reference only, never shipped): F's six in
+`refs/_f/warsaw-needed-photos/top-50/T42/` (the tower over the roundabout from the south, from
+the east over the flats block, and from the Palace's terrace) and the four F sent on 2026-11-15
+(`refs/_f/babka-f-2026-11-15/`: three from the roundabout, two of them with the older red sign,
+and Błękitny's in `blekitny-f-2026-11-15/`). Massing from the OpenStreetMap part "Babka Tower"
+(96 m) and the 34 m office block round its foot, both unchanged in `centrum.json`.
 
 ## 1. Identity
 
-1. The north's tallest flats tower (2000): a slim white slab in a fine grid of loggias and
-   windows, over a base of grey office glass (photos 1 to 4).
-2. Its corner bays are glazed in blue glass from the base to under the crown (1, 2, 4).
-3. A white ledge where the offices end and the flats begin, at about 31 m (1, 2).
-4. A white crown band with the cable firm's name and a small mast on the roof (all).
+1. The north's tallest flats tower (2000): pale grey stone throughout, small punched windows in
+   a fine grid (all photos; the first build's "grey office glass" was a misreading, F
+   2026-11-15).
+2. A glazed loggia column down the middle of each face: wide windows in white frames, floor
+   after floor (T42 photo 4, F's photo 3).
+3. The tower rises out of a 34 m stone office block that wraps its foot in a U round a
+   courtyard; the block's rows of blue office windows, its roof garden at the tower's foot (T42
+   photo 4, F's photos 1 and 3).
+4. The cable firm's name on the top floor and a red lattice mast on the roof (all).
 
-## 2. Massing (the mapped part)
+## 2. Massing (the mapped parts)
 
-One part, 0 to 96 m: a slab about 24 by 40 m with its corners stepped in (fifteen corners). The
-flats block (34 m) and the low wings round the roundabout are the map's.
+The tower: one part, 0 to 96 m, a slab about 24 by 40 m with its corners stepped in (fifteen
+corners). The block: one U-shaped outline (60 corners), 0 to 34 m, round a courtyard; its centre
+lies in the yard, so the site also takes the block's convex hull as a zone, which takes it off
+the map's own buildings (nothing else has its centre there). The cream flats block east of it is
+the map's.
 
 ## 3. Facade, base to top
 
-- **Offices**: grey glass (#5d6f7e, M_GLASS: mullions, lit rooms at night) 0.12 m proud of the
-  shaft, from the ground to 31 m.
-- **Ledge**: a white slab (#eceae4) 0.9 m out and 0.6 m deep at 31 m, its underside shaded.
-- **Flats**: the kit's slab skin (S_SLAB, plaster and loggia bands) in #e3e2dc from 31 m up.
-- **Corner glass**: blue glass (#5e86ad, M_GLASS) 2 m wide at both ends of every face longer
-  than 6 m, 6 cm proud, from the ledge to 4 m under the roof.
-- **Crown**: a white band (#eceae4) over the top 4 m, 0.1 m proud, the parody name WEKTRA lit on
-  it.
+- **Tower**: the kit's punched skin (S_PUNCHED, 2 by 1.4 m windows every 3.2 m) in stone
+  #d9d8d3, ground to roof.
+- **Loggia column**: on each face 12 m or longer, the middle 45 % in pale glass in a light grid
+  (S_EASTWALL #a9b8c4), 0.1 m proud, from 35.2 m to 3.2 m under the roof.
+- **String course**: stone #d9d8d3, 0.3 m out, 34.6 to 35.2 m, where the block's roof meets the
+  tower; its underside shaded.
+- **Top floor**: stone, 0.1 m proud, the top 3.2 m, the parody name WEKTRA on it in blue.
+- **Block**: S_PUNCHED in stone #c9cac7 from the ground to 33.2 m, a stone cornice 0.2 m out from
+  33.2 to 34 m.
 
 ## 4. Roof
 
-Flat, #9b9794 (mapped). A white mast 9 m tall in the middle with a red band and the red lamp on
-top.
+Tower: flat, #9b9794 (mapped), a red mast (#c8322b) 1.4 m square and 12 m tall a little off the
+middle, two stone bands, the red lamp on top. Block: the cornice's top is its roof (#8f918f),
+with green planters (#5f7f45, 1.8 m square, 1.4 m tall) 3 m out from the tower's corners where
+that lands on it.
 
 ## 5. Colour and material
 
-Shaft #e3e2dc (S_SLAB); office glass #5d6f7e and corner glass #5e86ad (M_GLASS); ledge and crown
-#eceae4 (building material); roof #9b9794; mast band #c8322b; lamp DUSK_RED (M_LAMP); the name in
-DUSK_WARM. No new material.
+Tower stone #d9d8d3 and block stone #c9cac7 (S_PUNCHED skin); loggia glass #a9b8c4 (S_EASTWALL
+skin); string course, top floor and cornice #d9d8d3 (building material); roofs #9b9794 and
+#8f918f; planters #5f7f45; mast #c8322b; lamp DUSK_RED (M_LAMP); the name in blue
+(0.3, 0.45, 1.0). No new material.
 
 ## 6. Ground and night
 
-The roundabout, the tram tracks and the flats block are the map's. Car collision on the mapped
-part. Night: the offices' and the corner bays' rooms lit (M_GLASS), the name on the crown, the
-mast's red lamp and the aviation lights.
+The roundabout, the tram tracks and the cream flats block are the map's. Car collision on the
+tower (the parts loop) and round the block (`_collide`). Night: the punched windows lit warm at
+random (S_PUNCHED), the name on the top floor, the mast's red lamp and the aviation lights.
 
 ## 7. Detail level and budget
 
-L1 (a tower at the map's north edge, seen from Jana Pawła II and the Palace). 287 triangles,
-budget 400 (check_mesh_quality BUDGET "babka"); 0 z-fights; no draw call, no shader change
-(building.gdshader stays 501 of 505).
+L1 (a tower at the map's north edge, seen from Jana Pawła II and the Palace). 637 triangles with
+the block, budget 800 (check_mesh_quality BUDGET "babka"); 0 z-fights; no draw call, no shader
+change (building.gdshader stays 501 of 505).
 
 ## 8. Parts table
 
 | id | shape | size | position | material | feature |
 | --- | --- | --- | --- | --- | --- |
-| shaft | prism | mapped, 0 to 96 m | the mapped part | S_SLAB #e3e2dc | 1 white loggia slab |
-| offices | prism | ring + 0.12 m, to 31 m | the shaft's base | M_GLASS #5d6f7e | 1 office base |
-| ledge | prism + soffit | ring + 0.9 m, 0.6 m | 31 m | #eceae4 | 3 ledge |
-| corner glass | walls | 2 m wide | both ends of each face over 6 m, 31.6 to 92 m | M_GLASS #5e86ad | 2 glazed corners |
-| crown | prism | ring + 0.1 m, 4 m | 92 to 96 m | #eceae4 | 4 crown band |
-| name | dusk sign | the crown's height | the crown, S and E | DUSK_WARM | 4 name |
-| mast | prisms | 0.8 m, 9 m | roof middle | #c9c7c2, band #c8322b | 4 mast |
+| shaft | prism | mapped, 0 to 96 m | the mapped part | S_PUNCHED #d9d8d3 | 1 stone tower |
+| loggia column | walls | 45 % of each face 12 m or longer, 0.1 m proud | 35.2 to 92.8 m | S_EASTWALL #a9b8c4 | 2 loggia column |
+| string course | prism + soffit | ring + 0.3 m, 0.6 m | 34.6 to 35.2 m | #d9d8d3 | 3 block meets tower |
+| top floor | prism | ring + 0.1 m, 3.2 m | 92.8 to 96 m | #d9d8d3 | 4 name |
+| name | dusk sign | the top floor's height | S and E | blue | 4 name |
+| mast | prisms | 1.4 m square, 12 m, two bands | roof | #c8322b, #d9d8d3 | 4 mast |
 | lamp | box | 0.4 m | mast head | DUSK_RED (M_LAMP) | 4 mast |
+| block | prism | mapped U, 0 to 33.2 m | the `with` outline | S_PUNCHED #c9cac7 | 3 office block |
+| cornice | prism | ring + 0.2 m, 0.8 m | 33.2 to 34 m | #d9d8d3, roof #8f918f | 3 office block |
+| planters | prisms | 1.8 m square, 1.4 m | block roof by the tower | #5f7f45 | 3 roof garden |
 
 ## 9. Not built, and what only the phone can show
 
-- The loggias' glass balustrades and the roof terrace's planting at the ledge (photo 1).
-- The flats block round the tower stays the map's plain building (a pass of its own).
-- Phone: the corner glass reading at the game's zoom; the name at night.
+- The block's blue window tint (the punched skin's glass is the kit's dark glass), its glazed
+  corner, the shop signs at the foot, the loggias' white frames one by one.
+- The cream flats block east of the tower stays the map's plain building.
+- Phone: the loggia column and the stone reading at the game's zoom; the name at night.
