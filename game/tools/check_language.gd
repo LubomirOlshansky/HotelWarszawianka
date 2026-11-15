@@ -204,7 +204,7 @@ func _check_hud(code: String) -> void:
 			"challenge":
 				hud.show_challenge(s["challenge"][0], Color.WHITE, s["challenge"][1])
 			"goal":
-				hud.set_main_line(Vector2(10, 10), s["goal"][0], s["goal"][1])
+				hud.set_main_goal(s["goal"][0], s["goal"][1])
 		await process_frame
 		var all := _joined(hud)
 		match key:

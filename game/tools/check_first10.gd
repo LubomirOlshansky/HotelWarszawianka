@@ -253,6 +253,7 @@ func _ordinary() -> void:
 	_expect(ways.get("finger") == "met" and _at(done, "finger") < 2.0, "a touch at 1 s: no finger (%s)" % ways.get("finger"))
 	_expect(ways.get("stand") == "fired" and absf(_at(done, "stand") - First10.STAND_AT) < 0.3, "the stand's arrow at 10 s: %.1f" % _at(done, "stand"))
 	_expect(ways.get("order") == "met" and absf(_at(done, "order") - 35.0) < 0.3, "the order met at 35 s: %.1f" % _at(done, "order"))
+	_expect(not done.has("lure"), "an order taken: the kebab is never let go (%.1f)" % _at(done, "lure"))
 	_expect(ways.get("race") == "fired" and absf(_at(done, "race") - (110.0 + First10.RACE_AFTER)) < 0.5,
 			"Halina %.0f s after the delivery: %.1f" % [First10.RACE_AFTER, _at(done, "race")])
 	_expect(ways.get("trap") == "met", "the trap armed by the race, not the fallback: %s" % ways.get("trap"))
@@ -275,7 +276,11 @@ func _wanderer() -> void:
 	_expect(ways.get("finger") == "fired" and absf(_at(done, "finger") - First10.FINGER_IDLE) < 0.3, "the finger at 4 s: %.1f" % _at(done, "finger"))
 	_expect(ways.get("stand") == "fired" and absf(_at(done, "stand") - First10.STAND_AT) < 0.3, "the arrow at 10 s: %.1f" % _at(done, "stand"))
 	_expect(not done.has("order"), "no order without the player (or the replay)")
-	_expect(ways.get("race") == "fired" and absf(_at(done, "race") - First10.RACE_LATEST) < 0.3, "Halina at the fallback: %.1f" % _at(done, "race"))
+	# First hour, step 1: the kebab is a lure; at LURE_LATEST its arrow goes, and the free minute
+	# before Halina starts there, as after a delivery.
+	_expect(ways.get("lure") == "fired" and absf(_at(done, "lure") - First10.LURE_LATEST) < 0.3, "the kebab let go at 1:30: %.1f" % _at(done, "lure"))
+	_expect(ways.get("race") == "fired" and absf(_at(done, "race") - maxf(First10.LURE_LATEST + First10.RACE_AFTER, First10.RACE_EARLIEST)) < 0.3,
+			"Halina a free moment after the kebab was let go: %.1f" % _at(done, "race"))
 	_expect(ways.get("trap") == "fired" and absf(_at(done, "trap") - First10.TRAP_LATEST) < 0.3, "the trap armed at its fallback: %.1f" % _at(done, "trap"))
 	_expect(ways.get("rescue") == "fired" and absf(_at(done, "rescue") - First10.RESCUE_LATEST) < 0.3, "the call at its fallback: %.1f" % _at(done, "rescue"))
 	_expect(ways.get("heli") == "fired" and absf(_at(done, "heli") - First10.HELI_LATEST) < 0.3, "the helicopter at its fallback: %.1f" % _at(done, "heli"))

@@ -77,6 +77,21 @@ const BUMP_FREE := 3.0
 const FIRST_STAND := Vector2(-1060.0, -230.0)
 const FIRST_STREET := "Marszałkowska"
 const FIRST_ROAD := 300.0
+## First hour, step 1 (the spec "First hour for the beta", 2026-11-15): the guided first order is a
+## lure, not a duty. It goes back to the stand quietly (one toast, no red card, the stand keeps the
+## short order: `drop_quiet`) on the ✕, on NOT NOW, or once the car has come no closer to the door
+## for FIRST_STUCK s after GO. By progress, not by the clock: every PROGRESS_STEP m closer starts the
+## wait again, so a slow player driving to the door keeps it.
+const FIRST_STUCK := 45.0
+const PROGRESS_STEP := 5.0
+## No order stays pending forever: a cold kebab (below COLD) that has come no closer for COLD_STUCK s
+## ends by itself with its own "Order dropped" card; a słoiki run with no step closer for SLOIK_STUCK
+## s ends with "Run abandoned". Before, an order left behind kept its status line up for ever and
+## held every call, race and ride until the ✕.
+const COLD := 0.4
+const COLD_STUCK := 60.0
+const SLOIK_STUCK := 120.0
+const QUIET_WORDS := ["Kebab wraca na stoisko. Wpadnij, kiedy chcesz.", "The kebab goes back to the stand. Come by anytime."]
 const CUSTOMERS := ["Ania", "Kasia", "Ola", "Magda", "Zosia", "Ewa", "Basia", "Marta",
 		"Tomek", "Kuba", "Piotrek", "Michał", "Paweł", "Marek", "Wojtek", "Krzysiek"]
 const NEWCOMERS := ["Kuba", "Ola", "Bartek", "Kasia", "Michał", "Magda"]
@@ -193,6 +208,17 @@ var _route_on := false
 var next_stand := -1
 ## The result card up now is a delivery (not a dropped order): NASTĘPNE is on it.
 var _delivered := false
+## The drive's progress (first hour, step 1): the nearest the car has come to the door (m), and the
+## seconds since it last came PROGRESS_STEP m nearer.
+var _best_d := INF
+var _stuck := 0.0
+## The guided first order went back to its stand quietly at least once (first10.gd: the free
+## minute starts then, as after a delivery).
+var first_gone := false
+
+## The guided first order went back quietly: "x" (the ✕), "not_now" or "stuck" (no closer for
+## FIRST_STUCK s). For the guide and, later, the funnel log.
+signal first_dropped(reason: String)
 
 
 ## main.gd hands in the nodes (hud, bubbles, dialogue, wallet, rivals, graph, traffic,
@@ -704,16 +730,16 @@ func _show_places(on: bool, again := false) -> void:
 	var marks: Array[Dictionary] = []
 	if on:
 		for s in _stands:
-			marks.append({"layer": MapMarkers.Layer.JOB, "at": Vector2(s["ring"].x, s["ring"].z), "colour": KEBAB_COLOUR, "shape": MapIcons.POI_KEBAB})
+			marks.append({"layer": MapMarkers.Layer.JOB, "at": Vector2(s["ring"].x, s["ring"].z), "colour": KEBAB_COLOUR, "shape": MapIcons.POI_KEBAB, "group": "kebab"})
 		for st in _stations:
-			marks.append({"layer": MapMarkers.Layer.JOB, "at": Vector2(st["ring"].x, st["ring"].z), "colour": SLOIK_COLOUR, "shape": MapIcons.POI_STATION})
+			marks.append({"layer": MapMarkers.Layer.JOB, "at": Vector2(st["ring"].x, st["ring"].z), "colour": SLOIK_COLOUR, "shape": MapIcons.POI_STATION, "group": "sloik"})
 	# The free-ride boat at the start pontoon (boat_race.gd): its mark stays with the places.
 	if on and boat_spot != Vector2.INF:
-		marks.append({"layer": MapMarkers.Layer.JOB, "at": boat_spot, "colour": BOAT_COLOUR, "shape": MapIcons.POI_BOAT})
+		marks.append({"layer": MapMarkers.Layer.JOB, "at": boat_spot, "colour": BOAT_COLOUR, "shape": MapIcons.POI_BOAT, "group": "boat"})
 	# Loop jobs-2: the Leżak depots at night.
 	if roundup != null and roundup._shown and not round_busy():
 		for q: Vector2 in roundup.depot_points():
-			marks.append({"layer": MapMarkers.Layer.JOB, "at": q, "colour": roundup.COLOUR, "shape": MapIcons.POI_DEPOT})
+			marks.append({"layer": MapMarkers.Layer.JOB, "at": q, "colour": roundup.COLOUR, "shape": MapIcons.POI_DEPOT, "group": "lezak"})
 	hud.markers.put_all("jobs", marks)
 
 
@@ -853,6 +879,7 @@ func _make_kebab_order(i: int, n: int, first := false) -> Dictionary:
 	pick["fair"] = (25.0 + float(pick["road"]) / 8.0) * Zaglebie.fair(zag, false)
 	pick["zag"] = zag
 	pick["premium"] = false
+	pick["first"] = first
 	return pick
 
 
@@ -1013,6 +1040,8 @@ func _go() -> void:
 	_clock = 0.0
 	close_card()
 	var ring3: Vector3 = _order["ring"]
+	_best_d = INF
+	_stuck = 0.0
 	_beacon.waving = true
 	_beacon.recolour(KEBAB_COLOUR if job == Job.KEBAB else SLOIK_COLOUR)
 	_beacon.place(ring3, ARRIVE - 0.5)
@@ -1047,6 +1076,8 @@ func _deliver_tick(dt: float) -> void:
 	if d < ARRIVE and speed < ARRIVE_SPEED and not flying:
 		_arrive()
 		return
+	if _progress(d, dt):
+		return
 	# Loop 2e: [Polish, English].
 	var hint := ["", ""]
 	if flying:
@@ -1077,6 +1108,55 @@ func _deliver_tick(dt: float) -> void:
 			hint = ["Spokojnie! Słoiki dzwonią", "Easy! The jars are rattling"]
 		status("SŁOIKI → %s" % _order["name"], _clock_text(_clock), "%d m" % roundi(d),
 				hint, _stress, SLOIK_COLOUR, "", {"jars": [_jars, JARS], "shake": clampf(_stress, 0.0, 1.0)})
+
+
+## First hour, step 1: the wait since the car last came PROGRESS_STEP m nearer the door, and the
+## end it brings (true: the order is gone). The guided first order goes back quietly after
+## FIRST_STUCK s; a cold kebab ends with its card after COLD_STUCK s, a słoiki run after SLOIK_STUCK.
+func _progress(d: float, dt: float) -> bool:
+	if d < _best_d - PROGRESS_STEP or _best_d == INF:
+		_best_d = d
+		_stuck = 0.0
+		return false
+	_stuck += dt
+	if job == Job.KEBAB and bool(_order.get("first", false)) and _stuck >= FIRST_STUCK:
+		drop_quiet("stuck")
+		return true
+	if job == Job.KEBAB and _heat < COLD and _stuck >= COLD_STUCK:
+		print("jobs: the cold kebab for %s ended by itself (no closer for %.0f s)" % [_order["customer"], _stuck])
+		_abandon()
+		return true
+	if job == Job.SLOIK and _stuck >= SLOIK_STUCK:
+		print("jobs: the słoiki run ended by itself (no closer for %.0f s)" % _stuck)
+		_abandon()
+		return true
+	return false
+
+
+## The seconds since the car last came nearer the door (0 outside a drive).
+func stuck_s() -> float:
+	return _stuck if stage == Stage.DELIVER else 0.0
+
+
+## First hour, step 1: the guided first order goes back to its stand with one toast and no card;
+## the stand keeps the short order for the next pull-in (`pinned`), and waits until the car has
+## driven off (`cool`). `reason`: "x", "not_now" or "stuck".
+func drop_quiet(reason: String) -> void:
+	var i := int(_order.get("stand", -1))
+	courier.cancel()
+	hide_status()
+	_beacon.visible = false
+	_remove_ghost()
+	if i >= 0 and i < _stands.size():
+		bubbles.hush(_stands[i]["node"])
+		_stands[i]["cool"] = true
+		pinned = i
+	first_gone = true
+	_delivered = false
+	hud.toast(QUIET_WORDS[0], QUIET_WORDS[1])
+	print("jobs: the first order went back to stand %d quietly (%s, %.0f s after GO)" % [i, reason, _clock])
+	first_dropped.emit(reason)
+	finish()
 
 
 ## Beta values (2026-11-04): the kebab's clock in words [pl, en]: how long it stays hot (the tip's
@@ -1344,6 +1424,9 @@ func _card_pressed(index: int) -> void:
 					_go()
 			elif index == 0:
 				_go()
+			elif job == Job.KEBAB and bool(_order.get("first", false)):
+				# The guided first order: back to the stand quietly, still the short one next time.
+				drop_quiet("not_now")
 			else:
 				# Not now: the place waits until the car has driven off.
 				if job == Job.KEBAB:
@@ -1416,9 +1499,13 @@ func _can_abort() -> bool:
 	return stage == Stage.ORDER or stage == Stage.DELIVER
 
 
-## The ✕: the order is dropped, and its own card says so (the kit's limit on a run is not used).
+## The ✕: the order is dropped, and its own card says so (the kit's limit on a run is not used);
+## the guided first order goes back quietly instead (first hour, step 1).
 func drop(_by_player: bool) -> void:
-	_abandon()
+	if job == Job.KEBAB and bool(_order.get("first", false)):
+		drop_quiet("x")
+	else:
+		_abandon()
 
 
 ## The autopilot presses no card: an order goes by its count-down (4 s on a test run) and a

@@ -2,30 +2,40 @@ extends SceneTree
 ## The map marker registry (map_markers.gd, tech-debt TD-13, docs/architecture/map-markers.md
 ## section 5), on its own and with the real hud.gd and full_map.gd (no map, no game). Checks that:
 ## - the rule table holds today's behaviour: quest focus hides the street jobs, the "?" marks, the
-##   garage and the questline badges on both maps; the "?" marks never show on the full map; the
-##   target, the main line and the police show everywhere;
+##   garage and the questline badges on both maps; flying hides the questline badges; the "?" marks
+##   never show on the full map; the target, the main line and the police show everywhere; the
+##   rivals' layer shows nowhere yet;
 ## - put, put_all, remove and clear: one owner's write never touches another's marks (jobs.gd's
 ##   places and roundup_job.gd's pins both used to write the one list `set_minimap_pois`, the last
 ##   writer wiping the other's); put_all keeps the order it was given; a layer's arrays are cached
 ##   until the next write;
 ## - the minimap paints what the registry holds and the rule table allows: a job place, a garage and
-##   a "?" each add triangles to the overlay's one batch in free drive, none in quest focus; a mark
-##   of the final's start (MAIN, kept, not drawn) adds none;
+##   a "?" each add triangles to the overlay's one batch in free drive, none in quest focus; a
+##   questline badge adds them in free drive, none in focus and none in the air; the main line's
+##   star shows in focus too; a mark of the final's start (RIVAL, kept, not drawn) adds none;
+## - each mark keeps its group and extra (the questline's name, line and "small"), and the game's
+##   own builders give them: the questlines' starts (story_quests.gd `map_marks`) and the main
+##   line's star (main_line.gd `map_marks`, id MAIN_STAR);
 ## - the full map opened from the HUD reads the same registry (its job places and garage come from
-##   it, not from a copy made on open).
+##   it, not from a copy made on open), and its questline labels and tap lines come from the marks.
 ##   godot --headless --path game --script res://tools/check_map_markers.gd
 
 const MapMarkers := preload("res://scripts/map_markers.gd")
 const MapIcons := preload("res://scripts/map_icons.gd")
 const Hud := preload("res://scripts/hud.gd")
+const StoryQuests := preload("res://scripts/story_quests.gd")
+const MainLine := preload("res://scripts/main_line.gd")
 
 const L := MapMarkers.Layer
 const MINI := MapMarkers.View.MINIMAP
 const FULL := MapMarkers.View.FULL_MAP
 const FREE := MapMarkers.Context.FREE
 const QUEST := MapMarkers.Context.QUEST
+const AIR := MapMarkers.Context.AIR
 
 var _problems := 0
+## The HUD part ran to its end (a script error in hud.gd or full_map.gd stops it half way: not OK).
+var _hud_done := false
 
 
 func _expect(ok: bool, what: String) -> void:
@@ -42,6 +52,7 @@ func _run() -> void:
 	_rules()
 	_registry()
 	await _hud()
+	_expect(_hud_done, "the HUD part ran to its end (a script error in hud.gd or full_map.gd?)")
 	if _problems == 0:
 		print("check_map_markers: OK")
 		quit(0)
@@ -51,24 +62,27 @@ func _run() -> void:
 
 
 ## Today's behaviour, written out the way hud.gd and full_map.gd decided it before the registry
-## (quest_focus tests in each drawing loop): every layer, both maps, both contexts.
+## (quest_focus tests in each drawing loop, main.gd's `focus or flying` for the questlines): every
+## layer, both maps, FREE, QUEST, AIR.
 func _rules() -> void:
 	var want := {
-		L.TARGET: [true, true, true, true],
-		L.MAIN: [true, true, true, true],
-		L.STORY: [true, false, true, false],
-		L.JOB: [true, false, true, false],
-		L.PLACE: [true, false, false, false],
-		L.SERVICE: [true, false, true, false],
-		L.INFO: [true, true, true, true],
+		L.TARGET: [true, true, true, true, true, true],
+		L.MAIN: [true, true, true, true, true, true],
+		L.STORY: [true, false, false, true, false, false],
+		L.JOB: [true, false, true, true, false, true],
+		L.PLACE: [true, false, true, false, false, false],
+		L.SERVICE: [true, false, true, true, false, true],
+		L.INFO: [true, true, true, true, true, true],
+		L.RIVAL: [false, false, false, false, false, false],
 	}
 	_expect(MapMarkers.RULES.size() == L.size(), "a rule row for every layer (%d of %d)" % [MapMarkers.RULES.size(), L.size()])
 	for layer: int in want:
 		var row: Array = want[layer]
-		var got := [MapMarkers.shows(layer, MINI, FREE), MapMarkers.shows(layer, MINI, QUEST),
-				MapMarkers.shows(layer, FULL, FREE), MapMarkers.shows(layer, FULL, QUEST)]
+		var got := [MapMarkers.shows(layer, MINI, FREE), MapMarkers.shows(layer, MINI, QUEST), MapMarkers.shows(layer, MINI, AIR),
+				MapMarkers.shows(layer, FULL, FREE), MapMarkers.shows(layer, FULL, QUEST), MapMarkers.shows(layer, FULL, AIR)]
 		_expect(got == row, "layer %s: %s (want %s)" % [L.keys()[layer], got, row])
 	_expect(MapMarkers.context_of(true) == QUEST and MapMarkers.context_of(false) == FREE, "context_of")
+	_expect(MapMarkers.context_of(false, true) == AIR and MapMarkers.context_of(true, true) == QUEST, "context_of: flying, focus wins")
 
 
 func _registry() -> void:
@@ -103,6 +117,27 @@ func _registry() -> void:
 	var v := m.version
 	m.put_all("notebook", [])
 	_expect(m.version == v + 1, "every write moves the version")
+	# Groups and extras (the one map list: a row per group).
+	m.put_all("jobs", [{"layer": L.JOB, "at": Vector2(1, 1), "group": "kebab"}, {"layer": L.JOB, "at": Vector2(2, 2), "group": "sloik"}])
+	m.put("garage:workshop", L.SERVICE, Vector2(9, 9), Color.CYAN, 0, "garage")
+	_expect(m.marks_of(L.JOB)["group"] == PackedStringArray(["kebab", "sloik"]), "groups kept in order (%s)" % m.marks_of(L.JOB)["group"])
+	_expect(m.owned("garage")[0]["group"] == "garage", "put's group")
+	_expect(m.shown(L.RIVAL, MINI, FREE)["at"].is_empty() and is_same(m.shown(L.RIVAL, MINI, FREE), m.shown(L.STORY, FULL, QUEST)),
+			"a hidden layer reads one shared empty view (nothing made per frame)")
+	# The game's own builders.
+	var defs := [{"id": "rave", "pl": "Tajny rejw", "en": "Secret rave", "at": Vector2(5, 6), "colour": Color.PURPLE,
+			"blurb": ["Bas pod mostem", "Bass under the bridge"], "small": true},
+			{"id": "closed", "pl": "Zamknięte", "en": "Closed", "at": Vector2.INF}]
+	m.put_all("stories", StoryQuests.map_marks(defs))
+	var st: Dictionary = m.marks_of(L.STORY)
+	var ex: Dictionary = (st["extra"] as Array)[0] if not (st["extra"] as Array).is_empty() else {}
+	_expect(st["at"] == PackedVector2Array([Vector2(5, 6)]) and m.has("stories:rave"), "story_quests.gd map_marks: one start per open questline, id stories:<id>")
+	_expect(st["group"] == PackedStringArray(["story"]) and bool(ex.get("small", false)) and str(ex.get("name", "")) in ["Tajny rejw", "Secret rave"]
+			and str(ex.get("blurb", "")) in ["Bas pod mostem", "Bass under the bridge"], "the start's group, name, line and small (%s)" % ex)
+	m.put_all("main", MainLine.map_marks(Vector2(7, 8)))
+	_expect(m.where(MapMarkers.MAIN_STAR) == Vector2(7, 8) and m.marks_of(L.MAIN)["colour"][0] == MainLine.COLOUR, "main_line.gd map_marks: the star at MAIN_STAR")
+	m.put_all("main", MainLine.map_marks(Vector2.INF))
+	_expect(not m.has(MapMarkers.MAIN_STAR), "a step with no place: no star")
 
 
 func _hud() -> void:
@@ -142,7 +177,32 @@ func _hud() -> void:
 		(c[2] as Callable).call()
 		var after := await _tris(hud)
 		_expect(after == base, "minimap: %s gone after its owner took it away" % c[0])
-	markers.put("rivals:final", L.MAIN, Vector2(10, 10), Color.GOLD)
+	# A questline's start: shown in free drive, hidden in focus and in the air.
+	markers.put_all("stories", [{"layer": L.STORY, "at": Vector2(30, -30), "colour": Color.PURPLE, "group": "story",
+			"extra": {"name": "Secret rave", "blurb": "Bass", "small": false}}])
+	var st_free := await _tris(hud)
+	hud.flying = true
+	var st_air := await _tris(hud)
+	markers.clear("stories")
+	var air_base := await _tris(hud)
+	hud.flying = false
+	markers.put_all("stories", [{"layer": L.STORY, "at": Vector2(30, -30), "colour": Color.PURPLE, "group": "story"}])
+	hud.quest_focus = true
+	var st_focus := await _tris(hud)
+	hud.quest_focus = false
+	var focus_base2 := await _tris_focus_base(hud)
+	_expect(st_free > base and st_air == air_base and st_focus == focus_base2,
+			"minimap: the questline badge in free drive (%d over %d), not in the air (%d, %d), not in focus (%d, %d)" % [st_free, base, st_air, air_base, st_focus, focus_base2])
+	markers.clear("stories")
+	# The main line's star: shown in free drive and in focus (dimmed).
+	markers.put_all("main", MainLine.map_marks(Vector2(-60, 10)))
+	var star_free := await _tris(hud)
+	hud.quest_focus = true
+	var star_focus := await _tris(hud)
+	hud.quest_focus = false
+	_expect(star_free > base and star_focus > focus_base2, "minimap: the main star in free drive (%d) and in focus (%d over %d)" % [star_free, star_focus, focus_base2])
+	markers.clear("main")
+	markers.put("rivals:final", L.RIVAL, Vector2(10, 10), Color.GOLD, 0, "final")
 	var with_final := await _tris(hud)
 	_expect(with_final == base and base > 0, "the final's start mark is kept, not drawn (the main line's star stands there)")
 	markers.remove("rivals:final")
@@ -156,10 +216,28 @@ func _hud() -> void:
 	markers.put_all("jobs", [{"layer": L.JOB, "at": Vector2(70, 0), "colour": Color.ORANGE}])
 	_expect(fm != null and (fm.get("markers") as MapMarkers).marks_of(L.JOB)["at"] == PackedVector2Array([Vector2(70, 0)]),
 			"a write while the map is open is what it draws next (no copy)")
+	# Its questline starts: the labels' names and the tap's line come from the marks; none in focus.
+	markers.put_all("stories", [{"layer": L.STORY, "at": Vector2(30, -30), "colour": Color.PURPLE, "group": "story",
+			"extra": {"name": "Secret rave", "blurb": "Bass", "small": false}}])
+	if fm != null:
+		var sv: Dictionary = fm.call("_stories")
+		_expect((sv["at"] as PackedVector2Array).size() == 1 and str((sv["extra"][0] as Dictionary)["name"]) == "Secret rave", "the full map's questline label")
+		fm.set("focus", true)
+		_expect((fm.call("_stories")["at"] as PackedVector2Array).is_empty(), "the full map in focus: no starts")
+		fm.set("focus", false)
+		fm.set("flying", true)
+		_expect((fm.call("_stories")["at"] as PackedVector2Array).is_empty(), "the full map in the air: no starts")
+		fm.set("flying", false)
+		markers.put_all("main", MainLine.map_marks(Vector2(-60, 10)))
+		_expect(fm.call("_main_at") == Vector2(-60, 10), "the full map's star from the registry")
+	hud.set_quest_focus(true)
+	_expect(fm == null or bool(fm.get("focus")), "focus while the map is open reaches it")
+	hud.set_quest_focus(false)
 	if fm != null:
 		fm.call("close")
 	vp.queue_free()
 	await process_frame
+	_hud_done = true
 
 
 ## The overlay's triangle count for one paint of the minimap now (read in the overlay's own draw,

@@ -375,7 +375,7 @@ func _update_minimap(p: Vector2) -> void:
 		# full map).
 		var put: Array[Dictionary] = []
 		for at: Vector2 in marks:
-			put.append({"layer": MapMarkers.Layer.PLACE, "at": at})
+			put.append({"layer": MapMarkers.Layer.PLACE, "at": at, "group": "notebook"})
 		hud.markers.put_all("notebook", put)
 
 

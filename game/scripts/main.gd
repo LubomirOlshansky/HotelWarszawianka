@@ -1847,6 +1847,7 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 		rivals.ghost_pace = flags.ghost_pace
 	rivals.wallet = wallet
 	rivals.tod = tod  # loop 3h slice 3: the final waits for the night
+	rivals.night_now = func() -> void: _story_skip_to(22.0)  # first hour step 5: the sixth win's NOC
 	rivals.graph = graph
 	rivals.traffic = traffic
 	rivals.hud = hud
@@ -3273,24 +3274,17 @@ func _story_tick() -> void:
 	_shisha_secret(focus)
 	_meet_night()
 	_rave_night()
-	var m: Array = StoryQuests.marks(stories.defs, focus or flying)
-	var names := PackedStringArray()
-	var blurbs := PackedStringArray()
-	var small := PackedByteArray()
-	if not (focus or flying):
-		for d: Dictionary in stories.defs:
-			if d["at"] != Vector2.INF:
-				names.append(Lang.pick(str(d["pl"]), str(d["en"])))
-				var b: Array = d.get("blurb", ["", ""])
-				blurbs.append(Lang.pick(str(b[0]), str(b[1])))
-				small.append(1 if d.get("small", false) else 0)
-	var key := "%s %d %s" % [focus, (m[0] as PackedVector2Array).size(), Lang.pick("pl", "en")]
+	# The starts are the marker registry's STORY marks (TD-13); its rule table hides them in focus
+	# and in the air.
+	var m: Array[Dictionary] = StoryQuests.map_marks(stories.defs)
+	var key := "%s %s %s" % [focus, m.map(func(e: Dictionary) -> Vector2: return e["at"]), Lang.pick("pl", "en")]
 	if key == _story_key:
 		return
 	_story_key = key
-	hud.set_story(m[0], m[1], focus, names, blurbs, small)
+	hud.markers.put_all("stories", m)
+	hud.set_quest_focus(focus)
 	if flags.stories_log:
-		print("stories: focus %s, %d starts on the map" % ["on" if focus else "off", (m[0] as PackedVector2Array).size()])
+		print("stories: focus %s, %d starts on the map" % ["on" if focus else "off", 0 if focus or flying else m.size()])
 
 
 ## The questline friend may walk up (story_quests.gd): as `_world_free`, but a rescue call that only
@@ -4839,7 +4833,7 @@ func _open_full_map() -> void:
 		hud.full_map.set_districts(districts.view(), districts.percent_total(), syrenki.found_count() if syrenki != null else 0,
 				syrenki.entries.size() if syrenki != null else 0)  # loop 3h slice 1 (+ slice 2: the Syrenki line)
 	if rivals != null:
-		hud.full_map.set_ladder(rivals.ladder_rows())  # loop 3h slice 3: the DRABINKA card
+		hud.full_map.set_ladder(rivals.ladder_rows(), rivals.ladder.title() if rivals.ladder != null else [])  # loop 3h slice 3; step 5: RYWALE n/6
 	hud.full_map.quit_what = _quest_quit_name()  # F 2026-11-08: the card's quit button
 	hud.full_map.set_quests(_quest_entries(), Lines.Line.HELI if flying else Lines.Line.CAR,
 			str(quest_pin.get("id", "")))  # G12 part 2: the ZADANIA card
@@ -4867,6 +4861,7 @@ func _wire_full_map() -> void:
 	hud.full_map.teleport.connect(_teleport_from_map)
 	hud.full_map.quest_picked.connect(_on_quest_picked)
 	hud.full_map.quit_quest.connect(_quit_quest)
+	hud.full_map.rival_called.connect(_call_rival_out)
 	hud.full_map.can_teleport = _teleport_refusal
 
 
@@ -5033,6 +5028,22 @@ func _on_quest_picked(e: Dictionary) -> void:
 		_:
 			quest_pin = e
 	print("quest list: %s" % (str(e["id"]) if not e.is_empty() else "pin off"))
+
+
+## First hour step 5 (The Six): a rival's row on the map's RYWALE card: that rival waits near the
+## car (rivals.gd `call_out`), its spot the quest pin (the arrow; the pin follows the rival).
+func _call_rival_out(rung: int) -> void:
+	if rivals == null or rung < 0 or rung >= Ladder.RUNGS.size():
+		return
+	var who := str(Ladder.RUNGS[rung]["rival"])
+	var at: Vector2 = rivals.call_out(Rivals.index_of(who)) if not flying else Vector2.INF
+	if at == Vector2.INF:
+		hud.toast("Nie teraz: najpierw skończ to, co trwa", "Not now: finish what's on first")
+		return
+	var e := Lines.entry("rival", "rival", Lines.Line.CAR, "Rywal · %s" % who, "Rival · %s" % who, at, Rivals.RACE_COLOUR)
+	e["who"] = who
+	quest_pin = e
+	hud.toast("%s czeka w kole" % who, "%s waits in the ring" % who)
 
 
 ## F's ask (2026-10-31): why a hold on the full map can't teleport now ([pl, en]), or [] when it
@@ -6227,7 +6238,10 @@ func _main_line_tick(dt: float) -> void:
 	if wallet != null:
 		f["jobs"] = wallet.jobs_done()
 	main_step = MainLine.now(f)
-	hud.set_main_line(main_step["at"], str(main_step["pl"]), str(main_step["en"]))
+	# The star is the marker registry's MAIN mark (TD-13), written only when it moves.
+	if main_step["at"] != hud.markers.where("main:star"):
+		hud.markers.put_all("main", MainLine.map_marks(main_step["at"]))
+	hud.set_main_goal(str(main_step["pl"]), str(main_step["en"]))
 	# Nothing comes by itself on the title, in a camera moment or in Spacer (spacer.gd).
 	var quiet := title != null or (moments != null and moments.playing()) or (spacer != null and spacer.on)
 	var n := _nudge.tick(MainLine.STEP_EVERY, main_step, _free_now, quiet)
