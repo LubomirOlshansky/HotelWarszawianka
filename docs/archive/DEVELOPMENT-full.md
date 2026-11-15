@@ -5832,7 +5832,7 @@ flag. How the work is run: `docs/WORKFLOW.md`, `CLAUDE.md`.
 
 Screenshots for review: `godot --path game -- --style=0 --size=380 --at=-110,-85 --shots=40 --out=$PWD/shots`.
 
-Command-line options (after `--`):
+Command-line options (after `--`). They are parsed in `game/scripts/dev_flags.gd` (TD-4 a, 2026-11-14); main.gd reads each value as `flags.NAME`, and release builds read none (`release.gd`):
 
 | Option | Effect |
 | --- | --- |
