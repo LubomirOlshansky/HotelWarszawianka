@@ -25,6 +25,7 @@ const MapBuilderRef := preload("res://scripts/map_builder.gd")
 const Landmarks := preload("res://scripts/landmarks.gd")
 const MeshProbe := preload("res://tools/mesh_probe.gd")
 const Fakes := preload("res://tools/fakes.gd")
+const Neon := preload("res://scripts/neon_signs.gd")
 ## Triangles a site may hold: measured on 2026-10-31 plus about 20 % (raise on purpose only).
 const BUDGET := {
 	"scena_relax": 600,
@@ -377,6 +378,17 @@ func _initialize() -> void:
 		var kit_found := _probe.examine("kit_sampler", kit_rec)
 		measured["kit_sampler"] = kit_found
 		_judge("kit_sampler", kit_found)
+	# Every landmark sign's word must be a row of the neon atlas (neon_signs.gd LANDMARK_WORDS):
+	# a missing word draws nothing (Legia's LEGUMINA, 2026-11-01 to 2026-11-15), and a word wider
+	# than the atlas is cut off (HOTEL EUROPEJSKI).
+	var words := Neon.all_words()
+	for sign: Array in marks.signs:
+		var miss := "sign %s: not in the neon atlas (neon_signs.gd LANDMARK_WORDS)" % sign[0]
+		if not words.has(sign[0]) and not problems.has(miss):
+			problems.append(miss)
+		var wide := "sign %s: wider than the neon atlas (neon_signs.gd ATLAS_W)" % sign[0]
+		if Neon.word_width(sign[0]) + 2 * Neon.PAD > Neon.ATLAS_W and not problems.has(wide):
+			problems.append(wide)
 	for key: String in BUDGET:
 		if not measured.has(key):
 			problems.append("%s: has a budget but builds nothing (site gone?)" % key)

@@ -59,7 +59,7 @@ const SKINS := [
 	{"key": "poczta", "osm": "Poczta Główna", "mode": M_MONUMENT, "wall": "#ecd2c2", "roof": "#77706b"},
 	# Politechnika's main building (F's photos, 2026-11-15, spec politechnika.md): cream plaster
 	# over a grey zinc roof; the main hall's glass roof (`keep`) keeps LoD2's own colour; the
-	# rounded front pavilion on Plac Politechniki is the site's own model (_build_politechnika).
+	# columned middle of the front on Plac Politechniki is the site's own model (_build_politechnika).
 	{"key": "politechnika", "osm": "Gmach Główny PW", "mode": M_MONUMENT, "wall": "#ece6d8", "roof": "#8b9094",
 			"keep": [Vector2(-958.0, 1459.0), Vector2(-914.0, 1459.0), Vector2(-914.0, 1508.0), Vector2(-958.0, 1508.0)]},
 	# Miodowa's and Senatorska's palaces from F's photos (2026-11-07, docs/landmarks/specs/miodowa.md):
