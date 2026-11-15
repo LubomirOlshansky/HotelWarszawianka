@@ -47,7 +47,7 @@ Current state, tiers and photo counts (2026-11-13): docs/LANDMARKS.md "Churches 
 
 ## Inventory
 
-Status as of 2026-11-15 (after #785). Every church in this table now has its own builder; none is left on the kit. Still open: the convent wings and unnamed religious blocks (21 in the map) are plain blocks or, like the Wizytki convent, built from LoD2 with default colours because no open photo reaches them; the Archikatedra's side walls and east end stay the LoD2 mass in brick: the Kanonia and Dziekania houses hide almost all of them, and the 2026-11-14 photos (Commons and Mapillary, 14 more round the east end on 2026-11-15) show only interiors and the neighbours. One combined phone measurement of the whole church set is on the next-build list.
+Status as of 2026-11-15 (after #864). Every church in this table now has its own builder; none is left on the kit, and the chapels, convent houses and parish halls of the 2026-11-14 list are built too (#832..#864; several from LoD2 with default colours because no open photo reaches them, each flagged in QUESTIONS). Still plain blocks: ten small religious-tagged outlines no list named (buildings 394, 2197, 6054 and 10100, presbyteries; 821, 3049 and 5803, monastery wings; 1000, 4469 and 10482, unnamed religious), left for street passes; the Archikatedra's side walls and east end stay the LoD2 mass in brick: the Kanonia and Dziekania houses hide almost all of them, and the 2026-11-14 photos (Commons and Mapillary, 14 more round the east end on 2026-11-15) show only interiors and the neighbours. One combined phone measurement of the whole church set is on the next-build list.
 
 | Church (OSM name) | Kind | Centre (x, z) | Status |
 | --- | --- | --- | --- |
@@ -115,8 +115,8 @@ Status as of 2026-11-15 (after #785). Every church in this table now has its own
 
 Also on the map (no model): the Archikatedra św. Jana (`archikatedra`, front on the kept skin,
 PR #167) and the Barbican's neighbours are the Old Town lane's; Praga's cathedral (Bazylika
-Katedralna św. Michała i św. Floriana) is still open (LANDMARKS 3.2). 21 unnamed religious
-buildings (convent wings, chapels, parish halls) stay plain blocks.
+Katedralna św. Michała i św. Floriana) is still open (LANDMARKS 3.2). The ten religious-tagged
+outlines listed under Inventory stay plain blocks.
 
 ## Targets
 
