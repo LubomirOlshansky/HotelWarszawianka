@@ -98,6 +98,7 @@ RIDE_BELOW, SMASH_BELOW = 0.6, 1.2
 # --- the hand lists the wall builder keeps today (game/scripts/city_barriers.gd), by a line's first
 # point. They stay there until the builder reads `ty`; --selftest checks these copies against it.
 SITE_WALLS = [
+    ((-210.5, -650.9), ""),  # the UW escarpment: OSM's grey 2 m wall, left out under the brick wall (uw_skarpa)
     ((-1639.7, -1217.3), ""), ((-1667.0, -1217.7), "balustrade_white"), ((-1657.7, -1219.1), "balustrade_white"),
     ((-1644.7, -1190.0), "balustrade_white"), ((-1656.4, -1197.6), "balustrade_white"),
     ((-1624.6, -1230.3), "balustrade_rail"), ((-1621.2, -1219.2), "balustrade_rail"),

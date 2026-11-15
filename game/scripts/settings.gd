@@ -77,6 +77,9 @@ var pitch := FollowCamera.DEFAULT_PITCH
 ## Loop 2e: main.gd STYLES (Sharp, Fine, Clean, Chunky) and the VHS overlay.
 var style := 0
 var vhs := false
+## The colour look (grades.gd SETTING: 0 "warsaw", shown as Natural, the default; 1 Neon; 2 Classic, the picture
+## before 2026-11-15). Settings → Obraz → Kolory, key "grade".
+var grade := 0
 ## Loop MW-6 (vision 4.3, Open Question 7): the game's mode, Miasto (0, jobs and calls come by
 ## themselves; the default) or Spacer (1, wander: nothing comes by itself, hints to the notebook's
 ## places), and whether Spacer has been offered once (after the first pause).
@@ -162,6 +165,7 @@ func load_file() -> void:
 		fps = FPS[0]
 	style = clampi(int(cfg.get_value("display", "style", style)), 0, 3)
 	vhs = bool(cfg.get_value("display", "vhs", vhs))
+	grade = clampi(int(cfg.get_value("display", "grade", grade)), 0, Grades.SETTING.size() - 1)
 	view = clampf(float(cfg.get_value("display", "view", view)), FollowCamera.VIEWS[0], FollowCamera.VIEWS[-1])
 	pitch = float(cfg.get_value("display", "pitch", pitch))
 	if not pitch in FollowCamera.PITCHES:
@@ -212,6 +216,7 @@ func save() -> void:
 	cfg.set_value("display", "fps", fps)
 	cfg.set_value("display", "style", style)
 	cfg.set_value("display", "vhs", vhs)
+	cfg.set_value("display", "grade", grade)
 	cfg.set_value("display", "view", view)
 	cfg.set_value("display", "pitch", pitch)
 	cfg.set_value("game", "wander", wander)

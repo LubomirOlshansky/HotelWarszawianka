@@ -4,10 +4,11 @@ extends "res://scripts/place.gd"
 ## The park between Świętokrzyska and the Palace is in the map data (its walks, lawns, trees,
 ## lamps, benches and the fountain); this adds the installation, which stands all year:
 ##  - over the alley that runs from the Pijana Czereśnia kiosk along Świętokrzyska to the fountain:
-##    six arches of giant flower stems that meet over the walk, each stem ending in a lilac bell
-##    flower that hangs over the path with pearl beads under it and a magenta neon ring, warm bulbs
-##    strung along the stems, an orange butterfly on top of some (the news: "at least six light
-##    hangings over the alley along Świętokrzyska");
+##    six arches of giant flower stems that meet over the walk, green tube bundles out of round
+##    planters printed with mushrooms and autumn flowers, each ending in a white lace bell flower
+##    with a green calyx and a bunch of pearl beads (F's own photos, 2026-11-15, replaced the first
+##    lilac guess); warm bulb strings run from arch to arch and big butterflies hang from them on
+##    two cords (the news: "at least six light hangings over the alley along Świętokrzyska");
 ##  - giant dandelions beside the walks (ten): a pale green stem, a warm-white clock of radial
 ##    spikes with a bulb on each tip, long toothed leaves, a dark round base painted with flowers;
 ##  - four single bell flowers on their own stems, and butterflies on thin rods among them
@@ -16,7 +17,7 @@ extends "res://scripts/place.gd"
 ##    on round concrete feet down its west side, each with an arm over the walk carrying a
 ##    projector; after dark the walk is a carpet of projected flowers (light_garden.gdshader), and
 ##    a second projection rings the fountain;
-##  - the photo frame on the north side of the fountain, set so the Palace stands in it.
+##  - the gold lattice photo frame on the north side of the fountain, set so the Palace stands in it.
 ## Built at runtime on both city paths, as skwer_zlota.gd: the dressing is poured (one draw call
 ## per sector with every other place); the projection is one mesh of its own (additive, night
 ## only). The flowers, bulbs and butterflies use the actors' material's night glow (LIT_SIGN), no
@@ -43,8 +44,12 @@ const ARCHES := [
 	[Vector2(-1370.3, 7.6), Vector2(-1371.1, 2.0)], [Vector2(-1354.6, 6.0), Vector2(-1354.9, 0.5)],
 	[Vector2(-1338.2, 4.2), Vector2(-1339.5, -1.2)], [Vector2(-1322.5, -0.7), Vector2(-1324.7, -5.9)],
 ]
-## Which arches carry a butterfly on top.
-const ARCH_BUTTERFLY := [0, 2, 3, 5]
+## Which spans between arches (span i runs from arch i to arch i + 1) hang a butterfly on two cords
+## from the festoon (F's photos: the butterflies hang from the light strings, not on the arches).
+const SPAN_BUTTERFLY := [0, 1, 3, 4]
+## A planter's height and radius at an arch's foot.
+const FOOT_H := 0.8
+const FOOT_R := 0.95
 ## [kind, x, z, height]: d a dandelion, f a single bell flower.
 const FIGURES := [
 	["d", -1412.0, 22.0, 4.2], ["d", -1404.5, 15.7, 3.6], ["f", -1392.0, 17.7, 4.6], ["d", -1379.9, 11.5, 3.9],
@@ -72,26 +77,34 @@ const FOUNTAIN := Vector2(-1298.0, 24.2)
 const RING_R := 18.2
 const PALACE := Vector2(-1214.2, 247.0)
 
-const STEM := Color("#5f9e3a")
-const STEM_LIT := Color("#b8f07a")
-const LEAF := Color("#7fd23f")
+const STEM := Color("#2f8a3c")
+const STEM_LIT := Color("#3f9f46")
+const LEAF := Color("#2f8a3c")
+const LEAF_BLUE := Color("#3f8f78")
+const SEPAL := Color("#1f6b3a")
+const GRATE := Color("#245c30")
 const BULB := Color("#ffe2a0")
-const BELL := Color("#b79bf0")
-const BELL_DEEP := Color("#8d6be0")
-const NEON := Color("#e040ff")
-const PEARL := Color("#f1e8f7")
+const BELL := Color("#f2f0ea")
+const BELL_DEEP := Color("#c9cfd8")
+const NEON := Color("#dfe9ff")
+const PEARL := Color("#f4eedb")
 const PUFF := Color("#fff1d6")
 const PUFF_TIP := Color("#fffaf0")
-const BASE := Color("#24243a")
-const BASE_ART := [Color("#d8443a"), Color("#f0b429"), Color("#e86a9a"), Color("#4f9e4a")]
+const BASE := Color("#2b3a1c")
+const BASE_ART := [Color("#d8443a"), Color("#f0a030"), Color("#8a5ac8"), Color("#e8c43a")]
+const MUSHROOM_STEM := Color("#efe6d2")
 const STEEL := Color("#c6ced6")
 const STEEL_DARK := Color("#7d868e")
 const CONCRETE := Color("#b9b5ac")
 const DARK := Color("#2a2d33")
-const WING := [Color("#ff8a1e"), Color("#ffd23a"), Color("#ff4fa3"), Color("#3fb8ff"), Color("#a66bff"), Color("#5be37a")]
-const FRAME_GOLD := Color("#f2d27a")
+const WING := [Color("#e8941e"), Color("#d8405a"), Color("#6cae3a"), Color("#c84a9a"), Color("#f0782e"), Color("#a83a4a")]
+const FRAME_GOLD := Color("#d6b04a")
+const FRAME_LATTICE := Color("#8a6a22")
+const FRAME_POSTER := [Color("#c8403a"), Color("#e8903a"), Color("#8a3a6a")]
 
 var _st: SurfaceTool
+## The apex of each arch (over the walk), where the festoon strings hang from.
+var _tops: Array[Vector3] = []
 ## The projection's material (its `visitor` uniform follows the car) and the car, from ctx.
 var _mat: ShaderMaterial
 var _vehicle: Callable
@@ -106,7 +119,8 @@ func build() -> void:
 	_st = SurfaceTool.new()
 	_st.begin(Mesh.PRIMITIVE_TRIANGLES)
 	for i in ARCHES.size():
-		_arch(ARCHES[i][0], ARCHES[i][1], ARCH_BUTTERFLY.has(i))
+		_arch(ARCHES[i][0], ARCHES[i][1])
+	_festoons()
 	for f: Array in FIGURES:
 		var p := Vector2(f[1], f[2])
 		if f[0] == "d":
@@ -177,65 +191,143 @@ func _stem(a: Vector3, c: Vector3, b: Vector3, n: int, w: float, bulbs: bool) ->
 	count += 1
 
 
-## A bell flower hanging mouth down from `top`: eight lilac petals flaring out to a rim `r` wide,
-## the magenta neon ring at the rim, pearl beads under it.
+## A bell flower hanging mouth down from `top` (F's photos: a white lace bell, its rim in big soft
+## waves, a calyx of dark green sepals on top, a bunch of pearl beads hanging from the mouth).
 func _bell(top: Vector3, r: float, yaw: float) -> void:
-	var drop := r * 1.35
+	var drop := r * 1.5
+	var n := 12
 	var rim: Array[Vector3] = []
-	for k in 8:
-		var a := yaw + TAU * k / 8.0
-		rim.append(top + Vector3(cos(a) * r, -drop, sin(a) * r))
-	for k in 8:
-		var a := yaw + TAU * (k + 0.5) / 8.0
-		var mid := top + Vector3(cos(a) * r * 0.55, -drop * 0.55, sin(a) * r * 0.55)
-		var n := Vector3(cos(a), 0.4, sin(a)).normalized()
-		Props.tri(_st, top, rim[k], mid, n, BELL_DEEP, LIT)
-		Props.tri(_st, mid, rim[k], rim[(k + 1) % 8], n, BELL, LIT)
-		Props.tri(_st, top, mid, rim[(k + 1) % 8], n, BELL, LIT)
-		Props.beam(_st, rim[k], rim[(k + 1) % 8], 0.06, 0.06, NEON, Vector3.UP, LIT)
-	# The pistil down the middle with the pearl beads clustered on it, the lowest below the rim.
-	Props.beam(_st, top, top + Vector3(0, -drop * 1.2, 0), 0.05, 0.05, PEARL, Vector3.RIGHT, LIT)
+	var mid: Array[Vector3] = []
+	for k in n:
+		var a := yaw + TAU * k / float(n)
+		var wave := 1.0 + (0.16 if k % 2 == 0 else -0.04)
+		rim.append(top + Vector3(cos(a) * r * wave, -drop - (0.08 if k % 2 == 0 else 0.0), sin(a) * r * wave))
+		mid.append(top + Vector3(cos(a) * r * 0.5, -drop * 0.5, sin(a) * r * 0.5))
+	for k in n:
+		var k2 := (k + 1) % n
+		var a := yaw + TAU * (k + 0.5) / float(n)
+		var nrm := Vector3(cos(a), 0.4, sin(a)).normalized()
+		var col := BELL if k % 2 == 0 else BELL_DEEP
+		Props.tri(_st, top, mid[k], mid[k2], nrm, BELL_DEEP, LIT)
+		Props.tri(_st, mid[k], rim[k], rim[k2], nrm, col, LIT)
+		Props.tri(_st, mid[k], rim[k2], mid[k2], nrm, col, LIT)
+		Props.beam(_st, rim[k], rim[k2], 0.05, 0.05, NEON, Vector3.UP, LIT)
+	# The calyx: five pointed dark-green sepals folded down over the bell's shoulder.
 	for k in 5:
-		var a := yaw + TAU * k / 5.0
-		Props.box(_st, top + Vector3(cos(a) * 0.1, -drop * (0.75 + 0.1 * k), sin(a) * 0.1),
-				Vector3(0.18, 0.18, 0.18), PEARL, LIT)
+		var a := yaw + TAU * k / 5.0 + 0.3
+		var out := Vector3(cos(a), 0, sin(a))
+		var base_at := top + out * r * 0.12 + Vector3(0, 0.12, 0)
+		var tip := top + out * r * 0.78 + Vector3(0, -drop * 0.4, 0)
+		_leaf(base_at, tip, r * 0.34, SEPAL)
+	# The pearl bunch: seven beads hanging from the mouth on the pistil.
+	Props.beam(_st, top, top + Vector3(0, -drop * 1.05, 0), 0.04, 0.04, PEARL, Vector3.RIGHT, LIT)
+	for k in 7:
+		var a := yaw + TAU * k / 7.0
+		var ring := 0.0 if k == 0 else 0.2
+		# Each bead a little lower than the last, so no two share a face plane.
+		Props.box(_st, top + Vector3(cos(a) * ring, -drop * 1.0 - 0.065 * k, sin(a) * ring),
+				Vector3(0.22, 0.22, 0.22), PEARL, LIT)
 
 
-## One arch: a stem from each foot rises over the walk, crosses the other and hangs its bell past
-## the middle; long leaves at the feet.
-func _arch(a2: Vector2, b2: Vector2, butterfly: bool) -> void:
+## A flat leaf from `a` (the stalk end) to `b` (the tip), `width` across at its widest, closed (two
+## faces) so it reads from both sides.
+func _leaf(a: Vector3, b: Vector3, width: float, col: Color) -> void:
+	var d := b - a
+	var side := d.cross(Vector3.UP)
+	if side.length_squared() < 0.0001:
+		side = Vector3.RIGHT
+	side = side.normalized() * width * 0.5
+	var m1 := a + d * 0.4
+	var up := Vector3.UP * width * 0.12
+	var nrm := side.cross(d).normalized()
+	if nrm.y < 0.0:
+		nrm = -nrm
+	# Two faces a hand's breadth apart (a leaf is a thin shell), so no two faces share a plane.
+	var t := nrm * 0.03
+	Props.tri(_st, a + t, m1 + side + up + t, m1 - side + up + t, nrm, col, LIT)
+	Props.tri(_st, m1 + side + up + t, b + t, m1 - side + up + t, nrm, col, LIT)
+	Props.tri(_st, a - t, m1 - side + up - t, m1 + side + up - t, -nrm, col.darkened(0.25), LIT)
+	Props.tri(_st, m1 + side + up - t, m1 - side + up - t, b - t, -nrm, col.darkened(0.25), LIT)
+
+
+## One arch (F's photos, 2026-11-15): from each round painted planter a bundle of green tube stems
+## (one thick, two thin that wind round it) rises over the walk, the thick one crosses the other
+## and hangs its white lace bell past the middle; broad leaves at three heights up the stems.
+func _arch(a2: Vector2, b2: Vector2) -> void:
 	var a := _v(a2, _g(a2))
 	var b := _v(b2, _g(b2))
+	_base(a2, a.y, FOOT_R, FOOT_H)
+	_base(b2, b.y, FOOT_R, FOOT_H)
+	a.y += FOOT_H
+	b.y += FOOT_H
 	var mid := (a + b) * 0.5
 	var across := (b - a).normalized()
 	# The two stems pass each other 0.5 m apart along the walk.
 	var along3 := Vector3(-across.z, 0, across.x)
 	var shift := 0.25
+	var top_end := Vector3.ZERO
 	for side in [[a, b], [b, a]]:
 		var from: Vector3 = side[0]
 		var to: Vector3 = side[1]
 		var dir := (to - from).normalized()
 		var end := mid + dir * 1.15 + Vector3.UP * 4.3 + along3 * shift
 		var ctl := from.lerp(mid, 0.55) + Vector3.UP * 8.4 + along3 * shift
-		_stem(from, ctl, end, 12, 0.22, true)
+		_stem(from, ctl, end, 12, 0.22, false)
+		# Two thin strands winding up beside the main one, ending on the bell's stalk.
+		for sgn: float in [-1.0, 1.0]:
+			var foot := from + along3 * 0.35 * sgn
+			var wind := from.lerp(mid, 0.4) + Vector3.UP * 6.0 - along3 * 0.6 * sgn + along3 * shift
+			_stem(foot, wind, end - Vector3.UP * 0.15, 8, 0.08, false)
 		shift = -shift
-		_bell(end, 0.85, atan2(dir.z, dir.x))
-		_leaves(from, atan2(dir.z, dir.x), 2, 1.6)
-	if butterfly:
-		var top := _quad(a, a.lerp(mid, 0.55) + Vector3.UP * 8.4, mid + across * 1.15 + Vector3.UP * 4.3, 0.62) + along3 * 0.25
-		_butterfly(top + Vector3(0, 0.09, 0), atan2(across.z, across.x), 0, 1.6)
+		_bell(end, 0.95, atan2(dir.z, dir.x))
+		_leaves(from, dir, along3)
+		if top_end == Vector3.ZERO:
+			top_end = _quad(from, ctl, end, 0.5)
+	_tops.append(Vector3(mid.x, top_end.y, mid.z))
 
 
-## `n` long toothed leaves from a foot, spreading round `yaw`.
-func _leaves(foot: Vector3, yaw: float, n: int, length: float) -> void:
+## Broad leaves up the stems from a foot: two at the planter, one higher, a bluish one on the
+## stem's far side, as on the photos.
+func _leaves(foot: Vector3, dir: Vector3, along3: Vector3) -> void:
+	var specs := [[0.5, 0.9, 1.7, 0], [0.3, -0.9, 1.5, 1], [1.8, 0.8, 1.4, 0], [3.0, -0.7, 1.2, 1]]
+	for sp: Array in specs:
+		var base_at := foot + Vector3.UP * float(sp[0]) + dir * 0.35 * float(sp[0]) * 0.3
+		var out := (dir * 0.6 + along3 * float(sp[1])).normalized()
+		var tip := base_at + out * float(sp[2]) + Vector3.UP * 0.5
+		_leaf(base_at, tip, float(sp[2]) * 0.55, LEAF if int(sp[3]) == 0 else LEAF_BLUE)
+
+
+## `n` broad leaves from a foot, spreading round `yaw` (the dandelions and single bell flowers).
+func _ground_leaves(foot: Vector3, yaw: float, n: int, length: float) -> void:
 	for k in n:
 		var a := yaw + PI * 0.5 + (k - (n - 1) * 0.5) * 0.9 + PI * (k % 2)
 		var out := Vector3(cos(a), 0, sin(a))
-		var tip := foot + out * length * 0.7 + Vector3.UP * length
-		var knee := foot + out * 0.25 + Vector3.UP * length * 0.45
-		Props.beam(_st, foot - Vector3.UP * 0.05, knee, 0.34, 0.05, LEAF, out.cross(Vector3.UP), LIT)
-		Props.beam(_st, knee, tip, 0.26, 0.05, LEAF, out.cross(Vector3.UP), LIT)
-		Props.box(_st, knee, Vector3(0.11, 0.11, 0.11), LEAF, LIT)
+		_leaf(foot, foot + out * length * 0.7 + Vector3.UP * length * 0.8, length * 0.4, LEAF)
+
+
+## The bulb strings (F's photos): from each arch's crown to the next, sagging, a warm bulb at every
+## joint; on some spans a butterfly hangs from it by two cords.
+func _festoons() -> void:
+	for i in _tops.size() - 1:
+		var a := _tops[i]
+		var b := _tops[i + 1]
+		var n := 10
+		var prev := a
+		for k in range(1, n + 1):
+			var t := float(k) / n
+			var p := a.lerp(b, t) + Vector3.DOWN * 1.4 * sin(PI * t)
+			Props.beam(_st, prev, p, 0.035, 0.035, DARK)
+			if k < n:
+				Props.box(_st, p + Vector3(0, -0.1, 0), Vector3(0.13, 0.13, 0.13), BULB, LIT)
+			prev = p
+		if SPAN_BUTTERFLY.has(i):
+			var c1 := a.lerp(b, 0.43) + Vector3.DOWN * 1.4 * sin(PI * 0.43)
+			var c2 := a.lerp(b, 0.57) + Vector3.DOWN * 1.4 * sin(PI * 0.57)
+			var hang := (c1 + c2) * 0.5 + Vector3.DOWN * 1.5
+			Props.beam(_st, c1, hang + (c1 - c2).normalized() * 0.4, 0.02, 0.02, STEEL_DARK)
+			Props.beam(_st, c2, hang - (c1 - c2).normalized() * 0.4, 0.02, 0.02, STEEL_DARK)
+			var f := b - a
+			_butterfly(hang + Vector3(0, 0.05, 0), atan2(f.z, f.x) + PI * 0.5, i, 2.2)
 
 
 ## The dark round base painted with flowers that the figures stand in.
@@ -250,9 +342,14 @@ func _base(p: Vector2, y: float, r: float, h: float) -> void:
 		var n := Vector3((q0 + q1).x * 0.5 - p.x, 0, (q0 + q1).y * 0.5 - p.y).normalized()
 		Props.tri(_st, _v(q0, y), _v(q1, y), _v(q1, y + h), n, BASE)
 		Props.tri(_st, _v(q0, y), _v(q1, y + h), _v(q0, y + h), n, BASE)
-		Props.tri(_st, _v(p, y + h), _v(q0, y + h), _v(q1, y + h), Vector3.UP, BASE)
+		Props.tri(_st, _v(p, y + h), _v(q0, y + h), _v(q1, y + h), Vector3.UP, GRATE)
 		var c := _v((q0 + q1) * 0.5, y + h * (0.35 + 0.3 * (k % 2))) + n * 0.02
-		Props.box(_st, c, Vector3(0.22, 0.2, 0.22), BASE_ART[(k + count) % BASE_ART.size()])
+		if k % 4 == 1:
+			# A mushroom printed on the panel: a pale stem under a red cap.
+			Props.box(_st, c - Vector3(0, h * 0.12, 0), Vector3(0.1 * r + 0.06, h * 0.3, 0.1 * r + 0.06), MUSHROOM_STEM)
+			Props.box(_st, c + Vector3(0, h * 0.1, 0), Vector3(0.3 * r + 0.1, h * 0.2, 0.3 * r + 0.1), BASE_ART[0])
+		else:
+			Props.box(_st, c, Vector3(0.22 * r + 0.1, 0.2 * r + 0.1, 0.22 * r + 0.1), BASE_ART[(k + count) % BASE_ART.size()])
 
 
 ## A giant dandelion `h` high: base, pale stem, leaves, and the clock of spikes with warm tips.
@@ -262,9 +359,9 @@ func _dandelion(p: Vector2, h: float) -> void:
 	var lean := Vector3(sin(p.x * 1.7) * 0.35, 0, cos(p.y * 1.3) * 0.35)
 	var head := _v(p, y + h) + lean
 	_stem(_v(p, y), _v(p, y + h * 0.6), head, 6, 0.12, false)
-	_leaves(_v(p, y + 0.5), p.x * 0.7, 3, 1.7)
+	_ground_leaves(_v(p, y + 0.5), p.x * 0.7, 3, 1.7)
 	var r := 1.45
-	var n := 60
+	var n := 44
 	for k in n:
 		# A Fibonacci sphere; the lowest spikes (into the stem) are left out.
 		var t := (k + 0.5) / n
@@ -292,7 +389,7 @@ func _bell_flower(p: Vector2, h: float) -> void:
 	var ctl := foot + out * 0.2 + Vector3.UP * (h + 1.2)
 	_stem(root, ctl, end, 9, 0.15, true)
 	_bell(end, 0.8, yaw)
-	_leaves(foot, yaw, 2, 1.4)
+	_ground_leaves(foot, yaw, 2, 1.4)
 	_butterfly(_quad(foot, ctl, end, 0.55) + Vector3(0, 0.08, 0), yaw + PI * 0.5, (count + 1) % WING.size(), 1.0)
 	count += 1
 
@@ -373,20 +470,49 @@ func _base_round(p: Vector2, y: float, r: float, h: float) -> void:
 		Props.tri(_st, _v(p, y + h), _v(q0, y + h), _v(q1, y + h), Vector3.UP, CONCRETE)
 
 
-## The photo frame north of the fountain: stand at it and the Palace fills it.
+## The gold lattice photo frame north of the fountain (F's photos): a squared-off gold arch of
+## three thick panels (two posts, a lintel) with a diamond lattice, a sill, painted poster panels
+## on the outer sides; stand at it and the Palace fills the opening.
 func _photo_frame() -> void:
 	var to_palace := (PALACE - FOUNTAIN).normalized()
 	var p := FOUNTAIN - to_palace * (RING_R + 4.6)
 	var y := _g(p)
-	var across := Vector3(-to_palace.y, 0, to_palace.x)
+	var fwd := Vector3(to_palace.x, 0, to_palace.y)
+	var across := Vector3(-fwd.z, 0, fwd.x)
+	var basis := Basis(across, Vector3.UP, fwd)
 	var c := _v(p, y)
-	var half := 1.4
-	var top := 3.0
+	var half := 1.5       # the opening's half width
+	var post := 0.75
+	var depth := 0.55
+	var top := 2.9
+	# A low dark platform, the two posts, the lintel and the sill.
+	Props.obox(_st, c + Vector3.UP * 0.05, basis, Vector3(half * 2 + post * 2 + 0.3, 0.1, depth + 0.7), FRAME_LATTICE)
+	var ph := top - 0.65     # the posts end a hand inside the lintel
 	for sgn: float in [-1.0, 1.0]:
-		Props.beam(_st, c + across * half * sgn, c + across * half * sgn + Vector3.UP * top, 0.16, 0.16, FRAME_GOLD, Vector3.UP, LIT)
-	Props.beam(_st, c - across * half + Vector3.UP * top, c + across * half + Vector3.UP * top, 0.16, 0.16, FRAME_GOLD, Vector3.UP, LIT)
-	Props.beam(_st, c - across * half + Vector3.UP * 0.6, c + across * half + Vector3.UP * 0.6, 0.12, 0.12, FRAME_GOLD, Vector3.UP, LIT)
-	_butterfly(c + across * half + Vector3.UP * (top + 0.1), atan2(across.z, across.x), 2, 0.9)
+		var at := c + across * (half + post * 0.5) * sgn + Vector3.UP * (ph * 0.5 + 0.1)
+		Props.obox(_st, at, basis, Vector3(post, ph, depth), FRAME_GOLD, LIT)
+		# The painted poster on the outer side, and a diamond lattice on the front and back faces.
+		Props.obox(_st, at + across * (post * 0.5 + 0.02) * sgn, basis, Vector3(0.05, ph * 0.85, depth * 0.9),
+				FRAME_POSTER[0 if sgn < 0.0 else 1], LIT)
+		for face: float in [-1.0, 1.0]:
+			var f := fwd * (depth * 0.5 + 0.02) * face
+			for j in 3:
+				var y0 := 0.1 + j * 0.72
+				Props.beam(_st, at + f + Vector3(0, y0 - ph * 0.5, 0) - across * post * 0.4 * sgn,
+						at + f + Vector3(0, y0 + 0.6 - ph * 0.5, 0) + across * post * 0.4 * sgn, 0.035, 0.035, FRAME_LATTICE, Vector3.UP, LIT)
+				# The crossing diagonal sits a finger proud of the first.
+				var g := f * 1.0 + fwd * 0.04 * face
+				Props.beam(_st, at + g + Vector3(0, y0 + 0.6 - ph * 0.5, 0) - across * post * 0.4 * sgn,
+						at + g + Vector3(0, y0 - ph * 0.5, 0) + across * post * 0.4 * sgn, 0.035, 0.035, FRAME_LATTICE, Vector3.UP, LIT)
+	var lintel := c + Vector3.UP * (top - 0.3)
+	Props.obox(_st, lintel, basis, Vector3(half * 2 + post * 2 + 0.08, 0.6, depth + 0.06), FRAME_GOLD, LIT)
+	for face: float in [-1.0, 1.0]:
+		var f := fwd * (depth * 0.5 + 0.06) * face
+		for j in 7:
+			var x0 := -half - post + 0.2 + j * ((half * 2 + post * 2 - 0.4) / 6.0)
+			Props.beam(_st, lintel + f + across * x0 - Vector3.UP * 0.25, lintel + f + across * (x0 + 0.4) + Vector3.UP * 0.25,
+					0.035, 0.035, FRAME_LATTICE, Vector3.UP, LIT)
+	Props.obox(_st, c + Vector3.UP * 0.55, basis, Vector3(half * 2, 0.5, depth * 0.8), FRAME_GOLD, LIT)
 	count += 1
 
 
