@@ -4699,6 +4699,58 @@ func _build_zytnia_dom_zakonny(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The long range inside the block behind the convent range on Żytnia (unnamed `religious`
+## building 10480, Wola), south of `church_zytnia_dom_zakonny`, its north wall on the yard between
+## them: two storeys under a low grey roof, a lower annex at its east end. A model that replaces
+## the plain OpenStreetMap block (no landmark until 2026-11-15) from the OSM outline and GUGiK's
+## LoD2 (over the ground: the eaves about 6.4, the roof to 8). **Provisional, no photo**: no open
+## photo reaches the yard, so its walls follow the street range in front (the same cream plaster
+## on a brick plinth, barred ground-floor windows, capped upper windows; docs/QUESTIONS.md).
+## Spec docs/landmarks/specs/zytnia_dom_zakonny_tyl.md.
+## Frame: origin at the north wall's west corner, u to the east-north-east, +v to the south; the
+## north wall faces the yard (-v).
+const ZYB_O := Vector2(-2679.6, -701.0)
+const ZYB_A := Vector2(0.9514, -0.3084)
+
+
+func _build_zytnia_dom_zakonny_tyl(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(ZYB_O, ZYB_O + ZYB_A)
+	_g = _ground_under(outline)
+	var g := _g
+	_mode = M_STONE
+	var eave := g + 6.4
+	var main := _largest(Geometry2D.intersect_polygons(outline, _rect(25.9, 4.2, 27.9, 4.5)))
+	var east := _largest(Geometry2D.intersect_polygons(outline, _rect(60.15, 4.2, 6.35, 4.5)))
+	_prism(main, g - 1.0, eave, ZYT_WALL, ZYT_ROOF.darkened(0.1), M_STONE, M_STONE)
+	_prism(east, g - 1.0, g + 5.2, ZYT_WALL, ZYT_ROOF.lightened(0.1), M_STONE, M_STONE)
+	kit_cornice_ring(main, eave - 0.1, ZYT_TRIM, 0.35, 0.3)
+	_gable(-0.2, 53.8, 4.2, 4.6, eave, 1.6, ZYT_WALL, ZYT_ROOF, true)
+	# --- every wall: the brick plinth, the rusticated ground floor, a band, two rows of windows
+	var n := outline.size()
+	for k in n:
+		kit_front(ZYB_O, ZYB_O + ZYB_A)
+		var le := kit_front(outline[(k + 1) % n], outline[k])
+		if le < 2.6:
+			continue
+		var m := maxi(1, floori(le / 3.2))
+		var cs: Array = []
+		for i in m:
+			cs.append((float(i) + 0.5) * le / float(m))
+		_kbox(0.0, le, 0.0, 0.06, g - 1.0, g + 0.9, ZYT_BRICK)
+		for yb: float in [g + 1.6, g + 2.3]:
+			_kbox(0.0, le, 0.0, 0.03, yb, yb + 0.06, ZYT_WALL.darkened(0.12))
+		kit_ledge(0.0, le, g + 3.0, 0.25, ZYT_TRIM, 0.1)
+		kit_panes(cs, [g + 1.1], 1.3, 1.6, PAL_DARK_DOOR, 0.05)
+		kit_panes(cs, [g + 1.15], 1.15, 1.5, PAL_GLASS_DARK, 0.07)
+		kit_panes(cs, [g + 3.7], 1.3, 1.8, ZYT_FRAME, 0.04)
+		kit_panes(cs, [g + 3.8], 1.1, 1.6, PAL_GLASS_DARK, 0.06)
+		kit_panes(cs, [g + 3.55], 1.6, 0.14, ZYT_TRIM, 0.11)
+		kit_panes(cs, [g + 5.55], 1.5, 0.18, ZYT_TRIM, 0.1)
+	kit_front(ZYB_O, ZYB_O + ZYB_A)
+	_collide(outline)
+
+
 func _build_zwycieska_klasztor(site: Dictionary) -> void:
 	var outline: PackedVector2Array = site["outline"]
 	kit_front(ZWK_O, ZWK_O + ZWK_A)
@@ -7296,6 +7348,8 @@ const CHURCHES := [
 			"fill": 0.9, "style": "neoclassical", "wall": "#e6dfcc", "roof": "#b0583b", "towers": 0, "cap": "none"},
 	{"key": "church_zytnia_dom_zakonny", "at": Vector2(-2680.0, -736.0), "o": Vector2(-2699.1, -732.6), "out": Vector2(-0.366, -0.931), "L": 39.8, "W": 8.0,
 			"fill": 0.9, "style": "neoclassical", "wall": "#e9d8b2", "roof": "#55585c", "towers": 0, "cap": "none"},
+	{"key": "church_zytnia_dom_zakonny_tyl", "at": Vector2(-2650.0, -705.0), "o": Vector2(-2679.6, -701.0), "out": Vector2(-0.308, -0.951), "L": 66.2, "W": 8.5,
+			"fill": 0.9, "style": "neoclassical", "wall": "#e9d8b2", "roof": "#55585c", "towers": 0, "cap": "none"},
 	{"key": "church_sluzki_dom_generalny", "at": Vector2(-203.0, -515.0), "o": Vector2(-206.4, -500.9), "out": Vector2(-0.917, 0.400), "L": 28.3, "W": 29.6,
 			"fill": 0.9, "style": "neoclassical", "wall": "#e3c48e", "roof": "#6b6c6c", "towers": 0, "cap": "none"},
 	{"key": "church_uczennice_boskiego_mistrza", "at": Vector2(-2890.0, -650.0), "o": Vector2(-2919.2, -669.7), "out": Vector2(-0.231, -0.973), "L": 37.5, "W": 41.5,
@@ -7420,6 +7474,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_zytnia_dom_zakonny":
 		_build_zytnia_dom_zakonny(site)  # the convent range on Żytnia's south side, from photos and LoD2
+		return
+	if site["key"] == "church_zytnia_dom_zakonny_tyl":
+		_build_zytnia_dom_zakonny_tyl(site)  # the range behind the convent on Żytnia, from LoD2 (provisional)
 		return
 	if site["key"] == "church_sluzki_dom_generalny":
 		_build_sluzki_dom_generalny(site)  # the Servants of Jesus' generalate, from photos and LoD2
