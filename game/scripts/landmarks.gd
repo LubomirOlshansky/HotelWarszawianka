@@ -105,8 +105,9 @@ const TOWERS := [
 	{"key": "equator2", "osm": "Equator II", "style": S_RIBBON, "glass": "#5a7490", "roof": "#8a8f93", "h": 50.5, "sign": "BLUZOFT"},
 	{"key": "skysawa", "osm": "Skysawa", "style": S_BANDS, "glass": "#7e93a3", "roof": "#a7b0b6"},
 	# Błękitny Wieżowiec (Plac Bankowy 2, 1991): untinted reflective float glass that mirrors the
-	# sky, hence blue (its first cladding was copper, the "Golden Tower"; spec blekitny.md).
-	{"key": "blekitny", "osm": "Błękitny Wieżowiec", "style": S_MIRROR, "glass": "#6f9cc6", "roof": "#9aa3aa", "cool": true},
+	# sky, hence blue (its first cladding was copper, the "Golden Tower"; spec blekitny.md). Deep
+	# blue panes in the kit's grid skin (F's look check, 2026-11-15): the glass shader read it grey.
+	{"key": "blekitny", "osm": "Błękitny Wieżowiec", "style": S_GRID, "glass": "#2f6cbf", "roof": "#9aa3aa", "cool": true},
 	# The blue glass office north of Hotel Warszawa on Plac Powstańców (F's photos, 2026-11-08): the
 	# GUGiK LoD2 mesh of this 70 m tower is open (walls and roof in pieces: it read see-through with
 	# a broken top), so the mapped outline is built whole, in solid blue reflective glass.

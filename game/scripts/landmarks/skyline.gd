@@ -668,8 +668,6 @@ func _build_tower(site: Dictionary) -> void:
 		var part_skin := skin
 		if spec["key"] == "lim" and h > 100.0:
 			part_skin = M_GLASS  # LIM's tower: the shader's mullions and lit rooms (lim.md)
-		if spec["key"] == "blekitny":
-			part_skin = M_GLASS  # Błękitny's mirror glass, tower and podium alike (blekitny.md)
 		var crown := spec.has("crown_from") and mh >= float(spec["crown_from"]) - 0.5
 		if crown:
 			wall = Color(spec["crown"])
