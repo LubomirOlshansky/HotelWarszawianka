@@ -499,26 +499,120 @@ func _browary_roof_garden(roof: PackedVector2Array, y: float) -> void:
 			_prism(_square(c, 1.5), y, y + 2.6, WORKS_MODERN, WORKS_ROOF, M_STONE, M_STONE)
 
 
+## Hala Koszyki from photos (2026-11-15, spec koszyki.md; F's T18 set in refs/_f/warsaw-needed-photos/top-50,
+## Mapillary frames along Koszykowa in refs/koszyki_west and refs/koszyki_east; reference only, never
+## shipped). The hall's mass is its street block (game/data/street_blocks/459521303.bin, site
+## blk_459521303: the buff brick ranges, the two long pitched halls, the forecourt); this site dresses
+## it and draws no walls of its own (the 2026-11-01 model drew a second hall over the block). In the street's frame (KOS_O the outline's north-west corner on Koszykowa, u east
+## along the street, v south into the block) the two 1909 pavilions stand at the street ends of the
+## two long halls, u 3.5..16.3 and 66..78: a cream stone front between two pylons with red brick
+## panels, the big three-light arch in green steel over a balcony, a door and two shop windows
+## under it, a stepped gable with a cartouche. Between them the forecourt is the summer terrace
+## under festoon lights, KOSZYKI in blue neon over the hall's door at its back.
+const KOS_O := Vector2(-922.5, 1260.4)
+const KOS_A := Vector2(0.99629, 0.08604)
+## The pavilions: [u of the middle, v of the block's stone front] (measured off the block).
+const KOS_PAVILIONS := [Vector2(9.88, -1.15), Vector2(71.97, -0.89)]
+const KOS_STONE := Color("#ddd2b6")
+const KOS_BASE := Color("#c2b597")       ## the rusticated foot
+const KOS_RED := Color("#b5643f")        ## the pylons' red brick panels
+const KOS_GREEN := Color("#2e6b4a")      ## the green steel frames and railings
+const KOS_GLASS := Color("#24332e")
+const KOS_DOOR := Color("#2a3532")
+const KOS_BULB := Color("#ffe2a8")
+
+
+func _kos_w(u: float, v: float) -> Vector2:
+	return KOS_O + KOS_A * u + Vector2(-KOS_A.y, KOS_A.x) * v
+
+
 func _build_koszyki(site: Dictionary) -> void:
 	var ring: PackedVector2Array = site["ring"]
 	_g = _ground_under(ring)
 	var g := _g
-	# The market hall: brick with big arched windows, cream trim, and its glass lantern.
-	_works_walls(ring, 11.0, WORKS_BRICK.lightened(0.04), [[1.3, 6.0, 1.3]], 4.4)
-	var ax := _long_axis(ring)
-	var o: Vector2 = ax[0]
-	var a: Vector2 = ax[1]
-	var b: Vector2 = ax[2]
-	var c := o + a * float(ax[3]) * 0.5 + b * float(ax[4]) * 0.5
-	_o = c
-	_a = a
-	_b = b
-	var half := float(ax[3]) * 0.3
-	_lbox(0.0, 0.0, half, 3.2, g + 11.0, g + 13.6, WORKS_TOP, M_GLASS, WORKS_TOP)
-	_mode = M_GLASS_ROOF
-	_frustum(_rect(0.0, 0.0, half, 3.2), g + 13.6, _rect(0.0, 0.0, half, 0.3), g + 15.0, WORKS_TOP, WORKS_TOP)
-	_mode = M_STONE
+	for p: Vector2 in KOS_PAVILIONS:
+		_koszyki_pavilion(g, p.x, p.y)
+	_koszyki_terrace(g)
 	_collide(ring)
+
+
+## One 1909 pavilion's street front (the photos: T18 front-2, Mapillary 1369000433495769), on the
+## block's own pavilion just in front of it: the frame's v is out to the street, u across (the
+## front is symmetric, so its sense does not matter). Every part stands at least 0.06 m off the
+## one behind it.
+func _koszyki_pavilion(g: float, cu: float, vf: float) -> void:
+	var out := -Vector2(-KOS_A.y, KOS_A.x)
+	_b = out
+	_a = Vector2(out.y, -out.x)
+	_o = _kos_w(cu, vf)
+	_mode = M_STONE
+	# The frontispiece between the pylons, its rusticated foot and the stepped gable.
+	_lbox(0.0, 0.1, 4.2, 0.2, g - 0.5, g + 10.4, KOS_STONE, M_STONE, KOS_STONE)
+	_lbox(0.0, 0.2, 4.2, 0.2, g - 0.5, g + 0.6, KOS_BASE, M_STONE, KOS_BASE)
+	_lbox(0.0, 0.25, 4.35, 0.2, g + 10.2, g + 10.55, KOS_STONE.darkened(0.05), M_STONE, KOS_STONE)
+	var steps := [[3.4, 10.55, 11.1], [2.5, 11.1, 11.65], [1.6, 11.65, 12.2]]
+	for st: Array in steps:
+		_lbox(0.0, 0.1, float(st[0]), 0.2, g + float(st[1]), g + float(st[2]), KOS_STONE, M_STONE, KOS_STONE)
+	_lbox(0.0, 0.25, 0.9, 0.25, g + 11.2, g + 12.9, KOS_STONE.lightened(0.06), M_STONE, KOS_STONE)
+	# The pylons: stone, a rusticated foot, a red brick panel up the face, a cap and a finial.
+	for side: float in [-1.0, 1.0]:
+		var pu := side * 5.3
+		_lbox(pu, 0.15, 1.1, 0.35, g - 0.5, g + 13.2, KOS_STONE, M_STONE, KOS_STONE)
+		_lbox(pu, 0.2, 1.2, 0.42, g - 0.5, g + 3.4, KOS_BASE, M_STONE, KOS_BASE)
+		_lbox(pu, 0.53, 0.75, 0.05, g + 6.0, g + 11.0, KOS_RED, M_STONE, KOS_RED)
+		_lbox(pu, 0.2, 1.2, 0.45, g + 13.2, g + 13.6, KOS_STONE, M_STONE, KOS_STONE)
+		_lbox(pu, 0.2, 0.6, 0.3, g + 13.6, g + 14.2, KOS_STONE, M_STONE, KOS_STONE)
+	# The big arch: a stone ring, the green-framed glass, two stone mullions, two green transoms.
+	var at := _w(0.0, 0.3)
+	_arch_panel(at, _a, _b, 4.4, g + 4.6, g + 5.4, KOS_STONE.lightened(0.04), 0.06, M_STONE)
+	_arch_panel(at, _a, _b, 3.9, g + 4.8, g + 5.4, KOS_GLASS, 0.12, M_GLASS)
+	for mu: float in [-1.3, 1.3]:
+		_lbox(mu, 0.47, 0.16, 0.05, g + 4.8, g + 9.0, KOS_STONE, M_STONE, KOS_STONE)
+	for ty: float in [6.4, 7.8]:
+		var hw := sqrt(maxf(3.9 * 3.9 - pow(maxf(ty - 5.4, 0.0), 2.0), 0.0)) - 0.1
+		_lbox(0.0, 0.46, hw, 0.03, g + ty, g + ty + 0.12, KOS_GREEN, M_STONE, KOS_GREEN)
+	# The balcony under the arch: a stone ledge and the green railing.
+	_lbox(0.0, 0.5, 4.2, 0.2, g + 4.2, g + 4.8, KOS_STONE.darkened(0.04), M_STONE, KOS_STONE)
+	_lbox(0.0, 0.66, 3.9, 0.03, g + 4.8, g + 5.6, KOS_GREEN, M_STONE, KOS_GREEN)
+	# The ground floor: the arched door in a stone surround, a shop window either side.
+	_arch_panel(at, _a, _b, 1.0, g + 0.0, g + 2.6, KOS_DOOR, 0.12, M_STONE)
+	for side: float in [-1.0, 1.0]:
+		_lbox(side * 1.45, 0.45, 0.25, 0.15, g - 0.5, g + 4.2, KOS_STONE, M_STONE, KOS_STONE)
+		_lbox(side * 2.9, 0.4, 1.0, 0.03, g + 0.5, g + 3.6, KOS_GLASS, M_GLASS, KOS_GLASS)
+		_lbox(side * 2.9, 0.43, 1.05, 0.03, g + 3.6, g + 3.75, KOS_GREEN, M_STONE, KOS_GREEN)
+	_collide(_rect(0.0, 0.3, 6.4, 0.4))
+
+
+## The forecourt's summer terrace: two strings of festoon bulbs on poles across it, lit at night
+## (the night photo); KOSZYKI in blue neon over the hall's door.
+func _koszyki_terrace(g: float) -> void:
+	_mode = M_STONE
+	for v: float in [7.5, 15.0]:
+		for end: float in [22.6, 58.3]:
+			var p := _kos_w(end, v)
+			_prism(_circle(p, 0.08, 4), g, g + 4.3, KOS_DOOR, KOS_DOOR, M_STONE, M_STONE)
+		# The wire, pole to pole through every bulb, and the bulbs hanging on it.
+		var pts: Array[Vector3] = []
+		var u := 22.6
+		while u < 58.3:
+			var q := _kos_w(u, v)
+			pts.append(Vector3(q.x, g + 3.9 - 0.35 * sin(PI * (u - 22.6) / 35.7), q.y))
+			u += 2.4
+		var e := _kos_w(58.3, v)
+		pts.append(Vector3(e.x, g + 3.9, e.y))
+		var side := Vector2(-KOS_A.y, KOS_A.x) * 0.03
+		for i in range(pts.size() - 1):
+			var a := Vector2(pts[i].x, pts[i].z)
+			var c := Vector2(pts[i + 1].x, pts[i + 1].z)
+			var y := (pts[i].y + pts[i + 1].y) * 0.5
+			_prism(PackedVector2Array([a - side, c - side, c + side, a + side]), y - 0.03, y + 0.03,
+					KOS_DOOR, KOS_DOOR, M_STONE, M_STONE)
+			if i > 0:
+				_prism(_circle(a, 0.13, 4), pts[i].y - 0.13, pts[i].y + 0.13, KOS_BULB, KOS_BULB, M_LAMP, M_LAMP)
+	var at := _kos_w(40.3, 21.0)
+	var out := -Vector2(-KOS_A.y, KOS_A.x)
+	signs.append(["KOSZYKI", Vector3(at.x, g + 6.0, at.y), Vector3(out.x, 0.0, out.y),
+			7.5 / Neon.length_of("KOSZYKI"), Color(0.35, 0.7, 1.0)])
 
 
 ## Elektrownia Powiśle, the whole complex (2026-11-13, F: "like in real life, with the fronts", and

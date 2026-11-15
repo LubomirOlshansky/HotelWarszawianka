@@ -146,7 +146,7 @@ const LANDMARK_WORDS := ["SAMSONG", "ARKADKA", "PREZYDENT", "NOWOTEL", "WESTYNKA
 		# and Śródmieście's cafés.
 		"DELOJT", "EJ", "WEKTRA", "LEGUMINA", "BRISTOL", "HOTEL EUROPEJSKI", "POLONIA PALACE",
 		"POLONIA PALACE HOTEL", "MAŁPI LOVE", "MAJAMI WAWA", "WTW", "WIEŻYCZKA", "CHARLOTTA MENORKA",
-		"SEZON", "HEJ!", "SPACJE", "DESKA"]
+		"SEZON", "HEJ!", "SPACJE", "DESKA", "KOSZYKI"]
 ## Tube colours (linear, bright): pink, cyan, violet, and a few words' usual colours.
 const PINK := Color(1.0, 0.1, 0.55)
 const CYAN := Color(0.1, 0.9, 1.0)

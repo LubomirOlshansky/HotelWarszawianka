@@ -119,7 +119,7 @@ often, known to every visitor; **B** characteristic, known to locals, gives a st
 | 51 | Kościół Najświętszego Zbawiciela and Plac Zbawiciela | Marszałkowska | church, square | ◐ | photo check: towers, the square's arcades |
 | 52 | Rondo Dmowskiego and Patelnia (Metro Centrum) | Marszałkowska | square, metro | ◐ | Mac look check |
 | 53 | Hala Mirowska and Hala Gwardii | Plac Mirowski | market halls | ◐ | photo pass 2026-11-07 (`warsaw-needed-photos`): Mirowska's glazed gallery and dark fascia on the east front added; still to do: the big lattice-glazed arch in the gable and the HALA MIROWSKA letters (needs a neon atlas word); Gwardii not yet |
-| 54 | Hala Koszyki | Koszykowa | food hall | ◐ | photo check |
+| 54 | Hala Koszyki | Koszykowa | food hall | ● | photos 2026-11-15: both pavilions, terrace |
 | 55 | Elektrownia Powiśle | Dobra | shopping centre in a power station | ◐ | photo check: chimneys |
 | 56 | Fabryka Norblina (OSM: Plater, Galwan) | Prosta | shopping and offices | ★ | moved onto its real block, courts, trees and green roofs from the photo report (2026-11-02); facades: photo check (no facade photo of the new halls yet); F's look-check answers applied 2026-11-03 (BACKLOG "Landmark look-check fixes"). |
 | 57 | Browary Warszawskie (OSM: Warzelnia, Laboratorium, Willa Schielego) | Grzybowska | shopping and offices | ◐ | Central Garden (22 trees, S path, café clearings) and sedum roofs from the photo report (2026-11-02); facades and the Brama: photo check; F's look-check answers applied 2026-11-03 (BACKLOG "Landmark look-check fixes"). |

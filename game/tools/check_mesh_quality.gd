@@ -192,7 +192,7 @@ const BUDGET := {
 	"norblin": 5700,
 	# Browary + the Central Garden's gravel path, café clearings and the sedum roofs (2026-11-02).
 	"browary": 3900,   # 2026-11-03: paved main path and clearing edges (look check)
-	"koszyki": 1370,
+	"koszyki": 1450,
 	"elektrownia": 7600,  # 2026-11-13: the whole complex (hall, halls, passage, office, old wing, gardens): 1634 -> ~6850
 	"rotunda_dynasy": 1400,
 	"mpw": 3200,
