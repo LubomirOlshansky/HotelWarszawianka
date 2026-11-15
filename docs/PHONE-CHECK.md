@@ -29,6 +29,8 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | 3c | During a tour (or a race or a job) press the pad's A and open the HELI list; then open a rescue call card and leave it | A during the run brings no rescue card and the list has no rescue rows; the unanswered rescue card goes after 12 s: is that long enough to read it while driving | one activity at a time |
 | 3d | In free drive look at the minimap near a kebab stand and Warsztat u Mirka (Brzeska), then open the full map and zoom in; take a kebab job and look again; at night start a Leżak round-up and watch its violet pins; then fly the helicopter and open the map | the stands' icons, the garage diamond and the gold "?" marks show in free drive and hide while the job runs, as in build 11; the round-up's pins and depot show during its run and the stands come back after it; the full map shows the same icons as the minimap (it now reads one shared list); the arrow and the main star unchanged | TD-13 step 1, map markers |
 
+| 3e | Play two minutes, swipe home, wait a minute, come back; then Settings → Dźwięk → "Anonimowa statystyka" → Wył. | in PostHog (EU, project Around Warsaw → Activity) the session's `session_start`, `fps_sample` and `session_end` arrive within a minute or two, one person, no IP; after Wył. only `stats_off` comes and nothing more; the game never stutters when it sends | play stats (PostHog's Godot SDK is unverified on real phones) |
+
 ## 2. Driving feel: Settings → Świat (6 min)
 
 | # | Do | Look for | From |

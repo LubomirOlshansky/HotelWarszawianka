@@ -179,6 +179,7 @@ spec                 quick
 spiremotion          quick
 splash               local     slow
 stairs               quick
+stats                quick
 steering             quick
 stopassist           smoke
 stops                quick

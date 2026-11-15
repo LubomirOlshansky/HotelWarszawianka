@@ -37,6 +37,11 @@ extends RefCounted
 
 const Activity := preload("res://scripts/activity.gd")
 
+## A run of the kit started (play_stats.gd counts it).
+signal run_started(a: Activity)
+## A run of the kit ended: `how` is the activity's `end_how`, `seconds` its time in the run.
+signal run_ended(a: Activity, how: String, seconds: float)
+
 ## main.gd's test for everything outside the kit; true when nothing there holds the player.
 var world_free: Callable = func() -> bool: return true
 var list: Array[Activity] = []
@@ -202,6 +207,7 @@ func rescue_aimed(a: Activity = null) -> bool:
 
 ## `a`'s run has started: every other activity hears it.
 func _started(a: Activity) -> void:
+	run_started.emit(a)
 	for o in list:
 		if o != a:
 			o.other_started(a)
@@ -209,6 +215,7 @@ func _started(a: Activity) -> void:
 
 ## `a`'s run has ended: every other activity hears it.
 func _ended(a: Activity) -> void:
+	run_ended.emit(a, a.end_how, a._run_t)
 	for o in list:
 		if o != a:
 			o.other_ended(a)

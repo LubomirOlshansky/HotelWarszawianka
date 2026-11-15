@@ -149,6 +149,9 @@ var phase := Phase.IDLE
 var _t := 0.0
 var _session := 0.0
 var _run_t := 0.0
+## How the last run ended, for the play stats (play_stats.gd): "done" (finish), "quit" (the ✕),
+## "timeout" (the clock), "ended" (anything else that closed the run).
+var end_how := "ended"
 var _next_call := 0.0
 var _beacon: Node3D
 ## A second ring beside the target (`set_mark`), made the first time one is asked for.
@@ -394,6 +397,7 @@ func start() -> void:
 	phase = Phase.RUN
 	_t = 0.0
 	_run_t = 0.0
+	end_how = "ended"
 	_card_up = false
 	if on_start.is_valid():
 		on_start.call()
@@ -512,6 +516,7 @@ func takes_abort() -> bool:
 
 ## The run is given up: by the player (the ✕) or by the clock.
 func drop(by_player: bool) -> void:
+	end_how = "quit" if by_player else "timeout"
 	_end(call_cool)
 	if by_player:
 		var w := _quit_words()
@@ -522,6 +527,7 @@ func drop(by_player: bool) -> void:
 
 ## The run is over and its last card closed.
 func finish() -> void:
+	end_how = "done"
 	_end(call_cool)
 
 

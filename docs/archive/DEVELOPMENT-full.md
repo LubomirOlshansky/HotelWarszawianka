@@ -5902,6 +5902,7 @@ Command-line options (after `--`). They are parsed in `game/scripts/dev_flags.gd
 | `--topdown` | 2026-11-07, F: road photos from height, like GTA: the camera looks straight down, north up, with no occlusion ghost, to check kerbs, asphalt and paint. T toggles the same road view in a running game (keyboard). With `--at=X,Z --size=55 --nohud --no-traffic --shots=30 --out=DIR` it makes a road plan shot of any spot |
 | `--debug-ao` / `--no-ao` | show / switch off the baked ground shadows |
 | `--lite-shaders` | 2026-11-08: the Adreno 6xx shaders on any GPU (`gpu_quirks.gd`: building.gdshader without its specular lobe), to see on the Mac what the Nothing Phone 1 draws |
+| `--stats=log\|send\|off` | the beta's play stats (play_stats.gd, docs/STATS.md): `log` prints each event as `play_stats: <event> <json>` and sends none (check `stats`), `send` sends from a debug build when `game/data/stats_key.json` is there (a device test), `off` none. Without it a debug build sends nothing |
 | `--heli` | start in the helicopter |
 | `--heli-stick=X,Z` | the L-shaped map loop (2026-10-31): the helicopter's stick held towards that world direction (x east, z south; length up to 1) the whole run, for screenshots of the clamp along the map's outline (with `--heli --at=`) |
 | `--heli-alt=M` | loop 3d-2b: start in the helicopter M metres over the ground, placed there at once (360 = its highest; the memory and far-level probes) |
