@@ -41,11 +41,12 @@ const TOWERS := [
 	# Cosmopolitan (Twarda 2/4, F's photos 2026-11-08, docs/landmarks/photo-reports/cosmopolitan.md): a dark
 	# glass shaft with a red-soffit cantilever over a stepped glass podium (_build_cosmopolitan).
 	{"key": "cosmopolitan", "osm": "Cosmopolitan", "style": S_GRID, "glass": "#33485d", "roof": "#8d9399"},
-	# WTT from the top-50 photo set (T05, 2026-11-08): the parts by their mapped colours, the dark
-	# blue ribbon-glass drum, the beige stone slab with punched windows, the silver crown and its name.
-	{"key": "wtt", "osm": "Warsaw Trade Tower", "style": S_RIBBON, "glass": "#2f4558", "roof": "#8d979c",
-			"crown_from": 162.0, "crown": "#bfc6ca", "crown_sign": true, "sign": "UNIKWA", "sign_col": Color(0.95, 0.97, 1.0),
-			"skins": {"#f4d9c6": [S_PUNCHED, "#e6d8c6"], "#839099": [S_TILE, "#bfc6ca"], "#2e404e": [S_RIBBON, "#2f4558"],
+	# WTT from the top-50 photo set (T05, 2026-11-08; reworked 2026-11-15, spec wtt.md): the parts by
+	# their mapped colours, the dark grey glass drum in floor bands, the warm beige stone slab with
+	# punched windows, the plain silver crown (its slits and the mast in skyline.gd) and its name.
+	{"key": "wtt", "osm": "Warsaw Trade Tower", "style": S_RIBBON, "glass": "#36434e", "roof": "#8d979c",
+			"crown_from": 162.0, "crown": "#c5c6c5", "crown_sign": true, "sign": "UNIKWA", "sign_col": Color(0.95, 0.97, 1.0),
+			"skins": {"#f4d9c6": [S_PUNCHED, "#d8c1a5"], "#839099": [S_TILE, "#c5c6c5"], "#2e404e": [S_RIBBON, "#36434e"],
 					"#a6abaa": [S_BANDS, "#9aa3a8"]}},
 	# The Rondo Daszyńskiego towers rebuilt from the Mac's photo reports (F, 2026-11-03;
 	# docs/landmarks/photo-reports/skyliner.md, warsaw_unit.md, mennica.md, gpy.md, warsaw_hub.md).
@@ -182,6 +183,7 @@ const INFO := {
 			"Narożna kamienica w brzoskwiniowym tynku, z balkonami i ślepą arkadą na rogu.",
 			"A corner tenement in peach plaster, with iron balconies and a blind arch at the corner."],
 	"adwentysci": ["Kościół Adwentystów na Foksal", "Zbór w żółtej kamienicy za ogródkiem.", "A church inside a yellow house behind a front garden."],
+	"faustyna_klasztor": ["Klasztor przy sanktuarium św. Faustyny", "Domy Zgromadzenia Sióstr Matki Bożej Miłosierdzia przy Żytniej.", "The Sisters of Our Lady of Mercy's houses round St Faustina's shrine."],
 	"elzbietanki": ["Siostry Elżbietanki", "Dom prowincjalny sióstr za Piekarską, nad ogrodami Podwala.", "The Elizabethan sisters' provincial house behind Piekarska, over the Podwale gardens."],
 	"szarytki": ["Siostry Szarytki na Tamce", "Klasztor sióstr miłosierdzia pod skarpą, z wieżyczką.", "The Sisters of Charity under the escarpment, with their turret."],
 	"gigantami": ["Kamienica Pod Gigantami",
@@ -804,6 +806,7 @@ const INFO := {
 	"church_trojca_praga": ["Kościół Świętej Trójcy na Solcu", "Klasycystyczny kościół z wieżyczką.", "A classicist church with a bell turret."],
 	"church_czestochowska": ["Kościół Matki Bożej Częstochowskiej", "Modernistyczny kościół z dachem do ziemi.", "A modernist church with a roof down to the ground."],
 	"church_zwycieska": ["Kościół Matki Boskiej Zwycięskiej", "Kościół parafialny z dwiema wieżami.", "A parish church with two towers."],
+	"church_siostry_milosierdzia_zytnia": ["Siostry Matki Bożej Miłosierdzia", "Dom sióstr przy sanktuarium św. Faustyny na Żytniej.", "The Sisters of Our Lady of Mercy's house by St Faustina's shrine."],
 	"church_uczennice_boskiego_mistrza": ["Siostry Uczennice Boskiego Mistrza", "Ceglany dom zakonny sióstr uczennic przy Żytniej.", "The Sister Disciples of the Divine Master's brick convent."],
 	"church_sluzki_dom_generalny": ["Dom Generalny Sióstr Sług Jezusa", "Dom generalny Zgromadzenia Sióstr Sług Jezusa na Sewerynowie.", "The generalate of the Servants of Jesus sisters."],
 	"church_plebania_augustyn": ["Plebania św. Augustyna", "Plebania parafii św. Augustyna na Nowolipkach.", "St Augustine's presbytery on Nowolipki."],
@@ -1284,6 +1287,14 @@ func _find_sites() -> void:
 		_add_site("elzbietanki", [elz])
 		if not sites.is_empty() and sites[-1]["key"] == "elzbietanki":
 			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": ELZ_WALL, "roof": ELZ_ROOF}
+	# The rest of St Faustina's convent on Żytnia (2026-11-15): LoD2's mass of three buildings in the
+	# shrine's white plaster and grey roofs.
+	var fkl: Array = []
+	for at: Vector2 in FKL_AT:
+		fkl.append(_outline_at(at))
+	_add_site("faustyna_klasztor", fkl)
+	if not sites.is_empty() and sites[-1]["key"] == "faustyna_klasztor":
+		sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": FKL_WALL, "roof": FKL_ROOF}
 	# The formal garden before Pałac Krasińskich (F's photos, 2026-11-06).
 	if _landmark("Pałac Krasińskich").size() >= 3:
 		_o = KRAS
@@ -1781,6 +1792,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"adwentysci":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin; the gate, balconies and band are ours
 				_build_adwentysci(s)
+			"faustyna_klasztor":
+				_mark_zone(s)  # the mass stays LoD2's, in its skin
 			"elzbietanki":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin; the rounded east end is ours
 				_build_elzbietanki(s)

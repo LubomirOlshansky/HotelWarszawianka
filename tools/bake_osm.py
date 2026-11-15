@@ -554,6 +554,11 @@ def main(src, trees_src, dst, extras_src=None, more_src=None):
     # the game reads none of it yet).
     import object_types
     print(object_types.apply(out, map_dir, els))
+    # City objects plan step 8b (2026-11-15): the parked rows thinned where the lane is pinched, the
+    # cars by a junction's mouth taken out, the bays already in a lane moved off it; last, on the cars
+    # as they finally stand, as on main's map (tools/parked_thin.py; the same code runs on a baked map).
+    import parked_thin
+    print("parked_thin: " + parked_thin.apply(out, map_dir))
     with open(dst, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, separators=(",", ":"))
     print(f"tunnels: {len(tunnel_roads)} tunnel roads, {len(out['tunnels']['pieces'])} pieces, "

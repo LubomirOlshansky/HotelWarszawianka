@@ -63,6 +63,10 @@ var merged_tris := 0
 ## then merges the poured dressing. `ctx` is what main.gd hands every place (place.gd).
 func build(map: Node3D, ctx: Dictionary, solo_site := "") -> void:
 	var t_all := Time.get_ticks_usec()
+	# The places read the map's data (`map.data`): on the prebuilt city it is the index only once
+	# SectorStreamer.open has handed it over; empty, places come out bare there and nowhere else.
+	if "index_data" in map and not (map.index_data as Dictionary).is_empty() and (map.data as Dictionary).is_empty():
+		push_error("places: the map's data is empty but its index is not (the prebuilt city's data not handed over)")
 	var built := 0
 	var tris_all := 0
 	var own_all := 0

@@ -233,7 +233,7 @@ func open(world: Node3D, use_prebuilt: bool, building_mat: ShaderMaterial, flat_
 	map.name = "City"
 	world.add_child(map)
 	if prebuilt:
-		EdgeRoadworks.rebuild(map)
+		ready_prebuilt(map)
 	for k: Array in map.index_data["sectors"]["keys"]:
 		keys.append(Vector2i(int(k[0]), int(k[1])))
 	# Loop 3d-2b: the baked maps' slots, one per sector in full detail (all of them with --sectors=all).
@@ -304,6 +304,18 @@ func open(world: Node3D, use_prebuilt: bool, building_mat: ShaderMaterial, flat_
 	return map.index_data
 
 
+## The prebuilt map (map/index.res) as the runtime one is after its set-up. The game's data is the
+## index on both paths: the runtime map has it as `data` from setup_streamed, the prebuilt one only as
+## `index_data` (`data` is not saved); without it a reader of `map.data` (the place scripts: the
+## Spire's lights, Tamka's bollards and plates; the people on the University Library's roof garden)
+## found nothing on the phone (2026-11-15). Then the heights the scene does not keep
+## (map_builder.gd restore_heights) and the edge's roadworks.
+static func ready_prebuilt(map: Node3D) -> void:
+	map.data = map.index_data
+	map.restore_heights()
+	EdgeRoadworks.rebuild(map)
+
+
 ## The whole streamed city at once, for the checks that sweep the map (check_drive, check_water,
 ## check_landmarks): the index and every sector under `parent`, prebuilt (map/index.res and the
 ## sector scenes) or built from the files (the runtime path). `data` is set to the game's data.
@@ -313,7 +325,7 @@ static func open_whole(parent: Node, use_prebuilt: bool) -> Node3D:
 	if use_prebuilt:
 		map = (load(INDEX_SCENE) as PackedScene).instantiate()
 		parent.add_child(map)
-		EdgeRoadworks.rebuild(map)
+		ready_prebuilt(map)
 	else:
 		map = MapBuilder.new()
 		parent.add_child(map)

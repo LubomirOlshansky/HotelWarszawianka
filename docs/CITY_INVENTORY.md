@@ -88,7 +88,7 @@ often, known to every visitor; **B** characteristic, known to locals, gives a st
 | 25 | Kościół św. Anny | Krakowskie Przedmieście | church | ◐ | photo check: columns, the bell tower |
 | 26 | Hotel Bristol and Hotel Europejski | Krakowskie Przedmieście | grand hotels | ★ | photos gathered (`refs/krakowskie/`); Bristol built 2026-11-02 (cream, zinc mansard, the open belvedere on the Karowa corner); Europejski rebuilt 2026-11-03 from F's photos (bow-fronts with column tiers, pedimented bays, plaque, balustrade attic, louvred roof storey, courtyard; spec `europejski.md`); phone look check |
 | 27 | Pałac Prezydencki | Krakowskie Przedmieście | palace | ◐ | photo check of the portico and statue |
-| 28 | Rondo ONZ towers: Q22, Rondo 1, Cosmopolitan, InterContinental (OSM: InterContinental), Warsaw Trade Tower | Rondo ONZ / Emilii Plater / Twarda | skyscrapers | ◐ | Cosmopolitan done 2026-11-08 (cosmopolitan.md: red-soffit overhang, dark glass, louvred crown, glass podium and canopy); **photo build** of the rest (Q22 and Rondo 1 first) |
+| 28 | Rondo ONZ towers: Q22, Rondo 1, Cosmopolitan, InterContinental (OSM: InterContinental), Warsaw Trade Tower | Rondo ONZ / Emilii Plater / Twarda | skyscrapers | ◐ | Cosmopolitan done 2026-11-08 (cosmopolitan.md: red-soffit overhang, dark glass, louvred crown, glass podium and canopy); Warsaw Trade Tower reworked 2026-11-15 (wtt.md: banded glass drum, beige stone, crown slits, the mast); **photo build** of the rest (Q22 and Rondo 1 first) |
 | 29 | Hotel Warszawa (the 1934 Prudential) | Plac Powstańców Warszawy | historic skyscraper, hotel | ★ | built 2026-11-02 from `refs/hotel_warszawa/` (Commons photos, the ortho) and LoD2, spec `hotel_warszawa.md`; Mac look check (QUESTIONS); F's look-check answers applied 2026-11-03 (BACKLOG "Landmark look-check fixes"). |
 | 30 | Cedet (Dom Towarowy CDT) | Krucza / Aleje Jerozolimskie | department store | ★ | built 2026-11-02 from `refs/cedet/` (Commons photos, the ortho) and LoD2, spec `cedet.md`; F's look check applied 2026-11-03 (wings, 11 m corner, 3.7 m storeys, recessed pavilion, grey-bronze loop) |
 
@@ -201,7 +201,7 @@ often, known to every visitor; **B** characteristic, known to locals, gives a st
 | 128 | Atelier Residence, Rezydencja Foksal, Apartamenty Flare, Solec Residence, Złota Chmielna | Bagno / Kopernika / Grzybowska / Solec / Złota | upscale flats | ✗ | photo pass (Młotek moved to #147, the modernism set) |
 | 129 | Platinum Towers, Łucka City, Ilmet, Central Tower, Spektrum, PZU, JM Tower, Chałubińskiego 8, Westynka, Chilton | Grzybowska / Łucka / Jana Pawła II / Jerozolimskie / Twarda / Chałubińskiego | skyscrapers | ○ | crowns by photo (tower table) |
 | 130 | Torwar | Łazienkowska | arena | ✗ | photo build |
-| 131 | Stadion Leguminy | Łazienkowska | stadium | ◐ | photo check |
+| 131 | Stadion Leguminy | Łazienkowska | stadium | ◐ | photo rework 2026-11-15 (street photos of the north fronts; the stands and the south and west fronts still estimates) |
 | 132 | Gdański Business Center | Inflancka | offices | ◐ | photo check |
 | 133 | WTS DESKA | Wioślarska | tennis club | ◐ | photo check |
 | 134 | Klif | Okopowa | shopping centre | ✗ | plain glass mall, low priority |

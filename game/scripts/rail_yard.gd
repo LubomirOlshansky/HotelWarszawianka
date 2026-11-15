@@ -38,6 +38,22 @@ static func key(line: PackedVector2Array) -> Vector4i:
 	return Vector4i(roundi(a.x), roundi(a.y), roundi(b.x), roundi(b.y))
 
 
+## What `base_at`, the lifts and map_builder's platform drawing read, for the prebuilt city to keep
+## (map_builder.gd `_rail_state`).
+func state() -> Dictionary:
+	return {"platforms": platforms, "lifts": lifts, "rings": rings, "cells": _cells, "bases": bases, "pcells": _pcells}
+
+
+## The yard as `state` gave it, with no grid sampled again.
+func restore(s: Dictionary) -> void:
+	platforms.assign(s.get("platforms", []))
+	lifts = s.get("lifts", {})
+	rings.assign(s.get("rings", []))
+	_cells = s.get("cells", {})
+	bases.assign(s.get("bases", []))
+	_pcells = s.get("pcells", {})
+
+
 ## `osm`: the platforms OSM maps as platforms ({"p": flat}); a footway on one is left to it.
 func setup(paths: Array, rails: Array, osm: Array = []) -> void:
 	platforms.clear()
