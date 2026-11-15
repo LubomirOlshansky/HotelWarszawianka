@@ -12,6 +12,7 @@ const Fakes := preload("res://tools/fakes.gd")
 
 class FakeMap extends Fakes.FlatMap:
 	var data := {}
+	var index_data := {}
 
 
 var _problems := 0
@@ -102,7 +103,16 @@ func _init() -> void:
 	_expect(load("res://shaders/spire_jets.gdshader") is Shader, "jets shader missing")
 	var jets := SpireMotion.jets().size()
 	var length := s.tick_length
+	var full_len: int = s.ticker.mesh.surface_get_array_len(0) if s.ticker != null else -1
 	s.free()
 	fake.free()
+	# The prebuilt city: `data` empty, the landmarks only in the index, outlines packed.
+	var pre := FakeMap.new()
+	pre.index_data = {"landmarks": [{"name": SpireMotion.TOWER, "p": PackedFloat32Array(pts)}]}
+	var sp := SpireMotion.new()
+	sp.map = pre
+	sp.build()
+	_expect(sp.ticker != null and sp.ticker.mesh.surface_get_array_len(0) == full_len,
+			"the prebuilt path (outline only in index_data) lacks the lights mesh")
 	print("spire_motion: %s (ticker %.1f m, %d jets)" % ["OK" if _problems == 0 else "FAIL", length, jets])
 	quit(1 if _problems > 0 else 0)
