@@ -183,6 +183,7 @@ const BUDGET := {
 	# Open courtyards (F, 2026-11-03): mf and muzeum gained their walled, windowed courts.
 	"mf": 2350,
 	"poczta": 710,
+	"bez_kantow": 8000,  # 2026-11-15 Dom bez Kantów and Królewska 2 rebuilt whole from F's photos and the orthophoto: the ring, arcades, panes, cornices (measured 6679)
 	"politechnika": 950,  # 2026-11-15 front from F's photos: the columned middle on Plac Politechniki, attic and figures, stairs, lamp pillars
 	"pasta": 580,
 	"msn": 500,

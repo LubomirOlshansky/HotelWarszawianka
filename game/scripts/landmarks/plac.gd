@@ -642,17 +642,14 @@ const WIKTORIA_DARK := Color("#3c3b3a")
 const WIKTORIA_STONE := Color("#cdc9c0")
 const WIKTORIA_ROOF := Color("#8d8c88")
 ## The Królewska edge, kept as LoD2 (or OpenStreetMap) draws it but in its own stone: by name
-## (the landmark outlines), and the unnamed block on the square's south-east corner by a point in
-## its west wing (`bake_sectors.py` SITE_AREAS carries it; no card, so not on the picking grid).
+## (the landmark outlines). Dom bez Kantów is a model of its own since 2026-11-15: the whole block
+## on the square's south-east corner, Królewska 2 included (`_build_bez_kantow`).
 ## `mode` M_MONUMENT draws tall windows between piers, a value under 1 the city's plain windows
 ## with that seed (Dom bez Kantów's modernist rows).
 const PLAC_SKINS := [
-	{"key": "bez_kantow", "osm": "Dom Bez Kantów", "mode": 0.37, "wall": "#d3cec2", "roof": "#85837e"},
+	{"key": "bez_kantow", "osm": "Dom Bez Kantów", "mode": 0.37, "wall": "#d3cec2", "roof": "#85837e", "model": true},
 	{"key": "departament", "osm": "Departament Wojskowej Służby Zdrowia", "mode": M_MONUMENT, "wall": "#dccfb2", "roof": "#7c7871"},
 ]
-const KROLEWSKA_BLOCK := Vector2(-660.0, -790.0)
-const KROLEWSKA_WALL := Color("#d9d0bb")
-const KROLEWSKA_ROOF := Color("#7f7c76")
 
 
 func _find_plac2() -> void:
@@ -670,6 +667,14 @@ func _find_plac2() -> void:
 		var outline := _landmark(t["osm"])
 		if outline.size() < 3:
 			continue
+		# Dom bez Kantów is the whole block now (2026-11-15, `_build_bez_kantow`): its OSM outline is
+		# only the east and south-east wings, LoD2 has the west and north wings apart, so the site's
+		# zone is our own solid outline of the ring and replaces all of them.
+		if t["key"] == "bez_kantow":
+			_add_site("bez_kantow", [_krl_ring(false)])
+			if not sites.is_empty() and sites[-1]["key"] == "bez_kantow":
+				sites[-1]["courts"] = [_krl_ring(true)] as Array[PackedVector2Array]
+			continue
 		_add_site(t["key"], [outline])
 		# `model`: the whole building is a model now (it replaces LoD2); the entry keeps its place in
 		# the site order (tap ids) and its wall colour for the skyline (tower_colour)
@@ -677,14 +682,6 @@ func _find_plac2() -> void:
 			continue
 		if not sites.is_empty() and sites[-1]["key"] == t["key"]:
 			sites[-1]["skin"] = {"mode": t["mode"], "wall": Color(t["wall"]), "roof": Color(t["roof"])}
-	for bld in data["buildings"]:
-		var q := _pts(bld["p"])
-		if q.size() >= 4 and float(bld["h"]) >= 8.0 and _box_of([q]).has_point(KROLEWSKA_BLOCK) \
-				and Geometry2D.is_point_in_polygon(KROLEWSKA_BLOCK, q):
-			_add_site("krolewska", [q])
-			if not sites.is_empty() and sites[-1]["key"] == "krolewska":
-				sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": KROLEWSKA_WALL, "roof": KROLEWSKA_ROOF}
-			return
 
 
 ## The Metropolitan: the outline's fronts in glass (M_GLASS) behind granite fins standing out
@@ -1247,3 +1244,162 @@ func _find_plac_centralny() -> void:
 	for l: Array in PCZ_LAMPS:
 		zones.append(_circle(_pcz_world(l[0], l[1]), 0.4, 6))
 	_add_site("plac_centralny_lamps", zones)
+
+
+# --- Dom bez Kantów and Królewska 2: the block on the square's south-east corner (2026-11-15) ---
+
+## The long block between Królewska, the street along the square's east side, Tokarzewskiego-
+## Karaszewicza and Krakowskie Przedmieście, round a courtyard (F's photos 2026-11-15, an
+## orthophoto of the roofs; spec docs/landmarks/specs/bez_kantow.md). Two buildings stand in it:
+## Dom bez Kantów (1933-35, the Ministry of Military Affairs' housing block, six storeys of pale
+## sandstone over an arcade, every corner rounded: OpenStreetMap's outline holds its south-east
+## wings) and, west of it, the cream plaster block of Królewska 2 (four storeys over a high
+## rusticated arcade, the bowed corner on the square, LoD2's west and north wings). LoD2 draws
+## only those two wings and a low strip for the east one; the whole ring is ours and replaces it.
+## The frame is the block's own: s along the Królewska front (east-north-east), t north into the
+## block, both in metres from the south-west corner of its bounding rectangle.
+const KRL_O := Vector2(-650.7, -731.2)
+const KRL_U := Vector2(0.9698, -0.2437)
+const KRL_N := Vector2(-0.2437, -0.9698)
+## The sandstone wings start where OpenStreetMap's outline of Dom bez Kantów meets the cream block:
+## on the Królewska front at s 27.5, on the Tokarzewskiego-Karaszewicza front at s 69.3.
+const KRL_SOUTH_AT := 27.5
+const KRL_NORTH_AT := 69.3
+const KRL_COURT := Rect2(22.0, 17.5, 56.0, 35.5)   # the courtyard: s 22..78, t 17.5..53 (LoD2's inner walls, the orthophoto)
+const KRL_E_A := 21.8          # the cream block's eave over the ground (four storeys over the arcade)
+const KRL_E_B := 25.9          # Dom bez Kantów's eave (LoD2's wings reach 22 to 26 m)
+const KRL_PLASTER := Color("#e9e2cf")
+const KRL_PLASTER_BASE := Color("#e4ddcb")
+const KRL_STONE_A := Color("#d6c8a8")
+const KRL_ASHLAR := Color("#dac9a2")
+const KRL_STONE_B := Color("#cdbb94")
+const KRL_GLASS := Color("#323a40")
+const KRL_FRAME := Color("#ece7da")
+const KRL_ROOF := Color("#6d7470")
+## The outer outline in the block's frame (s, t): the south-west and north-west corners are the cream
+## block's (LoD2), the rest is OpenStreetMap's outline of Dom bez Kantów (its rounded corners).
+const KRL_OUTER := [
+	[0.0, 8.0], [0.9, 4.7], [3.0, 2.3], [5.7, 0.8], [8.0, 0.0],
+	[98.5, 0.8], [101.9, 1.6], [103.2, 2.3], [105.3, 4.5], [106.0, 5.8], [106.6, 8.7], [106.7, 10.0],
+	[98.5, 58.7], [97.9, 62.2], [97.2, 64.9], [96.8, 66.3], [95.5, 68.8], [94.4, 69.8], [91.2, 71.4], [87.5, 71.6],
+	[7.0, 71.9], [4.9, 71.4], [2.0, 69.9], [0.5, 67.7], [0.0, 64.9]]
+
+
+## A point in the block's own frame, in the world.
+func _krl_w(s: float, t: float) -> Vector2:
+	return KRL_O + KRL_U * s + KRL_N * t
+
+
+func _krl_st(p: Vector2) -> Vector2:
+	var d := p - KRL_O
+	return Vector2(d.dot(KRL_U), d.dot(KRL_N))
+
+
+## The outer outline (`court` false) or the courtyard's (true), world metres.
+func _krl_ring(court: bool) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	if court:
+		var r := KRL_COURT
+		for q: Vector2 in [r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)]:
+			out.append(_krl_w(q.x, q.y))
+		return out
+	for q: Array in KRL_OUTER:
+		out.append(_krl_w(q[0], q[1]))
+	return out
+
+
+## Whether a point of the block (frame metres) is Dom bez Kantów's sandstone: the south front from
+## s 27.5 on, the east wing, the north front from s 69.3 on.
+func _krl_sandstone(st: Vector2) -> bool:
+	if st.y < KRL_COURT.position.y + 5.0:
+		return st.x >= KRL_SOUTH_AT
+	if st.y > KRL_COURT.end.y - 5.0:
+		return st.x >= KRL_NORTH_AT
+	return st.x >= KRL_COURT.end.x - 5.0
+
+
+func _krl_poly(pts: Array) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	for q in pts:
+		out.append(_krl_w(q[0], q[1]))
+	return out
+
+
+## The whole block from the outline, the courtyard and the two storey heights.
+func _build_bez_kantow(_site: Dictionary) -> void:
+	var outer := _krl_ring(false)
+	_g = _ground_under(outer)
+	var g := _g
+	_mode = M_STONE
+	# the roofs: the cream block at its eave, Dom bez Kantów at its own (the courtyard is left open)
+	var cream := _largest(Geometry2D.intersect_polygons(outer, _krl_poly([[-1.0, -1.0], [KRL_SOUTH_AT, -1.0], [KRL_SOUTH_AT, 35.0],
+			[KRL_NORTH_AT, 35.0], [KRL_NORTH_AT, 80.0], [-1.0, 80.0]])))
+	var stone := _largest(Geometry2D.intersect_polygons(outer, _krl_poly([[KRL_SOUTH_AT, -1.0], [120.0, -1.0], [120.0, 80.0],
+			[KRL_NORTH_AT, 80.0], [KRL_NORTH_AT, 35.0], [KRL_SOUTH_AT, 35.0]])))
+	_cap(cream, g + KRL_E_A, KRL_ROOF)
+	_cap(stone, g + KRL_E_B, KRL_ROOF)
+	# where the sandstone wings stand over the cream ones: a step in the eave, facing west
+	var west := -KRL_U
+	_wall(_krl_w(KRL_SOUTH_AT, 0.0), _krl_w(KRL_SOUTH_AT, KRL_COURT.position.y), g + KRL_E_A, g + KRL_E_B, west, KRL_ASHLAR)
+	_wall(_krl_w(KRL_NORTH_AT, KRL_COURT.end.y), _krl_w(KRL_NORTH_AT, 71.9), g + KRL_E_A, g + KRL_E_B, west, KRL_ASHLAR)
+	_krl_faces(outer, false)
+	_krl_faces(_krl_ring(true), true)
+	_collide(outer)
+
+
+## Every edge of a ring as a front: the walls, the arcade, the rows of panes, the string courses
+## and the cornice. `court` faces turn into the courtyard and are plainer.
+func _krl_faces(ring: PackedVector2Array, court: bool) -> void:
+	var g := _g
+	var n := ring.size()
+	for k in n:
+		var p := ring[k]
+		var q := ring[(k + 1) % n]
+		if p.distance_to(q) < 0.8:
+			continue
+		var out := _out(ring, p, q)
+		if court:
+			out = -out
+		if (Vector2(-(q - p).y, (q - p).x)).dot(out) < 0.0:
+			var tmp := p
+			p = q
+			q = tmp
+		var mid := _krl_st((p + q) * 0.5)
+		var sandstone := _krl_sandstone(mid)
+		var e := g + (KRL_E_B if sandstone else KRL_E_A)
+		var wall := KRL_ASHLAR if sandstone else KRL_PLASTER
+		var stone := KRL_STONE_B if sandstone else KRL_STONE_A
+		var base := KRL_ASHLAR.lightened(0.04) if sandstone else KRL_PLASTER_BASE
+		# the walls: the ground floor in its paler base, then the upper floors; everything stands on them
+		_wall(p, q, g - 1.0, g + 6.3, out, base)
+		_wall(p, q, g + 6.3, e, out, wall)
+		var le := kit_front(p, q)
+		kit_face(0.0)
+		var rows: Array = [g + 7.9, g + 11.0, g + 14.1, g + 17.2, g + 20.3] if sandstone else [g + 7.7, g + 10.9, g + 14.1, g + 17.3]
+		var m := maxi(1, roundi(le / (3.4 if court else 3.1)))
+		var cs: Array = []
+		for i in m:
+			cs.append((float(i) + 0.5) * le / float(m))
+		if court:
+			kit_panes(cs, [g + 1.3, g + 4.4] + rows, 1.3, 2.0, KRL_GLASS, 0.05)
+			kit_cornice(0.0, le, e, stone, 0.4, 0.6)
+			continue
+		# ground floor: the pale base (walled above), a string course over it, the arches along every front
+		kit_ledge(0.0, le, g + 6.3, 0.35, stone, 0.2)
+		var na := maxi(1, roundi(le / 6.0))
+		var hw := minf(1.6, le / float(na) * 0.3)
+		for i in na:
+			_arch_win(_w((float(i) + 0.5) * le / float(na), 0.0), _a, _b, hw, g + 0.5, g + 4.3, KRL_GLASS)
+		# the upper floors: a pale frame behind each pane, a sill band under each row
+		kit_panes(cs, rows, 1.5, 2.2, KRL_FRAME, 0.04)
+		kit_panes(cs, rows, 1.2, 1.9, KRL_GLASS, 0.07)
+		for yr in rows:
+			kit_ledge(0.0, le, float(yr) - 0.25, 0.18, stone, 0.12)
+		if sandstone:
+			kit_ledge(0.0, le, g + 13.0, 0.4, stone, 0.25)  # the heavy string course under the third floor
+			kit_panes(cs, [g + 24.2], 0.9, 0.45, KRL_GLASS, 0.05)  # the slit windows of the attic
+		elif le < 8.0:
+			# small stone balustrades under the first floor's windows on the bowed corner
+			for cu in cs:
+				_kbox(float(cu) - 1.0, float(cu) + 1.0, 0.0, 0.4, g + 7.0, g + 7.85, stone.lightened(0.05))
+		kit_cornice(0.0, le, e, stone, 0.5, 0.9)

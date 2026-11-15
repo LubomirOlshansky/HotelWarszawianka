@@ -662,8 +662,8 @@ const INFO := {
 			"Hotel z 1976 roku przy Królewskiej, z widokiem na plac Piłsudskiego.",
 			"A hotel of 1976 on Królewska, looking out over Plac Piłsudskiego."],
 	"bez_kantow": ["Dom bez Kantów",
-			"Modernizm z zaokrąglonymi narożnikami. Kantów tu nie ma.",
-			"Modernism with rounded corners: no kanty (edges, or swindles)."],
+			"Piaskowiec i zaokrąglone narożniki. Kantów tu nie ma.",
+			"Sandstone and rounded corners: no kanty (edges, or swindles)."],
 	"departament": ["Departament Wojskowej Służby Zdrowia",
 			"Przy Królewskiej, na skraju placu Piłsudskiego.",
 			"On Królewska, at the edge of Plac Piłsudskiego."],
@@ -1887,8 +1887,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"gigantami":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin; the street front is ours
 				_build_gigantami(s)
-			"krolewska":
-				pass  # a skin with no card: drawn by the builder, not on the picking grid
+			"bez_kantow":
+				_build_bez_kantow(s)  # the whole block, Królewska 2 included (it replaces LoD2's wings)
 			_:
 				if key.begins_with("church_"):
 					_build_church(s)
@@ -1992,7 +1992,7 @@ func _mark_zone(site: Dictionary) -> void:
 
 ## The far skyline's colour of each (sector_proxies.gd, through `tower_colour`).
 const PLAC_WALLS := {"metropolitan": "#8a979c", "wiktoria": "#6f6b66", "europejski": "#e7ddc5",
-		"grob": "#ddd3bf", "bez_kantow": "#d3cec2", "departament": "#dccfb2", "krolewska": "#d9d0bb"}
+		"grob": "#ddd3bf", "bez_kantow": "#dccdac", "departament": "#dccfb2"}
 
 
 # --- Filharmonia Narodowa and Teatr Polski ----------------------------------------------------
