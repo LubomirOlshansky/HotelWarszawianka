@@ -59,7 +59,7 @@ const OWN := {
 }
 ## The functions that make a class a stand-in for the HUD, and for the dialogue or the bubbles.
 const HUD_MARKS := ["toast", "ambient_toast", "show_note", "show_card", "show_side_card", "show_call", "show_status",
-		"show_pill", "show_banner", "show_challenge", "set_minimap_route", "set_minimap_pois", "set_minimap_dots",
+		"show_pill", "show_banner", "show_challenge", "set_minimap_route", "set_minimap_dots",
 		"set_quest_dots"]
 const TALK_MARKS := ["say", "say_ambient", "say_reaction"]
 ## The functions that make a class a stand-in for the map (map_builder.gd).

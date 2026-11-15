@@ -24,6 +24,7 @@ signal painted(id: String)
 ## G13: a car, the nitro or a part was bought (or a car switched to): its shop id.
 signal upgraded(id: String)
 
+const MapMarkers := preload("res://scripts/map_markers.gd")
 const GarageCard := preload("res://scripts/garage_card.gd")
 ## G13: the second tab, "Części i auta" (a faster car, nitro, tyres and engine): upgrades.gd.
 const Upgrades := preload("res://scripts/upgrades.gd")
@@ -383,7 +384,11 @@ func _refresh(quiet := false) -> void:
 	if _ring != null:
 		_ring.visible = on
 	if hud != null:
-		hud.set_minimap_garage(Vector2(at.x, at.z) if on else Vector2.INF, GARAGE_COLOUR)
+		# Its diamond on the minimap and the full map (map_markers.gd, TD-13).
+		if on:
+			hud.markers.put("garage:workshop", MapMarkers.Layer.SERVICE, Vector2(at.x, at.z), GARAGE_COLOUR)
+		else:
+			hud.markers.remove("garage:workshop")
 	if on and not quiet and not force and hud != null and wallet != null and not bool(wallet.keep.get("garage_told", false)):
 		wallet.keep["garage_told"] = true
 		wallet.save()

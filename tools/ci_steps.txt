@@ -23,6 +23,7 @@ boatrace             quick
 boot                 quick
 boot-run             smoke
 buses                quick
+campus               quick
 cassettes            quick
 centralnyramp        quick
 chatter              quick
@@ -69,6 +70,7 @@ freecam              quick
 gamepad              quick
 garage               quick
 governor             quick
+grades               quick
 ground               ground    slow
 grounded             quick
 handling             quick
@@ -93,6 +95,7 @@ lod2                 roads     slow
 loud                 quick
 mainline             quick
 map                  smoke
+markers              quick
 meet                 quick
 meshq                quick
 messages             quick

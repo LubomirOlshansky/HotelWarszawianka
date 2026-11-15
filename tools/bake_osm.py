@@ -523,6 +523,12 @@ def main(src, trees_src, dst, extras_src=None, more_src=None):
     # runs on a baked map). After lane_tapers: the corridors take the roads' final widths.
     import road_profiles
     print("road_profiles: " + road_profiles.apply(out, map_dir))
+    # Lane links (RT-2, F 2026-11-15 "td-23 you can go"): each lane's landing lane across every
+    # junction and its turn codes, from the turn:lanes arrows as they stand, the arrows seated on
+    # their lanes (tools/lane_links.py; the same code runs on a baked map). After road_fixes, which
+    # moves the arrows out of the junctions' mouths.
+    import lane_links
+    print("lane_links: " + lane_links.apply(out))
     # Street objects unslopped (F, 2026-11-07): lamps, signals, benches, bins, racks, shelters, parked
     # cars and barriers out of walls, carriageways, water and decks; gates where paths cross fences;
     # balustrades round stairs (tools/object_fixes.py; the same code runs on a baked map). Before

@@ -28,6 +28,7 @@ extends "res://scripts/activity.gd"
 ## Loop 2b: time spent in this script's per-frame work since the bench last read it (µs).
 var spent_usec := 0
 
+const MapMarkers := preload("res://scripts/map_markers.gd")
 const Lang := preload("res://scripts/lang.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
 const Traffic := preload("res://scripts/traffic.gd")
@@ -1755,10 +1756,12 @@ func _marker(on: bool) -> void:
 	if on:
 		_beacon.recolour(FINAL_COLOUR)
 		_beacon.place(final_route.start_pos, START_RADIUS - 2.0)
-		hud.set_minimap_final(Vector2(final_route.start_pos.x, final_route.start_pos.z), FINAL_COLOUR)
+		# Its mark in the registry (map_markers.gd, TD-13), as before not drawn: the main line's
+		# star stands at the start.
+		hud.markers.put("rivals:final", MapMarkers.Layer.MAIN, Vector2(final_route.start_pos.x, final_route.start_pos.z), FINAL_COLOUR)
 	else:
 		_beacon.visible = false
-		hud.set_minimap_final(Vector2.INF, FINAL_COLOUR)
+		hud.markers.remove("rivals:final")
 
 
 ## The final: Seba's challenge, then the countdown and the race over three bridges (also

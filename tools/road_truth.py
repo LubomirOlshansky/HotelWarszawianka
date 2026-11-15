@@ -77,8 +77,9 @@ RING_ROUND = 0.15     # R9
 
 RULES = [("R1", "lane step"), ("R2", "lane blip"), ("R3", "lane shift"), ("R4", "crossed links"),
          ("R5", "turn back"), ("R6", "kink"), ("R7", "short edge"), ("R8", "arrow"), ("R9", "roundabout"), ("R10", "tight turn")]
-# --check ratchets (2026-11-13, main at 05b7c9c). Lower them, never raise them.
-CHECK = {"R1": 379, "R2": 71, "R3": 403, "R4": 0, "R5": 144, "R6": 83, "R7": 262, "R8": 56, "R9": 21, "R10": 266}
+# --check ratchets (2026-11-13, main at 05b7c9c; R3 2026-11-15 after RT-2, tools/lane_links.py: 406 with
+# the game's own rule modelled, 261 after). Lower them, never raise them.
+CHECK = {"R1": 379, "R2": 71, "R3": 261, "R4": 0, "R5": 144, "R6": 83, "R7": 262, "R8": 56, "R9": 21, "R10": 266}
 
 
 def unit(a, b):
@@ -123,6 +124,7 @@ class Graph:
                 self.inn[e["b"]].append(i)
             by_ends[(e["a"], e["b"])] = i
         self.rev = [by_ends.get((e["b"], e["a"]), -1) for e in self.E]
+        self.index = {id(e): i for i, e in enumerate(self.E)}
 
     @staticmethod
     def _seg(e, s):
@@ -149,9 +151,16 @@ class Graph:
     def lane_off(e, k):
         return e["o"] + k * e["lw"]
 
-    @staticmethod
-    def next_lane(e, k, f, turn):
-        """lane_graph.gd `next_lane`."""
+    def next_lane(self, e, k, f, turn):
+        """lane_graph.gd `next_lane`: the bake's link (`lk`, tools/lane_links.py), else the old rule
+        (GDScript's int division truncates toward zero)."""
+        fi = self.index[id(f)]
+        lk = e.get("lk")
+        if lk:
+            step = e["n"] + 1
+            for i in range(0, len(lk), step):
+                if lk[i] == fi:
+                    return lk[i + 1 + k]
         n = f["n"]
         if n == 1:
             return 0
@@ -159,7 +168,15 @@ class Graph:
             return n - 1
         if turn < -TURN_MIN:
             return 0
-        return max(0, min(n - 1, k + (n - e["n"]) // 2))
+        return max(0, min(n - 1, k + int((n - e["n"]) / 2)))
+
+    @staticmethod
+    def allows(e, k, turn):
+        """lane_graph.gd `lane_allows`: lane k's turn code (`tl`) lets it take a turn of `turn` rad."""
+        tl = e.get("tl")
+        code = tl[k] if tl and k < len(tl) else ""
+        return not code or ("T" in code and abs(turn) < TURN_MIN) or ("R" in code and turn > SLIGHT) \
+            or ("L" in code and turn < -SLIGHT)
 
     def exits(self, ei):
         """The edges a car on edge ei may take at its end: all but the way back, which only a
@@ -227,6 +244,8 @@ def links(g):
                 bis = unit((0.0, 0.0), (e["d1"][0] + f["d0"][0], e["d1"][1] + f["d0"][1]))
                 worst = None
                 for a, b, k, j in ends:
+                    if not g.allows(e, k, turn):
+                        continue   # a turn lane: the town's cars in it take its turn (traffic.gd)
                     side = abs((b[0] - a[0]) * -bis[1] + (b[1] - a[1]) * bis[0])
                     if side > SHIFT_MAX and math.dist(a, b) > 0.5 and (worst is None or side > worst[0]):
                         worst = (side, a, k, j)

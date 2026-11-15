@@ -85,6 +85,7 @@ func _run() -> void:
 	_check_door(c, dlg)
 	var cost := _check_dawn(c, data)
 	_check_office(c, data, dlg)
+	_check_campus(c, dlg)
 	_check_grid_routes()
 	_check_eggs(c, book)
 	var n_sites := c.sites.size()
@@ -755,6 +756,62 @@ func _check_office(c: Crowds, data: Dictionary, dlg: Fakes.Dialogue) -> void:
 
 
 var _office_routes := 0
+
+
+## The University's main campus (F's ask, 2026-11-15): the students' groups (chill sites on the
+## `campus` curve, a third sitting, the `students` lines) and the walkers between the faculties'
+## doors (walk mode "campus"), on a term-time Wednesday; none on a Sunday night or far away.
+func _check_campus(c: Crowds, dlg: Fakes.Dialogue) -> void:
+	_expect(Crowds.campus_level(11.0, 3, 0, false) == 1.0, "the campus is full at 11:00 on a working day")
+	_expect(Crowds.campus_level(11.0, 7, 0, false) < 0.3, "a quiet campus on a Sunday")
+	_expect(Crowds.campus_level(11.0, 3, 8, false) < 0.4, "a quiet campus in August (Live)")
+	_expect(Crowds.campus_level(2.0, 3, 0, false) == 0.0, "nobody on the campus at 02:00")
+	var groups: Array = c.sites.filter(func(s: Dictionary) -> bool: return bool(s.get("campus", false)))
+	_expect(groups.size() == Crowds.CAMPUS.size(), "campus groups: %d (want %d)" % [groups.size(), Crowds.CAMPUS.size()])
+	var sitting := 0
+	for s: Dictionary in groups:
+		_expect(not (s["slots"] as Array).is_empty(), "campus group %s has no slots" % s["id"])
+		for sl: Dictionary in s["slots"]:
+			sitting += int(sl["pose"] == Crowds.SIT)
+	_expect(sitting >= 6, "students sitting with their notes: %d slots (want 6 or more)" % sitting)
+	var paths: Array = []
+	c.call("_setup_campus")
+	var area: Rect2 = (c.get("_campus_box") as Rect2).grow(100.0)
+	for f in c.get("_foot"):
+		if area.has_point((f["pts"] as PackedVector2Array)[0]):
+			paths.append([f["pts"], int(f["dk"])])
+	var cin: Dictionary = c.get("_campus_in")
+	var found: Array = Crowds.build_routes(paths, cin["from"], cin["to"])
+	c.set("_route_mode", "campus")
+	c.set("_route_out", [found])
+	c.call("_finish_routes")
+	var n_routes := (c.campus_routes as Array).size()
+	_expect(n_routes >= 12, "campus routes: %d (want 12 or more)" % n_routes)
+	if verbose:
+		for r: Dictionary in c.campus_routes:
+			print("  campus route %s → %s %.0f m" % [r["from"], r["to"], r["len"]])
+	eye = Vector3(-340.0, 0.0, -700.0)
+	cal = {"live": false, "month": 7, "date": 0, "look": "Day", "rain": false, "sunset": 19.5}
+	now = {"hour": 11.0, "weekday": 3}
+	seen = true
+	c.refresh()
+	dlg.forget()
+	_run_ticks(c, 90.0)
+	var want := roundi(Crowds.CAMPUS_MAX * c.amount)
+	_expect(c.campus_on and c.walk_mode == "campus" and c.walkers.size() == want, "students walking on a Wednesday at 11:00: %d (want %d)" % [c.walkers.size(), want])
+	for s: Dictionary in groups:
+		_expect(int(s["n"]) >= int(s["max"]) - 1, "campus group %s holds %d at 11:00 (max %d)" % [s["id"], s["n"], s["max"]])
+	var said := 0
+	for i in dlg.said.size():
+		said += int(dlg.groups[i] == "students")
+	_expect(said >= 2, "students' lines in 90 s: %d (want 2 or more)" % said)
+	now = {"hour": 2.0, "weekday": 7}
+	_run_ticks(c, 1.0)
+	_expect(not c.campus_on and c.walkers.is_empty(), "no students walking at 02:00 on a Sunday: %d" % c.walkers.size())
+	eye = Vector3.ZERO
+	now = {"hour": 11.0, "weekday": 3}
+	_run_ticks(c, 1.0)
+	_expect(not c.campus_on, "no students walking with the view far from the campus")
 
 
 func _check_grid_routes() -> void:
