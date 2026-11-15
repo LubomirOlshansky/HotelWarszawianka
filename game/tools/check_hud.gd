@@ -334,11 +334,11 @@ func _check_screen(screen: Vector2i) -> int:
 				"tow toast":
 					hud.toast("Pomoc drogowa: wyciągnięci!", "Towed free")
 					hud.ticker("87,3 KEBAB FM  ·  Palma de Gaulle'a", Color("#ff5fc8"))
-				# Loop 3g-1: a koguty 2 chase (the pill and its countdown, the koguty, a megaphone
+				# Loop 3g-1: a koguty 2 chase (the pill and its gap bar, the koguty, a megaphone
 				# bubble, the edge rooster), the lizak's pill, and the pull-over card with two replies.
 				"police chase":
 					hud.set_koguty(2, 1)
-					hud.police_pill("SZUKAJĄ CIĘ · KONIEC ZMIANY ZA 0:27", "SEARCHING · END OF SHIFT IN 0:27")
+					hud.police_pill("UCIEKAJ", "GET AWAY", 0.6, 1)
 					hud.police_fx(1.0, PackedVector2Array([at.call(0.5, 1.3)]), Vector2.INF)
 					_say(bubbles, "Policja", at.call(0.5, 0.72), "Proszę się zatrzymać! Albo chociaż zwolnić, będzie miło.",
 							"Please stop! Or at least slow down, that would be nice.")

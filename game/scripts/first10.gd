@@ -15,7 +15,7 @@ extends Node
 ## | beat | the 6.2 time | what the director does (and its fallback) |
 ## | --- | --- | --- |
 ## | finger | 0:05 | the ghost finger (hud.gd) after FINGER_IDLE s with no touch or key; it goes at the first one |
-## | stand | 0:15 | the edge arrow to the kebab stand by Świętokrzyska (jobs.gd FIRST_STAND), straight ahead of the start (START), until an order starts |
+## | stand | 0:15 | the edge arrow to the kebab stand by Świętokrzyska (jobs.gd FIRST_STAND), straight ahead of the start (START), until an order starts or LURE_LATEST (then one toast: the kebab will wait) |
 ## | order | 0:30 | that stand's next order is the guided one (~250 m straight on up Marszałkowska, jobs.gd `pin_first`) |
 ## | race | 1:30 | RACE_AFTER s after the first delivery's card, not before RACE_EARLIEST (or at RACE_LATEST without one) Pani Halina rolls up behind and flashes (rivals.gd `call_first`): the ladder's first rung, a race to the Palm at her own gentle pace (ladder.gd FIRST_RACER: a player who races wins it, and the beat is done on a win or a loss); declined, she tries twice more, RACE_RETRY s apart |
 ## | trap | 3:00 | the police's scripted first contact (police.gd), armed by the race; without a race the director arms it at TRAP_LATEST |
@@ -63,6 +63,11 @@ const START := Vector2(-961.6, 95.0)
 const START_HEADING := 339.8
 const FINGER_IDLE := 4.0
 const STAND_AT := 10.0
+## First hour, step 1: the kebab is a lure, not a duty. With no order started by LURE_LATEST s the
+## stand's arrow goes with one toast ("lure", not a beat of 6.2: no window), and the free minute
+## before Halina starts then, as after a delivery (or after the first order went back quietly,
+## jobs.gd `first_gone`).
+const LURE_LATEST := 90.0
 ## --first10: the car is taken to the stand at ORDER_AT s.
 const ORDER_AT := 15.0
 const RACE_AFTER := 6.0
@@ -118,6 +123,7 @@ const END_COLOUR := Color("#ffd23f")
 ## The director's words, [Polish, English] (each at most 70 characters).
 const LINES := {
 	"stand": ["Kebab przy Świętokrzyskiej czeka z twoim pierwszym zamówieniem.", "The kebab stand by Świętokrzyska has your first order."],
+	"lure": ["Kebab poczeka na stoisku. Wpadnij, kiedy chcesz.", "The kebab will wait at the stand. Come by anytime."],
 	"heli": ["Pogotowie lotnicze pożycza ci stary śmigłowiec: HELI", "The air ambulance lends you its old helicopter: HELI"],
 	"heli_locked": ["Helikopter? Najpierw jedno wezwanie ratunkowe.", "The helicopter comes after your first rescue call."],
 	"tape": ["Na dachu BUW leży kaseta z muzyką. Leć po nią helikopterem.", "A mixtape lies on the BUW roof: fly the helicopter to it."],
@@ -240,7 +246,11 @@ static func decide(now: float, f: Dictionary, done: Dictionary) -> Array[String]
 		out.append("stand")
 	if not is_done.call("order") and f.get("scripted", false) and not f.get("ordered", false) and now >= ORDER_AT and free:
 		out.append("order")
+	if not is_done.call("lure") and is_done.call("stand") and not f.get("ordered", false) and now >= LURE_LATEST and free:
+		out.append("lure")
 	var delivered: float = f.get("delivered_t", -1.0)
+	if delivered < 0.0 and is_done.call("lure"):
+		delivered = float(done["lure"])
 	if not is_done.call("race") and not f.get("raced", false) and not f.get("calling", false) and free \
 			and now >= float(f.get("race_next", 0.0)) and ((delivered >= 0.0 and now >= maxf(delivered + RACE_AFTER, RACE_EARLIEST)) or now >= RACE_LATEST):
 		out.append("race")
@@ -452,7 +462,8 @@ func facts() -> Dictionary:
 	var ride: Variant = jobs.get("rides") if jobs != null else null
 	var riding: bool = not other and ride is Node and ride.has_method("has_target") and bool(ride.call("has_target"))
 	var orders: int = jobs.orders_started() if jobs != null else 0
-	if _delivered_t < 0.0 and wallet != null and wallet.jobs_done() > 0 and not busy:
+	var gone: bool = jobs != null and jobs.get("first_gone") == true
+	if _delivered_t < 0.0 and ((wallet != null and wallet.jobs_done() > 0) or gone) and not busy:
 		_delivered_t = t
 	return {
 		"input": hud != null and int(hud.input_ms) > _input_base,
@@ -499,6 +510,11 @@ func _fire(id: String) -> void:
 			if jobs != null and _stand >= 0:
 				_hint(jobs.stand_ring(_stand), "KEBAB", HINT_S)
 				hud.toast(LINES["stand"][0], LINES["stand"][1])
+		"lure":
+			if hint_word == "KEBAB":
+				hint_at = Vector3.INF
+			if hud != null:
+				hud.toast(LINES["lure"][0], LINES["lure"][1])
 		"order":
 			# --first10 only: the car at the stand, the guided order.
 			if jobs == null or _stand < 0 or not jobs.start_first(_stand):

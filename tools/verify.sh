@@ -350,6 +350,9 @@
 # docs/streets/ may never get worse), `models` runs tools/model_library.py --check (every model a
 # street record names is in the library or on its wanted list), `overrides` runs
 # game/tools/check_object_overrides.gd (every id in game/data/road_objects.json names a barrier).
+# W2 of the walls look (2026-11-15): `barrierlook` runs game/tools/check_barrier_look.gd (the palette's
+# barrier_look is classic; every barrier type on the map has a `looks` row; the typed drawing's
+# triangles and colliders per draw kind on a flat synthetic map; the alt colours stable).
 # Road design (2026-11-06): `design` runs tools/road_design.py --check-all (every area applied to the
 # map, docs/roads/AREA.json, still builds with no problems: kerbs closed, lanes inside, crossings fit;
 # footways and cycle tracks continuous: every path end the new asphalt cut is on a crossing of its kind).
@@ -665,13 +668,12 @@ police_runs() {
 	a=$(frame_of '^police: stopped by unit' $f); b=$(frame_of '^police: pull-over' $f); l=$(frame_of '^police: caution' $f)
 	(( a > 0 && b >= a && b - a <= 150 && l > b && l - b <= 600 )) && P_NOTE+=("P4 pull-over $(printf '%.1f' $(( (b - a) / 60.0 )))s, caution $(printf '%.1f' $(( (l - b) / 60.0 )))s") \
 		|| P_FAIL+=("P4: stopped at frame $a, pull-over $b, caution $l ($f)")
-	# P5: the caps, 30 / 40 / 45 s ± 0.5 s (no other traffic: no second unit raises the level).
-	police_run p5_1 2100 --police=1 --police-auto=hold --traffic=empty; f=$RUN_LOG
-	expect P5 '^police: end of shift after (29\.[5-9]|30\.[0-5]) s \(L1\)' $f "30s"
-	police_run p5_2 2700 --police=2 --police-auto=hold --traffic=empty; f=$RUN_LOG
-	expect P5 '^police: end of shift after (39\.[5-9]|40\.[0-5]) s \(L2\)' $f "40s"
-	police_run p5_3 3000 --police=3 --police-auto=hold --traffic=empty; f=$RUN_LOG
-	expect P5 '^police: end of shift after (44\.[5-9]|45\.[0-5]) s \(L3\)' $f "45s"
+	# P5: the hidden backstop (first-hour step 2), 120 s ± 0.5 s at any level (no other traffic:
+	# no second unit raises the level); the chasers tire at 30 s and the held car stays near.
+	police_run p5_1 7500 --police=1 --police-auto=hold --traffic=empty; f=$RUN_LOG
+	expect P5 '^police: end of shift after (119\.[5-9]|120\.[0-5]) s \(L1\)' $f "120s L1"
+	police_run p5_3 7500 --police=3 --police-auto=hold --traffic=empty; f=$RUN_LOG
+	expect P5 '^police: end of shift after (119\.[5-9]|120\.[0-5]) s \(L3\)' $f "120s L3"
 	# P6: the start grace: speeding through the trap gives nothing (before 60 s), never a chase.
 	police_run p6 900 --trap=2 --pedal=gas; f=$RUN_LOG
 	expect P6 '^police: trap 2: .*\(grace\)' $f "grace"
@@ -1167,6 +1169,7 @@ for s in $want; do
 			esac ;;
 		parkmesh) check parkmesh '^park_details:' --script res://tools/check_park_details.gd ;;
 		overrides) check overrides '^check_object_overrides:' --script res://tools/check_object_overrides.gd ;;
+		barrierlook) check barrierlook '^check_barrier_look:' --script res://tools/check_barrier_look.gd ;;
 		monuments)
 			t0=$EPOCHREALTIME
 			python3 -I $ROOT/tools/check_monuments.py > $logs/monuments.log 2>&1
@@ -1312,6 +1315,7 @@ for s in $want; do
 		language) check language '^check_language:' --script res://tools/check_language.gd ;;
 		# Loop G1: model id -> tier, the pixel image at the phones' sizes; the governor's rules.
 		tiers) check tiers '^check_tiers:' --script res://tools/check_tiers.gd ;;
+		trees) check trees '^check_trees:' --script res://tools/check_trees.gd ;;
 		governor) check governor '^check_governor:' --script res://tools/check_governor.gd ;;
 		# F 2026-11-15: the colour looks (grades.gd) against time_of_day.gd's base looks.
 		grades) check grades '^check_grades:' --script res://tools/check_grades.gd ;;

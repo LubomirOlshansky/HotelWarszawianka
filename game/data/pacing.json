@@ -1,9 +1,10 @@
 {
 	"_about": "When the game offers the next thing: every number that says when a call may ring or an offer may come, in seconds of play unless it says hours. [a, b] seconds means a random time between a and b; hours [from, to] may run past midnight (17 to 2). Each source keeps its own countdown and reads its numbers here (pacer.gd). How long a card stays up, distances, and the offers that come from driving past a place (deliveries, the round-up, rivals' challenges, friends met in person) have no clock and are not here. check_pacing.gd checks this file.",
 	"calls": {
-		"_note": "Every friend's call: at least gap s after the last call of anyone, and settle s into a calm spell (after a result, a chase or a quest). A call the player asked for does not wait.",
+		"_note": "Every friend's call: at least gap s after the last call of anyone, settle s into a calm spell (after a result, a chase or a quest), and quiet s after a run of any activity ended (the ride app's requests and Bartek's calls wait for quiet too). Whoever rang last lets a call that is due and waiting go first (variety). A call the player asked for does not wait.",
 		"gap": 60,
-		"settle": 8
+		"settle": 8,
+		"quiet": 30
 	},
 	"rescue": {
 		"_note": "The rescue line (WEZWANIE): the first call this long after the start, the next this long after a rescue ends or is skipped.",

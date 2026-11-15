@@ -19,6 +19,7 @@
 
 activity             quick
 architecture         quick
+barrierlook          quick
 boatrace             quick
 boot                 quick
 boot-run             smoke
@@ -203,6 +204,7 @@ tour-run             local     slow
 trains               quick
 tramfleet            quick
 tramstops            quick
+trees                quick
 trendjob             quick
 trzy-mosty           local     slow
 tunnelcut            smoke

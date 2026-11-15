@@ -446,6 +446,17 @@ const LENS_RED := Color("#ff3b3b")
 var _police_pill: PanelContainer
 var _police_pl: Label
 var _police_en: Label
+## First-hour step 2 (2026-11-15): the pill's bar under its words, one draw call while it shows:
+## mode 1 the chase (the share of the escape made, gold), 2 the search (the share left, grey-blue
+## emptying), 0 none.
+var _police_gap: Control
+var _gap_share := 0.0
+var _gap_mode := 0
+const GAP_GOLD := Color("#ffd23f")
+const GAP_SEARCH := Color("#9fb4d8")
+## Hiding spots blinking on the minimap during a chase (police.gd `_hides_near`).
+const HIDE_GREEN := Color("#5fd38a")
+var _hide_marks := PackedVector2Array()
 var _koguty: Control
 var _koguty_lit := 0
 ## 0 hidden, 1 a chase (lit), 2 searching (grey, blinking), 3 a warning (the first outline blinks).
@@ -2613,6 +2624,12 @@ func _paint_minimap_overlay() -> void:
 			var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.006)
 			_tri_fan(centre + r, (3.6 + pulse) * pt, 0.0, TAU, Color.WHITE)
 			_tri_fan(centre + r, 2.6 * pt, 0.0, TAU, SCENE_AMBER)
+	if not _hide_marks.is_empty():
+		var glow := 0.45 + 0.55 * absf(sin(Time.get_ticks_msec() * 0.005))
+		for q in _hide_marks:
+			var r := ((q - _mini_car) * s).rotated(_mini_yaw).limit_length(_mini_radius - 6.0 * pt)
+			_tri_fan(centre + r, 4.2 * pt, 0.0, TAU, Color(CARD_BG, 0.85))
+			_tri_ring(centre + r, 2.6 * pt, 4.2 * pt, 0.0, TAU, Color(HIDE_GREEN, glow))
 	var flip := int(Time.get_ticks_msec() / 200) % 2 == 0
 	for i in _police_marks.size():
 		var r := ((_police_marks[i] - _mini_car) * s).rotated(_mini_yaw)
@@ -4267,6 +4284,13 @@ func _build_police() -> void:
 	_police_en.name = "police_en"
 	_police_en.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	rows.add_child(_police_en)
+	_police_gap = Control.new()
+	_police_gap.name = "police_gap"
+	_police_gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_police_gap.custom_minimum_size = Vector2(120.0 * pt, 9.0 * pt)
+	_police_gap.visible = false
+	_police_gap.draw.connect(_draw_police_gap)
+	rows.add_child(_police_gap)
 	add_child(_police_pill)
 	# The koguty's place beside the wallet (the layout keeps it); the overlay draws them.
 	_koguty = Control.new()
@@ -4323,19 +4347,41 @@ func _koguty_tris() -> void:
 		_tri_rect(Rect2(c + Vector2(-r - 1.5 * pt, 0.0), Vector2(r * 2.0 + 3.0 * pt, 3.0 * pt)), base)
 
 
-## The police pill at the top centre (Polish over English); empty words hide it.
-func police_pill(pl: String, en: String) -> void:
+## The police pill at the top centre (Polish over English); empty words hide it. First-hour step 2:
+## `gap` (0..1) fills the bar under the words in `mode` 1 (a chase: the escape made) or 2 (the
+## search: what is left of it); mode 0 has no bar.
+func police_pill(pl: String, en: String, gap := 0.0, mode := 0) -> void:
 	pl = Lang.pick(pl, en)
 	en = ""
 	if pl == "":
 		_show(_police_pill, false)
 		return
-	if _police_pl.text != pl or _police_en.text != en:
+	var bar := mode != 0
+	if _police_pl.text != pl or _police_en.text != en or _police_gap.visible != bar:
 		_police_pl.text = pl
 		_police_en.text = en
 		_police_en.visible = en != ""
+		_police_gap.visible = bar
 		_police_pill.reset_size()
+	gap = clampf(gap, 0.0, 1.0)
+	if bar and (mode != _gap_mode or absf(gap - _gap_share) > 0.004):
+		_police_gap.queue_redraw()
+	_gap_share = gap
+	_gap_mode = mode
 	_show(_police_pill, true)
+
+
+## The pill's bar: a dark track and the fill, gathered as triangles, one draw call.
+func _draw_police_gap() -> void:
+	var size := _police_gap.size
+	var h := 5.0 * pt
+	var track := Rect2(Vector2(0.0, (size.y - h) * 0.5 + 1.0 * pt), Vector2(size.x, h))
+	_tri_begin()
+	_tri_round_rect(track, h * 0.5, Color(1, 1, 1, 0.16))
+	var w := track.size.x * _gap_share
+	if w >= 1.0:
+		_tri_round_rect(Rect2(track.position, Vector2(maxf(w, h), h)), h * 0.5, GAP_GOLD if _gap_mode == 1 else GAP_SEARCH)
+	_tri_flush(_police_gap)
 
 
 ## The overlay: the blue-red edge breath at `breath` (0..1; at most 10 % opacity at the very
@@ -4510,10 +4556,12 @@ func _tri_flush(item: CanvasItem) -> void:
 	RenderingServer.canvas_item_add_triangle_array(item.get_canvas_item(), _tri_idx.slice(0, n), _tri_pts, _tri_cols)
 
 
-## Chasers (map x, z) and the speed traps the player knows of, on the minimap.
-func set_police_marks(chasers: PackedVector2Array, traps: PackedVector2Array) -> void:
+## Chasers (map x, z) and the speed traps the player knows of, on the minimap; in a chase, the
+## hiding spots near (first-hour step 2: a blinking green ring, pinned to the rim).
+func set_police_marks(chasers: PackedVector2Array, traps: PackedVector2Array, hides := PackedVector2Array()) -> void:
 	_police_marks = chasers
 	_trap_marks = traps
+	_hide_marks = hides
 
 
 ## The crash scene's spot (map x, z) on the minimap and the full map, or Vector2.INF for none.
@@ -4621,10 +4669,17 @@ const CTA_MIN_W := 248.0
 const CTA_FLAG := 34.0
 
 
-## A friend's call may ring now (messages.gd `call_ok`): no quest, no chase, settled, spaced.
+## A friend's call may ring now (messages.gd `call_ok`): no quest, no chase, settled, spaced, past the
+## quiet time after a finish.
 func call_ok() -> bool:
 	messages.tick(0.0, context_now())
 	return messages.call_ok()
+
+
+## The quiet time after a finish is on (messages.gd `quiet`): the ride app's requests and Bartek's
+## calls, which do not ask `call_ok`, wait for it too (TD-3).
+func offers_quiet() -> bool:
+	return messages.quiet()
 
 
 ## The player pressed RADIO (or its next key, or R): the caption that comes next shows even in a chase.

@@ -1838,6 +1838,13 @@
       {
         "only": "heli"
       }
+    ],
+    [
+      "Był tu czerwony samochód. Teraz jest jakiś inny. Kacper, notuj.",
+      "There was a red car here. Now there's some other one. Kacper, take notes.",
+      {
+        "only": "garage"
+      }
     ]
   ],
   "police_stop": [

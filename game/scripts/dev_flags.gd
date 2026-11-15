@@ -23,6 +23,7 @@ const Settings := preload("res://scripts/settings.gd")
 const Tiers := preload("res://scripts/tiers.gd")
 const Police := preload("res://scripts/police.gd")
 const CityBarriers := preload("res://scripts/city_barriers.gd")
+const Solidity := preload("res://scripts/solidity.gd")
 
 ## The game (main.gd), for the values and functions that stay its own.
 var m: Main
@@ -369,6 +370,9 @@ var _no_soft := false
 ## 7 pass it). --no-soft wins over it and over the setting for the whole run (its sectors are built
 ## with no soft list, so nothing could turn them breakable).
 var _flag_soft := false
+## W2 of the walls look: --barriers=classic|typed (&"" when not given), set into solidity.gd before
+## the city is built.
+var _flag_barriers := &""
 ## --push-parked=X,Z (step 8a, for shots; needs --soft): the parked car nearest X,Z slides off its bay
 ## sideways as a push would send it, once its sector is in (main.gd, `soft_things.gd` `push_near`).
 var _flag_push_parked := Vector2.INF
@@ -431,6 +435,20 @@ var _spots: Array[Vector3] = []
 ## PASS_EVENT_S, as a new rescue or delivery target gets) and jump (the car put somewhere new every
 ## PASS_EVENT_S, as a tow or a race start does).
 var _pass_kind := ""
+
+
+## W2 of the walls look: on the prebuilt path the barriers are what bake_city.gd baked
+## (map/sectors/city.stamp "barrier_look"); when the run's look (the palette's key or
+## --barriers=) is another, one line says so and the run goes on. Nothing when the stamp is not
+## there (an exported game carries none).
+func note_barrier_look(use_prebuilt: bool) -> void:
+	if not use_prebuilt or not FileAccess.file_exists("res://map/sectors/city.stamp"):
+		return
+	var stamp: Variant = JSON.parse_string(FileAccess.get_file_as_string("res://map/sectors/city.stamp"))
+	var baked := StringName(str((stamp as Dictionary).get("barrier_look", "classic"))) if stamp is Dictionary else &"classic"
+	if baked != Solidity.barrier_look():
+		print("barriers: the prebuilt city is baked %s; %s is ignored on this path" % [baked,
+				"--barriers" if _flag_barriers != &"" else "the palette's barrier_look"])
 
 
 ## Reads the command line: main.gd's `_ready`, first thing.
@@ -605,6 +623,12 @@ func parse_with(args: PackedStringArray) -> void:
 			CityBarriers.soft_off = true
 		elif arg == "--soft":
 			_flag_soft = true
+		elif arg.begins_with("--barriers="):
+			# W2 of the walls look: before the city is built (the wall builder reads it): the runtime
+			# city's walls, fences and hedges in that look (classic or typed) over the palette's
+			# barrier_look. The prebuilt city is the look it was baked in (`note_barrier_look`).
+			_flag_barriers = StringName(arg.trim_prefix("--barriers="))
+			Solidity.set_barrier_look(_flag_barriers)
 		elif arg.begins_with("--push-parked="):
 			var pp := arg.trim_prefix("--push-parked=").split_floats(",")
 			_flag_push_parked = Vector2(pp[0], pp[1])

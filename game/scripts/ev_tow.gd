@@ -522,7 +522,8 @@ func step(dt: float) -> void:
 	if phase == Phase.IDLE:
 		if auto and _free():
 			call_in -= dt
-			if call_in <= 0.0 and not ring():
+			# Not again straight after its own call while another's waits (TD-3's variety): retry.
+			if call_in <= 0.0 and not (_ring_turn() and ring()):
 				call_in = RETRY
 		_stranger_hook(dt, at, flying)
 		return

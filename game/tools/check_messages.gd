@@ -5,7 +5,8 @@ extends SceneTree
 ## - the rules: each channel's lowest shown priority in free roam, a quest, a chase and a scripted
 ##   moment; the queue (a note waits, comes back after the settle, one every FLUSH_GAP s, the
 ##   highest first, at most MAX_QUEUED, gone after TTL); the calls (only in free roam, settled,
-##   CALL_GAP apart);
+##   CALL_GAP apart, and not for CALL_QUIET s after a run ended: TD-3's quiet time, which the offers
+##   that do not ask the gate read as `quiet`);
 ## - F's night-race screenshot replayed (a police chase in a race with the TYGRAM pin, a partner,
 ##   the radio's news, the app-taxi's GPS line, an easter egg): no radio line, one bubble (the
 ##   partner's), the TYGRAM pin shows, the egg waits and shows once the chase is over, no friend's
@@ -118,6 +119,14 @@ func _check_calls() -> void:
 	_expect(not m.call_ok(), "two calls inside CALL_GAP")
 	m.tick(1.0, Messages.FREE)
 	_expect(m.call_ok(), "no call after CALL_GAP")
+	# TD-3 (F 2026-11-15): the quiet time after a finish holds the gate, whatever else it says.
+	_expect(not m.quiet(), "the quiet time is on before anything finished")
+	m.finished()
+	_expect(m.quiet() and not m.call_ok(), "a call may ring the moment a run ended")
+	m.tick(Messages.CALL_QUIET - 1.0, Messages.FREE)
+	_expect(m.quiet() and not m.call_ok(), "a call may ring inside CALL_QUIET after a finish")
+	m.tick(1.0, Messages.FREE)
+	_expect(not m.quiet() and m.call_ok(), "no call after the quiet time")
 
 
 func _tick(hud: CanvasLayer, b: Control, seconds: float) -> void:
@@ -153,7 +162,7 @@ func _check_hud() -> void:
 	hud.show_status("PARKING POD NARODOWYM · WYŚCIG", "", "2523 m", "Bądź pierwszy", 0.0, Color("#38f6ff"), "2/9", {},
 			"Be first there")
 	hud.set_koguty(1, 1)
-	hud.police_pill("POŚCIG · KONIEC ZMIANY ZA 0:30", "CHASE · END OF SHIFT IN 0:30")
+	hud.police_pill("UCIEKAJ", "GET AWAY", 0.3, 1)
 	_tick(hud, b, 0.2)
 	_expect(hud.messages.context == Messages.CHASE, "the night race with the police isn't a chase (%s)" % Messages.CONTEXT_NAMES[hud.messages.context])
 	hud.ticker("87,3 KEBAB FM:  Aleje Jerozolimskie: stłuczka.", Color("#ff5fc8"), "Aleje Jerozolimskie: a fender bender.")

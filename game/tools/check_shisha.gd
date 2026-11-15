@@ -554,8 +554,8 @@ func _play(digest: PackedStringArray) -> void:
 	_step(1.0)
 	_ok(_bubbles.said.size() == 1 and _bubbles.said[0] == _line("abort"), "and his goodbye is still said (%s)" % [_bubbles.said])
 
-	# Met in person, with the rescue calls already off: Ivan is in at once.
-	_calls.paused = true
+	# Met in person, with the rescue calls already off (main.gd's own hold, through the director): Ivan is in at once.
+	_director.hold_calls("bench", Activity.RescueCalls.HOLD)
 	_hud.toasts.clear()
 	_ok(c.meet() and _at(Shisha.Stage.TO_BOGDAN), "met at his block: Ivan is in at once, on to the courts")
 	_ok(not _toast("Jedź po Ivana") and _hud.shown > 0 and _hud.card == "", "no call, no offer and no 'go and get Ivan'")
@@ -630,9 +630,8 @@ func _play(digest: PackedStringArray) -> void:
 	_ok(_at(Shisha.Stage.RESULT) and _hud.card != "", "the ✕ does nothing on the result card")
 	_hud.press(0)
 	_ok(c.idle() and _hud.card == "" and not _director.busy(), "OK closes it: idle")
-	_ok(_calls.paused, "the calls were off before the night and are off after it")
-	_ok(_calls._held(), "the calls are still held after the night")
-	_calls.paused = false
+	_ok(_calls._held(), "the calls were off before the night and are still held after it")
+	_director.release_calls("bench")
 	_ok(c.call_in >= Shisha.NEXT_CALL.x and c.call_in <= Shisha.NEXT_CALL.y and b.pattern == Beacon.Pattern.DASHED and b._colour == Shisha.PICK_COLOUR,
 			"the next call drawn, the ring a friend's again")
 	_step(Shisha.SCENE_GAP + 1.0)

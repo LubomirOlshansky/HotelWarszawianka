@@ -35,7 +35,7 @@ const SAMPLES := {
 	"card_body": ["Ranny rowerzysta czeka przy skrzyżowaniu.", "A hurt cyclist waits at the crossing."],
 	"status_hint": ["Stań w zielonym kółku", "Stop inside the green ring"],
 	"info": ["Pałac Kultury, dar narodu radzieckiego.", "Palace of Culture, a gift from the Soviet people."],
-	"police": ["POŚCIG, KONIEC ZMIANY ZA 0:30", "CHASE, END OF SHIFT IN 0:30"],
+	"police": ["SZUKAJĄ CIĘ", "SEARCHING"],
 	"pill": ["WEZWANIE RATUNKOWE", "RESCUE CALL INCOMING"],
 	"challenge": ["MRUGNIJ ŚWIATŁAMI", "FLASH YOUR LIGHTS"],
 	"goal": ["Jedź na Rondo Dmowskiego", "Drive to Rondo Dmowskiego"],
