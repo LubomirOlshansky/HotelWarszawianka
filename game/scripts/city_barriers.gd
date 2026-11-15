@@ -100,6 +100,27 @@ const POCKET_HEDGES := [
 			Vector2(875.0, -73.0), Vector2(880.0, -73.0), Vector2(886.0, -72.0), Vector2(892.0, -71.5), Vector2(897.5, -70.0)],
 ]
 
+## Stadion Narodowy's perimeter (F, 2026-11-15, a street-level photo by Brama 5; docs/landmarks/specs/
+## stadium-grounds.md): OSM maps the park's boundary as plain mesh-panel, chain-link and plain fences
+## 200-345 m from the stadium's centre; the real one is a tall black vertical-bar steel fence, so those
+## lines are drawn in the palette's stadium_fence type. The ball-stop nets, the railway's fence
+## (`hz`) and anything with a mapped height keep their own look. praga.gd puts the numbered gates
+## where footpaths and roads cross it (`stadium_fence_line` is the one rule both use).
+const STADIUM_CENTRE := Vector2(1480.5, -605.1)
+const STADIUM_FENCE_R := Vector2(195.0, 345.0)
+const STADIUM_FENCE_TYPES := ["mesh_panel", "chain_link", "fence_plain"]
+## The gates: where a footpath or a road under 7 m wide meets that fence, one per 15 m of fence:
+## two dark stone piers, two black leaves with a solid dark panel on each, and a red board on two
+## poles with a pale stripe for the writing ("Do zobaczenia! See you! Brama N Gate") and a white
+## number plate (at 10-17 cm a pixel the writing is stripes).
+const GATE_HALF := 3.2
+const GATE_MIN_APART := 15.0
+const GATE_STONE := Color("#3a3c40")
+const GATE_LEAF := Color("#16181b")
+const GATE_PANEL := Color("#25282c")
+const GATE_RED := Color("#b8232a")
+const GATE_PALE := Color("#ece8dc")
+
 ## Guard rails: two rails' ends closer than this get a collider across the gap (narrower than a car).
 const GUARD_JOIN := 1.5
 ## ...the V's depth behind the rail's line, at most (and under half the gap).
@@ -963,6 +984,79 @@ static func barrier_class(l: Dictionary) -> StringName:
 	return StringName(str(l["k"]))
 
 
+## Whether a fence line is part of Stadion Narodowy's perimeter fence (see STADIUM_CENTRE).
+static func stadium_fence_line(l: Dictionary) -> bool:
+	if str(l.get("k", "")) != "fence" or l.has("h") or l.has("hz") or l.has("ft") or l.has("st"):
+		return false
+	if not STADIUM_FENCE_TYPES.has(str(l.get("ty", ""))):
+		return false
+	var flat: Array = l["p"]
+	var n := flat.size() / 2
+	if n < 2:
+		return false
+	var c := Vector2.ZERO
+	for i in n:
+		c += Vector2(flat[i * 2], flat[i * 2 + 1])
+	var r := (c / n).distance_to(STADIUM_CENTRE)
+	return r >= STADIUM_FENCE_R.x and r <= STADIUM_FENCE_R.y
+
+
+## The perimeter fence's gates (see GATE_HALF): `segs` are the fence segments [a, b] this build drew.
+## A gate belongs to the sector holding the crossing, so two sectors never draw the same one.
+func _stadium_gates(st, segs: Array) -> void:
+	if segs.is_empty():
+		return
+	var at: Array[Vector2] = []
+	var dirs: Array[Vector2] = []
+	for kind in ["paths", "roads"]:
+		for o: Dictionary in map.data.get(kind, []):
+			if kind == "roads" and float(o.get("w", 6.0)) > 7.0:
+				continue
+			var q: PackedVector2Array = map._pts(o["p"])
+			for i in q.size() - 1:
+				var r := q[i].distance_to(STADIUM_CENTRE)
+				if r < STADIUM_FENCE_R.x - 20.0 or r > STADIUM_FENCE_R.y + 20.0:
+					continue
+				for s: Array in segs:
+					var hit: Variant = Geometry2D.segment_intersects_segment(q[i], q[i + 1], s[0], s[1])
+					if not hit is Vector2 or (map._in_sector and not map._sector_rect.has_point(hit)):
+						continue
+					var near := false
+					for p in at:
+						if p.distance_to(hit) < GATE_MIN_APART:
+							near = true
+							break
+					if not near:
+						at.append(hit)
+						dirs.append((s[1] - s[0]).normalized())
+	for k in at.size():
+		_gate(st, at[k], dirs[k])
+
+
+func _gate(st, at: Vector2, d: Vector2) -> void:
+	var g: float = map.terrain_height(at.x, at.y)
+	var n := Vector2(-d.y, d.x)
+	var basis := Basis(Vector3.UP, atan2(-d.x, -d.y))
+	for sgn in [-1.0, 1.0]:
+		var pier: Vector2 = at + d * GATE_HALF * sgn
+		map._box_oriented(st, Vector3(pier.x, g + 1.325, pier.y), basis, Vector3(0.56, 3.3, 0.56), GATE_STONE)
+		# The piers stand (F, 2026-11-15: iron panels break, piers stand): a hard box, class pier.
+		map._solid(&"pier", slab_faces(pier - d * 0.28, pier + d * 0.28, 0.28, g, g, 2.95), {"same": true, "h": 2.95})
+		var mid: Vector2 = at + d * (GATE_HALF * 0.5) * sgn
+		map._box_oriented(st, Vector3(mid.x, g + 1.15, mid.y), basis, Vector3(0.04, 2.1, GATE_HALF - 0.6), GATE_LEAF)
+		map._box_oriented(st, Vector3(mid.x, g + 0.75, mid.y), basis, Vector3(0.13, 1.0, GATE_HALF - 1.0), GATE_PANEL)
+		var pole: Vector2 = at + d * 2.5 * sgn
+		map._box_oriented(st, Vector3(pole.x, g + 3.2, pole.y), basis, Vector3(0.1, 2.0, 0.1), GATE_STONE)
+	map._box_oriented(st, Vector3(at.x, g + 3.825, at.y), basis, Vector3(0.1, 0.85, 5.8), GATE_RED)
+	for side in [-1.0, 1.0]:
+		var o: Vector2 = at + n * (side as float) * 0.065
+		for bar in [[-0.5, 0.51, 3.8], [-0.5, 0.24, 2.6]]:
+			var c2: Vector2 = o + d * (bar[0] as float)
+			map._box_oriented(st, Vector3(c2.x, g + 3.4 + (bar[1] as float), c2.y), basis, Vector3(0.025, 0.1, bar[2] as float), GATE_PALE)
+		var c3: Vector2 = o + d * 2.15
+		map._box_oriented(st, Vector3(c3.x, g + 3.4 + 0.42, c3.y), basis, Vector3(0.025, 0.6, 0.6), GATE_PALE)
+
+
 ## Every barrier line of `data` (`lines`: hedge, fence, wall, platform) in its type, by the rules
 ## above, into the building surface `st`.
 func build_barriers(st) -> void:
@@ -975,6 +1069,7 @@ func build_barriers(st) -> void:
 	soft_segs = PackedFloat64Array()
 	_soft_line = {}
 	_stairs_for_walls()
+	var gate_segs: Array = []
 	for l in map.data.get("lines", []):
 		var site_wall: Array = _site_wall(l["p"]) if l["k"] == "wall" or l["k"] == "fence" else []
 		if not site_wall.is_empty() and str(site_wall[1]) == "":
@@ -1008,6 +1103,11 @@ func build_barriers(st) -> void:
 			elif _wraps_stairwell(map._pts(l["p"])):
 				style = _placed("balustrade_rail")
 		style = _mapped_style(l, style)
+		if stadium_fence_line(l):
+			style = _placed("stadium_fence")
+			var gp: PackedVector2Array = map._pts(l["p"])
+			for gi in gp.size() - 1:
+				gate_segs.append([gp[gi], gp[gi + 1]])
 		# Street objects unslopped (tools/object_fixes.py, 2026-11-07): a barrier's own style, the
 		# balustrade of a wall or fence beside a flight of steps that OSM gives no height, material or
 		# fence type (tools/barrier_tags.py's tags win: object_fixes leaves tagged lines alone).
@@ -1057,6 +1157,7 @@ func build_barriers(st) -> void:
 		wall_along(st, pts, float(style[1]), float(style[2]), Color(style[0]), solid, cls)
 		_soft_line = {}
 	_pocket_hedges(st)
+	_stadium_gates(st, gate_segs)
 	map._uv2 = Vector2.ZERO
 
 

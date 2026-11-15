@@ -44,6 +44,9 @@ const BUDGET := {
 	"church_alberta": 950,  # 2026-11-14: the whole classicist frontage on Plac Teatralny, portico and two wings, from photos (measured 818)
 	"church_antoniego": 1250,
 	"church_augustyn": 1900,  # 2026-11-14: the whole brick basilica and its 70 m tower, checked against photos (measured 1759)
+	"church_siostry_milosierdzia_zytnia": 1200,  # 2026-11-15: the Sisters of Our Lady of Mercy's house on Żytnia from photos and LoD2 (measured 874)
+	"church_sluzki_dom_generalny": 1200,  # 2026-11-15: the Servants of Jesus' generalate from photos and LoD2 (measured 798)
+	"church_uczennice_boskiego_mistrza": 1400,  # 2026-11-15: the Sister Disciples' convent from photos and LoD2 (measured 1179)
 	"church_plebania_augustyn": 500,  # 2026-11-15: St Augustine's presbytery from LoD2 (measured 311)
 	"church_plebania_katedra_polowa": 600,  # 2026-11-15: the Field Cathedral's presbytery from photos and LoD2 (measured 537)
 	"church_reformaci_klasztor": 500,  # 2026-11-15: the Reformati friary by St Anthony's from LoD2 (measured 396)
