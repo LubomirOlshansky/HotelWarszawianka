@@ -32,6 +32,12 @@ extends SceneTree
 ##   instead), and it names the one that is on, the one with a target and why the helicopter is
 ##   refused; `job_on` is true while a side job (`is_job`) is on and only then; the M and K keys
 ##   go to the first activity that takes them, in the order they joined, and to nobody after it;
+## - the pacer's rules (TD-3, F 2026-11-15): the one whose phone rang last lets another's waiting call
+##   go first (`my_turn`, `call_waits`), a call the player asks for does not wait, a stale wait holds
+##   nobody; the rescue line's card holds every other activity as its run does; main.gd's own holds of
+##   the rescue calls (`hold_calls`: HOLD stands, RESTART puts off at both ends, by name) and a RESTART
+##   run's start and end put the calls off; a run's end, and not a call turned down, starts the quiet
+##   time (`finished`);
 ## - the real HUD (hud.gd): a real button's press goes to the card's owner only, and an unowned
 ##   card's press to every listener, as before the kit;
 ## - every data/*_tour.json: all the keys tour.gd reads, both languages, known shot kinds, only the
@@ -195,6 +201,7 @@ func _go() -> void:
 	_job_cards()
 	_ride_cards()
 	_director()
+	_pacer_rules()
 	_real_hud()
 	_tour_data()
 	if _fails.is_empty():
@@ -934,6 +941,107 @@ func _director() -> void:
 
 
 # --- the real HUD (TD-16) --------------------------------------------------------------------------
+
+## TD-3's rules on a real director (F 2026-11-15: variety on, a quiet time after a finish, the rescue
+## call's card holds the other offers, the bench and a boat ride hold the calls by the same rule).
+func _pacer_rules() -> void:
+	var hud := _hud()
+	var d := Activities.new()
+	# main.gd's `world_free` holds every activity while the message director's call gate is shut or a
+	# card is up (`_free_block`).
+	d.world_free = func() -> bool: return hud.call_ok() and not hud.card_showing()
+	var ends := [0]
+	d.finished = func() -> void: ends[0] += 1
+	var a := _probe(hud, "first")
+	var b := _probe(hud, "second")
+	a.first_call = 10.0
+	b.first_call = 1000.0
+	a._next_call = 10.0
+	b._next_call = 1000.0
+	d.add(a)
+	d.add(b)
+	_hour = 12.0
+	_fly = false
+	_both(a, b, 11.0)
+	_expect(a.phase == Activity.Phase.RING and b.idle(), "variety: the first rings by its clock")
+	a.call_cool = 5.0
+	hud.press(1)
+	_expect(a.idle() and ends[0] == 0, "a call turned down is no finish: no quiet time")
+	# The second's call comes due while the gate is shut: it waits; the first's comes due too.
+	b._next_call = b._session
+	hud.calls_ok = false
+	_both(a, b, 6.0)
+	_expect(a.idle() and b.idle() and b.call_waits() and a.call_waits(), "variety: both calls due, the gate shut: both wait")
+	_expect(not d.my_turn(a) and d.my_turn(b), "variety: the one that rang last lets the other go first")
+	hud.calls_ok = true
+	_both(a, b, 1.0)
+	_expect(b.phase == Activity.Phase.RING and a.idle(), "variety: the gate opens, the other rings first, not the one that rang last")
+	hud.press(1)
+	_both(a, b, 1.0)
+	_expect(a.phase == Activity.Phase.RING, "variety: then the first rings again")
+	hud.press(1)
+	# A call the player asks for (a list, a test flag) does not wait for another's turn.
+	b._next_call = b._session
+	hud.calls_ok = false
+	_both(a, b, 1.0)
+	_expect(b.call_waits() and not d.my_turn(a), "the second waits again behind the shut gate")
+	_expect(a.ring(), "a call asked for rings at once, whoever waits")
+	hud.press(1)
+	# A wait nobody refreshes (out of its hours, in the air) holds nobody after WAIT_FRESH.
+	b.hours = Vector2(0.0, 1.0)
+	hud.calls_ok = true
+	_both(a, b, Activity.WAIT_FRESH + 0.5)
+	_expect(not b.call_waits() and d.my_turn(a), "a stale wait holds nobody")
+	b.hours = Vector2(8.0, 20.0)
+	# The rescue line's card (Fakes.Calls: `pill_call`) holds every other activity as its run does.
+	var calls := Fakes.Calls.new()
+	calls.hud = hud
+	root.add_child(calls)
+	d.add(calls)
+	calls.put(Activity.Phase.RING)
+	_expect(d.may_start(a), "the rescue call ringing on the button: the director holds nobody (main.gd's `call_on_pill` does)")
+	calls.put(Activity.Phase.OFFER)
+	_expect(not d.may_start(a) and not d.may_start(b), "the rescue call's card is up: no other activity may start")
+	calls.put(Activity.Phase.RUN)
+	_expect(not d.may_start(a), "its result card (a run with no target): the same")
+	calls.put(Activity.Phase.IDLE)
+	_expect(d.may_start(a), "the line idle: the others may start")
+	# main.gd's own holds, by name, with an activity's values.
+	var closed: int = calls.closed
+	d.hold_calls("bench", Activity.RescueCalls.HOLD)
+	_expect(calls._held() and calls.closed == closed, "the bench holds the rescue calls and puts nothing off (HOLD)")
+	d.hold_calls("boat", Activity.RescueCalls.RESTART)
+	_expect(calls._held() and calls.closed == closed + 1, "a boat ride puts the call off as it begins (RESTART)")
+	d.hold_calls("boat", Activity.RescueCalls.RESTART)
+	_expect(calls.closed == closed + 1, "a hold already on stays as it is")
+	d.release_calls("bench")
+	_expect(calls._held(), "the bench over, the boat still holds the calls")
+	d.release_calls("boat")
+	_expect(not calls._held() and calls.closed == closed + 2, "the boat ride over: the calls free, counted from NEXT_CALL again (RESTART)")
+	d.release_calls("boat")
+	_expect(calls.closed == closed + 2, "a hold that is not on ends nothing")
+	# A run's start and end: a RESTART run puts the calls off at both, a HOLD run never; its end starts
+	# the quiet time.
+	a.rescue_calls = Activity.RescueCalls.RESTART
+	a.start()
+	_expect(calls._held() and calls.closed == closed + 3, "a RESTART run puts the call off as it starts")
+	a.finish()
+	_expect(not calls._held() and calls.closed == closed + 4 and ends[0] == 1, "...and as it ends, and its end starts the quiet time")
+	b.rescue_calls = Activity.RescueCalls.HOLD
+	b.start()
+	b.drop(true)
+	_expect(calls.closed == closed + 4 and ends[0] == 2, "a HOLD run puts nothing off; dropped, it is a finish too")
+	calls.free()
+
+
+## Steps two activities in turn, `seconds` long.
+func _both(a: Node, b: Node, seconds: float) -> void:
+	var t := 0.0
+	while t < seconds:
+		a._process(STEP)
+		b._process(STEP)
+		t += STEP
+
 
 func _tap(hud: CanvasLayer, index: int) -> bool:
 	var holder: Node = hud._call_buttons if hud.call_showing() else hud._card_buttons

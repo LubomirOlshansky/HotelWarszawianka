@@ -37,7 +37,7 @@ const NAMES := ["Low", "Medium", "High", "Ultra", "Experimental"]
 ## 1.48 MP ×1 image (the iPhone 11's look before G1, for anyone who picks it).
 const QUALITY := [
 	{"name": "Low", "step": 1, "budget": 0.5, "shadows": false, "shadow_size": 1024, "glow": false, "rain": 0.4,
-		"reflect": 0, "traffic": 0.55, "people": 24, "small_shadows": false},
+		"reflect": 0, "traffic": 0.55, "people": 24, "small_shadows": false, "tree_limbs": false},
 	{"name": "Medium", "step": 1, "budget": 0.5, "shadows": true, "shadow_size": 1024, "glow": true, "rain": 0.7,
 		"reflect": 6, "traffic": 0.8, "people": 40, "small_shadows": false},
 	{"name": "High", "step": 0, "budget": 0.96, "shadows": true, "shadow_size": 2048, "glow": true, "rain": 1.0,
@@ -49,6 +49,8 @@ const QUALITY := [
 		"full": true, "msaa": Viewport.MSAA_4X, "aniso": Viewport.ANISOTROPY_16X, "lod": 0.0,
 		"soft": RenderingServer.SHADOW_QUALITY_SOFT_HIGH},
 ]
+## Trees thread (2026-11-15): `tree_limbs` false (Low) hides the crowns' limbs (foliage.gdshader
+## `limbs`): a bare tree is its haze and trunk, 36 fewer triangles a crown. Missing means true.
 ## Experimental (F 2026-11-10, "after the ultra the experimental setting of graphic to test all
 ## this enhancements on the phone"): Ultra plus the beta trailer's capture extras
 ## (trailer.gd begin; the graphics research's "High" list), to judge each on a real phone:

@@ -112,8 +112,9 @@ const MDM_REACH := 430.0   ## m from Plac Konstytucji: Marszałkowska's socialis
 const ROOFS := ["#8d8882", "#7d726a", "#9b9187", "#72777c", "#857a70"]
 const GLASS := ["#8fb4cb", "#9fbfd2", "#7ea4bd", "#a9c3cf"]
 const CANOPY_SUMMER := ["#4e8a3b", "#5d9a44", "#437c36", "#6aa64c", "#5a8f3e"]
-const CANOPY_AUTUMN := ["#4f8a3b", "#5f9640", "#7a9a35", "#a59a32", "#cfa22b", "#de8b2b", "#c8642c", "#4a8038", "#93a03a"]
-const NEEDLE := ["#2f5e3a", "#376b40", "#2a5434"]
+## Trees thread (2026-11-15): the far sectors' tree blobs (sector_proxies.gd) in mid-November, the
+## near crowns' mix (TREE_LOOK) seen from afar: bare twigs, yellow and russet leaves, a little green.
+const CANOPY_NOVEMBER := ["#86694f", "#8a7d6a", "#b39c4a", "#a48a4c", "#775c47", "#c2a23c", "#8e6438", "#7d7a4a"]
 
 ## "autumn" or "summer": picks the leaf colours.
 var season := "autumn"
@@ -9985,14 +9986,113 @@ func _tree_blocked(x: float, z: float) -> bool:
 	return false
 
 
+## Trees thread (F, 2026-11-15: "all our trees look the same"): the kinds of tree the crowns
+## take. Each is a silhouette (foliage.gdshader `crown_shape`, from the same crown mesh: no new
+## draw call). The kind rides in the instance's custom data (r = kind / 16, g = a seed); nothing
+## seasonal is in the instance data (Fable's review, F1): the season is the shader global
+## `tree_season` and each kind's colours and fall are the table below, so the prebuilt sectors
+## follow the game's date too. Until the bake names a kind per tree (step T1) `_tree_kind`
+## guesses one from the scan's shape and the place.
+enum TreeKind { LIME, MAPLE, CHESTNUT, PLANE, ROBINIA, OAK, BIRCH, POPLAR, WILLOW, SPRUCE, PINE }
+## Per kind: [summer colour, autumn colour, when its leaves start to fall on the season's fall
+## (0-1, tree_season.y), how long they take, the share it keeps through winter (oaks keep brown
+## leaves)]. The one source: `_tree_look_texture` writes it for foliage.gdshader (`tree_look`).
+const TREE_LOOK := {
+	TreeKind.LIME: ["#4e8a3b", "#d8b434", 0.2, 0.5, 0.0],
+	TreeKind.MAPLE: ["#5d9a44", "#d6a628", 0.35, 0.5, 0.0],
+	TreeKind.CHESTNUT: ["#437c36", "#96602e", 0.0, 0.45, 0.0],
+	TreeKind.PLANE: ["#6aa64c", "#b08a3c", 0.45, 0.5, 0.0],
+	TreeKind.ROBINIA: ["#7aa64e", "#c4b84c", 0.3, 0.5, 0.0],
+	TreeKind.OAK: ["#4a7a34", "#9a5a2c", 0.6, 0.5, 0.4],
+	TreeKind.BIRCH: ["#7fae52", "#e0c63e", 0.2, 0.45, 0.0],
+	TreeKind.POPLAR: ["#5f9640", "#cbb43a", 0.1, 0.45, 0.0],
+	TreeKind.WILLOW: ["#8fb35a", "#b0b048", 0.55, 0.5, 0.0],
+	TreeKind.SPRUCE: ["#2f5e3a", "#2f5e3a", 1.0, 1.0, 1.0],
+	TreeKind.PINE: ["#3d6b3c", "#3d6b3c", 1.0, 1.0, 1.0],
+}
+## The broadleaf kinds a part of the city picks from, with their weights (Warsaw's centre: limes
+## and Norway maples first, then chestnuts, robinias and honey locusts, planes, oaks).
+const TREE_POOL := [[TreeKind.LIME, 30], [TreeKind.MAPLE, 24], [TreeKind.CHESTNUT, 12],
+		[TreeKind.ROBINIA, 10], [TreeKind.PLANE, 8], [TreeKind.OAK, 8], [TreeKind.BIRCH, 6], [TreeKind.POPLAR, 3],
+		[TreeKind.WILLOW, 2]]
+
+
+## A tree's kind until the map data names one (step T1). The scan says little: its crown radius
+## is nearly always a quarter to a third of the height (check_trees found no tree narrower), so
+## the shape picks nothing. A conifer is a pine or a spruce by its hash (two in five pines); a
+## broadleaf takes one of its place's three kinds (60 / 25 / 15 %), the place a 40 m cell looked up
+## through a smooth wobble of up to 12 m so the kinds do not change along straight grid lines; a
+## poplar only on a tree over 18 m (a lime otherwise).
+func _tree_kind(x: float, z: float, top: float, _radius: float, _base: float, is_needle: bool) -> int:
+	var h := fposmod(sin(x * 3.71 + z * 9.13) * 21753.37, 1.0)
+	if is_needle:
+		return TreeKind.PINE if fposmod(h * 11.3, 1.0) < 0.4 else TreeKind.SPRUCE
+	var wx := x + 12.0 * sin(z * 0.031 + 1.7) * cos(x * 0.017)
+	var wz := z + 12.0 * sin(x * 0.029 + 0.4) * cos(z * 0.021)
+	var cx := floorf(wx / 40.0)
+	var cz := floorf(wz / 40.0)
+	var pick := 0 if h < 0.6 else (1 if h < 0.85 else 2)
+	var kind := _pool_pick(fposmod(sin(cx * 127.1 + cz * 311.7 + pick * 57.3) * 43758.5453, 1.0))
+	if kind == TreeKind.POPLAR and top < 18.0:
+		return TreeKind.LIME
+	return kind
+
+
+func _pool_pick(r: float) -> int:
+	var total := 0
+	for row: Array in TREE_POOL:
+		total += int(row[1])
+	var at := r * total
+	for row: Array in TREE_POOL:
+		at -= int(row[1])
+		if at < 0.0:
+			return int(row[0])
+	return TreeKind.LIME
+
+
+## The instance custom data of a tree of `kind`: r its kind, g its seed (h the tree's hash).
+func _tree_custom(kind: int, h: float) -> Color:
+	return Color(float(kind) / 16.0, fposmod(h * 7.3, 1.0), 0.0, 0.0)
+
+
+## The instance colour: only the tree's own (a little lighter or darker, warmer or cooler); the
+## shader multiplies its kind's leaf colour for the season by it.
+func _tree_colour(h: float) -> Color:
+	var j := fposmod(h * 31.1, 1.0) - 0.5
+	var warm := fposmod(h * 17.9, 1.0) - 0.5
+	var v := 1.0 + j * 0.4
+	return Color(v * (1.0 + warm * 0.08), v, v * (1.0 - warm * 0.08))
+
+
+## TREE_LOOK as the shader's 16 x 4 table (rows: summer, autumn, the fall's numbers, blossom).
+## Built with the shared materials, so the prebuilt city saves it with them.
+func _tree_look_texture() -> ImageTexture:
+	var img := Image.create(16, 4, false, Image.FORMAT_RGBA8)
+	for kind: int in TREE_LOOK:
+		var row: Array = TREE_LOOK[kind]
+		img.set_pixel(kind, 0, Color(row[0]))
+		img.set_pixel(kind, 1, Color(row[1]))
+		img.set_pixel(kind, 2, Color(float(row[2]), float(row[3]), float(row[4]), 0.0))
+		img.set_pixel(kind, 3, Color(0, 0, 0, 0))
+	return ImageTexture.create_from_image(img)
+
+
+## A small lean (up to 5 degrees, towards a direction of its own) round the tree's foot.
+func _tree_lean(h: float) -> Basis:
+	var dir := fposmod(h * 57.3, 1.0) * TAU
+	return Basis(Vector3(cos(dir), 0.0, sin(dir)), fposmod(h * 91.7, 1.0) * 0.087)
+
+
 func _build_trees() -> void:
 	var list: Array = data.get("trees", [])
-	var canopy: Array = CANOPY_AUTUMN if season == "autumn" else CANOPY_SUMMER
 	var all_spots: Array[Transform3D] = []
 	var broad: Array[Transform3D] = []
 	var broad_col: Array[Color] = []
+	var broad_kind: Array[Color] = []
 	var needle: Array[Transform3D] = []
 	var needle_col: Array[Color] = []
+	var needle_kind: Array[Color] = []
+	var kinds: Array = data.get("trees3d_kind", [])
 	for i in range(0, list.size() - 3, 4):
 		var x := float(list[i])
 		var z := float(list[i + 1])
@@ -10002,12 +10102,15 @@ func _build_trees() -> void:
 		var h := fposmod(sin(x * 12.9898 + z * 78.233) * 43758.5453, 1.0)
 		var t := Transform3D(Basis(Vector3.UP, h * TAU).scaled(Vector3(s, s * (0.9 + h * 0.3), s)), Vector3(x, terrain_height(x, z) - 0.2, z))
 		all_spots.append(t)
-		if int(list[i + 3]) == 1:
+		var osm_kind := _tree_kind(x, z, 10.0 * s, 3.0 * s, 3.0 * s, int(list[i + 3]) == 1)
+		if osm_kind >= TreeKind.SPRUCE:
 			needle.append(t)
-			needle_col.append(Color(NEEDLE[int(h * 100.0) % NEEDLE.size()]))
+			needle_col.append(_tree_colour(h))
+			needle_kind.append(_tree_custom(osm_kind, h))
 		else:
 			broad.append(t)
-			broad_col.append(Color(canopy[int(h * 1000.0) % canopy.size()]))
+			broad_col.append(_tree_colour(h))
+			broad_kind.append(_tree_custom(osm_kind, h))
 
 	# GUGiK trees from the 2023 laser scan: each crown is stretched to the tree's real
 	# radius and spans its real crown base to its top; the trunk fills the gap below.
@@ -10029,22 +10132,31 @@ func _build_trees() -> void:
 		var is_needle := int(real[i + 5]) == 1
 		var h := fposmod(sin(x * 12.9898 + z * 78.233) * 43758.5453, 1.0)
 		var ground := terrain_height(x, z) - 0.2
+		var kind := int(kinds[i / 6]) if i / 6 < kinds.size() else _tree_kind(x, z, top, radius, base, is_needle)
+		is_needle = kind >= TreeKind.SPRUCE
 		# Crown meshes in model space: broadleaf spans y 2.09-6.51 at radius 2.3, conifer 1.6-7.4 at 2.2.
 		var low := 1.6 if is_needle else 2.09
 		var sy := (top - base) / (5.8 if is_needle else 4.42)
 		var sxz := clampf(radius / (2.2 if is_needle else 2.3), 0.45, 7.0)
-		var t := Transform3D(Basis(Vector3.UP, h * TAU).scaled(Vector3(sxz, sy, sxz)),
-				Vector3(x, ground + base - low * sy, z))
-		if is_needle:
+
+		var lean := _tree_lean(h) if kind != TreeKind.POPLAR and kind != TreeKind.SPRUCE else Basis.IDENTITY
+		var foot := Vector3(x, ground, z)
+		var t := Transform3D(lean * Basis(Vector3.UP, h * TAU).scaled(Vector3(sxz, sy, sxz)),
+				foot + lean * Vector3(0, base - low * sy, 0))
+		var colour := _tree_colour(h)
+		# The mesh follows the kind (the needle flag only when no kind is stored).
+		if kind >= TreeKind.SPRUCE:
 			needle.append(t)
-			needle_col.append(Color(NEEDLE[int(h * 100.0) % NEEDLE.size()]))
+			needle_col.append(colour)
+			needle_kind.append(_tree_custom(kind, h))
 		else:
 			broad.append(t)
-			broad_col.append(Color(canopy[int(h * 1000.0) % canopy.size()]))
+			broad_col.append(colour)
+			broad_kind.append(_tree_custom(kind, h))
 		var trunk_h := base + (top - base) * 0.3
 		var girth := clampf(0.55 + top / 28.0, 0.6, 1.7)
-		real_trunks.append(Transform3D(Basis(Vector3.UP, h * TAU).scaled(Vector3(girth, trunk_h / 2.8, girth)),
-				Vector3(x, ground + trunk_h * 0.5, z)))
+		real_trunks.append(Transform3D(lean * Basis(Vector3.UP, h * TAU).scaled(Vector3(girth, trunk_h / 2.8, girth)),
+				foot + lean * Vector3(0, trunk_h * 0.5, 0)))
 
 	_make_shared()
 	var lifted: Array[Transform3D] = []
@@ -10053,8 +10165,8 @@ func _build_trees() -> void:
 	lifted.append_array(real_trunks)
 	var no_colours: Array[Color] = []
 	_tree_multimesh(_shared["trunk"], _shared["trunk_mat"], lifted, no_colours)
-	_tree_multimesh(_shared["broadleaf"], leaf_material, broad, broad_col)
-	_tree_multimesh(_shared["conifer"], leaf_material, needle, needle_col)
+	_tree_multimesh(_shared["broadleaf"], leaf_material, broad, broad_col, broad_kind)
+	_tree_multimesh(_shared["conifer"], leaf_material, needle, needle_col, needle_kind)
 
 
 ## Loop 3c: the materials and meshes of the trees, lamps, signals, parked cars, props, lamp
@@ -10073,6 +10185,7 @@ func _make_shared() -> void:
 	_shared["trunk"] = trunk
 	leaf_material = ShaderMaterial.new()
 	leaf_material.shader = load("res://shaders/foliage.gdshader")
+	leaf_material.set_shader_parameter("tree_look", _tree_look_texture())
 	# The trunks: the crowns' shader (so the tunnel cutaway takes them too), without the sway and
 	# the lumps, in the bark colour.
 	var trunk_mat := ShaderMaterial.new()
@@ -10302,7 +10415,7 @@ func _tree_multimesh(mesh: Mesh, material: Material, spots: Array[Transform3D], 
 				mm.set_instance_custom_data(k, custom[i])
 		# Saved MultiMeshes don't recompute their bounds on load (the prebuilt city
 		# would cull every tile), so store them explicitly.
-		mm.custom_aabb = box.grow(12.0)
+		mm.custom_aabb = box.grow(20.0)  # trees thread: a 16.8 m crown with its lean
 		var mmi := MultiMeshInstance3D.new()
 		mmi.multimesh = mm
 		mmi.material_override = material
@@ -10319,7 +10432,7 @@ func _tree_multimesh(mesh: Mesh, material: Material, spots: Array[Transform3D], 
 	return made
 
 
-## A faceted crown: an icosahedron, stretched a little, flat-shaded.
+## A faceted crown: an icosahedron cut once (an icosphere), stretched a little, flat-shaded.
 func _broadleaf_mesh() -> ArrayMesh:
 	var t := (1.0 + sqrt(5.0)) / 2.0
 	var v := [Vector3(-1, t, 0), Vector3(1, t, 0), Vector3(-1, -t, 0), Vector3(1, -t, 0),
@@ -10329,18 +10442,77 @@ func _broadleaf_mesh() -> ArrayMesh:
 			[11, 10, 2], [10, 7, 6], [7, 1, 8], [3, 9, 4], [3, 4, 2], [3, 2, 6], [3, 6, 8], [3, 8, 9],
 			[4, 9, 5], [2, 4, 11], [6, 2, 10], [8, 6, 7], [9, 8, 1]]
 	var centre := Vector3(0, 4.3, 0)
-	var stretch := Vector3(2.4, 2.6, 2.4) / Vector3(1, t, 1).length()
+	var stretch := Vector3(2.4, 2.6, 2.4)
+	# Trees thread: each face cut in four (42 corners, 80 faces), so the shader's silhouettes
+	# (foliage.gdshader crown_shape) have corners to bend; the 12 of the old one could not.
+	var tris: Array = []
+	for f in faces:
+		var a: Vector3 = (v[f[0]] as Vector3).normalized()
+		var b: Vector3 = (v[f[1]] as Vector3).normalized()
+		var c: Vector3 = (v[f[2]] as Vector3).normalized()
+		var ab := (a + b).normalized()
+		var bc := (b + c).normalized()
+		var ca := (c + a).normalized()
+		tris.append_array([[a, ab, ca], [ab, b, bc], [ca, bc, c], [ab, bc, ca]])
 	var st := SurfaceTool.new()
 	st.begin(Mesh.PRIMITIVE_TRIANGLES)
-	for f in faces:
-		var a: Vector3 = centre + v[f[0]] * stretch
-		var b: Vector3 = centre + v[f[1]] * stretch
-		var c: Vector3 = centre + v[f[2]] * stretch
+	# CUSTOM0: a limb vertex's centre line point and half width in world metres (none on the crown).
+	st.set_custom_format(0, SurfaceTool.CUSTOM_RGBA_FLOAT)
+	st.set_custom(0, Color(0, 0, 0, 0))
+	for f: Array in tris:
+		var a: Vector3 = centre + (f[0] as Vector3) * stretch
+		var b: Vector3 = centre + (f[1] as Vector3) * stretch
+		var c: Vector3 = centre + (f[2] as Vector3) * stretch
 		var n := (b - a).cross(c - a).normalized()
 		if n.dot((a + b + c) / 3.0 - centre) < 0.0:
 			n = -n
 		_tri(st, a, b, c, n, Color.WHITE)
+	# Trees thread: the limbs inside the crown (UV 1, 1 marks them for foliage.gdshader): a leader
+	# and five limbs from the crown's foot (Fable's review: six rods, 36 triangles). The shader
+	# moves their centre lines into the kind's silhouette and gives them a width in world metres;
+	# hidden in a full crown, they show as it thins and are the whole of a bare tree.
+	var foot := Vector3(0, 1.7, 0)
+	_limb(st, foot - Vector3(0, 0.4, 0), Vector3(0.1, 6.5, -0.05), 0.17, 0.06)
+	for k in 5:
+		var yaw := TAU * (k / 5.0 + 0.07 * sin(k * 2.3))
+		var out := Vector3(cos(yaw), 0, sin(yaw))
+		var start := foot + Vector3(0, 0.25 + 0.3 * (k % 3), 0)
+		var tip := Vector3(0, 5.0 + 0.5 * (k % 2), 0) + out * 2.1
+		_limb(st, start, tip, 0.12, 0.04)
 	return st.commit()
+
+
+## Trees thread: a three-sided rod from a to b for the crown's limbs, its half width ra at a and rb
+## at b in world metres (the shader keeps them so whatever the tree's size). UV 1, 1 marks it; each
+## vertex carries its centre line point and half width in CUSTOM0.
+func _limb(st: SurfaceTool, a: Vector3, b: Vector3, ra: float, rb: float) -> void:
+	var axis := (b - a).normalized()
+	var u := axis.cross(Vector3.FORWARD if absf(axis.z) < 0.9 else Vector3.RIGHT).normalized()
+	var w := axis.cross(u)
+	# The mesh's own ring is 0.1 m round its line: only its directions count (the shader sets the width).
+	var ring_a: Array[Vector3] = []
+	var ring_b: Array[Vector3] = []
+	for k in 3:
+		var d := u * cos(TAU * k / 3.0) + w * sin(TAU * k / 3.0)
+		ring_a.append(a + d * 0.1)
+		ring_b.append(b + d * 0.1)
+	for k in 3:
+		var k2 := (k + 1) % 3
+		var n := ((ring_a[k] + ring_a[k2]) * 0.5 - a).normalized()
+		for tri: Array in [[ring_a[k], ring_a[k2], ring_b[k2]], [ring_a[k], ring_b[k2], ring_b[k]]]:
+			var p0: Vector3 = tri[0]
+			var p1: Vector3 = tri[1]
+			var p2: Vector3 = tri[2]
+			if ((p1 - p0).cross(p2 - p0).dot(n) > 0.0) == CLOCKWISE_FRONT:
+				tri = [p0, p2, p1]
+			for p: Vector3 in tri:
+				var at_b: bool = ring_b.has(p)
+				var centre := b if at_b else a
+				st.set_custom(0, Color(centre.x, centre.y, centre.z, rb if at_b else ra))
+				st.set_color(Color.WHITE)
+				st.set_normal(n)
+				st.set_uv(Vector2(1, 1))
+				st.add_vertex(p)
 
 
 ## A conifer: three stacked six-sided cones, flat-shaded.

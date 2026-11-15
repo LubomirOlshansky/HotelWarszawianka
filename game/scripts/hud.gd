@@ -143,6 +143,7 @@ const CARD_EDGE := Color(1, 1, 1, 0.16)
 const WORDS := {
 	"ACCEPT": "PRZYJMIJ", "SKIP": "POMIŃ", "LATER": "PÓŹNIEJ", "NEXT CALL": "NASTĘPNE",
 	"FREE ROAM": "SWOBODNIE", "TRY AGAIN": "JESZCZE RAZ", "GO!": "JEDZIEMY!", "NOT NOW": "NIE TERAZ",
+	"REMATCH": "REWANŻ", "NIGHT": "NOC",
 }
 enum { DOWN = 1, UP = -1 }
 
@@ -371,12 +372,8 @@ func zoom_in_held_s() -> float:
 var markers := MapMarkers.new()
 ## The garage loop: the garage's diamond (a SERVICE mark) is pinned to the rim up to this far.
 const GARAGE_REACH := 1500.0
-## The questlines' starts (story_quests.gd `marks`): points and colours; empty in quest focus.
-var _mini_story := PackedVector2Array()
-var _mini_story_colours := PackedColorArray()
-var _story_names := PackedStringArray()
-var _story_blurbs := PackedStringArray()
-var _story_small := PackedByteArray()
+## The questlines' starts are the registry's STORY layer (main.gd `_story_tick`), the main line's
+## star its MapMarkers.MAIN_STAR (main.gd `_main_line_tick`).
 const STORY_REACH := 1500.0
 ## Quest focus (main.gd `_story_tick`): something runs; the minimap and the full map hide the side
 ## places, the garage, the "?" marks and the starts, and the main star dims.
@@ -388,7 +385,6 @@ var quest_focus := false
 ## pulsing ring, pinned to the minimap's rim at any distance; INF: this step has no place) and its
 ## goal line [Polish, English] for the full map. Side quests keep their colours (a ringed dot for
 ## the active one, squares for the places to start one).
-var _main_at := Vector2.INF
 var main_goal := PackedStringArray(["", ""])
 ## Mission target: its point on screen (the arrow) and on the minimap.
 var _target_visible := false
@@ -451,6 +447,17 @@ const LENS_RED := Color("#ff3b3b")
 var _police_pill: PanelContainer
 var _police_pl: Label
 var _police_en: Label
+## First-hour step 2 (2026-11-15): the pill's bar under its words, one draw call while it shows:
+## mode 1 the chase (the share of the escape made, gold), 2 the search (the share left, grey-blue
+## emptying), 0 none.
+var _police_gap: Control
+var _gap_share := 0.0
+var _gap_mode := 0
+const GAP_GOLD := Color("#ffd23f")
+const GAP_SEARCH := Color("#9fb4d8")
+## Hiding spots blinking on the minimap during a chase (police.gd `_hides_near`).
+const HIDE_GREEN := Color("#5fd38a")
+var _hide_marks := PackedVector2Array()
 var _koguty: Control
 var _koguty_lit := 0
 ## 0 hidden, 1 a chase (lit), 2 searching (grey, blinking), 3 a warning (the first outline blinks).
@@ -2556,7 +2563,7 @@ func _paint_minimap_overlay() -> void:
 	# Quest focus (story_quests.gd, F 2026-11-07): while something runs, the side places, the garage
 	# and the "?" marks stay off the minimap; only what the player is doing shows.
 	# (The rule table, map_markers.gd RULES, says which layers quest focus hides.)
-	var ctx := MapMarkers.context_of(quest_focus)
+	var ctx := MapMarkers.context_of(quest_focus, flying)
 	var jobs := markers.shown(MapMarkers.Layer.JOB, MapMarkers.View.MINIMAP, ctx)
 	var job_at: PackedVector2Array = jobs["at"]
 	var job_col: PackedColorArray = jobs["colour"]
@@ -2603,11 +2610,14 @@ func _paint_minimap_overlay() -> void:
 			_tri_question(centre + r)
 	# The questlines' starts (story_quests.gd): a "!" badge in each one's colour, pinned to the rim
 	# up to STORY_REACH m away (the list is empty in quest focus).
-	for i in _mini_story.size():
-		if _mini_story[i].distance_to(_mini_car) > STORY_REACH:
+	var stories := markers.shown(MapMarkers.Layer.STORY, MapMarkers.View.MINIMAP, ctx)
+	var story_at: PackedVector2Array = stories["at"]
+	for i in story_at.size():
+		if story_at[i].distance_to(_mini_car) > STORY_REACH:
 			continue
-		var r := ((_mini_story[i] - _mini_car) * s).rotated(_mini_yaw).limit_length(_mini_radius - 7.0 * pt)
-		story_badge(centre + r, 0.6 if i < _story_small.size() and _story_small[i] == 1 else 0.85, _mini_story_colours[i])
+		var r := ((story_at[i] - _mini_car) * s).rotated(_mini_yaw).limit_length(_mini_radius - 7.0 * pt)
+		var small := bool((stories["extra"][i] as Dictionary).get("small", false))
+		story_badge(centre + r, 0.6 if small else 0.85, (stories["colour"] as PackedColorArray)[i])
 	if _scene_mark != Vector2.INF:
 		# A crash scene: an amber dot with a white ring, pulsing slowly (not the chasers' flicker).
 		var r := ((_scene_mark - _mini_car) * s).rotated(_mini_yaw)
@@ -2615,6 +2625,12 @@ func _paint_minimap_overlay() -> void:
 			var pulse := 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.006)
 			_tri_fan(centre + r, (3.6 + pulse) * pt, 0.0, TAU, Color.WHITE)
 			_tri_fan(centre + r, 2.6 * pt, 0.0, TAU, SCENE_AMBER)
+	if not _hide_marks.is_empty():
+		var glow := 0.45 + 0.55 * absf(sin(Time.get_ticks_msec() * 0.005))
+		for q in _hide_marks:
+			var r := ((q - _mini_car) * s).rotated(_mini_yaw).limit_length(_mini_radius - 6.0 * pt)
+			_tri_fan(centre + r, 4.2 * pt, 0.0, TAU, Color(CARD_BG, 0.85))
+			_tri_ring(centre + r, 2.6 * pt, 4.2 * pt, 0.0, TAU, Color(HIDE_GREEN, glow))
 	var flip := int(Time.get_ticks_msec() / 200) % 2 == 0
 	for i in _police_marks.size():
 		var r := ((_police_marks[i] - _mini_car) * s).rotated(_mini_yaw)
@@ -2630,9 +2646,10 @@ func _paint_minimap_overlay() -> void:
 		# F 2026-11-08: the quest taken reads much stronger: a breathing glow and ring in its colour.
 		t = t.limit_length(_mini_radius - 7.0 * pt)
 		active_pin(centre + t, 1.15, _mini_target_colour)
-	if _main_at != Vector2.INF:
+	var main_at := markers.where(MapMarkers.MAIN_STAR)
+	if main_at != Vector2.INF and MapMarkers.shows(MapMarkers.Layer.MAIN, MapMarkers.View.MINIMAP, ctx):
 		# The main line: a gold star in a pulsing ring, pinned to the rim at any distance.
-		var mr := ((_main_at - _mini_car) * s).rotated(_mini_yaw).limit_length(_mini_radius - 8.0 * pt)
+		var mr := ((main_at - _mini_car) * s).rotated(_mini_yaw).limit_length(_mini_radius - 8.0 * pt)
 		main_star(centre + mr, 1.3, quest_focus)
 	var d := _car_dir.normalized()
 	var side := Vector2(-d.y, d.x)
@@ -2759,14 +2776,14 @@ func _tri_star(at: Vector2, r: float, colour: Color) -> void:
 		_tri(at, p0, p1, colour, colour, colour)
 
 
-## The main line's marker (map x, z; INF: none) and its goal line (main.gd, a few times a second).
-func set_main_line(at: Vector2, pl: String, en: String) -> void:
+## The main line's goal line (main.gd, a few times a second; its star is the registry's
+## MapMarkers.MAIN_STAR).
+func set_main_goal(pl: String, en: String) -> void:
 	pl = Lang.pick(pl, en)
 	en = ""
-	_main_at = at
 	main_goal = PackedStringArray([pl, en])
 	if full_map != null and full_map.is_open():
-		full_map.set_main_line(at, pl, en)
+		full_map.set_main_goal(pl, en)
 
 
 ## The garage loop: a diamond `r` from its centre to a corner, with the dark outline (two
@@ -2836,18 +2853,12 @@ func _tri_question(at: Vector2, k := 1.0) -> void:
 	_tri_cols.append_array(_question_cols)
 
 
-## The questlines' starts on the minimap and the full map, and quest focus (main.gd, a few
-## times a second; both only when they change).
-func set_story(points: PackedVector2Array, colours: PackedColorArray, focus: bool, names := PackedStringArray(),
-		blurbs := PackedStringArray(), small := PackedByteArray()) -> void:
-	_story_blurbs = blurbs
-	_story_small = small
-	_mini_story = points
-	_mini_story_colours = colours
-	_story_names = names
+## Quest focus on or off (main.gd `_story_tick`, a few times a second; only when it changes): the
+## rule table's QUEST context for both maps (map_markers.gd).
+func set_quest_focus(focus: bool) -> void:
 	quest_focus = focus
 	if full_map != null and full_map.is_open():
-		full_map.set_story(points, colours, focus, names, blurbs, small)
+		full_map.focus = focus
 
 
 # --- loop 2d-1: the Podwózka app's route (rides.gd) -------------------------------------------
@@ -3467,8 +3478,9 @@ func open_full_map(car_xz: Vector2, car_yaw: float, found: PackedVector2Array) -
 	full_map.target = _mini_target
 	full_map.target_colour = _mini_target_colour
 	full_map.markers = markers
-	full_map.set_story(_mini_story, _mini_story_colours, quest_focus, _story_names, _story_blurbs, _story_small)
-	full_map.set_main_line(_main_at, main_goal[0], main_goal[1])
+	full_map.focus = quest_focus
+	full_map.flying = flying
+	full_map.set_main_goal(main_goal[0], main_goal[1])
 	full_map.open(car_xz, car_yaw)
 
 
@@ -4273,6 +4285,13 @@ func _build_police() -> void:
 	_police_en.name = "police_en"
 	_police_en.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	rows.add_child(_police_en)
+	_police_gap = Control.new()
+	_police_gap.name = "police_gap"
+	_police_gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_police_gap.custom_minimum_size = Vector2(120.0 * pt, 9.0 * pt)
+	_police_gap.visible = false
+	_police_gap.draw.connect(_draw_police_gap)
+	rows.add_child(_police_gap)
 	add_child(_police_pill)
 	# The koguty's place beside the wallet (the layout keeps it); the overlay draws them.
 	_koguty = Control.new()
@@ -4329,19 +4348,41 @@ func _koguty_tris() -> void:
 		_tri_rect(Rect2(c + Vector2(-r - 1.5 * pt, 0.0), Vector2(r * 2.0 + 3.0 * pt, 3.0 * pt)), base)
 
 
-## The police pill at the top centre (Polish over English); empty words hide it.
-func police_pill(pl: String, en: String) -> void:
+## The police pill at the top centre (Polish over English); empty words hide it. First-hour step 2:
+## `gap` (0..1) fills the bar under the words in `mode` 1 (a chase: the escape made) or 2 (the
+## search: what is left of it); mode 0 has no bar.
+func police_pill(pl: String, en: String, gap := 0.0, mode := 0) -> void:
 	pl = Lang.pick(pl, en)
 	en = ""
 	if pl == "":
 		_show(_police_pill, false)
 		return
-	if _police_pl.text != pl or _police_en.text != en:
+	var bar := mode != 0
+	if _police_pl.text != pl or _police_en.text != en or _police_gap.visible != bar:
 		_police_pl.text = pl
 		_police_en.text = en
 		_police_en.visible = en != ""
+		_police_gap.visible = bar
 		_police_pill.reset_size()
+	gap = clampf(gap, 0.0, 1.0)
+	if bar and (mode != _gap_mode or absf(gap - _gap_share) > 0.004):
+		_police_gap.queue_redraw()
+	_gap_share = gap
+	_gap_mode = mode
 	_show(_police_pill, true)
+
+
+## The pill's bar: a dark track and the fill, gathered as triangles, one draw call.
+func _draw_police_gap() -> void:
+	var size := _police_gap.size
+	var h := 5.0 * pt
+	var track := Rect2(Vector2(0.0, (size.y - h) * 0.5 + 1.0 * pt), Vector2(size.x, h))
+	_tri_begin()
+	_tri_round_rect(track, h * 0.5, Color(1, 1, 1, 0.16))
+	var w := track.size.x * _gap_share
+	if w >= 1.0:
+		_tri_round_rect(Rect2(track.position, Vector2(maxf(w, h), h)), h * 0.5, GAP_GOLD if _gap_mode == 1 else GAP_SEARCH)
+	_tri_flush(_police_gap)
 
 
 ## The overlay: the blue-red edge breath at `breath` (0..1; at most 10 % opacity at the very
@@ -4516,10 +4557,12 @@ func _tri_flush(item: CanvasItem) -> void:
 	RenderingServer.canvas_item_add_triangle_array(item.get_canvas_item(), _tri_idx.slice(0, n), _tri_pts, _tri_cols)
 
 
-## Chasers (map x, z) and the speed traps the player knows of, on the minimap.
-func set_police_marks(chasers: PackedVector2Array, traps: PackedVector2Array) -> void:
+## Chasers (map x, z) and the speed traps the player knows of, on the minimap; in a chase, the
+## hiding spots near (first-hour step 2: a blinking green ring, pinned to the rim).
+func set_police_marks(chasers: PackedVector2Array, traps: PackedVector2Array, hides := PackedVector2Array()) -> void:
 	_police_marks = chasers
 	_trap_marks = traps
+	_hide_marks = hides
 
 
 ## The crash scene's spot (map x, z) on the minimap and the full map, or Vector2.INF for none.
@@ -4627,10 +4670,17 @@ const CTA_MIN_W := 248.0
 const CTA_FLAG := 34.0
 
 
-## A friend's call may ring now (messages.gd `call_ok`): no quest, no chase, settled, spaced.
+## A friend's call may ring now (messages.gd `call_ok`): no quest, no chase, settled, spaced, past the
+## quiet time after a finish.
 func call_ok() -> bool:
 	messages.tick(0.0, context_now())
 	return messages.call_ok()
+
+
+## The quiet time after a finish is on (messages.gd `quiet`): the ride app's requests and Bartek's
+## calls, which do not ask `call_ok`, wait for it too (TD-3).
+func offers_quiet() -> bool:
+	return messages.quiet()
 
 
 ## The player pressed RADIO (or its next key, or R): the caption that comes next shows even in a chase.

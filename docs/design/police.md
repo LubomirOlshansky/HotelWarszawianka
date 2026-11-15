@@ -26,9 +26,12 @@ section 11.
 - **What it costs you.** Seconds, never złoty or respect. Being stopped is a 6 to 8 second funny
   conversation that ends in a caution ("pouczenie") written in a joke notebook. Escaping pays a
   little respect. Nothing is ever taken from the wallet, nobody is arrested, nothing is rammed.
-- **Escalation.** Warning (a megaphone line) → koguty 1 → 2 → 3, each chase capped at 30 / 40 /
-  45 s ("Koniec zmiany!", end of shift) and lost at 100 m or 4 s out of sight plus 8 s of
-  searching. The cap is on screen, so waiting it out always works.
+- **Escalation.** Warning (a megaphone line) → koguty 1 → 2 → 3, lost at 100 m or 4 s out of
+  sight plus 8 s of searching. First-hour step 2 (F, 2026-11-15): no countdown on screen; the
+  pill shows the gap to open instead, the chasers tire after 30 s so the gap always opens, the
+  hiding spots blink on the minimap, Mirek's garage unseen ends a chase, and a hidden backstop
+  ends any chase at 120 s ("Koniec zmiany!", end of shift). Before it each chase was capped at
+  30 / 40 / 45 s by level, shown as "END OF SHIFT IN 0:27".
 - **Ties.** On a rescue the police escort you to the hospital (+10 s on the clock). A race seen
   by police pulls in a chase; escaping it adds 20 % to the stake. Kebab, słoiki and (from loop 2d)
   the app-taxi each get their own pull-over joke.
@@ -54,9 +57,10 @@ same lesson, learnt by doing.
 a speed trap; the officer waves the paddle; the player keeps going. A two-tone siren, one rooster
 lights up next to the wallet, a blue-red tint breathes at the screen edges, the camera eases back
 to show the patrol car behind. A megaphone bubble: *"Kacper, włącz koguty. Nie, te drugie. Dobra,
-jedziemy."* The pill counts down *KONIEC ZMIANY ZA 0:27 · END OF SHIFT IN 0:27*. The player cuts
-under Most Poniatowskiego (a hiding spot), the patrol car loses sight, the rooster greys and
-blinks (*SZUKAJĄ CIĘ · SEARCHING*), four seconds later *UCIECZKA! · ESCAPED!* and +15 respect.
+jedziemy."* The pill says *UCIEKAJ · GET AWAY* over a gold bar that fills as the gap opens, and a
+green ring blinks on the minimap under Most Poniatowskiego. The player cuts under the bridge (a
+hiding spot), the patrol car loses sight, the rooster greys and blinks (*SZUKAJĄ CIĘ ·
+SEARCHING*, the bar emptying), four seconds later *UCIECZKA! · ESCAPED!* and +15 respect.
 Or the player stops at the kerb and gets the card and a caution. Either way, under a minute.
 
 ---
@@ -142,7 +146,7 @@ Megaphone lines: at most one every 8 s in the whole city, and 20 s per unit.
    │                                                    SEARCH (8 s; 4 s in a hiding spot) ── seen again within 50 m ──► back to the same level
    │                                                         │
    │       ESCAPED (+15 respect) ◄───────────────────────────┘
-   │       END OF SHIFT (cap reached: 30 / 40 / 45 s from the chase's start)
+   │       END OF SHIFT (the hidden backstop: 120 s from the chase's start, at any level)
    │       PULL-OVER (stopped within 15 m of a chaser for 1.5 s) → caution
    └──── COOLDOWN 180 s (warnings still possible) ◄──────── any of the three
 ```
@@ -152,17 +156,20 @@ Megaphone lines: at most one every 8 s in the whole city, and 20 s per unit.
 | CALM | start, end of cooldown | an offence | — |
 | WARNED | an offence seen (strike +1) | strikes back to 0 (one fades per 45 s), or koguty 1 | outline rooster blinks 2 s |
 | LIZAK | speeding inside a trap's 40 m | stop within 20 m of the officer at < 8 km/h → PULL-OVER; more than 30 m past the officer → KOGUTY 1 (the trap car starts it); 6 s pass with the player stopped elsewhere → CALM | the officer waves for ≤ 6 s; trap re-arms after 60 s |
-| KOGUTY 1 | see the diagram | escape, cap, pull-over; +1 level on a trigger | 1 chaser; cap 30 s |
-| KOGUTY 2 | in koguty 1: ram > 6 m/s, or a second unit sees the player within 60 m | as above | + 1 blocker; cap 40 s from the chase's start |
-| KOGUTY 3 | in koguty 2: the same triggers | as above | + a two-car roadblock; at night the searchlight; cap 45 s from the chase's start |
+| KOGUTY 1 | see the diagram | escape, backstop, pull-over; +1 level on a trigger | 1 chaser |
+| KOGUTY 2 | in koguty 1: ram > 6 m/s, or a second unit sees the player within 60 m | as above | + 1 blocker |
+| KOGUTY 3 | in koguty 2: the same triggers | as above | + a two-car roadblock; at night the searchlight |
 | SEARCH | distance > 100 m from every chaser, or no chaser with sight for 4 s | 8 s pass (4 s if the player is in a hiding spot) → ESCAPED; any unit sees the player within 50 m → back to the level it was | chasers drive to the last-seen point, then wander within 150 m at 30 km/h |
-| ESCAPED | search ran out | — | +15 respect (once per chase); bubble "escaped"; a race in progress is marked for +20 % |
-| END OF SHIFT | cap reached in any chase state | — | bubble "shift"; no respect bonus, nothing lost |
+| ESCAPED | search ran out; or the car stops in Mirek's garage ring while no unit sees it (in the search: none within 50 m) | — | +15 respect (once per chase); bubble "escaped" (the garage: "garage", toast *NOWY LAKIER, KTO PYTA? · NEW PAINT, WHO'S ASKING?*); a race in progress is marked for +20 % |
+| END OF SHIFT | the hidden backstop: 120 s from the chase's start, in any chase state | — | bubble "shift"; no respect bonus, nothing lost |
 | PULL-OVER | player speed < 1 m/s within 15 m of a chaser for 1.5 s; or the lizak stop | the conversation ends | ≤ 8 s (section 7); job clocks and the kebab's heat frozen during it |
 | COOLDOWN | after ESCAPED, END OF SHIFT or PULL-OVER | 180 s | warnings still happen; a ram > 6 m/s starts koguty 1 anyway |
 
 Rules that hold in every state:
-- **No level rises in the last 10 s of the cap.**
+- **No level rises in the backstop's last 10 s.**
+- **The chasers tire** (first-hour step 2): after 30 s of a chase their top speed drops from 0.8
+  to 0.7 of the player's, so the gap opens for any player (police.gd `TIRE_AT`, police_unit.gd
+  `TIRED_SHARE`; first guesses for the phone).
 - **Chasers never ram.** They brake to keep ≥ 10 m behind the player and stop if the player stops.
 - **Chaser speed:** the player's top speed × 0.8 (30 m/s × 0.8 = 24 m/s ≈ 86 km/h; 2026-11-02: at 0.92 the gap opened 2.4 m/s, so 120 m was out of reach inside the 30-45 s cap and only a lost line of sight ever escaped), acceleration × 1.2 of
   traffic; through a junction on red and round roundabouts they slow to 30 km/h with the siren
@@ -197,12 +204,12 @@ if the player turns off, they stay 10 s, then leave.
 | --- | --- | --- | --- | --- |
 | WARNED | the unit's bubble over its car | first rooster outline blinks 2 s | whoop + megaphone chirp | `police_warn` speed / red / bump, "Policja" (megaphone) |
 | LIZAK | the officer raises the paddle; a 2D lizak icon bobs over the officer | pill *ZATRZYMAJ SIĘ PRZY POLICJANCIE · PULL OVER BY THE OFFICER* | two whistle blasts | — |
-| KOGUTY 1 | the chaser's light bar flashes blue and red; halos on the road at night | 1 rooster lit; blue-red edge breath (≤ 10 % opacity, 1 Hz); pill *POŚCIG · CHASE · KONIEC ZMIANY ZA 0:27 · END OF SHIFT IN 0:27*; off-screen chasers as a rooster at the screen edge; minimap: chasers blink blue/red with a white outline | siren on the chaser (one positional voice) | `police_chase` start, then the generic ones every 10 to 12 s |
+| KOGUTY 1 | the chaser's light bar flashes blue and red; halos on the road at night | 1 rooster lit; blue-red edge breath (≤ 10 % opacity, 1 Hz); pill *UCIEKAJ · GET AWAY* over a gold bar that fills with the escape made (the gap to the nearest unit against the 100 m, or the time out of sight against 4 s, the larger), no clock; off-screen chasers as a rooster at the screen edge; minimap: chasers blink blue/red with a white outline, and the 4 nearest hiding spots (tunnels, roads under a deck, within 600 m) as blinking green rings pinned to the rim | siren on the chaser (one positional voice) | `police_chase` start, then the generic ones every 10 to 12 s |
 | KOGUTY 2 | the blocker's lights flash at its junction | 2 roosters | whoop when the blocker joins | `police_chase` backup |
 | KOGUTY 3 | the roadblock; at night the searchlight pool (9 m) sweeps round the player | 3 roosters | rotor overhead at night | `police_chase` roadblock |
-| SEARCH | chasers slow, lights stay on | roosters grey and blink; pill *SZUKAJĄ CIĘ · SEARCHING* | siren off, lights on | — |
+| SEARCH | chasers slow, lights stay on | roosters grey and blink; pill *SZUKAJĄ CIĘ · SEARCHING* over a grey-blue bar that empties as the search runs out | siren off, lights on | — |
 | ESCAPED | chasers switch lights off and rejoin traffic | toast *UCIECZKA! · ESCAPED!* and "+15" on the respect star | a short rising chord (`make_ui_sounds.py` style) | `police_lost` escaped (bubble from the last chaser, or on the radio ticker if off screen) |
-| END OF SHIFT | as escaped | toast *KONIEC ZMIANY · END OF SHIFT* | siren winds down | `police_lost` shift (or heli) |
+| END OF SHIFT | as escaped | toast *KONIEC ZMIANY · END OF SHIFT* (it comes without warning: nothing counts down) | siren winds down | `police_lost` shift (or heli) |
 | PULL-OVER | the chaser parks 6 m behind; the camera eases in (11.3) | the conversation card (section 7); toast after it *POUCZENIE · CAUTION · W ZESZYCIE: 3 DZIŚ · IN THE NOTEBOOK: 3 TODAY* | the radio ducks −6 dB; a stamp thump at the end | `police_stop`, `police_reply`, `police_caution` |
 | ESCORT | the escort ahead with lights on, traffic shifting aside | pill *ESKORTA · ESCORT · +10 S* | siren on the escort | `police_escort` |
 
@@ -241,7 +248,7 @@ shift rewards nothing and costs nothing.
 ### 5.5 What never happens
 
 No fines, no money, no respect lost, no arrests, no handcuffs, no weapons, no crashes on purpose,
-no police in the player's path at > 30 km/h, no chase longer than 45 s, no chase in the first 3
+no police in the player's path at > 30 km/h, no chase longer than 120 s, no chase in the first 3
 minutes, no police reaction to the helicopter except the guards' landing line.
 
 ### 5.6 City guards
@@ -628,7 +635,7 @@ BENCH card, as README "Performance budgets" rule 9 asks.
 | Strikes to koguty 1 / fade | 2 within 45 s / one per 45 s | — |
 | Chaser speed | player top × 0.8; × 1.2 traffic acceleration; 30 km/h through reds and roundabouts | A straight escape at full speed should open 120 m in ≤ 15 s |
 | Escape | 100 m, or 4 s without sight; search 8 s (hiding 4 s) | Median chase ≤ 25 s in playtests |
-| Caps | 30 / 40 / 45 s by highest level | — |
+| Backstop (hidden) / chasers tire | 120 s at any level / after 30 s, 0.8 → 0.7 of the player's top (first-hour step 2; before it the caps were 30 / 40 / 45 s by level) | the gap always opens; nobody waits a chase out |
 | Cooldown / start grace | 180 s / 180 s (warnings from 60 s) | ≤ 1 chase in 3 minutes |
 | Escape reward | +15 respect; race stake × 1.2 | — |
 | Escort | joins ≤ 2 s, 15 to 25 m ahead, +10 s on the clock | — |
@@ -663,7 +670,7 @@ and after in every test.
 | P2 Trap stop | `--trap=2 --pedal=gas --police-auto=stop --police-now` | `police: lizak`, the car stops within 20 m of the officer, `police: pull-over trap`, then `police: caution n=1` ≤ 10 s later; no `L1` |
 | P3 Escape | `--police=1 --police-auto=escape` | `police: escaped` ≤ 30 s after start; respect +15; złoty unchanged |
 | P4 Caught | `--police=1 --police-auto=stop` | `police: pull-over` ≤ 2.5 s after the stop; card shown (screenshot); `police: caution` ≤ 10 s |
-| P5 Caps | `--police=1/2/3 --police-auto=hold` | `police: end of shift` at 30 / 40 / 45 s ± 0.5 s |
+| P5 Backstop | `--police=1/3 --police-auto=hold` | `police: end of shift` at 120 s ± 0.5 s at both levels |
 | P6 Grace | `--trap=2 --pedal=gas` without `--police-now`, within 180 s of start | only `police: warn` or nothing; no `L1` |
 | P7 Cooldown | two offences after a chase, 60 s apart | the second logs `warn (cooldown)`; a ram > 6 m/s logs `L1 (ram)` |
 | P8 Escort | `--mission=1 --escort --autopilot` | `police: escort joined` ≤ 2 s; clock +10 s; `police: escort left` at the hospital; no chase even if the route passes a trap |

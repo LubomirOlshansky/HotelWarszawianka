@@ -316,7 +316,6 @@ func _play() -> void:
 	c.kerb = _kerb(300.0, 0.0)
 
 	# Taken: the group at the kerb.
-	_calls.paused = false
 	_pos = Vector3.ZERO
 	c.ring()
 	_hud.press(0)
@@ -440,8 +439,9 @@ func _play() -> void:
 	_expect("the rescue calls are back on", _calls._held(), false)
 	_expect("one crawl done", c.crawls == 1 and int(c.last_pay["done"]) == 3 and bool(c.last_pay["on_time"]), true)
 
-	# Out of time after one bar: paid for that bar, no tip; the calls go back to what they were.
-	_calls.paused = true
+	# Out of time after one bar: paid for that bar, no tip; the calls go back to what they were (held by
+	# main.gd's own hold, through the director).
+	_director.hold_calls("bench", Activity.RescueCalls.HOLD)
 	_aboard()
 	_expect("aboard again", _is(BarCrawl.Stage.DRIVE), true)
 	_park()
@@ -456,9 +456,8 @@ func _play() -> void:
 	_expect("paid for the one bar, no tip, no bonus", _wallet.money - money, BarCrawl.PER_BAR)
 	_hud.press(0)
 	_expect("OK closes it", c.idle() and _hud.card == "", true)
-	_expect("the calls were off before the crawl and are off after it", _calls.paused, true)
-	_expect("the calls are still held after the crawl", _calls._held(), true)
-	_calls.paused = false
+	_expect("the calls were off before the crawl and are still held after it", _calls._held(), true)
+	_director.release_calls("bench")
 
 	# The ✕ on a leg: they walk, nothing paid.
 	_aboard()

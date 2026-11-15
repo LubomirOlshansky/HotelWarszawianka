@@ -736,6 +736,9 @@ const INFO := {
 	"kozia9": ["Kozia 9",
 			"1974–76, Kuźmienko i Sembrat: blok wspina się po piętrze, okna chowają się w zębach.",
 			"1974-76, Kuźmienko and Sembrat: the block climbs a storey at a time, windows hidden in its teeth."],
+	"jerozolimskie57": ["Aleje Jerozolimskie 57-63",
+			"Rząd kamienic naprzeciw Pałacu: odnowiona czerwona z pomarańczowym dachem (dawna Nowa Jerozolima), biała pod białą płachtą, dwie ozdobne z mansardą i zielone arkady z gablotami.",
+			"The tenement row across from the Palace: the restored red one with the orange roof (where Nowa Jerozolima was), the white one under its white wrap, two ornate ones with zinc mansards, and the green arcades with their showcases."],
 	"smolna38": ["Smolna 38",
 			"Przedwojenna kamienica z bramą pod kamienną konsolą i erkerem; wieczorem czerwone światło i kolejka do klubu.",
 			"A pre-war tenement: a gate under a stone console and an oriel; at night red light and the club queue."],
@@ -848,6 +851,8 @@ const INFO := {
 	"church_zwycieska": ["Kościół Matki Boskiej Zwycięskiej", "Kościół parafialny z dwiema wieżami.", "A parish church with two towers."],
 	"church_siostry_milosierdzia_zytnia": ["Siostry Matki Bożej Miłosierdzia", "Dom sióstr przy sanktuarium św. Faustyny na Żytniej.", "The Sisters of Our Lady of Mercy's house by St Faustina's shrine."],
 	"church_uczennice_boskiego_mistrza": ["Siostry Uczennice Boskiego Mistrza", "Ceglany dom zakonny sióstr uczennic przy Żytniej.", "The Sister Disciples of the Divine Master's brick convent."],
+	"church_kaplica_hoza": ["Kaplica przy Hożej", "Długa kaplica w podwórzu za domem przy Hożej.", "A long chapel in the yard behind a house on Hoża."],
+	"church_kaplica_lucka": ["Kaplica przy Łuckiej", "Mała kaplica w podwórzu za domami przy Łuckiej.", "A small chapel in the yard behind the houses on Łucka."],
 	"church_kaplica_florianska": ["Kaplica przy katedrze św. Floriana", "Ośmioboczna ceglana kaplica z łupkowym hełmem, przy ogrodzeniu katedry.", "A small octagonal brick chapel with a slate bell roof, by the cathedral's fence."],
 	"church_zytnia_dom_zakonny_tyl": ["Dom zakonny na Żytniej, skrzydło", "Długie skrzydło domu zakonnego w głębi posesji przy Żytniej.", "The long wing of the convent behind its range on Żytnia."],
 	"church_zytnia_dom_zakonny": ["Dom zakonny na Żytniej", "Dom zakonny po południowej stronie Żytniej, przy Wolności.", "The convent range on the south side of Żytnia, by Wolność."],
@@ -1234,6 +1239,8 @@ func _find_sites() -> void:
 	_find_hortus()
 	_find_moderna()
 	_find_flisac()
+	# Al. Jerozolimskie 57-63 (F's photos, 2026-11-15): Nowa Jerozolima's red tenement and the row beside it.
+	_find_jerozolimskie57()
 	# Plac Krasińskich (CITY_INVENTORY 22 and 79, 2026-11-02): the Uprising Monument and the palace.
 	# Sąd Najwyższy's colonnade (2026-11-02): green ribbed columns instead of OSM's white boxes.
 	# Found (and built) before the monument: its beams' cells would cover the monument's tap.
@@ -1833,6 +1840,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_karowa18a(s)
 			"smolna38":
 				_build_smolna38(s)
+			"jerozolimskie57":
+				_build_jerozolimskie57(s)
 			"nowogrodzka31":
 				_id = 0  # no card, not on the picking grid
 				_build_nowogrodzka31(s)
@@ -1992,7 +2001,7 @@ func _mark_zone(site: Dictionary) -> void:
 # --- Plac Piłsudskiego, part 2 (2026-10-31) ---------------------------------------------------
 
 ## The far skyline's colour of each (sector_proxies.gd, through `tower_colour`).
-const PLAC_WALLS := {"metropolitan": "#8a979c", "wiktoria": "#6f6b66", "europejski": "#e7ddc5",
+const PLAC_WALLS := {"metropolitan": "#8a979c", "wiktoria": "#d9d7d0", "europejski": "#e7ddc5",
 		"grob": "#ddd3bf", "bez_kantow": "#dccdac", "departament": "#dccfb2"}
 
 

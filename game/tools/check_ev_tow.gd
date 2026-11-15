@@ -581,8 +581,8 @@ func _check_play(g: LaneGraph, map: Node3D, spawn: Vector3, digest: PackedString
 			"ten seconds after the set-down the car goes; the lane and the rescue calls are given back")
 	_ok(t.call_in >= EvTow.NEXT_CALL.x and t.call_in <= EvTow.NEXT_CALL.y and t.job.is_empty() and t.target == -1, "Bartek's next call is drawn")
 
-	# Taken in the air, the rescue calls already held, the card left alone.
-	_calls.paused = true
+	# Taken in the air, the rescue calls already held (main.gd's own hold: the director's), the card left alone.
+	_director.hold_calls("bench", Activity.RescueCalls.HOLD)
 	_hover(spawn + Vector3(100.0, 40.0, 0.0))
 	_take()
 	_ok(_is(fly) and _took_off == 1, "LECĘ! in the air: no take-off")
@@ -591,9 +591,8 @@ func _check_play(g: LaneGraph, map: Node3D, spawn: Vector3, digest: PackedString
 	_ok(_is(result) and _hud.card != "", "the second tow set down")
 	_frames(EvTow.RESULT_LIFE + 0.5)
 	_ok(t.idle() and _hud.card == "" and not t._car.visible, "a result card nobody presses goes with the car")
-	_ok(_calls.paused, "rescue calls that were held before the tow stay held after it")
-	_ok(_calls._held(), "rescue calls that were held before the tow stay held after it (the countdown's hold)")
-	_calls.paused = false
+	_ok(_calls._held(), "rescue calls that were held before the tow stay held after it (main.gd's hold, through the director)")
+	_director.release_calls("bench")
 
 	# The result ends early when the player flies off.
 	_take()

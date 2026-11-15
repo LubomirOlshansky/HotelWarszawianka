@@ -474,3 +474,33 @@ race (the racecuts check: about one race in four for a rival who knows them all)
 last kilometre has few clear cuts, so more of them would need wrong-way hops (R3 part 2). Open for
 the phone: the feel of the block and the cut-in at the player's own speed, and whether Halina's
 photo finish is too close for a first-time player (the guided first race keeps its own script).
+
+## 10. The Six (first hour step 5, F 2026-11-15)
+
+The onboarding spec ("First hour for the beta", section 4, F accepted its picks on 2026-11-15)
+turns the ladder into **The Six**: six rivals, all open from the first minute, beaten in any
+order, the final after all six. With the Fable critique's points 4 (a lost race still counts,
+one big REWANŻ) and 5 (the sixth win offers the night, where the final lives). Built in
+`ladder.gd` (`ANY_ORDER`, `any_order` on a ladder) and `rivals.gd`; the old ladder stays behind
+the switch and `check_ladder.gd` still tests its gates.
+
+| Piece | Built | Where |
+| --- | --- | --- |
+| Open from the first minute | every rival open on a fresh save; respect is a score, not a gate; `next_rung` is the easiest rival not beaten yet (the main line's pointer) | `ladder.gd` `is_open`, `next_rung` |
+| Difficulty pips | 1 (Pani Halina) to 6 (Mordor Mike), as dots: the HUD font (Open Sans) has • but no ● or ★ | `Ladder.pips`, `pip_text`; the prompt, the map's card |
+| Found on the street | each rival keeps to a home area (Halina Śródmieście, Słoik by Dworzec Centralny, Bartek on the boulevards, Seba in Praga, Zbyszek round the Old Town, Mike in Wola; 550 m): one that cruises out of it is put back, out of the player's sight, one rival every 2 s | `Ladder.den`, `DEN_RADIUS`; `rivals.gd` `_home_tick` |
+| The RACE button | the prompt comes for a rival within 35 m in any direction, standing or moving, at the car's height (5 m: never the deck above); it was 15 m behind the bumper, both moving. A 4 s rest after a race's card, and never for Seba while he waits for the final | `rivals.gd` `RACE_REACH`, `RACE_RISE`, `PROMPT_REST` |
+| Called out from the list | the full map's RYWALE card (behind ≡): tap a rival's row and the map closes; the rival waits held 120 to 280 m away in the race beacon's ring, the quest pin's arrow points at it; drive into the ring (12 m) and the challenge and countdown start; it gives up after 5 minutes | `full_map.gd` `rival_called`; `main.gd` `_call_rival_out`; `rivals.gd` `call_out` |
+| Progress | the card is titled "RYWALE n/6"; each first win's card says "Rywale n/6" | `Ladder.title`, `rows` |
+| The finale | all six beaten opens Trzy mosty (no respect needed). The sixth win's card says so and, by day, offers NOC: the clock jumps to 22:00 the way CZEKAM DO 21:00 does | `rivals.gd` `night_now`; `main.gd` `_story_skip_to` |
+| Lost, not lost | the lose card has REWANŻ first: the same start (the rival's lane spot and the car) and the same finish; the easier rematch (`ease_of`) still applies; `race_over(who, won)` tells the First steps list that a race was raced, won or lost | `rivals.gd` `rematch`, `race_over` |
+
+Not changed: the race itself (point to point, any route, the racer AI's skill numbers, no rubber
+band), Halina rolling up once in the opening (first10.gd), the pay (the first win pays the full
+respect, a rematch less). `traffic.gd`, `race_session.gd` and `race_planner.gd` are untouched, so
+the racer bench's numbers stand.
+
+Left for later steps: the map's one list (step 4) takes the RYWALE card's rows; the respect
+number in the beta (the critique's point 8) and the hint for the call-out (step 6) are theirs;
+race meets wait until after the beta. Only the phone can show whether 35 m feels fair, whether
+the pips read and whether the call-out's ring is easy to find (PHONE-CHECK 10c).

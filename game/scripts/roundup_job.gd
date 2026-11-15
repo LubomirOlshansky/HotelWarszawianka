@@ -382,9 +382,9 @@ func _pins() -> void:
 	var marks: Array[Dictionary] = []
 	for i in targets:
 		var a: Vector3 = store.scooters[i]["at"]
-		marks.append({"layer": MapMarkers.Layer.JOB, "at": Vector2(a.x, a.z), "colour": PIN_COLOUR, "shape": MapIcons.POI_SCOOTER})
+		marks.append({"layer": MapMarkers.Layer.JOB, "at": Vector2(a.x, a.z), "colour": PIN_COLOUR, "shape": MapIcons.POI_SCOOTER, "group": "lezak"})
 	var at: Vector3 = depots[depot]["at"]
-	marks.append({"layer": MapMarkers.Layer.JOB, "at": Vector2(at.x, at.z), "colour": COLOUR, "shape": MapIcons.POI_DEPOT})
+	marks.append({"layer": MapMarkers.Layer.JOB, "at": Vector2(at.x, at.z), "colour": COLOUR, "shape": MapIcons.POI_DEPOT, "group": "lezak"})
 	hud.markers.put_all("roundup", marks)
 
 

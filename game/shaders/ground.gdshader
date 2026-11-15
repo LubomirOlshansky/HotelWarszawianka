@@ -94,6 +94,30 @@ vec3 lamp_reflection(vec2 wp, vec2 away, float dashes, float speed) {
 	return col * (0.25 + 1.5 * dash);
 }
 
+// The lamps on the river (F, 2026-11-15: "the lighting of the bridge and the water"): each lamp
+// a long, narrow, broken column of light running towards the viewer (a point light on rippled
+// water), not a copy of its round pool, and under it a faint slow wash of the whole lit deck.
+// Six taps of the light map, further apart the further out, so the column breaks up by itself.
+vec3 lamp_columns(vec2 wp, vec2 away, float speed) {
+	vec3 core = vec3(0.0);
+	vec3 wash = vec3(0.0);
+	// The taps slide a little from place to place, so the column has no even rungs.
+	float jitter = (value_noise(wp * 0.45) - 0.5) * 3.0;
+	for (int k = 0; k < 6; k++) {
+		float fk = float(k);
+		vec3 l = lamp_light(wp + away * (5.0 + fk * (3.0 + fk) + jitter * (1.0 + fk)));
+		float b = clamp(dot(l, vec3(0.45, 0.45, 0.1)), 0.0, 1.5);
+		float fall = 1.0 - 0.13 * fk;
+		// Only the pool's bright middle (a few metres round the lamp) makes the column.
+		core = max(core, l * smoothstep(0.5, 0.9, b) * fall);
+		wash = max(wash, l * fall);
+	}
+	vec2 side = vec2(-away.y, away.x);
+	float dash = smoothstep(0.4, 0.7, value_noise(vec2(dot(wp, side) * 0.9, dot(wp, away) * 2.6 + TIME * speed)));
+	float slow = value_noise(vec2(dot(wp, side) * 0.15, dot(wp, away) * 0.5 + TIME * 0.3));
+	return core * (0.15 + 1.2 * dash) + wash * 0.06 * (0.4 + slow);
+}
+
 // 1 on the joint lines of a square grid of the given size (metres), else 0.
 float joints(vec2 p, float size, float width) {
 	vec2 d = abs(fract(p / size + 0.5) - 0.5) * size;
@@ -225,6 +249,53 @@ float pz_dist(vec2 wp) {
 	return best;
 }
 
+// Trasa W-Z's two slip roads under Plac Zamkowy (F's photos from the square, 2026-11-15): Grodzka
+// (the Castle side, climbing past Pałac pod Blachą to the tunnel) and Nowy Zjazd (St Anne's side,
+// down to Mariensztat) are granite setts from the crossing at the Stare Miasto stop on, laid in
+// segmental arcs, with two rows of bigger, darker granite stones along each kerb as the gutter.
+// WZ_LINE is both centrelines from the map (ways 3708 + 247 and 246 + 4393, simplified to 0.3 m),
+// x, z and the half width the setts reach (blended along each piece: a line starts at 0 just past
+// its zebra, so the setts begin square there, not in a round cap over the crossing); a point with a
+// negative half breaks the two lines apart. The box test keeps the cost off every other fragment,
+// and the loop has no branch.
+const vec4 WZ_BOX = vec4(-646.0, -423.0, -1514.0, -1379.0);   // x0, x1, z0, z1
+const float WZ_ARC = 1.8;      // an arc's span across the road (m)
+const float WZ_GUTTER = 0.5;   // the gutter's width inside the drawn edge (m)
+const int WZ_N = 29;
+const vec3 WZ_LINE[29] = vec3[29](
+	vec3(-641.0, -1424.1, 0.0), vec3(-640.4, -1424.3, 3.4), vec3(-637.9, -1425.1, 3.4), vec3(-634.0, -1425.8, 3.4),
+	vec3(-588.0, -1428.3, 3.4), vec3(-572.4, -1430.1, 3.4), vec3(-560.4, -1432.4, 3.4), vec3(-548.1, -1435.5, 3.4),
+	vec3(-535.9, -1439.4, 3.4), vec3(-525.1, -1443.4, 3.4), vec3(-518.6, -1446.4, 3.4), vec3(-510.7, -1451.3, 3.4),
+	vec3(-505.4, -1456.3, 3.4), vec3(-503.0, -1459.2, 3.4), vec3(-498.8, -1466.0, 3.4), vec3(-495.9, -1473.0, 3.4),
+	vec3(-494.0, -1481.0, 3.4), vec3(-492.2, -1503.0, 3.4), vec3(-492.2, -1503.0, -1.0),
+	vec3(-640.0, -1394.7, 0.0), vec3(-639.4, -1394.5, 3.2), vec3(-634.5, -1392.8, 3.2), vec3(-620.1, -1389.3, 3.2),
+	vec3(-606.9, -1387.9, 3.2), vec3(-594.9, -1388.3, 3.2), vec3(-507.0, -1404.3, 3.2), vec3(-479.6, -1408.6, 3.2),
+	vec3(-460.0, -1409.6, 3.2), vec3(-434.8, -1408.0, 3.2));
+
+// The slip roads' frame at wp: x metres along the line, y metres across it (signed), z how far
+// inside the setts' edge (positive on the setts; -1e4 outside the box).
+vec3 wz_frame(vec2 wp) {
+	vec3 best = vec3(0.0, 0.0, -1e4);
+	if (any(bvec4(wp.x < WZ_BOX.x, wp.x > WZ_BOX.y, wp.y < WZ_BOX.z, wp.y > WZ_BOX.w))) {
+		return best;
+	}
+	float run = 0.0;
+	for (int i = 0; i < WZ_N - 1; i++) {
+		vec3 a = WZ_LINE[i];
+		vec3 b = WZ_LINE[i + 1];
+		vec2 ab = b.xy - a.xy;
+		float len = max(length(ab), 1e-3);
+		vec2 dir = ab / len;
+		float t = clamp(dot(wp - a.xy, dir), 0.0, len);
+		vec2 off = wp - a.xy - dir * t;
+		float inside = mix(a.z, b.z, t / len) - length(off);
+		float take = step(best.z, inside);
+		best = mix(best, vec3(run + t, dir.x * off.y - dir.y * off.x, inside), take);
+		run += len;
+	}
+	return best;
+}
+
 // Plac Piłsudskiego (photos, 2026-11-02; docs/landmarks/photo-reports/pilsudskiego.md): the paved
 // field is grey granite slabs in ~6 m squares, a chequer of lighter and darker panels outlined by
 // darker grey bands (the drone photo). The map has it as bare ground crossed by footpaths; inside
@@ -254,6 +325,7 @@ void fragment() {
 	float shade = 0.95 + 0.1 * (n1 * 0.6 + n2 * 0.4);
 	float ripple = 0.0;
 	int id = int(round(layer));
+	vec3 wz = wz_frame(wp);  // Trasa W-Z's cobbled slip roads (a box test elsewhere)
 	vec4 surf = city_surface_at(wp);  // loop 3d-2b: per sector (city_maps.gdshaderinc)
 	// A bridge deck over this point, and whether this fragment lies under it.
 	float deck_y = surf.a > 0.0 ? surf.a * 255.0 / 4.0 - 32.0 : -1e4;
@@ -312,12 +384,30 @@ void fragment() {
 				base = mix(base, srgb_to_linear(id == 2 ? START_PLAZA : START_PAVING), grey);
 			}
 		}
-	} else if (id == 6) {
+	} else if (any(bvec2(id == 6, all(bvec2(id == 7, wz.z > 0.0))))) {
+		// (A lane or edge line painted on the W-Z's slip roads takes the setts too: the real
+		// cobbles carry no paint.)
 		// Asphalt: fine grain, a little lighter wear, darker repair patches.
 		float grain = hash12(floor(wp * 6.0));
 		float patch = smoothstep(0.63, 0.7, value_noise(wp * 0.11 + 3.7));
 		shade = 0.95 + 0.07 * grain - 0.06 * patch + 0.04 * n1;
-		if (any(bvec2(kp_setts_at(wp) > 0.5, pz_dist(wp) < PZ_HALF + 0.35))) {
+		if (wz.z > 0.0) {
+			// Trasa W-Z's slip roads: 0.16 x 0.14 m setts in arcs WZ_ARC wide (each arc's rows bow
+			// towards the road's start), bluish and warm greys with a few pink stones, sand joints;
+			// by the kerb the gutter, 0.3 x 0.22 m stones in two straight rows, darker.
+			float gut = step(wz.z, WZ_GUTTER);
+			float arc = fract(wz.y / WZ_ARC) - 0.5;
+			vec2 q = mix(vec2(wz.y / 0.16, (wz.x + WZ_ARC * 0.7 * arc * arc) / 0.14), vec2(wz.x / 0.3, wz.z / 0.22), gut);
+			q.x += 0.5 * mod(floor(q.y), 2.0);
+			vec2 f = abs(fract(q) - 0.5);
+			float joint = min(step(0.4, f.x) + step(0.38, f.y) + step(0.47, abs(arc)) * (1.0 - gut), 1.0);
+			float pick = hash12(floor(q) + floor(wz.y / WZ_ARC) * 17.0);
+			vec3 stone = mix(vec3(0.5, 0.52, 0.55), vec3(0.6, 0.58, 0.56), smoothstep(0.2, 0.8, pick));
+			stone = mix(stone, vec3(0.63, 0.55, 0.52), step(0.92, pick));
+			stone = mix(stone, vec3(0.44, 0.45, 0.47), gut);
+			base = srgb_to_linear(mix(stone, vec3(0.42, 0.4, 0.37), joint * 0.7));
+			shade = 0.9 + 0.18 * hash12(floor(q) + 5.7) - 0.1 * joint;
+		} else if (any(bvec2(kp_setts_at(wp) > 0.5, pz_dist(wp) < PZ_HALF + 0.35))) {
 			// Granite setts, 0.12 x 0.1 m in rows broken like bricks; each stone its own grey
 			// or warm pink; dark joints.
 			vec2 q = wp / vec2(0.12, 0.1);
@@ -545,7 +635,7 @@ void fragment() {
 		// brightness, and tint grass, cycle lanes and flowerbeds instead of adding to them.
 		vec3 glow;
 		if (id == 3) {
-			glow = lamp_reflection(wp, away, 2.6, 1.6) * 0.7 * (under_deck ? 0.3 : 1.0);
+			glow = lamp_columns(wp, away, 1.6) * 0.7 * (under_deck ? 0.3 : 1.0);
 		} else {
 			vec4 pool = lamp_pool(wp, FRAGCOORD.xy);
 			glow = pool_glow(base * shade * mix(1.0, ao, 0.6), pool, any(bvec3(id == 1, id == 5, id == 11))) * (under_deck ? 0.05 : 1.0);
