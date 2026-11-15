@@ -191,3 +191,12 @@ railway tracks and come in and out at the map edge.
 6. Add a check in `game/tools/check_*.gd` (the existing ones: `check_police`, `check_crowds`,
    `check_city_life`, `check_buses`, `check_trains`, `check_crash_scenes`, `check_race_bench`,
    `check_race_planner`, `check_race_line`).
+
+## 8. The town: planned, not built
+
+Town traffic, walkers, trams and buses have no plan of their own yet; the racers' rebuild is
+complete. A first outline is in docs/design/tech-plans-review-2.md section 7 (2026-11-15): T0 a
+town census (a number for "alive"), T1 lane links from `turn:lanes` (RT-2, parked by F), T2 the
+seam between the rail car and the line car in `traffic.gd` written into this page, T3 walkers
+that answer the car, T4 one population budget (TD-7), T5 trams and buses on a timetable. T0 and
+T2 need no answer from F. No new behaviour goes into `traffic.gd` before T2.

@@ -35,12 +35,17 @@ const BUDGET := {
 	"lawrynowicz": 8000,
 	"wedel": 8000,
 	"szpitalna5": 8000,
+	"szarytki": 300,  # 2026-11-15: the Sisters of Charity's turret (the mass is LoD2's)
 	"gigantami": 4000,
 	"filtry": 3000,
 	"level26_club": 860,
 	"church_alberta": 950,  # 2026-11-14: the whole classicist frontage on Plac Teatralny, portico and two wings, from photos (measured 818)
 	"church_antoniego": 1250,
 	"church_augustyn": 1900,  # 2026-11-14: the whole brick basilica and its 70 m tower, checked against photos (measured 1759)
+	"church_wizytki_klasztor": 900,  # 2026-11-15: the Visitation sisters' convent from LoD2
+	"church_sala_faustyny": 250,  # 2026-11-14: the St Faustina hall in Ochota (measured 182)
+	"church_franciszkanki_piwna": 1100,  # 2026-11-14: the Franciscan Sisters' house on Piwna (measured 969)
+	"church_kapucyni_klasztor": 900,  # 2026-11-14: the Capuchin monastery on Miodowa (measured 797)
 	"church_misjonarze_radna": 600,  # 2026-11-14: the Missionaries' house on Radna (measured 514)
 	"church_misjonarze": 1150,  # 2026-11-14: the Missionaries' house on Krakowskie Przedmieście (measured 1053)
 	"church_barbara": 220,  # 2026-11-14: St Barbara's brick chapel (measured 162)
@@ -314,7 +319,8 @@ const BUDGET := {
 }
 ## Known defects per site: {"zfight": n, "degenerate": n, "badnormal": n, "float": n}.
 ## Towarowa 22's drone taxi hovers 7 m over its pad by design (the "Warsaw of the future").
-const KNOWN := {"towarowa22": {"float": 8}}
+## The Szarytki's turret stands on LoD2's ridge, which is the map's, not the site's mesh.
+const KNOWN := {"towarowa22": {"float": 8}, "szarytki": {"float": 16}}
 
 var _probe: MeshProbe
 var problems: Array[String] = []

@@ -30,7 +30,7 @@ const VIOLET_SIGN := Color(0.62, 0.25, 1.0)  # Level 26's neon, as neon_signs.gd
 ## paler than life for the game's palette.
 const TOWERS := [
 	{"key": "zlota44", "osm": "Złota 44", "style": S_SAIL, "glass": "#bccdd8", "roof": "#e4e8ea", "crest": "slope"},
-	{"key": "spire", "osm": "Warsaw Spire", "style": S_MIRROR, "glass": "#5a8ecb", "roof": "#b9c4cc",
+	{"key": "spire", "osm": "Warsaw Spire", "style": S_MIRROR, "glass": "#6f8fab", "roof": "#b9c4cc",
 			"with": [Vector2(-2672.0, 195.0), Vector2(-2745.0, 150.0)]},  # the two crescent wings
 	# Q22 and Rondo 1 rebuilt from the top-50 photo set (2026-11-08): _build_q22, _build_rondo1.
 	{"key": "q22", "osm": "Q22", "style": S_BANDS, "glass": "#3f5e5c", "roof": "#9ea4a6", "sign": "DELOJT"},
@@ -181,6 +181,7 @@ const INFO := {
 	"szpitalna5": ["Szpitalna 5",
 			"Narożna kamienica w brzoskwiniowym tynku, z balkonami i ślepą arkadą na rogu.",
 			"A corner tenement in peach plaster, with iron balconies and a blind arch at the corner."],
+	"szarytki": ["Siostry Szarytki na Tamce", "Klasztor sióstr miłosierdzia pod skarpą, z wieżyczką.", "The Sisters of Charity under the escarpment, with their turret."],
 	"gigantami": ["Kamienica Pod Gigantami",
 			"Dwaj kamienni giganci trzymają balkon nad bramą. Dobre miejsce na randkę, jeśli zdążysz.",
 			"Two stone giants hold up the balcony over the gate. A fine place for a date, if you get there in time."],
@@ -798,6 +799,10 @@ const INFO := {
 	"church_trojca_praga": ["Kościół Świętej Trójcy na Solcu", "Klasycystyczny kościół z wieżyczką.", "A classicist church with a bell turret."],
 	"church_czestochowska": ["Kościół Matki Bożej Częstochowskiej", "Modernistyczny kościół z dachem do ziemi.", "A modernist church with a roof down to the ground."],
 	"church_zwycieska": ["Kościół Matki Boskiej Zwycięskiej", "Kościół parafialny z dwiema wieżami.", "A parish church with two towers."],
+	"church_wizytki_klasztor": ["Klasztor Wizytek", "Klasztor sióstr wizytek za ich kościołem.", "The Visitation sisters' convent behind their church."],
+	"church_sala_faustyny": ["Sala św. Faustyny", "Ceglana sala parafii św. Jakuba na Ochocie.", "The brick parish hall of St James', Ochota."],
+	"church_franciszkanki_piwna": ["Siostry na Piwnej", "Dom sióstr franciszkanek przy kościele św. Marcina.", "The Franciscan sisters' house by St Martin's."],
+	"church_kapucyni_klasztor": ["Klasztor Kapucynów", "Klasztor ojców kapucynów przy Miodowej.", "The Capuchin friars' monastery on Miodowa."],
 	"church_misjonarze_radna": ["Misjonarze na Radnej", "Dom misjonarzy z kaplicą Cudownego Medalika.", "The Missionaries' house with the Miraculous Medal chapel."],
 	"church_misjonarze": ["Dom Księży Misjonarzy", "Dom misjonarzy przy kościele Świętego Krzyża.", "The Missionaries' house by the Holy Cross church."],
 	"church_barbara": ["Kaplica św. Barbary", "Ceglana kaplica na Koszykach.", "The brick chapel on Koszyki."],
@@ -1344,6 +1349,14 @@ func _find_sites() -> void:
 	_add_site("lawrynowicz", [_pts(LW_OUTLINE)])
 	if not sites.is_empty() and sites[-1]["key"] == "lawrynowicz":
 		sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": LW_BRICK, "roof": Color("#6c6a66")}
+	# The Sisters of Charity on Tamka (F's photos, 2026-11-15): LoD2's mass in white plaster and green
+	# copper, the turret is ours. Sites with a card stay before the quiet ones below: the cards
+	# (`info`) skip quiet sites, so a carded site after one gets another site's picking id.
+	var szt := _outline_at(SZT_AT)
+	if szt.size() >= 3:
+		_add_site("szarytki", [szt])
+		if not sites.is_empty() and sites[-1]["key"] == "szarytki":
+			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": SZT_WALL, "roof": SZT_ROOF, "steep": 0.3}
 	# The formal garden before Pałac Krasińskich (F's photos, 2026-11-06).
 	if _landmark("Pałac Krasińskich").size() >= 3:
 		_o = KRAS
@@ -2054,6 +2067,9 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"krasinski_ogrod":
 				_id = 0  # not tappable
 				_build_kras_garden()
+			"szarytki":
+				_mark_zone(s)  # the mass stays LoD2's, in its skin; the turret is ours
+				_build_szarytki(s)
 			"lawrynowicz":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin; the street front is ours
 				_build_lawrynowicz(s)
@@ -6187,23 +6203,24 @@ func _zlota_garden(parts: Array, g: float) -> void:
 ## masts as floating parts. The real tower is a vase (F's photos IMG_7349-7352): a waist low down,
 ## then sides curving in as they flare out to the full plan at the roof (concave, not convex), where the glass runs on past the roof into a
 ## saddle crown, high at the two narrow ends (photos IMG_7329, 7333). So the outline is lofted
-## through SPIRE_RINGS with SpireMotion.k_at (spire_motion.gd: the same rings carry the crown's LED
-## ticker); the shaft is blue mirror glass with a fine silver line at each floor and a lit spine
-## up each narrow end (IMG_7332); the lobby stands back under the shaft behind a ring of polished
+## through SPIRE_RINGS with SpireMotion.k_at (spire_motion.gd: the same rings carry the LED band and
+## the night's lines of light); the shaft is grey-blue mirror glass with a fine silver line at each
+## floor and a glass fin out of each narrow end (IMG_7332, F's night photos 2026-11-14); the lobby stands back under the shaft behind a ring of polished
 ## steel columns in pairs (IMG_7337); a mirrored canopy with upswept wing tips shades the north
 ## entrance (IMG_7336, 7337). The two 55 m crescents flanking the plaza, Spire B and C, are
 ## `_spire_wing`; the plaza's pools, channel and trees `_spire_water`.
 const SpireMotion := preload("res://scripts/spire_motion.gd")
 const SPIRE_TOP := SpireMotion.ROOF
 const SPIRE_LOBBY := 10.0
-## Ring heights: 165.5 and 171.1 are the ticker band's (spire_motion.gd), so it lies flat on the glass.
-const SPIRE_RINGS := [10.0, 25.0, 45.0, 65.0, 85.0, 103.0, 120.0, 135.0, 148.0, 158.0, 165.5, 171.1, 176.0, 180.0]
+## Ring heights: spire_motion.gd's, so its LED band and lines of light lie on the glass.
+const SPIRE_RINGS := SpireMotion.RINGS
 const SPIRE_CROWN := Vector2(6.0, 12.0)  # the crown's open steel ring over the roof: at the wide faces, extra up the horns
 const SPIRE_LOBBY_GLASS := Color("#2c4656")
 const SPIRE_STEEL := Color("#c3ccd3")      # polished steel (M_GOLD + 0.5: no warm glow)
 const SPIRE_MIRROR := Color("#d3dde4")     # the canopy's top
 const SPIRE_MIRROR_UNDER := Color("#8e9aa3")  # its underside, mirroring the plaza
-const SPIRE_SPINE := Color("#86acd0")
+const SPIRE_SPINE := Color("#9fbfd8")      # the fins' pale glass
+const SPIRE_MAST_RED := Color("#c8322c")
 const SPIRE_DRUM := Color("#d9dcdc")       # the roof drum's pale ribbed cladding (IMG_7351)      # the lit strip up each narrow end
 const SPIRE_WING_GLASS := Color("#4778b0")
 const SPIRE_WING_LOBBY := Color("#28404e")
@@ -6258,7 +6275,7 @@ func _spire(outline: PackedVector2Array, g: float, glass: Color, roof: Color, sk
 					Vector2(run + length, h0), Vector2(run + length, h1), Vector2(run, h1), SPIRE_TOP)
 			run += length
 	_mode = keep
-	_spire_spines(base, c, axis, g)
+	_spire_fins(base, c, axis, g)
 	_spire_crown(base, c, axis, g, glass, skin)
 	var top := SpireMotion.ring(base, SPIRE_TOP)
 	# The roof inside the ring (IMG_7351): a gravel walk, then a pale ribbed drum in two tiers with
@@ -6277,7 +6294,13 @@ func _spire(outline: PackedVector2Array, g: float, glass: Color, roof: Color, sk
 	# The masts (the two OSM parts' spots), the beacons' posts.
 	for m: Vector2 in masts:
 		var post := PackedVector2Array([m + Vector2(-0.5, -0.5), m + Vector2(0.5, -0.5), m + Vector2(0.5, 0.5), m + Vector2(-0.5, 0.5)])
-		_prism(post, g + SPIRE_TOP + 11.0, g + 220.0, Color("#d5dade"), Color("#e8ecef"), M_STONE, M_STONE)
+		# white with a red tip in aviation bands (F's night photos: the two masts' red tips), a
+		# red lamp on top that glows at night
+		_prism(post, g + SPIRE_TOP + 11.0, g + 212.0, Color("#d5dade"), Color("#e8ecef"), M_STONE, M_STONE)
+		for k in 4:
+			var tip := SPIRE_MAST_RED if k % 2 == 0 else Color("#e8ecef")
+			_prism(post, g + 212.0 + k * 2.0, g + 214.0 + k * 2.0, tip, tip, M_STONE, M_STONE)
+		_prism(_square(m, 0.45), g + 220.0, g + 221.0, DUSK_RED, DUSK_RED, M_LAMP, M_LAMP)
 	_collide(foot)
 	_aviation(top, func(_q: Vector2) -> float: return g + SPIRE_TOP + SPIRE_CROWN.x)  # the dusk loop
 	_spire_columns(foot, c, g)
@@ -6291,28 +6314,51 @@ func _spire(outline: PackedVector2Array, g: float, glass: Color, roof: Color, sk
 	_spire_water()
 
 
-## The lit spine up each narrow end (the night photo IMG_7332): a strip 2 m wide, 0.15 m proud of
-## the glass, from the lobby to the crown's tip, cool white at night.
-func _spire_spines(base: PackedVector2Array, c: Vector2, axis: Vector2, g: float) -> void:
+## The fins (F's night photos IMG_7977, 7979 and the street photos: a glass blade stands out of
+## each narrow end the whole height and runs on past the roof into the crown's horns): a blade
+## SpireMotion.FIN_OUT deep and 0.6 m thick from FIN_FROM (over the canopy's tips) to FIN_TOP, pale
+## glass lit cool at night; its front edge carries spire_motion.gd's line of light.
+func _spire_fins(base: PackedVector2Array, c: Vector2, axis: Vector2, g: float) -> void:
 	var keep := _mode
-	_mode = M_PAVILION + 0.5
 	for d: Vector2 in [axis, -axis]:
-		var best := 0
-		for i in base.size():
-			if (base[i] - c).dot(d) > (base[best] - c).dot(d):
-				best = i
-		var side := Vector2(-d.y, d.x)
-		var hs: Array = SPIRE_RINGS.duplicate()
-		hs.append(SPIRE_TOP + SPIRE_CROWN.x + SPIRE_CROWN.y - 1.0)
+		var side := Vector2(-d.y, d.x) * 0.3
+		var hs: Array[float] = [SpireMotion.FIN_FROM]
+		for r: float in SPIRE_RINGS:
+			if r > SpireMotion.FIN_FROM:
+				hs.append(r)
+		hs.append(SpireMotion.FIN_TOP)
 		for s in hs.size() - 1:
-			var h0: float = hs[s]
-			var h1: float = hs[s + 1]
-			var p0 := c + (base[best] - c) * SpireMotion.k_at(minf(h0, SPIRE_TOP)) + d * 0.15
-			var p1 := c + (base[best] - c) * SpireMotion.k_at(minf(h1, SPIRE_TOP)) + d * 0.15
-			var w1 := 1.0 if h1 <= SPIRE_TOP else 0.25
-			_quad(Vector3(p0.x - side.x, g + h0, p0.y - side.y), Vector3(p0.x + side.x, g + h0, p0.y + side.y),
-					Vector3(p1.x + side.x * w1, g + h1, p1.y + side.y * w1), Vector3(p1.x - side.x * w1, g + h1, p1.y - side.y * w1),
-					Vector3(d.x, 0.0, d.y), SPIRE_SPINE, Vector2(0, h0), Vector2(2, h0), Vector2(2, h1), Vector2(0, h1), SPIRE_TOP)
+			var h0 := hs[s]
+			var h1 := hs[s + 1]
+			var e0 := SpireMotion.fin_edge(base, d, h0)
+			var e1 := SpireMotion.fin_edge(base, d, h1)
+			# the blade's root a little inside the glass so no seam shows
+			var b0 := e0 - d * (SpireMotion.FIN_OUT + 0.3)
+			var b1 := e1 - d * (SpireMotion.FIN_OUT + 0.3)
+			var uv := [Vector2(0, h0), Vector2(SpireMotion.FIN_OUT, h0), Vector2(SpireMotion.FIN_OUT, h1), Vector2(0, h1)]
+			_mode = M_PAVILION + 0.5
+			for sg in [-1.0, 1.0]:
+				var o: Vector2 = side * sg
+				_quad(Vector3(b0.x + o.x, g + h0, b0.y + o.y), Vector3(e0.x + o.x, g + h0, e0.y + o.y),
+						Vector3(e1.x + o.x, g + h1, e1.y + o.y), Vector3(b1.x + o.x, g + h1, b1.y + o.y),
+						Vector3(o.x, 0.0, o.y).normalized(), SPIRE_SPINE, uv[0], uv[1], uv[2], uv[3], SPIRE_TOP)
+			_mode = M_STONE
+			_quad(Vector3(e0.x - side.x, g + h0, e0.y - side.y), Vector3(e0.x + side.x, g + h0, e0.y + side.y),
+					Vector3(e1.x + side.x, g + h1, e1.y + side.y), Vector3(e1.x - side.x, g + h1, e1.y - side.y),
+					Vector3(d.x, 0.0, d.y), SPIRE_STEEL)
+			if h0 >= SPIRE_TOP:
+				# over the roof the blade's back is in the air
+				_quad(Vector3(b0.x - side.x, g + h0, b0.y - side.y), Vector3(b0.x + side.x, g + h0, b0.y + side.y),
+						Vector3(b1.x + side.x, g + h1, b1.y + side.y), Vector3(b1.x - side.x, g + h1, b1.y - side.y),
+						Vector3(-d.x, 0.0, -d.y), SPIRE_STEEL.darkened(0.1))
+		# the blade's top and its foot
+		for at: Array in [[hs[hs.size() - 1], Vector3.UP], [hs[0], Vector3.DOWN]]:
+			var h: float = at[0]
+			var e := SpireMotion.fin_edge(base, d, h)
+			var bb := e - d * (SpireMotion.FIN_OUT + 0.3)
+			_mode = M_STONE
+			_quad(Vector3(bb.x - side.x, g + h, bb.y - side.y), Vector3(e.x - side.x, g + h, e.y - side.y),
+					Vector3(e.x + side.x, g + h, e.y + side.y), Vector3(bb.x + side.x, g + h, bb.y + side.y), at[1], SPIRE_STEEL)
 	_mode = keep
 
 
@@ -21765,6 +21811,288 @@ func _build_misjonarze_radna(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The Capuchin monastery (Klasztor Ojców Kapucynów, Miodowa 13 / Kapucyńska, beside the church of
+## the Transfiguration; 1680s-1690s, rebuilt after 1944): three-storey ranges in pale yellow plaster
+## round a courtyard under hipped green copper roofs, plain rows of windows, a white cornice. A
+## model that replaces the plain OpenStreetMap block (building 821; no landmark until 2026-11-14).
+## From 12 Commons photos (refs/churches/capuchins_miodowa; 06-09 and 11 show the monastery from
+## Kapucyńska and the W-Z route, reference only, never shipped), the OSM outline and GUGiK's LoD2.
+## Spec docs/landmarks/specs/kapucyni_klasztor.md.
+## The ranges stand at three angles, so each roof has its own frame: KK_O1/KK_A1 along the north
+## range's outer wall (origin at its west corner, +v into the building), KK_O2/KK_A2 along the east
+## range (origin at its south corner, -v inward), KK_O3/KK_A3 along the south range (origin at its
+## west corner, -v inward).
+const KK_O1 := Vector2(-1025.7, -1410.4)
+const KK_A1 := Vector2(0.8453, -0.5343)
+const KK_O2 := Vector2(-990.3, -1383.3)
+const KK_A2 := Vector2(0.6097, -0.7926)
+const KK_O3 := Vector2(-1018.4, -1397.6)
+const KK_A3 := Vector2(0.8912, 0.4535)
+const KK_WALL := Color("#ecdcae")      ## the pale yellow plaster (photos)
+const KK_WHITE := Color("#f1ece0")     ## cornice, plinth band
+const KK_ROOF := Color("#86a993")      ## green copper
+
+
+func _build_kapucyni_klasztor(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(KK_O1, KK_O1 + KK_A1)
+	_g = _ground_under(outline)
+	var g := _g
+	var none := Color(0, 0, 0, 0)
+	_mode = M_STONE
+	var eave := g + 11.5
+	_prism(outline, g - 1.0, eave, KK_WALL, KK_ROOF.darkened(0.1), M_STONE, M_STONE)
+	kit_cornice_ring(outline, eave - 0.35, KK_WHITE, 0.35, 0.35)
+	kit_ledge_ring(outline, g - 1.0, 1.6, KK_WHITE, 0.06)
+	# --- the hipped roofs, one per range
+	_hip(17.75, 4.5, 17.95, 4.7, eave, 4.2, KK_ROOF)          # north range
+	_hip(-5.1, 2.05, 5.3, 7.1, eave, 4.6, KK_ROOF)           # the west block
+	kit_front(KK_O2, KK_O2 + KK_A2)
+	_hip(12.95, -5.5, 13.1, 5.6, eave, 4.2, KK_ROOF)         # east range
+	kit_front(KK_O3, KK_O3 + KK_A3)
+	_hip(15.75, -5.1, 15.9, 5.5, eave, 4.2, KK_ROOF)         # south range
+	# --- windows on three floors round every wall long enough for one
+	var n := outline.size()
+	for k in n:
+		var a := outline[(k + 1) % n]
+		var b := outline[k]
+		var ln := kit_front(a, b)
+		if ln < 3.0:
+			continue
+		var m := maxi(1, floori(ln / 3.0))
+		var cols: Array = []
+		for i in m:
+			cols.append((float(i) + 0.5) * ln / float(m))
+		kit_panes(cols, [g + 1.2, g + 4.8, g + 8.3], 1.1, 1.8, PAL_GLASS_DARK, 0.05)
+	kit_front(KK_O1, KK_O1 + KK_A1)
+	_collide(outline)
+
+
+## The Franciscan Sisters of the Cross' house on Piwna (Dom Zakonny Sióstr Franciszkanek Służebnic
+## Krzyża, Piwna 9/11; the old Augustinian monastery by St Martin's, rebuilt after 1944): ochre
+## plaster ranges round the church's chancel, three rows of windows on Piwna with the stone portal
+## under its cartouche, hipped tile roofs. St Martin's tower stands in this block on Piwna and is
+## the church's own model (`_build_marcin`). A model that replaces the plain OpenStreetMap block
+## (building 1676; no landmark until 2026-11-14). From 9 Commons photos
+## (refs/churches/franciscan_sisters_piwna, reference only, never shipped), the OSM outline and
+## GUGiK's LoD2 (over the ground: the eaves about 10.5, the ridges about 15).
+## Spec docs/landmarks/specs/franciszkanki_piwna.md.
+## Frame: origin at the front's north corner on Piwna, u along Piwna to the south-east, +v into
+## the block; the front faces Piwna (-v).
+const FS_O := Vector2(-772.0, -1582.8)
+const FS_A := Vector2(0.6253, 0.7804)
+const FS_WALL := Color("#e2b86c")      ## the ochre plaster (photos)
+const FS_STONE := Color("#d8cfbd")     ## the portal, window surrounds, cornice
+const FS_ROOF := Color("#9a5040")      ## tile (a default: no photo shows the roofs)
+const FS_DOOR := Color("#3b3430")      ## the gate's leaves
+
+
+func _build_franciszkanki_piwna(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(FS_O, FS_O + FS_A)
+	_g = _ground_under(outline)
+	var g := _g
+	_mode = M_STONE
+	var eave := g + 10.5
+	_prism(outline, g - 1.0, eave, FS_WALL, FS_ROOF.darkened(0.1), M_STONE, M_STONE)
+	kit_cornice_ring(outline, eave - 0.3, FS_STONE, 0.3, 0.3)
+	_hip(10.5, 4.6, 14.85, 5.5, eave, 4.4, FS_ROOF)      # the range on Piwna
+	_hip(12.9, 26.0, 7.5, 17.7, eave, 4.5, FS_ROOF)      # the long range behind
+	_hip(1.5, 34.95, 4.0, 8.95, eave, 3.5, FS_ROOF)      # the back range
+	# --- the front on Piwna: three rows of windows (none where the tower stands), the portal
+	var ln := kit_front(_w(25.25, -0.65), _w(-4.17, 0.25))
+	kit_face(0.0)
+	var cols: Array = []
+	for i in 10:
+		var c := 1.4 + float(i) * 2.75
+		var u_frame := 25.25 - c
+		if u_frame > -1.2 and u_frame < 7.2:
+			continue
+		if absf(c - 12.4) < 1.5:
+			continue
+		cols.append(c)
+	kit_panes(cols, [g + 1.6, g + 8.0], 1.1, 1.7, PAL_GLASS_DARK, 0.05)
+	for c: float in cols:
+		_kbox(c - 0.75, c + 0.75, 0.0, 0.1, g + 4.75, g + 6.75, FS_STONE)
+	kit_face(0.1)
+	kit_panes(cols, [g + 4.9], 1.1, 1.7, PAL_GLASS_DARK, 0.05)
+	kit_face(0.0)
+	_kbox(10.6, 14.2, 0.0, 0.3, g - 0.2, g + 4.6, FS_STONE)
+	kit_face(0.3)
+	kit_door(12.4, g, 3.6, 1.1, FS_STONE, FS_DOOR, true)
+	_kbox(11.8, 13.0, 0.0, 0.12, g + 4.8, g + 6.0, FS_STONE)
+	kit_face(0.0)
+	kit_ledge(0.0, ln, g + 0.3, 0.3, FS_STONE, 0.08)
+	# --- windows on the other walls long enough for them
+	var n := outline.size()
+	for k in n:
+		kit_front(FS_O, FS_O + FS_A)
+		var a := outline[(k + 1) % n]
+		var b := outline[k]
+		var le := kit_front(a, b)
+		if le < 4.0 or (k >= 21 and k <= 25):
+			continue
+		var m := maxi(1, floori(le / 3.0))
+		var cs: Array = []
+		for i in m:
+			cs.append((float(i) + 0.5) * le / float(m))
+		kit_panes(cs, [g + 1.6, g + 4.9, g + 8.0], 1.0, 1.6, PAL_GLASS_DARK, 0.05)
+	kit_front(FS_O, FS_O + FS_A)
+	_collide(outline)
+
+
+## Sala św. Faustyny (the St Faustina hall of St James' parish, Ochota, by Plac Narutowicza): a
+## low red brick hall from the 1990s with a row of steep gabled bays between brick piers, each
+## gable with a louvre, and a round-arched porch with a curved dark roof over the oak door. A model
+## that replaces the plain OpenStreetMap block (building 5693; no landmark until 2026-11-14). From
+## one Commons photo (refs/churches/sala_faustyny, reference only, never shipped), the OSM outline
+## (8 m over the ground). Spec docs/landmarks/specs/sala_faustyny.md.
+## Frame: origin at the outline's middle, u east (+x), v south (+z); the gables and the porch face
+## south (+v), to the parish yard.
+const SF_O := Vector2(-2794.0, 1570.0)
+const SF_BRICK := Color("#b0503a")     ## the red brick (photo)
+const SF_ROOF := Color("#4e4f52")      ## the dark sheet roofs
+const SF_STONE := Color("#c9c1b0")     ## the porch's tympanum, copings
+const SF_DOOR := Color("#5a3826")      ## the oak door
+
+
+func _build_sala_faustyny(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(SF_O, SF_O + Vector2(1.0, 0.0))
+	_g = _ground_under(outline)
+	var g := _g
+	_mode = M_STONE
+	var eave := g + 5.0
+	_prism(outline, g - 1.0, eave, SF_BRICK, SF_ROOF.lightened(0.1), M_STONE, M_STONE)
+	# --- the row of steep gabled bays, ridges running north-south (a frame along +v)
+	kit_front(SF_O, SF_O + Vector2(0.0, 1.0))  # u' = v, v' = -u
+	for cu: float in [-10.5, -3.85, 3.9]:
+		_gable(6.6, -7.4, -cu, 3.1, eave, 3.0, SF_BRICK, SF_ROOF, true)
+	kit_front(SF_O, SF_O + Vector2(1.0, 0.0))
+	# louvres in the gables on the south side
+	kit_front(_w(-14.0, 6.6), _w(12.0, 6.6))
+	kit_face(0.0)
+	for cu: float in [-10.5, -3.85, 3.9]:
+		var c := cu + 14.0
+		_kbox(c - 0.35, c + 0.35, 0.0, 0.08, eave + 0.6, eave + 1.9, Color("#2a2a2c"))
+		kit_panes([c], [g + 1.6], 0.5, 2.6, PAL_GLASS_DARK, 0.05)
+	# --- the porch: a brick box with the round-arched door and a low dark roof
+	kit_front(SF_O, SF_O + Vector2(1.0, 0.0))
+	_lbox(11.6, 6.3, 2.4, 1.8, g - 1.0, g + 4.2, SF_BRICK, M_STONE, SF_BRICK)
+	_gable(14.2, 9.0, 6.3, 1.95, g + 4.2, 1.0, SF_ROOF, SF_ROOF, true)
+	kit_front(_w(9.2, 8.1), _w(14.0, 8.1))
+	kit_face(0.0)
+	kit_door(2.4, g, 3.2, 0.85, SF_STONE, SF_DOOR, true)
+	kit_front(SF_O, SF_O + Vector2(1.0, 0.0))
+	_collide(outline)
+
+
+## The Visitation Sisters' convent (Klasztor Sióstr Wizytek, Krakowskie Przedmieście 34, behind
+## their church; 1650s-1730s, it came through 1944): four two-storey ranges round a closed
+## courtyard under steep hipped roofs, the long range on Karowa, the garden side over the
+## escarpment. A model that replaces the plain OpenStreetMap block (building 12626; no landmark
+## until 2026-11-15). The massing is GUGiK's LoD2 (over the ground: the eaves about 8, the
+## ridges about 14.5; the courtyard about 16 x 22 m, a flat cloister walk on its west side). No
+## street photo shows the convent (it stands behind the church and its garden wall), so the
+## plaster, the roof colour and the window rows are defaults until photos arrive
+## (docs/QUESTIONS.md). Spec docs/landmarks/specs/wizytki_klasztor.md.
+## Frame: origin at the west range's corner by the church, u to the north-west along it (u 27 is
+## the range on Karowa), +v to the east-north-east, towards the escarpment.
+const WK_O := Vector2(-444.1, -813.3)
+const WK_A := Vector2(-0.518, -0.856)
+const WK_WALL := Color("#e8dcc2")      ## light plaster (a default, the church's tone)
+const WK_WHITE := Color("#f2ede2")     ## cornice, plinth band
+const WK_ROOF := Color("#9a5545")      ## tile (a default)
+
+
+func _build_wizytki_klasztor(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(WK_O, WK_O + WK_A)
+	_g = _ground_under(outline)
+	var g := _g
+	_mode = M_STONE
+	var eave := g + 8.0
+	var court := _rect(7.0, 26.75, 8.0, 11.25)
+	_prism(outline, g - 1.0, eave, WK_WALL, Color(0, 0, 0, 0), M_STONE, M_STONE)
+	_cap_holes(outline, [court], eave, WK_ROOF.darkened(0.25))
+	kit_cornice_ring(outline, eave - 0.3, WK_WHITE, 0.3, 0.3)
+	kit_ledge_ring(outline, g - 1.0, 1.2, WK_WHITE, 0.06)
+	# --- the courtyard: walls facing in, the ground floor's arcade of windows above
+	var n := court.size()
+	for k in n:
+		var a := court[k]
+		var b := court[(k + 1) % n]
+		_wall(a, b, g - 0.6, eave, -_out(court, a, b), WK_WALL, 0.0)
+	# --- the hipped roofs, one per range (LoD2 ridges)
+	_hip(13.5, 7.75, 13.5, 7.75, eave, 6.5, WK_ROOF)       # the west range, by the church
+	_hip(-7.0, 10.5, 7.0, 3.9, eave, 3.4, WK_ROOF)         # its short link to the south
+	_hip(-15.0, 29.5, 7.0, 15.5, eave, 6.5, WK_ROOF)       # the south range
+	_hip(21.0, 26.0, 6.0, 26.0, eave, 6.0, WK_ROOF)        # the range on Karowa
+	_hip(-2.0, 45.0, 29.0, 7.0, eave, 6.5, WK_ROOF)        # the garden range over the escarpment
+	# --- two rows of windows round every outer wall long enough for one
+	var m := outline.size()
+	for k in m:
+		var ln := kit_front(outline[(k + 1) % m], outline[k])
+		if ln < 3.0:
+			continue
+		var c := maxi(1, floori(ln / 3.2))
+		var cols: Array = []
+		for i in c:
+			cols.append((float(i) + 0.5) * ln / float(c))
+		kit_panes(cols, [g + 1.2, g + 4.7], 1.1, 1.8, PAL_GLASS_DARK, 0.05)
+	# --- and on the courtyard walls, facing in
+	for k in n:
+		var a := court[k]
+		var b := court[(k + 1) % n]
+		var ln := kit_front(a, b)
+		if _b.dot(-_out(court, a, b)) < 0.0:
+			ln = kit_front(b, a)
+		var c := maxi(1, floori(ln / 3.2))
+		var cols: Array = []
+		for i in c:
+			cols.append((float(i) + 0.5) * ln / float(c))
+		kit_panes(cols, [g + 1.2, g + 4.7], 1.1, 1.8, PAL_GLASS_DARK, 0.05)
+	kit_front(WK_O, WK_O + WK_A)
+	_collide(outline)
+
+
+## The Sisters of Charity on Tamka (Zakład Sióstr Miłosierdzia św. Wincentego à Paulo, the
+## "szarytki", Tamka 35; 1730s-1850s, rebuilt after 1944): long white two-storey ranges round a
+## courtyard below the escarpment, under tall dull green copper roofs with rows of white dormers,
+## and a slim green turret with an onion on the ridge. The mass stays GUGiK's LoD2 (OSM building
+## 12823, unnamed; ridges about 14 m over the ground) in its white plaster and copper (`steep`:
+## LoD2's tall roofs keep the roof colour); the turret is ours. From F's 11 Commons photos
+## (refs/churches/szarytki_tamka, reference only, never shipped): 01 and 02 show the roofs and the
+## turret from the escarpment, 03 and 11 the white courtyard fronts. Spec
+## docs/landmarks/specs/szarytki.md. Not built: the dormers (the roofs are LoD2's, not ours).
+const SZT_AT := Vector2(72.0, -200.0)        ## inside the outline (the east range)
+const SZT_WALL := Color("#e9e7e0")           ## white plaster (photos 01, 03, 11)
+const SZT_ROOF := Color("#7c9171")           ## dull green copper (photos 01, 02)
+const SZT_TURRET := Vector2(57.0, -162.0)    ## where the south range meets the west one (a default: photo 02)
+const SZT_RIDGE := 8.4                       ## LoD2's ridge there (absolute y)
+
+
+func _build_szarytki(_site: Dictionary) -> void:
+	_o = SZT_TURRET
+	_a = Vector2(1.0, 0.0)
+	_b = Vector2(0.0, 1.0)
+	_g = SZT_RIDGE - 14.0
+	var keep := _mode
+	_mode = M_STONE
+	var y := SZT_RIDGE - 0.6
+	var copper := SZT_ROOF.lightened(0.08)
+	# the square base astride the ridge, the white drum with its openings, the onion, the cross
+	_lbox(0.0, 0.0, 1.0, 1.0, y, y + 1.4, copper)
+	kit_lantern(0.0, 0.0, y + 1.4, 2.6, 0.75, SZT_WALL, copper, PAL_GLASS_DARK, 8)
+	var c := _w(0.0, 0.0)
+	var top := y + 1.4 + 2.6 * 0.7 + 0.15
+	_frustum(_circle(c, 0.55, 8), top, _circle(c, 0.95, 8), top + 0.7, copper)
+	_frustum(_circle(c, 0.95, 8), top + 0.7, _circle(c, 0.25, 8), top + 1.6, copper)
+	_prism(_circle(c, 0.08, 4), top + 1.6, top + 2.6, copper, copper, M_STONE, M_STONE)
+	_lbox(0.0, 0.0, 0.32, 0.05, top + 2.2, top + 2.3, copper)
+	_mode = keep
+
+
 ## The Nożyk Synagogue (Synagoga Nożyków, ul. Twarda 6; Karol and Leandro Marconi, 1898-1902;
 ## burnt 1944, rebuilt 1977-1983; Warsaw's only pre-war synagogue still standing), a cream
 ## neo-Romanesque house of prayer in its courtyard south of Plac Grzybowski. The whole building as
@@ -33138,6 +33466,14 @@ const CHURCHES := [
 			"fill": 0.8, "style": "baroque", "wall": "#e6d4a6", "roof": "#97594a", "towers": 0, "cap": "none"},
 	{"key": "church_rodziny_maryi", "at": Vector2(-2617.0, -739.0), "o": Vector2(-2625.3, -761.4), "out": Vector2(-0.356, -0.934), "L": 13.5, "W": 49.4,
 			"fill": 0.9, "style": "neoclassical", "wall": "#e6c2a2", "roof": "#4d5257", "towers": 0, "cap": "none"},
+	{"key": "church_wizytki_klasztor", "at": Vector2(-444.8, -828.1), "o": Vector2(-458.1, -836.4), "out": Vector2(-0.518, -0.856), "L": 52.0, "W": 56.0,
+			"fill": 0.9, "style": "baroque", "wall": "#e8dcc2", "roof": "#9a5545", "towers": 0, "cap": "none"},
+	{"key": "church_sala_faustyny", "at": Vector2(-2795.0, 1570.0), "o": Vector2(-2794.0, 1577.0), "out": Vector2(0.0, 1.0), "L": 27.0, "W": 14.0,
+			"fill": 0.9, "style": "modern", "wall": "#b0503a", "roof": "#4e4f52", "towers": 0, "cap": "none"},
+	{"key": "church_franciszkanki_piwna", "at": Vector2(-780.1, -1560.9), "o": Vector2(-765.2, -1574.8), "out": Vector2(0.7804, -0.6253), "L": 29.4, "W": 44.0,
+			"fill": 0.9, "style": "baroque", "wall": "#e2b86c", "roof": "#9a5040", "towers": 0, "cap": "none"},
+	{"key": "church_kapucyni_klasztor", "at": Vector2(-1010.6, -1414.6), "o": Vector2(-1010.8, -1419.8), "out": Vector2(-0.5343, -0.8453), "L": 35.4, "W": 9.0,
+			"fill": 0.9, "style": "baroque", "wall": "#ecdcae", "roof": "#86a993", "towers": 0, "cap": "none"},
 	{"key": "church_misjonarze_radna", "at": Vector2(-66.4, -747.0), "o": Vector2(-63.9, -741.6), "out": Vector2(0.459, 0.888), "L": 24.6, "W": 25.2,
 			"fill": 0.9, "style": "neoclassical", "wall": "#e8dcb8", "roof": "#6a6460", "towers": 0, "cap": "none"},
 	{"key": "church_misjonarze", "at": Vector2(-517.5, -570.7), "o": Vector2(-476.1, -569.1), "out": Vector2(0.958, -0.288), "L": 41.0, "W": 14.4,
@@ -33229,6 +33565,18 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_czestochowska":
 		_build_czestochowska(site)  # the modernist A-frame church and its pylons, from photos
+		return
+	if site["key"] == "church_wizytki_klasztor":
+		_build_wizytki_klasztor(site)  # the Visitation sisters' convent from LoD2 (defaults until photos)
+		return
+	if site["key"] == "church_sala_faustyny":
+		_build_sala_faustyny(site)  # the St Faustina hall in Ochota, from a photo
+		return
+	if site["key"] == "church_franciszkanki_piwna":
+		_build_franciszkanki_piwna(site)  # the Franciscan Sisters' house on Piwna, from photos and LoD2
+		return
+	if site["key"] == "church_kapucyni_klasztor":
+		_build_kapucyni_klasztor(site)  # the Capuchin monastery on Miodowa, from photos and LoD2
 		return
 	if site["key"] == "church_misjonarze_radna":
 		_build_misjonarze_radna(site)  # the Missionaries' house on Radna, from photos and LoD2

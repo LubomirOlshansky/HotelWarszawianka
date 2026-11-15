@@ -46,6 +46,7 @@ extends Node
 const Lang := preload("res://scripts/lang.gd")  # one language at a time (2026-11-02)
 const EdgeRoadworks := preload("res://scripts/edge_roadworks.gd")  # rebuilt on a language change
 const Release := preload("res://scripts/release.gd")  # DEMO 3j: no flags in a release build
+const DevFlags := preload("res://scripts/dev_flags.gd")
 const Access := preload("res://scripts/access.gd")
 const MapBuilder := preload("res://scripts/map_builder.gd")
 const Car := preload("res://scripts/car.gd")
@@ -185,17 +186,16 @@ const STYLES := [
 	{"name": "Clean", "lines": 240, "outline": 0.6, "levels": 0.0, "saturation": 1.1},
 	{"name": "Chunky", "lines": 170, "outline": 0.8, "levels": 9.0, "saturation": 1.2},
 ]
+## The command-line flags (TD-4 a); main reads each one as `flags.NAME`.
+var flags := DevFlags.new()
 ## The camera's tilt in degrees (minus the angle over the ground): Settings → Obraz "Kąt kamery"
 ## (settings.gd pitch, follow_camera.gd PITCHES) or --pitch=.
+## Also written by a command-line flag (dev_flags.gd).
 var camera_pitch := -FollowCamera.DEFAULT_PITCH
 const CAMERA_DISTANCE := 500.0
 ## Height of the view in metres (orthographic size): wide enough to read the city.
+## Also written by a command-line flag (dev_flags.gd).
 var base_size := FollowCamera.DEFAULT_SIZE
-## The follow-camera loop: --size= was given (the saved zoom doesn't apply), and the pinch's span
-## ratio since its last zoom step.
-var _flag_size := false
-## --pitch= was given: the saved camera angle (Settings → Obraz) doesn't override it.
-var _flag_pitch := false
 var _pinch_run := 1.0
 ## The helicopter's view is this much wider than the car's (as before loop 2a: 1.3 × 110 m).
 const HELI_VIEW := 1.3 * 110.0 / FollowCamera.DEFAULT_SIZE
@@ -214,7 +214,6 @@ var _zone := ""
 ## F's asks (2026-10-30): whether the zones cap the car at all (Settings → JAZDA, off by default:
 ## settings.gd `zone_cap`), and --zone-cap / --no-zone-cap for one run (-1: the setting).
 var zone_cap_on := false
-var zone_cap_flag := -1
 ## Loop 3b: the car seen through the ground inside a tunnel (tunnel_xray.gd).
 var _xray: Node3D
 ## GAMEPLAY_PLAN 0.3: a deck hides the car from the camera (map_builder.gd `deck_hides`, ~0.1 ms
@@ -232,40 +231,23 @@ var traffic: Traffic
 var trams: Trams
 ## The railway (docs/design/railway.md T1): trains on the cross-city line and the ring line.
 var trains: Trains
-## --train=X,Z: a train put on the track nearest that point at the start (shots).
-var train_at := Vector2.INF
-## --train=X,Z,K: that train of kind K (trains.gd KINDS: 0 Koleje Mazowe, 1 SKiM, 2 the
-## long-distance one).
-var train_kind := -1
 var walkers: Pedestrians
 var rivals: Rivals
 ## Loop 3g-1: the police (null with --no-police or no traffic) and their flags.
 var police: Police
+## Also written by a command-line flag (dev_flags.gd).
 var police_opts := {}
 var bubbles: Bubbles
-var no_traffic := false
-var start_race := 0
-var start_rival := 0
-## --bench: drive a ghost route through the traffic, then print frame times.
-var bench := false
 var _bench_ghost = null
 ## Loop 2b: the bench's numbers (bench.gd), frames to settle and to measure (--bench-frames=),
 ## --probe (stand still where --at puts the car and measure the view there), --exp=a,b
 ## (switch single costs off to rank them), and main.gd's own share of the frame.
 var _stats: BenchStats
 var _bench_settle := 300
-var _bench_frames := 600
-var probe := false
-var _exp: PackedStringArray = []
 var _main_usec := 0
-## Loop 2b: the measured part of a bench or probe ends after this many seconds even if the
-## frames aren't done (a slow phone), and settling after SETTLE_SECONDS; --fps=N caps the frame
-## rate for this run (0: uncapped; else the setting's 60 or 30).
-var _bench_seconds := 30.0
 const SETTLE_SECONDS := 8.0
 var _bench_t0 := 0
 var _measure_t0 := 0
-var _flag_fps := -1
 ## The frame-rate cap in force (0: none).
 var _cap := 60
 ## The result is out (on iOS the app doesn't stop at once after quit()).
@@ -275,9 +257,6 @@ var _bench_done := false
 const PHONE_SETTLE := 5.0
 const PHONE_SECONDS := 55.0
 var _phone_bench := false
-var _phone_seconds := PHONE_SECONDS
-## --bench-button: press BENCH at frame 60 (testing aid; the same run as the button's).
-var bench_button := false
 var _phone_saved := {}
 var _phone_next_toast := 0
 var _spawn := Transform3D.IDENTITY
@@ -285,37 +264,22 @@ var _spawn := Transform3D.IDENTITY
 const PERF_EVERY := 0.5
 ## In the helicopter; the car waits, parked, where it was left.
 var flying := false
-var start_flying := false
-## Loop 3d-2b, --heli-alt=M: the height over the ground the helicopter starts at (0: the usual take-off).
-var _start_alt := 0.0
-var start_mission := 0
-var autopilot := false
-## Street races (2026-11-04): --ghost-pace=X, the autopilot's speed factor in a race (rivals.gd
-## `ghost_pace`, default 1.8: an average player; 2.4 a quick one; "racer" (99): a skilled player who
-## uses the whole car on the roads, traffic.gd's racer mode at the car's top), for the race-AI runs.
-var ghost_pace := 0.0
-## --race-debug: traffic.gd prints what holds a racer that stands still (once a second), and
-## rivals.gd a `race trace:` line a second of a race (the rival's speed, the band, both gaps).
-var race_debug := false
 var _wash_on := false
 var building_mat: ShaderMaterial
 var post_mat: ShaderMaterial
 var map: Node3D
 
 var style_index := 0
+## Also written by a command-line flag (dev_flags.gd).
 var cam_yaw := 45.0
-## --no-ghost (2026-10-31, the landing's screenshots): no occlusion ghost and no see-through hole
-## round the car, so a
-## wide framed shot centred on a spot behind a building keeps that building whole.
-var no_ghost := false
 ## Road view (F 2026-11-07, "photos of the roads from height, like GTA"): the camera looks
 ## straight down, north up, with no occlusion ghost, to check kerbs, asphalt and paint from above.
 ## `--topdown` starts in it; T toggles it on a keyboard. A debug view: the pitch setting is untouched.
+## Also written by a command-line flag (dev_flags.gd).
 var top_down := false
 const TOP_DOWN_PITCH := -89.9
+## Also written by a command-line flag (dev_flags.gd).
 var cam_yaw_target := 45.0
-## --yaw= was given (the follow camera then doesn't start behind the vehicle).
-var _flag_yaw := false
 ## Camera loop: the follow camera's laws (follow_camera.gd: the turn, the look-ahead, the dead
 ## zone, the speed zoom), its view height (cam.size is the host's during a cinematic moment), and
 ## the cinematic moments on Phantom Camera (camera_shots.gd): the fly-in when the title screen
@@ -324,83 +288,33 @@ var _flag_yaw := false
 var fcam := FollowCamera.new()
 var _view_size := FollowCamera.DEFAULT_SIZE
 var moments: CameraShots
-var cinematic_flyin := false
-var cinematic_look := false
-var _flag_cinematic := ""
 var _last_target_source := ""
 var _last_target := Vector3.INF
 ## Follow: the camera turns to stay behind the car. Fixed: it turns only with the rotate buttons.
 var follow := true
 var cam_focus := Vector3.ZERO
-var demo := false
-## The L-shaped map loop (2026-10-31), --heli-stick=X,Z: the helicopter's stick held towards that
-## world direction (x east, z south) the whole run, for screenshots of the clamp along the map's
-## outline (ZERO: off).
-var heli_stick := Vector2.ZERO
+## Also written by a command-line flag (dev_flags.gd).
 var shots: Array[int] = []
 ## The shots saved so far: the frames of `shots` that reached their PNG (a run that ends
 ## without one says so in _exit_tree).
 var _shots_saved: Array[int] = []
-var out_dir := "user://"
-## --spots: [name, Vector2 x/z, heading or INF] per camera; one run shoots them all, the city
-## built once (a street pass needs 6-10 cameras; a launch per camera cost ~70 s each).
-var shot_spots: Array = []
 var _spot_i := 0
 var frame := 0
+## Also written by a command-line flag (dev_flags.gd).
 var start_at := Vector3.INF
 ## --heading=deg: the car's heading at the start (0 = north, 90 = east), for testing.
+## Also written by a command-line flag (dev_flags.gd).
 var start_heading := INF
-var lines_override := 0
-var hide_hud := false
-## Desktop: --no-touch (trailer loop, 2026-10-29): the HUD without its touch-only controls (the
-## pedals, the stick, the helicopter's pads) and the title without its "tap to drive" prompt,
-## for recording on the computer (hud.gd `set_touch_off`, title.gd `touch_off`).
-var no_touch := false
-var sun_pitch := -50.0
-var debug_ao := false
-## Landmarks 0.3 (2026-10-31): `--solo=KEY` builds that landmark site alone (map_builder.solo_site),
-## `--solo-look=lit|flat|sil` draws it lit, unlit in its own colours, or as a dark silhouette on a
-## plain background (shaders/solo.gdshader).
-var solo_site := ""
-var solo_look := "flat"
-## Loop 3a: --debug-roads draws the decks, approaches, tunnels, lane heights and piers round
-## the car (debug_roads.gd, with the Debug Draw add-on).
-var debug_roads := false
 ## The city objects plan, step 4: --colliders skins every collider in the colour of its class's
 ## planned answer (collider_view.gd: hard red, smash yellow, push blue, ride green, the invisible
 ## pocket walls magenta), for shots in street sweeps. Loaded only then; a release build reads no
 ## flags (release.gd).
 const COLLIDER_VIEW := "res://scripts/collider_view.gd"
-var collider_view := false
 ## Loop 3b: --tunnel starts the car (with --at) on the floor of a tunnel under that point.
+## Also written by a command-line flag (dev_flags.gd).
 var start_in_tunnel := false
-## GAMEPLAY_PLAN 0.3: --under starts the car (with --at) on the road under a bridge or viaduct deck
-## there, not on top of it (the deck x-ray's shots).
-var start_under := false
-## Loop 1: --ghost-debug=N paints the occlusion ghost for measuring (1: the ghosted
-## fragments magenta and every other building green; 2: the ghost cut fully, no dither)
-## and prints the ghost's ellipse in screen pixels with every screenshot.
-var ghost_debug := 0
-## --left-handed: the left-handed layout for this run (Settings → DOSTĘP keeps it otherwise).
-var _flag_left_handed := false
-## --color-safe: colour-safe markers for this run (Settings → DOSTĘP keeps it otherwise): the HUD's
-## tint and the race and rescue rings' shapes (beacon.gd), for shots.
-var _flag_color_safe := false
-## --lang=pl|en: the language for this run (not saved), over the saved choice and the phone's.
-var _flag_lang := ""
-## --lift=M: aim the camera M metres above the vehicle (close-ups of tall landmarks).
-var cam_lift := 0.0
-## --cam=X,Z or X,Y,Z (tests and screenshots, not for players): the free camera. It looks at that
-## world point (Y left out: the ground there), turned by --yaw= and --pitch=, --size= tall, and
-## stays there whatever the car does: no follow, no lead, no zoom. The car stands where --at puts
-## it (default: under the camera, so the city streams in around the view) and is hidden unless
-## --cam-car; no occlusion ghost. follow_camera.gd parse_free / free_view.
-var free_cam := false
+## Also written by a command-line flag (dev_flags.gd).
 var _free_cam_at := Vector3.ZERO
-var _free_cam_car := false
-## --cams=NAME:X,Y,Z,YAW,PITCH,SIZE+NAME2:...: one run, several free cameras, one shot each
-## (files NAME_FFFF.png; the --spots machinery moves the car under each). follow_camera.gd parse_cams.
-var _cams: Array = []
 ## The ghosted footprint's sunlight: given back in full above GHOST_SUN_HIGH degrees of
 ## sun, none below GHOST_SUN_LOW; GHOST_SUN_SCALE matches it to the renderer's sun
 ## (measured: with 1.8 a ghosted footprint behind the Palace read 154.7 against 159.3 for
@@ -409,15 +323,6 @@ const GHOST_SUN_LOW := 15.0
 const GHOST_SUN_HIGH := 40.0
 const GHOST_SUN_SCALE := 1.9
 var _ghost_px := Vector4.ZERO
-var no_ao := false
-## Load the prebuilt sectors like the exported game does (loop 3c: map/sectors/*.scn, index.res,
-## proxies.scn; only rebuilt by tools/bake_city.gd), not build them from their files.
-var prebuilt := false
-## --no-map-edge: without the land past the map's edge (map_edge.gd), for a before/after probe.
-var _flag_no_map_edge := false
-## --no-edge-roadworks: without the roadworks closing the roads at the map's edge (edge_roadworks.gd;
-## their colliders go too, the edge wall stays), for a before/after probe.
-var _flag_no_edge_roadworks := false
 var _started := false
 ## Time of day (N / TIME / --time=), the radio (R / RADIO / --radio=), the VHS
 ## overlay (V / VHS / --vhs) and the title screen (skipped by the testing flags).
@@ -426,12 +331,8 @@ var radio: Radio
 var title: Title
 ## True while the title on screen is the one the boot scene put up (boot.gd, TD-15).
 var _title_from_boot := false
-var start_time := 0
-var start_station := 0
 var vhs := false
 var _vhs_mat: ShaderMaterial
-var show_title := true
-var force_title := false
 var env: Environment
 var sun: DirectionalLight3D
 ## v0.65: the wallet (and save), everybody's lines, the side jobs, the easter eggs.
@@ -444,10 +345,6 @@ var zamkowy_life: PlacZamkowyLife
 ## Loop MW-1: the notebook and its flags: --notebook[=chapter|place id] (open it; "" none),
 ## --found=, --place=<id> (the car at the place), --notes-log.
 var notes: Notebook
-var notebook_open := ""
-var found_spec := ""
-var place_flag := ""
-var notes_log := false
 ## Loop MW-6: the egg cards (egg_book.gd), KASETA (tape.gd), Spacer (spacer.gd), Fotka (fotka.gd),
 ## and their flags: --egg=<id> (the vehicle at the egg, in its time, weather and day; a motion
 ## trigger driven by the rig, _egg_rig), --egg-log, --found-eggs=, --tape=<id|n> (the car at the
@@ -459,74 +356,38 @@ var egg_book: EggBook
 ## "discovered" card at the first check), --districts=all|none|<id>[:jobs],... (the record, in
 ## memory), --districts-log.
 var districts: Districts
-var district_card := ""
-## --pop=<zl>: pays that much two seconds into the run, to see the money pop (money_pop.gd).
-var pop_flag := 0
-var districts_spec := ""
-var districts_log := false
 ## Loop 3h slice 2: the Syrenki (syrenki.gd) and their flags: --syrenki-log (placements and finds),
 ## --syrenki=all|none|<n>|<id>,... (the record, in memory), --syrenka=<id|n>[:m] (the car on the street
 ## next to that Syrenka, facing it, m metres before it: 25 by default; :0 finds it at once).
 var syrenki: Syrenki
 ## The first-10 polish: the mixtapes on roofs (cassettes.gd).
 var cassettes: Cassettes
-var syrenki_log := false
-var syrenki_spec := ""
-var syrenka_flag := ""
-## Loop 3h slice 3: the rival ladder and the final "Trzy mosty" (rivals.gd, ladder.gd,
-## trzy_mosty.gd): --ladder=N (the first N rungs beaten for this run, respect raised to fit; -1: the
-## save's) and --trzy-mosty (the car at Rondo Daszyńskiego at night, the final at once).
-var ladder_flag := -1
-var trzy_mosty_flag := false
-var trzy_mosty_bridge := 0
 ## Loop 3h slice 4 (first10.gd): the guide on a fresh save in a normal launch; --first10 runs it in
 ## a test run too and scripts its triggers (with --autopilot: the headless replay); --end-card
 ## shows the end card at once (screenshots); --first-race has Halina roll up for the first race a
 ## second in.
 var first10: First10
-var first10_flag := false
-var end_card_flag := false
-var first_race_flag := false
 var tape: Tape
 var spacer: Spacer
 var fotka: Fotka
 ## Where the car stood when Fotka opened (Transform3D.IDENTITY: not open): put back on close, so
 ## nothing that happened while the camera was away (a push from traffic) leaves it elsewhere.
 var _fotka_car := Transform3D.IDENTITY
-var egg_flag := ""
-var egg_log := false
-var found_eggs := ""
-var tape_flag := ""
-var tape_log := false
-var spacer_flag := -1
-var spacer_hint := -1.0
-var fotka_flag := false
-var kadr_flag := ""
+## Also written by a command-line flag (dev_flags.gd).
 var fotka_shot := -1.0
-var photo_log := false
+## Also written by a command-line flag (dev_flags.gd).
 var _egg: Dictionary = {}
 var _rig_t := 0.0
 var _rig_path := PackedVector2Array()
 var _rig_s := 0.0
 var _moment_at := -1.0
 var _vhs_until := -1.0
-## --egg=e37: the street today's roadworks must be on (eggs.gd `force_street`).
-var barrier_force := ""
-## Loop MW-5: PÓŁNOC FM's flags: --station=<id|name|N> (a station by id, short id or name),
-## --radio-log (the radio's and the city sounds' log), --unlock=all|N[,N] (all tracks for this
-## run, or open track N as an egg would); `radio_picked`: --radio= or --station= was given (the
-## radio then doesn't follow the clock).
-var station_flag := ""
-var radio_log := false
-var unlock_flag := ""
-var radio_picked := false
 var city_sounds: CitySounds
 ## Loop MW-3: the crowds (crowds.gd) and their flags: --crowd=0|1|2 (none, normal, double; the
 ## Low tier halves them), --night-log (queues, rejections, the dawn walkers each minute, every
 ## event), --club=<id|name> (the car at that club's door).
 var crowds: Crowds
-var crowd_flag := 1
-var night_log := false
+## Also written by a command-line flag (dev_flags.gd).
 var club_flag := ""
 ## Live's sunset hour by date (yyyymmdd -> hour), for the steps crowd.
 var _sunsets := {}
@@ -542,9 +403,6 @@ var trend_job: TrendJob
 ## the player's horn (B, L3), E23-E25; flags --night-hub (a gathering now, parked at once), --bus-log,
 ## --honk=F1,F2 (the horn at those frames).
 var buses: Buses
-var night_hub_flag := false
-var bus_log := false
-var honk_frames: Array[int] = []
 ## The vintage-tram loop (old_tram.gd): the old two-car set on summer weekends, E39; flags
 ## --old-tram (the set now near the car; =follow: and the car kept behind it), --tram-log.
 var old_tram: OldTram
@@ -553,8 +411,6 @@ var old_tram: OldTram
 ## scene 45-80 m ahead at the start, for shots), --crash=X,Z (one on the fitting road nearest that
 ## point), --crash=on (the timer in a test run too), --crash=0 (none), --crash-log.
 var crash_scenes: CrashScenes
-var crash_flag := ""
-var crash_log := false
 ## Dead electric cars (ev_tow.gd, F's ask 2026-11-06): Bartek's call to carry his TESŁO to a charger
 ## under the helicopter, and stranded ones in the kerb lane. Flags --ev-call (the call rings now),
 ## --ev-tow (accepted, the helicopter over his car), --ev-tow=carry (his car already on the rope),
@@ -563,15 +419,6 @@ var ev_tow: EvTow
 ## Bar crawl (bar_crawl.gd): flags --crawl-call (the group rings a second in, any hour),
 ## --crawl-route=ID, --crawl-group=ID, --crawl=0 (none), --crawl-log.
 var crawl: BarCrawl
-var crawl_flag := ""
-var crawl_route := ""
-var crawl_group := ""
-var crawl_log := false
-var _crawl_auto := false
-var ev_flag := ""
-var ev_log := false
-var _ev_auto := false
-var _crash_auto := false
 ## Sekretny rave (rave.gd): flags --rave-call (LEKTI and Mati's call now), --rave-smola (Mati's
 ## Smoła night now), --rave=on / --rave=day (that rave on at any hour), --rave-spot=ID, --rave=0,
 ## --rave-log.
@@ -579,17 +426,9 @@ var rave: Rave
 ## Nocny spot (street_meet.gd): flags --meet-call (Darek rings now), --meet=on (night rules at any
 ## hour), --meet=0, --meet-at=meet|raid|race|meet2|drag|stage (jump to that beat), --meet-log.
 var meet: StreetMeet
-var meet_flag := ""
-var meet_at := ""
-var meet_log := false
-var _meet_auto := false
 ## The ground's material (the skids' and the meet's tyre marks).
 var _ground_mat: Material
 var club: Club
-var rave_flag := ""
-var rave_spot := ""
-var rave_log := false
-var _rave_auto := false
 ## The boat race (boat_race.gd): --boat-race=call (Szymek phones now), =race (the car at the
 ## pontoon, straight onto the grid), =auto (that, with the player's boat driven by the rivals'
 ## driver), =free / free0..2 (the car at the pontoon, out in a free-ride boat: 0 the jet ski,
@@ -606,47 +445,30 @@ var _pause: PauseReasons
 ## The Kieślowski tour (tour.gd with data/dekalog_tour.json): --dekalog=call (Claire phones now), =go (the tour starts
 ## with the car at the pickup), =auto (that, the cards answered by themselves), =0 (none); --dekalog-log.
 var dekalog_tour: Tour
-var dekalog_flag := ""
-var dekalog_log := false
 
 ## The questlines (story_quests.gd); --stories-log prints what they do.
 var stories: StoryQuests
-var stories_log := false
-## --story=ID: that questline starts from the beta list 1.5 s into the drive (its friend phones).
-var story_flag := ""
-## --story-meet: the friend's WCHODZĘ pressed by itself a second after they walk up.
-var story_meet_flag := false
 ## --quest-tab=N: the full map's ZADANIA card opens on tab N (0 AUTO, 1 HELI, 2 WĄTKI; shots).
+## Also written by a command-line flag (dev_flags.gd).
 var quest_tab_flag := -1
 var _story_t := 0.0
 var _story_key := ""
-var boat_flag := ""
-var boat_log := false
 var _boat_mask := Vector2i.ZERO
 var _boat_paused := false
 ## The cinema tour (tour.gd with data/kino_tour.json): --kino-tour=call (Wiktor phones now), =go (the tour starts with
 ## the car at the pickup), =auto (that, the cards answered by themselves), =0 (none); --kino-log.
 var kino_tour: Tour
-var kino_flag := ""
-var kino_log := false
 ## The shisha night (shisha.gd): --shisha-call (Ivan rings now), --shisha-meet (Ivan gets in now),
 ## --shisha-door (both in, 25 m from the lounge's entrance), --shisha-arrive (stopped at it, the
 ## lounge playing itself from the door), --shisha-lounge (straight into the lounge, the mini-game playing itself), --shisha=0 (none),
 ## --shisha-log.
 var shisha: Shisha
 var lounge: Lounge
-var shisha_flag := ""
 ## The arcade padel match (padel_match.gd): --padel-match[=HOUR] (straight onto the court, it plays
 ## itself, then the game quits), --padel-log.
 var padel: PadelMatch
-var padel_flag := -1.0
-var padel_log := false
 var _padel_heli_mode := Node.PROCESS_MODE_INHERIT
 var _padel_sv_mode := SubViewport.UPDATE_ALWAYS
-var shisha_log := false
-var _shisha_auto := false
-var old_tram_flag := ""
-var tram_log := false
 ## Packs (packs.gd): running clubs, cycling packs, coffee raves; flags --packs=0 (none), --packs-now
 ## (every club and rave on whatever the clock, the packs near the car timed to pass it), --packs-log.
 var packs: Packs
@@ -654,149 +476,43 @@ var packs: Packs
 ## --loud=N: at most N loud cars at once (default 3; 0: none, and no meet); --loud-log prints
 ## their revs and lines.
 var loud_cars: LoudCars
-var loud_flag := 3
-var loud_log := false
 ## Crazy drivers (crazy_drivers.gd, traffic.gd CRAZY_*): Szkoda Oktawia taxis, Szprynter couriers
 ## and the Pasatini in traffic. --crazy=N: at most N at once (default 3; 0: none); --crazy-log
 ## prints their cut-ins and KEBAB FM's sightings.
 var crazy_drivers: CrazyDrivers
-var crazy_flag := 3
-var crazy_log := false
-var packs_flag := 1
-var packs_now := false
-var packs_log := false
 ## Kibice (fans.gd): the fans by Stadion Leguminy; flags --fans=0 (none), --fans-now (out whatever the
 ## clock), --fans-log, --fans-phase= and --fans-result= (the match day's walkers).
 var fans: Fans
 ## --event-day forces the 11 listopada event on (any date), --event-day=0 turns it off, --event-smoke=0
 ## leaves out its glow and haze, --event-log prints its summary.
 var event_day: EventDay
-var event_flag := -1
-var event_smoke := 1
-## --event-t=SEC: with --cinematic=event, freeze the take at that second (stills for the path check).
-var event_t := -1.0
-var event_log := false
-var fans_flag := 1
-var fans_now := false
-var fans_log := false
-## --fans-phase=arrive|match|leave and --fans-result=win|draw: the match day's walkers for shots.
-var fans_phase := ""
-var fans_result := ""
 ## Wellness circles (wellness.gd); flags --wellness=0 (none), --wellness-now (every spot on at any hour), --wellness-log.
 var wellness: Wellness
-var wellness_flag := 1
-var wellness_now := false
-var wellness_log := false
-var tamka_log := false
 ## The garage loop (garage.gd): Warsztat u Mirka on Brzeska; flags --paint=<id> (the car starts in
 ## that paint, owned for the run), --garage (the car in the garage's ring, the card open; the
 ## garage shown whatever the wallet), --garage-log (`garage:` lines).
 var garage: Garage
-var paint_flag := ""
-var garage_flag := false
-## --garage=ring: the car 16 m short of the ring (the ring in view, no card).
-var garage_ring_only := false
-## G13: --garage=parts opens the card on the parts tab; --upgrades=all|tt|nitro starts with them.
-var garage_parts := false
-var upgrades_flag := ""
-var garage_log := false
-var life_flag := 1
-var dogs_log := false
-var trend_log := false
-var life_log := false
-var life_soak := false
-var zajac_flag := false
-var trend_day_flag := -1
-var trend_job_flag := 0
-## --dzemini: Mrożulo's MLASK already on DŻEMINI KEBAB (the queue for good, the sticker), the car by
-## the shop (trend_job.gd "Dżemini"; shots without driving the job).
-var dzemini_flag := false
-var start_kebab := -1
-## Loop jobs-2: --courier-race[=N] (kebab order N, default 0, with the courier's challenge forced).
-var courier_race := false
-## Loop jobs-2: --roundup (the car at the nearest Leżak depot, the round-up's card up, day or night).
-var roundup_flag := false
-## Loop jobs-2: --courier-v=M (the courier's speed in m/s, for a test run; 6.5 by default).
-var courier_v := -1.0
-## Loop couriers: --pedzik-log (city life's `pedzik:` lines: the minute's riders on the paths and the
-## kerb, the couriers waiting, each swerve, hop and near miss, a courier taken by the race).
-var pedzik_log := false
-## Loop couriers: --pedzik-kerb (a testing aid for shots: the kerb riders start 8-35 m from the view).
-var pedzik_kerb := false
-## Loop jobs-2: --armchair (the armchair man out today at any hour, the car on the lane by him).
-var armchair_flag := false
-var start_sloik := -1
-## --sloik-station=N: the station of --sloik (0 Dworzec Centralny, 1 Dworzec Gdański).
-var start_sloik_station := 0
-var start_heat := -1.0
-## Testing (loop Zagłębie): --craft=plain, the autopilot takes the plain kebab at the craft shop.
-var craft_plain := false
 # --- loop 2d-1: Podwózka (rides.gd) and its testing flags ---
 var rides: Rides
 ## G12 part 2: the quest pin, a place picked on the full map's ZADANIA card (quest_lines.gd entry;
 ## {} none): the arrow and minimap dot point at it while nothing else is on, until it is reached.
 var quest_pin: Dictionary = {}
-## --ride=N: ride N's request, the car by its passenger; --ride-quirk=, --passenger=, --stars=X
-## (the live rating's start), --ignore-app (the autopilot drives the shortest road, not the
-## app's), --parody-log (`ride:` and `gps:` lines). Story rides (taxi_stories.json): --ride-story=ID
-## (that passenger, "none" for no story), --ride-answer=0|1 (the autopilot's answer to the question).
-var start_ride := -1
-var ride_quirk := ""
-var ride_passenger := ""
-var ride_story := ""
-var ride_answer := -1
-var ride_stars := -1.0
-var ignore_app := false
-var parody_log := false
-## --gps-in=S: the first GPS moment of the app-taxis in traffic from S seconds in (screenshots).
-var gps_in := -1.0
 # --- end loop 2d-1 ---
 ## Loop MW-2: the storefronts (storefronts.gd) and their flags: --no-parodies (none of MW-2's
 ## shops, signs, scooters or entrances, for an A/B), --rechotka (the car by the nearest Frogs
 ## door, stopped: a stamp), --stamps=K (the card starts at K: the 10th stamp's free hot dog).
 var storefronts: Storefronts
-var no_parodies := false
-var rechotka_flag := false
-var stamps_flag := -1
-var host_in := -1.0
-var barrier_day := 0
-var reset_save := false
-var no_save := false
-## Safer saves (TD-8): `--save-note=restored|lost|blocked` shows the damaged-save note without a
-## damaged file (the shots and a headless run of the note's path; with the title forced on).
-var save_note_flag := ""
 ## The error trap (tech-debt TD-14, error_trap.gd): the engine's errors and printed lines, kept
 ## for the Settings' RAPORT button. A static, so NOWA GRA's reload keeps this run's errors.
 ## `--report` prints the report when the run ends; `--crash-note` shows the note a phone shows
 ## after a session that closed by itself.
 static var _trap: ErrorTrap
-var report_flag := false
-var crash_note_flag := false
 var _trap_t := 0.0
-## --free: free roam (loop 2e: no call card at the start anyway; the first call then comes in
-## 90 s into play instead of 60).
-var free_roam := false
-## Loop 2e: the first rescue call comes in after this many seconds of play (--call-in=S;
-## missions.gd FIRST_CALL by default); --style= and --vhs win over the saved settings.
-var call_in := -1.0
-## Loop 2e: --settings-tab=N opens the settings panel at that tab (0 Driving, 1 World, 2 Picture,
-## 3 Sound) for screenshots.
-var settings_tab := 0
-var _flag_style := -1
-var _flag_vhs := false
-## --tap=X,Y: tap that screen pixel at frame 60, as if a finger did (landmark cards).
-var tap_at := Vector2.INF
 ## v0.9: sound, weather (RAIN / O / --weather=), the Live clock (--clock= --date=), the
 ## performance overlay (--perf, P, a three-finger tap) and the quality (--quality=, U,
 ## the QUALITY button on the overlay).
 var sfx: Sfx
 var weather: Weather
-var start_weather := 0
-var live_clock := ""
-var live_date := 0
-## --palace-lights=ID: the Palace's event lighting forced to one row of data/palace_lights.json
-## ("gold" for the nightly gold), whatever the date (shots).
-var palace_lights_id := ""
 var _palace_night := -1
 var show_perf := false
 ## Low, Medium, High, Ultra (loop G1: tiers.gd QUALITY): the pixel size (loop 2b: "step" whole
@@ -816,7 +532,6 @@ var quality_choice := Tiers.AUTO
 var _sv_aniso := Viewport.ANISOTROPY_4X
 var auto_quality := Tiers.HIGH
 var model_name := ""
-var _flag_model := ""
 # --- Loop G1b: Auto's sharp image and its fallback (tiers.gd SHARP_*, governor.gd tally) ---
 ## The back-off state as this launch started it (Tiers.sharp_launch of the saved one), whether
 ## this launch draws the sharp image where the budget binds, what this session has recorded
@@ -826,8 +541,6 @@ var _flag_model := ""
 var auto_image := Tiers.sharp_state()
 var auto_sharp := true
 var _image_verdict := ""
-var _image_write := true
-var _flag_last_session := ""
 var _quality_line := ""
 # --- end loop G1b ---
 ## Loop G1: the frame governor (governor.gd) and the fixed view rule: in a view wider than
@@ -838,42 +551,18 @@ var _quality_line := ""
 ## button's minute hold it; --governor=on|off overrides.
 const WIDE_VIEW := 150.0
 var governor := Governor.new()
-var _flag_governor := -1
-var _governor_on := true
 ## --governor=log: on, and a `governor status:` line every GOVERNOR_LOG_EVERY seconds.
 const GOVERNOR_LOG_EVERY := 5.0
-var _governor_log := false
 var _governor_log_next := 0.0
 var _wide := false
 ## What _apply_extras last set (-1: nothing yet).
 var _small_cast := -1
-## Loop G1 testing aid (--stress=cpu:N|wait:N, --stress-from=S, --stress-to=S): N × 0.5 ms of busy
-## work a frame from S to S2 seconds after the city is up: in _process (`cpu`: the CPU's extras go
-## first) or in the draw phase (`wait`: what waiting for the GPU looks like to the main thread,
-## so the GPU's extras go first).
-var _stress_kind := ""
-var _stress_n := 0
-var _stress_from := 0.0
-var _stress_to := INF
 var _stress_t0 := 0
 ## Loop 2a: the driving controls (drive_controls.gd), the saved settings (settings.gd), the
 ## traffic level, and the command-line values that win over the saved ones (-1: none).
 var controls := Controls.new()
 var settings := Settings.new()
 var traffic_level := Settings.DEFAULT_TRAFFIC
-## -2: no --quality= (Tiers.AUTO is -1).
-var _flag_quality := -2
-var _flag_controls := -1
-## F 2026-11-13: --pads=arrows|slider: Classic's touch controls for the run (settings.gd `pads`).
-var _flag_pads := -1
-## --handling=cruise|sport|grounded (or 0..2): the run drives that profile whatever the settings say.
-var _flag_handling := -1
-## The city objects plan, step 6: --collide=v1|soft|mid|firm, the car's collision answer
-## (collide_rules.gd; the car and traffic get it). v1, today's answer, is the default (no setting yet).
-var _flag_collide := &"v1"
-## Beta values: --lane-assist=on|off overrides Settings → Jazda → Asysta pasa for the run; the
-## lane's direction is looked up every LANE_EVERY s (lane_assist.gd).
-var _flag_lane := -1
 var _lane_t := 0.0
 const LANE_EVERY := 0.1
 ## The city objects plan, step 3 (docs/design/drivable-city-build.md item 1): --contacts=FILE writes
@@ -881,7 +570,6 @@ const LANE_EVERY := 0.1
 ## how hard, on which street; Autopilot's runs too) for tools/drive_report.py. Loaded only then;
 ## a release build reads no flags (release.gd), so it never starts there.
 const CONTACT_LOG := "res://scripts/contact_log.gd"
-var contacts_to := ""
 var _contacts: RefCounted
 var _contact_names := PackedStringArray()
 ## The city objects plan, step 7 (docs/design/drivable-city-build.md item 3): the fences and hedges
@@ -890,7 +578,6 @@ var _contact_names := PackedStringArray()
 const SoftThings := preload("res://scripts/soft_things.gd")
 const CityBarriers := preload("res://scripts/city_barriers.gd")
 var soft_things: SoftThings
-var _no_soft := false
 ## Step 7's feedback: the last smash sound, buzz and bubble (game seconds), so a fence taken
 ## lengthwise is one noise, not twenty.
 var _smash_sound_t := -10.0
@@ -899,24 +586,12 @@ const SMASH_SOUND_GAP := 0.12
 const SMASH_SAY_GAP := 25.0
 const SMASH_SAY_CHANCE := 0.3
 const SMASH_BUBBLE := Color("#9fd36a")
-var _flag_traffic := -1
-var _flag_fixed := false
-var _flag_perf := false
-var open_settings_at_start := false
-## F's asks (2026-10-30): --fullmap opens the full-screen map at the start (screenshots).
-var open_map_at_start := false
+## Also written by a command-line flag (dev_flags.gd).
 var fullmap_span := 0.0
 ## G12 part 2, --quest-pick=N (tests, shots): the full map opens at the start and row N of the
 ## ZADANIA tab shown (the vehicle's) is tapped; a place's pick then closes the map.
+## Also written by a command-line flag (dev_flags.gd).
 var quest_pick_flag := -1
-## --quest-quit=S (F 2026-11-08): S s into the run, open the full map and tap its quit button twice
-## (the quest under way gives up; Autopilot and test runs).
-var quest_quit_flag := -1.0
-var map_jump := Vector2.INF
-## GAMEPLAY_PLAN 0.1, --teleport-test (verify step `teleport`): teleports to each of
-## TELEPORT_TESTS in turn and fails (push_error) if the car lands in a tunnel, off the level of the
-## ground or a deck there, or far from where it was asked; prints "teleport test: OK n/n".
-var teleport_test := false
 ## [x, z, what]: above the four driven tunnels (the bug: a hold over a tunnel put the car on its
 ## floor), by a portal, and plain streets.
 const TELEPORT_TESTS := [
@@ -933,14 +608,6 @@ const TELEPORT_TESTS := [
 	[-387.0, -187.0, "Nowy Świat"],
 	[-700.0, 900.0, "PT-19: the hold that twice left the car in place"],
 ]
-var hold_stick := Vector2.INF
-var hold_pedal := ""
-## Testing aid (--clicks=X:Y:F,...): a mouse click (a touch, with the project's touch
-## emulation) at screen pixel X,Y on frame F, released two frames later.
-var clicks: Array[Vector3i] = []
-## Testing aid (--drag=X:Y:F:DX:DY:F2): a finger down at X,Y on frame F, moved by DX,DY over
-## ten frames, held, and lifted on frame F2 (the stick through the real touch path).
-var drags: Array[PackedInt32Array] = []
 ## The helicopter's stick or keys are held (the follow camera waits, like Point).
 var _heli_held := false
 var _heli_release := 99.0
@@ -949,8 +616,6 @@ var _heli_set_aim := Vector2.ZERO
 var _heli_set_yaw := 0.0
 var _perf_wait := 0.0
 var _clock_minute := -1
-## --sound-check: play every sound once and print the bus meters (sfx.gd).
-var sound_check := false
 var _meters := {"Master": 0.0, "Music": 0.0, "SFX": 0.0, "Ambience": 0.0}
 var _meter_top := {"Master": -200.0, "Music": -200.0, "SFX": -200.0, "Ambience": -200.0}
 ## Loop 10a: the river is off-limits. The car that still gets into the water (a glitch, a gap
@@ -973,15 +638,16 @@ var _last_dry_yaw := 0.0
 ## --drive-into-water=X,Z (testing aid): 0 off, 1 driving at the water with its collision off
 ## (as if it had jumped the edge), 2 collision back on past the edge, 3 splashed, 4 towed.
 var water_test := 0
-var _water_test_at := Vector2.INF
 ## The driving-feel loop, --ram-test (testing aid): 0 off, 1 waiting for a traffic car to pick,
 ## 2 driving into the back of it, 3 done. The car rammed, the clock, when it was hit (s, -1: not
 ## yet) and the unsticks before the test.
+## Also written by a command-line flag (dev_flags.gd).
 var ram_test := 0
 ## First scene items 6-7 (2026-11-02), --first-life: after FIRST_LIFE_S s of play at the start, logs
 ## the start's life and sound (the busy pavements' walkers, the street sites' people, the trams'
 ## greeting bell, the square's bed) as "first life: OK (...)" or its problems (tools/verify.sh
 ## `firstlife`, with --at= and --heading= on the start).
+## Also written by a command-line flag (dev_flags.gd).
 var first_life := false
 var _first_life_t := 0.0
 const FIRST_LIFE_S := 15.0
@@ -990,17 +656,7 @@ var _ram_t := 0.0
 var _ram_hit := -1.0
 var _ram_unsticks := 0
 var _ram_dir := Vector3.ZERO
-## --traffic-overlaps (testing aid): traffic counts its cars' overlapping boxes, printed at the end.
-var _traffic_overlaps := false
-## The traffic loop, --tram-watch=N (testing aid): the car (no collisions, standing still) is put
-## beside tram N, ahead of it, again and again, so the view, the traffic and
-## the tram's cars come with that tram through the city (with --traffic-overlaps: how often a
-## tram and a car touch). -1: off.
-var tram_watch := -1
 var _tram_watch_at := Vector2.INF
-## Loop 2c, --lineup (testing aid): every vehicle model standing round the car, no traffic, for
-## close-up screenshots (with --size=25 or so).
-var lineup := false
 ## The river's outlines (water bodies of 20,000 m² or more, as tools/bake_water.py counts it):
 ## which tow lines fit.
 var _rivers: Array[PackedVector2Array] = []
@@ -1016,7 +672,7 @@ var _rivers: Array[PackedVector2Array] = []
 ## 90 km/h, then braking to a stop).
 const CAM_LOG_EVERY := 15
 const CAM_TEST_SETTLE := 1.0
-var cam_log := false
+## Also written by a command-line flag (dev_flags.gd).
 var cam_test := ""
 var _cam_t := 0.0
 var _cam_phase := 0
@@ -1028,10 +684,11 @@ var _cam_turn_max := 0.0
 
 func _ready() -> void:
 	_pause = PauseReasons.new(get_tree())
-	_parse_args()
+	flags.m = self
+	flags.parse()
 	_trap_start()  # the error trap (TD-14): before anything else can fail
 	Gamepad.install()  # the gamepad loop: the pad's stick and trigger actions
-	_parse_stream_args()  # loop 3c (the sectors block at the end of this file)
+	flags.parse_stream()  # loop 3c (the sectors block at the end of this file)
 	_load_settings()
 	# The audio buses first: the radio plays on Music from the title screen on.
 	Sfx.setup_buses()
@@ -1039,7 +696,7 @@ func _ready() -> void:
 	# The title screen (or, for test runs, a plain loading card) covers the second
 	# or two the city takes to build; the radio already plays.
 	var loading: CanvasLayer = null
-	if show_title:
+	if flags.show_title:
 		# The boot scene's title is already on screen in a player's launch (boot.gd, TD-15: it
 		# stays under the root); a run with flags makes its own, as before.
 		title = Boot.take_title()
@@ -1049,7 +706,7 @@ func _ready() -> void:
 			title = Title.new()
 			# The loading bar: the title runs while the tree is paused for the build (_load_step).
 			title.process_mode = Node.PROCESS_MODE_ALWAYS
-		title.touch_off = no_touch  # desktop: --no-touch
+		title.touch_off = flags.no_touch  # desktop: --no-touch
 		title.language_chosen.connect(_on_language_chosen)
 		if fresh:
 			add_child(title)
@@ -1066,29 +723,29 @@ func _ready() -> void:
 	# Loop 2a: the radio keeps playing under the settings panel (the game is paused).
 	radio.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(radio)
-	radio.log_on = radio_log
+	radio.log_on = flags.radio_log
 	wallet = Wallet.new()
-	wallet.persistent = not no_save
+	wallet.persistent = not flags.no_save
 	add_child(wallet)
-	if reset_save:
+	if flags.reset_save:
 		wallet.reset()
-	if save_note_flag != "":
-		wallet.load_note = save_note_flag
+	if flags.save_note_flag != "":
+		wallet.load_note = flags.save_note_flag
 	# Loop MW-5: PÓŁNOC FM's locked tracks read the save; chapters finished before this loop
 	# open their tracks once, quietly. --station= by name; --radio= now reaches every station.
 	radio.wallet = wallet
-	radio.unlock_all = unlock_flag == "all"
+	radio.unlock_all = flags.unlock_flag == "all"
 	radio.sync_chapters()
-	radio.picked = radio_picked
-	var start_index := mini(start_station, radio.stations.size()) - 1
-	if station_flag != "":
-		start_index = radio.station_index(station_flag)
+	radio.picked = flags.radio_picked
+	var start_index := mini(flags.start_station, radio.stations.size()) - 1
+	if flags.station_flag != "":
+		start_index = radio.station_index(flags.station_flag)
 		if start_index < 0:
-			push_warning("--station=%s: no such station in radio.json" % station_flag)
+			push_warning("--station=%s: no such station in radio.json" % flags.station_flag)
 	# First scene item 7: a first launch hears the song from its first bar.
-	radio.from_top = show_title and First10.guide_due(wallet)
+	radio.from_top = flags.show_title and First10.guide_due(wallet)
 	radio.tune(start_index, true)
-	print("save: %s (%s)" % [wallet.summary(), ProjectSettings.globalize_path(Wallet.PATH) if not no_save else "not saved"])
+	print("save: %s (%s)" % [wallet.summary(), ProjectSettings.globalize_path(Wallet.PATH) if not flags.no_save else "not saved"])
 	_resume_start()  # save and resume: the car where the last session left it
 	_start_preloads()  # the loading bar: the big map files load on threads under the title
 	await get_tree().process_frame
@@ -1097,12 +754,12 @@ func _ready() -> void:
 	await _wait_preloads()
 	_place_start()  # loop MW-1: --place=<id>, the sectors round the place
 	_syrenka_start()  # loop 3h slice 2: --syrenka=<id|n>
-	if trzy_mosty_flag:
+	if flags.trzy_mosty_flag:
 		# Loop 3h slice 3: --trzy-mosty[=N]: the city built round the start (or bridge N) first.
-		var hint: Vector2 = TrzyMosty.START_HINT if trzy_mosty_bridge <= 0 else TrzyMosty.BRIDGES[trzy_mosty_bridge - 1]["hint"]
+		var hint: Vector2 = TrzyMosty.START_HINT if flags.trzy_mosty_bridge <= 0 else TrzyMosty.BRIDGES[flags.trzy_mosty_bridge - 1]["hint"]
 		start_at = Vector3(hint.x, 0.0, hint.y)
 	_club_start()  # loop MW-3: --club=<id>, the same
-	if garage_flag:
+	if flags.garage_flag:
 		start_at = Vector3(Garage.SPOT.x, 0.0, Garage.SPOT.y)  # the garage loop: --garage
 	_guide_start()  # the first-10 polish: a guided run starts facing the first stand
 	var no_map := _missing_map()
@@ -1131,7 +788,7 @@ func _ready() -> void:
 		dialogue.host_on = false
 		title.dismissed.connect(_on_title_dismissed)
 		title.new_game.connect(_on_new_game)
-		title.can_resume = (wallet.has_progress() and wallet.persistent and not wallet.newer) or title_choice in ["ask", "new"] or not resume_flag.is_empty()
+		title.can_resume = (wallet.has_progress() and wallet.persistent and not wallet.newer) or flags.title_choice in ["ask", "new"] or not flags.resume_flag.is_empty()
 		title.resume_line = _resume_line()
 		title.auto_go = _new_game_pending
 		_new_game_pending = false
@@ -1192,7 +849,7 @@ var _preloaded: Array[Resource] = []
 
 
 func _start_preloads() -> void:
-	if title == null or monolithic or not ((prebuilt or not OS.has_feature("editor")) and solo_site == ""):
+	if title == null or flags.monolithic or not ((flags.prebuilt or not OS.has_feature("editor")) and flags.solo_site == ""):
 		return
 	for path in [SectorStreamer.INDEX_SCENE, SectorStreamer.PROXY_SCENE]:
 		if ResourceLoader.exists(path) and ResourceLoader.load_threaded_request(path, "", true) == OK:
@@ -1267,10 +924,10 @@ func _title_frame() -> void:
 				"" if streamer == null or streamer.idle() else " (not all: the wait's limit)"])
 		_title_wait_t = -1
 		title.set_ready()
-		if title != null and title_choice != "":
+		if title != null and flags.title_choice != "":
 			# Save and resume: --title-choice= picks for the player (continue, new, or ask: the question up).
-			print("title: --title-choice=%s" % title_choice)
-			match title_choice:
+			print("title: --title-choice=%s" % flags.title_choice)
+			match flags.title_choice:
 				"new":
 					title.choose("new")
 					title.choose("yes")
@@ -1291,18 +948,16 @@ func _title_frame() -> void:
 ## goes to the background or the window closes; never by test runs or --nosave.
 const REMEMBER_EVERY := 5.0
 static var _new_game_pending := false
-var title_choice := ""
-var resume_flag: Array = []
 var _resume_yaw := INF
 var _remember_on := false
 var _remember_t := 0.0
 
 
 func _resume_start() -> void:
-	_remember_on = show_title and wallet.persistent and not wallet.newer
-	if not resume_flag.is_empty():
-		wallet.session = {"x": resume_flag[0].x, "z": resume_flag[0].z, "yaw": resume_flag[1], "tunnel": 0, "at": 0}
-	if not show_title or start_at != Vector3.INF:
+	_remember_on = flags.show_title and wallet.persistent and not wallet.newer
+	if not flags.resume_flag.is_empty():
+		wallet.session = {"x": flags.resume_flag[0].x, "z": flags.resume_flag[0].z, "yaw": flags.resume_flag[1], "tunnel": 0, "at": 0}
+	if not flags.show_title or start_at != Vector3.INF:
 		return
 	var spot := wallet.resume_spot()
 	if spot.is_empty():
@@ -1375,7 +1030,7 @@ const SAVE_NOTE_COLOUR := Color(1.0, 0.72, 0.3)
 ## Safer saves (TD-8): a save that was damaged at launch says so once the city shows. An alert, so
 ## it shows whatever else is on screen; it waits for the opening flyover (the HUD is hidden then).
 func _save_note() -> void:
-	if not SAVE_NOTES.has(wallet.load_note) or hide_hud:
+	if not SAVE_NOTES.has(wallet.load_note) or flags.hide_hud:
 		return
 	# Two frames on, as the fallback's toast: the first frame after the build would use up its seconds.
 	await get_tree().process_frame
@@ -1402,7 +1057,7 @@ func _trap_start() -> void:
 		_trap = ErrorTrap.make() as ErrorTrap
 		if _trap == null:
 			return
-		_trap.start(ErrorTrap.session_path(not no_save))
+		_trap.start(ErrorTrap.session_path(not flags.no_save))
 		OS.add_logger(_trap)
 	if _trap.last_crashed:
 		print("trap: the last session closed by itself (%d of its lines kept)" % _trap.last_lines.size())
@@ -1413,7 +1068,7 @@ func _trap_start() -> void:
 func _trap_end() -> void:
 	if _trap == null:
 		return
-	if report_flag:
+	if flags.report_flag:
 		print(_trap.report(_report_header()))
 	_trap.stop()
 	if not _new_game_pending:
@@ -1461,7 +1116,7 @@ func _copy_report() -> void:
 ## knows it (the session file is a debug build's; testers' builds show nothing), or --crash-note:
 ## on a computer a closed terminal or a stopped run reads the same and is no news.
 func _crash_note() -> void:
-	if _trap == null or hide_hud or not (crash_note_flag or (_trap.last_crashed and OS.has_feature("mobile"))):
+	if _trap == null or flags.hide_hud or not (flags.crash_note_flag or (_trap.last_crashed and OS.has_feature("mobile"))):
 		return
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -1490,7 +1145,7 @@ func _on_title_dismissed() -> void:
 		# The verify step `boot-run` waits for this line: the boot scene's title lasted to here.
 		print("boot: the boot scene's title stayed up until the game began")
 		_title_from_boot = false
-	hud.visible = not hide_hud
+	hud.visible = not flags.hide_hud
 	dialogue.host_on = true
 	title = null
 	radio.now_playing()
@@ -1498,7 +1153,7 @@ func _on_title_dismissed() -> void:
 	_fallback_toast()
 	_save_note()
 	_crash_note()
-	if cinematic_flyin:
+	if flags.cinematic_flyin:
 		_fly_in()
 	if first10 != null and not _opening_on:
 		first10.begin()  # loop 3h slice 4: the guide's clock starts with the first tap
@@ -1512,15 +1167,15 @@ var _opening_on := false
 var _opening_audio: Node
 
 func _opening_due() -> bool:
-	if _flag_cinematic == "opening":
+	if flags._flag_cinematic == "opening":
 		return true
-	return cinematic_flyin and not flying and _flag_cinematic == "" and first10 != null and first10.guide
+	return flags.cinematic_flyin and not flying and flags._flag_cinematic == "" and first10 != null and first10.guide
 
 
 ## Camera loop: the fly-in from over the city down to the car (camera_shots.gd), or the opening
 ## flyover on a first launch.
 func _fly_in() -> void:
-	if _flag_cinematic == "event":
+	if flags._flag_cinematic == "event":
 		_event_take()
 		return
 	var vehicle: Node3D = heli if flying else car
@@ -1558,14 +1213,14 @@ func _event_take() -> void:
 			last[0] = focus
 			streamer.finish_view(focus, cam)
 	var ground := func(x: float, z: float) -> float: return map.ground_height(x, z)
-	moments.event(ground, tick, PackedStringArray(["11 LISTOPADA", "Around Warsaw · za darmo"]), event_t)
+	moments.event(ground, tick, PackedStringArray(["11 LISTOPADA", "Around Warsaw · za darmo"]), flags.event_t)
 
 
 func _on_opening_ended(_what: String) -> void:
 	_opening_on = false
 	if _opening_audio != null:
 		_opening_audio.flight_ended()
-	hud.visible = not hide_hud
+	hud.visible = not flags.hide_hud
 	if first10 != null:
 		first10.begin()
 
@@ -1660,14 +1315,14 @@ func _build_world() -> void:
 
 	building_mat = ShaderMaterial.new()
 	building_mat.shader = GpuQuirks.building_shader()  # Adreno 6xx: its lite copy (gpu_quirks.gd)
-	if solo_site != "" and solo_look != "lit":
+	if flags.solo_site != "" and flags.solo_look != "lit":
 		building_mat.shader = load("res://shaders/solo.gdshader")
-		building_mat.set_shader_parameter("look", 1 if solo_look == "sil" else 0)
+		building_mat.set_shader_parameter("look", 1 if flags.solo_look == "sil" else 0)
 	var flat_mat := ShaderMaterial.new()
 	flat_mat.shader = load("res://shaders/ground.gdshader")
-	flat_mat.set_shader_parameter("debug_ao", debug_ao)
+	flat_mat.set_shader_parameter("debug_ao", flags.debug_ao)
 	_ground_mat = flat_mat
-	flat_mat.set_shader_parameter("ao_strength", 0.0 if no_ao else 1.0)
+	flat_mat.set_shader_parameter("ao_strength", 0.0 if flags.no_ao else 1.0)
 
 	var data: Dictionary
 	# Loop 3c: the city in 512 m sectors, streamed round the camera (sector_streamer.gd): the
@@ -1676,14 +1331,14 @@ func _build_world() -> void:
 	# centrum.json, as before loop 3c (the pixel diff's reference; city.scn is gone).
 	_load_ms = [Time.get_ticks_msec()]
 	_build_soft_things(world)
-	if not monolithic:
+	if not flags.monolithic:
 		data = _open_streamed_city(world, flat_mat)
 		flat_mat = map.flat_material
-		if _flag_no_map_edge:
+		if flags._flag_no_map_edge:
 			var edge := map.get_node_or_null("MapEdge")
 			if edge != null:
 				edge.free()
-		if _flag_no_edge_roadworks:
+		if flags._flag_no_edge_roadworks:
 			var works := map.get_node_or_null("EdgeRoadworks")
 			if works != null:
 				works.free()
@@ -1708,9 +1363,9 @@ func _build_world() -> void:
 	car.ground_height = map.drive_height
 	car.set_sensitivity(settings.sensitivity)
 	# G4: Cruise by default, Sport or Grounded from Settings → Jazda (--handling= for a run).
-	car.set_handling(settings.handling if _flag_handling < 0 else _flag_handling)
-	car.collide = _flag_collide
-	car.lane_assist = settings.lane_assist if _flag_lane < 0 else _flag_lane == 1
+	car.set_handling(settings.handling if flags._flag_handling < 0 else flags._flag_handling)
+	car.collide = _collide_preset()
+	car.lane_assist = settings.lane_assist if flags._flag_lane < 0 else flags._flag_lane == 1
 	world.add_child(car)
 	_xray = TunnelXray.new()
 	world.add_child(_xray)
@@ -1730,7 +1385,7 @@ func _build_world() -> void:
 		car.global_position.y = map.ground_height(start_at.x, start_at.z)
 		if start_in_tunnel and not is_nan(map.tunnel_floor_under(start_at.x, start_at.z)):
 			car.global_position.y = map.tunnel_floor_under(start_at.x, start_at.z)
-		elif start_under:
+		elif flags.start_under:
 			car.global_position.y = map.drive_height(start_at.x, start_at.z, map.terrain_height(start_at.x, start_at.z))
 	if start_heading != INF:
 		car.rotation.y = -deg_to_rad(start_heading)
@@ -1777,9 +1432,9 @@ func _build_world() -> void:
 
 	tod = TimeOfDay.new()
 	add_child(tod)
-	if live_clock != "":
-		tod.clock_start = TimeOfDay.warsaw_to_utc(live_clock, live_date)
-	tod.setup(env, sun, post_mat, sun_pitch)
+	if flags.live_clock != "":
+		tod.clock_start = TimeOfDay.warsaw_to_utc(flags.live_clock, flags.live_date)
+	tod.setup(env, sun, post_mat, flags.sun_pitch)
 	await LoadYield.tick("time of day")
 	tod.lights_switched.connect(_show_night_nodes)
 	weather = Weather.new()
@@ -1793,9 +1448,9 @@ func _build_world() -> void:
 	add_child(hud)
 	await LoadYield.tick("hud")
 	hud.set_scheme(controls.scheme)
-	hud.set_arrows_layout((_flag_pads if _flag_pads >= 0 else settings.pads) == Settings.PADS_ARROWS)  # F 2026-11-13
+	hud.set_arrows_layout((flags._flag_pads if flags._flag_pads >= 0 else settings.pads) == Settings.PADS_ARROWS)  # F 2026-11-13
 	hud.set_left_handed(Access.left_handed)  # accessibility (2026-11-01)
-	hud.set_touch_off(no_touch)  # desktop: --no-touch
+	hud.set_touch_off(flags.no_touch)  # desktop: --no-touch
 	hud.settings_pressed.connect(_open_settings)
 	hud.context_pressed.connect(_on_context_pressed)  # the stuck offer's tow (2026-11-03)
 	hud.settings_panel.changed.connect(_on_setting)
@@ -1814,7 +1469,7 @@ func _build_world() -> void:
 	_on_station_changed(radio.station, radio.stations[radio.station] if radio.station >= 0 else {})
 	radio.ticker.connect(hud.ticker)
 	hud.set_radio_name(radio.label())
-	hud.visible = not hide_hud and title == null  # the loading bar: not over the title between the build's steps
+	hud.visible = not flags.hide_hud and title == null  # the loading bar: not over the title between the build's steps
 	hud.rotate_pressed.connect(func(d: int):
 		if not follow:
 			_rotate_camera(d))
@@ -1828,7 +1483,7 @@ func _build_world() -> void:
 	_set_flying(false)
 
 	missions = Missions.new()
-	missions.line_split = start_mission == 0  # G12: calls follow the vehicle (quest_lines.gd)
+	missions.line_split = flags.start_mission == 0  # G12: calls follow the vehicle (quest_lines.gd)
 	add_child(missions)
 	await missions.setup(map, data, world, hud)
 	await LoadYield.tick("missions")
@@ -1857,7 +1512,7 @@ func _build_world() -> void:
 	hud.add_speech(bubbles)  # above the target pointer, below the panels (PT-10)
 	bubbles.process_mode = Node.PROCESS_MODE_PAUSABLE
 	dialogue = Dialogue.new()
-	dialogue.host_first = host_in
+	dialogue.host_first = flags.host_in
 	dialogue.bubbles = bubbles
 	dialogue.radio = radio
 	add_child(dialogue)
@@ -1872,21 +1527,21 @@ func _build_world() -> void:
 			money_pop.pop(gained)
 			if sfx != null:
 				sfx.coin())
-	if pop_flag > 0:
-		get_tree().create_timer(2.0).timeout.connect(func() -> void: wallet.pay(pop_flag))
+	if flags.pop_flag > 0:
+		get_tree().create_timer(2.0).timeout.connect(func() -> void: wallet.pay(flags.pop_flag))
 	await _load_mark(0.26)
 	if data.has("graph"):
 		graph = LaneGraph.new(data["graph"], map)
-	if contacts_to != "":
+	if flags.contacts_to != "":
 		_start_contact_log(data)
 	_start_soft_things()
-	if collider_view:
+	if flags.collider_view:
 		world.add_child((load(COLLIDER_VIEW) as GDScript).new())
-	if debug_roads:
+	if flags.debug_roads:
 		var dr: Node3D = load("res://scripts/debug_roads.gd").new()
 		world.add_child(dr)
 		dr.setup(map, graph, _vehicle_position, data)
-	if not no_traffic and graph != null:
+	if not flags.no_traffic and graph != null:
 		await _build_life(data, world)
 	await _load_mark(0.53)
 	if graph != null:
@@ -1910,51 +1565,51 @@ func _build_world() -> void:
 	radio.track_unlocked.connect(func(_n: int, track: Dictionary, _why: String) -> void:
 		var t := Radio.unlock_toast(String(track["title"]))
 		hud.toast(t[0], t[1]))
-	if unlock_flag != "" and unlock_flag != "all":
-		for n in unlock_flag.split(",", false):
+	if flags.unlock_flag != "" and flags.unlock_flag != "all":
+		for n in flags.unlock_flag.split(",", false):
 			radio.unlock_track(int(n), "flag")
-	if lineup:
+	if flags.lineup:
 		_build_lineup(world)
-	if start_flying:
+	if flags.start_flying:
 		_take_off(Heli.CRUISE)
-		if _start_alt > 0.0:
+		if flags._start_alt > 0.0:
 			var p := heli.global_position
-			heli.place(Vector3(p.x, map.ground_height(p.x, p.z) + _start_alt, p.z), heli.rotation.y, _start_alt)
+			heli.place(Vector3(p.x, map.ground_height(p.x, p.z) + flags._start_alt, p.z), heli.rotation.y, flags._start_alt)
 	# Loop 2e: no call card at the start (docs/DEMO.md 6.1): calls come in during play.
-	if start_mission > 0:
-		missions.start(start_mission)
-	elif demo or start_race > 0 or start_rival > 0 or trzy_mosty_flag or bench or start_kebab >= 0 or start_sloik >= 0 or free_roam or roundup_flag:
+	if flags.start_mission > 0:
+		missions.start(flags.start_mission)
+	elif flags.demo or flags.start_race > 0 or flags.start_rival > 0 or flags.trzy_mosty_flag or flags.bench or flags.start_kebab >= 0 or flags.start_sloik >= 0 or flags.free_roam or flags.roundup_flag:
 		missions.close()
 	else:
-		missions.quiet_start(call_in)
-	if jobs != null and start_kebab >= 0:
-		jobs.courier.force = courier_race  # loop jobs-2
-		if courier_v > 0.0:
-			jobs.courier.speed = courier_v
+		missions.quiet_start(flags.call_in)
+	if jobs != null and flags.start_kebab >= 0:
+		jobs.courier.force = flags.courier_race  # loop jobs-2
+		if flags.courier_v > 0.0:
+			jobs.courier.speed = flags.courier_v
 			jobs.courier.fixed_speed = true  # loop couriers
-		jobs.start_kebab(start_kebab)
+		jobs.start_kebab(flags.start_kebab)
 		cam_focus = car.global_position
-	elif jobs != null and start_sloik >= 0:
-		jobs.start_sloik(start_sloik, start_sloik_station)
+	elif jobs != null and flags.start_sloik >= 0:
+		jobs.start_sloik(flags.start_sloik, flags.start_sloik_station)
 		cam_focus = car.global_position
-	elif rides != null and start_ride >= 0:
+	elif rides != null and flags.start_ride >= 0:
 		missions.close()  # the request card comes first (rides.gd put the call off itself before M1)
-		rides.start_ride(start_ride)  # loop 2d-1
+		rides.start_ride(flags.start_ride)  # loop 2d-1
 		cam_focus = car.global_position
-	if rivals != null and (start_race > 0 or start_rival > 0):
-		var i := (maxi(start_race, start_rival) - 1) % Rivals.RIVALS.size()
+	if rivals != null and (flags.start_race > 0 or flags.start_rival > 0):
+		var i := (maxi(flags.start_race, flags.start_rival) - 1) % Rivals.RIVALS.size()
 		rivals.put_ahead(i)
 		cam_focus = car.global_position
-		if start_race > 0:
+		if flags.start_race > 0:
 			rivals.start_race(i)
-		elif autopilot:
+		elif flags.autopilot:
 			rivals.tail = i
-	elif rivals != null and trzy_mosty_flag:
+	elif rivals != null and flags.trzy_mosty_flag:
 		# Loop 3h slice 3: --trzy-mosty: the final at once from its start (the run is at night).
-		if rivals.start_final_now(trzy_mosty_bridge):
+		if rivals.start_final_now(flags.trzy_mosty_bridge):
 			cam_focus = car.global_position
 
-	if _water_test_at != Vector2.INF:
+	if flags._water_test_at != Vector2.INF:
 		_start_water_test()
 	if cam_test != "":
 		_start_cam_test()
@@ -2022,20 +1677,20 @@ func _build_world() -> void:
 	get_tree().root.size_changed.connect(_apply_style)
 	_apply_style()
 	_show_night_nodes(false)
-	tod.set_mode(start_time, true)
-	if solo_site != "" and solo_look != "lit":
-		tod.plain_background = Color("#f0f0f0") if solo_look == "sil" else Color("#8a8f96")
+	tod.set_mode(flags.start_time, true)
+	if flags.solo_site != "" and flags.solo_look != "lit":
+		tod.plain_background = Color("#f0f0f0") if flags.solo_look == "sil" else Color("#8a8f96")
 		tod.refresh()
 	# Loop MW-3: --clock=HH:MM with a fixed look (--time=night --clock=01:00) starts its clock there.
-	if live_clock != "" and start_time != TimeOfDay.LIVE:
-		var hm := live_clock.split(":")
+	if flags.live_clock != "" and flags.start_time != TimeOfDay.LIVE:
+		var hm := flags.live_clock.split(":")
 		tod.fixed_start = clampf(float(hm[0]) + (float(hm[1]) / 60.0 if hm.size() > 1 else 0.0), 0.0, 23.99)
 	# Loop MW-5: PÓŁNOC FM reads the game clock; the radio follows it until the player picks.
 	radio.clock = func() -> Array:
 		var c := tod.local_clock()
 		return [TimeOfDay.NAMES[tod.mode], c["hour"]]
 	radio.check_air(true)
-	weather.set_state(start_weather, true)
+	weather.set_state(flags.start_weather, true)
 	_set_vhs(vhs)
 	_set_perf(show_perf)
 	# Camera loop: a following camera starts behind the vehicle (it used to start on the 45°
@@ -2043,33 +1698,33 @@ func _build_world() -> void:
 	# Screenshots, the bench and the probe keep the 45° start: their views are the reference
 	# pictures (tools/shots.sh) and the performance budgets' (--cinematic screenshots start as a
 	# normal launch does).
-	if follow and not _flag_yaw and (shots.is_empty() or _flag_cinematic != "") and not bench and not probe:
+	if follow and not flags._flag_yaw and (shots.is_empty() or flags._flag_cinematic != "") and not flags.bench and not flags.probe:
 		var start_yaw := rad_to_deg((heli if flying else car).rotation.y)
 		cam_yaw = start_yaw
 		cam_yaw_target = start_yaw
 	fcam.reset_lead()
 	_update_camera(1.0)
-	if cinematic_flyin and title == null and cam_test == "":
+	if flags.cinematic_flyin and title == null and cam_test == "":
 		_fly_in()
 	# Loop 2a: the frame count and screenshots go on while the game is paused (settings).
 	get_tree().process_frame.connect(_paused_frame)
-	if hold_stick != Vector2.INF:
+	if flags.hold_stick != Vector2.INF:
 		var screen := get_viewport().get_visible_rect().size
-		hud.hold_stick(Vector2(screen.x * 0.17, screen.y * 0.7), hold_stick)
-	if hold_pedal != "":
-		hud.hold_pedal(hold_pedal)
-	if open_settings_at_start:
-		hud.settings_panel.set_tab(settings_tab)
-		if settings_tab == 4:
-			hud.settings_panel.show_notebook(notebook_open)
+		hud.hold_stick(Vector2(screen.x * 0.17, screen.y * 0.7), flags.hold_stick)
+	if flags.hold_pedal != "":
+		hud.hold_pedal(flags.hold_pedal)
+	if flags.open_settings_at_start:
+		hud.settings_panel.set_tab(flags.settings_tab)
+		if flags.settings_tab == 4:
+			hud.settings_panel.show_notebook(flags.notebook_open)
 		_open_settings.call_deferred()
-	elif open_map_at_start:
+	elif flags.open_map_at_start:
 		_open_full_map.call_deferred()
-	if map_jump != Vector2.INF:
+	if flags.map_jump != Vector2.INF:
 		var why := _teleport_refusal()
 		print("teleport: --map-jump refusal: %s" % ("none" if why.is_empty() else why[1]))
-		_teleport_from_map.call_deferred(map_jump)
-	if teleport_test:
+		_teleport_from_map.call_deferred(flags.map_jump)
+	if flags.teleport_test:
 		_teleport_test.call_deferred()
 	_stats = _make_stats()
 	# Loop 3g-1: the police's script time among the bench's lines.
@@ -2078,7 +1733,7 @@ func _build_world() -> void:
 	_stats.hook(get_tree())
 	# Loop G1, --stress=wait:N: after bench.gd's own frame_pre_draw, so it counts as "draw".
 	_stress_t0 = Time.get_ticks_msec()
-	if _stress_kind == "wait":
+	if flags._stress_kind == "wait":
 		RenderingServer.frame_pre_draw.connect(_stress_wait)
 	_apply_experiments()
 	_apply_fps()
@@ -2086,14 +1741,14 @@ func _build_world() -> void:
 	if title != null:
 		print("loading bar: the build's steps %s ms" % [_load_ms.slice(1)])
 	_bench_t0 = Time.get_ticks_msec()
-	if bench or probe:
+	if flags.bench or flags.probe:
 		# The macOS driver may keep vsync on anyway (the frame rate then tops out at
 		# the display's refresh), so the bench also prints what the scripts cost and
 		# the GPU and render-thread time of the 3D view.
 		DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
 		Engine.max_fps = 0
 		RenderingServer.viewport_set_measure_render_time(sv.get_viewport_rid(), true)
-		if probe:
+		if flags.probe:
 			_bench_settle = 240
 
 
@@ -2102,9 +1757,9 @@ func _build_world() -> void:
 func _build_life(data: Dictionary, world: Node3D) -> void:
 	var t0 := Time.get_ticks_msec()
 	traffic = Traffic.new()
-	traffic.race_debug = race_debug
-	traffic.collide = _flag_collide
-	traffic.count_overlaps = _traffic_overlaps
+	traffic.race_debug = flags.race_debug
+	traffic.collide = _collide_preset()
+	traffic.count_overlaps = flags._traffic_overlaps
 	world.add_child(traffic)
 	await traffic.setup(graph, map, cam, data)
 	await LoadYield.tick("traffic.setup")
@@ -2123,13 +1778,13 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	await LoadYield.tick("trains.setup")
 	# The railway audit (2026-11-07): the trains' rumble, horn and platform gong.
 	trains.sfx = sfx
-	if train_at != Vector2.INF:
-		trains.place_near(train_at, train_kind)
+	if flags.train_at != Vector2.INF:
+		trains.place_near(flags.train_at, flags.train_kind)
 	walkers = Pedestrians.new()
 	world.add_child(walkers)
 	await walkers.setup(map, cam, traffic, data)
 	await LoadYield.tick("walkers.setup")
-	if solo_site != "":
+	if flags.solo_site != "":
 		walkers.visible = false  # a landmark alone (--solo): no people either
 	# First scene item 6: busier pavements on Marszałkowska by the start.
 	var busy := walkers.set_busy(Crowds.FirstScene.FRAME_O, Crowds.FirstScene.FRAME_S, Crowds.FirstScene.FRAME_T,
@@ -2143,9 +1798,9 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	traffic.blocked_by_player.connect(dialogue.on_driver_blocked)
 	rivals = Rivals.new()
 	add_child(rivals)
-	rivals.autopilot = autopilot
-	if ghost_pace > 0.0:
-		rivals.ghost_pace = ghost_pace
+	rivals.autopilot = flags.autopilot
+	if flags.ghost_pace > 0.0:
+		rivals.ghost_pace = flags.ghost_pace
 	rivals.wallet = wallet
 	rivals.tod = tod  # loop 3h slice 3: the final waits for the night
 	rivals.graph = graph
@@ -2159,10 +1814,10 @@ func _build_life(data: Dictionary, world: Node3D) -> void:
 	# rescue and the cards stay in rivals.gd (`world_free` would refuse the guide's first race).
 	activities.add(rivals, func() -> bool: return true)
 	await LoadYield.tick("rivals.setup")
-	if ladder_flag >= 0 or trzy_mosty_flag:
-		rivals.preset_ladder(ladder_flag if ladder_flag >= 0 else Ladder.RUNGS.size())  # loop 3h slice 3
+	if flags.ladder_flag >= 0 or flags.trzy_mosty_flag:
+		rivals.preset_ladder(flags.ladder_flag if flags.ladder_flag >= 0 else Ladder.RUNGS.size())  # loop 3h slice 3
 	print("living city: %d lanes, %d trams in %d ms" % [graph.lane_count, trams.trams.size(), Time.get_ticks_msec() - t0])
-	if bench:
+	if flags.bench:
 		_clear_bench_result()
 		var p := Vector2(car.global_position.x, car.global_position.z)
 		var hit := graph.snap(p, 60.0, Vector2(-sin(car.rotation.y), -cos(car.rotation.y)), true)
@@ -2187,9 +1842,9 @@ func _build_places(data: Dictionary, world: Node3D) -> void:
 		"clock": tod.local_clock,
 		"focus": func() -> Vector3: return cam_focus,
 		"vehicle": vehicle_now,
-		"logs": {"tamka": tamka_log},
+		"logs": {"tamka": flags.tamka_log},
 	}
-	await places.build(map, ctx, solo_site)
+	await places.build(map, ctx, flags.solo_site)
 
 
 ## First scene (docs/design/first-scene.md item 6): a start on Marszałkowska between
@@ -2263,14 +1918,14 @@ func _build_sound(data: Dictionary, world: Node3D) -> void:
 	if notes != null and notes.ready_ok:
 		city_sounds = CitySounds.new()
 		city_sounds.name = "CitySounds"
-		city_sounds.log_on = radio_log
+		city_sounds.log_on = flags.radio_log
 		city_sounds.radio = radio
 		city_sounds.sfx = sfx
 		world.add_child(city_sounds)
 		city_sounds.setup(notes.places, func(x: float, z: float) -> float: return map.ground_height(x, z))
 		city_sounds.clock = tod.local_clock
 		city_sounds.ear = func() -> Vector3: return cam_focus
-	if sound_check:
+	if flags.sound_check:
 		missions.close()
 		sfx.sound_check()
 
@@ -2300,7 +1955,7 @@ func _set_quality(choice: int) -> void:
 	if wellness != null:
 		wellness.amount = _crowd_scale()
 	if life != null:
-		life.amount = float(life_flag) * (0.5 if quality == Tiers.LOW else 1.0)
+		life.amount = float(flags.life_flag) * (0.5 if quality == Tiers.LOW else 1.0)
 	RenderingServer.directional_shadow_atlas_set_size(qs["shadow_size"], true)
 	_apply_experimental()
 	tod.refresh()
@@ -2380,7 +2035,7 @@ func _govern() -> void:
 		print("governor: view %s (%.0f m%s) · small things' sun shadows %s" % ["wide" if wide else "back in",
 				cam.size, ", flying" if flying else "", "off" if wide else "as the quality sets them"])
 		_apply_extras()
-	governor.held = not _governor_on or title != null or _phone_bench or ((bench or probe) and _flag_governor != 1)
+	governor.held = not flags._governor_on or title != null or _phone_bench or ((flags.bench or flags.probe) and flags._flag_governor != 1)
 	governor.frame(_stats.last_ms, _stats.last_cpu)
 	var now := _clock_s()
 	var line := governor.tick(now, _wide)
@@ -2394,10 +2049,10 @@ func _govern() -> void:
 			or (_image_verdict == "" and governor.calm())):
 		_image_session_verdict()
 	if governor.minute_line != "":
-		if _governor_log:
+		if flags._governor_log:
 			print("governor %s · at %.1f s" % [governor.minute_line, now - _stress_t0 / 1000.0])
 		governor.minute_line = ""
-	if _governor_log and now >= _governor_log_next:
+	if flags._governor_log and now >= _governor_log_next:
 		_governor_log_next = now + GOVERNOR_LOG_EVERY
 		print("governor status: %s · %.1f%% of refreshes missed in the last %.0f s · at %.1f s%s%s%s" % [governor.state(),
 				governor.late_share * 100.0, Governor.WINDOW, now - _stress_t0 / 1000.0, " · held" if governor.held else "",
@@ -2408,7 +2063,7 @@ func _govern() -> void:
 ## "sharp" or "fallback" where Auto's rule decides the image (Auto, the level's budget binds at
 ## this screen and style, no --lines=), else "".
 func _image_mode() -> String:
-	if quality_choice != Tiers.AUTO or lines_override > 0:
+	if quality_choice != Tiers.AUTO or flags.lines_override > 0:
 		return ""
 	var screen := get_viewport().get_visible_rect().size
 	if not Tiers.budget_binds(screen, STYLES[style_index]["lines"], quality):
@@ -2430,7 +2085,7 @@ func _fallback_toast() -> void:
 	hud.toast("Obraz prostszy, żeby było płynnie", "A coarser picture for a smoother ride · Settings → Obraz")
 	print("quality: the fallback's toast shown")
 	auto_image["told"] = true
-	if _image_write and settings.persistent:
+	if flags._image_write and settings.persistent:
 		settings.auto_image["told"] = true
 		settings.save()
 
@@ -2450,7 +2105,7 @@ func _image_session_verdict() -> void:
 		_image_verdict = "calm"
 		what = "was calm"
 		next = Tiers.sharp_calm(auto_image, sharp)
-	var saved := _image_write and settings.persistent
+	var saved := flags._image_write and settings.persistent
 	if saved:
 		settings.auto_image = next
 		settings.save()
@@ -2464,7 +2119,7 @@ func _image_session_verdict() -> void:
 ## Loop G1, --stress: inside the load's time window (seconds after the city is up).
 func _stressing() -> bool:
 	var t := (Time.get_ticks_msec() - _stress_t0) / 1000.0
-	return _stress_n > 0 and t >= _stress_from and t < _stress_to
+	return flags._stress_n > 0 and t >= flags._stress_from and t < flags._stress_to
 
 
 func _busy(n: int) -> void:
@@ -2475,14 +2130,14 @@ func _busy(n: int) -> void:
 
 func _stress_wait() -> void:
 	if _stressing():
-		_busy(_stress_n)
+		_busy(flags._stress_n)
 
 
 ## The performance overlay (P, a three-finger tap, --perf): GPU time needs the
 ## viewport's render-time measurement on.
 func _set_perf(on: bool) -> void:
 	show_perf = on
-	RenderingServer.viewport_set_measure_render_time(sv.get_viewport_rid(), on or bench or probe or _phone_bench)
+	RenderingServer.viewport_set_measure_render_time(sv.get_viewport_rid(), on or flags.bench or flags.probe or _phone_bench)
 	hud.show_perf(on and not _phone_bench)
 	_perf_wait = 0.0
 
@@ -2525,9 +2180,9 @@ func _update_perf(dt: float) -> void:
 ## of it paced worse (7.8 % of frames a little late against 4.6 %); 30 uses Engine.max_fps.
 func _apply_fps() -> void:
 	var cap: int = settings.fps
-	if _flag_fps >= 0:
-		cap = _flag_fps
-	if bench or probe or DisplayServer.get_name() == "headless":
+	if flags._flag_fps >= 0:
+		cap = flags._flag_fps
+	if flags.bench or flags.probe or DisplayServer.get_name() == "headless":
 		cap = 0
 	_cap = cap
 	Engine.max_fps = 0 if cap == 60 and OS.has_feature("ios") else cap
@@ -2578,7 +2233,7 @@ func _write_bench_result(text: String) -> void:
 ## Loop G1: the governor's line on the card: its levels, whether it was held for the run (the
 ## run then measures the quality's own cost), the view rule's state, its changes so far.
 func _governor_notes() -> PackedStringArray:
-	var how := "held" if governor.held else ("on" if _governor_on else "off")
+	var how := "held" if governor.held else ("on" if flags._governor_on else "off")
 	return PackedStringArray(["governor %s: %s%s, %d changes" % [how, governor.state(), ", wide" if _wide else "",
 			governor.changes]])
 
@@ -2595,7 +2250,7 @@ func _print_old_late(r: Dictionary) -> void:
 ## the default view for PHONE_SETTLE + PHONE_SECONDS, at the current settings and frame-rate
 ## cap; the wallet is put back as it was and not saved (like --nosave), the car where it was.
 func _start_phone_bench() -> void:
-	if _phone_bench or not _started or title != null or bench or probe:
+	if _phone_bench or not _started or title != null or flags.bench or flags.probe:
 		return
 	var busy := ""
 	if flying:
@@ -2643,7 +2298,7 @@ func _start_phone_bench() -> void:
 	_bench_t0 = Time.get_ticks_msec()
 	_measure_t0 = 0
 	_phone_next_toast = _bench_t0
-	print("bench: BENCH started (%.0f s settle + %.0f s measured, cap %s)" % [PHONE_SETTLE, _phone_seconds, _cap_name()])
+	print("bench: BENCH started (%.0f s settle + %.0f s measured, cap %s)" % [PHONE_SETTLE, flags._phone_seconds, _cap_name()])
 
 
 func _phone_bench_frame() -> void:
@@ -2657,8 +2312,8 @@ func _phone_bench_frame() -> void:
 		_stats.sample()
 	if now >= _phone_next_toast:
 		_phone_next_toast += 1000
-		hud.toast("TEST %d s · nie dotykaj, proszę" % ceili(PHONE_SETTLE + _phone_seconds - elapsed), "hands off")
-	if elapsed >= PHONE_SETTLE + _phone_seconds:
+		hud.toast("TEST %d s · nie dotykaj, proszę" % ceili(PHONE_SETTLE + flags._phone_seconds - elapsed), "hands off")
+	if elapsed >= PHONE_SETTLE + flags._phone_seconds:
 		_end_phone_bench(true)
 
 
@@ -2706,10 +2361,10 @@ func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
 	var nodes := {"hud": hud, "bubbles": bubbles, "dialogue": dialogue, "wallet": wallet, "missions": missions,
 			"rivals": rivals, "graph": graph, "traffic": traffic, "map": map, "car": car, "tod": tod}
 	jobs = Jobs.new()
-	jobs.autopilot = autopilot
-	jobs.craft_plain = craft_plain
-	if start_heat >= 0.0:
-		jobs.start_heat = start_heat
+	jobs.autopilot = flags.autopilot
+	jobs.craft_plain = flags.craft_plain
+	if flags.start_heat >= 0.0:
+		jobs.start_heat = flags.start_heat
 	jobs.hud = hud
 	jobs.bubbles = bubbles
 	jobs.dialogue = dialogue
@@ -2723,19 +2378,19 @@ func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
 	jobs.map_data = data
 	add_child(jobs)
 	jobs.setup(world)
-	if solo_site != "":
+	if flags.solo_site != "":
 		jobs.clear_stands()  # a landmark alone (--solo): no kebab stand beside it
 	# --- loop 2d-1: Podwózka, the app-taxi side job (and the GPS moments of the app-taxis) ---
 	rides = Rides.new()
-	rides.autopilot = autopilot
-	rides.ignore_app = ignore_app
-	rides.log_on = parody_log
-	rides.force_quirk = ride_quirk
-	rides.force_passenger = ride_passenger
-	rides.force_story = ride_story
-	rides.force_answer = ride_answer
-	rides.start_stars = ride_stars
-	rides.gps_first = gps_in
+	rides.autopilot = flags.autopilot
+	rides.ignore_app = flags.ignore_app
+	rides.log_on = flags.parody_log
+	rides.force_quirk = flags.ride_quirk
+	rides.force_passenger = flags.ride_passenger
+	rides.force_story = flags.ride_story
+	rides.force_answer = flags.ride_answer
+	rides.start_stars = flags.ride_stars
+	rides.gps_first = flags.gps_in
 	rides.hud = hud
 	rides.bubbles = bubbles
 	rides.dialogue = dialogue
@@ -2762,11 +2417,11 @@ func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
 	jobs.rides = rides
 	# --- end loop 2d-1 ---
 	eggs = Eggs.new()
-	eggs.day = barrier_day
-	eggs.force_street = barrier_force
+	eggs.day = flags.barrier_day
+	eggs.force_street = flags.barrier_force
 	world.add_child(eggs)
 	eggs.setup(nodes, data)
-	if solo_site != "":
+	if flags.solo_site != "":
 		eggs.visible = false  # a landmark alone (--solo): no easter-egg markers
 	zamkowy_life = PlacZamkowyLife.new()
 	world.add_child(zamkowy_life)
@@ -2783,14 +2438,14 @@ func _build_notebook(data: Dictionary) -> void:
 	notes.name = "Notebook"
 	notes.wallet = wallet
 	notes.hud = hud
-	notes.log_on = notes_log
+	notes.log_on = flags.notes_log
 	notes.blip = _blip_sound
 	add_child(notes)
-	if not notes.setup(data, notes_log):
+	if not notes.setup(data, flags.notes_log):
 		return
 	hud.settings_panel.notebook = notes
-	if found_spec != "":
-		notes.preset(found_spec)
+	if flags.found_spec != "":
+		notes.preset(flags.found_spec)
 	# Loop MW-5: a chapter finished opens the next PÓŁNOC FM track (and --found= presets do too).
 	radio.sync_chapters()
 	notes.chapter_done.connect(func(_id: String) -> void: radio.sync_chapters())
@@ -2801,8 +2456,8 @@ func _build_notebook(data: Dictionary) -> void:
 		if flying:
 			return [heli.global_position, heli.speed() * 3.6, true, heli.height_above, away]
 		return [car.global_position, car.vel.length() * 3.6, false, 0.0, away]
-	if place_flag != "":
-		_put_at_place(place_flag)
+	if flags.place_flag != "":
+		_put_at_place(flags.place_flag)
 
 
 # --- loop MW-2: storefronts and parodies ------------------------------------------------------
@@ -2810,7 +2465,7 @@ func _build_notebook(data: Dictionary) -> void:
 ## The storefronts (storefronts.gd) on the notebook's places and the lane graph; their walls come
 ## when each sector is in (_on_sector_ready). None with --no-parodies.
 func _build_storefronts(data: Dictionary, world: Node3D) -> void:
-	if no_parodies or notes == null or not notes.ready_ok or graph == null:
+	if flags.no_parodies or notes == null or not notes.ready_ok or graph == null:
 		return
 	storefronts = Storefronts.new()
 	storefronts.name = "Storefronts"
@@ -2824,8 +2479,8 @@ func _build_storefronts(data: Dictionary, world: Node3D) -> void:
 	storefronts.jobs = jobs
 	storefronts.eggs = eggs
 	storefronts.car = car
-	storefronts.log_on = parody_log
-	storefronts.rig_rechotka = rechotka_flag
+	storefronts.log_on = flags.parody_log
+	storefronts.rig_rechotka = flags.rechotka_flag
 	storefronts.vehicle = func() -> Array:
 		if flying:
 			return [heli.global_position, heli.speed() * 3.6, true]
@@ -2834,8 +2489,8 @@ func _build_storefronts(data: Dictionary, world: Node3D) -> void:
 	storefronts.fine_shown = func() -> bool: return _fine_shown
 	world.add_child(storefronts)
 	await storefronts.setup(data, notes.places)
-	if stamps_flag >= 0:
-		storefronts.preset_stamps(stamps_flag)
+	if flags.stamps_flag >= 0:
+		storefronts.preset_stamps(flags.stamps_flag)
 	if rides != null:
 		rides.frogs = storefronts
 	# "Dżemini" (trend_job.gd): the MLASK sticker goes on DŻEMINI KEBAB's wall.
@@ -2853,9 +2508,9 @@ func _build_storefronts(data: Dictionary, world: Node3D) -> void:
 		ru.tod = tod
 		ru.jobs = jobs
 		ru.store = storefronts
-		ru.autopilot = autopilot
-		ru.force = roundup_flag
-		ru.log_on = parody_log or roundup_flag
+		ru.autopilot = flags.autopilot
+		ru.force = flags.roundup_flag
+		ru.log_on = flags.parody_log or flags.roundup_flag
 		# In the frame just before jobs.gd, as when jobs.gd stepped it first.
 		add_child(ru)
 		move_child(ru, jobs.get_index())
@@ -2864,7 +2519,7 @@ func _build_storefronts(data: Dictionary, world: Node3D) -> void:
 		# outside the kit (jobs.gd's: nothing else on, no kebab or słoiki of its own).
 		activities.add(ru, func() -> bool: return jobs._free() and not jobs.own_busy())
 		jobs.roundup = ru
-		if roundup_flag:
+		if flags.roundup_flag:
 			ru.start_at_nearest()
 			cam_focus = car.global_position
 
@@ -2875,7 +2530,7 @@ func _build_storefronts(data: Dictionary, world: Node3D) -> void:
 ## and the city's sounds (the crowds' murmur and the guitar). None with --crowd=0 or without the
 ## notebook's places.
 func _build_crowds(data: Dictionary, world: Node3D) -> void:
-	if crowd_flag == 0 or notes == null or not notes.ready_ok:
+	if flags.crowd_flag == 0 or notes == null or not notes.ready_ok:
 		return
 	crowds = Crowds.new()
 	crowds.name = "Crowds"
@@ -2883,9 +2538,9 @@ func _build_crowds(data: Dictionary, world: Node3D) -> void:
 	crowds.dialogue = dialogue
 	crowds.police = police
 	crowds.sounds = city_sounds
-	crowds.log_on = night_log
+	crowds.log_on = flags.night_log
 	crowds.amount = _crowd_scale()
-	crowds.meet_on = loud_flag != 0
+	crowds.meet_on = flags.loud_flag != 0
 	crowds.clock = tod.local_clock
 	crowds.focus = func() -> Vector3: return cam_focus
 	crowds.vehicle = func() -> Array:
@@ -2948,7 +2603,7 @@ func _build_crowds(data: Dictionary, world: Node3D) -> void:
 ## save, with no other start asked for) starts at First10.START, facing north up Marszałkowska to
 ## the first stand. Set before the city is built, so the sectors round it come in first.
 func _guide_start() -> void:
-	if start_at != Vector3.INF or start_heading != INF or not (first10_flag or show_title):
+	if start_at != Vector3.INF or start_heading != INF or not (flags.first10_flag or flags.show_title):
 		return
 	if not First10.guide_due(wallet):
 		return
@@ -2961,17 +2616,17 @@ func _guide_start() -> void:
 ## The packs (packs.gd) after the storefronts (the COFFEECHAIR cafés' pavements for the raves).
 ## None with --packs=0 or --crowd=0.
 func _build_packs(data: Dictionary, world: Node3D) -> void:
-	if packs_flag == 0 or crowd_flag == 0:
+	if flags.packs_flag == 0 or flags.crowd_flag == 0:
 		return
 	packs = Packs.new()
 	packs.name = "Packs"
 	packs.map = map
 	packs.dialogue = dialogue
 	packs.hud = hud
-	packs.log_on = packs_log
+	packs.log_on = flags.packs_log
 	packs.amount = _crowd_scale()
-	packs.force = packs_now
-	if packs_now:
+	packs.force = flags.packs_now
+	if flags.packs_now:
 		packs.force_near = Vector2(car.global_position.x, car.global_position.z)
 	packs.clock = tod.local_clock
 	packs.focus = func() -> Vector3: return cam_focus
@@ -2988,7 +2643,7 @@ func _build_packs(data: Dictionary, world: Node3D) -> void:
 ## The fans by Stadion Leguminy (fans.gd), after the police (the patrol car by the gate) and the
 ## city's sounds (the chant). None with --fans=0 or --crowd=0.
 func _build_fans(data: Dictionary, world: Node3D) -> void:
-	if fans_flag == 0 or crowd_flag == 0:
+	if flags.fans_flag == 0 or flags.crowd_flag == 0:
 		return
 	fans = Fans.new()
 	fans.name = "Fans"
@@ -2997,11 +2652,11 @@ func _build_fans(data: Dictionary, world: Node3D) -> void:
 	fans.hud = hud
 	fans.police = police
 	fans.sounds = city_sounds
-	fans.log_on = fans_log
+	fans.log_on = flags.fans_log
 	fans.amount = _crowd_scale()
-	fans.force = fans_now
-	fans.force_phase = fans_phase
-	fans.force_result = fans_result
+	fans.force = flags.fans_now
+	fans.force_phase = flags.fans_phase
+	fans.force_result = flags.fans_result
 	fans.clock = tod.local_clock
 	fans.focus = func() -> Vector3: return cam_focus
 	fans.vehicle = func() -> Array:
@@ -3015,19 +2670,19 @@ func _build_fans(data: Dictionary, world: Node3D) -> void:
 ## 11 listopada (event_day.gd): built idle on both city paths; it switches itself on on the date
 ## (live clock) or with --event-day. None with --event-day=0.
 func _build_event_day(data: Dictionary, world: Node3D) -> void:
-	if event_flag == 0:
+	if flags.event_flag == 0:
 		return
 	event_day = EventDay.new()
 	event_day.name = "EventDay"
 	event_day.map = map
 	event_day.hud = hud
-	event_day.force = event_flag == 1
+	event_day.force = flags.event_flag == 1
 	event_day.palace_flood = func(_lit: bool) -> void:
 		_palace_night = -1
 		_set_palace_clock()
-	event_day.smoke_on = event_smoke == 1
+	event_day.smoke_on = flags.event_smoke == 1
 	event_day.amount = _crowd_scale()
-	event_day.log_on = event_log
+	event_day.log_on = flags.event_log
 	event_day.clock = tod.local_clock
 	event_day.calendar = _crowd_calendar
 	event_day.focus = func() -> Vector3: return cam_focus
@@ -3056,8 +2711,8 @@ func _build_event_day(data: Dictionary, world: Node3D) -> void:
 ## cars in traffic (none with --no-traffic). None at all with --loud=0.
 func _build_loud_cars(world: Node3D) -> void:
 	if traffic != null:
-		traffic.loud_target = loud_flag
-	if loud_flag == 0:
+		traffic.loud_target = flags.loud_flag
+	if flags.loud_flag == 0:
 		return
 	loud_cars = LoudCars.new()
 	loud_cars.name = "LoudCars"
@@ -3066,7 +2721,7 @@ func _build_loud_cars(world: Node3D) -> void:
 	loud_cars.dialogue = dialogue
 	loud_cars.radio = radio
 	loud_cars.map = map
-	loud_cars.log_on = loud_log
+	loud_cars.log_on = flags.loud_log
 	loud_cars.focus = func() -> Vector3: return cam_focus
 	world.add_child(loud_cars)
 	loud_cars.setup()
@@ -3077,8 +2732,8 @@ func _build_loud_cars(world: Node3D) -> void:
 func _build_crazy_drivers(world: Node3D) -> void:
 	if traffic == null:
 		return
-	traffic.crazy_target = crazy_flag
-	if crazy_flag == 0:
+	traffic.crazy_target = flags.crazy_flag
+	if flags.crazy_flag == 0:
 		return
 	crazy_drivers = CrazyDrivers.new()
 	crazy_drivers.name = "CrazyDrivers"
@@ -3086,14 +2741,14 @@ func _build_crazy_drivers(world: Node3D) -> void:
 	crazy_drivers.sfx = sfx
 	crazy_drivers.dialogue = dialogue
 	crazy_drivers.radio = radio
-	crazy_drivers.log_on = crazy_log
+	crazy_drivers.log_on = flags.crazy_log
 	crazy_drivers.focus = func() -> Vector3: return cam_focus
 	world.add_child(crazy_drivers)
 
 
 ## The wellness circles (wellness.gd): none with --wellness=0 or --crowd=0.
 func _build_wellness(world: Node3D) -> void:
-	if wellness_flag == 0 or crowd_flag == 0:
+	if flags.wellness_flag == 0 or flags.crowd_flag == 0:
 		return
 	wellness = Wellness.new()
 	wellness.name = "Wellness"
@@ -3101,9 +2756,9 @@ func _build_wellness(world: Node3D) -> void:
 	wellness.dialogue = dialogue
 	wellness.sounds = city_sounds
 	wellness.hud = hud
-	wellness.log_on = wellness_log
+	wellness.log_on = flags.wellness_log
 	wellness.amount = _crowd_scale()
-	wellness.force = wellness_now
+	wellness.force = flags.wellness_now
 	wellness.clock = tod.local_clock
 	wellness.focus = func() -> Vector3: return cam_focus
 	wellness.vehicle = func() -> Array:
@@ -3135,12 +2790,12 @@ func _build_first10() -> void:
 	first10.cassettes = cassettes
 	first10.flying = func() -> bool: return flying
 	first10.side_busy = func() -> bool: return boat_race != null and boat_race.boating()
-	first10.scripted = first10_flag and autopilot
+	first10.scripted = flags.first10_flag and flags.autopilot
 	add_child(first10)
-	first10.setup(first10_flag or show_title)
-	if end_card_flag:
+	first10.setup(flags.first10_flag or flags.show_title)
+	if flags.end_card_flag:
 		first10.end_at = 1.0
-	if first_race_flag:
+	if flags.first_race_flag:
 		first10.race_at = 1.0
 
 
@@ -3155,7 +2810,7 @@ func _build_garage(world: Node3D) -> void:
 	garage.car = car
 	garage.map = map
 	garage.graph = graph
-	garage.log_on = garage_log
+	garage.log_on = flags.garage_log
 	if egg_book != null:
 		garage.eggs_found = egg_book.found_total
 		# E21: the café's `viral` glon line over the green car (E01's line is the bouncer's: crowds.gd).
@@ -3169,19 +2824,19 @@ func _build_garage(world: Node3D) -> void:
 				or (jobs != null and activities.job_on()) or (rivals != null and rivals.busy()) \
 				or (police != null and not police.calm())
 	world.add_child(garage)
-	if paint_flag != "":
-		garage.preset(paint_flag)
-	garage.force = garage_flag
-	if garage_parts:
+	if flags.paint_flag != "":
+		garage.preset(flags.paint_flag)
+	garage.force = flags.garage_flag
+	if flags.garage_parts:
 		garage.start_tab = "parts"
 	garage.setup(world)
-	if upgrades_flag != "":
-		garage.preset_upgrades(upgrades_flag)
+	if flags.upgrades_flag != "":
+		garage.preset_upgrades(flags.upgrades_flag)
 	garage.upgraded.connect(func(id: String) -> void:
 		if id == "nitro":
 			hud.toast(Gamepad.fmt("Nitro gotowe: przytrzymaj błyskawicę przy hamulcu (Shift, {lb} / {rb} na padzie)."),
 					Gamepad.fmt("Nitro fitted: hold the bolt by the brake (Shift, {lb} / {rb} on a pad).")))
-	if garage_flag:
+	if flags.garage_flag:
 		_put_at_garage()
 	garage.opened.connect(func() -> void:
 		car.vel = Vector3.ZERO
@@ -3204,7 +2859,7 @@ func _put_at_garage() -> void:
 	if not lane.is_empty() and Vector2((lane[0] as Vector3).x, (lane[0] as Vector3).z).distance_to(Vector2(garage.at.x, garage.at.z)) < Garage.RING - 1.0:
 		spot = lane[0]
 		yaw = lane[1]
-	if garage_ring_only:
+	if flags.garage_ring_only:
 		var back := Vector3(sin(yaw), 0.0, cos(yaw)) * 16.0  # the car's front is -Z
 		spot = Vector3(spot.x + back.x, map.ground_height(spot.x + back.x, spot.z + back.z), spot.z + back.z)
 	car.global_position = spot
@@ -3248,7 +2903,7 @@ func _build_buses(data: Dictionary, world: Node3D) -> void:
 	buses.life = life
 	buses.police = police
 	buses.egg_book = egg_book
-	buses.log_on = bus_log
+	buses.log_on = flags.bus_log
 	buses.clock = tod.local_clock
 	buses.focus = func() -> Vector3: return cam_focus
 	buses.vehicle = func() -> Array:
@@ -3258,7 +2913,7 @@ func _build_buses(data: Dictionary, world: Node3D) -> void:
 	buses.probe = _egg_state
 	world.add_child(buses)
 	buses.setup(data)
-	if night_hub_flag:
+	if flags.night_hub_flag:
 		buses.force()
 
 
@@ -3267,7 +2922,7 @@ func _build_buses(data: Dictionary, world: Node3D) -> void:
 ## The crash scenes (crash_scenes.gd) on the traffic's lane graph, with the police's cars and the
 ## pedestrians' scene figures. None with --no-traffic or --crash=0.
 func _build_crash_scenes() -> void:
-	if traffic == null or crash_flag == "0":
+	if traffic == null or flags.crash_flag == "0":
 		return
 	crash_scenes = CrashScenes.new()
 	crash_scenes.name = "CrashScenes"
@@ -3280,8 +2935,8 @@ func _build_crash_scenes() -> void:
 	crash_scenes.radio = radio
 	crash_scenes.sfx = sfx
 	crash_scenes.hud = hud
-	crash_scenes.log_on = crash_log
-	crash_scenes.enabled = _crash_auto or crash_flag != ""
+	crash_scenes.log_on = flags.crash_log
+	crash_scenes.enabled = flags._crash_auto or flags.crash_flag != ""
 	crash_scenes.focus = func() -> Vector3: return cam_focus
 	crash_scenes.vehicle = func() -> Array:
 		if flying:
@@ -3289,8 +2944,8 @@ func _build_crash_scenes() -> void:
 		return [car.global_position, car.vel.length() * 3.6, false]
 	add_child(crash_scenes)
 	crash_scenes.setup()
-	var xz := crash_flag.split(",")
-	if crash_flag == "now" or xz.size() == 2:
+	var xz := flags.crash_flag.split(",")
+	if flags.crash_flag == "now" or xz.size() == 2:
 		var p := car.global_position
 		var f := -car.global_transform.basis.z
 		var at := Vector2(float(xz[0]), float(xz[1])) if xz.size() == 2 else Vector2.INF
@@ -3301,7 +2956,7 @@ func _build_crash_scenes() -> void:
 
 ## Szymek's call, the start pontoon and the race down the river (boat_race.gd). None with --boat-race=0.
 func _build_boat_race(world: Node3D) -> void:
-	if boat_flag == "0":
+	if flags.boat_flag == "0":
 		return
 	boat_race = BoatRace.new()
 	boat_race.name = "BoatRace"
@@ -3310,9 +2965,9 @@ func _build_boat_race(world: Node3D) -> void:
 	boat_race.wallet = wallet
 	boat_race.map = map
 	boat_race.car = car
-	boat_race.log_on = boat_log
-	boat_race.autopilot = autopilot or boat_flag == "auto"
-	boat_race.force_hours = boat_flag != ""
+	boat_race.log_on = flags.boat_log
+	boat_race.autopilot = flags.autopilot or flags.boat_flag == "auto"
+	boat_race.force_hours = flags.boat_flag != ""
 	boat_race.vehicle = func() -> Array:
 		if flying:
 			return [heli.global_position, heli.speed() * 3.6, true]
@@ -3328,22 +2983,22 @@ func _build_boat_race(world: Node3D) -> void:
 		# The free-ride boat's mark on the minimap and the full map, with the job places.
 		jobs.boat_spot = BoatRace.fleet_spot(1)
 		jobs._show_places(jobs._places_shown, true)
-	if boat_flag in ["race", "auto"]:
+	if flags.boat_flag in ["race", "auto"]:
 		get_tree().create_timer(1.0).timeout.connect(func() -> void:
 			var at := BoatRace.CAR_SPOT
 			car.global_position = Vector3(at.x, map.ground_height(at.x, at.y), at.y)
 			car.reset_physics_interpolation()
 			boat_race.board())
-	elif boat_flag.begins_with("free") or boat_flag == "marina":
+	elif flags.boat_flag.begins_with("free") or flags.boat_flag == "marina":
 		get_tree().create_timer(1.0).timeout.connect(func() -> void:
 			var at := BoatRace.CAR_SPOT
 			car.global_position = Vector3(at.x, map.ground_height(at.x, at.y), at.y)
 			car.reset_physics_interpolation()
-			if boat_flag.begins_with("free"):
-				boat_race.free_ride(int(boat_flag.trim_prefix("free")) if boat_flag.length() > 4 else 1)
+			if flags.boat_flag.begins_with("free"):
+				boat_race.free_ride(int(flags.boat_flag.trim_prefix("free")) if flags.boat_flag.length() > 4 else 1)
 			else:
 				boat_race._marina_card())
-	elif boat_flag == "call":
+	elif flags.boat_flag == "call":
 		get_tree().create_timer(1.0).timeout.connect(func() -> void: boat_race.ring())
 
 
@@ -3352,8 +3007,8 @@ func _build_boat_race(world: Node3D) -> void:
 ## The two guided tours (tour.gd, the activity kit's first activity): Claire's drive round the
 ## Dekalog's places and Wiktor's round the cinemas. None with --dekalog=0 / --kino-tour=0.
 func _build_tours(world: Node3D) -> void:
-	dekalog_tour = _build_tour(world, "dekalog", dekalog_flag, dekalog_log)
-	kino_tour = _build_tour(world, "kino", kino_flag, kino_log)
+	dekalog_tour = _build_tour(world, "dekalog", flags.dekalog_flag, flags.dekalog_log)
+	kino_tour = _build_tour(world, "kino", flags.kino_flag, flags.kino_log)
 
 
 ## One tour from its data file (data/<id>_tour.json), joined to the director. `flag`: "0" none,
@@ -3374,7 +3029,7 @@ func _build_tour(world: Node3D, id: String, flag: String, log_on: bool) -> Tour:
 	t.map = map
 	t.car = car
 	t.log_on = log_on
-	t.autopilot = autopilot or flag == "auto"
+	t.autopilot = flags.autopilot or flag == "auto"
 	t.force_hours = flag != ""
 	t.vehicle = func() -> Array:
 		if flying:
@@ -3415,8 +3070,8 @@ func _build_stories(world: Node3D) -> void:
 	stories = StoryQuests.new()
 	stories.name = "Stories"
 	stories.hud = hud
-	stories.log_on = stories_log
-	stories.auto_yes = story_meet_flag or autopilot
+	stories.log_on = flags.stories_log
+	stories.auto_yes = flags.story_meet_flag or flags.autopilot
 	stories.vehicle = func() -> Array:
 		if flying:
 			return [heli.global_position, heli.speed() * 3.6, true]
@@ -3524,10 +3179,10 @@ func _build_stories(world: Node3D) -> void:
 			d["meet"] = func() -> bool:
 				missions.put_off()
 				return bool(own.call())
-	if story_flag != "":
-		get_tree().create_timer(1.5).timeout.connect(func() -> void: stories.start(story_flag))
-	if quest_quit_flag >= 0.0:
-		get_tree().create_timer(quest_quit_flag).timeout.connect(_quest_quit_test)
+	if flags.story_flag != "":
+		get_tree().create_timer(1.5).timeout.connect(func() -> void: stories.start(flags.story_flag))
+	if flags.quest_quit_flag >= 0.0:
+		get_tree().create_timer(flags.quest_quit_flag).timeout.connect(_quest_quit_test)
 	print("stories: %d questlines (%s)" % [stories.defs.size(), ", ".join(stories.defs.map(func(d: Dictionary) -> String:
 			return "%s %s" % [d["id"], "%.0f,%.0f" % [d["at"].x, d["at"].y] if d["at"] != Vector2.INF else "no start"]))])
 
@@ -3589,7 +3244,7 @@ func _story_tick() -> void:
 		return
 	_story_key = key
 	hud.set_story(m[0], m[1], focus, names, blurbs, small)
-	if stories_log:
+	if flags.stories_log:
 		print("stories: focus %s, %d starts on the map" % ["on" if focus else "off", (m[0] as PackedVector2Array).size()])
 
 
@@ -3731,7 +3386,7 @@ func _boat_frame() -> void:
 
 ## LEKTI's invites, Mati's calls and the raves' rigs (rave.gd). None with --no-traffic or --rave=0.
 func _build_rave(data: Dictionary, world: Node3D) -> void:
-	if traffic == null or graph == null or rave_flag == "0":
+	if traffic == null or graph == null or flags.rave_flag == "0":
 		return
 	rave = Rave.new()
 	rave.name = "Rave"
@@ -3743,10 +3398,10 @@ func _build_rave(data: Dictionary, world: Node3D) -> void:
 	rave.radio = radio
 	rave.city_sounds = city_sounds
 	rave.origin = data.get("origin", [52.234, 21.024])
-	rave.log_on = rave_log
+	rave.log_on = flags.rave_log
 	# `rave.autopilot` stays off: a test run does not answer Mati or the bouncer (it never did).
-	rave.auto = _rave_auto
-	rave.force = rave_flag if rave_flag in ["on", "day"] else ""
+	rave.auto = flags._rave_auto
+	rave.force = flags.rave_flag if flags.rave_flag in ["on", "day"] else ""
 	rave.vehicle = func() -> Array:
 		if flying:
 			return [heli.global_position, heli.speed() * 3.6, true]
@@ -3757,18 +3412,18 @@ func _build_rave(data: Dictionary, world: Node3D) -> void:
 	world.add_child(rave)
 	rave.setup(world)
 	activities.add(rave)  # the director says when Mati may ring (nothing else on: world_free)
-	if rave_spot != "":
+	if flags.rave_spot != "":
 		for i in rave.spots.size():
-			if String(rave.spots[i]["id"]) == rave_spot:
+			if String(rave.spots[i]["id"]) == flags.rave_spot:
 				rave.night_spot = i
-	if rave_flag in ["club", "patio"]:
+	if flags.rave_flag in ["club", "patio"]:
 		get_tree().create_timer(1.0).timeout.connect(func() -> void:
 			_enter_club("SMOŁA", "SMOŁA")
-			if rave_flag == "patio":
+			if flags.rave_flag == "patio":
 				club.go_patio())
-	if rave_flag in ["call", "smola"]:
+	if flags.rave_flag in ["call", "smola"]:
 		get_tree().create_timer(1.0).timeout.connect(func() -> void:
-			if rave_flag == "smola":
+			if flags.rave_flag == "smola":
 				rave.ring("smola")
 			else:
 				rave.tease()
@@ -3786,7 +3441,7 @@ func _enter_club(pl: String, en: String) -> void:
 		club.wallet = wallet
 		club.radio = radio
 		club.cam = cam
-		club.log_on = rave_log
+		club.log_on = flags.rave_log
 		add_child(club)
 		club.left.connect(_on_club_left)
 	club.enter(car.get_parent(), pl, en, radio.station_index("mordor_fm"))
@@ -3797,7 +3452,7 @@ func _enter_club(pl: String, en: String) -> void:
 
 
 func _on_club_left() -> void:
-	hud.visible = not hide_hud
+	hud.visible = not flags.hide_hud
 	car.process_mode = Node.PROCESS_MODE_INHERIT
 	_cut_camera()
 
@@ -3807,7 +3462,7 @@ func _on_club_left() -> void:
 ## Ivan's call, the two pickups, the entrance and the lounge with its choices (shisha.gd, an
 ## activity of the kit; lounge.gd). None with --no-traffic or --shisha=0.
 func _build_shisha(data: Dictionary, world: Node3D) -> void:
-	if traffic == null or graph == null or shisha_flag == "0":
+	if traffic == null or graph == null or flags.shisha_flag == "0":
 		return
 	shisha = Shisha.new()
 	shisha.name = "Shisha"
@@ -3817,21 +3472,21 @@ func _build_shisha(data: Dictionary, world: Node3D) -> void:
 	shisha.map = map
 	shisha.graph = graph
 	shisha.origin = data.get("origin", [52.234, 21.024])
-	shisha.log_on = shisha_log
-	shisha.auto = _shisha_auto
-	shisha.autopilot = autopilot
+	shisha.log_on = flags.shisha_log
+	shisha.auto = flags._shisha_auto
+	shisha.autopilot = flags.autopilot
 	shisha.vehicle = func() -> Array:
 		if flying:
 			return [heli.global_position, heli.speed() * 3.6, true]
 		return [car.global_position, car.vel.length() * 3.6, false]
 	shisha.clock = func() -> float: return float(tod.local_clock()["hour"])
 	# The lounge plays itself in a test run that arrives at it by itself.
-	var self_played := shisha_flag == "arrive" or autopilot
+	var self_played := flags.shisha_flag == "arrive" or flags.autopilot
 	shisha.enter_lounge = _enter_lounge if not self_played else func(v: Dictionary) -> void: _enter_lounge(v, true)
 	world.add_child(shisha)
 	shisha.setup(world)
 	activities.add(shisha)  # the director says when Ivan may ring (nothing else on: `world_free`)
-	match shisha_flag:
+	match flags.shisha_flag:
 		"call":
 			get_tree().create_timer(1.0).timeout.connect(func() -> void: shisha.ring())
 		"meet":
@@ -3862,7 +3517,7 @@ func _build_shisha(data: Dictionary, world: Node3D) -> void:
 				shisha._board_bogdan()
 				var k: Dictionary = shisha.door
 				var yaw: float = k["yaw"]
-				var back := 25.0 if shisha_flag == "door" else 0.0
+				var back := 25.0 if flags.shisha_flag == "door" else 0.0
 				var p: Vector3 = k["at"] - Vector3(sin(yaw), 0.0, cos(yaw)) * back
 				car.global_position = Vector3(p.x, map.ground_height(p.x, p.z), p.z)
 				car.rotation.y = yaw + PI
@@ -3874,7 +3529,7 @@ func _build_shisha(data: Dictionary, world: Node3D) -> void:
 				shisha.meet()
 				shisha.skip_inside()
 				_enter_lounge({"flavour": "master", "strength": 5, "name": ["Forhend", "Forehand"]}, true)
-				lounge.auto_how = "terrace" if shisha_flag == "terrace" else "smoke")
+				lounge.auto_how = "terrace" if flags.shisha_flag == "terrace" else "smoke")
 
 
 ## Into Senatorek (lounge.gd: the door, the lift, the choices at the table): the HUD aside, the car
@@ -3886,7 +3541,7 @@ func _enter_lounge(votes: Dictionary, auto_play := false) -> void:
 		lounge.hud = hud
 		lounge.sfx = sfx
 		lounge.cam = cam
-		lounge.log_on = shisha_log
+		lounge.log_on = flags.shisha_log
 		add_child(lounge)
 		lounge.done.connect(_on_lounge_done)
 	lounge.auto_play = auto_play
@@ -3898,7 +3553,7 @@ func _enter_lounge(votes: Dictionary, auto_play := false) -> void:
 
 
 func _on_lounge_done(how: String, score: int) -> void:
-	hud.visible = not hide_hud
+	hud.visible = not flags.hide_hud
 	car.process_mode = Node.PROCESS_MODE_INHERIT
 	_cut_camera()
 	if shisha != null:
@@ -3915,8 +3570,8 @@ func _enter_padel(info: Dictionary, auto_play := false) -> void:
 		padel.radio = radio
 		add_child(padel)
 		padel.done.connect(_on_padel_done)
-	padel.log_on = padel_log or trend_log
-	padel.auto_play = auto_play or autopilot
+	padel.log_on = flags.padel_log or flags.trend_log
+	padel.auto_play = auto_play or flags.autopilot
 	padel.enter(info)
 	hud.visible = false
 	# The city stops rendering under the court (its SubViewport, not the root, draws the 3D).
@@ -3933,7 +3588,7 @@ func _enter_padel(info: Dictionary, auto_play := false) -> void:
 
 
 func _on_padel_done(g_us: int, g_them: int, stats: Dictionary) -> void:
-	hud.visible = not hide_hud
+	hud.visible = not flags.hide_hud
 	if sv != null:
 		sv.render_target_update_mode = _padel_sv_mode
 		view.visible = true
@@ -3941,7 +3596,7 @@ func _on_padel_done(g_us: int, g_them: int, stats: Dictionary) -> void:
 	if heli != null:
 		heli.process_mode = _padel_heli_mode
 	_cut_camera()
-	if padel_flag >= 0.0:
+	if flags.padel_flag >= 0.0:
 		print("padel: --padel-match over, games %d:%d" % [g_us, g_them])
 		get_tree().quit()
 		return
@@ -3980,7 +3635,7 @@ func _free_block(ringing_ok := false, guide_ok := false) -> String:
 
 ## Darek's calls, the meets, the raids and the drag (street_meet.gd). None with --no-traffic or --meet=0.
 func _build_meet(data: Dictionary, world: Node3D) -> void:
-	if traffic == null or graph == null or meet_flag == "0":
+	if traffic == null or graph == null or flags.meet_flag == "0":
 		return
 	meet = StreetMeet.new()
 	meet.name = "StreetMeet"
@@ -3994,9 +3649,9 @@ func _build_meet(data: Dictionary, world: Node3D) -> void:
 	meet.car = car
 	meet.flat_mat = _ground_mat
 	meet.origin = data.get("origin", [52.234, 21.024])
-	meet.log_on = meet_log
-	meet.auto = _meet_auto
-	meet.force = meet_flag == "on"
+	meet.log_on = flags.meet_log
+	meet.auto = flags._meet_auto
+	meet.force = flags.meet_flag == "on"
 	meet.vehicle = func() -> Array:
 		if flying:
 			return [heli.global_position, heli.speed() * 3.6, true]
@@ -4007,10 +3662,10 @@ func _build_meet(data: Dictionary, world: Node3D) -> void:
 	meet.setup(world)
 	# `meet.autopilot` stays off: a test run does not answer Darek or the result card (it never did).
 	activities.add(meet)  # the director says when Darek may ring (nothing else on: world_free)
-	if meet_flag == "call":
+	if flags.meet_flag == "call":
 		get_tree().create_timer(1.0).timeout.connect(func() -> void: meet.ring())
-	if meet_at != "":
-		get_tree().create_timer(1.0).timeout.connect(func() -> void: meet.jump(meet_at))
+	if flags.meet_at != "":
+		get_tree().create_timer(1.0).timeout.connect(func() -> void: meet.jump(flags.meet_at))
 
 
 ## Puts the car at `at` heading `yaw` at once (the meet's START DRAG), the camera cut with it.
@@ -4029,7 +3684,7 @@ func _place_car(at: Vector3, yaw: float) -> void:
 ## The night groups' calls and their crawls (bar_crawl.gd, an activity of the kit). None with
 ## --no-traffic or --crawl=0.
 func _build_crawl(data: Dictionary, world: Node3D) -> void:
-	if traffic == null or graph == null or crawl_flag == "0":
+	if traffic == null or graph == null or flags.crawl_flag == "0":
 		return
 	crawl = BarCrawl.new()
 	crawl.name = "BarCrawl"
@@ -4039,11 +3694,11 @@ func _build_crawl(data: Dictionary, world: Node3D) -> void:
 	crawl.map = map
 	crawl.graph = graph
 	crawl.origin = data.get("origin", [52.234, 21.024])
-	crawl.log_on = crawl_log
-	crawl.auto = _crawl_auto
-	crawl.autopilot = autopilot
-	crawl.force_route = crawl_route
-	crawl.force_group = crawl_group
+	crawl.log_on = flags.crawl_log
+	crawl.auto = flags._crawl_auto
+	crawl.autopilot = flags.autopilot
+	crawl.force_route = flags.crawl_route
+	crawl.force_group = flags.crawl_group
 	crawl.vehicle = func() -> Array:
 		if flying:
 			return [heli.global_position, heli.speed() * 3.6, true]
@@ -4053,7 +3708,7 @@ func _build_crawl(data: Dictionary, world: Node3D) -> void:
 	crawl.setup(world)
 	activities.add(crawl)  # the director says when it may ring (nothing else on: `world_free`)
 	car.bumped.connect(func(_c: Object, speed: float) -> void: crawl.on_bump(speed))
-	if crawl_flag == "call":
+	if flags.crawl_flag == "call":
 		get_tree().create_timer(1.0).timeout.connect(func() -> void: crawl.ring())
 
 
@@ -4061,7 +3716,7 @@ func _build_crawl(data: Dictionary, world: Node3D) -> void:
 
 ## Bartek's call and the stranded TESŁO cars (ev_tow.gd). None with --no-traffic or --ev=0.
 func _build_ev_tow(world: Node3D) -> void:
-	if traffic == null or ev_flag == "0":
+	if traffic == null or flags.ev_flag == "0":
 		return
 	ev_tow = EvTow.new()
 	ev_tow.name = "EvTow"
@@ -4073,8 +3728,8 @@ func _build_ev_tow(world: Node3D) -> void:
 	ev_tow.traffic = traffic
 	ev_tow.radio = radio
 	ev_tow.heli = heli
-	ev_tow.log_on = ev_log
-	ev_tow.auto = _ev_auto
+	ev_tow.log_on = flags.ev_log
+	ev_tow.auto = flags._ev_auto
 	ev_tow.vehicle = func() -> Array:
 		if flying:
 			return [heli.global_position, heli.speed() * 3.6, true]
@@ -4085,7 +3740,7 @@ func _build_ev_tow(world: Node3D) -> void:
 	# The director says when Bartek may ring, with the tow's own test for everything outside the
 	# kit: it may start from the air (`world_free` refuses the helicopter).
 	activities.add(ev_tow, _ev_free)
-	if ev_flag != "":
+	if flags.ev_flag != "":
 		get_tree().create_timer(1.0).timeout.connect(_ev_start)
 
 
@@ -4107,7 +3762,7 @@ func _ev_free() -> bool:
 
 ## The --ev-* test flags, a second into the drive.
 func _ev_start() -> void:
-	match ev_flag:
+	match flags.ev_flag:
 		"call":
 			ev_tow.ring()
 		"stranded":
@@ -4123,7 +3778,7 @@ func _ev_start() -> void:
 			var at: Vector3 = ev_tow.job["at"]
 			if not flying:
 				_take_off(Heli.CRUISE)
-			var carry := ev_flag == "tow=carry"
+			var carry := flags.ev_flag == "tow=carry"
 			# Over the car, low enough to hook; for the carry 22 m up, the rope lifting it.
 			heli.place(at + Vector3(-3.0, 0.0, 2.0), heli.rotation.y, 22.0 if carry else EvTow.ROPE + EvTow.SIZE.y - 0.5)
 			cam_focus = heli.global_position
@@ -4143,7 +3798,7 @@ func _build_old_tram(world: Node3D) -> void:
 	old_tram.sfx = sfx
 	old_tram.dialogue = dialogue
 	old_tram.egg_book = egg_book
-	old_tram.log_on = tram_log
+	old_tram.log_on = flags.tram_log
 	old_tram.clock = tod.local_clock
 	old_tram.calendar = _crowd_calendar
 	old_tram.focus = func() -> Vector3: return cam_focus
@@ -4156,7 +3811,7 @@ func _build_old_tram(world: Node3D) -> void:
 	old_tram.setup()
 	if sfx != null:
 		trams.old_bell.connect(func(at: Vector3) -> void: sfx.play_at("old_tram_bell", at))
-	if old_tram_flag != "":
+	if flags.old_tram_flag != "":
 		old_tram.force(Vector2(car.global_position.x, car.global_position.z))
 
 
@@ -4187,7 +3842,7 @@ func _old_tram_follow_frame() -> void:
 ## their sites) and the sound; the "Na czasie" job (trend_job.gd) beside the side jobs. None with
 ## --life=0 or without the notebook's places.
 func _build_city_life(data: Dictionary, world: Node3D) -> void:
-	if life_flag == 0 or notes == null or not notes.ready_ok:
+	if flags.life_flag == 0 or notes == null or not notes.ready_ok:
 		return
 	life = CityLife.new()
 	life.name = "CityLife"
@@ -4199,23 +3854,23 @@ func _build_city_life(data: Dictionary, world: Node3D) -> void:
 	life.wallet = wallet
 	life.hud = hud
 	life.car = car
-	life.amount = float(life_flag) * (0.5 if quality == Tiers.LOW else 1.0)
-	life.dogs_log = dogs_log
-	life.trend_log = trend_log
-	life.life_log = life_log
-	life.pedzik_on = not no_parodies
+	life.amount = float(flags.life_flag) * (0.5 if quality == Tiers.LOW else 1.0)
+	life.dogs_log = flags.dogs_log
+	life.trend_log = flags.trend_log
+	life.life_log = flags.life_log
+	life.pedzik_on = not flags.no_parodies
 	# Loop couriers: the kerb riders ride the lane graph; the couriers wait at the kebab stands; the
 	# courier race's challenger is one of them.
 	life.graph = graph
-	life.pedzik_log = pedzik_log
-	life.kerb_close = pedzik_kerb
+	life.pedzik_log = flags.pedzik_log
+	life.kerb_close = flags.pedzik_kerb
 	if jobs != null:
 		life.stands = jobs.stand_frames()
 		jobs.courier.life = life
-	life.soak = life_soak
-	life.zajac_rig = zajac_flag and autopilot
-	life.armchair_flag = armchair_flag  # loop jobs-2
-	life.trend_day_flag = trend_day_flag
+	life.soak = flags.life_soak
+	life.zajac_rig = flags.zajac_flag and flags.autopilot
+	life.armchair_flag = flags.armchair_flag  # loop jobs-2
+	life.trend_day_flag = flags.trend_day_flag
 	life.clock = tod.local_clock
 	life.calendar = _crowd_calendar
 	life.focus = func() -> Vector3: return cam_focus
@@ -4264,8 +3919,8 @@ func _build_city_life(data: Dictionary, world: Node3D) -> void:
 	if jobs != null:
 		trend_job = TrendJob.new()
 		trend_job.name = "TrendJob"
-		trend_job.autopilot = autopilot
-		trend_job.log_on = trend_log
+		trend_job.autopilot = flags.autopilot
+		trend_job.log_on = flags.trend_log
 		trend_job.hud = hud
 		trend_job.dialogue = dialogue
 		trend_job.wallet = wallet
@@ -4286,13 +3941,13 @@ func _build_city_life(data: Dictionary, world: Node3D) -> void:
 		jobs.trend = trend_job
 		trend_job.enter_padel = _enter_padel
 		trend_job.hour_now = func() -> float: return float(tod.local_clock()["hour"])
-		if padel_flag >= 0.0:
+		if flags.padel_flag >= 0.0:
 			get_tree().create_timer(1.0).timeout.connect(func() -> void:
-				_enter_padel({"partner": "Kuba", "rivals": TrendJob.ARCADE_RIVALS, "hour": padel_flag, "seed": 3}, true))
+				_enter_padel({"partner": "Kuba", "rivals": TrendJob.ARCADE_RIVALS, "hour": flags.padel_flag, "seed": 3}, true))
 		trend_job.egg = func(id: String) -> bool: return egg_book != null and egg_book.fire(id, _egg_state())
 		if spacer != null:
 			trend_job.quiet = spacer.on
-	if zajac_flag or trend_job_flag > 0 or armchair_flag or dzemini_flag:
+	if flags.zajac_flag or flags.trend_job_flag > 0 or flags.armchair_flag or flags.dzemini_flag:
 		_life_start.call_deferred()
 
 
@@ -4300,7 +3955,7 @@ func _build_city_life(data: Dictionary, world: Node3D) -> void:
 ## (once the city has its first tick).
 func _life_start() -> void:
 	await get_tree().create_timer(1.5).timeout
-	if zajac_flag and notes != null and notes.by_id.has("kolka_start"):
+	if flags.zajac_flag and notes != null and notes.by_id.has("kolka_start"):
 		# Where the club gathers (its route's start, on the boulevard), once the index is built.
 		var waited := 0.0
 		while life.kolka_start_at() == Vector2.INF and waited < 20.0:
@@ -4312,7 +3967,7 @@ func _life_start() -> void:
 		_put_car_near(at, 80.0)
 		print("life: --zajac: the car at %.0f, %.0f (Kolka's start %.0f m away), %s" % [car.global_position.x, car.global_position.z,
 				Vector2(car.global_position.x, car.global_position.z).distance_to(at), life.life_summary()])
-	if armchair_flag:
+	if flags.armchair_flag:
 		# Loop jobs-2: once his way is known, the car on the lane nearest the armchair man.
 		var waited_a := 0.0
 		while (life.get("_arm") as Dictionary).is_empty() and waited_a < 30.0:
@@ -4327,16 +3982,16 @@ func _life_start() -> void:
 			cam_focus = car.global_position
 			print("life: --armchair: the man at %.0f, %.0f, the car %.0f m from him" % [ap.x, ap.z,
 					Vector2(car.global_position.x, car.global_position.z).distance_to(Vector2(ap.x, ap.z))])
-	if dzemini_flag and trend_job != null and crowds != null and crowds.by_id.has(Crowds.DZEMINI_ID):
+	if flags.dzemini_flag and trend_job != null and crowds != null and crowds.by_id.has(Crowds.DZEMINI_ID):
 		trend_job.dz_done = true
 		crowds.dzemini_mlask()
 		var dsite: Dictionary = crowds.sites[crowds.by_id[Crowds.DZEMINI_ID]]
 		_put_car_near(dsite.get("door", dsite["at"]), 40.0)
 		print("trend job: --dzemini: the MLASK on DŻEMINI, the car %.0f m from its door" % [
 				Vector2(car.global_position.x, car.global_position.z).distance_to(dsite.get("door", dsite["at"]))])
-	if trend_job_flag > 0 and trend_job != null:
-		var i := trend_job_flag - 1
-		if trend_job_flag == 6:
+	if flags.trend_job_flag > 0 and trend_job != null:
+		var i := flags.trend_job_flag - 1
+		if flags.trend_job_flag == 6:
 			# "Mlask" (G5): Mrożulo's van parked by the car, his request at once (KUKŁA by Nowy
 			# Świat if no Wiralek slot is new enough).
 			if crowds != null and crowds.by_id.has(Crowds.KUKLA[1]):
@@ -4345,7 +4000,7 @@ func _life_start() -> void:
 			if not trend_job.offer_mlask(true):
 				print("trend job: --trend-job=6: no request (no van spot or new place)")
 			return
-		if trend_job_flag == 8:
+		if flags.trend_job_flag == 8:
 			# "Dżemini" (G5b): Mrożulo's call at once, the car by DŻEMINI KEBAB on Świętokrzyska.
 			if crowds != null and crowds.by_id.has(Crowds.DZEMINI_ID):
 				_put_car_near(crowds.sites[crowds.by_id[Crowds.DZEMINI_ID]]["at"], 80.0)
@@ -4354,27 +4009,27 @@ func _life_start() -> void:
 			if not trend_job.offer_dzemini(true):
 				print("trend job: --trend-job=8: no request (no shop door, kerb or van spot)")
 			return
-		if trend_job_flag == 9:
+		if flags.trend_job_flag == 9:
 			# "Kawowy rajd" (coffee_run.gd): the car near the ROWERILO dock in Powiśle, Zuzia's call at once.
 			_put_car_near(CoffeeRun.DOCK, 80.0)
 			life.tick(0.0)
 			if not trend_job.offer_kawa_call(true):
 				print("trend job: --trend-job=9: no request (a café has no position)")
 			return
-		if trend_job_flag == 7:
+		if flags.trend_job_flag == 7:
 			# "Czwarty" at WTS DeSki's padel courts (landmarks.gd DESKI), whatever the clock.
 			life.tick(0.0)
 			if not trend_job.offer_deski_call(true):
 				print("trend job: --trend-job=7: no request (no kerb or door fits)")
 			return
-		if trend_job_flag == 5 and crowds != null and crowds.by_id.has(Crowds.PADEL_ID):
+		if flags.trend_job_flag == 5 and crowds != null and crowds.by_id.has(Crowds.PADEL_ID):
 			var cd: Vector2 = crowds.sites[crowds.by_id[Crowds.PADEL_ID]]["door"]
 			_put_car_near(cd, 60.0)
 			life.tick(0.0)
 			if not trend_job.offer_czwarty():
 				print("trend job: --trend-job=5: no request (no kerb or door fits)")
 			return
-		if trend_job_flag == 4 and crowds != null and crowds.by_id.has(Crowds.PISTACJA_ID):
+		if flags.trend_job_flag == 4 and crowds != null and crowds.by_id.has(Crowds.PISTACJA_ID):
 			# The limited drop at PISTACJA, whatever the clock (no "sold out").
 			var pd: Vector2 = crowds.sites[crowds.by_id[Crowds.PISTACJA_ID]]["door"]
 			_put_car_near(pd, 60.0)
@@ -4385,12 +4040,12 @@ func _life_start() -> void:
 			return
 		var door: Vector2 = life.slot_doors[i] if i < life.slot_doors.size() else Vector2.INF
 		if door == Vector2.INF:
-			push_warning("--trend-job=%d: no such slot" % trend_job_flag)
+			push_warning("--trend-job=%d: no such slot" % flags.trend_job_flag)
 			return
 		_put_car_near(door, 60.0)
 		life.tick(0.0)
 		if not trend_job.offer(i):
-			print("trend job: --trend-job=%d: no request (the slot is on day %d)" % [trend_job_flag, int(life.slots_now[i]["day"])])
+			print("trend job: --trend-job=%d: no request (the slot is on day %d)" % [flags.trend_job_flag, int(life.slots_now[i]["day"])])
 
 
 ## --zajac: is yyyymmdd a Wednesday (Kolka's day)?
@@ -4401,7 +4056,7 @@ static func _is_wednesday(ymd: int) -> bool:
 
 ## --crowd= × the Low tier's half.
 func _crowd_scale() -> float:
-	return float(crowd_flag) * (0.5 if quality == Tiers.LOW else 1.0)
+	return float(flags.crowd_flag) * (0.5 if quality == Tiers.LOW else 1.0)
 
 
 ## The crowds' calendar: Live or not, the month and date, the look, rain, and the sunset's hour
@@ -4486,15 +4141,15 @@ func _put_at_club(id: String) -> void:
 ## --place=<id>, before the city opens: start where places.json's hint says, so the sectors
 ## round the place are built first (the exact spot comes after, _put_at_place).
 func _place_start() -> void:
-	if place_flag == "":
+	if flags.place_flag == "":
 		return
 	var book := Notebook.new()
-	if book.load_places() and book.by_id.has(place_flag):
-		var near: Array = book.places[book.by_id[place_flag]]["near"]
+	if book.load_places() and book.by_id.has(flags.place_flag):
+		var near: Array = book.places[book.by_id[flags.place_flag]]["near"]
 		var at := Notebook.project([52.234, 21.024], float(near[0]), float(near[1]))
 		start_at = Vector3(at.x, 0.0, at.y)
 	else:
-		push_warning("--place=%s: no such place in places.json" % place_flag)
+		push_warning("--place=%s: no such place in places.json" % flags.place_flag)
 	book.free()
 
 
@@ -4535,7 +4190,7 @@ func _build_moments(data: Dictionary, world: Node3D) -> void:
 	egg_book.wallet = wallet
 	egg_book.hud = hud
 	egg_book.radio = radio
-	egg_book.log_on = egg_log
+	egg_book.log_on = flags.egg_log
 	egg_book.blip = _blip_sound
 	add_child(egg_book)
 	if egg_book.load_eggs():
@@ -4543,15 +4198,15 @@ func _build_moments(data: Dictionary, world: Node3D) -> void:
 		if eggs != null:
 			eggs.book = egg_book
 		egg_book.probe = _egg_state
-		if found_eggs != "":
-			egg_book.preset(found_eggs)
+		if flags.found_eggs != "":
+			egg_book.preset(flags.found_eggs)
 	tape = Tape.new()
 	tape.name = "Tape"
 	tape.wallet = wallet
 	tape.hud = hud
 	tape.map = map
 	tape.book = egg_book
-	tape.log_on = tape_log
+	tape.log_on = flags.tape_log
 	tape.blip = _blip_sound
 	tape.vhs = _vhs_pulse
 	tape.state = _egg_state
@@ -4568,7 +4223,7 @@ func _build_moments(data: Dictionary, world: Node3D) -> void:
 	spacer.probe = func() -> Array: return [_vehicle_position(), title != null or _phone_bench]
 	add_child(spacer)
 	spacer.changed.connect(_apply_spacer)
-	spacer.set_on(spacer_flag == 1 if spacer_flag >= 0 else settings.wander, spacer_hint)
+	spacer.set_on(flags.spacer_flag == 1 if flags.spacer_flag >= 0 else settings.wander, flags.spacer_hint)
 	_apply_spacer(spacer.on)
 	hud.tapped.connect(func(_at: Vector2) -> void:
 		if spacer.hint_shown():
@@ -4581,7 +4236,7 @@ func _build_moments(data: Dictionary, world: Node3D) -> void:
 	fotka.map = map
 	fotka.world = world
 	fotka.main_cam = cam
-	fotka.log_on = photo_log
+	fotka.log_on = flags.photo_log
 	fotka.blip = _blip_sound
 	fotka.pt = hud.pt
 	fotka.safe = hud.safe_rect()
@@ -4601,7 +4256,7 @@ func _build_moments(data: Dictionary, world: Node3D) -> void:
 			page.eggs = egg_book
 			page.tape = tape
 			page.kadr = fotka
-	if egg_flag != "" or tape_flag != "" or fotka_flag:
+	if flags.egg_flag != "" or flags.tape_flag != "" or flags.fotka_flag:
 		_moment_at = 1.0
 
 
@@ -4612,11 +4267,11 @@ func _build_districts() -> void:
 	districts.name = "Districts"
 	districts.wallet = wallet
 	districts.hud = hud
-	districts.log_on = districts_log
+	districts.log_on = flags.districts_log
 	districts.blip = _blip_sound
 	if sfx != null:
 		districts.entered.connect(sfx.set_district)
-	districts.force_card = district_card
+	districts.force_card = flags.district_card
 	add_child(districts)
 	var points := {}
 	if notes != null:
@@ -4624,12 +4279,12 @@ func _build_districts() -> void:
 			points[str(p["id"])] = p["at"]
 	if not districts.setup(points):
 		return
-	if districts_spec != "":
-		districts.preset(districts_spec)
+	if flags.districts_spec != "":
+		districts.preset(flags.districts_spec)
 	if notes != null:
 		districts.probe = notes.probe
 		notes.extra_marks = districts.marks
-	if districts_log:
+	if flags.districts_log:
 		print("districts: %s" % districts.summary())
 
 
@@ -4660,7 +4315,7 @@ func _build_syrenki(world: Node3D) -> void:
 	syrenki.hud = hud
 	syrenki.districts = districts
 	syrenki.world = world
-	syrenki.log_on = syrenki_log
+	syrenki.log_on = flags.syrenki_log
 	syrenki.blip = _blip_sound
 	add_child(syrenki)
 	var points := {}
@@ -4671,17 +4326,17 @@ func _build_syrenki(world: Node3D) -> void:
 		return
 	if graph != null:
 		syrenki.place_all(map, graph)
-	if syrenki_spec != "":
-		syrenki.preset(syrenki_spec)
+	if flags.syrenki_spec != "":
+		syrenki.preset(flags.syrenki_spec)
 	if notes != null:
 		syrenki.probe = notes.probe
-	if syrenka_flag != "":
-		var parts := syrenka_flag.split(":")
+	if flags.syrenka_flag != "":
+		var parts := flags.syrenka_flag.split(":")
 		var i := syrenki.index_of(parts[0])
 		var back := float(parts[1]) if parts.size() > 1 else 25.0
 		var spot := syrenki.drive_in(graph, i, back) if i >= 0 else []
 		if spot.is_empty():
-			push_warning("--syrenka=%s: no such Syrenka or no street" % syrenka_flag)
+			push_warning("--syrenka=%s: no such Syrenka or no street" % flags.syrenka_flag)
 		else:
 			car.global_position = spot[0]
 			car.rotation.y = spot[1]
@@ -4689,17 +4344,17 @@ func _build_syrenki(world: Node3D) -> void:
 			car.forward_speed = 0.0
 			car.reset_physics_interpolation()
 			cam_focus = car.global_position
-			print("syrenki: --syrenka=%s: the car at %.1f, %.1f facing it" % [syrenka_flag, car.global_position.x, car.global_position.z])
+			print("syrenki: --syrenka=%s: the car at %.1f, %.1f facing it" % [flags.syrenka_flag, car.global_position.x, car.global_position.z])
 
 
 ## --syrenka=<id|n>, before the city opens: start at the Syrenka's anchor (map-free), so the
 ## sectors round it are built first (the exact spot comes after, _build_syrenki).
 func _syrenka_start() -> void:
-	if syrenka_flag == "":
+	if flags.syrenka_flag == "":
 		return
 	var sy := Syrenki.new()
 	if sy.load_data():
-		var i := sy.index_of(syrenka_flag.get_slice(":", 0))
+		var i := sy.index_of(flags.syrenka_flag.get_slice(":", 0))
 		if i >= 0 and sy.entries[i]["anchor"] != Vector2.INF:
 			var at: Vector2 = sy.entries[i]["anchor"]
 			start_at = Vector3(at.x, 0.0, at.y)
@@ -4810,96 +4465,6 @@ func _vhs_pulse(seconds: float) -> void:
 	vhs = keep
 
 
-## --egg=<id>: before the city is built, the egg's moment (time of day, clock and date, dry
-## weather, the station; the roadworks' street) and the start near its place.
-func _egg_moment() -> void:
-	if egg_flag == "" and tape_flag == "" and kadr_flag == "":
-		return
-	# Each moment's flag brings its log (the runs read these lines).
-	egg_log = egg_log or egg_flag != ""
-	tape_log = tape_log or tape_flag != ""
-	photo_log = photo_log or kadr_flag != ""
-	var pid := ""
-	if egg_flag != "":
-		var book := EggBook.new()
-		if book.load_eggs() and book.by_id.has(egg_flag):
-			_egg = book.eggs[book.by_id[egg_flag]]
-		book.free()
-		if _egg.is_empty():
-			push_warning("--egg=%s: no such egg in eggs.json" % egg_flag)
-			return
-		pid = str(_egg["place"])
-		var t: Dictionary = _egg["trigger"]
-		if bool(t.get("night", false)) or t.has("after"):
-			start_time = TimeOfDay.NIGHT
-		if str(t.get("look", "")) == "Dusk":
-			start_time = TimeOfDay.DUSK
-		if t.has("hours") and not (t.has("weekday") or t.has("date")):
-			var h: Array = t["hours"]
-			var a := float(h[0])
-			var b := float(h[1])
-			var inside := func(x: float) -> bool: return (x >= a and x < b) if a <= b else (x >= a or x < b)
-			if inside.call(19.5):
-				start_time = TimeOfDay.DUSK
-			elif inside.call(1.5):
-				start_time = TimeOfDay.NIGHT
-			elif inside.call(14.0):
-				start_time = TimeOfDay.DAY
-		if t.has("weekday") or t.has("date"):
-			start_time = TimeOfDay.LIVE
-			var hours: Array = t.get("hours", [12, 13])
-			live_clock = "%02d:15" % int(hours[0])
-			# The week of Monday 26 October 2026, or of Monday 28 June 2027 for a summer egg (Live's
-			# summer is June-August); Fat Thursday by the computus. At dusk: the sun on the horizon.
-			var summer := bool(t.get("summer", false))
-			var monday := 20270628 if summer else 20261026
-			live_date = monday + int((t.get("weekday", [4]) as Array)[0]) - 1
-			if not summer and live_date > 20261031:
-				live_date = 20261101
-			elif summer and live_date > 20270630:
-				live_date = 20270701 + live_date - 20270631
-			if str(t.get("look", "")) == "Dusk":
-				live_clock = "21:00" if summer else "16:25"
-			if str(t.get("date", "")) == "fat_thursday":
-				live_date = EggBook.fat_thursday(2027)
-		if bool(t.get("dry", false)):
-			start_weather = 0
-		if t.has("station"):
-			station_flag = str(t["station"])
-			radio_picked = true
-		if t.has("roadworks"):
-			barrier_force = str(t["roadworks"])
-		if t.has("paint") and paint_flag == "":
-			paint_flag = str(t["paint"])  # the garage loop: E01 black, E21 green
-		if str(t.get("kind", "")) == "tape":
-			tape_flag = str(t["card"])
-		print("egg: --egg=%s %s: %s; the moment: %s%s%s" % [egg_flag, _egg["name"][0], t,
-				TimeOfDay.NAMES[start_time], " %s %d" % [live_clock, live_date] if live_clock != "" else "",
-				", station %s" % station_flag if station_flag != "" else ""])
-	if tape_flag != "" and pid == "":
-		var tp := Tape.new()
-		if tp.load_cards() and tp.index_of(tape_flag) >= 0:
-			pid = str(tp.spots[tp.index_of(tape_flag)]["place"])
-		tp.free()
-	if kadr_flag != "" and pid == "":
-		var f := Fotka.new()
-		if f.load_spots():
-			var i := _kadr_index(f, kadr_flag)
-			if i >= 0:
-				pid = str(f.spots[i]["place"])
-				var want := str(f.spots[i].get("look", ""))
-				if want != "":
-					start_time = TimeOfDay.parse(want.to_lower())
-		f.free()
-	# The sectors round the place first (its hint; eggs.gd's spots come once the city is up).
-	var nb := Notebook.new()
-	if nb.load_places() and nb.by_id.has(pid):
-		var near: Array = nb.places[nb.by_id[pid]]["near"]
-		var at := Notebook.project([52.234, 21.024], float(near[0]), float(near[1]))
-		start_at = Vector3(at.x, 0.0, at.y)
-	nb.free()
-
-
 func _kadr_index(f: Node, key: String) -> int:
 	var spots: Array = f.get("spots")
 	for i in spots.size():
@@ -4932,18 +4497,18 @@ func _start_moment() -> void:
 	if not _egg.is_empty():
 		_egg_place()
 	# A tape egg (E36, E37) plays its then card here too.
-	if tape_flag != "" and tape != null:
-		var i := tape.index_of(tape_flag)
+	if flags.tape_flag != "" and tape != null:
+		var i := tape.index_of(flags.tape_flag)
 		if i >= 0:
 			_put_car_near(tape.spots[i]["at"], 20.0)
-			print("tape: --tape=%s, the car at %.1f, %.1f heading %.0f" % [tape_flag, car.global_position.x, car.global_position.z,
+			print("tape: --tape=%s, the car at %.1f, %.1f heading %.0f" % [flags.tape_flag, car.global_position.x, car.global_position.z,
 					fposmod(rad_to_deg(car.rotation.y), 360.0)])
 			tape.play(i)
 		else:
-			push_warning("--tape=%s: no such then card" % tape_flag)
-	if fotka_flag and fotka != null:
-		if kadr_flag != "":
-			var i := _kadr_index(fotka, kadr_flag)
+			push_warning("--tape=%s: no such then card" % flags.tape_flag)
+	if flags.fotka_flag and fotka != null:
+		if flags.kadr_flag != "":
+			var i := _kadr_index(fotka, flags.kadr_flag)
 			if i >= 0:
 				_put_car_near(fotka.spots[i]["at"], 60.0)
 				_open_fotka()
@@ -4977,7 +4542,7 @@ func _on_fotka_closed() -> void:
 		car.velocity = Vector3.ZERO
 		car.forward_speed = 0.0
 		car.reset_physics_interpolation()
-		if photo_log:
+		if flags.photo_log:
 			print("fotka: car put back (it had moved %.2f m)" % moved)
 	_fotka_car = Transform3D.IDENTITY
 	_cut_camera()
@@ -5150,7 +4715,7 @@ func _egg_rig(dt: float) -> void:
 		if kind in ["lap", "street", "circle"]:
 			car.vel = Vector3.ZERO
 		return
-	if egg_log and int(_rig_t / 10.0) != int((_rig_t - dt) / 10.0):
+	if flags.egg_log and int(_rig_t / 10.0) != int((_rig_t - dt) / 10.0):
 		print("egg: --egg=%s not yet after %.0f s (%s)" % [_egg["id"], _rig_t, egg_book.describe_state(_egg_state())])
 	match kind:
 		"lap", "street", "circle":
@@ -5195,74 +4760,16 @@ func _build_police(data: Dictionary, world: Node3D) -> void:
 	police = Police.new()
 	police_opts["traffic_level"] = traffic_level
 	# --barriers=YYYYMMDD places the day's speed traps too (like the roadworks).
-	police_opts["day"] = barrier_day
+	police_opts["day"] = flags.barrier_day
 	var nodes := {"map": map, "graph": graph, "traffic": traffic, "car": car, "cam": cam, "hud": hud,
 			"bubbles": bubbles, "dialogue": dialogue, "wallet": wallet, "walkers": walkers, "radio": radio, "sfx": sfx,
-			"jobs": jobs, "missions": missions, "tod": tod, "opts": police_opts, "pedal": hold_pedal, "autopilot": autopilot,
+			"jobs": jobs, "missions": missions, "tod": tod, "opts": police_opts, "pedal": flags.hold_pedal, "autopilot": flags.autopilot,
 			"rivals": rivals, "ped_zones": ped_zones,
 			"level_now": func() -> int: return traffic_level,
 			"project": func(p: Vector3) -> Vector2: return cam.unproject_position(p) * float(view.stretch_shrink)}
 	add_child(police)
 	police.setup(nodes, data, world)
 	await LoadYield.tick("police.setup")
-
-
-## The police's testing flags (README's flags table): --no-police, --police=1|2|3, --trap=N,
-## --pullover=routine|trap|kebab|sloik|generic, --police-auto=escape|stop|hold, --police-now,
-## --police-log, --police-offence=FRAME:kind,... Loop 3g-2: --escort, --guards, --clamp[=sorry],
-## --first-contact (police.md 14).
-func _police_flag(arg: String) -> void:
-	if arg == "--no-police":
-		police_opts["off"] = true
-	elif arg == "--escort":
-		police_opts["escort"] = true
-	elif arg == "--first-contact":
-		police_opts["first_contact"] = true
-		show_title = false
-		free_roam = true
-	elif arg == "--guards" or arg == "--guards=talk":
-		# The Krakowskie Przedmieście end of the zone, heading north into it (police.gd drives;
-		# =talk stops by the gate's guards).
-		police_opts["guards"] = "talk" if arg == "--guards=talk" else "drive"
-		start_at = Vector3(-696.0, 0.0, -1279.0)
-		start_heading = 345.0
-		show_title = false
-		free_roam = true
-	elif arg == "--clamp" or arg.begins_with("--clamp="):
-		# Parked on Plac Zamkowy 15 m from a guard; the clamp's countdown starts at frame 60.
-		police_opts["clamp"] = arg.trim_prefix("--clamp=") if arg.begins_with("--clamp=") else "wait"
-		start_at = Vector3(-690.0, 0.0, -1490.0)
-		start_heading = 250.0
-		show_title = false
-		free_roam = true
-	elif arg == "--police-now":
-		police_opts["now"] = true
-	elif arg == "--police-log":
-		police_opts["log"] = true
-	elif arg.begins_with("--police-auto="):
-		police_opts["auto"] = arg.trim_prefix("--police-auto=")
-	elif arg.begins_with("--police-offence="):
-		police_opts["offences"] = arg.trim_prefix("--police-offence=")
-	elif arg.begins_with("--police="):
-		police_opts["level"] = clampi(int(arg.trim_prefix("--police=")), 1, 3)
-		show_title = false
-		free_roam = true
-	elif arg.begins_with("--trap="):
-		var n := int(arg.trim_prefix("--trap="))
-		police_opts["trap"] = n
-		var start := Police.trap_start(n)
-		if not start.is_empty():
-			start_at = start[0]
-			start_heading = start[1]
-		show_title = false
-		free_roam = true
-	elif arg.begins_with("--pullover="):
-		police_opts["pullover"] = arg.trim_prefix("--pullover=")
-		show_title = false
-		free_roam = true
-	elif arg.begins_with("--pullover-frame="):
-		# Loop 2d-1: the --pullover conversation at frame N (default 60), e.g. during a --ride.
-		police_opts["pullover_frame"] = maxi(1, int(arg.trim_prefix("--pullover-frame=")))
 
 
 ## The game's own options. Loop 2b: a launcher can swallow the "--" (devicectl on an iPhone):
@@ -5274,744 +4781,56 @@ static func game_args() -> PackedStringArray:
 	return Release.game_args()
 
 
-func _parse_args() -> void:
-	start_station = 1
-	for arg in game_args():
-		if arg == "--demo":
-			demo = true
-		elif arg.begins_with("--lang="):
-			_flag_lang = arg.trim_prefix("--lang=")  # pl or en, for shots and checks
-		elif arg == "--left-handed":
-			_flag_left_handed = true  # accessibility (2026-11-01): the mirrored controls, for shots
-		elif arg == "--color-safe":
-			_flag_color_safe = true  # accessibility (2026-11-03): colour-safe rings and tint, for shots
-		elif arg.begins_with("--shots="):
-			for s in arg.trim_prefix("--shots=").split(","):
-				shots.append(int(s))
-			# A shots run is a scripted render: its window never takes the keyboard focus, as with
-			# --no-input (night --nohud shots had come out in the helicopter or at dusk: keys typed
-			# in another app landed in the freshly opened game window).
-			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_NO_FOCUS, true)
-		elif arg.begins_with("--out="):
-			out_dir = arg.trim_prefix("--out=")
-		elif arg.begins_with("--spots="):
-			# NAME:X,Z[,HEADING];NAME:X,Z... : one run shoots every spot (street passes, before/after).
-			for item in arg.trim_prefix("--spots=").split(";", false):
-				var nv := item.split(":")
-				var v := nv[1].split(",") if nv.size() > 1 else PackedStringArray()
-				if v.size() < 2:
-					push_error("--spots: '%s' is not NAME:X,Z[,HEADING]" % item)
-					continue
-				shot_spots.append([nv[0], Vector2(float(v[0]), float(v[1])), float(v[2]) if v.size() > 2 else INF])
-			if not shot_spots.is_empty():
-				start_at = Vector3(shot_spots[0][1].x, 0.0, shot_spots[0][1].y)
-				if shot_spots[0][2] != INF:
-					start_heading = shot_spots[0][2]
-		elif arg.begins_with("--style="):
-			_flag_style = posmod(int(arg.trim_prefix("--style=")), STYLES.size())
-		elif arg.begins_with("--stops="):
-			stops = JSON.parse_string(FileAccess.get_file_as_string(arg.trim_prefix("--stops=")))
-		elif arg.begins_with("--at="):
-			var xz := arg.trim_prefix("--at=").split(",")
-			start_at = Vector3(float(xz[0]), 0.0, float(xz[1]))
-		elif arg.begins_with("--heading="):
-			start_heading = float(arg.trim_prefix("--heading="))
-		elif arg.begins_with("--pitch="):
-			camera_pitch = float(arg.trim_prefix("--pitch="))
-			_flag_pitch = true
-		elif arg.begins_with("--lines="):
-			lines_override = int(arg.trim_prefix("--lines="))
-		elif arg.begins_with("--sun="):
-			sun_pitch = float(arg.trim_prefix("--sun="))
-		elif arg == "--debug-ao":
-			debug_ao = true
-		elif arg.begins_with("--palace="):
-			# The Blender trial (2026-11-13): code, blender (LOD 0) or blender1 (LOD 1).
-			preload("res://scripts/landmarks.gd").palace_flag = arg.trim_prefix("--palace=")
-		elif arg.begins_with("--solo="):
-			solo_site = arg.trim_prefix("--solo=")
-			MapBuilder.solo_site = solo_site
-			no_traffic = true
-			crowd_flag = 0  # nothing but the site in the picture (the turntable): no crowds, packs, fans, circles
-			life_flag = 0
-			no_parodies = true  # no Leżak scooters, frogs or venue neon beside the model
-		elif arg.begins_with("--solo-look="):
-			solo_look = arg.trim_prefix("--solo-look=")
-		elif arg == "--tunnel":
-			start_in_tunnel = true
-		elif arg == "--under":
-			start_under = true
-		elif arg == "--debug-roads":
-			debug_roads = true
-		elif arg == "--colliders":
-			collider_view = true
-		elif arg.begins_with("--lift="):
-			cam_lift = float(arg.trim_prefix("--lift="))
-		elif arg.begins_with("--cam="):
-			var fc := FollowCamera.parse_free(arg.trim_prefix("--cam="))
-			if fc.is_empty():
-				push_error("--cam: '%s' is not X,Z or X,Y,Z" % arg)
-			else:
-				free_cam = true
-				_free_cam_at = Vector3(fc[0], fc[1], fc[2])
-				no_ghost = true
-				if not _has_arg("--at="):
-					start_at = Vector3(fc[0], 0.0, fc[2])
-		elif arg == "--cam-car":
-			_free_cam_car = true
-		elif arg.begins_with("--cams="):
-			_cams = FollowCamera.parse_cams(arg.trim_prefix("--cams="))
-			if _cams.is_empty():
-				push_error("--cams: '%s' is not NAME:X,Y,Z[,YAW[,PITCH[,SIZE]]] joined with +" % arg)
-			else:
-				free_cam = true
-				no_ghost = true
-				for c: Dictionary in _cams:
-					shot_spots.append([c["name"], Vector2(c["at"].x, c["at"].z), INF])
-					_flag_yaw = _flag_yaw or not is_nan(c["yaw"])
-					_flag_pitch = _flag_pitch or not is_nan(c["pitch"])
-					_flag_size = _flag_size or not is_nan(c["size"])
-				start_at = Vector3(_cams[0]["at"].x, 0.0, _cams[0]["at"].z)
-				_apply_cam(0)
-		elif arg.begins_with("--ghost-debug="):
-			ghost_debug = int(arg.trim_prefix("--ghost-debug="))
-		elif arg == "--prebuilt":
-			prebuilt = true
-		elif arg == "--no-ao":
-			no_ao = true
-		elif arg == "--lite-shaders":
-			GpuQuirks.forced = true  # the Adreno 6xx shaders on any GPU (gpu_quirks.gd)
-		elif arg == "--nohud":
-			hide_hud = true
-		elif arg == "--no-touch":
-			no_touch = true  # desktop: --no-touch
-		elif arg == "--no-input":
-			# Loop 3d-1: a test render ignores every key, click and touch (check_streaming's windows
-			# take the focus for minutes: keys typed elsewhere toggled the time, the overlay, the radio).
-			# The window never takes the focus, so keys typed elsewhere stay there.
-			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_NO_FOCUS, true)
-		elif arg.begins_with("--size="):
-			base_size = float(arg.trim_prefix("--size="))
-			_flag_size = true
-		elif arg == "--fixed":
-			_flag_fixed = true
-		elif arg.begins_with("--yaw="):
-			cam_yaw = float(arg.trim_prefix("--yaw="))
-			cam_yaw_target = cam_yaw
-			_flag_yaw = true
-		elif arg == "--cinematic" or arg.begins_with("--cinematic="):
-			_flag_cinematic = arg.trim_prefix("--cinematic=") if arg.contains("=") else "all"
-		elif arg == "--heli":
-			start_flying = true
-		elif arg.begins_with("--heli-stick="):
-			var hs := arg.trim_prefix("--heli-stick=").split(",")
-			if hs.size() == 2:
-				heli_stick = Vector2(float(hs[0]), float(hs[1]))
-		elif arg.begins_with("--heli-alt="):
-			# Loop 3d-2b: start flying this high over the ground, placed there at once (the
-			# helicopter at its highest, Heli.MAX_HEIGHT 360, for the memory and far-level probes).
-			start_flying = true
-			_start_alt = clampf(float(arg.trim_prefix("--heli-alt=")), 6.0, Heli.MAX_HEIGHT)
-		elif arg.begins_with("--mission="):
-			start_mission = maxi(1, int(arg.trim_prefix("--mission=")))
-		elif arg == "--autopilot":
-			autopilot = true
-		elif arg.begins_with("--contacts="):
-			contacts_to = arg.trim_prefix("--contacts=")
-		elif arg == "--no-soft":
-			# Step 7: before the city is built (the builder reads it: every fence and hedge hard).
-			_no_soft = true
-			CityBarriers.soft_off = true
-		elif arg == "--race-debug":
-			race_debug = true
-		elif arg.begins_with("--ghost-pace="):
-			var gp := arg.trim_prefix("--ghost-pace=")
-			ghost_pace = 99.0 if gp == "racer" else float(gp)
-		elif arg == "--no-traffic":
-			no_traffic = true
-		elif arg == "--lineup":
-			lineup = true
-			no_traffic = true
-			free_roam = true
-		elif arg.begins_with("--race="):
-			start_race = maxi(1, int(arg.trim_prefix("--race=")))
-		elif arg.begins_with("--rival="):
-			start_rival = maxi(1, int(arg.trim_prefix("--rival=")))
-		elif arg == "--bench":
-			bench = true
-		elif arg.begins_with("--bench-frames="):
-			_bench_frames = maxi(60, int(arg.trim_prefix("--bench-frames=")))
-		elif arg.begins_with("--bench-seconds="):
-			_bench_seconds = maxf(5.0, float(arg.trim_prefix("--bench-seconds=")))
-			_phone_seconds = _bench_seconds
-		elif arg == "--bench-button":
-			bench_button = true
-		elif arg.begins_with("--fps="):
-			_flag_fps = maxi(0, int(arg.trim_prefix("--fps=")))
-		elif arg == "--probe":
-			probe = true
-			free_roam = true
-		elif arg == "--no-map-edge":
-			_flag_no_map_edge = true
-		elif arg == "--no-edge-roadworks":
-			_flag_no_edge_roadworks = true
-		elif arg.begins_with("--exp="):
-			_exp = arg.trim_prefix("--exp=").split(",")
-		elif arg.begins_with("--time="):
-			start_time = TimeOfDay.parse(arg.trim_prefix("--time="))
-		elif arg == "--vhs":
-			_flag_vhs = true
-		elif arg.begins_with("--call-in="):
-			call_in = maxf(0.0, float(arg.trim_prefix("--call-in=")))
-		elif arg.begins_with("--radio="):
-			var v := arg.trim_prefix("--radio=")
-			# Loop MW-5: clamped to radio.json's stations when the radio is tuned (_ready).
-			start_station = 0 if v == "off" else clampi(int(v), 0, 99)
-			radio_picked = true
-		elif arg.begins_with("--station="):
-			station_flag = arg.trim_prefix("--station=")
-			radio_picked = true
-		elif arg == "--radio-log":
-			radio_log = true
-		elif arg.begins_with("--unlock="):
-			unlock_flag = arg.trim_prefix("--unlock=")
-		elif arg == "--notitle":
-			show_title = false
-		elif arg == "--title":
-			force_title = true
-		elif arg.begins_with("--kebab="):
-			start_kebab = maxi(0, int(arg.trim_prefix("--kebab=")))
-		elif arg == "--courier-race" or arg.begins_with("--courier-race="):
-			# Loop jobs-2: kebab order N with the courier's challenge (day or night).
-			courier_race = true
-			start_kebab = maxi(0, int(arg.trim_prefix("--courier-race="))) if arg.contains("=") else 0
-		elif arg == "--pedzik-log":
-			pedzik_log = true  # loop couriers
-		elif arg == "--pedzik-kerb":
-			pedzik_kerb = true  # loop couriers
-		elif arg.begins_with("--courier-v="):
-			courier_v = clampf(float(arg.trim_prefix("--courier-v=")), 0.5, 30.0)
-		elif arg == "--roundup":
-			roundup_flag = true
-		elif arg == "--armchair":
-			armchair_flag = true
-		elif arg.begins_with("--sloik-station="):
-			start_sloik_station = maxi(0, int(arg.trim_prefix("--sloik-station=")))
-		elif arg == "--sloik" or arg.begins_with("--sloik="):
-			start_sloik = maxi(0, int(arg.trim_prefix("--sloik="))) if arg.contains("=") else 0
-		elif arg.begins_with("--heat="):
-			start_heat = clampf(float(arg.trim_prefix("--heat=")), 0.0, 1.0)
-		elif arg == "--craft=plain":
-			craft_plain = true
-		# --- loop 2d-1: Podwózka's flags ---
-		elif arg.begins_with("--ride="):
-			start_ride = maxi(0, int(arg.trim_prefix("--ride=")))
-		elif arg.begins_with("--ride-quirk="):
-			ride_quirk = arg.trim_prefix("--ride-quirk=").to_lower()
-		elif arg.begins_with("--passenger="):
-			ride_passenger = arg.trim_prefix("--passenger=").to_lower()
-		elif arg.begins_with("--ride-story="):
-			ride_story = arg.trim_prefix("--ride-story=").to_lower()
-		elif arg.begins_with("--ride-answer="):
-			ride_answer = clampi(int(arg.trim_prefix("--ride-answer=")), 0, 1)
-		elif arg.begins_with("--stars="):
-			ride_stars = clampf(float(arg.trim_prefix("--stars=")), 1.0, 5.0)
-		elif arg == "--ignore-app":
-			ignore_app = true
-		elif arg == "--parody-log":
-			parody_log = true
-		elif arg.begins_with("--gps-in="):
-			gps_in = maxf(0.0, float(arg.trim_prefix("--gps-in=")))
-		# --- end loop 2d-1 ---
-		elif arg == "--no-parodies":
-			no_parodies = true
-		elif arg == "--rechotka":
-			rechotka_flag = true
-		elif arg.begins_with("--stamps="):
-			stamps_flag = maxi(0, int(arg.trim_prefix("--stamps=")))
-		elif arg.begins_with("--host-in="):
-			host_in = maxf(0.0, float(arg.trim_prefix("--host-in=")))
-		elif arg.begins_with("--barriers="):
-			barrier_day = int(arg.trim_prefix("--barriers="))
-		elif arg == "--reset-save":
-			reset_save = true
-		elif arg == "--boot":
-			pass  # the boot scene (boot.gd, TD-15): this run starts as a player's launch does
-		elif arg == "--report":
-			report_flag = true  # the error trap (TD-14): the report printed when the run ends
-		elif arg == "--crash-note":
-			crash_note_flag = true  # the note after a session that closed by itself
-		elif arg.begins_with("--save-note="):
-			save_note_flag = arg.trim_prefix("--save-note=")  # safer saves (TD-8): restored|lost|blocked
-		elif arg.begins_with("--title-choice="):
-			title_choice = arg.trim_prefix("--title-choice=")  # save and resume: continue|new
-			force_title = true
-		elif arg.begins_with("--resume="):
-			# Save and resume: --resume=x,z[,heading°] a kept spot in memory (with --nosave: the test of
-			# the resume path without a real save).
-			var r := arg.trim_prefix("--resume=").split(",")
-			if r.size() >= 2:
-				resume_flag = [Vector3(float(r[0]), 0.0, float(r[1])), -deg_to_rad(float(r[2])) if r.size() > 2 else 0.0]
-			force_title = true
-		elif arg == "--nosave":
-			no_save = true
-		elif arg == "--free":
-			free_roam = true
-		elif arg == "--no-ghost":
-			no_ghost = true
-		elif arg == "--topdown":
-			top_down = true
-		elif arg.begins_with("--tap="):
-			var xy := arg.trim_prefix("--tap=").split(",")
-			tap_at = Vector2(float(xy[0]), float(xy[1]))
-		elif arg.begins_with("--weather="):
-			start_weather = Weather.parse(arg.trim_prefix("--weather="))
-		elif arg.begins_with("--clock="):
-			live_clock = arg.trim_prefix("--clock=")
-		elif arg.begins_with("--date="):
-			live_date = int(arg.trim_prefix("--date="))
-		elif arg.begins_with("--palace-lights="):
-			palace_lights_id = arg.trim_prefix("--palace-lights=")
-		elif arg == "--perf":
-			_flag_perf = true
-		elif arg == "--sound-check":
-			sound_check = true
-		elif arg.begins_with("--quality="):
-			_flag_quality = Tiers.parse(arg.trim_prefix("--quality="))
-		elif arg.begins_with("--model="):
-			_flag_model = arg.trim_prefix("--model=")
-		elif arg.begins_with("--last-session="):
-			# Loop G1b: Auto as if the last session at the sharp image struggled or was calm.
-			_flag_last_session = arg.trim_prefix("--last-session=")
-		elif arg.begins_with("--governor="):
-			_flag_governor = 0 if arg.trim_prefix("--governor=") in ["off", "0", "no"] else 1
-			_governor_log = arg == "--governor=log"
-		elif arg.begins_with("--stress="):
-			var st := arg.trim_prefix("--stress=").split(":")
-			_stress_kind = st[0] if st[0] in ["cpu", "wait"] else ""
-			_stress_n = maxi(0, int(st[1])) if st.size() > 1 else 0
-		elif arg.begins_with("--stress-from="):
-			_stress_from = maxf(0.0, float(arg.trim_prefix("--stress-from=")))
-		elif arg.begins_with("--stress-to="):
-			_stress_to = maxf(0.0, float(arg.trim_prefix("--stress-to=")))
-		elif arg.begins_with("--controls="):
-			_flag_controls = Controls.parse(arg.trim_prefix("--controls="))
-		elif arg.begins_with("--pads="):
-			_flag_pads = 1 if arg.trim_prefix("--pads=") in ["slider", "strip", "1"] else 0
-		elif arg.begins_with("--handling="):
-			_flag_handling = Car.parse_handling(arg.trim_prefix("--handling="))
-		elif arg.begins_with("--collide="):
-			_flag_collide = Car.CollideRules.parse(arg.trim_prefix("--collide="))
-		elif arg.begins_with("--lane-assist="):
-			_flag_lane = 1 if arg.trim_prefix("--lane-assist=") in ["on", "1", "true"] else 0
-		elif arg.begins_with("--traffic="):
-			_flag_traffic = Settings.parse_traffic(arg.trim_prefix("--traffic="))
-		elif arg == "--settings":
-			open_settings_at_start = true
-		elif arg == "--teleport-test":
-			teleport_test = true
-		elif arg.begins_with("--map-jump="):
-			# 2026-10-31: the full map's hold-to-teleport to x,z once the drive starts (tests).
-			var xz := arg.trim_prefix("--map-jump=").split(",")
-			map_jump = Vector2(float(xz[0]), float(xz[1]))
-		elif arg.begins_with("--quest-quit="):
-			quest_quit_flag = float(arg.trim_prefix("--quest-quit="))
-		elif arg.begins_with("--quest-pick="):
-			quest_pick_flag = int(arg.trim_prefix("--quest-pick="))
-			open_map_at_start = true
-		elif arg == "--fullmap" or arg.begins_with("--fullmap="):
-			open_map_at_start = true
-			# --fullmap=M (2026-10-31): open it M metres across the screen's height (shots).
-			if arg.contains("="):
-				fullmap_span = maxf(1.0, float(arg.trim_prefix("--fullmap=")))
-		elif arg == "--notebook" or arg.begins_with("--notebook="):
-			# Loop MW-1: the notebook's tab at the start (a chapter, or a place's card).
-			open_settings_at_start = true
-			settings_tab = 4
-			notebook_open = arg.trim_prefix("--notebook").trim_prefix("=")
-		elif arg.begins_with("--found="):
-			found_spec = arg.trim_prefix("--found=")
-		elif arg.begins_with("--place="):
-			place_flag = arg.trim_prefix("--place=")
-		elif arg == "--notes-log":
-			notes_log = true
-		elif arg.begins_with("--crowd="):
-			crowd_flag = clampi(int(arg.trim_prefix("--crowd=")), 0, 2)
-		elif arg == "--night-log":
-			night_log = true
-		elif arg == "--night-hub":
-			night_hub_flag = true
-		elif arg == "--bus-log":
-			bus_log = true
-		elif arg.begins_with("--crash="):
-			crash_flag = arg.trim_prefix("--crash=")
-		elif arg in ["--rave-call", "--rave-smola", "--rave-club", "--rave-patio"]:
-			rave_flag = arg.trim_prefix("--rave-")
-		elif arg.begins_with("--rave-spot="):
-			rave_spot = arg.trim_prefix("--rave-spot=")
-		elif arg.begins_with("--rave="):
-			rave_flag = arg.trim_prefix("--rave=")
-		elif arg == "--crawl-call":
-			crawl_flag = "call"
-		elif arg.begins_with("--crawl-route="):
-			crawl_route = arg.trim_prefix("--crawl-route=")
-		elif arg.begins_with("--crawl-group="):
-			crawl_group = arg.trim_prefix("--crawl-group=")
-		elif arg.begins_with("--crawl="):
-			crawl_flag = arg.trim_prefix("--crawl=")
-		elif arg == "--crawl-log":
-			crawl_log = true
-		elif arg == "--rave-log":
-			rave_log = true
-		elif arg in ["--shisha-call", "--shisha-meet", "--shisha-door", "--shisha-arrive", "--shisha-lounge", "--shisha-terrace", "--shisha-hold"]:
-			shisha_flag = arg.trim_prefix("--shisha-")
-		elif arg.begins_with("--shisha="):
-			shisha_flag = arg.trim_prefix("--shisha=")
-		elif arg == "--shisha-log":
-			shisha_log = true
-		elif arg == "--padel-match":
-			padel_flag = 12.0
-		elif arg.begins_with("--padel-match="):
-			padel_flag = float(arg.trim_prefix("--padel-match="))
-		elif arg == "--padel-log":
-			padel_log = true
-		elif arg == "--meet-call":
-			meet_flag = "call"
-		elif arg.begins_with("--meet-at="):
-			meet_at = arg.trim_prefix("--meet-at=")
-		elif arg.begins_with("--meet="):
-			meet_flag = arg.trim_prefix("--meet=")
-		elif arg == "--meet-log":
-			meet_log = true
-		elif arg == "--stories-log":
-			stories_log = true
-		elif arg == "--story-meet":
-			story_meet_flag = true
-		elif arg.begins_with("--story="):
-			story_flag = arg.trim_prefix("--story=")
-		elif arg.begins_with("--quest-tab="):
-			quest_tab_flag = int(arg.trim_prefix("--quest-tab="))
-		elif arg.begins_with("--boat-race"):
-			boat_flag = arg.trim_prefix("--boat-race=") if arg.contains("=") else "call"
-		elif arg == "--boat-log":
-			boat_log = true
-		elif arg.begins_with("--dekalog"):
-			if arg == "--dekalog-log":
-				dekalog_log = true
-			else:
-				dekalog_flag = arg.trim_prefix("--dekalog=") if arg.contains("=") else "call"
-		elif arg.begins_with("--kino-tour"):
-			kino_flag = arg.trim_prefix("--kino-tour=") if arg.contains("=") else "call"
-		elif arg == "--kino-log":
-			kino_log = true
-		elif arg == "--ev-call" or arg == "--ev-tow" or arg == "--ev-stranded":
-			ev_flag = arg.trim_prefix("--ev-")
-		elif arg.begins_with("--ev-tow="):
-			ev_flag = "tow=" + arg.trim_prefix("--ev-tow=")
-		elif arg == "--ev=0":
-			ev_flag = "0"
-		elif arg == "--ev-log":
-			ev_log = true
-		elif arg == "--crash-log":
-			crash_log = true
-		elif arg.begins_with("--loud="):
-			loud_flag = clampi(int(arg.trim_prefix("--loud=")), 0, 16)
-		elif arg == "--loud-log":
-			loud_log = true
-		elif arg.begins_with("--crazy="):
-			crazy_flag = clampi(int(arg.trim_prefix("--crazy=")), 0, 12)
-		elif arg == "--crazy-log":
-			crazy_log = true
-		elif arg == "--old-tram" or arg.begins_with("--old-tram="):
-			old_tram_flag = "follow" if arg == "--old-tram=follow" else "now"
-		elif arg.begins_with("--train="):
-			var xz := arg.trim_prefix("--train=").split(",")
-			if xz.size() >= 2:
-				train_at = Vector2(float(xz[0]), float(xz[1]))
-			if xz.size() == 3:
-				train_kind = int(xz[2])
-		elif arg == "--tram-log":
-			tram_log = true
-		elif arg.begins_with("--packs="):
-			packs_flag = clampi(int(arg.trim_prefix("--packs=")), 0, 1)
-		elif arg == "--packs-now":
-			packs_now = true
-		elif arg == "--packs-log":
-			packs_log = true
-		elif arg.begins_with("--fans="):
-			fans_flag = clampi(int(arg.trim_prefix("--fans=")), 0, 1)
-		elif arg == "--fans-now":
-			fans_now = true
-		elif arg == "--fans-log":
-			fans_log = true
-		elif arg == "--event-day":
-			event_flag = 1
-		elif arg.begins_with("--event-day="):
-			event_flag = clampi(int(arg.trim_prefix("--event-day=")), 0, 1)
-		elif arg.begins_with("--event-smoke="):
-			event_smoke = clampi(int(arg.trim_prefix("--event-smoke=")), 0, 1)
-		elif arg == "--event-log":
-			event_log = true
-		elif arg.begins_with("--event-t="):
-			event_t = maxf(0.0, float(arg.trim_prefix("--event-t=")))
-		elif arg.begins_with("--fans-phase="):
-			fans_phase = arg.trim_prefix("--fans-phase=")
-		elif arg.begins_with("--fans-result="):
-			fans_result = arg.trim_prefix("--fans-result=")
-		elif arg.begins_with("--wellness="):
-			wellness_flag = clampi(int(arg.trim_prefix("--wellness=")), 0, 1)
-		elif arg == "--wellness-now":
-			wellness_now = true
-		elif arg == "--wellness-log":
-			wellness_log = true
-		elif arg == "--tamka-log":
-			tamka_log = true  # tamka.gd: the bollards' count, KEBONAFIDE's place and lines
-		elif arg.begins_with("--honk="):
-			for f in arg.trim_prefix("--honk=").split(",", false):
-				honk_frames.append(int(f))
-		elif arg.begins_with("--life="):
-			life_flag = clampi(int(arg.trim_prefix("--life=")), 0, 2)
-		elif arg == "--dogs-log":
-			dogs_log = true
-		elif arg == "--trend-log":
-			trend_log = true
-		elif arg == "--life-log":
-			life_log = true
-		elif arg == "--life-soak":
-			life_soak = true
-			life_log = true
-		elif arg == "--dzemini":
-			dzemini_flag = true
-			trend_log = true
-		elif arg == "--zajac":
-			zajac_flag = true
-			life_log = true
-		elif arg.begins_with("--trend-day="):
-			trend_day_flag = maxi(0, int(arg.trim_prefix("--trend-day=")))
-		elif arg == "--trend-job" or arg.begins_with("--trend-job="):
-			trend_job_flag = clampi(int(arg.trim_prefix("--trend-job=")) if arg.contains("=") else 1, 1, 9)
-			trend_log = true
-		elif arg.begins_with("--club="):
-			# Loop MW-3: the car at a club's door (places.json id or name), no title.
-			club_flag = arg.trim_prefix("--club=")
-			show_title = false
-			free_roam = true
-		elif arg.begins_with("--paint="):
-			paint_flag = arg.trim_prefix("--paint=")  # the garage loop
-		elif arg == "--garage" or arg == "--garage=ring" or arg == "--garage=parts":
-			garage_flag = true
-			garage_ring_only = arg == "--garage=ring"
-			garage_parts = arg == "--garage=parts"
-			garage_log = true
-			show_title = false
-			free_roam = true
-		elif arg == "--garage-log":
-			garage_log = true
-		elif arg.begins_with("--upgrades="):
-			upgrades_flag = arg.trim_prefix("--upgrades=")  # G13: all | tt | nitro, for this run
-		elif arg.begins_with("--egg="):
-			egg_flag = arg.trim_prefix("--egg=")
-		elif arg.begins_with("--district="):
-			district_card = arg.trim_prefix("--district=")
-		elif arg.begins_with("--pop="):
-			pop_flag = int(arg.trim_prefix("--pop="))
-		elif arg.begins_with("--districts="):
-			districts_spec = arg.trim_prefix("--districts=")
-		elif arg == "--districts-log":
-			districts_log = true
-		elif arg == "--syrenki-log":
-			syrenki_log = true
-		elif arg.begins_with("--syrenki="):
-			syrenki_spec = arg.trim_prefix("--syrenki=")
-		elif arg.begins_with("--syrenka="):
-			syrenka_flag = arg.trim_prefix("--syrenka=")
-		elif arg == "--first10":
-			first10_flag = true  # loop 3h slice 4
-		elif arg == "--end-card":
-			end_card_flag = true
-		elif arg == "--first-race":
-			first_race_flag = true
-		elif arg.begins_with("--ladder="):
-			ladder_flag = clampi(int(arg.trim_prefix("--ladder=")), 0, Ladder.FINAL + 1)  # loop 3h slice 3
-		elif arg == "--trzy-mosty" or arg.begins_with("--trzy-mosty="):
-			trzy_mosty_flag = true
-			trzy_mosty_bridge = clampi(int(arg.trim_prefix("--trzy-mosty=")), 0, 3) if arg.contains("=") else 0
-			start_time = TimeOfDay.NIGHT
-		elif arg == "--egg-log":
-			egg_log = true
-		elif arg.begins_with("--found-eggs="):
-			found_eggs = arg.trim_prefix("--found-eggs=")
-		elif arg.begins_with("--tape="):
-			tape_flag = arg.trim_prefix("--tape=")
-		elif arg == "--tape-log":
-			tape_log = true
-		elif arg == "--spacer" or arg == "--wander":
-			spacer_flag = 1
-		elif arg == "--no-spacer":
-			spacer_flag = 0
-		elif arg == "--zone-cap":
-			zone_cap_flag = 1
-		elif arg == "--no-zone-cap":
-			zone_cap_flag = 0
-		elif arg.begins_with("--spacer-hint="):
-			spacer_hint = float(arg.trim_prefix("--spacer-hint="))
-		elif arg == "--fotka" or arg == "--photo":
-			fotka_flag = true
-		elif arg.begins_with("--kadr="):
-			kadr_flag = arg.trim_prefix("--kadr=")
-			fotka_flag = true
-		elif arg.begins_with("--fotka-shot="):
-			fotka_shot = float(arg.trim_prefix("--fotka-shot="))
-		elif arg == "--photo-log":
-			photo_log = true
-		elif arg.begins_with("--settings-tab="):
-			open_settings_at_start = true
-			settings_tab = int(arg.trim_prefix("--settings-tab="))
-		elif arg.begins_with("--stick="):
-			var sv2 := arg.trim_prefix("--stick=").split(",")
-			hold_stick = Vector2(float(sv2[0]), float(sv2[1])).limit_length(1.0)
-		elif arg.begins_with("--pedal="):
-			hold_pedal = arg.trim_prefix("--pedal=")
-		elif arg.begins_with("--drag="):
-			var dv := arg.trim_prefix("--drag=").split(":")
-			var d := PackedInt32Array()
-			for v in dv:
-				d.append(int(v))
-			if d.size() == 6:
-				drags.append(d)
-		elif arg.begins_with("--drive-into-water="):
-			var wz := arg.trim_prefix("--drive-into-water=").split(",")
-			_water_test_at = Vector2(float(wz[0]), float(wz[1]))
-		elif arg == "--ram-test":
-			ram_test = 1
-		elif arg == "--first-life":
-			first_life = true
-		elif arg == "--traffic-overlaps":
-			_traffic_overlaps = true
-		elif arg.begins_with("--tram-watch="):
-			tram_watch = int(arg.trim_prefix("--tram-watch="))
-		elif arg == "--cam-log":
-			cam_log = true
-		elif arg.begins_with("--cam-test="):
-			cam_test = arg.trim_prefix("--cam-test=")
-			cam_log = true
-			no_traffic = true
-			free_roam = true
-		elif arg.begins_with("--clicks="):
-			for c in arg.trim_prefix("--clicks=").split(","):
-				var xyf := c.split(":")
-				clicks.append(Vector3i(int(xyf[0]), int(xyf[1]), int(xyf[2])))
-		# Loop 3g-1: the police's flags (_police_flag, below).
-		elif arg == "--no-police" or arg.begins_with("--police") or arg.begins_with("--trap=") or arg.begins_with("--pullover") \
-				or arg in ["--escort", "--guards", "--guards=talk", "--first-contact", "--clamp"] or arg.begins_with("--clamp="):
-			_police_flag(arg)
-	# Test runs go straight to the city (--title brings the title screen back).
-	if demo or not shots.is_empty() or autopilot or start_race > 0 or start_mission > 0 or start_rival > 0 or bench or probe \
-			or start_kebab >= 0 or start_sloik >= 0 or sound_check or open_settings_at_start or open_map_at_start or hold_stick != Vector2.INF or bench_button \
-			or _water_test_at != Vector2.INF or cam_test != "" or ram_test > 0 or tram_watch >= 0 or old_tram_flag != "" or first_life:
-		show_title = false
-	if start_ride >= 0 or place_flag != "" or roundup_flag or district_card != "" or syrenka_flag != "" or trzy_mosty_flag:
-		show_title = false  # loop 2d-1: --ride is a test run too (loop MW-1: and --place; loop 3h: --district=)
-	# Loop MW-6: and the eggs', the tape's and Fotka's flags; --egg sets its moment's time.
-	if egg_flag != "" or tape_flag != "" or fotka_flag or spacer_hint >= 0.0 or pop_flag > 0:
-		show_title = false
-	if first10_flag or end_card_flag or first_race_flag:
-		show_title = false  # loop 3h slice 4: --first10 and --end-card are test runs
-	# Loop MW-4: --zajac is Kolka's Wednesday evening (Live), --life-soak a Friday dusk.
-	if zajac_flag or life_soak or trend_job_flag > 0 or armchair_flag or dzemini_flag:
-		show_title = false
-		free_roam = true
-	if zajac_flag:
-		# Kolka's start (19:00 Wednesday, Live); the car goes to the club once its route is known
-		# (_life_start: the place's own pin is off the boulevard).
-		start_time = TimeOfDay.LIVE
-		if live_clock == "":
-			live_clock = "19:00"
-		if live_date == 0 or not _is_wednesday(live_date):
-			live_date = 20261028
-	elif life_soak and start_time == TimeOfDay.DAY:
-		start_time = TimeOfDay.DUSK
-	_egg_moment()
-	if force_title:
-		show_title = true
-	# Camera loop: the cinematic moments in a normal launch only (never with screenshots or a bench).
-	var normal := show_title and shots.is_empty() and not bench and not probe and not bench_button and not demo
-	if _flag_cinematic == "event":
-		# The 15 s video: the event day on, the clock 16:40 in the dusk look unless --clock says other.
-		if event_flag < 0:
-			event_flag = 1
-		if live_clock == "":
-			live_clock = "16:40"
-		if start_time == TimeOfDay.DAY:
-			start_time = TimeOfDay.DUSK
-	cinematic_flyin = normal or _flag_cinematic in ["all", "flyin", "opening", "event"]
-	cinematic_look = normal or _flag_cinematic in ["all", "look"]
-	# Loop G1: the governor runs in a normal launch; test runs hold it so they repeat.
-	var test_run := DisplayServer.get_name() == "headless" or not shots.is_empty() or bench or probe or autopilot \
-			or demo or cam_test != "" or _water_test_at != Vector2.INF or ram_test > 0 or tram_watch >= 0
-	_governor_on = _flag_governor == 1 if _flag_governor >= 0 else not test_run
-	# The crash scenes' timer: a normal launch only (a test run with --crash=on or =now too).
-	_crash_auto = not test_run
-	_rave_auto = not test_run
-	_shisha_auto = not test_run
-	_meet_auto = not test_run
-	_ev_auto = not test_run
-	_crawl_auto = not test_run
-	# Loop G1b: test runs (and --last-session=) never write Auto's image state, even with the
-	# governor on and without --nosave.
-	_image_write = not test_run and _flag_last_session == ""
-
-
 ## Loop 2a: the saved settings (not with --nosave), then the command-line flags over them.
 ## Loop G1: the quality the player chose (Auto by default) and the level Auto picks here.
 func _load_settings() -> void:
-	settings.persistent = not no_save
+	settings.persistent = not flags.no_save
 	settings.load_file()
-	if _flag_lang in Lang.CODES:
-		Lang.set_code(_flag_lang)
+	if flags._flag_lang in Lang.CODES:
+		Lang.set_code(flags._flag_lang)
 	elif Boot.title == null:
 		Lang.set_code(Lang.resolve(settings.lang))
 	# else: the boot scene's title is up; it read the same settings, and the player may have
 	# picked a language on it since (boot.gd).
 	Access.apply(settings)
-	if _flag_left_handed:
+	if flags._flag_left_handed:
 		Access.left_handed = true
-	if _flag_color_safe:
+	if flags._flag_color_safe:
 		Access.color_safe = true
-	if not _flag_size:
+	if not flags._flag_size:
 		base_size = settings.view
-	if not _flag_pitch:
+	if not flags._flag_pitch:
 		camera_pitch = -settings.pitch
-	model_name = _flag_model if _flag_model != "" else OS.get_model_name()
+	model_name = flags._flag_model if flags._flag_model != "" else OS.get_model_name()
 	auto_quality = Tiers.for_model(model_name)
-	quality_choice = _flag_quality if _flag_quality != -2 else settings.quality
+	quality_choice = flags._flag_quality if flags._flag_quality != -2 else settings.quality
 	quality = auto_quality if quality_choice == Tiers.AUTO else quality_choice
 	print("quality: %s · Auto picks %s for %s" % [Tiers.describe(quality_choice, quality, model_name),
 			Tiers.NAMES[auto_quality], model_name])
 	# Loop G1b: Auto's sharp image or its fallback, from the saved state (or --last-session=).
 	var image := settings.auto_image
-	if _flag_last_session == "struggled":
+	if flags._flag_last_session == "struggled":
 		image = Tiers.sharp_struggled(Tiers.sharp_state(), true, "--last-session=struggled")
-	elif _flag_last_session == "calm":
+	elif flags._flag_last_session == "calm":
 		image = Tiers.sharp_state()
-	elif _flag_last_session != "":
-		push_warning("--last-session=%s: struggled or calm" % _flag_last_session)
+	elif flags._flag_last_session != "":
+		push_warning("--last-session=%s: struggled or calm" % flags._flag_last_session)
 	auto_image = Tiers.sharp_launch(image)
 	auto_sharp = not auto_image["fallback"]
 	print("quality: Auto's image state (where the budget binds) %s → this launch %s%s" % [settings.image_summary(), "sharp" if auto_sharp else "fallback",
-			" (%s)" % ("--last-session=" + _flag_last_session) if _flag_last_session != "" else ""])
-	traffic_level = _flag_traffic if _flag_traffic >= 0 else settings.traffic
-	show_perf = _flag_perf or settings.perf
-	zone_cap_on = zone_cap_flag == 1 if zone_cap_flag >= 0 else settings.zone_cap
-	var scheme := _flag_controls if _flag_controls >= 0 else settings.controls
-	if _flag_fixed and scheme == Controls.POINT:
+			" (%s)" % ("--last-session=" + flags._flag_last_session) if flags._flag_last_session != "" else ""])
+	traffic_level = flags._flag_traffic if flags._flag_traffic >= 0 else settings.traffic
+	show_perf = flags._flag_perf or settings.perf
+	zone_cap_on = flags.zone_cap_flag == 1 if flags.zone_cap_flag >= 0 else settings.zone_cap
+	var scheme := flags._flag_controls if flags._flag_controls >= 0 else settings.controls
+	if flags._flag_fixed and scheme == Controls.POINT:
 		scheme = Controls.FIXED
 	controls.scheme = scheme
-	follow = scheme == Controls.POINT or (scheme == Controls.CLASSIC and settings.classic_follow and not _flag_fixed)
+	follow = scheme == Controls.POINT or (scheme == Controls.CLASSIC and settings.classic_follow and not flags._flag_fixed)
 	# 2026-11-01 (F): no style picker any more, always Sharp (--style= stays for tests).
-	style_index = _flag_style if _flag_style >= 0 else 0
-	vhs = _flag_vhs or settings.vhs
-	print("settings: %s (%s)" % [settings.summary(), ProjectSettings.globalize_path(Settings.PATH) if not no_save else "not saved"])
+	style_index = flags._flag_style if flags._flag_style >= 0 else 0
+	vhs = flags._flag_vhs or settings.vhs
+	print("settings: %s (%s)" % [settings.summary(), ProjectSettings.globalize_path(Settings.PATH) if not flags.no_save else "not saved"])
 
 
 ## The day's light; time_of_day.gd changes it for dusk and night.
@@ -6034,7 +4853,7 @@ func _add_environment(world: Node3D) -> void:
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL
 	sun.directional_shadow_max_distance = 900.0
 	sun.shadow_bias = 0.06
-	sun.rotation_degrees = Vector3(sun_pitch, -20.0, 0.0)
+	sun.rotation_degrees = Vector3(flags.sun_pitch, -20.0, 0.0)
 	world.add_child(sun)
 
 
@@ -6486,7 +5305,7 @@ func _settings_state() -> Dictionary:
 	# Loop G1b: what Auto draws here: "High ostry" (the sharp image), "High ×2" (the fallback)
 	# where its budget binds, else the level.
 	var auto_name: String = Tiers.NAMES[auto_quality]
-	if lines_override <= 0 and Tiers.budget_binds(get_viewport().get_visible_rect().size, STYLES[style_index]["lines"], auto_quality):
+	if flags.lines_override <= 0 and Tiers.budget_binds(get_viewport().get_visible_rect().size, STYLES[style_index]["lines"], auto_quality):
 		auto_name += " ostry" if auto_sharp else " ×%d" % Tiers.image_scale(get_viewport().get_visible_rect().size,
 				STYLES[style_index]["lines"], auto_quality)
 	return {"controls": controls.scheme, "follow": follow, "traffic": traffic_level, "quality": quality_choice + 1,
@@ -6494,7 +5313,9 @@ func _settings_state() -> Dictionary:
 			"master": settings.master, "music": settings.music, "effects": settings.effects, "perf": int(show_perf),
 			"fps": maxi(0, Settings.FPS.find(settings.fps)), "style": style_index, "vhs": int(vhs),
 			"angle": maxi(0, FollowCamera.PITCHES.find(-camera_pitch)),
-			"weather": weather.state, "time": tod.mode, "wander": int(spacer != null and spacer.on), "zones": int(zone_cap_on), "handling": settings.handling, "chatter": settings.chatter, "sensitivity": settings.sensitivity,
+			"weather": weather.state, "time": tod.mode, "wander": int(spacer != null and spacer.on), "zones": int(zone_cap_on), "handling": settings.handling, "chatter": settings.chatter,
+			"collide": maxi(0, Car.CollideRules.PRESETS.find(car.collide)) if car != null else settings.collide,
+			"soft_fences": int(not soft_things.no_soft) if soft_things != null else int(settings.soft_fences), "sensitivity": settings.sensitivity,
 			"text_large": int(settings.text_large), "calm": int(settings.calm), "color_safe": int(settings.color_safe),
 			"vibration": int(settings.vibration), "stop_assist": int(settings.stop_assist),
 			"lane_assist": int(car.lane_assist if car != null else settings.lane_assist),
@@ -6604,6 +5425,13 @@ func _on_setting(key: String, value: Variant) -> void:
 		"handling":
 			settings.handling = clampi(int(value), 0, 2)
 			car.set_handling(settings.handling)
+		"collide":
+			# Settings rows (F 2026-11-14): the collision answer, live (the car reads it each contact).
+			settings.collide = clampi(int(value), 0, Settings.COLLIDE_PRESETS - 1)
+			_apply_collide(Car.CollideRules.PRESETS[settings.collide])
+		"soft_fences":
+			settings.soft_fences = int(value) == 1
+			_apply_soft_fences(settings.soft_fences)
 		"pads":
 			# F 2026-11-13: fixed arrows + pedals (0, the default) or the sliding strip (1).
 			settings.pads = clampi(int(value), 0, 1)
@@ -6653,7 +5481,7 @@ func _lane_tick(dt: float) -> void:
 ## Loop 2a: the car was pinned against something twice in a few seconds (car.gd): put it on
 ## the nearest free spot.
 func _on_car_stuck() -> void:
-	if flying or autopilot or car.in_water:
+	if flying or flags.autopilot or car.in_water:
 		return
 	_tow_to_lane("car stuck")
 
@@ -6678,7 +5506,7 @@ func _unstuck() -> void:
 ## the car leaves the spot, takes to the air or is towed. The pinned car's own turn-out and tow
 ## (car.gd) still come first: this is for what they miss.
 func _stuck_offer_frame() -> void:
-	var want: bool = not flying and not autopilot and _bench_ghost == null and title == null \
+	var want: bool = not flying and not flags.autopilot and _bench_ghost == null and title == null \
 			and not car.in_water and car.stalled >= Car.STALL_TIME \
 			and not (fotka != null and fotka.is_open())
 	if want and not hud.pill_shown("unstuck") and hud.pill_free_for("unstuck"):
@@ -6703,9 +5531,49 @@ func _on_context_pressed(owner: String) -> void:
 func _build_soft_things(world: Node3D) -> void:
 	soft_things = SoftThings.new()
 	soft_things.name = "SoftThings"
-	soft_things.no_soft = _no_soft
+	soft_things.no_soft = not _soft_on()
 	world.add_child(soft_things)
 	soft_things.broke.connect(_on_soft_broke)
+	print("soft things: fences and hedges %s (%s)" % ["breakable" if _soft_on() else "hard",
+			"--no-soft" if flags._no_soft else ("--soft" if flags._flag_soft else "the setting")])
+
+
+## Settings rows: whether the fences and hedges break this run (--no-soft, else --soft, else the
+## setting; off by default).
+func _soft_on() -> bool:
+	if flags._no_soft:
+		return false
+	return flags._flag_soft or settings.soft_fences
+
+
+## Settings rows: the collision answer for the run (--collide=, else the setting; v1 by default).
+func _collide_preset() -> StringName:
+	if flags._flag_collide != &"":
+		return flags._flag_collide
+	return Car.CollideRules.PRESETS[clampi(settings.collide, 0, Car.CollideRules.PRESETS.size() - 1)]
+
+
+## Settings rows, applied live: the collision answer to the car and traffic.
+func _apply_collide(preset: StringName) -> void:
+	if car != null:
+		car.collide = preset
+	if traffic != null:
+		traffic.collide = preset
+	print("collide: %s" % preset)
+
+
+## Settings rows, applied live: the fences and hedges on every loaded sector (soft_things.gd
+## `set_soft`). --no-soft keeps them hard for the run.
+func _apply_soft_fences(on: bool) -> void:
+	if soft_things == null:
+		return
+	if flags._no_soft:
+		print("soft things: --no-soft keeps the fences hard this run")
+		return
+	var t0 := Time.get_ticks_usec()
+	var n := soft_things.set_soft(on)
+	print("soft things: fences and hedges %s, %d sectors turned over in %.1f ms" % ["breakable" if on else "hard", n,
+			(Time.get_ticks_usec() - t0) / 1000.0])
 
 
 ## Step 7: the car, the camera, the player's place for rule B, the contact log; a dawn repairs.
@@ -6748,11 +5616,11 @@ func _start_contact_log(data: Dictionary) -> void:
 	_contacts = log_script.new()
 	_contact_names = log_script.street_names(data["graph"]) if data.has("graph") else PackedStringArray()
 	_contacts.street_at = _contact_street
-	if not _contacts.open(contacts_to):
+	if not _contacts.open(flags.contacts_to):
 		_contacts = null
 		return
 	get_tree().physics_frame.connect(_observe_contacts)
-	print("contacts: the car's contacts go to %s" % contacts_to)
+	print("contacts: the car's contacts go to %s" % flags.contacts_to)
 
 
 func _observe_contacts() -> void:
@@ -7045,7 +5913,7 @@ static func _triangles(mesh: Mesh) -> int:
 ## its edge (within 120 m), flat out, its collision off as if it had jumped the edge (a ramp, a
 ## glitch); the collision comes back on 3 m past the edge, and the splash and the tow follow.
 func _start_water_test() -> void:
-	var p := _water_test_at
+	var p := flags._water_test_at
 	var best := Vector2.ZERO
 	var best_r := 120.0
 	for k in 72:
@@ -7185,9 +6053,9 @@ func _ram_test_frame(dt: float) -> void:
 ## The traffic loop, --tram-watch=N: keeps the car (and so the view) 30 m ahead of tram N and 20 m
 ## to its side, moved on as the tram draws level with that spot or gets 60 m from it.
 func _tram_watch_frame() -> void:
-	if trams == null or tram_watch >= trams.trams.size():
+	if trams == null or flags.tram_watch >= trams.trams.size():
 		return
-	var t: Trams.Tram = trams.trams[tram_watch]
+	var t: Trams.Tram = trams.trams[flags.tram_watch]
 	var head := Vector2(t.pos.x, t.pos.z)
 	if _tram_watch_at == Vector2.INF or head.distance_to(_tram_watch_at) < 22.0 or head.distance_to(_tram_watch_at) > 60.0:
 		_tram_watch_at = head + t.dir * 30.0 + Vector2(-t.dir.y, t.dir.x) * 20.0
@@ -7322,7 +6190,7 @@ func _paused_frame() -> void:
 
 ## --clicks: press on frame F, release on F + 2 (through Input, as a real click would come).
 func _inject_clicks() -> void:
-	for c in clicks:
+	for c in flags.clicks:
 		if frame != c.z and frame != c.z + 2:
 			continue
 		var e := InputEventMouseButton.new()
@@ -7333,7 +6201,7 @@ func _inject_clicks() -> void:
 		e.button_mask = MOUSE_BUTTON_MASK_LEFT if e.pressed else 0
 		Input.parse_input_event(e)
 		print("click %s at %d,%d (frame %d)" % ["down" if e.pressed else "up", c.x, c.y, frame])
-	for d in drags:
+	for d in flags.drags:
 		var at := Vector2(d[0], d[1])
 		var step := frame - d[2]
 		if step < 0 or frame > d[5]:
@@ -7359,8 +6227,8 @@ func _apply_style() -> void:
 	var style: Dictionary = STYLES[style_index]
 	var screen := get_viewport().get_visible_rect().size
 	# Loop G1: the quality's step and budget (tiers.gd image_scale); --lines= is exact.
-	if lines_override > 0:
-		view.stretch_shrink = maxi(1, floori(screen.y / lines_override))
+	if flags.lines_override > 0:
+		view.stretch_shrink = maxi(1, floori(screen.y / flags.lines_override))
 	elif quality_choice == Tiers.AUTO:
 		# Loop G1b: Auto draws the style's own scale where the budget binds, unless this launch
 		# is the fallback.
@@ -7389,14 +6257,14 @@ func _process(dt: float) -> void:
 	if not _started:
 		return
 	var t_main := Time.get_ticks_usec()
-	if bench or probe:
+	if flags.bench or flags.probe:
 		_bench_frame()
 	_read_input(dt)
 	_moment_frame(dt)  # loop MW-6: --egg, --tape, --fotka and the VHS of a tape
 	_water_frame(dt)
 	_stuck_offer_frame()  # G14's "later": POMOC DROGOWA on the context button when stuck
 	Haptics.tick(dt, not flying and absf(car.forward_speed) > 3.0)
-	if autopilot or _bench_ghost != null:
+	if flags.autopilot or _bench_ghost != null:
 		_autopilot(dt)
 	_boat_frame()
 	_update_camera(dt)
@@ -7405,7 +6273,7 @@ func _process(dt: float) -> void:
 	_remember_frame(dt)  # save and resume: the car's spot for the next launch
 	_trap_frame(dt)  # the error trap (TD-14): what the game is doing, for the next error
 	_look_frame()  # the loading fix: a look at a new target once its sectors are in
-	if cam_log:
+	if flags.cam_log:
 		_cam_log_frame(dt)
 	var pos := _vehicle_position()
 	# GAMEPLAY_PLAN 0.3: in a tunnel, or a bridge or viaduct deck between the car and the camera
@@ -7418,7 +6286,7 @@ func _process(dt: float) -> void:
 	# F (2026-11-08): in a tunnel the ground over it opens round the car (the tunnel cutaway), so
 	# the silhouette is only for --no-ghost, the top-down view and Fotka's photo.
 	var cut := _update_tunnel_cut(pos)
-	_xray.show_through(not flying and not cut and (map.in_tunnel(pos.x, pos.z, pos.y) or (_deck_hid and no_ghost)))
+	_xray.show_through(not flying and not cut and (map.in_tunnel(pos.x, pos.z, pos.y) or (_deck_hid and flags.no_ghost)))
 	# Loop 3d-1: the pedestrian zones cap the player's car (police.md 5.6); the log says when.
 	# F's asks (2026-10-30): only with the Settings switch on (off by default).
 	var zone: String = ped_zones.at(car.global_position.x, car.global_position.z) if ped_zones != null and not flying else ""
@@ -7510,7 +6378,7 @@ func _process(dt: float) -> void:
 	# rarely hidden; a full-size one cuts into the roof edge it has landed on.
 	var car_view := cam.global_transform.affine_inverse() * (pos + Vector3(0, 3.5 if flying else 1.0, 0))
 	var hole := clampf(cam.size * 0.11, 7.0, 20.0) * (0.55 if flying else 1.0)
-	if no_ghost or top_down:
+	if flags.no_ghost or top_down:
 		hole = 0.0  # --no-ghost: the see-through hole is off too
 	building_mat.set_shader_parameter("fade_radius", hole)
 	_update_ghost(pos, car_view)
@@ -7533,19 +6401,19 @@ func _process(dt: float) -> void:
 	frame += 1
 	_stop_step()
 	_inject_clicks()
-	if frame == 60 and tap_at != Vector2.INF:
-		_on_tap(tap_at)
-	if frame == 60 and bench_button:
+	if frame == 60 and flags.tap_at != Vector2.INF:
+		_on_tap(flags.tap_at)
+	if frame == 60 and flags.bench_button:
 		_start_phone_bench()
-	if frame in honk_frames:
+	if frame in flags.honk_frames:
 		_honk()  # the night-buses loop: --honk=F
 	if frame in shots:
 		_capture(frame)
 	_govern()
 	_main_usec = Time.get_ticks_usec() - t_main
 	# Loop G1, --stress=cpu: after the game loop's own time is taken (the load isn't the game's).
-	if _stress_kind == "cpu" and _stressing():
-		_busy(_stress_n)
+	if flags._stress_kind == "cpu" and _stressing():
+		_busy(flags._stress_n)
 
 
 ## The occlusion ghost (ghost.gdshaderinc, loop 1): what stands on the camera's side of
@@ -7558,7 +6426,7 @@ func _update_ghost(pos: Vector3, car_view: Vector3) -> void:
 	var ahead_xz := Vector2(ahead.x, ahead.z).normalized()
 	var occ := Vector4(pos.x, pos.z, ahead_xz.x, ahead_xz.y)
 	var ghost_r := clampf(cam.size * 0.22, 14.0, 50.0) * (0.6 if flying else 1.0)
-	if no_ghost or top_down:
+	if flags.no_ghost or top_down:
 		ghost_r = 0.0
 	for m: ShaderMaterial in [building_mat, map.flat_material, post_mat] + _neon_materials():  # sweep 2: + neon
 		m.set_shader_parameter("car_view", car_view)
@@ -7577,8 +6445,8 @@ func _update_ghost(pos: Vector3, car_view: Vector3) -> void:
 	map.flat_material.set_shader_parameter("ghost_sun_dir", to_sun)
 	# The deck ghost (ground.gdshader): the car's ground height; off for the helicopter.
 	map.flat_material.set_shader_parameter("ghost_car_y", -10000.0 if flying else pos.y)
-	if ghost_debug > 0:
-		building_mat.set_shader_parameter("ghost_debug", ghost_debug)
+	if flags.ghost_debug > 0:
+		building_mat.set_shader_parameter("ghost_debug", flags.ghost_debug)
 		var ppm := float(sv.size.y) / cam.size * float(view.stretch_shrink)
 		var c := cam.unproject_position(pos + Vector3(0, 3.5 if flying else 1.0, 0)) * float(view.stretch_shrink)
 		_ghost_px = Vector4(c.x, c.y - 0.2 * ghost_r * ppm, ghost_r / 0.78 * ppm, ghost_r * ppm)
@@ -7602,7 +6470,7 @@ var _tunnel_cut_on := false
 
 func _update_tunnel_cut(pos: Vector3) -> bool:
 	var chords: Array = []
-	if not flying and not no_ghost and not top_down and (fotka == null or not fotka.is_open()):
+	if not flying and not flags.no_ghost and not top_down and (fotka == null or not fotka.is_open()):
 		var reach := clampf(cam.size * TUNNEL_CUT_SIZE, TUNNEL_CUT_MIN, TUNNEL_CUT_MAX)
 		chords = map.tunnel_cut_chords(pos.x, pos.z, pos.y, reach + TUNNEL_CUT_PAST, TUNNEL_CUT_CHORDS)
 		if not chords.is_empty():
@@ -7662,8 +6530,8 @@ func _set_palace_lights(local: Dictionary) -> void:
 	var e := PalaceLights.for_date(int(night[0]), int(night[1]), int(night[2]))
 	if event_day != null and event_day.palace_lit:
 		e = PalaceLights.by_id("independence")
-	if palace_lights_id != "":
-		e = PalaceLights.by_id(palace_lights_id)
+	if flags.palace_lights_id != "":
+		e = PalaceLights.by_id(flags.palace_lights_id)
 	PalaceLights.apply(building_mat, e)
 
 
@@ -7704,26 +6572,26 @@ func _bench_frame() -> void:
 		for bus in _meters:
 			_meters[bus] += peaks[bus]
 			_meter_top[bus] = maxf(_meter_top[bus], peaks[bus])
-	if _stats.frames.size() < _bench_frames and Time.get_ticks_msec() - _measure_t0 < _bench_seconds * 1000.0:
+	if _stats.frames.size() < flags._bench_frames and Time.get_ticks_msec() - _measure_t0 < flags._bench_seconds * 1000.0:
 		return
 	_bench_done = true
 	var r := _stats.report()
 	var n := float(_stats.frames.size())
 	var us := func(k: String) -> float: return r.get("us:" + k, 0.0) / 1000.0
-	var what := "probe" if probe else "bench"
+	var what := "probe" if flags.probe else "bench"
 	print("%s: %.2f ms/frame (%.0f fps, worst %.1f ms) over %d frames · scripts: traffic %.2f + trams %.2f + people %.2f = %.2f ms, side jobs + eggs %.3f ms, sound %.3f ms · 3D view: GPU %.2f ms, render CPU %.2f ms · %.0f cars on screen, %.0f driving · %s · %s · %s · quality %s" % [
 			what, r["ms"], r["fps"], r["worst"], r["frames"],
 			us.call("traffic"), us.call("trams"), us.call("people"), us.call("traffic") + us.call("trams") + us.call("people"),
 			us.call("jobs+eggs"), us.call("sound"), r["gpu"], r["render_cpu"],
 			r.get("n:cars on screen", 0.0), r.get("n:driving", 0.0), "no traffic" if traffic == null else "traffic on", TimeOfDay.NAMES[tod.mode],
 			Weather.NAMES[weather.state], QUALITY[quality]["name"] + " · traffic " + Settings.TRAFFIC_NAMES[traffic_level]])
-	_stats.header = _bench_header("probe" if probe else "bench route (--bench)")
+	_stats.header = _bench_header("probe" if flags.probe else "bench route (--bench)")
 	_stats.notes = _governor_notes()
 	var text := _stats.text(r)
 	for line in text.split("\n"):
 		print("%s detail: %s" % [what, line])
 	_print_old_late(r)
-	if probe:
+	if flags.probe:
 		print("probe view: %s" % _view_census())
 	_write_bench_result(text)
 	print("bench audio peaks, mean / loudest dBFS (-200 = silent or no audio device): Master %.1f / %.1f · Music (radio) %.1f / %.1f · SFX %.1f / %.1f · Ambience %.1f / %.1f" % [
@@ -7830,7 +6698,7 @@ var _sky_usec: int:
 
 ## Loop 2b, --exp=a,b: switch one cost off to see what it costs (ranking the frame).
 func _apply_experiments() -> void:
-	for e in _exp:
+	for e in flags._exp:
 		match e:
 			"nohud":
 				hud.visible = false
@@ -8161,7 +7029,7 @@ func _new_target(source: String, t: Vector3) -> void:
 			or Vector2(t.x - _last_target.x, t.z - _last_target.z).length() > 30.0
 	_last_target_source = source
 	_last_target = t
-	if not fresh or not cinematic_look or source == "race" or moments == null or moments.playing():
+	if not fresh or not flags.cinematic_look or source == "race" or moments == null or moments.playing():
 		return
 	if title != null or _phone_bench or cam_test != "":
 		return
@@ -8282,7 +7150,7 @@ func _read_input(dt: float) -> void:
 	if police != null and police.control_car(car, dt):
 		return
 
-	if demo:
+	if flags.demo:
 		car.target_dir = Vector3.ZERO
 		car.throttle = 0.8
 		car.steer = 0.0 if frame < 200 else 0.5 * sin(frame * 0.02)
@@ -8290,11 +7158,11 @@ func _read_input(dt: float) -> void:
 		_water_test_frame()
 	if ram_test == 1 or ram_test == 2:
 		_ram_test_frame(dt)
-	if tram_watch >= 0:
+	if flags.tram_watch >= 0:
 		_tram_watch_frame()
 	if first_life:
 		_first_life_frame(dt)
-	if old_tram_flag == "follow":
+	if flags.old_tram_flag == "follow":
 		_old_tram_follow_frame()  # the vintage-tram loop
 
 
@@ -8327,9 +7195,9 @@ func _read_heli_input(left: bool, right: bool, up: bool, down: bool, dt: float) 
 	var climb := float(Input.is_physical_key_pressed(KEY_SPACE)) \
 			- float(Input.is_physical_key_pressed(KEY_SHIFT) or Input.is_physical_key_pressed(KEY_F))
 	heli.climb = clampf(climb + hud.climb + Gamepad.climb(), -1.0, 1.0)  # the pad: RT up, LT down
-	if heli_stick != Vector2.ZERO:
-		heli.input_dir = Vector3(heli_stick.x, 0.0, heli_stick.y).limit_length(1.0)
-	if demo and not autopilot:
+	if flags.heli_stick != Vector2.ZERO:
+		heli.input_dir = Vector3(flags.heli_stick.x, 0.0, flags.heli_stick.y).limit_length(1.0)
+	if flags.demo and not flags.autopilot:
 		# A slow circle at cruise height, for screenshots.
 		var a := frame * 0.0035
 		heli.input_dir = Vector3(cos(a), 0.0, sin(a)) * 0.55
@@ -8738,7 +7606,7 @@ func _note_pad(event: InputEvent) -> void:
 	var was := Gamepad.in_use()
 	Gamepad.note(event)
 	if hud != null and Gamepad.in_use() != was:
-		hud.set_pad_mode(Gamepad.in_use(), no_touch)
+		hud.set_pad_mode(Gamepad.in_use(), flags.no_touch)
 
 
 func _screen_to_world(s: Vector2) -> Vector3:
@@ -8764,10 +7632,10 @@ func _update_camera(dt: float) -> void:
 		cam.global_transform = Transform3D(cb, club.centre + cb.z * 120.0)
 		cam.far = 300.0
 		return
-	if free_cam:
+	if flags.free_cam:
 		_update_free_camera()
 		return
-	if solo_site != "" and not _free_cam_car:
+	if flags.solo_site != "" and not flags._free_cam_car:
 		car.visible = false  # a landmark alone (--solo): no car, nothing but the model
 	var vehicle: Node3D = heli if flying else car
 	var speed: float = heli.speed() if flying else absf(car.forward_speed)
@@ -8795,7 +7663,7 @@ func _update_camera(dt: float) -> void:
 		cam_yaw = lerpf(cam_yaw, cam_yaw_target, 1.0 - exp(-8.0 * dt))
 	var basis := Basis.from_euler(Vector3(deg_to_rad(_view_pitch()), deg_to_rad(cam_yaw), 0.0))
 	var focus := vehicle.get_global_transform_interpolated().origin
-	focus.y += cam_lift
+	focus.y += flags.cam_lift
 	var size: float
 	var focus_rate := FollowCamera.FOCUS_RATE
 	if flying:
@@ -8841,17 +7709,9 @@ func _update_camera(dt: float) -> void:
 	cam.far = _camera_far(maxf(CAMERA_DISTANCE, cam.size * 1.6), size)
 
 
-## True when a game flag begins with `prefix` (--cam leaves the car's place to --at when it is given).
-func _has_arg(prefix: String) -> bool:
-	for a in game_args():
-		if a.begins_with(prefix):
-			return true
-	return false
-
-
 ## --cams: camera `i` of the list becomes the free camera (what it leaves out stays the run's).
 func _apply_cam(i: int) -> void:
-	var c: Dictionary = _cams[i]
+	var c: Dictionary = flags._cams[i]
 	_free_cam_at = c["at"]
 	if not is_nan(c["yaw"]):
 		cam_yaw = c["yaw"]
@@ -8867,8 +7727,8 @@ func _update_free_camera() -> void:
 	var focus := _free_cam_at
 	if is_nan(focus.y):
 		focus.y = map.ground_height(focus.x, focus.z)
-	focus.y += cam_lift
-	car.visible = _free_cam_car
+	focus.y += flags.cam_lift
+	car.visible = flags._free_cam_car
 	cam_focus = focus
 	cam_yaw_target = cam_yaw
 	_view_size = base_size
@@ -8942,19 +7802,16 @@ func _camera_far(distance: float, size: float) -> float:
 	return cam.near + depth
 
 
-## --stops=FILE (with --shots= far ahead): the camera stops at each [x, z, yaw, pitch, size, name]
-## of the JSON list and saves <name>.png in --out, so one run shoots a whole street.
-var stops: Array = []
 var _stop_at := 0
 var _stop_busy := false
 const STOP_DRAWS := 24
 
 
 func _stop_step() -> void:
-	if stops.is_empty() or frame < 120 or _stop_busy or _stop_at >= stops.size():
+	if flags.stops.is_empty() or frame < 120 or _stop_busy or _stop_at >= flags.stops.size():
 		return
 	_stop_busy = true
-	var s: Array = stops[_stop_at]
+	var s: Array = flags.stops[_stop_at]
 	car.global_position = Vector3(s[0], map.ground_height(s[0], s[1]), s[1])
 	car.vel = Vector3.ZERO
 	cam_yaw = s[2]
@@ -8967,34 +7824,34 @@ func _stop_step() -> void:
 	# Count drawn frames, not game frames: a hidden window can draw far less often than it runs.
 	for i in STOP_DRAWS:
 		await RenderingServer.frame_post_draw
-	get_viewport().get_texture().get_image().save_png(out_dir.path_join("%s.png" % s[5]))
+	get_viewport().get_texture().get_image().save_png(flags.out_dir.path_join("%s.png" % s[5]))
 	_stop_at += 1
 	_stop_busy = false
-	print("stops: %d / %d %s at %.0f,%.0f" % [_stop_at, stops.size(), s[5], car.global_position.x, car.global_position.z])
-	if _stop_at >= stops.size():
+	print("stops: %d / %d %s at %.0f,%.0f" % [_stop_at, flags.stops.size(), s[5], car.global_position.x, car.global_position.z])
+	if _stop_at >= flags.stops.size():
 		_quit_quietly()
 
 
 func _capture(n: int) -> void:
 	await RenderingServer.frame_post_draw
-	if ghost_debug > 0:
+	if flags.ghost_debug > 0:
 		print("ghost: frame %d centre %.1f %.1f radii %.1f %.1f (screen px)" % [n, _ghost_px.x, _ghost_px.y, _ghost_px.z, _ghost_px.w])
 	var img := get_viewport().get_texture().get_image()
 	# A missing --out folder used to end the run with code 0 and no PNG: make it, and fail loudly.
-	var dir := ProjectSettings.globalize_path(out_dir)
+	var dir := ProjectSettings.globalize_path(flags.out_dir)
 	if not DirAccess.dir_exists_absolute(dir):
 		DirAccess.make_dir_recursive_absolute(dir)
 	var name := "shot_%04d.png" % n
-	if not shot_spots.is_empty():
-		name = "%s_%04d.png" % [shot_spots[_spot_i][0], n - _spot_base]
-	var err := img.save_png(out_dir.path_join(name))
+	if not flags.shot_spots.is_empty():
+		name = "%s_%04d.png" % [flags.shot_spots[_spot_i][0], n - _spot_base]
+	var err := img.save_png(flags.out_dir.path_join(name))
 	if err != OK:
-		printerr("shots: could not write %s (error %d)" % [out_dir.path_join(name), err])
+		printerr("shots: could not write %s (error %d)" % [flags.out_dir.path_join(name), err])
 		get_tree().quit(1)
 		return
 	_shots_saved.append(n)
 	if n == shots.max():
-		if _spot_i + 1 < shot_spots.size():
+		if _spot_i + 1 < flags.shot_spots.size():
 			_next_spot()
 			return
 		_quit_quietly()  # sweep 2: was get_tree().quit()
@@ -9008,8 +7865,8 @@ var _spot_base := 0
 ## frames by the frames spent so far, so each spot gets the same settle time as the first.
 func _next_spot() -> void:
 	_spot_i += 1
-	var sp: Array = shot_spots[_spot_i]
-	if not _cams.is_empty():
+	var sp: Array = flags.shot_spots[_spot_i]
+	if not flags._cams.is_empty():
 		_apply_cam(_spot_i)
 	var p: Vector2 = sp[1]
 	car.global_position = Vector3(p.x, map.ground_height(p.x, p.y), p.y)
@@ -9073,87 +7930,26 @@ func _quit_quietly() -> void:
 
 const SectorStreamer := preload("res://scripts/sector_streamer.gd")
 var streamer: SectorStreamer
-var monolithic := false
-var _sectors_all := false
-var _sectors_proxies := false
-var _stream_log := false
-## Loop 3d-2b: --stream-ahead=0, --stream-slow=MS (sector_streamer.gd look_ahead, slow_ms).
-var _stream_ahead := true
-var _stream_slow := 0
-var _stream_gate := true
-var _spots: Array[Vector3] = []
+## Also written by a command-line flag (dev_flags.gd).
 var _soak_minutes := 0.0
 var _soak_route: Array[Vector2] = []
+## Also written by a command-line flag (dev_flags.gd).
 var _soak_leg := 0
 var _soak_t := 0.0
-## Loop 3d-2b, --stream-pass=heli|car: one fast pass across the map instead of the soak's tour
-## (the helicopter at its highest and fastest, or the car at PASS_CAR_SPEED in its widest view).
-## The loading fix (2026-10-31), the passes that look for a proxy close up: heli-low (the helicopter
-## at its usual 45 m, full speed, four turns from the spawn), start (the same from the first frame,
-## no waiting for the ring round the start), switch (the car at PASS_CAR_SPEED, then the helicopter
-## takes off and flies on), look (hovering at the spawn, a look at a target 0.6-3 km away every
-## PASS_EVENT_S, as a new rescue or delivery target gets) and jump (the car put somewhere new every
-## PASS_EVENT_S, as a tow or a race start does).
-var _pass_kind := ""
 const PASS_CAR_SPEED := 45.0
 const PASS_EVENT_S := 7.0
 ## Frames since the pass put the vehicle at its start (-1 once the pass runs: the numbers count
 ## from the first frame at least 180 frames on with nothing left to load).
+## Also written by a command-line flag (dev_flags.gd).
 var _pass_frames := 0
-
-
-func _parse_stream_args() -> void:
-	for arg in game_args():
-		if arg == "--monolithic":
-			monolithic = true
-		elif arg == "--sectors=all":
-			_sectors_all = true
-		elif arg == "--sectors=proxies":
-			_sectors_proxies = true
-		elif arg == "--stream-log":
-			_stream_log = true
-		elif arg == "--stream-gate=0":
-			_stream_gate = false  # loop 3d-2b: a sector's pieces with its scene at once (the before)
-		elif arg == "--stream-ahead=0":
-			_stream_ahead = false  # loop 3d-2b: no look-ahead (the before of a before/after)
-		elif arg.begins_with("--stream-slow="):
-			_stream_slow = int(arg.trim_prefix("--stream-slow="))  # loop 3d-2b: a phone's slower loads
-		elif arg.begins_with("--spots="):
-			for s in arg.trim_prefix("--spots=").split("/"):
-				var v := s.split(",")
-				if v.size() >= 3:
-					_spots.append(Vector3(float(v[0]), float(v[1]), float(v[2])))
-		elif arg.begins_with("--stream-soak="):
-			_soak_minutes = float(arg.trim_prefix("--stream-soak="))
-			no_traffic = true
-			free_roam = true
-			show_title = false
-		elif arg.begins_with("--stream-pass="):
-			_pass_kind = arg.trim_prefix("--stream-pass=")
-			_soak_minutes = 30.0  # the pass ends at its route's end
-			no_traffic = true
-			free_roam = true
-			show_title = false
-			if _pass_kind == "heli":
-				start_flying = true
-				_start_alt = Heli.MAX_HEIGHT
-			elif _pass_kind in ["heli-low", "start", "look"]:
-				# The loading fix: the helicopter at its usual height (where the player saw the proxies),
-				# or at --heli-alt's.
-				start_flying = true
-				if _start_alt <= 0.0:
-					_start_alt = Heli.CRUISE
-			if _pass_kind == "start":
-				_pass_frames = -1  # counted from the first frame: no waiting for the ring round the start
-				_soak_leg = 1
 
 
 ## Loop 3d-1: "" when the city this run needs is there, else what is missing and how to make it
 ## (the sector split and the prebuilt sectors are derived, not committed: tools/setup_map.sh).
 func _missing_map() -> String:
-	if monolithic:
+	if flags.monolithic:
 		return "" if FileAccess.file_exists(MAP_PATH) else "map: no %s (the committed map data)" % MAP_PATH
-	var use_prebuilt := (prebuilt or not OS.has_feature("editor")) and solo_site == ""
+	var use_prebuilt := (flags.prebuilt or not OS.has_feature("editor")) and flags.solo_site == ""
 	if use_prebuilt and not ResourceLoader.exists("res://map/index.res"):
 		return "map: the prebuilt sectors are missing (map/index.res, sectors/*.scn): run tools/setup_map.sh once (docs/DEVELOPMENT.md \"Map data\")"
 	if not use_prebuilt and not FileAccess.file_exists("res://map/index.json"):
@@ -9164,24 +7960,24 @@ func _missing_map() -> String:
 func _open_streamed_city(world: Node3D, flat_mat: ShaderMaterial) -> Dictionary:
 	streamer = SectorStreamer.new()
 	streamer.name = "SectorStreamer"
-	streamer.load_all = _sectors_all
-	streamer.proxies_only = _sectors_proxies
-	streamer.log = _stream_log
-	streamer.look_ahead = _stream_ahead
-	streamer.slow_ms = _stream_slow
-	streamer.gate_pieces = _stream_gate
+	streamer.load_all = flags._sectors_all
+	streamer.proxies_only = flags._sectors_proxies
+	streamer.log = flags._stream_log
+	streamer.look_ahead = flags._stream_ahead
+	streamer.slow_ms = flags._stream_slow
+	streamer.gate_pieces = flags._stream_gate
 	add_child(streamer)
 	streamer.sector_ready.connect(_on_sector_ready)
-	var use_prebuilt := (prebuilt or not OS.has_feature("editor")) and solo_site == ""
+	var use_prebuilt := (flags.prebuilt or not OS.has_feature("editor")) and flags.solo_site == ""
 	var data := streamer.open(world, use_prebuilt, building_mat, flat_mat, start_at)
 	map = streamer.map
 	building_mat = map.building_material
 	if GpuQuirks.lite() and building_mat.shader != null and building_mat.shader.resource_path == GpuQuirks.BUILDING:
 		building_mat.shader = GpuQuirks.building_shader()  # the prebuilt city's shared material too
 	# The ground's AO flags (--debug-ao, --no-ao) on either path's material.
-	map.flat_material.set_shader_parameter("debug_ao", debug_ao)
-	map.flat_material.set_shader_parameter("ao_strength", 0.0 if no_ao else 1.0)
-	if _pass_kind != "":
+	map.flat_material.set_shader_parameter("debug_ao", flags.debug_ao)
+	map.flat_material.set_shader_parameter("ao_strength", 0.0 if flags.no_ao else 1.0)
+	if flags._pass_kind != "":
 		_soak_route = _pass_route(data)
 		DirAccess.remove_absolute(ProjectSettings.globalize_path("user://stream_soak_result.txt"))
 	elif _soak_minutes > 0.0:
@@ -9235,7 +8031,7 @@ func _on_sector_ready(root: Node3D) -> void:
 		var g := n as GeometryInstance3D
 		if g == null:
 			continue
-		for e in _exp:
+		for e in flags._exp:
 			var mmi := n as MultiMeshInstance3D
 			var leaf: bool = mmi != null and mmi.material_override == map.leaf_material
 			if (e == "notrees" and leaf) or (e == "noprops" and mmi != null and not leaf):
@@ -9255,13 +8051,13 @@ func _stream_frame(dt: float) -> void:
 		# stay inside the frame's budget and count as any other work.
 		if streamer.forced > forced:
 			governor.reset(_clock_s())
-	if _spots.is_empty() or shots.is_empty():
+	if flags._spots.is_empty() or shots.is_empty():
 		return
 	var sorted := shots.duplicate()
 	sorted.sort()
-	for k in mini(_spots.size(), sorted.size()):
+	for k in mini(flags._spots.size(), sorted.size()):
 		if frame == sorted[k] - 90:
-			_jump_to_spot(_spots[k])
+			_jump_to_spot(flags._spots[k])
 		elif frame == sorted[k] - 30 and streamer != null:
 			streamer.finish_view(cam_focus, cam)
 
@@ -9308,26 +8104,26 @@ func _soak_tour(data: Dictionary) -> Array[Vector2]:
 func _pass_route(data: Dictionary) -> Array[Vector2]:
 	var b: Array = data["bounds"]
 	var inner := Rect2(b[0], b[1], b[2] - b[0], b[3] - b[1]).grow(-120.0)
-	if _pass_kind == "heli":
+	if flags._pass_kind == "heli":
 		return [Vector2(inner.position.x, -300.0), Vector2(inner.end.x, -300.0)]
-	if _pass_kind == "car":
+	if flags._pass_kind == "car":
 		return [Vector2(inner.end.x, 250.0), Vector2(inner.position.x, 250.0)]
 	# The loading fix's passes start at the spawn (route[0]); look's points are its targets, jump's
 	# where the car is put.
 	var spawn: Dictionary = data.get("spawn", {})
 	var route: Array[Vector2] = [Vector2(float(spawn.get("x", 0.0)), float(spawn.get("z", 0.0)))]
 	var points: Array = []
-	match _pass_kind:
+	match flags._pass_kind:
 		"heli-low", "start", "switch":
 			points = [[300, 279], [300, -800], [-1400, -800], [-1400, 900]]
 			# start: the first two legs (the first minute matters); switch: the car's leg and two flown.
-			points = points.slice(0, {"heli-low": 4, "start": 2, "switch": 3}[_pass_kind])
+			points = points.slice(0, {"heli-low": 4, "start": 2, "switch": 3}[flags._pass_kind])
 		"look":
 			points = [[-300, 280], [-900, -750], [-2400, 600], [1000, -500], [1900, -900], [-2900, 1500]]
 		"jump":
 			points = [[500, -300], [-2500, -1200], [1500, 900], [-300, 1300], [-1500, -1700], [1200, -1500]]
 		_:
-			push_warning("--stream-pass=%s: no such pass (heli, car, heli-low, start, switch, look, jump)" % _pass_kind)
+			push_warning("--stream-pass=%s: no such pass (heli, car, heli-low, start, switch, look, jump)" % flags._pass_kind)
 	for q: Array in points:
 		route.append(Vector2(float(q[0]), float(q[1])).clamp(inner.position, inner.end))
 	return route
@@ -9337,10 +8133,10 @@ func _pass_route(data: Dictionary) -> Array[Vector2]:
 ## buildings like the mission autopilot; the view 1x, then wide (220 m), every 20 s.
 func _soak_frame(dt: float) -> void:
 	_soak_t += dt
-	if _pass_kind in ["look", "jump"]:
+	if flags._pass_kind in ["look", "jump"]:
 		if _pass_frames < 0 and _soak_t >= PASS_EVENT_S * _soak_route.size():
 			_soak_minutes = _soak_t / 60.0  # the last look or jump had its PASS_EVENT_S: report
-	elif _pass_kind != "" and _soak_leg >= _soak_route.size():
+	elif flags._pass_kind != "" and _soak_leg >= _soak_route.size():
 		_soak_minutes = _soak_t / 60.0  # the pass is over: report as the soak does
 	if _soak_t >= _soak_minutes * 60.0:
 		print("stream soak: %.0f s over %d sectors: %s" % [_soak_t, streamer.keys.size(), streamer.summary()])
@@ -9360,7 +8156,7 @@ func _soak_frame(dt: float) -> void:
 		return
 	if _soak_route.is_empty():
 		return
-	if _pass_kind != "" and _pass_frames >= 0:
+	if flags._pass_kind != "" and _pass_frames >= 0:
 		# The pass starts at its route's start: the vehicle put there, the view finished once the
 		# camera has caught up (its zoom too) and the streamer has nothing left to load, and the
 		# numbers counted from then on.
@@ -9372,7 +8168,7 @@ func _soak_frame(dt: float) -> void:
 			var yaw := atan2(-d.x, -d.y)
 			car.rotation.y = yaw
 			if flying:
-				var alt := _start_alt if _start_alt > 0.0 else Heli.CRUISE
+				var alt := flags._start_alt if flags._start_alt > 0.0 else Heli.CRUISE
 				heli.place(Vector3(s0.x, map.ground_height(s0.x, s0.y) + alt, s0.y), yaw, alt)
 			else:
 				car.collision_mask = 0
@@ -9388,37 +8184,37 @@ func _soak_frame(dt: float) -> void:
 			_soak_t = 0.0
 			_pass_frames = -1
 		return
-	if _pass_kind == "car":
+	if flags._pass_kind == "car":
 		base_size = FollowCamera.DEFAULT_SIZE * (1.0 + FollowCamera.SPEED_ZOOM)  # the view at top speed
-	elif _pass_kind == "heli":
+	elif flags._pass_kind == "heli":
 		base_size = FollowCamera.DEFAULT_SIZE
 		heli.alt_target = Heli.MAX_HEIGHT
-	elif _pass_kind != "":
+	elif flags._pass_kind != "":
 		base_size = FollowCamera.DEFAULT_SIZE  # the helicopter keeps its height (it climbs over a tower)
 	else:
 		base_size = FollowCamera.DEFAULT_SIZE if int(_soak_t / 20.0) % 2 == 0 else 220.0
 		if not flying and _soak_t > _soak_minutes * 40.0:
 			_take_off(Heli.CRUISE)
-	if _pass_kind in ["look", "jump"]:
+	if flags._pass_kind in ["look", "jump"]:
 		_pass_event()
 		return
-	if _pass_kind != "" and _soak_leg >= _soak_route.size():
+	if flags._pass_kind != "" and _soak_leg >= _soak_route.size():
 		return
-	if _pass_kind == "switch" and not flying and _soak_leg >= 2:
+	if flags._pass_kind == "switch" and not flying and _soak_leg >= 2:
 		_take_off(Heli.CRUISE)  # the loading fix: the car's first leg done, the helicopter flies on
 	var target: Vector2 = _soak_route[_soak_leg % _soak_route.size()]
 	var pos := _vehicle_position()
 	var to := Vector2(target.x - pos.x, target.y - pos.z)
 	if to.length() < 25.0:
 		_soak_leg += 1
-		if _pass_kind != "":
+		if flags._pass_kind != "":
 			print("stream pass: leg %d done at frame %d (%.0f s)" % [_soak_leg - 1, frame, _soak_t])
 		return
 	if flying:
 		heli.input_dir = Vector3(to.x, 0.0, to.y).normalized()
 		heli.climb = 1.0 if heli.blocked else 0.0
 		return
-	var step := to.normalized() * (PASS_CAR_SPEED if _pass_kind in ["car", "switch"] else 22.0) * dt
+	var step := to.normalized() * (PASS_CAR_SPEED if flags._pass_kind in ["car", "switch"] else 22.0) * dt
 	car.collision_mask = 0
 	car.vel = Vector3.ZERO
 	car.global_position = Vector3(pos.x + step.x, map.drive_height(pos.x + step.x, pos.z + step.y, pos.y), pos.z + step.y)
@@ -9470,7 +8266,7 @@ func _look_frame() -> void:
 	if _look_queued.is_empty():
 		return
 	var waited := Time.get_ticks_msec() - int(_look_queued[2])
-	if _pass_kind == "" and (hud.stick_active() or controls.held or hud.gas or hud.brake or _heli_held):
+	if flags._pass_kind == "" and (hud.stick_active() or controls.held or hud.gas or hud.brake or _heli_held):
 		_look_queued = []
 		return
 	if not streamer.expected_in(1) and waited < LOOK_WAIT_MS:
@@ -9502,7 +8298,7 @@ func _pass_event() -> void:
 	if flying:
 		heli.input_dir = Vector3.ZERO
 		heli.climb = 0.0
-	if _pass_kind == "jump":
+	if flags._pass_kind == "jump":
 		var at: Vector2 = _soak_route[mini(_soak_leg - 1, _soak_route.size() - 1)]
 		if _soak_leg < due and _soak_leg < _soak_route.size():
 			at = _soak_route[_soak_leg]

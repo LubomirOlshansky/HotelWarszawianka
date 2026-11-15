@@ -1,7 +1,7 @@
 # Warsaw Spire: spec
 
 Site key `spire` in `game/scripts/landmarks.gd` (TOWERS row `spire` with its `with` points,
-`_build_tower`, `_spire`, `_spire_spines`, `_spire_crown`, `_spire_columns`, `_spire_canopy`,
+`_build_tower`, `_spire`, `_spire_fins`, `_spire_crown`, `_spire_columns`, `_spire_canopy`,
 `_spire_wing`, `_spire_plaza`, `_spire_water`) and the moving parts in `game/scripts/spire_motion.gd`
 (the crown's LED ticker, the plaza's jets; shaders `spire_ticker.gdshader`, `spire_jets.gdshader`).
 Rebuilt 2026-11-06 from F's ten photos (IMG_7328 to 7337 and the four of the second round, IMG_7349 to 7352: the tower from the plaza, the street,
@@ -18,13 +18,13 @@ makes a passer-by say its name:
 
 1. **The flaring shaft**: slim at the lobby, its sides concave as it flares out to its widest at about 150 m, drawn in a little to the roof (IMG_7329, 7333; F: concave, not convex).
 2. **The crown**: an open steel ring round a pale ribbed drum on the roof, rising to horns at the narrow ends (IMG_7351, 7352).
-3. **The brand's moving sign** on the crown: here an LED ticker with the parody SAMSONG adverts.
+3. **The LED sign** across the top of the glass (the real tower writes KOCHAM WARSZAWĘ in letters three floors tall): here a running band with the GeoBent advert and its logo (F's ask, 2026-11-14) and KOCHAM WARSZAWĘ.
 4. **The polished steel columns** in Λ pairs round the set-back lobby (IMG_7337).
 5. **The mirrored canopy** over the entrance, a wide bow with upswept tips (IMG_7336, 7337).
 6. **Spire B and C**: blue glass, a pale stone top storey, a thin white roof edge (IMG_7330, 7331).
 7. **The plaza**: a big pool with a fountain and planted islands, two small pools, a pebble channel,
    honey locusts and slim swamp cypresses (IMG_7330, 7332, 7334).
-8. **Night**: the spines lit up each narrow end, the ticker glowing, the jets lit.
+8. **Night** (F's photos IMG_7975-7979, 2026-11-14): the glass reads blue: a cyan line on every slab edge, brighter higher up, blue mullions every 5 m, a lit edge up each fin, a pink-red line round the roof's rim, a violet one round the drum, red lamps on the masts; the LED band bright on dark glass; the jets lit.
 
 ## 2. Massing
 
@@ -36,8 +36,9 @@ z 171..232, an egg 45 x 61 m, the long axis north-south; the entrance and canopy
 | Lobby | ring(10 m) x 0.9, set back | 0 to 10 m, lit glass | IMG_7337 |
 | Shaft | outline x k(h): 0.66 + 0.34 (h/150)^1.9 (concave) to 1.0 at 150 m, 0.93 at 180 m (`SpireMotion.k_at`) | 10 to 180 m, 14 rings | IMG_7329, 7333 |
 | Crown | an open steel ring on the roof rim (S_FRAME), a pale ribbed drum in two tiers inside | ring 186 m over the wide faces, horns to 198 m at the ends; drum 187 and 191 m | IMG_7349-7352 |
-| Spines | 2 m strips 0.15 m proud on each narrow end | 10 m to the crown's tips | IMG_7332 |
-| Ticker | a band on the shaft's ring, 0.25 m proud | 165.5 to 171.1 m | F's ask, IMG_7336 |
+| Fins | a glass blade 1.6 m deep, 0.6 m thick, out of each narrow end (`SpireMotion.fin_edge`) | 19 m (over the canopy) to 196 m | IMG_7332, F's night photos 2026-11-14 |
+| LED band | on the lofted glass (`SpireMotion.on_glass`), 0.3 m proud, LEDs 1.2 m | 148 to 165.5 m | F's photos 2026-11-14 |
+| Night lines | slab edges every 3.8 m from 25 m (0.35 m, 0.2 m proud), mullions every 5 m (0.3 m, 0.12 m proud), fin edges, rim at 179-179.7 m, drum band at 185.6-186.6 m | | F's photos 2026-11-14 |
 | Columns | about 18 Λ pairs, 0.75 m, heads under the shaft's edge | ground to 10 m | IMG_7337 |
 | Canopy | a bow 16 m wide at the glass, 42 m at its tips, reaching 16 m out | 11 m at the glass, 12.2 m middle front, 18 m tips | IMG_7336, 7337 |
 | Masts | two 1 m posts at the OSM parts' spots | 180 to 220 m | OSM parts |
@@ -53,14 +54,17 @@ z 171..232, an egg 45 x 61 m, the long axis north-south; the entrance and canopy
 
 - **Lobby** (0 to 10 m): dark glass (#2c4656) lit cool at night (M_PAVILION + 0.5); the shaft's
   underside over it polished steel.
-- **Shaft**: blue mirror glass (#5a8ecb, S_MIRROR: sky in slow streaks, a fine silver line at each
+- **Shaft**: grey-blue mirror glass (#6f8fab from 2026-11-15, the Commons day photos; was #5a8ecb, S_MIRROR: sky in slow streaks, a fine silver line at each
   floor, a hairline mullion every 2.4 m).
-- **Spines**: #86acd0, lit cool white at night.
+- **Fins**: pale glass #9fbfd8 (lit cool at night), a steel front edge carrying a cyan line of light.
 - **Crown**: the shaft's glass outside, pale grey-blue inside (#8ea4b5), a steel coping.
-- **Ticker**: black LED panel, white slogans, SAMSONG in light blue, amber dots between; brighter at
-  night. Text (Polish on the sign, English in `spire_motion.gd` ADS): SAMSONG GALAKTYKA Z26 ·
-  SKŁADA SIĘ SZYBCIEJ NIŻ TWÓJ BUDŻET · BATERIA WYTRZYMA KOREK NA TOWAROWEJ · APARAT 200 MPX:
-  WIDAĆ KONIEC REMONTU · RATY 0% DO 2050 ROKU. 7 m/s, seamless (a whole number of text laps).
+- **LED band** (2026-11-15): by day the lit LEDs only, dim, the glass between them; at night the
+  letters bright on dark glass. Text (`spire_motion.gd` ADS, Polish with English glosses): the
+  GeoBent mark · GEOBENT · NIEZAWODNY PARTNER: BENTONIT DLA BUDOWNICTWA, ODLEWNI I ROLNICTWA ·
+  GEOBENT.PL · ♥ KOCHAM WARSZAWĘ ♥ · GEOBENT · KOCHAM WARSZAWĘ, in the logo's navy (brightened)
+  and orange, white, violet and cyan. 9 m/s, seamless. GeoBent is a real firm, named at F's
+  request (the one exception to the parody-brands rule; the SAMSONG parody adverts it replaces
+  are gone).
 - **Spire B, C**: blue mirror glass (#4778b0) over a dark lit ground floor (#28404e, 5 m); top
   storey pale stone panels between slim posts (#c4b69c, S_FINS); a thin white eave (#dfe4e7).
 
@@ -73,11 +77,12 @@ Spire B and C: flat grey-blue stone, the eave, a plant screen set back 3.5 m.
 
 | Part | Colour | Material code |
 | --- | --- | --- |
-| Shaft, crown outside | #5a8ecb | M_SKIN + S_MIRROR |
+| Shaft, crown outside | #6f8fab | M_SKIN + S_MIRROR |
 | Lobby | #2c4656 | M_PAVILION + 0.5 |
 | Columns, legs, soffit, canopy | #c3ccd3, #d3dde4 top, #8e9aa3 under | M_GOLD + 0.5 (polished steel: sky streaks, no warm glow) |
 | Canopy rim | #f0f3f4 | M_STONE |
-| Spines | #86acd0 | M_PAVILION + 0.5 |
+| Fins | #9fbfd8, front edge #c3ccd3 | M_PAVILION + 0.5, M_STONE |
+| Mast tips | #c8322c and #e8ecef bands, DUSK_RED lamp | M_STONE, M_LAMP |
 | Wings | #4778b0; top #c4b69c; eave #dfe4e7 | M_SKIN + S_MIRROR, M_SKIN + S_FINS, M_STONE |
 | Kerbs, islands | #9a9a96, soil #56703a | M_STONE |
 | Channel | #6f8f95 | M_STONE |
@@ -105,7 +110,7 @@ draw calls in the city mesh). The ticker and the jets are two small meshes with 
 | lobby | prism, ring(10 m) x 0.9 | 29 x 40 x 10 | outline centre | M_PAVILION + 0.5 | the set-back lit lobby |
 | shaft | 14 lofted rings | 45 x 61 x 170 | outline centre | M_SKIN S_MIRROR | the flaring glass tower |
 | crown | two-sided screen and coping | 39 x 52 x 2-11 | roof rim | M_SKIN S_MIRROR, M_STONE, steel | the saddle crown |
-| spines | lofted strips | 2 x 0.15 x 190 | both narrow ends | M_PAVILION + 0.5 | the lit spines |
+| fins | lofted blades | 2 x 1.6 x 0.6 x 177 | both narrow ends | M_PAVILION + 0.5, M_STONE edge | the glass fins (2026-11-15) |
 | columns | ~36 beams in Λ pairs | 0.75 x 0.75 x 10 | round the lobby | M_GOLD + 0.5 | the steel columns |
 | canopy | bow of 24 quads, two skins, rim, 4 legs | 42 x 16 x 7 | north end, 11-18 m | M_GOLD + 0.5, M_STONE | the mirrored canopy |
 | masts | two posts | 1 x 1 x 40 | OSM part spots | M_STONE | the beacon masts |

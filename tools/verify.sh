@@ -59,7 +59,8 @@
 # lane-graph routes (the P14 narrow streets both ways, the three Trzy mosty legs), no traffic; a stall,
 # an unstick, leaving the route or sinking fails it. About 3.5 min (44 sectors built).
 # `drivelog` (the city objects plan, step 3, 2026-11-14): route set A driven by check_lane_drive's sloppy
-# driver on the prebuilt city with the contact log (--contacts=), then tools/drive_report.py's table;
+# driver on the prebuilt city with the contact log (--contacts=) and step 7's fences breakable (--soft: the
+# game's default since 2026-11-14 is hard), then tools/drive_report.py's table;
 # it gates nothing yet (PASS when it ran and every contact has a class).
 # `stuckspots` runs game/tools/check_stuck_spots.gd (PT-1, 2026-11-02): the real car with the gas
 # held through the playtest's dead-stop spots; none may stall, need an unstick or lose its speed.
@@ -310,6 +311,8 @@
 # fixes by itself: inside a wall, in a carriageway, under a deck, doubles, stubs, stair slabs, paths
 # walled off; 2026-11-08: no scanned tree in the water or on the asphalt, no fence or hedge in the
 # water; the CHECK rules are only counted).
+# Re-bake guard (2026-11-14): `postpasses` runs tools/check_post_passes.py (road_fixes, lane_tapers, zamek_ramps and
+# object_fixes each leave the committed map unchanged: a pass that is not idempotent drifts it on every re-run).
 # Stairs across the city (2026-11-07): `stairs` runs tools/stairs.py --check (the map's flights carry
 # their OSM tags: step count, width, handrails, ramps; map_builder.gd builds the stone flights from them)
 # and tools/barrier_tags.py --check (walls, fences and hedges carry their mapped heights, materials and
@@ -1077,6 +1080,15 @@ for s in $want; do
 				0) row PASS "objects" $secs "$(grep '^object_fixes: ' $logs/objects.log | tail -1)" ;;
 				*) row FAIL "objects" $secs "$(grep '^object_fixes: ' $logs/objects.log | tail -1) ($logs/objects.log)" ;;
 			esac ;;
+		postpasses)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/check_post_passes.py > $logs/postpasses.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			case $code in
+				0) row PASS "postpasses" $secs "$(grep '^check_post_passes: ' $logs/postpasses.log | tail -1)" ;;
+				*) row FAIL "postpasses" $secs "$(grep -v '^ ' $logs/postpasses.log | tail -2 | tr '\n' ' ') ($logs/postpasses.log)" ;;
+			esac ;;
 		stairs)
 			t0=$EPOCHREALTIME
 			python3 -I $ROOT/tools/stairs.py --check > $logs/stairs.log 2>&1 && \
@@ -1220,7 +1232,7 @@ for s in $want; do
 			skip_prebuilt drivelog && continue
 			t0=$EPOCHREALTIME
 			( cd $GAME && limited $STEP_LIMIT $GODOT --headless --path . --fixed-fps 60 --script res://tools/check_lane_drive.gd \
-				-- --prebuilt --set=A --driver=sloppy --contacts=$logs/drivelog.tsv ) > $logs/drivelog.log 2>&1
+				-- --prebuilt --set=A --driver=sloppy --soft --contacts=$logs/drivelog.tsv ) > $logs/drivelog.log 2>&1
 			code=$?
 			python3 -I $ROOT/tools/drive_report.py "sloppy=$logs/drivelog.tsv" >> $logs/drivelog.log 2>&1
 			rep=$?
@@ -1340,6 +1352,8 @@ for s in $want; do
 		kinotour) check kinotour '^check_kino_tour:' --script res://tools/check_kino_tour.gd ;;
 		# The offer pacer's numbers (data/pacing.json): sane, every one asked, each script's value the file's.
 		pacing) check pacing '^check_pacing:' --script res://tools/check_pacing.gd ;;
+		# The command-line flags' one owner (TD-4 a): dev_flags.gd sets them, main.gd reads flags.NAME.
+		devflags) check devflags '^check_dev_flags:' --script res://tools/check_dev_flags.gd ;;
 		# Bar crawl: the groups' lines (no brand), the routes' stops on the map, the hours, clock and pay.
 		crawl) check crawl '^check_bar_crawl:' --script res://tools/check_bar_crawl.gd ;;
 		# Dead electric cars: the TESŁO, the lines, the sling, the chargers on the real graph.
@@ -1429,6 +1443,8 @@ for s in $want; do
 		# Loop 10a: where a car can get into the water (whole map), and the game's tow decisions.
 		water) check water '^check_water:' --script res://tools/check_water.gd ;;
 		water-prebuilt) skip_prebuilt water-prebuilt || check water-prebuilt '^check_water:' --script res://tools/check_water.gd -- --prebuilt ;;
+		# 2026-11-14: a sector is the same whatever was built before it (forward and reverse order, ~10 min with a window).
+		sectororder) STEP_LIMIT=$(( STEP_LIMIT > 1500 ? STEP_LIMIT : 1500 )) shown sectororder '^check_sector_order:' --script res://tools/check_sector_order.gd ;;
 		# Loop 3c: the sectors are the whole city (meshes, pixels at 10 spots), streaming misses nothing.
 		# The loading fix (2026-10-31): seven passes now, ~13 min: at least 25 min before it's stopped.
 		streaming) STEP_LIMIT=$(( STEP_LIMIT > 1500 ? STEP_LIMIT : 1500 )) shown streaming '^check_streaming:' --script res://tools/check_streaming.gd -- --keep=$logs/streaming ;;

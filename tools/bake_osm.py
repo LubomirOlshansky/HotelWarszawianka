@@ -500,6 +500,10 @@ def main(src, trees_src, dst, extras_src=None, more_src=None):
     # the lane lines stitched across them, small line kinks rounded (tools/road_smooth.py).
     import road_smooth
     print("road_smooth: " + road_smooth.apply(out))
+    # The designed areas (docs/roads/*.json, tools/road_design.py): a fresh bake has none applied; main's
+    # map carries krucza, marsz_defilad and marsz_sienkiewicza (the `palace` trial is not applied).
+    import road_design
+    print("road_design: " + road_design.apply_all(out))
     # Thin towers (F, 2026-11-07): each researched small building's use and seen height
     # (game/data/small_buildings.json; small_buildings.gd draws it).
     import building_heights
@@ -541,6 +545,9 @@ def main(src, trees_src, dst, extras_src=None, more_src=None):
     # on the finished data (they keep clear of its solids; tools/bake_street_pois.py).
     import bake_street_pois
     bake_street_pois.add(out, els, nodes, ways, map_dir)
+    # The metro entrances are POIs the street-details pass above has just added: road_smooth's first pass
+    # (before them) found none, so a from-scratch bake lacked `steps[].down` on 46 flights that main has.
+    print("metro stairs: %d" % road_smooth.metro_steps(out))
     # City objects plan step 5 (2026-11-14): every wall, fence and hedge's type (ty), sureness (tc),
     # solidity class (sc), hazard reason (hz) and height by setting (hs), last, on the finished lines,
     # from OSM's full barrier tags and the land-use outlines in this export (tools/object_types.py;

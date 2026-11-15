@@ -56,7 +56,7 @@ compression and auto-LODs off, so the codes in UV2 survive). No .blend is commit
    `--quit-after` and `--shots` frames mean what they did; `--boot` asks for the player's way.
    Then the game's scene takes the boot scene's place and `main.gd` takes over the title and
    the trap.
-1. Flags (`_parse_args`), gamepad, settings, audio buses.
+1. Flags (`flags.parse()`, `dev_flags.gd`), gamepad, settings, audio buses.
 2. Title screen first (the boot scene's, or a new one in a run with flags), so the first frame
    isn't blank; the radio starts.
 3. Wallet (the save), then the city: runtime build or prebuilt sectors (`sector_streamer.gd`).

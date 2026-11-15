@@ -148,6 +148,7 @@ helper asks for one in its report.
 | `docs/BACKLOG.md` | issues found along the way and decisions taken by default | the weekly bookkeeping PR, from the change notes' Backlog sections |
 | `docs/CHANGELOG.md` | the player's lines by day (feeds /progress/ together with the change notes) | the weekly bookkeeping PR (`tools/changelog.py --fold`) |
 | `docs/QUESTIONS.md` | parked questions for the user (with the default built) and the lanes in progress | when a question is parked or answered, a lane claimed or freed |
+| `docs/PHONE-CHECK.md` | everything only the iPhone can show, as one list for the next build's sitting | a PR that names a phone check adds a line; answered lines leave at the bookkeeping PR |
 | `docs/DEMO.md` | the demo plan: area, quality bar, road defects, police, milestones | when the plan changes |
 | `docs/WORKFLOW.md` | this page | when the way of working changes |
 | `CREDITS.md` | data and asset licences, add-ons | with every new source, asset kind or add-on |
@@ -228,6 +229,24 @@ device pass makes TestFlight. Open-source publication can happen any time after 
 | **Demo** (vertical slice) | the demo area from docs/DEMO.md at final quality: every activity (drive, rescues, side jobs, races, police) playable start to finish; the first minute polished; day and night; all text Polish + English; the art bible holds; the user's playtest says it is good, and outside players finish the first ten minutes without help |
 | **TestFlight** | no crash or soft-lock in repeated sessions; settings and save survive updates; onboarding; credits and licences checked (OpenStreetMap ODbL, GUGiK); privacy (no tracking); the open-source repo published; a channel for testers' notes |
 | **Launch** | the v1.0 device pass from the roadmap (iPhone 13 to current: 60 fps target, memory under 1.5 GB, load under 4 s), App Store assets and metadata, review notes |
+
+### The build train (2026-11-15, docs/design/tech-plans-review-2.md section 8)
+
+Every plan ends a stage with "F looks on the phone", so the build has a beat of its own:
+
+1. **When.** A build is cut when `docs/PHONE-CHECK.md` has 15 open lines or three days have
+   passed since the last build, whichever comes first. The coordinator names the commit.
+2. **The build gate at that commit**, on the Mac (a `qa-tester` run): every `local` step of
+   `tools/ci_steps.txt` (CI never runs them: the autopilot runs, the soaks, the streaming walk,
+   the race marks, the sector order), `tools/verify.sh --ios`, and the bench on both city paths
+   against the last build's numbers. Each step's result goes into the build's note. A red step
+   is fixed, or its feature is switched off for this build; the build does not wait for a
+   redesign.
+3. **F's yes** for each upload, as before. Then one sitting with `docs/PHONE-CHECK.md`, top to
+   bottom; answered lines leave the page.
+4. **No default a player feels changes between builds** without a line on that page.
+5. **At each build the Waiting list of `docs/QUESTIONS.md` is triaged**: an entry older than
+   two builds whose default is built and blocks nothing moves to Answered as "default stands".
 
 Further reading: code.claude.com/docs (subagents, skills, memory, best practices);
 docs.godotengine.org (performance, GDScript style guide, static typing).
