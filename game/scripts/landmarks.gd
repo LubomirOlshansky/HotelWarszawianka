@@ -798,6 +798,7 @@ const INFO := {
 	"church_trojca_praga": ["Kościół Świętej Trójcy na Solcu", "Klasycystyczny kościół z wieżyczką.", "A classicist church with a bell turret."],
 	"church_czestochowska": ["Kościół Matki Bożej Częstochowskiej", "Modernistyczny kościół z dachem do ziemi.", "A modernist church with a roof down to the ground."],
 	"church_zwycieska": ["Kościół Matki Boskiej Zwycięskiej", "Kościół parafialny z dwiema wieżami.", "A parish church with two towers."],
+	"church_sala_faustyny": ["Sala św. Faustyny", "Ceglana sala parafii św. Jakuba na Ochocie.", "The brick parish hall of St James', Ochota."],
 	"church_franciszkanki_piwna": ["Siostry na Piwnej", "Dom sióstr franciszkanek przy kościele św. Marcina.", "The Franciscan sisters' house by St Martin's."],
 	"church_kapucyni_klasztor": ["Klasztor Kapucynów", "Klasztor ojców kapucynów przy Miodowej.", "The Capuchin friars' monastery on Miodowa."],
 	"church_misjonarze_radna": ["Misjonarze na Radnej", "Dom misjonarzy z kaplicą Cudownego Medalika.", "The Missionaries' house with the Miraculous Medal chapel."],
@@ -21897,6 +21898,52 @@ func _build_franciszkanki_piwna(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## Sala św. Faustyny (the St Faustina hall of St James' parish, Ochota, by Plac Narutowicza): a
+## low red brick hall from the 1990s with a row of steep gabled bays between brick piers, each
+## gable with a louvre, and a round-arched porch with a curved dark roof over the oak door. A model
+## that replaces the plain OpenStreetMap block (building 5693; no landmark until 2026-11-14). From
+## one Commons photo (refs/churches/sala_faustyny, reference only, never shipped), the OSM outline
+## (8 m over the ground). Spec docs/landmarks/specs/sala_faustyny.md.
+## Frame: origin at the outline's middle, u east (+x), v south (+z); the gables and the porch face
+## south (+v), to the parish yard.
+const SF_O := Vector2(-2794.0, 1570.0)
+const SF_BRICK := Color("#b0503a")     ## the red brick (photo)
+const SF_ROOF := Color("#4e4f52")      ## the dark sheet roofs
+const SF_STONE := Color("#c9c1b0")     ## the porch's tympanum, copings
+const SF_DOOR := Color("#5a3826")      ## the oak door
+
+
+func _build_sala_faustyny(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(SF_O, SF_O + Vector2(1.0, 0.0))
+	_g = _ground_under(outline)
+	var g := _g
+	_mode = M_STONE
+	var eave := g + 5.0
+	_prism(outline, g - 1.0, eave, SF_BRICK, SF_ROOF.lightened(0.1), M_STONE, M_STONE)
+	# --- the row of steep gabled bays, ridges running north-south (a frame along +v)
+	kit_front(SF_O, SF_O + Vector2(0.0, 1.0))  # u' = v, v' = -u
+	for cu: float in [-10.5, -3.85, 3.9]:
+		_gable(6.6, -7.4, -cu, 3.1, eave, 3.0, SF_BRICK, SF_ROOF, true)
+	kit_front(SF_O, SF_O + Vector2(1.0, 0.0))
+	# louvres in the gables on the south side
+	kit_front(_w(-14.0, 6.6), _w(12.0, 6.6))
+	kit_face(0.0)
+	for cu: float in [-10.5, -3.85, 3.9]:
+		var c := cu + 14.0
+		_kbox(c - 0.35, c + 0.35, 0.0, 0.08, eave + 0.6, eave + 1.9, Color("#2a2a2c"))
+		kit_panes([c], [g + 1.6], 0.5, 2.6, PAL_GLASS_DARK, 0.05)
+	# --- the porch: a brick box with the round-arched door and a low dark roof
+	kit_front(SF_O, SF_O + Vector2(1.0, 0.0))
+	_lbox(11.6, 6.3, 2.4, 1.8, g - 1.0, g + 4.2, SF_BRICK, M_STONE, SF_BRICK)
+	_gable(14.2, 9.0, 6.3, 1.95, g + 4.2, 1.0, SF_ROOF, SF_ROOF, true)
+	kit_front(_w(9.2, 8.1), _w(14.0, 8.1))
+	kit_face(0.0)
+	kit_door(2.4, g, 3.2, 0.85, SF_STONE, SF_DOOR, true)
+	kit_front(SF_O, SF_O + Vector2(1.0, 0.0))
+	_collide(outline)
+
+
 ## The Nożyk Synagogue (Synagoga Nożyków, ul. Twarda 6; Karol and Leandro Marconi, 1898-1902;
 ## burnt 1944, rebuilt 1977-1983; Warsaw's only pre-war synagogue still standing), a cream
 ## neo-Romanesque house of prayer in its courtyard south of Plac Grzybowski. The whole building as
@@ -33270,6 +33317,8 @@ const CHURCHES := [
 			"fill": 0.8, "style": "baroque", "wall": "#e6d4a6", "roof": "#97594a", "towers": 0, "cap": "none"},
 	{"key": "church_rodziny_maryi", "at": Vector2(-2617.0, -739.0), "o": Vector2(-2625.3, -761.4), "out": Vector2(-0.356, -0.934), "L": 13.5, "W": 49.4,
 			"fill": 0.9, "style": "neoclassical", "wall": "#e6c2a2", "roof": "#4d5257", "towers": 0, "cap": "none"},
+	{"key": "church_sala_faustyny", "at": Vector2(-2795.0, 1570.0), "o": Vector2(-2794.0, 1577.0), "out": Vector2(0.0, 1.0), "L": 27.0, "W": 14.0,
+			"fill": 0.9, "style": "modern", "wall": "#b0503a", "roof": "#4e4f52", "towers": 0, "cap": "none"},
 	{"key": "church_franciszkanki_piwna", "at": Vector2(-780.1, -1560.9), "o": Vector2(-765.2, -1574.8), "out": Vector2(0.7804, -0.6253), "L": 29.4, "W": 44.0,
 			"fill": 0.9, "style": "baroque", "wall": "#e2b86c", "roof": "#9a5040", "towers": 0, "cap": "none"},
 	{"key": "church_kapucyni_klasztor", "at": Vector2(-1010.6, -1414.6), "o": Vector2(-1010.8, -1419.8), "out": Vector2(-0.5343, -0.8453), "L": 35.4, "W": 9.0,
@@ -33365,6 +33414,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_czestochowska":
 		_build_czestochowska(site)  # the modernist A-frame church and its pylons, from photos
+		return
+	if site["key"] == "church_sala_faustyny":
+		_build_sala_faustyny(site)  # the St Faustina hall in Ochota, from a photo
 		return
 	if site["key"] == "church_franciszkanki_piwna":
 		_build_franciszkanki_piwna(site)  # the Franciscan Sisters' house on Piwna, from photos and LoD2
