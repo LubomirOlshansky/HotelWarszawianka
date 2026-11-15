@@ -343,6 +343,9 @@
 # docs/streets/ may never get worse), `models` runs tools/model_library.py --check (every model a
 # street record names is in the library or on its wanted list), `overrides` runs
 # game/tools/check_object_overrides.gd (every id in game/data/road_objects.json names a barrier).
+# W2 of the walls look (2026-11-15): `barrierlook` runs game/tools/check_barrier_look.gd (the palette's
+# barrier_look is classic; every barrier type on the map has a `looks` row; the typed drawing's
+# triangles and colliders per draw kind on a flat synthetic map; the alt colours stable).
 # Road design (2026-11-06): `design` runs tools/road_design.py --check-all (every area applied to the
 # map, docs/roads/AREA.json, still builds with no problems: kerbs closed, lanes inside, crossings fit;
 # footways and cycle tracks continuous: every path end the new asphalt cut is on a crossing of its kind).
@@ -1139,6 +1142,7 @@ for s in $want; do
 			esac ;;
 		parkmesh) check parkmesh '^park_details:' --script res://tools/check_park_details.gd ;;
 		overrides) check overrides '^check_object_overrides:' --script res://tools/check_object_overrides.gd ;;
+		barrierlook) check barrierlook '^check_barrier_look:' --script res://tools/check_barrier_look.gd ;;
 		monuments)
 			t0=$EPOCHREALTIME
 			python3 -I $ROOT/tools/check_monuments.py > $logs/monuments.log 2>&1
