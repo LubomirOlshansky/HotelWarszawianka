@@ -1679,8 +1679,9 @@ func _build_world() -> void:
 	# M1: the rescue line joins the director last (after the round-up above), so the M and K keys,
 	# the arrow and the stop assist ask every other activity first, as they did before it joined; the
 	# other activities' runs hold or restart its calls through the director (activity.gd
-	# `rescue_calls`).
-	activities.add(missions)
+	# `rescue_calls`). Its own test for the world: none (its calls have their own holds, `_held`, and
+	# ring in the air too); the kit's rule, one at a time, is what M and the HELI list ask (`free_now`).
+	activities.add(missions, func() -> bool: return true)
 	_build_packs(data, world)
 	await LoadYield.tick("_build_packs")
 	_build_fans(data, world)
@@ -4988,7 +4989,7 @@ func _quest_quit_name() -> Array:
 
 
 ## F (2026-11-08): the full map's quit button, tapped twice: whatever runs gives up the way its
-## own ✕ on the status card does (hud.abort_pressed: each quest checks it is the one on), the
+## own ✕ on the status card does (hud.abort_pressed: the director passes it to the one that is on), the
 ## quest pin goes too. If something still runs (a quest with no ✕ in this beat), a toast says so.
 func _quit_quest() -> void:
 	quest_pin = {}
