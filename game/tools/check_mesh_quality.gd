@@ -45,6 +45,7 @@ const BUDGET := {
 	"church_antoniego": 1250,
 	"church_augustyn": 1900,  # 2026-11-14: the whole brick basilica and its 70 m tower, checked against photos (measured 1759)
 	"church_siostry_milosierdzia_zytnia": 1200,  # 2026-11-15: the Sisters of Our Lady of Mercy's house on Żytnia from photos and LoD2 (measured 874)
+	"church_plebania_florian": 1500,  # 2026-11-15: St Florian's presbytery on Floriańska from photos and LoD2 (measured 1352)
 	"church_sluzki_dom_generalny": 1200,  # 2026-11-15: the Servants of Jesus' generalate from photos and LoD2 (measured 798)
 	"church_uczennice_boskiego_mistrza": 1400,  # 2026-11-15: the Sister Disciples' convent from photos and LoD2 (measured 1179)
 	"church_plebania_augustyn": 500,  # 2026-11-15: St Augustine's presbytery from LoD2 (measured 311)
@@ -164,7 +165,7 @@ const BUDGET := {
 	"ilmet": 400,
 	"jp2_21": 280,
 	"kopernik": 1720,
-	"legia": 700,
+	"legia": 950,  # 2026-11-15 photo rework (762 tris): the roof's membrane tents, podium, concourse columns and banners, glass corners; no corner masts
 	"lim": 2500,  # podium from F's photos (2026-11-06) + the tower from 25 photos (2026-11-15): 2087 measured
 	"loretka": 1120,
 	"lucka": 850,  # 2026-11-06: rebuilt from F's photos (white stepped block, INTERBRUK board, masts)

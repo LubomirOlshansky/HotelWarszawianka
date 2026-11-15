@@ -260,6 +260,8 @@ SITE_AREAS = [
     (-2925, -682, -2872, -625),   # church_uczennice_boskiego_mistrza
     (-222, -545, -175, -496),   # church_sluzki_dom_generalny
     (-2820, -712, -2762, -673),   # church_siostry_milosierdzia_zytnia
+    (-2781, -728, -2700, -643),   # faustyna_klasztor
+    (519, -1995, 559, -1936),   # church_plebania_florian
     (32, -222, 111, -100),   # szarytki
     (-102, -74, -63, -31),   # adwentysci
     (-860, -1600, -810, -1545),   # elzbietanki

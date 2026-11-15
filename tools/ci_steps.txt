@@ -114,6 +114,7 @@ packs                quick
 padel                quick
 palacelights         quick
 parkdetails          quick
+parkedthin           quick
 parkmesh             quick
 parodies             quick
 pause                quick

@@ -183,6 +183,7 @@ const INFO := {
 			"Narożna kamienica w brzoskwiniowym tynku, z balkonami i ślepą arkadą na rogu.",
 			"A corner tenement in peach plaster, with iron balconies and a blind arch at the corner."],
 	"adwentysci": ["Kościół Adwentystów na Foksal", "Zbór w żółtej kamienicy za ogródkiem.", "A church inside a yellow house behind a front garden."],
+	"faustyna_klasztor": ["Klasztor przy sanktuarium św. Faustyny", "Domy Zgromadzenia Sióstr Matki Bożej Miłosierdzia przy Żytniej.", "The Sisters of Our Lady of Mercy's houses round St Faustina's shrine."],
 	"elzbietanki": ["Siostry Elżbietanki", "Dom prowincjalny sióstr za Piekarską, nad ogrodami Podwala.", "The Elizabethan sisters' provincial house behind Piekarska, over the Podwale gardens."],
 	"szarytki": ["Siostry Szarytki na Tamce", "Klasztor sióstr miłosierdzia pod skarpą, z wieżyczką.", "The Sisters of Charity under the escarpment, with their turret."],
 	"gigantami": ["Kamienica Pod Gigantami",
@@ -843,6 +844,7 @@ const INFO := {
 	"church_zwycieska": ["Kościół Matki Boskiej Zwycięskiej", "Kościół parafialny z dwiema wieżami.", "A parish church with two towers."],
 	"church_siostry_milosierdzia_zytnia": ["Siostry Matki Bożej Miłosierdzia", "Dom sióstr przy sanktuarium św. Faustyny na Żytniej.", "The Sisters of Our Lady of Mercy's house by St Faustina's shrine."],
 	"church_uczennice_boskiego_mistrza": ["Siostry Uczennice Boskiego Mistrza", "Ceglany dom zakonny sióstr uczennic przy Żytniej.", "The Sister Disciples of the Divine Master's brick convent."],
+	"church_plebania_florian": ["Plebania katedry św. Floriana", "Plebania praskiej katedry przy Floriańskiej.", "The presbytery of Praga's cathedral on Floriańska."],
 	"church_sluzki_dom_generalny": ["Dom Generalny Sióstr Sług Jezusa", "Dom generalny Zgromadzenia Sióstr Sług Jezusa na Sewerynowie.", "The generalate of the Servants of Jesus sisters."],
 	"church_plebania_augustyn": ["Plebania św. Augustyna", "Plebania parafii św. Augustyna na Nowolipkach.", "St Augustine's presbytery on Nowolipki."],
 	"church_plebania_katedra_polowa": ["Plebania Katedry Polowej", "Plebania katedry wojskowej przy Długiej.", "The Field Cathedral's presbytery on Długa."],
@@ -1322,6 +1324,14 @@ func _find_sites() -> void:
 		_add_site("elzbietanki", [elz])
 		if not sites.is_empty() and sites[-1]["key"] == "elzbietanki":
 			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": ELZ_WALL, "roof": ELZ_ROOF}
+	# The rest of St Faustina's convent on Żytnia (2026-11-15): LoD2's mass of three buildings in the
+	# shrine's white plaster and grey roofs.
+	var fkl: Array = []
+	for at: Vector2 in FKL_AT:
+		fkl.append(_outline_at(at))
+	_add_site("faustyna_klasztor", fkl)
+	if not sites.is_empty() and sites[-1]["key"] == "faustyna_klasztor":
+		sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": FKL_WALL, "roof": FKL_ROOF}
 	# The University campus's escarpment wall and furniture (2026-11-15): quiet, so here.
 	_find_uw_kampus_quiet()
 	# The formal garden before Pałac Krasińskich (F's photos, 2026-11-06).
@@ -1836,6 +1846,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"adwentysci":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin; the gate, balconies and band are ours
 				_build_adwentysci(s)
+			"faustyna_klasztor":
+				_mark_zone(s)  # the mass stays LoD2's, in its skin
 			"elzbietanki":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin; the rounded east end is ours
 				_build_elzbietanki(s)
