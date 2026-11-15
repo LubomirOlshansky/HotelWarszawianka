@@ -44,7 +44,7 @@ photos; **C** small, tucked away or outside the player's loops.
 **Counts.** Photo-built 10 (Florian, Karmelici, Archikatedra front, Anna, Święty Krzyż, Wszystkich Świętych, Wizytki, Niepokalanego Poczęcia, Trójca, Synagoga Nożyków) ·
 own hand-built model from the outline, never checked against photos 3 (Zbawiciela, Aleksander,
 Teresy) · church kit (outline plus guessed style) 20 · skin only 1
-(Jezuici) · plain block 10 small religious-tagged outlines (presbyteries, monastery wings, unnamed; churches.md Inventory). The chapels, convent houses and parish halls were built 2026-11-14..15 (#832..#864). The map's north
+(Jezuici) · plain block 9 small religious-tagged outlines (presbyteries, monastery wings, unnamed; churches.md Inventory). The chapels, convent houses and parish halls were built 2026-11-14..15 (#832..#864). The map's north
 (Praga north of z -2045) is cut off, so Loretańska, Stygmatów, Nawiedzenia, Benon, Kazimierz, Jan Boży
 and Marii Magdaleny are not in the game.
 
@@ -136,7 +136,7 @@ and Marii Magdaleny are not in the game.
 | Klasztor Ojców Kapucynów | Miodowa 13 / Kapucyńska | `_build_kapucyni_klasztor`, replacing the plain OSM block (building 821), 2026-11-14 from 12 Commons photos (5 of the monastery) and LoD2 (spec `kapucyni_klasztor.md`, 797 tris): three-storey pale yellow ranges round the courtyard, hipped green copper roofs, white cornice, rows of windows | B | 5 / 0 | the garden wall with its red coping is not built |
 | Siostry Franciszkanki Służebnice Krzyża | Piwna 9/11, by St Martin's | `_build_franciszkanki_piwna`, replacing the plain OSM block (building 1676), 2026-11-14 from 9 Commons photos and LoD2 (spec `franciszkanki_piwna.md`, 969 tris): ochre ranges round St Martin's chancel, three rows of windows on Piwna with stone surrounds, the arched stone portal under its cartouche, hipped roofs; St Martin's tower in the block stays the church's model | B | 9 / 0 | the roof colour (tile) is a default |
 | Sala św. Faustyny | Ochota, St James' parish | `_build_sala_faustyny`, replacing the plain OSM block (building 5693), 2026-11-14 from one Commons photo and the OSM outline (spec `sala_faustyny.md`, 182 tris): the red brick hall, three steep gabled bays with louvres, the round-arched porch with the oak door | C | 1 / 0 | the north side and the roofs' colour are defaults |
-| Presbyteries (394, 2197, 6054, 10100), monastery wings (821, 3049, 5803), unnamed religious (1000, 4469, 10482) | various | plain blocks, the rest of the church list built 2026-11-15 (#864) | C | few | only if a street pass needs them |
+| Presbyteries (394, 2197, 6054, 10100), monastery wings (3049, 5803), unnamed religious (1000, 4469, 10482) | various | plain blocks, the rest of the church list built 2026-11-15 (#864) | C | few | only if a street pass needs them |
 
 ### Order if F wants them built (proposal)
 
