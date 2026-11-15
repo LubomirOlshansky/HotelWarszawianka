@@ -35,7 +35,16 @@ photos; Sawa 9; Junior 8). What the photos changed:
 - Still to shoot (only F): Sawa's street face straight on (Mapillary has none since 2021), the
   three stores' east (Wiecha) faces in daylight, the roof from the Metro footbridge.
 
-The sections below are the 2026-11-01 spec; where they differ, the list above wins.
+**Photo pass 2, 2026-11-15** (thread "Rebuild Wars Sawa Junior at the start"; F's 7 photos of the stores and their arcade, 2026-11):
+- **The roof crown is bronze vertical louvres** (#8a6d4a, solid: the S_FINS skin draws silver-white fins and the building shader is at its budget), running nearly to the ends (3 m off the ends, 1.6 m in from the long sides) with **rounded corners** (3.5 m).
+- **The wall is frosted pale green-grey** (#a6bdb4) in big panes with **dark strip-window panels** on the street faces (banners with no words in `eastern_wall_shops.json`).
+- **The arcade's ceiling is white and slatted** (#eceeea) with a row of small recessed lights (lit at night) and a few dark dome cameras (`_dtc_ceiling`).
+- **Junior's cube**: a silver box hung at the south end of Junior's street face, the green bullseye and JUNIOR on its street face and its arcade face (`_dtc_cube`); a white rooftop sign box with CITY in blue beside it (`_dtc_corner_box`).
+- **Ads, parodies only**: BUCIK obuwie (black), MANGUSTA (white wall), TRZY PASKI (sportswear, black), PÓŁ CENY (peach posters), UNIKAT's poster stack stays.
+- **People under the arcade**: five standing sites `street_arcade_*` in crowds.gd FIRST_SCENE (window gazers, bags) next to the walkers of `BUSY_BANDS`.
+- Triangle budget 2250 (2223 measured; was 1950).
+
+The sections below are the 2026-11-01 spec; where they differ, the lists above win.
 
 ## 1. Identity
 
