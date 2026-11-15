@@ -668,13 +668,15 @@ func _tick(dt: float) -> void:
 				# Mati's nights take turns: Smoła (he rings straight away), then a secret rave
 				# (LEKTI first).
 				if next_kind == "smola" and not smola.is_empty():
-					if not ring("smola"):
+					# Not again straight after its own call while another's waits (TD-3's variety): retry.
+					if not (_ring_turn() and ring("smola")):
 						tease_in = RETRY
 				else:
 					tease()
 	elif _free():
 		call_in -= _due
-		if call_in <= 0.0 and not ring():
+		# Not again straight after its own call while another's waits (TD-3's variety): retry.
+		if call_in <= 0.0 and not (_ring_turn() and ring()):
 			call_in = RETRY
 
 

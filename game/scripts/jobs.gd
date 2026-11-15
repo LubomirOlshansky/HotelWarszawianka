@@ -584,9 +584,10 @@ func target_colour() -> Color:
 	return KEBAB_COLOUR if job == Job.KEBAB or _pointing() else SLOIK_COLOUR
 
 
-## Nothing else on: no rescue under way (the director's `rescue_aimed`), no race, not flying.
+## Nothing else on: no rescue call's card or rescue run (the director's `rescue_busy`; TD-3, F
+## 2026-11-15: its card holds the deliveries as its run does), no race, not flying.
 func _free() -> bool:
-	if flying or bool(rescue_aimed.call()):
+	if flying or bool(rescue_busy.call()):
 		return false
 	if others_busy.is_valid() and idle() and bool(others_busy.call()):
 		return false  # story_quests.gd: a questline (boat race, rave...) is on
@@ -672,7 +673,7 @@ func _look_for_work() -> void:
 ## helicopter too: the list is for planning), the Leżak depots while they are out (night).
 func offer_places() -> Array:
 	var out: Array = []
-	if not idle() or bool(rescue_aimed.call()) or (rides != null and rides.busy()) \
+	if not idle() or bool(rescue_busy.call()) or (rides != null and rides.busy()) \
 			or (trend != null and trend.busy()) or round_busy() or (rivals != null and rivals.busy()):
 		return out
 	for s in _stands:

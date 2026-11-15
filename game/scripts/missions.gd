@@ -63,10 +63,6 @@ var number := 0
 var total_score := 0
 ## Where the player is, kept by tick(); new calls come from places near it.
 var player := Vector3.ZERO
-## main.gd holds the calls: the phone bench's minute, a boat ride (an activity's run holds them
-## through the director: activity.gd `rescue_calls`, `calls_held`). While held the countdown stands still
-## and nothing opens a call (`_held`).
-var paused := false
 ## Set by the game: where the vehicle's cabin is (the kit's `wallet` and `dialogue` too).
 var vehicle_anchor: Callable
 ## Who needs rescuing: first names only.
@@ -492,9 +488,13 @@ func _idle_tick(dt: float) -> void:
 	_call_in -= dt
 	if _call_in < 0.0:
 		# The message director (hud-messages.md, F 2026-11-11): a rescue rings only when the
-		# HUD's call gate says so (free roam, settled, spaced from any other call); till then
-		# it waits at zero.
-		if hud != null and hud.has_method("call_ok") and not hud.call_ok():
+		# HUD's call gate says so (free roam, settled, spaced from any other call, past the quiet
+		# time after a finish), and not straight again while another's call waits (TD-3's variety:
+		# `_ring_turn`); till then it waits at zero (`call_waits`).
+		if not _call_gate():
+			_call_in = 0.0
+			_waited = _session
+		elif not _ring_turn():
 			_call_in = 0.0
 		else:
 			_ring()
@@ -674,22 +674,18 @@ func _refused(timed_out: bool) -> void:
 		close()
 		_call_in = NEXT_CALL * 0.5
 
-## main.gd's holds (`paused`) or another activity's run (`calls_held`, its `rescue_calls`).
+## Another activity's run (`calls_held`, its `rescue_calls`), or one of main.gd's own holds through the
+## director (the phone bench's minute, a boat ride: `hold_calls`). While held the countdown stands still
+## and nothing opens a call.
 func _held() -> bool:
-	return paused or bool(calls_held.call())
+	return bool(calls_held.call())
 
 
-## Another activity's run starts (the director, before its `_begin`): a job or a race puts the call
-## off (the pill, the card and the status line down, NEXT_CALL again), as each did by name.
-func other_started(a: Node) -> void:
-	if a.rescue_calls == RescueCalls.RESTART:
-		close()
-
-
-## ...and when it ends, the next call is NEXT_CALL away again.
-func other_ended(a: Node) -> void:
-	if a.rescue_calls == RescueCalls.RESTART:
-		close()
+## A job's or a race's run starts or ends, or a boat ride (the director: their `rescue_calls` RESTART):
+## the call is put off (the pill, the card and the status line down), the next NEXT_CALL away, as each
+## did by name.
+func calls_put_off() -> void:
+	close()
 
 
 ## The questline friend walked up (main.gd): a call still ringing is put off.
