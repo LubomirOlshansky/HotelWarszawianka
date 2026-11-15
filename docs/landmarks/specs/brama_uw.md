@@ -1,5 +1,7 @@
 # Brama Główna Uniwersytetu (the University's main gate): spec
 
+**Superseded 2026-11-15** by `uw_kampus.md` section 2 (rebuilt from F's own photos of the gate).
+
 Site key `brama_uw` in `game/scripts/landmarks.gd` (`_build_brama_uw`). Written 2026-11-02 in a cloud thread from the Mac's reference set `refs/krakowskie/` (29 Wikimedia Commons photos, three GUGiK orthophotos at 0.137 m/px; report `docs/landmarks/photo-reports/krakowskie.md`, authors and licences there) plus the GUGiK LoD2 heights from the CI map pack. It replaces the 2026-11-01 first pass, which had the OpenStreetMap outline only. Report section 2, photos 5-11.
 
 ## 1. Identity
