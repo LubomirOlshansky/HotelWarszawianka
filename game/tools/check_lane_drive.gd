@@ -73,6 +73,7 @@ const LaneGraph := preload("res://scripts/lane_graph.gd")
 const SectorStreamer := preload("res://scripts/sector_streamer.gd")
 const Car := preload("res://scripts/car.gd")
 const MapBuilder := preload("res://scripts/map_builder.gd")
+const Solidity := preload("res://scripts/solidity.gd")
 const IndexPack := preload("res://scripts/index_pack.gd")
 ## Sectors within this of a route point are built.
 const REACH := 60.0
@@ -245,6 +246,8 @@ var _w_t0 := 0
 
 
 func _initialize() -> void:
+	# W2 of the walls look: --barriers=classic|typed builds the city in that look (the palette's by default).
+	Solidity.barrier_look_from(OS.get_cmdline_user_args())
 	for a in OS.get_cmdline_user_args():
 		if a == "--prebuilt":
 			prebuilt = true

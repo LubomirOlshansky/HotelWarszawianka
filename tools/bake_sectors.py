@@ -262,6 +262,7 @@ SITE_AREAS = [
     (-2781, -728, -2700, -643),   # faustyna_klasztor
     (53, -294, 115, -243),   # szarytki_zaulek
     (451, -2008, 468, -1991),   # church_kaplica_florianska
+    (-2267, 61, -2247, 83),   # church_kaplica_lucka
     (519, -1995, 559, -1936),   # church_plebania_florian
     (527, -1822, 579, -1775),   # church_klopotowskiego_18
     (-1264, 566, -1098, 670),   # jerozolimskie57 (the row's five outlines and the pavement strip)

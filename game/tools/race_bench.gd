@@ -140,7 +140,8 @@ const PACK_TIE := 0.015
 ## Racer AI step 6b part 2, the police chase (`chase`): the test player drives a course of the
 ## races above from its grid, with 1 or 2 police chasers set off CHASE_BEHIND m behind it on its
 ## way, armed and routed by police.gd's own rules (police_unit.gd `arm_chase`,
-## police/chase_route.gd); the race ends at the chase's longest cap (police.gd CAPS) or at the
+## police/chase_route.gd); the race ends at CHASE_WINDOW s (the chase's longest cap before
+## first-hour step 2; police.gd's hidden backstop is 120 s since, the window keeps the marks) or at the
 ## escape (the player ESCAPE_DIST from every chaser, as the crow flies). Each chase is raced
 ## `old` (the chaser without a plan, as before the step) and `new` (on the racers' driver), and
 ## the Chase balance mark holds the two together on clear roads: against the average player the
@@ -157,6 +158,9 @@ const CHASE_COURSES := {
 }
 const CHASE_PLAYERS := ["average", "fast"]
 const CHASE_BEHIND := 30.0
+## The chase's window (s): the longest cap before first-hour step 2 (2026-11-15), kept so the
+## Chase balance marks measure what they measured; police.gd BACKSTOP is the game's end now.
+const CHASE_WINDOW := 45.0
 const CHASE_AT := [10.0, 20.0, 30.0, 45.0]
 const CHASE_FIT_AT := [20.0, 30.0]
 const CHASE_GAP_TIE := 12.0
@@ -1519,7 +1523,7 @@ func chase(spec: Dictionary) -> Array:
 	traffic.turned_back.connect(func(who) -> void: route.turned_back(who))
 	traffic.hop_refused.connect(func(who) -> void: route.hop_refused(who))
 	var top: float = PLAYER_TOP * PoliceUnit.CHASE_SHARE
-	var end_t: float = Police.CAPS[Police.CAPS.size() - 1]
+	var end_t: float = CHASE_WINDOW
 	var probes: Array = []
 	var outs: Array = []
 	for k in n:

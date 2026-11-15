@@ -464,7 +464,6 @@ var quest_tab_flag := -1
 var _story_t := 0.0
 var _story_key := ""
 var _boat_mask := Vector2i.ZERO
-var _boat_paused := false
 ## The cinema tour (tour.gd with data/kino_tour.json): --kino-tour=call (Wiktor phones now), =go (the tour starts with
 ## the car at the pickup), =auto (that, the cards answered by themselves), =0 (none); --kino-log.
 var kino_tour: Tour
@@ -1671,8 +1670,10 @@ func _build_world() -> void:
 	# The activity kit's director: everything that is not in the kit yet answers through this test
 	# (no job, ride, card or call; on the ground), and the director adds: no other activity of the
 	# kit. Set before the first activity joins, so none asks an empty test while the rest loads
-	# (the boat race's pill by the pontoon asks every frame).
+	# (the boat race's pill by the pontoon asks every frame). A run's end starts the message
+	# director's quiet time (TD-3).
 	activities.world_free = _world_free
+	activities.finished = hud.messages.finished
 	_build_rave(data, world)
 	await LoadYield.tick("_build_rave")
 	_build_meet(data, world)
@@ -1986,6 +1987,8 @@ func _set_quality(choice: int) -> void:
 	var qs: Dictionary = QUALITY[quality]
 	tod.shadows_allowed = qs["shadows"]
 	tod.glow_allowed = qs["glow"]
+	if map != null and map.leaf_material != null:
+		map.leaf_material.set_shader_parameter("limbs", 1.0 if qs.get("tree_limbs", true) else 0.0)
 	if crowds != null:
 		crowds.amount = _crowd_scale()
 		crowds.refresh()
@@ -2317,13 +2320,12 @@ func _start_phone_bench() -> void:
 		return
 	_phone_saved = {"at": car.global_transform, "mask": car.collision_mask, "size": base_size, "pitch": camera_pitch,
 			"wallet": [wallet.zl, wallet.respect, wallet.jobs.duplicate(true), wallet.best.duplicate(true),
-					wallet.eggs.duplicate(true), wallet.district_jobs.duplicate(true), wallet.ladder.duplicate(true)], "persistent": wallet.persistent,
-			"calls": missions.paused}
+					wallet.eggs.duplicate(true), wallet.district_jobs.duplicate(true), wallet.ladder.duplicate(true)], "persistent": wallet.persistent}
 	wallet.persistent = false
-	# Loop G1: no rescue call comes in during the minute (its clock waits, as during a race): the
-	# first call, 60 s into play, landed inside it and was the card's worst frame (61 ms on the
-	# iPhone 11, 100-117 ms on the Pro Max).
-	missions.paused = true
+	# Loop G1: no rescue call comes in during the minute (its clock waits, as during a crawl: the
+	# director's hold, TD-3): the first call, 60 s into play, landed inside it and was the card's worst
+	# frame (61 ms on the iPhone 11, 100-117 ms on the Pro Max).
+	activities.hold_calls("bench", Activity.RescueCalls.HOLD)
 	hud.hide_bench_card()
 	moments.stop()
 	base_size = FollowCamera.DEFAULT_SIZE
@@ -2382,7 +2384,7 @@ func _end_phone_bench(done: bool) -> void:
 	wallet.district_jobs = w[5]  # loop 3h slice 1
 	wallet.ladder = w[6]  # loop 3h slice 3
 	wallet.persistent = _phone_saved["persistent"]
-	missions.paused = _phone_saved["calls"]
+	activities.release_calls("bench")
 	hud.set_wallet(wallet.zl, wallet.respect)
 	_set_perf(show_perf)
 	if not done or _measure_t0 == 0:
@@ -3377,9 +3379,9 @@ func _on_boat_boarded() -> void:
 	car.forward_speed = 0.0
 	car.process_mode = Node.PROCESS_MODE_DISABLED
 	car.visible = false
-	_boat_paused = not missions.paused
-	missions.paused = true
-	missions.close()
+	# The rescue calls: a ringing one put off, none while on the water, the next NEXT_CALL after it, as a
+	# race's run does (the director's hold, TD-3).
+	activities.hold_calls("boat", Activity.RescueCalls.RESTART)
 	hud.hide_pill()
 	_boat_frame()
 	car.reset_physics_interpolation()
@@ -3397,8 +3399,7 @@ func _on_boat_left() -> void:
 	car.visible = true
 	car.reset_motion()
 	car.reset_physics_interpolation()
-	if _boat_paused:
-		missions.paused = false
+	activities.release_calls("boat")
 	_cut_camera()
 
 
@@ -3661,10 +3662,10 @@ func _free_block(ringing_ok := false, guide_ok := false) -> String:
 		return "first-10 guide"
 	if not ringing_ok and not hud.call_ok():
 		return "calls: a call rang lately, or a quest or a chase is on or just ended (messages.gd)"
-	# The rescue line's card or run holds everything, and its call ringing on the context button
-	# (the director's `call_on_pill`) unless `ringing_ok`.
-	if hud.cards_up() or missions.busy() or (activities.call_on_pill() and not ringing_ok):
-		return "a card, mission or rescue target is up"
+	# Any card on screen, and the rescue line's call ringing on the context button (the director's
+	# `call_on_pill`) unless `ringing_ok`; its card or run is the director's (`activities.busy` below).
+	if hud.cards_up() or (activities.call_on_pill() and not ringing_ok):
+		return "a card or a rescue call is up"
 	if (rides != null and rides.busy()) or (jobs != null and activities.job_on()) or (trend_job != null and trend_job.busy()):
 		return "ride/job/trend job busy"
 	if activities.busy():
@@ -3783,8 +3784,9 @@ func _join(a: Activity, parent: Node, world_test := Callable()) -> Activity:
 
 ## The EV tow's own test for everything outside the kit (ev_tow.gd wires itself; this tests
 ## main.gd's own state, so it stays here until TD-1's end): nothing outside the kit is on: no
-## title, bench, Spacer, guide, card, rescue, ride, job or race (the director adds: no other
-## activity of the kit). The air is fine.
+## title, bench, Spacer, guide, card, rescue call, ride, job or race, and not the quiet time after a
+## finish (TD-3; the director adds: no other activity of the kit, the rescue line's card and run
+## among them). The air is fine.
 func _ev_free() -> bool:
 	if club != null and club.inside:
 		return false
@@ -3792,7 +3794,7 @@ func _ev_free() -> bool:
 		return false
 	if first10 != null and first10.guide_on():
 		return false
-	if hud.cards_up() or missions.busy() or activities.call_on_pill():
+	if hud.cards_up() or activities.call_on_pill() or hud.offers_quiet():
 		return false
 	if (rides != null and rides.busy()) or (jobs != null and activities.job_on()) or (trend_job != null and trend_job.busy()):
 		return false
@@ -4615,6 +4617,7 @@ func _build_police(data: Dictionary, world: Node3D) -> void:
 			"bubbles": bubbles, "dialogue": dialogue, "wallet": wallet, "walkers": walkers, "radio": radio, "sfx": sfx,
 			"jobs": jobs, "missions": missions, "tod": tod, "opts": police_opts, "pedal": flags.hold_pedal, "autopilot": flags.autopilot,
 			"rivals": rivals, "ped_zones": ped_zones,
+			"garage_at": func() -> Vector3: return garage.at if garage != null and garage.is_shown() else Vector3.INF,
 			"level_now": func() -> int: return traffic_level,
 			"project": func(p: Vector3) -> Vector2: return cam.unproject_position(p) * float(view.stretch_shrink)}
 	add_child(police)
@@ -7175,6 +7178,7 @@ func _open_streamed_city(world: Node3D, flat_mat: ShaderMaterial) -> Dictionary:
 	add_child(streamer)
 	streamer.sector_ready.connect(_on_sector_ready)
 	var use_prebuilt := (flags.prebuilt or not OS.has_feature("editor")) and flags.solo_site == ""
+	flags.note_barrier_look(use_prebuilt)  # W2: the prebuilt city's barriers are the look it was baked in
 	var data := streamer.open(world, use_prebuilt, building_mat, flat_mat, start_at)
 	map = streamer.map
 	building_mat = map.building_material

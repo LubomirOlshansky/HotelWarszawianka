@@ -10,7 +10,8 @@ extends SceneTree
 ## Reads map/index.json and map/sectors/<i>_<j>.json (tools/bake_sectors.py), and checks the
 ## landmark sites found from the index's `site_parts` against the whole map's (centrum.json).
 ## Run with a real renderer (not --headless, which drops MultiMesh and texture data):
-##   godot --path game --resolution 320x180 --script res://tools/bake_city.gd
+##   godot --path game --resolution 320x180 --script res://tools/bake_city.gd [-- --barriers=typed]
+## (W2 of the walls look: the barriers in that look; by default the palette's barrier_look, classic.)
 ## Loop 3d-1: everything it writes is derived and not committed (tools/setup_map.sh makes it on a
 ## fresh clone). It ends by writing map/sectors/city.stamp: the split's digest (sectors/split.stamp)
 ## and the SHA-256 of every input in CITY_INPUTS, so tools/check_map_data.py tells stale prebuilt
@@ -20,6 +21,7 @@ const MapBuilder := preload("res://scripts/map_builder.gd")
 const Landmarks := preload("res://scripts/landmarks.gd")
 const Proxies := preload("res://scripts/sector_proxies.gd")
 const IndexPack := preload("res://scripts/index_pack.gd")
+const Solidity := preload("res://scripts/solidity.gd")
 const SHARED := "res://map/shared/"
 ## index.json's keys only the map builder reads (the game's systems never do).
 const BUILDER_ONLY := ["site_parts", "kerbs", "medians", "islands", "shore", "fills", "aprons", "lod2_cuts",
@@ -46,6 +48,10 @@ var _finished := false
 
 func _initialize() -> void:
 	var t0 := Time.get_ticks_msec()
+	# W2 of the walls look: `-- --barriers=classic|typed` bakes the barriers in that look over the
+	# palette's barrier_look; the look baked goes into map/sectors/city.stamp.
+	Solidity.barrier_look_from(OS.get_cmdline_user_args())
+	print("bake_city: barriers %s" % Solidity.barrier_look())
 	var err := _bake()
 	if err == OK and not _finished:
 		push_error("bake_city: the bake stopped on a script error (see above); nothing complete was written")
@@ -225,7 +231,8 @@ func _write_stamp() -> Error:
 	var inputs := {}
 	for p: String in city_inputs():
 		inputs[p] = FileAccess.get_sha256("res://" + p) if FileAccess.file_exists("res://" + p) else ""
-	var stamp := {"split": (split as Dictionary).get("digest", "") if split is Dictionary else "", "inputs": inputs}
+	var stamp := {"split": (split as Dictionary).get("digest", "") if split is Dictionary else "", "inputs": inputs,
+			"barrier_look": str(Solidity.barrier_look())}
 	var f := FileAccess.open("res://map/sectors/city.stamp", FileAccess.WRITE)
 	if f == null:
 		push_error("bake_city: can't write map/sectors/city.stamp")

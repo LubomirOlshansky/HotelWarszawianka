@@ -37,6 +37,8 @@ const UnitAction := preload("res://scripts/police/bt/unit_action.gd")
 ## traffic's acceleration x 1.2, and the gap they keep behind the player's car (they never ram;
 ## police.md section 4). CHASE_TOP is the share of the default hatch's 30 m/s, the fallback.
 const CHASE_SHARE := 0.8
+## First-hour step 2 (2026-11-15): tired chasers, after police.gd TIRE_AT s of the chase.
+const TIRED_SHARE := 0.7
 const CHASE_TOP := 24.0
 const CHASE_ACCEL := 1.2
 const CHASE_GAP := 10.0

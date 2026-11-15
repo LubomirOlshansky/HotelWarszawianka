@@ -474,8 +474,9 @@ func _look() -> void:
 		_cool[-3] = _played + ML_COOL
 		if offer_mlask():
 			return
+	# The message director's call spacing and quiet time, and TD-3's variety (the director's `my_turn`).
 	var calls_ok: bool = not hold_calls(mission_on, _played, _call_rest, bool(call_waiting.call())) \
-			and (hud == null or not hud.has_method("call_ok") or hud.call_ok())  # the message director's call spacing
+			and _call_gate() and bool(my_turn.call())
 	if calls_ok and not dz_done and van_out(hour) and _played >= _dz_at:
 		_dz_at = _played + DZ_COOL
 		if offer_dzemini():
