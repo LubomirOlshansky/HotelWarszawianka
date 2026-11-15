@@ -115,8 +115,8 @@ const TOWERS := [
 	{"key": "wcf", "osm": "Warszawskie Centrum Finansowe", "style": S_DARK, "glass": "#4d6862", "roof": "#7d8580"},
 	# The dusk loop (2026-10-31): Centrum LIM holds the Marriott (the 140 m tower at about
 	# (-1308, 697)), so the one site is dressed as it: dark green-black glass in a fine grid,
-	# dark bands, a lattice mast and the names (_marriott).
-	{"key": "lim", "osm": "Centrum LIM", "style": S_GRID, "glass": "#24343a", "roof": "#6f777b", "sign": "PREZYDENT", "marriott": true},
+	# dark bands, a lattice mast and the names (_marriott; rebuilt from photos 2026-11-15, spec lim.md).
+	{"key": "lim", "osm": "Centrum LIM", "style": S_GRID, "glass": "#132a2e", "roof": "#6f777b", "sign": "PREZYDENT", "marriott": true},
 	# Chałubińskiego 8 (Oxford Tower): the car maker's lit name on its crown (F's LIM photos,
 	# 2026-11-06), as the parody CZERY.
 	{"key": "chalubinskiego8", "osm": "Chałubińskiego 8", "style": S_FINS, "glass": "#2f6f8f", "roof": "#c9cfd2", "mapped": true,
