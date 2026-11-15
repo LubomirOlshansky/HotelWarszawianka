@@ -28,8 +28,11 @@ tower are the vaulted hall: built whole as one vault over their outline.
 
 ## 3. Facade, base to top
 
-- **Glass** (#6f9cc6, M_GLASS: the shader's 1.5 m mullions and 4 m transoms, rooms lit at night)
-  on the tower and every podium part.
+- **Glass** (#2f6cbf, the kit's grid skin S_GRID: saturated blue panes in a light frame every
+  1.6 m and at every floor, rooms lit at night) on the tower and every podium part. F's look check
+  (2026-11-15, his photo in `refs/_f/blekitny-f-2026-11-15/`): the first build's #6f9cc6 in M_GLASS
+  read as a dull grey-blue with no grid; the real glass is a deep blue with its panel grid plain
+  to see.
 - **The hall**: glass walls (#3d5f80) from the podium's roof (17 m) to the springing, arched glass
   ends from the ground, a half cylinder of eight glass panels to 27.4 m, a light rib (#c9d2d8,
   0.18 m) over every joint every ~3 m.
@@ -47,14 +50,14 @@ with a red lamp, and a grey pole of 12 m.
 
 ## 6. Colour and material
 
-Glass #6f9cc6 (M_GLASS); hall glass #3d5f80 (M_GLASS) and ribs #c9d2d8; screen #2c3136 (the kit's
+Glass #2f6cbf (S_GRID skin); hall glass #3d5f80 (M_GLASS) and ribs #c9d2d8; screen #2c3136 (the kit's
 frame skin); plant box #e6e8e6; masts #c8322b and #ececea; lamps DUSK_RED (M_LAMP). No new
 material.
 
 ## 7. Ground and night
 
 The square, the tram stop and the metro entrance are the map's. Car collision on the mapped parts
-on the ground. Night: the rooms in the glass (M_GLASS) on the tower, the podium and the hall, the
+on the ground. Night: the rooms in the glass on the tower and the podium (S_GRID) and the hall (M_GLASS), the
 red lamps on the masts and the aviation lights.
 
 ## 8. Detail level and budget
@@ -67,8 +70,8 @@ L2 (a tower on Plac Bankowy, seen from Solidarności and the square). 1,521 tria
 
 | id | shape | size | position | material | feature |
 | --- | --- | --- | --- | --- | --- |
-| tower | prisms | mapped, to 100 and 110 m | the mapped parts | M_GLASS #6f9cc6 | 1, 2 mirror slab |
-| podium | prisms | mapped, 10.9 to 30.7 m | the mapped parts | M_GLASS #6f9cc6 | 3 stepped podium |
+| tower | prisms | mapped, to 100 and 110 m | the mapped parts | S_GRID #2f6cbf | 1, 2 mirror slab |
+| podium | prisms | mapped, 10.9 to 30.7 m | the mapped parts | S_GRID #2f6cbf | 3 stepped podium |
 | hall walls | walls | 17 m to the springing | the strips' long sides | M_GLASS #3d5f80 | 4 vaulted hall |
 | hall ends | quad + fan | the hall's width, ground to 27.4 m | the strips' two ends | M_GLASS #3d5f80 | 4 arched end |
 | vault | 8 quads | r = half the width | over the strips | M_GLASS #3d5f80 | 4 barrel vault |
