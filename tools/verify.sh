@@ -1447,6 +1447,8 @@ for s in $want; do
 		markers) check markers '^check_map_markers:' --script res://tools/check_map_markers.gd ;;
 		messages) check messages '^check_messages:' --script res://tools/check_messages.gd ;;
 		endcard) check endcard '^end_card:' --script res://tools/check_end_card.gd ;;
+		# First hour step 6: the hints in play, the loading tips, the spotlight (no map).
+		hints) check hints '^check_hints:' --script res://tools/check_hints.gd ;;
 		opening) check opening '^opening:' --script res://tools/check_opening.gd ;;
 		life-soak) life_soak ;;
 		# Loop 2d-1: Podwózka's star and pay tables, the streak and the cancel rules, its lines.

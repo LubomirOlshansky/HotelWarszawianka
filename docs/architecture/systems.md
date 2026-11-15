@@ -123,6 +123,7 @@ in one file, `data/pacing.json`, read by the offer pacer (`pacer.gd`, tech-debt 
 | `quest_lines.gd` | Car and helicopter quest lines, marker colours. |
 | `main_line.gd`, `main_nudge.gd` | The main story thread and its on-screen nudge. |
 | `first10.gd` | The fresh-save guide and the end card. |
+| `hints.gd` (first hour step 6) | **The hints in play**: six short hints that show only to a player who has not done the thing, once (the ring's twice), never in a race, a chase, a scripted moment or under a card (`decide`, pure; `tick`, five times a second from main.gd `_hints_frame`); the words in `data/tips.json`, what was shown in the save's [intro] (`hint_<id>`), the ring and words on screen hud.gd's `spotlight`. `done_tags` tells the title which loading tips to put last. |
 | `spacer.gd`, `fotka.gd` | Wander mode (nothing comes by itself); photo mode. |
 
 ## 5. Feedback: HUD, words and sound

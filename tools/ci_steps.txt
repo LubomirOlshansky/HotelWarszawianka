@@ -78,6 +78,7 @@ handling             quick
 heights              quick
 heli                 local     slow
 heliview             quick
+hints                quick
 hud                  quick
 jobplay              quick
 jobs2                quick

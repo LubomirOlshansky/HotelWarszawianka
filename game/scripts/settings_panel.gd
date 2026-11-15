@@ -54,6 +54,10 @@ const ACCESS_TAB := 5
 ## DEMO 3j: the credits page, after the tabs' pages; no tab of its own (DŹWIĘK → LICENCJE opens it,
 ## and its tab stays lit).
 const CREDITS_PAGE := 6
+## First hour step 6: DŹWIĘK → PORADY, every loading tip in one list (game/data/tips.json), so a
+## tip that flashed by on the title is not lost.
+const TIPS_PAGE := 7
+const TIPS_FILE := "res://data/tips.json"
 const SOUND_TAB := 3
 const Credits := preload("res://scripts/credits.gd")
 const NotebookPage := preload("res://scripts/notebook_page.gd")
@@ -360,6 +364,11 @@ func _build() -> void:
 	about.name = "credits"
 	about.pressed.connect(show_credits)
 	about_row.add_child(about)
+	var tips_button := _word_button("PORADY", "TIPS")
+	tips_button.name = "tips"
+	tips_button.pressed.connect(show_tips)
+	tips_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	sound[0].add_child(tips_button)  # under the volumes: beside LICENCJE the page grew too wide for the phone
 	# The error trap (tech-debt TD-14): this run's errors and last lines onto the clipboard
 	# (main.gd). Only in our own debug builds (`report_on`).
 	if report_on:
@@ -409,6 +418,7 @@ func _build() -> void:
 	_pages.remove_at(access_at)
 	notebook_page.size = notebook_page.custom_minimum_size
 	_credits_page(body)
+	_tips_page(body)
 	if _target != "":
 		notebook_page.show_target(_target)
 	set_tab(_tab)
@@ -481,10 +491,10 @@ func _rows(parent: Control, cells: Array[int]) -> Array[VBoxContainer]:
 
 ## Shows tab `i` (0 Driving, 1 World, 2 Picture, 3 Sound, 4 Notebook, 5 Access; 6 the credits page).
 func set_tab(i: int) -> void:
-	_tab = clampi(i, 0, CREDITS_PAGE if _built else TABS.size() - 1)
+	_tab = clampi(i, 0, TIPS_PAGE if _built else TABS.size() - 1)
 	if not _built:
 		return
-	var lit := SOUND_TAB if _tab == CREDITS_PAGE else _tab
+	var lit := SOUND_TAB if _tab == CREDITS_PAGE or _tab == TIPS_PAGE else _tab
 	for k in _pages.size():
 		_pages[k].visible = k == _tab
 	for k in _tabs.size():
@@ -492,10 +502,11 @@ func set_tab(i: int) -> void:
 	# Loop MW-1: the notebook's tab has its own size and title.
 	var on_notes := _tab == NOTEBOOK_TAB
 	var on_credits := _tab == CREDITS_PAGE
+	var on_tips := _tab == TIPS_PAGE
 	_body.custom_minimum_size = notebook_page.custom_minimum_size if on_notes else _settings_size
-	_title.text = Lang.pick("MOJA WARSZAWA", "MY WARSAW") if on_notes else (Lang.pick("O GRZE", "ABOUT") if on_credits else Lang.pick("USTAWIENIA", "SETTINGS"))
+	_title.text = Lang.pick("MOJA WARSZAWA", "MY WARSAW") if on_notes else (Lang.pick("O GRZE", "ABOUT") if on_credits else (Lang.pick("PORADY", "TIPS") if on_tips else Lang.pick("USTAWIENIA", "SETTINGS")))
 	_title.add_theme_font_size_override("font_size", _px(T_NOTES if on_notes else T_HEAD))
-	_subtitle.text = _notes_count() if on_notes else (Lang.pick("licencje i autorzy", "credits and licences") if on_credits else Lang.pick("gra wstrzymana", "game paused"))
+	_subtitle.text = _notes_count() if on_notes else (Lang.pick("licencje i autorzy", "credits and licences") if on_credits else (Lang.pick("z ekranu ładowania", "from the loading screen") if on_tips else Lang.pick("gra wstrzymana", "game paused")))
 	_subtitle_en.text = ""
 	if on_notes:
 		notebook_page.queue_redraw()
@@ -530,6 +541,37 @@ func _credits_page(body: Control) -> void:
 			l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			l.custom_minimum_size.x = col.custom_minimum_size.x
 			col.add_child(l)
+	_pages.append(scroll)
+
+
+## First hour step 6: shows the tips (DŹWIĘK → PORADY; any tab goes back).
+func show_tips() -> void:
+	set_tab(TIPS_PAGE)
+	if Gamepad.in_use():
+		pad_focus()
+
+
+## First hour step 6: the tips page, every loading tip (tips.json) in a column that scrolls, as big
+## as the settings pages so the card keeps its size.
+func _tips_page(body: Control) -> void:
+	var scroll := ScrollContainer.new()
+	scroll.name = "tips_page"
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size = _settings_size
+	scroll.custom_minimum_size = _settings_size
+	body.add_child(scroll)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", _px(6))
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col.custom_minimum_size.x = _settings_size.x - 16.0 * pt
+	scroll.add_child(col)
+	var d: Variant = JSON.parse_string(FileAccess.get_file_as_string(TIPS_FILE))
+	var tips: Array = (d as Dictionary).get("tips", []) if d is Dictionary else []
+	for t: Dictionary in tips:
+		var l := _text("•  " + Lang.pick(str(t.get("pl", "")), str(t.get("en", ""))), T_BODY, INK)
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.custom_minimum_size.x = col.custom_minimum_size.x
+		col.add_child(l)
 	_pages.append(scroll)
 
 
@@ -596,7 +638,7 @@ func pad_focus() -> void:
 
 ## The button the pad's focus starts on: the open tab's.
 func focus_target() -> Button:
-	return _tabs[SOUND_TAB if _tab == CREDITS_PAGE else _tab]
+	return _tabs[SOUND_TAB if _tab == CREDITS_PAGE or _tab == TIPS_PAGE else _tab]
 
 
 ## The current values again (after a change that moves another row: Classic's camera).

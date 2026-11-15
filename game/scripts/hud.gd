@@ -498,6 +498,13 @@ var touch_off := false
 var input_ms := 0
 var _finger := false
 var _finger_t := 0.0
+## First hour step 6: the spotlight (`spotlight`): what it points at ("minimap", "heli", "climb",
+## "brake", or "car" for words over the car with no ring), its words, how long it has been up and
+## how long it stays. Drawn on the pad like the ghost finger: no node of its own, nothing when off.
+var _spot := ""
+var _spot_words := ""
+var _spot_t := 0.0
+var _spot_life := 0.0
 ## Minimap: north-up data drawn once, then turned and moved so the camera's view is up.
 ## Loop 2b: every street, park and pond is built once into one 2D mesh, drawn with one call and
 ## cut to the circle by a small shader (it was 6,500 draw calls, the iPhone's 16 fps).
@@ -884,6 +891,8 @@ func _layout() -> void:
 		# PT-26 (2026-11-07): the ghost finger's two-line hint is room taken too, so a bubble
 		# (the Marszałkowska roadworks sign by the start) keeps off the words that teach steering.
 		_taken.append(finger_hint_rect())
+	if _spot != "":
+		_taken.append(spotlight_label_rect())  # the same for a hint's words
 	var car_zone_added := false
 	for c in _floating:
 		if not car_zone_added and not c in [_status, _police_pill, _card, _challenge] and not _panel_spots.has(c):
@@ -1130,6 +1139,7 @@ func clear_all() -> void:
 	set_koguty(0, 0)
 	police_fx(0.0, PackedVector2Array(), Vector2.INF)
 	set_pedals_hidden(false)
+	spotlight_off()
 	_mark()
 
 
@@ -2338,6 +2348,11 @@ func _frame(dt: float) -> void:
 	if _finger:
 		_finger_t += dt
 		_pad.queue_redraw()
+	if _spot != "":
+		_spot_t += dt
+		_pad.queue_redraw()
+		if _spot_t >= _spot_life:
+			spotlight_off()
 	if _pill.visible:
 		# The context button breathes so a call that came in is noticed.
 		_pill_t += dt
@@ -3949,6 +3964,99 @@ func _draw_finger_classic() -> void:
 	_pad.draw_string(font, at2, lines[1], HORIZONTAL_ALIGNMENT_LEFT, -1, fs2, SUB)
 
 
+# --- first hour step 6: the spotlight -----------------------------------------------------------
+
+## A hint (hints.gd): a ring that pulses round `target` and its words beside it, for `life` s or
+## until `spotlight_off`. `target` is "minimap", "heli" (the HELI chip), "climb" (the helicopter's
+## up pad), "brake", or "car" (the words over the car, no ring). One at a time: a new one takes the
+## place of the last. Eight words at most (George Fan's rule, the spec's section 6).
+func spotlight(target: String, words: String, life := 7.0) -> void:
+	_spot = target
+	_spot_words = words
+	_spot_t = 0.0
+	_spot_life = life
+	_dirty = true  # its words take room from the bubbles, as the ghost finger's do
+	_pad.queue_redraw()
+
+
+func spotlight_off() -> void:
+	if _spot == "":
+		return
+	_spot = ""
+	_spot_words = ""
+	_dirty = true
+	_pad.queue_redraw()
+
+
+## What the spotlight points at now ("" when none is up).
+func spotlight_target() -> String:
+	return _spot
+
+
+## The spotlight's words now ("" when none is up).
+func spotlight_words() -> String:
+	return _spot_words
+
+
+## The screen rect of what the spotlight points at, or an empty rect when it is not on screen
+## (the HELI chip hidden, the climb pad while driving).
+func spotlight_target_rect(target := "") -> Rect2:
+	if target == "":
+		target = _spot
+	var disc := func(c: Vector2, r: float) -> Rect2: return Rect2(c - Vector2.ONE * r, Vector2.ONE * r * 2.0)
+	match target:
+		"minimap":
+			return Rect2(_minimap.position, _minimap.size) if _minimap.visible else Rect2()
+		"heli":
+			return Rect2(_vehicle_button.position, _vehicle_button.size) if _vehicle_button.visible else Rect2()
+		"climb":
+			return disc.call(_climb_centre(1), PAD_R * pt) if flying and not touch_off else Rect2()
+		"brake":
+			return disc.call(_brake_centre(), _brake_r() * pt) if not flying and not touch_off else Rect2()
+		"car":
+			return car_zone()
+	return Rect2()
+
+
+## Where the spotlight's words go: beside the target on the side of the screen's middle (under a
+## target in the top half, over one in the bottom half), centred on it, kept in the safe area.
+func spotlight_label_rect() -> Rect2:
+	var font := ThemeDB.fallback_font
+	var fs := _px(T_BODY)
+	var w := font.get_string_size(_spot_words, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x + 16.0 * pt
+	var h := fs * 1.5 + 8.0 * pt
+	var r := spotlight_target_rect()
+	var c := r.get_center() if r.has_area() else _screen * 0.5
+	var ring := _spot_ring(r)
+	var y := c.y + ring + 8.0 * pt if c.y < _screen.y * 0.5 else c.y - ring - 8.0 * pt - h
+	if _spot == "car":
+		y = r.position.y - h  # over the car, where a bubble would stand
+	var x := clampf(c.x - w * 0.5, _safe.position.x + EDGE * pt, _safe.end.x - EDGE * pt - w)
+	y = clampf(y, _safe.position.y + EDGE * pt, _safe.end.y - EDGE * pt - h)
+	return Rect2(x, y, w, h)
+
+
+func _spot_ring(r: Rect2) -> float:
+	return 0.0 if _spot == "car" or not r.has_area() else maxf(r.size.x, r.size.y) * 0.5 + 6.0 * pt
+
+
+func _draw_spotlight() -> void:
+	var r := spotlight_target_rect()
+	var pulse := 0.5 + 0.5 * sin(_spot_t * 5.0)
+	var fade := clampf(_spot_t / 0.25, 0.0, 1.0) * clampf((_spot_life - _spot_t) / 0.4, 0.0, 1.0)
+	if r.has_area() and _spot != "car":
+		var ring := _spot_ring(r) + 4.0 * pt * pulse
+		_pad.draw_arc(r.get_center(), ring, 0, TAU, 48, Color(ACCENT, (0.55 + 0.45 * pulse) * fade), 3.0 * pt)
+		_pad.draw_arc(r.get_center(), ring + 7.0 * pt * pulse, 0, TAU, 48, Color(ACCENT, 0.35 * (1.0 - pulse) * fade), 2.0 * pt)
+	var box := spotlight_label_rect()
+	var font := ThemeDB.fallback_font
+	var fs := _px(T_BODY)
+	_pad.draw_rect(box, Color(CARD_BG, 0.9 * fade))
+	_pad.draw_rect(Rect2(box.position, Vector2(3.0 * pt, box.size.y)), Color(ACCENT, fade))
+	var at := Vector2(box.position.x + 8.0 * pt, box.position.y + (box.size.y - fs) * 0.5 + font.get_ascent(fs))
+	_pad.draw_string(font, at, _spot_words, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(INK, fade))
+
+
 ## Loop 3h slice 4: the HELI chip shown or hidden (first10.gd: the helicopter waits for the first
 ## rescue on a fresh save).
 func set_vehicle_shown(on: bool) -> void:
@@ -3961,6 +4069,8 @@ func set_vehicle_shown(on: bool) -> void:
 func _draw_pad() -> void:
 	if _finger and _stick_index == -1 and not flying:
 		_draw_finger()
+	if _spot != "":
+		_draw_spotlight()
 	if _marker_visible:
 		# A yellow pointer over the player's car.
 		var m := _marker - Vector2(0, 6.0 * pt)
