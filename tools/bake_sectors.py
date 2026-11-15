@@ -254,6 +254,7 @@ SITE_AREAS = [
     (-465, -868, -378, -796),   # church_wizytki_klasztor
     (-1205, -1040, -1135, -965),   # church_reformaci_klasztor
     (-1175, -1693, -1129, -1645),   # church_plebania_katedra_polowa
+    (-2428, -1133, -2392, -1097),   # church_plebania_augustyn
     (32, -222, 111, -100),   # szarytki
     (-102, -74, -63, -31),   # adwentysci
     (-860, -1600, -810, -1545),   # elzbietanki
