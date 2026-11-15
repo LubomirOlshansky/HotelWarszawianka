@@ -181,6 +181,7 @@ const INFO := {
 	"szpitalna5": ["Szpitalna 5",
 			"Narożna kamienica w brzoskwiniowym tynku, z balkonami i ślepą arkadą na rogu.",
 			"A corner tenement in peach plaster, with iron balconies and a blind arch at the corner."],
+	"szarytki": ["Siostry Szarytki na Tamce", "Klasztor sióstr miłosierdzia pod skarpą, z wieżyczką.", "The Sisters of Charity under the escarpment, with their turret."],
 	"gigantami": ["Kamienica Pod Gigantami",
 			"Dwaj kamienni giganci trzymają balkon nad bramą. Dobre miejsce na randkę, jeśli zdążysz.",
 			"Two stone giants hold up the balcony over the gate. A fine place for a date, if you get there in time."],
@@ -1348,6 +1349,14 @@ func _find_sites() -> void:
 	_add_site("lawrynowicz", [_pts(LW_OUTLINE)])
 	if not sites.is_empty() and sites[-1]["key"] == "lawrynowicz":
 		sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": LW_BRICK, "roof": Color("#6c6a66")}
+	# The Sisters of Charity on Tamka (F's photos, 2026-11-15): LoD2's mass in white plaster and green
+	# copper, the turret is ours. Sites with a card stay before the quiet ones below: the cards
+	# (`info`) skip quiet sites, so a carded site after one gets another site's picking id.
+	var szt := _outline_at(SZT_AT)
+	if szt.size() >= 3:
+		_add_site("szarytki", [szt])
+		if not sites.is_empty() and sites[-1]["key"] == "szarytki":
+			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": SZT_WALL, "roof": SZT_ROOF, "steep": 0.3}
 	# The formal garden before Pałac Krasińskich (F's photos, 2026-11-06).
 	if _landmark("Pałac Krasińskich").size() >= 3:
 		_o = KRAS
@@ -2058,6 +2067,9 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"krasinski_ogrod":
 				_id = 0  # not tappable
 				_build_kras_garden()
+			"szarytki":
+				_mark_zone(s)  # the mass stays LoD2's, in its skin; the turret is ours
+				_build_szarytki(s)
 			"lawrynowicz":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin; the street front is ours
 				_build_lawrynowicz(s)
@@ -22042,6 +22054,43 @@ func _build_wizytki_klasztor(site: Dictionary) -> void:
 		kit_panes(cols, [g + 1.2, g + 4.7], 1.1, 1.8, PAL_GLASS_DARK, 0.05)
 	kit_front(WK_O, WK_O + WK_A)
 	_collide(outline)
+
+
+## The Sisters of Charity on Tamka (Zakład Sióstr Miłosierdzia św. Wincentego à Paulo, the
+## "szarytki", Tamka 35; 1730s-1850s, rebuilt after 1944): long white two-storey ranges round a
+## courtyard below the escarpment, under tall dull green copper roofs with rows of white dormers,
+## and a slim green turret with an onion on the ridge. The mass stays GUGiK's LoD2 (OSM building
+## 12823, unnamed; ridges about 14 m over the ground) in its white plaster and copper (`steep`:
+## LoD2's tall roofs keep the roof colour); the turret is ours. From F's 11 Commons photos
+## (refs/churches/szarytki_tamka, reference only, never shipped): 01 and 02 show the roofs and the
+## turret from the escarpment, 03 and 11 the white courtyard fronts. Spec
+## docs/landmarks/specs/szarytki.md. Not built: the dormers (the roofs are LoD2's, not ours).
+const SZT_AT := Vector2(72.0, -200.0)        ## inside the outline (the east range)
+const SZT_WALL := Color("#e9e7e0")           ## white plaster (photos 01, 03, 11)
+const SZT_ROOF := Color("#7c9171")           ## dull green copper (photos 01, 02)
+const SZT_TURRET := Vector2(57.0, -162.0)    ## where the south range meets the west one (a default: photo 02)
+const SZT_RIDGE := 8.4                       ## LoD2's ridge there (absolute y)
+
+
+func _build_szarytki(_site: Dictionary) -> void:
+	_o = SZT_TURRET
+	_a = Vector2(1.0, 0.0)
+	_b = Vector2(0.0, 1.0)
+	_g = SZT_RIDGE - 14.0
+	var keep := _mode
+	_mode = M_STONE
+	var y := SZT_RIDGE - 0.6
+	var copper := SZT_ROOF.lightened(0.08)
+	# the square base astride the ridge, the white drum with its openings, the onion, the cross
+	_lbox(0.0, 0.0, 1.0, 1.0, y, y + 1.4, copper)
+	kit_lantern(0.0, 0.0, y + 1.4, 2.6, 0.75, SZT_WALL, copper, PAL_GLASS_DARK, 8)
+	var c := _w(0.0, 0.0)
+	var top := y + 1.4 + 2.6 * 0.7 + 0.15
+	_frustum(_circle(c, 0.55, 8), top, _circle(c, 0.95, 8), top + 0.7, copper)
+	_frustum(_circle(c, 0.95, 8), top + 0.7, _circle(c, 0.25, 8), top + 1.6, copper)
+	_prism(_circle(c, 0.08, 4), top + 1.6, top + 2.6, copper, copper, M_STONE, M_STONE)
+	_lbox(0.0, 0.0, 0.32, 0.05, top + 2.2, top + 2.3, copper)
+	_mode = keep
 
 
 ## The Nożyk Synagogue (Synagoga Nożyków, ul. Twarda 6; Karol and Leandro Marconi, 1898-1902;
