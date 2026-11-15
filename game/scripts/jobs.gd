@@ -31,6 +31,7 @@ extends "res://scripts/activity.gd"
 var spent_usec := 0
 
 const MapIcons := preload("res://scripts/map_icons.gd")
+const MapMarkers := preload("res://scripts/map_markers.gd")
 const Models := preload("res://scripts/models.gd")
 const Props := preload("res://scripts/props.gd")
 const LaneGraph := preload("res://scripts/lane_graph.gd")
@@ -697,30 +698,22 @@ func _show_places(on: bool, again := false) -> void:
 		(s["marker"] as Node3D).visible = on
 	for st in _stations:
 		(st["marker"] as Node3D).visible = on
-	var pts := PackedVector2Array()
-	var colours := PackedColorArray()
-	var shapes := PackedInt32Array()
+	# The places' marks on the minimap and the full map (map_markers.gd, TD-13: "jobs" owns these;
+	# the round-up's pins during its run are its own).
+	var marks: Array[Dictionary] = []
 	if on:
 		for s in _stands:
-			pts.append(Vector2(s["ring"].x, s["ring"].z))
-			colours.append(KEBAB_COLOUR)
-			shapes.append(MapIcons.POI_KEBAB)
+			marks.append({"layer": MapMarkers.Layer.JOB, "at": Vector2(s["ring"].x, s["ring"].z), "colour": KEBAB_COLOUR, "shape": MapIcons.POI_KEBAB})
 		for st in _stations:
-			pts.append(Vector2(st["ring"].x, st["ring"].z))
-			colours.append(SLOIK_COLOUR)
-			shapes.append(MapIcons.POI_STATION)
+			marks.append({"layer": MapMarkers.Layer.JOB, "at": Vector2(st["ring"].x, st["ring"].z), "colour": SLOIK_COLOUR, "shape": MapIcons.POI_STATION})
 	# The free-ride boat at the start pontoon (boat_race.gd): its mark stays with the places.
 	if on and boat_spot != Vector2.INF:
-		pts.append(boat_spot)
-		colours.append(BOAT_COLOUR)
-		shapes.append(MapIcons.POI_BOAT)
+		marks.append({"layer": MapMarkers.Layer.JOB, "at": boat_spot, "colour": BOAT_COLOUR, "shape": MapIcons.POI_BOAT})
 	# Loop jobs-2: the Leżak depots at night.
 	if roundup != null and roundup._shown and not round_busy():
 		for q: Vector2 in roundup.depot_points():
-			pts.append(q)
-			colours.append(roundup.COLOUR)
-			shapes.append(MapIcons.POI_DEPOT)
-	hud.set_minimap_pois(pts, colours, shapes)
+			marks.append({"layer": MapMarkers.Layer.JOB, "at": q, "colour": roundup.COLOUR, "shape": MapIcons.POI_DEPOT})
+	hud.markers.put_all("jobs", marks)
 
 
 ## Loop jobs-2: the round-up's depots came on or went (night, a job): the minimap squares again.

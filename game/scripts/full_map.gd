@@ -39,6 +39,7 @@ signal teleport(at: Vector2)
 const Lang := preload("res://scripts/lang.gd")
 const MapArt := preload("res://scripts/map_art.gd")
 const MapIcons := preload("res://scripts/map_icons.gd")
+const MapMarkers := preload("res://scripts/map_markers.gd")
 const MainLine := preload("res://scripts/main_line.gd")
 const Lines := preload("res://scripts/quest_lines.gd")
 const Access := preload("res://scripts/access.gd")
@@ -89,17 +90,10 @@ var safe := Rect2()
 ## What it shows (map metres), from open().
 var car := Vector2.ZERO
 var car_yaw := 0.0
-var unknown := PackedVector2Array()
 ## A crash scene (hud.set_scene_mark), Vector2.INF for none.
 var scene_mark := Vector2.INF
 var found := PackedVector2Array()
 var target := Vector2.INF
-## The garage loop: Warsztat u Mirka's diamond (INF: not shown yet).
-var garage := Vector2.INF
-var garage_colour := Color.WHITE
-## Loop 3h slice 3: the final race's start marker (INF: not shown).
-var final_start := Vector2.INF
-var final_colour := Color.WHITE
 var target_colour := Color.WHITE
 ## The main line (main_line.gd, hud.gd `set_main_line`): its marker (INF: none) and goal line. On the
 ## map a big gold star in a pulsing ring (pinned to the screen's edge when off it); the side quests
@@ -108,10 +102,9 @@ var target_colour := Color.WHITE
 var main_at := Vector2.INF
 var main_pl := ""
 var main_en := ""
-var side_spots := PackedVector2Array()
-var side_colours := PackedColorArray()
-## G11: each place's shape (hud.gd POI_*), parallel to side_spots.
-var side_shapes := PackedInt32Array()
+## The map marker registry (map_markers.gd, TD-13; hud.gd hands its own over on open): the street
+## jobs' places (JOB) and the garage (SERVICE) come from it, by its rule table.
+var markers := MapMarkers.new()
 ## The questlines' starts (story_quests.gd) and their colours; quest focus (a quest under way: the
 ## side places, the garage, the "?" marks and the starts stay off, the main star dims).
 var story_spots := PackedVector2Array()
@@ -997,11 +990,13 @@ func _paint() -> void:
 			named.append(ic)
 	# The side quests' places to start one: squares in their job's colour.
 	# F 2026-11-08: fewer pins, the street jobs show only zoomed in.
-	for i in (0 if focus or not close_in else side_spots.size()):
-		var at := to_screen(side_spots[i])
+	var ctx := MapMarkers.context_of(focus)
+	var jobs := markers.shown(MapMarkers.Layer.JOB, MapMarkers.View.FULL_MAP, ctx)
+	var job_at: PackedVector2Array = jobs["at"]
+	for i in (job_at.size() if close_in else 0):
+		var at := to_screen(job_at[i])
 		if view.has_point(at):
-			hud.poi_mark(at, 5.2 * pt, side_colours[i] if i < side_colours.size() else Color.WHITE,
-					side_shapes[i] if i < side_shapes.size() else MapIcons.POI_SQUARE)
+			hud.poi_mark(at, 5.2 * pt, (jobs["colour"] as PackedColorArray)[i], (jobs["shape"] as PackedInt32Array)[i])
 	for q in found:
 		var at := to_screen(q)
 		if view.has_point(at):
@@ -1019,10 +1014,11 @@ func _paint() -> void:
 		if view.has_point(at):
 			var small: bool = i < story_small.size() and story_small[i] == 1
 			hud.story_badge(at, 1.4 if small else 2.3, story_colours[i] if i < story_colours.size() else Color.WHITE)
-	if garage != Vector2.INF and not focus:
-		var g := to_screen(garage)
+	var service := markers.shown(MapMarkers.Layer.SERVICE, MapMarkers.View.FULL_MAP, ctx)
+	for i in (service["at"] as PackedVector2Array).size():
+		var g := to_screen((service["at"] as PackedVector2Array)[i])
 		if view.has_point(g):
-			hud._tri_diamond(g, 6.5 * pt, garage_colour)
+			hud._tri_diamond(g, 6.5 * pt, (service["colour"] as PackedColorArray)[i])
 	# Loop 3h slice 3's diamond at the final's start is the main line's star now.
 	if target != Vector2.INF:
 		# F 2026-11-08: the quest taken, strongly: a dotted line from the car, the glowing pin; off

@@ -4580,6 +4580,15 @@ const FKL_AT := [Vector2(-2735.0, -713.0), Vector2(-2718.0, -700.0), Vector2(-27
 const FKL_WALL := Color("#ece9e2")      ## white plaster (the shrine's, photos)
 const FKL_ROOF := Color("#606366")      ## grey sheet roofs (the church's, photos)
 
+## The two houses of the Sisters of Charity's grounds north of their convent on Tamka, by Zaułek Ku
+## Szarytkom (OSM 2380, the tall one with a steep gable roof, and 2379, the low one east of it;
+## unnamed `religious` buildings). No photo shows them: the street photos near them look along Tamka,
+## and the convent's Commons photos (refs/churches/szarytki_tamka, reference only, never shipped)
+## show the ranges round the courtyard. Provisional: the mass stays GUGiK's LoD2 in the convent's
+## white plaster and green copper (`szarytki`'s skin), until a photo of them turns up. Spec
+## docs/landmarks/specs/szarytki_zaulek.md.
+const SZZ_AT := [Vector2(66.0, -262.0), Vector2(100.0, -278.0)]  ## one point inside each outline
+
 
 ## The presbytery of St Florian's cathedral (Plebania katedry św. Floriana, Floriańska, Praga):
 ## an L of two plastered houses behind the cathedral. The range on Floriańska, three tall storeys

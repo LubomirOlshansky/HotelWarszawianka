@@ -100,7 +100,7 @@ const BUDGET := {
 	"sad_najwyzszy": 8000,
 	"ostrogski": 870,
 	"brama_uw": 4000,  # 2026-11-15: rebuilt from F's photos, banded pilasters, iron gates, lamps, flags
-	"uruski": 4000,  # 2026-11-15: Pałac Uruskich's street front from F's photos
+	"uruski": 5000,  # 2026-11-15: Pałac Uruskich's street front and the risalit over the gate, from F's photos (4342 built)
 	"stara_buw": 5000,  # 2026-11-15: the Old Library's front and flanks from F's photos
 	"uw_skarpa": 7000,  # 2026-11-15: the escarpment's brick wall, piers, graffiti, railing
 	"uw_straz": 900,  # 2026-11-15: the guards' kiosk

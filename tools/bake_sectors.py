@@ -261,6 +261,7 @@ SITE_AREAS = [
     (-222, -545, -175, -496),   # church_sluzki_dom_generalny
     (-2820, -712, -2762, -673),   # church_siostry_milosierdzia_zytnia
     (-2781, -728, -2700, -643),   # faustyna_klasztor
+    (53, -294, 115, -243),   # szarytki_zaulek
     (519, -1995, 559, -1936),   # church_plebania_florian
     (527, -1822, 579, -1775),   # church_klopotowskiego_18
     (2011, -1375, 2056, -1345),   # church_zwycieska_klasztor

@@ -3876,6 +3876,8 @@ func _build_old_tram(world: Node3D) -> void:
 
 ## The guards' cart on the campus's ring (campus_cart.gd); its lines in the crowds' log (--night-log).
 func _build_campus_cart(world: Node3D) -> void:
+	if flags.solo_site != "":
+		return  # a landmark alone (--solo): no cart driving through its turntable
 	campus_cart = CampusCart.new()
 	campus_cart.name = "CampusCart"
 	campus_cart.map = map

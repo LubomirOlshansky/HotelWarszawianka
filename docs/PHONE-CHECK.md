@@ -27,6 +27,7 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | 3a | Launch twice (cold after an install, then warm) and time from the tap to the city | the city comes up no more than about half a second later than in build 10, behind the title (the landmark code is now 17 files in one chain; its cold load in the cloud's debug engine went from 1.9 s to 2.35 s) | TD-10, the landmarks split |
 | 3b | Drive a little, swipe home, then close the game from the app switcher and launch it again | the car is where you left it and the money as it was; no "ZAPIS NIEUDANY / SAVE FAILED" note at any time (it shows only when a write fails) | saves when the app leaves |
 | 3c | During a tour (or a race or a job) press the pad's A and open the HELI list; then open a rescue call card and leave it | A during the run brings no rescue card and the list has no rescue rows; the unanswered rescue card goes after 12 s: is that long enough to read it while driving | one activity at a time |
+| 3d | In free drive look at the minimap near a kebab stand and Warsztat u Mirka (Brzeska), then open the full map and zoom in; take a kebab job and look again; at night start a Leżak round-up and watch its violet pins; then fly the helicopter and open the map | the stands' icons, the garage diamond and the gold "?" marks show in free drive and hide while the job runs, as in build 11; the round-up's pins and depot show during its run and the stands come back after it; the full map shows the same icons as the minimap (it now reads one shared list); the arrow and the main star unchanged | TD-13 step 1, map markers |
 
 ## 2. Driving feel: Settings → Świat (6 min)
 
@@ -43,6 +44,7 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | --- | --- | --- | --- |
 | 8 | A ladder race by day | rivals' lamps by day; a stutter at the start (the route plan) or on the worst frame | racer 6b, #748 |
 | 9 | A street race at night | does it feel like a race; rivals taking yards and back ways | #744, the race links |
+| 10a | Stand by a big junction with turn lanes (Marszałkowska × Aleje Jerozolimskie, Grójecka, Wybrzeże Gdańskie) and watch the town's cars, then drive a street race through one | cars going straight on stay in their lane across the junction instead of drifting into the next one; cars in a left-turn lane turn left; two lanes turning together land side by side; the rivals still take their corners as before (the race planner reads the same links; the racer bench is re-run on the Mac before the build) | RT-2 lane links |
 | 10 | Get chased and try to shake them off | the chasers' driving; with fences on, whether cutting through a fence ends the chase at once | the chasers' line driver, #776 |
 
 ## 4. Places (4 min)

@@ -178,6 +178,9 @@ const RACE_TURN_RADIUS := RaceLine.TURN_RADIUS
 ## road's other side, with no corner speed to overcook.
 const RACE_HAIRPIN := RaceLine.HAIRPIN
 const UTURN_SPEED := RaceLine.UTURN_SPEED
+## RT-2: a town car's liking for an exit its lane's turn:lanes arrows do not allow (a little, so a
+## street whose only exit is off the arrows is still driven, not turned back on).
+const LANE_ARROW_OFF := 0.02
 const RACE_RED_SLOW := 0.75
 const RACE_RED_LOOK := 30.0
 const RACE_LOOK := 30.0
@@ -2349,6 +2352,10 @@ func _choose_way(d: Driver) -> void:
 					w *= 0.05
 				if absf(here.angle_to(graph.direction(f, graph.e_s0[f]))) < 0.5:
 					w *= 1.6
+				# RT-2: a lane's turn:lanes arrows (lane_graph.gd lane_allows): a car in a left-turn
+				# lane turns left, unless nothing else is open.
+				if not graph.lane_allows(e, d.lane, f):
+					w *= LANE_ARROW_OFF
 			weights.append(w)
 			total += w
 		if total > 0.0:
