@@ -9803,6 +9803,9 @@ func _skin_run(skin: Dictionary, pos: PackedVector3Array, nrm: PackedVector3Arra
 	# `upper`: walls higher than `over` m above the building's foot in another colour (a brick tower
 	# over a plastered church, the Jesuits on Świętojańska).
 	var upper: Dictionary = skin.get("upper", {})
+	# `keep`: a plan polygon whose roof faces keep LoD2's own colour and look (Politechnika's
+	# main hall: its glass roof under the skin's zinc).
+	var keep: PackedVector2Array = skin.get("keep", PackedVector2Array())
 	var foot := INF
 	if not upper.is_empty():
 		for t in range(t0, t1):
@@ -9810,6 +9813,9 @@ func _skin_run(skin: Dictionary, pos: PackedVector3Array, nrm: PackedVector3Arra
 	for t in range(t0, t1, 3):
 		var c: Color = skin["wall"]
 		var n := nrm[t]
+		if n.y >= steep and not keep.is_empty() and Geometry2D.is_point_in_polygon(
+				Vector2(pos[t].x + pos[t + 1].x + pos[t + 2].x, pos[t].z + pos[t + 1].z + pos[t + 2].z) / 3.0, keep):
+			continue
 		if n.y >= steep:
 			c = skin["roof"]
 		elif not upper.is_empty() and (pos[t].y + pos[t + 1].y + pos[t + 2].y) / 3.0 > foot + float(upper["over"]):
