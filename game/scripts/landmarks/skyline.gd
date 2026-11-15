@@ -625,6 +625,7 @@ func _build_tower(site: Dictionary) -> void:
 		var mh := float(b["mh"])
 		if spec["key"] == "blekitny" and str(b.get("c", "")) == "darkslategray":
 			blek_vault.append(poly)  # the glass barrel-vaulted hall, built whole (_blekitny_vault)
+			_collide(poly)  # the strips stand on the ground: they stop cars as before
 			continue
 		if spec["key"] == "zlota44" and h > 40.0 or spec["key"] == "spire" and h > 100.0:
 			continue
