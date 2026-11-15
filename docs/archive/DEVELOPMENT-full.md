@@ -5833,7 +5833,7 @@ flag. How the work is run: `docs/WORKFLOW.md`, `CLAUDE.md`.
 
 Screenshots for review: `godot --path game -- --style=0 --size=380 --at=-110,-85 --shots=40 --out=$PWD/shots`.
 
-Command-line options (after `--`). They are parsed in `game/scripts/dev_flags.gd` (TD-4 a, 2026-11-14); main.gd reads each value as `flags.NAME`, and release builds read none (`release.gd`):
+Command-line options (after `--`). They are parsed in `game/scripts/dev_flags.gd` (TD-4 a, 2026-11-14); main.gd reads each value as `flags.NAME`, and release builds read none (`release.gd`). The test runs' own functions are in `game/scripts/dev_harness.gd` (TD-4 a2), loaded only when one of their flags is on (`flags.wants_harness()`; a new test flag whose run calls the harness goes in that list):
 
 | Option | Effect |
 | --- | --- |
