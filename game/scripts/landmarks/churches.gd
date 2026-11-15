@@ -4760,6 +4760,69 @@ func _build_zytnia_dom_zakonny_tyl(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## The small octagonal chapel at the north-west corner of St Florian's cathedral close, by the
+## fence on Floriańska (unnamed `chapel`, OSM building 6848, Praga): red brick walls about 3.6 m
+## high under a brick cornice, and a dark slate bell roof that flares at the eaves, with a small
+## finial. A model that replaces the plain OpenStreetMap block (no landmark until 2026-11-15).
+## From eight Mapillary photos on Floriańska (2018-2020, refs/churches/kaplica_florianska,
+## reference only, never shipped): five show it beside the cathedral's front, behind the brick
+## fence with its niched posts. GUGiK has no LoD2 for it. The door and the side away from the
+## street are defaults (docs/QUESTIONS.md). Spec docs/landmarks/specs/kaplica_florianska.md.
+const KFL_BRICK := Color("#9b4535")     ## the red brick (photos, like the cathedral's)
+const KFL_DARK := Color("#7e3528")      ## the cornice's darker brick
+const KFL_SLATE := Color("#3b3d42")     ## the dark slate bell roof (photos)
+const KFL_DOOR := Color("#3a2a22")
+
+
+## `ring` grown or shrunk by `s` about its centre.
+func _kfl_scaled(ring: PackedVector2Array, s: float) -> PackedVector2Array:
+	var c := _centre(ring)
+	var out := PackedVector2Array()
+	for p in ring:
+		out.append(c + (p - c) * s)
+	return out
+
+
+func _build_kaplica_florianska(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	_o = _centre(outline)
+	_a = Vector2(1.0, 0.0)
+	_b = Vector2(0.0, 1.0)
+	_g = _ground_under(outline)
+	var g := _g
+	_mode = M_STONE
+	var eave := g + 3.6
+	_prism(outline, g - 0.8, eave, KFL_BRICK, Color(0, 0, 0, 0), M_STONE)
+	# the plinth and the cornice: two darker brick rings
+	kit_ledge_ring(outline, g - 0.8, 1.2, KFL_DARK, 0.06)
+	kit_ledge_ring(outline, eave - 0.45, 0.45, KFL_DARK, 0.14)
+	# the bell roof: flared at the eaves, swelling, then drawn in to the finial
+	var r0 := _kfl_scaled(outline, 1.12)
+	var r1 := _kfl_scaled(outline, 1.0)
+	var r2 := _kfl_scaled(outline, 0.78)
+	var r3 := _kfl_scaled(outline, 0.42)
+	_frustum(r0, eave, r1, eave + 0.7, KFL_SLATE)
+	_frustum(r1, eave + 0.7, r2, eave + 2.0, KFL_SLATE.lightened(0.04))
+	_frustum(r2, eave + 2.0, r3, eave + 3.0, KFL_SLATE)
+	_pyramid(r3, eave + 3.0, eave + 3.6, KFL_SLATE.lightened(0.04))
+	# the finial: a slim shaft with a small ball
+	var c := _centre(outline)
+	_prism(_circle(c, 0.07, 4), eave + 3.5, eave + 4.4, KFL_SLATE, KFL_SLATE, M_STONE, M_STONE)
+	_frustum(_circle(c, 0.12, 6), eave + 4.1, _circle(c, 0.2, 6), eave + 4.25, KFL_SLATE.lightened(0.1), KFL_SLATE.lightened(0.1))
+	# a door on the side towards the cathedral (east), a default: no photo shows it
+	var n := outline.size()
+	var best := 0
+	for k in n:
+		if _out(outline, outline[k], outline[(k + 1) % n]).dot(Vector2(1.0, 0.0)) > _out(outline, outline[best], outline[(best + 1) % n]).dot(Vector2(1.0, 0.0)):
+			best = k
+	var le := kit_front(outline[(best + 1) % n], outline[best])
+	kit_door(le * 0.5, g, 2.3, 0.55, KFL_DARK, KFL_DOOR, true)
+	_o = c
+	_a = Vector2(1.0, 0.0)
+	_b = Vector2(0.0, 1.0)
+	_collide(outline)
+
+
 func _build_zwycieska_klasztor(site: Dictionary) -> void:
 	var outline: PackedVector2Array = site["outline"]
 	kit_front(ZWK_O, ZWK_O + ZWK_A)
@@ -7359,6 +7422,8 @@ const CHURCHES := [
 			"fill": 0.9, "style": "neoclassical", "wall": "#e9d8b2", "roof": "#55585c", "towers": 0, "cap": "none"},
 	{"key": "church_zytnia_dom_zakonny_tyl", "at": Vector2(-2650.0, -705.0), "o": Vector2(-2679.6, -701.0), "out": Vector2(-0.308, -0.951), "L": 66.2, "W": 8.5,
 			"fill": 0.9, "style": "neoclassical", "wall": "#e9d8b2", "roof": "#55585c", "towers": 0, "cap": "none"},
+	{"key": "church_kaplica_florianska", "at": Vector2(459.3, -1999.7), "o": Vector2(459.3, -1999.7), "out": Vector2(-1.0, 0.0), "L": 6.2, "W": 6.3,
+			"fill": 0.9, "style": "neogothic", "wall": "#9b4535", "roof": "#3b3d42", "towers": 0, "cap": "none"},
 	{"key": "church_sluzki_dom_generalny", "at": Vector2(-203.0, -515.0), "o": Vector2(-206.4, -500.9), "out": Vector2(-0.917, 0.400), "L": 28.3, "W": 29.6,
 			"fill": 0.9, "style": "neoclassical", "wall": "#e3c48e", "roof": "#6b6c6c", "towers": 0, "cap": "none"},
 	{"key": "church_uczennice_boskiego_mistrza", "at": Vector2(-2890.0, -650.0), "o": Vector2(-2919.2, -669.7), "out": Vector2(-0.231, -0.973), "L": 37.5, "W": 41.5,
@@ -7486,6 +7551,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_zytnia_dom_zakonny_tyl":
 		_build_zytnia_dom_zakonny_tyl(site)  # the range behind the convent on Żytnia, from LoD2 (provisional)
+		return
+	if site["key"] == "church_kaplica_florianska":
+		_build_kaplica_florianska(site)  # the octagonal brick chapel with its slate bell roof, from photos
 		return
 	if site["key"] == "church_sluzki_dom_generalny":
 		_build_sluzki_dom_generalny(site)  # the Servants of Jesus' generalate, from photos and LoD2
