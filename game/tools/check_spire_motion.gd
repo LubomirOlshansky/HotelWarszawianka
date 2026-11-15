@@ -114,5 +114,7 @@ func _init() -> void:
 	sp.build()
 	_expect(sp.ticker != null and sp.ticker.mesh.surface_get_array_len(0) == full_len,
 			"the prebuilt path (outline only in index_data) lacks the lights mesh")
+	sp.free()
+	pre.free()
 	print("spire_motion: %s (ticker %.1f m, %d jets)" % ["OK" if _problems == 0 else "FAIL", length, jets])
 	quit(1 if _problems > 0 else 0)
