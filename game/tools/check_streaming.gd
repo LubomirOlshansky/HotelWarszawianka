@@ -28,11 +28,14 @@ extends SceneTree
 ##     distance from the view's centre and the most of the view's ground they covered.
 ## Needs a renderer (the pixels, and the meshes' data): a window opens.
 ##   godot --path game --resolution 1280x720 --script res://tools/check_streaming.gd
-##       [-- --only=identity,pixels,soak,pass --passes=heli,car,... --soak=MINUTES --keep=DIR --size=WxH]
+##       [-- --only=identity,pixels,soak,pass --passes=heli,car,... --soak=MINUTES --keep=DIR --size=WxH
+##       --barriers=classic|typed (W2: the whole city, the sectors and the game runs in that look; bake
+##       the prebuilt city in it first)]
 ## Prints `check_streaming: OK` (exit 0) or the problems (exit 1). --soak=15 is the 15-minute
 ## run (docs/DEVELOPMENT.md "Sectors and streaming"); tools/verify.sh runs 3 minutes.
 
 const MapBuilder := preload("res://scripts/map_builder.gd")
+const Solidity := preload("res://scripts/solidity.gd")
 ## x, z, heading (degrees: the camera looks that way): the spawn, then sector borders.
 const SPOTS := [
 	[-911.6, 278.6, 0.0],     # the spawn (Plac Defilad), inside sector -2,0
@@ -73,6 +76,8 @@ var size := Vector2i(2868, 1320)
 
 
 func _initialize() -> void:
+	# W2 of the walls look: --barriers=classic|typed builds the city in that look (the palette's by default).
+	Solidity.barrier_look_from(OS.get_cmdline_user_args())
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--only="):
 			only = a.trim_prefix("--only=").split(",")
@@ -243,6 +248,7 @@ func _pixels() -> void:
 				"--nosave", "--notitle", "--no-traffic", "--free", "--time=day", "--weather=clear", "--governor=off", "--no-input", "--nohud",
 				"--spots=" + "/".join(spots), "--shots=" + ",".join(frames), "--out=" + out_dir]
 		args.append_array(runs[name])
+		args.append("--barriers=%s" % Solidity.barrier_look())  # W2: the runs in the check's look
 		var output := []
 		var t := Time.get_ticks_msec()
 		var code := OS.execute(OS.get_executable_path(), args, output, true)
@@ -369,6 +375,7 @@ func _run_stream(name: String, flags: Array, frames: int) -> String:
 			"--resolution", "1280x720", "--fixed-fps", "60", "--quit-after", str(frames), "--",
 			"--nosave", "--notitle", "--prebuilt"]
 	args.append_array(flags)
+	args.append("--barriers=%s" % Solidity.barrier_look())  # W2: the look the sectors were baked in
 	var output := []
 	_run_t = Time.get_ticks_msec()
 	_run_code = OS.execute(OS.get_executable_path(), args, output, true)

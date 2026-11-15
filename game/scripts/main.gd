@@ -7175,6 +7175,7 @@ func _open_streamed_city(world: Node3D, flat_mat: ShaderMaterial) -> Dictionary:
 	add_child(streamer)
 	streamer.sector_ready.connect(_on_sector_ready)
 	var use_prebuilt := (flags.prebuilt or not OS.has_feature("editor")) and flags.solo_site == ""
+	flags.note_barrier_look(use_prebuilt)  # W2: the prebuilt city's barriers are the look it was baked in
 	var data := streamer.open(world, use_prebuilt, building_mat, flat_mat, start_at)
 	map = streamer.map
 	building_mat = map.building_material
