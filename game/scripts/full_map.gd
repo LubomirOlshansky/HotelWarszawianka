@@ -35,6 +35,9 @@ signal quest_picked(entry: Dictionary)
 signal quit_quest
 ## The hold's spot (map metres), when the hold was held to the end.
 signal teleport(at: Vector2)
+## First hour step 5 (The Six): a rival's row on the RYWALE card was tapped (its ladder.gd rung):
+## main.gd calls that rival out (rivals.gd `call_out`) and the map closes.
+signal rival_called(rung: int)
 
 const Lang := preload("res://scripts/lang.gd")
 const MapArt := preload("res://scripts/map_art.gd")
@@ -209,7 +212,7 @@ const ROW_H := 44.0
 const TAB_H := 44.0
 const QUEST_W := 236.0
 ## Its rows' colours: beaten, next, locked.
-const LADDER_COLOURS := {"won": Color("#ffd23f"), "next": Color("#fbf7ee"), "locked": Color("#8f88a0")}
+const LADDER_COLOURS := {"won": Color("#ffd23f"), "next": Color("#fbf7ee"), "open": Color("#fbf7ee"), "locked": Color("#8f88a0")}
 
 
 func _ready() -> void:
@@ -592,18 +595,36 @@ func set_main_line(at: Vector2, pl: String, en: String) -> void:
 	_fit()
 
 
-## Loop 3h slice 3: the rival ladder's card (ladder.gd `rows`: [text, "won" | "next" | "locked"]);
-## call after open(). Labels only: the game is paused under the map.
-func set_ladder(rows: Array) -> void:
+## Loop 3h slice 3: the rival ladder's card (ladder.gd `rows`: [text, "won" | "next" | "open" |
+## "locked"]); call after open(). `title` [pl, en] (ladder.gd `title`; empty: DRABINKA).
+## The Six (first hour step 5): a rival's row that is "open" or "won" is a button ("› ": tap it to
+## call that rival out, `rival_called`), the rest are labels. The game is paused under the map.
+func set_ladder(rows: Array, title: Array = []) -> void:
 	if not _built:
 		return
 	var box: VBoxContainer = _ladder.get_child(0)
 	for c in box.get_children():
 		box.remove_child(c)
 		c.queue_free()
-	var lines: Array = [[Lang.pick("DRABINKA", "RIVAL LADDER"), ""]]
+	var head := Lang.pick(str(title[0]), str(title[1])) if title.size() == 2 else Lang.pick("DRABINKA", "RIVAL LADDER")
+	var lines: Array = [[head, ""]]
 	lines.append_array(rows)
 	for i in lines.size():
+		var rung := i - 1
+		if rung >= 0 and rung < 6 and str(lines[i][1]) in ["open", "won"]:
+			var b := Button.new()
+			b.name = "rival_%d" % rung
+			b.focus_mode = Control.FOCUS_NONE
+			b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+			b.flat = true
+			b.text = "%s ›" % str(lines[i][0])
+			b.add_theme_font_size_override("font_size", _px(T_SUB))
+			var c: Color = LADDER_COLOURS.get(str(lines[i][1]), Color.WHITE)
+			for k in ["font_color", "font_hover_color", "font_pressed_color"]:
+				b.add_theme_color_override(k, c)
+			b.pressed.connect(_rival_tapped.bind(rung))
+			box.add_child(b)
+			continue
 		var l := Label.new()
 		l.text = str(lines[i][0])
 		l.add_theme_font_size_override("font_size", _px(T_TITLE if i == 0 else T_SUB))
@@ -613,6 +634,12 @@ func set_ladder(rows: Array) -> void:
 	_has_ladder = not rows.is_empty()
 	_ladder.visible = _has_ladder and cards_shown
 	_fit()
+
+
+func _rival_tapped(rung: int) -> void:
+	print("full map: rival %d called out" % rung)
+	rival_called.emit(rung)
+	close()
 
 
 ## Loop 3h slice 1: the districts to show (districts.gd `view()`) and the total per cent; call
