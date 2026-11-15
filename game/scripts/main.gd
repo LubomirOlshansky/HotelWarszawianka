@@ -1676,8 +1676,13 @@ func _build_world() -> void:
 	activities.finished = hud.messages.finished
 	_build_rave(data, world)
 	await LoadYield.tick("_build_rave")
-	_build_meet(data, world)
-	await LoadYield.tick("_build_meet")
+	# Darek's calls, the meets, the raids and the drag (street_meet.gd wires itself); none with
+	# --no-traffic or --meet=0. START DRAG and the test jumps put the car with main.gd's own hook
+	# (`_place_car` also cuts the camera), set after the join.
+	meet = _join(StreetMeet.new(), world) as StreetMeet
+	if meet != null:
+		meet.place_car = _place_car
+	await LoadYield.tick("meet")
 	_build_boat_race(world)
 	await LoadYield.tick("_build_boat_race")
 	_build_tours(world)
@@ -3671,41 +3676,6 @@ func _free_block(ringing_ok := false, guide_ok := false) -> String:
 
 # --- the night racing club -------------------------------------------------------------------
 
-## Darek's calls, the meets, the raids and the drag (street_meet.gd). None with --no-traffic or --meet=0.
-func _build_meet(data: Dictionary, world: Node3D) -> void:
-	if traffic == null or graph == null or flags.meet_flag == "0":
-		return
-	meet = StreetMeet.new()
-	meet.name = "StreetMeet"
-	meet.hud = hud
-	meet.dialogue = dialogue
-	meet.wallet = wallet
-	meet.map = map
-	meet.graph = graph
-	meet.traffic = traffic
-	meet.police = police
-	meet.car = car
-	meet.flat_mat = _ground_mat
-	meet.origin = data.get("origin", [52.234, 21.024])
-	meet.log_on = flags.meet_log
-	meet.auto = flags._meet_auto
-	meet.force = flags.meet_flag == "on"
-	meet.vehicle = func() -> Array:
-		if flying:
-			return [heli.global_position, heli.speed() * 3.6, true]
-		return [car.global_position, car.vel.length() * 3.6, false]
-	meet.calendar = tod.local_clock
-	meet.place_car = _place_car
-	world.add_child(meet)
-	meet.setup(world)
-	# `meet.autopilot` stays off: a test run does not answer Darek or the result card (it never did).
-	activities.add(meet)  # the director says when Darek may ring (nothing else on: world_free)
-	if flags.meet_flag == "call":
-		get_tree().create_timer(1.0).timeout.connect(func() -> void: meet.ring())
-	if flags.meet_at != "":
-		get_tree().create_timer(1.0).timeout.connect(func() -> void: meet.jump(flags.meet_at))
-
-
 ## Puts the car at `at` heading `yaw` at once (the meet's START DRAG), the camera cut with it.
 func _place_car(at: Vector3, yaw: float) -> void:
 	car.global_position = at + Vector3(0, 0.05, 0)
@@ -3731,8 +3701,11 @@ func _build_ctx() -> GameCtx:
 	_ctx.radio = radio
 	_ctx.graph = graph
 	_ctx.traffic = traffic
+	_ctx.police = police
 	_ctx.car = car
 	_ctx.heli = heli
+	_ctx.tod = tod
+	_ctx.ground_mat = _ground_mat
 	_ctx.vehicle = func() -> Array:
 		if flying:
 			return [heli.global_position, heli.speed() * 3.6, true, 0.0]
