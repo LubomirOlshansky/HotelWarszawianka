@@ -142,7 +142,7 @@ const BUDGET := {
 	"syrenka_powisle": 260,
 	"dworzec_wodny": 310,
 	"kaskada": 260,
-	"dtc": 1950,
+	"dtc": 2250,
 	"europejski": 8000,
 	"flaga": 170,
 	"forest": 4900,
