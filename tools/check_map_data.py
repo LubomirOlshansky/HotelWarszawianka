@@ -88,7 +88,12 @@ MAP = os.path.join(ROOT, "game", "map")
 # more moved out of the walls). Before: 269946 / 44991.
 # Marszałkowska by Sienkiewicza (F, 2026-11-09, road design area marsz_sienkiewicza): 44,872 trees (+10
 # young columnar elms on the west green strip between the tram and the southbound lanes). Before: 269172 / 44862.
-EXPECTED = {"trees3d": 269232, "pois": 4572, "trees3d_crown": 44872}
+# Parked cars (the city objects plan, step 8b, 2026-11-15, tools/parked_thin.py): counted from here on,
+# 4 values a car (x, z, yaw, paint). 4,821 cars: of main's 4,893, 49 taken out of the pinched rows
+# (every other car where the lane's free width is under 3.6 m) and 23 by a junction's mouth (within
+# 15 m of a junction node, the box within 1 m of a lane's edge); 25 bays that reached into a lane
+# moved 0.2-0.3 m out of it. Before: 19572.
+EXPECTED = {"trees3d": 269232, "pois": 4572, "trees3d_crown": 44872, "parked": 19284}
 # City objects plan step 5 (2026-11-14, tools/object_types.py): the share of fence metres whose type
 # is only the default (`tc: default`) may only go down. The pass run on this map without OSM context
 # (map evidence only, cloud 2026-11-14): 31.4 % of 188.2 km; walls 46.8 %, hedges 32.4 %; class km
@@ -126,7 +131,7 @@ def main() -> int:
         if key in expected and value.isdigit():
             expected[key] = int(value)
         else:
-            print(f"unknown argument {arg!r}; use --trees3d=N, --pois=N or --trees3d_crown=N")
+            print(f"unknown argument {arg!r}; use --trees3d=N, --pois=N, --trees3d_crown=N or --parked=N")
             return 2
     failures = 0
 
@@ -306,7 +311,7 @@ def sectors(data, expected, report):
         report("FAIL", "index.json", "no sector grid (run python3 -I tools/bake_sectors.py)")
         return
     size = float(index["sectors"].get("size", 512.0))
-    trees, crowns = 0, 0
+    trees, crowns, parked = 0, 0, 0
     files, missing = 0, []
     for k in keys:
         s = read_json(os.path.join(MAP, "sectors", "%d_%d.json" % k))
@@ -320,6 +325,10 @@ def sectors(data, expected, report):
             if (math.floor(real[i] / size), math.floor(real[i + 1] / size)) == k:
                 trees += 1
                 crowns += 1 if i // 6 < len(crown) else 0
+        cars = s.get("parked", [])
+        for i in range(0, len(cars) - 3, 4):
+            if (math.floor(cars[i] / size), math.floor(cars[i + 1] / size)) == k:
+                parked += 1
     if missing:
         report("WARN", "sectors", "missing: %d sector files (%s): %s" % (len(missing), ", ".join(missing[:4]), SETUP))
         return
@@ -327,6 +336,8 @@ def sectors(data, expected, report):
            f"{trees * 6} values over {files} sectors (expected {expected['trees3d']})")
     report("OK" if crowns == expected["trees3d_crown"] else "FAIL", "sectors trees3d_crown",
            f"{crowns} over the sectors (expected {expected['trees3d_crown']})")
+    report("OK" if parked * 4 == expected["parked"] else "FAIL", "sectors parked",
+           f"{parked * 4} values over the sectors (expected {expected['parked']})")
     pois = len(index.get("pois", []))
     report("OK" if pois == expected["pois"] else "FAIL", "index pois", f"{pois} (expected {expected['pois']})")
     report("OK" if index.get("graph", {}).get("edges") and index.get("palm") else "FAIL", "index graph, palm",
