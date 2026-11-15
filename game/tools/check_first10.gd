@@ -548,6 +548,8 @@ func _friends() -> void:
 	_expect(not First10.friends_held(0, First10.FRIENDS_AFTER, -1.0), "FRIENDS_AFTER s with no steps: they may call")
 	_expect(First10.friends_held(steps, 400.0, 400.0 - First10.NEW_FRIEND_GAP + 1.0), "a new friend rang lately: the next waits")
 	_expect(not First10.friends_held(steps, 400.0, 400.0 - First10.NEW_FRIEND_GAP), "NEW_FRIEND_GAP s after a new friend: the next may ring")
+	_expect(First10.friends_held(steps, 400.0, -1.0, true), "an intro waits for its turn: it goes before a friend's call")
+	_expect(First10.FRIENDS_YIELD < First10.NEXT_GAP, "a call yields before the intro is due (%.0f < %.0f s)" % [First10.FRIENDS_YIELD, First10.NEXT_GAP])
 	_expect(steps == FirstSteps.NOTICED_AT, "the friends open at the third step, the reward's party (%d, %d)" % [steps, FirstSteps.NOTICED_AT])
 	_summary.append("friends after %d steps or %.0f s, one new every %.0f s" % [steps, First10.FRIENDS_AFTER, First10.NEW_FRIEND_GAP])
 

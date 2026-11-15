@@ -105,6 +105,9 @@ static var NEXT_GAP: float = Pacer.num("first_steps", "next_gap")
 static var FRIENDS_STEPS: float = Pacer.num("first_steps", "friends_steps")
 static var FRIENDS_AFTER: float = Pacer.num("first_steps", "friends_after")
 static var NEW_FRIEND_GAP: float = Pacer.num("first_steps", "new_friend_gap")
+## A friend's call yields to the guide's next intro once the player has been free this long (the
+## intro itself comes at NEXT_GAP s).
+const FRIENDS_YIELD := 20.0
 ## "What next?": the gold arrow to the nearest step left after this much free driving, for so long.
 const WHAT_NEXT := 90.0
 const WHAT_NEXT_SHOW := 25.0
@@ -243,6 +246,8 @@ var _all_up := false
 ## The friends' calls: the friends heard this session, and when the last new one rang (-1: none).
 var _friends := {}
 var _friend_t := -1.0
+## An intro waits and the player has been free FRIENDS_YIELD s: it goes before a friend's call.
+var _intro_next := false
 ## "What next?": free seconds counted, and the arrow is the one it showed.
 var _next_free := 0.0
 var _what_next := false
@@ -415,9 +420,13 @@ static func judge(done: Dictionary, ways: Dictionary) -> Array[String]:
 
 
 ## The friends' calls wait (`friends_wait`): `steps` ticked, `now` s of play, the last new friend's
-## call at `friend_t` (-1: none yet).
-static func friends_held(steps: int, now: float, friend_t: float) -> bool:
+## call at `friend_t` (-1: none yet); `intro_next`: one of the guide's intros waits and the player has
+## been free FRIENDS_YIELD s, so it goes first (one thing at a time: the replay of 2026-11-15 took
+## Szymek's boat race between two intros and Mirek's garage never came in its window).
+static func friends_held(steps: int, now: float, friend_t: float, intro_next := false) -> bool:
 	if steps < int(FRIENDS_STEPS) and now < FRIENDS_AFTER:
+		return true
+	if intro_next:
 		return true
 	return friend_t >= 0.0 and now - friend_t < NEW_FRIEND_GAP
 
@@ -521,10 +530,11 @@ func steps_done() -> int:
 
 
 ## The friends' calls wait now (main.gd `_free_block`, `_ev_free`): while the guide runs, until
-## FRIENDS_STEPS steps or FRIENDS_AFTER s, then NEW_FRIEND_GAP s after each new friend's first call.
+## FRIENDS_STEPS steps or FRIENDS_AFTER s, then while an intro waits for its turn (`_intro_next`) and
+## NEW_FRIEND_GAP s after each new friend's first call.
 ## Before step 3 the whole guide held them (it ran about ten minutes).
 func friends_wait() -> bool:
-	return guide_on() and friends_held(steps_done(), t, _friend_t)
+	return guide_on() and friends_held(steps_done(), t, _friend_t, _intro_next)
 
 
 ## An activity of the kit's phone rang (main.gd, the director's `rang`): `tag` names it. A friend
@@ -553,6 +563,8 @@ func tick() -> void:
 			_fire(id)
 		_follow_up(f)
 	_hold_offers(guide and not due(t, f, fired).is_empty())
+	_intro_next = guide and fired.has("choice") and not fired.has("done") and _free_for >= FRIENDS_YIELD \
+			and waiting_intro(f, fired) != ""
 	if _choice_up and t - _choice_t > CHOICE_LIFE:
 		_pick(CHOICE_PICKS.size() - 1, "unanswered")
 	if hint_shown() and (t > hint_until or _hint_met(f)):
