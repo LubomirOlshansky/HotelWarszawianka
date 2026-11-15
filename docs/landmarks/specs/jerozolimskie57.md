@@ -36,10 +36,10 @@ a guess inside outline 848 (OSM has one outline for both). Unverified.
   an arched gate at u 42.4 with an iron balcony and a tall door over it, cornice and parapet, the white wrap
   (a thin screen 10.4 m high set back 3 m, seams every 7 m).
 - **Arched**: seven wide axes, brown-framed tall windows, arched on the second floor, stone balconies on the
-  first, an arched gate on the middle axis, a lounge door with the sign TYTON (parody; the real shop's name
+  first, an arched gate on the middle axis, a lounge door with the sign TUTAJ (parody; invented name
   is not used).
 - **Ornate**: twelve axes, hooded first floor, pedimented second, arched third, stone balconies in two long runs, pilasters at the ends,
-  a coffee house with the sign PARZYBRODA (parody; no real chain), zinc mansard with six dormers and a raised box at the west end.
+  a coffee house with the sign PARZYBUDA (parody; no real chain), zinc mansard with six dormers and a raised box at the west end.
 - **Pavement**: two green steel arcade canopies (u 50.5 to 83.5 and 110.7 to 140.7) with lit ad showcases
   (colour panels only, no text); striped red-and-white barriers and a low scaffold at the red house.
 

@@ -3924,7 +3924,7 @@ func _jr_arched(parts: Array) -> void:
 	for i: int in [0, 1, 2, 4, 6]:
 		kit_shop_bay(axes[i], g + 0.5, g + 4.0, 1.7, trim, PAL_GLASS_DARK)
 	kit_door(axes[5], g + 0.3, 3.0, 0.8, trim, PAL_OAK)
-	_usign("TYTON", axes[5], 0.14, g + 4.1, _b, 3.4, 0.55, Color("#e8892b"))
+	_usign("TUTAJ", axes[5], 0.14, g + 4.1, _b, 3.4, 0.55, Color("#e8892b"))
 	kit_cornice(u0, u1, g + eave, trim, 0.5, 0.9)
 	kit_attic(u0, u1, g + eave, JR_WHITE, 0.8, Attic.WALL)
 
@@ -3959,7 +3959,7 @@ func _jr_ornate(parts: Array) -> void:
 	# the shops under the canopy, the coffee house's glass and sign
 	for i: int in range(1, 12, 2):
 		kit_shop_bay(axes[i], g + 0.5, g + 4.0, 2.4, trim, PAL_GLASS_DARK)
-	_usign("PARZYBRODA", (axes[3] + axes[8]) * 0.5, 0.14, g + 4.3, _b, 9.0, 0.7, Color("#d8b85a"))
+	_usign("PARZYBUDA", (axes[3] + axes[8]) * 0.5, 0.14, g + 4.3, _b, 9.0, 0.7, Color("#d8b85a"))
 	kit_cornice(u0, u1, g + eave, trim, 0.55, 1.0)
 	# the zinc mansard over the range, big dormers, the raised box at the west end
 	_mode = M_STONE
