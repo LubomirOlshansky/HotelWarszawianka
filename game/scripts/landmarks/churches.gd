@@ -4338,6 +4338,59 @@ func _build_plebania_katedra_polowa(site: Dictionary) -> void:
 	_collide(outline)
 
 
+## St Augustine's presbytery (plebania of the parish of św. Augustyna, Nowolipki, south of the
+## church): a two-storey post-war house under a flat roof with a raised middle block, its entrance
+## in a recess on the west side. A model that replaces the plain OpenStreetMap block (building
+## 1192; no landmark until 2026-11-15). The massing is GUGiK's LoD2 (over the ground: the roof
+## about 8, the middle block about 10). No street photo shows the house (none on Mapillary or
+## Panoramax within 45 m; the church's 11 Commons photos face the church), so the plaster, the
+## windows and the door are defaults until photos arrive (docs/QUESTIONS.md).
+## Spec docs/landmarks/specs/plebania_augustyn.md.
+## Frame: origin at the house's south corner, u to the north-north-east along its east side,
+## +v to the west-north-west.
+const AUP_O := Vector2(-2406.0, -1124.2)
+const AUP_A := Vector2(0.466, 0.884)
+const AUP_WALL := Color("#e3dccd")      ## light plaster (a default)
+const AUP_TRIM := Color("#cfc7b6")      ## copings, plinth (a default)
+const AUP_ROOF := Color("#77736c")      ## the flat roof's felt
+const AUP_DOOR := Color("#4a3a2c")      ## the door (a default)
+
+
+func _build_plebania_augustyn(site: Dictionary) -> void:
+	var outline: PackedVector2Array = site["outline"]
+	kit_front(AUP_O, AUP_O + AUP_A)
+	_g = _ground_under(outline)
+	var g := _g
+	_mode = M_STONE
+	var top := g + 8.0
+	_prism(outline, g - 1.0, top, AUP_WALL, AUP_ROOF, M_STONE, M_STONE)
+	kit_cornice_ring(outline, top - 0.3, AUP_TRIM, 0.4, 0.15)
+	kit_ledge_ring(outline, g - 1.0, 1.0, AUP_TRIM, 0.05)
+	# the raised middle block (LoD2: about 2 m over the roof)
+	var mid := _rect(5.0, 7.6, 5.0, 3.4)
+	_prism(mid, top, top + 2.0, AUP_WALL, AUP_ROOF.darkened(0.08), M_STONE, M_STONE)
+	kit_cornice_ring(mid, top + 1.75, AUP_TRIM, 0.25, 0.1)
+	# --- two rows of windows round every wall long enough for one
+	var n := outline.size()
+	for k in n:
+		kit_front(AUP_O, AUP_O + AUP_A)
+		var le := kit_front(outline[(k + 1) % n], outline[k])
+		if le < 3.0:
+			continue
+		var m := maxi(1, floori(le / 3.0))
+		var cs: Array = []
+		for i in m:
+			cs.append((float(i) + 0.5) * le / float(m))
+		kit_panes(cs, [g + 1.3, g + 4.6], 1.2, 1.6, PAL_GLASS_DARK, 0.05)
+	# --- the door at the back of the recess on the west side
+	kit_front(AUP_O, AUP_O + AUP_A)
+	kit_front(_w(4.5, 11.41), _w(7.36, 11.34))
+	kit_face(0.0)
+	kit_door(1.43, g, 2.4, 0.6, AUP_TRIM, AUP_DOOR)
+	kit_front(AUP_O, AUP_O + AUP_A)
+	_collide(outline)
+
+
 const SZT_WALL := Color("#e9e7e0")           ## white plaster (photos 01, 03, 11)
 const SZT_ROOF := Color("#7c9171")           ## dull green copper (photos 01, 02)
 const SZT_TURRET := Vector2(57.0, -162.0)    ## where the south range meets the west one (a default: photo 02)
@@ -6753,6 +6806,8 @@ const CHURCHES := [
 			"fill": 0.8, "style": "baroque", "wall": "#e6d4a6", "roof": "#97594a", "towers": 0, "cap": "none"},
 	{"key": "church_rodziny_maryi", "at": Vector2(-2617.0, -739.0), "o": Vector2(-2625.3, -761.4), "out": Vector2(-0.356, -0.934), "L": 13.5, "W": 49.4,
 			"fill": 0.9, "style": "neoclassical", "wall": "#e6c2a2", "roof": "#4d5257", "towers": 0, "cap": "none"},
+	{"key": "church_plebania_augustyn", "at": Vector2(-2405.0, -1115.0), "o": Vector2(-2406.0, -1124.2), "out": Vector2(0.884, -0.466), "L": 14.6, "W": 18.5,
+			"fill": 0.9, "style": "modern", "wall": "#e3dccd", "roof": "#77736c", "towers": 0, "cap": "none"},
 	{"key": "church_plebania_katedra_polowa", "at": Vector2(-1152.6, -1669.6), "o": Vector2(-1165.3, -1665.4), "out": Vector2(-0.781, -0.624), "L": 23.0, "W": 15.2,
 			"fill": 0.9, "style": "neoclassical", "wall": "#e8dcc0", "roof": "#6f8d7e", "towers": 0, "cap": "none"},
 	{"key": "church_reformaci_klasztor", "at": Vector2(-1170.0, -1001.0), "o": Vector2(-1193.3, -1001.9), "out": Vector2(-0.7464, -0.6655), "L": 36.0, "W": 36.0,
@@ -6856,6 +6911,9 @@ func _build_church(site: Dictionary) -> void:
 		return
 	if site["key"] == "church_czestochowska":
 		_build_czestochowska(site)  # the modernist A-frame church and its pylons, from photos
+		return
+	if site["key"] == "church_plebania_augustyn":
+		_build_plebania_augustyn(site)  # St Augustine's presbytery from LoD2 (defaults until photos)
 		return
 	if site["key"] == "church_plebania_katedra_polowa":
 		_build_plebania_katedra_polowa(site)  # the Field Cathedral's presbytery on Długa, from photos and LoD2
