@@ -4600,6 +4600,14 @@ const DPB_AT := Vector2(-1166.0, 740.0)      ## inside the outline
 const DPB_WALL := Color("#e6d49e")           ## pale yellow plaster (photos)
 const DPB_ROOF := Color("#6c6a66")           ## grey roof, a default
 
+## Dom przy kościele Świętej Trójcy na Solcu (Holy Trinity parish's house, Powiśle): OSM building 1000,
+## `religious`, beside Holy Trinity on Solec, Powiśle. Its mass stays the map's block in a skin in the colours of
+## Holy Trinity church on Solec (`church_trojca_praga`, SL_*): no open photo within 45 m, so it is provisional.
+## Spec docs/landmarks/specs/solec_dom.md.
+const SLD_AT := Vector2(1079.7, 297.8)
+const SLD_WALL := Color("#e2d6bc")
+const SLD_ROOF := Color("#63696e")
+
 ## Dom zakonny Księży Misjonarzy (the back wing of the Missionaries' house, Krakowskie Przedmieście): OSM building 5803,
 ## `monastery`, behind the Missionaries' house by Holy Cross, Krakowskie Przedmieście. Its mass stays the map's block in a skin in the colours of
 ## the Missionaries' house on Krakowskie Przedmieście (`church_misjonarze`, MS_*): no open photo reaches the yard behind the street wing, so it is provisional.

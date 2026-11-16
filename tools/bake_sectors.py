@@ -262,6 +262,7 @@ SITE_AREAS = [
     (-2781, -728, -2700, -643),   # faustyna_klasztor
     (53, -294, 115, -243),   # szarytki_zaulek
     (-1184, 716, -1143, 779),   # dom_parafialny_barbara
+    (1060, 282, 1097, 314),   # solec_dom
     (-531, -568, -502, -527),   # misjonarze_tyl
     (-2004, -989, -1976, -964),   # plebania_leszno
     (-2623, -776, -2586, -752),   # rodziny_maryi_pawilon
