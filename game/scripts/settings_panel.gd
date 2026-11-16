@@ -492,7 +492,7 @@ func set_tab(i: int) -> void:
 	_body.custom_minimum_size = notebook_page.custom_minimum_size if on_notes else _settings_size
 	_title.text = Lang.pick("MOJA WARSZAWA", "MY WARSAW") if on_notes else (Lang.pick("O GRZE", "ABOUT") if on_credits else (Lang.pick("PORADY", "TIPS") if on_tips else ("DEV" if on_dev else Lang.pick("USTAWIENIA", "SETTINGS"))))
 	_title.add_theme_font_size_override("font_size", _px(T_NOTES if on_notes else T_HEAD))
-	_subtitle.text = _notes_count() if on_notes else (Lang.pick("licencje i autorzy", "credits and licences") if on_credits else (Lang.pick("z ekranu ładowania", "from the loading screen") if on_tips else (Lang.pick("przełączniki testów", "test switches") if on_dev else "%s · %s" % [Lang.pick("gra wstrzymana", "game paused"), version()])))
+	_subtitle.text = _notes_count() if on_notes else (Lang.pick("licencje i autorzy", "credits and licences") if on_credits else "%s · %s" % [Lang.pick("gra wstrzymana", "game paused"), version()])
 	_subtitle_en.text = ""
 	if on_notes:
 		notebook_page.queue_redraw()
