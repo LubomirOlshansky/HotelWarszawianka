@@ -525,6 +525,9 @@ const INFO := {
 	"koszyki": ["Hala Koszyki",
 			"Ceglana hala targowa z 1909 roku. Dziś: ramen.",
 			"The brick market hall of 1909. Now: ramen."],
+	"torwar": ["Torwar",
+			"Hala przy Łazienkowskiej z lat 50.: hokej, koncerty, gale. Od ulicy biały portyk na smukłych kolumnach, po meczu zawsze korek.",
+			"The 1950s hall on Łazienkowska: hockey, concerts, galas. A white portico on slender columns faces the street, and there's a jam after every game."],
 	"rotunda_dynasy": ["Rotunda na Dynasach",
 			"Okrągły dom na miejscu dawnej panoramy na Dynasach: ceglany parter, białe ramy, szkło.",
 			"A round house where the old panorama stood on Dynasy: a brick base, white frames, glass."],
@@ -1597,6 +1600,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_browary(s)
 			"koszyki":
 				_build_koszyki(s)
+			"torwar":
+				_build_torwar(s)
 			"elektrownia":
 				_build_elektrownia(s)
 			"rotunda_dynasy":

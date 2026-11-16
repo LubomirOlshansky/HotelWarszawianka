@@ -109,6 +109,14 @@ func _find_works() -> void:
 		_add_site("koszyki", [kosz])
 		if sites[-1]["key"] == "koszyki":
 			sites[-1]["ring"] = kosz
+	# Torwar: the hall's outline and the entrance block with the portico in front of it (the map's
+	# own outlines there are dropped; the street block draws the mass, _build_torwar the rest).
+	var torwar := _landmark("Torwar")
+	if torwar.size() >= 3:
+		_add_site("torwar", [torwar, PackedVector2Array([_tw_w(-22.0, -30.0), _tw_w(22.0, -30.0), _tw_w(22.0, 12.0),
+				_tw_w(-22.0, 12.0)])])
+		if sites[-1]["key"] == "torwar":
+			sites[-1]["ring"] = torwar
 	var rdyn := _landmark("Rotunda na Dynasach")
 	if rdyn.size() >= 3:
 		_add_site("rotunda_dynasy", [rdyn])
@@ -652,6 +660,169 @@ func _koszyki_terrace(g: float) -> void:
 	var out := -Vector2(-KOS_A.y, KOS_A.x)
 	signs.append(["KOSZYKI", Vector3(at.x, g + 6.0, at.y), Vector3(out.x, 0.0, out.y),
 			7.5 / Neon.length_of("KOSZYKI"), Color(0.35, 0.7, 1.0)])
+
+
+## Torwar (Łazienkowska 6a, 2026-11-15, spec docs/landmarks/specs/torwar.md; photos: F's T45 set
+## in the shared store, Mapillary and Panoramax frames round the hall in refs/torwar/street, never
+## shipped). The hall's mass is its street block (blk_25844922: the cream hall, the brick annexes,
+## the white entrance block with its glass front, measured); this site dresses it with what the
+## photos show and the block lacks: on Łazienkowska the white portico (twelve slender columns, the
+## deep entablature with TORWAR on it and the curved parapet over the middle), and round the hall
+## the white pilasters, the lattice panels in the upper windows and the cornice. Every part is in
+## the entrance's frame: u along the front (east +), v out to the street (south +), v 0 on the
+## block's glass; heights over the block's own ground (the lowest under the hall), so they meet
+## the block's (the forecourt stands about 2 m higher: the columns start on it).
+const TW_O := Vector2(1240.45, 1341.81)
+const TW_A := Vector2(0.99774, 0.06733)
+const TW_FRONT := [-21.6, 21.6, 1.8, 4.6]   ## the entablature's u0, u1, v0, v1
+const TW_COLS := 12                          ## the portico's columns, 3.3 m apart (T45-01)
+const TW_WHITE := Color("#eeede6")
+const TW_COLUMN := Color("#e8e7e0")
+const TW_LETTER := Color("#6f757b")
+const TW_PILASTER := Color("#f0ece0")
+const TW_LATTICE := Color("#d8d6cc")
+const TW_LATTICE_IN := Color("#8f948f")
+## The hall's long walls (the block's, measured): u of the wall at v -128.7 and at v -46 per side,
+## the windows' centres (ten a side, 9.2 m apart, 5.5 m wide, 6.5 to 11.5 m) and the north gable.
+const TW_EAST := [39.5, 40.05]
+const TW_WEST := [-39.3, -39.6]
+const TW_NORTH_V := -133.0
+
+
+func _tw_w(u: float, v: float) -> Vector2:
+	return TW_O + TW_A * u + Vector2(-TW_A.y, TW_A.x) * v
+
+
+func _build_torwar(site: Dictionary) -> void:
+	var ring: PackedVector2Array = site["ring"]
+	_g = _ground_under(ring)
+	var g := _g
+	_b = Vector2(-TW_A.y, TW_A.x)
+	_a = TW_A
+	_o = TW_O
+	_mode = M_STONE
+	_torwar_portico(g)
+	for side: float in [-1.0, 1.0]:
+		_torwar_side(g, side)
+	_torwar_north(g)
+	# The entrance block and the portico stop the car (the map's own outlines there are dropped).
+	_collide(_urect(TW_FRONT[0], TW_FRONT[1], -29.5, 4.0))
+
+
+## The portico (T45-01, straight on): a deep white entablature over the whole front, its top at
+## the block's own top band; TORWAR in grey letters across its face (lit white at night); the
+## curved parapet rising over its middle; twelve round white columns from the forecourt.
+func _torwar_portico(g: float) -> void:
+	var u0: float = TW_FRONT[0]
+	var u1: float = TW_FRONT[1]
+	var v0: float = TW_FRONT[2]
+	var vf: float = TW_FRONT[3]
+	var y0 := g + 13.3
+	var top := g + 15.9
+	_ubox(u0, u1, v0, vf, y0, top, TW_WHITE, M_STONE, TW_WHITE.darkened(0.06))
+	_soffit(_urect(u0, u1, v0, vf), y0, TW_WHITE.darkened(0.18))
+	# The columns, from the forecourt (about 2 m over the block's ground) to the entablature.
+	var gf: float = map.terrain_height(_w(0.0, 3.4).x, _w(0.0, 3.4).y)
+	var pitch := 3.3
+	for k in TW_COLS:
+		var cu := (float(k) - (TW_COLS - 1) * 0.5) * pitch
+		_prism(_circle(_w(cu, 3.4), 0.36, 8), gf - 0.4, y0 + 0.05, TW_COLUMN, TW_COLUMN, M_STONE, M_STONE)
+	# The curved parapet over the middle, flush with the entablature's face and as deep as it:
+	# a low crown 2.5 m over the top. It is as wide as the block's own arc behind it (22 m, to
+	# 18.2 m, with the block's dark letters on it), which it must hide; T45-01 shows it a little
+	# narrower (not built: two arcs read as a fault).
+	var aw := 12.2
+	var n := 24
+	var prof: Array[Vector2] = []
+	for k in n + 1:
+		var u := -aw + 2.0 * aw * float(k) / float(n)
+		var t := absf(u) / aw
+		prof.append(Vector2(u, top + 2.5 * pow(maxf(1.0 - t * t, 0.0), 0.6)))
+	var vb := v0 - 0.08
+	for face: float in [vf, vb]:
+		var nrm := Vector3(_b.x, 0.0, _b.y) * (1.0 if face == vf else -1.0)
+		var base := _w(0.0, face)
+		for k in n:
+			var p0 := _w(prof[k].x, face)
+			var p1 := _w(prof[k + 1].x, face)
+			_tri(Vector3(base.x, top, base.y), Vector3(p0.x, prof[k].y, p0.y), Vector3(p1.x, prof[k + 1].y, p1.y),
+					nrm, TW_WHITE, Vector2(aw, top - g), Vector2(prof[k].x + aw, prof[k].y - g),
+					Vector2(prof[k + 1].x + aw, prof[k + 1].y - g), top + 2.5 - g)
+	for k in n:
+		var d := prof[k + 1] - prof[k]
+		var up := Vector2(-d.y, d.x).normalized()
+		var nrm := Vector3(_a.x * up.x, up.y, _a.y * up.x)
+		var a0 := _w(prof[k].x, vf)
+		var a1 := _w(prof[k + 1].x, vf)
+		var b0 := _w(prof[k].x, vb)
+		var b1 := _w(prof[k + 1].x, vb)
+		_quad(Vector3(a0.x, prof[k].y, a0.y), Vector3(a1.x, prof[k + 1].y, a1.y), Vector3(b1.x, prof[k + 1].y, b1.y),
+				Vector3(b0.x, prof[k].y, b0.y), nrm, TW_WHITE.darkened(0.04))
+	# TORWAR: pixel letters on the entablature's face (wider than tall, as on the hall), each
+	# row's runs one face; grey by day, lit at night (M_LAMP).
+	var word := "TORWAR"
+	var pu := 0.26
+	var py := 0.17
+	var us := -PixelFont.width(word) * pu * 0.5
+	var y_top := g + 15.2
+	var rows := {}
+	PixelFont.each_pixel(word, 0, func(x: int, row: int) -> void:
+		if not rows.has(row):
+			rows[row] = []
+		(rows[row] as Array).append(x))
+	_mode = M_LAMP
+	for row: int in rows:
+		var xs: Array = rows[row]
+		xs.sort()
+		var s0: int = xs[0]
+		var prev: int = xs[0]
+		for idx in range(1, xs.size() + 1):
+			var x: int = xs[idx] if idx < xs.size() else -999
+			if x == prev + 1:
+				prev = x
+				continue
+			var y := y_top - float(row - PixelFont.BODY + 1) * py
+			_buw_face(_w(us + s0 * pu, vf + 0.06), _w(us + (prev + 1) * pu, vf + 0.06), y - py, y, _b, TW_LETTER)
+			s0 = x
+			prev = x
+	_mode = M_STONE
+
+
+## One long side of the hall (`side` -1 west, +1 east), over the block's cream wall: a white
+## pilaster between each pair of its ten upper windows and at both corners, a grey lattice panel
+## in the middle of each window (the glass shows either side of it), a white cornice along the
+## eaves (the street photos from the east car park and from Trasa Łazienkowska).
+func _torwar_side(g: float, side: float) -> void:
+	var ends: Array = TW_EAST if side > 0.0 else TW_WEST
+	var wall := func(v: float) -> float:
+		return lerpf(ends[0], ends[1], (v + 128.7) / 82.7)
+	var out := _a * side
+	var vs: Array[float] = [-38.2, -132.3]
+	for k in 9:
+		vs.append(-47.75 - 9.2 * float(k))
+	for v: float in vs:
+		_lbox(wall.call(v) + side * 0.15, v, 0.3, 0.7, g - 0.5, g + 12.6, TW_PILASTER, M_STONE, TW_PILASTER)
+	for k in 10:
+		var v := -43.2 - 9.2 * float(k)
+		var u: float = wall.call(v)
+		_lbox(u + side * 0.05, v, 0.12, 1.6, g + 6.7, g + 11.3, TW_LATTICE, M_STONE, TW_LATTICE)
+		_buw_face(_w(u + side * 0.2, v - 1.35 * side), _w(u + side * 0.2, v + 1.35 * side), g + 7.0, g + 11.0, out, TW_LATTICE_IN)
+	var mid: float = (wall.call(-37.5) + wall.call(TW_NORTH_V)) * 0.5
+	_lbox(mid + side * 0.2, (-37.5 + TW_NORTH_V) * 0.5 - 0.3, 0.75, (-37.5 - TW_NORTH_V) * 0.5 + 0.3, g + 12.5,
+			g + 13.4, TW_PILASTER, M_STONE, TW_PILASTER.darkened(0.05))
+
+
+## The north gable on Trasa Łazienkowska (the Panoramax frames from the viaduct): eleven white
+## pilasters, a lattice panel in each bay, the cornice across.
+func _torwar_north(g: float) -> void:
+	var v := TW_NORTH_V
+	for k in 11:
+		_lbox(-39.2 + 7.84 * float(k), v - 0.15, 0.7, 0.3, g - 0.5, g + 12.6, TW_PILASTER, M_STONE, TW_PILASTER)
+	for k in 10:
+		var u := -35.28 + 7.84 * float(k)
+		_lbox(u, v - 0.05, 1.5, 0.12, g + 6.7, g + 11.3, TW_LATTICE, M_STONE, TW_LATTICE)
+		_buw_face(_w(u + 1.25, v - 0.2), _w(u - 1.25, v - 0.2), g + 7.0, g + 11.0, -_b, TW_LATTICE_IN)
+	_lbox(0.0, v - 0.2, 40.6, 0.55, g + 12.5, g + 13.4, TW_PILASTER, M_STONE, TW_PILASTER.darkened(0.05))
 
 
 ## Elektrownia Powiśle, the whole complex (2026-11-13, F: "like in real life, with the fronts", and
