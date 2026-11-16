@@ -316,7 +316,6 @@ func _build() -> void:
 	_heading(picture[4], "Klatki na sekundę", "Frame rate")
 	_segments(picture[4], "fps", FPS)
 	# Loop MW-6: the photo mode (fotka.gd), from the pause card. (The overlay and TEST are on DEV.)
-	_heading(picture[5], "Tryb zdjęć", "Photo mode")
 	var photo := _word_button("FOTKA", "PHOTO")
 	photo.name = "fotka"
 	photo.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
