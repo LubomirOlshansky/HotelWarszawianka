@@ -12,12 +12,13 @@ extends SceneTree
 ## fly over them, not to be stopped. bulwary_basen (K7, 2026-11-02): the splash pool, its 0.3 m
 ## rim and fish on 0.55 m plinths, under 2 m in all.
 ## bazar (2026-11-02): Bazar Różyckiego's stalls and kiosks stand 2.5-3.4 m, under the 6 m floor the heli flies at.
-## plac_centralny and its lamps (2026-11-05): the flat striped field and the lamp posts (5 m) stand under the heli's 6 m floor.
+## plac_centralny (2026-11-05): the flat striped field stands under the heli's 6 m floor. Its lamps left the list on
+## 2026-11-15: the candelabras are 7.3 m granite columns and stop a low heli like any monument.
 ## monkey_love (2026-11-07): the garden cabins stand under 4 m.
 ## port_wtw, port_halls, port_basin (2026-11-07): Port Czerniakowski's boathouse and halls stand 3.6-5 m to the eaves, the moored boats under 2 m (masts are lines).
 ## Towarowa 22 is a quarter: its box's middle is the printing hall's open frame and the 28 m tanks
 ## block, under the heli's 45 m; its towers stand at the box's west edge and stop it there.
-const FLY_OVER := ["monkey_love", "port_wtw", "port_halls", "port_basin", "bulwary_basen", "bazar", "towarowa22", "noho", "stacja_muzeum", "nocny", "kolejowa", "plac_centralny", "plac_centralny_lamps", "sunken", "underpass", "tarasy_plaza"]
+const FLY_OVER := ["monkey_love", "port_wtw", "port_halls", "port_basin", "bulwary_basen", "bazar", "towarowa22", "noho", "stacja_muzeum", "nocny", "kolejowa", "plac_centralny", "sunken", "underpass", "tarasy_plaza"]
 ## Monuments lower than the heli's 6 m floor (the monuments pass, part 2): it flies at this height
 ## instead, so their bronze and stone have to stop it.
 const LOW_MONUMENTS := {"maly_powstaniec": 1.5, "starzynski": 2.5, "umschlagplatz": 2.5, "pomnik_wschod": 3.0}

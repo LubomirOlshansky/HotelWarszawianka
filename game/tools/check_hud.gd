@@ -54,6 +54,15 @@ const MIN_LABEL := 11.0
 const MIN_BODY := 13.0
 
 var problems: Array[String] = []
+## The choice card's owner in the "choice card" state: remembers the index its card's ✕ pressed.
+var _closer := Closer.new()
+
+
+class Closer extends RefCounted:
+	var got := -1
+
+	func card_pressed(index: int) -> void:
+		got = index
 var verbose := false
 var _speakers := {}
 ## Passing panels (the radio ticker, the note and landmark cards) and the performance overlay
@@ -240,7 +249,7 @@ func _check_screen(screen: Vector2i) -> int:
 		for state in ["car, Point", "car, Classic", "car, Classic slider", "helicopter", "call came in", "call card", "rescued, paid",
 				"rescue, host, egg", "kebab offer", "kebab delivery", "race", "rival ahead", "landmark card", "note card", "tow toast",
 				"police chase", "lizak", "pull-over",
-				"ride offer", "ride", "ride result", "ride result, police", "phone call", "quest offer", "drag shift"]:
+				"ride offer", "ride", "ride result", "ride result, police", "phone call", "quest offer", "drag shift", "choice card"]:
 			if perf and not state in ["car, Point", "call card", "rescue, host, egg", "kebab offer", "kebab delivery", "landmark card"]:
 				continue
 			if mode == "no-touch" and not state in ["car, Point", "car, Classic", "helicopter", "kebab offer", "pull-over", "ride offer"]:
@@ -248,7 +257,7 @@ func _check_screen(screen: Vector2i) -> int:
 			if mode == "left-handed" and not state in ["car, Point", "car, Classic", "car, Classic slider", "helicopter", "rescue, host, egg", "kebab offer",
 					"landmark card", "police chase", "pull-over", "ride offer", "ride", "phone call"]:
 				continue
-			if mode == "large-text" and not state in ["car, Point", "call came in", "call card", "rescue, host, egg", "kebab offer",
+			if mode == "large-text" and not state in ["choice card", "car, Point", "call came in", "call card", "rescue, host, egg", "kebab offer",
 					"kebab delivery", "race", "landmark card", "note card", "police chase", "pull-over", "ride offer", "ride", "ride result",
 					"phone call", "quest offer"]:
 				continue
@@ -399,6 +408,13 @@ func _check_screen(screen: Vector2i) -> int:
 					hud.show_call("Darek „Bawarka”|Darek \"Bawarka\"", "Z pracy. Bluza klubowa przed pierwszym meczem.",
 							Color("#4fd8c4"), "From work. Club hoodie before her first match.")
 					hud.ticker("87,3 KEBAB FM  ·  Palma de Gaulle'a", Color("#ff5fc8"))
+				"choice card":
+					# First hour step 6: the choice card with its three picks and the ✕ for "just drive".
+					hud.show_card("OD CZEGO ZACZYNASZ?", "Sześciu rywali. Pokonaj wszystkich i wygraj Trzy mosty.",
+							PackedStringArray(["WYŚCIG|RACE", "KURSY|RIDES", "LOT|FLY"]), Color("#ffd23f"), false,
+							"Where do you start?", "Six rivals. Beat them all and win Trzy mosty.")
+					hud.own_card(_closer)
+					hud.set_card_close(3)
 				"quest offer":
 					hud.show_side_card("📞 IVAN", "„Siema! Szisza dziś? Podjedź po mnie pod 19. Dzielnicę, weźmiemy jeszcze Bogdana z kortu. Ma być spokojnie.”",
 							PackedStringArray(["JADĘ!|ON MY WAY", "NIE DZIŚ|NOT TONIGHT"]), Color("#7fd4a0"), "Ivan",
@@ -421,6 +437,8 @@ func _check_screen(screen: Vector2i) -> int:
 						problems.append("%s: no round button %d" % [w, i])
 					elif b.size.x < 44.0 * pt - 0.5 or b.size.y < 44.0 * pt - 0.5:
 						problems.append("%s: round button %d is under 44 pt" % [w, i])
+			if state == "choice card":
+				_check_card_close(hud, safe, pt, "%s choice card%s" % [tag, " + " + mode if mode != "" else ""])
 			if state == "quest offer":
 				var f := hud.get("_card_face") as Control
 				if f == null or not f.is_visible_in_tree():
@@ -670,14 +688,14 @@ func _check_quest_card(fm: Control, where: String, pt: float, safe: Rect2) -> vo
 	]
 	var steps: Array = []
 	for id: String in FS.IDS:
-		var nm: Array = FS.NAMES[id]
+		var nm: Array = FS.name_of(id)
 		var en: Dictionary = {"kebab": e[2], "ride": e[0], "garage": e[1]}.get(id, {})
 		steps.append({"id": id, "pl": nm[0], "en": nm[1], "entry": en})
 	var chips: Array = []
 	for i in 6:
 		chips.append({"rung": i, "short": ["HALINA", "SŁOIK", "BARTEK", "SEBA", "ZBYSZEK", "MIKE"][i],
 				"state": ["won", "open", "open", "open", "open", "locked"][i], "pips": "•".repeat(i + 1)})
-	fm.set_steps(steps, ["PIERWSZE KROKI 0/7", "First steps 0/7"], FS.PROMISE, false)
+	fm.set_steps(steps, ["PIERWSZE KROKI 0/7", "First steps 0/7"], FS.words("promise"), false)
 	fm.set_rivals(chips, ["RYWALE 1/6", "RIVALS 1/6"], ["· Finał · Trzy mosty · 2000 zł · po sześciu wygranych",
 			"· Final · Three Bridges · 2000 zł · after all six"], false)
 	fm.set_collection([])
@@ -717,7 +735,7 @@ func _check_quest_card(fm: Control, where: String, pt: float, safe: Rect2) -> vo
 	if sc == null:
 		problems.append("%s: the list has no scroll" % where)
 	# Friends open after the third step: the questline joins the list.
-	fm.set_steps(steps.slice(3), ["PIERWSZE KROKI 3/7", "First steps 3/7"], FS.PROMISE, true)
+	fm.set_steps(steps.slice(3), ["PIERWSZE KROKI 3/7", "First steps 3/7"], FS.words("promise"), true)
 	await process_frame
 	keys = fm.list_sections.map(func(x: Dictionary) -> String: return str(x["key"]))
 	if not "friends" in keys:
@@ -740,7 +758,7 @@ func _check_quest_card(fm: Control, where: String, pt: float, safe: Rect2) -> vo
 			problems.append("%s: the Collection row did not open the ≡ cards" % where)
 		(fm.get("_cards") as Button).pressed.emit()
 		await process_frame
-	fm.set_steps(steps, ["PIERWSZE KROKI 0/7", "First steps 0/7"], FS.PROMISE, false)
+	fm.set_steps(steps, ["PIERWSZE KROKI 0/7", "First steps 0/7"], FS.words("promise"), false)
 	fm.set_collection([])
 	await process_frame
 	var got: Array = []
@@ -1270,6 +1288,32 @@ func _check_target_pointer(hud: CanvasLayer, bubbles: Control, screen: Vector2i,
 ## PT-26 (2026-11-07, run 20261106-004005): the roadworks sign's bubble by the start covered the
 ## ghost finger's steering hint. With the finger on, a bubble whose speaker stands right under the
 ## hint (both schemes) keeps off it, and the hint's room goes when the finger does.
+## First hour step 6: the card's ✕ (`set_card_close`) shows on the card, is a full touch target
+## inside the card and the safe area, sends its index to the card's owner, and goes with the card.
+func _check_card_close(hud: CanvasLayer, safe: Rect2, pt: float, where: String) -> void:
+	var x := hud.get("_card_x") as Control
+	var card := hud.get("_card") as Control
+	if x == null or not x.is_visible_in_tree():
+		problems.append("%s: the card's ✕ is not shown" % where)
+		return
+	var r := x.get_global_rect()
+	if r.size.x < MIN_TOUCH * pt - 0.5 or r.size.y < MIN_TOUCH * pt - 0.5:
+		problems.append("%s: the card's ✕ is %.0fx%.0f pt, under 44" % [where, r.size.x / pt, r.size.y / pt])
+	if not card.get_global_rect().grow(1.0).encloses(r) or not safe.grow(1.0).encloses(r):
+		problems.append("%s: the card's ✕ is outside the card or the safe area (%s)" % [where, r])
+	if int(hud.card_close()) != 3:
+		problems.append("%s: card_close() is %d, not 3" % [where, hud.card_close()])
+	_closer.got = -1
+	hud.press_card_close()
+	if _closer.got != 3:
+		problems.append("%s: the ✕ pressed %d for the card's owner, not 3" % [where, _closer.got])
+	# Another card shown takes the ✕ away.
+	hud.show_card("X", "y", PackedStringArray(["OK"]), Color.WHITE)
+	if x.visible or int(hud.card_close()) != -1:
+		problems.append("%s: the next card kept the ✕" % where)
+	hud.hide_card()
+
+
 func _check_finger_hint(hud: CanvasLayer, bubbles: Control, tag: String) -> void:
 	for s in [0, 1, 2]:  # Point, Classic with the arrows, Classic with the slider
 		hud.clear_all()

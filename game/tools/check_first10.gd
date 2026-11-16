@@ -98,8 +98,9 @@ func _data() -> void:
 		_expect(w.x < w.y and w.y < First10.REPLAY_DEADLINE, "%s's window %s ends before the replay's deadline" % [id, w])
 	for id: String in First10.INTRO_STEP:
 		_expect(str(First10.INTRO_STEP[id]) in FirstSteps.IDS, "intro %s's step %s is a First step" % [id, First10.INTRO_STEP[id]])
-	_expect(First10.CHOICE_BUTTONS.size() == First10.CHOICE_PICKS.size() and (First10.CHOICE_PICKS[-1] as Array).is_empty(),
-			"the choice card: one pick per button, the last is JUST DRIVE (none)")
+	_expect(First10.CHOICE_BUTTONS.size() == 3 and First10.CHOICE_CLOSE == First10.CHOICE_BUTTONS.size()
+			and First10.CHOICE_PICKS.size() == First10.CHOICE_BUTTONS.size() + 1 and (First10.CHOICE_PICKS[First10.CHOICE_CLOSE] as Array).is_empty(),
+			"the choice card: RACE, RIDES, FLY, one pick each, and the ✕ is JUST DRIVE (none)")
 	_expect(First10.REPLAY_DEADLINE * 60.0 < 48000.0, "the replay judges before verify.sh's 48000 frames")
 	_summary.append("%d beats" % First10.BEATS.size())
 
@@ -139,7 +140,7 @@ class Toy:
 	var input_at := INF
 	var order_at := INF       # pulls into the stand (or the director's scripted order)
 	var deliver_s := 75.0
-	var pick := 0             # the choice card's button (First10.CHOICE_BUTTONS); 3: JUST DRIVE
+	var pick := 0             # the choice card's button (First10.CHOICE_BUTTONS); 3: the ✕, JUST DRIVE
 	var says_no := false      # declines Halina
 	var job_from := INF       # an extra job of the player's own
 	var job_to := INF
@@ -809,25 +810,30 @@ func _words() -> void:
 		lines.append(First10.LINES[k])
 	for k in Rivals.FIRST_LINES:
 		lines.append(Rivals.FIRST_LINES[k])
+	for k: String in ["intro_kebab", "intro_ride", "what_next"]:
+		lines.append(FirstSteps.words(k))
 	for l: Array in lines:
 		_expect(l.size() == 2 and str(l[0]) != "" and str(l[1]) != "" and str(l[0]) != str(l[1]), "Polish and English: %s" % [l])
 		for x in l:
 			_expect(str(x).length() <= 70, "at most 70 characters: %s (%d)" % [x, str(x).length()])
-	for id: String in FirstSteps.NAMES:
-		var n: Array = FirstSteps.NAMES[id]
+	for id: String in FirstSteps.IDS:
+		var n: Array = FirstSteps.name_of(id)
 		_expect(n.size() == 2 and str(n[0]) != str(n[1]) and str(n[0]).length() <= 40 and str(n[1]).length() <= 40,
 				"a First step's line in Polish and English, at most 40 characters: %s" % [n])
 		var tw := FirstSteps.tick_words(id, 7)
 		_expect(str(tw[0]).length() <= 70 and str(tw[1]).length() <= 70, "the tick's toast at most 70 characters: %s" % [tw])
-	for l: Array in [First10.CHOICE_TITLE, FirstSteps.TITLE, FirstSteps.PROMISE, FirstSteps.NOTICED_WORDS, FirstSteps.ALL_TITLE]:
+	for l: Array in [First10.CHOICE_TITLE, FirstSteps.TITLE, FirstSteps.words("promise"), FirstSteps.words("noticed"),
+			FirstSteps.words("all_title")]:
 		_expect(l.size() == 2 and str(l[0]) != str(l[1]), "Polish and English: %s" % [l])
 		for x in l:
 			_expect(str(x).length() <= 70, "at most 70 characters: %s (%d)" % [x, str(x).length()])
-	for l: Array in [First10.CHOICE_BODY, FirstSteps.ALL_BODY]:
+	for l: Array in [FirstSteps.words("choice_body"), FirstSteps.words("all_body")]:
 		_expect(l.size() == 2 and str(l[0]) != str(l[1]), "a card's body in Polish and English: %s" % [l])
 		for x in l:
 			_expect(str(x).length() <= 110, "a card's body at most 110 characters: %s (%d)" % [x, str(x).length()])
-	_expect(FirstSteps.PROMISE[1] in First10.CHOICE_BODY[1] and FirstSteps.PROMISE[0] in First10.CHOICE_BODY[0], "the choice card carries the promise")
+	var promise: Array = FirstSteps.words("promise")
+	var choice_body: Array = FirstSteps.words("choice_body")
+	_expect(promise[1] in choice_body[1] and promise[0] in choice_body[0], "the choice card carries the promise")
 	for b: String in First10.CHOICE_BUTTONS + [FirstSteps.ALL_BUTTON]:
 		_expect(b.get_slice_count("|") == 2 and b.get_slice("|", 0).length() <= 12, "a button's two words, short: %s" % b)
 	for l: Array in [First10.END_TITLE, First10.END_BODY, First10.END_FREE]:

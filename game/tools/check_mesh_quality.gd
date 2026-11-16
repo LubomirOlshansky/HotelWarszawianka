@@ -30,6 +30,7 @@ const Neon := preload("res://scripts/neon_signs.gd")
 const BUDGET := {
 	"scena_relax": 600,
 	"smolna38": 2700,
+	"jerozolimskie57": 10000,  # 2026-11-15: the Jerozolimskie row from F's photos: four fronts, canopies, showcases, the building site (measured 9179)
 	"tides": 8000,
 	"ujazdowskie47": 3000,
 	"krasinski_ogrod": 900,
@@ -198,6 +199,7 @@ const BUDGET := {
 	# Browary + the Central Garden's gravel path, café clearings and the sedum roofs (2026-11-02).
 	"browary": 3900,   # 2026-11-03: paved main path and clearing edges (look check)
 	"koszyki": 1900,
+	"torwar": 1500,  # 2026-11-15 from photos, over its street block: the portico's columns, entablature, parapet and letters; pilasters and lattice panels round the hall
 	"elektrownia": 7600,  # 2026-11-13: the whole complex (hall, halls, passage, office, old wing, gardens): 1634 -> ~6850
 	"rotunda_dynasy": 1400,
 	"mpw": 3200,
@@ -226,7 +228,10 @@ const BUDGET := {
 	"inflancka_pools": 1000,
 	"spektrum": 3900,  # 2026-11-13 rebuild from F's photos (3567 tris): fin, podium, crown screens, the rooftop club THE WJU and its lounge; +0 draw calls
 	"spire": 6600,  # 2026-11-06 photo rebuild (F), 6151 tris (vase, steel crown ring, drum): steel columns, canopy bow, Spire B/C crowns and eaves, plaza kerbs, channel, 26 trees; +0 draw calls
-	"tr": 500,
+	"tr": 6500,  # 2026-11-15 rebuild from F's 13 photos: concrete shell with red formwork and rebar, two lattice cranes, flags, yard
+	"nozyce": 700,  # the gold scissors on their granite plinth (F's photo, 2026-11-15)
+	"jarmark": 7000,  # the Christmas market being set up on Plac Defilad (F's photos, 2026-11-15): huts, planters, tree, fence
+	"obeliski": 600,  # the two 1955 granite obelisks on Plac Defilad (F, 2026-11-15)
 	"tower75": 220,
 	"cepelia": 1100,  # 2026-11-08 photo rebuild (F): 970 tris
 	"pijana": 2200,  # 2026-11-08 PIJANA CZEREŚNIA kiosk (F): 1806 tris (octagon, drum, painted windows, deck rail, string lights)
@@ -250,7 +255,7 @@ const BUDGET := {
 	"plac_maszty": 520,
 	"plac_centralny": 700,  # 2026-11-10 the field draped on the ground (no walls)
 	"trybuna": 900,  # 2026-11-08 the tribune from F's photos: 751 tris
-	"plac_centralny_lamps": 700,
+	"plac_centralny_lamps": 3500,  # 2026-11-15: the five-globe candelabras on granite columns (F's forecourt photo)
 	"getto": 650,
 	"nike": 200,
 	"slowacki": 320,
@@ -318,7 +323,7 @@ const BUDGET := {
 	"pzu": 900,
 	"jm": 900,
 	"babka": 800,  # 2026-11-15 photo pass with F's photos (637 tris): stone tower, loggia columns, mast, the 34 m block
-	"wiktoria": 230,
+	"wiktoria": 4500,  # 2026-11-15 photo rebuild (about 4100 tris): two white volumes, 8 and 6 floors of niche windows, glazed base; an exception to the L2 cap, one 117 by 79 m outline
 	"wtt": 1900,  # 2026-11-15 photo rework (1604 tris): crown slits, the mast from its mapped foot
 	"zacheta": 720,
 	"zlota44": 1800,
@@ -346,7 +351,7 @@ const BUDGET := {
 ## Towarowa 22's drone taxi hovers 7 m over its pad by design (the "Warsaw of the future").
 ## The Szarytki's turret stands on LoD2's ridge and the Adventists' balconies hang on LoD2's wall:
 ## the map's mass, not the site's mesh.
-const KNOWN := {"towarowa22": {"float": 8}, "szarytki": {"float": 16}, "adwentysci": {"float": 17}}
+const KNOWN := {"towarowa22": {"float": 8}, "szarytki": {"float": 16}, "adwentysci": {"float": 17}, "tr": {"zfight": 8}}  # tr: 8 coplanar triangles in crane 1's A-frame legs at 36 m, not found (hidden in a lattice, never seen)
 
 var _probe: MeshProbe
 var problems: Array[String] = []

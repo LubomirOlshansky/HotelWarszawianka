@@ -180,6 +180,7 @@ const Garage := preload("res://scripts/garage.gd")
 ## Loop 3h slice 4: the guided first 10 minutes and the end card.
 const First10 := preload("res://scripts/first10.gd")
 const FirstSteps := preload("res://scripts/first_steps.gd")
+const PlayStats := preload("res://scripts/play_stats.gd")
 const StopAssist := preload("res://scripts/stop_assist.gd")
 const MainLine := preload("res://scripts/main_line.gd")
 const MainNudge := preload("res://scripts/main_nudge.gd")
@@ -374,6 +375,8 @@ var cassettes: Cassettes
 ## shows the end card at once (screenshots); --first-race has Halina roll up for the first race a
 ## second in.
 var first10: First10
+## The beta's anonymous play stats (play_stats.gd, docs/STATS.md): it listens to the systems' signals.
+var play_stats: PlayStats
 var tape: Tape
 var spacer: Spacer
 var fotka: Fotka
@@ -809,6 +812,7 @@ func _ready() -> void:
 		_fallback_toast()
 		if first10 != null and not _opening_on:
 			first10.begin()  # loop 3h slice 4: no title: the guide's clock starts now
+		play_stats.begin()
 	_started = true
 
 
@@ -1019,9 +1023,13 @@ func _notification(what: int) -> void:
 			wallet.flush()
 		if _trap != null:
 			_trap.mark()  # so far this session ended in order (error_trap.gd)
+		if play_stats != null:
+			play_stats.pause()  # the session's summary, sent now or from the disk queue next launch
 	elif what in [NOTIFICATION_APPLICATION_RESUMED, NOTIFICATION_APPLICATION_FOCUS_IN]:
 		# iOS stops the haptic engine in the background: start it again now, not in a crash's frame.
 		Haptics.warm()
+		if play_stats != null:
+			play_stats.resume()
 
 
 ## Safer saves (tech-debt TD-8): what the player is told when the save was damaged at launch
@@ -1191,6 +1199,7 @@ func _on_title_dismissed() -> void:
 		_fly_in()
 	if first10 != null and not _opening_on:
 		first10.begin()  # loop 3h slice 4: the guide's clock starts with the first tap
+	play_stats.begin()
 
 
 ## The opening flyover (docs/design/opening-flyover.md): the first launch's camera flight over
@@ -1681,8 +1690,13 @@ func _build_world() -> void:
 			first10.friend_rang(a.tag)
 	_build_rave(data, world)
 	await LoadYield.tick("_build_rave")
-	_build_meet(data, world)
-	await LoadYield.tick("_build_meet")
+	# Darek's calls, the meets, the raids and the drag (street_meet.gd wires itself); none with
+	# --no-traffic or --meet=0. START DRAG and the test jumps put the car with main.gd's own hook
+	# (`_place_car` also cuts the camera), set after the join.
+	meet = _join(StreetMeet.new(), world) as StreetMeet
+	if meet != null:
+		meet.place_car = _place_car
+	await LoadYield.tick("meet")
 	_build_boat_race(world)
 	await LoadYield.tick("_build_boat_race")
 	_build_tours(world)
@@ -1721,6 +1735,7 @@ func _build_world() -> void:
 	await LoadYield.tick("_build_wellness")
 	_build_first10()
 	await LoadYield.tick("_build_first10")
+	_build_play_stats()
 	await _load_mark(0.99)
 	_set_quality(quality_choice)
 	get_tree().root.size_changed.connect(_apply_style)
@@ -2822,6 +2837,20 @@ func _build_wellness(world: Node3D) -> void:
 	wellness.setup()
 
 
+## The play stats (play_stats.gd): sends only from a release build with the setting on and a
+## save (never under --nosave), unless --stats= says otherwise; it hears the systems built above.
+func _build_play_stats() -> void:
+	play_stats = PlayStats.new()
+	play_stats.name = "PlayStats"
+	add_child(play_stats)
+	play_stats.setup(OS.is_debug_build(), wallet.persistent and settings.persistent, settings.stats, flags.stats_flag,
+			{"platform": OS.get_name(), "lang": Lang.code, "quality_tier": Tiers.NAMES[auto_quality] if quality_choice == Tiers.AUTO else Tiers.NAMES[quality_choice],
+			"controls": controls.scheme})
+	play_stats.watch({"wallet": wallet, "car": car, "is_flying": func() -> bool: return flying, "activities": activities,
+			"police": police, "first10": first10, "districts": districts, "egg_book": egg_book, "garage": garage,
+			"heli": heli, "radio": radio, "panel": hud.settings_panel, "save_note": wallet.load_note})
+
+
 func _build_first10() -> void:
 	first10 = First10.new()
 	first10.name = "First10"
@@ -3678,41 +3707,6 @@ func _free_block(ringing_ok := false, guide_ok := false) -> String:
 
 # --- the night racing club -------------------------------------------------------------------
 
-## Darek's calls, the meets, the raids and the drag (street_meet.gd). None with --no-traffic or --meet=0.
-func _build_meet(data: Dictionary, world: Node3D) -> void:
-	if traffic == null or graph == null or flags.meet_flag == "0":
-		return
-	meet = StreetMeet.new()
-	meet.name = "StreetMeet"
-	meet.hud = hud
-	meet.dialogue = dialogue
-	meet.wallet = wallet
-	meet.map = map
-	meet.graph = graph
-	meet.traffic = traffic
-	meet.police = police
-	meet.car = car
-	meet.flat_mat = _ground_mat
-	meet.origin = data.get("origin", [52.234, 21.024])
-	meet.log_on = flags.meet_log
-	meet.auto = flags._meet_auto
-	meet.force = flags.meet_flag == "on"
-	meet.vehicle = func() -> Array:
-		if flying:
-			return [heli.global_position, heli.speed() * 3.6, true]
-		return [car.global_position, car.vel.length() * 3.6, false]
-	meet.calendar = tod.local_clock
-	meet.place_car = _place_car
-	world.add_child(meet)
-	meet.setup(world)
-	# `meet.autopilot` stays off: a test run does not answer Darek or the result card (it never did).
-	activities.add(meet)  # the director says when Darek may ring (nothing else on: world_free)
-	if flags.meet_flag == "call":
-		get_tree().create_timer(1.0).timeout.connect(func() -> void: meet.ring())
-	if flags.meet_at != "":
-		get_tree().create_timer(1.0).timeout.connect(func() -> void: meet.jump(flags.meet_at))
-
-
 ## Puts the car at `at` heading `yaw` at once (the meet's START DRAG), the camera cut with it.
 func _place_car(at: Vector3, yaw: float) -> void:
 	car.global_position = at + Vector3(0, 0.05, 0)
@@ -3738,8 +3732,11 @@ func _build_ctx() -> GameCtx:
 	_ctx.radio = radio
 	_ctx.graph = graph
 	_ctx.traffic = traffic
+	_ctx.police = police
 	_ctx.car = car
 	_ctx.heli = heli
+	_ctx.tod = tod
+	_ctx.ground_mat = _ground_mat
 	_ctx.vehicle = func() -> Array:
 		if flying:
 			return [heli.global_position, heli.speed() * 3.6, true, 0.0]
@@ -4880,13 +4877,13 @@ func _fill_map_list(entries: Array) -> void:
 		var pos := _vehicle_position()
 		var here := Vector2(pos.x, pos.z)
 		for id: String in FirstSteps.left(wallet.intro):
-			var name: Array = FirstSteps.NAMES[id]
+			var name: Array = FirstSteps.name_of(id)
 			left.append({"id": id, "pl": name[0], "en": name[1], "entry": _step_entry(id, by_group, here)})
 		head = FirstSteps.header(wallet.intro)
 		friends = FirstSteps.count(wallet.intro) >= FirstSteps.NOTICED_AT
 		if left.is_empty():
 			head = []
-	fm.set_steps(left, head, FirstSteps.PROMISE if not left.is_empty() else [], friends)
+	fm.set_steps(left, head, FirstSteps.words("promise") if not left.is_empty() else [], friends)
 	if rivals != null and rivals.ladder != null and wallet != null:
 		var rows: Array = rivals.ladder_rows()
 		fm.set_rivals(rivals.ladder.chips(), rivals.ladder.title(), rows[rows.size() - 1] if not rows.is_empty() else [],
@@ -5222,7 +5219,7 @@ func _settings_state() -> Dictionary:
 			"vibration": int(settings.vibration), "stop_assist": int(settings.stop_assist),
 			"lane_assist": int(car.lane_assist if car != null else settings.lane_assist),
 			"pads": settings.pads if hud == null else (0 if hud.arrows_layout else 1),
-			"left_handed": int(settings.left_handed), "lang": maxi(0, Lang.CODES.find(Lang.code))}
+			"left_handed": int(settings.left_handed), "lang": maxi(0, Lang.CODES.find(Lang.code)), "stats": int(settings.stats)}
 
 
 ## The save's line on the title screen: "1 240 zł · respekt 87" in the chosen language.
@@ -5340,6 +5337,9 @@ func _on_setting(key: String, value: Variant) -> void:
 		"soft_fences":
 			settings.soft_fences = int(value) == 1
 			_apply_soft_fences(settings.soft_fences)
+		"stats":
+			settings.stats = int(value) == 1
+			play_stats.set_enabled(settings.stats)
 		"pads":
 			# F 2026-11-13: fixed arrows + pedals (0, the default) or the sliding strip (1).
 			settings.pads = clampi(int(value), 0, 1)

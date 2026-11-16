@@ -29,9 +29,15 @@ var radio: Node
 var graph: RefCounted
 ## The traffic, null with --no-traffic.
 var traffic: Node3D
+## The police (police.gd), null with --no-police.
+var police: Node
 var car: CharacterBody3D
 ## The helicopter (heli.gd).
 var heli: Node3D
+## The time of day (time_of_day.gd): `local_clock()` is the local hour and weekday.
+var tod: Node
+## The ground's material (map_builder.gd's flat ground): the skids' and the night meet's tyre marks.
+var ground_mat: Material
 ## [position, km/h, flying, forward speed] of what the player drives now: the helicopter in the
 ## air, the car on the ground.
 var vehicle: Callable

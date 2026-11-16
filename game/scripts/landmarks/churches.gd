@@ -4589,6 +4589,37 @@ const FKL_ROOF := Color("#606366")      ## grey sheet roofs (the church's, photo
 ## docs/landmarks/specs/szarytki_zaulek.md.
 const SZZ_AT := [Vector2(66.0, -262.0), Vector2(100.0, -278.0)]  ## one point inside each outline
 
+## Dom Parafialny im. Prymasa Tysiąclecia, St Barbara's parish house on Świętej Barbary (OSM
+## building 1525, the only named one of these blocks): a pale yellow plastered house along the
+## street's west side, its back block taller. Its outline is ragged (18 corners) and its LoD2 has
+## two heights, so the mass stays GUGiK's LoD2 in a skin: yellow plaster from three Mapillary
+## photos along Świętej Barbary (2020, refs/churches/dom_parafialny_barbara, reference only, never
+## shipped), which show it only at a slant behind trees, under a grey roof (a default). Spec
+## docs/landmarks/specs/dom_parafialny_barbara.md.
+const DPB_AT := Vector2(-1166.0, 740.0)      ## inside the outline
+const DPB_WALL := Color("#e6d49e")           ## pale yellow plaster (photos)
+const DPB_ROOF := Color("#6c6a66")           ## grey roof, a default
+
+## The presbytery of Christ the King on Skaryszewska (Plebania, OSM building 6054, Praga, the
+## Pallottines' parish): a low house at the west corner of the church's block (`church_chrystusa_krola`,
+## CK_*), beside the cream chapel on the street. Its mass stays the map's block in a skin in the parish
+## wings' plaster and grey roof (CK_WING, CK_TILE), from eight Mapillary photos along Skaryszewska
+## (2026, refs/churches/plebania_6054, reference only, never shipped), which show the chapel's front
+## and the iron fence and gate beside it; the house itself stands behind the fence. Spec
+## docs/landmarks/specs/plebania_pallotynow.md.
+const PPL_AT := Vector2(1709.0, -1676.0)
+const PPL_WALL := Color("#e6dcc4")
+const PPL_ROOF := Color("#8a8a84")
+
+## The presbytery of Our Lady of Victory (Plebania, OSM building 394, Praga, 43 m from the church):
+## a two-storey house behind iron railings on a stone wall. Its mass stays the map's block in a skin:
+## cream plaster from two Mapillary photos down the street (2015, refs/churches/plebania_394,
+## reference only, never shipped), which show its end wall over the railings and trees; the roof is
+## a grey default. Spec docs/landmarks/specs/plebania_zwycieskiej.md.
+const PZW_AT := Vector2(1928.0, -1366.0)
+const PZW_WALL := Color("#e6d9b5")
+const PZW_ROOF := Color("#6c6a66")
+
 
 ## The presbytery of St Florian's cathedral (Plebania katedry św. Floriana, Floriańska, Praga):
 ## an L of two plastered houses behind the cathedral. The range on Floriańska, three tall storeys

@@ -630,17 +630,24 @@ const METRO_PAVING := Color("#aaa59c")
 const METRO_GATE := Color("#2a2d30")
 const METRO_POOL := Color("#47606c")
 const METRO_JET := Color("#e4eff2")
-## Hotel Wiktoria: a 1970s slab on a podium. The slab runs along the Królewska front (the north
-## edge of its outline) WIKTORIA_SLAB_D deep, in ribbon windows of bronze-tinted glass between
-## pale spandrel bands (S_BANDS); the podium fills the outline in dark glass (S_DARK, its lobby
-## lit at night) under a stone fascia; a plant room on the slab.
-const WIKTORIA_H := 30.0          # the slab's roof: an estimate (nine storeys over the podium's two)
-const WIKTORIA_PODIUM_H := 8.0    # the podium's fascia: an estimate
-const WIKTORIA_SLAB_D := 18.0     # the slab's depth: an estimate (a double-loaded hotel floor)
-const WIKTORIA_GLASS := Color("#4c4640")
-const WIKTORIA_DARK := Color("#3c3b3a")
-const WIKTORIA_STONE := Color("#cdc9c0")
-const WIKTORIA_ROOF := Color("#8d8c88")
+## Hotel Wiktoria (parody of the 1970s Sofitel Victoria): two white modernist volumes on a glazed
+## base. The long slab runs along the Królewska front (the north edge of its outline), eight floors
+## of bronze-tinted windows each in a shadowed niche between white fins; the wing at the square's
+## end runs back at six floors; the glazed base is set back under them, with a terrace slab at the
+## first-floor level over the whole outline and a dark canopy at the entrance; a plant room on the
+## slab. No sign text: the real brand's name is not used.
+const WIK_BASE_H := 6.5           # the glazed base and the terrace over it (photos)
+const WIK_FLOOR_H := 3.0          # a floor of the white volumes
+const WIK_SLAB_ROWS := 8          # window floors of the long slab
+const WIK_WING_ROWS := 6          # and of the wing at the square's end
+const WIK_SLAB_D := 17.0          # the slab's depth: an estimate (a double-loaded hotel floor)
+const WIK_WING_W := 19.0          # the wing's width: an estimate
+const WIK_PITCH := 3.0            # the window bay
+const WIK_WHITE := Color("#e8e7e1")
+const WIK_WINDOW := Color("#7a5a38")
+const WIK_GLASS_BASE := Color("#44535a")
+const WIK_CANOPY := Color("#3b3d3e")
+const WIK_ROOF := Color("#8d8c88")
 ## The Królewska edge, kept as LoD2 (or OpenStreetMap) draws it but in its own stone: by name
 ## (the landmark outlines). Dom bez Kantów is a model of its own since 2026-11-15: the whole block
 ## on the square's south-east corner, Królewska 2 included (`_build_bez_kantow`).
@@ -836,26 +843,78 @@ func _build_wiktoria(site: Dictionary) -> void:
 	for q in ring:
 		lo = lo.min(_local(q))
 		hi = hi.max(_local(q))
-	# The podium and its fascia.
-	_prism(ring, g - 0.6, g + WIKTORIA_PODIUM_H, WIKTORIA_DARK, none, M_SKIN + S_DARK / 16.0)
-	var eave := _largest(Geometry2D.offset_polygon(ring, 0.4, Geometry2D.JOIN_MITER))
-	_prism(eave if eave.size() >= 3 else ring, g + WIKTORIA_PODIUM_H, g + WIKTORIA_PODIUM_H + 0.9,
-			WIKTORIA_STONE, WIKTORIA_ROOF, M_STONE, M_STONE)
-	# The slab: the outline's northern strip, a little in from its fronts.
-	var y0 := g + WIKTORIA_PODIUM_H + 0.9
-	var strip := PackedVector2Array([_wl(Vector2(lo.x - 1.0, lo.y - 1.0)), _wl(Vector2(hi.x + 1.0, lo.y - 1.0)),
-			_wl(Vector2(hi.x + 1.0, lo.y + WIKTORIA_SLAB_D)), _wl(Vector2(lo.x - 1.0, lo.y + WIKTORIA_SLAB_D))])
-	var inner := _largest(Geometry2D.offset_polygon(ring, -1.5, Geometry2D.JOIN_MITER))
-	for piece in Geometry2D.intersect_polygons(inner, strip):
-		if absf(_area(piece)) < 300.0:
-			continue
-		var slab := _simplify(piece, 0.8)
-		_prism(slab, y0, g + WIKTORIA_H, WIKTORIA_GLASS, WIKTORIA_ROOF, M_SKIN + S_BANDS / 16.0, M_STONE)
-		_parapet(slab, g + WIKTORIA_H, 1.0, WIKTORIA_STONE)
-		var c := _local(_centre(slab))
-		_prism(_rect(c.x, c.y, 9.0, 4.0), g + WIKTORIA_H, g + WIKTORIA_H + 3.2, WIKTORIA_ROOF.lightened(0.08),
-				WIKTORIA_ROOF, M_STONE, M_STONE)
+	var y_base := g + WIK_BASE_H
+	var inner := _largest(Geometry2D.offset_polygon(ring, -0.4, Geometry2D.JOIN_MITER))
+	if inner.size() < 3:
+		inner = ring
+	# The glazed base, set back 1.2 m under the white volumes (they overhang it), and the terrace
+	# slab at the first-floor level over the whole outline.
+	var base := _largest(Geometry2D.offset_polygon(inner, -1.2, Geometry2D.JOIN_MITER))
+	_prism(base if base.size() >= 3 else inner, g - 0.6, y_base, WIK_GLASS_BASE, none, M_GLASS)
+	_cap(inner, y_base, WIK_WHITE.darkened(0.06))
+	# The entrance canopy at the west end of the Królewska front: a dark slab on two piers.
+	_kbox(lo.x + 3.0, lo.x + 21.0, lo.y - 4.5, lo.y + 0.5, g + 4.6, g + 5.3, WIK_CANOPY)
+	for pu in [lo.x + 4.0, lo.x + 20.0]:
+		_kbox(pu - 0.25, pu + 0.25, lo.y - 4.2, lo.y - 3.7, g, g + 4.6, WIK_CANOPY)
+	# The two white volumes: the long slab along Królewska (eight floors) and the wing at the
+	# square's end running back (six floors).
+	var slab_rect := PackedVector2Array([_wl(Vector2(lo.x - 2.0, lo.y - 2.0)), _wl(Vector2(hi.x + 2.0, lo.y - 2.0)),
+			_wl(Vector2(hi.x + 2.0, lo.y + WIK_SLAB_D)), _wl(Vector2(lo.x - 2.0, lo.y + WIK_SLAB_D))])
+	var wing_rect := PackedVector2Array([_wl(Vector2(hi.x - WIK_WING_W, lo.y + WIK_SLAB_D - 1.0)), _wl(Vector2(hi.x + 2.0, lo.y + WIK_SLAB_D - 1.0)),
+			_wl(Vector2(hi.x + 2.0, hi.y + 2.0)), _wl(Vector2(hi.x - WIK_WING_W, hi.y + 2.0))])
+	for vol: Array in [[slab_rect, WIK_SLAB_ROWS, wing_rect], [wing_rect, WIK_WING_ROWS, slab_rect]]:
+		var rows_n: int = vol[1]
+		var roof_y := y_base + 1.2 + WIK_FLOOR_H * float(rows_n)
+		for piece in Geometry2D.intersect_polygons(inner, vol[0]):
+			if absf(_area(piece)) < 150.0:
+				continue
+			var poly := _simplify(piece, 0.6)
+			_prism(poly, y_base, roof_y, WIK_WHITE, WIK_ROOF, M_STONE, M_STONE)
+			_wik_faces(poly, vol[2], y_base, roof_y, rows_n)
+			if rows_n == WIK_SLAB_ROWS:
+				var c := _local(_centre(poly))
+				_prism(_rect(c.x + 8.0, c.y, 9.0, 4.0), roof_y, roof_y + 3.2, WIK_ROOF.lightened(0.08),
+						WIK_ROOF, M_STONE, M_STONE)
 	_collide(ring)
+
+
+## The windows of one white volume's fronts: a window of
+## bronze-tinted glass every WIK_PITCH metres on each floor, white fins between them and a sill under
+## each, so every window sits in a shadowed niche (the real facade's deep panel reveals); a thin
+## parapet. Short fronts (the blank end walls, under 20 m) and fronts hidden inside the other volume get the parapet only.
+func _wik_faces(poly: PackedVector2Array, other: PackedVector2Array, y0: float, y1: float, rows_n: int) -> void:
+	for k in poly.size():
+		var p := poly[k]
+		var q := poly[(k + 1) % poly.size()]
+		var le := p.distance_to(q)
+		if le < 0.8:
+			continue
+		var out := _out(poly, p, q)
+		if (Vector2(-(q - p).y, (q - p).x)).dot(out) < 0.0:
+			var tmp := p
+			p = q
+			q = tmp
+		var mid := (p + q) * 0.5
+		# a front standing inside the other volume is hidden: no windows on it
+		var on_ring := not Geometry2D.is_point_in_polygon(mid + out * 1.5, other)
+		kit_front(p, q)
+		kit_face(0.0)
+		if on_ring and le >= 20.0:
+			var m := maxi(1, roundi(le / WIK_PITCH))
+			var step := le / float(m)
+			var cs: Array = []
+			var rows: Array = []
+			for i in m:
+				cs.append((float(i) + 0.5) * step)
+			for r in rows_n:
+				rows.append(y0 + 1.2 + WIK_FLOOR_H * float(r))
+			kit_panes(cs, rows, step - 1.1, 1.5, WIK_WINDOW, 0.04)
+			for i in m + 1:
+				var fu := float(i) * step
+				_kbox(maxf(fu - 0.18, 0.0), minf(fu + 0.18, le), 0.0, 0.3, y0, y1, WIK_WHITE.darkened(0.04))
+			for yr in rows:
+				kit_ledge(0.0, le, float(yr) - 0.25, 0.2, WIK_WHITE, 0.3)
+		kit_cornice(0.0, le, y1, WIK_WHITE, 0.3, 0.35)
 
 
 # --- Plac Małachowskiego and the Presidential Palace (2026-10-31) ------------------------------
@@ -1242,7 +1301,7 @@ func _find_plac_centralny() -> void:
 	_add_site("trybuna", [_rect(-2.0, 2.8, 12.6, 7.4)])
 	var zones: Array = []
 	for l: Array in PCZ_LAMPS:
-		zones.append(_circle(_pcz_world(l[0], l[1]), 0.4, 6))
+		zones.append(_circle(_pcz_world(l[0], l[1]), 0.8, 6))
 	_add_site("plac_centralny_lamps", zones)
 
 
