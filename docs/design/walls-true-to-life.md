@@ -400,6 +400,28 @@ Rows marked `slab` use `wall_along` as today, with the row's numbers.
   its transform (the box laid on the ground on the far side of the hit). The whole transform is
   put back on `repaired`, from the baked buffer.
 
+**Built in W4 (2026-11-16)**, behind `barrier_look` `panels` (the palette's key stays `classic`):
+
+- The six rows carry `"panel": true` in the palette's `looks`; under `panels` their lines draw no
+  triangles in the city mesh, only pieces in the sector's `Panels` (city_barriers.gd
+  `panel_along`, map_builder.gd `_build_panels`), and file the colliders and soft lines their
+  typed drawing files, face for face (`check_barrier_look` 6 and 7; the sloppy driver's route
+  set A gives the same 232 contacts, byte for byte, under `typed` and `panels`). Every other row
+  draws as `typed`.
+- 96,325 pieces city-wide in 102 sectors, 4,484 of the 4,485 lines of the six rows (the one left
+  keeps its classic drawing, as it does under `typed`); the same count per sector on both city paths (`check_barrier_look --paths
+  --all`, 112 sectors). Prebuilt sectors 185.3 MB (classic 185.5, typed 188.5).
+- The numbers live in `game/scripts/panel_rule.gd` (pure); `check_panel_rule` (verify
+  `panelrule`) holds the shader's formulas to it and to the gate at 5, 10, 17 and 26 cm a pixel.
+  `panel.gdshader` costs 3 by `check_shader_budget`'s counter, against its cap of 200 (its one
+  `if` holds the `discard`); `building.gdshader` stays at 501. The lookup texture is 8 x 64 RGBA floats, made with the
+  material in `_make_shared` (the prebuilt city keeps it in `map/shared/panel.res`).
+- Draw calls (probe, medians of 3, `panels` against `typed`): main pass +3 at the spawn, +2 at
+  the river view, +5 zoomed out, +2 from the helicopter, +3 at night; shadow pass +0 everywhere.
+- Not built, each an open question: the "visibility range 400 m" (the camera sits 500 m back, so
+  a range in metres hides everything; none is set); the Adreno 6xx fallback reaches only the
+  runtime city (a prebuilt city baked `panels` has no typed fences to fall back to).
+
 Why not the other ways: more patterns in `building.gdshader` has no room; bars as real geometry
 for 190 km is about 4 million triangles and cannot fall over; a photo texture per type shows
 nothing at this pixel size and adds a material per type; alpha blending needs sorting and costs

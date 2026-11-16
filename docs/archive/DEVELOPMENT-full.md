@@ -1002,6 +1002,7 @@ loop 2b made Medium and Low real steps; loop G1 added **Auto**, the default, and
 | Traffic (share of the usual, × the Traffic setting) | 100% | 100% | 80% | 55% |
 | Pedestrians (most at once, × the Traffic setting's share) | 60 | 60 | 40 | 24 |
 | Draw calls at the default view (river, iPhone 16 Pro Max, loop 2b) | as High | 124 | 118 | 99 |
+| Fence panels' holes (W4 of the walls look, `panel_holes`; only under `barrier_look` `panels`) | on | on | on | on (false is the fallback for a frame that drops on the iPhone 11: the panels drawn solid, their gaps blended toward the ground, no `discard`) |
 
 Before loop 2b Medium's 0.85 render scale gave High's image on a 1170-line phone and Low's on a
 1320-line one, and its shadow map was 2048 against High's 4096 over a 2 km slab. Before loop G1
