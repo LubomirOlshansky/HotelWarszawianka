@@ -920,7 +920,7 @@ func _add_chips(inner: VBoxContainer, padded: Button) -> Button:
 
 ## The night button under the rivals: the final waits for the night (critique point 5).
 func _night_row() -> Dictionary:
-	var r := Lines.entry("night", "night", Lines.Line.CAR, "Włącz noc na finał", "Night now, for the final",
+	var r := Lines.entry("night", "night", Lines.Line.CAR, "Noc na Trzy mosty", "Night for Trzy mosty",
 			Vector2.INF, Color("#8fa8ff"), Lines.NIGHT)
 	r["far"] = ["", ""]
 	return r
