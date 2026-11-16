@@ -44,7 +44,7 @@ Lamp heads glow (M_LAMP). The sign is a landmark sign (lit day and night). OSM's
 
 ## 7. Detail level and budget
 
-L2, triangle budget 900 (`trybuna`, 751 built), 700 (`plac_centralny`, 560 built), 700 (`plac_centralny_lamps`), in `check_mesh_quality.gd`. No new material or draw call: all in the landmark mesh. Shots: `--at=-1062,215 --size=30` from the default angle and with `--yaw=180`.
+L2, triangle budget 900 (`trybuna`, 751 built), 700 (`plac_centralny`, 560 built), 3500 (`plac_centralny_lamps`, 2890 built as the five-globe candelabras, 2026-11-15), in `check_mesh_quality.gd`. No new material or draw call: all in the landmark mesh. Shots: `--at=-1062,215 --size=30` from the default angle and with `--yaw=180`.
 
 ## 8. Parts table
 
@@ -63,7 +63,7 @@ L2, triangle budget 900 (`trybuna`, 751 built), 700 (`plac_centralny`, 560 built
 | pale_heart | box | 10 x 25.6 m | u 2, v 23.2 | M_STONE #d3cbbf | the pale heart |
 | sign | landmark sign + 2 posts | 13 x 1.9 m | heart's east end | neon #c9242b | WARSZAWA |
 | deckchairs | 12 box pairs | 0.56 x 0.5 m | on the heart | M_STONE #58a85a | the deckchairs |
-| lamps | 10 poles | 5.3 m | PCZ_LAMPS | M_STONE, M_LAMP head | the lamps |
+| lamps | 10 candelabras (F's forecourt photo, 2026-11-15): granite pedestal with a bronze plaque, granite column, iron head of four arms and a stem, five white globes | 7.3 m | PCZ_LAMPS | M_STONE, M_LAMP globes | the lamps |
 
 ## 9. Open (photo check)
 
