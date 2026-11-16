@@ -1697,8 +1697,18 @@ func _build_world() -> void:
 	activities.rang = func(a: Activity) -> void:
 		if first10 != null and not a.pill_call and not a.is_job:
 			first10.friend_rang(a.tag)
-	_build_rave(data, world)
-	await LoadYield.tick("_build_rave")
+	# LEKTI's invites, Mati's calls and the raves' rigs (rave.gd wires itself); none with --no-traffic
+	# or --rave=0. Its way into the club's room (`_enter_club`) is main.gd's hook, set after the join,
+	# and so is the --rave=club / --rave=patio test start: the room is main.gd's.
+	rave = _join(Rave.new(), world) as Rave
+	if rave != null:
+		rave.enter_club = _enter_club
+		if flags.rave_flag in ["club", "patio"]:
+			get_tree().create_timer(1.0).timeout.connect(func() -> void:
+				_enter_club("SMOŁA", "SMOŁA")
+				if flags.rave_flag == "patio":
+					club.go_patio())
+	await LoadYield.tick("rave")
 	# Darek's calls, the meets, the raids and the drag (street_meet.gd wires itself); none with
 	# --no-traffic or --meet=0. START DRAG and the test jumps put the car with main.gd's own hook
 	# (`_place_car` also cuts the camera), set after the join.
@@ -3465,52 +3475,6 @@ func _boat_frame() -> void:
 
 # --- the secret raves ---------------------------------------------------------------------------
 
-## LEKTI's invites, Mati's calls and the raves' rigs (rave.gd). None with --no-traffic or --rave=0.
-func _build_rave(data: Dictionary, world: Node3D) -> void:
-	if traffic == null or graph == null or flags.rave_flag == "0":
-		return
-	rave = Rave.new()
-	rave.name = "Rave"
-	rave.hud = hud
-	rave.dialogue = dialogue
-	rave.wallet = wallet
-	rave.map = map
-	rave.graph = graph
-	rave.radio = radio
-	rave.city_sounds = city_sounds
-	rave.origin = data.get("origin", [52.234, 21.024])
-	rave.log_on = flags.rave_log
-	# `rave.autopilot` stays off: a test run does not answer Mati or the bouncer (it never did).
-	rave.auto = flags._rave_auto
-	rave.force = flags.rave_flag if flags.rave_flag in ["on", "day"] else ""
-	rave.vehicle = func() -> Array:
-		if flying:
-			return [heli.global_position, heli.speed() * 3.6, true]
-		return [car.global_position, car.vel.length() * 3.6, false]
-	rave.focus = func() -> Vector3: return cam_focus
-	rave.calendar = tod.local_clock
-	rave.enter_club = _enter_club
-	world.add_child(rave)
-	rave.setup(world)
-	activities.add(rave)  # the director says when Mati may ring (nothing else on: world_free)
-	if flags.rave_spot != "":
-		for i in rave.spots.size():
-			if String(rave.spots[i]["id"]) == flags.rave_spot:
-				rave.night_spot = i
-	if flags.rave_flag in ["club", "patio"]:
-		get_tree().create_timer(1.0).timeout.connect(func() -> void:
-			_enter_club("SMOŁA", "SMOŁA")
-			if flags.rave_flag == "patio":
-				club.go_patio())
-	if flags.rave_flag in ["call", "smola"]:
-		get_tree().create_timer(1.0).timeout.connect(func() -> void:
-			if flags.rave_flag == "smola":
-				rave.ring("smola")
-			else:
-				rave.tease()
-				rave.ring())
-
-
 ## Into the club's room (club.gd): the HUD aside, the car waiting (its process off), the camera
 ## on the room (`_update_camera`).
 func _enter_club(pl: String, en: String) -> void:
@@ -3739,6 +3703,7 @@ func _build_ctx() -> GameCtx:
 	_ctx.wallet = wallet
 	_ctx.map = map
 	_ctx.radio = radio
+	_ctx.city_sounds = city_sounds
 	_ctx.graph = graph
 	_ctx.traffic = traffic
 	_ctx.police = police
@@ -3752,6 +3717,7 @@ func _build_ctx() -> GameCtx:
 		return [car.global_position, car.vel.length() * 3.6, false, float(car.forward_speed)]
 	_ctx.hour = func() -> float: return float(tod.local_clock()["hour"])
 	_ctx.take_off = func() -> void: _take_off(Heli.CRUISE)
+	_ctx.focus = func() -> Vector3: return cam_focus
 	_ctx.focus_at = func(p: Vector3) -> void: cam_focus = p
 	return _ctx
 
