@@ -78,7 +78,7 @@ var _mq := 0
 
 ## Builds the mesh; `map` gives the ground (terrain_height: the square's floor inside the ring) and
 ## the sunken rings (map_builder.gd SUNKEN).
-func build() -> void:
+func build() -> void:  # a coroutine: frames pass between its parts under the title's loading bar (LoadYield)
 	for e: Dictionary in MapBuilderStatic.SUNKEN:
 		var key := str(e["key"])
 		if not key.begins_with("patelnia"):
@@ -96,14 +96,20 @@ func build() -> void:
 	for q: Array in Landmarks.PATELNIA_BARRELS:
 		_barrel_mouth(st, q)
 	_pasaz_front(st)
+	await LoadYield.tick("patelnia")
 	for c: Array in COURTS:
 		_court(st, c)
+	await LoadYield.tick("patelnia")
 	for i in BILLBOARDS.size():
 		_billboard(st, BILLBOARDS[i], i)
+	await LoadYield.tick("patelnia")
 	for m: Array in MURALS:
 		_mural(st, ring, int(m[0]), int(m[1]), str(m[2]))
+	await LoadYield.tick("patelnia")
 	_slope(st, ring)
+	await LoadYield.tick("patelnia")
 	_stairs(st)
+	await LoadYield.tick("patelnia")
 	_square_life(st, ring)
 	var mesh := st.commit()
 	tris = mesh.surface_get_array_len(0) / 3

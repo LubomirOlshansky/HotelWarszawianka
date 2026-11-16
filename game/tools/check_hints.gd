@@ -365,3 +365,22 @@ func _dev() -> void:
 	_expect(panel.dev_tap() and panel._tab == SettingsPanel.DEV_PAGE, "DEV: one tap opens it again in the same run")
 	vp.queue_free()
 	await process_frame
+	# --settings-tab=7 and =8 ask for a page past the tabs before the panel is built (main.gd's
+	# start): the panel must open on that page, not on the last tab.
+	for page: int in [SettingsPanel.TIPS_PAGE, SettingsPanel.DEV_PAGE]:
+		var early := SubViewport.new()
+		early.size = Vector2i(2532, 1170)
+		early.disable_3d = true
+		root.add_child(early)
+		var p2: Control = SettingsPanel.new()
+		p2.pt = 3.0
+		p2.set_tab(page)
+		early.add_child(p2)
+		p2.open({"controls": 1, "follow": true, "traffic": 1, "quality": 0, "auto": "High", "master": 1.0, "music": 1.0,
+				"effects": 1.0, "fps": 0, "weather": 0, "time": 0})
+		await process_frame
+		_expect(p2._tab == page and p2._pages[page].visible, "DEV: page %d asked for before the build opens on it" % page)
+		if page == SettingsPanel.DEV_PAGE:
+			_expect(p2.dev_on and p2._groups["quality"][SettingsPanel.QUALITY.size() - 1].visible, "DEV: asked for before the build, DEV is on")
+		early.queue_free()
+		await process_frame

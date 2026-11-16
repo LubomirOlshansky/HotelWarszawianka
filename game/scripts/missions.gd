@@ -119,7 +119,7 @@ func setup(map_node: Node3D, data := {}, world: Node3D = null, hud_layer: Canvas
 	var t0 := Time.get_ticks_msec()
 	places.collect_road_names(data["roads"])
 	await LoadYield.tick("missions roads")
-	places.find_roofs(data.get("landmarks", []))
+	await places.find_roofs(data.get("landmarks", []))
 	await LoadYield.tick("missions roofs")
 	places.find_peacock()
 	await LoadYield.tick("missions peacock")
