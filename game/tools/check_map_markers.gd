@@ -283,6 +283,15 @@ func _hud() -> void:
 		var fm_base := await _tris_full(hud, fm)
 		markers.put(MapMarkers.ACTIVE_TARGET, L.TARGET, Vector2(40, 30), Color.ORANGE, 0, "target")
 		var fm_target := await _tris_full(hud, fm)
+		# Step 4: with a road route on the HUD that ends at the target, the dots follow it (a detour
+		# north is longer than the straight line, so more dots); one that ends elsewhere is not used.
+		hud.set_minimap_route(PackedVector2Array([Vector2(10, 20), Vector2(10, -120), Vector2(40, -120), Vector2(40, 30)]), Color.ORANGE, "target")
+		var fm_road := await _tris_full(hud, fm)
+		hud.set_minimap_route(PackedVector2Array([Vector2(10, 20), Vector2(-300, 20)]), Color.ORANGE, "jobs")
+		var fm_elsewhere := await _tris_full(hud, fm)
+		hud.clear_minimap_route("jobs")
+		_expect(fm_road > fm_target and fm_elsewhere == fm_target,
+				"the full map's dots follow a road route that ends at the target (%d over %d straight), not one that ends elsewhere (%d)" % [fm_road, fm_target, fm_elsewhere])
 		markers.remove(MapMarkers.ACTIVE_TARGET)
 		var fm_gone := await _tris_full(hud, fm)
 		_expect(fm_base >= 0 and fm_target > fm_base and fm_gone == fm_base,

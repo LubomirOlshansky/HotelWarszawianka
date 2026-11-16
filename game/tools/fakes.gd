@@ -267,6 +267,24 @@ class Hud extends CanvasLayer:
 			route = PackedVector2Array()
 			route_owner = ""
 
+	## hud.gd's route and car reads (target_route.gd): the route now, its owner, and where the car is
+	## and heads on the map (set `car_at`, `heading` and `flying` in the check).
+	var car_at := Vector2.ZERO
+	var heading := Vector2.UP
+	var flying := false
+
+	func minimap_route() -> PackedVector2Array:
+		return route
+
+	func minimap_route_owner() -> String:
+		return route_owner
+
+	func minimap_car() -> Vector2:
+		return car_at
+
+	func minimap_heading() -> Vector2:
+		return heading
+
 	func hide_challenge() -> void:
 		challenge = ""
 		challenges_hidden += 1

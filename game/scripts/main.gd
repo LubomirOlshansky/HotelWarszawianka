@@ -2463,6 +2463,7 @@ func _build_side_jobs(data: Dictionary, world: Node3D) -> void:
 	jobs.map_data = data
 	add_child(jobs)
 	jobs.setup(world)
+	add_child(preload("res://scripts/target_route.gd").new(hud, graph))  # the road route to any target (TD-13)
 	if flags.solo_site != "":
 		jobs.clear_stands()  # a landmark alone (--solo): no kebab stand beside it
 	# --- loop 2d-1: Podwózka, the app-taxi side job (and the GPS moments of the app-taxis) ---
