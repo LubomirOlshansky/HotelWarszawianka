@@ -2,7 +2,7 @@
 
 ## Backlog
 - fixed: two lines from the same speaker showed at once (each line made a fresh anchor, so the old bubble was never replaced)
-- found: no bouncer portrait art yet (an initial on a disc is used)
+- found: only the phone shows the bouncer card and a clean frame-time number (PHONE-CHECK 18 and 19)
 
 ## Roadmap
 - ticked: "Dialogue readability"
