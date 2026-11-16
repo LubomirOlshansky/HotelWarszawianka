@@ -4600,6 +4600,14 @@ const DPB_AT := Vector2(-1166.0, 740.0)      ## inside the outline
 const DPB_WALL := Color("#e6d49e")           ## pale yellow plaster (photos)
 const DPB_ROOF := Color("#6c6a66")           ## grey roof, a default
 
+## Plebania parafii Narodzenia NMP (the presbytery of the Nativity church on Leszno, Wola): OSM building 10100,
+## `presbytery`, behind the Nativity church on Leszno, Wola. Its mass stays the map's block in a skin in the colours of
+## the Nativity of the Virgin Mary church on Leszno (`church_narodzenia`, NR_*): one Mapillary photo within 45 m faces it at a steep slant from 42 m (2022), too far and too slanted to read, so it is provisional.
+## Spec docs/landmarks/specs/plebania_leszno.md.
+const PLS_AT := Vector2(-1991.4, -975.4)
+const PLS_WALL := Color("#d49885")
+const PLS_ROOF := Color("#a3553f")
+
 ## The low house east of the Franciscan Sisters of the Family of Mary's convent (OSM building 10482,
 ## `religious`, unnamed, Wola), at the street corner beside the long banded house
 ## (`church_rodziny_maryi`, RM_*). Its mass stays the map's block in a skin: the convent's warm peach
