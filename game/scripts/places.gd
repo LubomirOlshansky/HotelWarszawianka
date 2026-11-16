@@ -49,6 +49,8 @@ const TABLE: Array[Dictionary] = [
 	{"key": "light_garden", "script": "res://scripts/light_garden.gd", "node": "LightGarden", "tris": 25000, "own": 1},
 	{"key": "pkin_hoardings", "script": "res://scripts/pkin_hoardings.gd", "node": "PkinHoardings", "tris": 6000, "own": 0},
 	{"key": "tamka", "script": "res://scripts/tamka.gd", "node": "Tamka", "tris": 138300, "own": 1},
+	{"key": "towarowa22_life", "script": "res://scripts/towarowa22_life.gd", "node": "Towarowa22Life", "tris": 20800, "own": 0,
+			"solo": ["towarowa22"]},
 ]
 
 ## Per place key: {"tris": triangles (poured and own), "own": draw items of its own, "ms": build ms}.
