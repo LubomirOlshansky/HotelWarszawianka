@@ -32,6 +32,7 @@ func _initialize() -> void:
 	_list()
 	_key()
 	_log()
+	_device()
 	_signals()
 	if _problems.is_empty():
 		print("check_stats: OK")
@@ -96,6 +97,14 @@ func _key() -> void:
 	g.close()
 	_expect(str(PlayStats.read_key(path).get("api_key", "")) == "phc_test", "a good key file was refused")
 	DirAccess.remove_absolute(path)
+
+
+func _device() -> void:
+	_expect(PlayStats.device_name("iPhone17,2") == "iphone_16_pro_max", "iPhone17,2 is not the 16 Pro Max")
+	_expect(PlayStats.device_name("iPhone99,1") == "iphone99.1", "an unknown iPhone code: %s" % PlayStats.device_name("iPhone99,1"))
+	_expect(PlayStats.device_name("SM-S918B") == "sm-s918b", "an Android model code: %s" % PlayStats.device_name("SM-S918B"))
+	_expect(PlayStats.device_name("A phone with a very long name that is no slug at all") == "", "a long model was sent")
+	_expect(not PlayStats.STRIPPED.has("$device_model") and PlayStats.STRIPPED.has("$locale"), "STRIPPED is not just the locale")
 
 
 func _log() -> void:

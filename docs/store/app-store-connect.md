@@ -74,7 +74,7 @@ Declare three data types, each **Not linked to the user**, **Not used for tracki
 | Identifiers → Device ID | the random install ID the PostHog SDK makes on the phone (no IDFA, no IDFV, no account) |
 
 The label then reads **Data Not Linked to You** (Usage Data, Diagnostics, Identifiers). PostHog's
-project discards the IP address on arrival; the game strips the device model and the language
+project discards the IP address on arrival; the game sends the phone's model code (not a unique ID) and strips the language
 list before sending. Settings → Dźwięk → "Anonimowa statystyka" turns it off. The website's beta
 form is the website's, not the app's, and the privacy page describes it separately.
 
