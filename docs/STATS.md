@@ -70,7 +70,13 @@ docs/store/play-console.md "Data safety". Android has `permissions/internet=true
 
 ## Reading the numbers
 
-PostHog web app (EU), or its free MCP server (`https://mcp.posthog.com/mcp`, only if F connects
+PostHog web app (EU), project "Around Warsaw" (id 351865): the dashboard "Around Warsaw: beta"
+has DAU, sessions (new vs resumed), minutes per session, the first-hour funnel (fresh start → stand → choice
+card → activity started → finished → guide done), D1/D7 retention, activities by kind and outcome, and
+fps by quality tier. The project filters internal and test accounts by default, session replay is off,
+IP discard is on, timezone Europe/Warsaw. No device model is sent, so fps is by `quality_tier`, not phone.
+The store forms for this are in docs/store/ (App Privacy: app-store-connect.md section 4; Data safety:
+play-console.md section 3). The project can also be read with its free MCP server (`https://mcp.posthog.com/mcp`, only if F connects
 it). Useful insights: DAU/WAU from `session_start`, retention (first `session_start` → any
 `session_start` on day 1/7), average `session_end.minutes_played`, a funnel over `guide_beat`,
 `activity_end` by `activity` and `how`, `fps_sample.avg_fps` by `quality_tier`.
