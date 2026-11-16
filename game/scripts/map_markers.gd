@@ -127,6 +127,11 @@ func target() -> Vector2:
 	return where(ACTIVE_TARGET)
 
 
+## The active target's colour (white: none).
+func target_colour() -> Color:
+	return (_marks[ACTIVE_TARGET]["colour"] as Color) if _marks.has(ACTIVE_TARGET) else Color.WHITE
+
+
 ## Takes mark `id` away; removing a mark that isn't there is not a write.
 func remove(id: String) -> void:
 	if not _marks.has(id):

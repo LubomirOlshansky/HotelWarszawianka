@@ -138,6 +138,9 @@
 # Beta values (2026-11-04): `delivery` runs game/tools/check_delivery.gd: the deliveries' minimap
 # route from the stands to 60 doors (and from the reverse lane), the heat's words, NASTĘPNE's
 # nearest stand and the route's owner rule (the committed centrum.json, headless, ~20 s).
+# TD-13 step 4: `targetroute` runs game/tools/check_target_route.gd: the road route to any target
+# (target_route.gd) on the real lane graph: one search per goal, a moving goal, another owner's
+# route winning, none in the air or far from roads (headless, ~5 s).
 # Loop couriers: `couriers` runs game/tools/check_couriers.gd: the Pędzik couriers waiting at the kebab
 # stands at night (1 or 2, none by day, the race's take), the kerb riders on the real lane graph (the
 # count in the band, on the kerb line, through the junctions), the swerve / hop on synthetic inputs and
@@ -1467,6 +1470,7 @@ for s in $want; do
 		mainline) check mainline '^main_line:' --script res://tools/check_main_line.gd ;;
 		chatter) check chatter '^check_chatter:' --script res://tools/check_chatter.gd ;;
 		markers) check markers '^check_map_markers:' --script res://tools/check_map_markers.gd ;;
+		targetroute) check targetroute '^check_target_route:' --script res://tools/check_target_route.gd ;;
 		messages) check messages '^check_messages:' --script res://tools/check_messages.gd ;;
 		endcard) check endcard '^end_card:' --script res://tools/check_end_card.gd ;;
 		# First hour step 6: the hints in play, the loading tips, the spotlight (no map).

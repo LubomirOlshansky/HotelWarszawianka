@@ -1203,7 +1203,11 @@ func _paint() -> void:
 		var tp := to_screen((targets["at"] as PackedVector2Array)[i])
 		var tc := Access.tint((targets["colour"] as PackedColorArray)[i])  # colour-safe (access.gd)
 		var inner_t := Rect2(Vector2.ZERO, _view()).grow(-24.0 * pt)
-		_dotted(to_screen(car), tp.clamp(inner_t.position, inner_t.end), tc)
+		var road := _route_to(tp)
+		if road.size() >= 2:
+			_dotted_path(road, Rect2(Vector2.ZERO, _view()), tc)  # by road (target_route.gd, TD-13 step 4)
+		else:
+			_dotted(to_screen(car), tp.clamp(inner_t.position, inner_t.end), tc)
 		hud.active_pin(tp.clamp(inner_t.position, inner_t.end), 2.0 if inner_t.has_point(tp) else 1.4, tc)
 	if quest_pick.get("at", Vector2.INF) != Vector2.INF:
 		hud.side_pin(to_screen(quest_pick["at"]), 1.9, Access.tint(quest_pick["colour"]))  # G12: the quest pin
@@ -1451,6 +1455,36 @@ func _say(lines: Array) -> void:
 
 ## A dotted line from `a` to `b` (px) in `colour`, a dark-rimmed square every 9 pt (the
 ## active quest's way on the full map; into the overlay's batch).
+## The HUD's road route (the activity's own or target_route.gd's) on the screen, from the car to the
+## target at `tp` (empty: none, or it doesn't end near the target: the straight line then).
+func _route_to(tp: Vector2) -> PackedVector2Array:
+	var pts: PackedVector2Array = hud.minimap_route() if hud != null and hud.has_method("minimap_route") else PackedVector2Array()
+	if pts.size() < 2 or to_screen(pts[pts.size() - 1]).distance_to(tp) > 40.0 * pt:
+		return PackedVector2Array()
+	var out := PackedVector2Array([to_screen(car)])
+	for p in pts:
+		out.append(to_screen(p))
+	return out
+
+
+## Dots along a polyline (screen points), one every 9 pt across its joins, only those inside `view`.
+func _dotted_path(pts: PackedVector2Array, view: Rect2, colour: Color) -> void:
+	var gap := 9.0 * pt
+	var half := 1.8 * pt
+	var u := gap
+	for i in pts.size() - 1:
+		var a := pts[i]
+		var b := pts[i + 1]
+		var len := a.distance_to(b)
+		while u < len:
+			var p := a.lerp(b, u / len)
+			if view.has_point(p):
+				hud._tri_rect(Rect2(p - Vector2.ONE * (half + 0.9 * pt), Vector2.ONE * (half + 0.9 * pt) * 2.0), hud.OUTLINE)
+				hud._tri_rect(Rect2(p - Vector2.ONE * half, Vector2.ONE * half * 2.0), colour)
+			u += gap
+		u -= len
+
+
 func _dotted(a: Vector2, b: Vector2, colour: Color) -> void:
 	var len := a.distance_to(b)
 	var gap := 9.0 * pt

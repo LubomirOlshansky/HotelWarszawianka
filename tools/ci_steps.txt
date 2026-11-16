@@ -201,6 +201,7 @@ tamka                quick
 tape                 quick
 tapers               quick
 tarasyscreen         quick
+targetroute          quick
 teleport             runs
 tenementtrim         quick
 tiers                quick

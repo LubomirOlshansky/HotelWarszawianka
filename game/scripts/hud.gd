@@ -2995,6 +2995,20 @@ func minimap_route() -> PackedVector2Array:
 	return _mini_route
 
 
+## Who drew the route now ("" for Podwózka's; target_route.gd steps aside for any other).
+func minimap_route_owner() -> String:
+	return _mini_route_owner
+
+
+## The car (or helicopter) on the map and its heading there, as `update_minimap` got them last.
+func minimap_car() -> Vector2:
+	return _mini_car
+
+
+func minimap_heading() -> Vector2:
+	return _car_dir.rotated(-_mini_yaw)
+
+
 ## A small square every 5 pt along the route, fixed to the map (they don't crawl as the car
 ## moves), only on the stretches within the minimap's reach; into the overlay's one triangle
 ## batch (loop 3g-1's _tri_*).
