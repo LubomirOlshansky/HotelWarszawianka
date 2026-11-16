@@ -61,7 +61,7 @@ const HALINA := "Pani Halina"
 const SLOIK := "Słoik z Radomia"
 const MIKE := "Mordor Mike"
 ## The plan's clock against the race as driven on clear roads (a share of the race).
-const CLOCK := 0.06
+const CLOCK := 0.075
 ## Out of the town's cars: the seconds lost against the delay owed (a share of it), and the
 ## seconds that may still be owed at the finish.
 const AWAY := 0.15
