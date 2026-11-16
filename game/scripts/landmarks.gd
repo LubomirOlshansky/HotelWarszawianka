@@ -186,6 +186,7 @@ const INFO := {
 	"plebania_zwycieskiej": ["Plebania parafii Matki Boskiej Zwycięskiej", "Plebania za ogrodzeniem, w kremowym tynku.", "The presbytery behind its railings, in cream plaster."],
 	"plebania_pallotynow": ["Plebania przy Skaryszewskiej", "Plebania pallotynów obok kaplicy Matki Boskiej Częstochowskiej.", "The Pallottines' presbytery beside the Our Lady of Częstochowa chapel."],
 	"pallotyni_dom": ["Dom pallotynów przy Skaryszewskiej", "Dom zakonny pallotynów za kościołem Chrystusa Króla.", "The Pallottine fathers' house behind the church of Christ the King."],
+	"plebania_zagorna": ["Plebania przy Zagórnej", "Dom parafii Matki Bożej Częstochowskiej, w szarym tynku jak kościół.", "Our Lady of Częstochowa's parish house, in the church's grey render."],
 	"dom_parafialny_barbara": ["Dom Parafialny im. Prymasa Tysiąclecia", "Dom parafii św. Barbary, w żółtym tynku przy Świętej Barbary.", "St Barbara's parish house, in yellow plaster on Świętej Barbary."],
 	"szarytki_zaulek": ["Domy Szarytek przy zaułku", "Dwa domy sióstr miłosierdzia za klasztorem na Tamce.", "Two houses of the Sisters of Charity behind their convent on Tamka."],
 	"faustyna_klasztor": ["Klasztor przy sanktuarium św. Faustyny", "Domy Zgromadzenia Sióstr Matki Bożej Miłosierdzia przy Żytniej.", "The Sisters of Our Lady of Mercy's houses round St Faustina's shrine."],
@@ -1402,6 +1403,12 @@ func _find_sites() -> void:
 		_add_site("pallotyni_dom", [pdm])
 		if not sites.is_empty() and sites[-1]["key"] == "pallotyni_dom":
 			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": PDM_WALL, "roof": PDM_ROOF}
+	# Our Lady of Częstochowa's parish house on Zagórna (2026-11-15): its mass in the church's grey render.
+	var pzg := _outline_at(PZG_AT)
+	if pzg.size() >= 3:
+		_add_site("plebania_zagorna", [pzg])
+		if not sites.is_empty() and sites[-1]["key"] == "plebania_zagorna":
+			sites[-1]["skin"] = {"mode": M_MONUMENT, "wall": PZG_WALL, "roof": PZG_ROOF}
 	# The University campus's escarpment wall and furniture (2026-11-15): quiet, so here.
 	_find_uw_kampus_quiet()
 	# The formal garden before Pałac Krasińskich (F's photos, 2026-11-06).
@@ -1936,6 +1943,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 			"szarytki_zaulek":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin
 			"dom_parafialny_barbara":
+				_mark_zone(s)  # the mass stays LoD2's, in its skin
+			"plebania_zagorna":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin
 			"pallotyni_dom":
 				_mark_zone(s)  # the mass stays LoD2's, in its skin

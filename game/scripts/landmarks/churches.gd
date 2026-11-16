@@ -4600,6 +4600,16 @@ const DPB_AT := Vector2(-1166.0, 740.0)      ## inside the outline
 const DPB_WALL := Color("#e6d49e")           ## pale yellow plaster (photos)
 const DPB_ROOF := Color("#6c6a66")           ## grey roof, a default
 
+## The parish house of Our Lady of Częstochowa on Zagórna (OSM building 2197, `presbytery`,
+## unnamed, Powiśle): the block joined to the back of the 1960s church (`church_czestochowska`, MC_*).
+## Its mass stays the map's block in a skin: the church's grey render (MC_WALL) from two Mapillary
+## photos at its south-west corner (2026, refs/churches/plebania_2197, reference only, never shipped),
+## which show the grey wall with gold window frames, the gilt Mass-times cross and the stair down;
+## the roof is a grey default. Spec docs/landmarks/specs/plebania_zagorna.md.
+const PZG_AT := Vector2(1145.0, 846.0)
+const PZG_WALL := Color("#c8c5be")
+const PZG_ROOF := Color("#6c6a66")
+
 ## The Pallottine fathers' house on Skaryszewska (OSM building 3049, `monastery`, unnamed, Praga):
 ## the tall block at the north corner of the Christ the King church's plot (`church_chrystusa_krola`,
 ## CK_*). Its mass stays the map's block (17.5 m) in a skin in the parish wings' plaster and grey roof
