@@ -99,6 +99,7 @@ It replaces the phone lines scattered over `QUESTIONS.md`, the plans and the thr
 | 15a | Torwar from Łazienkowska and from the stadium's corner, by day and at night | the white portico reads as twelve columns under a deep entablature with the curved parapet over the middle; TORWAR reads grey on white by day and glows at night; the lattice panels on the long sides read as panels, not windows | Torwar photo build |
 | 15b | NBP's branch on Plac Powstańców from the square, by day and at night | the three dark bands read as leaning panels over the square, not one flat wall; the glass ground floor sits back up the wide steps; NBP and the eagle read on the white wall; the stair slot reads as a glass strip to the roof | NBP photo build |
 | 15c | Dom Chłopa from Plac Powstańców, by day and at night | the roof edge reads as a row of shallow arcs, not noise; GROMADKA reads green on the roof and glows at night; HOTEL reads down the north-west corner | Dom Chłopa photo pass |
+| 15d | Żyletkowiec from Marszałkowska, by day and at night | the white fins read as a row of blades with shadow between them, not a striped texture; the dark roof reads as a lid overhanging every front; the piers read as a row of posts along the ground floor; the lit windows still show between the fins at night | Żyletkowiec photo pass |
 
 ## 5. The frame (3 min)
 

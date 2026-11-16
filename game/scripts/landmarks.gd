@@ -541,6 +541,9 @@ const INFO := {
 	"dom_chlopa": ["Dom Chłopa",
 			"Hotel na placu Powstańców z lat 1958-61, zbudowany dla chłopów przyjeżdżających do stolicy. Falisty gzyms na dachu, zielony neon, kasyno na parterze.",
 			"The hotel on Plac Powstańców of 1958-61, built for farmers visiting the capital. A wavy roof edge, a green neon on top, a casino on the ground floor."],
+	"zyletkowiec": ["Żyletkowiec",
+			"Biurowiec przy Marszałkowskiej z 1952 roku. Białe żyletki na każdej osi elewacji robią pasy światła i cienia, a ciemny dach wystaje nad ulicę.",
+			"The 1952 office block on Marszałkowska. A white razor-blade fin on every bay makes bands of light and shadow, and a dark roof overhangs the street."],
 	"rotunda_dynasy": ["Rotunda na Dynasach",
 			"Okrągły dom na miejscu dawnej panoramy na Dynasach: ceglany parter, białe ramy, szkło.",
 			"A round house where the old panorama stood on Dynasy: a brick base, white frames, glass."],
@@ -1661,6 +1664,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_nbp(s)  # the whole branch (SKINS entry with `model`: it replaces LoD2)
 			"dom_chlopa":
 				_build_dom_chlopa(s)  # over its street block: the wavy roof edge and the signs
+			"zyletkowiec":
+				_build_zyletkowiec(s)  # over its street block: the fins, the piers, the roof lid
 			"elektrownia":
 				_build_elektrownia(s)
 			"rotunda_dynasy":

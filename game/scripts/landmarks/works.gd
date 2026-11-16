@@ -124,6 +124,13 @@ func _find_works() -> void:
 		_add_site("dom_chlopa", [dch])
 		if sites[-1]["key"] == "dom_chlopa":
 			sites[-1]["ring"] = dch
+	# Żyletkowiec (Marszałkowska 82): its outline (the street block blk_30241286 draws the mass,
+	# _build_zyletkowiec the fins, the piers and the roof lid)
+	var zyl := _landmark("Żyletkowiec")
+	if zyl.size() >= 3:
+		_add_site("zyletkowiec", [zyl])
+		if sites[-1]["key"] == "zyletkowiec":
+			sites[-1]["ring"] = zyl
 	var rdyn := _landmark("Rotunda na Dynasach")
 	if rdyn.size() >= 3:
 		_add_site("rotunda_dynasy", [rdyn])
@@ -1180,6 +1187,86 @@ func _dch_word(word: String, u0: float, pu: float, py: float, y_top: float, v: f
 			rows[row - PixelFont.BODY] = []
 		(rows[row - PixelFont.BODY] as Array).append(x))
 	_nbp_pixels(rows, u0, pu, py, y_top, v, col)
+
+
+## Żyletkowiec (Marszałkowska 82, 1952; OSM way 30241286; 2026-11-16, spec
+## docs/landmarks/specs/zyletkowiec.md; photos: F's T15 set). The U-shaped block round its
+## courtyard, open to the north, is the street block that already stood on the outline
+## (blk_30241286: its walls, windows, thin pilasters, the dark glass ground floor and the coping).
+## This site adds what makes it the "razor blade" building: a deep white fin over each of the
+## block's pilasters on every street front, from the first floor to the roof; a granite-grey pier
+## under each fin through the ground floor (the photos' arcade); and the
+## dark roof lid that overhangs every front, its thin edge, its pale underside and its shallow
+## slope up to a flat top.
+## The fins sit exactly over the block's pilasters, measured from the block (edge index of the
+## outline, the first pilaster's centre along the edge, the pitch, the count); the street fronts
+## only, not the courtyard.
+const ZYL_FINS := [[0, 2.310, 2.3170, 24], [1, 2.050, 2.3036, 34], [3, 2.380, 2.4350, 3],
+		[9, 2.450, 2.4025, 3], [10, 2.470, 2.4050, 2], [11, 2.070, 2.2959, 34]]
+const ZYL_TOP := 26.1        # the block's coping, over its ground
+const ZYL_GF := 3.7          # the top of the block's ground floor
+const ZYL_EAVE := 1.6        # how far the lid overhangs the wall line
+const ZYL_FIN := Color("#f2f2ee")
+const ZYL_PIER := Color("#9a9c9b")
+const ZYL_EDGE := Color("#4a4f53")
+const ZYL_SLOPE := Color("#6f7478")
+const ZYL_ROOF := Color("#7c8185")
+const ZYL_SOFFIT := Color("#d6d6d1")
+
+
+func _build_zyletkowiec(site: Dictionary) -> void:
+	var ring: PackedVector2Array = site["ring"]
+	_g = _ground_under(ring)
+	var g := _g
+	_mode = M_STONE
+	var n := ring.size()
+	# --- the fins and the piers under them, in each street front's own frame (u along the
+	# edge, v out of the wall line)
+	for f: Array in ZYL_FINS:
+		var k: int = f[0]
+		if k >= n:
+			continue
+		var p := ring[k]
+		var q := ring[(k + 1) % n]
+		_o = p
+		_a = (q - p).normalized()
+		_b = _out(ring, p, q)
+		for i: int in f[3]:
+			var c: float = float(f[1]) + float(f[2]) * float(i)
+			# the pier, granite grey, up to the ground floor's top
+			_ubox(c - 0.25, c + 0.25, -0.1, 1.0, g - 0.3, g + ZYL_GF, ZYL_PIER)
+			# the fin, up into the lid
+			_ubox(c - 0.18, c + 0.18, -0.1, 0.95, g + ZYL_GF, g + ZYL_TOP, ZYL_FIN)
+	# --- the lid: a thin dark edge round the overhang, a pale underside, a shallow slope up to
+	# a flat top
+	var eave := _inset_ring(ring, -ZYL_EAVE)
+	var crest := _inset_ring(ring, 1.5)
+	var y0 := g + ZYL_TOP - 0.2
+	var y1 := g + ZYL_TOP + 0.2
+	var y2 := g + ZYL_TOP + 0.8
+	for k in n:
+		var a := eave[k]
+		var b := eave[(k + 1) % n]
+		var out := _out(eave, a, b)
+		_quad(Vector3(a.x, y0, a.y), Vector3(b.x, y0, b.y), Vector3(b.x, y1, b.y), Vector3(a.x, y1, a.y),
+				Vector3(out.x, 0.0, out.y), ZYL_EDGE)
+		var ca := crest[k]
+		var cb := crest[(k + 1) % n]
+		var p0 := Vector3(a.x, y1, a.y)
+		var p1 := Vector3(b.x, y1, b.y)
+		var p3 := Vector3(ca.x, y2, ca.y)
+		var nrm := (p1 - p0).cross(p3 - p0).normalized()
+		if nrm.y < 0.0:
+			nrm = -nrm
+		_quad(p0, p1, Vector3(cb.x, y2, cb.y), p3, nrm, ZYL_SLOPE)
+	var idx := Geometry2D.triangulate_polygon(eave)
+	for t in range(0, idx.size(), 3):
+		var a := eave[idx[t]]
+		var b := eave[idx[t + 1]]
+		var c := eave[idx[t + 2]]
+		_tri(Vector3(a.x, y0, a.y), Vector3(b.x, y0, b.y), Vector3(c.x, y0, c.y), Vector3.DOWN, ZYL_SOFFIT,
+				Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
+	_cap(crest, y2, ZYL_ROOF)
 
 
 ## Elektrownia Powiśle, the whole complex (2026-11-13, F: "like in real life, with the fronts", and
