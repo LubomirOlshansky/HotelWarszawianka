@@ -76,6 +76,7 @@ ground               ground    slow
 grounded             quick
 handling             quick
 heights              quick
+heightthreads        smoke
 heli                 local     slow
 heliview             quick
 hud                  quick
