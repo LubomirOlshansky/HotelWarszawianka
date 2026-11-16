@@ -75,6 +75,9 @@
 # `finite` runs game/tools/check_finite.gd (the NaN car, 2026-11-02): every map height, lane and
 # junction curve the car and the traffic read is a number, the car's own step stays finite, and a
 # NaN written into its stick, steering, pedal or position is dropped or put back (~2 min, map index).
+# `heightthreads` runs game/tools/check_height_threads.gd (the NaN car, 2026-11-16): the map's
+# heights read on the main thread give the same number while another thread reads heights and
+# builds sectors, as the runtime city's streamer does (~40 s, map index).
 # `tiers` and `governor` (loop G1): the device tiers and the pixel image's size rule, and the
 # frame governor's rules on scripted frames. `shaderbudget` (2026-11-08): every spatial shader
 # under the Adreno 6xx driver's control-flow limit (check_shader_budget.gd, source only). `heliview` (GAMEPLAY_PLAN 3.1): the helicopter's framing
@@ -1299,6 +1302,7 @@ for s in $want; do
 		stuckspots-prebuilt) skip_prebuilt stuckspots-prebuilt || check stuckspots-prebuilt '^check_stuck_spots:' --fixed-fps 60 --script res://tools/check_stuck_spots.gd -- --prebuilt ;;
 		oldtowndrive) check oldtowndrive '^check_old_town_drive:' --fixed-fps 60 --script res://tools/check_old_town_drive.gd ;;
 		finite) check finite '^check_finite:' --fixed-fps 60 --script res://tools/check_finite.gd ;;
+		heightthreads) check heightthreads '^check_height_threads:' --script res://tools/check_height_threads.gd ;;
 		steering) check steering 'check_steering:' --fixed-fps 60 --script res://tools/check_steering.gd ;;
 		colliderules) check colliderules '^check_collide_rules:' --fixed-fps 60 --script res://tools/check_collide_rules.gd ;;
 		stats) check stats '^check_stats:' --script res://tools/check_stats.gd ;;
@@ -1453,6 +1457,8 @@ for s in $want; do
 		markers) check markers '^check_map_markers:' --script res://tools/check_map_markers.gd ;;
 		messages) check messages '^check_messages:' --script res://tools/check_messages.gd ;;
 		endcard) check endcard '^end_card:' --script res://tools/check_end_card.gd ;;
+		# First hour step 6: the hints in play, the loading tips, the spotlight (no map).
+		hints) check hints '^check_hints:' --script res://tools/check_hints.gd ;;
 		opening) check opening '^opening:' --script res://tools/check_opening.gd ;;
 		life-soak) life_soak ;;
 		# Loop 2d-1: Podwózka's star and pay tables, the streak and the cancel rules, its lines.
