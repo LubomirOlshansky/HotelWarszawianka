@@ -536,6 +536,9 @@ const INFO := {
 	"nbp": ["NBP, Oddział Okręgowy",
 			"Oddział Narodowego Banku Polskiego przy placu Powstańców: długi dom w ciemnych, pochylonych blachach, szklany parter na tarasie, szerokie granitowe schody. Tu pieniądze śpią, zanim pójdą w miasto.",
 			"The National Bank's Warsaw branch on Plac Powstańców: a long block in dark, leaning metal panels, a glass ground floor on a terrace, a wide flight of granite steps. The money sleeps here before it goes out into the city."],
+	"dom_chlopa": ["Dom Chłopa",
+			"Hotel na placu Powstańców z lat 1958-61, zbudowany dla chłopów przyjeżdżających do stolicy. Falisty gzyms na dachu, zielony neon, kasyno na parterze.",
+			"The hotel on Plac Powstańców of 1958-61, built for farmers visiting the capital. A wavy roof edge, a green neon on top, a casino on the ground floor."],
 	"rotunda_dynasy": ["Rotunda na Dynasach",
 			"Okrągły dom na miejscu dawnej panoramy na Dynasach: ceglany parter, białe ramy, szkło.",
 			"A round house where the old panorama stood on Dynasy: a brick base, white frames, glass."],
@@ -1642,6 +1645,8 @@ func build(surface, near := Rect2(), only := "") -> void:
 				_build_torwar(s)
 			"nbp":
 				_build_nbp(s)  # the whole branch (SKINS entry with `model`: it replaces LoD2)
+			"dom_chlopa":
+				_build_dom_chlopa(s)  # over its street block: the wavy roof edge and the signs
 			"elektrownia":
 				_build_elektrownia(s)
 			"rotunda_dynasy":
