@@ -33,7 +33,7 @@ func _initialize() -> void:
 			and fresh.fps == 60 and fresh.style == 0 and not fresh.vhs and not fresh.zone_cap and fresh.handling == 0 and is_equal_approx(fresh.sensitivity, 0.5) \
 			and not fresh.text_large and not fresh.calm and not fresh.color_safe and fresh.vibration and fresh.stop_assist \
 			and not fresh.left_handed and fresh.lane_assist and fresh.pads == Settings.PADS_SLIDER and fresh.view == 80.0 and fresh.pitch == 30.0 \
-			and fresh.collide == 0 and not fresh.soft_fences
+			and fresh.collide == Settings.DEFAULT_COLLIDE and fresh.soft_fences == Settings.DEFAULT_SOFT
 	print("defaults from a missing file: %s (%s)" % ["OK" if defaults else "WRONG", fresh.summary()])
 	ok = ok and defaults
 
@@ -105,8 +105,8 @@ func _initialize() -> void:
 	a.grade = 1  # Neon by choice (Warsaw is the default, F 2026-11-15)
 	a.zone_cap = true
 	a.handling = 1
-	a.collide = 2  # settings rows (2026-11-14): mid, and the fences breakable (off is the default)
-	a.soft_fences = true
+	a.collide = 3  # firm and hard fences by choice (mid and breakable are the defaults since 2026-11-16) survive
+	a.soft_fences = false
 	a.sensitivity = 0.8
 	a.text_large = true
 	a.calm = true
@@ -123,7 +123,7 @@ func _initialize() -> void:
 	b.path = SCRATCH
 	b.load_file()
 	var same := a.summary() == b.summary() and b.classic_follow == a.classic_follow and b.view == 40.0 and b.pitch == 50.0 \
-			and not b.lane_assist and b.pads == Settings.PADS_ARROWS and b.collide == 2 and b.soft_fences and b.grade == 1
+			and not b.lane_assist and b.pads == Settings.PADS_ARROWS and b.collide == 3 and not b.soft_fences and b.grade == 1
 	# F 2026-11-13: a save from before the arrows (lane assist off, no `lane_assist_default`, no
 	# `pads`) loads with the lane assist on; F 2026-11-14: and the slider.
 	var cfg_la := ConfigFile.new()
@@ -161,6 +161,8 @@ func _initialize() -> void:
 	# Settings rows (2026-11-14): a hand-edited collision preset out of range is clamped.
 	var cfg_c := ConfigFile.new()
 	cfg_c.set_value("game", "collide", 9)
+	cfg_c.set_value("game", "soft_fences", false)
+	cfg_c.set_value("game", "collide_default", 1)
 	cfg_c.save(SCRATCH_OLD)
 	var sc := Settings.new()
 	sc.path = SCRATCH_OLD
@@ -172,6 +174,19 @@ func _initialize() -> void:
 	print("collision preset from a hand-edited file: %s (%d, fences %s)" % ["OK" if collide_ok else "WRONG", sc.collide,
 			"breakable" if sc.soft_fences else "hard"])
 	ok = ok and collide_ok
+	# F 2026-11-16 (TestFlight build 12): a file from before (v1 and hard fences saved, no
+	# `collide_default`) loads with mid and breakable fences, once.
+	var cfg_cd := ConfigFile.new()
+	cfg_cd.set_value("game", "collide", 0)
+	cfg_cd.set_value("game", "soft_fences", false)
+	cfg_cd.save(SCRATCH_OLD)
+	var sd := Settings.new()
+	sd.path = SCRATCH_OLD
+	sd.load_file()
+	var migrate_ok := sd.collide == Settings.DEFAULT_COLLIDE and sd.soft_fences == Settings.DEFAULT_SOFT
+	print("older file gets the build 12 defaults: %s (%d, fences %s)" % ["OK" if migrate_ok else "WRONG", sd.collide,
+			"breakable" if sd.soft_fences else "hard"])
+	ok = ok and migrate_ok
 	print("round trip: %s\n  saved  %s\n  loaded %s" % ["OK" if same else "DIFFERENT", a.summary(), b.summary()])
 	ok = ok and same
 
