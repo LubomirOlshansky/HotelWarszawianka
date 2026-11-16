@@ -77,6 +77,7 @@ func build() -> void:
 		_bollard(st, Vector3(p.x, FLOOR, p.y))
 	_gates(st)
 	_defilad_sign(st)
+	_powstancow_sign(st)
 	pour(st.commit(), true, "CentralnyRampProps")
 
 
@@ -146,6 +147,47 @@ func _defilad_sign(st: SurfaceTool) -> void:
 	Props.obox(st, bc + out * 0.01, b, Vector3(1.0, 0.95, 0.02), WHITE, Models.LIT_SIGN)
 	PixelFont.add_quads(st, "24H", bc + right * -0.28 + Vector3.UP * 0.34 + out * 0.03, right, Vector3.DOWN, 0.03, BOARD_DARK, Models.FIXED)
 	PixelFont.add_quads(st, "7DNI", bc + right * -0.32 + Vector3.UP * 0.02 + out * 0.03, right, Vector3.DOWN, 0.03, BOARD_DARK, Models.FIXED)
+	count += 1
+
+
+## Plac Powstańców Warszawy's car park ramp (map_builder.gd SUNKEN `powstancow_ramp`, F's photos
+## 2026-11-16): over the mouth in the ramp's south end wall a long dark board read from up the
+## ramp, a no-entry disc and two round limit signs at its left, WJAZD in white in the middle, the
+## free places in green at its right end (the count is the photos': 235). Its foot sits on the
+## mouth's hood (map_builder MOUTH_OPEN 2.4 + 0.45 over the floor at the mouth).
+const POW_MOUTH := Vector2(-717.6, -161.4)
+const POW_IN := Vector2(0.2835, 0.959)
+const POW_BOARD := Vector2(5.6, 0.8)
+const POW_LED := Color("#3fe07a")
+
+
+func _powstancow_sign(st: SurfaceTool) -> void:
+	var y: float = map.ground_height(POW_MOUTH.x, POW_MOUTH.y)
+	# The board's -z face looks up the ramp (against POW_IN), its back on the end wall.
+	var out2 := -POW_IN.normalized()
+	var b := Basis(Vector3.UP, atan2(-out2.x, -out2.y))
+	var right: Vector3 = b * Vector3(-1, 0, 0)
+	var out: Vector3 = b * Vector3(0, 0, -1)
+	var c2 := POW_MOUTH - out2 * 0.05
+	var centre := Vector3(c2.x, y + 2.95 + POW_BOARD.y * 0.5, c2.y)
+	Props.obox(st, centre, b, Vector3(POW_BOARD.x, POW_BOARD.y, 0.12), BOARD_DARK)
+	# two dark posts at its ends, down the side walls to the floor (the hood under it is the
+	# map's, so on its own the board would hang in the air)
+	for sgn in [-1.0, 1.0]:
+		Props.obox(st, Vector3(c2.x, y + 1.475, c2.y) + right * (sgn * (POW_BOARD.x * 0.5 - 0.08)), b,
+				Vector3(0.14, 2.95, 0.08), BOARD_DARK)
+	var tl: Vector3 = centre + right * (-POW_BOARD.x * 0.5) + Vector3.UP * (POW_BOARD.y * 0.5) + out * 0.07
+	# the no-entry disc (red, a white bar) and two white limit discs with red rims; every face 3 cm
+	# or more off the one behind it (closer flickers)
+	var d0: Vector3 = tl + right * 0.45 + Vector3.DOWN * 0.4
+	Props.obox(st, d0, b, Vector3(0.5, 0.5, 0.04), RED, Models.LIT_SIGN)
+	Props.obox(st, d0 + out * 0.045, b, Vector3(0.34, 0.09, 0.02), WHITE, Models.LIT_SIGN)
+	for k in 2:
+		var dk: Vector3 = tl + right * (1.05 + 0.55 * k) + Vector3.DOWN * 0.4
+		Props.obox(st, dk, b, Vector3(0.46, 0.46, 0.04), RED, Models.LIT_SIGN)
+		Props.obox(st, dk + out * 0.045, b, Vector3(0.32, 0.32, 0.02), WHITE, Models.LIT_SIGN)
+	PixelFont.add_quads(st, "WJAZD", tl + right * 2.05 + Vector3.DOWN * 0.18 + out * 0.035, right, Vector3.DOWN, 0.075, WHITE, Models.LIT_SIGN)
+	PixelFont.add_quads(st, "235", tl + right * 4.6 + Vector3.DOWN * 0.26 + out * 0.035, right, Vector3.DOWN, 0.045, POW_LED, Models.LIT_SIGN)
 	count += 1
 
 
