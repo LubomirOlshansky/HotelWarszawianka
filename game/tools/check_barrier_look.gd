@@ -21,7 +21,8 @@ extends SceneTree
 ##     and the very collider faces and soft list typed makes; its panel pieces are cut at every 2 m
 ##     of the line's run and at its corners, each with its panel index (soft_things.gd's), its
 ##     row, its run and its seed, the soft line's first instance and count in its tile's meta;
-##     under classic and typed no piece is made;
+##     under classic and typed no piece is made; the whole city's build (no sector) makes its
+##     `Panels_i_j` node with the pieces and the panel material;
 ##   7 W4: the whole map under panels on the flat map: the collider faces per class are typed's,
 ##     face for face (the cars meet the same fences), every line of a panel row is drawn as
 ##     panels and none of another; the pieces are printed;
@@ -325,6 +326,21 @@ func _panels(map: Node3D) -> void:
 	var lp := _build(map, [lawn], &"panels")
 	if lt[0] != lp[0] or lt[1] != lp[1] or not (b.panel_tiles as Dictionary).is_empty():
 		problems.append("6 low_lawn: typed %d triangles, panels %d (and %d tiles of pieces)" % [lt[0], lp[0], (b.panel_tiles as Dictionary).size()])
+	# The node as the whole city's build makes it (map_builder.gd `build` makes the shared things
+	# later, at the trees, so `_build_panels` makes them itself): Panels_5_5, the pieces, the material.
+	map._in_sector = false
+	_build(map, [_line("fence", p, {"ty": "bars_black", "sc": "H"})], &"panels")
+	map._out = map
+	map._build_panels()
+	var node := map.get_node_or_null("Panels_5_5") as MultiMeshInstance3D
+	if node == null or node.multimesh.instance_count != want_runs.size() or node.material_override != map.panel_material \
+			or map.panel_material == null:
+		problems.append("6 the whole city's Panels_5_5: %s" % ("missing" if node == null else "%d pieces, material %s" % [
+				node.multimesh.instance_count, node.material_override]))
+	if node != null:
+		map.remove_child(node)
+		node.free()
+	map._out = null
 	map._in_sector = false
 	map._sector = Vector2i.ZERO
 

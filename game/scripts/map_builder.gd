@@ -10439,9 +10439,13 @@ static func panel_box() -> ArrayMesh:
 ## not recompute them), no shadow, physics interpolation off (a static node). The tile's
 ## `panels` meta (per soft line its stable id, first instance and pieces, every instance's panel
 ## index: soft_things.gd's panels, for W6's broken looks) on the sector's root, and on the node
-## itself when the whole city is built at once.
+## itself when the whole city is built at once (`build` makes the shared things later, at the
+## trees, so they are made here first when there are pieces; nothing changes under the other looks).
 func _build_panels() -> void:
 	var tiles: Dictionary = barriers.panel_tiles
+	if tiles.is_empty():
+		return
+	_make_shared()
 	for key: Vector2i in tiles:
 		var t = tiles[key]
 		var n: int = t.buf.size() / CityBarriers.PANEL_FLOATS
