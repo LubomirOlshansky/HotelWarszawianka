@@ -4927,21 +4927,44 @@ func _t22_rect(r: Array, grow := 0.0) -> PackedVector2Array:
 
 
 ## Ground over a rect of the frame that follows the terrain (the plot falls about a metre or two):
-## 10 m cells, each corner `dy` over the ground there.
+## 10 m cells, each corner `dy` over the ground there. A cell the terrain's own triangles (10 m
+## cells in the world frame, not this rotated one) bend away from its flat quad by more than 2 cm
+## is cut in four, down to 1.25 m: the quads used to sag under the OpenStreetMap `construction`
+## earth and the brown poked through the paving and the lawn in patches (F, 2026-11-16).
 func _t22_ground(r: Array, dy: float, col: Color) -> void:
 	var nu := maxi(1, ceili((float(r[1]) - float(r[0])) / 10.0))
 	var nv := maxi(1, ceili((float(r[3]) - float(r[2])) / 10.0))
 	for i in nu:
 		for j in nv:
-			var u0: float = lerpf(r[0], r[1], float(i) / nu)
-			var u1: float = lerpf(r[0], r[1], float(i + 1) / nu)
-			var v0: float = lerpf(r[2], r[3], float(j) / nv)
-			var v1: float = lerpf(r[2], r[3], float(j + 1) / nv)
-			var q: Array[Vector3] = []
-			for p: Vector2 in [_w(u0, v0), _w(u1, v0), _w(u1, v1), _w(u0, v1)]:
-				q.append(Vector3(p.x, map.terrain_height(p.x, p.y) + dy, p.y))
-			_tri(q[0], q[1], q[2], Vector3.UP, col, Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
-			_tri(q[0], q[2], q[3], Vector3.UP, col, Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
+			_t22_cell(lerpf(r[0], r[1], float(i) / nu), lerpf(r[0], r[1], float(i + 1) / nu),
+					lerpf(r[2], r[3], float(j) / nv), lerpf(r[2], r[3], float(j + 1) / nv), dy, col, 0)
+
+
+func _t22_cell(u0: float, u1: float, v0: float, v1: float, dy: float, col: Color, depth: int) -> void:
+	var c: Array[Vector2] = [_w(u0, v0), _w(u1, v0), _w(u1, v1), _w(u0, v1)]
+	var hs: Array[float] = []
+	for p: Vector2 in c:
+		hs.append(map.terrain_height(p.x, p.y))
+	if depth < 3:
+		var worst := 0.0
+		for t: Vector2 in [Vector2(0.5, 0.5), Vector2(0.25, 0.25), Vector2(0.75, 0.25), Vector2(0.25, 0.75),
+				Vector2(0.75, 0.75), Vector2(0.5, 0.0), Vector2(1.0, 0.5), Vector2(0.5, 1.0), Vector2(0.0, 0.5)]:
+			var p := _w(lerpf(u0, u1, t.x), lerpf(v0, v1, t.y))
+			var flat := lerpf(lerpf(hs[0], hs[1], t.x), lerpf(hs[3], hs[2], t.x), t.y)
+			worst = maxf(worst, absf(map.terrain_height(p.x, p.y) - flat))
+		if worst > 0.02:
+			var um := (u0 + u1) * 0.5
+			var vm := (v0 + v1) * 0.5
+			_t22_cell(u0, um, v0, vm, dy, col, depth + 1)
+			_t22_cell(um, u1, v0, vm, dy, col, depth + 1)
+			_t22_cell(um, u1, vm, v1, dy, col, depth + 1)
+			_t22_cell(u0, um, vm, v1, dy, col, depth + 1)
+			return
+	var q: Array[Vector3] = []
+	for k in 4:
+		q.append(Vector3(c[k].x, hs[k] + dy, c[k].y))
+	_tri(q[0], q[1], q[2], Vector3.UP, col, Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
+	_tri(q[0], q[2], q[3], Vector3.UP, col, Vector2(-1, -1), Vector2(-1, -1), Vector2(-1, -1), -1.0)
 
 
 func _find_towarowa22() -> void:
@@ -4994,11 +5017,12 @@ func _build_towarowa22(_site: Dictionary) -> void:
 	# quarter's light paving where the building site's bare ground was.
 	_no_roof = true
 	_mode = M_STONE
-	_t22_ground([10.0, 256.0, 8.0, 95.0], 0.04, Color("#cfc6b6"))
-	_t22_ground([100.0, 290.0, 106.0, 222.0], 0.04, Color("#cfc6b6"))
-	_t22_ground([122.0, 211.0, 222.0, 280.0], 0.04, Color("#cfc6b6"))
-	_t22_ground([97.0, 282.0, 95.0, 106.0], 0.07, T22_PAVING)
-	_t22_ground([102.0, 108.0, 136.0, 222.0], 0.11, T22_PAVING)
+	_t22_ground([0.0, 260.0, 0.0, 95.0], 0.15, Color("#cfc6b6"))
+	_t22_ground([88.0, 292.0, 100.0, 222.0], 0.15, Color("#cfc6b6"))
+	_t22_ground([122.0, 211.0, 222.0, 280.0], 0.15, Color("#cfc6b6"))
+	_t22_ground([8.0, 134.0, 212.0, 310.0], 0.15, Color("#cfc6b6"))
+	_t22_ground([97.0, 282.0, 95.0, 106.0], 0.16, T22_PAVING)
+	_t22_ground([102.0, 108.0, 136.0, 222.0], 0.18, T22_PAVING)
 	_no_roof = false
 	_t22_hall(g)
 	_t22_park(g)
@@ -5103,7 +5127,7 @@ func _t22_hall(g: float) -> void:
 	_mode = M_STONE
 	_no_roof = true
 	# The garden under the frame: lawn and a ring of trees.
-	_t22_ground([r[0] + 0.5, r[1] - 0.5, r[2] + 0.5, r[3] - 0.5], 0.1, Color("#6d8f4c"))
+	_t22_ground([r[0] + 0.5, r[1] - 0.5, r[2] + 0.5, r[3] - 0.5], 0.19, Color("#6d8f4c"))
 	for iu in 6:
 		for iv in 3:
 			var p := _w(lerpf(r[0] + 7.0, r[1] - 7.0, iu / 5.0), lerpf(r[2] + 9.0, r[3] - 9.0, iv / 2.0))
@@ -5223,7 +5247,7 @@ func _t22_park(g: float) -> void:
 	var r := T22_PARK
 	_no_roof = true
 	_mode = M_STONE
-	_t22_ground(r, 0.1, Color("#79a052"))
+	_t22_ground(r, 0.19, Color("#79a052"))
 	var loop := PackedVector2Array()
 	var loop_in := PackedVector2Array()
 	var c := _w((r[0] + r[1]) * 0.5, (r[2] + r[3]) * 0.5)
@@ -5236,11 +5260,11 @@ func _t22_park(g: float) -> void:
 	for k in 24:
 		var k1 := (k + 1) % 24
 		var mid := (loop[k] + loop_in[23 - k]) * 0.5
-		_cap(PackedVector2Array([loop[k], loop[k1], loop_in[23 - k1], loop_in[23 - k]]), map.terrain_height(mid.x, mid.y) + 0.16, Color("#d8c9a8"))
+		_cap(PackedVector2Array([loop[k], loop[k1], loop_in[23 - k1], loop_in[23 - k]]), map.terrain_height(mid.x, mid.y) + 0.22, Color("#d8c9a8"))
 	var play := c - _a * 12.0
-	_cap(_circle(play, 7.0, 16), map.terrain_height(play.x, play.y) + 0.16, Color("#d0603f"))
+	_cap(_circle(play, 7.0, 16), map.terrain_height(play.x, play.y) + 0.22, Color("#d0603f"))
 	var pool := c + _a * 10.0 + _b * 3.0
-	_cap(_circle(pool, 5.0, 16), map.terrain_height(pool.x, pool.y) + 0.16, Color("#4f8fb8"))
+	_cap(_circle(pool, 5.0, 16), map.terrain_height(pool.x, pool.y) + 0.22, Color("#4f8fb8"))
 	for k in 14:
 		var ang := TAU * k / 14.0 + 0.2
 		var p := c + _a * cos(ang) * 36.0 + _b * sin(ang) * 22.0
