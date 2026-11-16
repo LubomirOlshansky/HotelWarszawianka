@@ -1724,8 +1724,12 @@ func _build_world() -> void:
 		boat_race.boarded.connect(_on_boat_boarded)
 		boat_race.left_boat.connect(_on_boat_left)
 	await LoadYield.tick("boat_race")
-	_build_tours(world)
-	await LoadYield.tick("_build_tours")
+	# The two guided tours, one script (tour.gd: each wires itself from its data file and its flags):
+	# Claire's drive round the Dekalog's places and Wiktor's round the cinemas. None with
+	# --dekalog=0 / --kino-tour=0.
+	dekalog_tour = _join(Tour.new("dekalog"), world) as Tour
+	kino_tour = _join(Tour.new("kino"), world) as Tour
+	await LoadYield.tick("tours")
 	_build_shisha(data, world)
 	await LoadYield.tick("_build_shisha")
 	# Bartek's call and the stranded TESŁO cars (ev_tow.gd wires itself), under main.gd; none with
@@ -3060,53 +3064,7 @@ func _build_crash_scenes() -> void:
 
 # --- the boat race ---------------------------------------------------------------------------
 
-# --- the activity kit: the tours ---------------------------------------------------------------
-
-## The two guided tours (tour.gd, the activity kit's first activity): Claire's drive round the
-## Dekalog's places and Wiktor's round the cinemas. None with --dekalog=0 / --kino-tour=0.
-func _build_tours(world: Node3D) -> void:
-	dekalog_tour = _build_tour(world, "dekalog", flags.dekalog_flag, flags.dekalog_log)
-	kino_tour = _build_tour(world, "kino", flags.kino_flag, flags.kino_log)
-
-
-## One tour from its data file (data/<id>_tour.json), joined to the director. `flag`: "0" none,
-## "call" the guest phones a second into the drive, "go" the tour starts with the car at the
-## pickup, "auto" that with the cards answered by themselves.
-func _build_tour(world: Node3D, id: String, flag: String, log_on: bool) -> Tour:
-	if flag == "0":
-		return null
-	var data := Tour.load_data(id)
-	if data.is_empty():
-		return null
-	var t := Tour.new()
-	t.name = "%sTour" % id.capitalize()
-	t.configure(data)
-	t.hud = hud
-	t.dialogue = dialogue
-	t.wallet = wallet
-	t.map = map
-	t.car = car
-	t.log_on = log_on
-	t.autopilot = flags.autopilot or flag == "auto"
-	t.force_hours = flag != ""
-	t.vehicle = func() -> Array:
-		if flying:
-			return [heli.global_position, heli.speed() * 3.6, true, 0.0]
-		return [car.global_position, car.vel.length() * 3.6, false, float(car.forward_speed)]
-	t.clock = func() -> float: return life.hour_now() if life != null else 12.0
-	world.add_child(t)
-	t.setup(world)
-	activities.add(t)
-	if flag in ["go", "auto"]:
-		get_tree().create_timer(1.0).timeout.connect(func() -> void:
-			var at := t.pickup_at()
-			car.global_position = Vector3(at.x, map.ground_height(at.x, at.y), at.y)
-			car.reset_physics_interpolation()
-			t.start())
-	elif flag == "call":
-		get_tree().create_timer(1.0).timeout.connect(func() -> void: t.ring())
-	return t
-
+# --- the questlines ----------------------------------------------------------------------------
 
 ## The questlines (story_quests.gd): each big quest joins with one `stories.add` here. A new quest
 ## thread adds its own block (id, names, friend, words, start spot, colour, hours, call / meet /

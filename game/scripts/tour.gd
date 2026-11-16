@@ -62,6 +62,63 @@ var _rng := RandomNumberGenerator.new()
 var _result: Dictionary = {}
 
 
+## `Tour.new("dekalog")`, `Tour.new("kino")`: the tour main.gd joins (TD-4 b6). The id is its `tag`
+## until `configure` sets the same one from the data file; it names the file and the flags `install`
+## reads. A check that builds a tour by hand calls `configure` itself.
+func _init(id := "") -> void:
+	if id != "":
+		tag = id
+
+
+## The tour wires itself (TD-4 b6; main.gd joins each one with one line): off with its own flag at
+## "0" (--dekalog=0, --kino-tour=0) or when its data can't be read. `autopilot` is on with the flag
+## "auto" too, and the flag set at all calls at any hour.
+func install(ctx: GameCtx) -> bool:
+	var own := _own_flags(ctx)
+	var how: String = own[0]
+	if how == "0":
+		return false
+	var d := load_data(tag)
+	if d.is_empty():
+		return false
+	super(ctx)
+	name = "%sTour" % tag.capitalize()
+	configure(d)
+	dialogue = ctx.dialogue
+	car = ctx.car
+	log_on = own[1]
+	autopilot = ctx.flags.autopilot or how == "auto"
+	force_hours = how != ""
+	vehicle = ctx.vehicle
+	clock = ctx.life_hour
+	return true
+
+
+## The test starts, at the moment main.gd made them (a timer, a second in): =go and =auto put the
+## car at the pickup and start the tour, =call (or the bare flag) rings.
+func joined(ctx: GameCtx) -> void:
+	var how: String = _own_flags(ctx)[0]
+	if how in ["go", "auto"]:
+		get_tree().create_timer(1.0).timeout.connect(func() -> void:
+			var at := pickup_at()
+			car.global_position = Vector3(at.x, map.ground_height(at.x, at.y), at.y)
+			car.reset_physics_interpolation()
+			start())
+	elif how == "call":
+		get_tree().create_timer(1.0).timeout.connect(func() -> void: ring())
+
+
+## This tour's own test flags, [the flag, the log]: --dekalog=... and --dekalog-log for Claire's,
+## --kino-tour=... and --kino-log for Wiktor's. A new tour adds its pair here and in dev_flags.gd.
+func _own_flags(ctx: GameCtx) -> Array:
+	match tag:
+		"dekalog":
+			return [ctx.flags.dekalog_flag, ctx.flags.dekalog_log]
+		"kino":
+			return [ctx.flags.kino_flag, ctx.flags.kino_log]
+	return ["", false]
+
+
 ## The data of the tour `id` ("kino", "dekalog"): data/<id>_tour.json. {} when it can't be read.
 static func load_data(id: String) -> Dictionary:
 	var path := "res://data/%s_tour.json" % id
