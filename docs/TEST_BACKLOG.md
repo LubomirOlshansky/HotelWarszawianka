@@ -35,6 +35,13 @@ Order: fixes waiting for proof, then what F asked about, then the plan rows neve
 - [ ] T29 The coffee run (#481) once merged: the bike, the rush, the drop-offs
 - [x] T30 The 11-08 quest fixes (#582, #587, #588, #596, #597) · runs 20261109-014024..-024304: raid cordon, drag, night meet by day, boat race confirmed; PT-48..PT-50, PT-52 (fixed), PT-53; PT-51 harness only
 
+- [ ] T31 First hour step 1 (#861): take the first kebab and drive away from the door; it goes back quietly within 45 s with one toast and no red card; and with no stand visited by 1:30
+- [ ] T32 First hour step 2 (#858): a police chase shows the gap bar, never a countdown; escape by 100 m, through a hiding spot, and into Mirek's garage unseen
+- [ ] T33 First hour step 3 (#863, once merged): the First steps list ticks in any order; the choice card at about 1:45, its ✕ ("just drive") never asks again
+- [ ] T34 First hour step 5 (#862): a rival's RACE button from 35 m ahead or behind, the call-out from the map's RYWALE card to the ring, a lost race and REWANŻ from the same start
+- [ ] T35 First hour step 6 (this thread's PRs): the card's ✕ on the choice card; each hint once, never in a race or a chase (stop in the ring, reverse, the minimap, HELI on a roof call, the first flight, the tow when stuck); the loading tips at 1266x585 and 16:9; the Tips page; the DEV page after 7 taps on the version and its toggles gone from the normal tabs
+- [ ] T36 P21 end to end: the whole first hour as a new player, in rows of under 6 minutes (one per step above), on the latest main after all six steps merge
+
 ## 3. Plan rows never run or left open
 
 - [ ] T17 P1 the other start streets (only Marszałkowska driven) · run -103535: Emilii Plater, Bracka, Krucza clean; Chmielna, Mokotowska still open · run -110225: Mokotowska clean bar one stop at -111,612; Chmielna open

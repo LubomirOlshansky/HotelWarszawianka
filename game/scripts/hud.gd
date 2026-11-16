@@ -408,6 +408,10 @@ var pill_owner := "call"
 var _card_side := false
 ## Whose card is up (tech-debt TD-16, `own_card`); null: nobody's, the press goes to every listener.
 var _card_owner: Object = null
+## First hour step 6: the ✕ in the card's top right corner (`set_card_close`), and the button it
+## presses (-1: the card has no ✕).
+var _card_x: Button
+var _card_x_as := -1
 var _side_call := false
 ## Loop 2d-1: the Podwózka app's route on the minimap (map coordinates), drawn dotted.
 var _mini_route := PackedVector2Array()
@@ -1683,6 +1687,14 @@ func _build_mission_panels() -> void:
 	head.add_child(_card_face)
 	head.move_child(_card_face, 0)
 	_card_title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	# First hour step 6 (Fable critique point 1): "no, thanks" as a ✕ in the corner, not a
+	# button of its own (`set_card_close`); hidden until a card asks for it.
+	_card_x = _chip(head, "✕", "", Color(0, 0, 0, 0))
+	_card_x.name = "card_close"
+	_card_x.custom_minimum_size = Vector2.ONE * TOUCH * pt
+	_card_x.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	_card_x.visible = false
+	_card_x.pressed.connect(func(): press_card_close())
 	_build_call_view()
 	add_child(_card)
 
@@ -1765,6 +1777,7 @@ func show_card(title: String, body: String, buttons: PackedStringArray, accent: 
 	accent = Access.tint(accent)  # colour-safe (access.gd)
 	_card_owner = null  # a new card is nobody's until its maker calls own_card
 	_drop_card_art()  # ... and has no picture until its maker gives it one
+	_set_card_x(-1)  # ... and no ✕ until its maker asks for one (`set_card_close`)
 	title = Lang.pick(title, title_en)
 	body = Lang.pick(body, body_en)
 	title_en = ""
@@ -1832,6 +1845,38 @@ func hide_card() -> void:
 	_card_owner = null
 	_show(_card, false)
 	_drop_card_art()
+	_set_card_x(-1)
+
+
+## First hour step 6: a ✕ in the top right corner of the card showing now, which presses button
+## `index` (to the card's owner, as a tap on that button would). Call it right after `show_card`
+## or `show_side_card` (and `own_card`); the next card shown, or `hide_card`, takes it away. The
+## index may be past the card's own buttons: the choice card's RACE, RIDES and FLY are 0 to 2 and
+## its ✕ is 3, "just drive" (Fable critique point 1). The pad's B and Esc do not press it: Esc
+## opens the settings, as it always has.
+func set_card_close(index: int) -> void:
+	_set_card_x(index)
+	_card.reset_size()
+	_mark()
+
+
+## The button the card's ✕ presses, or -1 when the card showing has none.
+func card_close() -> int:
+	return _card_x_as if card_showing() else -1
+
+
+## A tap on the card's ✕ (a check presses it here). False when the card showing has none.
+func press_card_close() -> bool:
+	if card_close() < 0:
+		return false
+	_press_card(_card_x_as)
+	return true
+
+
+func _set_card_x(index: int) -> void:
+	_card_x_as = index
+	if _card_x != null:
+		_card_x.visible = index >= 0
 
 
 ## Racer AI step 6a: a picture beside the words of the card showing now (the race result's two
@@ -2022,6 +2067,7 @@ func show_call(who: String, about: String, accent: Color, about_en := "", face :
 		buttons := PackedStringArray(["ODBIERZ|ANSWER", "ODRZUĆ|DECLINE"])) -> void:
 	accent = Access.tint(accent)  # colour-safe (access.gd)
 	_card_owner = null  # as show_card: a new call is nobody's until own_card
+	_set_card_x(-1)
 	messages.call_rang()  # the message director spaces the next call from this one
 	about = Lang.pick(about, about_en)
 	if "|" in who:

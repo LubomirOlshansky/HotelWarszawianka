@@ -158,6 +158,7 @@ class Hud extends CanvasLayer:
 
 	func _up(title: String, text: String, btn: PackedStringArray) -> void:
 		_owner = null
+		close_as = -1
 		card = title
 		body = text
 		buttons = btn.size()
@@ -175,8 +176,24 @@ class Hud extends CanvasLayer:
 		shown += 1
 		cards.append(title)
 
+	## hud.gd `set_card_close`: the button the card's ✕ presses (-1: none); `press_card_close`.
+	var close_as := -1
+
+	func set_card_close(index: int) -> void:
+		close_as = index
+
+	func card_close() -> int:
+		return close_as if card != "" else -1
+
+	func press_card_close() -> bool:
+		if card_close() < 0:
+			return false
+		press(close_as)
+		return true
+
 	func hide_card() -> void:
 		_owner = null
+		close_as = -1
 		card = ""
 		body = ""
 		buttons = 0
