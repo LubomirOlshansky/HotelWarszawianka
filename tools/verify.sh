@@ -1051,6 +1051,15 @@ for s in $want; do
 				0) row PASS "roadprofiles" $secs "$(grep '^road_profiles: ' $logs/roadprofiles.log | tail -1)" ;;
 				*) row FAIL "roadprofiles" $secs "$(grep '^road_profiles: ' $logs/roadprofiles.log | tail -1) ($logs/roadprofiles.log)" ;;
 			esac ;;
+		railcovers)
+			t0=$EPOCHREALTIME
+			python3 -I $ROOT/tools/rail_covers.py --check > $logs/railcovers.log 2>&1
+			code=$?
+			secs=$(printf '%.0f' $(( EPOCHREALTIME - t0 )))
+			case $code in
+				0) row PASS "railcovers" $secs "$(grep '^rail_covers: ' $logs/railcovers.log | tail -1)" ;;
+				*) row FAIL "railcovers" $secs "$(grep '^rail_covers: ' $logs/railcovers.log | tail -1) ($logs/railcovers.log)" ;;
+			esac ;;
 		fixes)
 			t0=$EPOCHREALTIME
 			python3 -I $ROOT/tools/road_fixes.py --check > $logs/fixes.log 2>&1

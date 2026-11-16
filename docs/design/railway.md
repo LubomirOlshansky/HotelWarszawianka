@@ -21,6 +21,8 @@ Where the line runs in the box (game metres, x east, z south):
 | --- | --- | --- |
 | Ochota cutting | x -2930 .. -1924, z 790 .. 1230 | 12 tracks in the cutting by Plac Zawiszy; station building (-2313, 929), 7 platforms |
 | Tunnel | x -1924 .. 171 | not in the data (underground): Centralna, Śródmieście and Śródmieście WKD below ground |
+| Plac Zawiszy slab | x -2442 .. -2374, z 937 .. 974 | the line runs ~60 m under the Al. Jerozolimskie arm (two carriageways, the tram stop, the pavements: one slab, the cutting open each side); the data has one narrow deck a way, 6-6.5 m apart, so `tools/rail_covers.py` (2026-11-16, `zawiszy`) gives deck group 14 an 8 m join reach (`j`, map_builder.gd `_deck_gaps`): one slab, no ground or rail change |
+| Żelazna over the tunnel | x -1950 .. -1920, z 784 .. 817 | just east of the cross-city tunnel's west mouth, on the tunnel's roof: a ground street, not a bridge (`rail_covers.py` `zelazna` takes OSM's deck out; map_builder.gd `_over_tunnel` keeps the cutting's bank from digging under any street inside Trains.TUNNELS) |
 | Powiśle | x 171 .. 400, z 90 .. -50 | the west portal under the upper pavilion (171, 89); two side platforms on the embankment; the round lower pavilion (401, -6) |
 | Most Średnicowy | from (400, -45) east | decks `dk` 28-35 over Wybrzeże Kościuszkowskie, the Vistula and Wybrzeże Szczecińskie |
 | Stadion | (1388, -1337) | the 1955 pavilion box (4.3 m), platforms north and south of it |

@@ -150,6 +150,7 @@ raceplanner          quick
 racereport           quick
 racesignals          quick
 radio                quick
+railcovers           quick
 railsignals          smoke
 rain                 local     slow
 ram                  runs

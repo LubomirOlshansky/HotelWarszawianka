@@ -1023,6 +1023,11 @@ func _fill_height(x: float, z: float) -> float:
 	# apron's corridor, from 3 m under the deck on), or the car drops off it (check_drive).
 	if _near_apron(x, z):
 		return h
+	# Over a tunnel (Trains.TUNNELS) the ground is solid: the cutting ends at the mouth, and a
+	# street over the tunnel's roof never sinks into the bank of a track that ended under it
+	# (Żelazna by the cross-city tunnel's west mouth, F 2026-11-16).
+	if _over_tunnel(x, z):
+		return h
 	var land := _landing_blend(x, z)
 	if land <= 0.0:
 		return h
@@ -1044,6 +1049,30 @@ func _fill_height(x: float, z: float) -> float:
 	if c.x < g and _by_cut_deck(x, z):
 		return g
 	return c.x
+
+
+## Whether (x, z) lies in one of Trains.TUNNELS (the rails are cut there, `trim_rails`).
+func _over_tunnel(x: float, z: float) -> bool:
+	var p := Vector2(x, z)
+	for t: Array in _tunnel_polys:
+		if (t[0] as Rect2).has_point(p) and Geometry2D.is_point_in_polygon(p, t[1]):
+			return true
+	return false
+
+
+## [box, polygon] a tunnel, made when the builder is made (read from the streamer's thread too).
+var _tunnel_polys: Array = _make_tunnel_polys()
+
+
+static func _make_tunnel_polys() -> Array:
+	var out: Array = []
+	for t: Array in Trains.TUNNELS:
+		var poly := PackedVector2Array(t)
+		var r := Rect2(poly[0], Vector2.ZERO)
+		for q in poly:
+			r = r.expand(q)
+		out.append([r, poly])
+	return out
 
 
 ## Deck segments over the cut box by 16 m cell (_index_cut_decks, after the decks load).
@@ -1945,7 +1974,8 @@ func _load_decks() -> void:
 		_decks.append({"pts": pts, "cum": cum, "h": hs, "l": float(piece["l"]),
 				"r": float(piece["r"]), "g": int(piece["g"]), "k": String(piece["k"]),
 				"o": PackedByteArray(piece.get("o", [])), "box": box.grow(reach),
-				"rail": String(piece.get("rail", "")), "lp": PackedFloat32Array(piece.get("lp", []))})
+				"rail": String(piece.get("rail", "")), "lp": PackedFloat32Array(piece.get("lp", [])),
+				"j": float(piece.get("j", DECK_JOIN))})
 
 
 # --- sunken places ---------------------------------------------------------------------------
@@ -7978,6 +8008,8 @@ static func _box_of_pts(pts: PackedVector2Array) -> Rect2:
 ## (Most Poniatowskiego). Up to DECK_JOIN apart, the slabs now meet half way across the gap, the
 ## parapets there go and a low kerb marks each piece's edge (the car still can't cross it: the
 ## parapet's collider stays where there is a drop under it).
+## A piece may carry its own reach (`j`, tools/rail_covers.py): the slab over a short rail tunnel
+## (Plac Zawiszy, F 2026-11-16) is one deck from mouth to mouth, its pieces up to 8 m apart.
 const DECK_JOIN := 6.0
 ## A deck with its own steel railing (`rail`, tools/port_bridge.py: Port Czerniakowski's
 ## footbridge, green bars in the Mapillary photos): the railing's height and the bars' spacing.
@@ -8007,7 +8039,7 @@ func _deck_gaps(di: int) -> PackedVector2Array:
 			var sgn := -1.0 if side == 0 else 1.0
 			var edge := float(d["l"]) if side == 0 else float(d["r"])
 			var t := 0.5
-			while t <= DECK_JOIN:
+			while t <= float(d.get("j", DECK_JOIN)):
 				if _other_piece_at(di, g, pts[i] + right * sgn * (edge + t)):
 					if side == 0:
 						gap.x = t
